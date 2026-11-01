@@ -1,13 +1,18 @@
 // The player's twist: the mouse over the board, the click, and the four gems turning about the cursor
 #include "Board.h"
 
+#include "Buffer.h"
+
 #include <cmath>
 
 #include "GameText.h"
 #include "Piece.h"
 #include "Profile.h"
 #include "Res.h"
+#include "TwistButton.h"
 #include "TwistUtil.h"
+#include "WheelSpin.h"
+#include "WidgetManager.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
 
@@ -32,6 +37,79 @@ void Board::MouseUp(int x, int y, int theClickCount)
 
 void Board::MouseWheel(int theDelta)
 {
+}
+
+void Board::KeyDown(KeyCode theKey)
+{
+	if (mApp->mDialogMap.size() != 0)
+		return;
+	if (theKey == KEYCODE_PAUSE || theKey == KEYCODE_ESCAPE) {
+		if (!IsBusy() && !mUnknown37C4 && !mUnknown2629 && mUnknown160 == 0 && mUnknown2208 == nullptr) {
+			if (mUnknown1570 == 0)
+				Pause(true);
+			else
+				Unpause(true);
+		}
+	} else {
+		bool aPlaying = !mUnknown37C4 && !mUnknown2629;
+		if (-1 < mApp->mAutoPlayMode)
+			aPlaying = false;
+		// Enter or space stops the wheel
+		if (aPlaying && (theKey == KEYCODE_RETURN || theKey == KEYCODE_SPACE) && gWheelSpin != nullptr &&
+			!gWheelSpin->mButton->mDisabled)
+			static_cast<ButtonListener*>(gWheelSpin)->ButtonDepress(0);
+		if (aPlaying && mUnknown20D0) {
+			int aY = mUnknown1C04;
+			int aRow = GetRowAt(aY);
+			int aCol = GetColAt(mUnknown1C00);
+			if (theKey == KEYCODE_RETURN || theKey == KEYCODE_SPACE) {
+				// A click on the cursor's gem
+				MouseDown(gGemWidth / 2 + mUnknown1C00, gGemHeight / 2 + aY, 0, 1);
+			} else {
+				// The arrows move the cursor, unless the opposite one is down too
+				aY = aRow;
+				if (theKey == KEYCODE_LEFT) {
+					if (aCol < 1 || mUnknown21D9 || mWidgetManager->mKeyDown[KEYCODE_RIGHT])
+						goto done;
+					aCol--;
+				} else if (theKey == KEYCODE_UP) {
+					if (aRow < 1 || mUnknown21D9 || mWidgetManager->mKeyDown[KEYCODE_DOWN])
+						goto done;
+					aY = aRow - 1;
+				} else if (theKey == KEYCODE_RIGHT) {
+					if (mCols - 2 <= aCol || mUnknown21D9 || mWidgetManager->mKeyDown[KEYCODE_LEFT])
+						goto done;
+					aCol++;
+				} else {
+					if (theKey != KEYCODE_DOWN)
+						goto debug;
+					if (mRows - 2 <= aRow || mUnknown21D9 || mWidgetManager->mKeyDown[KEYCODE_UP])
+						goto done;
+					aY = aRow + 1;
+				}
+				MoveCursor(aY, aCol, false, nullptr);
+				// port: 0x6a45da then moves the mouse pointer to the cursor (SetCursorPos) while +0x1430 holds a
+				// piece; the port leaves the pointer where it is (docs/NOTES.md, Deviations)
+				goto done;
+			}
+		}
+	}
+debug:
+	// Ctrl and a digit loads debugN.sav (the original's test saves)
+	if ((unsigned int)(theKey - KEYCODE_ASCIIBEGIN) < 10 && mWidgetManager->mKeyDown[KEYCODE_CONTROL]) {
+		mApp->mScoresLoaded = false;
+		Buffer aBuffer;
+		bool aRead = mApp->ReadBufferFromFile(StrFormat("debug%d.sav", theKey - KEYCODE_ASCIIBEGIN), &aBuffer, true);
+		if (aRead) {
+			LoadGame(aBuffer);
+			mUnknown21A2 = false;
+			SetScore(mUnknown168, false);
+		}
+		mUnknown2190 = mUnknown1FB8 - 1;
+		mApp->mScoresLoaded = true;
+	}
+done:
+	Widget::KeyDown(theKey);
 }
 
 void Board::UpdateCursor(int x, int y)

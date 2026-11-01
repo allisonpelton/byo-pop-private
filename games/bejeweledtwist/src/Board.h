@@ -736,7 +736,8 @@ public:
 	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override;  // 0x6c7232
 	void MouseUp(int x, int y, int theClickCount) override;      // 0x6a52c1
 	void MouseDrag(int x, int y) override;                       // 0x6a52cb
-	void MouseWheel(int theDelta) override;                      // 0x6a52d7
+	void MouseWheel(int theDelta) override;
+	void KeyDown(KeyCode theKey) override;                       // 0x6ca439: pause, the wheel, the cursor's keys                      // 0x6a52d7
 	void UpdateCursor(int x, int y);                             // 0x6bdbd9 (slot 70, the board's own)
 	void StartTwist(bool theInstant, int theX, int theY);        // 0x6c6e56
 	void SetupTwist(int theX, int theY);                         // 0x6bb171: the four gems at +0x20f4

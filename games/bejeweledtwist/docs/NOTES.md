@@ -263,6 +263,9 @@ other modes, the shows and the end of a game.
 
 Each is a change without a visible effect in play.
 
+- The arrow keys (Board::KeyDown, 0x6ca439): after moving the cursor, the original moves the mouse pointer onto it
+  (0x6a45da, SetCursorPos) while +0x1430 holds a piece. The framework cannot move the pointer; the port leaves it
+  where it is. Unlike the rest of this list this one shows: the pointer stays put, and the next small move of the mouse takes the cursor back under it. It needs a framework call to move the pointer (SDL_WarpMouseInWindow), asked of the coordinator.
 - PopCap's beta dump: after loading the players, the original reads a text file at a path on PopCap's own network
   (0x761f11) into a buffer (app +0x1024) when it exists (0x764814). It never exists outside PopCap; the port leaves it
   out.
