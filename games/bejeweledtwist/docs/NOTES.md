@@ -289,3 +289,5 @@ Each is a change without a visible effect in play.
   is set, which nothing ever sets; the port leaves the labels out.
 - A devil gem's spark (Piece::AddSpark): the original makes the effect and then returns null without adding or
   deleting it; the port deletes it.
+- The points' smoke (SmokeTraveller): the board's destructor frees its list (+0x2170) without deleting the smoke
+  still on its way; the port deletes it there, without the points or the sparks its own destructor would add.
