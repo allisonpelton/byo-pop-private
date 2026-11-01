@@ -48,6 +48,7 @@ def orig_sounds(path):
             b['src'] = s.get('load')
             b['rate'] = s.get('fmt', (0,))[0]
             b['freq'] = s.get('freq', 0)
+            b['vol'], b['pan'] = s.get('vol', 0), s.get('pan', 0)   # a duplicate starts with its source's
         elif 'src' not in b or b['src'] is None:
             continue
         elif ev in ('volume', 'pan', 'freq'):
@@ -116,8 +117,9 @@ def orig_music(path):
                         if q[2] == 'BASS_ChannelSetPosition' and q[3] == h), 0)
             out.append((t, 'music play', song, 'order=%d' % (pos & 0xffff)))
         elif fn == 'BASS_ChannelStop':
-            # a play starts with stops; a stop on its own (a fade's end, a StopMusic) is an event
-            nxt = [q[2] for q in lines[k + 1:k + 40] if len(q) > 3 and q[3] == h and q[2] != '=' and int(q[0]) - t <= 5]
+            # a play starts with stops; a stop on its own (a fade's end, a StopMusic) is an event. The setup calls
+            # before a play can take 20 ms or more in a slow sandbox run, so a stop joins a play up to 50 ms after it
+            nxt = [q[2] for q in lines[k + 1:k + 40] if len(q) > 3 and q[3] == h and q[2] != '=' and int(q[0]) - t <= 50]
             setup = ('BASS_ChannelStop', 'BASS_ChannelSetPosition', 'BASS_ChannelSetFlags',
                      'BASS_ChannelSetAttributes', 'BASS_ChannelIsActive')
             first = next((f for f in nxt if f not in setup), None)
@@ -139,7 +141,9 @@ def port_music(path):
             continue
         t, ev = int(p[0]), p[2]
         if ev == 'load':
-            loads.append((int(p[3]), p[5].split('=')[1]))
+            # the proxy's CRC always covers 32 KB, so a shorter song's cannot agree: compared as 'short'
+            short = len(p) > 6 and p[6].startswith('len=') and int(p[6][4:]) < 0x8000
+            loads.append((int(p[3]), 'short' if short else p[5].split('=')[1]))
         elif ev in ('play', 'fadein'):
             off = int(p[4].split('=')[1])
             out.append((t, 'music play', int(p[3]), 'order=%d' % (max(off, 0) & 0xffff)))
@@ -202,7 +206,7 @@ def main():
     musics = {}
     for k, (o, p) in enumerate(zip(omloads, pmloads)):
         musics[k] = p[0]
-        if o != p[1]:
+        if o != p[1] and p[1] != 'short':
             print('music %d: original crc %s, port id %d crc %s' % (k, o, p[0], p[1]))
     names = {p[0]: p[1].rsplit('/', 1)[-1].rsplit('\\', 1)[-1] for p in ploads}
 
