@@ -477,7 +477,7 @@ void HallOfFame::LoadLists()
 		size_t aPos = aFiles[i].find(".bwa");
 		std::string aName = aPos == std::string::npos ? aFiles[i] : aFiles[i].substr(0, aPos);
 		Profile* aProfile = new Profile(aName, false);
-		if (aProfile->Load())
+		if (aProfile->Load(true))
 			aProfiles.push_back(aProfile);
 		else
 			delete aProfile;

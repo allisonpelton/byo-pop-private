@@ -102,13 +102,11 @@ fix there.
 
 ### Faults the pilot found
 
-The first waits until the user has seen the review page (2026-11-01).
-
-The tome stays locked on the port's main menu (the pilot's item seen in 9 shots). The original's profile load (0x48a390)
-calls the Lua functions `_debug_profile_loaded_value` (per value) and `_debug_profile_done_loading` (at the end) whenever the
-app's flag at +0x950 is set, with no cheat check; cheat.lua's `_debug_profile_done_loading` sets UnlockedBestiary for a
-profile past the first book, so the original's menu shows the tome unlocked for the pilot's Tester. The port's
-`Profile.cpp` skips both calls ("cheats are off").
+The tome stayed locked on the port's main menu. The original's profile load (0x48a390) calls cheat.lua's global
+`_debug_profile_loaded_value(key, name)` for each value read and `_debug_profile_done_loading(name)` at the end, whenever
+the app has a profile (+0x950) and the load is not the hall of fame's (its argument 1), with no cheat check; the second
+sets UnlockedBestiary for a profile past the first book. The port skipped both. Fixed (2026-11-01): `Profile::Load` makes
+the calls; the hall of fame's loads pass `theQuiet`.
 
 The battles showed a hill behind the enemy in the port only (the item seen in 5 shots). arena.lua draws the midground
 animation (`images/pam/MG<book>-<chapter>.pam`, the island) only when `gCApp:Is3DAccelerated()`, and the port reported 3D
