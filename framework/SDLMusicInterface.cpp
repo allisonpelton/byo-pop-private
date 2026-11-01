@@ -21,14 +21,17 @@ SDLMusicInterface::~SDLMusicInterface()
 	UnloadAllMusic();
 }
 
-// The CRC-32 of a song's first 32 KB, as tools/bassproxy logs the original's BASS_MusicLoad
-static unsigned LogCrc(const std::string& theFileName)
+// The CRC-32 of a song's first 32 KB, as games/bookwormadv/tools/bassproxy logs the original's BASS_MusicLoad, and how
+// many bytes it covers: the proxy, which gets no length, always reads 32 KB, so a shorter song's CRCs cannot agree
+static unsigned LogCrc(const std::string& theFileName, size_t* theSize)
 {
 	std::vector<uint8_t> aData;
+	*theSize = 0;
 	if (!Platform::VFS::Get().ReadAll(theFileName, aData))
 		return 0;
 	unsigned aCrc = 0xffffffff;
 	size_t aSize = std::min<size_t>(aData.size(), 0x8000);
+	*theSize = aSize;
 	for (size_t i = 0; i < aSize; i++)
 	{
 		aCrc ^= aData[i];
@@ -69,7 +72,11 @@ bool SDLMusicInterface::LoadMusic(int theSongId, const std::string& theFileName)
 	info.mHandle = handle;
 	mSongs[theSongId] = info;
 	if (SoundLogOn())
-		SoundLog("music load %d %s crc=%08x", theSongId, theFileName.c_str(), LogCrc(theFileName));
+	{
+		size_t aSize;
+		unsigned aCrc = LogCrc(theFileName, &aSize);
+		SoundLog("music load %d %s crc=%08x len=%u", theSongId, theFileName.c_str(), aCrc, (unsigned)aSize);
+	}
 	return true;
 }
 

@@ -19,7 +19,11 @@ class SDLSoundManager;
 // port: a test log of every sound and music event, for comparing with the original's (games/bookwormadv/tools/pilot/
 // soundcmp.py). Each line is the update count and the event. Off unless BYOPOP_SOUNDLOG names a file, which is opened
 // on the first event.
+#if defined(__GNUC__) || defined(__clang__)
+void SoundLog(const char* theFormat, ...) __attribute__((format(printf, 1, 2)));
+#else
 void SoundLog(const char* theFormat, ...);
+#endif
 bool SoundLogOn();
 
 class SDLSoundInstance : public SoundInstance

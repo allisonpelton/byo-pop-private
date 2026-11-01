@@ -80,6 +80,8 @@ SDLSoundInstance::~SDLSoundInstance()
 int SDLSoundInstance::LogVolume() const
 {
 	double aVolume = mBaseVolume * mVolume * mManager->mMasterVolume;
+	if (!(aVolume > 0.0) || !std::isfinite(aVolume))   // silent, or not a number the cast below could take
+		return -10000;
 	int aDB = (int)((std::log10(1.0 + aVolume * 9.0) - 1.0) * 2333.0);
 	return aDB < -2000 ? -10000 : aDB;
 }
@@ -109,12 +111,16 @@ void SDLSoundInstance::Release()
 void SDLSoundInstance::SetBaseVolume(double theBaseVolume)
 {
 	mBaseVolume = theBaseVolume;
+	if (SoundLogOn())   // DSoundInstance::RehupVolume sets the buffer's volume
+		SoundLog("volume %d #%d %d", mSfxID, mLogNum, LogVolume());
 	RehupVolume();
 }
 
 void SDLSoundInstance::SetBasePan(int theBasePan)
 {
 	mBasePan = theBasePan;
+	if (SoundLogOn())   // and RehupPan its pan
+		SoundLog("pan %d #%d %d", mSfxID, mLogNum, mBasePan + mPan);
 	RehupVolume();
 }
 
@@ -129,7 +135,8 @@ void SDLSoundInstance::AdjustPitch(double theNumSteps)
 void SDLSoundInstance::SetVolume(double theVolume)
 {
 	mVolume = theVolume;
-	SoundLog("volume %d #%d %d", mSfxID, mLogNum, LogVolume());
+	if (SoundLogOn())
+		SoundLog("volume %d #%d %d", mSfxID, mLogNum, LogVolume());
 	RehupVolume();
 }
 
@@ -145,8 +152,9 @@ bool SDLSoundInstance::Play(bool looping, bool autoRelease)
 	Stop();
 	mHasPlayed = true;
 	mAutoRelease = autoRelease;
-	SoundLog("play %d #%d vol=%d pan=%d pitch=%.4f loop=%d", mSfxID, mLogNum, LogVolume(), mBasePan + mPan, mPitch,
-		looping ? 1 : 0);
+	if (SoundLogOn())
+		SoundLog("play %d #%d vol=%d pan=%d pitch=%.4f loop=%d", mSfxID, mLogNum, LogVolume(), mBasePan + mPan, mPitch,
+			looping ? 1 : 0);
 	mVoice = Mixer::Get().StartVoice(mData, 0.0f, 0.0f, mPitch, looping);
 	RehupVolume();
 	return mVoice != 0;
@@ -263,8 +271,8 @@ void SDLSoundManager::SetVolume(double theVolume)
 	for (int i = 0; i < MAX_CHANNELS; i++)
 		if (mInstances[i])
 		{
-			// DSoundManager::SetVolume sets each instance's buffer volume again
-			if (mInstances[i]->mVoice)
+			// DSoundManager::SetVolume sets each live instance's buffer volume again, playing or not
+			if (SoundLogOn())
 				SoundLog("volume %d #%d %d", mInstances[i]->mSfxID, mInstances[i]->mLogNum, mInstances[i]->LogVolume());
 			mInstances[i]->RehupVolume();
 		}
