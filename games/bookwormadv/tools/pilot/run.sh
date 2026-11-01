@@ -27,6 +27,8 @@ python "$T/gen.py" "$T/$name.txt" "$P/scripts/$name.orig.txt" "$P/scripts/$name.
 if [ "$which" != port ]; then
 	# The script is timed to the original's own updates (gen.py): SexyAppBase's mUpdateCount, at +0x484 in the app
 	# (0x442e60 reads it), whose pointer is the global at 0x8259e4.
+	# A shot inside the sandbox shows exactly the update it is labelled with when origrun can see that the game has
+	# drawn it: mHasPendingDraw at +0x45a and mUpdateAppState at +0x488 (Process, 0x549b10; DrawDirtyStuff, 0x5446f0).
 	run=pilot-$name
 	R=$W/build/origrun/$run
 	rm -rf "${R:?}"
@@ -45,7 +47,7 @@ if [ "$which" != port ]; then
 	cp "$P/backup/users/Allison.bwa" "$P/portuser0/users/Tester.bwa" "$U/"
 	python "$T/inireg.py" "$P/portuser0/registry.ini" "$P/start.reg"
 	"$W/build/native/rundesk.exe" "$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
-		--reg "$(cygpath -w "$P/start.reg")" --3d off --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
+		--reg "$(cygpath -w "$P/start.reg")" --3d off --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
 	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$name.orig.log" | tail -5
 	S=$W/build/origrun/$run/shots
 	python - "$S" "$P/orig" "$T/$name.txt" <<'EOF'
