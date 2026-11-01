@@ -170,6 +170,8 @@ public:
 	int mUnknown254 = -1;                   // +0x254
 	int mUnknown258 = -1;                   // +0x258
 	int mUnknown420 = 0;                    // +0x420
+	CurvedVal mUnknown498;                  // +0x498: set by 0x6b40b5; while it is not 0 the rank bar draws the
+	                                        // overlays above priority 50 under it
 	bool mUnknown6CC = false;               // +0x6cc
 	int mUnknown6D0 = 0;                    // +0x6d0
 	int mUnknown70C = 0;                    // +0x70c
@@ -783,6 +785,7 @@ public:
 	void Refill();                               // 0x6c755e: once the matched gems have gone
 	void StartUnknown3880();                     // 0x6b681d
 	void StartUnknown34F0();                     // 0x6b8bca: a turn ends
+	void ShowRankBonus(int theBonus);            // 0x6ab269: the rank bar (RankBonusWidget) with the bonus
 	void AddStat(int theStat, int theDelta);     // 0x6a450f: the game's stat and the app's copy (unless +0x37c4)
 	void EaseCursor();                           // 0x6a4674: the cursor drawn eases to the cursor
 	// 0x6bd338: the bombs' and devil gems' counters show their warnings; true when the game ends on one at zero

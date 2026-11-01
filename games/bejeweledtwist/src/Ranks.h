@@ -22,6 +22,8 @@ public:
 	void Load();               // 0x73991a
 	// 0x739332: the rank's name; below 0 the game's "Trainee" text, past the last the last one's
 	SexyString GetName(int theRank) const;
+	// 0x738fae: the points theRank needs; past the last rank each one more needs the last step again
+	int GetPoints(unsigned int theRank) const;
 };
 
 }  // namespace Sexy

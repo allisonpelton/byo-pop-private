@@ -18,6 +18,7 @@
 #include "Traveller.h"
 #include "WheelSpin.h"
 #include "Profile.h"
+#include "RankBonusWidget.h"
 #include "Ranks.h"
 #include "Res.h"
 #include "SoundInstance.h"
@@ -429,11 +430,10 @@ void Board::UpdateGame()
 		if (0.0f < mUnknown380C) {
 			float aLeft = (float)((double)mUnknown380C - (double)0.01f);
 			mUnknown380C = aLeft;
-			// port: the RankBonusWidget (mUnknown26A0) lets the level start in its states 2 and 5; it is not ported,
-			// so while there is one the level waits
-			if (mUnknown26A0 != nullptr)
-				NotPorted("Board::UpdateGame: the RankBonusWidget's state");
-			if (mUnknown2208 == nullptr && mUnknown1474 == nullptr && mUnknown26A0 == nullptr) {
+			// The rank bar lets the level start once it waits (2) or goes (5)
+			RankBonusWidget* aRankBonus = static_cast<RankBonusWidget*>(mUnknown26A0);
+			if (mUnknown2208 == nullptr && mUnknown1474 == nullptr &&
+				(aRankBonus == nullptr || aRankBonus->mState == 2 || aRankBonus->mState == 5)) {
 				if (aLeft <= 0.0f) {
 					// The trial's limit (the copy is always registered) is left out
 					// port: the VizManager's next look (0x757ff5) once it is ported
@@ -2571,8 +2571,7 @@ void Board::UpdateGameOver()
 			int aBonus = Ftol((double)(float)std::pow((double)aScore, (double)0.6f) / 100.0);  // 0x670a49
 			mUnknown269C = aBonus;
 			if (aBonus != 0) {
-				// port: the RankBonusWidget (0x6ab269, into +0x26a0) comes with the ranks
-				NotPorted("Board::UpdateGameOver: the rank's bonus (0x6ab269)");
+				ShowRankBonus(aBonus);
 			}
 		}
 		mUnknown26C4 = 2.0f;

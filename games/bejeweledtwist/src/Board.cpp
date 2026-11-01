@@ -15,6 +15,8 @@
 #include "Shockwave.h"
 #include "Traveller.h"
 #include "Profile.h"
+#include "RankBonusWidget.h"
+#include "Ranks.h"
 #include "PropertiesParser.h"
 #include "Res.h"
 #include "TwistUtil.h"
@@ -1491,4 +1493,28 @@ void Board::SaveGame(Buffer* theBuffer, bool theReplays)
 	theBuffer->WriteBytes((const uchar*)&mUnknown392C, 4);
 	theBuffer->WriteLong(mUnknown1FC);
 	// (and "SaveGame ENDS")
+}
+
+void Board::ShowRankBonus(int theBonus)
+{
+	if (mUnknown26A0 != nullptr) {
+		mApp->mWidgetManager->RemoveWidget(mUnknown26A0);
+		delete mUnknown26A0;
+	}
+	AddStat(0x38, theBonus);
+	// The ranks the points already reach (the rank goes up only here and in the bar)
+	Profile* aProfile = mApp->mProfile;
+	while (aProfile->mRank < (int)mApp->mRanks->mRanks.size() - 1 &&
+		(unsigned int)mApp->mRanks->GetPoints(aProfile->mRank + 1) <= (unsigned int)aProfile->mUnknown160)
+		aProfile->mRank++;
+	if ((unsigned int)aProfile->mUnknown160 < (unsigned int)mApp->mRanks->GetPoints(aProfile->mRank) ||
+		(unsigned int)mApp->mRanks->GetPoints(aProfile->mRank + 1) <= (unsigned int)aProfile->mUnknown160)
+		aProfile->mUnknown160 = mApp->mRanks->GetPoints(aProfile->mRank);
+	int aX = Ftol((double)mApp->mWidth * 0.5);
+	if (gApp->mLastGameMode == 1)
+		aX += Ftol((double)gApp->mScale * -90.0);
+	float aYFrac = mGameMode == 3 ? 0.75f : 0.5f;
+	int aY = Ftol((double)mApp->mHeight * (double)aYFrac);
+	mUnknown26A0 = new RankBonusWidget(aProfile->mUnknown160, theBonus, aX, aY);
+	mApp->mWidgetManager->AddWidget(mUnknown26A0);
 }

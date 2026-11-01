@@ -99,3 +99,23 @@ SexyString Ranks::GetName(int theRank) const
 		return mRanks[theRank].mName;
 	return mRanks.back().mName;
 }
+
+int Ranks::GetPoints(unsigned int theRank) const
+{
+	int aPoints = 0;
+	if (mRanks.size() != 0) {
+		if (mRanks.size() <= theRank) {
+			if (mRanks.size() != 1) {
+				int aBefore = mRanks[mRanks.size() - 2].mPoints;
+				int aLastPoints = mRanks[mRanks.size() - 1].mPoints;
+				int aLast = (int)mRanks.size() - 1;
+				if ((int)theRank <= aLast)
+					return mRanks[aLast].mPoints;
+				return mRanks[aLast].mPoints + (theRank - aLast) * (aLastPoints - aBefore);
+			}
+			theRank = 0;
+		}
+		aPoints = mRanks[theRank].mPoints;
+	}
+	return aPoints;
+}
