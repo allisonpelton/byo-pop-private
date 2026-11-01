@@ -31,7 +31,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   Core Audio watch; rundesk silences only SDL). Its byte-patch list (git-ignored) pins a copy's random seed to the
   port's and skips trial screens, and its update-timed shots and bursts capture both sides at the same game update
   (`at`, `burst ... update`); a worktree stages copies under a short path with `--stage-root`. Its `hw*` input commands
-  are unconfirmed (ORIGRUN.md, gaps). It does not redirect the registry or saves. It cannot stop a message
+  are unconfirmed (ORIGRUN.md, gaps). It does not redirect the registry or saves, and it need not: "You can mess with
+  the registry entries for PopCap games all you like. I promise." (the user, 2026-11-01), so a run may set, change or
+  delete any PopCap game's own registry values (Is3D, screen mode, the 3D test's results) without restoring them; the
+  rest of the registry stays untouched. It cannot stop a message
   box's own sound or a MessageBeep, and it has no guard against URL or program launches, so a script never clicks a
   link, "Buy" or "More Games" button. When a run really needs real sound, the user turns the speakers off for a short
   stretch or overnight.
@@ -154,9 +157,12 @@ Git and publishing:
   merge, a session compares its game with the original exe screen by screen (the original run under rundesk at the
   same points; every screen, dialog and text, music and sounds by their state, losing and regaining the focus),
   natively and in the web build, and fixes every difference. The screenshots are compared by `tools/shotdiff`
-  (`docs/SHOTDIFF.md`), not by eye: a session reads its summary, looks only at the crops of the boxes it flags, and
-  leaves what needs a person's judgement on the user's review page without waiting for it. Whether every game uses the
-  review page waits on the user's verdict on a one-game pilot (Bookworm Adventures, 2026-11-01). Every game is tested as
+  (`docs/SHOTDIFF.md`), not by eye: a session reads its summary and looks only at the crops of the boxes it flags. The
+  pilot on Bookworm Adventures settled who judges them (the user, 2026-11-01: "Basically everything appears to be a
+  timing difference, so this tool still isn't usable"; then "Yes, switch"). The session judges every flagged difference
+  itself and fixes or explains each one, timing included: it lines up the input with the game's updates, or masks
+  animation that runs on its own clock and lists each mask with its reason. The user's review page holds only what a
+  session truly cannot judge, and the user sees it only once it holds every game. Every game is tested as
   Bejeweled is: its deviations
   listed in its notes, each without a visible effect; every RNG draw kept in its order; a frozen baseline of the port
   with a regression check that proves later fixes and mods leave unmodded play unchanged. Every memory leak of the
@@ -179,6 +185,20 @@ Git and publishing:
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
   libraries a game itself uses and descriptions of file formats are fine.
+- **Mac versions (the user, 2026-11-01):** PopCap's own Mac builds are not references. Where the user found one, it
+  sits in the main checkout's `re/<game>/mac/` (git-ignored, so a worktree copies the folder in) with a demangled
+  `<name>.symbols.txt` of its function and class names: BookWorm, Bejeweled, Bejeweled 2, Big Money, Alchemy, Seven
+  Seas, Mummy Maze, Chuzzle, Zuma's Revenge, Bejeweled 3 (partly stripped) and Peggle Deluxe and Nights (in
+  `re/peggle/<edition>/mac/`). Its names and class layout guide the port, but the PC exe stays the
+  authority for behaviour, since the Mac build may be another version. No symbol list goes into the repo; a few names
+  as examples are fine. A game decompiled before its Mac version came (BookWorm, Bejeweled, Big Money, Alchemy, Seven
+  Seas, Mummy Maze) also gets a report: its session notes the commit it starts from before it first opens the Mac files,
+  logs each thing the Mac build shows the port got wrong while it makes its fixes, and once its fixes are done writes
+  `games/<game>/docs/MAC_COMPARISON.md` and sends it to the coordinator. The report says how close the decompilation
+  was (game functions found and named rightly, class boundaries and inheritance, functions merged, split or put in the
+  wrong class, wrong types or constants), what the AI got wrong and which of those had a visible effect, and the
+  lessons for future decompilations. Behaviour faults it finds are fixed with the other fixes; naming and structure
+  corrections wait for the readability pass.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
