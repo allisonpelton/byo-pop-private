@@ -4,6 +4,7 @@
 #pragma once
 
 #include "TwistWidget.h"
+#include "X86Math.h"
 #include "WinTwistApp.h"
 
 #include "Buffer.h"
@@ -186,10 +187,19 @@ public:
 	int mUnknown13A0 = 0;                   // +0x13a0
 	int mUnknown13A4 = 0;                   // +0x13a4
 	bool mUnknown13A8 = true;               // +0x13a8
+	CurvedVal mUnknown8C8;                  // +0x8c8: runs every update (twice in zen)
+	CurvedVal mUnknown2898;                 // +0x2898: runs every update
+	CurvedVal mUnknown36C0;                 // +0x36c0: while it runs, +0x37a0 fades
+	CurvedVal mUnknown3730;                 // +0x3730: while it runs, +0x37a4 fades
+	CurvedVal mUnknown3478;                 // +0x3478: the grid's slide to its place
+	CurvedVal mUnknown3810;                 // +0x3810: the new level's (0x6d090f)
+	CurvedVal mUnknown3880;                 // +0x3880: set by 0x6b681d
 	CurvedVal mUnknown13B0;                 // +0x13b0: set to 0 by StartLevel
 	bool mUnknown1420 = false;              // +0x1420
 	int mUnknown1424 = 0;                   // +0x1424
 	std::deque<TwistWidget*> mUnknown23DC;  // +0x23dc: the dialogs waiting to come up (0x6a6e36 its size)
+	std::vector<TwistWidget*> mUnknown1F98;  // +0x1f98: the hints' widgets (0x6a6d18 its size)
+	std::vector<Piece*> mUnknown20F4;       // +0x20f4: pieces off the grid (SnapPiecesX moves them too)
 	Piece* mUnknown1430 = nullptr;          // +0x1430: a piece RemovePiece forgets
 	int mUnknown1434 = 0;                   // +0x1434
 	bool mUnknown1438 = false;              // +0x1438
@@ -204,7 +214,7 @@ public:
 	int mUnknown1460 = 0;                   // +0x1460
 	int mUnknown146C = 0;                   // +0x146c
 	int mUnknown1470 = 0;                   // +0x1470
-	int mUnknown1474 = 0;                   // +0x1474
+	TwistWidget* mUnknown1474 = nullptr;    // +0x1474: the trial's limit dialog (0x73a458), never in a full version
 	bool mUnknown1478 = false;              // +0x1478
 	int mUnknown1488 = 0;                   // +0x1488
 	int mUnknown14DC = 0;                   // +0x14dc
@@ -418,11 +428,11 @@ public:
 	int mUnknown2680 = 0;                   // +0x2680
 	bool mUnknown2698 = true;               // +0x2698
 	int mUnknown269C = 0;                   // +0x269c
-	int mUnknown26A0 = 0;                   // +0x26a0
+	TwistWidget* mUnknown26A0 = nullptr;                   // +0x26a0
 	int mUnknown26A8 = 0;                   // +0x26a8
-	int mUnknown26AC = 0;                   // +0x26ac
+	TwistWidget* mUnknown26AC = nullptr;                   // +0x26ac
 	int mUnknown26CC = 0;                   // +0x26cc
-	int mUnknown26D0 = 0;                   // +0x26d0
+	TwistWidget* mUnknown26D0 = nullptr;                   // +0x26d0
 	int mUnknown3444 = 0;                   // +0x3444
 	int mUnknown3448 = 0;                   // +0x3448
 	int mUnknown344C = 0;                   // +0x344c
@@ -439,24 +449,24 @@ public:
 	bool mUnknown36B1 = true;               // +0x36b1
 	int mUnknown36B4 = 0;                   // +0x36b4
 	int mUnknown36B8 = 0;                   // +0x36b8
-	int mUnknown37A0 = 0;                   // +0x37a0
-	int mUnknown37A4 = 0;                   // +0x37a4
-	int mUnknown37A8 = 0;                   // +0x37a8
-	int mUnknown37AC = 0;                   // +0x37ac
+	float mUnknown37A0 = 0;                   // +0x37a0
+	float mUnknown37A4 = 0;                   // +0x37a4
+	float mUnknown37A8 = 0;                   // +0x37a8
+	float mUnknown37AC = 0;                   // +0x37ac
 	bool mUnknown37B0 = true; // +0x37b0
 	bool mUnknown37B1 = true; // +0x37b1
 	int mUnknown37B4 = 15;                  // +0x37b4
 	int mUnknown37C8 = 0;                   // +0x37c8
 	int mUnknown37EC = 0;                   // +0x37ec
 	int mUnknown37F0 = 0;                   // +0x37f0
-	int mUnknown37F4 = 0;                   // +0x37f4
+	float mUnknown37F4 = 0;                   // +0x37f4
 	int mUnknown37FC = 0;                   // +0x37fc
-	int mUnknown3808 = 0;                   // +0x3808
+	TwistWidget* mUnknown3808 = nullptr;                   // +0x3808
 	int mUnknown38F0 = 0;                   // +0x38f0
 	int mUnknown38F4 = 0;                   // +0x38f4
-	int mUnknown38F8 = 0;                   // +0x38f8
-	int mUnknown38FC = 0;                   // +0x38fc
-	int mUnknown3900 = 0;                   // +0x3900
+	float mUnknown38F8 = 0;                   // +0x38f8
+	float mUnknown38FC = 0;                   // +0x38fc
+	float mUnknown3900 = 0;                   // +0x3900
 	bool mUnknown3905 = false;              // +0x3905
 	int mUnknown3908 = 0;                   // +0x3908
 	int mUnknown390C = 0;                   // +0x390c
@@ -603,6 +613,15 @@ public:
 	void UpdateChallengeTube(bool theAtOnce);    // 0x6af390: the tube shows how much of the challenge is left
 	void SetBlitzColor();                        // 0x6bd1f0: the tube's colour by blitz's time left
 
+	int GetSlideX() { return Ftol((double)mWidth * (double)0.635f - (double)((mCols * gGemWidth) / 2)); }  // 0x6a6afa
+	void SnapPiecesX();                          // 0x6ab551: every piece to its column's x
+	int GetRowAt(int theY);                      // 0x6a4888: -1 off the grid
+	int GetColAt(int theX);                      // 0x6a4849: -1 off the grid
+	void SetCursor(int theRow, int theCol);      // 0x6a9d2d: the selection's rectangle, two gems square
+	// 0x6bd9ac: the cursor to theRow, theCol, with its sound, trail and the moves it shows
+	void MoveCursor(int theRow, int theCol, bool theQuiet, void* theUnknown);
+	void StartUnknown3880();                     // 0x6b681d
+	void NextLevelMusic();                       // 0x6a496b: the next of the game's tunes
 	void Update() override;                      // 0x6d6899: the game's updates for this frame, at its speed
 	void UpdateGame();                           // 0x6d090f: one update of the game
 	void Resize(int theX, int theY, int theWidth, int theHeight) override;  // 0x6a5b53: the pieces move with the grid

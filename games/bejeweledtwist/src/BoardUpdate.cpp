@@ -2,6 +2,7 @@
 // (0x6d090f), one update of the game.
 #include "Board.h"
 
+#include "GameText.h"
 #include "GoodTube.h"
 #include "GraphicsRecorder.h"
 #include "Piece.h"
@@ -205,8 +206,256 @@ void Board::Update()
 		NotPorted("Board::Update: the +0x267c object's music");
 }
 
+void Board::SnapPiecesX()
+{
+	for (int aRow = 0; aRow < mRows; aRow++) {
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			Piece* aPiece = GetPieceAt(aRow, aCol);
+			if (aPiece != nullptr)
+				aPiece->mX = (float)GetColX(aCol);
+		}
+	}
+	for (unsigned int i = 0; i < mUnknown20F4.size(); i++) {
+		Piece* aPiece = mUnknown20F4[i];
+		if (aPiece != nullptr)
+			aPiece->mX = (float)GetColX(aPiece->mCol);
+	}
+}
+
+int Board::GetRowAt(int theY)
+{
+	int aRows = mRows;
+	for (int aRow = 0; aRow < aRows; aRow++) {
+		int aY = GetRowY(aRow);
+		if (aY <= theY && theY < gGemHeight + aY)
+			return aRow;
+	}
+	return -1;
+}
+
+int Board::GetColAt(int theX)
+{
+	int aCols = mCols;
+	for (int aCol = 0; aCol < aCols; aCol++) {
+		int aX = GetColX(aCol);
+		if (aX <= theX && theX < gGemWidth + aX)
+			return aCol;
+	}
+	return -1;
+}
+
+void Board::SetCursor(int theRow, int theCol)
+{
+	int aX = GetColX(theCol);
+	int aY = GetRowY(theRow);
+	int aSize = gGemWidth * 2;
+	mUnknown1C00 = aX;
+	mUnknown1C04 = aY;
+	mUnknown1C08 = aSize;
+	mUnknown1C0C = aSize;
+}
+
+void Board::MoveCursor(int theRow, int theCol, bool theQuiet, void* theUnknown)
+{
+	// port: 0x6bd9ac and the moves it looks for (0x6bd872) come with the matching; its trail draws from Rand
+	NotPorted("Board::MoveCursor");
+	SetCursor(theRow, theCol);
+}
+
+void Board::StartUnknown3880()
+{
+	mUnknown3880.SetCurve(GTS(0x7dcd08));
+}
+
+void Board::NextLevelMusic()
+{
+	if (mApp->mNumIngameTracks != 0) {
+		mUnknown2154++;
+		mUnknown2154 = mUnknown2154 % mApp->mNumIngameTracks;
+		mApp->PlayMusic(mUnknown2154 + 100, true, true, 0, 0);
+	}
+}
+
 void Board::UpdateGame()
 {
-	// port: being ported (docs/NOTES.md, "The board"); the dialogs, the level's start and the pieces come next
-	NotPorted("Board::UpdateGame");
+	mUnknown25A4 = false;
+	mUnknown20D0 = false;
+	if (mUnknown34EC != 0) {
+		if (mUnknown34EC == 1) {
+			// port: the game is over and space comes back (ShowHyperspace, 0x714883 and the menu's 0x6e2318)
+			NotPorted("Board::UpdateGame: the end of the game");
+		}
+		return;
+	}
+	if (mUnknown26A0 != nullptr && mUnknown26A0->mClicked) {
+		mApp->mWidgetManager->RemoveWidget(mUnknown26A0);
+		mApp->SafeDeleteWidget(mUnknown26A0);
+		mUnknown26A0 = nullptr;
+		if (mUnknown2628)
+			NotPorted("Board::UpdateGame: 0x6ab48d");
+	}
+	if (mUnknown26AC == nullptr || !mUnknown26AC->mClicked) {
+		if (0.0f < mUnknown380C) {
+			float aLeft = (float)((double)mUnknown380C - (double)0.01f);
+			mUnknown380C = aLeft;
+			// port: the RankBonusWidget (mUnknown26A0) lets the level start in its states 2 and 5; it is not ported,
+			// so while there is one the level waits
+			if (mUnknown26A0 != nullptr)
+				NotPorted("Board::UpdateGame: the RankBonusWidget's state");
+			if (mUnknown2208 == nullptr && mUnknown1474 == nullptr && mUnknown26A0 == nullptr) {
+				if (aLeft <= 0.0f) {
+					// The trial's limit (the copy is always registered) is left out
+					// port: the VizManager's next look (0x757ff5) once it is ported
+					mUnknown158++;
+					NewLevel();
+					mUnknown3810.SetCurve(GTS(0x7df2f0));
+					mGoodTube->SetLevel(mUnknown158);
+					StartUnknown3880();
+					mUnknown380C = 0;
+					mUnknown37F4 = 1.5f;
+					// port: 0x6c2f69, the new level's intro, draws from Rand through the tutorial
+					NotPorted("Board::UpdateGame: the new level's intro (0x6c2f69)");
+					NextLevelMusic();
+				}
+			} else if (mUnknown1474 == nullptr) {
+				double aNext = (double)aLeft - (double)0.01f;
+				mUnknown380C = aNext <= 2.0 ? 2.0f : (float)aNext;
+			} else {
+				mUnknown380C = 0.01f;
+			}
+		}
+	} else {
+		mApp->mWidgetManager->RemoveWidget(mUnknown26AC);
+		mApp->SafeDeleteWidget(mUnknown26AC);
+		mUnknown26AC = nullptr;
+	}
+	// The trial's limit dialog (mUnknown1474) never comes up in a full version
+	mUnknown2898.IncInVal();
+	if (mGameMode == MODE_ZEN)
+		mUnknown8C8.IncInVal();
+	TwistWidget* aDialog = mUnknown2208;
+	if (aDialog != nullptr && aDialog->mClicked) {
+		if (aDialog == mUnknown2584) {
+			// port: 0x6c78a5 and the tutorial's dialog 0x6bbc58 come with the tutorial
+			NotPorted("Board::UpdateGame: the tutorial's dialog closing");
+		} else if (aDialog == mUnknown26D0) {
+			mUnknown26D0 = nullptr;
+		} else if (aDialog == mUnknown3808) {
+			mUnknown3808 = nullptr;
+		}
+		mApp->mWidgetManager->RemoveWidget(mUnknown2208);
+		mApp->SafeDeleteWidget(mUnknown2208);
+		mUnknown2208 = nullptr;
+		mApp->mWidgetManager->SetFocus(this);
+	}
+	if ((mUnknown3808 != nullptr && IsBusy()) || 0.0f < mUnknown380C || mUnknown2629) {
+		if (0.0f < mUnknown37F4)
+			mUnknown37F4 = mUnknown37F4 <= 0.1f ? 0.1f : mUnknown37F4;
+		if (0.0f < mUnknown380C && 0.0 < mUnknown3810.GetOutVal())
+			mGoodTube->mVisible = false;
+	}
+	if (mUnknown2208 == nullptr) {
+		if (mUnknown23DC.empty()) {
+			if (mUnknown1FF4)
+				mUnknown1FF5 = true;
+		} else {
+			mUnknown2208 = mUnknown23DC.front();
+			mUnknown23DC.pop_front();
+			mUnknown2208->mZOrder = mZOrder + 1;
+			mApp->mWidgetManager->AddWidget(mUnknown2208);
+		}
+	} else if (mUnknown2208->mUnknownC8) {
+		return;
+	}
+	if (!mUnknown1F98.empty()) {
+		// port: the hints' widgets (+0x1f98) come with the tutorial
+		NotPorted("Board::UpdateGame: the hints");
+	}
+	if (0 < mUnknown1570 || mApp->mOptionsDialog != nullptr || mUnknown1FF5)
+		return;
+	if (mUnknown3900 <= 0.0f) {
+		if (0.0f < mUnknown38F8) {
+			float aFade = (float)((double)mUnknown38F8 - (double)0.02f);
+			mUnknown38F8 = aFade < 0.0f ? 0.0f : aFade;
+		}
+	} else {
+		mUnknown3900 = (float)((double)mUnknown3900 - (double)0.01f);
+		float aFade = (float)((double)mUnknown38F8 + (double)0.02f);
+		mUnknown38F8 = 1.0f < aFade ? 1.0f : aFade;
+	}
+	if (0.0f < mUnknown38FC) {
+		float aFade = (float)((double)mUnknown38FC - (double)0.01f);
+		mUnknown38FC = aFade < 0.0f ? 0.0f : aFade;
+	}
+	if (!mUnknown36C0.HasBeenTriggered()) {
+		mUnknown36C0.IncInVal();
+	} else if (0.0f < mUnknown37A0) {
+		float aFade = (float)((double)mUnknown37A0 - (double)0.02f);
+		mUnknown37A0 = aFade < 0.0f ? 0.0f : aFade;
+	}
+	float aFade = (float)((double)mUnknown37A8 - (double)0.01f);
+	mUnknown37A8 = aFade < 0.0f ? 0.0f : aFade;
+	if (!mUnknown3730.HasBeenTriggered()) {
+		mUnknown3730.IncInVal();
+	} else if (0.0f < mUnknown37A4) {
+		float aFade2 = (float)((double)mUnknown37A4 - (double)0.02f);
+		mUnknown37A4 = aFade2 < 0.0f ? 0.0f : aFade2;
+	}
+	aFade = (float)((double)mUnknown37AC - (double)0.01f);
+	mUnknown37AC = aFade < 0.0f ? 0.0f : aFade;
+
+	// The grid slides to its place: from the slide's start to the middle, or off to the right in a replay
+	int aCentre = mUnknown37C4 ? mWidth : mWidth / 2 - GetBoardWidth() / 2;
+	int aFrom = aCentre;
+	int aSlide = GetSlideX();
+	int aTo = aSlide;
+	if (!mUnknown2041) {
+		aTo = aCentre;
+		aFrom = aSlide;
+	}
+	mUnknown25A4 = true;
+	if (mUnknown1474 != nullptr)
+		mUnknown25A4 = false;
+	if (mUnknown3880.mIncRate != 0.0 && !mUnknown3880.HasBeenTriggered())
+		mUnknown25A4 = false;
+	mUnknown3921 = mUnknown3920 && mUnknown25A5 && mUnknown2208 == nullptr && mUnknown14F8 == mUnknown168;
+	if (!mUnknown3921 || gApp->Is3DAccelerated()) {
+		if (mBoardX == aTo) {
+			if (mUnknown25A6) {
+				// port: the board's MouseMove (slot 52, 0x6a47ba) comes with the input
+				MouseMove(mUnknown15B4, mUnknown15B8);
+			}
+			mUnknown25A6 = false;
+			mUnknown3478.SetInVal(0);
+		} else {
+			mUnknown25A4 = false;
+			mUnknown25A6 = true;
+			if (!mUnknown23F5 && (!mUnknown37C4 || gApp->Is3DAccelerated())) {
+				mBoardX = aTo;
+				SnapPiecesX();
+			} else {
+				if (!mUnknown3920) {
+					mUnknown25A4 = false;
+					if (mUnknown3478.GetInVal() == 0.0)
+						mUnknown3478.SetCurve(GTS(0x7df2ac));
+					mUnknown3478.IncInVal();
+				}
+				if (mUpdateCnt == 0 && !mUnknown2041)
+					mUnknown3478.SetInVal(1.0);
+				double anOut = mUnknown3478.GetOutVal();
+				double anOut2 = mUnknown3478.GetOutVal();
+				mBoardX = Ftol((1.0 - anOut) * (double)aFrom + (double)aTo * anOut2);
+				if (!mUnknown37C4 && !mUnknown2629) {
+					MoveCursor(GetRowAt(mUnknown15B8), GetColAt(mUnknown15B4), false, nullptr);
+				} else if (mUnknown1430 != nullptr) {
+					SetCursor(mUnknown1430->mRow, mUnknown1430->mCol);
+				}
+				SnapPiecesX();
+			}
+		}
+	} else {
+		mUnknown25A6 = false;
+	}
+	// port: the rest of 0x6d090f comes next
+	NotPorted("Board::UpdateGame: the rest");
 }
