@@ -1564,8 +1564,8 @@ void Piece::Update()
 						SetFlag(FLAG_DEVIL, true);
 						mCanMove = false;
 						int aBombCount = 1;
-						if (0 < gBoard->mUnknown1EB0.GetValue())
-							aBombCount = gBoard->mUnknown1EB0.GetValue();
+						if (0 < gBoard->mDevil.GetValue())
+							aBombCount = gBoard->mDevil.GetValue();
 						mBombCount = aBombCount;
 						mScale288 = 0.01f;
 						gApp->PlaySample(SOUND_DOOMGEM_COUNTDOWN);

@@ -185,7 +185,7 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	// 0x6a3fff
 	mUnknown214 = false;
 	mUnknown220 = 1.0f;
-	mUnknown2644 = mUnknown266C;
+	mUnknown2644 = mBonusChallengeMinGems;
 	mBoardX = mApp->mWidth;
 
 	// The tips, a line each (blank lines skipped, and a last line without an end of line)
@@ -206,6 +206,67 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	mUnknown150C = true;
 	mUnknown1559 = true;
 	std::memset(mUnknown133C, 0, sizeof(mUnknown133C));
+}
+
+void Board::ReadConfig(bool theResize)
+{
+	int anOldRows = mRows;
+	int anOldCols = mCols;
+	int aRows = mApp->GetInteger("GameRows", 8);
+	int aCols = mApp->GetInteger("GameColumns", 8);
+	mUnknown1C68 = 3;
+	mCoalMax = mApp->GetInteger("CoalMax", 0);
+	mFruitFirstLevel = mApp->GetInteger("FruitFirstLevel", 8);
+	int aGap = 1;
+	if (0 < mApp->GetInteger("BonusRoundLevelGap", 3))
+		aGap = mApp->GetInteger("BonusRoundLevelGap", 3);
+	mBonusRoundLevelGap = aGap;
+	mMaxLocksOnScreen = mApp->GetInteger("MaxLocksOnScreen", 8);
+	mUnknown1BF8 = true;
+	mUnknown1C6C = true;
+	mUnknown1C6E = true;
+	mUnknown1BFC = 7;
+	mUnknown1FB4 = false;
+	mUnknown1C6D = false;
+	mUnknown1C6F = false;
+	mUnknown1C70 = false;
+	mUnknown1C71 = false;
+	mCounter.Read("Counter");
+	mBadGemsOnBoardMax.Read("BadGemsOnBoardMax");
+	mLockGem.Read("LockGem");
+	mCoalGem.Read("CoalGem");
+	mSkulls.Read("Skulls");
+	mLevelUpPoints.Read("LevelUpPoints");
+	mDevil.Read("Devil");
+	mUnknown1C98 = mApp->GetBoolean("IceGemsAllowed", false);
+	mUnknown1C79 = true;
+	mUnknown1C78 = true;
+	mUnknown1C7A = false;
+	mUnknown2138 = false;
+	mUnknown1C7B = false;
+	mLaserGemCascades = mApp->GetInteger("LaserGemCascades", 3);
+	mAmnestyGemCount = mApp->GetInteger("AmnestyGemCount", 10);
+	mTimeFreezeMatchCount = mApp->GetInteger("TimeFreezeMatchCount", 3);
+	mModeMultiplier = mApp->GetInteger("ModeMultiplier", 1);
+	mBonusChallengeMinGems = mApp->GetInteger("BonusChallengeMinGems", 3);
+	mBonusChallengeMaxGems = mApp->GetInteger("BonusChallengeMaxGems", 5);
+	// 0x6a3e81: the tube shows the level (0x703431(+0x21d0)) once it is ported
+	if (theResize && (anOldRows != aRows || anOldCols != aCols))
+		ResizeBoard(aRows, aCols);
+	mCols = aCols;
+	mRows = aRows;
+	delete[] mUnknown1370;
+	mUnknown1370 = new int[mCols];
+	for (int i = 0; i < mCols; i++)
+		mUnknown1370[i] = 0;
+}
+
+void Board::ResizeBoard(int theRows, int theCols)
+{
+	(void)theRows;
+	(void)theCols;
+	// port: comes with the grid (0x6afe3a, 0x6b0886, 0x6a3ea2, 0x6bf659)
+	NotPorted("Board::ResizeBoard (0x6c427e)");
 }
 
 // 0x6b2b77: properties\config.xml, then the mode's own file over it (casual 0, normal 1, blitz 3, zen 4)
@@ -231,6 +292,8 @@ void Board::LoadConfig()
 
 Board::~Board()
 {
+	// port: the rest of the destructor comes with the board's update
+	delete[] mUnknown1370;
 	if (gBoard == this)
 		gBoard = nullptr;
 }
@@ -262,7 +325,35 @@ void Board::RemovePieceId(int theId)
 		mPieceMap.erase(anItr);
 }
 
-int LevelValue::GetValue()
+void LevelValue::Read(const char* theName)
+{
+	std::string aName = theName;
+	mFirstLevel = gApp->GetInteger(aName + "FirstLevel", -1);
+	mLevelsBetweenChange = gApp->GetInteger(aName + "LevelsBetweenChange", 1);
+	mFirstChangeLevel = gApp->GetInteger(aName + "FirstChangeLevel", -1);
+	if (mFirstChangeLevel < 0)
+		mFirstChangeLevel = mFirstLevel + mLevelsBetweenChange;
+	mBase = gApp->GetInteger(aName + "Base", 1);
+	mChange = gApp->GetInteger(aName + "Change", 1);
+	mMin = gApp->GetInteger(aName + "Min", -1);
+	mMax = gApp->GetInteger(aName + "Max", -1);
+	mValueBase = gApp->GetInteger(aName + "ValueBase", 1);
+	mValueChange = gApp->GetInteger(aName + "ValueChange", 1);
+	mValueMin = gApp->GetInteger(aName + "ValueMin", -1);
+	mValueMax = gApp->GetInteger(aName + "ValueMax", -1);
+	mTurnBased = gApp->GetBoolean(aName + "TurnBased", false);
+	mChancePow = gApp->GetDouble(aName + "ChancePow", 0);
+	mTurnsBetweenChange = gApp->GetInteger(aName + "TurnsBetweenChange", 0);
+	mUnknown40 = 1.0;
+	mUnknown48 = 1.0;
+	if (!mUnknown51) {
+		// 0x74eac6
+		mValue = GetCount();
+		mUnknown50 = false;
+	}
+}
+
+int LevelValue::GetCount()
 {
 	int aLevel = gBoard->mUnknown158;
 	int aValue;
@@ -270,14 +361,34 @@ int LevelValue::GetValue()
 		aValue = -1;
 	} else {
 		aValue = mBase;
-		if (mRampLevel <= aLevel)
-			aValue = aValue + ((aLevel - mRampLevel) + 1) / mPeriod * mStep;
-		if (0 < mPerGames)
-			aValue = aValue + (int)(gApp->mUnknownCF8 / (unsigned int)mPerGames) * mStep;
+		if (mFirstChangeLevel <= aLevel)
+			aValue = aValue + ((aLevel - mFirstChangeLevel) + 1) / mLevelsBetweenChange * mChange;
+		if (0 < mTurnsBetweenChange)
+			aValue = aValue + (int)(gApp->mUnknownCF8 / (unsigned int)mTurnsBetweenChange) * mChange;
 		if (-1 < mMin && aValue < mMin)
 			aValue = mMin;
 		if (-1 < mMax && mMax < aValue)
 			aValue = mMax;
+	}
+	return aValue;
+}
+
+int LevelValue::GetValue()
+{
+	int aLevel = gBoard->mUnknown158;
+	int aValue;
+	if (aLevel < mFirstLevel || mFirstLevel < 0) {
+		aValue = -1;
+	} else {
+		aValue = mValueBase;
+		if (mFirstChangeLevel <= aLevel)
+			aValue = aValue + ((aLevel - mFirstChangeLevel) + 1) / mLevelsBetweenChange * mValueChange;
+		if (0 < mTurnsBetweenChange)
+			aValue = aValue + (int)(gApp->mUnknownCF8 / (unsigned int)mTurnsBetweenChange) * mValueChange;
+		if (-1 < mValueMin && aValue < mValueMin)
+			aValue = mValueMin;
+		if (-1 < mValueMax && mValueMax < aValue)
+			aValue = mValueMax;
 	}
 	return aValue;
 }

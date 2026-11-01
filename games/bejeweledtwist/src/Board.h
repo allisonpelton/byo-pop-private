@@ -21,23 +21,34 @@ class MemoryImage;
 class Piece;
 class WinTwistApp;
 
-// A number that grows with the level (0x74e9e8): from mFirstLevel on, mBase, plus mStep every mPeriod levels from
-// mRampLevel and every mPerGames of the app's +0xcf8, held to mMin and mMax (each unless below 0)
+// A pair of numbers that change with the level, read from the config (0x74ec7d, "<name>FirstLevel" and the rest): from
+// mFirstLevel on, a base, plus a change every mLevelsBetweenChange levels from mFirstChangeLevel and every
+// mTurnsBetweenChange of the app's +0xcf8, held to a min and a max (each unless below 0). The original's record is
+// 0x58 bytes.
 struct LevelValue {
-	int mUnknown0 = 0;
-	int mFirstLevel = 0;   // +0x4
-	int mRampLevel = 0;    // +0x8
-	int mUnknownC = 0;
-	int mBase = 0;         // +0x10
-	int mPeriod = 1;       // +0x14
-	int mUnknown18 = 0;
-	int mStep = 0;         // +0x1c
-	int mUnknown20 = 0;
-	int mUnknown24 = 0;
-	int mMin = -1;         // +0x28
-	int mMax = -1;         // +0x2c
-	int mPerGames = 0;     // +0x30
-	int GetValue();
+	int mValue = 0;                 // +0x0: GetCount (0x74eac6) at a new level
+	int mFirstLevel = 0;            // +0x4
+	int mFirstChangeLevel = 0;      // +0x8: mFirstLevel + mLevelsBetweenChange unless the config says
+	int mBase = 0;                  // +0xc
+	int mValueBase = 0;             // +0x10
+	int mLevelsBetweenChange = 1;   // +0x14
+	int mChange = 0;                // +0x18
+	int mValueChange = 0;           // +0x1c
+	int mMin = -1;                  // +0x20
+	int mMax = -1;                  // +0x24
+	int mValueMin = -1;             // +0x28
+	int mValueMax = -1;             // +0x2c
+	int mTurnsBetweenChange = 0;    // +0x30
+	bool mTurnBased = false;        // +0x34
+	double mChancePow = 0;          // +0x38
+	double mUnknown40 = 1.0;        // +0x40
+	double mUnknown48 = 1.0;        // +0x48
+	bool mUnknown50 = false;        // +0x50
+	bool mUnknown51 = false;        // +0x51: Read leaves mValue alone
+
+	void Read(const char* theName);  // 0x74ec7d
+	int GetCount();                  // 0x74ea57: mBase, mChange, mMin, mMax
+	int GetValue();                  // 0x74e9e8: mValueBase, mValueChange, mValueMin, mValueMax
 };
 
 class Board : public TwistWidget {
@@ -63,7 +74,15 @@ public:
 	EffectsManager* mFXManager2 = nullptr; // +0x164c
 	int mUnknown15B4 = 0;              // +0x15b4: the mouse, over the board
 	int mUnknown15B8 = 0;              // +0x15b8
-	LevelValue mUnknown1EB0;           // +0x1eb0: a doom gem's count
+	// The config's level values (0x6c6469 reads them)
+	LevelValue mLockGem;               // +0x1ca0
+	LevelValue mSkulls;                // +0x1cf8
+	LevelValue mCounter;               // +0x1d50
+	LevelValue mBadGemsOnBoardMax;     // +0x1da8
+	LevelValue mUnknown1E00;           // +0x1e00
+	LevelValue mLevelUpPoints;         // +0x1e58
+	LevelValue mDevil;                 // +0x1eb0: a doom gem's count
+	LevelValue mCoalGem;               // +0x1f08
 	int mUnknown1F78 = 0;              // +0x1f78
 	bool mUnknown1BF2 = false;         // +0x1bf2: coal is drawn as snackers
 	Image* mShineImage = nullptr;      // +0x1c54
@@ -121,7 +140,7 @@ public:
 	int mUnknown132C = 1;                   // +0x132c
 	int mUnknown135C = 0;                   // +0x135c
 	int mUnknown1360 = 0;                   // +0x1360
-	int mUnknown1370 = 0;                   // +0x1370
+	int* mUnknown1370 = nullptr;            // +0x1370: a value per column (ReadConfig)
 	bool mUnknown1374 = false;              // +0x1374
 	int mUnknown1378 = 3;                   // +0x1378
 	bool mUnknown137C = false;              // +0x137c
@@ -248,7 +267,7 @@ public:
 	float mUnknown1C88 = 1.0f;              // +0x1c88
 	float mUnknown1C8C = 1.0f;              // +0x1c8c
 	bool mUnknown1C90 = false;              // +0x1c90
-	bool mUnknown1C98 = false;              // +0x1c98
+	bool mUnknown1C98 = false;              // +0x1c98: IceGemsAllowed
 	int mUnknown1F64 = 0;                   // +0x1f64
 	int mUnknown1F68 = 0;                   // +0x1f68
 	int mUnknown1F74 = 0;                   // +0x1f74
@@ -318,7 +337,7 @@ public:
 	int mUnknown21C4[2] = {};               // +0x21c4
 	int mUnknown21CC = 0;                   // +0x21cc
 	int mUnknown21D0 = 1;                   // +0x21d0
-	int mUnknown21D4 = 1;                   // +0x21d4
+	int mModeMultiplier = 1;                // +0x21d4
 	bool mUnknown21D8 = false;              // +0x21d8
 	bool mUnknown21D9 = false;              // +0x21d9
 	bool mUnknown21DA = false;              // +0x21da
@@ -463,17 +482,45 @@ public:
 	int mUnknown25AC = 0;                   // +0x25ac
 	int mUnknown25B4 = 0;                   // +0x25b4
 	int mUnknown2644 = 0;                   // +0x2644
-	int mUnknown266C = 0;                   // +0x266c
+	int mBonusChallengeMinGems = 0;         // +0x266c
 	int mUnknown2674 = 0;                   // +0x2674: the constructor's last argument
 	int mUnknown3458 = 0;                   // +0x3458: blitz's 30000
 	std::map<int, int> mUnknown37B8;        // +0x37b8
 	MTRand mRand;                           // +0x958: seeded from Rand()
+	// Read by ReadConfig (0x6c6469)
+	int mUnknown1BFC = 0;                   // +0x1bfc
+	bool mUnknown1BF8 = false;              // +0x1bf8
+	int mUnknown1C68 = 0;                   // +0x1c68
+	bool mUnknown1C6C = false;              // +0x1c6c
+	bool mUnknown1C6D = false;              // +0x1c6d
+	bool mUnknown1C6E = false;              // +0x1c6e
+	bool mUnknown1C6F = false;              // +0x1c6f
+	bool mUnknown1C70 = false;              // +0x1c70
+	bool mUnknown1C71 = false;              // +0x1c71
+	bool mUnknown1C78 = false;              // +0x1c78
+	bool mUnknown1C79 = false;              // +0x1c79
+	bool mUnknown1C7A = false;              // +0x1c7a
+	bool mUnknown1C7B = false;              // +0x1c7b
+	int mLaserGemCascades = 0;              // +0x1c80
+	int mFruitFirstLevel = 0;               // +0x1c94
+	int mAmnestyGemCount = 0;               // +0x1c9c
+	int mCoalMax = 0;                       // +0x1f60
+	bool mUnknown1FB4 = false;              // +0x1fb4
+	int mBonusRoundLevelGap = 0;            // +0x2104
+	bool mUnknown2138 = false;              // +0x2138
+	int mTimeFreezeMatchCount = 0;          // +0x21b4
+	int mBonusChallengeMaxGems = 0;         // +0x2670
+	int mMaxLocksOnScreen = 0;              // +0x3800
 	std::vector<SexyString> mTips;          // +0x81c: properties\tips.txt, a line each
 
 	Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown);  // 0x6c4df9
 	~Board() override;
 
 	void LoadConfig();                           // 0x6b2b77
+	// 0x6c6469: the board's size, the level values and the rest of the config's numbers; theResize remakes the
+	// grid when its size changed
+	void ReadConfig(bool theResize);
+	void ResizeBoard(int theRows, int theCols);  // 0x6c427e
 
 	Piece* GetPieceAt(int theRow, int theCol);   // 0x6a40c7
 	Piece* GetPieceById(int theId);              // 0x6aff38
