@@ -1929,13 +1929,14 @@ static int place_wrapper(const char* dir, const char* installDir)
 			HANDLE h=CreateFileA(d,GENERIC_WRITE,0,NULL,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,NULL);
 			ok = h!=INVALID_HANDLE_VALUE; created=ok;
 			// ORIGRUN_DGVOODOO_CONF names a dgVoodoo.conf to use in place of origrun's own, for trying settings
-			const char* conf=kDgvConf; static char own[16384]; const char* alt=getenv("ORIGRUN_DGVOODOO_CONF");
+			const char* conf=kDgvConf; static char own[16384]; DWORD confLen=0; const char* alt=getenv("ORIGRUN_DGVOODOO_CONF");
 			if (ok && alt && *alt) {
-				FILE* f=fopen(alt,"rb"); size_t n = f ? fread(own,1,sizeof(own)-1,f) : 0; if (f) fclose(f);
-				if (n) { own[n]=0; conf=own; logline("--dgvoodoo: dgVoodoo.conf from %s", alt); }
+				FILE* f=fopen(alt,"rb"); size_t n = f ? fread(own,1,sizeof(own),f) : 0; if (f) fclose(f);
+				if (n==sizeof(own)) logline("--dgvoodoo: ORIGRUN_DGVOODOO_CONF %s is %u bytes or more, too long; origrun's own conf", alt, (unsigned)sizeof(own));
+				else if (n) { conf=own; confLen=(DWORD)n; logline("--dgvoodoo: dgVoodoo.conf from %s (%u bytes)", alt, (unsigned)n); }
 				else logline("--dgvoodoo: cannot read ORIGRUN_DGVOODOO_CONF %s; origrun's own conf", alt);
 			}
-			if (ok) { DWORD len=(DWORD)strlen(conf), wr=0; ok = WriteFile(h,conf,len,&wr,NULL) && wr==len; CloseHandle(h); }
+			if (ok) { DWORD len = conf==own ? confLen : (DWORD)strlen(conf), wr=0; ok = WriteFile(h,conf,len,&wr,NULL) && wr==len; CloseHandle(h); }
 			if (!ok) logline("--dgvoodoo: writing %s failed (err %lu)", d, GetLastError());
 		}
 		if (ok) {
@@ -2400,11 +2401,28 @@ static int recover_stale_sandbox(void)
 // watches for any visible window of a Windows Sandbox process, wsb's broker or vmconnect on the desktop the user
 // sees, and the run stops its sandbox at once if one appears.
 typedef struct { int found; char what[300]; } SbWin;
+// --sandbox-connect: the "wsb connect" origrun ran (its pid, set once it has been run) and the one client window it may
+// show. Only a window of that process or of one it started is allowed, and only from then on; any other still trips.
+static volatile DWORD gConnectPid = 0;
+static DWORD parent_pid(DWORD pid)
+{
+	DWORD parent=0; PROCESSENTRY32 e; e.dwSize=sizeof(e);
+	HANDLE sn=CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0); if (sn==INVALID_HANDLE_VALUE) return 0;
+	for (BOOL ok=Process32First(sn,&e); ok; ok=Process32Next(sn,&e)) if (e.th32ProcessID==pid) { parent=e.th32ParentProcessID; break; }
+	CloseHandle(sn);
+	return parent;
+}
+static int connect_window(DWORD pid){ DWORD c=gConnectPid; return c && (pid==c || parent_pid(pid)==c); }
 static BOOL CALLBACK sbwin_cb(HWND h, LPARAM lp)
 {
 	SbWin* c=(SbWin*)lp;
 	if (!IsWindowVisible(h)) return TRUE;
 	DWORD pid=0; GetWindowThreadProcessId(h,&pid);
+	if (connect_window(pid)) {
+		static int told=0;
+		if (!told++) { char t[128]=""; GetWindowTextA(h,t,sizeof(t)); logline("--sandbox-connect: the window of wsb connect's client (pid %lu, '%s') is allowed", pid, t); }
+		return TRUE;
+	}
 	HANDLE p=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pid); if (!p) return TRUE;
 	char path[MAX_PATH]; DWORD n=MAX_PATH; int ok=QueryFullProcessImageNameA(p,0,path,&n); CloseHandle(p);
 	if (!ok) return TRUE;
@@ -2512,8 +2530,6 @@ static DWORD WINAPI guard_thread(LPVOID p)
 	while (!gGuardStop) {
 		char what[300];
 		if (sandbox_window_shown(what,sizeof(what))) {
-			static int told=0;
-			if (gSbConnect) { if (!told++) logline("--sandbox-connect: the sandbox's window is allowed: %s", what); Sleep(100); continue; }
 			InterlockedExchange(&gGuardTrip,1);
 			logline("STOP: a sandbox window was on the user's desktop: %s", what);
 			stop_sandbox("a window showed on the user's desktop");
@@ -2552,7 +2568,8 @@ static int sandbox_wsb_run(const char* cfg, int timeout, int probe)
 	HANDLE at=CreateThread(NULL,0,audio_thread,NULL,0,NULL);
 	static char args[8192];
 	_snprintf(args,sizeof(args)-1,"start --id %s --config \"%s\"",gSandboxId,cfg); args[sizeof(args)-1]=0;
-	logline("starting Windows Sandbox %s (no client window: origrun never runs wsb connect)", gSandboxId);
+	logline(gSbConnect ? "starting Windows Sandbox %s (--sandbox-connect: wsb connect runs once it has started)"
+	                   : "starting Windows Sandbox %s (no client window: origrun runs wsb connect only with --sandbox-connect)", gSandboxId);
 	DWORD t0=GetTickCount();
 	{
 		HANDLE sp=NULL; DWORD ec=1;
@@ -2567,7 +2584,12 @@ static int sandbox_wsb_run(const char* cfg, int timeout, int probe)
 		logline("wsb start returned after %lu ms", GetTickCount()-t0);
 		if (gSbConnect) {
 			char ca[128]; HANDLE cp=NULL; _snprintf(ca,sizeof(ca)-1,"connect --id %s",gSandboxId); ca[sizeof(ca)-1]=0;
-			if (run_wsb(ca,0,0,NULL,&cp)) { logline("--sandbox-connect: wsb connect started; waiting 20 s for the sandbox's user to log on"); if (cp) CloseHandle(cp); Sleep(20000); }
+			if (run_wsb(ca,0,0,NULL,&cp)) {
+				gConnectPid = cp ? GetProcessId(cp) : 0;   // from here on, its client's window is allowed (sbwin_cb)
+				logline("--sandbox-connect: wsb connect started (pid %lu); waiting 20 s for the sandbox's user to log on", gConnectPid);
+				if (cp) CloseHandle(cp);
+				Sleep(20000);
+			}
 			else logline("--sandbox-connect: wsb connect could not be run");
 		}
 		log_new_processes("after wsb start");

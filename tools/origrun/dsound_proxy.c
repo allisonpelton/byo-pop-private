@@ -157,7 +157,8 @@ typedef struct MyBuf {
 
 static const IDirectSoundBuffer8Vtbl gBufVtbl;
 
-static MyBuf* NewBuf(const DSBUFFERDESC* d)
+// A buffer from its description; logged as created unless it is a duplicate, which logs its own line
+static MyBuf* MakeBuf(const DSBUFFERDESC* d, int logCreate)
 {
 	MyBuf* b = (MyBuf*)calloc(1, sizeof(MyBuf));
 	b->iface.lpVtbl = (IDirectSoundBuffer8Vtbl*)&gBufVtbl;
@@ -169,11 +170,13 @@ static MyBuf* NewBuf(const DSBUFFERDESC* d)
 		b->wfx = *d->lpwfxFormat;
 		b->freq = d->lpwfxFormat->nSamplesPerSec;
 	}
-	logf("buffer %d create  bytes=%lu  fmt=%uHz/%ubit/%uch  flags=0x%lx",
-		b->id, b->bytes, b->wfx.nSamplesPerSec, b->wfx.wBitsPerSample, b->wfx.nChannels,
-		d ? d->dwFlags : 0);
+	if (logCreate)
+		logf("buffer %d create  bytes=%lu  fmt=%uHz/%ubit/%uch  flags=0x%lx",
+			b->id, b->bytes, b->wfx.nSamplesPerSec, b->wfx.wBitsPerSample, b->wfx.nChannels,
+			d ? d->dwFlags : 0);
 	return b;
 }
+static MyBuf* NewBuf(const DSBUFFERDESC* d) { return MakeBuf(d, 1); }
 
 static HRESULT STDMETHODCALLTYPE Buf_QueryInterface(IDirectSoundBuffer8* This, REFIID riid, void** ppv)
 {
@@ -321,10 +324,15 @@ static HRESULT STDMETHODCALLTYPE DS_DuplicateSoundBuffer(IDirectSound8* This, LP
 	// played duplicate is matched to the sound it holds.
 	if (!pp) return E_POINTER;
 	MyBuf* s = (MyBuf*)o;
-	MyBuf* b = NewBuf(NULL);
-	if (s) {
-		b->bytes = s->bytes; b->wfx = s->wfx; b->freq = s->freq; b->hash = s->hash;
-		b->byterate = s->byterate; b->streaming = s->streaming;
+	if (!s) return E_INVALIDARG;
+	// made as its source was (size and format), and with its source's volume, pan and frequency, as DirectSound's
+	// duplicate starts; never a stream of its own, which would record its own WAV
+	DSBUFFERDESC d; ZeroMemory(&d, sizeof(d));
+	d.dwSize = sizeof(d); d.dwBufferBytes = s->bytes; d.lpwfxFormat = &s->wfx;
+	MyBuf* b = MakeBuf(&d, 0);
+	{
+		b->vol = s->vol; b->pan = s->pan; b->freq = s->freq; b->hash = s->hash;
+		b->byterate = s->byterate;
 		if (s->pcm && s->pcmBytes) { b->pcm = malloc(s->pcmBytes); if (b->pcm) { memcpy(b->pcm, s->pcm, s->pcmBytes); b->pcmBytes = s->pcmBytes; } }
 		logf("buffer %d duplicate of %d  hash=%016llx", b->id, s->id, s->hash);
 	}
