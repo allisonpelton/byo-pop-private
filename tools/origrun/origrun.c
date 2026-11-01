@@ -636,7 +636,7 @@ static int process_uses_gpu_api(DWORD pid, char* which, int whichLen)
 	CloseHandle(p);
 	return found;
 }
-// The rule every capture follows, before it reads the window and again after: 1 (logged) when the shot is refused.
+// The rule every capture follows, before it reads the window: 1 (logged) when the shot is refused.
 // On the host a capture can show the user's own screen: through the screen DC, the window DC and PrintWindow alike
 // (three times by 2026-11-01). So origrun takes no shot of any kind there, and only inside Windows Sandbox, where
 // the only display is the sandbox's own, does it capture at all.
@@ -712,22 +712,16 @@ static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held
 	if (cx0<0) cx0=0; if (cy0<0) cy0=0; if (cx1>w) cx1=w; if (cy1>h) cy1=h;
 
 	// What reads the window: PrintWindow (GDI and DWM-redirected content), then a blit of the window's own DC, which
-	// legacy DirectDraw windows need. Never the screen, and nothing at all outside Windows Sandbox:
-	// capture_refused is asked when the capture starts, again right before a window-DC read that follows a
-	// PrintWindow, and once more after the read, before anything is saved.
+	// legacy DirectDraw windows need. Never the screen, and nothing at all outside Windows Sandbox: capture_refused,
+	// asked once when the capture starts, depends only on where origrun runs, which no run changes.
 	const char* how="printwindow";
 	BOOL ok = allowPrint ? PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT) : FALSE;
 	if (allowPrint && !ok) how="printwindow failed";
-	int refused=0;
 	if (!allowPrint || !ok || region_flat(px,w,cx0,cy0,cx1,cy1)) {
-		if (allowPrint) refused=capture_refused(hwnd,name);   // the game may have loaded one since the start
-		if (!refused) {
-			HDC wdc=GetWindowDC(hwnd);
-			if (wdc){ BitBlt(mem,0,0,w,h,wdc,0,0,SRCCOPY); ReleaseDC(hwnd,wdc); how="windowdc"; }
-		}
+		HDC wdc=GetWindowDC(hwnd);
+		if (wdc){ BitBlt(mem,0,0,w,h,wdc,0,0,SRCCOPY); ReleaseDC(hwnd,wdc); how="windowdc"; }
 	}
 	release_held(held);   // the pixels are in memory: the game may run on
-	if (refused || capture_refused(hwnd,name)) { SelectObject(mem,old); DeleteObject(dib); DeleteDC(mem); return 0; }
 	int flat = region_flat(px,w,cx0,cy0,cx1,cy1);
 	if (flat) how="flat (DirectDraw/Direct3D content not reachable by GDI)";
 
@@ -954,13 +948,24 @@ static void post_focus(HWND hwnd,int regain)
 // SendInput delivers button/key events to the desktop the driver thread is attached to, where DirectInput's
 // non-exclusive device picks them up. Documented input APIs; nothing is injected into the game. The script's
 // hw* commands use this; plain click/key still post window messages (which work for the SAF/LOWOS message path).
+// Only inside Windows Sandbox: on the host SetCursorPos and SendInput reach the user's own input desktop, whatever
+// desktop the game is on, so hw* input is refused there as shots are.
+static int hw_refused(const char* what)
+{
+	if (gInSandbox) return 0;
+	logline("%s refused: origrun sends no desktop-wide input on the host (it would reach the user's own desktop), "
+		"only inside Windows Sandbox (--sandbox)", what);
+	return 1;
+}
 static void hw_move(HWND hwnd,int x,int y)
 {
+	if (hw_refused("hwmove")) return;
 	POINT pt={x,y}; ClientToScreen(hwnd,&pt); SetCursorPos(pt.x,pt.y);
 	INPUT in; ZeroMemory(&in,sizeof(in)); in.type=INPUT_MOUSE; in.mi.dwFlags=MOUSEEVENTF_MOVE; SendInput(1,&in,sizeof(INPUT));
 }
 static void hw_click(HWND hwnd,int x,int y,int right)
 {
+	if (hw_refused(right?"hwrclick":"hwclick")) return;
 	hw_move(hwnd,x,y); Sleep(20);
 	INPUT in[2]; ZeroMemory(in,sizeof(in));
 	in[0].type=INPUT_MOUSE; in[0].mi.dwFlags = right?MOUSEEVENTF_RIGHTDOWN:MOUSEEVENTF_LEFTDOWN;
@@ -969,6 +974,7 @@ static void hw_click(HWND hwnd,int x,int y,int right)
 }
 static void hw_key(int vk)
 {
+	if (hw_refused("hwkey")) return;
 	UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
 	INPUT in[2]; ZeroMemory(in,sizeof(in));
 	in[0].type=INPUT_KEYBOARD; in[0].ki.wVk=(WORD)vk; in[0].ki.wScan=(WORD)sc; in[0].ki.dwFlags=KEYEVENTF_SCANCODE;
@@ -998,9 +1004,11 @@ static void load_msgbox_rules(const char* scriptPath)
 	fclose(f);
 }
 
-// Does the script capture anything (shot, waitshot, record, burst, or "at <N> shot|burst")? A script that cannot be
-// read counts as one that does; a run without a script takes a title shot.
-static int script_takes_shots(const char* scriptPath)
+// Does the script need Windows Sandbox: does it capture anything (shot, waitshot, record, burst, or "at <N>
+// shot|burst") or send desktop-wide input (hwmove, hwclick, hwrclick, hwkey)? A script that cannot be read counts as
+// one that does; a run without a script takes a title shot.
+static int is_hw_cmd(const char* c){ return ieq(c,"hwmove")||ieq(c,"hwclick")||ieq(c,"hwrclick")||ieq(c,"hwkey"); }
+static int script_needs_sandbox(const char* scriptPath)
 {
 	if (!scriptPath || !scriptPath[0]) return 1;
 	FILE* f=fopen(scriptPath,"r"); if(!f) return 1;
@@ -1008,8 +1016,8 @@ static int script_takes_shots(const char* scriptPath)
 	while (!shots && fgets(line,sizeof(line),f)) {
 		char c1[32]={0}, c2[32]={0}, c3[32]={0};
 		int n=sscanf(line,"%31s %31s %31s",c1,c2,c3);
-		if (n>=1 && (ieq(c1,"shot")||ieq(c1,"waitshot")||ieq(c1,"record")||ieq(c1,"burst"))) shots=1;
-		if (n>=3 && ieq(c1,"at") && (ieq(c3,"shot")||ieq(c3,"burst"))) shots=1;
+		if (n>=1 && (ieq(c1,"shot")||ieq(c1,"waitshot")||ieq(c1,"record")||ieq(c1,"burst")||is_hw_cmd(c1))) shots=1;
+		if (n>=3 && ieq(c1,"at") && (ieq(c3,"shot")||ieq(c3,"burst")||is_hw_cmd(c3))) shots=1;
 	}
 	fclose(f);
 	return shots;
@@ -1107,7 +1115,17 @@ static int proc_leaf(DWORD pid, char* leaf, int cap)
 	const char* l=strrchr(path,'\\'); lstrcpynA(leaf,l?l+1:path,cap);
 	return 1;
 }
-static int is_sandbox_leaf(const char* leaf){ return istr_has(leaf,"sandbox") || ieq(leaf,"vmconnect.exe"); }
+// Windows Sandbox's own processes, by their exact names: the in-box WindowsSandbox.exe and WindowsSandboxClient.exe,
+// and the Store package's WindowsSandboxRemoteSession.exe. Never a part of a name: another product's "sandbox"
+// (Sandboxie, say) is none of this.
+static int is_sandbox_leaf(const char* leaf)
+{
+	return ieq(leaf,"WindowsSandbox.exe") || ieq(leaf,"WindowsSandboxClient.exe") || ieq(leaf,"WindowsSandboxRemoteSession.exe");
+}
+// WindowsSandboxServer.exe is the wsb command's broker, not a sandbox: the first wsb call of a logon starts it, and
+// it stays. Whether a sandbox runs is what wsb list says.
+static int is_broker_leaf(const char* leaf){ return ieq(leaf,"WindowsSandboxServer.exe"); }
+static int pid_before(DWORD pid);
 
 static void audio_watch(void)
 {
@@ -1130,7 +1148,7 @@ static void audio_watch(void)
 							DWORD pid=0; IAudioSessionControl2_GetProcessId(c2,&pid);
 							char leaf[MAX_PATH];
 							if (gAudioSandbox) {
-								if (pid && proc_leaf(pid,leaf,sizeof(leaf)) && is_sandbox_leaf(leaf)) {
+								if (pid && proc_leaf(pid,leaf,sizeof(leaf)) && (is_sandbox_leaf(leaf) || is_broker_leaf(leaf) || (ieq(leaf,"vmwp.exe") && !pid_before(pid)))) {
 									float pk=0; Meter* mi=NULL;
 									if (SUCCEEDED(IAudioSessionControl2_QueryInterface(c2,&kIID_IAudioMeterInformation,(void**)&mi)) && mi) { mi->lpVtbl->GetPeakValue(mi,&pk); mi->lpVtbl->Release(mi); }
 									LONG v=(LONG)(pk*1000.0f), was=gSbAudioPeak;
@@ -1271,14 +1289,31 @@ static const char* hkcu_sub(const char* sub)
 	if (_strnicmp(sub,"HKEY_CURRENT_USER\\",18)==0) return sub+18;
 	return sub;
 }
+// Where the game keeps a key named the host's way (games.tsv, --3d-key): its root, and the path in *path. On the host
+// that is the user's HKCU, with UAC's VirtualStore copy for a game that writes under HKLM. Inside the sandbox origrun
+// and the game run as SYSTEM: HKCU is SYSTEM's own hive (HKEY_USERS\S-1-5-18) for both, so an HKCU key is opened as
+// it is; and UAC never virtualizes SYSTEM, so a VirtualStore key is the 32-bit game's HKLM key itself
+// (HKLM\SOFTWARE\X, which the 32-bit view keeps in HKLM\SOFTWARE\WOW6432Node\X). Every open uses the 32-bit view,
+// the games' own (origrun is 32-bit too, so on the host nothing changes).
+static const char kVsMachine[]="Software\\Classes\\VirtualStore\\MACHINE\\";
+static HKEY game_key(const char* sub, char* path, int cap)
+{
+	const char* p=hkcu_sub(sub);
+	if (gInSandbox && gAsSystem && _strnicmp(p,kVsMachine,sizeof(kVsMachine)-1)==0) {
+		p+=sizeof(kVsMachine)-1;
+		static const char kWow[]="SOFTWARE\\WOW6432Node\\";
+		if (_strnicmp(p,kWow,sizeof(kWow)-1)==0) _snprintf(path,cap-1,"SOFTWARE\\%s",p+sizeof(kWow)-1);
+		else lstrcpynA(path,p,cap);
+		path[cap-1]=0;
+		return HKEY_LOCAL_MACHINE;
+	}
+	lstrcpynA(path,p,cap);
+	return HKEY_CURRENT_USER;
+}
 static HKEY open_game_key(const char* sub)
 {
-	HKEY k=NULL, root=HKEY_CURRENT_USER; const char* p=hkcu_sub(sub);
-	// Inside the sandbox origrun and the game run as SYSTEM, which UAC never virtualizes: a game that keeps its
-	// settings under HKLM writes there itself, not to the per-user VirtualStore copy games.tsv names for the host.
-	static const char kVs[]="Software\\Classes\\VirtualStore\\MACHINE\\";
-	if (gInSandbox && gAsSystem && _strnicmp(p,kVs,sizeof(kVs)-1)==0) { root=HKEY_LOCAL_MACHINE; p+=sizeof(kVs)-1; }
-	if (RegCreateKeyExA(root,p,0,NULL,0,KEY_QUERY_VALUE|KEY_SET_VALUE,NULL,&k,NULL)!=ERROR_SUCCESS) return NULL;
+	char path[600]; HKEY root=game_key(sub,path,sizeof(path)), k=NULL;
+	if (RegCreateKeyExA(root,path,0,NULL,0,KEY_QUERY_VALUE|KEY_SET_VALUE|KEY_WOW64_32KEY,NULL,&k,NULL)!=ERROR_SUCCESS) return NULL;
 	return k;
 }
 
@@ -1289,9 +1324,9 @@ typedef struct { char name[64]; DWORD type; BYTE data[512]; DWORD len; } RegVal;
 typedef struct { int n; RegVal v[16]; } RegVals;   // n = -1: the subkey does not exist
 static void read_test3d(const char* sub, RegVals* out)
 {
-	char path[600]; wsprintfA(path,"%s\\Test3D",hkcu_sub(sub));
+	char base[600], path[620]; HKEY root=game_key(sub,base,sizeof(base)); wsprintfA(path,"%s\\Test3D",base);
 	HKEY k; out->n=-1;
-	if (RegOpenKeyExA(HKEY_CURRENT_USER,path,0,KEY_QUERY_VALUE,&k)!=ERROR_SUCCESS) return;
+	if (RegOpenKeyExA(root,path,0,KEY_QUERY_VALUE|KEY_WOW64_32KEY,&k)!=ERROR_SUCCESS) return;
 	out->n=0;
 	for (DWORD i=0; out->n<16; i++) {
 		RegVal* v=&out->v[out->n]; DWORD nl=sizeof(v->name), dl=sizeof(v->data);
@@ -1315,11 +1350,11 @@ static void restore_test3d(const char* sub, const RegVals* before)
 {
 	RegVals now; read_test3d(sub,&now);
 	if (same_test3d(before,&now)) return;
-	char path[600]; wsprintfA(path,"%s\\Test3D",hkcu_sub(sub));
-	RegDeleteKeyA(HKEY_CURRENT_USER,path);
+	char base[600], path[620]; HKEY root=game_key(sub,base,sizeof(base)); wsprintfA(path,"%s\\Test3D",base);
+	RegDeleteKeyExA(root,path,KEY_WOW64_32KEY,0);
 	if (before->n>=0) {
 		HKEY k;
-		if (RegCreateKeyExA(HKEY_CURRENT_USER,path,0,NULL,0,KEY_SET_VALUE,NULL,&k,NULL)==ERROR_SUCCESS) {
+		if (RegCreateKeyExA(root,path,0,NULL,0,KEY_SET_VALUE|KEY_WOW64_32KEY,NULL,&k,NULL)==ERROR_SUCCESS) {
 			for (int i=0;i<before->n;i++) RegSetValueExA(k,before->v[i].name,0,before->v[i].type,before->v[i].data,before->v[i].len);
 			RegCloseKey(k);
 		}
@@ -1787,11 +1822,38 @@ static int detect_windows_sandbox(char* why, int cap)
 
 // One sandbox at a time on the whole machine: every session's origrun opens the same lock file, under the user's
 // local application data folder as Windows reports it (not %LOCALAPPDATA%, which a shell can change), with no
-// sharing. Windows closes the handle when origrun ends, however it ends, so the lock is never left behind.
-static HANDLE acquire_sandbox_lock(int waitSec, const char* run)
+// sharing. Windows closes the handle when origrun ends, however it ends, so the lock itself is never left behind.
+// Its text says who holds it and, from just before "wsb start" until "wsb list" confirms the stop, which sandbox the
+// run started (sandbox=<id>). An origrun killed in between (TerminateProcess runs no handler) leaves that line, and
+// the next run to take the lock stops that sandbox before it starts its own (recover_stale_sandbox).
+static HANDLE gSbLock = INVALID_HANDLE_VALUE;
+static char gSbLockRun[80] = "", gSbLockSince[32] = "";
+static char gStaleId[64] = "";    // a sandbox an earlier run left, from the lock's text
+static DWORD gStalePid = 0;       // the pid of that run
+static void lock_write(const char* sandboxId)
+{
+	if (gSbLock==INVALID_HANDLE_VALUE) return;
+	char info[1024];
+	int n=_snprintf(info,sizeof(info)-1,"pid=%lu\r\nrun=%s\r\nsince=%s\r\ndir=%s\r\n",GetCurrentProcessId(),gSbLockRun,gSbLockSince,gRunDir);
+	if (n>0 && sandboxId && sandboxId[0]) { int m=_snprintf(info+n,sizeof(info)-1-n,"sandbox=%s\r\n",sandboxId); if (m>0) n+=m; }
+	DWORD wr=0; SetFilePointer(gSbLock,0,NULL,FILE_BEGIN); SetEndOfFile(gSbLock);
+	if (n>0) WriteFile(gSbLock,info,(DWORD)n,&wr,NULL);
+	FlushFileBuffers(gSbLock);
+}
+static int is_guid36(const char* s)
+{
+	for (int i=0;i<36;i++) {
+		char c=s[i];
+		if (i==8||i==13||i==18||i==23) { if (c!='-') return 0; }
+		else if (!((c>='0'&&c<='9')||(c>='a'&&c<='f')||(c>='A'&&c<='F'))) return 0;
+	}
+	return s[36]==0 || s[36]=='\r' || s[36]=='\n';
+}
+static void release_sandbox_lock(void){ if (gSbLock!=INVALID_HANDLE_VALUE) { CloseHandle(gSbLock); gSbLock=INVALID_HANDLE_VALUE; } }
+static int acquire_sandbox_lock(int waitSec, const char* run)
 {
 	PWSTR la=NULL;
-	if (SHGetKnownFolderPath(&FOLDERID_LocalAppData,0,NULL,&la)!=S_OK || !la) { logline("--sandbox: no local application data folder"); return INVALID_HANDLE_VALUE; }
+	if (SHGetKnownFolderPath(&FOLDERID_LocalAppData,0,NULL,&la)!=S_OK || !la) { logline("--sandbox: no local application data folder"); return 0; }
 	WCHAR dir[MAX_PATH], path[MAX_PATH];
 	_snwprintf(dir,MAX_PATH-1,L"%s\\byo-pop",la); dir[MAX_PATH-1]=0;
 	CoTaskMemFree(la);
@@ -1800,17 +1862,24 @@ static HANDLE acquire_sandbox_lock(int waitSec, const char* run)
 	for (int waited=0;; waited++) {
 		HANDLE h=CreateFileW(path,GENERIC_READ|GENERIC_WRITE,0,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
 		if (h!=INVALID_HANDLE_VALUE) {
-			char info[512]; SYSTEMTIME st; GetLocalTime(&st);
-			int n=_snprintf(info,sizeof(info)-1,"pid %lu, run %s, since %02d:%02d:%02d, %s\r\n",GetCurrentProcessId(),run,st.wHour,st.wMinute,st.wSecond,gRunDir);
-			DWORD wr=0; SetFilePointer(h,0,NULL,FILE_BEGIN); SetEndOfFile(h); if (n>0) WriteFile(h,info,(DWORD)n,&wr,NULL);
+			char old[1024]; DWORD rd=0; if (!ReadFile(h,old,sizeof(old)-1,&rd,NULL)) rd=0; old[rd]=0;
+			const char* q=strstr(old,"sandbox=");
+			gStaleId[0]=0; gStalePid=0;
+			if (q && is_guid36(q+8)) { lstrcpynA(gStaleId,q+8,37); const char* pp=strstr(old,"pid="); if (pp) gStalePid=strtoul(pp+4,NULL,10); }
+			SYSTEMTIME st; GetLocalTime(&st);
+			wsprintfA(gSbLockSince,"%04d-%02d-%02d %02d:%02d:%02d",st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute,st.wSecond);
+			lstrcpynA(gSbLockRun,run,sizeof(gSbLockRun));
+			gSbLock=h;
+			lock_write(gStaleId);   // an earlier run's sandbox stays named until it is confirmed gone
 			logline("holding the Windows Sandbox lock %ls%s", path, waited?" (after waiting)":"");
-			return h;
+			if (gStaleId[0]) logline("the lock names the sandbox %s, which the run of pid %lu started and never confirmed stopped", gStaleId, gStalePid);
+			return 1;
 		}
 		DWORD e=GetLastError();
-		if (e!=ERROR_SHARING_VIOLATION && e!=ERROR_LOCK_VIOLATION) { logline("--sandbox: cannot open the lock %ls (err %lu)", path, e); return INVALID_HANDLE_VALUE; }
+		if (e!=ERROR_SHARING_VIOLATION && e!=ERROR_LOCK_VIOLATION) { logline("--sandbox: cannot open the lock %ls (err %lu)", path, e); return 0; }
 		if (waited==0) logline("another run holds the Windows Sandbox lock %ls; queued, waiting up to %d s", path, waitSec);
 		else if (waited%60==0) logline("  still waiting for the sandbox lock (%d s)", waited);
-		if (waited>=waitSec) { logline("--sandbox: the lock was not free within %d s; giving up", waitSec); return INVALID_HANDLE_VALUE; }
+		if (waited>=waitSec) { logline("--sandbox: the lock was not free within %d s; giving up", waitSec); return 0; }
 		Sleep(1000);
 	}
 }
@@ -1837,11 +1906,14 @@ static int find_wsb(void)
 	logline("wsb: %s", gWsbPath);
 	return 1;
 }
-// Run wsb.exe with no console window, its output appended to gWsbLog. wait=0 returns the process in *proc.
+// Run wsb.exe with no console window, its output appended to gWsbLog. wait=0 returns the process in *proc. Each call
+// builds its command line in a buffer of its own (on the stack, or allocated for a long configuration), since the
+// main thread, the guard, the Ctrl+C handler and the crash filter may each run wsb.
 static int run_wsb(const char* args, int wait, DWORD waitMs, DWORD* exitCode, HANDLE* proc)
 {
-	static char cmd[16384];
-	_snprintf(cmd,sizeof(cmd)-1,"\"%s\" %s",gWsbPath,args); cmd[sizeof(cmd)-1]=0;
+	char small[640]; char* cmd=small; size_t need=strlen(gWsbPath)+strlen(args)+4;
+	if (need>sizeof(small) && (cmd=(char*)malloc(need))==NULL) { logline("could not run wsb %.80s (out of memory)", args); return 0; }
+	sprintf(cmd,"\"%s\" %s",gWsbPath,args);
 	SECURITY_ATTRIBUTES sa={sizeof(sa),NULL,TRUE};
 	HANDLE out=CreateFileA(gWsbLog,FILE_APPEND_DATA,FILE_SHARE_READ|FILE_SHARE_WRITE,&sa,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
 	if (out!=INVALID_HANDLE_VALUE) { char hdr[256]; int n=_snprintf(hdr,sizeof(hdr)-1,"---- wsb %.200s\r\n",args); DWORD wr=0; if (n>0) WriteFile(out,hdr,(DWORD)n,&wr,NULL); }
@@ -1851,6 +1923,7 @@ static int run_wsb(const char* args, int wait, DWORD waitMs, DWORD* exitCode, HA
 	PROCESS_INFORMATION pi; ZeroMemory(&pi,sizeof(pi));
 	BOOL ok=CreateProcessA(NULL,cmd,NULL,NULL,TRUE,CREATE_NO_WINDOW,NULL,NULL,&si,&pi);
 	DWORD err=GetLastError();
+	if (cmd!=small) free(cmd);
 	if (out!=INVALID_HANDLE_VALUE) CloseHandle(out);
 	if (!ok) { logline("could not run wsb %.80s (err %lu)", args, err); return 0; }
 	CloseHandle(pi.hThread);
@@ -1861,13 +1934,19 @@ static int run_wsb(const char* args, int wait, DWORD waitMs, DWORD* exitCode, HA
 	CloseHandle(pi.hProcess);
 	return w!=WAIT_TIMEOUT;
 }
+// Stops this run's sandbox, once: the main thread, the guard, the Ctrl+C handler and the crash filter may all ask.
+// A stop that fails only warns here; the lock keeps the id for the next run to stop, and the sandbox's own shutdown
+// timer (the dead-man's switch, main_in_sandbox) ends it anyway.
+static volatile LONG gStopOnce = 0;
 static void stop_sandbox(const char* why)
 {
 	if (!gSandboxId[0] || !gWsbPath[0]) return;
-	char a[128]; wsprintfA(a,"stop --id %s",gSandboxId);
-	logline("stopping the sandbox %s (%s)", gSandboxId, why);
-	DWORD ec=0; run_wsb(a,1,60000,&ec,NULL);
-	if (ec) logline("wsb stop exited %lu (see %s)", ec, gWsbLog);
+	if (InterlockedExchange(&gStopOnce,1)) return;
+	char id[64]; lstrcpynA(id,gSandboxId,sizeof(id));
+	char a[128]; wsprintfA(a,"stop --id %s",id);
+	logline("stopping the sandbox %s (%s)", id, why);
+	DWORD ec=1; int ran=run_wsb(a,1,60000,&ec,NULL);
+	if (!ran || ec) logline("WARNING: wsb stop %s (exit %lu; see %s): the lock keeps the id for the next run to stop, and the sandbox shuts itself down on its own timer", ran?"failed":"could not be run", ec, gWsbLog);
 	gSandboxId[0]=0;
 }
 static BOOL WINAPI sandbox_ctrl(DWORD type){ stop_sandbox("origrun was interrupted"); return FALSE; }
@@ -1892,9 +1971,40 @@ static int wsb_guids(const char* header, char* id, int cap)
 	return found;
 }
 
+// A sandbox the lock still names: the run that started it ended without "wsb list" confirming the stop (it was
+// killed, or its stop failed). That run has let the lock go, so it is ending or gone. Once it is gone, the sandbox is
+// stopped by its id, and this run goes on only when wsb lists no sandbox any more.
+static int recover_stale_sandbox(void)
+{
+	if (gStalePid && gStalePid!=GetCurrentProcessId()) {
+		HANDLE h=OpenProcess(SYNCHRONIZE|PROCESS_QUERY_LIMITED_INFORMATION,FALSE,gStalePid);
+		if (h) {
+			char p[MAX_PATH]; DWORD n=MAX_PATH; size_t l=0;
+			int orig = QueryFullProcessImageNameA(h,0,p,&n) && (l=strlen(p))>=12 && !lstrcmpiA(p+l-12,"\\origrun.exe");
+			if (orig && WaitForSingleObject(h,0)==WAIT_TIMEOUT) { logline("the run that left it (pid %lu) is still ending; waiting up to 30 s", gStalePid); WaitForSingleObject(h,30000); }
+			CloseHandle(h);
+		}
+	}
+	char a[128], id[64]="";
+	wsprintfA(a,"stop --id %s",gStaleId);
+	logline("stopping the sandbox %s, which an earlier run (pid %lu) started and never confirmed stopped", gStaleId, gStalePid);
+	DWORD ec=1; run_wsb(a,1,60000,&ec,NULL);
+	logline("wsb stop of the earlier run's sandbox exited %lu", ec);
+	DWORD t=GetTickCount(); int listed;
+	for (;;) {
+		listed = run_wsb("list",1,60000,NULL,NULL) ? wsb_guids("list",id,sizeof(id)) : -1;
+		if (!listed || GetTickCount()-t > 30000) break;
+		Sleep(1000);
+	}
+	if (listed) { logline("--sandbox: wsb still lists a sandbox (%s) after the earlier run's was stopped; origrun starts none, and the lock keeps the id", listed>0?id:"wsb list failed"); return 0; }
+	logline("the earlier run's sandbox is gone: wsb lists none");
+	gStaleId[0]=0; gStalePid=0; lock_write(NULL);
+	return 1;
+}
+
 // The sandbox must never show a window on the user's desktop. Docs say "wsb connect" is what opens one; this check
-// watches for any visible window of a Windows Sandbox process (or vmconnect) on the desktop the user sees, and the
-// run stops the sandbox at once if one appears.
+// watches for any visible window of a Windows Sandbox process, wsb's broker or vmconnect on the desktop the user
+// sees, and the run stops its sandbox at once if one appears.
 typedef struct { int found; char what[300]; } SbWin;
 static BOOL CALLBACK sbwin_cb(HWND h, LPARAM lp)
 {
@@ -1905,7 +2015,7 @@ static BOOL CALLBACK sbwin_cb(HWND h, LPARAM lp)
 	char path[MAX_PATH]; DWORD n=MAX_PATH; int ok=QueryFullProcessImageNameA(p,0,path,&n); CloseHandle(p);
 	if (!ok) return TRUE;
 	const char* leaf=strrchr(path,'\\'); leaf=leaf?leaf+1:path;
-	if (istr_has(leaf,"sandbox") || ieq(leaf,"vmconnect.exe")) {
+	if (is_sandbox_leaf(leaf) || is_broker_leaf(leaf) || ieq(leaf,"vmconnect.exe")) {
 		char t[128]="", cls[64]=""; GetWindowTextA(h,t,sizeof(t)); GetClassNameA(h,cls,sizeof(cls));
 		RECT r; GetWindowRect(h,&r);
 		_snprintf(c->what,sizeof(c->what)-1,"%s (pid %lu): '%s' class %s at %ld,%ld %ldx%ld",leaf,pid,t,cls,r.left,r.top,r.right-r.left,r.bottom-r.top); c->found=1; return FALSE;
@@ -1922,15 +2032,19 @@ static int sandbox_window_shown(char* what, int cap)
 	return c.found;
 }
 
-static void xml_escape(const char* in, char* out, int cap)
+// 0 when the escaped text does not fit: the run is then refused, never given a cut-off path.
+static int xml_escape(const char* in, char* out, int cap)
 {
 	int o=0;
-	for (; *in && o<cap-7; in++) {
-		const char* r=NULL;
+	for (; *in; in++) {
+		char one[2]={*in,0}; const char* r=one;
 		switch (*in) { case '&': r="&amp;"; break; case '<': r="&lt;"; break; case '>': r="&gt;"; break; case '"': r="&quot;"; break; case '\'': r="&apos;"; break; }
-		if (r) { lstrcpyA(out+o,r); o+=lstrlenA(r); } else out[o++]=*in;
+		int n=lstrlenA(r);
+		if (o+n>=cap) { out[0]=0; return 0; }
+		memcpy(out+o,r,n); o+=n;
 	}
 	out[o]=0;
+	return 1;
 }
 static int read_marker_rc(const char* path, int* rc)
 {
@@ -1954,12 +2068,9 @@ static void snapshot_before(void)
 	for (BOOL ok=Process32First(sn,&pe); ok && gBeforeN<(int)(sizeof(gBeforePids)/sizeof(gBeforePids[0])); ok=Process32Next(sn,&pe)) gBeforePids[gBeforeN++]=pe.th32ProcessID;
 	CloseHandle(sn);
 }
-// WindowsSandboxServer.exe is the wsb command's broker, not a sandbox: the first wsb call of a logon starts it, and
-// it stays. Whether a sandbox runs is what wsb list says.
-static int is_broker_leaf(const char* leaf){ return ieq(leaf,"WindowsSandboxServer.exe"); }
 // Any Windows Sandbox process running now (what=its name and pid). onlyNew: only those started since the snapshot.
 // broker: count the broker too.
-static int sandbox_procs(int onlyNew, char* what, int cap, int kill, int broker)
+static int sandbox_procs(int onlyNew, char* what, int cap, int broker)
 {
 	int n=0; if (what) what[0]=0;
 	HANDLE sn=CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0); if (sn==INVALID_HANDLE_VALUE) return 0;
@@ -1970,11 +2081,6 @@ static int sandbox_procs(int onlyNew, char* what, int cap, int kill, int broker)
 		if (onlyNew && pid_before(pe.th32ProcessID)) continue;
 		n++;
 		char one[128]; wsprintfA(one,"%s%s %lu",n>1?", ":"",pe.szExeFile,pe.th32ProcessID);
-		if (kill) {
-			HANDLE h=OpenProcess(PROCESS_TERMINATE,FALSE,pe.th32ProcessID);
-			BOOL t = h && TerminateProcess(h,1); DWORD e=GetLastError(); if (h) CloseHandle(h);
-			wsprintfA(one+lstrlenA(one)," (%s)", t ? "ended" : (e==ERROR_ACCESS_DENIED ? "access denied" : "could not end"));
-		}
 		if (what && lstrlenA(what)+lstrlenA(one)<cap-1) lstrcatA(what,one);
 	}
 	CloseHandle(sn);
@@ -2000,18 +2106,17 @@ static void log_new_processes(const char* when)
 	}
 	logline("%s: new processes of the sandbox: %s", when, shown?line:"none");
 }
-// The guard: from before "wsb start" to the end, every 100 ms, any visible window of a sandbox process (or
-// vmconnect) on the desktop the user sees ends every sandbox process started since the launch, which closes the
-// window, and the run then stops the sandbox.
+// The guard: from before "wsb start" to the end, every 100 ms, any visible window of a sandbox process, wsb's broker
+// or vmconnect on the desktop the user sees stops this run's sandbox with "wsb stop --id", which closes its windows.
+// The guard never ends a process itself: a window that is not this sandbox's costs only this run.
 static DWORD WINAPI guard_thread(LPVOID p)
 {
 	while (!gGuardStop) {
 		char what[300];
 		if (sandbox_window_shown(what,sizeof(what))) {
 			InterlockedExchange(&gGuardTrip,1);
-			char ended[1024]; int n=sandbox_procs(1,ended,sizeof(ended),1,1);
 			logline("STOP: a sandbox window was on the user's desktop: %s", what);
-			if (n) logline("  ended the sandbox processes started since the launch: %s", ended);
+			stop_sandbox("a window showed on the user's desktop");
 			break;
 		}
 		Sleep(100);
@@ -2019,12 +2124,16 @@ static DWORD WINAPI guard_thread(LPVOID p)
 	return 0;
 }
 static int file_there(const char* dir, const char* leaf){ char q[MAX_PATH]; joinp(q,dir,leaf); return GetFileAttributesA(q)!=INVALID_FILE_ATTRIBUTES; }
+// origrun inside writes sandbox-started.txt when it begins and sandbox-done.txt when it ends, refusals included (a run
+// whose checks fail inside writes only the done marker): either one means it ran.
+static int inside_ran(void){ return file_there(gRunDir,"sandbox-started.txt") || file_there(gRunDir,"sandbox-done.txt"); }
 
 static int sandbox_wsb_run(const char* cfg, int timeout, int probe)
 {
 	if (!find_wsb()) { logline("--sandbox: wsb.exe is not on this machine (Windows Sandbox and its wsb command, Windows 11 24H2 or later)"); return 2; }
+	if (gStaleId[0] && !recover_stale_sandbox()) return 2;
 	char what[1024], id[64];
-	if (sandbox_procs(0,what,sizeof(what),0,0)) { logline("--sandbox: Windows Sandbox is already running (%s), and not for this run: origrun starts none while it does", what); return 2; }
+	if (sandbox_procs(0,what,sizeof(what),0)) { logline("--sandbox: Windows Sandbox is already running (%s), and not for this run: origrun starts none while it does", what); return 2; }
 	if (!run_wsb("list",1,60000,NULL,NULL)) return 2;
 	if (wsb_guids("list",id,sizeof(id))) { logline("--sandbox: wsb list shows a running sandbox (%s), not this run's: origrun starts none while one runs", id); return 2; }
 
@@ -2034,6 +2143,8 @@ static int sandbox_wsb_run(const char* cfg, int timeout, int probe)
 	CoCreateGuid(&g); StringFromGUID2(&g,gw,64); WideCharToMultiByte(CP_ACP,0,gw+1,-1,ga,sizeof(ga),NULL,NULL);
 	{ char* br=strchr(ga,'}'); if (br) *br=0; }
 	lstrcpynA(gSandboxId,ga,sizeof(gSandboxId));   // set before start, so any later exit stops it
+	gStopOnce=0;
+	lock_write(gSandboxId);   // and named in the lock before it exists: a run killed from here on leaves its id there
 	SetConsoleCtrlHandler(sandbox_ctrl,TRUE);
 	snapshot_before();
 	gGuardStop=0; gGuardTrip=0; gStop=0; gAudioSandbox=1; gSbAudioPeak=-1;
@@ -2052,7 +2163,7 @@ static int sandbox_wsb_run(const char* cfg, int timeout, int probe)
 		}
 		GetExitCodeProcess(sp,&ec); CloseHandle(sp);
 		if (ec!=0) { logline("wsb start failed (exit %lu, after %lu ms; see %s)", ec, GetTickCount()-t0, gWsbLog); goto out; }
-		if (wsb_guids("start",id,sizeof(id)) && !ieq(id,gSandboxId)) { logline("wsb start gave the sandbox the id %s (asked for %s)", id, gSandboxId); lstrcpynA(gSandboxId,id,sizeof(gSandboxId)); }
+		if (wsb_guids("start",id,sizeof(id)) && !ieq(id,gSandboxId)) { logline("wsb start gave the sandbox the id %s (asked for %s)", id, gSandboxId); lstrcpynA(gSandboxId,id,sizeof(gSandboxId)); lock_write(gSandboxId); }
 		logline("wsb start returned after %lu ms", GetTickCount()-t0);
 		log_new_processes("after wsb start");
 	}
@@ -2070,11 +2181,11 @@ static int sandbox_wsb_run(const char* cfg, int timeout, int probe)
 			tries++;
 			for (;;) {
 				if (probe && !sawExec && file_there(gRunDir,"exec-marker.txt")) { sawExec=1; logline("the exec marker appeared %lu ms after wsb start began (exec try %d)", GetTickCount()-t0, tries); }
-				if (file_there(gRunDir,"sandbox-started.txt")) { up=1; break; }
+				if (inside_ran()) { up=1; break; }
 				if (gGuardTrip) { rc=4; goto out; }
 				if (GetTickCount()-t1 >= 90000) break;
 				if (WaitForSingleObject(ex,100)==WAIT_OBJECT_0) {
-					if (file_there(gRunDir,"sandbox-started.txt")) { up=1; break; }
+					if (inside_ran()) { up=1; break; }
 					DWORD xc=0; GetExitCodeProcess(ex,&xc); CloseHandle(ex); ex=NULL;
 					logline("wsb exec returned %lu before origrun started inside; retrying", xc);
 					Sleep(3000); break;
@@ -2083,7 +2194,8 @@ static int sandbox_wsb_run(const char* cfg, int timeout, int probe)
 		}
 		if (gGuardTrip) { rc=4; goto out; }
 		if (!up) { logline("origrun did not start inside the sandbox within 90 s (see %s)", gWsbLog); goto out; }
-		logline("origrun started inside %lu ms after wsb start began; its log is %s\\logs\\origrun-sandbox.log", GetTickCount()-t0, gRunDir);
+		if (file_there(gRunDir,"sandbox-started.txt")) logline("origrun started inside %lu ms after wsb start began; its log is %s\\logs\\origrun-sandbox.log", GetTickCount()-t0, gRunDir);
+		else logline("origrun inside ended before its run began (only its done marker is there), %lu ms after wsb start began", GetTickCount()-t0);
 		DWORD t2=GetTickCount(), limit=(DWORD)(probe ? 30 : timeout+60)*1000;
 		while (!file_there(gRunDir,"sandbox-done.txt")) {
 			if (GetTickCount()-t2 > limit) { logline("no done marker within %lu s; stopping the sandbox", limit/1000); goto out; }
@@ -2106,12 +2218,19 @@ out:
 			CloseHandle(ex); ex=NULL;
 		}
 		// Confirm nothing is left: wsb lists no sandbox, and no sandbox process started since the launch runs.
-		int listed=0, left=0; DWORD tc=GetTickCount();
+		int listed=0, left=0, again=0; DWORD tc=GetTickCount();
 		do {
 			listed = run_wsb("list",1,60000,NULL,NULL) ? wsb_guids("list",id,sizeof(id)) : -1;
-			left = sandbox_procs(1,what,sizeof(what),0,0);
+			left = sandbox_procs(1,what,sizeof(what),0);
+			if (listed>0 && !again && sid[0] && GetTickCount()-tc > 10000) {   // a stop that did not take: once more
+				char a[128]; wsprintfA(a,"stop --id %s",sid); again=1;
+				logline("wsb still lists a sandbox 10 s after the stop; stopping %s again", sid);
+				run_wsb(a,1,60000,NULL,NULL);
+			}
 			if (listed || left) Sleep(1000);
 		} while ((listed || left) && GetTickCount()-tc < 30000);
+		if (!listed) lock_write(NULL);   // confirmed gone: the lock no longer names it
+		else logline("the lock keeps the sandbox's id %s: the next run stops it first, and the sandbox's own timer ends it", sid);
 		if (listed>0) logline("WARNING: wsb list still shows a sandbox (%s) 30 s after the stop", id);
 		else if (listed<0) logline("WARNING: wsb list could not be run after the stop");
 		if (left) logline("WARNING: sandbox processes still run 30 s after the stop: %s", what);
@@ -2139,6 +2258,37 @@ out:
 	else logline("RESULT: the sandbox had an audio session on the host; loudest peak %ld/1000%s", (long)gSbAudioPeak, gSbAudioPeak>0 ? " (sound reached the host)" : " (silent)");
 	SetConsoleCtrlHandler(sandbox_ctrl,FALSE);
 	return gGuardTrip ? 4 : rc;
+}
+
+// --reg <file>: registry presets for a game run inside the sandbox (see import_registry).
+static const char* gRegArg = NULL;
+
+// A final path (junctions and links resolved) as a host path for the configuration: no \\?\ prefix, never a network
+// path, and only when its ANSI form is exact.
+static int final_host_path(const char* in, char* out, int cap)
+{
+	WCHAR f[MAX_PATH+8]; if (!final_w(in,f,MAX_PATH+8)) return 0;
+	const WCHAR* p=f;
+	if (lstrlenW(p)>=8 && !memcmp(p,L"\\\\?\\UNC\\",8*sizeof(WCHAR))) return 0;
+	if (lstrlenW(p)>=4 && !memcmp(p,L"\\\\?\\",4*sizeof(WCHAR))) p+=4;
+	if (!(p[0] && p[1]==L':' && p[2]==L'\\')) return 0;   // a drive path only
+	BOOL lossy=FALSE;
+	if (!WideCharToMultiByte(CP_ACP,WC_NO_BEST_FIT_CHARS,p,-1,out,cap,NULL,&lossy) || lossy) return 0;
+	return 1;
+}
+// What the sandbox maps, checked on the final paths: the run folder must sit directly under <repo>\build\origrun,
+// and the binaries must be origrun's own build\origrun-bin. The configuration names those final paths, so what is
+// mapped is what was checked.
+static int mapped_folders_ok(const char* selfDir, char* runHost, char* binHost)
+{
+	char root[MAX_PATH], rootHost[MAX_PATH]; _snprintf(root,sizeof(root)-1,"%s\\build\\origrun",gRepo); root[sizeof(root)-1]=0;
+	if (!final_host_path(gRunDir,runHost,MAX_PATH) || !final_host_path(root,rootHost,MAX_PATH)) { logline("--sandbox: cannot resolve the run folder %s or %s to a local path; refusing to map it", gRunDir, root); return 0; }
+	size_t rl=strlen(rootHost);
+	if (_strnicmp(runHost,rootHost,rl)!=0 || runHost[rl]!='\\' || !runHost[rl+1] || strchr(runHost+rl+1,'\\')) { logline("--sandbox: the run folder %s is not directly under %s; refusing to map it", runHost, rootHost); return 0; }
+	if (!final_host_path(selfDir,binHost,MAX_PATH)) { logline("--sandbox: cannot resolve origrun's folder %s to a local path; refusing to map it", selfDir); return 0; }
+	static const char tail[]="\\build\\origrun-bin"; size_t bl=strlen(binHost), tl=sizeof(tail)-1;
+	if (bl<=tl || lstrcmpiA(binHost+bl-tl,tail)!=0) { logline("--sandbox: origrun runs from %s, not from a build\\origrun-bin folder; refusing to map it", binHost); return 0; }
+	return 1;
 }
 
 // --sandbox, on the host: the copy, the script and origrun's binaries are staged; the run happens inside a fresh
@@ -2170,14 +2320,27 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (key3d && key3d[0]) fprintf(rf,"key3d=%s\n",key3d);
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
 	fclose(rf);
+	// --reg: registry presets, imported inside before the game starts, into the hive the game uses there.
+	if (!probe) {
+		char sfd[MAX_PATH], rg[MAX_PATH]; joinp(sfd,gRunDir,"sandbox-files"); joinp(rg,sfd,"registry.reg");
+		if (gRegArg) {
+			mkdirs(sfd);
+			if (!CopyFileA(gRegArg,rg,FALSE)) { logline("--reg: cannot copy %s to %s (err %lu)", gRegArg, rg, GetLastError()); return 2; }
+			logline("--reg: staged %s as %s; it is imported inside the sandbox before the game starts", gRegArg, rg);
+		}
+		else if (GetFileAttributesA(rg)!=INVALID_FILE_ATTRIBUTES) logline("registry presets: %s is imported inside the sandbox before the game starts", rg);
+	}
 	static const char* const markers[]={"sandbox-started.txt","sandbox-done.txt","exec-marker.txt","probe.txt"};
 	for (int i=0;i<4;i++) { joinp(p,gRunDir,markers[i]); if (GetFileAttributesA(p)!=INVALID_FILE_ATTRIBUTES && !delete_guarded(p)) { logline("--sandbox: cannot clear %s", p); return 2; } }
 
 	// The configuration: no network, clipboard, printers, microphone or camera; the RDP client in AppContainer
 	// isolation; software rendering unless --sandbox-vgpu; and only the two folders.
-	char runX[MAX_PATH*2], binX[MAX_PATH*2]; xml_escape(gRunDir,runX,sizeof(runX)); xml_escape(selfDir,binX,sizeof(binX));
+	char runHost[MAX_PATH], binHost[MAX_PATH];
+	if (!mapped_folders_ok(selfDir,runHost,binHost)) return 2;
+	char runX[MAX_PATH*6], binX[MAX_PATH*6];
+	if (!xml_escape(runHost,runX,sizeof(runX)) || !xml_escape(binHost,binX,sizeof(binX))) { logline("--sandbox: a mapped folder's path does not fit the configuration; refusing the run"); return 2; }
 	static char cfg[4096];
-	_snprintf(cfg,sizeof(cfg)-1,
+	int cfgN=_snprintf(cfg,sizeof(cfg)-1,
 		"<Configuration><vGPU>%s</vGPU><Networking>Disable</Networking>"
 		"<MappedFolders>"
 		"<MappedFolder><HostFolder>%s</HostFolder><SandboxFolder>C:\\run</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder>"
@@ -2187,17 +2350,17 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 		"<PrinterRedirection>Disable</PrinterRedirection><ClipboardRedirection>Disable</ClipboardRedirection>"
 		"</Configuration>", vgpu?"Enable":"Disable", runX, binX);
 	cfg[sizeof(cfg)-1]=0;
+	if (cfgN<0 || cfgN>=(int)sizeof(cfg)-1) { logline("--sandbox: the configuration does not fit its buffer; refusing the run"); return 2; }
 	char wsbFile[MAX_PATH]; joinp(wsbFile,gRunDir,"sandbox.wsb");
 	FILE* wf=fopen(wsbFile,"w"); if (!wf) { logline("--sandbox: cannot write %s", wsbFile); return 2; }
 	fputs(cfg,wf); fputs("\n",wf); fclose(wf);
 	logline("sandbox configuration in %s: vGPU %s, networking, clipboard, printers, audio and video input off, protected client on; "
-		"maps %s (read-write, C:\\run) and %s (read-only, C:\\origrun)%s", wsbFile, vgpu?"on":"off", gRunDir, selfDir, probe?"; a probe, no game":"");
+		"maps %s (read-write, C:\\run) and %s (read-only, C:\\origrun)%s", wsbFile, vgpu?"on":"off", runHost, binHost, probe?"; a probe, no game":"");
 
 	const char* run=strrchr(gRunDir,'\\'); run=run?run+1:gRunDir;
-	HANDLE lock=acquire_sandbox_lock(waitSec, run);
-	if (lock==INVALID_HANDLE_VALUE) return 2;
+	if (!acquire_sandbox_lock(waitSec, run)) return 2;
 	int rc = sandbox_wsb_run(cfg,timeout,probe);
-	CloseHandle(lock);   // the next queued run may start its sandbox
+	release_sandbox_lock();   // the next queued run may start its sandbox
 	logline("released the Windows Sandbox lock");
 	{   // the inside run's verdicts, for this log
 		char ip[MAX_PATH]; wsprintfA(ip,"%s\\origrun-sandbox.log",logs);
@@ -2349,6 +2512,184 @@ static void probe_display(FILE* o)
 	fprintf(o,"GPU modules in this process after DirectDraw: %s\n", g>0?gpu:(g<0?"(list not readable)":"none"));
 }
 
+// ------------------------------------------------------------------ registry presets, inside the sandbox
+
+// --reg (on the host) stages a .reg file as <run>\sandbox-files\registry.reg; a session may also put one there
+// itself. Inside, the origrun that launches the game imports it first, as the same user as the game. As SYSTEM
+// (wsb exec -r System) that user's HKCU is SYSTEM's own hive, HKEY_USERS\S-1-5-18, so HKCU keys land where the game
+// looks. UAC never virtualizes SYSTEM, so a key the host keeps in UAC's per-user VirtualStore
+// (HKCU\Software\Classes\VirtualStore\MACHINE\...) is, for a game run as SYSTEM, the HKLM key itself: such keys are
+// moved there, and the file is imported through the 32-bit view the 32-bit games use (reg import /reg:32, which keeps
+// HKLM\SOFTWARE\X in HKLM\SOFTWARE\WOW6432Node\X). After the run the game's keys are exported to the logs.
+#define MAX_REG_KEYS 64
+static WCHAR gRegKeys[MAX_REG_KEYS][260]; static int gRegKeysN = 0;   // the keys the presets name
+
+static int ci_prefix_w(const WCHAR* s, const WCHAR* pre)
+{
+	int n=lstrlenW(pre);
+	return lstrlenW(s)>=n && CompareStringOrdinal(s,n,pre,n,TRUE)==CSTR_EQUAL;
+}
+static HKEY reg_root_w(const WCHAR* key, const WCHAR** sub)
+{
+	static const WCHAR* const names[]={L"HKEY_CURRENT_USER\\",L"HKEY_LOCAL_MACHINE\\",L"HKEY_USERS\\",L"HKEY_CLASSES_ROOT\\",L"HKEY_CURRENT_CONFIG\\"};
+	HKEY roots[]={HKEY_CURRENT_USER,HKEY_LOCAL_MACHINE,HKEY_USERS,HKEY_CLASSES_ROOT,HKEY_CURRENT_CONFIG};
+	for (int i=0;i<5;i++) if (ci_prefix_w(key,names[i])) { *sub=key+lstrlenW(names[i]); return roots[i]; }
+	return NULL;
+}
+// Runs a command line with no window, its output appended to outPath: 1 when it ran, its exit code in *ec.
+static int run_hidden(const char* cmdline, const char* outPath, DWORD waitMs, DWORD* ec)
+{
+	SECURITY_ATTRIBUTES sa={sizeof(sa),NULL,TRUE};
+	HANDLE out=CreateFileA(outPath,FILE_APPEND_DATA,FILE_SHARE_READ|FILE_SHARE_WRITE,&sa,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+	STARTUPINFOA si; ZeroMemory(&si,sizeof(si)); si.cb=sizeof(si);
+	si.dwFlags=STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW; si.wShowWindow=SW_HIDE;
+	si.hStdInput=NULL; si.hStdOutput=out; si.hStdError=out;
+	PROCESS_INFORMATION pi; ZeroMemory(&pi,sizeof(pi));
+	char* cmd=_strdup(cmdline);
+	BOOL ok = cmd && CreateProcessA(NULL,cmd,NULL,NULL,TRUE,CREATE_NO_WINDOW,NULL,NULL,&si,&pi);
+	DWORD err=GetLastError(); free(cmd);
+	if (out!=INVALID_HANDLE_VALUE) CloseHandle(out);
+	*ec=1;
+	if (!ok) { logline("could not run %.160s (err %lu)", cmdline, err); return 0; }
+	CloseHandle(pi.hThread);
+	if (WaitForSingleObject(pi.hProcess,waitMs)==WAIT_TIMEOUT) { logline("%.80s did not finish within %lu s; ending it", cmdline, waitMs/1000); TerminateProcess(pi.hProcess,1); WaitForSingleObject(pi.hProcess,5000); }
+	GetExitCodeProcess(pi.hProcess,ec); CloseHandle(pi.hProcess);
+	return 1;
+}
+static void import_registry(const char* logs)
+{
+	char rp[MAX_PATH]; wsprintfA(rp,"%s\\sandbox-files\\registry.reg",gRunDir);
+	HANDLE h=CreateFileA(rp,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+	if (h==INVALID_HANDLE_VALUE) return;   // no presets
+	DWORD size=GetFileSize(h,NULL), rd=0;
+	unsigned char* raw = (size!=INVALID_FILE_SIZE && size<=(4u<<20)) ? (unsigned char*)malloc(size+2) : NULL;
+	int got = raw && ReadFile(h,raw,size,&rd,NULL) && rd==size;
+	CloseHandle(h);
+	if (!got) { logline("registry presets: cannot read %s (or it is over 4 MB); not imported", rp); free(raw); return; }
+	// The file's encoding is kept: UTF-16LE with a BOM (regedit's "Version 5.00" export), UTF-8 with a BOM, or ANSI
+	// (REGEDIT4).
+	int enc=0; const unsigned char* body=raw; int blen=(int)size;
+	if (size>=2 && raw[0]==0xFF && raw[1]==0xFE) { enc=2; body+=2; blen-=2; }
+	else if (size>=3 && raw[0]==0xEF && raw[1]==0xBB && raw[2]==0xBF) { enc=1; body+=3; blen-=3; }
+	UINT cp = enc==1 ? CP_UTF8 : CP_ACP;
+	int inLen = enc==2 ? blen/2 : MultiByteToWideChar(cp,0,(const char*)body,blen,NULL,0);
+	WCHAR* in=(WCHAR*)malloc((inLen+1)*sizeof(WCHAR)); WCHAR* outw=(WCHAR*)malloc((inLen+64)*sizeof(WCHAR));
+	if (!in || !outw) { logline("registry presets: out of memory"); free(raw); free(in); free(outw); return; }
+	if (enc==2) memcpy(in,body,inLen*sizeof(WCHAR)); else MultiByteToWideChar(cp,0,(const char*)body,blen,in,inLen);
+	in[inLen]=0; free(raw);
+
+	// Key lines are "[name]", or "[-name]" to delete one. Moving a key only ever shortens its line.
+	static const WCHAR vs[]=L"HKEY_CURRENT_USER\\Software\\Classes\\VirtualStore\\MACHINE\\";
+	static const WCHAR wow[]=L"SOFTWARE\\WOW6432Node";
+	int o=0, keys=0, moved=0; gRegKeysN=0;
+	for (int i=0;i<inLen;) {
+		int e=i; while (e<inLen && in[e]!=L'\n') e++;   // the line is in[i..e)
+		int s=i; while (s<e && (in[s]==L' '||in[s]==L'\t')) s++;
+		int done=0;
+		if (s<e && in[s]==L'[') {
+			int del = s+1<e && in[s+1]==L'-', k0=s+1+del, k1=k0;
+			while (k1<e && in[k1]!=L']') k1++;
+			if (k1<e && k1-k0<1000) {
+				WCHAR key[1024], tr[1024]; memcpy(key,in+k0,(k1-k0)*sizeof(WCHAR)); key[k1-k0]=0; lstrcpyW(tr,key);
+				if (gAsSystem && ci_prefix_w(key,vs)) {
+					const WCHAR* rest=key+lstrlenW(vs); int wl=lstrlenW(wow);
+					if (ci_prefix_w(rest,wow) && (rest[wl]==0 || rest[wl]==L'\\')) _snwprintf(tr,1023,L"HKEY_LOCAL_MACHINE\\SOFTWARE%ls",rest+wl);
+					else _snwprintf(tr,1023,L"HKEY_LOCAL_MACHINE\\%ls",rest);
+					tr[1023]=0; moved++;
+				}
+				int tl=lstrlenW(tr);
+				memcpy(outw+o,in+i,(k0-i)*sizeof(WCHAR)); o+=k0-i;
+				memcpy(outw+o,tr,tl*sizeof(WCHAR)); o+=tl;
+				memcpy(outw+o,in+k1,(e-k1)*sizeof(WCHAR)); o+=e-k1;
+				if (!del) { keys++; if (gRegKeysN<MAX_REG_KEYS) lstrcpynW(gRegKeys[gRegKeysN++],tr,260); }
+				done=1;
+			}
+		}
+		if (!done) { memcpy(outw+o,in+i,(e-i)*sizeof(WCHAR)); o+=e-i; }
+		if (e<inLen) outw[o++]=L'\n';
+		i=e+1;
+	}
+	free(in);
+
+	char op[MAX_PATH]; joinp(op,logs,"registry-imported.reg");
+	FILE* f=fopen(op,"wb");
+	if (!f) { logline("registry presets: cannot write %s; not imported", op); free(outw); return; }
+	if (enc==2) { fwrite("\xFF\xFE",1,2,f); fwrite(outw,sizeof(WCHAR),o,f); }
+	else {
+		if (enc==1) fwrite("\xEF\xBB\xBF",1,3,f);
+		int n=WideCharToMultiByte(cp,0,outw,o,NULL,0,NULL,NULL); char* b=(char*)malloc(n+1);
+		if (b) { WideCharToMultiByte(cp,0,outw,o,b,n,NULL,NULL); fwrite(b,1,n,f); free(b); }
+	}
+	fclose(f); free(outw);
+
+	char sys[MAX_PATH]; GetSystemDirectoryA(sys,MAX_PATH);
+	char cmd[MAX_PATH*3]; _snprintf(cmd,sizeof(cmd)-1,"\"%s\\reg.exe\" import \"%s\" /reg:32",sys,op); cmd[sizeof(cmd)-1]=0;
+	char rl[MAX_PATH]; joinp(rl,logs,"reg.txt");
+	DWORD ec=1; run_hidden(cmd,rl,60000,&ec);
+	int present=0; char missing[700]="";
+	for (int i=0;i<gRegKeysN;i++) {
+		const WCHAR* sub=NULL; HKEY root=reg_root_w(gRegKeys[i],&sub), k;
+		if (root && RegOpenKeyExW(root,sub,0,KEY_READ|KEY_WOW64_32KEY,&k)==ERROR_SUCCESS) { present++; RegCloseKey(k); }
+		else if (lstrlenA(missing)<400) { char one[300]; _snprintf(one,sizeof(one)-1,"%s%ls",missing[0]?"; ":"",gRegKeys[i]); one[sizeof(one)-1]=0; lstrcatA(missing,one); }
+	}
+	logline("registry presets: %s, %d keys (%d moved from UAC's VirtualStore to HKLM, since the game runs as %s), imported "
+		"with reg import /reg:32 as %s (exit %lu; %s); %d of the %d keys are there now%s%s", rp, keys, moved,
+		gAsSystem?"SYSTEM":"the sandbox's user", op, ec, rl, present, gRegKeysN, missing[0]?"; missing: ":"", missing);
+}
+// After the run: the game's keys as it left them, for the host to read. PopCap's under HKCU and HKLM (32-bit view),
+// and every other key the presets named, each exported once to <run>\logs\registry-after-<n>.reg.
+static void export_registry(const char* logs)
+{
+	static WCHAR keys[MAX_REG_KEYS+2][260]; int n=0;
+	lstrcpyW(keys[n++],L"HKEY_CURRENT_USER\\Software\\PopCap");
+	lstrcpyW(keys[n++],L"HKEY_LOCAL_MACHINE\\SOFTWARE\\PopCap");
+	for (int i=0;i<gRegKeysN;i++) {
+		int covered=0;
+		for (int j=0;j<n && !covered;j++) { int l=lstrlenW(keys[j]); covered = ci_prefix_w(gRegKeys[i],keys[j]) && (gRegKeys[i][l]==0 || gRegKeys[i][l]==L'\\'); }
+		if (!covered) lstrcpynW(keys[n++],gRegKeys[i],260);
+	}
+	char sys[MAX_PATH]; GetSystemDirectoryA(sys,MAX_PATH);
+	char rl[MAX_PATH]; joinp(rl,logs,"reg.txt");
+	char list[1200]=""; int written=0;
+	for (int i=0;i<n;i++) {
+		const WCHAR* sub=NULL; HKEY root=reg_root_w(keys[i],&sub), k;
+		if (!root || RegOpenKeyExW(root,sub,0,KEY_READ|KEY_WOW64_32KEY,&k)!=ERROR_SUCCESS) continue;
+		RegCloseKey(k);
+		char ka[300]; if (!WideCharToMultiByte(CP_ACP,0,keys[i],-1,ka,sizeof(ka),NULL,NULL)) continue;
+		char leaf[40], fp[MAX_PATH]; wsprintfA(leaf,"registry-after-%d.reg",written+1); joinp(fp,logs,leaf);
+		char cmd[MAX_PATH*3]; _snprintf(cmd,sizeof(cmd)-1,"\"%s\\reg.exe\" export \"%s\" \"%s\" /y /reg:32",sys,ka,fp); cmd[sizeof(cmd)-1]=0;
+		DWORD ec=1;
+		if (run_hidden(cmd,rl,60000,&ec) && ec==0) {
+			written++;
+			if (lstrlenA(list)<900) { char one[340]; _snprintf(one,sizeof(one)-1,"%s%s (%s)",list[0]?", ":"",ka,leaf); one[sizeof(one)-1]=0; lstrcatA(list,one); }
+		}
+		else logline("registry after the run: reg export of %s failed (exit %lu)", ka, ec);
+	}
+	if (written) logline("registry after the run, as the game left it: %s, in %s", list, logs);
+	else logline("registry after the run: none of the keys exists (HKCU and HKLM Software\\PopCap, and the keys the presets name)");
+}
+
+// The dead-man's switch. The host's origrun stops the sandbox when the run ends, but one that is killed
+// (TerminateProcess runs no handler) stops nothing. So the sandbox shuts itself down: the origrun that wsb exec
+// starts arms a power-off at the run's timeout plus 90 s, and again 30 s after it writes the done marker; a host that
+// stops the sandbox first makes both moot. Only ever inside: Windows Sandbox detected, as SYSTEM, run from the
+// read-only C:\origrun the sandbox maps.
+static DWORD arm_guest_shutdown(DWORD sec)
+{
+	char self[MAX_PATH]=""; GetModuleFileNameA(NULL,self,MAX_PATH);
+	if (!gInSandbox || !gAsSystem || !ieq(self,"C:\\origrun\\origrun.exe")) return ERROR_ACCESS_DENIED;
+	HANDLE tok;
+	if (OpenProcessToken(GetCurrentProcess(),TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY,&tok)) {
+		TOKEN_PRIVILEGES tp; tp.PrivilegeCount=1; tp.Privileges[0].Attributes=SE_PRIVILEGE_ENABLED;
+		if (LookupPrivilegeValueA(NULL,"SeShutdownPrivilege",&tp.Privileges[0].Luid)) AdjustTokenPrivileges(tok,FALSE,&tp,0,NULL,NULL);
+		CloseHandle(tok);
+	}
+	AbortSystemShutdownA(NULL);   // an earlier timer of this run is replaced
+	return InitiateShutdownA(NULL,(LPSTR)"byo-pop origrun: the run inside Windows Sandbox is over or out of time",sec,
+		SHUTDOWN_POWEROFF|SHUTDOWN_FORCE_OTHERS|SHUTDOWN_FORCE_SELF,
+		SHTDN_REASON_MAJOR_OTHER|SHTDN_REASON_MINOR_OTHER|SHTDN_REASON_FLAG_PLANNED);
+}
+
 static int main_in_sandbox(const char* dir, int inSession, int probe)
 {
 	char why[300];
@@ -2359,6 +2700,10 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			fprintf(o,"sandbox check: %s: %s\n", gInSandbox?"passed":"FAILED", why);
 			if (gInSandbox) { HWND cw=GetConsoleWindow(); if (cw) ShowWindow(cw,SW_HIDE); probe_display(o); }
 			fclose(o);
+		}
+		if (gInSandbox) {   // the dead-man's switch, as for a game run
+			DWORD r=arm_guest_shutdown(30); FILE* a=fopen(pp,"a");
+			if (a) { if (r) fprintf(a,"shutdown timer: could not arm it (err %lu)\n",r); else fprintf(a,"shutdown timer: armed; the sandbox powers off in 30 s unless the host stops it first\n"); fclose(a); }
 		}
 		char mk[MAX_PATH]; joinp(mk,dir,"sandbox-started.txt"); FILE* f=fopen(mk,"w"); if (f) { fprintf(f,"started\n"); fclose(f); }
 		joinp(mk,dir,"sandbox-done.txt"); f=fopen(mk,"w"); if (f) { fprintf(f,"rc=%d probe\n", gInSandbox?0:2); fclose(f); }
@@ -2410,6 +2755,11 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	}
 	if (!exeRel[0] || strstr(exeRel,"..") || exeRel[0]=='\\' || strchr(exeRel,':')) { logline("bad exe in sandbox-run.txt: '%s'", exeRel); goto done; }
 	if (timeout>240) timeout=240;
+	if (!inSession) {   // the dead-man's switch: a sandbox whose host origrun was killed still ends
+		DWORD r=arm_guest_shutdown((DWORD)timeout+90);
+		if (r) logline("WARNING: could not arm the sandbox's shutdown timer (err %lu)", r);
+		else logline("shutdown timer: the sandbox powers off %d s from now (the run's timeout plus 90 s) unless the host stops it first", timeout+90);
+	}
 	joinp(gExePath,gRunDir,exeRel);
 	joinp(gGameDir,gRunDir,"game");
 	char script[MAX_PATH]=""; if (scriptRel[0]) joinp(script,gRunDir,scriptRel);
@@ -2441,6 +2791,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	SetEnvironmentVariableA("ORIGRUN_DIR",gRunDir);
 	SetEnvironmentVariableA("ORIGRUN_SOUND", ieq(sound,"real") ? "real" : sound);
 
+	import_registry(logs);   // the presets first, in the hive the game uses, so the 3D setting below wins over them
 	DWORD prev3d=0; int hadPrev3d=0; static RegVals prevTest3d;
 	if (key3d[0]) { hadPrev3d = reg_get_is3d(key3d,&prev3d); read_test3d(key3d,&prevTest3d); }
 	if (gMode3dWant>=0 && key3d[0]) {
@@ -2452,10 +2803,16 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	{
 		Launched L;
 		if (launch_game(NULL,&L)) rc=watch_run(&L, script[0]?script:NULL, timeout, key3d, hadPrev3d, prev3d, &prevTest3d, logs, logpath);
+		export_registry(logs);
 	}
 done:
 	if (inSession) return rc;   // the origrun in session 0 writes the done marker
 	{ char dn[MAX_PATH]; joinp(dn,gRunDir,"sandbox-done.txt"); FILE* f=fopen(dn,"w"); if (f) { fprintf(f,"rc=%d\n",rc); fclose(f); } }
+	{
+		DWORD r=arm_guest_shutdown(30);
+		if (r) logline("WARNING: could not re-arm the sandbox's shutdown timer (err %lu)", r);
+		else logline("shutdown timer: the sandbox powers off in 30 s unless the host stops it first");
+	}
 	return rc;
 }
 
@@ -2472,6 +2829,16 @@ static LONG WINAPI crash_filter(EXCEPTION_POINTERS* ep)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
+// --run names one folder under build\origrun, which a sandbox maps read-write: letters, digits and - _ . + only, no
+// "..", not starting or ending with a dot, at most 64 characters.
+static int run_name_ok(const char* r)
+{
+	int n=lstrlenA(r);
+	if (n<1 || n>64 || strstr(r,"..") || r[0]=='.' || r[n-1]=='.') return 0;
+	for (const char* q=r;*q;q++) { char c=*q; if (!((c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='-'||c=='_'||c=='.'||c=='+')) return 0; }
+	return 1;
+}
+
 int main(int argc, char** argv)
 {
 	crc_init();
@@ -2483,6 +2850,7 @@ int main(int argc, char** argv)
 	int haveSeed=0; uint32_t seed=0; int updateMs=0; int noPatch=0; const char* stageRoot=NULL;
 	const char* key3dArg=NULL; const char* flag3dArg=NULL; const char* dgvArg=NULL;
 	int sandboxHost=0, sandboxVgpu=0, sandboxWait=600, inSession=0, sandboxProbe=0, probe=0; const char* inSandboxDir=NULL;
+	const char* regArg=NULL;
 
 	for (int i=1;i<argc;i++) {
 		if (ieq(argv[i],"--game")&&i+1<argc) game=argv[++i];
@@ -2511,6 +2879,7 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--sandbox")) sandboxHost=1;
 		else if (ieq(argv[i],"--sandbox-vgpu")) sandboxVgpu=1;
 		else if (ieq(argv[i],"--sandbox-wait")&&i+1<argc) sandboxWait=atoi(argv[++i]);
+		else if (ieq(argv[i],"--reg")&&i+1<argc) regArg=argv[++i];
 		else if (ieq(argv[i],"--in-sandbox")&&i+1<argc) inSandboxDir=argv[++i];
 		else if (ieq(argv[i],"--in-session")) inSession=1;
 		else if (ieq(argv[i],"--probe")) probe=1;
@@ -2520,11 +2889,19 @@ int main(int argc, char** argv)
 	if (inSandboxDir) return main_in_sandbox(inSandboxDir, inSession, probe);   // everything else comes from the run folder
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");
 	if (timeout>240) timeout=240;   // the machine rule: nothing longer than about 4 minutes
-	if (!sandboxHost && !copyOnly && script_takes_shots(script)) {
-		fprintf(stderr, "origrun: refusing to start: this run takes shots, and origrun takes no shot on the host (a capture "
-			"there can show the user's own screen). Run it with --sandbox, or with a script that takes none.\n");
+	if (!sandboxHost && !copyOnly && script_needs_sandbox(script)) {
+		fprintf(stderr, "origrun: refusing to start: this run takes shots or sends hw* input, and origrun does neither on the "
+			"host (a capture there can show the user's own screen, and hw* input reaches the user's desktop). Run it with "
+			"--sandbox, or with a script that does neither.\n");
 		return 2;
 	}
+	if (regArg && (!sandboxHost || sandboxProbe)) {
+		fprintf(stderr, "origrun: --reg imports registry presets inside Windows Sandbox, for a game run there (--sandbox); on the "
+			"host origrun writes no registry from a file\n");
+		return 2;
+	}
+	if (regArg && GetFileAttributesA(regArg)==INVALID_FILE_ATTRIBUTES) { fprintf(stderr, "origrun: --reg: no file %s\n", regArg); return 2; }
+	gRegArg=regArg;
 	if (sandboxHost && stageRoot) { fprintf(stderr, "origrun: --sandbox stages the copy in the run folder; drop --stage-root (inside the sandbox the path is short)\n"); return 2; }
 
 	// where the tool and rundesk live (origrun.exe sits in build/origrun-bin/)
@@ -2539,6 +2916,8 @@ int main(int argc, char** argv)
 		{ logline("rundesk not found at %s -- build it: cmake --build build/native --target rundesk", rundesk); return 2; }
 
 	if (!run) run = game ? game : (sandboxProbe ? "sandbox-probe" : "run");
+	if (!run_name_ok(run)) { fprintf(stderr, "origrun: --run '%s' is not a plain folder name: letters, digits and - _ . + only, no '..', at most 64 characters\n", run); return 2; }
+	if (lstrlenA(repo)+lstrlenA(run)+16 > MAX_PATH-100) { fprintf(stderr, "origrun: the run folder's path would be too long (%s\\build\\origrun\\%s)\n", repo, run); return 2; }
 	wsprintfA(gRunDir,"%s\\build\\origrun\\%s",repo,run);
 	joinp(gShotDir,gRunDir,"shots");
 	// The game copy goes under gRunDir by default; --stage-root puts it under a SHORT path instead (shots and
@@ -2557,7 +2936,23 @@ int main(int argc, char** argv)
 		if (GetFileAttributesA(srcDir)==INVALID_FILE_ATTRIBUTES) { logline("source folder not found: %s",srcDir); return 2; }
 	}
 
-	mkdirs(gRunDir); mkdirs(gShotDir);
+	mkdirs(gRunDir);
+	// One origrun per run folder: a second run with the same --run would stage over the first one's copy, script and
+	// markers. The lock is taken before anything in the folder is written; Windows lets it go when origrun ends.
+	{
+		char lp[MAX_PATH]; joinp(lp,gRunDir,"run.lock");
+		HANDLE rl=CreateFileA(lp,GENERIC_READ|GENERIC_WRITE,0,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+		if (rl==INVALID_HANDLE_VALUE) {
+			DWORD e=GetLastError();
+			if (e==ERROR_SHARING_VIOLATION || e==ERROR_LOCK_VIOLATION) fprintf(stderr, "origrun: another origrun is using the run folder %s (it holds run.lock); give this run its own --run\n", gRunDir);
+			else fprintf(stderr, "origrun: cannot open %s (err %lu)\n", lp, e);
+			return 2;
+		}
+		char info[64]; int n=wsprintfA(info,"pid=%lu\r\n",GetCurrentProcessId()); DWORD wr=0;
+		SetEndOfFile(rl); WriteFile(rl,info,(DWORD)n,&wr,NULL);
+		// never closed: held until origrun ends
+	}
+	mkdirs(gShotDir);
 	char logs[MAX_PATH]; joinp(logs,gRunDir,"logs"); mkdirs(logs);
 	InitializeCriticalSection(&gLogLock); gLogLockInit=1;
 	char logpath[MAX_PATH]; joinp(logpath,logs,"origrun.log"); gLogFile=fopen(logpath,"w");

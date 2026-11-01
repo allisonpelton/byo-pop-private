@@ -47,7 +47,11 @@ you first carved out of a wrapper; see below). Captures land in `build/origrun/<
 
 Options:
 
-- `--run <id>` — the run folder name under `build/origrun/` (default: the game name).
+- `--run <id>` — the run folder name under `build/origrun/` (default: the game name). One plain folder name:
+  letters, digits and `- _ . +` only, no `..`, not starting or ending with a dot, at most 64 characters; anything else
+  is refused, since a sandbox maps the folder read-write. Each run takes `<run>/run.lock`, opened with no sharing,
+  before it writes anything in the folder, so a second origrun with the same `--run` is refused ("another origrun is
+  using the run folder") instead of staging over the first; Windows lets the lock go when origrun ends.
 - `--sound stub` (default) — the silent stand-in that accepts every call and logs it.
 - `--sound nodriver` — the stand-in reports no sound device (`DSERR_NODRIVER`); use for a game's very first run.
 - `--sound wav` — silent stand-in that also records to `snd/` what the game writes to its DirectSound buffers.
@@ -66,6 +70,8 @@ Options:
   in software. `--sandbox-wait <sec>` is how long a run waits in the queue while another run's sandbox is up
   (default 600). `--sandbox-probe` starts a sandbox with no game, in which origrun writes what it finds (the sandbox
   check, sessions, display, DirectDraw, folders, network) to `build/origrun/sandbox-probe/probe.txt`.
+- `--reg <file.reg>` — registry presets for a game run with `--sandbox`, imported inside before the game starts,
+  where the game looks for them (see "Saves and the registry"). Refused on the host and with `--sandbox-probe`.
 - `--counter <expr>` / `--flips <expr>` / `--update-ms <ms>` — the game's update counter, for update-timed
   capture and input (see "Timing to the game's updates"). Usually set once in the per-game config instead.
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
@@ -119,7 +125,9 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
 - `hwmove <x> <y>` / `hwclick <x> <y>` / `hwrclick <x> <y>` / `hwkey <vk>` — input through the desktop
   (`SetCursorPos` + `SendInput`) instead of a posted window message, for a game that reads the mouse with
   DirectInput or `GetCursorPos` and so ignores posted clicks (TipTop). Plain `click`/`key` still post messages,
-  which drive the SAF/LOWOS message path.
+  which drive the SAF/LOWOS message path. **Only inside Windows Sandbox** (`--sandbox`), as shots are: on the host
+  these calls reach the user's own input desktop, whatever desktop the game is on. A host run whose script has any
+  of them is refused at the start, and each one is refused (logged) should it run on the host anyway.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
   (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, or `burst`), then resume it. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
@@ -218,17 +226,19 @@ On the host, origrun stages the run under `build/origrun/<run>/` as before: the 
 sound stand-in and any `--dgvoodoo` wrapper; the script as `script.txt`; the run's settings in `sandbox-run.txt`;
 and the configuration it hands `wsb` in `sandbox.wsb`. It then takes the machine's sandbox lock, starts a sandbox
 with `wsb start --id <guid> --config <the XML>`, and runs `C:\origrun\origrun.exe --in-sandbox C:\run` inside it with
-`wsb exec -r System`, retrying while the sandbox boots until origrun inside writes `sandbox-started.txt`. It refuses
-to start while `wsb list` shows a sandbox or any Windows Sandbox process other than the broker runs (the user's own,
-say), so everything it ends is its own. It waits
-for `sandbox-done.txt` (the inside run's exit code) for the run's timeout plus 60 s, then stops the sandbox with
-`wsb stop`, checks with `wsb list` that it is gone, releases the lock, and copies the inside run's RESULT lines into
-its own log. Every exit after the start stops the sandbox, Ctrl+C and a crash of origrun included. `wsb`'s own
-output goes to `logs/wsb.txt`, the inside run's log to `logs/origrun-sandbox.log`, and the shots to `shots/`, all in
-the run folder on the host.
+`wsb exec -r System`, retrying while the sandbox boots until origrun inside writes `sandbox-started.txt` (or
+`sandbox-done.txt`, which a run refused inside writes alone). It refuses to start while `wsb list` shows a sandbox
+or a Windows Sandbox process runs (`WindowsSandbox.exe`, `WindowsSandboxClient.exe` or
+`WindowsSandboxRemoteSession.exe`, by exact name; the broker is none), the user's own say, so the only sandbox it
+ever stops is the one it started, and only through `wsb stop --id`. It waits for `sandbox-done.txt` (the inside
+run's exit code) for the run's timeout plus 60 s, then stops the sandbox with `wsb stop`, checks with `wsb list`
+that it is gone (stopping it once more if it is still listed after 10 s), releases the lock, and copies the inside
+run's RESULT lines into its own log. Ctrl+C and a crash of origrun stop the sandbox too; a killed origrun cannot,
+which "When origrun is killed" below covers. `wsb`'s own output goes to `logs/wsb.txt`, the inside run's log to
+`logs/origrun-sandbox.log`, and the shots to `shots/`, all in the run folder on the host.
 
-Inside, origrun puts the files staged under `<run>/sandbox-files/C/` onto the sandbox's `C:` (saves, below), sets
-the game's 3D setting for `--3d`, and runs the game in a job of its own at below-normal priority, on the sandbox's
+Inside, origrun puts the files staged under `<run>/sandbox-files/C/` onto the sandbox's `C:` (saves, below),
+imports the registry presets (`--reg`, below), sets the game's 3D setting for `--3d`, and runs the game in a job of its own at below-normal priority, on the sandbox's
 own desktop (`WinSta0\Default`), without rundesk's hidden one. `wsb exec -r System` starts origrun in session 0, and a
 sandbox started without `connect` has no other session a game could use (below), so the game runs in session 0 as
 SYSTEM. There the input desktop is `Winlogon`, and DirectDraw sets a display mode only on the input desktop, so origrun
@@ -255,11 +265,31 @@ after the start began, and origrun was running inside 0.3 s later. The sandbox t
 console session at all: only session 0 and a listening remote-desktop session with no user. `wsb stop` took about
 0.5 s, and 0.4 s later `wsb list` showed nothing and both processes were gone.
 
-A guard thread looks, every 100 ms from before `wsb start` to after the stop, for a visible window of a process
-whose name contains "sandbox" (or `vmconnect.exe`) on the desktop the user sees. When it finds one, it ends every
-sandbox process started since the launch, which closes the window; the run logs "STOP: a sandbox window was on the
-user's desktop", stops the sandbox and exits with code 4. It has never fired. Every run ends with "RESULT: no
-sandbox window showed on the user's desktop" or the STOP line.
+A guard thread looks, every 100 ms from before `wsb start` to after the stop, for a visible window on the desktop
+the user sees of a Windows Sandbox process (the three names above), of the broker `WindowsSandboxServer.exe` or of
+`vmconnect.exe`, matched by exact name, never by a part of one (another product's "sandbox", Sandboxie say, is not
+Windows Sandbox). When it finds one, it stops this run's sandbox with `wsb stop --id`, which closes the sandbox's
+windows; it never ends a process itself, so a window that is not this sandbox's costs only this run. The run logs
+"STOP: a sandbox window was on the user's desktop" and exits with code 4. It has never fired. Every run ends with
+"RESULT: no sandbox window showed on the user's desktop" or the STOP line.
+
+### When origrun is killed
+
+A killed origrun (`TerminateProcess`, as a task stop does) runs no handler, so it cannot stop its sandbox. Two
+things stop it instead. The lock names the sandbox: just before `wsb start`, the run writes `sandbox=<id>` into
+the lock's text, and it takes the line out only once `wsb list` confirms the stop. The next run that takes the lock
+and finds such a line waits for the run that wrote it to end, if it still runs, stops that sandbox with
+`wsb stop --id`, and goes on only once `wsb list` shows none. And the sandbox shuts itself down: the origrun that
+`wsb exec` starts inside arms a power-off (`InitiateShutdown`) at the run's timeout plus 90 s, and again 30 s after
+it writes `sandbox-done.txt`; a host that stops the sandbox first makes it moot. It arms it only inside, after the
+sandbox check passed, as SYSTEM, run from `C:\origrun`. A probe arms the 30 s one.
+
+**Tested on 2026-11-01** with probes. Killed 0.6 s into `wsb start`, origrun left no sandbox: the start never
+finished, and `wsb list` was empty. Killed as soon as `wsb start` returned, before anything ran inside, it left a
+sandbox that only the lock knew of; the next run logged "the lock names the sandbox ...", stopped it and ran its
+own probe. Killed as soon as origrun inside had started, it left a sandbox that powered itself off: `wsb list` was
+empty 32 s after the kill. The lock's line from that run was cleared by the next run (its `wsb stop` found the id
+gone). A game run with both timers armed launched and ran as before (Ning Po, below).
 
 ### What the sandbox offers a game (found 2026-11-01)
 
@@ -279,7 +309,9 @@ three times while the window was still flat, then `PrintWindow` gave the game's 
 first frame of its loading screen). The stand-in's "DirectSoundCreate failed" box came up and was answered, as on
 the host. No audio session of the game appeared inside, and none of the sandbox on the host. The guard saw no
 window on the user's desktop, and `wsb stop` (2 s) left nothing. Whether Ning Po could go full screen there was
-not tried (that is its Options dialog); the probe says 32 bpp full-screen modes work and 16 bpp ones do not.
+not tried (that is its Options dialog); the probe says 32 bpp full-screen modes work and 16 bpp ones do not. A
+second run the same day, with the shutdown timers armed and `--reg` presets, gave the same shot: `wsb start` took
+1.1 s, the game's window was up 0.5 s after origrun started inside, and nothing was left 5 s after the start began.
 
 ### The configuration, and why
 
@@ -292,16 +324,21 @@ enables it for a 3D run (Microsoft notes that a shared GPU widens what the sandb
 
 There are exactly two mapped folders: the run folder, read-write, as `C:\run`, and origrun's binaries
 (`build/origrun-bin`), read-only, as `C:\origrun`. Never the install folder, the user's profile or the repository:
-the copy is already in the run folder.
+the copy is already in the run folder. Before it writes `sandbox.wsb`, origrun resolves both to their final paths
+(`GetFinalPathNameByHandle`, so a junction or link shows where it leads) and refuses the run unless the run folder
+sits directly under the repository's `build\origrun` and the binaries' folder ends in `\build\origrun-bin`, both on
+a local drive; the configuration names those final paths, so what is mapped is what was checked. A path that does
+not fit the configuration, escaped, refuses the run too, rather than being cut short.
 
 ### The lock: one sandbox on the machine
 
 Every session's origrun opens the same lock file, `byo-pop\sandbox.lock` in the user's local application data
 folder (as Windows reports it, `%LOCALAPPDATA%`), with no sharing, before it starts a sandbox. While another run holds
 it, a run waits in the queue (logged, up to `--sandbox-wait`, default 600 s) and gives up after that. Windows closes
-the handle when origrun ends, however it ends, so the lock cannot be left behind; the file keeps the last holder's
-pid, run and start time for anyone wondering who has it. A sandbox run counts as one game process for the machine's
-limit of 3, while it waits in the queue as well.
+the handle when origrun ends, however it ends, so the lock cannot be left behind. Its text is `key=value` lines: the
+holder's `pid`, `run`, `since` and `dir`, and while its sandbox may be up, `sandbox=<id>` (see "When origrun is
+killed"). A sandbox run counts as one game process for the machine's limit of 3, while it waits in the queue as
+well. The run folder has its own lock besides, `<run>/run.lock` (see `--run`).
 
 ### How origrun knows it is in the sandbox
 
@@ -328,10 +365,30 @@ host" in both probes). The sound stand-in and the audio watch work inside as on 
 Saves, settings and trial state live inside the sandbox and vanish with it, so every run starts as a first run.
 A run that needs a save stages it first: files inside the game's folder go into the copy (`game/`), and files
 elsewhere go under `<run>/sandbox-files/C/` at their path on `C:` (for example
-`sandbox-files/C/ProgramData/<game>/userdata/...`), which origrun copies onto `C:` before the game starts. The
-registry starts empty, and only `--3d` writes to it. Inside the sandbox origrun and the game run as SYSTEM, which
-Windows never virtualizes, so a games.tsv key under `Software\Classes\VirtualStore\MACHINE\` is read and written at
-its real HKLM path there; in a user session the game is virtualized as on the host.
+`sandbox-files/C/ProgramData/<game>/userdata/...`), which origrun copies onto `C:` before the game starts.
+
+The registry starts as a fresh Windows has it. Inside, origrun and the game both run as SYSTEM, so the game's
+HKCU is SYSTEM's own hive (`HKEY_USERS\S-1-5-18`), not the user's, and UAC never virtualizes SYSTEM: a game that
+writes under HKLM writes HKLM itself, not the per-user `Software\Classes\VirtualStore\MACHINE\...` copy where the
+host keeps its values. origrun follows the game. Its own reads and writes of a games.tsv key (`--3d`, the cached
+`Test3D` results) open HKCU as the game does, and a key under `Software\Classes\VirtualStore\MACHINE\` at its HKLM
+path, all through the 32-bit view the 32-bit games use (`HKLM\SOFTWARE\X` is then kept in
+`HKLM\SOFTWARE\WOW6432Node\X`). In a user session the game would be virtualized as on the host, and nothing is moved.
+
+**Presets: `--reg <file.reg>`.** A run that needs values in place (a setting, a registration, a high-score table)
+gives them as a `.reg` file, for instance one exported with regedit from the host. The host copies it to
+`<run>/sandbox-files/registry.reg` (a session may also put a file there itself, and it is then imported the same
+way). Inside, the origrun that launches the game, before the `--3d` setting and the launch: moves every key under
+`HKEY_CURRENT_USER\Software\Classes\VirtualStore\MACHINE\` to `HKEY_LOCAL_MACHINE\` (dropping a
+`SOFTWARE\WOW6432Node` level, which the 32-bit view adds back), keeps HKCU keys as they are, writes the result to
+`logs/registry-imported.reg` in the file's own encoding (UTF-16 or UTF-8 with a BOM, or ANSI), imports it with
+`reg import /reg:32`, and logs reg's exit code and how many of the keys exist afterwards ("2 of the 2 keys are
+there now"). **Reads: after the run** origrun exports, as the game left them, `HKCU\Software\PopCap`,
+`HKLM\SOFTWARE\PopCap` (32-bit view) and every other key the presets named, each to
+`logs/registry-after-<n>.reg`, and logs which file holds which key. The exports name keys as the 32-bit view shows
+them (`HKEY_LOCAL_MACHINE\SOFTWARE\PopCap`, without `WOW6432Node`). reg's own output is in `logs/reg.txt`.
+**Tested on 2026-11-01** with a UTF-16 file holding one VirtualStore key and one HKCU key under `PopCap`: both were
+imported (one moved to HKLM), both were there before the launch, and both came back in the two exports.
 
 ## Recording sound (`--sound wav`)
 
@@ -608,15 +665,17 @@ user:
 
 Other gaps:
 
-- **Windows Sandbox: one game so far.** The empty sandbox and a windowed DirectDraw game (Ning Po, captured) are
-  proven (see "Windows Sandbox"). Still to test: whether Water Bugs and Cosmic Bugs open their full-screen mode
-  there; whether Bookworm Adventures reaches 3D with `--sandbox-vgpu` and no wrapper; whether a game that plays
-  sound past the stand-in reaches the host's speakers; and the VirtualStore-to-HKLM key for SYSTEM.
+- **Windows Sandbox: one game so far.** The empty sandbox, a windowed DirectDraw game (Ning Po, captured), the
+  stop of a killed run's sandbox and registry presets are proven (see "Windows Sandbox"). Still to test, by the game
+  sessions once this is merged: whether Water Bugs and Cosmic Bugs open their full-screen mode there; whether
+  Bookworm Adventures reaches 3D with `--sandbox-vgpu` and no wrapper; whether a game that plays sound past the
+  stand-in reaches the host's speakers; and a game whose own settings live under HKLM (VirtualStore on the host),
+  read and written there as SYSTEM.
 - **3D on the host needs dgVoodoo2**: legacy DirectDraw has no hardware on the hidden desktop, so an original with
   a 3D mode runs in 3D there only with `--dgvoodoo` (see "Hardware acceleration (3D mode)"). Proven on Bookworm
   Adventures only; each session adds its game's registry key and 3D flag to games.tsv. Host runs take no shot.
-- **No staged registry**: a sandbox run starts with an empty registry, and only `--3d` writes to it. A run that needs
-  other values (a setting, a registration) has no way to stage them yet.
+- **Registry presets only inside**: `--reg` imports a `.reg` file into a sandbox run (see "Saves and the
+  registry"); a host run has no such option and writes only the `--3d` setting, which it puts back afterwards.
 
 - **Windowed DirectDraw now captures** (Ning Po): a window is often flat only because it has not drawn its first
   frame, so `waitshot`/`capture_ready` re-grab while flat and get real content once it appears. **Full-screen
@@ -634,7 +693,9 @@ Other gaps:
   silently there. TipTop's trial screen changed right after an `hwclick`, but no control run (the same script
   without the click) has ruled out chance, or the user's own clicks reaching the game through DirectInput. Before
   relying on them: log `SendInput`'s and `SetCursorPos`'s results, make a control run, and never switch the driver
-  thread to the input desktop, which would move the user's cursor and click on their screen. The in-process
+  thread to the input desktop, which would move the user's cursor and click on their screen. Since 2026-11-01 they
+  run only inside Windows Sandbox, where the input desktop is the sandbox's own (`Default`, after origrun's
+  `SwitchDesktop`); there they are untested too. The in-process
   import-patch route stays **dropped** (it was stopped by a permission check in round 1; see the hard rule).
 - **Atomica won't start**: it shows "FATAL ERROR — Failed to load sound: sounds\capclick" and exits before any
   window, with the dsound stub, with `nodriver`, and with real audio alike. The Ogg and `fmod.dll` are present,
