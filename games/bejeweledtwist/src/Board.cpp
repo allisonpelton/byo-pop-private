@@ -4,6 +4,7 @@
 #include "Buffer.h"
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
+#include "GoodTube.h"
 #include "MemoryImage.h"
 #include "Piece.h"
 #include "Profile.h"
@@ -142,11 +143,22 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	if (mApp->mTwistMusic != nullptr)
 		mApp->mTwistMusic->SetState(0);
 
-	// port: the tube (0x707b7f) and its settings (0x702ad3(1), 0x702ac3(1), 0x702b87(0), 0x702bae(0), 0x702bbe(1);
-	// zen 0x702ac3(0), 0x702b87(4), 0x702bbe(2), 0x70371c(1); blitz 0x70c8b6(green, 1), 0x702bae(1)) come with it
-	NotPorted("Board's GoodTube (0x707b7f)");
-	if (theMode == 2)
+	mGoodTube = new GoodTube(this);
+	mGoodTube->SetShown(true);
+	mGoodTube->SetUnknown14D(true);
+	mGoodTube->SetUnknown158(0);
+	mGoodTube->SetUnknown15C(0);
+	mGoodTube->SetUnknown160(1);
+	if (theMode == 2) {
 		mUnknown158 = 1;
+		mGoodTube->SetUnknown14D(false);
+		mGoodTube->SetUnknown158(4);
+		mGoodTube->SetUnknown160(2);
+		mGoodTube->SetChallenge(true);
+	} else if (theMode == 3) {
+		// port: 0x70c8b6(Color(0, 255, 0), 1), the tube's fill colour, comes with the tube's drawing
+		mGoodTube->SetUnknown15C(1);
+	}
 
 	// port: the first manager's Direct3D height image (0x6f5ea6, +0xb6 and +0xa1) is left out
 	mFXManager = new EffectsManager();

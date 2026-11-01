@@ -15,6 +15,7 @@
 namespace Sexy {
 
 class EffectsManager;
+class GoodTube;
 class Font;
 class Image;
 class MemoryImage;
@@ -488,7 +489,7 @@ public:
 	float mUnknown20E0 = 0;                 // +0x20e0
 	void* mUnknown211C = nullptr;           // +0x211c: a 0x10-byte object holding the app (0x74c8c8)
 	int mUnknown2190 = 0;                   // +0x2190
-	Widget* mGoodTube = nullptr;            // +0x2194: the tube at the side (0x770 bytes, 0x707b7f)
+	GoodTube* mGoodTube = nullptr;          // +0x2194: the tube at the side
 	EffectsManager* mFXManager3 = nullptr;  // +0x21b8
 	float mUnknown21BC = 0;                 // +0x21bc
 	float mUnknown21C0 = 0;                 // +0x21c0

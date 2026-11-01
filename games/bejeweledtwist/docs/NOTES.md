@@ -231,7 +231,8 @@ was read as its first letter.
 `Sexy::Board` (0x6a3d7b-0x6d6899, about 200 KB of code in 1,470 functions with its templates; constructor 0x6c4df9,
 destructor 0x6befa1) is about 0x3940 bytes. Its bases are a TwistWidget, a ButtonListener (+0x148), a
 TwistDialogListener (+0x14c) and a PopAnimListener (+0x150). Its arguments are the app (+0x954), the game mode
-(+0x20c: 1 classic, 2 zen, 3 blitz, 5 challenge), flags (+0x210: 8 for a replay) and +0x2674.
+(+0x20c: 1 classic, 2 zen, 3 blitz, 5 challenge; but LoadConfig, 0x6b2b77, reads config_casual for 0, _normal for 1,
+_blitz for 3 and _zen for 4, so which mode 2 and 4 are is still to be checked against the menu), flags (+0x210: 8 for a replay) and +0x2674.
 
 Its vtable (0x7dd0d4, 71 slots) overrides AddedToManager (20, 0x6b8aa2), RemovedFromManager (21, 0x6ca084), Update
 (22, 0x6d6899, which calls the 24 KB 0x6d090f), Draw (26, 0x6cc7ed), DrawAll (27, 0x6aac5e), SetVisible (31,
@@ -239,7 +240,8 @@ Its vtable (0x7dd0d4, 71 slots) overrides AddedToManager (20, 0x6b8aa2), Removed
 0x6b3217), KeyDown (48, 0x6ca439), MouseMove (52), MouseDown (53, 0x6c7232), MouseUp (56) and two others (58, 59),
 and adds slot 70 (0x6bdbd9).
 
-The constructor makes a GoodTube (0x770 bytes, 0x707b7f: the progress tube beside the board), three
+The constructor makes a GoodTube (0x770 bytes, 0x707b7f: the progress tube beside the board; its constructor draws
+16 Rand() values and a RandSigned, so it comes before the rest of the tube), three
 EffectsManagers (+0x1648, +0x164c, +0x21b8), a PointsManager (0x158 bytes, +0x21fc) and a 42x42 MemoryImage, reads
 properties\tips.txt, and fills a 7x7 table of each cell's angle and distance from the middle (+0x1674, 0x1c bytes a
 cell). The game's other classes come with it: Piece (0x729b41-0x72fc8e), Points, the shockwaves and travellers,
