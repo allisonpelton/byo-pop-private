@@ -142,6 +142,20 @@ Color Sexy::GetFontLayerColor(Font* theFont, int theLayer)
 	return Color(0, 0, 0, 0);
 }
 
+Color Sexy::GetFontLayerColor(Font* theFont, const std::string& theName)
+{
+	ImageFont* aFont = dynamic_cast<ImageFont*>(theFont);
+	if (aFont == nullptr)
+		return Color(0, 0, 0, 0);
+	for (ActiveFontLayer& anActive : aFont->mActiveLayerList) {
+		for (auto& anEntry : aFont->mFontData->mFontLayerMap) {
+			if (anEntry.second == anActive.mBaseFontLayer && _stricmp(anEntry.first.c_str(), theName.c_str()) == 0)
+				return anActive.mBaseFontLayer->mColorMult;
+		}
+	}
+	return Color(0, 0, 0, 0);
+}
+
 void Sexy::SetFontLayerColor(Font* theFont, const std::string& theName, const Color& theColor)
 {
 	ImageFont* aFont = dynamic_cast<ImageFont*>(theFont);

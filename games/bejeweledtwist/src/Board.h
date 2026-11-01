@@ -531,8 +531,8 @@ public:
 	bool mUnknown37B1 = true; // +0x37b1
 	int mUnknown37B4 = 15;                  // +0x37b4
 	int mUnknown37C8 = 0;                   // +0x37c8
-	int mUnknown37EC = 0;                   // +0x37ec
-	int mUnknown37F0 = 0;                   // +0x37f0
+	float mUnknown37EC = 0;                 // +0x37ec
+	float mUnknown37F0 = 0;                 // +0x37f0
 	float mUnknown37F4 = 0;                   // +0x37f4
 	float mUnknown1630 = 0;                   // +0x1630: the wait to the next ring of tiles
 	int mUnknown1634 = 0;                     // +0x1634: the ring's distance from the middle
@@ -578,7 +578,7 @@ public:
 	CellPoint mCellPoints[49] = {};
 	float mUnknown1C2C = 0;                 // +0x1c2c: the app's middle
 	float mUnknown1C30 = 0;                 // +0x1c30
-	Rect mUnknown1F88;                      // +0x1f88
+	Color mUnknown1F88;                     // +0x1f88: filled over the board while its alpha (+0x1f94) counts down
 	int mUnknown1FBC = 0;                   // +0x1fbc
 	int mUnknown1FC0 = 0;                   // +0x1fc0
 	float mUnknown20E0 = 0;                 // +0x20e0
@@ -606,7 +606,6 @@ public:
 	std::map<int, int> mUnknown37B8;        // +0x37b8
 	MTRand mRand;                           // +0x958: seeded from Rand()
 	MTRand mUnknown2A80;                    // +0x2a80: seeded from the update count while +0x2629 is set
-	int mUnknown1F94 = 0;                   // +0x1f94: counts down to 0
 	// Read by ReadConfig (0x6c6469)
 	int mUnknown1BFC = 0;                   // +0x1bfc
 	bool mUnknown1BF8 = false;              // +0x1bf8
@@ -799,6 +798,11 @@ public:
 	bool CountDownCounters();
 	void NextLevelMusic();                       // 0x6a496b: the next of the game's tunes
 	void AddedToManager(WidgetManager* theWidgetManager) override;  // 0x6b8aa2
+	void DrawAll(ModalFlags* theFlags, Graphics* g) override;  // 0x6aac5e
+	void Draw(Graphics* g) override;                 // 0x6cc7ed
+	void DrawBoardBack(Graphics* g);                 // 0x6cc5a3: the 2D board and the space behind it
+	void DrawStrikes(Graphics* g);                   // 0x6aafc1
+	void DrawBoard(Graphics* g, bool theUnknown, bool theUnknown2);  // 0x6caa13 (0x6cc547 skips it while +0x1ff5)
 	void Update() override;                      // 0x6d6899: the game's updates for this frame, at its speed
 	void UpdateGame();                           // 0x6d090f: one update of the game
 	void Resize(int theX, int theY, int theWidth, int theHeight) override;  // 0x6a5b53: the pieces move with the grid

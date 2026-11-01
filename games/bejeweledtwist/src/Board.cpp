@@ -75,7 +75,7 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	gUnknown85B970.SRand(mApp->mHasSeedParam ? (unsigned int)mApp->mRandSeed : (unsigned int)time(nullptr));
 	gUnknown85AEF0 = 0;
 	mUnknown3924 = mApp->mUnknownF85 ? 0.0f : 1.0f;
-	mUnknown1F88 = Rect(0, 0, 0, 0);
+	mUnknown1F88 = Color(0, 0, 0, 0);
 	// 0x6a634f
 	mUnknown25B4 = 0;
 	mUnknown25AC = mUnknown25A8;

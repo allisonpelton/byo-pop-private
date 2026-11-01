@@ -55,5 +55,8 @@ void SetFontLayerColor(Font* theFont, int theLayer, const Color& theColor);
 Color GetFontLayerColor(Font* theFont, int theLayer);
 // 0x757784: the colour of the font's layer named theName (case ignored), among the layers it draws
 void SetFontLayerColor(Font* theFont, const std::string& theName, const Color& theColor);
+// 0x757833: the colour of the font's layer named theName (case ignored), among the layers it draws; no colour at
+// all if it has none
+Color GetFontLayerColor(Font* theFont, const std::string& theName);
 
 }  // namespace Sexy

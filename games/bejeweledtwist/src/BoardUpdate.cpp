@@ -1244,9 +1244,9 @@ void Board::UpdateGame()
 			mUnknown23F8 = (float)(aNext < 1.0 ? aNext : 1.0);
 		}
 	}
-	if (0 < mUnknown1F94) {
-		int aNext = mUnknown1F94 - 1;
-		mUnknown1F94 = aNext < 0 ? 0 : aNext;
+	if (0 < mUnknown1F88.mAlpha) {
+		int aNext = mUnknown1F88.mAlpha - 1;
+		mUnknown1F88.mAlpha = aNext < 0 ? 0 : aNext;
 	}
 	if (mShakeX == 0.0f && mUnknown3880.GetOutVal() == 0.0 && mUnknown2584 == nullptr) {
 		// The tip slides in, waits, and slides back
