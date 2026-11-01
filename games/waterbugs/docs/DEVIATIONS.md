@@ -88,3 +88,10 @@ and lilac glints (a few dozen pixels each) near pipe ends and powerups on the la
 two games; the sparks the port makes through its particle systems are not in that window, so they are another object's
 and are still to be found. The random draws stay in step through the whole run (the screens that follow are the
 same).
+
+Sound and focus. The exe's 29 calls of the sound-play function, and the calls of the music functions (volume 5, load 4,
+free 3, play 5), are matched by the port's calls in number. BASS did not reach the sound stand-in in the sandbox, so the
+sounds could not be recorded and compared by state. The focus loss and regain were run in the original (`focus lose`
+and `focus regain`): its update counter kept running while the focus was lost (23165, 23411 and 24200 at three shots
+taken while it was lost), so the game does not pause, and only the music pauses; the port does the same (`Sys_Activate`
+pauses the music and stops the sounds, and the frame loop does not look at the focus).
