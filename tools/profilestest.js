@@ -53,6 +53,18 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
   same("fullscreen choices", ["game", "on", "off"].map((v) => S.set("fullscreen", v) && S.get("fullscreen")), ["game", "on", "off"]);
   same("cursors choices", ["on", "off", "game"].map((v) => S.set("cursors", v) && S.get("cursors")), ["on", "off", "game"]);
   check("unknown setting", S.set("nonsense", "on") === false && S.get("nonsense") === null);
+  // the chat (web/chat.js) is the one switch that is on until it is turned off
+  same("chat: shown by default", [S.get("showChat"), S.all().showChat], ["on", "on"]);
+  check("chat: off is stored", S.set("showChat", "off") && S.get("showChat") === "off" && JSON.parse(data["byopop-settings"]).showChat === "off");
+  check("chat: on is the default, so its field goes", S.set("showChat", "on") && S.get("showChat") === "on" && !("showChat" in JSON.parse(data["byopop-settings"])));
+  check("chat: only on and off", S.set("showChat", "game") === false && S.set("showChat", "yes") === false && S.set("showChat", 1) === false && S.get("showChat") === "on");
+  check("chat: one game can turn it off, the others keep it",
+    S.set("showChat", "off", "pixelus") && S.get("showChat", "pixelus") === "off" && S.get("showChat", "bejeweled") === "on" && S.get("showChat") === "on");
+  check("chat: one game can turn it on while the site has it off",
+    S.set("showChat", "off") && S.set("showChat", "on", "pixelus") && S.get("showChat", "pixelus") === "on" && S.get("showChat", "bejeweled") === "off");
+  check("chat: removing a game's value follows the site", S.set("showChat", null, "pixelus") && S.get("showChat", "pixelus") === "off");
+  S.set("showChat", "on");
+  check("chat: back on leaves no field and no game entry", !("showChat" in JSON.parse(data["byopop-settings"])) && !("games" in JSON.parse(data["byopop-settings"])), data["byopop-settings"]);
 }
 
 // ---------- settings: per game ----------

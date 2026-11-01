@@ -267,6 +267,18 @@ int main(int argc, char** argv)
 				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, wb::gScore, wb::gLives,
 					wb::gLevelInSet, aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
 			}
+			else if (e.what == "lives")
+				wb::gLives = e.a;  // a test shortcut: the lives left, to reach the game over
+			else if (e.what == "score")
+				wb::gScore = e.a;  // a test shortcut: a score for the high-score entry
+			else if (e.what == "reached")
+				wb::gProfiles[wb::gProfile].levelReached = e.a;  // a test shortcut: levels finished, so a game can be resumed
+			else if (e.what == "die" && wb::gLevels.current != nullptr && wb::gLevels.current->shooters.current != nullptr)
+			{
+				// a test shortcut: an enemy's hit on the ship (Beam_UpdateRider's), to reach the game over
+				wb::Shooter_Hit(wb::gLevels.current->shooters.current, 1.0f, 1.0f);
+				wb::gLives = wb::gLives - 1;
+			}
 			else if (e.what == "end")
 				aRunning = false;
 		}

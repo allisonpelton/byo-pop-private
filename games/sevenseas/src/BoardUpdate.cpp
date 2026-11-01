@@ -39,6 +39,23 @@ static int HeadingFor(int theDX, int theDY)
 	return (int) aHeading;
 }
 
+// port: the original reads the keys' state (mKeyDown) every second update, so a press that ends before the next read is
+// lost; its timer ran an update every 10 ms and a key is never down for less, but the port's frames can handle a key's press
+// and release together after a hitch. A press is kept for the next read, which sees what the original would have seen
+// had the press come a little earlier.
+void Board::KeyDown(KeyCode theKey)
+{
+	Widget::KeyDown(theKey);
+	if ((theKey >= 0) && (theKey < 0xFF))
+		mKeyTap[theKey] = true;
+}
+
+void Board::GetKeys(bool* theKeys)
+{
+	for (int aKey = 0; aKey < 0xFF; aKey++)
+		theKeys[aKey] = mWidgetManager->mKeyDown[aKey] || mKeyTap[aKey];
+}
+
 // 0x4060e0
 void Board::Update()
 {
@@ -135,7 +152,12 @@ void Board::Update()
 	if (700 < mUpdateCnt)
 		mTutorialShown = false;
 	if (mUpdateCnt % 2 == 0)
+	{
 		MarkDirty();
+		// the poll of this update has seen the presses
+		for (int aKey = 0; aKey < 0xFF; aKey++)
+			mKeyTap[aKey] = false;
+	}
 }
 
 // 0x4035d0: the player's ship (keys, turning, sailing, the whirlpool, the new position)
@@ -226,7 +248,8 @@ void Board::UpdateMove()
 		int aDY = 0;
 		if ((mApp->GetDialogCount() == 0) && !mApp->mTutorial && !mBonus && (mApp->mMapWidget == NULL))
 		{
-			const bool* aKeys = mWidgetManager->mKeyDown;
+			bool aKeys[0xFF];
+			GetKeys(aKeys);
 			if (aKeys[KEYCODE_LEFT] || aKeys[KEYCODE_NUMPAD1] || aKeys[KEYCODE_NUMPAD4] || aKeys[KEYCODE_NUMPAD7] ||
 				aKeys[KEYCODE_END] || aKeys[KEYCODE_HOME])
 				aDX = -1;
@@ -258,7 +281,8 @@ void Board::UpdateMove()
 				}
 			}
 		}
-		const bool* aKeys = mWidgetManager->mKeyDown;
+		bool aKeys[0xFF];
+		GetKeys(aKeys);
 		if (((mApp->GetDialogCount() != 0) || (mApp->mMapWidget != NULL) || mApp->mTutorial || mBonus ||
 			!aKeys[KEYCODE_SPACE]) && !aKeys[KEYCODE_NUMPAD5] && !aKeys[KEYCODE_NUMPAD0] && !aKeys[KEYCODE_INSERT])
 			return;

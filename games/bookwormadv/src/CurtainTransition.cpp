@@ -133,7 +133,7 @@ void CurtainTransition::Draw(Graphics* g)
 	if (!mDrawn && mFrame == (mClosing ? 0 : aNumCels - 1))
 		mDrawn = true;
 	if (mDone && mClosing) {
-		g->SetColor(Color::White);
+		g->SetColor(Color::Black);  // 0x825f00 is Color::Black, 0x825ef0 Color::White
 		g->FillRect(0, 0, mWidth, mHeight);
 	}
 	g->DrawImageCel(mImage, -1, -1, mFrame);
@@ -145,7 +145,7 @@ void CurtainTransition::Draw(Graphics* g)
 		mLoadingBoxShown = true;
 		g->DrawImageBox(Rect(225, 200, 350, 200), IMAGE_DIALOG);
 		g->SetFont(FONT_SMALL);
-		g->SetColor(Color::White);
+		g->SetColor(Color::Black);
 		g->WriteString(mLoadingText, 225, 310, 340, 0);  // centred
 		g->DrawImage(IMAGE_DIALOG_BANNER_LOADING, (350 - IMAGE_DIALOG_BANNER_LOADING->GetWidth()) / 2 + 225, 217);
 	}

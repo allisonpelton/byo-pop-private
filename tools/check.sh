@@ -19,7 +19,9 @@
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
 #                save backup's zip, paths and merge, web/saves.js), saveimporttest (the import of saves from an installed game:
-#                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
+#                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
+#                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
+#                web/chat.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
 #                landmarks, headings, names, references, live regions and contrast). The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
@@ -99,9 +101,9 @@ AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
 AL_STRATEGIC="game 1 over at update 12206: score 7432 pieces 830 forged 29 boards 3"
 AL_TIMETRIAL="game 1 over at update 14641: score 15942 pieces 903 forged 87 boards 3"
 AL_TUTORIAL="tutorial button 1 at update 231"
-SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
-SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
-SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
+SS_BEGINNER="game 2 over at update 5042: score 320 level 4 moves 25"
+SS_BONUS="game 1 over at update 2090: score 420 level 13 moves 13"
+SS_LATE="game 1 over at update 2131: score 370 level 22 moves 17"
 PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
 PX_START="done: 25 puzzles"
 PX_FULL="done: no temple left, 210 puzzles, log 2edb2003"
@@ -120,6 +122,8 @@ CB_BANKS="82 animations, 9 missing, 0 failed; 8 fonts, 0 failed"
 CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: score 729, lives 6, board 0, filled 629 of 85%"
 WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
 WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 494, lives 6, board 0, filled 494 of 85%"
+WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
+WB_SHOTS="8f3a2bdb9844 3a9d053f4769 32ee6fa1c989"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png: the frozen baseline
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 
 set -u
@@ -252,7 +256,7 @@ suite_unit-web() {
 	fi
 	grep -q '^paktest: 0 failed' "$1.pak" || st=1
 	# the page's shared settings and players code (web/settings.js, web/profiles.js), on a fake localStorage
-	local d e f g
+	local d e f g h
 	"$NODE" tools/profilestest.js > "$1.pt" 2>&1 || st=1
 	d="$(lastof "$1.pt" 'profilestest:')"
 	# the save backup's zip, paths and merge (web/saves.js)
@@ -261,12 +265,15 @@ suite_unit-web() {
 	# the import of saves from an installed game (web/saveimport.js, and the table platform/saveimport.json it shares with the native games)
 	"$NODE" tools/saveimporttest.js > "$1.si" 2>&1 || st=1
 	g="$(lastof "$1.si" 'saveimporttest:')"
+	# the chat's rules, stored history and local source, and its plain-text rendering (web/chat.js)
+	"$NODE" tools/chattest.js > "$1.ch" 2>&1 || st=1
+	h="$(lastof "$1.ch" 'chattest:')"
 	# the built pages' accessibility (tools/a11ycheck.js): one line per page in the log
 	"$NODE" tools/a11ycheck.js --selftest > "$1.a11y" 2>&1 || st=1
 	"$NODE" tools/a11ycheck.js "$web" >> "$1.a11y" 2>&1 || st=1
 	f="$(lastof "$1.a11y" 'a11ycheck:')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.a11y" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.a11y"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $f"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.a11y" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.a11y"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $f"
 	return $st
 }
 
@@ -415,9 +422,9 @@ suite_alchemy() {
 }
 
 sevenseas_game() {  # <name> <seed> <difficulty> <start level> <games>: a bot game; prints the last "game N over" line
-	local d="$OUT/sevenseas/$1"
+	local d="$OUT/sevenseas/$1" exe="${SS_EXE:-$W/build/native/sevenseas.exe}"
 	rm -rf "$d"; mkdir -p "$d/shots"
-	timeout 600 "$W/build/native/sevenseas.exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
+	timeout 600 "$exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
 		-autoplaygames="$5" -autoplaycap=60000 -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^game [0-9]+ over' "$d/log.txt" 2>/dev/null | tail -n 1
 }
@@ -432,6 +439,18 @@ suite_sevenseas() {
 	[ "$b" = "$SS_BONUS" ] || st=1
 	[ "$c" = "$SS_LATE" ] || st=1
 	if diff -rq "$OUT/sevenseas/beginner/shots" "$OUT/sevenseas/beginner2/shots" >> "$1" 2>&1 && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-sevenseas/sevenseas.exe, a copy of the port made when it was last checked
+	# against the original): the same three games must give the same lines and the same screenshots
+	local base="$W/build/baseline-sevenseas/sevenseas.exe" bl=""
+	if [ -f "$base" ]; then
+		SS_EXE="$base" sevenseas_game base-beginner 1 1 0 2 > /dev/null; SS_EXE="$base" sevenseas_game base-bonus 2 2 10 1 > /dev/null
+		SS_EXE="$base" sevenseas_game base-late 3 3 21 1 > /dev/null
+		bl="baseline identical"
+		for k in beginner bonus late; do
+			diff -q "$OUT/sevenseas/$k/log.txt" "$OUT/sevenseas/base-$k/log.txt" >> "$1" 2>&1 && diff -rq "$OUT/sevenseas/$k/shots" "$OUT/sevenseas/base-$k/shots" >> "$1" 2>&1 || { bl="BASELINE DIFFERS ($k)"; st=1; }
+		done
+		r="$r; $bl"
+	fi
 	SUMMARY="beginner ${a#game }; bonus ${b#game }; late ${c#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected beginner '$SS_BEGINNER', bonus '$SS_BONUS', late '$SS_LATE')"
 	return $st
@@ -921,6 +940,18 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 	echo "$l"
 }
 
+waterbugs_loss() {  # the last life lost, the click on the game over: the high scores (the game file is read again; it once crashed)
+	local d="$OUT/waterbugs/loss" e=0 l
+	rm -rf "$d"; mkdir -p "$d"
+	printf '%s
+' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" 		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
+	timeout 300 build/native/waterbugs_run.exe assets/waterbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '')"
+	[ -f "$d/scores.png" ] || l="$l; NO SCREENSHOT"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
+}
+
 waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; prints its state after the beam
 	local d="$OUT/waterbugs/$1" e=0 l u
 	rm -rf "$d"; mkdir -p "$d/user"
@@ -937,7 +968,7 @@ waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; 
 }
 
 suite_waterbugs() {
-	local st=0 b g r w w2 c="$OUT/waterbugs" ea=0 ef=0
+	local st=0 b g r w w2 l sh c="$OUT/waterbugs" ea=0 ef=0
 	need_assets waterbugs || return 1
 	mkdir -p "$c/banks"
 	# Every animation the game file names and every font, each listing kept (the game file names ten files the game does not ship)
@@ -949,15 +980,19 @@ suite_waterbugs() {
 	# The windowed exe's -fast clock does not step 10 ms on every update, so its animations' phases are not the
 	# runner's: its state after the beam is, and its screen is its rerun's
 	w="$(waterbugs_window window)"; w2="$(waterbugs_window window2)"
+	l="$(waterbugs_loss)"
 	{ echo "banks: $b"; echo "game: $g"; echo "rerun: $r"; echo "window: $w"; echo "window rerun: $w2"; } > "$1"
 	[ "$b" = "$WB_BANKS" ] || st=1
 	[ "$g" = "$WB_GAME" ] || st=1
+	[ "$l" = "$WB_LOSS" ] || st=1
+	sh="$(for f in game/start game/beam loss/scores; do sha256sum "$c/$f.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -)"
+	if [ "$sh" = "$WB_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
 	if diff -q "$c/game/start.png" "$c/game2/start.png" >> "$1" 2>&1 && diff -q "$c/game/beam.png" "$c/game2/beam.png" >> "$1" 2>&1 &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
-	SUMMARY="$b; $g; $r; $w"
-	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME')"
+	SUMMARY="$b; $g; $r; $w; loss: $l; $sh"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME', '$WB_LOSS')"
 	return $st
 }
 

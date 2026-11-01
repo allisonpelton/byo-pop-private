@@ -93,7 +93,10 @@ button, .button {
 button:hover, .button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
 button[disabled] { opacity: 0.5; cursor: default; }
-.stage-wrap { flex: 1; min-height: 0; display: grid; place-items: center; padding: 12px; }
+/* The workspace holds the stage and the chat (web/chat.js). Beside each other, the stage keeps the width it has without the chat: the
+   chat sits beside it only when the viewport has room for both (ByopopChat's layout), else below it, as on a phone upright. */
+.workspace { flex: 1; min-height: 0; display: flex; }
+.stage-wrap { flex: 1 1 0; min-width: 0; min-height: 0; display: grid; place-items: center; padding: 12px; }
 .stage {
   position: relative; background: var(--stage); aspect-ratio: var(--aspect, 4 / 3); max-width: 100%;
   width: min(100%, calc((100vh - 90px) * var(--aspect-w, 1.3333))); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
@@ -156,6 +159,34 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 .panel .body { padding: 16px; overflow: auto; display: grid; gap: 14px; align-content: start; }
 .panel:focus { outline: none; }
 /* The Mods panel's insides are web/modpanel.js's (shared by every game) */
+/* The chat (web/chat.js draws its insides): a column beside the stage, or a box below it that the page scrolls to (.chat-below) */
+.chat {
+  --chat-w: 300px;
+  flex: none; width: var(--chat-w); box-sizing: border-box; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  margin: 12px max(12px, env(safe-area-inset-right, 0px)) 12px 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.chat h2 { margin: 0; font-size: 14px; }
+.chat h2 button {
+  display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 9px 12px; border: 0; border-radius: 0; background: transparent;
+  color: var(--fg); font-weight: 700; text-align: left;
+}
+.chat h2 button:hover { background: var(--panel-2); }
+.chat-chevron { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translate(-2px, -2px); flex: none; }
+.chat-collapsed .chat-chevron { transform: rotate(-45deg); }
+.chat-unread { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--accent); }
+.chat-body { flex: 1; min-height: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.chat-collapsed { align-self: flex-start; }
+/* Below the stage (the class is on the root: chat.js's layout): the page scrolls to the chat. Its scrollbar is hidden, since a classic
+   scrollbar takes 15px of the page's width and would make a stage that is as wide as the page narrower than it is without the chat
+   (the wheel, touch, the keyboard and Tab still scroll). */
+.chat-below { scrollbar-width: none; }
+.chat-below::-webkit-scrollbar { display: none; }
+.chat-below .workspace { flex: none; flex-direction: column; }
+.chat-below .workspace > .stage-wrap { flex: none; }
+.chat-below .workspace > .chat {
+  width: auto; height: clamp(18rem, 60vh, 30rem); margin: 0 max(12px, env(safe-area-inset-right, 0px)) 12px max(12px, env(safe-area-inset-left, 0px));
+}
+.chat-below .workspace > .chat.chat-collapsed { height: auto; }
 /* No motion for a player who asked for none: the page has no animation of its own besides this bar's slide */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
@@ -178,6 +209,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <div class="sr-only" id="menu-live" role="status" aria-live="polite" aria-atomic="true"></div>
 <span class="sr-only" id="mods-running-hint">While the game runs, this opens the game's own mod menu, the same as F2. Its items are read out as you move through it.</span>
 
+<div class="workspace" id="workspace">
 <main class="stage-wrap" id="main">
   <div class="stage" id="stage">
     <canvas id="canvas" tabindex="-1" role="application" aria-label="@BYOPOP_TITLE@, game" aria-describedby="canvas-hint" aria-hidden="true" oncontextmenu="event.preventDefault()"></canvas>
@@ -242,6 +274,14 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   </div>
 </main>
 
+<!-- The chat (web/chat.js; docs/CHAT_DESIGN.md): beside the stage, or below it on a narrow screen. Its heading is the button that
+     collapses it. Hidden until the script has drawn it (and while the site's "Show chat" setting is off). -->
+<aside class="chat" id="chat" hidden aria-labelledby="chat-title">
+  <h2 id="chat-title"><button type="button" data-chat-toggle aria-expanded="true" aria-controls="chat-body"><span class="chat-chevron" aria-hidden="true"></span>Chat<span class="chat-unread" data-chat-unread hidden></span></button></h2>
+  <div class="chat-body" id="chat-body" data-chat-body></div>
+</aside>
+</div>
+
 <!-- Filled by web/modpanel.js (Module.byopop.ModPanel): adding and removing mods -->
 <aside class="panel" id="panel-mods" hidden aria-labelledby="panel-mods-title" tabindex="-1">
   <header><h2 id="panel-mods-title">Mods</h2><button type="button" data-close>Close</button></header>
@@ -278,6 +318,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <script src="settings.js"></script>
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
+<script src="chat-games.js"></script>
+<script src="chat.js"></script>
 <script>
 (function () {
   "use strict";
@@ -379,6 +421,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       var s = $("stage");
       s.style.setProperty("--aspect", w + " / " + h);
       s.style.setProperty("--aspect-w", String(w / h));
+      if (chat) chat.layout();  // the chat is beside the stage only while the stage keeps its size there
     },
     // -placeholders: a game file the game did not find got a stand-in (listed in the Game files panel)
     onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },
@@ -1126,8 +1169,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // other cards leave the bar usable, and are not modal.
   function syncModal() {
     var on = !$("terms-overlay").hidden || !$("busy-overlay").hidden;
-    Array.prototype.forEach.call(document.body.children, function (e) {
-      if (e.id === "main" || /^(SCRIPT|STYLE)$/.test(e.tagName)) return;
+    // the page's children but the workspace, and the workspace's but the main region (the chat is inert too)
+    var outside = Array.prototype.concat.call(Array.prototype.slice.call(document.body.children), Array.prototype.slice.call($("workspace").children));
+    outside.forEach(function (e) {
+      if (e.id === "main" || e.id === "workspace" || /^(SCRIPT|STYLE)$/.test(e.tagName)) return;
       if (on) e.setAttribute("inert", ""); else e.removeAttribute("inert");
     });
   }
@@ -1317,6 +1362,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     else if (name === "cursors") { if (gameRunning()) applySiteOptions(true, false); }
     else if (name === "wakeLock") { if (value === "on") acquireWake(); else releaseWake(); }
     else if (name === "pauseHidden") syncPause();
+    else if (name === "showChat") { if (chat) chat.setVisible(value !== "off"); }
     // confirmLeave is read when the page is left
   }
 
@@ -1369,6 +1415,30 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (document.hidden) releaseWake(); else acquireWake();
     syncPause();
   });
+
+  // ---------- the chat (web/chat.js; docs/CHAT_DESIGN.md) ----------
+  // One plain-text room for every game, beside the stage (below it on a narrow screen). The site's "Show chat" setting (on unless
+  // the player turned it off) draws it; with it off it is not even built. Keys typed in it stay in it: the game takes keys only while
+  // its canvas has the focus (Module.preRun, above), and the window's guard stops the rest. F6 and Shift+F6 move the focus on from the
+  // chat as they do from the game: to the control after it, or the one before it.
+  var chat = null;
+  function leaveChat(backwards) {
+    var stops = tabStops(), mine = stops.filter(function (e) { return $("chat").contains(e); });
+    if (!mine.length) return;
+    var at = backwards ? stops.indexOf(mine[0]) - 1 : stops.indexOf(mine[mine.length - 1]) + 1;
+    var next = stops[(at + stops.length) % stops.length];
+    if (next) next.focus();
+  }
+  function startChat() {
+    if (typeof ByopopChat === "undefined") return;
+    try {
+      // ByopopGames is the site's table of games (chat-games.js, which cmake/ByopopWeb.cmake writes beside the pages); without
+      // the file the chat draws no game tags. The messages this page sends carry this page's game, PAGE.id.
+      chat = ByopopChat.mount($("chat"), { stage: $("stage"), onLeave: leaveChat, visible: setting("showChat") !== "off",
+        game: PAGE.id, games: typeof ByopopGames !== "undefined" ? ByopopGames : [] });
+    } catch (e) { console.warn("the chat could not start", e); }
+  }
+  startChat();
   if (PAGE.init) PAGE.init();
 })();
 </script>

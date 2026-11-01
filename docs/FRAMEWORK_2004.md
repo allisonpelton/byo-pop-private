@@ -2122,7 +2122,8 @@ AdjustPitch, SetBaseVolume/Pan, looping sounds or GetMasterVolume/SetMasterVolum
 - Sfx volume: `SexyApp::SetSfxVolume` (slot 48, 0047dcf0) stores +0x78 and calls `mSoundManager->SetVolume(muted ? 0 : v)`
   (slot 5) → mMasterVolume (+0x1488) → every channel's RehupVolume (00492180):
   `buffer->SetVolume(VolumeToDB(mBaseVolume * mVolume * mMasterVolume))` with the curve above. Port: identical curve
-  (`SDLSoundManager::VolumeToGain` converts the same centi-dB to linear gain).
+  (`SDLSoundManager::VolumeToGain` converts the same centi-dB to linear gain). Above 0 dB DirectSound refuses the call
+  and keeps the buffer's last volume; the port clamps to 0 dB (4fe27d4).
 - Master volume = **the Windows wave-out mixer**, not a software gain: GetMasterVolume/SetMasterVolume open mixer 0,
   find line MIXERLINE_COMPONENTTYPE_SRC_WAVEOUT (0x1008), control MIXERCONTROL_CONTROLTYPE_VOLUME (0x50030001), and
   read/write `dwValue` = v * 0xFFFF (read: dwValue / 65535, const 1.5259e-05). Reached only through
@@ -2204,7 +2205,7 @@ The base MusicInterface slots are COMDAT-folded empty stubs; their `ret` sizes p
 | 10 (+28) | 0041dfa0 | 00494760 | 00494ba0 | `void SetSongVolume(int, double)` | 14 | `SetSongVolume` |
 | 11 (+2c) | 0047d7f0 (returns false, ret 4) | 004947c0 | 00494c20 | `bool IsPlaying(int)` | 16 | `IsPlaying` |
 | 12 (+30) | 004220f0 (ret 8) | 00492790 | 004941f0 | `void SetVolume(double)` | 17 | `SetVolume` |
-| 13 (+34) | 0041dfa0 | 00494810 | 0041dfa0 (base) | `void SetMusicAmplify(int, double)` | 18 | `SetMusicAmplify` (no-op) |
+| 13 (+34) | 0041dfa0 | 00494810 | 0041dfa0 (base) | `void SetMusicAmplify(int, double)` | 18 | `SetMusicAmplify` (gain table measured against BASS 2.3, c553853) |
 | 14 (+38) | 004036d0 | 00494040 | 004942b0 | `void Update()` | 19 | `Update` |
 | 15 (+3c) | - | - | 004962b0 | `bool LoadSample(int, const std::string& intro, const std::string& repeat, bool repeat)` ret 0x10 | 20 | not in port |
 | 16 (+40) | - | - | 004961b0 | `bool LoadSample(int, const std::string&, bool repeat)` ret 0xc | 21 | not in port |

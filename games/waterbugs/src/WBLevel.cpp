@@ -105,8 +105,8 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 	int aWanted = RandRange(800, 0x4b0);
 	while (theLevel->totalCells < aWanted)
 	{
-		int aHalfW = RandRange(3, 10);
-		int aHalfH = RandRange(2, 6);
+		int aHalfW = RandRange(2, 10);
+		int aHalfH = RandRange(1, 6);
 		int aCol = RandRange(aHalfW + 2, 0x30 - aHalfW);
 		int aRow = RandRange(aHalfH + 2, 0x1d - aHalfH);
 		int aClear = RandRange(0, 2);

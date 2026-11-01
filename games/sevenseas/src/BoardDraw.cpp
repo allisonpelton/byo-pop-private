@@ -613,44 +613,46 @@ void Board::Draw(Graphics* g)
 						DrawCellArrow(mPlayerX, mPlayerY, aX, aY, true, g);
 		}
 	}
-
-	// the frame with the hint text above the board
-	DrawBox(0, 0, mWidth - 4, 0x54, g);
-	g->SetFont(mApp->mFonts[FONT_TUT]);
-	g->SetColor(Color(0xff, 0xff, 0));
-	int aStep = mTutorialStep;
-	DrawHintLine(g, GT(0x004a0150 + aStep * 0x100), 0xc, 0x16);
-	DrawHintLine(g, GT(0x004a1050 + aStep * 0x100), 0xc, 0x2b);
-	DrawHintLine(g, GT(0x004a1f50 + aStep * 0x100), 0xc, 0x40);
-	switch (mTutorialStep)
+	else
 	{
-	case 0:
-	case 3:
-	case 0xb:
-	case 0xc:
-	case 0xd:
-		g->DrawImage(anImages[IMAGE_NEXT], CellToPixel(8) + 2, CellToPixel(2) + 4);
-	}
-	if (mState == STATE_IDLE)
-	{
+		// the frame with the hint text above the board
+		DrawBox(0, 0, mWidth - 4, 0x54, g);
+		g->SetFont(mApp->mFonts[FONT_TUT]);
+		g->SetColor(Color(0xff, 0xff, 0));
+		int aStep = mTutorialStep;
+		DrawHintLine(g, GT(0x004a0150 + aStep * 0x100), 0xc, 0x16);
+		DrawHintLine(g, GT(0x004a1050 + aStep * 0x100), 0xc, 0x2b);
+		DrawHintLine(g, GT(0x004a1f50 + aStep * 0x100), 0xc, 0x40);
 		switch (mTutorialStep)
 		{
-		case 1:
-		case 9:
-			DrawCellArrow(mPlayerX, mPlayerY, mPlayerX, mPlayerY + 1, true, g);
-			break;
-		case 2:
-		case 10:
-			DrawCellArrow(mPlayerX, mPlayerY, mPlayerX, mPlayerY, true, g);
-			break;
-		case 4:
-			DrawCellArrow(mPlayerX, mPlayerY, mPlayerX + 1, mPlayerY, true, g);
-			break;
-		case 5:
-		case 6:
-		case 7:
-		case 8:
-			DrawCellArrow(mPlayerX, mPlayerY, mPlayerX + 1, mPlayerY + 1, true, g);
+		case 0:
+		case 3:
+		case 0xb:
+		case 0xc:
+		case 0xd:
+			g->DrawImage(anImages[IMAGE_NEXT], CellToPixel(8) + 2, CellToPixel(2) + 4);
+		}
+		if (mState == STATE_IDLE)
+		{
+			switch (mTutorialStep)
+			{
+			case 1:
+			case 9:
+				DrawCellArrow(mPlayerX, mPlayerY, mPlayerX, mPlayerY + 1, true, g);
+				break;
+			case 2:
+			case 10:
+				DrawCellArrow(mPlayerX, mPlayerY, mPlayerX, mPlayerY, true, g);
+				break;
+			case 4:
+				DrawCellArrow(mPlayerX, mPlayerY, mPlayerX + 1, mPlayerY, true, g);
+				break;
+			case 5:
+			case 6:
+			case 7:
+			case 8:
+				DrawCellArrow(mPlayerX, mPlayerY, mPlayerX + 1, mPlayerY + 1, true, g);
+			}
 		}
 	}
 

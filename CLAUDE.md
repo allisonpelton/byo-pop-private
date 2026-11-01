@@ -160,7 +160,10 @@ Git and publishing:
   identical-play pass above, game by game; once every game is done, a readability pass to the project's code standards
   (`docs/CODE_STANDARDS.md`, written and approved by the user first); last, taking out code the ports do not need, such
   as all registration code (trial, nag and unlock paths: "It is misleading and adds unnecessary bloat"). The game's
-  regression check proves each step leaves play unchanged. All of it comes before the website is ready.
+  regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more
+  step once every decompilation is done (the user, 2026-11-01): each game ported only from its Steam copy is compared
+  with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
+  work with that version's files too.
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open

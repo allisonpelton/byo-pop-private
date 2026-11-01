@@ -391,7 +391,7 @@ int BreakupString(GameApp* app, lua_State* L)
 		luaL_error(L, "Malformed string passed to BreakupString");
 	lua_newtable(L);
 	for (size_t i = 0; i < aParts.size(); i++) {
-		lua_pushnumber(L, (lua_Number)i);
+		lua_pushint(L, (lua_Int)i);  // an int key, as the original's: a number key would miss the scripts' int indices
 		lua_newtable(L);
 		lua_pushstring(L, "mStr");
 		lua_pushstring(L, aParts[i].first.c_str());
