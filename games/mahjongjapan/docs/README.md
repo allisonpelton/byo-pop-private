@@ -72,9 +72,18 @@ script clicks no link.
 `dealtest --solve <layout> [seed quad]` finds the pairs that win a stage. A stage after the first deals most of its
 tiles, so it takes the stage's seed and difficulty as well; stage 2 (layout 386, seed 524627644, difficulty 0) dealt
 exactly as the solver predicted. Other scripted runs reached the classic list, a classic game, the in-game menu, pause,
-the options, the instructions and the player list, and played matches, a hint and an undo. Not yet tested: the
-special tiles, a whole adventure, the ending, wide screen and full screen, the web build, and the screen-by-screen
-comparison with the original exe.
+the options, the instructions and the player list, and played matches, a hint and an undo.
+
+`dealtest --stage <n>` solves escape stage n with its own seed, special tiles included (keys and locks, the Joker and
+the Magnet), moving only tiles a click can reach. It also prints when the timed tips come and which moves fly special
+tiles. `tools/adventure.py` turns the 60 solutions into one `-script`. On 2026-11-01 that script played Emperor's
+Adventure from a new player through all 60 stages and the ending (the map with its treasures, then the showcase)
+natively, every stage won.
+
+The original exe, run under origrun in software mode, matched the port screen for screen through stage 1: the name
+dialog, the map, the board, the tips, the tray, the score and the level's end. The only differences were the clock
+and tiles caught in flight. Those runs stopped when the project moved the originals into Windows Sandbox (2026-11-01).
+Not yet tested: the comparison beyond stage 1, wide screen and full screen, and the whole adventure in the web build.
 
 ## Mods
 
