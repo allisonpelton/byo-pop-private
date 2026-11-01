@@ -1,15 +1,17 @@
 // The main menu's panels: the screens the menu pans to (MenuPanel, vtable 0x7d9d1c, a TwistWidget with only its own
 // destructor 0x69a667), the challenge menu and the end-of-game stats.
 //
-// port: the high scores, help, profile and new player panels are ported; the others are not yet. Each of those has the fields
+// port: the high scores, help, options, profile and new player panels are ported; the others are not yet. Each of those has the fields
 // and methods the menu uses, with the original's offsets and addresses; a method not yet ported does nothing (and says
 // so once in the log). They come in their own stages.
 #pragma once
 
 #include "ButtonListener.h"
+#include "CheckboxListener.h"
 #include "CurvedVal.h"
 #include "ListListener.h"
 #include "PopAnim.h"
+#include "SliderListener.h"
 #include "TwistDialogListener.h"
 #include "TwistWidget.h"
 
@@ -23,6 +25,8 @@ class Image;
 class ListWidget;
 class Menu;
 class TwistButton;
+class TwistCheckbox;
+class TwistSlider;
 class TwistEditWidget;
 class WinTwistApp;
 
@@ -233,11 +237,63 @@ public:
 	void Hide();                     // 0x6998fe: slides back up, then goes
 };
 
-// Sexy::OptionsPanel (0x1a0 bytes; 0x69e0f1-0x69fc10, menu +0x2ec)
-class OptionsPanel : public MenuPanel {
+// Sexy::OptionsPanel (0x1a0 bytes; 0x69e0f1-0x6a028b, menu +0x2ec, and the game's options dialog, mOptionsDialog):
+// the volume sliders, the check boxes (full screen, 3D acceleration, hints, custom cursors, visualizers) and the
+// three art resolutions as radio buttons. Over a game it also has the return, quit (or challenge) and restart (or
+// help) buttons. A box that needs a restart, or that cannot be set, asks or says so in dialog 4 or 0x28 to 0x30;
+// the settings are applied when the panel closes (ApplySettings, from WinTwistApp::FinishOptionsDialog).
+class OptionsPanel : public MenuPanel, public SliderListener, public CheckboxListener, public ButtonListener,
+	public TwistDialogListener {
 public:
+	// The sliders' ids
+	enum { SLIDER_MUSIC = 0, SLIDER_SOUNDS = 1 };
+	// The check boxes' ids; the resolutions' are RES_FIRST + their index in the table at 0x84e754
+	enum { CHECKBOX_FULLSCREEN = 0, CHECKBOX_3D = 1, CHECKBOX_HINTS = 2, CHECKBOX_CUSTOM_CURSORS = 4,
+		CHECKBOX_VISUALIZERS = 5, CHECKBOX_RES_FIRST = 6 };
+	enum { RES_COUNT = 3 };
+	// The buttons' ids (over a game only)
+	enum { BUTTON_RETURN = 0, BUTTON_QUIT = 1, BUTTON_RESTART = 2, BUTTON_HELP = 3 };
+	// What dialog 4 asked (mQuestion): a yes (Answer) sets the boxes to it and applies them. The art's question is
+	// the size it would switch to (600 also when the larger art needs 3D)
+	enum { QUESTION_3D_ON = 0, QUESTION_3D_OFF = 1, QUESTION_RES_600 = 2, QUESTION_RES_768 = 3,
+		QUESTION_RES_1200 = 4 };
+
+	WinTwistApp* mApp;                         // +0x158
+	TwistSlider* mMusicSlider;                 // +0x15c
+	TwistSlider* mSoundsSlider;                // +0x160
+	TwistCheckbox* mFullscreenCheckbox;        // +0x164
+	TwistCheckbox* m3DCheckbox;                // +0x168
+	TwistCheckbox* mCustomCursorsCheckbox;     // +0x16c
+	TwistCheckbox* mHintsCheckbox;             // +0x170
+	TwistCheckbox* mVisualizersCheckbox;       // +0x178
+	TwistCheckbox* mResCheckboxes[RES_COUNT] = {};  // +0x17c: 600, 768 and 1200
+	TwistButton* mQuitButton = nullptr;        // +0x188: over a game; the challenge button in a challenge
+	TwistButton* mReturnButton = nullptr;      // +0x18c: over a game
+	TwistButton* mRestartButton = nullptr;     // +0x190: over a game; the help button in classic
+	bool mSettingBoxes = false;                // +0x194: Answer sets boxes, which must not ask again
+	int mQuestion = 0;                         // +0x198
+
 	explicit OptionsPanel(WinTwistApp* theApp);  // 0x69e4c5
-	void Unknown6A006A(bool);  // 0x6a006a
+	~OptionsPanel() override;                    // 0x69e013
+
+	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x69e10a: pauses the game
+	void RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x69e201: and resumes it
+	void Update() override;                                             // 0x69e252
+	void Draw(Graphics* g) override;                                    // 0x69e3c3
+	void KeyDown(KeyCode theKey) override;                              // 0x69e36f: Escape and Enter return
+	virtual int GetPreferredWidth();                                    // 0x69e0f1 (slot 70, as EndStats's)
+
+	void SliderVal(int theId, double theVal) override;          // 0x69e301
+	void CheckboxChecked(int theId, bool checked) override;     // 0x69ed33
+	void ButtonDepress(int theId) override;                     // 0x69fc10
+	using ButtonListener::ButtonPress;
+
+	// 0x69df27: a radio button of the shared image at the place of thePlaceId in resources.xml
+	TwistCheckbox* MakeCheckbox(int thePlaceId, int theId);
+	// 0x6a006a: applies the boxes (full screen, 3D, custom cursors) and, with theResolution, the resolution, which
+	// restarts the game
+	void ApplySettings(bool theResolution);
+	void Answer(bool theYes);  // 0x6a028b: dialog 4's answer (anything but Cancel)
 };
 
 // Sexy::ChallengeMenu (0x9e8 bytes; 0x6dd2cd-0x6e665e, menu +0x4a8)

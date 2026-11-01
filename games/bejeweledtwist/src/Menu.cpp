@@ -390,7 +390,7 @@ void Menu::ButtonDepress(int theId)
 			} else {
 				mApp->PlaySample(SOUND_DOORLOCK2);
 				if (mPanel == PANEL_OPTIONS) {
-					SDL_Log("WinTwistApp 0x7632f7 is not ported yet");  // comes with the options
+					mApp->FinishOptionsDialog(true);
 					aGates->mOptionsButton->SetFlipped(false, false);
 					ShowMain(false);
 				} else {
@@ -417,7 +417,7 @@ void Menu::ButtonDepress(int theId)
 				mApp->PlaySample(SOUND_DOORLOCK3);
 				ShowMain(false);
 				if (mPanel == PANEL_HELP)
-					mOptionsPanel->Unknown6A006A(true);
+					mOptionsPanel->ApplySettings(true);
 			}
 		} else if (theId > 1) {
 			if (theId < 4) {

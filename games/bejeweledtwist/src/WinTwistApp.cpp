@@ -12,6 +12,8 @@
 #include "LoaderScreen.h"
 #include "Menu.h"
 #include "MenuButtonWidget.h"
+#include "MenuPanels.h"
+#include "TwistCheckbox.h"
 #include "Profile.h"
 #include "Ranks.h"
 #include "Res.h"
@@ -211,6 +213,89 @@ void WinTwistApp::CreateGates()
 void WinTwistApp::CreateMainMenu()
 {
 	mMainMenu = new Menu(this);
+}
+
+void WinTwistApp::Shutdown()
+{
+	if (mShutdown)
+		return;
+	// port: the original first ends a background thread (+0x8e0), adds the session's minutes to the time played
+	// (+0x75c; the "MaxTime" property chooses the clock), drops the widget at +0xf24 and a game that may go (0x6a4065);
+	// they come with the board
+	mWidgetManager->RemoveWidget(mWindowedButton);
+	mProfile->Save();
+	SexyApp::Shutdown();
+}
+
+void WinTwistApp::WriteToRegistry()
+{
+	SexyApp::WriteToRegistry();
+	mProfile->SaveUsers();
+	// port: LastScoreName (+0x7fc) comes with the high score's name entry
+	if (mLoaded)
+		RegistryWriteString("LastProfileName", SexyStringToString(mProfile->mName));
+	// port: HighResolution (+0x818), AlwaysUpdate (+0x81a) and ArtRes (when the options changed it, +0xf35) keep
+	// the art's size, which the port always chooses as 2D mode does; ModeSeconds0 to 3 (+0x7d4) come with the board
+	// and VizSpeed with the visualizer
+	RegistryWriteBoolean("CustomCursors", mCustomCursorsEnabled);
+	RegistryWriteBoolean("ShowHints", mShowHints);
+	RegistryWriteBoolean("DoViz", mDoViz);
+}
+
+void WinTwistApp::ReadFromRegistry()
+{
+	SexyApp::ReadFromRegistry();
+	// port: the values the writer leaves out are left out here too
+	RegistryReadBoolean("CustomCursors", &mCustomCursorsEnabled);
+	RegistryReadBoolean("DoViz", &mDoViz);
+	RegistryReadBoolean("ShowHints", &mShowHints);
+	// port: "Is3D" off chooses 2D mode (Use2DMode), which the port always uses
+	EnableCustomCursors(mCustomCursorsEnabled);
+	mProfile->mCustomCursors = mCustomCursorsEnabled;
+}
+
+void WinTwistApp::SwitchScreenMode(bool wantWindowed)
+{
+	SwitchScreenMode(wantWindowed, SexyAppBase::Is3DAccelerated());
+}
+
+void WinTwistApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
+{
+	SexyApp::SwitchScreenMode(wantWindowed, is3d, false);
+	(void)force;
+	if (mWindowedButton != nullptr)
+		mWindowedButton->SetVisible(!mIsWindowed);
+	if (mMainMenu != nullptr && mMainMenu->mOptionsPanel != nullptr)
+		mMainMenu->mOptionsPanel->mFullscreenCheckbox->mChecked = !wantWindowed;
+	if (mOptionsDialog != nullptr)
+		static_cast<OptionsPanel*>(mOptionsDialog)->mFullscreenCheckbox->mChecked = !wantWindowed;
+	// The original then clears the window's resize-corner flag (Direct3D only) and calls its slot 12 (0x75ef1b),
+	// which does nothing more without that flag than the framework's
+	PlaceWindowedButton();
+}
+
+void WinTwistApp::FinishOptionsDialog(bool theResolution)
+{
+	SDL_Log("FinishOptionsDialog()");
+	OptionsPanel* aDialog = static_cast<OptionsPanel*>(mOptionsDialog);
+	if (aDialog == nullptr && mMainMenu != nullptr) {
+		mMainMenu->mOptionsPanel->ApplySettings(theResolution);
+		return;
+	}
+	aDialog->ApplySettings(theResolution);
+	if (mBoard == nullptr) {
+		mWidgetManager->RemoveWidget(aDialog);
+		SafeDeleteWidget(aDialog);
+		if (mMainMenu != nullptr)
+			mWidgetManager->SetFocus(mMainMenu);
+	} else {
+		// it zooms out over the game, which has the keys again
+		aDialog->mZooming = true;
+		aDialog->mZoom.SetCurve(GTS(0x7d8c7c));
+		mWidgetManager->SetFocus(mBoard);
+		mWidgetManager->RemoveBaseModal(mOptionsDialog);
+	}
+	mOptionsDialog = nullptr;
 }
 
 void WinTwistApp::PlaceWindowedButton()
@@ -576,11 +661,16 @@ void WinTwistApp::DialogButtonDepress(int theDialogId, int theButtonId)
 {
 	switch (theDialogId) {
 	case 3:
-		// The options' dialog (0x7632f7, FinishOptionsDialog) comes with the options
+		FinishOptionsDialog(true);
 		return;
-	case 4:
-		// The options' answer (0x6a028b, when not Cancel) comes with the options
+	case 4: {
+		// The options' question: the game's options dialog's, or else the main menu's panel's
+		OptionsPanel* aPanel = static_cast<OptionsPanel*>(mOptionsDialog);
+		if (aPanel == nullptr)
+			aPanel = mMainMenu->mOptionsPanel;
+		aPanel->Answer(theButtonId != Dialog::ID_CANCEL);
 		break;
+	}
 	case 0xb:
 		// The board's question (on OK, by the game's mode: 0x6c9987 or 0x6c7a75; then 0x6af2be) comes with the board
 		DialogThirdButtonDepress(0xb);

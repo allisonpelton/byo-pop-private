@@ -72,6 +72,8 @@ public:
 	float mDialogDim = 0;               // +0xf90: how dark mUnderDialog is, 0 to 1
 	Widget* mOptionsDialog = nullptr;   // +0xf40: the options while they are up (comes with the options)
 	Widget* mUnknownF44 = nullptr;      // +0xf44: another widget the screen darkens behind (not yet known)
+	bool mShowHints = true;             // +0xf8e: the options' hints box (registry ShowHints)
+	bool mDoViz = true;                 // +0xf86: the options' visualizers box (registry DoViz)
 	bool mSoundsOff = false;            // +0x928: no sound effects (set elsewhere, not yet read)
 	SoundInstance* mUnmanagedSound = nullptr;  // +0x938: a tracked sound whose volume UpdateFrames leaves alone
 	double mSfxVolumeScale = 1.0;       // +0x948: applied to the tracked sounds
@@ -87,6 +89,9 @@ public:
 	void Init() override;               // 0x7652cc
 	void LoadingThreadProc() override;  // 0x76497d
 	void UpdateFrames() override;       // 0x765f8d
+	void Shutdown() override;           // 0x762a0d
+	void WriteToRegistry() override;    // 0x762b40
+	void ReadFromRegistry() override;   // 0x762da8
 	// 0x75fa42: every dialog is a TwistDialog that pops up, heard by the app
 	Dialog* NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 		const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
@@ -125,6 +130,18 @@ public:
 	// port: the game's own question "is Direct3D on" (the base's answers whether SDL's renderer is accelerated). The
 	// port draws as the original does without Direct3D, so the game always hears no.
 	bool Is3DAccelerated() { return false; }
+	// port: and no to whether it could be on (the "Not Supported" answers of the options)
+	bool Is3DAccelerationSupported() { return false; }
+	bool Is3DAccelerationRecommended() { return false; }
+	// 0x76063e (slot 69): with 3D as the framework has it
+	void SwitchScreenMode(bool wantWindowed) override;
+	// 0x75ed1e (slot 107): the windowed button and the options' full screen boxes follow
+	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+	using SexyApp::SwitchScreenMode;
+	// 0x7632f7: the options close: their settings are applied (the resolution with theResolution); over the menu
+	// the panel stays, over a game the dialog zooms out
+	void FinishOptionsDialog(bool theResolution);
+	using SexyAppBase::RehupFocus;
 	// 0x766974: plays a sound unless sounds are off, the app has no focus or the board is paused; theTrack keeps it
 	// in mTrackedSounds, theScaleVolume multiplies its volume by mSfxVolumeScale
 	SoundInstance* PlaySoundEx(int theSoundId, int thePan, float thePitch, float theVolume, bool theTrack,

@@ -129,7 +129,8 @@ cycles (ColorCycle, 0x6e6e1b-0x6e70ad, four of red, yellow, green and cyan a qua
 button, the profiles' files (Profile), the ranks' names (Ranks), the profiles panel (ProfilePanel), the new player
 panel (NewUserPanel, menu +0x3d4, 0x699924-0x69ab42), the game's dialogs (TwistDialog), the high scores and the
 high scores panel (HighScoresPanel; without the new score going into its list, the board behind it and the replays,
-which come with the end of a game) and the help panel (HelpPanel). Not yet: the options panel, the challenges, the end of game stats (EndStats), the registration widget, the gem
+which come with the end of a game), the help panel (HelpPanel) and the options panel (OptionsPanel, without its
+buttons over a game). Not yet: the challenges, the end of game stats (EndStats), the registration widget, the gem
 prerender, the app's music, and starting a game.
 
 The ranks (app +0xf58, 0x739af7) come from properties\ranks.txt, one name per line in its first comma-separated field
@@ -158,8 +159,8 @@ KeyDown and KeyChar, as in the original). It pops up from 0.4 with SOUND_BUBBLEP
 Direct3D only, so in 2D it shows at once and goes ten updates after its button. GotFocus shows it and LostFocus hides
 it. Behind the dialogs (and the options) the app fades in a whole-screen layer (UnderDialogWidget, app +0xf7c, by
 +0xf90: 0.04 an update in, 0.03 out) that darkens the screen by up to 160/255; with Direct3D it is a blurred, rippling
-copy of the screen instead. The app's own dialog answers (0x7633ea) kill the dialog; the options' (3, 4) and the
-board's (0xb, 0x28) come with them.
+copy of the screen instead. The app's own dialog answers (0x7633ea) kill the dialog; 3 closes the options and 4 is
+the options' question; the board's (0xb, 0x28) come with the board.
 
 The high scores (app +0x970, 20 of 0x24 bytes: name, level, score) are two top tens, classic (game mode 1) and the
 other timeless mode (3); ScoreList (0x75fada) maps a mode to its list. They are in users\scores.dat (version 9:
@@ -185,6 +186,20 @@ and mImageScale (+0xa8) draws each picture at its inverse, its position kept; th
 so the pictures, made for that art, come out at their own size. In the menu the gates' buttons turn the pages (the
 scores button back, 0x6983aa, the options button on, 0x6983bc); over a game the panel has its own buttons and zooms.
 
+The options panel (0x1a0 bytes, 0x69df27-0x6a028b) is the main menu's (menu +0x2ec) and, over a game, the options
+dialog (app +0xf40), which then also has the return, quit and restart (help in classic) buttons and zooms. Its sliders
+are TwistSliders (0xb8 bytes, 0x7561fd: the framework's track of three cels, with the music slider's fill drawn over
+it up to the thumb, for both sliders) and its boxes TwistCheckboxes (0x108 bytes, 0x7546e6: every one, the resolutions'
+radio buttons too, uses IMAGE_MAINMENU_RADIOBUTTONCUSTOMCURSORS, checked cel 0 and unchecked cel 1, lit additively
+once and once more under the mouse unless pressed). Full screen switches at once; the hints, custom cursors and
+visualizers boxes set the app (+0xf8e ShowHints, +0x508 and the profile's +0x9c CustomCursors, +0xf86 DoViz); 3D
+acceleration and the resolutions ask in dialog 4 (or say why not in 0x28 to 0x30), and a yes (0x6a028b, by +0x198)
+sets the boxes and applies them. The rest is applied when the options close (FinishOptionsDialog 0x7632f7, then
+0x6a006a): 3D or the art's size changed restart the game. The original without Direct3D says 3D cannot be enabled, the
+visualizers need it and the larger art needs it; the port, which draws as 2D mode does, answers so too. The app's
+registry values (0x762b40, 0x762da8) are ported for the options' boxes; its Shutdown (0x762a0d) saves the profile,
+where the custom cursors are kept.
+
 Game texts: the original's wide texts (L"...", such as the tooltips and the dialog texts) are UTF-16 in the exe;
 gametext.py lists them as GAMETEXTW (length in bytes) and GameText.cpp converts them. Before this, every wide text
 was read as its first letter.
@@ -202,3 +217,5 @@ Each is a change without a visible effect in play.
   for twice.
 - The high scores panel's view-replay buttons: the original deletes the ones it added to the panel (with the panel's
   children) but not the ones it kept without adding (a best move without a replay). The port deletes them all.
+- The options panel: the original never deletes the resolutions' three radio buttons or the restart (help) button;
+  the port deletes them with the panel.

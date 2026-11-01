@@ -18,8 +18,10 @@
 #include "Ranks.h"
 #include "Res.h"
 #include "TwistButton.h"
+#include "TwistCheckbox.h"
 #include "TwistDialog.h"
 #include "TwistEditWidget.h"
+#include "TwistSlider.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
@@ -1195,14 +1197,466 @@ void NewUserPanel::Hide()
 	mSlide.mTriggered = false;
 }
 
-void OptionsPanel::Unknown6A006A(bool)
+namespace {
+
+// The resolutions' radio buttons: their place in resources.xml and the art they choose (a table at 0x84e754 of
+// three pairs, then their count)
+const unsigned int kResTable = GTB(0x84e754, 28);
+
+int ResPlaceId(int theIndex)
 {
-	NotPorted("OptionsPanel 0x6a006a");
+	return GameInt(kResTable + theIndex * 8);
 }
 
-OptionsPanel::OptionsPanel(WinTwistApp*)
+int ResArtRes(int theIndex)
 {
-	NotPorted("OptionsPanel");
+	return GameInt(kResTable + theIndex * 8 + 4);
+}
+
+int ResCount()
+{
+	return GameInt(kResTable + 0x18);
+}
+
+// The text of a dialog line: its property, or the default when the properties have none
+SexyString OptionsText(unsigned int theId, unsigned int theDefault)
+{
+	return gApp->GetString(GTS(theId), GT(theDefault));
+}
+
+}  // namespace
+
+OptionsPanel::OptionsPanel(WinTwistApp* theApp)
+{
+	mApp = theApp;
+	mUnknownB0 = IMAGE_MAINMENU_OPTIONSDIALOG_ID;
+	float aScale = (float)((double)theApp->mArtRes / 1200.0);
+	// A button at its place in resources.xml, relative to the dialog's
+	auto aPlace = [&](Widget* theWidget, int thePlaceId, int theWidth, int theHeight) {
+		int aY = Ftol((double)(GetImageOffsetY(thePlaceId) - GetImageOffsetY(mUnknownB0)) * (double)aScale);
+		int aX = Ftol((double)(GetImageOffsetX(thePlaceId) - GetImageOffsetX(mUnknownB0)) * (double)aScale);
+		theWidget->Resize(aX, aY, theWidth, theHeight);
+	};
+
+	if (theApp->mBoard == nullptr) {
+		mRestartButton = nullptr;
+		mQuitButton = nullptr;
+		mReturnButton = nullptr;
+	} else {
+		// port: over a game the panel has the return, quit (challenge) and restart (help) buttons by the game's mode,
+		// and it zooms in (0x7d9bc0); they come with the board
+		NotPorted("OptionsPanel over a game (0x69e4c5)");
+	}
+
+	TwistSlider* aSlider = new TwistSlider(GetImageById(IMAGE_MAINMENU_SLIDERBARBASEMUSIC_ID),
+		IMAGE_MAINMENU_SLIDERTHUMBMUSIC, SLIDER_MUSIC, this);
+	mMusicSlider = aSlider;
+	aSlider->SetValue(theApp->GetMusicVolume());
+	Image* aTrack = GetImageById(IMAGE_MAINMENU_SLIDERBARBASEMUSIC_ID);
+	aPlace(aSlider, IMAGE_MAINMENU_SLIDERBARBASEMUSIC_ID, aTrack->mWidth, aTrack->mHeight);
+	aSlider = new TwistSlider(GetImageById(IMAGE_MAINMENU_SLIDERBARBASESOUNDS_ID), IMAGE_MAINMENU_SLIDERTHUMBSOUNDS,
+		SLIDER_SOUNDS, this);
+	mSoundsSlider = aSlider;
+	aSlider->SetValue(theApp->GetSfxVolume());
+	aTrack = GetImageById(IMAGE_MAINMENU_SLIDERBARBASESOUNDS_ID);
+	aPlace(aSlider, IMAGE_MAINMENU_SLIDERBARBASESOUNDS_ID, aTrack->mWidth, aTrack->mHeight);
+
+	// Each box tells the panel at once, which ignores it: the panel is not in the manager yet
+	mFullscreenCheckbox = MakeCheckbox(IMAGE_MAINMENU_RADIOBUTTONFULLSCREEN_ID, CHECKBOX_FULLSCREEN);
+	mFullscreenCheckbox->SetChecked(!theApp->mIsWindowed, true);
+	m3DCheckbox = MakeCheckbox(IMAGE_MAINMENU_RADIOBUTTONHWA_ID, CHECKBOX_3D);
+	m3DCheckbox->SetChecked(theApp->Is3DAccelerated(), true);
+	mHintsCheckbox = MakeCheckbox(IMAGE_MAINMENU_RADIOBUTTONHINTS_ID, CHECKBOX_HINTS);
+	mHintsCheckbox->SetChecked(theApp->mShowHints, true);
+	mCustomCursorsCheckbox = MakeCheckbox(IMAGE_MAINMENU_RADIOBUTTONCUSTOMCURSORS_ID, CHECKBOX_CUSTOM_CURSORS);
+	mCustomCursorsCheckbox->SetChecked(theApp->mProfile->mCustomCursors, true);
+	mVisualizersCheckbox = MakeCheckbox(IMAGE_MAINMENU_RADIOBUTTONVISUALIZERS_ID, CHECKBOX_VISUALIZERS);
+	// port: the visualizers need Direct3D (gD3DInterface), which the port does not have, as in 2D mode
+	mVisualizersCheckbox->SetChecked(false, true);
+	int i = 0;
+	if (0 < ResCount()) {
+		do {
+			mResCheckboxes[i] = MakeCheckbox(ResPlaceId(i), CHECKBOX_RES_FIRST + i);
+			mResCheckboxes[i]->SetChecked(mApp->mArtRes == ResArtRes(i), true);
+			i++;
+		} while (i < ResCount());
+	}
+
+	Image* aDialogImage = GetImageById(mUnknownB0);
+	int aHeight = Ftol((double)aDialogImage->mHeight * (double)1.1f);
+	int aWidth = aDialogImage->mWidth;
+	int aY = Ftol((double)GetImageOffsetY(mUnknownB0) * (double)aScale);
+	int aX = Ftol((double)GetImageOffsetX(mUnknownB0) * (double)aScale);
+	Resize(aX, aY, aWidth, aHeight);
+	mSettingBoxes = false;
+}
+
+OptionsPanel::~OptionsPanel()
+{
+	delete mMusicSlider;
+	delete mSoundsSlider;
+	delete mFullscreenCheckbox;
+	delete mCustomCursorsCheckbox;
+	delete m3DCheckbox;
+	delete mVisualizersCheckbox;
+	delete mHintsCheckbox;
+	delete mReturnButton;
+	delete mQuitButton;
+	// port: the original deletes neither the resolutions' radio buttons nor the restart button (NOTES.md)
+	for (int i = 0; i < RES_COUNT; i++)
+		delete mResCheckboxes[i];
+	delete mRestartButton;
+}
+
+int OptionsPanel::GetPreferredWidth()
+{
+	return Ftol((double)gApp->mScale * 585.0);
+}
+
+void OptionsPanel::AddedToManager(WidgetManager* theWidgetManager)
+{
+	MenuPanel::AddedToManager(theWidgetManager);
+	AddWidget(mMusicSlider);
+	AddWidget(mSoundsSlider);
+	AddWidget(mFullscreenCheckbox);
+	AddWidget(m3DCheckbox);
+	AddWidget(mCustomCursorsCheckbox);
+	AddWidget(mHintsCheckbox);
+	AddWidget(mVisualizersCheckbox);
+	int i = 0;
+	if (0 < ResCount()) {
+		do {
+			AddWidget(mResCheckboxes[i]);
+			i++;
+		} while (i < ResCount());
+	}
+	if (mReturnButton != nullptr)
+		AddWidget(mReturnButton);
+	if (mQuitButton != nullptr)
+		AddWidget(mQuitButton);
+	if (mRestartButton != nullptr)
+		AddWidget(mRestartButton);
+	// port: a game that can be paused is paused (0x6a6ad0, 0x6af1d0(false)); it comes with the board
+	if (mApp->mBoard != nullptr)
+		NotPorted("OptionsPanel pausing the game (0x6af1d0)");
+}
+
+void OptionsPanel::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	MenuPanel::RemovedFromManager(theWidgetManager);
+	RemoveAllWidgets(false, false);
+	// port: and resumed (0x6af2be(true)); it comes with the board
+	if (mApp->mBoard != nullptr)
+		NotPorted("OptionsPanel resuming the game (0x6af2be)");
+}
+
+void OptionsPanel::Update()
+{
+	bool wasZooming = mZooming;
+	MenuPanel::Update();
+	if (!mZooming && wasZooming && mZoom.GetOutVal() == 0.0) {
+		// zoomed out over the game: gone
+		mParent->RemoveWidget(this);
+		mApp->SafeDeleteWidget(this);
+	}
+	if (mApp->mBoard == nullptr) {
+		// the game is over: its buttons go
+		if (mQuitButton != nullptr) {
+			RemoveWidget(mQuitButton);
+			delete mQuitButton;
+			mQuitButton = nullptr;
+		}
+		if (mReturnButton != nullptr) {
+			RemoveWidget(mReturnButton);
+			delete mReturnButton;
+			mReturnButton = nullptr;
+		}
+	}
+}
+
+void OptionsPanel::Draw(Graphics* g)
+{
+	mClip = false;
+	Rect anOldClip = g->mClipRect;
+	// The original opens the clip wide with Direct3D, which the port does not have
+	g->DrawImage(GetImageById(mUnknownB0), 0, 0);
+	if (gApp->mBoard != nullptr) {
+		// the bar of the game's buttons, the large one with three
+		int aBarId = IMAGE_MAINMENU_OPTIONDIALOGBAR_ID + (mRestartButton != nullptr ? 1 : 0);
+		int aY = Ftol((double)(GetImageOffsetY(aBarId) - GetImageOffsetY(mUnknownB0)) * (double)mApp->mScale);
+		int aX = Ftol((double)(GetImageOffsetX(aBarId) - GetImageOffsetX(mUnknownB0)) * (double)mApp->mScale);
+		g->DrawImage(GetImageById(aBarId), aX, aY);
+	}
+	g->mClipRect = anOldClip;
+}
+
+void OptionsPanel::KeyDown(KeyCode theKey)
+{
+	if (mZooming)
+		return;
+	MenuPanel::KeyDown(theKey);
+	if (theKey == KEYCODE_ESCAPE || theKey == KEYCODE_RETURN)
+		ButtonDepress(BUTTON_RETURN);
+}
+
+void OptionsPanel::SliderVal(int theId, double theVal)
+{
+	if (mZooming)
+		return;
+	if (theId == SLIDER_MUSIC) {
+		mApp->SetMusicVolume(theVal);
+	} else if (theId == SLIDER_SOUNDS) {
+		mApp->SetSfxVolume(theVal);
+		if (!mSoundsSlider->mDragging && mWidgetManager != nullptr)
+			mApp->PlaySample(SOUND_TRANSFER);
+	}
+}
+
+void OptionsPanel::CheckboxChecked(int theId, bool checked)
+{
+	if (mWidgetManager == nullptr || mSettingBoxes || mZooming)
+		return;
+	bool aSetRadios = true;
+	if (theId == CHECKBOX_FULLSCREEN) {
+		bool aWindowed;
+		if (!checked) {
+			if (gApp->mForceFullscreen) {
+				// the desktop cannot take a window: the box is checked again
+				SexyString aFooter = OptionsText(GTA(0x80d3c8), GTA(0x80d9a4));
+				SexyString aLines = OptionsText(GTA(0x7da758), GTA(0x7da628));
+				SexyString aHeader = OptionsText(GTA(0x7da614), GTA(0x7da5f0));
+				gApp->DoDialog(0x2f, true, aHeader, aLines, aFooter, TwistDialog::BUTTON_MODE_YES);
+				mFullscreenCheckbox->SetChecked(true, true);
+				mApp->PlaySample(SOUND_CLICK_DIALOG);
+				return;
+			}
+			aWindowed = true;
+		} else {
+			aWindowed = false;
+		}
+		mApp->SwitchScreenMode(aWindowed);
+		// The original releases the mouse capture and forgets the mouse, then makes the app active again
+		SDL_CaptureMouse(SDL_FALSE);
+		mFullscreenCheckbox->mIsDown = false;
+		mFullscreenCheckbox->mIsOver = false;
+		mWidgetManager->mDownButtons = 0;
+		mWidgetManager->mLastDownWidget = nullptr;
+		mWidgetManager->mOverWidget = nullptr;
+		mApp->mActive = true;
+		mApp->RehupFocus();
+	} else if (theId == CHECKBOX_3D) {
+		m3DCheckbox->mChecked = checked;
+		if (!checked) {
+			if (mApp->Is3DAccelerated() && mApp->Is3DAccelerationRecommended()) {
+				// it stays on unless the player says yes
+				m3DCheckbox->SetChecked(true, true);
+				mQuestion = QUESTION_3D_OFF;
+				SexyString aFooter = GT(0x80d9a4);
+				SexyString aLines = OptionsText(GTA(0x7da940), GTA(0x7da838));
+				SexyString aHeader = OptionsText(GTA(0x7da81c), GTA(0x7da7f0));
+				mApp->DoDialog(4, true, aHeader, aLines, aFooter,
+					TwistDialog::BUTTON_MODE_YES | TwistDialog::BUTTON_MODE_NO);
+			}
+		} else {
+			if (!mApp->Is3DAccelerationSupported()) {
+				m3DCheckbox->SetChecked(false, true);
+				SexyString aFooter = OptionsText(GTA(0x80d3c8), GTA(0x80d9a4));
+				SexyString aLines = OptionsText(GTA(0x7daf20), GTA(0x7dae28));
+				SexyString aHeader = OptionsText(GTA(0x7db230), GTA(0x7db214));
+				gApp->DoDialog(0x30, true, aHeader, aLines, aFooter, TwistDialog::BUTTON_MODE_YES);
+				return;
+			}
+			if (!mApp->Is3DAccelerationRecommended()) {
+				m3DCheckbox->SetChecked(false, true);
+				mQuestion = QUESTION_3D_ON;
+				SexyString aFooter = OptionsText(GTA(0x80d3c8), GTA(0x80d9a4));
+				SexyString aLines = OptionsText(GTA(0x7dacf0), GTA(0x7daa88));
+				SexyString aHeader = OptionsText(GTA(0x80d468), GTA(0x7daa78));
+				gApp->DoDialog(4, true, aHeader, aLines, aFooter,
+					TwistDialog::BUTTON_MODE_YES | TwistDialog::BUTTON_MODE_NO);
+			} else {
+				if (mApp->Is3DAccelerated()) {
+					mApp->PlaySample(SOUND_CLICK_DIALOG);
+					return;
+				}
+				m3DCheckbox->SetChecked(false, true);
+				mQuestion = QUESTION_3D_ON;
+				SexyString aFooter = OptionsText(GTA(0x80d3c8), GTA(0x80d9a4));
+				SexyString aLines = OptionsText(GTA(0x7daa3c), GTA(0x7da9c8));
+				SexyString aHeader = OptionsText(GTA(0x80d468), GTA(0x7daa78));
+				gApp->DoDialog(4, true, aHeader, aLines, aFooter,
+					TwistDialog::BUTTON_MODE_YES | TwistDialog::BUTTON_MODE_NO);
+			}
+		}
+	} else if (theId == CHECKBOX_HINTS) {
+		mApp->mShowHints = checked;
+	} else if (theId == CHECKBOX_CUSTOM_CURSORS) {
+		mApp->mProfile->mCustomCursors = checked;
+		mApp->mCustomCursorsEnabled = checked;
+		mApp->EnableCustomCursors(mApp->mCustomCursorsEnabled);
+	} else if (theId == CHECKBOX_VISUALIZERS) {
+		// port: without Direct3D (gD3DInterface, which the port does not have) the box goes off again; with it the
+		// original sets mDoViz
+		mSettingBoxes = true;
+		mVisualizersCheckbox->SetChecked(false, true);
+		mSettingBoxes = false;
+		SexyString aFooter = OptionsText(GTA(0x80d3c8), GTA(0x80d9a4));
+		SexyString aLines = OptionsText(GTA(0x7db010), GTA(0x7dafa0));
+		SexyString aHeader = OptionsText(GTA(0x7db230), GTA(0x7db214));
+		gApp->DoDialog(0x28, true, aHeader, aLines, aFooter, TwistDialog::BUTTON_MODE_NO);
+	} else if (CHECKBOX_RES_FIRST - 1 < theId && theId < CHECKBOX_RES_FIRST + RES_COUNT) {
+		if (checked) {
+			if (!m3DCheckbox->mChecked) {
+				// the larger art needs 3D: the radio buttons go back to the art in use
+				mQuestion = QUESTION_RES_600;
+				SexyString aFooter = GT(0x80d9a4);
+				SexyString aLines = OptionsText(GTA(0x7db628), GTA(0x7db5a0));
+				SexyString aHeader = OptionsText(GTA(0x7db58c), GTA(0x7db568));
+				mApp->DoDialog(4, true, aHeader, aLines, aFooter, TwistDialog::BUTTON_MODE_NO);
+				aSetRadios = false;
+			} else {
+				int anArtRes = mApp->mArtRes;
+				if ((theId == CHECKBOX_RES_FIRST && 600 < anArtRes) ||
+					(theId == CHECKBOX_RES_FIRST + 1 && 768 < anArtRes)) {
+					aSetRadios = false;
+					mQuestion = (theId != CHECKBOX_RES_FIRST) + QUESTION_RES_600;
+					SexyString aFooter = GT(0x80d9a4);
+					SexyString aLines = OptionsText(GTA(0x7db4e0), GTA(0x7db3d0));
+					SexyString aHeader = OptionsText(GTA(0x7db3b8), GTA(0x7db394));
+					mApp->DoDialog(4, true, aHeader, aLines, aFooter,
+					TwistDialog::BUTTON_MODE_YES | TwistDialog::BUTTON_MODE_NO);
+				}
+				if ((theId == CHECKBOX_RES_FIRST + 1 && anArtRes < 768) ||
+					(theId == CHECKBOX_RES_FIRST + 2 && anArtRes < 1200)) {
+					aSetRadios = false;
+					// port: the original first asks the game's host interface (app +0x658, absent here) whether
+					// this art is supported ("IsHighResSupported", "IsUltraResSupported"), and says "Not
+					// Supported" (dialog 0x30) when the card cannot take it
+					mQuestion = (theId != CHECKBOX_RES_FIRST + 1) + QUESTION_RES_768;
+					SexyString aFooter = GT(0x80d9a4);
+					SexyString aLines = OptionsText(GTA(0x7db190), GTA(0x7db088));
+					SexyString aHeader = OptionsText(GTA(0x7db070), GTA(0x7db048));
+					mApp->DoDialog(4, true, aHeader, aLines, aFooter,
+					TwistDialog::BUTTON_MODE_YES | TwistDialog::BUTTON_MODE_NO);
+				}
+			}
+		}
+		if (!checked || aSetRadios) {
+			// the one clicked is the one checked, even when it was clicked off
+			int aCount = ResCount();
+			int i = 0;
+			if (0 < aCount) {
+				do {
+					mResCheckboxes[i]->mChecked = theId == i + CHECKBOX_RES_FIRST;
+					i++;
+				} while (i < aCount);
+			}
+		} else {
+			// back to the art in use, which only 3D can raise above 600
+			int anArtRes = mApp->mArtRes;
+			bool a3D = m3DCheckbox->mChecked;
+			mResCheckboxes[0]->mChecked = !(anArtRes != 600 && a3D);
+			mResCheckboxes[1]->mChecked = anArtRes == 768 && a3D;
+			mResCheckboxes[2]->mChecked = anArtRes == 1200 && a3D;
+		}
+	}
+	mApp->PlaySample(SOUND_CLICK_DIALOG);
+}
+
+void OptionsPanel::ButtonDepress(int theId)
+{
+	if (mZooming)
+		return;
+	mApp->PlaySample(SOUND_CLICK_DIALOG);
+	if (theId == BUTTON_RETURN) {
+		mApp->FinishOptionsDialog(true);
+	} else if (theId == BUTTON_QUIT) {
+		// port: the game's quit question (0x6b38f3), then FinishOptionsDialog(false); they come with the board
+		NotPorted("OptionsPanel's quit (0x6b38f3)");
+	} else if (theId == BUTTON_RESTART) {
+		// port: the restart question (dialog 0xb, by the game's mode); it comes with the board
+		NotPorted("OptionsPanel's restart (0x69fc10)");
+	} else if (theId == BUTTON_HELP) {
+		// port: the panel zooms out (0x7db720) and the help comes up over the game (0x75f82d); they come with the
+		// board
+		NotPorted("OptionsPanel's help (0x69fc10)");
+	}
+}
+
+TwistCheckbox* OptionsPanel::MakeCheckbox(int thePlaceId, int theId)
+{
+	Image* anImage = IMAGE_MAINMENU_RADIOBUTTONCUSTOMCURSORS;
+	TwistCheckbox* aCheckbox = new TwistCheckbox(anImage, anImage, theId, this);
+	int aDialogId = mUnknownB0;
+	float aScale = mApp->mScale;
+	int aY = Ftol((double)(GetImageOffsetY(thePlaceId) - GetImageOffsetY(aDialogId)) * (double)aScale);
+	int aX = Ftol((double)(GetImageOffsetX(thePlaceId) - GetImageOffsetX(aDialogId)) * (double)aScale);
+	aCheckbox->Resize(aX, aY, anImage->GetCelWidth(), anImage->GetCelHeight());
+	return aCheckbox;
+}
+
+void OptionsPanel::ApplySettings(bool theResolution)
+{
+	bool aWindowed = !mFullscreenCheckbox->IsChecked();
+	bool a3D = m3DCheckbox->IsChecked();
+	mCustomCursorsCheckbox->IsChecked();
+	if (a3D == mApp->Is3DAccelerated()) {
+		if (aWindowed != gApp->mIsWindowed)
+			gApp->SwitchScreenMode(aWindowed, a3D);
+	} else {
+		// port: 3D acceleration on or off is written to the registry ("Is3D", "FullscreenBits") and the game
+		// restarts; the port cannot turn 3D on, so the box never differs
+		NotPorted("OptionsPanel restarting for 3D (0x6a006a)");
+	}
+	mApp->EnableCustomCursors(mCustomCursorsCheckbox->IsChecked());
+	int anArtRes;
+	if (mResCheckboxes[0]->IsChecked())
+		anArtRes = 600;
+	else
+		anArtRes = mResCheckboxes[1]->IsChecked() ? 768 : 1200;
+	if (theResolution && anArtRes != mApp->mArtRes) {
+		// port: the original keeps the art's size and restarts the game; the port's art is always 600, which only
+		// 3D could change
+		NotPorted("OptionsPanel restarting for the resolution (0x6a006a)");
+	}
+}
+
+void OptionsPanel::Answer(bool theYes)
+{
+	if (!theYes)
+		return;
+	mSettingBoxes = true;
+	switch (mQuestion) {
+	case QUESTION_3D_ON:
+		m3DCheckbox->SetChecked(true, true);
+		break;
+	case QUESTION_3D_OFF:
+		m3DCheckbox->SetChecked(false, true);
+		mResCheckboxes[0]->SetChecked(true, true);
+		mResCheckboxes[1]->SetChecked(false, true);
+		mResCheckboxes[2]->SetChecked(false, true);
+		break;
+	case QUESTION_RES_600:
+		mResCheckboxes[0]->SetChecked(true, true);
+		mResCheckboxes[1]->SetChecked(false, true);
+		mResCheckboxes[2]->SetChecked(false, true);
+		break;
+	case QUESTION_RES_768:
+		mResCheckboxes[0]->SetChecked(false, true);
+		mResCheckboxes[1]->SetChecked(true, true);
+		mResCheckboxes[2]->SetChecked(false, true);
+		break;
+	case QUESTION_RES_1200:
+		mResCheckboxes[0]->SetChecked(false, true);
+		mResCheckboxes[1]->SetChecked(false, true);
+		mResCheckboxes[2]->SetChecked(true, true);
+		break;
+	default:
+		mSettingBoxes = false;
+		return;
+	}
+	ApplySettings(true);
+	mSettingBoxes = false;
 }
 
 ChallengeMenu::ChallengeMenu()
