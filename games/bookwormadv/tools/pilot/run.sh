@@ -19,7 +19,9 @@
 # host's GPU (--sandbox-vgpu: the user allowed it for these 3D runs only, 2026-11-01), and dgVoodoo2 in its copy when
 # PILOT_DGVOODOO names its folder (origrun --dgvoodoo; on WARP, without vGPU, it crashed the game at start); the port Is3D 1.
 # PILOT_SOUND=on: the original's BASS calls logged to build/scratch/pilot/<steps>.basslog.txt by tools/bassproxy (build
-# it to build/bassproxy-bwa/bass.dll; it gives BASS the "no sound" device, the sandbox having none).
+# it to build/bassproxy-bwa/bass.dll; it gives BASS the "no sound" device, the sandbox having none), its sounds by
+# origrun's stand-in to <steps>.sound.log, and the port's to <steps>.portsound.log (BYOPOP_SOUNDLOG); compare them
+# with soundcmp.py.
 set -u
 W=$(cd "$(dirname "$0")/../../../.." && pwd)
 T=$W/games/bookwormadv/tools/pilot
@@ -73,6 +75,7 @@ if [ "$which" != port ]; then
 	# and the startup load's, for -startloadupdates (the thread's start, app+0x4f9, to mLoadingDone, +0x919)
 	python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" --start > "$P/$N.startload"
 	echo "startup load (updates): $(cat "$P/$N.startload")"
+	[ "${PILOT_SOUND:-off}" = on ] && [ -f "$R/logs/sound.log" ] && cp "$R/logs/sound.log" "$P/$N.sound.log"
 	[ -f "$R/game/basslog.txt" ] && cp "$R/game/basslog.txt" "$P/$N.basslog.txt" && echo "BASS calls: $(grep -vc '^#' "$P/$N.basslog.txt") lines"
 	S=$W/build/origrun/$run/shots
 	python - "$S" "$PO" "$T/$name.txt" <<'EOF'
@@ -83,6 +86,14 @@ for line in open(steps):
     w = line.split("#", 1)[0].split()
     if w and w[0] == "title": clips["title"] = int(w[2])
     if w and w[0] == "clip": clips[w[1]] = int(w[3])
+# an earlier run's pictures of these steps go first, so a run that took none leaves none behind
+names = [l.split()[1] for l in open(steps) if l.split()[:1] in (["shot"], ["clip"])]
+names += ["title", os.path.basename(steps)[:-4] + "_focus"]
+for f in os.listdir(dst):
+    stem = f[:-4] if f.endswith(".png") else f
+    if any(stem == n or stem.startswith(n + "_") for n in names):
+        p = os.path.join(dst, f)
+        shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
 for f in sorted(os.listdir(src)):
     if os.path.isdir(os.path.join(src, f)):   # a burst: numbered frames and its clip.json already
         shutil.copytree(os.path.join(src, f), os.path.join(dst, f), dirs_exist_ok=True)
@@ -105,6 +116,7 @@ if [ "$which" != orig ]; then
 	d=$P/portrun/$N; mkdir -p "$d"
 	bash "$T/reset.sh" "$d/user"
 	[ -n "$SUF" ] && sed -i 's/^Is3D=dword:0/Is3D=dword:1/' "$d/user/registry.ini"
+	[ "${PILOT_SOUND:-off}" = on ] && export BYOPOP_SOUNDLOG="$(cygpath -w "$P/$N.portsound.log")"
 	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) \
 		-script="$P/scripts/$name.port.txt" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5

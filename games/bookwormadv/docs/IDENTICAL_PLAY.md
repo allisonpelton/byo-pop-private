@@ -39,14 +39,29 @@ from real differences: a box that some port update matches exactly is timing, an
 
 The web build ran the same four parts in the Browser pane, and its pictures were compared with the native port's.
 
+Sound and music are compared by their events, in order, not by recording them. The original plays its music through
+BASS 2.3 and its sounds through DirectSound. In the sandbox, `tools/bassproxy` (a `bass.dll` in front of the game's
+own) logs every BASS call, and origrun's DirectSound stand-in logs every buffer: its creation, its data, which buffer a
+duplicate copies, and its volume, pan, frequency, plays and stops. The port logs the same events from the framework's
+sound manager and music interface when `BYOPOP_SOUNDLOG` names a file (`PILOT_SOUND=on` in the pilot).
+`tools/pilot/soundcmp.py` pairs the two sides' sounds by the order they are loaded, checks each pair's length and
+format, and pairs the music by load order and checksum. It then compares the plays (with volume, pan, pitch and
+looping), the volume changes, the stops, and the music's plays, positions, fades and stops.
+
+In the menus all 92 sounds pair up, and the music matches event for event, every step of each fade included. The
+sounds matched once two missing clicks were added (below), except one line: a click that had finished seconds before
+is released at a slightly different moment, which changes nothing audible.
+
 Not compared yet:
 
-- **Sound and music.** The original plays its music through BASS 2.3 and its sounds through DirectSound. Both are now
-  logged in the sandbox: `tools/bassproxy` logs the BASS calls, and origrun's DirectSound stand-in logs each buffer with
-  the sound a duplicate copies. The port's side waits for a shared sound log in the framework, which has been specified
-  to the coordinator; then the two logs are compared by order and state.
-- **3D mode on.** The original under origrun falls back to 2D on this machine; `--3d on` works only with a GPU wrapper,
-  which is never used in captured copies.
+- **Sound in the battle, the screens and the won battle.** The same comparison, still to run.
+- **3D mode on.** The original runs in 3D only on the user's visible desktop (tried with the user's leave on
+  2026-11-01: no wrapper, its Direct3D test passed and its 3D flag stayed on). Inside Windows Sandbox it cannot: the
+  game runs in a session with no display, or, with the sandbox's user logged on, on a remote display adapter whose
+  Direct3D 7 device fails, and dgVoodoo2 either crashes or falls back (`docs/ORIGRUN.md`). On the host no shot is
+  taken (the host-capture ban), so the port's 3D mode is not yet compared picture by picture. What it would need is a
+  capture of the game's window on the visible desktop. A port run in 3D draws the midground island behind the enemy,
+  as arena.lua asks when `Is3DAccelerated()` is true, and a different board from its 2D runs.
 - **The question at exit after 3D was switched on during a session** ("Hardware Acceleration Confirmation").
 
 ## Changes the pass made
@@ -59,6 +74,7 @@ Not compared yet:
 | The hall of fame's arena list showed 0:14:40 for the ninth default run, where the original shows 0:14:50 | The original's table (MakeTimeList, 0x4632a0) has 89000 hundredths | 89000 | 9392f85 |
 | The mini-games showed an empty plate where the original has a greyed Submit! button | `SetAttackDisabled` and `ShowImmuneAttack` (0x41a070, 0x41a3e0) size the cels from the picture the button has | The same | 5abf844 |
 | A hint's lines stood 19 pixels apart | ArrowHint::Draw (0x4036c0) steps them by the font's ascent, 14 (0x403953) | Steps by the ascent | e389b58 |
+| The main menu's "change player" link and the answers of the game's dialogs (the New Player dialog's Cancel, the quit dialog's) made no click | MainMenu's `ButtonPress` (0x47d540) plays SOUND_CLICK2, and GameApp's (0x44b5e0), which a dialog's yes and no reach as 2000 or 3000 plus its id, plays SOUND_CLICK1 (SOUND_CLICK2 for buttons 1 and 11) | The same | (next commit) |
 
 The pass also changed the test tools: the pilot's scripts, the sandbox runs, exact shot timing, `lag.py`, and the load
 holds (39aaca5, 8607ebf). Besides those, it made shared origrun changes (sandbox capture, `--watch`), each merged by the
