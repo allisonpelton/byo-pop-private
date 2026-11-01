@@ -57,7 +57,8 @@ the framework's virtual clock, so a scripted run repeats exactly. `-script=<file
 For the browser, build `build/web` with `--target mahjongjapan`, serve it (`.claude/launch.json` has
 `mahjongjapan-web` on port 18790) and open `mahjongjapan.html`, in the Browser pane always with `?silent=1`. The page
 imports `Resource.dll` and `MahjongEscapeAJ.exe` (and the two logo pictures) into its own IndexedDB folder
-(`/mjpersist`) and keeps the players there.
+(`/mjpersist`) and keeps the players there. In the browser (2026-11-01) a new player played escape stage 1 to the level's end
+and the map, with the same score as natively (6,420), and was still there after a reload of the page.
 
 ## Testing
 

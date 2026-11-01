@@ -13,7 +13,10 @@ that. First, the original's 3D test (0x421370) always passes, and its warning te
 checking "Use 3-D Hardware Acceleration" in the options (0x412880) never shows the note about the card. The setting is
 still kept and saved as the original keeps it. Second, the vertical-blank wait that the map's curtain asks for
 (0x4215e0, reached through 0x42a5b0) does nothing, and the windowed present's wait for the blit (0x432a30) does
-nothing either: the host paces the frames. Third, the accelerated display's software cursor is the host's cursor
+nothing either: the host paces the frames. In the browser the game starts in the page even when its setting
+(`FullScreen`, on for a new install) says full screen, because a browser enters full screen only from a click: the
+host writes the setting off before the game reads it, as the framework starts every game's web build in the page.
+The page's full screen button and the options switch it afterwards. Third, the accelerated display's software cursor is the host's cursor
 (0x42a820). Fourth, `GetTimeFormatA` and `GetNumberFormatA` (0x423450, 0x4232d0) become fixed formats: "H:mm:ss" with
 ':' and thousands grouped by three with ','. Those are the formats of an English Windows, where the game was made.
 

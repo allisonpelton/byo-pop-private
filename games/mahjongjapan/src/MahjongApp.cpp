@@ -414,6 +414,11 @@ void MahjongApp::Init()
 	mWidgetManager->AddWidget(mWidget);
 	mWidgetManager->SetFocus(mWidget);
 
+#ifdef __EMSCRIPTEN__
+	// A browser enters full screen only from a click, so the game starts in the page, as every game's web build does
+	// (SexyAppBase::MakeWindow); the page's full screen button and the options switch it later
+	gHost.RegWriteInt(nullptr, "FullScreen", 0);
+#endif
 	mGame = new mahjongjapan::MahjongGame();
 	if (!mGame->Init())
 	{
