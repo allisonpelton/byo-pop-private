@@ -5,6 +5,7 @@
 #include "EffectsManager.h"
 #include "GameText.h"
 #include "GraphicsRecorder.h"
+#include "Hyperspace.h"
 #include "LoaderScreen.h"
 #include "Res.h"
 #include "PlayButton.h"
@@ -63,6 +64,10 @@ WinTwistApp::~WinTwistApp()
 		mWidgetManager->RemoveWidget(mLoaderScreen);
 		delete mLoaderScreen;
 	}
+	if (mHyperspace != nullptr) {
+		mWidgetManager->RemoveWidget(mHyperspace);
+		delete mHyperspace;
+	}
 	if (mFXManager != nullptr) {
 		mWidgetManager->RemoveWidget(mFXManager);
 		delete mFXManager;
@@ -115,7 +120,13 @@ void WinTwistApp::Init()
 	// The original sets up the music visualiser (+0xc6c, z order -100) and loads the 3D models of space here; with
 	// -record or -playback it seeds both random number generators from the recording
 	if (!mUseSexyCache) {
-		// The Hyperspace background (0x75f588) goes up first: comes next
+		// 0x75f588: z order just behind the music visualiser's (-100), which the port does not have yet
+		if (mHyperspace == nullptr)
+			mHyperspace = new Hyperspace();
+		mHyperspace->Resize(0, 0, mWidth, mHeight);
+		mHyperspace->mZOrder = -101;
+		mHyperspace->SetTransition(0);
+		mWidgetManager->AddWidget(mHyperspace);
 		mLoaderScreen = new LoaderScreen(this);
 		mLoaderScreen->Resize(0, 0, mWidth, mHeight);
 		mLoaderScreen->mZOrder = 1000;

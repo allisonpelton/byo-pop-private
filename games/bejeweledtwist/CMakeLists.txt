@@ -22,7 +22,7 @@ endif()
 set(BJT_SOURCES
   src/main.cpp src/WinTwistApp.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp
   src/TwistWidget.cpp src/TwistButton.cpp src/TwistUtil.cpp src/GraphicsRecorder.cpp src/PlayButton.cpp
-  src/EffectsManager.cpp src/Logo.cpp src/LoaderScreen.cpp)
+  src/EffectsManager.cpp src/Logo.cpp src/LoaderScreen.cpp src/Hyperspace.cpp)
 add_executable(bejeweledtwist ${BJT_SOURCES})
 target_include_directories(bejeweledtwist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(bejeweledtwist PRIVATE bjt_engine sexyframework sexyopenmpt sexyopenjpeg)

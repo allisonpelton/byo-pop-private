@@ -10,6 +10,7 @@ namespace Sexy {
 
 class CustomResourceManager;
 class EffectsManager;
+class Hyperspace;
 class LoaderScreen;
 class PlayButton;
 class SoundInstance;
@@ -35,6 +36,7 @@ public:
 	LoaderScreen* mLoaderScreen = nullptr;  // +0x860
 	Widget* mMainMenu = nullptr;        // +0x864 (comes with the main menu)
 	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
+	Hyperspace* mHyperspace = nullptr;  // +0xf20: the space behind every screen
 	EffectsManager* mFXManager = nullptr;  // +0xf78: the effects over the whole screen
 	bool mSoundsOff = false;            // +0x928: no sound effects (set elsewhere, not yet read)
 	SoundInstance* mUnmanagedSound = nullptr;  // +0x938: a tracked sound whose volume UpdateFrames leaves alone
@@ -61,6 +63,9 @@ public:
 
 	// 0x760659: 2D mode, the art at 600 and the screen at 800x600 in 16 bits
 	void Use2DMode();
+	// port: the game's own question "is Direct3D on" (the base's answers whether SDL's renderer is accelerated). The
+	// port draws as the original does without Direct3D, so the game always hears no.
+	bool Is3DAccelerated() { return false; }
 	// 0x766974: plays a sound unless sounds are off, the app has no focus or the board is paused; theTrack keeps it
 	// in mTrackedSounds, theScaleVolume multiplies its volume by mSfxVolumeScale
 	SoundInstance* PlaySoundEx(int theSoundId, int thePan, float thePitch, float theVolume, bool theTrack,

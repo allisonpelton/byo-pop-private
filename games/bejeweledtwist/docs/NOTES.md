@@ -57,10 +57,20 @@ and out (+0xa4, +0xa8, +0xac), a tooltip text (+0x88, drawn with FONT_MENU_TINY)
 zoom on show (+0xcc, two CurvedVals; in 2D a scale about its centre).
 
 Ported (LoaderScreen, PlayButton, Logo): the loader comes up as the original's does, with the app's EffectsManager
-(+0xf78) in front of the Logo in front of the loader (LoaderScreen::AddedToManager). Still missing behind it is the
-Hyperspace background (0x15e0 bytes, app +0xf20, put up by 0x75f588 just before the loader), and the main menu that
-slot 110 (0x76657b, `StartMainMenu`) brings up when loading is done; until then the screen goes black once the loader
+(+0xf78) in front of the Logo in front of the loader (LoaderScreen::AddedToManager), and Hyperspace behind them all
+(0x15e0 bytes, app +0xf20, z order -101, put up by 0x75f588 just before the loader). Still missing is the main menu that
+slot 110 (0x76657b, `StartMainMenu`) brings up when loading is done; until then only space shows once the loader
 finishes.
+
+Hyperspace is the jump between levels as well as the space behind every screen. In 2D its Draw (0x713e2d) draws
+IMAGE_STATIC_SPACE centred, the tunnel of a jump for transitions 8, 9, 10 and 14 (0x711b65) and a white flash (+0x1320,
+set only by world 14's curves); everything else (the level's worlds, the camera, the planets of DrawOverlay) is
+Direct3D only. SetTransition(0) (0x7181b3) only stores the transition and calls Update; the world switch by level runs
+for transition 8 with Direct3D. Its Update draws no random numbers outside a game: the thrust particles run only while
+the board's +0x200c points at it.
+
+The framework's Is3DAccelerated says whether SDL's renderer is accelerated, which it usually is; WinTwistApp hides it
+with one that always says no, since the game must take its 2D paths (the 2DOnly resources, the effects' 2D drawing).
 
 Random draws on this screen, in order: Logo's constructor (one Rand() for the shine delay), each update of the Logo
 once its drop is done (Rand() % 25, and for a sparkle RandSigned() then Rand() % the number of bright pixels), the

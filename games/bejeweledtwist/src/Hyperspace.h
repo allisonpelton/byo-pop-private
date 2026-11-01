@@ -1,0 +1,39 @@
+// Sexy::Hyperspace (0x15e0 bytes, a TwistWidget; 0x70e341-0x71f10e): the space behind every screen and the jump
+// between levels. With Direct3D it flies a camera through the level's world (planets, a saucer, the sidebar's tube);
+// in 2D it draws the still picture of space and, for the jumps, flashes and a tunnel of its own.
+//
+// port: so far the 2D drawing of space outside a jump (the loader and the menus). The jumps (mTransition 8 to 14,
+// 0x711b65, 0x70f836, the white flash +0x1320 and the fades +0x5d8), the level's world (0x7181b3's curves) and the
+// camera (the rest of Update 0x715c21) come with the board.
+#pragma once
+
+#include "CurvedVal.h"
+#include "TwistWidget.h"
+
+namespace Sexy {
+
+class Hyperspace : public TwistWidget {
+public:
+	int mLevel = 0;              // +0x148: the board's level - 1
+	int mState = 0;              // +0x14c: 0 idle, 6 and 7 after a jump, 10 done, ...
+	int mTransition = 0;         // +0x150: the jump SetTransition last set up
+	bool mFlag155 = false;       // +0x155
+	bool mIs3D = false;          // +0x156: drawn with Direct3D
+	bool mFlag159 = true;        // +0x159
+	int mWorld = 4;              // +0xc5c: the level's world (0x7181b3 picks it by level)
+	CurvedVal mFlash;            // +0x1320: the white flash of a jump
+	double mWarmUp = 0;          // +0x1078: rises to 1 while idle
+
+	Hyperspace();                // 0x714f98
+	~Hyperspace() override;      // 0x714e6e
+
+	void Update() override;                  // 0x715c21
+	void Draw(Graphics* g) override;         // 0x713e2d
+	void DrawOverlay(Graphics* g) override;  // 0x713d82
+	using Widget::DrawOverlay;
+
+	// 0x7181b3: sets up the jump theTransition (0 none) and the level's world
+	void SetTransition(int theTransition);
+};
+
+}  // namespace Sexy
