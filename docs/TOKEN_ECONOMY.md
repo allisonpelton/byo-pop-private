@@ -269,3 +269,34 @@ games have finished the pass.
 For the ports under way the rule gives about $180 for Ancient Japan (4-5x), about $195 for Bonnie's Bookstore (4-6x)
 and about $855 for Twist (25x). It gives about $1,020 for Bejeweled 3 and $1,185 for Zuma's Revenge, but those lie far
 past Bookworm Adventures, the only large game it was fitted on, so they are rough.
+
+## The 400K auto-compact (measured 2026-11-01)
+
+Sessions compacted only near the full 1M window until 2026-10-24, when auto-compact moved to 400K for Opus 5.5; Sonnet
+5.5 followed at the end of 2026-10-25. Every main-session call in the byo-pop transcripts, before and after, each API
+response counted once and each model at its own API price:
+
+| Main sessions | Calls | Context per call (average / median / 90th percentile) | Per call | Compactions per 1,000 calls |
+|---|---:|---|---:|---:|
+| Opus, 1M window | 31,775 | 505K / 497K / 863K | $0.141 | 2.9 |
+| Opus, 400K | 26,525 | 234K / 233K / 341K | $0.083 | 6.9 |
+| Sonnet, 1M window | 2,012 | 446K / 401K / 860K | $0.115 | 2.5 |
+| Sonnet, 400K | 9,002 | 243K / 239K / 345K | $0.067 | 6.7 |
+
+A call now costs about 40% less. The calls since the change cost about $2,800; at the old cost per call they would
+have cost about $4,800. Sessions compact more often, about 145 more compactions so far, and each costs about
+$0.40-0.60 (the summary call, and the first call after it writing the new context into the cache): about $90 against
+about $2,000 saved. The other token rules came the same day, but the drop in context per call belongs to the
+threshold: a session's context climbs from its floor to the threshold and starts again, so where it compacts sets the
+average, and how fast it grows sets how often it compacts.
+
+What the table cannot show is whether a task takes more calls once a session has lost what it read before a
+compaction and reads it again. Per unit of the survey's estimate (above), the three Sonnet ports from before the
+change (Noah's Ark, Seven Seas, Atomica) look somewhat dearer than the later ones, not 40% dearer, so the saving per
+task may be smaller than the saving per call; three small games are too few to tell.
+
+A lower threshold gives back less each time. About 87K tokens of every call are fixed (tools, the app's MCP tools, the
+system prompt, CLAUDE.md, skills: a game session's own count on 2026-11-01), and a summary adds about 20K, so a
+session restarts at about 110K. Compacting at about 250K would bring the average call from about 234K to about 170K:
+roughly 10% per call after the extra compactions, before any reading again, which grows as compactions come more
+often. 400K stays unless usage gets tight.
