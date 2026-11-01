@@ -661,6 +661,15 @@ static double qpc_ms(void){ LARGE_INTEGER c,f; QueryPerformanceCounter(&c); Quer
 // all of it.
 static double gHoldT0 = 0, gLastHeldMs = 0;
 static uint32_t gHeldAt = 0;   // the update counter read while the last held shot was held
+// The update whose frame the last "at"/update-timed shot shows (0: not known), and the file that lists it for each
+// shot (shots/landed.tsv: name, update), so the port can take its own shot at that update.
+static uint32_t gLandedAt = 0;
+static void note_landed(const char* name, uint32_t upd)
+{
+	gLandedAt=upd;
+	char p[MAX_PATH]; wsprintfA(p,"%s\\landed.tsv",gShotDir);
+	FILE* f=fopen(p,"a"); if (f){ fprintf(f,"%s\t%u\n",name,upd); fclose(f); }
+}
 // The game's window thread while origrun holds it, so that crash_filter can resume it before anything else.
 static PVOID volatile gHeldThread = NULL;
 // Returns 1 once the thread is really stopped. SuspendThread only asks for the suspension; GetThreadContext returns
@@ -683,7 +692,15 @@ static void hold_end(HANDLE th)
 }
 static void release_held(HANDLE* held){ if (held && *held){ hold_end(*held); *held=NULL; } }
 
-static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held)
+// The sandbox's shot (capture_held): PrintWindow on a thread of its own, on origrun's desktop (a new thread starts on
+// the process's first one, where PrintWindow gives a black window), so that it can be asked while the game is held.
+struct pw_job { HWND hwnd; HDC mem; BOOL ok; HDESK desk; };
+static DWORD WINAPI pw_job_run(LPVOID a){ struct pw_job* j=(struct pw_job*)a; if (j->desk) SetThreadDesktop(j->desk); j->ok=PrintWindow(j->hwnd,j->mem,PW_RENDERFULLCONTENT); return 0; }
+static uint32_t gBracketAt = 0;   // the update a bracketed shot landed on
+// bracket (only with held): the game is held at the update read here; PrintWindow is asked on its own thread, the game
+// is released, and its message loop answers it before its next update (see capture_held). Returns 3 and writes
+// nothing if PrintWindow failed, so the caller may try again.
+static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held, int bracket)
 {
 	RECT r; if (!hwnd || !GetWindowRect(hwnd,&r)) { release_held(held); return 0; }   // window gone; caller may retry
 	if (capture_refused(hwnd,name)) { release_held(held); return 0; }
@@ -715,7 +732,28 @@ static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held
 	// legacy DirectDraw windows need. Never the screen, and nothing at all outside Windows Sandbox: capture_refused,
 	// asked once when the capture starts, depends only on where origrun runs, which no run changes.
 	const char* how="printwindow";
-	BOOL ok = allowPrint ? PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT) : FALSE;
+	BOOL ok=FALSE;
+	if (bracket && held && *held) {
+		uint32_t c0=0, c1=0;
+		read_counter(gCounterExpr,&c0);
+		struct pw_job* j=(struct pw_job*)calloc(1,sizeof(*j));
+		HANDLE pt=NULL;
+		if (j) { j->hwnd=hwnd; j->mem=mem; j->desk=GetThreadDesktop(GetCurrentThreadId()); pt=CreateThread(NULL,0,pw_job_run,j,0,NULL); }
+		// PrintWindow's message must be sent before the game runs on; Sleep would round up to the timer's 15.6 ms tick
+		if (pt) { double t0=qpc_ms(); while (qpc_ms()-t0<1.0) SwitchToThread(); }
+		release_held(held);
+		DWORD wr = pt ? WaitForSingleObject(pt,3000) : WAIT_FAILED;
+		read_counter(gCounterExpr,&c1);
+		if (pt) CloseHandle(pt);
+		if (wr!=WAIT_OBJECT_0) {   // the thread still owns the job and the bitmap, so both are left to it
+			logline("shot %s refused: PrintWindow did not return within 3 s of the release", name);
+			return 0;
+		}
+		ok=j->ok; free(j);
+		if (!ok) { SelectObject(mem,old); DeleteObject(dib); DeleteDC(mem); return 3; }
+		gBracketAt=c0; how="printwindow-bracketed (sandbox)";
+		logline("shot %s: printwindow-bracketed (sandbox): held at update %u, which the shot shows; the counter read %u once PrintWindow returned", name, c0, c1);
+	} else if (allowPrint) ok=PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT);
 	if (allowPrint && !ok) how="printwindow failed";
 	if (!allowPrint || !ok || region_flat(px,w,cx0,cy0,cx1,cy1)) {
 		HDC wdc=GetWindowDC(hwnd);
@@ -735,7 +773,7 @@ static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held
 	logline("shot %s -> %s (%dx%d) [%s]", name, path, w, h, how);
 	return wrote ? (flat ? 2 : 1) : 0;   // 2 = written but flat (a DirectDraw screen, or not drawn yet)
 }
-static int capture_ex(HWND hwnd, const char* name, int allowPrint){ return capture_ex2(hwnd,name,allowPrint,NULL); }
+static int capture_ex(HWND hwnd, const char* name, int allowPrint){ return capture_ex2(hwnd,name,allowPrint,NULL,0); }
 static int capture(HWND hwnd, const char* name){ return capture_ex(hwnd,name,1); }
 
 // Poll up to timeout_ms for any visible game window, then capture it. If the grab is flat (often a window that
@@ -788,9 +826,35 @@ static int wait_counter(uint32_t target, int timeout_ms)
 // Outside Windows Sandbox the shot is refused before the game is ever held (capture_refused).
 static int capture_held(const char* name)
 {
-	gLastHeldMs=0; gHeldAt=0;   // a shot that is not held, or not taken, reports no hold of an earlier one
+	gLastHeldMs=0; gHeldAt=0; gLandedAt=0;   // a shot that is not held, or not taken, reports no hold of an earlier one
 	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",name); return 0; }
 	if (capture_refused(hw,name)) return 0;
+	// Inside Windows Sandbox nothing reads a held game: BitBlt from the window DC and from the screen DC return TRUE
+	// but copy no pixels, held or not; DXGI finds no output to duplicate; and PrintWindow, the one thing that sees the
+	// game there, needs the game's window thread, which answers it from its message loop (measured on Bookworm
+	// Adventures, 2026-11-01). Reading the counter just before and just after an unheld PrintWindow and keeping the
+	// shot when both agree does not work there: PrintWindow takes about an update's time, the reads agreed once in
+	// 1 to 20 tries, and shots landed up to 238 updates late. So the game is held as soon as the counter reads N (the
+	// update waited for, or later), PrintWindow is asked on a thread of its own, and the game is released; the
+	// SexyAppBase loop finishes update N, draws it, and answers PrintWindow from its message loop before update N+1.
+	// The shot shows update N's frame (unless the game skips that draw to catch up): on Bookworm Adventures all 14
+	// frames of the battle's entry matched the port exactly 0 to 3 updates before the held update (its picture changes
+	// every other update; the host's held shots trailed by 4-5 after the same load). The counter read once PrintWindow
+	// returns is logged, not checked: the game catches up on the time it was held and is 0-1 updates on by then. The update each shot shows is logged and
+	// listed in landed.tsv.
+	if (gInSandbox && gCounterExpr[0]) {
+		for (int t=0; t<3 && !gStop; t++) {
+			HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
+			if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
+			if (!th) { logline("shot %s refused: the game's window thread could not be held", name); return 0; }
+			HANDLE held=th;
+			int r=capture_ex2(hw,name,1,&held,1);
+			release_held(&held); CloseHandle(th);
+			if (r!=3) { if (r) note_landed(name,gBracketAt); return r; }
+		}
+		logline("shot %s refused: PrintWindow failed three times", name);
+		return 0;
+	}
 	if (gFlipsExpr[0]) { uint32_t f0; if (read_counter(gFlipsExpr,&f0)) { uint32_t f=f0; int w=0; while(f<=f0 && w<100 && !gStop){ Sleep(1); read_counter(gFlipsExpr,&f); w++; } } }  // a static screen presents nothing new, so cap the wait
 	// Without a flips counter, hold at the start of the next update: the counter goes to N at the start of update N,
 	// and the game draws after the update, so a hold taken as soon as the counter reads N races that draw and mostly
@@ -806,8 +870,9 @@ static int capture_held(const char* name)
 	if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
 	if (th) read_counter(gCounterExpr,&gHeldAt);
 	HANDLE held=th;
-	int ok=capture_ex2(hw,name,0,&held);   // no PrintWindow while held: the window DC, asked again first; resumes after the grab
+	int ok=capture_ex2(hw,name,0,&held,0);   // no PrintWindow while held: the window DC, asked again first; resumes after the grab
 	release_held(&held);
+	if (ok && gHeldAt) note_landed(name, gFlipsExpr[0] ? gHeldAt : gHeldAt-1);
 	if (th) CloseHandle(th);
 	return ok;
 }
@@ -828,7 +893,7 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 		double frameStart=qpc_ms();
 		int ok; double cap0;
 		if (byUpdates) { if (wait_counter(start + (uint32_t)i*k, 4000)<0){ logline("burst %s: counter unreadable, stopping",name); break; } cap0=qpc_ms(); ok=capture_held(leaf); holdSum+=gLastHeldMs; if (gLastHeldMs>holdMax) holdMax=gLastHeldMs;
-			{ int d=(int)(gHeldAt-(start+(uint32_t)i*k)) - (gFlipsExpr[0]?0:1); if (gHeldAt && d>0){ late++; if(d>lateMax) lateMax=d; } } }
+			{ int d=(int)(gLandedAt-(start+(uint32_t)i*k)); if (gLandedAt && d>0){ late++; if(d>lateMax) lateMax=d; } } }
 		else { HWND hw=resolve_window(0,NULL); if(!hw){ logline("burst %s: no window, stopping at %d",name,i); break; } cap0=qpc_ms(); ok=capture(hw,leaf); }
 		if (gCaptureRefused) { logline("burst %s: captures refused (no shots on the host), stopping at %d",name,i); break; }
 		double dt=qpc_ms()-cap0;   // the capture itself, not any wait before it
@@ -839,7 +904,7 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 	write_clip_json(dir, clipMs);
 	logline("burst %s: %d frames in %s (clip interval %d ms); capture avg %.1f ms, max %.1f ms over %.0f ms wall",
 		name, taken, dir, clipMs, taken?capSum/taken:0.0, capMax, qpc_ms()-t0);
-	if (byUpdates && holdMax>0) logline("  the game was held avg %.2f ms, max %.2f ms per frame; %d frames held past their update (by up to %d)", taken?holdSum/taken:0.0, holdMax, late, lateMax);
+	if (byUpdates && holdMax>0) logline("  the game was held avg %.2f ms, max %.2f ms per frame; %d frames landed past their update (by up to %d; shots/landed.tsv lists each)", taken?holdSum/taken:0.0, holdMax, late, lateMax);
 	if (!byUpdates && capMax > interval_ms*0.5)
 		logline("  note: a capture took up to %.1f ms of the %d ms interval, so the original's timing is disturbed during the burst; use 'burst %s %d update <k>' for exact spacing",capMax,interval_ms,name,count);
 }
