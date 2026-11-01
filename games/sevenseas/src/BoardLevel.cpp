@@ -74,6 +74,8 @@ Board::Board(SevenSeasApp* theApp, bool theLoad) :
 	mShipAnim = CrtRand() % 8;
 	mBlink = false;
 	mStartLink = NULL;
+	for (int aKey = 0; aKey < 0xFF; aKey++)
+		mKeyTap[aKey] = false;
 	mHintTimer = 0;
 	mHintReason = 0;
 	mScore = 0;
