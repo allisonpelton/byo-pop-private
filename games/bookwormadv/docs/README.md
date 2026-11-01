@@ -186,6 +186,11 @@ welcome to its menu and the quit (Word Master with a guess, Letter Rip into its 
 the focus). Besides the fault above and the items here, what differs is the animations' sampling and timing (Lex, Moxie,
 the Submit! button's glow).
 
+The fourth part (`tools/pilot/win.txt`): the first battle won with THOUGH after battle.txt's RAIN, the enemy's defeat,
+Cassandra's three lines, the walk to the next battle and its start with its hint. Its talk matches exactly; the walk and
+the next battle's hint match the port's picture of one update earlier (lag.py: 40 and 0 pixels left, the 40 in the
+sprites), and the rest is the enemies' sampling and the Attack button's sparkle, both above.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
