@@ -6,6 +6,10 @@
 tools/extract_game_exe.py
 tools/triage_popcap.py
 
+# origrun's table of where the user's original game installs live on this machine (local paths, not game
+# files). The tool and its docs are public; this per-machine list is not.
+tools/origrun/games.tsv
+
 # The Peggle ports (the user, 2026-10-26): Deluxe and Nights stay unpublished while Thunderball's decompilation is in
 # progress and Nights has an active modding community. Extreme and World of Warcraft Edition are not ported: they become
 # mods of Deluxe and Nights and stay unpublished with them (docs/POPCAP_GAMES_SURVEY.md section 4).
