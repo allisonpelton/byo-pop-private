@@ -62,12 +62,30 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   that means only Mahjong Escape: Ancient China, which is Ancient Japan's code with other resources. Ancient Japan's
   own session ports it once Ancient Japan plays identically, so it copies the finished engine instead of one that is
   still changing (the user, 2026-11-01).
+- **The ports still to make (the user, 2026-11-01):** they wait until every current game is fully done, both phases of
+  identical play included. Then: "anything easier than Chuzzle can run in parallel, and anything harder has to be done
+  in sequence AFTER all easier games have been finished." By the survey's estimates (`docs/POPCAP_GAMES_SURVEY.md`
+  section 4), the easier ones, run side by side as before, are Venice, Heavy Weapon, Hammer Heads, Bejeweled 2,
+  AstroPop, Typer Shark, and Pizza Frenzy with Iggle Pop and Feeding Frenzy after it (4x to 8x). Chuzzle (~8-12x) itself
+  starts the sequence, then in the survey's order Feeding Frenzy 2 (~10x), Peggle Deluxe (~12x) and Peggle Nights after
+  it, Bejeweled 3 (~30x), Banana Bugs, Gyromancer, Zuma's Revenge (~35x) and Talismania (~12-16x after Feeding Frenzy
+  2), one session at a time. This moves Typer Shark, which the decision of 2026-10-24 put at the end, into the easier
+  group.
 - **No new identical-play passes until Twist is done (the user, 2026-11-01):** asked when Twist was a little over half
   ported (they had hoped for more than 70%): "Multiple can run at once, just no more until Twist finishes." The passes
   already running carry on side by side. No other game's pass starts, even when one of them finishes, until Bejeweled
   Twist's port is done, 3D mode included: when Twist estimated 6 to 10 days for 3D, the user chose to wait for all of
   it rather than start after the 2D game ("Wait for all", 2026-11-01). The one exception is Bejeweled Deluxe, whose pass
   the user started at once ("Ok to get Bejeweled running identically now, I decided", 2026-11-01).
+- **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
+  and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
+  playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
+  when it comes) do both phases. Every game not yet reviewed gets the first phase, and their second phases start only
+  once every game plays identical. "If a series of games play out the same in the original and port then the first
+  phase should be considered done." Those first phases start only when the usage allows (the user, 2026-11-01): "Only
+  launch other games if Twist is predicted to finish, down to looking identical, with weekly usage under 80%." So before
+  starting one, the coordinator reads the weekly usage (`get_usage`) and its rate, and starts it only if Twist's
+  remaining work, both phases of its pass included, still fits under 80% in every week it needs.
 - **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
   through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
   code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
