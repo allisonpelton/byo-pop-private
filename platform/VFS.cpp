@@ -186,6 +186,38 @@ static std::string HostPath(const std::string& p)
 #endif
 }
 
+// Before HostPath, such a path was used as it was, so a save written then is a file whose name holds the
+// backslashes ("users\users.dat" in the user dir). When the slash form is missing and that file exists, it is
+// renamed once to the slash form, so the player's earlier saves are found. On the web a localStorage backup made
+// before the move can bring the old name back at boot (with its own time); then the newer of the two is kept.
+static void MoveBackslashFile(const std::string& p)
+{
+#ifndef _WIN32
+	std::string aPath = HostPath(p);
+	struct stat anOld;
+	if (aPath == p || stat(p.c_str(), &anOld) != 0 || !(anOld.st_mode & S_IFREG))
+		return;
+	struct stat aNew;
+	if (stat(aPath.c_str(), &aNew) == 0 && anOld.st_mtime <= aNew.st_mtime)
+	{
+		remove(p.c_str());
+		std::lock_guard<std::mutex> lock(gCacheMutex);
+		gDirCache.clear();
+		return;
+	}
+	size_t aSlash = aPath.find_last_of('/');
+	if (aSlash != std::string::npos)
+		MakeDirs(aPath.substr(0, aSlash));
+	if (rename(p.c_str(), aPath.c_str()) == 0)
+	{
+		std::lock_guard<std::mutex> lock(gCacheMutex);
+		gDirCache.clear();
+	}
+#else
+	(void)p;
+#endif
+}
+
 void VFS::SetRemaps(const std::map<std::string, VFSRemap>& theRemaps)
 {
 	mRemaps.clear();
@@ -207,7 +239,10 @@ std::string VFS::ResolveIn(const std::string& theRoot, const std::string& theGam
 std::string VFS::Resolve(const std::string& theGamePath, std::string* theModId) const
 {
 	if (IsAbsolute(theGamePath))
+	{
+		MoveBackslashFile(theGamePath);
 		return IsFile(HostPath(theGamePath)) ? HostPath(theGamePath) : "";
+	}
 	std::string rel = Normalize(theGamePath);
 	// Save data lives outside the overlay.
 	std::string lowerRel = Lower(rel);
@@ -248,7 +283,10 @@ FILE* VFS::Open(const std::string& theGamePath, const char* theMode) const
 		std::string rel = Normalize(theGamePath);
 		std::string target;
 		if (IsAbsolute(theGamePath))
+		{
+			MoveBackslashFile(theGamePath);
 			target = HostPath(theGamePath);
+		}
 		else if (Lower(rel).rfind("userdata/", 0) == 0)
 			target = mUserDir + "/" + rel.substr(9);
 		else
