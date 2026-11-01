@@ -101,6 +101,8 @@ public:
 	float mAutoPlayDelay = 0;           // +0x1048: -autoplay starts its game when this falls to 0
 	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
 	Hyperspace* mHyperspace = nullptr;  // +0xf20: the space behind every screen
+	bool mUnknownF1C = false;           // +0xf1c: the game was paused by losing the focus (0x75f51e)
+	Widget* mUnknownF24 = nullptr;      // +0xf24: a 0x420-byte widget over everything (0x7243b1)
 	EffectsManager* mFXManager = nullptr;  // +0xf78: the effects over the whole screen
 	UnderDialogWidget* mUnderDialog = nullptr;  // +0xf7c: darkens the screen behind the dialogs
 	float mDialogDim = 0;               // +0xf90: how dark mUnderDialog is, 0 to 1

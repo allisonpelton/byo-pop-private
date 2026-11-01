@@ -194,11 +194,13 @@ public:
 	CurvedVal mUnknown3478;                 // +0x3478: the grid's slide to its place
 	CurvedVal mUnknown3810;                 // +0x3810: the new level's (0x6d090f)
 	CurvedVal mUnknown3880;                 // +0x3880: set by 0x6b681d
+	CurvedVal mUnknown34F0;                 // +0x34f0: set when a turn ends (0x6b8bca)
 	CurvedVal mUnknown13B0;                 // +0x13b0: set to 0 by StartLevel
 	bool mUnknown1420 = false;              // +0x1420
 	int mUnknown1424 = 0;                   // +0x1424
 	std::deque<TwistWidget*> mUnknown23DC;  // +0x23dc: the dialogs waiting to come up (0x6a6e36 its size)
 	std::vector<TwistWidget*> mUnknown1F98;  // +0x1f98: the hints' widgets (0x6a6d18 its size)
+	std::vector<TwistWidget*> mUnknown26B0;  // +0x26b0: the travellers (0x70188f; 0x6a6eaa its size)
 	std::vector<Piece*> mUnknown20F4;       // +0x20f4: pieces off the grid (SnapPiecesX moves them too)
 	Piece* mUnknown1430 = nullptr;          // +0x1430: a piece RemovePiece forgets
 	int mUnknown1434 = 0;                   // +0x1434
@@ -209,7 +211,7 @@ public:
 	int mUnknown1448 = -1;                  // +0x1448
 	int mUnknown144C = -1;                  // +0x144c
 	float mUnknown1450 = 1.0f;              // +0x1450
-	int mUnknown1454 = 0;                   // +0x1454
+	float mUnknown1454 = 0;                   // +0x1454
 	float mUnknown145C = 1.0f;              // +0x145c
 	int mUnknown1460 = 0;                   // +0x1460
 	int mUnknown146C = 0;                   // +0x146c
@@ -296,7 +298,7 @@ public:
 	bool mUnknown1C40 = false;              // +0x1c40
 	bool mUnknown1C41 = true;               // +0x1c41
 	bool mUnknown1C42 = false;              // +0x1c42
-	int mUnknown1C48 = 0;                   // +0x1c48
+	float mUnknown1C48 = 0;                   // +0x1c48
 	int mUnknown1C4C = 0;                   // +0x1c4c
 	int mUnknown1C50 = 0;                   // +0x1c50
 	int mUnknown1C64 = -1;                  // +0x1c64
@@ -313,8 +315,8 @@ public:
 	int mUnknown1F80 = -1;                  // +0x1f80
 	int mUnknown1F84 = -1;                  // +0x1f84
 	Image* mBackdrop = nullptr;             // +0x1fa8: imagesackdrops	wist-back<n>.png, which the game does not have
-	int mUnknown1FAC = 0;                   // +0x1fac
-	int mUnknown1FB0 = 0;                   // +0x1fb0
+	float mUnknown1FAC = 0;                   // +0x1fac
+	float mUnknown1FB0 = 0;                   // +0x1fb0
 	int mUnknown1FB8 = 0;                   // +0x1fb8
 	int mUnknown1FC4 = 0;                   // +0x1fc4
 	int mUnknown1FC8 = 0;                   // +0x1fc8
@@ -340,12 +342,12 @@ public:
 	bool mUnknown2043 = true;               // +0x2043
 	bool mUnknown2054 = false;              // +0x2054
 	int mUnknown2058[24] = {};              // +0x2058
-	int mUnknown20B8 = 0;                   // +0x20b8
+	float mUnknown20B8 = 0;                   // +0x20b8
 	int mUnknown20BC = -1;                  // +0x20bc
 	int mUnknown20C0 = 0;                   // +0x20c0
 	int mUnknown20C4 = 0;                   // +0x20c4
-	int mUnknown20C8 = 0;                   // +0x20c8
-	int mUnknown20CC = 0;                   // +0x20cc
+	float mUnknown20C8 = 0;                   // +0x20c8
+	float mUnknown20CC = 0;                   // +0x20cc
 	bool mUnknown20D0 = true;               // +0x20d0
 	int mUnknown20D4 = 0;                   // +0x20d4
 	bool mUnknown20D8 = false;              // +0x20d8
@@ -357,12 +359,12 @@ public:
 	int mUnknown2114 = 0;                   // +0x2114
 	float mUnknown2118 = 3.0f;              // +0x2118
 	bool mUnknown2130 = false;              // +0x2130
-	int mUnknown2150 = 0;                   // +0x2150
+	float mUnknown2150 = 0;                   // +0x2150
 	int mUnknown2154 = 0;                   // +0x2154
 	int mUnknown2158 = 0;                   // +0x2158
 	int mUnknown215C = -1;                  // +0x215c
 	int mUnknown2160 = 1;                   // +0x2160
-	int mUnknown2164 = 0;                   // +0x2164
+	float mUnknown2164 = 0;                   // +0x2164
 	int mUnknown2168 = 0;                   // +0x2168
 	bool mUnknown216C = false;              // +0x216c
 	int mUnknown2188 = 0;                   // +0x2188
@@ -371,7 +373,7 @@ public:
 	bool mUnknown21A0 = false;              // +0x21a0
 	bool mUnknown21A2 = false;              // +0x21a2
 	bool mUnknown21A3 = false;              // +0x21a3
-	int mUnknown21A8 = 0;                   // +0x21a8
+	Widget* mUnknown21A8 = nullptr;                   // +0x21a8
 	int mUnknown21C4[2] = {};               // +0x21c4
 	int mUnknown21CC = 0;                   // +0x21cc
 	int mUnknown21D0 = 1;                   // +0x21d0
@@ -621,6 +623,11 @@ public:
 	// 0x6bd9ac: the cursor to theRow, theCol, with its sound, trail and the moves it shows
 	void MoveCursor(int theRow, int theCol, bool theQuiet, void* theUnknown);
 	void StartUnknown3880();                     // 0x6b681d
+	void StartUnknown34F0();                     // 0x6b8bca: a turn ends
+	void AddStat(int theStat, int theDelta);     // 0x6a450f: the game's stat and the app's copy (unless +0x37c4)
+	void EaseCursor();                           // 0x6a4674: the cursor drawn eases to the cursor
+	// 0x6bd338: the bombs' and devil gems' counters show their warnings; true when the game ends on one at zero
+	bool CountDownCounters();
 	void NextLevelMusic();                       // 0x6a496b: the next of the game's tunes
 	void Update() override;                      // 0x6d6899: the game's updates for this frame, at its speed
 	void UpdateGame();                           // 0x6d090f: one update of the game

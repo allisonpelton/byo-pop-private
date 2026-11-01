@@ -4,8 +4,11 @@
 
 #include "GameText.h"
 #include "GoodTube.h"
+#include "Hyperspace.h"
 #include "GraphicsRecorder.h"
 #include "Piece.h"
+#include "Profile.h"
+#include "Res.h"
 #include "SoundInstance.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
@@ -15,6 +18,13 @@
 #include <cmath>
 
 using namespace Sexy;
+
+namespace {
+
+// 0x84e91c
+const float kTwoPi = 6.2831855f;
+
+}  // namespace
 
 int Board::GetBoardWidth()
 {
@@ -276,6 +286,96 @@ void Board::NextLevelMusic()
 	}
 }
 
+void Board::AddStat(int theStat, int theDelta)
+{
+	mUnknown2234[theStat] += theDelta;
+	if (!mUnknown37C4)
+		mApp->mUnknownC74[theStat] += theDelta;
+}
+
+void Board::EaseCursor()
+{
+	if (mUnknown1C38 < 1.0f) {
+		float aSpeed = (float)((1.0 - (double)mUnknown1C38) * ((double)mUnknown1C38 + (double)mUnknown1C38));
+		float aDX = (float)((double)mUnknown1C00 - (double)mUnknown1C2C);
+		float aDY = (float)((double)mUnknown1C04 - (double)mUnknown1C30);
+		float aDistSq = (float)((double)aDX * (double)aDX + (double)aDY * (double)aDY);
+		float aDist = sqrtf(aDistSq);
+		float aStep = (float)(((double)aDist * (double)aSpeed + (double)mUnknown1C34) * 0.55);
+		mUnknown1C34 = aStep;
+		if (1.0f < aDist) {
+			mUnknown1C2C = (float)((double)aStep * (double)aDX / (double)aDist + (double)mUnknown1C2C);
+			mUnknown1C30 = (float)((double)aStep * (double)aDY / (double)aDist + (double)mUnknown1C30);
+			return;
+		}
+	}
+	mUnknown1C2C = (float)mUnknown1C00;
+	mUnknown1C30 = (float)mUnknown1C04;
+	mUnknown1C34 = 0;
+}
+
+void Board::StartUnknown34F0()
+{
+	mUnknown34F0.SetCurve(GTS(0x7dcd28));
+	if (mGameMode == MODE_CHALLENGE) {
+		// port: 0x6b66d2 comes with the challenges
+		NotPorted("Board::StartUnknown34F0: 0x6b66d2");
+	}
+}
+
+bool Board::CountDownCounters()
+{
+	Piece* aLowest = nullptr;
+	Piece* aWarn = nullptr;
+	int aWarnCount = 100;
+	mUnknown262C = 100;
+	unsigned int aLeft = (unsigned int)(mCols * mRows);
+	Piece** aCell = mGrid;
+	if (aLeft != 0) {
+		do {
+			Piece* aPiece = *aCell;
+			aCell++;
+			if (aPiece != nullptr && (aPiece->IsFlagSet(Piece::FLAG_BOMB) || aPiece->IsFlagSet(Piece::FLAG_DEVIL))) {
+				if ((aPiece->IsFlagSet(Piece::FLAG_BOMB) || !mUnknown1C42) && aPiece->mBombCount < aWarnCount) {
+					aWarn = aPiece;
+					aWarnCount = aPiece->mBombCount;
+				}
+				if (aPiece->mBombCount < mUnknown262C) {
+					mUnknown262C = aPiece->mBombCount;
+					aLowest = aPiece;
+				}
+				if (aPiece->IsFlagSet(Piece::FLAG_DEVIL) && aPiece->mBombCount == mUnknown262C)
+					aLowest = aPiece;
+				int aCount = aPiece->mBombCount;
+				if (aCount < 4)
+					aPiece->mJustMade = 4;
+				else if (aCount < 7)
+					aPiece->mJustMade = 3;
+				else if (aCount < 11)
+					aPiece->mJustMade = 2;
+			}
+			aLeft--;
+		} while (aLeft != 0);
+		if (aWarn != nullptr && aWarn->mBombCount < 6) {
+			aWarn->mJustMade = 5;
+			PlayPieceSound(aWarn, SOUND_COUNTER_WARNING, (float)((double)(5 - aWarn->mBombCount) - 3.0), 0, true);
+		}
+		if (aLowest != nullptr && mUnknown262C == 0 && !mUnknown21A3) {
+			// A counter is at zero: in a challenge, blitz or for a devil gem the game ends (0x6b2c50), else the bomb
+			// goes off (0x6bd0d9)
+			// port: both come with the end of the game
+			NotPorted("Board::CountDownCounters: a counter at zero");
+			if (!mUnknown37C4)
+				return true;
+			if (mGameMode == MODE_CHALLENGE || mGameMode == MODE_BLITZ || aLowest->IsFlagSet(Piece::FLAG_DEVIL))
+				mUnknown3920 = true;
+			else
+				aLowest->mUnknown88 = 1;
+		}
+	}
+	return false;
+}
+
 void Board::UpdateGame()
 {
 	mUnknown25A4 = false;
@@ -455,6 +555,144 @@ void Board::UpdateGame()
 		}
 	} else {
 		mUnknown25A6 = false;
+	}
+	// Whether the mouse is over the grid and the player may play
+	if (mUnknown15B4 < GetColX(0) || GetColX(mCols) < mUnknown15B4 || mUnknown15B8 < GetRowY(0) ||
+		GetRowY(mRows) < mUnknown15B8 || IsBusy() ||
+		(mUnknown21A3 && !mApp->mUnknownF1C && mUnknown20D8) || mApp->mOptionsDialog != nullptr ||
+		mUnknown160 != 0 || mUnknown265C == 4 || mUnknown1570 != 0 || mUnknown1574 != 0 || mFrozen ||
+		mApp->mUnknownF24 != nullptr) {
+		mUnknown20D0 = false;
+	} else {
+		mUnknown20D0 = true;
+	}
+	if (mUnknown160 == 1 || mUnknown2629) {
+		mUnknown20D0 = true;
+		mUnknown20CC = 1.0f;
+	}
+	if (0.0f < mUnknown23D8) {
+		float aLeft = (float)((double)mUnknown23D8 - (double)0.01f);
+		mUnknown23D8 = aLeft;
+		if (aLeft <= 0.0f) {
+			// port: 0x6c425f comes with the challenges' boards
+			NotPorted("Board::UpdateGame: 0x6c425f");
+			return;
+		}
+	}
+	if (mUnknown1430 == nullptr)
+		mUnknown1C40 = false;
+	MarkDirty();
+	if (0.0f < mUnknown2038) {
+		float aFade = (float)((double)mUnknown2038 - (double)0.02f);
+		mUnknown2038 = aFade < 0.0f ? 0.0f : aFade;
+	}
+	if (mUnknown21A8 != nullptr)
+		mUnknown21A8->Update();
+	if (mUnknown210C) {
+		// port: the 0x211c object (0x74c8c8) is not ported yet
+		NotPorted("Board::UpdateGame: 0x74db1b");
+	}
+	if (0.0f < mUnknown1C48) {
+		float aFade = (float)((double)mUnknown1C48 - (double)0.01f);
+		mUnknown1C48 = aFade < 0.0f ? 0.0f : aFade;
+	}
+	if (0.0f < mUnknown2164) {
+		float aFade = (float)((double)mUnknown2164 - (double)0.01f);
+		mUnknown2164 = aFade < 0.0f ? 0.0f : aFade;
+	}
+	if (mUnknown26B0.empty()) {
+		// The turn ends a while after the board settles
+		if (0.0f < mUnknown37F4) {
+			if (mGameMode == MODE_BLITZ)
+				mUnknown25A4 = false;
+			if (mUnknown21D8)
+				mUnknown37F4 = mUnknown37F4 <= 0.1f ? 0.1f : mUnknown37F4;
+			if (mUnknown37C4)
+				mUnknown37F4 = 1.0f;
+			float aLeft = (float)((double)mUnknown37F4 - (double)0.01f);
+			mUnknown37F4 = aLeft;
+			if (aLeft <= 0.0f && mGameMode != MODE_BLITZ && mUnknown2584 == nullptr) {
+				if (CountDownCounters())
+					return;
+				if ((mGameMode == MODE_ZEN && !mApp->mProfile->GetFlag1E4(0x11) && 179999 < mUnknown1470) ||
+					(mGameMode == MODE_CLASSIC && !mApp->mProfile->GetFlag1E4(0x11) && mUnknown21E0 < 3)) {
+					// port: 0x6a615b comes with the tutorial's tips
+					NotPorted("Board::UpdateGame: 0x6a615b");
+				} else {
+					StartUnknown34F0();
+					// port: app slot 108 (0x767584) plays the sound at 0x85ddec, once the sounds' table is known
+					NotPorted("Board::UpdateGame: the turn's sound (app slot 108)");
+				}
+			}
+		}
+	} else {
+		mUnknown37F4 = 0.1f;
+		mUnknown25A4 = false;
+		// port: the travellers (+0x26b0: fruit, angels, smoke and the like, 0x70188f) come with the features
+		NotPorted("Board::UpdateGame: the travellers");
+	}
+	if (IsBusy()) {
+		mUnknown25A4 = false;
+		if (mHyperspace != nullptr) {
+			if (3 < mHyperspace->mState)
+				mUnknown1C90 = false;
+			if (mHyperspace->mState == 10)
+				mHyperspace->mClicked = true;
+		}
+		if (0.0f < mUnknown2108) {
+			mUnknown25A4 = false;
+			// port: the jump between levels (+0x26a8's states, the travellers and 0x6c812f) comes with the jumps
+			NotPorted("Board::UpdateGame: the jump between levels");
+		}
+	}
+	if (mUnknown1C38 < 1.0f)
+		mUnknown1C38 = (float)((double)mUnknown1C38 + 0.25);
+	EaseCursor();
+	float aFadeIn = (float)((double)mUnknown1FAC + (double)0.01f);
+	mUnknown1FAC = 1.0f <= aFadeIn ? 1.0f : aFadeIn;
+	if (mUnknown37C4)
+		mUnknown1FAC = 1.0f;
+	if (0.0f < mUnknown2150) {
+		float aLeft = (float)((double)mUnknown2150 - (double)0.01f);
+		mUnknown2150 = aLeft;
+		if (aLeft < 0.0f)
+			mUnknown2150 = 0;
+	}
+	if (mUnknown1454 <= 0.0f || 90.0f <= mUnknown1454) {
+		float aLeft = (float)((double)mUnknown20C8 - (double)0.01f);
+		mUnknown20C8 = aLeft;
+		if (aLeft <= 0.0f)
+			mUnknown20C8 = 0;
+	} else {
+		mUnknown20C8 = 1.0f;
+	}
+	if (mUnknown20B8 != 0.0f) {
+		float aLeft = (float)((double)mUnknown20B8 - (double)0.01f);
+		mUnknown20B8 = aLeft < 0.0f ? 0.0f : aLeft;
+	}
+	float aStep = -0.005f;
+	if (mUnknown2014)
+		aStep = 0.005f;
+	if (0.0f < mUnknown20F0) {
+		float aLeft = (float)((double)mUnknown20F0 - (double)0.02f);
+		mUnknown20F0 = aLeft;
+		if (aLeft < 0.0f)
+			mUnknown20F0 = 0;
+	}
+	float anAngle = aStep + mUnknown1FB0;
+	mUnknown1FB0 = anAngle;
+	if (0.0f <= anAngle) {
+		if (kTwoPi < anAngle)
+			mUnknown1FB0 = anAngle - kTwoPi;
+	} else {
+		mUnknown1FB0 = anAngle + kTwoPi;
+	}
+	if ((mUnknown1378 == 0 || mUnknown1378 == 2) && mApp->mHasFocus) {
+		mUnknown13B0.GetOutVal();
+		bool aDone = !mUnknown13B0.IncInVal(0.01);
+		mUnknown13B0.GetOutVal();
+		if (aDone)
+			mUnknown1378 = (mUnknown1378 != 0) * 2 + 1;
 	}
 	// port: the rest of 0x6d090f comes next
 	NotPorted("Board::UpdateGame: the rest");
