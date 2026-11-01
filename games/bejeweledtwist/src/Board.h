@@ -806,7 +806,7 @@ public:
 	void DrawBoard(Graphics* g, bool theToImage, bool theSkipPieces);
 	void DrawGrid(Graphics* g, float theArtScale);  // 0x6caa13's grid
 	void DrawPieces(Graphics* g, Graphics& theLightG, bool is3D);  // 0x6caa13's gems
-	void DrawSelector(Graphics* g, bool theUnknown);  // 0x6aa6d1
+	void DrawSelector(Graphics* g, bool theRing);  // 0x6aa6d1: the twist cursor, its ring or its spiral
 	void AddLight(float theX, float theY, float theSize, float theFalloff, float theStrength, Piece* theSkip,
 		bool theSkipFlag4);                         // 0x6a5c60
 	// 0x6a6ad0: blitz, or a challenge with the timed flag

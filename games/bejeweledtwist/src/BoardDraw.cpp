@@ -530,9 +530,102 @@ void Board::AddLight(float theX, float theY, float theSize, float theFalloff, fl
 	}
 }
 
-void Board::DrawSelector(Graphics* g, bool theUnknown)
+// 0x6aa6d1: the twist's cursor at +0x1c2c/+0x1c30, while it lies on the grid. With theRing the ring, its 24 glows,
+// the multiplier's bulbs and their pulse; without, the spiral under the gems, red where the turn is blocked
+void Board::DrawSelector(Graphics* g, bool theRing)
 {
-	(void)g;
-	(void)theUnknown;
-	NotPorted("Board::DrawSelector (0x6aa6d1)");
+	mApp->Is3DAccelerated();
+	g->PushState();
+	float anArtScale = (float)((double)mApp->mArtRes / 1200.0);
+	int anInset = Ftol((double)anArtScale * 10.0);
+	Image* aRing = IMAGE_CURSOR_RING;
+	int aRingWidth = aRing->mWidth;
+	int aRingHeight = aRing->mHeight;
+	if (!((float)GetColX(0) <= mUnknown1C2C) || !((float)GetRowY(0) <= mUnknown1C30)) {
+		g->PopState();
+		return;
+	}
+	int aMidY = Ftol((double)gGemHeight + (double)mUnknown1C30);
+	int aMidX = Ftol((double)gGemWidth + (double)mUnknown1C2C);
+	int aRingX = aMidX - aRingWidth / 2;
+	int aRingY = aMidY - aRingHeight / 2;
+	if (theRing) {
+		if (!mUnknown2030) {
+			g->PushState();
+			g->SetColorizeImages(true);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+			g->SetColor(Color::White);
+			g->DrawImage(aRing, aRingX, aRingY, aRingWidth, aRingHeight);
+			// The 24 glows round the ring, each placed by its offset in the resources against the ring's
+			int aBaseX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(IMAGE_CURSOR_RING_ID));
+			int aBaseY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(IMAGE_CURSOR_RING_ID));
+			for (int i = 0; i < 24; i++) {
+				if (0.0f < mUnknown2058[i]) {
+					int anId = IMAGE_CURSOR_YELLOW1_ID + i;
+					Image* aGlow = GetImageById(anId);
+					float aLevel = mUnknown2058[i] <= 1.0f ? mUnknown2058[i] : 1.0f;
+					g->SetColor(Color(255, 255, 255, Ftol((double)aLevel * 255.0 * (double)mUnknown20CC)));
+					int aY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(anId));
+					int aX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(anId));
+					g->DrawImage(aGlow, aX - aBaseX + aRingX, aY - aBaseY + aRingY);
+				}
+			}
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+			g->SetColor(Color::White);
+			if (mGameMode != MODE_CHALLENGE && !mUnknown23F5) {
+				// The multiplier's bulbs above the ring, lit to the level, and their pulse
+				int aCel = mUnknown21D0 - 1;
+				Image* aBulbs = IMAGE_CURSOR_MULTIBULBS;
+				int aDY = GetImageOffsetY(IMAGE_CURSOR_MULTIBULBS_ID) - GetImageOffsetY(GetIdByImage(aRing));
+				int aBulbY = Ftol((double)aDY * (double)anArtScale + (double)(aMidY - aRing->mHeight / 2));
+				g->DrawImageCel(aBulbs, aMidX - aBulbs->GetCelWidth() / 2, aBulbY, aCel);
+				if (0.0f < mUnknown20B8) {
+					float aSize = (float)((1.0 - (double)gBoard->mUnknown20B8) * 3.0 + 1.0);
+					g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+					Image* aPulse = IMAGE_CURSOR_MULTIPULSE;
+					g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown20B8 * 255.0)));
+					while (1.0f <= aSize) {
+						int aWidth = Ftol((double)aPulse->mWidth * (double)aSize);
+						int aHeight = Ftol((double)aPulse->mHeight * (double)aSize);
+						int aX = aMidX - aWidth / 2;
+						int k = 2;
+						do {
+							g->DrawImage(aPulse, aX, aPulse->GetCelHeight() / 2 - aHeight / 2 + aBulbY, aWidth,
+								aHeight);
+							k--;
+						} while (k != 0);
+						aSize = (float)((double)aSize - 1.0);
+					}
+				}
+			}
+			g->SetColorizeImages(false);
+			g->PopState();
+		}
+	} else {
+		// The spiral for the level (its first five, then the sixth), turning with the cursor
+		g->SetColorizeImages(true);
+		int aLevel = mUnknown21D0 - 1;
+		if (5 < aLevel)
+			aLevel = 5;
+		Image* aSpiral = GetImageById(IMAGE_CURSOR_SPIRAL1_ID + aLevel);
+		if (mUnknown1C41)
+			g->SetColor(Color(255, 0, 0, Ftol((double)mUnknown20CC * 200.0 * (double)mUnknown1FAC)));
+		else
+			g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown20CC * 160.0 * (double)mUnknown1FAC)));
+		float anOff = (float)anInset;
+		g->DrawImageRotated(aSpiral, Ftol((double)mUnknown1C2C - (double)anOff),
+			Ftol((double)mUnknown1C30 - (double)anOff), (double)mUnknown20C0 + (double)mUnknown1FB0);
+		if (0.0f < mUnknown20D4) {
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColor(Color(128, 255, 0,
+				Ftol((double)mUnknown20CC * 255.0 * (double)mUnknown1FAC * (double)mUnknown20D4)));
+			int k = 3;
+			do {
+				g->DrawImageRotated(aSpiral, Ftol((double)mUnknown1C2C - (double)anOff),
+					Ftol((double)mUnknown1C30 - (double)anOff), (double)mUnknown20C0 + (double)mUnknown1FB0);
+				k--;
+			} while (k != 0);
+		}
+	}
+	g->PopState();
 }
