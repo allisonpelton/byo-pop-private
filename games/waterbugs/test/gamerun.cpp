@@ -244,10 +244,14 @@ int main(int argc, char** argv)
 	wb::GameStart();
 	size_t aNext = 0;
 	bool aRunning = true;
+	bool aByFrame = std::getenv("WB_BY_FRAME") != nullptr;
 	int aFrames = 0;
 	while (aRunning)
 	{
-		while (aNext < anEvents.size() && anEvents[aNext].time <= (int)gHost.mTime)
+		// (WB_BY_FRAME: the script's times are the game's update counter, not the clock: the original's captures are
+		// taken at a counter value)
+		int aNow = aByFrame ? wb::gFrame : (int)gHost.mTime;
+		while (aNext < anEvents.size() && anEvents[aNext].time <= aNow)
 		{
 			const Event& e = anEvents[aNext++];
 			if (e.what == "move")
@@ -291,7 +295,11 @@ int main(int argc, char** argv)
 			break;
 		}
 		aFrames++;
-		gHost.mTime += 10;
+		// (a frame is 10 ms, shortened to reach an event that falls inside it: the game steps a millisecond at a time)
+		uint32_t aStep = 10;
+		if (aNext < anEvents.size() && anEvents[aNext].time > aNow && anEvents[aNext].time < aNow + 10)
+			aStep = (uint32_t)(anEvents[aNext].time - aNow);
+		gHost.mTime += aStep;
 	}
 	wb::GameEnd();
 	Sound_Shutdown();
