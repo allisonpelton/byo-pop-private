@@ -148,3 +148,9 @@ of the port with its caller showed the same sites as the decompilation (two per 
 whirls, two per `PlaceShip` attempt), and `PlaceShip` tries (5,2), rejected by the ship next to it, then (1,9). So the original's
 draw count between its start and the placement varies a little from run to run (something timed, not found), and an exact match
 of the placement cannot be had; the corner whirls and waves are insensitive to the shift (the waves clamp their speed).
+
+**Is3D.** The 2003 exe has no Direct3D mode at all (its export has no D3D or DirectDraw 7 calls beyond the plain surface), so
+there is no Is3D=0 original to compare with and no Hardware Acceleration checkbox to port. The port's framework picks its
+renderer by what SDL gives: the same script (the first moves of the map scenario, seed 7) drawn by the accelerated renderer and
+by `SDL_RENDER_DRIVER=software` differs in 16813 pixels of a shot by at most 3 of 255, never more, so either mode is as
+close to the original's software drawing as the other.
