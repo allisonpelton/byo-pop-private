@@ -101,9 +101,11 @@ at the same place on both sides (no whole-pixel offset in any box measured), but
 does, through its renderer. The Trojan Spearman's idle animation keeps 420 to 480 visibly different pixels in every frame
 (a pale noise over the whole sprite and a one-pixel line along an edge of a limb), and no update of the port does better: a
 screenshot at every update from 30 before to 30 after (`tools/pilot/lag.py`) finds the best match at the same update. So it
-is not timing. Whether the port should have a software path for the game's 2D mode is a shared question (the framework
-always draws the screen through its renderer); the comparison that counts for most players is with 3D on, which waits on
-origrun's `--3d on`.
+is not timing. These items wait on the framework's 2D software path (the user, 2026-11-01: 2D must play identically too;
+the framework gets SAF's software drawing of transformed sprites when `Is3D` is off, after origrun's `--3d on`). They are
+neither masked nor accepted: the battle's enemy (the item in 7 shots, and the attacks clip's residue), the battle intro's
+spear, and the credits' creatures and fire bowl. Once `--3d on` works, the same screens are compared with 3D on, where the
+port's drawing should already match.
 
 ### Faults the pilot found
 
