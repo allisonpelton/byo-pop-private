@@ -572,7 +572,7 @@ void WinTwistApp::ShowMainMenu(bool theEndStats, bool theChallenges, float theDe
 		mGates->SetOpen(true, true);
 	}
 	mWidgetManager->SetFocus(mMainMenu);
-	// 0x764f9c: the high score just made goes into the lists (comes with the scores)
+	AddHighScore();  // 0x764f9c
 	mUnknownF85 = false;
 	if (mWidgetManager->mFocusWidget == nullptr)
 		mWidgetManager->SetFocus(mMainMenu);
@@ -791,6 +791,28 @@ int WinTwistApp::CheckForHighScore(int theGameMode, SexyString theName, int theL
 	}
 	mUnknownF68 = aPlace;
 	return aPlace;
+}
+
+void WinTwistApp::AddHighScore()
+{
+	int aList = ScoreList(mLastGameMode);
+	int aPlace = mUnknownF68;
+	if (-1 < aPlace && aPlace < 10 && -1 < aList) {
+		int i = 8;
+		if (aPlace < 9) {
+			HighScore* aScore = &mHighScores[aList * 10 + 9];
+			do {
+				*aScore = *(aScore - 1);
+				i--;
+				aScore--;
+			} while (aPlace <= i);
+		}
+		HighScore& aNew = mHighScores[aList * 10 + aPlace];
+		aNew.mLevel = mUnknownF70;
+		aNew.mName = mProfile->mName;
+		aNew.mScore = mUnknownF6C;
+		SaveScores();
+	}
 }
 
 void WinTwistApp::LoadScores()

@@ -164,6 +164,9 @@ public:
 	// (made if need be) keeps it for the scores it shows next
 	int CheckForHighScore(int theGameMode, SexyString theName, int theLevel, int theScore);
 	void LoadScores();          // 0x764ea9
+	// 0x764f9c: the high score just made (the place in +0xf68, its score and level in +0xf6c and +0xf70, the
+	// player's name) goes into its list, the rows below it move down and the lists are saved
+	void AddHighScore();
 	void SaveScores();          // 0x76387e
 	void SetDefaultScores();    // 0x7637ee: the lists a new install starts with, from the exe's tables
 	// 0x763964: "<player folder>\savegame_<mode>.dat", a challenge's with its name

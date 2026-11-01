@@ -68,13 +68,13 @@ public:
 	bool mUnknown178 = false;          // +0x178
 	CurvedVal mRowSlide;               // +0x180: the rows make room for the new score
 	int mNewRow = -1;                  // +0x1f0: the new score's row, -1 none
-	int mUnknown1F4 = 0;               // +0x1f4
-	int mUnknown1F8 = -1;              // +0x1f8
+	int mNewPlace = 0;                 // +0x1f4: the new score's place in its list (mNewRow moves up to it)
+	int mNewCategory = -1;             // +0x1f8: its category, -1 none
 	Color mLastRowColor;               // +0x1fc: the tenth row's name colour, for the name that falls off the list
 	int mRevealed = -1;                // +0x20c: the rows up to this one show
 	float mFlash = 0;                  // +0x210: the glow of the row that just showed
-	float mUnknown214 = 0;             // +0x214
-	float mUnknown218 = 0;             // +0x218
+	float mUnknown214 = 0;             // +0x214: 1 until a replay board's scores first slide away, then falls
+	float mUnknown218 = 0;             // +0x218: a replay board under the scores waits for it to run out (from 2)
 	std::vector<Row> mRows[2];         // +0x21c: the two lists
 	std::vector<TwistButton*> mReplayButtons;  // +0x23c: the stats page's
 	EffectsManager* mFXManager;        // +0x24c
@@ -112,6 +112,9 @@ public:
 	void ShowCategory();     // 0x695890: mShown becomes mCategory
 	void MakeReplayButtons();  // 0x69570d
 	void ResetNewRow();      // 0x6941aa
+	// 0x697fc1: a new high score of the category (its place in the list) goes in as the list's eleventh row, to
+	// move up to its place (mState 3)
+	void StartNewScore(int theCategory, int thePlace, const SexyString& theName, int theLevel, int theScore);
 
 	float GetRowHeight();    // 0x6940a3
 	int GetRowY(int theRow); // 0x6940c6

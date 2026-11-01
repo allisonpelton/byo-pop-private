@@ -9,6 +9,7 @@
 #include "EditListener.h"
 #include "Font.h"
 #include "GameText.h"
+#include "GameOverShow.h"
 #include "Gates.h"
 #include "Graphics.h"
 #include "Image.h"
@@ -51,6 +52,24 @@ void PlaceButton(ButtonWidget* theButton, int theDialogId, float theScale)
 }
 
 }  // namespace
+
+// 0x694387: theBase to the power theExponent, by repeated squaring in single precision
+static float IntPow(float theBase, int theExponent)
+{
+	unsigned int anExp = theExponent < 0 ? -theExponent : theExponent;
+	float aResult = 1.0f;
+	while (true) {
+		if ((anExp & 1) != 0)
+			aResult = aResult * theBase;
+		anExp = anExp >> 1;
+		if (anExp == 0)
+			break;
+		theBase = theBase * theBase;
+	}
+	if (theExponent < 0)
+		aResult = 1.0f / aResult;
+	return aResult;
+}
 
 MenuPanel::~MenuPanel() = default;
 
@@ -199,14 +218,181 @@ void HighScoresPanel::Update()
 		mState = 3;
 		mStateTimer = 0;
 	} else if (mState == 3) {
-		// The new score goes into its list: the rows below it make room one by one, each with a gem's sound, and the
-		// tenth row's name falls off the list (comes with the end of a game, which alone sets mState)
-		NotPorted("HighScoresPanel::Update's new high score (0x695d08)");
+		// The new score moves up its list one row at a time, each with a gem's sound, and the tenth row's name and
+		// score fall off the list
+		float aTimer;
+		if (0.0f < mStateTimer) {
+			aTimer = (float)((double)mStateTimer - 0.01);
+		} else {
+			mRowSlide.SetCurve(GTS(0x7d8828));
+			int aRowsLeft = mNewRow < 1 ? 1 : mNewRow;
+			float aRate = IntPow(0.6499999761581421f, aRowsLeft);
+			if (aRate <= 0.07999999821186066)
+				aRate = IntPow(0.6499999761581421f, aRowsLeft);
+			else
+				aRate = 0.07999999821186066f;
+			mRowSlide.mIncRate = (double)aRate;
+			aTimer = 100.0f;
+		}
+		mStateTimer = aTimer;
+		int aList = WinTwistApp::ScoreList(mNewCategory);
+		if (mRowSlide.mIncRate != 0.0 && !mRowSlide.IncInVal()) {
+			mApp->PlaySoundEx(SOUND_GEM_COUNTDOWN_DESTROYED, 0, 3.0f, 0.0f, true, true);
+			std::vector<Row>& aRows = mRows[aList];
+			if (mNewRow == 10) {
+				// The tenth row's name and score drop off the list, a piece of text for each character (the level
+				// is formatted but not shown)
+				SexyString aName = aRows[9].mName;
+				SexyString aScoreText = StrFormat(GTC(0x80da2c), aRows[9].mScore);
+				int aRowY = GetRowY(9);
+				aRows[9] = aRows[mNewRow];
+				aRows.pop_back();
+				Font* aDropFont = FONT_HIGH_SCORE;
+				int aX = GetNameX();
+				int aChar = 0;
+				if (aName.length() != 0) {
+					float aY = (float)aRowY;
+					do {
+						SexyChar aCh = aName[aChar];
+						Image* anImage = new TextImage(aDropFont, aName.substr(aChar, 1), 0, 0, -1, 0, nullptr);
+						Effect* anEffect = mFXManager->AllocEffect(0);
+						anEffect->mImage = anImage;
+						anEffect->mX = (float)aX;
+						anEffect->mY = aY;
+						anEffect->mDX = (float)(((double)(float)aX - (double)(mWidth / 2)) * 0.004999999888241291);
+						float aRand = fabsf(RandSigned());
+						anEffect->mOwnsImage = true;
+						float aSpeed = (float)((double)gApp->mScale * -5.0);
+						anEffect->mDY = aSpeed * aRand;
+						anEffect->mGravity = 0.07500000298023224f;
+						anEffect->mAlpha = 1.0f;
+						anEffect->mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+						anEffect->mDAngle = (float)((double)RandSigned() * 3.1415927410125732 * 0.009999999776482582);
+						double aDAlpha = (double)fabsf(RandSigned()) * -0.004999999888241291;
+						if (aDAlpha <= -0.0005000000237487257)
+							aDAlpha = (double)fabsf(RandSigned()) * -0.004999999888241291;
+						anEffect->mDAlpha = (float)aDAlpha;
+						anEffect->mColor = mLastRowColor;
+						mFXManager->AddEffect(anEffect);
+						aX += aDropFont->CharWidth(aCh) + Ftol((double)(gApp->mScale + gApp->mScale));
+						aChar++;
+					} while (aChar < (int)aName.length());
+				}
+				aX = GetScoreRight() - aDropFont->StringWidth(aScoreText);
+				aChar = 0;
+				if (aScoreText.length() != 0) {
+					float aY = (float)aRowY;
+					do {
+						SexyChar aCh = aScoreText[aChar];
+						Image* anImage = new TextImage(aDropFont, aScoreText.substr(aChar, 1), 0, 0, -1, 0, nullptr);
+						Effect* anEffect = mFXManager->AllocEffect(0);
+						anEffect->mImage = anImage;
+						anEffect->mX = (float)aX;
+						anEffect->mY = aY;
+						anEffect->mDX = (float)(((double)(float)aX - (double)(mWidth / 2)) * 0.004999999888241291);
+						float aRand = fabsf(RandSigned());
+						anEffect->mOwnsImage = true;
+						float aSpeed = (float)((double)gApp->mScale * -5.0);
+						anEffect->mDY = aSpeed * aRand;
+						anEffect->mGravity = 0.07500000298023224f;
+						anEffect->mAlpha = 1.0f;
+						anEffect->mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+						anEffect->mDAngle = (float)((double)RandSigned() * 3.1415927410125732 * 0.009999999776482582);
+						double aDAlpha = (double)fabsf(RandSigned()) * -0.004999999888241291;
+						if (aDAlpha <= -0.0005000000237487257)
+							aDAlpha = (double)fabsf(RandSigned()) * -0.004999999888241291;
+						anEffect->mDAlpha = (float)aDAlpha;
+						anEffect->mColor = Color(255, 128, 0);
+						mFXManager->AddEffect(anEffect);
+						aX += aDropFont->CharWidth(aCh) + Ftol((double)(gApp->mScale + gApp->mScale));
+						aChar++;
+					} while (aChar < (int)aScoreText.length());
+				}
+			} else {
+				Row aTemp = aRows[mNewRow];
+				aRows[mNewRow] = aRows[mNewRow - 1];
+				aRows[mNewRow - 1] = aTemp;
+			}
+			mNewRow--;
+			aRows[mNewRow].mUnknown4 = 1.0f;
+			if (mNewRow == mNewPlace) {
+				Gates* aGates = mApp->mGates;
+				aGates->mOptionsButton->SetGlowOn(true);
+				aGates->mScoresButton->SetGlowOn(true);
+				aGates->mHelpButton->SetGlowOn(true);
+				aGates->mQuitButton->SetGlowOn(true);
+				mState = 0;
+				mVoiceDelay = 1.0f;
+			} else {
+				float aStep = (float)((double)mNewRow * 0.02500000037252903);
+				mStateTimer = (float)((double)aStep * (double)aStep);
+				mRowSlide.mIncRate = 0;
+				mRowSlide.mInVal = 0;
+			}
+		}
 	}
 
-	// The board behind the scores after a game (comes with the board)
-	if (mApp->mBoard != nullptr)
-		NotPorted("HighScoresPanel::Update's board (0x696583)");
+	// A board under the scores (a replay) slides up out of the screen with the panel
+	WinTwistApp* anApp = mApp;
+	Board* aBoard = anApp->mBoard;
+	if (aBoard != nullptr && aBoard->mUnknown37C4) {
+		if (mMenu->mPanel != 2)
+			mUnknown218 = 0;
+		aBoard->mUnknown37EC = (float)Ftol((double)gApp->mScale * 0.0);
+		int aOffsetY = Ftol((double)gApp->mScale * 75.0);
+		anApp->mBoard->mUnknown37F0 = (float)((double)aOffsetY + (double)mMenu->mY * 2.5);
+		aBoard = mApp->mBoard;
+		if ((aBoard->mUnknown3921 && 0 < aBoard->mUnknown3444) || mUnknown218 != 2.0f) {
+			mUnknown218 = (float)((double)mUnknown218 - 0.01);
+			if (mUnknown218 <= 0.0f) {
+				int aButton = 0;
+				while (aButton < (int)mReplayButtons.size()) {
+					mReplayButtons[aButton]->SetDisabled(false);
+					aButton++;
+				}
+				if (mUnknown214 == 1.0f && mMenu->mPanel == 2)
+					mMenu->SetPan(0, -gApp->mHeight, false);
+				mUnknown214 = (float)((double)mUnknown214 - 0.02);
+				if (mMenu->mY == -gApp->mHeight) {
+					mApp->mWidgetManager->RemoveWidget(mApp->mBoard);
+					delete mApp->mBoard;
+					mApp->mBoard = nullptr;
+					mApp->mWidgetManager->SetFocus(this);
+					mApp->mGates->SetButtonsOn(true);
+				}
+			}
+		}
+	}
+}
+
+void HighScoresPanel::StartNewScore(int theCategory, int thePlace, const SexyString& theName, int theLevel,
+	int theScore)
+{
+	SetCategory(theCategory, false);
+	WinTwistApp::HighScore aScore;
+	aScore.mName = theName;
+	aScore.mLevel = theLevel;
+	aScore.mScore = theScore;
+	int aList = WinTwistApp::ScoreList(theCategory);
+	Row aRow;
+	aRow.mUnknown0 = true;
+	aRow.mUnknown4 = 0;
+	aRow.mUnknown8 = 0;
+	aRow.mName = aScore.mName;
+	aRow.mLevel = aScore.mLevel;
+	aRow.mScore = aScore.mScore;
+	mRows[aList].push_back(aRow);
+	mStateTimer = 1.0f;
+	mState = 3;
+	mNewPlace = thePlace;
+	mNewRow = (int)mRows[aList].size() - 1;
+	mNewCategory = theCategory;
+	Gates* aGates = mApp->mGates;
+	aGates->mButtonsOn = false;
+	aGates->mOptionsButton->SetGlowOn(false);
+	aGates->mScoresButton->SetGlowOn(false);
+	aGates->mHelpButton->SetGlowOn(false);
+	aGates->mQuitButton->SetGlowOn(false);
 }
 
 void HighScoresPanel::Draw(Graphics* g)
@@ -602,7 +788,7 @@ void HighScoresPanel::MakeReplayButtons()
 void HighScoresPanel::ResetNewRow()
 {
 	mNewRow = -1;
-	mUnknown1F8 = -1;
+	mNewCategory = -1;
 }
 
 float HighScoresPanel::GetRowHeight()

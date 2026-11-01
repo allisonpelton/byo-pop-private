@@ -226,7 +226,7 @@ void Menu::Update()
 		if (mUnknown408 < 0)
 			mHighScoresPanel->ShowAll();
 		else
-			SDL_Log("Menu 0x69aabc is not ported yet");  // the new high score's entry (comes with the scores)
+			ShowNewHighScore();
 		mHighScoresPanel->mHide = false;
 	}
 
@@ -647,6 +647,12 @@ void Menu::SetNewHighScore(int thePlace, SexyString theName, int theLevel, int t
 	mUnknown400 = theLevel;
 	mUnknown404 = theScore;
 	mUnknown408 = thePlace;
+}
+
+void Menu::ShowNewHighScore()
+{
+	mHighScoresPanel->StartNewScore(mApp->mLastGameMode, mUnknown408, mUnknown3E4, mUnknown400, mUnknown404);
+	mUnknown408 = -1;
 }
 
 void Menu::ShowScores(bool theNow)

@@ -99,6 +99,8 @@ public:
 	void ShowScores(bool theNow);                  // 0x69b093
 	// 0x69aef5: the high score just made, for the scores shown next
 	void SetNewHighScore(int thePlace, SexyString theName, int theLevel, int theScore);
+	// 0x69aabc: the high score just made goes into the scores panel's list, and the menu forgets it
+	void ShowNewHighScore();
 	void ShowHelp(bool theNow);                    // 0x69b20d
 	void ShowEndStats();                           // 0x699e17
 	void ShowChallenges(bool theNow);              // 0x699eea
