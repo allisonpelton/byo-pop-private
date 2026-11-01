@@ -78,8 +78,8 @@ RIGID_SHIFTS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 # The differing-pixels picture: the original dimmed to gray, the differing pixels in a bright colour (in a visible box)
 # or a pale one (faint)
 PIXEL_VISIBLE, PIXEL_FAINT = (255, 0, 170), (150, 230, 255)
-# Review items: boxes of different pairs are one item when their rectangles overlap by SAME_OVERLAP or more (the
-# intersection over the union) and, over both rectangles, the two originals and the two ports each agree visibly
+# Review items: two boxes of different pairs are one item when they meet, SAME_OVERLAP of the visibly different pixels
+# of the smaller differ visibly at the same place in the other's pair, and the content there agrees (same_item)
 SAME_OVERLAP = 0.5
 
 
@@ -682,41 +682,66 @@ def make_crop(a, b, box, opts, pix=None):
 
 # ---------------------------------------------------------------- review items
 
-def overlap_ratio(p, q):
-	"""The intersection of two boxes over their union."""
-	ix = min(p["x"] + p["w"], q["x"] + q["w"]) - max(p["x"], q["x"])
-	iy = min(p["y"] + p["h"], q["y"] + q["h"]) - max(p["y"], q["y"])
-	if ix <= 0 or iy <= 0:
+def placed_alike(p, q, pics):
+	"""The share of box q's visibly different pixels that differ visibly at the same place (or a pixel away) in p's pair."""
+	_, _, qv = pics[q["pair"]]
+	_, _, pv = pics[p["pair"]]
+	if qv.shape != pv.shape:
 		return 0.0
-	inter = ix * iy
-	return inter / float(p["w"] * p["h"] + q["w"] * q["h"] - inter)
+	y0, y1, x0, x1 = q["y"], q["y"] + q["h"], q["x"], q["x"] + q["w"]
+	mine = qv[y0:y1, x0:x1]
+	n = int(mine.sum())
+	if not n:
+		return 0.0
+	# only the box and a pixel around it are dilated
+	h, w = pv.shape
+	ey0, ey1, ex0, ex1 = max(0, y0 - 1), min(h, y1 + 1), max(0, x0 - 1), min(w, x1 + 1)
+	theirs = dilate(np.pad(pv[ey0:ey1, ex0:ex1], 1), 1)[1:-1, 1:-1][y0 - ey0:y1 - ey0, x0 - ex0:x1 - ex0]
+	return int((mine & theirs).sum()) / float(n)
 
 
-def agree_visibly(a, b, x0, y0, x1, y1):
-	"""Whether two pictures agree visibly over a rectangle: fewer than VISIBLE_MIN visibly different pixels."""
-	return int((visible_delta(a[y0:y1, x0:x1], b[y0:y1, x0:x1]) >= VISIBLE_DELTA).sum()) < VISIBLE_MIN
+def dim_gain(a, b):
+	"""How much brighter b is than a over a region, as one factor (the median of their luma ratios over the pixels not
+	near black): 1 for the same screen, about 0.5 for one dimmed by half (a dialog over it, the focus lost)."""
+	la, lb = luma(a).astype(np.float64), luma(b).astype(np.float64)
+	keep = la > 16
+	if not keep.any():
+		return 1.0
+	return float(np.median((lb[keep] + 1.0) / (la[keep] + 1.0)))
+
+
+def agree_dimmed(a, b, m, gain):
+	"""Whether two pictures agree visibly on at least three quarters of the pixels of mask m once a is dimmed by gain."""
+	scaled = np.clip(np.rint(a.astype(np.float64) * gain), 0, 255).astype(np.uint8)
+	d = visible_delta(scaled, b) >= VISIBLE_DELTA
+	return int((d & m).sum()) * 4 <= int(m.sum())
 
 
 def same_item(p, q, pics):
-	"""Whether box p (of pair p["pair"]) and box q (of another pair) show the same difference: they cover about the same
-	area, and over both of it either the two originals agree visibly and so do the two ports, or (something else in the
-	area moves from shot to shot, an animated sprite) the visibly different pixels of the two pairs lie mostly in the same
-	places (SAME_OVERLAP of their union) and the two ports agree there."""
-	if p["pair"] == q["pair"] or overlap_ratio(p, q) < SAME_OVERLAP:
+	"""Whether box q (of another pair) shows the same difference as box p. The boxes meet; at least half (SAME_OVERLAP)
+	of the visibly different pixels of the smaller differ visibly at the same place in the other's pair; and there the
+	content agrees: the two originals agree visibly and so do the two ports, once the one screen is brightened or dimmed
+	to the other's level (dim_gain, the same factor for both sides). So a difference behind a dimmed screen (a dialog,
+	the focus lost, an intro's fade) or in front of a sprite that moves is the same item, but another difference in the
+	same place, over other content or of other content, is not. Boxes of one pair are never one item by themselves."""
+	if p["pair"] == q["pair"]:
+		return False
+	x0, y0 = max(p["x"], q["x"]), max(p["y"], q["y"])
+	x1, y1 = min(p["x"] + p["w"], q["x"] + q["w"]), min(p["y"] + p["h"], q["y"] + q["h"])
+	if x1 <= x0 or y1 <= y0:
 		return False
 	(ao, ap, av), (bo, bp, bv) = pics[p["pair"]], pics[q["pair"]]
 	if ao.shape != bo.shape:
 		return False
-	x0, y0 = min(p["x"], q["x"]), min(p["y"], q["y"])
-	x1, y1 = max(p["x"] + p["w"], q["x"] + q["w"]), max(p["y"] + p["h"], q["y"] + q["h"])
-	if agree_visibly(ao, bo, x0, y0, x1, y1) and agree_visibly(ap, bp, x0, y0, x1, y1):
-		return True
-	m, n = av[y0:y1, x0:x1], bv[y0:y1, x0:x1]
-	both, either = m & n, int((m | n).sum())
-	if not either or int(both.sum()) < SAME_OVERLAP * either:
+	small, big = (p, q) if p["visible"] <= q["visible"] else (q, p)
+	if placed_alike(big, small, pics) < SAME_OVERLAP:
 		return False
-	d = visible_delta(ap[y0:y1, x0:x1], bp[y0:y1, x0:x1]) >= VISIBLE_DELTA
-	return int((d & both).sum()) * 4 <= int(both.sum())
+	m = av[y0:y1, x0:x1] & bv[y0:y1, x0:x1]
+	if not m.any():
+		return False
+	g = dim_gain(ao[y0:y1, x0:x1], bo[y0:y1, x0:x1])
+	return (agree_dimmed(ao[y0:y1, x0:x1], bo[y0:y1, x0:x1], m, g) and
+			agree_dimmed(ap[y0:y1, x0:x1], bp[y0:y1, x0:x1], m, g))
 
 
 def item_name(pair, box):
@@ -732,20 +757,25 @@ def group_items(results, pics):
 			continue
 		for b in r["boxes"]:
 			occ = {"pair": r["name"], "id": r["id"], "box": b["n"], "x": b["x"], "y": b["y"], "w": b["w"], "h": b["h"],
-				   "pixels": b["pixels"], "ref": b}
+				   "pixels": b["pixels"], "visible": b["visible_pixels"], "ref": b}
+			# a box joins an item by its first box, the item's anchor (never by a chain of boxes), and an item has one box
+			# of a pair at most
 			for g in groups:
-				if all(o["pair"] != r["name"] for o in g) and same_item(g[0], occ, pics):
+				if all(o["pair"] != occ["pair"] for o in g) and same_item(g[0], occ, pics):
 					g.append(occ)
 					break
 			else:
 				groups.append([occ])
-	groups.sort(key=lambda g: (-len(g), -max(o["pixels"] for o in g)))
+
+	def shots(g):
+		return len({o["pair"] for o in g})
+	groups.sort(key=lambda g: (-shots(g), -max(o["pixels"] for o in g)))
 	items = []
 	for k, g in enumerate(groups, 1):
 		top = max(g, key=lambda o: o["pixels"])
 		for o in g:
 			o.pop("ref")["item"] = k
-		items.append({"n": k, "name": item_name(top["pair"], top), "count": len(g), "pair": top["pair"], "id": top["id"],
+		items.append({"n": k, "name": item_name(top["pair"], top), "count": shots(g), "pair": top["pair"], "id": top["id"],
 					  "box": top["box"], "x": top["x"], "y": top["y"], "w": top["w"], "h": top["h"], "pixels": top["pixels"],
 					  "seen": [{f: o[f] for f in ("pair", "id", "box", "x", "y", "w", "h", "pixels")} for o in g if o is not top]})
 	return items

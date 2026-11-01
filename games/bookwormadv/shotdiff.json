@@ -1,0 +1,5 @@
+{"client": [800, 600],
+ "orig": {"crop": [3, 32, 800, 600],
+          "reason": "the original's copy runs DPI-aware (tools/pilot/run.sh): unaware, Windows stretched its window on the 125% display and PrintWindow returned it resampled, blurring every edge; aware, the frame's title bar is 32 pixels tall"},
+ "ignore": [{"rect": [418, 200, 276, 140], "pairs": "media_*",
+             "label": "the media player's spectrum: the original's is black under origrun's silent dsound stand-in, which hands the game no samples to analyse"}]}

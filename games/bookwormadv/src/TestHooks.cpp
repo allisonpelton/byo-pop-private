@@ -7,6 +7,9 @@
 //                   the word) it tries again every 10 updates, and gives up after 200 tries ("busy").
 //   lua <chunk>     runs the rest of the line as Lua (logs "script: lua: <error>" when it fails)
 //   spectrum        logs how many cells of the media player's spectrum are lit ("script: spectrum <n> lit")
+//   focus lose|regain
+//                   the window loses or regains the focus, as SDL's focus events do (a -script run ignores the real
+//                   ones); origrun's command of the same name posts the original's WM_ACTIVATEAPP
 #include <SDL.h>
 
 #include <cstdlib>
@@ -22,6 +25,7 @@
 #include "SongPlayer.h"
 #include "LuaSupport.h"
 #include "Tile.h"
+#include "WidgetManager.h"
 
 using namespace Sexy;
 
@@ -70,6 +74,13 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				if (mSongPlayer->mSpectrum[i] != 0)
 					aLit++;
 		SDL_Log("script: spectrum %d lit", aLit);
+		return true;
+	}
+	if (theCommand.mCommand == "focus") {
+		mActive = theCommand.mArgs.find("regain") != std::string::npos;
+		RehupFocus();
+		if (mActive && !mIsWindowed)
+			mWidgetManager->MarkAllDirty();
 		return true;
 	}
 	if (theCommand.mCommand != "word")

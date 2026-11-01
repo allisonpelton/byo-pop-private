@@ -263,6 +263,14 @@
 		ev.preventDefault();
 	});
 	$('copy').addEventListener('click', copyMarks);
+	/* a link to a whole shot opens the collapsed list it is in */
+	function openTarget() {
+		var t = location.hash && document.getElementById(location.hash.slice(1));
+		var d = t && t.closest('details');
+		if (d && !d.open) { d.open = true; t.scrollIntoView({ block: 'start' }); }
+	}
+	window.addEventListener('hashchange', openTarget);
+	openTarget();
 
 	/* ---- start */
 	if (!pairs.length) { say(''); loaded = true; return; }

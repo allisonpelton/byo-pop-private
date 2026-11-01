@@ -133,12 +133,12 @@ void FadeButton::DrawButtonImage(Graphics* g, Image* theImage, const Rect& theRe
 		if (!mStretch)
 			g->DrawImage(theImage, x, y);
 		else
-			g->DrawImage(theImage, Rect(x, y, mWidth, mHeight), Rect(0, 0, theImage->mWidth, theImage->mHeight));
+			g->DrawImageBox(Rect(0, 0, theImage->mWidth, theImage->mHeight), Rect(x, y, mWidth, mHeight), theImage);
 	} else {
 		if (!mStretch)
 			g->DrawImage(mButtonImage, x, y, theRect);
 		else
-			g->DrawImage(mButtonImage, Rect(x, y, mWidth, mHeight), theRect);
+			g->DrawImageBox(theRect, Rect(x, y, mWidth, mHeight), mButtonImage);
 	}
 }
 

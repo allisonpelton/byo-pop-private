@@ -151,9 +151,14 @@ def item_html(i, it, pairs):
 	head = ("<header class=\"phead\"><h2>Item %d <small>in <code>%s</code>, box %d</small></h2><span class=\"pct\">seen in %s</span>"
 			"<span class=\"meta\">%s</span></header>") % (it["n"], esc(it["pair"]), b["n"], plural(it["count"], "shot"), box_caption(b))
 	seen = ""
-	if it["seen"]:
+	# the other shots, each once (a shot may hold more than one of the item's boxes); the item's own shot is not one
+	shots = []
+	for o in it["seen"]:
+		if o["pair"] != it["pair"] and all(o["pair"] != x["pair"] for x in shots):
+			shots.append(o)
+	if shots:
 		seen = "<p class=\"seen\">Also in %s. A mark here marks them all.</p>" % ", ".join(
-			"<a href=\"#s-%s\">%s</a>" % (esc(o["id"]), esc(o["pair"])) for o in it["seen"])
+			"<a href=\"#s-%s\">%s</a>" % (esc(o["id"]), esc(o["pair"])) for o in shots)
 	crop = crop_figure("<b>Box %d of %s</b>: original, port, differing pixels" % (b["n"], esc(it["pair"])), crop_rel(p["id"], b["n"]),
 					   b["crop_size"], "Item %d: original, port and differing pixels" % it["n"])
 	others = ""
@@ -163,8 +168,9 @@ def item_html(i, it, pairs):
 			ob = next(x for x in pairs[o["pair"]]["boxes"] if x["n"] == o["box"])
 			figs.append(crop_figure("<b>%s</b>, box %d &middot; %s" % (esc(o["pair"]), ob["n"], box_caption(ob)), crop_rel(o["id"], ob["n"]),
 									ob["crop_size"], "Item %d in %s" % (it["n"], o["pair"])))
-		others = "<details class=\"others\"><summary>The other %s, each as it looks there</summary><div class=\"crops\">%s</div></details>" % (
-			plural(len(it["seen"]), "shot"), "".join(figs))
+		others = "<details class=\"others\"><summary>%s, each as it looks there</summary><div class=\"crops\">%s</div></details>" % (
+			("The other %s" % plural(len(shots), "shot")) if len(it["seen"]) == len(shots) else
+			("%s in %s" % (plural(len(it["seen"]), "other box", "other boxes"), plural(len(shots) + 1, "shot"))), "".join(figs))
 	return "<article class=\"pair\" id=\"p-item%d\" data-i=\"%d\">%s%s%s<div class=\"crops\">%s</div>%s%s</article>" % (
 		it["n"], i, head, verdict_html(name), seen, crop, others, shots_html(p, name, p["boxes"]))
 
@@ -401,16 +407,16 @@ def render(summary, has_index=False):
 		b.append("<h2 style=\"margin-top:16px\">To review: %s%s</h2>" % (
 			plural(len(items), "item"), ", then %s" % plural(len(whole), "pair") if whole else ""))
 		b.append("<p class=\"muted\">An item is one difference, shown where it is largest; the same difference in other shots "
-				 "(the same place, looking the same on both sides) is the same item, so %s seen in more than one shot. Items seen most "
-				 "often come first, then the largest. Each box shows the original, the port and the differing pixels; the whole shots "
-				 "follow the items.</p>" % ("%s is" % plural(rep, "item") if rep == 1 else "%s are" % plural(rep, "item")))
+				 "(its differing pixels in the same place over the same content, dimmed or not) is the same item, so %s seen in more than one shot. Items "
+				 "seen most often come first, then the largest. Each box shows the original, the port and the differing pixels; the "
+				 "whole shots are in a collapsed list after the items.</p>" % ("%s is" % plural(rep, "item") if rep == 1 else "%s are" % plural(rep, "item")))
 		b.extend(item_html(i, it, by_name) for i, it in enumerate(items))
 		b.extend(clip_html(i, p) if p["kind"] == "clip" else pair_html(i, p) for i, p in enumerate(whole, len(items)))
 	else:
 		b.append("<p>No pair differs.</p>")
 	if stills:
-		b.append("<h2 style=\"margin-top:24px\">The differing shots (%d)</h2>" % len(stills))
-		b.extend(shot_html(p) for p in stills)
+		b.append("<details id=\"shots\"><summary>The differing shots, whole (%d): not for marking, every box there is an item above</summary>%s</details>" % (
+			len(stills), "".join(shot_html(p) for p in stills)))
 	b.append(faint_section(s))
 	if errors:
 		b.append("<details open><summary>Could not be compared (%d)</summary><ul>%s</ul></details>" % (

@@ -200,7 +200,7 @@ void TileEngine::Draw(std::list<Tile*>& theTiles, Graphics* g, bool theMoving, b
 	lua_State* L = gLuaSupport->L;
 	// gTileEngine:Draw(g, extra, tile, x, y, tile, x, y, ...) for the tiles that slide (or not)
 	PushGraphics(g);
-	if (!gApp->Is3DAccelerated())
+	if (!gApp->Is3DMode())
 		theDrawExtraStuff = false;
 	lua_pushboolean(L, theDrawExtraStuff);
 	int aCount = 0;

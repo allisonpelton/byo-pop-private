@@ -349,12 +349,17 @@ public:
 	//   -fast           updates run back to back on a virtual clock and the screen is drawn every
 	//                   FAST_DRAW_INTERVAL updates, so a script runs as fast as the machine allows
 	//   -trace          the game prints its state to stdout (WinDMApp: the board when it settles)
+	//   -drawevery      every update is drawn before the next one runs (with -fast too), instead of
+	//                   catching up with updates that are not drawn when the machine falls behind, so
+	//                   game logic that waits for a draw (a transition done once drawn) ends at the same
+	//                   update on any machine; the game runs slower than real time if drawing is slow
 	//   -renderscale=N  render at N times the logical size (1..4) whatever the window size, e.g. to
 	//                   check HD art with screenshotfull
 	enum { FAST_DRAW_INTERVAL = 10 };
 	bool mHasSeedParam;
 	bool mFastMode;
 	bool mTraceMode;
+	bool mDrawEvery;  // -drawevery
 	int mForcedRenderScale;  // -renderscale=N
 	bool mDrawingLogicalShot;  // SaveScreenshot at the logical size is drawing
 	DWORD mFastClock;          // -fast: virtual milliseconds, advanced instead of sleeping
