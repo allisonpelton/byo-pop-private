@@ -3,6 +3,7 @@
 #include "Board.h"
 
 #include "GameText.h"
+#include "Compat2004.h"
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
 #include "GoodTube.h"
@@ -13,6 +14,7 @@
 #include "Profile.h"
 #include "Res.h"
 #include "SoundInstance.h"
+#include "SoundManager.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "WidgetManager.h"
@@ -786,7 +788,7 @@ void Board::UpdateGame()
 		MarkDirty();
 		mUnknown1434++;
 	}
-	int aCount38 = 0;  // port: counted as the original does, never read
+	int aCount38 = 0;  // the gems with +0x38 set: they send the board to 0x6c87d2 below
 	int aRemoved = 0;
 	if (mUnknown160 == 0) {
 		mUnknown1F74 = 0;
@@ -1067,6 +1069,110 @@ void Board::UpdateGame()
 	UpdateCellPoints();
 	mUnknown25A5 = !mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown248 == 0.0f && mUnknown149C.empty() &&
 				   mUnknown265C != 4 && mGoodTube->mUnknown3B0 == 0;
+	// The progress bar's ends follow the grid's right and middle
+	mUnknown2698 = mUnknown2594 < GetGridMidY();
+	if (0.0f < mUnknown20EC) {
+		mUnknown20EC = (float)((double)mUnknown20EC - (double)0.01f);
+	} else if (!mUnknown37C4) {
+		bool aLow = (double)mUnknown2594 < (double)GetGridMidY() * (double)0.7f;
+		float aFade = (float)((double)mUnknown25A0 - (double)0.01f);
+		mUnknown25A0 = 0.0f <= aFade ? aFade : 0.0f;
+		if (mUnknown2590 < GetGridRight()) {
+			mUnknown25A0 = 1.0f;
+			double aTo = (double)gGemWidth * 0.5 + (double)mUnknown2590;
+			int aRight = GetGridRight();
+			mUnknown2590 = (double)aRight < aTo ? GetGridRight() : Ftol(aTo);
+		} else if (mUnknown2698) {
+			mUnknown25A0 = 1.0f;
+			double aTo = (double)gGemHeight * (double)0.05f + (double)mUnknown2594;
+			float aMid = GetGridMidY();
+			mUnknown2594 = (float)((double)aMid < aTo ? (double)GetGridMidY() : aTo);
+		}
+		if (aLow)
+			mUnknown2224 = 0.2f;
+	}
+	if (!mUnknown149C.empty() || aCount38 != 0) {
+		// port: 0x6c87d2 clears the matched gems (their points, sparks and the cascades); it comes with the matching
+		// and draws from Rand
+		NotPorted("Board::UpdateGame: the matches (0x6c87d2)");
+	}
+	if (mUnknown14AC.empty())
+		mUnknown3905 = false;
+	if (!mUnknown14AC.empty()) {
+		// port: the geodes that fly from broken coal (+0x14ac) come with the coal; they draw from Rand
+		NotPorted("Board::UpdateGame: the geodes");
+	}
+	MarkDirty();
+	// The board's shake
+	if (!(0.0f < mUnknown151C)) {
+		mUnknown1520 = 0;
+		mUnknown1524 = 0;
+	} else if (mUpdateCnt % 3 == 0) {
+		float aFade = (float)((double)mUnknown151C - (double)0.1f);
+		mUnknown151C = aFade;
+		if (aFade < 0.0f)
+			mUnknown151C = 0;
+		int aRand = CrtRand() % 2000 - 1000;
+		mUnknown1520 = Ftol((double)mUnknown151C * (double)mUnknown1518 * ((double)aRand / 1000.0));
+		aRand = CrtRand() % 2000 - 1000;
+		mUnknown1524 = Ftol((double)mUnknown151C * (double)mUnknown1518 * ((double)aRand / 1000.0));
+	}
+	// Now and then a glint runs over the board
+	if (mUnknown1420) {
+		float aNext = (float)((double)mUnknown1424 + (double)0.02f);
+		mUnknown1424 = aNext;
+		if (1.0f < aNext)
+			mUnknown1420 = false;
+		MarkDirty();
+	} else if (Rand() % 6000 == 0) {
+		mUnknown1420 = true;
+		mUnknown1424 = 0;
+	}
+	float aDim = (float)((double)mUnknown1428 - (double)0.06f);
+	if (!(0.0f < aDim))
+		aDim = 0;
+	mUnknown1428 = aDim;
+	if (!(0.0f < aDim) && mUnknown15C == 0) {
+		double aNext = (double)0.06f + (double)mUnknown142C;
+		mUnknown142C = (float)(aNext < 1.0 ? aNext : 1.0);
+	}
+	if (mUnknown1BF0 && Rand() % 2 == 0) {
+		Effect* anEffect = mFXManager->AllocEffect(0x15);
+		anEffect->mX = (float)(int)(Rand() % 1024);
+		anEffect->mY = -2.0f;
+		anEffect->mDY = (float)((double)RandSigned() * 0.25 + 0.5);
+		mFXManager->AddEffect(anEffect);
+	}
+	if (mUnknown152C) {
+		SoundInstance* aSound = mApp->mSoundManager->GetSoundInstance(SOUND_BOMB_EXPLODE);
+		if (aSound != nullptr)
+			aSound->Play(false, true);
+		mUnknown152C = false;
+	}
+	if (mUnknown15C == 0)
+		mUnknown230 = (float)((double)mUnknown230 + (double)0.01f);
+	mUnknown15D1 = mUnknown15D0;
+	mUnknown15D0 = false;
+	UpdateUnknown248();
+	if (mUnknown21D8)
+		mUnknown25A4 = false;
+	if (mUnknown21DA)
+		mUnknown25A4 = false;
+	if (mUnknown21D9)
+		mUnknown25A4 = false;
+	if (mUnknown2108 != 0.0f)
+		mUnknown25A4 = false;
+	if (0.0f < mUnknown23D8)
+		mUnknown25A4 = false;
+	if (mUnknown15C != 0)
+		mUnknown25A4 = false;
+	if (mUnknown265C == 2 || mUnknown265C == 5 || (mUnknown265C == 4 && mUnknown2584 == nullptr)) {
+		// port: the fruit gem's dance (+0x265c: 2 the fruit flies to the tube, 4 the dance, 5 its end; 0x6bbfe4 picks
+		// the bonus colours) comes with the fruit gem; it draws from Rand
+		NotPorted("Board::UpdateGame: the fruit dance");
+		if (mUnknown265C == 4)
+			mUnknown25A4 = false;
+	}
 	// port: the rest of 0x6d090f comes next
 	NotPorted("Board::UpdateGame: the rest");
 }
@@ -1789,4 +1895,23 @@ void Board::StartLevelIntro()
 	// port: 0x6c2f69, the new level's intro (the first move's search 0x6c14fc, the challenge's text and the counts of
 	// locked gems), comes next; it draws from Rand through the tutorial
 	NotPorted("Board::StartLevelIntro (0x6c2f69)");
+}
+
+int Board::GetGridRight()
+{
+	return Ftol((double)gGemWidth * (double)0.24f + (double)(mCols * gGemWidth));
+}
+
+float Board::GetGridMidY()
+{
+	return (float)(mRows * gGemHeight / 2 - GetRowY(0) + GetRowY(0));
+}
+
+void Board::UpdateUnknown248()
+{
+	if (mUnknown248 != 0.0f) {
+		// port: 0x6c4466 runs the fruit gem's flight (+0x248, its sparks and points); it comes with the fruit gem and
+		// draws from Rand
+		NotPorted("Board::UpdateUnknown248 (0x6c4466)");
+	}
 }

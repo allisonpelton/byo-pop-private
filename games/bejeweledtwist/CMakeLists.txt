@@ -5,7 +5,7 @@
 # headless (tools/curvetest/curvetest.cpp).
 add_library(bjt_engine STATIC ${CMAKE_CURRENT_SOURCE_DIR}/src/CurvedVal.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/BSpline.cpp)
 target_include_directories(bjt_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(bjt_engine PUBLIC sexyframework)
+target_link_libraries(bjt_engine PUBLIC sexyframework sexycompat2004)
 if(NOT MSVC)
   target_compile_options(bjt_engine PRIVATE -Wall)
 endif()

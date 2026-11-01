@@ -134,6 +134,7 @@ public:
 	int mUnknown218 = 0;                    // +0x218
 	int mUnknown224 = 0;                    // +0x224
 	float mUnknown248 = 0;                  // +0x248
+	float mUnknown230 = 0;                  // +0x230: up 0.01 each update while +0x15c is 0
 	int mUnknown250 = -1;                   // +0x250
 	int mUnknown254 = -1;                   // +0x254
 	int mUnknown258 = -1;                   // +0x258
@@ -201,7 +202,9 @@ public:
 	CurvedVal mUnknown34F0;                 // +0x34f0: set when a turn ends (0x6b8bca)
 	CurvedVal mUnknown13B0;                 // +0x13b0: set to 0 by StartLevel
 	bool mUnknown1420 = false;              // +0x1420
-	int mUnknown1424 = 0;                   // +0x1424
+	float mUnknown1424 = 0;                 // +0x1424: the glint's run, 0 to 1
+	float mUnknown1428 = 0;                 // +0x1428
+	float mUnknown142C = 0;                 // +0x142c
 	std::deque<TwistWidget*> mUnknown23DC;  // +0x23dc: the dialogs waiting to come up (0x6a6e36 its size)
 	std::vector<TwistWidget*> mUnknown1F98;  // +0x1f98: the hints' widgets (0x6a6d18 its size)
 	std::vector<TwistWidget*> mUnknown26B0;  // +0x26b0: the travellers (0x70188f; 0x6a6eaa its size)
@@ -258,8 +261,8 @@ public:
 	bool mUnknown150C = true;               // +0x150c
 	int mUnknown1510 = 0;                   // +0x1510
 	int mUnknown1514 = 0;                   // +0x1514
-	int mUnknown1518 = 0;                   // +0x1518
-	int mUnknown151C = 0;                   // +0x151c
+	float mUnknown1518 = 0;                 // +0x1518: the shake's size
+	float mUnknown151C = 0;                 // +0x151c: the shake, fading to 0
 	int mUnknown1520 = 0;                   // +0x1520
 	int mUnknown1524 = 0;                   // +0x1524
 	bool mUnknown152C = false;              // +0x152c
@@ -287,6 +290,7 @@ public:
 	bool mUnknown15B0 = false;              // +0x15b0
 	int mUnknown15C4 = 0;                   // +0x15c4
 	bool mUnknown15D0 = false;              // +0x15d0
+	bool mUnknown15D1 = false;              // +0x15d1: +0x15d0 of the update before
 	int mUnknown15D4 = 0;                   // +0x15d4
 	bool mUnknown15D8 = false;              // +0x15d8
 	int mUnknown15DC = 0;                   // +0x15dc
@@ -378,7 +382,7 @@ public:
 	bool mUnknown20D8 = false;              // +0x20d8
 	int mUnknown20E4 = 0;                   // +0x20e4
 	float mUnknown20E8 = 0.1f;              // +0x20e8
-	int mUnknown20EC = 0;                   // +0x20ec
+	float mUnknown20EC = 0;                 // +0x20ec: holds the progress bar back
 	bool mUnknown210C = false;              // +0x210c
 	int mUnknown2110 = 0;                   // +0x2110
 	int mUnknown2114 = 0;                   // +0x2114
@@ -597,6 +601,7 @@ public:
 	bool mUnknown2201 = false;              // +0x2201
 	int mUnknown2590 = 0;                   // +0x2590: the grid's width and a quarter of a cell (0x6a49a3)
 	float mUnknown2594 = 1.0f;              // +0x2594
+	float mUnknown25A0 = 0;                 // +0x25a0: the progress bar's glow
 	float mUnknown2598 = 1.0f;              // +0x2598
 	float mUnknown259C = 1.0f;              // +0x259c
 	std::vector<int> mBonusColors;          // +0x2648: the bonus challenge's colours (0x6bbfe4)
@@ -657,6 +662,9 @@ public:
 	void UpdateGlows();                           // 0x6b094e
 	void UpdateCellPoints();                      // 0x6a5809: the cells' wobble
 	void UpdateLevelUp();                         // 0x6c6905
+	int GetGridRight();                          // 0x6a49a3
+	float GetGridMidY();                         // 0x6a49cf
+	void UpdateUnknown248();                     // 0x6c4466
 	void FinishLevelUp();                         // 0x6bab49: the change between levels is over
 	void StartLevelIntro();                       // 0x6c2f69: the new level's intro
 	void PlayGameMusic();                         // 0x6a6a8b
