@@ -411,7 +411,7 @@ void Board::UpdateGame()
 					StartUnknown3880();
 					mUnknown380C = 0;
 					mUnknown37F4 = 1.5f;
-					StartLevelIntro();
+					SettleTurn();
 					NextLevelMusic();
 				}
 			} else if (mUnknown1474 == nullptr) {
@@ -1641,7 +1641,7 @@ void Board::UpdateLevelUp()
 				mUnknown158++;
 				if (mUnknown158 == 0 && mUnknown2584 == nullptr)
 					mUnknown158 = 1;
-				StartLevelIntro();
+				SettleTurn();
 				// The original writes "LEVEL++" to the debugger here
 				mGoodTube->SetLevel(mUnknown158);
 				if (mGameMode == MODE_BLITZ) {
@@ -2035,13 +2035,6 @@ void Board::FallPieces()
 	else if (aWasMoving)
 		gSettleCount++;
 	MarkDirty();
-}
-
-void Board::StartLevelIntro()
-{
-	// port: 0x6c2f69, the new level's intro (the first move's search 0x6c14fc, the challenge's text and the counts of
-	// locked gems), comes next; it draws from Rand through the tutorial
-	NotPorted("Board::StartLevelIntro (0x6c2f69)");
 }
 
 int Board::GetGridRight()

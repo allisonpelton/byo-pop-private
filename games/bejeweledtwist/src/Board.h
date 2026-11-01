@@ -153,6 +153,7 @@ public:
 	int mUnknown204 = 1;                    // +0x204
 	int mUnknown218 = 0;                    // +0x218
 	int mUnknown224 = 0;                    // +0x224
+	int mUnknown234 = 0;                    // +0x234: the most moves in a level
 	float mUnknown248 = 0;                  // +0x248
 	float mUnknown230 = 0;                  // +0x230: up 0.01 each update while +0x15c is 0
 	int mUnknown250 = -1;                   // +0x250
@@ -383,6 +384,7 @@ public:
 	bool mUnknown2014 = false;              // +0x2014
 	bool mUnknown2015 = false;              // +0x2015
 	bool mUnknown2016 = false;              // +0x2016
+	int mUnknown2018 = 0;                   // +0x2018
 	int mUnknown201C = -1;                  // +0x201c
 	int mUnknown2020 = -1;                  // +0x2020
 	bool mUnknown2030 = false;              // +0x2030
@@ -454,6 +456,7 @@ public:
 	int mUnknown2404 = -10000;              // +0x2404
 	std::vector<int> mUnknown2408[20];      // +0x2408: the tutorial's gems for each column, the next at the back
 	int mUnknown2548 = -1;                  // +0x2548
+	std::map<int, int> mUnknown256C;        // +0x256c: the tips waiting for their dialog, by kind, with a gem's id
 	int mUnknown2578 = 0;                   // +0x2578
 	int mUnknown257C = 0;                   // +0x257c
 	int mUnknown2580 = 1;                   // +0x2580
@@ -716,7 +719,14 @@ public:
 	void ApplyUnknown3924();                     // 0x6a69a8: every gem's alpha to it
 	void RetargetTravellers();                   // 0x6a9f1d
 	void FinishLevelUp();                         // 0x6bab49: the change between levels is over
-	void StartLevelIntro();                       // 0x6c2f69: the new level's intro
+	void SettleTurn();                            // 0x6c2f69: the board at rest: the next move and the turn's end
+	void QueueTip(int theKind, Piece* thePiece);  // 0x6b98f8: a tip waits for its dialog (+0x256c)
+	bool CheckTips();                             // 0x6bc129: tips for the special gems on the board
+	void ShowNextTip();                           // 0x6bbc58
+	void EndTurn();                               // 0x6be49c
+	void UpdateRecords();                         // 0x6bcd96: the game's best move, cascade and score
+	bool IsGameOverPending();                     // 0x6a5626
+	void CheckCombos();                           // 0x6bbbc2: the turn's praise
 	void PlayGameMusic();                         // 0x6a6a8b
 	void LevelComplete();                         // 0x6b3634
 	bool UpdateUnknown1660();                     // 0x6af497

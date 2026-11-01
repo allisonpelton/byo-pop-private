@@ -46,6 +46,7 @@ public:
 	float mUnknown2E0 = 0;               // +0x2e0: a random 0 to 1
 	int mUnknown300 = 0;                 // +0x300: the fill is drawn full while above 0
 	float mUnknown308 = 1.0f;            // +0x308
+	SexyString mText;                    // +0x310: the text the board gives it (0x7070f4)
 	float mUnknown330 = 0;               // +0x330: 1 when a loaded game has a bonus challenge
 	int mUnknown3A8 = 0;                 // +0x3a8
 	int mUnknown3B0 = 0;                 // +0x3b0
