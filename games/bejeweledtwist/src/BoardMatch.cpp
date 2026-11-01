@@ -112,18 +112,94 @@ void Board::ClearSparkStarts()
 Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theUnknown1,
 	bool theUnknown2, bool theFirst, bool theUnknown3)
 {
-	// port: 0x6bf983 puts up the points (the PointsManager at +0x...), adds them to the score and to the tube; it
-	// comes with the points
-	(void)theX;
-	(void)theY;
-	(void)thePoints;
-	(void)theColor;
-	(void)theSerial;
-	(void)theUnknown1;
-	(void)theUnknown2;
-	(void)theFirst;
-	(void)theUnknown3;
-	NotPorted("Board::AddPoints (0x6bf983)");
+	if (thePoints < 1)
+		return nullptr;
+	if (mGameMode == MODE_CHALLENGE) {
+		// port: a challenge counts points only when its flags (+0x80) have 8; it comes with the challenges
+		if (mUnknown2630 == 0)
+			return nullptr;
+		NotPorted("Board::AddPoints: the challenge's flags");
+		return nullptr;
+	}
+	int aMult = mUnknown21D0;
+	if (!theUnknown3)
+		aMult = 1;
+	int aPoints = aMult * thePoints;
+	if (1 < mUnknown2580 && theUnknown2)
+		aPoints *= mUnknown2580;
+	int aTotal = mModeMultiplier * aPoints;
+	if (mUnknown2041 && -1 < theX && -1 < theY) {
+		// A serial of -0x68 to -0x65 (the kinds of special gem) takes a new one, which remembers the kind
+		if ((unsigned int)theSerial >= (unsigned int)-0x68 && (unsigned int)theSerial <= (unsigned int)-0x65) {
+			int aNew = gSettleCount;
+			gSettleCount++;
+			mUnknown37B8[aNew] = theSerial;
+			theSerial = aNew;
+		}
+		if (theSerial == -1)
+			theFirst = false;
+		// port: the points float up from theX, theY in theColor (the PointsManager at +0x21fc: a floater of the same
+		// serial takes them, else a new one in FONT_FLOATERS, sized by the points); it comes with the PointsManager
+		NotPorted("Board::AddPoints: the floating points");
+	}
+	// Classic's progress: the points count less as the level's gauge fills, by the chains' multiplier
+	float aMultF = (float)aMult;
+	int aChains = mUnknown2234[0x21];
+	float anAvg = aMultF;
+	if (0 < aChains)
+		anAvg = (float)((double)mUnknown2234[0x39] / (double)aChains);
+	float aHigh = anAvg <= aMultF ? aMultF : anAvg;
+	float aLow = anAvg < aMultF ? anAvg : aMultF;
+	float aScale = (float)std::pow((double)aLow * 0.4 + (double)aHigh * 0.6, 0.7);
+	if (!theUnknown3)
+		aScale = 1.0f;
+	int aLeft = aTotal;
+	if (0 < aTotal) {
+		double aRatio = (double)(aScale / aMultF);
+		do {
+			int aStep = 100;
+			if (aLeft < 100)
+				aStep = aLeft;
+			int aTo = Ftol(std::pow((double)(mUnknown1544 + aStep) * aRatio, 0.75));
+			int aFrom = Ftol(std::pow((double)mUnknown1544 * aRatio, 0.75));
+			int aGain = (aTo - aFrom) * 3;
+			if (theUnknown1 && mUnknown2041) {
+				mUnknown200 += aGain;
+				mUnknown14FC += aGain;
+			}
+			aLeft -= aStep;
+			// (the original adds the whole points each step, not the step's)
+			mUnknown1544 += aTotal;
+		} while (0 < aLeft);
+	}
+	if (!mUnknown2629 && !mUnknown37C4 && 0 < mUnknown158)
+		mApp->mProfile->mTotalPoints += aTotal;
+	if (mGameMode == MODE_CHALLENGE)
+		theFirst = false;
+	if (!mGoodTube->mUnknown14D || theX < 1 || theY < 1 || !theFirst || !mUnknown2041) {
+		if (mUnknown2041)
+			SetScore(mUnknown168 + aTotal, false);
+		if (theFirst) {
+			// port: 0x6a62e1 counts the chain into the tube's levels (0x6a4383, 0x6a43e8); it comes with the chains
+			NotPorted("Board::AddPoints: the chain's tube level (0x6a62e1)");
+		}
+	} else {
+		// port: the points fly to the tube (a 0x98-byte traveller, 0x750185, into +0x2170, aimed by 0x70205f and
+		// 0x703334); they reach the score on arrival; it comes with the travellers
+		NotPorted("Board::AddPoints: the points to the tube");
+	}
+	std::map<int, int>::iterator anIt = mUnknown37B8.find(theSerial);
+	int aKind = anIt != mUnknown37B8.end() ? anIt->second : 0;
+	if (aKind == -0x68)
+		AddStat(0x3d, aTotal);
+	else if (aKind == -0x67)
+		AddStat(0x3c, aTotal);
+	else if (aKind == -0x66)
+		AddStat(0x3b, aTotal);
+	else if (aKind == -0x65)
+		AddStat(0x3a, aTotal);
+	mUnknown2234[0x49] += aTotal;
+	UpdateProgress(false);
 	return nullptr;
 }
 

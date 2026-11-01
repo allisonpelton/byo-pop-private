@@ -624,7 +624,7 @@ void Board::StartGame()
 				}
 			}
 		}
-		SetLevelNum(mUnknown168, true);
+		SetScore(mUnknown168, true);
 		if (mGameMode == MODE_CHALLENGE)
 			UpdateChallengeTube(true);
 		mUnknown16C = mUnknown168;
@@ -779,12 +779,12 @@ bool Board::LoadGame(Buffer& theBuffer)
 	return false;
 }
 
-void Board::SetLevelNum(int theLevel, bool theUnknown14F8)
+void Board::SetScore(int theScore, bool theUnknown14F8)
 {
-	mUnknown168 = theLevel;
+	mUnknown168 = theScore;
 	if (theUnknown14F8)
-		mUnknown14F8 = theLevel;
-	SetStat(0x49, theLevel);
+		mUnknown14F8 = theScore;
+	SetStat(0x49, theScore);
 	UpdateProgress(theUnknown14F8);
 }
 

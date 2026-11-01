@@ -144,7 +144,7 @@ public:
 	// The rest of the fields the constructor (0x6c4df9) sets, named by their offset until their use is known
 	int mUnknown15C = 0;                    // +0x15c
 	int mUnknown160 = 0;                    // +0x160
-	int mUnknown168 = 0;                    // +0x168
+	int mUnknown168 = 0;                    // +0x168: the score
 	int mUnknown16C = 0;                    // +0x16c
 	int mUnknown170 = 0;                    // +0x170
 	int mUnknown1E8 = 0;                    // +0x1e8
@@ -689,7 +689,7 @@ public:
 	// 0x6a6529: a save's version, and from version 60 its mode, flags, +0x154 and level; false for an older or empty one
 	static bool ReadSaveHeader(Buffer& theBuffer, int* theVersion, int* theMode, int* theFlags, int* theUnknown154,
 		int* theLevel);
-	void SetLevelNum(int theLevel, bool theUnknown14F8);  // 0x6bd840
+	void SetScore(int theScore, bool theUnknown14F8);  // 0x6bd840
 	// 0x6a5fa3: the board takes theHyperspace (a new one if null) and sets up the jump into the game
 	void TakeHyperspace(Hyperspace* theHyperspace);
 	// 0x6c77b1: after StartGame: the config again, the basics tutorial or the puzzle's board, the save and the tube
