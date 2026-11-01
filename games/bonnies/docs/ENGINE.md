@@ -127,6 +127,7 @@ shared framework and platform layer:
 - **Full screen.** `Data/Portal.cfg` can start the game in full screen. On the web the page's button does that
   (a browser enters full screen only on a click), so the game's request is ignored there.
 - **Test hooks.** `-seed=N` seeds the game's `rand` instead of the time (`seedRandom`), so a script's boards repeat.
+  A script's `focus 0` and `focus 1` take the window's focus away and give it back (the action game pauses).
 
 ### Comparing with the original
 

@@ -4,11 +4,13 @@
 #include "SevenSeasApp.h"
 #include "Board.h"
 #include "Screens.h"
+#include "Demo.h"
 #include "Dialogs.h"
+#include "Help.h"
 #include "GameText.h"
 #include "Compat2004.h"
 #include "Dialog.h"
-#include "DialogButton.h"
+#include "Button2003.h"
 #include "ButtonWidget.h"
 #include "Checkbox.h"
 #include "Graphics.h"
@@ -45,7 +47,7 @@ SevenSeasApp::SevenSeasApp()
 {
 	gApp = this;
 	mProdName = "SevenSeas";
-	mProductVersion = "1.1";
+	mProductVersion = "1.13";
 	mTitle = "Seven Seas Deluxe " + mProductVersion;
 	mRegKey = "PopCap\\SevenSeas";
 	mWidth = GAME_WIDTH;
@@ -58,7 +60,7 @@ SevenSeasApp::SevenSeasApp()
 	mTitleScreen = NULL;
 	mIntroWidget = NULL;
 	mHighScoreWidget = NULL;
-	mTrialWidget = NULL;
+	mDemoWidget = NULL;
 	mBoard = NULL;
 	mMapWidget = NULL;
 	mHelpWidget = NULL;
@@ -73,7 +75,7 @@ SevenSeasApp::SevenSeasApp()
 	mTutorial = true;
 	mDifficulty = 1;
 	mGamesPlayed = 0;
-	mFlag4c4 = false;
+	mFlag4c4 = true;
 	mTalking = false;
 	mTalkWidget = NULL;
 	mBonusNag = true;
@@ -94,7 +96,7 @@ SevenSeasApp::SevenSeasApp()
 // 0x41bfc0: the widgets the app holds come off the widget manager before they go
 SevenSeasApp::~SevenSeasApp()
 {
-	Widget* aWidgets[] = {mBoard, mTitleScreen, mIntroWidget, mHighScoreWidget, mMapWidget, mTrialWidget, mTalkWidget, mSidePanel};
+	Widget* aWidgets[] = {mBoard, mTitleScreen, mIntroWidget, mHighScoreWidget, mMapWidget, mDemoWidget, mTalkWidget, mSidePanel};
 	for (size_t i = 0; i < sizeof(aWidgets) / sizeof(aWidgets[0]); i++)
 	{
 		if (aWidgets[i] != NULL)
@@ -481,9 +483,9 @@ void SevenSeasApp::ReadFromRegistry()
 Dialog* SevenSeasApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
 {
-	Dialog* aDialog = new Dialog2004(mImages[IMAGE_DIALOG], mImages[IMAGE_DBUTTONBLACK], theDialogId, isModal,
-		theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
-	aDialog->SetButtonFont(mFonts[FONT_MT11]);
+	Dialog* aDialog = new GameDialog(this, theDialogId, isModal, theDialogHeader, theDialogLines, theDialogFooter,
+		theButtonMode);
+	aDialog->SetButtonFont(mFonts[FONT_YESNO]);
 	aDialog->SetHeaderFont(mFonts[FONT_FONT1]);
 	aDialog->SetLinesFont(mFonts[FONT_MT11]);
 	aDialog->SetColor(Dialog::COLOR_HEADER, Color(0x66, 0x5c, 0x38));
@@ -551,13 +553,13 @@ void SevenSeasApp::StopTalk()
 }
 
 // 0x41d750: a picture button; the copies of the pictures belong to the button
-ButtonWidget* SevenSeasApp::AddButton(int theId, const Rect& theRect, Image* theImage, Image* theDownImage)
+ButtonWidget* SevenSeasApp::AddButton(int theId, const Rect& theRect, Image* theImage, Image* theOverImage, Image* theDownImage)
 {
 	ButtonWidget* aButton = new ButtonWidget(theId, this);
 	aButton->Resize(theRect);
 	aButton->mDoFinger = true;
 	aButton->mButtonImage = CopyImage(theImage);
-	aButton->mOverImage = aButton->mButtonImage;
+	aButton->mOverImage = CopyImage(theOverImage);
 	aButton->mDownImage = theDownImage != NULL ? CopyImage(theDownImage) : NULL;
 	aButton->mMouseInsets = Insets(-1, -1, -1, -1);
 	mWidgetManager->AddWidget(aButton);
@@ -568,7 +570,7 @@ ButtonWidget* SevenSeasApp::AddButton(int theId, const Rect& theRect, Image* the
 // the menu's button (DialogButton with a picture)
 DialogButton* SevenSeasApp::AddDialogButton(int theId, const Rect& theRect, Image* theImage)
 {
-	DialogButton* aButton = new DialogButton(theImage, theId, this);
+	DialogButton* aButton = new DialogButton2003(theImage, theId, this);
 	aButton->Resize(theRect);
 	aButton->mDoFinger = true;
 	aButton->mMouseInsets = Insets(-1, -1, -1, -1);
@@ -635,8 +637,7 @@ void SevenSeasApp::TitleScreenDone()
 	mUndoButton = aButtons[0];
 	mOptionsButton = aButtons[1];
 	mNewGameButton = aButtons[2];
-	mQuitButton = AddButton(BUTTON_QUIT, Rect(0x134, 0x1aa, 0xc8, 0x35), mImages[IMAGE_QUITTOWINDOWSLIT], mImages[IMAGE_QUITTOWINDOWSUNLIT]);
-	mQuitButton->mDownImage = NULL;
+	mQuitButton = AddButton(BUTTON_QUIT, Rect(0x134, 0x1aa, 0xc8, 0x35), mImages[IMAGE_QUITTOWINDOWSUNLIT], mImages[IMAGE_QUITTOWINDOWSLIT], NULL);
 
 	// the pirate's head (visible once it speaks)
 	mTalkWidget = new TalkWidget(this);
@@ -707,11 +708,12 @@ void SevenSeasApp::EndTutorial()
 		SafeDeleteWidget(mHighScoreWidget);
 		mHighScoreWidget = NULL;
 	}
-	if (mTrialWidget != NULL)
+	CloseHelp();
+	if (mDemoWidget != NULL)
 	{
-		mWidgetManager->RemoveWidget(mTrialWidget);
-		SafeDeleteWidget(mTrialWidget);
-		mTrialWidget = NULL;
+		mWidgetManager->RemoveWidget(mDemoWidget);
+		SafeDeleteWidget(mDemoWidget);
+		mDemoWidget = NULL;
 	}
 	if (mBoard != NULL)
 	{
@@ -742,7 +744,18 @@ void SevenSeasApp::StartGame()
 {
 	DeleteSavedGame();
 	RemoveIntro();
-	// port: the beginner's demo screen (WinSS.exe 0x4132b0) is not ported; the game starts at once
+	if ((mDifficulty == 1) && !mTutorial)
+	{
+		// a first easy game starts with the demo, whose button makes the board
+		mDemoWidget = new DemoWidget(this);
+		mDemoWidget->Resize(0xad, 0, 0x1d3, 0x1e0);
+		mWidgetManager->AddWidget(mDemoWidget);
+		mWidgetManager->BringToFront(mDemoWidget);
+		mWidgetManager->SetFocus(mDemoWidget);
+		mWidgetManager->BringToFront(mDemoWidget->mButton);
+		mNewGameButton->SetVisible(true);
+		return;
+	}
 	mBoard = new Board(this, false);
 	mBoard->Resize(0xad, 0, 0x1d3, 0x1e0);
 	mWidgetManager->AddWidget(mBoard);
@@ -752,6 +765,17 @@ void SevenSeasApp::StartGame()
 	mQuitButton->SetVisible(false);
 	mNewGameButton->SetVisible(true);
 	mWidgetManager->BringToFront(mTalkWidget);
+}
+
+// 0x41f300
+void SevenSeasApp::RemoveDemo()
+{
+	if (mDemoWidget != NULL)
+	{
+		mWidgetManager->RemoveWidget(mDemoWidget);
+		SafeDeleteWidget(mDemoWidget);
+		mDemoWidget = NULL;
+	}
 }
 
 // 0x41ed70 + 0x421a10 case 0xf: continue the saved game
@@ -917,6 +941,20 @@ void SevenSeasApp::ShowMap()
 
 void SevenSeasApp::ShowHelp()
 {
+	mHelpWidget = new HelpWidget(this);
+	mHelpWidget->Resize(0xad, 0, 0x1d3, 0x1e0);
+	mWidgetManager->AddWidget(mHelpWidget);
+}
+
+// 0x41ed30
+void SevenSeasApp::CloseHelp()
+{
+	if (mHelpWidget != NULL)
+	{
+		mWidgetManager->RemoveWidget(mHelpWidget);
+		SafeDeleteWidget(mHelpWidget);
+		mHelpWidget = NULL;
+	}
 }
 
 // 0x41ac10 / 0x41ac40: the saved game is data/savegame.dat in the original, savegame.dat in the user folder here
@@ -1051,4 +1089,11 @@ void SevenSeasApp::ButtonDepress(int theId)
 		ShowQuitDialog();
 		break;
 	}
+}
+
+// the widgets forward their mouse position to the panel (the panel is not there before the first board)
+void SevenSeasApp::FollowMouse(int x, int y)
+{
+	if (mSidePanel != NULL)
+		mSidePanel->MouseMove(x, y);
 }

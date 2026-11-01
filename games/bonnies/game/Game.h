@@ -7,6 +7,9 @@
 
 #include "Str.h"
 
+#include <cstring>
+#include <new>
+
 namespace bonnies
 {
 
@@ -41,6 +44,17 @@ struct Record
 class Game
 {
 public:
+	// The constructor sets only mInProgress, and a cell's mBounces is set only when its tile falls, yet the refill
+	// (0x4079a0) reads it for a '*' tile at the bottom and the save (0x406770) writes it for every cell: the original
+	// reads whatever its heap held there. The port's game is made on zeroed memory, so those reads give 0 and the
+	// saves repeat (DEVIATIONS.md).
+	static void* operator new(size_t theSize)
+	{
+		void* aBlock = ::operator new(theSize);
+		std::memset(aBlock, 0, theSize);
+		return aBlock;
+	}
+
 	// 0x406ff0
 	Game();
 	// 0x406490

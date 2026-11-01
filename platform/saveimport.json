@@ -221,6 +221,15 @@
         { "from": "#_#.sav", "to": "#_#.sav", "what": "a player's classic game in progress" },
         { "from": "#_#_D.sav", "to": "#_#_D.sav", "what": "a player's adventure stage in progress" }
       ]
+    },
+    "bonnies": {
+      "folder": "Bonnie's Bookstore Deluxe",
+      "note": "Bonnie's Bookstore keeps nothing in the registry; its saves are beside its exe.",
+      "files": [
+        { "from": "SavedGames/General_Preferences.cfg", "to": "SavedGames/General_Preferences.cfg", "what": "the settings and the last player's name" },
+        { "from": "SavedGames/*.GAM", "to": "SavedGames/*.GAM", "what": "a player's game in progress and record" },
+        { "from": "Data/HighScores.dat", "to": "Data/HighScores.dat", "what": "the high scores" }
+      ]
     }
   }
 }

@@ -702,10 +702,11 @@ The per-game table (generated from the file; the registry places are listed in t
 | Dynomite Deluxe (`dynomite`) | `PopCap\Dynomite` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `LockCursor`, `FossilGameType`, `SkillLevel`, `GameType`, `StompedLevel` | `STOMPED.HS`, `ENDLESS.HS`, `FOSSIL.HS`, `TIMETRIAL.HS`, `SLOT#.SAV` |  |
 | Bookworm Adventures Volume 2 (`bookwormadv2`) | `PopCap\WinBAD` (user, then VirtualStore, then machine): the framework's options and times played; `LastUser`, `AppTime` | `users/*.bwa`, `users/data/*.dat` |  |
 | Mahjong Escape: Ancient Japan (`mahjongjapan`) | `JollyBear\Mahjong Escape Ancient Japan` (user): `SoundsOn`, `SoundsVolume`, `MusicOn`, `MusicVolume`, `FullScreen`, `WideScreen`, `HardwareAcceleration` | `list.usr`, `#.usr`, `#_#.sav`, `#_#_D.sav` (in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`) |  |
+| Bonnie's Bookstore Deluxe (`bonnies`) | none | `SavedGames/General_Preferences.cfg`, `SavedGames/*.GAM`, `Data/HighScores.dat` |  |
 
 
 The framework's options (`base`) and the times played (`app`) are taken for every game that has a `registry` entry and derives from `SexyApp`; TipTop, Cosmic
-Bugs and Water Bugs keep no registry values the port reads, and Ning Po and Word Harmony (engine games) have only their own values. Bookworm Adventures and
+Bugs, Water Bugs and Bonnie's Bookstore (an SDL game that keeps its saves beside its exe) keep no registry values the port reads, and Ning Po and Word Harmony (engine games) have only their own values. Bookworm Adventures and
 Volume 2 share the key `PopCap\WinBAD` and the folder `WinBAD`, so each imports what the other wrote there. What the table leaves out and why, game by game, is in
 its `skipFiles` and `skipValues`: Noah's Ark's `data\savegame.dat` (the port's file keeps its random number generator in another form, so the original's cannot be
 continued), Alchemy's `userdata\savegame.dat` (the port adds a version byte), the Steam edition of BookWorm's `players\<name>\profile.dat` and `scores.dat` (a later

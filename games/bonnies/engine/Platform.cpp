@@ -491,6 +491,9 @@ void Platform::init(int theWidth, int theHeight, int theFullScreen)
 // 0x42ade0
 void Platform::shutdown()
 {
+	// The original releases the resource cache after it has deleted the sound and the graphics, so the cache's free
+	// (0x421b30) skips every image and sample still in it and they leak; the port releases it first (DEVIATIONS.md)
+	gResources->releaseAll();
 	gSound->shutdown();
 	delete gSound;
 	gSound = nullptr;
@@ -504,7 +507,6 @@ void Platform::shutdown()
 	gFloatTexts->clear();
 	delete gFloatTexts;
 	gFloatTexts = nullptr;
-	gResources->releaseAll();
 	delete gResources;
 	gResources = nullptr;
 	gPak->close();
