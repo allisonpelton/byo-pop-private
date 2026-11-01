@@ -117,8 +117,14 @@ The script command `musicwav <file> <seconds>` starts the song again and renders
 device, logging how long the device had played and how many voices sounded. Rendered for 180 seconds (the song is
 168.8 s and loops), the cut-down bank and the full one (`-soundfont=`) differ by at most one in 32767, and so do the
 native build and the web build under Node (`games/bejeweled/tools/verify/wasmrun.js game build/web/tiptop.js ...`).
-The song sounds up to 116 voices at once, most of them fading out; the synth has 256. At the default music volume its
-level is about -24 dB on average with peaks at -5 dB, below the sounds (peaks at 0 dB).
+The song sounds up to 116 voices at once, most of them fading out; the synth has 256.
+
+The level (2026-11-01, after the user found the music far quieter than the original's): the synth makes a channel's volume
+from CC 7 and CC 11 as the GS synth behind the MIDI mapper does, 40 log10(value / 127) dB each, where TinySoundFont's own
+cube law made the song's channels (CC 7 of 60 to 100) up to 8 dB quieter; and `TipTopApp::SetMusicVolume` keeps the
+framework's music volume (0.85 of BASS's 40 of 100, -9 dB) out of the mixer, since TipTop's own slider sets the music
+volume. At the default music volume the song is now about -21 dB on average with peaks at -3 dB, a little below the
+sounds (peaks at 0 dB), and under 0 dB at full volume.
 
 ## Mods
 
