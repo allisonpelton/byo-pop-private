@@ -68,7 +68,8 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	for (int anId = -101; anId >= -104; anId--)
 		mUnknown37B8[anId] = anId;  // 0x6b8c49
 	gBoard = this;
-	gUnknown85B970.SRand((unsigned int)time(nullptr));
+	// port: -seed=N replaces the time, so that test runs repeat
+	gUnknown85B970.SRand(mApp->mHasSeedParam ? (unsigned int)mApp->mRandSeed : (unsigned int)time(nullptr));
 	gUnknown85AEF0 = 0;
 	mUnknown3924 = mApp->mUnknownF85 ? 0.0f : 1.0f;
 	mUnknown1F88 = Rect(0, 0, 0, 0);
@@ -419,7 +420,14 @@ void Board::NewLevel()
 			mGoodTube->SetProgress(0.0f, true);
 		mUnknown214 = false;
 		mUnknown164 = false;
-		std::memset(mUnknown228, 0, sizeof(mUnknown228));
+		mUnknown230 = 0;
+		mUnknown238 = 0;
+		mUnknown234 = 0;
+		mUnknown228[1] = 0;
+		mUnknown228[0] = 0;
+		mUnknown244 = 0;
+		mUnknown23C = 0;
+		mUnknown240 = 0;
 		mUnknown1EC = 0;
 		mUnknown1E8 = 0;
 		mUnknown21F8 = 100;  // 0x6a3ff4

@@ -79,6 +79,11 @@ public:
 	int mUnknown90 = 0;                // +0x90
 	int mUnknown94 = 0;                // +0x94
 	int mUnknown98 = 0;                // +0x98
+	int mUnknown9C = 0;                // +0x9c: +0x98 and +0x9c, the column and row the twist moves it by
+	int mUnknownA0 = 0;                // +0xa0: where the twist started it (x, y)
+	int mUnknownA4 = 0;                // +0xa4
+	int mUnknownA8 = 0;                // +0xa8: and from the twist's centre
+	int mUnknownAC = 0;                // +0xac
 	bool mUnknownB0 = false;           // +0xb0
 	bool mUnknownB1 = false;           // +0xb1
 	double mUnknownB8 = 0;             // +0xb8

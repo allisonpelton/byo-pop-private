@@ -85,6 +85,8 @@ public:
 	void StartUnknown4AC(bool theFour, bool theUnknown4A9);  // 0x707329
 	void SetColor(const Color& theColor, bool theAtOnce);   // 0x70c8b6: the cycle runs from the last colour to it
 	void UpdateImages();                           // 0x7030ec
+	int GetTubeHeight();                           // 0x702af7: 0 until the images are set
+	int GetTubeWidth();                            // 0x702b36: the wider light glow's width
 	int GetGlassTop();                             // 0x702921
 	int GetBottomTop();                            // 0x70295d
 	void SetProgress(float theProgress, bool theAtOnce);  // 0x703731

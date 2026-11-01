@@ -119,6 +119,23 @@ void GoodTube::UpdateImages()
 	mUnknown194 = aTop;
 }
 
+int GoodTube::GetTubeHeight()
+{
+	if (mUnknown16C == 0)
+		return 0;
+	return Ftol((double)(mGlassImage->mHeight + mBottomImage->mHeight + mTopImage->mHeight) * 0.9300000071525574);
+}
+
+int GoodTube::GetTubeWidth()
+{
+	if (mUnknown16C == 0)
+		return 0;
+	int aWidth = IMAGE_INGAMEUI_TOP_LIGHTGLOW->mWidth;
+	if (IMAGE_INGAMEUI_TOP_LIGHTGLOW->mWidth <= IMAGE_INGAMEUI_BOT_LIGHTGLOW->mWidth)
+		aWidth = IMAGE_INGAMEUI_BOT_LIGHTGLOW->mWidth;
+	return aWidth;
+}
+
 int GoodTube::GetGlassTop()
 {
 	float aScale = (float)((double)gApp->mArtRes / 1200.0);

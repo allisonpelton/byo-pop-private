@@ -119,6 +119,7 @@ public:
 	bool mUnknown1BF2 = false;         // +0x1bf2: coal is drawn as snackers
 	Image* mShineImage = nullptr;      // +0x1c54
 	int mUnknown1C5C = 0;              // +0x1c5c
+	int mUnknown1C58 = 0;              // +0x1c58
 	float mUnknown2038 = 0;            // +0x2038
 	int mUnknown20DC = 0;              // +0x20dc
 	float mUnknown2108 = 0;            // +0x2108
@@ -137,6 +138,7 @@ public:
 	bool mUnknown37F8 = false;         // +0x37f8: no sounds or marks for the gems made (loading a game)
 	bool mUnknown3904 = false;         // +0x3904
 	float mUnknown380C = 0;            // +0x380c
+	int mUnknown3804 = 0;              // +0x3804: the turn's rating (0x6a5179)
 	float mUnknown3924 = 1.0f;         // +0x3924
 	int mBoardX = 0;                   // +0x3474: the grid's left edge
 	// The rest of the fields the constructor (0x6c4df9) sets, named by their offset until their use is known
@@ -251,7 +253,7 @@ public:
 	int mUnknown203C = 0;                   // +0x203c: the puzzle fill's wait
 	// +0x21e4: objects of a class with its update at 0x6f465f (not yet ported)
 	std::vector<void*> mUnknown21E4;
-	std::vector<Piece*> mUnknown20F4;       // +0x20f4: pieces off the grid (SnapPiecesX moves them too)
+	std::vector<Piece*> mUnknown20F4;       // +0x20f4: the gems the twist turns (SnapPiecesX moves them too)
 	Piece* mUnknown1430 = nullptr;          // +0x1430: a piece RemovePiece forgets
 	int mUnknown1434 = 0;                   // +0x1434
 	bool mUnknown1438 = false;              // +0x1438
@@ -262,6 +264,7 @@ public:
 	int mUnknown144C = -1;                  // +0x144c
 	float mUnknown1450 = 1.0f;              // +0x1450
 	float mUnknown1454 = 0;                   // +0x1454
+	float mUnknown1458 = 0;                 // +0x1458: the twist's step, in degrees an update
 	float mUnknown145C = 1.0f;              // +0x145c
 	int mUnknown1460 = 0;                   // +0x1460
 	int mUnknown146C = 0;                   // +0x146c
@@ -314,6 +317,8 @@ public:
 	int mUnknown15BC = 0;                   // +0x15bc: -autoplay's click
 	int mUnknown15C0 = 0;                   // +0x15c0
 	int mUnknown15C4 = 0;                   // +0x15c4: the update count of -autoplay's click, 0 with none
+	int mUnknown15C8 = 0;                   // +0x15c8: the last click on the board
+	int mUnknown15CC = 0;                   // +0x15cc
 	bool mUnknown15D0 = false;              // +0x15d0
 	bool mUnknown15D1 = false;              // +0x15d1: +0x15d0 of the update before
 	int mUnknown15D4 = 0;                   // +0x15d4
@@ -402,8 +407,8 @@ public:
 	float mUnknown2058[24] = {};            // +0x2058: 24 glows that run round (UpdateGlows)
 	float mUnknown20B8 = 0;                   // +0x20b8
 	int mUnknown20BC = -1;                  // +0x20bc
-	int mUnknown20C0 = 0;                   // +0x20c0
-	int mUnknown20C4 = 0;                   // +0x20c4
+	float mUnknown20C0 = 0;                 // +0x20c0: the cursor's turn while twisting
+	float mUnknown20C4 = 0;                 // +0x20c4
 	float mUnknown20C8 = 0;                   // +0x20c8
 	float mUnknown20CC = 0;                   // +0x20cc
 	bool mUnknown20D0 = true;               // +0x20d0
@@ -427,6 +432,8 @@ public:
 	int mUnknown2168 = 0;                   // +0x2168
 	bool mUnknown216C = false;              // +0x216c
 	int mUnknown2188 = 0;                   // +0x2188
+	bool mUnknown218C = false;              // +0x218c
+	bool mUnknown2198 = false;              // +0x2198: the locks may count down (0x6aa0b7)
 	bool mUnknown2199 = false;              // +0x2199
 	int mUnknown219C = 0;                   // +0x219c
 	bool mUnknown21A0 = false;              // +0x21a0
@@ -448,6 +455,7 @@ public:
 	int mUnknown222C = 0;                   // +0x222c
 	int mUnknown2234[84] = {};              // +0x2234
 	Buffer mSaveBuffer;                     // +0x2384: the game as StartLevel saved it (0x6b0d91)
+	Buffer mUnknown23B4;                    // +0x23b4
 	int mUnknown23A4 = -1;                  // +0x23a4
 	int mUnknown23A8 = -1;                  // +0x23a8
 	int mUnknown23AC = 0;                   // +0x23ac
@@ -628,7 +636,10 @@ public:
 	// Set by NewLevel (0x6bf659) and the level's progress
 	bool mUnknown164 = false;               // +0x164
 	int mUnknown208 = 0;                    // +0x208
-	int mUnknown228[7] = {};                // +0x228: [0] the level's longest chain
+	int mUnknown228[2] = {};                // +0x228: [0] the level's longest chain
+	int mUnknown238 = 0;                    // +0x238
+	int mUnknown23C = 0;                    // +0x23c: the twists made in the level
+	int mUnknown240 = 0;                    // +0x240: the twists that made no match
 	int mUnknown244 = 0;                    // +0x244: the chains made
 	int mUnknown1C44 = 0;                   // +0x1c44
 	bool mUnknown1F6C = false;              // +0x1f6c
@@ -693,6 +704,22 @@ public:
 	void SetCursor(int theRow, int theCol);      // 0x6a9d2d: the selection's rectangle, two gems square
 	// 0x6bd9ac: the cursor to theRow, theCol, with its sound, trail and the moves it shows
 	void MoveCursor(int theRow, int theCol, bool theQuiet, MatchInfo* theInfo);
+	// The twist (BoardTwist.cpp)
+	void MouseMove(int x, int y) override;                       // 0x6a47ba
+	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override;  // 0x6c7232
+	void MouseUp(int x, int y, int theClickCount) override;      // 0x6a52c1
+	void MouseDrag(int x, int y) override;                       // 0x6a52cb
+	void MouseWheel(int theDelta) override;                      // 0x6a52d7
+	void UpdateCursor(int x, int y);                             // 0x6bdbd9 (slot 70, the board's own)
+	void StartTwist(bool theInstant, int theX, int theY);        // 0x6c6e56
+	void SetupTwist(int theX, int theY);                         // 0x6bb171: the four gems at +0x20f4
+	bool StartPieceMove(Piece* thePiece, int theDCol, int theDRow);  // 0x6a9d6f
+	void FinishTwist(bool theStop);                              // 0x6bba82: the turned gems into their cells
+	void CountDownBombs(bool theInstant);                        // 0x6aa0b7
+	void LockPiece(Piece* thePiece);                             // 0x6a4e78
+	void UnturnPieces();                                         // 0x6a5424
+	void ClearTurning();                                         // 0x6a54cb
+	void UpdateTwist();                                          // 0x6cfd85
 	void EvaluateCursor(MatchInfo* theInfo);     // 0x6bd872: +0x1c40 a match, +0x1c41 the turn blocked
 	void ClearCellHints();                       // 0x6a4764
 	bool TestTwist(bool theTest, MatchInfo* theInfo);  // 0x6bb619: whether turning the cursor's 2x2 matches

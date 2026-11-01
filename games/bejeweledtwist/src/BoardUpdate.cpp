@@ -519,7 +519,6 @@ void Board::UpdateGame()
 	if (!mUnknown3921 || gApp->Is3DAccelerated()) {
 		if (mBoardX == aTo) {
 			if (mUnknown25A6) {
-				// port: the board's MouseMove (slot 52, 0x6a47ba) comes with the input
 				MouseMove(mUnknown15B4, mUnknown15B8);
 			}
 			mUnknown25A6 = false;
@@ -958,8 +957,7 @@ void Board::UpdateGame()
 	switch (mUnknown160) {
 	case 0:
 		if (mUnknown21D9) {
-			// port: 0x6cfd85 comes with the hyper cascades; it draws from Rand
-			NotPorted("Board::UpdateGame: 0x6cfd85");
+			UpdateTwist();
 		} else {
 			float aFade = (float)((double)mUnknown20D4 - (double)0.04f);
 			mUnknown20D4 = 0.0f < aFade ? aFade : 0.0f;
@@ -1435,8 +1433,44 @@ bool Board::CanMove(Piece* thePiece)
 
 void Board::LayoutTube()
 {
-	// port: the tube's layout (0x6b3da8) comes with the tube; it draws nothing from Rand
-	NotPorted("Board::LayoutTube");
+	if (mGameMode == MODE_PUZZLE) {
+		if (IsBusy())
+			return;
+		// port: the puzzle's widget at +0x23d4 slides 5% of its x each update; it comes with the puzzles
+		NotPorted("Board::LayoutTube: the puzzle's widget");
+		return;
+	}
+	if (mUnknown3810.mIncRate != 0.0 && !mUnknown3810.HasBeenTriggered()) {
+		// The new level: the board slides in (mShakeX), the tube shows once it is in
+		if (!mUnknown3810.IncInVal() && !(0.0f < mUnknown380C))
+			mGoodTube->SetVisible(true);
+		double anOut = mUnknown3810.GetOutVal();
+		mShakeX = (float)(anOut * (double)(mWidth - GetColX(0)));
+	} else if (!mUnknown3880.HasBeenTriggered() && !mUnknown3880.IncInVal()) {
+		if (0.0 < mUnknown3880.GetOutVal()) {
+			mGoodTube->SetVisible(false);
+		} else if (mGameMode == MODE_BLITZ && mApp->mPlayPressed) {
+			mGoodTube->SetTime(mUnknown3458, false);
+		}
+		if (0.0f < mUnknown380C && mUnknown3810.mOutVal == 0.0) {
+			mUnknown25A6 = true;
+			mUnknown3810.SetCurve(GTS(0x7dca10));
+		}
+	}
+	// The tube beside the board, out by the curve
+	int anOldX = mGoodTube->mX;
+	Board* aBoard = gBoard;
+	int aRoom = (aBoard->mWidth - GetBoardWidth() - aBoard->mGoodTube->GetTubeWidth()) / 3;
+	double anOut = mUnknown3880.GetOutVal();
+	int aSlide = Ftol((double)gApp->mScale * 600.0);
+	double aX = (double)aRoom - anOut * (double)aSlide;
+	int aMargin = Ftol((double)gApp->mScale * 30.0);
+	int aNewX = Ftol(aX - (double)aMargin);
+	if (aNewX != anOldX && !mUnknown36B0 && (!mUnknown37C4 || !mUnknown25A4)) {
+		GoodTube* aTube = mGoodTube;
+		int aHeight = aTube->GetTubeHeight();
+		aTube->Resize(aNewX, aTube->mY, aTube->GetTubeWidth(), aHeight);
+	}
 }
 
 void Board::UpdateGlows()
