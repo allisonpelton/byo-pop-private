@@ -205,6 +205,9 @@ public:
 	void SetCapture(Object* theObject, bool theOn);
 	// 0x42c8d0
 	void EndWait();
+	// 0x42a5b0 (0x434dc0 on the display; the static wrapper 0x4215e0): the display's +0x50, with which the present
+	// waits for the vertical blank (0x433e90) while the map's curtain moves; nothing in the port
+	void SetVBlankWait(bool theOn) {}
 	// 0x42c8f0
 	void SetCursor(int theKind);
 };
