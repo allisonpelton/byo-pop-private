@@ -171,6 +171,21 @@ static bool IsAbsolute(const std::string& p)
 	return (!p.empty() && (p[0] == '/' || p[0] == '\\')) || (p.size() > 1 && p[1] == ':');
 }
 
+// An absolute path as the host's file system takes it: a game that builds its save paths the Windows way
+// (Bejeweled Twist's "<user dir>/users\users.dat") gets forward slashes off Windows.
+static std::string HostPath(const std::string& p)
+{
+#ifdef _WIN32
+	return p;
+#else
+	std::string aPath = p;
+	for (char& c : aPath)
+		if (c == '\\')
+			c = '/';
+	return aPath;
+#endif
+}
+
 void VFS::SetRemaps(const std::map<std::string, VFSRemap>& theRemaps)
 {
 	mRemaps.clear();
@@ -192,7 +207,7 @@ std::string VFS::ResolveIn(const std::string& theRoot, const std::string& theGam
 std::string VFS::Resolve(const std::string& theGamePath, std::string* theModId) const
 {
 	if (IsAbsolute(theGamePath))
-		return IsFile(theGamePath) ? theGamePath : "";
+		return IsFile(HostPath(theGamePath)) ? HostPath(theGamePath) : "";
 	std::string rel = Normalize(theGamePath);
 	// Save data lives outside the overlay.
 	std::string lowerRel = Lower(rel);
@@ -233,7 +248,7 @@ FILE* VFS::Open(const std::string& theGamePath, const char* theMode) const
 		std::string rel = Normalize(theGamePath);
 		std::string target;
 		if (IsAbsolute(theGamePath))
-			target = theGamePath;
+			target = HostPath(theGamePath);
 		else if (Lower(rel).rfind("userdata/", 0) == 0)
 			target = mUserDir + "/" + rel.substr(9);
 		else
