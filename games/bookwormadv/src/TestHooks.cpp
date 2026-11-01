@@ -1,6 +1,7 @@
 // port: the test scripts' own commands (-script, see SexyAppBase.h); the original had none.
 //
-//   word [attack]   spells the longest word the battle's grid allows: clicks on its tiles, 8 updates apart
+//   word [attack] [max=N]
+//                   spells the longest word the battle's grid allows (at most N letters): clicks on its tiles, 8 updates apart
 //                   (then a move to the attack button and a click on it when asked). Logs "script: word <WORD>", or "no word". While
 //                   the board is busy (a dialog, a conversation, a pause, tiles moving, falling or already in
 //                   the word) it tries again every 10 updates, and gives up after 200 tries ("busy").
@@ -100,11 +101,15 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (!aTile->mSelected && aTile->CanSelect(aTile->mX + 25, aTile->mY + 25))
 			aTiles.push_back(std::make_pair(Board::GetWord(std::list<Tile*>(1, aTile)), aTile));
 	std::string anEgg = GT(0x7aad5c);  // the word that starts the Astro Pop flash: left out
+	size_t aMax = std::string::npos;
+	size_t aMaxPos = theCommand.mArgs.find("max=");
+	if (aMaxPos != std::string::npos)
+		aMax = (size_t)atoi(theCommand.mArgs.c_str() + aMaxPos + 4);
 	std::string aBest;
 	std::vector<Tile*> aBestOrder;
 	std::vector<Tile*> anOrder;
 	for (const std::string& aWord : mLex->mWords)
-		if (aWord.size() > aBest.size() && aWord != anEgg && Spell(aWord, aTiles, anOrder)) {
+		if (aWord.size() > aBest.size() && aWord.size() <= aMax && aWord != anEgg && Spell(aWord, aTiles, anOrder)) {
 			aBest = aWord;
 			aBestOrder = anOrder;
 		}

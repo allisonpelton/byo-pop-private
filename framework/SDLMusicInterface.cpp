@@ -21,7 +21,7 @@ SDLMusicInterface::~SDLMusicInterface()
 
 void SDLMusicInterface::ApplyVolume(SongInfo& theSong)
 {
-	Mixer::Get().SetSongGain(theSong.mHandle, (float)(theSong.mVolume * theSong.mAmplifyGain));
+	Mixer::Get().SetSongGain(theSong.mHandle, (float)theSong.mVolume);
 }
 
 bool SDLMusicInterface::LoadMusic(int theSongId, const std::string& theFileName)
@@ -200,7 +200,9 @@ void SDLMusicInterface::SetVolume(double theVolume)
 // (int)(theAmp * 100). BASS 2.3 takes 0 to 100 and holds a larger value at 100; its default is 50. The levels are
 // measured: BASS 2.3.0.1 (the game's bass.dll) decoding the first 60 s of the game's music.mo3 at each value, in
 // dB RMS against libopenmpt rendering the same with the port's settings. Between them the gain is interpolated in
-// dB. A song whose amplify is never set keeps libopenmpt's level.
+// dB. A song whose amplify is never set keeps libopenmpt's level; a stream (a mod's Ogg in place of the module)
+// is never amplified, as BASS_MusicSetAttribute fails on one. The spectrum sees the amplify too: BASS's FFT of the
+// same song is 5.35 times larger at 100 than at 50 (mean magnitude), the 14.5 dB step.
 void SDLMusicInterface::SetMusicAmplify(int theSongId, double theAmp)
 {
 	static const struct { int mAmp; double mDB; } kLevels[] = {
@@ -209,14 +211,14 @@ void SDLMusicInterface::SetMusicAmplify(int theSongId, double theAmp)
 	auto it = mSongs.find(theSongId);
 	if (it == mSongs.end())
 		return;
-	int anAmp = std::clamp((int)(theAmp * 100.0), 0, 100);
+	// clamped as a double first: a cast of NaN or of a value out of int's range is undefined
+	int anAmp = theAmp > 0.0 ? (int)std::min(theAmp * 100.0, 100.0) : 0;
 	size_t i = 1;
 	while (i < sizeof(kLevels) / sizeof(kLevels[0]) - 1 && kLevels[i].mAmp < anAmp)
 		i++;
 	double aDB = kLevels[i - 1].mDB + (kLevels[i].mDB - kLevels[i - 1].mDB) * (anAmp - kLevels[i - 1].mAmp) /
 		(kLevels[i].mAmp - kLevels[i - 1].mAmp);
-	it->second.mAmplifyGain = std::pow(10.0, aDB / 20.0);
-	ApplyVolume(it->second);
+	Mixer::Get().SetSongAmplify(it->second.mHandle, (float)std::pow(10.0, aDB / 20.0));
 }
 
 void SDLMusicInterface::Update()
