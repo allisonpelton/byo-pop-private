@@ -1,7 +1,7 @@
 # Bonnie's Bookstore tour (tools/check.sh bonnies): the logos, the menu, a new player, the difficulty, the story and the
 # first board's three tutorial words, the game's options with its high scores, credits and help, the main menu's
-# options, a new action game with one word played until its time is up, and the main menu's Quit, which ends the game
-# its own way. Run with -fast -seed=1; @DIR@ is the output folder.
+# options, a new action game with one word played, the focus lost and regained, until its time is up, and the main
+# menu's Quit, which ends the game its own way. Run with -fast -seed=1; @DIR@ is the output folder.
 400 screenshot @DIR@/logo.png
 1200 screenshot @DIR@/menu.png
 1210 click 180 306
@@ -76,6 +76,11 @@
 14360 click 435 390
 14500 click 506 532
 15000 screenshot @DIR@/actionword.png
+# the window loses the focus (the game pauses) and gets it back (a test hook of the port's host)
+20000 focus 0
+20450 screenshot @DIR@/paused.png
+20500 focus 1
+20800 screenshot @DIR@/resumed.png
 61000 screenshot @DIR@/timeup.png
 61200 click 444 414
 61500 screenshot @DIR@/endmenu.png

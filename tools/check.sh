@@ -82,8 +82,9 @@
 #                was saved (dynomite_load) (under a minute)
 #   bonnies      Bonnie's Bookstore Deluxe: a tour from a script (games/bonnies/tools/tour_test.txt): a new player,
 #                the classic game's tutorial words, the game's options, high scores, credits and help, the main menu's
-#                options, an action game until its time is up, and Quit; a rerun with the same screens and saves, which
-#                are the frozen baseline's (and build/baseline-bonnies/bonnies.exe's, when there is one) (under a minute)
+#                options, an action game paused by a focus loss and played until its time is up, and Quit; a rerun
+#                with the same screens and saves, which are the frozen baseline's (and build/baseline-bonnies/
+#                bonnies.exe's, when there is one) (under a minute)
 #   mahjongjapan Mahjong Escape: Ancient Japan: every layout loaded and dealt (mahjongjapan_dealtest), and a scripted
 #                escape stage from a new player (the name, the map, stage 1 won with the solver's clicks, the level's
 #                end and the map again) twice with the same screens, which are the frozen baseline's (under a minute)
@@ -1095,7 +1096,7 @@ bonnies_run() {  # <name> [<exe>]: games/bonnies/tools/tour_test.txt into $OUT/b
 	echo "$e"
 }
 
-BB_SHOTS_ALL="logo menu name difficulty story board tutorial word played cake tale gameoptions highscores credits help1 help2 help3 mainmenu options action actionword timeup endmenu"
+BB_SHOTS_ALL="logo menu name difficulty story board tutorial word played cake tale gameoptions highscores credits help1 help2 help3 mainmenu options action actionword paused resumed timeup endmenu"
 
 bonnies_same() {  # <a> <b>: whether two runs gave the same screens and the same saved files
 	local f
@@ -1133,7 +1134,7 @@ suite_bonnies() {
 		bonnies_same "$d/game" "$d/base" || { SUMMARY="the frozen baseline's screens or saves differ"; return 1; }
 		bl="; baseline identical"
 	fi
-	SUMMARY="the tour (classic tutorial, options, high scores, credits, help, an action game to its end, Quit); rerun identical; screens as frozen$bl"
+	SUMMARY="the tour (classic tutorial, options, high scores, credits, help, an action game paused by a focus loss and played to its end, Quit); rerun identical; screens as frozen$bl"
 	return 0
 }
 

@@ -38,7 +38,9 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   has the input focus, as the user's window would. The desktop is reported as 1920x1080, the player's Windows name is
   empty, and message boxes take their first button without being shown. The window is never moved, minimized or
   given clipboard text. `-seed=N` seeds `rand` with N instead of the time (`seedRandom`, 0x41f4e0), so a script's
-  boards repeat.
+  boards repeat. A script's `focus 0` and `focus 1` take the focus away and give it back, as a click on another
+  window would; while it is away in a `-fast` run, the game's wait for its next frame (0x420770), which pumps without
+  sleeping, runs the framework once a pump, since that run's clock moves only with the framework.
 
 ## Memory the original leaks
 
