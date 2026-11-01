@@ -87,6 +87,10 @@ public:
 	int mUnknownF70 = 0;                // +0xf70
 	int mUnknown75C = 0;                // +0x75c: counts the games ended
 	int mUnknown780 = 0;                // +0x780: counts the board's updates
+	int mUnknown7D4 = 0;                // +0x7d4: seconds played (UpdateStats), and the next three by kind of game
+	int mUnknown7D8 = 0;                // +0x7d8
+	int mUnknown7DC = 0;                // +0x7dc: in puzzles
+	int mUnknown7E0 = 0;                // +0x7e0
 	int mUnknownC74[84] = {};           // +0xc74: cleared by a new board (0x75fc8a) unless the old one has +0x37c4
 	// +0x758 (the framework's): the copy is registered, set from the wrapper and a "NoReg" file; the user's copies
 	// are full versions

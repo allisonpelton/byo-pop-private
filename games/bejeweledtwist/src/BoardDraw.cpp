@@ -11,7 +11,9 @@
 #include "Piece.h"
 #include "Points.h"
 #include "Res.h"
+#include "SexyMatrix.h"
 #include "Shockwave.h"
+#include "Traveller.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
@@ -467,7 +469,8 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 		// port: the travellers' drawing (their slot 1) comes with the travellers
 		NotPorted("Board::DrawPieces: the travellers");
 	}
-	// (the shockwaves' drawing, their slot 2, does nothing)
+	for (Shockwave* aWave : mUnknown1660)
+		aWave->Draw(g);
 	if (mUnknown23F5) {
 		// port: the tutorial's pointer (0x6aa3bc) comes with the tutorial
 		NotPorted("Board::DrawPieces: the tutorial's pointer (0x6aa3bc)");
@@ -651,10 +654,36 @@ void Board::DrawOverlay(Graphics* g)
 	if (mUnknown160 == 1 || mUnknown2629)
 		NotPorted("Board::DrawOverlay: the replay's screen");
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-	for (Shockwave* aWave : mUnknown1660)  // 0x6a9b85
-		aWave->Draw(g);
-	if (mUnknown26CC != nullptr)
-		NotPorted("Board::DrawOverlay: the nuke (+0x26cc)");
+	for (Traveller* aTraveller : mUnknown2170)  // 0x6a9b85
+		aTraveller->Draw();
+	if (mUnknown26CC != nullptr) {
+		if (mUnknown160 == 7) {
+			// The nuke: the gem that set it off, its nova and the blast. (With Direct3D the board and the tube also
+			// zoom about the gem with +0x2908, IMAGE_BOOM_BOARD and IMAGE_BOOM_FTUBE over them.)
+			if (!mUnknown26CC->mUnknown2F6)
+				DrawNukeGem(g, mUnknown26CC);
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 255, Ftol(mUnknown2748.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+			Transform aTransform;
+			float aScale = (float)mUnknown26D8.GetOutVal();
+			aTransform.Scale(aScale, (float)mUnknown26D8.GetOutVal());
+			float aY = (float)((double)(gGemHeight / 2) + (double)mUnknown26CC->mY);
+			float aX = (float)((double)(gGemWidth / 2) + (double)mUnknown26CC->mX);
+			g->DrawImageTransformF(IMAGE_BOOM_NOVA, aTransform, aX, aY);
+			if (0.0 < mUnknown27B8.GetOutVal()) {
+				g->SetColor(Color(255, 255, 255, Ftol(mUnknown2828.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+				aTransform.Reset();
+				aScale = (float)mUnknown27B8.GetOutVal();
+				aTransform.Scale(aScale, (float)mUnknown27B8.GetOutVal());
+				aY = (float)((double)(gGemHeight / 2) + (double)mUnknown26CC->mY);
+				aX = (float)((double)(gGemWidth / 2) + (double)mUnknown26CC->mX);
+				g->DrawImageTransformF(IMAGE_BOOM_NUKE, aTransform, aX, aY);
+			}
+		}
+		g->SetColorizeImages(true);
+		for (Shockwave* aWave : mUnknown1660)
+			aWave->Draw(g);
+	}
 	if (mUnknown34F0.GetOutVal() != 0.0 && mUnknown1574 == 0) {
 		// "GO", fading in over the curve's first half
 		double aFade = mUnknown34F0.GetOutVal() * 2;
@@ -761,5 +790,22 @@ void Board::DrawCounters(Graphics* g)
 		g->DrawString(aText, aTextX - anOffset2, aY - anOffset2);
 		g->SetColor(Color(255, 255, 255, anAlpha));
 		g->DrawString(aText, aTextX, aY);
+	}
+}
+
+void Board::DrawNukeGem(Graphics* g, Piece* thePiece)
+{
+	thePiece->Draw(g, false);
+	thePiece->Draw(g, true);
+	if (0.0 < mUnknown2898.GetOutVal()) {
+		// an angry bomb over it, at half size
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, Ftol(mUnknown2898.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+		Transform aTransform;
+		aTransform.Scale(0.5f, 0.5f);
+		float aY = (float)((double)(gGemHeight / 2) + (double)thePiece->mY);
+		float aX = (float)((double)(gGemWidth / 2) + (double)thePiece->mX);
+		g->DrawImageTransformF(IMAGE_ANGRYBOMB, aTransform, aX, aY);
+		g->SetColorizeImages(false);
 	}
 }

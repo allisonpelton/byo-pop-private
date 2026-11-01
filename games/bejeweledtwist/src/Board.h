@@ -208,6 +208,7 @@ public:
 	int mUnknown1378 = 3;                   // +0x1378
 	bool mUnknown137C = false;              // +0x137c
 	bool mUnknown137D = false; // +0x137d
+	bool mUnknown137E = false;              // +0x137e
 	bool mUnknown137F = false;              // +0x137f
 	bool mUnknown1380 = false;              // +0x1380
 	bool mUnknown1381 = false;              // +0x1381
@@ -878,6 +879,11 @@ public:
 	// 0x6d045b: the board after the game, state by state (+0x26c8): the rows fall off (3), blitz's final score
 	// (4 to 8), then back to the menu (9)
 	void UpdateGameOver();
+	// 0x6d090f's state 7 with the nuke: the blast from +0x26cc blows the gems apart, the tube steams, then space
+	void UpdateNuke();
+	// 0x6a3b4c: the game's time, scores and counts into the profile and the app, once (+0x137c)
+	void UpdateStats();
+	void DrawNukeGem(Graphics* g, Piece* thePiece);  // 0x6a6885: the gem that set off the nuke, while hidden
 	void BreakSpecial(Piece* thePiece, bool theFlag);  // 0x6c03a4
 	void BurstGems(int theX, int theY, int theRange);  // 0x6bac72
 	// 0x6a4b7c: the gems above and around thePiece jump away from it

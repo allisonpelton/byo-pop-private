@@ -1087,9 +1087,7 @@ void Board::UpdateGame()
 		if (!mUnknown36B1) {
 			UpdateGameOver();
 		} else {
-			// port: the nuke (+0x27b8's curve, the gems blown off from +0x26cc, 0x6a3b4c) draws from Rand; it comes
-			// next
-			NotPorted("Board::UpdateGame: the nuke");
+			UpdateNuke();
 		}
 		break;
 	case 8:
@@ -2618,5 +2616,186 @@ void Board::UpdateGameOver()
 		}
 		break;
 	}
+	}
+}
+
+void Board::UpdateStats()
+{
+	if (mUnknown137C)
+		return;
+	unsigned int aTime = (unsigned int)(mUpdateCnt - mUnknown14DC) / 100 + (unsigned int)mUnknown14E8;
+	mUnknown14EC = (int)aTime;
+	if ((unsigned int)mGameMode <= 2) {
+		// the app's longest game of the mode
+		unsigned int& aBest = (unsigned int&)mApp->mUnknownC74[5 + mGameMode];
+		if (aTime < aBest)
+			aTime = aBest;
+		aBest = aTime;
+	}
+	Profile* aProfile = mApp->mProfile;
+	aProfile->mUnknown78 += mUnknown14EC - mUnknown14F0;
+	mUnknown14F0 = mUnknown14EC;
+	if (mGameMode != MODE_PUZZLE) {
+		aProfile->mUnknown94 += mUnknown1530 - mUnknown1534;
+		if (9 < aProfile->mUnknown94)
+			aProfile->mUnknown164 |= 1 << 1;  // 0x733774
+		mUnknown1534 = mUnknown1530;
+		aProfile->mUnknown98 += mUnknown1538 - mUnknown153C;
+		if (4 < aProfile->mUnknown98)
+			aProfile->mUnknown164 |= 1 << 2;
+		mUnknown153C = mUnknown1538;
+		aProfile->mUnknown8C += mUnknown1E8 - mUnknown1500;
+		if (mGameMode == MODE_CLASSIC || mGameMode == MODE_BLITZ || mGameMode == MODE_PUZZLE) {
+			unsigned int aScore = (unsigned int)mUnknown168;
+			if (aScore <= (unsigned int)aProfile->mUnknown5C[mGameMode])
+				aScore = (unsigned int)aProfile->mUnknown5C[mGameMode];
+			aProfile->mUnknown5C[mGameMode] = (int)aScore;
+		} else if (mGameMode == MODE_ZEN) {
+			aProfile->mUnknown5C[MODE_ZEN] = mUnknown168;
+		}
+		mUnknown1500 = mUnknown1E8;
+		int aLevel = mUnknown158;
+		if (aLevel <= aProfile->mUnknown128[mGameMode])
+			aLevel = aProfile->mUnknown128[mGameMode];
+		aProfile->mUnknown128[mGameMode] = aLevel;
+	}
+	if (!mUnknown137E) {
+		unsigned int aScore = (unsigned int)aProfile->mUnknown74;
+		if (aScore <= (unsigned int)mUnknown168)
+			aScore = (unsigned int)mUnknown168;
+		aProfile->mUnknown74 = (int)aScore;
+	}
+	int aSeconds = mUnknown1470 / 100;
+	if (mUnknown137D)
+		mApp->mUnknown7D8 += aSeconds;
+	else if (mGameMode == MODE_PUZZLE)
+		mApp->mUnknown7DC += aSeconds;
+	else if (mUnknown137E)
+		mApp->mUnknown7E0 += aSeconds;
+	else
+		mApp->mUnknown7D4 += aSeconds;
+	mUnknown137C = true;
+}
+
+void Board::UpdateNuke()
+{
+	if (mUnknown27B8.CheckInThreshold(0.7900000214576721) && mUnknown2630 != 0) {
+		// port: in a challenge whose goal (+0x80's bit 0x200) ends it here, 0x6b330d takes over and the update ends;
+		// it comes with the challenges
+		NotPorted("Board::UpdateNuke: the challenge's goal (0x6b330d)");
+	}
+	bool aDone = !mUnknown27B8.IncInVal();
+	if (mUnknown26CC != nullptr) {
+		// The gems within the blast's reach blow apart, eight bits each
+		mUnknown26CC->Update();
+		double aGrow = mUnknown26D8.GetOutVal();
+		float aReach = (float)(aGrow * (double)(float)((double)gApp->mScale * 280.0));
+		float aMidX = (float)((double)(gGemWidth / 2) + (double)mUnknown26CC->mX);
+		float aMidY = (float)((double)(gGemHeight / 2) + (double)mUnknown26CC->mY);
+		for (int aRow = 0; aRow < mRows; aRow++) {
+			for (int aCol = 0; aCol < mCols; aCol++) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				if (aPiece == nullptr || aPiece == mUnknown26CC)
+					continue;
+				float aDX = (float)((double)(gGemWidth / 2) + (double)aPiece->mX - (double)aMidX);
+				float aDY = (float)((double)(gGemHeight / 2) + (double)aPiece->mY - (double)aMidY);
+				float aDist = sqrtf((float)((double)aDX * (double)aDX + (double)aDY * (double)aDY));
+				if (!(aDist < aReach) || aPiece->mBlasted)
+					continue;
+				aPiece->mBlasted = true;
+				int i = 0;
+				do {
+					Effect* anEffect = mFXManager->AllocEffect(16);
+					anEffect->mColor = gGemColors[aPiece->mColor];
+					int aRand = (int)Rand() % 100;
+					double anAngle = (double)aRand / 800.0 + (double)i * 0.503;
+					anEffect->mX = (float)((double)(gGemWidth / 2) + (double)aPiece->mX +
+										   (double)RandSigned() * (double)gGemWidth * 0.5);
+					anEffect->mY = (float)((double)(gGemHeight / 2) + (double)aPiece->mY +
+										   (double)RandSigned() * (double)gGemHeight * 0.5);
+					anEffect->mAngle = (float)anAngle;
+					anEffect->mDAngle = (float)((double)RandSigned() * 0.05000000074505806);
+					anEffect->mScale = 1.0f;
+					anEffect->mAlpha = 1.0f;
+					anEffect->mUnknown38 = (float)((double)RandSigned() * 0.15 + 0.8);
+					float aDir = (float)atan2((double)aDY, (double)aDX);  // 0x4c1b70
+					float aCos = cosf(aDir);
+					anEffect->mDX = (float)((double)RandSigned() * 4.0 + (double)aCos * 16.0);
+					float aSin = sinf(aDir);
+					anEffect->mDY = (float)((double)RandSigned() * 4.0 + (double)aSin * 16.0);
+					anEffect->mGravity = 0.05f;
+					float aTurn = (float)((double)RandSigned() * (double)6.2831854820251465f);
+					anEffect->mUnknown9C = aTurn;
+					anEffect->mUnknownA0 = (float)((double)6.2831854820251465f * 0.25 + (double)aTurn);
+					anEffect->mUnknownA4 = 0.0f < RandSigned() ? 0.0f : 1.0f;
+					anEffect->mUnknownA8 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+					anEffect->mDAlpha = (float)(((double)fabsf(RandSigned()) * 4.0 + 2.0) * -0.005);
+					mFXManager->AddEffect(anEffect);
+					i++;
+				} while (i < 8);
+			}
+		}
+		if (!(mUnknown27B8.GetInVal() < 0.5799999833106995) && mUnknown27B8.GetInVal() < 1.649999976158142) {
+			// Steam from the tube's two vents
+			Effect* aSteam = mFXManager->AllocEffect(26);
+			float aSpeed = (float)((double)fabsf(RandSigned()) * 2.0 + 2.0);
+			aSteam->mIsAdditive = false;
+			aSteam->mDScale = 0.015f;
+			aSteam->mScale = (float)((double)fabsf(RandSigned()) * 0.30000001192092896 + 0.4000000059604645);
+			mFXManager->AddEffect(aSteam);
+			double anAngle;
+			if ((Rand() & 0x80000001) == 0) {
+				int anOffsetX = Ftol((double)gApp->mScale * 300.0);
+				double aSlide = mUnknown2978.GetOutVal();
+				float aSlideX = (float)((double)gApp->mScale * -60.0);
+				aSteam->mX = (float)(aSlide * (double)aSlideX + (double)(mGoodTube->mX + anOffsetX));
+				int anOffsetY = Ftol((double)gApp->mScale * 200.0);
+				aSlide = mUnknown2978.GetOutVal();
+				float aSlideY = (float)((double)gApp->mScale * 8.0);
+				aSteam->mY = (float)(aSlide * (double)aSlideY + (double)(mGoodTube->mY + anOffsetY));
+				anAngle = (double)RandSigned() * 0.20000000298023224 - 1.2000000476837158;
+			} else {
+				int anOffsetX = Ftol((double)gApp->mScale * 100.0);
+				double aSlide = mUnknown2978.GetOutVal();
+				float aSlideX = (float)((double)gApp->mScale * -20.0);
+				aSteam->mX = (float)(aSlide * (double)aSlideX + (double)(mGoodTube->mX + anOffsetX));
+				int anOffsetY = Ftol((double)gApp->mScale * 300.0);
+				aSlide = mUnknown2978.GetOutVal();
+				float aSlideY = (float)((double)gApp->mScale * 24.0);
+				aSteam->mY = (float)(aSlide * (double)aSlideY + (double)(mGoodTube->mY + anOffsetY));
+				aSteam->mDScale = (float)((double)aSteam->mDScale * 0.5);
+				aSpeed = (float)((double)aSpeed + 3.0);
+				anAngle = (double)RandSigned() * 0.10000000149011612 - 4.199999809265137;
+			}
+			float aDir = (float)anAngle;
+			aSteam->mDX = (float)((double)cosf(aDir) * (double)aSpeed);
+			aSteam->mDY = (float)((double)sinf(aDir) * (double)aSpeed);
+		}
+		if (mUnknown27B8.CheckInThreshold(1.649999976158142)) {
+			// The blast is over: the gem is plain again and space comes back
+			mUnknown26CC->mFlags = 0;
+			mUnknown26CC->mUnknown2F6 = true;
+			mFXManager->Clear();
+			if (mUnknown2630 != 0) {
+				// port: the challenges' manager (app +0xf5c) gets state 2 here; it comes with the challenges
+				NotPorted("Board::UpdateNuke: the challenge's state");
+				mUnknown34EC = 1;
+			} else {
+				mApp->ShowHyperspace();
+				mApp->mHyperspace->mLevel = 0;
+			}
+			// (and the app's VizManager, +0xc6c, is hidden: it is not ported yet)
+			mUnknown2043 = false;
+			mUnknown2041 = false;
+			mGoodTube->SetVisible(false);
+		}
+	}
+	if (mUnknown26A0 != nullptr)
+		aDone = false;
+	if (aDone) {
+		UpdateStats();
+		mUnknown2041 = false;
+		mUnknown15FC = true;
+		mUnknown1FF5 = true;
 	}
 }

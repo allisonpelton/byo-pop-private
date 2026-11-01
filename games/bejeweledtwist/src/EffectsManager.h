@@ -90,6 +90,7 @@ public:
 	void DrawOverlay(Graphics* g) override;  // 0x6f80a4
 	using Widget::DrawOverlay;
 
+	void Clear();  // 0x6f63ee: every effect deleted
 	// 0x6f555e: a new effect of the type, not yet added
 	Effect* AllocEffect(int theType);
 	// 0x6f875d

@@ -235,6 +235,15 @@ EffectsManager::~EffectsManager()
 	mEffects.clear();
 }
 
+void EffectsManager::Clear()
+{
+	while (!mEffects.empty()) {
+		auto anIt = mEffects.begin();
+		delete anIt->second;
+		mEffects.erase(anIt);
+	}
+}
+
 Effect* EffectsManager::AllocEffect(int theType)
 {
 	return new Effect(theType);
