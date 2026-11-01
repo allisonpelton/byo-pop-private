@@ -74,6 +74,9 @@ Options:
   where the game looks for them (see "Saves and the registry"). Refused on the host and with `--sandbox-probe`.
 - `--counter <expr>` / `--flips <expr>` / `--update-ms <ms>` — the game's update counter, for update-timed
   capture and input (see "Timing to the game's updates"). Usually set once in the per-game config instead.
+- `--pending-draw <expr>` / `--update-state <expr>` — a SexyAppBase game's `mHasPendingDraw` (read as one byte) and
+  `mUpdateAppState`, given together, so that a shot inside Windows Sandbox shows exactly the update it is labelled
+  with (`pending_draw=` and `update_state=` in the per-game config; see "Timing to the game's updates").
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
@@ -481,25 +484,50 @@ The held capture on the host used the window-DC blit, not `PrintWindow` (which n
 thread is suspended). Like every capture it is now taken only inside Windows Sandbox (guarantee 4); on the host it is
 refused before the game is held. Input under `at` is still held on the host.
 
-**Inside the sandbox (`printwindow-bracketed (sandbox)`, 2026-11-01).** There the window DC reads nothing, so an
-update-timed shot (`at <N> shot`, `burst ... update`) is taken this way. As soon as the counter reads `N`, the game is
-held and the counter read. `PrintWindow` is then asked on a thread of its own, put on origrun's desktop (a new thread
-starts on the process's first desktop, where `PrintWindow` returns a black window). The game is released once
-`PrintWindow`'s message has been sent (a 1 ms spin, since `Sleep` rounds up to the 15.6 ms timer tick). The
-SexyAppBase loop finishes update `N`, draws it, and answers the message from its message loop before update `N+1`.
-So the shot shows the frame of the update read during the hold, unless the game skips that draw to catch up. The
-hold lasts 1.3-3 ms. The log names the update ("held at update N, which the shot shows") and the counter once
-`PrintWindow` returned, which is `N` or `N+1` because the game catches up on the time it was held. That update is
-also listed in `shots/landed.tsv` (name, update) for every update-timed shot, inside the sandbox or not, so the port
-can take its own shot at the update the original's landed on. If `PrintWindow` fails, the shot is tried three
-times. If it does not return within 3 s of the release, the shot is refused. The tried and rejected alternative was
-reading the counter just before and just after an unheld `PrintWindow` and keeping the shot only when both reads
-agree. `PrintWindow` takes about an update's time there, so the reads agreed once in 1 to 20 tries, and shots
-landed up to 238 updates after their update. On the pilot's battle entry, measured with its `lag.py`, all 14 frames before the run took another path matched a port
-frame exactly (0 pixels), 0 to 3 updates before the update held. The transition's picture changes only every other
-update, so each match covers two updates, and the host's held shots trailed by 4-5 updates after the same load
-(below). So the shot lands on the held update to within the load's own offset and that two-update ambiguity, which
-this pilot cannot tell apart.
+**Inside the sandbox (`printwindow-bracketed (sandbox)`, 2026-11-01).** The window DC reads nothing there, so an
+update-timed shot (`at <N> shot`, `burst ... update`) works as follows.
+
+1. Once the counter reads `N`, the game is held and the counter is read.
+2. `PrintWindow` is posted to a helper thread. The helper is started once per run on the desktop of the thread that
+   captures (a new thread starts on the process's first desktop, where `PrintWindow` returns TRUE with a black
+   window), at raised priority.
+3. Once the helper signals that it is entering `PrintWindow`, a 0.5 ms margin is spun for it to send its message.
+   `Sleep` is not used because it would round up to the 15.6 ms timer tick.
+4. The game is released and answers the message at its next message check. The hold lasts about 1-2 ms.
+
+If the helper does not start within 100 ms, or `PrintWindow` does not return within 3 s, the shot is refused. The
+helper frees that shot's bitmap whenever `PrintWindow` does return, and until then every further shot is refused and
+a burst stops. A shot whose `PrintWindow` returns FALSE is tried again, up to three times. Nothing else reads the
+window on this path, so a failure never turns into a window-DC read.
+
+**Which frame the shot shows.** SexyAppBase checks messages after an update and its catch-up step, but draws that
+update only in a later `Process` call. A hold that falls inside update `N`, its catch-up step or the message check
+after them therefore gets the message answered before frame `N` is drawn. The shot then shows `N-1`, or an older frame
+when the game skipped a draw to catch up.
+
+With `--pending-draw` and `--update-state` (`mHasPendingDraw` and `mUpdateAppState`), origrun waits, without holding,
+until no update waits to be drawn and none runs. That means the flag is clear and the step is "messages" (0) or
+"done" (3); a draw and the catch-up updates run in "done", but with the flag still set. origrun then holds the game and
+checks again, releasing and retrying if the game moved on in between. The last draw then followed update `N` (or found
+nothing to redraw), and the next message check comes before the next update. So the shot shows update `N`, and the log
+says "update N, drawn when held". If no such moment comes within 500 ms, the shot is refused.
+
+Without the two options the shot shows `N` or an earlier update, and the log and `landed.tsv` say so ("or an earlier
+one", "or-earlier"). A failed read of the counter, the flag or the step refuses the shot.
+
+**What is logged.** The counter is read once more when `PrintWindow` returns. That read is logged but not checked,
+because by then the game has caught up on the time it was held: one update on, or more under load. Every update-timed
+shot is listed in `shots/landed.tsv` with its name, its update and how sure that update is ("drawn", "or-earlier", or
+"held" for the host's held shots from before the ban). Each run starts the file afresh, so the port can take its own
+shot at the update the original's landed on.
+
+A burst still waits for each frame's update. When a capture (`PrintWindow` and writing the PNG, about 35 ms for Bookworm
+Adventures) takes longer than the burst's spacing, its frames land after their updates, and `landed.tsv` gives each
+frame's real update.
+
+**Rejected: reading the counter before and after an unheld `PrintWindow`.** The shot was kept only when both reads
+agreed. Inside the sandbox `PrintWindow` takes about an update's time, so the reads agreed once in 1 to 20 tries, and
+shots landed up to 238 updates after their update.
 
 A hold begins only once the suspension has taken effect (`GetThreadContext` returns after it has), and
 if origrun crashes while it holds the game, it resumes the game first. A
@@ -642,7 +670,7 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 | pixelus | local install | trial screen (not clicked through yet) | yes | has one; on needs `--dgvoodoo` (untried) | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
 | tiptop | local install | trial, plays | yes | none | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
 | wordharmony | local install | trial (60 min), Play present | yes | none | none | |
-| bookwormadv | local install | in-game Updates dialog; in the sandbox the pilot's menus and battle (2026-11-01) | **in the sandbox** (2026-11-01), 806×629, client at (3,26); update-timed shots and bursts `printwindow-bracketed (sandbox)` | **off and on proven** (on with `--dgvoodoo`) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
+| bookwormadv | local install | in-game Updates dialog; in the sandbox the pilot's menus and battle (2026-11-01) | **in the sandbox** (2026-11-01), 806×629, client at (3,26); update-timed shots and bursts `printwindow-bracketed (sandbox)`, exact with `--pending-draw [0x8259e4]+0x45a --update-state [0x8259e4]+0x488` | **off and on proven** (on with `--dgvoodoo`) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
 | ningpo | local install | main window | **yes** (after init); **in the sandbox too** (2026-11-01) | none | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
 | waterbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode; dgVoodoo2 gives it a desktop-sized window |
 | cosmicbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | same as Water Bugs |
