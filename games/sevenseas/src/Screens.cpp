@@ -587,13 +587,28 @@ TalkWidget::TalkWidget(SevenSeasApp* theApp) :
 	mBlinkTick = mUpdateCnt;
 }
 
+// the mouth of each line (WinSS.exe 0x4a4008, 800 bytes a line): pairs of the mouth picture (0 closed, 1-4 the
+// pictures after the eye) and the updates it stays, ended by a time of 0; the draw reads the picture of the step, the
+// update the time
+static const int kMouthSteps[8][21][2] =
+{
+	{{0, 1}, {2, 13}, {4, 8}, {1, 9}, {2, 11}, {4, 8}, {1, 12}, {3, 13}, {2, 13}, {4, 7}, {1, 7}, {2, 12}, {1, 7}, {0, 6}, {4, 7}, {2, 18}, {4, 12}, {4, 16}, {0, 0}},
+	{{0, 1}, {3, 10}, {2, 8}, {0, 13}, {3, 8}, {2, 13}, {3, 5}, {2, 11}, {1, 9}, {2, 14}, {1, 10}, {3, 18}, {2, 13}, {1, 8}, {3, 6}, {2, 14}, {4, 10}, {1, 7}, {4, 17}, {1, 26}, {0, 0}},
+	{{0, 1}, {3, 11}, {1, 8}, {3, 7}, {2, 14}, {4, 17}, {1, 7}, {2, 7}, {1, 5}, {2, 10}, {4, 7}, {0, 9}, {2, 9}, {1, 5}, {2, 13}, {1, 15}, {4, 25}, {1, 8}, {0, 0}},
+	{{0, 1}, {3, 9}, {2, 21}, {1, 10}, {3, 8}, {2, 13}, {1, 11}, {3, 12}, {2, 29}, {1, 9}, {4, 27}, {0, 0}},
+	{{0, 1}, {4, 5}, {2, 41}, {1, 17}, {3, 5}, {2, 13}, {1, 6}, {2, 11}, {1, 11}, {0, 0}},
+	{{0, 1}, {3, 8}, {2, 12}, {1, 8}, {0, 7}, {1, 8}, {2, 32}, {1, 10}, {3, 6}, {2, 41}, {1, 15}, {4, 26}, {1, 20}, {0, 0}},
+	{{0, 1}, {3, 18}, {2, 18}, {4, 20}, {3, 22}, {2, 22}, {3, 8}, {4, 8}, {1, 25}, {0, 0}},
+	{{0, 1}, {2, 11}, {1, 8}, {2, 12}, {1, 8}, {3, 7}, {2, 5}, {1, 5}, {4, 27}, {1, 25}, {0, 0}}
+};
+
 // 0x419a70: the pirate says a line (the samples 0xe-0x15 are the lines); the mouth moves while it plays
 void TalkWidget::SetMouth(int theSet)
 {
 	mTalkingNow = true;
 	mSet = theSet;
 	mStep = 0;
-	mStepTime = 8 + (theSet % 3);
+	mStepTime = kMouthSteps[theSet][0][1];
 }
 
 // 0x419ce0
@@ -606,10 +621,8 @@ void TalkWidget::Update()
 		if (mStepTime < 1)
 		{
 			mStep++;
-			// port: the original has the mouth's frames and their times in tables, one per line; the port moves the
-			// mouth through the same five frames for the time a line lasts
-			mStepTime = 6 + (CrtRand() % 10);
-			if (mStep > 40)
+			mStepTime = kMouthSteps[mSet][mStep][1];
+			if (mStepTime == 0)
 				mTalkingNow = false;
 			MarkDirty();
 		}
@@ -673,17 +686,21 @@ void TalkWidget::Draw(Graphics* g)
 		int aY = -(int) (sin(mBobY) * 2.0);
 		Image** anImages = mApp->mImages;
 		g->DrawImage(anImages[IMAGE_PIRATEHEAD], aX, aY + 8);
+		int aMouth = 0;
 		if (mTalkingNow)
+			aMouth = kMouthSteps[mSet][mStep][0];
+		Image* aHead = anImages[IMAGE_PIRATEHEAD];
+		if (aMouth != 0)
 		{
-			// the mouth, one of the four pictures
-			int aMouth = 1 + (mStep % 4);
+			// the head in two slices around the mouth, the mouth at the bottom right
 			Image* aMouthImage = anImages[IMAGE_PIRATEEYE + aMouth];
-			Image* aHead = anImages[IMAGE_PIRATEHEAD];
-			g->DrawImage(aMouthImage, aX + aHead->GetWidth() - aMouthImage->GetWidth(),
-				aY + 8 + aHead->GetHeight() - aMouthImage->GetHeight());
+			int aRest = aHead->GetHeight() - aMouthImage->GetHeight();
+			g->DrawImage(aHead, aX, aY + 8, Rect(0, 0, aHead->GetWidth(), aRest));
+			g->DrawImage(aHead, aX, aY + 0x73, Rect(0, aRest, aHead->GetWidth() - aMouthImage->GetWidth(), aHead->GetHeight() - aRest));
+			g->DrawImage(aMouthImage, aX + aHead->GetWidth() - aMouthImage->GetWidth(), aY + 8 + aRest);
 		}
 		if (mBlink && (mProgress >= 1.0))
-			g->DrawImage(anImages[IMAGE_PIRATEEYE], aX + 0x5f, aY + 0x58);
+			g->DrawImage(anImages[IMAGE_PIRATEEYE], aX + 0x5b, aY + 0x58);
 		g->SetColorizeImages(false);
 	}
 }
