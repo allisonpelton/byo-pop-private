@@ -182,7 +182,8 @@ Git and publishing:
 - **Mac versions (the user, 2026-11-01):** PopCap's own Mac builds are not references. Where the user found one, it
   sits in the main checkout's `re/<game>/mac/` (git-ignored, so a worktree copies the folder in) with a demangled
   `<name>.symbols.txt` of its function and class names: BookWorm, Bejeweled, Bejeweled 2, Big Money, Alchemy, Seven
-  Seas, Mummy Maze, Chuzzle and Zuma's Revenge. Its names and class layout guide the port, but the PC exe stays the
+  Seas, Mummy Maze, Chuzzle, Zuma's Revenge, Bejeweled 3 (partly stripped) and Peggle Deluxe and Nights (in
+  `re/peggle/<edition>/mac/`). Its names and class layout guide the port, but the PC exe stays the
   authority for behaviour, since the Mac build may be another version. No symbol list goes into the repo; a few names
   as examples are fine. A game decompiled before its Mac version came (BookWorm, Bejeweled, Big Money, Alchemy, Seven
   Seas, Mummy Maze) also gets a report: its session notes the commit it starts from before it first opens the Mac files,
