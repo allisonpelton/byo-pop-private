@@ -6,6 +6,7 @@
 #include "EffectsManager.h"
 #include "GameText.h"
 #include "GoodTube.h"
+#include "Hyperspace.h"
 #include "MemoryImage.h"
 #include "Piece.h"
 #include "Profile.h"
@@ -580,6 +581,221 @@ Board::~Board()
 	delete[] mGrid;
 	if (gBoard == this)
 		gBoard = nullptr;
+}
+
+void Board::StartGame()
+{
+	if (!mApp->mPlayPressed) {
+		Buffer aBuffer;
+		mApp->ReadBufferFromFile(mApp->GetSaveName(mGameMode, mUnknown2674), &aBuffer, true);
+		mApp->mPlaySamples = false;
+		bool aLoaded = LoadGame(aBuffer);
+		for (int aRow = 0; aRow < mRows; aRow++) {
+			for (int aCol = 0; aCol < mCols; aCol++) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				if (aPiece != nullptr) {
+					int aFlag;
+					if (aPiece->IsFlagSet(Piece::FLAG_POWER)) {
+						if (aPiece->IsFlagSet(Piece::FLAG_ELECTRO))
+							aFlag = 0x12;
+						else
+							aFlag = 0;
+					} else {
+						if (!aPiece->IsFlagSet(Piece::FLAG_ELECTRO))
+							continue;
+						aFlag = 1;
+					}
+					mApp->mProfile->SetFlag1E4(aFlag, true);
+				}
+			}
+		}
+		SetLevelNum(mUnknown168, true);
+		if (mGameMode == MODE_CHALLENGE)
+			UpdateChallengeTube(true);
+		mUnknown16C = mUnknown168;
+		mUnknown1EC = mUnknown1E8;
+		mUnknown1F4 = mUnknown1F0;
+		mGoodTube->SetLevel(mUnknown158);
+		mShineAmount = 0;
+		if (mBonusColors.size() != 0) {
+			mGoodTube->mUnknown330 = 1.0f;
+			mGoodTube->mUnknown3F0 = 1.0f;
+			// port: the tube's Update (slot 22, 0x702736) once it is ported; only a loaded game gets here
+			NotPorted("Board::StartGame: GoodTube::Update");
+		}
+		mApp->mPlaySamples = true;
+		if (aLoaded)
+			mUnknown158--;
+		for (int aRow = 0; aRow < mRows; aRow++) {
+			for (int aCol = 0; aCol < mCols; aCol++) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				if (aPiece != nullptr)
+					aPiece->mUnknown535 = false;
+			}
+		}
+		if (mGameMode == MODE_BLITZ) {
+			mGoodTube->SetUnknown15C(1);
+			mGoodTube->SetUnknown4BC(30000);  // 0x6a697d
+			float aValue;
+			if (!mApp->mPlayPressed) {
+				mGoodTube->SetTime(mUnknown3458, true);
+				mGoodTube->StartUnknown4AC(true, false);
+				SetBlitzColor();
+				UpdateTubeProgress(true);
+				aValue = 1.5f;
+				mUnknown160 = 5;
+			} else {
+				aValue = 3.5f;
+			}
+			mUnknown345C = aValue;
+			mGoodTube->SetUnknown4A8(mApp->mPlayPressed);
+		} else if (mGameMode == MODE_ZEN && 13 < mUnknown158 && !gApp->mRegistered) {
+			mUnknown200 = 0;
+			UpdateTubeProgress(true);
+		}
+		if (!aLoaded)
+			mApp->mUnknownC74[mGameMode]++;
+	}
+	mUnknown1559 = true;
+	if (gApp->mProfile->mGamesPlayed == 0 && (mGameMode == MODE_ZEN || !mApp->SaveExists(MODE_ZEN, 0))) {
+		if (mGameMode == MODE_CLASSIC)
+			return;
+		if (!mApp->SaveExists(MODE_CLASSIC, 0))
+			return;
+	}
+	mApp->mProfile->SetFlag1E4(0x11, true);
+	mUnknown1559 = false;
+}
+
+void Board::TakeHyperspace(Hyperspace* theHyperspace)
+{
+	mUnknown1618 = 1.0;
+	mUnknown20DC = 2;
+	if (mUnknown160 < 1)
+		mUnknown20EC = 4.0f;
+	if (mHyperspace != nullptr) {
+		mApp->mWidgetManager->RemoveWidget(mHyperspace);
+		delete mHyperspace;
+		mHyperspace = nullptr;
+	}
+	if (theHyperspace == nullptr) {
+		mHyperspace = new Hyperspace();
+		// port: its z order is the VizManager's (app +0xc6c) + 1 once the VizManager is ported
+		mApp->mWidgetManager->AddWidget(mHyperspace);
+		mHyperspace->mTransition = 8;
+		mHyperspace->mState = 1;
+		mUnknown21A2 = false;
+		// port: the tube's effects manager (+0x28c) is cleared, once it is ported
+	} else {
+		// port: the VizManager (app +0xc6c) is hidden here (slot 31 with false) once it is ported
+		mHyperspace = theHyperspace;
+		mApp->mWidgetManager->AddWidget(theHyperspace);
+		mHyperspace->mFlag15A = true;
+		int aTransition;
+		if (mGameMode == MODE_CHALLENGE) {
+			mUnknown2041 = true;
+			mGoodTube->SetShown(true);
+			aTransition = 9;
+		} else if (!gApp->mPlayPressed) {
+			aTransition = 0xc;
+		} else if (gApp->mProfile->GetFlag1E4(0xe) || mGameMode == MODE_BLITZ) {
+			aTransition = 9;
+		} else {
+			aTransition = 10;
+		}
+		mHyperspace->SetTransition(aTransition);
+	}
+	mHyperspace->Resize(0, 0, mWidth, mHeight);
+}
+
+void Board::StartLevel()
+{
+	mUnknown1378 = 1;
+	mUnknown13B0.SetOutRange(0, 0);
+	mUnknown13B0.SetInVal(0);
+	ReadConfig(true);
+	if (!gApp->mProfile->GetFlag1E4(0xe) && mGameMode != MODE_BLITZ && mGameMode != MODE_CHALLENGE) {
+		// port: the hint request 0x6b98f8(0xe, 0) and the tutorial's dialog 0x6bbc58 ("basics") come with the
+		// tutorial; neither draws from Rand
+		NotPorted("Board::StartLevel: the basics tutorial");
+		mUnknown37B0 = false;
+		mUnknown37B1 = false;
+		if (mApp->mUnknownF85) {
+			// port: 0x7540ad, the tutorial's board, which draws from Rand
+			NotPorted("Board::StartLevel: the tutorial's board");
+		}
+	} else if (mGameMode != MODE_ZEN) {
+		if (mGameMode == MODE_PUZZLE) {
+			mUnknown2042 = false;
+			mUnknown2054 = true;
+			// port: 0x6c3515(mUnknown2034, true), the puzzle's board, which draws from Rand
+			NotPorted("Board::StartLevel: the puzzle's board");
+		} else {
+			mUnknown2041 = true;
+			mUnknown2042 = true;
+		}
+	}
+	// port: SaveGame (0x6b0d91) into mSaveBuffer and the tube's layout (0x6b3da8) come next; neither draws from Rand
+	NotPorted("Board::StartLevel: SaveGame and the tube's layout");
+}
+
+bool Board::ReadSaveHeader(Buffer& theBuffer, int* theVersion, int* theMode, int* theFlags, int* theUnknown154,
+	int* theLevel)
+{
+	theBuffer.SeekFront();
+	int aVersion = theBuffer.ReadLong();
+	*theVersion = aVersion;
+	if (0x3b < aVersion) {
+		*theMode = theBuffer.ReadLong();
+		*theFlags = theBuffer.ReadLong();
+		*theUnknown154 = theBuffer.ReadByte();
+		*theLevel = theBuffer.ReadLong();
+	}
+	return 0x3b < aVersion;
+}
+
+bool Board::LoadGame(Buffer& theBuffer)
+{
+	int aVersion = 0;
+	if (!ReadSaveHeader(theBuffer, &aVersion, &mGameMode, &mModeFlags, &mUnknown154, &mUnknown158))
+		return false;
+	// port: the rest of 0x6c8e99 (the board, its pieces and the level values) comes with the saving of a game
+	NotPorted("Board::LoadGame");
+	return false;
+}
+
+void Board::SetLevelNum(int theLevel, bool theUnknown14F8)
+{
+	mUnknown168 = theLevel;
+	if (theUnknown14F8)
+		mUnknown14F8 = theLevel;
+	SetStat(0x49, theLevel);
+	UpdateProgress(theUnknown14F8);
+}
+
+void Board::UpdateChallengeTube(bool theAtOnce)
+{
+	if (mUnknown2630 == 0)
+		return;
+	// port: the challenge at +0x2630 (its name, flags at +0x80 and goals at +0x84 and +0x88) comes with the challenges
+	NotPorted("Board::UpdateChallengeTube");
+}
+
+void Board::SetBlitzColor()
+{
+	// 0x85c420: set on the first call
+	static const Color aColors[6] = {Color(255, 0, 0), Color(255, 0, 0), Color(255, 255, 0), Color(0, 255, 0),
+		Color(0, 255, 0), Color(0, 255, 0)};
+	int aStep = mUnknown3458 / 6000;
+	mGoodTube->SetColor(aColors[aStep], false);
+	if (aStep == 1) {
+		ColorCycle& aCycle = mGoodTube->mColorCycle;
+		aCycle.mColors.clear();
+		aCycle.mPos = 0;
+		aCycle.mColors.push_back(Color(255, 0, 0));
+		aCycle.mColors.push_back(Color(64, 0, 0));
+		mGoodTube->mColorCycle.mLoop = true;
+	}
 }
 
 Piece* Board::GetPieceAt(int theRow, int theCol)

@@ -20,6 +20,7 @@ public:
 	bool mFlag155 = false;       // +0x155
 	bool mIs3D = false;          // +0x156: drawn with Direct3D
 	bool mFlag159 = true;        // +0x159
+	bool mFlag15A = false;       // +0x15a: set when a board takes it (0x6a5fa3)
 	int mWorld = 4;              // +0xc5c: the level's world (0x7181b3 picks it by level)
 	CurvedVal mFlash;            // +0x1320: the white flash of a jump
 	double mWarmUp = 0;          // +0x1078: rises to 1 while idle

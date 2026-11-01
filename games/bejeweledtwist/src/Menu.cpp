@@ -249,13 +249,13 @@ void Menu::Update()
 		}
 	} else if (!mStart.IncInVal()) {
 		// The game starts: the resumed one (0x76046d) when the play button was pressed, else a new one of
-		// mGameMode (0x760492(mode, true, false)). Both come with the board.
+		// mGameMode (classic for none)
 		if (mApp->mPlayPressed && mGameMode == -1) {
 			SDL_Log("WinTwistApp 0x76046d (resume the game) is not ported yet");
 			mState = 4;
 			return;
 		}
-		SDL_Log("WinTwistApp 0x760492 (start game mode %d) is not ported yet", mGameMode == -1 ? 1 : mGameMode);
+		mApp->NewGame(mGameMode == -1 ? 1 : mGameMode, true, 0);
 		return;
 	} else {
 		mStart.SetConstant(mPlayButton->mImageAppear.GetOutVal());

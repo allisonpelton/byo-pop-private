@@ -2,6 +2,7 @@
 // here by their offsets in the original's object; the framework's own fields are SexyAppBase's.
 #pragma once
 
+#include "Buffer.h"
 #include "Rect.h"
 #include "SexyApp.h"
 #include "TwistDialogListener.h"
@@ -76,12 +77,25 @@ public:
 	Image* mFruitImage = nullptr;       // +0x904: the fruit pictures the menu chose (comes with the board)
 	Rect mFruitRect;                    // +0x908: its first cel
 	bool mResumeGame = false;           // +0x930: a saved game is resumed at once (-resume; comes with the board)
-	bool mPlayPressed = false;          // +0xf60: the menu's play button was pressed: resume the last game
+	// +0xf60: the menu's play button was pressed (with no mode: resume the last game); every new game from the menu
+	// sets it too, and a board started with it set starts afresh instead of from its save (0x6c9d0b)
+	bool mPlayPressed = false;
 	int mLastGameMode = 0;              // +0xf64: the high scores to show after a game
 	int mUnknownF68 = 0;                // +0xf68: the board sets -1 (but not for a replay)
 	int mUnknownF6C = 0;                // +0xf6c
 	int mUnknownF70 = 0;                // +0xf70
 	int mUnknownC74[84] = {};           // +0xc74: cleared by a new board (0x75fc8a) unless the old one has +0x37c4
+	// +0x758 (the framework's): the copy is registered, set from the wrapper and a "NoReg" file; the user's copies
+	// are full versions
+	bool mRegistered = true;
+	// +0xfc0: three of them, cleared by every new game (0x760492)
+	struct UnknownFC0 {
+		int mUnknown0 = -1;
+		int mUnknown4 = -1;
+		int mUnknown8 = 0;
+		Buffer mBuffer;  // +0xc
+	};
+	UnknownFC0 mUnknownFC0[3];
 	bool mUnknownF85 = false;           // +0xf85: StartMainMenu starts a classic game at once
 	int mAutoPlayMode = -1;             // +0x1044: -autoplay's game (1 classic, 3 blitz, 4 zen), -1 none
 	float mAutoPlayDelay = 0;           // +0x1048: -autoplay starts its game when this falls to 0
@@ -124,6 +138,8 @@ public:
 	using SexyApp::KillDialog;
 	void DialogButtonDepress(int theDialogId, int theButtonId) override;  // 0x7633ea (also 0x767579)
 	void DialogThirdButtonDepress(int theDialogId) override;  // 0x75f94f
+	// port (tests): newgame <mode>, a new game of that mode at once, as the mode menu would start it
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	void PlaySample(int theSoundNum) override;  // 0x7675d8
 	using SexyApp::PlaySample;
 
@@ -132,6 +148,11 @@ public:
 	void LoadScores();          // 0x764ea9
 	void SaveScores();          // 0x76387e
 	void SetDefaultScores();    // 0x7637ee: the lists a new install starts with, from the exe's tables
+	// 0x763964: "<player folder>\savegame_<mode>.dat", a challenge's with its name
+	std::string GetSaveName(int theMode, int theChallenge);
+	// 0x760492: a new board of theMode over the menu, afresh with thePlayPressed (see mPlayPressed)
+	void NewGame(int theMode, bool thePlayPressed, int theChallenge);
+	bool SaveExists(int theMode, int theChallenge);  // 0x763ace: never in blitz
 	// 0x763ca4: properties\music.xml and both songs, with their tracks
 	void LoadMusic();
 	void MakeGemImages();               // 0x7620a1

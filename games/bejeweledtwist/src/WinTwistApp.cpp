@@ -8,6 +8,7 @@
 #include "ButtonWidget.h"
 #include "EffectsManager.h"
 #include "GameText.h"
+#include "GoodTube.h"
 #include "Gates.h"
 #include "GraphicsRecorder.h"
 #include "Hyperspace.h"
@@ -25,12 +26,15 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "TwistDialog.h"
+#include "TwistUtil.h"
 #include "UnderDialogWidget.h"
 #include "Widget.h"
 #include "WidgetManager.h"
 #include "X86Math.h"
 
 #include <SDL.h>
+
+#include <cstdlib>
 
 using namespace Sexy;
 
@@ -682,6 +686,80 @@ void WinTwistApp::LoadScores()
 		SaveScores();
 	}
 	mScoresLoaded = true;
+}
+
+std::string WinTwistApp::GetSaveName(int theMode, int theChallenge)
+{
+	std::string aSuffix;
+	if (theMode == 0) {
+		aSuffix = "_casual";
+	} else if (theMode == 1) {
+		aSuffix = "_classic";
+	} else if (theMode == 2) {
+		// port: "_challenge_" and the name of challenge theChallenge from the app's list at +0xf5c (0x6d9783), which
+		// is not ported yet; an index past the list's end gives an empty name
+		NotPorted("WinTwistApp::GetSaveName: the challenges' names");
+		aSuffix = "_challenge_";
+	} else if (theMode == 3) {
+		aSuffix = "_blitz";
+	} else if (theMode == 4) {
+		aSuffix = "_zen";
+	} else if (theMode == 5) {
+		aSuffix = "_puzzle";
+	}
+	return Profile::GetUserFolder(mProfile->mName) + "\\savegame" + aSuffix + ".dat";
+}
+
+void WinTwistApp::NewGame(int theMode, bool thePlayPressed, int theChallenge)
+{
+	mPlayPressed = thePlayPressed;
+	if (mMainMenu != nullptr && mMainMenu->mHighScoresPanel != nullptr)
+		mMainMenu->mHighScoresPanel->ResetNewRow();
+	if (mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+	}
+	FadeOutMusic();
+	// port: the VizManager (app +0xc6c: slot 31 with true, AddWidget, +0x1a0 = 1.0, +0x1b8 = false) comes later;
+	// it is not ported yet
+	for (UnknownFC0& aSlot : mUnknownFC0) {
+		aSlot.mUnknown0 = -1;
+		aSlot.mUnknown4 = -1;
+		aSlot.mUnknown8 = 0;
+		aSlot.mBuffer.Clear();
+	}
+	mBoard = new Board(this, theMode, 0, theChallenge);
+	mBoard->StartGame();
+	// port: over the VizManager's z order + 10, once it is ported
+	mBoard->mZOrder = 10;
+	mWidgetManager->AddWidget(mBoard);
+	mBoard->Resize(0, 0, mWidth, mHeight);
+	if (mHyperspace == nullptr) {
+		mBoard->mGoodTube->mVisible = true;
+	} else if (!mUnknownF85) {
+		mWidgetManager->RemoveWidget(mHyperspace);
+		mBoard->TakeHyperspace(mHyperspace);
+		mHyperspace = nullptr;
+	} else {
+		// port: the VizManager is hidden (slot 31 with false), once it is ported
+	}
+	mBoard->StartLevel();
+}
+
+bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	if (theCommand.mCommand == "newgame") {
+		NewGame(std::atoi(theCommand.mArgs.c_str()), true, 0);
+		return true;
+	}
+	return false;
+}
+
+bool WinTwistApp::SaveExists(int theMode, int theChallenge)
+{
+	if (theMode == 3)
+		return false;
+	return FileExists(GetSaveName(theMode, theChallenge));
 }
 
 void WinTwistApp::SaveScores()

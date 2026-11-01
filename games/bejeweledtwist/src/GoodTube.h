@@ -4,6 +4,7 @@
 // until their use is known.
 #pragma once
 
+#include "ColorCycle.h"
 #include "CurvedVal.h"
 #include "TwistWidget.h"
 
@@ -45,11 +46,20 @@ public:
 	float mUnknown2E0 = 0;               // +0x2e0: a random 0 to 1
 	int mUnknown300 = 0;                 // +0x300: the fill is drawn full while above 0
 	float mUnknown308 = 1.0f;            // +0x308
+	float mUnknown330 = 0;               // +0x330: 1 when a loaded game has a bonus challenge
 	int mUnknown3A8 = 0;                 // +0x3a8
+	float mUnknown3F0 = 0;               // +0x3f0: the same
 	CurvedVal mUnknown338;               // +0x338
+	CurvedVal mUnknown400;               // +0x400: set going by 0x707329
+	ColorCycle mColorCycle;              // +0x470: white, blitz's colours by the time left (0x70c8b6)
 	bool mUnknown4A8 = false;            // +0x4a8 (0x702bce)
+	bool mUnknown4A9 = false;            // +0x4a9 (0x707329)
+	int mUnknown4AC = 0;                 // +0x4ac: 1, or 4 (0x707329)
+	float mUnknown4B0 = 0;               // +0x4b0
+	int mUnknown4B4 = 0;                 // +0x4b4: blitz's time (0x7036eb)
 	int mUnknown4B8 = 0;                 // +0x4b8: blitz's time, of mUnknown4BC
 	int mUnknown4BC = 0;                 // +0x4bc (0x702b6a): blitz's 30000
+	float mUnknown4C0 = 0;               // +0x4c0
 	bool mChallenge = false;             // +0x4c4 (0x70371c)
 	CurvedVal mUnknown5F0;               // +0x5f0: set by the board's bonus challenge (0x6bbfe4)
 
@@ -65,6 +75,9 @@ public:
 	void SetLevel(int theLevel) { mLevel = theLevel; }        // 0x702aa6
 	void SetUnknown4BC(int theValue) { mUnknown4BC = theValue; }  // 0x702b6a
 	void SetUnknown4A8(bool on) { mUnknown4A8 = on; }         // 0x702bce
+	void SetTime(int theTime, bool theAtOnce);     // 0x7036eb: blitz's time; theAtOnce shows it at once
+	void StartUnknown4AC(bool theFour, bool theUnknown4A9);  // 0x707329
+	void SetColor(const Color& theColor, bool theAtOnce);   // 0x70c8b6: the cycle runs from the last colour to it
 	void UpdateImages();                           // 0x7030ec
 	int GetGlassTop();                             // 0x702921
 	int GetBottomTop();                            // 0x70295d

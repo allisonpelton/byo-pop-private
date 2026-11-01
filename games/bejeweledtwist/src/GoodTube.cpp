@@ -17,6 +17,9 @@ GoodTube::GoodTube(Board* theBoard)
 	mBoard = theBoard;
 	mUnknown308 = 1.0f;
 	mName = "GOODTUBE";
+	mColorCycle.mColors.clear();
+	mColorCycle.mPos = 0;
+	mColorCycle.mColors.push_back(Color::White);
 	// port: the constructor's other fields come with the tube's update and drawing
 	UpdateImages();
 	SetUnknown14D(false);
@@ -59,6 +62,45 @@ void GoodTube::SetChallenge(bool on)
 {
 	mChallenge = on;
 	UpdateImages();
+}
+
+void GoodTube::SetTime(int theTime, bool theAtOnce)
+{
+	mUnknown4B4 = theTime;
+	if (mUnknown4BC == 0)
+		mUnknown4BC = theTime;
+	if (theAtOnce) {
+		mUnknown4B8 = theTime;
+		UpdateFill(theAtOnce);
+	}
+}
+
+void GoodTube::StartUnknown4AC(bool theFour, bool theUnknown4A9)
+{
+	if (mUnknown4AC < 1) {
+		mUnknown4B0 = 0;
+		mUnknown4C0 = 0;
+		mUnknown4AC = 1;
+		mUnknown400.SetCurve(GTS(0x7e3fe0));
+		if (theFour)
+			mUnknown400.mInVal = mUnknown400.mInMax;
+		mUnknown400.mIncRate = 0;
+	}
+	if (theFour)
+		mUnknown4AC = 4;
+	mUnknown4A9 = theUnknown4A9;
+}
+
+void GoodTube::SetColor(const Color& theColor, bool theAtOnce)
+{
+	Color aLast = mColorCycle.mColors[mColorCycle.mColors.size() - 1];
+	mColorCycle.mColors.clear();
+	mColorCycle.mPos = 0;
+	mColorCycle.mColors.push_back(aLast);
+	mColorCycle.mColors.push_back(theColor);
+	mColorCycle.mLoop = false;
+	if (theAtOnce)
+		mColorCycle.SetPosition(1.0f);
 }
 
 void GoodTube::UpdateImages()
@@ -118,7 +160,7 @@ void GoodTube::UpdateFill(bool theAtOnce)
 		aHeight = 0;
 	float aTop = (float)(aBottom - aHeight);
 	mUnknown198 = aTop;
-	if (mBoard->mUnknown200C == 0 && !theAtOnce)
+	if (mBoard->mHyperspace == nullptr && !theAtOnce)
 		mUnknown194 = (float)(((double)aTop - (double)mUnknown194) / 30.0 + (double)mUnknown194);
 	else
 		mUnknown194 = aTop;

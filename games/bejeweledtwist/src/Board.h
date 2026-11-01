@@ -6,6 +6,7 @@
 #include "TwistWidget.h"
 #include "WinTwistApp.h"
 
+#include "Buffer.h"
 #include "CurvedVal.h"
 #include "MTRand.h"
 #include "Rect.h"
@@ -17,6 +18,7 @@ namespace Sexy {
 
 class EffectsManager;
 class GoodTube;
+class Hyperspace;
 class Font;
 class Image;
 class MemoryImage;
@@ -183,6 +185,7 @@ public:
 	int mUnknown13A0 = 0;                   // +0x13a0
 	int mUnknown13A4 = 0;                   // +0x13a4
 	bool mUnknown13A8 = true;               // +0x13a8
+	CurvedVal mUnknown13B0;                 // +0x13b0: set to 0 by StartLevel
 	bool mUnknown1420 = false;              // +0x1420
 	int mUnknown1424 = 0;                   // +0x1424
 	Piece* mUnknown1430 = nullptr;          // +0x1430: a piece RemovePiece forgets
@@ -310,7 +313,7 @@ public:
 	int mUnknown2000 = 0;                   // +0x2000
 	bool mUnknown2004 = false;              // +0x2004
 	int mUnknown2008 = 0;                   // +0x2008
-	int mUnknown200C = 0;                   // +0x200c
+	Hyperspace* mHyperspace = nullptr;      // +0x200c: the space behind the board, during a jump
 	int mUnknown2010 = 0;                   // +0x2010
 	bool mUnknown2014 = false;              // +0x2014
 	bool mUnknown2015 = false;              // +0x2015
@@ -371,6 +374,7 @@ public:
 	int mUnknown2228 = 0;                   // +0x2228
 	int mUnknown222C = 0;                   // +0x222c
 	int mUnknown2234[84] = {};              // +0x2234
+	Buffer mSaveBuffer;                     // +0x2384: the game as StartLevel saved it (0x6b0d91)
 	int mUnknown23A4 = -1;                  // +0x23a4
 	int mUnknown23A8 = -1;                  // +0x23a8
 	int mUnknown23AC = 0;                   // +0x23ac
@@ -422,7 +426,7 @@ public:
 	int mUnknown344C = 0;                   // +0x344c
 	int mUnknown3450 = 0;                   // +0x3450
 	int mUnknown3454 = 0;                   // +0x3454
-	int mUnknown345C = 0;                   // +0x345c
+	float mUnknown345C = 0;                 // +0x345c
 	float mUnknown3460 = 8.0f;              // +0x3460
 	int mUnknown3464[2] = {};               // +0x3464
 	int mUnknown3470 = 0;                   // +0x3470
@@ -581,6 +585,21 @@ public:
 	bool CheckLevelDone();                       // 0x6ab195
 	int GetBonusLevel(int theLevel) { return mGameMode == 4 ? mUnknown204 / 2000 : theLevel; }  // 0x6a6618
 	void StartBonusChallenge(int theExcludeColor);  // 0x6bbfe4: the colours of the next bonus challenge
+
+	// 0x6c9d0b: a new game, or the saved one unless the menu's play button resumes the game on the screen
+	void StartGame();
+	// 0x6c8e99: the game saved in theBuffer; false for none (port: the reading of a save is not ported yet)
+	bool LoadGame(Buffer& theBuffer);
+	// 0x6a6529: a save's version, and from version 60 its mode, flags, +0x154 and level; false for an older or empty one
+	static bool ReadSaveHeader(Buffer& theBuffer, int* theVersion, int* theMode, int* theFlags, int* theUnknown154,
+		int* theLevel);
+	void SetLevelNum(int theLevel, bool theUnknown14F8);  // 0x6bd840
+	// 0x6a5fa3: the board takes theHyperspace (a new one if null) and sets up the jump into the game
+	void TakeHyperspace(Hyperspace* theHyperspace);
+	// 0x6c77b1: after StartGame: the config again, the basics tutorial or the puzzle's board, the save and the tube
+	void StartLevel();
+	void UpdateChallengeTube(bool theAtOnce);    // 0x6af390: the tube shows how much of the challenge is left
+	void SetBlitzColor();                        // 0x6bd1f0: the tube's colour by blitz's time left
 
 	Piece* GetPieceAt(int theRow, int theCol);   // 0x6a40c7
 	Piece* GetPieceById(int theId);              // 0x6aff38
