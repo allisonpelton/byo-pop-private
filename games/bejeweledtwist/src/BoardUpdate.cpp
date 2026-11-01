@@ -414,8 +414,27 @@ void Board::UpdateGame()
 	mUnknown20D0 = false;
 	if (mUnknown34EC != 0) {
 		if (mUnknown34EC == 1) {
-			// port: the game is over and space comes back (ShowHyperspace, 0x714883 and the menu's 0x6e2318)
-			NotPorted("Board::UpdateGame: the end of the game");
+			// The game is over: space comes back over the board, and then the main menu (app +0xf20's state 12)
+			mVisible = false;
+			if (mApp->mHyperspace == nullptr)
+				mApp->ShowHyperspace();
+			Hyperspace* aSpace = mApp->mHyperspace;
+			if (aSpace->mState == 12) {
+				if (aSpace->mUnknown12B0.GetOutVal() == 0.0) {
+					aSpace->mState = 0;
+					if (mUnknown26A0 == nullptr)
+						mUnknown1FF5 = true;
+				}
+			} else {
+				if (gApp->mLastGameMode == 2) {
+					// port: the challenge menu's high scores (app +0x864's +0x4a8, 0x6e2318(4, false)) come with
+					// the challenges
+					NotPorted("Board::UpdateGame: the challenge menu at the end of a game (0x6e2318)");
+				}
+				aSpace->StartEndGame();
+			}
+			if (!mApp->mHyperspace->mFlag155)
+				mVisible = true;
 		}
 		return;
 	}

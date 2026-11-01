@@ -125,6 +125,28 @@ void Hyperspace::Update()
 	MarkDirty();
 }
 
+void Hyperspace::StartEndGame()
+{
+	// 0x714883
+	mTransition = 13;
+	mState = 12;
+	mUnknown12B0.SetCurve(GTS(0x7d8610));
+	if (gApp->mBoard->mGameMode != Board::MODE_CHALLENGE) {
+		// 2D (the port has no Direct3D)
+		mUnknown258.SetConstant(1.0);
+		mZOrder = gApp->mBoard->mZOrder;
+		mWidgetManager->PutInfront(this, gApp->mBoard);
+		gApp->mVizManager->SetVisible(true);
+		gApp->mBoard->SetVisible(true);
+		mHasAlpha = true;
+		mFlag155 = false;
+	} else {
+		// port: a challenge (and Direct3D) draws the board into space's picture first (0x70e567 on); it comes with
+		// the challenges
+		NotPorted("Hyperspace::StartEndGame: a challenge's end (0x714960)");
+	}
+}
+
 void Hyperspace::Draw(Graphics* g)
 {
 	DeferOverlay(0);

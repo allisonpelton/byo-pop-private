@@ -46,6 +46,8 @@ public:
 
 	// 0x7181b3: sets up the jump theTransition (0 none) and the level's world
 	void SetTransition(int theTransition);
+	// 0x714883: the end of a game, space coming back over the board (transition 13, state 12)
+	void StartEndGame();
 	// 0x70e623: the VizManager's picture (and 3D visualizer) for the board's game and level
 	void ChooseViz(bool theDraw);
 	// 0x711b65: the tunnel of a jump; in 2D, while the VizManager is hidden, the level's picture (mUnknown160 for the

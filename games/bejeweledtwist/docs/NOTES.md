@@ -307,8 +307,10 @@ The tube's MENU button opens the options over the game (Board::ShowMenu 0x6a6983
 0x75f6fc). Over a game the panel (0x69e4c5) has a return button, a quit button (the challenge button in a challenge)
 and, by the mode, restart (challenge), restart (Blitz) or How to Play. Quit asks the board's quit question (dialog 1,
 0x6b38f3), which the board answers itself (0x6c8632, its dialog listener at +0x14c); restart asks dialog 0xb, which
-the app answers. Yes to the quit question sets +0x34ec for UpdateGame's end of the game, which is not ported yet, nor
-are the restarts of a challenge (0x6c9987) and of Blitz (0x6c7a75). In the original, as in the port, Escape does not
+the app answers. Yes to the quit question sets +0x34ec, and UpdateGame then hides the board and starts the app's
+hyperspace on transition 13 (Hyperspace::StartEndGame, 0x714883): space fades in over the board by +0x12b0, and when
+that curve reaches 0 the board sets +0x1ff5 and the app goes back to the main menu. A challenge's end there and the
+restarts of a challenge (0x6c9987) and of Blitz (0x6c7a75) are not ported yet. In the original, as in the port, Escape does not
 close How to Play.
 
 Comparing with the original in origrun's sandbox: the sandbox has no cursor, and the original's framework reads the
