@@ -1189,6 +1189,8 @@ void Board::DrawSidebar(Graphics* g)
 	// when it loaded (+0x1a0) shifts them up by 0x2e and shows the time below
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	const PuzzleRecord* aRecord = aUser != NULL ? aUser->GetRecord(mUuid) : NULL;
+	if (mMaxedAtStart)
+		g->DrawImage(mApp->mImages[IMAGE_TIME], 0, 0x72); // 0x405077
 	int aShift = mMaxedAtStart ? -0x2e : 0;
 	char aText[32];
 	g->SetColor(Color(255, 255, 255));
