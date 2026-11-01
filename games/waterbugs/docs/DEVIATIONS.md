@@ -69,8 +69,35 @@ original, 6124 to 6154 in the port within the same few updates). The Rand functi
 exe's `div` is unsigned; the port's seed sequence diverged from the original's once a seed had its top bit set, which
 changed boards' bubbles and the beam's fill. Fixed (12d8077): both now agree draw by draw.
 
-What still differs is tied to the frames, not the updates: the port's test runner draws a frame every 10 ms of game time,
-while the original's real frames are as long as the machine makes them. The world map's water (and the bubbles that
-follow it) steps once per drawn frame, so its phase differs by up to a frame's updates; shifting the port's shot by up
-to ten updates brings the world map to 88 differing pixels. Those and the other per-frame effects are masked or
-phase-matched in the comparison until a frame's length can be fixed in both.
+The original under origrun runs about a millisecond per drawn frame (its elapsed-time global read 0 or 1 at every
+sample), and the world map's water and the like step once per drawn frame, so the port's test runner has to draw a frame
+per update (`WB_FRAME_MS=1`; its default of 10 ms is what `tools/check.sh` froze). With that, 31 of 33 shots of the
+original (the title, the world map, the level's start text, the beam, the fill to 84% and a long idle with clicks) are
+identical to the port's at the update they were taken, to the pixel. The rest: a dark 2 by 30 strip at x 766 and y 531
+that the original draws over a bubble where the port draws the bubble over it (three shots; the draw list's address
+tie-break, as the loss screen's bubbles), and one shot taken while the fill's score read 344 against the port's 343 (a
+cell's fill one update apart, back in step by the next shot). A shot taken in a burst can read a counter an update or
+two later than the screen it holds, so one shot off by one update is not a fault.
+
+A second run (a fresh profile: the original keeps its saves, and with a level reached it opens the starting-level
+screen where a new player gets the crash site, so its saved profile is removed before each run) played 100000 updates of
+clicks spread over the board: six levels, all six lives lost, the game over and the hall of fame. Replayed in the port by
+the updates that read each click, 27 of 47 shots are identical, 15 more differ by 3 to 237 pixels, and five by 595 to
+1035. Every screen from the game over to the end of the hall of fame is identical. What still differs is small white
+and lilac glints (a few dozen pixels each) near pipe ends and powerups on the later levels, in different places in the
+two games; the sparks the port makes through its particle systems are not in that window, so they are another object's
+and are still to be found. The random draws stay in step through the whole run (the screens that follow are the
+same).
+
+Sound and focus. The exe's 29 calls of the sound-play function, and the calls of the music functions (volume 5, load 4,
+free 3, play 5), are matched by the port's calls in number. BASS did not reach the sound stand-in in the sandbox, so the
+sounds could not be recorded and compared by state. The focus loss and regain were run in the original (`focus lose`
+and `focus regain`): its update counter kept running while the focus was lost (23165, 23411 and 24200 at three shots
+taken while it was lost), so the game does not pause, and only the music pauses; the port does the same (`Sys_Activate`
+pauses the music and stops the sounds, and the frame loop does not look at the focus).
+
+The sign's translucent fringe (2026-11-01): Screen_Redraw drew every menu's images onto the level background again on each call, which piled up the sign's translucent edge. The original walks the menu list from the current menu to the end and then resets current to the head; the port now does the same, and the main menu and the Help screen match the original in every pixel (0 differing, was 1568 in the sign region).
+
+The text and dialog screens (2026-11-01): the main menu, both Help pages (Instructions and Power-Ups), the Hall of Fame (while it fades in and fully shown), Change User with its name-entry dialog and Options match the original with 0 differing pixels at the original's own update counters (replayed input, a fresh profile, 1 ms frames), except 3 pixels of at most 9 in the sign's bubble on one Change User shot. Options matches only with fullscreen="1" in cp.cfg: the original's default is full screen, while the test runner writes a windowed cp.cfg when none exists (harness choice, not the game). The Quit button leaves the game at once in both, with no requester.
+
+The web build (2026-11-01): the rebuilt page (`?silent=1`) loads its wasm and shows its start page with no console errors. Playing it needs the game's files through the page's file picker, which a script cannot drive, so no web screens were compared with the original; the web build runs the same game code as the native build that was.

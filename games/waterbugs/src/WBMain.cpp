@@ -376,7 +376,26 @@ void Screen_Redraw()
 		Font_Draw(&gFontSmall, aText, 10, 0x24e, 0);
 		if (gLevels.current != nullptr)
 		{
-			List_Each(&gLevels.current->menus, Menu_DrawToBackground);
+			// From the current menu on, not from the first: the walk starts where the list's current is (the menu
+			// that is up) and ends with the first current again, so the earlier menus' images are not drawn over
+			// the background once more (a translucent edge would brighten with every pass)
+			List<Menu>* aMenus = &gLevels.current->menus;
+			if (aMenus->current != nullptr)
+			{
+				while (true)
+				{
+					Menu_DrawToBackground(aMenus->current);
+					Menu* aMenu = aMenus->current;
+					if (aMenu == nullptr)
+						break;
+					if (aMenu->next == nullptr)
+					{
+						aMenus->current = aMenus->head;
+						break;
+					}
+					aMenus->current = Node_Next(aMenu);
+				}
+			}
 			Image_BlitRect(gLevels.current->background, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, 0, 0,
 				0, 0, 800, 600);
 			if (10.0f < gLevels.current->age)
