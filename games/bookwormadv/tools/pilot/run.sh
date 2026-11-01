@@ -14,6 +14,12 @@
 # HKCU\Software\PopCap\WinBAD, and its users folder), portuser0/ (registry.ini with the same values and LastUser
 # Tester; users/ with Allison.bwa and the pilot's Tester.bwa: tests/menu's profile after cheat.lua's _DefaultMP(),
 # whose media player list the scripts can draw), exe.txt (the staged copy's exe). Restore the backup afterwards.
+#
+# PILOT3D=on: both sides in 3D mode, captures in build/scratch/pilot/{orig3d,port3d}. The original gets --3d on and the
+# host's GPU (--sandbox-vgpu: the user allowed it for these 3D runs only, 2026-11-01), and dgVoodoo2 in its copy when
+# PILOT_DGVOODOO names its folder (origrun --dgvoodoo; on WARP, without vGPU, it crashed the game at start); the port Is3D 1.
+# PILOT_SOUND=on: the original's BASS calls logged to build/scratch/pilot/<steps>.basslog.txt by tools/bassproxy (build
+# it to build/bassproxy-bwa/bass.dll; it gives BASS the "no sound" device, the sandbox having none).
 set -u
 W=$(cd "$(dirname "$0")/../../../.." && pwd)
 T=$W/games/bookwormadv/tools/pilot
@@ -21,8 +27,14 @@ P=$W/build/scratch/pilot
 name=$1; which=${2:-both}
 EXE=$(cat "$P/exe.txt")
 SEED=12345
-mkdir -p "$P/orig" "$P/port" "$P/scripts"
-python "$T/gen.py" "$T/$name.txt" "$P/scripts/$name.orig.txt" "$P/scripts/$name.port.txt" "$P/port" || exit 1
+SUF=; MODE3D=(--3d off)
+if [ "${PILOT3D:-off}" = on ]; then
+	SUF=3d; MODE3D=(--3d on --sandbox-vgpu)
+	[ -n "${PILOT_DGVOODOO:-}" ] && MODE3D+=(--dgvoodoo "$(cygpath -w "$PILOT_DGVOODOO")")
+fi
+PO=$P/orig$SUF; PP=$P/port$SUF; N=$name$SUF
+mkdir -p "$PO" "$PP" "$P/scripts"
+python "$T/gen.py" "$T/$name.txt" "$P/scripts/$name.orig.txt" "$P/scripts/$name.port.txt" "$PP" || exit 1
 
 if [ "$which" != port ]; then
 	# The script is timed to the original's own updates (gen.py): SexyAppBase's mUpdateCount, at +0x484 in the app
@@ -30,7 +42,7 @@ if [ "$which" != port ]; then
 	# A shot inside the sandbox shows exactly the update it is labelled with when origrun can see that the game has
 	# drawn it: mHasPendingDraw at +0x45a and mUpdateAppState at +0x488 (Process, 0x549b10; DrawDirtyStuff, 0x5446f0), and
 	# whether that draw was skipped, mLastDrawWasEmpty at +0x459.
-	run=pilot-$name
+	run=pilot-$N
 	R=$W/build/origrun/$run
 	rm -rf "${R:?}"
 	# a sandbox run's exe lies inside its run folder: the prepared copy (exe.txt) is copied there for each run
@@ -39,6 +51,9 @@ if [ "$which" != port ]; then
 	GEXE=$R/game/$(basename "$(cygpath -u "$EXE")")
 	# the same seeds on both sides: the copy's clock reads in SexyAppBase::Init become constants (seedpatch.py)
 	python "$T/seedpatch.py" "$GEXE" $SEED | tee "$P/$name.seedpatch.log"
+	if [ "${PILOT_SOUND:-off}" = on ]; then
+		mv "$R/game/bass.dll" "$R/game/bass_real.dll" && cp "$W/build/bassproxy-bwa/bass.dll" "$R/game/bass.dll" || exit 1
+	fi
 	# The original runs inside Windows Sandbox (docs/ORIGRUN.md, "Windows Sandbox"), where every run is a first run, so
 	# the start state goes in as files and registry presets: Allison.bwa (the user's) and the pilot's Tester.bwa in
 	# the game's users folder on the sandbox's C:, and the port's start values (portuser0/registry.ini: LastUser
@@ -48,18 +63,19 @@ if [ "$which" != port ]; then
 	cp "$P/backup/users/Allison.bwa" "$P/portuser0/users/Tester.bwa" "$U/"
 	python "$T/inireg.py" "$P/portuser0/registry.ini" "$P/start.reg"
 	"$W/build/native/rundesk.exe" "$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
-		--reg "$(cygpath -w "$P/start.reg")" --3d off --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --watch "[[0x8259e4]+0x83c]+0xb0" --watch "[0x8259e4]+0x4f9" --watch "[0x8259e4]+0x919" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
-	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$name.orig.log" | tail -5
+		--reg "$(cygpath -w "$P/start.reg")" "${MODE3D[@]}" --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --watch "[[0x8259e4]+0x83c]+0xb0" --watch "[0x8259e4]+0x4f9" --watch "[0x8259e4]+0x919" --update-ms 10 --timeout 240 > "$P/$N.orig.log" 2>&1
+	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$N.orig.log" | tail -5
 	# How many updates each chapter load's screen stayed up in the original, for the port's -chapterloadupdates: the
 	# original loads on a thread, so the load's length in updates, and with it the hint draws (one Rand() every 50
 	# updates), follow the machine's speed. origrun watches the screen's mTimer (app+0x83c, +0xb0); loads.py counts.
-	python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" > "$P/$name.loads"
-	echo "chapter loads (updates): $(cat "$P/$name.loads")"
+	python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" > "$P/$N.loads"
+	echo "chapter loads (updates): $(cat "$P/$N.loads")"
 	# and the startup load's, for -startloadupdates (the thread's start, app+0x4f9, to mLoadingDone, +0x919)
-	python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" --start > "$P/$name.startload"
-	echo "startup load (updates): $(cat "$P/$name.startload")"
+	python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" --start > "$P/$N.startload"
+	echo "startup load (updates): $(cat "$P/$N.startload")"
+	[ -f "$R/game/basslog.txt" ] && cp "$R/game/basslog.txt" "$P/$N.basslog.txt" && echo "BASS calls: $(grep -vc '^#' "$P/$N.basslog.txt") lines"
 	S=$W/build/origrun/$run/shots
-	python - "$S" "$P/orig" "$T/$name.txt" <<'EOF'
+	python - "$S" "$PO" "$T/$name.txt" <<'EOF'
 import os, shutil, sys, json
 src, dst, steps = sys.argv[1:4]
 clips = {}
@@ -86,12 +102,13 @@ EOF
 fi
 
 if [ "$which" != orig ]; then
-	d=$P/portrun/$name; mkdir -p "$d"
+	d=$P/portrun/$N; mkdir -p "$d"
 	bash "$T/reset.sh" "$d/user"
-	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -chapterloadupdates=$(cat "$P/$name.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$name.startload" 2>/dev/null) \
+	[ -n "$SUF" ] && sed -i 's/^Is3D=dword:0/Is3D=dword:1/' "$d/user/registry.ini"
+	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) \
 		-script="$P/scripts/$name.port.txt" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
-	python - "$P/port" "$T/$name.txt" <<'EOF'
+	python - "$PP" "$T/$name.txt" <<'EOF'
 import os, sys, json
 dst, steps = sys.argv[1:3]
 for line in open(steps):
