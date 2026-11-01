@@ -63,12 +63,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   own session ports it once Ancient Japan plays identically, so it copies the finished engine instead of one that is
   still changing (the user, 2026-11-01).
 - **The ports still to make (the user, 2026-11-01):** they wait until every current game is fully done, both phases of
-  identical play included. Then "If a lot of the remaining games will be about as complicated as Twist, I might want
-  only one session running at a time for them." By the survey's estimates (`docs/POPCAP_GAMES_SURVEY.md` section 4,
-  where Twist is ~25x), the ports as large as Twist or larger are Bejeweled 3 (~30x), Zuma's Revenge (~35x), Gyromancer
-  and Banana Bugs (both "large"), and the Feeding Frenzy 2 and Talismania pair (~10x plus ~12-16x). Peggle Deluxe (~12x)
-  and Chuzzle (~8-12x) are about half of Twist, and the rest are 4x to 8x. Which of them run alone is the user's call
-  when they come up.
+  identical play included. Then: "anything easier than Chuzzle can run in parallel, and anything harder has to be done
+  in sequence AFTER all easier games have been finished." By the survey's estimates (`docs/POPCAP_GAMES_SURVEY.md`
+  section 4), the easier ones, run side by side as before, are Venice, Heavy Weapon, Hammer Heads, Bejeweled 2,
+  AstroPop, Typer Shark, and Pizza Frenzy with Iggle Pop and Feeding Frenzy after it (4x to 8x). Chuzzle (~8-12x) itself
+  starts the sequence, then in the survey's order Feeding Frenzy 2 (~10x), Peggle Deluxe (~12x) and Peggle Nights after
+  it, Bejeweled 3 (~30x), Banana Bugs, Gyromancer, Zuma's Revenge (~35x) and Talismania (~12-16x after Feeding Frenzy
+  2), one session at a time. This moves Typer Shark, which the decision of 2026-10-24 put at the end, into the easier
+  group.
 - **No new identical-play passes until Twist is done (the user, 2026-11-01):** asked when Twist was a little over half
   ported (they had hoped for more than 70%): "Multiple can run at once, just no more until Twist finishes." The passes
   already running carry on side by side. No other game's pass starts, even when one of them finishes, until Bejeweled
