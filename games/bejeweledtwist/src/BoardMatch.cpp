@@ -1371,9 +1371,12 @@ void Board::BreakPiece(Piece* thePiece)
 	thePiece->mBreaking = true;
 	ShowCountPopup();
 	if (thePiece->IsFlagSet(Piece::FLAG_BOMB)) {
-		// port: a bomb in a match is defused (stat 0x47 unless +0x116, 0x6c03a4, its count cleared, the flag off); it
-		// comes with the bombs
-		NotPorted("Board::BreakPiece: a bomb");
+		// A bomb in a match goes off harmlessly
+		if (!thePiece->mUnknown116)
+			AddStat(0x47, 1);
+		BreakSpecial(thePiece, false);
+		thePiece->mBombCount = 0;
+		thePiece->ClearFlag(Piece::FLAG_BOMB);
 	}
 	if (thePiece->mUnknown51D) {
 		thePiece->mBreaking = false;
@@ -1715,8 +1718,8 @@ void Board::SetOffPowerGem(Piece* thePiece)
 	if (thePiece->IsFlagSet(Piece::FLAG_POWER) && !thePiece->mBlasted && !IsBusy()) {
 		thePiece->Blast();
 	} else {
-		// port: the burst (0x6baed1 at the gem's cell, the explosion that bombs use) comes with the bombs
-		NotPorted("Board::SetOffPowerGem: the burst (0x6baed1)");
+		// (the original asks IsBusy and the electro flag again here and keeps neither answer)
+		BurstAt(GetColX(thePiece->mUnknown24) + gGemWidth / 2, GetRowY(thePiece->mUnknown30) + gGemHeight / 2, 1);
 	}
 	if (!thePiece->mUnknown537) {
 		AddStat(0x3e, 1);
@@ -1729,4 +1732,175 @@ void Board::SetOffPowerGem(Piece* thePiece)
 	}
 	if (DropPieces())
 		FillInBlanks(false);
+}
+
+// The burst's centres (0x85acf0) and the gems it reaches (0x85a9e8 colours, 0x85a640 centres, 0x85aaf0 the centre that
+// reached them); the counts are 0x85aae8 and 0x85aefc
+static int sBurstCount = 0;
+static int sBurstCentres[64][2];
+static int sBurstHitCount = 0;
+static int sBurstHitColors[64];
+static int sBurstHitCentres[64][2];
+static int sBurstHitFrom[64][2];
+
+void Board::BurstGems(int theX, int theY, int theRange)
+{
+	// 0x6bac72: lights the cell at (theX, theY), then looks for the gems round it. It looks them up with GetPieceAt,
+	// which takes a row and a column, at pixel positions, so it never finds one, and the original's burst reaches no
+	// other gem (the power gems' chain bonus in it never runs either); the port keeps the lookup as it is.
+	mUnknown1370[GetColAt(theX)] = mUpdateCnt;
+	int aCentreX = theX;
+	int aCentreY = theY;
+	Piece* aPiece = GetPieceAtXY(theX, theY);
+	if (aPiece != nullptr) {
+		aCentreX = Ftol((double)(gGemWidth / 2) + (double)aPiece->mX);
+		aCentreY = Ftol((double)(gGemHeight / 2) + (double)aPiece->mY);
+	}
+	Light aLight;
+	aLight.mX = (float)theX;
+	aLight.mY = (float)theY;
+	aLight.mUnknown8 = 2.0f;
+	aLight.mUnknownC = 1.0f;
+	aLight.mUnknown10 = 0;
+	aLight.mUnknown14 = 1.0f;
+	aLight.mUnknown18 = true;
+	aLight.mUnknown1C = 0.1f;
+	aLight.mUnknown20 = 0.05f;
+	mUnknown1650.push_back(aLight);
+	sBurstCentres[sBurstCount][0] = aCentreX;
+	sBurstCentres[sBurstCount][1] = aCentreY;
+	sBurstCount++;
+	for (int aDY = -theRange; aDY <= theRange; aDY++) {
+		for (int aDX = -theRange; aDX <= theRange; aDX++) {
+			Piece* aGem = GetPieceAt(gGemWidth * aDX + theX, gGemHeight * aDY + theY);
+			if (aGem == nullptr || aGem->mUnknown88 != 0)
+				continue;
+			if (aDX != 0 || aDY != 0) {
+				int aHit = sBurstHitCount;
+				sBurstHitColors[aHit] = aGem->mColor;
+				sBurstHitCentres[aHit][0] = Ftol((double)aGem->mX) + gGemWidth / 2;
+				sBurstHitCentres[aHit][1] = Ftol((double)aGem->mY) + gGemHeight / 2;
+				sBurstHitFrom[aHit][0] = aCentreX;
+				sBurstHitFrom[aHit][1] = aCentreY;
+				sBurstHitCount = aHit + 1;
+				if (aGem->IsFlagSet(Piece::FLAG_POWER)) {
+					// port: the stats "ExplosionChainBonus" (10) and "ExplosionChainBonusAdd" (40), out of reach
+					NotPorted("Board::BurstGems: a power gem's chain bonus");
+					mUnknown1528++;
+					aGem->mUnknown88 = 10;
+					continue;
+				}
+			}
+			aGem->mBlasted = true;
+		}
+	}
+}
+
+void Board::BurstAt(int theX, int theY, int theRange)
+{
+	// 0x6baed1: the burst, and a ring of sparkles (effect 17) round each centre it lit, fewer the more gems it reached
+	mUnknown152C = true;
+	sBurstCount = 0;
+	sBurstHitCount = 0;
+	BurstGems(theX, theY, theRange);
+	static const float sDensity[16] = {1.0f, 0.98f, 0.95f, 0.93f, 0.9f, 0.88f, 0.84f, 0.8f, 0.75f, 0.7f, 0.65f, 0.6f,
+		0.55f, 0.5f, 0.4f, 0.35f};  // 0x7dcdf8
+	int aHits = sBurstHitCount;
+	if (15 <= aHits)
+		aHits = 15;
+	float aDensity = sDensity[aHits];
+	float aDue = 0;
+	for (int aCentre = 0; aCentre < sBurstCount; aCentre++) {
+		for (int i = 0; i < 18; i++) {
+			aDue = aDue + aDensity;
+			if (!(1.0f <= aDue))
+				continue;
+			aDue = (float)((double)aDue - 1.0);
+			int anExtra = Ftol((double)i * 0.2);
+			int aSpeed = Ftol((double)gApp->mScale * 5.4 + (double)anExtra);
+			int aRand = Rand() % 100;
+			float anAngle = (float)((double)aRand / 400.0 + (double)i * 0.906000018119812);
+			float aDist = (float)aSpeed;
+			int aX = Ftol((double)(aDist * cosf(anAngle))) + sBurstCentres[aCentre][0];
+			int aY = Ftol((double)(aDist * sinf(anAngle))) + sBurstCentres[aCentre][1];
+			// (the original works out the angle from the gem it reached, atan2 at 0x77ea70, and keeps nothing of it)
+			Effect* anEffect = mFXManager->AllocEffect(17);
+			anEffect->mX = (float)aX;
+			anEffect->mY = (float)aY;
+			anEffect->mDX = (float)((double)cosf(anAngle) * (double)aDist * 0.25099998712539673);
+			anEffect->mDY = (float)((double)sinf(anAngle) * (double)aDist * 0.25099998712539673);
+			mFXManager->AddEffect(anEffect);
+		}
+	}
+	if (0 < mUnknown1528) {
+		float aCount = (float)mUnknown1528;
+		float aShake = (float)((double)aCount * 0.2 + 1.2);
+		if (2.0f <= aShake)
+			aShake = 2.0f;
+		mUnknown151C = aShake;
+		float aSize = (float)((double)aCount * 1.2 + 1.25);
+		if (6.0f <= aSize)
+			aSize = 6.0f;
+		mUnknown1518 = aSize;
+	}
+}
+
+void Board::BreakSpecial(Piece* thePiece, bool theFlag)
+{
+	// 0x6c03a4: a doom gem, coal, a gem lock or a bomb breaking
+	if (thePiece->IsFlagSet(Piece::FLAG_DEVIL)) {
+		NotPorted("Board::BreakSpecial: a doom gem");
+		return;
+	}
+	if (thePiece->IsFlagSet(Piece::FLAG_COAL)) {
+		NotPorted("Board::BreakSpecial: coal");
+		return;
+	}
+	if (thePiece->IsFlagSet(Piece::FLAG_LOCKED)) {
+		NotPorted("Board::BreakSpecial: a gem lock");
+		return;
+	}
+	if (!thePiece->IsFlagSet(Piece::FLAG_BOMB))
+		return;
+	int aX = Ftol((double)(gGemWidth / 2) + (double)thePiece->mX);
+	int aY = Ftol((double)(gGemHeight / 2) + (double)thePiece->mY);
+	float aFX = (float)aX;
+	float aFY = (float)aY;
+	Light aLight;
+	aLight.mX = aFX;
+	aLight.mY = aFY;
+	aLight.mUnknown8 = 2.0f;
+	aLight.mUnknownC = 1.0f;
+	aLight.mUnknown10 = 0;
+	aLight.mUnknown14 = 1.0f;
+	aLight.mUnknown18 = true;
+	aLight.mUnknown1C = 0.1f;
+	aLight.mUnknown20 = 0.05f;
+	mUnknown1650.push_back(aLight);
+	mApp->PlaySample(SOUND_GEM_COUNTDOWN_DESTROYED);
+	if (!mUnknown37C4) {
+		mFXManager->AddBombFlash((float)(gGemWidth / 2) + thePiece->mX, (float)(gGemHeight / 2) + thePiece->mY,
+			gGemColors[thePiece->mColor]);
+	}
+	LiftColumn(thePiece, 2.0f);
+	int aCount = 20;
+	do {
+		Effect* anEffect = mFXManager->AllocEffect(39);
+		anEffect->mColor = gGemColors[thePiece->mColor];
+		anEffect->mX = aFX;
+		anEffect->mY = aFY;
+		mFXManager->AddEffect(anEffect);
+		aCount--;
+	} while (aCount != 0);
+	if ((unsigned int)thePiece->mUnknown2EC != 0 && !IsBusy()) {
+		float aRise = (float)((double)gApp->mScale * 8.0);
+		AddPoints(aX, Ftol((double)(aFY - aRise)), 50, gGemColors[thePiece->mColor], thePiece->mUnknown2EC, true, true,
+			true, true);
+		if (!mUnknown2170.empty()) {
+			// the points' smoke AddPoints just sent off
+			SmokeTraveller* aSmoke = static_cast<SmokeTraveller*>(mUnknown2170.back());
+			aSmoke->mHurry = (float)((double)aSmoke->mHurry * 0.3499999940395355);
+		}
+	}
+	thePiece->mBlasted = true;
 }

@@ -50,6 +50,8 @@ public:
 	Color mColor2;                // +0x68
 	float mAngle = 0;             // +0x78
 	float mDAngle = 0;            // +0x7c
+	float mUnknown80 = 0;         // +0x80
+	float mUnknown84 = 0;         // +0x84
 	Image* mImage = nullptr;      // +0x88
 	int mUpdateDiv = 1;           // +0x8c: moves by a 1/mUpdateDiv of its velocity, changes every mUpdateDiv updates
 	bool mIsCyclingColor = false; // +0x90: the hue turns
@@ -92,6 +94,8 @@ public:
 	Effect* AllocEffect(int theType);
 	// 0x6f875d
 	void AddEffect(Effect* theEffect);
+	// 0x6fa00c: a bomb going off at (theX, theY): smoke, drips, steam and shards of theColor
+	void AddBombFlash(float theX, float theY, const Color& theColor);
 	// 0x6f6451: the effects whose mOverlay is theOverlay
 	void DrawEffects(Graphics* g, bool theOverlay);
 };

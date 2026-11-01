@@ -298,6 +298,7 @@ public:
 	float mUnknown151C = 0;                 // +0x151c: the shake, fading to 0
 	int mUnknown1520 = 0;                   // +0x1520
 	int mUnknown1524 = 0;                   // +0x1524
+	int mUnknown1528 = 0;                   // +0x1528: power gems the burst sets off (never, see BurstAt)
 	bool mUnknown152C = false;              // +0x152c
 	int mUnknown1530 = 0;                   // +0x1530
 	int mUnknown1534 = 0;                   // +0x1534
@@ -856,6 +857,9 @@ public:
 	// 0x6a4a1b: the gems above thePiece jump, harder the nearer they are
 	void LiftColumn(Piece* thePiece, float theStrength);
 	void SetOffPowerGem(Piece* thePiece);         // 0x6c6d68
+	void BurstAt(int theX, int theY, int theRange);    // 0x6baed1
+	void BreakSpecial(Piece* thePiece, bool theFlag);  // 0x6c03a4
+	void BurstGems(int theX, int theY, int theRange);  // 0x6bac72
 	// 0x6a4b7c: the gems above and around thePiece jump away from it
 	void LiftAround(Piece* thePiece, float theStrength);
 	// 0x6a6962: one more gem set off in a chain of blasts, each worth twice the last (to 100)

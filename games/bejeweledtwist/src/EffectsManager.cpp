@@ -1,10 +1,11 @@
 // Sexy::Effect and Sexy::EffectsManager (EffectsManager.h).
 //
-// port: so far the parts every effect shares and type 0, the image that moves, fades and grows (the logo's sparkles).
-// The other types (the board's explosions, fire, steam, lightning and the rest) come with the board; until then an
-// effect of one of them logs once and only moves and fades.
+// port: the parts every effect shares and the types the board uses so far (0, 5, 6, 11, 12, 16, 17, 23, 24, 26, 29,
+// 30, 39 and 41). The others (the rest of the board's explosions, fire, lightning and the shows' effects) come with
+// their parts of the game; until then an effect of one of them logs once and only moves and fades.
 #include "EffectsManager.h"
 
+#include "Board.h"
 #include "Graphics.h"
 #include "GraphicsRecorder.h"
 #include "Image.h"
@@ -102,6 +103,8 @@ Effect::Effect(int theType) : mType(theType)
 	mColor = Color(255, 255, 255);
 	switch (mType) {
 	case 0:
+	case 23:  // a bomb's bubbles (Piece::Update)
+	case 41:  // the cursor's trail of rings (Board::UpdateCursor)
 		break;
 	case 11:  // the gates' sparks
 	case 12:  // the sparks where the points' smoke reaches the tube (0x74f457)
@@ -132,6 +135,72 @@ Effect::Effect(int theType) : mType(theType)
 		mUnknownA0 = -0.02f;
 		mUnknownA4 = 0.95f;
 		break;
+	case 24:  // smoke (the countdown shards' trail)
+		mImage = IMAGE_SMOKE;
+		mGravity = (float)((double)gApp->mScale * -0.005);
+		mAlpha = 0.5f;
+		mDAlpha = -0.005f;
+		break;
+	case 39: {  // a bomb's shard (Board::BreakSpecial)
+		int aTurning = (int)(Rand() % 2);
+		int aSide = (int)(Rand() % 2);
+		float aHalf = (float)((double)aSide * 3.1415927410125732);
+		float aDir = (float)((double)RandSigned() * 3.1415927410125732 * 0.30000001192092896 + (double)aHalf);
+		float aSpeed = (float)(((double)fabsf(RandSigned()) * 0.05000000074505806 + 0.019999999552965164) *
+							   (double)gGemWidth);
+		if (aTurning != 0) {
+			mAngle = aDir;
+			mImage = IMAGE_COUNTDOWNSHARDS;
+			mDAngle = (float)((double)RandSigned() * 3.1415927410125732 * 0.009999999776482582);
+		} else {
+			mImage = IMAGE_GEMSHARD;
+			mAngle = 0;
+		}
+		// With Direct3D a random angle (RandSigned() * pi) and turn (RandSigned() * 0.2)
+		mFrame = (int)Rand() % (mImage->mNumCols * mImage->mNumRows);
+		mColor = Color::White;
+		mDX = (float)((double)(cosf(aDir) * aSpeed) * 1.25);
+		mDY = (float)((double)-fabsf(sinf(aDir) * aSpeed) * 1.5);
+		mGravity = (float)((double)gApp->mScale * 0.15000000596046448);
+		float aRand = fabsf(RandSigned());
+		mDAlpha = (float)((double)aRand * -0.0 + -0.0);
+		mAlpha = 1.0f;
+		mScale = (float)((double)fabsf(RandSigned()) * 0.20000000298023224 + 0.5);
+		mDScale = (float)(-0.0 - (double)fabsf(RandSigned()) * 0.009999999776482582);
+		mUnknown84 = (float)((double)fabsf(RandSigned()) * 0.75 + 0.5);
+		break;
+	}
+	case 29:  // steam that trails smoke (AddBombFlash)
+		mImage = IMAGE_FX_STEAM;
+		mGravity = (float)((double)gApp->mScale * -0.005);
+		mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+		mDAngle = (float)((double)RandSigned() * 0.03999999910593033);
+		mAlpha = 0.85f;
+		mDAlpha = 0;
+		break;
+	case 30:  // a drip (AddBombFlash)
+		mImage = IMAGE_DRIP;
+		mDAlpha = 0;
+		mGravity = (float)((double)gApp->mScale * 0.05);
+		break;
+	case 5:  // a power gem's flames (Piece::UpdatePowerSparks)
+	case 6: {
+		mImage = IMAGE_FIREPARTICLE;
+		int aBlue = (int)(Rand() % 32) + 30;
+		int aGreen = (int)(Rand() % 64) + 64;
+		mColor = Color(255, aGreen, aBlue);
+		mGravity = -0.0f;
+		mScale = 0.75f;
+		mDScale = 0.005f;
+		mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+		mDAngle = 0.01f;
+		if (mType == 6) {
+			mUnknown80 = 0;
+			mAlpha = 0.01f;
+			mDAlpha = 0.02f;
+		}
+		break;
+	}
 	case 17:  // the hint's sparkles (Board::UpdateHint)
 		mUpdateDiv = (int)(Rand() % 4) + 3;
 		mDX = (float)((double)gApp->mScale * ((double)(float)(int)(Rand() % 20) * 0.1 - 1.0));
@@ -226,6 +295,78 @@ void EffectsManager::Update()
 				anEffect->mDeleteMe = true;
 			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
 			break;
+		case 23:
+			break;
+		case 24:
+			anEffect->mDX = (float)((double)anEffect->mDX * 0.95);
+			break;
+		case 39: {
+			// it trails smoke (effect 24), and ends once small
+			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
+			Effect* aSmoke = AllocEffect(24);
+			float aRand = fabsf(RandSigned());
+			aSmoke->mScale = (float)(((double)aRand * 0.44999998807907104 + 0.0) * (double)anEffect->mScale *
+									 (double)aSmoke->mScale);
+			aRand = fabsf(RandSigned());
+			float anAlpha = (float)(((double)aRand * 0.05000000074505806 + 0.30000001192092896) * (double)aSmoke->mAlpha);
+			aSmoke->mAlpha = anAlpha;
+			aSmoke->mAlpha = anEffect->mAlpha * anAlpha;
+			aSmoke->mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+			aSmoke->mIsAdditive = false;
+			aSmoke->mDAngle = (float)((double)RandSigned() * 3.1415927410125732 * 0.10000000149011612);
+			aSmoke->mGravity = 0;
+			aSmoke->mDY = (float)((double)gApp->mScale * -1.0);
+			aSmoke->mX = anEffect->mX;
+			aSmoke->mY = anEffect->mY;
+			AddEffect(aSmoke);
+			if (anEffect->mScale < 0.02f)
+				anEffect->mDeleteMe = true;
+			break;
+		}
+		case 29:
+			if (anEffect->mScale < 0.1f) {
+				anEffect->mAlpha = 0;
+				break;
+			}
+			if (mUpdateCnt % 10 == 9) {
+				anEffect->mDX = (float)((double)RandSigned() * 1.2999999523162842 + (double)anEffect->mDX);
+				anEffect->mDY = (float)((double)RandSigned() * 1.2999999523162842 + (double)anEffect->mDY);
+			}
+			if (mUpdateCnt % 2 != 0) {
+				// a puff of smoke left where it is
+				Effect* aSmoke = AllocEffect(26);
+				aSmoke->mDX = 0;
+				aSmoke->mDY = 0;
+				aSmoke->mX = anEffect->mX;
+				aSmoke->mY = anEffect->mY;
+				aSmoke->mIsAdditive = false;
+				aSmoke->mScale = anEffect->mScale;
+				aSmoke->mDScale = 0;
+				AddEffect(aSmoke);
+			}
+			break;
+		case 30:
+			// it turns to its direction of fall
+			if (anEffect->mScale < 0.0f)
+				anEffect->mAlpha = 0;
+			anEffect->mAngle = (float)((double)(float)std::atan2((double)anEffect->mDX, (double)anEffect->mDY) + 0.0);
+			break;
+		case 41: {
+			// it fades the faster the further it is from the cursor
+			Board* aBoard = gApp->mBoard;
+			if (aBoard == nullptr) {
+				anEffect->mDeleteMe = true;
+				break;
+			}
+			float aDX = anEffect->mX - (float)(aBoard->mUnknown1C00 + gGemWidth);
+			float aDY = anEffect->mY - (float)(aBoard->mUnknown1C04 + gGemHeight);
+			float aDist = sqrtf(aDX * aDX + aDY * aDY);
+			float anAlpha = (float)((double)anEffect->mAlpha - (double)aDist * 0.0010000000474974513);
+			anEffect->mAlpha = anAlpha;
+			if (anAlpha < 0.0f)
+				anEffect->mDeleteMe = true;
+			break;
+		}
 		case 11:
 			if (anEffect->mScale > 0.85f)
 				anEffect->mScale = 0.85f;
@@ -258,6 +399,28 @@ void EffectsManager::Update()
 				anEffect->mDAlpha = anEffect->mUnknownA0;
 			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
 			anEffect->mScale = anEffect->mDScale + anEffect->mScale;
+			break;
+		}
+		case 5:
+		case 6: {
+			float aScale = anEffect->mDScale + anEffect->mScale;
+			anEffect->mScale = aScale;
+			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
+			if (aType == 6) {
+				// it grows brighter through its cels and ends at full brightness (its fade is added twice)
+				float anAlpha = anEffect->mDAlpha + anEffect->mAlpha;
+				anEffect->mAlpha = anAlpha;
+				if (1.0f <= anAlpha)
+					anEffect->mDeleteMe = true;
+				anEffect->mFrame = Ftol((double)anAlpha * 12.0);
+			} else if (anEffect->mColor.mRed + anEffect->mColor.mGreen == 0) {
+				// (a black flame, which none is, grows faster and fades)
+				anEffect->mScale = (float)((double)aScale + 0.019999999552965164);
+				float anAlpha = (float)((double)anEffect->mAlpha - 0.009999999776482582);
+				anEffect->mAlpha = anAlpha;
+				if (!(0.0f < anAlpha))
+					anEffect->mDeleteMe = true;
+			}
 			break;
 		}
 		case 17:
@@ -329,7 +492,8 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 		float anAlpha = anEffect->mAlpha <= 1.0f ? anEffect->mAlpha : 1.0f;
 		float anOpacity = mAlpha * anAlpha;
 		switch (anEffect->mType) {
-		case 0: {
+		case 0:
+		case 41: {
 			g->SetColorizeImages(true);
 			Color aColor = anEffect->mColor;
 			aColor.mAlpha = Ftol(anOpacity * 255.0);
@@ -365,7 +529,9 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 		case 16:
 			DrawShard(g, anEffect, mUpdateCnt);
 			break;
-		case 26: {
+		case 24:
+		case 26:
+		case 29: {
 			g->SetDrawMode(anEffect->mIsAdditive ? Graphics::DRAWMODE_ADDITIVE : Graphics::DRAWMODE_NORMAL);
 			g->SetColorizeImages(true);
 			Color aColor = anEffect->mColor;
@@ -373,6 +539,66 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 			g->SetColor(aColor);
 			DrawImageCentered(g, anEffect->mImage, anEffect->mImage->GetCelRect(anEffect->mFrame), anEffect->mX,
 				anEffect->mY, (double)anEffect->mAngle, anEffect->mScale, anEffect->mScale);
+			break;
+		}
+		case 39: {
+			g->SetColorizeImages(true);
+			Color aColor = anEffect->mColor;
+			aColor.mAlpha = Ftol(anOpacity * 255.0);
+			g->SetColor(aColor);
+			g->SetDrawMode(anEffect->mIsAdditive ? Graphics::DRAWMODE_ADDITIVE : Graphics::DRAWMODE_NORMAL);
+			if (anEffect->mImage != nullptr) {
+				// (the cel counted along the first row, 0x4237c0)
+				int aWidth = anEffect->mImage->GetCelWidth();
+				Rect aSrc(aWidth * anEffect->mFrame, 0, aWidth, anEffect->mImage->GetCelHeight());
+				DrawImageCentered(g, anEffect->mImage, aSrc, anEffect->mX, anEffect->mY, (double)anEffect->mAngle,
+					anEffect->mScale, anEffect->mScale);
+				g->SetColorizeImages(false);
+			}
+			break;
+		}
+		case 30: {
+			g->SetDrawMode(anEffect->mIsAdditive ? Graphics::DRAWMODE_ADDITIVE : Graphics::DRAWMODE_NORMAL);
+			g->SetColorizeImages(true);
+			Color aColor = anEffect->mColor;
+			aColor.mAlpha = Ftol(anOpacity * 255.0);
+			g->SetColor(aColor);
+			float aScale = sqrtf(anEffect->mScale);
+			DrawImageCentered(g, anEffect->mImage, anEffect->mImage->GetCelRect(0), anEffect->mX, anEffect->mY,
+				(double)anEffect->mAngle, aScale, aScale);
+			break;
+		}
+		case 23: {
+			Color aColor = anEffect->mColor;
+			aColor.mAlpha = Ftol(anOpacity * 255.0);
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColor(aColor);
+			g->SetColorizeImages(true);
+			gGraphicsRecorder->DrawImage(g, IMAGE_SPARK_BUBBLE, Ftol(anEffect->mX), Ftol(anEffect->mY), 4, 4);
+			g->SetColorizeImages(false);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+			break;
+		}
+		case 5:
+		case 6: {
+			g->SetColorizeImages(true);
+			Color aColor = anEffect->mColor;
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			aColor.mAlpha = Ftol(anOpacity * 200.0);
+			g->SetColor(aColor);
+			if (anEffect->mType != 6) {
+				DrawImageCentered(g, anEffect->mImage, anEffect->mX, anEffect->mY, (double)anEffect->mAngle,
+					anEffect->mScale, anEffect->mScale);
+				break;
+			}
+			// With Direct3D scaled and turned; without it the cel of its brightness, at the colour's own alpha
+			int aCel = Ftol((double)anEffect->mAlpha * 64.0);
+			if (63 < aCel)
+				aCel = 63;
+			Transform aTransform;
+			g->SetColor(anEffect->mColor);
+			gGraphicsRecorder->DrawImageTransform(g, anEffect->mImage, aTransform, anEffect->mImage->GetCelRect(aCel),
+				anEffect->mX, anEffect->mY, false);
 			break;
 		}
 		case 17: {
@@ -406,4 +632,101 @@ void EffectsManager::DrawOverlay(Graphics* g)
 {
 	DrawEffects(g, true);
 	// The heat waves and the distortion pass (0x6f7ab4, 0x6f55b0, flags +0xb4/+0xb5) are Direct3D only
+}
+
+void EffectsManager::AddBombFlash(float theX, float theY, const Color& theColor)
+{
+	// Smoke flying out
+	int aCount = 30;
+	do {
+		Effect* anEffect = AllocEffect(26);
+		float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
+		float aBase = (float)((double)gApp->mScale * 0.0);
+		float aRange = (float)((double)gApp->mScale * 4.0);
+		float aSpeed = fabsf(RandSigned()) * aRange + aBase;
+		anEffect->mDX = cosf(anAngle) * aSpeed;
+		anEffect->mDY = sinf(anAngle) * aSpeed;
+		anEffect->mX = (float)((double)cosf(anAngle) * 25.0 + (double)theX);
+		anEffect->mY = (float)((double)sinf(anAngle) * 25.0 + (double)theY);
+		anEffect->mIsAdditive = false;
+		anEffect->mScale = (float)((double)fabsf(RandSigned()) + 0.10000000149011612);
+		anEffect->mDScale = 0.02f;
+		AddEffect(anEffect);
+		aCount--;
+	} while (aCount != 0);
+	// Drips thrown up
+	aCount = 30;
+	do {
+		Effect* anEffect = AllocEffect(30);
+		float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
+		float aBase = gApp->mScale;
+		float aRange = (float)((double)gApp->mScale * 5.0);
+		float aSpeed = fabsf(RandSigned()) * aRange + aBase;
+		anEffect->mDX = cosf(anAngle) * aSpeed;
+		anEffect->mDY = (float)((double)(sinf(anAngle) * aSpeed) - 1.5);
+		anEffect->mX = (float)((double)cosf(anAngle) * 25.0 + (double)theX);
+		anEffect->mY = (float)((double)sinf(anAngle) * 25.0 + (double)theY);
+		anEffect->mIsAdditive = false;
+		anEffect->mScale = (float)((double)fabsf(RandSigned()) * 0.20000000298023224 + 0.6000000238418579);
+		anEffect->mDScale = -0.01f;
+		anEffect->mAlpha = 0.6f;
+		anEffect->mColor = Color(0xaaaacc);
+		AddEffect(anEffect);
+		aCount--;
+	} while (aCount != 0);
+	// Six puffs of steam, one each sixth of the way round
+	for (int i = 0; i < 6; i++) {
+		Effect* anEffect = AllocEffect(29);
+		float anAngle = (float)((double)RandSigned() * 0.20000000298023224 + (double)i * 3.1415927410125732 / 3.0);
+		float aBase = (float)((double)gApp->mScale * 6.0);
+		float aRange = gApp->mScale + gApp->mScale;
+		float aSpeed = fabsf(RandSigned()) * aRange + aBase;
+		anEffect->mUnknown9C = theX;
+		anEffect->mUnknownA0 = theY;
+		anEffect->mDX = cosf(anAngle) * aSpeed;
+		anEffect->mDY = sinf(anAngle) * aSpeed;
+		anEffect->mX = (float)((double)cosf(anAngle) * 25.0 + (double)theX);
+		anEffect->mY = (float)((double)sinf(anAngle) * 25.0 + (double)theY);
+		anEffect->mIsAdditive = false;
+		anEffect->mScale = (float)((double)fabsf(RandSigned()) * 0.10000000149011612 + 2.5);
+		anEffect->mDScale = -0.08f;
+		AddEffect(anEffect);
+	}
+	// Shards of the gem's colour
+	aCount = 50;
+	do {
+		Effect* anEffect = AllocEffect(16);
+		anEffect->mColor = theColor;
+		Rand();  // (both draws are thrown away)
+		fabsf(RandSigned());
+		double aDir = (double)RandSigned() * 3.14159;
+		int aReach = Ftol((double)gApp->mScale * 48.0);
+		int aDist = Ftol((double)RandSigned() * (double)aReach);
+		float aDistF = (float)aDist;
+		anEffect->mX = (float)((double)Ftol(std::cos(aDir) * (double)aDistF) + (double)theX);
+		float aY = (float)((double)Ftol(std::sin(aDir) * (double)aDistF) + (double)theY);
+		anEffect->mY = aY;
+		float anOut = (float)std::atan2((double)(float)(aY - theY), (double)(float)(anEffect->mX - theX));  // 0x4c1b70
+		double anAngle = (double)RandSigned() * 0.3 + (double)anOut;
+		float aBase = (float)((double)gApp->mScale * 4.5);
+		float aRand = fabsf(RandSigned());
+		float aRange = (float)((double)gApp->mScale * 1.5);
+		float aSpeed = aRange * aRand + aBase;
+		anEffect->mDX = (float)(std::cos(anAngle) * (double)aSpeed);
+		float aLift = (float)((double)gApp->mScale * -2.0);
+		anEffect->mDY = (float)(std::sin(anAngle) * (double)aSpeed + (double)aLift);
+		anEffect->mUnknown38 = (float)((double)RandSigned() * 0.005 + 0.99);
+		anEffect->mAngle = (float)anAngle;
+		anEffect->mDAngle = (float)((double)RandSigned() * 0.05000000074505806);
+		anEffect->mGravity = 0.06f;
+		anEffect->mUnknown9C = (float)((double)RandSigned() * 6.2831854820251465);
+		anEffect->mUnknownA0 = (float)((double)RandSigned() * 6.2831854820251465);
+		anEffect->mUnknownA4 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+		anEffect->mUnknownA8 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+		float aFade = fabsf(RandSigned());
+		anEffect->mDAlpha = (float)(((double)(aFade + aFade) + 4.0) * -0.0025);
+		AddEffect(anEffect);
+		aCount--;
+	} while (aCount != 0);
+	// With no board image (+0x200c) a heat wave (0x6f9efe, its strength doubled): Direct3D only
 }

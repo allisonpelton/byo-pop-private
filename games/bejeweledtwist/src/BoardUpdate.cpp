@@ -1976,10 +1976,8 @@ bool Board::SettlePieces()
 									SetOffPowerGem(aPiece);
 								} else if (aPiece->IsFlagSet(Piece::FLAG_BOMB)) {
 									BlowUpPiece(aPiece, aMidX, aMidY, true, false);
-									if (!mUnknown37C4) {
-										// port: the bomb's flash (0x6fa00c in the gem's colour) comes with the bombs
-										NotPorted("Board::SettlePieces: a bomb's flash");
-									}
+									if (!mUnknown37C4)
+										mFXManager->AddBombFlash(aMidX, aMidY, gGemColors[aPiece->mColor]);
 									aPiece->mBlasted = true;
 									aPiece->mUnknown116 = true;
 									anExploded = true;
