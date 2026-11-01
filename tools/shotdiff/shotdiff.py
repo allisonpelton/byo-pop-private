@@ -78,8 +78,8 @@ RIGID_SHIFTS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 # The differing-pixels picture: the original dimmed to gray, the differing pixels in a bright colour (in a visible box)
 # or a pale one (faint)
 PIXEL_VISIBLE, PIXEL_FAINT = (255, 0, 170), (150, 230, 255)
-# Review items: two boxes are one item when they meet and SAME_OVERLAP of the visibly different pixels of the smaller
-# differ visibly at the same place in the other's pair (same_item)
+# Review items: two boxes of different pairs are one item when they meet, SAME_OVERLAP of the visibly different pixels
+# of the smaller differ visibly at the same place in the other's pair, and the content there agrees (same_item)
 SAME_OVERLAP = 0.5
 
 
@@ -688,27 +688,60 @@ def placed_alike(p, q, pics):
 	_, _, pv = pics[p["pair"]]
 	if qv.shape != pv.shape:
 		return 0.0
-	sl = (slice(q["y"], q["y"] + q["h"]), slice(q["x"], q["x"] + q["w"]))
-	mine = qv[sl]
+	y0, y1, x0, x1 = q["y"], q["y"] + q["h"], q["x"], q["x"] + q["w"]
+	mine = qv[y0:y1, x0:x1]
 	n = int(mine.sum())
 	if not n:
 		return 0.0
-	theirs = dilate(np.pad(pv, 1), 1)[1:-1, 1:-1][sl]
+	# only the box and a pixel around it are dilated
+	h, w = pv.shape
+	ey0, ey1, ex0, ex1 = max(0, y0 - 1), min(h, y1 + 1), max(0, x0 - 1), min(w, x1 + 1)
+	theirs = dilate(np.pad(pv[ey0:ey1, ex0:ex1], 1), 1)[1:-1, 1:-1][y0 - ey0:y1 - ey0, x0 - ex0:x1 - ex0]
 	return int((mine & theirs).sum()) / float(n)
 
 
+def dim_gain(a, b):
+	"""How much brighter b is than a over a region, as one factor (the median of their luma ratios over the pixels not
+	near black): 1 for the same screen, about 0.5 for one dimmed by half (a dialog over it, the focus lost)."""
+	la, lb = luma(a).astype(np.float64), luma(b).astype(np.float64)
+	keep = la > 16
+	if not keep.any():
+		return 1.0
+	return float(np.median((lb[keep] + 1.0) / (la[keep] + 1.0)))
+
+
+def agree_dimmed(a, b, m, gain):
+	"""Whether two pictures agree visibly on at least three quarters of the pixels of mask m once a is dimmed by gain."""
+	scaled = np.clip(np.rint(a.astype(np.float64) * gain), 0, 255).astype(np.uint8)
+	d = visible_delta(scaled, b) >= VISIBLE_DELTA
+	return int((d & m).sum()) * 4 <= int(m.sum())
+
+
 def same_item(p, q, pics):
-	"""Whether box q shows the same difference as box p: the boxes meet, and at least half (SAME_OVERLAP) of the visibly
-	different pixels of the smaller of the two differ visibly at the same place in the other's pair. Where the pixels
-	lie decides, not how bright they are, so a difference behind a dimmed screen (a dialog, the focus lost, an intro's
-	fade) or in front of a sprite that moves is still the same item, and so is one a shot splits into two boxes."""
-	if p["pair"] == q["pair"] and p["box"] == q["box"]:
+	"""Whether box q (of another pair) shows the same difference as box p. The boxes meet; at least half (SAME_OVERLAP)
+	of the visibly different pixels of the smaller differ visibly at the same place in the other's pair; and there the
+	content agrees: the two originals agree visibly and so do the two ports, once the one screen is brightened or dimmed
+	to the other's level (dim_gain, the same factor for both sides). So a difference behind a dimmed screen (a dialog,
+	the focus lost, an intro's fade) or in front of a sprite that moves is the same item, but another difference in the
+	same place, over other content or of other content, is not. Boxes of one pair are never one item by themselves."""
+	if p["pair"] == q["pair"]:
 		return False
-	if (min(p["x"] + p["w"], q["x"] + q["w"]) <= max(p["x"], q["x"]) or
-			min(p["y"] + p["h"], q["y"] + q["h"]) <= max(p["y"], q["y"])):
+	x0, y0 = max(p["x"], q["x"]), max(p["y"], q["y"])
+	x1, y1 = min(p["x"] + p["w"], q["x"] + q["w"]), min(p["y"] + p["h"], q["y"] + q["h"])
+	if x1 <= x0 or y1 <= y0:
+		return False
+	(ao, ap, av), (bo, bp, bv) = pics[p["pair"]], pics[q["pair"]]
+	if ao.shape != bo.shape:
 		return False
 	small, big = (p, q) if p["visible"] <= q["visible"] else (q, p)
-	return placed_alike(big, small, pics) >= SAME_OVERLAP
+	if placed_alike(big, small, pics) < SAME_OVERLAP:
+		return False
+	m = av[y0:y1, x0:x1] & bv[y0:y1, x0:x1]
+	if not m.any():
+		return False
+	g = dim_gain(ao[y0:y1, x0:x1], bo[y0:y1, x0:x1])
+	return (agree_dimmed(ao[y0:y1, x0:x1], bo[y0:y1, x0:x1], m, g) and
+			agree_dimmed(ap[y0:y1, x0:x1], bp[y0:y1, x0:x1], m, g))
 
 
 def item_name(pair, box):
@@ -725,8 +758,10 @@ def group_items(results, pics):
 		for b in r["boxes"]:
 			occ = {"pair": r["name"], "id": r["id"], "box": b["n"], "x": b["x"], "y": b["y"], "w": b["w"], "h": b["h"],
 				   "pixels": b["pixels"], "visible": b["visible_pixels"], "ref": b}
+			# a box joins an item by its first box, the item's anchor (never by a chain of boxes), and an item has one box
+			# of a pair at most
 			for g in groups:
-				if any(same_item(o, occ, pics) for o in g):
+				if all(o["pair"] != occ["pair"] for o in g) and same_item(g[0], occ, pics):
 					g.append(occ)
 					break
 			else:

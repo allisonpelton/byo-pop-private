@@ -92,15 +92,21 @@ wide (the hall of fame's time, 14:50 against 14:40), and a sharp striped sprite 
 
 The same difference often shows in many shots: a locked book on every menu screen, the background behind every battle
 shot. Each would be a box of its own pair, and the first page of boxes was the same thing over and over. So the visible boxes
-of the stills are grouped into review items. Two boxes are the same item when they meet and at least half
+of the stills are grouped into review items. Two boxes of different pairs are the same item when they meet, at least half
 (`SAME_OVERLAP`) of the visibly different pixels of the smaller differ visibly at the same place (or a pixel away) in the
-other's pair. Where the differing pixels lie decides, not how bright they are (the user, 2026-11-01): a difference behind a
-dimmed screen (a dialog, the focus lost, an intro's fade), in front of a sprite that moves, or split into two boxes in one
-shot is still the same item. A box joins an item when it is the same as any box already in it. An item is shown once, by its largest box, with "seen in N shots", links
+other's pair, and over the pixels that differ in both, the content agrees: the two originals agree visibly on at least
+three quarters of them, and so do the two ports, once the one screen is brought to the other's brightness (one factor for
+both sides, the median ratio of their luma there). So a difference behind a dimmed screen (a dialog, the focus lost, an
+intro's fade; the user, 2026-11-01) or in front of a sprite that moves is the same item, but another difference in the same
+place, over other content or showing other content, is an item of its own and is never marked along with the first. A box
+joins an item by the item's first box (its anchor), never through a chain of boxes, and an item holds at most one box of a
+shot: two boxes of one shot are two items. An item is shown once, by its largest box, with "seen in N shots", links
 to the other shots and their crops in a collapsed list; a mark on it marks them all. Items seen in the most shots come
 first, then the largest. `summary.json` has `items` (each with its `name`, `count`, the pair and box it is shown by, and
 `seen`, the others), every grouped box has `item`, and the counts give `items`, `items_repeated` and `visible_boxes`. "Seen in N shots"
-counts shots, not boxes. The differing stills are shown whole in a collapsed list after the review area, out of the queue,
+counts shots, not boxes, and so does an item's `count`. When the grouping rule changes (it did on 2026-11-01), item
+names and counts can shift from earlier runs: an item may be shown by another box, so its name changes and the marks
+carried over by name (below) may need redoing. The differing stills are shown whole in a collapsed list after the review area, out of the queue,
 since every box there is an item above; a link to one opens the list. Clips,
 and stills whose sizes differ, are reviewed whole after the items, as before.
 

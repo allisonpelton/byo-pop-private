@@ -366,7 +366,8 @@ def test_files(tmp):
 
 
 def test_items(tmp):
-	"""The same difference in several shots is one review item, dimmed or over other content too; a difference elsewhere is not."""
+	"""The same difference in several shots is one review item, dimmed too; the same place over other content, or a
+	difference elsewhere, is not."""
 	a, other = base(), base(2)
 	orig, port = os.path.join(tmp, "iorig"), os.path.join(tmp, "iport")
 	for n in ("menu_a", "menu_b", "menu_c"):
@@ -374,9 +375,9 @@ def test_items(tmp):
 	write_png(os.path.join(port, "menu_a.png"), change(a, 30, 40, 20, 10))
 	write_png(os.path.join(port, "menu_b.png"), change(a, 30, 40, 20, 10))
 	write_png(os.path.join(port, "menu_c.png"), change(change(a, 30, 40, 20, 10), 100, 70, 20, 20))
-	write_png(os.path.join(orig, "other.png"), other)  # other content, the same difference, dimmed (a dialog over it)
+	write_png(os.path.join(orig, "other.png"), other)  # the same place over other content: another item
 	write_png(os.path.join(port, "other.png"), change(other, 30, 40, 20, 10))
-	write_png(os.path.join(orig, "dim.png"), (other // 2).astype(np.uint8))
+	write_png(os.path.join(orig, "dim.png"), (other // 2).astype(np.uint8))  # other.png dimmed (a dialog over it): its item
 	write_png(os.path.join(port, "dim.png"), (change(other, 30, 40, 20, 10) // 2).astype(np.uint8))
 	write_png(os.path.join(orig, "else.png"), a)
 	write_png(os.path.join(port, "else.png"), change(a, 120, 90, 15, 15))
@@ -385,18 +386,41 @@ def test_items(tmp):
 	os.makedirs(out)
 	s = sd.run_compare(orig, port, out, "demo", "items", {"client": [W, H]}, None, sd.Options(), root=root)
 	its = s["items"]
-	check("items: one difference in five shots (over other content, dimmed) is one item, first",
-		  [(it["count"], it["w"], it["h"]) for it in its] == [(5, 20, 10), (1, 20, 20), (1, 15, 15)]
-		  and sorted([its[0]["pair"]] + [o["pair"] for o in its[0]["seen"]]) ==
-		  ["dim.png", "menu_a.png", "menu_b.png", "menu_c.png", "other.png"], [(it["name"], it["count"]) for it in its])
-	check("items: counted", s["counts"]["items"] == 3 and s["counts"]["items_repeated"] == 1 and s["counts"]["visible_boxes"] == 7, s["counts"])
+	check("items: one difference in three shots is one item, first",
+		  [(it["count"], it["w"], it["h"]) for it in its] == [(3, 20, 10), (2, 20, 10), (1, 20, 20), (1, 15, 15)]
+		  and sorted([its[0]["pair"]] + [o["pair"] for o in its[0]["seen"]]) == ["menu_a.png", "menu_b.png", "menu_c.png"],
+		  [(it["name"], it["count"]) for it in its])
+	check("items: the same place over other content is another item, and its dimmed shot is in it",
+		  sorted([its[1]["pair"]] + [o["pair"] for o in its[1]["seen"]]) == ["dim.png", "other.png"], its[1])
+	check("items: counted", s["counts"]["items"] == 4 and s["counts"]["items_repeated"] == 2 and s["counts"]["visible_boxes"] == 7, s["counts"])
 	st = {p["name"]: p for p in s["pairs"]}
-	check("items: each box knows its item", sorted(b["item"] for b in st["menu_c.png"]["boxes"]) == [1, 2]
-		  and st["dim.png"]["boxes"][0]["item"] == 1 and st["else.png"]["boxes"][0]["item"] == 3)
+	check("items: each box knows its item", sorted(b["item"] for b in st["menu_c.png"]["boxes"]) == [1, 3]
+		  and st["dim.png"]["boxes"][0]["item"] == 2 and st["else.png"]["boxes"][0]["item"] == 4)
 	page = open(os.path.join(out, "index.html"), encoding="utf-8").read()
-	check("items: the page says how often, and links the other shots", "seen in 5 shots" in page and 'href="#s-menu_b"' in page
+	check("items: the page says how often, and links the other shots", "seen in 3 shots" in page and 'href="#s-menu_b"' in page
 		  and "A mark here marks them all" in page)
 	check("items: what is marked is the item", sd.review_names(s) == [it["name"] for it in its])
+	# two differences in one shot, in two shots: two items of two shots each, never one item of a shot's two boxes
+	orig3, port3 = os.path.join(tmp, "iorig3"), os.path.join(tmp, "iport3")
+	for n in ("two_a", "two_b"):
+		write_png(os.path.join(orig3, n + ".png"), a)
+		write_png(os.path.join(port3, n + ".png"), change(change(a, 30, 40, 20, 10), 110, 20, 20, 10))
+	out3 = os.path.join(root, "demo", "items3")
+	os.makedirs(out3)
+	s = sd.run_compare(orig3, port3, out3, "demo", "items3", {"client": [W, H]}, None, sd.Options())
+	check("items: two boxes of one shot are two items", [it["count"] for it in s["items"]] == [2, 2]
+		  and all(len({it["pair"]} | {o["pair"] for o in it["seen"]}) == 1 + len(it["seen"]) for it in s["items"]),
+		  [(it["name"], it["count"]) for it in s["items"]])
+	# a chain: the first and second boxes are one difference, the second and third too, the first and third not
+	orig4, port4 = os.path.join(tmp, "iorig4"), os.path.join(tmp, "iport4")
+	for k, x in enumerate((30, 38, 46)):
+		write_png(os.path.join(orig4, "chain_%d.png" % k), a)
+		write_png(os.path.join(port4, "chain_%d.png" % k), change(a, x, 40, 20, 10))
+	out4 = os.path.join(root, "demo", "items4")
+	os.makedirs(out4)
+	s = sd.run_compare(orig4, port4, out4, "demo", "items4", {"client": [W, H]}, None, sd.Options())
+	check("items: no chaining (a box joins an item by its first box)", [it["count"] for it in s["items"]] == [2, 1],
+		  [(it["name"], it["count"]) for it in s["items"]])
 	# the same difference behind a sprite that moves from shot to shot (drawn the same on both sides): still one item
 	orig2, port2 = os.path.join(tmp, "iorig2"), os.path.join(tmp, "iport2")
 	for k, sx in enumerate((32, 44, 56)):
