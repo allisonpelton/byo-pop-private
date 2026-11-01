@@ -132,6 +132,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   hour of looking, the session stops and writes it under "Oddities" in the game's notes: what the original does, how
   to see it, and what it would take. Then it moves on. Oddities wait for later, perhaps a write-up or videos of each
   game's quirks.
+- **A report for each pass (the user, 2026-11-01):** a session that finishes a game's identical-play pass writes
+  `games/<game>/docs/IDENTICAL_PLAY.md` for the user before its last merge. It covers what was compared (screens,
+  dialogs, sound, focus, the web build, and how). It lists every change the pass made: the difference, its cause in the
+  original, what the port does now, and the commit. It lists every oddity skipped and why, how to see each one, and the
+  deviations that remain. Write it in prose, with a table for the list of changes if that reads better.
 - **Order of the work (the user, 2026-11-01):** first every fault the user reported and anything that makes a game
   hard to test, then the identical-play pass. A readability pass (`docs/CODE_STANDARDS.md`) and taking out code the
   ports do not need (registration and the like) come once every game is done (`docs/COORDINATION.md`).
