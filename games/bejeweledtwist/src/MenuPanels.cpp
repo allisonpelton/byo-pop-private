@@ -1,5 +1,5 @@
-// The main menu's panels (MenuPanels.h). port: the high scores, profile and new player panels are ported; of the
-// others only what the menu needs of them.
+// The main menu's panels (MenuPanels.h). port: the high scores, help, profile and new player panels are ported; of
+// the others only what the menu needs of them.
 #include "MenuPanels.h"
 
 #include "ColorCycle.h"
@@ -635,25 +635,251 @@ int HighScoresPanel::GetLevelRight()
 	return mWidth / 2 - Ftol((double)gApp->mScale * -80.0);
 }
 
-HelpPanel::HelpPanel(WinTwistApp*)
+namespace {
+
+// Each help page's title and text: a property id and the text when the properties have none (0x6984b0 looks them
+// up once, the titles then the texts, and keeps them)
+const unsigned int kHelpTitles[HelpPanel::PAGE_COUNT][2] = {
+	{GTA(0x7d9b78), GTA(0x7d9b58)}, {GTA(0x7d9b48), GTA(0x7d9b2c)}, {GTA(0x7d9b20), GTA(0x7d9b08)},
+	{GTA(0x7d9af8), GTA(0x7d9ad8)}, {GTA(0x7d9ad0), GTA(0x7d9ac4)}, {GTA(0x7d9ab8), GTA(0x7d9aa0)},
+	{GTA(0x7d9a94), GTA(0x7d9a80)}, {GTA(0x7d9a70), GTA(0x7d9a50)}, {GTA(0x7d9a48), GTA(0x7d9a38)},
+	{GTA(0x7d9a24), GTA(0x7d9a00)}, {GTA(0x7d99f8), GTA(0x7d99ec)}, {GTA(0x7d99e4), GTA(0x7d99d8)},
+	{GTA(0x7d99d0), GTA(0x7d99c4)}, {GTA(0x7d99b8), GTA(0x7d99a4)}, {GTA(0x7d9998), GTA(0x7d9980)},
+	{GTA(0x7d9970), GTA(0x7d9950)},
+};
+const unsigned int kHelpTexts[HelpPanel::PAGE_COUNT][2] = {
+	{GTA(0x7d9908), GTA(0x7d9878)}, {GTA(0x7d983c), GTA(0x7d97c8)}, {GTA(0x7d978c), GTA(0x7d9720)},
+	{GTA(0x7d96e8), GTA(0x7d9678)}, {GTA(0x7d9630), GTA(0x7d95a0)}, {GTA(0x7d955c), GTA(0x7d94e0)},
+	{GTA(0x7d9498), GTA(0x7d9410)}, {GTA(0x7d93c8), GTA(0x7d9340)}, {GTA(0x7d92fc), GTA(0x7d9280)},
+	{GTA(0x7d9238), GTA(0x7d91a8)}, {GTA(0x7d9160), GTA(0x7d90d0)}, {GTA(0x7d9090), GTA(0x7d9018)},
+	{GTA(0x7d8fc8), GTA(0x7d8f30)}, {GTA(0x7d8ef0), GTA(0x7d8e70)}, {GTA(0x7d8e28), GTA(0x7d8d98)},
+	{GTA(0x7d8d50), GTA(0x7d8cc8)},
+};
+
+// The label of a help page's animation in twistpam.pam
+const std::string& HelpPageLabel(int thePage)
 {
-	NotPorted("HelpPanel");
+	return GTS(GameInt(GTP(0x84e5b0, 16) + thePage * 4));
+}
+
+// A button of the in-game help at its place in resources.xml
+void PlaceHelpButton(TwistButton* theButton, int thePlaceId)
+{
+	int aY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(thePlaceId));
+	int aX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(thePlaceId));
+	theButton->Resize(aX, aY, theButton->mButtonImage->GetCelWidth(), theButton->mButtonImage->GetCelHeight());
+}
+
+}  // namespace
+
+HelpPanel::HelpPanel(WinTwistApp* theApp)
+{
+	mApp = theApp;
+	TwistButton* aButton = nullptr;
+	mClip = false;
+	mUnknownB0 = IMAGE_HOWTOPLAY_HELPDIALOG_ID;
+	mDialogImage = GetImageById(IMAGE_HOWTOPLAY_HELPDIALOG_ID);
+	mUnknown158 = 0;
+	mMouseDown = false;
+	int aSize = Ftol((double)gApp->mScale * 1000.0);
+	Resize(0, 0, aSize, aSize);
+	mUnknown160 = 5.0f;
+	mUnknown170 = false;
+	mFXManager = new EffectsManager();
+	mUnknown15C = 0;
+	mClip = false;
+	mUnknown17C = false;
+	mAnim = nullptr;
+	MakeAnim();
+	if (mApp->mBoard == nullptr) {
+		AddWidget(mAnim);
+		mPrevButton = nullptr;
+		mNextButton = nullptr;
+	} else {
+		// Over a game: its own buttons, and it zooms in
+		aButton = new TwistButton(BUTTON_BACK, IMAGE_HOWTOPLAY_HELPBACKBUTTON, this);
+		PlaceHelpButton(aButton, IMAGE_HOWTOPLAY_HELPBACKBUTTON_ID);
+		AddWidget(aButton);
+		aButton = new TwistButton(BUTTON_PREV, IMAGE_HOWTOPLAY_PREVBUTTON, this);
+		mPrevButton = aButton;
+		PlaceHelpButton(aButton, IMAGE_HOWTOPLAY_PREVBUTTON_ID);
+		aButton->SetDisabled(true);
+		AddWidget(aButton);
+		aButton = new TwistButton(BUTTON_NEXT, IMAGE_HOWTOPLAY_NEXTBUTTON, this);
+		mNextButton = aButton;
+		PlaceHelpButton(aButton, IMAGE_HOWTOPLAY_NEXTBUTTON_ID);
+		AddWidget(aButton);
+		mZooming = true;
+		mZoom.SetCurve(GTS(0x7d9bc0));
+	}
+	SetPage(0);
+}
+
+HelpPanel::~HelpPanel()
+{
+	RemoveWidget(mFXManager);
+	delete mFXManager;
+	RemoveWidget(mAnim);
+	delete mAnim;
+	RemoveAllWidgets(true, false);
+}
+
+void HelpPanel::AddedToManager(WidgetManager* theWidgetManager)
+{
+	MenuPanel::AddedToManager(theWidgetManager);
+	AddWidget(mFXManager);
+}
+
+void HelpPanel::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	MenuPanel::RemovedFromManager(theWidgetManager);
+	RemoveWidget(mFXManager);
+}
+
+void HelpPanel::Update()
+{
+	bool wasZooming = mZooming;
+	MenuPanel::Update();
+	if (!mZooming && wasZooming) {
+		if (mZoom.GetOutVal() == 0.0) {
+			// zoomed out over the game: gone
+			mWidgetManager->RemoveBaseModal(this);
+			mParent->RemoveWidget(this);
+			mApp->SafeDeleteWidget(this);
+			mApp->mUnknownF44 = nullptr;
+		} else {
+			AddWidget(mAnim);
+		}
+	}
+	int aWidth = Ftol((double)gApp->mScale * 516.0);
+	int aHeight = Ftol((double)gApp->mScale * 344.0);
+	int aY = Ftol((double)gApp->mScale * 265.0);
+	mAnim->Resize(mWidth / 2 - aWidth / 2, aY, aWidth, aHeight);
+}
+
+void HelpPanel::Draw(Graphics* g)
+{
+	if (mAlpha == 0.0f)
+		return;
+	static bool sTitlesRead = false;
+	static SexyString sTitles[PAGE_COUNT];
+	if (!sTitlesRead) {
+		sTitlesRead = true;
+		for (int i = 0; i < PAGE_COUNT; i++)
+			sTitles[i] = mApp->GetString(GTS(kHelpTitles[i][0]), GT(kHelpTitles[i][1]));
+	}
+	static bool sTextsRead = false;
+	static SexyString sTexts[PAGE_COUNT];
+	if (!sTextsRead) {
+		sTextsRead = true;
+		for (int i = 0; i < PAGE_COUNT; i++)
+			sTexts[i] = mApp->GetString(GTS(kHelpTexts[i][0]), GT(kHelpTexts[i][1]));
+	}
+
+	Image* aDialogImage = mDialogImage;
+	g->SetColorizeImages(true);
+	g->SetColor(Color(255, 255, 255, Ftol((double)mAlpha * 255.0)));
+	int aY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(mUnknownB0));
+	int aX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(mUnknownB0));
+	g->DrawImage(aDialogImage, aX, aY);
+	g->SetFont(FONT_MENU_TINY);
+	g->SetColor(Color(255, 255, 255));
+	g->WriteString(sTitles[mPage], mWidth / 2, Ftol((double)gApp->mScale * 250.0), 0, 0, true, 0, -1, -1);
+
+	// The text with wider lines when it takes two lines or fewer
+	int aMargin = Ftol((double)gApp->mScale * 200.0);
+	int aSpacing = Ftol((double)gApp->mScale * 45.0);
+	int aTextHeight = g->GetWordWrappedHeight(mWidth - aMargin * 2, sTexts[mPage], aSpacing, nullptr);
+	float aLineSpacing;
+	if ((float)aTextHeight <= (float)((double)gApp->mScale * 100.0))
+		aLineSpacing = (float)((double)gApp->mScale * 50.0);
+	else
+		aLineSpacing = (float)((double)gApp->mScale * 45.0);
+	int aWrapSpacing = Ftol((double)aLineSpacing);
+	int aLeft = Ftol((double)gApp->mScale * 200.0);
+	int aTop = Ftol((double)gApp->mScale * 622.0);
+	g->WriteWordWrapped(Rect(aLeft, aTop, mWidth - aLeft * 2, 0), sTexts[mPage], aWrapSpacing, 0, nullptr, -1,
+		nullptr);
+
+	g->SetColor(Color(48, 48, 48));
+	g->SetFont(FONT_INGAME);
+	SexyString aCount = StrFormat(GTC(0x7d8ca8), mPage + 1, PAGE_COUNT);
+	g->WriteString(aCount, Ftol((double)gApp->mScale * 820.0), Ftol((double)gApp->mScale * 240.0), 0, 1, true, 0,
+		-1, -1);
+	g->SetColor(Color(255, 255, 255));
+	if (mApp->mBoard != nullptr) {
+		int aBarY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(IMAGE_HOWTOPLAY_HELPDIALOGBARLRG_ID));
+		int aBarX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(IMAGE_HOWTOPLAY_HELPDIALOGBARLRG_ID));
+		g->DrawImage(IMAGE_HOWTOPLAY_HELPDIALOGBARLRG, aBarX, aBarY);
+	}
+}
+
+void HelpPanel::MouseDown(int, int, int, int)
+{
+	mMouseDown = true;
+}
+
+void HelpPanel::MouseUp(int, int, int)
+{
+	mMouseDown = false;
+}
+
+void HelpPanel::ButtonPress(int, int)
+{
+	mApp->PlaySample(SOUND_CLICK);
+}
+
+void HelpPanel::ButtonDepress(int theId)
+{
+	mApp->PlaySample(SOUND_CLICK_DIALOG);
+	if (theId == BUTTON_BACK) {
+		// zooms out, and the game's options it came from zoom back in
+		mZooming = true;
+		mZoom.SetCurve(GTS(0x7d8c7c));
+		static_cast<TwistWidget*>(mApp->mOptionsDialog)->mZoom.SetCurve(GTS(0x7d8c58));
+		return;
+	}
+	if (theId == BUTTON_PREV)
+		PrevPage();
+	else if (theId == BUTTON_NEXT)
+		NextPage();
+	else
+		return;
+	mPrevButton->SetDisabled(mPage == 0);
+	mNextButton->SetDisabled(mPage == PAGE_COUNT - 1);
+}
+
+void HelpPanel::PopAnimStopped(int)
+{
+	mAnim->PlayLabel(HelpPageLabel(mPage));
+}
+
+void HelpPanel::MakeAnim()
+{
+	mAnim = new PopAnim(0, this);
+	mAnim->mImageFolders.clear();
+	mAnim->mImageFolders.push_back(StrFormat(GTC(0x7d9bac), mApp->mArtRes));
+	mAnim->mImageScale = gApp->mScale;
+	mAnim->mDrawScale = gApp->mScale;
+	mAnim->LoadAnimation(GTS(0x7d9b88));
 }
 
 void HelpPanel::SetPage(int thePage)
 {
 	mPage = thePage;
-	NotPorted("HelpPanel::SetPage");
-}
-
-void HelpPanel::NextPage()
-{
-	NotPorted("HelpPanel::NextPage");
+	mAnim->PlayLabel(HelpPageLabel(thePage));
 }
 
 void HelpPanel::PrevPage()
 {
-	NotPorted("HelpPanel::PrevPage");
+	if (0 < mPage)
+		SetPage(mPage - 1);
+}
+
+void HelpPanel::NextPage()
+{
+	if (mPage < PAGE_COUNT - 1)
+		SetPage(mPage + 1);
 }
 
 ProfilePanel::ProfilePanel(Menu* theMenu)

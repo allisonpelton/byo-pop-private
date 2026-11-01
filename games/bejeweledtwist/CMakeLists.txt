@@ -17,6 +17,16 @@ if(NOT EMSCRIPTEN)
     VERBATIM)
 endif()
 
+# bjt_popanim: Sexy::PopAnim, PopCap's player for .pam animations (popanim/: Bookworm Adventures 2's, with Twist's
+# two scales), kept free of game code.
+file(GLOB POPANIM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/popanim/*.cpp)
+add_library(bjt_popanim STATIC ${POPANIM_SOURCES})
+target_include_directories(bjt_popanim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/popanim)
+target_link_libraries(bjt_popanim PUBLIC sexyframework)
+if(NOT MSVC)
+  target_compile_options(bjt_popanim PRIVATE -Wall)
+endif()
+
 # bejeweledtwist: the game (src/). Native: bejeweledtwist.exe [-gamedir=<dir>] [-userdir=<dir>] (src/main.cpp); it
 # finds assets/bejeweledtwist/ by itself.
 set(BJT_SOURCES
@@ -27,7 +37,7 @@ set(BJT_SOURCES
   src/TwistEditWidget.cpp src/TwistDialog.cpp src/UnderDialogWidget.cpp)
 add_executable(bejeweledtwist ${BJT_SOURCES})
 target_include_directories(bejeweledtwist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(bejeweledtwist PRIVATE bjt_engine sexyframework sexyopenmpt sexyopenjpeg)
+target_link_libraries(bejeweledtwist PRIVATE bjt_engine bjt_popanim sexyframework sexyopenmpt sexyopenjpeg)
 if(NOT MSVC)
   target_compile_options(bejeweledtwist PRIVATE -Wall -Wno-overloaded-virtual)
 endif()

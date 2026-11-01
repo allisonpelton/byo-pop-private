@@ -1,7 +1,7 @@
 // The main menu's panels: the screens the menu pans to (MenuPanel, vtable 0x7d9d1c, a TwistWidget with only its own
 // destructor 0x69a667), the challenge menu and the end-of-game stats.
 //
-// port: the high scores, profile and new player panels are ported; the others are not yet. Each of those has the fields
+// port: the high scores, help, profile and new player panels are ported; the others are not yet. Each of those has the fields
 // and methods the menu uses, with the original's offsets and addresses; a method not yet ported does nothing (and says
 // so once in the log). They come in their own stages.
 #pragma once
@@ -9,6 +9,7 @@
 #include "ButtonListener.h"
 #include "CurvedVal.h"
 #include "ListListener.h"
+#include "PopAnim.h"
 #include "TwistDialogListener.h"
 #include "TwistWidget.h"
 
@@ -114,16 +115,51 @@ public:
 	int GetLevelRight();     // 0x694135
 };
 
-// Sexy::HelpPanel (400 bytes; 0x6981b0-0x6984b0, menu +0x2e0): below and to the right
-class HelpPanel : public MenuPanel {
+// Sexy::HelpPanel (400 bytes; 0x698131-0x699077, menu +0x2e0, and the app's +0xf44 in a game): the sixteen pages
+// of how to play, each an animation of twistpam.pam (its label in the table at 0x84e5b0, played again whenever it
+// stops) under the page's title and text. In the menu the gates turn the pages; over a game it has its own back,
+// previous and next buttons and zooms in and out.
+class HelpPanel : public MenuPanel, public ButtonListener, public PopAnimListener {
 public:
-	bool mUnknown17C = false;  // +0x17c
-	int mPage = 0;             // +0x180: the help page
+	enum { PAGE_COUNT = 16 };
+	// The buttons' ids (only over a game)
+	enum { BUTTON_BACK = 0, BUTTON_PREV = 1, BUTTON_NEXT = 2 };
+
+	Image* mDialogImage;             // +0x150: IMAGE_HOWTOPLAY_HELPDIALOG
+	bool mMouseDown = false;         // +0x154: between a press and its release (not read)
+	int mUnknown158 = 0;             // +0x158
+	int mUnknown15C = 0;             // +0x15c
+	float mUnknown160 = 5.0f;        // +0x160
+	WinTwistApp* mApp;               // +0x16c
+	bool mUnknown170 = false;        // +0x170
+	EffectsManager* mFXManager;      // +0x174
+	PopAnim* mAnim;                  // +0x178: the page's animation
+	bool mUnknown17C = false;        // +0x17c
+	int mPage = 0;                   // +0x180: the help page
+	TwistButton* mPrevButton;        // +0x184: over a game only
+	TwistButton* mNextButton;        // +0x188
 
 	explicit HelpPanel(WinTwistApp* theApp);  // 0x699077
+	~HelpPanel() override;                    // 0x698131
+
+	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x6981b0
+	void RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x6981d0
+	void Update() override;                                             // 0x6981f0
+	void Draw(Graphics* g) override;                                    // 0x6984b0
+	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override;  // 0x6982e6
+	void MouseUp(int x, int y, int theClickCount) override;                   // 0x6982f0
+	using Widget::MouseDown;
+	using Widget::MouseUp;
+
+	void ButtonPress(int theId, int theClickCount) override;  // 0x6982d2
+	using ButtonListener::ButtonPress;
+	void ButtonDepress(int theId) override;                   // 0x6983cf
+	void PopAnimStopped(int theId) override;                  // 0x698366: the page's animation again
+
+	void MakeAnim();            // 0x698f78
 	void SetPage(int thePage);  // 0x698319
-	void NextPage();            // 0x6983aa
-	void PrevPage();            // 0x6983bc
+	void PrevPage();            // 0x6983aa
+	void NextPage();            // 0x6983bc
 };
 
 // Sexy::ProfilePanel (0x1f0 bytes; 0x6a037b-0x6a0f55, menu +0x2e8): the player list, above the gates (which move
