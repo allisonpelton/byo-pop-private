@@ -3,10 +3,50 @@
 #include "../platform/VFS.h"
 #include "../platform/Placeholders.h"
 
+#include "SexyAppBase.h"
+
 #include <cmath>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 
 using namespace Sexy;
 using Platform::Mixer;
+
+static FILE* gSoundLog = nullptr;
+static int gSoundLogState = 0;  // 0 not looked at yet, 1 on, -1 off
+
+bool Sexy::SoundLogOn()
+{
+	if (gSoundLogState == 0)
+	{
+		const char* aPath = getenv("BYOPOP_SOUNDLOG");
+		gSoundLogState = aPath && *aPath ? 1 : -1;
+	}
+	return gSoundLogState > 0;
+}
+
+void Sexy::SoundLog(const char* theFormat, ...)
+{
+	if (!SoundLogOn())
+		return;
+	if (!gSoundLog)
+	{
+		gSoundLog = fopen(getenv("BYOPOP_SOUNDLOG"), "w");
+		if (!gSoundLog)
+		{
+			gSoundLogState = -1;
+			return;
+		}
+	}
+	fprintf(gSoundLog, "%d ", gSexyAppBase ? gSexyAppBase->mUpdateCount : 0);
+	va_list anArgs;
+	va_start(anArgs, theFormat);
+	vfprintf(gSoundLog, theFormat, anArgs);
+	va_end(anArgs);
+	fputc('\n', gSoundLog);
+	fflush(gSoundLog);
+}
 
 double SDLSoundManager::VolumeToGain(double theVolume)
 {
@@ -34,6 +74,14 @@ SDLSoundInstance::~SDLSoundInstance()
 {
 	if (mVoice)
 		Mixer::Get().StopVoice(mVoice);
+}
+
+// The volume as DSoundInstance hands it to DirectSound (DSoundManager::VolumeToDB), for the sound log
+int SDLSoundInstance::LogVolume() const
+{
+	double aVolume = mBaseVolume * mVolume * mManager->mMasterVolume;
+	int aDB = (int)((std::log10(1.0 + aVolume * 9.0) - 1.0) * 2333.0);
+	return aDB < -2000 ? -10000 : aDB;
 }
 
 void SDLSoundInstance::RehupVolume()
@@ -73,6 +121,7 @@ void SDLSoundInstance::SetBasePan(int theBasePan)
 void SDLSoundInstance::AdjustPitch(double theNumSteps)
 {
 	mPitch = std::pow(2.0, theNumSteps / 12.0);
+	SoundLog("pitch %d #%d %.4f", mSfxID, mLogNum, mPitch);
 	if (mVoice)
 		Mixer::Get().SetVoicePitch(mVoice, mPitch);
 }
@@ -80,12 +129,14 @@ void SDLSoundInstance::AdjustPitch(double theNumSteps)
 void SDLSoundInstance::SetVolume(double theVolume)
 {
 	mVolume = theVolume;
+	SoundLog("volume %d #%d %d", mSfxID, mLogNum, LogVolume());
 	RehupVolume();
 }
 
 void SDLSoundInstance::SetPan(int thePosition)
 {
 	mPan = thePosition;
+	SoundLog("pan %d #%d %d", mSfxID, mLogNum, mBasePan + mPan);
 	RehupVolume();
 }
 
@@ -94,6 +145,8 @@ bool SDLSoundInstance::Play(bool looping, bool autoRelease)
 	Stop();
 	mHasPlayed = true;
 	mAutoRelease = autoRelease;
+	SoundLog("play %d #%d vol=%d pan=%d pitch=%.4f loop=%d", mSfxID, mLogNum, LogVolume(), mBasePan + mPan, mPitch,
+		looping ? 1 : 0);
 	mVoice = Mixer::Get().StartVoice(mData, 0.0f, 0.0f, mPitch, looping);
 	RehupVolume();
 	return mVoice != 0;
@@ -103,6 +156,7 @@ void SDLSoundInstance::Stop()
 {
 	if (mVoice)
 	{
+		SoundLog("stop %d #%d", mSfxID, mLogNum);
 		Mixer::Get().StopVoice(mVoice);
 		mVoice = 0;
 	}
@@ -182,6 +236,8 @@ bool SDLSoundManager::LoadSound(unsigned int theSfxID, const std::string& theFil
 	}
 	if (!data)
 		return false;
+	SoundLog("load %d %s frames=%d rate=%d ch=%d", theSfxID, theFilename.c_str(), (int)data->mFrames, data->mRate,
+		data->mChannels);
 	mSounds[theSfxID] = data;
 	return true;
 }
@@ -203,9 +259,15 @@ void SDLSoundManager::ReleaseSound(unsigned int theSfxID)
 void SDLSoundManager::SetVolume(double theVolume)
 {
 	mMasterVolume = theVolume;
+	SoundLog("master volume %.3f", theVolume);
 	for (int i = 0; i < MAX_CHANNELS; i++)
 		if (mInstances[i])
+		{
+			// DSoundManager::SetVolume sets each instance's buffer volume again
+			if (mInstances[i]->mVoice)
+				SoundLog("volume %d #%d %d", mInstances[i]->mSfxID, mInstances[i]->mLogNum, mInstances[i]->LogVolume());
 			mInstances[i]->RehupVolume();
+		}
 }
 
 bool SDLSoundManager::SetBaseVolume(unsigned int theSfxID, double theBaseVolume)
@@ -253,6 +315,10 @@ SoundInstance* SDLSoundManager::GetSoundInstance(unsigned int theSfxID)
 	if (ch < 0)
 		return nullptr;
 	mInstances[ch] = new SDLSoundInstance(this, mSounds[theSfxID], mBaseVolumes[theSfxID], mBasePans[theSfxID]);
+	static int sLogNum = 0;
+	mInstances[ch]->mSfxID = theSfxID;
+	mInstances[ch]->mLogNum = ++sLogNum;
+	SoundLog("instance %d #%d", theSfxID, sLogNum);
 	if (mDefaultPitch != 0.0)
 		mInstances[ch]->AdjustPitch(mDefaultPitch);
 	return mInstances[ch];
@@ -293,6 +359,7 @@ void SDLSoundManager::SetCooperativeWindow(HWND, bool)
 
 void SDLSoundManager::StopAllSounds()
 {
+	SoundLog("stop all");
 	for (int i = 0; i < MAX_CHANNELS; i++)
 		if (mInstances[i])
 			mInstances[i]->Stop();

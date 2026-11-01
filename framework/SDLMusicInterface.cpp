@@ -1,6 +1,8 @@
 #include "SDLMusicInterface.h"
 #include "../platform/Audio.h"
 #include "../platform/Placeholders.h"
+#include "../platform/VFS.h"
+#include "SDLSoundManager.h"
 
 #include <algorithm>
 #include <cmath>
@@ -19,8 +21,36 @@ SDLMusicInterface::~SDLMusicInterface()
 	UnloadAllMusic();
 }
 
+// The CRC-32 of a song's first 32 KB, as tools/bassproxy logs the original's BASS_MusicLoad
+static unsigned LogCrc(const std::string& theFileName)
+{
+	std::vector<uint8_t> aData;
+	if (!Platform::VFS::Get().ReadAll(theFileName, aData))
+		return 0;
+	unsigned aCrc = 0xffffffff;
+	size_t aSize = std::min<size_t>(aData.size(), 0x8000);
+	for (size_t i = 0; i < aSize; i++)
+	{
+		aCrc ^= aData[i];
+		for (int b = 0; b < 8; b++)
+			aCrc = (aCrc >> 1) ^ (0xedb88320 & (0 - (aCrc & 1)));
+	}
+	return ~aCrc;
+}
+
+int SDLMusicInterface::FindSongId(const SongInfo& theSong) const
+{
+	for (auto& kv : mSongs)
+		if (&kv.second == &theSong)
+			return kv.first;
+	return -1;
+}
+
 void SDLMusicInterface::ApplyVolume(SongInfo& theSong)
 {
+	// BASS_ChannelSetAttributes takes the volume as 0 to 100
+	if (SoundLogOn())
+		SoundLog("music volume %d %d", FindSongId(theSong), (int)(theSong.mVolume * 100));
 	Mixer::Get().SetSongGain(theSong.mHandle, (float)theSong.mVolume);
 }
 
@@ -38,6 +68,8 @@ bool SDLMusicInterface::LoadMusic(int theSongId, const std::string& theFileName)
 	SongInfo info;
 	info.mHandle = handle;
 	mSongs[theSongId] = info;
+	if (SoundLogOn())
+		SoundLog("music load %d %s crc=%08x", theSongId, theFileName.c_str(), LogCrc(theFileName));
 	return true;
 }
 
@@ -51,6 +83,7 @@ void SDLMusicInterface::PlayMusic(int theSongId, int theOffset, bool noLoop)
 	s.mVolumeAdd = 0.0;
 	s.mStopOnFade = noLoop;
 	ApplyVolume(s);
+	SoundLog("music play %d offset=%d loop=%d", theSongId, theOffset, noLoop ? 0 : 1);
 	int offset = std::max(theOffset, 0);
 	Mixer::Get().PlaySong(s.mHandle, offset & 0xFFFF, (offset >> 16) & 0xFFFF, !noLoop, true);
 }
@@ -60,6 +93,7 @@ void SDLMusicInterface::StopMusic(int theSongId)
 	auto it = mSongs.find(theSongId);
 	if (it == mSongs.end())
 		return;
+	SoundLog("music stop %d", theSongId);
 	it->second.mVolume = 0.0;
 	Mixer::Get().StopSong(it->second.mHandle);
 }
@@ -68,20 +102,27 @@ void SDLMusicInterface::PauseMusic(int theSongId)
 {
 	auto it = mSongs.find(theSongId);
 	if (it != mSongs.end())
+	{
+		SoundLog("music pause %d", theSongId);
 		Mixer::Get().PauseSong(it->second.mHandle, true);
+	}
 }
 
 void SDLMusicInterface::ResumeMusic(int theSongId)
 {
 	auto it = mSongs.find(theSongId);
 	if (it != mSongs.end())
+	{
+		SoundLog("music resume %d", theSongId);
 		Mixer::Get().PauseSong(it->second.mHandle, false);
+	}
 }
 
 void SDLMusicInterface::StopAllMusic()
 {
 	for (auto& kv : mSongs)
 	{
+		SoundLog("music stop %d", kv.first);
 		kv.second.mVolume = 0.0;
 		Mixer::Get().StopSong(kv.second.mHandle);
 	}
@@ -106,13 +147,19 @@ void SDLMusicInterface::UnloadAllMusic()
 void SDLMusicInterface::PauseAllMusic()
 {
 	for (auto& kv : mSongs)
+	{
+		SoundLog("music pause %d", kv.first);
 		Mixer::Get().PauseSong(kv.second.mHandle, true);
+	}
 }
 
 void SDLMusicInterface::ResumeAllMusic()
 {
 	for (auto& kv : mSongs)
+	{
+		SoundLog("music resume %d", kv.first);
 		Mixer::Get().PauseSong(kv.second.mHandle, false);
+	}
 }
 
 void SDLMusicInterface::FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop)
@@ -124,6 +171,7 @@ void SDLMusicInterface::FadeIn(int theSongId, int theOffset, double theSpeed, bo
 	s.mVolumeAdd = theSpeed;
 	s.mStopOnFade = noLoop;
 	ApplyVolume(s);
+	SoundLog("music fadein %d offset=%d speed=%.4f loop=%d", theSongId, theOffset, theSpeed, noLoop ? 0 : 1);
 	if (theOffset == -1)
 		Mixer::Get().PlaySong(s.mHandle, 0, 0, !noLoop, false);  // BASS_MusicPlay: resume position
 	else
@@ -135,6 +183,7 @@ void SDLMusicInterface::FadeOut(int theSongId, bool stopSong, double theSpeed)
 	auto it = mSongs.find(theSongId);
 	if (it == mSongs.end())
 		return;
+	SoundLog("music fadeout %d stop=%d speed=%.4f", theSongId, stopSong ? 1 : 0, theSpeed);
 	if (it->second.mVolume != 0.0)
 		it->second.mVolumeAdd = -theSpeed;
 	it->second.mStopOnFade = stopSong;
@@ -144,6 +193,7 @@ void SDLMusicInterface::FadeOutAll(bool stopSong, double theSpeed)
 {
 	for (auto& kv : mSongs)
 	{
+		SoundLog("music fadeout %d stop=%d speed=%.4f", kv.first, stopSong ? 1 : 0, theSpeed);
 		kv.second.mVolumeAdd = -theSpeed;
 		kv.second.mStopOnFade = stopSong;
 	}
@@ -193,6 +243,7 @@ bool SDLMusicInterface::GetMusicFFT(int theSongId, float* theOut, int theSamples
 void SDLMusicInterface::SetVolume(double theVolume)
 {
 	mGlobalVolume = theVolume;
+	SoundLog("music master %.3f", theVolume);
 	Mixer::Get().SetMusicMasterGain((float)(theVolume * mMaxMusicVolume / 100.0));
 }
 
@@ -239,7 +290,10 @@ void SDLMusicInterface::Update()
 			s.mVolume = 0.0;
 			s.mVolumeAdd = 0.0;
 			if (s.mStopOnFade)
+			{
+				SoundLog("music stop %d", kv.first);
 				Mixer::Get().StopSong(s.mHandle);
+			}
 		}
 		ApplyVolume(s);
 	}
