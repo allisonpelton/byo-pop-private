@@ -434,6 +434,14 @@ void GameApp::CallDialogCallback(bool theAnswer)
 	mDialogCallback.clear();
 }
 
+void GameApp::ButtonPress(int theId)
+{
+	if (theId == 1 || theId == 11)
+		PlaySample(SOUND_CLICK2);
+	else
+		PlaySample(SOUND_CLICK1);
+}
+
 void GameApp::ButtonDepress(int theId)
 {
 	// nothing while the curtain moves

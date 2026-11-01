@@ -168,7 +168,8 @@ coordinates that land on Play.
    desktop at below-normal priority; nothing is shown and focus is never taken from the user. Checked: the host
    never shows a window; it drives the game by attaching a worker thread to that desktop (`SetThreadDesktop`), which
    is also required for the window handles there to be usable. With `--sandbox` the game runs inside the sandbox,
-   whose window origrun never opens; a guard stops the sandbox at once if one appears (see "Windows Sandbox").
+   whose window origrun never opens (but with `--sandbox-connect`, below); a guard stops the sandbox at once if one appears
+   (see "Windows Sandbox").
 3. **Silent by default.** The `dsound.dll` stand-in beside the copy makes `IDirectSound`/`IDirectSoundBuffer`
    objects that accept every call and never open a device, so DirectSound and anything on top of it (BASS uses
    DirectSound) stays silent. As a second check the host watches Windows Core Audio: if a session appears for
@@ -237,7 +238,7 @@ alias under the user's `WindowsApps` folder, where it is here, and fails cleanly
 call of a while starts the package's broker, `WindowsSandboxServer.exe`, in the user's session; it is no sandbox, it
 ends by itself after a while, and origrun leaves it alone.
 
-    origrun --game <name> --script <file.txt> --sandbox [--sandbox-vgpu] [options]
+    origrun --game <name> --script <file.txt> --sandbox [--sandbox-vgpu] [--sandbox-connect] [options]
 
 ### What a run does
 
@@ -273,8 +274,9 @@ and returns its id, and `wsb connect` opens "a new window with a remote desktop 
 be the one `connect` opened. For `wsb exec`, a command run as the logged-on user needs an active user session, made
 with `connect` beforehand, and fails without one; run as System, it runs in the system context with no such
 condition. `exec` has no process input or output and returns the command's exit code. The `.wsb` file's
-`LogonCommand` runs after the sandbox logs on, which again needs a user session. So origrun never runs `connect` or
-uses `LogonCommand`, and starts its run with `exec -r System`.
+`LogonCommand` runs after the sandbox logs on, which again needs a user session. So origrun never uses `LogonCommand`,
+starts its run with `exec -r System`, and runs `connect` only with `--sandbox-connect` (see "Hardware acceleration"),
+an option for runs the user has allowed onto their desktop.
 
 **Tested on 2026-11-01** (two `--sandbox-probe` runs). `wsb start` accepted the whole configuration below and
 returned in 1.3-1.5 s (a sandbox is cloned from a VM Windows keeps ready, `vmmemCmZygote`), with no window or
@@ -289,7 +291,9 @@ the user sees of a Windows Sandbox process (the three names above), of the broke
 `vmconnect.exe`, matched by exact name, never by a part of one (another product's "sandbox", Sandboxie say, is not
 Windows Sandbox). When it finds one, it stops this run's sandbox with `wsb stop --id`, which closes the sandbox's
 windows; it never ends a process itself, so a window that is not this sandbox's costs only this run. The run logs
-"STOP: a sandbox window was on the user's desktop" and exits with code 4. It has never fired. Every run ends with
+"STOP: a sandbox window was on the user's desktop" and exits with code 4. It has never fired. The one exception is
+`--sandbox-connect`: once origrun has run `wsb connect`, the window of that process, or of a process it started, is
+allowed (logged once); every other window, before the connect or of any other process, still stops the run. Every run ends with
 "RESULT: no sandbox window showed on the user's desktop" or the STOP line.
 
 ### When origrun is killed
@@ -339,7 +343,8 @@ update check, no Steam). `ClipboardRedirection`, `PrinterRedirection`, `AudioInp
 so nothing crosses through the clipboard, a printer, the microphone or a camera. `ProtectedClient` is enabled, which
 runs the sandbox's remote-desktop client in an AppContainer, in case a client is ever started. `vGPU` is disabled by
 default, so the sandbox renders in software (WARP) and shares nothing of the host's GPU driver; `--sandbox-vgpu`
-enables it for a 3D run (Microsoft notes that a shared GPU widens what the sandbox can reach of the host).
+enables it for a 3D run (Microsoft notes that a shared GPU widens what the sandbox can reach of the host). The user
+allowed it for Bookworm Adventures' 3D comparison (2026-11-01); another game's 3D runs ask the user first.
 
 There are exactly two mapped folders: the run folder, read-write, as `C:\run`, and origrun's binaries
 (`build/origrun-bin`), read-only, as `C:\origrun`. Never the install folder, the user's profile or the repository:
@@ -635,8 +640,32 @@ window-DC blit and once through PrintWindow itself, and Windows 11's own DirectD
 and Ning Po, run with no wrapper in software DirectDraw, had `dxgi.dll` loaded by the time their window came up, and
 Noah's Ark later `d3d11.dll` and `D3D10Warp.dll`, where a plain GDI test window loads none of them. origrun therefore
 takes no shot on the host at all ("The host-capture ban"). Inside Windows Sandbox the game may load what it likes and
-is captured. On the sandbox's own desktop the hidden-desktop limit above may not apply, so a 3D run there needs no
-wrapper: `--sandbox --sandbox-vgpu --3d on`, untested so far.
+is captured. On the sandbox's own desktop the hidden-desktop limit above does not apply, but a 3D run there still needs
+a wrapper. Tried on 2026-11-01 with Bookworm Adventures, `--sandbox --sandbox-vgpu --3d on` with no wrapper ran the
+game in software: its Direct3D test failed at DirectDraw's GetDeviceIdentifier with DDERR_NOTFOUND (the test's
+FailureReason, read back from Test3D), so the sandbox's GPU gives legacy DirectDraw no hardware device either.
+dgVoodoo2 does not help there: with `--dgvoodoo` the game crashes at start in dgVoodoo2's `DDraw.dll` (an access
+violation, the game's own crash box), on WARP and with `--sandbox-vgpu` alike. The reason is the session: `wsb exec -r
+System` puts origrun and the game in session 0, which has no display at all. `--sandbox-connect` (only for runs the
+user has allowed onto their desktop) runs `wsb connect` after the start, so the sandbox's user logs on and origrun moves
+the game into that session (session 1). Its display is the "Microsoft Remote Display Adapter", which Bookworm
+Adventures' test calls an unsupported card, and Direct3D 7's CreateDevice fails there (E_OUTOFMEMORY); with dgVoodoo2
+the game also falls back to software, and GDI captures of its window come out flat. `ORIGRUN_DGVOODOO_CONF` names a
+dgVoodoo.conf to use in place of origrun's own, for trying settings (the blit model, `PresentationModel = discard`,
+crashed the same way). So no original has run in 3D inside the sandbox.
+
+On the user's visible desktop (allowed by the user on 2026-11-01, with sound) Bookworm Adventures runs in 3D with no
+wrapper: started from a copy under the main checkout's `build/`, with `Is3D` 1, its Direct3D test passed (no failure,
+no warning) and its 3D flag stayed on for 20 s, 1745 updates. That first run was outside origrun (a one-off script, which
+backed the game's registry key up, read the flag and restored the key) and took no shot. The user then allowed shots of
+the game's own window on their desktop for the 3D comparison ("Yes, capture it", 2026-11-01), and Bookworm Adventures'
+`tools/pilot/visrun.py` took them: the window kept on top, a shot refused while another window overlaps it, and the
+picture taken only with PrintWindow, from the game's window itself, never from the screen. Its first version copied the
+screen, and one frame, taken before the game's window was on screen, held the user's own windows; it was deleted with
+every copy, and visrun changed to PrintWindow only (`games/bookwormadv/docs/IDENTICAL_PLAY.md`, "3D mode"). That leave
+was for that comparison alone: the host-capture ban holds for every other run. Bookworm Adventures also needs a short path: it builds absolute paths from the working directory in a
+256-byte stack buffer (0x6cbb60), so a copy under a worktree's long path dies at start with STATUS_STACK_BUFFER_OVERRUN
+(0xC0000409, the stack check at 0x6cbcea). origrun's sandbox copies run from `C:\run\game` and never meet it.
 
 **dgVoodoo2 runs the 3D mode on rundesk's desktop.** It implements DirectDraw and
 Direct3D 7 over Direct3D 11 and presents flip-model. Its official source is its author's GitHub releases page,
@@ -771,8 +800,7 @@ Other gaps:
 
 - **Windows Sandbox: two games so far.** The empty sandbox, windowed DirectDraw games (Ning Po; Bookworm Adventures with update-timed shots), the
   stop of a killed run's sandbox and registry presets are proven (see "Windows Sandbox"). Still to test, by the game
-  sessions once this is merged: whether Water Bugs and Cosmic Bugs open their full-screen mode there; whether
-  Bookworm Adventures reaches 3D with `--sandbox-vgpu` and no wrapper; whether a game that plays sound past the
+  sessions once this is merged: whether Water Bugs and Cosmic Bugs open their full-screen mode there; whether a game that plays sound past the
   stand-in reaches the host's speakers; and a game whose own settings live under HKLM (VirtualStore on the host),
   read and written there as SYSTEM.
 - **3D on the host needs dgVoodoo2**: legacy DirectDraw has no hardware on the hidden desktop, so an original with

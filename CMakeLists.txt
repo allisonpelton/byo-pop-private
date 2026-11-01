@@ -8,6 +8,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Every game and tool lands in the build folder itself (build/native/bejeweled.exe, build/web/rulestest.js)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+# A build shares the machine with the user and several sessions, and Ninja would run a job per core (20 here) at
+# normal priority: at most 6 compiles and 2 links run at once (the user, 2026-11-01). A web link's wasm-opt has its own
+# cap (cmake/ByopopWeb.cmake).
+set_property(GLOBAL APPEND PROPERTY JOB_POOLS byopop_compile=6 byopop_link=2)
+set(CMAKE_JOB_POOL_COMPILE byopop_compile)
+set(CMAKE_JOB_POOL_LINK byopop_link)
 
 if(EMSCRIPTEN)
   set(SDL2_LIBRARIES "")

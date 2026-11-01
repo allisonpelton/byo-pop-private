@@ -235,6 +235,10 @@ public:
 	// function theCallback (when not empty) with true
 	GameDialog* DoOkDialog(const SexyString& theHeader, const SexyString& theLines, const std::string& theCallback,
 	                       Image* theBanner);
+	// 0x44b5e0: the click of a button pressed, and of a dialog's yes or no (2000 + id, 3000 + id): SOUND_CLICK2 for
+	// buttons 1 and 11, SOUND_CLICK1 for the rest
+	using SexyAppBase::ButtonPress;
+	void ButtonPress(int theId) override;
 	// 0x44ad10: the dialogs' answers (2000 + id for yes, 3000 + id for no), and the buttons of the screens
 	// that send theirs here
 	void ButtonDepress(int theId) override;

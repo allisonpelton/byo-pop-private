@@ -131,3 +131,48 @@ the side panel's lives are the small icon (image 31).
   2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
   change under the mouse either (`qh`), nor do the help screen's two labels (`hh`), although the decompilation reads colour 1
   while the mouse is over a button (+0x1f); a pressed button is not captured yet (origrun cannot hold a button down).
+
+## 6. Comparison with the original, state of 2026-11-01 (sandbox captures)
+
+Static screens match pixel for pixel (title, menu, quit and options dialogs, help screen, the first board and the arrows under the
+mouse). The map scenario (six sailing moves, a sinking and the new ship, 84 shots) shows the same board, ships, kills and score
+texts in every shot. The 2003 exe has no `mHasPendingDraw` or `mUpdateAppState`, but its main loop (0x431c70) counts the updates
+since the last draw at app+0x364, which origrun takes for both (`--pending-draw` and `--update-state` `[0x4e21bc]+0x364`), so a
+shot lands exactly on the update it says. `--input-eip 430ba0,430d40` (the update, vf05) holds each click until the game is
+between updates, and the log's "input at counter N" is the update that read it: the port's script puts the click's move, down and
+up on that update and nothing else is guessed (origrun posts all three back to back in the sandbox). With that, the pirate's start
+delay and every board state of the map scenario (six moves, kills, the sinking) match the original update for update; 25 of the 84
+shots match exactly and 39 more differ only faintly (the corner whirls by at most 8 of 255). The new ship's cell after the sinking is not a fault of the port: it was (2,2) in one original run and (1,9) in a second
+run of the same script and seed (shots at every update from 5726), and (1,9) is the port's cell. Logging every `CrtRand` draw
+of the port with its caller showed the same sites as the decompilation (two per update for the waves, one per enemy move for the
+whirls, two per `PlaceShip` attempt), and `PlaceShip` tries (5,2), rejected by the ship next to it, then (1,9). So the original's
+draw count between its start and the placement varies a little from run to run (something timed, not found), and an exact match
+of the placement cannot be had; the corner whirls and waves are insensitive to the shift (the waves clamp their speed).
+
+**Is3D.** The 2003 exe has no Direct3D mode at all (its export has no D3D or DirectDraw 7 calls beyond the plain surface), so
+there is no Is3D=0 original to compare with and no Hardware Acceleration checkbox to port. The port's framework picks its
+renderer by what SDL gives: the same script (the first moves of the map scenario, seed 7) drawn by the accelerated renderer and
+by `SDL_RENDER_DRIVER=software` differs in 16813 pixels of a shot by at most 3 of 255, never more, so either mode is as
+close to the original's software drawing as the other.
+
+**Continue (fixed 2026-11-01).** After "Continue" the port left the pirate's talk widget visible, a 200 x 200 box at (142, 10) over the
+board that took the clicks (and hover) of every cell under it, so moves failed on some squares and showed no arrows there until a
+new game: the original's case 0xf of 0x421a10 sets its mode to 0, clears the talking flag and hides it, as a new game does. The
+likely cause of the reported "controls fail at random times". Found by loading the original's own savegame.dat (its format is the
+port's; the file the original writes at exit) and clicking a cell under the box.
+
+**Continue: gun smoke on the loaded ships (not emulated).** The original's saved-game loader fills a ship's position, heading and
+type but not its nine gun-smoke timers (`mTrail`), which keep what the heap had there. In the sandbox the two ships showed
+cannon blasts in the diagonal cells (lower left, upper right) 60 updates after the board came up, and one of them again at
+update ~250: a timer that counts down from a large leftover value shows its blast once it falls below 14. The port starts them
+at -1 (no smoke). The leftovers differ with the heap, so there is nothing to copy; the effect is a second of smoke on a
+Continue, now and then. Everything else of the Continue, the level-complete screen and the next level matches (shots lc7000 and
+lc7300 are pixel-identical).
+
+The bonus screen's first message line ("Try to find the", "The Treasure is", "You Win!" and the like) is drawn at the top of the board (y 31), only the second line at the bottom (height - 0x1e); the port had both at the bottom. The Treasure Island nag's button label is the dialog's gold. Where the treasure lies (and so the direction text after a dig) differs between the original and the port in the comparison run: the original's draw count before the bonus level varies from run to run (see the new ship's cell above), so it is not compared.
+
+## 7. Oddities (what the original does that the port does not copy)
+
+Each is described in section 6 and in IDENTICAL_PLAY.md: the new ship's cell after a sinking (the original's own draw count varies
+between runs), the gun smoke on the loaded ships of a continued game (uninitialised timers), and the treasure's cell on the bonus
+level (random, same variation).

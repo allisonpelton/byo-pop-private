@@ -30,6 +30,7 @@ public:
 
 protected:
 	void ApplyVolume(SongInfo& theSong);
+	int FindSongId(const SongInfo& theSong) const;  // port: for the sound log
 
 public:
 	SDLMusicInterface();
