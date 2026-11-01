@@ -170,7 +170,8 @@ Git and publishing:
   regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more
   step once every decompilation is done (the user, 2026-11-01): each game ported only from its Steam copy is compared
   with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
-  work with that version's files too.
+  work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer that puts a
+  native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
