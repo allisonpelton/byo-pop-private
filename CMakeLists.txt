@@ -256,3 +256,9 @@ option(BUILD_BONNIES "Build the Bonnie's Bookstore Deluxe port" ON)
 if(BUILD_BONNIES AND EXISTS ${PROJECT_SOURCE_DIR}/games/bonnies/CMakeLists.txt)
   add_subdirectory(games/bonnies)
 endif()
+# Mahjong Escape: Ancient Japan: JollyBear's engine (games/mahjongjapan/engine) under the framework's app host;
+# optional while it is new
+option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
+if(BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt)
+  add_subdirectory(games/mahjongjapan)
+endif()

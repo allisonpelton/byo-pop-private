@@ -3,8 +3,9 @@
 One repository for every game: shared `framework/`, `platform/`, `web/`, `tools/` and `docs/`, and one
 folder per game under `games/<game>/` (Bejeweled: `games/bejeweled`). Game files are staged into
 `assets/<game>/` and Ghidra exports go to `re/<game>/`; both are git-ignored and must never be committed.
+The coordinator's own rules (planning, usage, which games and when) are in `docs/COORDINATION.md`.
 
-## Running the game in tests
+## Running games in tests
 
 Every test run of a game exe must be invisible, silent and low priority, because the user is working on
 the same machine. A plain run opens a window, raises it over whatever the user is doing and plays sound.
@@ -12,208 +13,138 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - Start every game exe (`bejeweled.exe`, `fwtest.exe`, `smoke.exe`, frozen exes under `build/baseline*`,
   scratch builds) through `build/native/rundesk.exe`, or run the script that starts them under it:
   `build/native/rundesk.exe bash my-loop.sh`. rundesk puts the command and all its children on a private
-  desktop, gives them SDL's silent audio driver (always: it replaces any `SDL_AUDIODRIVER` you set) and
-  below-normal priority. Build it with `cmake --build build/native --target rundesk`.
-- `games/bejeweled/tools/oracle/compare.sh` already re-runs itself under rundesk, and so does
-  `games/bejeweled/tools/livesplit/run_tests.sh`. `build/native/lsprobe.exe` starts the game it probes:
-  run it under rundesk too.
-- Bejeweled's headless verifier (`build/native/bejeweled_verify.exe`, and its wasm under Node) and the web
-  build under Node (`node games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled.js ...`) open no
-  window, play no sound and open no URL, so they need no rundesk; a web build under Node still counts as a
-  game process below.
-- **Originals (the user, 2026-10-31):** "You are welcome to run the originals with sound on and mess with my save data"
-  (the saves they care about are backed up). An original still runs invisibly, under rundesk, from a copy under build/;
-  its install folder is never written to or run in place. It counts as a game process like any other. Many copies are
-  not activated (the retail CD is in storage, or activation no longer works on Windows 11): patch the copy as needed,
-  keep how it is done in private blocks, and put the patching tools in `.publishignore`. Run originals through
-  `tools/origrun` (`docs/ORIGRUN.md`; its status table says what works for each game). It captures windowed games, plays
-  scripted input and focus changes, logs and answers message boxes, and is silent by default (a dsound stand-in and a
-  Core Audio watch; rundesk silences only SDL). It does not redirect the registry or saves. It cannot stop a message
-  box's own sound or a MessageBeep, and it has no guard against URL or program launches, so a script never clicks a
-  link, "Buy" or "More Games" button. When a run really needs real sound, the user turns the speakers off for a short
-  stretch or overnight.
-- Open the web builds in the Browser pane only with `?silent=1`, e.g.
-  `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
-  its music and sounds on the user's speakers. The status line ends in "silent" when it is on. The terms card
-  with its checkbox is off on every game page for now (the user, 2026-10-26; `BYOPOP_WEB_TERMS_GATE` in
-  `cmake/ByopopWeb.cmake`): leave it off. Bringing it back blocks deployment: no game page goes on a public host
-  until it is on again (`docs/WEB_PLAYER.md`, "The terms").
-- Under rundesk (and the oracle) the framework never opens a URL; it logs "OpenURL in a test run". Builds or
-  frozen exes from before that guard do open them: a click on a game's "more games" link (a steam:// URL)
-  brings up the user's Steam client on their desktop. Random or generated input must not click link
-  buttons (Options dialog, "buy" or "more games" screens) in any build.
-- Run at most 3 game processes at a time, and never add artificial CPU load. The oracle (below) runs 3 at a
-  time by default (`--jobs`, at most 3): start no other game tests while it runs.
-- Only one oracle may run on the machine at a time. To wait for others, look for processes that run the
-  oracle script (a command line like `bash .../compare.sh ...`) and exclude your own process tree. Never
-  put the wait loop in the same shell command that later starts compare.sh: that shell's own command line
-  then contains "compare.sh", so it waits on itself forever and blocks every other agent.
-- The oracle's three runs per change (default, `-forcevariant`, the novariants build) are one command:
-  `games/bejeweled/tools/oracle/compare.sh --variants default,forcevariant,novariants` (into build/oracle,
-  build/oracle-forcevariant, build/oracle-novariants; build the novariants exe first with
-  `tools/build.sh novariants`). The frozen baselines' runs come from `build/oracle-cache` (keyed on the exes,
-  inputs, game files and machine; see compare.sh's header); `--no-cache` makes every run now, `--jobs 1` runs
-  one game at a time in the old order. The candidate is never cached, so the cache cannot hide a regression;
-  delete `build/oracle-cache` when in doubt. A "Draw Count" note in a report is the machine's speed within a
-  bound, not a difference (compare.py, DRAWS); compare.sh then drops the cache entries of the baseline runs
-  involved, so the next oracle makes them again. If such a note repeats in the same case, check it with
-  `--no-cache --jobs 1`.
-- While working on a few cases, run only those (it saves time and tokens): `compare.sh --cases <glob>,...`,
-  e.g. `--cases "shape_*,rules_inert"` (matched against the whole case name), with any `--variants`. It runs the
-  matching cases, the cases compare.py compares them with, and the runs they read (Bejeweled's stage 7 cases,
-  three ways: 164 s instead of about 950 s). Its report says it was partial and expect-update refuses it: the
-  whole oracle is still the check before a commit.
-- Do not leave anything running: loops started in the background must end before you finish, and a stopped
-  task's child processes must be killed.
-- Stop only processes you started, identified by a command line inside your own folder or worktree. Several
-  sessions share this machine, so never stop a game exe by its name alone.
+  desktop, gives them SDL's silent audio driver (whatever `SDL_AUDIODRIVER` says) and below-normal priority. Build it
+  with `cmake --build build/native --target rundesk`. `tools/check.sh`, `games/bejeweled/tools/oracle/compare.sh` and
+  `games/bejeweled/tools/livesplit/run_tests.sh` re-run themselves under it; run `build/native/lsprobe.exe`, which
+  starts the game it probes, under it too.
+- Headless runs need no rundesk: Bejeweled's verifier (`build/native/bejeweled_verify.exe`, and its wasm under Node)
+  and a web build under Node (`node games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled.js ...`) open no
+  window, play no sound and open no URL. A web build under Node still counts as a game process.
+- **Originals** run only through `tools/origrun` (`docs/ORIGRUN.md`: what it does, its status table for each game, its
+  gaps), from a copy under build/, invisibly under rundesk; an install folder is never written to or run in place.
+  origrun is silent by default (rundesk silences only SDL). The user allows sound and changed saves ("You are welcome
+  to run the originals with sound on and mess with my save data", 2026-10-31; the saves they care about are backed
+  up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
+  entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. Patch a
+  copy as needed (many are not activated): how a protection is taken apart goes only in private blocks, and the
+  patching tools in `.publishignore`. origrun cannot stop a message box's own sound or a MessageBeep and has no guard
+  against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
+  needs real sound, the user turns the speakers off for a short stretch or overnight. An original counts as a game
+  process.
+- Open web builds in the Browser pane only with `?silent=1`, e.g. `http://127.0.0.1:18766/bejeweled.html?silent=1`
+  (the status line then ends in "silent"): the pane may be hidden, and without it the game plays its music and sounds
+  on the user's speakers. The terms card is off on every game page for now (the user, 2026-10-26;
+  `BYOPOP_WEB_TERMS_GATE` in `cmake/ByopopWeb.cmake`): leave it off. No game page goes on a public host until it is
+  on again (`docs/WEB_PLAYER.md`, "The terms").
+- Under rundesk the framework never opens a URL (it logs "OpenURL in a test run"), but builds and frozen exes from
+  before that guard do: a click on a game's "more games" link brings up the user's Steam client. Random or generated
+  input never clicks link buttons (Options dialog, "buy" or "more games" screens) in any build.
+- Run at most 3 game processes at a time, and never add artificial CPU load. The oracle runs 3 at a time by default
+  (`--jobs`, at most 3): start no other game tests while it runs.
+- Only one oracle runs on the machine at a time. To wait for another, look for processes that run the oracle script
+  (a command line like `bash .../compare.sh ...`) and exclude your own process tree. Never put the wait loop in the
+  same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
+  on itself forever and blocks every other agent. How to run the oracle (its variants, cache and partial runs):
+  `docs/BUILDS.md`, "Running the oracle".
+- Leave nothing running: loops started in the background end before you finish, and a stopped task's child processes
+  are killed. Stop only processes you started, identified by a command line inside your own folder or worktree;
+  several sessions share this machine, so never stop a game exe by its name alone.
 - Never run `-script`/`-autoplay` runs on the user's desktop. `ORACLE_VISIBLE=1` exists only for the user.
 
 ## Token economy (the user's rules, 2026-10-24)
 
-Usage limits ran out in 36 hours of one week; `docs/TOKEN_ECONOMY.md` has the measurements. Every call
-re-reads the whole context, so what costs is context times calls, and a cache that expires while waiting.
+Every call re-reads the whole context, so what costs is context times calls, and a cache that expires while waiting
+(`docs/TOKEN_ECONOMY.md` has the measurements).
 - No workflows or parallel agents unless the user asks for them; mechanical work goes to one Sonnet agent.
 - A subagent never runs anything longer than about 4 minutes (the oracle, whole test suites, full builds,
   wait loops): its 5-minute cache expires and its whole context is written again. The owning session runs
   those, in the background, and waits for the notification instead of polling.
 - Read narrowly: grep, then the range you need; the section of a doc, not the doc. Send long output to a
   log file and print a summary line.
+- **Batch reads (the user, 2026-11-01, a trial).** Most calls are a single read, often several in a row
+  (`docs/TOKEN_ECONOMY.md`, "Calls"). When you already know the next few things you need (a function and its caller, a
+  header and its .cpp, the export and the port side by side), get them in one call: several tool calls in one message,
+  or one Bash command with the reads separated by `echo ---`.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
-- **Weekly cap (the user, 2026-10-26):** when the account's weekly usage (all models) reaches 85%, the coordinator
-  starts no new game session and sends no "Begin"; it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
-  Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
-  and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
-  For the week of 2026-11-01 to 2026-11-08 the cap is 80% (the user): what remains goes to bugs that make games harder
-  to test (like Seven Seas' tutorial that would not go away) and to site work. Site work runs alongside the game
-  sessions (the user, 2026-11-01).
 
-## Sessions, ownership and git (the user's rules)
+## Sessions, ownership and git
 
-The work is split across Claude sessions (the user's design, 2026-10-19):
 - **One session per game** owns `games/<game>/` on its own branch and worktree: the decompilation, all of its
-  testing, and its mods.
-- **The coordinator session** (session id `local_dba6c364-63c7-4e08-8ad1-0d086d673e52` since the folder
-  rename of 2026-10-24, in the main checkout) owns the shared code: `framework/`, `platform/`, `third_party/`, `web/`, `tools/`, `cmake/`,
-  `docs/` and the top-level files. It builds shared libraries and decompilation tooling, and it integrates:
-  it merges each game's branch into the trunk at that game's milestones, after checking that every game
-  still builds and passes its own tests.
-- **Shared changes:** a game session that needs one sends the coordinator a message (SendMessage to the id
-  above) with a precise spec: what, why, which files, how to test. A tiny shared fix it cannot wait for
-  goes in its own commit titled `shared: ...`, so the coordinator can review it and carry it over. Game
-  sessions do not edit another game's folder.
-- **Directing sessions (the user, 2026-10-24):** the user tells the game sessions about game-specific changes;
-  the coordinator does not direct or check on them. A game session messages the coordinator when it needs it:
-  a shared change, a milestone ready to merge, or its mods finished. The coordinator
-  looks at a session's work only when the user asks, or when it breaks something for other sessions (shared
-  code, the trunk, the machine's test rules). It does message the sessions when the way they are instructed
-  changes (a new rule like this one), since a running session reads CLAUDE.md again only at its next start
-  or compaction.
+  testing, and its mods. Game sessions do not edit another game's folder.
+- **The coordinator session** (`local_dba6c364-63c7-4e08-8ad1-0d086d673e52`, in the main checkout) owns the shared
+  code: `framework/`, `platform/`, `third_party/`, `web/`, `tools/`, `cmake/`, `docs/` and the top-level files. It
+  builds shared libraries and decompilation tooling, and it merges each game's branch into the trunk at that game's
+  milestones, after checking that every game still builds and passes its own tests.
+- **Shared changes:** a game session that needs one sends the coordinator a message (SendMessage to the id above)
+  with a precise spec: what, why, which files, how to test. A tiny shared fix it cannot wait for goes in its own
+  commit titled `shared: ...`, so the coordinator can review it and carry it over. A game session also messages the
+  coordinator when a milestone is ready to merge. The user directs the game-specific work.
 - **A new worktree** lacks the git-ignored game files, baselines, oracle cache and generated mods: run
-  `tools/setup_worktree.sh` in it once (copies from the main checkout, no junctions). Cut it from the local
-  `main`, never from `origin/main`: that holds only the publish snapshots, which share no history with `main`, so a
-  branch made from one cannot merge (`git rebase --onto main <snapshot>` fixes one).
-- **Trunk:** `main` (named `code-mods` until 2026-10-19, after Bejeweled's code-mods stages 4 and 5). Game branches
-  merge the trunk in regularly.
-- **Mark overrides.** Port-side game code that overrides a framework virtual (hooks such as
-  `GetShutdownSaves`, `HandleScriptCommand`, `OpenURL`) must say `override`, so a renamed or changed hook
-  breaks the build instead of silently never being called. (A rename once left Big Money's web backup
-  without the game in progress.)
+  `tools/setup_worktree.sh` in it once (copies from the main checkout, no junctions). Cut it from the local `main`
+  (the trunk), never from `origin/main`: that holds only the publish snapshots, which share no history with `main`, so
+  a branch made from one cannot merge (`git rebase --onto main <snapshot>` fixes one). Game branches merge the trunk
+  in regularly.
+- **Mark overrides.** Port-side game code that overrides a framework virtual (hooks such as `GetShutdownSaves`,
+  `HandleScriptCommand`, `OpenURL`) must say `override`, so a renamed or changed hook breaks the build instead of
+  silently never being called.
+- **Commits:** game sessions may commit on their own branch at verified milestones without asking the user each time.
+  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with the trailer
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Use the user's email only for authorship, never anywhere
+  else.
+- **Never push.** Only the coordinator publishes, and only as snapshots (the user, 2026-10-25):
+  `python tools/publish.py --push` pushes one commit holding the trunk's tree without the paths in `.publishignore`
+  and the `<!-- private -->` blocks of text files (`docs/PUBLISHING.md`). How to take a game's protection apart
+  (offsets in a wrapper, unwrapping commands, how a launcher checks its copy) goes only inside private blocks, and
+  tools that do it go into `.publishignore`.
+- **Game files:** never commit or redistribute game files or anything derived from them (staged assets, Ghidra
+  exports, word lists and other game data, mods built from another game's files, close recreations of another game's
+  art): keep them git-ignored. Docs and code comments refer to a game's texts by id and paraphrase; a few words of
+  quote to identify something are fine, tables or long passages of the game's strings are not. Downloads of any kind
+  need the user's explicit OK first (name, source, size).
 
-Git and publishing:
-- Game sessions may commit on their own branch at verified milestones without asking the user each time.
-  Only the coordinator commits on the trunk. Nobody merges into `master`.
-- Never push. Only the coordinator publishes, and only as snapshots (the user, 2026-10-25):
-  `python tools/publish.py --push` pushes one commit holding the trunk's tree without the paths in
-  `.publishignore` and the `<!-- private -->` blocks of text files, and the history stays on this machine
-  (`docs/PUBLISHING.md`). Before each publish the coordinator checks the trunk for game files and game text.
-  How to take a game's protection apart (offsets in a wrapper, unwrapping commands, how a launcher checks its
-  copy) goes only inside private blocks, and tools that do it go into `.publishignore`.
-- **Order of work (the user, 2026-10-24; updated 2026-10-25):** the measured one-session experiment (Noah's Ark,
-  `docs/TOKEN_ECONOMY.md`) showed an improvement, so up to three decompilation sessions run at once, besides
-  Bejeweled's mods session. The order of games is the survey's decision of 2026-10-24
-  (`docs/POPCAP_GAMES_SURVEY.md` section 4): the BookWorm series, then Bejeweled Twist, then the least predicted
-  effort first. A slot that the next game in that order cannot use yet, because it waits on another game's
-  engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
-  the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
-  mods were the one exception, part of the Sonnet trial).
+## Making a port
+
 - **Port first, unmodified (the user, 2026-10-26):** a port is the original game, unmodified and working like its exe;
-  it adds nothing for later mods, not even hooks (the site's own hooks for player names and settings are the exception).
-- **No new mods unless requested (the user, 2026-10-30):** "no new mods for anything unless someone requests it." There
-  is no mod phase that goes through a list: the 29 standard mods in `docs/MOD_ROADMAP.md` and each game's listed ideas
-  become the first entries of a feedback page the website will have for each game, where players suggest mods and vote
-  on them, and the user decides which to make. Fixes and suggestions for the mods that already exist are noted (the user's
-  `testnotes/TEST_NOTES.md`) and wait until every decompilation is finished.
+  it adds nothing for later mods, not even hooks (the site's own hooks for player names and settings are the
+  exception). No new mods unless the user requests one ("no new mods for anything unless someone requests it",
+  2026-10-30); fixes and suggestions for the mods that exist wait in the user's `testnotes/TEST_NOTES.md` until every
+  decompilation is finished. Code that makes a game moddable makes things configurable and never overwrites the
+  original (`docs/MOD_ROADMAP.md`, "Kinds of mod").
 - **Done means identical (the user, 2026-10-27):** "A game is done when it plays identically to the original in the
   browser and natively." No port is hurried to get through the list. A port's own suite matching its earlier output
   proves nothing about the original, and the hidden, silent pane never changes focus or plays music: before its final
   merge, a session compares its game with the original exe screen by screen (the original run under rundesk at the
   same points; every screen, dialog and text, music and sounds by their state, losing and regaining the focus),
   natively and in the web build, and fixes every difference. The screenshots are compared by `tools/shotdiff`
-  (`docs/SHOTDIFF.md`), not by eye: a session reads its summary, looks only at the crops of the boxes it flags, and
-  leaves what needs a person's judgement on the user's review page without waiting for it. Whether every game uses the
-  review page waits on the user's verdict on a one-game pilot (Bookworm Adventures, 2026-11-01). Every game is tested as
-  Bejeweled is: its deviations
-  listed in its notes, each without a visible effect; every RNG draw kept in its order; a frozen baseline of the port
-  with a regression check that proves later fixes and mods leave unmodded play unchanged. Every memory leak of the
-  original is fixed: memory the original still uses after "leaking" it (Bejeweled's FillBoard orphans) is freed after
-  its last possible use. The 18 games merged by 2026-10-27 are not done until they pass this; from the weekly reset
-  (2026-11-01) they come first, and no new port starts until all 18 are done.
-- **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
-  through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
-  code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
-  well)." So first every fault the user reported, in every game, and anything that makes a game hard to test; then the
-  identical-play pass above, game by game; once every game is done, a readability pass to the project's code standards
-  (`docs/CODE_STANDARDS.md`, written and approved by the user first); last, taking out code the ports do not need, such
-  as all registration code (trial, nag and unlock paths: "It is misleading and adds unnecessary bloat"). The game's
-  regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more
-  step once every decompilation is done (the user, 2026-11-01): each game ported only from its Steam copy is compared
-  with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
-  work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer that puts a
-  native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
+  (`docs/SHOTDIFF.md`), not by eye: the session reads its summary, looks only at the crops of the boxes it flags, and
+  judges every flagged difference itself, fixing or explaining each one, timing included: it lines up the input with
+  the game's updates, or masks animation that runs on its own clock and lists each mask with its reason. The user's
+  review page holds only what a session truly cannot judge, and the user sees it only once it holds every game. Every
+  game is tested as Bejeweled is: its deviations listed in its notes, each without a visible effect; every RNG draw
+  kept in its order; a frozen baseline of the port with a regression check that proves later fixes and mods leave
+  unmodded play unchanged. Every memory leak of the original is fixed: memory the original still uses after
+  "leaking" it (Bejeweled's FillBoard orphans) is freed after its last possible use.
+- **Order of the work (the user, 2026-11-01):** first every fault the user reported and anything that makes a game
+  hard to test, then the identical-play pass. A readability pass (`docs/CODE_STANDARDS.md`) and taking out code the
+  ports do not need (registration and the like) come once every game is done (`docs/COORDINATION.md`).
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
   libraries a game itself uses and descriptions of file formats are fine.
-- **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
-  Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
-  progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
-  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which; "web only" (Zuma's
-  Revenge, the user 2026-10-26) keeps the folder in `.publishignore` but puts the game on the website.
-- **Mods (the user, 2026-10-26):** code that makes a game moddable makes things configurable (rules, settings and
-  their ranges in `mod.json` and the mod menu); it never just overwrites the original, which plays unchanged with
-  no mod on. Every mod is data: a feature's code lives in the port, and a mod's `features` or `rules` turns it on.
-  So each feature the port adds also ships a mod that turns it on. There are three kinds of mod:
-  - An **example** mod has `example` in its name (`example-flame-gems`, `example-twist`). It shows how a single
-    feature can be configured, for playing with its settings and finding which features work well together. It
-    starts off (`"defaultEnabled": false`).
-  - A **feature** mod gives the player one feature under its own name (BookWorm's `widescreen` or `undo`). Its
-    settings are in the mod menu.
-  - A **curated** mod gives the player a tuned experience, much like a fan game: features, settings and art
-    chosen to play well together. It never copies a game mode from another game (the user, 2026-10-26): it always
-    has a twist of its own that makes a player want to pick it over the game it draws on. A port may implement
-    features from other games so that they can be recombined in new ways, and it is fine if a player can combine them
-    into something close to another game's mode; a curated mod itself is never just that mode. Bejeweled 2's
-    Twilight alone in Bejeweled is not interesting, but with other tunables it can be.
-- **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage; the coordinator sets
-  it on every session it starts.
-- **Model selection (the user's rule, decided after the Sonnet trial on 2026-10-25):** a game whose port can
-  largely copy another game's (the same framework generation and engine: Noah's Ark's for Seven Seas and Atomica,
-  BookWorm's for Pixelus and Typer Shark, Big Money's for Hammer Heads, Bejeweled's for Bejeweled 2, a sequel after
-  its first game) runs on Sonnet. A game that needs an engine or framework layer no port has yet (Bookworm
-  Adventures' PopLua and PopAnim, the Sprout engines, the non-SAF engines, Chuzzle, Twist, Bejeweled 3, Zuma's
-  Revenge) runs on Opus. Opus checks Sonnet where it showed deficits: before merging a Sonnet port, the coordinator
-  compares about ten translated functions with the decompilation, weighted to the largest and the most
-  loop-heavy, and sends the fixes back. A Sonnet session translates loops in their original shape (a
-  test-then-increment loop does not become a for loop), checks what a comment claims about the original before
-  writing it, and builds with AddressSanitizer at the first sign of a crash or memory corruption. If a Sonnet
-  game's review finds many faults, or its port runs far over its estimate, games of its kind move to Opus.
-- Never commit or redistribute game files or anything derived from them (staged assets, Ghidra exports,
-  word lists and other game data, mods built from another game's files, close recreations of another
-  game's art): keep them git-ignored. Docs and code comments refer to a game's texts by id and paraphrase;
-  a few words of quote to identify something are fine, tables or long passages of the game's strings are
-  not. Downloads of any kind need the user's explicit OK first (name,
-  source, size).
-- Commits end with the trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Use the user's
-  email only for authorship, never anywhere else.
+- **Mac versions (the user, 2026-11-01):** PopCap's own Mac builds are not references. Where the user found one, it
+  sits in the main checkout's `re/<game>/mac/` (`re/peggle/<edition>/mac/` for the Peggles; git-ignored, so a worktree
+  copies the folder in) with a demangled `<name>.symbols.txt` of its function and class names. Its names and class
+  layout guide the port, but the PC exe stays the authority for behaviour, since the Mac build may be another
+  version. No symbol list goes into the repo; a few names as examples are fine. A game decompiled before its Mac
+  version came (BookWorm, Bejeweled, Big Money, Alchemy, Seven Seas, Mummy Maze) also gets a report: its session
+  notes the commit it starts from before it first opens the Mac files, logs each thing the Mac build shows the port
+  got wrong while it makes its fixes, and once its fixes are done writes `games/<game>/docs/MAC_COMPARISON.md` and
+  sends it to the coordinator. The report says how close the decompilation was (game functions found and named
+  rightly, class boundaries and inheritance, functions merged, split or put in the wrong class, wrong types or
+  constants), what the AI got wrong and which of those had a visible effect, and the lessons for future
+  decompilations. Behaviour faults it finds are fixed with the other fixes; naming and structure corrections wait for
+  the readability pass.
+- **Sonnet sessions** translate loops in their original shape (a test-then-increment loop does not become a for
+  loop), check what a comment claims about the original before writing it, and build with AddressSanitizer at the
+  first sign of a crash or memory corruption (`docs/COORDINATION.md`, "Model selection").

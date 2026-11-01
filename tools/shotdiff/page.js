@@ -3,12 +3,12 @@
 (function () {
 	'use strict';
 	var DATA = JSON.parse(document.getElementById('shotdiff-data').textContent);
-	var pairs = DATA.pairs; // the differing pairs (stills, then clips), in page order
+	var pairs = DATA.pairs; // what is reviewed, in page order: the stills' items, then pairs reviewed whole (clips last)
 	var doc = { game: DATA.game, run: DATA.run, updated: '', marks: {} };
 	var loaded = false, cur = -1, saveTimer = 0, zoomState = null;
 	var clipFrame = {}; // pair index -> the frame its scrubber shows
 	var LABEL = { issue: 'ISSUE', unsure: 'NOT SURE', fine: 'FINE' };
-	var VIEWS = { orig: 'original', port: 'port', marked: 'port with the differences outlined' };
+	var VIEWS = { orig: 'original', port: 'port', marked: 'port with the differences outlined', pixels: 'differing pixels' };
 
 	function $(id) { return document.getElementById(id); }
 	function article(i) { return $('p-' + pairs[i].id); }
@@ -152,7 +152,8 @@
 		zoomState = { i: i, view: view };
 		stack.textContent = '';
 		var img = new Image();
-		var src = clip ? frameSrc(p, view === 'orig' ? 'orig' : 'port', k) : (view === 'orig' ? p.images.orig : p.images.port);
+		if (view === 'pixels' && (clip || !p.images.pixels)) view = 'marked';
+		var src = clip ? frameSrc(p, view === 'orig' ? 'orig' : 'port', k) : (view === 'orig' ? p.images.orig : view === 'pixels' ? p.images.pixels : p.images.port);
 		if (src) img.src = src;
 		img.alt = VIEWS[view] + ' of ' + p.name;
 		stack.appendChild(img);
@@ -172,7 +173,7 @@
 				marked++;
 				var e = entry(p);
 				var what = isClip(p) ? p.count + ' of ' + p.frames + ' frames flagged'
-					: p.pct + '% ' + p.count + (p.count === 1 ? ' box' : ' boxes');
+					: p.what || p.pct + '% ' + p.count + (p.count === 1 ? ' box' : ' boxes');
 				lines.push(LABEL[k] + ' ' + p.name + ' ' + what + (e.note ? ': ' + e.note : ''));
 			});
 		});
@@ -182,7 +183,7 @@
 		});
 		var open = pairs.filter(function (p) { return !markOf(p); }).map(function (p) { return p.name; });
 		if (open.length) lines.push('UNMARKED ' + open.length + ': ' + open.slice(0, 30).join(', ') + (open.length > 30 ? ', ...' : ''));
-		lines.unshift('shotdiff marks ' + DATA.game + '/' + DATA.run + ' (' + marked + ' of ' + pairs.length + ' differing pairs marked)');
+		lines.unshift('shotdiff marks ' + DATA.game + '/' + DATA.run + ' (' + marked + ' of ' + pairs.length + ' marked)');
 		return lines.join('\n');
 	}
 	function copyMarks() {
@@ -241,6 +242,7 @@
 			else if (k === '1') openZoom(zoomState.i, 'orig');
 			else if (k === '2') openZoom(zoomState.i, 'port');
 			else if (k === '3') openZoom(zoomState.i, 'marked');
+			else if (k === '4') openZoom(zoomState.i, 'pixels');
 			else return;
 			ev.preventDefault();
 			return;

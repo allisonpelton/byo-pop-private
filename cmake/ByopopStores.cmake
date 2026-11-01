@@ -53,8 +53,17 @@ set(BYOPOP_BUY_rocketmania 2026-10-26)
 # and Big Fish Games render their search only with JavaScript and EA's library search showed no results, so those three
 # were not checked.
 set(BYOPOP_BUY_bookwormadv2 2026-10-26)
-# Checked 2026-10-26: Dynomite Deluxe (PopCap) is on sale on Steam (app 3380, published by EA). EA's store sells a
-# "Dynomite!" (dated 2002) whose page does not confirm it is the Deluxe game, so it is left out; GameHouse, Big Fish
-# Games, iWin and Pogo showed no page for it, and Amazon only an unrelated Android app.
-set(BYOPOP_BUY_dynomite 2026-10-26
-  Steam "https://store.steampowered.com/app/3380/Dynomite_Deluxe/")
+# Checked 2026-10-26: Dynomite Deluxe (PopCap) is on sale on Steam (app 3380, published by EA). GameHouse, Big Fish
+# Games, iWin and Pogo showed no page for it, and Amazon only an unrelated Android app. EA's store sells "Dynomite!" for
+# PC and Mac through the EA app (rechecked 2026-11-01). It is the same game: every PC and Mac release of a PopCap game
+# is its Deluxe edition, which is only the naming convention (the user, 2026-11-01).
+set(BYOPOP_BUY_dynomite 2026-11-01
+  Steam "https://store.steampowered.com/app/3380/Dynomite_Deluxe/"
+  "EA app" "https://www.ea.com/games/dynomite/dynomite")
+# Checked 2026-11-01: Mahjong Escape: Ancient Japan and Mahjong Escape: Ancient China (SpinTop Games, sold by PopCap in
+# the PopCap Game Collection) are not in Steam's store search ("mahjong escape": no results) and not on EA's PopCap page;
+# iWin's search and GameHouse's mahjong games showed neither in their first page of results (the rest load only with
+# JavaScript), Pogo's search renders only with JavaScript, Big Fish Games' search page was not found and Amazon refused
+# the automated visit, so those last three were not checked.
+set(BYOPOP_BUY_mahjongjapan 2026-11-01)
+set(BYOPOP_BUY_mahjongchina 2026-11-01)

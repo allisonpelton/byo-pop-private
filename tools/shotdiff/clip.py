@@ -195,6 +195,17 @@ def compare_clip(name, odir, pdir, cfg, opts, out_dir, pid):
 			memo[key] = sd.diff_count(O.get(j), P.get(i), tol, shift, ign)
 		return memo[key]
 
+	faintly = set()  # port frames that agree with their original frame only faintly (docs/SHOTDIFF.md)
+
+	def agrees(i, j, shift):
+		"""Port frame i shows original frame j: no pixel differs, or none visibly."""
+		if count(i, j, shift) <= allow:
+			return True
+		key = ("v", i, j, shift)
+		if key not in memo:
+			memo[key] = not sd.has_visible(O.get(j), P.get(i), shift, ign)
+		return memo[key]
+
 	# 1. the picture's offset (once, from a few frames) and the overall frame offset
 	samples = sorted({int(round(x)) for x in np.linspace(0, n - 1, min(n, 12))})
 	offsets = list(range(-W, W + 1))
@@ -213,7 +224,7 @@ def compare_clip(name, odir, pdir, cfg, opts, out_dir, pid):
 			shift = sd.search_shift(O.get(i + d0), P.get(i), ign, tol, opts.max_shift)
 
 	def matches_at(d):
-		return sum(1 for i in samples if 0 <= i + d < m and count(i, i + d, shift) <= allow)
+		return sum(1 for i in samples if 0 <= i + d < m and agrees(i, i + d, shift))
 
 	g = min(offsets, key=lambda d: (-matches_at(d), mean_count(d, shift), abs(d)))
 
@@ -225,9 +236,11 @@ def compare_clip(name, odir, pdir, cfg, opts, out_dir, pid):
 			static_p[i] = sd.diff_count(P.get(i - 1), P.get(i), tol, (0, 0), ign) <= allow
 		best = None
 		for j in sorted(range(max(0, i - W), min(m, i + W + 1)), key=lambda j: (abs(j - (i + g)), j)):
-			c = sd.diff_count(O.get(j), P.get(i), tol, shift, ign)
-			if c <= allow:
+			c = count(i, j, shift)
+			if agrees(i, j, shift):
 				matched[i] = shown[i] = j
+				if c > allow:
+					faintly.add(i)
 				break
 			if best is None or c < best[1]:
 				best = (j, c)
@@ -285,7 +298,7 @@ def compare_clip(name, odir, pdir, cfg, opts, out_dir, pid):
 
 	issues = bool(flagged_idx) or abs(drift) >= opts.drift or bool(stalls)
 	valid = h * w - int(ign.sum())
-	res.update(status="differ" if issues else "match", shift=list(shift), offset=best_off, offset_ms=best_off * interval, drift=drift,
+	res.update(status="differ" if issues else ("faint" if faintly else "match"), faint_frames=sorted(faintly), shift=list(shift), offset=best_off, offset_ms=best_off * interval, drift=drift,
 			   stalls=stalls, notes=notes, shown=shown, diff_pct=round(100.0 * len(flagged_idx) / n, 4), compared_pixels=valid * n,
 			   ignored=[{"rect": list(e["rect"]), "label": e["label"]} for e in ign_entries], diff_pixels=0)
 	if not issues:  # nothing to review: no pictures
@@ -297,7 +310,7 @@ def compare_clip(name, odir, pdir, cfg, opts, out_dir, pid):
 	dx, dy = shift
 	fopts = copy.copy(opts)
 	fopts.align = shift
-	flagged = []
+	flagged, pixes = [], {}
 	for i in flagged_idx:
 		j = shown[i]
 		if j is None:
@@ -305,16 +318,18 @@ def compare_clip(name, odir, pdir, cfg, opts, out_dir, pid):
 			continue
 		r = sd.compare_arrays(O.get(j), P.get(i), fopts, [e["rect"] for e in ign_entries])
 		flagged.append({"frame": i, "orig_frame": j, "diff_pixels": r["diff_pixels"], "diff_pct": r["diff_pct"], "boxes": r["boxes"]})
+		pixes[i] = r["pixmap"]
 	worst = sorted((f for f in flagged if f["boxes"]), key=lambda f: -f["diff_pixels"])[:MAX_CLIP_CROPS]
 	for f in worst:
 		i, j = f["frame"], f["orig_frame"]
 		for box in f["boxes"][:CROPS_PER_FRAME]:
-			crop, scale = sd.make_crop(O.get(j), sd.align_port(P.get(i), dx, dy), box, opts)
+			crop, scale = sd.make_crop(O.get(j), sd.align_port(P.get(i), dx, dy), box, opts, pixes[i])
 			rel = report.frame_crop_rel(pid, i, box["n"])
 			sd.save_png(crop, os.path.join(out_dir, rel))
 			box["crop"] = sd.display_path(os.path.join(out_dir, rel))
 			box["crop_scale"] = scale
 			box["crop_size"] = list(crop.size)
+	del pixes
 	flag_set = set(flagged_idx)
 	s = apng_scale(n, w, h)
 	tw, th = max(1, round((2 * w + GAP) * s)), max(1, round(h * s))

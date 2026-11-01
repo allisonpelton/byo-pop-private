@@ -116,6 +116,11 @@ std::unique_ptr<ModulePlayer> CreateModule(const std::vector<uint8_t>& theFile, 
 
 }
 
+std::unique_ptr<ModulePlayer> CreateOpenMPTModule(const std::vector<uint8_t>& theFile, int theRate)
+{
+	return CreateModule(theFile, theRate);
+}
+
 void RegisterOpenMPTModules()
 {
 	static bool sRegistered = false;
