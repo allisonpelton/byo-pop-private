@@ -68,6 +68,12 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Twist's port is done, 3D mode included: when Twist estimated 6 to 10 days for 3D, the user chose to wait for all of
   it rather than start after the 2D game ("Wait for all", 2026-11-01). The one exception is Bejeweled Deluxe, whose pass
   the user started at once ("Ok to get Bejeweled running identically now, I decided", 2026-11-01).
+- **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
+  and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
+  playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
+  when it comes) do both phases. Every game not yet reviewed gets the first phase, and their second phases start only
+  once every game plays identical. "If a series of games play out the same in the original and port then the first
+  phase should be considered done."
 - **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
   through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
   code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
