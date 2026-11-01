@@ -82,12 +82,18 @@ natively, every stage won.
 
 The original exe, run under origrun in software mode, matched the port screen for screen through stage 1: the name
 dialog, the map, the board, the tips, the tray, the score and the level's end. The only differences were the clock
-and tiles caught in flight. Those runs stopped when the project moved the originals into Windows Sandbox (2026-11-01).
+and tiles caught in flight. In Windows Sandbox (`origrun --sandbox`, 2026-11-01) stage 1 matched again, and so did
+stages 2, 3, 6, 7, 10, 13, 19, 25, 31, 37, 43, 49, 55 and 60 with the ending, each played from the port's player saved
+before it (re-signed for the sandbox's folder: the checksum covers the exe's folder, `DEVIATIONS.md`). The maps, the
+boards and the screens after each level were identical to the pixel. What differed was the clock (the original plays
+on the wall clock, slower), animation on its own clock (the tiles a tip lights, the arrow under the free-tiles tip,
+the map's marker, the ending's next line) and the PAUSE button lit under the mouse on the port: the original tests
+the hover with `GetCursorPos` (0x42a820), and origrun's posted clicks do not move the sandbox's cursor.
 A native run that started in full screen with
 "Wide Screen" on reached stage 1's board as the windowed runs do (`DEVIATIONS.md` has how full screen is shown).
 The web build played the same 60-stage script under Node (`games/bejeweled/tools/verify/wasmrun.js game`), and
-its 121 screenshots were identical to the native run's. Not yet tested: the comparison with the original beyond
-stage 1.
+its 121 screenshots were identical to the native run's. Not yet compared with the original: the classic game, the
+menus and dialogs outside the adventure, losing and regaining the focus, and the sound.
 
 ## Mods
 
