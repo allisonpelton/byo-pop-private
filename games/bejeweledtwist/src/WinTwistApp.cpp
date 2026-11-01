@@ -4,6 +4,7 @@
 #include "CustomResourceManager.h"
 #include "GameText.h"
 #include "Res.h"
+#include "Widget.h"
 #include "WidgetManager.h"
 
 #include <SDL.h>

@@ -20,7 +20,8 @@ endif()
 # bejeweledtwist: the game (src/). Native: bejeweledtwist.exe [-gamedir=<dir>] [-userdir=<dir>] (src/main.cpp); it
 # finds assets/bejeweledtwist/ by itself.
 set(BJT_SOURCES
-  src/main.cpp src/WinTwistApp.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp)
+  src/main.cpp src/WinTwistApp.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp
+  src/TwistWidget.cpp)
 add_executable(bejeweledtwist ${BJT_SOURCES})
 target_include_directories(bejeweledtwist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(bejeweledtwist PRIVATE bjt_engine sexyframework sexyopenmpt sexyopenjpeg)
