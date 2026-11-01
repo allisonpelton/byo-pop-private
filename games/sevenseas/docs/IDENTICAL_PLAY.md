@@ -13,7 +13,7 @@ it. `tools/shotdiff` then compared the pictures; every box it flagged was looked
 
 The scenarios were the static screens (title, menu, quit and options dialogs, help screen, the first board with arrows under the
 mouse), a six-move sailing game with kills, a sinking and the new ship, and games started from the original's own saved game:
-Continue, the level-complete screen, the next level, and the bonus level (Treasure Island) with its nag and a dig. Saves were
+Continue, the level-complete screen, the next level, and the bonus level (Treasure Island) with its nag and a dig, and the map after it (the dig's end is random, so the map was compared by its own age: the port's map shots matched the original's with 0 differing pixels, 12 shots from the first dot to the last). Saves were
 made by editing the original's savegame.dat, which the original accepts.
 
 ## Changes the pass made
@@ -26,6 +26,8 @@ made by editing the original's savegame.dat, which the original accepts.
 | After Continue some squares took no clicks and showed no arrows (the user's "controls fail at random times") | case 0xf of 0x421a10 hides the pirate's talk widget, a 200 x 200 box that otherwise takes the clicks | Continue hides it the same way | 05bd59d |
 | Bonus screen: the first line of every message ("Try to find the", "The Treasure is", "You Win!") was at the bottom | the original draws the first line at the top of the board (y 31) and only the second at height - 0x1e | the same | 2dd815a |
 | Treasure Island nag: button label white | the dialog's gold | gold | 2dd815a |
+| The map (after level 10) never moved on: no dotted route, no second X | the map's Update counts the widget's updates and lights one more dot every 50 (0x417960) | the same | see below |
+| The map's "Click to continue" glowed | the original's button has no component image and shows its unlit picture, the lit one under the mouse | the same | see below |
 
 ## Oddities skipped
 
@@ -49,4 +51,4 @@ two renderers of the port differ by at most 3 of 255). See GAME_NOTES, section 5
 
 ## Still to compare
 
-The bonus level's win and lose screens, the map screen, and the game-over and high-score screens.
+The bonus level's win and lose screens, and the game-over and high-score screens.

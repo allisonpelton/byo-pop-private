@@ -382,7 +382,7 @@ static const int kMapChapterDots[8] = {359, 0, 8, 17, 22, 27, 32, 35};
 MapWidget::MapWidget(SevenSeasApp* theApp) :
 	mApp(theApp)
 {
-	mNextButton = new DialogButton2003(mApp->mImages[IMAGE_MAPBUTTONLIT], 100, this);
+	mNextButton = new DialogButton2003(NULL, 100, this);   // no component image: the button draws mButtonImage, mOverImage under the mouse
 	mNextButton->mOverImage = mApp->CopyImage(mApp->mImages[IMAGE_MAPBUTTONLIT]);
 	mNextButton->mButtonImage = mApp->CopyImage(mApp->mImages[IMAGE_MAPBUTTONUNLIT]);
 	mNextButton->mDoFinger = true;
@@ -425,6 +425,14 @@ void MapWidget::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
 	mApp->FollowMouse(mX + x, y);
+}
+
+// 0x417960: a dot more every 50 updates (the original's Update returns the update count / 50)
+void MapWidget::Update()
+{
+	Widget::Update();
+	if (mUpdateCnt % 0x32 == 0)
+		mDots++;
 }
 
 // 0x4177d0

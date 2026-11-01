@@ -91,6 +91,7 @@ public:
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
+	virtual void		Update() override;
 	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonDepress(int theId) override;
