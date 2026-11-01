@@ -25,18 +25,30 @@ mkdir -p "$P/orig" "$P/port" "$P/scripts"
 python "$T/gen.py" "$T/$name.txt" "$P/scripts/$name.orig.txt" "$P/scripts/$name.port.txt" "$P/port" || exit 1
 
 if [ "$which" != port ]; then
-	bash "$T/reset.sh"
-	# the same seeds on both sides: the copy's clock reads in SexyAppBase::Init become constants (seedpatch.py)
-	python "$T/seedpatch.py" "$(cygpath -u "$EXE")" $SEED | tee "$P/$name.seedpatch.log"
 	# The script is timed to the original's own updates (gen.py): SexyAppBase's mUpdateCount, at +0x484 in the app
 	# (0x442e60 reads it), whose pointer is the global at 0x8259e4.
+	# A shot inside the sandbox shows exactly the update it is labelled with when origrun can see that the game has
+	# drawn it: mHasPendingDraw at +0x45a and mUpdateAppState at +0x488 (Process, 0x549b10; DrawDirtyStuff, 0x5446f0), and
+	# whether that draw was skipped, mLastDrawWasEmpty at +0x459.
 	run=pilot-$name
-	rm -rf "${W:?}/build/origrun/$run"
-	# The copy runs DPI-aware: the original is not, so on a scaled display (this machine's is 125%) Windows stretches
-	# its window and origrun's PrintWindow(PW_RENDERFULLCONTENT) returns that stretched picture scaled back down,
-	# blurring every edge. Marked aware, the capture is the game's own 800x600 frame (in a taller frame: 3, 32).
-	__COMPAT_LAYER="HighDpiAware${__COMPAT_LAYER:+ $__COMPAT_LAYER}" "$W/build/origrun-bin/origrun.exe" --exe "$EXE" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
-		--3d off --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
+	R=$W/build/origrun/$run
+	rm -rf "${R:?}"
+	# a sandbox run's exe lies inside its run folder: the prepared copy (exe.txt) is copied there for each run
+	mkdir -p "$R"
+	cp -r "$(dirname "$(cygpath -u "$EXE")")" "$R/game"
+	GEXE=$R/game/$(basename "$(cygpath -u "$EXE")")
+	# the same seeds on both sides: the copy's clock reads in SexyAppBase::Init become constants (seedpatch.py)
+	python "$T/seedpatch.py" "$GEXE" $SEED | tee "$P/$name.seedpatch.log"
+	# The original runs inside Windows Sandbox (docs/ORIGRUN.md, "Windows Sandbox"), where every run is a first run, so
+	# the start state goes in as files and registry presets: Allison.bwa (the user's) and the pilot's Tester.bwa in
+	# the game's users folder on the sandbox's C:, and the port's start values (portuser0/registry.ini: LastUser
+	# Tester, Is3D 0) as a .reg file, which the game reads there as SYSTEM's HKCU.
+	U="$R/sandbox-files/C/ProgramData/PopCap Games/WinBAD/users"
+	mkdir -p "$U"
+	cp "$P/backup/users/Allison.bwa" "$P/portuser0/users/Tester.bwa" "$U/"
+	python "$T/inireg.py" "$P/portuser0/registry.ini" "$P/start.reg"
+	"$W/build/native/rundesk.exe" "$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
+		--reg "$(cygpath -w "$P/start.reg")" --3d off --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
 	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$name.orig.log" | tail -5
 	S=$W/build/origrun/$run/shots
 	python - "$S" "$P/orig" "$T/$name.txt" <<'EOF'

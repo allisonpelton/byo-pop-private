@@ -2,7 +2,8 @@
 
 The port is the original game, unmodified. This list holds every place where its code does something other than
 what `MahjongEscapeAJ.exe` does, and why. None of them has an effect a player can see, except the shape of full screen
-on a graphics driver set to stretch ("The device"). A comment at each place in the code names the original's address,
+on a graphics driver set to stretch ("The device") and players that keep their progress when they move ("The
+players' checksum"). A comment at each place in the code names the original's address,
 so a grep for the address finds both sides.
 
 ## The device
@@ -28,6 +29,17 @@ the screen's rect at 0x432000 and maps the mouse back at 0x42cb90. Without that,
 800x600 (0x432f50), and then the graphics driver's scaling decides the picture. Most drivers keep the shape, which
 looks the same as the port; a driver set to stretch fills a wide screen. The port keeps the setting, shows its
 checkbox when the original would (0x5d8e32, from the desktop's size) and saves it, but never changes the display mode.
+
+## The players' checksum
+
+A player's file (`<id>.usr`) ends in a checksum that also covers the folder of the exe (0x416100), so the original
+loads a player only from the install that saved it, and starts a moved one over. The port's folder is wherever its
+game files are (another folder natively, a fixed one in the browser), so signing with it would start over every
+player imported from the original and every player whose port moved. The port signs with the original's usual install
+folder (`C:\Program Files (x86)\Popcap Game Collection\Mahjong Escape Ancient Japan\`) and loads a player signed with
+that folder, with the same folder under `C:\Program Files\` (32-bit Windows), or with the port's own folder (players
+the port saved before). A player from an original installed anywhere else still starts over, as it would in the
+original after a move.
 
 ## Memory the original leaks
 
