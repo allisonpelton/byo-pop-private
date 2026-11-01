@@ -337,11 +337,62 @@ void Board::EndTurn()
 
 void Board::UpdateRecords()
 {
-	if (mUnknown158 != 0 && !mUnknown37C4 && !mUnknown2629) {
-		// port: 0x6bcd96 keeps the game's best move, cascade and score with the game saved at the level's start (for
-		// their replays) in the app and the profile; it comes with the replays
-		NotPorted("Board::UpdateRecords (0x6bcd96)");
+	// 0x6bcd96: the session's (the app's) and the player's (the profile's) best gems in a move, move's points and
+	// cascade, each with the game as the level started for its replay; a challenge's count only for the session
+	if (mUnknown158 == 0 || mUnknown37C4 || mUnknown2629)
+		return;
+	bool aForProfile = mGameMode != MODE_CHALLENGE;
+	Profile* aProfile = mApp->mProfile;
+	int aGems = mUnknown1F8;
+	if (mApp->mUnknownFA0[0].mUnknown28 < aGems) {
+		mApp->mUnknownFA0[0].mBuffer = mSaveBuffer;
+		mApp->mUnknownFA0[0].mUnknown20 = mUnknown23A4;
+		mApp->mUnknownFA0[0].mUnknown24 = mUnknown23A8;
+		mApp->mUnknownFA0[0].mUnknown28 = aGems;
+		mUnknown390C = aGems;
 	}
+	if (aForProfile && aProfile->mSavedGames[0].mBest < aGems) {
+		aProfile->mSavedGames[0].mData = mSaveBuffer;
+		aProfile->mSavedGames[0].mUnknown20 = mUnknown23A4;
+		aProfile->mSavedGames[0].mUnknown24 = mUnknown23A8;
+		aProfile->mSavedGames[0].mBest = aGems;
+	}
+	// the move's points, with the geodes still in flight
+	int aPoints = 0;
+	if (!mUnknown14AC.empty()) {
+		// port: each geode's +0xa8 times +0x21d0, +0x2580 and the mode's multiplier; the geodes come with the coal
+		NotPorted("Board::UpdateRecords: the geodes' points");
+	}
+	aPoints = mUnknown168 - mUnknown16C + aPoints;
+	if (mApp->mUnknownFA0[2].mUnknown28 < aPoints) {
+		mUnknown3910 = aPoints;
+		mApp->mUnknownFA0[2].mBuffer = mSaveBuffer;
+		mApp->mUnknownFA0[2].mUnknown20 = mUnknown23A4;
+		mApp->mUnknownFA0[2].mUnknown24 = mUnknown23A8;
+		mApp->mUnknownFA0[2].mUnknown28 = aPoints;
+	}
+	if (aForProfile && aProfile->mSavedGames[2].mBest < aPoints) {
+		aProfile->mSavedGames[2].mData = mSaveBuffer;
+		aProfile->mSavedGames[2].mUnknown20 = mUnknown23A4;
+		aProfile->mSavedGames[2].mUnknown24 = mUnknown23A8;
+		aProfile->mSavedGames[2].mBest = aPoints;
+	}
+	if (mApp->mUnknownFA0[1].mUnknown28 < mUnknown1508) {
+		mUnknown3908 = mUnknown1508;
+		mApp->mUnknownFA0[1].mBuffer = mSaveBuffer;
+		mApp->mUnknownFA0[1].mUnknown20 = mUnknown23A4;
+		mApp->mUnknownFA0[1].mUnknown24 = mUnknown23A8;
+		mApp->mUnknownFA0[1].mUnknown28 = mUnknown1508;
+	}
+	if (aForProfile && aProfile->mSavedGames[1].mBest < mUnknown1508) {
+		mUnknown2234[(0x22e4 - 0x2234) / 4] = mUnknown1508;
+		aProfile->mSavedGames[1].mData = mSaveBuffer;
+		aProfile->mSavedGames[1].mUnknown20 = mUnknown23A4;
+		aProfile->mSavedGames[1].mUnknown24 = mUnknown23A8;
+		aProfile->mSavedGames[1].mBest = mUnknown1508;
+	}
+	if (mUnknown238 < mUnknown1508)
+		mUnknown238 = mUnknown1508;
 }
 
 bool Board::IsGameOverPending()
