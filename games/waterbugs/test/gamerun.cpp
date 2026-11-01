@@ -266,6 +266,7 @@ int main(int argc, char** argv)
 				wb::Level* aLevel = wb::gLevels.current;
 				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, wb::gScore, wb::gLives,
 					wb::gLevelInSet, aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+				std::printf("frame %d\n", wb::gFrame);  // the update counter (0x460a1c), for lining up with the original
 			}
 			else if (e.what == "lives")
 				wb::gLives = e.a;  // a test shortcut: the lives left, to reach the game over
