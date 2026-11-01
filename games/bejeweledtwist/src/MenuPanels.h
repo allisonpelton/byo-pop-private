@@ -8,6 +8,7 @@
 
 #include "ButtonListener.h"
 #include "CheckboxListener.h"
+#include "ColorCycle.h"
 #include "CurvedVal.h"
 #include "ListListener.h"
 #include "PopAnim.h"
@@ -304,12 +305,59 @@ public:
 	int Unknown6E0DDB(bool, bool);        // 0x6e0ddb: the challenges' locks and progress for the player
 };
 
-// Sexy::EndStats (0x4c8 bytes; 0x6fa5be-0x6fc0eb, menu +0x3dc): the stats after a game
-class EndStats : public TwistWidget {
+// Sexy::EndStats (0x4c8 bytes, a TwistWidget and ButtonListener; 0x6fa5be-0x6fc0eb, menu +0x3dc): the stats after
+// a game. It drops in from above, counts up its four bars, and drops away again on Continue; a button by each of the
+// game's replays (the best move, cascade and score) plays that replay on a board of its own.
+class EndStats : public TwistWidget, public ButtonListener {
 public:
+	struct Bar {                   // 0x4c bytes, at +0x210
+		int mValue = 0;            // +0x00: the stat (app +0xc74)
+		int mShown = 0;            // +0x04: counts up to mValue
+		int mFullHeight = 0;       // +0x08: the bar's height above mMinHeight at mValue
+		int mHeight = 0;           // +0x0c: as shown
+		SexyString mLabel;         // +0x10
+		int mUnknown2C = 0;        // +0x2c: the same as mMult
+		int mMult = 0;             // +0x30: drawn as "x%d" at the bar's foot (another stat)
+		int mImageId = 0;          // +0x34: the bar's image, by id
+		Color mColor;              // +0x38: the number's
+		bool mUnknown48 = true;    // +0x48
+	};
+
+	Image* mDialog = nullptr;      // +0x14c: IMAGE_FINALSTATSUI_DIALOGBOX
+	int mState = 0;                // +0x150: 0 dropping in, 1 counting, 2 dropping away (then mClicked)
+	float mUnknown154 = 0;         // +0x154: 2 once it is in (nothing reads it)
+	float mReplayFade = 0;         // +0x158: IMAGE_FINALSTATSUI_REPLAY while a replay starts and ends
+	CurvedVal mDrop;               // +0x160: mY as a share of the window's height
+	int mMouseX = 0;               // +0x1d0 (nothing reads it)
+	int mMouseY = 0;               // +0x1d4
+	WinTwistApp* mApp;             // +0x1d8
+	ColorCycle mColorCycle;        // +0x1dc
+	Bar mBars[4];                  // +0x210
+	int mMinHeight = 0;            // +0x340
+	int mBiggest = 0;              // +0x344: the bar with the largest mValue
+	int mBiggestValue = 0;         // +0x348
+	int mStep = 0;                 // +0x34c: a round hundredth of mBiggestValue, added each update while counting
+	int mPercent = 0;              // +0x350: the bars' share of the score
+	float mUnknown354 = 0;         // +0x354: the replay's delay before it fades out
+	int mStats[84] = {};           // +0x358: a copy of the app's stats (+0xc74)
+	TwistButton* mReplayButtons[3] = {};  // +0x4a8
+	TwistButton* mContinueButton = nullptr;  // +0x4b4
+	unsigned long mReplayCRCs[3] = {};       // +0x4b8: equal replays are joined by a connector
+
 	explicit EndStats(WinTwistApp* theApp);  // 0x6fa6e5
-	virtual int GetPreferredWidth();   // slot 70 (+0x118)
-	virtual int GetPreferredHeight();  // slot 71 (+0x11c)
+	~EndStats() override;                    // 0x6fabfe
+	virtual int GetPreferredWidth();   // 0x6fa5be (slot 70)
+	virtual int GetPreferredHeight();  // 0x6fa5c8 (slot 71)
+
+	void Update() override;                  // 0x6fac64
+	void Draw(Graphics* g) override;         // 0x6faffd
+	void DrawOverlay(Graphics* g) override;  // 0x6fa5db
+	using Widget::DrawOverlay;
+	void MouseMove(int x, int y) override;   // 0x6fa66f: only keeps the place
+	void MouseDrag(int x, int y) override;   // 0x6fa688: the same
+	void ButtonPress(int theId, int theClickCount) override;  // 0x6fa694
+	void ButtonDepress(int theId) override;                   // 0x6fbde0
+	using ButtonListener::ButtonPress;
 };
 
 }  // namespace Sexy

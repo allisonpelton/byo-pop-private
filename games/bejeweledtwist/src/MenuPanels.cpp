@@ -1668,17 +1668,357 @@ int ChallengeMenu::Unknown6E0DDB(bool, bool)
 	return 0;
 }
 
-EndStats::EndStats(WinTwistApp*)
+EndStats::EndStats(WinTwistApp* theApp)
+	: mApp(theApp)
 {
-	NotPorted("EndStats");
+	// The bars' images, their stats and the stats under them (0x84ee40, 0x84ee50 and a table on the stack), and the
+	// numbers' colours (0x85d608)
+	static const int kBarImages[4] = {IMAGE_FINALSTATSUI_BAR1_ID, IMAGE_FINALSTATSUI_BAR2_ID,
+		IMAGE_FINALSTATSUI_BAR3_ID, IMAGE_FINALSTATSUI_BAR4_ID};
+	static const int kBarStats[4] = {60, 61, 59, 58};
+	static const int kMultStats[4] = {0x4a, 0x45, 0x40, 0x41};
+	static const Color kBarColors[4] = {Color(255, 0, 255), Color(255, 96, 0), Color(255, 200, 0), Color(255, 255, 0)};
+
+	mState = 0;
+	mReplayFade = 0;
+	mDialog = IMAGE_FINALSTATSUI_DIALOGBOX;
+	mMinHeight = Ftol((double)mApp->mScale * 100.0);
+	mPercent = 0;
+	mBiggestValue = 0;
+	mBiggest = 0;
+	mClip = false;
+	for (int i = 0; i < 4; i++) {
+		Bar& aBar = mBars[i];
+		aBar.mValue = mApp->mUnknownC74[kBarStats[i]];
+		aBar.mShown = 0;
+		aBar.mMult = mApp->mUnknownC74[kMultStats[i]];
+		aBar.mUnknown2C = aBar.mMult;
+		aBar.mHeight = mMinHeight;
+		aBar.mFullHeight = mMinHeight;
+		aBar.mColor = kBarColors[i];
+		aBar.mLabel = mApp->GetString(StrFormat(GTS(0x7e207c).c_str(), i));
+		aBar.mImageId = kBarImages[i];
+		aBar.mUnknown48 = true;
+		if (mBiggestValue < aBar.mValue) {
+			mBiggestValue = aBar.mValue;
+			mBiggest = i;
+		}
+		mPercent += aBar.mValue;
+	}
+	float aMaxHeight = (float)Ftol((double)mApp->mScale * 220.0);
+	if (mBiggestValue < 1) {
+		mStep = 0;
+	} else {
+		int i = 4;
+		Bar* aBar = mBars;
+		do {
+			aBar->mFullHeight = Ftol((long double)aBar->mValue / (long double)mBiggestValue * (long double)aMaxHeight);
+			aBar++;
+			i--;
+		} while (i != 0);
+		int aStep = Ftol((double)mBiggestValue * 0.009999999776482582);
+		mStep = aStep;
+		if (aStep < 0x65) {
+			aStep -= aStep % 10;
+			if (aStep < 10)
+				aStep = 10;
+		} else {
+			aStep -= aStep % 100;
+		}
+		mStep = aStep;
+	}
+	unsigned int aScore = (unsigned int)mApp->mUnknownC74[73];
+	if (aScore == 0)
+		mPercent = 0;
+	else
+		mPercent = Ftol((long double)mPercent / (long double)aScore * 100.0);
+	mDrop.SetCurve(GTS(0x7e2050));
+	mY = Ftol((double)-mApp->mHeight * 1.399999976158142);
+
+	TwistButton* aButton = new TwistButton(0, IMAGE_FINALSTATSUI_CONTINUEBTN, this);
+	AddWidget(aButton);
+	aButton->mWidth = aButton->mButtonImage->GetCelWidth();
+	aButton->mHeight = aButton->mButtonImage->GetCelHeight();
+	aButton->mX = mDialog->mWidth / 2 - aButton->mWidth / 2;
+	aButton->mY = Ftol((double)mDialog->mHeight * 0.9179999828338623);
+	mContinueButton = aButton;
+	int aY = Ftol((double)mDialog->mHeight * 0.36500000953674316);
+	for (int i = 0; i < 3; i++) {
+		mReplayButtons[i] = nullptr;
+	}
+	for (int i = 0; i < 3; i++) {
+		// a button by each replay the game kept
+		if (!mApp->mUnknownFA0[i].mBuffer.mData.empty()) {
+			aButton = new TwistButton(i + 1, IMAGE_FINALSTATSUI_VIEWREPLAYBTN, this);
+			mReplayButtons[i] = aButton;
+			aButton->mWidth = aButton->mButtonImage->GetCelWidth();
+			aButton->mHeight = aButton->mButtonImage->GetCelHeight();
+			aButton->mX = Ftol((double)mDialog->mWidth * 0.6470000147819519);
+			aButton->mY = aY;
+			AddWidget(aButton);
+		}
+		aY = Ftol((double)IMAGE_FINALSTATSUI_VIEWREPLAYBTN->GetCelHeight() * 1.350000023841858 + (double)aY);
+	}
+	mColorCycle.mSpeed = 0.25f;
+	for (int i = 0; i < 84; i++)
+		mStats[i] = mApp->mUnknownC74[i];
+	for (int i = 0; i < 3; i++)
+		mReplayCRCs[i] = mApp->mUnknownFA0[i].mBuffer.GetCRC32(0);
+}
+
+EndStats::~EndStats()
+{
+	RemoveAllWidgets(true, true);
 }
 
 int EndStats::GetPreferredWidth()
 {
-	return 0;
+	return mDialog->mWidth;
 }
 
 int EndStats::GetPreferredHeight()
 {
-	return 0;
+	return mDialog->mHeight;
+}
+
+void EndStats::Update()
+{
+	TwistWidget::Update();
+	if (mApp->mBoard == nullptr) {
+		if (mState != 0 && mDrop.HasBeenTriggered() && mDrop.GetOutVal() < -1.0) {
+			// (without Direct3D, gD3DInterface, which the port does not have: once it is out of sight above it takes
+			// another curve)
+			mDrop.SetCurve(GTS(0x7e21d4));
+		}
+		mReplayFade = (float)((double)mReplayFade - 0.019999999552965164);
+	} else {
+		// port: a replay plays (mApp->mBoard is the replay's board): its place, the fade and its end come with the
+		// replays
+		NotPorted("EndStats::Update: the replay (0x6fac64)");
+	}
+	mColorCycle.Update();
+	mDrop.IncInVal();
+	mY = Ftol(mDrop.GetOutVal() * (double)mApp->mHeight);
+	if (mState == 0) {
+		if (mDrop.HasBeenTriggered()) {
+			mUnknown154 = 2.0f;
+			mState = 1;
+			if (-1 < mApp->mAutoPlayMode)
+				ButtonDepress(0);
+		}
+	} else if (mState == 1) {
+		// The bars count up, a step an update, with a tick every third update
+		int aThird = mUpdateCnt / 3;
+		bool aCounting = false;
+		Bar* aBar = mBars;
+		int i = 4;
+		do {
+			int aValue = aBar->mValue;
+			if (aValue != aBar->mShown) {
+				int aShown = aBar->mShown + mStep;
+				if (aValue < aShown)
+					aShown = aValue;
+				aBar->mShown = aShown;
+				float aShare = (float)((long double)aShown / (long double)aValue);
+				aBar->mHeight = Ftol((double)aShare * (double)aBar->mFullHeight + (double)mMinHeight);
+				aCounting = true;
+			}
+			aBar++;
+			i--;
+		} while (i != 0);
+		if (aCounting && aThird % 3 == 0) {
+			float aPitch = (float)((long double)mBars[mBiggest].mShown / (long double)mBiggestValue * 12.0);
+			mApp->PlaySoundEx(SOUND_BLITZ_COUNTUP, 0, aPitch, 0.0f, true, true);
+		}
+	} else if (mState == 2) {
+		if (mDrop.HasBeenTriggered())
+			mClicked = true;
+	}
+}
+
+void EndStats::Draw(Graphics* g)
+{
+	g->GetColorizeImages();
+	g->SetColorizeImages(false);
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	g->SetColorizeImages(false);
+	int aDialogX = Ftol((double)(mWidth / 2) - (double)mDialog->mWidth * 0.5);
+	g->DrawImage(mDialog, aDialogX, Ftol(0.0 - (double)Ftol((double)mApp->mScale * -46.0)));
+
+	// The connectors between the replay buttons whose replays are the same
+	Image* aConnector = nullptr;
+	double aConnectorY = 0;
+	if (mReplayCRCs[0] != 0 && mReplayCRCs[0] == mReplayCRCs[1] && mReplayCRCs[0] == mReplayCRCs[2]) {
+		aConnector = IMAGE_FINALSTATSUI_CONNECTORTRIPLE;
+		aConnectorY = (double)Ftol((double)mApp->mScale * 457.0);
+	} else if (mReplayCRCs[0] != 0 && mReplayCRCs[0] == mReplayCRCs[1]) {
+		aConnector = IMAGE_FINALSTATSUI_CONNECTORSHORT;
+		aConnectorY = (double)Ftol((double)mApp->mScale * 457.0);
+	} else if (mReplayCRCs[0] != 0 && mReplayCRCs[0] == mReplayCRCs[2]) {
+		aConnector = IMAGE_FINALSTATSUI_CONNECTORLONG;
+		aConnectorY = (double)Ftol((double)mApp->mScale * 458.0);
+	} else if (mReplayCRCs[1] != 0 && mReplayCRCs[1] == mReplayCRCs[2]) {
+		aConnector = IMAGE_FINALSTATSUI_CONNECTORSHORT;
+		aConnectorY = (double)Ftol((double)mApp->mScale * 498.0);
+	}
+	if (aConnector != nullptr) {
+		int aY = Ftol(aConnectorY + 0.0);
+		g->DrawImage(aConnector, aDialogX - Ftol((double)mApp->mScale * -808.0), aY);
+	}
+
+	// The level (or blitz), the score, the time and the other stats
+	SexyString aStr;
+	if (mApp->mLastGameMode == 3)
+		aStr = mApp->GetString(GTS(0x7e22c0));
+	else
+		aStr = StrFormat(mApp->GetString(GTS(0x7e22d0)).c_str(), mApp->mUnknownF70);
+	g->SetFont(FONT_DIALOG_BUTTONS);
+	g->SetColor(Color(255, 0, 255));
+	int aY = Ftol((double)mApp->mScale * 180.0);
+	double aMidX = (double)mWidth * 0.5099999904632568;
+	g->DrawString(aStr, Ftol(aMidX - (double)(g->StringWidth(aStr) / 2)), aY);
+
+	float aLineY = (float)((double)(float)((double)mApp->mScale * 276.0) + 4.0);
+	Font* aFont = FONT_HUGE_OUTLINE;
+	SetFontLayerColor(aFont, 0, Color(255, 255, 255, 0x20));
+	SetFontLayerColor(aFont, 1, Color(255, 0, 255));
+	SetFontLayerColor(aFont, 2, Color(255, 255, 255));
+	g->SetFont(aFont);
+	g->SetColor(Color(255, 255, 255));
+	aStr = CommaSeperate(mStats[73]);
+	aMidX = (double)mWidth * 0.5099999904632568;
+	aY = Ftol((double)aLineY);
+	g->DrawString(aStr, Ftol(aMidX - (double)(g->StringWidth(aStr) / 2)), aY);
+
+	g->SetFont(FONT_SCORE);
+	aLineY = (float)((double)aLineY + (double)(float)((double)mApp->mScale * 104.0));
+	g->SetColor(Color(0, 0x9c, 255));
+	int aMinutes = mStats[35] / 60;
+	int aSeconds = mStats[35] % 60;
+	aStr = StrFormat(mApp->GetString(GTS(0x7e2290)).c_str(), aMinutes, aSeconds);
+	aY = Ftol((double)aLineY);
+	g->DrawString(aStr, Ftol((double)mApp->mScale * 500.0), aY);
+	aStr = CommaSeperate(mStats[43]);
+	g->DrawString(aStr, Ftol((double)mApp->mScale * 950.0), aY);
+
+	aLineY = (float)((double)aLineY + (double)(float)((double)mApp->mScale * 37.5));
+	g->SetColor(Color(0, 0xea, 255));
+	float aShare = 0;
+	if (mStats[33] != 0)
+		aShare = (float)(1.0L - (long double)mStats[34] / (long double)mStats[33]);
+	aStr = StrFormat(mApp->GetString(GTS(0x7e2270)).c_str(), Ftol((double)aShare * 100.0));
+	aY = Ftol((double)aLineY);
+	g->DrawString(aStr, Ftol((double)mApp->mScale * 500.0), aY);
+	float aMult = 0;
+	if (mStats[33] != 0)
+		aMult = (float)((long double)mStats[57] / (long double)mStats[33]);
+	aStr = StrFormat(mApp->GetString(GTS(0x7e2260)).c_str(), (double)aMult);
+	g->DrawString(aStr, Ftol((double)mApp->mScale * 950.0), aY);
+
+	// The replays' scores
+	aLineY = (float)((double)aLineY + (double)(float)((double)mApp->mScale * 69.0));
+	g->SetColor(Color(0, 255, 0xd8));
+	aStr = CommaSeperate(mApp->mUnknownFA0[0].mUnknown28);
+	g->DrawString(aStr, Ftol((double)mApp->mScale * 625.0), Ftol((double)aLineY));
+	aLineY = (float)((double)aLineY + (double)(float)((double)mApp->mScale * 43.0));
+	g->SetColor(Color(0, 255, 0xd8));
+	aStr = CommaSeperate(mApp->mUnknownFA0[1].mUnknown28);
+	g->DrawString(aStr, Ftol((double)mApp->mScale * 625.0), Ftol((double)aLineY));
+	aLineY = (float)((double)aLineY + (double)(float)((double)mApp->mScale * 43.0));
+	g->SetColor(Color(0, 255, 0x4e));
+	aStr = CommaSeperate(mApp->mUnknownFA0[2].mUnknown28);
+	g->DrawString(aStr, Ftol((double)mApp->mScale * 625.0), Ftol((double)aLineY));
+
+	aStr = StrFormat(mApp->GetString(GTS(0x7e2230)).c_str(), mPercent);
+	g->SetColor(Color(0, 255, 0));
+	aY = 4 - Ftol((double)mApp->mScale * -669.0);
+	g->DrawString(aStr, Ftol((double)mApp->mScale * 650.0), aY);
+
+	// The bars, each with its number above, its label and its multiplier
+	g->SetColorizeImages(true);
+	GetIdByImage(mDialog);
+	int aBase = Ftol((double)GetImageOffsetY(mBars[0].mImageId) * (double)mApp->mScale) -
+				Ftol((double)mApp->mScale * -108.0);
+	for (int i = 0; i < 4; i++) {
+		Bar& aBar = mBars[i];
+		g->SetColor(Color::White);
+		int aX = Ftol((double)GetImageOffsetX(aBar.mImageId) * (double)mApp->mScale) -
+				 Ftol((double)mApp->mScale * 380.0);
+		int aWidth = GetImageById(aBar.mImageId)->mWidth;
+		int aHeight = aBar.mHeight;
+		g->DrawImageBox(Rect(aX, aBase - aHeight, aWidth, aHeight), GetImageById(IMAGE_FINALSTATSUI_BAR1_ID + i));
+		g->SetColor(aBar.mColor);
+		aStr = CommaSeperate(aBar.mShown);
+		int aHalf = aWidth / 2;
+		aY = aBase - Ftol((double)mApp->mScale * 10.0) - aHeight;
+		g->DrawString(aStr, aHalf - g->StringWidth(aStr) / 2 + aX, aY);
+		g->SetColor(Color::Black);
+		aStr = aBar.mLabel;
+		aY = aBase - Ftol((double)mApp->mScale * 50.0);
+		g->DrawString(aStr, aHalf - g->StringWidth(aStr) / 2 + aX, aY);
+		Color aColor = aBar.mColor;
+		aColor.mRed = Ftol((double)aColor.mRed * 0.25);
+		aColor.mGreen = Ftol((double)aColor.mGreen * 0.25);
+		aColor.mBlue = Ftol((double)aColor.mBlue * 0.25);
+		g->SetColor(aColor);
+		aStr = StrFormat(GTC(0x7e2208), aBar.mMult);
+		aY = aBase - Ftol((double)mApp->mScale * 10.0);
+		g->DrawString(aStr, aHalf - g->StringWidth(aStr) / 2 + aX, aY);
+	}
+
+	if (0.0f < mReplayFade) {
+		double anAlpha = ((double)mReplayFade + (double)mReplayFade) * 255.0;
+		if (255.0 < anAlpha)
+			anAlpha = 255.0;
+		g->SetColor(Color(255, 255, 255, Ftol(anAlpha)));
+		g->SetColorizeImages(true);
+		int aReplayY = Ftol((double)mApp->mScale * 600.0);
+		g->DrawImage(IMAGE_FINALSTATSUI_REPLAY, Ftol((double)mApp->mScale * 180.0), aReplayY);
+		DeferOverlay(200);
+	}
+}
+
+void EndStats::DrawOverlay(Graphics* g)
+{
+	if (0.5f < mReplayFade) {
+		double aFade = 1.0 - (double)mReplayFade;
+		int anAlpha = Ftol((aFade + aFade) * 255.0);
+		if (0 < anAlpha) {
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 255, anAlpha));
+			int aY = Ftol((double)mApp->mScale * 600.0);
+			g->DrawImage(IMAGE_FINALSTATSUI_REPLAY, Ftol((double)mApp->mScale * 180.0), aY);
+		}
+	}
+}
+
+void EndStats::MouseMove(int x, int y)
+{
+	mMouseX = x;
+	mMouseY = y;
+}
+
+void EndStats::MouseDrag(int x, int y)
+{
+	MouseMove(x, y);
+}
+
+void EndStats::ButtonPress(int, int)
+{
+	mApp->PlaySample(SOUND_CLICK);
+}
+
+void EndStats::ButtonDepress(int theId)
+{
+	if (mApp->mBoard != nullptr || mState != 1)
+		return;
+	if (theId == 0) {
+		// Continue: it drops away
+		mDrop.SetCurve(GTS(0x7e2334));
+		mState = 2;
+		mMouseVisible = false;
+	} else if (0 < theId && theId < 4) {
+		// port: the replay's board (0x6c4df9, mode 8) and its start come with the replays
+		NotPorted("EndStats::ButtonDepress: the replays (0x6fbde0)");
+	}
 }
