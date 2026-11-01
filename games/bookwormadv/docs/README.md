@@ -214,10 +214,16 @@ welcome to its menu and the quit (Word Master with a guess, Letter Rip into its 
 the focus). Besides the fault above and the items here, what differs is the animations' sampling and timing (Lex, Moxie,
 the Submit! button's glow).
 
-The fourth part (`tools/pilot/win.txt`): the first battle won with THOUGH after battle.txt's RAIN, the enemy's defeat,
+The fourth part (`tools/pilot/win.txt`): the first battle won with DRAWING after battle.txt's RAIN, the enemy's defeat,
 Cassandra's three lines, the walk to the next battle and its start with its hint. Its talk matches exactly; the walk and
 the next battle's hint match the port's picture of one update earlier (lag.py: 40 and 0 pixels left, the 40 in the
 sprites), and the rest is the enemies' sampling and the Attack button's sparkle, both above.
+
+Once the port held its chapter load as long as the original's (`-chapterloadupdates`, above), its first battle got the
+original's board (UAEN / GNOH / AIJW / RGRE by rows), not the one the battle and win scripts were written for: their
+clicks spelled UEJG, no word, and the win part no longer won. Both scripts now spell RAIN on that board, and the win part
+DRAWING on the board after it (2026-11-01). The board stays the same while the original's load lasts 50 to 99 updates
+(one hint draw); the loads measured so far ran 52 to 85.
 
 The web build ran the same four parts' scripts (2026-11-01): the page was given `-script`, `-seed=12345` and `-drawevery`
 from the Browser pane (by wrapping `Module.callMain` before Play; the page itself has no such option), with the pilot's

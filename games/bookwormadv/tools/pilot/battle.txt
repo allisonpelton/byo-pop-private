@@ -19,13 +19,13 @@ wait 4000
 click 400 150
 wait 4000
 shot battle_start
-click 325 345            # R  (the seeded board: RUAE / NGNO / HAIJ / WREI)
+click 325 495            # R  (the seeded board, by rows: UAEN / GNOH / AIJW / RGRE)
 wait 400
-click 425 345            # A
+click 325 445            # A
 wait 400
-click 425 445            # I
+click 375 445            # I
 wait 400
-click 325 395            # N
+click 375 395            # N
 wait 800
 shot word_rain
 click 400 567            # Attack: Lex attacks, then the enemy answers
