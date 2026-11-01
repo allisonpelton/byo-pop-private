@@ -1928,7 +1928,14 @@ static int place_wrapper(const char* dir, const char* installDir)
 		} else {
 			HANDLE h=CreateFileA(d,GENERIC_WRITE,0,NULL,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,NULL);
 			ok = h!=INVALID_HANDLE_VALUE; created=ok;
-			if (ok) { DWORD len=(DWORD)strlen(kDgvConf), wr=0; ok = WriteFile(h,kDgvConf,len,&wr,NULL) && wr==len; CloseHandle(h); }
+			// ORIGRUN_DGVOODOO_CONF names a dgVoodoo.conf to use in place of origrun's own, for trying settings
+			const char* conf=kDgvConf; static char own[16384]; const char* alt=getenv("ORIGRUN_DGVOODOO_CONF");
+			if (ok && alt && *alt) {
+				FILE* f=fopen(alt,"rb"); size_t n = f ? fread(own,1,sizeof(own)-1,f) : 0; if (f) fclose(f);
+				if (n) { own[n]=0; conf=own; logline("--dgvoodoo: dgVoodoo.conf from %s", alt); }
+				else logline("--dgvoodoo: cannot read ORIGRUN_DGVOODOO_CONF %s; origrun's own conf", alt);
+			}
+			if (ok) { DWORD len=(DWORD)strlen(conf), wr=0; ok = WriteFile(h,conf,len,&wr,NULL) && wr==len; CloseHandle(h); }
 			if (!ok) logline("--dgvoodoo: writing %s failed (err %lu)", d, GetLastError());
 		}
 		if (ok) {
@@ -2446,6 +2453,10 @@ static int read_marker_rc(const char* path, int* rc)
 
 static DWORD gBeforePids[8192]; static int gBeforeN = 0;   // every process there was before the launch
 static volatile LONG gGuardStop = 0, gGuardTrip = 0;
+// --sandbox-connect: "wsb connect" logs the sandbox's user on, so the game runs in a session with a display (session 0
+// has none: legacy DirectDraw finds no hardware there and dgVoodoo2 no output). Its client is a window the guard then
+// allows; only for runs the user has allowed onto their desktop.
+static int gSbConnect = 0;
 static int pid_before(DWORD pid){ for (int i=0;i<gBeforeN;i++) if (gBeforePids[i]==pid) return 1; return 0; }
 static void snapshot_before(void)
 {
@@ -2501,6 +2512,8 @@ static DWORD WINAPI guard_thread(LPVOID p)
 	while (!gGuardStop) {
 		char what[300];
 		if (sandbox_window_shown(what,sizeof(what))) {
+			static int told=0;
+			if (gSbConnect) { if (!told++) logline("--sandbox-connect: the sandbox's window is allowed: %s", what); Sleep(100); continue; }
 			InterlockedExchange(&gGuardTrip,1);
 			logline("STOP: a sandbox window was on the user's desktop: %s", what);
 			stop_sandbox("a window showed on the user's desktop");
@@ -2552,6 +2565,11 @@ static int sandbox_wsb_run(const char* cfg, int timeout, int probe)
 		if (ec!=0) { logline("wsb start failed (exit %lu, after %lu ms; see %s)", ec, GetTickCount()-t0, gWsbLog); goto out; }
 		if (wsb_guids("start",id,sizeof(id)) && !ieq(id,gSandboxId)) { logline("wsb start gave the sandbox the id %s (asked for %s)", id, gSandboxId); lstrcpynA(gSandboxId,id,sizeof(gSandboxId)); lock_write(gSandboxId); }
 		logline("wsb start returned after %lu ms", GetTickCount()-t0);
+		if (gSbConnect) {
+			char ca[128]; HANDLE cp=NULL; _snprintf(ca,sizeof(ca)-1,"connect --id %s",gSandboxId); ca[sizeof(ca)-1]=0;
+			if (run_wsb(ca,0,0,NULL,&cp)) { logline("--sandbox-connect: wsb connect started; waiting 20 s for the sandbox's user to log on"); if (cp) CloseHandle(cp); Sleep(20000); }
+			else logline("--sandbox-connect: wsb connect could not be run");
+		}
 		log_new_processes("after wsb start");
 	}
 	if (gGuardTrip) { rc=4; goto out; }
@@ -3296,6 +3314,7 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--dgvoodoo")&&i+1<argc) dgvArg=argv[++i];
 		else if (ieq(argv[i],"--sandbox")) sandboxHost=1;
 		else if (ieq(argv[i],"--sandbox-vgpu")) sandboxVgpu=1;
+		else if (ieq(argv[i],"--sandbox-connect")) gSbConnect=1;
 		else if (ieq(argv[i],"--sandbox-wait")&&i+1<argc) sandboxWait=atoi(argv[++i]);
 		else if (ieq(argv[i],"--reg")&&i+1<argc) regArg=argv[++i];
 		else if (ieq(argv[i],"--in-sandbox")&&i+1<argc) inSandboxDir=argv[++i];

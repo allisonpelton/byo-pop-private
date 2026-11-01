@@ -635,8 +635,27 @@ window-DC blit and once through PrintWindow itself, and Windows 11's own DirectD
 and Ning Po, run with no wrapper in software DirectDraw, had `dxgi.dll` loaded by the time their window came up, and
 Noah's Ark later `d3d11.dll` and `D3D10Warp.dll`, where a plain GDI test window loads none of them. origrun therefore
 takes no shot on the host at all ("The host-capture ban"). Inside Windows Sandbox the game may load what it likes and
-is captured. On the sandbox's own desktop the hidden-desktop limit above may not apply, so a 3D run there needs no
-wrapper: `--sandbox --sandbox-vgpu --3d on`, untested so far.
+is captured. On the sandbox's own desktop the hidden-desktop limit above does not apply, but a 3D run there still needs
+a wrapper. Tried on 2026-11-01 with Bookworm Adventures, `--sandbox --sandbox-vgpu --3d on` with no wrapper ran the
+game in software: its Direct3D test failed at DirectDraw's GetDeviceIdentifier with DDERR_NOTFOUND (the test's
+FailureReason, read back from Test3D), so the sandbox's GPU gives legacy DirectDraw no hardware device either.
+dgVoodoo2 does not help there: with `--dgvoodoo` the game crashes at start in dgVoodoo2's `DDraw.dll` (an access
+violation, the game's own crash box), on WARP and with `--sandbox-vgpu` alike. The reason is the session: `wsb exec -r
+System` puts origrun and the game in session 0, which has no display at all. `--sandbox-connect` (only for runs the
+user has allowed onto their desktop) runs `wsb connect` after the start, so the sandbox's user logs on and origrun moves
+the game into that session (session 1). Its display is the "Microsoft Remote Display Adapter", which Bookworm
+Adventures' test calls an unsupported card, and Direct3D 7's CreateDevice fails there (E_OUTOFMEMORY); with dgVoodoo2
+the game also falls back to software, and GDI captures of its window come out flat. `ORIGRUN_DGVOODOO_CONF` names a
+dgVoodoo.conf to use in place of origrun's own, for trying settings (the blit model, `PresentationModel = discard`,
+crashed the same way). So no original has run in 3D inside the sandbox.
+
+On the user's visible desktop (allowed by the user on 2026-11-01, with sound) Bookworm Adventures runs in 3D with no
+wrapper: started from a copy under the main checkout's `build/`, with `Is3D` 1, its Direct3D test passed (no failure,
+no warning) and its 3D flag stayed on for 20 s, 1745 updates. That run was outside origrun (a one-off script, which
+backed the game's registry key up, read the flag and restored the key), and took no shot: the host-capture ban
+stands. Bookworm Adventures also needs a short path: it builds absolute paths from the working directory in a
+256-byte stack buffer (0x6cbb60), so a copy under a worktree's long path dies at start with STATUS_STACK_BUFFER_OVERRUN
+(0xC0000409, the stack check at 0x6cbcea). origrun's sandbox copies run from `C:\run\game` and never meet it.
 
 **dgVoodoo2 runs the 3D mode on rundesk's desktop.** It implements DirectDraw and
 Direct3D 7 over Direct3D 11 and presents flip-model. Its official source is its author's GitHub releases page,
@@ -772,7 +791,7 @@ Other gaps:
 - **Windows Sandbox: two games so far.** The empty sandbox, windowed DirectDraw games (Ning Po; Bookworm Adventures with update-timed shots), the
   stop of a killed run's sandbox and registry presets are proven (see "Windows Sandbox"). Still to test, by the game
   sessions once this is merged: whether Water Bugs and Cosmic Bugs open their full-screen mode there; whether
-  Bookworm Adventures reaches 3D with `--sandbox-vgpu` and no wrapper; whether a game that plays sound past the
+  whether a game that plays sound past the
   stand-in reaches the host's speakers; and a game whose own settings live under HKLM (VirtualStore on the host),
   read and written there as SYSTEM.
 - **3D on the host needs dgVoodoo2**: legacy DirectDraw has no hardware on the hidden desktop, so an original with
