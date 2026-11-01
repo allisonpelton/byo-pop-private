@@ -156,6 +156,35 @@ def test_visible():
 		  and [box_tuple(x) for x in r["boxes"]] == [(90, 30, 14, 16)], [box_tuple(x) for x in r["boxes"]])
 	r = cmp(a, a.copy())
 	check("visible: identical pictures have no boxes of either kind", r["status"] == "match" and allb(r) == [])
+	# a rigid one-pixel shift: a sprite of sharp stripes drawn a pixel to the right differs visibly, and is faint, "shifted",
+	# because moving the port back a pixel makes it agree; the picture is not lined up as a whole (max_shift 0), as when
+	# only one sprite moved
+	def stripes(x, y):
+		s = scene(lambda d, ss: None)
+		for i in range(0, 24, 4):
+			s[y:y + 20, x + i:x + i + 2] = (250, 250, 250)
+			s[y:y + 20, x + i + 2:x + i + 4] = (10, 10, 10)
+		return s
+	r = cmp(stripes(60, 40), stripes(61, 40), max_shift=0)
+	check("a sharp sprite a pixel to the right: faint, shifted 1 px", r["status"] == "faint" and r["boxes"] == []
+		  and [(x.get("shifted"), x["visible_pixels"] >= sd.VISIBLE_MIN) for x in r["faint_boxes"]] == [([1, 0], True)],
+		  [(box_tuple(x), x.get("shifted"), x["visible_pixels"]) for x in allb(r)])
+	b = scene(lambda d, ss: d.rectangle((90 * ss, 30 * ss, 104 * ss - 1, 46 * ss - 1), fill=(200, 40, 40)))
+	for k in (3, 2):
+		for ch in ("4", "1"):
+			r = cmp(glyph("5", 40, 40, k), glyph(ch, 40, 40, k), max_shift=0)
+			check("a changed digit (5 against %s, strokes %d px) stays visible: no one-pixel move makes it agree" % (ch, k),
+				  r["status"] == "differ" and not any(x.get("shifted") for x in r["boxes"]),
+				  [(box_tuple(x), x.get("shifted")) for x in allb(r)])
+	# the differing-pixels picture: bright where a visible box's pixels differ visibly, pale for the rest
+	r = cmp(a, b, max_shift=0)
+	pm = r["pixmap"]
+	check("differing pixels: the sprite in the bright colour, elsewhere gray", tuple(pm[38, 97]) == sd.PIXEL_VISIBLE
+		  and pm[5, 5, 0] == pm[5, 5, 1] == pm[5, 5, 2], (pm[38, 97], pm[5, 5]))
+	r = cmp(stripes(60, 40), stripes(61, 40), max_shift=0)
+	pm = r["pixmap"]
+	check("differing pixels: a faint difference in the pale colour only",
+		  (pm == sd.PIXEL_FAINT).all(axis=2).any() and not (pm == sd.PIXEL_VISIBLE).all(axis=2).any())
 
 
 def test_alignment():
@@ -168,8 +197,8 @@ def test_alignment():
 	check("no search: the shift differs", r["shift"] == [0, 0] and r["status"] == "differ")
 	r = cmp(a, shifted(a, 2, 0), align=(2, 0))
 	check("fixed align: used without search", r["shift"] == [2, 0] and r["status"] == "match")
-	r = cmp(a, shifted(a, 9, 0))
-	check("shift beyond the range is not found", r["shift"] != [9, 0] and r["status"] == "differ")
+	r = cmp(a, shifted(a, 10, 0))  # 9 would be found as 8 and a rigid one-pixel shift: faint
+	check("shift beyond the range is not found", r["shift"] != [10, 0] and r["status"] == "differ")
 	r = cmp(a, change(shifted(a, 2, 0), 32, 40, 20, 10))
 	check("shift plus a change: the box is in the original's coordinates",
 		  r["shift"] == [2, 0] and [box_tuple(x) for x in r["boxes"]] == [(30, 40, 20, 10)], r["boxes"])
@@ -203,6 +232,9 @@ def framed(a, fill=(243, 243, 243)):
 	f[:26] = fill
 	f[26:26 + H, 3:3 + W] = a
 	return f
+
+
+RECT = "rect.png (30, 40) 20x10"  # the review item of rect.png's one box
 
 
 def test_files(tmp):
@@ -264,8 +296,9 @@ def test_files(tmp):
 	check("run: crop file exists", os.path.isfile(crop_path))
 	if os.path.isfile(crop_path):
 		w, h = Image.open(crop_path).size
-		# region 52x42 (box + 16 px margin, cut at x 14..66, y 24..66), enlarged 2x, two halves, a 6 px gap, a 14 px label strip
-		check("run: crop is the two halves enlarged 2x", (w, h) == (52 * 2 * 2 + 6, 42 * 2 + 14) and rb["crop_scale"] == 2, (w, h, rb.get("crop_scale")))
+		# region 52x42 (box + 16 px margin, cut at x 14..66, y 24..66), enlarged 2x, three parts (original, port, differing
+		# pixels) with 6 px gaps, a 14 px label strip
+		check("run: crop is the three parts enlarged 2x", (w, h) == (52 * 2 * 3 + 12, 42 * 2 + 14) and rb["crop_scale"] == 2, (w, h, rb.get("crop_scale")))
 	check("run: the crop path is openable from the repository or absolute", rb["crop"].endswith("crops/rect.b1.png"))
 	check("run: pictures of differing pairs only", os.path.isfile(os.path.join(out, "img", "rect.orig.png"))
 		  and not os.path.exists(os.path.join(out, "img", "same.orig.png")))
@@ -278,8 +311,11 @@ def test_files(tmp):
 	check("page: names are escaped", "x&amp;y&#x27;s.png" in page and "x&y's.png" not in page)
 	check("page: markup in a name cannot get through", "<script>alert" not in report.pair_html(
 		0, dict(st["rect.png"], name="<script>alert(1)</script>", id="x")) and report.esc("<b>") == "&lt;b&gt;")
-	art = page[page.index('id="p-rect"'):]
-	check("page: boxes' crops come before the full pictures", 0 < art.index('class="crops"') < art.index('class="shots"'))
+	art = page[page.index('id="p-item1"'):]
+	check("page: an item's crop comes before the full pictures", 0 < art.index('class="crops"') < art.index('class="shots"'))
+	check("page: the whole shots follow the items, linked to them", page.index('id="p-item1"') < page.index('id="s-rect"')
+		  and 'href="#p-item1"' in page)
+	check("page: the differing-pixels picture", 'img/rect.pixels.png' in page and os.path.isfile(os.path.join(out, "img", "rect.pixels.png")))
 	check("page: Issue, Not sure and Fine", all(t in page for t in ("data-mark=\"issue\"", "data-mark=\"unsure\"", "data-mark=\"fine\"", "Not sure")))
 	check("page: a box states its size and differing pixels", "20×10 px at (30, 40)" in page and "200 of 200 px differ" in page)
 	check("page: the ignore rectangles are listed", "Ignore rectangles in use" in page and "[95, 65, 30, 30]" in page and "test bubbles" in page)
@@ -292,7 +328,7 @@ def test_files(tmp):
 	check("index: written with the run", os.path.isfile(idx) and "demo/run1/index.html" in open(idx, encoding="utf-8").read())
 	marks_path = os.path.join(out, "marks.json")
 	marks = {"game": "demo", "run": "run1", "updated": "2026-01-01T00:00:00Z", "marks": {
-		"rect.png": {"mark": "issue", "note": "wrong", "sig": "x"}, "gone.png": {"mark": "fine", "note": ""}}}
+		RECT: {"mark": "issue", "note": "wrong", "sig": "x"}, "gone.png": {"mark": "fine", "note": ""}}}
 	with open(marks_path, "w") as f:
 		json.dump(marks, f)
 	s2 = sd.run_compare(orig, port, out, "demo", "run1", cfg, sd.read_map(cmap), sd.Options(), root=root)
@@ -304,8 +340,8 @@ def test_files(tmp):
 	write_png(os.path.join(port, "same.png"), change(a, 50, 50, 4, 4))  # a pair that began to differ
 	s3 = sd.run_compare(orig, port, out2, "demo", "run2", cfg, sd.read_map(cmap), sd.Options(), root=root)
 	m2 = json.load(open(os.path.join(out2, "marks.json")))
-	check("new run: marks of pairs that still differ are carried over", m2["marks"].get("rect.png", {}).get("mark") == "issue"
-		  and m2["marks"]["rect.png"].get("carried_from") == "run1", m2)
+	check("new run: marks of pairs that still differ are carried over", m2["marks"].get(RECT, {}).get("mark") == "issue"
+		  and m2["marks"][RECT].get("carried_from") == "run1", m2)
 	check("new run: marks of pairs that no longer differ are not", "gone.png" not in m2["marks"])
 	check("new run: the pair that began to differ has none", "same.png" not in m2["marks"])
 	idx_text = open(idx, encoding="utf-8").read()
@@ -325,6 +361,50 @@ def test_files(tmp):
 	s4 = sd.run_compare(orig, port, same, "demo", "clean", cfg, None, sd.Options(), only=["same.png", "sub/*"], root=None)
 	check("--only: only the matching names", sorted(p["name"] for p in s4["pairs"]) == ["same.png", "sub/deep.png"], s4["counts"])
 	return root
+
+
+def test_items(tmp):
+	"""The same difference in several shots is one review item; a different one, or the same place over other content, is not."""
+	a, other = base(), base(2)
+	orig, port = os.path.join(tmp, "iorig"), os.path.join(tmp, "iport")
+	for n in ("menu_a", "menu_b", "menu_c"):
+		write_png(os.path.join(orig, n + ".png"), a)
+	write_png(os.path.join(port, "menu_a.png"), change(a, 30, 40, 20, 10))
+	write_png(os.path.join(port, "menu_b.png"), change(a, 30, 40, 20, 10))
+	write_png(os.path.join(port, "menu_c.png"), change(change(a, 30, 40, 20, 10), 100, 70, 20, 20))
+	write_png(os.path.join(orig, "other.png"), other)
+	write_png(os.path.join(port, "other.png"), change(other, 30, 40, 20, 10))
+	root = os.path.join(tmp, "ireview")
+	out = os.path.join(root, "demo", "items")
+	os.makedirs(out)
+	s = sd.run_compare(orig, port, out, "demo", "items", {"client": [W, H]}, None, sd.Options(), root=root)
+	its = s["items"]
+	check("items: one difference in three shots is one item, first", [(it["count"], it["w"], it["h"]) for it in its] ==
+		  [(3, 20, 10), (1, 20, 20), (1, 20, 10)] and sorted([its[0]["pair"]] + [o["pair"] for o in its[0]["seen"]]) ==
+		  ["menu_a.png", "menu_b.png", "menu_c.png"], [(it["name"], it["count"]) for it in its])
+	check("items: the same place over other content is another item", its[2]["pair"] == "other.png", its[2]["name"])
+	check("items: counted", s["counts"]["items"] == 3 and s["counts"]["items_repeated"] == 1 and s["counts"]["visible_boxes"] == 5, s["counts"])
+	st = {p["name"]: p for p in s["pairs"]}
+	check("items: each box knows its item", sorted(b["item"] for b in st["menu_c.png"]["boxes"]) == [1, 2]
+		  and st["other.png"]["boxes"][0]["item"] == 3)
+	page = open(os.path.join(out, "index.html"), encoding="utf-8").read()
+	check("items: the page says how often, and links the other shots", "seen in 3 shots" in page and 'href="#s-menu_b"' in page
+		  and "A mark here marks them all" in page)
+	check("items: what is marked is the item", sd.review_names(s) == [it["name"] for it in its])
+	# the same difference behind a sprite that moves from shot to shot (drawn the same on both sides): still one item
+	orig2, port2 = os.path.join(tmp, "iorig2"), os.path.join(tmp, "iport2")
+	for k, sx in enumerate((32, 44, 56)):
+		o = base()
+		o[50:62, sx:sx + 10] = (240, 240, 20)
+		pt = change(o, 30, 40, 40, 40)
+		pt[50:62, sx:sx + 10] = (240, 240, 20)
+		write_png(os.path.join(orig2, "fight_%d.png" % k), o)
+		write_png(os.path.join(port2, "fight_%d.png" % k), pt)
+	out2 = os.path.join(root, "demo", "items2")
+	os.makedirs(out2)
+	s = sd.run_compare(orig2, port2, out2, "demo", "items2", {"client": [W, H]}, None, sd.Options())
+	check("items: a difference behind a moving sprite is one item", [it["count"] for it in s["items"]] == [3],
+		  [(it["name"], it["count"]) for it in s["items"]])
 
 
 def clip_frames(n, bg):
@@ -501,6 +581,7 @@ def main():
 	test_misc()
 	with tempfile.TemporaryDirectory(prefix="shotdiff-selftest-") as tmp:
 		root = test_files(tmp)
+		test_items(tmp)
 		test_clips(tmp)
 		test_server(root)
 	print("shotdiff: %d checks, %d failed" % (checks, len(failures)))

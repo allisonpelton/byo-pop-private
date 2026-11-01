@@ -74,10 +74,41 @@ matching it (and is listed as a faint frame).
 
 The thresholds come from the pilot's 153 boxes. Under the blur, antialiased and sub-pixel-sampled edges (Lex's outline, the
 credits' pillars, the map's rotating rays) left 0 to 21 pixels a box, and a changed digit of thin text 158. Some boxes sit
-close to the line on purpose: a sprite's highlight sampled one pixel over (42 pixels) and a whole region drawn one pixel
-lower (about 1,800) stay visible, because flipping between the pictures does show them. Allowing a one-pixel shift as well
-(`VISIBLE_SHIFT`) was tried and dropped: it also forgave the changed digit (13 pixels left, against 10 or 11 for edge noise).
-The selftest holds the rule: a disc antialiased two ways is faint; a changed glyph and a missing sprite are visible.
+close to the line on purpose: a sprite's highlight sampled one pixel over (42 pixels) stays visible, because flipping between
+the pictures does show it. Allowing a one-pixel shift for each pixel as well (`VISIBLE_SHIFT`) was tried and dropped: it also
+forgave the changed digit (13 pixels left, against 10 or 11 for edge noise). The selftest holds the rule: a disc antialiased
+two ways is faint; a changed glyph and a missing sprite are visible.
+
+A whole box moved by one pixel is another matter (the user, 2026-11-01): when moving the port by one pixel in a single
+direction (right, left, down or up, the same move for the whole box) leaves fewer than 32 visibly different pixels in the
+box, and at most a quarter of those it had without the move, the box is faint with `"shifted": [dx, dy]` (the port's
+pixel at x+dx, y+dy is the original's at x, y). The second condition keeps a small change that a move merely cuts in half
+(the selftest's 8 against 3 left 36 pixels, 30 after a move) from passing for a shift. A shifted box is still a deviation
+to look into later: the faint list says "shifted 1 px" and which way, and `counts.shifted_boxes` counts them. A changed
+digit stays visible under every move: the selftest checks a 5 against a 4 and against a 1, with strokes 3 and 2 pixels
+wide (the hall of fame's time, 14:50 against 14:40), and a sharp striped sprite one pixel to the right, which is shifted.
+
+## Review items
+
+The same difference often shows in many shots: a locked book on every menu screen, the background behind every battle
+shot. Each would be a box of its own pair, and the first page of boxes was the same thing over and over. So the visible boxes
+of the stills are grouped into review items. Two boxes of different pairs are the same item when their rectangles overlap by
+at least half (intersection over union, `SAME_OVERLAP`) and, over both rectangles together, the two originals agree visibly
+and so do the two ports (the visible rule above), or, when something else in the area moves from shot to shot (an
+animated enemy in front of a background that differs), the visibly different pixels of the two pairs lie at least half in
+the same places and the two ports agree visibly on at least three quarters of those. A dimmed screen (a dialog, the focus
+lost) looks different, so its boxes stay items of their own. An item is shown once, by its largest box, with "seen in N shots", links
+to the other shots and their crops in a collapsed list; a mark on it marks them all. Items seen in the most shots come
+first, then the largest. `summary.json` has `items` (each with its `name`, `count`, the pair and box it is shown by, and
+`seen`, the others), every grouped box has `item`, and the counts give `items`, `items_repeated` and `visible_boxes`. Clips,
+and stills whose sizes differ, are reviewed whole after the items, as before.
+
+## The differing-pixels picture
+
+Each box's crop has a third part and each differing still a fourth picture: the original dimmed to gray, with every
+differing pixel in colour. Pixels of a visible box that differ visibly are bright magenta; every other differing pixel
+(faint ones, and those of a visible box below the visible rule) is pale blue. It shows at a glance what the two pictures
+leave to the eye: a solid magenta shape is a real change, a pale fringe is edge noise.
 
 This is not a higher tolerance. Faint boxes stay in `summary.json` (`faint_boxes`, each with `pixels`, `max_delta`,
 `strong_pixels` (off by 32 or more) and `visible_pixels`), the counts give `faint` and `faint_boxes`, and the page lists them
@@ -107,11 +138,14 @@ frames are not. A clip takes the same marks as a still.
 `python tools/shotdiff/serve.py` (the `shotreview` entry of `.claude/launch.json`) serves `build/shotreview/` at
 `http://127.0.0.1:18770/` and saves the marks the pages post to `marks.json` beside each run's page. The root page lists every game with its latest run: pairs, matching, differing,
 already marked, not yet marked, with the games that still have unmarked differences first; it is rebuilt each time shotdiff
-writes a run (`shotdiff.py --index-only` rebuilds it alone). A run's page shows the differing pairs largest first and the
-clips after them; for each pair the crops of its boxes (larger than the box, with its size and how many of its pixels differ),
-then the whole pictures (original, port, and the port with the boxes outlined; a click shows one at full size, and 1, 2 and 3
-switch between them). Buttons mark a pair Issue, Not sure or Fine, and there is a note field. Keys: `j` and `k` move between
-pairs, `i`, `u` and `f` mark Issue, Not sure and Fine, `n` writes a note, `z` shows the full size. Opened as a plain file, the page
+writes a run (`shotdiff.py --index-only` rebuilds it alone). A run's page shows the review items (above), then the pairs
+reviewed whole (stills of another size, clips); for each item the crop of its box (larger than the box, with its size and how
+many of its pixels differ: original, port, differing pixels), the other shots it is seen in, then the whole pictures of the
+shot it is shown by (original, port, the port with the boxes outlined, the differing pixels; a click shows one at full size,
+and 1 to 4 switch between them). After them every differing still is shown whole, with links to its items. Buttons mark an
+item Issue, Not sure or Fine, and there is a note field; marks are kept by item name (the pair, the box's place and size), and
+a new run carries over the marks of items it still has. Keys: `j` and `k` move between items, `i`, `u` and `f` mark Issue,
+Not sure and Fine, `n` writes a note, `z` shows the full size. Opened as a plain file, the page
 keeps its marks in the browser and "Copy marks" copies a short text of them. The page works offline and in light and dark.
 
 ## Limits

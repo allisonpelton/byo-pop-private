@@ -85,25 +85,112 @@ def faint_section(s):
 		fb = p.get("faint_boxes") or []
 		frames = p.get("faint_frames") or []
 		if p.get("kind") == "clip" and frames:
-			rows.append("<tr><td><code>%s</code></td><td colspan=\"5\">%s agree with the original only faintly: %s</td></tr>" % (
+			rows.append("<tr><td><code>%s</code></td><td colspan=\"6\">%s agree with the original only faintly: %s</td></tr>" % (
 				esc(p["name"]), plural(len(frames), "frame"), esc(", ".join(str(f) for f in frames[:40]) + (", ..." if len(frames) > 40 else ""))))
 		for b in fb:
 			rows.append("<tr><td><code>%s</code></td><td>%s at (%d, %d)</td><td class=\"n\">%s</td><td class=\"n\">%d</td>"
-						"<td class=\"n\">%s</td><td class=\"n\">%d</td></tr>" % (
+						"<td class=\"n\">%s</td><td class=\"n\">%d</td><td>%s</td></tr>" % (
 							esc(p["name"]), sized((0, 0, b["w"], b["h"])), b["x"], b["y"], "{:,}".format(b["pixels"]), b["max_delta"],
-							"{:,}".format(b.get("strong_pixels", 0)), b.get("visible_pixels", 0)))
+							"{:,}".format(b.get("strong_pixels", 0)), b.get("visible_pixels", 0), shifted_text(b)))
 	if not rows:
 		return ""
 	v = s.get("visible", {})
 	return ("<details id=\"faint\"><summary>Faint differences (%s, not for review)</summary><p class=\"muted\">Pixels that differ but that no "
 			"one can see: after a %s blur of both pictures they differ by less than %d%s, or too few of "
-			"them do (under %d in a box). Antialiased edges and sub-pixel sampling end up here. They are kept so a session can still "
-			"look at every difference.</p><table class=\"games\"><thead><tr><th>Pair</th><th>Box</th><th class=\"n\">Differing px</th>"
-			"<th class=\"n\">Largest channel difference</th><th class=\"n\">px off by %d or more</th><th class=\"n\">Visible px</th></tr></thead>"
+			"them do (under %d in a box), or the whole box agrees once the port is moved by one pixel (\"shifted\": drawn a "
+			"pixel off, still a deviation to look into). Antialiased edges and sub-pixel sampling end up here. They are kept so a "
+			"session can still look at every difference.</p><table class=\"games\"><thead><tr><th>Pair</th><th>Box</th><th class=\"n\">Differing px</th>"
+			"<th class=\"n\">Largest channel difference</th><th class=\"n\">px off by %d or more</th><th class=\"n\">Visible px</th><th>Why faint</th></tr></thead>"
 			"<tbody>%s</tbody></table></details>") % (
 				plural(sum(len(p.get("faint_boxes") or []) for p in s["pairs"]), "box", "boxes"), esc(v.get("blur", "3x3 box")),
 				v.get("delta", 32), " against the port shifted up to %d px" % v["shift"] if v.get("shift") else "", v.get("min_pixels", 32), 32,
 				"".join(rows))
+
+
+DIRECTIONS = {(1, 0): "right", (-1, 0): "left", (0, 1): "down", (0, -1): "up"}
+
+
+def shifted_text(b):
+	sh = b.get("shifted")
+	return "shifted 1 px: the port's is a pixel %s" % DIRECTIONS.get(tuple(sh), str(sh)) if sh else ""
+
+
+def crop_figure(cap, rel, size, alt):
+	return ("<figure class=\"crop\"><figcaption>%s</figcaption><img src=\"%s\" width=\"%d\" height=\"%d\" loading=\"lazy\" "
+			"alt=\"%s\"></figure>") % (cap, esc(rel), size[0], size[1], esc(alt))
+
+
+def box_caption(b):
+	return "%s px at (%d, %d) &middot; %s of %s px differ &middot; largest channel difference %d" % (
+		sized((0, 0, b["w"], b["h"])), b["x"], b["y"], "{:,}".format(b["pixels"]), "{:,}".format(b["w"] * b["h"]), b["max_delta"])
+
+
+def shots_html(p, name, boxes, link=False):
+	"""The full pictures of a pair: original, port, port with the boxes outlined, differing pixels. In a review unit a
+	click opens the page's 1:1 view; with link, each is a link to its picture."""
+	size, ims = p["size"], p["images"]
+	marked = "".join(box_overlay("box", (b["x"], b["y"], b["w"], b["h"]), size, b["n"]) for b in boxes)
+	marked += "".join(box_overlay("ign", e["rect"], size) for e in p["ignored"])
+	views = [("orig", ims["orig"], "Original (click for full size, then 1 2 3 4)", ""), ("port", ims["port"], "Port", ""),
+			 ("marked", ims["port"], "Port with the differences outlined", marked)]
+	if ims.get("pixels"):
+		views.append(("pixels", ims["pixels"], "Differing pixels: bright in a visible box, pale where faint", ""))
+	if link:
+		views[0] = ("orig", ims["orig"], "Original (click for full size)", "")
+	fig = "<figure><figcaption>%s</figcaption>" + ("<a href=\"%s\" target=\"_blank\">" if link else "%s") + 		"<div class=\"stack\" data-view=\"%s\"><img src=\"%s\" alt=\"%s, %s\" loading=\"lazy\">%s</div>" + ("</a>" if link else "") + "</figure>"
+	return "<div class=\"shots\">%s</div>" % "".join(
+		fig % (cap, esc(src) if link else "", view, esc(src), esc(cap.split(" (")[0]), name, extra) for view, src, cap, extra in views)
+
+
+def item_html(i, it, pairs):
+	"""One review item: a difference seen in one or more stills, shown by its largest occurrence, with links to the
+	others; a mark on it marks them all."""
+	p = pairs[it["pair"]]
+	b = next(x for x in p["boxes"] if x["n"] == it["box"])
+	name = esc(it["name"])
+	head = ("<header class=\"phead\"><h2>Item %d <small>in <code>%s</code>, box %d</small></h2><span class=\"pct\">seen in %s</span>"
+			"<span class=\"meta\">%s</span></header>") % (it["n"], esc(it["pair"]), b["n"], plural(it["count"], "shot"), box_caption(b))
+	seen = ""
+	if it["seen"]:
+		seen = "<p class=\"seen\">Also in %s. A mark here marks them all.</p>" % ", ".join(
+			"<a href=\"#s-%s\">%s</a>" % (esc(o["id"]), esc(o["pair"])) for o in it["seen"])
+	crop = crop_figure("<b>Box %d of %s</b>: original, port, differing pixels" % (b["n"], esc(it["pair"])), crop_rel(p["id"], b["n"]),
+					   b["crop_size"], "Item %d: original, port and differing pixels" % it["n"])
+	others = ""
+	if it["seen"]:
+		figs = []
+		for o in it["seen"]:
+			ob = next(x for x in pairs[o["pair"]]["boxes"] if x["n"] == o["box"])
+			figs.append(crop_figure("<b>%s</b>, box %d &middot; %s" % (esc(o["pair"]), ob["n"], box_caption(ob)), crop_rel(o["id"], ob["n"]),
+									ob["crop_size"], "Item %d in %s" % (it["n"], o["pair"])))
+		others = "<details class=\"others\"><summary>The other %s, each as it looks there</summary><div class=\"crops\">%s</div></details>" % (
+			plural(len(it["seen"]), "shot"), "".join(figs))
+	return "<article class=\"pair\" id=\"p-item%d\" data-i=\"%d\">%s%s%s<div class=\"crops\">%s</div>%s%s</article>" % (
+		it["n"], i, head, verdict_html(name), seen, crop, others, shots_html(p, name, p["boxes"]))
+
+
+def item_data(it, p):
+	"""What the page's script needs of a review item."""
+	return {"id": "item%d" % it["n"], "name": it["name"], "kind": "still", "pct": p["diff_pct"], "size": p["size"],
+			"size_mismatch": False, "ignored": [e["rect"] for e in p["ignored"]], "images": p["images"], "count": it["count"],
+			"what": "seen in %s, %dx%d px at (%d, %d)" % (plural(it["count"], "shot"), it["w"], it["h"], it["x"], it["y"]),
+			"sig": "%d,%d,%d,%d,%d|%d" % (it["x"], it["y"], it["w"], it["h"], it["pixels"], it["count"]),
+			"boxes": [{k: x[k] for k in ("n", "x", "y", "w", "h", "pixels")} for x in p["boxes"]]}
+
+
+def shot_html(p):
+	"""A differing still as a whole, below the items: which items it holds and its four pictures."""
+	name = esc(p["name"])
+	meta = [plural(len(p["boxes"]), "visible box", "visible boxes")]
+	if p.get("faint_boxes"):
+		meta.append("%s listed at the end" % plural(len(p["faint_boxes"]), "faint box", "faint boxes"))
+	meta.append("%s of %s px differ" % ("{:,}".format(p["diff_pixels"]), "{:,}".format(p["compared_pixels"])))
+	if p["shift"] != [0, 0]:
+		meta.append("<span class=\"tag\">port lined up by (%+d, %+d) px</span>" % tuple(p["shift"]))
+	items = ", ".join("<a href=\"#p-item%d\">item %d</a> (box %d)" % (b["item"], b["item"], b["n"]) for b in p["boxes"] if "item" in b)
+	return ("<article class=\"shot\" id=\"s-%s\"><header class=\"phead\"><h2>%s</h2><span class=\"pct\">%s%% differs</span>"
+			"<span class=\"meta\">%s</span></header><p class=\"meta\">Items here: %s</p>%s</article>") % (
+		esc(p["id"]), name, pct_text(p["diff_pct"]), " &middot; ".join(meta), items or "none", shots_html(p, name, p["boxes"], True))
 
 
 def pair_html(i, p):
@@ -261,7 +348,13 @@ def render(summary, has_index=False):
 	differing = [p for p in s["pairs"] if p["status"] == "differ"]
 	matching = [p for p in s["pairs"] if p["status"] == "match"]
 	errors = [p for p in s["pairs"] if p["status"] == "error"]
-	data = {"game": s["game"], "run": s["run"], "pairs": [pair_data(p) for p in differing]}
+	by_name = {p["name"]: p for p in differing}
+	items = s.get("items", [])
+	# what is reviewed: the items, then the stills that could not be compared, then the clips
+	whole = [p for p in differing if p["kind"] == "clip" or p.get("size_mismatch")]
+	whole.sort(key=lambda p: p["kind"] == "clip")
+	data = {"game": s["game"], "run": s["run"], "pairs": [item_data(it, by_name[it["pair"]]) for it in items] + [pair_data(p) for p in whole]}
+	stills = [p for p in differing if p["kind"] == "still" and not p.get("size_mismatch")]
 
 	b = []
 	if has_index:
@@ -278,7 +371,7 @@ def render(summary, has_index=False):
 	if s.get("visible"):
 		v = s["visible"]
 		settings.append("Only visible differences are for review: a box needs %d or more pixels that still differ by %d after a %s blur "
-						"of both pictures%s; the rest are faint, listed at the end." % (
+						"of both pictures%s, and must not agree once the port is moved a pixel; the rest are faint, listed at the end." % (
 							v["min_pixels"], v["delta"], v["blur"], ", against the port shifted up to %d px" % v["shift"] if v["shift"] else ""))
 	if s.get("align"):
 		settings.append("The port is compared at a fixed offset of (%d, %d) px." % tuple(s["align"]))
@@ -303,12 +396,21 @@ def render(summary, has_index=False):
 			 "<kbd>[</kbd>/<kbd>]</kbd> previous/next flagged frame</p>")
 	b.append(bar)
 	b.append("<details id=\"copybox\"><summary>Marks as text</summary><textarea id=\"copytext\" readonly></textarea></details>")
-	if differing:
-		b.append("<h2 style=\"margin-top:16px\">Differing pairs, largest first, clips last (%d)</h2>" % len(differing))
-		b.append("<p class=\"muted\">Each box is shown with the original on the left and the port on the right. The full pictures are below.</p>")
-		b.extend(clip_html(i, p) if p["kind"] == "clip" else pair_html(i, p) for i, p in enumerate(differing))
+	if items or whole:
+		rep = sum(1 for it in items if it["count"] > 1)
+		b.append("<h2 style=\"margin-top:16px\">To review: %s%s</h2>" % (
+			plural(len(items), "item"), ", then %s" % plural(len(whole), "pair") if whole else ""))
+		b.append("<p class=\"muted\">An item is one difference, shown where it is largest; the same difference in other shots "
+				 "(the same place, looking the same on both sides) is the same item, so %s seen in more than one shot. Items seen most "
+				 "often come first, then the largest. Each box shows the original, the port and the differing pixels; the whole shots "
+				 "follow the items.</p>" % ("%s is" % plural(rep, "item") if rep == 1 else "%s are" % plural(rep, "item")))
+		b.extend(item_html(i, it, by_name) for i, it in enumerate(items))
+		b.extend(clip_html(i, p) if p["kind"] == "clip" else pair_html(i, p) for i, p in enumerate(whole, len(items)))
 	else:
 		b.append("<p>No pair differs.</p>")
+	if stills:
+		b.append("<h2 style=\"margin-top:24px\">The differing shots (%d)</h2>" % len(stills))
+		b.extend(shot_html(p) for p in stills)
 	b.append(faint_section(s))
 	if errors:
 		b.append("<details open><summary>Could not be compared (%d)</summary><ul>%s</ul></details>" % (
@@ -330,7 +432,7 @@ def render(summary, has_index=False):
 	if s["warnings"]:
 		b.append("<details><summary>Warnings (%d)</summary><ul>%s</ul></details>" % (len(s["warnings"]), "".join("<li>%s</li>" % esc(w) for w in s["warnings"])))
 	zoom = ("<div id=\"zoom\" hidden role=\"dialog\" aria-modal=\"true\" aria-label=\"Full-size picture\"><div class=\"zbar\"><span id=\"zlabel\"></span>"
-			" &middot; <kbd>1</kbd> original <kbd>2</kbd> port <kbd>3</kbd> outlined &middot; <kbd>Esc</kbd> or a click closes</div>"
+			" &middot; <kbd>1</kbd> original <kbd>2</kbd> port <kbd>3</kbd> outlined <kbd>4</kbd> differing pixels &middot; <kbd>Esc</kbd> or a click closes</div>"
 			"<div class=\"zscroll\"><div class=\"stack\" id=\"zstack\"></div></div></div>")
 	body = "<main>%s</main>\n%s" % ("\n".join(b), zoom)
 	scripts = "<script type=\"application/json\" id=\"shotdiff-data\">%s</script>\n<script>\n%s\n%s</script>\n" % (
