@@ -202,3 +202,70 @@ flag written where another was meant, and `Widget::Update` called where the orig
 comments were wrong too. Most of these are omissions beside code that Ghidra renders poorly (dropped arguments,
 unnamed objects), not mistranslations. The session fixed all of it in one turn, and the restored random-number users
 moved its bot's pinned results.
+
+## Estimates against costs (2026-11-01)
+
+The survey (`docs/POPCAP_GAMES_SURVEY.md`) rates each game's effort against Bejeweled Deluxe as 1x, from the size of
+its game code plus the subsystems it needs, each estimate within about 50%. The table sets those estimates beside what
+each port cost up to its first merge: the "Port work" column of README.md's progress table of 2026-10-26, computed by
+`tools/game_costs.py` with each model at its own API price. The last three rows are the ports from before the rules
+of 2026-10-24.
+
+| Game | Model | Estimate | Port cost | Per unit |
+|---|---|---|---:|---:|
+| Noah's Ark | Sonnet | 1-1.5x | $62 | ~$50 |
+| Seven Seas | Sonnet | 1-1.5x | $54 | ~$43 |
+| Atomica | Sonnet | 1.5x | $105 | ~$70 |
+| Cosmic Bugs | Opus | ~2x | $125 | ~$63 |
+| TipTop | Opus | 2-3x | $106 | ~$42 |
+| Ning Po | Opus | 2-3x | $66 | ~$26 |
+| Pixelus | Sonnet | ~3x | $91 | ~$30 |
+| Word Harmony | Opus | 3-4x | $115 | ~$33 |
+| Rocket Mania | Sonnet | 3.5x | $134 | ~$38 |
+| Dynomite | Opus | 4.5x | $164 | ~$36 |
+| Bookworm Adventures Vol. 2 | Sonnet | 4-6x after Vol. 1 | $195 | ~$39 |
+| Bookworm Adventures | Opus | 10-15x | $538 | ~$43 |
+| Bejeweled | Opus | 1x | $251 | $251 |
+| Big Money | Opus | 2x | $263 | ~$132 |
+| BookWorm | Opus | 3-3.5x | $369 | ~$114 |
+
+Mummy Maze ($84), Alchemy ($70) and Water Bugs ($45) were rated only "small" and are left out of what follows.
+
+**A fixed cost per game.** The survey scales effort with code size alone, but every port also pays for work that does
+not grow with the game: staging its files, the Ghidra export, its web page and store entry, a check suite, a review and
+a merge. So the smallest games cost the most per unit: $43-70 for the games of 1-1.5x, $30-43 for those of 3x and
+more. Every port since the token rules lands within about 40% of
+
+    port cost = about $30 + $33 per unit of the survey's estimate
+
+and all but Ning Po within a third. It is a budget for a port before it starts, and a warning when a running port has
+gone far past its own.
+
+**Penalties set too high.** The survey added effort for a game without RTTI and for an archive format to decode before
+anything else. Dynomite, with no game RTTI, cost the same per unit as Rocket Mania, which has it. Ning Po, rated 2-3x
+for its archive, cost what a 1.5x game costs, though TipTop, with the same penalty, came in on its estimate. Two games
+came in over: Atomica, whose session ran to the full context window before Sonnet got the 400K auto-compact (above),
+and Cosmic Bugs, whose engine the survey did not know and guessed at ~2x. Sequels on a shared engine were estimated
+well: Volume 2 (4-6x after a 10-15x first game) cost 36% of Bookworm Adventures' port, and Water Bugs 36% of Cosmic
+Bugs'.
+
+**The process mattered more than the model.** The three ports from before the rules, with subagents and many short
+calls, cost $114-251 per unit; Bejeweled's includes setting up the repository and the framework. Every port since has
+cost between a sixth and a third as much per unit. Sonnet ports cost about the same per unit as Opus ports in API
+dollars: cache reads are most of every session's cost and are priced the same for both models, so Sonnet saves only on
+output and cache writes, and its sessions carried larger contexts. Whether it weighs less against the plan's limits is
+not known, since those have no published formula. Its ports also need the Opus review that found the faults above.
+
+**Mods and shared work.** By the scan of 2026-11-01, mods are $1,709 of the $5,825 spent so far, 29%; Bejeweled's mods
+alone ($1,268) cost five times its port. Shared code and coordination came to $999. The scan counts $283 of work not
+yet classified as shared by default, so that figure is approximate.
+
+**What the estimates leave out.** They are for a first playable port. Since 2026-10-27 a game is done only when it plays
+identically to its original (CLAUDE.md, "Done means identical"), and the survey has nothing for that pass. On the
+games' side its first costs are small (from 2026-10-26 to 2026-11-01: Bookworm Adventures $86, Seven Seas $20, Water
+Bugs $11), while its tools (origrun, shotdiff, the originals' 3D mode) count as shared. A rule for it waits until more
+games have finished the pass.
+
+For the ports under way the rule gives about $180 for Ancient Japan (4-5x), about $195 for Bonnie's Bookstore (4-6x)
+and about $855 for Twist (25x). It gives about $1,020 for Bejeweled 3 and $1,185 for Zuma's Revenge, but those lie far
+past Bookworm Adventures, the only large game it was fitted on, so they are rough.
