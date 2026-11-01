@@ -73,8 +73,10 @@ public:
 		if (mFont != NULL)
 		{
 			g->SetFont(mFont);
-			// the second colour is for the mouse over the button (mIsOver, +0x1f, set by MouseEnter 0x4282d0)
-			g->SetColor(mIsOver ? mColors[COLOR_LABEL_HILITE] : mColors[COLOR_LABEL]);
+			// The decompilation picks colour 1 while +0x1f (mIsOver, set by MouseEnter 0x4282d0) is set, yet captures of the original
+			// with the mouse over a button (posted moves, which do light the menu buttons) show the label unchanged: the Yes and
+			// No labels and the Options dialog's buttons keep colour 0. A pressed button (mIsDown) takes colour 1 (measured earlier).
+			g->SetColor(mIsDown ? mColors[COLOR_LABEL_HILITE] : mColors[COLOR_LABEL]);
 			int aFontX = (mWidth - mFont->StringWidth(mLabel)) / 2;
 			int aFontY = (mHeight + mFont->GetAscent() - mFont->GetAscentPadding() - mFont->GetAscent() / 6 - 1) / 2;
 			g->DrawString(mLabel, aFontX + mTextOffsetX, aFontY + mTextOffsetY);

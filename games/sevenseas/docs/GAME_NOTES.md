@@ -127,5 +127,7 @@ the side panel's lives are the small icon (image 31).
   sets none and draws the black plate with the framework's flat path (`COLOR_BKG` black). `DBUTTONBLACK` is all black, so a pressed
   button shows black text, offset by 1, over all black either way. To confirm with shotdiff once captures of the original work again.
 - **No Register button.** The options dialog's Register button is hidden (registration is taken out by the user's rule).
-- **Options dialog's four extra buttons' label colour** is gold from a pixel measurement; the original may draw white tinted over the
-  font's own colours. Open until compared with shotdiff.
+- **Options dialog's four extra buttons' label colour** is gold, and a hovered label stays gold (captured in the Windows Sandbox,
+  2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
+  change under the mouse either (`qh`), nor do the help screen's two labels (`hh`), although the decompilation reads colour 1
+  while the mouse is over a button (+0x1f); a pressed button is not captured yet (origrun cannot hold a button down).

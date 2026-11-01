@@ -59,7 +59,9 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   only one, I'm guessing)." So when usage runs short, Bejeweled Twist's port comes before the identical-play passes.
   The existing decompilations are every game ported so far, Bonnie's Bookstore and Mahjong Escape: Ancient Japan
   included. No new port starts until all of them play identically. The one exception is a near-trivial port: so far
-  that means only Mahjong Escape: Ancient China, which is Ancient Japan's code with other resources.
+  that means only Mahjong Escape: Ancient China, which is Ancient Japan's code with other resources. Ancient Japan's
+  own session ports it once Ancient Japan plays identically, so it copies the finished engine instead of one that is
+  still changing (the user, 2026-11-01).
 - **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
   through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
   code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as

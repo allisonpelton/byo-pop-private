@@ -163,6 +163,16 @@ static DWORD  gGamePidHint = 0;
 // for the frame that showed update N. gUpdateMs is one update's length, used for a clip's interval_ms.
 static char   gCounterExpr[256] = "";
 static char   gFlipsExpr[256] = "";
+// gPendingExpr and gStateExpr, optional and used together: a byte the game sets when an update is done and clears
+// once that update is drawn (SexyAppBase's mHasPendingDraw), and the int of its update loop's step (mUpdateAppState:
+// 0 messages, 1 and 2 an update, 3 done), so a shot inside Windows Sandbox knows which update its frame shows
+// (capture_held).
+static char   gPendingExpr[256] = "";
+static char   gStateExpr[256] = "";
+// gEmptyExpr, optional with the two above: a byte the game sets when DrawDirtyStuff skipped its draw without
+// presenting (SexyAppBase's mLastDrawWasEmpty: nothing was dirty, or the draw throttle that runs while loading), so
+// the frame on screen is an older one and the shot says "or an earlier one".
+static char   gEmptyExpr[256] = "";
 static int    gUpdateMs = 10;        // SexyAppBase runs 100 updates/s
 
 // --3d on|off: the game's own Hardware Acceleration setting for the run, and the check that the game really ran in
@@ -440,6 +450,21 @@ static int read_counter(const char* expr, uint32_t* out)
 	return ok;
 }
 
+// Whether the game, as read now, shows the update its counter holds: nothing waits to be drawn and no update runs.
+static int drawn_now(int* readFail)
+{
+	uint32_t pd=0, st=0;
+	if (!read_counter(gPendingExpr,&pd) || !read_counter(gStateExpr,&st)) { *readFail=1; return 0; }
+	return !(pd&0xff) && (st==0 || st==3);
+}
+// Read while held, once drawn_now: whether that last draw was skipped (1), presented (0), or cannot be told (-1).
+static int draw_was_empty(void)
+{
+	uint32_t e=0;
+	if (!gEmptyExpr[0] || !read_counter(gEmptyExpr,&e)) return -1;
+	return (e&0xff) ? 1 : 0;
+}
+
 // The thread that owns the game's main window, for SuspendThread/ResumeThread around an "at" capture/input.
 static HANDLE open_window_thread(HWND hwnd, DWORD access)
 {
@@ -661,6 +686,17 @@ static double qpc_ms(void){ LARGE_INTEGER c,f; QueryPerformanceCounter(&c); Quer
 // all of it.
 static double gHoldT0 = 0, gLastHeldMs = 0;
 static uint32_t gHeldAt = 0;   // the update counter read while the last held shot was held
+// The update whose frame the last "at"/update-timed shot shows (0: not known), and the file that lists it for each
+// shot (shots/landed.tsv: name, update, how sure), so the port can take its own shot at that update. A run starts the
+// file afresh (landed_reset).
+static uint32_t gLandedAt = 0;
+static void note_landed(const char* name, uint32_t upd, const char* how)
+{
+	gLandedAt=upd;
+	char p[MAX_PATH]; wsprintfA(p,"%s\\landed.tsv",gShotDir);
+	FILE* f=fopen(p,"a"); if (f){ fprintf(f,"%s\t%u\t%s\n",name,upd,how); fclose(f); }
+}
+static void landed_reset(void){ char p[MAX_PATH]; wsprintfA(p,"%s\\landed.tsv",gShotDir); DeleteFileA(p); }
 // The game's window thread while origrun holds it, so that crash_filter can resume it before anything else.
 static PVOID volatile gHeldThread = NULL;
 // Returns 1 once the thread is really stopped. SuspendThread only asks for the suspension; GetThreadContext returns
@@ -683,7 +719,56 @@ static void hold_end(HANDLE th)
 }
 static void release_held(HANDLE* held){ if (held && *held){ hold_end(*held); *held=NULL; } }
 
-static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held)
+// The sandbox's shot (capture_held): PrintWindow on a helper thread, so that it can be asked while the game is held.
+// One helper serves the whole run. It is started on the desktop of the thread that captures (a new thread starts on
+// the process's first desktop, where PrintWindow returns TRUE with a black window), at raised priority so that it is
+// in PrintWindow at once. gPwState hands a job over: the capturing thread posts it (PW_POSTED) and waits until the
+// helper says it is entering PrintWindow (PW_IN). A job that is given up (PW_ABANDONED: the helper did not start, or
+// PrintWindow did not return in time) is freed by the helper once it gets to it; until then the state is not
+// PW_IDLE and every further shot is refused.
+enum { PW_IDLE, PW_POSTED, PW_IN, PW_DONE, PW_ABANDONED };
+static volatile LONG gPwState = PW_IDLE;
+static HANDLE gPwThread, gPwGo, gPwDone, gPwReady;
+static HWND gPwHwnd; static HDC gPwMem; static HBITMAP gPwDib; static HGDIOBJ gPwOld; static BOOL gPwOk;
+static DWORD gPwDeskErr;   // SetThreadDesktop's error in the helper, 0 when it worked
+static void pw_free_job(void){ SelectObject(gPwMem,gPwOld); DeleteObject(gPwDib); DeleteDC(gPwMem); gPwMem=NULL; }
+static DWORD WINAPI pw_helper(LPVOID desk)
+{
+	if (!SetThreadDesktop((HDESK)desk)) { gPwDeskErr=GetLastError()?GetLastError():1; SetEvent(gPwReady); return 0; }
+	SetEvent(gPwReady);
+	for (;;) {
+		WaitForSingleObject(gPwGo,INFINITE);
+		if (InterlockedCompareExchange(&gPwState,PW_IN,PW_POSTED)!=PW_POSTED) { pw_free_job(); InterlockedExchange(&gPwState,PW_IDLE); continue; }
+		gPwOk=PrintWindow(gPwHwnd,gPwMem,PW_RENDERFULLCONTENT);
+		if (InterlockedCompareExchange(&gPwState,PW_DONE,PW_IN)!=PW_IN) { pw_free_job(); InterlockedExchange(&gPwState,PW_IDLE); continue; }
+		SetEvent(gPwDone);
+	}
+}
+// Starts the helper on first use. 0 (logged once) if it cannot be started on the capturing thread's desktop.
+static int pw_ready(const char* name)
+{
+	static int failed=0;
+	if (gPwThread) return 1;
+	if (failed) { logline("shot %s refused: no PrintWindow helper (see above)", name); return 0; }
+	gPwGo=CreateEventA(NULL,FALSE,FALSE,NULL); gPwDone=CreateEventA(NULL,FALSE,FALSE,NULL); gPwReady=CreateEventA(NULL,TRUE,FALSE,NULL);
+	HANDLE t = (gPwGo && gPwDone && gPwReady) ? CreateThread(NULL,0,pw_helper,GetThreadDesktop(GetCurrentThreadId()),0,NULL) : NULL;
+	DWORD err = t ? 0 : GetLastError();
+	DWORD rw = t ? (SetThreadPriority(t,THREAD_PRIORITY_HIGHEST), WaitForSingleObject(gPwReady,2000)) : WAIT_FAILED;
+	if (!t || rw!=WAIT_OBJECT_0 || gPwDeskErr) {   // a helper that is late is never used: no job is ever posted to it
+		logline("shot %s refused, and every later update-timed shot: the PrintWindow helper %s (err %lu)", name,
+			!t ? "could not be started" : rw!=WAIT_OBJECT_0 ? "did not start within 2 s" : "could not be put on origrun's desktop",
+			!t ? err : gPwDeskErr);
+		failed=1; if (t) CloseHandle(t); return 0;
+	}
+	gPwThread=t; return 1;
+}
+static uint32_t gBracketAt = 0;
+static const char* gBracketSure = "";   // how sure that update is (landed.tsv's third column)   // the update a bracketed shot shows (capture_held sets it before the hold's capture)
+// bracket (only with held, inside Windows Sandbox): the game is held; PrintWindow is posted to the helper, the game is
+// released once the helper is inside PrintWindow, and its message loop answers it (see capture_held). Nothing else
+// reads the window on this path. Returns 3 and writes nothing if PrintWindow returned FALSE, so the caller may try
+// again; 0 for a refusal.
+static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held, int bracket)
 {
 	RECT r; if (!hwnd || !GetWindowRect(hwnd,&r)) { release_held(held); return 0; }   // window gone; caller may retry
 	if (capture_refused(hwnd,name)) { release_held(held); return 0; }
@@ -715,9 +800,40 @@ static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held
 	// legacy DirectDraw windows need. Never the screen, and nothing at all outside Windows Sandbox: capture_refused,
 	// asked once when the capture starts, depends only on where origrun runs, which no run changes.
 	const char* how="printwindow";
-	BOOL ok = allowPrint ? PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT) : FALSE;
+	BOOL ok=FALSE;
+	if (bracket && held && *held) {
+		if (gPwState!=PW_IDLE) { release_held(held); SelectObject(mem,old); DeleteObject(dib); DeleteDC(mem); logline("shot %s refused: an earlier PrintWindow has not returned", name); return 0; }
+		gPwHwnd=hwnd; gPwMem=mem; gPwDib=dib; gPwOld=old; gPwOk=FALSE;
+		InterlockedExchange(&gPwState,PW_POSTED); SetEvent(gPwGo);
+		double t0=qpc_ms();
+		while (gPwState==PW_POSTED && qpc_ms()-t0<100) SwitchToThread();
+		if (InterlockedCompareExchange(&gPwState,PW_ABANDONED,PW_POSTED)==PW_POSTED) {   // the helper frees the job
+			release_held(held);
+			logline("shot %s refused: the PrintWindow helper did not start within 100 ms", name);
+			return 0;
+		}
+		// The helper is entering PrintWindow; a margin for it to send its message before the game runs on (Sleep would
+		// round up to the timer's 15.6 ms tick). Not checked: a helper pre-empted here for longer than the margin and an
+		// update gets its message answered a frame late, and the shot then shows N+1 (rare at its priority; an exact
+		// release would wait until the helper is blocked in the send).
+		{ double t1=qpc_ms(); while (qpc_ms()-t1<0.5) SwitchToThread(); }
+		release_held(held);
+		DWORD wr=WaitForSingleObject(gPwDone,3000);
+		if (wr!=WAIT_OBJECT_0) {
+			if (InterlockedCompareExchange(&gPwState,PW_ABANDONED,PW_IN)==PW_IN) {   // the helper frees the job
+				logline("shot %s refused: PrintWindow did not return within 3 s of the release", name);
+				return 0;
+			}
+			WaitForSingleObject(gPwDone,INFINITE);   // it returned just now: its event is set
+		}
+		uint32_t c1=0; read_counter(gCounterExpr,&c1);
+		ok=gPwOk; InterlockedExchange(&gPwState,PW_IDLE);
+		if (!ok) { SelectObject(mem,old); DeleteObject(dib); DeleteDC(mem); return 3; }
+		how="printwindow-bracketed (sandbox)";
+		logline("shot %s: printwindow-bracketed (sandbox): update %u (%s); the counter read %u once PrintWindow returned", name, gBracketAt, gBracketSure, c1);
+	} else if (allowPrint) ok=PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT);
 	if (allowPrint && !ok) how="printwindow failed";
-	if (!allowPrint || !ok || region_flat(px,w,cx0,cy0,cx1,cy1)) {
+	if (!bracket && (!allowPrint || !ok || region_flat(px,w,cx0,cy0,cx1,cy1))) {
 		HDC wdc=GetWindowDC(hwnd);
 		if (wdc){ BitBlt(mem,0,0,w,h,wdc,0,0,SRCCOPY); ReleaseDC(hwnd,wdc); how="windowdc"; }
 	}
@@ -735,7 +851,7 @@ static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held
 	logline("shot %s -> %s (%dx%d) [%s]", name, path, w, h, how);
 	return wrote ? (flat ? 2 : 1) : 0;   // 2 = written but flat (a DirectDraw screen, or not drawn yet)
 }
-static int capture_ex(HWND hwnd, const char* name, int allowPrint){ return capture_ex2(hwnd,name,allowPrint,NULL); }
+static int capture_ex(HWND hwnd, const char* name, int allowPrint){ return capture_ex2(hwnd,name,allowPrint,NULL,0); }
 static int capture(HWND hwnd, const char* name){ return capture_ex(hwnd,name,1); }
 
 // Poll up to timeout_ms for any visible game window, then capture it. If the grab is flat (often a window that
@@ -788,9 +904,59 @@ static int wait_counter(uint32_t target, int timeout_ms)
 // Outside Windows Sandbox the shot is refused before the game is ever held (capture_refused).
 static int capture_held(const char* name)
 {
-	gLastHeldMs=0; gHeldAt=0;   // a shot that is not held, or not taken, reports no hold of an earlier one
+	gLastHeldMs=0; gHeldAt=0; gLandedAt=0;   // a shot that is not held, or not taken, reports no hold of an earlier one
 	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",name); return 0; }
 	if (capture_refused(hw,name)) return 0;
+	// Inside Windows Sandbox nothing reads a held game: BitBlt from the window DC and from the screen DC return TRUE
+	// but copy no pixels, held or not; DXGI finds no output to duplicate; and PrintWindow, the one thing that sees the
+	// game there, needs the game's window thread, which answers it from its message loop (measured on Bookworm
+	// Adventures, 2026-11-01). Reading the counter just before and just after an unheld PrintWindow and keeping the
+	// shot when both agree does not work there: PrintWindow takes about an update's time, the reads agreed once in
+	// 1 to 20 tries, and shots landed up to 238 updates late. So the game is held, PrintWindow is posted to the helper,
+	// and the game is released once the helper is in PrintWindow; the game answers it at its next message check.
+	// Which frame that shows: SexyAppBase checks messages after an update and its PROCESS_2 step but draws the update
+	// only in a later Process call, so a hold inside update N, its PROCESS_2 or the message check after it gets the
+	// message answered before frame N is drawn (and a draw it skips to catch up leaves an older frame). With
+	// --pending-draw and --update-state (mHasPendingDraw, mUpdateAppState) the hold is kept only when no update waits
+	// to be drawn and none is running (the step is "messages" or "done"; a draw and the catch-up updates run in "done"
+	// with the flag still set). The last draw then followed update N, or found nothing changed, and the game's next
+	// message check comes before its next update, so the shot shows update N. Without them the shot shows N or an
+	// earlier update, and says so. The update is logged and listed in landed.tsv.
+	if (gInSandbox && gCounterExpr[0]) {
+		if (!pw_ready(name)) return 0;
+		double t0=qpc_ms(); int holds=0;
+		int exact = gPendingExpr[0] && gStateExpr[0];
+		for (int fails=0; fails<3; ) {
+			if (gStop) { logline("shot %s not taken: the run is stopping", name); return 0; }
+			// unheld, wait until the game shows its last update; then hold and look again
+			int rf=0;
+			while (exact && !drawn_now(&rf) && !rf && qpc_ms()-t0<500 && !gStop) SwitchToThread();
+			if (exact && !rf && qpc_ms()-t0>=500) { logline("shot %s refused: the game did not show a drawn update for 500 ms (%d holds)", name, holds); return 0; }
+			HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
+			if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
+			if (!th) { logline("shot %s refused: the game's window thread could not be held", name); return 0; }
+			holds++;
+			HANDLE held=th;
+			uint32_t c=0; int ok=read_counter(gCounterExpr,&c), shown=1;
+			if (ok && exact) { rf=0; shown=drawn_now(&rf); ok=!rf; }
+			if (!ok) {
+				release_held(&held); CloseHandle(th);
+				logline("shot %s refused: the update counter%s could not be read while the game was held", name, exact?" or the pending-draw flag or update step":"");
+				return 0;
+			}
+			if (!shown) { release_held(&held); CloseHandle(th); continue; }   // the game moved on in between: look again
+			int empty = exact ? draw_was_empty() : -1;
+			const char* sure = !exact ? "or-earlier" : empty==1 ? "or-earlier" : empty==0 ? "drawn" : "drawn-unless-skipped";
+			gBracketSure=sure;
+			gBracketAt=c;
+			int r=capture_ex2(hw,name,1,&held,1);
+			release_held(&held); CloseHandle(th);
+			if (r!=3) { if (r) note_landed(name,c,sure); return r; }
+			fails++;
+		}
+		logline("shot %s refused: PrintWindow failed three times", name);
+		return 0;
+	}
 	if (gFlipsExpr[0]) { uint32_t f0; if (read_counter(gFlipsExpr,&f0)) { uint32_t f=f0; int w=0; while(f<=f0 && w<100 && !gStop){ Sleep(1); read_counter(gFlipsExpr,&f); w++; } } }  // a static screen presents nothing new, so cap the wait
 	// Without a flips counter, hold at the start of the next update: the counter goes to N at the start of update N,
 	// and the game draws after the update, so a hold taken as soon as the counter reads N races that draw and mostly
@@ -806,8 +972,9 @@ static int capture_held(const char* name)
 	if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
 	if (th) read_counter(gCounterExpr,&gHeldAt);
 	HANDLE held=th;
-	int ok=capture_ex2(hw,name,0,&held);   // no PrintWindow while held: the window DC, asked again first; resumes after the grab
+	int ok=capture_ex2(hw,name,0,&held,0);   // no PrintWindow while held: the window DC, asked again first; resumes after the grab
 	release_held(&held);
+	if (ok && gHeldAt) note_landed(name, gFlipsExpr[0] ? gHeldAt : gHeldAt-1, "held");
 	if (th) CloseHandle(th);
 	return ok;
 }
@@ -828,9 +995,10 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 		double frameStart=qpc_ms();
 		int ok; double cap0;
 		if (byUpdates) { if (wait_counter(start + (uint32_t)i*k, 4000)<0){ logline("burst %s: counter unreadable, stopping",name); break; } cap0=qpc_ms(); ok=capture_held(leaf); holdSum+=gLastHeldMs; if (gLastHeldMs>holdMax) holdMax=gLastHeldMs;
-			{ int d=(int)(gHeldAt-(start+(uint32_t)i*k)) - (gFlipsExpr[0]?0:1); if (gHeldAt && d>0){ late++; if(d>lateMax) lateMax=d; } } }
+			{ int d=(int)(gLandedAt-(start+(uint32_t)i*k)); if (gLandedAt && d>0){ late++; if(d>lateMax) lateMax=d; } } }
 		else { HWND hw=resolve_window(0,NULL); if(!hw){ logline("burst %s: no window, stopping at %d",name,i); break; } cap0=qpc_ms(); ok=capture(hw,leaf); }
 		if (gCaptureRefused) { logline("burst %s: captures refused (no shots on the host), stopping at %d",name,i); break; }
+		if (gPwState!=PW_IDLE) { logline("burst %s: a PrintWindow has not returned, stopping at %d",name,i); break; }
 		double dt=qpc_ms()-cap0;   // the capture itself, not any wait before it
 		if (ok){ taken++; capSum+=dt; if(dt>capMax)capMax=dt; }
 		if (!byUpdates) { double rest=interval_ms-(qpc_ms()-frameStart); if (rest>1) Sleep((DWORD)rest); }
@@ -839,7 +1007,7 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 	write_clip_json(dir, clipMs);
 	logline("burst %s: %d frames in %s (clip interval %d ms); capture avg %.1f ms, max %.1f ms over %.0f ms wall",
 		name, taken, dir, clipMs, taken?capSum/taken:0.0, capMax, qpc_ms()-t0);
-	if (byUpdates && holdMax>0) logline("  the game was held avg %.2f ms, max %.2f ms per frame; %d frames held past their update (by up to %d)", taken?holdSum/taken:0.0, holdMax, late, lateMax);
+	if (byUpdates && holdMax>0) logline("  the game was held avg %.2f ms, max %.2f ms per frame; %d frames landed past their update (by up to %d; shots/landed.tsv lists each)", taken?holdSum/taken:0.0, holdMax, late, lateMax);
 	if (!byUpdates && capMax > interval_ms*0.5)
 		logline("  note: a capture took up to %.1f ms of the %d ms interval, so the original's timing is disturbed during the burst; use 'burst %s %d update <k>' for exact spacing",capMax,interval_ms,name,count);
 }
@@ -2316,6 +2484,9 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (script) fprintf(rf,"script=script.txt\n");
 	if (gCounterExpr[0]) fprintf(rf,"counter=%s\n",gCounterExpr);
 	if (gFlipsExpr[0]) fprintf(rf,"flips=%s\n",gFlipsExpr);
+	if (gPendingExpr[0]) fprintf(rf,"pending=%s\n",gPendingExpr);
+	if (gStateExpr[0]) fprintf(rf,"state=%s\n",gStateExpr);
+	if (gEmptyExpr[0]) fprintf(rf,"empty=%s\n",gEmptyExpr);
 	if (gMode3dWant>=0) fprintf(rf,"3d=%s\n",gMode3dWant?"on":"off");
 	if (key3d && key3d[0]) fprintf(rf,"key3d=%s\n",key3d);
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
@@ -2727,6 +2898,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	char logs[MAX_PATH]; joinp(logs,gRunDir,"logs"); mkdirs(logs);
 	InitializeCriticalSection(&gLogLock); gLogLockInit=1;
 	char logpath[MAX_PATH]; joinp(logpath,logs,"origrun-sandbox.log"); gLogFile=fopen(logpath,inSession?"a":"w");
+	if (!inSession) landed_reset();
 	if (!inSession) { char mk[MAX_PATH]; joinp(mk,gRunDir,"sandbox-started.txt"); FILE* f=fopen(mk,"w"); if (f) { fprintf(f,"started\n"); fclose(f); } }
 	{ DWORD ss=0; ProcessIdToSessionId(GetCurrentProcessId(),&ss); logline("inside Windows Sandbox, session %lu: %s", ss, why); }
 	int rc=2;   // from here on, every way out of the first origrun writes the done marker the host waits for
@@ -2747,6 +2919,9 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"update_ms")) gUpdateMs=atoi(v)>0?atoi(v):10;
 			else if (ieq(ln,"counter")) lstrcpynA(gCounterExpr,v,256);
 			else if (ieq(ln,"flips")) lstrcpynA(gFlipsExpr,v,256);
+			else if (ieq(ln,"pending")) lstrcpynA(gPendingExpr,v,256);
+			else if (ieq(ln,"state")) lstrcpynA(gStateExpr,v,256);
+			else if (ieq(ln,"empty")) lstrcpynA(gEmptyExpr,v,256);
 			else if (ieq(ln,"3d")) gMode3dWant = ieq(v,"on") ? 1 : 0;
 			else if (ieq(ln,"key3d")) lstrcpynA(key3d,v,256);
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
@@ -2798,7 +2973,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 		if (!reg_set_is3d(key3d,1,(DWORD)gMode3dWant)) logline("--3d: could not write %s\\%s (err %lu)",key3d,kIs3DValue,GetLastError());
 		else logline("--3d %s: set %s=%d inside the sandbox", gMode3dWant?"on":"off", kIs3DValue, gMode3dWant);
 	}
-	if (gCounterExpr[0]) logline("update counter: %s (one update = %d ms)%s%s", gCounterExpr, gUpdateMs, gFlipsExpr[0]?", flips=":"", gFlipsExpr);
+	if (gCounterExpr[0]) logline("update counter: %s (one update = %d ms)%s%s%s%s%s%s%s%s", gCounterExpr, gUpdateMs, gFlipsExpr[0]?", flips=":"", gFlipsExpr, gPendingExpr[0]?", pending draw=":"", gPendingExpr, gStateExpr[0]?", update step=":"", gStateExpr, gEmptyExpr[0]?", draw empty=":"", gEmptyExpr);
 
 	{
 		Launched L;
@@ -2846,7 +3021,7 @@ int main(int argc, char** argv)
 	InitializeCriticalSection(&gRpmLock);
 	const char* game=NULL; const char* exe=NULL; const char* script=NULL;
 	const char* run=NULL; const char* sound="stub"; int timeout=120; int fresh=0; int copyOnly=0;
-	const char* patches=NULL; const char* counter=NULL; const char* flips=NULL;
+	const char* patches=NULL; const char* counter=NULL; const char* flips=NULL; const char* pending=NULL; const char* ustate=NULL; const char* dempty=NULL;
 	int haveSeed=0; uint32_t seed=0; int updateMs=0; int noPatch=0; const char* stageRoot=NULL;
 	const char* key3dArg=NULL; const char* flag3dArg=NULL; const char* dgvArg=NULL;
 	int sandboxHost=0, sandboxVgpu=0, sandboxWait=600, inSession=0, sandboxProbe=0, probe=0; const char* inSandboxDir=NULL;
@@ -2864,6 +3039,9 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--seed")&&i+1<argc) { haveSeed=1; seed=(uint32_t)strtoul(argv[++i],NULL,0); }
 		else if (ieq(argv[i],"--counter")&&i+1<argc) counter=argv[++i];
 		else if (ieq(argv[i],"--flips")&&i+1<argc) flips=argv[++i];
+		else if (ieq(argv[i],"--pending-draw")&&i+1<argc) pending=argv[++i];
+		else if (ieq(argv[i],"--update-state")&&i+1<argc) ustate=argv[++i];
+		else if (ieq(argv[i],"--draw-empty")&&i+1<argc) dempty=argv[++i];
 		else if (ieq(argv[i],"--update-ms")&&i+1<argc) updateMs=atoi(argv[++i]);
 		else if (ieq(argv[i],"--copy-only")) copyOnly=1;
 		else if (ieq(argv[i],"--fresh")) fresh=1;
@@ -2956,12 +3134,13 @@ int main(int argc, char** argv)
 	char logs[MAX_PATH]; joinp(logs,gRunDir,"logs"); mkdirs(logs);
 	InitializeCriticalSection(&gLogLock); gLogLockInit=1;
 	char logpath[MAX_PATH]; joinp(logpath,logs,"origrun.log"); gLogFile=fopen(logpath,"w");
+	landed_reset();
 	if (sandboxProbe) return sandbox_host_run(selfDir, NULL, timeout, "stub", NULL, sandboxVgpu, sandboxWait, 1);
 
 	// Per-game config (git-ignored, beside games.tsv): lines "counter=", "flips=", "update_ms=", "seed=",
 	// "patches=". CLI options override it. It records a game's update-counter address and patch-list path so a
 	// session need not repeat them on every run.
-	static char cfgCounter[256]="", cfgFlips[256]="", cfgPatches[MAX_PATH]="";
+	static char cfgCounter[256]="", cfgFlips[256]="", cfgPending[256]="", cfgState[256]="", cfgEmpty[256]="", cfgPatches[MAX_PATH]="";
 	int cfgUpdateMs=0, cfgHaveSeed=0; uint32_t cfgSeed=0;
 	if (game) {
 		char cfg[MAX_PATH]; wsprintfA(cfg,"%s\\tools\\origrun\\%s.cfg",repo,game);
@@ -2974,6 +3153,9 @@ int main(int argc, char** argv)
 				char* eq=strchr(p,'='); if(!eq) continue; *eq=0; char* v=eq+1; while(*v==' ')v++;
 				if (ieq(p,"counter")) lstrcpynA(cfgCounter,v,256);
 				else if (ieq(p,"flips")) lstrcpynA(cfgFlips,v,256);
+				else if (ieq(p,"pending_draw")) lstrcpynA(cfgPending,v,256);
+				else if (ieq(p,"update_state")) lstrcpynA(cfgState,v,256);
+				else if (ieq(p,"draw_empty")) lstrcpynA(cfgEmpty,v,256);
 				else if (ieq(p,"update_ms")) cfgUpdateMs=atoi(v);
 				else if (ieq(p,"seed")) { cfgHaveSeed=1; cfgSeed=(uint32_t)strtoul(v,NULL,0); }
 				else if (ieq(p,"patches")) lstrcpynA(cfgPatches,v,MAX_PATH);
@@ -2984,9 +3166,15 @@ int main(int argc, char** argv)
 	}
 	if (counter) lstrcpynA(gCounterExpr,counter,256); else if (cfgCounter[0]) lstrcpynA(gCounterExpr,cfgCounter,256);
 	if (flips)   lstrcpynA(gFlipsExpr,flips,256);     else if (cfgFlips[0])   lstrcpynA(gFlipsExpr,cfgFlips,256);
+	if (pending) lstrcpynA(gPendingExpr,pending,256); else if (cfgPending[0]) lstrcpynA(gPendingExpr,cfgPending,256);
+	if (ustate)  lstrcpynA(gStateExpr,ustate,256);     else if (cfgState[0])   lstrcpynA(gStateExpr,cfgState,256);
+	if (dempty)  lstrcpynA(gEmptyExpr,dempty,256);     else if (cfgEmpty[0])   lstrcpynA(gEmptyExpr,cfgEmpty,256);
+	if (!gPendingExpr[0] != !gStateExpr[0])
+		logline("WARNING: --pending-draw and --update-state work only together; with one of them, sandbox shots say \"or an earlier one\"");
+	if (gEmptyExpr[0] && !(gPendingExpr[0] && gStateExpr[0])) logline("WARNING: --draw-empty is used only with --pending-draw and --update-state");
 	gUpdateMs = updateMs ? updateMs : (cfgUpdateMs ? cfgUpdateMs : 10);
 	if (!haveSeed && cfgHaveSeed) { haveSeed=1; seed=cfgSeed; }
-	if (gCounterExpr[0]) logline("update counter: %s (one update = %d ms)%s%s", gCounterExpr, gUpdateMs, gFlipsExpr[0]?", flips=":"", gFlipsExpr);
+	if (gCounterExpr[0]) logline("update counter: %s (one update = %d ms)%s%s%s%s%s%s%s%s", gCounterExpr, gUpdateMs, gFlipsExpr[0]?", flips=":"", gFlipsExpr, gPendingExpr[0]?", pending draw=":"", gPendingExpr, gStateExpr[0]?", update step=":"", gStateExpr, gEmptyExpr[0]?", draw empty=":"", gEmptyExpr);
 	if (haveSeed) logline("RNG seed to pin: %u (0x%08X)", seed, seed);
 
 	// --3d: the game's registry key and where it keeps its 3D flag (games.tsv's columns 4 and 5, or the options).
