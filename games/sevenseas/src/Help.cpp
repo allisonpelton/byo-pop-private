@@ -55,11 +55,13 @@ HelpWidget::HelpWidget(SevenSeasApp* theApp) :
 	for (int i = 0; i < 2; i++)
 	{
 		ButtonWidget* aButton = new ButtonWidget(i, this);
-		aButton->mHasTransparencies = true;
+		aButton->mDoFinger = true;
 		aButton->SetFont(mApp->mFonts[FONT_TUT]);
 		aButton->mLabel = GT(aLabels[i]);
 		aButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xff, 0xe4, 0x37));
-		aButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0xff, 0xe4, 0x37));
+		// only COLOR_LABEL is set; the hovered and pressed label keeps ButtonWidget's default, which is black (the pressed
+		// button is the all-black DBUTTONBLACK in the original, the same as the plate here)
+		aButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0, 0, 0));
 		// the button is a black plate (the original's picture for it is all black)
 		aButton->SetColor(ButtonWidget::COLOR_DARK_OUTLINE, Color(0, 0, 0));
 		aButton->SetColor(ButtonWidget::COLOR_LIGHT_OUTLINE, Color(0, 0, 0));

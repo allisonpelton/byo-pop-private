@@ -73,8 +73,8 @@ public:
 		if (mFont != NULL)
 		{
 			g->SetFont(mFont);
-			// the second colour is for a pressed button (mIsDown, +0x1f); the mouse over it changes nothing
-			g->SetColor(mIsDown ? mColors[COLOR_LABEL_HILITE] : mColors[COLOR_LABEL]);
+			// the second colour is for the mouse over the button (mIsOver, +0x1f, set by MouseEnter 0x4282d0)
+			g->SetColor(mIsOver ? mColors[COLOR_LABEL_HILITE] : mColors[COLOR_LABEL]);
 			int aFontX = (mWidth - mFont->StringWidth(mLabel)) / 2;
 			int aFontY = (mHeight + mFont->GetAscent() - mFont->GetAscentPadding() - mFont->GetAscent() / 6 - 1) / 2;
 			g->DrawString(mLabel, aFontX + mTextOffsetX, aFontY + mTextOffsetY);
