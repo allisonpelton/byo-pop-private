@@ -118,11 +118,12 @@ the calls; the hall of fame's loads pass `theQuiet`.
 The battles showed a hill behind the enemy in the port only (the item seen in 5 shots). arena.lua draws the midground
 animation (`images/pam/MG<book>-<chapter>.pam`, the island) only when `gCApp:Is3DAccelerated()`, and the port reported 3D
 whenever its SDL renderer was accelerated, ignoring the registry's `Is3D` (the user's is 0). Fixed (2026-11-01): the game's
-3D mode is `LuaApp::Is3DMode()`, read from and written to `Is3D` as the original does (on when the value is missing, as when
-the original's 3D test passes), set by the Options dialog's box, and what the scripts and the game's C++ ask. With `Is3D` 0
+3D mode is `LuaApp::Is3DMode()`, read from `Is3D` (on when the value is missing, as when the original's 3D test passes) and
+written back on exit only when the player changed it, as the original does, set by the Options dialog's box, and what the scripts and the game's C++ ask. With `Is3D` 0
 the pilot's battle shows no island, like the original. Under origrun on this machine the original turns `Is3D` 1 back to 0
-and draws in software; origrun is getting a 3D-mode option. Not done: the original's question at exit after 3D was switched
-on during a session ("Hardware Acceleration Confirmation", 0x53c120).
+and draws in software; it runs in 3D only on the visible desktop (`tools/pilot/visrun.py`). The original's questions at exit
+(0x53c120: "Hardware Acceleration Confirmation", asked when 3D was switched on and is not recommended, or did not work)
+cannot come up in the port, whose renderer is always recommended and working.
 
 The buttons of the battle's menu, the quit dialog and every other `GameDialog` had their end caps stretched, and the new
 player's name sat in a stretched frame. The original draws a stretched `FadeButton` (0x442b10, its byte +0x12b) and that frame
