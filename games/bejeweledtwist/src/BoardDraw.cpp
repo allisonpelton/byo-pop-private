@@ -304,12 +304,230 @@ void Board::DrawGrid(Graphics* g, float theArtScale)
 	}
 }
 
+namespace {
+
+// 0x6a5c27: the gems by +0x14, the lower first
+int ComparePieceDepth(const void* theA, const void* theB)
+{
+	Piece* aA = *(Piece* const*)theA;
+	Piece* aB = *(Piece* const*)theB;
+	if (aA->mUnknown14 < aB->mUnknown14)
+		return -1;
+	if (aB->mUnknown14 < aA->mUnknown14)
+		return 1;
+	return 0;
+}
+
+// 0x84ea40: the light's slot for each tenth of a turn; 0x84e9f8: each slot's neighbour (column, row), slot 8 the gem
+// itself
+const int gTurnSlots[10] = {0, 4, 8, 2, 6, 3, 7, 8, 1, 5};
+const int gSlotOffsets[9][2] = {{0, -1}, {-1, -1}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, 0}};
+
+}  // namespace
+
+// 0x6caa13's gems: sorted by depth, drawn behind and in front, lit by the board's lights
 void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 {
-	(void)g;
 	(void)theLightG;
-	(void)is3D;
-	NotPorted("Board::DrawPieces (0x6caa13's gems)");
+	int aCount = 0;
+	(void)g->GetColorizeImages();
+	g->SetColor(Color(255, 255, 255));
+	Piece* aPieces[435];
+	for (int aRow = 0; aRow < mRows; aRow++) {
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			Piece* aPiece = GetPieceAt(aRow, aCol);
+			if (aPiece != nullptr && !aPiece->mBlasted)
+				aPieces[aCount++] = aPiece;
+		}
+	}
+	CrtQsort(aPieces, (size_t)aCount, sizeof(Piece*), ComparePieceDepth);
+	bool aDrawn = true;
+	if (IsTimed() && (mUnknown1574 != 0 || mApp->mOptionsDialog != nullptr || mApp->mDialogList.size() != 0)) {
+		// A timed game hides its gems while it is paused
+		aDrawn = false;
+	} else {
+		for (int i = 0; i < aCount; i++) {
+			if (aPieces[i]->mUnknown2F6)
+				aPieces[i]->Draw(g, false);
+		}
+		mFXManager2->Draw(g);
+	}
+	if (mGameMode != MODE_PUZZLE && mUnknown20D0 && 0.0f < mUnknown20CC &&
+		(mUnknown2584 == nullptr || !mUnknown2584->mMouseVisible))
+		DrawSelector(g, true);
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	// The light each gem gets on its eight sides: first the glint running across the board
+	for (int i = 0; i < aCount; i++) {
+		Piece* aPiece = aPieces[i];
+		for (int j = 0; j < 8; j++)
+			aPiece->mUnknown50[j] = 0;
+		aPiece->mUnknown70 = 0;
+		if (mUnknown1420) {
+			float aPlace = (float)(aPiece->mRow + aPiece->mCol) / (float)(mCols + mRows);
+			float aDist = std::fabs(mUnknown1424 - aPlace);
+			float aLight = (float)(1.0 - (double)aDist * 9.0);
+			if (0.0f < aLight) {
+				aPiece->mUnknown50[3] = (float)((double)aLight * 0.800000011920929 + (double)aPiece->mUnknown50[3]);
+				double aSide = (double)aLight * 0.6000000238418579;
+				aPiece->mUnknown50[7] = (float)((double)aPiece->mUnknown50[7] + aSide);
+				aPiece->mUnknown70 = (float)(aSide + (double)aPiece->mUnknown70);
+			}
+		}
+	}
+	for (unsigned int i = 0; i < mUnknown1650.size(); i++) {
+		Light& aLight = mUnknown1650[i];
+		float aX = aLight.mX;
+		float aY = aLight.mY;
+		if (aLight.mPieceId != -1) {
+			Piece* aPiece = GetPieceById(aLight.mPieceId);
+			if (aPiece == nullptr)
+				continue;
+			aX = aPiece->mX + aX;
+			aY = aPiece->mY + aY;
+		}
+		AddLight(aX, aY, aLight.mUnknown8, aLight.mUnknownC, aLight.mUnknown14 * aLight.mUnknown10, aLight.mPiece,
+			false);
+	}
+	if (!mUnknown14AC.empty()) {
+		// port: each geode still flying (its +0xac 0) lights the gems, AddLight(x, y, 5.5, 320, 0.75); comes with
+		// the geodes
+		NotPorted("Board::DrawPieces: the geodes' light");
+	}
+	for (int i = 0; i < aCount; i++) {
+		Piece* aPiece = aPieces[i];
+		if (aPiece->mUnknown38) {
+			float aSin = std::sin((float)((double)aPiece->mGlow * 15.0));
+			float aGlow = (float)((double)std::fabs(aSin) * 0.6000000238418579);
+			aPiece->mUnknown70 = aGlow;
+			if (is3D)
+				AddLight((float)(gGemWidth / 2) + aPiece->mX, (float)(gGemHeight / 2) + aPiece->mY, 15.0f, 10.0f,
+					aGlow, aPiece, false);
+		}
+		if (aPiece->mUnknownB1 && !aPiece->mDimmed) {
+			// A turning gem's light, shared between the two slots its turn lies between, and a little of each to
+			// the neighbour on that side
+			int aTurn = Ftol(aPiece->mUnknownC0);
+			int aNext = (aTurn + 1) % 10;
+			float aFrac = (float)((double)aPiece->mUnknownC0 - (double)aTurn);
+			double aRest = 1.0 - (double)aFrac;
+			float* aSlot = &aPiece->mUnknown50[gTurnSlots[aTurn]];
+			*aSlot = (float)((double)(float)aPiece->mUnknownB8 * aRest + (double)*aSlot);
+			aSlot = &aPiece->mUnknown50[gTurnSlots[aNext]];
+			*aSlot = (float)aPiece->mUnknownB8 * aFrac + *aSlot;
+			int k = 0;
+			do {
+				int aDir = gTurnSlots[k == 0 ? aTurn : aNext];
+				float aShare = (float)((k == 0 ? aRest : (double)aFrac) * aPiece->mUnknownB8);
+				if (aDir != 9) {
+					int aCol = gSlotOffsets[aDir][0] + aPiece->mCol;
+					int aRow = gSlotOffsets[aDir][1] + aPiece->mRow;
+					if (0 <= aCol && aCol < mCols && 0 <= aRow && aRow < mRows) {
+						Piece* aNear = GetPieceAt(aRow, aCol);
+						if (aNear != nullptr) {
+							float* aNearSlot = &aNear->mUnknown50[(aDir + 4) % 8];
+							*aNearSlot = (float)((double)aShare * 0.30000001192092896 + (double)*aNearSlot);
+						}
+					}
+				}
+				k++;
+			} while (k < 2);
+		}
+	}
+	if (!mUnknown21E4.empty()) {
+		// port: the droppers' drawing (0x6f4982) comes with the droppers
+		NotPorted("Board::DrawPieces: the droppers");
+	}
+	// While the cursor is on the board, the gems away from its four are dimmed
+	bool aCursor = 0 <= mUnknown2400;
+	if (aDrawn) {
+		for (int i = 0; i < aCount; i++) {
+			Piece* aPiece = aPieces[i];
+			if (aCursor) {
+				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+				g->SetColor(Color(0, 0, 0, 128));
+				aPiece->mDimmed = aPiece->mCol < mUnknown2400 || mUnknown2400 + 1 < aPiece->mCol ||
+					aPiece->mRow < mUnknown2404 || mUnknown2404 + 1 < aPiece->mRow;
+			} else {
+				aPiece->mDimmed = false;
+			}
+			if (aPiece->mUnknown2F6)
+				aPiece->Draw(g, true);
+		}
+	}
+	// (the original gathers rectangles over the bombs' cells here (+0x14cc) for Direct3D's heat haze; nothing else
+	// uses them)
+	mBombList.clear();
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	// (the hyperspace's +0x158, set only with Direct3D, would hide the travellers)
+	if (!mUnknown26B0.empty()) {
+		// port: the travellers' drawing (their slot 1) comes with the travellers
+		NotPorted("Board::DrawPieces: the travellers");
+	}
+	// (the shockwaves' drawing, their slot 2, does nothing)
+	if (mUnknown23F5) {
+		// port: the tutorial's pointer (0x6aa3bc) comes with the tutorial
+		NotPorted("Board::DrawPieces: the tutorial's pointer (0x6aa3bc)");
+	}
+	if (mGameMode == MODE_PUZZLE && mUnknown20D0 && 0.0f < mUnknown20CC && !mUnknown1324)
+		DrawSelector(g, true);
+	if (mUnknown21A8 != nullptr)
+		mUnknown21A8->Draw(g);
+}
+
+// 0x6a5c60: a light at (theX, theY) of size theSize and fall-off theFalloff adds to the gems near it (to all of them
+// when wide), on each of their eight sides that faces it, at most theStrength
+void Board::AddLight(float theX, float theY, float theSize, float theFalloff, float theStrength, Piece* theSkip,
+	bool theSkipFlag4)
+{
+	float aFalloff = std::sqrt(theFalloff * theFalloff * gApp->mScale);
+	float aSize = std::sqrt(theSize * theSize * gApp->mScale);
+	static const float aDirs[16] = {0.0f, -1.0f, -0.707f, -0.707f, -1.0f, 0.0f, -0.707f, 0.707f, 0.0f, 1.0f, 0.707f,
+		0.707f, 1.0f, 0.0f, 0.707f, -0.707f};
+	float aGemW = (float)gGemWidth;
+	int aCol0 = GetColAt(Ftol((double)theX - (double)aGemW));
+	int aCol1 = GetColAt(Ftol((double)aGemW + (double)theX));
+	if (aCol1 == -1)
+		aCol1 = 6;
+	float aGemH = (float)gGemHeight;
+	int aRow0 = GetRowAt(Ftol((double)theY - (double)aGemH));
+	int aRow1 = GetRowAt(Ftol((double)aGemH + (double)theY));
+	if (aRow1 == -1)
+		aRow1 = 8;
+	if (256.0f < aFalloff) {
+		aCol0 = 0;
+		aCol1 = mCols - 1;
+		aRow1 = mRows - 1;
+		aRow0 = 0;
+	}
+	for (int aRow = aRow0; aRow <= aRow1; aRow++) {
+		for (int aCol = aCol0; aCol <= aCol1; aCol++) {
+			Piece* aPiece = GetPieceAt(aRow, aCol);
+			if (aPiece == nullptr || aPiece == theSkip || aPiece->mDimmed)
+				continue;
+			if (aPiece->IsFlagSet(4) && theSkipFlag4)
+				continue;
+			float aDX = (float)((double)theX - ((double)(gGemWidth / 2) + (double)aPiece->mX));
+			aDX = aDX / aSize;
+			float aDY = (float)((double)theY - ((double)(gGemHeight / 2) + (double)aPiece->mY));
+			aDY = aDY / aSize;
+			float aDist = (float)((double)aDX * (double)aDX + (double)aDY * (double)aDY);
+			aDist = aDist - aFalloff;
+			if (!(1.0f < aDist))
+				aDist = 1.0f;
+			if (!((double)aDist < 100.0))
+				continue;
+			aDX = aDX / aDist;
+			aDY = aDY / aDist;
+			for (int k = 0; k < 8; k++) {
+				float aLight = (float)(((double)aDirs[k * 2 + 1] * (double)aDY + (double)aDirs[k * 2] * (double)aDX) *
+					(double)theStrength);
+				if (!(theStrength > aLight))
+					aLight = theStrength;
+				if (0.0f < aLight)
+					aPiece->mUnknown50[k] = aPiece->mUnknown50[k] + aLight;
+			}
+		}
+	}
 }
 
 void Board::DrawSelector(Graphics* g, bool theUnknown)

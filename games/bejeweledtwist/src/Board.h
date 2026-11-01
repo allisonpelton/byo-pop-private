@@ -807,6 +807,10 @@ public:
 	void DrawGrid(Graphics* g, float theArtScale);  // 0x6caa13's grid
 	void DrawPieces(Graphics* g, Graphics& theLightG, bool is3D);  // 0x6caa13's gems
 	void DrawSelector(Graphics* g, bool theUnknown);  // 0x6aa6d1
+	void AddLight(float theX, float theY, float theSize, float theFalloff, float theStrength, Piece* theSkip,
+		bool theSkipFlag4);                         // 0x6a5c60
+	// 0x6a6ad0: blitz, or a challenge with the timed flag
+	bool IsTimed() { return mGameMode == MODE_BLITZ || HasChallengeFlag(2); }
 	void Update() override;                      // 0x6d6899: the game's updates for this frame, at its speed
 	void UpdateGame();                           // 0x6d090f: one update of the game
 	void Resize(int theX, int theY, int theWidth, int theHeight) override;  // 0x6a5b53: the pieces move with the grid
