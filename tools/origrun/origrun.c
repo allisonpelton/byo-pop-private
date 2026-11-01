@@ -1991,8 +1991,8 @@ static void log_new_processes(const char* when)
 	char line[1600]=""; int shown=0;
 	for (int i=0;i<n;i++) {
 		const char* x=all[i].szExeFile;
-		int rel = is_sandbox_leaf(x) || istr_has(x,"vmwp") || istr_has(x,"vmmem") || ieq(x,"rundesk.exe");
-		for (int j=0;j<n && !rel;j++) if (all[j].th32ProcessID==all[i].th32ParentProcessID && (is_sandbox_leaf(all[j].szExeFile) || ieq(all[j].szExeFile,"rundesk.exe"))) rel=1;
+		int rel = is_sandbox_leaf(x) || istr_has(x,"vmwp") || istr_has(x,"vmmem");
+		for (int j=0;j<n && !rel;j++) if (all[j].th32ProcessID==all[i].th32ParentProcessID && is_sandbox_leaf(all[j].szExeFile)) rel=1;
 		if (!rel) continue;
 		char one[160]; wsprintfA(one,"%s%s %lu (parent %lu)",shown?", ":"",x,all[i].th32ProcessID,all[i].th32ParentProcessID);
 		if (lstrlenA(line)+lstrlenA(one)<(int)sizeof(line)-1) lstrcatA(line,one);

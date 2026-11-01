@@ -270,6 +270,17 @@ to `Default`, exclusive full-screen 800x600x32 works with a flipping primary sur
 unsupported. A game that asks for 16 bpp full screen may still get it through Windows' compatibility shims, which
 apply inside the sandbox as on any Windows; Water Bugs and Cosmic Bugs will tell.
 
+**The first game in the sandbox: Ning Po (2026-11-01)**, unpatched, no wrapper, one `waitshot`. `wsb start` took
+8.2 s this time (a fresh template VM, it seems), origrun ran inside 2.5 s later, and the whole run, from the start
+to nothing left on the host, took 18 s. The game ran in session 0 as SYSTEM on `WinSta0\Default`, made the input
+desktop, windowed as it starts by default; its window came up a second after the launch with `dxgi.dll` loaded,
+and the log said so ("GPU modules: dxgi.dll; inside Windows Sandbox, so shots are taken"). `waitshot` re-grabbed
+three times while the window was still flat, then `PrintWindow` gave the game's own window (its title bar and the
+first frame of its loading screen). The stand-in's "DirectSoundCreate failed" box came up and was answered, as on
+the host. No audio session of the game appeared inside, and none of the sandbox on the host. The guard saw no
+window on the user's desktop, and `wsb stop` (2 s) left nothing. Whether Ning Po could go full screen there was
+not tried (that is its Options dialog); the probe says 32 bpp full-screen modes work and 16 bpp ones do not.
+
 ### The configuration, and why
 
 `Networking` is disabled, so a game cannot reach the internet or the user's network (no "More Games" page, no
@@ -549,7 +560,7 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 | tiptop | local install | trial, plays | yes | none | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
 | wordharmony | local install | trial (60 min), Play present | yes | none | none | |
 | bookwormadv | local install | in-game Updates dialog | yes, 806×629 | **off and on proven** (on with `--dgvoodoo`) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
-| ningpo | local install | main window | **yes** (after init) | none | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
+| ningpo | local install | main window | **yes** (after init); **in the sandbox too** (2026-11-01) | none | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
 | waterbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode; dgVoodoo2 gives it a desktop-sized window |
 | cosmicbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | same as Water Bugs |
 | dynomite | Steam copy | **title and on** | **yes** | has one; on needs `--dgvoodoo` (untried) | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
@@ -597,10 +608,10 @@ user:
 
 Other gaps:
 
-- **Windows Sandbox: no game run yet.** The empty sandbox is proven (see "Windows Sandbox"). Still to test: that a
-  game draws and is captured on the sandbox's desktop in session 0 as SYSTEM; whether Water Bugs and Cosmic Bugs open
-  their full-screen mode there; whether Bookworm Adventures reaches 3D with `--sandbox-vgpu` and no wrapper; whether
-  a game's sound reaches the host; and the VirtualStore-to-HKLM key for SYSTEM.
+- **Windows Sandbox: one game so far.** The empty sandbox and a windowed DirectDraw game (Ning Po, captured) are
+  proven (see "Windows Sandbox"). Still to test: whether Water Bugs and Cosmic Bugs open their full-screen mode
+  there; whether Bookworm Adventures reaches 3D with `--sandbox-vgpu` and no wrapper; whether a game that plays
+  sound past the stand-in reaches the host's speakers; and the VirtualStore-to-HKLM key for SYSTEM.
 - **3D on the host needs dgVoodoo2**: legacy DirectDraw has no hardware on the hidden desktop, so an original with
   a 3D mode runs in 3D there only with `--dgvoodoo` (see "Hardware acceleration (3D mode)"). Proven on Bookworm
   Adventures only; each session adds its game's registry key and 3D flag to games.tsv. Host runs take no shot.
