@@ -7,7 +7,9 @@ focus (CLAUDE.md, "Done means identical"). `tools/origrun` runs an original so t
 without disturbing the user, who shares the machine.
 
 It runs a **copy** of the original (never the install), invisibly, and by default silently, and it captures the
-screen, drives scripted input, and changes the focus on command.
+screen, drives scripted input, and changes the focus on command. It can patch the copy before the run (to pin
+the RNG seed or skip a trial), and it can time a capture or an input to the game's own update counter so
+frame-rate variation drops out of a comparison.
 
 The user's position (2026-10-31): "You are welcome to run the originals with sound on and mess with my save
 data" (their saves are backed up). So silence and leaving the registry untouched are conveniences, not gates:
@@ -49,6 +51,16 @@ Options:
 - `--fresh` — note to re-copy (delete `build/origrun/<run>` first to force a clean copy).
 - `--copy-only` — stage the copy (and print its folder and exe) without launching. Use it to place a copy you
   then prepare by hand (e.g. extracting a wrapped exe into it) before running it with `--exe`.
+- `--stage-root <dir>` — put the **game copy** under `<dir>\<run>\game` instead of under the run folder (shots and
+  logs stay under `build/origrun/<run>`). A worktree's `build/origrun` path is long, and some launchers (Bookworm
+  Adventures) exit at once when their folder sits that deep; a worktree session stages the copy under a short path,
+  e.g. `--stage-root C:\byo-og` or main's `build/origrun`.
+- `--counter <expr>` / `--flips <expr>` / `--update-ms <ms>` — the game's update counter, for update-timed
+  capture and input (see "Timing to the game's updates"). Usually set once in the per-game config instead.
+- `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
+  `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
+- `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
+  and other random content match the port it is compared with.
 
 ## Script commands
 
@@ -66,9 +78,25 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
 - `focus lose` / `focus regain` — post the deactivate/activate messages a window gets when it loses and
   regains the focus (`WM_ACTIVATEAPP`, `WM_ACTIVATE`, `WM_KILLFOCUS`/`WM_SETFOCUS`).
 - `shot <name>` — capture the window to `shots/<name>.png` now.
-- `waitshot <name> [timeout_ms]` — wait for the window, then capture.
+- `waitshot <name> [timeout_ms]` — wait for the window, then capture. It keeps re-grabbing while the client area
+  is still flat (a window that has not drawn its first frame, as several DirectDraw games are slow to), so it
+  catches real content rather than the blank first frame.
 - `record <prefix> <duration_ms> <interval_ms>` — capture a numbered frame every interval for the duration,
   whenever a window is present. Good for a screen that appears at an unpredictable time.
+- `burst <name> <count> <interval_ms>` — a clip: `count` frames, one every `interval_ms`, written to
+  `shots/<name>/0000.png ...` with the `clip.json` shotdiff expects (`{"interval_ms": N}`). On this machine each
+  capture takes about 15-25 ms (`PrintWindow`), so a frame lands within that of its scheduled time.
+- `burst <name> <count> update <k>` — a clip timed to the game's own updates: a frame at the current update and
+  every `k` updates after, each taken with the window thread held so the frame cannot change under the grab.
+  `clip.json` records `k * update_ms`. Needs an update counter (below). Frame-rate variation drops out of this.
+- `hwmove <x> <y>` / `hwclick <x> <y>` / `hwrclick <x> <y>` / `hwkey <vk>` — input through the desktop
+  (`SetCursorPos` + `SendInput`) instead of a posted window message, for a game that reads the mouse with
+  DirectInput or `GetCursorPos` and so ignores posted clicks (TipTop). Plain `click`/`key` still post messages,
+  which drive the SAF/LOWOS message path.
+- `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
+  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, or `burst`), then resume it. Lands on the exact update
+  (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
+  the same game update rather than the same wall-clock time.
 - `msgbox <button> <text...>` — when a message box whose caption or text contains `<text>` appears, click the
   button labelled `<button>` (e.g. `msgbox No Trial expired`, `msgbox OK update`). Put these at the top of the
   script; they are registered before the game launches, so even a box that pops up early is answered. A box
@@ -96,9 +124,11 @@ coordinates that land on Play.
    the game it mutes it and says so in the run result. A game that plays through another path (winmm `waveOut`
    / `PlaySound`, or FMOD on its own output) is not silenced by the dsound stand-in yet (see Gaps); the audio
    watch still mutes and reports it, and for such a run the user turns the speakers off.
-4. **Screens.** `shot`/`waitshot`/`record` capture the window with `PrintWindow` (a GDI blit as a fallback) and
-   write a PNG. This works for windowed games (the SAF games run windowed by default). A game that takes the
-   screen full-screen through DirectDraw/Direct3D renders outside GDI, so the capture is black — see Gaps.
+4. **Screens.** `shot`/`waitshot`/`record`/`burst` capture the window with `PrintWindow` (a window-DC or
+   desktop-DC blit as a fallback) and write a PNG. This works for windowed games (the SAF games run windowed by
+   default) and for windowed DirectDraw once it has drawn (`waitshot` re-grabs while the client area is flat). A
+   game that takes the screen full-screen through DirectDraw cannot open its mode on the headless desktop and
+   never draws — see Gaps.
 5. **Scripted input and focus.** Proven end to end: clicks, typed text and `focus lose`/`regain` all register
    (a test window showed the click count rise, the text appear, and the active flag and colour change with the
    focus), and on a real game the trial dialog's Play button is clicked and the game starts.
@@ -129,6 +159,59 @@ The sound log (`logs/sound.log`) lists every buffer create, data write (size + h
 line up "which sound plays when" against the port without the WAVs. This catches sounds a game plays through
 DirectSound; a game that mixes elsewhere needs its own path handled (Gaps).
 
+## Patching the copy
+
+Some copies are not activated, and for a faithful comparison the original must sometimes be made to match the
+port (the same RNG seed, no trial nag). origrun applies a **per-game list of static byte patches to the staged
+copy's files** before it launches — the same kind of change as the activation patches the user already expects
+on an unactivated copy, done to a file on disk, not injected into a running process. It is used for two things:
+
+- **pinning the RNG seed**, so a run gives the same boards and other random content as the port it is compared
+  with. The `{seed}` token in a patch stands for `--seed`'s value as four little-endian bytes;
+- **any patch a session needs for a clean comparison**, such as one that lets the copy skip its trial prompt.
+
+origrun does not know or generate any of these bytes. A game session that knows its own code supplies the exact
+expected and replacement bytes. **No keygens**: patch the check in the copy, or set the registry values the game
+itself writes when registered — never generate a registration code.
+
+The list is `tools/origrun/patches/<game>.txt` (or `--patches <file>`), one patch per line:
+
+    <kind> <file> <where> <expected> <replacement> <reason...>
+
+`kind` is a free word for the log (`seed`, `trial`, `test`); `file` is a path under the copy; `where` is
+`off:0xN` (a file offset), `rva:0xN` or `va:0xN` (converted through the file's PE section table); `expected` and
+`replacement` are equal-length hex (`.`/`_` may group the digits), and `replacement` may contain `{seed}`. Every
+entry is checked against the file's current bytes first, and **one mismatch or malformed line refuses the whole
+list and stops the run**, so a wrong or stale list never runs and a patch is never half-applied. Each patched
+file keeps its original bytes in `<file>.origrun-unpatched`, which every run restores before re-applying, so a
+list is always checked against the originals and `--no-patches` runs the copy unmodified.
+
+The patch lists and the per-game config are git-ignored (`tools/origrun/patches/`, `tools/origrun/*.cfg`): a
+trial-skip entry is a protection detail, so it stays on this machine like `games.tsv`'s paths.
+
+## Timing to the game's updates
+
+Captures and input can be timed to the game's own update counter instead of the wall clock, so frame-rate
+variation drops out of a comparison. origrun reads the counter from **outside** the process with
+`ReadProcessMemory` on the game it launched (a documented debugging API; nothing is injected), at an address a
+game session gives in the per-game config:
+
+    counter=[0x4d125c]+0x368      # the int 0x368 bytes past the pointer stored at 0x4d125c
+    flips=[0x4d125c]+0x364        # optional: a counter the game bumps once per presented frame
+    update_ms=10                  # one update's length, for a clip's interval_ms
+
+`[0xPTR]+0xOFF` reads the pointer at `PTR` then the int `OFF` bytes into it — for a SexyAppBase game, the app
+pointer's global and `mUpdateCount` (each session supplies its own; the offset is in its `re/<game>/`). A plain
+`0xADDR` reads the int at that address. Then `at <N> <command>` waits for the counter, suspends the window
+thread, runs the command and resumes; `burst <name> <count> update <k>` captures every `k` updates the same way.
+
+**Precision (measured on Noah's Ark):** `at` lands on the exact update — `at 1500/1700/1900` each fired with the
+counter reading exactly that value — because the ~1 ms poll is far finer than the ~10 ms update. The held capture
+uses the window-DC blit, not `PrintWindow` (which would deadlock on the suspended thread); with `flips` set it
+first waits for the next present so the frame shown is update `N`, not `N-1` (capped so a static screen, which
+presents nothing new, does not stall). SexyAppBase's catch-up can still double or skip an update under load; a
+per-game patch could force one update per frame if a game ever needs it (not needed so far).
+
 ## Per-game status
 
 The 18 games of `BYOPOP_WEB_FINISHED`, as of the first runs on 2026-10-31. "Trial" means the copy shows
@@ -136,40 +219,48 @@ PopCap's trial screen first; its **Play** button is clicked through with `clickr
 while plays/time remain). Captures are the main window's client size. These are first findings, not a finished
 comparison; the per-game session does the screen-by-screen pass.
 
+Round 2 (2026-10-31) added update-timed capture, bursts, the copy patch list, and fixes below; the table is
+updated for it.
+
 | Game | Source | Reached under origrun | Capture | Audio seen | Notes |
 |------|--------|-----------------------|---------|------------|-------|
 | alchemy | local install | trial, then into the game past Play | yes | muted a session | some sound is not via DirectSound |
-| atomica | local install | no window within 100 s | — | none | slow/odd start; needs a longer look |
+| atomica | local install | FATAL ERROR at startup, then exits | — | none | FMOD fails to load `sounds\capclick` (Ogg); not the stand-in or display — the Atomica session's to fix |
 | mummymaze | local install | title after a slow (~45 s) start | yes, 646×509 | none | window is late to appear |
-| noahsark | local install | own title screen | yes, 646×509 | none | |
+| noahsark | local install | own title screen | yes, 646×509 | none | update counter proven here (`[0x4d125c]+0x368`); `at` lands on the exact update |
 | sevenseas | local install | own title screen | yes, 646×509 | none | |
-| pixelus | local install | trial screen (not clicked through yet) | yes | none | |
-| tiptop | local install | trial, plays | yes | none | DirectInput: posted clicks do not drive it |
+| pixelus | local install | trial screen (not clicked through yet) | yes | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
+| tiptop | local install | trial, plays | yes | none | DirectInput: use the `hw*` commands (`hwclick` dismissed its trial); posted clicks still ignored |
 | wordharmony | local install | trial (60 min), Play present | yes | none | |
-| bookwormadv | local install | in-game Updates dialog | yes, 806×629 | muted a session | its sound is not via DirectSound (BWA audio work) |
-| ningpo | local install | main window | captured but blank (DirectDraw) | none | windowed DirectDraw, outside GDI |
-| waterbugs | local install | window, then full screen | blank/black | none | DirectDraw then full-screen |
-| cosmicbugs | local install | full screen | black | none | full-screen, outside GDI |
-| dynomite | Steam copy | "Unable to load Steam.dll" box | — | n/a | needs its real exe prepared (private note) |
-| bejeweled | wrapped launcher | not run | — | — | needs its real exe extracted first (private note) |
-| bigmoney | wrapped launcher | not run | — | — | needs its real exe extracted first (private note) |
-| bookworm | wrapped Steam exe | not run | — | — | needs its real exe prepared first (private note) |
-| rocketmania | wrapped launcher | not run | — | — | needs its real exe extracted first (private note) |
-| bookwormadv2 | Steam copy | not run | — | — | not wrapped; expect the Steam.dll box |
+| bookwormadv | local install | in-game Updates dialog | yes, 806×629 | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
+| ningpo | local install | main window | **yes** (after init) | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
+| waterbugs | local install | window, then "Screen Setup Failed" | window only | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode, so it never reaches the game |
+| cosmicbugs | local install | window, then "Screen Setup Failed" | window only | none | same as Water Bugs |
+| dynomite | Steam copy | **title and on** | **yes** | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
+| bejeweled | wrapped launcher | **title, carved exe runs** | **yes** | none | real PE carved from `WinBej.exe` with the extract tool, run via `--exe` |
+| bigmoney | wrapped launcher | real exe carves cleanly | — | — | `WinBM.exe` carves (1.25 MB PE); prepare and run as Bejeweled (not launched this round) |
+| bookworm | wrapped Steam exe | real exe carves cleanly | — | — | `Bookworm.exe` (CDProtect) carves (1.77 MB PE); prepare as Bejeweled |
+| rocketmania | Steam copy | not run | — | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
+| bookwormadv2 | Steam copy | not run | — | — | not wrapped; `Steam.dll` auto-copied now |
 
-The runs above (except the dialog test) were made before the message-box watch landed, so their logs predate
-it; the watch is proven separately (guarantee 6). The install paths are in `tools/origrun/games.tsv`, which is
-kept out of any publish (`.publishignore`).
+The install paths are in `tools/origrun/games.tsv`, kept out of any publish (`.publishignore`).
 
 <!-- private: Preparing a wrapped or Steam copy to run under origrun is recorded on this machine only. -->
 Preparing a wrapped or Steam copy to run under origrun:
-- PopCap's Steam retail launchers wrap the real game. The wrapper is detected by the marker `!popcapdrmprotect!`.
-  `WinBej.exe` (Bejeweled), `WinBM.exe` (Big Money), and the Rocket Mania, Dynomite and BookWorm Deluxe Steam
-  exes carry it; `BigMoney.exe` and `BookwormAdventuresVol2.exe` do not and were not run.
-- Extract the real PE with `tools/extract_game_exe.py -o <copy>\<wrapper>.exe` (which `.publishignore` keeps out
-  of any publish). Stage a copy first with `origrun --game <name> --copy-only`, carve inside that copy, then run
-  it with `origrun --exe "<copy>\<real>.exe"`.
-- A Steam copy also wants `Steam.dll` (or a stand-in) beside it, or it shows the "Unable to load Steam.dll" box.
+- PopCap's Steam retail launchers wrap the real game. The wrapper is detected by the marker `!popcapdrmprotect!`
+  (or `!popcapcdprotect!` for the CDProtect launchers). `WinBej.exe` (Bejeweled), `WinBM.exe` (Big Money) and
+  `Bookworm.exe` (BookWorm Deluxe) carry one; `BigMoney.exe` and `BookwormAdventuresVol2.exe` do not.
+- Extract the real PE with `tools/extract_game_exe.py "<copy>\<wrapper>.exe" -o "<copy>\<real>.exe"` (the tool is
+  in `.publishignore`). Stage a copy first with `origrun --game <name> --copy-only`, carve inside that copy, then
+  run it with an **absolute** `origrun --exe "<copy>\<real>.exe"` (a relative `--exe` path breaks the
+  process-image match, so no window is found). Proven on Bejeweled: `WinBej.exe` carved to a 1.4 MB
+  `BejeweledGame.exe`, which runs and captures. `WinBM.exe` and `Bookworm.exe` carve the same way.
+- A Steam copy also needs `Steam.dll` beside it, or it shows the "Unable to load Steam.dll" box. origrun now
+  copies `Steam.dll` from the Steam **library root** (a parent of the game folder, e.g.
+  `A:\SteamLibrary\Steam.dll`) into the copy automatically when the copy lacks one. This fixed Dynomite (it now
+  reaches its title and captures) and applies to Rocket Mania and Bookworm Adventures Volume 2.
+- Activation/trial: a game session supplies a `tools/origrun/patches/<game>.txt` entry (see "Patching the copy")
+  to make its carved copy act registered; origrun does not generate codes.
 <!-- /private -->
 
 ## Gaps / next steps
@@ -190,15 +281,26 @@ user:
 
 Other gaps:
 
-- **Full-screen DirectDraw/Direct3D capture is black, and windowed DirectDraw captures blank** (NingPo, Water
-  Bugs, Cosmic Bugs). Those games draw outside GDI, so `PrintWindow`/GDI grabs nothing. Reaching their pixels
-  needs a different capture path (a display stand-in, or forcing windowed GDI-friendly output where a game
-  offers it); not attempted yet.
-- **DirectInput games** (e.g. TipTop) read the mouse from the device, not from window messages, so posted
-  clicks do not drive them. Capture and focus still work; driving them needs a different input path.
-- **Wrapped and Steam copies** are not run yet. A wrapped launcher's real executable must be prepared in the
-  copy first, and a Steam copy wants its `Steam.dll` beside it; the specifics are in the private note under
-  Per-game status. Use `--copy-only` to stage the copy, prepare it, then run it with `--exe`.
-- **Audio not carried by DirectSound** (some Alchemy and Bookworm Adventures sound) is not silenced by the
-  `dsound` stand-in. The Core Audio watch mutes the game's session and reports it; for a run that must be truly
-  silent, use `--sound real` with the speakers off, or rely on the watch's mute.
+- **Windowed DirectDraw now captures** (Ning Po): a window is often flat only because it has not drawn its first
+  frame, so `waitshot`/`capture_ready` re-grab while flat and get real content once it appears. **Full-screen
+  DirectDraw still does not** (Water Bugs, Cosmic Bugs): on the headless private desktop the game cannot open its
+  800×600 exclusive mode ("Screen Setup Failed") and never reaches its content. The least-invasive paths
+  (PrintWindow, window/desktop-DC blit) can't help because the game refuses to run without the screen, and
+  Windows.Graphics.Capture needs a displayed window and DWM, which the private desktop has not. Reaching them
+  needs the game forced into a windowed mode (toggle not yet found) or a **ddraw stand-in** that reports a
+  display and copies the primary surface (the documented last resort; built like the dsound stand-in, not yet
+  written).
+- **DirectInput games** (TipTop): the `hw*` commands (`SetCursorPos` + `SendInput` on the game's desktop) now
+  drive them — `hwclick` dismissed TipTop's trial screen. The in-process import-patch route is **dropped** (it
+  was stopped by a permission check in round 1; see the hard rule). Still to confirm: whether cursor **position**
+  injection (not just the button) reaches a game that draws its own cursor; a control run would make it certain.
+- **Atomica won't start**: it shows "FATAL ERROR — Failed to load sound: sounds\capclick" and exits before any
+  window, with the dsound stub, with `nodriver`, and with real audio alike. The Ogg and `fmod.dll` are present,
+  so it is FMOD's init/decode of this copy on Windows 11 (or a game-data path) — the Atomica session's to fix;
+  origrun cannot capture a game that will not start.
+- **Audio not carried by DirectSound** (some Alchemy and Bookworm Adventures sound, and FMOD games) is not
+  silenced by the `dsound` stand-in. The Core Audio watch mutes the game's session and reports it; for a run that
+  must be truly silent, use `--sound real` with the speakers off, or rely on the watch's mute.
+- **Long staging paths**: some launchers (Bookworm Adventures) exit at once when the staged copy sits under a
+  worktree's long `build/origrun` path. Use `--stage-root <short dir>` to stage the copy under a short path
+  (shots and logs stay under the run folder).
