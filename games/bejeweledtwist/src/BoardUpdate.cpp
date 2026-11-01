@@ -1269,8 +1269,74 @@ void Board::UpdateGame()
 				mUnknown830.mIncRate = mUnknown830.mIncRate * -1.0;
 		}
 	}
-	// port: the rest of 0x6d090f comes next
-	NotPorted("Board::UpdateGame: the rest");
+	mUnknown34F0.IncInVal();
+	// The cell under the cursor: a tick as it moves onto another gem
+	int aRow = GetRowAt(mUnknown1C04);
+	int aCol = GetColAt(mUnknown1C00);
+	bool aTick = mUnknown1474 == nullptr && mUnknown20D0 && !mUnknown2030 && !(mGameMode == MODE_PUZZLE && mUnknown1324) &&
+				 !(mUnknown2584 != nullptr && mUnknown2584->mMouseVisible) && mUnknown265C != 4;
+	if (aCol != mUnknown1C10 || aRow != mUnknown1C14) {
+		if (aCol < 0) {
+			mUnknown1C18 = 0;
+			goto ticked;
+		}
+		if (aTick && mUnknown15C == 0) {
+			mUnknown1C18 = 0;
+			mApp->PlaySoundEx(SOUND_SELECT, GetPan(gGemWidth / 2 + mUnknown1C00), 0.0f, 0.0f, true, true);
+		}
+	}
+	if (aCol < 0 || !mUnknown25A4)
+		mUnknown1C18 = 0;
+ticked:
+	// The cursor's glow, after 40 updates on one cell in the first level
+	if (mUnknown1C18 == 0)
+		mUnknown23FC = 0;
+	mUnknown1C18++;
+	if (40 < mUnknown1C18 && mUnknown158 < 1) {
+		double aNext = (double)mUnknown23FC + (double)0.01f;
+		mUnknown23FC = (float)(aNext < 0.5 ? aNext : 0.5);
+	}
+	if (GetUnknown23F5() && -1 < mUnknown2400)
+		mUnknown23FC = mUnknown2400 == aCol && mUnknown2404 == aRow ? 0.5f : 0.0f;
+	if (mApp->mUnknownF85) {
+		double aNext = (double)mUnknown3924 + (double)0.015f;
+		float aFade = (float)(1.0 < aNext ? 1.0 : aNext);
+		mUnknown3924 = aFade;
+		if (aFade == 1.0f)
+			mUnknown20EC = 0;
+	}
+	mUnknown1C10 = aCol;
+	mUnknown1C14 = aRow;
+	MarkDirty();
+	UpdateToolTips();
+	if (mUnknown3904 && !mUnknown37C4 && mUnknown25A5 && !mUnknown23F5 && !mUnknown21A3 && mUnknown26A0 == nullptr &&
+		mUnknown26AC == nullptr && mUnknown2208 == nullptr && mUnknown23DC.empty() && !mUnknown3905) {
+		if (mGameMode != MODE_CHALLENGE && mGameMode != MODE_BLITZ)
+			ShowStatsBar();
+		if (mUnknown2629) {
+			mWidgetFlagsMod.mAddFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
+			mUnknown2629 = false;
+		}
+		mUnknown3904 = false;
+		mUnknown3905 = false;
+	}
+	if (-1 < mApp->mAutoPlayMode && mUnknown25A5 && !mUnknown21D9) {
+		if (!mUnknown25A4)
+			return;
+		if (mUnknown1570 == 0 && !IsBusy() && !mUnknown2629 && !mUnknown37C4 &&
+			(mUnknown2208 == nullptr || !mUnknown2208->mMouseVisible) && mUpdateCnt % 15 == 0) {
+			// port: -autoplay's next move (0x6c14fc finds one, else Rand picks a cell) comes with the move search
+			NotPorted("Board::UpdateGame: -autoplay's move");
+		}
+	}
+	// A click queued by -autoplay
+	if (mUnknown25A4 && mUnknown15C4 != 0 && mUpdateCnt - mUnknown15C4 < 20) {
+		mUnknown15C4 = 0;
+		if (-1 < mApp->mAutoPlayMode)
+			mUnknown20D0 = true;
+		MouseDown(mUnknown15BC, mUnknown15C0, 0, 1);
+		mUnknown15C4 = 0;
+	}
 }
 
 void Board::UpdateCell(Cell& theCell)
@@ -2024,4 +2090,21 @@ void Board::ShowHint()
 {
 	// port: 0x6c32cf finds a move (0x6c14fc) and shows it; it comes with the hints
 	NotPorted("Board::ShowHint (0x6c32cf)");
+}
+
+void Board::UpdateToolTips()
+{
+	if (mUnknown25A4 || mUnknown6CC || mUnknown6D0 != 0) {
+		// port: the tooltips over the tube and the special gems (0x6d5279 to 0x6d6695 of UpdateGame: their texts, the
+		// wait in +0x6d0 and the curves at +0x718 and +0x788) come with the board's drawing; SOUND_PURR plays over the
+		// cat
+		NotPorted("Board::UpdateGame: the tooltips");
+	}
+}
+
+void Board::ShowStatsBar()
+{
+	// port: 0x6ab48d puts up the bar of the level's stats (a 0x170-byte widget, 0x6a99fe) and runs it (0x6a9aeb);
+	// it comes with the level's end
+	NotPorted("Board::ShowStatsBar (0x6ab48d)");
 }

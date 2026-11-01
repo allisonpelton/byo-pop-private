@@ -288,7 +288,9 @@ public:
 	bool mUnknown15A8 = false;              // +0x15a8
 	int mUnknown15AC = 23;                  // +0x15ac
 	bool mUnknown15B0 = false;              // +0x15b0
-	int mUnknown15C4 = 0;                   // +0x15c4
+	int mUnknown15BC = 0;                   // +0x15bc: -autoplay's click
+	int mUnknown15C0 = 0;                   // +0x15c0
+	int mUnknown15C4 = 0;                   // +0x15c4: the update count of -autoplay's click, 0 with none
 	bool mUnknown15D0 = false;              // +0x15d0
 	bool mUnknown15D1 = false;              // +0x15d1: +0x15d0 of the update before
 	int mUnknown15D4 = 0;                   // +0x15d4
@@ -426,7 +428,7 @@ public:
 	float mUnknown23F0 = 0.01f;             // +0x23f0
 	bool mUnknown23F4 = false;              // +0x23f4
 	float mUnknown23F8 = 0;                 // +0x23f8: the tutorial arrow's fade
-	int mUnknown23FC = 0;                   // +0x23fc
+	float mUnknown23FC = 0;                 // +0x23fc: the cursor's glow
 	int mUnknown2400 = -10000;              // +0x2400
 	int mUnknown2404 = -10000;              // +0x2404
 	int mUnknown2548 = -1;                  // +0x2548
@@ -669,6 +671,8 @@ public:
 	void UpdateUnknown248();                     // 0x6c4466
 	void UpdateHint();                           // 0x6aff84
 	void ShowHint();                             // 0x6c32cf
+	void UpdateToolTips();                       // part of 0x6d090f
+	void ShowStatsBar();                         // 0x6ab48d
 	void FinishLevelUp();                         // 0x6bab49: the change between levels is over
 	void StartLevelIntro();                       // 0x6c2f69: the new level's intro
 	void PlayGameMusic();                         // 0x6a6a8b
