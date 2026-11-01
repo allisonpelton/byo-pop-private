@@ -83,7 +83,10 @@ Options:
   "watch 1: 48 -> 47 at update 2150", and "-" while it cannot be read (through a null pointer, say). Up to four, each
   polled every millisecond and logging at most 4000 changes. It measures how many updates something lasts in the
   original, such as a loading screen whose length follows the machine's speed (Bookworm Adventures' pilot watches its
-  chapter load screen's timer and hands the count to the port).
+  chapter load screen's timer and hands the count to the port). Measure with the update numbers, not by counting
+  changes: after a held shot the game runs its catch-up updates back to back, faster than a poll, so a value can skip.
+  The game's process is looked up again every 100 ms (and soon after a failed read), not at every read: on the
+  sandbox's desktop a window enumeration costs about a millisecond.
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards

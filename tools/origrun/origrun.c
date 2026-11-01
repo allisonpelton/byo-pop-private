@@ -400,16 +400,24 @@ static HWND resolve_window(DWORD pid, DWORD* outPid);
 
 static int rpm_u32(DWORD_PTR addr, uint32_t* out)
 {
-	// Resolve the pid of the current top-level window each time: a SexyApp game can relaunch itself at start
-	// (a display-mode switch), so the first window's pid goes stale and the counter lives in the new process.
-	DWORD pid=0; resolve_window(0,&pid); if (!pid) pid=gGamePidHint;
-	if (pid && pid!=gGameProcPid) {
-		if (gGameProc) { CloseHandle(gGameProc); gGameProc=NULL; }
-		gGameProc=OpenProcess(PROCESS_VM_READ,FALSE,pid); gGameProcPid=pid;
-		if (gGameProc) {
-			unsigned char mz[2]={0,0}; SIZE_T g=0; BOOL ok=ReadProcessMemory(gGameProc,(LPCVOID)0x400000,mz,2,&g);
-			logline("reading the game's memory (pid %lu); image base reads %s (%02X %02X)", pid, (ok&&g==2)?"ok":"FAILED", mz[0], mz[1]);
-		} else logline("OpenProcess(PROCESS_VM_READ, pid %lu) failed (err %lu)", pid, GetLastError());
+	// Resolve the pid of the current top-level window again every 100 ms, and after a failed read: a SexyApp game
+	// can relaunch itself at start (a display-mode switch), so the first window's pid goes stale and the counter lives
+	// in the new process. Not on every read: an enumeration costs about a millisecond on the sandbox's desktop, and a
+	// --watch reads every millisecond, through pointers. After a failed read, again once 10 ms have passed (so a value
+	// that cannot be read does not enumerate at every poll).
+	static DWORD lastResolve=0; static int resolved=0, fresh=0;
+	DWORD now=GetTickCount();
+	if (!resolved || now-lastResolve >= (fresh ? 100u : 10u)) {
+		DWORD pid=0; resolve_window(0,&pid); if (!pid) pid=gGamePidHint;
+		lastResolve=now; resolved=1; fresh=1;
+		if (pid && pid!=gGameProcPid) {
+			if (gGameProc) { CloseHandle(gGameProc); gGameProc=NULL; }
+			gGameProc=OpenProcess(PROCESS_VM_READ,FALSE,pid); gGameProcPid=pid;
+			if (gGameProc) {
+				unsigned char mz[2]={0,0}; SIZE_T g=0; BOOL ok=ReadProcessMemory(gGameProc,(LPCVOID)0x400000,mz,2,&g);
+				logline("reading the game's memory (pid %lu); image base reads %s (%02X %02X)", pid, (ok&&g==2)?"ok":"FAILED", mz[0], mz[1]);
+			} else logline("OpenProcess(PROCESS_VM_READ, pid %lu) failed (err %lu)", pid, GetLastError());
+		}
 	}
 	if (!gGameProc) return 0;
 	SIZE_T got=0;
@@ -417,6 +425,7 @@ static int rpm_u32(DWORD_PTR addr, uint32_t* out)
 	DWORD e=GetLastError();
 	static int warned=0; if (!warned) { warned=1; logline("ReadProcessMemory @0x%08lX failed (err %lu) -- check the counter address", (unsigned long)addr, e); }
 	if (e!=ERROR_PARTIAL_COPY) { CloseHandle(gGameProc); gGameProc=NULL; gGameProcPid=0; }   // real loss of the process
+	fresh=0;   // resolve again soon
 	return 0;
 }
 // An address expression: a hex number, or "[e]" (the pointer stored at address e), followed by any number of
@@ -546,14 +555,16 @@ typedef struct { DWORD pidWanted; HWND found; DWORD foundPid; long bestArea; } F
 static BOOL CALLBACK enum_cb(HWND hwnd, LPARAM lp)
 {
 	FindCtx* c = (FindCtx*)lp;
-	DWORD pid=0; GetWindowThreadProcessId(hwnd, &pid);
-	if (c->pidWanted) { if (pid != c->pidWanted) return TRUE; }
-	else if (!is_our_pid(pid)) return TRUE;
+	// the cheap tests first: is_our_pid opens the process, and the sandbox's desktop has the whole Explorer shell
 	if (!IsWindowVisible(hwnd)) return TRUE;
 	if (GetWindow(hwnd, GW_OWNER) != NULL) return TRUE;   // top-level only
 	RECT r; GetWindowRect(hwnd, &r);
 	long area = (long)(r.right-r.left) * (r.bottom-r.top);
 	if ((r.right-r.left) < 64 || (r.bottom-r.top) < 64) return TRUE;
+	if (area <= c->bestArea) return TRUE;
+	DWORD pid=0; GetWindowThreadProcessId(hwnd, &pid);
+	if (c->pidWanted) { if (pid != c->pidWanted) return TRUE; }
+	else if (!is_our_pid(pid)) return TRUE;
 	if (area > c->bestArea) { c->bestArea = area; c->found = hwnd; c->foundPid = pid; }
 	return TRUE;   // keep scanning for the largest
 }
@@ -1805,7 +1816,7 @@ static DWORD WINAPI watch_thread(LPVOID p)
 	char last[4][16]; int lines[4]={0};
 	for (int i=0;i<gWatchN;i++) lstrcpyA(last[i],"?");
 	while (!gStop) {
-		if (resolve_window(0,NULL)) {
+		{   // a read fails ("-") while there is no game process
 			for (int i=0;i<gWatchN;i++) {
 				uint32_t v=0; char now[16];
 				if (read_counter(gWatchExpr[i],&v)) wsprintfA(now,"%lu",(unsigned long)v); else lstrcpyA(now,"-");
