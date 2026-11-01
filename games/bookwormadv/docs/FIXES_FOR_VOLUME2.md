@@ -53,3 +53,12 @@ volume × 100 and ignores the 40 in mMaxMusicVolume. The port used the framework
 of 40. Volume 1's GameApp now overrides CreateMusicInterface with mMaxMusicVolume at 100. Volume 2 needs the same
 override if its bass.dll is also 2.2 or later (check `BASS_GetVersion`, and its CreateMusicInterface), and its
 music may need its own amplify measurement if its module differs.
+
+## The battle went dark over the menu
+
+`Board::Draw` (0x41b9a8 in Volume 1) defers its pause shade at priority 0, under the dialogs, while the app's
+`mDialogMap` holds any dialog, and at 10000 otherwise. The app's +0x328 is that map's head and +0x32c its size; the
+port read +0x32c as a flag nothing sets, so the shade always covered the menu. The same member makes
+`MyFlashWidget::Update` skip the movie's update while a dialog is open. Volume 2 has both (`src/Board.cpp:985`,
+`src/FlashWidget.cpp:66`, MyFlashWidget at 0x472a90), and its `MainMenu.cpp:568` already reads +0x32c as the
+number of dialogs.
