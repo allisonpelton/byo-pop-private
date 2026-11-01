@@ -16,3 +16,19 @@ if(NOT EMSCRIPTEN)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bjt_curvetest>
     VERBATIM)
 endif()
+
+# bejeweledtwist: the game (src/). Native: bejeweledtwist.exe [-gamedir=<dir>] [-userdir=<dir>] (src/main.cpp); it
+# finds assets/bejeweledtwist/ by itself.
+set(BJT_SOURCES
+  src/main.cpp src/WinTwistApp.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp)
+add_executable(bejeweledtwist ${BJT_SOURCES})
+target_include_directories(bejeweledtwist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(bejeweledtwist PRIVATE bjt_engine sexyframework sexyopenmpt sexyopenjpeg)
+if(NOT MSVC)
+  target_compile_options(bejeweledtwist PRIVATE -Wall -Wno-overloaded-virtual)
+endif()
+if(NOT EMSCRIPTEN)
+  add_custom_command(TARGET bejeweledtwist POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweledtwist>
+    VERBATIM)
+endif()
