@@ -310,7 +310,7 @@ def compare_clip(name, odir, pdir, cfg, opts, out_dir, pid):
 	dx, dy = shift
 	fopts = copy.copy(opts)
 	fopts.align = shift
-	flagged = []
+	flagged, pixes = [], {}
 	for i in flagged_idx:
 		j = shown[i]
 		if j is None:
@@ -318,16 +318,18 @@ def compare_clip(name, odir, pdir, cfg, opts, out_dir, pid):
 			continue
 		r = sd.compare_arrays(O.get(j), P.get(i), fopts, [e["rect"] for e in ign_entries])
 		flagged.append({"frame": i, "orig_frame": j, "diff_pixels": r["diff_pixels"], "diff_pct": r["diff_pct"], "boxes": r["boxes"]})
+		pixes[i] = r["pixmap"]
 	worst = sorted((f for f in flagged if f["boxes"]), key=lambda f: -f["diff_pixels"])[:MAX_CLIP_CROPS]
 	for f in worst:
 		i, j = f["frame"], f["orig_frame"]
 		for box in f["boxes"][:CROPS_PER_FRAME]:
-			crop, scale = sd.make_crop(O.get(j), sd.align_port(P.get(i), dx, dy), box, opts)
+			crop, scale = sd.make_crop(O.get(j), sd.align_port(P.get(i), dx, dy), box, opts, pixes[i])
 			rel = report.frame_crop_rel(pid, i, box["n"])
 			sd.save_png(crop, os.path.join(out_dir, rel))
 			box["crop"] = sd.display_path(os.path.join(out_dir, rel))
 			box["crop_scale"] = scale
 			box["crop_size"] = list(crop.size)
+	del pixes
 	flag_set = set(flagged_idx)
 	s = apng_scale(n, w, h)
 	tw, th = max(1, round((2 * w + GAP) * s)), max(1, round(h * s))
