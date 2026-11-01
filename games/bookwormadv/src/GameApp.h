@@ -159,6 +159,7 @@ public:
 
 	void Init() override;                   // 0x445a50
 	void LoadingThreadProc() override;      // 0x4473e0
+	MusicInterface* CreateMusicInterface() override;  // 0x44f470
 	void LoadingThreadCompleted() override; // 0x4481a0
 	bool UpdateAppStep(bool* updated) override;
 	void UpdateFrames() override;           // 0x44aa50

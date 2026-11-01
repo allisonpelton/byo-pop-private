@@ -55,8 +55,10 @@ void FlashWidget::Unpause()
 
 void FlashWidget::Update()
 {
-	// port: MyFlashWidget's Update (0x482520) left this out while the app's +0x32c was set, and the framework's
-	// paused the movie while the app was not active; neither is ported
+	// MyFlashWidget's Update (0x482520) leaves this out while a dialog is open (the app's mDialogMap, +0x328).
+	// port: the framework's paused the movie while the app was not active; that is not ported
+	if (!gSexyAppBase->mDialogMap.empty())
+		return;
 	Widget::Update();
 	if (mState == STATE_PLAYING) {
 		mFrameTime += (int)(mMovie.GetFrameRate() + 0.5f);
