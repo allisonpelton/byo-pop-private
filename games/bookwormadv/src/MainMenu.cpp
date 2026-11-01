@@ -790,6 +790,11 @@ void MainMenu::ContinueArena(bool theContinue)
 	mApp->StartNewGameTransition();
 }
 
+void MainMenu::ButtonPress(int theId)
+{
+	mApp->PlaySample(SOUND_CLICK2);
+}
+
 void MainMenu::ButtonDepress(int theId)
 {
 	if (theId != mChangeUserLink->mId || mApp->IsCurtainMoving())

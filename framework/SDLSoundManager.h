@@ -16,6 +16,16 @@ namespace Sexy
 
 class SDLSoundManager;
 
+// port: a test log of every sound and music event, for comparing with the original's (games/bookwormadv/tools/pilot/
+// soundcmp.py). Each line is the update count and the event. Off unless BYOPOP_SOUNDLOG names a file, which is opened
+// on the first event.
+#if defined(__GNUC__) || defined(__clang__)
+void SoundLog(const char* theFormat, ...) __attribute__((format(printf, 1, 2)));
+#else
+void SoundLog(const char* theFormat, ...);
+#endif
+bool SoundLogOn();
+
 class SDLSoundInstance : public SoundInstance
 {
 	friend class SDLSoundManager;
@@ -32,8 +42,11 @@ protected:
 	bool mReleased = false;
 	bool mAutoRelease = false;
 	bool mHasPlayed = false;
+	unsigned int mSfxID = 0;     // port: for the sound log
+	int mLogNum = 0;             // port: the instance's number in the sound log
 
 	void RehupVolume();
+	int LogVolume() const;
 
 public:
 	SDLSoundInstance(SDLSoundManager* theManager, std::shared_ptr<Platform::SoundData> theData, double theBaseVolume, int theBasePan);
