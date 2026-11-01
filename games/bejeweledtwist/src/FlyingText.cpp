@@ -1,6 +1,7 @@
 // Sexy::FlyingText (FlyingText.h).
 #include "FlyingText.h"
 
+#include "GameOverShow.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "SexyMatrix.h"
@@ -32,6 +33,29 @@ FlyingText::FlyingText(int theKind, Image* theImage, int theX, int theY, float t
 	if (theY < 0)
 		theY = gApp->mHeight / 2;
 	mY = theY;
+}
+
+FlyingText::FlyingText(Font* theFont, const SexyString& theText, int theX, int theY)
+{
+	// (0x6fc3a9 sets the rest of the defaults)
+	mKind = 0;
+	mSoundId = 0;
+	mNoticeClicks = true;
+	mClicked = false;
+	mClip = false;
+	mCycling = false;
+	mQueued = false;
+	mScale = 1.0f;
+	mWidth = gApp->mWidth;
+	mHeight = gApp->mHeight;
+	if (theX == -1000)
+		theX = mWidth / 2;
+	mX = theX;
+	if (theY == -1000)
+		theY = mHeight / 2;
+	mY = theY;
+	mState = 1;
+	mImageOverride = new TextImage(theFont, theText, 0, 0, 0, 0, nullptr);  // 0x74e701
 }
 
 FlyingText::~FlyingText()

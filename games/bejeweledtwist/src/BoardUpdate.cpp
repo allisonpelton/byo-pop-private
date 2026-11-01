@@ -840,8 +840,7 @@ void Board::UpdateGame()
 						mUnknown3920 = true;
 					}
 				} else {
-					// port: blitz's last seconds (0x6bea4b) come with blitz
-					NotPorted("Board::UpdateGame: blitz's last seconds (0x6bea4b)");
+					ShowBlitzTime(aSeconds);
 				}
 			}
 			mGoodTube->SetTime(aSeconds * 100, true);

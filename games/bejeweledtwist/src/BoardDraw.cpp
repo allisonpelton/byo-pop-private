@@ -138,8 +138,25 @@ void Board::Draw(Graphics* g)
 	if (IsBusy())
 		return;
 	if (0.0f < mUnknown38F8) {
-		// port: blitz's last seconds' warning (+0x38f0, +0x38f4) comes with blitz
-		NotPorted("Board::Draw: blitz's last seconds");
+		// The minute mark of blitz's last seconds: the glow, bright over itself, then the front
+		g->SetColorizeImages(true);
+		int aMidX, aY;
+		GetCenter(&aMidX, &aY);
+		int aOffset = Ftol((double)gApp->mScale * 3.0);
+		aY = Ftol((double)aOffset + (double)mUnknown38F4->mHeight * 0.5);
+		g->SetColor(Color(Ftol(255.0 * (double)mUnknown38FC), 0, 0, Ftol((double)mUnknown38F8 * 255.0)));
+		DrawImageScaledCentered(g, mUnknown38F4, (float)aMidX, (float)aY, ALIGN_CENTER, 1.0f, 1.0f);
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		g->SetColor(Color(Ftol((double)mUnknown38FC * 255.0), 0, 0, Ftol((double)mUnknown38F8 * 32.0)));
+		float aLimit = (float)((double)mUnknown38FC + 1.0);
+		float aScale = 1.0f;
+		while (aScale < aLimit) {
+			DrawImageScaledCentered(g, mUnknown38F4, (float)aMidX, (float)aY, aScale, aScale);
+			aScale = (float)((double)aScale + 0.019999999552965164);
+		}
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown38F8 * 255.0)));
+		g->DrawImage(mUnknown38F0, aMidX - mUnknown38F0->mWidth / 2, aY - mUnknown38F0->mHeight / 2);
 	}
 	if (mGameMode == MODE_CHALLENGE || mGameMode == MODE_ZEN)
 		return;

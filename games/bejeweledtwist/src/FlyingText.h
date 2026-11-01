@@ -9,6 +9,7 @@
 
 namespace Sexy {
 
+class Font;
 class Image;
 
 class FlyingText : public TwistWidget {
@@ -36,6 +37,8 @@ public:
 
 	// 0x6fd22c: theX, theY below 0 take the window's middle, a delay of 0 or less none
 	FlyingText(int theKind, Image* theImage, int theX, int theY, float theUnused, int theSoundId, float theDelay);
+	// 0x6fd358: theText in theFont (kind 0), growing from the start; theX, theY of -1000 take the window's middle
+	FlyingText(Font* theFont, const SexyString& theText, int theX, int theY);
 	~FlyingText() override;          // 0x6fccb4
 	void Update() override;          // 0x6fcd48
 	void Draw(Graphics* g) override; // 0x6fc840

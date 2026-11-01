@@ -567,8 +567,8 @@ public:
 	int mUnknown1634 = 0;                     // +0x1634: the ring's distance from the middle
 	int mUnknown37FC = 0;                   // +0x37fc
 	TwistWidget* mUnknown3808 = nullptr;                   // +0x3808
-	int mUnknown38F0 = 0;                   // +0x38f0
-	int mUnknown38F4 = 0;                   // +0x38f4
+	TextImage* mUnknown38F0 = nullptr;      // +0x38f0: blitz's minute mark, the front of its warning (drawn black)
+	TextImage* mUnknown38F4 = nullptr;      // +0x38f4: the same, the glow behind it
 	float mUnknown38F8 = 0;                   // +0x38f8
 	float mUnknown38FC = 0;                   // +0x38fc
 	float mUnknown3900 = 0;                   // +0x3900
@@ -728,6 +728,9 @@ public:
 	void StartLevel();
 	void UpdateChallengeTube(bool theAtOnce);    // 0x6af390: the tube shows how much of the challenge is left
 	void SetBlitzColor();                        // 0x6bd1f0: the tube's colour by blitz's time left
+	void ShowBlitzTime(int theSeconds);          // 0x6bea4b: blitz's marks, 30 seconds, 9 to 1 and each minute left
+	// 0x6ba0c2: theText grows in the middle of the board; theClear first ends the words already there
+	void ShowWords(const SexyString& theText, bool theQueued, bool theClear);
 
 	int GetSlideX() { return Ftol((double)mWidth * (double)0.635f - (double)((mCols * gGemWidth) / 2)); }  // 0x6a6afa
 	void SnapPiecesX();                          // 0x6ab551: every piece to its column's x

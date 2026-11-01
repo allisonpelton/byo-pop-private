@@ -177,7 +177,7 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 		mGoodTube->SetUnknown160(2);
 		mGoodTube->SetChallenge(true);
 	} else if (theMode == 3) {
-		// port: 0x70c8b6(Color(0, 255, 0), 1), the tube's fill colour, comes with the tube's drawing
+		mGoodTube->SetColor(Color(0, 255, 0), true);
 		mGoodTube->SetUnknown15C(1);
 	}
 
@@ -603,6 +603,8 @@ Board::~Board()
 	// The original never deletes blitz's final score
 	delete mUnknown3464;
 	delete mUnknown3468;
+	delete mUnknown38F0;
+	delete mUnknown38F4;
 	for (Traveller* aTraveller : mUnknown2170) {
 		if (SmokeTraveller* aSmoke = dynamic_cast<SmokeTraveller*>(aTraveller)) {
 			aSmoke->mNoPoints = true;
@@ -1244,6 +1246,70 @@ void Board::SetBlitzColor()
 		aCycle.mColors.push_back(Color(255, 0, 0));
 		aCycle.mColors.push_back(Color(64, 0, 0));
 		mGoodTube->mColorCycle.mLoop = true;
+	}
+}
+
+void Board::ShowWords(const SexyString& theText, bool theQueued, bool theClear)
+{
+	if (theClear) {
+		size_t i = 0;
+		if (mFlyingTexts.size() != 0) {
+			do {
+				if (mFlyingTexts[i] != nullptr)
+					delete mFlyingTexts[i];
+				i++;
+			} while (i < mFlyingTexts.size());
+		}
+		mFlyingTexts.clear();  // 0x6af767
+	}
+	int aX = GetColX(0) + mCols * gGemWidth / 2;
+	int aY = GetRowY(0) + mRows * gGemHeight / 2;
+	FlyingText* aText = new FlyingText(FONT_INCREDIBLE, theText, aX, aY);  // 0x6fd358
+	aText->mQueued = theQueued;
+	mFlyingTexts.push_back(aText);  // 0x6b9bcd
+}
+
+void Board::ShowBlitzTime(int theSeconds)
+{
+	// The minute marks' texts, made on the first mark (0x85c484 to 0x85c490, flag 0x85c494)
+	static bool aMadeTexts = false;
+	static SexyString aMinuteTexts[5];
+	if (theSeconds == 30) {
+		mApp->PlayVoice(SOUND_VOICE_THIRTYSECONDS, false);  // slot 108
+		ShowWords(GT(0x7dd06c), false, true);
+	}
+	if ((unsigned int)(theSeconds - 1) < 9) {
+		mApp->PlaySample(GetSoundById(theSeconds + 0x348));
+	} else if (theSeconds % 60 == 0 && (unsigned int)(theSeconds / 60 - 1) < 4) {
+		int aMinutes = theSeconds / 60;
+		mApp->PlayVoice(GetSoundById(GameInt(GTB(0x84e9b4, 20) + aMinutes * 4)), false);
+		if (!aMadeTexts) {
+			aMadeTexts = true;
+			aMinuteTexts[1] = GT(0x7dd04c);
+			aMinuteTexts[2] = GT(0x7dd02c);
+			aMinuteTexts[3] = GT(0x7dd00c);
+			aMinuteTexts[4] = GT(0x7dcfec);
+		}
+		// FONT_WARNING's layers: the glow's text with layer 2 clear, then the front's with layer 1 clear, so that
+		// the two images come out in different colours
+		Font* aFont = FONT_WARNING;
+		SetFontLayerColor(aFont, 0, Color(0, 0, 0, 0));
+		SetFontLayerColor(aFont, 1, Color(0, 0, 0, 0));
+		SetFontLayerColor(aFont, 2, Color::White);
+		// (the original leaves the last minute's images; the port frees them, nothing draws them again)
+		delete mUnknown38F0;
+		mUnknown38F0 = new TextImage(aFont, aMinuteTexts[aMinutes], 0, 0, -1, 0, nullptr);
+		SetFontLayerColor(aFont, 1, Color::White);
+		SetFontLayerColor(aFont, 2, Color(0, 0, 0, 0));
+		delete mUnknown38F4;
+		mUnknown38F4 = new TextImage(aFont, aMinuteTexts[aMinutes], 0, 0, -1, 0, nullptr);
+		SetFontLayerColor(aFont, 0, Color::White);
+		SetFontLayerColor(aFont, 1, Color::White);
+		SetFontLayerColor(aFont, 2, Color::White);
+		mUnknown3900 = 5.0f;
+		mUnknown38F8 = 0.5f;
+		mUnknown38FC = 1.0f;
+		SetBlitzColor();
 	}
 }
 
