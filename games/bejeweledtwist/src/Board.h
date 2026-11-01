@@ -11,6 +11,7 @@
 #include "MTRand.h"
 #include "Rect.h"
 
+#include <deque>
 #include <map>
 #include <vector>
 
@@ -181,13 +182,14 @@ public:
 	bool mUnknown1390 = true;               // +0x1390
 	int mUnknown1394 = 0;                   // +0x1394
 	bool mUnknown1398 = false;              // +0x1398
-	int mUnknown139C = 0;                   // +0x139c
+	Widget* mUnknown139C = nullptr;                   // +0x139c
 	int mUnknown13A0 = 0;                   // +0x13a0
 	int mUnknown13A4 = 0;                   // +0x13a4
 	bool mUnknown13A8 = true;               // +0x13a8
 	CurvedVal mUnknown13B0;                 // +0x13b0: set to 0 by StartLevel
 	bool mUnknown1420 = false;              // +0x1420
 	int mUnknown1424 = 0;                   // +0x1424
+	std::deque<TwistWidget*> mUnknown23DC;  // +0x23dc: the dialogs waiting to come up (0x6a6e36 its size)
 	Piece* mUnknown1430 = nullptr;          // +0x1430: a piece RemovePiece forgets
 	int mUnknown1434 = 0;                   // +0x1434
 	bool mUnknown1438 = false;              // +0x1438
@@ -289,7 +291,7 @@ public:
 	int mUnknown1C50 = 0;                   // +0x1c50
 	int mUnknown1C64 = -1;                  // +0x1c64
 	int mUnknown1C74 = 0;                   // +0x1c74
-	int mUnknown1C84 = 0;                   // +0x1c84
+	float mUnknown1C84 = 0;                   // +0x1c84
 	float mUnknown1C88 = 1.0f;              // +0x1c88
 	float mUnknown1C8C = 1.0f;              // +0x1c8c
 	bool mUnknown1C90 = false;              // +0x1c90
@@ -370,7 +372,7 @@ public:
 	int mUnknown21DC = 0;                   // +0x21dc
 	int mUnknown21F4 = -1;                  // +0x21f4
 	bool mUnknown2200 = false;              // +0x2200
-	int mUnknown2208 = 0;                   // +0x2208
+	TwistWidget* mUnknown2208 = nullptr;    // +0x2208: the dialog over the board (from the queue at +0x23dc)
 	int mUnknown2228 = 0;                   // +0x2228
 	int mUnknown222C = 0;                   // +0x222c
 	int mUnknown2234[84] = {};              // +0x2234
@@ -412,7 +414,7 @@ public:
 	bool mUnknown2669 = false;              // +0x2669
 	bool mUnknown266A = false;              // +0x266a
 	int mUnknown2678 = 0;                   // +0x2678
-	int mUnknown267C = 0;                   // +0x267c
+	Widget* mUnknown267C = nullptr;                   // +0x267c
 	int mUnknown2680 = 0;                   // +0x2680
 	bool mUnknown2698 = true;               // +0x2698
 	int mUnknown269C = 0;                   // +0x269c
@@ -425,7 +427,7 @@ public:
 	int mUnknown3448 = 0;                   // +0x3448
 	int mUnknown344C = 0;                   // +0x344c
 	int mUnknown3450 = 0;                   // +0x3450
-	int mUnknown3454 = 0;                   // +0x3454
+	float mUnknown3454 = 0;                   // +0x3454
 	float mUnknown345C = 0;                 // +0x345c
 	float mUnknown3460 = 8.0f;              // +0x3460
 	int mUnknown3464[2] = {};               // +0x3464
@@ -461,7 +463,7 @@ public:
 	int mUnknown3910 = 0;                   // +0x3910
 	int mUnknown3914 = 0;                   // +0x3914
 	int mUnknown3918 = 0;                   // +0x3918
-	int mUnknown391C = 0;                   // +0x391c
+	float mUnknown391C = 0;                   // +0x391c
 	bool mUnknown3920 = false;              // +0x3920
 	bool mUnknown3921 = false;              // +0x3921
 	int mUnknown3928 = 0;                   // +0x3928
@@ -549,7 +551,7 @@ public:
 	int mUnknown1C44 = 0;                   // +0x1c44
 	bool mUnknown1F6C = false;              // +0x1f6c
 	int mUnknown1F70 = 0;                   // +0x1f70: the level modulo 7
-	int mUnknown20F0 = 0;                   // +0x20f0
+	float mUnknown20F0 = 0;                   // +0x20f0
 	float mUnknown2134 = 1.0f;              // +0x2134
 	bool mUnknown21A1 = false;              // +0x21a1: past the first level
 	int mUnknown21F8 = 0;                   // +0x21f8: 100 at a level's start (0x6a3ff4)
@@ -600,6 +602,14 @@ public:
 	void StartLevel();
 	void UpdateChallengeTube(bool theAtOnce);    // 0x6af390: the tube shows how much of the challenge is left
 	void SetBlitzColor();                        // 0x6bd1f0: the tube's colour by blitz's time left
+
+	void Update() override;                      // 0x6d6899: the game's updates for this frame, at its speed
+	void UpdateGame();                           // 0x6d090f: one update of the game
+	void Resize(int theX, int theY, int theWidth, int theHeight) override;  // 0x6a5b53: the pieces move with the grid
+	using Widget::Resize;
+	int GetBoardY() { return (mHeight - mRows * gGemHeight) / 2; }    // 0x6a4801
+	int GetRowY(int theRow) { return GetBoardY() + gGemHeight * theRow; }  // 0x6a4831
+	static int GetBoardWidth();                  // 0x6a47ee: the grid's width (gBoard's)
 
 	Piece* GetPieceAt(int theRow, int theCol);   // 0x6a40c7
 	Piece* GetPieceById(int theId);              // 0x6aff38
