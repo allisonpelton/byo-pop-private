@@ -69,8 +69,12 @@ original, 6124 to 6154 in the port within the same few updates). The Rand functi
 exe's `div` is unsigned; the port's seed sequence diverged from the original's once a seed had its top bit set, which
 changed boards' bubbles and the beam's fill. Fixed (12d8077): both now agree draw by draw.
 
-What still differs is tied to the frames, not the updates: the port's test runner draws a frame every 10 ms of game time,
-while the original's real frames are as long as the machine makes them. The world map's water (and the bubbles that
-follow it) steps once per drawn frame, so its phase differs by up to a frame's updates; shifting the port's shot by up
-to ten updates brings the world map to 88 differing pixels. Those and the other per-frame effects are masked or
-phase-matched in the comparison until a frame's length can be fixed in both.
+The original under origrun runs about a millisecond per drawn frame (its elapsed-time global read 0 or 1 at every
+sample), and the world map's water and the like step once per drawn frame, so the port's test runner has to draw a frame
+per update (`WB_FRAME_MS=1`; its default of 10 ms is what `tools/check.sh` froze). With that, 31 of 33 shots of the
+original (the title, the world map, the level's start text, the beam, the fill to 84% and a long idle with clicks) are
+identical to the port's at the update they were taken, to the pixel. The rest: a dark 2 by 30 strip at x 766 and y 531
+that the original draws over a bubble where the port draws the bubble over it (three shots; the draw list's address
+tie-break, as the loss screen's bubbles), and one shot taken while the fill's score read 344 against the port's 343 (a
+cell's fill one update apart, back in step by the next shot). A shot taken in a burst can read a counter an update or
+two later than the screen it holds, so one shot off by one update is not a fault.
