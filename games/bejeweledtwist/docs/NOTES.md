@@ -129,7 +129,7 @@ cycles (ColorCycle, 0x6e6e1b-0x6e70ad, four of red, yellow, green and cyan a qua
 button, the profiles' files (Profile), the ranks' names (Ranks), the profiles panel (ProfilePanel), the new player
 panel (NewUserPanel, menu +0x3d4, 0x699924-0x69ab42), the game's dialogs (TwistDialog), the high scores and the
 high scores panel (HighScoresPanel; without the new score going into its list, the board behind it and the replays,
-which come with the end of a game). Not yet: the help and options panels, the challenges, the end of game stats (EndStats), the registration widget, the gem
+which come with the end of a game) and the help panel (HelpPanel). Not yet: the options panel, the challenges, the end of game stats (EndStats), the registration widget, the gem
 prerender, the app's music, and starting a game.
 
 The ranks (app +0xf58, 0x739af7) come from properties\ranks.txt, one name per line in its first comma-separated field
@@ -176,6 +176,14 @@ The stats page (any category but 1 and 3) has eight lines, from properties\defau
 for them (HIGH_SCORES_POINTS) and from the exe's texts otherwise, with a view-replay button beside each of the three
 best moves whose replay the profile keeps (profile +0xa0, 3 of 0x2c bytes, ordered by the table at 0x84e550). The
 original reads properties\default.xml in Init (0x4a3c20); the port did not until this panel needed it.
+
+The help panel's sixteen pages are animations of images\NonResize\pam\twistpam.pam (labels from the table at
+0x84e5b0; a page's animation plays again whenever it stops), with the pictures from images\<art>\howtoplay. The
+port's PopAnim (popanim/, the library bjt_popanim) is Bookworm Adventures 2's: the .pam format is the same (version
+3). Twist's PopAnim (0x174 bytes, 0x4d30a0-0x4d8530) has two scales more: mDrawScale (+0xa4) scales the main sprite
+and mImageScale (+0xa8) draws each picture at its inverse, its position kept; the help sets both to the art's scale,
+so the pictures, made for that art, come out at their own size. In the menu the gates' buttons turn the pages (the
+scores button back, 0x6983aa, the options button on, 0x6983bc); over a game the panel has its own buttons and zooms.
 
 Game texts: the original's wide texts (L"...", such as the tooltips and the dialog texts) are UTF-16 in the exe;
 gametext.py lists them as GAMETEXTW (length in bytes) and GameText.cpp converts them. Before this, every wide text
