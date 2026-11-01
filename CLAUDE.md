@@ -21,6 +21,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   build under Node (`node games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled.js ...`) open no
   window, play no sound and open no URL, so they need no rundesk; a web build under Node still counts as a
   game process below.
+- **Never run an original game exe (the user's copy, unwrapped or not) by itself, not even under rundesk.** rundesk
+  silences only SDL, so an original plays its sounds on the user's speakers, and it writes its saves into the user's real
+  registry keys and save folders. Originals run only through the coordinator's harness for them (`tools/origrun`, being
+  built from 2026-10-31), which runs a copy with its sound, registry and save files redirected; until it lands, compare
+  with the original by its decompilation only.
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
   its music and sounds on the user's speakers. The status line ends in "silent" when it is on. The terms card
