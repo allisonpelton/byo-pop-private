@@ -25,6 +25,7 @@ class Font;
 class Image;
 class MemoryImage;
 class Piece;
+class SoundInstance;
 class WinTwistApp;
 
 // A pair of numbers that change with the level, read from the config (0x74ec7d, "<name>FirstLevel" and the rest): from
@@ -216,6 +217,9 @@ public:
 		int mPieceId = -1;        // +0x28
 	};
 	std::vector<Light> mUnknown1650;
+	std::vector<void*> mUnknown1660;        // +0x1660: objects that shake the gems (not yet ported)
+	std::vector<void*> mUnknown2170;        // +0x2170: objects updated by 0x6af0e2 (not yet ported)
+	int mUnknown203C = 0;                   // +0x203c: the puzzle fill's wait
 	// +0x21e4: objects of a class with its update at 0x6f465f (not yet ported)
 	std::vector<void*> mUnknown21E4;
 	std::vector<Piece*> mUnknown20F4;       // +0x20f4: pieces off the grid (SnapPiecesX moves them too)
@@ -359,7 +363,7 @@ public:
 	bool mUnknown2042 = true;               // +0x2042
 	bool mUnknown2043 = true;               // +0x2043
 	bool mUnknown2054 = false;              // +0x2054
-	int mUnknown2058[24] = {};              // +0x2058
+	float mUnknown2058[24] = {};            // +0x2058: 24 glows that run round (UpdateGlows)
 	float mUnknown20B8 = 0;                   // +0x20b8
 	int mUnknown20BC = -1;                  // +0x20bc
 	int mUnknown20C0 = 0;                   // +0x20c0
@@ -367,7 +371,7 @@ public:
 	float mUnknown20C8 = 0;                   // +0x20c8
 	float mUnknown20CC = 0;                   // +0x20cc
 	bool mUnknown20D0 = true;               // +0x20d0
-	int mUnknown20D4 = 0;                   // +0x20d4
+	float mUnknown20D4 = 0;                 // +0x20d4
 	bool mUnknown20D8 = false;              // +0x20d8
 	int mUnknown20E4 = 0;                   // +0x20e4
 	float mUnknown20E8 = 0.1f;              // +0x20e8
@@ -392,7 +396,7 @@ public:
 	bool mUnknown21A2 = false;              // +0x21a2
 	bool mUnknown21A3 = false;              // +0x21a3
 	Widget* mUnknown21A8 = nullptr;                   // +0x21a8
-	int mUnknown21C4[2] = {};               // +0x21c4
+	SoundInstance* mUnknown21C4[2] = {};    // +0x21c4: never set; UpdateGlows stops them in turn
 	int mUnknown21CC = 0;                   // +0x21cc
 	int mUnknown21D0 = 1;                   // +0x21d0
 	int mModeMultiplier = 1;                // +0x21d4
@@ -645,6 +649,16 @@ public:
 	void AddStat(int theStat, int theDelta);     // 0x6a450f: the game's stat and the app's copy (unless +0x37c4)
 	void EaseCursor();                           // 0x6a4674: the cursor drawn eases to the cursor
 	// 0x6bd338: the bombs' and devil gems' counters show their warnings; true when the game ends on one at zero
+	void UpdateGlows();                           // 0x6b094e
+	void UpdateCellPoints();                      // 0x6a5809: the cells' wobble
+	void UpdateLevelUp();                         // 0x6c6905
+	void PlayGameMusic();                         // 0x6a6a8b
+	void LevelComplete();                         // 0x6b3634
+	bool UpdateUnknown1660();                     // 0x6af497
+	bool UpdateUnknown2170();                     // 0x6af0e2
+	void CheckSettled();                          // 0x6c7659
+	bool SettlePieces();                          // 0x6c812f: true once every gem is at rest
+	void FallPieces();                            // 0x6cf84a
 	static void UpdateCell(Cell& theCell);        // 0x6a3904
 	bool DropPieces();                            // 0x6a5512: true if a column has a gap
 	bool FillInBlanks(bool theUnknown);           // 0x6c42e3
@@ -681,6 +695,7 @@ public:
 
 // DAT_0085aef4: the board while there is one
 extern Board* gBoard;
+extern int gSettleCount;  // 0x84e88c: how often the board has come to rest
 // 0x85af08: each colour's tint, copied by the board's constructor from the table at 0x85c378 (and Color(0, 0, 0),
 // then two whites, after it)
 extern Color gGemColors[7];

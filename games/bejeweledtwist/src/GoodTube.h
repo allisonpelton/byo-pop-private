@@ -48,6 +48,8 @@ public:
 	float mUnknown308 = 1.0f;            // +0x308
 	float mUnknown330 = 0;               // +0x330: 1 when a loaded game has a bonus challenge
 	int mUnknown3A8 = 0;                 // +0x3a8
+	int mUnknown3B0 = 0;                 // +0x3b0
+	float mUnknown3B4 = 0;               // +0x3b4
 	float mUnknown3F0 = 0;               // +0x3f0: the same
 	CurvedVal mUnknown338;               // +0x338
 	CurvedVal mUnknown400;               // +0x400: set going by 0x707329
@@ -62,6 +64,8 @@ public:
 	float mUnknown4C0 = 0;               // +0x4c0
 	bool mChallenge = false;             // +0x4c4 (0x70371c)
 	CurvedVal mUnknown5F0;               // +0x5f0: set by the board's bonus challenge (0x6bbfe4)
+	float mUnknown680 = 0;               // +0x680 (not yet known; no ported code sets it)
+	float mUnknown704 = 0;               // +0x704 (the same)
 
 	explicit GoodTube(Board* theBoard);  // 0x707b7f
 	~GoodTube() override;
@@ -75,6 +79,7 @@ public:
 	void SetLevel(int theLevel) { mLevel = theLevel; }        // 0x702aa6
 	void SetUnknown4BC(int theValue) { mUnknown4BC = theValue; }  // 0x702b6a
 	void SetUnknown4A8(bool on) { mUnknown4A8 = on; }         // 0x702bce
+	bool IsIdle() { return mUnknown3B4 <= 0.0f && !(0.0f < mUnknown680) && !(0.0f < mUnknown704); }  // 0x702bde
 	void SetTime(int theTime, bool theAtOnce);     // 0x7036eb: blitz's time; theAtOnce shows it at once
 	void StartUnknown4AC(bool theFour, bool theUnknown4A9);  // 0x707329
 	void SetColor(const Color& theColor, bool theAtOnce);   // 0x70c8b6: the cycle runs from the last colour to it

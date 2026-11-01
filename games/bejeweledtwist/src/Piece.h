@@ -63,7 +63,7 @@ public:
 	int mRow = 0;                      // +0x28
 	int mUnknown2C = -1;               // +0x2c
 	int mUnknown30 = -1;               // +0x30
-	int mUnknown34 = 0;                // +0x34
+	float mUnknown34 = 0;              // +0x34: the fall's speed
 	bool mUnknown38 = false;           // +0x38
 	float mGlow = 0;                   // +0x3c
 	std::vector<Arc> mArcs;       // +0x40

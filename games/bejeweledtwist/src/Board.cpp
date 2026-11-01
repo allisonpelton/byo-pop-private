@@ -26,6 +26,7 @@
 using namespace Sexy;
 
 Board* Sexy::gBoard = nullptr;
+int Sexy::gSettleCount = 0;
 // port: the constructor's copy comes with it; until then the table is set here
 Color Sexy::gGemColors[7] = {Color(255, 32, 32), Color(255, 255, 255), Color(0, 255, 0), Color(255, 255, 0),
 	Color(255, 0, 255), Color(255, 128, 0), Color(0, 128, 255)};

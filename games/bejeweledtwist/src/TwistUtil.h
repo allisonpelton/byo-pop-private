@@ -21,6 +21,11 @@ float RandSigned();
 // 0x756ec2: one Rand() draw as a number from 0 to 1 in steps of 1/1000000
 float RandFloat();
 
+// 0xe03690, 0xe07690: sin and cos at 4096 steps round the circle, made once by the app's constructor (0x766ce7)
+extern float gSinTable[4096];
+extern float gCosTable[4096];
+void MakeTrigTables();
+
 // How DrawImageScaledCentered places the image against theX, theY
 enum {
 	ALIGN_CENTER_X = 0x01,

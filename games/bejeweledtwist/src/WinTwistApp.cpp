@@ -61,6 +61,8 @@ int ChooseArtRes(bool theAllow1200, int theTotalPhysMB, int theScreenHeight, int
 WinTwistApp::WinTwistApp()
 {
 	gApp = this;
+	// port: the original makes them further on, after the board's objects; nothing reads them before
+	MakeTrigTables();
 	mProdName = "BejeweledTwist";
 	mRegKey = "PopCap\\BejeweledTwist";
 	mMusicVolume = 0.85;
@@ -211,6 +213,18 @@ void WinTwistApp::Init()
 	mUnderDialog->mZOrder = 0;
 	mWidgetManager->AddWidget(mUnderDialog);
 	mUnderDialog->SetVisible(false);
+}
+
+void WinTwistApp::PlayVoice(int theSoundId, bool theInterrupt)
+{
+	if (mUnmanagedSound != nullptr) {
+		if (!theInterrupt)
+			return;
+		mUnmanagedSound->Stop();
+		mUnmanagedSound->Release();
+		mUnmanagedSound = nullptr;
+	}
+	mUnmanagedSound = PlaySoundEx(theSoundId, 0, 0.0f, 1.0f, false, false);
 }
 
 void WinTwistApp::PlaySample(int theSoundNum)

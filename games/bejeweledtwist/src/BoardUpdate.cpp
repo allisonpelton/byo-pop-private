@@ -3,10 +3,12 @@
 #include "Board.h"
 
 #include "GameText.h"
+#include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
 #include "GoodTube.h"
 #include "Hyperspace.h"
 #include "GraphicsRecorder.h"
+#include "MusicInterface.h"
 #include "Piece.h"
 #include "Profile.h"
 #include "Res.h"
@@ -621,8 +623,7 @@ void Board::UpdateGame()
 					NotPorted("Board::UpdateGame: 0x6a615b");
 				} else {
 					StartUnknown34F0();
-					// port: app slot 108 (0x767584) plays the sound at 0x85ddec, once the sounds' table is known
-					NotPorted("Board::UpdateGame: the turn's sound (app slot 108)");
+					mApp->PlayVoice(SOUND_VOICE_GO, false);
 				}
 			}
 		}
@@ -786,7 +787,7 @@ void Board::UpdateGame()
 		MarkDirty();
 		mUnknown1434++;
 	}
-	int aCount38 = 0;
+	int aCount38 = 0;  // port: counted as the original does, never read
 	int aRemoved = 0;
 	if (mUnknown160 == 0) {
 		mUnknown1F74 = 0;
@@ -958,6 +959,115 @@ void Board::UpdateGame()
 			}
 		}
 	}
+	// The board's state: 0 play, 3 and 4 waits, 5 the level's start, 7 the level-up's blast, 8 the puzzle's fill
+	bool aSettled = false;
+	bool aFall = false;
+	switch (mUnknown160) {
+	case 0:
+		if (mUnknown21D9) {
+			// port: 0x6cfd85 comes with the hyper cascades; it draws from Rand
+			NotPorted("Board::UpdateGame: 0x6cfd85");
+		} else {
+			float aFade = (float)((double)mUnknown20D4 - (double)0.04f);
+			mUnknown20D4 = 0.0f < aFade ? aFade : 0.0f;
+		}
+		if (mUnknown149C.empty())
+			aSettled = true;
+		CheckSettled();
+		if (0.0f < mUnknown2598) {
+			float aFade = (float)((double)mUnknown2598 - (double)0.01f);
+			mUnknown2598 = 0.0f < aFade ? aFade : 0.0f;
+		}
+		if (mUnknown21A0)
+			mUnknown20CC = 0;
+		if (!IsBusy()) {
+			float aGlow = (float)((double)mUnknown20CC + (double)0.02f);
+			mUnknown20CC = aGlow;
+			if (1.0f < aGlow)
+				mUnknown20CC = 1.0f;
+			if (mUnknown15C == 0) {
+				if (mUnknown21A3 && !mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown149C.empty() &&
+					mUnknown2584 == nullptr && mUnknown168 == mUnknown14F8 && mUnknown2170.empty() &&
+					mGoodTube->IsIdle() && mUnknown1660.empty() && !mUnknown214 && mUnknown2208 == nullptr &&
+					mUnknown23DC.empty() && mUnknown248 == 0.0f && mUnknown14AC.empty() && mUnknown265C != 4) {
+					if (mUnknown1FB8 != mUnknown1FC4)  // 0x6aa1ef
+						mUnknown1FC4 = mUnknown1FB8;
+					LevelComplete();
+					mUnknown21A3 = false;
+					mUnknown21A2 = false;
+					if (mUnknown2201)
+						mUnknown2204++;
+				} else if (mUnknown2669 && !mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown149C.empty() &&
+						   mUnknown2630 != 0 && mGoodTube->IsIdle()) {
+					mUnknown266A = true;
+					// port: the challenge's goal met (0x6b330d and the profile's challenges) comes with the challenges
+					NotPorted("Board::UpdateGame: the challenge's goal");
+					mUnknown2669 = false;
+				}
+			}
+		}
+		aFall = aSettled;
+		break;
+	case 3:
+		if (IsBusy())
+			break;
+		if (mGoodTube->mUnknown4AC == 4)
+			mUnknown160++;
+		aFall = true;
+		break;
+	case 4: {
+		float aLeft = (float)((double)mUnknown345C - (double)0.01f);
+		mUnknown345C = aLeft;
+		if (aLeft <= 0.0f)
+			mUnknown160++;
+		aFall = true;
+		break;
+	}
+	case 5: {
+		// The level's start: once the wait is up and the board has settled, "go"
+		float aLeft = (float)((double)mUnknown345C - (double)0.01f);
+		mUnknown345C = aLeft;
+		if (aLeft <= 0.0f && mUnknown37F4 <= 0.0f) {
+			StartUnknown34F0();
+			mApp->PlayVoice(SOUND_VOICE_GO, false);
+			mUnknown345C = 1.0f;
+			mGoodTube->SetUnknown4A8(true);
+			PlayGameMusic();
+			mUnknown160 = 0;
+		}
+		aFall = true;
+		break;
+	}
+	case 7:
+		// port: the level-up's blast (+0x27b8's curve, the gems blown off from +0x26cc, 0x6a3b4c) and 0x6d045b come
+		// with the jumps; both draw from Rand
+		NotPorted("Board::UpdateGame: the level-up's blast");
+		break;
+	case 8:
+		mUnknown203C--;
+		if (mUnknown203C < 0) {
+			if (mGameMode == MODE_PUZZLE) {
+				// port: the puzzle's fill (0x6c3515) draws from Rand; it comes with the puzzles
+				NotPorted("Board::UpdateGame: the puzzle's fill");
+				mUnknown160 = 0;
+				mUnknown15C = 0;
+				return;
+			}
+		} else if (mGameMode == MODE_PUZZLE) {
+			// port: the puzzle's sparkles (Rand for the cell, an effect 12 over it) come with the puzzles
+			NotPorted("Board::UpdateGame: the puzzle's sparkles");
+		}
+		break;
+	default:
+		break;
+	}
+	if (aFall)
+		FallPieces();
+	UpdateLevelUp();
+	UpdateGlows();
+	UpdateCellPoints();
+	mUnknown25A5 = !mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown248 == 0.0f && mUnknown149C.empty() &&
+				   mUnknown265C != 4 && mGoodTube->mUnknown3B0 == 0;
 	// port: the rest of 0x6d090f comes next
 	NotPorted("Board::UpdateGame: the rest");
 }
@@ -1076,4 +1186,462 @@ void Board::LayoutTube()
 {
 	// port: the tube's layout (0x6b3da8) comes with the tube; it draws nothing from Rand
 	NotPorted("Board::LayoutTube");
+}
+
+void Board::UpdateGlows()
+{
+	if (0.0f < mUnknown21B0)
+		mFXManager3->Update();
+	// port: the original reads the music's volume at +0x2c without a check for none; the port has none without sound
+	CustomBassMusicInterface* aMusic = mApp->mTwistMusic;
+	if (IsSparkBlocked()) {
+		// The music fades out while the sparks are held back, and lightning plays over the board
+		if (aMusic != nullptr && 0.0f < aMusic->mVolumeFactor) {
+			float aFade = (float)((double)aMusic->mVolumeFactor - (double)0.01f);
+			aMusic->mVolumeFactor = aFade < 0.0f ? 0.0f : aFade;
+		}
+		float aGlow = (float)((double)0.01f + (double)mUnknown21B0);
+		mUnknown21B0 = 1.0f < aGlow ? 1.0f : aGlow;
+		if (!IsBusy()) {
+			float aLeft = (float)((double)mUnknown21BC - (double)0.01f);
+			mUnknown21BC = aLeft;
+			if (aLeft <= 0.0f) {
+				float aRand = RandSigned();
+				mUnknown21BC = (float)((double)fabsf(aRand) * 0.75 + (double)0.1f);
+			}
+			aLeft = (float)((double)mUnknown21C0 - (double)0.01f);
+			mUnknown21C0 = aLeft;
+			if (aLeft <= 0.0f) {
+				mUnknown21C0 = 4.0f;
+				if (mUnknown21C4[mUnknown21CC] != nullptr) {
+					mUnknown21C4[mUnknown21CC]->Stop();
+					mUnknown21C4[mUnknown21CC]->Release();
+				}
+				mUnknown21CC ^= 1;
+			}
+			Rand();
+			Effect* anEffect = mFXManager->AllocEffect(0x13);
+			float anAngle = (float)((double)RandSigned() * (double)kTwoPi);
+			float aSin = sinf(anAngle);
+			anEffect->mX = (float)((double)gBoard->mUnknown1C2C + 89.0 + (double)aSin * 96.0);
+			float aCos = cosf(anAngle);
+			anEffect->mY = (float)((double)gBoard->mUnknown1C30 + 84.0 + (double)aCos * 96.0);
+			mFXManager->AddEffect(anEffect);
+			anEffect = mFXManager3->AllocEffect(0x14);
+			float aRand = fabsf(RandSigned());
+			anEffect->mX = (float)((double)mWidth * (double)aRand);
+			aRand = RandSigned();
+			aRand = (float)pow((double)aRand, (double)3.0f);
+			aRand = fabsf(aRand);
+			anEffect->mY = (float)((double)mHeight * (double)aRand);
+			mFXManager3->AddEffect(anEffect);
+		}
+	} else {
+		if (aMusic != nullptr && aMusic->mVolumeFactor < 1.0f) {
+			float aFade = (float)((double)aMusic->mVolumeFactor + (double)0.01f);
+			aMusic->mVolumeFactor = aFade < 1.0f ? aFade : 1.0f;
+		}
+		if (0.0f < mUnknown21B0) {
+			float aGlow = (float)((double)mUnknown21B0 - (double)0.01f);
+			mUnknown21B0 = aGlow < 0.0f ? 0.0f : aGlow;
+		}
+	}
+	// The 24 glows run round, faster while +0x21d9 is on
+	float* aGlow = mUnknown2058;
+	int aLeft = 24;
+	do {
+		float aStep = mUnknown21D9 ? 0.05f : 0.02f;
+		float aFade = *aGlow - aStep;
+		*aGlow = aFade;
+		if (aFade <= 0.0f)
+			*aGlow = 0.0f;
+		aGlow++;
+		aLeft--;
+	} while (aLeft != 0);
+	if (mUpdateCnt % ((!mUnknown21D9) * 8 + 2) == 0) {
+		mUnknown20BC++;
+		if (24 <= mUnknown20BC)
+			mUnknown20BC = 0;
+		float& aLit = mUnknown2058[mUnknown20BC];
+		aLit = 1.0f < aLit ? aLit : 1.0f;
+		float& anOpposite = mUnknown2058[(mUnknown20BC + 12) % 24];
+		anOpposite = anOpposite < 1.0f ? 1.0f : anOpposite;
+	}
+	if (0 < mUnknown1C44) {
+		int aNext = mUnknown1C44 - 2;
+		mUnknown1C44 = aNext < 0 ? 0 : aNext;
+	}
+	// The lights rise to full, then fade and go
+	for (int i = 0; i < (int)mUnknown1650.size(); i++) {
+		Light& aLight = mUnknown1650[i];
+		if (aLight.mUnknown18) {
+			float aNext = aLight.mUnknown1C + aLight.mUnknown10;
+			aLight.mUnknown10 = aNext;
+			if (1.0f <= aNext) {
+				aLight.mUnknown10 = 1.0f;
+				aLight.mUnknown18 = false;
+			}
+		} else {
+			float aNext = aLight.mUnknown10 - aLight.mUnknown20;
+			aLight.mUnknown10 = aNext;
+			if (aNext <= 0.0f) {
+				mUnknown1650.erase(mUnknown1650.begin() + i);
+				i--;
+			}
+		}
+	}
+}
+
+void Board::UpdateCellPoints()
+{
+	CellPoint* aPoint = mCellPoints;
+	int aRows = 7;
+	do {
+		int aCols = 7;
+		do {
+			double aWave = sin((double)aPoint->mAngle * 2.0 + 1.570795);
+			float aCos = cosf((float)((double)aPoint->mAngle * 4.0));
+			double aPulse = sin((double)mUpdateCnt * 0.04) * aWave * (double)0.1f + 1.1;
+			float aScale = (float)(sin((double)mUpdateCnt * 0.12) * (double)aCos * 0.15 + aPulse);
+			aPoint->mUnknown18 = aScale;
+			aScale = (float)((double)mShineAmount * (double)aScale + (1.0 - (double)mShineAmount));
+			aPoint->mUnknown18 = aScale;
+			int anIndex = Ftol((double)aPoint->mAngle * 4096.0 / 6.28318) % 4096;
+			float anX = (float)((double)gCosTable[anIndex] * (double)aPoint->mDist * (double)aScale);
+			aPoint->mX = (float)((double)anX + 42.0);
+			float aY = (float)((double)gSinTable[anIndex] * (double)aPoint->mDist * (double)aPoint->mUnknown18);
+			aPoint->mY = (float)(42.0 + (double)aY);
+			aPoint++;
+			aCols--;
+		} while (aCols != 0);
+		aRows--;
+	} while (aRows != 0);
+}
+
+void Board::UpdateLevelUp()
+{
+	if (mUnknown20DC != 0) {
+		// port: 0x6c6905, the board's change between levels (its tiles, the level's text and the next level's start),
+		// comes with the jumps; it draws from Rand
+		NotPorted("Board::UpdateLevelUp (0x6c6905)");
+	}
+}
+
+void Board::PlayGameMusic()
+{
+	if (mApp->mMusicInterface != nullptr)
+		mApp->mMusicInterface->StopAllMusic();
+	mApp->PlayMusic(300, false, false, mUnknown3928, mUnknown392C);
+	mUnknown3928 = 0;
+	mUnknown392C = 0;
+}
+
+void Board::LevelComplete()
+{
+	// port: 0x6b3634, the level's end and the jump into space (+0x2108, the hyperspace's 0x7181b3), comes with the
+	// jumps; it draws nothing from Rand itself
+	NotPorted("Board::LevelComplete (0x6b3634)");
+}
+
+bool Board::UpdateUnknown1660()
+{
+	int aLeft = mCols * mRows;
+	Piece** aCell = mGrid;
+	while (aLeft != 0) {
+		Piece* aPiece = *aCell;
+		aLeft--;
+		aCell++;
+		if (aPiece != nullptr) {
+			aPiece->mShakeY = 0;
+			aPiece->mShakeX = 0;
+		}
+	}
+	if (!mUnknown1660.empty()) {
+		// port: the objects at +0x1660 (they shake the gems) are not ported yet
+		NotPorted("Board::UpdateUnknown1660: the objects");
+	}
+	return !mUnknown1660.empty();
+}
+
+bool Board::UpdateUnknown2170()
+{
+	if (!mUnknown2170.empty()) {
+		// port: the objects at +0x2170 are not ported yet
+		NotPorted("Board::UpdateUnknown2170: the objects");
+	}
+	int aLeft = mCols * mRows;
+	int aGrowing = 0;
+	Piece** aCell = mGrid;
+	if (0 < aLeft) {
+		do {
+			Piece* aPiece = *aCell;
+			if (aPiece != nullptr && aPiece->IsFlagSet(1) && aPiece->mScale288 < 1.0f)
+				aGrowing++;
+			aCell++;
+			aLeft--;
+		} while (aLeft != 0);
+	}
+	return 0 < (int)mUnknown2170.size() + aGrowing;
+}
+
+void Board::CheckSettled()
+{
+	bool aShaking = UpdateUnknown1660();
+	bool aGrowing = UpdateUnknown2170();
+	bool aStill = !aGrowing && !aShaking;
+	int anIndex = 0;
+	int aRow = 0;
+	if (0 < mRows) {
+		do {
+			int aCol = 0;
+			if (0 < mCols) {
+				do {
+					Piece* aPiece = mGrid[anIndex];
+					anIndex++;
+					if (aPiece != nullptr) {
+						if (!aPiece->mBlasted) {
+							if (0.0f < aPiece->mPendingTime)
+								aStill = false;
+							if (aPiece->mBreaking) {
+								aStill = false;
+								if (mUnknown210C)
+									aPiece->mBlasted = true;
+							}
+						} else {
+							aStill = false;
+						}
+					}
+					aCol++;
+				} while (aCol < mCols);
+			}
+			aRow++;
+		} while (aRow < mRows);
+	}
+	MarkDirty();
+	if (aStill && mUnknown25A4) {
+		if (!mUnknown21DA) {
+			if (!IsBusy() && mUnknown149C.empty() && !mUnknown21D8 && mUnknown214) {
+				mUnknown214 = false;
+				// port: 0x6ba5b4 sends a traveller to a gem (Rand picks it) and the points it brings (0x70205f,
+				// 0x6a43e8) come with the travellers
+				NotPorted("Board::CheckSettled: a traveller (0x6ba5b4)");
+			}
+		} else {
+			// port: 0x6c755e, the board's refill once the gems have gone, comes with the matching; it draws from Rand
+			NotPorted("Board::CheckSettled: the refill (0x6c755e)");
+		}
+	}
+}
+
+bool Board::SettlePieces()
+{
+	bool aAllDone = true;
+	bool anExploded = false;
+	int aRow = 0;
+	if (0 < mRows) {
+		do {
+			int aCol = 0;
+			if (0 < mCols) {
+				do {
+					Piece* aPiece = GetPieceAt(aRow, aCol);
+					if (aPiece != nullptr) {
+						if (!aPiece->mUnknown1C)
+							aAllDone = false;
+						if (0 < aPiece->mUnknown88) {
+							if (aPiece->mUnknown51D) {
+								aPiece->mUnknown88 = 0;
+								aCol++;
+								continue;
+							}
+							// port: a gem's countdown to going off (its sparks, points and the effects, 0x6c1857,
+							// 0x6bf983, 0x6c0ccf) comes with the matching; it draws from Rand
+							NotPorted("Board::SettlePieces: a gem going off");
+							aAllDone = false;
+						}
+						if (0.0f < aPiece->mUnknown284) {
+							// port: 0x6c812f's +0x284 growth (a 0x104-byte object, 0x74b46e) comes with the features
+							NotPorted("Board::SettlePieces: +0x284");
+						}
+					}
+					aCol++;
+				} while (aCol < mCols);
+			}
+			aRow++;
+		} while (aRow < mRows);
+		if (anExploded) {
+			mApp->PlaySample(SOUND_BOMB_EXPLODE);
+			NotPorted("Board::SettlePieces: 0x6b3ffc");
+		}
+	}
+	if (!mUnknown1660.empty()) {
+		UpdateUnknown1660();
+		aAllDone = false;
+	}
+	if (aAllDone)
+		mUnknown1C8C = 1.0f;
+	return aAllDone;
+}
+
+void Board::FallPieces()
+{
+	if (mUnknown1C90)
+		return;
+	if (0 < mUnknown1394) {
+		mUnknown1394--;
+		return;
+	}
+	if (2 <= mUnknown20DC && mHyperspace != nullptr && mHyperspace->mTransition != 8 && mHyperspace->mTransition != 14)
+		return;
+	if (mUnknown1378 != 1)
+		return;
+	bool aStill = SettlePieces();
+	if (0 < mUnknown219C)
+		return;
+	int aLanded = 0;
+	int aLandedX = 0;
+	int aRow = mRows - 1;
+	if (-1 < aRow) {
+		do {
+			int aCol = 0;
+			if (0 < mCols) {
+				do {
+					Piece* aPiece = GetPieceAt(aRow, aCol);
+					if (aPiece == nullptr)
+						goto next;
+					if (aPiece->IsFlagSet(1) && aPiece->mScale288 < 1.0f)
+						aStill = false;
+					if (aPiece->mUnknownB0)
+						goto next;
+					// The gem moves down into the gaps under it
+					while (aPiece->mRow < mRows - 1) {
+						int aFrom = aPiece->mRow;
+						if (GetPieceAt(aFrom + 1, aPiece->mCol) != nullptr)
+							break;
+						mGrid[mCols * aFrom + aPiece->mCol] = nullptr;
+						aPiece->mRow++;
+						mGrid[mCols * aPiece->mRow + aPiece->mCol] = aPiece;
+					}
+					{
+						float aTarget;
+						if (aPiece->mUnknown534)
+							aTarget = (float)(mHeight + gGemHeight);
+						else
+							aTarget = (float)GetRowY(aRow);
+						if (!(aTarget <= aPiece->mY) || aPiece->mUnknown34 < 0.0f) {
+							mUnknown2199 = true;
+							bool anOff = aPiece->mUnknown534;
+							aStill = false;
+							if (anOff) {
+								aPiece->mX = aPiece->mPendingDX + aPiece->mX;
+								aPiece->mY = aPiece->mY + aPiece->mUnknown34;
+							} else if (aPiece->mPendingTime != 0.0f) {
+								aPiece->mUnknown34 = 0;
+							} else {
+								float aY = aPiece->mY + aPiece->mUnknown34;
+								aPiece->mY = aY;
+								// It stops on a falling gem under it and takes its speed
+								if (aPiece->mRow < mRows - 1) {
+									Piece* aBelow = GetPieceAt(aPiece->mRow + 1, aPiece->mCol);
+									if (aBelow != nullptr && !aBelow->mUnknown534) {
+										double aLimit = (double)aBelow->mY - (double)gGemHeight;
+										if (!((double)aY < aLimit) && 0.0f < aPiece->mUnknown34 && aBelow->mUnknown536) {
+											aPiece->mY = (float)aLimit;
+											aPiece->mUnknown34 = aBelow->mUnknown34;
+										}
+									}
+								}
+							}
+							if (!anOff) {
+								if (aPiece->mUnknown34 < 0.0f) {
+									// Moving up: the gems over it go no faster
+									int anAbove = aPiece->mRow;
+									while (anAbove = anAbove - 1, -1 < anAbove) {
+										Piece* anOther = GetPieceAt(anAbove, aPiece->mCol);
+										if (anOther != nullptr && anOther->mY < aPiece->mY)
+											anOther->mUnknown34 = aPiece->mUnknown34 <= anOther->mUnknown34 ? aPiece->mUnknown34 : anOther->mUnknown34;
+									}
+								} else if (!aPiece->mBreaking) {
+									// The gems over it stay a cell above it
+									int anAbove = aPiece->mRow - 1;
+									if (-1 < anAbove) {
+										do {
+											Piece* anOther = GetPieceAt(anAbove, aPiece->mCol);
+											int aLimit = Ftol((double)aPiece->mY - (double)gGemHeight);
+											if (anOther != nullptr && !anOther->mBreaking && (float)aLimit < anOther->mY)
+												anOther->mY = (float)aLimit;
+											anAbove--;
+										} while (-1 < anAbove);
+									}
+								}
+							}
+							if (aTarget <= aPiece->mY) {
+								// Landed
+								if (aPiece->mUnknown534)
+									goto next;
+								if (0.0f <= aPiece->mUnknown34) {
+									if (aPiece->mUnknown51D)
+										aPiece->mUnknown51D = false;
+									aPiece->mUnknown538 = 0;
+									aPiece->mUnknown537 = false;
+								}
+								aPiece->mUnknown34 = 0;
+								aPiece->mUnknown2C = aPiece->mRow;
+								if (!aPiece->IsFlagSet(0)) {
+									aLanded++;
+									if (!aPiece->mUnknown2E0 && mGameMode != MODE_PUZZLE) {
+										aPiece->mUnknown2E0 = true;
+										if (aPiece->IsFlagSet(9)) {
+											aPiece->mJustMade = 4;
+											mApp->PlaySample(SOUND_GEM_COUNTDOWN);
+										} else if (aPiece->IsFlagSet(1)) {
+											aPiece->mJustMade = 5;
+										}
+									}
+								}
+								int anX = Ftol(aPiece->mX);
+								aPiece->mY = aTarget;
+								aLandedX = gGemWidth / 2 + aLandedX + anX;
+								aPiece->mUnknown34 = 0;
+							} else if (aPiece->mUnknown14 != 0.0f || aPiece->mBreaking) {
+								aPiece->mUnknown34 = 0;
+							} else {
+								// Gravity
+								float anAccel = (float)((double)gApp->mScale * 0.375);
+								float aSpeed = anAccel + aPiece->mUnknown34;
+								aPiece->mUnknown34 = aSpeed;
+								if (!((float)gGemHeight > aSpeed))
+									aPiece->mUnknown34 = (float)(gGemHeight - Ftol(gApp->mScale));
+							}
+						}
+					}
+				next:
+					aCol++;
+				} while (aCol < mCols);
+			}
+			aRow--;
+		} while (-1 < aRow);
+		if (0 < aLanded && 9 < abs(mUnknown1510 - mUpdateCnt)) {
+			mUnknown1510 = mUpdateCnt;
+			mApp->PlaySoundEx(SOUND_GEM_HIT, GetPan(aLandedX / aLanded), 0.0f, 0.0f, true, true);
+		}
+	}
+	if (aStill && mUnknown2199) {
+		for (int r = 0; r < mRows; r++) {
+			for (int c = 0; c < mCols; c++) {
+				Piece* aPiece = GetPieceAt(r, c);
+				if (aPiece != nullptr)
+					aPiece->mUnknown30 = aPiece->mRow;
+			}
+		}
+		mUnknown2199 = false;
+		// port: 0x6cf3fd, the matches once the board has settled, comes with the matching; it draws from Rand
+		NotPorted("Board::FallPieces: the matches (0x6cf3fd)");
+	}
+	bool aWasMoving = mUnknown21D8;
+	mUnknown21D8 = !aStill;
+	if (!aStill)
+		mUnknown25A4 = false;
+	else if (aWasMoving)
+		gSettleCount++;
+	MarkDirty();
 }

@@ -10,6 +10,7 @@
 
 #include <SDL.h>
 
+#include <cmath>
 #include <set>
 
 using namespace Sexy;
@@ -19,6 +20,24 @@ void Sexy::NotPorted(const char* theWhat)
 	static std::set<std::string> sSaid;
 	if (sSaid.insert(theWhat).second)
 		SDL_Log("%s is not ported yet", theWhat);
+}
+
+float Sexy::gSinTable[4096];
+float Sexy::gCosTable[4096];
+
+void Sexy::MakeTrigTables()
+{
+	static bool sMade = false;  // 0xe0b691
+	if (sMade)
+		return;
+	int i = 0;
+	do {
+		double anAngle = ((double)i * 3.14159 + (double)i * 3.14159) * 0.000244140625;
+		gSinTable[i] = (float)sin(anAngle);
+		gCosTable[i] = (float)cos(anAngle);
+		i++;
+	} while (i < 0x1000);
+	sMade = true;
 }
 
 float Sexy::RandSigned()

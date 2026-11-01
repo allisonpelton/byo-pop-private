@@ -144,6 +144,7 @@ public:
 	// port (tests): newgame <mode>, a new game of that mode at once, as the mode menu would start it
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	void PlaySample(int theSoundNum) override;  // 0x7675d8
+	void PlayVoice(int theSoundId, bool theInterrupt);  // 0x767584 (slot 108): one at a time in mUnmanagedSound
 	using SexyApp::PlaySample;
 
 	// 0x75fada: the score list of a game mode (0 for mode 1, 1 for mode 3), -1 for a mode without one
