@@ -132,7 +132,7 @@ public:
 	SexyString				mAdvName;           // the adventure's player (port only)
 	Buffer					mScoreBuffer;       // +0x103ec what the Internet score list is sent: a byte and the level's seconds per level
 	MTRand					mRand;              // +0x104cc the app's generator: seeded at start, saved and loaded, never drawn from
-	DWORD					mElapsedBase;       // +0x104a8 the time already played, from a saved game
+	int						mElapsedBase;        // +0x104a8 the time already played, from a saved game
 	int						mMusicSlot;         // +0x10430 which of the two music slots is playing
 	uint8_t					mLightMask[256][256]; // +0x380
 
