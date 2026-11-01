@@ -197,6 +197,16 @@ Cassandra's three lines, the walk to the next battle and its start with its hint
 the next battle's hint match the port's picture of one update earlier (lag.py: 40 and 0 pixels left, the 40 in the
 sprites), and the rest is the enemies' sampling and the Attack button's sparkle, both above.
 
+The web build ran the same four parts' scripts (2026-11-01): the page was given `-script`, `-seed=12345` and `-drawevery`
+from the Browser pane (by wrapping `Module.callMain` before Play; the page itself has no such option), with the pilot's
+two profiles in its folder, and its screenshots were compared with the native port's by shotdiff. The tome and mini-games
+(17 shots), the battle (12, both clips) and the won battle (8) all match or differ only faintly, and so do the menus but
+for three things. The media player's spectrum differs, as it follows the browser's audio clock (above). Once, in
+three web runs, the main menu's library glow after the quit dialog was in step with the native build at every update (a
+run with a shot every 10 updates); in the other two it was three updates ahead of it, from somewhere after the media player.
+The glow pulses by the update count (MainMenu::Update), so something before it depends on the wall clock in the
+browser; not found yet (the media player's music and the pane's focus are the candidates).
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
