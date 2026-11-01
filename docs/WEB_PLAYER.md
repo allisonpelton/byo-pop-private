@@ -350,7 +350,7 @@ one; removing it removes the field, and a game with none leaves no entry. Fields
 They are one localStorage item, `byopop-settings`, a JSON object with one field per setting. A setting that is not in it
 has its default, and the default always leaves the game as it is: **"game" keeps the original's behaviour**, so the unmodded
 games stay identical to their originals. A choice is `"game"` (the default), `"on"` or `"off"`; a level is a whole number from
-0 to 100; a switch is `"on"` or `"off"` and is `"off"` by default. Setting a default removes the field. Fields that `settings.js`
+0 to 100; a switch is `"on"` or `"off"` and is `"off"` by default, except `showChat`, which is `"on"`. Setting a default removes the field. Fields that `settings.js`
 does not know are kept when it writes. Every read and write is in a try/catch: with storage blocked the pages behave as if
 nothing was set, and the controls say a setting was not kept.
 
@@ -390,6 +390,10 @@ it is for, in `FIELDS` in `web/settings.js`):
   the game's main loop and suspends the audio context, and resumes both when the tab is shown. Off must stay as it was, since
   the originals keep running in a window you cannot see. The Browser pane can be hidden while `document.hidden` stays false, so
   this does not touch the hidden-pane tests; test it by overriding `document.hidden` and dispatching `visibilitychange`.
+- `showChat` ("on" or "off", default **on**): **Show chat**. A game's page draws the chat beside the game (below it on a narrow
+  screen) unless it is off, and with it off nothing of the chat is built or started. It is the one switch that starts on, because
+  the chat is a part of the page rather than a change to a game, and it can be turned on and off while a game runs ("The chat",
+  below).
 
 **The starting volume.** Most of the games start with music and sound on, and the only way to avoid that used to be the speakers,
 so the setting says what volume every game starts at, 0 for silence, music and sound each. The page's mute
@@ -445,6 +449,18 @@ become the starting volume on at those levels (50 for the one that was left to t
 mute is what the player asked for first. The same goes for each game's own values in `games` (a game's missing values fall back on
 the site's old ones; a game that was left to itself while the site's were set gets its own "off"). Settings left to the game
 leave nothing. `tools/profilestest.js` checks it.
+
+### The chat
+
+Every game's page has one chat, the same room on all of them, in the `<aside id="chat">` that `web/shell.html` puts after the stage
+and `web/chat.js` fills. For now it is a test: the messages are made up, the ones a player sends stay in this browser, and the
+page makes no network request for it. `docs/CHAT_DESIGN.md` says how the panel and its source work, how it is laid out, and what a
+server made only of Cloudflare's services could look like. The part that touches the shell is small: the page's body is a
+`.workspace` row holding the `<main>` (the stage) and the chat, and the chat goes beside the stage only when the stage keeps the
+width it has without it, else below it (the class `chat-below` on the root element), so the canvas and its scaling are never
+changed by the chat; `Module.onGameScreen` asks the chat to work that out again when a game changes the stage's shape; the
+"Show chat" setting above turns it on and off live; and the terms card and the "Already open" card make it inert like the rest
+of the page.
 
 ### Player profiles
 
@@ -741,7 +757,7 @@ banner and a `<main>`. Buttons and links are real ones: the buttons that open a 
 
 **The keyboard.** The first thing on a game's page to take the focus is the link "Skip to game", which shows while it has the focus and moves
 it to the canvas while a game runs, else to the card that is up. The focus order then follows the page: the logo link, the bar's buttons, the
-canvas (only while a game runs: before that and after it closes it is out of the tab order and `aria-hidden`), the open card's buttons, the
+canvas (only while a game runs: before that and after it closes it is out of the tab order and `aria-hidden`), the open card's buttons, the chat, the
 panels, the footer link. The focus ring is a 2 px `:focus-visible` outline in the accent colour on every control; the canvas has a white ring
 inside the stage and an accent ring around it, so one of them shows over any picture. A panel's button has `aria-expanded` and `aria-controls`
 (the Mods button has neither while a game runs, when it opens the game's own mod menu instead, and says so with `aria-describedby`), the Sound button
@@ -761,8 +777,9 @@ listen on the window again.
 
 Tab cannot be the way out: the framework uses it (a dialog's fields, `Widget::KeyDown`), BookWorm's mod "solver" asks for a hint with it and
 TipTop moves its focus with Tab and Shift+Tab. No game uses **F6**, which in browsers and Windows applications is the key that moves between
-regions, so F6 takes the focus from the canvas to the next control on the page (the footer link, or the open panel) and Shift+F6 to the one before it
-(the Fullscreen button), as Tab and Shift+Tab would; the game never sees either key. The canvas is named "<game>, game" (`role="application"`,
+regions, so F6 takes the focus from the canvas to the next control on the page (the chat, the footer link, or the open panel) and Shift+F6 to the one
+before it (the Fullscreen button), as Tab and Shift+Tab would; the game never sees either key. The chat does the same: F6 typed in it moves the focus
+on, to the control after the chat, and Shift+F6 to the one before it, and nothing typed in it reaches the game, which takes keys only from its canvas. The canvas is named "<game>, game" (`role="application"`,
 so that a screen reader passes its keys on) and described by "Keys go to the game. F6 moves on to the next control, Shift+F6 to the one before.",
 which is also shown on the stage while the keyboard has put the focus there, until the first key goes to the game. Keys held when the focus leaves
 the canvas are let go in the game (a keyup is sent for each), as SDL only does that when the whole window loses the focus. F2 is the game's key to
