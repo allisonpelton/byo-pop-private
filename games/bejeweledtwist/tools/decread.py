@@ -24,8 +24,8 @@ for p in sorted(glob.glob('games/bejeweledtwist/docs/symbols/*.jsonl')):
         line = line.strip()
         if line and not line.startswith('//'):
             j = json.loads(line)
-            if 'name' in j:
-                names[j['addr'].lower().zfill(8)] = j['name'].replace('::', '_')
+            if 'name' in j or 'label' in j:
+                names[j['addr'].lower().zfill(8)] = j.get('name', j.get('label')).replace('::', '_')
 funcs = {}
 for line in open(os.path.join(ROOT, 'functions.jsonl'), encoding='utf-8'):
     j = json.loads(line)

@@ -16,9 +16,9 @@ pat = re.compile(r'_?DAT_([0-9a-f]{8}) = FUN_(0073e93c|0073ea05|0073ea76)\((?:(0
 seen = {}
 for m in pat.finditer(open('re/bejeweledtwist/gh/all.c', encoding='latin1').read()):
     addr, fn, idx, rid = m.groups()
-    if addr in seen and seen[addr]['name'] != rid:
+    if addr in seen and seen[addr]['label'] != rid:
         raise SystemExit('%s is %s and %s' % (addr, seen[addr]['name'], rid))
-    seen[addr] = {'addr': addr, 'name': rid}
+    seen[addr] = {'addr': addr, 'label': rid}
     if idx:
         seen[addr]['comment'] = '%s index %d' % (GETTERS[fn], int(idx, 0))
 with open('games/bejeweledtwist/docs/symbols/30_res.jsonl', 'w', newline='\n') as f:
