@@ -94,11 +94,16 @@ main menu's bare background the two differ by a median of 2 levels or less a cha
 than 8 on 0.65% of it, at edges. The JPEG art matches exactly: the original links libjpeg 6b with its default settings, and
 the port's decoder gives the same pixels.
 
-Sprites drawn through a transform (Lex and the enemies, the credits' pillars, the map's rotating rays) sit at the same place
-on both sides (no whole-pixel offset in any box measured), but some edge pixels are sampled differently: a mean difference of
-about 2.5 in the boxes measured, and under the blur no box kept more than 21 pixels off by 32. The port's transformed-image
-sampling has not been compared with the original's rasterizer line by line yet; a box that turns visible would be a fault to
-fix there.
+Sprites drawn through a transform (Lex and the enemies, the credits' creatures and fire bowl, the map's rotating rays) sit
+at the same place on both sides (no whole-pixel offset in any box measured), but their pixels are sampled differently. With
+`Is3D` 0, as the pilot runs both sides now, the original draws them with the framework's software rasterizer
+(`MemoryImage::BltMatrix`, since `DDImage::Check3D` is false without 3D), and the port draws them as the original's 3D path
+does, through its renderer. The Trojan Spearman's idle animation keeps 420 to 480 visibly different pixels in every frame
+(a pale noise over the whole sprite and a one-pixel line along an edge of a limb), and no update of the port does better: a
+screenshot at every update from 30 before to 30 after (`tools/pilot/lag.py`) finds the best match at the same update. So it
+is not timing. Whether the port should have a software path for the game's 2D mode is a shared question (the framework
+always draws the screen through its renderer); the comparison that counts for most players is with 3D on, which waits on
+origrun's `--3d on`.
 
 ### Faults the pilot found
 
@@ -116,6 +121,43 @@ the original's 3D test passes), set by the Options dialog's box, and what the sc
 the pilot's battle shows no island, like the original. Under origrun on this machine the original turns `Is3D` 1 back to 0
 and draws in software; origrun is getting a 3D-mode option. Not done: the original's question at exit after 3D was switched
 on during a session ("Hardware Acceleration Confirmation", 0x53c120).
+
+The buttons of the battle's menu, the quit dialog and every other `GameDialog` had their end caps stretched, and the new
+player's name sat in a stretched frame. The original draws a stretched `FadeButton` (0x442b10, its byte +0x12b) and that frame
+(0x482aa0) with `Graphics::DrawImageBox` (0x4f5ca0 and 0x4f5c70: the corners a third of the cel at their own size, the edges
+and the middle tiled); the port drew one stretched image. Fixed (2026-11-01). Every other caller of the two box functions
+in the port already drew a box.
+
+The hall of fame's arena list showed 0:14:40 for the authors' run to the ninth stage, where the original shows 0:14:50: the
+port's table of the ten default runs had 88000 hundredths of a second for it, the original's (0x4632a0, MakeTimeList) 89000.
+Fixed (2026-11-01); the other nine, and the ten default bonus runs, match.
+
+### Timing in the pilot
+
+Both sides are scripted by the game's update count (`tools/pilot/gen.py`). The port runs a script line "N ..." at the start
+of update N, before the widgets update, so its screenshot shows update N-1; origrun's `at N` holds the original once update
+N has run. The port's lines are therefore one update later than the original's (2026-11-01). That alone moved nothing that
+follows a click, since the click and the shots moved together.
+
+What remains is the original running one or two updates behind the port after a click, and further behind around a load,
+and it varies by an update from frame to frame. `tools/pilot/lag.py` measures it by matching each of the original's pictures
+with a port screenshot taken at every update. In the attacks clip every original frame matches a port update with 14 to 216
+pixels left on a half-size picture of the battle (the Trojan Spearman's sampling, above), one update behind and jittering by one. In the Enter! transition every
+original frame is a port frame exactly (0 pixels), two updates behind until the chapter loads and 10 to 12 behind after it:
+the curtain finishes only once it has been drawn at its last frame (`mDrawn`, set in its Draw, 0x4413b0, and read in its
+Update, 0x4411d0), so every screen behind a curtain begins at an update that depends on how often the game draws, on both
+sides. In the credits the first name shakes (`Rand() % 5` each update after a creature's `causedamage`): in the pilot's run
+the original's shot shows the port's shake of two updates earlier, but `lag.py`'s run, which draws the port at every update
+(each screenshot is a draw), matches the original's shot exactly (0 pixels over the names at the same update). So the random
+draws agree, and the difference is when the credits began.
+
+Part of the lag looks like origrun's: a click is posted while the original's window thread is suspended, with 60 ms of sleeps
+(`post_click`), and a held capture takes its own time, so the original's clock runs on and it catches up with updates it
+does not draw. Asked of the coordinator (2026-11-01). Until then these items are timing, each with its lag measured: the
+attacks clip, the Enter! transition, the credits' shake, and the Attack button's sparkle in word_rain (an effect that starts
+with the last letter's click). The title clip's frames 18 to 30 are the
+original's loading screen, shown for as long as its loading thread takes; the port loads in slices of 20 ms between frames,
+so it shows it for a different time. That runs on the wall clock on both sides and is not compared.
 
 ## Mods
 

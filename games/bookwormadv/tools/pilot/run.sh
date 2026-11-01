@@ -36,7 +36,7 @@ if [ "$which" != port ]; then
 	# its window and origrun's PrintWindow(PW_RENDERFULLCONTENT) returns that stretched picture scaled back down,
 	# blurring every edge. Marked aware, the capture is the game's own 800x600 frame (in a taller frame: 3, 32).
 	__COMPAT_LAYER="HighDpiAware${__COMPAT_LAYER:+ $__COMPAT_LAYER}" "$W/build/origrun-bin/origrun.exe" --exe "$EXE" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
-		--counter "[0x8259e4]+0x484" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
+		--3d off --counter "[0x8259e4]+0x484" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
 	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$name.orig.log" | tail -5
 	S=$W/build/origrun/$run/shots
 	python - "$S" "$P/orig" "$T/$name.txt" <<'EOF'
