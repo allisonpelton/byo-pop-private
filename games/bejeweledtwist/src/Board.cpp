@@ -9,6 +9,7 @@
 #include "Hyperspace.h"
 #include "MemoryImage.h"
 #include "Piece.h"
+#include "Points.h"
 #include "Shockwave.h"
 #include "Traveller.h"
 #include "Profile.h"
@@ -177,8 +178,9 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	mFXManager = new EffectsManager();
 	mFXManager2 = new EffectsManager();
 	mFXManager3 = new EffectsManager();
-	// port: the points manager (0x7329b7) comes with its first use
-	NotPorted("Board's PointsManager (0x7329b7)");
+	mPointsManager = new PointsManager();
+	mPointsManager->mMouseVisible = false;
+	mUnknown2624 = nullptr;
 	mApp->mWidgetManager->SetFocus(this);
 	mUnknown21B0 = 0.0f;
 	mUnknown21BC = 0.0f;
@@ -599,6 +601,8 @@ Board::~Board()
 		delete aTraveller;
 	}
 	mUnknown2170.clear();
+	RemoveWidget(mPointsManager);
+	delete mPointsManager;
 	// The same holds for the shockwaves
 	for (Shockwave* aWave : mUnknown1660)
 		delete aWave;
@@ -609,6 +613,27 @@ Board::~Board()
 	delete[] mGrid;
 	if (gBoard == this)
 		gBoard = nullptr;
+}
+
+void Board::AddedToManager(WidgetManager* theWidgetManager)
+{
+	TwistWidget::AddedToManager(theWidgetManager);
+	theWidgetManager->SetFocus(this);
+	// The tube, the floating points and the effects lie over the board, each over the last
+	mGoodTube->mZOrder = mZOrder + 1;
+	AddWidget(mGoodTube);
+	mGoodTube->mVisible = true;
+	if (mGameMode != MODE_BLITZ)
+		LayoutTube();
+	mPointsManager->mZOrder = mGoodTube->mZOrder + 1;
+	AddWidget(mPointsManager);
+	mFXManager->mZOrder = mPointsManager->mZOrder + 1;
+	AddWidget(mFXManager);
+	if (mGameMode == MODE_PUZZLE) {
+		// port: the puzzle's panel (+0x23d4, a PuzzleUI of 0x168 bytes, 0x735df7), left of the board, comes with the
+		// puzzle
+		NotPorted("Board::AddedToManager: the puzzle's panel");
+	}
 }
 
 void Board::StartGame()

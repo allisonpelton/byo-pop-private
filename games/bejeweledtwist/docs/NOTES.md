@@ -293,3 +293,5 @@ Each is a change without a visible effect in play.
   still on its way; the port deletes it there, without the points or the sparks its own destructor would add.
 - The shockwaves (+0x1660): the board's destructor frees their list without deleting them either; the port deletes
   them there.
+- A floater's +0x68 (the font layer that takes the points' own colour) is set only by 0x732a41, which nothing calls,
+  so the board's floaters read it as the heap left it; the port starts it at 0, and every layer takes its cycle's colour.

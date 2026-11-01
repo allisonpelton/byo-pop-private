@@ -11,6 +11,7 @@
 #include "GraphicsRecorder.h"
 #include "MusicInterface.h"
 #include "Piece.h"
+#include "Points.h"
 #include "Shockwave.h"
 #include "Traveller.h"
 #include "Profile.h"
@@ -54,9 +55,7 @@ void Board::Resize(int theX, int theY, int theWidth, int theHeight)
 			}
 		}
 	}
-	// port: the PointsManager is not ported yet (the original always has one)
-	if (mPointsManager != nullptr)
-		mPointsManager->Resize(0, 0, mWidth, mHeight);
+	mPointsManager->Resize(0, 0, mWidth, mHeight);
 	if (mUnknown2208 != nullptr)
 		mUnknown2208->Resize(0, 0, mWidth, mHeight);
 }

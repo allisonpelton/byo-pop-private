@@ -27,6 +27,7 @@ class Image;
 class MemoryImage;
 class Piece;
 class Traveller;
+class PointsManager;
 class Shockwave;
 class SoundInstance;
 class WinTwistApp;
@@ -588,7 +589,7 @@ public:
 	float mUnknown21BC = 0;                 // +0x21bc
 	float mUnknown21C0 = 0;                 // +0x21c0
 	int mUnknown21E0 = 0;                   // +0x21e0: 1 to 5, mostly 2
-	Widget* mPointsManager = nullptr;       // +0x21fc: the points that float up (0x158 bytes, 0x7329b7)
+	PointsManager* mPointsManager = nullptr;  // +0x21fc: the points that float up
 	float mUnknown2224 = 0;                 // +0x2224
 	float mUnknown23D8 = 0;                 // +0x23d8
 	Image* mGridBarTop = nullptr;           // +0x2588
@@ -797,6 +798,7 @@ public:
 	void LayoutTube();                            // 0x6b3da8
 	bool CountDownCounters();
 	void NextLevelMusic();                       // 0x6a496b: the next of the game's tunes
+	void AddedToManager(WidgetManager* theWidgetManager) override;  // 0x6b8aa2
 	void Update() override;                      // 0x6d6899: the game's updates for this frame, at its speed
 	void UpdateGame();                           // 0x6d090f: one update of the game
 	void Resize(int theX, int theY, int theWidth, int theHeight) override;  // 0x6a5b53: the pieces move with the grid

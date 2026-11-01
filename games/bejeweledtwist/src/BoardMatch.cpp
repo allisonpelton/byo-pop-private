@@ -4,6 +4,7 @@
 #include "GameText.h"
 #include "GoodTube.h"
 #include "Piece.h"
+#include "Points.h"
 #include "Shockwave.h"
 #include "Traveller.h"
 #include "Profile.h"
@@ -138,11 +139,127 @@ Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor
 			mUnknown37B8[aNew] = theSerial;
 			theSerial = aNew;
 		}
-		if (theSerial == -1)
+		// The points float up: a floater of the same serial (the same move's chain) takes them, else a new one
+		int aSum = mUnknown2580 * thePoints;
+		int aScaled = Ftol(std::pow((double)aMult, 0.45) * (double)aSum);
+		Points* aFloater = nullptr;
+		int aShown = aTotal;
+		if (theSerial == -1) {
 			theFirst = false;
-		// port: the points float up from theX, theY in theColor (the PointsManager at +0x21fc: a floater of the same
-		// serial takes them, else a new one in FONT_FLOATERS, sized by the points); it comes with the PointsManager
-		NotPorted("Board::AddPoints: the floating points");
+		} else {
+			for (unsigned int i = 0; i < mPointsManager->mPoints.size(); i++) {
+				Points* aPoints = mPointsManager->mPoints[i];
+				if (aPoints->mSerial == theSerial) {
+					double aGrow = (double)aPoints->mTargetScale + 0.05000000074505806;
+					aPoints->mPoints += aTotal;
+					aPoints->mTargetScale = (float)(1.2000000476837158 >= aGrow ? aGrow : 1.2000000476837158);
+					aScaled += aPoints->mUnknown1C;
+					aPoints->mLife = 1.0f;
+					aSum += aPoints->mUnknown18;
+					aFloater = aPoints;
+					aShown = aPoints->mPoints;
+					break;
+				}
+			}
+		}
+		SexyString aText = StrFormat(_S("%d"), aShown);
+		// How big the points are, 0 to 1: from 25 to 425 of them
+		double aBig = (double)(float)((double)aSum - 25.0) / 400.0;
+		float aSize = 0.0f;
+		if (!(aBig < 0.0))
+			aSize = (float)(1.0 >= aBig ? aBig : 1.0);
+		double aBigScaled = (double)(float)((double)aScaled - 25.0) / 400.0;
+		float aSizeScaled = 0.0f;
+		if (!(aBigScaled < 0.0))
+			aSizeScaled = (float)(1.0 >= aBigScaled ? aBigScaled : 1.0);
+		double aDouble = (double)aSize + (double)aSize;
+		if (!(aDouble <= 1.0))
+			aDouble = 1.0;
+		float aTargetScale = (float)(aDouble * 0.6500000357627869 + 0.550000011920929);
+		if (theY <= 120)
+			theY = 120;
+		if (aFloater == nullptr) {
+			if (FONT_FLOATERS != nullptr) {
+				aFloater = new Points(mApp, FONT_FLOATERS, aText, theX, theY, 1.0f, 0, theColor, -1);
+				aFloater->mTargetScale = aTargetScale;
+				aFloater->mSerial = theSerial;
+				aFloater->mSpring = 0.15f;
+				float aDamping = (float)((double)aSum * 0.0015 + 0.46);
+				aFloater->mDamping = aDamping;
+				if (!((double)aDamping <= 0.9620000123977661))
+					aFloater->mDamping = 0.962f;
+				aFloater->mPoints = aTotal;
+				mPointsManager->AddPoints(aFloater);
+			}
+		} else {
+			aFloater->mText = aText;
+			aFloater->Flash();
+			if (!aFloater->mDrawn) {
+				aFloater->mX = (float)(((double)theX + (double)aFloater->mX) * 0.5);
+				aFloater->mY = (float)(((double)theY + (double)aFloater->mY) * 0.5);
+			}
+		}
+		if (aFloater != nullptr) {
+			// Its layers run through the rainbow mixed with its colour, the more so the bigger the points
+			static const Color kRainbow[6] = {Color(255, 0, 0), Color(255, 255, 0), Color(0, 255, 0), Color(0, 255, 255),
+				Color(0, 0, 255), Color(255, 0, 255)};  // 0x85c498
+			aFloater->mColor = theColor;
+			aFloater->mCycles[0].mColors.clear();
+			aFloater->mCycles[1].mColors.clear();
+			float aRed = (float)theColor.mRed;
+			float aGreen = (float)theColor.mGreen;
+			float aBlue = (float)theColor.mBlue;
+			for (int k = 0; k < 6; k++) {
+				for (int aLayer = 0; aLayer < 3; aLayer++) {
+					float aMix = 0;
+					float aBright = 0;
+					float anAlpha = 0;
+					if (aLayer == 0 || aLayer == 1) {
+						double aRise = ((double)aSizeScaled - 0.30000001192092896) * 2.0;
+						aMix = (float)(0.0 > aRise ? 0.0 : (1.0 >= aRise ? aRise : 1.0));
+					}
+					if (aLayer == 0) {
+						double anOver = (double)aSizeScaled - 0.5;
+						float anExtra = (float)(0.0 <= anOver ? anOver : 0.0);
+						aBright = (k % 2 != 0) ? (float)(0.5 + (double)anExtra) : 0.5f;
+						anAlpha = 1.0f;
+					} else if (aLayer == 1) {
+						double anOver = (double)aSizeScaled - 0.10000000149011612;
+						float anExtra = (float)(anOver >= 0.0 ? anOver : 0.0);
+						aBright = (k % 2 == 0) ? 0.5f : (float)((double)anExtra + 0.5);
+						double aStrong = ((double)aSizeScaled - 0.5) * 3.0;
+						anAlpha = (float)(aStrong >= 0.0 ? aStrong : 0.0);
+					} else {
+						double anOver = (double)aSizeScaled - 1.0;
+						aMix = (float)(0.0 > anOver ? 0.0 : (anOver <= 1.0 ? anOver : 1.0));
+						aBright = 1.0f;
+						anAlpha = 0.7f;
+					}
+					double aKeep = 1.0 - (double)aMix;
+					double aR = (double)aRed * (double)aBright * aKeep;
+					double aG = (double)aGreen * (double)aBright * aKeep;
+					double aB = (double)aBlue * (double)aBright * aKeep;
+					Color aColor;
+					aColor.mRed = Ftol((255.0 >= aR ? aR : 255.0) + (double)kRainbow[k].mRed * (double)aMix);
+					aColor.mGreen = Ftol((aG <= 255.0 ? aG : 255.0) + (double)kRainbow[k].mGreen * (double)aMix);
+					aColor.mBlue = Ftol((255.0 >= aB ? aB : 255.0) + (double)kRainbow[k].mBlue * (double)aMix);
+					aColor.mAlpha = Ftol(255.0 * (double)anAlpha);
+					aFloater->mCycles[aLayer].mColors.push_back(aColor);
+				}
+			}
+			aFloater->mCycles[0].SetPosition(0.25f);
+			aFloater->mCycles[1].SetPosition(0.75f);
+			aFloater->mUnknown1C = aScaled;
+			aFloater->mFlash = (float)((double)aSize * 0.699999988079071);
+			aFloater->mUnknown18 = aSum;
+			aFloater->mUnknown188 = true;
+			double anOpacity = (double)aSizeScaled * 0.0 + 0.75;
+			if (!(1.0 >= anOpacity))
+				anOpacity = 1.0;
+			aFloater->mColor.mAlpha = Ftol(anOpacity * 255.0);
+			aFloater->mLife = (float)((double)aSize * 1.600000023841858 + 0.6000000238418579);
+			aFloater->mScale = aFloater->mTargetScale + aFloater->mTargetScale;
+		}
 	}
 	// Classic's progress: the points count less as the level's gauge fills, by the chains' multiplier
 	float aMultF = (float)aMult;
