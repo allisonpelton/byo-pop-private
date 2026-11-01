@@ -25,10 +25,13 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   (the saves they care about are backed up). An original still runs invisibly, under rundesk, from a copy under build/;
   its install folder is never written to or run in place. It counts as a game process like any other. Many copies are
   not activated (the retail CD is in storage, or activation no longer works on Windows 11): patch the copy as needed,
-  keep how it is done in private blocks, and put the patching tools in `.publishignore`. Use `tools/origrun`
-  (`docs/ORIGRUN.md`, being built) for screen captures, scripted input and focus changes once it lands. Prefer its
-  silent sound stand-ins: rundesk silences only SDL, and the user turns the speakers off for short stretches or
-  overnight when a run really needs real sound.
+  keep how it is done in private blocks, and put the patching tools in `.publishignore`. Run originals through
+  `tools/origrun` (`docs/ORIGRUN.md`; its status table says what works for each game). It captures windowed games, plays
+  scripted input and focus changes, logs and answers message boxes, and is silent by default (a dsound stand-in and a
+  Core Audio watch; rundesk silences only SDL). It does not redirect the registry or saves. It cannot stop a message
+  box's own sound or a MessageBeep, and it has no guard against URL or program launches, so a script never clicks a
+  link, "Buy" or "More Games" button. When a run really needs real sound, the user turns the speakers off for a short
+  stretch or overnight.
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
   its music and sounds on the user's speakers. The status line ends in "silent" when it is on. The terms card
