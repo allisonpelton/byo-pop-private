@@ -84,6 +84,22 @@ players dialog's choosing, adding and deleting (and a name in use), and the thre
 import, the main menu, the map, a battle, the credits, the players dialog, the mini-games' menu, a game of Word Master
 left for the hall of fame, the tome, and the window losing and regaining the focus.
 
+## Deviations from the original
+
+Each is a difference in pixels without a visible effect, measured on the screenshot pilot (2026-11-01, shotdiff's faint boxes;
+`docs/SHOTDIFF.md`, "Visible and faint").
+
+The JPEG 2000 art (the main menu's and the mini-games' screens) is decoded by OpenJPEG; the original links j2k-codec. On the
+main menu's bare background the two differ by a median of 2 levels or less a channel, by 8 at the 99th percentile, and by more
+than 8 on 0.65% of it, at edges. The JPEG art matches exactly: the original links libjpeg 6b with its default settings, and
+the port's decoder gives the same pixels.
+
+Sprites drawn through a transform (Lex and the enemies, the credits' pillars, the map's rotating rays) sit at the same place
+on both sides (no whole-pixel offset in any box measured), but some edge pixels are sampled differently: a mean difference of
+about 2.5 in the boxes measured, and under the blur no box kept more than 21 pixels off by 32. The port's transformed-image
+sampling has not been compared with the original's rasterizer line by line yet; a box that turns visible would be a fault to
+fix there.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
