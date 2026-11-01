@@ -2,14 +2,19 @@
 #include "Board.h"
 
 #include "CustomBassMusicInterface.h"
+#include "FlyingText.h"
 #include "GameText.h"
 #include "GoodTube.h"
 #include "Piece.h"
 #include "Profile.h"
+#include "Res.h"
 #include "SoundInstance.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "WidgetManager.h"
+#include "X86Math.h"
+
+#include <cmath>
 
 using namespace Sexy;
 
@@ -352,10 +357,90 @@ bool Board::IsGameOverPending()
 	return false;
 }
 
+namespace {
+
+const int gPraiseRatings[6] = {3, 6, 12, 20, 30, 45};          // 0x84e960: the least rating for each praise
+const int gPraiseSounds[6] = {951, 947, 940, 953, 957, 961};   // 0x7dbf00
+const int gPraiseImages[6] = {721, 676, 580, 725, 759, 763};   // 0x7dbf18
+
+}  // namespace
+
 void Board::CheckCombos()
 {
-	// port: 0x6bbbc2 rates the turn (0x6a5179) and shows its praise (0x6ba73a, "Good", "Excellent" and the rest);
-	// it comes with the praise
+	bool aDemo = mUnknown37C4;
 	mUnknown2228 = 0;
-	NotPorted("Board::CheckCombos (0x6bbbc2)");
+	bool aShow = !CheckLevelDone() && !aDemo;
+	if (mGameMode == MODE_BLITZ && mUnknown3458 <= (1000 / mApp->mFrameTime) * 10)
+		aShow = false;
+	int aRating = GetTurnRating();
+	int aLevel = 5;
+	if (mUnknown1F80 < 5) {
+		do {
+			if (gPraiseRatings[aLevel] <= aRating) {
+				if (0 < aLevel && !mUnknown37C4)
+					mUnknown3904 = true;
+				if (aShow)
+					ShowPraise(aLevel);
+				return;
+			}
+			aLevel--;
+		} while (mUnknown1F80 < aLevel);
+	}
+}
+
+int Board::GetTurnRating()
+{
+	mUnknown3804 = 0;
+	int aPart = mUnknown2234[74] * 2 - 1;
+	if (aPart < 0)
+		aPart = 0;
+	mUnknown3804 = aPart;
+	float aCascades;
+	if (0.0f <= (float)std::pow((double)(float)(mUnknown1508 - 1), (double)1.5f))  // 0x670a49
+		aCascades = (float)std::pow((double)(float)(mUnknown1508 - 1), (double)1.5f);
+	else
+		aCascades = 0;
+	mUnknown3804 += Ftol((double)aCascades);
+	aPart = mUnknown2234[64] * 2 - 1;
+	if (aPart < 0)
+		aPart = 0;
+	int aSum = mUnknown3804 + aPart;
+	int aPart2 = mUnknown2234[65] * 2 - 1;
+	mUnknown3804 = aSum;
+	if (aPart2 < 0)
+		aPart2 = 0;
+	int aPart3 = mUnknown2234[20] * 2 - 1;
+	mUnknown3804 = mUnknown2234[69] * mUnknown2234[69] + mUnknown2234[72] + mUnknown2234[71] + mUnknown2234[21] + aSum +
+		aPart2;
+	if (aPart3 < 0)
+		aPart3 = 0;
+	mUnknown3804 += aPart3;
+	aPart = mUnknown2234[28] * 8 - 40;
+	if (aPart < 0)
+		aPart = 0;
+	mUnknown3804 += aPart;
+	mUnknown3804 += Ftol(std::pow((double)mUnknown1F8 / 15.0, 1.5));
+	return mUnknown3804;
+}
+
+void Board::ShowPraise(int theLevel)
+{
+	if (mGameMode == MODE_CHALLENGE || mUnknown21A3 || IsBusy())
+		return;
+	if (mApp->mUnmanagedSound != nullptr) {
+		// another voice is still speaking: UpdateGame shows it once that has faded
+		mUnknown1F84 = theLevel;
+		return;
+	}
+	int aSound = gPraiseSounds[theLevel];
+	mUnknown222C = mUpdateCnt;
+	mUnknown1F80 = theLevel;
+	int anUp = Ftol((double)gApp->mScale * 250.0);
+	int aY = GetRowY(0) + (mRows * gGemHeight / 2 - anUp);
+	int aX = GetColX(0) + mCols * gGemWidth / 2;
+	FlyingText* aText =
+		new FlyingText(0, GetImageById(gPraiseImages[theLevel]), aX, aY, 1.0f, GetSoundById(aSound), 0.0f);
+	aText->mQueued = false;
+	mFlyingTexts.push_back(aText);
+	// (the original also notes the update count for each praise, 0x85a9d0, which nothing reads)
 }

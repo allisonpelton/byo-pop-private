@@ -3,6 +3,7 @@
 #include "Board.h"
 
 #include "EffectsManager.h"
+#include "FlyingText.h"
 #include "Font.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -672,8 +673,8 @@ void Board::DrawOverlay(Graphics* g)
 		}
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-	if (!mUnknown1F98.empty())
-		NotPorted("Board::DrawOverlay: the hints");
+	for (FlyingText* aText : mFlyingTexts)
+		aText->Draw(g);
 	if (mUnknown267C != nullptr)
 		NotPorted("Board::DrawOverlay: +0x267c");
 	mPointsManager->DrawOverlay(g, 0x62);

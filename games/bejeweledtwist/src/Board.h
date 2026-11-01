@@ -28,6 +28,7 @@ class MemoryImage;
 class Piece;
 class Traveller;
 class PointsManager;
+class FlyingText;
 class Shockwave;
 class SoundInstance;
 class WinTwistApp;
@@ -234,7 +235,7 @@ public:
 	float mUnknown1428 = 0;                 // +0x1428
 	float mUnknown142C = 0;                 // +0x142c
 	std::deque<TwistWidget*> mUnknown23DC;  // +0x23dc: the dialogs waiting to come up (0x6a6e36 its size)
-	std::vector<TwistWidget*> mUnknown1F98;  // +0x1f98: the hints' widgets (0x6a6d18 its size)
+	std::vector<FlyingText*> mFlyingTexts;  // +0x1f98: the praise and other words over the board (0x6a6d18 its size)
 	std::vector<TwistWidget*> mUnknown26B0;  // +0x26b0: the travellers (0x70188f; 0x6a6eaa its size)
 	// +0x1650: lights over the gems (0x2c bytes each), added by UpdateGame
 	struct Light {
@@ -782,6 +783,8 @@ public:
 	void UpdateRecords();                         // 0x6bcd96: the game's best move, cascade and score
 	bool IsGameOverPending();                     // 0x6a5626
 	void CheckCombos();                           // 0x6bbbc2: the turn's praise
+	int GetTurnRating();                          // 0x6a5179
+	void ShowPraise(int theLevel);                // 0x6ba73a: 0 to 5, from "Good" up
 	void PlayGameMusic();                         // 0x6a6a8b
 	void LevelComplete();                         // 0x6b3634
 	bool UpdateUnknown1660();                     // 0x6af497

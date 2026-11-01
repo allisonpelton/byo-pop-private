@@ -4,6 +4,7 @@
 #include "Buffer.h"
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
+#include "FlyingText.h"
 #include "GameText.h"
 #include "GoodTube.h"
 #include "Hyperspace.h"
@@ -502,7 +503,7 @@ void Board::UpdateProgress(bool theNoCheck)
 		mCounter.mUnknown48 = mUnknown178.GetOutVal();
 	}
 	if (!theNoCheck)
-		NotPorted("Board 0x6bbbc2 (after the progress)");
+		CheckCombos();
 }
 
 bool Board::CheckLevelDone()
@@ -607,6 +608,9 @@ Board::~Board()
 	for (Shockwave* aWave : mUnknown1660)
 		delete aWave;
 	mUnknown1660.clear();
+	for (FlyingText* aText : mFlyingTexts)
+		delete aText;
+	mFlyingTexts.clear();
 	delete[] mUnknown1370;
 	delete[] mUnknown135C;
 	delete[] mCells;

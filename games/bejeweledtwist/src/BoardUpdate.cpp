@@ -6,6 +6,7 @@
 #include "Compat2004.h"
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
+#include "FlyingText.h"
 #include "GoodTube.h"
 #include "Hyperspace.h"
 #include "GraphicsRecorder.h"
@@ -196,9 +197,23 @@ void Board::Update()
 		}
 	}
 	if (-1 < mUnknown1F84 && !IsBusy() && !mUnknown21A3) {
-		// port: the sound at app +0x938 fades out first, then 0x6ba73a(+0x1f84) with the replays' sounds
-		NotPorted("Board::Update: 0x6ba73a");
-		mUnknown1F84 = -1;
+		// the praise waiting for the app's voice: the voice fades out first
+		bool aShow = true;
+		if (mApp->mUnmanagedSound != nullptr) {
+			double aVolume = mApp->mUnmanagedSound->GetVolume();
+			if (0 < aVolume - 0.05) {
+				mApp->mUnmanagedSound->SetVolume(aVolume - 0.05);
+				aShow = false;
+			} else {
+				mApp->mUnmanagedSound->Stop();
+				mApp->mUnmanagedSound->Release();
+				mApp->mUnmanagedSound = nullptr;
+			}
+		}
+		if (aShow) {
+			ShowPraise(mUnknown1F84);
+			mUnknown1F84 = -1;
+		}
 	}
 	// port: the dialog at +0x2584 is not ported; while there is one, its +0x174 is taken as set
 	if (mUnknown2584 != nullptr)
@@ -465,10 +480,31 @@ void Board::UpdateGame()
 	} else if (mUnknown2208->mUnknownC8) {
 		return;
 	}
-	if (!mUnknown1F98.empty()) {
-		// port: the hints' widgets (+0x1f98) come with the tutorial
-		NotPorted("Board::UpdateGame: the hints");
+	// The first text no longer queued ends the ones before it
+	bool anUpdated = false;
+	for (int i = 0; i < (int)mFlyingTexts.size(); i++) {
+		FlyingText* aText = mFlyingTexts[i];
+		if (!aText->mQueued) {
+			for (int j = 0; j < i; j++) {
+				if (mFlyingTexts[j]->mSaid && mApp->mUnmanagedSound != nullptr) {
+					mApp->mUnmanagedSound->Stop();
+					mApp->mUnmanagedSound->Release();
+					mApp->mUnmanagedSound = nullptr;
+				}
+				mFlyingTexts[j]->mClicked = true;
+				mFlyingTexts[j]->mTextAlpha = 0;
+			}
+			anUpdated = true;
+			aText->Update();
+		}
+		if (aText->mClicked) {
+			delete aText;
+			mFlyingTexts.erase(mFlyingTexts.begin() + i);
+			i--;
+		}
 	}
+	if (!mFlyingTexts.empty() && !anUpdated)
+		mFlyingTexts[0]->mQueued = false;
 	if (0 < mUnknown1570 || mApp->mOptionsDialog != nullptr || mUnknown1FF5)
 		return;
 	if (mUnknown3900 <= 0.0f) {
