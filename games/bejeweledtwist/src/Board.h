@@ -486,6 +486,9 @@ public:
 	int mUnknown25C8 = 0;                   // +0x25c8
 	int mUnknown25CC = 0;                   // +0x25cc
 	float mUnknown25D0 = 0;                 // +0x25d0: the wait for a hint, in seconds
+	float mUnknown25D4 = 0;                 // +0x25d4: the hint's sparkles' turn
+	int mUnknown25D8 = -1;                  // +0x25d8: the hint's row (FindMove)
+	int mUnknown25DC = -1;                  // +0x25dc: the hint's column
 	Widget* mUnknown2624 = nullptr;         // +0x2624: a widget with a state at +0x160 (not yet known)
 	bool mUnknown2628 = false;              // +0x2628
 	bool mUnknown2629 = false;              // +0x2629
@@ -831,6 +834,8 @@ public:
 
 	Piece* GetPieceAt(int theRow, int theCol);   // 0x6a40c7
 	Piece* GetPieceById(int theId);              // 0x6aff38
+	bool AnyCellUnknown34();                     // 0x6a478b
+	Piece* FindHintPiece();                      // 0x6a42b4
 	void AddPieceId(int theId, Piece* thePiece); // 0x6b8c20
 	void RemovePieceId(int theId);               // 0x6b677b
 	bool IsSparkBlocked() { return mSparkBlock > 0; }  // 0x6a62d0

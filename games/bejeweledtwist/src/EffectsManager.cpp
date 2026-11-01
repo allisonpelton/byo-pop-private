@@ -6,6 +6,7 @@
 #include "EffectsManager.h"
 
 #include "Graphics.h"
+#include "GraphicsRecorder.h"
 #include "Image.h"
 #include "Res.h"
 #include "TwistUtil.h"
@@ -47,6 +48,11 @@ Effect::Effect(int theType) : mType(theType)
 		mDAlpha = -0.005f;
 		// With Direct3D a random angle: RandSigned() * pi
 		mAngle = 0;
+		break;
+	case 17:  // the hint's sparkles (Board::UpdateHint)
+		mUpdateDiv = (int)(Rand() % 4) + 3;
+		mDX = (float)((double)gApp->mScale * ((double)(float)(int)(Rand() % 20) * 0.1 - 1.0));
+		mDY = (float)((double)gApp->mScale * (double)(float)(int)(Rand() % 50) * 0.1);
 		break;
 	default:
 		LogUnportedType("constructor", mType);
@@ -150,6 +156,21 @@ void EffectsManager::Update()
 				anEffect->mScale = 0.5f;
 			break;
 		}
+		case 17:
+			anEffect->mDX = (float)((double)anEffect->mDX * 0.98);
+			anEffect->mDY = (float)((double)anEffect->mDY * 0.98);
+			if (mUpdateCnt % anEffect->mUpdateDiv == 0)
+				anEffect->mFrame = (anEffect->mFrame + 1) % 40;
+			if (anEffect->mFrame == 14)
+				anEffect->mDeleteMe = true;
+			if (anEffect->mY <= (float)mHeight && 0.0f <= anEffect->mY && anEffect->mX <= (float)mWidth &&
+				0.0f <= anEffect->mX) {
+				if (!(0.0f < anEffect->mAlpha))
+					anEffect->mDeleteMe = true;
+			} else {
+				anEffect->mDeleteMe = true;
+			}
+			break;
 		default:
 			LogUnportedType("Update", aType);
 			break;
@@ -235,6 +256,18 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 			float aScale = anEffect->mScale * anOpacity;
 			DrawImageCentered(g, IMAGE_GEM_FRUIT_SPARK, anEffect->mX, anEffect->mY, (double)anEffect->mAngle, aScale,
 				aScale);
+			break;
+		}
+		case 17: {
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColorizeImages(true);
+			anEffect->mColor.mAlpha = Ftol(anOpacity * 255.0);
+			g->SetColor(anEffect->mColor);
+			int aWidth = Ftol((double)IMAGE_SPARKLE->GetCelWidth() * (double)anEffect->mScale);
+			int aHeight = Ftol((double)IMAGE_SPARKLE->GetCelHeight() * (double)anEffect->mScale);
+			Rect aRect(Ftol(anEffect->mX) - aWidth / 2, Ftol(anEffect->mY) - aHeight / 2, aWidth, aHeight);
+			gGraphicsRecorder->DrawImageCel(g, IMAGE_SPARKLE, aRect, anEffect->mFrame);
+			g->SetColorizeImages(false);
 			break;
 		}
 		default:

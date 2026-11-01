@@ -2144,16 +2144,154 @@ void Board::UpdateUnknown248()
 
 void Board::UpdateHint()
 {
-	if (mUnknown25C8 != 0) {
-		// port: 0x6aff84, the hint's sparkles round the gems (+0x25c8 1 to 3), comes with the hints; it draws from Rand
-		NotPorted("Board::UpdateHint (0x6aff84)");
+	// 0x6aff84
+	int aState = mUnknown25C8;
+	if (aState == 1) {
+		// the hint's gems flash one after another
+		for (unsigned int i = 0; i < mUnknown25B8.size(); i++) {
+			Piece* aPiece = GetPieceById(mUnknown25B8[i]);
+			if (aPiece != nullptr)
+				aPiece->mUnknownE8 = (float)((double)(float)i * 0.25 + 0.001);
+		}
+		mUnknown25C8 = 0;
+		mUnknown25D0 = 0;
+	} else if ((unsigned int)(aState - 2) < 2) {
+		// sparkles circle the hint's cell for a turn (state 3 then flashes the gems)
+		float aTurn = (float)((double)kTwoPi * (double)0.008f + (double)mUnknown25D4);
+		mUnknown25D4 = aTurn;
+		if (kTwoPi <= aTurn) {
+			mUnknown25D4 = 0;
+			if (aState == 3) {
+				mUnknown25C8 = 1;
+			} else {
+				mUnknown25C8 = 0;
+				mUnknown25D0 = 0;
+				mUnknown25D4 = 0;
+			}
+		}
+		float anAngle = mUnknown25D4;
+		if (mUpdateCnt % 2 == 0) {
+			EffectsManager* aFXManager = mApp->mBoard->mFXManager;
+			for (int aSide = 2; aSide != 0; aSide--) {
+				Effect* anEffect = gApp->mBoard->mFXManager->AllocEffect(0x11);
+				RandSigned();
+				float aCos = cosf(anAngle);
+				float aX = (float)((double)(GetColX(mUnknown25DC) + gGemWidth) +
+					(double)gGemWidth * (double)1.25f * (double)aCos);
+				float aSin = sinf(anAngle);
+				float aY = (float)((double)(GetRowY(mUnknown25D8) + gGemHeight) +
+					(double)gGemHeight * (double)1.25f * (double)aSin);
+				anEffect->mDAlpha = -0.01f;
+				anEffect->mX = aX;
+				anEffect->mY = aY;
+				anEffect->mDY = (float)((double)anEffect->mDY * 0.0);
+				anEffect->mScale = 1.0f;
+				float aRand = RandSigned();
+				anEffect->mDY = (float)((double)fabsf(aRand) * (double)0.3f);
+				anEffect->mIsAdditive = true;
+				anEffect->mAngle = (float)((double)RandSigned() * (double)3.1415927f);
+				aFXManager->AddEffect(anEffect);
+				// and two trails of 15 behind it
+				float aTrail = (float)((double)anAngle - (double)1.5707964f);
+				aTrail = (float)((double)aTrail + (double)0.62831855f);
+				for (int aCount = 2; aCount != 0; aCount--) {
+					for (int i = 0; i < 0xf; i++) {
+						anEffect = gApp->mBoard->mFXManager->AllocEffect(0x11);
+						RandSigned();
+						anEffect->mDAlpha = -0.9f;
+						float aDist = (float)i;
+						anEffect->mX = (float)((double)cosf(aTrail) * (double)aDist * (double)1.95f + (double)aX);
+						anEffect->mY = (float)((double)sinf(aTrail) * (double)aDist * (double)1.95f + (double)aY);
+						anEffect->mScale = 1.25f;
+						aRand = RandSigned();
+						anEffect->mDY = (float)((double)fabsf(aRand) * (double)0.3f);
+						anEffect->mIsAdditive = true;
+						anEffect->mAngle = (float)((double)RandSigned() * (double)3.1415927f);
+						aFXManager->AddEffect(anEffect);
+					}
+					aTrail = (float)((double)aTrail - (double)1.2566371f);
+				}
+				anAngle = (float)((double)anAngle + (double)3.1415927f);
+			}
+		}
 	}
+}
+
+// 0x6a478b: whether a cell has its +0x34 set
+bool Board::AnyCellUnknown34()
+{
+	int aCount = mCols * mRows;
+	for (int i = 0; i < aCount; i++) {
+		if (mCells[i].mUnknown34)
+			return true;
+	}
+	return false;
+}
+
+// 0x6a42b4: the bomb with the lowest counter, else a locked gem (9.5); nullptr when there is neither
+Piece* Board::FindHintPiece()
+{
+	Piece* aBest = nullptr;
+	float aBestValue = 1000.0f;
+	int aCount = mCols * mRows;
+	for (int i = 0; i < aCount; i++) {
+		Piece* aPiece = mGrid[i];
+		if (aPiece != nullptr) {
+			float aValue = 1000.0f;
+			if (aPiece->IsFlagSet(Piece::FLAG_BOMB))
+				aValue = (float)aPiece->mBombCount;
+			else if (aPiece->IsFlagSet(Piece::FLAG_LOCKED))
+				aValue = 9.5f;
+			if (aValue < aBestValue) {
+				aBestValue = aValue;
+				aBest = aPiece;
+			}
+		}
+	}
+	return aBest;
 }
 
 void Board::ShowHint()
 {
-	// port: 0x6c32cf finds a move (0x6c14fc) and shows it; it comes with the hints
-	NotPorted("Board::ShowHint (0x6c32cf)");
+	// 0x6c32cf
+	if (AnyCellUnknown34())
+		return;
+	FindMove(&mUnknown25D8, &mUnknown25DC, false);
+	if (mUnknown25D8 < 0)
+		return;
+	// every third hint (and the first) sparkles before it flashes
+	int aHints = mUnknown25CC + 1;
+	mUnknown25C8 = aHints;
+	mUnknown25CC = aHints;
+	if (3 < aHints) {
+		mUnknown25CC = 0;
+		mUnknown25C8 = 1;
+	}
+	mUnknown25D4 = 0;
+	if (mGameMode == 1 || mGameMode == 4) {
+		bool aHasBomb = false;
+		for (unsigned int i = 0; i < mUnknown25B8.size(); i++) {
+			Piece* aPiece = GetPieceById(mUnknown25B8[i]);
+			if (aPiece != nullptr && aPiece->IsFlagSet(Piece::FLAG_BOMB))
+				aHasBomb = true;
+		}
+		Piece* aPiece;
+		// a new player's early levels point at the most urgent bomb or lock instead
+		if (mApp->mProfile->mGamesPlayed == 0 && mUnknown158 < 4 && !aHasBomb &&
+			(aPiece = FindHintPiece()) != nullptr) {
+			mUnknown25B8.clear();
+			mUnknown25B8.push_back(aPiece->mId);
+			mUnknown25C8 = 1;
+		}
+		if ((mUnknown1559 && mUnknown158 < 2) || mUnknown2004) {
+			mUnknown25C8 = 2;
+			for (unsigned int i = 0; i < mUnknown25B8.size(); i++) {
+				Piece* aHintPiece = GetPieceById(mUnknown25B8[i]);
+				if (aHintPiece != nullptr)
+					mCells[mCols * aHintPiece->mRow + aHintPiece->mCol].mUnknown40 = 0.001f;
+			}
+		}
+	}
 }
 
 void Board::UpdateToolTips()
