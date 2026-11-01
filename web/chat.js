@@ -20,10 +20,18 @@
 //        source.setUsername(name)   -> Promise of the name kept; only a source with canRename (the local one: a server takes the
 //                                      name from the account).
 //        source.close()
-//      A message is { id, t, user, text }: id a string that sorts in time order, t milliseconds since 1970, user a username, text
-//      one line of plain text. The only source today is localSource(), made up and kept in this browser; it makes no network request.
+//      A message is { id, t, user, text } and, when the sender's page is a game's, { game, tag, gameTitle }: id a string that sorts
+//      in time order, t milliseconds since 1970, user a username, text one line of plain text, game the id of the game the sender was
+//      playing (a page's id: PAGE.id in web/shell.html), tag that game's initials and gameTitle its name as they were when it was sent.
+//      The panel draws the tag from the site's own table of games (build/web/chat-games.js, below) by the game id, so what a message
+//      says about its tag or title is never drawn, and a game the table does not know has no tag. The only source today is
+//      localSource(), made up and kept in this browser; it makes no network request.
 //   3. the panel: the log (a role="log" live region), the field to write in, the username control and the disabled "Sign in with
 //      Discord". Everything a message says goes in with textContent, never as markup, and a URL stays text.
+//
+// The table of games is made by cmake/ByopopWeb.cmake (byopop_web_index) from BYOPOP_WEB_BADGES and the titles the listing page
+// shows, and written to chat-games.js beside the pages: var ByopopGames = [{ id, page, tag, title, colour }, ...]. shell.html passes
+// it to mount() with the page's own game id; this file keeps no list of games.
 //
 // Plain ES5, like the other shared page files. Every localStorage read and write is guarded. The three keys, all this file's:
 //   byopop-chat-collapsed       "1" while the viewer has the panel collapsed (remembered per browser)
@@ -35,6 +43,9 @@ var ByopopChat = (function () {
   var LIMITS = { nameMin: 2, nameMax: 32, textMax: 500, rateMs: 1000, keep: 300, page: 50 };
   var KEY_COLLAPSED = "byopop-chat-collapsed", KEY_NAME = "byopop-chat-test-name", KEY_LIVE = "byopop-chat-test-messages";
   var DEFAULT_NAME = "test_player";
+  // what a game's entry in the table, and a message's game fields, may hold (the table is the site's own and these only guard it)
+  var GAME_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/, GAME_PAGE = /^[a-z0-9][a-z0-9_-]{0,39}\.html$/, GAME_TAG = /^[A-Za-z0-9]{1,4}$/;
+  var GAME_COLOUR = /^#[0-9a-fA-F]{6}$/, GAME_COLOUR_DEFAULT = "#6b3fd1", GAME_TITLE_MAX = 100;
   var CHAT_MIN = 240, CHAT_MAX = 340;  // the chat's width beside the stage, in pixels
   var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   var MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November",
@@ -110,8 +121,60 @@ var ByopopChat = (function () {
     if (key === dayKey(new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1).getTime())) return "Yesterday, " + text;
     return text;
   }
-  // A message as an IRC line: "09:05 <alice> hello"
-  function formatLine(m) { return formatTime(m.t) + " <" + m.user + "> " + m.text; }
+  // A message as an IRC line: "09:05 [BW] <alice> hello", with the tag of the game it was sent from when the site's table (a
+  // createGames() result) knows the game, else "09:05 <alice> hello"
+  function formatLine(m, games) {
+    var g = gameOf(games, m);
+    return formatTime(m.t) + " " + (g ? "[" + g.tag + "] " : "") + "<" + m.user + "> " + m.text;
+  }
+
+  // ---------- the games ----------
+  // The games the site knows, from its table: [{ id, page, tag, title, colour }] (page a file name beside this page's, tag the
+  // initials of the listing page's badge, colour its #rrggbb, which keeps white text above 4.5 to 1). `here` is the id of the
+  // page's own game. An entry that is not well formed is left out, so that what the table says is safe to put on the page. get(id)
+  // is the entry or null; a name like "constructor" is not an entry.
+  function createGames(list, here) {
+    var byId = Object.create(null), all = [];
+    (Array.isArray(list) ? list : []).forEach(function (g) {
+      if (!g || typeof g !== "object" || typeof g.id !== "string" || !GAME_ID.test(g.id) || byId[g.id]) return;
+      if (typeof g.page !== "string" || !GAME_PAGE.test(g.page) || typeof g.tag !== "string" || !GAME_TAG.test(g.tag)) return;
+      var title = typeof g.title === "string" ? cleanText(g.title) : "";
+      if (!title || title.length > GAME_TITLE_MAX) return;
+      var entry = { id: g.id, page: g.page, tag: g.tag, title: title, colour: typeof g.colour === "string" && GAME_COLOUR.test(g.colour) ? g.colour : GAME_COLOUR_DEFAULT };
+      byId[g.id] = entry;
+      all.push(entry);
+    });
+    return {
+      here: typeof here === "string" ? here : "",
+      get: function (id) { return typeof id === "string" && byId[id] ? byId[id] : null; },
+      all: function () { return all.slice(); }
+    };
+  }
+  // a table made already, or a list to make one from
+  function asGames(x, here) { return x && typeof x.get === "function" && typeof x.all === "function" ? x : createGames(x, here); }
+  // the table's entry for the game a message says it came from, or null: no table, no game on the message, or a game the table lacks
+  function gameOf(games, m) { return games && m && typeof m.game === "string" ? games.get(m.game) : null; }
+  // The game fields a source puts on a message sent from the game `id`: the id if it is one, and the table's initials and title
+  // for it when the table knows it
+  function gameFields(games, id) {
+    if (typeof id !== "string" || !GAME_ID.test(id)) return {};
+    var g = games ? games.get(id) : null;
+    return g ? { game: id, tag: g.tag, gameTitle: g.title } : { game: id };
+  }
+  // The game fields of a stored or received message as they are kept: the id if it is a well formed one, the initials and the title
+  // if they are. A message with bad ones is kept without them.
+  function cleanGame(m) {
+    var out = {};
+    if (!m || typeof m.game !== "string" || !GAME_ID.test(m.game)) return out;
+    out.game = m.game;
+    if (typeof m.tag === "string" && GAME_TAG.test(m.tag)) out.tag = m.tag;
+    if (typeof m.gameTitle === "string") {
+      var title = cleanText(m.gameTitle);
+      if (title && title.length <= GAME_TITLE_MAX) out.gameTitle = title;
+    }
+    return out;
+  }
+  function addFields(to, from) { for (var k in from) if (Object.prototype.hasOwnProperty.call(from, k)) to[k] = from[k]; return to; }
   // The rows of a list of messages (oldest first): a { day: "YYYY-MM-DD", t } row before the first message of each day, and a
   // { msg } row for each message
   function withDays(list) {
@@ -217,9 +280,11 @@ var ByopopChat = (function () {
     };
   }
   // The made-up history as of `now`, oldest first: 34 messages for each of the SEED_DAYS days before today and the part of
-  // today's that is already past, at times of the day that never change
-  function seedMessages(now) {
+  // today's that is already past, at times of the day that never change. With a table of games (createGames) each message is from
+  // a game: most of a user's are from the game that user mostly plays, the rest from any, so that the room has a spread of games.
+  function seedMessages(now, games) {
     var rnd = mulberry32(20261030), out = [], d0 = new Date(now), index = 0, perDay = 34;
+    var list = games ? games.all() : [];
     for (var back = SEED_DAYS; back >= 0; back--) {
       for (var i = 0; i < perDay; i++) {
         var minute = 7 * 60 + 20 + Math.floor(i * 16 * 60 / perDay + rnd() * 18);
@@ -227,7 +292,12 @@ var ByopopChat = (function () {
         var user = SEED_USERS[Math.floor(rnd() * SEED_USERS.length)];
         var text = SEED_LINES[Math.floor(rnd() * SEED_LINES.length)];
         index++;
-        if (t <= now - 60000) out.push({ id: pad(t, 13) + "-s" + pad(index, 4), t: t, user: user, text: text });
+        var m = { id: pad(t, 13) + "-s" + pad(index, 4), t: t, user: user, text: text };
+        if (list.length) {
+          var r = rnd(), g = list[r < 0.7 ? (SEED_USERS.indexOf(user) * 5 + 3) % list.length : Math.floor(rnd() * list.length)];
+          addFields(m, gameFields(games, g.id));
+        }
+        if (t <= now - 60000) out.push(m);
       }
     }
     return out.sort(byTime);
@@ -245,7 +315,7 @@ var ByopopChat = (function () {
         var text = cleanText(m.text);
         if (!text || seen[m.id]) return;
         seen[m.id] = true;
-        out.push({ id: m.id, t: m.t, user: m.user, text: text });
+        out.push(addFields({ id: m.id, t: m.t, user: m.user, text: text }, cleanGame(m)));
       });
       return out;
     }
@@ -289,10 +359,12 @@ var ByopopChat = (function () {
     if (waitMs) e.waitMs = waitMs;
     return e;
   }
-  // The local test source (the interface is at the top of this file). opts, all for tests: now() (milliseconds), random(),
-  // storage (null: none), timers {set, clear}, auto (false: no messages "received" by themselves).
+  // The local test source (the interface is at the top of this file). opts: game (the id of the page's game, which every message
+  // sent here carries) and games (the site's table, a list or a createGames() result); and, all for tests: now() (milliseconds),
+  // random(), storage (null: none), timers {set, clear}, auto (false: no messages "received" by themselves).
   function localSource(opts) {
     opts = opts || {};
+    var games = asGames(opts.games, opts.game), here = typeof opts.game === "string" ? opts.game : "";
     var now = opts.now || function () { return Date.now(); };
     var rnd = opts.random || Math.random;
     var store = opts.storage !== undefined ? opts.storage : storage();
@@ -309,21 +381,22 @@ var ByopopChat = (function () {
 
     function seed() {
       var t = now(), day = dayKey(t);
-      if (seedCache.day !== day) seedCache = { day: day, list: seedMessages(t) };
+      if (seedCache.day !== day) seedCache = { day: day, list: seedMessages(t, games) };
       return seedCache.list.filter(function (m) { return m.t <= t; });
     }
     function everything() { return seed().concat(live.all()).sort(byTime); }
     function emit(kind, arg) { handlers[kind].slice().forEach(function (f) { try { f(arg); } catch (e) {} }); }
     // an id sorts in time order; the random part and the count keep two messages of the same millisecond apart, here and in another tab
-    function make(t, user, text) {
-      return { id: pad(t, 13) + "-" + pad(Math.floor(rnd() * 1679616).toString(36), 4) + (++count).toString(36), t: t, user: user, text: text };
+    function make(t, user, text, game) {
+      var m = { id: pad(t, 13) + "-" + pad(Math.floor(rnd() * 1679616).toString(36), 4) + (++count).toString(36), t: t, user: user, text: text };
+      return addFields(m, gameFields(games, game));
     }
     function pick(list) { return list[Math.floor(rnd() * list.length)]; }
     // A message "from another viewer", for the panel to show something arriving
     function simulate() {
       var user = pick(SEED_USERS), tries = 0;
       while (user === name && tries++ < 5) user = pick(SEED_USERS);
-      var m = make(now(), user, pick(SEED_LINES));
+      var listed = games.all(), m = make(now(), user, pick(SEED_LINES), listed.length ? pick(listed).id : "");
       live.add(m);
       emit("message", m);
       return m;
@@ -363,7 +436,7 @@ var ByopopChat = (function () {
           if (usernameError(name)) { reject(sendError("name", "The username is not valid.")); return; }
           var wait = limiter.take(now());
           if (wait) { reject(sendError("rate", "One message a second.", wait)); return; }
-          var m = make(now(), name, clean);
+          var m = make(now(), name, clean, here);
           live.add(m);
           if (!live.isSaved() && !warnedStorage) {
             warnedStorage = true;
@@ -406,6 +479,12 @@ var ByopopChat = (function () {
     ".bpc-list { list-style: none; margin: 0; padding: 0; }\n" +
     ".bpc-row { padding: 1px 0 1px 6ch; text-indent: -6ch; overflow-wrap: anywhere; }\n" +
     ".bpc-time { color: var(--muted); cursor: help; }\n" +
+    ".bpc-game { display: inline-block; text-indent: 0; padding: 0 5px; border-radius: 4px; background: var(--bpc-c, #6b3fd1); color: #fff;\n" +
+    "  font-size: 11.5px; font-weight: 700; line-height: 1.4; text-decoration: none; vertical-align: 1px; }\n" +
+    ".bpc-game:hover { text-decoration: underline; }\n" +
+    "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .bpc-game { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); } }\n" +
+    ":root[data-theme=\"dark\"] .bpc-game { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }\n" +
+    "@media (forced-colors: active) { .bpc-game { border: 1px solid LinkText; } }\n" +
     ".bpc-nick { font-weight: 700; color: hsl(var(--bpc-h, 260) 55% 25%); }\n" +
     ".bpc-me .bpc-nick { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }\n" +
     "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .bpc-nick { color: hsl(var(--bpc-h, 260) 70% 74%); } }\n" +
@@ -443,9 +522,10 @@ var ByopopChat = (function () {
     if (text) e.textContent = text;
     return e;
   }
-  // One message as a list item, "09:05 <alice> hello": its text is exactly formatLine(m), with the pieces in their own elements.
-  // Text goes in with textContent and text nodes only.
-  function renderRow(doc, m, me) {
+  // One message as a list item, "09:05 [BW] <alice> hello": its text is exactly formatLine(m, games), with the pieces in their own
+  // elements. Text goes in with textContent and text nodes only. The one link is the game's tag, and it is made from the site's
+  // table of games (a createGames() result) alone: its address, words and colour are the table's, never the message's.
+  function renderRow(doc, m, me, games) {
     var li = doc.createElement("li");
     li.className = "bpc-row" + (m.user === me ? " bpc-me" : "");
     var time = doc.createElement("time");
@@ -467,10 +547,32 @@ var ByopopChat = (function () {
     text.textContent = m.text;
     li.appendChild(time);
     li.appendChild(doc.createTextNode(" "));
+    var g = gameOf(games, m);
+    if (g) {
+      li.appendChild(renderGameTag(doc, g, g.id === games.here));
+      li.appendChild(doc.createTextNode(" "));
+    }
     li.appendChild(nick);
     li.appendChild(doc.createTextNode(" "));
     li.appendChild(text);
     return li;
+  }
+  // The tag of a game, "[BW]": a link to the game's page (same tab) with the game's name on hover, in the badge's colour. Its name
+  // for a screen reader is the full title and the initials (a name must hold the words the link shows). The brackets are for the eye.
+  function renderGameTag(doc, g, own) {
+    var a = doc.createElement("a"), open = doc.createElement("span"), close = doc.createElement("span");
+    a.className = "bpc-game";
+    a.setAttribute("href", g.page);
+    a.setAttribute("title", g.title);
+    a.setAttribute("aria-label", g.title + " (" + g.tag + ")");
+    if (own) a.setAttribute("aria-current", "page");
+    a.style.setProperty("--bpc-c", g.colour);
+    open.setAttribute("aria-hidden", "true"); open.textContent = "[";
+    close.setAttribute("aria-hidden", "true"); close.textContent = "]";
+    a.appendChild(open);
+    a.appendChild(doc.createTextNode(g.tag));
+    a.appendChild(close);
+    return a;
   }
   function renderDay(doc, t, now) {
     var li = doc.createElement("li"), span = doc.createElement("span");
@@ -497,10 +599,13 @@ var ByopopChat = (function () {
   //               otherwise (layout: the class "chat-below" on the root element, which the page's styles answer)
   //   onLeave     onLeave(backwards) after F6 or Shift+F6 typed in the chat: the page moves the focus to the next region
   //   visible     whether it is shown (false: it is not even built, and no source is opened, until setVisible(true))
+  //   game, games the id of the page's own game and the site's table of games (ByopopGames: a list, see above); the local source
+  //               puts the game on what it sends, and the panel draws each message's game tag from the table
   // Returns { setVisible, layout, setCollapsed, source }.
   function mount(root, opts) {
     opts = opts || {};
-    var source = opts.source || localSource();
+    var games = asGames(opts.games, opts.game);
+    var source = opts.source || localSource({ game: opts.game, games: games });
     var toggle = root.querySelector("[data-chat-toggle]"), unreadEl = root.querySelector("[data-chat-unread]"), body = root.querySelector("[data-chat-body]");
     var st = { built: false, visible: false, collapsed: false, me: "", hasMore: true, loading: false, ids: {}, list: [], unread: 0, sending: false, canRename: false };
     var limiter = createRateLimiter(LIMITS.rateMs);
@@ -522,7 +627,7 @@ var ByopopChat = (function () {
       listEl.textContent = "";
       var t = now();
       withDays(st.list).forEach(function (row) {
-        listEl.appendChild(row.msg ? renderRow(document, row.msg, st.me) : renderDay(document, row.t, t));
+        listEl.appendChild(row.msg ? renderRow(document, row.msg, st.me, games) : renderDay(document, row.t, t));
       });
       older.hidden = !st.hasMore;
       startNote.hidden = st.hasMore || !st.list.length;
@@ -540,7 +645,7 @@ var ByopopChat = (function () {
       } else {
         st.list.push(m);
         if (!last || dayKey(last.t) !== dayKey(m.t)) listEl.appendChild(renderDay(document, m.t, now()));
-        listEl.appendChild(renderRow(document, m, st.me));
+        listEl.appendChild(renderRow(document, m, st.me, games));
         startNote.hidden = st.hasMore;
       }
       if (st.collapsed) { st.unread++; showUnread(); }
@@ -838,6 +943,7 @@ var ByopopChat = (function () {
     createRateLimiter: createRateLimiter, formatTime: formatTime, formatOffset: formatOffset, formatFull: formatFull, dayKey: dayKey,
     dayLabel: dayLabel, formatLine: formatLine, withDays: withDays, hueOf: hueOf, pageOf: pageOf, byTime: byTime, validMessage: validMessage,
     seedMessages: seedMessages, SEED_USERS: SEED_USERS, SEED_LINES: SEED_LINES, createStore: createStore, localSource: localSource,
+    createGames: createGames, gameFields: gameFields, cleanGame: cleanGame, GAME_COLOUR_DEFAULT: GAME_COLOUR_DEFAULT,
     renderRow: renderRow, renderDay: renderDay, mount: mount
   };
 })();

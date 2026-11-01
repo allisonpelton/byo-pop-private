@@ -318,6 +318,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <script src="settings.js"></script>
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
+<script src="chat-games.js"></script>
 <script src="chat.js"></script>
 <script>
 (function () {
@@ -1431,7 +1432,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   function startChat() {
     if (typeof ByopopChat === "undefined") return;
     try {
-      chat = ByopopChat.mount($("chat"), { stage: $("stage"), onLeave: leaveChat, visible: setting("showChat") !== "off" });
+      // ByopopGames is the site's table of games (chat-games.js, which cmake/ByopopWeb.cmake writes beside the pages); without
+      // the file the chat draws no game tags. The messages this page sends carry this page's game, PAGE.id.
+      chat = ByopopChat.mount($("chat"), { stage: $("stage"), onLeave: leaveChat, visible: setting("showChat") !== "off",
+        game: PAGE.id, games: typeof ByopopGames !== "undefined" ? ByopopGames : [] });
     } catch (e) { console.warn("the chat could not start", e); }
   }
   startChat();

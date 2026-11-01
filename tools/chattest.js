@@ -4,12 +4,15 @@
 // a message (one line, 500 characters, nothing that hides or reorders text), the rate limit, the line, time and day formats, the
 // history (the stored messages: their cap, their checks on the way back in, two pages sharing one room, blocked storage; the made-up
 // seed; paging back with "before"), the local source (send, history, the rate limit, the name, the messages "received", a reload
-// that keeps what was sent), and that a message is put on the page as text and nothing else (a fake DOM that refuses markup, and a
-// look at the source for the ways of writing markup or reaching the network).
+// that keeps what was sent), the game tags ("[BW]" before a username: the table of games and what it lets in, the one link and where
+// it comes from, a game the site does not know, the made-up messages from a spread of games, and the generated table against the
+// badge table and the listing page's tiles), and that a message is put on the page as text and nothing else (a fake DOM that
+// refuses markup, and a look at the source for the ways of writing markup or reaching the network).
 // It prints "chattest: N checks, M failed" and exits 1 when any failed.
 "use strict";
 const fs = require("fs");
 const path = require("path");
+const vm = require("vm");
 const C = require(path.join(__dirname, "..", "web", "chat.js"));
 
 let checks = 0, failed = 0;
@@ -31,6 +34,20 @@ function fakeStorage(blocked) {
   };
 }
 const local = (y, mo, d, h, mi, s) => new Date(y, mo, d, h || 0, mi || 0, s || 0).getTime();
+// a few of the site's games, as the table (build/web/chat-games.js) lists them, for the tests
+const TABLE = [
+  { id: "bookworm", page: "bookworm.html", tag: "BW", title: "BookWorm Deluxe", colour: "#955c23" },
+  { id: "sevenseas", page: "sevenseas.html", tag: "7S", title: "Seven Seas Deluxe", colour: "#1e8080" },
+  { id: "noahsark", page: "noahsark.html", tag: "NA", title: "Noah's Ark Deluxe", colour: "#234995" },
+];
+// n made-up games
+const bigTable = (n) => Array.from({ length: n }, (_, i) => ({ id: "game" + String(i).padStart(2, "0"), page: "game" + String(i).padStart(2, "0") + ".html", tag: "G" + i, title: "Game Number " + i, colour: "#234995" }));
+// the contrast of two #rrggbb colours (WCAG)
+function contrast(a, b) {
+  const lum = (c) => { const v = [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16) / 255).map((x) => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+  const l1 = lum(a), l2 = lum(b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
 
 (async () => {
   // ---------- usernames ----------
@@ -101,6 +118,16 @@ const local = (y, mo, d, h, mi, s) => new Date(y, mo, d, h || 0, mi || 0, s || 0
   same("yesterday across a month", C.dayLabel(local(2026, 9, 31, 20), local(2026, 10, 1, 0, 5)), "Yesterday, Saturday 31 October 2026");
   same("the line", C.formatLine({ id: "x", t: t0, user: "alice", text: "hi <b>" }), "09:05 <alice> hi <b>");
   {
+    const games = C.createGames(TABLE, "bookworm");
+    const base = { id: "x", t: t0, user: "alice", text: "hi" };
+    same("the line with a game's tag", C.formatLine(Object.assign({ game: "bookworm" }, base), games), "09:05 [BW] <alice> hi");
+    same("an initialism that starts with a digit", C.formatLine(Object.assign({ game: "sevenseas" }, base), games), "09:05 [7S] <alice> hi");
+    same("no tag for a game the site does not know", C.formatLine(Object.assign({ game: "oldgame", tag: "OG", gameTitle: "Old Game" }, base), games), "09:05 <alice> hi");
+    same("no tag when the message has no game", C.formatLine(base, games), "09:05 <alice> hi");
+    same("no tag when there is no table", C.formatLine(Object.assign({ game: "bookworm" }, base)), "09:05 <alice> hi");
+    same("the message's own tag is not drawn", C.formatLine(Object.assign({ game: "bookworm", tag: "ADMIN" }, base), games), "09:05 [BW] <alice> hi");
+  }
+  {
     const msgs = [
       { id: "1", t: local(2026, 9, 28, 23, 58), user: "a_a", text: "one" }, { id: "2", t: local(2026, 9, 29, 0, 1), user: "b_b", text: "two" },
       { id: "3", t: local(2026, 9, 29, 0, 2), user: "a_a", text: "three" }, { id: "4", t: local(2026, 9, 30, 8, 0), user: "b_b", text: "four" },
@@ -113,6 +140,47 @@ const local = (y, mo, d, h, mi, s) => new Date(y, mo, d, h || 0, mi || 0, s || 0
     check("hues are 0 to 359 and always the same", hues.every((h) => h >= 0 && h < 360 && Number.isInteger(h)) && JSON.stringify(hues) === JSON.stringify(C.SEED_USERS.map(C.hueOf)));
     check("a longest name has a hue too", [C.hueOf("z".repeat(32)), C.hueOf("a.b_c".repeat(6) + "xy")].every((h) => Number.isInteger(h) && h >= 0 && h < 360));
     check("the made-up users have different hues", new Set(hues).size >= C.SEED_USERS.length - 2, hues);
+  }
+
+  // ---------- the table of games ----------
+  {
+    const g = C.createGames(TABLE, "bookworm");
+    same("the table keeps the three games, in order", g.all().map((x) => x.id), ["bookworm", "sevenseas", "noahsark"]);
+    same("an entry", g.get("sevenseas"), TABLE[1]);
+    same("the page's own game", g.here, "bookworm");
+    check("a game that is not there", g.get("nope") === null && g.get("") === null && g.get(undefined) === null && g.get(5) === null && g.get(null) === null);
+    check("a name that every object has is not a game", ["constructor", "__proto__", "toString", "hasOwnProperty", "valueOf"].every((k) => g.get(k) === null));
+    check("all() is a copy", (() => { const a = g.all(); a.pop(); return g.all().length === 3; })());
+    check("no table: empty, never an error", [undefined, null, "x", 5, {}, [], [null, 5, "x"]].every((x) => C.createGames(x).all().length === 0));
+    check("no page's game: none", C.createGames(TABLE).here === "" && C.createGames(TABLE, 5).here === "");
+    const one = (over) => C.createGames([Object.assign({}, TABLE[0], over)]).all().length;
+    check("a good entry passes the same check", one({}) === 1);
+    for (const [name, over] of [
+      ["an upper-case id", { id: "BW" }], ["an id with a space", { id: "b w" }], ["an id that starts with a dash", { id: "-bw" }], ["an id with a slash", { id: "a/b" }],
+      ["a long id", { id: "a".repeat(41) }], ["no id", { id: undefined }], ["a number for an id", { id: 5 }], ["an empty id", { id: "" }],
+      ["a javascript: page", { page: "javascript:alert(1)" }], ["a page in another folder", { page: "../x.html" }], ["a page with a folder", { page: "a/b.html" }],
+      ["a page with a query", { page: "x.html?a=1" }], ["a page with a fragment", { page: "x.html#a" }], ["an address", { page: "https://example.com/x.html" }],
+      ["a page that is not html", { page: "x.js" }], ["a page with a space", { page: "x y.html" }], ["no page", { page: undefined }],
+      ["an empty tag", { tag: "" }], ["a long tag", { tag: "ABCDE" }], ["a tag with markup", { tag: "<b>" }], ["a tag with a space", { tag: "B W" }], ["a tag with brackets", { tag: "[B]" }], ["no tag", { tag: undefined }],
+      ["no title", { title: undefined }], ["an empty title", { title: "" }], ["a blank title", { title: " \n " }], ["a long title", { title: "x".repeat(101) }], ["a number for a title", { title: 5 }],
+    ]) check("an entry with " + name + " is left out", one(over) === 0);
+    check("the same id twice is one game", C.createGames([TABLE[0], Object.assign({}, TABLE[0], { title: "Other" })]).all().length === 1 && C.createGames([TABLE[0], TABLE[0]]).get("bookworm").title === "BookWorm Deluxe");
+    check("a bad entry among good ones does not stop the rest", C.createGames([TABLE[0], null, { id: "x" }, TABLE[1]]).all().length === 2);
+    for (const bad of ["red", "#fff", "#12345g", "url(x)", "#1234567", "rgb(1,2,3)", 5, undefined, null, ""]) {
+      check("a bad colour falls back to the default: " + String(bad), C.createGames([Object.assign({}, TABLE[0], { colour: bad })]).get("bookworm").colour === C.GAME_COLOUR_DEFAULT);
+    }
+    check("the default colour keeps white text above 4.5", contrast(C.GAME_COLOUR_DEFAULT, "#ffffff") >= 4.5, contrast(C.GAME_COLOUR_DEFAULT, "#ffffff"));
+    check("an upper-case colour is fine", C.createGames([Object.assign({}, TABLE[0], { colour: "#ABCDEF" })]).get("bookworm").colour === "#ABCDEF");
+    check("a title is one clean line", C.createGames([Object.assign({}, TABLE[0], { title: " Two\nLines  here " })]).get("bookworm").title === "Two Lines here");
+    // the game fields of a message
+    same("fields for a known game", C.gameFields(g, "sevenseas"), { game: "sevenseas", tag: "7S", gameTitle: "Seven Seas Deluxe" });
+    same("fields for a game the table lacks: its id only", C.gameFields(g, "mystery_game"), { game: "mystery_game" });
+    same("fields with no table: the id only", C.gameFields(null, "bookworm"), { game: "bookworm" });
+    for (const bad of ["", "Bad Id", "a/b", undefined, null, 5, "x".repeat(41), "javascript:alert(1)"]) same("no fields for the id " + JSON.stringify(bad), C.gameFields(g, bad), {});
+    same("cleanGame keeps good fields", C.cleanGame({ game: "bookworm", tag: "BW", gameTitle: "BookWorm Deluxe", extra: 1 }), { game: "bookworm", tag: "BW", gameTitle: "BookWorm Deluxe" });
+    same("cleanGame: a bad tag or title is dropped, the id kept", C.cleanGame({ game: "bookworm", tag: "<b>x", gameTitle: "x".repeat(101) }), { game: "bookworm" });
+    same("cleanGame: a title is cleaned", C.cleanGame({ game: "bookworm", gameTitle: "a\nb" }), { game: "bookworm", gameTitle: "a b" });
+    same("cleanGame: without a good id, nothing", [C.cleanGame({ tag: "BW" }), C.cleanGame({ game: "Bad Id", tag: "BW" }), C.cleanGame({ game: 5 }), C.cleanGame(null), C.cleanGame("x")], [{}, {}, {}, {}, {}]);
   }
 
   // ---------- the stored history ----------
@@ -140,6 +208,24 @@ const local = (y, mo, d, h, mi, s) => new Date(y, mo, d, h || 0, mi || 0, s || 0
       mk(13, { text: "<img src=x onerror=1>" }),
     ] });
     same("bad entries are dropped, good ones cleaned", C.createStore(evil, KEY, 300).all().map((m) => m.text), ["m1", "a b c", "<img src=x onerror=1>"]);
+    // the game of a message: kept with it, checked on the way back in
+    {
+      const gs = fakeStorage();
+      const gstore = C.createStore(gs, KEY, 300);
+      gstore.add(mk(1, { game: "bookworm", tag: "BW", gameTitle: "BookWorm Deluxe" }));
+      gstore.add(mk(2));
+      gstore.add(mk(3, { game: "retired_game" }));
+      same("a message keeps its game through the store", C.createStore(gs, KEY, 300).all().map((m) => [m.game, m.tag, m.gameTitle]), [["bookworm", "BW", "BookWorm Deluxe"], [undefined, undefined, undefined], ["retired_game", undefined, undefined]]);
+      const gevil = fakeStorage();
+      gevil.data[KEY] = JSON.stringify({ v: 1, messages: [
+        mk(1, { game: "Bad Id", tag: "BW" }), mk(2, { game: "bookworm", tag: "<script>" }), mk(3, { game: "bookworm", gameTitle: "x".repeat(101) }), mk(4, { game: 5, tag: 6, gameTitle: 7 }),
+        mk(5, { game: "bookworm", tag: "BW", gameTitle: "a\nb" }), mk(6, { game: { x: 1 } }), mk(7, { tag: "BW", gameTitle: "No Game" }),
+      ] });
+      const got = C.createStore(gevil, KEY, 300).all();
+      same("bad game fields are dropped, the message is kept", got.map((m) => [m.text, m.game, m.tag, m.gameTitle]),
+        [["m1", undefined, undefined, undefined], ["m2", "bookworm", undefined, undefined], ["m3", "bookworm", undefined, undefined], ["m4", undefined, undefined, undefined],
+          ["m5", "bookworm", "BW", "a b"], ["m6", undefined, undefined, undefined], ["m7", undefined, undefined, undefined]]);
+    }
     for (const junk of ["{nope", "null", "[]", "5", JSON.stringify({ v: 2, messages: [mk(1)] }), JSON.stringify({ v: 1, messages: "x" }), JSON.stringify({ v: 1 })]) {
       const j = fakeStorage();
       j.data[KEY] = junk;
@@ -194,6 +280,28 @@ const local = (y, mo, d, h, mi, s) => new Date(y, mo, d, h || 0, mi || 0, s || 0
     check("early in the day, today has none yet", !early.some((m) => C.dayKey(m.t) === "2026-10-30") && early.length < a.length);
     const next = C.seedMessages(local(2026, 9, 31, 15, 0));
     check("the next day it has moved on a day", next.length === a.length && C.dayKey(next[next.length - 1].t) === "2026-10-31" && C.dayKey(next[0].t) === "2026-10-27");
+    check("with no table of games, no message has a game", a.every((m) => m.game === undefined && m.tag === undefined && m.gameTitle === undefined));
+    // with the table of the site's games: a spread of games
+    const table = C.createGames(bigTable(18));
+    const ga = C.seedMessages(now, table), gb = C.seedMessages(now, table);
+    check("with games: the same every time", JSON.stringify(ga) === JSON.stringify(gb));
+    check("with games: about the same count, valid, in time order", Math.abs(ga.length - a.length) <= 2 &&ga.every((m) => C.validMessage(m)) && ga.every((m, i) => i === 0 || C.byTime(ga[i - 1], m) < 0));
+    check("with games: every message is from a game of the table, with its tag and title", ga.every((m) => { const g = table.get(m.game); return g && m.tag === g.tag && m.gameTitle === g.title; }));
+    const used = new Set(ga.map((m) => m.game));
+    check("with games: a spread, 12 of 18 games or more", used.size >= 12, used.size);
+    check("with games: no game is more than a quarter of the room", Array.from(used).every((id) => ga.filter((m) => m.game === id).length <= ga.length / 4));
+    const perUser = {};
+    ga.forEach((m) => { (perUser[m.user] = perUser[m.user] || []).push(m.game); });
+    const talkers = Object.values(perUser).filter((games) => games.length >= 8);
+    check("with games: a user has a usual game (over 40% of their lines) but plays others too", talkers.length >= 6 && talkers.every((games) => {
+      const counts = {};
+      games.forEach((id) => { counts[id] = (counts[id] || 0) + 1; });
+      return Object.keys(counts).length >= 2 && Math.max.apply(null, Object.values(counts)) / games.length > 0.4;
+    }), talkers.map((games) => games.length));
+    const gearly = C.seedMessages(local(2026, 9, 30, 6, 0), table);
+    check("with games: earlier in the day is the same messages, without the later ones", gearly.length < ga.length && gearly.every((m) => JSON.stringify(ga.find((x) => x.id === m.id)) === JSON.stringify(m)));
+    check("with three games: still every message from one of them", C.seedMessages(now, C.createGames(TABLE)).every((m) => TABLE.some((g) => g.id === m.game)));
+    check("with one game: all from it", C.seedMessages(now, C.createGames(TABLE.slice(0, 1))).every((m) => m.game === "bookworm"));
   }
 
   // ---------- the local source ----------
@@ -325,6 +433,51 @@ const local = (y, mo, d, h, mi, s) => new Date(y, mo, d, h || 0, mi || 0, s || 0
     delete global.window;
   }
 
+  // ---------- the local source and the game it is playing ----------
+  {
+    let clock = local(2026, 9, 30, 15, 0), seq = 0;
+    const timers = { set: () => 1, clear: () => {} };
+    const mkSource = (storage, over) => C.localSource(Object.assign({ now: () => clock, random: () => ((++seq * 0.137) % 1), storage, timers, auto: false }, over || {}));
+    const shared = fakeStorage();
+    const a = mkSource(shared, { game: "sevenseas", games: TABLE });
+    await a.connect();
+    const m = await a.send("hello from one game");
+    check("send: carries the page's game, its initials and its title", m.game === "sevenseas" && m.tag === "7S" && m.gameTitle === "Seven Seas Deluxe" && C.validMessage(m), m);
+    const stored = JSON.parse(shared.data[C.KEYS.messages]).messages.find((x) => x.id === m.id);
+    check("the stored message has them too", stored && stored.game === "sevenseas" && stored.tag === "7S" && stored.gameTitle === "Seven Seas Deluxe", stored);
+    clock += 1500;
+    const b = mkSource(shared, { game: "bookworm", games: C.createGames(TABLE, "bookworm") });
+    await b.connect();
+    const hist = await b.history(500, null);
+    const seen = hist.find((x) => x.id === m.id);
+    check("another game's page has the message, still from the first game", seen && seen.game === "sevenseas" && seen.tag === "7S", seen);
+    const mb = await b.send("and a reply from another game");
+    check("and sends its own game", mb.game === "bookworm" && mb.tag === "BW" && mb.gameTitle === "BookWorm Deluxe");
+    check("the seeded history is from games too", hist.filter((x) => /-s\d{4}$/.test(x.id)).length > 100 &&hist.filter((x) => x.game && TABLE.some((g) => g.id === x.game)).length > 100);
+    clock += 1500;
+    const c = mkSource(fakeStorage(), { game: "mystery_game", games: TABLE });
+    await c.connect();
+    const mc = await c.send("from a game the site does not know");
+    check("a page whose game the table lacks: the id only, no tag or title", mc.game === "mystery_game" && mc.tag === undefined && mc.gameTitle === undefined && C.validMessage(mc), mc);
+    const d = mkSource(fakeStorage(), { game: "Bad Id!", games: TABLE });
+    await d.connect();
+    const md = await d.send("from a page with a bad game id");
+    check("a bad game id is not put on the message", md.game === undefined && md.tag === undefined && C.validMessage(md), md);
+    const e = mkSource(fakeStorage());
+    await e.connect();
+    const me = await e.send("no game at all");
+    check("no game, no table: no game fields", me.game === undefined && me.tag === undefined && me.gameTitle === undefined, me);
+    check("no table: the seed has no games", (await e.history(500, null)).every((x) => x.game === undefined));
+    const f = mkSource(fakeStorage(), { game: "bookworm", games: TABLE, auto: false });
+    await f.connect();
+    const sims = []; for (let i = 0; i < 24; i++) sims.push(f.simulate());
+    check("simulate: messages from a spread of the table's games, each with its tag", new Set(sims.map((x) => x.game)).size === 3 && sims.every((x) => { const g = TABLE.find((y) => y.id === x.game); return g && x.tag === g.tag && x.gameTitle === g.title; }), sims.map((x) => x.game));
+    const g0 = mkSource(fakeStorage());
+    await g0.connect();
+    check("simulate with no table: no game", g0.simulate().game === undefined);
+    a.close(); b.close(); c.close(); d.close(); e.close(); f.close(); g0.close();
+  }
+
   // ---------- the message put on the page ----------
   // A DOM that refuses to take markup: innerHTML and its kin throw, and every element made is recorded.
   {
@@ -362,14 +515,103 @@ const local = (y, mo, d, h, mi, s) => new Date(y, mo, d, h || 0, mi || 0, s || 0
     check("the nick has its hue", li.children[2].style.props["--bpc-h"] === String(C.hueOf("abc")));
     const day = C.renderDay(doc, t0, noon);
     check("a day separator is its words", day.textContent === "Today, Friday 30 October 2026" && /bpc-day/.test(day.className), day.textContent);
+    // ---------- the game tag: the one link ----------
+    const games = C.createGames(TABLE, "bookworm");
+    const linkOf = (li) => li.children.find((c) => c.tag === "a");
+    const madeBefore = made.filter((t) => t === "a").length;
+    {
+      const m = { id: "i", t: t0, user: "alice", text: "hi", game: "sevenseas", tag: "7S", gameTitle: "Seven Seas Deluxe" };
+      const li = C.renderRow(doc, m, "bob", games), a = linkOf(li);
+      check("a row from a known game has the tag in its line", li.textContent === C.formatLine(m, games) && li.textContent === "09:05 [7S] <alice> hi", li.textContent);
+      check("the tag is a link to the game's page", a && a.tag === "a" && a.attrs.href === "sevenseas.html", a && a.attrs);
+      check("its hover text is the game's full title", a.attrs.title === "Seven Seas Deluxe");
+      check("its name holds the full title and the initials it shows", a.attrs["aria-label"] === "Seven Seas Deluxe (7S)");
+      const visible = a.children.filter((c) => c.attrs["aria-hidden"] !== "true").map((c) => c.textContent).join("");
+      const norm = (x) => x.toLowerCase().replace(/[^a-z0-9 ]/g, "");
+      check("the name contains the words the link shows (label in name)", visible === "7S" && norm(a.attrs["aria-label"]).indexOf(norm(visible)) >= 0, visible);
+      check("the brackets are for the eye only", a.children[0].attrs["aria-hidden"] === "true" && a.children[0].textContent === "[" && a.children[2].attrs["aria-hidden"] === "true" && a.children[2].textContent === "]");
+      check("it opens in the same tab: no target, no rel", a.attrs.target === undefined && a.attrs.rel === undefined && a.attrs.download === undefined);
+      check("its colour is the badge's, and its class is the tag's", a.style.props["--bpc-c"] === "#1e8080" && /bpc-game/.test(a.className));
+      check("it is not the current page's game here", a.attrs["aria-current"] === undefined);
+      check("the order is time, tag, name, text", li.children[0].tag === "time" && li.children[2] === a && li.children[4].children[1].textContent === "alice" && li.children[6].textContent === "hi");
+      const own = linkOf(C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "bookworm" }, "bob", games));
+      check("the page's own game is marked as the current page", own.attrs["aria-current"] === "page" && own.attrs.href === "bookworm.html" && own.textContent === "[BW]");
+      check("a title with an apostrophe goes in as it is", linkOf(C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "noahsark" }, "bob", games)).attrs.title === "Noah's Ark Deluxe");
+    }
+    {
+      // what the message says about its tag is never drawn: the table is the site's
+      const forged = { id: "i", t: t0, user: "alice", text: "hi", game: "bookworm", tag: "ADMIN", gameTitle: "<b>Official</b>" };
+      const li = C.renderRow(doc, forged, "bob", games), a = linkOf(li);
+      check("a forged tag and title are not drawn: the table's are", a.textContent === "[BW]" && a.attrs.title === "BookWorm Deluxe" && li.textContent.indexOf("ADMIN") < 0 && li.textContent.indexOf("Official") < 0, li.textContent);
+      // a game the site does not know has no tag and no link
+      for (const unknown of [{ game: "oldgame", tag: "OG", gameTitle: "Old Game" }, { game: "javascript:alert(1)", tag: "JS" }, { game: "constructor" }, { game: "__proto__" }, { game: 5 }, { game: null }, { game: { id: "bookworm" } }, { game: ["bookworm"] }, { tag: "BW", gameTitle: "BookWorm Deluxe" }, {}]) {
+        const m = Object.assign({ id: "i", t: t0, user: "alice", text: "hi" }, unknown);
+        const row = C.renderRow(doc, m, "bob", games);
+        check("no tag and no link for " + JSON.stringify(unknown), !linkOf(row) && row.textContent === "09:05 <alice> hi", row.textContent);
+      }
+      const noTable = C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "bookworm" }, "bob");
+      check("no table: no tag and no link", !linkOf(noTable) && noTable.textContent === "09:05 <alice> hi");
+      check("an entry the table refused has no link", !linkOf(C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "bookworm" }, "bob", C.createGames([Object.assign({}, TABLE[0], { page: "javascript:alert(1)" })]))));
+      // the text of the message is still only text, with a tag in front of it
+      for (const text of hostile) {
+        const m = { id: "i", t: t0, user: "abc", text, game: "bookworm" };
+        const row = C.renderRow(doc, m, "bob", games);
+        check("with a tag, the row's text is exactly the IRC line: " + text.slice(0, 20), row.textContent === C.formatLine(m, games) && row.children.filter((c) => c.tag === "a").length === 1, row.textContent);
+      }
+    }
+    check("a link was made for each row with a known game and for no other", made.filter((t) => t === "a").length - madeBefore === 4 + hostile.length, made.filter((t) => t === "a").length - madeBefore);
+    check("only li, time, span and the tag's a were made", made.every((t) => t === "li" || t === "time" || t === "span" || t === "a"), Array.from(new Set(made)));
     // the source of the file: no way to write markup, no way to reach the network
     const src = fs.readFileSync(path.join(__dirname, "..", "web", "chat.js"), "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "").replace(/\s\/\/\s.*$/, "")).join("\n");
-    for (const bad of ["innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "createContextualFragment", "DOMParser", "srcdoc", "eval(", "new Function", "setAttribute(\"href\"", "createElement(\"a\")", "createElement(\"img\")", "make(\"a\"", "make(\"img\""]) {
+    for (const bad of ["innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "createContextualFragment", "DOMParser", "srcdoc", "eval(", "new Function", "createElement(\"img\")", "make(\"a\"", "make(\"img\"", "location", "window.open", "\"target\"", "\"rel\""]) {
       check("chat.js never uses " + bad, src.indexOf(bad) < 0);
     }
+    const times = (needle) => src.split(needle).length - 1;
+    check("the one link is made in one place, with the table's page as its address", times("createElement(\"a\")") === 1 && times("setAttribute(\"href\"") === 1 && src.indexOf("setAttribute(\"href\", g.page)") >= 0);
+    check("nothing else is made into an address or a script source", times("href") === 1 && times(".src") === 0 && times("setAttribute(\"src\"") === 0);
+    check("the tag's text is white, on the badge's colour", /\.bpc-game \{[^}]*background: var\(--bpc-c[^}]*color: #fff;/.test(src));
     for (const net of ["fetch(", "XMLHttpRequest", "WebSocket", "EventSource", "sendBeacon", "new Image", "importScripts", "navigator.", "location.", "indexedDB", "caches."]) {
       check("chat.js makes no network request: no " + net, src.indexOf(net) < 0);
+    }
+  }
+
+  // ---------- the site's table of games: the badge table, and what the build wrote ----------
+  {
+    const root = path.join(__dirname, "..");
+    const cmake = fs.readFileSync(path.join(root, "cmake", "ByopopWeb.cmake"), "utf8");
+    const block = (/set\(BYOPOP_WEB_BADGES([\s\S]*?)\)\r?\n/.exec(cmake) || [])[1] || "";
+    const rows = Array.from(block.matchAll(/"([^"|]+)\|([^"|]+)\|(#[0-9a-fA-F]{6})"/g)).map((x) => ({ target: x[1], tag: x[2], colour: x[3] }));
+    const finished = ((/set\(BYOPOP_WEB_FINISHED([\s\S]*?)\)\r?\n/.exec(cmake) || [])[1] || "").split(/\s+/).filter(Boolean);
+    check("the badge table is read: at least the 18 games it had", rows.length >= 18, rows.length);
+    check("every finished game has a badge row", finished.length >= 18 && finished.every((t) => rows.some((r) => r.target === t)), finished.filter((t) => !rows.some((r) => r.target === t)));
+    check("the initials are unique and fit a tag", new Set(rows.map((r) => r.tag)).size === rows.length && rows.every((r) => /^[A-Za-z0-9]{1,4}$/.test(r.tag)), rows.map((r) => r.tag));
+    check("the targets are unique", new Set(rows.map((r) => r.target)).size === rows.length);
+    const low = rows.filter((r) => contrast(r.colour, "#ffffff") < 4.5);
+    check("every badge colour keeps white text above 4.5 to 1, so a tag does in both themes", low.length === 0, low);
+    // what the build wrote beside the pages (cmake/ByopopWeb.cmake, byopop_web_index): the same games as the listing page's tiles
+    const dir = process.env.BYOPOP_WEB_DIR || path.join(root, "build", "web");
+    if (fs.existsSync(path.join(dir, "index.html"))) {
+      const file = path.join(dir, "chat-games.js");
+      check("the web build has chat-games.js (configure the web build again if not)", fs.existsSync(file));
+      if (fs.existsSync(file)) {
+        let list = null;
+        try { list = vm.runInNewContext(fs.readFileSync(file, "utf8") + "\nByopopGames;", {}); } catch (err) { list = null; }
+        check("chat-games.js is a list", Array.isArray(list) && list.length >= 1, list);
+        if (Array.isArray(list)) {
+          const table = C.createGames(list);
+          check("the page accepts every entry", table.all().length === list.length, list.length - table.all().length);
+          const index = fs.readFileSync(path.join(dir, "index.html"), "utf8");
+          const unescape = (x) => x.replace(/&quot;/g, "\"").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+          const tiles = Array.from(index.matchAll(/<li class="game" style="--tile: (#[0-9a-fA-F]{6})"[^>]*data-title="([^"]*)"><a class="tile" href="([^"]+)" data-game="([^"]*)"[^>]*><span class="badge" aria-hidden="true">([^<]*)<\/span>/g))
+            .map((x) => ({ colour: x[1], title: unescape(x[2]), page: x[3], id: x[4], tag: unescape(x[5]) }));
+          check("one entry for each tile of the listing page, in its order", tiles.length === list.length && tiles.length >= 1, [tiles.length, list.length]);
+          same("the entries are the tiles': id, page, initials, colour and title", list.map((g) => ({ id: g.id, page: g.page, tag: g.tag, colour: g.colour, title: g.title })), tiles.map((x) => ({ id: x.id, page: x.page, tag: x.tag, colour: x.colour, title: x.title })));
+          check("each page is its game's target, whose badge row gave the initials and colour", list.every((g) => { const r = rows.find((x) => x.target + ".html" === g.page); return r && r.tag === g.tag && r.colour.toLowerCase() === g.colour.toLowerCase(); }));
+        }
+      }
+    } else {
+      console.log("chattest: no web build at " + dir + ", so the generated table was not compared");
     }
   }
 
