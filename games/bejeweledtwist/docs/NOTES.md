@@ -298,11 +298,18 @@ The tube (GoodTube, 0x770 bytes, 0x701efb-0x70c8b5) is drawn whole in 2D: its gl
 specks, the level's arc of lights and multiplier bulbs, the score's ticker, the twist door and the menu button. Its
 head holds the player's rank badge (Sexy::RankBadge, 0x158 bytes, +0x32c), which draws the badge at 0.4 scale while
 the tube is shown and keeps a hover and click state for its tooltip; a burst of sparks leaves it while +0x2a4 is above
-0. Still missing: the board's menu behind the button (0x6a6983), the challenges' goal and bracket, the bonus
-challenge's hint wave, the glass breaking (0x70c7ec) and the tube's text popups (+0x1cc, +0x1d0). In a first shot
-of classic play the tube matches the original except for the badge, which the port draws a little softer, as the
-framework's stretched DrawImage filters where the original's 2D stretch looks sharper; the identical-play pass looks
-at that stretch for every scaled image.
+0. Still missing: the challenges' goal and bracket, the bonus challenge's hint wave, the glass breaking (0x70c7ec)
+and the tube's text popups (+0x1cc, +0x1d0). In a first shot of classic play the tube matches the original except for
+the badge, which the port draws a little softer, as the framework's stretched DrawImage filters where the original's
+2D stretch looks sharper; the identical-play pass looks at that stretch for every scaled image.
+
+The tube's MENU button opens the options over the game (Board::ShowMenu 0x6a6983, WinTwistApp::ShowOptionsDialog
+0x75f6fc). Over a game the panel (0x69e4c5) has a return button, a quit button (the challenge button in a challenge)
+and, by the mode, restart (challenge), restart (Blitz) or How to Play. Quit asks the board's quit question (dialog 1,
+0x6b38f3), which the board answers itself (0x6c8632, its dialog listener at +0x14c); restart asks dialog 0xb, which
+the app answers. Yes to the quit question sets +0x34ec for UpdateGame's end of the game, which is not ported yet, nor
+are the restarts of a challenge (0x6c9987) and of Blitz (0x6c7a75). In the original, as in the port, Escape does not
+close How to Play.
 
 Comparing with the original in origrun's sandbox: the sandbox has no cursor, and the original's framework reads the
 real one (GetCursorPos) after posted input. So its widget manager's last mouse point (+0xe0, +0xe4) turns into the
