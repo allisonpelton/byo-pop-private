@@ -168,3 +168,5 @@ update ~250: a timer that counts down from a large leftover value shows its blas
 at -1 (no smoke). The leftovers differ with the heap, so there is nothing to copy; the effect is a second of smoke on a
 Continue, now and then. Everything else of the Continue, the level-complete screen and the next level matches (shots lc7000 and
 lc7300 are pixel-identical).
+
+The bonus screen's first message line ("Try to find the", "The Treasure is", "You Win!" and the like) is drawn at the top of the board (y 31), only the second line at the bottom (height - 0x1e); the port had both at the bottom. The Treasure Island nag's button label is the dialog's gold. Where the treasure lies (and so the direction text after a dig) differs between the original and the port in the comparison run: the original's draw count before the bonus level varies from run to run (see the new ship's cell above), so it is not compared.
