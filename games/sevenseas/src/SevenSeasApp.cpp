@@ -782,6 +782,11 @@ void SevenSeasApp::RemoveDemo()
 void SevenSeasApp::ContinueGame()
 {
 	RemoveIntro();
+	// the pirate is put away as when a new game starts: left visible, his 200 x 200 box would take the clicks of the board
+	// where it lies (0x421a10 case 0xf)
+	mTalkWidget->mMode = 0;
+	mTalking = false;
+	mTalkWidget->SetVisible(false);
 	mBoard = new Board(this, true);
 	mBoard->Resize(0xad, 0, 0x1d3, 0x1e0);
 	mWidgetManager->AddWidget(mBoard);

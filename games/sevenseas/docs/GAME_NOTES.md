@@ -154,3 +154,9 @@ there is no Is3D=0 original to compare with and no Hardware Acceleration checkbo
 renderer by what SDL gives: the same script (the first moves of the map scenario, seed 7) drawn by the accelerated renderer and
 by `SDL_RENDER_DRIVER=software` differs in 16813 pixels of a shot by at most 3 of 255, never more, so either mode is as
 close to the original's software drawing as the other.
+
+**Continue (fixed 2026-11-01).** After "Continue" the port left the pirate's talk widget visible, a 200 x 200 box at (142, 10) over the
+board that took the clicks (and hover) of every cell under it, so moves failed on some squares and showed no arrows there until a
+new game: the original's case 0xf of 0x421a10 sets its mode to 0, clears the talking flag and hides it, as a new game does. The
+likely cause of the reported "controls fail at random times". Found by loading the original's own savegame.dat (its format is the
+port's; the file the original writes at exit) and clicking a cell under the box.
