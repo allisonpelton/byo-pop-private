@@ -2,6 +2,7 @@
 // the others only what the menu needs of them.
 #include "MenuPanels.h"
 
+#include "Board.h"
 #include "ColorCycle.h"
 #include "Dialog.h"
 #include "EffectsManager.h"
@@ -1329,18 +1330,16 @@ void OptionsPanel::AddedToManager(WidgetManager* theWidgetManager)
 		AddWidget(mQuitButton);
 	if (mRestartButton != nullptr)
 		AddWidget(mRestartButton);
-	// port: a game that can be paused is paused (0x6a6ad0, 0x6af1d0(false)); it comes with the board
-	if (mApp->mBoard != nullptr)
-		NotPorted("OptionsPanel pausing the game (0x6af1d0)");
+	if (mApp->mBoard != nullptr && mApp->mBoard->IsTimed())
+		mApp->mBoard->Pause(false);
 }
 
 void OptionsPanel::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	MenuPanel::RemovedFromManager(theWidgetManager);
 	RemoveAllWidgets(false, false);
-	// port: and resumed (0x6af2be(true)); it comes with the board
-	if (mApp->mBoard != nullptr)
-		NotPorted("OptionsPanel resuming the game (0x6af2be)");
+	if (mApp->mBoard != nullptr && mApp->mBoard->IsTimed())
+		mApp->mBoard->Unpause(true);
 }
 
 void OptionsPanel::Update()

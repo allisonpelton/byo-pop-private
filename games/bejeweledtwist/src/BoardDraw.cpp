@@ -669,7 +669,7 @@ void Board::DrawOverlay(Graphics* g)
 			aTransform.Scale(aScale, (float)mUnknown26D8.GetOutVal());
 			float aY = (float)((double)(gGemHeight / 2) + (double)mUnknown26CC->mY);
 			float aX = (float)((double)(gGemWidth / 2) + (double)mUnknown26CC->mX);
-			g->DrawImageTransformF(IMAGE_BOOM_NOVA, aTransform, aX, aY);
+			g->DrawImageTransform(IMAGE_BOOM_NOVA, aTransform, aX, aY);
 			if (0.0 < mUnknown27B8.GetOutVal()) {
 				g->SetColor(Color(255, 255, 255, Ftol(mUnknown2828.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
 				aTransform.Reset();
@@ -677,7 +677,7 @@ void Board::DrawOverlay(Graphics* g)
 				aTransform.Scale(aScale, (float)mUnknown27B8.GetOutVal());
 				aY = (float)((double)(gGemHeight / 2) + (double)mUnknown26CC->mY);
 				aX = (float)((double)(gGemWidth / 2) + (double)mUnknown26CC->mX);
-				g->DrawImageTransformF(IMAGE_BOOM_NUKE, aTransform, aX, aY);
+				g->DrawImageTransform(IMAGE_BOOM_NUKE, aTransform, aX, aY);
 			}
 		}
 		g->SetColorizeImages(true);
@@ -805,7 +805,7 @@ void Board::DrawNukeGem(Graphics* g, Piece* thePiece)
 		aTransform.Scale(0.5f, 0.5f);
 		float aY = (float)((double)(gGemHeight / 2) + (double)thePiece->mY);
 		float aX = (float)((double)(gGemWidth / 2) + (double)thePiece->mX);
-		g->DrawImageTransformF(IMAGE_ANGRYBOMB, aTransform, aX, aY);
+		g->DrawImageTransform(IMAGE_ANGRYBOMB, aTransform, aX, aY);
 		g->SetColorizeImages(false);
 	}
 }

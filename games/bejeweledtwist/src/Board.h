@@ -874,6 +874,13 @@ public:
 	void BurstAt(int theX, int theY, int theRange);    // 0x6baed1
 	// 0x6b2c50: the game is over; theNuke when a counter reached zero (the board blows up), else GAME OVER shows
 	void EndGame(bool theNuke);
+	// 0x6af1d0: one more pause (+0x1570); the first stops the game's clock (+0x14e8), the tube's mouse and the danger
+	// music. theShow counts it in +0x1574 too, the pauses the player sees
+	void Pause(bool theShow);
+	// 0x6bd0d9: thePiece's counter reached zero: the second chance's wheel (WheelSpin) waits for its turn
+	void SpinWheel(Piece* thePiece);
+	// 0x6af2be: one pause less; the last restarts the clock and the music
+	void Unpause(bool theShow);
 	void GetCenter(int* theX, int* theY);  // 0x6a48c9: the grid's middle (the board's, while +0x2041 is off)
 	void SetEndState(int theState);        // 0x6b2708
 	// 0x6d045b: the board after the game, state by state (+0x26c8): the rows fall off (3), blitz's final score

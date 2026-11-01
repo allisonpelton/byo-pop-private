@@ -16,6 +16,7 @@
 #include "Points.h"
 #include "Shockwave.h"
 #include "Traveller.h"
+#include "WheelSpin.h"
 #include "Profile.h"
 #include "Ranks.h"
 #include "Res.h"
@@ -380,8 +381,7 @@ bool Board::CountDownCounters()
 			// A counter is at zero: in a challenge, blitz or for a devil gem the game ends, else the wheel comes up
 			if (!mUnknown37C4) {
 				if (mGameMode != MODE_CHALLENGE && mGameMode != MODE_BLITZ && !aLowest->IsFlagSet(Piece::FLAG_DEVIL)) {
-					// port: the second chance's wheel (0x6bd0d9) comes with it
-					NotPorted("Board::CountDownCounters: the wheel (0x6bd0d9)");
+					SpinWheel(aLowest);
 					return true;
 				}
 				if (mGameMode == MODE_CHALLENGE) {
@@ -2798,4 +2798,72 @@ void Board::UpdateNuke()
 		mUnknown15FC = true;
 		mUnknown1FF5 = true;
 	}
+}
+
+void Board::Pause(bool theShow)
+{
+	if (mUnknown1570 == 0) {
+		mUnknown14E8 += (int)((unsigned int)(mUpdateCnt - mUnknown14DC) / 100);
+		MarkDirty();
+		// (the original also sets the music visualiser's +0x1b8, app +0xc6c, which the port has not)
+		mGoodTube->mWidgetFlagsMod.mRemoveFlags |= WIDGETFLAGS_ALLOW_MOUSE;
+		if (mApp->mTwistMusic != nullptr && (mApp->mTwistMusic->mCurTrack == 300 || mApp->mTwistMusic->mCurTrack == 308))
+			mApp->mTwistMusic->PauseAllMusic();
+		if (mGameMode == MODE_BLITZ)
+			mFXManager->Clear();
+	}
+	if (theShow) {
+		if (mUnknown1574 == 0)
+			MarkDirty();
+		mUnknown1574++;
+	}
+	mUnknown1570++;
+	// 0x6a634f
+	mUnknown25B4 = 0;
+	mUnknown25AC = mUnknown25A8;
+	// The original says "Pause(): mPauseCount=%d" with OutputDebugString
+}
+
+void Board::Unpause(bool theShow)
+{
+	if (theShow && 0 < mUnknown1574) {
+		mUnknown1574--;
+		if (mUnknown1574 < 1)
+			MarkDirty();
+	}
+	if (0 < mUnknown1570) {
+		mUnknown1570--;
+		if (mUnknown1570 == 0) {
+			if (mApp->mTwistMusic != nullptr &&
+				(mApp->mTwistMusic->mCurTrack == 300 || mApp->mTwistMusic->mCurTrack == 308))
+				mApp->mTwistMusic->ResumeAllMusic();
+			mUnknown14DC = mUpdateCnt;
+			mUnknown15D4 = 1;
+			// (and unless +0x160 is 7 clears the visualiser's +0x1b8)
+		}
+	}
+	// The original says "Unpause(): mPauseCount=%d" with OutputDebugString
+}
+
+void Board::SpinWheel(Piece* thePiece)
+{
+	if (mUnknown265C != 0) {
+		// a fruit dance moves on to its end
+		mUnknown265C = 5;
+		mGoodTube->mUnknown5F0.SetCurve(GTS(0x7dc558));
+		// port: the tube's effects manager (+0x28c) is cleared, once it is ported
+	}
+	mUnknown20D0 = false;
+	if (mApp->mUnknownC74[53] == 0)  // app +0xd48: the level of the first wheel
+		mApp->mUnknownC74[53] = mUnknown158;
+	if (mUnknown2624 != nullptr) {
+		// port: +0x2624's state (+0x160) becomes 3 and its +0x14c false; it comes with that widget
+		NotPorted("Board::SpinWheel: the +0x2624 widget");
+	}
+	mApp->PlaySample(SOUND_SPINSEQUENCER1);
+	if (((mUnknown3914 >> 11) & 1) == 0) {
+		QueueTip(11, thePiece);
+		ShowNextTip();
+	}
+	mUnknown23DC.push_back(new WheelSpin(this, thePiece));
 }
