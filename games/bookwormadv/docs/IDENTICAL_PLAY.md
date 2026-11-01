@@ -4,9 +4,8 @@ This is the report on comparing the port with the original exe, screen by screen
 details of each finding are in `README.md` ("Deviations from the original", "Faults the pilot found", "Timing in the
 pilot" and "Oddities"); this page gathers them for the user.
 
-The pass is not finished. Its game-side work is done. The transformed sprites wait on the framework's 2D software path,
-and the sound outside the menus and one web timing item have not been checked against
-the original. They are described below, and this page will be brought up to date once they are done.
+The pass is done on the game's side. What remains waits on the framework (the transformed sprites, which need its 2D
+software path) or is an unexplained web timing item with no visible effect; both are described below.
 
 ## What was compared, and how
 
@@ -52,10 +51,21 @@ In the menus all 92 sounds pair up, and the music matches event for event, every
 sounds matched once two missing clicks were added (below), except one line: a click that had finished seconds before
 is released at a slightly different moment, which changes nothing audible.
 
-Not compared yet:
+The other three parts were compared the same way. In the tome and mini-games all 147 sound events and all 1115 music
+events are identical. In the first battle and the won battle all 103 sounds pair up, the music is identical (509
+events each), and every play falls at the same update with the same volume, pan and pitch. What differs is when a
+sound that has already finished is released. The original releases finished sounds as soon as the next one is played,
+while the port's framework releases them a little later. So the logs place some of these releases differently. When the
+game mutes and unmutes on losing and regaining the focus, the port also sets the volume of a few finished sounds it
+still holds (a click, a grunt). Neither is audible, and the release is the shared framework's, so the port is left
+as it is.
 
-- **Sound in the battle, the screens and the won battle.** The same comparison, still to run.
-- **The question at exit after 3D was switched on during a session** ("Hardware Acceleration Confirmation").
+**The question at exit after 3D was switched on.** The original asks it in SexyAppBase's destructor (0x53c120). It asks
+only when the player changed the 3D setting during the session, the registry held no `Is3D` value yet, the card test
+did not recommend 3D, and 3D is on. A second question comes when 3D seemed not to work. The port's renderer is always
+recommended and working, so neither question can come up, on today's machines in the original either. Looking at it
+showed a real difference, though: the original writes `Is3D` on exit only when the player changed the setting, and
+the port wrote it every time. That is fixed (below).
 
 ### 3D mode
 
@@ -105,6 +115,7 @@ the 2D comparison masks it for the same reason. Nothing in 3D mode needed a fix.
 | The mini-games showed an empty plate where the original has a greyed Submit! button | `SetAttackDisabled` and `ShowImmuneAttack` (0x41a070, 0x41a3e0) size the cels from the picture the button has | The same | 5abf844 |
 | A hint's lines stood 19 pixels apart | ArrowHint::Draw (0x4036c0) steps them by the font's ascent, 14 (0x403953) | Steps by the ascent | e389b58 |
 | The main menu's "change player" link and the answers of the game's dialogs (the New Player dialog's Cancel, the quit dialog's) made no click | MainMenu's `ButtonPress` (0x47d540) plays SOUND_CLICK2, and GameApp's (0x44b5e0), which a dialog's yes and no reach as 2000 or 3000 plus its id, plays SOUND_CLICK1 (SOUND_CLICK2 for buttons 1 and 11) | The same | b0dfa0a |
+| The port wrote `Is3D` to the registry at every exit, so a player who never touched the setting got one, and the game no longer ran its own 3D test at the next start | The original writes it in SexyAppBase's destructor (0x53c120) only under `mUserChanged3DSetting`, which a change of the 3D mode sets | Writes `Is3D` only when the Options box changed the 3D mode this session | f51d39b |
 
 The pass also changed the test tools: the pilot's scripts, the sandbox runs, exact shot timing, `lag.py`, and the load
 holds (39aaca5, 8607ebf). Besides those, it made shared origrun changes (sandbox capture, `--watch`), each merged by the
@@ -141,4 +152,7 @@ samples, so it is masked.
 
 **The web build.** It matches the native port but for the media player's spectrum, which follows the browser's audio
 clock. Also, in two of three web runs, the main menu's library glow was three updates ahead after the media player. That
-cause is not found yet; the music and the pane's focus are the candidates.
+cause is not found. The glow pulses by the update count. The one load in the port that works in wall-clock slices,
+the chapter's and the startup's, is held to the original's length in these runs. Nothing else on the way from the
+media player back to the menu reads the clock, so the music's timing in the browser and the pane's focus remain the
+candidates. Finding it needs more web runs, and since three updates of a glow have no visible effect it waits.
