@@ -15,7 +15,7 @@ namespace wb
 namespace
 {
 
-uint8_t gVisited[50][37];          // 0x6e5de0  the open cells Region_Count has been to
+uint8_t gVisited[50][37];          // 0x6e5e60  the open cells Region_Count has been to
 
 // 0x41c440: the level's weapons orbiting the ship
 int Weapons_Orbiting()
@@ -652,7 +652,7 @@ void Shooter_Firing(Shooter* theShooter)
 }
 
 // 0x41e110: a click fires a beam each way from the middle of the cell under the ship, if it is open and not yet
-// reached by a flood; with the quota met or an enemy on the ship it buzzes instead
+// reached by a flood; with an enemy on the ship it buzzes instead; once the filled share is past the quota, a click does nothing
 void Shooter_Fire(Shooter* theShooter)
 {
 	if (Weapons_Orbiting() != 0)
