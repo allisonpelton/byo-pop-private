@@ -339,7 +339,8 @@ update check, no Steam). `ClipboardRedirection`, `PrinterRedirection`, `AudioInp
 so nothing crosses through the clipboard, a printer, the microphone or a camera. `ProtectedClient` is enabled, which
 runs the sandbox's remote-desktop client in an AppContainer, in case a client is ever started. `vGPU` is disabled by
 default, so the sandbox renders in software (WARP) and shares nothing of the host's GPU driver; `--sandbox-vgpu`
-enables it for a 3D run (Microsoft notes that a shared GPU widens what the sandbox can reach of the host).
+enables it for a 3D run (Microsoft notes that a shared GPU widens what the sandbox can reach of the host). The user
+allowed it for Bookworm Adventures' 3D comparison (2026-11-01); another game's 3D runs ask the user first.
 
 There are exactly two mapped folders: the run folder, read-write, as `C:\run`, and origrun's binaries
 (`build/origrun-bin`), read-only, as `C:\origrun`. Never the install folder, the user's profile or the repository:
