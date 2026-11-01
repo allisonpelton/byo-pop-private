@@ -22,6 +22,8 @@ timeout "${PORT_TIMEOUT:-300}" "$ROOT/build/native/rundesk.exe" "$EXE" -gamedir=
 	-userdir="$(cygpath -w "$DIR/user")" -modsdir="$(cygpath -w "$DIR/mods")" -seed="$SEED" -fast \
 	-script="$(cygpath -w "$DIR/script.txt")" "$@" > "$DIR/out.txt" 2>&1
 status=$?
-# A hung run whose rundesk was killed by timeout: stop only this exe, never another checkout's
-powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='$(basename "$EXE_UNIX")'\" | Where-Object { \$_.ExecutablePath -eq '$EXE' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force; 'stopped leftover ' + \$_.ProcessId }" 2>/dev/null
+# A hung run whose rundesk was killed by timeout: stop only this run's game (its user folder is on its command line),
+# never another run's or another checkout's
+USERDIR_W="$(cygpath -w "$DIR/user")"
+powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='$(basename "$EXE_UNIX")'\" | Where-Object { \$_.ExecutablePath -eq '$EXE' -and \$_.CommandLine.Contains('$USERDIR_W') } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force; 'stopped leftover ' + \$_.ProcessId }" 2>/dev/null
 exit $status
