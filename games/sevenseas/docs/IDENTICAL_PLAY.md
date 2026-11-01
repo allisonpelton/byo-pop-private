@@ -28,7 +28,7 @@ made by editing the original's savegame.dat, which the original accepts.
 | Treasure Island nag: button label white | the dialog's gold | gold | 2dd815a |
 | The map (after level 10) never moved on: no dotted route, no second X | the map's Update counts the widget's updates and lights one more dot every 50 (0x417960) | the same | d7d0f2a |
 | The map's "Click to continue" glowed | the original's button has no component image and shows its unlit picture, the lit one under the mouse | the same | d7d0f2a |
-| At game over the pirate vanished from the high-score list | 0x420430 brings the talking pirate in front of the list (it does not stop him) | the same | GOCOMMIT |
+| At game over the pirate vanished from the high-score list | 0x420430 brings the talking pirate in front of the list (it does not stop him) | the same | 1d82ddd |
 
 ## Oddities skipped
 
