@@ -108,7 +108,8 @@ void LuaApp::ReadFromRegistry()
 void LuaApp::WriteToRegistry()
 {
 	SexyApp::WriteToRegistry();
-	RegistryWriteBoolean("Is3D", Is3DMode());
+	if (mUserChanged3DSetting)
+		RegistryWriteBoolean("Is3D", m3DMode);
 }
 
 void LuaApp::Shutdown()

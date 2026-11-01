@@ -52,14 +52,19 @@ public:
 	// debugger's E, C, Z and W to SexyApp's.
 	bool DebugKeyDown(int theKey) override;
 	void ReadFromRegistry() override;  // SexyApp's, then Is3D (the original read it as it made its window, 0x548b10)
-	void WriteToRegistry() override;   // SexyApp's, then Is3D (the original wrote it as the app closed, 0x53c120)
+	// SexyApp's, then Is3D, only if the player changed the 3D mode this session (the original wrote it as the app closed,
+	// in SexyAppBase's destructor, 0x53c120, under mUserChanged3DSetting). There, when the registry held no Is3D yet and its
+	// card test did not recommend 3D, it first asked whether to keep 3D on ("Hardware Acceleration Confirmation"), and
+	// asked again if 3D had not worked; the port's renderer is always recommended and working, so neither question comes.
+	void WriteToRegistry() override;
 
 	// The game's 3D mode, what the original's DirectDraw interface held at +0x38: the registry's Is3D, or on when there is
 	// none (the original then ran its 3D test, which a machine of today passes), and the Options dialog's 3D box. The
 	// port's renderer draws the same either way; the game and its scripts (gCApp:Is3DAccelerated()) choose by this what
 	// they draw, as the arena's midground animation, drawn only in 3D. Off on a renderer that is not accelerated.
 	bool Is3DMode() { return m3DMode && Is3DAccelerated(); }
-	void Set3DMode(bool on) { m3DMode = on; }
+	// Set3DAcclerated's bookkeeping in the original: a change marks the setting for writing on exit
+	void Set3DMode(bool on) { if (on != m3DMode) mUserChanged3DSetting = true; m3DMode = on; }
 
 	// ---- the scripts' methods ----
 	static int SafeDeleteWidget_(LuaApp* app, lua_State* L);
