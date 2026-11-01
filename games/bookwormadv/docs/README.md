@@ -100,6 +100,22 @@ about 2.5 in the boxes measured, and under the blur no box kept more than 21 pix
 sampling has not been compared with the original's rasterizer line by line yet; a box that turns visible would be a fault to
 fix there.
 
+### Faults the pilot found, not fixed yet
+
+These wait until the user has seen the review page (2026-11-01).
+
+The tome stays locked on the port's main menu (the pilot's item seen in 9 shots). The original's profile load (0x48a390)
+calls the Lua functions `_debug_profile_loaded_value` (per value) and `_debug_profile_done_loading` (at the end) whenever the
+app's flag at +0x950 is set, with no cheat check; cheat.lua's `_debug_profile_done_loading` sets UnlockedBestiary for a
+profile past the first book, so the original's menu shows the tome unlocked for the pilot's Tester. The port's
+`Profile.cpp` skips both calls ("cheats are off").
+
+The battles show a hill behind the enemy in the port only (the item seen in 5 shots, and the dimmed intro and focus-lost
+shots). arena.lua draws the midground animation (`images/pam/MG<book>-<chapter>.pam`, the island) only when
+`gCApp:Is3DAccelerated()`; otherwise the cached background and foreground alone. The port's framework reports 3D whenever
+its SDL renderer is accelerated and ignores the registry's `Is3D` (the user's is 0), so it always takes the 3D path; the
+original honours `Is3D`, and under origrun on this machine it also turns `Is3D` back to 0 when given 1 and draws in software.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
