@@ -7,6 +7,7 @@
 #include "Piece.h"
 #include "Points.h"
 #include "Shockwave.h"
+#include "SpeedText.h"
 #include "Traveller.h"
 #include "Profile.h"
 #include "Res.h"
@@ -25,6 +26,9 @@ namespace {
 // 0x84e8dc: the points of a match by its length; 0x84e900: those of a cascade by its depth (to 6)
 const int kMatchPoints[9] = {0, 0, 0, 25, 50, 100, 100, 100, 100};
 const int kCascadePoints[7] = {0, 25, 50, 75, 100, 150, 200};
+// 0x84e9e0: the speed bonus for each sixth quick match, and 0x84e9f0 the highest of them
+const int kSpeedBonusPoints[4] = {0, 500, 1000, 2000};
+const int kSpeedBonusMax = 3;
 
 } // namespace
 
@@ -1294,8 +1298,7 @@ void Board::MatchAfterMove()
 				mUnknown1FC0 = mUnknown1FB8;
 			mUnknown25B4++;
 			if (!mUnknown2629 && mGameMode != MODE_CHALLENGE) {
-				// port: 0x6c3456, the bonus for quick moves (its points through 0x6bf983), comes with the points
-				NotPorted("Board::MatchAfterMove: the quick moves' bonus (0x6c3456)");
+				SpeedBonus();
 			}
 		}
 	}
@@ -1903,4 +1906,36 @@ void Board::BreakSpecial(Piece* thePiece, bool theFlag)
 		}
 	}
 	thePiece->mBlasted = true;
+}
+
+void Board::SpeedBonus()
+{
+	if (mUnknown25B4 == 0)
+		return;
+	unsigned int aGap = (unsigned int)(mUnknown25A8 - mUnknown25B0);
+	if (100 < aGap || 150 < (unsigned int)mUnknown25AC + aGap) {
+		mUnknown25B4 = 1;
+		aGap = 0;
+	}
+	mUnknown25AC = (int)aGap;
+	mUnknown25B0 = mUnknown25A8;
+	int aLevel = mUnknown25B4 / 6;
+	if (mUnknown25B4 % 6 != 0)
+		return;
+	if (kSpeedBonusMax < aLevel)
+		aLevel = kSpeedBonusMax;
+	int aScore = mUnknown168;
+	AddPoints(-1, -1, kSpeedBonusPoints[aLevel], Color::White, -1, true, true, false, true);
+	mUnknown16C += mUnknown168 - aScore;
+	ShowSpeedText(aLevel - 1);
+}
+
+void Board::ShowSpeedText(int theLevel)
+{
+	if (mUnknown158 == 0)
+		return;
+	SpeedText* aText = new SpeedText(theLevel);
+	aText->mMouseVisible = false;
+	mUnknown23DC.push_back(aText);
+	mApp->PlaySoundEx(SOUND_SPEEDBONUS, 0, (float)theLevel + (float)theLevel, 0.0f, true, true);
 }

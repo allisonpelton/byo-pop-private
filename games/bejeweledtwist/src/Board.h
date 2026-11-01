@@ -616,7 +616,8 @@ public:
 	float mUnknown23D8 = 0;                 // +0x23d8
 	Image* mGridBarTop = nullptr;           // +0x2588
 	Image* mGridBarBot = nullptr;           // +0x258c
-	int mUnknown25AC = 0;                   // +0x25ac
+	int mUnknown25AC = 0;                   // +0x25ac: the gap before the last quick move
+	int mUnknown25B0 = 0;                   // +0x25b0: +0x25a8 at the last quick move
 	int mUnknown25B4 = 0;                   // +0x25b4
 	std::vector<int> mUnknown25B8;          // +0x25b8: the gems of the move FindMove found
 	MatchInfo mUnknown25E0;                 // +0x25e0: FindMove's match for each cell
@@ -775,6 +776,10 @@ public:
 	void ResetFruitCount();                      // 0x6b3615
 	void MatchAfterMove();                       // 0x6cf3fd: the matches once the gems have moved, and the chain
 	void PlayChainSound(int theChain);           // 0x6a674d
+	// 0x6c3456: a move's match in quick succession (+0x25b4 of them, each within 100 ticks of the last and two gaps
+	// in a row 150 at most); each sixth earns 500, 1000 or 2000 points and a banner
+	void SpeedBonus();
+	void ShowSpeedText(int theLevel);            // 0x6bc3e3: the banner and its sound
 	void Refill();                               // 0x6c755e: once the matched gems have gone
 	void StartUnknown3880();                     // 0x6b681d
 	void StartUnknown34F0();                     // 0x6b8bca: a turn ends
