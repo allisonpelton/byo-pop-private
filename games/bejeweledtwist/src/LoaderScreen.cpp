@@ -6,6 +6,7 @@
 #include "Image.h"
 #include "EffectsManager.h"
 #include "Logo.h"
+#include "Menu.h"
 #include "PlayButton.h"
 #include "Res.h"
 #include "TwistUtil.h"

@@ -2,17 +2,24 @@
 // here by their offsets in the original's object; the framework's own fields are SexyAppBase's.
 #pragma once
 
+#include "Rect.h"
 #include "SexyApp.h"
 
 #include <vector>
 
 namespace Sexy {
 
+class ButtonWidget;
 class CustomResourceManager;
 class EffectsManager;
+class Gates;
 class Hyperspace;
+class Image;
 class LoaderScreen;
+class Menu;
+class MenuButtonWidget;
 class PlayButton;
+class Profile;
 class SoundInstance;
 class Widget;
 
@@ -34,7 +41,18 @@ public:
 	bool mFlag784 = false;              // +0x784: (meaning not yet known; the loader's other buttons depend on it)
 	Widget* mBoard = nullptr;           // +0x7e4: the board while a game is on (comes with the board)
 	LoaderScreen* mLoaderScreen = nullptr;  // +0x860
-	Widget* mMainMenu = nullptr;        // +0x864 (comes with the main menu)
+	Menu* mMainMenu = nullptr;          // +0x864
+	Gates* mGates = nullptr;            // +0xc70: the main menu's gates
+	Profile* mProfile = nullptr;        // +0x7ec: the players
+	ButtonWidget* mWindowedButton = nullptr;  // +0x91c: top right, switches to a window (hidden in one)
+	Image* mFruitImage = nullptr;       // +0x904: the fruit pictures the menu chose (comes with the board)
+	Rect mFruitRect;                    // +0x908: its first cel
+	bool mResumeGame = false;           // +0x930: a saved game is resumed at once (-resume; comes with the board)
+	bool mPlayPressed = false;          // +0xf60: the menu's play button was pressed: resume the last game
+	int mLastGameMode = 0;              // +0xf64: the high scores to show after a game
+	bool mUnknownF85 = false;           // +0xf85: StartMainMenu starts a classic game at once
+	int mAutoPlayMode = -1;             // +0x1044: -autoplay's game (1 classic, 3 blitz, 4 the other), -1 none
+	float mAutoPlayDelay = 0;           // +0x1048: -autoplay starts its game when this falls to 0
 	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
 	Hyperspace* mHyperspace = nullptr;  // +0xf20: the space behind every screen
 	EffectsManager* mFXManager = nullptr;  // +0xf78: the effects over the whole screen
@@ -56,8 +74,17 @@ public:
 	void PlaySample(int theSoundNum) override;  // 0x7675d8
 	using SexyApp::PlaySample;
 
-	// 0x76657b (slot 110): the loading is done, the main menu comes up (comes with the main menu)
+	// 0x76657b (slot 110): the loading is done, the main menu comes up
 	virtual void StartMainMenu();
+	// 0x765e04: back to the main menu, with the stats of the game just played, or with the challenges
+	void ShowMainMenu(bool theEndStats, bool theChallenges, float theDelay);
+	void ShowHyperspace();      // 0x75f588: the space behind every screen, made if need be
+	void CreateGates();         // 0x75ec15
+	void CreateMainMenu();      // 0x75ecb8
+	void PlaceWindowedButton(); // 0x75e966
+	// 0x763b19: a main menu button of theImage's cels, theCover over it while it is shut, listening to the app
+	MenuButtonWidget* MakeMenuButton(Image* theImage, Image* theCover, int theId, int theX, int theY,
+		const SexyString& theLabel, const SexyString& theToolTip);
 	// The main menu's spiral button (main menu +0x2e4)
 	PlayButton* GetMainMenuPlayButton();
 

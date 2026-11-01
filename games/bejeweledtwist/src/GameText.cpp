@@ -18,14 +18,17 @@ struct GameTextEntry
 	uint32_t	mVA;
 	uint32_t	mLength;
 	uint32_t	mHash;
+	bool		mWide;		// UTF-16 (the original's L"..." texts); mLength counts bytes
 };
 
 const GameTextEntry gGameTextEntries[] =
 {
-#define GAMETEXT(theVA, theLength, theHash) {theVA, theLength, theHash},
+#define GAMETEXT(theVA, theLength, theHash) {theVA, theLength, theHash, false},
+#define GAMETEXTW(theVA, theLength, theHash) {theVA, theLength, theHash, true},
 #include "GameTextTable.inc"
+#undef GAMETEXTW
 #undef GAMETEXT
-	{0, 0, 0}
+	{0, 0, 0, false}
 };
 
 const int NUM_GAME_TEXTS = (int) (sizeof(gGameTextEntries) / sizeof(gGameTextEntries[0])) - 1;
@@ -129,10 +132,20 @@ bool Sexy::LoadGameTexts()
 			{
 				const GameTextEntry& e = gGameTextEntries[anId];
 				size_t anOffset = anImage.Offset(e.mVA);
-				if ((anOffset != 0) && (anOffset + e.mLength < aData.size()) && (aData[anOffset + e.mLength] == 0) &&
+				size_t anEnd = anOffset + e.mLength + (e.mWide ? 1 : 0);
+				if ((anOffset != 0) && (anEnd < aData.size()) && (aData[anOffset + e.mLength] == 0) &&
+					(!e.mWide || aData[anEnd] == 0) &&
 					(TextHash((const char*) &aData[anOffset], e.mLength) == e.mHash))
 				{
-					aTexts[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
+					if (e.mWide)
+					{
+						std::wstring aWide;
+						for (size_t i = 0; i < e.mLength; i += 2)
+							aWide += (wchar_t) (aData[anOffset + i] | (aData[anOffset + i + 1] << 8));
+						aTexts[e.mVA] = WStringToSexyString(aWide);
+					}
+					else
+						aTexts[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
 					aMatched++;
 				}
 				else

@@ -2,11 +2,16 @@
 #include "WinTwistApp.h"
 
 #include "CustomResourceManager.h"
+#include "ButtonWidget.h"
 #include "EffectsManager.h"
 #include "GameText.h"
+#include "Gates.h"
 #include "GraphicsRecorder.h"
 #include "Hyperspace.h"
 #include "LoaderScreen.h"
+#include "Menu.h"
+#include "MenuButtonWidget.h"
+#include "Profile.h"
 #include "Res.h"
 #include "PlayButton.h"
 #include "SoundInstance.h"
@@ -50,6 +55,7 @@ WinTwistApp::WinTwistApp()
 	mArtRes = ChooseArtRes(mAllowArtRes1200, SDL_GetSystemRAM(), aScreenHeight, 256);
 	mScale = (float)mArtRes / 1200.0f;
 
+	mProfile = new Profile();
 	delete mResourceManager;
 	mResourceManager = new CustomResourceManager(this);
 	gGraphicsRecorder = new GraphicsRecorder();
@@ -64,6 +70,19 @@ WinTwistApp::~WinTwistApp()
 		mWidgetManager->RemoveWidget(mLoaderScreen);
 		delete mLoaderScreen;
 	}
+	if (mMainMenu != nullptr) {
+		mWidgetManager->RemoveWidget(mMainMenu);
+		delete mMainMenu;
+	}
+	if (mGates != nullptr) {
+		mWidgetManager->RemoveWidget(mGates);
+		delete mGates;
+	}
+	if (mWindowedButton != nullptr) {
+		mWidgetManager->RemoveWidget(mWindowedButton);
+		delete mWindowedButton;
+	}
+	delete mProfile;
 	if (mHyperspace != nullptr) {
 		mWidgetManager->RemoveWidget(mHyperspace);
 		delete mHyperspace;
@@ -97,6 +116,18 @@ void WinTwistApp::Init()
 	LoadResourceManifest();
 	LoadGameTexts();
 
+	// The player who played last, or else the first one whose profile loads
+	SexyString aLastName;
+	mProfile->LoadUsers(&aLastName);
+	if (!aLastName.empty() && !mProfile->Select(aLastName)) {
+		aLastName = _S("");
+		if (mProfile->SelectAny()) {
+			aLastName = mProfile->mName;
+			RegistryWriteString("LastProfileName", SexyStringToString(aLastName));
+		}
+	}
+	// 0x764814 then reads a text file of the player's into app +0x1024 (its use is not yet known)
+
 	// Without SexyCache's pictures the loader screen comes up, with its music (0x75fc23(0xca))
 	mUseSexyCache = false;
 	if (!mUseSexyCache && !mInitialLoadDone)
@@ -120,13 +151,7 @@ void WinTwistApp::Init()
 	// The original sets up the music visualiser (+0xc6c, z order -100) and loads the 3D models of space here; with
 	// -record or -playback it seeds both random number generators from the recording
 	if (!mUseSexyCache) {
-		// 0x75f588: z order just behind the music visualiser's (-100), which the port does not have yet
-		if (mHyperspace == nullptr)
-			mHyperspace = new Hyperspace();
-		mHyperspace->Resize(0, 0, mWidth, mHeight);
-		mHyperspace->mZOrder = -101;
-		mHyperspace->SetTransition(0);
-		mWidgetManager->AddWidget(mHyperspace);
+		ShowHyperspace();
 		mLoaderScreen = new LoaderScreen(this);
 		mLoaderScreen->Resize(0, 0, mWidth, mHeight);
 		mLoaderScreen->mZOrder = 1000;
@@ -140,14 +165,150 @@ void WinTwistApp::PlaySample(int theSoundNum)
 		PlaySoundEx(theSoundNum, 0, 0, 0, true, true);
 }
 
+void WinTwistApp::ShowHyperspace()
+{
+	if (mHyperspace == nullptr)
+		mHyperspace = new Hyperspace();
+	mHyperspace->Resize(0, 0, mWidth, mHeight);
+	// The music visualiser's z order (-100) less one; the port has no visualiser yet
+	mHyperspace->mZOrder = -101;
+	mHyperspace->SetTransition(0);
+	mWidgetManager->AddWidget(mHyperspace);
+}
+
+void WinTwistApp::CreateGates()
+{
+	mGates = new Gates();
+	// The music visualiser's z order (-100) plus 15
+	mGates->mZOrder = -100 + 15;
+	mGates->Resize(mWidth / 2 - mGates->mWidth / 2, mHeight / 2 - mGates->mHeight / 2, mGates->mWidth,
+		mGates->mHeight);
+	mGates->SetOpen(true, true);
+}
+
+void WinTwistApp::CreateMainMenu()
+{
+	mMainMenu = new Menu(this);
+}
+
+void WinTwistApp::PlaceWindowedButton()
+{
+	if (mWindowedButton == nullptr)
+		return;
+	mWindowedButton->Resize(mWidth - mWindowedButton->mNormalRect.mWidth - 5, 5,
+		IMAGE_WINDOWEDBUTTON->GetCelWidth(), IMAGE_WINDOWEDBUTTON->GetCelHeight());
+	mWindowedButton->SetVisible(!mIsWindowed && !mForceFullscreen);
+}
+
+MenuButtonWidget* WinTwistApp::MakeMenuButton(Image* theImage, Image* theCover, int theId, int theX, int theY,
+	const SexyString& theLabel, const SexyString& theToolTip)
+{
+	MenuButtonWidget* aButton = new MenuButtonWidget(theId, theImage, this);
+	aButton->mButtonImage = theImage;
+	aButton->mOverImage = theImage;
+	aButton->mDownImage = theImage;
+	aButton->mDisabledImage = theImage;
+	aButton->mCover = theCover;
+	int aWidth = theImage->GetCelWidth();
+	int aHeight = theImage->GetCelHeight();
+	if (theImage->mNumRows * theImage->mNumCols < 2) {
+		aButton->mNormalRect = Rect(0, 0, theImage->mWidth, theImage->mHeight);
+	} else {
+		aButton->mNormalRect = theImage->GetCelRect(0);
+		aButton->mOverRect = theImage->GetCelRect(1);
+		aButton->mDownRect = theImage->GetCelRect(2);
+		aButton->mDisabledRect = theImage->GetCelRect(theImage->mNumRows * theImage->mNumCols == 4 ? 3 : 0);
+		aButton->mOverAlphaFadeInSpeed = 0.05000000074505806;
+		aButton->mOverAlphaSpeed = 0.05000000074505806;
+	}
+	aButton->mToolTip = theToolTip;
+	aButton->mLabel = theLabel;
+	aButton->mZOrder = 0;
+	aButton->mX = theX;
+	aButton->mY = theY;
+	aButton->mWidth = aWidth;
+	aButton->mHeight = aHeight;
+	aButton->SetVisible(true);
+	return aButton;
+}
+
 void WinTwistApp::StartMainMenu()
 {
-	SDL_Log("WinTwistApp: the main menu is not ported yet");
+	// With -record the original starts recording here (app +0xc42)
+	if (mUnknownF85) {
+		// A classic game at once, as TWISTBOT: 0x760492(1, true, false) comes with the board
+		mProfile->Create(GT(0x7da118));
+		SDL_Log("WinTwistApp::StartMainMenu: starting a game at once is not ported yet");
+		return;
+	}
+	CreateGates();
+	CreateMainMenu();
+	if (mResumeGame) {
+		// The saved game (app +0x934's mode) is resumed, or the challenges come up: comes with the board
+		SDL_Log("WinTwistApp::StartMainMenu: resuming a game is not ported yet");
+	}
+	// The registration widget (0x73b403, 0x98 bytes, app +0x924, z order 99) comes with the registration code
+	if (mWindowedButton == nullptr) {
+		mWindowedButton = new ButtonWidget(0x2a, this);
+		mWindowedButton->mZOrder = 99;
+		mWidgetManager->AddWidget(mWindowedButton);
+		mWindowedButton->mButtonImage = IMAGE_WINDOWEDBUTTON;
+		mWindowedButton->mNormalRect = IMAGE_WINDOWEDBUTTON->GetCelRect(0);
+		mWindowedButton->mOverRect = IMAGE_WINDOWEDBUTTON->GetCelRect(1);
+		mWindowedButton->mDownRect = IMAGE_WINDOWEDBUTTON->GetCelRect(2);
+	}
+	PlaceWindowedButton();
+	// 0x7620a1: the gems drawn ahead into app +0x7f4/+0x7f8 come with the board
+	if (!mResumeGame)
+		ShowMainMenu(false, false, 0);
+	mGates->Update();
+	mMainMenu->Update();
+	ClearUpdateBacklog(false);
+}
+
+void WinTwistApp::ShowMainMenu(bool theEndStats, bool theChallenges, float theDelay)
+{
+	// With a board the original first takes it away (or, while the board still loads, tells it to come back here):
+	// comes with the board
+	ShowHyperspace();
+	if (mGates == nullptr)
+		CreateGates();
+	if (mMainMenu == nullptr)
+		CreateMainMenu();
+	mMainMenu->ShowMain(true);
+	if (mGates->mParent == nullptr)
+		mWidgetManager->AddWidget(mGates);
+	if (mFXManager->mParent == nullptr) {
+		mFXManager->mZOrder = -1;
+		mWidgetManager->AddWidget(mFXManager);
+	}
+	mMainMenu->mStartDelay = theDelay;
+	if (!theChallenges) {
+		mMainMenu->mZOrder = mGates->mZOrder - 1;
+		if (!mWidgetManager->HasWidget(mMainMenu))
+			mWidgetManager->AddWidget(mMainMenu);
+		else
+			mMainMenu->AddedToManager(mWidgetManager);
+		if (theEndStats) {
+			mMainMenu->ShowEndStats();
+			mGates->SetOpen(true, true);
+		} else if (mLoaderScreen == nullptr) {
+			mGates->SetOpen(false, false);
+		}
+	} else {
+		mMainMenu->ShowChallenges(true);
+		mGates->SetOpen(true, true);
+	}
+	mWidgetManager->SetFocus(mMainMenu);
+	// 0x764f9c: the high score just made goes into the lists (comes with the scores)
+	mUnknownF85 = false;
+	if (mWidgetManager->mFocusWidget == nullptr)
+		mWidgetManager->SetFocus(mMainMenu);
 }
 
 PlayButton* WinTwistApp::GetMainMenuPlayButton()
 {
-	return nullptr;
+	return mMainMenu != nullptr ? mMainMenu->mPlayButton : nullptr;
 }
 
 bool WinTwistApp::LoadTubeResources()

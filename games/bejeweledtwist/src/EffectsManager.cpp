@@ -7,6 +7,7 @@
 
 #include "Graphics.h"
 #include "Image.h"
+#include "Res.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
@@ -14,6 +15,7 @@
 
 #include <SDL.h>
 
+#include <cmath>
 #include <set>
 
 using namespace Sexy;
@@ -34,6 +36,16 @@ Effect::Effect(int theType) : mType(theType)
 	mColor = Color(255, 255, 255);
 	switch (mType) {
 	case 0:
+		break;
+	case 11:  // the gates' sparks (type 12, which shares this, comes with the board)
+		mGravity = (float)(gApp->mScale * 0.004999999888241291);
+		mDX = (float)(RandSigned() * gApp->mScale);
+		mDY = (float)(RandSigned() * gApp->mScale);
+		mScale = 0.2f;
+		mAlpha = 1.0f;
+		mDAlpha = -0.005f;
+		// With Direct3D a random angle: RandSigned() * pi
+		mAngle = 0;
 		break;
 	default:
 		LogUnportedType("constructor", mType);
@@ -124,6 +136,10 @@ void EffectsManager::Update()
 				anEffect->mDeleteMe = true;
 			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
 			break;
+		case 11:
+			if (anEffect->mScale > 0.85f)
+				anEffect->mScale = 0.85f;
+			break;
 		default:
 			LogUnportedType("Update", aType);
 			break;
@@ -189,6 +205,17 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 					anEffect->mY, (double)anEffect->mAngle, anEffect->mScale, anEffect->mScale);
 				g->SetColorizeImages(false);
 			}
+			break;
+		}
+		case 11: {
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColorizeImages(true);
+			Color aColor = anEffect->mColor;
+			aColor.mAlpha = Ftol(anOpacity * 255.0);
+			g->SetColor(aColor);
+			float aScale = (float)std::pow((double)anOpacity, (double)0.65f) * anEffect->mScale;  // 0x670a26
+			DrawImageCentered(g, IMAGE_GATEPARTICLE, anEffect->mX, anEffect->mY, (double)anEffect->mAngle, aScale,
+				aScale);
 			break;
 		}
 		default:
