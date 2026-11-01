@@ -292,8 +292,8 @@ void Game::save(Str theName)
 {
 	Str aPath = "";
 	aPath += savedGamesDir(true);
-	aPath += exeGlobalString(0x476abc);
 	aPath += theName;
+	aPath += exeGlobalString(0x476abc);
 	int aFile = fileOpen(aPath, true, false);
 	if (aFile == -1)
 	{
@@ -304,8 +304,8 @@ void Game::save(Str theName)
 		Str aNewName = theName;
 		aPath = "";
 		aPath += savedGamesDir(true);
-		aPath += exeGlobalString(0x476abc);
 		aPath += aNewName;
+		aPath += exeGlobalString(0x476abc);
 		aFile = fileOpen(aPath, true, false);
 		if (aFile == -1)
 		{
@@ -322,8 +322,8 @@ void Game::save(Str theName)
 				theName += intToStr(aNumber);
 				aNewName = theName;
 				aPath += savedGamesDir(true);
-				aPath += exeGlobalString(0x476abc);
 				aPath += aNewName;
+				aPath += exeGlobalString(0x476abc);
 				aFile = fileOpen(aPath, true, false);
 				if (aFile != -1)
 					goto opened;
@@ -2132,8 +2132,8 @@ void Game::load(Str theName, int theMode)
 	mFieldD90 = -99;
 	Str aPath = "";
 	aPath += savedGamesDir(true);
-	aPath += Str(exeGlobalString(0x476abc));
 	aPath += theName;
+	aPath += Str(exeGlobalString(0x476abc));
 	int aFile = fileOpen(aPath, false, false);
 	if (aFile == -1)
 		return;

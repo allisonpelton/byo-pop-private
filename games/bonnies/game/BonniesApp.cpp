@@ -48,8 +48,8 @@ int playerSaveExists(const Str& theName)
 {
 	Str aPath = "";
 	aPath += savedGamesDir(true);
-	aPath += exeGlobalString(0x475a54);
 	aPath += theName;
+	aPath += exeGlobalString(0x475a54);
 	return fileExists(aPath);
 }
 
