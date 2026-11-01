@@ -1,0 +1,4 @@
+LIBRARY DDRAW.dll
+EXPORTS
+DirectDrawCreate = ProxyCreate@12
+DirectDrawCreateEx = ProxyCreateEx@16

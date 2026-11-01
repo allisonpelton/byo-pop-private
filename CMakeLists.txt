@@ -262,3 +262,9 @@ option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
 if(BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt)
   add_subdirectory(games/mahjongjapan)
 endif()
+# Mahjong Escape: Ancient China: Ancient Japan's port (games/mahjongchina/engine is a copy of its engine) with China's
+# differences; optional while it is new
+option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
+if(BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt)
+  add_subdirectory(games/mahjongchina)
+endif()
