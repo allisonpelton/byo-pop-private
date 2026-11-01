@@ -38,13 +38,3 @@ players (one shared field and real-time play leave no turns to take, and a split
 
 Ideas beyond the 29 are left for the mod phase itself: replacement pictures for the menu's background and the tile art are
 covered by 3, a separate high score list for each mod set comes with the shared mod system.
-
-Recorded at the user's request (2026-10-26), for the mod phase and not started: a mod that takes out what players have called
-racist in the game's portrayal of Chinese people and culture. The user is not Chinese and does not know what exactly draws
-the complaints, and this port has not been audited for it either, so the first step is a real look at what the game shows,
-ideally with the help of Chinese players, before anything is changed. What to go through, by what the port already knows the
-game contains: the art (the skyline, the roofs and lanterns, the talking head and its speech bubble, the menu picture), the
-lettering (the menu and dialog fonts are brush-style display faces), the words the head and the dialogs say, and the music.
-As the mod policy says it would be data: replacement pictures and fonts (idea 3), another set of the head's lines, and a
-switch that turns each on, off by default as an example mod or offered as a feature mod; a replacement made from the game's own
-art or text stays on the user's machine and is never committed, so it would ship as instructions or as art made from scratch.
