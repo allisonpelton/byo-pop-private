@@ -114,6 +114,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18782", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18782
+    },
+    {
+      "name": "bejeweledtwist-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18794", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18794
     }
   ]
 }
