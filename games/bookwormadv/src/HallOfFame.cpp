@@ -293,7 +293,7 @@ struct DefaultRun {
 	int mFirst, mSecond;
 };
 const DefaultRun kDefaultTimes[10] = {  // the time, the stage
-	{GTA(0x7ae364), 120000, 11}, {GTA(0x7ae30c), 102000, 10}, {GTA(0x7ae36c), 88000, 9}, {GTA(0x7ae374), 72000, 8},
+	{GTA(0x7ae364), 120000, 11}, {GTA(0x7ae30c), 102000, 10}, {GTA(0x7ae36c), 89000, 9}, {GTA(0x7ae374), 72000, 8},
 	{GTA(0x7ae37c), 60000, 7},   {GTA(0x7ae384), 39000, 5},   {GTA(0x7ae388), 30000, 4}, {GTA(0x7ae390), 21000, 3},
 	{GTA(0x7ae398), 12000, 2},   {GTA(0x7ae3a0), 6000, 1},
 };
@@ -477,7 +477,7 @@ void HallOfFame::LoadLists()
 		size_t aPos = aFiles[i].find(".bwa");
 		std::string aName = aPos == std::string::npos ? aFiles[i] : aFiles[i].substr(0, aPos);
 		Profile* aProfile = new Profile(aName, false);
-		if (aProfile->Load())
+		if (aProfile->Load(true))
 			aProfiles.push_back(aProfile);
 		else
 			delete aProfile;

@@ -647,8 +647,9 @@ void Board::SetAttackDisabled(bool isDisabled, bool keepLook)
 		return;
 	bool wasImmune = mImmuneLook;
 	mImmuneLook = false;
-	int w = IMAGE_BUTTON_ATTACK->GetCelWidth();
-	int h = IMAGE_BUTTON_ATTACK->GetCelHeight();
+	// the cels of the picture the button has (a mini-game's Submit!, not only Attack)
+	int w = aButton->mButtonImage->GetCelWidth();
+	int h = aButton->mButtonImage->GetCelHeight();
 	aButton->mNormalRect = Rect(0, 0, w, h);
 	aButton->mOverRect = Rect(w, 0, w, h);
 	aButton->mDownRect = Rect(w * 2, 0, w, h);
@@ -672,8 +673,8 @@ void Board::ShowImmuneAttack()
 	if (mTMEnemyAttacking)
 		return;
 	aButton->SetDisabled(false);
-	int w = IMAGE_BUTTON_ATTACK->GetCelWidth();
-	int h = IMAGE_BUTTON_ATTACK->GetCelHeight();
+	int w = aButton->mButtonImage->GetCelWidth();
+	int h = aButton->mButtonImage->GetCelHeight();
 	Rect aRect(w * 4, 0, w, h);
 	aButton->mNormalRect = aRect;
 	aButton->mOverRect = aRect;
@@ -897,7 +898,7 @@ void Board::Update()
 	}
 	bool aMoving = gTileEngine->mMovingCount > 0;
 	// the zoom effect on a 3D card updates the battle every 8th update while it holds
-	bool aZoomSkip = mZooming && mApp->Is3DAccelerated() &&
+	bool aZoomSkip = mZooming && mApp->Is3DMode() &&
 	                 (mUpdateCnt % 8 != 0 || (mZoomingIn && mZoomHoldCount <= 0));
 	if (!mIsMiniGame) {
 		if (!aZoomSkip)
@@ -950,7 +951,7 @@ void Board::UpdateF(float theFrac)
 		CallLua("gMiniGame:UpdateF", 1);
 	}
 	if (gBattleEngine != nullptr) {
-		if (mZooming && mApp->Is3DAccelerated()) {
+		if (mZooming && mApp->Is3DMode()) {
 			if (mUpdateCnt % 8 != 0)
 				return;
 			if (mZoomingIn && mZoomHoldCount < 1)

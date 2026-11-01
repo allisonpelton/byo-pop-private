@@ -51,6 +51,15 @@ public:
 	// editor), which the port's framework does not have; its DebugKeyDown (0x65f7b0) passed all keys but its
 	// debugger's E, C, Z and W to SexyApp's.
 	bool DebugKeyDown(int theKey) override;
+	void ReadFromRegistry() override;  // SexyApp's, then Is3D (the original read it as it made its window, 0x548b10)
+	void WriteToRegistry() override;   // SexyApp's, then Is3D (the original wrote it as the app closed, 0x53c120)
+
+	// The game's 3D mode, what the original's DirectDraw interface held at +0x38: the registry's Is3D, or on when there is
+	// none (the original then ran its 3D test, which a machine of today passes), and the Options dialog's 3D box. The
+	// port's renderer draws the same either way; the game and its scripts (gCApp:Is3DAccelerated()) choose by this what
+	// they draw, as the arena's midground animation, drawn only in 3D. Off on a renderer that is not accelerated.
+	bool Is3DMode() { return m3DMode && Is3DAccelerated(); }
+	void Set3DMode(bool on) { m3DMode = on; }
 
 	// ---- the scripts' methods ----
 	static int SafeDeleteWidget_(LuaApp* app, lua_State* L);
@@ -101,6 +110,9 @@ public:
 	void SetWidth(int n) { mWidth = n; }
 	int GetHeight() { return mHeight; }
 	void SetHeight(int n) { mHeight = n; }
+
+private:
+	bool m3DMode = true;
 };
 
 extern LuaApp* gLuaApp;  // 0x825ce0

@@ -83,7 +83,7 @@ OptionsDialog::OptionsDialog(bool theHasBoard)
 	mNoTooltipsBox = MakeCheckbox(ID_NO_TOOLTIPS, this);
 	mFullscreenBox->mChecked = !mApp->mIsWindowed;
 	mCursorsBox->mChecked = mApp->mCustomCursorsEnabled;
-	m3DBox->mChecked = mApp->Is3DAccelerated();
+	m3DBox->mChecked = mApp->Is3DMode();
 	Profile* aProfile = mApp->mProfile;
 	mLetterValuesBox->mChecked = aProfile != nullptr && aProfile->KeyExists("EnablePips") && aProfile->GetBool("EnablePips");
 	mNoTooltipsBox->mChecked = aProfile != nullptr && aProfile->KeyExists("DisableTips") && aProfile->GetBool("DisableTips");
