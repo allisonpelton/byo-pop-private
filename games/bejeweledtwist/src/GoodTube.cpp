@@ -182,3 +182,56 @@ void GoodTube::UpdateFill(bool theAtOnce)
 	else
 		mUnknown194 = aTop;
 }
+
+void GoodTube::SetLevelSteps(int theSteps)
+{
+	if (mUnknown274 < theSteps) {
+		int aFlash = mUnknown1D8 + 30;
+		int aMax = 200;
+		if (aFlash < 200)
+			aMax = aFlash;
+		mUnknown1D8 = aMax;
+		mUnknown1E0 = 0.5f;
+	}
+	if (theSteps < mUnknown274) {
+		MarkLevelChange();
+		mUnknown29C = mUnknown29C * 0.5f;
+	}
+	mUnknown274 = theSteps;
+}
+
+void GoodTube::SetLevelShown(int theLevel)
+{
+	if (!mUnknown14D)
+		return;
+	if (10 < theLevel)
+		theLevel = 10;
+	if (theLevel != mUnknown27C) {
+		float aSteps;
+		if (mUnknown27C < theLevel) {
+			if (!mBoard->IsBusy()) {
+				int aSound = 3;
+				if (theLevel < 4)
+					aSound = theLevel;
+				// SOUND_MULTIPLIER_UP2_1 is resource 0x397 (0x397 + the level, at most 3)
+				gApp->PlaySample(GetSoundById(SOUND_MULTIPLIER_UP2_1_ID + aSound));
+			}
+			mUnknown29C = 1.0f;
+			gBoard->mUnknown20B8 = 1.0f;
+			int aFlash = mUnknown1D8 + 64;
+			int aMax = 255;
+			if (aFlash < 255)
+				aMax = aFlash;
+			mUnknown1D8 = aMax;
+			mUnknown1E0 = 0.5f;
+			aSteps = 0.0f;
+		} else {
+			if (!mBoard->IsBusy())
+				gApp->PlaySample(SOUND_MULTIPLIER_DOWN);
+			aSteps = (float)Board::GetLevelSteps(theLevel);
+		}
+		mUnknown278 = aSteps;
+	}
+	mUnknown27C = theLevel;
+	mUnknown280 = theLevel;
+}

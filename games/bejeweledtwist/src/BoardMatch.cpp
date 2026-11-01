@@ -179,10 +179,8 @@ Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor
 	if (!mGoodTube->mUnknown14D || theX < 1 || theY < 1 || !theFirst || !mUnknown2041) {
 		if (mUnknown2041)
 			SetScore(mUnknown168 + aTotal, false);
-		if (theFirst) {
-			// port: 0x6a62e1 counts the chain into the tube's levels (0x6a4383, 0x6a43e8); it comes with the chains
-			NotPorted("Board::AddPoints: the chain's tube level (0x6a62e1)");
-		}
+		if (theFirst)
+			AddChainStep();
 	} else {
 		// port: the points fly to the tube (a 0x98-byte traveller, 0x750185, into +0x2170, aimed by 0x70205f and
 		// 0x703334); they reach the score on arrival; it comes with the travellers
@@ -939,6 +937,91 @@ void Board::PlayChainSound(int theChain)
 	mApp->PlaySoundEx(SOUND_CHAINX1, 0, (float)aNote, aVolume * aHigh, true, true);
 }
 
+int Board::GetLevelSteps(int theLevel)
+{
+	// The steps of each multiplier level (0x84f074 in the exe)
+	static const int kSteps[11] = {0, 4, 8, 12, 16, 16, 16, 16, 16, 16, 16};
+	if (9 < theLevel)
+		theLevel = 10;
+	return kSteps[theLevel];
+}
+
+int Board::GetLevelFor(int* theLeft)
+{
+	int aLevel = 1;
+	int aStart = 0;
+	while (true) {
+		int anEnd = aStart + GetLevelSteps(aLevel);
+		if (mUnknown224 < anEnd)
+			break;
+		aLevel++;
+		aStart = anEnd;
+		if (aLevel == 10) {
+			if (theLeft != nullptr)
+				*theLeft = mUnknown224 - anEnd;
+			return 10;
+		}
+	}
+	if (theLeft != nullptr)
+		*theLeft = mUnknown224 - aStart;
+	if (aLevel < 11)
+		return aLevel;
+	return 10;
+}
+
+void Board::SetLevelSteps(int theSteps)
+{
+	int aLeft = 0;
+	int aShown = mGoodTube->mUnknown27C;
+	mUnknown224 = theSteps;
+	int aLevel = GetLevelFor(&aLeft);
+	mUnknown21D0 = aLevel;
+	if (aLevel == 10 && GetLevelSteps(10) * 2 <= aLeft) {
+		if (!mUnknown214)
+			mUnknown344C++;
+		mUnknown214 = true;
+	}
+	if (mUnknown2041) {
+		mGoodTube->SetLevelSteps(aLeft);
+		mGoodTube->SetLevelShown(aLevel);
+		if (aLevel < aShown) {
+			mGoodTube->MarkLevelChange();
+			mGoodTube->mUnknown29C = mGoodTube->mUnknown29C * 0.5f;
+		} else if (aShown < aLevel && aLeft == 0) {
+			mGoodTube->MarkLevelChange();
+			if (mApp->mUnknownC74[0x36] == 0 && aLevel == 2)
+				mApp->mUnknownC74[0x36] = mUnknown158;
+			else if (mApp->mUnknownC74[0x37] == 0 && aLevel == 2)
+				mApp->mUnknownC74[0x37] = mUnknown158;
+		}
+	}
+}
+
+void Board::AddChainStep()
+{
+	bool aCounted;
+	if (!mUnknown2041 || !mGoodTube->mUnknown14D) {
+		aCounted = false;
+	} else {
+		mUnknown224++;
+		aCounted = true;
+	}
+	// The step that starts a level counts twice
+	int aLeft = 0;
+	GetLevelFor(&aLeft);
+	if (aLeft == 0 && aCounted)
+		mUnknown224++;
+	AddStat(0x2a, 1);
+	if (mGameMode != MODE_CHALLENGE)
+		SetLevelSteps(mUnknown224);
+}
+
+void Board::ShowTubeLevel()
+{
+	if (mGoodTube != nullptr && mUnknown2041)
+		mGoodTube->SetLevelShown(mUnknown21D0);
+}
+
 void Board::MatchAfterMove()
 {
 	int aMatches;
@@ -968,16 +1051,39 @@ void Board::MatchAfterMove()
 			mUnknown2130 = false;
 			if (aMatches == 0) {
 				if (!IsSparkBlocked()) {
-					// The chain is over: its points go to the tube's level (0x6a43e8 and the tube's table 0x70205f)
+					// The chain is over: the steps fall back to the level's start, and a chain that added none drops a level
 					int aStat = mUnknown224 % 10;
 					if (4 < aStat)
 						AddStat(mUnknown224 == 10 ? 0x13 : aStat + 9, 1);
-					// port: the multiplier's drop (+0x21d0, 0x70205f) and 0x6a43e8 come with the tube's levels
-					NotPorted("Board::MatchAfterMove: the chain's end");
+					int aSteps = mUnknown224;
+					int aLevel = 1;
+					int aStart = 0;
 					mUnknown344C = 0;
-					mUnknown21F8 = 100;
+					if (1 < mUnknown21D0) {
+						do {
+							aStart += GetLevelSteps(aLevel);
+							aLevel++;
+						} while (aLevel < mUnknown21D0);
+					}
+					if (aStart == aSteps) {
+						int aDown = mUnknown21D0 - 1;
+						int i = 1;
+						if (aDown < 1)
+							aDown = i;
+						aStart = 0;
+						mUnknown21D0 = aDown;
+						if (1 < aDown) {
+							do {
+								aStart += GetLevelSteps(i);
+								i++;
+							} while (i < mUnknown21D0);
+						}
+					}
+					mUnknown21F8 = 100;  // 0x6a3ff4
+					SetLevelSteps(aStart);
 					mUnknown818 = 0;
-					mUnknown2234[0x2a] = 0;
+					SetStat(0x2a, aStart);
+					mUnknown2234[0x2a] = 0;  // (the app's copy keeps the steps)
 					mUnknown2201 = false;
 					mUnknown21A1 = true;
 				}

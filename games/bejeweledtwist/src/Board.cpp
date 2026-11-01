@@ -274,7 +274,7 @@ void Board::ReadConfig(bool theResize)
 	mModeMultiplier = mApp->GetInteger("ModeMultiplier", 1);
 	mBonusChallengeMinGems = mApp->GetInteger("BonusChallengeMinGems", 3);
 	mBonusChallengeMaxGems = mApp->GetInteger("BonusChallengeMaxGems", 5);
-	// 0x6a3e81: the tube shows the level (0x703431(+0x21d0)) once it is ported
+	ShowTubeLevel();
 	if (theResize && (anOldRows != aRows || anOldCols != aCols))
 		ResizeBoard(aRows, aCols);
 	mCols = aCols;
@@ -431,9 +431,7 @@ void Board::NewLevel()
 		mUnknown1EC = 0;
 		mUnknown1E8 = 0;
 		mUnknown21F8 = 100;  // 0x6a3ff4
-		// 0x6a3e81: the tube's level (0x703431(+0x21d0)) once it is ported
-		if (mGoodTube != nullptr && mUnknown2041)
-			NotPorted("GoodTube 0x703431 (the level shown)");
+		ShowTubeLevel();
 		ResetLevelValues();
 		mLockGem.Restart();
 		mCounter.Restart();

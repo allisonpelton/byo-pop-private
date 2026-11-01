@@ -37,11 +37,19 @@ public:
 	Image* mFillImage2 = nullptr;        // +0x188
 	float mUnknown194 = 0;               // +0x194
 	float mUnknown198 = 0;               // +0x198
+	float mUnknown1C8 = 0;               // +0x1c8: 1 when the level changes (0x702a88)
+	int mUnknown1D8 = 0;                 // +0x1d8: a flash's brightness, up to 255 (0x703431, 0x7033d4)
+	float mUnknown1E0 = 0;               // +0x1e0: 0.5 with the flash
 	float mProgress = 0;                 // +0x19c: how full, 0 to 1
 	std::vector<Bubble*> mBubbles;       // +0x1a0
 	int mFillBottom = 0;                 // +0x268: where the fill starts
 	int mFillTop = 0;                    // +0x26c: where a full tube's fill ends
+	int mUnknown274 = 0;                 // +0x274: the chain's steps into the level (0x7033d4)
+	float mUnknown278 = 0;               // +0x278: 0 on a level up, the level's steps on a drop
+	int mUnknown27C = 1;                 // +0x27c: the level (the multiplier) shown
+	int mUnknown280 = 1;                 // +0x280: the same
 	int mLevel = 0;                      // +0x288 (0x702aa6)
+	float mUnknown29C = 0;               // +0x29c: 1 when the level changes, halved by a drop
 	float mUnknown2D0 = 0;               // +0x2d0
 	float mUnknown2E0 = 0;               // +0x2e0: a random 0 to 1
 	int mUnknown300 = 0;                 // +0x300: the fill is drawn full while above 0
@@ -91,6 +99,9 @@ public:
 	int GetBottomTop();                            // 0x70295d
 	void SetProgress(float theProgress, bool theAtOnce);  // 0x703731
 	void UpdateFill(bool theAtOnce);               // 0x702c1b: the fill eases to the progress unless theAtOnce
+	void MarkLevelChange() { mUnknown29C = 1.0f; mUnknown1C8 = 1.0f; }  // 0x702a88
+	void SetLevelSteps(int theSteps);              // 0x7033d4
+	void SetLevelShown(int theLevel);              // 0x703431
 };
 
 }  // namespace Sexy

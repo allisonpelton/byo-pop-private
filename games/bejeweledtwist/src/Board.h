@@ -812,6 +812,11 @@ public:
 	// port: the piece the dialog at +0x2584 points at, once it is ported
 	int GetPointedPieceId() { return -1; }
 	Piece* GetPieceAtXY(int theX, int theY);     // 0x6a4121
+	static int GetLevelSteps(int theLevel);      // 0x70205f: the chain steps a multiplier level takes
+	int GetLevelFor(int* theLeft);               // 0x6a4383: the level +0x224's steps reach, and the steps over
+	void SetLevelSteps(int theSteps);            // 0x6a43e8: the chain's steps (+0x224), its level and the tube's
+	void AddChainStep();                         // 0x6a62e1
+	void ShowTubeLevel();                        // 0x6a3e81
 	void BreakPiece(Piece* thePiece);            // 0x6c0ccf: a gem breaks up, in a match or blown up
 	bool GetUnknown23F5() { return mUnknown23F5; }     // 0x6a639a
 	int GetBoardX() { return mBoardX; }                // 0x6a47d9
