@@ -3,6 +3,7 @@
 #include "../platform/Placeholders.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace Sexy;
 using Platform::Mixer;
@@ -20,7 +21,7 @@ SDLMusicInterface::~SDLMusicInterface()
 
 void SDLMusicInterface::ApplyVolume(SongInfo& theSong)
 {
-	Mixer::Get().SetSongGain(theSong.mHandle, (float)theSong.mVolume);
+	Mixer::Get().SetSongGain(theSong.mHandle, (float)(theSong.mVolume * theSong.mAmplifyGain));
 }
 
 bool SDLMusicInterface::LoadMusic(int theSongId, const std::string& theFileName)
@@ -195,8 +196,27 @@ void SDLMusicInterface::SetVolume(double theVolume)
 	Mixer::Get().SetMusicMasterGain((float)(theVolume * mMaxMusicVolume / 100.0));
 }
 
-void SDLMusicInterface::SetMusicAmplify(int, double)
+// Bookworm Adventures' SexyBassMusicInterface::SetMusicAmplify (0x59aaf0) sets BASS_MUSIC_ATTRIB_AMPLIFY to
+// (int)(theAmp * 100). BASS 2.3 takes 0 to 100 and holds a larger value at 100; its default is 50. The levels are
+// measured: BASS 2.3.0.1 (the game's bass.dll) decoding the first 60 s of the game's music.mo3 at each value, in
+// dB RMS against libopenmpt rendering the same with the port's settings. Between them the gain is interpolated in
+// dB. A song whose amplify is never set keeps libopenmpt's level.
+void SDLMusicInterface::SetMusicAmplify(int theSongId, double theAmp)
 {
+	static const struct { int mAmp; double mDB; } kLevels[] = {
+		{0, -20.13}, {10, -16.59}, {25, -12.16}, {40, -8.09}, {50, -4.55},
+		{60, -2.07}, {75, 2.81}, {90, 7.49}, {100, 9.98}};
+	auto it = mSongs.find(theSongId);
+	if (it == mSongs.end())
+		return;
+	int anAmp = std::clamp((int)(theAmp * 100.0), 0, 100);
+	size_t i = 1;
+	while (i < sizeof(kLevels) / sizeof(kLevels[0]) - 1 && kLevels[i].mAmp < anAmp)
+		i++;
+	double aDB = kLevels[i - 1].mDB + (kLevels[i].mDB - kLevels[i - 1].mDB) * (anAmp - kLevels[i - 1].mAmp) /
+		(kLevels[i].mAmp - kLevels[i - 1].mAmp);
+	it->second.mAmplifyGain = std::pow(10.0, aDB / 20.0);
+	ApplyVolume(it->second);
 }
 
 void SDLMusicInterface::Update()

@@ -13,7 +13,7 @@ using namespace Sexy;
 
 TitleScreen::TitleScreen(GameApp* theApp)
 {
-	mFadeColor = Color::White;  // port: the fader (0x49e140) started from its own default
+	mFadeColor = Color::Black;  // port: the fader (0x49e140) started from its own default (0x825f00, Color::Black)
 	mApp = theApp;
 	mState = STATE_POPCAP_LOGO;
 	mTimer = 0;
@@ -148,7 +148,7 @@ void TitleScreen::Update()
 		mPopCapLogoAlpha = 0;
 		// (with partner logos: STATE_PARTNER_LOGOS, fading their background in from the properties'
 		// PartnerBGRed, PartnerBGGreen and PartnerBGBlue)
-		mFadeColor = Color::White;
+		mFadeColor = Color::Black;
 		mState = STATE_CURTAIN;
 		StartCurtain();
 	}
@@ -157,7 +157,7 @@ void TitleScreen::Update()
 void TitleScreen::Draw(Graphics* g)
 {
 	if (mState == STATE_POPCAP_LOGO) {
-		g->SetColor(Color::White);
+		g->SetColor(Color::Black);
 		g->FillRect(0, 0, mWidth, mHeight);
 		g->PushState();
 		if (mPopCapLogoAlpha != 255) {

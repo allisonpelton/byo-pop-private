@@ -26,6 +26,7 @@
 #include "Profile.h"
 #include "Res.h"
 #include "ResourceManager.h"
+#include "SDLMusicInterface.h"
 #include "SongPlayer.h"
 #include "SoundPlayer.h"
 #include "StatsBook.h"
@@ -567,6 +568,19 @@ void GameApp::StartLoading()
 	mLoadingPhase = LOADING_COMMON;
 	mLoadingGroup = 0;
 	mLoadingGroupStarted = false;
+}
+
+// The original made a JeffLib::SexyBassMusicInterface. Its SetVolume (0x59a8c0) is the framework's
+// BassMusicInterface::SetVolume, which on BASS 2.2 and later sets BASS_CONFIG_GVOL_MUSIC and _STREAM to
+// volume * 100 and uses the 40 of mMaxMusicVolume only on older BASS: the game's BASS 2.3 plays the music at
+// the full volume setting.
+MusicInterface* GameApp::CreateMusicInterface()
+{
+	if (mNoSoundNeeded)
+		return new MusicInterface;
+	SDLMusicInterface* aMusicInterface = new SDLMusicInterface();
+	aMusicInterface->mMaxMusicVolume = 100;
+	return aMusicInterface;
 }
 
 void GameApp::LoadingThreadProc()

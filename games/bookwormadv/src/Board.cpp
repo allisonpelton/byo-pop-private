@@ -1013,7 +1013,7 @@ void Board::Draw(Graphics* g)
 			mButtons[i]->DrawFade(g);
 	}
 	if ((mPauseCount > 0 || mLevelupOverlay || HasOverlays() || mFlash->mActive) && !mApp->mQuitting)
-		DeferOverlay(10000);  // port: 0 in the original when SexyAppBase's +0x32c is set (nothing in the game sets it)
+		DeferOverlay(mApp->mDialogMap.empty() ? 10000 : 0);  // 0x41b9a8: under the dialogs while any is open
 	if (mShowBeatdownMultiplier) {
 		float aMultiplier = 0;
 		if (!mApp->mTimedMode && mApp->mProfile->KeyExists("BeatdownMultiplier"))

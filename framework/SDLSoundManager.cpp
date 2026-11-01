@@ -16,6 +16,10 @@ double SDLSoundManager::VolumeToGain(double theVolume)
 	double centiDB = (std::log10(1.0 + theVolume * 9.0) - 1.0) * 2333.0;
 	if (centiDB < -2000.0)
 		return 0.0;
+	// A volume above 1 gives a positive value, which DirectSound refuses (DSBVOLUME_MAX is 0): the buffer stays at
+	// full volume, never louder (Bookworm Adventures' CROWD_CHEER has volume="10").
+	if (centiDB > 0.0)
+		return 1.0;
 	return std::pow(10.0, centiDB / 2000.0);
 }
 
