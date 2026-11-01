@@ -603,17 +603,15 @@ static int capture_ex(HWND hwnd, const char* name, int allowPrint)
 	int cx0=o.x-r.left, cy0=o.y-r.top, cx1=cx0+cr.right, cy1=cy0+cr.bottom;
 	if (cx0<0) cx0=0; if (cy0<0) cy0=0; if (cx1>w) cx1=w; if (cy1>h) cy1=h;
 
-	// Try, in order: PrintWindow (GDI and DWM-redirected content), a blit of the window DC, a blit of the
-	// desktop's screen DC at the window's rectangle (this thread is attached to the game's desktop).
+	// Try, in order: PrintWindow (GDI and DWM-redirected content), then a blit of the window DC. There is no
+	// screen-DC fallback: a blit of the desktop at the window's rectangle can return what is on the user's own
+	// screen (a flip-model window's DC once did), so a window neither path reaches stays flat.
 	const char* how="printwindow";
 	BOOL ok = allowPrint ? PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT) : FALSE;
 	if (!allowPrint || !ok || region_flat(px,w,cx0,cy0,cx1,cy1)) {
 		HDC wdc=GetWindowDC(hwnd);
 		if (wdc){ BitBlt(mem,0,0,w,h,wdc,0,0,SRCCOPY); ReleaseDC(hwnd,wdc); how="windowdc"; }
-		if (region_flat(px,w,cx0,cy0,cx1,cy1)) {
-			BitBlt(mem,0,0,w,h,screen,r.left,r.top,SRCCOPY); how="screendc";
-			if (region_flat(px,w,cx0,cy0,cx1,cy1)) how="flat (DirectDraw/Direct3D content not reachable by GDI)";
-		}
+		if (region_flat(px,w,cx0,cy0,cx1,cy1)) how="flat (DirectDraw/Direct3D content not reachable by GDI)";
 	}
 	int flat = region_flat(px,w,cx0,cy0,cx1,cy1);
 
