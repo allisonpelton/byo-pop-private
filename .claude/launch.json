@@ -116,6 +116,12 @@
       "port": 18782
     },
     {
+      "name": "bonnies-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18787", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18787
+    },
+    {
       "name": "shotreview",
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/shotdiff/serve.py"],

@@ -19,6 +19,10 @@ namespace Platform
 // Registers libopenmpt with Platform::Mixer for MO3 files ("MO3" magic).
 void RegisterOpenMPTModules();
 
+// Registers libopenmpt for OXM files (XM modules with Ogg Vorbis samples, which libxmp-lite cannot read). Plain XM
+// files stay on libxmp-lite.
+void RegisterOpenMPTOggXM();
+
 // A player for an MO3 file in memory, or nullptr: for a game that renders it through a ModulePlayer of its own
 // (Mixer::AddSong), such as Mahjong Escape's, whose BASS row syncs jump between orders as the music plays.
 std::unique_ptr<ModulePlayer> CreateOpenMPTModule(const std::vector<uint8_t>& theFile, int theRate);

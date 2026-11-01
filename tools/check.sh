@@ -80,12 +80,15 @@
 #                save dialog's first slot and the name's Save) and a rerun with the same screens and the same saved
 #                game but for its tick counts, and that saved game continued from the main menu with the board as it
 #                was saved (dynomite_load) (under a minute)
+#   bonnies      Bonnie's Bookstore Deluxe: the logos, the menu, a new player, the difficulty, the story and the first
+#                board's tutorial word played from a script (games/bonnies/tools/menu_test.txt), then a rerun that must
+#                give the same screens (seconds)
 #   mahjongjapan Mahjong Escape: Ancient Japan: every layout loaded and dealt (mahjongjapan_dealtest), and a scripted
 #                escape stage from a new player (the name, the map, stage 1 won with the solver's clicks, the level's
 #                end and the map again) twice with the same screens, which are the frozen baseline's (under a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan bonnies; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -143,9 +146,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|dynomite|mahjongjapan|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan bonnies); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan bonnies oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|dynomite|mahjongjapan|bonnies|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -1079,6 +1082,38 @@ suite_dynomite() {
 	SUMMARY="$g; $r; $l"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$DY_GAME')"
 	return $st
+}
+
+bonnies_run() {  # <name>: games/bonnies/tools/menu_test.txt into $OUT/bonnies/<name>; prints the exit status
+	local d="$OUT/bonnies/$1" e=0
+	rm -rf "$d"; mkdir -p "$d/user"
+	sed "s|@DIR@|$d|" games/bonnies/tools/menu_test.txt > "$d/script.txt"
+	timeout 300 "$W/build/native/bonnies.exe" -gamedir=assets/bonnies -userdir="$d/user" -fast -seed=1 		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
+	echo "$e"
+}
+
+suite_bonnies() {
+	local d="$OUT/bonnies" e f
+	need_assets bonnies || return 1
+	e="$(bonnies_run game)"
+	cat "$d/game/stdout.txt" > "$1"
+	[ "$e" -eq 0 ] || { SUMMARY="the exe exited with status $e"; return 1; }
+	grep -q "Resource Loading Time" "$1" || { SUMMARY="the game did not finish loading"; return 1; }
+	for f in logo menu name difficulty story board tutorial word played; do
+		[ -s "$d/game/$f.png" ] || { SUMMARY="no screenshot $f.png"; return 1; }
+	done
+	cmp -s "$d/game/menu.png" "$d/game/name.png" && { SUMMARY="Classic Game opened no name dialog"; return 1; }
+	cmp -s "$d/game/tutorial.png" "$d/game/word.png" && { SUMMARY="the clicks chose no letters"; return 1; }
+	cmp -s "$d/game/word.png" "$d/game/played.png" && { SUMMARY="Submit played no word"; return 1; }
+	[ -s "$d/game/user/SavedGames/te.GAM" ] || { SUMMARY="the new player's te.GAM was not saved"; return 1; }
+	e="$(bonnies_run rerun)"
+	cat "$d/rerun/stdout.txt" >> "$1"
+	[ "$e" -eq 0 ] || { SUMMARY="the rerun exited with status $e"; return 1; }
+	for f in menu name difficulty story board tutorial word played; do
+		cmp -s "$d/game/$f.png" "$d/rerun/$f.png" || { SUMMARY="the rerun's $f.png differs"; return 1; }
+	done
+	SUMMARY="loaded, menu, new player saved, difficulty, story, a tutorial word played; the rerun is the same"
+	return 0
 }
 
 mahjongjapan_run() {  # <name>: a new player, escape stage 1 won with the solver's clicks; prints the moves and the shots

@@ -250,6 +250,12 @@ option(BUILD_DYNOMITE "Build the Dynomite Deluxe port" ON)
 if(BUILD_DYNOMITE AND EXISTS ${PROJECT_SOURCE_DIR}/games/dynomite/CMakeLists.txt)
   add_subdirectory(games/dynomite)
 endif()
+# Bonnie's Bookstore Deluxe: its own SDL 1.2 engine (games/bonnies/engine) under the framework's app host; optional
+# while it is new; the build skips it if its folder is missing
+option(BUILD_BONNIES "Build the Bonnie's Bookstore Deluxe port" ON)
+if(BUILD_BONNIES AND EXISTS ${PROJECT_SOURCE_DIR}/games/bonnies/CMakeLists.txt)
+  add_subdirectory(games/bonnies)
+endif()
 # Mahjong Escape: Ancient Japan: JollyBear's engine (games/mahjongjapan/engine) under the framework's app host;
 # optional while it is new
 option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
