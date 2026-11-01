@@ -208,6 +208,15 @@
         { "from": "users/*.bwa", "to": "users/*.bwa", "what": "a player" },
         { "from": "users/data/*.dat", "to": "users/data/*.dat", "what": "a player's data" }
       ]
+    },
+    "bonnies": {
+      "folder": "Bonnie's Bookstore Deluxe",
+      "note": "Bonnie's Bookstore keeps nothing in the registry; its saves are beside its exe.",
+      "files": [
+        { "from": "SavedGames/General_Preferences.cfg", "to": "SavedGames/General_Preferences.cfg", "what": "the settings and the last player's name" },
+        { "from": "SavedGames/*.GAM", "to": "SavedGames/*.GAM", "what": "a player's game in progress and record" },
+        { "from": "Data/HighScores.dat", "to": "Data/HighScores.dat", "what": "the high scores" }
+      ]
     }
   }
 }

@@ -46,6 +46,7 @@ public:
 	bool mApplyingGameMode;  // SwitchScreenMode is the game's own request (bonnies::Host::setFullScreen)
 	bool mMouseInside;
 	uint32_t mLastFrameworkRun;
+	bool mScriptNoFocus;     // a script's "focus 0": the test run has lost the focus
 
 	BonniesHostApp();
 	virtual ~BonniesHostApp();
@@ -55,6 +56,7 @@ public:
 	void CloseRequestAsync() override;
 	void GotFocus() override;
 	void LostFocus() override;
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
 	using SexyAppBase::SwitchScreenMode;
 

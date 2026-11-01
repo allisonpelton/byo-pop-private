@@ -4,6 +4,7 @@
 #include "Font.h"
 
 #include <map>
+#include <memory>
 
 namespace bonnies
 {
@@ -25,11 +26,12 @@ Screen* gOverlayScreen;
 
 FontDesc* exeFont(uint32_t theAddress)
 {
-	static std::map<uint32_t, FontDesc*> aFonts;
-	FontDesc*& aDesc = aFonts[theAddress];
+	// the original's descriptions are static data of its own; the port makes each once and keeps it to the end
+	static std::map<uint32_t, std::unique_ptr<FontDesc>> aFonts;
+	std::unique_ptr<FontDesc>& aDesc = aFonts[theAddress];
 	if (aDesc == nullptr)
 	{
-		aDesc = new FontDesc();
+		aDesc.reset(new FontDesc());
 		aDesc->mName = exeGlobalString(theAddress);
 		aDesc->mImage = exeGlobalString(theAddress + 8);
 		aDesc->mSpacing = exeFloat(theAddress + 0x10);
@@ -38,7 +40,7 @@ FontDesc* exeFont(uint32_t theAddress)
 		aDesc->mColonY = exeFloat(theAddress + 0x1c);
 		aDesc->mSpaceWidth = exeFloat(theAddress + 0x20);
 	}
-	return aDesc;
+	return aDesc.get();
 }
 
 } // namespace bonnies

@@ -121,15 +121,16 @@ public:
 		return gHostApp->GetClockTime();
 	}
 
-	// a test run (hidden, on rundesk's desktop) has the focus, as the user's window would
+	// a test run (hidden, on rundesk's desktop) has the focus, as the user's window would, until a script's "focus 0"
 	unsigned char getAppState() override
 	{
 		unsigned char aState = 0;
 		if (!gHostApp->mMinimized)
 			aState |= bonnies::SDL_APPACTIVE;
-		if (gHostApp->mHasFocus || gHostApp->IsTestRun())
+		bool aTestFocus = gHostApp->IsTestRun() && !gHostApp->mScriptNoFocus;
+		if ((gHostApp->mHasFocus && !gHostApp->mScriptNoFocus) || aTestFocus)
 			aState |= bonnies::SDL_APPINPUTFOCUS;
-		if (gHostApp->mMouseInside || gHostApp->IsTestRun())
+		if ((gHostApp->mMouseInside && !gHostApp->mScriptNoFocus) || aTestFocus)
 			aState |= bonnies::SDL_APPMOUSEFOCUS;
 		return aState;
 	}
@@ -157,10 +158,12 @@ public:
 		return true;
 	}
 
-	// The framework runs while the game is busy (loading) too, so the window stays responsive
+	// The framework runs while the game is busy (loading) too, so the window stays responsive. Unfocused, the game waits 2 ms a frame in a loop of pumps (0x420770) that never sleeps; a -fast run's clock moves
+	// only when the framework runs, so while a script has taken the focus away a pump runs it once
 	void pumpEvents() override
 	{
-		if ((int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100)
+		if ((int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100 ||
+			(gHostApp->mFastMode && gHostApp->mScriptNoFocus))
 			gHostApp->RunFramework(0);
 	}
 
@@ -924,6 +927,7 @@ BonniesHostApp::BonniesHostApp()
 	mApplyingGameMode = false;
 	mMouseInside = false;
 	mLastFrameworkRun = 0;
+	mScriptNoFocus = false;
 }
 
 BonniesHostApp::~BonniesHostApp()
@@ -958,6 +962,12 @@ void BonniesHostApp::DoMainLoop()
 		mGameRunning = true;
 		bonnies::bonniesMain();
 		mGameRunning = false;
+		if (gHost.mCursorImage != nullptr)
+		{
+			SetCursorImage(CURSOR_CUSTOM, nullptr);
+			delete gHost.mCursorImage;
+			gHost.mCursorImage = nullptr;
+		}
 		Shutdown();
 	}
 	SexyAppBase::DoMainLoop();
@@ -1024,6 +1034,20 @@ void BonniesHostApp::LostFocus()
 	bonnies::HostEvent anEvent;
 	anEvent.mType = bonnies::SDL_ACTIVEEVENT;
 	gHost.post(anEvent);
+}
+
+// A script's "focus 0" and "focus 1" (a test hook): the window loses the focus and gets it back, as when the player
+// clicks another window and then the game's
+bool BonniesHostApp::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	if (theCommand.mCommand != "focus")
+		return false;
+	mScriptNoFocus = theCommand.mArgs == "0";
+	if (mScriptNoFocus)
+		LostFocus();
+	else
+		GotFocus();
+	return true;
 }
 
 // Alt+Enter (and the web page's full screen button) change the mode as the game's own option does

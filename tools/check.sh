@@ -80,9 +80,11 @@
 #                save dialog's first slot and the name's Save) and a rerun with the same screens and the same saved
 #                game but for its tick counts, and that saved game continued from the main menu with the board as it
 #                was saved (dynomite_load) (under a minute)
-#   bonnies      Bonnie's Bookstore Deluxe: the logos, the menu, a new player, the difficulty, the story and the first
-#                board's tutorial word played from a script (games/bonnies/tools/menu_test.txt), then a rerun that must
-#                give the same screens (seconds)
+#   bonnies      Bonnie's Bookstore Deluxe: a tour from a script (games/bonnies/tools/tour_test.txt): a new player,
+#                the classic game's tutorial words, the game's options, high scores, credits and help, the main menu's
+#                options, an action game paused by a focus loss and played until its time is up, and Quit; a rerun
+#                with the same screens and saves, which are the frozen baseline's (and build/baseline-bonnies/
+#                bonnies.exe's, when there is one) (under a minute)
 #   mahjongjapan Mahjong Escape: Ancient Japan: every layout loaded and dealt (mahjongjapan_dealtest), and a scripted
 #                escape stage from a new player (the name, the map, stage 1 won with the solver's clicks, the level's
 #                end and the map again) twice with the same screens, which are the frozen baseline's (under a minute)
@@ -132,6 +134,7 @@ WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 4
 WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
 WB_SHOTS="4ae35219b586 01d50e63144e 640e34bc8007"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
 MJ_DEAL="222 layouts, 0 failed"
+BB_SHOTS="90f2d44e0574 1a20ef2fe747 fa3847002043"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
 MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 
@@ -1084,35 +1087,54 @@ suite_dynomite() {
 	return $st
 }
 
-bonnies_run() {  # <name>: games/bonnies/tools/menu_test.txt into $OUT/bonnies/<name>; prints the exit status
+bonnies_run() {  # <name> [<exe>]: games/bonnies/tools/tour_test.txt into $OUT/bonnies/<name>; prints the exit status
 	local d="$OUT/bonnies/$1" e=0
 	rm -rf "$d"; mkdir -p "$d/user"
-	sed "s|@DIR@|$d|" games/bonnies/tools/menu_test.txt > "$d/script.txt"
-	timeout 300 "$W/build/native/bonnies.exe" -gamedir=assets/bonnies -userdir="$d/user" -fast -seed=1 		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
+	sed "s|@DIR@|$d|" games/bonnies/tools/tour_test.txt > "$d/script.txt"
+	timeout 300 "${2:-$W/build/native/bonnies.exe}" -gamedir=assets/bonnies -userdir="$d/user" -fast -seed=1 \
+		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
 	echo "$e"
 }
 
+BB_SHOTS_ALL="logo menu name difficulty story board tutorial word played cake tale gameoptions highscores credits help1 help2 help3 mainmenu options action actionword paused resumed timeup endmenu"
+
+bonnies_same() {  # <a> <b>: whether two runs gave the same screens and the same saved files
+	local f
+	for f in $BB_SHOTS_ALL; do cmp -s "$1/$f.png" "$2/$f.png" || return 1; done
+	diff -rq "$1/user" "$2/user" > /dev/null
+}
+
 suite_bonnies() {
-	local d="$OUT/bonnies" e f
+	local d="$OUT/bonnies" e f sh r bl="" base="$W/build/baseline-bonnies/bonnies.exe"
 	need_assets bonnies || return 1
 	e="$(bonnies_run game)"
 	cat "$d/game/stdout.txt" > "$1"
 	[ "$e" -eq 0 ] || { SUMMARY="the exe exited with status $e"; return 1; }
 	grep -q "Resource Loading Time" "$1" || { SUMMARY="the game did not finish loading"; return 1; }
-	for f in logo menu name difficulty story board tutorial word played; do
+	for f in $BB_SHOTS_ALL; do
 		[ -s "$d/game/$f.png" ] || { SUMMARY="no screenshot $f.png"; return 1; }
 	done
 	cmp -s "$d/game/menu.png" "$d/game/name.png" && { SUMMARY="Classic Game opened no name dialog"; return 1; }
 	cmp -s "$d/game/tutorial.png" "$d/game/word.png" && { SUMMARY="the clicks chose no letters"; return 1; }
 	cmp -s "$d/game/word.png" "$d/game/played.png" && { SUMMARY="Submit played no word"; return 1; }
 	[ -s "$d/game/user/SavedGames/te.GAM" ] || { SUMMARY="the new player's te.GAM was not saved"; return 1; }
-	e="$(bonnies_run rerun)"
+	# the main menu's Quit ends the game before the script's own quit at update 70000
+	grep -q "Update Count = 6[0-9]\{4\}," "$1" || { SUMMARY="the main menu's Quit did not end the game"; return 1; }
+	# the rerun, and the frozen baseline (build/baseline-bonnies/bonnies.exe, a copy of the port made when it was last
+	# checked against the original) when there is one, at the same time
+	bonnies_run rerun > "$d/rerun.status" &
+	[ -f "$base" ] && bonnies_run base "$base" > "$d/base.status" &
+	wait
 	cat "$d/rerun/stdout.txt" >> "$1"
-	[ "$e" -eq 0 ] || { SUMMARY="the rerun exited with status $e"; return 1; }
-	for f in menu name difficulty story board tutorial word played; do
-		cmp -s "$d/game/$f.png" "$d/rerun/$f.png" || { SUMMARY="the rerun's $f.png differs"; return 1; }
-	done
-	SUMMARY="loaded, menu, new player saved, difficulty, story, a tutorial word played; the rerun is the same"
+	[ "$(cat "$d/rerun.status")" = 0 ] || { SUMMARY="the rerun exited with status $(cat "$d/rerun.status")"; return 1; }
+	bonnies_same "$d/game" "$d/rerun" || { SUMMARY="the rerun's screens or saves differ"; return 1; }
+	sh="$(for f in played highscores timeup; do sha256sum "$d/game/$f.png" | cut -c1-12; done | paste -sd" " -)"
+	[ "$sh" = "$BB_SHOTS" ] || { SUMMARY="SCREENS CHANGED ($sh; frozen $BB_SHOTS)"; return 1; }
+	if [ -f "$base" ]; then
+		bonnies_same "$d/game" "$d/base" || { SUMMARY="the frozen baseline's screens or saves differ"; return 1; }
+		bl="; baseline identical"
+	fi
+	SUMMARY="the tour (classic tutorial, options, high scores, credits, help, an action game paused by a focus loss and played to its end, Quit); rerun identical; screens as frozen$bl"
 	return 0
 }
 

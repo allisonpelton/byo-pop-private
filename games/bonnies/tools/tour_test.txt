@@ -1,0 +1,88 @@
+# Bonnie's Bookstore tour (tools/check.sh bonnies): the logos, the menu, a new player, the difficulty, the story and the
+# first board's three tutorial words, the game's options with its high scores, credits and help, the main menu's
+# options, a new action game with one word played, the focus lost and regained, until its time is up, and the main
+# menu's Quit, which ends the game its own way. Run with -fast -seed=1; @DIR@ is the output folder.
+400 screenshot @DIR@/logo.png
+1200 screenshot @DIR@/menu.png
+1210 click 180 306
+1400 screenshot @DIR@/name.png
+1450 char t
+1460 char e
+1500 key RETURN
+1750 screenshot @DIR@/difficulty.png
+1800 click 460 280
+2150 screenshot @DIR@/story.png
+2200 click 745 565
+2550 click 745 565
+2900 click 745 565
+3250 click 745 565
+3600 click 745 565
+4000 screenshot @DIR@/board.png
+4100 click 400 300
+4400 screenshot @DIR@/tutorial.png
+4500 click 575 190
+4520 click 620 205
+4540 click 665 230
+4560 click 665 275
+4700 screenshot @DIR@/word.png
+4710 click 450 557
+5200 screenshot @DIR@/played.png
+# CAKE, then the game's options and their high scores
+5400 click 620 250
+5420 click 665 280
+5440 click 710 255
+5460 click 710 205
+5600 screenshot @DIR@/cake.png
+5610 click 450 557
+6100 screenshot @DIR@/tale.png
+6200 click 70 548
+6500 screenshot @DIR@/gameoptions.png
+6600 click 335 382
+6900 screenshot @DIR@/highscores.png
+7000 click 400 560
+# the credits, then the three pages of help
+7400 click 70 548
+7600 click 465 382
+7900 screenshot @DIR@/credits.png
+8000 click 400 300
+8400 click 70 548
+8600 click 465 337
+8900 screenshot @DIR@/help1.png
+9000 click 760 565
+9300 screenshot @DIR@/help2.png
+9400 click 760 565
+9700 screenshot @DIR@/help3.png
+9800 click 760 565
+# the main menu and its options
+10100 click 70 548
+10300 click 335 337
+10600 screenshot @DIR@/mainmenu.png
+10700 click 205 415
+11000 screenshot @DIR@/options.png
+11100 click 397 412
+# an action game: the game in progress is replaced, Normal, the story, TALE, then the time runs out
+11400 click 205 360
+11700 click 458 380
+12000 click 460 280
+12400 click 745 565
+12750 click 745 565
+13100 click 745 565
+13450 click 745 565
+13800 click 745 565
+14200 screenshot @DIR@/action.png
+14300 click 435 255
+14320 click 435 300
+14340 click 435 345
+14360 click 435 390
+14500 click 506 532
+15000 screenshot @DIR@/actionword.png
+# the window loses the focus (the game pauses) and gets it back (a test hook of the port's host)
+20000 focus 0
+20450 screenshot @DIR@/paused.png
+20500 focus 1
+20800 screenshot @DIR@/resumed.png
+61000 screenshot @DIR@/timeup.png
+61200 click 444 414
+61500 screenshot @DIR@/endmenu.png
+61600 click 205 525
+70000 quit
