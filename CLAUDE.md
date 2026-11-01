@@ -179,6 +179,19 @@ Git and publishing:
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
   libraries a game itself uses and descriptions of file formats are fine.
+- **Mac versions (the user, 2026-11-01):** PopCap's own Mac builds are not references. Where the user found one, it
+  sits in the main checkout's `re/<game>/mac/` (git-ignored, so a worktree copies the folder in) with a demangled
+  `<name>.symbols.txt` of its function and class names: BookWorm, Bejeweled, Bejeweled 2, Big Money, Alchemy, Seven
+  Seas, Mummy Maze, Chuzzle and Zuma's Revenge. Its names and class layout guide the port, but the PC exe stays the
+  authority for behaviour, since the Mac build may be another version. No symbol list goes into the repo; a few names
+  as examples are fine. A game decompiled before its Mac version came (BookWorm, Bejeweled, Big Money, Alchemy, Seven
+  Seas, Mummy Maze) also gets a report: its session notes the commit it starts from before it first opens the Mac files,
+  logs each thing the Mac build shows the port got wrong while it makes its fixes, and once its fixes are done writes
+  `games/<game>/docs/MAC_COMPARISON.md` and sends it to the coordinator. The report says how close the decompilation
+  was (game functions found and named rightly, class boundaries and inheritance, functions merged, split or put in the
+  wrong class, wrong types or constants), what the AI got wrong and which of those had a visible effect, and the
+  lessons for future decompilations. Behaviour faults it finds are fixed with the other fixes; naming and structure
+  corrections wait for the readability pass.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
