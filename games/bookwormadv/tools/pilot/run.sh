@@ -30,7 +30,10 @@ if [ "$which" != port ]; then
 	python "$T/seedpatch.py" "$(cygpath -u "$EXE")" $SEED | tee "$P/$name.seedpatch.log"
 	run=pilot-$name
 	rm -rf "${W:?}/build/origrun/$run"
-	"$W/build/origrun-bin/origrun.exe" --exe "$EXE" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
+	# The copy runs DPI-aware: the original is not, so on a scaled display (this machine's is 125%) Windows stretches
+	# its window and origrun's PrintWindow(PW_RENDERFULLCONTENT) returns that stretched picture scaled back down,
+	# blurring every edge. Marked aware, the capture is the game's own 800x600 frame (in a taller frame: 3, 32).
+	__COMPAT_LAYER="HighDpiAware${__COMPAT_LAYER:+ $__COMPAT_LAYER}" "$W/build/origrun-bin/origrun.exe" --exe "$EXE" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
 		--timeout 240 > "$P/$name.orig.log" 2>&1
 	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$name.orig.log" | tail -5
 	S=$W/build/origrun/$run/shots

@@ -57,6 +57,7 @@ shot menu_after_quit_dialog
 click 100 540            # the toolbox: Options
 wait 1500
 shot options
+wait 1000                # the original once ignored a click this soon after the dialog opened
 click 295 458            # Credits
 wait 2500
 shot credits_1
