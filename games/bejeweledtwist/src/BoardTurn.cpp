@@ -190,6 +190,45 @@ bool Board::CheckTips()
 	return aShown;
 }
 
+bool Board::DropFlaggedGems()
+{
+	if (IsSparkBlocked())
+		return false;
+	int aCol = 0;
+	bool aDropped = false;
+	if (0 < mCols) {
+		do {
+			int aRow = mRows;
+			while (aRow--, -1 < aRow) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				if (aPiece == nullptr)
+					continue;
+				if (aPiece->IsFlagSet(Piece::FLAG_1) && !aPiece->mUnknown51C && !aPiece->mBreaking) {
+					Piece* aBelow = GetPieceAtXY(Ftol(aPiece->mX), Ftol((double)gGemHeight + (double)aPiece->mY));
+					if (aBelow != nullptr && aBelow->mPendingDX == 0.0f && aBelow->mPendingDY == 0.0f &&
+						!aBelow->mBreaking) {
+						// port: the gem drops onto the one below (a 0x34-byte object, 0x6f4985, into +0x21e4, updated
+						// by 0x6f465f); it comes with those objects
+						NotPorted("Board::DropFlaggedGems: the drop (0x6f4985)");
+						aDropped = true;
+					} else {
+						if ((double)GetRowY(mRows - 1) > (double)aPiece->mY)
+							break;
+						// port: at the bottom row the game ends (0x6b2c50); it comes with the end of the game
+						NotPorted("Board::DropFlaggedGems: the end of the game (0x6b2c50)");
+					}
+					aPiece->mBlasted = true;
+					aPiece->mUnknown116 = true;
+					break;
+				}
+				aPiece->mUnknown51C = false;
+			}
+			aCol++;
+		} while (aCol < mCols);
+	}
+	return aDropped;
+}
+
 void Board::EndTurn()
 {
 	if (mUnknown37C4 || mUnknown2629)
@@ -263,8 +302,7 @@ void Board::EndTurn()
 	if (mSparkBlock < 1) {
 		if (mUnknown1C79 && mUnknown2190 != mUnknown1FB8) {
 			mUnknown2190 = mUnknown1FB8;
-			// port: 0x6bb7e3 comes with the tutorial's gems (+0x1c79)
-			NotPorted("Board::EndTurn: 0x6bb7e3");
+			DropFlaggedGems();
 		}
 	} else {
 		mSparkBlock--;

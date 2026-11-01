@@ -775,6 +775,7 @@ public:
 	void QueueTip(int theKind, Piece* thePiece);  // 0x6b98f8: a tip waits for its dialog (+0x256c)
 	bool CheckTips();                             // 0x6bc129: tips for the special gems on the board
 	void ShowNextTip();                           // 0x6bbc58
+	bool DropFlaggedGems();                      // 0x6bb7e3: the lowest FLAG_1 gem of each column sinks a row
 	void EndTurn();                               // 0x6be49c
 	void UpdateRecords();                         // 0x6bcd96: the game's best move, cascade and score
 	bool IsGameOverPending();                     // 0x6a5626
