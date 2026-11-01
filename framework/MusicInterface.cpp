@@ -86,6 +86,11 @@ void MusicInterface::SetMusicTempo(int theSongId, int theBPM)
 {
 }
 
+int MusicInterface::GetMusicChannelVolume(int theSongId, int theChannel)
+{
+	return -1;
+}
+
 void MusicInterface::SetMusicChannelVolume(int theSongId, int theChannel, int theVolume)
 {
 }

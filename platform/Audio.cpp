@@ -960,6 +960,15 @@ void Mixer::SetSongTempo(int theSong, int theBPM)
 	Unlock();
 }
 
+int Mixer::GetSongChannelVolume(int theSong, int theChannel)
+{
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	int aVolume = s && s->mModule ? s->mModule->GetChannelVolume(theChannel) : -1;
+	Unlock();
+	return aVolume;
+}
+
 void Mixer::SetSongChannelVolume(int theSong, int theChannel, int theVolume)
 {
 	Lock();

@@ -203,6 +203,12 @@ void SDLMusicInterface::SetMusicTempo(int theSongId, int theBPM)
 		Mixer::Get().SetSongTempo(it->second.mHandle, theBPM);
 }
 
+int SDLMusicInterface::GetMusicChannelVolume(int theSongId, int theChannel)
+{
+	auto it = mSongs.find(theSongId);
+	return it == mSongs.end() ? -1 : Mixer::Get().GetSongChannelVolume(it->second.mHandle, theChannel);
+}
+
 void SDLMusicInterface::SetMusicChannelVolume(int theSongId, int theChannel, int theVolume)
 {
 	auto it = mSongs.find(theSongId);

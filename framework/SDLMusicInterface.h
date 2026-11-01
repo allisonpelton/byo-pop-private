@@ -56,6 +56,7 @@ public:
 	virtual bool GetMusicFFT(int theSongId, float* theOut, int theSamples);
 	virtual int GetMusicTempo(int theSongId);
 	virtual void SetMusicTempo(int theSongId, int theBPM);
+	virtual int GetMusicChannelVolume(int theSongId, int theChannel);
 	virtual void SetMusicChannelVolume(int theSongId, int theChannel, int theVolume);
 	virtual void SetVolume(double theVolume);
 	virtual void SetMusicAmplify(int theSongId, double theAmp);

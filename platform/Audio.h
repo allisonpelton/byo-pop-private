@@ -38,7 +38,10 @@ public:
 	virtual int GetTempo() { return 0; }
 	// Sets the current tempo in BPM, as BASS_MusicSetAttribute(BASS_MUSIC_ATTRIB_BPM) does; kept across SetPosition.
 	virtual void SetTempo(int theBPM) {}
-	// A channel's volume, 0 to 64 (BASS_MUSIC_ATTRIB_VOL_CHAN + theChannel); kept across SetPosition.
+	// A channel's volume, 0 to 100 (BASS_MUSIC_ATTRIB_VOL_CHAN + theChannel in BASS 2.2, 100 until it is set); kept
+	// across SetPosition. GetChannelVolume is -1 past the module's channels, as BASS's attribute is, and so for
+	// every channel when the player cannot tell.
+	virtual int GetChannelVolume(int theChannel) { return -1; }
 	virtual void SetChannelVolume(int theChannel, int theVolume) {}
 };
 
@@ -109,9 +112,10 @@ public:
 	// at the mixer's rate. False for a song that is not playing.
 	bool GetSongFFT(int theSong, float* theOut, int theSamples);
 	// A module's tempo and its channels' volumes through its ModulePlayer (BASS's BPM and VOL_CHAN music
-	// attributes); 0 and nothing for libxmp songs and streams.
+	// attributes); 0, -1 and nothing for libxmp songs and streams.
 	int GetSongTempo(int theSong);
 	void SetSongTempo(int theSong, int theBPM);
+	int GetSongChannelVolume(int theSong, int theChannel);
 	void SetSongChannelVolume(int theSong, int theChannel, int theVolume);
 
 #ifdef __EMSCRIPTEN__

@@ -5,7 +5,8 @@
 // For modules played by a ModulePlayer (MO3) it also checks the tempo and channel volumes (MusicInterface's
 // GetMusicTempo, SetMusicTempo and SetMusicChannelVolume, BASS's BPM and VOL_CHAN music attributes): the module has
 // a tempo, twice that tempo (half when twice is over BASS's 255) plays its first order in half the time (twice) and
-// reports the tempo set, and every channel at volume 0 is silence.
+// reports the tempo set; channels report volume 100 (-1 past the last), tempo and volume keep to BASS 2.2's 1 to 255
+// and 0 to 100; and every channel at volume 0 is silence.
 //   songpostest <gamedir> <music path>...
 #include "platform/Audio.h"
 #include "platform/VFS.h"
@@ -122,7 +123,25 @@ static bool CheckTempo(const char* thePath)
 	}
 	mixer.SetSongTempo(song, bpm);
 
-	for (int i = 0; i < 256; i++)
+	int channels = 0;
+	while (mixer.GetSongChannelVolume(song, channels) == 100)
+		channels++;
+	if (channels == 0 || mixer.GetSongChannelVolume(song, channels) != -1)
+	{
+		printf("tempo: %s: channel %d's volume is %d, not 100 or -1 past the last\n", thePath, channels,
+			mixer.GetSongChannelVolume(song, channels));
+		ok = false;
+	}
+	mixer.SetSongChannelVolume(song, 0, 200);
+	mixer.SetSongTempo(song, 300);
+	if (mixer.GetSongChannelVolume(song, 0) != 100 || mixer.GetSongTempo(song) != 255)
+	{
+		printf("tempo: %s: 200 gives channel volume %d and 300 BPM %d, not BASS's 100 and 255\n", thePath,
+			mixer.GetSongChannelVolume(song, 0), mixer.GetSongTempo(song));
+		ok = false;
+	}
+	mixer.SetSongTempo(song, bpm);
+	for (int i = 0; i < channels; i++)
 		mixer.SetSongChannelVolume(song, i, 0);
 	std::vector<float> out(48000 * 2);
 	mixer.PlaySong(song, 0, 0, false, true);
@@ -137,8 +156,8 @@ static bool CheckTempo(const char* thePath)
 	}
 	mixer.UnloadSong(song);
 	if (ok)
-		printf("tempo: %s: %d BPM, first order %d frames, %.2f of that at %d BPM, silent channels ok\n", thePath,
-			bpm, normal, ratio, tempo);
+		printf("tempo: %s: %d BPM, first order %d frames, %.2f of that at %d BPM, %d silent channels ok\n",
+			thePath, bpm, normal, ratio, tempo, channels);
 	return ok;
 }
 

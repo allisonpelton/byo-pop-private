@@ -52,7 +52,7 @@ public:
 			ApplyTempo();
 		for (int i = 0; i < (int)mChannelVolumes.size(); i++)
 			if (mChannelVolumes[i] >= 0)
-				mInteractive.set_channel_volume(mModuleExt, i, mChannelVolumes[i] / 64.0);
+				mInteractive.set_channel_volume(mModuleExt, i, mChannelVolumes[i] / 100.0);
 	}
 
 	int GetTempo() override
@@ -60,21 +60,31 @@ public:
 		return (int)std::lround(openmpt_module_get_current_tempo2(mModule));
 	}
 
+	// BASS 2.2 (Bejeweled Twist's bass.dll) keeps the BPM within 1 to 255
 	void SetTempo(int theBPM) override
 	{
-		mTempo = theBPM;
+		mTempo = theBPM < 1 ? 1 : (theBPM > 255 ? 255 : theBPM);
 		ApplyTempo();
 	}
 
+	int GetChannelVolume(int theChannel) override
+	{
+		if (theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))
+			return -1;
+		return theChannel < (int)mChannelVolumes.size() && mChannelVolumes[theChannel] >= 0 ?
+			mChannelVolumes[theChannel] : 100;
+	}
+
+	// 0 to 100, as BASS 2.2 keeps it: a factor on the module's own channel volume
 	void SetChannelVolume(int theChannel, int theVolume) override
 	{
 		if (theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))
 			return;
-		theVolume = theVolume < 0 ? 0 : (theVolume > 64 ? 64 : theVolume);
+		theVolume = theVolume < 0 ? 0 : (theVolume > 100 ? 100 : theVolume);
 		if ((int)mChannelVolumes.size() <= theChannel)
 			mChannelVolumes.resize(theChannel + 1, -1);
 		mChannelVolumes[theChannel] = theVolume;
-		mInteractive.set_channel_volume(mModuleExt, theChannel, theVolume / 64.0);
+		mInteractive.set_channel_volume(mModuleExt, theChannel, theVolume / 100.0);
 	}
 
 	bool GetPosition(int& theOrder, int& theRow) override
