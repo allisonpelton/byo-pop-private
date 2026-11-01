@@ -802,6 +802,8 @@ public:
 	void Draw(Graphics* g) override;                 // 0x6cc7ed
 	void DrawBoardBack(Graphics* g);                 // 0x6cc5a3: the 2D board and the space behind it
 	void DrawStrikes(Graphics* g);                   // 0x6aafc1
+	void DrawOverlay(Graphics* g) override;          // 0x6b4a39
+	void DrawCounters(Graphics* g);                  // 0x6b42e1
 	// 0x6caa13 (0x6cc547 skips it while +0x1ff5): theToImage leaves out the grid, theSkipPieces all but the grid
 	void DrawBoard(Graphics* g, bool theToImage, bool theSkipPieces);
 	void DrawGrid(Graphics* g, float theArtScale);  // 0x6caa13's grid

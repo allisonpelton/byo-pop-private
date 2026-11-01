@@ -3,11 +3,14 @@
 #include "Board.h"
 
 #include "EffectsManager.h"
+#include "Font.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "Hyperspace.h"
 #include "Piece.h"
+#include "Points.h"
 #include "Res.h"
+#include "Shockwave.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
@@ -628,4 +631,134 @@ void Board::DrawSelector(Graphics* g, bool theRing)
 		}
 	}
 	g->PopState();
+}
+
+void Board::DrawOverlay(Graphics* g)
+{
+	if (0.0f < mUnknown248) {
+		// port: the fruit blast (+0x248, its curves +0x340 and +0x3b0) is not ported yet; the original darkens the
+		// screen here and draws the gems hidden from the board's own pass over it
+		NotPorted("Board::DrawOverlay: the fruit blast");
+	}
+	g->Translate(Ftol(mShakeX), Ftol(mShakeY));
+	DrawCounters(g);
+	g->Translate(-Ftol(mShakeX), -Ftol(mShakeY));
+	if (mUnknown36B0 && mGameMode == 3)
+		NotPorted("Board::DrawOverlay: the mode's bars (+0x26c8)");
+	if (mUnknown6CC && !mApp->mUnknownF85 && !mUnknown37C4 && !mUnknown2629)
+		NotPorted("Board::DrawOverlay: the tooltip (+0x6cc)");
+	if (mUnknown160 == 1 || mUnknown2629)
+		NotPorted("Board::DrawOverlay: the replay's screen");
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	for (Shockwave* aWave : mUnknown1660)  // 0x6a9b85
+		aWave->Draw(g);
+	if (mUnknown26CC != 0)
+		NotPorted("Board::DrawOverlay: the nuke (+0x26cc)");
+	if (mUnknown34F0.GetOutVal() != 0.0 && mUnknown1574 == 0) {
+		// "GO", fading in over the curve's first half
+		double aFade = mUnknown34F0.GetOutVal() * 2;
+		if (aFade > 1.0)
+			aFade = 1.0;
+		else if (0.0 > aFade)
+			aFade = 0.0;
+		float anAlpha = (float)(aFade * (double)mUnknown3924);
+		float aScale = (float)mUnknown34F0.GetOutVal();
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, Ftol((double)anAlpha * 255.0)));
+		if (IMAGE_GO != nullptr) {
+			float aY = (float)((double)mHeight * 0.44999998807907104);
+			float aX = (float)((double)gGemWidth * 4.0 + (double)mBoardX);
+			DrawImageScaledCentered(g, IMAGE_GO, aX, aY, aScale, aScale);
+		}
+	}
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	if (!mUnknown1F98.empty())
+		NotPorted("Board::DrawOverlay: the hints");
+	if (mUnknown267C != nullptr)
+		NotPorted("Board::DrawOverlay: +0x267c");
+	mPointsManager->DrawOverlay(g, 0x62);
+	// port: the unlock banner (the curve at +0x498) comes with the modes' unlocking
+}
+
+// 0x6b42e1: the gems and cascades of the last move, each a number with its name under it, left of the board
+void Board::DrawCounters(Graphics* g)
+{
+	int aX = GetColX(0) - Ftol((double)gApp->mScale * 95.0);
+	g->SetColorizeImages(true);
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	Color aShadow(0, 0, 0, 128);
+	if (mUnknown37A4 != 0.0f) {
+		Color aColor(96, 96, 255);
+		int aY = Ftol((double)GetRowY(3) - (double)gGemHeight * 0.185);
+		float aScale = (1.0f - mUnknown37AC) * 2.0f + 2.0f;
+		aColor.mAlpha = Ftol((double)mUnknown37AC * 255.0);
+		g->SetColor(aColor);
+		g->PushState();
+		SexyString aText = StrFormat(GTC(0x80da2c), mUnknown36B4);
+		Font* aFont = FONT_POPUP_COUNT;
+		int aWidth = aFont->StringWidth(aText);
+		int anAscent = aFont->GetAscent();
+		SetFontLayerColor(aFont, 1, Color(128, 128, 128));
+		g->SetFont(aFont);
+		g->SetScale(aScale, aScale, (float)aX, (float)aY);
+		g->DrawString(aText, aX - aWidth / 2, anAscent / 2 + aY);
+		float aScale2 = (float)(mUnknown3730.GetOutVal() * 0.9);
+		g->SetScale(aScale2, aScale2, (float)aX, (float)aY);
+		aShadow.mAlpha = Ftol((double)mUnknown37A4 * 128.0);
+		g->SetColor(aShadow);
+		int anOffset = Ftol((double)gApp->mScale * -8.0);
+		g->DrawString(aText, aX - aWidth / 2 - anOffset, anAscent / 2 - anOffset + aY);
+		int anAlpha = Ftol((double)mUnknown37A4 * 255.0);
+		aColor.mAlpha = anAlpha;
+		g->SetColor(aColor);
+		g->DrawString(aText, aX - aWidth / 2, anAscent / 2 + aY);
+		g->PopState();
+		g->SetFont(FONT_RANK_DIALOG);
+		SetFontLayerColor(g->GetFont(), 0, Color::White);
+		aText = mApp->GetString(GTS(0x7dcc20));
+		g->SetColor(Color(64, 64, 64, anAlpha));
+		int aTextX = Ftol((double)gApp->mScale * 10.0) - g->StringWidth(aText) / 2 + aX;
+		aY += Ftol((double)gApp->mScale * 130.0);
+		int anOffset2 = Ftol((double)gApp->mScale * -2.0);
+		g->DrawString(aText, aTextX - anOffset2, aY - anOffset2);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+		g->DrawString(aText, aTextX, aY);
+	}
+	if (0.0f < mUnknown37A0) {
+		int aY = Ftol((double)GetRowY(4) + (double)gGemHeight * 0.6);
+		Color aColor(255, 64, 64);
+		float aScale = (1.0f - mUnknown37A8) * 0.9f + 1.0f;
+		aColor.mAlpha = Ftol((double)mUnknown37A8 * 255.0);
+		SexyString aText = StrFormat(GTC(0x80da2c), mUnknown36B8);
+		Font* aFont = FONT_POPUP_COUNT;
+		int aWidth = aFont->StringWidth(aText);
+		int anAscent = aFont->GetAscent();
+		SetFontLayerColor(aFont, 1, Color(128, 128, 128));
+		g->PushState();
+		g->SetFont(aFont);
+		g->SetColor(aColor);
+		g->SetScale(aScale, aScale, (float)aX, (float)aY);
+		g->DrawString(aText, aX - aWidth / 2, anAscent / 2 + aY);
+		float aScale2 = (float)mUnknown36C0.GetOutVal();
+		g->SetScale(aScale2, aScale2, (float)aX, (float)aY);
+		aShadow.mAlpha = Ftol((double)mUnknown37A0 * 128.0);
+		g->SetColor(aShadow);
+		int anOffset = Ftol((double)gApp->mScale * -8.0);
+		g->DrawString(aText, aX - aWidth / 2 - anOffset, anAscent / 2 - anOffset + aY);
+		int anAlpha = Ftol((double)mUnknown37A0 * 255.0);
+		aColor.mAlpha = anAlpha;
+		g->SetColor(aColor);
+		g->DrawString(aText, aX - aWidth / 2, anAscent / 2 + aY);
+		g->PopState();
+		g->SetFont(FONT_RANK_DIALOG);
+		SetFontLayerColor(g->GetFont(), 0, Color::White);
+		aText = mApp->GetString(GTS(0x7dcc04));
+		int aTextX = Ftol((double)gApp->mScale * 0.0) - g->StringWidth(aText) / 2 + aX;
+		aY += Ftol((double)gApp->mScale * 130.0);
+		int anOffset2 = Ftol((double)gApp->mScale * -2.0);
+		// (no colour of its own for the shadow: it takes the cascades' red at full fade)
+		g->DrawString(aText, aTextX - anOffset2, aY - anOffset2);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+		g->DrawString(aText, aTextX, aY);
+	}
 }

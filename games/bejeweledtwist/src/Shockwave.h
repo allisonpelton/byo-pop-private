@@ -9,6 +9,7 @@
 
 namespace Sexy {
 
+class Graphics;
 class Piece;
 
 class Shockwave {
@@ -29,6 +30,7 @@ public:
 	Shockwave(Piece* thePiece, int theShape);  // 0x749200 (the port's MatchShockwave passes no piece)
 	virtual ~Shockwave() {}          // 0x7491cd
 	virtual void Update() {}         // 0x749511
+	virtual void Draw(Graphics* g) {}  // 0x74956f (the MatchShockwave's, 0x749693, draws nothing too)
 };
 
 class MatchShockwave : public Shockwave {
