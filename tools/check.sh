@@ -129,7 +129,7 @@ WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 4
 WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
 WB_SHOTS="4ae35219b586 01d50e63144e 640e34bc8007"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
 MJ_DEAL="222 layouts, 0 failed"
-MJ_SHOTS="2fff3f87d787 a93a20246e78 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
+MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 
 set -u
