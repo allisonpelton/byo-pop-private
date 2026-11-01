@@ -222,6 +222,19 @@
         { "from": "#_#_D.sav", "to": "#_#_D.sav", "what": "a player's adventure stage in progress" }
       ]
     },
+    "mahjongchina": {
+      "folder": "Mahjong Escape Ancient China",
+      "note": "Mahjong Escape: Ancient China keeps its players in its own folder, %LOCALAPPDATA%\\JollyBear\\Mahjong Escape (the exe calls itself only that), not beside the game: choose that folder.",
+      "registry": { "key": "JollyBear\\Mahjong Escape", "hives": ["hkcu"], "sets": [],
+        "values": ["SoundsOn=dword", "SoundsVolume=dword", "MusicOn=dword", "MusicVolume=dword", "FullScreen=dword", "WideScreen=dword", "HardwareAcceleration=dword"],
+        "skip": { "UseRegistryDefaults": "an installer value, not a save", "ActivateLinks": "an installer value, not a save", "PartnerURL": "a promotional link of the original" } },
+      "files": [
+        { "from": "list.usr", "to": "list.usr", "what": "the list of players" },
+        { "from": "#.usr", "to": "#.usr", "what": "a player, with their settings and progress" },
+        { "from": "#_#.sav", "to": "#_#.sav", "what": "a player's classic game in progress" },
+        { "from": "#_#_D.sav", "to": "#_#_D.sav", "what": "a player's adventure stage in progress" }
+      ]
+    },
     "bonnies": {
       "folder": "Bonnie's Bookstore Deluxe",
       "note": "Bonnie's Bookstore keeps nothing in the registry; its saves are beside its exe.",
