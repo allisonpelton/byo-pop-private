@@ -27,6 +27,13 @@ DialogButton* Sexy::MakeStripButton(PixelusApp* theApp, ButtonListener* theListe
 	aButton->mTranslateY = 0;
 	aButton->mHasAlpha = true;
 	aButton->mHasTransparencies = true;
+	// 0x431670 hands the picture to the button as its button image and takes the component image away, so the
+	// button draws the frames as they are (ButtonWidget::Draw) and does not stretch them over a box (the island's
+	// back button is resized to 125 pixels, its frame is 115)
+	aButton->mButtonImage = anImage;
+	aButton->mOverImage = anImage;
+	aButton->mDownImage = anImage;
+	aButton->mComponentImage = NULL;
 	aButton->Resize(theX, theY, aWidth, aHeight);
 	return aButton;
 }
