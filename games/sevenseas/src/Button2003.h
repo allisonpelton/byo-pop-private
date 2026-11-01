@@ -7,6 +7,7 @@
 // The original's DialogButton (0x42c7d0) draws its picture with it.
 
 #include "DialogButton.h"
+#include "Dialog.h"
 #include "Graphics.h"
 #include "Font.h"
 
@@ -72,7 +73,8 @@ public:
 		if (mFont != NULL)
 		{
 			g->SetFont(mFont);
-			g->SetColor(mIsOver ? mColors[COLOR_LABEL_HILITE] : mColors[COLOR_LABEL]);
+			// the second colour is for a pressed button (mIsDown, +0x1f); the mouse over it changes nothing
+			g->SetColor(mIsDown ? mColors[COLOR_LABEL_HILITE] : mColors[COLOR_LABEL]);
 			int aFontX = (mWidth - mFont->StringWidth(mLabel)) / 2;
 			int aFontY = (mHeight + mFont->GetAscent() - mFont->GetAscentPadding() - mFont->GetAscent() / 6 - 1) / 2;
 			g->DrawString(mLabel, aFontX + mTextOffsetX, aFontY + mTextOffsetY);
@@ -82,6 +84,23 @@ public:
 			g->Translate(-mTranslateX, -mTranslateY);
 	}
 };
+
+
+// the buttons the Dialog constructor made, made again as the 2003 kind (same id and label)
+inline void Use2003Buttons(Dialog* theDialog, Image* theButtonImage)
+{
+	DialogButton** aButtons[2] = {&theDialog->mYesButton, &theDialog->mNoButton};
+	for (int i = 0; i < 2; i++)
+	{
+		DialogButton* anOld = *aButtons[i];
+		if (anOld == NULL)
+			continue;
+		DialogButton* aNew = new DialogButton2003(theButtonImage, anOld->mId, theDialog);
+		aNew->mLabel = anOld->mLabel;
+		*aButtons[i] = aNew;
+		delete anOld;
+	}
+}
 
 }
 

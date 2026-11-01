@@ -482,9 +482,9 @@ void SevenSeasApp::ReadFromRegistry()
 Dialog* SevenSeasApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
 {
-	Dialog* aDialog = new Dialog2004(mImages[IMAGE_DIALOG], mImages[IMAGE_DBUTTONBLACK], theDialogId, isModal,
-		theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
-	aDialog->SetButtonFont(mFonts[FONT_MT11]);
+	Dialog* aDialog = new GameDialog(this, theDialogId, isModal, theDialogHeader, theDialogLines, theDialogFooter,
+		theButtonMode);
+	aDialog->SetButtonFont(mFonts[FONT_YESNO]);
 	aDialog->SetHeaderFont(mFonts[FONT_FONT1]);
 	aDialog->SetLinesFont(mFonts[FONT_MT11]);
 	aDialog->SetColor(Dialog::COLOR_HEADER, Color(0x66, 0x5c, 0x38));

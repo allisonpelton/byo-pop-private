@@ -22,6 +22,20 @@ namespace Sexy
 class SevenSeasApp;
 class HighScoreWidget;
 
+// 0x425540: the app's ordinary dialog (SevenSeasApp::NewDialog, 0x41d1f0): the 2003 dialog with the skull on its top edge
+class GameDialog : public Dialog2004
+{
+public:
+	SevenSeasApp*		mApp;                   // +0xd4
+
+public:
+	GameDialog(SevenSeasApp* theApp, int theId, bool isModal, const SexyString& theHeader, const SexyString& theLines,
+		const SexyString& theFooter, int theButtonMode);
+
+	virtual void		Draw(Graphics* g) override;
+	virtual void		MouseMove(int x, int y) override;
+};
+
 // 0x418760: volume, full screen, custom cursors, and the way to the help, the scores and the site
 class OptionsDialog : public Dialog2004, public SliderListener, public CheckboxListener
 {
