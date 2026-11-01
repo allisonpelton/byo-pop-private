@@ -44,9 +44,20 @@ static uint32_t ToColorBits(lua_State* L, int idx)
 	return (uint32_t)(int64_t)lua_tonumber(L, idx);
 }
 
-// 0x66fe40
+// 0x66fe40: a number 0xAARRGGBB, or a table with the fields r, g, b and a (common.lua's Color), a missing one 0
 static Color ToColor(lua_State* L, int idx)
 {
+	if (lua_istable(L, idx)) {
+		int aParts[4];
+		static const char* const kKeys[4] = {"r", "g", "b", "a"};
+		for (int i = 0; i < 4; i++) {
+			lua_pushstring(L, kKeys[i]);
+			lua_gettable(L, idx);
+			aParts[i] = lua_isnumber(L, -1) ? (int)lua_toint(L, -1) : 0;
+			lua_pop(L, 1);
+		}
+		return Color(aParts[0], aParts[1], aParts[2], aParts[3]);
+	}
 	uint32_t c = ToColorBits(L, idx);
 	return Color((c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff, (c >> 24) & 0xff);
 }

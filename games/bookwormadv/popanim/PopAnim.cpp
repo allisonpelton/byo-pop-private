@@ -499,9 +499,9 @@ bool PopAnim::LoadSprite(Buffer& theBuffer, PASpriteDef* theDef)
 			}
 		}
 
-		// 8: a label for this frame (the first of a name stands)
+		// 8: a label for this frame (the first of a name stands), in upper case (0x56cda0)
 		if (aFlags & 8)
-			theDef->mLabels.insert(std::make_pair(RemapName(theBuffer.ReadString()), aFrameNum));
+			theDef->mLabels.insert(std::make_pair(StringToUpper(RemapName(theBuffer.ReadString())), aFrameNum));
 
 		// 0x10: the animation stops here
 		if (aFlags & 0x10)
@@ -532,12 +532,12 @@ bool PopAnim::LoadSprite(Buffer& theBuffer, PASpriteDef* theDef)
 
 // ---- playing ----
 
-// 0x529c80 and 0x52ea00
+// 0x529c80 and 0x52ea00: the label in upper case, as the labels are kept
 int PopAnim::GetLabelFrame(const std::string& theLabel) const
 {
 	if (!mLoaded)
 		return -1;
-	std::map<std::string, int>::const_iterator anItr = mData->mMain.mLabels.find(theLabel);
+	std::map<std::string, int>::const_iterator anItr = mData->mMain.mLabels.find(StringToUpper(theLabel));
 	if (anItr == mData->mMain.mLabels.end())
 		return -1;
 	return anItr->second;
