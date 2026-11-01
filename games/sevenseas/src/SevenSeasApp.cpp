@@ -838,7 +838,8 @@ void SevenSeasApp::ShowHighScoreWidget()
 		mHighScoreWidget = new HighScoreWidget(this);
 		mHighScoreWidget->Resize(0xad, 0, 0x1d3, 0x1e0);
 		mWidgetManager->AddWidget(mHighScoreWidget);
-		mTalkWidget->mMode = -1;
+		// the pirate (talking since the game ended) goes in front of the list
+		mWidgetManager->BringToFront(mTalkWidget);
 		SetMusicOrder(0x1c, true);
 	}
 }
