@@ -4,11 +4,12 @@
 #include "SevenSeasApp.h"
 #include "Board.h"
 #include "Screens.h"
+#include "Demo.h"
 #include "Dialogs.h"
 #include "GameText.h"
 #include "Compat2004.h"
 #include "Dialog.h"
-#include "DialogButton.h"
+#include "Button2003.h"
 #include "ButtonWidget.h"
 #include "Checkbox.h"
 #include "Graphics.h"
@@ -58,7 +59,7 @@ SevenSeasApp::SevenSeasApp()
 	mTitleScreen = NULL;
 	mIntroWidget = NULL;
 	mHighScoreWidget = NULL;
-	mTrialWidget = NULL;
+	mDemoWidget = NULL;
 	mBoard = NULL;
 	mMapWidget = NULL;
 	mHelpWidget = NULL;
@@ -94,7 +95,7 @@ SevenSeasApp::SevenSeasApp()
 // 0x41bfc0: the widgets the app holds come off the widget manager before they go
 SevenSeasApp::~SevenSeasApp()
 {
-	Widget* aWidgets[] = {mBoard, mTitleScreen, mIntroWidget, mHighScoreWidget, mMapWidget, mTrialWidget, mTalkWidget, mSidePanel};
+	Widget* aWidgets[] = {mBoard, mTitleScreen, mIntroWidget, mHighScoreWidget, mMapWidget, mDemoWidget, mTalkWidget, mSidePanel};
 	for (size_t i = 0; i < sizeof(aWidgets) / sizeof(aWidgets[0]); i++)
 	{
 		if (aWidgets[i] != NULL)
@@ -568,7 +569,7 @@ ButtonWidget* SevenSeasApp::AddButton(int theId, const Rect& theRect, Image* the
 // the menu's button (DialogButton with a picture)
 DialogButton* SevenSeasApp::AddDialogButton(int theId, const Rect& theRect, Image* theImage)
 {
-	DialogButton* aButton = new DialogButton(theImage, theId, this);
+	DialogButton* aButton = new DialogButton2003(theImage, theId, this);
 	aButton->Resize(theRect);
 	aButton->mDoFinger = true;
 	aButton->mMouseInsets = Insets(-1, -1, -1, -1);
@@ -706,11 +707,11 @@ void SevenSeasApp::EndTutorial()
 		SafeDeleteWidget(mHighScoreWidget);
 		mHighScoreWidget = NULL;
 	}
-	if (mTrialWidget != NULL)
+	if (mDemoWidget != NULL)
 	{
-		mWidgetManager->RemoveWidget(mTrialWidget);
-		SafeDeleteWidget(mTrialWidget);
-		mTrialWidget = NULL;
+		mWidgetManager->RemoveWidget(mDemoWidget);
+		SafeDeleteWidget(mDemoWidget);
+		mDemoWidget = NULL;
 	}
 	if (mBoard != NULL)
 	{
@@ -741,7 +742,18 @@ void SevenSeasApp::StartGame()
 {
 	DeleteSavedGame();
 	RemoveIntro();
-	// port: the beginner's demo screen (WinSS.exe 0x4132b0) is not ported; the game starts at once
+	if ((mDifficulty == 1) && !mTutorial)
+	{
+		// a first easy game starts with the demo, whose button makes the board
+		mDemoWidget = new DemoWidget(this);
+		mDemoWidget->Resize(0xad, 0, 0x1d3, 0x1e0);
+		mWidgetManager->AddWidget(mDemoWidget);
+		mWidgetManager->BringToFront(mDemoWidget);
+		mWidgetManager->SetFocus(mDemoWidget);
+		mWidgetManager->BringToFront(mDemoWidget->mButton);
+		mNewGameButton->SetVisible(true);
+		return;
+	}
 	mBoard = new Board(this, false);
 	mBoard->Resize(0xad, 0, 0x1d3, 0x1e0);
 	mWidgetManager->AddWidget(mBoard);
@@ -751,6 +763,17 @@ void SevenSeasApp::StartGame()
 	mQuitButton->SetVisible(false);
 	mNewGameButton->SetVisible(true);
 	mWidgetManager->BringToFront(mTalkWidget);
+}
+
+// 0x41f300
+void SevenSeasApp::RemoveDemo()
+{
+	if (mDemoWidget != NULL)
+	{
+		mWidgetManager->RemoveWidget(mDemoWidget);
+		SafeDeleteWidget(mDemoWidget);
+		mDemoWidget = NULL;
+	}
 }
 
 // 0x41ed70 + 0x421a10 case 0xf: continue the saved game

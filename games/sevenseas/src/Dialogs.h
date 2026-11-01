@@ -7,7 +7,7 @@
 // ported. All derive from the 2003 dialog (an app ButtonListener, buttons mId + 2000 / + 3000: Dialog2004).
 
 #include "Compat2004.h"
-#include "DialogButton.h"
+#include "Button2003.h"
 #include "Checkbox.h"
 #include "CheckboxListener.h"
 #include "EditWidget.h"

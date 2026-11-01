@@ -87,6 +87,14 @@ high-score screen (0x40ff70). The sidebar's four buttons are made at run time fr
 (`SevenSeasApp::TitleScreenDone`): undo (id 10), options (12), new game (14), quit (16). Dialogs: options (0x418760, the
 sliders and check boxes), next level (0x417a30, "Next rank at ..."), record score (0x419f40), the bonus-screen note
 (0x40c7d0) and the warning dialog (0x4262c0), both with a "do not show again" check box that is stored in the registry.
+The beginner's demo (`DemoWidget`, 0x4132b0, `Demo.cpp`) is shown by `StartGame` (0x41eef0) when the difficulty is the first and
+no tutorial is on: a board that plays itself for nine parts (the fade in, four captioned lessons, the fade out) with a fake
+cursor, and a "Click Here to Start!" button that removes it (`RemoveDemo`, 0x41f300) and starts the game. Its random draws
+(`CrtRand`) come in the original's order. Its button is drawn by the 2003 `DrawImageBox` (`Button2003.h`, 0x42beb0): the
+pieces are cut at width/3 and height/3, so a picture that is not a multiple of three (the 98 x 50 wooden button) shows
+different rows at the bottom and right than in the later framework. The demo's captions are two tables of pointers
+(0x4a39f0, 0x4a3a10) that no code refers to by address, so `make_gametext.py` lists them by hand.
+
 
 The game-over screen (`HighScoreWidget`, constructor 0x40ff70, 467 x 480 at x 0xad) does nothing but load `hiscores.dat`
 (0x410550: the best score of the day and the five best, each with a name, a score and a check value) when it is made.

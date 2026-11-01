@@ -29,6 +29,7 @@ class IntroWidget;
 class MapWidget;
 class TalkWidget;
 class HighScoreWidget;
+class DemoWidget;
 class HelpWidget;
 class Image;
 class MemoryImage;
@@ -94,12 +95,13 @@ public:
 	ImageFont*				mFonts[NUM_FONTS];  // +0x404 ..
 	// the widgets that tell the side panel where the mouse is (its pupils follow it)
 	void					FollowMouse(int x, int y);
+	void					RemoveDemo();
 
 	SidePanel*				mSidePanel;         // +0x440
 	TitleScreen*			mTitleScreen;       // +0x424
 	IntroWidget*			mIntroWidget;       // +0x428 the difficulty menu
 	HighScoreWidget*		mHighScoreWidget;   // +0x42c the game over high-score screen
-	Widget*					mTrialWidget;       // +0x430 the demo before a first game (not ported: always NULL)
+	DemoWidget*				mDemoWidget;        // +0x430 the demo before a first easy game
 	Board*					mBoard;             // +0x434
 	Widget*					mMapWidget;         // +0x438 the map between the chapters
 	HelpWidget*				mHelpWidget;        // +0x43c

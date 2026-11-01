@@ -10,7 +10,7 @@
 #include "ButtonListener.h"
 #include "HyperlinkWidget.h"
 #include "ButtonWidget.h"
-#include "DialogButton.h"
+#include "Button2003.h"
 #include <string>
 #include <vector>
 

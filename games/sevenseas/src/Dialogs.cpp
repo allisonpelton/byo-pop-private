@@ -56,7 +56,7 @@ OptionsDialog::OptionsDialog(SevenSeasApp* theApp) :
 	};
 	for (int i = 0; i < 4; i++)
 	{
-		DialogButton* aButton = new DialogButton(mApp->mImages[IMAGE_OPTIONSBUTTON], aSpecs[i].mId, this);
+		DialogButton* aButton = new DialogButton2003(mApp->mImages[IMAGE_OPTIONSBUTTON], aSpecs[i].mId, this);
 		aButton->SetFont(mApp->mFonts[FONT_MT11]);
 		aButton->mLabel = GT(aSpecs[i].mText);
 		*aSpecs[i].mButton = aButton;

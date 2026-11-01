@@ -15,6 +15,7 @@
 #include "SevenSeasApp.h"
 #include "Board.h"
 #include "Screens.h"
+#include "Demo.h"
 #include "Dialogs.h"
 #include "Graphics.h"
 #include "WidgetManager.h"
@@ -186,6 +187,14 @@ void SevenSeasApp::AutoplayUpdate()
 	if (mMapWidget != NULL)
 	{
 		((MapWidget*) mMapWidget)->ButtonDepress(100);
+		s->mWait = 5;
+		return;
+	}
+
+	// the beginner's demo: click through it at once
+	if (mDemoWidget != NULL)
+	{
+		mDemoWidget->ButtonDepress(1);
 		s->mWait = 5;
 		return;
 	}

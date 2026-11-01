@@ -382,7 +382,7 @@ static const int kMapChapterDots[8] = {359, 0, 8, 17, 22, 27, 32, 35};
 MapWidget::MapWidget(SevenSeasApp* theApp) :
 	mApp(theApp)
 {
-	mNextButton = new DialogButton(mApp->mImages[IMAGE_MAPBUTTONLIT], 100, this);
+	mNextButton = new DialogButton2003(mApp->mImages[IMAGE_MAPBUTTONLIT], 100, this);
 	mNextButton->mOverImage = mApp->CopyImage(mApp->mImages[IMAGE_MAPBUTTONLIT]);
 	mNextButton->mButtonImage = mApp->CopyImage(mApp->mImages[IMAGE_MAPBUTTONUNLIT]);
 	mNextButton->mDoFinger = true;
@@ -768,7 +768,7 @@ HighScoreWidget::HighScoreWidget(SevenSeasApp* theApp) :
 	mShimmer(0),
 	mReveal(0)
 {
-	mNewGameButton = new DialogButton(mApp->mImages[IMAGE_DBUTTONWOOD], 1, this);
+	mNewGameButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTONWOOD], 1, this);
 	mNewGameButton->SetFont(mApp->mFonts[FONT_MT11]);
 	mNewGameButton->mLabel = GT(0x004a3744);
 	mNewGameButton->SetColor(DialogButton::COLOR_LABEL, Color(0xff, 0xe2, 0x3c));
