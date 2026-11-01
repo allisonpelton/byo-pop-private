@@ -24,9 +24,11 @@ copy.
 
 ## Building and testing
 
-`tools/build.sh native` (target `bonnies`) and `tools/build.sh web`. `tools/check.sh bonnies` plays the logos, the
-menu, a new player, the difficulty, the story and a tutorial word from a script (`tools/menu_test.txt`, with `-fast
--seed=1`) and reruns it, which must give the same screens. Run the game in tests only under `build/native/rundesk.exe`
+`tools/build.sh native` (target `bonnies`) and `tools/build.sh web`. `tools/check.sh bonnies` plays a tour from a
+script (`tools/tour_test.txt`, with `-fast -seed=1`): a new player, the classic game's tutorial, the options, high
+scores, credits and help, an action game until its time is up, and Quit. A rerun must give the same screens and saves,
+and three of the screens must match the frozen baseline's hashes (`BB_SHOTS` in `tools/check.sh`); a copy of the port
+in `build/baseline-bonnies/bonnies.exe` must give all of them too. Run the game in tests only under `build/native/rundesk.exe`
 (see the repository's CLAUDE.md). `tools/origcmp.py` compares a capture of the original (tools/origrun) with a port
 screenshot.
 
@@ -34,5 +36,6 @@ screenshot.
 
 The whole game is translated: the menus, players, options, help, high scores, the classic and action games over the
 50 books, the story and the book ends. Natively and on the web it plays from the logos into the books; compared with
-the original the screens checked so far match (`docs/ENGINE.md`, "Comparing with the original"). Mods: none yet
-(`docs/MOD_IDEAS.md` lists ideas).
+the original the screens checked so far match (`docs/ENGINE.md`, "Comparing with the original"). `docs/DEVIATIONS.md`
+lists every place the port does something other than the original, the leak it fixed and the memory the original
+reads before setting it. Mods: none yet (`docs/MOD_IDEAS.md` lists ideas).

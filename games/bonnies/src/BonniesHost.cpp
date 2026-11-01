@@ -958,6 +958,12 @@ void BonniesHostApp::DoMainLoop()
 		mGameRunning = true;
 		bonnies::bonniesMain();
 		mGameRunning = false;
+		if (gHost.mCursorImage != nullptr)
+		{
+			SetCursorImage(CURSOR_CUSTOM, nullptr);
+			delete gHost.mCursorImage;
+			gHost.mCursorImage = nullptr;
+		}
 		Shutdown();
 	}
 	SexyAppBase::DoMainLoop();
