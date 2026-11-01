@@ -415,9 +415,9 @@ suite_alchemy() {
 }
 
 sevenseas_game() {  # <name> <seed> <difficulty> <start level> <games>: a bot game; prints the last "game N over" line
-	local d="$OUT/sevenseas/$1"
+	local d="$OUT/sevenseas/$1" exe="${SS_EXE:-$W/build/native/sevenseas.exe}"
 	rm -rf "$d"; mkdir -p "$d/shots"
-	timeout 600 "$W/build/native/sevenseas.exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
+	timeout 600 "$exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
 		-autoplaygames="$5" -autoplaycap=60000 -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^game [0-9]+ over' "$d/log.txt" 2>/dev/null | tail -n 1
 }
@@ -432,6 +432,18 @@ suite_sevenseas() {
 	[ "$b" = "$SS_BONUS" ] || st=1
 	[ "$c" = "$SS_LATE" ] || st=1
 	if diff -rq "$OUT/sevenseas/beginner/shots" "$OUT/sevenseas/beginner2/shots" >> "$1" 2>&1 && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-sevenseas/sevenseas.exe, a copy of the port made when it was last checked
+	# against the original): the same three games must give the same lines and the same screenshots
+	local base="$W/build/baseline-sevenseas/sevenseas.exe" bl=""
+	if [ -f "$base" ]; then
+		SS_EXE="$base" sevenseas_game base-beginner 1 1 0 2 > /dev/null; SS_EXE="$base" sevenseas_game base-bonus 2 2 10 1 > /dev/null
+		SS_EXE="$base" sevenseas_game base-late 3 3 21 1 > /dev/null
+		bl="baseline identical"
+		for k in beginner bonus late; do
+			diff -q "$OUT/sevenseas/$k/log.txt" "$OUT/sevenseas/base-$k/log.txt" >> "$1" 2>&1 && diff -rq "$OUT/sevenseas/$k/shots" "$OUT/sevenseas/base-$k/shots" >> "$1" 2>&1 || { bl="BASELINE DIFFERS ($k)"; st=1; }
+		done
+		r="$r; $bl"
+	fi
 	SUMMARY="beginner ${a#game }; bonus ${b#game }; late ${c#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected beginner '$SS_BEGINNER', bonus '$SS_BONUS', late '$SS_LATE')"
 	return $st

@@ -91,6 +91,14 @@ Board::Board(SevenSeasApp* theApp, bool theLoad) :
 // 0x401280
 Board::~Board()
 {
+	// the tutorial's button (the original deletes it here, the port's first version leaked it)
+	if (mStartLink != NULL)
+	{
+		if (mStartLink->mWidgetManager != NULL)
+			mStartLink->mWidgetManager->RemoveWidget(mStartLink);
+		delete mStartLink;
+		mStartLink = NULL;
+	}
 	ClearPorts();
 	ClearAnims();
 	ClearShots();
