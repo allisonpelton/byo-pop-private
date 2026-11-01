@@ -6,7 +6,7 @@
 //   lists each string's address in the game image, its length and a hash: no text.
 // - LoadGameTexts() reads each text at its address and checks length and hash. A text that does not match
 //   (another version of the exe) stays empty and is logged.
-// - Code names a text by its address in the original: GT(0x6f7d28). Overrides: any string property named
+// - Code names a text by its address in the original: GT(<its address>). Overrides: any string property named
 //   GT_<8 hex digits> (from the game's properties or a mod) replaces the text read from the exe.
 #pragma once
 
