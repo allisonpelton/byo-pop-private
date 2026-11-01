@@ -1,0 +1,95 @@
+# Bonnie's original, the port's tour (tools/tour_test.txt) by the clock: logos, menu, a new player,
+# difficulty, story, the tutorial's three words, the game's options, high scores, credits, help, main menu options.
+waitshot logo 20000
+wait 6000
+shot menu
+click 180 306
+wait 1500
+shot name
+key 0x54
+wait 100
+key 0x45
+wait 300
+key 0x0d
+wait 2000
+shot difficulty
+click 460 280
+wait 3000
+shot story
+click 745 565
+wait 2500
+click 745 565
+wait 2500
+click 745 565
+wait 2500
+click 745 565
+wait 2500
+click 745 565
+wait 3500
+shot board
+click 400 300
+wait 2500
+shot tutorial
+click 575 190
+wait 200
+click 620 205
+wait 200
+click 665 230
+wait 200
+click 665 275
+wait 1200
+shot word
+click 450 557
+wait 4000
+shot played
+click 620 250
+wait 200
+click 665 280
+wait 200
+click 710 255
+wait 200
+click 710 205
+wait 1200
+shot cake
+click 450 557
+wait 4000
+shot tale
+click 70 548
+wait 2500
+shot gameoptions
+click 335 382
+wait 2500
+shot highscores
+click 400 560
+wait 3000
+click 70 548
+wait 2000
+click 465 382
+wait 2500
+shot credits
+click 400 300
+wait 3000
+click 70 548
+wait 2000
+click 465 337
+wait 2500
+shot help1
+click 760 565
+wait 2500
+shot help2
+click 760 565
+wait 2500
+shot help3
+click 760 565
+wait 2500
+click 70 548
+wait 2000
+click 335 337
+wait 3000
+shot mainmenu
+click 205 415
+wait 2500
+shot options
+click 397 412
+wait 1500
+quit
