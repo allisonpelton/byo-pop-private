@@ -52,7 +52,7 @@ namespace
 
 const int kScreenWidth = 800;
 const int kScreenHeight = 600;
-const int kChannels = 32;
+const int kChannels = 64;  // FMOD 3 was opened with 64 (docs/ENGINE.md, Sound)
 
 // A path of the game's ("SavedGames/x.gam") in the user's folder, its folders made when theCreate
 std::string UserPath(const std::string& thePath, bool theCreate)
