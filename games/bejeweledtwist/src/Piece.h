@@ -192,6 +192,7 @@ public:
 	bool IsFlagSet(int theFlag) const { return (mFlags & (1u << theFlag)) != 0; }  // 0x728c91
 	void ClearFlag(int theFlag) { SetFlag(theFlag, false); }  // 0x728cb0
 	void ClearSpecial();                       // 0x728cc1
+	void Blast();                              // 0x729363: a power gem goes off
 	bool CanMove() const;                      // 0x728cf9
 	void SetColor(int theColor);               // 0x729563
 	bool IsSpecial();                          // 0x729a0a: a power, electro, fruit or type 6 or 7 gem

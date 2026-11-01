@@ -10,7 +10,9 @@
 #include "MemoryImage.h"
 #include "GraphicsRecorder.h"
 #include "Image.h"
+#include "Profile.h"
 #include "Res.h"
+#include "Shockwave.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "TriVertex.h"
@@ -2362,4 +2364,24 @@ void Piece::MakeCountImage()
 		mCountPulse.mInVal = 0.0;
 		mCountPulse.mIncRate = 0.0;
 	}
+}
+
+void Piece::Blast()
+{
+	// 0x729363: a power gem goes off: a blast one gem round, the gems above jump, and 50 points
+	if (mBlasted || !IsFlagSet(FLAG_POWER))
+		return;
+	gApp->PlaySample(SOUND_PREBLAST);
+	mBlasted = true;
+	if (!gApp->mProfile->GetFlag1E4(0x10)) {
+		// the first power gem's tip
+		gApp->mBoard->mUnknown3904 = true;
+		gApp->mProfile->SetFlag1E4(0x10, true);
+	}
+	gApp->mBoard->mUnknown1660.push_back(new BlastShockwave(this, 1, 1));  // 0x6bc3cd
+	gApp->mBoard->LiftAround(this, 1.0f);
+	// (unless the board is +0x37c4's, the original adds a heat wave here, 0x6f9efe: Direct3D only)
+	gApp->mBoard->PlayPieceSound(this, SOUND_GEM_SHATTERS, 0, 0, true);
+	gApp->mBoard->AddPoints(Ftol((double)(gGemWidth / 2) + (double)mX),
+		Ftol((double)(gGemHeight / 2) + (double)mY), 50, gGemColors[mColor], mUnknown2EC, true, true, false, true);
 }

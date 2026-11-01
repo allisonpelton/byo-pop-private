@@ -1931,10 +1931,74 @@ bool Board::SettlePieces()
 								aCol++;
 								continue;
 							}
-							// port: a gem's countdown to going off (its sparks, points and the effects, 0x6c1857,
-							// 0x6bf983, 0x6c0ccf) comes with the matching; it draws from Rand
-							NotPorted("Board::SettlePieces: a gem going off");
-							aAllDone = false;
+							if (aPiece->IsFlagSet(Piece::FLAG_BOMB) && aPiece->mBombCount == 0) {
+								// a spent bomb shakes as its fuse runs down
+								float aShake = (float)((double)(float)(100 - aPiece->mUnknown88) / 5.0);
+								if (1.0f < aShake)
+									aShake = 1.0f;
+								aPiece->mUnknown29C = aShake;
+								aPiece->mUnknown2A0 = (float)((double)RandSigned() * 3.1415927410125732);
+							}
+							aPiece->mUnknown88--;
+							if (aPiece->mUnknown88 != 0) {
+								aAllDone = false;
+							} else {
+								// the gem goes off
+								float aMidX = (float)(gGemWidth / 2) + aPiece->mX;
+								float aMidY = (float)(gGemHeight / 2) + aPiece->mY;
+								bool aBreak = false;
+								if (aPiece->IsFlagSet(Piece::FLAG_FRUIT)) {
+									if (!mUnknown25A4 || mUnknown21D8)
+										aPiece->mUnknown88 = 1;
+									else
+										aBreak = true;
+								} else if (aPiece->IsFlagSet(Piece::FLAG_1)) {
+									aBreak = true;
+								} else if (aPiece->IsFlagSet(Piece::FLAG_ELECTRO)) {
+									BreakPiece(aPiece);
+									AddPoints(Ftol((double)(gGemWidth / 2) + (double)aPiece->mX),
+										Ftol((double)(gGemHeight / 2) + (double)aPiece->mY), mUnknown1C58,
+										gGemColors[aPiece->mColor], aPiece->mUnknown2EC, true, true, false, true);
+									AddBlastChain();
+								} else if (aPiece->IsFlagSet(Piece::FLAG_POWER)) {
+									if (!aPiece->mUnknown537) {
+										aPiece->mUnknown537 = true;
+										AddPoints(Ftol((double)(gGemWidth / 2) + (double)aPiece->mX),
+											Ftol((double)(gGemHeight / 2) + (double)aPiece->mY), mUnknown1C58,
+											gGemColors[aPiece->mColor], aPiece->mUnknown2EC, true, true, false, true);
+										AddBlastChain();
+										AddStat(0x40, 1);
+										mUnknown1FC++;
+										mUnknown1F8++;
+									}
+									AddStat(aPiece->mColor + 0x4b, 1);
+									AddStat(0x3e, 1);
+									SetOffPowerGem(aPiece);
+								} else if (aPiece->IsFlagSet(Piece::FLAG_BOMB)) {
+									BlowUpPiece(aPiece, aMidX, aMidY, true, false);
+									if (!mUnknown37C4) {
+										// port: the bomb's flash (0x6fa00c in the gem's colour) comes with the bombs
+										NotPorted("Board::SettlePieces: a bomb's flash");
+									}
+									aPiece->mBlasted = true;
+									aPiece->mUnknown116 = true;
+									anExploded = true;
+									aBreak = true;
+								} else if (aPiece->IsFlagSet(Piece::FLAG_COAL)) {
+									aBreak = true;
+								} else {
+									BlowUpPiece(aPiece, aMidX, aMidY, true, false);
+									AddPoints(Ftol((double)(gGemWidth / 2) + (double)aPiece->mX),
+										Ftol((double)(gGemHeight / 2) + (double)aPiece->mY), 10,
+										gGemColors[aPiece->mColor], aPiece->mUnknown2EC, true, true, false, true);
+									anExploded = true;
+									aBreak = true;
+								}
+								if (aBreak)
+									BreakPiece(aPiece);
+								if (mUnknown15C == 0)
+									Refill();
+							}
 						}
 						if (0.0f < aPiece->mUnknown284) {
 							// port: 0x6c812f's +0x284 growth (a 0x104-byte object, 0x74b46e) comes with the features
@@ -1948,7 +2012,7 @@ bool Board::SettlePieces()
 		} while (aRow < mRows);
 		if (anExploded) {
 			mApp->PlaySample(SOUND_BOMB_EXPLODE);
-			NotPorted("Board::SettlePieces: 0x6b3ffc");
+			ShowCountPopup();
 		}
 	}
 	if (!mUnknown1660.empty()) {

@@ -1,6 +1,7 @@
 // The board's matches: finding them (0x6cd468), the special gems they make and what follows a fall (0x6cf3fd)
 #include "Board.h"
 
+#include "EffectsManager.h"
 #include "GameText.h"
 #include "GoodTube.h"
 #include "Piece.h"
@@ -1404,8 +1405,17 @@ void Board::BreakPiece(Piece* thePiece)
 		NotPorted("Board::BreakPiece: an electro gem");
 		return;
 	} else if (thePiece->IsFlagSet(Piece::FLAG_POWER)) {
-		// port: a power gem's blast (stat 0x40, 50 points, 0x6b8c49, 0x729363) comes with the special gems
-		NotPorted("Board::BreakPiece: a power gem");
+		if (!thePiece->mUnknown537) {
+			AddStat(0x40, 1);
+			AddPoints(Ftol((double)(gGemWidth / 2) + (double)thePiece->mX),
+				Ftol((double)(gGemHeight / 2) + (double)thePiece->mY), 50, gGemColors[thePiece->mColor],
+				thePiece->mUnknown2EC, true, true, false, true);
+			thePiece->mUnknown537 = true;
+			mUnknown1FC++;
+			mUnknown1F8++;
+		}
+		mUnknown37B8[thePiece->mUnknown2EC] = -0x66;  // 0x6b8c49
+		thePiece->Blast();
 	} else if (thePiece->IsFlagSet(Piece::FLAG_LOCKED)) {
 		// port: a gem lock breaking (0x72952f) comes with the gem locks
 		NotPorted("Board::BreakPiece: a gem lock");
@@ -1423,4 +1433,300 @@ void Board::BreakPiece(Piece* thePiece)
 		mUnknown1E8++;
 	else
 		thePiece->mBlasted = true;
+}
+
+void Board::BlowUpPiece(Piece* thePiece, float theX, float theY, bool theBreak, bool theBlast)
+{
+	// 0x6c1857: the gem bursts into smoke, shards and flashes, flung away from theX, theY; theBreak also breaks it
+	// with a small wave, theBlast flings the smoke from the blast's middle (a power gem's)
+	const double kPi = 3.1415927410125732;
+	const float kTwoPiF = 6.2831855f;  // 0x84e91c
+	int aCenterX = Ftol((double)(gGemWidth / 2) + (double)thePiece->mX);
+	int aCenterY = Ftol((double)(gGemHeight / 2) + (double)thePiece->mY);
+	float aX = (float)aCenterX;
+	float aPushX = (float)(((double)aX - (double)theX) * 0.009999999776482582);
+	float aY = (float)aCenterY;
+	float aPushY = (float)(((double)aY - (double)theY) * 0.009999999776482582);
+	if (aPushX == 0.0f)
+		aPushY = (float)((double)aPushY * 2.0);
+	if (aPushY == 0.0f)
+		aPushX = (float)((double)aPushX * 2.0);
+	mUnknown1370[GetColAt(Ftol((double)thePiece->mX))] = mUpdateCnt;
+	Light aLight;
+	aLight.mX = aX;
+	aLight.mY = aY;
+	aLight.mUnknown8 = 15.0f;
+	aLight.mUnknownC = 20.0f;
+	aLight.mUnknown10 = 0;
+	aLight.mUnknown14 = 1.0f;
+	aLight.mUnknown18 = true;
+	aLight.mUnknown1C = 0.1f;
+	aLight.mUnknown20 = 0.05f;
+	mUnknown1650.push_back(aLight);
+
+	// smoke
+	for (int aLeft = 14; aLeft != 0; aLeft--) {
+		Effect* anEffect = mFXManager->AllocEffect(26);
+		float anAngle = (float)((double)RandSigned() * kPi);
+		float aMin = (float)((double)gApp->mScale * 0.0);
+		float aRange = gApp->mScale + gApp->mScale;
+		float aRand = RandSigned();
+		float aSpeed = (float)((double)fabsf(aRand) * (double)aRange + (double)aMin);
+		anEffect->mDX = (float)((double)cosf(anAngle) * (double)aSpeed + (double)aPushX);
+		anEffect->mDY = (float)((double)sinf(anAngle) * (double)aSpeed + (double)aPushY);
+		if (theBlast) {
+			float aScale = (float)((double)gApp->mScale * 2.5);
+			aRand = fabsf(RandSigned());
+			anEffect->mDX = (float)((double)aRand * (double)aScale * (double)anEffect->mDX);
+			aScale = (float)((double)gApp->mScale * 2.5);
+			aRand = fabsf(RandSigned());
+			anEffect->mDY = (float)((double)aRand * (double)aScale * (double)anEffect->mDY);
+			// from somewhere between the blast's middle and the gem
+			float aMix = fabsf(RandSigned());
+			aMix = aMix * aMix;
+			float aCos = cosf(anAngle);
+			aRand = RandSigned();
+			double aRest = 1.0 - (double)aMix;
+			anEffect->mX = (float)(((double)aMix * (double)theX + (double)aX * aRest) +
+				(double)aCos * 64.0 * (double)fabsf(aRand));
+			float aSin = sinf(anAngle);
+			aRand = RandSigned();
+			anEffect->mY = (float)(((double)aMix * (double)theY + (double)aY * aRest) +
+				(double)aSin * 64.0 * (double)fabsf(aRand));
+			anEffect->mColor = Color(255, 96, 32, 64);
+			anEffect->mIsAdditive = true;
+			anEffect->mDScale = 0.015f;
+		} else {
+			float aCos = cosf(anAngle);
+			aRand = RandSigned();
+			anEffect->mX = (float)((double)aCos * 24.0 * (double)fabsf(aRand) + (double)aX);
+			float aSin = sinf(anAngle);
+			aRand = RandSigned();
+			anEffect->mY = (float)((double)aSin * 24.0 * (double)fabsf(aRand) + (double)aY);
+			anEffect->mColor = gGemColors[thePiece->mColor];
+			anEffect->mIsAdditive = false;
+			anEffect->mDScale = 0.02f;
+		}
+		anEffect->mScale = (float)((double)fabsf(RandSigned()) + 0.10000000149011612);
+		mFXManager->AddEffect(anEffect);
+	}
+
+	// shards, in a spiral (or thrown out from the blast)
+	for (int i = 0; i < 25; i++) {
+		Effect* anEffect = mFXManager->AllocEffect(16);
+		anEffect->mColor = gGemColors[thePiece->mColor];
+		int aTurns = Ftol((double)(i + 120) / 120.0);
+		int aDist = Ftol((double)(aTurns * i) * (double)gApp->mScale);
+		int aJitter = (int)Rand() % 100;
+		double anAngle = (double)aJitter / 800.0 + (double)i * 0.503;
+		float aBase = (float)((double)gApp->mScale * 1.2000000476837158);
+		float aRand = fabsf(RandSigned());
+		float aSpeed = (float)((double)gApp->mScale * 1.2000000476837158);
+		aSpeed = (float)((double)aSpeed * (double)aRand + (double)aBase);
+		anEffect->mDX = (float)(cos(anAngle) * (double)aSpeed + (double)aPushX);
+		float aLift = (float)((double)gApp->mScale * -2.0);
+		float aDY = (float)(sin(anAngle) * (double)aSpeed + (double)aLift + (double)aPushY);
+		anEffect->mDY = aDY;
+		if (aPushX == 0.0f && aPushY == 0.0f) {
+			double aBack = (double)aDist * -1.2000000476837158;
+			int anOffset = Ftol((double)anEffect->mDX * aBack);
+			anEffect->mX = (float)((double)(aCenterX - anOffset) + 14.0);
+			anOffset = Ftol(aBack * (double)aDY);
+			anEffect->mY = (float)((double)(aCenterY - anOffset) + 10.0);
+		} else {
+			anAngle = (double)RandSigned() * 3.14159;
+			int aMaxDist = Ftol((double)gApp->mScale * 48.0);
+			int aRandDist = Ftol((double)RandSigned() * (double)aMaxDist);
+			float aDistF = (float)aRandDist;
+			anEffect->mX = (float)(Ftol(cos(anAngle) * (double)aDistF) + aCenterX);
+			anEffect->mY = (float)(Ftol(sin(anAngle) * (double)aDistF) + aCenterY);
+			float anAwayX = anEffect->mX - theX;
+			float anAwayY = anEffect->mY - theY;
+			double aDir = (double)(float)std::atan2((double)anAwayY, (double)anAwayX);  // 0x4c1b70
+			anAngle = (double)RandSigned() * 0.3 + aDir;
+			float aBase2 = (float)((double)gApp->mScale * 3.5);
+			aRand = fabsf(RandSigned());
+			float aSpeed2 = (float)((double)gApp->mScale * (double)aRand + (double)aBase2);
+			anEffect->mDX = (float)(cos(anAngle) * (double)aSpeed2);
+			float aLift2 = (float)((double)gApp->mScale * -2.0);
+			anEffect->mDY = (float)(sin(anAngle) * (double)aSpeed2 + (double)aLift2);
+			anEffect->mUnknown38 = (float)((double)RandSigned() * 0.005 + 0.98);
+		}
+		anEffect->mAngle = (float)anAngle;
+		anEffect->mDAngle = (float)((double)RandSigned() * 0.05000000074505806);
+		anEffect->mGravity = (float)((double)gApp->mScale * 0.05999999865889549);
+		anEffect->mUnknown9C = (float)((double)RandSigned() * (double)kTwoPiF);
+		anEffect->mUnknownA0 = (float)((double)RandSigned() * (double)kTwoPiF);
+		anEffect->mUnknownA4 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+		anEffect->mUnknownA8 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+		float aFade = fabsf(RandSigned());
+		anEffect->mDAlpha = (float)(((double)aFade + (double)aFade + 4.0) * -0.0025);
+		mFXManager->AddEffect(anEffect);
+	}
+
+	// a ring of grey smoke
+	for (int i = 0; i < 14; i++) {
+		Effect* anEffect = gBoard->mFXManager->AllocEffect(26);
+		float anAngle = (float)((double)i * (double)kTwoPiF / 20.0);
+		float aRand = RandSigned();
+		float aSpeed = (float)((double)fabsf(aRand) * 5.75 + 0.5);
+		anEffect->mDX = (float)((double)cosf(anAngle) * (double)aSpeed + (double)aPushX);
+		anEffect->mDY = (float)((double)sinf(anAngle) * (double)aSpeed + (double)aPushY);
+		float aCos = cosf(anAngle);
+		aRand = RandSigned();
+		anEffect->mX = (float)((double)aCos * 25.0 * (double)fabsf(aRand) + (double)aX);
+		float aSin = sinf(anAngle);
+		aRand = RandSigned();
+		anEffect->mIsAdditive = false;
+		anEffect->mY = (float)((double)aSin * 25.0 * (double)fabsf(aRand) + (double)aY);
+		anEffect->mScale = 0.5f;
+		anEffect->mDScale = 0.005f;
+		aRand = (float)((double)RandSigned() * 0.5);
+		aRand = fabsf(aRand);
+		anEffect->mUnknownA0 = (float)((1.0 - (double)aRand) * (double)anEffect->mUnknownA0);
+		anEffect->mColor = Color(128, 128, 128);
+		gBoard->mFXManager->AddEffect(anEffect);
+	}
+
+	if (0.0f < thePiece->mGlow) {
+		// a glowing gem throws sparks too
+		EffectsManager* aFXManager = gBoard->mFXManager;
+		for (int aLeft = 15; aLeft != 0; aLeft--) {
+			Effect* anEffect = aFXManager->AllocEffect(12);
+			float aMin = gApp->mScale;
+			float aRand = fabsf(RandSigned());
+			float aRange = gApp->mScale + gApp->mScale;
+			float aSpeed = (float)((double)aRange * (double)aRand + (double)aMin);
+			float anAngle = (float)((double)RandSigned() * kPi);
+			anEffect->mScale = (float)((double)RandSigned() * 0.5 + 1.0);
+			anEffect->mDX = (float)((double)cosf(anAngle) * (double)aSpeed);
+			anEffect->mDY = (float)((double)sinf(anAngle) * (double)aSpeed);
+			float aCos = cosf(anAngle);
+			anEffect->mX = (float)((double)gGemWidth * (double)aCos * 0.5 +
+				((double)(gGemWidth / 2) + (double)thePiece->mX));
+			float aSin = sinf(anAngle);
+			anEffect->mIsAdditive = true;
+			anEffect->mY = (float)((double)gGemHeight * (double)aSin * 0.5 +
+				((double)(gGemHeight / 2) + (double)thePiece->mY));
+			anEffect->mAlpha = 1.0f;
+			anEffect->mDAlpha = -0.005f;
+			anEffect->mGravity = 0;
+			aFXManager->AddEffect(anEffect);
+		}
+		// (unless the board is +0x37c4's, the original adds a heat wave at the gem, 0x6f9efe: Direct3D only)
+	}
+
+	if (mUnknown1430 == thePiece)
+		mUnknown1430 = nullptr;
+	if (theBreak) {
+		MatchShockwave* aWave = new MatchShockwave(aCenterX, aCenterY);
+		aWave->SetStrength(2.0f);
+		mUnknown1660.push_back(aWave);
+		BreakPiece(thePiece);
+		if (!thePiece->mUnknown537 && !IsBusy()) {
+			AddStat(0x3e, 1);
+			thePiece->mUnknown537 = true;
+			if (!mUnknown2629 && 0 < mUnknown158)
+				mApp->mProfile->mGemsCleared++;
+			mUnknown1FC++;
+			mUnknown1F8++;
+			ShowCountPopup();
+		}
+		if (thePiece->IsFlagSet(Piece::FLAG_COAL))
+			thePiece->mBreaking = true;
+		else if (thePiece->mUnknown88 == 0)
+			thePiece->mBlasted = true;
+	}
+}
+
+void Board::LiftColumn(Piece* thePiece, float theStrength)
+{
+	// 0x6a4a1b: each gem above jumps (its fall's speed goes up), less the further above it is; the column's +0x133c
+	// keeps the strongest
+	static float sReach = (float)(gGemHeight + gGemHeight);  // 0x85c418, set on the first call
+	float aFirst = 0;
+	for (int aRow = mRows - 1; 0 <= aRow; aRow--) {
+		int aCol = thePiece->mCol;
+		float aKick = 0;
+		do {
+			Piece* aPiece = gBoard->GetPieceAt(aRow, aCol);
+			if (aPiece != nullptr && aPiece->mY < thePiece->mY) {
+				float aFar = (float)((double)fabsf(aPiece->mY - thePiece->mY) / (double)sReach);
+				if (1.0f < aFar)
+					aFar = 1.0f;
+				float aScale = (float)((double)gApp->mScale * -5.0);
+				float aNear = 1.0f - aFar;
+				aKick = (float)((double)aScale * (double)theStrength * (double)aNear);
+				if (aFirst == 0.0f)
+					aFirst = aKick;
+				aPiece->mUnknown34 = aFirst <= aPiece->mUnknown34 ? aFirst : aPiece->mUnknown34;
+			}
+			mUnknown133C[aCol] = aKick < aFirst ? aFirst : aKick;
+			aCol++;
+		} while (aCol <= thePiece->mCol);
+	}
+}
+
+void Board::LiftAround(Piece* thePiece, float theStrength)
+{
+	// 0x6a4b7c: in every column the gems above thePiece jump, harder the nearer and the more nearly straight above
+	// they are; the column's +0x133c keeps the strongest
+	for (int aCol = 0; aCol < mCols; aCol++) {
+		float aFirst = 0;
+		float aKick = 0;
+		for (int aRow = mRows - 1; -1 <= aRow; aRow--) {
+			Piece* aPiece = gBoard->GetPieceAt(aRow, aCol);
+			float aDX;
+			float aDY;
+			if (aPiece != nullptr && aPiece->mY < thePiece->mY) {
+				aDX = aPiece->mX - thePiece->mX;
+				aDY = aPiece->mY - thePiece->mY;
+				if (aFirst == 0.0f)
+					aFirst = aKick;
+				aKick = aFirst <= aPiece->mUnknown34 ? aFirst : aPiece->mUnknown34;
+				aPiece->mUnknown34 = aKick;
+			} else if (aRow == -1) {
+				// and above the top row
+				aDX = (float)GetColX(aCol) - thePiece->mX;
+				aDY = (float)GetRowY(-1) - thePiece->mY;
+			} else {
+				continue;
+			}
+			float anAngle = (float)std::atan2((double)aDY, (double)aDX);  // 0x4c1b70
+			float aDist = sqrtf(aDX * aDX + aDY * aDY);
+			aDist = (float)((double)aDist / (double)gGemWidth);
+			double aGems = (double)aDist - 1.0;
+			if (aGems < 0.0)
+				aGems = 0.0;
+			float anUp = fabsf(sinf(anAngle));
+			float aPush = (float)((double)theStrength / (aGems + 1.0) * (double)anUp);
+			float aScale = (float)((double)gApp->mScale * -7.0);
+			aKick = (float)((double)aScale * (double)aPush);
+		}
+		aFirst = aKick <= aFirst ? aKick : aFirst;
+		mUnknown133C[aCol] = aFirst;
+	}
+}
+
+void Board::SetOffPowerGem(Piece* thePiece)
+{
+	// 0x6c6d68: a gem whose countdown has run out goes off: a power gem blasts, anything else (or a power gem while
+	// the board is busy) bursts the gems round it
+	if (thePiece->IsFlagSet(Piece::FLAG_POWER) && !thePiece->mBlasted && !IsBusy()) {
+		thePiece->Blast();
+	} else {
+		// port: the burst (0x6baed1 at the gem's cell, the explosion that bombs use) comes with the bombs
+		NotPorted("Board::SetOffPowerGem: the burst (0x6baed1)");
+	}
+	if (!thePiece->mUnknown537) {
+		AddStat(0x3e, 1);
+		if (!mUnknown2629 && 0 < mUnknown158)
+			mApp->mProfile->mGemsCleared++;
+		mUnknown1FC++;
+		mUnknown1F8++;
+		thePiece->mUnknown537 = true;
+		ShowCountPopup();
+	}
+	if (DropPieces())
+		FillInBlanks(false);
 }

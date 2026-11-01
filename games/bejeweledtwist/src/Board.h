@@ -852,6 +852,14 @@ public:
 	void AddChainStep();                         // 0x6a62e1
 	void ShowTubeLevel();                        // 0x6a3e81
 	void BreakPiece(Piece* thePiece);            // 0x6c0ccf: a gem breaks up, in a match or blown up
+	void BlowUpPiece(Piece* thePiece, float theX, float theY, bool theBreak, bool theBlast);  // 0x6c1857
+	// 0x6a4a1b: the gems above thePiece jump, harder the nearer they are
+	void LiftColumn(Piece* thePiece, float theStrength);
+	void SetOffPowerGem(Piece* thePiece);         // 0x6c6d68
+	// 0x6a4b7c: the gems above and around thePiece jump away from it
+	void LiftAround(Piece* thePiece, float theStrength);
+	// 0x6a6962: one more gem set off in a chain of blasts, each worth twice the last (to 100)
+	void AddBlastChain() { mUnknown1C5C++; mUnknown1C58 = mUnknown1C58 * 2 <= 100 ? mUnknown1C58 * 2 : 100; }
 	bool GetUnknown23F5() { return mUnknown23F5; }     // 0x6a639a
 	int GetBoardX() { return mBoardX; }                // 0x6a47d9
 	int GetColX(int theCol) { return GetBoardX() + gGemWidth * theCol; }  // 0x6a4819
@@ -867,6 +875,6 @@ extern MTRand gUnknown85B970;  // 0x85b970: a generator of its own, seeded from 
 int Rand85B970();  // 0x6a3447
 // 0x85af08: each colour's tint, copied by the board's constructor from the table at 0x85c378 (and Color(0, 0, 0),
 // then two whites, after it)
-extern Color gGemColors[7];
+extern Color gGemColors[10];
 
 }

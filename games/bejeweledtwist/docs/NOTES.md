@@ -299,3 +299,6 @@ Each is a change without a visible effect in play.
   them there.
 - A floater's +0x68 (the font layer that takes the points' own colour) is set only by 0x732a41, which nothing calls,
   so the board's floaters read it as the heap left it; the port starts it at 0, and every layer takes its cycle's colour.
+- A shard's cel (effect type 16) comes from the manager's update count times the effect's address, in the original
+  and the port alike; the port's addresses differ, so the shards turn through other shapes. Purely visual, and it draws
+  no random number.

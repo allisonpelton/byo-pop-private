@@ -9,6 +9,7 @@
 #include "GraphicsRecorder.h"
 #include "Image.h"
 #include "Res.h"
+#include "SexyMatrix.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
@@ -30,6 +31,70 @@ void LogUnportedType(const char* theWhere, int theType)
 		SDL_Log("EffectsManager: effect type %d is not ported yet (%s)", theType, theWhere);
 }
 
+// Clamped away from zero: a shard seen edge on still shows a quarter of its face
+float ShardSide(float theAngle)
+{
+	float aSide = sinf(theAngle);
+	if (0.0f < aSide && aSide < 0.25f)
+		aSide = 0.25f;
+	if (aSide < 0.0f && -0.25f < aSide)
+		aSide = -0.25f;
+	return aSide;
+}
+
+// 0x6f6451's type 16: a shard tumbling about two axes, its outline glinting as it faces the screen, with a sparkle
+void DrawShard(Graphics* g, Effect* theEffect, int theUpdateCnt)
+{
+	float aFade = theEffect->mAlpha;
+	if (0.0f < aFade)
+		aFade = sqrtf(aFade);
+	Color aColor = theEffect->mColor;
+	aColor.mAlpha = Ftol((double)aFade * 64.0);
+	g->SetColorizeImages(true);
+	g->SetColor(aColor);
+	float aScale = theEffect->mScale;
+	Transform aTransform;
+	aTransform.RotateRad(theEffect->mAngle);
+	float aSideX = ShardSide(theEffect->mUnknown9C);
+	float aSideY = ShardSide(theEffect->mUnknownA0);
+	aTransform.Scale((float)((double)aSideX * 1.4 * (double)aScale), (float)((double)aScale * (double)aSideY * 1.4));
+	g->SetColorizeImages(true);
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	float aGrow = (float)((double)theEffect->mScale * 1.15);
+	aTransform.Scale(aGrow, aGrow);
+	aColor.mAlpha = Ftol((double)aFade * 255.0);
+	g->SetColor(aColor);
+	// port: the original picks the shard's cel from the manager's update count times the effect's address, so the
+	// shapes flicker differently here (a deviation without effect on play)
+	int aCel = (int)((unsigned int)theUpdateCnt * (unsigned int)(uintptr_t)theEffect) & 7;
+	int aWidth = IMAGE_SM_SHARDS->GetCelWidth();
+	Rect aSrc(aWidth * aCel, 0, aWidth, IMAGE_SM_SHARDS->GetCelHeight());
+	gGraphicsRecorder->DrawImageTransform(g, IMAGE_SM_SHARDS, aTransform, aSrc, (float)Ftol(theEffect->mX), (float)Ftol(theEffect->mY), false);
+	float aFacing = sinf(theEffect->mUnknownA0);
+	aFacing = fabsf(sinf(theEffect->mUnknown9C) * aFacing);
+	float aDim = 2.0f - theEffect->mScale;
+	if (0.2f <= aDim) {
+		if (1.0f < aDim)
+			aDim = 1.0f;
+	} else {
+		aDim = 0.2f;
+	}
+	g->SetColor(Color(0xffffff, Ftol((double)aDim * 255.0 * std::pow((double)aFacing, 5.0) * (double)aFade)));  // 0x670a49
+	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+	aWidth = IMAGE_SM_SHARDS_OUTLINE->GetCelWidth();
+	aSrc = Rect(aWidth * aCel, 0, aWidth, IMAGE_SM_SHARDS_OUTLINE->GetCelHeight());
+	gGraphicsRecorder->DrawImageTransform(g, IMAGE_SM_SHARDS_OUTLINE, aTransform, aSrc, (float)Ftol(theEffect->mX),
+		(float)Ftol(theEffect->mY), false);
+	g->SetColor(Color(0xffffff, Ftol(std::pow((double)aFacing, 7.5) * 255.0 * (double)aFade)));
+	int aHeight = Ftol((double)IMAGE_SPARKLE->GetCelHeight() * (double)aScale);
+	aWidth = Ftol((double)IMAGE_SPARKLE->GetCelWidth() * (double)aScale);
+	int aY = Ftol((double)Ftol(theEffect->mY) - (double)(IMAGE_SPARKLE->GetCelHeight() / 2) * (double)aScale);
+	int aX = Ftol((double)Ftol(theEffect->mX) - (double)(IMAGE_SPARKLE->GetCelWidth() / 2) * (double)aScale);
+	gGraphicsRecorder->DrawImageCel(g, IMAGE_SPARKLE, Rect(aX, aY, aWidth, aHeight), aCel);
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	g->SetColorizeImages(false);
+}
+
 }  // namespace
 
 Effect::Effect(int theType) : mType(theType)
@@ -48,6 +113,24 @@ Effect::Effect(int theType) : mType(theType)
 		mDAlpha = -0.005f;
 		// With Direct3D a random angle: RandSigned() * pi
 		mAngle = 0;
+		break;
+	case 16:  // a gem's shards (Board::BlowUpPiece)
+		mFrame = (int)(Rand() % 40);
+		mAlpha = 1.0f;
+		mUpdateDiv = 0;
+		mDAlpha = (float)(-0.004999999888241291 - (double)fabsf(RandSigned()) * 0.009999999776482582);
+		mUnknown38 = 1.0f;
+		break;
+	case 26:  // smoke (Board::BlowUpPiece)
+		mImage = IMAGE_FX_STEAM;
+		mGravity = (float)((double)gApp->mScale * -0.005);
+		mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+		mDAngle = (float)((double)RandSigned() * 0.03999999910593033);
+		mAlpha = 0.85f;
+		mDAlpha = 0;
+		mUnknown9C = 0.5f;
+		mUnknownA0 = -0.02f;
+		mUnknownA4 = 0.95f;
 		break;
 	case 17:  // the hint's sparkles (Board::UpdateHint)
 		mUpdateDiv = (int)(Rand() % 4) + 3;
@@ -156,6 +239,27 @@ void EffectsManager::Update()
 				anEffect->mScale = 0.5f;
 			break;
 		}
+		case 16:
+			if (mUpdateCnt % 2 == 0)
+				anEffect->mFrame = (anEffect->mFrame + 1) % 40;
+			anEffect->mDX = anEffect->mDX * anEffect->mUnknown38;
+			anEffect->mDY = anEffect->mUnknown38 * anEffect->mDY;
+			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
+			anEffect->mUnknown9C = anEffect->mUnknownA4 + anEffect->mUnknown9C;
+			anEffect->mUnknownA0 = anEffect->mUnknownA8 + anEffect->mUnknownA0;
+			break;
+		case 26: {
+			// it slows, and once slow it fades
+			float aSpeed = sqrtf(anEffect->mDX * anEffect->mDX + anEffect->mDY * anEffect->mDY);
+			anEffect->mDX = anEffect->mDX * anEffect->mUnknownA4;
+			if (anEffect->mUnknown9C < aSpeed)
+				anEffect->mDY = anEffect->mUnknownA4 * anEffect->mDY;
+			else
+				anEffect->mDAlpha = anEffect->mUnknownA0;
+			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
+			anEffect->mScale = anEffect->mDScale + anEffect->mScale;
+			break;
+		}
 		case 17:
 			anEffect->mDX = (float)((double)anEffect->mDX * 0.98);
 			anEffect->mDY = (float)((double)anEffect->mDY * 0.98);
@@ -256,6 +360,19 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 			float aScale = anEffect->mScale * anOpacity;
 			DrawImageCentered(g, IMAGE_GEM_FRUIT_SPARK, anEffect->mX, anEffect->mY, (double)anEffect->mAngle, aScale,
 				aScale);
+			break;
+		}
+		case 16:
+			DrawShard(g, anEffect, mUpdateCnt);
+			break;
+		case 26: {
+			g->SetDrawMode(anEffect->mIsAdditive ? Graphics::DRAWMODE_ADDITIVE : Graphics::DRAWMODE_NORMAL);
+			g->SetColorizeImages(true);
+			Color aColor = anEffect->mColor;
+			aColor.mAlpha = Ftol(anOpacity * 255.0);
+			g->SetColor(aColor);
+			DrawImageCentered(g, anEffect->mImage, anEffect->mImage->GetCelRect(anEffect->mFrame), anEffect->mX,
+				anEffect->mY, (double)anEffect->mAngle, anEffect->mScale, anEffect->mScale);
 			break;
 		}
 		case 17: {

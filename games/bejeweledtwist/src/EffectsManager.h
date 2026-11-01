@@ -38,6 +38,7 @@ public:
 	float mGravity = 0;           // +0x28: added to mDY each update
 	int mFrame = 0;               // +0x2c: the image's cel
 	float mDelay = 0;             // +0x30
+	float mUnknown38 = 0;         // +0x38: the shards' damping of their velocity
 	float mAlpha = 1.0f;          // +0x3c
 	float mDAlpha = -0.01f;       // +0x40
 	float mMaxAlpha = 1.0f;       // +0x44
@@ -54,9 +55,12 @@ public:
 	bool mIsCyclingColor = false; // +0x90: the hue turns
 	int mCurHue = 0;              // +0x94
 	bool mIsAdditive = false;     // +0x98
-	float mUnknown9C = 0;         // +0x9c (set by the board's sparks; meaning comes with their types)
+	// +0x9c to +0xa8: type 26's speed below which it fades, that fade and its damping; the shards' two tumbling
+	// angles and their turns
+	float mUnknown9C = 0;         // +0x9c
 	float mUnknownA0 = 0;         // +0xa0
 	float mUnknownA4 = 0;         // +0xa4
+	float mUnknownA8 = 0;         // +0xa8
 	int mFlags = 0;               // +0xb0
 	bool mDeleteMe = false;       // +0xb4
 	EffectsManager* mFXManager = nullptr;  // +0xb8
