@@ -26,8 +26,8 @@ made by editing the original's savegame.dat, which the original accepts.
 | After Continue some squares took no clicks and showed no arrows (the user's "controls fail at random times") | case 0xf of 0x421a10 hides the pirate's talk widget, a 200 x 200 box that otherwise takes the clicks | Continue hides it the same way | 05bd59d |
 | Bonus screen: the first line of every message ("Try to find the", "The Treasure is", "You Win!") was at the bottom | the original draws the first line at the top of the board (y 31) and only the second at height - 0x1e | the same | 2dd815a |
 | Treasure Island nag: button label white | the dialog's gold | gold | 2dd815a |
-| The map (after level 10) never moved on: no dotted route, no second X | the map's Update counts the widget's updates and lights one more dot every 50 (0x417960) | the same | see below |
-| The map's "Click to continue" glowed | the original's button has no component image and shows its unlit picture, the lit one under the mouse | the same | see below |
+| The map (after level 10) never moved on: no dotted route, no second X | the map's Update counts the widget's updates and lights one more dot every 50 (0x417960) | the same | d7d0f2a |
+| The map's "Click to continue" glowed | the original's button has no component image and shows its unlit picture, the lit one under the mouse | the same | d7d0f2a |
 
 ## Oddities skipped
 
