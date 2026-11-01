@@ -398,34 +398,36 @@ static HANDLE gGameProc = NULL;      // PROCESS_VM_READ handle, opened lazily fo
 static DWORD  gGameProcPid = 0;
 static HWND resolve_window(DWORD pid, DWORD* outPid);
 
+// The process rpm_u32 reads: its pid and handle are kept, and looked up again every 100 ms, or 10 ms after the handle
+// was lost. Not at every read: a window enumeration costs about a millisecond on the sandbox's desktop, and a --watch
+// reads every millisecond, through pointers.
+static DWORD gRpmLookupAt=0; static int gRpmLooked=0, gRpmFresh=0;
+static void rpm_open(DWORD pid)
+{
+	if (!pid || pid==gGameProcPid) return;
+	if (gGameProc) { CloseHandle(gGameProc); gGameProc=NULL; }
+	gGameProc=OpenProcess(PROCESS_VM_READ,FALSE,pid); gGameProcPid=pid;
+	if (gGameProc) {
+		unsigned char mz[2]={0,0}; SIZE_T g=0; BOOL ok=ReadProcessMemory(gGameProc,(LPCVOID)0x400000,mz,2,&g);
+		logline("reading the game's memory (pid %lu); image base reads %s (%02X %02X)", pid, (ok&&g==2)?"ok":"FAILED", mz[0], mz[1]);
+	} else logline("OpenProcess(PROCESS_VM_READ, pid %lu) failed (err %lu)", pid, GetLastError());
+}
 static int rpm_u32(DWORD_PTR addr, uint32_t* out)
 {
-	// Resolve the pid of the current top-level window again every 100 ms, and after a failed read: a SexyApp game
-	// can relaunch itself at start (a display-mode switch), so the first window's pid goes stale and the counter lives
-	// in the new process. Not on every read: an enumeration costs about a millisecond on the sandbox's desktop, and a
-	// --watch reads every millisecond, through pointers. After a failed read, again once 10 ms have passed (so a value
-	// that cannot be read does not enumerate at every poll).
-	static DWORD lastResolve=0; static int resolved=0, fresh=0;
+	// A SexyApp game can relaunch itself at start (a display-mode switch), so the first window's pid goes stale and
+	// the counter lives in the new process: hence the lookups (and rpm_follow_window).
 	DWORD now=GetTickCount();
-	if (!resolved || now-lastResolve >= (fresh ? 100u : 10u)) {
+	if (!gRpmLooked || now-gRpmLookupAt >= (gRpmFresh ? 100u : 10u)) {
 		DWORD pid=0; resolve_window(0,&pid); if (!pid) pid=gGamePidHint;
-		lastResolve=now; resolved=1; fresh=1;
-		if (pid && pid!=gGameProcPid) {
-			if (gGameProc) { CloseHandle(gGameProc); gGameProc=NULL; }
-			gGameProc=OpenProcess(PROCESS_VM_READ,FALSE,pid); gGameProcPid=pid;
-			if (gGameProc) {
-				unsigned char mz[2]={0,0}; SIZE_T g=0; BOOL ok=ReadProcessMemory(gGameProc,(LPCVOID)0x400000,mz,2,&g);
-				logline("reading the game's memory (pid %lu); image base reads %s (%02X %02X)", pid, (ok&&g==2)?"ok":"FAILED", mz[0], mz[1]);
-			} else logline("OpenProcess(PROCESS_VM_READ, pid %lu) failed (err %lu)", pid, GetLastError());
-		}
+		gRpmLookupAt=now; gRpmLooked=1; gRpmFresh=1;
+		rpm_open(pid);
 	}
 	if (!gGameProc) return 0;
 	SIZE_T got=0;
 	if (ReadProcessMemory(gGameProc,(LPCVOID)addr,out,4,&got) && got==4) return 1;
 	DWORD e=GetLastError();
 	static int warned=0; if (!warned) { warned=1; logline("ReadProcessMemory @0x%08lX failed (err %lu) -- check the counter address", (unsigned long)addr, e); }
-	if (e!=ERROR_PARTIAL_COPY) { CloseHandle(gGameProc); gGameProc=NULL; gGameProcPid=0; }   // real loss of the process
-	fresh=0;   // resolve again soon
+	if (e!=ERROR_PARTIAL_COPY) { CloseHandle(gGameProc); gGameProc=NULL; gGameProcPid=0; gRpmFresh=0; }   // the process is gone: look again soon
 	return 0;
 }
 // An address expression: a hex number, or "[e]" (the pointer stored at address e), followed by any number of
@@ -461,6 +463,16 @@ static int read_counter(const char* expr, uint32_t* out)
 	int ok = eval_addr(&s,&addr) && rpm_u32((DWORD_PTR)addr,out);
 	LeaveCriticalSection(&gRpmLock);
 	return ok;
+}
+
+// A held shot reads the process of the window it holds: right after a relaunch or a launcher's hand-off the kept
+// handle can still be the old process's, alive for up to 100 ms more.
+static void rpm_follow_window(HWND hw)
+{
+	DWORD pid=0; GetWindowThreadProcessId(hw,&pid);
+	EnterCriticalSection(&gRpmLock);
+	if (pid && pid!=gGameProcPid) { rpm_open(pid); gRpmLookupAt=GetTickCount(); gRpmLooked=1; gRpmFresh=1; }
+	LeaveCriticalSection(&gRpmLock);
 }
 
 // Whether the game, as read now, shows the update its counter holds: nothing waits to be drawn and no update runs.
@@ -951,6 +963,7 @@ static int capture_held(const char* name)
 			if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
 			if (!th) { logline("shot %s refused: the game's window thread could not be held", name); return 0; }
 			holds++;
+			rpm_follow_window(hw);
 			HANDLE held=th;
 			uint32_t c=0; int ok=read_counter(gCounterExpr,&c), shown=1;
 			if (ok && exact) { rf=0; shown=drawn_now(&rf); ok=!rf; }
@@ -985,7 +998,7 @@ static int capture_held(const char* name)
 	// reports every frame held past its update (none of 85 on Bookworm Adventures, 2026-11-01).
 	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
 	if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
-	if (th) read_counter(gCounterExpr,&gHeldAt);
+	if (th) { rpm_follow_window(hw); read_counter(gCounterExpr,&gHeldAt); }
 	HANDLE held=th;
 	int ok=capture_ex2(hw,name,0,&held,0);   // no PrintWindow while held: the window DC, asked again first; resumes after the grab
 	release_held(&held);
