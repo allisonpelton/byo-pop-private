@@ -73,7 +73,10 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
   when it comes) do both phases. Every game not yet reviewed gets the first phase, and their second phases start only
   once every game plays identical. "If a series of games play out the same in the original and port then the first
-  phase should be considered done."
+  phase should be considered done." Those first phases start only when the usage allows (the user, 2026-11-01): "Only
+  launch other games if Twist is predicted to finish, down to looking identical, with weekly usage under 80%." So before
+  starting one, the coordinator reads the weekly usage (`get_usage`) and its rate, and starts it only if Twist's
+  remaining work, both phases of its pass included, still fits under 80% in every week it needs.
 - **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
   through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
   code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
