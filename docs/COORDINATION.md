@@ -12,7 +12,9 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
   For the week of 2026-11-01 to 2026-11-08 the cap is 80% (the user): what remains goes to bugs that make games harder
   to test (like Seven Seas' tutorial that would not go away) and to site work. Site work runs alongside the game
-  sessions (the user, 2026-11-01).
+  sessions (the user, 2026-11-01). Twist is not paused at 80% this week: told on 2026-11-02, at 61%, that finishing it
+  would take about 60% of a week and that the account would reach 100% around Wednesday night, the user answered "Let
+  it run".
 - **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage; the coordinator sets
   it on every session it starts.
 
