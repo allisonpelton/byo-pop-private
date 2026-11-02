@@ -392,8 +392,17 @@ it is for, in `FIELDS` in `web/settings.js`):
   the game's main loop and suspends the audio context, and resumes both when the tab is shown. Off must stay as it was, since
   the originals keep running in a window you cannot see. The Browser pane can be hidden while `document.hidden` stays false, so
   this does not touch the hidden-pane tests; test it by overriding `document.hidden` and dispatching `visibilitychange`.
+- `autoStart` ("on" or "off", default **on**): **Start the game when its page opens**. Once the game's files are found, the
+  Ready card starts the game on its own when the browser lets the page play sound without a click or key (the user, 2026-11-02),
+  and otherwise waits for Play as before. Chrome and Edge allow it after a click on a page of the same site that led to this one
+  (a game opened from the listing, a reload) or when the site may always play sound; Firefox when the site's Autoplay permission
+  allows audio. Firefox answers `navigator.getAutoplayPolicy("audiocontext")`; other browsers are asked with a new
+  AudioContext, whose `resume()` settles at once only when sound is allowed (300 ms at most). It does not start after a start
+  that did not finish (the card offers the rescue), with "Full screen at start" on Full screen (only a click may ask for full
+  screen), with `?silent=1` (tests press Play themselves; the Browser pane may allow sound without a click), or once a panel is
+  open or the card has gone. The game then starts with sound, so the status line does not add "sound after a click or key".
 - `showChat` ("on" or "off", default **on**): **Show chat**. A game's page draws the chat beside the game (below it on a narrow
-  screen) unless it is off, and with it off nothing of the chat is built or started. It is the one switch that starts on, because
+  screen) unless it is off, and with it off nothing of the chat is built or started. It starts on because
   the chat is a part of the page rather than a change to a game, and it can be turned on and off while a game runs ("The chat",
   below).
 

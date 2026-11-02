@@ -38,6 +38,7 @@ var ByopopSettings = (function () {
     wakeLock: { values: SWITCH, def: "off" },       // on: the screen stays awake while a game runs
     confirmLeave: { values: SWITCH, def: "off" },   // on: ask before leaving the page while a game runs
     pauseHidden: { values: SWITCH, def: "off" },    // on: a hidden tab pauses the game
+    autoStart: { values: SWITCH, def: "on" },       // on: a game starts when its page opens, if the browser allows sound
     showChat: { values: SWITCH, def: "on" },        // off: the chat beside the game is not drawn (web/chat.js)
     profile: { values: ["game", "fill", "create"], def: "game" }  // fill: names start with the site's player; create: and the player is made and chosen
   };
@@ -182,6 +183,10 @@ var ByopopSettings = (function () {
     { name: "cursors", label: "Custom cursors", options: [["game", GAME_DEFAULT], ["on", "When available"], ["off", "Never"]],
       hint: "Many games draw their own mouse pointer. When available turns it on in every game that has one; Never keeps your usual pointer." },
     { group: "Page" },
+    { name: "autoStart", label: "Start the game when its page opens",
+      hint: "Starts the game without pressing Play once its files are loaded, when your browser lets the page play sound " +
+        "without a click: after you open a game from this site, or when the site may always play sound (a browser setting). " +
+        "Otherwise, or with Full screen at start, the page waits for Play." },
     { name: "wakeLock", label: "Keep the screen awake while a game runs",
       hint: "Stops the screen dimming or locking while a game is running. Some browsers don’t allow it." },
     { name: "confirmLeave", label: "Ask before leaving a page while a game runs",

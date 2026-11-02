@@ -828,7 +828,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // ?silent=1: no sound, for automated tests in a browser pane that may be hidden (CLAUDE.md). The game
   // still mixes and plays its sounds as usual; Platform::Mixer outputs silence (Module.silentAudio).
   function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
-  // noMods: this run only (-nomods), the rescue when a mod stops the game from starting
+  // isAutostart: true after the game's own restart, "sound" when the page started it on opening (startOnOpen), else a
+  // click. noMods: this run only (-nomods), the rescue when a mod stops the game from starting
   function startGame(isAutostart, noMods) {
     if (started || !hasAgreed()) return;
     started = true;
@@ -836,7 +837,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // (browsers allow it only from one; the restart of the game's own menu has no click, so it does not ask). "Windowed" is
     // told to the games (byopop_site_windowed, below), whose own full screen option then starts off.
     var screenAtStart = setting("fullscreen");
-    if (isAutostart !== true && screenAtStart === "on") goFullscreen();
+    if (!isAutostart && screenAtStart === "on") goFullscreen();
     holdForVolume();
     closePanels("quiet");
     $("start-overlay").hidden = true;
@@ -959,6 +960,32 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // The Game files panel's "Import again" closed the game for this
     if (session.takeImport()) { showImport(); return; }
     showReady();
+    startOnOpen();
+  }
+  // The site setting "Start the game when its page opens": from the Ready card straight into the game when the browser lets
+  // the page play sound without a click or key. Chrome and Edge do after a click on a page of this site that led here (the
+  // listing, a reload), or with the site allowed to play sound; Firefox with the site's Autoplay permission. Firefox answers
+  // navigator.getAutoplayPolicy; elsewhere a new AudioContext's resume() settles at once only when sound is allowed. Not
+  // after a start that did not finish (the rescue is on the card), with "Full screen at start" (only a click may ask for
+  // it) or with ?silent=1 (the tests press Play), and not once a panel is open or the card is gone.
+  function startOnOpen() {
+    if (setting("autoStart") !== "on" || setting("fullscreen") === "on" || pageSilent() || !$("start-rescue").hidden) return;
+    function go() { if (!started && !$("start-overlay").hidden && !anyPanelOpen()) startGame("sound", false); }
+    try {
+      if (navigator.getAutoplayPolicy) { if (navigator.getAutoplayPolicy("audiocontext") === "allowed") go(); return; }
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      var ctx = new AC(), settled = false;
+      var finish = function (allowed) {
+        if (settled) return;
+        settled = true;
+        try { ctx.close().catch(function () {}); } catch (e) {}
+        if (allowed) go();
+      };
+      if (ctx.state === "running") { finish(true); return; }
+      ctx.resume().then(function () { finish(ctx.state === "running"); }, function () { finish(false); });
+      setTimeout(function () { finish(false); }, 300);
+    } catch (e) {}
   }
   function showReady() {
     var failed = session.lastStartFailed() && panel.enabledCount() > 0;
