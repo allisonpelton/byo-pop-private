@@ -35,14 +35,16 @@ void Board::DrawAll(ModalFlags* theFlags, Graphics* g)
 	if (aMoved)
 		g->Translate(Ftol(mShakeX), Ftol(mShakeY));
 	if (mUnknown15DC != 0) {
-		// Only with Direct3D: an image of the whole board instead
+		// An image of the whole board instead (drawn at 0, 0, also in 2D). Never reached: only the constructor
+		// (0x6c5d1f) writes +0x15dc, a 0
 		NotPorted("Board::DrawAll: the board's image (+0x15dc)");
 		return;
 	}
 	// (with Direct3D: the nuke's flash over the board, IMAGE_BOOM_NUKE, while +0x26cc's curve runs)
 	if (mHyperspace != nullptr && mHyperspace->mTransition == 11) {
-		// port: the jump's tunnel (0x711b65) comes with the jumps
-		NotPorted("Board::DrawAll: the jump's tunnel (0x711b65)");
+		// A challenge's start: the jump's tunnel under the board (in 2D the level's picture while the VizManager is
+		// hidden; with Direct3D the deferred overlays are flushed first)
+		mHyperspace->DrawTunnel(g);
 	}
 	TwistWidget::DrawAll(theFlags, g);
 	if (aMoved)
@@ -494,7 +496,8 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 		}
 	}
 	if (!mUnknown21E4.empty()) {
-		// port: the droppers' drawing (0x6f4982) comes with the droppers
+		// The droppers' drawing (0x6f4982): never reached, only DropFlaggedGems makes droppers, for FLAG_1 gems,
+		// which no game has
 		NotPorted("Board::DrawPieces: the droppers");
 	}
 	// While the cursor is on the board, the gems away from its four are dimmed

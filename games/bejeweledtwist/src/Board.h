@@ -674,6 +674,7 @@ public:
 	float mUnknown21C0 = 0;                 // +0x21c0
 	int mUnknown21E0 = 0;                   // +0x21e0: 1 to 5, mostly 2
 	PointsManager* mPointsManager = nullptr;  // +0x21fc: the points that float up
+	float mUnknown2220 = 0;                 // +0x2220: only LoadGame's end of a hyperspace sets it (to 0)
 	float mUnknown2224 = 0;                 // +0x2224
 	float mUnknown23D8 = 0;                 // +0x23d8
 	Image* mGridBarTop = nullptr;           // +0x2588

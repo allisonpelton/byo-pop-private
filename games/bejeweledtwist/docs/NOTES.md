@@ -668,6 +668,38 @@ game below +0x21e0 3 or a Zen game of 180000 points or more puts up the mode sel
 profile's flag 0x11 and saves the profile, and clears +0x20d0. Board::Update also calls it with 1 when its countdown
 +0x257c reaches 0, but nothing in the exe sets that countdown above 0.
 
+**The hyperspace's camera path in 2D.** Hyperspace::Update (0x715c21) handles the 2D jumps itself (transitions 8 and
+14, 9 and 10, 11) and skips to its end; every other transition, and state 0, runs the camera's path from 0x716366 in 2D
+too. That is transition 12 (a board that takes the app's hyperspace without the Play button: every Zen game, which the
+mode select starts that way, and every continued game), 13 (StartEndGame), 0 (ShowHyperspace) and the menus' 1, 2, 4
+and 5. In 2D it does three visible things: the VizManager's speed (+0x1a0) follows the curve +0x1e8 (SetTransition(12)
+sets it to a constant 1; nothing else in 2D sets it, so under transition 13 it reads 0 until ~Board puts 1 back), the
+board's brightness follows +0x258 (SetTransition(12) sets that to a constant 1 as well, so a Zen or continued game is
+at full brightness every update, whatever 12's own fade at +0x12b0 says; the fade shows only as space over the board),
+and, while the app's board holds this hyperspace (+0x200c), the ship's nine engines each draw Rand() % 6 puffs of
+thrust, each with three RandSigned, a RandFloat and two more RandSigned and a fresh Rand() for the loop's test
+(0x717620-0x717dbe). The puffs are particles only Direct3D's DrawOverlay draws, so the port makes none but draws the
+same numbers on the framework's stream. The planets, the camera and the states 2 to 9 of this path are Direct3D's.
+Board::DrawAll draws the jump's tunnel (0x711b65) under the board during transition 11, a challenge's start.
+LoadGame (0x6c967c) ends a running hyperspace at once (its background chosen at the level one down, the widget, the
+LevelUpShow and the dialog +0x26a0 deleted, the VizManager shown at speed 1); a game loaded at a lower level than the
+board's sets the background through a hyperspace made and deleted for it. After the zen jump, Board::Update puts up the
+"returning to game" dialog (0x6d6fa2) when its countdown (400, set by the Mandala) runs out, with the screen's darkening
+behind it.
+
+**Never reached, left as NotPorted.** These paths exist in the exe but no game reaches them, each for the reason given
+in its comment: the puzzle mode (5) with its panel, board, fill, sparkles and tube widget (no menu starts mode 5: the
+mode select's buttons are modes 1 to 4 and the main menu's Play takes the last game's mode); the board's state 2
+(nothing sets +0x160 to 2); the "ice gem" (FLAG_6, from a challenge's square match, which needs the profile's bit 6 from
+a tutorial line "unlock icegem" that tutorial.txt lacks and "IceGemsAllowed", false in config.xml); the "angel gem"
+(FLAG_7, set only by Make7, whose callers need it already); the droppers (+0x21e4, made only for FLAG_1 gems, a flag
+set only by the droppers' own update); FlyingText's kind 1 (both makers are given kind 0); the tutorial's title
+(+0x1f4, +0x1f8 only ever 0); the board's image +0x15dc, the objects at +0x1488 and the pieces' +0x528 (only ever 0);
++0x284's growth (only ever 0 or copied); 0x6c425f (+0x23d8 set only by 0x6bb145, which nothing calls); 0x74db1b
+(+0x210c only ever 0); NewLevel's backdrop (no twist-back image in the game's files). BurstGems' two property reads
+("ExplosionChainBonus" and "ExplosionChainBonusAdd") are dropped by the original and left out. Left for later: the
+credits (Sexy::Credits, 0x6e8c0e), which only the mode select's hidden sequence of button hovers opens.
+
 ## Oddities
 
 - **A one-move goal's colour comes from another list.** The challenge display's one-move branch (GoodTube::DrawBody,

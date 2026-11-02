@@ -1,7 +1,7 @@
 // Sexy::FlyingText (0x1f8 bytes, vtable 0x7e238c, 0x6fc3a9-0x6fd22c): a word that grows in the middle of the board
 // and fades, such as the praise after a good move (0x6ba73a). The board keeps them at +0x1f98, updates the first one
 // still waiting and the ones after it (0x6d090f), and draws them over everything (0x6b4a39). Kind 0 is an image;
-// kind 1 flies in letters (+0x16c) that come with the texts that use them.
+// kind 1 flies in letters (+0x16c), but nothing makes one (both makers' callers pass kind 0).
 #pragma once
 
 #include "ColorCycle.h"

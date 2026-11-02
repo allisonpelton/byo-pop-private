@@ -67,7 +67,7 @@ Piece::~Piece()
 	gBoard->RemovePieceId(mId);
 	delete mCountImage;
 	delete mCountImage2;
-	if (mUnknown528 != nullptr)
+	if (mUnknown528 != nullptr)  // never reached: +0x528 is only written 0 (0x72c1fa, 0x72c67b) or copied (0x6bc62e)
 		NotPorted("Piece +0x528's object (deleted through its slot 1)");
 }
 

@@ -57,7 +57,9 @@ void Hyperspace::Update()
 		mWarmUp = aWarmUp;
 	}
 	if (mState == 0) {
-		// port: the idle space (0x716e2f: the planets at +0xc68, the camera) comes with the board's drawing
+		// The idle space: the planets, the camera and the ship's thrust (0x716e2f)
+		UpdateSpace();
+		MarkDirty();
 		return;
 	}
 	if (mState != 6) {
@@ -142,11 +144,56 @@ void Hyperspace::Update()
 		gApp->mBoard->SetUnknown3924((float)mUnknown258.GetOutVal());
 		gApp->mBoard->ApplyUnknown3924();
 	} else {
-		// port: the other transitions (0, 12, 13) run the camera and the jump's curves (0x716366 on); they come with
-		// the board's drawing
-		NotPorted("Hyperspace::Update: the camera (0x716366)");
+		// The other transitions (in 2D 0, 12 and 13, and the menus' 1, 2, 4 and 5) run the camera's path (0x716366)
+		// (with Direct3D, when +0x1e8 is done in state 1: the VizManager draws into +0x160 and the camera flies off,
+		// state 2, SOUND_TRANS_SPACENOISE)
+		mUnknown1E8.IncInVal();
+		gApp->mVizManager->mSpeed = mUnknown1E8.GetOutVal();
+		// (the VizManager's rectangle at +0x1bc, -1, -1, 1, 1, is for Direct3D's render target)
+		Board* aBoard = gApp->mBoard;
+		if (aBoard != nullptr && !aBoard->mUnknown37C4) {
+			mUnknown258.IncInVal();
+			aBoard->SetUnknown3924((float)mUnknown258.GetOutVal());
+			if (mTransition == 11)
+				aBoard->ApplyUnknown3924();
+		}
+		// (the curves +0x900, +0x10f0, +0x2c8 and +0x338 step here; only the 3D camera reads them)
+		if (1 < mState && mState < 10) {
+			// States 2 to 9 with these transitions come only from the Direct3D jumps (state 1 goes on to 2 only with
+			// Direct3D; the 2D jumps set their states with transitions 8, 9, 10, 11 and 14, handled above)
+			NotPorted("Hyperspace::Update: states 2 to 9 of the camera (0x716505, Direct3D)");
+		}
+		UpdateSpace();
 	}
 	MarkDirty();
+}
+
+void Hyperspace::UpdateSpace()
+{
+	// 0x716e2f: the planets (+0xc68's lists) and the camera are only drawn with Direct3D, so the port skips them
+	Board* aBoard = gApp->mBoard;
+	if (aBoard == nullptr || aBoard->mHyperspace != this)
+		return;
+	// (0x715480, 0x7158f8 and 0x7135cb move the ship and the thrust's particles at +0x14b4, which only Direct3D's
+	// DrawOverlay draws, and drop the spent ones)
+	// The ship's nine engines each give off a puff of thrust (0x714ea9, Direct3D's particles at +0x14b4); the port
+	// makes none, but draws the framework's random numbers as the original does (0x717620-0x717dbe)
+	int anEngine = 0;
+	do {
+		int aPuff = 0;
+		if (0 < Rand() % 6) {
+			do {
+				RandSigned();  // the puff's offset, x, y and z (times 0.2)
+				RandSigned();
+				RandSigned();
+				RandFloat();   // how far along the engine's direction
+				RandSigned();  // two of the particle's rates (times 0.01 less 0.05, times 0.0003 less 0.001)
+				RandSigned();
+				aPuff++;
+			} while (aPuff < Rand() % 6);
+		}
+		anEngine++;
+	} while (anEngine < 9);
 }
 
 void Hyperspace::StartEndGame()
@@ -292,7 +339,10 @@ void Hyperspace::SetTransition(int theTransition)
 		mTransition = 10;
 		return;
 	} else if (theTransition == 12) {
-		// port: the level's world's eleven curves set to constants (0x71bedb on) are only for Direct3D
+		// The level's world's eleven curves are set to constants (0x71bedb): of them only the board's brightness
+		// (+0x258) and the VizManager's speed (+0x1e8) count in 2D, the rest are the 3D camera's
+		mUnknown258.SetConstant(1.0);
+		mUnknown1E8.SetConstant(1.0);
 		mIs3D = false;
 		ChooseViz(true);
 		mTransition = 12;

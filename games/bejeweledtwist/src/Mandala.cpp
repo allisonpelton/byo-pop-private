@@ -279,8 +279,9 @@ void Mandala::Update()
 {
 	if (mEgg) {
 		mEgg = false;
-		// port: 0x75fd40 puts up a 0x288-byte widget of its own (app +0xf94); it is not ported yet
-		NotPorted("Mandala: the app's 0x75fd40");
+		// 0x75fd40 puts up the credits (Sexy::Credits, 0x288 bytes, ctor 0x6e8c0e, app +0xf94, z order 1000), whose
+		// only way in is this hidden sequence (ButtonMouseEnter); not ported yet
+		NotPorted("Mandala: the app's 0x75fd40 (the credits)");
 		return;
 	}
 	TwistWidget::Update();

@@ -94,6 +94,7 @@ void FlyingText::Update()
 		if (mSlowScale <= aScale)
 			mState = 2;
 	} else if (mKind == 1) {
+		// Never reached: both makers (0x6fd22c from 0x6ba73a, 0x6fd358 from 0x6ba0c2) are given kind 0
 		NotPorted("FlyingText::Update: the letters");
 	}
 	if (mFading) {
@@ -124,6 +125,7 @@ void FlyingText::Draw(Graphics* g)
 			g->DrawImageTransformF(anImage, aTransform, (float)mX, (float)mY);
 		}
 	} else if (mKind == 1) {
+		// Never reached (no FlyingText of kind 1 is made)
 		NotPorted("FlyingText::Draw: the letters");
 	}
 }

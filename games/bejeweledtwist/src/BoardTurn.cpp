@@ -411,8 +411,9 @@ bool Board::DropFlaggedGems()
 					Piece* aBelow = GetPieceAtXY(Ftol(aPiece->mX), Ftol((double)gGemHeight + (double)aPiece->mY));
 					if (aBelow != nullptr && aBelow->mPendingDX == 0.0f && aBelow->mPendingDY == 0.0f &&
 						!aBelow->mBreaking) {
-						// port: the gem drops onto the one below (a 0x34-byte object, 0x6f4985, into +0x21e4, updated
-						// by 0x6f465f); it comes with those objects
+						// The gem drops onto the one below (a 0x34-byte object, 0x6f4985, into +0x21e4, updated by
+						// 0x6f465f). Never reached: no gem ever has FLAG_1 (SetFlag(1) is called only by 0x6c2490, which
+						// only that update calls; otherwise the flag is only kept, copied by a soul or loaded)
 						NotPorted("Board::DropFlaggedGems: the drop (0x6f4985)");
 						aDropped = true;
 					} else {

@@ -2,9 +2,9 @@
 // between levels. With Direct3D it flies a camera through the level's world (planets, a saucer, the sidebar's tube);
 // in 2D it draws the still picture of space and, for the jumps, flashes and a tunnel of its own.
 //
-// port: so far the 2D drawing of space outside a jump (the loader and the menus). The jumps (mTransition 8 to 14,
-// 0x711b65, 0x70f836, the white flash +0x1320 and the fades +0x5d8), the level's world (0x7181b3's curves) and the
-// camera (the rest of Update 0x715c21) come with the board.
+// port: the 2D paths only. The level's world (0x7181b3's curves), the camera, the planets and the ship's thrust
+// particles are Direct3D's; of the camera's path the port keeps what 2D sees (the VizManager's speed, the board's
+// brightness and the thrust's random numbers).
 #pragma once
 
 #include "CurvedVal.h"
@@ -27,6 +27,8 @@ public:
 	bool mFlag15B = true;        // +0x15b: the jump's first half is still to come (transition 8)
 	bool mFlag15C = false;       // +0x15c: set while Update skipped the jump
 	bool mFlag15E = false;       // +0x15e: holds the jump (set from outside, not yet known)
+	CurvedVal mUnknown1E8;       // +0x1e8: the VizManager's speed while the camera runs (SetTransition(12) sets it
+	                             // to 1; in 2D nothing else sets it, so it reads 0)
 	CurvedVal mUnknown258;       // +0x258: the board's brightness through a jump (Board 0x6a6a07)
 	int mUnknownC58 = 0;         // +0xc58: the trial's limit after transition 14 (left out)
 	CurvedVal mUnknown12B0;      // +0x12b0: the board's brightness while state 11 (transition 12) runs
@@ -66,6 +68,9 @@ public:
 	void MakeOldPicture();
 	// 0x70f836: the old level's picture (mUnknown160) at mUnknown12B0's alpha, at the end of a jump
 	void DrawOldPicture(Graphics* g);
+	// 0x716e2f on (the end of Update): the planets and the camera (Direct3D only) and, while the board holds this
+	// hyperspace, the ship's thrust and its random numbers
+	void UpdateSpace();
 };
 
 }  // namespace Sexy

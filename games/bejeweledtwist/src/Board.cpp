@@ -679,8 +679,8 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 	mFXManager->mZOrder = mPointsManager->mZOrder + 1;
 	AddWidget(mFXManager);
 	if (mGameMode == MODE_PUZZLE) {
-		// port: the puzzle's panel (+0x23d4, a PuzzleUI of 0x168 bytes, 0x735df7), left of the board, comes with the
-		// puzzle
+		// The puzzle's panel (+0x23d4, a PuzzleUI of 0x168 bytes, 0x735df7), left of the board. Never reached: no menu
+		// starts a puzzle (mode 5)
 		NotPorted("Board::AddedToManager: the puzzle's panel");
 	}
 }
@@ -743,8 +743,8 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 		delete[] mGrid;
 		mGrid = nullptr;
 	}
-	if (mUnknown1488 != 0)
-		NotPorted("Board::RemovedFromManager: +0x1488");  // 0x6a404e
+	if (mUnknown1488 != 0)  // never reached: only the constructor (0x6c582b) writes +0x1488, a 0
+		NotPorted("Board::RemovedFromManager: +0x1488");  // 0x6a404e: its slot 8, and +0x1488 = 0
 	mApp->SetCursor(CURSOR_POINTER);
 	TwistWidget::RemovedFromManager(theWidgetManager);
 	if (mUnknown139C != nullptr)
@@ -759,7 +759,7 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 		mUnknown26A0 = nullptr;
 	}
 	mApp->mWidgetManager->RemoveWidget(mUnknown2208);
-	// (and the puzzle's panel, +0x23d4, which comes with the puzzles)
+	// (and the puzzle's panel, +0x23d4, which no game has: no menu starts a puzzle)
 }
 
 void Board::EndGame(bool theNuke)
@@ -775,8 +775,8 @@ void Board::EndGame(bool theNuke)
 	mApp->mUnknownF70 = mUnknown158;
 	mApp->mProfile->mGamesPlayed++;
 	mApp->mProfile->mUnknown140[mGameMode]++;
-	if (mUnknown1488 != 0)
-		NotPorted("Board::EndGame: +0x1488");  // 0x6a404e
+	if (mUnknown1488 != 0)  // never reached: only the constructor (0x6c582b) writes +0x1488, a 0
+		NotPorted("Board::EndGame: +0x1488");  // 0x6a404e: its slot 8, and +0x1488 = 0
 	mApp->PlayVoice(SOUND_VOICE_GAMEOVER, false);
 	mUnknown1430 = nullptr;
 	mUnknown1438 = false;
@@ -851,8 +851,8 @@ void Board::StartGame()
 		if (mBonusColors.size() != 0) {
 			mGoodTube->mUnknown330 = 1.0f;
 			mGoodTube->mUnknown3F0 = 1.0f;
-			// port: the tube's Update (slot 22, 0x702736) once it is ported; only a loaded game gets here
-			NotPorted("Board::StartGame: GoodTube::Update");
+			// The tube's Update (slot 22, 0x702736); only a loaded game gets here
+			mGoodTube->Update();
 		}
 		mApp->mPlaySamples = true;
 		if (aLoaded)
@@ -956,7 +956,8 @@ void Board::StartLevel()
 		if (mGameMode == MODE_PUZZLE) {
 			mUnknown2042 = false;
 			mUnknown2054 = true;
-			// port: 0x6c3515(mUnknown2034, true), the puzzle's board, which draws from Rand
+			// 0x6c3515(mUnknown2034, true), the puzzle's board, which draws from Rand. Never reached: no menu starts a
+			// puzzle (mode 5)
 			NotPorted("Board::StartLevel: the puzzle's board");
 		} else {
 			mUnknown2041 = true;
@@ -1234,17 +1235,47 @@ bool Board::LoadGame(Buffer& theBuffer)
 	mUnknown2590 = GetGridRight();
 	mUnknown259C = 1.0f;
 	// (the original logs "Load game ENDS" to the debugger)
-	if (mHyperspace == nullptr) {
-		if (mUnknown158 < anOldLevel) {
-			// port: a game loaded at a lower level than the board's sets the VizManager's background through a
-			// hyperspace made for it (0x70e623 with the level one down); it comes with the VizManager
-			NotPorted("Board::LoadGame: the background of a lower level");
-			mGoodTube->SetLevel(mUnknown158);
+	// (0x7581e5 after each branch takes the VizManager's visualizer made by its thread, +0x188; only with Direct3D's
+	// visualizers is one made, so in 2D it does nothing)
+	if (mHyperspace != nullptr) {
+		// A hyperspace still running ends at once: the VizManager's background for the level (0x6c967c)
+		mUnknown158--;
+		mHyperspace->ChooseViz(false);
+		mUnknown158++;
+		mHyperspace->mParent->RemoveWidget(mHyperspace);
+		mApp->SafeDeleteWidget(mHyperspace);
+		mUnknown3924 = 1.0f;
+		mHyperspace = nullptr;
+		mUnknown26A8 = 0;
+		if (mUnknown26AC != nullptr) {
+			mUnknown26AC->mParent->RemoveWidget(mUnknown26AC);
+			mApp->SafeDeleteWidget(mUnknown26AC);
+			mUnknown26AC = nullptr;
 		}
-	} else {
-		// port: a hyperspace still running ends at once (its widget removed, the VizManager's background set); it
-		// comes with the VizManager
-		NotPorted("Board::LoadGame: ending the hyperspace");
+		if (mUnknown26A0 != nullptr) {
+			mUnknown26A0->mParent->RemoveWidget(mUnknown26A0);
+			mApp->SafeDeleteWidget(mUnknown26A0);
+			mUnknown26A0 = nullptr;
+		}
+		mUnknown2108 = 0;
+		mUnknown20DC = 0;
+		mUnknown2220 = 0;
+		mMouseVisible = true;
+		mUnknown37F4 = 0;
+		mUnknown1C90 = false;
+		mApp->mVizManager->SetVisible(true);
+		mApp->mVizManager->mSpeed = 1.0;
+	} else if (mUnknown158 < anOldLevel) {
+		// A game loaded at a lower level than the board's: the VizManager's background through a hyperspace made for
+		// it, with the level one down (0x6c9789)
+		Hyperspace* aHyperspace = new Hyperspace();
+		mHyperspace = aHyperspace;
+		mUnknown158--;
+		aHyperspace->ChooseViz(false);
+		mUnknown158++;
+		mGoodTube->SetLevel(mUnknown158);
+		delete mHyperspace;
+		mHyperspace = nullptr;
 	}
 	UpdateProgress(true);
 	for (GemSoul* aSoul : mUnknown26B0)

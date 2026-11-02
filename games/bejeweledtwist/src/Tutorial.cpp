@@ -904,7 +904,8 @@ void Tutorial::Draw(Graphics* g)
 	}
 
 	if (mTitleImage != nullptr && mTitleState != 0) {
-		// port: 0x751111 draws the title's image, stretched, in black and then white; nothing ever makes the image
+		// Never reached: 0x751111 draws the title's image, stretched, in black and then white, but nothing writes +0x1f8
+		// or +0x1f4 other than 0 (0x750bce, 0x75122f)
 		NotPorted("Tutorial::Draw: the title (0x751111)");
 	}
 	DeferOverlay(1000);

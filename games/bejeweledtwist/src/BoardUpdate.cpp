@@ -33,6 +33,7 @@
 #include "SoundManager.h"
 #include "TwistDialog.h"
 #include "TwistUtil.h"
+#include "UnderDialogWidget.h"
 #include "VizManager.h"
 #include "WinTwistApp.h"
 #include "WidgetManager.h"
@@ -250,8 +251,14 @@ void Board::Update()
 			0 < mUnknown2578) {
 			mUnknown2578--;
 			if (mUnknown2578 == 0) {
-				// port: the "returning to game" dialog (a game's text, not ported yet)
-				NotPorted("Board::Update: the returning to game dialog");
+				// After the zen jump (Mandala sets 400): the "returning to game" dialog, which says the old game waits in
+				// the main menu (0x6d6fa2)
+				SexyString aFooter = GT(0x80d9a4);
+				SexyString aLines = mApp->GetString(GTS(0x7df400), GT(0x7df358));
+				SexyString aHeader = mApp->GetString(GTS(0x7df344), GT(0x7df320));
+				Dialog* aDialog = mApp->DoDialog(-1, true, aHeader, aLines, aFooter, TwistDialog::BUTTON_MODE_YES);
+				if (mApp->mUnderDialog != nullptr)
+					mWidgetManager->PutBehind(mApp->mUnderDialog, aDialog);
 			}
 		}
 	}
@@ -796,7 +803,8 @@ void Board::UpdateGame()
 		float aLeft = (float)((double)mUnknown23D8 - (double)0.01f);
 		mUnknown23D8 = aLeft;
 		if (aLeft <= 0.0f) {
-			// port: 0x6c425f comes with the challenges' boards
+			// 0x6c425f (a puzzle's retry). Never reached: only 0x6bb145 (the puzzle's "TRY AGAIN", mode 5), which nothing
+			// calls, sets +0x23d8 to anything but 0
 			NotPorted("Board::UpdateGame: 0x6c425f");
 			return;
 		}
@@ -811,7 +819,8 @@ void Board::UpdateGame()
 	if (mUnknown21A8 != nullptr)
 		mUnknown21A8->Update();
 	if (mUnknown210C) {
-		// 0x74db1b on the +0x211c object: nothing in the exe sets +0x210c, so it never runs
+		// 0x74db1b on the +0x211c object. Never reached: +0x210c is only ever written 0 (0x74d4da, which only
+		// 0x74db1b calls)
 		NotPorted("Board::UpdateGame: 0x74db1b");
 	}
 	if (0.0f < mUnknown1C48) {
@@ -873,7 +882,8 @@ void Board::UpdateGame()
 					MakeFruitGem(aPiece);
 					aPiece->mColor = aSoul->mColor;
 				} else if (aSoul->mType & (1 << 7)) {
-					// port: 0x6a4fc0 comes with the gems of flag 7 (no soul is made from one)
+					// 0x6a4fc0 (Piece::Make7 on it). Never reached: FLAG_7 (the "angel gem") is set only by Make7
+					// (0x729893), whose callers are this and Make7's own pending kind, so no gem or soul has it
 					NotPorted("Board::UpdateGame: a soul's 0x6a4fc0");
 				}
 				if (1 < mUpdateCnt - mUnknown37FC) {
@@ -1157,7 +1167,8 @@ void Board::UpdateGame()
 		}
 		if (!mUnknown21E4.empty()) {
 			mUnknown25A4 = false;
-			// port: the objects at +0x21e4 (0x6f465f) are not ported yet
+			// The droppers at +0x21e4 (0x6f465f): never reached, only DropFlaggedGems makes them, for FLAG_1 gems,
+			// which no game has
 			NotPorted("Board::UpdateGame: the objects at +0x21e4");
 		}
 		if (aRemoved != 0 && DropPieces())
@@ -1340,14 +1351,15 @@ void Board::UpdateGame()
 		mUnknown203C--;
 		if (mUnknown203C < 0) {
 			if (mGameMode == MODE_PUZZLE) {
-				// port: the puzzle's fill (0x6c3515) draws from Rand; it comes with the puzzles
+				// The puzzle's fill (0x6c3515, Rand draws). Never reached: no menu starts a puzzle (mode 5; see
+				// NOTES, "Never reached")
 				NotPorted("Board::UpdateGame: the puzzle's fill");
 				mUnknown160 = 0;
 				mUnknown15C = 0;
 				return;
 			}
 		} else if (mGameMode == MODE_PUZZLE) {
-			// port: the puzzle's sparkles (Rand for the cell, an effect 12 over it) come with the puzzles
+			// The puzzle's sparkles (Rand for the cell, an effect 12 over it). Never reached: no menu starts a puzzle
 			NotPorted("Board::UpdateGame: the puzzle's sparkles");
 		}
 		break;
@@ -1545,8 +1557,9 @@ void Board::UpdateGame()
 	}
 	if (mUnknown160 == 2) {
 		if (mUpdateCnt % 2 == 0) {
-			// port: state 2 puts the gems of +0x148c back on the board one by one, picked by Rand, each with a glow
-			// (IMAGE_INGAMEUI_GRIDSQUAREGLOW); it comes with the puzzles' undo
+			// State 2 puts the gems of +0x148c back on the board one by one, picked by Rand, each with a glow
+			// (IMAGE_INGAMEUI_GRIDSQUAREGLOW). Never reached: nothing sets the board's +0x160 to 2 (states 3 and 4
+			// step on to 4 and 5; the 2s at +0x160 in 0x6a35fd are the ReplayWidget's own state)
 			NotPorted("Board::UpdateGame: state 2");
 		}
 	} else if (mUnknown160 == 1) {
@@ -1843,7 +1856,7 @@ void Board::LayoutTube()
 	if (mGameMode == MODE_PUZZLE) {
 		if (IsBusy())
 			return;
-		// port: the puzzle's widget at +0x23d4 slides 5% of its x each update; it comes with the puzzles
+		// The puzzle's widget at +0x23d4 slides 5% of its x each update. Never reached: no menu starts a puzzle
 		NotPorted("Board::LayoutTube: the puzzle's widget");
 		return;
 	}
@@ -2590,7 +2603,8 @@ bool Board::SettlePieces()
 							}
 						}
 						if (0.0f < aPiece->mUnknown284) {
-							// port: 0x6c812f's +0x284 growth (a 0x104-byte object, 0x74b46e) comes with the features
+							// +0x284 grows by 0.05 and past 1 makes a 0x104-byte object (0x74b46e). Never reached: +0x284 is
+							// only ever written 0 (0x72c1fa, 0x69baaf), copied (0x6bc62e) or grown here when above 0
 							NotPorted("Board::SettlePieces: +0x284");
 						}
 					}

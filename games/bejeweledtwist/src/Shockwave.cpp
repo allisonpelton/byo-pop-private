@@ -590,7 +590,8 @@ void FruitShockwave::Draw(Graphics* g)
 	g->DrawImage(IMAGE_FRUITBLAST_OUTERRING, Ftol((double)mX - (double)anOuter), Ftol((double)mY - (double)anOuter),
 		aSize, aSize);
 	if (-1 < mState && gApp->Is3DAccelerated()) {
-		// the arc as a ribbon of triangles (IMAGE_FRUITBLAST_ARC and its highlights) through the Direct3D interface
+		// Direct3D only (0x749f89): the arc as a ribbon of triangles (IMAGE_FRUITBLAST_ARC and its highlights) through the
+		// Direct3D interface
 		NotPorted("FruitShockwave::Draw: the arc (Direct3D)");
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);

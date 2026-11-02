@@ -1491,8 +1491,10 @@ void Board::BreakPiece(Piece* thePiece)
 		if (thePiece->mBreaking)
 			thePiece->mScale288 = 0.75f;
 	} else if (thePiece->IsFlagSet(Piece::FLAG_6) && !thePiece->mUnknown51D) {
-		// port: a hypercube's blast (stat 0x42, 50 sparks each of two kinds, 0x6baa5a, 75 points) comes with the
-		// special gems; it draws from Rand
+		// Never reached: a flag-6 gem (the "ice gem") is made only from a challenge's square match (MatchInfo kind 4)
+		// or a soul of one, and squares need the profile's bit 6 (only tutorial.txt's "unlock icegem", which no line
+		// has) and "IceGemsAllowed" (false in config.xml; only config_action.xml, which no mode loads, says true).
+		// Its blast (stat 0x42, 50 sparks each of two kinds, 0x6baa5a, 75 points, Rand draws) is left out
 		NotPorted("Board::BreakPiece: a hypercube");
 	} else if (thePiece->IsFlagSet(Piece::FLAG_COAL) && !thePiece->mUnknown51D) {
 		AddStat(0x4a, 1);
@@ -1963,8 +1965,9 @@ void Board::BurstGems(int theX, int theY, int theRange)
 				sBurstHitFrom[aHit][1] = aCentreY;
 				sBurstHitCount = aHit + 1;
 				if (aGem->IsFlagSet(Piece::FLAG_POWER)) {
-					// port: the stats "ExplosionChainBonus" (10) and "ExplosionChainBonusAdd" (40), out of reach
-					NotPorted("Board::BurstGems: a power gem's chain bonus");
+					// A power gem in reach: the count +0x1528 and its +0x88 = 10. The original reads the app's integers
+					// "ExplosionChainBonusAdd" (default 10) and "ExplosionChainBonus" (40) here (0x4a3f30) and drops
+					// them, so the port leaves the reads out
 					mUnknown1528++;
 					aGem->mUnknown88 = 10;
 					continue;
