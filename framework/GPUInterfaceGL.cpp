@@ -618,6 +618,9 @@ public:
 	void SetScissorRect(const Rect& theRect) override { mScissor = theRect; }
 
 	bool ReadBack(Image* theImage, MemoryImage* theDest) override;
+	void Present(const Rect& theDestRect, int theDrawableWidth, int theDrawableHeight) override;
+	void PresentImage(Image* theImage, const Rect& theSrcRect, float theX, float theY, float theWidth, float theHeight,
+		int theDrawableWidth, int theDrawableHeight) override;
 	bool RecoverBits(MemoryImage* theImage) override;
 	unsigned long GetCaps(int theWhich) override { return theWhich == 1 ? mPolicy.mMaxTextureBlendStages : mPolicy.mCaps; }
 	void BitsChanged(Image* theImage) override;
@@ -716,6 +719,9 @@ private:
 	int mDepthWidth = 0, mDepthHeight = 0;
 	GLuint mVertexArray = 0, mStreamBuffer = 0, mStreamIndexBuffer = 0;
 	GLuint mSamplers[kStages] = {};
+	GLuint mPresentProgram = 0, mPresentSampler = 0;
+	GLint mPresentTexture = -1;
+	void RestoreAfterPresent();
 	std::map<int, BufferData> mBuffers;
 	int mNextBuffer = 1;
 
@@ -905,6 +911,7 @@ void GPUInterfaceGL::ContextLost()
 	for (auto& anEntry : mBuffers)
 		anEntry.second.mBuffer = 0;
 	mScreenFramebuffer = mScreenColor = mDepth = 0;
+	mPresentProgram = mPresentSampler = 0;
 	mDepthWidth = mDepthHeight = 0;
 	mVertexArray = mStreamBuffer = mStreamIndexBuffer = 0;
 	std::memset(mSamplers, 0, sizeof(mSamplers));
@@ -1051,6 +1058,8 @@ bool GPUInterfaceGL::SetRenderTarget(Image* theImage)
 			BindTarget(nullptr);
 		return true;
 	}
+	// 0x621990 prepares the image (slot 0x44), which makes an image with flag 0x10 a target
+	PrepareTexture(theImage);
 	auto anIt = mImages.find(theImage);
 	if (anIt == mImages.end() || !anIt->second.mTarget) {
 		LogOnce("SetRenderTarget on an image that is not a render target");
@@ -1124,6 +1133,92 @@ void GPUInterfaceGL::SetViewport(const Rect& theRect, float theMinZ, float theMa
 	// GL's window y is D3D's: the targets are stored top row first
 	gGL.glViewport(theRect.mX, theRect.mY, theRect.mWidth, theRect.mHeight);
 	gGL.glDepthRangef(theMinZ, theMaxZ);
+}
+
+void GPUInterfaceGL::Present(const Rect& theDestRect, int theDrawableWidth, int theDrawableHeight)
+{
+	if (mLost)
+		return;
+	gGL.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	gGL.glDisable(GL_SCISSOR_TEST);
+	gGL.glViewport(0, 0, theDrawableWidth, theDrawableHeight);
+	gGL.glColorMask(1, 1, 1, 1);
+	gGL.glClearColor(0, 0, 0, 1);
+	gGL.glClear(GL_COLOR_BUFFER_BIT);
+	// The screen is stored top row first; the window's framebuffer has its origin at the bottom
+	gGL.glBindFramebuffer(GL_READ_FRAMEBUFFER, mScreenFramebuffer);
+	int aTop = theDrawableHeight - theDestRect.mY;
+	gGL.glBlitFramebuffer(0, 0, mWidth, mHeight, theDestRect.mX, aTop, theDestRect.mX + theDestRect.mWidth,
+		aTop - theDestRect.mHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	RestoreAfterPresent();
+}
+
+void GPUInterfaceGL::PresentImage(Image* theImage, const Rect& theSrcRect, float theX, float theY, float theWidth,
+	float theHeight, int theDrawableWidth, int theDrawableHeight)
+{
+	const GPUPieceLayout* aLayout = PrepareTexture(theImage);
+	TextureData* aData = GetTexture(theImage);
+	if (mLost || aLayout == nullptr || aData == nullptr || aLayout->mPieces.size() != 1)
+		return;
+	if (mPresentProgram == 0) {
+		std::string aHeader = mContext->ShaderHeader();
+		GLuint aVS = CompileShader(GL_VERTEX_SHADER, aHeader + "in vec2 aPos;\nin vec2 aUV;\nout vec2 vUV;\n"
+			"void main() { vUV = aUV; gl_Position = vec4(aPos, 0.0, 1.0); }\n", "present");
+		GLuint aPS = CompileShader(GL_FRAGMENT_SHADER, aHeader + "in vec2 vUV;\nuniform sampler2D uTex;\n"
+			"out vec4 oColor;\nvoid main() { oColor = texture(uTex, vUV); }\n", "present");
+		mPresentProgram = gGL.glCreateProgram();
+		gGL.glAttachShader(mPresentProgram, aVS);
+		gGL.glAttachShader(mPresentProgram, aPS);
+		gGL.glBindAttribLocation(mPresentProgram, 0, "aPos");
+		gGL.glBindAttribLocation(mPresentProgram, 1, "aUV");
+		gGL.glLinkProgram(mPresentProgram);
+		gGL.glDeleteShader(aVS);
+		gGL.glDeleteShader(aPS);
+		mPresentTexture = gGL.glGetUniformLocation(mPresentProgram, "uTex");
+		gGL.glGenSamplers(1, &mPresentSampler);
+		gGL.glSamplerParameteri(mPresentSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		gGL.glSamplerParameteri(mPresentSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		gGL.glSamplerParameteri(mPresentSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		gGL.glSamplerParameteri(mPresentSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	}
+	const GPUPiece& aPiece = aLayout->mPieces[0];
+	float u1 = (float)theSrcRect.mX / aPiece.mWidth, u2 = (float)(theSrcRect.mX + theSrcRect.mWidth) / aPiece.mWidth;
+	float v1 = (float)theSrcRect.mY / aPiece.mHeight, v2 = (float)(theSrcRect.mY + theSrcRect.mHeight) / aPiece.mHeight;
+	auto X = [&](float x) { return x * 2.0f / theDrawableWidth - 1.0f; };
+	auto Y = [&](float y) { return 1.0f - y * 2.0f / theDrawableHeight; };
+	float aQuad[16] = {X(theX), Y(theY), u1, v1, X(theX + theWidth), Y(theY), u2, v1, X(theX), Y(theY + theHeight), u1, v2,
+		X(theX + theWidth), Y(theY + theHeight), u2, v2};
+	gGL.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	gGL.glViewport(0, 0, theDrawableWidth, theDrawableHeight);
+	gGL.glDisable(GL_SCISSOR_TEST);
+	gGL.glDisable(GL_DEPTH_TEST);
+	gGL.glDisable(GL_CULL_FACE);
+	gGL.glEnable(GL_BLEND);
+	gGL.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	gGL.glUseProgram(mPresentProgram);
+	gGL.glActiveTexture(GL_TEXTURE0);
+	gGL.glBindTexture(GL_TEXTURE_2D, aData->mTexture);
+	gGL.glBindSampler(0, mPresentSampler);
+	gGL.glUniform1i(mPresentTexture, 0);
+	gGL.glBindVertexArray(mVertexArray);
+	gGL.glBindBuffer(GL_ARRAY_BUFFER, mStreamBuffer);
+	gGL.glBufferData(GL_ARRAY_BUFFER, sizeof(aQuad), aQuad, GL_STREAM_DRAW);
+	for (GLuint i = 0; i < 8; i++)
+		gGL.glDisableVertexAttribArray(i);
+	gGL.glEnableVertexAttribArray(0);
+	gGL.glVertexAttribPointer(0, 2, GL_FLOAT, 0, 16, nullptr);
+	gGL.glEnableVertexAttribArray(1);
+	gGL.glVertexAttribPointer(1, 2, GL_FLOAT, 0, 16, (const void*)8);
+	gGL.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	gGL.glBindSampler(0, mSamplers[0]);
+	RestoreAfterPresent();
+}
+
+// The device's target and viewport as they were; every draw applies the rest of its state itself
+void GPUInterfaceGL::RestoreAfterPresent()
+{
+	gGL.glBindFramebuffer(GL_FRAMEBUFFER, mTarget == nullptr ? mScreenFramebuffer : mImages[mTarget].mFramebuffer);
+	gGL.glViewport(mViewport.mX, mViewport.mY, mViewport.mWidth, mViewport.mHeight);
 }
 
 bool GPUInterfaceGL::ReadBack(Image* theImage, MemoryImage* theDest)
@@ -1370,6 +1465,16 @@ void GPUInterfaceGL::SetTexturePiece(int theStage, Image* theImage, int thePiece
 // 0x61e7d0: the image's texture made or refreshed; null when it cannot be (no bits, not a MemoryImage)
 const GPUPieceLayout* GPUInterfaceGL::PrepareTexture(Image* theImage)
 {
+	// 0x61c070 makes the texture of an image with flag 0x10 a render target, in the format rule's format
+	MemoryImage* aMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if (aMemoryImage != nullptr && (aMemoryImage->mD3DFlags & 0x10) != 0) {
+		auto anIt = mImages.find(theImage);
+		if (anIt == mImages.end() || !anIt->second.mTarget) {
+			aMemoryImage->CommitBits();
+			CreateRenderTarget(theImage, mPolicy.TextureFormat(aMemoryImage->mHasAlpha, aMemoryImage->mHasTrans,
+				aMemoryImage->mD3DFlags));
+		}
+	}
 	TextureData* aData = GetTexture(theImage);
 	if (aData == nullptr || aData->mTexture == 0)
 		return nullptr;

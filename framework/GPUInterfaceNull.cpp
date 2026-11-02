@@ -72,6 +72,8 @@ public:
 	void SetScissorRect(const Rect&) override {}
 
 	bool ReadBack(Image*, MemoryImage*) override { return false; }
+	void Present(const Rect&, int, int) override {}
+	void PresentImage(Image*, const Rect&, float, float, float, float, int, int) override {}
 	bool RecoverBits(MemoryImage*) override { return false; }
 	void BitsChanged(Image*) override {}
 	void ImageDeleted(Image* theImage) override

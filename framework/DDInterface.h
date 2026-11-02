@@ -129,6 +129,9 @@ public:
 	// Texture management
 	SDL_Texture* GetTexture(MemoryImage* theImage, int* theTexWidth, int* theTexHeight);
 	virtual void RemoveImageData(MemoryImage* theImage);
+	// DDImage::Check3D's answer for a destination: whether a draw onto theImage goes through this display (after
+	// binding it) rather than the software blitters. Here only the screen does.
+	virtual bool CheckDestination(DDImage* theImage);
 
 	// GPU drawing onto the screen (logical coordinates). theClipRect may be NULL.
 	virtual void FillRect(const Rect& theRect, const Color& theColor, int theDrawMode, const Rect* theClipRect);

@@ -358,6 +358,12 @@ public:
 	// X8R8G8B8 one is not (0x61b5a0 has no case for it), which is logged and leaves it as it was. ImageDeleted unbinds
 	// the image from every stage and as the target.
 	virtual bool ReadBack(Image* theImage, MemoryImage* theDest) = 0;  // null image: the screen
+	// The frame to the window (D3D's Present): the screen scaled linearly into theDestRect of the drawable (top-left
+	// origin, in pixels), black around it; then PresentImage draws an image's source rectangle over it (the custom cursor,
+	// blended normally, linear). Neither touches the device's own state, target or viewport. The caller swaps.
+	virtual void Present(const Rect& theDestRect, int theDrawableWidth, int theDrawableHeight) = 0;
+	virtual void PresentImage(Image* theImage, const Rect& theSrcRect, float theX, float theY, float theWidth,
+		float theHeight, int theDrawableWidth, int theDrawableHeight) = 0;
 	virtual bool RecoverBits(MemoryImage* theImage) = 0;  // fills theImage->mBits from its texture; false without one
 	virtual void BitsChanged(Image* theImage) = 0;
 	virtual void ImageDeleted(Image* theImage) = 0;
