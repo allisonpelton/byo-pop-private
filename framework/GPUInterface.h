@@ -46,8 +46,8 @@
 //   normals normalised only with NORMALIZENORMALS, the material sources); lit colours clamp per vertex before
 //   interpolation. Alpha test is a discard after the pixel stage, game pixel shaders included, then blending.
 // - Clear honours the viewport and an enabled D3D scissor, as D3D9's does, and ignores the write masks (it forces them
-//   on while it clears: WorldGraphicsListener clears depth with z-write off). GPU2D's private clip scissor is not D3D
-//   state and is never on during a Clear, StretchRect or any primitive that is not a clipped 2D draw.
+//   on while it clears: WorldGraphicsListener clears depth with z-write off). GPU2D clips in software and never sets
+//   the scissor.
 // - sampler state belongs to the stage: one GL sampler object per stage.
 // - one depth buffer of the original's format (Twist: verify D16 or D24X8 in its CreateDevice) stays bound across
 //   SetRenderTarget, and SetRenderTarget resets the viewport to the whole target. (If WebGL2 rejects attachments of
@@ -413,9 +413,9 @@ public:
 //   Twist's images, seven of them visualizer backgrounds such as IMAGE_MOLECULE_BG); images with flag 0x20 or 0x40 take
 //   one piece of their own size (0x61bd00's first branch), and Twist duplicates one column and one row into a piece's
 //   padding (0x61b5a0) as SAF 1.3 does.
-// - The private clip scissor: set for each draw that clips in the original and off for everything else (Clear,
-//   StretchRect, DrawTrianglesTex unless Twist's 0x74 clips, the adapter's primitives, DrawObject), so a clipped dialog
-//   draw cannot cut the next mesh.
+// - Clipping in software, as the original does it (SAF's PointClipper: 0x614f40 and the others, GPU2D.h), not by a
+//   scissor: BltTransformed's pieces and FillPoly clip their polygons, so nothing on the 2D path touches the scissor
+//   and no clipped draw can cut the next mesh.
 // - The pieces and formats of the policy; DrawTrianglesTex clips its triangles per piece and scales coordinates by the
 //   piece's used size over its texture size.
 // - Routing, as Twist's DDImage overrides do it. Check3D (0x404a70) sends a draw to the D3D path only in 3D mode and
@@ -448,8 +448,7 @@ public:
 //
 // The unit test (tools/check.sh gpu): on the real GPU under rundesk (its private desktop gives SDL GL 3.3 core and an
 // ES 3.0 context on the GTX 1080, with correct read-back, 2026-11-02), one test per convention: orientation, the
-// half-pixel rule, the z range, ARGB order, straight alpha, cull winding, Clear under a D3D scissor and the private one
-// off, depth Clear with z-write off, StretchRect's filters, read-back of a target, the constant banks across two
+// half-pixel rule, the z range, ARGB order, straight alpha, cull winding, Clear under a D3D scissor, depth Clear with z-write off, StretchRect's filters, read-back of a target, the constant banks across two
 // programs, a lost and restored context, the null renderer's answers equal to the real one's. Exact pixels where the
 // result is exact (integer-aligned point-sampled quads at texel centres, alpha 0 and 255, exact z), +-1 per channel for
 // blends and filters. A Create that returns null fails the test.
