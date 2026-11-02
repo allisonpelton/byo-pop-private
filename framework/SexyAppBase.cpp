@@ -2073,6 +2073,16 @@ std::string SexyAppBase::NotifyCrashHook()
 //////////////////////////////////////////////////////////////////////////
 // Window
 
+DDInterface* SexyAppBase::CreateDDInterface()
+{
+	return new DDInterface(this);
+}
+
+uint32_t SexyAppBase::GetExtraWindowFlags()
+{
+	return 0;
+}
+
 void SexyAppBase::MakeWindow()
 {
 	if (mHWnd == NULL)
@@ -2093,7 +2103,7 @@ void SexyAppBase::MakeWindow()
 		int aScale = 1;
 		int aPlaceX = SDL_WINDOWPOS_CENTERED;
 		int aPlaceY = SDL_WINDOWPOS_CENTERED;
-		Uint32 aFlags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
+		Uint32 aFlags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | GetExtraWindowFlags();
 
 #ifdef __EMSCRIPTEN__
 		// Browsers only enter fullscreen from a user gesture, so the game always starts in the page; the
@@ -2150,7 +2160,7 @@ void SexyAppBase::MakeWindow()
 	}
 
 	if (mDDInterface == NULL)
-		mDDInterface = new DDInterface(this);
+		mDDInterface = CreateDDInterface();
 	mDDInterface->mForcedRenderScale = mForcedRenderScale;
 
 	int aResult = InitDDInterface();
