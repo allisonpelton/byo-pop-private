@@ -303,8 +303,10 @@ note: they are not the card that suggests where to get the game.
 
 **The game's own icon.** Once a game's files are loaded, its card shows the game's icon in place of the initials badge
 (an `<img alt="">`, since the card has the name, at the badge's size and with `image-rendering: pixelated` so that a small
-icon stays crisp when enlarged), and the game's page uses it as its tab icon (a `<link rel="icon">` that replaces the
-site's, set when the page starts). The icon is read out of the game's exe, which the import already stores: the page takes
+icon stays crisp when enlarged). The game's page shows it in its header in place of the coloured mark, at 20 px for the
+screen's pixel ratio, and as its tab icon, in `<link rel="icon">`s at 16 and 32 px (no larger than the icon) that replace
+the site's. Each is scaled down from the icon with the browser's best filter, at most halving at each step, and set when
+the page starts (the user, 2026-11-02). The icon is read out of the game's exe, which the import already stores: the page takes
 the `.exe` in the game's `gameFiles` (`games/<game>/web/page.js`; of several the largest, as the game's own binary is
 bigger than a helper, though no game lists more than one) and `web/exeicon.js` reads it, with no library. It parses the PE
 file (`MZ`, the PE header, the section table, the resource directory), finds `RT_GROUP_ICON` (14) and its `RT_ICON` (3)

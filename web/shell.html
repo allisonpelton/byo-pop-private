@@ -85,6 +85,8 @@ body {
 :root[data-theme="dark"] .brand .logo-dark { display: block; }
 /* the game's mark before its name: page.css draws its own */
 .brand .mark { width: 12px; height: 12px; background: var(--accent); border-radius: 2px; }
+/* the game's own icon in place of the mark once its files are here (showIcon) */
+.brand .game-icon { width: 20px; height: 20px; flex: none; }
 .bar .status { color: var(--muted); font-size: 13px; flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button, .button {
   font: inherit; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg);
@@ -197,7 +199,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <body>
 <a class="skip" id="skip-game" href="#canvas">Skip to game</a>
 <header class="bar">
-  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="96" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="96" height="22"></a><span class="mark" aria-hidden="true"></span><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
+  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="96" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="96" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
   <span class="status" id="status" role="status">Starting…</span>
   <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false">Mods</button>
   <button id="btn-files" type="button" aria-controls="panel-files" aria-expanded="false">Game files</button>
@@ -591,27 +593,64 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       });
     }, Promise.resolve("")).then(function (url) { importedIcon = url; }, function () {});
   }
-  function setTabIcon(url) {
-    document.querySelectorAll('link[rel~="icon"]').forEach(function (l) { l.remove(); });
-    var link = document.createElement("link");
-    link.rel = "icon"; link.type = "image/png"; link.href = url;
-    document.head.appendChild(link);
+  // The icon scaled down to px on its longer side with the browser's best filter, at most halving at each step so a 48 or
+  // 64 px icon stays clean at 16 px; null when it is no larger than px already (the icon itself is used then).
+  function scaleIcon(img, px) {
+    var src = img, w = img.naturalWidth, h = img.naturalHeight, side = Math.max(w, h);
+    if (!side || side <= px) return null;
+    while (side > px) {
+      var next = Math.max(px, Math.ceil(side / 2));
+      var c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(w * next / side)); c.height = Math.max(1, Math.round(h * next / side));
+      var g = c.getContext("2d");
+      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+      g.drawImage(src, 0, 0, c.width, c.height);
+      src = c; w = c.width; h = c.height; side = next;
+    }
+    return src.toDataURL("image/png");
+  }
+  // The game's icon on this page once its files are here (the user, 2026-11-02): the tab's icon at 16 and 32 px, each
+  // scaled from it (the browser picks the one for its own size), and the header's, in place of the coloured mark, at 20 px
+  // for the screen's pixel ratio. A page without the files (or after "Forget game files", which reloads it) keeps the
+  // site's icon and the mark.
+  var HEADER_ICON_PX = 20;
+  function showIcon(url) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var side = Math.max(img.naturalWidth, img.naturalHeight);
+        document.querySelectorAll('link[rel~="icon"]').forEach(function (l) { l.remove(); });
+        // 16 px, and 32 px or the icon's own size when smaller; no copy larger than the icon
+        (side > 16 ? [16, Math.min(32, side)] : [side]).forEach(function (px) {
+          var link = document.createElement("link");
+          link.rel = "icon"; link.type = "image/png";
+          link.setAttribute("sizes", px + "x" + px);
+          link.href = scaleIcon(img, px) || url;
+          document.head.appendChild(link);
+        });
+        var icon = $("brand-icon");
+        icon.src = scaleIcon(img, Math.round(HEADER_ICON_PX * (window.devicePixelRatio || 1))) || url;
+        icon.hidden = false;
+        document.querySelector(".brand .mark").hidden = true;
+      } catch (e) {}
+    };
+    img.src = url;
   }
   function ensureIcon() {
     if (pagePlaceholders()) return;
     try {
       var rec = ByopopGameFiles.all()[PAGE.id];
-      if (rec && rec.icon) { setTabIcon(rec.icon); return; }
+      if (rec && rec.icon) { showIcon(rec.icon); return; }
       if (importedIcon) {  // read out of the exe at the import, which the game does not store
         var url = importedIcon;
         importedIcon = "";
-        if (ByopopGameFiles.setIcon(PAGE.id, url)) setTabIcon(url);
+        if (ByopopGameFiles.setIcon(PAGE.id, url)) showIcon(url);
         return;
       }
       var name = mainExe();
       if (!name || !window.ByopopExeIcon) return;
       ByopopExeIcon.fromBytes(Module.FS.readFile(GAME + "/" + name)).then(function (icon) {
-        if (icon && icon.dataUrl && ByopopGameFiles.setIcon(PAGE.id, icon.dataUrl)) setTabIcon(icon.dataUrl);
+        if (icon && icon.dataUrl && ByopopGameFiles.setIcon(PAGE.id, icon.dataUrl)) showIcon(icon.dataUrl);
       }).catch(function () {});
     } catch (e) {}
   }
