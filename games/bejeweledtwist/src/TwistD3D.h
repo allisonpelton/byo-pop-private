@@ -9,6 +9,7 @@
 // Each method is named after its slot (the vtable offset) and keeps the body's own order of calls.
 #pragma once
 
+#include "GPU2D.h"
 #include "GPUInterface.h"
 #include "Math3D.h"
 #include "SharedImage.h"
@@ -232,6 +233,8 @@ public:
 	// lighting and texture states and puts 2D's back after
 	void DrawObject(D3DObject* theObject, const GPUMatrix& theWorld, const Color& theColor, bool the2DStates);
 	void SetDepthTestMode(int theMode);                                             // 0x114
+	// this+0x10: the draw hook the 2D draws call (the original stores a function there; VizManager::Draw stores 0x758253)
+	void SetDrawHook(GPU2DDrawHook theHook, void* theContext) { m2D->SetDrawHook(theHook, theContext); }
 	void SetDepthWriteMode(int theMode);                                            // 0x118
 	void SetAlphaRef(int theRef);                                                   // 0x11c
 	void SetDepthZ(float theWriteZ, float theOtherZ);                               // 0x120

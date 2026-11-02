@@ -96,6 +96,9 @@ public:
 
 	void Update() override;           // 0x758f3e
 	void Draw(Graphics* g) override;  // 0x7587a0
+	// 0x758253: the D3D interface's draw hook (this+0x10) while a visualizer draws around the board; theContext is the VizManager
+	static bool DrawHook(void* theContext, int thePrimType, int theCount, const GPU2DVertex* theVertices, int theStride,
+		Rect** theClip);
 
 	static int FindViz(const char* theName);   // 0x75864e: the index of theName in the list, -1 if none
 	void SetViz(int theIndex, bool force);     // 0x758e62

@@ -2,6 +2,7 @@
 
 #include "Board.h"
 #include "GameText.h"
+#include "GPU2D.h"
 #include "Graphics.h"
 #include "DDImage.h"
 #include "Res.h"
@@ -369,6 +370,79 @@ void VizManager::Update()
 	MarkDirty();
 }
 
+// 0x758253: the draw hook (gD3DInterface +0x10) while the visualizer draws around the board. Each vertex of the primitive
+// is placed against the board's rectangle in x and y: 1 inside, 2 before it, 4 after it (or-ed over the vertices, with
+// 0.5001 added to the vertex as the original does). Inside in both (1, 1): the draw is skipped. Wholly on one side: drawn
+// whole. Straddling it with the other axis inside (3 and 1, 1 and 3, 5 and 1, 1 and 5): drawn clipped to the strip of the
+// screen beside the board, one of the four rectangles (0x921664, 0x921654, 0x921644, 0x921634). Anything else is drawn
+// whole, with depth testing at mode 2 unless the visualizer clears the depth buffer (bit 4).
+// port: the rectangles are zero-initialised statics, which is all the guard bits at 0x921674 (zeroing each one the first
+// time it is used) come to, since every use sets all four numbers
+bool VizManager::DrawHook(void* theContext, int thePrimType, int theCount, const GPU2DVertex* theVertices, int theStride,
+	Rect** theClip)
+{
+	static Rect sRects[4];  // 0x921664 (left), 0x921654 (top), 0x921644 (right), 0x921634 (bottom)
+	VizManager* aManager = (VizManager*)theContext;
+	WinTwistApp* anApp = aManager->mApp;
+	Visualizer* aViz = aManager->mViz;
+	if (!aViz->Wants(0))
+		return true;
+	int aVertexCount = 0;
+	if ((thePrimType == 5) || (thePrimType == 6))
+		aVertexCount = theCount + 2;
+	else if (thePrimType == 4)
+		aVertexCount = theCount * 3;
+	unsigned int aXFlags = 0, aYFlags = 0;
+	if (aVertexCount > 0) {
+		const float* aVertex = (const float*)theVertices;
+		for (int i = 0; i < aVertexCount; i++, aVertex += theStride / 4) {
+			if ((float)aManager->mBoardRect[0] <= aVertex[0]) {
+				if ((double)(aManager->mBoardRect[2] + aManager->mBoardRect[0]) > (double)aVertex[0] + 0.5001)
+					aXFlags |= 1;
+				else
+					aXFlags |= 4;
+			} else
+				aXFlags |= 2;
+			if ((float)aManager->mBoardRect[1] <= aVertex[1]) {
+				if ((double)(aManager->mBoardRect[3] + aManager->mBoardRect[1]) > (double)aVertex[1] + 0.5001)
+					aYFlags |= 1;
+				else
+					aYFlags |= 4;
+			} else
+				aYFlags |= 2;
+		}
+		if ((aXFlags == 1) && (aYFlags == 1))
+			return false;
+	}
+	if (!aViz->Wants(4)) {
+		gD3DInterface->SetDepthTestMode(0);  // slot 0x114
+	} else {
+		aManager->mClipRect[0] = -1;
+		aManager->mClipRect[1] = -1;
+		aManager->mClipRect[2] = 1;
+		aManager->mClipRect[3] = 1;
+	}
+	if ((aXFlags == 2) || (aXFlags == 4) || (aYFlags == 2) || (aYFlags == 4))
+		return true;
+	const int* aBoard = aManager->mBoardRect;
+	Rect* aRect;
+	if ((aXFlags == 3) && (aYFlags == 1))
+		aRect = &sRects[0], *aRect = Rect(0, 0, aBoard[0], anApp->mHeight);
+	else if ((aYFlags == 3) && (aXFlags == 1))
+		aRect = &sRects[1], *aRect = Rect(0, 0, anApp->mWidth, aBoard[1]);
+	else if ((aXFlags == 5) && (aYFlags == 1))
+		aRect = &sRects[2], *aRect = Rect(aBoard[0] + aBoard[2], 0, (anApp->mWidth - aBoard[0]) - aBoard[2], anApp->mHeight);
+	else if ((aYFlags == 5) && (aXFlags == 1))
+		aRect = &sRects[3], *aRect = Rect(0, aBoard[1] + aBoard[3], anApp->mWidth, (anApp->mHeight - aBoard[1]) - aBoard[3]);
+	else {
+		if (!aViz->Wants(4))
+			gD3DInterface->SetDepthTestMode(2);
+		return true;
+	}
+	*theClip = aRect;
+	return true;
+}
+
 void VizManager::Draw(Graphics* g)
 {
 	if (mViz == nullptr) {
@@ -401,11 +475,10 @@ void VizManager::Draw(Graphics* g)
 		if (gD3DInterface == nullptr) {
 			mViz->Draw(g);
 		} else {
-			// port: the draw hook 0x758253 (gD3DInterface +0x10, set here while DrawsAroundBoard) skips and clips
-			// primitives lying in the board's rectangle; the framework's draws have no such hook, so the
-			// picture is drawn whole and the board covers its rectangle
+			// the draw hook 0x758253 (gD3DInterface +0x10) while the visualizer draws around the board: it skips the
+			// primitives lying in the board's rectangle and clips those that straddle it
 			if (mViz->DrawsAroundBoard())
-				NotPorted("VizManager::Draw: the draw hook 0x758253 (primitives inside the board's rectangle skipped)");
+				gD3DInterface->SetDrawHook(&VizManager::DrawHook, this);
 			// (+0x3c of the app's display, true for the Direct3D 9 path, which every 3D run of the port is, keeps the
 			// visualizer from being drawn at half size when false: 0x7587a0's flag 2 is then cleared)
 			if (!mViz->Wants(1)) {
@@ -419,6 +492,7 @@ void VizManager::Draw(Graphics* g)
 						mClipRect[i] = mBoardRect[i];
 				}
 				mViz->Draw(g);
+				gD3DInterface->SetDrawHook(nullptr, nullptr);   // +0x10 = 0
 				gD3DInterface->SetDepthTestMode(0);             // slot 0x114
 			} else {
 				if (mViz->DrawsAroundBoard()) {
@@ -441,6 +515,7 @@ void VizManager::Draw(Graphics* g)
 						mClipRect[i] = mBoardRect[i];
 				}
 				mViz->Draw(aHalfG);
+				gD3DInterface->SetDrawHook(nullptr, nullptr);
 				gD3DInterface->SetDepthTestMode(0);
 				delete aHalfG;
 				gD3DInterface->SetRenderTarget(g->mDestImage);
