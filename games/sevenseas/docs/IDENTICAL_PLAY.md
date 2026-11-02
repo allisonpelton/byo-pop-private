@@ -48,6 +48,7 @@ Each row: the difference, its cause in the original, what the port does now, and
 | Treasure Island nag: button label white | the dialog's gold | gold | 2dd815a |
 | The map after level 10 never moved on: no route, no second X | the map's Update lights one more dot every 50 updates (0x417960) | the same | d7d0f2a |
 | The map's "Click to continue" glowed | the button has no component image and shows its unlit picture, the lit one under the mouse | the same | d7d0f2a |
+| Arrows showed only above and below the ship (the user's "movement arrows don't show up properly") | 0x409840 draws the arrow of each of the eight neighbouring cells; the port drew only the vertical ones | all eight, as the original (nine hovers, shots match) | 87cbbda |
 | At game over the pirate vanished from the high-score list | 0x420430 brings the talking pirate in front of the list and does not stop him | the same | 1d82ddd |
 
 
