@@ -114,8 +114,10 @@ public:
 	std::vector<Speck*> mSpecks;         // +0x1b4
 	float mUnknown1C4 = 0;               // +0x1c4
 	float mUnknown1C8 = 0;               // +0x1c8: 1 when the level changes (0x702a88)
-	void* mUnknown1CC = nullptr;         // +0x1cc: a text popup (0x707103, 0xd4 bytes, not ported; never made yet)
-	void* mUnknown1D0 = nullptr;         // +0x1d0: the same (0x707215)
+	// +0x1cc, +0x1d0: two text popups (0xd4 bytes, constructor 0x725732), made by 0x707103 and 0x707215; nothing in
+	// the exe calls those two or holds their address, so the popups never exist
+	void* mUnknown1CC = nullptr;         // +0x1cc
+	void* mUnknown1D0 = nullptr;         // +0x1d0
 	TextImage* mLevelText = nullptr;     // +0x1d4: "LEVEL" in FONT_INGAME (the exe's 0x74e701; nothing draws it)
 	int mUnknown1D8 = 0;                 // +0x1d8: a flash's brightness, up to 255 (0x703431, 0x7033d4)
 	int mUnknown1DC = 0;                 // +0x1dc: the glow's alpha, from +0x1d8
@@ -156,7 +158,7 @@ public:
 	float mUnknown2E0 = 0;               // +0x2e0: a random 0 to 1
 	int mUnknown2E4 = -1;                // +0x2e4
 	int mUnknown2E8 = -1;                // +0x2e8
-	std::vector<int> mUnknown2F0;        // +0x2f0: filled when the glass breaks (0x70c7ec, not ported)
+	std::vector<int> mUnknown2F0;        // +0x2f0: filled by 0x70c7ec, which nothing in the exe calls
 	int mUnknown300 = 0;                 // +0x300: the fill is drawn full while above 0
 	float mUnknown308 = 1.0f;            // +0x308: updates a frame
 	float mUnknown30C = 0;               // +0x30c: what has been added
@@ -194,7 +196,12 @@ public:
 	bool mChallenge = false;             // +0x4c4 (0x70371c)
 	CurvedVal mUnknown4C8;               // +0x4c8: the challenge's goal moving
 	int mUnknown538 = 0;                 // +0x538: the challenge's goal shown
-	// port: +0x53c, +0x54c, +0x55c and +0x56c (four vectors the challenge's drawing fills) wait for the challenge
+	// +0x53c to +0x56c: the challenge's goals as the pattern and on-board displays last got them (0x6db0ec, in
+	// DrawChallenge): each rule's value now, its goal, its comparison and its stat
+	std::vector<int> mUnknown53C;        // +0x53c
+	std::vector<int> mUnknown54C;        // +0x54c
+	std::vector<int> mUnknown55C;        // +0x55c
+	std::vector<int> mUnknown56C;        // +0x56c
 	CurvedVal mUnknown580;               // +0x580
 	CurvedVal mUnknown5F0;               // +0x5f0: set by the board's bonus challenge (0x6bbfe4)
 	Ticker mTicker660;                   // +0x660: the board's +0x2638 (the challenge's count)
@@ -262,6 +269,7 @@ public:
 	void DrawFill(Graphics* g, bool theFront);     // 0x7051a4: the fill behind (false) or the ring in front (true)
 	void DrawLight(Graphics* g, int theStep, float theFrac);  // 0x70675e: the light theStep, lit theFrac of the way
 	void DrawBody(Graphics* g);                    // 0x7081c9: the top, the lights, the score and the level
+	void DrawChallenge(Graphics* g, float theTipFade);  // part of 0x7081c9: the challenge's goals, count and best
 	void DrawTime(Graphics* g, int theTime, int theX, int theY, const Color& theColor, const Color& theColorTop,
 		float theScale, bool theHundredths);       // 0x704dde: blitz's clock
 };

@@ -244,7 +244,7 @@ void Board::Update()
 		if (0 < mUnknown257C) {
 			mUnknown257C--;
 			if (mUnknown257C == 0)
-				NotPorted("Board::Update: 0x6a615b");
+				ShowZenJump(1);
 		}
 		if (mApp->mOptionsDialog == nullptr && mApp->mDialogList.size() == 0 && mUnknown34EC == 0 &&
 			0 < mUnknown2578) {
@@ -835,10 +835,10 @@ void Board::UpdateGame()
 			if (aLeft <= 0.0f && mGameMode != MODE_BLITZ && mUnknown2584 == nullptr) {
 				if (CountDownCounters())
 					return;
-				if ((mGameMode == MODE_ZEN && !mApp->mProfile->GetFlag1E4(0x11) && 179999 < mUnknown1470) ||
-					(mGameMode == MODE_CLASSIC && !mApp->mProfile->GetFlag1E4(0x11) && mUnknown21E0 < 3)) {
-					// port: 0x6a615b comes with the tutorial's tips
-					NotPorted("Board::UpdateGame: 0x6a615b");
+				if (mGameMode == MODE_ZEN && !mApp->mProfile->GetFlag1E4(0x11) && 179999 < mUnknown1470) {
+					ShowZenJump(2);
+				} else if (mGameMode == MODE_CLASSIC && !mApp->mProfile->GetFlag1E4(0x11) && mUnknown21E0 < 3) {
+					ShowZenJump(1);
 				} else {
 					StartUnknown34F0();
 					mApp->PlayVoice(SOUND_VOICE_GO, false);

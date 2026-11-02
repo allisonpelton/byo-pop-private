@@ -23,6 +23,7 @@
 #include "X86Math.h"
 
 #include <cmath>
+#include <cstring>
 
 using namespace Sexy;
 
@@ -309,10 +310,8 @@ void GoodTube::SetShown(bool theShown)
 void GoodTube::SetUnknown158(int theValue)
 {
 	mUnknown158 = theValue;
-	if (theValue == 3) {
-		// port: sets a CurvedVal to 1 (CurvedVal::SetConstant), once it is known which
-		NotPorted("GoodTube::SetUnknown158(3)");
-	}
+	if (theValue == 3)
+		mUnknown580.SetConstant(1.0);  // the best's fade (+0x580) full at once
 }
 
 void GoodTube::SetChallenge(bool on)
@@ -930,7 +929,8 @@ void GoodTube::UpdateTick()
 	}
 	mFillTop = GetGlassTop() + 0x14;
 	mFillBottom = GetBottomTop();
-	// port: the two text popups at +0x1cc and +0x1d0 are updated here (a popup that is done goes); none is made yet
+	// port: the two text popups at +0x1cc and +0x1d0 are updated here (a popup that is done goes); nothing in the exe
+	// makes them
 
 	if (0.0f < mUnknown1C4) {
 		float aValue = (float)((double)mUnknown1C4 - 0.00800000037997961);
@@ -1413,13 +1413,36 @@ void GoodTube::UpdateTick()
 		}
 	}
 	if (mUnknown5F0.GetOutVal() > 0.0 && mBoard->mUnknown268C == 1.0f && mBoard->mUnknown267C == nullptr) {
-		// port: 3 sparks fly from the bottom's middle (0x7e3390: a table of 512 radii, game data); Rand is drawn the
-		// same
-		for (int aSpark = 3; aSpark != 0; aSpark--) {
-			Rand();
-			RandSigned();
-		}
-		NotPorted("GoodTube::UpdateTick: the sparks of the bonus challenge's bracket (0x7e3390)");
+		// 3 sparks a frame round the bottom's middle, each at one of 512 angles and that angle's radius (the table at
+		// 0x7e3390, 512 floats of game data), flying outwards
+		float aMidX = (float)Ftol((double)mWidth * 0.5249999761581421);
+		float aMidY = (float)Ftol((double)mBottomImage->mHeight * 0.36000001430511475 + (double)GetBottomTop());
+		int aSpark = 3;
+		do {
+			Effect* e = mFXManager->AllocEffect(0);
+			int aStep = Rand() % 512;
+			float anAngle = (float)((double)aStep * 0.001953125 * (double)6.2831855f);
+			int aRadiusBits = GameInt(GTB(0x7e3390, 2048) + aStep * 4);
+			float aRadiusF;
+			std::memcpy(&aRadiusF, &aRadiusBits, sizeof(aRadiusF));
+			float aRadius = aRadiusF * gApp->mScale;
+			e->mImage = IMAGE_GEM_FRUIT_SPARK;
+			e->mIsAdditive = true;
+			e->mX = (float)((double)(float)std::cos(anAngle) * (double)aRadius + (double)aMidX);
+			e->mY = (float)((double)(float)std::sin(anAngle) * (double)aRadius + (double)aMidY);
+			float aCos = (float)std::cos(anAngle);
+			e->mDX = (float)((double)gApp->mScale * 1.100000023841858) * aCos;
+			float aSin = (float)std::sin(anAngle);
+			e->mDY = (float)((double)gApp->mScale * 1.100000023841858) * aSin;
+			e->mAlpha = (float)mUnknown5F0.GetOutVal();
+			e->mScale = 0.5f;
+			e->mGravity = 0;
+			e->mDScale = -0.01f;
+			e->mDAlpha = -0.01f;
+			e->mDAngle = (float)((double)RandSigned() * 0.019999999552965164 + 0.05000000074505806);
+			mFXManager->AddEffect(e);
+			aSpark--;
+		} while (aSpark != 0);
 	}
 }
 
@@ -1923,6 +1946,7 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 		g->SetColor(Color(255, 255, 255, mUnknown1DC));
 		g->DrawImageF(IMAGE_INGAMEUI_RING_OUTERGLOW, aRingX, (float)((double)aFillTop - (double)aScale * 6.0));
 	}
+	// (the text popups: 0x707103 and 0x707215, which make them, are never called, so these stay null)
 	if (mUnknown1CC != nullptr)
 		NotPorted("GoodTube::DrawFill: the text popup at +0x1cc (0x707103)");
 	if (mUnknown1D0 != nullptr)
@@ -2045,8 +2069,7 @@ void GoodTube::DrawBody(Graphics* g)
 	}
 	float aTipFade = (float)(1.0 - (double)mUnknown244);
 	if (gBoard->mChallenge != 0) {
-		// the challenge's display: its count and its best, its goals and the moves left (+0x2630's flags at +0x80)
-		NotPorted("GoodTube::DrawBody: the challenge's display (the board's +0x2630 object, 0x6db0ec)");
+		DrawChallenge(g, aTipFade);
 	} else if (mUnknown158 == 0) {
 		// the score under the top
 		SexyString aScoreText = CommaSeperate((int)mBoard->mUnknown14F8);
@@ -2139,4 +2162,352 @@ void GoodTube::DrawBody(Graphics* g)
 	g->DrawImage(aTopGlow, aTopGlowX, aTopGlowY);
 	g->SetColor(Color(255, 255, 255));
 	g->SetDrawMode(0);
+}
+
+namespace {
+
+// 0x84eff4: the pattern's gem pictures, two for each colour (RWGYVOB): waiting, then matched
+int GetPatternGemId(int theIndex)
+{
+	return GameInt(GTB(0x84eff4, 56) + theIndex * 4);
+}
+
+// The four lists 0x6db0ec fills (each emptied first): each rule's stat, its value now, its comparison and its goal
+void GetGoalLists(const Challenge* theChallenge, std::vector<int>& theStats, std::vector<int>& theCurrents,
+	std::vector<int>& theOps, std::vector<int>& theTargets)
+{
+	theStats.clear();
+	theCurrents.clear();
+	theOps.clear();
+	theTargets.clear();
+	std::vector<ChallengeGoal> aGoals = gApp->mChallengeInfo->GetGoals(theChallenge);
+	for (const ChallengeGoal& aGoal : aGoals) {
+		theStats.push_back(aGoal.mStat);
+		theOps.push_back(aGoal.mOp);
+		theTargets.push_back(aGoal.mTarget);
+		theCurrents.push_back(aGoal.mCurrent);
+	}
+}
+
+}  // namespace
+
+void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
+{
+	// 0x7087b2-0x70a209 (part of DrawBody): the challenge's display in the glass under the top, by the tube's kind
+	// and the challenge's flags
+	Challenge* aChallenge = gBoard->mChallenge;
+	unsigned int aFlags = aChallenge->mFlags;
+	bool aPoints = (aFlags & Challenge::FLAG_POINTS) != 0;
+	bool aNightMode = (aFlags & Challenge::FLAG_NIGHTMODE) != 0;
+	// the night mode's best ever shows under it once the player has one (Board::SetChallenge sets +0x768)
+	bool aShowBestEver = aNightMode && mUnknown768;
+	int aScoreY = GetScoreY();
+	if (aShowBestEver)
+		aScoreY += Ftol((double)gApp->mScale * -55.0);
+	int anAlpha = Ftol((double)theTipFade * 255.0);
+	g->SetColor(Color(255, 255, 255, anAlpha));
+	if (mUnknown158 == 3) {
+		// the moves left, word-wrapped in FONT_SCORE
+		int aTop = Ftol((double)gApp->mScale * (aPoints ? 50.0 : -80.0)) + aScoreY;
+		SexyString aText;
+		int aMovesLeft = aChallenge->mMoveGoal - gApp->mUnknownC74[0x21];
+		if (aMovesLeft == 1)
+			aText = GT(0x7e40ec);
+		else
+			aText = StrFormat(gApp->GetString(GTS(0x7e40dc), GT(0x7e40c0)).c_str(), aMovesLeft);
+		g->SetFont(FONT_SCORE);
+		float aWidthF = (float)mWidth;
+		int aRectWidth = Ftol((double)aWidthF * 0.75);
+		int aRectHeight = Ftol((double)mHeight * 0.20000000298023224);
+		Rect aRect(Ftol((double)aWidthF * 0.5249999761581421 - (double)(aRectWidth / 2)), aTop, aRectWidth,
+			aRectHeight);
+		g->WriteWordWrapped(aRect, aText, -1, 0, nullptr, -1, nullptr);
+	} else if ((aFlags & Challenge::FLAG_PATTERN) != 0) {
+		GetGoalLists(aChallenge, mUnknown56C, mUnknown53C, mUnknown55C, mUnknown54C);
+		if (aNightMode) {
+			// the count's title and the count, and the best under them while +0x580 shows it
+			int aCount = gBoard->mUnknown2638;
+			SexyString aTitle = aChallenge->mCountTitle;
+			SexyString aCountText = StrFormat(GTC(0x80da2c), aCount);  // (made and not drawn)
+			int aMidX = Ftol((double)mWidth * 0.5249999761581421);
+			int aY = aScoreY - Ftol((double)gApp->mScale * -30.0);
+			double aBestShown = mUnknown580.GetOutVal();
+			int aRise = Ftol((double)gApp->mScale * 0.0);
+			aY = Ftol(aBestShown * (double)aRise + (double)aY);
+			g->SetFont(FONT_TOOLTIP);
+			int aTitleY = aY - Ftol((double)gApp->mScale * 40.0);
+			g->DrawString(aTitle, aMidX - g->StringWidth(aTitle) / 2, aTitleY);
+			mTicker660.Draw(g, aMidX, aY, true, theTipFade);
+			if (mUnknown580.GetOutVal() != 0.0) {
+				g->SetColor(Color(255, 255, 255, Ftol(mUnknown580.GetOutVal() * 255.0 * (double)theTipFade)));
+				SexyString aBest = GT(0x7e40a8);
+				g->SetFont(FONT_TOOLTIP);
+				int aBestY = Ftol((double)gApp->mScale * 65.0) + aScoreY;
+				g->DrawString(aBest, aMidX - g->StringWidth(aBest) / 2, aBestY);
+				float aBestAlpha = (float)(mUnknown580.GetOutVal() * (double)theTipFade);
+				mTicker6E4.Draw(g, aMidX, aScoreY - Ftol((double)gApp->mScale * -95.0), true, aBestAlpha);
+				g->SetColor(Color(255, 255, 255, anAlpha));
+			}
+		} else {
+			// the pattern's gems in a row, those matched so far (+0x538) lit; the next one grows with +0x4c8
+			int aMaxWidth = Ftol((double)mWidth * 0.550000011920929);
+			int aCount = (int)aChallenge->mPattern.size();
+			float aGap = (float)((double)gApp->mScale * 5.0);
+			float aGemWidth = (float)GetImageById(GetPatternGemId(0))->mWidth;
+			float aCountLess = (float)(aCount - 1);
+			float aCountF = (float)aCount;
+			float aRowWidth = (float)((double)aCountF * (double)aGemWidth + (double)aCountLess * (double)aGap);
+			float aScale = 1.0f;
+			float aMaxWidthF = (float)aMaxWidth;
+			if (aMaxWidthF < aRowWidth)
+				aScale = (float)((double)aMaxWidthF / (double)aRowWidth);
+			aGemWidth = (float)((double)aScale * (double)aGemWidth);
+			aGap = (float)((double)aScale * (double)aGap);
+			float aMidX = (float)((double)mWidth * 0.5249999761581421);
+			aRowWidth = (float)((double)aCountF * (double)aGemWidth + (double)aCountLess * (double)aGap);
+			float aX = (float)((double)aMidX - (double)aRowWidth * 0.5);
+			int aY = aScoreY - Ftol((double)gApp->mScale * -0.0);
+			int i = 0;
+			if (0 < aCount) {
+				double aStep = (double)aGemWidth + (double)aGap;
+				do {
+					int anIndex = aChallenge->mPattern[i] * 2;
+					if (i < mUnknown538)
+						anIndex++;
+					Image* aGem = GetImageById(GetPatternGemId(anIndex));
+					if (aGem != nullptr) {
+						float aSize = aScale;
+						if (i == mUnknown538 && mUnknown4C8.mIncRate != 0.0 && !mUnknown4C8.HasBeenTriggered())
+							aSize = (float)(mUnknown4C8.GetOutVal() * (double)aScale);
+						DrawImageScaledCentered(g, aGem, (float)((double)aGemWidth * 0.5 + (double)aX), (float)aY,
+							aSize, aSize);
+					}
+					i++;
+					aX = (float)((double)aX + aStep);
+				} while (i < aCount);
+			}
+		}
+	} else if ((aFlags & Challenge::FLAG_ONBOARD) != 0) {
+		// a column of the colours' (and specials') icons, each with "x" and its count on the board, shrunk by
+		// hundredths until it fits 150
+		int anIconSize = Ftol((double)gApp->mScale * 54.0);
+		float anIconSizeF = (float)anIconSize;
+		int aGap = Ftol((double)anIconSizeF * 0.4000000059604645);
+		GetGoalLists(aChallenge, mUnknown56C, mUnknown53C, mUnknown55C, mUnknown54C);
+		int aMaxHeight = Ftol((double)gApp->mScale * 150.0);
+		std::vector<int> aCels;
+		std::vector<int> aValues;
+		unsigned int i = 0;
+		if (mUnknown56C.size() != 0) {
+			do {
+				int aStat = mUnknown56C[i];
+				int aCel = -1;
+				if (aStat < 0x4b || 0x51 < aStat) {
+					if (aStat == 0x14)
+						aCel = 8;
+					else if (aStat == 0x15)
+						aCel = 7;
+					else if (aStat == 0x18)
+						aCel = 9;
+					else if (aStat == 0x4a)
+						aCel = 10;
+				} else {
+					aCel = mUnknown56C[i] - 0x4b;
+				}
+				if (aCel != -1) {
+					aValues.push_back(mUnknown53C[i]);
+					aCels.push_back(aCel);
+				}
+				i++;
+			} while (i < mUnknown56C.size());
+		}
+		int aCount = (int)aCels.size();
+		float aScale = 1.0f;
+		float aHeightF = (float)((aCount - 1) * aGap + aCount * anIconSize);
+		int aHeight = Ftol((double)aHeightF);
+		while (aMaxHeight < aHeight) {
+			aScale = (float)((double)aScale - 0.009999999776482582);
+			aHeight = Ftol((double)aHeightF * (double)aScale);
+		}
+		int aY = (-Ftol((double)gApp->mScale * -15.0) - aHeight / 2) + aScoreY;
+		for (unsigned int j = 0; aCels.size() != 0 && j < aCels.size(); j++) {
+			Image* anIcons = IMAGE_CHALLENGEICONS;
+			int aCelWidth = Ftol((double)anIcons->GetCelWidth() * (double)aScale);
+			int aCelHeight = Ftol((double)anIcons->GetCelHeight() * (double)aScale);
+			Rect anIconRect(Ftol((double)mWidth * 0.5249999761581421 - (double)aCelWidth),
+				Ftol((double)aY - (double)anIconSizeF * (double)aScale * 0.6000000238418579), aCelWidth, aCelHeight);
+			g->DrawImageCel(anIcons, anIconRect, aCels[j]);
+			g->SetFont(FONT_SCORE);
+			SexyString aTimes = GT(0x811a00);
+			Font* aFont = g->GetFont();
+			int aDrop = Ftol((double)gApp->mScale * 14.0);
+			int aTop = aY - g->GetFont()->mAscent;
+			g->DrawString(aTimes, Ftol((double)mWidth * 0.5249999761581421), aFont->GetHeight() + aTop + aDrop);
+			SexyString aValue = StrFormat(GTC(0x80da2c), aValues[j]);
+			aFont = g->GetFont();
+			aDrop = Ftol((double)gApp->mScale * 16.0);
+			aTop = aY - g->GetFont()->mAscent;
+			g->DrawString(aValue, Ftol((double)mWidth * 0.625), aFont->GetHeight() + aTop + aDrop);
+			aY = Ftol((double)(aGap + anIconSize) * (double)aScale + (double)aY);
+		}
+	} else if ((aFlags & Challenge::FLAG_ONEMOVE) != 0) {
+		// each ">=" goal of the move: an icon with "x" and the count so far, or (a stat without an icon) the
+		// count's title and the count; a single goal moves up for the best under it
+		std::vector<ChallengeGoal> aGoals = gApp->mChallengeInfo->GetGoals(aChallenge);
+		std::vector<int> aCels;
+		std::vector<int> aValues;
+		int aLines = 0;
+		for (unsigned int i = 0; aGoals.size() != 0 && i < aGoals.size(); i++) {
+			if (aGoals[i].mOp == 2) {
+				int aCel = -1;
+				int aStat = aGoals[i].mStat;
+				if (aStat > 0x40) {
+					if (aStat == 0x41) {
+						aCel = 8;
+					} else if (aStat == 0x4a) {
+						aCel = 10;
+					} else if ((unsigned int)(aStat - 0x4b) <= 6) {
+						// port: the original takes the colour from the tube's list (+0x56c, what the last pattern or
+						// on-board display left there), not from this goal; no shipped challenge gets here (no
+						// "Onemove" rule counts a colour). An index past that list leaves the goal without an icon
+						if (i < mUnknown56C.size())
+							aCel = mUnknown56C[i] - 0x4b;
+					}
+				} else if (aStat == 0x40) {
+					aCel = 7;
+				} else if (aStat == 0x14) {
+					aCel = 8;
+				} else if (aStat == 0x15) {
+					aCel = 7;
+				} else if (aStat == 0x18) {
+					aCel = 9;
+				}
+				aCels.push_back(aCel);
+				aValues.push_back(aGoals[i].mCurrent);
+				if (aCel == -1)
+					aLines += 2;
+				else
+					aLines++;
+			}
+		}
+		g->SetFont(FONT_SCORE);
+		int aLineHeight = g->GetFont()->mHeight - g->GetFont()->mAscentPadding;
+		int aSpacing = Ftol((double)gApp->mScale * 20.0);
+		int aY = aScoreY - ((aLines - 1) * aSpacing + aLineHeight * aLines) / 2;
+		int aMidX = Ftol((double)mWidth * 0.5249999761581421);
+		int aStep = aSpacing + aLineHeight;
+		bool aSingle = aCels.size() == 1;
+		if (aSingle) {
+			double aBestShown = mUnknown580.GetOutVal();
+			aY = Ftol((double)aY - aBestShown * (double)Ftol((double)gApp->mScale * 10.0));
+		}
+		for (unsigned int i = 0; aCels.size() != 0 && i < aCels.size(); i++) {
+			if (aCels[i] == -1) {
+				SexyString aTitle;
+				if (aChallenge->mCountTitle.empty())
+					aTitle = GT(0x7df720);
+				else
+					aTitle = aChallenge->mCountTitle;
+				g->SetFont(FONT_TOOLTIP);
+				int aTitleY = aY + aLineHeight + Ftol((double)gApp->mScale * 0.0);
+				g->DrawString(aTitle, aMidX - g->StringWidth(aTitle) / 2, aTitleY);
+				aY += aStep - Ftol((double)gApp->mScale * -20.0);
+				mTicker660.Draw(g, aMidX, aY, true, theTipFade);
+			} else {
+				int aDrop = Ftol((double)gApp->mScale * -8.0);
+				g->DrawImageCel(IMAGE_CHALLENGEICONS, Ftol((double)mWidth * 0.30000001192092896), aY + aDrop,
+					aCels[i]);
+				int aValueX = Ftol((double)mWidth * 0.6499999761581421);
+				g->SetFont(FONT_SCORE);
+				SexyString aTimes = GT(0x811a00);
+				Font* aFont = g->GetFont();
+				int aTimesDrop = Ftol((double)gApp->mScale * 39.0);
+				int aTop = aY - g->GetFont()->mAscent;
+				g->DrawString(aTimes, Ftol((double)mWidth * 0.5299999713897705),
+					aFont->GetHeight() + aTimesDrop + aTop);
+				SexyString aValue = StrFormat(GTC(0x80da2c), aValues[i]);
+				int aValueY = aY + aLineHeight + Ftol((double)gApp->mScale * 0.0);
+				g->DrawString(aValue, aValueX - g->StringWidth(aValue) / 2, aValueY);
+				aY += aStep;
+			}
+		}
+		if (aSingle && mUnknown580.GetOutVal() != 0.0) {
+			g->SetColor(Color(255, 255, 255, Ftol(mUnknown580.GetOutVal() * 255.0 * (double)theTipFade)));
+			SexyString aBest = GT(0x7e40a8);
+			g->SetFont(FONT_TOOLTIP);
+			int aBestY = Ftol((double)gApp->mScale * 55.0) + aScoreY;
+			g->DrawString(aBest, aMidX - g->StringWidth(aBest) / 2, aBestY);
+			float aBestAlpha = (float)(mUnknown580.GetOutVal() * (double)theTipFade);
+			mTicker6E4.Draw(g, aMidX, aScoreY - Ftol((double)gApp->mScale * -90.0), true, aBestAlpha);
+			g->SetColor(Color(255, 255, 255, anAlpha));
+		}
+	} else {
+		// the count's title and the count (unless "nocount"), then the moves (left), or the best while +0x580 shows
+		// it
+		int aCount = gBoard->mUnknown2638;
+		if ((aChallenge->mFlags & Challenge::FLAG_PATTERN) != 0)
+			aCount = aChallenge->mProgress;
+		bool aNoCount = (aChallenge->mFlags & Challenge::FLAG_NOCOUNT) != 0;
+		SexyString aTitle;
+		if (aChallenge->mCountTitle.empty())
+			aTitle = GT(0x7e4078);
+		else
+			aTitle = aChallenge->mCountTitle;
+		SexyString aCountText = StrFormat(GTC(0x80da2c), aCount);
+		int aMidX = Ftol((double)mWidth * 0.5249999761581421);
+		int aY = aScoreY - Ftol((double)gApp->mScale * -35.0);
+		if (!aNoCount) {
+			double aBestShown = mUnknown580.GetOutVal();
+			aY = Ftol((double)aY - aBestShown * (double)Ftol((double)gApp->mScale * 10.0));
+			g->SetFont(FONT_TOOLTIP);
+			int aTitleY = aY - Ftol((double)gApp->mScale * 42.0);
+			g->DrawString(aTitle, aMidX - g->StringWidth(aTitle) / 2, aTitleY);
+			mTicker660.Draw(g, aMidX, aY, true, theTipFade);
+			aY = aScoreY - Ftol((double)gApp->mScale * -80.0);
+		}
+		if ((aChallenge->mFlags & Challenge::FLAG_MOVES) != 0) {
+			g->SetColor(Color(255, 255, 255, anAlpha));
+			aTitle = aChallenge->mMoveGoal != 0 ? GT(0x7e4058) : GT(0x7df518);
+			g->SetFont(FONT_TOOLTIP);
+			int aMoves = aChallenge->mMoveGoal;
+			if (aMoves != 0)
+				aMoves -= gApp->mUnknownC74[0x21];
+			else
+				aMoves = gApp->mUnknownC74[0x21];
+			if (aMoves < 0)
+				aMoves = 0;
+			aCountText = StrFormat(GTC(0x80da2c), aMoves);
+			int aTitleY = aY - Ftol((double)gApp->mScale * 10.0);
+			g->DrawString(aTitle, aMidX - g->StringWidth(aTitle) / 2, aTitleY);
+			if (aChallenge->mRules.size() == 1) {
+				g->SetFont(FONT_SCORE);
+				aY += Ftol((double)gApp->mScale * 20.0);
+			}
+			int aMovesY = aY + Ftol((double)gApp->mScale * 15.0);
+			g->DrawString(aCountText, aMidX - g->StringWidth(aCountText) / 2, aMovesY);
+		} else if (mUnknown580.GetOutVal() != 0.0) {
+			g->SetColor(Color(255, 255, 255, Ftol(mUnknown580.GetOutVal() * 255.0 * (double)theTipFade)));
+			aTitle = GT(0x7e40a8);
+			g->SetFont(FONT_TOOLTIP);
+			int aBestY = aY - Ftol((double)gApp->mScale * 20.0);
+			g->DrawString(aTitle, aMidX - g->StringWidth(aTitle) / 2, aBestY);
+			float aBestAlpha = (float)(mUnknown580.GetOutVal() * (double)theTipFade);
+			mTicker6E4.Draw(g, aMidX, aY - Ftol((double)gApp->mScale * -10.0), true, aBestAlpha);
+			g->SetColor(Color(255, 255, 255, anAlpha));
+		}
+	}
+	if (aShowBestEver) {
+		// the night mode's best ever under the display (+0x150)
+		g->SetColor(Color(255, 255, 255, anAlpha));
+		int aMidX = Ftol((double)mWidth * 0.5249999761581421);
+		int aDrop = Ftol((double)gApp->mScale * 100.0);
+		int aBestY = GetScoreY() + aDrop;
+		SexyString aText = GT(0x7e4038);
+		g->SetFont(FONT_TOOLTIP);
+		int aTitleY = aBestY - Ftol((double)gApp->mScale * 35.0);
+		g->DrawString(aText, aMidX - g->StringWidth(aText) / 2, aTitleY);
+		aText = StrFormat(GTC(0x80da2c), mUnknown150);
+		int aValueY = aBestY - Ftol((double)gApp->mScale * 10.0);
+		g->DrawString(aText, aMidX - g->StringWidth(aText) / 2, aValueY);
+	}
 }

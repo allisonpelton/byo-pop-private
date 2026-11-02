@@ -900,6 +900,8 @@ public:
 	void ShowTube(bool theShow, bool theInstant);
 	void CloseTip();                              // 0x6c78a5: the tip's dialog is done (marked seen; the basics end)
 	void ShowMenu();                              // 0x6a6983: the options come up over the game
+	// 0x6a615b: the zen jump (the mode select's theMode 1 over classic, 2 over zen) as the board's dialog
+	void ShowZenJump(int theMode);
 	void AskQuit();                               // 0x6b38f3: dialog 1, by the game mode, heard by this board
 	void DialogButtonDepress(int theDialogId, int theButtonId) override;  // 0x6c8632: dialogs 1 and 0x28
 	bool DropFlaggedGems();                      // 0x6bb7e3: the lowest FLAG_1 gem of each column sinks a row

@@ -298,8 +298,34 @@ The tube (GoodTube, 0x770 bytes, 0x701efb-0x70c8b5) is drawn whole in 2D: its gl
 specks, the level's arc of lights and multiplier bulbs, the score's ticker, the twist door and the menu button. Its
 head holds the player's rank badge (Sexy::RankBadge, 0x158 bytes, +0x32c), which draws the badge at 0.4 scale while
 the tube is shown and keeps a hover and click state for its tooltip; a burst of sparks leaves it while +0x2a4 is above
-0. Still missing: the challenges' goal and bracket, the bonus challenge's hint wave, the glass breaking (0x70c7ec)
-and the tube's text popups (+0x1cc, +0x1d0: they are never made in play; the tube's tip text, +0x224, is what 0x70c94a sets).
+0. The tube's text popups (+0x1cc, +0x1d0, 0xd4-byte objects of constructor 0x725732) are made only by 0x707103 and
+0x707215, and +0x2f0 by 0x70c7ec; nothing in the exe calls those three or holds their address (no call,
+jump or pointer in the whole image), so the popups never exist and the port keeps only their unreachable NotPorted in
+DrawFill. The tube's tip text, +0x224, is what 0x70c94a sets.
+
+The challenge's display (GoodTube::DrawChallenge, the 0x7087b2-0x70a209 block of DrawBody 0x7081c9) replaces the
+score while the board has a challenge (+0x2630). The score's row (0x7028b7) moves up 55 for a night-mode challenge
+whose best ever is shown (+0x768, set by Board::SetChallenge from Profile +0x204), and the text is faded by the tip
+(1 - +0x244). By the tube's kind and the challenge's flags (tested in this order):
+- kind 3 (a "Moves" rule alone): the moves left (string 0x7e40dc through the app's GetString, or 0x7e40ec for one),
+  word-wrapped in FONT_SCORE, 50 below the row with a Points rule, 80 above it without; SetUnknown158(3) sets +0x580
+  to 1 (0x702b87);
+- a pattern: 0x6db0ec fills the tube's four lists (+0x56c the stats, +0x53c their values, +0x55c the comparisons,
+  +0x54c the goals; the only code that fills them). A night-mode pattern shows the count's title, the count's ticker
+  (+0x660) and, while +0x580 is above 0, "Best" and the best's ticker (+0x6e4); otherwise the pattern's gems in a row
+  0.55 of the tube wide at most, from the table 0x84eff4 (two pictures for each colour), those matched (+0x538) lit
+  and the next one scaled by +0x4c8 while that curve runs;
+- on-board: an IMAGE_CHALLENGEICONS cel (the colours 0-6; 7 flame gems or flame gems made, 8 the same of
+  lightning, 9 stat 24, which no rule name gives, 10 coal) with "x" and the count for each counted stat, in a column
+  shrunk by hundredths to 150 high;
+- one move: each ">=" goal as an icon with "x" and its value, or (no icon) the count's title ("Gems" if empty) over the
+  count's ticker; a single goal rises with +0x580 and has "Best" and the best's ticker under it;
+- otherwise the count's title ("Count" if empty) and ticker unless "nocount", then "Moves Left" (or "Moves" without a
+  goal) and the moves left (or made), in FONT_SCORE when the moves rule is the only one; without a Moves rule "Best"
+  and the best's ticker while +0x580 is above 0.
+A night-mode challenge then shows "Best Ever" and +0x150 under the display. Every pixel offset above is times the
+app's scale.
+
 In a first shot of classic play the tube matches the original except for
 the badge, which the port draws a little softer, as the framework's stretched DrawImage filters where the original's
 2D stretch looks sharper; the identical-play pass looks at that stretch for every scaled image.
@@ -525,7 +551,6 @@ additive, each later and slower. Its two heat waves (0x6f9efe) are Direct3D only
 
 Not ported in this flow:
 
-- the tube's challenge display (GoodTube::DrawBody 0x7081c9);
 - the replay playback start 0x6ca727 (Tutorial's replay button), which belongs to the replays, not the restarts.
 
 **Effects of the gem locks and doom gems** (EffectsManager.cpp; the constructor 0x6f4a05, Update 0x6f8792, Draw
@@ -605,10 +630,26 @@ a fruit. The dance's commands (`Board::PopAnimCommand`, 0x6c3cf5) pop up points:
 42 (100, 200 three times, 300 and 400 five times each, then 100) halved, larger by 0.25, and "large c x y" the next of
 15 (1000 to 5000, 10000 five times, then 0) halved, half again larger and living 0.4 longer, at x, y in the animation
 in gem colour c, none stopping high. At 2200 the dance is deleted, the challenge's state cleared, +0x21da set and the
-game's music played again (Blitz's own, the level's track, or the menu's). Not ported, all from GoodTube: the bonus
-bracket's sparks (table 0x7e3390), its text popups (+0x1cc, +0x1d0; 0x707103, 0x707215) and SetUnknown158(3).
+game's music played again (Blitz's own, the level's track, or the menu's). While the bonus challenge's bracket shows
+(+0x5f0 above 0, the board's +0x268c at 1 and no +0x267c), GoodTube::UpdateTick throws three IMAGE_GEM_FRUIT_SPARK
+sparks a frame (additive, scale 0.5, shrinking and fading by 0.01, a spin of 0.05 plus or minus 0.02) from a random one
+of 512 angles round the bottom's middle (0.525 across, 0.36 of the bottom image down), at that angle's radius in the
+table 0x7e3390 (512 floats of game data), flying out at 1.1 times the scale, with +0x5f0's alpha.
+
+**The zen jump** (Board::ShowZenJump, 0x6a615b): at the end of the game's last turn, before the game over, a Classic
+game below +0x21e0 3 or a Zen game of 180000 points or more puts up the mode select in its zen-jump form (Mandala mode
+1 over Classic, 2 over Zen) as the board's dialog (+0x2208), once for each player: it plays SOUND_MENU_SLIDE, sets the
+profile's flag 0x11 and saves the profile, and clears +0x20d0. Board::Update also calls it with 1 when its countdown
++0x257c reaches 0, but nothing in the exe sets that countdown above 0.
 
 ## Oddities
+
+- **A one-move goal's colour comes from another list.** The challenge display's one-move branch (GoodTube::DrawBody,
+  0x7095fd-0x709625) gives a colour stat (75 to 81) the icon of the tube's own stat list at the same index (+0x56c,
+  which only the pattern and on-board displays fill, so it holds whatever the last of those left), not the goal's own
+  colour; past that list's end the original's checked index would stop the game. No shipped challenge has an
+  "Onemove" rule that counts a colour, so it is never seen. The port reads the list the same way and gives a goal past
+  its end no icon. Fixing it would be reading the goal's own stat, which the original does not do.
 
 - **The doom gem's placement can hang.** NextTurnGems (0x6bde87) picks random cells inside the border until one is a
   plain gem (no flags, colour 0 to 6, not breaking or blasted) that no cursor position would match (0x6be313 to

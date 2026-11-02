@@ -702,6 +702,17 @@ void Board::ShowMenu()
 	mApp->ShowOptionsDialog();
 }
 
+void Board::ShowZenJump(int theMode)
+{
+	// 0x6a615b: once for each player (the profile's flag 0x11); the mode select it puts up is the board's dialog
+	mApp->PlaySample(SOUND_MENU_SLIDE);
+	mApp->mProfile->SetFlag1E4(0x11, true);
+	mApp->mProfile->Save();
+	mUnknown20D0 = false;
+	mApp->ShowModeSelect(theMode);
+	mUnknown2208 = static_cast<TwistWidget*>(mApp->mUnknownF24);
+}
+
 void Board::AskQuit()
 {
 	// 0x6b38f3: the quit question, by the game's mode; the board hears the answer
