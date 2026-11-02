@@ -106,7 +106,7 @@ struct GPUMaterial
 // once, so the games' use of it shows.
 enum GPURenderState
 {
-	GPURS_ZENABLE = 7, GPURS_FILLMODE = 8, GPURS_ZWRITEENABLE = 14, GPURS_ALPHATESTENABLE = 15, GPURS_SRCBLEND = 19,
+	GPURS_ZENABLE = 7, GPURS_FILLMODE = 8, GPURS_ZWRITEENABLE = 14, GPURS_ALPHATESTENABLE = 15, GPURS_LASTPIXEL = 16, GPURS_SRCBLEND = 19,
 	GPURS_DESTBLEND = 20, GPURS_CULLMODE = 22, GPURS_ZFUNC = 23, GPURS_ALPHAREF = 24, GPURS_ALPHAFUNC = 25,
 	GPURS_DITHERENABLE = 26, GPURS_ALPHABLENDENABLE = 27, GPURS_SPECULARENABLE = 29, GPURS_TEXTUREFACTOR = 60,
 	GPURS_LIGHTING = 137, GPURS_AMBIENT = 139, GPURS_COLORVERTEX = 141, GPURS_LOCALVIEWER = 142,
@@ -231,8 +231,9 @@ struct GPUPolicy
 	// in 0x61d700) -0.5, or 0 when centred; DrawTriangle (slot 0x6c, 0x621170), DrawTrianglesTex (slot 0x74, 0x622140,
 	// building in 0x61e310) and FillPoly (slot 0x80, 0x6214a0) none; DrawLine (slot 0x64, 0x620cd0) none on its two
 	// ends. DrawLine builds a third vertex at the end plus mLineOffset in x and y, and SAF 1.3 draws the three as a
-	// strip of two lines, which lights the end pixel; Twist passes a count of 1 (0x620ec9, drawn by 0x624710 as count
-	// + 1 vertices), so only the two ends are drawn and the end pixel stays dark (mLineEndPixel false).
+	// strip of two lines; Twist passes a count of 1 (0x620ec9, drawn by 0x624710 as count + 1 vertices), so only the
+	// two ends are drawn (mLineEndPixel false). Either way the end pixel is lit: D3DRS_LASTPIXEL is TRUE by default
+	// and neither sets it, and the device carries that state.
 	float mBltOffset, mFillRectOffset, mTransformedOffset, mTransformedCentredOffset, mTrianglesOffset, mLineOffset;
 	bool mLineEndPixel;
 

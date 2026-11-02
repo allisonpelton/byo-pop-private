@@ -149,8 +149,8 @@ public:
 	void FillRect(const Rect& theRect, const Color& theColor, int theDrawMode);
 	// DrawLine (0x64, 0x620cd0; DrawLineAA comes here too): SetTexture(0, null), a line between the two ends (as floats,
 	// through M with a stack), flushing the batch and drawn at once. GPUPolicy::mLineEndPixel: Twist passes two
-	// vertices, SAF 1.3 a strip of three with the third at the end + mLineOffset. Whether Twist's end pixel is lit
-	// (D3DRS_LASTPIXEL defaults to TRUE and Twist never sets it) is settled by a shot of the original before it is relied on.
+	// vertices, SAF 1.3 a strip of three with the third at the end + mLineOffset. The end pixel is lit: D3DRS_LASTPIXEL
+	// is TRUE by default and Twist never sets it (the device carries the state). No Twist code draws a line.
 	void DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor,
 		int theDrawMode);
 	// DrawTriangle (0x6c, 0x621170): vertex colours (a vertex's own when non-zero, else the draw's), M with a stack,
@@ -239,6 +239,5 @@ private:
 // - IMAGE_DEFUSER_ALERTTRIMTEXTURE (review 1 asked whether it is drawn under WRAP): its global (0x85dcb8) is read
 //   only by its load (0x7461fb-0x746210) and the resource table (0x850088), and its id (546) appears nowhere as a
 //   constant, so no code draws it.
-// - DrawLine's end pixel (above).
 
 #endif

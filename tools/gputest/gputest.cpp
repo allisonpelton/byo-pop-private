@@ -470,6 +470,16 @@ void TestLines()
 	Expect(9, 11, 0xff000000);
 	Expect(20, 2, 0xffff0000);
 	Expect(20, 11, 0xffff0000);
+	Expect(20, 12, 0xffff0000);  // LASTPIXEL, TRUE by default
+	Expect(20, 13, 0xff000000);
+	End();
+
+	Begin("line-no-last-pixel");
+	gGPU->SetRenderState(GPURS_LASTPIXEL, 0);
+	gGPU->DrawPrimitiveUP(GPUPT_LINELIST, 1, FVF_RHW, w, sizeof(RHWVertex));
+	gGPU->SetRenderState(GPURS_LASTPIXEL, 1);
+	Read();
+	Expect(20, 11, 0xffff0000);
 	Expect(20, 12, 0xff000000);
 	End();
 }
@@ -741,8 +751,7 @@ void Test2DFillRect(const GPUPolicy& thePolicy)
 	End2D(g);
 }
 
-// DrawLine: with mLineEndPixel false two vertices are drawn and the end pixel stays dark (whether Twist lights it is
-// settled by a shot of the original); SAF 1.3 lights it
+// DrawLine: Twist draws two vertices and SAF 1.3 a strip of three; both light the end pixel through LASTPIXEL
 void Test2DLine(const GPUPolicy& thePolicy)
 {
 	GPU2D* g = Begin2D("2d-line", thePolicy);
@@ -750,7 +759,8 @@ void Test2DLine(const GPUPolicy& thePolicy)
 	Read();
 	Expect(4, 10, 0xffffffff);
 	Expect(13, 10, 0xffffffff);
-	Expect(14, 10, 0xff000000);
+	Expect(14, 10, 0xffffffff);
+	Expect(15, 10, 0xff000000);
 	Expect(3, 10, 0xff000000);
 	End2D(g);
 

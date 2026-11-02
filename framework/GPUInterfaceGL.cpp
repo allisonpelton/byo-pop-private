@@ -770,6 +770,7 @@ void GPUInterfaceGL::SetDefaultStates()
 	mRenderStates[GPURS_ZENABLE] = 1;
 	mRenderStates[GPURS_FILLMODE] = 3;
 	mRenderStates[GPURS_ZWRITEENABLE] = 1;
+	mRenderStates[GPURS_LASTPIXEL] = 1;
 	mRenderStates[GPURS_SRCBLEND] = 2;
 	mRenderStates[GPURS_DESTBLEND] = 1;
 	mRenderStates[GPURS_CULLMODE] = 3;
@@ -1847,6 +1848,28 @@ void GPUInterfaceGL::DrawPrimitiveUP(GPUPrimitiveType theType, int thePrimitiveC
 		return;
 	int aStride = theStride > 0 ? theStride : LayoutOf(theFVF).mStride;
 	int aCount = VertexCount(theType, thePrimitiveCount);
+	// D3DRS_LASTPIXEL (TRUE by default) lights a line's last pixel, which GL's diamond-exit rule leaves out: a
+	// pretransformed line's end is moved one step further along its major axis
+	std::vector<unsigned char> aLines;
+	bool isLine = theType == GPUPT_LINELIST || theType == GPUPT_LINESTRIP;
+	if (isLine && mRenderStates[GPURS_LASTPIXEL] != 0) {
+		if ((theFVF & GPUFVF_XYZRHW) != GPUFVF_XYZRHW) {
+			LogOnce("LASTPIXEL on a transformed line (its last pixel is not drawn)");
+		} else {
+			aLines.assign((const unsigned char*)theVertices, (const unsigned char*)theVertices + (size_t)aStride * aCount);
+			for (int i = (theType == GPUPT_LINELIST) ? 1 : aCount - 1; i < aCount; i += 2) {
+				float* aStart = (float*)&aLines[(size_t)aStride * (i - 1)];
+				float* anEnd = (float*)&aLines[(size_t)aStride * i];
+				float dx = anEnd[0] - aStart[0], dy = anEnd[1] - aStart[1];
+				float aMajor = std::max(std::fabs(dx), std::fabs(dy));
+				if (aMajor > 0) {
+					anEnd[0] += dx / aMajor;
+					anEnd[1] += dy / aMajor;
+				}
+			}
+			theVertices = aLines.data();
+		}
+	}
 	// Orphaned and filled again for every draw: WebGL2 has no client-side arrays
 	gGL.glBindBuffer(GL_ARRAY_BUFFER, mStreamBuffer);
 	gGL.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)aStride * aCount, theVertices, GL_STREAM_DRAW);
