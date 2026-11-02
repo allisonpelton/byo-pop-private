@@ -702,7 +702,9 @@ The per-game table (generated from the file; the registry places are listed in t
 | Dynomite Deluxe (`dynomite`) | `PopCap\Dynomite` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `LockCursor`, `FossilGameType`, `SkillLevel`, `GameType`, `StompedLevel` | `STOMPED.HS`, `ENDLESS.HS`, `FOSSIL.HS`, `TIMETRIAL.HS`, `SLOT#.SAV` |  |
 | Bookworm Adventures Volume 2 (`bookwormadv2`) | `PopCap\WinBAD` (user, then VirtualStore, then machine): the framework's options and times played; `LastUser`, `AppTime` | `users/*.bwa`, `users/data/*.dat` |  |
 | Mahjong Escape: Ancient Japan (`mahjongjapan`) | `JollyBear\Mahjong Escape Ancient Japan` (user): `SoundsOn`, `SoundsVolume`, `MusicOn`, `MusicVolume`, `FullScreen`, `WideScreen`, `HardwareAcceleration` | `list.usr`, `#.usr`, `#_#.sav`, `#_#_D.sav` (in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`) |  |
+| Mahjong Escape: Ancient China (`mahjongchina`) | `JollyBear\Mahjong Escape` (user): `SoundsOn`, `SoundsVolume`, `MusicOn`, `MusicVolume`, `FullScreen`, `WideScreen`, `HardwareAcceleration` | `list.usr`, `#.usr`, `#_#.sav`, `#_#_D.sav` (in `%LOCALAPPDATA%\JollyBear\Mahjong Escape`) |  |
 | Bonnie's Bookstore Deluxe (`bonnies`) | none | `SavedGames/General_Preferences.cfg`, `SavedGames/*.GAM`, `Data/HighScores.dat` |  |
+| Bejeweled Twist (`bejeweledtwist`) | `PopCap\BejeweledTwist` (user, then VirtualStore, then machine): the framework's options and times played; `LastProfileName`, `DoViz`, `ShowHints` | `users/users.dat`, `users/scores.dat`, `users/*/profile.dat`, `users/*/savegame_*.dat` (in `C:\ProgramData\PopCap Games\BejeweledTwist`; the Steam edition's are in `C:\ProgramData\Steam\BejeweledTwist`, and its settings, under `Steam\BejeweledTwist`, are not read) |  |
 
 
 The framework's options (`base`) and the times played (`app`) are taken for every game that has a `registry` entry and derives from `SexyApp`; TipTop, Cosmic
