@@ -150,10 +150,11 @@ void Expect(int x, int y, unsigned long theColor, int theTolerance = 0)
 	}
 }
 
-void RHWQuad(float l, float t, float r, float b, unsigned int theColor, float z = 0.5f)
+void RHWQuad(float l, float t, float r, float b, unsigned int theColor, float z = 0.5f, float theMaxUV = 1.0f)
 {
-	RHWVertex v[4] = {{l, t, z, 1, theColor, 0, 0}, {r, t, z, 1, theColor, 1, 0}, {l, b, z, 1, theColor, 0, 1},
-		{r, b, z, 1, theColor, 1, 1}};
+	float m = theMaxUV;
+	RHWVertex v[4] = {{l, t, z, 1, theColor, 0, 0}, {r, t, z, 1, theColor, m, 0}, {l, b, z, 1, theColor, 0, m},
+		{r, b, z, 1, theColor, m, m}};
 	gGPU->DrawPrimitiveUP(GPUPT_TRIANGLESTRIP, 2, FVF_RHW, v, sizeof(RHWVertex));
 }
 
@@ -332,7 +333,9 @@ void TestTextures(bool theOpaqueAs565)
 	gGPU->SetTextureStageState(0, GPUTSS_COLORARG1, 2);
 	gGPU->SetTextureStageState(0, GPUTSS_COLORARG2, 0);
 	gGPU->SetTextureStageState(0, GPUTSS_ALPHAARG1, 2);
-	RHWQuad(7.5f, 7.5f, 15.5f, 15.5f, 0xffffffff);  // each texel 2 x 2 pixels, sampled off its edges
+	// each texel 2 x 2 pixels, sampled off its edges; the 4x4 image is an 8x8 texture (the minimum piece), its padding
+	// right and below
+	RHWQuad(7.5f, 7.5f, 15.5f, 15.5f, 0xffffffff, 0.5f, 0.5f);
 	Read();
 	for (int i = 0; i < 16; i++) {
 		unsigned long c = aBits[i];
@@ -719,6 +722,7 @@ void Test2DBlt(const GPUPolicy& thePolicy)
 	Expect(10, 19, 0xff000000);
 	Expect(10, 24, 0xff000000);
 	End2D(g);
+	gGPU->ImageDeleted(anImage);
 	delete anImage;
 }
 
@@ -791,7 +795,9 @@ void Test2DBatch(const GPUPolicy& thePolicy)
 	Expect(0, 4, 0xffffffff);
 	Expect(1, 8, 0xffffffff);
 	End2D(g);
+	gGPU->ImageDeleted(a);
 	delete a;
+	gGPU->ImageDeleted(b);
 	delete b;
 }
 
@@ -812,6 +818,7 @@ void Test2DTransformed(const GPUPolicy& thePolicy)
 	ExpectBox(12, 12, 16, 16, 0xffffffff, 0xff000000);
 	ExpectBox(30, 2, 38, 10, 0xffff0000, 0xff000000);
 	End2D(g);
+	gGPU->ImageDeleted(anImage);
 	delete anImage;
 }
 
@@ -846,6 +853,7 @@ void Test2DTrianglesTex(const GPUPolicy& thePolicy)
 	ExpectBox(20, 20, 24, 24, 0xffffffff, 0xff000000);
 	Expect(41, 41, 0xff00ff00);
 	End2D(g);
+	gGPU->ImageDeleted(anImage);
 	delete anImage;
 }
 
@@ -890,7 +898,9 @@ void Test2DPieces(const GPUPolicy& thePolicy)
 	Expect(26, 37, 0xff00ff00);
 	Expect(41, 31, 0xff000000);
 	End2D(g);
+	gGPU->ImageDeleted(aWide);
 	delete aWide;
+	gGPU->ImageDeleted(aSmall);
 	delete aSmall;
 }
 
