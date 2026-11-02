@@ -223,6 +223,7 @@ public:
 	void SwitchScreenMode(bool wantWindowed) override;
 	// 0x75ed1e (slot 107): the windowed button and the options' full screen boxes follow
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+	void PostDDInterfaceInitHook() override;
 	using SexyApp::SwitchScreenMode;
 	// 0x7632f7: the options close: their settings are applied (the resolution with theResolution); over the menu
 	// the panel stays, over a game the dialog zooms out

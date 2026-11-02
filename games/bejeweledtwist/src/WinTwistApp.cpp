@@ -7,6 +7,7 @@
 #include "Buffer.h"
 #include "Challenge.h"
 #include "Credits.h"
+#include "DDInterface.h"
 #include "ButtonWidget.h"
 #include "EffectsManager.h"
 #include "GameText.h"
@@ -390,6 +391,15 @@ void WinTwistApp::ReadFromRegistry()
 void WinTwistApp::SwitchScreenMode(bool wantWindowed)
 {
 	SwitchScreenMode(wantWindowed, SexyAppBase::Is3DAccelerated());
+}
+
+void WinTwistApp::PostDDInterfaceInitHook()
+{
+	SexyApp::PostDDInterfaceInitHook();
+	// port: the framework calls its display 3D-accelerated whenever SDL's renderer runs on the GPU (in a browser, and on
+	// most desktops), but for Twist Is3DAccelerated means Direct3D and its 3D mode, which the port does not have: the
+	// game runs in 2D mode, as the original does without Direct3D (Use2DMode)
+	mDDInterface->mIs3D = false;
 }
 
 void WinTwistApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
