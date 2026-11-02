@@ -5,6 +5,7 @@
 #include "GameText.h"
 #include "GemSoul.h"
 #include "ChallengeMenu.h"
+#include "DDImage.h"
 #include "Graphics.h"
 #include "Menu.h"
 #include "Profile.h"
@@ -25,7 +26,26 @@ Hyperspace::Hyperspace()
 	RemoveAllWidgets(true, false);
 }
 
-Hyperspace::~Hyperspace() = default;
+Hyperspace::~Hyperspace()
+{
+	// port: the picture MakeOldPicture made is freed (the original's dtor 0x714e6e is not ported)
+	if (mOwnsUnknown160)
+		delete mUnknown160;
+}
+
+void Hyperspace::MakeOldPicture()
+{
+	// port: the port's mUnknown160 may hold a level's picture from a jump (SetTransition), which belongs to the
+	// resources; the original would draw into it, the port makes its own
+	if (mUnknown160 != nullptr && mOwnsUnknown160)
+		return;
+	DDImage* anImage = new DDImage(gApp->mDDInterface);
+	// (the original also sets the image's +0x44 to 0x10, a Direct3D flag)
+	anImage->Create(gApp->mWidth, gApp->mHeight);
+	anImage->SetImageMode(false, false);
+	mUnknown160 = anImage;
+	mOwnsUnknown160 = true;
+}
 
 void Hyperspace::Update()
 {
@@ -145,9 +165,21 @@ void Hyperspace::StartEndGame()
 		mHasAlpha = true;
 		mFlag155 = false;
 	} else {
-		// port: a challenge (and Direct3D) draws the board into space's picture first (0x70e567 on); it comes with
-		// the challenges
-		NotPorted("Hyperspace::StartEndGame: a challenge's end (0x714960)");
+		// A challenge (or Direct3D): the VizManager and the board are drawn into the old level's picture, which the
+		// challenge menu draws over itself while space comes back (0x714960)
+		MakeOldPicture();
+		Graphics aG(mUnknown160);
+		gApp->mVizManager->Draw(&aG);
+		ModalFlags aFlags;
+		mWidgetManager->InitModalFlags(&aFlags);
+		gApp->mBoard->DrawAll(&aFlags, &aG);
+		mWidgetManager->mCurG = &aG;
+		mWidgetManager->FlushDeferredOverlayWidgets(0x7fffffff);
+		mWidgetManager->mCurG = nullptr;
+		mFlag155 = true;
+		mLevel = 0;
+		gApp->mVizManager->SetVisible(false);
+		mFlag159 = false;  // whether gD3DInterface (0xe13bc0) is set; the port has none
 	}
 }
 
@@ -229,6 +261,11 @@ void Hyperspace::SetTransition(int theTransition)
 	if (theTransition == 14 || theTransition == 8) {
 		// The old level's picture stays for the jump; the VizManager takes the next level's
 		Viz2D* aViz = static_cast<Viz2D*>(gApp->mVizManager->mViz);
+		// (the original deletes the old picture first; the port deletes only the one it made)
+		if (mOwnsUnknown160) {
+			delete mUnknown160;
+			mOwnsUnknown160 = false;
+		}
 		mUnknown160 = aViz->mImage;
 		mUnknown164 = aViz->mImageId;
 		aViz->mImage = nullptr;

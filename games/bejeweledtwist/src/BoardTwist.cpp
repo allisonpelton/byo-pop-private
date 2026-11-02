@@ -2,8 +2,11 @@
 #include "Board.h"
 
 #include "Buffer.h"
+#include "Challenge.h"
+#include "GoodTube.h"
 
 #include <cmath>
+#include <vector>
 
 #include "GameText.h"
 #include "Piece.h"
@@ -250,9 +253,7 @@ void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 			}
 			if (mApp->GetCurrentMusic() != 305)
 				return;
-			// port: with track 305 the turn-based challenge's music follows the twists (0x6b2fda); it comes with the
-			// challenges
-			NotPorted("Board::MouseDown: the challenge's music (0x6b2fda)");
+			UpdateTurnBasedMusic();
 			return;
 		}
 		aQueue = !mUnknown21D9;
@@ -372,9 +373,218 @@ void Board::StartTwist(bool theInstant, int theX, int theY)
 			}
 		}
 	}
-	// port: 0x6bde87 checks the challenge's twist count; it comes with the challenges
-	if (mGameMode == MODE_CHALLENGE)
-		NotPorted("Board::StartTwist: the challenge's twists (0x6bde87)");
+	NextTurnGems();  // 0x6c7225: the lock and doom gems, in every mode
+}
+
+namespace {
+
+// 0x694387: theValue to the power thePower, by squaring, as a float
+float PowInt(float theValue, int thePower)
+{
+	unsigned int aPower = (unsigned int)thePower;
+	if (thePower < 0)
+		aPower = (unsigned int)-thePower;
+	float aResult = 1.0f;
+	while (true) {
+		if ((aPower & 1) != 0)
+			aResult = aResult * theValue;
+		aPower = aPower >> 1;
+		if (aPower == 0)
+			break;
+		theValue = theValue * theValue;
+	}
+	if (thePower < 0)
+		aResult = 1.0f / aResult;
+	return aResult;
+}
+
+}  // namespace
+
+float Board::RandUnit()
+{
+	int aRoll = Rand85B970() % 10000 - 5000;
+	return (float)((double)aRoll / 5000.0);
+}
+
+void Board::PreLockPiece(Piece* thePiece)
+{
+	thePiece->mLockTick = 0;
+	thePiece->mUnknown4FC = 2;
+	PlayPieceSound(thePiece, SOUND_GEM_PRELOCK, 0.0f, 0.0f, true);
+}
+
+void Board::NextTurnGems()
+{
+	// the gems in locks now
+	int aLocked = 0;
+	for (int aRow = 0; aRow < mRows; aRow++) {
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			Piece* aPiece = GetPieceAt(aRow, aCol);
+			if (aPiece != nullptr && aPiece->IsFlagSet(Piece::FLAG_LOCKED))
+				aLocked++;
+		}
+	}
+	if (mGameMode == MODE_PUZZLE || mSparkBlock != 0)
+		return;
+	// (the original writes "mLockGemTimingInfo.NextTurn();" to the debugger)
+	mLockGem.NextTurn();
+	if (!CanAddCounter())
+		return;
+	// (and "Freq: %d Timer: %d" with mLockGem's count and value)
+	if (aLocked < mMaxLocksOnScreen && mLockGem.mUnknown50) {
+		int aTotal = mCols * mRows;
+		Piece* aLock = nullptr;
+		if (mGameMode == MODE_CHALLENGE && mChallenge != nullptr &&
+			(mChallenge->mFlags & Challenge::FLAG_CONSTANTCOUNTERS) != 0 && 0 < mRows) {
+			// Constant counters: a gem next to the bomb or devil gem with the lowest count takes the lock
+			Piece* aBomb = nullptr;
+			int aLowest = 1000;
+			for (int aRow = 0; aRow < mRows; aRow++) {
+				for (int aCol = 0; aCol < mCols; aCol++) {
+					Piece* aPiece = GetPieceAt(aRow, aCol);
+					if (aPiece != nullptr && (aPiece->IsFlagSet(Piece::FLAG_BOMB) || aPiece->IsFlagSet(Piece::FLAG_DEVIL)) &&
+						aPiece->mBombCount < aLowest) {
+						aBomb = aPiece;
+						aLowest = aPiece->mBombCount;
+					}
+				}
+			}
+			if (aBomb != nullptr) {
+				std::vector<int> aDirs;
+				int aDir = 0;
+				do {
+					aDirs.push_back(aDir);
+					aDir++;
+				} while (aDir < 8);
+				// Each try takes its direction out of the list and then steps on, so only the directions 0, 2, 4
+				// and 6 (right, down, left, up) are ever tried, in that order
+				unsigned int i = 0;
+				while (i < aDirs.size()) {
+					int aTry = aDirs[i];
+					aDirs.erase(aDirs.begin() + i);
+					int aDRow = GameInt(GTB(0x84e978, 64) + aTry * 8);
+					int aDCol = GameInt(GTB(0x84e978, 64) + aTry * 8 + 4);
+					Piece* aNext = GetPieceAt(aDRow + aBomb->mRow, aDCol + aBomb->mCol);
+					if (aNext != nullptr && aNext->mFlags == 0 && !aNext->mBreaking) {
+						aLock = aNext;
+						break;
+					}
+					i++;
+				}
+			}
+		}
+		if (aLock == nullptr) {
+			// A gem from a random place on, or (on an odd roll) inside the border, the first that can take a lock
+			int aIndex;
+			if (Rand85B970() % 2 == 0) {
+				aIndex = Rand85B970() % aTotal;
+			} else {
+				int aRowPick = Rand85B970() % (mRows - 2);
+				int aColPick = Rand85B970() % (mCols - 2);
+				aIndex = aColPick + (aRowPick + 1) * mCols + 1;
+			}
+			int aLeft = aTotal;
+			if (aTotal != 0) {
+				Piece** aCell = &mGrid[aIndex];
+				do {
+					Piece* aPiece = *aCell;
+					aLeft--;
+					if (aPiece != nullptr && !aPiece->mBlasted && !aPiece->mBreaking && aPiece->mColor <= 6 &&
+						aPiece->mFlags == 0) {
+						aLock = aPiece;
+						break;
+					}
+					aIndex++;
+					aCell++;
+					if (aTotal <= aIndex) {
+						aIndex -= aTotal;
+						aCell -= aTotal;
+					}
+				} while (aLeft != 0);
+			}
+		}
+		if (aLock != nullptr) {
+			PreLockPiece(aLock);
+			mLockGem.Restart();
+		}
+	}
+	// A doom gem: while there is none, when the tube is full enough by chance (not in Zen, nor early on a level whose
+	// matches are not yet three times its moves); a constant-doom challenge always has one
+	bool anAppear;
+	if (!mUnknown1F6C && 0 <= mDevil.GetCount() && !IsBusy() && mGameMode != MODE_ZEN) {
+		anAppear = true;
+		if (0 < mUnknown2234[0x21] && (float)((double)mUnknown2234[0x39] / (double)mUnknown2234[0x21]) < 3.0f)
+			anAppear = false;
+		float aProgress = mGoodTube->mProgress;
+		float aRand = RandUnit();
+		float aScaled = (float)((double)aProgress * 1.2000000476837158);
+		double aPow = (double)PowInt(aScaled, 4);
+		float aChance = (float)((double)fabsf(aRand) * aPow);
+		if ((double)aChance < 0.05000000074505806)
+			anAppear = false;
+	} else {
+		anAppear = false;
+	}
+	if (mGameMode == MODE_CHALLENGE && mChallenge != nullptr &&
+		(mChallenge->mFlags & Challenge::FLAG_CONSTANTDOOM) != 0) {
+		mUnknown1F6C = false;
+		anAppear = true;
+		int i = 0;
+		Piece** aCell = mGrid;
+		if (0 < mCols * mRows) {
+			do {
+				Piece* aPiece = *aCell;
+				if (aPiece != nullptr && (aPiece->IsFlagSet(Piece::FLAG_DEVIL) || aPiece->IsFlagSet(Piece::FLAG_12)))
+					anAppear = false;
+				i++;
+				aCell++;
+			} while (i < mCols * mRows);
+		}
+	}
+	if (!anAppear)
+		return;
+	// A gem inside the border that no move on the board would match becomes the doom gem (the original tries until
+	// one does, then counts its hundred tries down)
+	int aCursorX = mUnknown1C00;
+	int aCursorY = mUnknown1C04;
+	int aTries = 100;
+	do {
+		while (!mUnknown1F6C) {
+			int aRowPick = Rand85B970() % (mRows - 2);
+			int aColPick = Rand85B970() % (mCols - 2);
+			Piece* aPiece = mGrid[aColPick + (aRowPick + 1) * mCols + 1];
+			if (aPiece == nullptr || aPiece->mBlasted || aPiece->mBreaking || 6 < aPiece->mColor || aPiece->mFlags != 0)
+				continue;
+			Piece* aSaved = mUnknown1430;
+			bool aMatched = false;
+			MatchInfo anInfo;  // 0x6b97b6
+			int aRow = 0;
+			do {
+				int aCol = 0;
+				do {
+					anInfo.Reset();  // 0x6afdee
+					MoveCursor(aRow, aCol, true, &anInfo);
+					if (!mUnknown1C41 && mUnknown1C40) {
+						for (unsigned int j = 0; !anInfo.mIds.empty() && j < anInfo.mIds.size(); j++) {
+							if (anInfo.mIds[j] == aPiece->mId)
+								aMatched = true;
+						}
+					}
+					aCol++;
+				} while (aCol < 6);
+				aRow++;
+			} while (aRow < 8);
+			if (!aMatched) {
+				mUnknown1430 = aSaved;
+				PreLockPiece(aPiece);
+				aPiece->SetFlag(Piece::FLAG_12, true);
+				mApp->PlaySample(SOUND_DOOMGEM_APPEARS);
+				mUnknown1F6C = true;
+			}
+		}
+		aTries--;
+	} while (aTries != 0);
+	MoveCursor(GetRowAt(aCursorY), GetColAt(aCursorX), true, nullptr);
 }
 
 void Board::SetupTwist(int theX, int theY)

@@ -455,6 +455,14 @@ bool Profile::IsChallengeCategoryOpen(int theCategory)
 	return GetChallengeStage(theCategory) > 0;
 }
 
+void Profile::SetChallengeDone(int theCategory, int theNumber)
+{
+	if (theCategory < (int)mInts1F4.size()) {
+		mInts1F4[theCategory] = theNumber + 1;
+		mUnknown214 = theCategory;
+	}
+}
+
 void Profile::OpenChallengeCategory(int theCategory)
 {
 	GrowChallengeLists(theCategory);

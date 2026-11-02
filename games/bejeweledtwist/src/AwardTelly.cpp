@@ -1,6 +1,7 @@
 #include "AwardTelly.h"
 
 #include "Board.h"
+#include "Challenge.h"
 #include "EffectsManager.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -15,6 +16,8 @@
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
+
+#include <cmath>
 
 using namespace Sexy;
 
@@ -125,6 +128,47 @@ void AwardTelly::ShowRank(int theRank)
 	mChange.SetConstant(1.0);
 	mOldMarkScale.SetConstant(1.0);
 	mOldBadgeAlpha.SetConstant(1.0);
+}
+
+void AwardTelly::ShowTrophy(Challenge* theChallenge, bool theFlag)
+{
+	if (mKind == 0) {
+		mKind = 3;
+		if (mState == 0) {
+			mState = 1;
+			mShow.SetCurve(GTS(0x7dbc0c));
+		}
+	} else {
+		gApp->PlaySample(SOUND_TROPHY_AWARDED);
+	}
+	gApp->PlaySample(SOUND_TROPHY_AWARDED);
+	// the bonus: 2 more than three times the challenge's number; a night challenge's by its score between the low
+	// and the best, up to 15
+	int aBonus = theChallenge->mNumber * 3 + 2;
+	if ((theChallenge->mFlags & Challenge::FLAG_NIGHTMODE) != 0 && theChallenge->mBestScore != 0) {
+		int aScore = gBoard->mUnknown2634;
+		if (gBoard->mUnknown2634 < gBoard->mUnknown2638)
+			aScore = gBoard->mUnknown2638;
+		float aFrac = (float)((double)(aScore - theChallenge->mLowScore) /
+			((double)theChallenge->mBestScore - (double)theChallenge->mLowScore));
+		if (0.0f < aFrac)
+			aFrac = (float)std::pow((double)aFrac, (double)0.8f);  // 0x670a49
+		double aScaled = (double)aFrac * 15.0;
+		if (aScaled < 0.0)
+			aScaled = 0.0;
+		aBonus = Ftol(aScaled);
+	}
+	int aY = Ftol((double)mHeight * 0.2750000059604645);
+	mRankBonus = new RankBonusWidget(gApp->mProfile->mUnknown160, aBonus, mWidth / 2, aY);
+	mRankBonus->Resize(0, 0, gApp->mWidth, gApp->mHeight);
+	mRankBonus->mZOrder = mZOrder + 1;
+	gApp->mWidgetManager->AddWidget(mRankBonus);
+	mTrophy = theChallenge;
+	mUnknown2CC = theFlag;
+	mState = 4;
+	mKind = 1;
+	mTrophyIn.SetCurve(GTS(0x7dbbd4));
+	mTrophyScale.SetCurve(GTS(0x7dbba4));
 }
 
 void AwardTelly::Update()

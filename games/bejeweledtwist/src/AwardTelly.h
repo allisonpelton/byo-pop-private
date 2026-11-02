@@ -1,7 +1,7 @@
 // Sexy::AwardTelly (0x898 bytes, a TwistWidget and ButtonListener; 0x6a1a23-0x6a2dfd): the award screen over the rank
 // bar. For a new rank (ShowRank) the old badge turns into the new one under "RANK UP" with the ranks' names, and a
-// Continue button sends it away. The trophy screen (0x6a2318: "challenge complete", with a rank bar of its own) shares
-// it; it comes with the challenges.
+// Continue button sends it away. The trophy screen (ShowTrophy: "challenge complete", with a rank bar of its own) shares
+// it; the board makes it when a challenge is met (0x6b330d) and the challenge menu takes it over (its +0x9dc).
 #pragma once
 
 #include "ButtonListener.h"
@@ -13,6 +13,8 @@ namespace Sexy {
 class EffectsManager;
 class RankBonusWidget;
 class TwistButton;
+
+class Challenge;
 
 class AwardTelly : public TwistWidget, public ButtonListener {
 public:
@@ -26,9 +28,9 @@ public:
 	float mUnknown2B8 = 0;           // +0x2b8: up to 1 while it comes in
 	EffectsManager* mFXManager;      // +0x2bc: drawn under it
 	EffectsManager* mFXManager2;     // +0x2c0: a child widget
-	void* mTrophy = nullptr;         // +0x2c4
+	Challenge* mTrophy = nullptr;    // +0x2c4: the challenge met
 	RankBonusWidget* mRankBonus = nullptr;  // +0x2c8: the trophy's rank bar
-	bool mUnknown2CC = false;        // +0x2cc
+	bool mUnknown2CC = false;        // +0x2cc: ShowTrophy's flag (1 for a night challenge)
 	int mBadge = 0;                  // +0x2d0: the new rank's badge (rank / 5)
 	int mOldBadge = 0;               // +0x2d4
 	int mMark = 0;                   // +0x2d8: and its mark (rank % 10)
@@ -64,6 +66,8 @@ public:
 	void ButtonDepress(int theId) override;                             // 0x6a214a
 
 	void ShowRank(int theRank);   // 0x6a256e
+	// 0x6a2318: "challenge complete" over a rank bar that gains the challenge's bonus
+	void ShowTrophy(Challenge* theChallenge, bool theFlag);
 	void DrawBadges(Graphics* g);  // 0x6a1c08 (slot 70): the old badge and mark into the new
 	void DrawRankText(Graphics* g, int theRank, float theAlpha);  // 0x6a2ca1 (slot 71): "Rank N:" and its name
 };

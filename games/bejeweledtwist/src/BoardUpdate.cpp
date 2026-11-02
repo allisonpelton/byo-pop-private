@@ -2,6 +2,8 @@
 // (0x6d090f), one update of the game.
 #include "Board.h"
 
+#include "AwardTelly.h"
+#include "Challenge.h"
 #include "GameText.h"
 #include "Compat2004.h"
 #include "CustomBassMusicInterface.h"
@@ -338,10 +340,64 @@ void Board::EaseCursor()
 void Board::StartUnknown34F0()
 {
 	mUnknown34F0.SetCurve(GTS(0x7dcd28));
-	if (mGameMode == MODE_CHALLENGE) {
-		// port: 0x6b66d2 comes with the challenges
-		NotPorted("Board::StartUnknown34F0: 0x6b66d2");
+	if (mGameMode == MODE_CHALLENGE)
+		PlayChallengeMusic();
+}
+
+void Board::PlayChallengeMusic()
+{
+	if (mChallenge == nullptr)
+		return;
+	unsigned int aFlags = mChallenge->mFlags;
+	if ((aFlags & Challenge::FLAG_TIME) == 0) {
+		int aTrack = 306 - ((aFlags & Challenge::FLAG_MOVES) != 0);
+		mApp->PlayMusic(aTrack, true, true, 0, 0);
+		if (aTrack == 305)
+			UpdateTurnBasedMusic();
+		return;
 	}
+	if (mApp->mMusicInterface != nullptr)
+		mApp->mMusicInterface->StopAllMusic();
+	mApp->PlayMusic((mChallenge->mTimeGoal == 180) * 8 + 300, false, false, mUnknown3928, mUnknown392C);
+	mUnknown3928 = 0;
+	mUnknown392C = 0;
+}
+
+void Board::UpdateTurnBasedMusic()
+{
+	// (the port's music calls go to mTwistMusic, which is there whenever the music is)
+	if (mApp->mMusicInterface == nullptr || mApp->mTwistMusic == nullptr)
+		return;
+	CustomBassMusicInterface* aMusic = mApp->mTwistMusic;
+	int aMoves = mApp->mUnknownC74[0x21];  // the moves made (+0xcf8)
+	int aChannel = 6;
+	do {
+		aMusic->SetChannelVolume(aChannel, 0, false, 305);
+		aChannel++;
+	} while (aChannel <= 12);
+	aMusic->SetChannelVolume(18, 0, false, 305);
+	// the moves each channel waits for (the first one's 7, or 5 short of a Moves goal over 10), and its number + 1
+	int aSteps[10][2] = {{7, 11}, {1, 18}, {2, 6}, {3, 7}, {4, 8}, {5, 9}, {6, 10}, {8, 12}, {9, 13}, {-1, -1}};
+	if (mChallenge != nullptr && (mChallenge->mFlags & Challenge::FLAG_MOVES) != 0 && 10 < mChallenge->mMoveGoal)
+		aSteps[0][0] = mChallenge->mMoveGoal - 5;
+	int i = 0;
+	int aStep = aSteps[0][0];
+	if (-1 < aStep) {
+		do {
+			if (aMoves < aStep)
+				aMusic->SetChannelVolume(aSteps[i][1] - 1, 0, true, 305);
+			else
+				aMusic->SetChannelVolume(aSteps[i][1] - 1, -1, false, 305);
+			i++;
+			aStep = aSteps[i][0];
+		} while (-1 < aStep);
+	}
+	int aTempo = mApp->GetInteger("MUSIC_CHALLENGE_TURNBASED_MIN_TEMPO") + aMoves;
+	if (mApp->GetInteger("MUSIC_CHALLENGE_TURNBASED_MAX_TEMPO") < aTempo)
+		aTempo = mApp->GetInteger("MUSIC_CHALLENGE_TURNBASED_MAX_TEMPO");
+	else
+		aTempo = mApp->GetInteger("MUSIC_CHALLENGE_TURNBASED_MIN_TEMPO") + aMoves;
+	aMusic->SetTrackTempo(0, aTempo);
 }
 
 bool Board::CountDownCounters()
@@ -887,8 +943,7 @@ void Board::UpdateGame()
 	mFXManager2->Update();
 	if (!IsBusy() && mUnknown160 == 0) {
 		if (mGameMode == MODE_CHALLENGE) {
-			// port: the challenge's timer (0x6bedd8) comes with the challenges
-			NotPorted("Board::UpdateGame: the challenge's timer (0x6bedd8)");
+			UpdateChallengeTimer();
 		} else if (mGameMode == MODE_BLITZ && !IsBusy() && mUnknown2584 == nullptr) {
 			// Blitz's clock, in hundredths
 			if (!mUnknown25A6 && -1 < mUnknown3458)
@@ -1196,8 +1251,20 @@ void Board::UpdateGame()
 				} else if (mUnknown2669 && !mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown149C.empty() &&
 						   mChallenge != 0 && mGoodTube->IsIdle()) {
 					mUnknown266A = true;
-					// port: the challenge's goal met (0x6b330d and the profile's challenges) comes with the challenges
-					NotPorted("Board::UpdateGame: the challenge's goal");
+					if ((mChallenge->mFlags & Challenge::FLAG_NIGHTMODE) == 0) {
+						// the next challenge of the category, and the next category, open
+						Profile* aProfile = mApp->mProfile;
+						aProfile->SetChallengeDone(mChallenge->mCategory, mChallenge->mNumber);
+						aProfile->Save();
+						aProfile->OpenChallengeCategory(mChallenge->mCategory + 1);
+						ShowChallengeComplete(false);
+					} else {
+						ShowChallengeComplete(true);
+						std::vector<int>& aBests = mApp->mProfile->mInts204;
+						int aCategory = mChallenge->mCategory;
+						if ((int)aBests.size() <= aCategory)
+							aBests.resize(aCategory + 1, 0);  // 0x43c2a0
+					}
 					mUnknown2669 = false;
 				}
 			}
@@ -1238,8 +1305,8 @@ void Board::UpdateGame()
 		// The game is over
 		if (!mUnknown36B1) {
 			UpdateGameOver();
-		} else {
-			UpdateNuke();
+		} else if (UpdateNuke()) {
+			return;
 		}
 		break;
 	case 8:
@@ -3265,12 +3332,13 @@ void Board::UpdateStats()
 	mUnknown137C = true;
 }
 
-void Board::UpdateNuke()
+bool Board::UpdateNuke()
 {
-	if (mUnknown27B8.CheckInThreshold(0.7900000214576721) && mChallenge != 0) {
-		// port: in a challenge whose goal (+0x80's bit 0x200) ends it here, 0x6b330d takes over and the update ends;
-		// it comes with the challenges
-		NotPorted("Board::UpdateNuke: the challenge's goal (0x6b330d)");
+	if (mUnknown27B8.CheckInThreshold(0.7900000214576721) && mChallenge != 0 &&
+		(mChallenge->mFlags & Challenge::FLAG_NIGHTMODE) != 0) {
+		// a night challenge ends here, met
+		ShowChallengeComplete(true);
+		return true;
 	}
 	bool aDone = !mUnknown27B8.IncInVal();
 	if (mUnknown26CC != nullptr) {
@@ -3385,6 +3453,27 @@ void Board::UpdateNuke()
 		mUnknown15FC = true;
 		mUnknown1FF5 = true;
 	}
+	return false;
+}
+
+void Board::ShowChallengeComplete(bool theFlag)
+{
+	ChallengeMenu* aMenu = mApp->mMainMenu->mChallengeMenu;
+	if (aMenu->mAwardTelly != nullptr) {
+		// (the original says "DUPLICATE AWARDTELLY AVOIDED" with OutputDebugString)
+		return;
+	}
+	AwardTelly* aTelly = new AwardTelly();
+	aTelly->ShowTrophy(mChallenge, theFlag);
+	mWidgetManager->AddWidget(aTelly);
+	mUnknown34EC = 1;
+	mApp->ShowHyperspace();
+	mVisible = false;
+	mApp->mHyperspace->StartEndGame();
+	mApp->mHyperspace->mUnknown12B0.SetCurve(GTS(0x7dc510));
+	aMenu->SetState(5, false);
+	aMenu->mAwardTelly = aTelly;
+	mApp->mHyperspace->mFlag159 = false;
 }
 
 void Board::Pause(bool theShow)

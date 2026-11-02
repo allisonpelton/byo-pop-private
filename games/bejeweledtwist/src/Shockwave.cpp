@@ -412,8 +412,7 @@ void FruitShockwave::Update()
 				mUnknownE8 = (float)((double)(float)aCount * 0.10000000149011612 + 0.25);
 				if ((aCount < 1 || !mPiece->IsFlagSet(Piece::FLAG_BOMB)) && mPiece->IsFlagSet(Piece::FLAG_LOCKED) &&
 					mUnknownE4 == 3) {
-					// port: a gem lock breaking (0x72952f) comes with the gem locks
-					NotPorted("FruitShockwave::Update: a gem lock breaking (0x72952f)");
+					mPiece->BreakLock(false);
 					mPiece->mUnknown4FC = 0;
 					mPiece = nullptr;
 				}

@@ -1063,9 +1063,9 @@ void WinTwistApp::DialogButtonDepress(int theDialogId, int theButtonId)
 		// The restart question: on OK the game restarts, by its mode; blitz's clock goes on (0x6af2be)
 		if (theButtonId == 1000) {
 			if (mBoard->mGameMode == 2)
-				NotPorted("restarting a challenge (0x6c9987)");
+				mBoard->RestartChallenge();
 			else if (mBoard->mGameMode == 3)
-				NotPorted("restarting blitz (0x6c7a75)");
+				mBoard->RestartBlitz();
 		}
 		if (mBoard->mGameMode == 3)
 			mBoard->Unpause(true);

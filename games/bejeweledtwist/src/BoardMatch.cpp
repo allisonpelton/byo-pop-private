@@ -1514,16 +1514,15 @@ void Board::BreakPiece(Piece* thePiece)
 		mUnknown37B8[thePiece->mUnknown2EC] = -0x66;  // 0x6b8c49
 		thePiece->Blast();
 	} else if (thePiece->IsFlagSet(Piece::FLAG_LOCKED)) {
-		// port: a gem lock breaking (0x72952f) comes with the gem locks
-		NotPorted("Board::BreakPiece: a gem lock");
+		thePiece->BreakLock(false);
 	} else if (thePiece->IsFlagSet(Piece::FLAG_FRUIT)) {
 		// port: the fruit gem (its sound, the dance's curves and +0x265c) comes with the fruit gem
 		NotPorted("Board::BreakPiece: a fruit gem");
 		thePiece->mBreaking = false;
 		return;
 	} else if (thePiece->IsFlagSet(Piece::FLAG_DEVIL)) {
-		// port: a doom gem breaking (stat 0x44, 0x6c03a4) comes with the doom gems
-		NotPorted("Board::BreakPiece: a doom gem");
+		AddStat(0x44, 1);
+		BreakSpecial(thePiece, false);
 		thePiece->mBlasted = true;
 	}
 	if (!thePiece->mUnknown116)
@@ -1969,7 +1968,88 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 {
 	// 0x6c03a4: a doom gem, coal, a gem lock or a bomb breaking
 	if (thePiece->IsFlagSet(Piece::FLAG_DEVIL)) {
-		NotPorted("Board::BreakSpecial: a doom gem");
+		// A doom gem: 25 bursts, a hundred times three sparklets in purple and pale green, and ten points
+		mUnknown3454 = 1.0f;
+		mApp->PlaySample(SOUND_DOOMGEM_DESTROYED);
+		int aX = Ftol((double)(gGemWidth / 2) + (double)thePiece->mX);
+		int aY = Ftol((double)(gGemHeight / 2) + (double)thePiece->mY);
+		float aFX = (float)aX;
+		float aFY = (float)aY;
+		int aCount = 25;
+		do {
+			Effect* anEffect = mFXManager->AllocEffect(38);
+			anEffect->mX = (float)((double)anEffect->mDX * 10.0 + (double)aFX);
+			anEffect->mY = (float)(10.0 * (double)anEffect->mDY + (double)aFY);
+			mFXManager->AddEffect(anEffect);
+			aCount--;
+		} while (aCount != 0);
+		int aBursts = 100;
+		do {
+			float aSize = (float)((double)fabsf(RandSigned()) * 0.10000000149011612 + 1.5);
+			float aReach = (float)((double)gApp->mScale * 5.0);
+			float aFar = fabsf(RandSigned());
+			float aTwice = gApp->mScale + gApp->mScale;
+			float aSpeed = (float)((double)aFar * (double)aReach * (double)aTwice);
+			RandSigned();
+			int i = 0;
+			do {
+				EffectsManager* aFXManager = mFXManager2;
+				Effect* anEffect = aFXManager->AllocEffect(0);
+				anEffect->mImage = IMAGE_SPARKLET;
+				if (i == 0) {
+					Rand();
+					anEffect->mColor = Color(40, 0, 40);
+					anEffect->mScale = (float)((double)aSize * 3.009999990463257);
+					anEffect->mAlpha = 1.0f;
+					anEffect->mDAlpha = -0.005f;
+				} else if (i == 1) {
+					Rand();
+					anEffect->mColor = Color(100, 0, 100);
+					anEffect->mScale = (float)((double)aSize * 1.100000023841858);
+					anEffect->mAlpha = 0.8f;
+					anEffect->mDAlpha = -0.005f;
+				} else if (i == 2) {
+					Rand();
+					anEffect->mColor = Color(200, 250, 200);
+					anEffect->mScale = aSize;
+					anEffect->mAlpha = 0.5f;
+					anEffect->mDAlpha = -0.004f;
+				}
+				float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
+				anEffect->mIsAdditive = true;
+				anEffect->mDScale = -0.008f;
+				anEffect->mDXScalar = 0.95f;
+				anEffect->mX = aFX;
+				anEffect->mDX = cosf(anAngle) * aSpeed;
+				anEffect->mY = aFY;
+				anEffect->mDY = sinf(anAngle) * aSpeed;
+				anEffect->mGravity = (float)((double)gApp->mScale * -0.0);
+				anEffect->mDXScalar = 0.99f;
+				anEffect->mDYScalar = 0.99f;
+				aFXManager->AddEffect(anEffect);
+				i++;
+			} while (i < 3);
+			aBursts--;
+		} while (aBursts != 0);
+		if (mUnknown26A8 == 0) {
+			int i = 0;
+			do {
+				float aRise = (float)((double)gApp->mScale * 8.0);
+				AddPoints(aX, Ftol((double)aFY - (double)aRise), 50, gGemColors[thePiece->mColor], thePiece->mUnknown2EC,
+					true, true, true, true);
+				if (!mUnknown2170.empty()) {
+					// the points' smoke AddPoints just sent off: dark purple, later and slower each time
+					SmokeTraveller* aSmoke = static_cast<SmokeTraveller*>(mUnknown2170.back());
+					aSmoke->mAdditive = false;
+					aSmoke->mColor = Color(100, 24, 64);
+					float aStep = (float)i;
+					aSmoke->mHurry = (float)((0.02 - (double)aStep * 0.009999999776482582) * (double)aSmoke->mHurry);
+					aSmoke->mDelay = (float)((double)aStep * 0.029999999329447746);
+				}
+				i++;
+			} while (i < 10);
+			// (two heat waves at the gem follow, 0x6f9efe with 2.0 and their +0x28 0.01 and 0.012: Direct3D only)
+		}
 		return;
 	}
 	if (thePiece->IsFlagSet(Piece::FLAG_COAL)) {
@@ -2015,7 +2095,33 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 		return;
 	}
 	if (thePiece->IsFlagSet(Piece::FLAG_LOCKED)) {
-		NotPorted("Board::BreakSpecial: a gem lock");
+		// A gem lock: two lines of nine shards each (type 13, or 14 for theType), turned half a turn on the right
+		mApp->PlaySample(SOUND_GEM_LOCK_BREAK);
+		int aFrame = 0;
+		int i = 0;
+		int aType = (theType != 0) + 13;
+		do {
+			int aSide = 0;
+			do {
+				double aX;
+				if (aSide == 0) {
+					aX = (double)(i * gGemWidth) / 9.0 + (double)thePiece->mX;
+				} else {
+					float aWidth = (float)gGemWidth;
+					aX = ((double)thePiece->mX + (double)aWidth) - (double)aWidth / 9.0;
+				}
+				float aY = (float)(((double)gGemHeight + (double)thePiece->mY) - (double)(i * gGemHeight) / 9.0);
+				Effect* anEffect = gBoard->mFXManager->AllocEffect(aType);
+				anEffect->mX = (float)aX;
+				anEffect->mFrame = aFrame;
+				anEffect->mY = aY;
+				anEffect->mAngle = aSide == 0 ? 0.0f : 3.1415927f;
+				gBoard->mFXManager->AddEffect(anEffect);
+				aSide++;
+			} while (aSide < 2);
+			aFrame ^= 1;
+			i++;
+		} while (i < 9);
 		return;
 	}
 	if (!thePiece->IsFlagSet(Piece::FLAG_BOMB))

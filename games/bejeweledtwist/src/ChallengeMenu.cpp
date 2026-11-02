@@ -17,6 +17,7 @@
 #include "Graphics.h"
 #include "Hyperspace.h"
 #include "Menu.h"
+#include "OrbitText.h"
 #include "PlayButton.h"
 #include "Profile.h"
 #include "Res.h"
@@ -129,6 +130,33 @@ ChallengeButton::ChallengeButton(int theCategory, ChallengeMenu* theMenu)
 	mClip = false;
 	// The idle curve (the one curve the constructor sets; Update steps it, nothing here reads it)
 	mIdle.SetCurve(GTS(0x7e0b6c));
+}
+
+ChallengeButton::~ChallengeButton()
+{
+	delete mTip;
+}
+
+void ChallengeButton::MakeTip()
+{
+	Font* aFont = FONT_PLANET_TEXT;
+	SetFontLayerColor(aFont, GTS(0x7e029c), Color(0, 0, 0, 0));
+	SetFontLayerColor(aFont, GTS(0x80dfb4), Color::White);
+	SetFontLayerColor(aFont, GTS(0x7dd6b0), Color(0, 0, 0, 255));
+	SexyString aText = GT(0x7e0258);
+	aText.append(StrFormat(_S("%d"), mProgress));  // 0x45dfb0
+	aText += GT(0x7e0250);
+	// without Direct3D in FONT_SCORE, 500 art pixels wide, centred 250 above the button's corner
+	Font* aTipFont = gApp->Is3DAccelerated() ? aFont : FONT_SCORE;
+	int aWidth = Ftol((double)gApp->mScale * 500.0);
+	int aY = Ftol((double)gApp->mScale * -250.0);
+	Rect aRect(0, aY, aWidth, 100);
+	OrbitText* aTip = new OrbitText(aTipFont, aText, aRect);
+	aTip->mCount = 2;
+	aTip->mSpeed = (float)((double)aTip->mSpeed * 0.15000000596046448);
+	// port: the original leaves an earlier tip; the port frees it
+	delete mTip;
+	mTip = aTip;
 }
 
 // 0x6e3b0e
@@ -894,8 +922,7 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 		aButton->mEclipseFade.SetConstant(0.0);
 		aButton->mTextFade.SetConstant(1.0);
 		if (theClearTips && aButton->mTip != nullptr) {
-			// the tip: an OrbitText (vtable 0x7e7c2c, ctor 0x725732) that 0x6e0aa5 makes for the board (0x6ca331); not
-			// ported, so there is none yet
+			// the tip MakeTip made for a night challenge's record
 			gApp->SafeDeleteWidget(aButton->mTip);
 			aButton->mTip = nullptr;
 		}

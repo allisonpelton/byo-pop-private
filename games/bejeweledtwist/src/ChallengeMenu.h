@@ -26,6 +26,7 @@ class TextImage;
 
 class Menu;
 class MemoryImage;
+class OrbitText;
 class WinTwistApp;
 
 class ChallengeMenu;
@@ -74,10 +75,13 @@ public:
 	bool mAdditive = false;           // +0x5cc: the category's "additive" (the 3D draw blends its clouds by it)
 	bool mUnknown5CD = false;         // +0x5cd: Update runs UpdateProgress when the curve at +0x1d8 ends while it is set
 	float mEclipseFlares[32] = {};       // +0x5d0: the eclipse title's flares (Update moves them; only the 3D draw shows them)
-	Widget* mTip = nullptr;           // +0x650: the planet's tip, an OrbitText (0x6e0aa5, not ported)
+	OrbitText* mTip = nullptr;        // +0x650: the planet's tip (MakeTip), a night challenge's new record
 	float mTilt = 0;                  // +0x160: the planet's turn about x (only the 3D meshes show it)
 
 	ChallengeButton(int theCategory, ChallengeMenu* theMenu);  // 0x6e5337
+	~ChallengeButton() override;                               // 0x6e0864: the tip goes with it
+	// 0x6e0aa5: the tip, "YOUR NEW ECLIPSE RECORD IS" mProgress, shown twice (the board's end of a night challenge)
+	void MakeTip();
 	void Update() override;                                    // 0x6e3b0e
 	void Draw(Graphics* g) override;                           // 0x6dde98 (the software planet)
 	void MouseDown(int x, int y, int theClickCount) override;  // 0x6dd224: not the other buttons

@@ -64,7 +64,7 @@ public:
 	int mUnknown1F0 = 0;              // +0x1f0
 	std::vector<int> mInts1F4;        // +0x1f4: saved as shorts
 	std::vector<int> mInts204;        // +0x204: as many as mInts1F4
-	int mUnknown214 = 0;              // +0x214
+	int mUnknown214 = 0;              // +0x214: the category of the challenge met last (SetChallengeDone)
 	int mUnknown218 = 0;              // +0x218
 
 	// The challenge categories' stage (from 1; 0 for a closed category) and best score; the lists grow to reach theCategory
@@ -72,6 +72,8 @@ public:
 	int GetChallengeStage(int theCategory);          // 0x73497f
 	bool IsChallengeCategoryOpen(int theCategory);   // 0x7349fc
 	void OpenChallengeCategory(int theCategory);     // 0x734a14: stage 1 unless it has got further
+	// 0x733afc: theNumber of theCategory is met, so its stage is the next one; mUnknown214 gets the category
+	void SetChallengeDone(int theCategory, int theNumber);
 
 	Profile();   // 0x734ef5
 	~Profile();  // 0x734da6

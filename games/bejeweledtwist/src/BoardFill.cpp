@@ -67,6 +67,16 @@ bool LevelValue::ShouldAppear()
 	return false;
 }
 
+bool LevelValue::NextTurn()
+{
+	if (mFirstLevel <= gBoard->mUnknown158 && -1 < mFirstLevel) {
+		if (mTurnBased)
+			Roll();
+		return mUnknown50;
+	}
+	return false;
+}
+
 bool Board::CanAddCounter()
 {
 	return mGameMode != MODE_ZEN && mUnknown21A1 && !IsSparkBlocked() && mUnknown1508 < 2;
@@ -667,14 +677,28 @@ int Board::FillPieces(bool theAtOnce)
 		}
 	} while (!aDone && ++aTry < aMaxTries);
 	if (HasChallengeFlag(0x800)) {
-		// port: such a challenge recolours the new gems above the board that match, up to 100 times; it comes with
-		// the challenges
+		// No cascades: the new gems still above the board that would match take new colours, up to 100 passes
+		int aPass = 0;
+		do {
+			bool aChanged = false;
+			for (int aRow = 0; aRow < mRows; aRow++) {
+				for (int aCol = 0; aCol < mCols; aCol++) {
+					Piece* aPiece = GetPieceAt(aRow, aCol);
+					if (aPiece != nullptr && aPiece->mY <= (float)-gGemHeight && MatchAt(aCol, aRow, nullptr)) {
+						aPiece->mColor = Rand85B970() % aColors;
+						aChanged = true;
+					}
+				}
+			}
+			if (!aChanged)
+				break;
+			aPass++;
+		} while (aPass < 100);
 	}
 	if (aCounterPlaced)
 		mCounter.Restart();
-	if (HasChallengeFlag(0x1000) && !aHasDevil) {
-		// port: 0x6bde87 comes with the challenges
-	}
+	if (HasChallengeFlag(0x1000) && !aHasDevil)
+		NextTurnGems();
 	return aNewCount;
 }
 

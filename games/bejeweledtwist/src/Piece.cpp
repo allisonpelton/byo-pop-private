@@ -2366,6 +2366,13 @@ void Piece::MakeCountImage()
 	}
 }
 
+void Piece::BreakLock(bool theType)
+{
+	gBoard->BreakSpecial(this, theType);
+	gBoard->AddStat(0x48, 1);
+	ClearFlag(FLAG_LOCKED);
+}
+
 void Piece::Blast()
 {
 	// 0x729363: a power gem goes off: a blast one gem round, the gems above jump, and 50 points

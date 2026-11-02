@@ -36,6 +36,7 @@ public:
 	double mWarmUp = 0;          // +0x1078: rises to 1 while idle
 	Image* mUnknown160 = nullptr;  // +0x160: the old level's picture during a 2D jump (the VizManager's)
 	int mUnknown164 = -1;        // +0x164: its id
+	bool mOwnsUnknown160 = false;  // port: mUnknown160 is the screen-sized picture MakeOldPicture made, not a level's
 	// +0x1548: the 3D camera's turn; the challenge menu's Update (0x6e3f41) sets it to the menu's camera (+0x800) by mCameraTurn,
 	// the 3D drawing reads it (0x71726b)
 	Mat3 mUnknown1548;
@@ -60,6 +61,9 @@ public:
 	// 0x711b65: the tunnel of a jump; in 2D, while the VizManager is hidden, the level's picture (mUnknown160 for the
 	// first half) faded in by mUnknown1570 and centred at the art's width
 	void DrawTunnel(Graphics* g);
+	// 0x70e567: in 2D a DDImage the size of the screen for mUnknown160, unless it has one (with Direct3D a render
+	// target, "VizImage")
+	void MakeOldPicture();
 	// 0x70f836: the old level's picture (mUnknown160) at mUnknown12B0's alpha, at the end of a jump
 	void DrawOldPicture(Graphics* g);
 };

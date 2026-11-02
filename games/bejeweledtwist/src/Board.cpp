@@ -2,6 +2,7 @@
 #include "Board.h"
 
 #include "Buffer.h"
+#include "ChallengeMenu.h"
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
 #include "FlyingText.h"
@@ -10,6 +11,7 @@
 #include "GoodTube.h"
 #include "Hyperspace.h"
 #include "MemoryImage.h"
+#include "Menu.h"
 #include "Piece.h"
 #include "Points.h"
 #include "Shockwave.h"
@@ -674,10 +676,23 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 	if (mUnknown37C4) {
 		// (the original also clears a flag of the app's +0x4bc object)
 	}
-	if (mGameMode == MODE_CHALLENGE)
-		NotPorted("Board::RemovedFromManager: the challenge's end");
+	// a challenge met (or its goal checked as met) is over as well
+	if (mGameMode == MODE_CHALLENGE && (mApp->mChallengeInfo->mResult == 1 || mUnknown266A))
+		mUnknown36B0 = true;
 	if (!mUnknown37C4 && !mUnknown1390) {
 		if (mUnknown36B0) {
+			// a night challenge's new best goes into the profile and onto its planet, with the planet's tip
+			if (mGameMode == MODE_CHALLENGE && mChallenge != nullptr &&
+				(mChallenge->mFlags & Challenge::FLAG_NIGHTMODE) != 0 &&
+				mApp->mProfile->mInts204[mChallenge->mCategory] < mUnknown2634) {
+				mApp->mProfile->mInts204[mChallenge->mCategory] = mUnknown2634;
+				if (mApp->mMainMenu != nullptr && mApp->mMainMenu->mChallengeMenu != nullptr && mChallenge != nullptr &&
+					(mChallenge->mFlags & Challenge::FLAG_NIGHTMODE) != 0) {
+					ChallengeButton* aButton = mApp->mMainMenu->mChallengeMenu->mButtons[mChallenge->mCategory];
+					aButton->mProgress = mUnknown2634;
+					aButton->MakeTip();
+				}
+			}
 			// the game is over: its save goes
 			if ((unsigned int)mGameMode < 4)
 				mApp->EraseFile(mApp->GetSaveName(mGameMode, mUnknown2674));  // 0x763a85
@@ -1132,15 +1147,15 @@ bool Board::LoadGame(Buffer& theBuffer)
 		}
 	}
 	if (0x33 < aVersion && theBuffer.ReadBoolean()) {
-		int aPuzzle = theBuffer.ReadShort();
-		int aPuzzle2 = theBuffer.ReadShort();
-		int aPuzzle3 = theBuffer.ReadShort();
-		(void)aPuzzle;
-		(void)aPuzzle2;
-		(void)aPuzzle3;
+		// the challenge being played: its category, number and pattern progress
+		int aCategory = theBuffer.ReadShort();
+		int aNumber = theBuffer.ReadShort();
+		int aProgress = theBuffer.ReadShort();
 		if (mGameMode == MODE_CHALLENGE) {
-			// port: the challenge's puzzle panel (0x6d8cc2, 0x6c7c7b and its +0xb8) comes with the challenges
-			NotPorted("Board::LoadGame: the challenge's panel");
+			SetChallenge(mApp->mChallengeInfo->GetChallenge(aCategory, aNumber));
+			// port: the original writes the progress even when there is no such challenge (and crashes)
+			if (mChallenge != nullptr)
+				mChallenge->mProgress = aProgress;
 		}
 		if (0x36 < aVersion) {
 			mUnknown2638 = theBuffer.ReadLong();
@@ -1259,8 +1274,7 @@ void Board::SetChallenge(Challenge* theChallenge)
 		mGoodTube->StartUnknown4AC(true, false);
 		mGoodTube->SetUnknown4A8(true);
 		mGoodTube->SetUnknown4BC(mChallenge->mTimeGoal * 100);
-		// port: the challenge's timer (0x6bedd8) comes with the board's challenge flow
-		NotPorted("Board::SetChallenge: the challenge's timer (0x6bedd8)");
+		UpdateChallengeTimer();
 	}
 	unsigned int aFlags = mChallenge->mFlags;
 	int aKind;
@@ -1283,6 +1297,118 @@ void Board::SetChallenge(Challenge* theChallenge)
 	mApp->mVizManager->SetBackdrop(aBackground - 1, true);
 	mGoodTube->SetUnknown160(2);
 	UpdateChallengeTube(false);
+}
+
+void Board::RestartChallenge()
+{
+	SetChallenge(mChallenge);
+	// 0x75fc8a
+	if (mApp->mBoard == nullptr || !mApp->mBoard->mUnknown37C4)
+		std::memset(mApp->mUnknownC74, 0, sizeof(mApp->mUnknownC74));
+	std::memset(mUnknown2234, 0, sizeof(mUnknown2234));  // 0x6a69f0
+	mUnknown2614.clear();  // 0x6c4d02
+	std::memset(mUnknown3560, 0, sizeof(mUnknown3560));
+	mUnknown1390 = true;
+	mChallenge->mProgress = 0;
+	mGoodTube->mUnknown538 = 0;
+	mUnknown2638 = 0;
+	mUnknown2634 = 0;
+	mSaveBuffer.Clear();
+	mUnknown16C = 0;
+	mUnknown168 = 0;
+	mUnknown1F8 = 0;
+	mUnknown1FC = 0;
+	if (mApp->GetCurrentMusic() == 305)
+		UpdateTurnBasedMusic();
+	mApp->PlaySample(SOUND_RESHUFFLE1);
+	NewLevel();
+	ClearBoard();
+	FillInBlanks(false);
+	if ((mChallenge->mFlags & Challenge::FLAG_TIME) != 0)
+		PlayChallengeMusic();
+	UpdateChallengeTube(false);
+}
+
+void Board::RestartBlitz()
+{
+	// the points' smoke goes
+	while (mUnknown2170.size() != 0) {
+		delete mUnknown2170.back();
+		if (mUnknown2170.size() != 0)
+			mUnknown2170.pop_back();
+	}
+	mUnknown3928 = 0;
+	mUnknown248 = 0.0f;
+	mUnknown392C = 0;
+	mUnknown265C = 0;
+	int i = 0;
+	do {
+		WinTwistApp::UnknownFA0& aBest = mApp->mUnknownFA0[i];
+		aBest.mUnknown20 = -1;
+		aBest.mUnknown24 = -1;
+		aBest.mUnknown28 = 0;
+		aBest.mBuffer.Clear();
+		i++;
+	} while (i < 3);
+	mSaveBuffer.Clear();
+	// 0x75fc8a
+	if (mApp->mBoard == nullptr || !mApp->mBoard->mUnknown37C4)
+		std::memset(mApp->mUnknownC74, 0, sizeof(mApp->mUnknownC74));
+	std::memset(mUnknown2234, 0, sizeof(mUnknown2234));  // 0x6a69f0
+	mUnknown2614.clear();  // 0x6c4d02
+	mGoodTube->ResetBonus();
+	mGoodTube->mUnknown3FC = 0;
+	mGoodTube->mUnknown3F8 = 0.0f;
+	mUnknown2660 = 0;
+	mUnknown2664 = 0;
+	mGoodTube->mUnknown3A8 = 0;
+	StartBonusChallenge(-1);
+	mGoodTube->SetColor(Color(0, 255, 0), true);  // 0x401720
+	std::memset(mUnknown3560, 0, sizeof(mUnknown3560));
+	mUnknown1390 = true;
+	mUnknown1F8 = 0;
+	mUnknown1FC = 0;
+	mUnknown2640 = 0;
+	mUnknown16C = 0;
+	mUnknown14F8 = 0;
+	mUnknown168 = 0;
+	mUnknown818 = 0;
+	mUnknown1F4 = 0;
+	mUnknown1EC = 0;
+	mUnknown1F0 = 0;
+	mUnknown1E8 = 0;
+	SetLevelSteps(0);
+	mUnknown21D0 = 1;
+	mApp->FadeOutMusic();
+	mUnknown3458 = 30000;  // 0x6a697d
+	mGoodTube->SetTime(mUnknown3458, true);
+	mUnknown160 = 3;
+	NewLevel();
+	ClearBoard();
+	mUnknown20DC = 2;
+	FillInBlanks(false);
+	mUnknown20DC = 0;
+	if (mApp->mVizManager != nullptr)
+		mApp->mVizManager->Slot7();
+}
+
+void Board::UpdateChallengeTimer()
+{
+	if (mChallenge == nullptr || (mChallenge->mFlags & Challenge::FLAG_TIME_LIMIT) == 0)
+		return;
+	// the time left in hundredths: the limit less the seconds played (the app's +0xd00) and this second's part
+	unsigned int aPlayed = (unsigned int)mApp->mUnknownC74[35];
+	int aLeft = mChallenge->mTimeGoal * 100 - (int)(aPlayed * 100 + mUnknown14E4);
+	if (aLeft < 0)
+		aLeft = 0;
+	if (1 < aPlayed) {
+		int aSeconds = (aLeft + 99) / 100;
+		if (mUnknown263C != aSeconds) {
+			mUnknown263C = aSeconds;
+			ShowBlitzTime(aSeconds);
+		}
+	}
+	mGoodTube->SetTime(aLeft, true);
 }
 
 void Board::UpdateChallengeTube(bool theAtOnce)

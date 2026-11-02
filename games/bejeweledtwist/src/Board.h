@@ -99,6 +99,7 @@ struct LevelValue {
 	void RestartAtLevel();           // 0x74ead6: Restart when mFirstLevel is the board's level
 	bool Roll();                     // 0x74eb38: one turn down; whether it comes now, by chance (Rand85B970)
 	bool ShouldAppear();             // 0x74ec45: from mFirstLevel on, whether it comes now
+	bool NextTurn();                 // 0x74ec17: from mFirstLevel on, a turn-based one rolls; whether it is due
 };
 
 // A match, or the match a turn would make (0x6b97b6 makes one, 0x6afdee resets it)
@@ -770,6 +771,7 @@ public:
 	// 0x6c77b1: after StartGame: the config again, the basics tutorial or the puzzle's board, the save and the tube
 	void StartLevel();
 	void UpdateChallengeTube(bool theAtOnce);    // 0x6af390: the tube shows how much of the challenge is left
+	void UpdateChallengeTimer();                 // 0x6bedd8: a time limit's clock on the tube, with blitz's marks
 	// 0x6c7c7b: the challenge to play (null for none): its config, the level values that start at 1, the tube and the
 	// picture behind the board
 	void SetChallenge(Challenge* theChallenge);
@@ -814,6 +816,11 @@ public:
 	bool FindMove(int* theRow, int* theCol, bool theAny);  // 0x6c14fc
 	int FillPieces(bool theAtOnce);              // 0x6c25a4: new gems for the gaps; returns how many
 	bool CanAddCounter();                        // 0x6a63c5
+	// 0x6bde87: after a twist (and after a constant-doom challenge's fill), a gem may turn into a lock gem (mLockGem,
+	// up to mMaxLocksOnScreen) and a doom gem may appear (mDevil, or always in a constant-doom challenge)
+	void NextTurnGems();
+	void PreLockPiece(Piece* thePiece);          // 0x6ace4d: two turns to its lock, with SOUND_GEM_PRELOCK
+	float RandUnit();                            // 0x6a3477: -1 to 1 in steps of 1/5000, from Rand85B970
 	bool HasChallengeFlag(int theFlag);          // the challenge's flags (+0x2630's +0x80) in a challenge
 	void CountGems();                            // 0x6a56a5: the gems on the board by kind, into mUnknown3560
 	void MakeCounter(Piece* thePiece);           // 0x6a50a9: a bomb with the level's counter
@@ -845,6 +852,13 @@ public:
 	void Refill();                               // 0x6c755e: once the matched gems have gone
 	void StartUnknown3880();                     // 0x6b681d
 	void StartUnknown34F0();                     // 0x6b8bca: a turn ends
+	// 0x6b66d2: a challenge's music: a timed one's (300, or 308 for three minutes) at once, else after a fade the
+	// turn-based track 305 (a Moves goal) or 306
+	void PlayChallengeMusic();
+	// 0x6b2fda: track 305's channels come in one by one as the moves add up, and its tempo rises with them
+	void UpdateTurnBasedMusic();
+	void RestartChallenge();                     // 0x6c9987: the in-game options' restart, in a challenge
+	void RestartBlitz();                         // 0x6c7a75: and in Blitz
 	void ShowRankBonus(int theBonus);            // 0x6ab269: the rank bar (RankBonusWidget) with the bonus
 	void AddStat(int theStat, int theDelta);     // 0x6a450f: the game's stat and the app's copy (unless +0x37c4)
 	void EaseCursor();                           // 0x6a4674: the cursor drawn eases to the cursor
@@ -966,8 +980,12 @@ public:
 	// 0x6d045b: the board after the game, state by state (+0x26c8): the rows fall off (3), blitz's final score
 	// (4 to 8), then back to the menu (9)
 	void UpdateGameOver();
-	// 0x6d090f's state 7 with the nuke: the blast from +0x26cc blows the gems apart, the tube steams, then space
-	void UpdateNuke();
+	// 0x6d090f's state 7 with the nuke: the blast from +0x26cc blows the gems apart, the tube steams, then space.
+	// True when a night challenge ends there (0x6b330d), which ends UpdateGame too
+	bool UpdateNuke();
+	// 0x6b330d: the challenge is met: "challenge complete" (an AwardTelly the challenge menu takes over, its +0x9dc),
+	// space comes back over the board and the menu goes to state 5. theFlag is set for a night challenge
+	void ShowChallengeComplete(bool theFlag);
 	// 0x6a3b4c: the game's time, scores and counts into the profile and the app, once (+0x137c)
 	void UpdateStats();
 	void DrawNukeGem(Graphics* g, Piece* thePiece);  // 0x6a6885: the gem that set off the nuke, while hidden

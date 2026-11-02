@@ -193,6 +193,7 @@ public:
 	void ClearFlag(int theFlag) { SetFlag(theFlag, false); }  // 0x728cb0
 	void ClearSpecial();                       // 0x728cc1
 	void Blast();                              // 0x729363: a power gem goes off
+	void BreakLock(bool theType);              // 0x72952f: the gem lock breaks (BreakSpecial, stat 0x48)
 	bool CanMove() const;                      // 0x728cf9
 	void SetColor(int theColor);               // 0x729563
 	bool IsSpecial();                          // 0x729a0a: a power, electro, fruit or type 6 or 7 gem
