@@ -7,9 +7,13 @@
 // Each failed check prints one "FAIL <test>: ..." line. The last line is "gpu: N tests, M failed (<GL description>)".
 // Exit status 0 only when every test passed. -v also prints each test's name as it passes.
 
+#include "framework/GPU2D.h"
 #include "framework/GPUInterface.h"
+#include "framework/Graphics.h"
 #include "framework/MemoryImage.h"
 #include "framework/SexyAppBase.h"
+#include "framework/SexyMatrix.h"
+#include "framework/TriVertex.h"
 #include "platform/GLContext.h"
 
 #include <SDL.h>
@@ -665,6 +669,185 @@ void TestTargetBits()
 }
 
 // The policy's format rule, 0x61c070's order (Twist's device takes A8R8G8B8, A4R4G4B4 and R5G6B5)
+// --- GPU2D (framework/GPU2D.h): the 2D draws on the device, as Twist's D3D9Interface makes them ---
+
+// A fresh GPU2D after Reset (its state cache then knows nothing), with Twist's stage 0 (MODULATE texture by diffuse)
+// and blending on, as its scene-begin list sets them
+GPU2D* Begin2D(const char* theName, const GPUPolicy& thePolicy)
+{
+	Begin(theName);
+	GPU2D* aGPU2D = new GPU2D(gGPU, thePolicy);
+	aGPU2D->SetScreenSize(W, H);
+	aGPU2D->SetRenderState(GPURS_ALPHABLENDENABLE, 1);
+	aGPU2D->SetTextureStageState(0, GPUTSS_COLOROP, 4);
+	aGPU2D->SetTextureStageState(0, GPUTSS_COLORARG1, 2);
+	aGPU2D->SetTextureStageState(0, GPUTSS_COLORARG2, 0);
+	aGPU2D->SetTextureStageState(0, GPUTSS_ALPHAOP, 4);
+	aGPU2D->SetTextureStageState(0, GPUTSS_ALPHAARG1, 2);
+	aGPU2D->SetTextureStageState(0, GPUTSS_ALPHAARG2, 0);
+	return aGPU2D;
+}
+
+void End2D(GPU2D* theGPU2D)
+{
+	theGPU2D->EndScene();
+	delete theGPU2D;
+	End();
+}
+
+// Blt: point sampled, -0.5 so each texel lands on one pixel; a half-transparent texel blends over black
+void Test2DBlt(const GPUPolicy& thePolicy)
+{
+	GPU2D* g = Begin2D("2d-blt", thePolicy);
+	std::vector<unsigned long> aBits(16);
+	for (int i = 0; i < 16; i++)
+		aBits[i] = 0xff000000 | (i * 16) << 16 | (255 - i * 16) << 8 | 0x40;
+	aBits[5] = 0x80ff0000;
+	MemoryImage* anImage = MakeImage(4, 4, aBits);
+	g->Blt(anImage, 10, 20, Rect(0, 0, 4, 4), Color::White, Graphics::DRAWMODE_NORMAL);
+	g->Flush();
+	Read();
+	for (int y = 0; y < 4; y++) {
+		for (int x = 0; x < 4; x++) {
+			if (y * 4 + x != 5)
+				Expect(10 + x, 20 + y, aBits[y * 4 + x]);
+		}
+	}
+	Expect(11, 21, 0xff800000, 1);
+	Expect(9, 20, 0xff000000);
+	Expect(14, 20, 0xff000000);
+	Expect(10, 19, 0xff000000);
+	Expect(10, 24, 0xff000000);
+	End2D(g);
+	delete anImage;
+}
+
+// FillRect: exactly its rectangle; additive adds
+void Test2DFillRect(const GPUPolicy& thePolicy)
+{
+	GPU2D* g = Begin2D("2d-fillrect", thePolicy);
+	g->FillRect(Rect(5, 6, 10, 4), Color(0, 255, 0), Graphics::DRAWMODE_NORMAL);
+	g->FillRect(Rect(30, 30, 4, 4), Color(0, 0, 128), Graphics::DRAWMODE_NORMAL);
+	g->FillRect(Rect(30, 30, 2, 2), Color(0, 0, 64), Graphics::DRAWMODE_ADDITIVE);
+	g->Flush();
+	Read();
+	ExpectBox(5, 6, 15, 10, 0xff00ff00, 0xff000000);
+	Expect(30, 30, 0xff0000c0);
+	Expect(32, 32, 0xff000080);
+	End2D(g);
+}
+
+// DrawLine: Twist draws the two ends only (mLineEndPixel false), so the end pixel stays dark; SAF 1.3 lights it
+void Test2DLine(const GPUPolicy& thePolicy)
+{
+	GPU2D* g = Begin2D("2d-line", thePolicy);
+	g->DrawLine(4, 10, 14, 10, Color::White, Graphics::DRAWMODE_NORMAL);
+	Read();
+	Expect(4, 10, 0xffffffff);
+	Expect(13, 10, 0xffffffff);
+	Expect(14, 10, 0xff000000);
+	Expect(3, 10, 0xff000000);
+	End2D(g);
+
+	GPUPolicy aSAF = thePolicy;
+	aSAF.mLineEndPixel = true;
+	g = Begin2D("2d-line-saf", aSAF);
+	g->DrawLine(4, 10, 14, 10, Color::White, Graphics::DRAWMODE_NORMAL);
+	Read();
+	Expect(14, 10, 0xffffffff);
+	Expect(15, 10, 0xff000000);
+	End2D(g);
+}
+
+// The batch: draws with the same states share one draw call; a changed texture or state flushes, the same value does
+// not; a line flushes and draws at once
+void Test2DBatch(const GPUPolicy& thePolicy)
+{
+	GPU2D* g = Begin2D("2d-batch", thePolicy);
+	MemoryImage* a = MakeImage(2, 2, std::vector<unsigned long>(4, 0xffffffff));
+	MemoryImage* b = MakeImage(2, 2, std::vector<unsigned long>(4, 0xffff0000));
+	g->Blt(a, 0, 0, Rect(0, 0, 2, 2), Color::White, Graphics::DRAWMODE_NORMAL);
+	g->Blt(a, 4, 0, Rect(0, 0, 2, 2), Color::White, Graphics::DRAWMODE_NORMAL);
+	g->Blt(a, 8, 0, Rect(0, 0, 2, 2), Color::White, Graphics::DRAWMODE_NORMAL);
+	if (g->GetDrawCallCount() != 0)
+		Fail("three Blts drew %d times before a flush", g->GetDrawCallCount());
+	g->Blt(b, 12, 0, Rect(0, 0, 2, 2), Color::White, Graphics::DRAWMODE_NORMAL);
+	if (g->GetDrawCallCount() != 1)
+		Fail("a new texture made %d draws, expected 1", g->GetDrawCallCount());
+	g->SetRenderState(GPURS_ALPHABLENDENABLE, 1);
+	if (g->GetDrawCallCount() != 1)
+		Fail("setting a state to its value flushed");
+	g->SetRenderState(GPURS_DITHERENABLE, 1);
+	if (g->GetDrawCallCount() != 2)
+		Fail("a changed state did not flush (%d draws)", g->GetDrawCallCount());
+	g->FillRect(Rect(0, 4, 2, 2), Color::White, Graphics::DRAWMODE_NORMAL);
+	g->DrawLine(0, 8, 4, 8, Color::White, Graphics::DRAWMODE_NORMAL);
+	if (g->GetDrawCallCount() != 4)
+		Fail("a line did not flush and draw (%d draws)", g->GetDrawCallCount());
+	Read();
+	Expect(8, 0, 0xffffffff);
+	Expect(12, 0, 0xffff0000);
+	Expect(0, 4, 0xffffffff);
+	Expect(1, 8, 0xffffffff);
+	End2D(g);
+	delete a;
+	delete b;
+}
+
+// BltF and the transform stack: linear, translated, and clipped in software to the clip rectangle's pixels
+void Test2DTransformed(const GPUPolicy& thePolicy)
+{
+	GPU2D* g = Begin2D("2d-transformed", thePolicy);
+	MemoryImage* anImage = MakeImage(8, 8, std::vector<unsigned long>(64, 0xffffffff));
+	Rect aClip(12, 12, 4, 4);
+	g->BltF(anImage, 10, 10, Rect(0, 0, 8, 8), &aClip, Color::White, Graphics::DRAWMODE_NORMAL);
+	SexyTransform2D aTransform;
+	aTransform.Translate(30, 2);
+	g->PushTransform(aTransform);
+	g->Blt(anImage, 0, 0, Rect(0, 0, 8, 8), Color(255, 0, 0), Graphics::DRAWMODE_NORMAL);
+	g->PopTransform();
+	g->Flush();
+	Read();
+	ExpectBox(12, 12, 16, 16, 0xffffffff, 0xff000000);
+	ExpectBox(30, 2, 38, 10, 0xffff0000, 0xff000000);
+	End2D(g);
+	delete anImage;
+}
+
+// Depth-write mode 1 is a depth-only pass: ZERO / ONE leaves the colour as it was
+void Test2DDepthOnly(const GPUPolicy& thePolicy)
+{
+	GPU2D* g = Begin2D("2d-depth-only", thePolicy);
+	g->SetDepthWriteMode(1);
+	g->FillRect(Rect(0, 0, 8, 8), Color::White, Graphics::DRAWMODE_NORMAL);
+	g->SetDepthWriteMode(0);
+	g->FillRect(Rect(8, 0, 8, 8), Color::White, Graphics::DRAWMODE_NORMAL);
+	g->Flush();
+	Read();
+	Expect(2, 2, 0xff000000);
+	Expect(10, 2, 0xffffffff);
+	End2D(g);
+}
+
+// DrawTrianglesTex: no 0.5, so a quad from 20 to 24 covers pixels 20 to 23; the vertex colour wins over the draw's
+void Test2DTrianglesTex(const GPUPolicy& thePolicy)
+{
+	GPU2D* g = Begin2D("2d-triangles-tex", thePolicy);
+	MemoryImage* anImage = MakeImage(4, 4, std::vector<unsigned long>(16, 0xffffffff));
+	TriVertex aTris[2][3] = {
+		{TriVertex(20, 20, 0, 0), TriVertex(24, 20, 1, 0), TriVertex(20, 24, 0, 1)},
+		{TriVertex(24, 20, 1, 0), TriVertex(24, 24, 1, 1), TriVertex(20, 24, 0, 1)}};
+	g->DrawTrianglesTex(anImage, aTris, 2, Color::White, Graphics::DRAWMODE_NORMAL, 0, 0, false);
+	TriVertex aGreen[1][3] = {{TriVertex(40, 40, 0, 0, 0xff00ff00), TriVertex(48, 40, 1, 0, 0xff00ff00),
+		TriVertex(40, 48, 0, 1, 0xff00ff00)}};
+	g->DrawTrianglesTex(anImage, aGreen, 1, Color(255, 0, 0), Graphics::DRAWMODE_NORMAL, 0, 0, false);
+	Read();
+	ExpectBox(20, 20, 24, 24, 0xffffffff, 0xff000000);
+	Expect(41, 41, 0xff00ff00);
+	End2D(g);
+	delete anImage;
+}
+
 void TestFormatRule(const GPUPolicy& thePolicy)
 {
 	gTest = "format-rule";
@@ -793,6 +976,13 @@ int main(int argc, char** argv)
 	TestBuffers();
 	TestPrecompile(aContext, aPolicy);
 	TestSceneRules(gGPU, "gl");
+	Test2DBlt(aPolicy);
+	Test2DFillRect(aPolicy);
+	Test2DLine(aPolicy);
+	Test2DBatch(aPolicy);
+	Test2DTransformed(aPolicy);
+	Test2DDepthOnly(aPolicy);
+	Test2DTrianglesTex(aPolicy);
 	delete gGPU;
 	gGPU = GPUInterface::Create(aContext, aPolicy, W, H);
 	TestTextures(true);

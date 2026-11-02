@@ -1,7 +1,7 @@
 #ifndef __GPU2D_H__
 #define __GPU2D_H__
 
-// port: the framework's 2D drawing on the GPU path (draft 1, for review; nothing implements it yet). It is the layer
+// port: the framework's 2D drawing on the GPU path (draft 1, under review; GPU2D.cpp implements it but the pieces). It is the layer
 // of the original's D3D interface that sits above the device (framework/GPUInterface.h): the draw-mode layer, the
 // filter cache, the transform stack, the quad batch, texture pieces, software clipping and the 2D draws themselves.
 // It is read from Bejeweled Twist's D3D9Interface (vtable 0x8195f4), with PopCap's released SAF 1.2 D3DInterface as
@@ -55,16 +55,35 @@ public:
 	// StretchRect's quad branch and DrawObject.
 	void ApplyDrawMode(int theDrawMode);
 
-	// The batch (the original's dynamic vertex buffer, 0x624880 / 0x624830). Triangle lists, strips and fans are kept
-	// as a triangle list and drawn in one call at a flush; a line strip flushes and is drawn at once. Flush points are
-	// the original's: a changed render, stage or sampler state, texture, target or shader, a draw-mode setter whose value
-	// changes, DrawPrimitiveEx, DrawObject, ClearDepth, EndScene, a full batch. Clear, the constant slots,
-	// SetTransform, lights, the material and read-back do not flush. GPUDisplay routes the adapter's device calls
-	// through FlushIfChanged so a state set to its current value does not flush (the original compares first).
-	void SetBatching(bool theOn);  // field 0xbc; off: every primitive is drawn at once
+	// The batch (the original's dynamic vertex buffer, 0x624880 / 0x624830; 600 vertices, field 0xd1). Triangle
+	// lists, strips and fans are kept as a triangle list and drawn in one call at a flush; a line strip flushes and is
+	// drawn at once. Flush points are the original's: a changed render, stage or sampler state, texture, target or
+	// shader, a draw-mode setter whose value changes, DrawPrimitiveEx, DrawObject, ClearDepth, EndScene, a full batch.
+	// Clear, the constant slots, SetTransform, lights, the material and read-back do not flush. The original flushes
+	// only inside a scene (field 0xbc, set by PreDraw); every batched draw comes after a PreDraw, so the batch is only
+	// ever filled inside one.
 	void Flush();
-	int GetDrawCallCount() const;  // fields 0x348 and 0x34c, for the original's statistics only
-	int GetPrimitiveCount() const;
+	int GetDrawCallCount() const { return mDrawCalls; }   // fields 0x348 and 0x34c, the original's statistics
+	int GetPrimitiveCount() const { return mPrimitives; }
+
+	// The state setters (slots 0xc0, 0xbc, 0xc4, 0xd0: 0x622a60, 0x6229f0, 0x622ad0): each compares with the value it
+	// last set and, only when it differs, flushes the batch and sets it on the device. The adapter's game calls and the
+	// draws' own go through them, so the cache always holds the device's state; a state never set here is unknown and
+	// is always set (the original's cache answers a default for it: to be checked if a game relies on it).
+	void SetRenderState(int theState, unsigned long theValue);
+	void SetTextureStageState(int theStage, int theType, unsigned long theValue);
+	void SetSamplerState(int theStage, int theType, unsigned long theValue);
+	void SetTexture(int theStage, Image* theImage);
+	void ImageDeleted(Image* theImage);  // forgets theImage as a bound texture
+
+	// PreDraw (slot 0x1c, 0x61a7d0): the device's BeginSceneIfNeeded. At a scene's start the device applies the policy's
+	// list, which this records in the state cache, and the filter cache is cleared. EndScene flushes first.
+	bool PreDraw();
+	void EndScene();
+
+	// The screen's size (the original's this[10], this[11]): a BltTransformed clip rectangle of exactly the screen is
+	// not clipped against, whatever the destination.
+	void SetScreenSize(int theWidth, int theHeight) { mScreenWidth = theWidth; mScreenHeight = theHeight; }
 
 	// The filter cache (Twist's DAT_00e13bf5, SAF's gLinearFilter): a draw writes stage 0's MAG, MIN and MIP filters
 	// (0x61c9b0: in that order, LINEAR or POINT) only when its filter differs from the cache; the game's own
@@ -142,16 +161,31 @@ public:
 	// unless Twist sets them (to be checked).
 
 private:
+	enum { BATCH_SIZE = 600 };
+	typedef std::vector<GPU2DVertex> VertexList;
+
 	GPUInterface* mDevice;
 	GPUPolicy mPolicy;
 	int mDepthTestMode, mDepthWriteMode, mAlphaRef;
 	float mDepthZ[2];
-	bool mBatching;
-	std::vector<GPU2DVertex> mBatch;
+	VertexList mBatch;
 	int mDrawCalls, mPrimitives;
 	int mFilter;  // -1 unknown, 0 point, 1 linear
 	int mSceneCount;
+	int mScreenWidth, mScreenHeight;
 	std::vector<SexyMatrix3> mTransformStack;
+	std::map<long long, unsigned long> mStates;  // (kind, stage, type) -> the value last set
+	Image* mTextures[8];
+	bool mTexturesKnown[8];
+
+	void SetCachedState(int theKind, int theStage, int theType, unsigned long theValue);
+	void ApplyDepthStates();  // 0x13c, 0x61fbf0
+	float VertexZ() const { return (mDepthWriteMode != 0) ? mDepthZ[0] : mDepthZ[1]; }
+	void AddPrimitives(GPUPrimitiveType theType, int theCount, const GPU2DVertex* theVertices);  // 0x624880
+	void DrawNow(GPUPrimitiveType theType, int theCount, const GPU2DVertex* theVertices);       // 0x624710
+	void DrawClipped(const Rect& theClipRect, const VertexList& theList);                        // 0x61d540
+	void BltPieces(Image* theImage, const Rect& theSrcRect, unsigned long theColor, const SexyMatrix3* theMatrix,
+		float theX, float theY, bool theCenter, const Rect* theClipRect);
 };
 
 }  // namespace Sexy
