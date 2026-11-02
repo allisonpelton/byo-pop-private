@@ -1,0 +1,258 @@
+#include "GameText.h"
+#include "SexyAppBase.h"
+#include "platform/VFS.h"
+
+#include <SDL.h>
+#include <cstdio>
+#include <cstring>
+#include <map>
+#include <vector>
+
+using namespace Sexy;
+
+namespace
+{
+
+struct GameTextEntry
+{
+	uint32_t	mVA;
+	uint32_t	mLength;
+	uint32_t	mHash;
+	bool		mWide;		// UTF-16 (the original's L"..." texts); mLength counts bytes
+	bool		mData;		// bytes of data (GTB, GTP), not a text
+};
+
+const GameTextEntry gGameTextEntries[] =
+{
+#define GAMETEXT(theVA, theLength, theHash) {theVA, theLength, theHash, false, false},
+#define GAMETEXTW(theVA, theLength, theHash) {theVA, theLength, theHash, true, false},
+#define GAMEDATA(theVA, theLength, theHash) {theVA, theLength, theHash, false, true},
+#include "GameTextTable.inc"
+#undef GAMEDATA
+#undef GAMETEXTW
+#undef GAMETEXT
+	{0, 0, 0, false, false}
+};
+
+const int NUM_GAME_TEXTS = (int) (sizeof(gGameTextEntries) / sizeof(gGameTextEntries[0])) - 1;
+
+std::map<unsigned int, std::string>& Blocks()
+{
+	static std::map<unsigned int, std::string> sBlocks;
+	return sBlocks;
+}
+
+std::map<unsigned int, SexyString>& Texts()
+{
+	static std::map<unsigned int, SexyString> sTexts;
+	return sTexts;
+}
+
+// FNV-1a over the text's bytes (make_gametext.py computes the same)
+uint32_t TextHash(const char* theText, size_t theLength)
+{
+	uint32_t h = 2166136261u;
+	for (size_t i = 0; i < theLength; i++)
+	{
+		h ^= (uint8_t) theText[i];
+		h *= 16777619u;
+	}
+	return h;
+}
+
+uint32_t ReadU32(const std::vector<uint8_t>& theData, size_t theOffset)
+{
+	if (theOffset + 4 > theData.size())
+		return 0;
+	return theData[theOffset] | (theData[theOffset + 1] << 8) | (theData[theOffset + 2] << 16) |
+		((uint32_t) theData[theOffset + 3] << 24);
+}
+
+uint16_t ReadU16(const std::vector<uint8_t>& theData, size_t theOffset)
+{
+	if (theOffset + 2 > theData.size())
+		return 0;
+	return (uint16_t) (theData[theOffset] | (theData[theOffset + 1] << 8));
+}
+
+// A PE image, mapped from virtual addresses to file offsets
+struct PEImage
+{
+	struct Section
+	{
+		uint32_t mVA;
+		uint32_t mRawSize;
+		uint32_t mRawPtr;
+	};
+	size_t mBase = 0;
+	uint32_t mImageBase = 0;
+	std::vector<Section> mSections;
+
+	bool Parse(const std::vector<uint8_t>& theData, size_t theBase)
+	{
+		mBase = theBase;
+		if (theBase + 0x40 > theData.size() || theData[theBase] != 'M' || theData[theBase + 1] != 'Z')
+			return false;
+		size_t aPE = theBase + ReadU32(theData, theBase + 0x3c);
+		if (aPE + 0xf8 > theData.size() || memcmp(&theData[aPE], "PE\0\0", 4) != 0)
+			return false;
+		int aNumSections = ReadU16(theData, aPE + 6);
+		int anOptSize = ReadU16(theData, aPE + 20);
+		mImageBase = ReadU32(theData, aPE + 24 + 28);
+		size_t aSection = aPE + 24 + anOptSize;
+		for (int i = 0; i < aNumSections; i++, aSection += 40)
+		{
+			Section s;
+			s.mVA = mImageBase + ReadU32(theData, aSection + 12);
+			s.mRawSize = ReadU32(theData, aSection + 16);
+			s.mRawPtr = ReadU32(theData, aSection + 20);
+			mSections.push_back(s);
+		}
+		return !mSections.empty();
+	}
+
+	// File offset of a virtual address, or 0 when it is outside every section's raw data
+	size_t Offset(uint32_t theVA) const
+	{
+		for (const Section& s : mSections)
+			if ((theVA >= s.mVA) && (theVA < s.mVA + s.mRawSize))
+				return mBase + s.mRawPtr + (theVA - s.mVA);
+		return 0;
+	}
+};
+
+}
+
+bool Sexy::LoadGameTexts()
+{
+	std::map<unsigned int, SexyString>& aTexts = Texts();
+	aTexts.clear();
+	Blocks().clear();
+
+	// The original's executable (version 1.0.3.7482) or a copy of it
+	std::vector<uint8_t> aData;
+	bool aRead = Platform::VFS::Get().ReadAll("bejeweledtwist.exe", aData) && !aData.empty();
+
+	int aMatched = 0;
+	int aMismatched = 0;
+	if (aRead)
+	{
+		// The install's exe is a launcher with the game's image appended after a marker (the retail copy's CD check, the
+		// Steam copy's wrapper); a staged copy is the image itself
+		size_t aBase = 0;
+		for (const char* aMarker : {"!popcapcdprotect!", "!popcapdrmprotect!"})
+		{
+			size_t aMarkerLen = strlen(aMarker);
+			for (size_t i = 0; i + aMarkerLen < aData.size(); i++)
+			{
+				if ((aData[i] == '!') && (memcmp(&aData[i], aMarker, aMarkerLen) == 0))
+				{
+					aBase = i + aMarkerLen;
+					while ((aBase + 1 < aData.size()) && !((aData[aBase] == 'M') && (aData[aBase + 1] == 'Z')))
+						aBase++;
+					break;
+				}
+			}
+			if (aBase != 0)
+				break;
+		}
+		PEImage anImage;
+		if (anImage.Parse(aData, aBase))
+		{
+			for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
+			{
+				const GameTextEntry& e = gGameTextEntries[anId];
+				size_t anOffset = anImage.Offset(e.mVA);
+				if (e.mData)
+				{
+					if ((anOffset != 0) && (anOffset + e.mLength <= aData.size()) &&
+						(TextHash((const char*) &aData[anOffset], e.mLength) == e.mHash))
+					{
+						Blocks()[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
+						aMatched++;
+					}
+					else
+					{
+						aMismatched++;
+					}
+					continue;
+				}
+				size_t anEnd = anOffset + e.mLength + (e.mWide ? 1 : 0);
+				if ((anOffset != 0) && (anEnd < aData.size()) && (aData[anOffset + e.mLength] == 0) &&
+					(!e.mWide || aData[anEnd] == 0) &&
+					(TextHash((const char*) &aData[anOffset], e.mLength) == e.mHash))
+				{
+					if (e.mWide)
+					{
+						std::wstring aWide;
+						for (size_t i = 0; i < e.mLength; i += 2)
+							aWide += (wchar_t) (aData[anOffset + i] | (aData[anOffset + i + 1] << 8));
+						aTexts[e.mVA] = WStringToSexyString(aWide);
+					}
+					else
+						aTexts[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
+					aMatched++;
+				}
+				else
+				{
+					aMismatched++;
+				}
+			}
+		}
+		else
+		{
+			SDL_Log("GameText: BejeweledTwist.exe is not a PE executable");
+		}
+	}
+	else
+	{
+		SDL_Log("GameText: BejeweledTwist.exe not found in the game folder; the game's texts are read from it");
+	}
+	if (aMismatched > 0)
+		SDL_Log("GameText: %d of %d texts do not match this executable (Bejeweled Twist 1.0.3.7482 expected)", aMismatched,
+			NUM_GAME_TEXTS);
+
+	// Overrides from string properties (the game's properties, mods)
+	if (gSexyAppBase != NULL)
+	{
+		for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
+		{
+			char aName[32];
+			snprintf(aName, sizeof(aName), "GT_%08x", gGameTextEntries[anId].mVA);
+			unsigned int aVA = gGameTextEntries[anId].mVA;
+			aTexts[aVA] = gSexyAppBase->GetString(aName, aTexts[aVA]);
+		}
+	}
+	return aMatched > 0;
+}
+
+const SexyString& Sexy::GameText(unsigned int theVA)
+{
+	static const SexyString sEmpty;
+	std::map<unsigned int, SexyString>& aTexts = Texts();
+	std::map<unsigned int, SexyString>::const_iterator anItr = aTexts.find(theVA);
+	return anItr == aTexts.end() ? sEmpty : anItr->second;
+}
+
+const std::string& Sexy::GameTextA(unsigned int theVA)
+{
+	static std::map<unsigned int, std::string> sNarrow;
+	std::map<unsigned int, std::string>::iterator anItr = sNarrow.find(theVA);
+	if (anItr == sNarrow.end())
+		anItr = sNarrow.emplace(theVA, SexyStringToStringFast(GameText(theVA))).first;
+	return anItr->second;
+}
+
+int Sexy::GameInt(unsigned int theVA)
+{
+	std::map<unsigned int, std::string>& aBlocks = Blocks();
+	std::map<unsigned int, std::string>::const_iterator anItr = aBlocks.upper_bound(theVA);
+	if (anItr == aBlocks.begin())
+		return 0;
+	--anItr;
+	size_t anOffset = theVA - anItr->first;
+	if (anOffset + 4 > anItr->second.size())
+		return 0;
+	const unsigned char* p = (const unsigned char*) anItr->second.data() + anOffset;
+	return (int) (p[0] | (p[1] << 8) | (p[2] << 16) | ((unsigned int) p[3] << 24));
+}

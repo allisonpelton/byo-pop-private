@@ -123,6 +123,8 @@ public:
 
 	// Converts window coordinates (as reported by SDL mouse events) to logical screen coordinates.
 	void WindowToLogical(int theWindowX, int theWindowY, int* theX, int* theY);
+	// port: the inverse, a game point to window coordinates (SexyAppBase::WarpMouse)
+	void LogicalToWindow(int theX, int theY, int* theWindowX, int* theWindowY);
 
 	// Texture management
 	SDL_Texture* GetTexture(MemoryImage* theImage, int* theTexWidth, int* theTexHeight);

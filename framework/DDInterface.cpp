@@ -506,6 +506,36 @@ void DDInterface::WindowToLogical(int theWindowX, int theWindowY, int* theX, int
 		*theY = (int) floor(aY);
 }
 
+void DDInterface::LogicalToWindow(int theX, int theY, int* theWindowX, int* theWindowY)
+{
+	// the middle of the game's pixel, so that WindowToLogical gives theX, theY back
+	double aX = theX + 0.5;
+	double aY = theY + 0.5;
+
+	if ((mWidth > 0) && (mHeight > 0) && (mPresentationRect.mWidth > 0) && (mPresentationRect.mHeight > 0))
+	{
+		aX = aX * mPresentationRect.mWidth / mWidth + mPresentationRect.mX;
+		aY = aY * mPresentationRect.mHeight / mHeight + mPresentationRect.mY;
+	}
+
+	if ((mWindow != NULL) && (mDisplayWidth > 0) && (mDisplayHeight > 0))
+	{
+		int aWindowWidth = 0;
+		int aWindowHeight = 0;
+		SDL_GetWindowSize(mWindow, &aWindowWidth, &aWindowHeight);
+		if ((aWindowWidth > 0) && (aWindowHeight > 0))
+		{
+			aX = aX * aWindowWidth / mDisplayWidth;
+			aY = aY * aWindowHeight / mDisplayHeight;
+		}
+	}
+
+	if (theWindowX != NULL)
+		*theWindowX = (int) floor(aX);
+	if (theWindowY != NULL)
+		*theWindowY = (int) floor(aY);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 bool DDInterface::PreDraw()

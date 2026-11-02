@@ -274,3 +274,8 @@ option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
 if(BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt)
   add_subdirectory(games/mahjongchina)
 endif()
+# Bejeweled Twist: optional while it is new; the build skips it if its folder is missing
+option(BUILD_BEJEWELEDTWIST "Build the Bejeweled Twist port" ON)
+if(BUILD_BEJEWELEDTWIST AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweledtwist/CMakeLists.txt)
+  add_subdirectory(games/bejeweledtwist)
+endif()

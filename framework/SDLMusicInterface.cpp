@@ -247,6 +247,32 @@ bool SDLMusicInterface::GetMusicFFT(int theSongId, float* theOut, int theSamples
 	return it != mSongs.end() && Mixer::Get().GetSongFFT(it->second.mHandle, theOut, theSamples);
 }
 
+int SDLMusicInterface::GetMusicTempo(int theSongId)
+{
+	auto it = mSongs.find(theSongId);
+	return it == mSongs.end() ? 0 : Mixer::Get().GetSongTempo(it->second.mHandle);
+}
+
+void SDLMusicInterface::SetMusicTempo(int theSongId, int theBPM)
+{
+	auto it = mSongs.find(theSongId);
+	if (it != mSongs.end())
+		Mixer::Get().SetSongTempo(it->second.mHandle, theBPM);
+}
+
+int SDLMusicInterface::GetMusicChannelVolume(int theSongId, int theChannel)
+{
+	auto it = mSongs.find(theSongId);
+	return it == mSongs.end() ? -1 : Mixer::Get().GetSongChannelVolume(it->second.mHandle, theChannel);
+}
+
+void SDLMusicInterface::SetMusicChannelVolume(int theSongId, int theChannel, int theVolume)
+{
+	auto it = mSongs.find(theSongId);
+	if (it != mSongs.end())
+		Mixer::Get().SetSongChannelVolume(it->second.mHandle, theChannel, theVolume);
+}
+
 void SDLMusicInterface::SetVolume(double theVolume)
 {
 	mGlobalVolume = theVolume;

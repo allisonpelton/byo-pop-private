@@ -2,8 +2,11 @@
 #include "platform/Audio.h"
 
 #include <libopenmpt/libopenmpt.h>
+#include <libopenmpt/libopenmpt_ext.h>
 #include <SDL.h>
+#include <cmath>
 #include <cstring>
+#include <vector>
 
 namespace Platform
 {
@@ -17,11 +20,20 @@ namespace
 // unless asked, so the renderer uses a 2-tap (linear) filter rather than libopenmpt's 8-tap default.
 // PlayMusic(id, MAKELONG(order, row)) maps to openmpt_module_set_position_order_row; looping songs
 // repeat forever (BASS_MUSIC_LOOP), the others stop at the end of the module.
+//
+// The tempo and the channels' volumes (BASS's BPM and VOL_CHAN music attributes) go through libopenmpt's
+// interactive interfaces. BASS keeps both when the music is played from another position; libopenmpt works out a
+// new position by playing the module up to it, which sets them back, so they are set again after each seek.
 class OpenMPTModule : public ModulePlayer
 {
 public:
-	OpenMPTModule(openmpt_module* theModule, int theRate) : mModule(theModule), mRate(theRate)
+	OpenMPTModule(openmpt_module_ext* theModuleExt, int theRate) :
+		mModuleExt(theModuleExt), mModule(openmpt_module_ext_get_module(theModuleExt)), mRate(theRate)
 	{
+		openmpt_module_ext_get_interface(mModuleExt, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE, &mInteractive,
+			sizeof(mInteractive));
+		mHasInteractive3 = openmpt_module_ext_get_interface(mModuleExt, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE3,
+			&mInteractive3, sizeof(mInteractive3)) != 0;
 		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_INTERPOLATIONFILTER_LENGTH, 2);
 		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_STEREOSEPARATION_PERCENT, 100);
 		openmpt_module_set_repeat_count(mModule, -1);
@@ -30,12 +42,49 @@ public:
 
 	~OpenMPTModule() override
 	{
-		openmpt_module_destroy(mModule);
+		openmpt_module_ext_destroy(mModuleExt);
 	}
 
 	void SetPosition(int theOrder, int theRow) override
 	{
 		openmpt_module_set_position_order_row(mModule, theOrder, theRow);
+		if (mTempo > 0)
+			ApplyTempo();
+		for (int i = 0; i < (int)mChannelVolumes.size(); i++)
+			if (mChannelVolumes[i] >= 0)
+				mInteractive.set_channel_volume(mModuleExt, i, mChannelVolumes[i] / 100.0);
+	}
+
+	int GetTempo() override
+	{
+		return (int)std::lround(openmpt_module_get_current_tempo2(mModule));
+	}
+
+	// BASS 2.2 (Bejeweled Twist's bass.dll) keeps the BPM within 1 to 255
+	void SetTempo(int theBPM) override
+	{
+		mTempo = theBPM < 1 ? 1 : (theBPM > 255 ? 255 : theBPM);
+		ApplyTempo();
+	}
+
+	int GetChannelVolume(int theChannel) override
+	{
+		if (theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))
+			return -1;
+		return theChannel < (int)mChannelVolumes.size() && mChannelVolumes[theChannel] >= 0 ?
+			mChannelVolumes[theChannel] : 100;
+	}
+
+	// 0 to 100, as BASS 2.2 keeps it: a factor on the module's own channel volume
+	void SetChannelVolume(int theChannel, int theVolume) override
+	{
+		if (theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))
+			return;
+		theVolume = theVolume < 0 ? 0 : (theVolume > 100 ? 100 : theVolume);
+		if ((int)mChannelVolumes.size() <= theChannel)
+			mChannelVolumes.resize(theChannel + 1, -1);
+		mChannelVolumes[theChannel] = theVolume;
+		mInteractive.set_channel_volume(mModuleExt, theChannel, theVolume / 100.0);
 	}
 
 	bool GetPosition(int& theOrder, int& theRow) override
@@ -70,9 +119,21 @@ public:
 	}
 
 private:
+	void ApplyTempo()
+	{
+		if (mHasInteractive3)
+			mInteractive3.set_current_tempo2(mModuleExt, (double)mTempo);
+	}
+
+	openmpt_module_ext* mModuleExt;
 	openmpt_module* mModule;
 	int mRate;
 	bool mLoop;
+	openmpt_module_ext_interface_interactive mInteractive = {};
+	openmpt_module_ext_interface_interactive3 mInteractive3 = {};
+	bool mHasInteractive3 = false;
+	int mTempo = 0;                     // the BPM last set, 0 for none
+	std::vector<int> mChannelVolumes;   // 0 to 64 each, -1 for a channel never set
 };
 
 bool IsMO3(const std::vector<uint8_t>& theFile)
@@ -102,7 +163,7 @@ std::unique_ptr<ModulePlayer> CreateModule(const std::vector<uint8_t>& theFile, 
 {
 	int anError = 0;
 	const char* aMessage = nullptr;
-	openmpt_module* aModule = openmpt_module_create_from_memory2(theFile.data(), theFile.size(),
+	openmpt_module_ext* aModule = openmpt_module_ext_create_from_memory(theFile.data(), theFile.size(),
 		openmpt_log_func_silent, nullptr, openmpt_error_func_default, nullptr, &anError, &aMessage, nullptr);
 	if (aModule == nullptr)
 	{

@@ -506,6 +506,7 @@ std::wstring Buffer::ReadUTF8String() const
 		int aConsumed = GetUTF8Char(&aData, aDataSizeBytes, &aChar);
 		if (aConsumed == 0) break;
 		aDataSizeBytes -= aConsumed;
+		mReadBitPos += aConsumed * 8; // the games' own builds move past each character (Bejeweled Twist's 0x461580)
 
 		aString += aChar;
 	}

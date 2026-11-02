@@ -12,7 +12,8 @@
 #                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all; then
 #                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, the loader's
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images;
-#                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets); spectrumtest
+#                songpostest on Bejeweled's, BookWorm's and Bejeweled Twist's modules, with the MO3s' tempo and
+#                channel volumes (skipped without their assets); spectrumtest
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
 #                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
 #                the screenshot comparison on synthetic pictures, its pages and its marks server)
@@ -239,7 +240,14 @@ suite_unit() {
 	if [ -d assets/bejeweled ] && [ -d assets/bookworm ]; then
 		{ timeout 120 build/native/songpostest.exe assets/bejeweled music/1980-autonomus.s3m music/1984-network.s3m &&
 		  timeout 120 build/native/songpostest.exe assets/bookworm music/bookworm1.mo3; } > "$1.sp" 2>&1 || st=1
-		f="songpos: $(grep -c ', start at 2 ok' "$1.sp") of 3 songs ok"
+		n=3
+		# Bejeweled Twist's MO3s: also their tempo and channel volumes
+		if [ -d assets/bejeweledtwist ]; then
+			timeout 120 build/native/songpostest.exe assets/bejeweledtwist "music/bejewel twist 06.10.mo3" \
+				music/bejeweledtwist24.mo3 >> "$1.sp" 2>&1 || st=1
+			n=5
+		fi
+		f="songpos: $(grep -c ', start at 2 ok' "$1.sp") of $n songs ok, tempo: $(grep -c 'silent channels ok' "$1.sp") ok"
 	else
 		echo "$f" > "$1.sp"
 	fi
