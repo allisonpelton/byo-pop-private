@@ -34,7 +34,7 @@ EM_JS(void, byopop_cursor_deliver, (int theId, int theWidth, int theHeight, int 
 namespace
 {
 
-const int kCursorAreaSize = 64;	// DDInterface.cpp's CURSOR_AREA_SIZE: the image is centred on the mouse in a 64x64 area
+const int kCursorAreaSize = 64;	// DisplayGeometry.cpp's CURSOR_AREA_SIZE: the image is centred on the mouse in a 64x64 area
 const int kMaxCursorSize = 512;	// a cursor is small; anything larger is not copied
 
 MemoryImage* sShownImage = NULL;
