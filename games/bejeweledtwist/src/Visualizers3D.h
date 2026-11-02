@@ -2,7 +2,7 @@
 // Visualizer (vtable 0x7d804c) with its own images, made by the maker the VizManager's constructor registers by name
 // (0x7597cc, FUN_0075978d). Ported here: RedBars, WindCloud, ContainmentField, UVWarp, Raptis_Pulse, BlobDrift and
 // ParametricFractal (Visualizers3D.cpp), and FluffyStars, PlasmaClouds, SpaceThreads, VizWarpBars and VizKaleidoCat
-// (Visualizers3D2.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
+// (Visualizers3D2.cpp), and VizRainbowGlyphs, SubAtomic, Cubes and RainDrops (Visualizers3D3.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
 // VizManager shows Viz2D in their place.
 //
 // Random draws: the original's visualizers draw from the game's Rand (0x45c110 and its Rand(n) 0x45c120 and Rand(float)
@@ -11,6 +11,7 @@
 #pragma once
 
 #include "Common.h"
+#include "SexyMatrix.h"
 #include "TriVertex.h"
 #include "VizManager.h"
 
@@ -23,6 +24,17 @@ class Image;
 // 0x757e6b and its fellows: the maker of the visualizer called theName, null when it is not ported (the caller then
 // uses Viz2D)
 Visualizer* MakeVisualizer3D(const char* theName, WinTwistApp* theApp);
+
+// 0x44fc20: a Transform that takes its matrix as it is
+class MatrixTransform : public Transform {
+public:
+	void SetMatrix(const SexyMatrix3& theMatrix)
+	{
+		mMatrix = theMatrix;
+		mNeedCalcMatrix = false;
+		mComplex = true;
+	}
+};
 
 // Sexy::RedBars (vtable 0x7d7e44, maker 0x757e6b, constructor 0x67a186): IMAGE_FIRESTAR scrolling over the whole screen as
 // one quad, by the visualizer's own update count. No random draws.
@@ -348,6 +360,131 @@ public:
 	void Slot7() override { mCountBase = mCount; }  // 0x689cb9
 	// 0x689b0d and 0x689be3: the image made when it is missing, and made the target
 	bool EnsureImage(DDImage*& theImage);
+};
+
+// Sexy::VizRainbowGlyphs (vtable 0x7d8354, constructor 0x68e969): IMAGE_AZTEC_BG cut into 32 strips in a changing rainbow,
+// under glyphs (cels of IMAGE_AZTEC_STRIP) that sixteen points circling the screen shed and that drift and fade out.
+// Random draws, all of the game's Rand (RandSigned, 0x756e97), in Update 0x68ea4f, each fourth update (the update runs
+// only when its count is even) for each of the 16 points: four in the glyph's constructor 0x68daa6 (the +8, +0xc, +0x10
+// and +0x14 fields), then one for the size, one for each of x and y, and one for each of the two speeds, nine in all; and
+// two more (the point's first place) in the update whose count is 0, which never comes. Init (0x68dad4) runs 60 updates.
+class VizRainbowGlyphs : public Visualizer {
+public:
+	struct Glyph {  // 0x30 bytes
+		float mX = 0.0f;       // +0x00
+		float mY = 0.0f;       // +0x04
+		float mVX = 0.0f;      // +0x08
+		float mVY = 0.0f;      // +0x0c
+		float mRand10 = 0.0f;  // +0x10: made by the constructor, never read
+		float mRand14 = 0.0f;  // +0x14: made by the constructor, never read
+		int mUnknown18 = 0;    // +0x18
+		float mLife = 1.0f;    // +0x1c
+		int mCel = 0;          // +0x20: the cel of IMAGE_AZTEC_STRIP
+		int mAlpha = 0;        // +0x2c
+		Glyph();               // 0x68daa6
+	};
+	Image* mStrip = nullptr;       // +0x24: IMAGE_AZTEC_STRIP
+	Image* mBackground = nullptr;  // +0x28: IMAGE_AZTEC_BG
+	std::vector<Glyph*> mColumns[16];  // +0x2c: the glyphs of each point (a std::vector, 0x10 bytes each)
+	float mPrevX[16] = {};         // +0x12c: where the point was
+	float mPrevY[16] = {};         // +0x16c
+	int mCount = 0;                // +0x1ac
+	int mCel = 0;                  // +0x1b0: the cel the next glyph takes (of 23)
+	int mDrawWidth = 0;            // +0x1b4: the app's width and height when it was made
+	int mDrawHeight = 0;           // +0x1b8
+	explicit VizRainbowGlyphs(WinTwistApp* theApp);  // 0x68e969
+	~VizRainbowGlyphs() override;                    // 0x68e661
+	void Init() override;                            // 0x68dad4
+	void Update() override;                          // 0x68ea4f
+	void Draw(Graphics* g) override;                 // 0x68dd18
+};
+
+// Sexy::SubAtomic (vtable 0x7d7f9c, constructor 0x67df9f): up to 25 "electrons" (0x2c bytes) circling their centres and
+// splitting in two, leaving trails (0x14 bytes) of IMAGE_SUBATOMIC_BLUR sprites over IMAGE_SUBATOMIC_BG on a swimming mesh.
+// Random draws, constructor of an electron (0x67c581; the game's Rand: RandSigned for the first five, then two of the C
+// runtime's rand): Init 0x67e0ca three electrons; Update 0x67e121 one when there are fewer than 15, and one (then one more
+// _rand) each time an electron's countdown ends while there are fewer than 25. Init also runs 60 updates.
+class SubAtomic : public Visualizer {
+public:
+	struct Electron {  // 0x2c bytes
+		float mX = 0.0f;           // +0x00
+		float mY = 0.0f;           // +0x04
+		int mLife = 0;             // +0x08: updates it lives
+		int mAge = 0;              // +0x0c
+		float mCenterX = 0.0f;     // +0x10
+		float mCenterY = 0.0f;     // +0x14
+		float mSpeed = 0.0f;       // +0x18
+		float mTurn = 1.0f;        // +0x1c
+		float mUnknown20 = 1.0f;   // +0x20
+		int mCountdown = 0;        // +0x24: updates to the next split
+		float mSign = 0.0f;        // +0x28
+		Electron();                // 0x67c581
+	};
+	struct Trail {  // 0x14 bytes
+		float mX = 0.0f;   // +0x00
+		float mY = 0.0f;   // +0x04
+		float mVX = 0.0f;  // +0x08
+		float mVY = 0.0f;  // +0x0c
+		int mAge = 0;      // +0x10
+	};
+	int mCount = 0;                       // +0x24
+	std::vector<Electron*> mElectrons;    // +0x28 (a std::vector)
+	std::vector<Trail*> mTrails;          // +0x38
+	Image* mSprite = nullptr;             // +0x48: IMAGE_SUBATOMIC_BLUR
+	Image* mBackground = nullptr;         // +0x4c: IMAGE_SUBATOMIC_BG
+	explicit SubAtomic(WinTwistApp* theApp);  // 0x67df9f
+	~SubAtomic() override;                    // 0x67da17
+	void Init() override;                     // 0x67e0ca
+	void Update() override;                   // 0x67e121
+	void Draw(Graphics* g) override;          // 0x67d45a
+	void DrawMesh(Graphics* g);               // 0x67cc9d
+};
+
+// Sexy::Cubes (vtable 0x7d77ec, constructor 0x670fb6): 360 turning cubes of IMAGE_BORDERED_SQUARE added on black, each drawn
+// as the three of its faces that turn to it, as a pair of triangles each. No random draws. Its Init (0x671017) does nothing.
+class Cubes : public Visualizer {
+public:
+	int mCount = 0;            // +0x24
+	float mUnknown28 = 0.0f;   // +0x28: grows by 0.035 an update, never read
+	float mUnknown2C = 0.0f;   // +0x2c: grows by 0.025 an update, never read
+	Image* mImage = nullptr;   // +0x30: IMAGE_BORDERED_SQUARE
+	explicit Cubes(WinTwistApp* theApp);  // 0x670fb6
+	~Cubes() override;                    // 0x671d55
+	void Update() override;               // 0x671018
+	void Draw(Graphics* g) override;      // 0x671b57
+	// 0x671198: one cube of half-edge theSize at theX, theY, turned by the three angles, in the hue theHue
+	void DrawCube(float theX, float theY, float theSize, float theRotA, float theRotB, float theRotC, float theHue);
+};
+
+// Sexy::RainDrops (vtable 0x7d7da4, constructor 0x67932c): 300 drops falling out of a swaying sky of IMAGE_RAINDROPS_BG as
+// sprites of IMAGE_POINTY to POINTY3 by their distance, and splashing as IMAGE_SPLASH or rings of it. Random draws, all of
+// the C runtime's rand, three or more (until it is 100 or more from the middle) each time a drop is placed, 0x6784d8: Init
+// 0x679613 (150 drops, then 150 more with one more rand each, the timer) and Update 0x678b36 (a drop's second life).
+class RainDrops : public Visualizer {
+public:
+	struct Drop {  // 0x14 bytes
+		float mX = 0.0f;   // +0x00
+		float mY = 0.0f;   // +0x04
+		float mZ = 0.0f;   // +0x08
+		int mState = 0;    // +0x0c: 0 falling, 1 splashing
+		int mTimer = 0;    // +0x10
+		void Place(WinTwistApp* theApp);  // 0x6784d8
+	};
+	int mCount = 0;                 // +0x24
+	float mSway = 0.0f;             // +0x28
+	std::vector<Drop*> mDrops;      // +0x2c (a std::list that nothing is ever taken from)
+	Image* mPointy = nullptr;       // +0x38: IMAGE_POINTY
+	Image* mPointy2 = nullptr;      // +0x3c: IMAGE_POINTY2
+	Image* mPointy3 = nullptr;      // +0x40: IMAGE_POINTY3
+	Image* mSplash = nullptr;       // +0x44: IMAGE_SPLASH
+	Image* mBackground = nullptr;   // +0x48: IMAGE_RAINDROPS_BG
+	explicit RainDrops(WinTwistApp* theApp);  // 0x67932c
+	~RainDrops() override;                    // 0x67942f
+	void Init() override;                     // 0x679613
+	void Update() override;                   // 0x678b36
+	void Draw(Graphics* g) override;          // 0x678c3d
+	// 0x678754: a ring of the splash image turned by theAngle, 24 triangles of a strip, at theX, theY
+	void DrawSplashRing(Graphics* g, float theX, float theY, float theAngle, float theScale);
 };
 
 }  // namespace Sexy

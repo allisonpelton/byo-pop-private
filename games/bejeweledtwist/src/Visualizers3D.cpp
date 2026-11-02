@@ -48,6 +48,14 @@ Visualizer* Sexy::MakeVisualizer3D(const char* theName, WinTwistApp* theApp)
 		return new VizWarpBars(theApp);
 	if (sexy_stricmp(theName, "VizKaleidoCat") == 0)
 		return new VizKaleidoCat(theApp);
+	if (sexy_stricmp(theName, "VizRainbowGlyphs") == 0)
+		return new VizRainbowGlyphs(theApp);
+	if (sexy_stricmp(theName, "SubAtomic") == 0)
+		return new SubAtomic(theApp);
+	if (sexy_stricmp(theName, "Cubes") == 0)
+		return new Cubes(theApp);
+	if (sexy_stricmp(theName, "RainDrops") == 0)
+		return new RainDrops(theApp);
 	return nullptr;
 }
 
@@ -534,17 +542,6 @@ void ContainmentField::Draw(Graphics* g)
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ParametricFractal
-
-// 0x44fc20: a Transform that takes its matrix as it is
-class MatrixTransform : public Transform {
-public:
-	void SetMatrix(const SexyMatrix3& theMatrix)
-	{
-		mMatrix = theMatrix;
-		mNeedCalcMatrix = false;
-		mComplex = true;
-	}
-};
 
 ParametricFractal::ParametricFractal(WinTwistApp* theApp) : Visualizer(theApp)
 {
