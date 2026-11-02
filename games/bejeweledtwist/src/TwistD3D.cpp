@@ -478,6 +478,10 @@ void TwistD3D::DrawPrimitiveEx(unsigned long theFVF, GPUPrimitiveType theType, c
 
 bool TwistD3D::SetRenderTarget(Image* theImage)
 {
+	// port: the original passes the screen's surface like any other; here the screen's image is the device's null target
+	DDImage* aDDImage = dynamic_cast<DDImage*>(theImage);
+	if (aDDImage != nullptr && aDDImage->mIsScreen)
+		theImage = nullptr;
 	return m2D->SetRenderTarget(theImage);
 }
 

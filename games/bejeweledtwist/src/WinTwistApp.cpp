@@ -109,7 +109,12 @@ WinTwistApp::WinTwistApp()
 	// port: the machine as the original would see a current one (2D mode takes 600 again, Use2DMode)
 	SDL_DisplayMode aMode;
 	int aScreenHeight = SDL_GetDesktopDisplayMode(0, &aMode) == 0 ? aMode.h : 1080;
-	mArtRes = ChooseArtRes(mAllowArtRes1200, SDL_GetSystemRAM(), aScreenHeight, 256);
+	int aMemoryMB = SDL_GetSystemRAM();
+#ifdef __EMSCRIPTEN__
+	// port: a browser gives SDL no memory size; navigator.deviceMemory is in gigabytes (at most 8), 4 when unknown
+	aMemoryMB = EM_ASM_INT({ return (navigator.deviceMemory || 4) * 1024; });
+#endif
+	mArtRes = ChooseArtRes(mAllowArtRes1200, aMemoryMB, aScreenHeight, 256);
 	mScale = (float)mArtRes / 1200.0f;
 
 	mProfile = new Profile();

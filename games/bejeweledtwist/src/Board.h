@@ -953,6 +953,8 @@ public:
 	void DrawBoard(Graphics* g, bool theToImage, bool theSkipPieces);
 	void DrawGrid(Graphics* g, float theArtScale);  // 0x6caa13's grid
 	void DrawPieces(Graphics* g, Graphics& theLightG, bool is3D);  // 0x6caa13's gems
+	void DrawBombHaze(Graphics* g, float theHazeFactor);  // 0x6caa13's mask pass of the bombs' heat haze (0x6cb2f4)
+	void GatherHazeRects();                               // 0x6caa13's rectangles over the bombs' cells into mHazeRects
 	// 0x6aa3bc: in a tip, the forced move's "click here" and the arrows around the cursor
 	void DrawTutorialCursor(Graphics* g);
 	void DrawSelector(Graphics* g, bool theRing);  // 0x6aa6d1: the twist cursor, its ring or its spiral

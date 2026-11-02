@@ -582,6 +582,7 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 	}
 	// The bombs' heat haze: the mask shader's pass into the first manager's height image and the rectangles over the
 	// bombs' cells (+0x14cc) that its distortion drawing (0x6f7ab4) takes from here
+	mHazeRects.clear();  // 0x6b1746
 	{
 		float aScaleOff = (float)((double)mUnknown268C - 1.0);
 		float aHazeFactor = 1.0f;
@@ -589,8 +590,10 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 			aHazeFactor = 0.0f;
 		aHazeFactor = (float)((1.0 - (std::fabs((double)aScaleOff) + std::fabs((double)aScaleOff))) * (double)aHazeFactor);
 		bool aHaze = !mUnknown37C4 && mUnknown3924 != 0.0f;
+		// port: the original gathers the rectangles in 2D too, where nothing reads them
 		if (gD3DInterface != nullptr && !mBombList.empty() && aHaze && 0.0f < aHazeFactor) {
-			NotPorted("Board::DrawPieces: the bombs' heat haze (height image passes and the rectangles) 0x6caa13's 0x6cb2f4");
+			DrawBombHaze(g, aHazeFactor);
+			GatherHazeRects();
 		}
 	}
 	mBombList.clear();
@@ -608,6 +611,255 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 		DrawSelector(g, true);
 	if (mUnknown21A8 != nullptr)
 		mUnknown21A8->Draw(g);
+}
+
+// 0x6a333f (with 0x684796): a vertex of FVF 0x2c4, pre-transformed, diffuse as given, no specular, two texture sets
+struct HazeVertex {
+	float x, y, z, rhw;
+	unsigned int mDiffuse, mSpecular;
+	float u0, v0, u1, v1;
+};
+
+static HazeVertex MakeHazeVertex(float theX, float theY, unsigned int theColor, float theU0, float theV0, float theU1,
+	float theV1)
+{
+	HazeVertex aVertex;
+	aVertex.x = theX;
+	aVertex.mSpecular = 0;
+	aVertex.y = theY;
+	aVertex.mDiffuse = theColor;
+	aVertex.u0 = theU0;
+	aVertex.v0 = theV0;
+	aVertex.z = 0;
+	aVertex.rhw = 1.0f;
+	aVertex.u1 = theU1;
+	aVertex.v1 = theV1;
+	return aVertex;
+}
+
+// 0x6caa13's mask pass (the part under the Direct3D test): each bomb draws four fans of five vertices (IMAGE_HEAT_DISTORTION
+// on stage 0, IMAGE_SHADER_TEST on stage 1) through the mask shader into the first manager's height image, in the
+// screen's size scaled to the image's, under the board's own scale and offsets
+void Board::DrawBombHaze(Graphics* g, float theHazeFactor)
+{
+	// The shader (slot 0xd8) answers a failure when the device cannot run pixel shaders
+	if ((gD3DInterface->GetCaps(0) & 2) == 0)
+		return;
+	gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_MASK]);
+	DDImage* aHeight = mFXManager->GetHeightImage();  // 0x6f5efc
+	if (aHeight == nullptr)  // port: the original does not look
+		return;
+	gD3DInterface->SetRenderTarget(aHeight);
+	mFXManager->mUnknownB5 = true;
+	float aScaleX = (float)aHeight->mWidth / (float)gApp->mWidth;
+	float aScaleY = (float)aHeight->mHeight / (float)gApp->mHeight;
+	// With the board moved or scaled the transform changes to one that also divides by the image's scale, so the
+	// vertices below stand in the screen's pixels of the board
+	bool aMoved = !(mShakeX == 0.0f && mShakeY == 0.0f && mUnknown268C == 1.0f && mUnknown37EC == 0.0f &&
+		mUnknown37F0 == 0.0f);
+	if (aMoved) {
+		SexyTransform2D aTransform;
+		gD3DInterface->PopTransform();  // slot 0x18
+		aTransform.LoadIdentity();      // 0x44f860
+		float aInverse = (float)(1.0 / (double)aScaleX);
+		aTransform.Scale(aInverse, aInverse);  // 0x44f990
+		float aMoveX = (float)((double)-(mWidth / 2) + (double)mShakeX + (double)mUnknown37EC);
+		float aMoveY = (float)((double)-(mHeight / 2) + (double)mShakeY + (double)mUnknown37F0);
+		aTransform.Translate(aMoveX, aMoveY);  // 0x44f8a0
+		aTransform.Scale(mUnknown268C, mUnknown268C);
+		aTransform.Translate((float)(mWidth / 2), (float)(mHeight / 2));
+		aTransform.Scale(aScaleX, aScaleX);
+		gD3DInterface->PushTransform(aTransform, true);  // slot 0x14
+	}
+	int aBombCount = (int)mBombList.size();
+	int aBomb = 0;
+	if (0 < aBombCount) {
+		do {
+			Piece* aPiece = mBombList[aBomb];
+			((MemoryImage*)IMAGE_HEAT_DISTORTION)->mD3DFlags = 8;  // +0x44
+			float aT = (float)((double)aPiece->mBombCount / 9.0);
+			float aFade = (float)(1.0 - (double)aT);
+			float aStrength = aFade * theHazeFactor;
+			// 0x77e016 is a floor
+			int aAlpha = (int)std::floor((double)aStrength * 28.0 + 10.0);
+			unsigned int aColor = ((unsigned int)aAlpha << 24) | 0xffffff;
+			double aPeriodF = (double)aT * 85.0;
+			if (aPeriodF < 55.0)
+				aPeriodF = 55.0;
+			int aPeriod = Ftol(aPeriodF);
+			float aPhase = (float)(1.0 - (double)(gApp->mUpdateCount % aPeriod) / (double)aPeriod);
+			float aPhase2 = (float)(1.0 + (double)aPhase);
+			float aCenterX = (float)(gGemWidth / 2) + aPiece->mX;
+			float aCenterY = (float)(gGemHeight / 2) + aPiece->mY;
+			float aGrow1 = (float)((double)aStrength * 2.0 + 2.0);
+			if (3.15f < aGrow1)
+				aGrow1 = 3.15f;
+			float aGrow2 = (float)((double)aStrength * 2.0 + 2.5);
+			if (4.4f < aGrow2)
+				aGrow2 = 4.4f;
+			gD3DInterface->SetSamplerState(0, 1, 1);
+			gD3DInterface->SetSamplerState(0, 2, 1);
+			gD3DInterface->SetTexture(0, IMAGE_HEAT_DISTORTION);  // slot 0xd4
+			gD3DInterface->SetTexture(1, IMAGE_SHADER_TEST);
+			int aQuad = 0;
+			do {
+				float aAngle = (float)((double)aQuad * 3.1415927410125732 * 0.5 + 0.7853981852531433);
+				float aAngleB = aAngle - 0.25132743f;
+				float aAngleC = aAngle - 0.47123894f;
+				float aAngleD = aAngle + 0.25132743f;
+				float aAngleE = aAngle + 0.47123894f;
+				float aRadiusA = (float)IMAGE_SHADER_TEST->mHeight * aGrow1;
+				float aRadiusC = (float)IMAGE_SHADER_TEST->mHeight * aGrow2;
+				float aRadiusB = gApp->mScale * 100.0f;
+				HazeVertex aVertices[5];
+				// Each vertex: the point on its radius at its angle, then the board's place, in the image's scale
+				float aSin = sinf(aAngleE);
+				float aY = (float)(((double)aRadiusA * (double)aSin + aCenterY) * aScaleY - 0.5);
+				float aX = (float)(((double)cosf(aAngleE) * aRadiusA + aCenterX) * aScaleX - 0.5);
+				aVertices[0] = MakeHazeVertex(aX, aY, aColor, 1.0f, aPhase2, 1.0f, 1.0f);  // 0x6a333f
+				aSin = sinf(aAngleD);
+				aY = (float)(((double)aRadiusB * (double)aSin + aCenterY) * aScaleY - 0.5);
+				aX = (float)(((double)cosf(aAngleD) * aRadiusB + aCenterX) * aScaleX - 0.5);
+				aVertices[1] = MakeHazeVertex(aX, aY, aColor, 0.7f, aPhase, 1.0f, 0.0f);
+				aSin = sinf(aAngle);
+				aY = (float)(((double)aRadiusC * (double)aSin + aCenterY) * aScaleY - 0.5);
+				aX = (float)(((double)cosf(aAngle) * aRadiusC + aCenterX) * aScaleX - 0.5);
+				aVertices[2] = MakeHazeVertex(aX, aY, aColor, 0.5f, aPhase2, 0.5f, 1.0f);
+				aSin = sinf(aAngleB);
+				aY = (float)(((double)aRadiusB * (double)aSin + aCenterY) * aScaleY - 0.5);
+				aX = (float)(((double)cosf(aAngleB) * aRadiusB + aCenterX) * aScaleX - 0.5);
+				aVertices[3] = MakeHazeVertex(aX, aY, aColor, 0.3f, aPhase, 0.0f, 0.0f);
+				aSin = sinf(aAngleC);
+				aY = (float)(((double)aRadiusA * (double)aSin + aCenterY) * aScaleY - 0.5);
+				aX = (float)(((double)cosf(aAngleC) * aRadiusA + aCenterX) * aScaleX - 0.5);
+				aVertices[4] = MakeHazeVertex(aX, aY, aColor, 0.0f, aPhase2, 0.0f, 1.0f);
+				// The middle vertex's place again, its sum rounded to a float before the scale
+				float aMidX = (float)((double)cosf(aAngle) * aRadiusC + aCenterX);
+				aVertices[2].x = aMidX * aScaleX - 0.5f;
+				float aMidY = (float)((double)sinf(aAngle) * aRadiusC + aCenterY);
+				aVertices[2].y = aMidY * aScaleY - 0.5f;
+				gD3DInterface->DrawPrimitiveEx(0x2c4, GPUPT_TRIANGLESTRIP, aVertices, 3, Color::White, 0, 0.0f, 0.0f, true,
+					nullptr);  // slot 0x7c
+				aQuad++;
+			} while (aQuad < 4);
+			aBomb++;
+		} while (aBomb < aBombCount);
+	}
+	if (aMoved) {
+		gD3DInterface->PopTransform();  // slot 0x18
+		gD3DInterface->PushTransform(mTransform, true);  // slot 0x14
+	}
+	gD3DInterface->SetRenderTarget(g != nullptr ? g->mDestImage : nullptr);  // slot 0x98
+	gD3DInterface->SetPixelShader(nullptr);
+}
+
+// 0x6caa13's rectangles: the cells of the pieces at the four corners of each bomb's cell, made into runs along each row
+// (0x6b9e8d), runs of the same columns in rows below one another merged, and each run given its rectangle in the
+// screen's pixels (0x6b9ace into +0x14cc)
+void Board::GatherHazeRects()
+{
+	struct Run { int mLeft, mRight, mTop, mBottom; };  // 0x10 bytes
+	std::vector<unsigned char> aMask((size_t)mRows * (size_t)mCols, 0);
+	std::vector<Piece*> aCorners;  // 0x6b99c3
+	int aCount = (int)mBombList.size();
+	int aBomb = 0;
+	if (0 < aCount) {
+		do {
+			Piece* aBombPiece = mBombList[aBomb];
+			aCorners.push_back(GetPieceAt(aBombPiece->mRow - 1, aBombPiece->mCol - 1));
+			aCorners.push_back(GetPieceAt(aBombPiece->mRow - 1, aBombPiece->mCol + 1));
+			aCorners.push_back(GetPieceAt(aBombPiece->mRow + 1, aBombPiece->mCol - 1));
+			aCorners.push_back(GetPieceAt(aBombPiece->mRow + 1, aBombPiece->mCol + 1));
+			aBomb++;
+		} while (aBomb < aCount);
+	}
+	int aCornerCount = (int)aCorners.size();
+	int i = 0;
+	if (0 < aCornerCount) {
+		do {
+			Piece* aPiece = aCorners[i];
+			if (aPiece != nullptr)
+				aMask[aPiece->mRow * mCols + aPiece->mCol] = 1;
+			i++;
+		} while (i < aCornerCount);
+	}
+	std::vector<std::vector<Run> > aRows((size_t)mRows);
+	const unsigned char* aCell = aMask.data();
+	int aRow = 0;
+	if (0 < mRows) {
+		do {
+			int aStart = -1;
+			int aEnd = -1;
+			int aCol = 0;
+			int aLimit = mCols + 1;
+			if (0 < aLimit) {
+				do {
+					if (aCol < mCols && aCell[aCol] != 0) {
+						aEnd = aCol;
+						if (aStart < 0)
+							aStart = aCol;
+					} else if (-1 < aStart) {
+						Run aRun = {aStart, aEnd, aRow, aRow};
+						aRows[aRow].push_back(aRun);  // 0x6b9e8d
+						aStart = -1;
+						aEnd = -1;
+					}
+					aCol++;
+					aLimit = mCols + 1;
+				} while (aCol < aLimit);
+			}
+			aCell += mCols;
+			aRow++;
+		} while (aRow < mRows);
+	}
+	// From the bottom up, a run takes the bottom of the run of the same columns in the row below, which is dropped
+	for (int r = mRows - 2; -1 < r; r--) {
+		std::vector<Run>& anUpper = aRows[r];
+		std::vector<Run>& aLower = aRows[r + 1];
+		size_t j = 0;
+		if (!anUpper.empty()) {
+			do {
+				size_t k = 0;
+				if (!aLower.empty()) {
+					do {
+						if (anUpper[j].mLeft == aLower[k].mLeft && anUpper[j].mRight == aLower[k].mRight) {
+							anUpper[j].mBottom = aLower[k].mBottom;
+							aLower[k].mLeft = -1;
+						}
+						k++;
+					} while (k < aLower.size());
+				}
+				j++;
+			} while (j < anUpper.size());
+		}
+	}
+	int aHalfWidth = mWidth / 2;
+	int aHalfHeight = mHeight / 2;
+	aRow = 0;
+	if (0 < mRows) {
+		do {
+			size_t k = 0;
+			if (!aRows[aRow].empty()) {
+				do {
+					const Run& aRun = aRows[aRow][k];
+					if (-1 < aRun.mLeft) {
+						HazeRect aRect;
+						aRect.mLeft = (float)aHalfWidth + mUnknown268C *
+							((float)((double)mUnknown37EC + (double)mShakeX + ((double)GetColX(aRun.mLeft) - (double)aHalfWidth)));
+						aRect.mTop = (float)aHalfHeight + mUnknown268C *
+							((float)((double)mUnknown37F0 + (double)mShakeY + ((double)GetRowY(aRun.mTop) - (double)aHalfHeight)));
+						aRect.mRight = (float)((((double)GetColX(aRun.mRight + 1) - (double)aHalfWidth) + (double)mShakeX +
+							(double)mUnknown37EC) * (double)mUnknown268C + (double)aHalfWidth);
+						aRect.mBottom = (float)((((double)GetRowY(aRun.mBottom + 1) - (double)aHalfHeight) + (double)mShakeY +
+							(double)mUnknown37F0) * (double)mUnknown268C + (double)aHalfHeight);
+						mHazeRects.push_back(aRect);  // 0x6b9ace
+					}
+					k++;
+				} while (k < aRows[aRow].size());
+			}
+			aRow++;
+		} while (aRow < mRows);
+	}
 }
 
 void Board::DrawTutorialCursor(Graphics* g)
