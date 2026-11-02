@@ -436,6 +436,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // game (closeGameThen), which goes on from here.
     onGameExit: function (info) {
       exited = true;
+      playClock();
       releaseWake();
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
       if (session) session.markFinished();
@@ -456,6 +457,12 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       whenSaved(function () {
         if (then) { then(info); return; }
         if (restart) { session.restartPage(info); return; }
+        // the site setting "Go back to the games after quitting": the listing page, with ?silent=1 kept for the tests
+        if (setting("quitHome") === "on") {
+          $("exit-msg").textContent = "Going back to the games…";
+          location.href = "./" + (pageSilent() ? "?silent=1" : "");
+          return;
+        }
         $("exit-msg").textContent = hasSave()
           ? "The game has closed. Your game in progress was saved, and you can continue it when you play again."
           : "The game has closed. Your settings and high scores are saved.";
@@ -480,6 +487,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // cause, so the next start can leave them out.
   function showStopped(what) {
     exited = true;
+    playClock();
     releaseWake();
     afterExit = null;
     try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
@@ -857,6 +865,9 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
+    // a play (ByopopPlay): every start but the one after the game's own restart, which goes on with the same play. "Play without
+    // mods" after a crash reloads with the same flag, but with noMods, which the restart never sets: that one is a play
+    if (isAutostart !== true || noMods) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
     askToKeepStorage();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     cursorTimer = setInterval(pollCursor, 100);
@@ -1222,11 +1233,30 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   });
   function goFullscreen() {
     var el = $("stage");
+    // the panels are outside the stage: one left open would stay behind it, as for the game's own full screen (openPanel)
+    closePanels("quiet");
     try { if (el.requestFullscreen) el.requestFullscreen().catch(function () {}); } catch (e) {}
-    // The keys go to the game again
-    $("canvas").focus();
+    // The keys go to the game again, while it runs: before a start and after an exit the canvas is out of the tab order and
+    // hidden, and the focus stays where it is (the Ready card's Play, an exit card)
+    if (gameRunning()) $("canvas").focus();
   }
   $("btn-full").addEventListener("click", goFullscreen);
+  // F11 is the Fullscreen button, and F11 again (or Esc, the browser's own) leaves full screen (the user, 2026-11-02: "F11
+  // should make all games go full screen in the browser"). The browser's F11 would put the whole page in full screen, so it is
+  // stopped, but only when the page can do it itself. This listener is the first to see the key (the document, capturing), so
+  // the game never gets it: TipTop's own F11 (App::HandleKeys) would ask SDL for full screen outside a click, which the browser
+  // refuses. Its Options checkbox still uses the game's own path.
+  function onFullscreenKey(e) {
+    if (e.key !== "F11" || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+    if (!document.fullscreenEnabled || !$("stage").requestFullscreen) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.type !== "keydown" || e.repeat) return;
+    if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(function () {}); }
+    else goFullscreen();
+  }
+  document.addEventListener("keydown", onFullscreenKey, true);
+  document.addEventListener("keyup", onFullscreenKey, true);
 
   // ---------- keyboard and focus (docs/WEB_PLAYER.md, "Accessibility") ----------
   // The game has the keyboard only while its canvas has the focus (SDL listens on the canvas, see Module.preRun). The canvas
@@ -1502,7 +1532,30 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) releaseWake(); else acquireWake();
     syncPause();
+    playClock();
   });
+
+  // ---------- play time (web/settings.js, ByopopPlay; docs/WEB_PLAYER.md, "The listing page") ----------
+  // Time counts while the game runs and its page is shown and has the focus (the user, 2026-11-02: "Only count time with the game
+  // open and active"): checked every second and at each change, a step of at most 5 s, so that a computer that slept adds nothing.
+  // It is written every 30 s and when the count stops, in whole seconds (the rest waits for the next), and when the page goes away.
+  var playSince = null, playMs = 0;
+  function playClock() {
+    var now = performance.now(), on = gameRunning() && !document.hidden && document.hasFocus() && !hiddenPaused;
+    if (playSince !== null) playMs += Math.min(now - playSince, 5000);
+    playSince = on ? now : null;
+    if (playMs >= 30000 || (!on && playMs >= 1000)) playSave(false);
+  }
+  function playSave(last) {
+    var whole = (last ? Math.round(playMs / 1000) : Math.floor(playMs / 1000)) * 1000;
+    if (whole <= 0) return;
+    playMs -= whole;
+    try { ByopopPlay.played(PAGE.id, whole); } catch (e) {}
+  }
+  setInterval(playClock, 1000);
+  window.addEventListener("focus", playClock);
+  window.addEventListener("blur", playClock);
+  window.addEventListener("pagehide", function () { playClock(); playSave(true); });
 
   // ---------- the chat (web/chat.js; docs/CHAT_DESIGN.md) ----------
   // One plain-text room for every game, beside the stage (below it on a narrow screen). The site's "Show chat" setting (on unless

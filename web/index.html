@@ -42,7 +42,8 @@ main, .site-header {
 }
 main { padding-block: 0 32px; }
 .site-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-block: 24px; }
-.site-header img { display: block; }
+/* The logo at its drawn size, 276 by 64 (the user, 2026-11-02: "Make the logo bigger on the front page"), narrower on a small screen */
+.site-header img { display: block; max-width: 100%; height: auto; }
 .site-header .logo-dark { display: none; }
 @media (prefers-color-scheme: dark) {
   .site-header .logo-light { display: none; }
@@ -85,12 +86,15 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
    when it is enlarged (icons are kept at 64 px or less) */
 .badge.has-icon { background: none; box-shadow: none; }
 .badge img { display: block; width: 72px; height: 72px; object-fit: contain; image-rendering: crisp-edges; image-rendering: pixelated; }
-/* Under the name, in words: whether the game's files are loaded in this browser ("Your copy") or not ("Needs your files"),
+/* Under the name, in words: whether the game's files are loaded in this browser ("Play now") or not ("Add your files"),
    and for a game played here before, a "?" that explains why they are not (docs/WEB_PLAYER.md, "The listing page") */
 .ownrow { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px 12px; min-height: 20px; }
 .own { font-size: 12px; color: var(--muted); }
 .own:empty { display: none; }
 .own-yes { color: var(--accent); font-weight: 600; }
+/* How much the game was played here (web/settings.js, ByopopPlay), at the foot of the card once it has been */
+.played { margin: -6px 0 0; padding: 0 8px 12px; font-size: 12px; color: var(--muted); text-align: center; }
+.played[hidden] { display: none; }
 .why {
   flex: none; width: 20px; height: 20px; padding: 0; border-radius: 50%; border: 1px solid var(--line);
   background: var(--bg); color: var(--fg); font: inherit; font-size: 12px; font-weight: 700; line-height: 1; cursor: pointer;
@@ -108,9 +112,21 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .why-pop :last-child { margin-bottom: 0; }
 .why-pop ul { padding-left: 18px; }
 .why-pop a { color: var(--accent); font-weight: 600; }
+/* The players, the saves and the settings, as tabs under the games (docs/WEB_PLAYER.md, "The listing page"): a row of tabs on a line,
+   the chosen one in the accent colour and joined to its panel */
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 40px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; }
+.tabs [role=tab] {
+  font: inherit; font-weight: 600; color: var(--muted); background: none; cursor: pointer;
+  min-height: 40px; padding: 8px 16px; margin-bottom: -1px;
+  border: 1px solid transparent; border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0;
+}
+.tabs [role=tab]:hover { color: var(--fg); }
+.tabs [role=tab][aria-selected=true] { color: var(--accent); background: var(--panel); border-color: var(--line); border-bottom: 1px solid var(--panel); }
+.tabs [role=tab]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tabpanel { padding-top: 4px; scroll-margin-top: 16px; }
+.tabpanel[hidden] { display: none; }
+.tabpanel:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }
 /* The players (docs/WEB_PLAYER.md, "Player profiles"): web/players.js builds the section's insides */
-#players, #saves { margin-top: 40px; scroll-margin-top: 16px; }
-#players h2, #saves h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 #players h3, #saves h3 { margin: 24px 0 8px; font-size: 15px; font-weight: 600; }
 .pl-about, .pl-hint, .pl-muted { color: var(--muted); font-size: 13px; }
 #players p, #saves p { margin: 0 0 8px; }
@@ -141,6 +157,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 @media (prefers-color-scheme: dark) { #players button.pl-danger, #saves button.pl-danger { border-color: #ff8a80; color: #ff8a80; } }
 .pl-badge { font-size: 12px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 99px; padding: 0 8px; }
 .pl-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.pl-form[hidden] { display: none; }
 .pl-form label { font-weight: 600; }
 .pl-form input[type=text] {
   font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 12em; max-width: 100%;
@@ -188,8 +205,6 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .si-sub { margin: 12px 0 4px; font-size: 13px; font-weight: 600; }
 .si-confirm li { overflow-wrap: anywhere; }
 /* The site's settings (docs/WEB_PLAYER.md, "Site settings"): web/settings.js draws the controls and brings their style */
-#settings { margin-top: 40px; scroll-margin-top: 16px; }
-#settings h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 /* The foot of the page: the disclaimer and the credit, at the page's width, in the muted colour of both themes */
 /* Where a game can still be bought: a link for each store, beside the game's own link in the card (cmake/ByopopStores.cmake) */
 .buyrow { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 10px; padding: 0 8px 12px; font-size: 12px; }
@@ -206,8 +221,8 @@ footer a { color: var(--accent); }
 </head>
 <body>
 <header class="site-header">
-  <img class="logo-light" src="logo.svg" alt="byo-pop" width="120" height="28">
-  <img class="logo-dark" src="logo-dark.svg" alt="" width="120" height="28">
+  <img class="logo-light" src="logo.svg" alt="byo-pop" width="276" height="64">
+  <img class="logo-dark" src="logo-dark.svg" alt="" width="276" height="64">
   <h1 id="games-title">Games</h1>
 </header>
 <main>
@@ -222,16 +237,22 @@ footer a { color: var(--accent); }
   <ul class="games" aria-labelledby="games-title">
 <!-- byopop:games -->
   </ul>
-  <section id="players" aria-labelledby="players-title">
-    <h2 id="players-title">Players</h2>
+  <!-- The players, the saves and the settings, as tabs under the games (the tabs script below) -->
+  <div class="tabs" role="tablist" aria-label="Players, saves and settings">
+    <button type="button" role="tab" id="tab-players" aria-controls="players" aria-selected="true">Players</button>
+    <button type="button" role="tab" id="tab-saves" aria-controls="saves" aria-selected="false" tabindex="-1">Saves</button>
+    <button type="button" role="tab" id="tab-settings" aria-controls="settings" aria-selected="false" tabindex="-1">Settings</button>
+  </div>
+  <section id="players" class="tabpanel" role="tabpanel" aria-labelledby="tab-players" tabindex="0">
+    <h2 class="pl-sr">Players</h2>
     <div id="players-body"></div>
   </section>
-  <section id="saves" aria-labelledby="saves-title">
-    <h2 id="saves-title">Your saves</h2>
+  <section id="saves" class="tabpanel" role="tabpanel" aria-labelledby="tab-saves" tabindex="0" hidden>
+    <h2 class="pl-sr">Saves</h2>
     <div id="saves-body"></div>
   </section>
-  <section id="settings" aria-labelledby="settings-title">
-    <h2 id="settings-title">Settings: site-wide overrides</h2>
+  <section id="settings" class="tabpanel" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
+    <h2 class="pl-sr">Settings</h2>
     <div id="settings-controls"></div>
   </section>
 </main>
@@ -338,7 +359,7 @@ try {
 // when the page comes back into view, as the files may have been loaded or forgotten in another tab or page.
 (function () {
   var tiles = Array.prototype.slice.call(document.querySelectorAll("a.tile[data-game]"));
-  var WORDS = { yes: "Your copy", no: "Needs your files", unknown: "Files unknown" };
+  var WORDS = { yes: "Play now", no: "Add your files", unknown: "Files unknown" };
   var WHY = "Why aren\u2019t my files here?";
   var generation = 0;
   var open = null;  // the "?" whose explanation is showing: {button, pop}
@@ -420,15 +441,16 @@ try {
     label.className = "own own-" + info.state;
     // Where to buy (docs/WEB_PLAYER.md, "The listing page"): not shown to a player whose files for the game are loaded, were
     // loaded and forgotten or lost since (the record says so), or who has played it here: the links would suggest that the page
-    // is used for copies it was not given by a purchase. They are shown for "Needs your files" without such a past, and for
+    // is used for copies it was not given by a purchase. They are shown for "Add your files" without such a past, and for
     // "Files unknown".
     var buy = card.querySelector(".buyrow");
     if (buy) buy.hidden = info.state === "yes" || !!info.everLoaded || !!info.played;
     // the link's accessible name: the game's name, the year of its release when it has one, then the same words
-    // ("Bejeweled Deluxe, 2001, your copy")
+    // ("Bejeweled Deluxe, 2001, play now")
     var year = tile.querySelector(".year");
     tile.setAttribute("aria-label", tile.querySelector(".name").textContent + (year ? ", " + year.textContent : "") + ", " +
       WORDS[info.state].toLowerCase());
+    showPlayed(card, info.play);
     var button = row.querySelector(".why"), pop = card.querySelector(".why-pop");
     if (info.state === "no" && info.played) {
       if (!button) {
@@ -456,6 +478,27 @@ try {
       button.remove();
       pop.remove();
     }
+  }
+
+  // How much the game was played here (ByopopPlay), once it has been: "3 plays · 2 h 15 min", then "Last played 1 Nov 2026"
+  function showPlayed(card, play) {
+    var line = card.querySelector(".played");
+    if (!play || !(play.plays > 0 || play.seconds > 0)) { if (line) line.hidden = true; return; }
+    if (!line) {
+      line = make("p");
+      line.className = "played";
+      card.insertBefore(line, card.querySelector(".buyrow"));
+    }
+    var when = play.last, m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(when || "");
+    if (m) {
+      var day = new Date(+m[1], +m[2] - 1, +m[3]);
+      if (when === ByopopPlay.today()) when = "today";
+      else { try { when = day.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); } catch (e) {} }
+    }
+    line.textContent = "";
+    line.appendChild(document.createTextNode(play.plays + (play.plays === 1 ? " play" : " plays") + " · " + ByopopPlay.duration(play.seconds)));
+    if (when) { line.appendChild(make("br")); line.appendChild(document.createTextNode("Last played " + when)); }
+    line.hidden = false;
   }
 
   // What the IDBFS database called name holds, from its keys only: {game, saves, entries}. A key is a file's when it is in
@@ -504,8 +547,9 @@ try {
   }
 
   function check() {
-    var gen = ++generation, record = {};
+    var gen = ++generation, record = {}, plays = {};
     try { record = ByopopGameFiles.all(); } catch (e) {}
+    try { plays = ByopopPlay.all(); } catch (e) {}
     var haveNames = !!(window.indexedDB && typeof indexedDB.databases === "function");
     (haveNames ? indexedDB.databases().then(function (list) { return list.map(function (d) { return d.name; }); }) : Promise.resolve(null))
       .catch(function () { return null; })
@@ -514,7 +558,7 @@ try {
           var id = tile.getAttribute("data-game"), persist = tile.getAttribute("data-persist"), rec = record[id] || null;
           var listed = names !== null && names.indexOf(persist) >= 0;
           var info = { state: "unknown", played: false, loaded: rec && rec.loaded, forgotten: rec && rec.forgotten, saves: hasBackup(persist),
-            everLoaded: ByopopGameFiles.everLoaded(rec),
+            everLoaded: ByopopGameFiles.everLoaded(rec), play: plays[id] || null,
             icon: (rec && ByopopGameFiles.present(rec) && rec.icon) || "" };
           if (rec && ByopopGameFiles.present(rec) && (names === null || listed)) {
             // the record says the files are there, and the database that holds them is
@@ -543,7 +587,68 @@ try {
   check();
   window.addEventListener("pageshow", check);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
-  window.addEventListener("storage", function (ev) { if (ev.key === null || ev.key === ByopopGameFiles.KEY) check(); });
+  window.addEventListener("storage", function (ev) { if (ev.key === null || ev.key === ByopopGameFiles.KEY || ev.key === ByopopPlay.KEY) check(); });
+})();
+</script>
+<script>
+// The tabs under the games (docs/WEB_PLAYER.md, "The listing page"): Players, Saves and Settings, after the ARIA pattern for tabs with
+// automatic activation. Only the chosen tab is in the tab order; the arrow keys move along the tabs and show each one's panel, Home and
+// End go to the first and the last, and Tab goes on into the panel. A link to #players, #saves or #settings (the Players section's
+// "Player names in Settings", a game page's "Manage players"), here or when the page opens, shows that tab and puts the focus on it.
+// The player's own choice goes into the address (replaceState, no history entry), so that a reload keeps it, and is remembered in
+// localStorage for the next visit (the page works without it).
+(function () {
+  var KEY = "byopop-listing-tab";
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".tabs [role=tab]"));
+  if (!tabs.length) return;
+  function panel(tab) { return document.getElementById(tab.getAttribute("aria-controls")); }
+  function choose(tab, focus) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      if (on) t.removeAttribute("tabindex"); else t.setAttribute("tabindex", "-1");
+      panel(t).hidden = !on;
+    });
+    if (focus) tab.focus();
+    try { localStorage.setItem(KEY, panel(tab).id); } catch (e) {}
+  }
+  function byPanel(id) { return tabs.filter(function (t) { return t.getAttribute("aria-controls") === id; })[0] || null; }
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener("click", function () { choose(tab, false); toAddress(tab); });
+    tab.addEventListener("keydown", function (ev) {
+      var to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[ev.key];
+      if (to === undefined || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      ev.preventDefault();
+      var next = tabs[(to + tabs.length) % tabs.length];
+      choose(next, true);
+      toAddress(next);
+    });
+  });
+  function toAddress(tab) {
+    try { history.replaceState(null, "", location.pathname + location.search + "#" + panel(tab).id); } catch (e) {}
+  }
+  // #players, #saves or #settings: that tab, scrolled to
+  function fromHash() {
+    var tab = byPanel(location.hash.slice(1));
+    if (!tab) return false;
+    choose(tab, false);
+    tabs[0].parentNode.scrollIntoView({ block: "start" });
+    return true;
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  if (!fromHash() && byPanel(saved)) choose(byPanel(saved), false);
+  window.addEventListener("hashchange", fromHash);
+  // a link to the tab that is already in the address (the hash does not change): the tab all the same, and the focus on it
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest('a[href^="#"]');
+    var tab = a && byPanel(a.getAttribute("href").slice(1));
+    if (!tab) return;
+    ev.preventDefault();
+    if (location.hash !== a.getAttribute("href")) history.pushState(null, "", a.getAttribute("href"));
+    choose(tab, true);
+    tabs[0].parentNode.scrollIntoView({ block: "start" });
+  });
 })();
 </script>
 <script>

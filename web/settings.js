@@ -38,6 +38,7 @@ var ByopopSettings = (function () {
     wakeLock: { values: SWITCH, def: "off" },       // on: the screen stays awake while a game runs
     confirmLeave: { values: SWITCH, def: "off" },   // on: ask before leaving the page while a game runs
     pauseHidden: { values: SWITCH, def: "off" },    // on: a hidden tab pauses the game
+    quitHome: { values: SWITCH, def: "off" },       // on: a game that quits goes back to the listing page, not its "Thanks for playing"
     autoStart: { values: SWITCH, def: "on" },       // on: a game starts when its page opens, if the browser allows sound
     showChat: { values: SWITCH, def: "on" },        // off: the chat beside the game is not drawn (web/chat.js)
     profile: { values: ["game", "fill", "create"], def: "game" }  // fill: names start with the site's player; create: and the player is made and chosen
@@ -169,9 +170,7 @@ var ByopopSettings = (function () {
   var FIELDS = [
     { group: "Players" },
     { name: "profile", label: "Player names", options: [["game", GAME_DEFAULT], ["fill", "Fill in the name"], ["create", "Use the player"]], start: true,
-      hint: "Puts your name into the games, so you don’t type it again. Fill in the name: name boxes (a new player, a high score) " +
-        "start with your name. Use the player: games that keep players also make yours and choose it, so they don’t ask. " +
-        "Choose who you are under Players." },
+      hint: "Fill in the name: name boxes start with your player’s name. Use the player: games also make your player and choose it." },
     { group: "Sound" },
     { name: "startVolume", kind: "volume", label: "Set the starting volume",
       hint: "Every game starts at the music and sound volumes you choose.",
@@ -179,23 +178,22 @@ var ByopopSettings = (function () {
         "volume every game starts at, 0 for silence. You can still change it in the game." },
     { group: "Display" },
     { name: "fullscreen", label: "Full screen at start", options: [["game", GAME_DEFAULT], ["on", "Full screen"], ["off", "Windowed"]], start: true,
-      hint: "Some games start in full screen. Windowed keeps them in the page; Full screen fills the screen when you press Play." },
+      hint: "Full screen fills the screen when you press Play." },
     { name: "cursors", label: "Custom cursors", options: [["game", GAME_DEFAULT], ["on", "When available"], ["off", "Never"]],
-      hint: "Many games draw their own mouse pointer. When available turns it on in every game that has one; Never keeps your usual pointer." },
+      hint: "The game’s own mouse pointer, or your usual one." },
     { group: "Page" },
     { name: "autoStart", label: "Start the game when its page opens",
-      hint: "Starts the game without pressing Play once its files are loaded, when your browser lets the page play sound " +
-        "without a click: after you open a game from this site, or when the site may always play sound (a browser setting). " +
-        "Otherwise, or with Full screen at start, the page waits for Play." },
+      hint: "When your browser lets the page play sound without a click, and not with Full screen at start. Otherwise the page waits for Play." },
     { name: "wakeLock", label: "Keep the screen awake while a game runs",
-      hint: "Stops the screen dimming or locking while a game is running. Some browsers don’t allow it." },
+      hint: "Stops the screen dimming or locking. Some browsers don’t allow it." },
     { name: "confirmLeave", label: "Ask before leaving a page while a game runs",
-      hint: "Asks before you close or leave a page while a game is running, so a stray click doesn’t end your game." },
+      hint: "So a stray click doesn’t end your game." },
     { name: "pauseHidden", label: "Pause when the tab is hidden",
-      hint: "Stops the game and its sound while you’re on another tab. The original games keep running in the background, so this starts off." },
+      hint: "Stops the game and its sound on another tab. The original games keep running." },
+    { name: "quitHome", label: "Go back to the games after quitting",
+      hint: "Instead of offering Play again." },
     { name: "showChat", label: "Show chat",
-      hint: "Shows the chat beside the game on a game’s page, or below it on a narrow screen. Turn it off to hide it. For now it is a test: " +
-        "the messages are made up and stay in this browser." }
+      hint: "For now a test: the messages are made up and stay in this browser." }
   ];
   var STYLE =
     ".bps { display: grid; gap: 8px; }\n" +
@@ -324,9 +322,8 @@ var ByopopSettings = (function () {
     }
     container.textContent = "";
     container.classList.add("bps");
-    container.appendChild(make("p", "bps-about", "These override each game’s own options in every game on this site. " +
-      GAME_DEFAULT + " leaves a game as it is. Kept in this browser." +
-      (opts.live ? "" : " A game applies them when it starts. Each game’s own page can also set them for that game alone.")));
+    container.appendChild(make("p", "bps-about", "For every game. " + GAME_DEFAULT + " leaves a game as it is." +
+      (opts.live ? "" : " A game’s own page can set them for that game alone.")));
     var controls = {};
     var msg = make("p", "bps-msg");
     msg.setAttribute("role", "status");
@@ -678,4 +675,65 @@ var ByopopGameFiles = (function () {
   // since. The listing page hides a game's buy links for such a game (docs/WEB_PLAYER.md, "The listing page").
   function everLoaded(r) { return !!(r && r.loaded); }
   return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, present: present, everLoaded: everLoaded, setIcon: setIcon };
+})();
+
+// How much each game was played in this browser (docs/WEB_PLAYER.md, "The listing page"): one localStorage item for the whole
+// site, "byopop-play", a JSON object from a game's id to {plays, seconds, last}. plays: how many times the game was started (a
+// restart of the game's own mod menu goes on with the same play). seconds: the time the game ran with its page shown and in the
+// focus, not paused, hidden or behind another window. last: the last day it was played, the player's own date as YYYY-MM-DD. A game
+// page writes it, the listing page shows it on the game's card, and the save backup keeps it (web/saves.js). Every read and write
+// is guarded: with storage blocked, nothing is counted.
+var ByopopPlay = (function () {
+  "use strict";
+  var KEY = "byopop-play";
+  function store() { try { return window.localStorage || null; } catch (e) { return null; } }
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  function count(n) { return (typeof n === "number" && isFinite(n) && n > 0) ? Math.floor(n) : 0; }
+  // id -> {plays, seconds, last}; {} when there is none or storage is blocked
+  function all() {
+    var out = {};
+    try {
+      var s = store();
+      var o = s ? JSON.parse(s.getItem(KEY) || "{}") : {};
+      if (o && typeof o === "object" && !Array.isArray(o)) {
+        Object.keys(o).forEach(function (id) {
+          var r = o[id];
+          if (!r || typeof r !== "object" || Array.isArray(r)) return;
+          out[id] = { plays: count(r.plays), seconds: count(r.seconds),
+            last: (typeof r.last === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.last)) ? r.last : "" };
+        });
+      }
+    } catch (e) {}
+    return out;
+  }
+  function change(id, fn) {
+    if (!/^[a-z0-9_-]{1,40}$/.test(id)) return false;
+    try {
+      var s = store();
+      if (!s) return false;
+      var o = all();
+      o[id] = o[id] || { plays: 0, seconds: 0, last: "" };
+      fn(o[id]);
+      o[id].last = today();
+      s.setItem(KEY, JSON.stringify(o));
+      return true;
+    } catch (e) { return false; }
+  }
+  // The game was started
+  function started(id) { return change(id, function (r) { r.plays++; }); }
+  // ms more of play
+  function played(id, ms) {
+    var add = Math.round(ms / 1000);
+    return add > 0 ? change(id, function (r) { r.seconds += add; }) : false;
+  }
+  // "3 h 20 min", "12 min", "under a minute"
+  function duration(seconds) {
+    var m = Math.floor(count(seconds) / 60), h = Math.floor(m / 60);
+    if (h > 0) return h + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
+    return m > 0 ? m + " min" : "under a minute";
+  }
+  return { KEY: KEY, all: all, started: started, played: played, duration: duration, today: today };
 })();

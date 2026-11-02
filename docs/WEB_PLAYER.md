@@ -75,7 +75,8 @@ The panels:
   card, which can go back to the Ready card.
 - **Settings** is the site's settings (see "Site settings", below), the same controls as the listing page's.
 - **Sound** turns the page's sound off or on, below the game's own volume and mute options (see "Site settings").
-- **Fullscreen** puts the canvas in fullscreen.
+- **Fullscreen** puts the stage in fullscreen. **F11** does the same in every game's page, and F11 again (or Esc) leaves it (see
+  "Accessibility").
 - A game can add panels of its own: Big Money's page also has **Replays**, for watching and importing recorded games.
 
 ## Why `bejeweled.js` is minified, and what is Bejeweled-specific about it
@@ -206,12 +207,13 @@ part of the terms' version, so a change of stores asks nobody to agree again.
 `build/web/index.html` lists the finished games, so that the site's root shows them instead of a directory listing: a
 tile for each, with the game's `TITLE` and a badge (its initials on a colour of its own from `BYOPOP_WEB_BADGES`,
 drawn by the page, never from the game's files) linking to its page; opened with `?silent=1`, it passes that on to the
-links. `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
+links. Its header has the logo at the size it is drawn, 276 by 64 pixels (the user, 2026-11-02: "Make the logo bigger on the
+front page"), narrower when the window is, and the heading "Games". `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
-option is off). Below the tiles it has the Players section (`#players`; "Player profiles", below), which `web/players.js` builds
-from the records in `web/profiles.js`, the Your saves section (`#saves`; "Save backup" and "Importing saves from an installed game", below) and the Settings section (`#settings`; "Site settings", below), which `web/settings.js`
-draws; the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
+option is off). Below the tiles it has three tabs: Players (`#players`; "Player profiles", below), which `web/players.js` builds
+from the records in `web/profiles.js`, Saves (`#saves`; "Save backup" and "Importing saves from an installed game", below) and Settings (`#settings`; "Site settings", below), which `web/settings.js`
+draws (see "The tabs", below); the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
 for the listing page's own: `players.js`, `saves.js` and `saveimport.js`, with the table `platform/saveimport.json` written beside them as `saveimport-table.js`).
 
 **Sorting.** Above the tiles is a "Sort by" choice (a `<fieldset>` with a `<legend>` and two radio buttons, **Name** and **Release
@@ -221,7 +223,7 @@ the oldest game first. The order comes from the game's row in the `BYOPOP_WEB_RE
 first release of the Windows edition the site plays: the Deluxe download where there is one, and for a game that first came out
 under another publisher (Cosmic Bugs, Water Bugs, Word Harmony) the first release. `byopop_web_index()` writes it on the card as
 `data-released`, as given, next to `data-title`, and shows the year small under the name, which is part of the link's accessible
-name ("Bejeweled Deluxe, 2001, your copy"). A date that is less exact sorts later among the same year's or month's, so a game with
+name ("Bejeweled Deluxe, 2001, play now"). A date that is less exact sorts later among the same year's or month's, so a game with
 only a year comes after the full dates of that year, then by name; a game without a row gets a configure warning, shows no year
 and goes last, and a row that is not a date stops the configure. Like the table of badges, the table is the coordinator's, who
 adds a game's row at its final merge together with its place in `BYOPOP_WEB_FINISHED`.
@@ -230,8 +232,30 @@ Choosing a sort moves the cards' `<li>` elements (no CSS `order`), so the tab or
 screen, and the focus stays on the radio button that was chosen. A polite status line (`role="status"`, out of sight) says "Sorted
 by release date" or "Sorted by name", for the player's own choice only. The choice is kept in localStorage under
 `byopop-listing-sort` (`name` or `release`), read and written inside `try`, so that a browser without storage shows the page in name
-order; another tab that changes it changes this one. The Players and Your saves sections list the games in the built (name) order
+order; another tab that changes it changes this one. The Players and Saves tabs list the games in the built (name) order
 whatever the sort.
+
+**The tabs.** The user, 2026-11-02: "Turn the player, save, and settings managers into separate tabs under the games list
+... Massively reduce how much text there is." The three managers are tabs under the games, **Players**, **Saves** and **Settings**,
+by name until their icons are designed. They follow the ARIA pattern for tabs with automatic activation: a `role="tablist"` row of
+`<button role="tab">`s, each `aria-controls` its `<section role="tabpanel">`, which is `aria-labelledby` the tab, in the tab order
+(`tabindex="0"`) and hidden while another tab is chosen. Only the chosen tab is in the tab order (`aria-selected="true"`, the others
+`tabindex="-1"`); Left and Right move along the tabs, wrapping round, and show each one's panel at once, Home and End go to the first
+and the last, and Tab goes on into the panel. Each panel keeps an `<h2>` with the tab's name, out of sight, for the page's outline. A
+link to `#players`, `#saves` or `#settings` chooses that tab, whether it is followed here (the Players tab's "Player names in Settings")
+or opens the page (a game's Settings panel's "Manage players"); a click on such a link in the page also puts the focus on the tab,
+whether or not its hash was already in the address. A tab the player chooses (a click or the keys) goes into the address with
+`history.replaceState`, which adds no history entry, so that a reload keeps it, and it is kept in localStorage under
+`byopop-listing-tab` (the panel's id), read and written inside `try`, for the next visit; Players is the first. `tools/a11ycheck.js` takes the roving tabindex for what it is: every tab must
+take the focus, by itself (a `<button>`) or with `tabindex="-1"`, and one tab of each tablist must be in the tab order, so a
+`<div role="tab">` without a tabindex still fails.
+
+The text in them is what a player needs to use them. The explanations went: what the players are for, "What each game last said of
+its players" (in the user's words, "cruft that a human would never write"), the line per game that has no players, the list of games
+that have not started since, when each game reported, what the backup leaves out and why, the browser's own backup being removed on a
+restore, the steps of the import from an installed game, and the Settings' explanation, which is now "For every game. Game default
+leaves a game as it is." The note that the browser may clear the saves when the drive runs low is shown only while it has not agreed
+to keep them.
 
 At the foot of the page is a `<footer>`, at the page's width and in its muted colours, with the disclaimer, in the words of
 `web/copyright.html` and `web/terms.html` (an unofficial, non-commercial project, not affiliated with or endorsed by
@@ -240,9 +264,9 @@ donations and a player with the money should buy games), and a credit line that 
 opens normally, with no name or email beside it.
 
 **Which games are yours.** Under each game's name the card says, in words, whether the game's files are loaded in this
-browser, as a sign that the player owns the game: "Your copy" when they are, "Needs your files" when they are not, and
+browser, as a sign that the player owns the game: "Play now" when they are, "Add your files" when they are not, and
 "Files unknown" when the page cannot tell (below). The link's accessible name carries the same words, after the game's name
-and the year of its release ("Bejeweled Deluxe, 2001, your copy"). The page knows without starting any game, from a record that the game pages keep. The record is one
+and the year of its release ("Bejeweled Deluxe, 2001, play now"). The page knows without starting any game, from a record that the game pages keep. The record is one
 localStorage item for the whole site, `byopop-game-files` (`ByopopGameFiles` in `web/settings.js`): a JSON object from a
 game's id to `{loaded, forgotten, missing}`, with dates as YYYY-MM-DD. `loaded` is when the game's files were last found,
 `forgotten` when the player used "Forget game files" on the game's page, and `missing` when a game page found the files
@@ -268,7 +292,7 @@ writes no record itself. It checks again when the page comes back into view (`pa
 and when another tab changes the record (`storage`).
 
 **The "?" for a game played before.** When a game has been played in this browser but its files are not there, the
-card has a small "?" button next to "Needs your files". Played before means any of these: the game has an entry in the
+card has a small "?" button next to "Add your files". Played before means any of these: the game has an entry in the
 record (so a forgotten game stays one); its database holds files in other folders than `game/` (saves, mods, replays)
 but no game files; or the game's save backup exists in localStorage (`sexy-userdata-backup:<persist>/userdata`, which
 `platform/WebPersist.cpp` keeps). A game that was only opened, whose database holds nothing but its empty folders, is not
@@ -294,12 +318,28 @@ it, in a `.buyrow` beside it, as a link cannot hold a link.
 
 The links are hidden once the player has loaded files for the game, because they would otherwise suggest that the page is
 used for copies that were not bought. The rule, in `show()` of `web/index.html`: they are hidden when the game's state is
-"Your copy", when its record says the files were ever loaded (`ByopopGameFiles.everLoaded`: a `loaded` date, whether the files
+"Play now", when its record says the files were ever loaded (`ByopopGameFiles.everLoaded`: a `loaded` date, whether the files
 are there now or were forgotten (`forgotten`) or lost (`missing`) since), and when the game was played here before (the "?" case:
-saves or a database with entries but no record). They are shown for "Needs your files" without such a past, and for "Files
+saves or a database with entries but no record). They are shown for "Add your files" without such a past, and for "Files
 unknown". `byopop_web_index()` writes each `.buyrow` with the `hidden` attribute, so that a player who owns the game never sees
 the links flash before the check has run. The game pages' terms card (off for now) and the copyright pages keep their buy
 note: they are not the card that suggests where to get the game.
+
+**Play time.** Once a game has been played in this browser, its card shows under the name how many times it was started, how long
+it was played and the last day it was played: "3 plays · 2 h 15 min", then "Last played 1 Nov 2026" (the browser's own date format,
+"today" for today). The user, 2026-11-02: "Add game playtime and last day played to the front page once a game has been played
+once. Only count time with the game open and active. Also count number of plays." A play is a start of the game from its page (Play,
+or the page's own start when it opens, and "Play without mods" after a start that failed); the start after the game's own restart
+from its mod menu goes on with the same play. Both reload the page and start the game without a click, so the page tells them apart by
+the run without mods, which the restart never asks for. The
+time counts only while the game runs and its page is shown and has the focus (`document.hasFocus()`, so another window in front
+stops it; the chat beside the game does not) and is not paused by the site's "Pause when the tab is hidden". The game's page checks
+every second and at each change of visibility or focus, adds at most 5 seconds a step (a computer that slept adds at most those 5 seconds) and writes
+the whole seconds every 30 seconds, when the count stops, when the game quits and when the page goes away. The record is one
+localStorage item for the site, `byopop-play` (`ByopopPlay` in `web/settings.js`, beside `ByopopGameFiles`): a JSON object from
+a game's id to `{plays, seconds, last}`, `last` as the player's own date, YYYY-MM-DD. The save backup takes it ("Save backup",
+below). Another tab that changes it changes the listing at once (the `storage` event), and the listing reads it again when it comes
+back into view.
 
 **The game's own icon.** Once a game's files are loaded, its card shows the game's icon in place of the initials badge
 (an `<img alt="">`, since the card has the name, at the badge's size and with `image-rendering: pixelated` so that a small
@@ -333,10 +373,9 @@ one line for each exe and writes no icon) and against synthetic exes made for ev
 Site-wide overrides of the games' own options, which the player sets once and every game page applies when its game starts.
 **Game default** leaves an option to the game, and it is what every setting starts as, so a player who never opens the settings
 sees every game as it is. They are edited in two places that draw the same controls from one file, `web/settings.js` (copied
-next to the pages and loaded by the listing page and by every game page): the **Settings: site-wide overrides** section at the
-foot of the listing page, and the **Settings** panel of a game's page (the bar's Settings button, a side panel like Mods and
-Game files; its heading says the same). Both begin with "These override each game's own options in every game on this site.
-Game default leaves a game as it is." The listing page's section is site-wide. The panel starts with a choice, **All games
+next to the pages and loaded by the listing page and by every game page): the **Settings** tab of the listing page, and the **Settings** panel of a game's page (the bar's Settings button, a side panel like Mods and
+Game files, whose heading is still "Settings: site-wide overrides", though it also offers "This game only"). Both begin with "For every game. Game default leaves a game as it is." The listing
+page's tab is site-wide. The panel starts with a choice, **All games
 (site-wide)** or **This game only**: "All games" edits the same stored values as the listing page; "This game only" edits values
 that only this game has (below), and every control then starts with "Same as all games (<the value it follows>)", for example
 "Same as all games (Game default)", which shows what the game inherits and removes the game's own value when chosen. In "All
@@ -401,6 +440,12 @@ it is for, in `FIELDS` in `web/settings.js`):
   that did not finish (the card offers the rescue), with "Full screen at start" on Full screen (only a click may ask for full
   screen), with `?silent=1` (tests press Play themselves; the Browser pane may allow sound without a click), or once a panel is
   open or the card has gone. The game then starts with sound, so the status line does not add "sound after a click or key".
+- `quitHome` ("on" or "off", default off): **Go back to the games after quitting**. When the game quits by itself (its own
+  Quit or Exit), the page waits for the saves to reach the browser's storage as always and then goes to the listing page
+  (`./`, with `?silent=1` kept) instead of showing the "Thanks for playing" card with **Play again** (the user, 2026-11-02:
+  "Add option for 'Quit Game' to take the player back to the home page"). It starts off, because the card is what a player who
+  quit by mistake needs: Play again is one click away there, and the listing is always one click away on the logo. A restart
+  from the mod menu, the Game files panel closing the game and a game that stopped with an error keep their cards.
 - `showChat` ("on" or "off", default **on**): **Show chat**. A game's page draws the chat beside the game (below it on a narrow
   screen) unless it is off, and with it off nothing of the chat is built or started. It starts on because
   the chat is a part of the page rather than a change to a game, and it can be turned on and off while a game runs ("The chat",
@@ -602,7 +647,7 @@ saved games, Cosmic Bugs' saved game and records), so does the page's: it calls 
 
 ### Save backup
 
-The listing page's **Your saves** section (`#saves`; `web/saves.js`, copied next to `index.html`) backs up the player's saves and
+The listing page's **Saves** tab (`#saves`; `web/saves.js`, copied next to `index.html`) backs up the player's saves and
 restores them. The saves live in this browser only, and are lost when its data is cleared or the player uses another browser or
 device, so the page makes one .zip of them, in the page and with nothing uploaded, and reads one back.
 
@@ -625,7 +670,7 @@ backup is **one store-only zip** (no compression, no library: the page writes th
 `byo-pop saves <YYYY-MM-DD>.zip` and given to the browser as a download:
 
 ```
-byopop-saves.json            the manifest: {format: "byo-pop saves", version: 1, made, games: {...}, files: {path: ms}}
+byopop-saves.json            the manifest: {format: "byo-pop saves", version: 1, made, games: {...}, files: {path: ms}, play: {...}}
 byopop-settings.json         the item byopop-settings, as it was (when there is one)
 byopop-profiles.json         the item byopop-profiles, as it was (when there is one)
 <game>/userdata/<path>       a file of the save folder
@@ -633,18 +678,25 @@ byopop-profiles.json         the item byopop-profiles, as it was (when there is 
 <game>/browser-backup.json   the game's localStorage backup item, as it was
 ```
 
+The play times (the item `byopop-play`) are the manifest's field `play`, not a file of their own: a build from before them refuses a
+zip with a top-level name it does not know, and reads past a manifest field it does not know, so a backup made now still restores
+there (without the play times). For the same reason a restore skips a top-level `byopop-<name>.json` it does not know, one that a
+later build may add, instead of refusing the zip (`classify()`; `tools/savestest.js` checks both).
+
 Under the section the page says, for each game, what it took: the number and size of the save files, the replays, and whether
 files came from the game's own browser backup. A game whose page is open in another tab is flagged: what it has not saved yet may be
 missing from the backup until it is closed.
 
 **Restore saves.** A file field takes such a zip. The page reads it (checking every file's checksum), sorts its entries, and
 **refuses the whole zip** when one is outside a game's save folder (a path that is not `<listed game>/userdata/...`,
-`<listed game>/replays/...` or one of the names above; a path with `..`, `.`, an empty part, a backslash, a control character or
+`<listed game>/replays/...`, one of the names above or another top-level `byopop-<name>.json`, which is skipped; a path with `..`, `.`, an empty part, a backslash, a control character or
 more than 240 characters; a game that is not listed; a name twice), when it is not a backup made here (no manifest), is encrypted or
 zip64, or is damaged. A valid one is not written yet: the page shows, in the page and not in a browser dialog, for each game what the
 zip holds and how many of its files it would replace in this browser and how many it would add, that files that the zip does not
 have stay, that each game's own localStorage backup is removed (the restored files take its place, and a left one would delete the
-restored files at the game's next start), and that the site's settings and players are replaced. Only the **Restore** button writes.
+restored files at the game's next start), that the site's settings and players are replaced, and that the play times become, for each
+game, the larger of the backup's and this browser's number of plays and of seconds and the later day (`mergedPlay()`), so that an
+older backup takes nothing away. Only the **Restore** button writes.
 
 A restore never runs while a game page is open: each page holds a Web Lock (`PAGE.lock`) while it runs, and the page checks them with
 `navigator.locks.query()` when the zip is read and again at the button, and then holds every game's lock (`ifAvailable`) while it
@@ -734,7 +786,7 @@ is left out with that said. The games' text is Windows-1252 (a .reg file is Unic
 the native import write the file the way the port does (`SexyAppBase::GetRegistryText`: the keys in the order of its case-insensitive map, a blank line before each,
 the first comment line), so the port, when it saves, changes nothing in it; a value that exists already keeps the case of its name and is replaced in place.
 
-**On the web** (the listing page's Your saves section, `web/saveimport.js`, loaded with `saveimport-table.js`): "Import from an installed game" starts with a choice of
+**On the web** (the listing page's Saves tab, `web/saveimport.js`, loaded with `saveimport-table.js`): "Import from an installed game" starts with a choice of
 game. The page then says, from the table, which folders hold the game's save files (the install folder, a Steam folder, the VirtualStore copy and the ProgramData
 folder, with the file paths the game keeps in them) and gives the exact `reg export` command for every place of the registry the game may use, each writing a
 .reg file and each with a Copy button (and Copy all commands): `reg export "HKCU\Software\Classes\VirtualStore\MACHINE\SOFTWARE\WOW6432Node\PopCap\BookWorm"
@@ -776,7 +828,8 @@ The pages are built to be used from the keyboard and with a screen reader (the d
 `<html lang="en">`, one `<h1>` and no skipped heading level. A game's page has a banner (`<header>`, the bar: the logo link to the listing,
 the game's name as the `<h1>`, the status line and the buttons), one `<main>` (the stage, with the canvas and the cards), an `<aside>` for each
 panel, named by its own `<h2>` (`aria-labelledby`), and the footer. The listing page has a banner with its `<h1>`, a `<main>` with the games as
-a real `<ul>` and the Players, Your saves and Settings sections (each `aria-labelledby` its heading), and the footer. The copyright pages have a
+a real `<ul>` and the Players, Saves and Settings tabs (a `tablist` whose `tabpanel` sections are each `aria-labelledby` its tab, with an
+`<h2>` out of sight), and the footer. The copyright pages have a
 banner and a `<main>`. Buttons and links are real ones: the buttons that open a file picker are `<button data-pick="...">` that click a hidden
 `<input type="file">`, not labels. Choices that go together are a `<fieldset>` with a `<legend>`, every control has a visible `<label>` or an
 `aria-label`, and help text is linked with `aria-describedby` (each setting's hint, the import card's note, the canvas's hint).
@@ -798,7 +851,7 @@ then it takes every key typed anywhere on the page, Tab among them, and calls `p
 gives it one: `Module.preRun` puts `SDL_EMSCRIPTEN_KEYBOARD_ELEMENT=#canvas` in `ENV`, which SDL reads through `SDL_GetHint` before the game starts
 (`JSEvents.eventHandlers` then lists keydown, keyup and keypress on the canvas, not on the window). The game therefore gets keys only while its
 canvas has the focus, which a click or Tab gives it; while it has it, every key goes to the game exactly as before, Tab, Backspace, the arrows and
-the function keys included. A listener on the window, added before SDL's, stops keys typed elsewhere from reaching SDL should a build ever
+the function keys included, all but F11 (below). A listener on the window, added before SDL's, stops keys typed elsewhere from reaching SDL should a build ever
 listen on the window again.
 
 Tab cannot be the way out: the framework uses it (a dialog's fields, `Widget::KeyDown`), BookWorm's mod "solver" asks for a hint with it and
@@ -811,6 +864,14 @@ which is also shown on the stage while the keyboard has put the focus there, unt
 the canvas are let go in the game (a keyup is sent for each), as SDL only does that when the whole window loses the focus. F2 is the game's key to
 open its mod menu: typed on the bar, or with nothing focused, it is passed on to the canvas, and typed in a panel it closes the panel, as before.
 
+**F11** is the Fullscreen button, wherever the focus is (the user, 2026-11-02: F11 "should make all games go full screen in the
+browser"), and F11 again leaves full screen, as Esc does. The page stops the browser's own F11, which would put the whole page in full screen,
+only when it can put the stage there itself (`document.fullscreenEnabled`); then a listener on the document, which sees the key before the
+canvas, keeps it from the game. Of the games only TipTop has an F11 of its own (`App::HandleKeys`, its windowed and full screen switch); in the
+browser it would ask SDL for full screen outside a click, which browsers refuse, so the page's is the one that works. TipTop's Options checkbox
+still goes the game's way. Both F11 and the button close an open panel first, which would otherwise stay behind the full-screen stage, and
+give the canvas the focus only while the game runs: before a start or after an exit the focus stays on the card's button.
+
 Moving the focus from the canvas to a control on the page does not count as the game losing the app's focus. SDL and the framework
 (`EmscriptenFocusCallback`) take the focus from the window's `focus` and `blur` events, which an element's focus change does not raise, so
 the game neither mutes nor pauses, and the framework's "mute on lost focus" and Bejeweled's pause on a lost focus stay for the window
@@ -819,7 +880,7 @@ really losing the focus (another window, another tab), which is the game's behav
 **Live regions.** The status line is `role="status"`. The in-game mod menu reports the item that has the focus through
 `Module.onModMenuFocus(text)` (`framework/ModMenu.cpp`), which `web/modpanel.js` writes into a polite live region in the shell (`#menu-live`, there from the
 start so that a screen reader has it before the first change). The Mods panel's message line, the Game files panel's question (`role="alert"`),
-the import card's note and exit card's message, the Replays panel's line and the listing page's Players, Your saves and Settings lines and its sort's status ("Sorted by release date") are live too.
+the import card's note and exit card's message, the Replays panel's line and the listing page's Players, Saves and Settings lines and its sort's status ("Sorted by release date") are live too.
 An error is an alert, announced at once, and the field it is about is `aria-invalid` and described by it (a rejected setting, a name the Players
 section would not take); the import card's error is an alert in the card's note, read with both buttons that pick the files. The import's
 progress bar is a `role="progressbar"` with a value (percent, and "12 of 117 files").

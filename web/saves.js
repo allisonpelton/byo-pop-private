@@ -1,13 +1,14 @@
-// The listing page's "Your saves": a backup of the player's saves in one .zip, and a restore from one (docs/WEB_PLAYER.md, "Save
+// The listing page's Saves tab: a backup of the player's saves in one .zip, and a restore from one (docs/WEB_PLAYER.md, "Save
 // backup"). Nothing is uploaded: the page reads the games' browser storage itself and writes the zip itself.
 //
 // What the backup holds: for each game, the files of its save folder (the game's persist folder + "/userdata": its saves, high
 // scores, settings and registry; and "/replays", for the games that keep replays) as the game would find them at its next start,
 // and the game's own backup of them in localStorage ("sexy-userdata-backup:<persist>/userdata", platform/WebPersist.cpp), then the
-// site's settings (byopop-settings) and players (byopop-profiles). Never a game's files (its /game folder, the exe), the icons
+// site's settings (byopop-settings), players (byopop-profiles) and play times (byopop-play). Never a game's files (its /game folder, the exe), the icons
 // or the mods. The zip is not compressed ("store"), with a manifest, byopop-saves.json, that gives each file's date.
 //
-//   byopop-saves.json            {format: "byo-pop saves", version: 1, made, games: {<id>: {title, files, bytes, replays, ...}}, files: {path: ms}}
+//   byopop-saves.json            {format: "byo-pop saves", version: 1, made, games: {<id>: {title, files, bytes, replays, ...}}, files: {path: ms},
+//                                play: the item byopop-play (restored with this browser's, mergedPlay)}
 //   byopop-settings.json         the item byopop-settings as it was
 //   byopop-profiles.json         the item byopop-profiles as it was
 //   <id>/userdata/<path>         a file of the save folder
@@ -130,10 +131,13 @@ var ByopopSaves = (function () {
     if (/[\\\u0000-\u001f]/.test(rel) || rel.charAt(0) === "/" || rel.charAt(rel.length - 1) === "/") return false;
     return rel.split("/").every(function (p) { return p !== "" && p !== "." && p !== ".."; });
   }
+  // The play times ride in the manifest, not in a file of their own: a build from before them refuses a zip with a top-level name it
+  // does not know, and reads past a manifest field it does not know. For the same reason a top-level byopop-<name>.json that this
+  // build does not know (one a later build adds) is skipped, not refused.
   // Sorts a zip's entries: {ok: true, manifest, settings, profiles, files: [{id, kind, rel, entry}], backups: {id: entry}} or
   // {ok: false, error}. gameIds: the listed games. Anything else is refused: a path outside a game's save folder, an unknown game.
   function classify(entries, gameIds) {
-    var out = { ok: true, manifest: null, settings: null, profiles: null, files: [], backups: {} }, seen = {};
+    var out = { ok: true, manifest: null, settings: null, profiles: null, files: [], backups: {}, skipped: [] }, seen = {};
     for (var i = 0; i < entries.length; i++) {
       var name = entries[i].name;
       if (seen[name]) return { ok: false, error: "The .zip lists “" + name + "” twice." };
@@ -141,6 +145,7 @@ var ByopopSaves = (function () {
       if (name === "byopop-saves.json") { out.manifest = entries[i]; continue; }
       if (name === "byopop-settings.json") { out.settings = entries[i]; continue; }
       if (name === "byopop-profiles.json") { out.profiles = entries[i]; continue; }
+      if (/^byopop-[a-z0-9_-]{1,40}\.json$/.test(name)) { out.skipped.push(name); continue; }
       var m = /^([a-z0-9_-]{1,40})\/(userdata|replays)\/(.+)$/.exec(name), b = /^([a-z0-9_-]{1,40})\/browser-backup\.json$/.exec(name);
       if (b && gameIds.indexOf(b[1]) >= 0) { out.backups[b[1]] = entries[i]; continue; }
       if (!m || gameIds.indexOf(m[1]) < 0 || !safeRel(m[3])) {
@@ -185,11 +190,34 @@ var ByopopSaves = (function () {
     function two(n) { return (n < 10 ? "0" : "") + n; }
     return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate());
   }
+  // The play times of a backup (byopop-play, web/settings.js) with this browser's: for each game the larger count of plays and of
+  // seconds and the later day, so that restoring an older backup takes nothing away. Texts in, text out; a text that is not an
+  // object counts as none.
+  function mergedPlay(mine, theirs) {
+    function parse(t) { try { var o = JSON.parse(t || "{}"); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } }
+    function num(n) { return typeof n === "number" && isFinite(n) && n > 0 ? Math.floor(n) : 0; }
+    function day(d) { return typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : ""; }
+    var a = parse(mine), b = parse(theirs), out = {};
+    Object.keys(a).concat(Object.keys(b)).forEach(function (id) {
+      if (!/^[a-z0-9_-]{1,40}$/.test(id) || out[id]) return;
+      var x = a[id] || {}, y = b[id] || {}, dx = day(x.last), dy = day(y.last);
+      out[id] = { plays: Math.max(num(x.plays), num(y.plays)), seconds: Math.max(num(x.seconds), num(y.seconds)), last: dx > dy ? dx : dy };
+    });
+    return JSON.stringify(out);
+  }
+  // The item byopop-play as the manifest's field play (an object, or null to leave the field out), and back: the text a restore
+  // merges, or null when the manifest has none
+  function playToManifest(item) {
+    try { var o = JSON.parse(item); return o && typeof o === "object" && !Array.isArray(o) ? o : null; } catch (e) { return null; }
+  }
+  function playFromManifest(man) {
+    return man && man.play && typeof man.play === "object" && !Array.isArray(man.play) ? JSON.stringify(man.play) : null;
+  }
   function backupName(d) { return "byo-pop saves " + dateStamp(d) + ".zip"; }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
   function size(n) { return n < 1024 ? n + " bytes" : n < 1048576 ? (n / 1024).toFixed(n < 10240 ? 1 : 0) + " KB" : (n / 1048576).toFixed(1) + " MB"; }
 
-  var core = { crc32: crc32, writeZip: writeZip, readZip: readZip, safeRel: safeRel, classify: classify, merged: merged, backupName: backupName,
+  var core = { crc32: crc32, writeZip: writeZip, readZip: readZip, safeRel: safeRel, classify: classify, merged: merged, mergedPlay: mergedPlay, playToManifest: playToManifest, playFromManifest: playFromManifest, backupName: backupName,
     size: size, FORMAT: FORMAT, VERSION: VERSION };
   if (typeof document === "undefined") return core;
 
@@ -327,7 +355,7 @@ var ByopopSaves = (function () {
     if (text !== undefined && text !== null) e.textContent = text;
     return e;
   }
-  var SETTINGS_KEY = "byopop-settings", PROFILES_KEY = "byopop-profiles";
+  var SETTINGS_KEY = "byopop-settings", PROFILES_KEY = "byopop-profiles", PLAY_KEY = "byopop-play";
 
   // root: the element to build in; games: [{id, title, persist, lock, replays}]
   function init(root, games) {
@@ -337,19 +365,16 @@ var ByopopSaves = (function () {
     var busy = false;
     var errorControls = [];   // the controls that an error is read with (the import's, web/saveimport.js, join them)
     root.textContent = "";
-    root.appendChild(make("p", "pl-about", "Your saves, high scores and game settings are kept in this browser, and are lost if its data is cleared or you use " +
-      "another browser or device. A backup is one .zip, made here, with each game’s saves, the site’s settings and players, and never a game’s " +
-      "files, the exe, its icon or its mods. Nothing is uploaded."));
+    root.appendChild(make("p", "pl-about", "Your saves are kept only in this browser. A backup is a .zip of them that you keep; nothing is uploaded."));
     // whether the browser has agreed to keep the site's storage (a game page asks after an import, web/shell.html,
-    // askToKeepStorage): until it has, a drive that runs low on space can make it clear the whole site
+    // askToKeepStorage): until it has, a drive that runs low on space can make it clear the whole site, and only then is it said
     var kept = make("p", "pl-about");
     kept.hidden = true;
     root.appendChild(kept);
     try {
       if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(function (yes) {
-        kept.textContent = yes ? "This browser has agreed to keep them even if your drive runs low on space." :
-          "This browser may still clear them if your drive runs low on space. Importing a game’s files asks it to keep them.";
-        kept.hidden = false;
+        kept.textContent = "This browser may clear them if your drive runs low on space.";
+        kept.hidden = yes;
       }, function () {});
     } catch (e) {}
     var status = make("p", "pl-status");
@@ -447,10 +472,11 @@ var ByopopSaves = (function () {
             });
           });
         }, Promise.resolve()).then(function () {
-          var s = lsGet(SETTINGS_KEY), pr = lsGet(PROFILES_KEY);
+          var s = lsGet(SETTINGS_KEY), pr = lsGet(PROFILES_KEY), play = playToManifest(lsGet(PLAY_KEY));
           if (s !== null) entries.unshift({ name: "byopop-settings.json", bytes: enc.encode(s) });
           if (pr !== null) entries.unshift({ name: "byopop-profiles.json", bytes: enc.encode(pr) });
           manifest.settings = s !== null; manifest.players = pr !== null;
+          if (play) manifest.play = play;
           entries.unshift({ name: "byopop-saves.json", bytes: enc.encode(JSON.stringify(manifest, null, 1)) });
           var zip = writeZip(entries, made), blob = new Blob([zip], { type: "application/zip" }), a = document.createElement("a");
           a.href = URL.createObjectURL(blob); a.download = backupName(made);
@@ -468,7 +494,8 @@ var ByopopSaves = (function () {
             li.appendChild(document.createTextNode(t));
             ul.appendChild(li);
           });
-          ul.appendChild(make("li", "", "The site’s settings: " + (s !== null ? "included" : "none set") + ". The site’s players: " + (pr !== null ? "included" : "none") + "."));
+          ul.appendChild(make("li", "", "The site’s settings: " + (s !== null ? "included" : "none set") + ". The site’s players: " + (pr !== null ? "included" : "none") +
+            ". Play times: " + (play ? "included" : "none") + "."));
           report.appendChild(ul);
           say("The backup “" + backupName(made) + "” (" + size(zip.length) + ", " + plural(entries.length, "file") + ") was made; your browser saves it where it saves downloads.");
         });
@@ -519,7 +546,11 @@ var ByopopSaves = (function () {
                 if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("The .zip’s " + pair[0] + " are not in the form this page keeps.");
                 texts[pair[0]] = t;
               });
-            })).then(function () { return { perGame: perGame, texts: texts, man: man, file: file }; });
+            })).then(function () {
+              var pt = playFromManifest(man);
+              if (pt !== null) texts["play times"] = pt;
+              return { perGame: perGame, texts: texts, man: man, file: file };
+            });
           });
         });
       }).then(function (p) {
@@ -559,8 +590,7 @@ var ByopopSaves = (function () {
       var h = make("h4", "", "Restore these saves?");
       h.id = "sv-confirm-title";
       confirmBox.appendChild(h);
-      var desc = make("p", "", "This replaces the files below in this browser with the backup’s. Files in this browser that the backup does not have stay as they are. " +
-        "Each game’s own browser backup is removed, since the restored files take its place; the game makes a new one.");
+      var desc = make("p", "", "This replaces the files below with the backup’s. Files the backup doesn’t have stay as they are.");
       desc.id = "sv-confirm-desc";
       confirmBox.appendChild(desc);
       var ul = make("ul", "sv-list");
@@ -576,6 +606,7 @@ var ByopopSaves = (function () {
       if (!plan.rows.length) ul.appendChild(make("li", "", "No game’s saves."));
       if (plan.p.texts.settings !== undefined) ul.appendChild(make("li", "", "The site’s settings: replaced by the backup’s."));
       if (plan.p.texts.profiles !== undefined) ul.appendChild(make("li", "", "The site’s players: replaced by the backup’s."));
+      if (plan.p.texts["play times"] !== undefined) ul.appendChild(make("li", "", "Play times: for each game, the larger of the backup’s and this browser’s."));
       confirmBox.appendChild(ul);
       var openNow = plan.open === null ? "This browser cannot tell whether a game is open (it has no Web Locks), so it does not restore. Back up from here, or use a current browser."
         : plan.open.length ? "Close " + plan.open.map(function (id) { return byId[id].title; }).join(", ") + " first: a game that is open could overwrite what is restored." : "";
@@ -618,6 +649,7 @@ var ByopopSaves = (function () {
             }, Promise.resolve()).then(function () {
               if (p.texts.settings !== undefined) lsSet(SETTINGS_KEY, p.texts.settings);
               if (p.texts.profiles !== undefined) lsSet(PROFILES_KEY, p.texts.profiles);
+              if (p.texts["play times"] !== undefined) lsSet(PLAY_KEY, mergedPlay(lsGet(PLAY_KEY), p.texts["play times"]));
               return wrote;
             });
           });
@@ -630,6 +662,7 @@ var ByopopSaves = (function () {
         wrote.forEach(function (t) { ul.appendChild(make("li", "", t + ".")); });
         if (p.texts.settings !== undefined) ul.appendChild(make("li", "", "The site’s settings."));
         if (p.texts.profiles !== undefined) ul.appendChild(make("li", "", "The site’s players."));
+        if (p.texts["play times"] !== undefined) ul.appendChild(make("li", "", "Play times."));
         report.appendChild(ul);
         say("The saves were restored. A game reads them the next time it starts.");
         try { window.dispatchEvent(new StorageEvent("storage", { key: null })); } catch (e) {}
