@@ -1003,7 +1003,7 @@ void VizKaleidoCat::Update()
 		else if (1.0f <= aFade)
 			aFade = 1.0f;
 		unsigned int aRGB = mApp->HSLToRGB((aCurrent->mColor - aHueShift) & 0xff, 0xff, 0x80);  // 0x4a7220
-		int anAlpha = (int)std::nearbyint((double)aFade * 255.0);  // 0x77e016
+		int anAlpha = Ftol((double)aFade * 255.0);  // 0x77e016 cuts toward zero
 		Particle aParticle;
 		aParticle.mX = aCurrent->mX;
 		aParticle.mY = aCurrent->mY;
