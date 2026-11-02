@@ -243,3 +243,55 @@ Mat3 Sexy::SlerpMat3(const Mat3& a, const Mat3& b, float theT, bool theLinear)
 	Quat aFromQuat = QuatFromMat3(a);
 	return Mat3FromQuat(SlerpQuat(aFromQuat, aToQuat, theT, theLinear));
 }
+
+namespace {
+
+// 0x4c06a0: the dot product, the y terms first
+float Dot(const Vec3& a, const Vec3& b)
+{
+	return (float)(((double)a.y * (double)b.y + (double)a.x * (double)b.x) + (double)a.z * (double)b.z);
+}
+
+}  // namespace
+
+Vec3 Sexy::WorldToCamera(const Transform3D& theCamera, const Vec3& thePoint)
+{
+	Vec3 aDelta{(float)((double)thePoint.x - (double)theCamera.mPos.x), (float)((double)thePoint.y - (double)theCamera.mPos.y),
+		(float)((double)thePoint.z - (double)theCamera.mPos.z)};
+	// 0x6dd107: the dot products with the three rows
+	Vec3 aTurned{Dot(aDelta, theCamera.mRot.Row(0)), Dot(aDelta, theCamera.mRot.Row(1)), Dot(aDelta, theCamera.mRot.Row(2))};
+	// 0x6dd0bd
+	return Vec3{(float)((double)aTurned.x / (double)theCamera.mScale.x), (float)((double)aTurned.y / (double)theCamera.mScale.y),
+		(float)((double)aTurned.z / (double)theCamera.mScale.z)};
+}
+
+PerspectiveCamera::PerspectiveCamera(float theFovTimesAspect, float theAspect, float theNear, float theFar)
+{
+	// 0x673c7f
+	float anAngle = (float)((double)theFovTimesAspect * 0.5);
+	anAngle = (float)((double)anAngle * 3.1415927410125732 / 180.0);
+	anAngle = (float)((double)anAngle / (double)theAspect);
+	double aCosine = (double)std::cos(anAngle);
+	double aSine = (double)std::sin(anAngle);
+	float aCotangent = (float)(aCosine / aSine);
+	mScaleY = aCotangent;
+	mScaleX = (float)((double)aCotangent / (double)theAspect);
+	// 0x673ce6: fsubrp is far less near (Intel's FSUBRP E1), so the scale is far over (far - near)
+	float aDepthScale = (float)((double)theFar / ((double)theFar - (double)theNear));
+	mDepthScale = aDepthScale;
+	mDepthOffset = (float)(-(double)aDepthScale * (double)theNear);
+	mNear = theNear;
+	mFar = theFar;
+}
+
+Vec3 PerspectiveCamera::Project(const Vec3& theCameraPoint) const
+{
+	Vec3 aPoint;
+	float aNegZ = -theCameraPoint.z;
+	aPoint.z = (float)(((double)mDepthScale * (double)aNegZ + (double)mDepthOffset) / (double)mFar);
+	float aX = (float)(((double)mScaleX * (double)theCameraPoint.x) / (double)aNegZ);
+	aPoint.x = (float)((double)aX * 0.5 + 0.5);
+	float aY = (float)(((double)mScaleY * (double)theCameraPoint.y) / (double)aNegZ);
+	aPoint.y = (float)(0.5 + (double)aY * -0.5);
+	return aPoint;
+}

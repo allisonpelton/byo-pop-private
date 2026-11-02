@@ -35,4 +35,27 @@ struct Transform3D {
 	Vec3 mScale{1.0f, 1.0f, 1.0f};
 };
 
+// 0x6dd14b: a point of the world in the camera's space: the point less the camera's place, turned by the rows of the
+// camera's rotation (its axes) and divided by its scale
+Vec3 WorldToCamera(const Transform3D& theCamera, const Vec3& thePoint);
+
+// A perspective camera (0x58 bytes, vtable 0x7d7a6c; ctor 0x67417d, whose field of view is 0x673c7f): the camera's
+// transform at +0x04, then the planes and the factors that put a point of the camera's space on the screen
+struct PerspectiveCamera {
+	Transform3D mTransform;  // +0x04: the camera (the menu copies gMenuCamera into it, 0x673c10)
+	float mNear = 0;         // +0x40
+	float mFar = 0;          // +0x44
+	float mScaleX = 0;       // +0x48: the cotangent of the half angle over the aspect
+	float mScaleY = 0;       // +0x4c: the cotangent of the half angle
+	float mDepthScale = 0;   // +0x50: far over (far - near)
+	float mDepthOffset = 0;  // +0x54: that, negated, times near
+
+	// 0x67417d: theFovTimesAspect is 45 times theAspect in the menu (so the half angle is 22.5 degrees)
+	PerspectiveCamera(float theFovTimesAspect, float theAspect, float theNear, float theFar);
+	// 0x674208: a point of the camera's space as x and y from 0 to 1 across the screen and its depth (negative behind)
+	Vec3 Project(const Vec3& theCameraPoint) const;
+	// 0x6dd19b: a point of the world on the screen
+	Vec3 ProjectWorld(const Vec3& thePoint) const { return Project(WorldToCamera(mTransform, thePoint)); }
+};
+
 }  // namespace Sexy

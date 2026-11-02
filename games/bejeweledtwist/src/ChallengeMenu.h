@@ -1,14 +1,11 @@
 // Sexy::ChallengeMenu (0x9e8 bytes; 0x6dd2cd-0x6e665e, menu +0x4a8) and Sexy::ChallengeButton (0x658 bytes; vtable
 // 0x7e011c): the planets of the challenge categories, picked from the main menu's play menu.
 //
-// port: the original draws its planets in a small 3D world (a camera on curves, planets as spheres with two cloud
-// layers, the sun, a moon meter by each planet). The port keeps the menu's logic (which categories are open, how far
-// the player has got in each, the picks, the saved-game question, the start of the challenge through
-// Board::SetChallenge and the hyperspace) and runs the camera's curves and Transform (SetState 0x6e2318, Update
-// 0x6e3f41), the sun's glow particles and the two buttons' slide as the original does. The drawing is still
-// temporary: the planets are laid out flat on the screen, and the projection that places each planet (0x6dde98),
-// the planet pictures (0x6e4fad's meshes, the software planet), the sun (0x6e132d), the moon meter and the eclipse
-// are left out and are listed in NOTES.md.
+// The original draws its planets in a small 3D world: a camera on curves (ChallengeMenu::Update 0x6e3f41) and a planet
+// at each place on a circle (AddedToManager 0x6dfc49). With Direct3D off (Is3DAccelerated() false, as here) a planet is
+// a picture made for each frame (0x6dde98): the flat planet image, IMAGE_PLANET, says for each pixel where to look in
+// the planet's cloud-and-surface layer and how bright to make it. The sphere meshes (0x6e4fad), the sun (0x6e132d,
+// piece 3) and the rest of the 3D drawing are left out and are listed in NOTES.md.
 #pragma once
 
 #include "ButtonListener.h"
@@ -16,6 +13,7 @@
 #include "CurvedVal.h"
 #include "EffectsManager.h"
 #include "Math3D.h"
+#include "TwistButton.h"
 #include "TwistDialogListener.h"
 #include "TwistWidget.h"
 
@@ -24,28 +22,65 @@
 namespace Sexy {
 
 class Menu;
-class TwistButton;
+class MemoryImage;
 class WinTwistApp;
 
 class ChallengeMenu;
 
-// One category's planet; its id is the category's number
-class ChallengeButton : public ButtonWidget {
+// One category's planet (0x658 bytes, ctor 0x6e5337); its id is the category's number. It is a TwistButton whose
+// picture is IMAGE_CHALLENGE_BUTTON (the size of its cel is its size: the hit test is a circle about the middle).
+class ChallengeButton : public TwistButton {
 public:
 	ChallengeMenu* mMenu = nullptr;
-	int mCategory = 0;        // +0x518
-	int mStage = 0;           // +0x164: the challenge the planet starts (from 1)
-	bool mOpen = false;       // +0x51c: the category is open to the player
-	bool mEclipse = false;    // +0x5c6: every challenge of the category is done; its night challenge is next
-	int mProgress = 0;        // +0x5c8: the category's best (Profile +0x204)
+	// +0x168 to +0x4e0: the curves of the planet's moon meter (the stage bar); Update (0x6e3b0e) steps them and
+	// UpdateProgress (0x6e0ddb) sets them
+	int mStage = 0;                 // +0x164: the challenge the planet starts (from 1)
+	CurvedVal mBarFill;             // +0x168: the bar's fill grows by it when a stage is done
+	CurvedVal mUnknown1D8;          // +0x1d8: the lock and the new number glow
+	CurvedVal mUnknown248;          // +0x248: the old number's glow and the lock's wipe
+	CurvedVal mUnknown2B8;          // +0x2b8: the additive glow of the bar
+	CurvedVal mDim;                 // +0x328: 1 darkens the planet and its text (the planet is closed or opening)
+	CurvedVal mUnknown398;          // +0x398: stepped; nothing here reads it
+	CurvedVal mTextFade;            // +0x408: the bar's and the name's fade
+	CurvedVal mEclipseFade;         // +0x478: the eclipse title's fade
+	float mUnknown4E8 = 1.0f;       // +0x4e8: rises to 1 by 0.005 an update; below 1 it throws sparks
+	float mGlow = 0;                // +0x4ec: the name's glow while the mouse is over the planet (to 0.5)
+	std::vector<Image*> mLayers;    // +0x4f0: the category's layer pictures (planet_x, cloud_x); the planet is the first
+	Image* mNameImage = nullptr;    // +0x500: IMAGE_CHALLENGEUI_TITLES_<category>
+	float mNameScale = 1.0f;        // +0x504: 1, or 0.75 on a screen narrower than 16 by 9
+	Color mCategoryColor;           // +0x508: the category's color (challenges.xml); the bar and the glow use it
+	int mCategory = 0;              // +0x518: the category's number (also the id)
+	bool mOpen = false;             // +0x51c: the category is open to the player
+	bool mUnknown51D = false;       // +0x51d: when set, Update does nothing (nothing sets it)
+	float mUnknown520 = 0;          // +0x520: AddedToManager's start angle round the circle
+	float mUnknown524 = 0;          // +0x524: this planet's angle
+	float mUnknown528 = 0;          // +0x528: the menu's +0x188
+	int mUnknown52C = 0;            // +0x52c: counts the pulses of mUnknown530 still to come
+	float mUnknown530 = 0;          // +0x530: runs down by 0.04 an update, and starts again at 1 while mUnknown52C is over 0
+	CurvedVal mIdle;                // +0x538: set at construction; Update steps it
 	// The planet's place in the menu's 3D world (AddedToManager 0x6dfc49 sets it; the camera flies to it when the
 	// planet is picked)
-	float mWorldPos[3] = {0, 0, 0};  // +0x5a8
-	bool mUnknown5C4 = false;        // +0x5c4: set by the menu's Update (0x6dd2bd) from whether the planet is open
-	bool mUnknown5C5 = false;        // +0x5c5: SetState 3 sets it on every planet but the picked one
+	float mWorldPos[3] = {0, 0, 0};   // +0x5a8
+	// Where Draw put the planet: the screen's x and y and its depth, which says how big it is
+	float mScreenPos[3] = {0, 0, 0};  // +0x5b4
+	float mFade = 0;                  // +0x5c0: the bar and the name come in (0 to 1) while mUnknown5C4 is set
+	bool mUnknown5C4 = false;         // +0x5c4: set by the menu's Update (0x6dd2bd) from whether the planet is open
+	bool mUnknown5C5 = false;         // +0x5c5: SetState 3 sets it on every planet but the picked one
+	bool mEclipse = false;            // +0x5c6: every challenge of the category is done; its night challenge is next
+	int mProgress = 0;                // +0x5c8: the category's best (Profile +0x204)
+	bool mAdditive = false;           // +0x5cc: the category's "additive" (the 3D draw blends its clouds by it)
+	bool mUnknown5CD = false;         // +0x5cd: Update runs UpdateProgress when the curve at +0x1d8 ends while it is set
+	float mEclipseFlares[32] = {};       // +0x5d0: the eclipse title's flares (Update moves them; only the 3D draw shows them)
+	Widget* mTip = nullptr;           // +0x650: the planet's tip (0x6e665e; piece 3)
+	float mTilt = 0;                  // +0x160: the planet's turn about x (only the 3D meshes show it)
 
 	ChallengeButton(int theCategory, ChallengeMenu* theMenu);  // 0x6e5337
-	void Draw(Graphics* g) override;                           // 0x6dde98 (the 2D planet only as a disc)
+	void Update() override;                                    // 0x6e3b0e
+	void Draw(Graphics* g) override;                           // 0x6dde98 (the software planet)
+	void MouseDown(int x, int y, int theClickCount) override;  // 0x6dd224: not the other buttons
+	using TwistButton::MouseDown;
+	bool IsPointVisible(int x, int y) override;                // 0x6dd237: a circle about the middle
+	void PlayMouseOverSound() override;                        // 0x6dd1e9
 };
 
 class ChallengeMenu : public TwistWidget, public ButtonListener, public TwistDialogListener {
@@ -61,6 +96,7 @@ public:
 	int mStageSel = 0;                        // +0x180: and its challenge
 	int mStarted = 0;                         // +0x184: set when a challenge starts
 	float mUnknown15C = 0;                    // +0x15c: runs down by 0.03 an update
+	float mUnknown188 = 0;                    // +0x188: 0.4 of the height; AddedToManager gives it to the planets (+0x528)
 	float mHoverFade = 0;                     // +0x198: the hovered planet's text
 	EffectsManager* mFXManager1B8 = nullptr;  // +0x1b8: a widget of the menu
 	EffectsManager* mFXManager1BC = nullptr;  // +0x1bc: the sun's glow (moved down by the open curve, drawn by Draw)
@@ -105,6 +141,8 @@ public:
 	float mUnknown9D0 = 0;                    // +0x9d0: counts up while no planet is hovered
 	float mUnknown9D4 = 0;                    // +0x9d4: then rises to 1
 	bool mUnknown9BC = false;                 // +0x9bc
+	// +0x9e0: the 512 by 512 picture the software planets are made in (0x6e5c3e; the original never frees it)
+	MemoryImage* mPlanetImage = nullptr;
 
 	ChallengeMenu();                          // 0x6e5c3e
 	~ChallengeMenu() override;                // 0x6e3f22
@@ -126,12 +164,8 @@ public:
 	// 0x6e0ddb: each planet's open/closed state and stage from the player's progress
 	int UpdateProgress(bool theAnimate, bool theClearTips);
 	void Start(bool theNewGame);               // 0x6e4ab6: the picked challenge
-	void Layout();                             // port: the flat layout of the planets
 	// 0x6dd42e: the open curve is moving (it has a rate and has not reached its end)
 	bool IsOpenCurveRunning() const;
-	// port: how much of the temporary planets show: the open curve's value while the menu comes in, its opposite
-	// while it goes out
-	float PlaceholderAmount();
 	// 0x6e5a8d: the camera stack from properties/camerastack.txt
 	void LoadCameraStack();
 };

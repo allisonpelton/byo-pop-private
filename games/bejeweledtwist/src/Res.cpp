@@ -3379,6 +3379,16 @@ Image** Sexy::GetImageRefById(int theId) { return (Image**)gResources[theId]; }
 Font** Sexy::GetFontRefById(int theId) { return (Font**)gResources[theId]; }
 int* Sexy::GetSoundRefById(int theId) { return (int*)gResources[theId]; }
 const char* Sexy::GetStringIdById(int theId) { return (unsigned)theId < RESOURCE_ID_MAX ? gResourceNames[theId] : ""; }
+
+// The original fills a map from the names (the later of two equal names wins) and looks the name up in it
+int Sexy::GetIdByName(const char* theName)
+{
+	for (int anId = RESOURCE_ID_MAX - 1; anId >= 0; anId--) {
+		if (strcmp(gResourceNames[anId], theName) == 0)
+			return anId;
+	}
+	return RESOURCE_ID_MAX;
+}
 ResourceId Sexy::GetIdByImage(Image* theImage) { return GetIdByVariant((intptr_t)theImage); }
 ResourceId Sexy::GetIdByFont(Font* theFont) { return GetIdByVariant((intptr_t)theFont); }
 ResourceId Sexy::GetIdBySound(int theSound) { return GetIdByVariant(theSound); }

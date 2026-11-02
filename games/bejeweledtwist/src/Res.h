@@ -1125,6 +1125,8 @@ Image** GetImageRefById(int theId);           // 0x73b65a
 Font** GetFontRefById(int theId);             // 0x73b669
 int* GetSoundRefById(int theId);              // 0x73b678
 const char* GetStringIdById(int theId);       // 0x73b687
+// 0x7490e0: the id of the resource with that name (as GetStringIdById gives it, upper case), RESOURCE_ID_MAX for none
+int GetIdByName(const char* theName);
 ResourceId GetIdByImage(Image* theImage);     // 0x73e690: RESOURCE_ID_MAX for one not from the manager
 ResourceId GetIdByFont(Font* theFont);        // 0x73e699
 ResourceId GetIdBySound(int theSound);        // 0x73e6a2
