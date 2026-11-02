@@ -54,7 +54,7 @@ set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js)
 # with a web page that is not in the list is not shown (fwtest and smoke are test pages and never are); a name in the
 # list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
-  pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2)
+  pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina)
 # A game's badge on the listing page, <target>|<initials>|<colour>: the initials in white on a rounded square of the
 # colour. Original to byo-pop, never the games' art. The colours keep white text above a 4.5 contrast ratio (the chat's game
 # tags, "[BW]" before a username, use the same row and colour: tools/chattest.js checks the ratio and that the initials are
@@ -63,7 +63,8 @@ set(BYOPOP_WEB_BADGES
   "bejeweled|BJ|#95233d" "bigmoney|BM|#1f8438" "bookworm|BW|#955c23" "noahsark|NA|#234995" "sevenseas|7S|#1e8080"
   "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
   "pixelus|PX|#952395" "alchemy|AL|#95236b" "wordharmony|WH|#232795" "cosmicbugs|CB|#412395" "waterbugs|WB|#236f95"
-  "rocketmania|RM|#952723" "dynomite|DY|#78781c" "bookwormadv2|BA2|#637c1d")
+  "rocketmania|RM|#952723" "dynomite|DY|#78781c" "bookwormadv2|BA2|#637c1d" "mahjongjapan|MJ|#4b5d73"
+  "mahjongchina|MC|#655873")
 # When each finished game was first released, <target>|<date> with the date as YYYY, YYYY-MM or YYYY-MM-DD, as exact as the
 # sources allow (the user, 2026-10-27: the listing page can sort by release date, docs/WEB_PLAYER.md, "The listing page"). It is
 # the first release of the Windows edition that the site plays, the Deluxe download where there is one, not a web, Java or
@@ -118,7 +119,13 @@ set(BYOPOP_WEB_RELEASED
   "dynomite|2002-01-25"
   # Wikipedia, "Bookworm Adventures": the sequel, July 30, 2009 (PopCap's announcement, as Gamezebo reported it, gave July 30 as
   # well). Other databases have June 3 and July 28; they are outliers. High.
-  "bookwormadv2|2009-07-30")
+  "bookwormadv2|2009-07-30"
+  # VGTimes (https://vgtimes.com/games/mahjong-escape-ancient-japan/), MobyGames and VideoGameGeek: Windows, November 13, 2006;
+  # Metacritic and GameFAQs have December 7, 2006, and LaunchBox's March 28, 2008 is a later Deluxe edition. Medium.
+  "mahjongjapan|2006-11-13"
+  # MobyGames: 2006. The days disagree: Metacritic has April 20, 2006, VGTimes and VideoGameGeek March 9, 2007, and later dates
+  # are regional editions; the exe the site plays was built in August 2006 (docs/POPCAP_GAMES_SURVEY.md). Low, so the year only.
+  "mahjongchina|2006")
 get_filename_component(BYOPOP_WEB_INDEX "${CMAKE_CURRENT_LIST_DIR}/../web/index.html" ABSOLUTE)
 # Whether a game's page asks the player to agree to its terms (the terms card and its checkbox) before the game's
 # files are imported or loaded. OFF for now (the user, 2026-10-26), and the pages must not be deployed until it is
