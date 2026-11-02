@@ -7,6 +7,7 @@
 #include "Color.h"
 #include "Widget.h"
 
+#include <list>
 #include <map>
 
 namespace Sexy {
@@ -75,11 +76,31 @@ public:
 	virtual void Draw(Graphics* g) {}  // 0x6f553b
 };
 
+// A heat wave (Direct3D only): a ring of distortion that spreads from a point (0x40 bytes in the manager's tree at
+// +0x94, made by 0x6f5a46, added by 0x6f9efe, aged by 0x6f8792, drawn by 0x6f7ab4)
+struct HeatWave {
+	int mUnknown00 = 0;           // +0x00
+	double mX = 0;                // +0x08
+	double mY = 0;                // +0x10
+	double mEndX = 0;             // +0x18: where the ring ends (0x6f7ab4 moves its box by progress times it)
+	double mEndY = 0;             // +0x20
+	float mGrowth = 0.025f;       // +0x28: added to mProgress each update (0x6f5a46: 0.025; 0x6f9efe halves it)
+	float mOpacity = 1.0f;        // +0x2c: its opacity in 0x6f7ab4
+	float mStartSize = 0;         // +0x30
+	float mEndSize = 0;           // +0x34: its size at the end: the app's scale times 400 (0x6f5a46), times the strength
+	float mProgress = 0;          // +0x38: the wave is gone once it passes 1.0
+};
+
 class EffectsManager : public Widget {
 public:
 	// The effects ordered by their type, each type in the order they were added
 	std::multimap<int, Effect*> mEffects;  // +0x88
+	std::list<HeatWave> mHeatWaves;        // +0x94 (a tree of them in the original, all alike in order of adding)
+	bool mUnknownA0 = false;               // +0xa0: drawn under the board's transform (0x6f7a45)
+	bool mUnknownA1 = false;               // +0xa1: the depth test goes off first (0x6f6451)
 	bool mIs3D = false;                    // +0xa3: the last update ran with Direct3D
+	bool mUnknownB4 = false;               // +0xb4: set once a heat wave has been drawn (0x6f80a4)
+	bool mUnknownB5 = false;               // +0xb5
 	float mAlpha = 1.0f;                   // +0xb8: every effect's opacity is multiplied by it
 
 	EffectsManager();            // 0x6f9f59
@@ -97,6 +118,8 @@ public:
 	void AddEffect(Effect* theEffect);
 	// 0x6fa00c: a bomb going off at (theX, theY): smoke, drips, steam and shards of theColor
 	void AddBombFlash(float theX, float theY, const Color& theColor);
+	// 0x6f9efe: a heat wave at (theX, theY), its +0x34 times theStrength, its +0x28 times 0.5
+	HeatWave* AddHeatWave(float theX, float theY, float theStrength);
 	// 0x6f6451: the effects whose mOverlay is theOverlay
 	void DrawEffects(Graphics* g, bool theOverlay);
 };

@@ -11,6 +11,7 @@
 #include "Image.h"
 #include "Res.h"
 #include "SexyMatrix.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
@@ -128,8 +129,11 @@ Effect::Effect(int theType) : mType(theType)
 		mScale = 0.2f;
 		mAlpha = 1.0f;
 		mDAlpha = -0.005f;
-		// With Direct3D a random angle: RandSigned() * pi
-		mAngle = 0;
+		// (Is3DAccelerated 0x4a7900) With Direct3D a random angle, the draw after the two of the velocity
+		if (gApp->Is3DAccelerated())
+			mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+		else
+			mAngle = 0;
 		break;
 	case 16:  // a gem's shards (Board::BlowUpPiece)
 		mFrame = (int)(Rand() % 40);
@@ -170,7 +174,12 @@ Effect::Effect(int theType) : mType(theType)
 			mImage = IMAGE_GEMSHARD;
 			mAngle = 0;
 		}
-		// With Direct3D a random angle (RandSigned() * pi) and turn (RandSigned() * 0.2)
+		// With Direct3D (gD3DInterface != 0) a random angle and turn, drawn after the turning shard's own and before
+		// the frame
+		if (gD3DInterface != nullptr) {
+			mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+			mDAngle = (float)((double)RandSigned() * 0.20000000298023224);
+		}
 		mFrame = (int)Rand() % (mImage->mNumCols * mImage->mNumRows);
 		mColor = Color::White;
 		mDX = (float)((double)(cosf(aDir) * aSpeed) * 1.25);
@@ -308,7 +317,18 @@ void EffectsManager::Update()
 	mIs3D = gApp->Is3DAccelerated();
 	mWidth = gApp->mWidth;
 	mHeight = gApp->mHeight;
-	// The heat waves of the list at +0x94 come here: Direct3D only
+	// The heat waves of the list at +0x94 grow and go (added in 2D mode too, only drawn in 3D)
+	if (!mHeatWaves.empty()) {
+		auto aWaveIt = mHeatWaves.begin();
+		while (aWaveIt != mHeatWaves.end()) {
+			float aProgress = aWaveIt->mGrowth + aWaveIt->mProgress;
+			aWaveIt->mProgress = aProgress;
+			if (1.0 < (double)aProgress)
+				aWaveIt = mHeatWaves.erase(aWaveIt);
+			else
+				++aWaveIt;
+		}
+	}
 
 	auto anIt = mEffects.begin();
 	while (anIt != mEffects.end()) {
@@ -525,7 +545,11 @@ void EffectsManager::Update()
 			break;
 		case 12: {
 			anEffect->mDY = anEffect->mGravity + anEffect->mDY;
-			// With Direct3D the angle also turns by mDY * 0.02
+			// With Direct3D (Is3DAccelerated) the angle also turns by mDY * 0.02
+			float aTurn = 0.0f;
+			if (gApp->Is3DAccelerated())
+				aTurn = (float)((double)anEffect->mDY * 0.02);
+			anEffect->mAngle = aTurn + anEffect->mAngle;
 			float aScale = (float)((double)anEffect->mScale + 0.05);
 			anEffect->mScale = aScale;
 			if (0.5f < aScale)
@@ -627,7 +651,9 @@ void EffectsManager::Update()
 
 void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 {
-	// With Direct3D the manager may first switch off the z buffer (+0xa1)
+	// With the manager's +0xa1 set and Direct3D, the depth test goes off first
+	if (mUnknownA1 && gD3DInterface != nullptr)
+		gD3DInterface->SetDepthTestMode(0);
 	for (auto anIt = mEffects.begin(); anIt != mEffects.end(); ++anIt) {
 		Effect* anEffect = anIt->second;
 		if (anEffect->mOverlay != theOverlay)
@@ -791,14 +817,20 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 					anEffect->mScale, anEffect->mScale);
 				break;
 			}
-			// With Direct3D scaled and turned; without it the cel of its brightness, at the colour's own alpha
+			// The cel of its brightness, at the colour's own alpha; with Direct3D (gD3DInterface) scaled by mScale
+			// and turned by mAngle (when it is not 0) and drawn as floats (0x70e2d5), otherwise unscaled (0x70e26a)
 			int aCel = Ftol((double)anEffect->mAlpha * 64.0);
 			if (63 < aCel)
 				aCel = 63;
 			Transform aTransform;
+			if (gD3DInterface != nullptr) {
+				aTransform.Scale(anEffect->mScale, anEffect->mScale);
+				if (anEffect->mAngle != 0.0f)
+					aTransform.RotateRad(anEffect->mAngle);
+			}
 			g->SetColor(anEffect->mColor);
 			gGraphicsRecorder->DrawImageTransform(g, anEffect->mImage, aTransform, anEffect->mImage->GetCelRect(aCel),
-				anEffect->mX, anEffect->mY, false);
+				anEffect->mX, anEffect->mY, gD3DInterface != nullptr);
 			break;
 		}
 		case 40: {
@@ -843,8 +875,13 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 
 void EffectsManager::Draw(Graphics* g)
 {
-	// With Direct3D the board's distortion target (0x85aef4) is set around the drawing
+	// With the manager's +0xa0 set, a board and Direct3D, the board's transform (+0x29e8) is pushed around the drawing
+	bool aBoardTransform = mUnknownA0 && gBoard != nullptr && gD3DInterface != nullptr;
+	if (aBoardTransform)
+		NotPorted("EffectsManager::Draw: PushTransform of the board's +0x29e8 0x6f7a45");
 	DrawEffects(g, false);
+	if (aBoardTransform)
+		gD3DInterface->PopTransform();
 	if (mWidgetManager != nullptr)
 		DeferOverlay(0x31);
 }
@@ -852,7 +889,33 @@ void EffectsManager::Draw(Graphics* g)
 void EffectsManager::DrawOverlay(Graphics* g)
 {
 	DrawEffects(g, true);
-	// The heat waves and the distortion pass (0x6f7ab4, 0x6f55b0, flags +0xb4/+0xb5) are Direct3D only
+	// The heat waves and the distortion pass: with a heat wave in the list the distortion drawing (0x6f7ab4: the
+	// waves through the wave shader into the manager's target, then the screen_distort quads; 0x6f55b0) runs, in 3D
+	// mode only (it needs the device's caps and the target), and +0xb5 goes clear
+	mUnknownB4 = mUnknownB4 || !mHeatWaves.empty();
+	if (!mHeatWaves.empty()) {
+		if (gD3DInterface != nullptr)
+			NotPorted("EffectsManager::DrawOverlay: the heat waves' distortion drawing 0x6f7ab4, 0x6f55b0");
+		mUnknownB5 = false;
+	}
+}
+
+HeatWave* EffectsManager::AddHeatWave(float theX, float theY, float theStrength)
+{
+	// 0x6f5a46 makes it; the end size is the app's scale times 400
+	HeatWave aWave;
+	aWave.mUnknown00 = 0;
+	aWave.mGrowth = 0.025f;
+	aWave.mOpacity = 1.0f;
+	aWave.mStartSize = 0;
+	aWave.mEndSize = (float)((double)gApp->mScale * 400.0);
+	aWave.mProgress = 0;
+	aWave.mX = (double)theX;
+	aWave.mY = (double)theY;
+	aWave.mEndSize = aWave.mEndSize * theStrength;
+	aWave.mGrowth = (float)((double)aWave.mGrowth * 0.5);
+	mHeatWaves.push_back(aWave);
+	return &mHeatWaves.back();
 }
 
 void EffectsManager::AddBombFlash(float theX, float theY, const Color& theColor)
@@ -949,5 +1012,10 @@ void EffectsManager::AddBombFlash(float theX, float theY, const Color& theColor)
 		AddEffect(anEffect);
 		aCount--;
 	} while (aCount != 0);
-	// With no board image (+0x200c) a heat wave (0x6f9efe, its strength doubled): Direct3D only
+	// With no hyperspace behind the board (+0x200c) a heat wave of half the strength, its growth (+0x28) doubled
+	// (no Direct3D test: 2D mode adds it too, and only ages it)
+	if (gBoard->mHyperspace == nullptr) {
+		HeatWave* aWave = AddHeatWave(theX, theY, 0.5f);
+		aWave->mGrowth = aWave->mGrowth + aWave->mGrowth;
+	}
 }
