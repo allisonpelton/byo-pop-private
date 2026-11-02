@@ -3,23 +3,34 @@
 #include "Board.h"
 #include "GameText.h"
 #include "Graphics.h"
+#include "DDImage.h"
 #include "Res.h"
 #include "ResourceManager.h"
+#include "TwistUtil.h"
+#include "Visualizers3D.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
 
+#include <cstring>
+#include <string>
+#include <vector>
+
 using namespace Sexy;
 
-// The visualizers in the order the constructor (0x7597cc) registers them; only Viz2D (0x757fbb) is made in 2D
+// The visualizers in the order the constructor (0x7597cc) registers them (FUN_0075978d: name, maker, flags); only Viz2D
+// (0x757fbb) is made in 2D, and MakeVisualizer3D makes the ported 3D ones by these names
 static const char* const kVizNames[] = {"RedBars", "PlasmaClouds", "WindCloud", "SpaceThreads", "BlobDrift",
 	"VizWarpBars", "UVWarp", "Slipstream", "GravityField", "VizMoleculeRedux", "VizMagicSnakes", "Cubes", "RainDrops",
 	"ContainmentField", "ParametricFractal", "VizRainbowGlyphs", "Raptis_Pulse", "SubAtomic", "FluffyStars",
 	"VizJellyBlob", "Gears", "VizKaleidoCat", "VizZenWheels", "VizBuckyShards", "Viz2D"};
 static const int kNumViz = (int)(sizeof(kVizNames) / sizeof(kVizNames[0]));
+// The third argument of the registration (the entry's +0x20, read by 0x759330): bits 0 to 3 keep it out of game mode
+// 1 to 4, 0x10 lets it be picked without Direct3D and 0x20 keeps it from being picked with Direct3D
+static const int kVizFlags[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xb, 7, 0xb, 0x30};
 
 // 0x748f54: loads the image theId by its resource name and puts it in the table of images
 // port: the original also files it under its id for GetIdByImage (0x73e8c7); nothing asks that of these images
-static Image* LoadImageById(int theId)
+Image* Sexy::LoadVizImage(int theId)
 {
 	SharedImageRef aRef = gApp->mResourceManager->LoadImage(GetStringIdById(theId));
 	Image* anImage = (Image*)aRef;
@@ -28,7 +39,7 @@ static Image* LoadImageById(int theId)
 }
 
 // 0x46a160 with the image's resource name
-static void DeleteImageById(int theId)
+void Sexy::DeleteVizImage(int theId)
 {
 	gApp->mResourceManager->DeleteImage(GetStringIdById(theId));
 }
@@ -109,15 +120,15 @@ static int BackdropId(int theBackdrop)
 Viz2D::Viz2D(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mImageId = BackdropId(theApp->mVizManager->mBackdrop);
-	mImage = LoadImageById(mImageId);
+	mImage = LoadVizImage(mImageId);
 }
 
 Viz2D::~Viz2D()
 {
 	if (mImageId != -1)
-		DeleteImageById(mImageId);
+		DeleteVizImage(mImageId);
 	if (mNextImageId != -1)
-		DeleteImageById(mNextImageId);
+		DeleteVizImage(mNextImageId);
 }
 
 void Viz2D::Update()
@@ -126,7 +137,7 @@ void Viz2D::Update()
 		return;
 	// The new picture is in: the old one goes
 	if (mImageId != -1)
-		DeleteImageById(mImageId);
+		DeleteVizImage(mImageId);
 	mImage = mNextImage;
 	mImageId = mNextImageId;
 	mNextImageId = -1;
@@ -149,7 +160,7 @@ void Viz2D::NewLevel()
 	mNextImageId = mApp->mBoard->mUnknown158 % 47 + IMAGE_ZENDROP1_ID;
 	if (mImageId == mNextImageId)
 		return;
-	mNextImage = LoadImageById(mNextImageId);
+	mNextImage = LoadVizImage(mNextImageId);
 	mFade.SetCurve(GTS(0x7f2ccc));
 }
 
@@ -159,9 +170,9 @@ void Viz2D::SetImageFromIndex()
 	if (mImageId == anId)
 		return;
 	if (mImageId != -1)
-		DeleteImageById(mImageId);
+		DeleteVizImage(mImageId);
 	mImageId = anId;
-	mImage = LoadImageById(anId);
+	mImage = LoadVizImage(anId);
 }
 
 VizManager::VizManager(WinTwistApp* theApp) : mApp(theApp)
@@ -182,17 +193,107 @@ int VizManager::FindViz(const char* theName)
 	return -1;
 }
 
+Visualizer* VizManager::MakeViz(int theIndex)
+{
+	theIndex = (int)((unsigned int)theIndex % (unsigned int)kNumViz);
+	mVizIndex = theIndex;
+	Visualizer* aViz = nullptr;
+	mIsViz2D = false;
+	if (gD3DInterface != nullptr && strcmp(kVizNames[theIndex], "Viz2D") != 0) {
+		aViz = MakeVisualizer3D(kVizNames[theIndex], mApp);
+		if (aViz == nullptr)
+		{
+			static std::string aWhat;
+			aWhat = std::string("3D visualizer ") + kVizNames[theIndex] + " (Viz2D stands in)";
+			NotPorted(aWhat.c_str());
+		}
+	}
+	if (aViz == nullptr) {
+		aViz = new Viz2D(mApp);
+		mIsViz2D = true;
+	}
+	// Half the manager's size when the visualizer draws into a half-size render target (flag 2)
+	if (!aViz->Wants(1)) {
+		aViz->mWidth = mWidth;
+		aViz->mHeight = mHeight;
+	} else {
+		aViz->mWidth = mWidth / 2;
+		aViz->mHeight = mHeight / 2;
+	}
+	return aViz;
+}
+
 void VizManager::SetViz(int theIndex, bool force)
 {
 	if (!force && theIndex == mVizIndex)
 		return;
 	delete mViz;
-	// 0x758dcf: made by the list's maker (the 3D ones would draw at half size into a render target)
-	mVizIndex = (int)((unsigned int)theIndex % (unsigned int)kNumViz);
-	mViz = new Viz2D(mApp);
-	mViz->mWidth = mWidth;
-	mViz->mHeight = mHeight;
+	mViz = MakeViz(theIndex);
+	mClipRect[0] = -1;
+	mClipRect[1] = -1;
+	mClipRect[2] = 1;
+	mClipRect[3] = 1;
 	mViz->Init();
+}
+
+void VizManager::SetVizLater(int theIndex)
+{
+	delete mViz;
+	mViz = nullptr;
+	if (mUnknown18C != theIndex) {
+		// port: the original's thread (+0x188) makes the visualizer now and TakePendingViz takes it; here
+		// TakePendingViz makes it at the point it is taken, so the constructors' and Init's random draws happen there
+		mUnknown18C = theIndex;
+	}
+}
+
+void VizManager::TakePendingViz()
+{
+	if (mUnknown18C == -1)
+		return;
+	delete mViz;
+	mViz = MakeViz(mUnknown18C);
+	mClipRect[0] = -1;
+	mClipRect[1] = -1;
+	mClipRect[2] = 1;
+	mClipRect[3] = 1;
+	mViz->Init();
+	mUnknown18C = -1;
+}
+
+void VizManager::SetVizForMode(int theMode, unsigned int theKey, bool theNow, bool theLater)
+{
+	// 0x759330: the visualizers that suit the mode (the mode's bit in their flags is not set), in the list's order
+	unsigned int aModeBit = 0;
+	if (theMode == 1)
+		aModeBit = 1;
+	else if (theMode == 2)
+		aModeBit = 2;
+	else if (theMode == 3)
+		aModeBit = 4;
+	else if (theMode == 4)
+		aModeBit = 8;
+	std::vector<int> aList;
+	for (int i = 0; i < kNumViz; i++) {
+		bool aSuits = (kVizFlags[i] & aModeBit) == 0;
+		if (gD3DInterface == nullptr) {
+			if ((kVizFlags[i] & 0x10) == 0)
+				aSuits = false;
+		} else {
+			if ((kVizFlags[i] & 0x20) != 0)
+				aSuits = false;
+		}
+		if (aSuits)
+			aList.push_back(i);
+	}
+	int anIndex = aList[theKey % (unsigned int)aList.size()];
+	mUnknown190 = anIndex;
+	if (!m2D) {
+		if (!theLater)
+			SetViz(anIndex, theNow);
+		else
+			SetVizLater(anIndex);
+	}
 }
 
 void VizManager::SetVizByName(const char* theName, bool theNow)
@@ -205,7 +306,13 @@ void VizManager::SetVizByName(const char* theName, bool theNow)
 void VizManager::SetBackdrop(int theBackdrop, bool theNow)
 {
 	mBackdrop = theBackdrop;
-	if (!m2D || !theNow)
+	if (!m2D) {
+		// port: a Viz2D standing in for a 3D visualizer that is not ported shows the picture of the level
+		if (mViz != nullptr && mIsViz2D && theNow)
+			static_cast<Viz2D*>(mViz)->SetImageFromIndex();
+		return;
+	}
+	if (!theNow)
 		return;
 	if (mViz == nullptr)
 		SetViz(FindViz("Viz2D"), true);
@@ -234,12 +341,18 @@ void VizManager::Update()
 {
 	if (mViz == nullptr && mUnknown18C != -1)
 		return;
-	// (2D or 3D follows the options here: in 2D the port never changes)
+	// 2D or 3D follows the options' visualizers box and Direct3D (in a 2D run gD3DInterface is null, so m2D stays true)
+	bool aNow2D = !mApp->mDoViz || gD3DInterface == nullptr;
+	if (aNow2D != m2D) {
+		if (mViz != nullptr)
+			SetViz(aNow2D ? FindViz("Viz2D") : mUnknown190, true);
+		m2D = aNow2D;
+	}
 	if (mViz == nullptr) {
-		if (m2D)
-			SetViz(FindViz("Viz2D"), true);
-		else
+		if (!m2D)
 			SetVizByName("VizKaleidoCat", false);
+		else
+			SetViz(FindViz("Viz2D"), true);
 	}
 	MarkDirty();
 	if (mPaused || !(mVisible || gBoard == nullptr || gBoard->mHyperspace != nullptr))
@@ -270,8 +383,72 @@ void VizManager::Draw(Graphics* g)
 			aBoard->mUnknown3924 != 1.0f || aBoard->mHyperspace != nullptr) {
 			mViz->mFlags8 &= ~1;
 			mViz->mFlagsC |= 1;
+			mBoardRect[0] = 0;
+			mBoardRect[1] = 0;
+			mBoardRect[2] = 0;
+			mBoardRect[3] = 0;
+			mClipRect[0] = -1;
+			mClipRect[1] = -1;
+			mClipRect[2] = 1;
+			mClipRect[3] = 1;
+		} else {
+			// 0x6a9ed6: the board's rectangle on the screen
+			mBoardRect[0] = aBoard->GetColX(0);
+			mBoardRect[1] = aBoard->GetRowY(0);
+			mBoardRect[2] = aBoard->mCols * gGemWidth;
+			mBoardRect[3] = aBoard->mRows * gGemHeight;
 		}
-		mViz->Draw(g);
+		if (gD3DInterface == nullptr) {
+			mViz->Draw(g);
+		} else {
+			// port: the draw hook 0x758253 (gD3DInterface +0x10, set here while DrawsAroundBoard) skips and clips
+			// primitives lying in the board's rectangle; the framework's draws have no such hook, so the
+			// picture is drawn whole and the board covers its rectangle
+			if (mViz->DrawsAroundBoard())
+				NotPorted("VizManager::Draw: the draw hook 0x758253 (primitives inside the board's rectangle skipped)");
+			// (+0x3c of the app's display, true for the Direct3D 9 path, which every 3D run of the port is, keeps the
+			// visualizer from being drawn at half size when false: 0x7587a0's flag 2 is then cleared)
+			if (!mViz->Wants(1)) {
+				gD3DInterface->SetRenderTarget(g->mDestImage);  // slot 0x98
+				if (!mViz->Wants(4)) {
+					gD3DInterface->ClearDepth();                // slot 0x124
+					gD3DInterface->SetDepthWriteMode(1);        // slot 0x118
+					gD3DInterface->FillRect(Rect(mBoardRect[0], mBoardRect[1], mBoardRect[2], mBoardRect[3]), Color::White, 0);  // slot 0x68
+					gD3DInterface->SetDepthWriteMode(0);
+					for (int i = 0; i < 4; i++)
+						mClipRect[i] = mBoardRect[i];
+				}
+				mViz->Draw(g);
+				gD3DInterface->SetDepthTestMode(0);             // slot 0x114
+			} else {
+				if (mViz->DrawsAroundBoard()) {
+					// the rectangle at half size, a little inside
+					mBoardRect[0] = Ftol((double)mBoardRect[0] * 0.5 + 1.0);
+					mBoardRect[1] = Ftol((double)mBoardRect[1] * 0.5 + 1.0);
+					mBoardRect[2] = Ftol((double)mBoardRect[2] * 0.5 - 2.0);
+					mBoardRect[3] = Ftol((double)mBoardRect[3] * 0.5 - 2.0);
+				}
+				DDImage* aHalfTarget = gD3DInterface->HoldTarget(&mHalfHold, g->mDestImage->mWidth / 2,
+					g->mDestImage->mHeight / 2, 0, "VizHalfSizeRT");  // 0x4f6630
+				gD3DInterface->SetRenderTarget(aHalfTarget);
+				Graphics* aHalfG = new Graphics(aHalfTarget);
+				if (!mViz->Wants(4)) {
+					gD3DInterface->ClearDepth();
+					gD3DInterface->SetDepthWriteMode(1);
+					gD3DInterface->FillRect(Rect(mBoardRect[0], mBoardRect[1], mBoardRect[2], mBoardRect[3]), Color::White, 0);
+					gD3DInterface->SetDepthWriteMode(0);
+					for (int i = 0; i < 4; i++)
+						mClipRect[i] = mBoardRect[i];
+				}
+				mViz->Draw(aHalfG);
+				gD3DInterface->SetDepthTestMode(0);
+				delete aHalfG;
+				gD3DInterface->SetRenderTarget(g->mDestImage);
+				g->SetLinearBlend(true);
+				g->DrawImage(aHalfTarget, 0, 0, g->mDestImage->mWidth, g->mDestImage->mHeight);
+				gD3DInterface->ReleaseTarget(&mHalfHold);  // 0x4f66e0
+			}
+		}
 		mViz->mFlagsC &= ~3;
 		g->PopState();
 	}

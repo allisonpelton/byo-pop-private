@@ -1395,7 +1395,11 @@ void Hyperspace::Update3D()
 		gApp->PlaySoundEx(SOUND_TRANS_SPACENOISE, 0, 0.0f, 2.0f, true, true);
 	}
 	gApp->mVizManager->mSpeed = mUnknown1E8.GetOutVal();
-	NotPorted("Hyperspace::Update: the VizManager's rectangle +0x1bc to +0x1c8 (-1, -1, 1, 1; its 3D render target)");
+	// the VizManager's rectangle for its draw hook, +0x1bc to +0x1c8: all of the screen
+	gApp->mVizManager->mClipRect[0] = -1;
+	gApp->mVizManager->mClipRect[1] = -1;
+	gApp->mVizManager->mClipRect[2] = 1;
+	gApp->mVizManager->mClipRect[3] = 1;
 	if (gApp->mBoard != nullptr && !gApp->mBoard->mUnknown37C4) {
 		mUnknown258.IncInVal();
 		gApp->mBoard->SetUnknown3924((float)mUnknown258.GetOutVal());
@@ -1468,7 +1472,7 @@ void Hyperspace::Update3D()
 			mFlag15B = false;
 			mUnknown488.SetCurve(GTS(0x7e4948));
 			mUnknown4F8.SetCurve(GTS(0x7e4924));
-			NotPorted("Hyperspace::Update: VizManager 0x7581e5 (the visualizer its thread made, +0x188)");
+			gApp->mVizManager->TakePendingViz();  // 0x7581e5
 			Graphics aG(mUnknown160);
 			gApp->mVizManager->Draw(&aG);
 		}

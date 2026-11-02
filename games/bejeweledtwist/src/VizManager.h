@@ -3,11 +3,12 @@
 // visualizer per update of its own). With Direct3D and the options' "visualizers" box it picks one of 24 animated
 // ones by the game's mode; in 2D it always shows Viz2D, a still picture for each level.
 //
-// port: 2D only, so Viz2D is the only visualizer; the 3D ones (RedBars to VizBuckyShards, registered by name in
-// the constructor) and their render targets are left out, and their names are kept only for the indexes.
+// port: in 2D Viz2D is the only visualizer. With Direct3D the 3D ones are made by MakeVisualizer3D
+// (Visualizers3D.h); those not ported yet (kVizNames' other names) fall back to Viz2D, logged by NotPorted.
 #pragma once
 
 #include "CurvedVal.h"
+#include "TwistD3D.h"
 #include "TwistWidget.h"
 
 namespace Sexy {
@@ -39,7 +40,10 @@ public:
 	virtual void Slot7() {}                    // 7 (0x67012d): (VizManager 0x75801f)
 
 	// ((~+0xc & +0x4) | +0x8) & 1: the board stands still, so only the screen around it is drawn
-	bool DrawsAroundBoard() const { return (((~mFlagsC & mFlags4) | mFlags8) & 1) != 0; }
+	bool DrawsAroundBoard() const { return Wants(0); }
+	// ((~+0xc >> theBit & +0x4 >> theBit) | +0x8 >> theBit) & 1: bit 0 around the board only, bit 1 drawn at half size
+	// into a render target, bit 4 the depth buffer cleared and the board's rectangle filled first (0x7587a0)
+	bool Wants(int theBit) const { return ((((~mFlagsC >> theBit) & (mFlags4 >> theBit)) | (mFlags8 >> theBit)) & 1) != 0; }
 	// 0x67fdb6: theImage over the whole screen, cropped to the screen's width or stretched to it, and all of it
 	// but the board's rectangle while DrawsAroundBoard
 	void DrawImage(Graphics* g, Image* theImage);
@@ -64,20 +68,28 @@ public:
 	void SetImageFromIndex();
 };
 
+// 0x748f54 and 0x46a160 with an image's id: the visualizers load their images when made and let them go when deleted
+Image* LoadVizImage(int theId);
+void DeleteVizImage(int theId);
+
 class VizManager : public TwistWidget {
 public:
 	WinTwistApp* mApp;                // +0x19c
 	int mUpdateCnt148 = 0;            // +0x148: its updates while it runs
 	int mVizIndex = -1;               // +0x14c: mViz's place in the list of names
 	Visualizer* mViz = nullptr;       // +0x150
-	int mUnknown18C = -1;             // +0x18c: never set otherwise (Update runs while it is -1)
+	int mUnknown18C = -1;             // +0x18c: the index of the visualizer being made for TakePendingViz, else -1 (Update waits)
 	int mUnknown190 = 0;              // +0x190: the 3D visualizer chosen for the game (SetVizByName, 0x7593ea)
 	int mBackdrop = 0;                // +0x194: Viz2D's picture (-1 the tutorial's, else the level)
+	bool mIsViz2D = true;             // port: mViz is a Viz2D (the 2D run's, or standing in for a 3D visualizer not ported)
 	bool m2D = true;                  // +0x198: no Direct3D or no "visualizers" box (set by the app's Init)
 	double mSpeed = 1.0;              // +0x1a0: the visualizer's updates per update
 	double mUpdateFrac = 0.0;         // +0x1a8
 	double mUnknown1B0 = 1.0;         // +0x1b0
 	bool mPaused = false;             // +0x1b8
+	int mClipRect[4] = {-1, -1, 1, 1};  // +0x1bc: the rectangle the draw hook 0x758253 clips to (x, y, w, h); -1, -1, 1, 1 for all
+	int mBoardRect[4] = {0, 0, 0, 0};   // +0x1cc: the board's rectangle (halved with the half-size render target), 0 when the board moves
+	TargetHold mHalfHold;               // +0x1dc: the hold on the half-size render target (0x4f6630, "VizHalfSizeRT")
 
 	explicit VizManager(WinTwistApp* theApp);  // 0x7597cc
 	~VizManager() override;                    // 0x75871b
@@ -87,6 +99,15 @@ public:
 
 	static int FindViz(const char* theName);   // 0x75864e: the index of theName in the list, -1 if none
 	void SetViz(int theIndex, bool force);     // 0x758e62
+	// 0x758dcf: the visualizer the list's maker makes for theIndex, sized to the manager's (half of it for a half-size one)
+	Visualizer* MakeViz(int theIndex);
+	// 0x7591ce: the visualizer for theIndex goes to be made (the original's thread, +0x188); TakePendingViz puts it in
+	void SetVizLater(int theIndex);
+	// 0x7581e5: the visualizer SetVizLater has been asked for becomes the current one and is initialised
+	void TakePendingViz();
+	// 0x7593ea (with 0x759330): the 3D visualizer for theMode (1 to 4, 0 for none) picked from those that suit it by
+	// theKey modulo how many there are; made now or later
+	void SetVizForMode(int theMode, unsigned int theKey, bool theNow, bool theLater);
 	void SetVizByName(const char* theName, bool theNow);  // 0x758ec7
 	void SetBackdrop(int theBackdrop, bool theNow);       // 0x758ef4
 	void NextLook();                           // 0x757ff5

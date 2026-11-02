@@ -47,9 +47,10 @@ void Hyperspace::MakeOldPicture()
 	if (mUnknown160 != nullptr && mOwnsUnknown160)
 		return;
 	DDImage* anImage = new DDImage(gApp->mDDInterface);
-	// (the original also sets the image's +0x44 to 0x10, a Direct3D flag)
+	anImage->mD3DFlags = 0x10;  // +0x44: a render target (the VizManager draws the next level into it, ChooseViz)
 	anImage->Create(gApp->mWidth, gApp->mHeight);
 	anImage->SetImageMode(false, false);
+	gD3DInterface->PrepareImage(anImage);  // port: made a target now, as HoldTarget does
 	mUnknown160 = anImage;
 	mOwnsUnknown160 = true;
 }
@@ -393,21 +394,35 @@ void Hyperspace::ChooseViz(bool theDraw)
 		aVizManager->SetBackdrop(-1, true);
 		aVizManager->SetVizByName("VizWarpBars", true);
 	} else if (aBoard->mGameMode == Board::MODE_BLITZ) {
-		// (with Direct3D: VizBuckyShards after an even number of blitz games, when the card can)
+		// With Direct3D VizBuckyShards after an even number of blitz games, when the card can (slot 4's bit 0x20 set)
 		int aGames = gApp->mProfile->mUnknown140[3];
-		aVizManager->SetVizByName("VizKaleidoCat", true);
+		const char* aVizName = "VizKaleidoCat";
+		if (aGames % 2 == 0 && gD3DInterface != nullptr && (gD3DInterface->GetCaps(0) & 0x20) != 0)
+			aVizName = "VizBuckyShards";
+		aVizManager->SetVizByName(aVizName, true);
 		aVizManager->SetBackdrop(46 - aGames % 47, true);
 	} else if (aBoard->mGameMode == Board::MODE_ZEN) {
 		aVizManager->SetBackdrop(aBoard->mUnknown158, true);
 		aVizManager->SetVizByName("VizZenWheels", true);
 	} else if (aBoard->mGameMode != Board::MODE_CHALLENGE) {
-		aVizManager->SetBackdrop(aBoard->mUnknown158, false);
-		if (aVizManager->mViz == nullptr)
-			aVizManager->SetViz(VizManager::FindViz("Viz2D"), true);
-		static_cast<Viz2D*>(aVizManager->mViz)->SetImageFromIndex();
-		// port: 0x7593ea picks the 3D visualizer for the mode and level (+0x190); 2D never shows it
+		aVizManager->SetBackdrop(aBoard->mUnknown158, gD3DInterface != nullptr);
+		if (gD3DInterface == nullptr) {
+			if (aVizManager->mViz == nullptr)
+				aVizManager->SetViz(VizManager::FindViz("Viz2D"), true);
+			static_cast<Viz2D*>(aVizManager->mViz)->SetImageFromIndex();
+		}
+		// 0x7593ea picks the 3D visualizer for the mode and level (+0x190); 2D never shows it, so only 3D calls it
+		if (gD3DInterface != nullptr) {
+			int aKey = aBoard->mUnknown158 + 1;
+			if (aKey < 0)
+				aKey = -aKey;  // 0x77e769
+			aVizManager->SetVizForMode(aBoard->mGameMode, (unsigned int)aKey, true, !theDraw);
+		}
 	}
-	// (with Direct3D and theDraw: the VizManager draws into the jump's picture, +0x160)
-	(void)theDraw;
+	// With Direct3D and theDraw the VizManager draws into the jump's picture, +0x160
+	if (gD3DInterface != nullptr && theDraw) {
+		Graphics aG(mUnknown160);
+		aVizManager->Draw(&aG);
+	}
 	gApp->ClearUpdateBacklog(false);
 }

@@ -1238,7 +1238,7 @@ bool Board::LoadGame(Buffer& theBuffer)
 	mUnknown2590 = GetGridRight();
 	mUnknown259C = 1.0f;
 	// (the original logs "Load game ENDS" to the debugger)
-	// (0x7581e5 after each branch takes the VizManager's visualizer made by its thread, +0x188; only with Direct3D's
+	// (0x7581e5 after each branch takes the VizManager's visualizer made for the jump's ChooseViz; only with Direct3D's
 	// visualizers is one made, so in 2D it does nothing)
 	if (mHyperspace != nullptr) {
 		// A hyperspace still running ends at once: the VizManager's background for the level (0x6c967c)
@@ -1250,6 +1250,7 @@ bool Board::LoadGame(Buffer& theBuffer)
 		mUnknown3924 = 1.0f;
 		mHyperspace = nullptr;
 		mUnknown26A8 = 0;
+		mApp->mVizManager->TakePendingViz();  // 0x7581e5
 		if (mUnknown26AC != nullptr) {
 			mUnknown26AC->mParent->RemoveWidget(mUnknown26AC);
 			mApp->SafeDeleteWidget(mUnknown26AC);
@@ -1279,6 +1280,7 @@ bool Board::LoadGame(Buffer& theBuffer)
 		mGoodTube->SetLevel(mUnknown158);
 		delete mHyperspace;
 		mHyperspace = nullptr;
+		mApp->mVizManager->TakePendingViz();  // 0x7581e5
 	}
 	UpdateProgress(true);
 	for (GemSoul* aSoul : mUnknown26B0)
