@@ -10,6 +10,7 @@
 #include "DDInterface.h"
 #include "EffectsManager.h"
 #include "Font.h"
+#include "GameOverShow.h"
 #include "Image.h"
 #include "MemoryImage.h"
 #include "GameText.h"
@@ -19,12 +20,14 @@
 #include "PlayButton.h"
 #include "Profile.h"
 #include "Res.h"
+#include "SexyMatrix.h"
 #include "TwistButton.h"
 #include "TwistDialog.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
+
 
 #include <cmath>
 #include <cstdio>
@@ -57,6 +60,61 @@ float CurveRadians(CurvedVal& theCurve)
 {
 	float aDegrees = (float)(theCurve.GetOutVal() + 0.0);
 	return (float)((double)aDegrees * 3.1415927410125732 / 180.0);
+}
+
+// 0x401880: the colour of a packed 0xAARRGGBB, its alpha as it is
+Color UnpackColor(unsigned int theColor)
+{
+	return Color((theColor >> 16) & 0xff, (theColor >> 8) & 0xff, theColor & 0xff, theColor >> 24);
+}
+
+// 0x6dda7c: a picture standing at a point of the menu's 3D world, its middle where gMenuCamera sees the point and as
+// big as theSize planet sizes there (76 pixels by 0.00151515 over the depth for a planet's 76 by 80; the scale is
+// 0.00151515 over the depth over the picture's width, times theSize times 80). It leaves the draw mode, the colour
+// and colorizing set. With Direct3D the original draws a quad facing the camera instead (0x6ddd52).
+void DrawBillboard(Graphics* g, Image* theImage, float theX, float theY, float theZ, unsigned int theColor, int theDrawMode,
+	float theSize)
+{
+	PerspectiveCamera aCamera(gAspect45, gAspect, 1.0f, 10000.0f);  // 0x67417d
+	aCamera.mTransform = gMenuCamera;                              // 0x673c10
+	if (gApp->Is3DAccelerated()) {
+		NotPorted("DrawBillboard 0x6ddd52: the picture as a quad facing the camera, with Direct3D");
+		return;
+	}
+	// The point is the place of a transform scaled by theSize (0x68b341, 0x6dd0e2, 0x67411e), plus 0 on each axis
+	Vec3 aProjected = aCamera.ProjectWorld(Vec3{theX, theY, theZ});  // 0x6dd19b
+	float aScreenX = (float)((double)(float)g->mDestImage->mWidth * (double)aProjected.x);
+	float aScreenY = (float)((double)(float)g->mDestImage->mHeight * (double)aProjected.y);
+	float aDepth = aProjected.z;
+	float aScale = (float)(0.0015151499537751079 / (double)aDepth / (double)theImage->mWidth * (double)theSize * 80.0);
+	if ((double)aDepth < 9.999999747378752e-05)
+		return;
+	g->SetDrawMode(theDrawMode);
+	g->SetColor(UnpackColor(theColor));
+	g->SetColorizeImages(true);
+	Transform aTransform;
+	aTransform.Scale(aScale, aScale);
+	g->DrawImageTransformF(theImage, aTransform, aScreenX, aScreenY);  // 0x422050
+}
+
+// 0x694387: theValue to the power thePower, by squaring, as a float
+float PowInt(float theValue, int thePower)
+{
+	unsigned int aPower = (unsigned int)thePower;
+	if (thePower < 0)
+		aPower = (unsigned int)-thePower;
+	float aResult = 1.0f;
+	while (true) {
+		if ((aPower & 1) != 0)
+			aResult = aResult * theValue;
+		aPower = aPower >> 1;
+		if (aPower == 0)
+			break;
+		theValue = theValue * theValue;
+	}
+	if (thePower < 0)
+		aResult = 1.0f / aResult;
+	return aResult;
 }
 
 }  // namespace
@@ -484,7 +542,7 @@ ChallengeMenu::ChallengeMenu()
 	mCategory = 0;
 	mStageSel = 0;
 	mStarted = 0;
-	mHoverFade = 0;
+	mHoverFade = 1.0f;
 	mUnknown9BC = false;
 	mDragging = false;
 	mCameraStackIndex = 0;
@@ -571,6 +629,10 @@ ChallengeMenu::~ChallengeMenu()
 	delete mFXManager1BC;
 	// port: the original never frees the planet picture
 	delete mPlanetImage;
+	// 0x6e0c6c
+	delete mTitleImage;
+	delete mDescImage;
+	delete mDescGlowImage;
 }
 
 // 0x6dfc49: the planets go round a circle in the 3D world about the camera's start, from a quarter turn less half of
@@ -832,7 +894,8 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 		aButton->mEclipseFade.SetConstant(0.0);
 		aButton->mTextFade.SetConstant(1.0);
 		if (theClearTips && aButton->mTip != nullptr) {
-			// the tip (0x6e665e, piece 3): none is made yet
+			// the tip: an OrbitText (vtable 0x7e7c2c, ctor 0x725732) that 0x6e0aa5 makes for the board (0x6ca331); not
+			// ported, so there is none yet
 			gApp->SafeDeleteWidget(aButton->mTip);
 			aButton->mTip = nullptr;
 		}
@@ -1106,8 +1169,8 @@ void ChallengeMenu::Update()
 	MarkDirty();
 }
 
-// 0x6dd322: the sun's glow particles, and a picture behind each of the two buttons. The sun, the moon and the eclipse
-// disc (0x6e132d), the tips and the zoom are piece 3.
+// 0x6dd322: the sun's glow particles, and a picture behind each of the two buttons (DrawAll draws the sun and the
+// rest over the planets, 0x6e4a25)
 void ChallengeMenu::Draw(Graphics* g)
 {
 	TwistWidget::Draw(g);
@@ -1119,6 +1182,182 @@ void ChallengeMenu::Draw(Graphics* g)
 	int aY = ((mPlayMenuButton->mHeight / 2 - aShift) - aGraphic->mHeight / 2) + mPlayMenuButton->mY;
 	g->DrawImage(aGraphic, (mPlayMenuButton->mWidth / 2 - aGraphic->mWidth / 2) + mPlayMenuButton->mX, aY);
 	g->DrawImage(aGraphic, (mMainMenuButton->mWidth / 2 - aGraphic->mWidth / 2) + mMainMenuButton->mX, aY);
+}
+
+// 0x6e4a25: nothing at all while the sun's curve is 0, unless space is bringing back the old level's picture at the
+// end of a game (state 12 with +0x159 clear), which is then drawn over the menu
+void ChallengeMenu::DrawAll(ModalFlags* theFlags, Graphics* g)
+{
+	Hyperspace* aHyperspace = gApp->mHyperspace;
+	bool anOldPicture = aHyperspace != nullptr && aHyperspace->mState == 12 && !aHyperspace->mFlag159;
+	if (gSunCurve.GetOutVal() == 0.0 && !anOldPicture)
+		return;
+	if (gApp->Is3DAccelerated())
+		NotPorted("ChallengeMenu::DrawAll 0x6e4a7c: the Direct3D interface's call at +0x124 before the drawing");
+	TwistWidget::DrawAll(theFlags, g);
+	DrawSunAndTexts(g);
+	if (anOldPicture)
+		gApp->mHyperspace->DrawOldPicture(g);  // 0x70f836
+}
+
+// 0x6e132d (as it runs with Direct3D off)
+void ChallengeMenu::DrawSunAndTexts(Graphics* g)
+{
+	// The sun at the camera's start (0, -12, 0), greyer as mUnknown928 rises, at the sun curve's alpha
+	int aGrey = Ftol(255.0 - mUnknown928.GetOutVal() * 255.0);
+	int anAlpha = Ftol(gSunCurve.GetOutVal() * 255.0);
+	unsigned int aColor = (unsigned int)((((anAlpha << 8 | aGrey) << 8 | aGrey) << 8) | aGrey);
+	DrawBillboard(g, IMAGE_ECLIPSE_SUN, mCameraPos[0], mCameraPos[1], mCameraPos[2], aColor, Graphics::DRAWMODE_NORMAL,
+		4.75f);
+
+	// The moon: 4.1 from the sun along z, turned about the sun's y by mUnknown720 times one and a half pi
+	Transform3D aSunPlace;  // 0x4bd4c0
+	aSunPlace.mPos = Vec3{mCameraPos[0], mCameraPos[1], mCameraPos[2]};  // 0x6dd0e2
+	Vec3 aMoon{0.0f, 0.0f, 4.0999999f};
+	Mat3 aTurn;
+	float aTurnValue = (float)mUnknown720.GetOutVal();
+	aTurn.RotateY((float)((double)aTurnValue * 3.1415927410125732 * 1.5));
+	aMoon = TimesMat3(aMoon, aTurn);           // 0x673fa4
+	aMoon = TransformPoint(aSunPlace, aMoon);  // 0x68b6b6
+	if (gApp->Is3DAccelerated()) {
+		NotPorted("ChallengeMenu::DrawSunAndTexts 0x6e1535: the moon's sphere and its glow, with Direct3D");
+	} else {
+		// dark grey (48), lighter by mUnknown6B0
+		unsigned int aBright = (unsigned int)Ftol(mUnknown6B0.GetOutVal() * 255.0) + 48;
+		unsigned int aMoonGrey = 255;
+		if (aBright <= 255)
+			aMoonGrey = aBright;
+		unsigned int aMoonAlpha = (unsigned int)Ftol(gSunCurve.GetOutVal() * 255.0);
+		unsigned int aMoonColor = (((aMoonAlpha << 8 | aMoonGrey) << 8 | aMoonGrey) << 8) | aMoonGrey;
+		DrawBillboard(g, IMAGE_ECLIPSE_MOON, aMoon.x + -0.0f, aMoon.y + 0.0f, aMoon.z, aMoonColor, Graphics::DRAWMODE_NORMAL,
+			2.7f);
+	}
+
+	g->SetFont(FONT_DIALOG_TEXT);
+	SetFontLayerColor(FONT_DIALOG_TEXT, GTS(0x80dfb4), Color(255, 255, 255, 255));
+	g->SetColor(Color(255, 255, 255));
+	// The eclipse's gold ring, added in while the sun is fully up, by how far mUnknown6B0 is below 1
+	double aDark = mUnknown6B0.GetOutVal();
+	double aSun = gSunCurve.GetOutVal();
+	float aRing = (float)((1.0 - aDark) * aSun * gSunCurve.GetOutVal());
+	if (0.0f < aRing && gSunCurve.GetOutVal() == 1.0) {
+		if (gApp->Is3DAccelerated()) {
+			NotPorted("ChallengeMenu::DrawSunAndTexts 0x6e1aa3: the ring at 2.75, moved by (-0.1, 0.08, 0.1), Direct3D");
+		} else {
+			unsigned int aRingColor = ((unsigned int)Ftol((double)aRing * 255.0) << 24) | 0xffffff;
+			DrawBillboard(g, IMAGE_ECLIPSE_RING, aMoon.x + -0.0f, aMoon.y + 0.0f, aMoon.z + 0.0f, aRingColor,
+				Graphics::DRAWMODE_ADDITIVE, 2.9f);
+		}
+	}
+
+	// The two dancing glows: while mUnknown640 is up they swing round the middle of the screen, 280 from it, from 0.3
+	// of a turn to none as its input runs to its end, and turn from half a turn to none
+	if (0.0 < mUnknown640.GetOutVal()) {
+		const double aTwoPi = 6.2831854820251465;  // the float at 0x84ec00
+		float anAngleFrom = (float)(0.30000001192092896 * aTwoPi);
+		float anAngleTo = (float)(0.0 * aTwoPi);
+		float aTurnFrom = (float)(aTwoPi * 0.5);
+		float aTurnTo = anAngleTo;
+		float aDone = (float)(mUnknown640.mInVal / mUnknown640.mInMax);
+		float aRadius = (float)Ftol((double)gApp->mScale * 280.0);
+		float anAngle = (float)(((double)anAngleTo - (double)anAngleFrom) * (double)aDone + (double)anAngleFrom);
+		float aGlowTurn = (float)(((double)aTurnTo - (double)aTurnFrom) * (double)aDone + (double)aTurnFrom);
+		float aCos = std::cos(anAngle);
+		int aGlowX = Ftol((double)(mWidth / 2) + (double)aCos * (double)aRadius);
+		float aSin = std::sin(anAngle);
+		int aGlowY = Ftol((double)(mHeight / 2) - (double)aSin * (double)aRadius);
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, Ftol(mUnknown640.GetOutVal() * 255.0)));
+		DrawImageCentered(g, IMAGE_ECLIPSE_DANCE2, (float)aGlowX, (float)aGlowY, (double)aGlowTurn, 1.0f, 1.0f);
+		double aGlow = mUnknown640.GetOutVal();
+		g->SetColor(Color(255, 255, 255, Ftol(aGlow * 255.0 * mUnknown640.GetOutVal())));
+		DrawImageCentered(g, IMAGE_ECLIPSE_DANCE1, (float)(aGlowX - Ftol((double)gApp->mScale * -15.0)),
+			(float)(aGlowY - Ftol((double)gApp->mScale * 55.0)), (double)aGlowTurn * 0.0, 1.0f, 1.0f);
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	}
+
+	// With the menu all the way in: the hovered planet's texts, or the menu's title while none is hovered
+	if (mOpen.GetOutVal() != 1.0 || (mState != 1 && mState != 4))
+		return;
+	if (mHover <= -1) {
+		if (0.0f < mUnknown9D4) {
+			g->SetColorizeImages(true);
+			double aTitleSun = gSunCurve.GetOutVal();
+			g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown9D4 * 255.0 * aTitleSun)));
+			g->DrawImage(IMAGE_CHALLENGEMODETITLE, mWidth / 2 - IMAGE_CHALLENGEMODETITLE->mWidth / 2,
+				Ftol((double)gApp->mScale * 516.0));
+		}
+		return;
+	}
+	ChallengeButton* aButton = mButtons[mHover];
+	int aCenterX = mWidth / 2;
+	int aY = mHeight / 2 - Ftol((double)gApp->mScale * -55.0);
+	if (aButton->mEclipse)
+		aY += Ftol((double)gApp->mScale * 10.0);
+	if (!mBestText.empty()) {
+		g->SetColor(Color(255, 255, 255, Ftol((double)mHoverFade * 255.0)));
+		g->SetFont(FONT_DIALOG_TEXT);
+		SetFontLayerColor(g->GetFont(), GTS(0x80dfb4), Color::White);
+		int aTextY = Ftol((double)gApp->mScale * 100.0) + aY;
+		g->DrawString(mBestText, aCenterX - g->StringWidth(mBestText) / 2, aTextY);  // 0x4223e0, 0x421180
+		aY += Ftol((double)gApp->mScale * -40.0);
+	}
+	g->SetColor(Color::White);
+	if (mDescImage != nullptr) {
+		DrawImageScaledCentered(g, mDescImage, (float)aCenterX, (float)(aY - Ftol((double)gApp->mScale * 10.0)), 1.0f,
+			1.0f);
+	}
+	g->SetColorizeImages(true);
+	if (0.0f < mUnknown15C) {
+		g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown15C * 255.0)));
+		if (mDescGlowImage != nullptr) {
+			DrawImageScaledCentered(g, mDescGlowImage, (float)aCenterX,
+				(float)(aY - Ftol((double)gApp->mScale * 10.0)), 1.0f, 1.0f);
+		}
+	}
+	if (aButton->mEclipse) {
+		aY = mHeight / 2 - Ftol((double)gApp->mScale * 70.0);
+		if (!mBestText.empty())
+			aY += Ftol((double)gApp->mScale * -40.0);
+	} else {
+		aY = mHeight / 2 - Ftol((double)gApp->mScale * 60.0);
+	}
+	g->SetColor(Color::White);
+	if (mTitleImage != nullptr) {
+		// The name, then while the text is still fading in, larger and fainter copies of it (each 0.02 larger and
+		// fainter by the fade squared, at least 0.03) until they are gone
+		float aScale = 1.0f;
+		float aFaint = 1.0f;
+		float aTitleY = (float)aY;
+		float aTitleX = (float)aCenterX;
+		do {
+			g->SetColor(Color(255, 255, 255, Ftol((double)aFaint * 255.0 * (double)mHoverFade)));
+			DrawImageScaledCentered(g, mTitleImage, aTitleX, aTitleY, aScale, aScale);
+			aScale = (float)((double)aScale + 0.019999999552965164);
+			if (mHoverFade == 1.0f)
+				break;
+			float aStep = PowInt(mHoverFade, 2);
+			if ((double)aStep < 0.029999999329447746)
+				aStep = 0.03f;
+			aFaint = aFaint - aStep;
+		} while (0.01f < aFaint);
+	}
+	// The trial: the planets after the third and the challenges after the third are locked
+	if (!gApp->mRegistered && (aButton->mId > 2 || aButton->mStage > 3)) {
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		g->SetColor(Color(255, 255, 255, Ftol((double)mHoverFade * 255.0)));
+		DrawImageScaledCentered(g, IMAGE_TRIALVERSION_CHALLENGE, (float)(mWidth / 2), (float)(mHeight / 2), ALIGN_CENTER,
+			1.0f, 1.0f);
+		// and its flash after a click on a locked one (ButtonDepress starts mUnknown8A0)
+		if (mUnknown8A0.GetOutVal() != 0.0) {
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColor(Color(255, 255, 255, Ftol(mUnknown8A0.GetOutVal() * 255.0)));  // 0x6a1984
+			DrawImageScaledCentered(g, IMAGE_TRIALVERSION_CHALLENGE, (float)(mWidth / 2), (float)(mHeight / 2),
+				ALIGN_CENTER, 1.0f, 1.0f);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		}
+	}
 }
 
 // 0x6dfe2a: the camera's zoom
@@ -1187,12 +1426,97 @@ void ChallengeMenu::DialogButtonDepress(int theDialogId, int theButtonId)
 	gApp->KillDialog(theDialogId);
 }
 
-// 0x6e665e: the planet's text shows (the original builds its two pictures here)
+// 0x6e665e: the planet's texts start to fade in, and its three pictures are made: the challenge's description twice
+// (FONT_PLANET_TEXT, 0.3 of the menu's width; the second time with the font's second layer too) and the category's
+// name in FONT_FRUIT_AWARD in the category's colour (with the eclipse title under an eclipse planet's)
 void ChallengeMenu::ButtonMouseEnter(int theId)
 {
 	if (!mMouseVisible || theId >= 100)
 		return;
+	mHoverFade = 0;
 	mHover = theId;
+	ChallengeButton* aButton = mButtons[theId];
+	int aStage = aButton->mStage;
+	delete mDescImage;
+	mDescImage = nullptr;
+	delete mTitleImage;
+	mTitleImage = nullptr;
+	SexyString aName = gApp->mChallengeInfo->GetCategoryId(theId);
+	int aBest = 0;
+	if (aButton->mEclipse)
+		aBest = gApp->mProfile->mInts204[aButton->mCategory];  // 0x439090
+	if (aButton->mEclipse && aBest != 0) {
+		mBestText = StrFormat(GTC(0x7e0d8c), aBest);
+	} else {
+		if (!aButton->mEclipse)
+			aName += StrFormat(GTC(0x7e0d80), aButton->mStage);
+		mBestText = GT(0x80d9a4);
+	}
+	unsigned int i = 0;
+	while (i < aName.size()) {
+		if (aName[i] == '_')
+			aName[i] = ' ';
+		i++;
+	}
+	if (aButton->mEclipse)
+		aStage++;
+	Challenge* aChallenge = gApp->mChallengeInfo->GetChallenge(aButton->mCategory, aStage);
+	SexyString aDesc;
+	if (aChallenge != nullptr)
+		aDesc = gApp->mChallengeInfo->GetText(aChallenge, false, false, nullptr);
+
+	// The description (0x4233d0 is GetWordWrappedHeight; its last argument, 0, goes to WriteWordWrapped)
+	int aDescWidth = Ftol((double)mWidth * 0.30000001192092896);
+	Font* aFont = FONT_PLANET_TEXT;
+	Graphics aMeasure;
+	aMeasure.SetFont(aFont);
+	int aDescHeight = aMeasure.GetWordWrappedHeight(aDescWidth, aDesc, -1, nullptr);
+	Rect aDescRect(0, 0, aDescWidth, aDescHeight + Ftol((double)gApp->mScale * 20.0));
+	delete mDescGlowImage;
+	SetFontLayerColor(aFont, GTS(0x7e029c), Color(0, 0, 0, 0));
+	SetFontLayerColor(aFont, GTS(0x80dfb4), Color::White);
+	SetFontLayerColor(aFont, GTS(0x7dd6b0), Color::White);
+	mDescGlowImage = new TextImage(aFont, aDesc, 0, Ftol((double)gApp->mScale * 10.0), 0, 0, &aDescRect);
+	SetFontLayerColor(aFont, GTS(0x80dfb4), Color::White);
+	SetFontLayerColor(aFont, GTS(0x7e029c), Color(0, 0, 0, 0));
+	SetFontLayerColor(aFont, GTS(0x7dd6b0), Color(0, 0, 0, 0));
+	mDescImage = new TextImage(aFont, aDesc, 0, Ftol((double)gApp->mScale * 10.0), 0, 0, &aDescRect);
+	// (the original also sets the second picture's +0x44 flag 0x80, for Direct3D)
+
+	// The name, in the colour of its category (0x6e6a8c: the table on the stack)
+	const Color aColors[13] = {Color(255, 198, 45), Color(255, 255, 255), Color(255, 206, 133), Color(255, 84, 115),
+		Color(210, 146, 255), Color(127, 242, 0), Color(255, 115, 26), Color(209, 43, 255), Color(209, 255, 58),
+		Color(255, 203, 159), Color(255, 119, 78), Color(0, 192, 255), Color(255, 210, 80)};
+	Font* aNameFont = FONT_FRUIT_AWARD;
+	SetFontLayerColor(aNameFont, GTS(0x80dfb4), aColors[theId]);
+	SetFontLayerColor(aNameFont, GTS(0x7e029c), Color(0, 0, 0));
+	SetFontLayerColor(aNameFont, GTS(0x7dd6b0), Color(0, 0, 0, 0));
+	Graphics aNameMeasure;
+	aNameMeasure.SetFont(aNameFont);
+	int aNameWidth = Ftol((double)gApp->mScale * 500.0);
+	int aSpacing = Ftol((double)gApp->mScale * 50.0);
+	int aNameHeight = aNameMeasure.GetWordWrappedHeight(aNameWidth, aName, aSpacing, nullptr);
+	if (aButton->mEclipse)
+		aNameHeight += Ftol((double)gApp->mScale * 50.0);
+	MemoryImage* aTitle = new MemoryImage();  // 0x42bb20
+	mTitleImage = aTitle;
+	aTitle->Create(aNameWidth + 16, aNameHeight + 16);
+	aTitle->Clear();
+	// (the original copies a Graphics of the picture into the one it measured with, 0x6e6619)
+	Graphics aTitleG(aTitle);
+	aTitleG.SetColor(Color::White);
+	aTitleG.SetFont(aNameFont);
+	int aTitleWidth = aNameWidth + 8;
+	// (0x422eb0's last argument, 0, is one this framework's WriteWordWrapped does not have)
+	aTitleG.WriteWordWrapped(Rect(0, 0, aTitleWidth, aNameHeight + 8), aName, aSpacing, 0, nullptr, -1, nullptr);
+	if (aButton->mEclipse) {
+		Image* anEclipse = IMAGE_ECLIPSE_TITLE;
+		int anEclipseWidth = Ftol((double)anEclipse->mWidth * 0.6499999761581421);
+		int anEclipseHeight = Ftol(0.6499999761581421 * (double)anEclipse->mHeight);
+		aTitleG.DrawImage(anEclipse, aTitleWidth / 2 - anEclipseWidth / 2, Ftol((double)gApp->mScale * 65.0),
+			anEclipseWidth, anEclipseHeight);  // 0x4216f0
+	}
+	mUnknown15C = 1.0f;
 }
 
 // 0x6dd418

@@ -4,8 +4,8 @@
 // The original draws its planets in a small 3D world: a camera on curves (ChallengeMenu::Update 0x6e3f41) and a planet
 // at each place on a circle (AddedToManager 0x6dfc49). With Direct3D off (Is3DAccelerated() false, as here) a planet is
 // a picture made for each frame (0x6dde98): the flat planet image, IMAGE_PLANET, says for each pixel where to look in
-// the planet's cloud-and-surface layer and how bright to make it. The sphere meshes (0x6e4fad), the sun (0x6e132d,
-// piece 3) and the rest of the 3D drawing are left out and are listed in NOTES.md.
+// the planet's cloud-and-surface layer and how bright to make it. The sun, the moon and the texts are drawn over the
+// planets (0x6e132d); the sphere meshes (0x6e4fad) and the rest of the 3D drawing are left out (NOTES.md).
 #pragma once
 
 #include "ButtonListener.h"
@@ -22,6 +22,7 @@
 namespace Sexy {
 
 class AwardTelly;
+class TextImage;
 
 class Menu;
 class MemoryImage;
@@ -73,7 +74,7 @@ public:
 	bool mAdditive = false;           // +0x5cc: the category's "additive" (the 3D draw blends its clouds by it)
 	bool mUnknown5CD = false;         // +0x5cd: Update runs UpdateProgress when the curve at +0x1d8 ends while it is set
 	float mEclipseFlares[32] = {};       // +0x5d0: the eclipse title's flares (Update moves them; only the 3D draw shows them)
-	Widget* mTip = nullptr;           // +0x650: the planet's tip (0x6e665e; piece 3)
+	Widget* mTip = nullptr;           // +0x650: the planet's tip, an OrbitText (0x6e0aa5, not ported)
 	float mTilt = 0;                  // +0x160: the planet's turn about x (only the 3D meshes show it)
 
 	ChallengeButton(int theCategory, ChallengeMenu* theMenu);  // 0x6e5337
@@ -99,7 +100,12 @@ public:
 	int mStarted = 0;                         // +0x184: set when a challenge starts
 	float mUnknown15C = 0;                    // +0x15c: runs down by 0.03 an update
 	float mUnknown188 = 0;                    // +0x188: 0.4 of the height; AddedToManager gives it to the planets (+0x528)
-	float mHoverFade = 0;                     // +0x198: the hovered planet's text
+	// The hovered planet's pictures (ButtonMouseEnter 0x6e665e makes them, DrawSunAndTexts 0x6e132d draws them)
+	MemoryImage* mTitleImage = nullptr;       // +0x18c: the category's name, in its colour (and the eclipse title)
+	TextImage* mDescImage = nullptr;          // +0x190: the challenge's description
+	TextImage* mDescGlowImage = nullptr;      // +0x194: the same with the font's second layer, flashed by mUnknown15C
+	float mHoverFade = 1.0f;                  // +0x198: the hovered planet's text
+	SexyString mBestText;                     // +0x19c: "BEST: %d" under an eclipse planet's name, else empty
 	EffectsManager* mFXManager1B8 = nullptr;  // +0x1b8: a widget of the menu
 	EffectsManager* mFXManager1BC = nullptr;  // +0x1bc: the sun's glow (moved down by the open curve, drawn by Draw)
 	int mState = 0;                           // +0x1c4: 0 away, 1 shown by the play menu, 2 leaving for a menu, 3 leaving
@@ -126,7 +132,7 @@ public:
 	float mZoomPos[3] = {0, 0, 0};            // +0x824: the picked planet's place (SetState 2 to 4)
 	CurvedVal mZoom;                          // +0x830: the camera flies from its start to the picked planet by it
 	CurvedVal mUnknown8A0;                    // +0x8a0
-	CurvedVal mUnknown928;                    // +0x928: the glow colours' blend (the night mode's unlock sets it, 0x6e32c9)
+	CurvedVal mUnknown928;                    // +0x928: the glow colours' blend (only 0x6e32c9 sets it, which nothing calls)
 	// The camera stack: the camera places of properties/camerastack.txt (0x6e5a8d), two lines of three numbers
 	// each. The mouse drag changes the one at mCameraStackIndex; nothing else reads them.
 	struct CameraStackEntry {
@@ -156,6 +162,7 @@ public:
 	void RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x6dd2cd
 	void Update() override;                                             // 0x6e3f41
 	void Draw(Graphics* g) override;                                    // 0x6dd322
+	void DrawAll(ModalFlags* theFlags, Graphics* g) override;          // 0x6e4a25
 	void MouseWheel(int theDelta) override;                             // 0x6dfe2a (the camera's zoom: left out)
 
 	void DialogButtonDepress(int theDialogId, int theButtonId) override;  // 0x6e58f7
@@ -173,6 +180,9 @@ public:
 	bool IsOpenCurveRunning() const;
 	// 0x6e5a8d: the camera stack from properties/camerastack.txt
 	void LoadCameraStack();
+	// 0x6e132d: what DrawAll draws over the planets: the sun, the moon and its ring, the dancing glows, the hovered
+	// planet's texts, the trial's picture and the menu's title
+	void DrawSunAndTexts(Graphics* g);
 };
 
 // The globals the menu's Update (0x6e3f41) and SetState (0x6e2318) keep for the drawing (the planets 0x6dde98, the sun

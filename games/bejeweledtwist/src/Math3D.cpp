@@ -254,6 +254,26 @@ float Dot(const Vec3& a, const Vec3& b)
 
 }  // namespace
 
+Vec3 Sexy::TimesMat3(const Vec3& theVector, const Mat3& theMatrix)
+{
+	const float* m = theMatrix.m;
+	return Vec3{
+		(float)(((double)m[3] * (double)theVector.y + (double)m[0] * (double)theVector.x) + (double)m[6] * (double)theVector.z),
+		(float)(((double)m[1] * (double)theVector.x + (double)m[4] * (double)theVector.y) + (double)m[7] * (double)theVector.z),
+		(float)(((double)m[2] * (double)theVector.x + (double)m[5] * (double)theVector.y) + (double)m[8] * (double)theVector.z)};
+}
+
+Vec3 Sexy::TransformPoint(const Transform3D& theTransform, const Vec3& thePoint)
+{
+	// 0x68b31c: scaled, each axis by its own
+	Vec3 aScaled{(float)((double)theTransform.mScale.x * (double)thePoint.x), (float)((double)theTransform.mScale.y * (double)thePoint.y),
+		(float)((double)theTransform.mScale.z * (double)thePoint.z)};
+	Vec3 aTurned = TimesMat3(aScaled, theTransform.mRot);
+	// 0x4c0760
+	return Vec3{(float)((double)theTransform.mPos.x + (double)aTurned.x), (float)((double)theTransform.mPos.y + (double)aTurned.y),
+		(float)((double)theTransform.mPos.z + (double)aTurned.z)};
+}
+
 Vec3 Sexy::WorldToCamera(const Transform3D& theCamera, const Vec3& thePoint)
 {
 	Vec3 aDelta{(float)((double)thePoint.x - (double)theCamera.mPos.x), (float)((double)thePoint.y - (double)theCamera.mPos.y),

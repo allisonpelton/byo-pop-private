@@ -35,6 +35,13 @@ struct Transform3D {
 	Vec3 mScale{1.0f, 1.0f, 1.0f};
 };
 
+// 0x4c0c80: the vector times the matrix, the matrix's rows weighted by x, y and z (0x673fa4 does it in place)
+Vec3 TimesMat3(const Vec3& theVector, const Mat3& theMatrix);
+
+// 0x68b369: a point of the transform's own space in the world: scaled by its scale, turned by its rotation
+// (0x4c0c80) and moved by its place (0x68b6b6 does it in place)
+Vec3 TransformPoint(const Transform3D& theTransform, const Vec3& thePoint);
+
 // 0x6dd14b: a point of the world in the camera's space: the point less the camera's place, turned by the rows of the
 // camera's rotation (its axes) and divided by its scale
 Vec3 WorldToCamera(const Transform3D& theCamera, const Vec3& thePoint);

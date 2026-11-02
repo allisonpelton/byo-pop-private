@@ -18,8 +18,10 @@ TextImage::TextImage(Font* theFont, const SexyString& theText, int thePadX, int 
 	int theLineSpacing, const Rect* theRect) : MemoryImage(gApp)
 {
 	Rect aRect;
-	int aLineSpacing = theLineSpacing;
+	// -1 (the font's own) unless the size comes from the text (0x74e72f): theLineSpacing counts only without theRect
+	int aLineSpacing = -1;
 	if (theRect == nullptr) {
+		aLineSpacing = theLineSpacing;
 		if (aLineSpacing < 1)
 			aLineSpacing = theFont->mLineSpacingOffset + theFont->mHeight + theFont->mAscentPadding;
 		// the widest line
