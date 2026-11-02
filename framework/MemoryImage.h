@@ -18,6 +18,12 @@ const ulong MEMORYCHECK_ID = 0x4BEEFADE;
 
 class NativeDisplay;
 class SexyAppBase;
+class MemoryImage;
+
+// port: set by a GPU display (GPUInterface::RecoverBits): GetBits on an image that has a texture but no bits fills
+// them from its texture, as the original's GetBits does through its read-back; false (the bits stay zero) when the
+// image has none. Null otherwise.
+extern bool (*gMemoryImageRecoverBits)(MemoryImage* theImage);
 
 class MemoryImage : public Image
 {

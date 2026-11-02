@@ -13,6 +13,8 @@
 
 using namespace Sexy;
 
+bool (*Sexy::gMemoryImageRecoverBits)(MemoryImage* theImage) = NULL;
+
 // port: helpers for drawing on HD pixels (see BeginHDMirror at the end of this file)
 namespace
 {
@@ -1438,8 +1440,11 @@ ulong* MemoryImage::GetBits()
 		}
 		else
 		{
-			// port: no D3DInterface::RecoverBits (textures aren't read back), see PurgeBits
+			// port: no D3DInterface::RecoverBits under DDInterface (textures aren't read back, see PurgeBits); a GPU
+			// display reads the texture back, as the original's GetBits does
 			memset(mBits, 0, aSize*sizeof(ulong));
+			if (gMemoryImageRecoverBits != NULL)
+				gMemoryImageRecoverBits(this);
 		}
 	}	
 
