@@ -1,0 +1,40 @@
+# Bonnie's original, the action part of the port's tour (from the saves the tour leaves): a new action game over the
+# classic one in progress, Normal, the story, a word, then the focus lost (the game pauses) and regained.
+waitshot logo 20000
+wait 6000
+click 205 360
+wait 3000
+click 458 380
+wait 3000
+click 460 280
+wait 4000
+click 745 565
+wait 3500
+click 745 565
+wait 3500
+click 745 565
+wait 3500
+click 745 565
+wait 3500
+click 745 565
+wait 4000
+shot action
+click 435 255
+wait 200
+click 435 300
+wait 200
+click 435 345
+wait 200
+click 435 390
+wait 1400
+click 506 532
+wait 5000
+shot actionword
+wait 50000
+focus lose
+wait 4500
+shot paused
+focus regain
+wait 3000
+shot resumed
+quit

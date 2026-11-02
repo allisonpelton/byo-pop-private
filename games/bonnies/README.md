@@ -29,13 +29,24 @@ script (`tools/tour_test.txt`, with `-fast -seed=1`): a new player, the classic 
 scores, credits and help, an action game until its time is up, and Quit. A rerun must give the same screens and saves,
 and three of the screens must match the frozen baseline's hashes (`BB_SHOTS` in `tools/check.sh`); a copy of the port
 in `build/baseline-bonnies/bonnies.exe` must give all of them too. Run the game in tests only under `build/native/rundesk.exe`
-(see the repository's CLAUDE.md). `tools/origcmp.py` compares a capture of the original (tools/origrun) with a port
-screenshot.
+(see the repository's CLAUDE.md).
+
+The original is compared with the port in Windows Sandbox (`docs/ORIGRUN.md`), from a copy staged in the run folder
+under `build/origrun/<run>/game`. `tools/origrun/tour.txt` plays the port's tour by the clock up to the main menu's
+options, `tools/origrun/action.txt` the action game with its focus loss (from the saves the tour leaves) and
+`tools/origrun/resume.txt` loads a saved game. `tools/origrun/patches.txt`, with `--patches` and `--seed 1`, seeds the
+original's `rand` as `-seed=1` does the port's. `tools/shotdiff` then pairs the shots with the port's tour
+(`games/bonnies/shotdiff.json` masks the animations that run on the game's clock, each with its reason). The board's
+random letters cannot match in a run by the clock: the sparkles draw from `rand` every frame, so the board depends on
+how many frames ran before it. The board is therefore compared on a game the original saved and both sides load
+(`resume.txt`), where it matches exactly. `tools/origcmp.py` compares a single capture.
 
 ## Status
 
 The whole game is translated: the menus, players, options, help, high scores, the classic and action games over the
 50 books, the story and the book ends. Natively and on the web it plays from the logos into the books; compared with
-the original the screens checked so far match (`docs/ENGINE.md`, "Comparing with the original"). `docs/DEVIATIONS.md`
+the original in Windows Sandbox (2026-11-01) every screen of the tour up to the action game's pause and resumption
+matches, apart from the masked clock animations; the action game's end is still to be captured, as it outlasts
+origrun's 240 s. `docs/DEVIATIONS.md`
 lists every place the port does something other than the original, the leak it fixed and the memory the original
 reads before setting it. Mods: none yet (`docs/MOD_IDEAS.md` lists ideas).
