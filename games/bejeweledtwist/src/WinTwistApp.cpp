@@ -8,6 +8,7 @@
 #include "CustomResourceManager.h"
 #include "Board.h"
 #include "Buffer.h"
+#include "Compat2004.h"
 #include "Challenge.h"
 #include "Credits.h"
 #include "DDInterface.h"
@@ -214,6 +215,8 @@ void WinTwistApp::SetGemSize()
 void WinTwistApp::Init()
 {
 	SexyApp::Init();
+	// 0x4a588d: SexyAppBase::Init seeds the C library's rand with the tick count (-seed=N in test runs)
+	CrtSRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetTickCount());
 	if (mShutdown)
 		return;
 	// 0x7653a1: unless partner.xml's MarketingMode is "LevelLock" (Steam's copy), +0x759 and +0x758 are set: a full
