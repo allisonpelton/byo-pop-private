@@ -207,8 +207,7 @@ void AwardTelly::Update()
 		break;
 	}
 	if (gBoard != nullptr && mUpdateCnt == 300 && 2 <= (unsigned int)gApp->mProfile->mRank) {
-		// port: 0x6b40b5(2) on the board comes with the gems a level asks for (+0x1c64)
-		NotPorted("AwardTelly::Update: the board's 0x6b40b5");
+		gBoard->UnlockMode(2);  // 0x6b40b5
 	}
 }
 

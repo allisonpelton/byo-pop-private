@@ -408,6 +408,75 @@ bool Board::CountDownCounters()
 	return false;
 }
 
+// 0x6d090f (UpdateGame): the geodes from broken coal. Each waits its delay, then flies with the arc of its curve (slower
+// near the sides), throws sparks, and when its flight ends it lands: sparks, its points to the score and its sound.
+void Board::UpdateGeodes()
+{
+	static const float kSpinStep[8] = {0.2f, 0.12f, -0.2f, -0.12f, 1.0f, 0.3f, -1.0f, -0.3f};
+	int aCount = (int)mUnknown14AC.size();
+	for (unsigned int i = 0; i < mUnknown14AC.size(); i++) {
+		Geode* aGeode = mUnknown14AC[i];
+		if (0 < aGeode->mDelay) {
+			aGeode->mDelay--;
+			continue;
+		}
+		if (((unsigned int)mUnknown3914 >> 15 & 1) == 0) {
+			mUnknown3904 = true;
+			mApp->mProfile->SetFlag1E4(0xf, true);
+		}
+		float aWide = (float)mWidth - aGeode->mX;
+		float aSize = (float)((double)gApp->mScale * 250.0);
+		float aEdge = 1.0f;
+		float aNear = aWide < aGeode->mX ? aWide : aGeode->mX;
+		if ((double)(aNear / aSize) <= 1.0)
+			aEdge = aNear / aSize;
+		if (!aGeode->mUnknownB8.IncInVal())
+			aGeode->mLife = 0;
+		aGeode->mX = (float)(aGeode->mUnknownB8.GetOutVal() * (double)aGeode->mDX * (double)aEdge + (double)aGeode->mX);
+		aGeode->mY = (float)(aGeode->mUnknownB8.GetOutVal() * (double)aGeode->mDY * (double)aEdge + (double)aGeode->mY);
+		float aPull = (float)((double)gApp->mScale * 0.07500000298023224);
+		aGeode->mDY = aPull + aGeode->mDY;
+		double aLimit = 8.0 - (double)aCount * 0.5;
+		for (int k = 0; (double)k < (1.0 <= aLimit ? aLimit : 1.0); k++) {
+			Effect* aSpark = mFXManager->AllocEffect(0x28);
+			float aRange = (float)((double)gApp->mScale * 10.0);
+			aSpark->mX = (float)((double)RandSigned() * (double)aRange + (double)aGeode->mX);
+			aRange = (float)((double)gApp->mScale * 10.0);
+			aSpark->mY = (float)((double)RandSigned() * (double)aRange + (double)aGeode->mY);
+			mFXManager->AddEffect(aSpark);
+		}
+		for (int j = 0; j < 8; j++)
+			aGeode->mSpin[j] = (float)(aGeode->mUnknown38.GetOutVal() * (double)kSpinStep[j] + (double)aGeode->mSpin[j]);
+		if (0.0f < aGeode->mLife)
+			continue;
+		// It lands: a burst of sparks of any hue
+		int aBurst = (0x12 - aCount) * 5;
+		if (aBurst < 10)
+			aBurst = 10;
+		for (int k = 0; k < aBurst; k++) {
+			Effect* aDust = mFXManager->AllocEffect(0x11);
+			aDust->mColor = Color(mApp->HSLToRGB((int)(Rand() % 256), 0xff, 0xdc));
+			aDust->mX = (float)((double)RandSigned() * 2.0 + (double)aGeode->mX);
+			aDust->mY = (float)((double)RandSigned() * 2.0 + (double)aGeode->mY);
+			float aSpeed = (float)((double)RandSigned() * 15.5);
+			float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
+			aDust->mDX = (float)((double)(aSpeed * cosf(anAngle)) + (double)aGeode->mDX * 0.0);
+			aDust->mDY = (float)((double)(aSpeed * sinf(anAngle)) + (double)aGeode->mDY * 0.0);
+			mFXManager->AddEffect(aDust);
+		}
+		float aPointsY = aGeode->mY <= 0.0f ? 0.0f : aGeode->mY;
+		float aPointsX = 0.0f < aGeode->mX ? aGeode->mX : 0.0f;
+		AddPoints(Ftol(aPointsX), Ftol(aPointsY), aGeode->mPoints, Color::White, -0x67, true, true, false, true);
+		mUnknown14AC.erase(mUnknown14AC.begin() + i);
+		float aPitch = (float)aGeode->mIndex;
+		if (10.0f < aPitch)
+			aPitch = 10.0f;
+		mApp->PlaySoundAt(SOUND_GEODE, Ftol(aGeode->mX), aPitch, 0.0f);
+		delete aGeode;  // the original leaves it
+		i--;
+	}
+}
+
 void Board::UpdateGame()
 {
 	mUnknown25A4 = false;
@@ -658,7 +727,7 @@ void Board::UpdateGame()
 	if (mUnknown21A8 != nullptr)
 		mUnknown21A8->Update();
 	if (mUnknown210C) {
-		// port: the 0x211c object (0x74c8c8) is not ported yet
+		// 0x74db1b on the +0x211c object: nothing in the exe sets +0x210c, so it never runs
 		NotPorted("Board::UpdateGame: 0x74db1b");
 	}
 	if (0.0f < mUnknown1C48) {
@@ -1224,10 +1293,7 @@ void Board::UpdateGame()
 	}
 	if (mUnknown14AC.empty())
 		mUnknown3905 = false;
-	if (!mUnknown14AC.empty()) {
-		// port: the geodes that fly from broken coal (+0x14ac) come with the coal; they draw from Rand
-		NotPorted("Board::UpdateGame: the geodes");
-	}
+	UpdateGeodes();
 	MarkDirty();
 	// The board's shake
 	if (!(0.0f < mUnknown151C)) {
@@ -1359,9 +1425,10 @@ void Board::UpdateGame()
 		// The seconds of play, for the stats
 		mUnknown14E4 += anUpdateCnt - mUnknown14E0;
 		if (1000 / gApp->mFrameTime <= mUnknown14E4) {
-			if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0) {
-				// port: a timed challenge (its +0x80 flag 2) runs out through 0x6b3432; it comes with the challenges
-				NotPorted("Board::UpdateGame: the challenge's time");
+			if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0 && HasChallengeFlag(2) && !mUnknown21D8 &&
+				!mUnknown21DA && !mUnknown21D9 && mUnknown25A4 && mUnknown149C.size() == 0 && mUnknown25A5) {
+				// a timed challenge runs out through the goal check (0x6d090f)
+				CheckGoal(true);
 			}
 			AddStat(35, 1);
 			mUnknown14E4 = mUnknown14E4 % (1000 / gApp->mFrameTime);

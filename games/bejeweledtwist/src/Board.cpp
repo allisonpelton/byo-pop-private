@@ -104,8 +104,7 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	mShineImage = IMAGE_GEM_LIGHTING;
 	mGridBarTop = IMAGE_INGAMEUI_GRIDBAR_TOP;
 	mGridBarBot = IMAGE_INGAMEUI_GRIDBAR_BOT;
-	// port: the 0x10-byte object (0x74c8c8) comes with its first use
-	NotPorted("Board's +0x211c object (0x74c8c8)");
+	mUnknown211C = new BoardStepper(mApp);  // 0x74c8c8
 	// 0x75fc8a
 	if (mApp->mBoard == nullptr || !mApp->mBoard->mUnknown37C4)
 		std::memset(mApp->mUnknownC74, 0, sizeof(mApp->mUnknownC74));
@@ -321,7 +320,7 @@ void Board::ClearBoard()
 	}
 	mUnknown149C.clear();  // 0x6af6b6
 	for (size_t i = 0; i < mUnknown14AC.size(); i++)
-		std::free(mUnknown14AC[i]);
+		delete mUnknown14AC[i];
 	mUnknown14AC.clear();  // 0x6af6f1
 	mUnknown1430 = nullptr;
 	if (mUnknown21D9) {
@@ -603,6 +602,7 @@ Board::~Board()
 	// The original never deletes blitz's final score
 	delete mUnknown3464;
 	delete mUnknown3468;
+	delete mUnknown211C;  // 0x6bf0bb
 	delete mUnknown38F0;
 	delete mUnknown38F4;
 	for (Traveller* aTraveller : mUnknown2170) {

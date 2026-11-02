@@ -95,8 +95,7 @@ void LevelUpShow::Update()
 	}
 	if (mUpdateCnt == 200 && gApp->mRegistered && mBoard->mGameMode == Board::MODE_CLASSIC &&
 		9 < mBoard->mUnknown158) {
-		// port: 0x6b40b5(3) on the board comes with the gems a level asks for (+0x1c64)
-		NotPorted("LevelUpShow::Update: the board's 0x6b40b5");
+		mBoard->UnlockMode(3);  // 0x6b40b5
 	}
 	MarkDirty();
 }

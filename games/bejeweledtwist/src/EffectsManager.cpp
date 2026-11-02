@@ -105,6 +105,16 @@ Effect::Effect(int theType) : mType(theType)
 	case 0:
 	case 23:  // a bomb's bubbles (Piece::Update)
 	case 41:  // the cursor's trail of rings (Board::UpdateCursor)
+	case 43:  // the nova of coal breaking (Board::BreakSpecial)
+		break;
+	case 40:  // a spark of a geode (Board::UpdateGame)
+		mImage = IMAGE_GEM_FRUIT_SPARK;
+		mIsAdditive = true;
+		mGravity = (float)((double)gApp->mScale * 0.01);
+		mAlpha = 1.0f;
+		mDAlpha = 0;
+		mScale = 0.5f;
+		mDScale = -0.005f;
 		break;
 	case 11:  // the gates' sparks
 	case 12:  // the sparks where the points' smoke reaches the tube (0x74f457)
@@ -306,6 +316,23 @@ void EffectsManager::Update()
 			break;
 		case 23:
 			break;
+		case 40:
+			// it flickers
+			anEffect->mAlpha = Rand() % 5 == 0 ? 1.0f : 0.25f;
+			break;
+		case 43: {
+			// the coal's nova: it grows, stays hidden for 40 updates, and fades from the 60th
+			float aScale = anEffect->mDScale + anEffect->mScale;
+			if (1.0f <= aScale)
+				aScale = 1.0f;
+			anEffect->mScale = aScale;
+			if (anEffect->mFrame < 40)
+				anEffect->mScale = 0;
+			anEffect->mFrame++;
+			if (anEffect->mFrame == 60)
+				anEffect->mDAlpha = -0.02f;
+			break;
+		}
 		case 24:
 			anEffect->mDX = (float)((double)anEffect->mDX * 0.95);
 			break;
@@ -608,6 +635,27 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 			g->SetColor(anEffect->mColor);
 			gGraphicsRecorder->DrawImageTransform(g, anEffect->mImage, aTransform, anEffect->mImage->GetCelRect(aCel),
 				anEffect->mX, anEffect->mY, false);
+			break;
+		}
+		case 40: {
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 128, Ftol(anOpacity * 255.0)));
+			float aScale = anEffect->mScale * anOpacity;
+			DrawImageCentered(g, IMAGE_GEM_FRUIT_SPARK, anEffect->mX, anEffect->mY, (double)anEffect->mAngle, aScale,
+				aScale);
+			break;
+		}
+		case 43: {
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 255, Ftol(anOpacity * 255.0)));
+			Transform aTransform;
+			aTransform.RotateRad((float)((double)anEffect->mFrame * -0.10000000149011612));
+			aTransform.Scale(anEffect->mScale, anEffect->mScale);
+			g->DrawImageTransform(IMAGE_COALNOVA, aTransform, anEffect->mX, anEffect->mY);
+			g->SetColorizeImages(false);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 			break;
 		}
 		case 17: {

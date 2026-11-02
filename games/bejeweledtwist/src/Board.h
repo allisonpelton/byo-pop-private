@@ -40,6 +40,36 @@ class WinTwistApp;
 // mFirstLevel on, a base, plus a change every mLevelsBetweenChange levels from mFirstChangeLevel and every
 // mTurnsBetweenChange of the app's +0xcf8, held to a min and a max (each unless below 0). The original's record is
 // 0x58 bytes.
+// 0x198 bytes (0x6a3217): a geode flung out of broken coal (Board::AddGeode, 0x6ba87f). It waits mDelay updates, flies
+// to the side with its sparks, and when it lands its points are added to the score. Not a Traveller: no vtable.
+struct Geode {
+	float mX = 0;                // +0x00
+	float mY = 0;                // +0x04
+	float mDX = 0;               // +0x08
+	float mDY = 0;               // +0x0c
+	float mLife = 0;             // +0x10: 0.45 while it flies; it lands when this is 0 or less
+	float mSpin[8] = {-3.1415927f, -3.1415927f, -3.1415927f, -3.1415927f,
+		-3.1415927f, -3.1415927f, -3.1415927f, -3.1415927f};  // +0x14: the angles of its eight arms
+	CurvedVal mUnknown38;        // +0x38: the arms' turn (linked to +0xb8)
+	int mPoints = 0;             // +0xa8
+	int mDelay = 0;              // +0xac: updates until it starts
+	int mUnknownB0 = 0;          // +0xb0
+	int mIndex = 0;              // +0xb4: the order it was made in (a pitch for its landing sound)
+	CurvedVal mUnknownB8;        // +0xb8: its flight
+	CurvedVal mUnknown128;       // +0x128: its brightness (linked to +0xb8)
+};
+
+// 0x10 bytes (0x74c8c8) at the board's +0x211c: a developer's stepper through the board (0x74db1b, run by UpdateGame
+// while +0x210c is set, which nothing in the exe ever sets). The original sets only its first field; the rest is
+// whatever the allocator left.
+struct BoardStepper {
+	WinTwistApp* mApp;       // +0x00
+	int mUnknown4 = 0;       // +0x04: the board, as 0x74db1b reads it
+	int mUnknown8 = 0;       // +0x08
+	int mUnknownC = 0;       // +0x0c
+	explicit BoardStepper(WinTwistApp* theApp) : mApp(theApp) {}  // 0x74c8c8
+};
+
 struct LevelValue {
 	int mValue = 0;                 // +0x0: GetCount (0x74eac6) at a new level
 	int mFirstLevel = 0;            // +0x4
@@ -172,8 +202,14 @@ public:
 	int mUnknown254 = -1;                   // +0x254
 	int mUnknown258 = -1;                   // +0x258
 	int mUnknown420 = 0;                    // +0x420
-	CurvedVal mUnknown498;                  // +0x498: set by 0x6b40b5; while it is not 0 the rank bar draws the
-	                                        // overlays above priority 50 under it
+	CurvedVal mUnknown428;                  // +0x428: the mode-unlock banner's stripe (0x6b40b5)
+	CurvedVal mUnknown498;                  // +0x498: set by 0x6b40b5; while it is not 0 the banner is drawn and the
+	                                        // rank bar draws the overlays above priority 50 under it
+	CurvedVal mUnknown508;                  // +0x508: the banner's mode picture
+	CurvedVal mUnknown578;                  // +0x578: its glow
+	CurvedVal mUnknown5E8;                  // +0x5e8: its sheen's colour
+	CurvedVal mUnknown658;                  // +0x658: its sheen's place along the width
+	int mUnknown6C8 = 0;                    // +0x6c8: the mode unlocked last (2 is the challenge)
 	bool mUnknown6CC = false;               // +0x6cc
 	int mUnknown6D0 = 0;                    // +0x6d0
 	int mUnknown70C = 0;                    // +0x70c
@@ -611,7 +647,7 @@ public:
 	int mUnknown1FBC = 0;                   // +0x1fbc
 	int mUnknown1FC0 = 0;                   // +0x1fc0
 	float mUnknown20E0 = 0;                 // +0x20e0
-	void* mUnknown211C = nullptr;           // +0x211c: a 0x10-byte object holding the app (0x74c8c8)
+	BoardStepper* mUnknown211C = nullptr;   // +0x211c (0x74c8c8; freed by the destructor at 0x6bf0bb)
 	int mUnknown2190 = 0;                   // +0x2190
 	GoodTube* mGoodTube = nullptr;          // +0x2194: the tube at the side
 	EffectsManager* mFXManager3 = nullptr;  // +0x21b8
@@ -661,7 +697,7 @@ public:
 	int mTimeFreezeMatchCount = 0;          // +0x21b4
 	int mBonusChallengeMaxGems = 0;         // +0x2670
 	int mMaxLocksOnScreen = 0;              // +0x3800
-	std::vector<void*> mUnknown14AC;        // +0x14ac: malloc'd blocks ClearBoard frees (not yet known)
+	std::vector<Geode*> mUnknown14AC;       // +0x14ac: the geodes in flight (the original frees them with free(), skipping their destructors)
 	int mUnknown2180 = 0;                   // +0x2180
 	int mUnknown2184 = 0;                   // +0x2184
 	int mUnknown2204 = 0;                   // +0x2204
@@ -786,6 +822,8 @@ public:
 	Piece* AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theUnknown1,
 		bool theUnknown2, bool theFirst, bool theUnknown3);
 	void ShowCountPopup();                       // 0x6b3ffc
+	void UnlockMode(int theMode);                // 0x6b40b5: the mode opens, with a banner
+	bool CheckGoal(bool theFlag);                // 0x6b3432: the challenge's goal, or the tube's bonus challenge being met
 	void ResetFruitCount();                      // 0x6b3615
 	void MatchAfterMove();                       // 0x6cf3fd: the matches once the gems have moved, and the chain
 	void PlayChainSound(int theChain);           // 0x6a674d
@@ -922,7 +960,11 @@ public:
 	// 0x6a3b4c: the game's time, scores and counts into the profile and the app, once (+0x137c)
 	void UpdateStats();
 	void DrawNukeGem(Graphics* g, Piece* thePiece);  // 0x6a6885: the gem that set off the nuke, while hidden
-	void BreakSpecial(Piece* thePiece, bool theFlag);  // 0x6c03a4
+	// 0x6c03a4: a doom gem, coal, a gem lock or a bomb breaking; theType is 1 when the match breaks it, 2 when electro
+	// does
+	void BreakSpecial(Piece* thePiece, int theType);
+	Geode* AddGeode(int theX, int theY, float theAngle);  // 0x6ba87f
+	void UpdateGeodes();                           // 0x6d090f: the geodes in flight
 	void BurstGems(int theX, int theY, int theRange);  // 0x6bac72
 	// 0x6a4b7c: the gems above and around thePiece jump away from it
 	void LiftAround(Piece* thePiece, float theStrength);

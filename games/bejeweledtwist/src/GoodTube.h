@@ -234,6 +234,7 @@ public:
 	void SetTime(int theTime, bool theAtOnce);     // 0x7036eb: blitz's time; theAtOnce shows it at once
 	void StartUnknown4AC(bool theFour, bool theUnknown4A9);  // 0x707329
 	void SetColor(const Color& theColor, bool theAtOnce);   // 0x70c8b6: the cycle runs from the last colour to it
+	void SetTip(const SexyString& theText, const Color& theColor, float theSpeed, int theMaxWidth);  // 0x70c94a
 	void UpdateImages();                           // 0x7030ec
 	int GetTubeHeight();                           // 0x702af7: 0 until the images are set
 	int GetTubeWidth();                            // 0x702b36: the wider light glow's width

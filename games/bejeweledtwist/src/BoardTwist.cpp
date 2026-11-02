@@ -330,8 +330,7 @@ void Board::StartTwist(bool theInstant, int theX, int theY)
 	mUnknown2016 = true;
 	mUnknown216C = false;
 	if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0) {
-		// port: 0x6b3432 checks the challenge's goal; it comes with the challenges
-		NotPorted("Board::StartTwist: the challenge's goal (0x6b3432)");
+		CheckGoal(false);
 	}
 	if (!theInstant) {
 		double aX;

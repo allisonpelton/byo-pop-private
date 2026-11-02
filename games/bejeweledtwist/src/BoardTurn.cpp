@@ -31,10 +31,8 @@ void Board::SettleTurn()
 	// The original writes "Move FOUND at" the move, or "NO MOVE FOUND", to the debugger
 	FindMove(&mUnknown201C, &mUnknown2020, false);
 	if (mGameMode == MODE_CHALLENGE) {
-		if (mUnknown2630 != 0) {
-			// port: 0x6b3432 checks the challenge's goal; it comes with the challenges
-			NotPorted("Board::SettleTurn: the challenge's goal (0x6b3432)");
-		}
+		if (mUnknown2630 != 0)
+			CheckGoal(false);
 	} else if (mBonusColors.size() == 0) {
 		// The tube's text once a bonus challenge is over
 		SexyString aText;
@@ -76,9 +74,9 @@ void Board::SettleTurn()
 				mUnknown1FB8++;
 				AddStat(0x21, 1);
 				if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0 && !mUnknown21A2) {
-					// port: the challenge's turn (0x6d86c9 on app +0xf5c) and its goal (0x6b3432) come with the
-					// challenges
+					// port: the challenge's turn (0x6d86c9 on the +0x2630 object) comes with the challenges
 					NotPorted("Board::SettleTurn: the challenge's turn");
+					CheckGoal(true);
 				}
 			}
 		}
@@ -419,8 +417,7 @@ void Board::EndTurn()
 	}
 	ResetFruitCount();
 	if (mUnknown2668) {
-		// port: 0x6b3432 checks the challenge's goal; it comes with the challenges
-		NotPorted("Board::EndTurn: the challenge's goal (0x6b3432)");
+		CheckGoal(true);
 		mUnknown2668 = false;
 	}
 	if (mUnknown160 != 1) {
@@ -456,8 +453,7 @@ void Board::EndTurn()
 	}
 	if (!IsGameOverPending()) {
 		if (-1 < mUnknown1C64) {
-			// port: 0x6b40b5 comes with the gems the level asks for (+0x1c64)
-			NotPorted("Board::EndTurn: 0x6b40b5");
+			UnlockMode(mUnknown1C64);  // 0x6b40b5
 			mUnknown1C64 = -1;
 		}
 		CheckCombos();
@@ -492,10 +488,8 @@ void Board::UpdateRecords()
 	}
 	// the move's points, with the geodes still in flight
 	int aPoints = 0;
-	if (!mUnknown14AC.empty()) {
-		// port: each geode's +0xa8 times +0x21d0, +0x2580 and the mode's multiplier; the geodes come with the coal
-		NotPorted("Board::UpdateRecords: the geodes' points");
-	}
+	for (unsigned int i = 0; i < mUnknown14AC.size(); i++)  // 0x6bcd96
+		aPoints += mUnknown14AC[i]->mPoints * mUnknown21D0 * mUnknown2580 * mModeMultiplier;
 	aPoints = mUnknown168 - mUnknown16C + aPoints;
 	if (mApp->mUnknownFA0[2].mUnknown28 < aPoints) {
 		mUnknown3910 = aPoints;

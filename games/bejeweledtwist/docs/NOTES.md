@@ -299,9 +299,21 @@ specks, the level's arc of lights and multiplier bulbs, the score's ticker, the 
 head holds the player's rank badge (Sexy::RankBadge, 0x158 bytes, +0x32c), which draws the badge at 0.4 scale while
 the tube is shown and keeps a hover and click state for its tooltip; a burst of sparks leaves it while +0x2a4 is above
 0. Still missing: the challenges' goal and bracket, the bonus challenge's hint wave, the glass breaking (0x70c7ec)
-and the tube's text popups (+0x1cc, +0x1d0). In a first shot of classic play the tube matches the original except for
+and the tube's text popups (+0x1cc, +0x1d0: they are never made in play; the tube's tip text, +0x224, is what 0x70c94a sets).
+In a first shot of classic play the tube matches the original except for
 the badge, which the port draws a little softer, as the framework's stretched DrawImage filters where the original's
 2D stretch looks sharper; the identical-play pass looks at that stretch for every scaled image.
+
+Ported since: the tube's tip text (GoodTube::SetTip, 0x70c94a: wraps in FONT_TOOLTIP, fades in; "%d CHAIN!" at a chain of
+50, 60 and so on), the count popup (ShowCountPopup, 0x6b3ffc), the goal check (Board::CheckGoal, 0x6b3432: the bonus
+challenge being met, with its two sounds and 0x703642; the challenge branch, +0x2630, stays NotPorted), the mode
+unlock (Board::UnlockMode, 0x6b40b5, with its banner in DrawOverlay and the curves at +0x428 to +0x658), the +0x211c
+object (BoardStepper, 0x74c8c8: a developer's stepper that the +0x210c flag, which nothing sets, would run) and coal.
+Coal breaking (BreakSpecial's coal branch, 0x6c03a4, from BreakPiece with type 1) throws one to five geodes
+(Board::AddGeode 0x6ba87f, a 0x198-byte object without a vtable in the list at +0x14ac, which the original frees
+with free() and never deletes when they land): their update is in UpdateGame (0x6d090f, Board::UpdateGeodes), their
+draw in Board::Draw (0x6cc7ed), their light in DrawPieces and their points in UpdateRecords; effect types 40 (a spark)
+and 43 (the coal's nova) are new. Doom gems and gem locks in BreakSpecial are still missing.
 
 The tube's MENU button opens the options over the game (Board::ShowMenu 0x6a6983, WinTwistApp::ShowOptionsDialog
 0x75f6fc). Over a game the panel (0x69e4c5) has a return button, a quit button (the challenge button in a challenge)

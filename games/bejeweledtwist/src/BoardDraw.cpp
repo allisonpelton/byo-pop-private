@@ -82,8 +82,41 @@ void Board::Draw(Graphics* g)
 		// The geodes (+0x14ac): eight cels each, additive and then normal, in eight colours
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		if (!mUnknown14AC.empty()) {
-			// port: the geodes come with the coal that makes them
-			NotPorted("Board::Draw: the geodes");
+			// 0x6cc7ed: each geode flying has its eight arms, a dark pass and a coloured one over it
+			const Color aArmColors[8] = {Color(255, 128, 64), Color(128, 255, 64), Color(128, 64, 255),
+				Color(255, 64, 255), Color(255, 128, 64), Color(64, 255, 128), Color(64, 128, 255), Color(255, 64, 255)};
+			for (unsigned int i = 0; i < mUnknown14AC.size(); i++) {
+				Geode* aGeode = mUnknown14AC[i];
+				if (0 < aGeode->mDelay)
+					continue;
+				Image* anImage = IMAGE_PHOTONARMS;
+				int aHalfWidth = anImage->GetCelWidth() / 2;
+				int aHalfHeight = anImage->GetCelHeight() * 0x26 / 0xb7;
+				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+				for (int j = 0; j < 8; j++) {
+					Rect aSrc = anImage->GetCelRect(j / 4 + 2);
+					Color aColor(0, 0, 0);
+					aColor.mAlpha = Ftol(aGeode->mUnknown128.GetOutVal() * 255.0);
+					if (aColor.mAlpha != 0) {
+						g->SetColor(aColor);
+						g->DrawImageRotated(anImage, Ftol((double)aGeode->mX - (double)aHalfWidth),
+							Ftol((double)aGeode->mY - (double)aHalfHeight), (double)aGeode->mSpin[j], aHalfWidth,
+							aHalfHeight, &aSrc);
+					}
+				}
+				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+				for (int j = 0; j < 8; j++) {
+					Rect aSrc = anImage->GetCelRect(j / 4);
+					Color aColor = aArmColors[j];
+					aColor.mAlpha = Ftol(aGeode->mUnknown128.GetOutVal() * 255.0);
+					if (aColor.mAlpha != 0) {
+						g->SetColor(aColor);
+						g->DrawImageRotated(anImage, Ftol((double)aGeode->mX - (double)aHalfWidth),
+							Ftol((double)aGeode->mY - (double)aHalfHeight), (double)aGeode->mSpin[j], aHalfWidth,
+							aHalfHeight, &aSrc);
+					}
+				}
+			}
 		}
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -414,10 +447,10 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 		AddLight(aX, aY, aLight.mUnknown8, aLight.mUnknownC, aLight.mUnknown14 * aLight.mUnknown10, aLight.mPiece,
 			false);
 	}
-	if (!mUnknown14AC.empty()) {
-		// port: each geode still flying (its +0xac 0) lights the gems, AddLight(x, y, 5.5, 320, 0.75); comes with
-		// the geodes
-		NotPorted("Board::DrawPieces: the geodes' light");
+	for (unsigned int i = 0; i < mUnknown14AC.size(); i++) {
+		// each geode flying lights the gems (0x6caa13)
+		if (mUnknown14AC[i]->mDelay == 0)
+			AddLight(mUnknown14AC[i]->mX, mUnknown14AC[i]->mY, 5.5f, 320.0f, 0.75f, nullptr, false);
 	}
 	for (int i = 0; i < aCount; i++) {
 		Piece* aPiece = aPieces[i];
@@ -815,7 +848,38 @@ void Board::DrawOverlay(Graphics* g)
 	if (mUnknown267C != nullptr)
 		NotPorted("Board::DrawOverlay: +0x267c");
 	mPointsManager->DrawOverlay(g, 0x62);
-	// port: the unlock banner (the curve at +0x498) comes with the modes' unlocking
+	// (With Direct3D a device call comes here when +0x268c is not 1.) The banner of a mode just unlocked (0x6b40b5)
+	if (mUnknown498.GetOutVal() != 0.0) {
+		g->SetColorizeImages(true);
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		Image* aModeImage = mUnknown6C8 == MODE_CHALLENGE ? IMAGE_MODEUNLOCK_CHALLENGE : IMAGE_MODEUNLOCK_BLITZ;
+		g->SetColor(Color(255, 255, 255, Ftol(mUnknown428.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+		g->DrawImage(IMAGE_MODEUNLOCK_STRIPE, mWidth / 2 - IMAGE_MODEUNLOCK_STRIPE->mWidth / 2,
+			Ftol((double)gApp->mScale * 60.0));
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		float aCount = (float)mUpdateCnt;
+		int aCloud1 = Ftol((double)aCount * 3.3499999046325684) % IMAGE_MODEUNLOCK_CLOUD1->mWidth;
+		int aCloud2 = Ftol((double)aCount * 2.5) % IMAGE_MODEUNLOCK_CLOUD2->mWidth;
+		g->SetColor(Color(255, 255, 255, Ftol(mUnknown498.GetOutVal() * 255.0)));
+		g->DrawImage(IMAGE_MODEUNLOCK_CLOUD1, mWidth / 2 - IMAGE_MODEUNLOCK_CLOUD1->mWidth / 2 + aCloud1,
+			Ftol((double)gApp->mScale * 60.0));
+		g->DrawImage(IMAGE_MODEUNLOCK_CLOUD1, mWidth / 2 - (IMAGE_MODEUNLOCK_CLOUD1->mWidth * 3) / 2 + aCloud1,
+			Ftol((double)gApp->mScale * 60.0));
+		g->DrawImage(IMAGE_MODEUNLOCK_CLOUD2, mWidth / 2 - IMAGE_MODEUNLOCK_CLOUD2->mWidth / 2 - aCloud2,
+			Ftol((double)gApp->mScale * 60.0));
+		g->DrawImage(IMAGE_MODEUNLOCK_CLOUD2, IMAGE_MODEUNLOCK_CLOUD2->mWidth / 2 + mWidth / 2 - aCloud2,
+			Ftol((double)gApp->mScale * 60.0));
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		g->SetColor(Color(255, 255, 255, Ftol(mUnknown508.GetOutVal() * 255.0)));
+		g->DrawImage(aModeImage, mWidth / 2 - aModeImage->mWidth / 2, Ftol((double)gApp->mScale * 100.0));
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		g->SetColor(Color(255, 255, 255, Ftol(mUnknown578.GetOutVal() * 255.0)));
+		g->DrawImage(aModeImage, mWidth / 2 - aModeImage->mWidth / 2, Ftol((double)gApp->mScale * 100.0));
+		g->SetColor(Color(255, 255, 255, Ftol(mUnknown5E8.GetOutVal() * 255.0)));
+		g->DrawImage(IMAGE_MODEUNLOCK_SHEEN, Ftol(mUnknown658.GetOutVal() * (double)mWidth),
+			Ftol((double)gApp->mScale * 80.0));
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	}
 }
 
 // 0x6b42e1: the gems and cascades of the last move, each a number with its name under it, left of the board

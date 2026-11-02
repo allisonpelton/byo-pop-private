@@ -359,6 +359,60 @@ void GoodTube::SetColor(const Color& theColor, bool theAtOnce)
 		mColorCycle.SetPosition(1.0f);
 }
 
+// 0x70c94a: the tube's tip text, in theColor, wrapped to theMaxWidth in FONT_TOOLTIP at its spaces; it fades in and
+// stays for theSpeed (or 1) of the 0.01 steps of +0x248 (see Update)
+void GoodTube::SetTip(const SexyString& theText, const Color& theColor, float theSpeed, int theMaxWidth)
+{
+	mUnknown24C[0] = theColor.mRed;
+	mUnknown24C[1] = theColor.mGreen;
+	mUnknown24C[2] = theColor.mBlue;
+	mUnknown24C[3] = theColor.mAlpha;
+	Font* aFont = FONT_TOOLTIP;
+	SexyString aText = theText;
+	if (theMaxWidth < aFont->StringWidth(aText)) {
+		std::vector<SexyString> aLines;
+		int aLastSpace = -1;
+		unsigned int i = 0;
+		if (aText.size() != 0) {
+			do {
+				if (aText[i] == '\n') {
+					aLines.push_back(aText.substr(0, i));
+					aText = aText.substr(i + 1);
+					i = 0;
+					aLastSpace = -1;
+				} else if (aText[i] == ' ') {
+					bool aTooWide = theMaxWidth < aFont->StringWidth(aText.substr(0, i));
+					int aSpace = (int)i;
+					if (aTooWide) {
+						if (aLastSpace == -1)
+							aLastSpace = (int)i;
+						aLines.push_back(aText.substr(0, aLastSpace));
+						aText = aText.substr(aLastSpace + 1);
+						i = 0;
+						aSpace = aLastSpace;
+					}
+					aLastSpace = aSpace;
+				}
+				i++;
+			} while (i < aText.size());
+		}
+		if (theMaxWidth < aFont->StringWidth(aText) && aLastSpace != -1) {
+			aLines.push_back(aText.substr(0, aLastSpace));
+			aText = aText.substr(aLastSpace + 1);
+		}
+		aLines.push_back(aText);
+		aText.clear();
+		for (unsigned int j = 0; j < aLines.size(); j++) {
+			if (j != 0)
+				aText += _S("\n");
+			aText += aLines[j];
+		}
+	}
+	mTip = aText;
+	mUnknown244 = 1.0f;
+	mUnknown248 = 0.0f < theSpeed ? theSpeed : 1.0f;
+}
+
 void GoodTube::UpdateImages()
 {
 	mTopImage = mChallenge ? IMAGE_INGAMEUI_TUBE_TOP_CHALLENGE : IMAGE_INGAMEUI_TUBE_TOP;

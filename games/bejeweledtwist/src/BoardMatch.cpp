@@ -41,6 +41,50 @@ void Board::StartSparks(Piece* thePiece)
 	thePiece->mUnknownF4 = gSparkDelay;
 }
 
+// 0x6b40b5: the player's profile opens theMode (once) and the banner of it comes up (DrawOverlay). The original also
+// writes "UNLOCKED <mode>, LEVEL, RANK, total playtime" to its trace stream.
+void Board::UnlockMode(int theMode)
+{
+	if (mApp->mProfile->IsModeUnlocked(theMode))
+		return;
+	mApp->mProfile->UnlockMode(theMode);
+	mApp->PlaySample(SOUND_GAMEUNLOCKED);
+	mUnknown6C8 = theMode;
+	mUnknown428.SetCurve(GTS(0x7dcbd4));
+	mUnknown498.SetCurve(GTS(0x7dcb90));
+	mUnknown508.SetCurve(GTS(0x7dcb58));
+	mUnknown578.SetCurve(GTS(0x7dcb10));
+	mUnknown5E8.SetCurve(GTS(0x7dcad8));
+	mUnknown658.SetCurve(GTS(0x7dcaa4));
+}
+
+// 0x6b3432: true once the tube's bonus challenge is met (the board has the bonus colours' count matched); in a
+// challenge, the challenge's goal
+bool Board::CheckGoal(bool theFlag)
+{
+	if (mGoodTube != nullptr && 0.0f < mGoodTube->mUnknown3B4)
+		return false;
+	if (mGameMode == MODE_CHALLENGE) {
+		if (mUnknown2630 != 0) {
+			// port: the challenge's goal (the +0x2630 object, 0x6db273, 0x6af390 and 0x6b2c50; theFlag asks for the
+			// challenge to end on a miss) comes with the challenges
+			NotPorted("Board::CheckGoal: the challenge's goal (0x6b3432)");
+		}
+	} else {
+		if (mBonusColors.size() != 0 && mBonusColors.size() <= (unsigned int)mUnknown2660 && mUnknown265C != 4) {
+			mApp->PlayVoice(SOUND_VOICE_CHALLENGECOMPLETE, false);
+			mApp->PlaySample(SOUND_CHALLENGECOMPLETED);
+			mUnknown2640++;
+			if (mUnknown265C == 3)
+				mUnknown265C = 4;
+			else
+				mGoodTube->StartBonus();
+			return true;
+		}
+	}
+	return false;
+}
+
 void Board::ResetFruitCount()
 {
 	if (mUnknown2664 != mUnknown2660 && (mUnknown2660 != 0 || mUnknown2664 == -1))
@@ -357,13 +401,19 @@ Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor
 	return nullptr;
 }
 
+// 0x6b3ffc: the big count of the board's gems left of it (drawn by DrawCounters)
 void Board::ShowCountPopup()
 {
 	if (IsBusy())
 		return;
-	if (mUnknown37B0 && mUnknown37B4 <= mUnknown1F8) {
-		// port: 0x6b3ffc's popup of the count (FONT_POPUP_COUNT, the curve 0x... at +0x37a4) comes with the popups
-		NotPorted("Board::ShowCountPopup (0x6b3ffc)");
+	int aCount = mUnknown1F8;
+	if (mUnknown37B0 && mUnknown37B4 <= aCount) {
+		SetFontLayerColor(FONT_POPUP_COUNT, 1, Color(0x80, 0x80, 0x80));
+		if (mUnknown36B4 != aCount)
+			mUnknown36B4 = aCount;
+		mUnknown3730.SetCurve(GTS(0x7dca30));
+		mUnknown37A4 = 1.0f;
+		mUnknown37AC = 1.0f;
 	}
 }
 
@@ -1221,18 +1271,16 @@ void Board::MatchAfterMove()
 		unsigned int aFruitCount = (unsigned int)mUnknown2660;
 		mUnknown2614.clear();
 		int aCleared = mUnknown1F0;
-		if (HasChallengeFlag(0x10)) {
-			// port: 0x6b3432 comes with the challenges
-		}
+		if (HasChallengeFlag(0x10))
+			CheckGoal(false);
 		aMatches = FindMatches(2);
 		if (aCleared < mUnknown1F0)
 			ShowCountPopup();
 		if (mGameMode == MODE_CHALLENGE) {
 			if (mUnknown2630 != 0)
-				NotPorted("Board::MatchAfterMove: the challenge's goal (0x6b3432)");
+				CheckGoal(false);
 		} else {
-			// port: 0x6b3432's result in the other modes comes with the challenges; it is false there
-			if (mUnknown1508 < 1 && (unsigned int)mUnknown2660 == aFruitCount) {
+			if (!CheckGoal(false) && mUnknown1508 < 1 && (unsigned int)mUnknown2660 == aFruitCount) {
 				if (aFruitCount < mBonusColors.size() && aFruitCount == (unsigned int)mUnknown2664)
 					mUnknown2660 = 0;
 			}
@@ -1288,8 +1336,9 @@ void Board::MatchAfterMove()
 				if (mGameMode == MODE_CHALLENGE) {
 					AddStat(0x2a, 1);
 				} else if (1 < aChain && 49 < aChain && aChain % 10 == 0) {
-					// port: "%d CHAIN!" (0x7dd... read by GetString) on the tube (0x70c94a) comes with the tube's texts
-					NotPorted("Board::MatchAfterMove: the chain's text");
+					// 0x6cf3fd: "%d CHAIN!" on the tube (Color::White stands for the exe's 0xe14068)
+					SexyString aChainText = StrFormat(mApp->GetString(GTS(0x7dd764), GT(0x7dd750)).c_str(), mUnknown818);
+					mGoodTube->SetTip(aChainText, Color::White, 0.0f, 10000);
 				}
 			}
 			unsigned int& aBestChain = (unsigned int&)mApp->mUnknownC74[0x2b];
@@ -1429,8 +1478,8 @@ void Board::BreakPiece(Piece* thePiece)
 		// special gems; it draws from Rand
 		NotPorted("Board::BreakPiece: a hypercube");
 	} else if (thePiece->IsFlagSet(Piece::FLAG_COAL) && !thePiece->mUnknown51D) {
-		// port: coal breaking (stat 0x4a, 0x6c03a4 with 1) comes with the coal
-		NotPorted("Board::BreakPiece: coal");
+		AddStat(0x4a, 1);
+		BreakSpecial(thePiece, 1);
 	} else if (thePiece->IsFlagSet(Piece::FLAG_ELECTRO) && !thePiece->mUnknown51D) {
 		// port: an electro gem going off (its strike at +0x149c, 150 points, SOUND_WILDCARD_DESTROYED and
 		// SOUND_FLAMELIGHTNING) comes with the electro gems
@@ -1874,7 +1923,33 @@ void Board::BurstAt(int theX, int theY, int theRange)
 	}
 }
 
-void Board::BreakSpecial(Piece* thePiece, bool theFlag)
+// 0x6ba87f: a geode flung from (theX, theY) along theAngle. Its draws from Rand are kept (the factors are 0).
+Geode* Board::AddGeode(int theX, int theY, float theAngle)
+{
+	if (mUnknown2629)
+		mUnknown3905 = true;
+	Geode* aGeode = new Geode();
+	aGeode->mUnknownB8.SetCurve(GTS(0x7dcd88));
+	aGeode->mUnknown128.SetCurve(GTS(0x7dcd68), &aGeode->mUnknownB8);
+	aGeode->mX = (float)theX;
+	aGeode->mY = (float)theY;
+	float aCos = cosf(theAngle);
+	float aSpeed = (float)((double)gApp->mScale * 4.0);
+	aGeode->mDX = (float)((double)RandSigned() * 0.0 + (double)(aSpeed * aCos));
+	float aSin = sinf(theAngle);
+	aSpeed = (float)((double)gApp->mScale * 4.0);
+	aGeode->mDY = (float)((double)RandSigned() * 0.0 + (double)(aSpeed * aSin));
+	aGeode->mX = (float)((double)aGeode->mDX * 10.0 + (double)aGeode->mX);
+	aGeode->mY = (float)((double)aGeode->mDY * 10.0 + (double)aGeode->mY);
+	aGeode->mLife = (float)((double)fabsf(RandSigned()) * 0.0 + 0.44999998807907104);
+	aGeode->mUnknown38.SetCurve(GTS(0x7dcd50), &aGeode->mUnknownB8);
+	aGeode->mUnknownB0 = 0;
+	aGeode->mPoints = 100;
+	mUnknown14AC.push_back(aGeode);  // 0x6b9a79
+	return aGeode;
+}
+
+void Board::BreakSpecial(Piece* thePiece, int theType)
 {
 	// 0x6c03a4: a doom gem, coal, a gem lock or a bomb breaking
 	if (thePiece->IsFlagSet(Piece::FLAG_DEVIL)) {
@@ -1882,7 +1957,45 @@ void Board::BreakSpecial(Piece* thePiece, bool theFlag)
 		return;
 	}
 	if (thePiece->IsFlagSet(Piece::FLAG_COAL)) {
-		NotPorted("Board::BreakSpecial: coal");
+		// Coal: one to five geodes fly out in a fan, with a nova where it was
+		int aCount = 1;
+		if (Rand85B970() % 2 == 0)
+			aCount = 2;
+		if (Rand85B970() % 3 == 0)
+			aCount++;
+		if (Rand85B970() % 4 == 0)
+			aCount++;
+		if (Rand85B970() % 5 == 0)
+			aCount++;
+		Rand85B970();
+		int aSteps = aCount - 1;
+		float aSpread = (float)((double)(float)aSteps * 0.8);
+		PlayPieceSound(thePiece, SOUND_COAL_BLASTED, 0.0f, 0.0f, true);
+		int aDelay = 45;
+		for (int i = 0; i < aCount; i++) {
+			int aDivisor = 1 <= aSteps ? aSteps : 1;
+			float aAngle = (float)((double)i / (double)aDivisor * (double)aSpread -
+				((double)aSpread * 0.5 + 1.5707963705062866));
+			int aY = Ftol((double)(gGemHeight / 2) + (double)thePiece->mY);
+			int aX = Ftol((double)(gGemWidth / 2) + (double)thePiece->mX);
+			Geode* aGeode = AddGeode(aX, aY, aAngle);
+			aGeode->mIndex = i;
+			aGeode->mDelay = theType == 2 ? aDelay - 25 : aDelay;
+			int aBonus = mUnknown3450 * 50;
+			if (250 < aBonus)
+				aBonus = 250;
+			aGeode->mPoints += aBonus;
+			mUnknown3450++;
+			aDelay += 10;
+		}
+		mUnknown3454 = 1.0f;
+		Effect* aNova = mFXManager2->AllocEffect(43);
+		aNova->mX = (float)(gGemWidth / 2) + thePiece->mX;
+		aNova->mY = (float)(gGemHeight / 2) + thePiece->mY;
+		aNova->mScale = 0;
+		aNova->mDScale = 0.035f;
+		aNova->mDAlpha = 0;
+		mFXManager2->AddEffect(aNova);
 		return;
 	}
 	if (thePiece->IsFlagSet(Piece::FLAG_LOCKED)) {
