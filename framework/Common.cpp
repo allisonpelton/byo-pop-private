@@ -641,7 +641,16 @@ bool Sexy::Deltree(const std::string& thePath)
 {
 	bool success = true;
 
-	std::string aSourceDir = thePath;
+	// Off Windows a path built the Windows way ("<user dir>/users\<name>") takes forward slashes, as the VFS's
+	// HostPath gives them
+	std::string aPath = thePath;
+#ifndef _WIN32
+	for (char& c : aPath)
+		if (c == '\\')
+			c = '/';
+#endif
+
+	std::string aSourceDir = aPath;
 
 	if (aSourceDir.length() < 2)
 		return false;
@@ -651,7 +660,7 @@ bool Sexy::Deltree(const std::string& thePath)
 
 	aSourceDir = AddTrailingSlash(aSourceDir);
 
-	std::vector<std::string> aNames = Platform::ListDirectory(thePath);
+	std::vector<std::string> aNames = Platform::ListDirectory(aPath);
 	for (size_t i = 0; i < aNames.size(); i++)
 	{
 		std::string aFullName = aSourceDir + aNames[i];
@@ -666,9 +675,9 @@ bool Sexy::Deltree(const std::string& thePath)
 	}
 
 #ifdef _WIN32
-	if (_rmdir(thePath.c_str()) != 0)
+	if (_rmdir(aPath.c_str()) != 0)
 #else
-	if (rmdir(thePath.c_str()) != 0)
+	if (rmdir(aPath.c_str()) != 0)
 #endif
 		success = false;
 
