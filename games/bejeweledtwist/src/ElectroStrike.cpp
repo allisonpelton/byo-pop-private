@@ -18,9 +18,9 @@ using namespace Sexy;
 
 namespace {
 
-// 0x85d850: the bolts' colours by the gem's colour. Nothing in the exe writes this table, so every bolt is
-// Color(0, 0, 0, 0): its glow (additive black) shows nothing and its lightning is the mid grey of half white.
-const Color kBoltColors[10] = {};
+// 0x85d850: the bolts' colours by the gem's colour, made by the static initialiser 0x7d5bf3
+const Color kBoltColors[8] = {Color(255, 32, 32), Color(255, 255, 255), Color(0, 255, 0), Color(255, 255, 0),
+	Color(255, 0, 255), Color(255, 128, 0), Color(0, 128, 255), Color(0, 0, 0)};
 
 }  // namespace
 

@@ -613,8 +613,9 @@ BreakSpecial); once nothing is left to light and the lightning has crossed the b
 the strike fades out in four steps. A strike after the n-th waits while the n-th is younger than 25 * n updates. With
 Direct3D the bolts go through the 3D interface: not ported. Two things differ from the exe, neither visibly: the port
 deletes a finished strike (the original only takes it off the list, a leak), and ClearBoard deletes the strikes it
-clears (0x71eb9e). The bolts' colour table (0x85d850) is never written by the exe, so every bolt has Color(0, 0, 0, 0)
-there too: the glow is additive black and the lightning grey.
+clears (0x71eb9e). The bolts take their colour from the table at 0x85d850, by the gem's colour: red (255, 32, 32),
+white, green, yellow, magenta, orange (255, 128, 0), blue (0, 128, 255) and black, made by the static initialiser
+0x7d5bf3. (An earlier reading missed that initialiser and drew every bolt grey; the user spotted it from videos.)
 
 **The fruit gem** (FruitAwardScreen.h/.cpp, BoardTurn.cpp, BoardMatch.cpp, BoardUpdate.cpp, BoardDraw.cpp). A fruit is
 awarded when the multiplier goes past its top level (SetLevelSteps sets +0x214) and at update 2190 of a fruit dance.
@@ -757,11 +758,6 @@ the board copies only seven, 0x6c59c4), so the sparks' colour is black until a g
   match, the original loops for ever and the game freezes. The port keeps the loop as it is. To see it, a board whose
   36 inner gems all carry flags when a doom gem is due (level 13 or later in Classic, or a constant-doom challenge).
   Fixing it would take a limit on the search, which the original does not have.
-- **The electro bolts' colour table is empty.** ElectroStrike's constructor (0x71f10e) gives each bolt the colour at
-  0x85d850 + 16 * the gem's colour, a table in the uninitialised data that nothing in the exe writes. Every bolt is
-  therefore black with no alpha: its IMAGE_GRITTYBLURRY glow, drawn additive in that colour, adds nothing, and its
-  IMAGE_LIGHTNING is drawn in the mid grey half way to white. The port keeps the empty table. It was most likely meant
-  to hold the gems' colours; filling it would be a change to the original's look.
 - **The fruit dance's points can run past their lists.** PopAnimCommand (0x6c3cf5) takes each "small" or "large"
   command's points from a list on its stack (42 and 15 entries) by a count it never checks, so further commands would
   read whatever lies beside the list. fruitdance.pam sends 37 and 15, so the original stays inside them; the port gives
