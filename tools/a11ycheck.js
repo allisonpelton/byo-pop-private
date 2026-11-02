@@ -541,6 +541,13 @@ function checkDoc(doc, report, opts) {
       else if (parseInt(ti, 10) > 0) report.error("tabindex", where(e) + " has tabindex above 0");
     }
     if (role(e) && ROLES.indexOf(role(e)) < 0) report.error("aria-role", where(e) + " has an unknown role \"" + role(e) + "\"");
+    // a tab in a tablist takes the focus by the arrow keys (the ARIA pattern's roving tabindex): one of its tablist's tabs is in the
+    // tab order, the others have tabindex="-1"
+    if (role(e) === "tab" && e.parent && role(e.parent) === "tablist" && !has(e, "hidden") && !has(e, "disabled")) {
+      if (e.parent.children.some(function (t) { return t.type === "el" && role(t) === "tab" && isFocusable(t); })) return;
+      report.error("aria-role", where(e) + " is a tab, and no tab of its tablist can take the focus");
+      return;
+    }
     if (["button", "link", "checkbox", "switch", "tab", "menuitem"].indexOf(role(e)) >= 0 && !isFocusable(e)) report.error("aria-role", where(e) + " has role " + role(e) + " but cannot take the focus");
   });
 
@@ -696,6 +703,9 @@ function selftest() {
     ["something focusable inside aria-hidden", clean.replace("</main>", '<div aria-hidden="true"><button type="button">x</button></div></main>'), null, "aria-hidden-focusable:"],
     ["a progress bar without a value", clean.replace("</main>", '<div role="progressbar" aria-label="p"></div></main>'), null, "aria-value:"],
     ["an aria-label that drops the visible words", clean.replace("</main>", '<a href="c.html" aria-label="Buy it">Buy on Steam</a></main>'), null, "label-in-name:"],
+    ["tabs with a roving tabindex", clean.replace("</main>", '<div role="tablist" aria-label="t"><button type="button" role="tab" aria-selected="true">A</button>' +
+      '<button type="button" role="tab" aria-selected="false" tabindex="-1">B</button></div></main>'), null, ""],
+    ["tabs that cannot take the focus", clean.replace("</main>", '<div role="tablist" aria-label="t"><button type="button" role="tab" tabindex="-1">A</button></div></main>'), null, "aria-role:"],
     ["a link to a new tab that does not say so", clean.replace("</main>", '<a href="d.html" target="_blank">D</a></main>'), null, "new-tab:"],
     ["a list with a stray child", clean.replace("</li></ul>", "</li><div>x</div></ul>"), null, "list:"],
     ["text that fails contrast", clean, ":root{--fg:#999;--bg:#aaa;--panel:#fff;--muted:#444;--accent:#00528f}", "contrast:"],

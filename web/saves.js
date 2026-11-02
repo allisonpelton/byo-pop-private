@@ -1,4 +1,4 @@
-// The listing page's "Your saves": a backup of the player's saves in one .zip, and a restore from one (docs/WEB_PLAYER.md, "Save
+// The listing page's Saves tab: a backup of the player's saves in one .zip, and a restore from one (docs/WEB_PLAYER.md, "Save
 // backup"). Nothing is uploaded: the page reads the games' browser storage itself and writes the zip itself.
 //
 // What the backup holds: for each game, the files of its save folder (the game's persist folder + "/userdata": its saves, high
@@ -354,19 +354,16 @@ var ByopopSaves = (function () {
     var busy = false;
     var errorControls = [];   // the controls that an error is read with (the import's, web/saveimport.js, join them)
     root.textContent = "";
-    root.appendChild(make("p", "pl-about", "Your saves, high scores and game settings are kept in this browser, and are lost if its data is cleared or you use " +
-      "another browser or device. A backup is one .zip, made here, with each game’s saves, the site’s settings and players, and never a game’s " +
-      "files, the exe, its icon or its mods. Nothing is uploaded."));
+    root.appendChild(make("p", "pl-about", "Your saves are kept only in this browser. A backup is a .zip of them that you keep; nothing is uploaded."));
     // whether the browser has agreed to keep the site's storage (a game page asks after an import, web/shell.html,
-    // askToKeepStorage): until it has, a drive that runs low on space can make it clear the whole site
+    // askToKeepStorage): until it has, a drive that runs low on space can make it clear the whole site, and only then is it said
     var kept = make("p", "pl-about");
     kept.hidden = true;
     root.appendChild(kept);
     try {
       if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(function (yes) {
-        kept.textContent = yes ? "This browser has agreed to keep them even if your drive runs low on space." :
-          "This browser may still clear them if your drive runs low on space. Importing a game’s files asks it to keep them.";
-        kept.hidden = false;
+        kept.textContent = "This browser may clear them if your drive runs low on space.";
+        kept.hidden = yes;
       }, function () {});
     } catch (e) {}
     var status = make("p", "pl-status");
@@ -578,8 +575,7 @@ var ByopopSaves = (function () {
       var h = make("h4", "", "Restore these saves?");
       h.id = "sv-confirm-title";
       confirmBox.appendChild(h);
-      var desc = make("p", "", "This replaces the files below in this browser with the backup’s. Files in this browser that the backup does not have stay as they are. " +
-        "Each game’s own browser backup is removed, since the restored files take its place; the game makes a new one.");
+      var desc = make("p", "", "This replaces the files below with the backup’s. Files the backup doesn’t have stay as they are.");
       desc.id = "sv-confirm-desc";
       confirmBox.appendChild(desc);
       var ul = make("ul", "sv-list");

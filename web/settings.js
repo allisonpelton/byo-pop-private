@@ -170,9 +170,7 @@ var ByopopSettings = (function () {
   var FIELDS = [
     { group: "Players" },
     { name: "profile", label: "Player names", options: [["game", GAME_DEFAULT], ["fill", "Fill in the name"], ["create", "Use the player"]], start: true,
-      hint: "Puts your name into the games, so you don’t type it again. Fill in the name: name boxes (a new player, a high score) " +
-        "start with your name. Use the player: games that keep players also make yours and choose it, so they don’t ask. " +
-        "Choose who you are under Players." },
+      hint: "Fill in the name: name boxes start with your player’s name. Use the player: games also make your player and choose it." },
     { group: "Sound" },
     { name: "startVolume", kind: "volume", label: "Set the starting volume",
       hint: "Every game starts at the music and sound volumes you choose.",
@@ -180,25 +178,22 @@ var ByopopSettings = (function () {
         "volume every game starts at, 0 for silence. You can still change it in the game." },
     { group: "Display" },
     { name: "fullscreen", label: "Full screen at start", options: [["game", GAME_DEFAULT], ["on", "Full screen"], ["off", "Windowed"]], start: true,
-      hint: "Some games start in full screen. Windowed keeps them in the page; Full screen fills the screen when you press Play." },
+      hint: "Full screen fills the screen when you press Play." },
     { name: "cursors", label: "Custom cursors", options: [["game", GAME_DEFAULT], ["on", "When available"], ["off", "Never"]],
-      hint: "Many games draw their own mouse pointer. When available turns it on in every game that has one; Never keeps your usual pointer." },
+      hint: "The game’s own mouse pointer, or your usual one." },
     { group: "Page" },
     { name: "autoStart", label: "Start the game when its page opens",
-      hint: "Starts the game without pressing Play once its files are loaded, when your browser lets the page play sound " +
-        "without a click: after you open a game from this site, or when the site may always play sound (a browser setting). " +
-        "Otherwise, or with Full screen at start, the page waits for Play." },
+      hint: "When your browser lets the page play sound without a click. Otherwise the page waits for Play." },
     { name: "wakeLock", label: "Keep the screen awake while a game runs",
-      hint: "Stops the screen dimming or locking while a game is running. Some browsers don’t allow it." },
+      hint: "Some browsers don’t allow it." },
     { name: "confirmLeave", label: "Ask before leaving a page while a game runs",
-      hint: "Asks before you close or leave a page while a game is running, so a stray click doesn’t end your game." },
+      hint: "So a stray click doesn’t end your game." },
     { name: "pauseHidden", label: "Pause when the tab is hidden",
-      hint: "Stops the game and its sound while you’re on another tab. The original games keep running in the background, so this starts off." },
+      hint: "The original games keep running in the background." },
     { name: "quitHome", label: "Go back to the games after quitting",
-      hint: "When you quit a game, its page goes back to the list of games instead of offering Play again." },
+      hint: "Instead of offering Play again." },
     { name: "showChat", label: "Show chat",
-      hint: "Shows the chat beside the game on a game’s page, or below it on a narrow screen. Turn it off to hide it. For now it is a test: " +
-        "the messages are made up and stay in this browser." }
+      hint: "For now a test: the messages are made up and stay in this browser." }
   ];
   var STYLE =
     ".bps { display: grid; gap: 8px; }\n" +
@@ -327,9 +322,8 @@ var ByopopSettings = (function () {
     }
     container.textContent = "";
     container.classList.add("bps");
-    container.appendChild(make("p", "bps-about", "These override each game’s own options in every game on this site. " +
-      GAME_DEFAULT + " leaves a game as it is. Kept in this browser." +
-      (opts.live ? "" : " A game applies them when it starts. Each game’s own page can also set them for that game alone.")));
+    container.appendChild(make("p", "bps-about", "For every game. " + GAME_DEFAULT + " leaves a game as it is." +
+      (opts.live ? "" : " A game’s own page can set them for that game alone.")));
     var controls = {};
     var msg = make("p", "bps-msg");
     msg.setAttribute("role", "status");

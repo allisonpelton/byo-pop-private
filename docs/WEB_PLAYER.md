@@ -211,9 +211,9 @@ links. Its header has the logo at the size it is drawn, 276 by 64 pixels (the us
 front page"), narrower when the window is, and the heading "Games". `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
-option is off). Below the tiles it has the Players section (`#players`; "Player profiles", below), which `web/players.js` builds
-from the records in `web/profiles.js`, the Your saves section (`#saves`; "Save backup" and "Importing saves from an installed game", below) and the Settings section (`#settings`; "Site settings", below), which `web/settings.js`
-draws; the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
+option is off). Below the tiles it has three tabs: Players (`#players`; "Player profiles", below), which `web/players.js` builds
+from the records in `web/profiles.js`, Saves (`#saves`; "Save backup" and "Importing saves from an installed game", below) and Settings (`#settings`; "Site settings", below), which `web/settings.js`
+draws (see "The tabs", below); the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
 for the listing page's own: `players.js`, `saves.js` and `saveimport.js`, with the table `platform/saveimport.json` written beside them as `saveimport-table.js`).
 
 **Sorting.** Above the tiles is a "Sort by" choice (a `<fieldset>` with a `<legend>` and two radio buttons, **Name** and **Release
@@ -232,8 +232,28 @@ Choosing a sort moves the cards' `<li>` elements (no CSS `order`), so the tab or
 screen, and the focus stays on the radio button that was chosen. A polite status line (`role="status"`, out of sight) says "Sorted
 by release date" or "Sorted by name", for the player's own choice only. The choice is kept in localStorage under
 `byopop-listing-sort` (`name` or `release`), read and written inside `try`, so that a browser without storage shows the page in name
-order; another tab that changes it changes this one. The Players and Your saves sections list the games in the built (name) order
+order; another tab that changes it changes this one. The Players and Saves tabs list the games in the built (name) order
 whatever the sort.
+
+**The tabs.** The user, 2026-11-02: "Turn the player, save, and settings managers into separate tabs under the games list
+... Massively reduce how much text there is." The three managers are tabs under the games, **Players**, **Saves** and **Settings**,
+by name until their icons are designed. They follow the ARIA pattern for tabs with automatic activation: a `role="tablist"` row of
+`<button role="tab">`s, each `aria-controls` its `<section role="tabpanel">`, which is `aria-labelledby` the tab, in the tab order
+(`tabindex="0"`) and hidden while another tab is chosen. Only the chosen tab is in the tab order (`aria-selected="true"`, the others
+`tabindex="-1"`); Left and Right move along the tabs, wrapping round, and show each one's panel at once, Home and End go to the first
+and the last, and Tab goes on into the panel. Each panel keeps an `<h2>` with the tab's name, out of sight, for the page's outline. A
+link to `#players`, `#saves` or `#settings` chooses that tab, whether it is followed here (the Players tab's "Player names in Settings")
+or opens the page (a game's Settings panel's "Manage players"), and a click on one whose hash is already in the address still chooses
+it and puts the focus on the tab. The chosen tab is kept in localStorage under `byopop-listing-tab` (the panel's id), read and written
+inside `try`; Players is the first. `tools/a11ycheck.js` takes the roving tabindex for what it is: a tab with `tabindex="-1"` passes
+when another tab of its tablist is in the tab order.
+
+The text in them is what a player needs to use them. The explanations went: what the players are for, "What each game last said of
+its players" (in the user's words, "cruft that a human would never write"), the line per game that has no players, the list of games
+that have not started since, when each game reported, what the backup leaves out and why, the browser's own backup being removed on a
+restore, the steps of the import from an installed game, and the Settings' explanation, which is now "For every game. Game default
+leaves a game as it is." The note that the browser may clear the saves when the drive runs low is shown only while it has not agreed
+to keep them.
 
 At the foot of the page is a `<footer>`, at the page's width and in its muted colours, with the disclaimer, in the words of
 `web/copyright.html` and `web/terms.html` (an unofficial, non-commercial project, not affiliated with or endorsed by
@@ -349,10 +369,9 @@ one line for each exe and writes no icon) and against synthetic exes made for ev
 Site-wide overrides of the games' own options, which the player sets once and every game page applies when its game starts.
 **Game default** leaves an option to the game, and it is what every setting starts as, so a player who never opens the settings
 sees every game as it is. They are edited in two places that draw the same controls from one file, `web/settings.js` (copied
-next to the pages and loaded by the listing page and by every game page): the **Settings: site-wide overrides** section at the
-foot of the listing page, and the **Settings** panel of a game's page (the bar's Settings button, a side panel like Mods and
-Game files; its heading says the same). Both begin with "These override each game's own options in every game on this site.
-Game default leaves a game as it is." The listing page's section is site-wide. The panel starts with a choice, **All games
+next to the pages and loaded by the listing page and by every game page): the **Settings** tab of the listing page, and the **Settings** panel of a game's page (the bar's Settings button, a side panel like Mods and
+Game files; its heading says the same). Both begin with "For every game. Game default leaves a game as it is." The listing
+page's tab is site-wide. The panel starts with a choice, **All games
 (site-wide)** or **This game only**: "All games" edits the same stored values as the listing page; "This game only" edits values
 that only this game has (below), and every control then starts with "Same as all games (<the value it follows>)", for example
 "Same as all games (Game default)", which shows what the game inherits and removes the game's own value when chosen. In "All
@@ -624,7 +643,7 @@ saved games, Cosmic Bugs' saved game and records), so does the page's: it calls 
 
 ### Save backup
 
-The listing page's **Your saves** section (`#saves`; `web/saves.js`, copied next to `index.html`) backs up the player's saves and
+The listing page's **Saves** tab (`#saves`; `web/saves.js`, copied next to `index.html`) backs up the player's saves and
 restores them. The saves live in this browser only, and are lost when its data is cleared or the player uses another browser or
 device, so the page makes one .zip of them, in the page and with nothing uploaded, and reads one back.
 
@@ -759,7 +778,7 @@ is left out with that said. The games' text is Windows-1252 (a .reg file is Unic
 the native import write the file the way the port does (`SexyAppBase::GetRegistryText`: the keys in the order of its case-insensitive map, a blank line before each,
 the first comment line), so the port, when it saves, changes nothing in it; a value that exists already keeps the case of its name and is replaced in place.
 
-**On the web** (the listing page's Your saves section, `web/saveimport.js`, loaded with `saveimport-table.js`): "Import from an installed game" starts with a choice of
+**On the web** (the listing page's Saves tab, `web/saveimport.js`, loaded with `saveimport-table.js`): "Import from an installed game" starts with a choice of
 game. The page then says, from the table, which folders hold the game's save files (the install folder, a Steam folder, the VirtualStore copy and the ProgramData
 folder, with the file paths the game keeps in them) and gives the exact `reg export` command for every place of the registry the game may use, each writing a
 .reg file and each with a Copy button (and Copy all commands): `reg export "HKCU\Software\Classes\VirtualStore\MACHINE\SOFTWARE\WOW6432Node\PopCap\BookWorm"
@@ -801,7 +820,8 @@ The pages are built to be used from the keyboard and with a screen reader (the d
 `<html lang="en">`, one `<h1>` and no skipped heading level. A game's page has a banner (`<header>`, the bar: the logo link to the listing,
 the game's name as the `<h1>`, the status line and the buttons), one `<main>` (the stage, with the canvas and the cards), an `<aside>` for each
 panel, named by its own `<h2>` (`aria-labelledby`), and the footer. The listing page has a banner with its `<h1>`, a `<main>` with the games as
-a real `<ul>` and the Players, Your saves and Settings sections (each `aria-labelledby` its heading), and the footer. The copyright pages have a
+a real `<ul>` and the Players, Saves and Settings tabs (a `tablist` whose `tabpanel` sections are each `aria-labelledby` its tab, with an
+`<h2>` out of sight), and the footer. The copyright pages have a
 banner and a `<main>`. Buttons and links are real ones: the buttons that open a file picker are `<button data-pick="...">` that click a hidden
 `<input type="file">`, not labels. Choices that go together are a `<fieldset>` with a `<legend>`, every control has a visible `<label>` or an
 `aria-label`, and help text is linked with `aria-describedby` (each setting's hint, the import card's note, the canvas's hint).
@@ -851,7 +871,7 @@ really losing the focus (another window, another tab), which is the game's behav
 **Live regions.** The status line is `role="status"`. The in-game mod menu reports the item that has the focus through
 `Module.onModMenuFocus(text)` (`framework/ModMenu.cpp`), which `web/modpanel.js` writes into a polite live region in the shell (`#menu-live`, there from the
 start so that a screen reader has it before the first change). The Mods panel's message line, the Game files panel's question (`role="alert"`),
-the import card's note and exit card's message, the Replays panel's line and the listing page's Players, Your saves and Settings lines and its sort's status ("Sorted by release date") are live too.
+the import card's note and exit card's message, the Replays panel's line and the listing page's Players, Saves and Settings lines and its sort's status ("Sorted by release date") are live too.
 An error is an alert, announced at once, and the field it is about is `aria-invalid` and described by it (a rejected setting, a name the Players
 section would not take); the import card's error is an alert in the card's note, read with both buttons that pick the files. The import's
 progress bar is a `role="progressbar"` with a value (percent, and "12 of 117 files").
