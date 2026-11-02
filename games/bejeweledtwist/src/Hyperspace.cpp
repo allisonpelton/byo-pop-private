@@ -191,26 +191,8 @@ void Hyperspace::UpdateSpace()
 		UpdateWorld3D();  // 0x716e31 to 0x717...
 		PlaceShip();      // 0x715480
 		PlaceSaucer();    // 0x7158f8
-		NotPorted("Hyperspace::UpdateSpace: the thrust particles' creation 0x714ea9 and update 0x7135cb (+0x14b4)");
 	}
-	// The ship's nine engines each give off a puff of thrust (0x714ea9, Direct3D's particles at +0x14b4); the port
-	// makes none, but draws the framework's random numbers as the original does (0x717620-0x717dbe)
-	int anEngine = 0;
-	do {
-		int aPuff = 0;
-		if (0 < Rand() % 6) {
-			do {
-				RandSigned();  // the puff's offset, x, y and z (times 0.2)
-				RandSigned();
-				RandSigned();
-				RandFloat();   // how far along the engine's direction
-				RandSigned();  // two of the particle's rates (times 0.01 less 0.05, times 0.0003 less 0.001)
-				RandSigned();
-				aPuff++;
-			} while (aPuff < Rand() % 6);
-		}
-		anEngine++;
-	} while (anEngine < 9);
+	UpdateThrust();  // 0x715c21 (0x7172be to 0x717dbe): in 2D and 3D alike, the random numbers in the original's order
 }
 
 void Hyperspace::StartEndGame()

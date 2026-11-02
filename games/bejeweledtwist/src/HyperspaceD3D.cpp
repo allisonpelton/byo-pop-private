@@ -952,12 +952,6 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 	NotPorted("Hyperspace::DrawTunnel 3D half 0x711b65 (cube tunnel, CubeFixedFunctionShader/RainbowCube)");
 }
 
-void Hyperspace::DrawParticles()
-{
-	NotPorted("Hyperspace::DrawParticles 0x71378b (the ship's thrust)");
-}
-
-
 ///////////////////////////////////////////////////////////////////////////////
 // SetTransition (0x7181b3) with gD3DInterface set
 
@@ -1742,4 +1736,242 @@ void Hyperspace::PlaceSaucer()
 	Translate(aSpin, aFrom.x, aFrom.y, aFrom.z);
 	mSaucer = aPlace;
 	mSaucer.mRot = SlerpMat3(mSaucer.mRot, aSpin.mRot, (float)mUnknown648.GetOutVal(), false);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// The ship's thrust: DrawParticles (0x71378b) and the particles' step and making (0x715c21's tail, 0x714ea9)
+
+namespace {
+
+// DrawPrimitiveEx's listener slots 0 and 1 are a WorldGraphicsListener's Apply and Remove
+class PrimitiveListener : public D3DDrawPrimitiveListener {
+public:
+	explicit PrimitiveListener(WorldGraphicsListener* theListener) : mListener(theListener) {}
+	void Before() override { mListener->Apply(); }
+	void After() override { mListener->Remove(); }
+	WorldGraphicsListener* mListener;
+};
+
+struct ThrustVertex {  // FVF 0x142: position, diffuse, one texture coordinate
+	float x, y, z;
+	unsigned int mColor;
+	float u, v;
+};
+
+// 0x4c0c80: a vector times a 3 by 3 matrix (the rows added up by the vector's parts)
+Vec3 VecTimesMat3(const Vec3& theVector, const Mat3& theMatrix)
+{
+	const float* m = theMatrix.m;
+	Vec3 aResult;
+	aResult.x = m[6] * theVector.z + m[0] * theVector.x + m[3] * theVector.y;
+	aResult.y = m[7] * theVector.z + m[4] * theVector.y + m[1] * theVector.x;
+	aResult.z = m[8] * theVector.z + m[5] * theVector.y + m[2] * theVector.x;
+	return aResult;
+}
+
+}  // namespace
+
+void Hyperspace::DrawParticles()
+{
+	// 0x71378b: the thrust's puffs as quads turned with the ship (type 0), and the trails as two strips between a trail
+	// particle and the engine's last one (type 1), through the sidebar's camera (+0x144c)
+	OffCenterListener aListener(&mCamera144C, false);
+	aListener.SetCulling(false);
+	aListener.SetDepth(true, false);
+	PrimitiveListener aPrimitiveListener(&aListener);
+	bool aHavePrevious[9] = {false, false, false, false, false, false, false, false, false};
+	ThrustVertex aPrevious[9][4];
+	for (std::list<ThrustParticle>::iterator anItr = mParticles.begin(); anItr != mParticles.end(); ++anItr) {
+		ThrustParticle& aParticle = *anItr;
+		float anAlpha = aParticle.mAlpha <= 1.0 ? aParticle.mAlpha : 1.0f;
+		int anAlphaByte = Ftol((double)anAlpha * 255.0);
+		unsigned int aColor = (unsigned int)Color(255, 255, 255, anAlphaByte).ToInt();
+		float aSize = aParticle.mSize;
+		Transform3D aPlace;
+		aPlace.mRot.RotateZ(aParticle.mAngle);
+		Transform3D aShip = TransformOfMat3(mUnknown14FC);
+		aPlace = Compose(aPlace, aShip);
+		Translate(aPlace, aParticle.mPos.x, aParticle.mPos.y, aParticle.mPos.z);
+		if (aParticle.mType == 1) {
+			GPUMatrix aMatrix = WorldMatrixOf(aPlace);
+			Vec3 aTop = Mat4TransformPoint(aMatrix, Vec3{0.0f, -aSize, 0.0f});
+			Vec3 aBottom = Mat4TransformPoint(aMatrix, Vec3{0.0f, aSize, 0.0f});
+			Vec3 aLeft = Mat4TransformPoint(aMatrix, Vec3{-aSize, 0.0f, 0.0f});
+			Vec3 aRight = Mat4TransformPoint(aMatrix, Vec3{aSize, 0.0f, 0.0f});
+			ThrustVertex aNew[4] = {
+				{aTop.x, aTop.y, aTop.z, aColor, 0.5f, 0.0f},
+				{aBottom.x, aBottom.y, aBottom.z, aColor, 0.5f, 1.0f},
+				{aLeft.x, aLeft.y, aLeft.z, aColor, 0.0f, 0.5f},
+				{aRight.x, aRight.y, aRight.z, aColor, 1.0f, 0.5f},
+			};
+			int anEngine = aParticle.mEngine;
+			if (aHavePrevious[anEngine]) {
+				ThrustVertex aFirst[4] = {aNew[0], aNew[1], aPrevious[anEngine][0], aPrevious[anEngine][1]};
+				ThrustVertex aSecond[4] = {aNew[2], aNew[3], aPrevious[anEngine][2], aPrevious[anEngine][3]};
+				aListener.mWorld = Transform3D();
+				gD3DInterface->SetTexture(0, aParticle.mImage);
+				gD3DInterface->DrawPrimitiveEx(0x142, GPUPT_TRIANGLESTRIP, aFirst, 2, Color::White, 1, 0.0f, 0.0f, true,
+					&aPrimitiveListener);
+				gD3DInterface->DrawPrimitiveEx(0x142, GPUPT_TRIANGLESTRIP, aSecond, 2, Color::White, 1, 0.0f, 0.0f, true,
+					&aPrimitiveListener);
+			}
+			for (int i = 0; i < 4; i++)
+				aPrevious[anEngine][i] = aNew[i];
+			aHavePrevious[anEngine] = true;
+		} else {
+			ThrustVertex aQuad[4] = {
+				{-aSize, aSize, 0.0f, aColor, 0.0f, 0.0f},
+				{aSize, aSize, 0.0f, aColor, 1.0f, 0.0f},
+				{-aSize, -aSize, 0.0f, aColor, 0.0f, 1.0f},
+				{aSize, -aSize, 0.0f, aColor, 1.0f, 1.0f},
+			};
+			aListener.mWorld = aPlace;
+			gD3DInterface->SetTexture(0, aParticle.mImage);
+			gD3DInterface->DrawPrimitiveEx(0x142, GPUPT_TRIANGLESTRIP, aQuad, 2, Color::White, 1, 0.0f, 0.0f, true,
+				&aPrimitiveListener);
+		}
+	}
+}
+
+void Hyperspace::UpdateThrust()
+{
+	// 0x715c21's tail (0x7172be to 0x717dbe), in 2D and in 3D: the puffs step and the dead ones go...
+	for (std::list<ThrustParticle>::iterator anItr = mParticles.begin(); anItr != mParticles.end();) {
+		ThrustParticle& aParticle = *anItr;
+		Vec3 aStep{aParticle.mVel.x + aParticle.mDir.x, aParticle.mVel.y + aParticle.mDir.y,
+			aParticle.mVel.z + aParticle.mDir.z};  // 0x4c0760
+		aParticle.mPos.x = aStep.x + aParticle.mPos.x;  // 0x68b2a8
+		aParticle.mPos.y = aStep.y + aParticle.mPos.y;
+		aParticle.mPos.z = aStep.z + aParticle.mPos.z;
+		aParticle.mDir.x = aParticle.mDamp * aParticle.mDir.x;  // 0x4c0710
+		aParticle.mDir.y = aParticle.mDir.y * aParticle.mDamp;
+		aParticle.mDir.z = aParticle.mDamp * aParticle.mDir.z;
+		float aSize = aParticle.mSizeRate + aParticle.mSize;
+		aParticle.mSize = aSize;
+		if (!(0.0f < aSize))
+			aParticle.mDead = true;
+		float anAlpha = aParticle.mAlphaRate + aParticle.mAlpha;
+		aParticle.mAlpha = anAlpha;
+		if (!(0.0f < anAlpha))
+			aParticle.mDead = true;
+		if (aParticle.mDead)
+			anItr = mParticles.erase(anItr);
+		else
+			++anItr;
+	}
+	// ...a trail's particle is held no nearer than the engine's last one's drift allows
+	ThrustParticle* aLast[9] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+	for (std::list<ThrustParticle>::iterator anItr = mParticles.begin(); anItr != mParticles.end(); ++anItr) {
+		ThrustParticle* aParticle = &*anItr;
+		if (aParticle->mType == 1) {
+			ThrustParticle* aBefore = aLast[aParticle->mEngine];
+			if (aBefore != nullptr) {
+				float aReach = (float)(((double)aBefore->mDir.z + (double)aBefore->mVel.z) * 3.5);
+				float aLimit = (float)((double)aBefore->mPos.z + (double)aReach);
+				if (aParticle->mPos.z < aLimit)
+					aParticle->mPos.z = aLimit;
+			}
+			aLast[aParticle->mEngine] = aParticle;
+		}
+	}
+	// the nine engines' places and ways (on the ship, in its own space)
+	static const float kPlace[9][3] = {
+		{-3.577f, -0.607f, 7.89f}, {3.577f, -0.607f, 7.89f}, {-2.495f, -0.608f, 6.5f}, {2.495f, -0.608f, 6.5f},
+		{-3.396f, 1.74f, -11.155f}, {3.396f, 1.74f, -11.155f}, {-2.359f, 1.765f, -12.489f}, {2.359f, 1.765f, -12.489f},
+		{0.0f, -0.169f, -11.684f}};
+	static const float kWay[9][3] = {
+		{-0.5f, 0.0f, -0.8f}, {0.5f, 0.0f, -0.8f}, {-0.3f, 0.0f, -0.85f}, {0.3f, 0.0f, -0.85f},
+		{-0.5f, 0.0f, -0.8f}, {0.5f, 0.0f, -0.8f}, {-0.3f, 0.0f, -0.85f}, {0.3f, 0.0f, -0.85f},
+		{0.0f, 0.0f, -1.0f}};
+	int anEngine = 0;
+	do {
+		const float* aBase = kPlace[anEngine];
+		const float* aWay = kWay[anEngine];
+		Vec3 aTenth{(float)((double)aWay[0] * 0.1), (float)((double)aWay[1] * 0.1), (float)((double)aWay[2] * 0.1)};
+		Vec3 aNoDrift{(float)(mUnknown1520.x * 0.0f), (float)(mUnknown1520.y * 0.0f), (float)(mUnknown1520.z * 0.0f)};
+		// the glow, just behind the engine
+		ThrustParticle aGlow;
+		Vec3 aFront{(float)((double)aBase[0] + (double)aWay[0] * 0.5), (float)((double)aBase[1] + (double)aWay[1] * 0.5),
+			(float)((double)aBase[2] + (double)aWay[2] * 0.5)};
+		aGlow.mPos = TransformPoint(mUnknown14C0, aFront);
+		Vec3 aTurned = VecTimesMat3(aTenth, mUnknown14C0.mRot);
+		aGlow.mType = 0;
+		aGlow.mDir = aTurned;
+		aGlow.mVel = aNoDrift;
+		aGlow.mDamp = 0.80000001192092896f;
+		aGlow.mAlpha = (float)mUnknown1160.GetOutVal();
+		aGlow.mAlphaRate = -1.0f;
+		aGlow.mEngine = anEngine;
+		aGlow.mSize = 0.06f;
+		aGlow.mAngle = (float)((double)mUpdateCnt * 0.03);
+		aGlow.mImage = IMAGE_SHIPTHRUSTGLOW;
+		if (anEngine == 8) {
+			// the middle engine's glow is two, bigger: one ahead of it, and a puff's picture behind
+			aGlow.mPos.x = (float)((double)aTurned.x * 0.8) + aGlow.mPos.x;
+			aGlow.mPos.y = (float)((double)aTurned.y * 0.8) + aGlow.mPos.y;
+			aGlow.mPos.z = (float)((double)aTurned.z * 0.8) + aGlow.mPos.z;
+			aGlow.mSize = 0.13f;
+			mParticles.push_back(aGlow);  // 0x714ea9
+			aGlow.mSize = 0.13f;
+			aGlow.mImage = IMAGE_SHIPTHRUSTPARTICLE;
+			aGlow.mPos.x = (float)((double)aTurned.x * -0.8) + aGlow.mPos.x;
+			aGlow.mPos.y = (float)((double)aTurned.y * -0.8) + aGlow.mPos.y;
+			aGlow.mPos.z = (float)((double)aTurned.z * -0.8) + aGlow.mPos.z;
+		}
+		mParticles.push_back(aGlow);
+		// the trail
+		ThrustParticle aTrail;
+		Vec3 aNear{(float)((double)aBase[0] + (double)aWay[0] * 0.1), (float)((double)aBase[1] + (double)aWay[1] * 0.1),
+			(float)((double)aBase[2] + (double)aWay[2] * 0.1)};
+		aTrail.mPos = TransformPoint(mUnknown14C0, aNear);
+		float aReach = (float)mUnknown10F0.GetOutVal();
+		aTrail.mDir = VecTimesMat3(Vec3{aWay[0] * aReach, aWay[1] * aReach, aWay[2] * aReach}, mUnknown14C0.mRot);
+		aTrail.mType = 1;
+		aTrail.mVel = aNoDrift;
+		aTrail.mDamp = 0.80000001192092896f;
+		aTrail.mAlpha = (float)mUnknown1160.GetOutVal();
+		aTrail.mAlphaRate = -0.05f;
+		aTrail.mEngine = anEngine;
+		aTrail.mSize = 0.03f;
+		aTrail.mImage = IMAGE_SHIPTHRUSTPARTICLE;
+		if (anEngine == 8) {
+			aTrail.mSize = 0.1f;
+			aTrail.mAlphaRate = -0.03f;
+		}
+		aTrail.mSizeRate = -0.002f;
+		mParticles.push_back(aTrail);
+		// the puffs: none to five of them (the draws in the original's order)
+		int aPuff = 0;
+		if (0 < Rand() % 6) {
+			do {
+				ThrustParticle aPuffParticle;
+				float aSpreadX = RandSigned();
+				float aSpreadY = RandSigned();
+				float aSpreadZ = RandSigned();
+				Vec3 aSpread{(float)((double)aSpreadX * 0.2), (float)((double)aSpreadY * 0.2), (float)((double)aSpreadZ * 0.2)};
+				float anAlong = RandFloat();
+				Vec3 aWhere;
+				aWhere.x = (float)((double)aBase[0] + (double)(anAlong * aWay[0]) * 0.1) + aSpread.x;
+				aWhere.y = (float)((double)aBase[1] + (double)(aWay[1] * anAlong) * 0.1) + aSpread.y;
+				aWhere.z = (float)((double)aBase[2] + (double)(anAlong * aWay[2]) * 0.1) + aSpread.z;
+				aPuffParticle.mPos = TransformPoint(mUnknown14C0, aWhere);
+				float aPuffReach = (float)mUnknown10F0.GetOutVal();
+				aPuffParticle.mDir = VecTimesMat3(Vec3{aWay[0] * aPuffReach, aPuffReach * aWay[1], aWay[2] * aPuffReach},
+					mUnknown14C0.mRot);
+				aPuffParticle.mType = 0;
+				aPuffParticle.mVel = Vec3{(float)((double)mUnknown1520.x * 0.9), (float)((double)mUnknown1520.y * 0.9),
+					(float)((double)mUnknown1520.z * 0.9)};
+				aPuffParticle.mDamp = 0.80000001192092896f;
+				aPuffParticle.mAlpha = (float)(mUnknown1160.GetOutVal() * 1.2000000476837158);
+				aPuffParticle.mAlphaRate = (float)((double)RandSigned() * 0.0099999997764825821 - 0.05000000074505806);
+				aPuffParticle.mSize = 0.012f;
+				aPuffParticle.mSizeRate = (float)((double)RandSigned() * 0.00030000001424923539 - 0.0010000000474974513);
+				aPuffParticle.mEngine = anEngine;
+				aPuffParticle.mImage = IMAGE_SHIPTHRUSTPARTICLE;
+				mParticles.push_back(aPuffParticle);
+				aPuff++;
+			} while (aPuff < Rand() % 6);
+		}
+		anEngine++;
+	} while (anEngine < 9);
 }

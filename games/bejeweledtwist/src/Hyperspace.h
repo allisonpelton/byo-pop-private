@@ -4,14 +4,14 @@
 //
 // port: both modes. Hyperspace.cpp holds the 2D paths and the shared head; with gD3DInterface set SetTransition, Update
 // and Draw go to HyperspaceD3D.cpp (the world's curves, the state machine, the camera, the ship, the draws). Not ported
-// there yet (NotPorted): the tunnel (DrawTunnel3D 0x711b65), the thrust particles (0x714ea9, 0x7135cb, DrawParticles
-// 0x71378b), the trial-limit dialog and the replay pod.
+// there yet (NotPorted): the tunnel (DrawTunnel3D 0x711b65), the trial-limit dialog and the replay pod.
 #pragma once
 
 #include "CurvedVal.h"
 #include "Math3D.h"
 #include "TwistWidget.h"
 
+#include <list>
 #include <vector>
 
 namespace Sexy {
@@ -41,6 +41,24 @@ struct WorldCrystal {
 	Transform3D mTransform;   // +0x04
 	float mUnknown40 = 0;     // +0x40: set by 0x717dd6, read only by the code that moves them
 	float mUnknown44 = 0;     // +0x44
+};
+
+// A puff of the ship's thrust (0x4c bytes; the list at +0x14b4, made by 0x714ea9, reset by 0x70e527). Type 0 is a
+// glow or a puff, 1 a trail drawn as strips between the engine's last two
+struct ThrustParticle {
+	int mType = 0;                 // +0x00
+	Vec3 mPos{0, 0, 0};            // +0x04
+	Vec3 mVel{0, 0, 0};            // +0x10
+	Vec3 mDir{0, 0, 0};            // +0x1c: its own drift, damped by mDamp
+	float mDamp = 0;               // +0x28
+	float mAlpha = 1.0f;           // +0x2c: gone when it is 0 or less
+	float mAlphaRate = 0;          // +0x30
+	float mSize = 1.0f;            // +0x34: half the quad's side, gone when it is 0 or less
+	float mSizeRate = 0;           // +0x38
+	float mAngle = 0;              // +0x3c: the quad's turn about z
+	int mEngine = -1;              // +0x40: which of the nine engines made it
+	Image* mImage = nullptr;       // +0x44
+	bool mDead = false;            // +0x48
 };
 
 // A crystal circling the planet (0x94 bytes; the list at +0xc78, made by 0x717fcc)
@@ -115,6 +133,7 @@ public:
 	PerspectiveCamera mCamera139C{45.0f, 1.0f, 1.0f, 10000.0f};  // +0x139c: the world's camera
 	PerspectiveCamera mCamera13F4{45.0f, 1.0f, 1.0f, 10000.0f};  // +0x13f4: the backdrops' camera
 	OffCenterCamera mCamera144C;                       // +0x144c: the sidebar's camera (its transform is +0x1450)
+	std::list<ThrustParticle> mParticles;              // +0x14b4: the ship's thrust (0x714ea9 adds, 0x715c21 steps)
 	Transform3D mUnknown14C0;                          // +0x14c0: the ship's (the sidebar's) place on the camera's path (0x715480)
 
 	Hyperspace();                // 0x714f98
@@ -154,7 +173,8 @@ public:
 	void Draw3DSidebar();                     // 0x711529
 	void DrawCone();                          // 0x71019e
 	void DrawTunnel3D(Graphics* g);           // 0x711b65's 3D half
-	void DrawParticles();                     // 0x71378b: the ship's thrust
+	void UpdateThrust();                      // 0x715c21's tail: the thrust particles stepped and made (0x717...)
+	void DrawParticles();                     // 0x71378b: the ship's thrust (UpdateThrust steps and makes the puffs)
 	void DrawTravellers(Graphics* g);         // 0x710f5b: the souls of the last level's special gems, put on the screen
 	void MakeCrystals();                      // 0x717dd6
 	void SetTransition3D(int theTransition);  // 0x7181b3's gD3DInterface branches
