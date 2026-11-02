@@ -27,14 +27,14 @@ struct StatName {
 	int mStat;
 };
 const StatName kStatNames[] = {
-	{0x7df720, 62}, {0x7df70c, 64}, {0x7df6f0, 65}, {0x7df6e0, 66}, {0x7df6cc, 74}, {0x7df6b8, 69}, {0x7df69c, 71},
-	{0x7df68c, 75}, {0x7df678, 76}, {0x7df664, 77}, {0x7df64c, 78}, {0x7df634, 79}, {0x7df61c, 80}, {0x7df608, 81},
-	{0x7df5f4, 67}, {0x7df5e0, 68}, {0x7df5d0, 73}, {0x7df5c4, 36}, {0x7df5b0, 70}, {0x7df594, 28}, {0x7df570, 29},
-	{0x7df55c, 42}, {0x7df550, 35}, {0x7df538, 45}, {0x7df524, 72}, {0x7df518, 33}, {0x7df4fc, 21}, {0x7df4d8, 20},
-	{0x7df55c, 43}, {0x7df4c0, 44}, {0x7df4ac, 82}, {0x7df494, 83}, {0x7df484, 41},
+	{GTA(0x7df720), 62}, {GTA(0x7df70c), 64}, {GTA(0x7df6f0), 65}, {GTA(0x7df6e0), 66}, {GTA(0x7df6cc), 74}, {GTA(0x7df6b8), 69}, {GTA(0x7df69c), 71},
+	{GTA(0x7df68c), 75}, {GTA(0x7df678), 76}, {GTA(0x7df664), 77}, {GTA(0x7df64c), 78}, {GTA(0x7df634), 79}, {GTA(0x7df61c), 80}, {GTA(0x7df608), 81},
+	{GTA(0x7df5f4), 67}, {GTA(0x7df5e0), 68}, {GTA(0x7df5d0), 73}, {GTA(0x7df5c4), 36}, {GTA(0x7df5b0), 70}, {GTA(0x7df594), 28}, {GTA(0x7df570), 29},
+	{GTA(0x7df55c), 42}, {GTA(0x7df550), 35}, {GTA(0x7df538), 45}, {GTA(0x7df524), 72}, {GTA(0x7df518), 33}, {GTA(0x7df4fc), 21}, {GTA(0x7df4d8), 20},
+	{GTA(0x7df55c), 43}, {GTA(0x7df4c0), 44}, {GTA(0x7df4ac), 82}, {GTA(0x7df494), 83}, {GTA(0x7df484), 41},
 };
 // 0x84eba0: the comparisons a rule may use (<=, <, >=, =) and their codes
-const StatName kOpNames[] = {{0x7df47c, 3}, {0x7df478, 4}, {0x7df470, 2}, {0x811d7c, 1}};
+const StatName kOpNames[] = {{GTA(0x7df47c), 3}, {GTA(0x7df478), 4}, {GTA(0x7df470), 2}, {GTA(0x811d7c), 1}};
 
 // The stats the rules and the goal check name by number (the indices of the app's and the board's stat arrays)
 enum {

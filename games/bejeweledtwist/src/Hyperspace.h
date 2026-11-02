@@ -8,6 +8,7 @@
 #pragma once
 
 #include "CurvedVal.h"
+#include "Math3D.h"
 #include "TwistWidget.h"
 
 namespace Sexy {
@@ -35,6 +36,9 @@ public:
 	double mWarmUp = 0;          // +0x1078: rises to 1 while idle
 	Image* mUnknown160 = nullptr;  // +0x160: the old level's picture during a 2D jump (the VizManager's)
 	int mUnknown164 = -1;        // +0x164: its id
+	// +0x1548: the 3D camera's turn; the challenge menu's Update (0x6e3f41) sets it to the menu's camera (+0x800) by mCameraTurn,
+	// the 3D drawing reads it (0x71726b)
+	Mat3 mUnknown1548;
 
 	Hyperspace();                // 0x714f98
 	~Hyperspace() override;      // 0x714e6e
