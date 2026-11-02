@@ -21,6 +21,8 @@
 
 namespace Sexy {
 
+class AwardTelly;
+
 class Menu;
 class MemoryImage;
 class WinTwistApp;
@@ -141,6 +143,9 @@ public:
 	float mUnknown9D0 = 0;                    // +0x9d0: counts up while no planet is hovered
 	float mUnknown9D4 = 0;                    // +0x9d4: then rises to 1
 	bool mUnknown9BC = false;                 // +0x9bc
+	// +0x9dc: the board's end-of-challenge message (0x6b330d makes it); Update lifts its rank bar's timer while its update
+	// count is 250 and deletes it once clicked
+	AwardTelly* mAwardTelly = nullptr;
 	// +0x9e0: the 512 by 512 picture the software planets are made in (0x6e5c3e; the original never frees it)
 	MemoryImage* mPlanetImage = nullptr;
 

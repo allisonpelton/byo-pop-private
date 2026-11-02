@@ -1,7 +1,9 @@
 // Sexy::ChallengeMenu and Sexy::ChallengeButton (ChallengeMenu.h).
 #include "ChallengeMenu.h"
 
+#include "AwardTelly.h"
 #include "Board.h"
+#include "RankBonusWidget.h"
 #include "Buffer.h"
 #include "Challenge.h"
 #include "Common.h"
@@ -1088,9 +1090,19 @@ void ChallengeMenu::Update()
 		float aLeft = (float)((double)mUnknown15C - 0.029999999329447746);
 		mUnknown15C = 0.0f < aLeft ? aLeft : 0.0f;
 	}
-	// NotPorted (0x6e4989-0x6e4a1f): the original also steps a widget at +0x9dc (the board's code sets it, 0x6b3412;
-	// an unlock message whose id is 250): it adds to a float of the widget's owner and, once the widget's flag at +0xc9 is
-	// set, removes and deletes it and goes from state 5 to state 4. Its type is not identified
+	// 0x6e4989: the end-of-challenge message at +0x9dc. At its update count 250 the rank bar's timer gains the progress
+	// update's result over 100; once clicked it goes, and the menu goes from state 5 to state 4
+	if (mAwardTelly != nullptr && mAwardTelly->mUpdateCnt == 250) {
+		int aResult = UpdateProgress(true, false);
+		mAwardTelly->mRankBonus->mTimer = (float)((double)(float)aResult / 100.0 + (double)mAwardTelly->mRankBonus->mTimer);
+	}
+	if (mAwardTelly != nullptr && mAwardTelly->mClicked) {
+		gApp->mWidgetManager->RemoveWidget(mAwardTelly);
+		gApp->SafeDeleteWidget(mAwardTelly);
+		mAwardTelly = nullptr;
+		if (mState == 5)
+			SetState(4, false);
+	}
 	MarkDirty();
 }
 
@@ -1135,7 +1147,8 @@ void ChallengeMenu::ButtonDepress(int theId)
 		if (aButton->mEclipse)
 			mStageSel++;
 		if (!gApp->mRegistered && (mStageSel > 3 || mCategory > 2)) {
-			// The trial: a click sound, and the planet shakes (its curves at +0x758 and on, 3D only)
+			// The trial: the curve at +0x8a0 (0x6e54c3, whose listener-relative +0x758 it is) starts, and the click sound
+			mUnknown8A0.SetCurve(GTS(0x7e0c70));
 			aSound = SOUND_TRIALCLICK;
 		} else if (!gApp->SaveExists(2, mCategory)) {
 			Start(true);
