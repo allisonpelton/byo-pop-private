@@ -337,6 +337,11 @@ public:
 	virtual bool CreateRenderTarget(Image* theImage, GPUFormat theFormat) = 0;
 	virtual bool SetRenderTarget(Image* theImage) = 0;
 	virtual Image* GetRenderTarget() = 0;
+	// The screen's colour buffer and a render target's of the screen's own size change places (the swap at the end of
+	// Twist's slot 0xa0, 0x621ae0, which exchanges the screen image's surfaces with a target's): what was drawn to the
+	// screen so far is the image's to sample, and drawing to the screen goes on in the image's old buffer. Calling it
+	// again with the same image swaps them back. False (nothing swapped) for an image that is not such a target.
+	virtual bool SwapScreen(Image* theImage) = 0;
 	// The device's StretchRect (slot 0xac's device branch, which is the only one taken: mCanStretchRectFromTextures): a
 	// copy from the screen or a target into a target with D3D's filter (Twist always passes LINEAR), no shader, the
 	// scissor off for the blit; the source must be a target, else nothing happens. It calls PreDraw first. The screen is

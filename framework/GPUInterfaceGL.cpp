@@ -610,6 +610,7 @@ public:
 
 	bool CreateRenderTarget(Image* theImage, GPUFormat theFormat) override;
 	bool SetRenderTarget(Image* theImage) override;
+	bool SwapScreen(Image* theImage) override;
 	Image* GetRenderTarget() override { return mTarget; }
 	void StretchRect(Image* theSource, const Rect& theSrcRect, Image* theDest, const Rect& theDestRect,
 		GPUTextureFilter theFilter) override;
@@ -755,7 +756,7 @@ GPUInterfaceGL::~GPUInterfaceGL()
 	for (auto& anEntry : mBuffers)
 		gGL.glDeleteBuffers(1, &anEntry.second.mBuffer);
 	gGL.glDeleteFramebuffers(1, &mScreenFramebuffer);
-	gGL.glDeleteRenderbuffers(1, &mScreenColor);
+	gGL.glDeleteTextures(1, &mScreenColor);
 	gGL.glDeleteRenderbuffers(1, &mDepth);
 	gGL.glDeleteBuffers(1, &mStreamBuffer);
 	gGL.glDeleteBuffers(1, &mStreamIndexBuffer);
@@ -831,13 +832,14 @@ void GPUInterfaceGL::MakeDeviceObjects()
 
 void GPUInterfaceGL::MakeScreen()
 {
-	// The screen is X8R8G8B8: an RGB target reads alpha 1 when copied or read back
-	gGL.glGenRenderbuffers(1, &mScreenColor);
-	gGL.glBindRenderbuffer(GL_RENDERBUFFER, mScreenColor);
-	gGL.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB8, mWidth, mHeight);
+	// The screen is X8R8G8B8: an RGB target reads alpha 1 when copied or read back. A texture, not a renderbuffer, so
+	// that SwapScreen can hand it to an image to sample
+	gGL.glGenTextures(1, &mScreenColor);
+	gGL.glBindTexture(GL_TEXTURE_2D, mScreenColor);
+	gGL.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, mWidth, mHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 	gGL.glGenFramebuffers(1, &mScreenFramebuffer);
 	gGL.glBindFramebuffer(GL_FRAMEBUFFER, mScreenFramebuffer);
-	gGL.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, mScreenColor);
+	gGL.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mScreenColor, 0);
 	EnsureDepth(mWidth, mHeight);
 }
 
@@ -892,7 +894,7 @@ void GPUInterfaceGL::Resize(int theWidth, int theHeight)
 	mWidth = theWidth;
 	mHeight = theHeight;
 	gGL.glDeleteFramebuffers(1, &mScreenFramebuffer);
-	gGL.glDeleteRenderbuffers(1, &mScreenColor);
+	gGL.glDeleteTextures(1, &mScreenColor);
 	MakeScreen();
 	BindTarget(mTarget);
 }
@@ -1070,6 +1072,25 @@ bool GPUInterfaceGL::SetRenderTarget(Image* theImage)
 	// again changes nothing (0x621890 returns at once)
 	if (BeginSceneIfNeeded() && mTarget != theImage)
 		BindTarget(theImage);
+	return true;
+}
+
+bool GPUInterfaceGL::SwapScreen(Image* theImage)
+{
+	BeginSceneIfNeeded();
+	PrepareTexture(theImage);
+	auto anIt = mImages.find(theImage);
+	if (anIt == mImages.end() || !anIt->second.mTarget || anIt->second.mWidth != mWidth ||
+		anIt->second.mHeight != mHeight || !anIt->second.mMorePieces.empty() || anIt->second.mFramebuffer == 0) {
+		LogOnce("SwapScreen with an image that is not a render target of the screen's size");
+		return false;
+	}
+	TextureData& aData = anIt->second;
+	RefreshTarget(dynamic_cast<MemoryImage*>(theImage), &aData);
+	std::swap(mScreenFramebuffer, aData.mFramebuffer);
+	std::swap(mScreenColor, aData.mTexture);
+	// The bound framebuffer's name moved: bind the current target again (the viewport stays the whole target)
+	BindTarget(mTarget);
 	return true;
 }
 

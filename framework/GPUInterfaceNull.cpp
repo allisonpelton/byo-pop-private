@@ -51,6 +51,7 @@ public:
 		mTargets.insert(theImage);
 		return true;
 	}
+	bool SwapScreen(Image*) override { return false; }
 	bool SetRenderTarget(Image* theImage) override
 	{
 		if (theImage == nullptr) {
