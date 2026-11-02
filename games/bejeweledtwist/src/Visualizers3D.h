@@ -487,4 +487,82 @@ public:
 	void DrawSplashRing(Graphics* g, float theX, float theY, float theAngle, float theScale);
 };
 
+
+// Sexy::Gears (vtable 0x7d79ec, constructor 0x673855, 0x50 bytes): IMAGE_GEARS_BG under a gear (IMAGE_GEAR) with gears
+// round it, each with gears round that, turning; 100 bars of IMAGE_GEAR_BLUR flying out of the middle on top (the bars
+// of VizWarpBars, and the same start: 0x68ed45). Random draws, all of the C runtime's rand (four or more a try, until the
+// bar is 100000 from the middle by x squared plus y squared): Init 0x673abf (100 bars) and Update 0x673183 (a bar that
+// leaves the screen).
+class Gears : public Visualizer {
+public:
+	using Bar = VizWarpBars::Bar;
+	std::vector<Bar*> mBars;        // +0x24 (a std::list)
+	int mCount = 0;                 // +0x30
+	float mAngleA = 0.0f;           // +0x34: the middle gear's turn
+	int mUnknown38 = 1;             // +0x38: multiplied by 0 and added in Update
+	int mUnknown3C = 0;             // +0x3c: the first gear's last argument (0x672a71's), never read
+	float mAngleB = 0.0f;           // +0x40: the turn of the gears round it
+	Image* mGear = nullptr;         // +0x44: IMAGE_GEAR
+	Image* mGearBlur = nullptr;     // +0x48: IMAGE_GEAR_BLUR
+	Image* mBackground = nullptr;   // +0x4c: IMAGE_GEARS_BG
+	explicit Gears(WinTwistApp* theApp);  // 0x673855
+	~Gears() override;                    // 0x673949
+	void Init() override;                 // 0x673abf
+	void Update() override;               // 0x673183
+	void Draw(Graphics* g) override;      // 0x673435
+	void DrawGear(Graphics* g, float theScale, float theX, float theY, float theSpin, float theBase, int theDepth);  // 0x672a71
+};
+
+// Sexy::Slipstream (vtable 0x7d7ee4, constructor 0x67b8f4, 0x88 bytes): a trail of 300 points over IMAGE_SLIPSTREAM_BG
+// drawn as a strip of IMAGE_JELLYTRAIL_TEXTURE in blue, and 200 specks of dust (IMAGE_SLIPSTREAM_POINTY) streaming
+// past. Random draws, all of the C runtime's rand: a point's constructor 0x67a3d2 (three a try, until it is 100 or more
+// from the middle by |x| + |y|), for each of the 300 trail points and the 200 specks of Init 0x67ba37, and two more for
+// each speck (its place). Update and Draw draw none.
+class Slipstream : public Visualizer {
+public:
+	struct Point {  // 0x3c bytes
+		float mX = 0.0f;          // +0x00
+		float mY = 0.0f;          // +0x04
+		float mZ = 0.0f;          // +0x08
+		float mUnknown0C = 0.0f;  // +0x0c
+		int mUnknown10 = 0;       // +0x10: the strip's extent (see MakeStripVertices), always 0
+		float mSize = 0.0f;       // +0x14: half the strip's height here
+		float mUnknown18 = 0.0f;  // +0x18: made 20.0 by MakeStripVertices, never read
+		float mAngle = 0.0f;      // +0x1c: a speck's turn
+		unsigned char mFlag = 0;  // +0x20: the strip has no height here
+		int mScreenX = 0;         // +0x24
+		int mScreenY = 0;         // +0x28
+		int mUnknown2C = 0;       // +0x2c: the strip's direction across, with +0x30 (0 and 1)
+		int mUnknown30 = 0;       // +0x30
+		int mUnknown34 = 0;       // +0x34
+		int mUnknown38 = 0;       // +0x38
+		Point();                  // 0x67a79a (0x67a3d2)
+	};
+	int mCount = 0;               // +0x24
+	float mUnknown2C = 6.0f;      // +0x2c (the constructor's values for +0x2c to +0x58, mostly never read)
+	int mUnknown30 = 0xf;         // +0x30
+	int mUnknown34 = 0x28;        // +0x34: where the strip's extent starts to shrink it
+	int mUnknown38 = 300;         // +0x38
+	float mUnknown3C = 9.0f;      // +0x3c
+	float mUnknown40 = 4.0f;      // +0x40
+	float mUnknown44 = 20.0f;     // +0x44
+	float mUnknown48 = 6.0f;      // +0x48
+	float mUnknown4C = 40.0f;     // +0x4c
+	float mUnknown50 = 4.0f;      // +0x50
+	float mUnknown54 = 0.0f;      // +0x54
+	float mUnknown58 = 0.0f;      // +0x58
+	std::vector<Point*> mTrailPoints;  // +0x5c (a std::vector)
+	std::vector<Point*> mDust;         // +0x6c
+	Image* mPointy = nullptr;     // +0x7c: IMAGE_SLIPSTREAM_POINTY
+	Image* mTrail = nullptr;      // +0x80: IMAGE_JELLYTRAIL_TEXTURE
+	Image* mBackground = nullptr; // +0x84: IMAGE_SLIPSTREAM_BG
+	explicit Slipstream(WinTwistApp* theApp);  // 0x67b8f4
+	~Slipstream() override;                    // 0x67b561
+	void Init() override;                      // 0x67ba37
+	void Update() override;                    // 0x67a7ba
+	void Draw(Graphics* g) override;           // 0x67b308
+	void MakeStripVertices(Point* thePoint, TriVertex* theVertices);  // 0x67ad27
+	void DrawTrail(Graphics* g);                                      // 0x67af9b
+};
+
 }  // namespace Sexy

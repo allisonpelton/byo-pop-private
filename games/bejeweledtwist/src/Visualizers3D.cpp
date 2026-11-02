@@ -56,6 +56,10 @@ Visualizer* Sexy::MakeVisualizer3D(const char* theName, WinTwistApp* theApp)
 		return new Cubes(theApp);
 	if (sexy_stricmp(theName, "RainDrops") == 0)
 		return new RainDrops(theApp);
+	if (sexy_stricmp(theName, "Gears") == 0)
+		return new Gears(theApp);
+	if (sexy_stricmp(theName, "Slipstream") == 0)
+		return new Slipstream(theApp);
 	return nullptr;
 }
 
