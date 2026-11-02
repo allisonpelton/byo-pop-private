@@ -287,6 +287,11 @@ Vec3 Sexy::WorldToCamera(const Transform3D& theCamera, const Vec3& thePoint)
 
 PerspectiveCamera::PerspectiveCamera(float theFovTimesAspect, float theAspect, float theNear, float theFar)
 {
+	SetFov(theFovTimesAspect, theAspect, theNear, theFar);
+}
+
+void PerspectiveCamera::SetFov(float theFovTimesAspect, float theAspect, float theNear, float theFar)
+{
 	// 0x673c7f
 	float anAngle = (float)((double)theFovTimesAspect * 0.5);
 	anAngle = (float)((double)anAngle * 3.1415927410125732 / 180.0);

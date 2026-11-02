@@ -12,6 +12,7 @@
 namespace Sexy {
 
 class Board;
+class D3DObject;
 class Credits;
 class ButtonWidget;
 class CustomBassMusicInterface;
@@ -116,6 +117,17 @@ public:
 	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
 	Hyperspace* mHyperspace = nullptr;  // +0xf20: the space behind every screen
 	VizManager* mVizManager = nullptr;  // +0xc6c: the background behind a game
+	// The 3D models (0x508650; empty in 2D mode): Init loads space's, the loading thread the rest
+	D3DObject* mSidebarObject = nullptr;       // +0x81c
+	D3DObject* mSpaceObject = nullptr;         // +0x820
+	D3DObject* mOuterSpaceObject = nullptr;    // +0x824
+	D3DObject* mStarsObject = nullptr;         // +0x828
+	D3DObject* mSaucerObject = nullptr;        // +0x82c
+	D3DObject* mSaucerLightsObject = nullptr;  // +0x830
+	D3DObject* mCrystalObjects[7] = {};        // +0x834
+	D3DObject* mPlanetObjects[2] = {};         // +0x850
+	D3DObject* mPlanetRingsObject = nullptr;   // +0x858
+	D3DObject* mWarpConeObject = nullptr;      // +0x85c
 	bool mUnknownF1C = false;           // +0xf1c: the game was paused by losing the focus (0x75f51e)
 	Widget* mUnknownF24 = nullptr;      // +0xf24: a 0x420-byte widget over everything (0x7243b1)
 	EffectsManager* mFXManager = nullptr;  // +0xf78: the effects over the whole screen

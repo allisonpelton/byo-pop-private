@@ -9,6 +9,8 @@
 #include "Credits.h"
 #include "DDInterface.h"
 #include "GPUDisplay.h"
+#include "GPU2D.h"
+#include "TwistD3D.h"
 #include "ButtonWidget.h"
 #include "EffectsManager.h"
 #include "GameText.h"
@@ -61,6 +63,33 @@ int ChooseArtRes(bool theAllow1200, int theTotalPhysMB, int theScreenHeight, int
 		return WinTwistApp::ART_RES_768;
 	return WinTwistApp::ART_RES_600;
 }
+
+// TwistP3DListener (vtable 0x7f380c): a mesh's texture from the art's own folder, else NonResize's
+class TwistP3DListener : public D3DObjectListener {
+public:
+	SharedImageRef LoadTexture(D3DObject* theObject, const std::string& theFrame, const std::string& theMesh,
+		const std::string& theKey, const std::string& theFileName) override
+	{
+		// 0x761d62
+		(void)theObject; (void)theFrame; (void)theMesh; (void)theKey;
+		std::string aName = GetFileName(theFileName, true);
+		SharedImageRef anImage = gApp->GetSharedImage(StrFormat("images/%d/tex/%s", gApp->mArtRes, aName.c_str()), "",
+			nullptr);
+		if ((Image*)anImage == nullptr)
+			anImage = gApp->GetSharedImage(StrFormat("images/NonResize/tex/%s", aName.c_str()), "", nullptr);
+		MemoryImage* anImageBits = (MemoryImage*)anImage;
+		if (anImageBits != nullptr) {
+			if (aName.find("nebula1") == std::string::npos)
+				anImageBits->mD3DFlags = 8;
+			anImageBits->mPurgeBits = true;
+		}
+		return anImage;
+	}
+};
+
+// Two listeners, as the original has (0xe0b6e0 for the loading thread's models, 0xe0b6e8 for Init's)
+TwistP3DListener gLoadingP3DListener;
+TwistP3DListener gInitP3DListener;
 
 }  // namespace
 
@@ -134,6 +163,16 @@ WinTwistApp::~WinTwistApp()
 		mWidgetManager->RemoveWidget(mVizManager);
 		delete mVizManager;
 	}
+	// port: the original never deletes its models or its Direct3D interface's game side
+	for (D3DObject* anObject : {mSidebarObject, mSpaceObject, mOuterSpaceObject, mStarsObject, mSaucerObject,
+			mSaucerLightsObject, mPlanetRingsObject, mWarpConeObject})
+		delete anObject;
+	for (D3DObject* anObject : mCrystalObjects)
+		delete anObject;
+	for (D3DObject* anObject : mPlanetObjects)
+		delete anObject;
+	delete gD3DInterface;
+	gD3DInterface = nullptr;
 	delete gGraphicsRecorder;
 	gGraphicsRecorder = nullptr;
 	gApp = nullptr;
@@ -225,6 +264,9 @@ void WinTwistApp::Init()
 	// both random number generators from the recording)
 	mVizManager->mZOrder = -100;
 	mVizManager->Resize(0, 0, mWidth, mHeight);
+	mOuterSpaceObject = LoadD3DObject("outerspace.p3d", &gInitP3DListener);
+	mSpaceObject = LoadD3DObject("space.p3d", &gInitP3DListener);
+	mStarsObject = LoadD3DObject("stars.p3d", &gInitP3DListener);
 	if (!mUseSexyCache) {
 		ShowHyperspace();
 		mLoaderScreen = new LoaderScreen(this);
@@ -415,8 +457,16 @@ void WinTwistApp::PostDDInterfaceInitHook()
 	// port: the framework calls its display 3D-accelerated whenever SDL's renderer runs on the GPU (in a browser, and on
 	// most desktops), but for Twist Is3DAccelerated means Direct3D and its 3D mode: a 2D run says no, as the original
 	// does without Direct3D (Use2DMode); GPUDisplay says yes
-	if (!mUse3D)
+	if (!mUse3D) {
 		mDDInterface->mIs3D = false;
+		return;
+	}
+	// The original's gD3DInterface, and its shader table (made at the resources' init, 0x73ef19)
+	GPUDisplay* aDisplay = static_cast<GPUDisplay*>(mDDInterface);
+	if (gD3DInterface == nullptr) {
+		gD3DInterface = new TwistD3D(aDisplay->mDevice, aDisplay->mGPU2D);
+		gD3DInterface->MakeShaders();
+	}
 }
 
 void WinTwistApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
@@ -671,7 +721,15 @@ void WinTwistApp::LoadingThreadProc()
 			mLoadingFailed = true;
 			return;
 		}
-		// The original loads its 3D models here (sidebar, saucer, planets, crystals): 3D mode only
+		mSidebarObject = LoadD3DObject("sidebar.p3d", &gLoadingP3DListener);
+		mSaucerObject = LoadD3DObject("saucer.p3d", &gLoadingP3DListener);
+		mSaucerLightsObject = LoadD3DObject("saucerlights.p3d", &gLoadingP3DListener);
+		mPlanetRingsObject = LoadD3DObject("planetrings.p3d", &gLoadingP3DListener);
+		mWarpConeObject = LoadD3DObject("warpcone.p3d", &gLoadingP3DListener);
+		for (int i = 0; i < 2; i++)
+			mPlanetObjects[i] = LoadD3DObject(StrFormat("planet%i.p3d", i + 1), &gLoadingP3DListener);
+		for (int i = 0; i < 7; i++)
+			mCrystalObjects[i] = LoadD3DObject(StrFormat("crystal%i.p3d", i + 1), &gLoadingP3DListener);
 	}
 	if (mLoadMode != 1) {
 		mResourceManager->StartLoadResources("Sounds");

@@ -30,7 +30,7 @@ endif()
 # bejeweledtwist: the game (src/). Native: bejeweledtwist.exe [-gamedir=<dir>] [-userdir=<dir>] (src/main.cpp); it
 # finds assets/bejeweledtwist/ by itself.
 set(BJT_SOURCES
-  src/main.cpp src/WinTwistApp.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp
+  src/main.cpp src/WinTwistApp.cpp src/TwistD3D.cpp src/TwistShaders.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp
   src/TwistWidget.cpp src/TwistButton.cpp src/TwistCheckbox.cpp src/TwistSlider.cpp src/CustomBassMusicInterface.cpp src/TwistUtil.cpp src/GraphicsRecorder.cpp src/PlayButton.cpp
   src/EffectsManager.cpp src/Logo.cpp src/LoaderScreen.cpp src/Hyperspace.cpp src/VizManager.cpp
   src/Tutorial.cpp src/ReplayWidget.cpp src/WheelSpin.cpp src/ColorCycle.cpp src/Credits.cpp src/OrbitText.cpp src/ElectroStrike.cpp
