@@ -865,8 +865,9 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
-    // a play (ByopopPlay): every start but the one after the game's own restart, which goes on with the same play
-    if (isAutostart !== true) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
+    // a play (ByopopPlay): every start but the one after the game's own restart, which goes on with the same play. "Play without
+    // mods" after a crash reloads with the same flag, but with noMods, which the restart never sets: that one is a play
+    if (isAutostart !== true || noMods) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
     askToKeepStorage();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     cursorTimer = setInterval(pollCursor, 100);
@@ -1232,9 +1233,12 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   });
   function goFullscreen() {
     var el = $("stage");
+    // the panels are outside the stage: one left open would stay behind it, as for the game's own full screen (openPanel)
+    closePanels("quiet");
     try { if (el.requestFullscreen) el.requestFullscreen().catch(function () {}); } catch (e) {}
-    // The keys go to the game again
-    $("canvas").focus();
+    // The keys go to the game again, while it runs: before a start and after an exit the canvas is out of the tab order and
+    // hidden, and the focus stays where it is (the Ready card's Play, an exit card)
+    if (gameRunning()) $("canvas").focus();
   }
   $("btn-full").addEventListener("click", goFullscreen);
   // F11 is the Fullscreen button, and F11 again (or Esc, the browser's own) leaves full screen (the user, 2026-11-02: "F11

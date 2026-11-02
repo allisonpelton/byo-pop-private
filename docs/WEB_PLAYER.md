@@ -243,10 +243,12 @@ by name until their icons are designed. They follow the ARIA pattern for tabs wi
 `tabindex="-1"`); Left and Right move along the tabs, wrapping round, and show each one's panel at once, Home and End go to the first
 and the last, and Tab goes on into the panel. Each panel keeps an `<h2>` with the tab's name, out of sight, for the page's outline. A
 link to `#players`, `#saves` or `#settings` chooses that tab, whether it is followed here (the Players tab's "Player names in Settings")
-or opens the page (a game's Settings panel's "Manage players"), and a click on one whose hash is already in the address still chooses
-it and puts the focus on the tab. The chosen tab is kept in localStorage under `byopop-listing-tab` (the panel's id), read and written
-inside `try`; Players is the first. `tools/a11ycheck.js` takes the roving tabindex for what it is: a tab with `tabindex="-1"` passes
-when another tab of its tablist is in the tab order.
+or opens the page (a game's Settings panel's "Manage players"); a click on such a link in the page also puts the focus on the tab,
+whether or not its hash was already in the address. A tab the player chooses (a click or the keys) goes into the address with
+`history.replaceState`, which adds no history entry, so that a reload keeps it, and it is kept in localStorage under
+`byopop-listing-tab` (the panel's id), read and written inside `try`, for the next visit; Players is the first. `tools/a11ycheck.js` takes the roving tabindex for what it is: every tab must
+take the focus, by itself (a `<button>`) or with `tabindex="-1"`, and one tab of each tablist must be in the tab order, so a
+`<div role="tab">` without a tabindex still fails.
 
 The text in them is what a player needs to use them. The explanations went: what the players are for, "What each game last said of
 its players" (in the user's words, "cruft that a human would never write"), the line per game that has no players, the list of games
@@ -327,10 +329,12 @@ note: they are not the card that suggests where to get the game.
 it was played and the last day it was played: "3 plays · 2 h 15 min", then "Last played 1 Nov 2026" (the browser's own date format,
 "today" for today). The user, 2026-11-02: "Add game playtime and last day played to the front page once a game has been played
 once. Only count time with the game open and active. Also count number of plays." A play is a start of the game from its page (Play,
-or the page's own start when it opens); the start after the game's own restart from its mod menu goes on with the same play. The
+or the page's own start when it opens, and "Play without mods" after a start that failed); the start after the game's own restart
+from its mod menu goes on with the same play. Both reload the page and start the game without a click, so the page tells them apart by
+the run without mods, which the restart never asks for. The
 time counts only while the game runs and its page is shown and has the focus (`document.hasFocus()`, so another window in front
 stops it; the chat beside the game does not) and is not paused by the site's "Pause when the tab is hidden". The game's page checks
-every second and at each change of visibility or focus, adds at most 5 seconds a step (a computer that slept adds nothing) and writes
+every second and at each change of visibility or focus, adds at most 5 seconds a step (a computer that slept adds at most those 5 seconds) and writes
 the whole seconds every 30 seconds, when the count stops, when the game quits and when the page goes away. The record is one
 localStorage item for the site, `byopop-play` (`ByopopPlay` in `web/settings.js`, beside `ByopopGameFiles`): a JSON object from
 a game's id to `{plays, seconds, last}`, `last` as the player's own date, YYYY-MM-DD. The save backup takes it ("Save backup",
@@ -370,7 +374,7 @@ Site-wide overrides of the games' own options, which the player sets once and ev
 **Game default** leaves an option to the game, and it is what every setting starts as, so a player who never opens the settings
 sees every game as it is. They are edited in two places that draw the same controls from one file, `web/settings.js` (copied
 next to the pages and loaded by the listing page and by every game page): the **Settings** tab of the listing page, and the **Settings** panel of a game's page (the bar's Settings button, a side panel like Mods and
-Game files; its heading says the same). Both begin with "For every game. Game default leaves a game as it is." The listing
+Game files, whose heading is still "Settings: site-wide overrides", though it also offers "This game only"). Both begin with "For every game. Game default leaves a game as it is." The listing
 page's tab is site-wide. The panel starts with a choice, **All games
 (site-wide)** or **This game only**: "All games" edits the same stored values as the listing page; "This game only" edits values
 that only this game has (below), and every control then starts with "Same as all games (<the value it follows>)", for example
@@ -666,14 +670,18 @@ backup is **one store-only zip** (no compression, no library: the page writes th
 `byo-pop saves <YYYY-MM-DD>.zip` and given to the browser as a download:
 
 ```
-byopop-saves.json            the manifest: {format: "byo-pop saves", version: 1, made, games: {...}, files: {path: ms}}
+byopop-saves.json            the manifest: {format: "byo-pop saves", version: 1, made, games: {...}, files: {path: ms}, play: {...}}
 byopop-settings.json         the item byopop-settings, as it was (when there is one)
 byopop-profiles.json         the item byopop-profiles, as it was (when there is one)
-byopop-play.json             the item byopop-play (the play times), as it was (when there is one)
 <game>/userdata/<path>       a file of the save folder
 <game>/replays/<path>        a replay
 <game>/browser-backup.json   the game's localStorage backup item, as it was
 ```
+
+The play times (the item `byopop-play`) are the manifest's field `play`, not a file of their own: a build from before them refuses a
+zip with a top-level name it does not know, and reads past a manifest field it does not know, so a backup made now still restores
+there (without the play times). For the same reason a restore skips a top-level `byopop-<name>.json` it does not know, one that a
+later build may add, instead of refusing the zip (`classify()`; `tools/savestest.js` checks both).
 
 Under the section the page says, for each game, what it took: the number and size of the save files, the replays, and whether
 files came from the game's own browser backup. A game whose page is open in another tab is flagged: what it has not saved yet may be
@@ -681,14 +689,14 @@ missing from the backup until it is closed.
 
 **Restore saves.** A file field takes such a zip. The page reads it (checking every file's checksum), sorts its entries, and
 **refuses the whole zip** when one is outside a game's save folder (a path that is not `<listed game>/userdata/...`,
-`<listed game>/replays/...` or one of the names above; a path with `..`, `.`, an empty part, a backslash, a control character or
+`<listed game>/replays/...`, one of the names above or another top-level `byopop-<name>.json`, which is skipped; a path with `..`, `.`, an empty part, a backslash, a control character or
 more than 240 characters; a game that is not listed; a name twice), when it is not a backup made here (no manifest), is encrypted or
 zip64, or is damaged. A valid one is not written yet: the page shows, in the page and not in a browser dialog, for each game what the
 zip holds and how many of its files it would replace in this browser and how many it would add, that files that the zip does not
 have stay, that each game's own localStorage backup is removed (the restored files take its place, and a left one would delete the
-restored files at the game's next start), that the site's settings and players are replaced, and that the play times are added to
-this browser's: for each game the larger number of plays and of seconds and the later day (`mergedPlay()`), so that an older backup
-takes nothing away. Only the **Restore** button writes.
+restored files at the game's next start), that the site's settings and players are replaced, and that the play times become, for each
+game, the larger of the backup's and this browser's number of plays and of seconds and the later day (`mergedPlay()`), so that an
+older backup takes nothing away. Only the **Restore** button writes.
 
 A restore never runs while a game page is open: each page holds a Web Lock (`PAGE.lock`) while it runs, and the page checks them with
 `navigator.locks.query()` when the zip is read and again at the button, and then holds every game's lock (`ifAvailable`) while it
@@ -861,7 +869,8 @@ browser"), and F11 again leaves full screen, as Esc does. The page stops the bro
 only when it can put the stage there itself (`document.fullscreenEnabled`); then a listener on the document, which sees the key before the
 canvas, keeps it from the game. Of the games only TipTop has an F11 of its own (`App::HandleKeys`, its windowed and full screen switch); in the
 browser it would ask SDL for full screen outside a click, which browsers refuse, so the page's is the one that works. TipTop's Options checkbox
-still goes the game's way.
+still goes the game's way. Both F11 and the button close an open panel first, which would otherwise stay behind the full-screen stage, and
+give the canvas the focus only while the game runs: before a start or after an exit the focus stays on the card's button.
 
 Moving the focus from the canvas to a control on the page does not count as the game losing the app's focus. SDL and the framework
 (`EmscriptenFocusCallback`) take the focus from the window's `focus` and `blur` events, which an element's focus change does not raise, so

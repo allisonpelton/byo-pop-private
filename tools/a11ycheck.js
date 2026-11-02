@@ -541,11 +541,14 @@ function checkDoc(doc, report, opts) {
       else if (parseInt(ti, 10) > 0) report.error("tabindex", where(e) + " has tabindex above 0");
     }
     if (role(e) && ROLES.indexOf(role(e)) < 0) report.error("aria-role", where(e) + " has an unknown role \"" + role(e) + "\"");
-    // a tab in a tablist takes the focus by the arrow keys (the ARIA pattern's roving tabindex): one of its tablist's tabs is in the
-    // tab order, the others have tabindex="-1"
+    // a tab in a tablist takes the focus by the arrow keys (the ARIA pattern's roving tabindex): every tab can take the focus, by
+    // itself or with tabindex="-1", and one of its tablist's tabs is in the tab order
     if (role(e) === "tab" && e.parent && role(e.parent) === "tablist" && !has(e, "hidden") && !has(e, "disabled")) {
-      if (e.parent.children.some(function (t) { return t.type === "el" && role(t) === "tab" && isFocusable(t); })) return;
-      report.error("aria-role", where(e) + " is a tab, and no tab of its tablist can take the focus");
+      var canFocus = isFocusable(e) || (ti !== null && ti.trim() === "-1");
+      if (!canFocus) { report.error("aria-role", where(e) + " has role tab but cannot take the focus"); return; }
+      if (!e.parent.children.some(function (t) { return t.type === "el" && role(t) === "tab" && isFocusable(t); })) {
+        report.error("aria-role", where(e) + " is a tab, and no tab of its tablist is in the tab order");
+      }
       return;
     }
     if (["button", "link", "checkbox", "switch", "tab", "menuitem"].indexOf(role(e)) >= 0 && !isFocusable(e)) report.error("aria-role", where(e) + " has role " + role(e) + " but cannot take the focus");
@@ -705,6 +708,8 @@ function selftest() {
     ["an aria-label that drops the visible words", clean.replace("</main>", '<a href="c.html" aria-label="Buy it">Buy on Steam</a></main>'), null, "label-in-name:"],
     ["tabs with a roving tabindex", clean.replace("</main>", '<div role="tablist" aria-label="t"><button type="button" role="tab" aria-selected="true">A</button>' +
       '<button type="button" role="tab" aria-selected="false" tabindex="-1">B</button></div></main>'), null, ""],
+    ["a tab that is a bare div", clean.replace("</main>", '<div role="tablist" aria-label="t"><button type="button" role="tab" aria-selected="true">A</button>' +
+      '<div role="tab" aria-selected="false">B</div></div></main>'), null, "aria-role:"],
     ["tabs that cannot take the focus", clean.replace("</main>", '<div role="tablist" aria-label="t"><button type="button" role="tab" tabindex="-1">A</button></div></main>'), null, "aria-role:"],
     ["a link to a new tab that does not say so", clean.replace("</main>", '<a href="d.html" target="_blank">D</a></main>'), null, "new-tab:"],
     ["a list with a stray child", clean.replace("</li></ul>", "</li><div>x</div></ul>"), null, "list:"],

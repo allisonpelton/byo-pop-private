@@ -594,8 +594,9 @@ try {
 // The tabs under the games (docs/WEB_PLAYER.md, "The listing page"): Players, Saves and Settings, after the ARIA pattern for tabs with
 // automatic activation. Only the chosen tab is in the tab order; the arrow keys move along the tabs and show each one's panel, Home and
 // End go to the first and the last, and Tab goes on into the panel. A link to #players, #saves or #settings (the Players section's
-// "Player names in Settings", a game page's "Manage players"), here or when the page opens, shows that tab. The tab is remembered in
-// localStorage (the page works without it).
+// "Player names in Settings", a game page's "Manage players"), here or when the page opens, shows that tab and puts the focus on it.
+// The player's own choice goes into the address (replaceState, no history entry), so that a reload keeps it, and is remembered in
+// localStorage for the next visit (the page works without it).
 (function () {
   var KEY = "byopop-listing-tab";
   var tabs = Array.prototype.slice.call(document.querySelectorAll(".tabs [role=tab]"));
@@ -613,14 +614,19 @@ try {
   }
   function byPanel(id) { return tabs.filter(function (t) { return t.getAttribute("aria-controls") === id; })[0] || null; }
   tabs.forEach(function (tab, i) {
-    tab.addEventListener("click", function () { choose(tab, false); });
+    tab.addEventListener("click", function () { choose(tab, false); toAddress(tab); });
     tab.addEventListener("keydown", function (ev) {
       var to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[ev.key];
       if (to === undefined || ev.altKey || ev.ctrlKey || ev.metaKey) return;
       ev.preventDefault();
-      choose(tabs[(to + tabs.length) % tabs.length], true);
+      var next = tabs[(to + tabs.length) % tabs.length];
+      choose(next, true);
+      toAddress(next);
     });
   });
+  function toAddress(tab) {
+    try { history.replaceState(null, "", location.pathname + location.search + "#" + panel(tab).id); } catch (e) {}
+  }
   // #players, #saves or #settings: that tab, scrolled to
   function fromHash() {
     var tab = byPanel(location.hash.slice(1));

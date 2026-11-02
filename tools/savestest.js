@@ -76,7 +76,15 @@ function throws(name, fn, pattern) {
   check("a path that climbs", refused("pixelus/userdata/../game/x") && refused("pixelus/userdata/a/../../b"));
   check("a game that is not listed", refused("evil/userdata/x") && refused("evil/browser-backup.json"));
   check("a stray file", refused("x.exe") && refused("userdata/x") && refused("/pixelus/userdata/x") && refused("pixelus/USERDATA/x"));
-  check("the play times", S.classify([{ name: "byopop-saves.json" }, { name: "byopop-play.json" }], ids).play !== null);
+  const later = S.classify([{ name: "byopop-saves.json" }, { name: "byopop-play.json" }, { name: "byopop-later_thing.json" }, { name: "pixelus/userdata/a" }], ids);
+  check("a top-level byopop-*.json this build does not know is skipped, not refused", later.ok && later.files.length === 1 &&
+    later.skipped.join() === "byopop-play.json,byopop-later_thing.json", later);
+  // the play times ride in the manifest (an older build reads past a field it does not know), and come back out of it
+  same("play: into the manifest", S.playToManifest('{"tiptop":{"plays":1,"seconds":2,"last":"2026-11-02"}}'), { tiptop: { plays: 1, seconds: 2, last: "2026-11-02" } });
+  check("play: none, or damaged, leaves the field out", S.playToManifest(null) === null && S.playToManifest("{nope") === null && S.playToManifest("[1]") === null);
+  same("play: out of the manifest", [S.playFromManifest({ play: { a: { plays: 1 } } }), S.playFromManifest({}), S.playFromManifest({ play: [1] })],
+    ['{"a":{"plays":1}}', null, null]);
+  check("but not any top-level name", refused("byopop-x.txt") && refused("byopop-.json") && refused("other.json"));
   // the play times: a backup's added to this browser's
   same("play: the larger counts and the later day", JSON.parse(S.mergedPlay(
     JSON.stringify({ pixelus: { plays: 5, seconds: 100, last: "2026-11-02" }, tiptop: { plays: 1, seconds: 9, last: "2026-10-01" } }),
