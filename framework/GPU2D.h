@@ -54,6 +54,7 @@ public:
 	void SetRenderState(int theState, unsigned long theValue);
 	void SetTextureStageState(int theStage, int theType, unsigned long theValue);
 	void SetSamplerState(int theStage, int theType, unsigned long theValue);
+	unsigned long GetSamplerState(int theStage, int theType) const;  // 0x623400: the cached value, 0xffffffff unset
 	void SetTexturePiece(int theStage, Image* theImage, int thePiece);  // 0xd0; null image unbinds
 	void SetTexture(int theStage, Image* theImage);                     // 0xd4
 	bool SetRenderTarget(Image* theImage);
@@ -109,6 +110,8 @@ public:
 	// filter.
 	void PushTransform(const SexyMatrix3& theTransform, bool theConcatenate = true);
 	void PopTransform();
+	// The top of the stack (null when empty): the adapter's DrawPrimitiveEx moves pre-transformed vertices through it
+	const SexyMatrix3* GetTransform() const { return mTransformStack.empty() ? NULL : &mTransformStack.back(); }
 
 	// The draws, each with the original's own calls and nothing else: PreDraw first, returning on false; the image's
 	// texture (PrepareTexture, returning on false); ApplyDrawMode; the filter; the vertices into the batch. A draw sets

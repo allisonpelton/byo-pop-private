@@ -63,6 +63,12 @@ GPU2D::~GPU2D()
 ///////////////////////////////////////////////////////////////////////////////
 // State
 
+unsigned long GPU2D::GetSamplerState(int theStage, int theType) const
+{
+	std::map<long long, unsigned long>::const_iterator anItr = mStates.find(StateKey(STATE_SAMPLER, theStage, theType));
+	return (anItr != mStates.end()) ? anItr->second : 0xffffffff;
+}
+
 void GPU2D::SetCachedState(int theKind, int theStage, int theType, unsigned long theValue)
 {
 	// 0x623380: a state never set reads as 0xffffffff
