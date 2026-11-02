@@ -76,6 +76,15 @@ function throws(name, fn, pattern) {
   check("a path that climbs", refused("pixelus/userdata/../game/x") && refused("pixelus/userdata/a/../../b"));
   check("a game that is not listed", refused("evil/userdata/x") && refused("evil/browser-backup.json"));
   check("a stray file", refused("x.exe") && refused("userdata/x") && refused("/pixelus/userdata/x") && refused("pixelus/USERDATA/x"));
+  check("the play times", S.classify([{ name: "byopop-saves.json" }, { name: "byopop-play.json" }], ids).play !== null);
+  // the play times: a backup's added to this browser's
+  same("play: the larger counts and the later day", JSON.parse(S.mergedPlay(
+    JSON.stringify({ pixelus: { plays: 5, seconds: 100, last: "2026-11-02" }, tiptop: { plays: 1, seconds: 9, last: "2026-10-01" } }),
+    JSON.stringify({ pixelus: { plays: 3, seconds: 400, last: "2026-10-30" }, ningpo: { plays: 2, seconds: 50, last: "2026-09-09" }, "../x": { plays: 9 } }))),
+    { pixelus: { plays: 5, seconds: 400, last: "2026-11-02" }, tiptop: { plays: 1, seconds: 9, last: "2026-10-01" }, ningpo: { plays: 2, seconds: 50, last: "2026-09-09" } });
+  same("play: with nothing here", JSON.parse(S.mergedPlay(null, JSON.stringify({ tiptop: { plays: 1, seconds: 2, last: "bad" } }))),
+    { tiptop: { plays: 1, seconds: 2, last: "" } });
+  same("play: a damaged backup", S.mergedPlay("{}", "{nope"), "{}");
   check("a name twice", !S.classify([{ name: "pixelus/userdata/a" }, { name: "pixelus/userdata/a" }], ids).ok);
   check("an absolute path", refused("/etc/passwd") && refused("C:/x") && refused("..\\x"));
 

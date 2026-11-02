@@ -86,12 +86,15 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
    when it is enlarged (icons are kept at 64 px or less) */
 .badge.has-icon { background: none; box-shadow: none; }
 .badge img { display: block; width: 72px; height: 72px; object-fit: contain; image-rendering: crisp-edges; image-rendering: pixelated; }
-/* Under the name, in words: whether the game's files are loaded in this browser ("Your copy") or not ("Needs your files"),
+/* Under the name, in words: whether the game's files are loaded in this browser ("Play now") or not ("Add your files"),
    and for a game played here before, a "?" that explains why they are not (docs/WEB_PLAYER.md, "The listing page") */
 .ownrow { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px 12px; min-height: 20px; }
 .own { font-size: 12px; color: var(--muted); }
 .own:empty { display: none; }
 .own-yes { color: var(--accent); font-weight: 600; }
+/* How much the game was played here (web/settings.js, ByopopPlay), at the foot of the card once it has been */
+.played { margin: -6px 0 0; padding: 0 8px 12px; font-size: 12px; color: var(--muted); text-align: center; }
+.played[hidden] { display: none; }
 .why {
   flex: none; width: 20px; height: 20px; padding: 0; border-radius: 50%; border: 1px solid var(--line);
   background: var(--bg); color: var(--fg); font: inherit; font-size: 12px; font-weight: 700; line-height: 1; cursor: pointer;
@@ -339,7 +342,7 @@ try {
 // when the page comes back into view, as the files may have been loaded or forgotten in another tab or page.
 (function () {
   var tiles = Array.prototype.slice.call(document.querySelectorAll("a.tile[data-game]"));
-  var WORDS = { yes: "Your copy", no: "Needs your files", unknown: "Files unknown" };
+  var WORDS = { yes: "Play now", no: "Add your files", unknown: "Files unknown" };
   var WHY = "Why aren\u2019t my files here?";
   var generation = 0;
   var open = null;  // the "?" whose explanation is showing: {button, pop}
@@ -421,15 +424,16 @@ try {
     label.className = "own own-" + info.state;
     // Where to buy (docs/WEB_PLAYER.md, "The listing page"): not shown to a player whose files for the game are loaded, were
     // loaded and forgotten or lost since (the record says so), or who has played it here: the links would suggest that the page
-    // is used for copies it was not given by a purchase. They are shown for "Needs your files" without such a past, and for
+    // is used for copies it was not given by a purchase. They are shown for "Add your files" without such a past, and for
     // "Files unknown".
     var buy = card.querySelector(".buyrow");
     if (buy) buy.hidden = info.state === "yes" || !!info.everLoaded || !!info.played;
     // the link's accessible name: the game's name, the year of its release when it has one, then the same words
-    // ("Bejeweled Deluxe, 2001, your copy")
+    // ("Bejeweled Deluxe, 2001, play now")
     var year = tile.querySelector(".year");
     tile.setAttribute("aria-label", tile.querySelector(".name").textContent + (year ? ", " + year.textContent : "") + ", " +
       WORDS[info.state].toLowerCase());
+    showPlayed(card, info.play);
     var button = row.querySelector(".why"), pop = card.querySelector(".why-pop");
     if (info.state === "no" && info.played) {
       if (!button) {
@@ -457,6 +461,27 @@ try {
       button.remove();
       pop.remove();
     }
+  }
+
+  // How much the game was played here (ByopopPlay), once it has been: "3 plays · 2 h 15 min", then "Last played 1 Nov 2026"
+  function showPlayed(card, play) {
+    var line = card.querySelector(".played");
+    if (!play || !(play.plays > 0 || play.seconds > 0)) { if (line) line.hidden = true; return; }
+    if (!line) {
+      line = make("p");
+      line.className = "played";
+      card.insertBefore(line, card.querySelector(".buyrow"));
+    }
+    var when = play.last, m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(when || "");
+    if (m) {
+      var day = new Date(+m[1], +m[2] - 1, +m[3]);
+      if (when === ByopopPlay.today()) when = "today";
+      else { try { when = day.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); } catch (e) {} }
+    }
+    line.textContent = "";
+    line.appendChild(document.createTextNode(play.plays + (play.plays === 1 ? " play" : " plays") + " · " + ByopopPlay.duration(play.seconds)));
+    if (when) { line.appendChild(make("br")); line.appendChild(document.createTextNode("Last played " + when)); }
+    line.hidden = false;
   }
 
   // What the IDBFS database called name holds, from its keys only: {game, saves, entries}. A key is a file's when it is in
@@ -505,8 +530,9 @@ try {
   }
 
   function check() {
-    var gen = ++generation, record = {};
+    var gen = ++generation, record = {}, plays = {};
     try { record = ByopopGameFiles.all(); } catch (e) {}
+    try { plays = ByopopPlay.all(); } catch (e) {}
     var haveNames = !!(window.indexedDB && typeof indexedDB.databases === "function");
     (haveNames ? indexedDB.databases().then(function (list) { return list.map(function (d) { return d.name; }); }) : Promise.resolve(null))
       .catch(function () { return null; })
@@ -515,7 +541,7 @@ try {
           var id = tile.getAttribute("data-game"), persist = tile.getAttribute("data-persist"), rec = record[id] || null;
           var listed = names !== null && names.indexOf(persist) >= 0;
           var info = { state: "unknown", played: false, loaded: rec && rec.loaded, forgotten: rec && rec.forgotten, saves: hasBackup(persist),
-            everLoaded: ByopopGameFiles.everLoaded(rec),
+            everLoaded: ByopopGameFiles.everLoaded(rec), play: plays[id] || null,
             icon: (rec && ByopopGameFiles.present(rec) && rec.icon) || "" };
           if (rec && ByopopGameFiles.present(rec) && (names === null || listed)) {
             // the record says the files are there, and the database that holds them is
@@ -544,7 +570,7 @@ try {
   check();
   window.addEventListener("pageshow", check);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
-  window.addEventListener("storage", function (ev) { if (ev.key === null || ev.key === ByopopGameFiles.KEY) check(); });
+  window.addEventListener("storage", function (ev) { if (ev.key === null || ev.key === ByopopGameFiles.KEY || ev.key === ByopopPlay.KEY) check(); });
 })();
 </script>
 <script>

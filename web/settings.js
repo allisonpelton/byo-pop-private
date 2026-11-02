@@ -682,3 +682,64 @@ var ByopopGameFiles = (function () {
   function everLoaded(r) { return !!(r && r.loaded); }
   return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, present: present, everLoaded: everLoaded, setIcon: setIcon };
 })();
+
+// How much each game was played in this browser (docs/WEB_PLAYER.md, "The listing page"): one localStorage item for the whole
+// site, "byopop-play", a JSON object from a game's id to {plays, seconds, last}. plays: how many times the game was started (a
+// restart of the game's own mod menu goes on with the same play). seconds: the time the game ran with its page shown and in the
+// focus, not paused, hidden or behind another window. last: the last day it was played, the player's own date as YYYY-MM-DD. A game
+// page writes it, the listing page shows it on the game's card, and the save backup keeps it (web/saves.js). Every read and write
+// is guarded: with storage blocked, nothing is counted.
+var ByopopPlay = (function () {
+  "use strict";
+  var KEY = "byopop-play";
+  function store() { try { return window.localStorage || null; } catch (e) { return null; } }
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  function count(n) { return (typeof n === "number" && isFinite(n) && n > 0) ? Math.floor(n) : 0; }
+  // id -> {plays, seconds, last}; {} when there is none or storage is blocked
+  function all() {
+    var out = {};
+    try {
+      var s = store();
+      var o = s ? JSON.parse(s.getItem(KEY) || "{}") : {};
+      if (o && typeof o === "object" && !Array.isArray(o)) {
+        Object.keys(o).forEach(function (id) {
+          var r = o[id];
+          if (!r || typeof r !== "object" || Array.isArray(r)) return;
+          out[id] = { plays: count(r.plays), seconds: count(r.seconds),
+            last: (typeof r.last === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.last)) ? r.last : "" };
+        });
+      }
+    } catch (e) {}
+    return out;
+  }
+  function change(id, fn) {
+    if (!/^[a-z0-9_-]{1,40}$/.test(id)) return false;
+    try {
+      var s = store();
+      if (!s) return false;
+      var o = all();
+      o[id] = o[id] || { plays: 0, seconds: 0, last: "" };
+      fn(o[id]);
+      o[id].last = today();
+      s.setItem(KEY, JSON.stringify(o));
+      return true;
+    } catch (e) { return false; }
+  }
+  // The game was started
+  function started(id) { return change(id, function (r) { r.plays++; }); }
+  // ms more of play
+  function played(id, ms) {
+    var add = Math.round(ms / 1000);
+    return add > 0 ? change(id, function (r) { r.seconds += add; }) : false;
+  }
+  // "3 h 20 min", "12 min", "under a minute"
+  function duration(seconds) {
+    var m = Math.floor(count(seconds) / 60), h = Math.floor(m / 60);
+    if (h > 0) return h + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
+    return m > 0 ? m + " min" : "under a minute";
+  }
+  return { KEY: KEY, all: all, started: started, played: played, duration: duration, today: today };
+})();

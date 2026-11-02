@@ -223,7 +223,7 @@ the oldest game first. The order comes from the game's row in the `BYOPOP_WEB_RE
 first release of the Windows edition the site plays: the Deluxe download where there is one, and for a game that first came out
 under another publisher (Cosmic Bugs, Water Bugs, Word Harmony) the first release. `byopop_web_index()` writes it on the card as
 `data-released`, as given, next to `data-title`, and shows the year small under the name, which is part of the link's accessible
-name ("Bejeweled Deluxe, 2001, your copy"). A date that is less exact sorts later among the same year's or month's, so a game with
+name ("Bejeweled Deluxe, 2001, play now"). A date that is less exact sorts later among the same year's or month's, so a game with
 only a year comes after the full dates of that year, then by name; a game without a row gets a configure warning, shows no year
 and goes last, and a row that is not a date stops the configure. Like the table of badges, the table is the coordinator's, who
 adds a game's row at its final merge together with its place in `BYOPOP_WEB_FINISHED`.
@@ -242,9 +242,9 @@ donations and a player with the money should buy games), and a credit line that 
 opens normally, with no name or email beside it.
 
 **Which games are yours.** Under each game's name the card says, in words, whether the game's files are loaded in this
-browser, as a sign that the player owns the game: "Your copy" when they are, "Needs your files" when they are not, and
+browser, as a sign that the player owns the game: "Play now" when they are, "Add your files" when they are not, and
 "Files unknown" when the page cannot tell (below). The link's accessible name carries the same words, after the game's name
-and the year of its release ("Bejeweled Deluxe, 2001, your copy"). The page knows without starting any game, from a record that the game pages keep. The record is one
+and the year of its release ("Bejeweled Deluxe, 2001, play now"). The page knows without starting any game, from a record that the game pages keep. The record is one
 localStorage item for the whole site, `byopop-game-files` (`ByopopGameFiles` in `web/settings.js`): a JSON object from a
 game's id to `{loaded, forgotten, missing}`, with dates as YYYY-MM-DD. `loaded` is when the game's files were last found,
 `forgotten` when the player used "Forget game files" on the game's page, and `missing` when a game page found the files
@@ -270,7 +270,7 @@ writes no record itself. It checks again when the page comes back into view (`pa
 and when another tab changes the record (`storage`).
 
 **The "?" for a game played before.** When a game has been played in this browser but its files are not there, the
-card has a small "?" button next to "Needs your files". Played before means any of these: the game has an entry in the
+card has a small "?" button next to "Add your files". Played before means any of these: the game has an entry in the
 record (so a forgotten game stays one); its database holds files in other folders than `game/` (saves, mods, replays)
 but no game files; or the game's save backup exists in localStorage (`sexy-userdata-backup:<persist>/userdata`, which
 `platform/WebPersist.cpp` keeps). A game that was only opened, whose database holds nothing but its empty folders, is not
@@ -296,12 +296,26 @@ it, in a `.buyrow` beside it, as a link cannot hold a link.
 
 The links are hidden once the player has loaded files for the game, because they would otherwise suggest that the page is
 used for copies that were not bought. The rule, in `show()` of `web/index.html`: they are hidden when the game's state is
-"Your copy", when its record says the files were ever loaded (`ByopopGameFiles.everLoaded`: a `loaded` date, whether the files
+"Play now", when its record says the files were ever loaded (`ByopopGameFiles.everLoaded`: a `loaded` date, whether the files
 are there now or were forgotten (`forgotten`) or lost (`missing`) since), and when the game was played here before (the "?" case:
-saves or a database with entries but no record). They are shown for "Needs your files" without such a past, and for "Files
+saves or a database with entries but no record). They are shown for "Add your files" without such a past, and for "Files
 unknown". `byopop_web_index()` writes each `.buyrow` with the `hidden` attribute, so that a player who owns the game never sees
 the links flash before the check has run. The game pages' terms card (off for now) and the copyright pages keep their buy
 note: they are not the card that suggests where to get the game.
+
+**Play time.** Once a game has been played in this browser, its card shows under the name how many times it was started, how long
+it was played and the last day it was played: "3 plays · 2 h 15 min", then "Last played 1 Nov 2026" (the browser's own date format,
+"today" for today). The user, 2026-11-02: "Add game playtime and last day played to the front page once a game has been played
+once. Only count time with the game open and active. Also count number of plays." A play is a start of the game from its page (Play,
+or the page's own start when it opens); the start after the game's own restart from its mod menu goes on with the same play. The
+time counts only while the game runs and its page is shown and has the focus (`document.hasFocus()`, so another window in front
+stops it; the chat beside the game does not) and is not paused by the site's "Pause when the tab is hidden". The game's page checks
+every second and at each change of visibility or focus, adds at most 5 seconds a step (a computer that slept adds nothing) and writes
+the whole seconds every 30 seconds, when the count stops, when the game quits and when the page goes away. The record is one
+localStorage item for the site, `byopop-play` (`ByopopPlay` in `web/settings.js`, beside `ByopopGameFiles`): a JSON object from
+a game's id to `{plays, seconds, last}`, `last` as the player's own date, YYYY-MM-DD. The save backup takes it ("Save backup",
+below). Another tab that changes it changes the listing at once (the `storage` event), and the listing reads it again when it comes
+back into view.
 
 **The game's own icon.** Once a game's files are loaded, its card shows the game's icon in place of the initials badge
 (an `<img alt="">`, since the card has the name, at the badge's size and with `image-rendering: pixelated` so that a small
@@ -636,6 +650,7 @@ backup is **one store-only zip** (no compression, no library: the page writes th
 byopop-saves.json            the manifest: {format: "byo-pop saves", version: 1, made, games: {...}, files: {path: ms}}
 byopop-settings.json         the item byopop-settings, as it was (when there is one)
 byopop-profiles.json         the item byopop-profiles, as it was (when there is one)
+byopop-play.json             the item byopop-play (the play times), as it was (when there is one)
 <game>/userdata/<path>       a file of the save folder
 <game>/replays/<path>        a replay
 <game>/browser-backup.json   the game's localStorage backup item, as it was
@@ -652,7 +667,9 @@ more than 240 characters; a game that is not listed; a name twice), when it is n
 zip64, or is damaged. A valid one is not written yet: the page shows, in the page and not in a browser dialog, for each game what the
 zip holds and how many of its files it would replace in this browser and how many it would add, that files that the zip does not
 have stay, that each game's own localStorage backup is removed (the restored files take its place, and a left one would delete the
-restored files at the game's next start), and that the site's settings and players are replaced. Only the **Restore** button writes.
+restored files at the game's next start), that the site's settings and players are replaced, and that the play times are added to
+this browser's: for each game the larger number of plays and of seconds and the later day (`mergedPlay()`), so that an older backup
+takes nothing away. Only the **Restore** button writes.
 
 A restore never runs while a game page is open: each page holds a Web Lock (`PAGE.lock`) while it runs, and the page checks them with
 `navigator.locks.query()` when the zip is read and again at the button, and then holds every game's lock (`ifAvailable`) while it

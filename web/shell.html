@@ -436,6 +436,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // game (closeGameThen), which goes on from here.
     onGameExit: function (info) {
       exited = true;
+      playClock();
       releaseWake();
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
       if (session) session.markFinished();
@@ -486,6 +487,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // cause, so the next start can leave them out.
   function showStopped(what) {
     exited = true;
+    playClock();
     releaseWake();
     afterExit = null;
     try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
@@ -863,6 +865,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
+    // a play (ByopopPlay): every start but the one after the game's own restart, which goes on with the same play
+    if (isAutostart !== true) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
     askToKeepStorage();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     cursorTimer = setInterval(pollCursor, 100);
@@ -1524,7 +1528,30 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) releaseWake(); else acquireWake();
     syncPause();
+    playClock();
   });
+
+  // ---------- play time (web/settings.js, ByopopPlay; docs/WEB_PLAYER.md, "The listing page") ----------
+  // Time counts while the game runs and its page is shown and has the focus (the user, 2026-11-02: "Only count time with the game
+  // open and active"): checked every second and at each change, a step of at most 5 s, so that a computer that slept adds nothing.
+  // It is written every 30 s and when the count stops, in whole seconds (the rest waits for the next), and when the page goes away.
+  var playSince = null, playMs = 0;
+  function playClock() {
+    var now = performance.now(), on = gameRunning() && !document.hidden && document.hasFocus() && !hiddenPaused;
+    if (playSince !== null) playMs += Math.min(now - playSince, 5000);
+    playSince = on ? now : null;
+    if (playMs >= 30000 || (!on && playMs >= 1000)) playSave(false);
+  }
+  function playSave(last) {
+    var whole = (last ? Math.round(playMs / 1000) : Math.floor(playMs / 1000)) * 1000;
+    if (whole <= 0) return;
+    playMs -= whole;
+    try { ByopopPlay.played(PAGE.id, whole); } catch (e) {}
+  }
+  setInterval(playClock, 1000);
+  window.addEventListener("focus", playClock);
+  window.addEventListener("blur", playClock);
+  window.addEventListener("pagehide", function () { playClock(); playSave(true); });
 
   // ---------- the chat (web/chat.js; docs/CHAT_DESIGN.md) ----------
   // One plain-text room for every game, beside the stage (below it on a narrow screen). The site's "Show chat" setting (on unless
