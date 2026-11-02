@@ -396,6 +396,10 @@ protected:
 	virtual bool DoUpdateFrames();
 	virtual void DoUpdateFramesF(float theFrac);
 	virtual void MakeWindow();
+	// port: the display MakeWindow makes (a DDInterface unless a game gives another, such as a GPUDisplay), and SDL
+	// window flags it adds to the window's own (0 unless a game's display needs one, such as SDL_WINDOW_OPENGL)
+	virtual DDInterface* CreateDDInterface();
+	virtual uint32_t GetExtraWindowFlags();
 	virtual void EnforceCursor();
 	virtual void ReInitImages();
 	virtual void DeleteNativeImageData();
