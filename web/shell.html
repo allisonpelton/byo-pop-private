@@ -724,8 +724,22 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       // boot() would otherwise show this card again, still saying "Copied", as if the page were stuck
       if (!hasGameFiles()) throw new Error("The files were copied, but the page cannot find the game's " + PAGE.markerText + " among them.");
       msg.textContent = "Copied " + wanted.length + " files.";
+      askToKeepStorage();
       return iconFromImport(entries, root).then(function () { return true; });
     });
+  }
+
+  // The site's storage is "best effort" until the browser agrees to keep it: a drive that runs low on space can make the
+  // browser clear the whole site, game files and saves alike. A finished import and each start of a game ask it to keep
+  // the storage (the user, 2026-11-01). Chrome and Edge decide at once from how much the site is used and say no to a
+  // little-used one, so the start asks again until they agree; Firefox asks the player once. The listing page's saves
+  // section shows the answer (web/saves.js).
+  function askToKeepStorage() {
+    try {
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(function (kept) {
+        if (!kept) return navigator.storage.persist();
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   // ---------- terms ----------
@@ -803,6 +817,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
+    askToKeepStorage();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     cursorTimer = setInterval(pollCursor, 100);
     applySiteOptions(true, true);
