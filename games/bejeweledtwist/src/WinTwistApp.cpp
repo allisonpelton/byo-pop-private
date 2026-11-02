@@ -229,6 +229,9 @@ void WinTwistApp::Init()
 	LoadGameTexts();
 	// port: the original reads the scores before the properties; their defaults need the game's texts here
 	mScale = (float)mArtRes / 1200.0f;  // 0x7652cc: the art size over 1200, again
+	// 0x7652cc: the VizManager starts in 3D when the visualizers box is on and Direct3D runs (else Viz2D), so a game's
+	// first ChooseViz picks a 3D visualizer although the VizManager has had no update yet
+	mVizManager->m2D = !mDoViz || gD3DInterface == nullptr;
 	SetGemSize();
 	LoadScores();
 	LoadMusic();
