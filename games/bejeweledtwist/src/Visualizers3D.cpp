@@ -66,6 +66,8 @@ Visualizer* Sexy::MakeVisualizer3D(const char* theName, WinTwistApp* theApp)
 		return new VizBuckyShards(theApp);
 	if (sexy_stricmp(theName, "VizMoleculeRedux") == 0)
 		return new VizMoleculeRedux(theApp);
+	if (sexy_stricmp(theName, "VizMagicSnakes") == 0)
+		return new VizMagicSnakes(theApp);
 	return nullptr;
 }
 

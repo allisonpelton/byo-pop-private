@@ -2,7 +2,7 @@
 // Visualizer (vtable 0x7d804c) with its own images, made by the maker the VizManager's constructor registers by name
 // (0x7597cc, FUN_0075978d). Ported here: RedBars, WindCloud, ContainmentField, UVWarp, Raptis_Pulse, BlobDrift and
 // ParametricFractal (Visualizers3D.cpp), and FluffyStars, PlasmaClouds, SpaceThreads, VizWarpBars and VizKaleidoCat
-// (Visualizers3D2.cpp), and VizRainbowGlyphs, SubAtomic, Cubes and RainDrops (Visualizers3D3.cpp), and Gears, Slipstream (Visualizers3D4.cpp), GravityField, VizBuckyShards and VizMoleculeRedux (Visualizers3D5.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
+// (Visualizers3D2.cpp), and VizRainbowGlyphs, SubAtomic, Cubes and RainDrops (Visualizers3D3.cpp), and Gears, Slipstream (Visualizers3D4.cpp), GravityField, VizBuckyShards and VizMoleculeRedux (Visualizers3D5.cpp), and VizMagicSnakes (Visualizers3D6.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
 // VizManager shows Viz2D in their place.
 //
 // Random draws: the original's visualizers draw from the game's Rand (0x45c110 and its Rand(n) 0x45c120 and Rand(float)
@@ -11,10 +11,12 @@
 #pragma once
 
 #include "Common.h"
+#include "Math3D.h"
 #include "SexyMatrix.h"
 #include "TriVertex.h"
 #include "VizManager.h"
 
+#include <list>
 #include <vector>
 
 namespace Sexy {
@@ -617,6 +619,64 @@ public:
 	~VizMoleculeRedux() override;                    // 0x68ca44 (0x68c9a0)
 	void Update() override;                          // 0x68c99c
 	void Draw(Graphics* g) override;                 // 0x68d641
+};
+
+// Sexy::VizMagicSnakes (vtable 0x7d82ac, constructor 0x68c2dd): fifteen snakes drifting in a cloud, each pulled to the
+// mean heading of the others, pushed off the ones too near and drawn in towards the middle, with a trail behind each of
+// up to 61 turning triangles (one added every third update) that Draw joins into a ribbon of quads (IMAGE_MAGICSNAKE_
+// FRAGMENT) over IMAGE_MAGICSNAKE_BG, through DrawPrimitiveEx (FVF 0x142) under a perspective camera at (0, 0, 30).
+// Random draws: the class's own generator (0x68b3c1, an LCG of the C library's rand, seeded once with 0xbeef0b01 and kept
+// for every VizMagicSnakes made): 6 draws for each of the 15 snakes in the constructor (90 in all), in the order of the
+// snakes; none in Init, Update or Draw. It draws neither from the game's Rand nor from the C library's.
+class VizMagicSnakes : public Visualizer {
+public:
+	struct Vertex {  // 0x18 bytes, FVF 0x142
+		float x, y, z;        // +0x00
+		unsigned int mColor;  // +0x0c
+		float u, v;           // +0x10
+	};
+	// 0x38 bytes (0x68bb83, set up by 0x68b535)
+	struct Snake {
+		int mIndex = 0;       // +0x08
+		int mOdd = 0;         // +0x0c: mIndex & 1 (the trail turns the other way and is coloured by another range)
+		float mSize = 0.0f;   // +0x10: worked out by each update
+		Vec3 mPos;            // +0x14
+		Vec3 mVel;            // +0x20
+		Vec3 mPush;           // +0x2c
+		void Init(int theIndex);                                       // 0x68b535
+		Transform3D MakeTransform();                                   // 0x68b6e2
+		Vec3 MeanVelocity(const std::vector<Snake>& theSnakes) const;  // 0x68bc6c
+		Vec3 Repulsion(const std::vector<Snake>& theSnakes) const;     // 0x68bcfb
+		Vec3 Wall() const;                                             // 0x68b467
+		void Update(int theCount, std::vector<Snake>& theSnakes);      // 0x68be10
+	};
+	// 0x94 bytes (0x68bab0): a triangle in the snake's place, turned and scaled, with its three vertices worked out by Build
+	struct Segment {
+		Vertex mVertices[3];     // +0x08
+		Transform3D mTransform;  // +0x50
+		float mFraction = 0.0f;  // +0x8c
+		float mAngle = 0.0f;     // +0x90
+		void Set(Snake& theSnake, int theCount);          // 0x68b74a
+		void Build(const Snake& theSnake, float theFraction);  // 0x68b7c7
+	};
+	// 0xa4 bytes (0x68bfe7): a snake's segments, the oldest first
+	struct Trail {
+		Snake* mSnake = nullptr;         // +0x08
+		std::list<Segment> mSegments;    // +0x0c, the count at +0xa0
+		void Add(int theCount);                                      // 0x68bacc
+		void BuildStrip(Vertex*& theVertices);                       // 0x68c04d (with the count: theVertices moves on)
+	};
+	Image* mFragment = nullptr;    // +0x28: IMAGE_MAGICSNAKE_FRAGMENT
+	Image* mBackground = nullptr;  // +0x2c: IMAGE_MAGICSNAKE_BG
+	int mCount = 0;                // +0x30: its updates
+	std::vector<Snake> mSnakes;    // the snakes of the manager at +0x24, in the order they were made (reserved so the trails' pointers hold)
+	std::vector<Trail> mTrails;    // the manager's trails, one for each snake
+	explicit VizMagicSnakes(WinTwistApp* theApp);  // 0x68c2dd
+	~VizMagicSnakes() override;                    // 0x68c6ff (0x68c65e)
+	void Update() override;                        // 0x68c36b
+	void Draw(Graphics* g) override;               // 0x68c37f
+	// slot 8 (0x68c365): the name for the debug text (the port's Visualizer has no slot 8, so this is not an override)
+	const char* Name() const { return "BLECH"; }
 };
 
 }  // namespace Sexy
