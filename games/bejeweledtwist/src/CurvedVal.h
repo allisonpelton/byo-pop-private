@@ -66,7 +66,7 @@ public:
 	double GetOutVal();                                                   // 0x6ecf57
 	double GetOutVal(double theInVal);                                    // 0x6ecc24
 	double GetOutValDelta() { return GetOutVal() - mPrevOutVal; }         // 0x6ed148
-	double GetInValAtUpdate(int theUpdateCount) const { return theUpdateCount * mIncRate + mInMin; }  // 0x6e9832
+	double GetInValAtUpdate(int theUpdateCount) const;                    // 0x6e9832
 	int GetLengthInUpdates() const;                                       // 0x6e9842: -1 for a curve that does not move
 	bool CheckInThreshold(double theInVal);                               // 0x6ed0d9: the input crossed theInVal in the last step
 	bool CheckUpdatesFromEndThreshold(int theUpdates) { return CheckInThreshold(GetInValAtUpdate(GetLengthInUpdates() - theUpdates)); }  // 0x6ed123

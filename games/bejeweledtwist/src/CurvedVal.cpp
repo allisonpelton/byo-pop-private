@@ -1,9 +1,11 @@
 // Sexy::CurvedVal (CurvedVal.h). The original computes in the x87's precision and stores floats and doubles where its
-// fields are; the port computes in double and stores at the same places.
+// fields are; the port computes in double and stores at the same places. With Direct3D the x87 runs in single
+// precision (X87 below), and the input's steps round as the original's do.
 #include "CurvedVal.h"
 
 #include "BSpline.h"
 #include "SexyAppBase.h"
+#include "TwistD3D.h"
 #include "X86Math.h"
 
 #include <cmath>
@@ -15,6 +17,14 @@ namespace Sexy {
 namespace {
 
 const int CURVE_TABLE_SIZE = 0x2000;
+
+// The original makes its Direct3D device (0x6193b0, flags 0x140) without D3DCREATE_FPU_PRESERVE, so once it runs the
+// x87 computes in single precision: each sum or product of a curve's input is rounded to a float. Without Direct3D
+// it keeps double precision.
+double X87(double theValue)
+{
+	return gD3DInterface != nullptr ? (double)(float)theValue : theValue;
+}
 
 // A control point of a curve string: x, y and, for a Hermite curve, the slope there
 struct CurvePoint {
@@ -452,7 +462,7 @@ double CurvedVal::GetInVal()
 	if (mLinkedVal == nullptr) {
 		if (mAutoInc) {
 			if (gSexyAppBase)
-				v = (double)(gSexyAppBase->mUpdateCount - mInitAppUpdateCount) * mIncRate + mInMin;
+				v = X87(X87((double)(gSexyAppBase->mUpdateCount - mInitAppUpdateCount) * mIncRate) + mInMin);
 			if (mMode == MODE_REPEAT || mMode == MODE_PING_PONG)
 				v = std::fmod(v - mInMin, mInMax - mInMin) + mInMin;
 			else if (mInMax <= v)
@@ -498,7 +508,7 @@ bool CurvedVal::IncInVal(double theInc)
 {
 	mPrevOutVal = GetOutVal();
 	mPrevInVal = mInVal;
-	mInVal += theInc;
+	mInVal = X87(mInVal + theInc);
 	if (CheckClamping())
 		return true;
 	if (!mTriggered) {
@@ -519,7 +529,12 @@ int CurvedVal::GetLengthInUpdates() const
 {
 	if (mIncRate == 0.0)
 		return -1;
-	return Ftol(std::ceil((mInMax - mInMin) / mIncRate));
+	return Ftol(std::ceil(X87(X87(mInMax - mInMin) / mIncRate)));
+}
+
+double CurvedVal::GetInValAtUpdate(int theUpdateCount) const
+{
+	return X87(X87(theUpdateCount * mIncRate) + mInMin);
 }
 
 bool CurvedVal::CheckInThreshold(double theInVal)
@@ -528,7 +543,7 @@ bool CurvedVal::CheckInThreshold(double theInVal)
 	double aPrev = mPrevInVal;
 	if (mAutoInc) {
 		aCur = GetInVal();
-		aPrev = aCur - mIncRate * 1.5;
+		aPrev = X87(aCur - X87(mIncRate * 1.5));
 	}
 	return aPrev < theInVal && theInVal <= aCur;
 }
