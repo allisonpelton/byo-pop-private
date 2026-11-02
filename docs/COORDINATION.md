@@ -98,6 +98,17 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
   work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer that puts a
   native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
+- **The site's requested work comes between Twist and the passes (the user, 2026-11-02):** "Slot in the remaining
+  requested additions and changes to the site after finishing Twist and before the passes on existing decomps." So once
+  Twist is finished, the open items of the "Site" section of `testnotes/TEST_NOTES.md` are built before any identical-play
+  pass starts on a game decompiled before Twist; passes already running carry on. On 2026-11-02 those items were: F11 for
+  full screen in every game; play time, last day played and number of plays on the front page, with "Play now" and "Add
+  your files"; adding many games' files at once; a bigger logo that takes a dropped game folder, a folder dropped on a
+  game's tile, and bottle-cap placeholder icons; the bottle cap and opener animation on the game pages and the front page;
+  a recycle bin that forgets a game's files; the player, save and settings managers as tabs with icons and far less text;
+  "Quit Game" back to the home page; and Ning Po Mahjong's high-score names on the front page (TipTop's were fixed in
+  a6547b9). The chat is built as a test with made-up messages; its real version waits for funding. What the user asks
+  for while testing is still done when asked.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
