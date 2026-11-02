@@ -664,7 +664,11 @@ the game's own window on their desktop for the 3D comparison ("Yes, capture it",
 picture taken only with PrintWindow, from the game's window itself, never from the screen. Its first version copied the
 screen, and one frame, taken before the game's window was on screen, held the user's own windows; it was deleted with
 every copy, and visrun changed to PrintWindow only (`games/bookwormadv/docs/IDENTICAL_PLAY.md`, "3D mode"). That leave
-was for that comparison alone: the host-capture ban holds for every other run. Bookworm Adventures also needs a short path: it builds absolute paths from the working directory in a
+was for that comparison alone. Bejeweled Twist's 3D comparison got its own on 2026-11-02 (the user's answer: "Sandbox,
+then desktop"): first `--sandbox --sandbox-vgpu --sandbox-connect`, whose sandbox window shows on the user's desktop,
+and only if the original still falls back to 2D there, a run on the user's desktop as above (a copy under `build/`,
+visrun's PrintWindow shots of the game's own window, input posted to that window and never through the user's cursor or
+keyboard). The host-capture ban holds for every other run. Bookworm Adventures also needs a short path: it builds absolute paths from the working directory in a
 256-byte stack buffer (0x6cbb60), so a copy under a worktree's long path dies at start with STATUS_STACK_BUFFER_OVERRUN
 (0xC0000409, the stack check at 0x6cbcea). origrun's sandbox copies run from `C:\run\game` and never meet it.
 
