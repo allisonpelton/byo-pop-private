@@ -982,7 +982,7 @@ void Hyperspace::SetWorldCurves(int theWorld)
 		mUnknownDD8.SetCurve(GTS(0x7e5a94), &mUnknown6B8);
 		mUnknown6B8.SetCurve(GTS(0x7e5a64));
 		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8));
+		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
 		break;
 	case 2:  // 0x7193a7
 		mUnknown978.SetCurve(GTS(0x7e59b0), &mUnknown6B8);
@@ -996,7 +996,7 @@ void Hyperspace::SetWorldCurves(int theWorld)
 		mUnknownDD8.SetCurve(GTS(0x7e58b0), &mUnknown6B8);
 		mUnknown6B8.SetCurve(GTS(0x7e5a64));
 		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8));
+		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
 		break;
 	case 3:  // 0x7196a1
 		mUnknown978.SetCurve(GTS(0x7e588c), &mUnknown6B8);
@@ -1010,7 +1010,7 @@ void Hyperspace::SetWorldCurves(int theWorld)
 		mUnknownDD8.SetCurve(GTS(0x7e5790), &mUnknown6B8);
 		mUnknown6B8.SetCurve(GTS(0x7e5a64));
 		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8));
+		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
 		break;
 	case 4:  // 0x71999b
 		mUnknown978.SetCurve(GTS(0x7e5cd0), &mUnknown6B8);
@@ -1035,7 +1035,7 @@ void Hyperspace::SetWorldCurves(int theWorld)
 		mUnknownDD8.SetCurve(GTS(0x7e5684), &mUnknown6B8);
 		mUnknown6B8.SetCurve(GTS(0x7e5a64));
 		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8));
+		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
 		break;
 	case 6:  // 0x719ed8
 		mUnknown978.SetCurve(GTS(0x7e5654), &mUnknown6B8);
@@ -1060,7 +1060,7 @@ void Hyperspace::SetWorldCurves(int theWorld)
 		mUnknownDD8.SetCurve(GTS(0x7e5478), &mUnknown6B8);
 		mUnknown6B8.SetCurve(GTS(0x7e5a64));
 		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8));
+		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
 		break;
 	case 8:  // 0x71a415
 		mUnknown978.SetCurve(GTS(0x7e544c), &mUnknown6B8);
@@ -1118,7 +1118,7 @@ void Hyperspace::SetWorldCurves(int theWorld)
 		mUnknownDD8.SetCurve(GTS(0x7e4f30), &mUnknown6B8);
 		mUnknown6B8.SetCurve(GTS(0x7e5a64));
 		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8));
+		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
 		break;
 	case 13:  // 0x71b01b
 		mUnknown978.SetCurve(GTS(0x7e4f08), &mUnknown6B8);
@@ -1132,7 +1132,7 @@ void Hyperspace::SetWorldCurves(int theWorld)
 		mUnknownDD8.SetCurve(GTS(0x7e4e24), &mUnknown6B8);
 		mUnknown6B8.SetCurve(GTS(0x7e5a64));
 		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8));
+		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
 		break;
 	case 14:  // 0x71b315
 		mUnknown978.SetCurve(GTS(0x7e4df4), &mUnknown6B8);
@@ -1166,13 +1166,13 @@ void Hyperspace::SetTransition3D(int theTransition)
 		// the trial's last jump: the curves of a fresh world, and the limit dialog (+0x152c) over the space
 		mUnknown6B8.SetCurve(GTS(0x7e61fc));
 		mUnknown10F0.SetCurve(GTS(0x7e61b0));
-		mUnknown1160.SetCurve(GTS(0x7e6174));
+		mUnknown1160.SetCurve(GTS(0x7e6174), &mUnknown10F0);  // linked to +0x10f0
 		mUnknown418.SetCurve(GTS(0x7e6150));
 		mUnknown11D0.SetCurve(GTS(0x7e612c));
 		mUnknown1E8.SetCurve(GTS(0x7e6108));
 		mUnknown258.SetCurve(GTS(0x7e60e4));
 		mUnknown338.SetCurve(GTS(0x7e60bc));
-		mUnknown3A8.SetCurve(GTS(0x7e6098));
+		mUnknown3A8.SetCurve(GTS(0x7e6098), &mUnknown338);  // linked to +0x338
 		mUnknown2C8.SetCurve(GTS(0x7e6068));
 		mUnknown488.SetCurve(GTS(0x7e6048));
 		mUnknown568.SetCurve(GTS(0x7e6028));
@@ -1254,13 +1254,13 @@ void Hyperspace::SetTransition3D(int theTransition)
 		}
 		mUnknown6B8.SetCurve(GTS(0x7e61fc));
 		mUnknown10F0.SetCurve(GTS(0x7e61b0));
-		mUnknown1160.SetCurve(GTS(0x7e6174));
+		mUnknown1160.SetCurve(GTS(0x7e6174), &mUnknown10F0);  // linked to +0x10f0
 		mUnknown418.SetCurve(GTS(0x7e6150));
 		mUnknown11D0.SetCurve(GTS(0x7e612c));
 		mUnknown1E8.SetCurve(GTS(0x7e6108));
 		mUnknown258.SetCurve(GTS(0x7e60e4));
 		mUnknown338.SetCurve(GTS(0x7e60bc));
-		mUnknown3A8.SetCurve(GTS(0x7e6098));
+		mUnknown3A8.SetCurve(GTS(0x7e6098), &mUnknown338);  // linked to +0x338
 		mUnknown2C8.SetCurve(GTS(0x7e6068));
 		mUnknown488.SetCurve(GTS(0x7e6048));
 		mUnknown568.SetCurve(GTS(0x7e6028));
@@ -1293,7 +1293,7 @@ void Hyperspace::SetTransition3D(int theTransition)
 		mUnknown488.SetCurve(GTS(0x7e4d74));
 		mUnknown4F8.SetCurve(GTS(0x7e4924));
 		mUnknown10F0.SetCurve(GTS(0x7e4d48));
-		mUnknown1160.SetCurve(GTS(0x7e4d20));
+		mUnknown1160.SetCurve(GTS(0x7e4d20), &mUnknown10F0);  // linked to +0x10f0
 		mUnknown6B8.SetCurve(GTS(0x7e4cf4));
 		mUnknown978.SetCurve(GTS(0x7e4cc8), &mUnknown6B8);
 		mUnknown9E8.SetCurve(GTS(0x7e4c94), &mUnknown6B8);
@@ -1505,11 +1505,11 @@ void Hyperspace::Update3D()
 				mUnknown258.SetCurve(GTS(0x7e4874));
 				if (mTransition == 11) {
 					mUnknown338.SetCurve(GTS(0x7e4840));
-					mUnknown3A8.SetCurve(GTS(0x7e481c));
+					mUnknown3A8.SetCurve(GTS(0x7e481c), &mUnknown338);  // linked to +0x338
 					mUnknown2C8.SetCurve(GTS(0x7e47e8));
 				} else {
 					mUnknown338.SetCurve(GTS(0x7e47b4));
-					mUnknown3A8.SetCurve(GTS(0x7e478c));
+					mUnknown3A8.SetCurve(GTS(0x7e478c), &mUnknown338);  // linked to +0x338
 					mUnknown2C8.SetCurve(GTS(0x7e4758));
 				}
 				if (mTransition != 10 && mTransition != 11) {
