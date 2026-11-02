@@ -2,7 +2,9 @@
 // as the GL one does, so the game takes the same branches: the scene count moves at the same calls, a render target is
 // made and set where the GL one would, shaders and buffers get handles numbered the same way.
 #include "GPUInterface.h"
+#include "MemoryImage.h"
 
+#include <map>
 #include <set>
 #include <vector>
 
@@ -75,6 +77,7 @@ public:
 	void ImageDeleted(Image* theImage) override
 	{
 		mTargets.erase(theImage);
+		mLayouts.erase(theImage);
 		if (mTarget == theImage)
 			mTarget = nullptr;
 	}
@@ -87,6 +90,16 @@ public:
 	void SetTextureStageState(int, int, unsigned long) override {}
 	void SetSamplerState(int, int, unsigned long) override {}
 	void SetTexture(int, Image*) override {}
+	const GPUPieceLayout* PrepareTexture(Image* theImage) override
+	{
+		MemoryImage* anImage = dynamic_cast<MemoryImage*>(theImage);
+		if (anImage == nullptr)
+			return nullptr;
+		unsigned long aFlags = mTargets.count(theImage) ? 0x60 : anImage->mD3DFlags;
+		mLayouts[theImage] = mPolicy.Pieces(anImage->mWidth, anImage->mHeight, aFlags);
+		return &mLayouts[theImage];
+	}
+	void SetTexturePiece(int, Image*, int) override {}
 	void SetTransform(int, const GPUMatrix&) override {}
 	void SetLight(int, const GPULight&) override {}
 	void LightEnable(int, bool) override {}
@@ -123,6 +136,7 @@ private:
 	bool mInScene = false;
 	int mSceneCount = 0;
 	std::set<Image*> mTargets;
+	std::map<Image*, GPUPieceLayout> mLayouts;
 	Image* mTarget = nullptr;
 	int mShaderCount = 0;
 	GPUVertexShader mVertexShader = 0;

@@ -737,7 +737,8 @@ void Test2DFillRect(const GPUPolicy& thePolicy)
 	End2D(g);
 }
 
-// DrawLine: Twist draws the two ends only (mLineEndPixel false), so the end pixel stays dark; SAF 1.3 lights it
+// DrawLine: with mLineEndPixel false two vertices are drawn and the end pixel stays dark (whether Twist lights it is
+// settled by a shot of the original); SAF 1.3 lights it
 void Test2DLine(const GPUPolicy& thePolicy)
 {
 	GPU2D* g = Begin2D("2d-line", thePolicy);
@@ -846,6 +847,90 @@ void Test2DTrianglesTex(const GPUPolicy& thePolicy)
 	Expect(41, 41, 0xff00ff00);
 	End2D(g);
 	delete anImage;
+}
+
+// Pieces through the 2D layer: a Blt across two pieces binds each and joins them seamlessly; DrawTrianglesTex scales
+// u, v by max U and V for a padded one-piece image and draws nothing for a cut one
+void Test2DPieces(const GPUPolicy& thePolicy)
+{
+	GPU2D* g = Begin2D("2d-pieces", thePolicy);
+	// 70x4 with Use64By64Subdivisions: two 64x64 pieces, the second holding columns 64-69
+	std::vector<unsigned long> aBits(70 * 4);
+	for (int y = 0; y < 4; y++) {
+		for (int x = 0; x < 70; x++)
+			aBits[y * 70 + x] = 0xff000000 | (x * 3) << 16 | (y * 60) << 8 | 0x20;
+	}
+	MemoryImage* aWide = MakeImage(70, 4, aBits);
+	aWide->mD3DFlags = 2 | 8;  // and UseA8R8G8B8, so the colours are exact
+	g->Blt(aWide, 10, 10, Rect(60, 0, 8, 4), Color::White, Graphics::DRAWMODE_NORMAL);
+	if (g->GetDrawCallCount() != 1)
+		Fail("a Blt over two pieces made %d draws before the flush, expected 1", g->GetDrawCallCount());
+	g->Flush();
+	Read();
+	for (int y = 0; y < 4; y++) {
+		for (int x = 0; x < 8; x++)
+			Expect(10 + x, 10 + y, aBits[y * 70 + 60 + x]);
+	}
+	Expect(18, 10, 0xff000000);
+
+	// 4x2, red then green: one 8x8 piece, max U 0.5, max V 0.25; the padding repeats the last column and row
+	std::vector<unsigned long> aHalves = {0xffff0000, 0xffff0000, 0xff00ff00, 0xff00ff00,
+		0xffff0000, 0xffff0000, 0xff00ff00, 0xff00ff00};
+	MemoryImage* aSmall = MakeImage(4, 2, aHalves);
+	TriVertex aTris[2][3] = {
+		{TriVertex(20, 30, 0, 0), TriVertex(28, 30, 1, 0), TriVertex(20, 38, 0, 1)},
+		{TriVertex(28, 30, 1, 0), TriVertex(28, 38, 1, 1), TriVertex(20, 38, 0, 1)}};
+	g->DrawTrianglesTex(aSmall, aTris, 2, Color::White, Graphics::DRAWMODE_NORMAL, 0, 0, false);
+	// the cut image draws nothing
+	TriVertex aCut[1][3] = {{TriVertex(40, 30, 0, 0), TriVertex(48, 30, 1, 0), TriVertex(40, 38, 0, 1)}};
+	g->DrawTrianglesTex(aWide, aCut, 1, Color::White, Graphics::DRAWMODE_NORMAL, 0, 0, false);
+	Read();
+	Expect(21, 31, 0xffff0000);
+	Expect(26, 31, 0xff00ff00);
+	Expect(26, 37, 0xff00ff00);
+	Expect(41, 31, 0xff000000);
+	End2D(g);
+	delete aWide;
+	delete aSmall;
+}
+
+// The piece layout (0x61b970, 0x61bd00), without the GPU
+void TestPieceLayout()
+{
+	gTest = "piece-layout";
+	gTestFailed = false;
+	struct Case
+	{
+		const char* mPolicy;
+		int mWidth, mHeight;
+		unsigned long mFlags;
+		int mColumns, mRows, mPieceWidth, mPieceHeight;
+		int mLastWidth, mLastHeight;
+	} aCases[] = {
+		{"twist", 1722, 246, 0, 4, 1, 512, 246, 186, 246},  // cut at the wide limit
+		{"twist", 1722, 246, 1, 1, 1, 1722, 246, 1722, 246},  // MinimizeNumSubdivisions
+		{"twist", 1722, 246, 0x10, 1, 1, 1722, 246, 1722, 246},  // a target's flag
+		{"twist", 1024, 600, 0, 1, 1, 1024, 600, 1024, 600},  // not low enough to cut
+		{"twist", 4, 4, 0, 1, 1, 8, 8, 8, 8},  // the minimum, padded
+		{"twist", 70, 4, 2, 2, 1, 64, 64, 64, 64},  // Use64By64Subdivisions
+		{"saf13", 300, 200, 0, 2, 1, 256, 256, 64, 256},  // aGoodTextureSize, then a power of two at the edge
+		{"saf13", 2000, 100, 0, 2, 1, 1024, 128, 1024, 128},
+	};
+	GPUPolicy aTwist = GPUPolicy::Twist(), aSAF = GPUPolicy::SAF13();
+	for (const Case& c : aCases) {
+		const GPUPolicy& aPolicy = std::strcmp(c.mPolicy, "twist") == 0 ? aTwist : aSAF;
+		GPUPieceLayout aLayout = aPolicy.Pieces(c.mWidth, c.mHeight, c.mFlags);
+		const GPUPiece& aLast = aLayout.mPieces.back();
+		if (aLayout.mColumns != c.mColumns || aLayout.mRows != c.mRows || aLayout.mPieceWidth != c.mPieceWidth ||
+			aLayout.mPieceHeight != c.mPieceHeight || aLast.mWidth != c.mLastWidth || aLast.mHeight != c.mLastHeight ||
+			(int)aLayout.mPieces.size() != c.mColumns * c.mRows)
+			Fail("%s %dx%d flags %lx: %dx%d pieces of %dx%d, last %dx%d", c.mPolicy, c.mWidth, c.mHeight, c.mFlags,
+				aLayout.mColumns, aLayout.mRows, aLayout.mPieceWidth, aLayout.mPieceHeight, aLast.mWidth, aLast.mHeight);
+		float aMaxU = (float)c.mWidth / c.mPieceWidth, aMaxV = (float)c.mHeight / c.mPieceHeight;
+		if (aLayout.mMaxU != aMaxU || aLayout.mMaxV != aMaxV)
+			Fail("%s %dx%d: max U, V %g, %g", c.mPolicy, c.mWidth, c.mHeight, aLayout.mMaxU, aLayout.mMaxV);
+	}
+	End();
 }
 
 void TestFormatRule(const GPUPolicy& thePolicy)
@@ -983,6 +1068,7 @@ int main(int argc, char** argv)
 	Test2DTransformed(aPolicy);
 	Test2DDepthOnly(aPolicy);
 	Test2DTrianglesTex(aPolicy);
+	Test2DPieces(aPolicy);
 	delete gGPU;
 	gGPU = GPUInterface::Create(aContext, aPolicy, W, H);
 	TestTextures(true);
@@ -991,6 +1077,7 @@ int main(int argc, char** argv)
 	TestSceneRules(aNull, "null");
 	delete aNull;
 	TestFormatRule(aPolicy);
+	TestPieceLayout();
 	std::printf("gpu: %d tests, %d failed (%s)\n", gTests, gFailed, aContext->Description().c_str());
 	delete aContext;
 	SDL_DestroyWindow(aWindow);

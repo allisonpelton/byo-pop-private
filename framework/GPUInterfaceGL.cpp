@@ -7,6 +7,7 @@
 
 #include <SDL.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -566,10 +567,13 @@ struct Shader
 	bool mVertex = false;
 };
 
-// An image's texture: uploaded from a MemoryImage's bits, or the colour buffer of a render target
+// An image's texture: uploaded from a MemoryImage's bits, cut into the policy's pieces (mTexture is piece 0, mMorePieces
+// the rest), or the colour buffer of a render target, one piece of its own size
 struct TextureData
 {
 	GLuint mTexture = 0;
+	std::vector<GLuint> mMorePieces;
+	GPUPieceLayout mLayout;
 	int mWidth = 0, mHeight = 0;
 	int mBitsChangedCount = -1;
 	bool mTarget = false;
@@ -623,6 +627,8 @@ public:
 	void SetTextureStageState(int theStage, int theType, unsigned long theValue) override;
 	void SetSamplerState(int theStage, int theType, unsigned long theValue) override;
 	void SetTexture(int theStage, Image* theImage) override;
+	const GPUPieceLayout* PrepareTexture(Image* theImage) override;
+	void SetTexturePiece(int theStage, Image* theImage, int thePiece) override;
 	void SetTransform(int theType, const GPUMatrix& theMatrix) override;
 	void SetLight(int theIndex, const GPULight& theLight) override;
 	void LightEnable(int theIndex, bool theEnable) override;
@@ -685,6 +691,7 @@ private:
 	unsigned long mStageStates[kStages][33];
 	unsigned long mSamplerStates[kStages][14];
 	Image* mTextures[kStages] = {nullptr, nullptr, nullptr, nullptr};
+	int mTexturePieces[kStages] = {0, 0, 0, 0};
 	GPUMatrix mWorld, mView, mProjection, mTextureMatrices[kStages];
 	GPULight mLights[kLights];
 	bool mLightEnabled[kLights] = {};
@@ -732,6 +739,8 @@ GPUInterfaceGL::~GPUInterfaceGL()
 		return;
 	for (auto& anEntry : mImages) {
 		gGL.glDeleteTextures(1, &anEntry.second.mTexture);
+		if (!anEntry.second.mMorePieces.empty())
+			gGL.glDeleteTextures((GLsizei)anEntry.second.mMorePieces.size(), anEntry.second.mMorePieces.data());
 		if (anEntry.second.mFramebuffer != 0)
 			gGL.glDeleteFramebuffers(1, &anEntry.second.mFramebuffer);
 	}
@@ -887,6 +896,7 @@ void GPUInterfaceGL::ContextLost()
 	mLost = true;
 	for (auto& anEntry : mImages) {
 		anEntry.second.mTexture = 0;
+		anEntry.second.mMorePieces.clear();
 		anEntry.second.mFramebuffer = 0;
 		anEntry.second.mBitsChangedCount = -1;
 	}
@@ -979,8 +989,13 @@ bool GPUInterfaceGL::CreateRenderTarget(Image* theImage, GPUFormat theFormat)
 		LogOnce("a render target in format " + std::to_string(theFormat) + " (made A8R8G8B8)");
 		theFormat = GPUFMT_A8R8G8B8;
 	}
+	if (!aData.mMorePieces.empty()) {
+		gGL.glDeleteTextures((GLsizei)aData.mMorePieces.size(), aData.mMorePieces.data());
+		aData.mMorePieces.clear();
+	}
 	aData.mWidth = theImage->mWidth;
 	aData.mHeight = theImage->mHeight;
+	aData.mLayout = mPolicy.Pieces(aData.mWidth, aData.mHeight, 0x60);
 	aData.mTarget = true;
 	aData.mFormat = theFormat;
 	// Its first contents: its bits for A8R8G8B8 (0x61c070's target branch copies them), else black
@@ -1155,15 +1170,28 @@ bool GPUInterfaceGL::RecoverBits(MemoryImage* theImage)
 		return false;
 	SDL_Log("GPU: bits recovered from %s (%dx%d)", aData.mTarget ? "a render target" : "a texture", aData.mWidth,
 		aData.mHeight);
-	GLuint aFramebuffer = aData.mFramebuffer;
-	if (aFramebuffer == 0) {
-		gGL.glGenFramebuffers(1, &aFramebuffer);
+	if (aData.mTarget)
+		return ReadFramebuffer(aData.mFramebuffer, aData.mWidth, aData.mHeight, theImage->mBits);
+	// Each piece's texture, its padding left out
+	const GPUPieceLayout& aLayout = aData.mLayout;
+	GLuint aFramebuffer = 0;
+	gGL.glGenFramebuffers(1, &aFramebuffer);
+	bool isRead = true;
+	std::vector<unsigned long> aPiece;
+	for (int i = 0; i < (int)aLayout.mPieces.size(); i++) {
+		const GPUPiece& p = aLayout.mPieces[i];
+		int aLeft = (i % aLayout.mColumns) * aLayout.mPieceWidth, aTop = (i / aLayout.mColumns) * aLayout.mPieceHeight;
+		int aWidth = std::min(p.mWidth, aData.mWidth - aLeft), aHeight = std::min(p.mHeight, aData.mHeight - aTop);
 		gGL.glBindFramebuffer(GL_FRAMEBUFFER, aFramebuffer);
-		gGL.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, aData.mTexture, 0);
+		gGL.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+			i == 0 ? aData.mTexture : aData.mMorePieces[i - 1], 0);
+		aPiece.assign((size_t)p.mWidth * p.mHeight, 0);
+		isRead = ReadFramebuffer(aFramebuffer, p.mWidth, p.mHeight, aPiece.data()) && isRead;
+		for (int y = 0; y < aHeight; y++)
+			std::memcpy(&theImage->mBits[(size_t)(aTop + y) * aData.mWidth + aLeft], &aPiece[(size_t)y * p.mWidth],
+				(size_t)aWidth * sizeof(unsigned long));
 	}
-	bool isRead = ReadFramebuffer(aFramebuffer, aData.mWidth, aData.mHeight, theImage->mBits);
-	if (aFramebuffer != aData.mFramebuffer)
-		gGL.glDeleteFramebuffers(1, &aFramebuffer);
+	gGL.glDeleteFramebuffers(1, &aFramebuffer);
 	return isRead;
 }
 
@@ -1180,14 +1208,18 @@ void GPUInterfaceGL::ImageDeleted(Image* theImage)
 	auto anIt = mImages.find(theImage);
 	if (anIt == mImages.end())
 		return;
-	for (Image*& aTexture : mTextures) {
-		if (aTexture == theImage)
-			aTexture = nullptr;
+	for (int s = 0; s < kStages; s++) {
+		if (mTextures[s] == theImage) {
+			mTextures[s] = nullptr;
+			mTexturePieces[s] = 0;
+		}
 	}
 	if (mTarget == theImage)
 		BindTarget(nullptr);
 	if (!mLost) {
 		gGL.glDeleteTextures(1, &anIt->second.mTexture);
+		if (!anIt->second.mMorePieces.empty())
+			gGL.glDeleteTextures((GLsizei)anIt->second.mMorePieces.size(), anIt->second.mMorePieces.data());
 		if (anIt->second.mFramebuffer != 0)
 			gGL.glDeleteFramebuffers(1, &anIt->second.mFramebuffer);
 	}
@@ -1248,16 +1280,48 @@ void GPUInterfaceGL::UploadTexture(MemoryImage* theImage, TextureData* theData)
 		p[2] = (unsigned char)b;
 		p[3] = (unsigned char)a;
 	}
-	if (theData->mTexture == 0 || theData->mWidth != aWidth || theData->mHeight != aHeight) {
+	// The pieces (0x61bd00); a new size or new flags make them again
+	GPUPieceLayout aLayout = mPolicy.Pieces(aWidth, aHeight, theImage->mD3DFlags);
+	bool isNew = theData->mTexture == 0 || theData->mWidth != aWidth || theData->mHeight != aHeight ||
+		theData->mLayout.mPieces.size() != aLayout.mPieces.size() || theData->mLayout.mPieceWidth != aLayout.mPieceWidth ||
+		theData->mLayout.mPieceHeight != aLayout.mPieceHeight;
+	if (isNew) {
 		if (theData->mTexture != 0)
 			gGL.glDeleteTextures(1, &theData->mTexture);
-		gGL.glGenTextures(1, &theData->mTexture);
-		gGL.glBindTexture(GL_TEXTURE_2D, theData->mTexture);
-		gGL.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, aWidth, aHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, aPixels.data());
-		gGL.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	} else {
-		gGL.glBindTexture(GL_TEXTURE_2D, theData->mTexture);
-		gGL.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, aWidth, aHeight, GL_RGBA, GL_UNSIGNED_BYTE, aPixels.data());
+		if (!theData->mMorePieces.empty())
+			gGL.glDeleteTextures((GLsizei)theData->mMorePieces.size(), theData->mMorePieces.data());
+		theData->mTexture = 0;
+		theData->mMorePieces.assign(aLayout.mPieces.size() - 1, 0);
+		theData->mLayout = aLayout;
+	}
+	// Each piece takes its part of the image; 0x61b5a0 duplicates the part's last column into the next one and its
+	// last row into the next one, when the piece's texture is bigger (SAF 1.3's rightPad and bottomPad); the rest of
+	// the padding is left as the new texture has it, here zero
+	std::vector<unsigned char> aPiece;
+	for (int i = 0; i < (int)aLayout.mPieces.size(); i++) {
+		const GPUPiece& q = aLayout.mPieces[i];
+		int aLeft = (i % aLayout.mColumns) * aLayout.mPieceWidth, aTop = (i / aLayout.mColumns) * aLayout.mPieceHeight;
+		int aPartWidth = std::min(q.mWidth, aWidth - aLeft), aPartHeight = std::min(q.mHeight, aHeight - aTop);
+		aPiece.assign((size_t)q.mWidth * q.mHeight * 4, 0);
+		for (int y = 0; y < aPartHeight; y++) {
+			unsigned char* aRow = &aPiece[(size_t)y * q.mWidth * 4];
+			std::memcpy(aRow, &aPixels[((size_t)(aTop + y) * aWidth + aLeft) * 4], (size_t)aPartWidth * 4);
+			if (aPartWidth < q.mWidth)
+				std::memcpy(aRow + aPartWidth * 4, aRow + (aPartWidth - 1) * 4, 4);
+		}
+		if (aPartHeight < q.mHeight)
+			std::memcpy(&aPiece[(size_t)aPartHeight * q.mWidth * 4], &aPiece[(size_t)(aPartHeight - 1) * q.mWidth * 4],
+				(size_t)q.mWidth * 4);
+		GLuint& aTexture = i == 0 ? theData->mTexture : theData->mMorePieces[i - 1];
+		if (aTexture == 0) {
+			gGL.glGenTextures(1, &aTexture);
+			gGL.glBindTexture(GL_TEXTURE_2D, aTexture);
+			gGL.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, q.mWidth, q.mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, aPiece.data());
+			gGL.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+		} else {
+			gGL.glBindTexture(GL_TEXTURE_2D, aTexture);
+			gGL.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, q.mWidth, q.mHeight, GL_RGBA, GL_UNSIGNED_BYTE, aPiece.data());
+		}
 	}
 	theData->mWidth = aWidth;
 	theData->mHeight = aHeight;
@@ -1291,8 +1355,24 @@ void GPUInterfaceGL::SetSamplerState(int theStage, int theType, unsigned long th
 
 void GPUInterfaceGL::SetTexture(int theStage, Image* theImage)
 {
-	if (theStage >= 0 && theStage < kStages)
+	SetTexturePiece(theStage, theImage, 0);
+}
+
+void GPUInterfaceGL::SetTexturePiece(int theStage, Image* theImage, int thePiece)
+{
+	if (theStage >= 0 && theStage < kStages) {
 		mTextures[theStage] = theImage;
+		mTexturePieces[theStage] = thePiece;
+	}
+}
+
+// 0x61e7d0: the image's texture made or refreshed; null when it cannot be (no bits, not a MemoryImage)
+const GPUPieceLayout* GPUInterfaceGL::PrepareTexture(Image* theImage)
+{
+	TextureData* aData = GetTexture(theImage);
+	if (aData == nullptr || aData->mTexture == 0)
+		return nullptr;
+	return &aData->mLayout;
 }
 
 void GPUInterfaceGL::SetTransform(int theType, const GPUMatrix& theMatrix)
@@ -1690,8 +1770,16 @@ void GPUInterfaceGL::BindTextures()
 {
 	for (int s = 0; s < kStages; s++) {
 		TextureData* aData = GetTexture(mTextures[s]);
+		GLuint aTexture = 0;
+		if (aData != nullptr) {
+			int aPiece = mTexturePieces[s];
+			if (aPiece > 0 && aPiece <= (int)aData->mMorePieces.size())
+				aTexture = aData->mMorePieces[aPiece - 1];
+			else
+				aTexture = aData->mTexture;
+		}
 		gGL.glActiveTexture(GL_TEXTURE0 + s);
-		gGL.glBindTexture(GL_TEXTURE_2D, aData != nullptr ? aData->mTexture : 0);
+		gGL.glBindTexture(GL_TEXTURE_2D, aTexture);
 		// Sampler state belongs to the stage, as in D3D9
 		const unsigned long* v = mSamplerStates[s];
 		auto Address = [](unsigned long theMode) -> GLint {

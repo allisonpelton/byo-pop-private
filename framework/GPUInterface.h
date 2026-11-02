@@ -160,6 +160,23 @@ enum GPUFormat
 };
 
 // A state change: what a scene-begin list holds
+// How an image's texture is cut (0x61bd00): mColumns x mRows pieces of mPieceWidth x mPieceHeight in the image (the
+// right column, bottom row and corner smaller), each piece's texture of its own allocated size (0x61c6e0 computes u, v
+// against it), and the image's size over the inner piece's (texdata+0x3c, +0x40). A render target, or an image with
+// flag 0x20 or 0x40, is one piece of its own size, max U and V 1.
+struct GPUPiece
+{
+	int mWidth, mHeight;
+};
+
+struct GPUPieceLayout
+{
+	int mPieceWidth = 0, mPieceHeight = 0;
+	int mColumns = 0, mRows = 0;
+	std::vector<GPUPiece> mPieces;
+	float mMaxU = 1.0f, mMaxV = 1.0f;
+};
+
 struct GPUStateSet
 {
 	enum Kind { RENDER, STAGE, SAMPLER } mKind;
@@ -205,6 +222,9 @@ struct GPUPolicy
 	int mMaxPieceSize;
 	int mWidePieceLimit;
 	int mMaxAspectRatio;
+	// 0x61b970's size for one piece (theIsEdge for the right column, bottom row and corner), and 0x61bd00's layout
+	void PieceSize(int& theWidth, int& theHeight, bool theIsEdge, unsigned long theFlags) const;
+	GPUPieceLayout Pieces(int theWidth, int theHeight, unsigned long theFlags) const;
 
 	// The 2D draws' own offsets in screen space, after the transform stack. Twist's agree with SAF 1.3's: the Blt
 	// vertex builder (0x61ca30) and FillRect (slot 0x68, 0x620ee0) -0.5; BltTransformed (slot 0x60, 0x620af0, building
@@ -349,6 +369,13 @@ public:
 	virtual void SetTextureStageState(int theStage, int theType, unsigned long theValue) = 0;
 	virtual void SetSamplerState(int theStage, int theType, unsigned long theValue) = 0;
 	virtual void SetTexture(int theStage, Image* theImage) = 0;  // binds piece 0, as SAF's SetCurTexture
+	// Slot 0x44 (0x61e7d0): makes or refreshes the image's texture pieces and answers their layout; null when the
+	// original's would fail (no texture format). Each piece's texture is its allocated size; 0x61b5a0's upload copies
+	// the image's part and duplicates its last column and row into the padding (SAF 1.3's rightPad and bottomPad). The
+	// original then purges the bits of a render target on every call and of a nobits image once: that is GPUDisplay's,
+	// through a purge that frees bits only where gMemoryImageRecoverBits can bring them back.
+	virtual const GPUPieceLayout* PrepareTexture(Image* theImage) = 0;
+	virtual void SetTexturePiece(int theStage, Image* theImage, int thePiece) = 0;  // GPU2D's slot 0xd0
 	virtual void SetTransform(int theType, const GPUMatrix& theMatrix) = 0;
 	virtual void SetLight(int theIndex, const GPULight& theLight) = 0;
 	virtual void LightEnable(int theIndex, bool theEnable) = 0;
@@ -416,8 +443,8 @@ public:
 // - Clipping in software, as the original does it (SAF's PointClipper: 0x614f40 and the others, GPU2D.h), not by a
 //   scissor: BltTransformed's pieces and FillPoly clip their polygons, so nothing on the 2D path touches the scissor
 //   and no clipped draw can cut the next mesh.
-// - The pieces and formats of the policy; DrawTrianglesTex clips its triangles per piece and scales coordinates by the
-//   piece's used size over its texture size.
+// - The pieces and formats of the policy. Twist's DrawTrianglesTex draws one-piece images only, scaling u and v by
+//   max U and V, and draws nothing for a cut image (SAF 1.3 clips its triangles per piece).
 // - Routing, as Twist's DDImage overrides do it. Check3D (0x404a70) sends a draw to the D3D path only in 3D mode and
 //   only when the destination image has flag 0x10 (the 3D-mode screen and the render targets), and then answers with
 //   SetRenderTarget(image) (slot 0x98). On false the draw is not skipped: it falls through to the software path on

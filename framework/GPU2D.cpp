@@ -5,6 +5,7 @@
 #include "MemoryImage.h"
 #include "TriVertex.h"
 
+#include <SDL.h>
 #include <math.h>
 
 using namespace Sexy;
@@ -16,6 +17,13 @@ enum { STATE_RENDER = 0, STATE_STAGE = 1, STATE_SAMPLER = 2 };
 static long long StateKey(int theKind, int theStage, int theType)
 {
 	return ((long long) theKind << 40) | ((long long) theStage << 32) | (unsigned int) theType;
+}
+
+// A Color as the builders pack it: the low byte of each field, so out-of-range values wrap
+static unsigned long PackColor(const Color& theColor)
+{
+	return ((unsigned long) (theColor.mAlpha & 0xff) << 24) | ((unsigned long) (theColor.mRed & 0xff) << 16) |
+		((unsigned long) (theColor.mGreen & 0xff) << 8) | (unsigned long) (theColor.mBlue & 0xff);
 }
 
 static GPU2DVertex MakeVertex(float theX, float theY, float theZ, unsigned long theColor, float theU, float theV)
@@ -37,14 +45,14 @@ GPU2D::GPU2D(GPUInterface* theDevice, const GPUPolicy& thePolicy)
 	mBatch.reserve(BATCH_SIZE);
 	mDrawCalls = 0;
 	mPrimitives = 0;
-	mFilter = -1;
+	mFilter = 0;
 	mSceneCount = -1;
 	mScreenWidth = 0;
 	mScreenHeight = 0;
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < STAGES; i++)
 	{
-		mTextures[i] = NULL;
-		mTexturesKnown[i] = false;
+		mTextureImages[i] = NULL;
+		mTexturePieces[i] = 0;
 	}
 }
 
@@ -57,9 +65,11 @@ GPU2D::~GPU2D()
 
 void GPU2D::SetCachedState(int theKind, int theStage, int theType, unsigned long theValue)
 {
+	// 0x623380: a state never set reads as 0xffffffff
 	long long aKey = StateKey(theKind, theStage, theType);
 	std::map<long long, unsigned long>::iterator anItr = mStates.find(aKey);
-	if ((anItr != mStates.end()) && (anItr->second == theValue))
+	unsigned long aCurrent = (anItr != mStates.end()) ? anItr->second : 0xffffffff;
+	if (aCurrent == theValue)
 		return;
 
 	Flush();
@@ -87,25 +97,72 @@ void GPU2D::SetSamplerState(int theStage, int theType, unsigned long theValue)
 	SetCachedState(STATE_SAMPLER, theStage, theType, theValue);
 }
 
-void GPU2D::SetTexture(int theStage, Image* theImage)
+void GPU2D::SetTexturePiece(int theStage, Image* theImage, int thePiece)
 {
-	if ((theStage < 0) || (theStage >= 8))
+	// 0x622c70: the cache at this+0x158
+	if ((theStage < 0) || (theStage >= STAGES))
 		return;
-	if (mTexturesKnown[theStage] && (mTextures[theStage] == theImage))
+	if (theImage == NULL)
+		thePiece = 0;
+	if ((mTextureImages[theStage] == theImage) && (mTexturePieces[theStage] == thePiece))
 		return;
 
 	Flush();
-	mDevice->SetTexture(theStage, theImage);
-	mTextures[theStage] = theImage;
-	mTexturesKnown[theStage] = true;
+	mDevice->SetTexturePiece(theStage, theImage, thePiece);
+	mTextureImages[theStage] = theImage;
+	mTexturePieces[theStage] = thePiece;
+}
+
+void GPU2D::SetTexture(int theStage, Image* theImage)
+{
+	// 0x622cc0
+	if (theImage == NULL)
+	{
+		SetTexturePiece(theStage, NULL, 0);
+		return;
+	}
+	MemoryImage* aMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if ((aMemoryImage != NULL) && ((aMemoryImage->mD3DFlags & 0x60) != 0))
+	{
+		SDL_Log("GPU2D: a cube or volume texture is bound (nothing bound)");
+		return;
+	}
+	if (mDevice->PrepareTexture(theImage) != NULL)
+		SetTexturePiece(theStage, theImage, 0);
+}
+
+bool GPU2D::SetRenderTarget(Image* theImage)
+{
+	if (mDevice->GetRenderTarget() != theImage)
+		Flush();
+	return mDevice->SetRenderTarget(theImage);
+}
+
+void GPU2D::SetVertexShader(GPUVertexShader theShader)
+{
+	if (mDevice->GetVertexShader() == theShader)
+		return;
+	Flush();
+	mDevice->SetVertexShader(theShader);
+}
+
+void GPU2D::SetPixelShader(GPUPixelShader theShader)
+{
+	if (mDevice->GetPixelShader() == theShader)
+		return;
+	Flush();
+	mDevice->SetPixelShader(theShader);
 }
 
 void GPU2D::ImageDeleted(Image* theImage)
 {
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < STAGES; i++)
 	{
-		if (mTextures[i] == theImage)
-			mTexturesKnown[i] = false;
+		if (mTextureImages[i] == theImage)
+		{
+			mTextureImages[i] = NULL;
+			mTexturePieces[i] = 0;
+		}
 	}
 }
 
@@ -117,9 +174,10 @@ bool GPU2D::PreDraw()
 	int aSceneCount = mDevice->GetSceneCount();
 	if (aSceneCount != mSceneCount)
 	{
-		// the device applied the policy's list at the scene's start: the cache follows it
+		// the device applied the policy's list at the scene's start: the cache follows it; 0x61a7d0 sets the filter
+		// cache to 0 (POINT) without setting the filter
 		mSceneCount = aSceneCount;
-		mFilter = -1;
+		mFilter = 0;
 		for (size_t i = 0; i < mPolicy.mSceneBegin.size(); i++)
 		{
 			const GPUStateSet& aSet = mPolicy.mSceneBegin[i];
@@ -266,6 +324,15 @@ void GPU2D::AddPrimitives(GPUPrimitiveType theType, int theCount, const GPU2DVer
 		mDrawCalls++;
 		return;
 	}
+	if ((theType != GPUPT_TRIANGLELIST) && (theCount * 3 > BATCH_SIZE))
+	{
+		// more than the batch holds: drawn at once in its own type
+		Flush();
+		DrawNow(theType, theCount, theVertices);
+		mPrimitives += theCount;
+		mDrawCalls++;
+		return;
+	}
 	if ((theType != GPUPT_TRIANGLELIST) && (BATCH_SIZE - (int) mBatch.size() < theCount * 3))
 		Flush();
 
@@ -400,17 +467,14 @@ static void TransformPoint(const SexyMatrix3& theMatrix, float& theX, float& the
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Texture pieces. Until the device carries them (GPU2D.h, the open points), every image is one piece of its own
-// size: u and v are against the image's size.
+// Texture pieces: the source rectangle walked over the pieces it covers (0x61c6e0 for each)
 
-void GPU2D::BltPieces(Image* theImage, const Rect& theSrcRect, unsigned long theColor, const SexyMatrix3* theMatrix,
-	float theX, float theY, bool theCenter, const Rect* theClipRect)
+void GPU2D::BltPieces(Image* theImage, const GPUPieceLayout& theLayout, const Rect& theSrcRect, unsigned long theColor,
+	const SexyMatrix3* theMatrix, float theX, float theY, bool theCenter, const Rect* theClipRect)
 {
 	if ((theSrcRect.mWidth <= 0) || (theSrcRect.mHeight <= 0))
 		return;
 
-	int aPieceWidth = theImage->mWidth;
-	int aPieceHeight = theImage->mHeight;
 	float z = VertexZ();
 
 	// BltTransformed (0x61d700): the start, and the offset added after the matrix
@@ -432,21 +496,23 @@ void GPU2D::BltPieces(Image* theImage, const Rect& theSrcRect, unsigned long the
 		int aRowHeight = 0;
 		while (aSrcX < theSrcRect.mX + theSrcRect.mWidth)
 		{
-			// 0x61c6e0
+			// 0x61c6e0: the piece holding (x, y), and u, v against its texture's size
 			int aWidth = theSrcRect.mX + theSrcRect.mWidth - aSrcX;
 			int aHeight = theSrcRect.mY + theSrcRect.mHeight - aSrcY;
-			int aLeft = aSrcX % aPieceWidth;
-			int aTop = aSrcY % aPieceHeight;
-			int aRight = std::min(aLeft + aWidth, aPieceWidth);
-			int aBottom = std::min(aTop + aHeight, aPieceHeight);
+			int aPieceIndex = (aSrcY / theLayout.mPieceHeight) * theLayout.mColumns + aSrcX / theLayout.mPieceWidth;
+			const GPUPiece& aPiece = theLayout.mPieces[aPieceIndex];
+			int aLeft = aSrcX % theLayout.mPieceWidth;
+			int aTop = aSrcY % theLayout.mPieceHeight;
+			int aRight = std::min(aLeft + aWidth, aPiece.mWidth);
+			int aBottom = std::min(aTop + aHeight, aPiece.mHeight);
 			aWidth = aRight - aLeft;
 			aHeight = aBottom - aTop;
-			float u1 = (float) aLeft / aPieceWidth;
-			float v1 = (float) aTop / aPieceHeight;
-			float u2 = (float) aRight / aPieceWidth;
-			float v2 = (float) aBottom / aPieceHeight;
+			float u1 = (float) aLeft / aPiece.mWidth;
+			float v1 = (float) aTop / aPiece.mHeight;
+			float u2 = (float) aRight / aPiece.mWidth;
+			float v2 = (float) aBottom / aPiece.mHeight;
 
-			SetTexture(0, theImage);
+			SetTexturePiece(0, theImage, aPieceIndex);
 
 			GPU2DVertex aQuad[4];
 			if (theMatrix == NULL)
@@ -522,9 +588,12 @@ void GPU2D::Blt(Image* theImage, int theX, int theY, const Rect& theSrcRect, con
 	}
 	if (!PreDraw())
 		return;
+	const GPUPieceLayout* aLayout = PrepareImage(theImage);
+	if (aLayout == NULL)
+		return;
 	ApplyDrawMode(theDrawMode);
 	SetLinearFilter(false);
-	BltPieces(theImage, theSrcRect, theColor.ToInt(), NULL, (float) theX, (float) theY, false, NULL);
+	BltPieces(theImage, *aLayout, theSrcRect, PackColor(theColor), NULL, (float) theX, (float) theY, false, NULL);
 }
 
 void GPU2D::BltF(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect* theClipRect,
@@ -576,6 +645,9 @@ void GPU2D::BltTransformed(Image* theImage, const Rect* theClipRect, const Color
 {
 	if (!PreDraw())
 		return;
+	const GPUPieceLayout* aLayout = PrepareImage(theImage);
+	if (aLayout == NULL)
+		return;
 	ApplyDrawMode(theDrawMode);
 
 	// 0x620af0
@@ -604,7 +676,7 @@ void GPU2D::BltTransformed(Image* theImage, const Rect* theClipRect, const Color
 			theCenter = false;
 		}
 	}
-	BltPieces(theImage, theSrcRect, theColor.ToInt(), &aMatrix, theX, theY, theCenter, theClipRect);
+	BltPieces(theImage, *aLayout, theSrcRect, PackColor(theColor), &aMatrix, theX, theY, theCenter, theClipRect);
 }
 
 void GPU2D::FillRect(const Rect& theRect, const Color& theColor, int theDrawMode)
@@ -614,12 +686,18 @@ void GPU2D::FillRect(const Rect& theRect, const Color& theColor, int theDrawMode
 	ApplyDrawMode(theDrawMode);
 	SetTexture(0, NULL);
 
-	unsigned long aColor = theColor.ToInt();
+	unsigned long aColor = PackColor(theColor);
 	float z = VertexZ();
 	float x = theRect.mX + mPolicy.mFillRectOffset;
 	float y = theRect.mY + mPolicy.mFillRectOffset;
+	// TL, TR, BL, BR; under a stack SAF's TL, BL, TR, BR
 	float aCorners[4][2] = { { x, y }, { x + theRect.mWidth, y }, { x, y + theRect.mHeight },
 		{ x + theRect.mWidth, y + theRect.mHeight } };
+	if (!mTransformStack.empty())
+	{
+		std::swap(aCorners[1][0], aCorners[2][0]);
+		std::swap(aCorners[1][1], aCorners[2][1]);
+	}
 	GPU2DVertex aQuad[4];
 	for (int i = 0; i < 4; i++)
 	{
@@ -644,7 +722,7 @@ void GPU2D::DrawLine(double theStartX, double theStartY, double theEndX, double 
 	ApplyDrawMode(theDrawMode);
 	SetTexture(0, NULL);
 
-	unsigned long aColor = theColor.ToInt();
+	unsigned long aColor = PackColor(theColor);
 	float z = VertexZ();
 	float x1 = (float) theStartX, y1 = (float) theStartY, x2 = (float) theEndX, y2 = (float) theEndY;
 	if (!mTransformStack.empty())
@@ -669,7 +747,7 @@ void GPU2D::DrawTriangle(const TriVertex& theP1, const TriVertex& theP2, const T
 		return;
 	ApplyDrawMode(theDrawMode);
 
-	unsigned long aColor = theColor.ToInt();
+	unsigned long aColor = PackColor(theColor);
 	float z = VertexZ();
 	const TriVertex* aPoints[3] = { &theP1, &theP2, &theP3 };
 	GPU2DVertex aTriangle[3];
@@ -689,15 +767,19 @@ void GPU2D::DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3]
 {
 	if (!PreDraw())
 		return;
+	const GPUPieceLayout* aLayout = PrepareImage(theTexture);
+	if (aLayout == NULL)
+		return;
+	// one-piece images only: a cut image draws nothing
+	float aMaxU = aLayout->mMaxU, aMaxV = aLayout->mMaxV;
+	if ((aMaxU > 1.0f) || (aMaxV > 1.0f))
+		return;
 	ApplyDrawMode(theDrawMode);
 	SetLinearFilter(theBlend);
-
-	// one piece of the image's own size until the device carries pieces, so max U and V are 1
-	float aMaxU = 1.0f, aMaxV = 1.0f;
-	SetTexture(0, theTexture);
+	SetTexturePiece(0, theTexture, 0);
 	Flush();
 
-	unsigned long aColor = theColor.ToInt();
+	unsigned long aColor = PackColor(theColor);
 	float z = VertexZ();
 	static const int CACHE_TRIANGLES = 100;
 	GPU2DVertex aCache[CACHE_TRIANGLES * 3];
@@ -724,6 +806,50 @@ void GPU2D::DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3]
 		DrawNow(GPUPT_TRIANGLELIST, aCount, aCache);
 }
 
+void GPU2D::DrawTriangleTex(const TriVertex& theP1, const TriVertex& theP2, const TriVertex& theP3, const Color& theColor,
+	int theDrawMode, Image* theTexture, bool theBlend)
+{
+	// 0x6220b0: the blend argument lands in tx, and blend is true
+	TriVertex aTriangle[1][3] = { { theP1, theP2, theP3 } };
+	DrawTrianglesTex(theTexture, aTriangle, 1, theColor, theDrawMode, theBlend ? 1.0f : 0.0f, 0, true);
+}
+
+void GPU2D::DrawTrianglesTexStrip(Image* theTexture, const TriVertex theVertices[], int theNumTriangles,
+	const Color& theColor, int theDrawMode, float theTX, float theTY, bool theBlend)
+{
+	// 0x6221d0: triangles (i, i+1, i+2), 100 at a time
+	static const int CACHE_TRIANGLES = 100;
+	TriVertex aList[CACHE_TRIANGLES][3];
+	int aCount = 0;
+	for (int i = 0; i < theNumTriangles; i++)
+	{
+		aList[aCount][0] = theVertices[i];
+		aList[aCount][1] = theVertices[i + 1];
+		aList[aCount][2] = theVertices[i + 2];
+		aCount++;
+		if (aCount == CACHE_TRIANGLES)
+		{
+			DrawTrianglesTex(theTexture, aList, aCount, theColor, theDrawMode, theTX, theTY, theBlend);
+			aCount = 0;
+		}
+	}
+	if (aCount > 0)
+		DrawTrianglesTex(theTexture, aList, aCount, theColor, theDrawMode, theTX, theTY, theBlend);
+}
+
+const GPUPieceLayout* GPU2D::PrepareImage(Image* theImage)
+{
+	if (theImage == NULL)
+		return NULL;
+	MemoryImage* aMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if ((aMemoryImage != NULL) && ((aMemoryImage->mD3DFlags & 0x60) != 0))
+	{
+		SDL_Log("GPU2D: a cube or volume texture is drawn in 2D (drawn as nothing)");
+		return NULL;
+	}
+	return mDevice->PrepareTexture(theImage);
+}
+
 void GPU2D::FillPoly(const Point theVertices[], int theNumVertices, const Rect* theClipRect, const Color& theColor,
 	int theDrawMode, int theTX, int theTY)
 {
@@ -734,7 +860,7 @@ void GPU2D::FillPoly(const Point theVertices[], int theNumVertices, const Rect* 
 	ApplyDrawMode(theDrawMode);
 	SetTexture(0, NULL);
 
-	unsigned long aColor = theColor.ToInt();
+	unsigned long aColor = PackColor(theColor);
 	float z = VertexZ();
 	VertexList aList;
 	for (int i = 0; i < theNumVertices; i++)

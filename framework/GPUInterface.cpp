@@ -64,6 +64,122 @@ GPUFormat GPUPolicy::TextureFormat(bool theHasAlpha, bool theHasTrans, unsigned 
 	return aFormat;
 }
 
+static bool IsPowerOf2(int theNum)
+{
+	return (theNum > 0) && ((theNum & (theNum - 1)) == 0);
+}
+
+static int PowerOf2Above(int theNum)
+{
+	int aPower = 1;
+	while (aPower < theNum)
+		aPower <<= 1;
+	return aPower;
+}
+
+// 0x61b970's table (SAF's aGoodTextureSize): a power of two at or above the size, halved while that wastes more than
+// 64 texels, down to one that leaves fewer than 64, or a power of two, over
+static int GoodTextureSize(int theSize)
+{
+	static int aTable[4096];
+	static bool haveTable = false;
+	if (!haveTable) {
+		haveTable = true;
+		int aPower = 1;
+		for (int i = 0; i < 4096; i++) {
+			if (aPower < i)
+				aPower <<= 1;
+			int aGood = aPower;
+			if (aGood - i > 64) {
+				do {
+					aGood >>= 1;
+					if (i % aGood < 64)
+						break;
+				} while (!IsPowerOf2(i % aGood));
+			}
+			aTable[i] = aGood;
+		}
+	}
+	return aTable[theSize];
+}
+
+void GPUPolicy::PieceSize(int& theWidth, int& theHeight, bool theIsEdge, unsigned long theFlags) const
+{
+	if (theFlags & 2) {  // Use64By64Subdivisions
+		theWidth = 64;
+		theHeight = 64;
+	}
+	int aWidth = theWidth, aHeight = theHeight;
+	if (mPowerOfTwoPieces) {
+		if (theIsEdge || (theFlags & 1) != 0) {  // MinimizeNumSubdivisions
+			aWidth = (aWidth < mMaxPieceSize) ? PowerOf2Above(aWidth) : mMaxPieceSize;
+			aHeight = (aHeight < mMaxPieceSize) ? PowerOf2Above(aHeight) : mMaxPieceSize;
+		} else {
+			aWidth = (aWidth < mMaxPieceSize) ? GoodTextureSize(aWidth) : mMaxPieceSize;
+			aHeight = (aHeight < mMaxPieceSize) ? GoodTextureSize(aHeight) : mMaxPieceSize;
+		}
+	}
+	aWidth = (aWidth < mMinPieceSize) ? mMinPieceSize : (aWidth > mMaxPieceSize) ? mMaxPieceSize : aWidth;
+	aHeight = (aHeight < mMinPieceSize) ? mMinPieceSize : (aHeight > mMaxPieceSize) ? mMaxPieceSize : aHeight;
+	// a wide, low piece is cut to the limit, unless MinimizeNumSubdivisions or flag 0x10 (a render target)
+	if ((mWidePieceLimit > 0) && (theFlags & 0x11) == 0 && aWidth > mWidePieceLimit && aHeight < aWidth / 2)
+		aWidth = mWidePieceLimit;
+	if (mMaxAspectRatio > 0) {
+		if (aHeight < aWidth) {
+			while (mMaxAspectRatio * aHeight < aWidth)
+				aHeight *= 2;
+		} else if (aWidth < aHeight) {
+			while (mMaxAspectRatio * aWidth < aHeight)
+				aWidth *= 2;
+		}
+	}
+	theWidth = aWidth;
+	theHeight = aHeight;
+}
+
+GPUPieceLayout GPUPolicy::Pieces(int theWidth, int theHeight, unsigned long theFlags) const
+{
+	GPUPieceLayout aLayout;
+	if ((theFlags & 0x60) != 0 || theWidth <= 0 || theHeight <= 0) {
+		aLayout.mPieceWidth = theWidth;
+		aLayout.mPieceHeight = theHeight;
+		aLayout.mColumns = 1;
+		aLayout.mRows = 1;
+		aLayout.mPieces.push_back(GPUPiece{theWidth, theHeight});
+		return aLayout;
+	}
+	// 0x61bd00, as SAF's CreateTextureDimensions: the inner piece, then the right column, bottom row and corner
+	int aPieceWidth = theWidth, aPieceHeight = theHeight;
+	PieceSize(aPieceWidth, aPieceHeight, false, theFlags);
+	int aRightWidth = theWidth % aPieceWidth, aRightHeight = aPieceHeight;
+	if (aRightWidth > 0)
+		PieceSize(aRightWidth, aRightHeight, true, theFlags);
+	else
+		aRightWidth = aPieceWidth;
+	int aBottomWidth = aPieceWidth, aBottomHeight = theHeight % aPieceHeight;
+	if (aBottomHeight > 0)
+		PieceSize(aBottomWidth, aBottomHeight, true, theFlags);
+	else
+		aBottomHeight = aPieceHeight;
+	int aCornerWidth = aRightWidth, aCornerHeight = aBottomHeight;
+	PieceSize(aCornerWidth, aCornerHeight, true, theFlags);
+
+	aLayout.mPieceWidth = aPieceWidth;
+	aLayout.mPieceHeight = aPieceHeight;
+	aLayout.mColumns = (theWidth + aPieceWidth - 1) / aPieceWidth;
+	aLayout.mRows = (theHeight + aPieceHeight - 1) / aPieceHeight;
+	int aCount = aLayout.mColumns * aLayout.mRows;
+	aLayout.mPieces.assign(aCount, GPUPiece{aPieceWidth, aPieceHeight});
+	for (int i = aLayout.mColumns - 1; i < aCount; i += aLayout.mColumns)
+		aLayout.mPieces[i] = GPUPiece{aRightWidth, aRightHeight};
+	for (int i = aLayout.mColumns * (aLayout.mRows - 1); i < aCount; i++)
+		aLayout.mPieces[i] = GPUPiece{aBottomWidth, aBottomHeight};
+	aLayout.mPieces[aCount - 1] = GPUPiece{aCornerWidth, aCornerHeight};
+	aLayout.mMaxU = (float)theWidth / aPieceWidth;
+	aLayout.mMaxV = (float)theHeight / aPieceHeight;
+	return aLayout;
+}
+
 GPUPolicy GPUPolicy::Twist()
 {
 	GPUPolicy aPolicy;
