@@ -109,6 +109,9 @@ public:
 	UnknownFA0 mUnknownFA0[3];
 	bool mUnknownF85 = false;           // +0xf85: StartMainMenu starts a classic game at once
 	int mAutoPlayMode = -1;             // +0x1044: -autoplay's game (1 classic, 3 blitz, 4 zen), -1 none
+	// port: this run draws through the GPU (GPUDisplay), as the original does with Direct3D. Off unless -3d asks for it
+	// while 3D mode is being ported; "Is3D" off, -nod3d9 and -noacceleration keep 2D, as in the original
+	bool mUse3D = false;
 	float mAutoPlayDelay = 0;           // +0x1048: -autoplay starts its game when this falls to 0
 	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
 	Hyperspace* mHyperspace = nullptr;  // +0xf20: the space behind every screen
@@ -214,12 +217,15 @@ public:
 	void Use2DMode();
 	// 0x75fcd7: gGemWidth and gGemHeight for the art's size (64, 82 or 128)
 	void SetGemSize();
-	// port: the game's own question "is Direct3D on" (the base's answers whether SDL's renderer is accelerated). The
-	// port draws as the original does without Direct3D, so the game always hears no.
-	bool Is3DAccelerated() { return false; }
-	// port: and no to whether it could be on (the "Not Supported" answers of the options)
-	bool Is3DAccelerationSupported() { return false; }
-	bool Is3DAccelerationRecommended() { return false; }
+	// port: the game's own question "is Direct3D on": yes when this run draws through GPUDisplay (2D runs clear the
+	// framework's flag, which says whether SDL's renderer is accelerated, in PostDDInterfaceInitHook)
+	bool Is3DAccelerated() { return SexyAppBase::Is3DAccelerated(); }
+	// port: whether it could be on (the options' "Not Supported" answers) is the same question for now
+	bool Is3DAccelerationSupported() { return Is3DAccelerated(); }
+	bool Is3DAccelerationRecommended() { return Is3DAccelerated(); }
+	// port: a 3D run's display is GPUDisplay, in an OpenGL window
+	DDInterface* CreateDDInterface() override;
+	uint32_t GetExtraWindowFlags() override;
 	// 0x76063e (slot 69): with 3D as the framework has it
 	void SwitchScreenMode(bool wantWindowed) override;
 	// 0x75ed1e (slot 107): the windowed button and the options' full screen boxes follow

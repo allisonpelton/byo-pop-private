@@ -8,6 +8,7 @@
 #include "Challenge.h"
 #include "Credits.h"
 #include "DDInterface.h"
+#include "GPUDisplay.h"
 #include "ButtonWidget.h"
 #include "EffectsManager.h"
 #include "GameText.h"
@@ -383,7 +384,10 @@ void WinTwistApp::ReadFromRegistry()
 	RegistryReadBoolean("CustomCursors", &mCustomCursorsEnabled);
 	RegistryReadBoolean("DoViz", &mDoViz);
 	RegistryReadBoolean("ShowHints", &mShowHints);
-	// port: "Is3D" off chooses 2D mode (Use2DMode), which the port always uses
+	// "Is3D" off chooses 2D mode (Use2DMode, which the port's constructor already calls)
+	bool is3D = true;
+	if (RegistryReadBoolean("Is3D", &is3D) && !is3D)
+		mUse3D = false;
 	EnableCustomCursors(mCustomCursorsEnabled);
 	mProfile->mCustomCursors = mCustomCursorsEnabled;
 }
@@ -393,13 +397,26 @@ void WinTwistApp::SwitchScreenMode(bool wantWindowed)
 	SwitchScreenMode(wantWindowed, SexyAppBase::Is3DAccelerated());
 }
 
+DDInterface* WinTwistApp::CreateDDInterface()
+{
+	if (mUse3D)
+		return new GPUDisplay(this, GPUPolicy::Twist());
+	return SexyApp::CreateDDInterface();
+}
+
+uint32_t WinTwistApp::GetExtraWindowFlags()
+{
+	return mUse3D ? SDL_WINDOW_OPENGL : SexyApp::GetExtraWindowFlags();
+}
+
 void WinTwistApp::PostDDInterfaceInitHook()
 {
 	SexyApp::PostDDInterfaceInitHook();
 	// port: the framework calls its display 3D-accelerated whenever SDL's renderer runs on the GPU (in a browser, and on
-	// most desktops), but for Twist Is3DAccelerated means Direct3D and its 3D mode, which the port does not have: the
-	// game runs in 2D mode, as the original does without Direct3D (Use2DMode)
-	mDDInterface->mIs3D = false;
+	// most desktops), but for Twist Is3DAccelerated means Direct3D and its 3D mode: a 2D run says no, as the original
+	// does without Direct3D (Use2DMode); GPUDisplay says yes
+	if (!mUse3D)
+		mDDInterface->mIs3D = false;
 }
 
 void WinTwistApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
@@ -954,11 +971,20 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
+	// port: -3d turns 3D mode on while it is being ported; the original's -nod3d9 and -noacceleration keep 2D
+	if (theParamName == "-3d") {
+		mUse3D = true;
+		return;
+	}
+	if (theParamName == "-nod3d9" || theParamName == "-noacceleration") {
+		mUse3D = false;
+		return;
+	}
 	static const char* const kTestSwitches[] = {"-widescreen", "-4x3", "-artres600", "-artres768", "-artres1200",
-		"-skipmenu", "-nod3d9", "-noacceleration", "-record", "-playback"};
+		"-skipmenu", "-record", "-playback"};
 	for (const char* aSwitch : kTestSwitches) {
 		if (theParamName == aSwitch) {
-			// port: the original's screen size, art size, Direct3D and seed recording switches are not ported
+			// port: the original's screen size, art size and seed recording switches are not ported
 			NotPorted("WinTwistApp::HandleCmdLineParam: a test switch");
 			return;
 		}
