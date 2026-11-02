@@ -139,7 +139,7 @@ enum
 
 enum GPUPrimitiveType
 {
-	GPUPT_LINELIST = 2, GPUPT_LINESTRIP = 3,  // GPU2D's DrawLine: a strip of three vertices (0x620cd0)
+	GPUPT_LINELIST = 2, GPUPT_LINESTRIP = 3,  // GPU2D's DrawLine (0x620cd0)
 	GPUPT_TRIANGLELIST = 4, GPUPT_TRIANGLESTRIP = 5, GPUPT_TRIANGLEFAN = 6
 };
 
@@ -210,8 +210,11 @@ struct GPUPolicy
 	// vertex builder (0x61ca30) and FillRect (slot 0x68, 0x620ee0) -0.5; BltTransformed (slot 0x60, 0x620af0, building
 	// in 0x61d700) -0.5, or 0 when centred; DrawTriangle (slot 0x6c, 0x621170), DrawTrianglesTex (slot 0x74, 0x622140,
 	// building in 0x61e310) and FillPoly (slot 0x80, 0x6214a0) none; DrawLine (slot 0x64, 0x620cd0) none on its two
-	// ends, and a third vertex at the end plus 0.5 in x and y, the three drawn as a line strip.
+	// ends. DrawLine builds a third vertex at the end plus mLineOffset in x and y, and SAF 1.3 draws the three as a
+	// strip of two lines, which lights the end pixel; Twist passes a count of 1 (0x620ec9, drawn by 0x624710 as count
+	// + 1 vertices), so only the two ends are drawn and the end pixel stays dark (mLineEndPixel false).
 	float mBltOffset, mFillRectOffset, mTransformedOffset, mTransformedCentredOffset, mTrianglesOffset, mLineOffset;
+	bool mLineEndPixel;
 
 	// D3D7's DirectDraw short-cut (an exact, unfiltered copy for opaque, white, normal, untransformed blits): SAF 1.3 only
 	bool mDirectDrawCopies;
@@ -405,7 +408,7 @@ public:
 //   !fastStretch, BltMatrix and DrawTrianglesTex their blend argument (DDInterface's IsFractional is not carried).
 // - The quad batch (the original's dynamic vertex buffer) with the original's flush points, listed above
 //   GPUInterface's render targets. The per-draw offsets are the policy's (above). The batch holds triangle lists and
-//   DrawLine's line strips (0x624880's second argument, 4 or 3).
+//   DrawLine's line strips (0x624880's second argument, 4 or 3; a line strip flushes and is drawn at once).
 // - The format rule of the policy with flag 8 (UseA8R8G8B8, the a8r8g8b8 resource attribute set at 0x469ca0: twelve of
 //   Twist's images, seven of them visualizer backgrounds such as IMAGE_MOLECULE_BG); images with flag 0x20 or 0x40 take
 //   one piece of their own size (0x61bd00's first branch), and Twist duplicates one column and one row into a piece's

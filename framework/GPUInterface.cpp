@@ -88,13 +88,14 @@ GPUPolicy GPUPolicy::Twist()
 	aPolicy.mWidePieceLimit = 512;
 	aPolicy.mMaxAspectRatio = 0;  // the caps give none on the cards the port runs on: no limit
 	// The draws' offsets (0x61ca30, 0x620ee0, 0x61d700, 0x622140, 0x620cd0: GPUInterface.h), the same as SAF 1.3's;
-	// mLineOffset is DrawLine's third vertex
+	// mLineOffset is DrawLine's third vertex, which Twist builds and does not draw
 	aPolicy.mBltOffset = -0.5f;
 	aPolicy.mFillRectOffset = -0.5f;
 	aPolicy.mTransformedOffset = -0.5f;
 	aPolicy.mTransformedCentredOffset = 0.0f;
 	aPolicy.mTrianglesOffset = 0.0f;
 	aPolicy.mLineOffset = 0.5f;
+	aPolicy.mLineEndPixel = false;
 	aPolicy.mDirectDrawCopies = false;
 	aPolicy.mCaps = 0x7f;  // slot 0x04 (0x61eec0) with argument 0 on a modern card
 	aPolicy.mMaxTextureBlendStages = 8;
@@ -122,6 +123,7 @@ GPUPolicy GPUPolicy::SAF13()
 	aPolicy.mTransformedCentredOffset = 0.0f;
 	aPolicy.mTrianglesOffset = 0.0f;
 	aPolicy.mLineOffset = 0.5f;
+	aPolicy.mLineEndPixel = true;
 	aPolicy.mDirectDrawCopies = true;
 	aPolicy.mCaps = 0;
 	aPolicy.mMaxTextureBlendStages = 8;
