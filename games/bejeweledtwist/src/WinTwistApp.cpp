@@ -470,6 +470,30 @@ void WinTwistApp::MakeWindow()
 	// registry and the switches are read
 	if (!mUse3D)
 		Use2DMode();
+	// The window's aspect is the screen's (SexyAppBase's constructor 0x766ce7, from GetSystemMetrics), kept between the
+	// app's narrowest and widest (+0x600 and +0x608, by 0x503fd0 and 0x504010); 2D mode keeps 4:3 (Use2DMode)
+	// port: here, since SDL knows no display before its video starts, which is started now with the framework's own
+	// hints (SexyAppBase::MakeWindow); where the two limits are set was not found: the original on a 16:9 screen opens
+	// at 16:10, so 16:10 is the widest, and 4:3 is taken as the narrowest
+	if (mUse3D && !SDL_WasInit(SDL_INIT_VIDEO)) {
+#ifndef __EMSCRIPTEN__
+		SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
+		SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+#endif
+		SDL_InitSubSystem(SDL_INIT_VIDEO);
+	}
+	SDL_DisplayMode aMode;
+	if (mUse3D && SDL_GetDesktopDisplayMode(0, &aMode) == 0 && aMode.w > 0 && aMode.h > 0) {
+		int aWidth = aMode.w, aHeight = aMode.h;
+		if (aWidth * 3 < aHeight * 4) {
+			aWidth = 4;
+			aHeight = 3;
+		} else if (aWidth * 10 > aHeight * 16) {
+			aWidth = 16;
+			aHeight = 10;
+		}
+		mWindowAspect.Set(aWidth, aHeight);
+	}
 	// 0x75ef2a: the game is as high as its art (2D mode's is 600) and as wide as the window's aspect makes it
 	mHeight = mArtRes;
 	mWidth = (mWindowAspect.mNumerator * mArtRes) / mWindowAspect.mDenominator;
