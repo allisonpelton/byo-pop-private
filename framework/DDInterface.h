@@ -104,48 +104,51 @@ public:
 	DDInterface(SexyAppBase* theApp);
 	virtual ~DDInterface();
 
+	// The methods SexyAppBase, DDImage and the games call are virtual, so that another display (GPUDisplay, for games
+	// that draw through framework/GPUInterface.h) can stand in for this one; SexyAppBase::CreateDDInterface makes it.
+
 	// Creates the renderer for an existing window. Returns RESULT_OK on success. Calling it again
 	// recreates the renderer (all textures are rebuilt on demand; mScreenImage is kept).
-	int Init(SDL_Window* theWindow, bool vsync);
-	void Cleanup();
-	void UpdateDisplaySize();
+	virtual int Init(SDL_Window* theWindow, bool vsync);
+	virtual void Cleanup();
+	virtual void UpdateDisplaySize();
 
 	// Frees every cached texture and the screen texture; they are recreated on demand. Call on
 	// SDL_RENDER_DEVICE_RESET.
-	void ReleaseTextures();
+	virtual void ReleaseTextures();
 
 	// Frame
-	void BeginFrame();
-	void Present();
+	virtual void BeginFrame();
+	virtual void Present();
 
 	// Converts window coordinates (as reported by SDL mouse events) to logical screen coordinates.
-	void WindowToLogical(int theWindowX, int theWindowY, int* theX, int* theY);
+	virtual void WindowToLogical(int theWindowX, int theWindowY, int* theX, int* theY);
 	// port: the inverse, a game point to window coordinates (SexyAppBase::WarpMouse)
-	void LogicalToWindow(int theX, int theY, int* theWindowX, int* theWindowY);
+	virtual void LogicalToWindow(int theX, int theY, int* theWindowX, int* theWindowY);
 
 	// Texture management
 	SDL_Texture* GetTexture(MemoryImage* theImage, int* theTexWidth, int* theTexHeight);
-	void RemoveImageData(MemoryImage* theImage);
+	virtual void RemoveImageData(MemoryImage* theImage);
 
 	// GPU drawing onto the screen (logical coordinates). theClipRect may be NULL.
-	void FillRect(const Rect& theRect, const Color& theColor, int theDrawMode, const Rect* theClipRect);
-	void FillPoly(const Point theVertices[], int theNumVertices, const Rect* theClipRect, const Color& theColor, int theDrawMode, int tx, int ty);
-	void DrawLine(double x1, double y1, double x2, double y2, const Color& theColor, int theDrawMode, bool antiAlias);
-	void FillScanLines(const struct Span* theSpans, int theSpanCount, const Color& theColor, int theDrawMode);
-	void Blt(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode, const Rect* theClipRect, bool mirror = false);
-	void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, bool fastStretch, bool mirror = false);
-	void BltRotated(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY);
-	void BltTransformed(Image* theImage, const Rect* theClipRect, const Color& theColor, int theDrawMode, const Rect& theSrcRect, const SexyMatrix3& theTransform, bool linearFilter, float theX, float theY, bool center);
-	void DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend);
-	void ClearRect(const Rect& theRect);
+	virtual void FillRect(const Rect& theRect, const Color& theColor, int theDrawMode, const Rect* theClipRect);
+	virtual void FillPoly(const Point theVertices[], int theNumVertices, const Rect* theClipRect, const Color& theColor, int theDrawMode, int tx, int ty);
+	virtual void DrawLine(double x1, double y1, double x2, double y2, const Color& theColor, int theDrawMode, bool antiAlias);
+	virtual void FillScanLines(const struct Span* theSpans, int theSpanCount, const Color& theColor, int theDrawMode);
+	virtual void Blt(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode, const Rect* theClipRect, bool mirror = false);
+	virtual void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, bool fastStretch, bool mirror = false);
+	virtual void BltRotated(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY);
+	virtual void BltTransformed(Image* theImage, const Rect* theClipRect, const Color& theColor, int theDrawMode, const Rect& theSrcRect, const SexyMatrix3& theTransform, bool linearFilter, float theX, float theY, bool center);
+	virtual void DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend);
+	virtual void ClearRect(const Rect& theRect);
 
 	// Reads the logical screen back into ARGB pixels (used for screenshots / GetBits on the screen).
-	bool ReadScreen(ulong* theBits);
+	virtual bool ReadScreen(ulong* theBits);
 	// Reads the render target at full resolution (logical size * mRenderScale), ARGB.
-	bool ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight);
+	virtual bool ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight);
 
-	void SetCursorImage(Image* theImage);
-	void SetCursorPos(int theX, int theY);
+	virtual void SetCursorImage(Image* theImage);
+	virtual void SetCursorPos(int theX, int theY);
 };
 
 }
