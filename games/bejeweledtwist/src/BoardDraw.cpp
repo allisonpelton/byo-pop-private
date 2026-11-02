@@ -1,6 +1,7 @@
 // Sexy::Board's drawing (Board.h): DrawAll, Draw and the board under the gems. Only the 2D paths are ported (as with
 // Piece): with Direct3D the original clears the screen first, draws the board through a transform and a 3D back.
 #include "Board.h"
+#include "ElectroStrike.h"
 
 #include "ColorCycle.h"
 #include "EffectsManager.h"
@@ -230,9 +231,8 @@ void Board::DrawBoardBack(Graphics* g)
 void Board::DrawStrikes(Graphics* g)
 {
 	mApp->Is3DAccelerated();
-	if (!mUnknown149C.empty()) {
-		// port: the electro gems' strikes (0x71df1f) come with the electro gems
-		NotPorted("Board::DrawStrikes: the electro gems' strikes");
+	for (int i = 0; i < (int)mUnknown149C.size(); i++) {
+		static_cast<ElectroStrike*>(mUnknown149C[i])->Draw(g);
 	}
 }
 

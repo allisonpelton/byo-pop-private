@@ -528,6 +528,36 @@ Not ported in this flow:
 - the tube's challenge display (GoodTube::DrawBody 0x7081c9);
 - the replay playback start 0x6ca727 (Tutorial's replay button), which belongs to the replays, not the restarts.
 
+**Effects of the gem locks and doom gems** (EffectsManager.cpp; the constructor 0x6f4a05, Update 0x6f8792, Draw
+0x6f6451, whose switch goes through the byte table 0x6f7a19). Type 13 is a lock's link flying off: a random turn, a
+random sideways speed of up to 0.025 of a gem's width times the art scale, a random vertical speed of up to the art
+scale and a fall of 0.05 times it; each update it fades by 0.002, ends below the screen and moves across a second
+time; it is drawn as IMAGE_GEM_LOCK_LINK1 or 2 by its cel.
+Type 14 is the same with a red additive IMAGE_GEM_LOCK_LINKS_GLOW under it and a puff of type 7 (IMAGE_GEM_FIRE_SMOKE,
+rising, fading from at most 0.5) left behind each update. Type 38 is a doom gem's shard (IMAGE_SHARD1, dark grey, flung
+up to 5 times the art scale an update, growing by 0.01): it lives 75 to 175 updates, turns and fades by 0.01, and
+leaves a puff of grey steam every tenth update; it is drawn like type 0.
+
+**Electro gems** (ElectroStrike.h/.cpp, BoardMatch.cpp, BoardUpdate.cpp, BoardDraw.cpp). An electro gem going off in
+BreakPiece (0x6c0ccf) does nothing while a strike of its own runs; otherwise it leaves the other strikes' lists of lit
+gems, counts its stats (0x40 and 0x53 for a power electro gem, 0x41, 0x3e) once, sets its points' entry to -0x65,
+plays SOUND_WILDCARD_DESTROYED, starts an ElectroStrike (0x71f10e) at +0x149c, scores 150 points, stays on the board
+(+0x51d) and plays SOUND_FLAMELIGHTNING for a power electro gem, else SOUND_ELECTRO_START1. The strike lays a bolt
+(ElectroBolt, 0x71f003) along the gem's row and one down its column, three of each for a power electro gem, which also
+gets the IMAGE_BOOM_NOVA and IMAGE_BOOM_NUKE curves (0x7e6750, 0x7e672c, 0x7e66f8, 0x7e66d0) and SOUND_BOMB_EXPLODE at
+1.6 of the nuke's curve. A bolt grows for ten of its seconds and every fifth update is made anew from Rand (the
+framework's): a line of segments half a cel of IMAGE_LIGHTNING long, jagged by up to 80 art pixels (more as it grows)
+except at the ends, drawn as quads of IMAGE_GRITTYBLURRY (the glow) and of a random fifth of IMAGE_LIGHTNING, each
+twice and additive, at eight times its remaining life in alpha. UpdateStrikes (0x6c87d2) lights the gems: every tenth
+of a second the lightning reaches a cell further each way (the first step plays SOUND_ELECTRO_EXPLODE), each gem it
+reaches that no strike has lit gets 20 sparks (type 17) and glows up by 0.015 an update until it breaks (coal through
+BreakSpecial); once nothing is left to light and the lightning has crossed the board, the electro gem itself breaks and
+the strike fades out in four steps. A strike after the n-th waits while the n-th is younger than 25 * n updates. With
+Direct3D the bolts go through the 3D interface: not ported. Two things differ from the exe, neither visibly: the port
+deletes a finished strike (the original only takes it off the list, a leak), and ClearBoard deletes the strikes it
+clears (0x71eb9e). The bolts' colour table (0x85d850) is never written by the exe, so every bolt has Color(0, 0, 0, 0)
+there too: the glow is additive black and the lightning grey.
+
 ## Oddities
 
 - **The doom gem's placement can hang.** NextTurnGems (0x6bde87) picks random cells inside the border until one is a
@@ -537,3 +567,8 @@ Not ported in this flow:
   match, the original loops for ever and the game freezes. The port keeps the loop as it is. To see it, a board whose
   36 inner gems all carry flags when a doom gem is due (level 13 or later in Classic, or a constant-doom challenge).
   Fixing it would take a limit on the search, which the original does not have.
+- **The electro bolts' colour table is empty.** ElectroStrike's constructor (0x71f10e) gives each bolt the colour at
+  0x85d850 + 16 * the gem's colour, a table in the uninitialised data that nothing in the exe writes. Every bolt is
+  therefore black with no alpha: its IMAGE_GRITTYBLURRY glow, drawn additive in that colour, adds nothing, and its
+  IMAGE_LIGHTNING is drawn in the mid grey half way to white. The port keeps the empty table. It was most likely meant
+  to hold the gems' colours; filling it would be a change to the original's look.

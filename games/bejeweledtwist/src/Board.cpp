@@ -1,5 +1,6 @@
 // Sexy::Board (0x6a3d7b-0x6d6899): being ported, see Board.h.
 #include "Board.h"
+#include "ElectroStrike.h"
 
 #include "Buffer.h"
 #include "ChallengeMenu.h"
@@ -316,10 +317,8 @@ void Board::ResizeBoard(int theRows, int theCols)
 
 void Board::ClearBoard()
 {
-	if (!mUnknown149C.empty()) {
-		// port: these objects come with the matching code (their destructor is 0x71eb9e)
-		NotPorted("Board::ClearBoard's +0x149c objects (0x71eb9e)");
-	}
+	for (size_t i = 0; i < mUnknown149C.size(); i++)
+		delete static_cast<ElectroStrike*>(mUnknown149C[i]);  // 0x71eb9e
 	mUnknown149C.clear();  // 0x6af6b6
 	for (size_t i = 0; i < mUnknown14AC.size(); i++)
 		delete mUnknown14AC[i];

@@ -8,6 +8,7 @@
 #include "Compat2004.h"
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
+#include "ElectroStrike.h"
 #include "FlyingText.h"
 #include "GemSoul.h"
 #include "GameOverShow.h"
@@ -3096,11 +3097,179 @@ void Board::UpdateStrikes()
 		mUnknown21DA = true;
 		mUnknown15C = 0;
 	}
-	if (!mUnknown149C.empty()) {
-		// port: the electro gems' strikes (objects of the class at 0x71eb9e: a row, a column or a star of lightning
-		// that spreads a cell an update, SOUND_ELECTRO_EXPLODE, sparks drawn from RandSigned) come with the electro
-		// gems going off (0x6c1857), which make them
-		NotPorted("Board::UpdateStrikes: the electro gems' strikes");
+	// Each strike lights its gems up until they break, and every tenth of a second its lightning spreads a cell
+	// further along its row and column (a power electro gem's along three of each); the strikes after the n-th one
+	// wait while it is less than 25 * n updates old
+	int aWait = 0;
+	int i = 0;
+	if (0 < (int)mUnknown149C.size()) {
+		do {
+			ElectroStrike* aStrike = static_cast<ElectroStrike*>(mUnknown149C[i]);
+			aStrike->Update();
+			int aKind = aStrike->mKind;
+			bool aRemove = false;
+			if (-1 < aKind && aKind < 2) {
+				int aStar = aKind == 1;
+				bool aAllDone = true;
+				// the gems it has lit glow brighter, and break once fully lit
+				unsigned int j = 1;
+				if (1 < aStrike->mIds.size()) {
+					do {
+						Piece* aPiece = GetPieceById(aStrike->mIds[j]);
+						if (aPiece != nullptr && !aPiece->mUnknown51D) {
+							float aGlow = (float)((double)aPiece->mGlow + 0.014999999664723873);
+							aPiece->mGlow = aGlow;
+							if (!(1.0f <= aGlow)) {
+								aAllDone = false;
+							} else {
+								aPiece->mUnknown88 = 1;
+								aPiece->mUnknown2EC = aStrike->mPointsId;
+								if (!aPiece->IsFlagSet(Piece::FLAG_COAL)) {
+									aPiece->mUnknown2F0 = -0x65;
+								} else {
+									aPiece->mUnknown2F0 = -0x67;
+									BreakSpecial(aPiece, 2);
+									if (!aPiece->mBreaking) {
+										AddStat(0x4a, 1);
+										AddStat(0x3e, 1);
+										mUnknown1F8++;
+										mUnknown1FC++;
+										aPiece->mUnknown537 = true;
+									}
+									aPiece->mBreaking = true;
+									aPiece->mBreakFrame = 25;
+								}
+								aStrike->mIds.erase(aStrike->mIds.begin() + j);
+								j--;
+							}
+						}
+						j++;
+					} while (j < aStrike->mIds.size());
+				}
+				float aTimer = (float)((double)aStrike->mTimer - 0.009999999776482582);
+				aStrike->mTimer = aTimer;
+				if (aTimer <= 0.0f) {
+					aStrike->mTimer = 0.1f;
+					static const int kDirs[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+					int aDir = 0;
+					do {
+						int aSide = -aStar;
+						if (aSide <= aStar) {
+							int aDX = kDirs[aDir][0];
+							int aDY = kDirs[aDir][1];
+							int anOffY = aDX * aSide;
+							int anOffX = aDY * aSide;
+							int aLeft = aStar - aSide + 1;
+							do {
+								int aY = (aDY * aStrike->mStep + anOffY) * gGemHeight + aStrike->mY;
+								int aX = (aStrike->mStep * aDX + anOffX) * gGemWidth + aStrike->mX;
+								Piece* aPiece = GetPieceAtXY(aX, aY);
+								if (GetColX(0) <= aX && aX < GetColX(mCols) && GetRowY(0) <= aY &&
+									aY < GetRowY(mRows) && aPiece != nullptr && !aPiece->mUnknown51D) {
+									// a gem a strike has lit already is left to it
+									bool aTaken = false;
+									unsigned int k = 0;
+									if (mUnknown149C.size() != 0) {
+										do {
+											std::vector<int>& anIds =
+												static_cast<ElectroStrike*>(mUnknown149C[k])->mIds;
+											unsigned int m = 0;
+											if (anIds.size() != 0) {
+												do {
+													if (aPiece->mId == anIds[m])
+														aTaken = true;
+													m++;
+												} while (m < anIds.size());
+											}
+											k++;
+										} while (k < mUnknown149C.size());
+									}
+									if (!aTaken) {
+										aAllDone = false;
+										if (aPiece->mGlow == 0.0f && !aPiece->mUnknown51D) {
+											aStrike->mIds.push_back(aPiece->mId);
+											aPiece->mGlow = 0.01f;
+											float aFX = (float)aX;
+											float aFY = (float)aY;
+											int aSparks = 20;
+											do {
+												Effect* aSpark = mFXManager->AllocEffect(17);
+												double anAcross = (double)std::abs(aDX);
+												aSpark->mX = (float)((double)RandSigned() * anAcross *
+													(double)gGemWidth / 3.0 + (double)aFX);
+												double aDown = (double)std::abs(aDY);
+												aSpark->mY = (float)((double)RandSigned() * aDown *
+													(double)gGemHeight / 3.0 + (double)aFY);
+												double aSpread = (double)std::abs(aDY) + 0.5;
+												aSpark->mDX = (float)Ftol((double)RandSigned() * aSpread * 10.0);
+												aSpread = (double)std::abs(aDX) + 0.5;
+												aSpark->mDY = (float)Ftol((double)RandSigned() * aSpread * 10.0);
+												mFXManager->AddEffect(aSpark);
+												aSparks--;
+											} while (aSparks != 0);
+										}
+									}
+								}
+								anOffX += aDY;
+								anOffY += aDX;
+								aLeft--;
+							} while (aLeft != 0);
+						}
+						aDir++;
+					} while (aDir < 4);
+					if (aStrike->mStep == 0)
+						mApp->PlaySample(SOUND_ELECTRO_EXPLODE);
+					aStrike->mStep++;
+					int aFar = mRows - 1;
+					if (aFar <= mCols - 1)
+						aFar = mCols - 1;
+					if (aStrike->mStep < aFar)
+						aAllDone = false;
+					if (aAllDone) {
+						// the electro gem itself breaks, and the strike fades
+						Piece* aGem = GetPieceById(aStrike->mIds[0]);
+						if (aGem != nullptr) {
+							aGem->mUnknown51D = false;
+							aGem->ClearSpecial();
+							aGem->mUnknown88 = 1;
+						}
+						aStrike->mFade = (float)((double)aStrike->mFade - 0.25);
+						Piece** aCell = mGrid;
+						for (int aCells = mCols * mRows; 0 < aCells; aCells--) {
+							if (*aCell != nullptr)
+								(*aCell)->mUnknown34 = 0;
+							aCell++;
+						}
+						if (aStrike->mFade <= 0.0f)
+							aRemove = true;
+					}
+				}
+			} else if (aKind == 2) {
+				Piece* aGem = GetPieceById(aStrike->mIds[0]);
+				Piece** aCell = mGrid;
+				for (int aCells = mCols * mRows; 0 < aCells; aCells--) {
+					Piece* aPiece = *aCell;
+					if (aPiece != nullptr && aPiece != aGem && !aPiece->mBreaking &&
+						(aPiece->IsFlagSet(Piece::FLAG_BOMB) || aPiece->IsFlagSet(Piece::FLAG_1) ||
+							aPiece->IsFlagSet(Piece::FLAG_LOCKED))) {
+						aPiece->mUnknown88 = 1;
+						break;
+					}
+					aCell++;
+				}
+				aRemove = true;
+			}
+			if (aRemove) {
+				mUnknown149C.erase(mUnknown149C.begin() + i);
+				delete aStrike;  // port: the original leaves the strike allocated
+				i--;
+			} else {
+				if (aStrike->mCount < aWait)
+					break;
+				aWait += 25;
+			}
+			i++;
+		} while (i < (int)mUnknown149C.size());
 	}
 }
 

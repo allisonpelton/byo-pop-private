@@ -1,7 +1,7 @@
 // Sexy::Effect and Sexy::EffectsManager (EffectsManager.h).
 //
-// port: the parts every effect shares and the types the board uses so far (0, 5, 6, 11, 12, 16, 17, 23, 24, 26, 29,
-// 30, 39 and 41). The others (the rest of the board's explosions, fire, lightning and the shows' effects) come with
+// port: the parts every effect shares and the types the board uses so far (0, 5, 6, 7, 11, 12, 13, 14, 16, 17, 23, 24,
+// 26, 29, 30, 38, 39 and 41). The others (the rest of the board's explosions, fire, lightning and the shows' effects) come with
 // their parts of the game; until then an effect of one of them logs once and only moves and fades.
 #include "EffectsManager.h"
 
@@ -211,6 +211,39 @@ Effect::Effect(int theType) : mType(theType)
 		}
 		break;
 	}
+	case 7:  // smoke rising from a breaking gem lock's glowing links (type 14)
+		mImage = IMAGE_GEM_FIRE_SMOKE;
+		mGravity = (float)((double)gApp->mScale * -0.005);
+		mDAlpha = -0.01f;
+		break;
+	case 13:  // a gem lock's link flying off (Board::BreakSpecial); 14 glows and smokes
+	case 14: {
+		mDAngle = (float)((double)RandSigned() * 3.1415927410125732 * 0.05000000074505806);
+		float aSpread = (float)((double)gApp->mScale * 0.02500000037252903);
+		mDX = (float)((double)RandSigned() * (double)gGemWidth * (double)aSpread);
+		float aScale = gApp->mScale;
+		mDY = (float)((double)RandSigned() * (double)aScale);
+		float aGravity = (float)((double)gApp->mScale * 0.05000000074505806);
+		mGravity = aGravity;
+		mAlpha = 1.0f;
+		break;
+	}
+	case 38: {  // a shard of a doom gem (Board::BreakSpecial)
+		float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
+		float aSpeed = (float)((double)gApp->mScale * 5.0 * (double)fabsf(RandSigned()));
+		mDX = (float)((double)cosf(anAngle) * (double)aSpeed);
+		mDY = (float)((double)sinf(anAngle) * (double)aSpeed);
+		mDScale = 0.01f;
+		mScale = (float)((double)fabsf(RandSigned()) * 0.10000000149011612 + 0.25);
+		mColor = Color(32, 32, 32);
+		mAlpha = 1.0f;
+		mDAlpha = 0;
+		mImage = IMAGE_SHARD1;
+		mAngle = anAngle;
+		mDAngle = (float)((double)RandSigned() * 3.1415927410125732 * 0.019999999552965164);
+		mDelay = (float)((double)fabsf(RandSigned()) + 0.75);
+		break;
+	}
 	case 17:  // the hint's sparkles (Board::UpdateHint)
 		mUpdateDiv = (int)(Rand() % 4) + 3;
 		mDX = (float)((double)gApp->mScale * ((double)(float)(int)(Rand() % 20) * 0.1 - 1.0));
@@ -316,6 +349,61 @@ void EffectsManager::Update()
 			break;
 		case 23:
 			break;
+		case 7:
+			anEffect->mDX = (float)((double)anEffect->mDX * 0.949999988079071);
+			if (0.5f < anEffect->mAlpha) {
+				anEffect->mAlpha = 0.5f;
+				anEffect->mDAlpha = -0.01f;
+			}
+			break;
+		case 14: {
+			// a glowing link leaves smoke behind it
+			Effect* aSmoke = AllocEffect(7);
+			aSmoke->mX = anEffect->mX;
+			aSmoke->mY = anEffect->mY;
+			aSmoke->mDX = 0;
+			float aRand = RandSigned();
+			aSmoke->mDY = (float)(-0.10000000149011612 - (double)fabsf(aRand) * 0.5);
+			aSmoke->mGravity = 0;
+			aSmoke->mScale = 0.25f;
+			AddEffect(aSmoke);
+		}
+			// fall through
+		case 13:
+			// it fades, ends below the screen and moves across a second time
+			anEffect->mAlpha = (float)((double)anEffect->mAlpha - 0.0020000000949949026);
+			if ((float)mHeight < anEffect->mY)
+				anEffect->mDeleteMe = true;
+			anEffect->mX = anEffect->mDX + anEffect->mX;
+			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
+			break;
+		case 38: {
+			// it waits out its time, turning and fading, and leaves steam every tenth update
+			float aDelay = (float)((double)anEffect->mDelay - 0.009999999776482582);
+			anEffect->mDelay = aDelay;
+			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
+			anEffect->mAlpha = (float)((double)anEffect->mAlpha - 0.009999999776482582);
+			if (!(0.0f < aDelay)) {
+				anEffect->mDeleteMe = true;
+				break;
+			}
+			if (mUpdateCnt % 10 != 0)
+				break;
+			Effect* aSteam = AllocEffect(0);
+			aSteam->mImage = IMAGE_FX_STEAM;
+			aSteam->mScale = (float)((double)fabsf(RandSigned()) * 0.20000000298023224 + 0.5);
+			aSteam->mDScale = 0.01f;
+			aSteam->mX = anEffect->mX;
+			aSteam->mY = anEffect->mY;
+			aSteam->mColor = Color(96, 96, 96);
+			aSteam->mAlpha = 0.5f;
+			aSteam->mDAlpha = -0.003f;
+			aSteam->mDY = -0.1f;
+			aSteam->mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+			aSteam->mDAngle = (float)((double)RandSigned() * 3.1415927410125732 * 0.10000000149011612);
+			AddEffect(aSteam);
+			break;
+		}
 		case 40:
 			// it flickers
 			anEffect->mAlpha = Rand() % 5 == 0 ? 1.0f : 0.25f;
@@ -529,6 +617,7 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 		float anOpacity = mAlpha * anAlpha;
 		switch (anEffect->mType) {
 		case 0:
+		case 38:
 		case 41: {
 			g->SetColorizeImages(true);
 			Color aColor = anEffect->mColor;
@@ -565,6 +654,23 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 		case 16:
 			DrawShard(g, anEffect, mUpdateCnt);
 			break;
+		case 14:
+			// a red glow under the link
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColor(Color(255, 0, 0));
+			DrawImageCentered(g, IMAGE_GEM_LOCK_LINKS_GLOW, IMAGE_GEM_LOCK_LINKS_GLOW->GetCelRect(anEffect->mFrame),
+				anEffect->mX, anEffect->mY, (double)anEffect->mAngle, 1.0f, 1.0f);
+			// fall through
+		case 13:
+			// the link (IMAGE_GEM_LOCK_LINK1 or 2 by the cel)
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 255, Ftol(anOpacity * 255.0)));
+			if (anEffect->mType == 13)
+				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+			DrawImageCentered(g, GetImageById(IMAGE_GEM_LOCK_LINK1_ID + anEffect->mFrame), anEffect->mX, anEffect->mY,
+				(double)anEffect->mAngle, 1.0f, 1.0f);
+			break;
+		case 7:
 		case 24:
 		case 26:
 		case 29: {

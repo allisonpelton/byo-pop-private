@@ -2,6 +2,7 @@
 #include "Board.h"
 
 #include "EffectsManager.h"
+#include "ElectroStrike.h"
 #include "GameText.h"
 #include "GoodTube.h"
 #include "Piece.h"
@@ -1497,9 +1498,53 @@ void Board::BreakPiece(Piece* thePiece)
 		AddStat(0x4a, 1);
 		BreakSpecial(thePiece, 1);
 	} else if (thePiece->IsFlagSet(Piece::FLAG_ELECTRO) && !thePiece->mUnknown51D) {
-		// port: an electro gem going off (its strike at +0x149c, 150 points, SOUND_WILDCARD_DESTROYED and
-		// SOUND_FLAMELIGHTNING) comes with the electro gems
-		NotPorted("Board::BreakPiece: an electro gem");
+		// An electro gem goes off, unless a strike of its own runs already: it leaves the other strikes' lit gems,
+		// and its strike (+0x149c) starts
+		unsigned int i = 0;
+		if (mUnknown149C.size() != 0) {
+			do {
+				ElectroStrike* aStrike = static_cast<ElectroStrike*>(mUnknown149C[i]);
+				if (aStrike->mPieceId == thePiece->mId)
+					return;
+				std::vector<int>& anIds = aStrike->mIds;
+				unsigned int j = 0;
+				if (anIds.size() != 0) {
+					do {
+						if (anIds[j] == thePiece->mId)
+							anIds.erase(anIds.begin() + j);
+						j++;
+					} while (j < anIds.size());
+				}
+				i++;
+			} while (i < mUnknown149C.size());
+		}
+		bool aPower = thePiece->IsFlagSet(Piece::FLAG_POWER);
+		if (!thePiece->mUnknown537) {
+			if (aPower) {
+				AddStat(0x40, 1);
+				AddStat(0x53, 1);
+			}
+			AddStat(0x41, 1);
+			AddStat(0x3e, 1);
+			thePiece->mUnknown537 = true;
+			mUnknown1FC++;
+			mUnknown1F8++;
+		}
+		mUnknown37B8[thePiece->mUnknown2EC] = -0x65;  // 0x6b8c49
+		thePiece->mGlow = 0;
+		mApp->PlaySample(SOUND_WILDCARD_DESTROYED);
+		ElectroStrike* aStrike = new ElectroStrike(thePiece);
+		mUnknown149C.push_back(aStrike);  // 0x6b9a24
+		AddPoints(Ftol((double)(gGemWidth / 2) + (double)thePiece->mX),
+			Ftol((double)(gGemHeight / 2) + (double)thePiece->mY), 150, gGemColors[thePiece->mColor],
+			thePiece->mUnknown2EC, true, true, false, true);
+		thePiece->mBreaking = false;
+		thePiece->mUnknown10C = 0;
+		thePiece->mUnknown88 = 0;
+		thePiece->mUnknown51D = true;
+		mUnknown15C = 0;
+		PlayPieceSound(thePiece, aPower ? SOUND_FLAMELIGHTNING : GetSoundById(SOUND_ELECTRO_START1_ID), 0.0f, 0.0f,
+			true);
 		return;
 	} else if (thePiece->IsFlagSet(Piece::FLAG_POWER)) {
 		if (!thePiece->mUnknown537) {
