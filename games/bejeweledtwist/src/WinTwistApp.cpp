@@ -1081,6 +1081,16 @@ bool WinTwistApp::KillDialog(int theDialogId)
 	return aDialog != nullptr;
 }
 
+void WinTwistApp::ButtonDepress(int theId)
+{
+	if (theId == 0x2a) {
+		// the button at the top right in full screen
+		SwitchScreenMode(true);
+	}
+	// (0x2b, the registration widget's button, comes with the registration code)
+	PlaySample(SOUND_CLICK);
+}
+
 void WinTwistApp::DialogButtonDepress(int theDialogId, int theButtonId)
 {
 	switch (theDialogId) {

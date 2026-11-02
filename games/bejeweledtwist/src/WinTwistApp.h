@@ -151,6 +151,7 @@ public:
 	// 0x75fab7: the dialog shrinks away first; it leaves the app's dialogs once it is gone (TwistDialog::Update)
 	bool KillDialog(int theDialogId) override;
 	using SexyApp::KillDialog;
+	void ButtonDepress(int theId) override;  // 0x75f54e
 	void DialogButtonDepress(int theDialogId, int theButtonId) override;  // 0x7633ea (also 0x767579)
 	void DialogThirdButtonDepress(int theDialogId) override;  // 0x75f94f
 	// port (tests): newgame <mode>, a new game of that mode at once, as the mode menu would start it
