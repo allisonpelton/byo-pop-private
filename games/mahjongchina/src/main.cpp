@@ -81,9 +81,9 @@ int main(int argc, char** argv)
 	// port (web): its page (web/shell.html) mounts its own IndexedDB-backed folder, so the game's files never mix
 	// with the other games' on the same site
 	if (gameDir.empty())
-		gameDir = "/mjpersist/game";
+		gameDir = "/mcpersist/game";
 	if (userDir.empty())
-		userDir = "/mjpersist/userdata";
+		userDir = "/mcpersist/userdata";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();

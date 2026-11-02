@@ -171,6 +171,11 @@ lc7300 are pixel-identical).
 
 The bonus screen's first message line ("Try to find the", "The Treasure is", "You Win!" and the like) is drawn at the top of the board (y 31), only the second line at the bottom (height - 0x1e); the port had both at the bottom. The Treasure Island nag's button label is the dialog's gold. Where the treasure lies (and so the direction text after a dig) differs between the original and the port in the comparison run: the original's draw count before the bonus level varies from run to run (see the new ship's cell above), so it is not compared.
 
+**Movement arrows (fixed 2026-11-01).** `DrawCellArrow` (0x409840) draws, in each of its three column cases, the picture of the neighbouring
+cell under the mouse; the port drew only the middle column's (the cells above and below the ship), so hovering the cells to the left or
+right, or the diagonals, showed no arrow (the user's "movement arrows don't show up properly"; native and web alike). The first board
+comparison had only hovered the vertical ones. Nine hovers around the ship (all eight neighbours and its own cell) now match the original.
+
 ## 7. Oddities (what the original does that the port does not copy)
 
 Each is described in section 6 and in IDENTICAL_PLAY.md: the new ship's cell after a sinking (the original's own draw count varies

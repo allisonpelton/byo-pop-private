@@ -10,8 +10,8 @@ namespace bonnies
 {
 
 HighScores gHighScores;
-int gHighScoreRank;
-int gHighScoreTable;
+int gHighScoreRank = -1;   // 0x473e38: -1 in the exe, as the table
+int gHighScoreTable = -1;
 
 // 0x40ce80
 HighScores::HighScores()

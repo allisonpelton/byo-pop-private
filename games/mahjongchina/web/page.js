@@ -4,7 +4,7 @@
     shortName: "Mahjong Escape: Ancient China",
     // Its own IndexedDB folder (IDBFS names the database after the mount point), so this game and the others can be
     // served from the same site without sharing files or saves
-    persist: "/mjpersist",
+    persist: "/mcpersist",
     lock: "mahjongchina-instance",
     // Resource.dll holds the pictures, sounds, music, layouts and texts; MahjongEscapeAC.exe the rest of the texts.
     // SplashLogo and MenuLogo are the publisher's pictures beside them.

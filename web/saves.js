@@ -340,6 +340,18 @@ var ByopopSaves = (function () {
     root.appendChild(make("p", "pl-about", "Your saves, high scores and game settings are kept in this browser, and are lost if its data is cleared or you use " +
       "another browser or device. A backup is one .zip, made here, with each game’s saves, the site’s settings and players, and never a game’s " +
       "files, the exe, its icon or its mods. Nothing is uploaded."));
+    // whether the browser has agreed to keep the site's storage (a game page asks after an import, web/shell.html,
+    // askToKeepStorage): until it has, a drive that runs low on space can make it clear the whole site
+    var kept = make("p", "pl-about");
+    kept.hidden = true;
+    root.appendChild(kept);
+    try {
+      if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(function (yes) {
+        kept.textContent = yes ? "This browser has agreed to keep them even if your drive runs low on space." :
+          "This browser may still clear them if your drive runs low on space. Importing a game’s files asks it to keep them.";
+        kept.hidden = false;
+      }, function () {});
+    } catch (e) {}
     var status = make("p", "pl-status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");

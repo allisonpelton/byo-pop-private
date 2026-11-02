@@ -68,3 +68,11 @@ is `std::string`), the tracker could not see a leak of the original's; such a le
   its heap held there. The port makes the game on zeroed memory (`Game::operator new`): those reads give 0, the saved
   games of two identical runs are the same, and a '*' tile that never fell drops out as one that has settled does. The
   tour's saves differed in exactly these 81 values before.
+
+## Random draws
+
+None. Every draw from `rand` is where the original makes it: `tools/rngcount.py` counts, for each function the port
+names by address, the original's calls to `rand` (0x430366) and to `randomRange` (0x41f500) in the Ghidra export and
+the port's calls to `crtRand` and `randomRange`. On 2026-11-01 all 58 sites in the 15 functions that draw matched, and
+the seed is set at the one place the original sets it (0x41f4e0, from the platform's start). `rand` itself is the
+CRT's (`crtRand`, `Str.cpp`), with its multiplier and increment.
