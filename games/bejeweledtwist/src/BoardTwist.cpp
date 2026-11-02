@@ -9,8 +9,10 @@
 #include <vector>
 
 #include "GameText.h"
+#include "GraphicsRecorder.h"
 #include "Piece.h"
 #include "Profile.h"
+#include "ReplayWidget.h"
 #include "Res.h"
 #include "TwistButton.h"
 #include "TwistUtil.h"
@@ -196,8 +198,8 @@ void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 	if (mApp->mOptionsDialog != nullptr)
 		return;
 	if (mUnknown1570 != 0) {
-		// port: a click on the paused board resumes the game (0x6af2be(true)); it comes with the options
-		NotPorted("Board::MouseDown: resuming the game (0x6af2be)");
+		// a click on the paused board resumes the game
+		Unpause(true);
 		return;
 	}
 	if (mUnknown37C4 || mUnknown2629 || mUnknown25A6 || !mUnknown149C.empty() || mUnknown21A3 || !mUnknown20D0)
@@ -301,9 +303,9 @@ void Board::StartTwist(bool theInstant, int theX, int theY)
 		mUnknown23B0 = mApp->mProfile->mRank;
 		mUnknown23AC = mApp->mProfile->mUnknown160;
 	}
-	if (mUnknown2624 != nullptr) {
-		// port: +0x2624's state (+0x160) becomes 3 and its +0x14c false; it comes with that widget
-		NotPorted("Board::StartTwist: the +0x2624 widget");
+	if (mReplayPod != nullptr) {
+		mReplayPod->mState = ReplayWidget::STATE_GOING;
+		mReplayPod->mPopped = false;
 	}
 	mUnknown23C++;
 	mUnknown25D0 = 0.0f;
@@ -662,7 +664,8 @@ bool Board::StartPieceMove(Piece* thePiece, int theDCol, int theDRow)
 	ClearCellHints();
 	mUnknown2004 = false;
 	mUnknown3444 = 0;
-	// The original drops the GraphicsRecorder's frames from 0 on (0x70d704); the port records none
+	// The move's frames are recorded afresh
+	gGraphicsRecorder->PopFramesFrom(0);
 	if ((theDCol == 0 && theDRow == 0) || thePiece == nullptr)
 		return false;
 	int aCol = thePiece->mCol + theDCol;

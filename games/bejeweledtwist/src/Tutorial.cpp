@@ -154,14 +154,14 @@ void Tutorial::DialogButtonDepress(int theDialogId, int theButtonId)
 	if (theButtonId == 1000) {
 		mState = STATE_NONE;
 	} else if (theButtonId == 1001) {
-		// The replay button: the tip is not marked seen, and the board starts over from its saved game
+		// The replay button: the tip is not marked seen, and the move is played again
 		mBoard->mApp->mProfile->SetFlag1E4(mBoard->mUnknown34E8, false);
 		mMarkSeen = false;
 		mState = STATE_NONE;
 		mBoard->SaveGame(&mBoard->mUnknown23B4, false);
 		mBoard->mUnknown3904 = false;
-		// port: 0x6ca727 (called with the board's save buffer, +0x23a4, +0x23a8 and true) restarts the level from it
-		NotPorted("Tutorial::DialogButtonDepress: the restart from the saved board (0x6ca727)");
+		// the move is rewound and made again (the exe takes the global board here, the same one)
+		gBoard->StartReplay(gBoard->mSaveBuffer, gBoard->mUnknown23A4, gBoard->mUnknown23A8, true);
 	}
 }
 

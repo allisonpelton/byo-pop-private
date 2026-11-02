@@ -22,7 +22,10 @@
 #include "RankBonusWidget.h"
 #include "Ranks.h"
 #include "PropertiesParser.h"
+#include "ReplayWidget.h"
 #include "Res.h"
+#include "SoundInstance.h"
+#include "SoundManager.h"
 #include "TwistUtil.h"
 #include "VizManager.h"
 #include "WinTwistApp.h"
@@ -189,7 +192,7 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	mFXManager3 = new EffectsManager();
 	mPointsManager = new PointsManager();
 	mPointsManager->mMouseVisible = false;
-	mUnknown2624 = nullptr;
+	mReplayPod = nullptr;
 	mApp->mWidgetManager->SetFocus(this);
 	mUnknown21B0 = 0.0f;
 	mUnknown21BC = 0.0f;
@@ -519,9 +522,11 @@ bool Board::CheckLevelDone()
 	if (!mUnknown21A3) {
 		if (mUnknown200 < mUnknown204)
 			return false;
-		if (mUnknown2624 != nullptr) {
-			// port: sets the widget's +0x160 to 3 and +0x14c off, and +0x2628, once it is known
-			NotPorted("Board::CheckLevelDone's +0x2624 widget");
+		if (mReplayPod != nullptr && mReplayPod->mState != ReplayWidget::STATE_GOING && mReplayPod->mVisible) {
+			// the pod goes down for the level's end, to come back after the rank bar
+			mUnknown2628 = true;
+			mReplayPod->mState = ReplayWidget::STATE_GOING;
+			mReplayPod->mPopped = false;
 		}
 		mUnknown21A3 = true;
 		bool aBonus = !(mGameMode == 0 || mGameMode == 5);
@@ -637,6 +642,12 @@ Board::~Board()
 		delete mUnknown2208;
 		mUnknown2208 = nullptr;
 	}
+	if (mReplayPod != nullptr) {
+		RemoveWidget(mReplayPod);
+		delete mReplayPod;
+	}
+	if (mRewindSound != nullptr)
+		mRewindSound->Release();
 	delete[] mUnknown1370;
 	delete[] mUnknown135C;
 	delete[] mCells;
@@ -692,7 +703,8 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 		delete mUnknown1474;
 	}
 	if (mUnknown37C4) {
-		// (the original also clears a flag of the app's +0x4bc object)
+		// (the exe clears its sound manager's flag (+0x300a0) that the menus' replays set, which sends new sounds
+		// through DirectSound's parametric equaliser; the port's sound manager has none)
 	}
 	// a challenge met (or its goal checked as met) is over as well
 	if (mGameMode == MODE_CHALLENGE && (mApp->mChallengeInfo->mResult == 1 || mUnknown266A))
@@ -1784,6 +1796,57 @@ void Board::SaveGame(Buffer* theBuffer, bool theReplays)
 	theBuffer->WriteBytes((const uchar*)&mUnknown392C, 4);
 	theBuffer->WriteLong(mUnknown1FC);
 	// (and "SaveGame ENDS")
+}
+
+void Board::StartReplay(Buffer& theBuffer, int theRow, int theCol, bool thePlayback)
+{
+	if (mUnknown1570 != 0)
+		Unpause(true);
+	mGoodTube->ResetBonus();
+	mFXManager2->Clear();
+	mFXManager->Clear();
+	// (with Direct3D a menu's replay board also takes the slide's place)
+	if (!mUnknown37C4)
+		mBoardX = GetSlideX();
+	LoadGame(theBuffer);
+	if (mUnknown37C4) {
+		LoadConfig();
+		ReadConfig(false);
+		UpdateProgress(true);
+	}
+	mUnknown21A2 = false;
+	MoveCursor(theRow, theCol, false, nullptr);
+	mUnknown1430 = GetPieceAt(theRow, theCol);
+	mUnknown20D0 = true;
+	mGoodTube->mUnknown3B0 = 0;
+	mGoodTube->mUnknown3F8 = 0.0f;
+	if (mGameMode == MODE_BLITZ) {
+		mGoodTube->SetUnknown15C(1);
+		mGoodTube->SetUnknown4BC(30000);  // 0x6a697d
+		mGoodTube->SetTime(mUnknown3458, true);
+		mGoodTube->StartUnknown4AC(true, false);
+		SetBlitzColor();
+		UpdateTubeProgress(true);
+		mGoodTube->SetUnknown4A8(mApp->mPlayPressed);
+	}
+	if (!thePlayback) {
+		mUnknown160 = 0;
+		mUnknown3444 = 0;
+		StartTwist(false, -1, -1);
+	} else {
+		// The recorded frames of the move run backwards first (UpdateGame's state 1), to the rewind's sound
+		if (mRewindSound == nullptr)
+			mRewindSound = mApp->mSoundManager->GetSoundInstance(SOUND_REWIND);
+		if (mRewindSound != nullptr)
+			mRewindSound->Play(true, false);
+		mUnknown3448 = mUnknown3444;
+		mUnknown160 = 1;
+	}
+	if (!mApp->Is3DAccelerated())
+		mUnknown3880.SetConstant(0.0);
+	// The player cannot click the board until the replay's move is over
+	mWidgetFlagsMod.mRemoveFlags |= WIDGETFLAGS_ALLOW_MOUSE;
+	mUnknown2629 = true;
 }
 
 void Board::ShowRankBonus(int theBonus)

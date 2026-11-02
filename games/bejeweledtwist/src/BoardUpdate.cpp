@@ -27,6 +27,7 @@
 #include "Profile.h"
 #include "RankBonusWidget.h"
 #include "Ranks.h"
+#include "ReplayWidget.h"
 #include "Res.h"
 #include "SoundInstance.h"
 #include "SoundManager.h"
@@ -183,8 +184,7 @@ void Board::Update()
 					aFade = 0.0f;
 				mUnknown391C = aFade;
 			}
-			// port: 0x6ab551 comes with the replays
-			NotPorted("Board::Update: 0x6ab551");
+			SnapPiecesX();
 		} else {
 			mUnknown37C8--;
 		}
@@ -594,8 +594,9 @@ void Board::UpdateGame()
 		mApp->mWidgetManager->RemoveWidget(mUnknown26A0);
 		mApp->SafeDeleteWidget(mUnknown26A0);
 		mUnknown26A0 = nullptr;
+		// the pod the level's end took down comes back
 		if (mUnknown2628)
-			NotPorted("Board::UpdateGame: 0x6ab48d");
+			ShowReplayPod();
 	}
 	if (mUnknown26AC == nullptr || !mUnknown26AC->mClicked) {
 		if (0.0f < mUnknown380C) {
@@ -1020,7 +1021,7 @@ void Board::UpdateGame()
 	if (0 < mUnknown15D4) {
 		mUnknown15D4--;
 		if (mUnknown15D4 == 0)
-			mGoodTube->mWidgetFlagsMod.mAddFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
+			mGoodTube->mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
 	}
 	Widget::Update();
 	mUnknown1470++;
@@ -1549,10 +1550,27 @@ void Board::UpdateGame()
 			NotPorted("Board::UpdateGame: state 2");
 		}
 	} else if (mUnknown160 == 1) {
-		// port: state 1 plays the recorded board back (gGraphicsRecorder's frames, +0x3448 counting down, the
-		// generator at +0x2a80 seeded from the update count); it comes with the recorder's frames
+		// A replay's rewind: DrawOverlay draws the recorded frames back from the last, faster and faster; at the
+		// first the move is made again
 		mUnknown25A4 = false;
-		NotPorted("Board::UpdateGame: state 1, the playback");
+		mUnknown2A80.SRand(mUpdateCnt / 3);
+		int aStep = mUnknown3448 / 100 + 2;
+		if (mUnknown3448 / 20 <= aStep)
+			aStep = mUnknown3448 / 20;
+		mUnknown3448 -= aStep;
+		if (aStep <= 0)
+			mUnknown3448--;
+		if (gGraphicsRecorder->GetLastFrame() < 0 || mUnknown3448 < 0) {
+			if (mRewindSound != nullptr) {
+				mRewindSound->Release();
+				mRewindSound = nullptr;
+			}
+			mUnknown160 = 0;
+			mUnknown3444 = 0;
+			StartTwist(false, -1, -1);
+		}
+		// the board itself is not drawn while the frames play back
+		gGraphicsRecorder->mSkipDraw = true;
 	} else if (mUnknown2629) {
 		mUnknown2A80.SRand(mUpdateCnt / 7);
 	}
@@ -1681,9 +1699,9 @@ ticked:
 	if (mUnknown3904 && !mUnknown37C4 && mUnknown25A5 && !mUnknown23F5 && !mUnknown21A3 && mUnknown26A0 == nullptr &&
 		mUnknown26AC == nullptr && mUnknown2208 == nullptr && mUnknown23DC.empty() && !mUnknown3905) {
 		if (mGameMode != MODE_CHALLENGE && mGameMode != MODE_BLITZ)
-			ShowStatsBar();
+			ShowReplayPod();
 		if (mUnknown2629) {
-			mWidgetFlagsMod.mAddFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
+			mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
 			mUnknown2629 = false;
 		}
 		mUnknown3904 = false;
@@ -3372,11 +3390,19 @@ void Board::UpdateToolTips()
 	}
 }
 
-void Board::ShowStatsBar()
+void Board::ShowReplayPod()
 {
-	// port: 0x6ab48d puts up the bar of the level's stats (a 0x170-byte widget, 0x6a99fe) and runs it (0x6a9aeb);
-	// it comes with the level's end
-	NotPorted("Board::ShowStatsBar (0x6ab48d)");
+	mUnknown2628 = false;
+	if (mGameMode == MODE_BLITZ || 6 <= mUnknown160)
+		return;
+	if (mReplayPod == nullptr) {
+		mReplayPod = new ReplayWidget();
+		mReplayPod->mX = Ftol((double)gApp->mScale * 200.0);
+		mReplayPod->mY = mHeight;
+		mReplayPod->mZOrder = mGoodTube->mZOrder + 1;
+		AddWidget(mReplayPod);
+	}
+	mReplayPod->Show();
 }
 
 void Board::SetUnknown3924(float theValue)
@@ -4058,9 +4084,9 @@ void Board::SpinWheel(Piece* thePiece)
 	mUnknown20D0 = false;
 	if (mApp->mUnknownC74[53] == 0)  // app +0xd48: the level of the first wheel
 		mApp->mUnknownC74[53] = mUnknown158;
-	if (mUnknown2624 != nullptr) {
-		// port: +0x2624's state (+0x160) becomes 3 and its +0x14c false; it comes with that widget
-		NotPorted("Board::SpinWheel: the +0x2624 widget");
+	if (mReplayPod != nullptr) {
+		mReplayPod->mState = ReplayWidget::STATE_GOING;
+		mReplayPod->mPopped = false;
 	}
 	mApp->PlaySample(SOUND_SPINSEQUENCER1);
 	if (((mUnknown3914 >> 11) & 1) == 0) {

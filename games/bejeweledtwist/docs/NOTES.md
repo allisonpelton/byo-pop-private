@@ -105,7 +105,15 @@ Constants: many doubles in the exe are floats widened (0.1 is 0.1000000014901161
 has them. `tools/consts.py` prints the values a function reads.
 
 GraphicsRecorder (gGraphicsRecorder 0x85d6f8, 0x1c bytes): every image draw of the game's helpers goes through it.
-Only the board sets its flags (+0x08 skip drawing, +0x09 record); otherwise it is the Graphics call it wraps.
+Only the board sets its flags (+0x08 skip drawing, +0x09 record); otherwise it is the Graphics call it wraps. While
+recording it keeps each draw of an image loaded from a file (Image +0x1c, the path's length) as a GraphicsOperation
+(0x60 bytes: frame, type 0 to 7, image, four doubles with the Graphics' translation added, a source rectangle or cel,
+the colour if colorizing, else white, the draw mode and a rotation). UpdateGame records a move's frames (+0x3444,
+up to 500, sparser after 20 and 50) and StartPieceMove drops them; a replay's rewind (UpdateGame state 1, DrawOverlay)
+draws the last frame back and drops it (0x70d293, 0x70d704). DrawImageTransform (0x70dfad) repeats
+DrawImageTransformHelper's 2D cases; the rotated and plain float cases and the mirrors go to the Graphics unrecorded
+and drawn even while skipping, the matrix one not drawn while skipping. 0x421780, the rectangle draw it records as
+type 3, applies the Graphics' own scale (the framework's does not; GraphicsRecorder.cpp does it).
 
 DrawImageCentered (0x757137): unturned, it places the image by one cel's size (GetCelWidth/Height), whatever the
 source rectangle; turned, it uses a Transform. DrawImageScaledCentered (0x756ee7) takes alignment flags (1 centre x,
@@ -150,8 +158,8 @@ Ported: StartMainMenu, ShowMainMenu (without the board), the Gates, MenuButtonWi
 cycles (ColorCycle, 0x6e6e1b-0x6e70ad, four of red, yellow, green and cyan a quarter apart), the windowed-mode
 button, the profiles' files (Profile), the ranks' names (Ranks), the profiles panel (ProfilePanel), the new player
 panel (NewUserPanel, menu +0x3d4, 0x699924-0x69ab42), the game's dialogs (TwistDialog), the high scores and the
-high scores panel (HighScoresPanel; without the new score going into its list, the board behind it and the replays,
-which come with the end of a game), the help panel (HelpPanel) and the options panel (OptionsPanel, without its
+high scores panel (HighScoresPanel; without the new score going into its list, which comes with the end of a game; its
+replays are ported with the board's, below), the help panel (HelpPanel) and the options panel (OptionsPanel, without its
 buttons over a game). Not yet: the challenges, the end of game stats (EndStats), the registration widget, the gem
 prerender, the app's music, and starting a game.
 
@@ -282,8 +290,8 @@ from a label named after the tip (ShowNextTip, 0x6bbc58, reads the file once int
 its dialog is clicked away, when 0x6c78a5 (Board::CloseTip) marks the tip seen in the profile and, for the basics
 (kind 14), resets the score and the tube. While it runs, the board's hints, clicks and twists ask its state (+0x16c),
 its "dialog up" flag (+0x210) and whether moves are allowed (+0x21d); 0x6aa3bc draws the forced move's "click here" and
-the arrows around the cursor. A few commands still reach parts of the board not yet ported (the replay of the tip
-from its saved board).
+the arrows around the cursor. Its replay button rewinds the move and plays it again (Board::StartReplay, the
+replays below).
 
 The end of a level: LevelComplete (0x6b3634) fades the music, shows the LevelUpShow ("LEVEL n COMPLETE", 0x2c8 bytes,
 0x71cc30, at +0x26ac) and starts the hyperspace's transition 8. Meanwhile UpdateJump (in UpdateGame's busy branch,
@@ -427,6 +435,11 @@ Each is a change without a visible effect in play.
   land half a pixel apart from the native build, which rounds its edges in x87 precision as the original does, while
   wasm computes them in doubles. It belongs to the framework's 2D path, whose work is queued after Twist.
 - The level-up show (LevelUpShow) never deletes its effects manager in the original; the port deletes it with the show.
+- The menus' replays: the original sets a flag of its sound manager (+0x300a0) that sends every sound started while
+  the replay board is up through DirectSound's parametric equaliser (GUID_DSFX_STANDARD_PARAMEQ, 0x6f41aa); the
+  board's RemovedFromManager clears it. The port's sound manager has no effects, so those sounds play plain. This one
+  is heard.
+- A ReplayWidget's button is never deleted by the original; the port deletes it with the pod.
 - A gem soul's gem (GemSoul +0x67c): at its 80th update the original clears the gem's +0x535 without checking that the
   gem is still there (it is deleted when it blasts); the port checks.
 
@@ -549,9 +562,22 @@ additive, flung at a random angle) into the second manager, with the framework's
 and, unless the board is between levels (+0x26a8), ten lots of 50 points whose smoke goes dark purple (100,24,64), not
 additive, each later and slower. Its two heat waves (0x6f9efe) are Direct3D only.
 
-Not ported in this flow:
-
-- the replay playback start 0x6ca727 (Tutorial's replay button), which belongs to the replays, not the restarts.
+**The replays** (`build/logs/r3f_notes.md` has the decoding). Every move starts from the game saved before it (+0x2384,
+with the cursor's row and column at +0x23a4/+0x23a8, the rank and +0x160 at +0x23b0/+0x23ac); UpdateRecords keeps
+the best move, cascade and score with it in the app (+0xfa0, for the end stats) and the profile (+0xa0, for the high
+scores' stats page). After a good move (+0x1e8 up by more than 20 in the move, a cascade, +0x1508, over 3, or +0x262a; EndTurn), out of
+challenges and blitz, ShowReplayPod (0x6ab48d) raises the ReplayWidget pod (+0x2624, ReplayWidget.cpp); the next
+twist, a wheel or the level's end sends it down (the level's end sets +0x2628, and the pod comes back when the rank
+bar goes). Its button, and the tutorial's replay button, save the game as it is to +0x23b4 (restored only if the
+board is left during the replay), put the rank back and call StartReplay (0x6ca727) with the move's save: the game
+is loaded, the cursor put back, the board ignores the mouse, +0x2629 is set and, with the playback, state 1 rewinds
+the recorded frames to SOUND_REWIND (faster and faster: +0x3448 drops by min(n / 100 + 2, n / 20) an update, the
+streaks' generator +0x2a80 seeded from the update count over 3) before StartTwist makes the move again. The global
+generator comes back with the save, so the same gems fall. While +0x2629 is set the board runs slower (Update's
+speed), +0x2a80 is seeded from the update count over 7 and REPLAY blinks in the corner; the move's end clears it and
+gives the mouse back. The menus' replays (HighScoresPanel 0x695124, EndStats 0x6fbde0) make a board of their own
+(mode classic or the last game's, flags 8, +0x37c4) that starts the move at once; the panel waits for its move to end
+(+0x3921, +0x3444) and removes it.
 
 **Effects of the gem locks and doom gems** (EffectsManager.cpp; the constructor 0x6f4a05, Update 0x6f8792, Draw
 0x6f6451, whose switch goes through the byte table 0x6f7a19). Type 13 is a lock's link flying off: a random turn, a
@@ -667,6 +693,10 @@ profile's flag 0x11 and saves the profile, and clears +0x20d0. Board::Update als
   command's points from a list on its stack (42 and 15 entries) by a count it never checks, so further commands would
   read whatever lies beside the list. fruitdance.pam sends 37 and 15, so the original stays inside them; the port gives
   no points past the end. To see it, an animation with more commands. It would take a bound the original does not have.
+- **A replay's rewind still draws a few things.** While the recorded frames play back, GraphicsRecorder skips the
+  board's own draws, but its DrawImageTransform (0x70dfad) hands the float, mirrored and float-rotated cases straight
+  to the Graphics without looking at the skip flag, so those images still appear over the rewind. The port keeps it.
+  To see it, a replay's rewind while such an image is on the board. Fixing it would be a skip check the original lacks.
 - **An award's gem ignores its colour when there is a bomb or lock.** AwardFruit (0x6ba5b4) works out the next
   fruit colour (+0x218 modulo 7) and looks for a plain gem of it, but only when FindHintPiece finds no bomb or locked
   gem; otherwise the fruit goes to that gem whatever its colour, and the count still moves on. Seen on any board with a

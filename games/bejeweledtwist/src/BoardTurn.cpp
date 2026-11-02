@@ -498,7 +498,7 @@ void Board::EndTurn()
 		if (mUnknown2584 == nullptr && !mUnknown37C4)
 			mUnknown3904 = true;
 		if (mUnknown2629) {
-			mWidgetFlagsMod.mAddFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
+			mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
 			mUnknown2629 = false;
 		}
 	}
@@ -694,10 +694,9 @@ void Board::ShowPraise(int theLevel)
 void Board::ShowMenu()
 {
 	// 0x6a6983
-	if (mUnknown138C != 0) {
-		// port: the original deletes the object at +0x138c here (virtual slot 1) and clears it; nothing sets it in
-		// the port
-		mUnknown138C = 0;
+	if (mRewindSound != nullptr) {
+		mRewindSound->Release();
+		mRewindSound = nullptr;
 	}
 	mApp->ShowOptionsDialog();
 }

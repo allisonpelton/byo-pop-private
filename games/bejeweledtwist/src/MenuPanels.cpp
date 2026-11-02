@@ -670,11 +670,51 @@ void HighScoresPanel::ButtonDepress(int theId)
 			mHide = true;
 		}
 	} else if (theId >= BUTTON_VIEW_REPLAY) {
-		// A best move's replay, on a board of its own (comes with the board)
+		// A best move's replay, on a classic board of its own under the scores (+0x37c4), which Update takes away
+		// once it is over
 		int aReplay = GameInt(GTB(0x84e550, 12) + (theId - BUTTON_VIEW_REPLAY) * 4);
-		const Profile::SavedGame& aGame = mApp->mProfile->mSavedGames[aReplay];
-		if (!aGame.mData.mData.empty())
-			NotPorted("HighScoresPanel's replays (0x695124)");
+		Profile::SavedGame& aGame = mApp->mProfile->mSavedGames[aReplay];
+		if (!aGame.mData.mData.empty()) {
+			int aButton = 0;
+			while (aButton < (int)mReplayButtons.size()) {
+				mReplayButtons[aButton]->SetDisabled(true);
+				aButton++;
+			}
+			// (with Direct3D the menu pans to the board here.) port: the exe also sets a flag of its sound manager
+			// (+0x300a0) that puts every sound started from now on through DirectSound's parametric equaliser,
+			// until the board is removed; the port's sound manager has none. It also makes a Buffer it never uses.
+			mApp->mScoresLoaded = false;
+			mApp->mGates->SetButtonsOn(false);
+			Board* aBoard = new Board(mApp, Board::MODE_CLASSIC, 8, 0);
+			aBoard->Resize(0, 0, mApp->mWidth, mApp->mHeight);
+			mApp->mBoard = aBoard;
+			aBoard->mUnknown37C4 = true;
+			mApp->mWidgetManager->AddWidget(aBoard);
+			aBoard->ReadConfig(true);
+			aBoard->mUnknown2224 = 1.0f;
+			aBoard->Update();
+			aBoard->ShowTube(true, mApp->Is3DAccelerated());
+			aBoard->mUnknown21A2 = false;
+			aBoard->SetScore(aBoard->mUnknown168, false);
+			aBoard->mUnknown268C = 0.4f;
+			aBoard->mUnknown1378 = 1;
+			aGame.mData.SeekFront();
+			aBoard->mShakeY = 0;
+			aBoard->mShakeX = 0;
+			aBoard->StartReplay(aGame.mData, aGame.mUnknown20, aGame.mUnknown24, false);
+			// (with Direct3D the gems and the effects run 25 updates ahead instead)
+			aBoard->mBoardX = mApp->mWidth;
+			aBoard->mUnknown37C8 = 100;
+			aBoard->mUnknown20E4 = 0;
+			aBoard->mModeFlags = 8;
+			aBoard->mUnknown20E0 = 0;
+			aBoard->mUnknown2590 = aBoard->GetGridRight();
+			aBoard->mUnknown2224 = 1.0f;
+			aBoard->SetVisible(true);
+			mUnknown218 = 2.0f;
+			mUnknown214 = 1.0f;
+			aBoard->LayoutTube();
+		}
 	}
 }
 
@@ -2016,9 +2056,38 @@ void EndStats::Update()
 		}
 		mReplayFade = (float)((double)mReplayFade - 0.019999999552965164);
 	} else {
-		// port: a replay plays (mApp->mBoard is the replay's board): its place, the fade and its end come with the
-		// replays
-		NotPorted("EndStats::Update: the replay (0x6fac64)");
+		// A replay plays on its board under the stats: once its move is over and the delay has run out it fades and
+		// goes, and the buttons work again
+		Board* aBoard = mApp->mBoard;
+		aBoard->mUnknown37EC = (float)Ftol((double)gApp->mScale * 50.0);
+		mApp->mBoard->mUnknown37F0 = (float)Ftol((double)gApp->mScale * 450.0);
+		aBoard = mApp->mBoard;
+		if (aBoard->mUnknown3921 && 0 < aBoard->mUnknown3444) {
+			float aDelay = (float)((double)mUnknown354 - 0.009999999776482582);
+			mUnknown354 = aDelay;
+			if (aDelay <= 0.0f) {
+				float aFade = (float)((double)mReplayFade - 0.019999999552965164);
+				mReplayFade = aFade;
+				if (aFade < 0.5f) {
+					mApp->mWidgetManager->RemoveWidget(mApp->mBoard);
+					delete mApp->mBoard;
+					mApp->mBoard = nullptr;
+					mApp->mWidgetManager->SetFocus(this);
+					for (int i = 0; i < 3; i++) {
+						if (mReplayButtons[i] != nullptr)
+							mReplayButtons[i]->SetDisabled(false);
+					}
+					mContinueButton->SetDisabled(false);
+				}
+			}
+		} else {
+			float aFade = (float)((double)mReplayFade + 0.019999999552965164);
+			if (1.0f < aFade)
+				aFade = 1.0f;
+			mReplayFade = aFade;
+			if (0.5f <= aFade && !aBoard->mVisible)
+				aBoard->SetVisible(true);
+		}
 	}
 	mColorCycle.Update();
 	mDrop.IncInVal();
@@ -2238,11 +2307,58 @@ void EndStats::ButtonDepress(int theId)
 		return;
 	if (theId == 0) {
 		// Continue: it drops away
-		mDrop.SetCurve(GTS(0x7e2334));
+		mDrop.SetCurve(GTS(0x7e2308));
 		mState = 2;
 		mMouseVisible = false;
 	} else if (0 < theId && theId < 4) {
-		// port: the replay's board (0x6c4df9, mode 8) and its start come with the replays
-		NotPorted("EndStats::ButtonDepress: the replays (0x6fbde0)");
+		// One of the game's replays, on a board of its own (+0x37c4) under the stats; it shows once mReplayFade has
+		// risen past half (Update)
+		// (without Direct3D, gD3DInterface: the stats rise out of the way)
+		mDrop.SetCurve(GTS(0x7e2334));
+		// port: the exe also sets a flag of its sound manager (+0x300a0) that puts every sound started from now on
+		// through DirectSound's parametric equaliser, until the board is removed; the port's sound manager has
+		// none. It also makes a Buffer it never uses.
+		mApp->mScoresLoaded = false;
+		TwistButton** aButton = mReplayButtons;
+		int i = 3;
+		do {
+			if (*aButton != nullptr)
+				(*aButton)->SetDisabled(true);
+			aButton++;
+			i--;
+		} while (i != 0);
+		mContinueButton->SetDisabled(true);
+		Board* aBoard = new Board(mApp, gApp->mLastGameMode, 8, 0);
+		aBoard->Resize(0, 0, mApp->mWidth, mApp->mHeight);
+		mApp->mBoard = aBoard;
+		aBoard->mUnknown37C4 = true;
+		mApp->mWidgetManager->AddWidget(aBoard);
+		aBoard->ReadConfig(true);
+		aBoard->mUnknown2224 = 1.0f;
+		aBoard->Update();
+		aBoard->ShowTube(true, true);
+		WinTwistApp::UnknownFA0& aGame = mApp->mUnknownFA0[theId - 1];
+		aBoard->mUnknown21A2 = false;
+		aBoard->SetScore(aBoard->mUnknown168, false);
+		aBoard->mUnknown1378 = 1;
+		aBoard->mUnknown268C = 0.4f;
+		aGame.mBuffer.SeekFront();
+		aBoard->mShakeY = 0;
+		aBoard->mShakeX = 0;
+		aBoard->StartReplay(aGame.mBuffer, aGame.mUnknown20, aGame.mUnknown24, false);
+		aBoard->mUnknown20E4 = 0;
+		aBoard->mUnknown20E0 = 0;
+		aBoard->mModeFlags = 8;
+		aBoard->mUnknown2590 = aBoard->GetGridRight();
+		aBoard->mUnknown2224 = 1.0f;
+		aBoard->SetVisible(false);
+		mUnknown354 = 1.5f;
+		mReplayFade = 0;
+		// (with Direct3D the gems and the effects run 25 updates ahead instead)
+		aBoard->mUnknown37C8 = 100;
+		aBoard->StartUnknown3880();
+		aBoard->mUnknown25A6 = true;
+		aBoard->LayoutTube();
+		Update();
 	}
 }

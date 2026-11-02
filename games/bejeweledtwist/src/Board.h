@@ -32,6 +32,7 @@ class Piece;
 class TextImage;
 class Traveller;
 class PointsManager;
+class ReplayWidget;
 class Points;
 class FlyingText;
 class GemSoul;
@@ -272,7 +273,7 @@ public:
 	bool mUnknown1383 = false;              // +0x1383
 	bool mUnknown1384 = false;              // +0x1384
 	int mUnknown1388 = 0;                   // +0x1388
-	int mUnknown138C = 0;                   // +0x138c
+	SoundInstance* mRewindSound = nullptr;  // +0x138c: SOUND_REWIND, looping while a replay rewinds
 	bool mUnknown1390 = true;               // +0x1390
 	int mUnknown1394 = 0;                   // +0x1394
 	bool mUnknown1398 = false;              // +0x1398
@@ -557,9 +558,9 @@ public:
 	float mUnknown25D4 = 0;                 // +0x25d4: the hint's sparkles' turn
 	int mUnknown25D8 = -1;                  // +0x25d8: the hint's row (FindMove)
 	int mUnknown25DC = -1;                  // +0x25dc: the hint's column
-	Widget* mUnknown2624 = nullptr;         // +0x2624: a widget with a state at +0x160 (not yet known)
-	bool mUnknown2628 = false;              // +0x2628
-	bool mUnknown2629 = false;              // +0x2629
+	ReplayWidget* mReplayPod = nullptr;     // +0x2624: the pod with the replay button (ShowReplayPod)
+	bool mUnknown2628 = false;              // +0x2628: the level's end took the pod down; the rank bar's end shows it again
+	bool mUnknown2629 = false;              // +0x2629: a replay plays (StartReplay to the move's end)
 	bool mUnknown262A = false;              // +0x262a
 	int mUnknown262C = -1;                  // +0x262c
 	Challenge* mChallenge = nullptr;        // +0x2630: the challenge being played (mode 2), the app's ChallengeInfo owns it
@@ -773,6 +774,9 @@ public:
 	// 0x6c3cf5 (PopAnimListener slot 1): the fruit dance's "small" and "large" points
 	void PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam) override;
 
+	// 0x6ca727: the game in theBuffer again, with the cursor at theRow, theCol, and its move made again (+0x2629):
+	// thePlayback first rewinds the recorded frames of the move (state 1), else the move starts at once
+	void StartReplay(Buffer& theBuffer, int theRow, int theCol, bool thePlayback);
 	// 0x6c9d0b: a new game, or the saved one unless the menu's play button resumes the game on the screen
 	void StartGame();
 	// 0x6c8e99: the game saved in theBuffer; false for none (port: the reading of a save is not ported yet)
@@ -887,7 +891,7 @@ public:
 	void UpdateHint();                           // 0x6aff84
 	void ShowHint();                             // 0x6c32cf
 	void UpdateToolTips();                       // part of 0x6d090f
-	void ShowStatsBar();                         // 0x6ab48d
+	void ShowReplayPod();                        // 0x6ab48d: the pod with the replay button rises (not in blitz)
 	void SetUnknown3924(float theValue);         // 0x6a6a07: the board's brightness; rising from 0 it shows the gems
 	void ApplyUnknown3924();                     // 0x6a69a8: every gem's alpha to it
 	void RetargetTravellers();                   // 0x6a9f1d

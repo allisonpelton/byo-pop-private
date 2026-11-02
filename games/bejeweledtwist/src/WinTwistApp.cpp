@@ -913,6 +913,11 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		NewGame(std::atoi(theCommand.mArgs.c_str()), false, 0);
 		return true;
 	}
+	// "autoplayoff" ends -autoplay's moves, so a script can go on with its own clicks
+	if (theCommand.mCommand == "autoplayoff") {
+		mAutoPlayMode = -1;
+		return true;
+	}
 	return false;
 }
 

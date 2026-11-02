@@ -10,6 +10,7 @@
 #include "Font.h"
 #include "GameText.h"
 #include "Graphics.h"
+#include "GraphicsRecorder.h"
 #include "Hyperspace.h"
 #include "Piece.h"
 #include "Points.h"
@@ -889,8 +890,38 @@ void Board::DrawOverlay(Graphics* g)
 	}
 	if (mUnknown6CC && !mApp->mUnknownF85 && !mUnknown37C4 && !mUnknown2629)
 		DrawToolTip(g);
-	if (mUnknown160 == 1 || mUnknown2629)
-		NotPorted("Board::DrawOverlay: the replay's screen");
+	// A replay: the rewind draws the last recorded frame and drops it (and the frames down to +0x3448), dimmed and
+	// streaked like a tape running back; then REPLAY blinks in the corner while the move is made again
+	bool aReplay = false;
+	if (mUnknown160 == 1) {
+		gGraphicsRecorder->DrawFrame(g, gGraphicsRecorder->GetLastFrame());
+		gGraphicsRecorder->PopFramesFrom(mUnknown3448);
+		aReplay = true;
+	}
+	if (mUnknown2629)
+		aReplay = true;
+	if (aReplay && !mUnknown37C4) {
+		// (the exe brackets this with MTRand::SetRandAllowed, 0x456310, a debug count. With Direct3D the rewind's
+		// streaks are red and green lines down the left edge instead)
+		if (mUnknown160 == 1) {
+			g->SetColor(Color(64, 64, 64, 128));
+			g->FillRect(0, 0, mWidth, mHeight);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+			for (int i = 0; i < (int)mUnknown2A80.Next() % 10 + 6; i++) {
+				g->SetColor(Color(255, 255, 255, 64));
+				int aHeight = (int)(mUnknown2A80.Next() & 1) + 1;
+				int aY = (int)(mUnknown2A80.Next() % (unsigned long)(unsigned int)mHeight);
+				g->FillRect(0, aY, mWidth, aHeight);
+			}
+		}
+	}
+	bool aShowReplay = mUnknown37C4 ? !mApp->Is3DAccelerated() : mUnknown2629 && mUnknown160 != 1;
+	if (aShowReplay && ((mApp->mUpdateCount / 10) & 1) == 0) {
+		g->SetColorizeImages(false);
+		Image* aReplayImage = IMAGE_REPLAY;
+		g->DrawImage(aReplayImage, Ftol((double)mWidth - (double)aReplayImage->mWidth * (double)1.1f),
+			Ftol((double)mHeight - (double)aReplayImage->mHeight * (double)1.1f));
+	}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	for (Traveller* aTraveller : mUnknown2170)  // 0x6a9b85
 		aTraveller->Draw();
