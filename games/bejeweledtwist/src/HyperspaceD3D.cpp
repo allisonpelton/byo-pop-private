@@ -946,12 +946,6 @@ void Hyperspace::DrawTravellers(Graphics* g)
 	}
 }
 
-void Hyperspace::DrawTunnel3D(Graphics* g)
-{
-	(void)g;
-	NotPorted("Hyperspace::DrawTunnel 3D half 0x711b65 (cube tunnel, CubeFixedFunctionShader/RainbowCube)");
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // SetTransition (0x7181b3) with gD3DInterface set
 
@@ -1367,6 +1361,24 @@ void Hyperspace::SetTransition3D(int theTransition)
 ///////////////////////////////////////////////////////////////////////////////
 // Update (0x715c21) with gD3DInterface set
 
+// The states of a normal (registered) level-up jump, transition 8, end to end:
+//   1  the jump has been asked for: mUnknown1E8 (the VizManager's speed, set by SetTransition's curves) runs; when it is
+//      done the VizManager's picture goes into +0x160, the VizManager is hidden, +0x155 and +0x156 are set and the
+//      board is enabled (+0x55 = 0) (SOUND_TRANS_SPACENOISE)                                             -> 2
+//   2  the camera flies off; mUnknown5D8 (the countdown the tunnel shows under 1) runs; when it is done the engines
+//      ignite (SOUND_TRANS_ENGINEIGNITION, the engine loop starts)                                           -> 3
+//   3  the jump proper on the path's clock mUnknown6B8: 100 updates from its end SOUND_TRIALLIMIT (transition 14 only),
+//      0xfa from its end the closing curves, 0x8c SOUND_TRANS_ARRIVAL, 0x3c the souls are let go (+0x158 clear), and
+//      0x23 updates from its end the new level is made (mIs3D off, NewLevel, ClearBoard, FillInBlanks) and the state
+//      is 4 (state 5 stays)                                                                                -> 4
+//   4  when 6B8 ends: the VizManager is shown again and mUnknown1E8 gets the arrival curve                  -> 5
+//   5  mUnknown1E8 crosses 0.3: the travellers retarget; when it has been triggered the board is enabled and  -> 10
+//   10 the jump is over (the board sees it and clears mClicked). States 6 to 9 belong to transition 14, the trial's
+//      limit (6 the dialog is up, 7 the game ends, 8 and 9 the dialog is taken off and the world flies on); a
+//      transition-8 jump never gets there. Transition 9 and 10 (the game's start) run 3 to 5 the same way.
+// Every state change hangs on a curve of the SetTransition: a curve with no string (the port's GameTextTable.inc lacking
+// the address, so GTS(addr) is "") has no step (IncInVal() is false, as for a finished one) and every state runs on at
+// once; regenerate the table with games/bejeweledtwist/tools/gametext.py after adding a GTS use.
 void Hyperspace::Update3D()
 {
 	// 0x716336 and on: the common code of every transition, which the 2D chain (0x715d68) leaves to them only in 3D
@@ -1831,6 +1843,235 @@ void Hyperspace::DrawParticles()
 				&aPrimitiveListener);
 		}
 	}
+}
+
+namespace {
+
+// The tunnel's vertex (0x34 bytes, made by 0x70f22c; FVF 0x402d2: position, normal, diffuse, specular, two texture sets,
+// the second of three floats)
+struct CubeVertex {
+	float x, y, z;           // +0x00
+	float nx, ny, nz;        // +0x0c
+	unsigned int mDiffuse;   // +0x18
+	unsigned int mSpecular;  // +0x1c: 0
+	float u, v;              // +0x20
+	float mUnknown28[3];     // +0x28: 0
+};
+
+// 0x70f22c
+CubeVertex MakeCubeVertex(float x, float y, float z, float nx, float ny, float nz, float u, float v, unsigned int theColor)
+{
+	CubeVertex aVertex;
+	aVertex.x = x;
+	aVertex.mSpecular = 0;
+	aVertex.y = y;
+	aVertex.mDiffuse = theColor;
+	aVertex.z = z;
+	aVertex.nx = nx;
+	aVertex.ny = ny;
+	aVertex.nz = nz;
+	aVertex.u = u;
+	aVertex.v = v;
+	aVertex.mUnknown28[2] = 0.0f;
+	aVertex.mUnknown28[1] = 0.0f;
+	aVertex.mUnknown28[0] = 0.0f;
+	return aVertex;
+}
+
+}  // namespace
+
+void Hyperspace::DrawTunnel3D(Graphics* g)
+{
+	// 0x711b65's Direct3D half: the level's picture on a cube turning through the tunnel (two passes: pass 0 the
+	// picture's cube, pass 1 a larger, additive rainbow cube about it), six faces to a pass
+	(void)g;
+	if (gApp->mVizManager->mVisible)  // 0x711b83: +0x54 of the VizManager
+		return;
+	if (mTransition == 14 && !mFlag15B) {
+		// 0x711c09: the trial-limit dialog (+0x152c) projected into space through the camera at +0x144c
+		NotPorted("Hyperspace::DrawTunnel 0x711c09 (the trial-limit dialog projected into space)");
+		return;
+	}
+	WorldGraphicsListener aListener(&mCamera139C, false);  // 0x4bd5d0, ebp-0x164
+	PrimitiveListener aPrimitiveListener(&aListener);
+	// 0x4bd4c0, 0x674035: a transform that looks down -z (the same rows as LookAlong); its matrix (0x4c1940) is not used
+	Transform3D aLook;
+	LookAlong(aLook.mRot, Vec3{0.0f, 0.0f, -1.0f}, Vec3{0.0f, 1.0f, 0.0f});
+	int aPass = 0;  // ebp-0x28
+	do {
+		double aRatioA = mUnknown568.GetOutVal();  // ebp-0x4c
+		double aRatioB = mUnknown568.GetOutVal();  // ebp-0x30
+		double aSize = mUnknown4F8.GetOutVal();
+		float aHalfWidth = (float)((((double)mWidth / (double)mHeight) * (1.0 - aRatioA) + aRatioB) * aSize);  // ebp-0x14
+		float aHalfHeight = (float)mUnknown4F8.GetOutVal();      // ebp+8
+		float aHalfDepth = (float)mUnknown4F8.GetOutVal();       // ebp-0x20
+		bool aFlag15B = mFlag15B;                                // ebp-0x32
+		float anAlpha = (float)(mUnknown4F8.GetOutVal() * 2.0);  // ebp-0x10
+		if (aPass == 1) {
+			double aGrow = mUnknown4F8.GetOutVal();
+			anAlpha = (float)(mUnknown568.GetOutVal() * aGrow);
+		}
+		if (!(anAlpha <= 1.0))
+			anAlpha = 1.0f;
+		unsigned int aColor = Color(255, 255, 255, Ftol((double)anAlpha * 255.0)).ToInt();  // 0x401740, 0x401860
+		if (aPass == 1) {
+			aHalfWidth = (float)((double)aHalfWidth * 1.5);  // 0x81d3d0
+			aHalfHeight = (float)((double)aHalfHeight * 1.5);
+			aHalfDepth = (float)((double)aHalfDepth * 1.5);
+		}
+		float aMinusW = -aHalfWidth;
+		float aMinusH = -aHalfHeight;
+		float aMinusD = -aHalfDepth;
+		// The 24 vertices, four to a face (a strip of two triangles): the normal, then each corner's place and picture
+		CubeVertex aVertices[24];
+		aVertices[0] = MakeCubeVertex(aMinusW, aHalfHeight, aHalfDepth, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, aColor);
+		aVertices[1] = MakeCubeVertex(aHalfWidth, aHalfHeight, aHalfDepth, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, aColor);
+		aVertices[2] = MakeCubeVertex(aMinusW, aMinusH, aHalfDepth, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, aColor);
+		aVertices[3] = MakeCubeVertex(aHalfWidth, aMinusH, aHalfDepth, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, aColor);
+		aVertices[4] = MakeCubeVertex(aHalfWidth, aHalfHeight, aMinusD, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, aColor);
+		aVertices[5] = MakeCubeVertex(aMinusW, aHalfHeight, aMinusD, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, aColor);
+		aVertices[6] = MakeCubeVertex(aHalfWidth, aMinusH, aMinusD, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, aColor);
+		aVertices[7] = MakeCubeVertex(aMinusW, aMinusH, aMinusD, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f, aColor);
+		aVertices[8] = MakeCubeVertex(aHalfWidth, aHalfHeight, aMinusD, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, aColor);
+		aVertices[9] = MakeCubeVertex(aHalfWidth, aMinusH, aMinusD, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, aColor);
+		aVertices[10] = MakeCubeVertex(aHalfWidth, aHalfHeight, aHalfDepth, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, aColor);
+		aVertices[11] = MakeCubeVertex(aHalfWidth, aMinusH, aHalfDepth, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, aColor);
+		aVertices[12] = MakeCubeVertex(aMinusW, aMinusH, aMinusD, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f, aColor);
+		aVertices[13] = MakeCubeVertex(aMinusW, aHalfHeight, aMinusD, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, aColor);
+		aVertices[14] = MakeCubeVertex(aMinusW, aMinusH, aHalfDepth, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, aColor);
+		aVertices[15] = MakeCubeVertex(aMinusW, aHalfHeight, aHalfDepth, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, aColor);
+		aVertices[16] = MakeCubeVertex(aMinusW, aHalfHeight, aHalfDepth, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, aColor);
+		aVertices[17] = MakeCubeVertex(aMinusW, aHalfHeight, aMinusD, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, aColor);
+		aVertices[18] = MakeCubeVertex(aHalfWidth, aHalfHeight, aHalfDepth, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, aColor);
+		aVertices[19] = MakeCubeVertex(aHalfWidth, aHalfHeight, aMinusD, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, aColor);
+		aVertices[20] = MakeCubeVertex(aMinusW, aMinusH, aHalfDepth, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, aColor);
+		aVertices[21] = MakeCubeVertex(aHalfWidth, aMinusH, aHalfDepth, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, aColor);
+		aVertices[22] = MakeCubeVertex(aMinusW, aMinusH, aMinusD, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, aColor);
+		aVertices[23] = MakeCubeVertex(aHalfWidth, aMinusH, aMinusD, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f, aColor);
+		// where the cube is carried: along the jump's path (+0x8e8's direction, +0x153c's start) once the old level is
+		// gone (+0x15b clear), else it stays at the origin
+		float aPlaceX;  // ebp-0x58
+		float aPlaceY;  // ebp-0x54
+		float aPlaceZ;  // ebp-0x50
+		if (aFlag15B) {
+			aPlaceX = 0.0f;
+			aPlaceY = 0.0f;
+			aPlaceZ = 0.0f;
+		} else {
+			float aStep = (float)mUnknown900.GetOutVal();
+			float aDirectionX = (float)mUnknown8E8[0];  // ebp-0x2c
+			float aDirectionY = (float)mUnknown8E8[1];  // ebp-0x1c
+			float aDirectionZ = (float)mUnknown8E8[2];  // ebp-0x44
+			aDirectionX = aStep * aDirectionX;
+			aDirectionY = aStep * aDirectionY;
+			aDirectionZ = aStep * aDirectionZ;
+			aPlaceX = aDirectionX + mUnknown153C.x;
+			aPlaceY = mUnknown153C.y + aDirectionY;
+			aPlaceZ = mUnknown153C.z + aDirectionZ;
+		}
+		float aSpin = (float)(mUnknown488.GetOutVal() * 5.0);  // ebp-0x44; 0x81d220
+		int aFace = 0;  // ebp-0x24
+		do {
+			// the card's abilities: caps bit 4 is vs_2_0, bit 2 ps_2_0 (the port's device has both)
+			bool aHasVertexShader = false;  // ebp+0xb
+			if (gD3DInterface != nullptr)
+				aHasVertexShader = (gD3DInterface->GetCaps(0) & 4) != 0;
+			bool aHasPixelShader = false;  // ebp-0x31
+			if (gD3DInterface != nullptr)
+				aHasPixelShader = (gD3DInterface->GetCaps(0) & 2) != 0;
+			float aFaceAlpha = 1.0f;  // ebp-0x10: how much of the face shows
+			bool aSkipFace = false;
+			if (aPass == 0) {
+				mUnknown878.SetInVal(mUnknown488.GetOutVal());
+				if (aFace == 1) {
+					aFaceAlpha = (float)mUnknown878.GetOutVal();
+					if (0.0f == aFaceAlpha)
+						aSkipFace = true;
+				}
+				if (!aSkipFace) {
+					// 0x85d838 (ctor 0x710f11, built once at the first use): a D3DDrawPrimitiveListener holding a
+					// CubeFixedFunctionShader (0x70f279), which only a card without ps_2_0 sets as the listener's inner
+					if (aHasVertexShader)
+						gD3DInterface->SetVertexShader(gTwistShaders[TWISTSHADER_CUBE_V]);
+					if (aHasPixelShader)
+						gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_CUBE_P]);
+					else
+						NotPorted("CubeFixedFunctionShader 0x70f279 as the listener's inner (a card without ps_2_0)");
+					gD3DInterface->SetTexture(0, mUnknown160);
+				}
+			} else {
+				mUnknown798.SetInVal(mUnknown488.GetOutVal());
+				mUnknown808.SetInVal(mUnknown488.GetOutVal());
+				if (aFace == 0 || aFace == 1) {
+					aFaceAlpha = (float)(aFace == 0 ? mUnknown798.GetOutVal() : mUnknown808.GetOutVal());
+					if (0.0f == aFaceAlpha)
+						aSkipFace = true;
+				}
+				if (!aSkipFace) {
+					// 0x85d828 (ctor 0x710f36, built once at the first use): the same around a
+					// RainbowCubeFixedFunctionShader (0x70f389)
+					if (aHasVertexShader)
+						gD3DInterface->SetVertexShader(gTwistShaders[TWISTSHADER_RAINBOW_CUBE_V]);
+					if (aHasPixelShader)
+						gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_RAINBOW_CUBE_P]);
+					else
+						NotPorted("RainbowCubeFixedFunctionShader 0x70f389 as the listener's inner (a card without ps_2_0)");
+					gD3DInterface->SetTexture(0, IMAGE_RAINBOWCASE1);
+					gD3DInterface->SetTexture(1, IMAGE_RAINBOWCASE2);
+				}
+			}
+			if (!aSkipFace) {
+				// the cube's place: turned about y and z by the spin, carried by the camera's look and moved
+				Transform3D aCube;
+				aCube.mRot.RotateY(aSpin);  // 0x68fa0b
+				aCube.mRot.RotateZ((float)((double)aSpin * -0.18000000715255737));  // 0x673fd0; 0x7e43d8
+				if (aFlag15B) {
+					double aPathA = mUnknown5D8.GetOutVal();
+					double aPathB = mUnknown5D8.GetOutVal();
+					float aMoveY = (float)(aPathA * -2.700000047683716);  // 0x7e43d0
+					float aMoveX = (float)(aPathB * -1.2999999523162842);  // 0x7d7ea8
+					float aMoveZ = (float)(mUnknown5D8.GetOutVal() * 2.0999999046325684);  // 0x7e32a8
+					Translate(aCube, aMoveX, aMoveY, aMoveZ);  // 0x6dd0e2
+				}
+				aCube = Compose(aCube, aLook);  // 0x68fa70
+				Translate(aCube, aPlaceX, aPlaceY, aPlaceZ);
+				aListener.mWorld = aCube;
+				if (aPass == 0) {
+					aListener.SetCulling(true);
+					aListener.SetDepth(true, true);
+				} else {
+					aListener.SetCulling(false);
+					aListener.SetDepth(true, false);
+				}
+				if (aHasVertexShader) {
+					// the vertex shader does the turning; each corner's alpha is scaled by the face's
+					CubeVertex* aCorner = &aVertices[aFace * 4];
+					int aLeft = 4;
+					do {
+						unsigned int aDiffuse = aCorner->mDiffuse;
+						Color aCornerColor((int)((aDiffuse >> 16) & 0xff), (int)((aDiffuse >> 8) & 0xff),
+							(int)(aDiffuse & 0xff), (int)(aDiffuse >> 24));  // 0x401880
+						aCornerColor.mAlpha = Ftol((double)aCornerColor.mAlpha * (double)aFaceAlpha);
+						aCorner->mDiffuse = aCornerColor.ToInt();
+						aCorner++;
+						aLeft--;
+					} while (aLeft != 0);
+					// the draw mode is the pass: 0 normal, 1 additive
+					gD3DInterface->DrawPrimitiveEx(0x402d2, GPUPT_TRIANGLESTRIP, &aVertices[aFace * 4], 2, Color::White,
+						aPass, 0.0f, 0.0f, true, &aPrimitiveListener);
+				} else {
+					// 0x712930 to 0x712e18: the corners turned by the cube's and the camera's matrices (0x44f4a0, 0x44f560)
+					// and shaded here, a grey from the depth and a specular grey, for a card without vs_2_0
+					NotPorted("DrawTunnel3D's CPU-transformed cube 0x712930 (a card without vs_2_0)");
+				}
+				gD3DInterface->SetVertexShader(nullptr);
+				gD3DInterface->SetPixelShader(nullptr);
+				aListener.SetInner(nullptr);  // 0x4bd6f0
+			}
+			aFace++;
+		} while (aFace < 6);
+		aPass++;
+	} while (aPass < 2);
 }
 
 void Hyperspace::UpdateThrust()

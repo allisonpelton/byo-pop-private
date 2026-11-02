@@ -4,7 +4,8 @@
 //
 // port: both modes. Hyperspace.cpp holds the 2D paths and the shared head; with gD3DInterface set SetTransition, Update
 // and Draw go to HyperspaceD3D.cpp (the world's curves, the state machine, the camera, the ship, the draws). Not ported
-// there yet (NotPorted): the tunnel (DrawTunnel3D 0x711b65), the trial-limit dialog and the replay pod.
+// there yet (NotPorted): the tunnel's trial-limit dialog and its fixed-function and CPU-transformed paths (DrawTunnel3D
+// 0x711b65), and the replay pod.
 #pragma once
 
 #include "CurvedVal.h"

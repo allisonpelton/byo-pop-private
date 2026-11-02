@@ -404,7 +404,11 @@ static int StrideOf(unsigned long theFVF)
 		aSize += 4;
 	if (theFVF & GPUFVF_SPECULAR)
 		aSize += 4;
-	aSize += (int)((theFVF >> 8) & 0xf) * 8;
+	// Each set's floats by its D3DFVF_TEXCOORDSIZE bits (bits 16 + 2i: 0 two, 1 three, 2 four, 3 one)
+	static const int kTexFloats[4] = {2, 3, 4, 1};
+	int aNumTex = (int)((theFVF >> 8) & 0xf);
+	for (int i = 0; i < aNumTex; i++)
+		aSize += 4 * kTexFloats[(theFVF >> (16 + 2 * i)) & 3];
 	return aSize;
 }
 
