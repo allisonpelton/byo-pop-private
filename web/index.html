@@ -42,7 +42,8 @@ main, .site-header {
 }
 main { padding-block: 0 32px; }
 .site-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-block: 24px; }
-.site-header img { display: block; }
+/* The logo at its drawn size, 276 by 64 (the user, 2026-11-02: "Make the logo bigger on the front page"), narrower on a small screen */
+.site-header img { display: block; max-width: 100%; height: auto; }
 .site-header .logo-dark { display: none; }
 @media (prefers-color-scheme: dark) {
   .site-header .logo-light { display: none; }
@@ -206,8 +207,8 @@ footer a { color: var(--accent); }
 </head>
 <body>
 <header class="site-header">
-  <img class="logo-light" src="logo.svg" alt="byo-pop" width="120" height="28">
-  <img class="logo-dark" src="logo-dark.svg" alt="" width="120" height="28">
+  <img class="logo-light" src="logo.svg" alt="byo-pop" width="276" height="64">
+  <img class="logo-dark" src="logo-dark.svg" alt="" width="276" height="64">
   <h1 id="games-title">Games</h1>
 </header>
 <main>

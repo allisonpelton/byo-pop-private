@@ -207,7 +207,8 @@ part of the terms' version, so a change of stores asks nobody to agree again.
 `build/web/index.html` lists the finished games, so that the site's root shows them instead of a directory listing: a
 tile for each, with the game's `TITLE` and a badge (its initials on a colour of its own from `BYOPOP_WEB_BADGES`,
 drawn by the page, never from the game's files) linking to its page; opened with `?silent=1`, it passes that on to the
-links. `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
+links. Its header has the logo at the size it is drawn, 276 by 64 pixels (the user, 2026-11-02: "Make the logo bigger on the
+front page"), narrower when the window is, and the heading "Games". `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
 option is off). Below the tiles it has the Players section (`#players`; "Player profiles", below), which `web/players.js` builds
