@@ -9,7 +9,8 @@
 // HD replacement images (see DDImage::mHDBits) render crisply.
 //
 // Every frame is drawn into mScreenTexture, a render target of (logical size * mRenderScale) pixels,
-// which Present() scales into mPresentationRect of the window's drawable.
+// which Present() scales into mPresentationRect of the window's drawable. The logical size, the drawable's size and
+// mPresentationRect are DisplayGeometry's, which also maps window coordinates and places the cursor.
 //
 // Only the screen image draws through here; offscreen MemoryImages keep using the framework's
 // software blitters. Source images are uploaded as premultiplied-alpha textures cached on
@@ -17,6 +18,7 @@
 
 #include "Common.h"
 #include "NativeDisplay.h"
+#include "DisplayGeometry.h"
 #include "Rect.h"
 #include "Color.h"
 
@@ -35,7 +37,7 @@ class SexyMatrix3;
 class TriVertex;
 struct DDTextureData;
 
-class DDInterface : public NativeDisplay
+class DDInterface : public NativeDisplay, public DisplayGeometry
 {
 public:
 	enum
@@ -54,11 +56,6 @@ public:
 	SDL_Window* mWindow;
 	SDL_Renderer* mRenderer;
 	DDImage* mScreenImage;
-	int mWidth;   // logical size
-	int mHeight;
-	int mDisplayWidth;   // drawable size in pixels
-	int mDisplayHeight;
-	Rect mPresentationRect;  // where the logical screen lands inside the drawable
 	bool mIs3D;  // true when the renderer is hardware accelerated
 	bool mIsWindowed;
 	bool mVSync;

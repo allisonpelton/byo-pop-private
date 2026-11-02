@@ -59,8 +59,6 @@ struct DDTextureData
 
 }
 
-static const int MAX_RENDER_SCALE = 4;
-static const int CURSOR_AREA_SIZE = 64;	// 1.3 centers the cursor image in a 64x64 area
 
 static std::vector<uint32_t> gPixelBuffer;
 static const int kPixelBufferSize = 65536; // pixels a texture upload converts at a time (256 KB)
@@ -346,24 +344,9 @@ void DDInterface::UpdateDisplaySize()
 
 	int aWidth = 0;
 	int aHeight = 0;
-	if ((SDL_GetRendererOutputSize(mRenderer, &aWidth, &aHeight) == 0) && (aWidth > 0) && (aHeight > 0))
-	{
-		mDisplayWidth = aWidth;
-		mDisplayHeight = aHeight;
-	}
-
-	// Letterbox the logical screen (keeps its aspect ratio)
-	double aScale = std::min(mDisplayWidth / (double) mWidth, mDisplayHeight / (double) mHeight);
-	int aPresWidth = std::max(1, std::min(mDisplayWidth, (int) (mWidth * aScale + 0.5)));
-	int aPresHeight = std::max(1, std::min(mDisplayHeight, (int) (mHeight * aScale + 0.5)));
-	mPresentationRect = Rect((mDisplayWidth - aPresWidth) / 2, (mDisplayHeight - aPresHeight) / 2, aPresWidth, aPresHeight);
-
-	// Render at the next integer scale at or above the presentation scale, so that HD textures keep
-	// their detail and the final copy only ever scales down (or not at all)
-	int aRenderScale = (mForcedRenderScale > 0) ? mForcedRenderScale : (int) ceil(aScale - 0.01);
-	aRenderScale = std::max(1, std::min(MAX_RENDER_SCALE, aRenderScale));
-	while ((aRenderScale > 1) && ((mWidth * aRenderScale > mMaxTextureWidth) || (mHeight * aRenderScale > mMaxTextureHeight)))
-		aRenderScale--;
+	if (SDL_GetRendererOutputSize(mRenderer, &aWidth, &aHeight) != 0)
+		aWidth = aHeight = 0;
+	int aRenderScale = DisplayGeometry::UpdateDisplaySize(aWidth, aHeight, mMaxTextureWidth, mMaxTextureHeight, mForcedRenderScale);
 
 	if ((mScreenTexture == NULL) || (aRenderScale != mRenderScale))
 		CreateScreenTexture(aRenderScale);
@@ -457,12 +440,9 @@ void DDInterface::DrawCursor()
 	float aScaleX = mPresentationRect.mWidth / (float) mWidth;
 	float aScaleY = mPresentationRect.mHeight / (float) mHeight;
 
-	int aX = mCursorX - (CURSOR_AREA_SIZE / 2) + (CURSOR_AREA_SIZE - anImage->mWidth) / 2;
-	int aY = mCursorY - (CURSOR_AREA_SIZE / 2) + (CURSOR_AREA_SIZE - anImage->mHeight) / 2;
-
 	SDL_Rect aSrcRect = { 0, 0, anImage->mWidth * aData->mScale, anImage->mHeight * aData->mScale };
-	SDL_FRect aDestRect = { mPresentationRect.mX + aX * aScaleX, mPresentationRect.mY + aY * aScaleY,
-		anImage->mWidth * aScaleX, anImage->mHeight * aScaleY };
+	SDL_FRect aDestRect;
+	CursorRect(mCursorX, mCursorY, anImage->mWidth, anImage->mHeight, &aDestRect.x, &aDestRect.y, &aDestRect.w, &aDestRect.h);
 	SDL_Rect aClipRect = { mPresentationRect.mX, mPresentationRect.mY, mPresentationRect.mWidth, mPresentationRect.mHeight };
 
 	SDL_Texture* aTexture = PrepareTexture(anImage, aData, Graphics::DRAWMODE_NORMAL, IsFractional(aScaleX) || IsFractional(aScaleY));
@@ -476,64 +456,27 @@ void DDInterface::DrawCursor()
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+// The window's size in points for DisplayGeometry, 0 when there is no window
+static void GetWindowPoints(SDL_Window* theWindow, int* theWidth, int* theHeight)
+{
+	*theWidth = 0;
+	*theHeight = 0;
+	if (theWindow != NULL)
+		SDL_GetWindowSize(theWindow, theWidth, theHeight);
+}
+
 void DDInterface::WindowToLogical(int theWindowX, int theWindowY, int* theX, int* theY)
 {
-	double aX = theWindowX;
-	double aY = theWindowY;
-
-	// HiDPI: window coordinates are in points, the drawable is in pixels
-	if (mWindow != NULL)
-	{
-		int aWindowWidth = 0;
-		int aWindowHeight = 0;
-		SDL_GetWindowSize(mWindow, &aWindowWidth, &aWindowHeight);
-		if ((aWindowWidth > 0) && (aWindowHeight > 0))
-		{
-			aX = aX * mDisplayWidth / aWindowWidth;
-			aY = aY * mDisplayHeight / aWindowHeight;
-		}
-	}
-
-	if ((mPresentationRect.mWidth > 0) && (mPresentationRect.mHeight > 0))
-	{
-		aX = (aX - mPresentationRect.mX) * mWidth / mPresentationRect.mWidth;
-		aY = (aY - mPresentationRect.mY) * mHeight / mPresentationRect.mHeight;
-	}
-
-	if (theX != NULL)
-		*theX = (int) floor(aX);
-	if (theY != NULL)
-		*theY = (int) floor(aY);
+	int aWindowWidth, aWindowHeight;
+	GetWindowPoints(mWindow, &aWindowWidth, &aWindowHeight);
+	DisplayGeometry::WindowToLogical(aWindowWidth, aWindowHeight, theWindowX, theWindowY, theX, theY);
 }
 
 void DDInterface::LogicalToWindow(int theX, int theY, int* theWindowX, int* theWindowY)
 {
-	// the middle of the game's pixel, so that WindowToLogical gives theX, theY back
-	double aX = theX + 0.5;
-	double aY = theY + 0.5;
-
-	if ((mWidth > 0) && (mHeight > 0) && (mPresentationRect.mWidth > 0) && (mPresentationRect.mHeight > 0))
-	{
-		aX = aX * mPresentationRect.mWidth / mWidth + mPresentationRect.mX;
-		aY = aY * mPresentationRect.mHeight / mHeight + mPresentationRect.mY;
-	}
-
-	if ((mWindow != NULL) && (mDisplayWidth > 0) && (mDisplayHeight > 0))
-	{
-		int aWindowWidth = 0;
-		int aWindowHeight = 0;
-		SDL_GetWindowSize(mWindow, &aWindowWidth, &aWindowHeight);
-		if ((aWindowWidth > 0) && (aWindowHeight > 0))
-		{
-			aX = aX * aWindowWidth / mDisplayWidth;
-			aY = aY * aWindowHeight / mDisplayHeight;
-		}
-	}
-
-	if (theWindowX != NULL)
-		*theWindowX = (int) floor(aX);
-	if (theWindowY != NULL)
-		*theWindowY = (int) floor(aY);
+	int aWindowWidth, aWindowHeight;
+	GetWindowPoints(mWindow, &aWindowWidth, &aWindowHeight);
+	DisplayGeometry::LogicalToWindow(aWindowWidth, aWindowHeight, theX, theY, theWindowX, theWindowY);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

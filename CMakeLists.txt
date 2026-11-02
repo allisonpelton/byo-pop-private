@@ -110,6 +110,13 @@ if(NOT EMSCRIPTEN)
     VERBATIM)
 endif()
 
+# Geometry test (tools/geomtest): framework/DisplayGeometry against a table of what DDInterface gave before it moved
+# out. Pure, no SDL; native only, geomtest.exe (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(geomtest tools/geomtest/geomtest.cpp framework/DisplayGeometry.cpp)
+  target_include_directories(geomtest PRIVATE framework)
+endif()
+
 # Sound test (tools/soundtest): sounds kept as 16-bit at their own rate, and voices that resample them as they mix,
 # against the old pipeline (stereo floats at the device rate). Native only; soundtest.exe (tools/check.sh unit).
 if(NOT EMSCRIPTEN)
