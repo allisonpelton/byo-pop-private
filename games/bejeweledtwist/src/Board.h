@@ -210,10 +210,16 @@ public:
 	CurvedVal mUnknown5E8;                  // +0x5e8: its sheen's colour
 	CurvedVal mUnknown658;                  // +0x658: its sheen's place along the width
 	int mUnknown6C8 = 0;                    // +0x6c8: the mode unlocked last (2 is the challenge)
-	bool mUnknown6CC = false;               // +0x6cc
-	int mUnknown6D0 = 0;                    // +0x6d0
-	int mUnknown70C = 0;                    // +0x70c
-	int mUnknown710 = 0;                    // +0x710
+	bool mUnknown6CC = false;               // +0x6cc: the tooltip is up (UpdateToolTips, DrawOverlay)
+	int mUnknown6D0 = 0;                    // +0x6d0: the updates the mouse has stayed over the same text
+	SexyString mUnknown6D4;                 // +0x6d4: the tooltip's title
+	SexyString mUnknown6F0;                 // +0x6f0: its text
+	int mUnknown70C = 0;                    // +0x70c: its x (the place of the gem or the tube's part)
+	int mUnknown710 = 0;                    // +0x710: its y
+	int mUnknown714 = 0;                    // +0x714: its width
+	CurvedVal mUnknown718;                  // +0x718: the arrow's slide
+	CurvedVal mUnknown788;                  // +0x788: its fade
+	SexyString mUnknown7F8;                 // +0x7f8: the text the mouse is over now
 	int mUnknown814 = 0;                    // +0x814
 	int mUnknown818 = 0;                    // +0x818
 	int mUnknown82C = 0;                    // +0x82c: the tip shown, from the profile's count
@@ -960,6 +966,7 @@ public:
 	// 0x6a3b4c: the game's time, scores and counts into the profile and the app, once (+0x137c)
 	void UpdateStats();
 	void DrawNukeGem(Graphics* g, Piece* thePiece);  // 0x6a6885: the gem that set off the nuke, while hidden
+	void DrawToolTip(Graphics* g);                   // part of 0x6b4a39 (DrawOverlay): the tooltip UpdateToolTips brings up
 	// 0x6c03a4: a doom gem, coal, a gem lock or a bomb breaking; theType is 1 when the match breaks it, 2 when electro
 	// does
 	void BreakSpecial(Piece* thePiece, int theType);

@@ -25,6 +25,7 @@
 #include "Res.h"
 #include "SoundInstance.h"
 #include "SoundManager.h"
+#include "TwistDialog.h"
 #include "TwistUtil.h"
 #include "VizManager.h"
 #include "WinTwistApp.h"
@@ -2738,13 +2739,212 @@ void Board::ShowHint()
 	}
 }
 
+// 0x6d5279 to 0x6d6695 of UpdateGame: the tooltips. While the mouse is over one of the tube's parts or a special gem the
+// text for it is worked out here; once the mouse has stayed over the same text for aWait updates the tooltip comes up
+// (+0x6cc) with its place, and fades in and out with the curves at +0x718 and +0x788. DrawOverlay draws it.
 void Board::UpdateToolTips()
 {
-	if (mUnknown25A4 || mUnknown6CC || mUnknown6D0 != 0) {
-		// port: the tooltips over the tube and the special gems (0x6d5279 to 0x6d6695 of UpdateGame: their texts, the
-		// wait in +0x6d0 and the curves at +0x718 and +0x788) come with the board's drawing; SOUND_PURR plays over the
-		// cat
-		NotPorted("Board::UpdateGame: the tooltips");
+	// the scaled sizes (0x67647d)
+	auto Sc = [](int theValue) { return Ftol((double)gApp->mScale * (double)theValue); };
+
+	SexyString aTitle;
+	SexyString aBody;
+	int aSound = -1;
+	int aWait = 100;
+	int aX = 0;
+	int aY = 0;
+	int aWidth = Ftol((double)gApp->mScale * 280.0);
+	if (mUnknown25A4) {
+		int aMouseX = mWidgetManager->mLastMouseX;
+		int aMouseY = mWidgetManager->mLastMouseY;
+		// nothing is said while the mouse is over the tutorial's dialog
+		Rect aTutorialRect(0, 0, 0, 0);
+		if (mUnknown2584 != nullptr && mUnknown2584->mDialog != nullptr)
+			aTutorialRect = Rect(mUnknown2584->mDialog->mX, mUnknown2584->mDialog->mY, mUnknown2584->mDialog->mWidth,
+				mUnknown2584->mDialog->mHeight);
+		if (!aTutorialRect.Contains(aMouseX, aMouseY)) {
+			GoodTube* aTube = mGoodTube;
+			if (aTube != nullptr) {
+				if (0 < aTube->mX) {
+					if (!aTube->mUnknown14D) {
+						// the challenge's info box
+						if (mGameMode == MODE_CHALLENGE) {
+							Rect aRect(Sc(0x4c) + aTube->mX, Sc(0x50) + aTube->mY, Sc(0x10e), Sc(0x190));
+							if (aRect.Contains(aMouseX, aMouseY)) {
+								aTitle = mApp->GetString(GTS(0x7dec1c), GT(0x7debdc));
+								aBody = mApp->GetString(GTS(0x7deba0), GT(0x7deb28));
+								aY = Sc(0xfa) + aTube->mY;
+								aX = Sc(0x11f) + aTube->mX;
+								aWidth = Sc(0x168);
+							}
+						}
+					} else {
+						// the chain meter: the arc's glow, or the box around it
+						int aGlowY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(IMAGE_INGAMEUI_ARC_GLOW_ID));
+						int aGlowX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(IMAGE_INGAMEUI_ARC_GLOW_ID));
+						unsigned int aPixel = GetPixelAt(IMAGE_INGAMEUI_ARC_GLOW, (aMouseX - aTube->mX) - aGlowX,
+							(aMouseY - aTube->mY) - aGlowY);
+						Rect aRect(aTube->mX - Ftol((double)gApp->mScale * -76.0),
+							aTube->mY - Ftol((double)gApp->mScale * -80.0), Ftol((double)gApp->mScale * 270.0),
+							Ftol((double)gApp->mScale * 200.0));
+						if (0x80000000u < aPixel || aRect.Contains(aMouseX, aMouseY)) {
+							aTitle = StrFormat(mApp->GetString(GTS(0x7df138), GT(0x7df0e0)).c_str(), GetLevelFor(nullptr));
+							aBody = mApp->GetString(GTS(0x7df060), GT(0x7def60));
+							aY = Ftol((double)gApp->mScale * 175.0) + aTube->mY;
+							aX = Ftol((double)gApp->mScale * 287.0) + aTube->mX;
+							aWidth = Ftol((double)gApp->mScale * 360.0);
+						}
+					}
+				}
+				// the rank insignia
+				Rect aRankRect(Sc(0x94) + aTube->mX, Sc(0x177) + aTube->mY, Sc(0x7c), Sc(0x5a));
+				if (aRankRect.Contains(aMouseX, aMouseY) && aTube->mShown) {
+					aTitle = mApp->GetString(GTS(0x7def3c), GT(0x7def10));
+					SexyString aRank = mApp->mRanks->GetName(mApp->mProfile->mRank);
+					aBody = StrFormat(mApp->GetString(GTS(0x7dee78), GT(0x7ded48)).c_str(), aRank.c_str());
+					aY = Sc(0x190) + aTube->mY;
+					aX = Sc(0xf4) + aTube->mX;
+					aWidth = Sc(0x17c);
+				}
+				// the meter: the time left, or the level's progress
+				int aMeterY = Ftol((double)aTube->mY + (double)aTube->mUnknown194 - (double)Sc(10));
+				Rect aMeterRect(Sc(0x88) + aTube->mX, aMeterY, Sc(0x8e), Sc(0x3b));
+				if (aMeterRect.Contains(aMouseX, aMouseY)) {
+					if (mGameMode == MODE_BLITZ || (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0 && HasChallengeFlag(2))) {
+						aTitle = mApp->GetString(GTS(0x7dea60), GT(0x7dea30));
+						aBody = mApp->GetString(GTS(0x7dea00), GT(0x7de9a0));
+					} else if (mGameMode != MODE_CHALLENGE) {
+						aTitle = mApp->GetString(GTS(0x7deb10), GT(0x7deae4));
+						int aPercent = Ftol(((double)mUnknown200 / (double)mUnknown204) * 100.0);
+						aBody = StrFormat(mApp->GetString(GTS(0x7deac0), GT(0x7dea78)).c_str(), aPercent, mUnknown158);
+					} else {
+						aTitle = mApp->GetString(GTS(0x7ded2c), GT(0x7decf4));
+						aBody = mApp->GetString(GTS(0x7decb8), GT(0x7dec40));
+						aWidth = Sc(0x12c);
+					}
+					aY = Ftol((double)aTube->mY + (double)aTube->mUnknown194 + (double)Sc(5));
+					aX = Sc(0xfa) + aTube->mX;
+				}
+				// the challenge, or the bonus challenge's four colours
+				Rect aChallengeRect(Sc(0x56) + aTube->mX, Sc(0x371) + aTube->mY, Sc(0xfa), Sc(0x7d));
+				if (aChallengeRect.Contains(aMouseX, aMouseY)) {
+					bool aShow = true;
+					if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0) {
+						aTitle = mApp->GetString(GTS(0x7de988), GT(0x7de964));
+						aBody = mApp->GetString(GTS(0x7de938), GT(0x7de8e0));
+					} else if (!mBonusColors.empty()) {
+						aTitle = mApp->GetString(GTS(0x7de8c8), GT(0x7de898));
+						aBody = mApp->GetString(GTS(0x7de868), GT(0x7de808));
+					} else {
+						aShow = false;
+					}
+					if (aShow) {
+						aY = Sc(0x3bc) + aTube->mY;
+						aX = Sc(0x12c) + aTube->mX;
+					}
+				}
+			}
+			// a special gem under the mouse
+			Piece* aPiece = GetPieceAtXY(aMouseX, aMouseY);
+			if (aPiece != nullptr) {
+				int aDX = Ftol((double)aMouseX - ((double)(gGemWidth / 2) + (double)aPiece->mX));
+				int aDY = Ftol((double)aMouseY - ((double)(gGemHeight / 2) + (double)aPiece->mY));
+				float aDist = sqrtf((float)((double)aDX * (double)aDX + (double)(aDY * aDY)));
+				if ((double)aDist <= (double)gGemWidth * 0.3) {
+					bool aShown = true;
+					if (!aPiece->IsFlagSet(Piece::FLAG_POWER)) {
+						if (aPiece->IsFlagSet(Piece::FLAG_ELECTRO)) {
+							aTitle = mApp->GetString(GTS(0x7de52c), GT(0x7de500));
+							aBody = mApp->GetString(GTS(0x7de4a0), GT(0x7de3e0));
+						} else if (aPiece->IsFlagSet(Piece::FLAG_LOCKED)) {
+							aTitle = mApp->GetString(GTS(0x7de3cc), GT(0x7de3a4));
+							aBody = mApp->GetString(GTS(0x7de360), GT(0x7de2d8));
+						} else if (0 < aPiece->mUnknown4FC && !aPiece->IsFlagSet(Piece::FLAG_12)) {
+							aTitle = mApp->GetString(GTS(0x7de2c4), GT(0x7de29c));
+							aBody = mApp->GetString(GTS(0x7de228), GT(0x7de140));
+							aWidth += Sc(0);
+						} else if (aPiece->IsFlagSet(Piece::FLAG_BOMB)) {
+							aTitle = mApp->GetString(GTS(0x7dcce4), GT(0x7dccc0));
+							aBody = mApp->GetString(GTS(0x7de0e8), GT(0x7de040));
+							aWidth += Sc(0x32);
+						} else if (aPiece->IsFlagSet(Piece::FLAG_COAL)) {
+							if (mUnknown1BF2) {
+								aTitle = mApp->GetString(GTS(0x7de02c), GT(0x7de008));
+								aBody = mApp->GetString(GTS(0x7ddf98), GT(0x7ddeb8));
+								aSound = SOUND_PURR;
+							} else {
+								aTitle = mApp->GetString(GTS(0x7ddea4), GT(0x7dde88));
+								aBody = mApp->GetString(GTS(0x7dde28), GT(0x7ddd68));
+							}
+						} else if (aPiece->IsFlagSet(Piece::FLAG_FRUIT)) {
+							aTitle = mApp->GetString(GTS(0x7ddd50), GT(0x7ddd2c));
+							aBody = mApp->GetString(GTS(0x7ddce8), GT(0x7ddc60));
+						} else if (aPiece->IsFlagSet(Piece::FLAG_7)) {
+							aTitle = mApp->GetString(GTS(0x7ddc4c), GT(0x7ddc28));
+							aBody = mApp->GetString(GTS(0x7ddb98), GT(0x7dda78));
+						} else if (aPiece->IsFlagSet(Piece::FLAG_1)) {
+							aTitle = mApp->GetString(GTS(0x7dda60), GT(0x7dda3c));
+							aBody = mApp->GetString(GTS(0x7dd9f0), GT(0x7dd958));
+						} else if (aPiece->IsFlagSet(Piece::FLAG_DEVIL)) {
+							aTitle = mApp->GetString(GTS(0x7dd944), GT(0x7dd920));
+							aBody = mApp->GetString(GTS(0x7dd8c0), GT(0x7dd800));
+						} else {
+							aShown = false;
+						}
+					} else if (aPiece->IsFlagSet(Piece::FLAG_ELECTRO)) {
+						aTitle = mApp->GetString(GTS(0x7de7ec), GT(0x7de7c0));
+						aBody = mApp->GetString(GTS(0x7de750), GT(0x7de670));
+					} else {
+						aTitle = mApp->GetString(GTS(0x7de65c), GT(0x7de638));
+						aBody = mApp->GetString(GTS(0x7de5e8), GT(0x7de548));
+					}
+					if (aShown) {
+						// the wait is longer the further the mouse is from the gem's middle
+						if ((double)gGemWidth * 0.25 < (double)aDist) {
+							if ((double)aDist <= (double)gGemWidth * 0.35)
+								aWait = 120;
+						} else {
+							aWait = 100;
+						}
+						aY = Ftol((double)(gGemHeight / 2) + (double)aPiece->mY);
+						int aPieceX = Ftol((double)(gGemWidth / 2) + (double)aPiece->mX);
+						// the last tooltip's right edge decides the side (both sides are the gem's middle plus 0)
+						if ((double)(mUnknown714 + mUnknown70C) <= (double)mWidth * 0.8999999761581421)
+							aX = aPieceX - Sc(0);
+						else
+							aX = aPieceX + Sc(0);
+					}
+				}
+			}
+		}
+	}
+
+	// 0x6d64e2: a new text starts the wait again; the same text for long enough brings the tooltip up
+	if (aBody != mUnknown7F8) {
+		mUnknown7F8 = aBody;
+		mUnknown6D0 = 0;
+		mUnknown788.SetCurve(GTS(0x7dd7dc));
+	} else {
+		int aStayed = mUnknown6D0;
+		mUnknown6D0 = aStayed + 1;
+		if (aWait <= aStayed && !aBody.empty() && aBody != mUnknown6F0) {
+			mUnknown6CC = true;
+			mUnknown70C = aX;
+			mUnknown710 = aY;
+			mUnknown6D4 = aTitle;
+			mUnknown6F0 = aBody;
+			mUnknown714 = aWidth;
+			if (aSound != -1)
+				mApp->PlaySample(aSound);
+			mUnknown718.SetCurve(GTS(0x7dd7b8));
+			mUnknown718.SetMode(CurvedVal::MODE_REPEAT);
+			mUnknown788.SetCurve(GTS(0x7dd798));
+		}
+	}
+	mUnknown718.IncInVal();
+	if (!mUnknown788.IncInVal() && mUnknown788.GetOutVal() == 0.0) {
+		mUnknown6CC = false;
+		mUnknown6F0 = SexyString();
 	}
 }
 

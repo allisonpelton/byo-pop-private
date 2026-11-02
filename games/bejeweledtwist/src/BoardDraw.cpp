@@ -731,6 +731,80 @@ void Board::DrawSelector(Graphics* g, bool theRing)
 	g->PopState();
 }
 
+// 0x6b4e82: the tooltip UpdateToolTips brought up: a box at (+0x70c, +0x710) with the title and the text in it and an
+// arrow at its side, all fading with +0x788 (the arrow slides with +0x718). A bomb gem's in the classic game adds the
+// danger level's skulls.
+void Board::DrawToolTip(Graphics* g)
+{
+	int aX = mUnknown70C;
+	// the tooltip goes to the right of its place, or to the left when the last one's right edge was far out
+	bool aLeft = !((double)(mUnknown714 + mUnknown70C) <= (double)mWidth * 0.8999999761581421);
+	if (aLeft)
+		aX += -mUnknown714 - Ftol((double)gApp->mScale * 120.0);
+	else
+		aX += Ftol((double)gApp->mScale * 105.0);
+	g->SetColorizeImages(true);
+	g->SetColor(Color(255, 255, 255, Ftol(mUnknown788.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+	int anArrowX;
+	if (aLeft) {
+		anArrowX = mUnknown714 - Ftol(mUnknown718.GetOutVal() * 6.0);
+	} else {
+		anArrowX = Ftol((double)gApp->mScale * -80.0) - Ftol(mUnknown718.GetOutVal() * 6.0);
+	}
+	anArrowX += aX;
+	int anArrowY;
+	if (Ftol((double)gApp->mScale * 20.0) > mUnknown710 - IMAGE_INGAMEUI_TOOLTIPARROW->GetCelHeight() / 2)
+		anArrowY = Ftol((double)gApp->mScale * 20.0);
+	else
+		anArrowY = mUnknown710 - IMAGE_INGAMEUI_TOOLTIPARROW->GetCelHeight() / 2;
+	g->DrawImageMirror(IMAGE_INGAMEUI_TOOLTIPARROW, anArrowX, anArrowY, aLeft);
+	int aSpacing = Ftol((double)gApp->mScale * 32.0);
+	g->SetFont(FONT_TOOLTIP_BOLD);
+	int aTitleHeight = g->GetWordWrappedHeight(mUnknown714, mUnknown6D4, aSpacing, nullptr);
+	g->SetFont(FONT_TOOLTIP);
+	int aTextHeight = g->GetWordWrappedHeight(mUnknown714, mUnknown6F0, aSpacing, nullptr);
+	bool aDanger = mUnknown6D4 == mApp->GetString(GTS(0x7dcce4), GT(0x7dccc0)) && mGameMode == MODE_CLASSIC;
+	int aHeight = (aTextHeight - Ftol((double)gApp->mScale * -12.0)) + aTitleHeight;
+	if (aDanger)
+		aHeight += Ftol((double)gApp->mScale * 106.0);
+	int aPadX = Ftol((double)gApp->mScale * 36.0);
+	int aPadY = Ftol((double)gApp->mScale * 32.0);
+	int aTop = mUnknown710 - aHeight / 2;
+	if (Ftol((double)gApp->mScale * 40.0) > aTop)
+		aTop = Ftol((double)gApp->mScale * 40.0);
+	Rect aTextRect(aX, aTop, mUnknown714, aHeight);
+	Rect aBoxRect(aX - aPadX, aTop - aPadY, mUnknown714 + aPadX * 2, aHeight + aPadY * 2);
+	g->SetColor(Color(255, 255, 255, Ftol(mUnknown788.GetOutVal() * 255.0 * 0.88)));
+	g->DrawImageBox(aBoxRect, IMAGE_INGAMEUI_TOOLTIPDIALOG);
+	g->SetFont(FONT_TOOLTIP_BOLD);
+	g->SetColor(Color(255, 255, 255, Ftol(mUnknown788.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+	g->WriteWordWrapped(aTextRect, mUnknown6D4, aSpacing, 0, nullptr, -1, nullptr);
+	if (aDanger) {
+		SexyString aLevel = mApp->GetString(GTS(0x7dcc94), GT(0x7dcc68));
+		g->WriteString(aLevel, mUnknown714 / 2 + aX, (aTop - Ftol((double)gApp->mScale * 64.0)) + aHeight, -1, 0, true, 0, -1, -1);
+	}
+	aTextRect.mY += aTitleHeight - Ftol((double)gApp->mScale * -12.0);
+	g->SetFont(FONT_TOOLTIP);
+	g->SetColor(Color(255, 255, 255, Ftol(mUnknown788.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+	g->WriteWordWrapped(aTextRect, mUnknown6F0, aSpacing, 0, nullptr, -1, nullptr);
+	if (aDanger) {
+		// the skulls: one more than the danger level, in a row under the text
+		g->SetColor(Color::White);
+		int aCount = mUnknown21DC + 1;
+		int i = 0;
+		if (0 < aCount) {
+			do {
+				int aSkullWidth = IMAGE_SKULLICON_SMALL->mWidth;
+				g->DrawImage(IMAGE_SKULLICON_SMALL,
+					mUnknown714 / 2 + (aSkullWidth * i - (aSkullWidth * aCount) / 2) + aX,
+					(aTop - Ftol((double)gApp->mScale * 64.0)) + aHeight);
+				i++;
+				aCount = mUnknown21DC + 1;
+			} while (i < aCount);
+		}
+	}
+}
+
 void Board::DrawOverlay(Graphics* g)
 {
 	if (0.0f < mUnknown248) {
@@ -791,7 +865,7 @@ void Board::DrawOverlay(Graphics* g)
 		} while (i < 2);
 	}
 	if (mUnknown6CC && !mApp->mUnknownF85 && !mUnknown37C4 && !mUnknown2629)
-		NotPorted("Board::DrawOverlay: the tooltip (+0x6cc)");
+		DrawToolTip(g);
 	if (mUnknown160 == 1 || mUnknown2629)
 		NotPorted("Board::DrawOverlay: the replay's screen");
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);

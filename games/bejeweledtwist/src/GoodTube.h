@@ -22,6 +22,9 @@ class Image;
 class TextImage;
 class TwistButton;
 
+// 0x6a3403: the pixel of theImage (0 outside it)
+unsigned int GetPixelAt(Image* theImage, int theX, int theY);
+
 // 0x84 bytes (0x707960 its constructor, 0x7073fc its update, 0x707476 its drawing): a number that counts up to a
 // target and shows as a text (the challenge's count and its best)
 struct Ticker {

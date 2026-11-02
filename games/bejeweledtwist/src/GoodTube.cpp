@@ -1,5 +1,6 @@
 // Sexy::GoodTube (0x702736-0x70a9bb): being ported, see GoodTube.h.
 #include "GoodTube.h"
+#include "Shockwave.h"
 
 #include "Board.h"
 #include "EffectsManager.h"
@@ -87,7 +88,7 @@ static unsigned int HSLToColor(int theHue, int theSaturation, int theLightness)
 }
 
 // 0x6a3403: the pixel (0 outside the image)
-static unsigned int GetPixelAt(Image* theImage, int theX, int theY)
+unsigned int Sexy::GetPixelAt(Image* theImage, int theX, int theY)
 {
 	if (theImage == nullptr)
 		return 0;
@@ -830,10 +831,10 @@ void GoodTube::UpdateTick()
 					if (aHint == nullptr) {
 						mUnknown3F8 = (float)((double)mUnknown3F8 + 4.0);
 					} else {
-						// 0x74b94e: a FruitShockwave (0x110 bytes, a Shockwave) at the hint's gem, then 0x6bc3cd adds it to the
-						// board's waves; it takes the hint, 1, and the tube's middle (Ftol(mWidth * 0.5 + mX), Ftol(mHeight *
-						// 0.85 + mY)) and 200
-						NotPorted("GoodTube::UpdateTick: the bonus challenge's hint wave (0x74b94e)");
+						// 0x74b94e: a FruitShockwave at the hint's gem, with the tube's middle for its target, then 0x6bc3cd adds it
+						// to the board's waves
+						aBoard->mUnknown1660.push_back(new FruitShockwave(aHint, 1, Ftol((double)mWidth * 0.5 + (double)mX),
+							Ftol((double)mHeight * 0.8500000238418579 + (double)mY), 200));
 					}
 				}
 				if (mUnknown3B4 <= 0.0f) {

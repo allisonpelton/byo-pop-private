@@ -304,6 +304,8 @@ In a first shot of classic play the tube matches the original except for
 the badge, which the port draws a little softer, as the framework's stretched DrawImage filters where the original's
 2D stretch looks sharper; the identical-play pass looks at that stretch for every scaled image.
 
+Tooltips: Board::UpdateToolTips (the 0x6d5279-0x6d6695 block of UpdateGame) picks a text from the mouse over the tube's parts, the rank insignia, the meter and the special gems, waits +0x6d0 updates (100, 120 for a far hover), then shows it through the curves at +0x718 and +0x788; Board::DrawToolTip (part of DrawOverlay, 0x6b4a39) draws it. The RankBadge needs no hover of its own. The bonus challenge's hint wave is FruitShockwave (0x74b94e, in Shockwave.cpp), made by GoodTube::UpdateTick; its Direct3D arc is NotPorted (3D-only) and the original leaks its particles, which the port frees.
+
 Ported since: the tube's tip text (GoodTube::SetTip, 0x70c94a: wraps in FONT_TOOLTIP, fades in; "%d CHAIN!" at a chain of
 50, 60 and so on), the count popup (ShowCountPopup, 0x6b3ffc), the goal check (Board::CheckGoal, 0x6b3432: the bonus
 challenge being met, with its two sounds and 0x703642; the challenge branch, +0x2630, stays NotPorted), the mode
