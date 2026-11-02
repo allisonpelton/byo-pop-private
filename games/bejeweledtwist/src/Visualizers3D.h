@@ -2,7 +2,7 @@
 // Visualizer (vtable 0x7d804c) with its own images, made by the maker the VizManager's constructor registers by name
 // (0x7597cc, FUN_0075978d). Ported here: RedBars, WindCloud, ContainmentField, UVWarp, Raptis_Pulse, BlobDrift and
 // ParametricFractal (Visualizers3D.cpp), and FluffyStars, PlasmaClouds, SpaceThreads, VizWarpBars and VizKaleidoCat
-// (Visualizers3D2.cpp), and VizRainbowGlyphs, SubAtomic, Cubes and RainDrops (Visualizers3D3.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
+// (Visualizers3D2.cpp), and VizRainbowGlyphs, SubAtomic, Cubes and RainDrops (Visualizers3D3.cpp), and Gears, Slipstream (Visualizers3D4.cpp), GravityField, VizBuckyShards and VizMoleculeRedux (Visualizers3D5.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
 // VizManager shows Viz2D in their place.
 //
 // Random draws: the original's visualizers draw from the game's Rand (0x45c110 and its Rand(n) 0x45c120 and Rand(float)
@@ -563,6 +563,60 @@ public:
 	void Draw(Graphics* g) override;           // 0x67b308
 	void MakeStripVertices(Point* thePoint, TriVertex* theVertices);  // 0x67ad27
 	void DrawTrail(Graphics* g);                                      // 0x67af9b
+};
+
+// Sexy::GravityField (vtable 0x7d7a38, constructor 0x673d0f): a chain of 125 bent segments that Draw works out afresh
+// each frame from the update count; each segment is a run of quads (IMAGE_GRAVITY_SPIRALTEXTURE, MakeRibbon) and a thin
+// quad across it (IMAGE_GRAVITY_EDGETEXTURE), drawn as triangle lists through DrawPrimitiveEx (FVF 0x142: position,
+// colour, one texture coordinate) under a perspective camera at (0, 0, 555). Random draws: none (the constructor, Init,
+// Update and Draw use no generator).
+class GravityField : public Visualizer {
+public:
+	struct Vertex {  // 0x18 bytes, FVF 0x142
+		float x, y, z;       // +0x00
+		unsigned int mColor; // +0x0c
+		float u, v;          // +0x10
+	};
+	int mCount = 0;              // +0x24: its updates, counted by Update
+	Image* mSpiral = nullptr;    // +0x28: IMAGE_GRAVITY_SPIRALTEXTURE
+	Image* mEdge = nullptr;      // +0x2c: IMAGE_GRAVITY_EDGETEXTURE
+	explicit GravityField(WinTwistApp* theApp);  // 0x673d0f
+	~GravityField() override;                    // 0x674963 (0x67475d)
+	void Init() override;                        // 0x673d7e
+	void Update() override;                      // 0x673d92
+	void Draw(Graphics* g) override;             // 0x6755a5
+	void DrawField(Graphics* g);                 // 0x674c02
+	// 0x6749e5: a run of theCount + 1 quads from theFrom and theTo towards theAcross, each a theFraction of the way on
+	// from the last; the texture coordinate runs on from theU by theUStep (which shrinks by 1 - theFraction a quad), the
+	// colour is grey by 1 - theAlpha; each quad is two triangles pushed to theVertices
+	static void MakeRibbon(std::vector<Vertex>& theVertices, const float* theFrom, const float* theTo, const float* theAcross,
+		float theU, float theUStep, int theCount, float theFraction, float theAlpha);
+};
+
+// Sexy::VizBuckyShards (vtable 0x7d8088, constructor 0x6802e8): a 20-sided ball cut into 180 triangles with a smaller
+// triangle pushed out of each, turning and lit by a point light, with IMAGE_CUBEMAP_6X1_VIZBUCKYSHARDS_CUBE as an
+// environment map (Draw builds the mesh each frame). Random draws: none (no generator is used).
+class VizBuckyShards : public Visualizer {
+public:
+	Image* mCube = nullptr;  // +0x24: IMAGE_CUBEMAP_6X1_VIZBUCKYSHARDS_CUBE
+	int mCount = 0;          // +0x28: its updates
+	int mCountBase = 0;      // +0x2c: mCount at the last Slot7 (the turn and the push are by the updates since)
+	explicit VizBuckyShards(WinTwistApp* theApp);  // 0x6802e8
+	~VizBuckyShards() override;                    // 0x680d15 (0x680aad)
+	void Update() override;                        // 0x68034f
+	void Slot7() override { mCountBase = mCount; } // 0x680347
+	void Draw(Graphics* g) override;               // 0x681e98
+};
+
+class VizMoleculeRedux : public Visualizer {
+public:
+	Image* mImage = nullptr;       // +0x24: IMAGE_BUCKYTRIFACE
+	Image* mBackground = nullptr;  // +0x28: IMAGE_MOLECULE_BG
+	int mCount = 0;                // +0x2c: its updates
+	explicit VizMoleculeRedux(WinTwistApp* theApp);  // 0x68c928
+	~VizMoleculeRedux() override;                    // 0x68ca44 (0x68c9a0)
+	void Update() override;                          // 0x68c99c
+	void Draw(Graphics* g) override;                 // 0x68d641
 };
 
 }  // namespace Sexy

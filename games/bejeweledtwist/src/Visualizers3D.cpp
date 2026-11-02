@@ -60,6 +60,12 @@ Visualizer* Sexy::MakeVisualizer3D(const char* theName, WinTwistApp* theApp)
 		return new Gears(theApp);
 	if (sexy_stricmp(theName, "Slipstream") == 0)
 		return new Slipstream(theApp);
+	if (sexy_stricmp(theName, "GravityField") == 0)
+		return new GravityField(theApp);
+	if (sexy_stricmp(theName, "VizBuckyShards") == 0)
+		return new VizBuckyShards(theApp);
+	if (sexy_stricmp(theName, "VizMoleculeRedux") == 0)
+		return new VizMoleculeRedux(theApp);
 	return nullptr;
 }
 
