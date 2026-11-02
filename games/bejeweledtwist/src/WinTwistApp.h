@@ -234,9 +234,11 @@ public:
 	// port: the game's own question "is Direct3D on": yes when this run draws through GPUDisplay (2D runs clear the
 	// framework's flag, which says whether SDL's renderer is accelerated, in PostDDInterfaceInitHook)
 	bool Is3DAccelerated() { return SexyAppBase::Is3DAccelerated(); }
-	// port: whether it could be on (the options' "Not Supported" answers) is the same question for now
-	bool Is3DAccelerationSupported() { return Is3DAccelerated(); }
-	bool Is3DAccelerationRecommended() { return Is3DAccelerated(); }
+	// Whether it could be on (the options' "Not Supported" and "not recommended" answers; the original asks the
+	// Direct3D device's caps). port: whether 3D mode's context can be had, WebGL2 in a browser; natively the port's
+	// OpenGL is always there
+	bool Is3DAccelerationSupported();
+	bool Is3DAccelerationRecommended() { return Is3DAccelerationSupported(); }
 	// port: a 3D run's display is GPUDisplay, in an OpenGL window
 	DDInterface* CreateDDInterface() override;
 	uint32_t GetExtraWindowFlags() override;

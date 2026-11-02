@@ -1,5 +1,8 @@
 // Sexy::WinTwistApp (WinTwistApp.h).
 #include "WinTwistApp.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #include "CustomBassMusicInterface.h"
 #include "CustomResourceManager.h"
@@ -437,6 +440,23 @@ void WinTwistApp::ReadFromRegistry()
 		mUse3D = mUse3DSwitch < 0 ? is3D : mUse3DSwitch != 0;
 	EnableCustomCursors(mCustomCursorsEnabled);
 	mProfile->mCustomCursors = mCustomCursorsEnabled;
+}
+
+bool WinTwistApp::Is3DAccelerationSupported()
+{
+	if (Is3DAccelerated())
+		return true;
+#ifdef __EMSCRIPTEN__
+	return EM_ASM_INT({
+		try {
+			return document.createElement('canvas').getContext('webgl2') ? 1 : 0;
+		} catch (e) {
+			return 0;
+		}
+	}) != 0;
+#else
+	return true;
+#endif
 }
 
 void WinTwistApp::MakeWindow()
