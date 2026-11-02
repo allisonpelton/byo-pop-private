@@ -279,9 +279,8 @@ void Mandala::Update()
 {
 	if (mEgg) {
 		mEgg = false;
-		// 0x75fd40 puts up the credits (Sexy::Credits, 0x288 bytes, ctor 0x6e8c0e, app +0xf94, z order 1000), whose
-		// only way in is this hidden sequence (ButtonMouseEnter); not ported yet
-		NotPorted("Mandala: the app's 0x75fd40 (the credits)");
+		// the credits, whose only way in is this hidden sequence (ButtonMouseEnter)
+		gApp->ShowCredits();
 		return;
 	}
 	TwistWidget::Update();
@@ -695,7 +694,7 @@ void Mandala::ButtonMouseEnter(int theId)
 	mOver = theId;
 	mPortal = theId;
 	mShowPortal = true;
-	// The buttons gone over from the last to the first, twelve times, start the app's 0x75fd40
+	// The buttons gone over from the last to the first, twelve times, start the credits (WinTwistApp::ShowCredits)
 	if (theId == mEggNext) {
 		mEggNext--;
 		if (mEggNext < 0)

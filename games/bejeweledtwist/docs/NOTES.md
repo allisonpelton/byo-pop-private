@@ -124,6 +124,13 @@ and draw by type, and within a type in the order they were added. The common mot
 scalars, gravity, alpha and scale steps, the scale and alpha limits) is ported, and type 0; the types 1-43 are big
 switch cases in the constructor (0x6f4a05), Update (0x6f8792) and DrawEffects (0x6f6451) that come with the board.
 Type 44 effects are objects of their own (virtual Update and Draw). The list at +0x94 holds heat waves, Direct3D only.
+Type 10 (Piece::AddShards 0x728f69, the credits' sparks 0x6e903c; nothing else makes one) has no constructor case. Its
+update fades it by 0.0025 more, turns it by 0.1 of its fall, and turns its velocity by 0.05 of a rate that blends from
++0xa0 to +0xa4 as +0x9c runs from 0 to 1 by 0.01; past 1, +0x9c goes back to 0, +0xa4 to +0xa0 and a RandSigned to
++0xa4. Its draw is IMAGE_FX_STEAM additive in Color(125, 145, 255) at 105 times the opacity (the effect's colour is not
+used), five times, from scale 1 down by 0.12 each, stepping back six velocities along a path turned by -0.3 times the
+rate; it leaves the draw mode and colorizing set. AddShards' second argument picks the board's second manager
+(+0x164c) over the first: Piece::Update passes true (0x72da35), BreakPiece's never-reached ice gem false.
 
 ## The main menu
 
@@ -697,10 +704,44 @@ set only by the droppers' own update); FlyingText's kind 1 (both makers are give
 (+0x1f4, +0x1f8 only ever 0); the board's image +0x15dc, the objects at +0x1488 and the pieces' +0x528 (only ever 0);
 +0x284's growth (only ever 0 or copied); 0x6c425f (+0x23d8 set only by 0x6bb145, which nothing calls); 0x74db1b
 (+0x210c only ever 0); NewLevel's backdrop (no twist-back image in the game's files). BurstGems' two property reads
-("ExplosionChainBonus" and "ExplosionChainBonusAdd") are dropped by the original and left out. Left for later: the
-credits (Sexy::Credits, 0x6e8c0e), which only the mode select's hidden sequence of button hovers opens.
+("ExplosionChainBonus" and "ExplosionChainBonusAdd") are dropped by the original and left out.
+
+## The credits (Credits.cpp)
+
+Sexy::Credits (0x288 bytes, a TwistWidget and ButtonListener, 0x6e7f36-0x6e95f1) is the mode select's easter egg.
+Mandala::ButtonMouseEnter (0x722c74) counts the mode buttons entered in the order 0, 3, 2, 1, 0, ... (classic, zen,
+blitz, challenge, round the circle backwards); any other button entered (the main menu button too) starts the count
+again, and the twelfth sets +0x419, on which the next Mandala::Update calls the app's 0x75fd40
+(`WinTwistApp::ShowCredits`) instead of its own update: a new Credits at app +0xf94, z order 1000, added and made a
+base modal (0x4c3a10 is AddBaseModal with the manager's default flags). AddedToManager (0x6e8760) plays
+SOUND_TROPHY_AWARDED, makes the Continue button (IMAGE_RANKBAR_CONTINUEBUTTON, centred, 115 art pixels above the
+bottom; only its ButtonDepress, 0x6e8403, is heard: state 5) and adds the sparks' EffectsManager, and starts two
+looping curves (0x7e0e10 the fruits' tilt, 0x7e0dc8 their bob). Update (0x6e903c): the box is three quarters of the
+screen each way, in the middle; state 1 darkens the screen (+0x160 by 0.02, drawn by DrawAll as Color(0, 0, 4) at 200
+times it), 2 grows the bars (+0x170 by 0.01), 3 brings in the box (+0x15c by 0.005) until both are 1, 4 adds a line
+of the list each time +0x194 falls to 0 or below (then +50 art pixels), and 5 fades both back to 0, when it sets
+mClicked; the app's UpdateFrames (0x765f8d, before the framework's) then removes and deletes it. While the bars grow
+(states 2 to 4, grow below 1) every update makes five type-10 effects at the box's top or bottom edge in the gem
+colours (Rand() % 7, Rand() % 2, RandSigned, in that order; type 10 draws in its own blue, so the colour is never seen). Every other update (+0x28 even) the lines rise by mScale:
+each line's alpha goes 5 down at or above 150 art pixels under the box's top and 5 up below it; a line above the top
+goes, and the last one gone closes the credits. The list (0x85c668, 142 wide texts, the count at 0x84ecb4) is set by
+the static initialiser 0x7d51ae: a line starting with a backslash loses two characters, "\B" making it a heading in
+FONT_SCORE Color(200, 40, 150), the others FONT_DIALOG_CHECKBOX Color(255, 220, 52); "GEM" (0x7e0f88) becomes
+IMAGE_FRUITS's next cel (0 to 6) in white. Draw (0x6e817f): the box tiled with IMAGE_INGAMEUI_GRIDSQUARE in Color(128,
+128, 255) at 225 times +0x15c, the two bars (both as tall as the top one) stretched to the box's width times the growth
+times 1.03 in Color(200, 200, 255), then inside the box the lines centred, the fruits by DrawImageCentered turned by
+the tilt times pi / 4 and raised by 25 times the bob. The constructor, destructor and RemovedFromManager free
+everything (no leak). gGemColors before the first board are ten Color() (opaque black, static initialiser 0x7d5096;
+the board copies only seven, 0x6c59c4), so the sparks' colour is black until a game has started (unseen: see above).
 
 ## Oddities
+
+- **The credits' sparks start their turn from the heap.** The Effect constructor (0x6f4a05) does not set +0x9c,
+  +0xa0 or +0xa4, which type 10's update and draw read (the turning rate's blend), and the credits (0x6e903c) do not
+  set them either (AddShards does). In the original they hold what the heap block held, often a dead effect's values;
+  a +0x9c above 1 makes the first update draw a RandSigned, a NaN never does. The credits' sparks do not move (no
+  velocity), so the turn has no visible effect, only the possible Rand draws. The port starts them at 0, so a spark
+  dies (80 updates) before +0x9c reaches 1 and draws nothing. Matching it would mean copying uninitialised memory.
 
 - **A one-move goal's colour comes from another list.** The challenge display's one-move branch (GoodTube::DrawBody,
   0x7095fd-0x709625) gives a colour stat (75 to 81) the icon of the tube's own stat list at the same index (+0x56c,

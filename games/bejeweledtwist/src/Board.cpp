@@ -48,10 +48,9 @@ int Sexy::Rand85B970()
 {
 	return (int)gUnknown85B970.Next();
 }
-// port: the constructor's copy comes with it; until then the table is set here
-Color Sexy::gGemColors[10] = {Color(255, 32, 32), Color(255, 255, 255), Color(0, 255, 0), Color(255, 255, 0),
-	Color(255, 0, 255), Color(255, 128, 0), Color(0, 128, 255), Color(0, 0, 0), Color(255, 255, 255),
-	Color(255, 255, 255)};
+// The static initialiser 0x7d5096 makes all ten Color() (opaque black); the first board's constructor copies the
+// seven colours over the first seven, and the last three stay black (the credits' sparks are black until a game starts)
+Color Sexy::gGemColors[10];
 
 namespace {
 

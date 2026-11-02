@@ -1035,8 +1035,8 @@ extern Board* gBoard;
 extern int gSettleCount;  // 0x84e88c: how often the board has come to rest
 extern MTRand gUnknown85B970;  // 0x85b970: a generator of its own, seeded from the time by each new board
 int Rand85B970();  // 0x6a3447
-// 0x85af08: each colour's tint, copied by the board's constructor from the table at 0x85c378 (and Color(0, 0, 0),
-// then two whites, after it)
+// 0x85af08: each colour's tint, copied by the board's constructor from the table at 0x85c378 (seven of them; the last
+// three stay Color(), opaque black)
 extern Color gGemColors[10];
 
 }

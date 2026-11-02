@@ -6,6 +6,7 @@
 #include "Board.h"
 #include "Buffer.h"
 #include "Challenge.h"
+#include "Credits.h"
 #include "ButtonWidget.h"
 #include "EffectsManager.h"
 #include "GameText.h"
@@ -93,6 +94,10 @@ WinTwistApp::~WinTwistApp()
 	if (mLoaderScreen != nullptr) {
 		mWidgetManager->RemoveWidget(mLoaderScreen);
 		delete mLoaderScreen;
+	}
+	if (mCredits != nullptr) {
+		mWidgetManager->RemoveWidget(mCredits);
+		delete mCredits;
 	}
 	if (mMainMenu != nullptr) {
 		mWidgetManager->RemoveWidget(mMainMenu);
@@ -447,6 +452,16 @@ void WinTwistApp::ShowOptionsDialog()
 	mWidgetManager->SetFocus(aPanel);
 }
 
+void WinTwistApp::ShowCredits()
+{
+	mCredits = new Credits();
+	mCredits->mZOrder = 1000;
+	mWidgetManager->AddWidget(mCredits);
+	// port: as in the original, nothing takes the base modal away again; taking the credits out of the widget manager
+	// only clears it (the stale entry is dropped by the next RemoveBaseModal)
+	mWidgetManager->AddBaseModal(mCredits);
+}
+
 void WinTwistApp::ShowHelpDialog()
 {
 	// 0x75f82d
@@ -677,6 +692,12 @@ SoundInstance* WinTwistApp::PlaySoundEx(int theSoundId, int thePan, float thePit
 
 void WinTwistApp::UpdateFrames()
 {
+	// The credits are gone (Credits::Update): out of the widgets and deleted
+	if (mCredits != nullptr && mCredits->mClicked) {
+		mWidgetManager->RemoveWidget(mCredits);
+		SafeDeleteWidget(mCredits);
+		mCredits = nullptr;
+	}
 	SexyApp::UpdateFrames();
 	// The tracked sounds: the ended ones are released, the others follow mSfxVolumeScale
 	for (size_t i = 0; i < mTrackedSounds.size(); i++) {

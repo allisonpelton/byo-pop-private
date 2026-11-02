@@ -1,6 +1,6 @@
 // Sexy::Effect and Sexy::EffectsManager (EffectsManager.h).
 //
-// port: the parts every effect shares and the types the board uses so far (0, 5, 6, 7, 11, 12, 13, 14, 16, 17, 23, 24,
+// port: the parts every effect shares and the types the board uses so far (0, 5, 6, 7, 10, 11, 12, 13, 14, 16, 17, 23, 24,
 // 26, 29, 30, 38, 39 and 41). The others (the rest of the board's explosions, fire, lightning and the shows' effects) come with
 // their parts of the game; until then an effect of one of them logs once and only moves and fades.
 #include "EffectsManager.h"
@@ -106,6 +106,10 @@ Effect::Effect(int theType) : mType(theType)
 	case 23:  // a bomb's bubbles (Piece::Update)
 	case 41:  // the cursor's trail of rings (Board::UpdateCursor)
 	case 43:  // the nova of coal breaking (Board::BreakSpecial)
+		break;
+	case 10:  // a wisp of steam turning as it goes (Piece::AddShards, the credits' sparks)
+		// 0x6f4a05 has no case for it. It does not set +0x9c, +0xa0 and +0xa4 either, so they hold what the heap had;
+		// AddShards sets them and the credits (0x6e903c) do not (port: 0, see NOTES, "Oddities")
 		break;
 	case 40:  // a spark of a geode (Board::UpdateGame)
 		mImage = IMAGE_GEM_FRUIT_SPARK;
@@ -491,6 +495,30 @@ void EffectsManager::Update()
 				anEffect->mDeleteMe = true;
 			break;
 		}
+		case 10: {
+			// it fades and turns by its fall; its velocity turns by a rate that moves from +0xa0 to +0xa4 as +0x9c runs
+			// from 0 to 1, and then a new rate is drawn
+			anEffect->mAlpha = (float)((double)anEffect->mAlpha - 0.0024999999441206455);
+			anEffect->mAngle = (float)((double)anEffect->mDY * 0.10000000149011612 + (double)anEffect->mAngle);
+			float aRate = (float)((1.0 - (double)anEffect->mUnknown9C) * (double)anEffect->mUnknownA0 +
+								  (double)anEffect->mUnknownA4 * (double)anEffect->mUnknown9C);
+			float aTurn = (float)((double)aRate * 0.05000000074505806);
+			float anOldDX = anEffect->mDX;
+			float aCos = cosf(aTurn);
+			float aSin = sinf(aTurn);
+			anEffect->mDX = (float)((double)anOldDX * (double)aCos + (double)aSin * (double)anEffect->mDY);
+			aCos = cosf(aTurn);
+			aSin = sinf(aTurn);
+			anEffect->mDY = (float)((double)aCos * (double)anEffect->mDY - (double)anOldDX * (double)aSin);
+			float aPos = (float)((double)anEffect->mUnknown9C + 0.009999999776482582);
+			anEffect->mUnknown9C = aPos;
+			if (1.0f < aPos) {
+				anEffect->mUnknown9C = 0;
+				anEffect->mUnknownA0 = anEffect->mUnknownA4;
+				anEffect->mUnknownA4 = RandSigned();
+			}
+			break;
+		}
 		case 11:
 			if (anEffect->mScale > 0.85f)
 				anEffect->mScale = 0.85f;
@@ -629,6 +657,36 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 					anEffect->mY, (double)anEffect->mAngle, anEffect->mScale, anEffect->mScale);
 				g->SetColorizeImages(false);
 			}
+			break;
+		}
+		case 10: {
+			// five copies of the steam, smaller each, back along a path that turns the other way: a trail
+			float aDX = anEffect->mDX;
+			float aDY = anEffect->mDY;
+			float aX = anEffect->mX;
+			float aY = anEffect->mY;
+			float aSize = 1.0f;
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColorizeImages(true);
+			g->SetColor(Color(125, 145, 255, Ftol((double)anOpacity * 105.0)));  // the effect's own colour is not used
+			float aRate = (float)((1.0 - (double)anEffect->mUnknown9C) * (double)anEffect->mUnknownA0 +
+								  (double)anEffect->mUnknownA4 * (double)anEffect->mUnknown9C);
+			float aTurn = (float)((double)aRate * -0.30000001192092896);
+			int aCount = 5;
+			do {
+				float aScale = anEffect->mScale * aSize;
+				DrawImageCentered(g, IMAGE_FX_STEAM, aX, aY, (double)anEffect->mAngle, aScale, aScale);
+				aX = (float)((double)aX - (double)aDX * 6.0);
+				aY = (float)((double)aY - (double)aDY * 6.0);
+				float anOldDX = aDX;
+				float aCos = cosf(aTurn);
+				aDX = (float)((double)sinf(aTurn) * (double)aDY + (double)aCos * (double)aDX);
+				aCos = cosf(aTurn);
+				double aCosDY = (double)aCos * (double)aDY;
+				aDY = (float)(aCosDY - (double)sinf(aTurn) * (double)anOldDX);
+				aSize = (float)((double)aSize - 0.11999999731779099);
+			} while (--aCount != 0);
+			// the draw mode and colorizing are left set, as the original leaves them
 			break;
 		}
 		case 11: {

@@ -161,9 +161,10 @@ Effect* Piece::AddSpark(bool theBig, float theSpeed, float theAngle)
 	return anEffect;
 }
 
-void Piece::AddShards(float theSpeed)
+void Piece::AddShards(float theSpeed, bool theSecondManager)
 {
-	Effect* anEffect = gBoard->mFXManager->AllocEffect(10);
+	EffectsManager* aManager = theSecondManager ? gBoard->mFXManager2 : gBoard->mFXManager;
+	Effect* anEffect = aManager->AllocEffect(10);
 	float anAngle = std::fabs(RandSigned() * kTwoPi);
 	float aDist = std::fabs((float)((double)RandSigned() * (double)gGemWidth / 3.5));
 	float aYOffset = 0.0f;
@@ -171,18 +172,20 @@ void Piece::AddShards(float theSpeed)
 		aYOffset = 15.0f;
 	else if (mColor == 6)
 		aYOffset = -12.0f;
-	anEffect->mX = std::cos(anAngle) * theSpeed * aDist + (float)(gGemWidth / 2) + mX;
-	anEffect->mY = std::sin(anAngle) * theSpeed * aDist + (float)(gGemHeight / 2) + mY + aYOffset;
-	float aPush = theSpeed * theSpeed * 0.025f;
-	anEffect->mDX = (float)((double)std::cos(anAngle) * aPush * aDist);
-	anEffect->mDY = (float)((double)std::sin(anAngle) * aPush * aDist);
-	anEffect->mScale = theSpeed * 0.5f;
+	anEffect->mX =
+		(float)((double)(gGemWidth / 2) + (double)mX + (double)cosf(anAngle) * (double)theSpeed * (double)aDist);
+	anEffect->mY = (float)((double)(gGemHeight / 2) + (double)mY +
+						   (double)sinf(anAngle) * (double)theSpeed * (double)aDist + (double)aYOffset);
+	double aPush = (double)theSpeed * (double)theSpeed * 0.02500000037252903;
+	anEffect->mDX = (float)((double)cosf(anAngle) * aPush * (double)aDist);
+	anEffect->mDY = (float)((double)sinf(anAngle) * aPush * (double)aDist);
+	anEffect->mScale = (float)((double)theSpeed * 0.5);
 	anEffect->mGravity = 0;
 	anEffect->mDAlpha = -0.005f;
 	anEffect->mUnknown9C = 0;
 	anEffect->mUnknownA0 = RandSigned();
 	anEffect->mUnknownA4 = RandSigned();
-	gBoard->mFXManager->AddEffect(anEffect);
+	aManager->AddEffect(anEffect);
 }
 
 void Piece::AddDust()
@@ -1702,7 +1705,7 @@ void Piece::Update()
 				gApp->mBoard->mFXManager->AddEffect(anEffect);
 			} else if (IsFlagSet(FLAG_6)) {
 				for (int i = 5; i != 0; i--)
-					AddShards(1.0f);
+					AddShards(1.0f, true);
 				if ((gBoard->mUpdateCnt & 3) == 0) {
 					Effect* anEffect = gApp->mBoard->mFXManager->AllocEffect(0);
 					anEffect->mImage = IMAGE_SPARKLET;

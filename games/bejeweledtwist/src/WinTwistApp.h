@@ -12,6 +12,7 @@
 namespace Sexy {
 
 class Board;
+class Credits;
 class ButtonWidget;
 class CustomBassMusicInterface;
 class CustomResourceManager;
@@ -117,6 +118,7 @@ public:
 	EffectsManager* mFXManager = nullptr;  // +0xf78: the effects over the whole screen
 	UnderDialogWidget* mUnderDialog = nullptr;  // +0xf7c: darkens the screen behind the dialogs
 	float mDialogDim = 0;               // +0xf90: how dark mUnderDialog is, 0 to 1
+	Credits* mCredits = nullptr;        // +0xf94: the credits while they are up (ShowCredits)
 	Widget* mOptionsDialog = nullptr;   // +0xf40: the options while they are up (comes with the options)
 	Widget* mUnknownF44 = nullptr;      // +0xf44: another widget the screen darkens behind (not yet known)
 	bool mShowHints = true;             // +0xf8e: the options' hints box (registry ShowHints)
@@ -229,6 +231,9 @@ public:
 	void ShowOptionsDialog();
 	// 0x75f82d: the help comes up over the game (if it is not up), as a base modal
 	void ShowHelpDialog();
+	// 0x75fd40: the credits come up over everything (z order 1000) as a base modal; the Mandala's hidden sequence
+	// is their only way in
+	void ShowCredits();
 	using SexyAppBase::RehupFocus;
 	// 0x766974: plays a sound unless sounds are off, the app has no focus or the board is paused; theTrack keeps it
 	// in mTrackedSounds, theScaleVolume multiplies its volume by mSfxVolumeScale
