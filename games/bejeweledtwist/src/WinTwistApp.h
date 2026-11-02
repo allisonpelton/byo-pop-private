@@ -16,6 +16,7 @@ class ButtonWidget;
 class CustomBassMusicInterface;
 class CustomResourceManager;
 class EffectsManager;
+class ChallengeInfo;
 class Gates;
 class Hyperspace;
 class Image;
@@ -49,7 +50,6 @@ public:
 	bool mFlag784 = false;              // +0x784: (meaning not yet known; the loader's other buttons depend on it)
 	Board* mBoard = nullptr;            // +0x7e4: the board while a game is on
 	bool mUnknown8D8 = false;           // +0x8d8: cleared with the dialog 40
-	unsigned int mUnknownCF8 = 0;       // +0xcf8: a count of games (LevelValue)
 	// +0x7f4: each colour's gem drawn ahead at 7 sizes, from 1.375 times a cell (size 0) down to 0.625 in eighths
 	// (size 3 is the cell), centred in 1.5 cells; a gem breaking up shrinks through them. +0x7f8: each colour's bomb
 	// at half size. Made by MakeGemImages, null until then.
@@ -67,6 +67,7 @@ public:
 	Gates* mGates = nullptr;            // +0xc70: the main menu's gates
 	Profile* mProfile = nullptr;        // +0x7ec: the players
 	Ranks* mRanks = nullptr;            // +0xf58: the ranks' names
+	ChallengeInfo* mChallengeInfo = nullptr;  // +0xf5c: the challenges (properties\challenges.xml) and the goal check
 	// The two top tens (classic and the other timeless mode: ScoreList), users\scores.dat
 	struct HighScore {
 		SexyString mName;

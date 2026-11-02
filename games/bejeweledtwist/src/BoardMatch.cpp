@@ -65,10 +65,28 @@ bool Board::CheckGoal(bool theFlag)
 	if (mGoodTube != nullptr && 0.0f < mGoodTube->mUnknown3B4)
 		return false;
 	if (mGameMode == MODE_CHALLENGE) {
-		if (mUnknown2630 != 0) {
-			// port: the challenge's goal (the +0x2630 object, 0x6db273, 0x6af390 and 0x6b2c50; theFlag asks for the
-			// challenge to end on a miss) comes with the challenges
-			NotPorted("Board::CheckGoal: the challenge's goal (0x6b3432)");
+		if (mChallenge != nullptr) {
+			// theFlag asks for the game to end when the challenge has failed. The check is a final one (the stats
+			// are kept) once the challenge is over (+0x266a, +0x2669)
+			int aValue = 0;
+			bool aFinal = mUnknown266A || mUnknown2669;
+			int aResult = mApp->mChallengeInfo->Check(mChallenge, &aValue, aFinal);
+			// +0x2638 is the stat the challenge counts, +0x2634 the best of it
+			mUnknown2638 = (aFinal && aValue < mUnknown2638) ? mUnknown2638 : aValue;
+			mUnknown2634 = mUnknown2634 < mUnknown2638 ? mUnknown2638 : mUnknown2634;
+			if (aFinal)
+				return true;
+			UpdateChallengeTube(false);
+			if ((mChallenge->mFlags & Challenge::FLAG_NIGHTMODE) == 0) {
+				if (aResult != 1) {
+					if (aResult == 2 && theFlag)
+						EndGame(false);
+					return false;
+				}
+			} else if (aResult == 0) {
+				return false;
+			}
+			mUnknown2669 = true;
 		}
 	} else {
 		if (mBonusColors.size() != 0 && mBonusColors.size() <= (unsigned int)mUnknown2660 && mUnknown265C != 4) {
@@ -193,11 +211,9 @@ Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor
 	if (thePoints < 1)
 		return nullptr;
 	if (mGameMode == MODE_CHALLENGE) {
-		// port: a challenge counts points only when its flags (+0x80) have 8; it comes with the challenges
-		if (mUnknown2630 == 0)
+		// a challenge counts points only when its flags have 8
+		if (mChallenge == nullptr || (mChallenge->mFlags & Challenge::FLAG_POINTS) == 0)
 			return nullptr;
-		NotPorted("Board::AddPoints: the challenge's flags");
-		return nullptr;
 	}
 	int aMult = mUnknown21D0;
 	if (!theUnknown3)
@@ -1277,7 +1293,7 @@ void Board::MatchAfterMove()
 		if (aCleared < mUnknown1F0)
 			ShowCountPopup();
 		if (mGameMode == MODE_CHALLENGE) {
-			if (mUnknown2630 != 0)
+			if (mChallenge != 0)
 				CheckGoal(false);
 		} else {
 			if (!CheckGoal(false) && mUnknown1508 < 1 && (unsigned int)mUnknown2660 == aFruitCount) {

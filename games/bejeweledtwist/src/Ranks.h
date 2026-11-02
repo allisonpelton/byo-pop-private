@@ -8,6 +8,11 @@
 
 namespace Sexy {
 
+// 0x757a41: the first comma-separated field of a line (leading space skipped), quotes kept; a comma in quotes stays
+SexyString FirstField(const SexyString& theLine);
+// 0x7579e8: theString without theChar
+SexyString RemoveChar(const SexyString& theString, SexyChar theChar);
+
 class Ranks {
 public:
 	// One rank (0x20 bytes)

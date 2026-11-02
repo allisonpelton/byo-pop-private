@@ -271,7 +271,7 @@ void Board::StartTwist(bool theInstant, int theX, int theY)
 {
 	if (mUnknown25A6 && !mUnknown37C4)
 		return;
-	if (mUnknown2630 != 0 && (mUnknown266A || mUnknown2669))
+	if (mChallenge != 0 && (mUnknown266A || mUnknown2669))
 		return;
 	if (mUnknown2584 != nullptr && !mUnknown2584->mMovesAllowed)
 		return;
@@ -329,7 +329,7 @@ void Board::StartTwist(bool theInstant, int theX, int theY)
 	mUnknown2400 = -1;
 	mUnknown2016 = true;
 	mUnknown216C = false;
-	if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0) {
+	if (mGameMode == MODE_CHALLENGE && mChallenge != 0) {
 		CheckGoal(false);
 	}
 	if (!theInstant) {

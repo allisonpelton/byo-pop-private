@@ -31,7 +31,7 @@ void Board::SettleTurn()
 	// The original writes "Move FOUND at" the move, or "NO MOVE FOUND", to the debugger
 	FindMove(&mUnknown201C, &mUnknown2020, false);
 	if (mGameMode == MODE_CHALLENGE) {
-		if (mUnknown2630 != 0)
+		if (mChallenge != 0)
 			CheckGoal(false);
 	} else if (mBonusColors.size() == 0) {
 		// The tube's text once a bonus challenge is over
@@ -73,9 +73,8 @@ void Board::SettleTurn()
 			if (!aFirst && !mUnknown21A2) {
 				mUnknown1FB8++;
 				AddStat(0x21, 1);
-				if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0 && !mUnknown21A2) {
-					// port: the challenge's turn (0x6d86c9 on the +0x2630 object) comes with the challenges
-					NotPorted("Board::SettleTurn: the challenge's turn");
+				if (mGameMode == MODE_CHALLENGE && mChallenge != nullptr && !mUnknown21A2) {
+					mApp->mChallengeInfo->EndMove(mChallenge);
 					CheckGoal(true);
 				}
 			}

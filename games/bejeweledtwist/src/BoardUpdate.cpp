@@ -386,11 +386,10 @@ bool Board::CountDownCounters()
 					SpinWheel(aLowest);
 					return true;
 				}
-				if (mGameMode == MODE_CHALLENGE) {
-					// port: the challenge's own end (app +0xf5c, 0x6db273) comes with the challenges; until then
-					// the game ends
-					NotPorted("Board::CountDownCounters: a challenge's counter (0x6db273)");
-				}
+				// In a challenge whose goal is met a counter at zero changes nothing
+				if (mGameMode == MODE_CHALLENGE && mChallenge != nullptr &&
+					mApp->mChallengeInfo->Check(mChallenge, nullptr, false) == 1)
+					return false;
 				mUnknown1FB8--;
 				AddStat(0x21, -1);
 				aLowest->mDevilGlow = 0;
@@ -1194,7 +1193,7 @@ void Board::UpdateGame()
 					if (mUnknown2201)
 						mUnknown2204++;
 				} else if (mUnknown2669 && !mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown149C.empty() &&
-						   mUnknown2630 != 0 && mGoodTube->IsIdle()) {
+						   mChallenge != 0 && mGoodTube->IsIdle()) {
 					mUnknown266A = true;
 					// port: the challenge's goal met (0x6b330d and the profile's challenges) comes with the challenges
 					NotPorted("Board::UpdateGame: the challenge's goal");
@@ -1426,7 +1425,7 @@ void Board::UpdateGame()
 		// The seconds of play, for the stats
 		mUnknown14E4 += anUpdateCnt - mUnknown14E0;
 		if (1000 / gApp->mFrameTime <= mUnknown14E4) {
-			if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0 && HasChallengeFlag(2) && !mUnknown21D8 &&
+			if (mGameMode == MODE_CHALLENGE && mChallenge != 0 && HasChallengeFlag(2) && !mUnknown21D8 &&
 				!mUnknown21DA && !mUnknown21D9 && mUnknown25A4 && mUnknown149C.size() == 0 && mUnknown25A5) {
 				// a timed challenge runs out through the goal check (0x6d090f)
 				CheckGoal(true);
@@ -2810,7 +2809,7 @@ void Board::UpdateToolTips()
 				int aMeterY = Ftol((double)aTube->mY + (double)aTube->mUnknown194 - (double)Sc(10));
 				Rect aMeterRect(Sc(0x88) + aTube->mX, aMeterY, Sc(0x8e), Sc(0x3b));
 				if (aMeterRect.Contains(aMouseX, aMouseY)) {
-					if (mGameMode == MODE_BLITZ || (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0 && HasChallengeFlag(2))) {
+					if (mGameMode == MODE_BLITZ || (mGameMode == MODE_CHALLENGE && mChallenge != 0 && HasChallengeFlag(2))) {
 						aTitle = mApp->GetString(GTS(0x7dea60), GT(0x7dea30));
 						aBody = mApp->GetString(GTS(0x7dea00), GT(0x7de9a0));
 					} else if (mGameMode != MODE_CHALLENGE) {
@@ -2829,7 +2828,7 @@ void Board::UpdateToolTips()
 				Rect aChallengeRect(Sc(0x56) + aTube->mX, Sc(0x371) + aTube->mY, Sc(0xfa), Sc(0x7d));
 				if (aChallengeRect.Contains(aMouseX, aMouseY)) {
 					bool aShow = true;
-					if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0) {
+					if (mGameMode == MODE_CHALLENGE && mChallenge != 0) {
 						aTitle = mApp->GetString(GTS(0x7de988), GT(0x7de964));
 						aBody = mApp->GetString(GTS(0x7de938), GT(0x7de8e0));
 					} else if (!mBonusColors.empty()) {
@@ -3197,7 +3196,7 @@ void Board::UpdateGameOver()
 		mUnknown26C4 = aDelay;
 		if (!(0.0f < aDelay) && mUnknown2208 == nullptr && mUnknown23DC.empty()) {
 			mUnknown26C8 = 0;
-			if (mUnknown2630 == 0)
+			if (mChallenge == 0)
 				mUnknown1FF5 = true;
 			else
 				mUnknown34EC = 1;
@@ -3267,7 +3266,7 @@ void Board::UpdateStats()
 
 void Board::UpdateNuke()
 {
-	if (mUnknown27B8.CheckInThreshold(0.7900000214576721) && mUnknown2630 != 0) {
+	if (mUnknown27B8.CheckInThreshold(0.7900000214576721) && mChallenge != 0) {
 		// port: in a challenge whose goal (+0x80's bit 0x200) ends it here, 0x6b330d takes over and the update ends;
 		// it comes with the challenges
 		NotPorted("Board::UpdateNuke: the challenge's goal (0x6b330d)");
@@ -3364,9 +3363,8 @@ void Board::UpdateNuke()
 			mUnknown26CC->mFlags = 0;
 			mUnknown26CC->mUnknown2F6 = true;
 			mFXManager->Clear();
-			if (mUnknown2630 != 0) {
-				// port: the challenges' manager (app +0xf5c) gets state 2 here; it comes with the challenges
-				NotPorted("Board::UpdateNuke: the challenge's state");
+			if (mChallenge != 0) {
+				mApp->mChallengeInfo->mResult = 2;  // 0x6d36e8: failed
 				mUnknown34EC = 1;
 			} else {
 				mApp->ShowHyperspace();

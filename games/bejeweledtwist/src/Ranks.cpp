@@ -9,10 +9,8 @@
 
 using namespace Sexy;
 
-namespace {
-
 // 0x757a41: the first comma-separated field of a line, with its quotes (a comma inside quotes does not end it)
-SexyString FirstField(const SexyString& theLine)
+SexyString Sexy::FirstField(const SexyString& theLine)
 {
 	SexyString aField;
 	unsigned int i = 0;
@@ -34,7 +32,7 @@ SexyString FirstField(const SexyString& theLine)
 }
 
 // 0x7579e8: theString without theChar
-SexyString RemoveChar(const SexyString& theString, SexyChar theChar)
+SexyString Sexy::RemoveChar(const SexyString& theString, SexyChar theChar)
 {
 	SexyString aResult;
 	for (SexyChar aChar : theString) {
@@ -43,8 +41,6 @@ SexyString RemoveChar(const SexyString& theString, SexyChar theChar)
 	}
 	return aResult;
 }
-
-}  // namespace
 
 Ranks::Ranks()
 {

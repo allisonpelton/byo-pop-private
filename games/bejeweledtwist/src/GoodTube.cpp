@@ -864,9 +864,18 @@ void GoodTube::UpdateTick()
 		}
 	}
 
-	if (mChallenge && aBoard->mUnknown2630 != 0) {
-		// port: the challenge's goal (+0x538 and the curve at +0x4c8) waits for the challenges
-		NotPorted("GoodTube::UpdateTick: the challenge's goal");
+	if (mChallenge && aBoard->mChallenge != 0 && (aBoard->mChallenge->mFlags & Challenge::FLAG_PATTERN)) {
+		// 0x70ae48: the pattern's count shown walks to the matches so far, the curve restarting at each step down
+		int aProgress = aBoard->mChallenge->mProgress;
+		if (mUnknown538 != aProgress) {
+			if (0.0 <= mUnknown4C8.mIncRate || mUnknown4C8.HasBeenTriggered()) {
+				if (mUnknown538 > aProgress)
+					mUnknown538--;
+				mUnknown4C8.SetCurve("b+1,1.5,0.033333,1,####    n~###     3####");
+			}
+		}
+		if (!mUnknown4C8.HasBeenTriggered() && !mUnknown4C8.IncInVal() && mUnknown538 < aProgress)
+			mUnknown538++;
 	}
 
 	if (mUnknown2A0 != mX)
@@ -2035,7 +2044,7 @@ void GoodTube::DrawBody(Graphics* g)
 		}
 	}
 	float aTipFade = (float)(1.0 - (double)mUnknown244);
-	if (gBoard->mUnknown2630 != 0) {
+	if (gBoard->mChallenge != 0) {
 		// the challenge's display: its count and its best, its goals and the moves left (+0x2630's flags at +0x80)
 		NotPorted("GoodTube::DrawBody: the challenge's display (the board's +0x2630 object, 0x6db0ec)");
 	} else if (mUnknown158 == 0) {

@@ -9,6 +9,7 @@
 #include "WinTwistApp.h"
 
 #include "Buffer.h"
+#include "Challenge.h"
 #include "CurvedVal.h"
 #include "MTRand.h"
 #include "Rect.h"
@@ -552,7 +553,7 @@ public:
 	bool mUnknown2629 = false;              // +0x2629
 	bool mUnknown262A = false;              // +0x262a
 	int mUnknown262C = -1;                  // +0x262c
-	int mUnknown2630 = 0;                   // +0x2630
+	Challenge* mChallenge = nullptr;        // +0x2630: the challenge being played (mode 2), the app's ChallengeInfo owns it
 	int mUnknown2634 = 0;                   // +0x2634
 	int mUnknown2638 = 0;                   // +0x2638
 	int mUnknown263C = 0;                   // +0x263c
@@ -811,6 +812,7 @@ public:
 	int FillPieces(bool theAtOnce);              // 0x6c25a4: new gems for the gaps; returns how many
 	bool CanAddCounter();                        // 0x6a63c5
 	bool HasChallengeFlag(int theFlag);          // the challenge's flags (+0x2630's +0x80) in a challenge
+	void CountGems();                            // 0x6a56a5: the gems on the board by kind, into mUnknown3560
 	void MakeCounter(Piece* thePiece);           // 0x6a50a9: a bomb with the level's counter
 	void MakeCoal(Piece* thePiece);              // 0x6a5074
 	void SaveGame(Buffer* theBuffer, bool theReplays);  // 0x6b0d91: theReplays adds the app's three at +0xfa0

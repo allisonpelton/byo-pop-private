@@ -5,6 +5,7 @@
 #include "CustomResourceManager.h"
 #include "Board.h"
 #include "Buffer.h"
+#include "Challenge.h"
 #include "ButtonWidget.h"
 #include "EffectsManager.h"
 #include "GameText.h"
@@ -113,6 +114,7 @@ WinTwistApp::~WinTwistApp()
 	FreeGemImages();
 	delete mProfile;
 	delete mRanks;
+	delete mChallengeInfo;
 	if (mHyperspace != nullptr) {
 		mWidgetManager->RemoveWidget(mHyperspace);
 		delete mHyperspace;
@@ -176,6 +178,7 @@ void WinTwistApp::Init()
 	// 0x4a3c20: properties\default.xml, the texts of the high scores' stats page and others
 	LoadProperties();
 	mRanks = new Ranks();
+	mChallengeInfo = new ChallengeInfo();  // 0x6dd087: loads properties\challenges.xml
 
 	// The player who played last, or else the first one whose profile loads
 	SexyString aLastName;
@@ -841,10 +844,8 @@ std::string WinTwistApp::GetSaveName(int theMode, int theChallenge)
 	} else if (theMode == 1) {
 		aSuffix = "_classic";
 	} else if (theMode == 2) {
-		// port: "_challenge_" and the name of challenge theChallenge from the app's list at +0xf5c (0x6d9783), which
-		// is not ported yet; an index past the list's end gives an empty name
-		NotPorted("WinTwistApp::GetSaveName: the challenges' names");
-		aSuffix = "_challenge_";
+		// "_challenge_" and the id of category theChallenge (0x6d9783; past the end an empty id)
+		aSuffix = "_challenge_" + mChallengeInfo->GetCategoryId(theChallenge);
 	} else if (theMode == 3) {
 		aSuffix = "_blitz";
 	} else if (theMode == 4) {

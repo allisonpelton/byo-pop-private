@@ -1226,10 +1226,26 @@ void Board::SetScore(int theScore, bool theUnknown14F8)
 
 void Board::UpdateChallengeTube(bool theAtOnce)
 {
-	if (mUnknown2630 == 0)
+	if (mChallenge == nullptr)
 		return;
-	// port: the challenge at +0x2630 (its name, flags at +0x80 and goals at +0x84 and +0x88) comes with the challenges
-	NotPorted("Board::UpdateChallengeTube");
+	// The tube shows the challenge's text with its count, and how much is done
+	float aProgress;
+	mGoodTube->mText = mApp->mChallengeInfo->GetText(mChallenge, true, false, &aProgress);  // 0x7070f4
+	if ((mChallenge->mFlags & Challenge::FLAG_NIGHTMODE) != 0) {
+		// A nightmode challenge runs out: the share of the time (or the moves) left
+		if ((mChallenge->mFlags & Challenge::FLAG_TIME) != 0) {
+			if (mChallenge->mTimeGoal == 0)
+				aProgress = 0;
+			else
+				aProgress = (float)(1.0 - (double)(unsigned int)mApp->mUnknownC74[0x23] / (double)mChallenge->mTimeGoal);
+		} else if ((mChallenge->mFlags & Challenge::FLAG_MOVES) != 0) {
+			if (mChallenge->mMoveGoal == 0)
+				aProgress = 0;
+			else
+				aProgress = (float)(1.0 - (double)(unsigned int)mApp->mUnknownC74[0x21] / (double)mChallenge->mMoveGoal);
+		}
+	}
+	mGoodTube->SetProgress(aProgress, theAtOnce);
 }
 
 void Board::SetBlitzColor()
@@ -1382,7 +1398,7 @@ int LevelValue::GetCount()
 		if (mFirstChangeLevel <= aLevel)
 			aValue = aValue + ((aLevel - mFirstChangeLevel) + 1) / mLevelsBetweenChange * mChange;
 		if (0 < mTurnsBetweenChange)
-			aValue = aValue + (int)(gApp->mUnknownCF8 / (unsigned int)mTurnsBetweenChange) * mChange;
+			aValue = aValue + (int)((unsigned int)gApp->mUnknownC74[0x21] / (unsigned int)mTurnsBetweenChange) * mChange;
 		if (-1 < mMin && aValue < mMin)
 			aValue = mMin;
 		if (-1 < mMax && mMax < aValue)
@@ -1402,7 +1418,7 @@ int LevelValue::GetValue()
 		if (mFirstChangeLevel <= aLevel)
 			aValue = aValue + ((aLevel - mFirstChangeLevel) + 1) / mLevelsBetweenChange * mValueChange;
 		if (0 < mTurnsBetweenChange)
-			aValue = aValue + (int)(gApp->mUnknownCF8 / (unsigned int)mTurnsBetweenChange) * mValueChange;
+			aValue = aValue + (int)((unsigned int)gApp->mUnknownC74[0x21] / (unsigned int)mTurnsBetweenChange) * mValueChange;
 		if (-1 < mValueMin && aValue < mValueMin)
 			aValue = mValueMin;
 		if (-1 < mValueMax && mValueMax < aValue)
@@ -1540,13 +1556,16 @@ void Board::SaveGame(Buffer* theBuffer, bool theReplays)
 			theBuffer->WriteBuffer(aSlot.mBuffer.mData);
 		}
 	}
-	if (mUnknown2630 == 0) {
+	if (mChallenge == nullptr) {
 		theBuffer->WriteBoolean(false);
 	} else {
-		// port: the puzzle's panel (+0x2630: its +0x8c, +0x90 and +0xb8, then +0x2638 and +0x2634) comes with the
-		// puzzles
-		NotPorted("Board::SaveGame: the puzzle's panel");
-		theBuffer->WriteBoolean(false);
+		// The challenge: its category, its number, how far its pattern is; then the stat it counts and its best
+		theBuffer->WriteBoolean(true);
+		theBuffer->WriteShort((short)mChallenge->mCategory);
+		theBuffer->WriteShort((short)mChallenge->mNumber);
+		theBuffer->WriteShort((short)mChallenge->mProgress);
+		theBuffer->WriteLong(mUnknown2638);
+		theBuffer->WriteLong(mUnknown2634);
 	}
 	theBuffer->WriteLong(mUnknown1F64);
 	theBuffer->WriteLong(mUnknown1F68);

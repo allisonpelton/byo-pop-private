@@ -11,6 +11,7 @@
 #include "X86Math.h"
 
 #include <cmath>
+#include <cstring>
 #include <utility>
 
 using namespace Sexy;
@@ -73,12 +74,33 @@ bool Board::CanAddCounter()
 
 bool Board::HasChallengeFlag(int theFlag)
 {
-	if (mGameMode != MODE_CHALLENGE || mUnknown2630 == 0)
+	if (mGameMode != MODE_CHALLENGE || mChallenge == nullptr)
 		return false;
-	// port: the challenge at +0x2630 and its flags (+0x80) come with the challenges
-	(void)theFlag;
-	NotPorted("Board: the challenge's flags");
-	return false;
+	return (mChallenge->mFlags & theFlag) != 0;
+}
+
+// 0x6a56a5: how many gems of each kind the board has now (the kinds the ONBOARD challenges count): the power gems,
+// the electro gems, the fruit, the coal, the rest by colour
+void Board::CountGems()
+{
+	std::memset(mUnknown3560, 0, sizeof(mUnknown3560));
+	for (int aRow = 0; aRow < mRows; aRow++) {
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			Piece* aPiece = GetPieceAt(aRow, aCol);
+			if (aPiece == nullptr)
+				continue;
+			if (aPiece->IsFlagSet(Piece::FLAG_POWER))
+				mUnknown3560[0x15]++;
+			else if (aPiece->IsFlagSet(Piece::FLAG_ELECTRO))
+				mUnknown3560[0x14]++;
+			else if (aPiece->IsFlagSet(Piece::FLAG_FRUIT))
+				mUnknown3560[0x18]++;
+			if (aPiece->IsFlagSet(Piece::FLAG_COAL))
+				mUnknown3560[0x4a]++;
+			else
+				mUnknown3560[0x4b + aPiece->mColor]++;
+		}
+	}
 }
 
 void Board::MakeCounter(Piece* thePiece)
@@ -663,10 +685,12 @@ int Board::FillInBlanks(bool theAtOnce)
 	mUnknown3918 = mApp->mProfile->mFlags1E0;
 	mUnknown3914 = mApp->mProfile->mFlags1E4;
 	int aResult = FillPieces(theAtOnce);
-	if (mGameMode == MODE_CHALLENGE && mUnknown1390 && mUnknown2630 != 0) {
-		// port: a challenge that rejects the board (0x6db273) clears it (0x6afe3a) and fills it again; it comes with
-		// the challenges
-		NotPorted("Board::FillInBlanks: the challenge's board check");
+	// A new board that already meets the challenge's goal is cleared and filled again
+	while (mGameMode == MODE_CHALLENGE && mUnknown1390 && mChallenge != nullptr &&
+		   mApp->mChallengeInfo->Check(mChallenge, nullptr, false) == 1) {
+		ClearBoard();
+		mApp->mChallengeInfo->mResult = 0;
+		aResult = FillPieces(theAtOnce);
 	}
 	if (!mUnknown2629 && !mUnknown37C4 && mSaveBuffer.mDataBitSize == 0)
 		SaveGame(&mSaveBuffer, false);

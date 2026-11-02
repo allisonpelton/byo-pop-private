@@ -67,9 +67,7 @@ Color CurveColor(CurvedVal& theCurve)
 // 0x6d8d19: the share of the challenges done, in percent
 int GetChallengePercent()
 {
-	// port: the challenges are not ported yet; none is counted as done
-	NotPorted("Mandala: the challenges' share (0x6d8d19)");
-	return 0;
+	return gApp->mChallengeInfo->GetPercentDone(gApp->mProfile);
 }
 
 }  // namespace
