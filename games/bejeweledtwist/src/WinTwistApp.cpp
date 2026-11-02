@@ -103,7 +103,7 @@ WinTwistApp::WinTwistApp()
 	mMusicVolume = 0.85;
 	mSfxVolume = 0.85;
 
-	// port: the machine as the original would see a current one: the art size is decided again by Use2DMode
+	// port: the machine as the original would see a current one (2D mode takes 600 again, Use2DMode)
 	SDL_DisplayMode aMode;
 	int aScreenHeight = SDL_GetDesktopDisplayMode(0, &aMode) == 0 ? aMode.h : 1080;
 	mArtRes = ChooseArtRes(mAllowArtRes1200, SDL_GetSystemRAM(), aScreenHeight, 256);
@@ -116,8 +116,7 @@ WinTwistApp::WinTwistApp()
 	// 0x7606de's neighbour: made here in the original too (0x7597cc), set up by Init
 	mVizManager = new VizManager(this);
 
-	// port: the framework draws in software, so the game runs as the original does without Direct3D (0x7606de)
-	Use2DMode();
+	// (2D mode, Use2DMode, is chosen by ReadFromRegistry once "Is3D" and the switches are known)
 }
 
 WinTwistApp::~WinTwistApp()
@@ -218,6 +217,7 @@ void WinTwistApp::Init()
 	LoadResourceManifest();
 	LoadGameTexts();
 	// port: the original reads the scores before the properties; their defaults need the game's texts here
+	mScale = (float)mArtRes / 1200.0f;  // 0x7652cc: the art size over 1200, again
 	SetGemSize();
 	LoadScores();
 	LoadMusic();
@@ -426,13 +426,31 @@ void WinTwistApp::ReadFromRegistry()
 	RegistryReadBoolean("CustomCursors", &mCustomCursorsEnabled);
 	RegistryReadBoolean("DoViz", &mDoViz);
 	RegistryReadBoolean("ShowHints", &mShowHints);
-	// "Is3D" off chooses 2D mode (Use2DMode, which the port's constructor already calls)
+	// The art's size, unless a switch chose it (+0xf34; the port has none of those switches)
+	int anArtRes;
+	if (RegistryReadInteger("ArtRes", &anArtRes))
+		mArtRes = anArtRes;
+	// "Is3D" off chooses 2D mode (Use2DMode; the port chooses it in MakeWindow, after the switches)
 	// port: while 3D mode is being ported, a run without "Is3D" stays in 2D; the options' 3D box writes it true
 	bool is3D = true;
 	if (RegistryReadBoolean("Is3D", &is3D))
 		mUse3D = mUse3DSwitch < 0 ? is3D : mUse3DSwitch != 0;
 	EnableCustomCursors(mCustomCursorsEnabled);
 	mProfile->mCustomCursors = mCustomCursorsEnabled;
+}
+
+void WinTwistApp::MakeWindow()
+{
+	// port: 2D mode (Use2DMode) for "Is3D" off (0x762da8) and for a display without Direct3D (0x7606de), here once the
+	// registry and the switches are read
+	if (!mUse3D)
+		Use2DMode();
+	// 0x75ef2a: the game is as high as its art (2D mode's is 600) and as wide as the window's aspect makes it
+	mHeight = mArtRes;
+	mWidth = (mWindowAspect.mNumerator * mArtRes) / mWindowAspect.mDenominator;
+	// port: the window's own size and place (with Direct3D: at most 3/4 of the screen's width in height and 9/10 of
+	// the work area's, and resizable) are the framework's
+	SexyApp::MakeWindow();
 }
 
 void WinTwistApp::SwitchScreenMode(bool wantWindowed)

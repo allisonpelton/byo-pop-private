@@ -9,11 +9,17 @@
 
 namespace Sexy {
 
+class DDImage;
+
 class UnderDialogWidget : public Widget {
 public:
 	UnderDialogWidget();  // 0x75676f
 	void Draw(Graphics* g) override;  // 0x756a92
 	void DrawPaused(Graphics* g);     // 0x756925
+	DDImage* mQuarterA = nullptr;     // +0x88: the screen in gray at a quarter of its size (a render target)
+	DDImage* mQuarterB = nullptr;     // +0x8c: the second picture the ripples pass between (a render target)
+	void MakeQuarterImages();         // 0x7567e7
+	void DrawBlurred(Graphics* g);    // 0x756ab0
 };
 
 }  // namespace Sexy

@@ -4,6 +4,7 @@
 #include "ElectroStrike.h"
 
 #include "ColorCycle.h"
+#include "DDImage.h"
 #include "EffectsManager.h"
 #include "FlyingText.h"
 #include "GameOverShow.h"
@@ -1037,7 +1038,13 @@ void Board::DrawOverlay(Graphics* g)
 			if ((gD3DInterface->GetCaps(0) & 2) != 0) {
 				// The whole screen is taken (0x4f6670 "Rewind": slot 0xa0 hands the screen's picture to a pooled target
 				// and leaves a cleared one) and drawn back through the rewind shader (0x85db10)
-				NotPorted("Board::DrawOverlay: the rewind's screen pass (REWIND shader over the screen's copy) 0x6b5657");
+				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);  // 0x41ff20
+				TargetHold aHold;
+				DDImage* aScreen = gD3DInterface->HoldScreen(&aHold, "Rewind");
+				gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_REWIND]);  // slot 0xd8, 0x85db10
+				g->DrawImage(aScreen, 0, 0);  // 0x4211b0
+				gD3DInterface->SetPixelShader(nullptr);
+				gD3DInterface->ReleaseTarget(&aHold);
 			}
 		} else if (mUnknown160 == 1) {
 			g->SetColor(Color(64, 64, 64, 128));

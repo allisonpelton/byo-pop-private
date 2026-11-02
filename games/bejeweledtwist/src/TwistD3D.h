@@ -168,6 +168,14 @@ public:
 	virtual void Remove();  // 0x4bd8a0 (slot 1)
 };
 
+// 0x4f6610: a hold on one of the pooled render targets (0x4f6830's list): the image, the entry's saved surface (slot
+// 0xa0's, here whether the screen's buffer has been swapped with it) and the entry's number from 1 (0 for none)
+struct TargetHold {
+	DDImage* mImage = nullptr;  // +0x00
+	bool mSwapped = false;      // +0x04
+	int mIndex = 0;             // +0x08
+};
+
 class TwistD3D {
 public:
 	TwistD3D(GPUInterface* theDevice, GPU2D* the2D);
@@ -200,8 +208,8 @@ public:
 	bool SetRenderTarget(Image* theImage);                                          // 0x98
 	void Clear(int theRed, int theGreen, int theBlue, int theAlpha);                // 0x9c (0x621a30)
 	// 0xa0 (0x621ae0): the screen's picture so far goes to *theImage (made, screen-sized and a render target, when
-	// null) and drawing to the screen goes on in a cleared buffer; *theSwapped (the original's saved surface) says the
-	// swap is in place, and a second call swaps back. Returns *theImage.
+	// null) and drawing to the screen goes on in a cleared buffer; *theSwapped (the original's saved surface) is then
+	// set and stays set, and every later call swaps the two buffers again without clearing. Returns *theImage.
 	Image* SwapScreen(DDImage** theImage, bool* theSwapped);
 	void SetTextureStageState(int theStage, int theType, unsigned long theValue);   // 0xbc
 	void SetRenderState(int theState, unsigned long theValue);                      // 0xc0
@@ -229,7 +237,21 @@ public:
 	void SetDepthZ(float theWriteZ, float theOtherZ);                               // 0x120
 	void ClearDepth();                                                              // 0x124 (0x624cd0)
 
+	// The pool of render targets (the original's list at 0x4f6830; port: kept here). 0x4f6630: theHold lets go of what
+	// it held, then takes a free target of this size and flags (0x10, a render target, always added) and name, made
+	// when none is free
+	DDImage* HoldTarget(TargetHold* theHold, int theWidth, int theHeight, int theFlags, const char* theName);
+	bool ReleaseTarget(TargetHold* theHold);                        // 0x4f66e0 (0x4f6b00): false when nothing was held
+	DDImage* HoldScreen(TargetHold* theHold, const char* theName);  // 0x4f6670: a screen-sized target, swapped with the screen
+
 private:
+	struct PooledTarget {           // 0x28 bytes
+		DDImage* mImage = nullptr;  // +0x00
+		bool mSwapped = false;      // +0x04
+		TargetHold* mHold = nullptr;  // +0x08: who holds it
+		std::string mName;          // +0x0c
+	};
+	std::vector<PooledTarget> mTargets;
 	GPUMatrix mWorld, mView, mProjection;  // the device's, for slot 0x144
 	void SetVertexShaderMatrices();        // 0x144 (0x623fd0)
 	void DrawMeshes(D3DObject* theObject); // 0x140 (0x623c40)

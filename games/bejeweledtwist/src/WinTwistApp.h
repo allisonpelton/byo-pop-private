@@ -158,6 +158,7 @@ public:
 	void Shutdown() override;           // 0x762a0d
 	void WriteToRegistry() override;    // 0x762b40
 	void ReadFromRegistry() override;   // 0x762da8
+	void MakeWindow() override;         // 0x75ef2a
 	// 0x75fa42: every dialog is a TwistDialog that pops up, heard by the app
 	Dialog* NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 		const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;

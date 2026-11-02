@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Color.h"
+#include "TwistD3D.h"
 #include "Widget.h"
 
 #include <list>
@@ -102,6 +103,8 @@ public:
 	bool mUnknownB4 = false;               // +0xb4: set once a heat wave has been drawn (0x6f80a4)
 	bool mUnknownB5 = false;               // +0xb5
 	bool mUnknownB6 = false;               // +0xb6: set by the board's constructor for the first manager, read by nothing
+	DDImage* mHeightImage = nullptr;       // +0xb0: the heat waves' height image (a half-size target), 0 in 2D mode
+	TargetHold mHeightHold;                // port: the pool's hold of it (the original's is a hidden global, never released)
 	float mAlpha = 1.0f;                   // +0xb8: every effect's opacity is multiplied by it
 
 	EffectsManager();            // 0x6f9f59
@@ -121,6 +124,10 @@ public:
 	void AddBombFlash(float theX, float theY, const Color& theColor);
 	// 0x6f9efe: a heat wave at (theX, theY), its +0x34 times theStrength, its +0x28 times 0.5
 	HeatWave* AddHeatWave(float theX, float theY, float theStrength);
+	void MakeHeightImage();                    // 0x6f5ea6
+	DDImage* GetHeightImage();                 // 0x6f5efc: made if need be, and +0xb4 set
+	void ClearHeightImage(Graphics* g);        // 0x6f55b0: grey, then drawing goes back to g's image
+	void DrawDistortion(Graphics* g);          // 0x6f7ab4
 	// 0x6f6451: the effects whose mOverlay is theOverlay
 	void DrawEffects(Graphics* g, bool theOverlay);
 };

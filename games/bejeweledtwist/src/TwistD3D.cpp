@@ -204,6 +204,9 @@ TwistD3D::TwistD3D(GPUInterface* theDevice, GPU2D* the2D)
 
 TwistD3D::~TwistD3D()
 {
+	// port: the original keeps its pooled targets to the end
+	for (PooledTarget& aTarget : mTargets)
+		delete aTarget.mImage;
 	for (TwistShader*& aShader : gTwistShaders) {
 		delete aShader;
 		aShader = nullptr;
@@ -498,22 +501,83 @@ Image* TwistD3D::SwapScreen(DDImage** theImage, bool* theSwapped)
 		anImage->SetImageMode(false, false);
 		*theSwapped = false;
 	} else if (*theSwapped) {
-		// Back: the original makes its saved surface (the screen's) the target (slot 0x94), then swaps
+		// The original makes its saved surface the target (slot 0x94), then swaps; what it saves after the swap is the
+		// screen's surface again, never null
 		m2D->Flush();
-		mDevice->SwapScreen(*theImage);
-		*theSwapped = false;
 		m2D->SetRenderTarget(nullptr);
+		mDevice->SwapScreen(*theImage);
 		return *theImage;
 	}
 	// The image becomes the target and is cleared to black, then the screen's buffer and the image's change places;
-	// the screen is the target again (+0xb8)
+	// the screen is the target again (+0xb8). port: the screen is made the target before the swap, so the device never
+	// takes the image as a texture while it is bound
 	m2D->SetRenderTarget(*theImage);
 	mDevice->Clear(1, 0xff000000, 1.0f);
 	m2D->Flush();
+	m2D->SetRenderTarget(nullptr);
 	mDevice->SwapScreen(*theImage);
 	*theSwapped = true;
-	m2D->SetRenderTarget(nullptr);
 	return *theImage;
+}
+
+DDImage* TwistD3D::HoldTarget(TargetHold* theHold, int theWidth, int theHeight, int theFlags, const char* theName)
+{
+	// 0x4f6630
+	ReleaseTarget(theHold);
+	theFlags |= 0x10;
+	// 0x4f6830: the first free target of this size and flags, else a new one
+	int aCount = (int)mTargets.size();
+	for (int i = 0; i < aCount; i++) {
+		PooledTarget& aTarget = mTargets[i];
+		if (aTarget.mHold == nullptr && aTarget.mImage->mWidth == theWidth && aTarget.mImage->mHeight == theHeight &&
+			aTarget.mImage->mD3DFlags == theFlags) {
+			theHold->mImage = aTarget.mImage;
+			theHold->mSwapped = aTarget.mSwapped;
+			theHold->mIndex = i + 1;
+			aTarget.mHold = theHold;
+			aTarget.mName = theName != nullptr ? theName : "NULL";
+			return theHold->mImage;
+		}
+	}
+	PooledTarget aTarget;
+	aTarget.mImage = new DDImage(gSexyAppBase->mDDInterface);
+	aTarget.mImage->mD3DFlags = theFlags;
+	aTarget.mImage->Create(theWidth, theHeight);
+	aTarget.mImage->SetImageMode(false, false);
+	PrepareImage(aTarget.mImage);  // slot 0x44
+	aTarget.mHold = theHold;
+	aTarget.mName = theName != nullptr ? theName : "NULL";
+	mTargets.push_back(aTarget);
+	theHold->mImage = aTarget.mImage;
+	theHold->mSwapped = false;
+	theHold->mIndex = aCount + 1;
+	return theHold->mImage;
+}
+
+bool TwistD3D::ReleaseTarget(TargetHold* theHold)
+{
+	// 0x4f66e0, 0x4f6b00
+	if (theHold->mIndex == 0)
+		return false;
+	PooledTarget& aTarget = mTargets[theHold->mIndex - 1];
+	theHold->mImage = nullptr;
+	theHold->mSwapped = false;
+	theHold->mIndex = 0;
+	aTarget.mHold = nullptr;
+	aTarget.mName.clear();
+	return true;
+}
+
+DDImage* TwistD3D::HoldScreen(TargetHold* theHold, const char* theName)
+{
+	// 0x4f6670
+	DDInterface* anInterface = gSexyAppBase->mDDInterface;
+	if (HoldTarget(theHold, anInterface->mWidth, anInterface->mHeight, 0, theName) == nullptr)
+		return nullptr;
+	SwapScreen(&theHold->mImage, &theHold->mSwapped);  // slot 0xa0
+	// 0x4f6ac0: the entry keeps the saved surface
+	mTargets[theHold->mIndex - 1].mSwapped = theHold->mSwapped;
+	return theHold->mImage;
 }
 
 void TwistD3D::SetTextureStageState(int theStage, int theType, unsigned long theValue)

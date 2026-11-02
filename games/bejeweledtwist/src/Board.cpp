@@ -187,9 +187,8 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	}
 
 	mFXManager = new EffectsManager();
-	// 0x6f5ea6 makes the first manager's height image (a half-size target "HeightImage", flags 8 and the target's 0x10,
-	// cleared to grey by 0x6f55b0) when there is a device and none yet: its use is the distortion drawing, not ported
-	// (EffectsManager::DrawOverlay), so the image is not made
+	// 0x6f5ea6 makes the first manager's height image when there is a device and none yet
+	mFXManager->MakeHeightImage();
 	mFXManager->mUnknownB6 = true;  // +0xb6
 	mFXManager->mUnknownA1 = true;  // +0xa1: the depth test goes off first (0x6f6451)
 	mFXManager2 = new EffectsManager();

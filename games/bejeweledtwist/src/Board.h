@@ -142,6 +142,8 @@ public:
 	// +0x149c: the electro gems' strikes (the class at 0x71eb9e, not yet ported); ClearBoard deletes them
 	std::vector<void*> mUnknown149C;
 	std::vector<Piece*> mBombList;     // +0x14bc: bombs about to go off, drawn over the board (Piece::DrawFront)
+	struct HazeRect { float mLeft, mTop, mRight, mBottom; };
+	std::vector<HazeRect> mHazeRects;  // +0x14cc: the rectangles over the bombs' cells the distortion drawing (0x6f7ab4) takes
 	std::map<int, Piece*> mPieceMap;   // +0x1364: the pieces by id (0x6b8c20 adds, 0x6b677b drops)
 	float mShineAmount = 1.0f;            // +0x163c
 	float mPieceAlpha = 1.0f;          // +0x1640
