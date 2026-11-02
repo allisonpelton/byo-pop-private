@@ -38,6 +38,16 @@ Visualizer* Sexy::MakeVisualizer3D(const char* theName, WinTwistApp* theApp)
 		return new WindCloud(theApp);
 	if (sexy_stricmp(theName, "Raptis_Pulse") == 0)
 		return new Raptis_Pulse(theApp);
+	if (sexy_stricmp(theName, "PlasmaClouds") == 0)
+		return new PlasmaClouds(theApp);
+	if (sexy_stricmp(theName, "SpaceThreads") == 0)
+		return new SpaceThreads(theApp);
+	if (sexy_stricmp(theName, "FluffyStars") == 0)
+		return new FluffyStars(theApp);
+	if (sexy_stricmp(theName, "VizWarpBars") == 0)
+		return new VizWarpBars(theApp);
+	if (sexy_stricmp(theName, "VizKaleidoCat") == 0)
+		return new VizKaleidoCat(theApp);
 	return nullptr;
 }
 
