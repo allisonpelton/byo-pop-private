@@ -403,6 +403,12 @@ it is for, in `FIELDS` in `web/settings.js`):
   that did not finish (the card offers the rescue), with "Full screen at start" on Full screen (only a click may ask for full
   screen), with `?silent=1` (tests press Play themselves; the Browser pane may allow sound without a click), or once a panel is
   open or the card has gone. The game then starts with sound, so the status line does not add "sound after a click or key".
+- `quitHome` ("on" or "off", default off): **Go back to the games after quitting**. When the game quits by itself (its own
+  Quit or Exit), the page waits for the saves to reach the browser's storage as always and then goes to the listing page
+  (`./`, with `?silent=1` kept) instead of showing the "Thanks for playing" card with **Play again** (the user, 2026-11-02:
+  "Add option for 'Quit Game' to take the player back to the home page"). It starts off, because the card is what a player who
+  quit by mistake needs: Play again is one click away there, and the listing is always one click away on the logo. A restart
+  from the mod menu, the Game files panel closing the game and a game that stopped with an error keep their cards.
 - `showChat` ("on" or "off", default **on**): **Show chat**. A game's page draws the chat beside the game (below it on a narrow
   screen) unless it is off, and with it off nothing of the chat is built or started. It starts on because
   the chat is a part of the page rather than a change to a game, and it can be turned on and off while a game runs ("The chat",

@@ -456,6 +456,12 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       whenSaved(function () {
         if (then) { then(info); return; }
         if (restart) { session.restartPage(info); return; }
+        // the site setting "Go back to the games after quitting": the listing page, with ?silent=1 kept for the tests
+        if (setting("quitHome") === "on") {
+          $("exit-msg").textContent = "Going back to the games…";
+          location.href = "./" + (pageSilent() ? "?silent=1" : "");
+          return;
+        }
         $("exit-msg").textContent = hasSave()
           ? "The game has closed. Your game in progress was saved, and you can continue it when you play again."
           : "The game has closed. Your settings and high scores are saved.";

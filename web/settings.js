@@ -38,6 +38,7 @@ var ByopopSettings = (function () {
     wakeLock: { values: SWITCH, def: "off" },       // on: the screen stays awake while a game runs
     confirmLeave: { values: SWITCH, def: "off" },   // on: ask before leaving the page while a game runs
     pauseHidden: { values: SWITCH, def: "off" },    // on: a hidden tab pauses the game
+    quitHome: { values: SWITCH, def: "off" },       // on: a game that quits goes back to the listing page, not its "Thanks for playing"
     autoStart: { values: SWITCH, def: "on" },       // on: a game starts when its page opens, if the browser allows sound
     showChat: { values: SWITCH, def: "on" },        // off: the chat beside the game is not drawn (web/chat.js)
     profile: { values: ["game", "fill", "create"], def: "game" }  // fill: names start with the site's player; create: and the player is made and chosen
@@ -193,6 +194,8 @@ var ByopopSettings = (function () {
       hint: "Asks before you close or leave a page while a game is running, so a stray click doesn’t end your game." },
     { name: "pauseHidden", label: "Pause when the tab is hidden",
       hint: "Stops the game and its sound while you’re on another tab. The original games keep running in the background, so this starts off." },
+    { name: "quitHome", label: "Go back to the games after quitting",
+      hint: "When you quit a game, its page goes back to the list of games instead of offering Play again." },
     { name: "showChat", label: "Show chat",
       hint: "Shows the chat beside the game on a game’s page, or below it on a narrow screen. Turn it off to hide it. For now it is a test: " +
         "the messages are made up and stay in this browser." }
