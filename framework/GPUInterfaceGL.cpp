@@ -662,7 +662,7 @@ private:
 	void SetDefaultStates();
 	void MakeDeviceObjects();
 	void MakeScreen();
-	void EnsureDepth(int theWidth, int theHeight);
+	GLuint DepthFor(int theWidth, int theHeight, bool* isNew);
 	void BindTarget(Image* theImage);
 	int TargetWidth();
 	int TargetHeight();
@@ -716,8 +716,7 @@ private:
 	std::map<Image*, TextureData> mImages;
 	Image* mTarget = nullptr;
 	GLuint mScreenFramebuffer = 0, mScreenColor = 0;
-	GLuint mDepth = 0;
-	int mDepthWidth = 0, mDepthHeight = 0;
+	std::map<std::pair<int, int>, GLuint> mDepths;  // a depth buffer for each size of target
 	GLuint mVertexArray = 0, mStreamBuffer = 0, mStreamIndexBuffer = 0;
 	GLuint mSamplers[kStages] = {};
 	GLuint mPresentProgram = 0, mPresentSampler = 0;
@@ -757,7 +756,8 @@ GPUInterfaceGL::~GPUInterfaceGL()
 		gGL.glDeleteBuffers(1, &anEntry.second.mBuffer);
 	gGL.glDeleteFramebuffers(1, &mScreenFramebuffer);
 	gGL.glDeleteTextures(1, &mScreenColor);
-	gGL.glDeleteRenderbuffers(1, &mDepth);
+	for (auto& anEntry : mDepths)
+		gGL.glDeleteRenderbuffers(1, &anEntry.second);
 	gGL.glDeleteBuffers(1, &mStreamBuffer);
 	gGL.glDeleteBuffers(1, &mStreamIndexBuffer);
 	gGL.glDeleteVertexArrays(1, &mVertexArray);
@@ -840,23 +840,22 @@ void GPUInterfaceGL::MakeScreen()
 	gGL.glGenFramebuffers(1, &mScreenFramebuffer);
 	gGL.glBindFramebuffer(GL_FRAMEBUFFER, mScreenFramebuffer);
 	gGL.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mScreenColor, 0);
-	EnsureDepth(mWidth, mHeight);
 }
 
-// One depth buffer for the screen and every target, as D3D9 keeps its one depth surface bound across SetRenderTarget.
-// ES 3.0 and WebGL2 take attachments of different sizes (drawing covers their intersection).
-void GPUInterfaceGL::EnsureDepth(int theWidth, int theHeight)
+// D3D9 keeps its one depth surface bound across SetRenderTarget, so a smaller target shares the screen's. WebGL2 calls
+// a framebuffer whose attachments differ in size incomplete and drops its draws, so each size of target has its own
+// depth buffer here (a game that draws to a smaller target with the depth test on does not see the screen's depth).
+GLuint GPUInterfaceGL::DepthFor(int theWidth, int theHeight, bool* isNew)
 {
-	if (mDepth != 0 && theWidth <= mDepthWidth && theHeight <= mDepthHeight)
-		return;
-	mDepthWidth = std::max(mDepthWidth, theWidth);
-	mDepthHeight = std::max(mDepthHeight, theHeight);
-	if (mDepth != 0)
-		gGL.glDeleteRenderbuffers(1, &mDepth);
-	gGL.glGenRenderbuffers(1, &mDepth);
-	gGL.glBindRenderbuffer(GL_RENDERBUFFER, mDepth);
-	gGL.glRenderbufferStorage(GL_RENDERBUFFER, mPolicy.mDepthBits <= 16 ? GL_DEPTH_COMPONENT16 : GL_DEPTH_COMPONENT24,
-		mDepthWidth, mDepthHeight);
+	GLuint& aDepth = mDepths[std::make_pair(theWidth, theHeight)];
+	*isNew = aDepth == 0;
+	if (aDepth == 0) {
+		gGL.glGenRenderbuffers(1, &aDepth);
+		gGL.glBindRenderbuffer(GL_RENDERBUFFER, aDepth);
+		gGL.glRenderbufferStorage(GL_RENDERBUFFER, mPolicy.mDepthBits <= 16 ? GL_DEPTH_COMPONENT16 : GL_DEPTH_COMPONENT24,
+			theWidth, theHeight);
+	}
+	return aDepth;
 }
 
 int GPUInterfaceGL::TargetWidth()
@@ -879,11 +878,19 @@ void GPUInterfaceGL::BindTarget(Image* theImage)
 		aWidth = aData.mWidth;
 		aHeight = aData.mHeight;
 	}
-	EnsureDepth(aWidth, aHeight);
+	bool isNew;
+	GLuint aDepth = DepthFor(aWidth, aHeight, &isNew);
 	gGL.glBindFramebuffer(GL_FRAMEBUFFER, aFramebuffer);
-	gGL.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, mDepth);
+	gGL.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, aDepth);
 	if (gGL.glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		LogOnce("a render target's framebuffer is not complete");
+	if (isNew) {
+		// A new depth buffer starts at the far plane (the draws set the masks and the scissor again)
+		gGL.glDisable(GL_SCISSOR_TEST);
+		gGL.glDepthMask(1);
+		gGL.glClearDepthf(1.0f);
+		gGL.glClear(GL_DEPTH_BUFFER_BIT);
+	}
 	mTarget = theImage;
 	// D3D9's SetRenderTarget resets the viewport to the whole target
 	SetViewport(Rect(0, 0, aWidth, aHeight), 0.0f, 1.0f);
@@ -912,9 +919,9 @@ void GPUInterfaceGL::ContextLost()
 	mPrograms.clear();
 	for (auto& anEntry : mBuffers)
 		anEntry.second.mBuffer = 0;
-	mScreenFramebuffer = mScreenColor = mDepth = 0;
+	mScreenFramebuffer = mScreenColor = 0;
+	mDepths.clear();
 	mPresentProgram = mPresentSampler = 0;
-	mDepthWidth = mDepthHeight = 0;
 	mVertexArray = mStreamBuffer = mStreamIndexBuffer = 0;
 	std::memset(mSamplers, 0, sizeof(mSamplers));
 }
