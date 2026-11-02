@@ -808,11 +808,34 @@ void Board::DrawToolTip(Graphics* g)
 void Board::DrawOverlay(Graphics* g)
 {
 	if (0.0f < mUnknown248) {
-		// port: the fruit blast (+0x248, its curves +0x340 and +0x3b0) is not ported yet; the original darkens the
-		// screen here and draws the gems hidden from the board's own pass over it
-		NotPorted("Board::DrawOverlay: the fruit blast");
+		// A fruit's blast darkens the screen (to 0.6 at most: in over its first quarter, out over its last fifth)
+		mUnknown340.SetInVal(mUnknown248);
+		mUnknown3B0.SetInVal(mUnknown248);
+		double anIn = (double)mUnknown248 * 4.0;
+		double anOut = (1.0 - (double)mUnknown248) * 5.0;
+		double aDark = anIn < anOut ? anIn : anOut;
+		if (0.6000000238418579 < aDark)
+			aDark = 0.6000000238418579;
+		g->SetColor(Color(0, 0, 0, Ftol(aDark * 255.0)));
+		g->FillRect(0, 0, mWidth, mHeight);
 	}
 	g->Translate(Ftol(mShakeX), Ftol(mShakeY));
+	if (0.0f < mUnknown248) {
+		// and the gems it can reach are drawn over the dark, which the board's own pass left out (UpdateUnknown248)
+		int aCount = mCols * mRows;
+		if (0 < aCount) {
+			Piece** aCell = mGrid;
+			do {
+				Piece* aPiece = *aCell;
+				if (aPiece != nullptr && !aPiece->mUnknown2F6) {
+					aPiece->Draw(g, false);
+					aPiece->Draw(g, true);
+				}
+				aCell++;
+				aCount--;
+			} while (aCount != 0);
+		}
+	}
 	DrawCounters(g);
 	g->Translate(-Ftol(mShakeX), -Ftol(mShakeY));
 	if (mUnknown36B0 && mGameMode == MODE_BLITZ && 4 < mUnknown26C8) {
@@ -919,8 +942,56 @@ void Board::DrawOverlay(Graphics* g)
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	for (FlyingText* aText : mFlyingTexts)
 		aText->Draw(g);
-	if (mUnknown267C != nullptr)
-		NotPorted("Board::DrawOverlay: +0x267c");
+	if (mUnknown267C != nullptr) {
+		// The fruit dance darkens the screen (to 180) as it stops the game (Update)
+		int aDance = mUnknown2680;
+		float aFromStart = (float)((double)aDance * 0.009999999776482582);
+		float aFromEnd = (float)((double)(2200 - aDance) * 0.009999999776482582);
+		float aNear = aFromEnd <= aFromStart ? aFromEnd : aFromStart;
+		if (1.0f < aNear)
+			aNear = 1.0f;
+		if (0.0f < aNear) {
+			g->SetColor(Color(0, 0, 0, Ftol((double)aNear * 180.0)));
+			g->FillRect(0, 0, mWidth, mHeight);
+		}
+	}
+	// (With Direct3D a device call comes here when +0x268c is not 1.)
+	if (0.0f < mUnknown248) {
+		// A fruit's blast: its four rings in turning colours (IMAGE_FRUITNOVA), and the fruit's glow growing
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		g->SetColorizeImages(true);
+		int aRing = 0;
+		do {
+			float aT = (float)((double)aRing * -0.15 + (double)mUnknown248 * 2.799999952316284 - 0.5);
+			if (aRing == 3)
+				aT = (float)(((double)aT - 0.30000001192092896) * 0.8500000238418579);
+			mUnknown260.SetInVal(aT);
+			mUnknown2D0.SetInVal(aT);
+			int aHue = Ftol(mUnknown260.GetOutVal() * 256.0) % 256;
+			Color aColor = Color((int)mApp->HSLToRGB(aHue, 255, aRing == 3 ? 200 : 128));
+			aColor.mAlpha = Ftol(mUnknown2D0.GetOutVal() * 255.0);
+			if (aColor.mAlpha != 0) {
+				g->SetColor(aColor);
+				int aSize = Ftol(mUnknown260.GetOutVal() * (double)mHeight);
+				int aHalf = aSize / 2;
+				g->DrawImage(IMAGE_FRUITNOVA, GetColX(mUnknown250) + (gGemWidth / 2 - aHalf),
+					GetRowY(mUnknown254) + (gGemHeight / 2 - aHalf), aSize, aSize);
+			}
+			aRing++;
+		} while (aRing < 4);
+		g->SetColor(Color(255, 255, 255, Ftol(mUnknown340.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+		double aScale = mUnknown3B0.GetOutVal();
+		int aSize = Ftol((double)IMAGE_FRUITBLAST_FRUITGLOWS->GetCelWidth() * aScale);
+		int anOffset = (gGemWidth - aSize) / 2;
+		g->DrawImageCel(IMAGE_FRUITBLAST_FRUITGLOWS,
+			Rect(GetColX(mUnknown250) + anOffset, GetRowY(mUnknown254) + anOffset, aSize, aSize), mUnknown420);
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	}
+	if (mUnknown267C != nullptr) {
+		g->Translate(mUnknown267C->mX, mUnknown267C->mY);
+		mUnknown267C->Draw(g);
+		g->Translate(-mUnknown267C->mX, -mUnknown267C->mY);
+	}
 	mPointsManager->DrawOverlay(g, 0x62);
 	// (With Direct3D a device call comes here when +0x268c is not 1.) The banner of a mode just unlocked (0x6b40b5)
 	if (mUnknown498.GetOutVal() != 0.0) {

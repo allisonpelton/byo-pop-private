@@ -6,8 +6,8 @@
 // wait is over and runs on. Its commands put up a TwistDialog with a text, an animation and buttons, point an arrow or
 // a hole at a gem or part of the tube, set up the board (gems, rows, the score, the level) and unlock things.
 //
-// Not ported: see the NotPorted calls (the main menu, the tube's fade, the fruit award and the restart from a saved
-// board), and the title (+0x1f4..+0x20c: nothing ever makes the image, so mTitleState stays 0).
+// Not ported: see the NotPorted calls (the main menu, the tube's fade and the restart from a saved board),
+// and the title (+0x1f4..+0x20c: nothing ever makes the image, so mTitleState stays 0).
 #pragma once
 
 #include "Buffer.h"

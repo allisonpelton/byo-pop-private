@@ -156,6 +156,10 @@ public:
 	// 0x76350c: -autoplay[=classic|zen|blitz], and the original's other test switches
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void PlaySample(int theSoundNum) override;  // 0x7675d8
+	// 0x75f631: mutes, and pauses a fruit dance's music (Board::UpdateGame)
+	void Mute(bool autoMute = false) override;
+	// 0x75f672: unmutes, and a fruit dance's music goes on at the louder of the music's and the sounds' volumes
+	void Unmute(bool autoMute = false) override;
 	void PlayVoice(int theSoundId, bool theInterrupt);  // 0x767584 (slot 108): one at a time in mUnmanagedSound
 	using SexyApp::PlaySample;
 

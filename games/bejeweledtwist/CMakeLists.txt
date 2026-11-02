@@ -37,7 +37,7 @@ set(BJT_SOURCES
   src/MenuButtonWidget.cpp src/Gates.cpp src/Profile.cpp src/MenuPanels.cpp src/Menu.cpp src/Ranks.cpp
   src/TwistEditWidget.cpp src/TwistDialog.cpp src/UnderDialogWidget.cpp
   src/Piece.cpp src/Board.cpp src/BoardUpdate.cpp src/BoardFill.cpp src/BoardTurn.cpp src/BoardMatch.cpp
-  src/BoardTwist.cpp src/GoodTube.cpp
+  src/BoardTwist.cpp src/GoodTube.cpp src/FruitAwardScreen.cpp
   src/Traveller.cpp src/GemSoul.cpp src/LevelUpShow.cpp src/Shockwave.cpp src/SpeedText.cpp src/RankBonusWidget.cpp src/AwardTelly.cpp src/Mandala.cpp src/ModeButton.cpp src/Points.cpp src/BoardDraw.cpp
   src/FlyingText.cpp src/GameOverShow.cpp src/Challenge.cpp src/ChallengeMenu.cpp src/Math3D.cpp)
 add_executable(bejeweledtwist ${BJT_SOURCES})

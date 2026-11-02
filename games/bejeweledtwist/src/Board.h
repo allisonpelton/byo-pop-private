@@ -3,6 +3,7 @@
 // is known, and come in as the code that uses them does.
 #pragma once
 
+#include "PopAnim.h"
 #include "TwistWidget.h"
 #include "Tutorial.h"
 #include "X86Math.h"
@@ -31,6 +32,7 @@ class Piece;
 class TextImage;
 class Traveller;
 class PointsManager;
+class Points;
 class FlyingText;
 class GemSoul;
 class Shockwave;
@@ -121,7 +123,7 @@ struct MatchInfo {
 extern int gMatchInfoCount;  // 0x84e890
 extern int gSparkDelay;      // 0x85aef8: the delay FindMatches gives a gem's sparks (0x6a453b)
 
-class Board : public TwistWidget, public TwistDialogListener {  // the dialog listener is at +0x14c
+class Board : public TwistWidget, public TwistDialogListener, public PopAnimListener {  // the listeners at +0x14c, +0x150
 public:
 	// The game modes (+0x20c)
 	enum { MODE_CASUAL = 0, MODE_CLASSIC = 1, MODE_CHALLENGE = 2, MODE_BLITZ = 3, MODE_ZEN = 4, MODE_PUZZLE = 5 };
@@ -194,16 +196,22 @@ public:
 	int mUnknown1FC = 0;                    // +0x1fc
 	int mUnknown200 = 0;                    // +0x200
 	int mUnknown204 = 1;                    // +0x204
-	int mUnknown218 = 0;                    // +0x218
+	int mUnknown218 = 0;                    // +0x218: fruits awarded (AwardFruit: their colours go round the seven)
 	int mUnknown21C = 0;                    // +0x21c: only saved and loaded
 	int mUnknown224 = 0;                    // +0x224
 	int mUnknown234 = 0;                    // +0x234: the most moves in a level
-	float mUnknown248 = 0;                  // +0x248
+	int mUnknown22C = 0;                    // +0x22c: fruits broken (nothing reads it)
+	float mUnknown248 = 0;                  // +0x248: the fruit's blast, 0 to 1 (0 none; UpdateUnknown248)
+	bool mUnknown24C = false;               // +0x24c: a fruit broke with no lock or bomb on the board (nothing reads it)
 	float mUnknown230 = 0;                  // +0x230: up 0.01 each update while +0x15c is 0
-	int mUnknown250 = -1;                   // +0x250
-	int mUnknown254 = -1;                   // +0x254
-	int mUnknown258 = -1;                   // +0x258
-	int mUnknown420 = 0;                    // +0x420
+	int mUnknown250 = -1;                   // +0x250: the broken fruit's column
+	int mUnknown254 = -1;                   // +0x254: and row
+	int mUnknown258 = -1;                   // +0x258: and id
+	CurvedVal mUnknown260;                  // +0x260: the blast's rings' size, by their progress
+	CurvedVal mUnknown2D0;                  // +0x2d0: their opacity
+	CurvedVal mUnknown340;                  // +0x340: the fruit's glow's opacity, by the blast's progress
+	CurvedVal mUnknown3B0;                  // +0x3b0: the fruit's and its glow's scale
+	int mUnknown420 = 0;                    // +0x420: and colour
 	CurvedVal mUnknown428;                  // +0x428: the mode-unlock banner's stripe (0x6b40b5)
 	CurvedVal mUnknown498;                  // +0x498: set by 0x6b40b5; while it is not 0 the banner is drawn and the
 	                                        // rank bar draws the overlays above priority 50 under it
@@ -559,14 +567,16 @@ public:
 	int mUnknown2638 = 0;                   // +0x2638
 	int mUnknown263C = 0;                   // +0x263c
 	int mUnknown2640 = 0;                   // +0x2640
-	int mUnknown265C = 0;                   // +0x265c
+	int mUnknown265C = 0;                   // +0x265c: a fruit broke (1 or 2), its bonus challenge (3), met: the fruit dance (4), missed (5)
 	int mUnknown2660 = 0;                   // +0x2660
 	int mUnknown2664 = 0;                   // +0x2664
 	bool mUnknown2669 = false;              // +0x2669
 	bool mUnknown266A = false;              // +0x266a
 	int mUnknown2678 = 0;                   // +0x2678
-	Widget* mUnknown267C = nullptr;                   // +0x267c
-	int mUnknown2680 = 0;                   // +0x2680
+	PopAnim* mUnknown267C = nullptr;        // +0x267c: the fruit dance (fruitdance.pam)
+	int mUnknown2680 = 0;                   // +0x2680: its updates, to 2200
+	int mUnknown2684 = 0;                   // +0x2684: its "small" points so far (PopAnimCommand)
+	int mUnknown2688 = 0;                   // +0x2688: its "large" points
 	bool mUnknown2698 = true;               // +0x2698
 	int mUnknown269C = 0;                   // +0x269c
 	TwistWidget* mUnknown26A0 = nullptr;                   // +0x26a0
@@ -631,7 +641,7 @@ public:
 	int mUnknown3934 = 0;                   // +0x3934
 	// The fields the constructor sets from other values
 	int mUnknown154 = 0;                    // +0x154
-	bool mUnknown214 = false;               // +0x214
+	bool mUnknown214 = false;               // +0x214: a fruit is due once the board settles (AwardFruit)
 	float mUnknown220 = 1.0f;               // +0x220
 	int mUnknown1328 = 0;                   // +0x1328: how many of the player's +0x80 flags are set
 	float mUnknown133C[8] = {};               // +0x133c
@@ -757,6 +767,11 @@ public:
 	bool CheckLevelDone();                       // 0x6ab195
 	int GetBonusLevel(int theLevel) { return mGameMode == 4 ? mUnknown204 / 2000 : theLevel; }  // 0x6a6618
 	void StartBonusChallenge(int theExcludeColor);  // 0x6bbfe4: the colours of the next bonus challenge
+	// 0x6ba5b4: a fruit for the gem at theRow, theCol, or (theRow below 0) a gem picked for it: the award screen
+	// (FruitAwardScreen) joins the dialog queue
+	void AwardFruit(int theRow, int theCol);
+	// 0x6c3cf5 (PopAnimListener slot 1): the fruit dance's "small" and "large" points
+	void PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam) override;
 
 	// 0x6c9d0b: a new game, or the saved one unless the menu's play button resumes the game on the screen
 	void StartGame();
@@ -836,8 +851,8 @@ public:
 	void ClearHitCounts();                       // 0x6a4560
 	void ClearSparkStarts();                     // 0x6a5f12
 	void StartSparks(Piece* thePiece);           // 0x6a453b
-	// 0x6bf983: the points of a match, popped up at theX, theY in theColor
-	Piece* AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theUnknown1,
+	// 0x6bf983: the points of a match, popped up at theX, theY in theColor; returns their floater (or null)
+	Points* AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theUnknown1,
 		bool theUnknown2, bool theFirst, bool theUnknown3);
 	void ShowCountPopup();                       // 0x6b3ffc
 	void UnlockMode(int theMode);                // 0x6b40b5: the mode opens, with a banner
@@ -868,7 +883,7 @@ public:
 	void UpdateLevelUp();                         // 0x6c6905
 	int GetGridRight();                          // 0x6a49a3
 	float GetGridMidY();                         // 0x6a49cf
-	void UpdateUnknown248();                     // 0x6c4466
+	void UpdateUnknown248();                     // 0x6c4466: the fruit's blast: its rings break the gems of its colour
 	void UpdateHint();                           // 0x6aff84
 	void ShowHint();                             // 0x6c32cf
 	void UpdateToolTips();                       // part of 0x6d090f

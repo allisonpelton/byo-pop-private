@@ -282,8 +282,8 @@ from a label named after the tip (ShowNextTip, 0x6bbc58, reads the file once int
 its dialog is clicked away, when 0x6c78a5 (Board::CloseTip) marks the tip seen in the profile and, for the basics
 (kind 14), resets the score and the tube. While it runs, the board's hints, clicks and twists ask its state (+0x16c),
 its "dialog up" flag (+0x210) and whether moves are allowed (+0x21d); 0x6aa3bc draws the forced move's "click here" and
-the arrows around the cursor. A few commands still reach parts of the board not yet ported (the fruit award and the
-replay of the tip from its saved board).
+the arrows around the cursor. A few commands still reach parts of the board not yet ported (the replay of the tip
+from its saved board).
 
 The end of a level: LevelComplete (0x6b3634) fades the music, shows the LevelUpShow ("LEVEL n COMPLETE", 0x2c8 bytes,
 0x71cc30, at +0x26ac) and starts the hyperspace's transition 8. Meanwhile UpdateJump (in UpdateGame's busy branch,
@@ -558,6 +558,56 @@ deletes a finished strike (the original only takes it off the list, a leak), and
 clears (0x71eb9e). The bolts' colour table (0x85d850) is never written by the exe, so every bolt has Color(0, 0, 0, 0)
 there too: the glow is additive black and the lightning grey.
 
+**The fruit gem** (FruitAwardScreen.h/.cpp, BoardTurn.cpp, BoardMatch.cpp, BoardUpdate.cpp, BoardDraw.cpp). A fruit is
+awarded when the multiplier goes past its top level (SetLevelSteps sets +0x214) and at update 2190 of a fruit dance.
+SettleTurn and CheckSettled then call `Board::AwardFruit` (0x6ba5b4) with -1, -1 and take the chain's steps back: steps
+past 151 (at most 14) go on top of the steps of the levels below the board's (GetLevelSteps), through SetLevelSteps.
+AwardFruit's colour is the count of fruits awarded (+0x218) modulo 7. Its gem is FindHintPiece's (the bomb with the
+lowest counter or a locked gem, whatever its colour), else the first plain gem of that colour from a cell picked by
+Rand85B970 round the grid, else up to 100 cells picked at random (Rand85B970, the column first), any plain gem; after
+100 misses there is no fruit. The tutorial's `awardfruit a,b` names the cell (a - 1, b - 1). The award is a
+FruitAwardScreen (0x228 bytes, vtable 0x7e24c4) queued in the board's dialog queue (+0x23dc); the tube stops taking the
+mouse. When it comes up it plays SOUND_TROPHY_AWARDED and over 1 / 0.015 updates leaves a trail of IMAGE_FRUITS cels
+(type 0 effects on the board's +0x1648, every third update, additive, scale 2.5 down to 1) from the tube's top (its
+bottom during a fruit dance) to the gem, which then becomes the fruit (MakeFruitGem) and the screen closes. Only its
+state 4 ever runs; states 0 to 3 are left out (see the header). FruitTraveller (vtable 0x7f1aa4, constructor 0x75089a)
+is never made by the exe and is not ported.
+
+A fruit breaking (BreakPiece's fruit branch, 0x6c0ccf) waits if another's blast runs (+0x88 and +0x29c set, not
+broken). Otherwise it counts stat 0x45, plays SOUND_GEM_FRUIT_DESTROYED,
+counts +0x22c and sets +0x24c when the board has no lock or bomb (neither is read), starts the blast (+0x248 at
+0.0001), notes the fruit's colour, cell and id (+0x420, +0x250, +0x254, +0x258), sets the four curves +0x260, +0x2d0,
++0x340, +0x3b0 (0x7dd2f8, 0x7dd2dc, 0x7dd2b0, 0x7dd28c) and moves +0x265c from 0 to 2, or 1 while the tube's +0x3b0 is
+set (an already started challenge sets +0x2664 to -1 instead). `UpdateUnknown248` (0x6c4466) runs the blast: +0x248
+grows by 0.002 an update; at 0.5 the fruit's own 500 points pop up. Up to 0.85, four rings spread from the fruit's cell
+(ring i at 2.8 * blast - 0.15 * i - 0.5 on +0x260, the last one slower), and each cell a ring crosses (within 0.3 of a
+cell of its radius, 4.4 * +0x260) is touched: gems of the fruit's colour light up (+0x29c) and on the last ring break
+(BlowUpPiece, or BreakPiece for a special gem; 10 points, SOUND_ROWBLOW and 20 type 12 sparks drawn from RandSigned
+pushed away from the fruit), another fruit there becomes a power gem and goes off for 1000 points; bombs and devil gems
+count up by the ring's number (their glow curve 0x7dd424, with SOUND_BLITZ_COUNTUP pitched by the blast) and on the last
+ring locks break. The fruit fades (+0x340, alpha 1 - 6 * (blast - 0.4)) and grows (+0x3b0). Past 0.85 the board drops
+and refills (with the amnesty count at 0), and at 1 the blast ends and the turn settles. While it runs, the gems the
+blast can reach (+0x2f6 clear) are left out of the board's own pass and drawn over the darkening in DrawOverlay
+(0x6b4a39): black at up to 0.6 (in over the first quarter, out over the last fifth), the rings in IMAGE_FRUITNOVA,
+their colour's hue from +0x260 (lightness 128, 200 for the last), alpha from +0x2d0, and the fruit's glow
+(IMAGE_FRUITBLAST_FRUITGLOWS, cel the fruit's colour) at +0x3b0's scale and +0x340's alpha.
+
+In state 2, once the last ring's radius reaches a point by the tube (or the blast ends or passes 0.9) and the tube has
+no loaded challenge (+0x330), the bonus challenge starts (+0x265c = 3, the tube's curve 0x7dcf14, StartBonusChallenge
+with the fruit's colour excluded); state 5 (missed, ResetFruitCount) clears it. Met (+0x265c = 4) brings the fruit
+dance once the board is idle: fruitdance.pam (a PopAnim at +0x267c, `PopAnimListener` at Board +0x150) over the board at
+1600x1200 times the art's scale, hidden as a widget and drawn by DrawOverlay, with track 0x133 at the louder of the
+music's and the sounds' volumes. Board::Update stops the game and the background (VizManager +0x1a0) over the dance's
+2200 updates, easing in and out over the first and last hundred, darkens the screen to 180 the same way, counts the
+updates only while the dance is not paused (PopAnim +0x170 `mPaused`, set while the options, a pause or a frozen board
+are up, which also pauses the track; Mute and Unmute, 0x75f631 and 0x75f672, do the same), and at 2190 sets +0x214 for
+a fruit. The dance's commands (`Board::PopAnimCommand`, 0x6c3cf5) pop up points: "small c x y" the next of a list of
+42 (100, 200 three times, 300 and 400 five times each, then 100) halved, larger by 0.25, and "large c x y" the next of
+15 (1000 to 5000, 10000 five times, then 0) halved, half again larger and living 0.4 longer, at x, y in the animation
+in gem colour c, none stopping high. At 2200 the dance is deleted, the challenge's state cleared, +0x21da set and the
+game's music played again (Blitz's own, the level's track, or the menu's). Not ported, all from GoodTube: the bonus
+bracket's sparks (table 0x7e3390), its text popups (+0x1cc, +0x1d0; 0x707103, 0x707215) and SetUnknown158(3).
+
 ## Oddities
 
 - **The doom gem's placement can hang.** NextTurnGems (0x6bde87) picks random cells inside the border until one is a
@@ -572,3 +622,11 @@ there too: the glow is additive black and the lightning grey.
   therefore black with no alpha: its IMAGE_GRITTYBLURRY glow, drawn additive in that colour, adds nothing, and its
   IMAGE_LIGHTNING is drawn in the mid grey half way to white. The port keeps the empty table. It was most likely meant
   to hold the gems' colours; filling it would be a change to the original's look.
+- **The fruit dance's points can run past their lists.** PopAnimCommand (0x6c3cf5) takes each "small" or "large"
+  command's points from a list on its stack (42 and 15 entries) by a count it never checks, so further commands would
+  read whatever lies beside the list. fruitdance.pam sends 37 and 15, so the original stays inside them; the port gives
+  no points past the end. To see it, an animation with more commands. It would take a bound the original does not have.
+- **An award's gem ignores its colour when there is a bomb or lock.** AwardFruit (0x6ba5b4) works out the next
+  fruit colour (+0x218 modulo 7) and looks for a plain gem of it, but only when FindHintPiece finds no bomb or locked
+  gem; otherwise the fruit goes to that gem whatever its colour, and the count still moves on. Seen on any board with a
+  bomb or lock when the multiplier passes its top.

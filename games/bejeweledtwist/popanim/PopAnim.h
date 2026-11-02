@@ -77,6 +77,7 @@ public:
 	bool mMirror;                 // +0x165, nothing sets it in the exe; its mirrored drawing is not ported, leave it false
 	bool mInterpolate;            // +0x166, draw between frames (the default); false steps from frame to frame
 	bool mImageIsNew;             // +0x167, whether the last image looked up had to be loaded
+	bool mPaused;                 // Twist: +0x170, UpdateF does nothing while it is set (the board's fruit dance)
 	// Pictures that could not be loaded (the game's .jp2 files, for one): the animation loads and plays without
 	// them. The exe stops the load with an error instead.
 	std::vector<std::string> mMissingImages;

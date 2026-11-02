@@ -626,10 +626,29 @@ Board::~Board()
 	for (FlyingText* aText : mFlyingTexts)
 		delete aText;
 	mFlyingTexts.clear();
+	// The dialogs still waiting, then the one up, are taken off the screen and deleted (0x6befa1)
+	for (TwistWidget* aDialog : mUnknown23DC) {
+		mApp->mWidgetManager->RemoveWidget(aDialog);
+		delete aDialog;
+	}
+	mUnknown23DC.clear();
+	if (mUnknown2208 != nullptr) {
+		mApp->mWidgetManager->RemoveWidget(mUnknown2208);
+		delete mUnknown2208;
+		mUnknown2208 = nullptr;
+	}
 	delete[] mUnknown1370;
 	delete[] mUnknown135C;
 	delete[] mCells;
 	delete[] mGrid;
+	if (mUnknown267C != nullptr) {
+		// a fruit dance still playing, and the background back at its speed
+		RemoveWidget(mUnknown267C);
+		delete mUnknown267C;
+		mUnknown267C = nullptr;
+		if (gApp->mVizManager != nullptr)  // port: the original does not check
+			gApp->mVizManager->mSpeed = 1.0;
+	}
 	if (gBoard == this)
 		gBoard = nullptr;
 }

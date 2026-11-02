@@ -112,6 +112,7 @@ PopAnim::PopAnim(int theId, PopAnimListener* theListener) : mAnimColor(Color::Wh
 	mMirror = false;
 	mInterpolate = true;
 	mImageIsNew = false;
+	mPaused = false;
 }
 
 // 0x52ae50
@@ -196,6 +197,7 @@ void PopAnim::CopyFrom(const PopAnim* theOther)
 	mMirror = theOther->mMirror;
 	mInterpolate = theOther->mInterpolate;
 	mImageIsNew = theOther->mImageIsNew;
+	mPaused = theOther->mPaused;
 }
 
 // 0x52b150
@@ -653,8 +655,11 @@ void PopAnim::Update()
 
 // 0x52e990: the frames that theFrac of an update's time (mFrameTime milliseconds) is worth add up in
 // mFraction, and each whole one moves the animation on
+// (Twist, 0x4d8530: nothing while mPaused is set)
 void PopAnim::UpdateF(float theFrac)
 {
+	if (mPaused)
+		return;
 	double aFrames = ((double)gSexyAppBase->mFrameTime * theFrac) / (1000.0 / (double)mFrameRate);
 	mFraction = (float)(aFrames + mFraction);
 	while (mFraction > 1.0f) {

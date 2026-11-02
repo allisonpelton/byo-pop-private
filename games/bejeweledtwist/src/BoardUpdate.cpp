@@ -133,9 +133,21 @@ void Board::Update()
 	if (std::fabs(sSpeed - aTarget) < 0.01)
 		sSpeed = aTarget;
 	if (mUnknown267C != nullptr) {
-		// port: the object at +0x267c (with a flag at +0x170) slows the game down and dims the VizManager over
-		// 2200 updates; neither is ported yet
-		NotPorted("Board::Update: the +0x267c object");
+		// The fruit dance (2200 updates) stops the game and the background behind it, easing in over its first
+		// hundred updates and out over its last, and gives a fruit (SettleTurn) near its end
+		int aDance = mUnknown2680;
+		float aFromStart = (float)((double)aDance * 0.009999999776482582);
+		float aFromEnd = (float)((double)(2200 - aDance) * 0.009999999776482582);
+		float aNear = aFromEnd <= aFromStart ? aFromEnd : aFromStart;
+		if (1.0f < aNear)
+			aNear = 1.0f;
+		double aSlow = 1.0 - (double)aNear;
+		mApp->mVizManager->mSpeed = aSlow <= 1.0 ? aSlow : 1.0;
+		sSpeed = (float)(aSlow <= 1.0 ? aSlow : 1.0);
+		if (aDance == 2190)
+			mUnknown214 = true;
+		if (!mUnknown267C->mPaused)
+			mUnknown2680 = aDance + 1;
 	}
 	float anAccum = sSpeed + mUnknown1C84;
 	mUnknown1C84 = anAccum;
@@ -243,8 +255,21 @@ void Board::Update()
 			}
 		}
 	}
-	if (mUnknown267C != nullptr)
-		NotPorted("Board::Update: the +0x267c object's music");
+	if (mUnknown267C != nullptr) {
+		// The fruit dance and its music stop while the game is paused
+		mUnknown267C->mPaused = mApp->mOptionsDialog != nullptr || 0 < mUnknown1574 || mFrozen || 0 < mUnknown1570;
+		// port: the original has no music interface or track to check for (it reads them without a check); the
+		// port has none without sound
+		if (mApp->mTwistMusic != nullptr) {
+			CustomBassMusicInterface::Track* aTrack = mApp->mTwistMusic->FindTrack(0x133);
+			if (aTrack != nullptr) {
+				if (mUnknown267C->mPaused)
+					mApp->mTwistMusic->PauseMusic(aTrack->mSongId);
+				else
+					mApp->mTwistMusic->ResumeMusic(aTrack->mSongId);
+			}
+		}
+	}
 }
 
 void Board::SnapPiecesX()
@@ -1427,12 +1452,95 @@ void Board::UpdateGame()
 		mUnknown25A4 = false;
 	if (mUnknown15C != 0)
 		mUnknown25A4 = false;
-	if (mUnknown265C == 2 || mUnknown265C == 5 || (mUnknown265C == 4 && mUnknown2584 == nullptr)) {
-		// port: the fruit gem's dance (+0x265c: 2 the fruit flies to the tube, 4 the dance, 5 its end; 0x6bbfe4 picks
-		// the bonus colours) comes with the fruit gem; it draws from Rand
-		NotPorted("Board::UpdateGame: the fruit dance");
-		if (mUnknown265C == 4)
-			mUnknown25A4 = false;
+	// A fruit's blast and the bonus challenge it starts (+0x265c, BreakPiece: 1 or 2 when a fruit broke, 3 the
+	// challenge, 4 the fruit dance when it is met, 5 when it is missed)
+	if (mUnknown265C == 2) {
+		if (mGoodTube->mUnknown330 == 0.0f)
+			mUnknown2660 = 0;
+		float aT = (float)((double)mUnknown248 * 2.799999952316284 - 0.44999999999999996 - 0.5);
+		aT = (float)(((double)aT - 0.30000001192092896) * 0.8500000238418579);
+		mUnknown260.SetInVal(aT);
+		float aRadius = (float)(mUnknown260.GetOutVal() * 4.400000095367432 * (double)gGemWidth);
+		int aX = GetColX(mUnknown250) + gGemWidth / 2;
+		int aY = GetRowY(mUnknown254) + gGemHeight / 2;
+		int aTubeX = mGoodTube->mX - Ftol((double)gApp->mScale * -300.0);
+		int aTubeY = mGoodTube->mY - Ftol((double)gApp->mScale * -900.0);
+		float aDX = (float)(aX - aTubeX);
+		float aDY = (float)(aY - aTubeY);
+		float aDist = sqrtf((float)((double)aDX * (double)aDX + (double)aDY * (double)aDY));
+		// The challenge starts when the last ring reaches a point by the tube (or the blast is over or nearly)
+		if (mGoodTube->mUnknown330 == 0.0f &&
+			(mUnknown248 == 0.0f || fabsf((float)(aDist - aRadius)) < 10.0f || 0.8999999761581421 <= (double)mUnknown248)) {
+			mGoodTube->mUnknown3A8 = 0;
+			mUnknown2664 = -1;
+			mUnknown265C = 3;
+			mGoodTube->mUnknown5F0.SetCurve(GTS(0x7dcf14));
+			StartBonusChallenge(mUnknown420);
+		}
+	} else if (mUnknown265C == 5) {
+		if (mGoodTube->mUnknown330 == 0.0f) {
+			mUnknown265C = 0;
+			mUnknown2660 = 0;
+			mBonusColors.clear();
+			mGoodTube->mUnknown3A8 = 0;
+		}
+	}
+	if (mUnknown265C == 4 && mUnknown2584 == nullptr) {
+		if (mUnknown267C == nullptr) {
+			if (mUnknown25A4) {
+				// The fruit dance (fruitdance.pam) over the board, with its own music
+				mGoodTube->mWidgetFlagsMod.mRemoveFlags |= WIDGETFLAGS_ALLOW_MOUSE;
+				// port: the original also writes a "FRUIT DANCE!" line (the mode, level, rank and play time) to its
+				// debug log (app +0x1024)
+				mGoodTube->mUnknown5F0.SetCurve(GTS(0x7df1c8));
+				PopAnim* anAnim = new PopAnim(0, this);
+				mUnknown267C = anAnim;
+				mUnknown2680 = 0;
+				mUnknown2684 = 0;
+				mUnknown2688 = 0;
+				anAnim->mImageFolders.clear();
+				anAnim->mImageFolders.push_back(StrFormat(GTC(0x7df1b4), gApp->mArtRes));
+				anAnim->mImageScale = gApp->mScale;
+				anAnim->mDrawScale = gApp->mScale;
+				anAnim->LoadAnimation(GTS(0x7df190));
+				mApp->ClearUpdateBacklog(false);
+				int aWidth = Ftol((double)gApp->mScale * 1600.0);
+				int aHeight = Ftol((double)gApp->mScale * 1200.0);
+				anAnim->Resize((mWidth - aWidth) / 2, 0, aWidth, aHeight);
+				AddWidget(anAnim);
+				anAnim->PlayFrame(0);
+				anAnim->mVisible = false;
+				if (mApp->mMusicInterface != nullptr) {
+					// port: the original keeps BASS's position in the music playing (0x6ee282) here (+0x3928);
+					// PlayMusic drops it, so the port keeps what is there (as in RemovedFromManager)
+					mApp->mMusicInterface->StopAllMusic();
+					mApp->mMusicInterface->SetVolume(mApp->mSfxVolume < mApp->mMusicVolume ? mApp->mMusicVolume :
+						mApp->mSfxVolume);
+					mApp->PlayMusic(0x133, false, false, 0, 0);
+				}
+			}
+		} else if (2200 <= mUnknown2680) {
+			// The dance is over: the game's music again
+			RemoveWidget(mUnknown267C);
+			delete mUnknown267C;
+			mUnknown267C = nullptr;
+			mUnknown265C = 0;
+			mUnknown2660 = 0;
+			mBonusColors.clear();
+			mGoodTube->mUnknown3A8 = 0;
+			mUnknown21DA = true;
+			if (mApp->mMusicInterface != nullptr)
+				mApp->mMusicInterface->SetVolume(mApp->mMusicVolume);
+			if (!mUnknown37C4) {
+				if (mGameMode == MODE_BLITZ)
+					PlayGameMusic();
+				else
+					mApp->PlayMusic(mUnknown2154 + 100, true, true, 0, 0);
+			} else if (mApp->mMainMenu != nullptr) {
+				mApp->mMainMenu->PlayMusic(-1);
+			}
+		}
+		mUnknown25A4 = false;
 	}
 	if (mUnknown160 == 2) {
 		if (mUpdateCnt % 2 == 0) {
@@ -2352,9 +2460,23 @@ void Board::CheckSettled()
 		if (!mUnknown21DA) {
 			if (!IsBusy() && mUnknown149C.empty() && !mUnknown21D8 && mUnknown214) {
 				mUnknown214 = false;
-				// port: 0x6ba5b4 sends a traveller to a gem (Rand picks it) and the points it brings (0x70205f,
-				// 0x6a43e8) come with the travellers
-				NotPorted("Board::CheckSettled: a traveller (0x6ba5b4)");
+				// The multiplier went past its top (SetLevelSteps) or a fruit dance ended: a fruit (AwardFruit),
+				// and steps past 151 (at most 14) go on top of the steps of the levels below the board's
+				AwardFruit(-1, -1);
+				if (152 <= mUnknown224) {
+					int aSteps = mUnknown224 - 151;
+					if (14 < aSteps)
+						aSteps = 14;
+					mUnknown224 = aSteps;
+					int aLevel = 1;
+					if (1 < mUnknown21D0) {
+						do {
+							mUnknown224 += GetLevelSteps(aLevel);
+							aLevel++;
+						} while (aLevel < mUnknown21D0);
+					}
+					SetLevelSteps(mUnknown224);
+				}
 			}
 		} else {
 			Refill();
@@ -2648,12 +2770,246 @@ float Board::GetGridMidY()
 
 void Board::UpdateUnknown248()
 {
-	if (mUnknown248 != 0.0f) {
-		// port: 0x6c4466 runs the fruit gem's flight (+0x248, its sparks and points); it comes with the fruit gem and
-		// draws from Rand
-		NotPorted("Board::UpdateUnknown248 (0x6c4466)");
+	// 0x6c4466: a broken fruit gem's blast (BreakPiece starts it). Four rings spread from its cell over 0.85 of
+	// +0x248's run: the gems of its colour they cross break (another fruit becomes a power gem and goes off), bombs and
+	// devil gems count up and locks break; then the board refills, and at 1 the turn settles
+	if (mUnknown248 == 0.0f)
+		return;
+	bool aAll = false;
+	float anOld = mUnknown248;
+	float aNew = (float)((double)mUnknown248 + 0.0020000000949949026);
+	mUnknown248 = aNew;
+	if (anOld < 0.5f && 0.5f <= aNew) {
+		// Half way: the fruit's own points
+		AddPoints(GetColX(mUnknown250) + gGemWidth / 2, GetRowY(mUnknown254) + gGemHeight / 2, 500,
+			gGemColors[mUnknown420], -0x68, true, true, false, true);
+	}
+	if (0.8500000238418579 < (double)mUnknown248) {
+		if (1.0f <= mUnknown248) {
+			mUnknown248 = 0;
+			SettleTurn();
+		}
+		int anAmnesty = mAmnestyGemCount;
+		mAmnestyGemCount = 0;
+		mUnknown1C90 = false;
+		if (DropPieces())
+			FillInBlanks(false);
+		mAmnestyGemCount = anAmnesty;
+		aAll = true;
+	} else {
+		mUnknown25A4 = false;
+		mUnknown1C90 = true;
+		bool aSound = false;
+		int aRow = 0;
+		if (0 < mRows) {
+			do {
+				int aCol = 0;
+				if (0 < mCols) {
+					do {
+						float aDX = (float)(aCol - mUnknown250);
+						float aDY = (float)(aRow - mUnknown254);
+						Piece* aPiece = GetPieceAt(aRow, aCol);
+						if (aPiece != nullptr && 0.0f <= aPiece->mY) {
+							aPiece->mUnknown34 = 0;
+							float aDist = sqrtf((float)((double)aDX * (double)aDX + (double)aDY * (double)aDY));
+							int aRing = 0;
+							do {
+								float aT = (float)((double)aRing * -0.15 + (double)mUnknown248 * 2.799999952316284 -
+									0.5);
+								if (aRing == 0) {
+									if (aT < 0.0f) {
+										aPiece->mJustMade = 0;
+										aPiece->mDevilGlow = 0;
+									}
+								} else if (aRing == 3) {
+									aT = (float)(((double)aT - 0.30000001192092896) * 0.8500000238418579);
+								}
+								mUnknown260.SetInVal(aT);
+								mUnknown2D0.SetInVal(aT);
+								float aRadius = (float)(mUnknown260.GetOutVal() * 4.400000095367432);
+								if (fabsf((float)(aDist - aRadius)) < 0.3f) {
+									// The ring crosses this cell
+									if (aPiece->mColor == mUnknown420 && !aPiece->IsFlagSet(Piece::FLAG_COAL) &&
+										aPiece->mId != mUnknown258 && !aPiece->IsFlagSet(Piece::FLAG_DEVIL)) {
+										if (aRing == 3) {
+											float aX = (float)((double)(gGemWidth / 2) + (double)aPiece->mX);
+											float aY = (float)((double)(gGemHeight / 2) + (double)aPiece->mY);
+											if (aPiece->IsFlagSet(Piece::FLAG_FRUIT)) {
+												aPiece->SetFlag(Piece::FLAG_POWER, true);
+												aPiece->ClearFlag(Piece::FLAG_FRUIT);
+												BlowUpPiece(aPiece, aX, aY, true, false);
+												AddPoints(Ftol((double)(gGemWidth / 2) + (double)aPiece->mX),
+													Ftol((double)(gGemHeight / 2) + (double)aPiece->mY), 1000,
+													gGemColors[aPiece->mColor], -0x68, true, true, false, true);
+												AddStat(0x45, 1);
+											} else {
+												bool aSparks = true;
+												if (aPiece->IsSpecial()) {
+													aPiece->mUnknown51D = false;
+													BreakPiece(aPiece);
+													if (aPiece->IsFlagSet(Piece::FLAG_ELECTRO)) {
+														aPiece->mBreaking = false;
+														aSparks = false;
+													}
+												} else {
+													BlowUpPiece(aPiece, aX, aY, true, false);
+												}
+												if (aSparks) {
+													gApp->PlaySample(SOUND_ROWBLOW);
+													AddPoints(Ftol((double)(gGemWidth / 2) + (double)aPiece->mX),
+														Ftol((double)(gGemHeight / 2) + (double)aPiece->mY), 10,
+														gGemColors[aPiece->mColor], -0x68, true, true, false, true);
+													// 20 sparks fly out, pushed away from the fruit
+													float anAway = atan2f(aDY, aDX);
+													int aLeft = 20;
+													do {
+														Effect* anEffect = gBoard->mFXManager->AllocEffect(12);
+														float aMin = gApp->mScale;
+														float aRand = fabsf(RandSigned());
+														float aRange = gApp->mScale + gApp->mScale;
+														float aSpeed = (float)((double)aRange * (double)aRand + (double)aMin);
+														float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
+														anEffect->mScale = (float)((double)RandSigned() * 0.5 + 1.0);
+														float aCos = cosf(anAngle);
+														float aCosAway = cosf(anAway);
+														float aPush = gApp->mScale + gApp->mScale;
+														anEffect->mDX = (float)((double)aPush * (double)aCosAway +
+															(double)aCos * (double)aSpeed);
+														float aSin = sinf(anAngle);
+														float aSinAway = sinf(anAway);
+														aPush = gApp->mScale + gApp->mScale;
+														anEffect->mDY = (float)((double)aPush * (double)aSinAway +
+															(double)aSin * (double)aSpeed);
+														aCos = cosf(anAngle);
+														anEffect->mX = (float)((double)gGemWidth * (double)aCos * 0.5 +
+															((double)(gGemWidth / 2) + (double)aPiece->mX));
+														aSin = sinf(anAngle);
+														anEffect->mY = (float)((double)gGemHeight * (double)aSin * 0.5 +
+															((double)(gGemHeight / 2) + (double)aPiece->mY));
+														anEffect->mIsAdditive = true;
+														anEffect->mAlpha = 1.0f;
+														anEffect->mDAlpha = -0.005f;
+														anEffect->mGravity = 0;
+														gBoard->mFXManager->AddEffect(anEffect);
+														aLeft--;
+													} while (aLeft != 0);
+												}
+											}
+										} else {
+											aPiece->mUnknown29C = (float)((double)(aRing + 1) * 0.30000001192092896);
+										}
+									}
+									if ((aPiece->IsFlagSet(Piece::FLAG_BOMB) || aPiece->IsFlagSet(Piece::FLAG_DEVIL)) &&
+										aPiece->mDevilGlow < 0.6f) {
+										// A bomb or devil gem counts up by the ring's number
+										aPiece->mBombCount += aRing + 1;
+										aPiece->MakeCountImage();
+										aPiece->mDevilGlow = 1.0f;
+										aPiece->mJustMade = 1;
+										aPiece->mCurve1A0.SetCurve(GTS(0x7dd424));
+										aSound = true;
+									} else if (aRing == 3 && !aPiece->IsFlagSet(Piece::FLAG_12)) {
+										if (aPiece->IsFlagSet(Piece::FLAG_LOCKED))
+											aPiece->BreakLock(false);
+										aPiece->mUnknown4FC = 0;
+									}
+								}
+								aRing++;
+							} while (aRing < 4);
+						}
+						aCol++;
+					} while (aCol < mCols);
+				}
+				aRow++;
+			} while (aRow < mRows);
+		}
+		if (aSound)
+			gApp->PlaySoundEx(SOUND_BLITZ_COUNTUP, 0, (float)((double)mUnknown248 * 1.5), 0.0f, true, true);
+		// The fruit itself fades as it grows
+		Piece* aFruit = GetPieceById(mUnknown258);
+		if (aFruit != nullptr) {
+			mUnknown340.SetInVal(mUnknown248);
+			mUnknown3B0.SetInVal(mUnknown248);
+			double anAlpha = 1.0 - ((double)mUnknown248 - 0.4000000059604645) * 6.0;
+			aFruit->mAlpha = (float)(1.0 < anAlpha ? 1.0 : anAlpha);
+			aFruit->mDrawScale = (float)mUnknown3B0.GetOutVal();
+			if (!(0.0f < aFruit->mAlpha))
+				aFruit->mBlasted = true;
+		}
+	}
+	// The gems the blast can reach (its colour, bombs, locks and devil gems) are drawn over its darkening
+	// (DrawOverlay) and the rest under it; once the rings are done, all of them under it again
+	int aCount = mCols * mRows;
+	if (0 < aCount) {
+		Piece** aCell = mGrid;
+		do {
+			Piece* aPiece = *aCell;
+			if (aPiece != nullptr) {
+				if (aAll)
+					aPiece->mUnknown2F6 = true;
+				else
+					aPiece->mUnknown2F6 = !(aPiece->mColor == mUnknown420 || aPiece->IsFlagSet(Piece::FLAG_BOMB) ||
+						aPiece->IsFlagSet(Piece::FLAG_LOCKED) || aPiece->IsFlagSet(Piece::FLAG_DEVIL));
+			}
+			aCell++;
+			aCount--;
+		} while (aCount != 0);
 	}
 }
+void Board::PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam)
+{
+	// 0x6c3cf5: the fruit dance's points. Its "small c x y" and "large c x y" commands pop up the next points of
+	// their list in gem colour c at x, y in the animation (at the art's scale)
+	static const int kSmall[42] = {100, 200, 200, 200, 300, 300, 300, 300, 300, 400, 400, 400, 400, 400, 100, 100,
+		100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+		100, 100, 100, 100};
+	static const int kLarge[15] = {1000, 2000, 3000, 4000, 5000, 10000, 10000, 10000, 10000, 10000, 0, 0, 0, 0, 0};
+	std::string aPos;
+	bool isSmall = true;
+	int aPoints;
+	if (theCommand.substr(0, 5) == GTS(0x7dd41c)) {
+		// port: past the end of its list the original reads whatever is beside it on the stack; the port gives no
+		// points (fruitdance.pam sends 37 of these)
+		int anIndex = mUnknown2684;
+		mUnknown2684 = anIndex + 1;
+		aPoints = (anIndex < 42 ? kSmall[anIndex] : 0) / 2;
+		aPos = theCommand.substr(6);
+	} else if (theCommand.substr(0, 5) == GTS(0x7dd414)) {
+		// (likewise; fruitdance.pam sends 15)
+		int anIndex = mUnknown2688;
+		mUnknown2688 = anIndex + 1;
+		isSmall = false;
+		aPoints = (anIndex < 15 ? kLarge[anIndex] : 0) / 2;
+		aPos = theCommand.substr(6);
+		if (aPoints == 0)
+			return;
+	} else {
+		return;
+	}
+	if (aPoints <= 0)
+		return;
+	size_t aFirst = aPos.find(' ', 0);
+	size_t aSecond = aPos.find(' ', aFirst + 1);
+	int aColor = atol(aPos.substr(0, aFirst).c_str());
+	int aX = Ftol((double)gApp->mScale * (double)atol(aPos.substr(aFirst + 1, aSecond - aFirst - 1).c_str()));
+	int aY = Ftol((double)gApp->mScale * (double)atol(aPos.substr(aSecond + 1).c_str()));
+	Points* aFloater = AddPoints(mUnknown267C->mX + aX, mUnknown267C->mY + aY, aPoints, gGemColors[aColor], -0x68,
+		true, false, false, false);
+	// port: the original writes to the floater without a check (AddPoints gives none in a challenge that does not
+	// count points)
+	if (aFloater == nullptr)
+		return;
+	aFloater->mStopHigh = false;
+	if (isSmall) {
+		aFloater->mScale = (float)((double)aFloater->mScale + 0.25);
+		aFloater->mTargetScale = (float)((double)aFloater->mTargetScale + 0.25);
+		aFloater->mLife = (float)((double)aFloater->mLife + 0.0);
+	} else {
+		aFloater->mTargetScale = (float)((double)aFloater->mTargetScale * 1.5);
+		aFloater->mLife = (float)((double)aFloater->mLife + 0.4000000059604645);
+	}
+}
+
 
 void Board::UpdateHint()
 {

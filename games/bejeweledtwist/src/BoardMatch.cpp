@@ -206,7 +206,7 @@ void Board::ClearSparkStarts()
 	}
 }
 
-Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theUnknown1,
+Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theUnknown1,
 	bool theUnknown2, bool theFirst, bool theUnknown3)
 {
 	if (thePoints < 1)
@@ -223,6 +223,7 @@ Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor
 	if (1 < mUnknown2580 && theUnknown2)
 		aPoints *= mUnknown2580;
 	int aTotal = mModeMultiplier * aPoints;
+	Points* aFloater = nullptr;  // what it returns
 	if (mUnknown2041 && -1 < theX && -1 < theY) {
 		// A serial of -0x68 to -0x65 (the kinds of special gem) takes a new one, which remembers the kind
 		if ((unsigned int)theSerial >= (unsigned int)-0x68 && (unsigned int)theSerial <= (unsigned int)-0x65) {
@@ -234,7 +235,6 @@ Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor
 		// The points float up: a floater of the same serial (the same move's chain) takes them, else a new one
 		int aSum = mUnknown2580 * thePoints;
 		int aScaled = Ftol(std::pow((double)aMult, 0.45) * (double)aSum);
-		Points* aFloater = nullptr;
 		int aShown = aTotal;
 		if (theSerial == -1) {
 			theFirst = false;
@@ -415,7 +415,7 @@ Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor
 		AddStat(0x3a, aTotal);
 	mUnknown2234[0x49] += aTotal;
 	UpdateProgress(false);
-	return nullptr;
+	return aFloater;
 }
 
 // 0x6b3ffc: the big count of the board's gems left of it (drawn by DrawCounters)
@@ -1561,8 +1561,49 @@ void Board::BreakPiece(Piece* thePiece)
 	} else if (thePiece->IsFlagSet(Piece::FLAG_LOCKED)) {
 		thePiece->BreakLock(false);
 	} else if (thePiece->IsFlagSet(Piece::FLAG_FRUIT)) {
-		// port: the fruit gem (its sound, the dance's curves and +0x265c) comes with the fruit gem
-		NotPorted("Board::BreakPiece: a fruit gem");
+		if (mUnknown248 != 0.0f) {
+			// A fruit's blast is running: this one waits
+			thePiece->mBreaking = false;
+			thePiece->mUnknown88 = 1;
+			thePiece->mUnknown29C = 1.0f;
+			return;
+		}
+		// The fruit's blast starts (UpdateUnknown248), and the fruit dance's count of matches (+0x265c 1 or 2)
+		AddStat(0x45, 1);
+		PlayPieceSound(thePiece, SOUND_GEM_FRUIT_DESTROYED, 0.0f, 0.0f, true);
+		mUnknown22C++;
+		mUnknown24C = true;
+		int aRow = 0;
+		if (0 < mRows) {
+			do {
+				int aCol = 0;
+				if (0 < mCols) {
+					do {
+						Piece* aPiece = GetPieceAt(aRow, aCol);
+						if (aPiece != nullptr && (aPiece->IsFlagSet(Piece::FLAG_LOCKED) || aPiece->IsFlagSet(Piece::FLAG_BOMB)))
+							mUnknown24C = false;
+						aCol++;
+					} while (aCol < mCols);
+				}
+				aRow++;
+			} while (aRow < mRows);
+		}
+		mUnknown248 = 0.0001f;
+		mUnknown262A = true;
+		if (mUnknown265C == 0)
+			mUnknown265C = (mGoodTube->mUnknown3B0 == 0) + 1;
+		else
+			mUnknown2664 = -1;
+		mUnknown25A4 = false;
+		mUnknown420 = thePiece->mColor;
+		mUnknown250 = GetColAt(Ftol((double)thePiece->mX));
+		mUnknown254 = GetRowAt(Ftol((double)(gGemHeight / 2) + (double)thePiece->mY));
+		mUnknown258 = thePiece->mId;
+		mUnknown260.SetCurve(GTS(0x7dd2f8));
+		mUnknown2D0.SetCurve(GTS(0x7dd2dc));
+		mUnknown340.SetCurve(GTS(0x7dd2b0));
+		mUnknown3B0.SetCurve(GTS(0x7dd28c));
+		mUnknown1394 = 0;
 		thePiece->mBreaking = false;
 		return;
 	} else if (thePiece->IsFlagSet(Piece::FLAG_DEVIL)) {

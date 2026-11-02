@@ -803,8 +803,7 @@ bool Tutorial::RunScript()
 			int aA = -1, aB = -1;
 			if (1 < aWords.size())
 				sscanf(aWords[1].c_str(), "%d,%d", &aA, &aB);
-			// port: 0x6ba5b4(a - 1, b - 1) gives the fruit; it comes with the fruit
-			NotPorted("Tutorial::RunScript: awardfruit: Board 0x6ba5b4");
+			aBoard->AwardFruit(aA - 1, aB - 1);
 		} else if (Is(aCommand, "points")) {
 			aBoard->SetScore(atoi(Word(aWords, 1).c_str()), false);
 			aBoard->mUnknown14F8 = aBoard->mUnknown168;

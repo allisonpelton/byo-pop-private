@@ -1194,3 +1194,31 @@ void WinTwistApp::PlaySoundAt(int theSoundId, int theX, float thePitch, float th
 	PlaySoundEx(theSoundId, Ftol((double)((float)(theX - aHalf) / (float)aHalf) * 800.0), thePitch, theVolume, true,
 		true);
 }
+
+void WinTwistApp::Mute(bool autoMute)
+{
+	SexyAppBase::Mute(autoMute);
+	if (gBoard != nullptr && gBoard->mUnknown267C != nullptr) {
+		// port: the original reads the music interface and the track without a check; the port has none without
+		// sound
+		if (mTwistMusic != nullptr) {
+			CustomBassMusicInterface::Track* aTrack = mTwistMusic->FindTrack(0x133);
+			if (aTrack != nullptr)
+				mTwistMusic->PauseMusic(aTrack->mSongId);
+		}
+	}
+}
+
+void WinTwistApp::Unmute(bool autoMute)
+{
+	SexyAppBase::Unmute(autoMute);
+	if (gBoard != nullptr && gBoard->mUnknown267C != nullptr) {
+		// (the same)
+		if (mTwistMusic != nullptr) {
+			mTwistMusic->SetVolume(mSfxVolume < mMusicVolume ? mMusicVolume : mSfxVolume);
+			CustomBassMusicInterface::Track* aTrack = mTwistMusic->FindTrack(0x133);
+			if (aTrack != nullptr)
+				mTwistMusic->ResumeMusic(aTrack->mSongId);
+		}
+	}
+}

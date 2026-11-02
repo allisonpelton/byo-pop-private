@@ -3,6 +3,7 @@
 
 #include "CustomBassMusicInterface.h"
 #include "FlyingText.h"
+#include "FruitAwardScreen.h"
 #include "GameText.h"
 #include "GoodTube.h"
 #include "Piece.h"
@@ -81,10 +82,78 @@ void Board::SettleTurn()
 		}
 	} else {
 		mUnknown214 = false;
-		// port: 0x6ba5b4 sends a traveller to a gem (Rand picks it) and the points it brings (0x70205f, 0x6a43e8)
-		// come with the travellers
-		NotPorted("Board::SettleTurn: a traveller (0x6ba5b4)");
+		// The multiplier went past its top (SetLevelSteps) or a fruit dance ended: a fruit (AwardFruit), and steps
+		// past 151 (at most 14) go on top of the steps of the levels below the board's
+		AwardFruit(-1, -1);
+		if (152 <= mUnknown224) {
+			int aSteps = mUnknown224 - 151;
+			if (14 < aSteps)
+				aSteps = 14;
+			mUnknown224 = aSteps;
+			int aLevel = 1;
+			if (1 < mUnknown21D0) {
+				do {
+					mUnknown224 += GetLevelSteps(aLevel);
+					aLevel++;
+				} while (aLevel < mUnknown21D0);
+			}
+			SetLevelSteps(mUnknown224);
+		}
 	}
+}
+
+void Board::AwardFruit(int theRow, int theCol)
+{
+	// The fruits' colours go round the seven
+	int aColor = mUnknown218 % 7;
+	Piece* aPiece;
+	if (theRow < 0) {
+		// A bomb's or a locked gem's place if there is one (whatever its colour), else the first plain gem of the
+		// colour from a cell picked at random, round the grid
+		int aCount = mCols * mRows;
+		aPiece = FindHintPiece();
+		if (aPiece == nullptr) {
+			int anIndex = Rand85B970() % aCount;
+			int aTried = 0;
+			if (0 < aCount) {
+				do {
+					Piece* aCell = mGrid[anIndex];
+					if (aCell != nullptr && aCell->mColor == aColor && aCell->mFlags == 0 && !aCell->mBlasted &&
+						!aCell->mBreaking) {
+						aPiece = aCell;
+						break;
+					}
+					anIndex++;
+					if (!(anIndex < aCount))
+						anIndex -= aCount;
+					aTried++;
+				} while (aTried < aCount);
+			}
+		}
+	} else {
+		aPiece = GetPieceAt(theRow, theCol);
+	}
+	// Else up to 100 cells at random, any plain gem
+	int aTry = 0;
+	while (aPiece == nullptr) {
+		int aCol = Rand85B970() % mCols;
+		int aRow = Rand85B970() % mRows;
+		aPiece = GetPieceAt(aRow, aCol);
+		if (aPiece != nullptr && (aPiece->mBlasted || aPiece->mBreaking || aPiece->mFlags != 0))
+			aPiece = nullptr;
+		aTry++;
+		if (aTry == 100)
+			return;
+	}
+	FruitAwardScreen* aScreen = new FruitAwardScreen(this);
+	if (mUnknown265C == 4) {
+		// The fruit dance is on: the fruits leave from the tube's bottom
+		aScreen->mFromY = Ftol((double)mGoodTube->mHeight * 0.8500000238418579 + (double)mGoodTube->mY);
+	}
+	mGoodTube->mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
+	aScreen->SetPiece(aPiece->mId);
+	mUnknown23DC.push_back(aScreen);
+	mUnknown218++;
 }
 
 void Board::QueueTip(int theKind, Piece* thePiece)
