@@ -2106,9 +2106,10 @@ void Hyperspace::UpdateThrust()
 		else
 			++anItr;
 	}
-	// ...a trail's particle is held no nearer than the engine's last one's drift allows
+	// ...a trail's particle is held no nearer than the drift of the engine's next newer one allows (the walk goes from
+	// the newest to the oldest: 0x70fa7a steps to each node's prev)
 	ThrustParticle* aLast[9] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-	for (std::list<ThrustParticle>::iterator anItr = mParticles.begin(); anItr != mParticles.end(); ++anItr) {
+	for (std::list<ThrustParticle>::reverse_iterator anItr = mParticles.rbegin(); anItr != mParticles.rend(); ++anItr) {
 		ThrustParticle* aParticle = &*anItr;
 		if (aParticle->mType == 1) {
 			ThrustParticle* aBefore = aLast[aParticle->mEngine];
