@@ -867,6 +867,102 @@ void Test2DTrianglesTex(const GPUPolicy& thePolicy)
 	delete anImage;
 }
 
+// The draw hook (this+0x10): null draws as before; false drops the primitive (and BltTransformed's whole call); a returned
+// rectangle clips the draw to it. The arguments are the original's: type 4 / count 1 for a triangle, 5 / 2 for a quad
+struct HookState
+{
+	int mCalls = 0, mType = 0, mCount = 0, mStride = 0;
+	bool mResult = true;
+	Rect* mClip = nullptr;  // set into the rectangle pointer when not null
+};
+
+bool TestHook(void* theContext, int thePrimType, int theCount, const GPU2DVertex* theVertices, int theStride, Rect** theClip)
+{
+	HookState* aState = (HookState*)theContext;
+	aState->mCalls++;
+	aState->mType = thePrimType;
+	aState->mCount = theCount;
+	aState->mStride = theStride;
+	if (theVertices == nullptr)
+		Fail("hook: no vertices");
+	if (aState->mClip != nullptr)
+		*theClip = aState->mClip;
+	return aState->mResult;
+}
+
+void ExpectHookCall(const HookState& theState, int theCalls, int theType, int theCount)
+{
+	if (theState.mCalls != theCalls)
+		Fail("hook called %d times, expected %d", theState.mCalls, theCalls);
+	else if ((theCalls > 0) && ((theState.mType != theType) || (theState.mCount != theCount) || (theState.mStride != 0x20)))
+		Fail("hook got type %d count %d stride %d, expected %d, %d, 32", theState.mType, theState.mCount, theState.mStride,
+			theType, theCount);
+}
+
+void Test2DDrawHook(const GPUPolicy& thePolicy)
+{
+	MemoryImage* anImage = MakeImage(8, 8, std::vector<unsigned long>(64, 0xffffffff));
+	TriVertex aTri[1][3] = {{TriVertex(4, 4, 0, 0), TriVertex(28, 4, 1, 0), TriVertex(4, 28, 0, 1)}};
+	TriVertex aP1(4, 4), aP2(28, 4), aP3(4, 28);
+		for (int aCase = 0; aCase < 3; aCase++) {
+		// 0: no hook; 1: false; 2: a rectangle
+		HookState aState;
+		aState.mResult = (aCase != 1);
+		Rect aHookRect(0, 0, 12, 12);
+		if (aCase == 2)
+			aState.mClip = &aHookRect;
+		const char* aNames[3] = {"2d-hook-null", "2d-hook-drop", "2d-hook-clip"};
+		GPU2D* g = Begin2D(aNames[aCase], thePolicy);
+		if (aCase > 0)
+			g->SetDrawHook(TestHook, &aState);
+
+		g->DrawTriangle(aP1, aP2, aP3, Color(255, 0, 0), Graphics::DRAWMODE_NORMAL);
+		ExpectHookCall(aState, aCase > 0 ? 1 : 0, 4, 1);
+		g->DrawTrianglesTex(anImage, aTri, 1, Color(0, 255, 0), Graphics::DRAWMODE_NORMAL, 32, 0, false);
+		ExpectHookCall(aState, aCase > 0 ? 2 : 0, 4, 1);
+		SexyTransform2D aTransform;
+		aTransform.Translate(0, 40);
+		g->BltTransformed(anImage, nullptr, Color(0, 0, 255), Graphics::DRAWMODE_NORMAL, Rect(0, 0, 8, 8), aTransform, false,
+			6, 0, false);
+		ExpectHookCall(aState, aCase > 0 ? 3 : 0, 5, 2);
+		g->SetDrawHook(nullptr, nullptr);
+		g->Flush();
+		Read();
+		const unsigned long aRed = 0xffff0000, aGreen = 0xff00ff00, aBlue = 0xff0000ff, aBlack = 0xff000000;
+		// the triangle: (8, 8) is inside it and inside the rectangle, (20, 6) only inside the triangle
+		Expect(8, 8, aCase == 1 ? aBlack : aRed);
+		Expect(20, 6, aCase == 0 ? aRed : aBlack);
+		// the textured triangle at x + 32: (40, 8) and (50, 6)
+		Expect(40, 8, aCase == 0 ? aGreen : aBlack);
+		Expect(50, 6, aCase == 0 ? aGreen : aBlack);
+		// the quad at (6, 40)..(14, 48): dropped by the false hook, and untouched by the rectangle (0, 0, 12, 12), whose
+		// part of it is empty
+		Expect(8, 42, aCase == 0 ? aBlue : aBlack);
+		End2D(g);
+	}
+	// a rectangle that holds the quad's four vertices draws it whole; one that cuts it draws the part inside
+	for (int aCase = 0; aCase < 2; aCase++) {
+		HookState aState;
+		Rect aHookRect = (aCase == 0) ? Rect(0, 36, 60, 24) : Rect(0, 36, 10, 24);
+		aState.mClip = &aHookRect;
+		GPU2D* g = Begin2D(aCase == 0 ? "2d-hook-quad-inside" : "2d-hook-quad-cut", thePolicy);
+		g->SetDrawHook(TestHook, &aState);
+		SexyTransform2D aTransform;
+		aTransform.Translate(0, 40);
+		Rect aArgClip(0, 0, 60, 60);
+		g->BltTransformed(anImage, &aArgClip, Color(0, 0, 255), Graphics::DRAWMODE_NORMAL, Rect(0, 0, 8, 8), aTransform, false,
+			6, 0, false);
+		g->SetDrawHook(nullptr, nullptr);
+		g->Flush();
+		Read();
+		Expect(8, 42, 0xff0000ff);
+		Expect(12, 42, aCase == 0 ? 0xff0000ff : 0xff000000);
+		End2D(g);
+	}
+	gGPU->ImageDeleted(anImage);
+	delete anImage;
+}
+
 // Pieces through the 2D layer: a Blt across two pieces binds each and joins them seamlessly; DrawTrianglesTex scales
 // u, v by max U and V for a padded one-piece image and draws nothing for a cut one
 void Test2DPieces(const GPUPolicy& thePolicy)
@@ -1089,6 +1185,7 @@ int main(int argc, char** argv)
 	Test2DDepthOnly(aPolicy);
 	Test2DTrianglesTex(aPolicy);
 	Test2DPieces(aPolicy);
+	Test2DDrawHook(aPolicy);
 	delete gGPU;
 	gGPU = GPUInterface::Create(aContext, aPolicy, W, H);
 	TestTextures(true);

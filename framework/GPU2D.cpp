@@ -546,13 +546,26 @@ void GPU2D::BltPieces(Image* theImage, const GPUPieceLayout& theLayout, const Re
 			}
 
 			bool aClipped = false;
-			// no clipping against the whole screen (this[10], this[11]), whatever the destination
-			if (aClip && !((theClipRect->mX == 0) && (theClipRect->mY == 0) && (theClipRect->mWidth == mScreenWidth) &&
-				(theClipRect->mHeight == mScreenHeight)))
+			// the draw hook (this+0x10, 0x61d700): (5, 2, quad, 0x20, &rect), the rectangle starting as the clip rectangle
+			// argument; false ends the whole call. The region mesh's call (4, 2, ...) per cell is not carried, as the mesh is not.
+			Rect* aRect = const_cast<Rect*>(theClipRect);
+			bool aHooked = false;
+			if ((theMatrix != NULL) && (mDrawHook != NULL))
 			{
-				float aLeftEdge = (float) theClipRect->mX, aTopEdge = (float) theClipRect->mY;
-				float aRightEdge = (float) (theClipRect->mX + theClipRect->mWidth);
-				float aBottomEdge = (float) (theClipRect->mY + theClipRect->mHeight);
+				if (!mDrawHook(mDrawHookContext, 5, 2, aQuad, (int) sizeof(GPU2DVertex), &aRect))
+					return;  // 0x61e2e6: the whole BltTransformed ends, not only this piece
+				aHooked = true;
+			}
+			// no clipping against the whole screen (this[10], this[11]), whatever the destination
+			if ((aHooked ? (aRect != NULL) : aClip) && !((aRect->mX == 0) && (aRect->mY == 0) && (aRect->mWidth == mScreenWidth) &&
+				(aRect->mHeight == mScreenHeight)))
+			{
+				// the left edge is the clip rectangle argument's x, and the right edge its x plus the (hook's) width, as
+				// 0x61db65 reads *param_8; port: the hook's own x for a null argument, where the original reads address 0
+				int aEdgeX = (theClipRect != NULL) ? theClipRect->mX : aRect->mX;
+				float aLeftEdge = (float) aEdgeX, aTopEdge = (float) aRect->mY;
+				float aRightEdge = (float) (aRect->mWidth + aEdgeX);
+				float aBottomEdge = (float) (aRect->mY + aRect->mHeight);
 				for (int i = 0; i < 4; i++)
 				{
 					if ((aQuad[i].mX < aLeftEdge) || (aQuad[i].mX >= aRightEdge) || (aQuad[i].mY < aTopEdge) || (aQuad[i].mY >= aBottomEdge))
@@ -566,7 +579,7 @@ void GPU2D::BltPieces(Image* theImage, const GPUPieceLayout& theLayout, const Re
 				aList.push_back(aQuad[1]);
 				aList.push_back(aQuad[3]);
 				aList.push_back(aQuad[2]);
-				DrawClipped(*theClipRect, aList);
+				DrawClipped(*aRect, aList);
 			}
 			else
 			{
@@ -765,6 +778,22 @@ void GPU2D::DrawTriangle(const TriVertex& theP1, const TriVertex& theP2, const T
 		aTriangle[i] = MakeVertex(x, y, z, TriColor(*aPoints[i], aColor), 0, 0);
 	}
 	SetTexture(0, NULL);
+	if (mDrawHook != NULL)
+	{
+		// 0x621170: (4, 1, triangle, 0x20, &rect), the rectangle starting as the whole target (0, 0, this[10], this[11]);
+		// false draws nothing, and a rectangle that is not the whole target draws the triangle through 0x61d540
+		Rect aWhole(0, 0, mScreenWidth, mScreenHeight);
+		Rect* aRect = &aWhole;
+		if (!mDrawHook(mDrawHookContext, 4, 1, aTriangle, (int) sizeof(GPU2DVertex), &aRect))
+			return;
+		if ((aRect != NULL) && ((aRect->mX != 0) || (aRect->mY != 0) || (aRect->mWidth != mScreenWidth) ||
+			(aRect->mHeight != mScreenHeight)))
+		{
+			VertexList aList(aTriangle, aTriangle + 3);
+			DrawClipped(*aRect, aList);
+			return;
+		}
+	}
 	AddPrimitives(GPUPT_TRIANGLELIST, 1, aTriangle);
 }
 
@@ -802,6 +831,27 @@ void GPU2D::DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3]
 			aCache[aCount * 3 + i] = MakeVertex(x, y, z, TriColor(aVertex, aColor), aVertex.u * aMaxU, aVertex.v * aMaxV);
 		}
 		aCount++;
+		if (mDrawHook != NULL)
+		{
+			// 0x61e310: (4, 1, the triangle just added, 0x20, &rect), the rectangle starting null. False drops the
+			// triangle; a rectangle flushes the batch before it and draws the triangle through 0x61d540 with that rectangle
+			Rect* aRect = NULL;
+			GPU2DVertex* aSlot = &aCache[(aCount - 1) * 3];
+			if (!mDrawHook(mDrawHookContext, 4, 1, aSlot, (int) sizeof(GPU2DVertex), &aRect))
+			{
+				aCount--;
+				continue;
+			}
+			if (aRect != NULL)
+			{
+				if (aCount > 1)
+					DrawNow(GPUPT_TRIANGLELIST, aCount - 1, aCache);
+				VertexList aList(aSlot, aSlot + 3);
+				DrawClipped(*aRect, aList);
+				aCount = 0;
+				continue;
+			}
+		}
 		if (aCount == CACHE_TRIANGLES)
 		{
 			DrawNow(GPUPT_TRIANGLELIST, aCount, aCache);

@@ -37,11 +37,24 @@ struct GPU2DVertex
 	float mU, mV;
 };
 
+// The draw hook at this+0x10 (null by default, and the original's constructor 0x4bdb40 zeroes it). The draws call it with
+// the primitive about to be drawn: the D3D primitive type as the original passes it (4 triangle list, 5 strip, 6 fan), the
+// primitive count, the vertices after the transform (stride sizeof(GPU2DVertex) = 0x20) and a pointer to a clip rectangle.
+// False skips the draw. The rectangle's meaning is the draw's: BltTransformed and DrawTriangle start it at the clip
+// rectangle (BltTransformed's argument, DrawTriangle the whole target), DrawTrianglesTex at null; a hook that sets it to
+// another rectangle makes the draw clip to it, and a null one draws unclipped. Bejeweled Twist's VizManager::Draw (0x7587a0)
+// sets it to 0x758253 around its visualizer's draw and clears it after. The hook at this+0x14 is not carried: see the note
+// at the end of this file.
+typedef bool (*GPU2DDrawHook)(void* theContext, int thePrimType, int theCount, const struct GPU2DVertex* theVertices,
+	int theStride, Rect** theClip);
+
 class GPU2D
 {
 public:
 	GPU2D(GPUInterface* theDevice, const GPUPolicy& thePolicy);
 	~GPU2D();
+
+	void SetDrawHook(GPU2DDrawHook theHook, void* theContext) { mDrawHook = theHook; mDrawHookContext = theContext; }  // this+0x10
 
 	// The slots' state cache. Each wrapper compares with the value it last set and, only when it differs, flushes the
 	// batch and calls the device; an equal value makes no flush and no device call. Render state 0xc0 (0x622a60), stage
@@ -199,6 +212,8 @@ private:
 	int mFilter;  // 0 point, 1 linear
 	int mSceneCount;
 	int mScreenWidth, mScreenHeight;
+	GPU2DDrawHook mDrawHook = NULL;  // this+0x10
+	void* mDrawHookContext = NULL;
 	std::vector<SexyMatrix3> mTransformStack;
 	std::map<long long, unsigned long> mStates;  // (kind, stage, type) -> the value last set; absent: 0xffffffff
 	Image* mTextureImages[STAGES];  // this+0x158: the bound piece, as (image, piece)
@@ -218,7 +233,11 @@ private:
 }  // namespace Sexy
 
 // Settled by review 1: P8 is not carried (0x61c070's palette branch needs accepted-format bit 8, which 0x61a520 never
-// sets); the hooks at this+0x10 and +0x14 are never set (0x4bdb40 zeroes them) and are not carried; cube and volume
+// sets); the hook at this+0x10 is set by Twist's VizManager::Draw (0x7587a0 stores 0x758253 there) and is carried
+// (SetDrawHook; the original's callers are BltTransformed 0x61d700 at its quad, DrawTrianglesTex 0x61e310 and
+// DrawTriangle 0x621170; the region mesh's call, 0x61d700's per-cell (4, 2, ...), is not carried with the mesh). The hook at
+// this+0x14 is zeroed by 0x4bdb40 and nothing in Twist's export stores to it or calls it (no store through
+// gD3DInterface[5] anywhere; the draws read only +0x10), so it is never set and is not carried; cube and volume
 // textures (flags 0x20, 0x40; Twist's one, IMAGE_CUBEMAP_6X1_VIZBUCKYSHARDS_CUBE, is never read) are logged and drawn
 // as nothing.
 //
