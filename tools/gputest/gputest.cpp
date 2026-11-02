@@ -443,6 +443,30 @@ void TestStages()
 	End();
 }
 
+// Lines as SAF's DrawLine draws them: a strip from the start to the end and on to the end plus half a pixel, so both
+// end pixels are lit (D3D9's diamond-exit rule, which GL's lines follow on the drivers tested)
+void TestLines()
+{
+	Begin("line-strip");
+	RHWVertex v[3] = {{4, 10, 0.5f, 1, 0xffffffff, 0, 0}, {14, 10, 0.5f, 1, 0xffffffff, 0, 0},
+		{14.5f, 10.5f, 0.5f, 1, 0xffffffff, 0, 0}};
+	gGPU->DrawPrimitiveUP(GPUPT_LINESTRIP, 2, FVF_RHW, v, sizeof(RHWVertex));
+	RHWVertex w[2] = {{20, 2, 0.5f, 1, 0xffff0000, 0, 0}, {20, 12, 0.5f, 1, 0xffff0000, 0, 0}};
+	gGPU->DrawPrimitiveUP(GPUPT_LINELIST, 1, FVF_RHW, w, sizeof(RHWVertex));
+	Read();
+	Expect(4, 10, 0xffffffff);
+	Expect(9, 10, 0xffffffff);
+	Expect(14, 10, 0xffffffff);
+	Expect(3, 10, 0xff000000);
+	Expect(15, 10, 0xff000000);
+	Expect(9, 9, 0xff000000);
+	Expect(9, 11, 0xff000000);
+	Expect(20, 2, 0xffff0000);
+	Expect(20, 11, 0xffff0000);
+	Expect(20, 12, 0xff000000);
+	End();
+}
+
 // The scissor test limits draws and clears
 void TestScissor()
 {
@@ -763,6 +787,7 @@ int main(int argc, char** argv)
 	TestAlphaTest();
 	TestStages();
 	TestScissor();
+	TestLines();
 	TestLighting();
 	TestGameShaders();
 	TestBuffers();

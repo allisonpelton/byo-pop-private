@@ -497,6 +497,10 @@ GLenum CompareFunc(unsigned long theFunc)
 
 GLenum PrimitiveMode(GPUPrimitiveType theType)
 {
+	if (theType == GPUPT_LINELIST)
+		return GL_LINES;
+	if (theType == GPUPT_LINESTRIP)
+		return GL_LINE_STRIP;
 	if (theType == GPUPT_TRIANGLESTRIP)
 		return GL_TRIANGLE_STRIP;
 	if (theType == GPUPT_TRIANGLEFAN)
@@ -506,6 +510,10 @@ GLenum PrimitiveMode(GPUPrimitiveType theType)
 
 int VertexCount(GPUPrimitiveType theType, int thePrimitives)
 {
+	if (theType == GPUPT_LINELIST)
+		return thePrimitives * 2;
+	if (theType == GPUPT_LINESTRIP)
+		return thePrimitives + 1;
 	return theType == GPUPT_TRIANGLELIST ? thePrimitives * 3 : thePrimitives + 2;
 }
 

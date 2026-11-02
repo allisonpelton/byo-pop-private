@@ -38,7 +38,8 @@
 //   A render target's format is the caller's, from the policy's format rule (0x61c070): an opaque target (flag 0x10,
 //   made opaque by SetImageMode(false, false) first: Twist's 3D-mode screen, the visualizers' targets, Hyperspace's
 //   picture, slot 0xa0's) is X8R8G8B8, a GL RGB8 texture that samples and reads back alpha 1; one with alpha or
-//   transparency (UnderDialogWidget's, 0x7567e7: verify) is A8R8G8B8.
+//   transparency is A8R8G8B8: UnderDialogWidget's two (0x7567e7) are made by DDImage::Create (0x409ef0), which
+//   leaves them without bits, and CommitBits (0x42e270) calls an image with neither bits nor a palette transparent.
 // - one texture level: MIPFILTER is recorded and ignored, TEXTURE_MAX_LEVEL 0.
 // - fixed function: texture coordinates of two components expand to (u, v, 1, 0) before a texture matrix (COUNT2), so
 //   its translation is row 2; D3D9's lighting equations (a point light's range cut-off and attenuation, LOCALVIEWER,
@@ -138,6 +139,7 @@ enum
 
 enum GPUPrimitiveType
 {
+	GPUPT_LINELIST = 2, GPUPT_LINESTRIP = 3,  // GPU2D's DrawLine: a strip of three vertices (0x620cd0)
 	GPUPT_TRIANGLELIST = 4, GPUPT_TRIANGLESTRIP = 5, GPUPT_TRIANGLEFAN = 6
 };
 
@@ -204,9 +206,11 @@ struct GPUPolicy
 	int mWidePieceLimit;
 	int mMaxAspectRatio;
 
-	// The 2D draws' own offsets in screen space, after the transform stack (SAF 1.3: Blt and FillRect -0.5,
-	// BltTransformed -0.5 but a centred BltMatrix 0, DrawTrianglesTex none, DrawLine +0.5; Twist: read from its draw
-	// bodies before GPU2D is written)
+	// The 2D draws' own offsets in screen space, after the transform stack. Twist's agree with SAF 1.3's: the Blt
+	// vertex builder (0x61ca30) and FillRect (slot 0x68, 0x620ee0) -0.5; BltTransformed (slot 0x60, 0x620af0, building
+	// in 0x61d700) -0.5, or 0 when centred; DrawTriangle (slot 0x6c, 0x621170), DrawTrianglesTex (slot 0x74, 0x622140,
+	// building in 0x61e310) and FillPoly (slot 0x80, 0x6214a0) none; DrawLine (slot 0x64, 0x620cd0) none on its two
+	// ends, and a third vertex at the end plus 0.5 in x and y, the three drawn as a line strip.
 	float mBltOffset, mFillRectOffset, mTransformedOffset, mTransformedCentredOffset, mTrianglesOffset, mLineOffset;
 
 	// D3D7's DirectDraw short-cut (an exact, unfiltered copy for opaque, white, normal, untransformed blits): SAF 1.3 only
@@ -400,8 +404,8 @@ public:
 //   apply to it as in the original. Filter per draw as SAF 1.3: BltF always linear, an integer Blt never, StretchBlt
 //   !fastStretch, BltMatrix and DrawTrianglesTex their blend argument (DDInterface's IsFractional is not carried).
 // - The quad batch (the original's dynamic vertex buffer) with the original's flush points, listed above
-//   GPUInterface's render targets. Each 2D draw calls Check3D's per-draw SetRenderTarget and skips the draw when it
-//   answers false. The per-draw offsets: 0x61ca30 subtracts 0.5; the others' are read before GPU2D is written.
+//   GPUInterface's render targets. The per-draw offsets are the policy's (above). The batch holds triangle lists and
+//   DrawLine's line strips (0x624880's second argument, 4 or 3).
 // - The format rule of the policy with flag 8 (UseA8R8G8B8, the a8r8g8b8 resource attribute set at 0x469ca0: twelve of
 //   Twist's images, seven of them visualizer backgrounds such as IMAGE_MOLECULE_BG); images with flag 0x20 or 0x40 take
 //   one piece of their own size (0x61bd00's first branch), and Twist duplicates one column and one row into a piece's
@@ -411,15 +415,21 @@ public:
 //   draw cannot cut the next mesh.
 // - The pieces and formats of the policy; DrawTrianglesTex clips its triangles per piece and scales coordinates by the
 //   piece's used size over its texture size.
-// - ClearRect and the scan-line fills on the screen or a target: before GPU2D is written, Twist's DDImage overrides are
-//   read to see whether they go to the device (then they are GPU2D draws on GPU-owned pixels) or to the bits (then the
-//   rule is a read-back, which the original would need too and the logging shows). Images the original draws in
-//   software stay in software.
+// - Routing, as Twist's DDImage overrides do it. Check3D (0x404a70) sends a draw to the D3D path only in 3D mode and
+//   only when the destination image has flag 0x10 (the 3D-mode screen and the render targets), and then answers with
+//   SetRenderTarget(image) (slot 0x98). On false the draw is not skipped: it falls through to the software path on
+//   the image's bits (DDImage::FillRect, 0x404ec0, and the others), whose BitsChanged reaches an A8R8G8B8 target at
+//   its next use and not an X8R8G8B8 one. In practice false is the screen while minimised. DDImage overrides
+//   PolyFill3D (to FillPoly), FillRect, DrawLine, DrawLineAA, FillScanLinesWithCoverage and the Blts. ClearRect is
+//   not overridden: MemoryImage's (0x42f0e0) zeroes the rectangle in GetBits() and calls BitsChanged, so on a
+//   purged target it reads the target back (RecoverBits), and the cleared rectangle shows only on an A8R8G8B8
+//   target. FillScanLines is Image's (0x423e50): one FillRect a span, so its spans are D3D FillRects on a 3D
+//   destination. Images the original draws in software stay in software.
 //
 // GPUDisplay (after GPU2D, with two preconditions of its own):
-// - Forwarding: an Image draw goes to GPU2D only in 3D mode and only when its destination is the screen or a render
-//   target, as the original's Check3D; every other draw stays in software, so Twist's 2D mode and its frozen baseline
-//   are untouched by this path.
+// - Forwarding: an Image draw goes to GPU2D only in 3D mode and only when its destination has flag 0x10, as the
+//   original's Check3D (above, in GPU2D's routing); every other draw stays in software, so Twist's 2D mode and its
+//   frozen baseline are untouched by this path.
 // - 2D mode in an opted-in game (decided, option (a), staged): the mode is fixed for a run, since the original restarts
 //   on a 3D change (0x69ed33), so there is no live handover. GPUDisplay serves 3D runs first, and 2D runs keep today's
 //   DDInterface. Later 2D mode moves to the framework's software 2D path (queued), the screen's bits uploaded once a

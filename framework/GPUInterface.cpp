@@ -87,7 +87,8 @@ GPUPolicy GPUPolicy::Twist()
 	aPolicy.mMaxPieceSize = 4096;
 	aPolicy.mWidePieceLimit = 512;
 	aPolicy.mMaxAspectRatio = 0;  // the caps give none on the cards the port runs on: no limit
-	// port: Twist's own offsets are read from its draw bodies before GPU2D is written; until then SAF 1.3's
+	// The draws' offsets (0x61ca30, 0x620ee0, 0x61d700, 0x622140, 0x620cd0: GPUInterface.h), the same as SAF 1.3's;
+	// mLineOffset is DrawLine's third vertex
 	aPolicy.mBltOffset = -0.5f;
 	aPolicy.mFillRectOffset = -0.5f;
 	aPolicy.mTransformedOffset = -0.5f;
