@@ -30,6 +30,18 @@ Hyperspace::Hyperspace()
 	mFlag158 = gD3DInterface != nullptr;
 	if (gD3DInterface != nullptr)
 		MakeOldPicture();  // 0x714f98: the picture state 11 renders into
+	// 0x7152ff to 0x71544f: the cube's step along +0x8e8 (1, so it waits 50 ahead of where the jump starts), the three
+	// backdrops' fields of view and the cube's faces
+	mUnknown900.SetConstant(1.0);
+	mUnknownF28.SetCurve(GTS(0x7e4688));
+	mUnknownF28.SetMode(1);
+	mUnknownF98.SetCurve(GTS(0x7e4658));
+	mUnknownF98.SetMode(1);
+	mUnknown1008.SetCurve(GTS(0x7e4628));
+	mUnknown1008.SetMode(1);
+	mUnknown798.SetCurve(GTS(0x7e4600));
+	mUnknown808.SetCurve(GTS(0x7e45d8));
+	mUnknown878.SetCurve(GTS(0x7e45b0));
 	RemoveAllWidgets(true, false);
 }
 
