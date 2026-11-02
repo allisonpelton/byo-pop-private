@@ -243,6 +243,24 @@
         { "from": "SavedGames/*.GAM", "to": "SavedGames/*.GAM", "what": "a player's game in progress and record" },
         { "from": "Data/HighScores.dat", "to": "Data/HighScores.dat", "what": "the high scores" }
       ]
+    },
+    "bejeweledtwist": {
+      "folder": "Bejeweled Twist",
+      "steam": "Bejeweled Twist",
+      "appdata": "BejeweledTwist",
+      "note": "The Steam edition keeps its players in C:\\ProgramData\\Steam\\BejeweledTwist (choose that folder) and its settings under HKEY_CURRENT_USER\\Software\\Steam\\BejeweledTwist, which the import does not read: only the players and scores come over from it.",
+      "registry": {
+        "key": "PopCap\\BejeweledTwist",
+        "hives": ["hkcu", "vs", "hklm"],
+        "sets": ["base", "app"],
+        "values": ["LastProfileName=sz", "DoViz=dword", "ShowHints=dword"]
+      },
+      "files": [
+        { "from": "users/users.dat", "to": "users/users.dat", "what": "the list of players" },
+        { "from": "users/scores.dat", "to": "users/scores.dat", "what": "the high scores" },
+        { "from": "users/*/profile.dat", "to": "users/*/profile.dat", "what": "a player" },
+        { "from": "users/*/savegame_*.dat", "to": "users/*/savegame_*.dat", "what": "a player's game in progress" }
+      ]
     }
   }
 }
