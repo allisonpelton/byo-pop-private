@@ -134,6 +134,7 @@ void Board::DrawCellArrow(int theFromX, int theFromY, int theX, int theY, bool t
 			aX = CellToPixel(theX) + 4;
 			anImage = mApp->mArrows[2];
 		}
+		g2.DrawImage(anImage, aX, aY);
 	}
 	else if (theX == theFromX)
 	{
@@ -185,6 +186,7 @@ void Board::DrawCellArrow(int theFromX, int theFromY, int theX, int theY, bool t
 			aX = CellToPixel(theX);
 			anImage = mApp->mArrows[8];
 		}
+		g2.DrawImage(anImage, aX, aY);
 	}
 	if (aOwnCell)
 	{
