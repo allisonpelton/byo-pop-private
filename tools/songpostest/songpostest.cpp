@@ -76,8 +76,8 @@ static bool CheckSong(const char* thePath)
 }
 
 // Frames rendered from order 0 until the song reports another order (0 when it never does within a minute). With
-// theTempo it sets that tempo every 10 ms, as Bejeweled Twist's music Update does every frame, so that the tempo
-// commands in the patterns do not undo it.
+// theTempo it sets that tempo every 10 ms, so that the tempo commands in the patterns do not undo it while it measures
+// (Bejeweled Twist's music sets it only when its state's tempo changes).
 static int FramesInFirstOrder(Platform::Mixer& mixer, int song, int theTempo)
 {
 	std::vector<float> out(480 * 2);

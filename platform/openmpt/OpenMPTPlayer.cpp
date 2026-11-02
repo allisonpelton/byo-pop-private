@@ -38,6 +38,12 @@ public:
 		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_STEREOSEPARATION_PERCENT, 100);
 		openmpt_module_set_repeat_count(mModule, -1);
 		mLoop = true;
+		// The channels' own volumes at the start, which BASS's VOL_CHAN scales. libopenmpt's channel volume is the
+		// same value the module sets (its header's, Mxx, Nxy), so the port scales the starting one: right for modules
+		// with no Mxx or Nxy, as Bejeweled Twist's are (one starts most of its channels below 64)
+		int aChannels = openmpt_module_get_num_channels(mModule);
+		for (int i = 0; i < aChannels; i++)
+			mBaseVolumes.push_back(mInteractive.get_channel_volume(mModuleExt, i));
 	}
 
 	~OpenMPTModule() override
@@ -52,7 +58,7 @@ public:
 			ApplyTempo();
 		for (int i = 0; i < (int)mChannelVolumes.size(); i++)
 			if (mChannelVolumes[i] >= 0)
-				mInteractive.set_channel_volume(mModuleExt, i, mChannelVolumes[i] / 100.0);
+				ApplyChannelVolume(i);
 	}
 
 	int GetTempo() override
@@ -60,7 +66,8 @@ public:
 		return (int)std::lround(openmpt_module_get_current_tempo2(mModule));
 	}
 
-	// BASS 2.2 (Bejeweled Twist's bass.dll) keeps the BPM within 1 to 255
+	// BASS 2.2 (Bejeweled Twist's bass.dll) keeps the BPM within 1 to 255. libopenmpt refuses a tempo below 32 and
+	// keeps the old one; no game's tempo goes that low (Bejeweled Twist's lowest is 100)
 	void SetTempo(int theBPM) override
 	{
 		mTempo = theBPM < 1 ? 1 : (theBPM > 255 ? 255 : theBPM);
@@ -84,7 +91,7 @@ public:
 		if ((int)mChannelVolumes.size() <= theChannel)
 			mChannelVolumes.resize(theChannel + 1, -1);
 		mChannelVolumes[theChannel] = theVolume;
-		mInteractive.set_channel_volume(mModuleExt, theChannel, theVolume / 100.0);
+		ApplyChannelVolume(theChannel);
 	}
 
 	bool GetPosition(int& theOrder, int& theRow) override
@@ -119,6 +126,12 @@ public:
 	}
 
 private:
+	void ApplyChannelVolume(int theChannel)
+	{
+		mInteractive.set_channel_volume(mModuleExt, theChannel,
+			mBaseVolumes[theChannel] * mChannelVolumes[theChannel] / 100.0);
+	}
+
 	void ApplyTempo()
 	{
 		if (mHasInteractive3)
@@ -133,7 +146,8 @@ private:
 	openmpt_module_ext_interface_interactive3 mInteractive3 = {};
 	bool mHasInteractive3 = false;
 	int mTempo = 0;                     // the BPM last set, 0 for none
-	std::vector<int> mChannelVolumes;   // 0 to 64 each, -1 for a channel never set
+	std::vector<int> mChannelVolumes;   // 0 to 100 each, -1 for a channel never set
+	std::vector<double> mBaseVolumes;   // each channel's own volume at the start, 0 to 1
 };
 
 bool IsMO3(const std::vector<uint8_t>& theFile)
