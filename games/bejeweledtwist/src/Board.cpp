@@ -101,7 +101,7 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	}
 	mUnknown1328 = aCount;
 	static const int kRolls[25] = {1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 5};
-	mUnknown21E0 = kRolls[Rand() % 25];
+	mUnknown21E0 = kRolls[Rand85B970() % 25];  // 0x6a3447: the board's own generator
 	if (gApp->mProfile->mGamesPlayed == 0)
 		mUnknown21E0 = 3;
 	mZOrder = -5;
