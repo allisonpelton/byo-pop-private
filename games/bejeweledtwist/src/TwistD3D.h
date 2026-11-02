@@ -19,6 +19,7 @@
 
 namespace Sexy {
 
+class DDImage;
 class GPU2D;
 class Image;
 class MemoryImage;
@@ -198,6 +199,10 @@ public:
 		D3DDrawPrimitiveListener* theListener);
 	bool SetRenderTarget(Image* theImage);                                          // 0x98
 	void Clear(int theRed, int theGreen, int theBlue, int theAlpha);                // 0x9c (0x621a30)
+	// 0xa0 (0x621ae0): the screen's picture so far goes to *theImage (made, screen-sized and a render target, when
+	// null) and drawing to the screen goes on in a cleared buffer; *theSwapped (the original's saved surface) says the
+	// swap is in place, and a second call swaps back. Returns *theImage.
+	Image* SwapScreen(DDImage** theImage, bool* theSwapped);
 	void SetTextureStageState(int theStage, int theType, unsigned long theValue);   // 0xbc
 	void SetRenderState(int theState, unsigned long theValue);                      // 0xc0
 	void SetSamplerState(int theStage, int theType, unsigned long theValue);        // 0xc4

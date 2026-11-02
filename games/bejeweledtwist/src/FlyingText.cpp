@@ -1,6 +1,8 @@
 // Sexy::FlyingText (FlyingText.h).
 #include "FlyingText.h"
 
+#include "TwistD3D.h"
+
 #include "GameOverShow.h"
 #include "Graphics.h"
 #include "Image.h"
@@ -112,7 +114,8 @@ void FlyingText::Draw(Graphics* g)
 	Image* anImage = mImageOverride;
 	if (anImage == nullptr)
 		anImage = mTextImage;
-	// (with Direct3D the original turns off the device's texture filter first)
+	if (gApp->Is3DAccelerated())
+		gD3DInterface->SetTextureWrap(0, false);  // slot 0xcc: texture 0 does not wrap
 	if (mKind == 0) {
 		if (anImage != nullptr && 0.0f < mTextAlpha) {
 			// (the original asks for the image's size here and drops it)

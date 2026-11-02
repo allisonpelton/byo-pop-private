@@ -6,6 +6,7 @@
 #include "Image.h"
 #include "ImageFont.h"
 #include "SexyMatrix.h"
+#include "TwistD3D.h"
 #include "X86Math.h"
 
 #include <SDL.h>
@@ -72,8 +73,12 @@ void Sexy::DrawImageScaledCentered(Graphics* g, Image* theImage, float theX, flo
 	else if ((theAlign & ALIGN_BOTTOM) != 0)
 		theY -= aHeight;
 	if (theScaleX == 1.0f && theScaleY == 1.0f) {
-		// The original draws at a fraction of a pixel (DrawImageF) only with Direct3D
-		gGraphicsRecorder->DrawImage(g, theImage, Ftol(theX), Ftol(theY));
+		// At a fraction of a pixel it draws with DrawImageF (0x70dae6), with Direct3D only
+		int aWholeX = Ftol(theX);
+		if ((theX == (float)aWholeX && (double)theY == (double)Ftol(theY)) || gD3DInterface == nullptr)
+			gGraphicsRecorder->DrawImage(g, theImage, aWholeX, Ftol(theY));
+		else
+			gGraphicsRecorder->DrawImageF(g, theImage, theX, theY);
 	} else {
 		gGraphicsRecorder->DrawImage(g, theImage, Ftol(theX), Ftol(theY), Ftol(aWidth), Ftol(aHeight));
 	}

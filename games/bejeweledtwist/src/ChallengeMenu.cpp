@@ -23,6 +23,8 @@
 #include "Res.h"
 #include "SexyMatrix.h"
 #include "TwistButton.h"
+#include "TriVertex.h"
+#include "TwistD3D.h"
 #include "TwistDialog.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
@@ -69,17 +71,215 @@ Color UnpackColor(unsigned int theColor)
 	return Color((theColor >> 16) & 0xff, (theColor >> 8) & 0xff, theColor & 0xff, theColor >> 24);
 }
 
+// DrawPrimitiveEx's listener slots 0 and 1 are a WorldGraphicsListener's Apply and Remove (as in HyperspaceD3D.cpp)
+class PrimitiveListener : public D3DDrawPrimitiveListener {
+public:
+	explicit PrimitiveListener(WorldGraphicsListener* theListener) : mListener(theListener) {}
+	void Before() override { mListener->Apply(); }
+	void After() override { mListener->Remove(); }
+	WorldGraphicsListener* mListener;
+};
+
+// 0x4c0840: a vector made unit (left alone when it has no length)
+Vec3 NormalizedVec(const Vec3& v)
+{
+	float aLength = (float)std::sqrt((double)(v.y * v.y + v.x * v.x) + (double)(v.z * v.z));
+	if (aLength == 0.0f)
+		return v;
+	float anInverse = (float)(1.0 / (double)aLength);
+	return Vec3{v.x * anInverse, v.y * anInverse, v.z * anInverse};
+}
+
+Vec3 CrossVec(const Vec3& a, const Vec3& b)  // 0x4c06d0: a crossed with b
+{
+	return Vec3{a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+}
+
+float DotVec(const Vec3& a, const Vec3& b)  // 0x4c06a0
+{
+	return (float)((double)(b.z * a.z) + (double)(b.x * a.x) + (double)(b.y * a.y));
+}
+
+// 0x674035 (0x67411e puts the place first): the transform turned to look from its place away from theTarget (its third row
+// is the way from the target to the place), theUp above it; left alone when the way is all but nothing or all but along
+// theUp. True when it turned.
+bool LookFrom(Transform3D& thePlace, const Vec3& theTarget, const Vec3& theUp)
+{
+	Vec3 aWay{thePlace.mPos.x - theTarget.x, thePlace.mPos.y - theTarget.y, thePlace.mPos.z - theTarget.z};  // 0x673bb6
+	// 0x673f7f: the way is all but nothing
+	if (std::fabs(aWay.x) <= 0.0010000000474974513 && std::fabs(aWay.y) <= 0.0010000000474974513 &&
+		std::fabs(aWay.z) <= 0.0010000000474974513)
+		return false;
+	Vec3 aDirection = NormalizedVec(aWay);
+	float aDot = DotVec(theUp, aDirection);
+	if (std::fabs(aDot) > 0.9989999999525025)  // 0x7d7a60
+		return false;
+	thePlace.mRot.m[6] = aDirection.x;
+	thePlace.mRot.m[7] = aDirection.y;
+	thePlace.mRot.m[8] = aDirection.z;
+	Vec3 aRight = NormalizedVec(CrossVec(theUp, aDirection));
+	thePlace.mRot.m[0] = aRight.x;
+	thePlace.mRot.m[1] = aRight.y;
+	thePlace.mRot.m[2] = aRight.z;
+	Vec3 aTop = NormalizedVec(CrossVec(aDirection, aRight));
+	thePlace.mRot.m[3] = aTop.x;
+	thePlace.mRot.m[4] = aTop.y;
+	thePlace.mRot.m[5] = aTop.z;
+	return true;
+}
+
+// The vertex of the planets' spheres (0x24 bytes; FVF 0x152: position, normal, diffuse, one texture coordinate; made by
+// 0x680276 and 0x6801fe)
+struct SphereVertex {
+	float x, y, z;     // +0x00
+	float nx, ny, nz;  // +0x0c: the position made unit
+	unsigned int mColor = 0xffffffff;  // +0x18
+	float u, v;        // +0x1c
+};
+
+// The three sphere meshes the menu makes (0x6e5c3e): the sizes 15 by 20, 20 by 28 and 32 by 48 (0x85c5f8, 0x85c5d8,
+// 0x85c5e8); the planets pick one by the size they have on the screen, the moon uses the biggest
+std::vector<SphereVertex> gSphereSmall;
+std::vector<SphereVertex> gSphereMiddle;
+std::vector<SphereVertex> gSphereBig;
+
+// 0x680276: the vertex at (x, y, z) with the texture coordinate (theU, theV) and the normal (0x6801fe)
+SphereVertex MakeSphereVertex(float x, float y, float z, float theU, float theV)
+{
+	SphereVertex aVertex;
+	aVertex.x = x;
+	aVertex.y = y;
+	aVertex.z = z;
+	aVertex.mColor = 0xffffffff;
+	aVertex.u = theU;
+	aVertex.v = theV;
+	Vec3 aNormal = NormalizedVec(Vec3{x, y, z});
+	aVertex.nx = aNormal.x;
+	aVertex.ny = aNormal.y;
+	aVertex.nz = aNormal.z;
+	return aVertex;
+}
+
+// 0x6e4fad: a sphere of theStacks bands from pole to pole by theSlices columns, as a list of triangles (the poles' bands
+// one triangle a column, the others two); nothing when the list is made already
+void BuildSphere(std::vector<SphereVertex>& theVertices, int theStacks, int theSlices)
+{
+	if (!theVertices.empty())
+		return;
+	int aCount = (theStacks * 2 - 2) * theSlices * 3;  // 0x6e340c, 0x6e4bbb
+	theVertices.resize(aCount);
+	float aStacks = (float)theStacks;
+	float aStackStep = (float)(3.1415927 / (double)aStacks);
+	float aSlices = (float)theSlices;
+	float aSliceStep = (float)((double)6.2831855f / (double)aSlices);  // _DAT_0084ec00
+	SphereVertex* aVertex = theVertices.data();
+	int i = 0;
+	if (0 < theStacks) {
+		do {
+			float aLat0 = (float)i * aStackStep;
+			float aSinLat0 = sinf(aLat0);
+			int aNext = i + 1;
+			float aLat1 = (float)aNext * aStackStep;
+			float aSinLat1 = sinf(aLat1);
+			float aCosLat0 = cosf(aLat0);
+			float aCosLat1 = cosf(aLat1);
+			int j = 0;
+			if (0 < theSlices) {
+				float aV0 = (float)i / aStacks;
+				float aV1 = (float)aNext / aStacks;
+				do {
+					float aJ = (float)j;
+					float aLon0 = aJ * aSliceStep;
+					int aNextJ = j + 1;
+					float aSinLon0 = sinf(aLon0);
+					float aLon1 = (float)aNextJ * aSliceStep;
+					float aSinLon1 = sinf(aLon1);
+					float aCosLon0 = cosf(aLon0);
+					float aCosLon1 = cosf(aLon1);
+					float aX0a = aSinLon0 * aSinLat0;  // the upper edge of the band
+					float aX1a = aSinLon1 * aSinLat0;
+					float aX0b = aSinLon0 * aSinLat1;  // the lower edge
+					float aX1b = aSinLon1 * aSinLat1;
+					float aZ0a = aCosLon0 * aSinLat0;
+					float aZ1a = aCosLon1 * aSinLat0;
+					float aZ0b = aCosLon0 * aSinLat1;
+					float aZ1b = aCosLon1 * aSinLat1;
+					float aU0 = aJ / aSlices;
+					float aU1 = (float)(((double)aJ + 1.0) / (double)aSlices);
+					if (i != theStacks - 1) {
+						aVertex[0] = MakeSphereVertex(aX1a, aCosLat0, aZ1a, aU1, aV0);
+						aVertex[1] = MakeSphereVertex(aX1b, aCosLat1, aZ1b, aU1, aV1);
+						aVertex[2] = MakeSphereVertex(aX0b, aCosLat1, aZ0b, aU0, aV1);
+						aVertex += 3;
+					}
+					if (i != 0) {
+						aVertex[0] = MakeSphereVertex(aX0a, aCosLat0, aZ0a, aU0, aV0);
+						aVertex[1] = MakeSphereVertex(aX1a, aCosLat0, aZ1a, aU1, aV0);
+						aVertex[2] = MakeSphereVertex(aX0b, aCosLat1, aZ0b, aU0, aV1);
+						aVertex += 3;
+					}
+					j = aNextJ;
+				} while (j < theSlices);
+			}
+			i = aNext;
+		} while (i < theStacks);
+	}
+}
+
+// A sphere's vertices all given the alpha theAlpha (in the top byte of their colour)
+void SetSphereAlpha(std::vector<SphereVertex>& theVertices, int theAlpha)
+{
+	for (size_t i = 0; i < theVertices.size(); i++)
+		theVertices[i].mColor = (theVertices[i].mColor & 0xffffff) | ((unsigned int)theAlpha << 24);
+}
+
+// 0x6dda7c's vertex (FVF 0x142: position, diffuse, one texture coordinate)
+struct BillboardVertex {
+	float x, y, z;
+	unsigned int mColor;
+	float u, v;
+};
+
 // 0x6dda7c: a picture standing at a point of the menu's 3D world, its middle where gMenuCamera sees the point and as
 // big as theSize planet sizes there (76 pixels by 0.00151515 over the depth for a planet's 76 by 80; the scale is
 // 0.00151515 over the depth over the picture's width, times theSize times 80). It leaves the draw mode, the colour
-// and colorizing set. With Direct3D the original draws a quad facing the camera instead (0x6ddd52).
+// and colorizing set. With Direct3D (gD3DInterface) the original draws a quad of the picture's proportions facing the
+// camera instead (0x6ddd52), and sets nothing of the Graphics.
 void DrawBillboard(Graphics* g, Image* theImage, float theX, float theY, float theZ, unsigned int theColor, int theDrawMode,
 	float theSize)
 {
 	PerspectiveCamera aCamera(gAspect45, gAspect, 1.0f, 10000.0f);  // 0x67417d
 	aCamera.mTransform = gMenuCamera;                              // 0x673c10
-	if (gApp->Is3DAccelerated()) {
-		NotPorted("DrawBillboard 0x6ddd52: the picture as a quad facing the camera, with Direct3D");
+	WorldGraphicsListener aListener(&aCamera, false);              // 0x4bd5d0
+	aListener.SetCulling(false);                                   // 0x4bd6c0
+	aListener.SetDepth(true, true);                                // 0x4bd680
+	if (gD3DInterface != nullptr) {
+		// The place: scaled by theSize, at the point, turned to look away from the camera with y up (0x68b341, 0x6dd0e2,
+		// 0x67411e)
+		Transform3D aPlace;  // 0x4bd4c0
+		aPlace.mScale.x = theSize * aPlace.mScale.x;
+		aPlace.mScale.y = theSize * aPlace.mScale.y;
+		aPlace.mScale.z = theSize * aPlace.mScale.z;
+		aPlace.mPos.x = theX + aPlace.mPos.x;
+		aPlace.mPos.y = theY + aPlace.mPos.y;
+		aPlace.mPos.z = theZ + aPlace.mPos.z;
+		aPlace.mPos = Vec3{theX, theY, theZ};
+		LookFrom(aPlace, gMenuCamera.mPos, Vec3{0.0f, 1.0f, 0.0f});
+		aListener.mWorld = aPlace;  // 0x673c10
+		// The picture's proportions: two triangles, the quad's corners a little left of and below the middle
+		float anAspect = (float)theImage->mWidth / (float)theImage->mHeight;
+		BillboardVertex aTopLeft = {(float)(-0.019999999552965164 - (double)anAspect), 0.98f, 0.0f, theColor, 0.0f, 0.0f};
+		BillboardVertex aTopRight = {(float)((double)anAspect - 0.019999999552965164), 0.98f, 0.0f, theColor, 1.0f, 0.0f};
+		BillboardVertex aBottomRight = {aTopRight.x, -1.02f, 0.0f, theColor, 1.0f, 1.0f};
+		BillboardVertex aBottomLeft = {aTopLeft.x, -1.02f, 0.0f, theColor, 0.0f, 1.0f};
+		BillboardVertex aTriangles[6] = {aTopLeft, aTopRight, aBottomRight, aBottomRight, aBottomLeft, aTopLeft};
+		PrimitiveListener aPrimitiveListener(&aListener);
+		gD3DInterface->SetTextureWrap(0, false);  // slot 0xcc
+		gD3DInterface->SetTexture(0, theImage);   // slot 0xd4
+		gD3DInterface->DrawPrimitiveEx(0x142, GPUPT_TRIANGLELIST, aTriangles, 2, Color(255, 255, 255, 255), theDrawMode,
+			0.0f, 0.0f, true, &aPrimitiveListener);  // slot 0x7c
+		gD3DInterface->SetTextureWrap(0, false);
+		gD3DInterface->SetTexture(0, nullptr);
 		return;
 	}
 	// The point is the place of a transform scaled by theSize (0x68b341, 0x6dd0e2, 0x67411e), plus 0 on each axis
@@ -280,18 +480,114 @@ void ChallengeButton::PlayMouseOverSound()
 	gApp->PlaySoundAt(SOUND_MOUSEOVER2, mX, (float)((double)mId * 0.5), 0.0f);
 }
 
-// 0x6dde98 with Direct3D off. The planet's place in the 3D world goes through the camera to the screen (the button
-// takes its place there, so the clicks land on the planet), a picture of the planet is made for the size it has,
-// and the ring, name, moon meter and glow are drawn about it. The original also sets up Direct3D's matrices, light and
-// fog and the sphere meshes' colors first (0x6e4fad's meshes, the planet's turn, the clouds' additive blend): only the
-// 3D drawing uses them.
+// 0x6dde98. The planet's place in the 3D world goes through the camera to the screen (the button takes its place there,
+// so the clicks land on the planet). With Direct3D (gD3DInterface) the planet is a sphere mesh (0x6e4fad's, the size by
+// how big it looks) turned by the update count and lit by a point light at the sun, with the cloud layer as a second
+// sphere a little larger, drawn first; without it a picture of the planet is made for the size it has. The ring, name,
+// moon meter and glow are drawn about it.
 void ChallengeButton::Draw(Graphics* g)
 {
 	mClip = false;
 	PerspectiveCamera aCamera(gAspect45, gAspect, 1.0f, 10000.0f);  // 0x67417d
 	aCamera.mTransform = gMenuCamera;                              // 0x673c10
-	if (gApp->Is3DAccelerated())
-		NotPorted("ChallengeButton::Draw 0x6dde98: the planet's sphere meshes (0x6e4fad), light and fog with Direct3D");
+	WorldGraphicsListener aListener(&aCamera, false);  // 0x4bd5d0
+	aListener.SetCulling(true);                        // 0x4bd6c0
+	aListener.SetDepth(true, true);                    // 0x4bd680
+	if (gD3DInterface != nullptr) {
+		gD3DInterface->SetTextureWrap(0, true);    // slot 0xcc
+		gD3DInterface->SetTexture(0, mLayers[0]);  // slot 0xd4
+	}
+	// The planet's place: 0.75 large, at mWorldPos, turned about y by 0.2 degrees for each update and about x by mTilt
+	Transform3D aPlanet;  // 0x4bd4c0
+	aPlanet.mScale.x = 0.75f * aPlanet.mScale.x;  // 0x68b341
+	aPlanet.mScale.y = 0.75f * aPlanet.mScale.y;
+	aPlanet.mScale.z = 0.75f * aPlanet.mScale.z;
+	float aSpin = (float)((double)mUpdateCnt * 0.20000000298023224);
+	aPlanet.mPos.x = mWorldPos[0] + aPlanet.mPos.x;  // 0x6dd0e2
+	aPlanet.mPos.y = mWorldPos[1] + aPlanet.mPos.y;
+	aPlanet.mPos.z = mWorldPos[2] + aPlanet.mPos.z;
+	aPlanet.mRot.RotateZ((float)(0.0 * 3.1415927410125732 / 180.0));  // 0x673fd0
+	aPlanet.mRot.RotateY((float)((double)aSpin * 3.1415927410125732 / 180.0));  // 0x68fa0b
+	aPlanet.mRot.RotateX((float)((double)mTilt * 3.1415927410125732 / 180.0));  // 0x680589
+	aListener.mWorld = aPlanet;  // 0x673c10
+	aListener.SetLighting(true);  // 0x4bd6e0
+	if (gD3DInterface != nullptr) {
+		gD3DInterface->SetMaterial(Color::White, Color::White, Color::White, Color::Black, 0.0f);  // slot 0xf0
+		// The light: the sun's glow colour and the menu's dark blend (by the planet's dimming), both dimmer while the menu
+		// is not showing this planet, and brighter by the eclipse's curve (menu +0x640)
+		D3DLightColors aColors;  // 0x6802ad: white, black, black, 1
+		aColors.mDiffuse = Color::White;
+		aColors.mSpecular = Color::Black;
+		aColors.mAmbient = Color::Black;
+		aColors.mIntensity = 1.0f;
+		float aDim = (float)mDim.GetOutVal();
+		Color aAmbient = BlendColors(gUnknown85C50C, Color(0x20, 0x20, 0x20), aDim);   // 0x7570c1
+		aDim = (float)mDim.GetOutVal();
+		Color aDiffuse = BlendColors(gSunGlowColor, Color(0x20, 0x20, 0x20), aDim);
+		float aBrightness = gUnknown85C508;
+		int aState = mMenu->mState;
+		if ((aState == 3 || aState == 5 || aState == 4) && mMenu->mButtons[mMenu->mCategory] == this)
+			aBrightness = 1.0f;
+		aAmbient.mRed = Ftol((double)aBrightness * (double)aAmbient.mRed);
+		aAmbient.mGreen = Ftol((double)aBrightness * (double)aAmbient.mGreen);
+		aAmbient.mBlue = Ftol((double)aBrightness * (double)aAmbient.mBlue);
+		aDiffuse.mRed = Ftol((double)aBrightness * (double)aDiffuse.mRed);
+		aDiffuse.mGreen = Ftol((double)aBrightness * (double)aDiffuse.mGreen);
+		aDiffuse.mBlue = Ftol((double)aBrightness * (double)aDiffuse.mBlue);
+		float anEclipse = (float)mMenu->mUnknown640.GetOutVal();
+		if (0.0f < anEclipse) {
+			aColors.mIntensity = (float)((double)anEclipse * 5.0 + (double)aColors.mIntensity);
+			aAmbient.mRed = Ftol((double)aAmbient.mRed / (double)aColors.mIntensity);
+			aAmbient.mGreen = Ftol((double)aAmbient.mGreen / (double)aColors.mIntensity);
+			aAmbient.mBlue = Ftol((double)aAmbient.mBlue / (double)aColors.mIntensity);
+		}
+		aColors.mDiffuse = aDiffuse;
+		aColors.mAmbient = aAmbient;
+		gD3DInterface->SetPointLight(0, Vec3{0.0f, -12.0f, 0.0f}, aColors, 1000.0f, Vec3{0.15f, 0.25f, 0.0f});  // slot 0xe8
+		gD3DInterface->LightEnable(0, true);                                                                    // slot 0xe4
+		int aSunAlpha = Ftol(gSunCurve.GetOutVal() * 255.0);
+		// The sphere by how big the planet looks: the length from its pole to its middle on the screen (the first vertex of the
+		// smallest sphere is its pole), over 0.15 the biggest, over 0.06 the middle one
+		std::vector<SphereVertex>* aSphere = &gSphereSmall;
+		Vec3 aPole{(*aSphere)[0].x, (*aSphere)[0].y, (*aSphere)[0].z};
+		Vec3 aPoleOnScreen = aCamera.ProjectWorld(TransformPoint(aPlanet, aPole));  // 0x68b369, 0x6dd19b
+		Vec3 aMiddleOnScreen = aCamera.ProjectWorld(aPlanet.mPos);
+		Vec3 aSpan{aMiddleOnScreen.x - aPoleOnScreen.x, aMiddleOnScreen.y - aPoleOnScreen.y,
+			aMiddleOnScreen.z - aPoleOnScreen.z};  // 0x673bb6
+		float aSpanLength = (float)std::sqrt((double)(float)((double)aSpan.x * (double)aSpan.x + (double)aSpan.y * (double)aSpan.y +
+			(double)aSpan.z * (double)aSpan.z));  // 0x4c0800
+		if (0.15000000596046448 < (double)aSpanLength)
+			aSphere = &gSphereBig;
+		else if (0.05999999865889549 < (double)aSpanLength)
+			aSphere = &gSphereMiddle;
+		int aTriangles = (int)aSphere->size() / 3;
+		SetSphereAlpha(*aSphere, aSunAlpha);
+		PrimitiveListener aPrimitiveListener(&aListener);
+		gD3DInterface->DrawPrimitiveEx(0x152, GPUPT_TRIANGLELIST, aSphere->data(), aTriangles, Color(255, 255, 255, 255), 0,
+			0.0f, 0.0f, true, &aPrimitiveListener);  // slot 0x7c
+		if (mOpen && mLayers.size() > 1) {
+			// The clouds: a second sphere a little larger that turns on its own (35 degrees an update by the planet's number,
+			// less half the planet's turn), or, for an additive category, blended added
+			int aCloudMode = 0;
+			if (!mAdditive)
+				aPlanet.mRot.RotateY((float)(((double)(float)((double)mId * 35.0 - (double)aSpin * 0.5)) * 3.1415927410125732 /
+					180.0));
+			else
+				aCloudMode = 1;
+			int aCloudAlpha = Ftol(gSunCurve.GetOutVal() * (double)aBrightness * 255.0);
+			SetSphereAlpha(*aSphere, aCloudAlpha);
+			aPlanet.mScale.x = 1.024999976158142f * aPlanet.mScale.x;
+			aPlanet.mScale.y = 1.024999976158142f * aPlanet.mScale.y;
+			aPlanet.mScale.z = 1.024999976158142f * aPlanet.mScale.z;
+			aListener.mWorld = aPlanet;
+			aListener.SetDepth(true, false);
+			gD3DInterface->SetTexture(0, mLayers[1]);
+			gD3DInterface->DrawPrimitiveEx(0x152, GPUPT_TRIANGLELIST, aSphere->data(), aTriangles, Color(255, 255, 255, 255),
+				aCloudMode, 0.0f, 0.0f, true, &aPrimitiveListener);
+		}
+		gD3DInterface->SetTexture(0, nullptr);
+		gD3DInterface->SetTextureWrap(0, false);
+	}
 	g->SetColorizeImages(true);
 	g->SetColor(Color::White);
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -308,72 +604,91 @@ void ChallengeButton::Draw(Graphics* g)
 	float aScale = (float)(0.0015151499537751079 / (double)mScreenPos[2]);
 	mX = Ftol((double)aScreenX - (double)(mWidth / 2));
 	mY = Ftol((double)aScreenY - (double)(mHeight / 2));
+	if (gD3DInterface != nullptr) {
+		// 0x6a6b5f: the clip takes in a button's size more on every side (the planet is drawn by the screen's own
+		// coordinates, and the matrix may take it out of the clip)
+		g->mClipRect.mX -= mWidth;
+		g->mClipRect.mWidth += mWidth * 2;
+		g->mClipRect.mY -= mHeight;
+		g->mClipRect.mHeight += mHeight * 2;
+	}
 	// From here on in the screen's own coordinates
 	float aTransX = g->mTransX;
 	float aTransY = g->mTransY;
 	g->Translate(Ftol(-(double)aTransX), Ftol(-(double)aTransY));
 
-	// The planet's picture, in the menu's 512 by 512 image: for each pixel of the size it has, IMAGE_PLANET says how
-	// bright it is (red, the less the brighter) and where to look in the planet's layer (blue is the column, green
-	// over two the row), and the layer is read by two columns, blended by the part after the point
-	static_assert(sizeof(ulong) == 4, "the planet pictures are 32 bits a pixel");
-	MemoryImage* aBuffer = gApp->mMainMenu->mChallengeMenu->mPlanetImage;
-	double aSize = (double)aScale * 76.0;
-	int aBufferWidth = aBuffer->mWidth;
-	int aBufferHeight = aBuffer->mHeight;
-	int aWidth = Ftol((double)aBufferWidth <= aSize ? (double)aBufferWidth : aSize);
-	int aHeight = Ftol((double)aBufferHeight <= aSize ? (double)aBufferHeight : aSize);
-	if (aWidth <= aBufferWidth) {
-		const uint32_t* aPlanetBits = reinterpret_cast<const uint32_t*>(static_cast<MemoryImage*>(IMAGE_PLANET)->GetBits());
-		const uint32_t* aLayerBits = reinterpret_cast<const uint32_t*>(static_cast<MemoryImage*>(mLayers[0])->GetBits());
-		uint32_t* aBufferBits = reinterpret_cast<uint32_t*>(aBuffer->GetBits());
-		float aStepX = (float)(384.0 / (double)aWidth);
-		float aStepY = (float)(384.0 / (double)aHeight);
-		int aBrightness = Ftol((1.0 - mDim.GetOutVal()) * 200.0 + 55.0);
-		int aDestX = Ftol((double)aScreenX - (double)(aWidth / 2));
-		int aDestY = Ftol((double)aScreenY - (double)(aHeight / 2));
-		Rect aDest(aDestX, aDestY, aWidth, aHeight);
-		if (aDest.Intersects(g->mClipRect)) {
-			// the clouds drift with the size: 0.4 of the planet's scale, in columns
-			double aShift = (double)aScale * 0.4000000059604645;
-			float aRowAt = 0;
-			for (int aRow = 0; aRow < aHeight; aRow++) {
-				uint32_t* aOut = aBufferBits + (size_t)aBufferWidth * (size_t)aRow;
-				const uint32_t* aPlanetRow = aPlanetBits + Ftol((double)aRowAt) * 384;
-				float aColumnAt = 0;
-				for (int aColumn = 0; aColumn < aWidth; aColumn++) {
-					uint32_t aPlanet = aPlanetRow[Ftol((double)aColumnAt)];
-					uint32_t aLayerRow = (((aPlanet >> 8 & 0xff) / 2) << 8);
-					uint32_t aLight = ((0xff - (aPlanet >> 16 & 0xff)) * (uint32_t)aBrightness) >> 8;
-					float aBlue = (float)((double)(aPlanet & 0xff) / 1.5);
-					float aLookup = (float)((double)aBlue + aShift);
-					int aFloor = Ftol((double)aLookup);
-					uint32_t aFraction = (uint32_t)Ftol(((double)aLookup - (double)aFloor) * 255.0);
-					uint32_t aFirst = aLayerBits[(aFloor & 0xff) + aLayerRow];
-					uint32_t aSecond = aLayerBits[((aFloor + 1) & 0xff) + aLayerRow];
-					uint32_t aBlended = ((aFirst & 0xff0000) * (0x100 - aFraction) + (aSecond & 0xff0000) * aFraction) & 0xff0000ff;
-					aBlended |= ((aFirst & 0xff00) * (0x100 - aFraction) + (aSecond & 0xff00) * aFraction) & 0xff0000;
-					aBlended |= (aFirst & 0xff) * (0x100 - aFraction) + (aSecond & 0xff) * aFraction;
-					aBlended >>= 8;
-					uint32_t aLit = ((aBlended & 0xff0000) * aLight) & 0xff0000ff;
-					aLit |= ((aBlended & 0xff00) * aLight) & 0xff0000;
-					aLit |= ((aBlended & 0xff) * aLight) & 0xff00;
-					*aOut++ = (aLit >> 8) | (aPlanet & 0xff000000);
-					aColumnAt = (float)((double)aColumnAt + (double)aStepX);
+	// The software planet is drawn without Direct3D only (gD3DInterface; the 3D mode has no picture to draw in)
+	if (gD3DInterface == nullptr) {
+		// The planet's picture, in the menu's 512 by 512 image: for each pixel of the size it has, IMAGE_PLANET says how
+		// bright it is (red, the less the brighter) and where to look in the planet's layer (blue is the column, green
+		// over two the row), and the layer is read by two columns, blended by the part after the point
+		static_assert(sizeof(ulong) == 4, "the planet pictures are 32 bits a pixel");
+		MemoryImage* aBuffer = gApp->mMainMenu->mChallengeMenu->mPlanetImage;
+		double aSize = (double)aScale * 76.0;
+		int aBufferWidth = aBuffer->mWidth;
+		int aBufferHeight = aBuffer->mHeight;
+		int aWidth = Ftol((double)aBufferWidth <= aSize ? (double)aBufferWidth : aSize);
+		int aHeight = Ftol((double)aBufferHeight <= aSize ? (double)aBufferHeight : aSize);
+		if (aWidth <= aBufferWidth) {
+			const uint32_t* aPlanetBits = reinterpret_cast<const uint32_t*>(static_cast<MemoryImage*>(IMAGE_PLANET)->GetBits());
+			const uint32_t* aLayerBits = reinterpret_cast<const uint32_t*>(static_cast<MemoryImage*>(mLayers[0])->GetBits());
+			uint32_t* aBufferBits = reinterpret_cast<uint32_t*>(aBuffer->GetBits());
+			float aStepX = (float)(384.0 / (double)aWidth);
+			float aStepY = (float)(384.0 / (double)aHeight);
+			int aBrightness = Ftol((1.0 - mDim.GetOutVal()) * 200.0 + 55.0);
+			int aDestX = Ftol((double)aScreenX - (double)(aWidth / 2));
+			int aDestY = Ftol((double)aScreenY - (double)(aHeight / 2));
+			Rect aDest(aDestX, aDestY, aWidth, aHeight);
+			if (aDest.Intersects(g->mClipRect)) {
+				// the clouds drift with the size: 0.4 of the planet's scale, in columns
+				double aShift = (double)aScale * 0.4000000059604645;
+				float aRowAt = 0;
+				for (int aRow = 0; aRow < aHeight; aRow++) {
+					uint32_t* aOut = aBufferBits + (size_t)aBufferWidth * (size_t)aRow;
+					const uint32_t* aPlanetRow = aPlanetBits + Ftol((double)aRowAt) * 384;
+					float aColumnAt = 0;
+					for (int aColumn = 0; aColumn < aWidth; aColumn++) {
+						uint32_t aPlanet = aPlanetRow[Ftol((double)aColumnAt)];
+						uint32_t aLayerRow = (((aPlanet >> 8 & 0xff) / 2) << 8);
+						uint32_t aLight = ((0xff - (aPlanet >> 16 & 0xff)) * (uint32_t)aBrightness) >> 8;
+						float aBlue = (float)((double)(aPlanet & 0xff) / 1.5);
+						float aLookup = (float)((double)aBlue + aShift);
+						int aFloor = Ftol((double)aLookup);
+						uint32_t aFraction = (uint32_t)Ftol(((double)aLookup - (double)aFloor) * 255.0);
+						uint32_t aFirst = aLayerBits[(aFloor & 0xff) + aLayerRow];
+						uint32_t aSecond = aLayerBits[((aFloor + 1) & 0xff) + aLayerRow];
+						uint32_t aBlended = ((aFirst & 0xff0000) * (0x100 - aFraction) + (aSecond & 0xff0000) * aFraction) & 0xff0000ff;
+						aBlended |= ((aFirst & 0xff00) * (0x100 - aFraction) + (aSecond & 0xff00) * aFraction) & 0xff0000;
+						aBlended |= (aFirst & 0xff) * (0x100 - aFraction) + (aSecond & 0xff) * aFraction;
+						aBlended >>= 8;
+						uint32_t aLit = ((aBlended & 0xff0000) * aLight) & 0xff0000ff;
+						aLit |= ((aBlended & 0xff00) * aLight) & 0xff0000;
+						aLit |= ((aBlended & 0xff) * aLight) & 0xff00;
+						*aOut++ = (aLit >> 8) | (aPlanet & 0xff000000);
+						aColumnAt = (float)((double)aColumnAt + (double)aStepX);
+					}
+					aRowAt = (float)((double)aRowAt + (double)aStepY);
 				}
-				aRowAt = (float)((double)aRowAt + (double)aStepY);
+				aBuffer->BitsChanged();
+				g->SetColor(Color(255, 255, 255));
+				g->DrawImage(aBuffer, aDestX, aDestY, Rect(0, 0, aWidth, aHeight));
 			}
-			aBuffer->BitsChanged();
-			g->SetColor(Color(255, 255, 255));
-			g->DrawImage(aBuffer, aDestX, aDestY, Rect(0, 0, aWidth, aHeight));
 		}
 	}
 
 	// The ring, and (below) the name and moon meter, about the planet and at half its scale
 	float aHalfScale = (float)((double)aScale * 0.5);
-	g->PushState();
-	g->Translate(Ftol((double)aScreenX), Ftol((double)aScreenY));
-	g->SetScale(aHalfScale, aHalfScale, 0, 0);
+	if (gD3DInterface == nullptr) {
+		g->PushState();
+		g->Translate(Ftol((double)aScreenX), Ftol((double)aScreenY));
+		g->SetScale(aHalfScale, aHalfScale, 0, 0);
+	} else {
+		// the device takes the scale and the place (0x44f860, 0x44f990, 0x44f8a0), the place not rounded
+		SexyTransform2D aPlanetMatrix;
+		aPlanetMatrix.Scale(aHalfScale, aHalfScale);
+		aPlanetMatrix.Translate(aScreenX, aScreenY);
+		gD3DInterface->PushTransform(aPlanetMatrix, true);  // slot 0x14
+	}
 	int aNameY = Ftol((double)gApp->mScale * -5.0);
 	Color aRingColor = Color::White;
 	float aRingScale;
@@ -393,13 +708,33 @@ void ChallengeButton::Draw(Graphics* g)
 		aRingAlpha = aRingAlpha * aRingFadeAbove;
 	aRingColor.mAlpha = Ftol(aRingAlpha);
 	g->SetColor(aRingColor);
-	g->PushState();
-	float aRingDrawScale = (float)((double)aRingScale * (double)aScale * 0.25);
-	g->SetScale(aRingDrawScale, aRingDrawScale, 0, 0);
-	DrawImageScaledCentered(g, IMAGE_CHALLENGEUI_PLANETRING, 0, 0, ALIGN_CENTER, 1.0f, 1.0f);
-	g->PopState();
-	if (!mUnknown5C4) {
+	if (gD3DInterface == nullptr) {
+		g->PushState();
+		float aRingDrawScale = (float)((double)aRingScale * (double)aScale * 0.25);
+		g->SetScale(aRingDrawScale, aRingDrawScale, 0, 0);
+		DrawImageScaledCentered(g, IMAGE_CHALLENGEUI_PLANETRING, 0, 0, ALIGN_CENTER, 1.0f, 1.0f);
 		g->PopState();
+	} else {
+		// With Direct3D the ring is stretched a little more across the way to the middle of the screen (by the planet's
+		// distance from it over the planet's width) and turned to point to it
+		float aDX = (float)(gApp->mWidth / 2) - aScreenX;
+		float aDY = (float)(gApp->mHeight / 2) - aScreenY;
+		float anAngle = (float)std::atan2((double)aDY, (double)aDX);  // 0x4c1b70
+		float aDistance = (float)std::sqrt((double)(aDX * aDX + aDY * aDY));  // 0x4c0650
+		float aStretch = aDistance / (float)mWidth;
+		Transform aRingTransform;  // 0x44f9d0
+		aRingTransform.Translate(-0.30000001192092896f, 0.30000001192092896f);
+		float aMore = (float)((double)aStretch * 0.03500000014901161);
+		aRingTransform.Scale(aMore + aRingScale, aRingScale - aMore);
+		aRingTransform.RotateRad(-anAngle);
+		aRingTransform.Translate(0.0f, 0.0f);
+		g->DrawImageTransform(IMAGE_CHALLENGEUI_PLANETRING, aRingTransform, 0.0f, 0.0f);  // 0x422000
+	}
+	if (!mUnknown5C4) {
+		if (gD3DInterface == nullptr)
+			g->PopState();
+		else
+			gD3DInterface->PopTransform();  // slot 0x18
 		g->Translate(Ftol((double)aTransX), Ftol((double)aTransY));
 		return;
 	}
@@ -528,8 +863,60 @@ void ChallengeButton::Draw(Graphics* g)
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		g->DrawImage(IMAGE_ECLIPSE_TITLE, Ftol((double)aBarX - (double)(IMAGE_ECLIPSE_TITLE->mWidth / 2)),
 			Ftol((double)aBarY - (double)(IMAGE_ECLIPSE_TITLE->mHeight / 2)));
-		if (gApp->Is3DAccelerated())
-			NotPorted("ChallengeButton::Draw 0x6df6b0: the eclipse title's flare strips (mEclipseFlares), drawn with Direct3D only");
+		if (gD3DInterface != nullptr) {
+			// The title's 32 flares: for each, a fan of up to 24 triangles round the bar's middle on the glow picture,
+			// each a little wider and fainter than the one before, at a 32nd of a turn from the last flare's
+			Image* aGlowImage = IMAGE_ECLIPSE_TITLE_GLOW;
+			float aStep = (float)(6.2831855f * 0.03125);  // _DAT_0084ec00
+			float anAngle = 0.0f;
+			for (int aFlare = 0; aFlare < 32; aFlare++) {
+				float aNextAngle = anAngle + aStep;
+				float aSineArg = (float)((double)mEclipseFlares[aFlare] * 3.1415927410125732);
+				float aSine = sinf(aSineArg);
+				int aFlareAlpha = Ftol(((double)aSine * 55.0 + 100.0) * mEclipseFade.GetOutVal() * (double)aTextFade);
+				int aTriangleCount = 0;
+				float aRadius = 1.0f;
+				TriVertex aVertices[32][3];
+				if (0 < aFlareAlpha) {
+					do {
+						if (0x17 < aTriangleCount)
+							break;
+						unsigned long aColor = Color(255, 255, 255, aFlareAlpha).ToInt();  // 0x401860
+						aVertices[aTriangleCount][0] = TriVertex((float)aBarX, (float)aBarY, 0.5f, 0.5f, aColor);  // 0x6847ca
+						float aSin0 = sinf(anAngle);
+						float aCos0 = cosf(anAngle);
+						float aSin0b = sinf(anAngle);
+						float aCos0b = cosf(anAngle);
+						float aV = (float)((double)aSin0 * 0.5 + 0.5);
+						float aU = (float)((double)aCos0 * 0.5 + 0.5);
+						float aCelHeight = (float)(aGlowImage->mHeight / aGlowImage->mNumRows);  // 0x423750
+						float aY = (float)((double)aRadius * (double)aSin0b * (double)aCelHeight * 0.5 + (double)aBarY);
+						float aCelWidth = (float)(aGlowImage->mWidth / aGlowImage->mNumCols);  // 0x423760
+						float aX = (float)((double)aRadius * (double)aCos0b * (double)aCelWidth * 0.5 + (double)aBarX);
+						aVertices[aTriangleCount][1] = TriVertex(aX, aY, aU, aV, aColor);
+						float aSin1 = sinf(aNextAngle);
+						float aCos1 = cosf(aNextAngle);
+						float aSin1b = sinf(aNextAngle);
+						float aCos1b = cosf(aNextAngle);
+						aV = (float)((double)aSin1 * 0.5 + 0.5);
+						aU = (float)((double)aCos1 * 0.5 + 0.5);
+						aY = (float)((double)aRadius * (double)aSin1b * (double)aCelHeight * 0.5 + (double)aBarY);
+						aX = (float)((double)aRadius * (double)aCos1b * (double)aCelWidth * 0.5 + (double)aBarX);
+						aVertices[aTriangleCount][2] = TriVertex(aX, aY, aU, aV, aColor);
+						aFlareAlpha = Ftol((double)aFlareAlpha - 10.0);
+						aTriangleCount++;
+						aRadius = (float)((double)aRadius + 0.02500000037252903);
+					} while (0 < aFlareAlpha);
+				}
+				gD3DInterface->DrawTrianglesTex(aGlowImage, aVertices, aTriangleCount, Color::White, 1, 0.0f, 0.0f, true);  // slot 0x74
+				anAngle = aNextAngle;
+			}
+		}
+	}
+	if (gD3DInterface != nullptr) {
+		// the clip taller by 100 above and below
+		g->mClipRect.mY -= 100;
+		g->mClipRect.mHeight += 200;
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	g->SetColor(aFull);
@@ -557,7 +944,10 @@ void ChallengeButton::Draw(Graphics* g)
 		mTip->Draw(g);
 	}
 	g->Translate(Ftol((double)aTransX), Ftol((double)aTransY));
-	g->PopState();
+	if (gD3DInterface == nullptr)
+		g->PopState();
+	else
+		gD3DInterface->PopTransform();  // slot 0x18
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 }
 
@@ -581,8 +971,12 @@ ChallengeMenu::ChallengeMenu()
 	mCameraPos[1] = -12.0f;
 	mCameraPos[2] = 0;
 	LoadCameraStack();
-	// The sphere meshes of the 3D draw (0x6e4fad, three sizes) and the 512 by 512 picture the software planets are made
-	// in (+0x9e0, not freed by the original)
+	// The sphere meshes of the 3D draw (0x6e4fad, three sizes: the smallest is 0x85c5f8, the biggest 0x85c5e8), made in both
+	// modes
+	BuildSphere(gSphereSmall, 0xf, 0x14);
+	BuildSphere(gSphereMiddle, 0x14, 0x1c);
+	BuildSphere(gSphereBig, 0x20, 0x30);
+	// The 512 by 512 picture the software planets are made in (+0x9e0, not freed by the original)
 	if (!gApp->Is3DAccelerated()) {
 		mPlanetImage = new MemoryImage(gApp);
 		mPlanetImage->SetImageMode(true, true);
@@ -1145,9 +1539,8 @@ void ChallengeMenu::Update()
 	if (mStarted == 0 && mOpen.GetOutVal() == 1.0 && (mState == 1 || mState == 4)) {
 		float aRadius = (float)((double)IMAGE_ECLIPSE_SUN->mWidth * 0.30000001192092896);
 		int aCount;
-		if (gApp->Is3DAccelerated()) {
-			NotPorted("ChallengeMenu::Update 0x6e47a2: two glow particles each update with Direct3D");
-			aCount = 0;
+		if (gD3DInterface != nullptr) {
+			aCount = 2;  // with Direct3D two a time, and no random draw for the number
 		} else {
 			aCount = (int)(Rand() % 100) / 80;
 		}
@@ -1219,15 +1612,15 @@ void ChallengeMenu::DrawAll(ModalFlags* theFlags, Graphics* g)
 	bool anOldPicture = aHyperspace != nullptr && aHyperspace->mState == 12 && !aHyperspace->mFlag159;
 	if (gSunCurve.GetOutVal() == 0.0 && !anOldPicture)
 		return;
-	if (gApp->Is3DAccelerated())
-		NotPorted("ChallengeMenu::DrawAll 0x6e4a7c: the Direct3D interface's call at +0x124 before the drawing");
+	if (gD3DInterface != nullptr)
+		gD3DInterface->ClearDepth();  // slot 0x124
 	TwistWidget::DrawAll(theFlags, g);
 	DrawSunAndTexts(g);
 	if (anOldPicture)
 		gApp->mHyperspace->DrawOldPicture(g);  // 0x70f836
 }
 
-// 0x6e132d (as it runs with Direct3D off)
+// 0x6e132d
 void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 {
 	// The sun at the camera's start (0, -12, 0), greyer as mUnknown928 rises, at the sun curve's alpha
@@ -1246,8 +1639,62 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 	aTurn.RotateY((float)((double)aTurnValue * 3.1415927410125732 * 1.5));
 	aMoon = TimesMat3(aMoon, aTurn);           // 0x673fa4
 	aMoon = TransformPoint(aSunPlace, aMoon);  // 0x68b6b6
-	if (gApp->Is3DAccelerated()) {
-		NotPorted("ChallengeMenu::DrawSunAndTexts 0x6e1535: the moon's sphere and its glow, with Direct3D");
+	if (gD3DInterface != nullptr) {
+		// The moon: the biggest sphere with the moon's picture, 2.43 large a little off the point (-0.04, 0.02, 0), turned about
+		// y by 0.025 degrees for each update, lit by a light along the moon's own turn; its dark side is the eclipse's,
+		// by mUnknown6B0. The moon's flat picture, black, is drawn over it while the eclipse is under 0.05.
+		PerspectiveCamera aCamera(gAspect45, gAspect, 1.0f, 10000.0f);  // 0x67417d
+		WorldGraphicsListener aListener(&aCamera, false);              // 0x4bd5d0
+		aListener.SetCulling(true);
+		aListener.SetDepth(false, true);
+		aCamera.mTransform = gMenuCamera;  // 0x673c10
+		gD3DInterface->SetTextureWrap(0, true);
+		gD3DInterface->SetTexture(0, IMAGE_PLANET_MOON);
+		Transform3D aMoonPlace;  // 0x4bd4c0
+		aMoonPlace.mScale.x = 2.430000066757202f * aMoonPlace.mScale.x;  // 0x68b341
+		aMoonPlace.mScale.y = 2.430000066757202f * aMoonPlace.mScale.y;
+		aMoonPlace.mScale.z = 2.430000066757202f * aMoonPlace.mScale.z;
+		float aMoonSpin = (float)((double)mUpdateCnt * 0.02500000037252903);
+		float aMoveY = (float)((double)aMoon.y + 0.019999999552965164);
+		float aMoveX = (float)((double)aMoon.x - 0.03999999910593033);
+		aMoonPlace.mPos.x = aMoonPlace.mPos.x + aMoveX;  // 0x68b2a8
+		aMoonPlace.mPos.y = aMoonPlace.mPos.y + aMoveY;
+		aMoonPlace.mPos.z = aMoonPlace.mPos.z + aMoon.z;
+		aMoonPlace.mRot.RotateZ((float)(0.0 * 3.1415927410125732 / 180.0));  // 0x673fd0
+		aMoonPlace.mRot.RotateY((float)((double)aMoonSpin * 3.1415927410125732 / 180.0));  // 0x68fa0b
+		aListener.mWorld = aMoonPlace;
+		aListener.SetLighting(true);
+		gD3DInterface->SetMaterial(Color::White, Color::White, Color::White, Color::Black, 0.0f);  // slot 0xf0
+		D3DLightColors aColors;  // 0x6802ad
+		aColors.mDiffuse = Color::White;
+		aColors.mSpecular = Color::Black;
+		aColors.mAmbient = Color(0, 0, 0);
+		aColors.mIntensity = 2.430000066757202f;
+		aColors.mAmbient.mRed = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mAmbient.mRed + 28.0);
+		aColors.mAmbient.mGreen = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mAmbient.mGreen + 28.0);
+		aColors.mAmbient.mBlue = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mAmbient.mBlue + 28.0);
+		aColors.mDiffuse.mRed = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mDiffuse.mRed);
+		aColors.mDiffuse.mGreen = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mDiffuse.mGreen);
+		aColors.mDiffuse.mBlue = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mDiffuse.mBlue);
+		Vec3 aLightDirection = TimesMat3(Vec3{0.0f, 0.0f, 1.0f}, aTurn);  // 0x673fa4
+		gD3DInterface->SetDirectionalLight(0, aLightDirection, aColors);   // slot 0xec
+		gD3DInterface->LightEnable(0, true);                               // slot 0xe4
+		int aSphereAlpha = Ftol(gSunCurve.GetOutVal() * 255.0);
+		SetSphereAlpha(gSphereBig, aSphereAlpha);
+		PrimitiveListener aPrimitiveListener(&aListener);
+		gD3DInterface->DrawPrimitiveEx(0x152, GPUPT_TRIANGLELIST, gSphereBig.data(), (int)gSphereBig.size() / 3,
+			Color(255, 255, 255, 255), 0, 0.0f, 0.0f, true, &aPrimitiveListener);  // slot 0x7c
+		gD3DInterface->SetTexture(0, nullptr);
+		gD3DInterface->SetTextureWrap(0, false);
+		if (mUnknown6B0.GetOutVal() < 0.05000000074505806) {
+			int aBlackAlpha = Ftol(gSunCurve.GetOutVal() * 255.0 * (1.0 - mUnknown6B0.GetOutVal() / 0.05000000074505806));
+			DrawBillboard(g, IMAGE_ECLIPSE_MOON, (float)((double)aMoon.x - 0.07999999821186066),
+				(float)((double)aMoon.y + 0.07000000029802322), aMoon.z, (unsigned int)aBlackAlpha << 24,
+				Graphics::DRAWMODE_NORMAL, 2.5f);
+		}
+		g->SetColorizeImages(true);
+		g->SetColor(Color::White);
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	} else {
 		// dark grey (48), lighter by mUnknown6B0
 		unsigned int aBright = (unsigned int)Ftol(mUnknown6B0.GetOutVal() * 255.0) + 48;
@@ -1268,8 +1715,12 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 	double aSun = gSunCurve.GetOutVal();
 	float aRing = (float)((1.0 - aDark) * aSun * gSunCurve.GetOutVal());
 	if (0.0f < aRing && gSunCurve.GetOutVal() == 1.0) {
-		if (gApp->Is3DAccelerated()) {
-			NotPorted("ChallengeMenu::DrawSunAndTexts 0x6e1aa3: the ring at 2.75, moved by (-0.1, 0.08, 0.1), Direct3D");
+		if (gD3DInterface != nullptr) {
+			// with Direct3D smaller (2.75), a little off the moon, as the moon's own
+			unsigned int aRingColor = ((unsigned int)Ftol((double)aRing * 255.0) << 24) | 0xffffff;
+			DrawBillboard(g, IMAGE_ECLIPSE_RING, (float)((double)aMoon.x - 0.10000000149011612),
+				(float)((double)aMoon.y + 0.07999999821186066), (float)((double)aMoon.z + 0.10000000149011612), aRingColor,
+				Graphics::DRAWMODE_ADDITIVE, 2.75f);
 		} else {
 			unsigned int aRingColor = ((unsigned int)Ftol((double)aRing * 255.0) << 24) | 0xffffff;
 			DrawBillboard(g, IMAGE_ECLIPSE_RING, aMoon.x + -0.0f, aMoon.y + 0.0f, aMoon.z + 0.0f, aRingColor,
@@ -1508,7 +1959,7 @@ void ChallengeMenu::ButtonMouseEnter(int theId)
 	SetFontLayerColor(aFont, GTS(0x7e029c), Color(0, 0, 0, 0));
 	SetFontLayerColor(aFont, GTS(0x7dd6b0), Color(0, 0, 0, 0));
 	mDescImage = new TextImage(aFont, aDesc, 0, Ftol((double)gApp->mScale * 10.0), 0, 0, &aDescRect);
-	// (the original also sets the second picture's +0x44 flag 0x80, for Direct3D)
+	mDescImage->mD3DFlags |= 0x80;  // the picture's +0x44 flag 0x80: no region mesh for the Direct3D draw (set in both modes)
 
 	// The name, in the colour of its category (0x6e6a8c: the table on the stack)
 	const Color aColors[13] = {Color(255, 198, 45), Color(255, 255, 255), Color(255, 206, 133), Color(255, 84, 115),

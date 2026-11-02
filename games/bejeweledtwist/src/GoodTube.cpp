@@ -18,6 +18,8 @@
 #include "SexyMatrix.h"
 #include "Traveller.h"
 #include "TwistButton.h"
+#include "TriVertex.h"
+#include "CurvedVal.h"
 #include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
@@ -1896,6 +1898,40 @@ void GoodTube::DrawBonus(Graphics* g)
 	}
 }
 
+// 0x7020cc: the u of a point (theU, theV) of the fill's waving mesh at this update (kept to 0 to 1 by 0x70209c)
+static float FillWaveU(int theUpdateCnt, float theU, float theV)
+{
+	theU = (float)((double)theU - 0.5);
+	float aTime = (float)((double)theUpdateCnt * 0.015);
+	float aCos1 = cosf((float)((double)theU * 100.0 * ((double)theV - 0.5) * (double)aTime));
+	float aCos2 = cosf(aTime);
+	float aSin1 = sinf(aTime);
+	double aSin3 = (double)sinf((float)((double)aTime * 3.0));
+	double aValue = (((double)aSin1 * ((double)theV - 0.5) + (double)aCos1 * 0.125 + (double)aCos2 * (double)theU) * 0.25 *
+		(aSin3 * 0.5 + 1.0)) + (double)theU * 0.800000011920929 + 0.5;
+	float aResult = (float)aValue;
+	if (aResult < 0.0f)
+		return 0.0f;
+	if (1.0f < aResult)
+		return 1.0f;
+	return aResult;
+}
+
+// 0x7021a8: the v of the same point
+static float FillWaveV(int theUpdateCnt, float theU, float theV)
+{
+	theV = (float)((double)theV - 0.5);
+	float aTime = (float)((double)theUpdateCnt * 0.01);
+	float aCos1 = cosf((float)((double)theUpdateCnt * 0.003));
+	float aSin1 = sinf((float)(((double)theU - 0.5) * 100.0 * (double)theV * (double)aTime));
+	float aCos2 = cosf(aTime);
+	float aSin2 = sinf(aTime);
+	double aCos4 = (double)cosf((float)((double)aTime * 4.0));
+	return (float)(0.800000011920929 * ((double)aCos1 * 0.20000000298023224 + 0.699999988079071 + (double)theV * 0.800000011920929 +
+		(((double)aSin1 * 0.10000000149011612 + (double)aCos2 * (double)theV) - (double)aSin2 * ((double)theU - 0.5)) *
+		0.019999999552965164 * (aCos4 * 0.5 + 1.0)));
+}
+
 void GoodTube::DrawFill(Graphics* g, bool theFront)
 {
 	// 0x7051a4: the fill, the glass over it and the specks (theFront false), then the bottom's ring and the level
@@ -1963,11 +1999,74 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 			g->DrawImage(mFillImage, aFillX, aFillY, aFillSrc);
 			g->SetDrawMode(1);
 			g->SetColor(Color(255, 255, 255, 0x78));
-			if (gD3DInterface != nullptr)
-				NotPorted("GoodTube::DrawFill: the 3D waving mesh of the first fill texture (0x7051a4, waves 0x7020cc and 0x7021a8)");
+			// With Direct3D the fill is drawn again, added, as two textures of the fill (TEXTURE1 as a 4 by 4 mesh that waves,
+			// TEXTURE2 as a quad that scrolls up), over its picture
+			int aMeshWidth = Ftol((double)IMAGE_INGAMEUI_TUBE_FILL_TEXTURE1->mWidth * 0.8999999761581421);
+			int aMeshHeight = aCut - Ftol((double)aScale * 3.0);
+			int aMeshX = (((mFillImage->mWidth / 2 - Ftol((double)aScale * -21.0)) + mX) - aMeshWidth / 2) + aFillX;
+			int aMeshY = aFillY - Ftol((double)aScale * -0.0);
+			if (gD3DInterface != nullptr) {
+				gD3DInterface->SetTextureWrap(0, true);  // slot 0xcc
+				float aStepX = (float)((double)aMeshWidth * 0.25);
+				float aStepY = (float)((double)aMeshHeight * 0.25);
+				float aStepV = (float)((double)((float)aCut / (float)mFillImage->mHeight) * 0.25);
+				float anOriginX = (float)aMeshX;
+				float anOriginY = (float)aMeshY;
+				TriVertex aMesh[32][3];
+				int aTriangle = 0;
+				for (int aColumn = 0; aColumn < 4; aColumn++) {
+					float aRight = (float)((double)(aColumn + 1) * (double)aStepX + (double)anOriginX);
+					float aRightU = (float)((double)(aColumn + 1) * 0.25);
+					float aLeft = (float)((double)aColumn * (double)aStepX + (double)anOriginX);
+					float aLeftU = (float)((double)aColumn * 0.25);
+					for (int aRow = 0; aRow < 4; aRow++) {
+						float aTopY = (float)((double)aRow * (double)aStepY + (double)anOriginY);
+						float aTopV = (float)((double)aRow * (double)aStepV);
+						float aBottomY = (float)((double)(aRow + 1) * (double)aStepY + (double)anOriginY);
+						float aBottomV = (float)((double)(aRow + 1) * (double)aStepV);
+						TriVertex aLeftTop(aLeft, aTopY, FillWaveU(mUpdateCnt, aLeftU, aTopV), FillWaveV(mUpdateCnt, aLeftU, aTopV));
+						TriVertex aRightTop(aRight, aTopY, FillWaveU(mUpdateCnt, aRightU, aTopV),
+							FillWaveV(mUpdateCnt, aRightU, aTopV));
+						TriVertex aLeftBottom(aLeft, aBottomY, FillWaveU(mUpdateCnt, aLeftU, aBottomV),
+							FillWaveV(mUpdateCnt, aLeftU, aBottomV));
+						TriVertex aRightBottom(aRight, aBottomY, FillWaveU(mUpdateCnt, aRightU, aBottomV),
+							FillWaveV(mUpdateCnt, aRightU, aBottomV));
+						aMesh[aTriangle][0] = aLeftTop;
+						aMesh[aTriangle][1] = aRightTop;
+						aMesh[aTriangle][2] = aLeftBottom;
+						aTriangle++;
+						aMesh[aTriangle][0] = aRightBottom;
+						aMesh[aTriangle][1] = aRightTop;
+						aMesh[aTriangle][2] = aLeftBottom;
+						aTriangle++;
+					}
+				}
+				gD3DInterface->DrawTrianglesTex(IMAGE_INGAMEUI_TUBE_FILL_TEXTURE1, aMesh, 0x20, Color::White, 1, 0.0f, 0.0f, true);
+			}
 			g->SetColor(Color(255, 255, 255, 0x80));
-			if (gD3DInterface != nullptr)
-				NotPorted("GoodTube::DrawFill: the 3D quad of the second fill texture (0x7051a4)");
+			float aScroll = (float)((double)(float)(mUpdateCnt % 500) / 500.0);
+			float aScrollEnd = (float)((double)(float)aMeshHeight / (double)(float)mFillImage->mHeight + (double)aScroll);
+			aMeshX += Ftol((double)aScale * 0.0);
+			if (gD3DInterface != nullptr) {
+				float aLeft = (float)aMeshX;
+				float aRight = (float)(aMeshX + aMeshWidth);
+				float aTopY = (float)aMeshY;
+				float aBottomY = (float)(aMeshY + aMeshHeight);
+				TriVertex aQuad[2][3];
+				TriVertex aLeftTop(aLeft, aTopY, 0.0f, aScroll);
+				TriVertex aRightTop(aRight, aTopY, 1.0f, aScroll);
+				TriVertex aLeftBottom(aLeft, aBottomY, 0.0f, aScrollEnd);
+				TriVertex aRightBottom(aRight, aBottomY, 1.0f, aScrollEnd);
+				aQuad[0][0] = aLeftTop;
+				aQuad[0][1] = aRightTop;
+				aQuad[0][2] = aLeftBottom;
+				aQuad[1][0] = aLeftBottom;
+				aQuad[1][1] = aRightTop;
+				aQuad[1][2] = aRightBottom;
+				gD3DInterface->SetSamplerState(0, GPUSAMP_ADDRESSV, 1);  // slot 0xc4: the v wraps
+				gD3DInterface->DrawTrianglesTex(IMAGE_INGAMEUI_TUBE_FILL_TEXTURE2, aQuad, 2, Color::White, 1, 0.0f, 0.0f, true);
+				gD3DInterface->SetSamplerState(0, GPUSAMP_ADDRESSV, 3);  // clamped again
+			}
 			g->SetDrawMode(0);
 			g->SetDrawMode(1);
 			g->SetColor(Color(255, 255, 255));
@@ -1987,10 +2086,25 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 					Speck* aSpeck = mSpecks[i];
 					aFill.mAlpha = Ftol((double)aSpeck->mAlpha * 255.0 * (1.0 - (double)mUnknown294));
 					g->SetColor(aFill);
-					if (!g->Is3D()) {
+					// port: the original's Graphics::Is3D (a Direct3D destination); the port's 2D screen also answers true, so
+					// 2D mode is told by gD3DInterface
+					if (gD3DInterface == nullptr || !g->Is3D()) {
 						g->DrawImage(aSpeck->mImage, Ftol(aSpeck->mX), Ftol(aSpeck->mY));
 					} else {
-						NotPorted("GoodTube::DrawFill: the 3D speck stretched by its distance from the tube's middle (0x7051a4)");
+						// with Direct3D stretched by 0.75 to 1.25 of the particle picture's size (0.75 of it again), more
+						// the further it is from the tube's middle (x 87) and by its speed
+						float aFromMiddle = (float)std::fabs((double)(float)((double)aSpeck->mX - 87.0));
+						double aNear = (double)(float)((double)aFromMiddle / 23.0);
+						float aStretch = (float)(aNear + (1.0 - aNear) * 0.333 * ((double)aSpeck->mDX * 2.5 + 3.0));
+						if (aStretch < 0.75f)
+							aStretch = 0.75f;
+						else if (1.25f < aStretch)
+							aStretch = 1.25f;
+						float aSize = (float)(0.75 * (double)aStretch);
+						float aSpeckScale = (float)((double)aSpeck->mScale * (1.0 - (double)mUnknown294) * (double)aSize);
+						int aSpeckHeight = Ftol((double)IMAGE_INGAMEUI_TUBE_FILL_PARTICLE->mHeight * (double)aSpeckScale);
+						int aSpeckWidth = Ftol((double)IMAGE_INGAMEUI_TUBE_FILL_PARTICLE->mWidth * (double)aSpeckScale);
+						g->DrawImage(aSpeck->mImage, Ftol(aSpeck->mX), Ftol(aSpeck->mY), aSpeckWidth, aSpeckHeight);
 					}
 					i++;
 				} while (i < mSpecks.size());
@@ -2005,21 +2119,34 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 		Image* aRing = IMAGE_INGAMEUI_RING_FRONT;
 		float aRingStep = (float)(-(double)aScale * 12.0);
 		double aRingY = (double)aRingStep + (double)aFillTop;
-		if (gD3DInterface != nullptr)
-			NotPorted("GoodTube::DrawFill: the 3D ring, level and timer at float positions (0x7051a4)");
-		g->DrawImage(aRing, Ftol((double)aRingX), Ftol(aRingY));
+		// with Direct3D the ring, the level and the timer are drawn at float positions
+		float aRingYF = (float)aRingY;
+		if (gD3DInterface == nullptr)
+			g->DrawImage(aRing, Ftol((double)aRingX), Ftol(aRingY));
+		else
+			g->DrawImageF(aRing, aRingX, aRingYF);
 		Image* aLevel = IMAGE_INGAMEUI_LEVEL;
 		if ((mUnknown4AC != 0 || 0 < mLevel) && (gBoard->mGameMode != 2 || mUnknown4AC != 0)) {
 			float aRingMidX = (float)((double)aRing->mWidth * 0.5 + (double)aRingX);
 			double aRingDrop = (double)aRing->mHeight * 0.2800000011920929;
 			float aLevelY = (float)(aRingDrop + (double)Ftol((double)aFillTop));
-			g->DrawImage(aLevel, Ftol((double)aRingMidX) - aLevel->mWidth / 2, Ftol((double)aLevelY) - aLevel->mHeight / 2);
+			if (gD3DInterface == nullptr) {
+				g->DrawImage(aLevel, Ftol((double)aRingMidX) - aLevel->mWidth / 2, Ftol((double)aLevelY) - aLevel->mHeight / 2);
+			} else {
+				float aLevelYF = (float)((double)aFillTop + aRingDrop);
+				g->DrawImageF(aLevel, aRingMidX - (float)(aLevel->mWidth / 2), aLevelYF - (float)(aLevel->mHeight / 2));
+			}
 			g->SetFont(FONT_TUBE_TEXT);
 			float aTimerY = (float)((double)aRing->mHeight * 0.800000011920929 + (double)Ftol(aRingY));
+			if (gD3DInterface != nullptr)
+				aTimerY = (float)((double)aRing->mHeight * 0.800000011920929 + (double)aRingYF);
 			Image* aTimer = IMAGE_INGAMEUI_RING_FRONT_TIMER;
 			if (mUnknown4AC == 0) {
+				// with Direct3D the number's fraction of a pixel in y goes through a matrix
+				SexyTransform2D aFractionMatrix;  // 0x44f860
+				aFractionMatrix.Translate(0.0f, (float)((double)aTimerY - (double)Ftol((double)aTimerY)));  // 0x44f8a0
 				if (gD3DInterface != nullptr)
-					NotPorted("GoodTube::DrawFill: the 3D transform of the y fraction round the level number (0x7051a4)");
+					gD3DInterface->PushTransform(aFractionMatrix, true);  // slot 0x14
 				if (gApp->mArtRes == 600)
 					aTimerY = (float)((double)aTimerY + 1.0);
 				SexyString aLevelText = StrFormat(GTC(0x80da2c), mLevel);
@@ -2027,10 +2154,16 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 				if (mLevel < 10)
 					aTextWidth -= 2;
 				g->DrawString(aLevelText, Ftol((double)aRingMidX - (double)(aTextWidth / 2)), Ftol((double)aTimerY));
-			} else {
+				if (gD3DInterface != nullptr)
+					gD3DInterface->PopTransform();  // slot 0x18
+			} else if (gD3DInterface == nullptr) {
 				int aTimerStep = Ftol((double)gApp->mScale * -25.0);
 				int aTimerTop = (-(aTimer->mHeight / 2) - aTimerStep) + Ftol(aRingY);
 				g->DrawImage(aTimer, Ftol((double)aRingMidX) - aTimer->mWidth / 2, aTimerTop);
+			} else {
+				int aTimerStep = Ftol((double)gApp->mScale * 25.0);
+				g->DrawImageF(aTimer, aRingMidX - (float)(aTimer->mWidth / 2),
+					(float)(((double)aRingYF + (double)aTimerStep) - (double)(aTimer->mHeight / 2)));
 			}
 		}
 	}
@@ -2049,11 +2182,97 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 void GoodTube::DrawLight(Graphics* g, int theLight, float theAlpha)
 {
 	// 0x70675e
-	if (gD3DInterface != nullptr)
-		NotPorted("GoodTube::DrawLight: the 3D strips of the light's arc (0x70675e)");
 	int aLastLight = Board::GetLevelSteps(mUnknown27C) - 1;
 	if (aLastLight < theLight)
 		theLight = aLastLight;
+	if (gD3DInterface != nullptr) {
+		// With Direct3D the light is a strip of triangles along its arc (the curves of the arc's two edges, from the
+		// fractions of the arc this light covers: its start, and the end of what shows of it by theAlpha), the light's
+		// picture laid over it
+		gD3DInterface->SetTextureWrap(0, false);  // slot 0xcc
+		CurvedVal anEdgeA;
+		anEdgeA.SetCurve(GTS(0x7e3fc4));
+		CurvedVal anEdgeB;
+		anEdgeB.SetCurve(GTS(0x7e3fa8));
+		int aSteps = Board::GetLevelSteps(mUnknown27C);
+		int anImageId = sFirstLight[mUnknown27C] + theLight;
+		Image* aLightImage = GetImageById(anImageId);
+		float aStartA = 0.0f;  // where on the arc this light's edge A, and edge B, start
+		float aStartB = 0.0f;
+		if (aSteps == 4) {
+			static const float sA[4] = {0.01f, 0.19f, 0.51f, 0.85f};
+			static const float sB[4] = {0.01f, 0.24f, 0.51f, 0.74f};
+			aStartA = sA[theLight];
+			aStartB = sB[theLight];
+		} else if (aSteps == 8) {
+			static const float sA[8] = {0.01f, 0.05f, 0.18f, 0.33f, 0.51f, 0.7f, 0.84f, 0.96f};
+			static const float sB[8] = {0.01f, 0.13f, 0.235f, 0.37f, 0.51f, 0.63f, 0.78f, 0.89f};
+			aStartA = sA[theLight];
+			aStartB = sB[theLight];
+		} else if (aSteps == 12) {
+			static const float sA[12] = {0.02f, 0.03f, 0.1f, 0.185f, 0.28f, 0.4f, 0.51f, 0.64f, 0.75f, 0.84f, 0.93f, 0.98f};
+			static const float sB[12] = {0.02f, 0.1f, 0.17f, 0.25f, 0.33f, 0.42f, 0.51f, 0.6f, 0.68f, 0.77f, 0.84f, 0.91f};
+			aStartA = sA[theLight];
+			aStartB = sB[theLight];
+		} else if (aSteps == 16) {
+			static const float sA[16] = {0.015f, 0.025f, 0.07f, 0.1f, 0.16f, 0.23f, 0.32f, 0.41f, 0.515f, 0.626f, 0.72f, 0.81f,
+				0.87f, 0.92f, 0.96f, 0.98f};
+			static const float sB[16] = {0.02f, 0.075f, 0.12f, 0.17f, 0.225f, 0.31f, 0.38f, 0.44f, 0.515f, 0.612f, 0.67f, 0.73f,
+				0.8f, 0.85f, 0.9f, 0.91f};
+			aStartA = sA[theLight];
+			aStartB = sB[theLight];
+		}
+		float aSpread = (float)(1.0 / ((double)theAlpha + 0.0001));
+		g->SetDrawMode(0);
+		g->SetColor(Color(255, 255, 255));
+		float aScale = gApp->mScale;
+		TriVertex aPreviousA;
+		TriVertex aPreviousB;
+		aPreviousA.x = aPreviousA.y = aPreviousA.u = aPreviousA.v = 0.0f;
+		aPreviousB = aPreviousA;
+		float aLength = 0.0f;
+		do {
+			float aTimeA = (float)(((double)aLength - (double)aStartA) * (double)aSpread + (double)aStartA);
+			float aTimeB = (float)(((double)aLength - (double)aStartB) * (double)aSpread + (double)aStartB);
+			// the arc's point for edge A at aLength: across by 278 and down the curve's 155 from the 286, for the edge's
+			// vertex, and the same for the point of the picture it shows (aTimeA)
+			anEdgeA.SetInVal((double)aLength);
+			float aXA = (float)((double)Ftol((double)aScale * 278.0) * (double)aLength + (double)Ftol((double)aScale * 70.0));
+			int aBase = Ftol((double)aScale * 286.0);
+			float aYA = (float)((double)aBase - anEdgeA.GetOutVal() * (double)Ftol((double)aScale * 155.0));
+			anEdgeA.SetInVal((double)aTimeA);
+			float aTexXA = (float)((double)Ftol((double)aScale * 278.0) * (double)aTimeA + (double)Ftol((double)aScale * 70.0));
+			aBase = Ftol((double)aScale * 286.0);
+			float aTexYA = (float)((double)aBase - anEdgeA.GetOutVal() * (double)Ftol((double)aScale * 155.0));
+			float anImageX = (float)(((double)aTexXA - (double)Ftol((double)aScale * (double)GetImageOffsetX(anImageId))) /
+				(double)aLightImage->mWidth);
+			float anImageY = (float)(((double)aTexYA - (double)Ftol((double)aScale * (double)GetImageOffsetY(anImageId))) /
+				(double)aLightImage->mHeight);
+			TriVertex aCurrentA((float)((double)aXA - 1.0), (float)((double)aYA - 1.0), anImageX, anImageY);
+			// and edge B
+			anEdgeB.SetInVal((double)aLength);
+			float aXB = (float)((double)Ftol((double)aScale * 278.0) * (double)aLength + (double)Ftol((double)aScale * 70.0));
+			aBase = Ftol((double)aScale * 286.0);
+			float aYB = (float)((double)aBase - anEdgeB.GetOutVal() * (double)Ftol((double)aScale * 155.0));
+			anEdgeB.SetInVal((double)aTimeB);
+			float aTexXB = (float)((double)Ftol((double)aScale * 278.0) * (double)aTimeB + (double)Ftol((double)aScale * 70.0));
+			aBase = Ftol((double)aScale * 286.0);
+			float aTexYB = (float)((double)aBase - anEdgeB.GetOutVal() * (double)Ftol((double)aScale * 155.0));
+			float anImageXB = (float)(((double)aTexXB - (double)Ftol((double)aScale * (double)GetImageOffsetX(anImageId))) /
+				(double)aLightImage->mWidth);
+			float anImageYB = (float)(((double)aTexYB - (double)Ftol((double)aScale * (double)GetImageOffsetY(anImageId))) /
+				(double)aLightImage->mHeight);
+			TriVertex aCurrentB((float)((double)aXB - 1.0), (float)((double)aYB - 1.0), anImageXB, anImageYB);
+			if (aLength != 0.0f) {
+				g->DrawTriangleTex(aLightImage, aPreviousA, aCurrentA, aPreviousB);  // 0x422130
+				g->DrawTriangleTex(aLightImage, aCurrentA, aCurrentB, aPreviousB);
+			}
+			aLength = (float)((double)aLength + 0.019999999552965164);
+			aPreviousA = aCurrentA;
+			aPreviousB = aCurrentB;
+		} while (aLength <= 1.0f);
+		return;
+	}
 	int anId = sFirstLight[mUnknown27C] + theLight;
 	Image* aLightImage = GetImageById(anId);
 	g->SetColorizeImages(true);

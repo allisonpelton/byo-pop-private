@@ -5,6 +5,7 @@
 #include "Image.h"
 #include "Res.h"
 #include "SexyMatrix.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
@@ -70,9 +71,9 @@ void PlayButton::Update()
 		aSparkle.mAngle = (float)(RandSigned() * 3.1415927410125732);
 		float aRand = std::fabs(RandSigned());
 		aSparkle.mRadius = (float)((aRand * 0.10000000149011612 + 0.30000001192092896) * (float)mWidth);
-		// 0.0005 instead of 0.00125 with Direct3D
 		aRand = std::fabs((float)(RandSigned() * 0.0024999999441206455));
-		float aSpeed = (float)(aRand + 0.0012499999720603228);
+		// 0.0005 instead of 0.00125 with Direct3D
+		float aSpeed = (float)(aRand + (gD3DInterface == nullptr ? 0.0012499999720603228 : 0.0005000000237487257));
 		aSparkle.mSpeed = -(aSpeed * (float)mWidth);
 		aSparkle.mAlpha = 0;
 		mSparkles.push_back(aSparkle);
@@ -102,8 +103,10 @@ void PlayButton::DrawRings(Graphics* g, int theX, int theY, float theOuterRot, f
 {
 	g->SetColor(Color(255, 255, 255, Ftol(mAlpha.GetOutVal() * 255.0)));
 	// The rings turn only with Direct3D
-	theInnerRot = 0;
-	theOuterRot = 0;
+	if (gD3DInterface == nullptr) {
+		theInnerRot = 0;
+		theOuterRot = 0;
+	}
 	float aX = (float)theX;
 	float aY = (float)theY;
 	DrawImageCentered(g, IMAGE_MAINMENU_INNERSPIRAL, aX, aY, theInnerRot, theScale, theScale);
@@ -162,9 +165,9 @@ void PlayButton::Draw(Graphics* g)
 	if (mSparkles.size() != 0) {
 		do {
 			Sparkle& aSparkle = mSparkles[i];
-			// half the size without Direct3D
 			float aScale = (float)((aSparkle.mRadius * 1.2000000476837158) / ((float)mWidth * 0.4000000059604645));
-			aScale = aScale * 0.5f;
+			if (gD3DInterface == nullptr)
+				aScale = aScale * 0.5f;  // half the size without Direct3D
 			double anAlpha2 = (double)aSparkle.mAlpha * aSparkleAlpha;
 			if (1 < anAlpha2)
 				anAlpha2 = 1;

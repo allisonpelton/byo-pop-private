@@ -19,6 +19,7 @@
 #include "TwistEditWidget.h"
 #include "Res.h"
 #include "SoundInstance.h"
+#include "TwistD3D.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
@@ -306,8 +307,25 @@ void Menu::Draw(Graphics* g)
 
 void Menu::DrawAll(ModalFlags* theFlags, Graphics* g)
 {
-	// With Direct3D, while mZoom is between 0 and 1, the menu is drawn zoomed about the screen's middle
+	// While mZoom is between 0 and 1 the menu is drawn zoomed about the screen's middle (the zoom is 2 mZoom - 1); the
+	// matrix is also kept for the gates (Gates::DrawAll)
+	if (mZoom.GetOutVal() != 0.0 && mZoom.GetOutVal() != 1.0) {
+		float aHalfWidth = (float)((double)(float)gApp->mWidth * 0.5);
+		float aHalfHeight = (float)((double)(float)gApp->mHeight * 0.5);
+		mZoomed = true;
+		mZoomMatrix = SexyTransform2D();  // 0x44f320
+		mZoomMatrix.Translate(-aHalfWidth, -aHalfHeight);
+		float aZoomY = (float)((mZoom.GetOutVal() + mZoom.GetOutVal()) - 1.0);
+		float aZoomX = (float)((mZoom.GetOutVal() + mZoom.GetOutVal()) - 1.0);
+		mZoomMatrix.Scale(aZoomX, aZoomY);
+		mZoomMatrix.Translate(aHalfWidth, aHalfHeight);
+		gD3DInterface->PushTransform(mZoomMatrix, true);  // slot 0x14
+	} else {
+		mZoomed = false;
+	}
 	TwistWidget::DrawAll(theFlags, g);
+	if (mZoom.GetOutVal() != 0.0 && mZoom.GetOutVal() != 1.0)
+		gD3DInterface->PopTransform();  // slot 0x18
 }
 
 void Menu::Resize(int, int, int, int)

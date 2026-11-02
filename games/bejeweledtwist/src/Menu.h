@@ -9,6 +9,7 @@
 #include "ColorCycle.h"
 #include "CurvedVal.h"
 #include "EditListener.h"
+#include "SexyMatrix.h"
 #include "TwistDialogListener.h"
 #include "TwistWidget.h"
 
@@ -64,7 +65,9 @@ public:
 	int mUnknown404 = 0;               // +0x404: its score
 	int mUnknown408 = -1;              // +0x408: the high score just made (-1: none)
 	bool mPanning = false;             // +0x40c: the menu is not where its pan ends
-	CurvedVal mZoom;                   // +0x410: Direct3D only (DrawAll's zoom)
+	CurvedVal mZoom;                   // +0x410: DrawAll's zoom (nothing sets it, so it stays at its start)
+	SexyTransform2D mZoomMatrix;       // +0x480: the zoom about the screen's middle, made while mZoom is between 0 and 1
+	bool mZoomed = false;              // +0x4a4: set while the matrix is made
 	ChallengeMenu* mChallengeMenu;     // +0x4a8
 	int mMusic = 0;                    // +0x4ac: the menu's tune (PlayMusic)
 	bool mFirstShow = true;            // +0x4b0: the title drops in only the first time

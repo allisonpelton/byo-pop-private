@@ -1,5 +1,7 @@
 #include "TwistD3D.h"
 
+#include "DDImage.h"
+#include "DDInterface.h"
 #include "GPU2D.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
@@ -483,6 +485,35 @@ void TwistD3D::Clear(int theRed, int theGreen, int theBlue, int theAlpha)
 	unsigned long aColor = ((((unsigned long)(theRed & 0xff) | ((unsigned long)theAlpha << 8)) << 8 |
 		(unsigned long)(theGreen & 0xff)) << 8) | (unsigned long)(theBlue & 0xff);
 	mDevice->Clear(1, aColor, 1.0f);
+}
+
+Image* TwistD3D::SwapScreen(DDImage** theImage, bool* theSwapped)
+{
+	// 0x621ae0
+	if (*theImage == nullptr) {
+		DDImage* anImage = new DDImage(gSexyAppBase->mDDInterface);
+		*theImage = anImage;
+		anImage->mD3DFlags = 0x10;
+		anImage->Create(gSexyAppBase->mDDInterface->mWidth, gSexyAppBase->mDDInterface->mHeight);
+		anImage->SetImageMode(false, false);
+		*theSwapped = false;
+	} else if (*theSwapped) {
+		// Back: the original makes its saved surface (the screen's) the target (slot 0x94), then swaps
+		m2D->Flush();
+		mDevice->SwapScreen(*theImage);
+		*theSwapped = false;
+		m2D->SetRenderTarget(nullptr);
+		return *theImage;
+	}
+	// The image becomes the target and is cleared to black, then the screen's buffer and the image's change places;
+	// the screen is the target again (+0xb8)
+	m2D->SetRenderTarget(*theImage);
+	mDevice->Clear(1, 0xff000000, 1.0f);
+	m2D->Flush();
+	mDevice->SwapScreen(*theImage);
+	*theSwapped = true;
+	m2D->SetRenderTarget(nullptr);
+	return *theImage;
 }
 
 void TwistD3D::SetTextureStageState(int theStage, int theType, unsigned long theValue)
