@@ -1227,6 +1227,22 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     $("canvas").focus();
   }
   $("btn-full").addEventListener("click", goFullscreen);
+  // F11 is the Fullscreen button, and F11 again (or Esc, the browser's own) leaves full screen (the user, 2026-11-02: "F11
+  // should make all games go full screen in the browser"). The browser's F11 would put the whole page in full screen, so it is
+  // stopped, but only when the page can do it itself. This listener is the first to see the key (the document, capturing), so
+  // the game never gets it: TipTop's own F11 (App::HandleKeys) would ask SDL for full screen outside a click, which the browser
+  // refuses. Its Options checkbox still uses the game's own path.
+  function onFullscreenKey(e) {
+    if (e.key !== "F11" || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+    if (!document.fullscreenEnabled || !$("stage").requestFullscreen) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.type !== "keydown" || e.repeat) return;
+    if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(function () {}); }
+    else goFullscreen();
+  }
+  document.addEventListener("keydown", onFullscreenKey, true);
+  document.addEventListener("keyup", onFullscreenKey, true);
 
   // ---------- keyboard and focus (docs/WEB_PLAYER.md, "Accessibility") ----------
   // The game has the keyboard only while its canvas has the focus (SDL listens on the canvas, see Module.preRun). The canvas

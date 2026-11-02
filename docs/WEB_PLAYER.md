@@ -75,7 +75,8 @@ The panels:
   card, which can go back to the Ready card.
 - **Settings** is the site's settings (see "Site settings", below), the same controls as the listing page's.
 - **Sound** turns the page's sound off or on, below the game's own volume and mute options (see "Site settings").
-- **Fullscreen** puts the canvas in fullscreen.
+- **Fullscreen** puts the stage in fullscreen. **F11** does the same in every game's page, and F11 again (or Esc) leaves it (see
+  "Accessibility").
 - A game can add panels of its own: Big Money's page also has **Replays**, for watching and importing recorded games.
 
 ## Why `bejeweled.js` is minified, and what is Bejeweled-specific about it
@@ -798,7 +799,7 @@ then it takes every key typed anywhere on the page, Tab among them, and calls `p
 gives it one: `Module.preRun` puts `SDL_EMSCRIPTEN_KEYBOARD_ELEMENT=#canvas` in `ENV`, which SDL reads through `SDL_GetHint` before the game starts
 (`JSEvents.eventHandlers` then lists keydown, keyup and keypress on the canvas, not on the window). The game therefore gets keys only while its
 canvas has the focus, which a click or Tab gives it; while it has it, every key goes to the game exactly as before, Tab, Backspace, the arrows and
-the function keys included. A listener on the window, added before SDL's, stops keys typed elsewhere from reaching SDL should a build ever
+the function keys included, all but F11 (below). A listener on the window, added before SDL's, stops keys typed elsewhere from reaching SDL should a build ever
 listen on the window again.
 
 Tab cannot be the way out: the framework uses it (a dialog's fields, `Widget::KeyDown`), BookWorm's mod "solver" asks for a hint with it and
@@ -810,6 +811,13 @@ so that a screen reader passes its keys on) and described by "Keys go to the gam
 which is also shown on the stage while the keyboard has put the focus there, until the first key goes to the game. Keys held when the focus leaves
 the canvas are let go in the game (a keyup is sent for each), as SDL only does that when the whole window loses the focus. F2 is the game's key to
 open its mod menu: typed on the bar, or with nothing focused, it is passed on to the canvas, and typed in a panel it closes the panel, as before.
+
+**F11** is the Fullscreen button, wherever the focus is (the user, 2026-11-02: F11 "should make all games go full screen in the
+browser"), and F11 again leaves full screen, as Esc does. The page stops the browser's own F11, which would put the whole page in full screen,
+only when it can put the stage there itself (`document.fullscreenEnabled`); then a listener on the document, which sees the key before the
+canvas, keeps it from the game. Of the games only TipTop has an F11 of its own (`App::HandleKeys`, its windowed and full screen switch); in the
+browser it would ask SDL for full screen outside a click, which browsers refuse, so the page's is the one that works. TipTop's Options checkbox
+still goes the game's way.
 
 Moving the focus from the canvas to a control on the page does not count as the game losing the app's focus. SDL and the framework
 (`EmscriptenFocusCallback`) take the focus from the window's `focus` and `blur` events, which an element's focus change does not raise, so
