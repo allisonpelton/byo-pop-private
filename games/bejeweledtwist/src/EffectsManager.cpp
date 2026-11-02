@@ -878,7 +878,7 @@ void EffectsManager::Draw(Graphics* g)
 	// With the manager's +0xa0 set, a board and Direct3D, the board's transform (+0x29e8) is pushed around the drawing
 	bool aBoardTransform = mUnknownA0 && gBoard != nullptr && gD3DInterface != nullptr;
 	if (aBoardTransform)
-		NotPorted("EffectsManager::Draw: PushTransform of the board's +0x29e8 0x6f7a45");
+		gD3DInterface->PushTransform(gBoard->mTransform, true);  // slot 0x14 (0x6f7a45)
 	DrawEffects(g, false);
 	if (aBoardTransform)
 		gD3DInterface->PopTransform();

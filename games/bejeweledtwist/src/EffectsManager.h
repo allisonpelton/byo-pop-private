@@ -101,6 +101,7 @@ public:
 	bool mIs3D = false;                    // +0xa3: the last update ran with Direct3D
 	bool mUnknownB4 = false;               // +0xb4: set once a heat wave has been drawn (0x6f80a4)
 	bool mUnknownB5 = false;               // +0xb5
+	bool mUnknownB6 = false;               // +0xb6: set by the board's constructor for the first manager, read by nothing
 	float mAlpha = 1.0f;                   // +0xb8: every effect's opacity is multiplied by it
 
 	EffectsManager();            // 0x6f9f59

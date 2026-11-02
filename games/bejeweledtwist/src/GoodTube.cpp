@@ -6,6 +6,7 @@
 #include "EffectsManager.h"
 #include "GameOverShow.h"
 #include "GameText.h"
+#include "Hyperspace.h"
 #include "Graphics.h"
 #include "Font.h"
 #include "Image.h"
@@ -17,6 +18,7 @@
 #include "SexyMatrix.h"
 #include "Traveller.h"
 #include "TwistButton.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
@@ -664,19 +666,29 @@ void GoodTube::Resize(int theX, int theY, int theWidth, int theHeight)
 
 void GoodTube::DrawOverlay(Graphics* g)
 {
-	// 0x7049e5 (Direct3D: while the board's scale is not 1, the board's matrix is pushed here and popped at the end)
+	// 0x7049e5: with Direct3D, while the board's scale is not 1, the board's matrix is pushed here and popped at the end
+	if (mBoard->mUnknown268C != 1.0f && gD3DInterface != nullptr)
+		gD3DInterface->PushTransform(mBoard->mTransform, true);  // slot 0x14
 	if (mUnknown3B0 != 0 && mUnknown3B0 != 4)
 		DrawBonus(g);
 	mFXManager->Draw(g);
 	if (mUnknown5F0.GetOutVal() != 0.0 && !gBoard->mUnknown37C4) {
 		float anAlpha = (float)mUnknown5F0.GetOutVal();
-		// (Direct3D: during the jump's transitions 8 and 12 the alpha is multiplied by the curve again)
+		if (mBoard->mHyperspace != nullptr && gD3DInterface != nullptr) {
+			// With Direct3D, during the jump's transitions 8 and 12 the alpha is multiplied by that transition's curve
+			if (mBoard->mHyperspace->mTransition == 8)
+				anAlpha = (float)(mBoard->mHyperspace->mUnknown3A8.GetOutVal() * (double)anAlpha);
+			else if (mBoard->mHyperspace->mTransition == 12)
+				anAlpha = (float)(mBoard->mHyperspace->mUnknown12B0.GetOutVal() * (double)anAlpha);
+		}
 		g->SetColorizeImages(true);
 		g->SetDrawMode(0);
 		g->SetColor(Color(255, 255, 255, Ftol((double)anAlpha * 255.0)));
 		g->DrawImage(IMAGE_MEGAFRUIT_BRACKET, Ftol((double)gApp->mScale * 72.0),
 			Ftol((double)gApp->mScale * 842.0));
 	}
+	if (mBoard->mUnknown268C != 1.0f && gD3DInterface != nullptr)
+		gD3DInterface->PopTransform();  // slot 0x18
 }
 
 int GoodTube::GetTopX()
@@ -734,7 +746,11 @@ void GoodTube::Update()
 	// 0x702736: the update ticks as often as mUnknown308 says
 	mMenuButton->mMouseVisible = true;
 	if (mBoard != nullptr) {
-		// (Direct3D: the menu button's mouse is off while the jump's curve is under 0.5)
+		if (mBoard->mHyperspace != nullptr && gD3DInterface != nullptr &&
+			mBoard->mHyperspace->mUnknown3A8.GetOutVal() < 0.5) {
+			// With Direct3D the menu button's mouse is off while the jump's curve is under 0.5
+			mMenuButton->mMouseVisible = false;
+		}
 		Board* aBoard = mBoard;
 		if (aBoard->IsBusy())
 			return;
@@ -1462,14 +1478,47 @@ void GoodTube::DrawAll(ModalFlags* theFlags, Graphics* g)
 	// 0x70623f
 	if (mUnknown16C == 0)
 		return;
-	// (Direct3D: the board's jump curves pick the shader that fades the tube, and set its parameters)
+	// With Direct3D the board's jump curves pick the shader that fades the tube (the whiteout, or its fixed-function
+	// class on a card without pixel shaders, local_11 in the original) and set its parameters
+	bool aFixedFunction = true;
+	if (gD3DInterface != nullptr)
+		aFixedFunction = (gD3DInterface->GetCaps(0) & 2) == 0;
+	Hyperspace* aSpace = mBoard->mHyperspace;
+	if (aSpace != nullptr && gD3DInterface != nullptr) {
+		if (0.0 < aSpace->mUnknown2C8.GetOutVal() && !aSpace->mIs3D)
+			aSpace->Draw3DSidebar();  // 0x711529
+		if (aSpace->mUnknown338.GetOutVal() != 0.0 || aSpace->mUnknown2C8.GetOutVal() != 0.0) {
+			if (aSpace->mUnknown3A8.GetOutVal() == 0.0) {
+				gD3DInterface->SetPixelShader(nullptr);  // slot 0xd8: the tube is hidden altogether
+				return;
+			}
+			if (aFixedFunction) {
+				// 0x501630: WhiteoutFixedFunctionShader's parameters (0x85d6ec, 0x85d6f0) and its ladder
+				NotPorted("GoodTube::DrawAll: WhiteoutFixedFunctionShader 0x501630 (a card without ps_2_0)");
+			} else {
+				gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_WHITEOUT_FINAL]);  // slot 0xd8, 0x85e0d8
+				float aParams[4];
+				aParams[0] = (float)aSpace->mUnknown338.GetOutVal();
+				aParams[1] = (float)aSpace->mUnknown3A8.GetOutVal();
+				aParams[2] = 0;
+				aParams[3] = 0;
+				gD3DInterface->SetShaderConstant(gTwistShaders[TWISTSHADER_WHITEOUT_FINAL], 0, aParams);  // slot 0x108
+			}
+		}
+	}
 	TwistWidget::DrawAll(theFlags, g);
+	if (gD3DInterface != nullptr) {
+		if (!aFixedFunction)
+			gD3DInterface->SetPixelShader(nullptr);  // slot 0xd8
+		// (a card without pixel shaders: 0x501890 takes the fixed-function class off again)
+	}
 
 	int anArtScale = Ftol((double)gApp->mScale * 10.0);
 	int aTimeX = Ftol((double)mWidth * 0.5 + (double)anArtScale);
 	int aTimeOffsetY = Ftol((double)gApp->mScale * -20.0);
 	int aTimeY = Ftol((double)mUnknown194) - aTimeOffsetY;
-	aTimeY++;  // (the original adds 1 unless Direct3D draws)
+	if (gD3DInterface == nullptr)
+		aTimeY++;  // (the original adds 1 unless Direct3D draws)
 	int aCenterX, aCenterY;
 	mBoard->GetCenter(&aCenterX, &aCenterY);
 	int aToX = aCenterX - mX;
@@ -1543,16 +1592,31 @@ void GoodTube::DrawTime(Graphics* g, int theTime, int theX, int theY, const Colo
 	int aStartX = theX - (int)(aLength * aCharWidth) / 2;
 	int aDrawX = aStartX;
 	g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown4C0 * 255.0)));
-	// (Direct3D: the matrix of the scale about the clock goes to the device)
+	// The scale about the clock, as a matrix for the device with Direct3D (0x44f860 on)
+	SexyTransform2D aClockMatrix;
+	aClockMatrix.Translate((float)-(mX + theX), (float)-(mY + theY));
+	aClockMatrix.Scale(theScale, theScale);
+	aClockMatrix.Translate((float)(mX + theX), (float)(mY + theY));
 	g->PushState();
-	float aClamped = theScale;
-	if (aClamped <= 0.2f)
-		aClamped = 0.2f;
-	if (1.5f <= aClamped)
-		aClamped = 1.5f;
-	g->SetScale(aClamped, aClamped, (float)theX, (float)theY);
-	if (aClamped < 0.5f)
-		g->SetFastStretch(false);
+	if (!gApp->Is3DAccelerated()) {
+		float aClamped = theScale;
+		if (aClamped <= 0.2f)
+			aClamped = 0.2f;
+		if (1.5f <= aClamped)
+			aClamped = 1.5f;
+		g->SetScale(aClamped, aClamped, (float)theX, (float)theY);
+		if (aClamped < 0.5f)
+			g->SetFastStretch(false);
+	} else {
+		gD3DInterface->PushTransform(aClockMatrix, true);  // slot 0x14
+	}
+	if (gD3DInterface != nullptr) {
+		// The clip is opened wide: the matrix may take the clock out of it
+		g->mClipRect.mX = -1000;
+		g->mClipRect.mY = -1000;
+		g->mClipRect.mWidth += 2000;
+		g->mClipRect.mHeight += 2000;
+	}
 	g->TranslateF(0.0f, (float)theY);
 	unsigned int i = 0;
 	if (aLength != 0) {
@@ -1570,6 +1634,8 @@ void GoodTube::DrawTime(Graphics* g, int theTime, int theX, int theY, const Colo
 		} while (i < aLength);
 	}
 	g->PopState();
+	if (gApp->Is3DAccelerated())
+		gD3DInterface->PopTransform();  // slot 0x18
 }
 
 void GoodTube::DrawGlow(Graphics* g)
@@ -1592,10 +1658,33 @@ void GoodTube::DrawGlow(Graphics* g)
 			int aDoorX = Ftol((double)mWidth * 0.5199999809265137);
 			int aDoorY = GetBottomTop();
 			aDoorY = Ftol((double)mBottomImage->mHeight * 0.36500000953674316 + (double)aDoorY);
-			// (Direct3D: the bonus door is drawn with a shader)
+			bool aShaderDoor = false;
+			if (gD3DInterface != nullptr) {
+				// With Direct3D (and pixel shaders, and no jump) the bonus door is drawn with the button-cover shader
+				// over the bottom half's picture
+				unsigned long aCaps = gD3DInterface->GetCaps(0);
+				Image* aDoorTop = IMAGE_DOORS_BONUS_TOP;
+				if ((aCaps & 2) != 0 && gApp->mBoard->mHyperspace == nullptr && 0.0f < mUnknown330) {
+					gD3DInterface->SetTexture(1, IMAGE_DOORS_BONUS_BOTTOM);  // slot 0xd4
+					gD3DInterface->SetTextureWrap(0, false);                 // slot 0xcc
+					gD3DInterface->SetTextureWrap(1, false);
+					gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_BUTTONCOVER]);  // slot 0xd8, 0x85dbd8
+					float aParams[4];
+					aParams[0] = (float)((double)mUnknown330 * 0.8500000238418579);
+					aParams[1] = 0.0f;
+					aParams[2] = 0.0f;
+					aParams[3] = 0.0f;
+					gD3DInterface->SetShaderConstant(gTwistShaders[TWISTSHADER_BUTTONCOVER], 0, aParams);  // slot 0x108
+					((MemoryImage*)aDoorTop)->mD3DFlags |= 0x80;
+					int aTopY = aDoorY - aDoorTop->GetCelHeight() / 2;
+					g->DrawImage(aDoorTop, aDoorX - aDoorTop->GetCelWidth() / 2, aTopY);
+					gD3DInterface->SetPixelShader(nullptr);
+					aShaderDoor = true;
+				}
+			}
 			int aFrame = Ftol((double)mUnknown330 * 10.0);
 			Image* aDoor = IMAGE_INGAMEUI_TWISTDOORANIM;
-			if (aFrame < 10) {
+			if (!aShaderDoor && aFrame < 10) {
 				int aDoorTop = aDoorY - aDoor->GetCelHeight() / 2;
 				g->DrawImageCel(aDoor, aDoorX - aDoor->GetCelWidth() / 2, aDoorTop, aFrame);
 				Image* aDoorGlow = IMAGE_INGAMEUI_TWISTDOORGLOW;
@@ -1874,9 +1963,11 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 			g->DrawImage(mFillImage, aFillX, aFillY, aFillSrc);
 			g->SetDrawMode(1);
 			g->SetColor(Color(255, 255, 255, 0x78));
-			// (Direct3D: the first texture's waving mesh)
+			if (gD3DInterface != nullptr)
+				NotPorted("GoodTube::DrawFill: the 3D waving mesh of the first fill texture (0x7051a4, waves 0x7020cc and 0x7021a8)");
 			g->SetColor(Color(255, 255, 255, 0x80));
-			// (Direct3D: the second texture's quad, moving by mUpdateCnt % 500)
+			if (gD3DInterface != nullptr)
+				NotPorted("GoodTube::DrawFill: the 3D quad of the second fill texture (0x7051a4)");
 			g->SetDrawMode(0);
 			g->SetDrawMode(1);
 			g->SetColor(Color(255, 255, 255));
@@ -1899,7 +1990,7 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 					if (!g->Is3D()) {
 						g->DrawImage(aSpeck->mImage, Ftol(aSpeck->mX), Ftol(aSpeck->mY));
 					} else {
-						// (Direct3D: the speck is drawn stretched by its distance from the tube's middle)
+						NotPorted("GoodTube::DrawFill: the 3D speck stretched by its distance from the tube's middle (0x7051a4)");
 					}
 					i++;
 				} while (i < mSpecks.size());
@@ -1914,7 +2005,8 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 		Image* aRing = IMAGE_INGAMEUI_RING_FRONT;
 		float aRingStep = (float)(-(double)aScale * 12.0);
 		double aRingY = (double)aRingStep + (double)aFillTop;
-		// (Direct3D: the ring is placed by DrawImageF at the float position)
+		if (gD3DInterface != nullptr)
+			NotPorted("GoodTube::DrawFill: the 3D ring, level and timer at float positions (0x7051a4)");
 		g->DrawImage(aRing, Ftol((double)aRingX), Ftol(aRingY));
 		Image* aLevel = IMAGE_INGAMEUI_LEVEL;
 		if ((mUnknown4AC != 0 || 0 < mLevel) && (gBoard->mGameMode != 2 || mUnknown4AC != 0)) {
@@ -1926,7 +2018,8 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 			float aTimerY = (float)((double)aRing->mHeight * 0.800000011920929 + (double)Ftol(aRingY));
 			Image* aTimer = IMAGE_INGAMEUI_RING_FRONT_TIMER;
 			if (mUnknown4AC == 0) {
-				// (Direct3D: a transform of the fraction of the y goes to the device round the number)
+				if (gD3DInterface != nullptr)
+					NotPorted("GoodTube::DrawFill: the 3D transform of the y fraction round the level number (0x7051a4)");
 				if (gApp->mArtRes == 600)
 					aTimerY = (float)((double)aTimerY + 1.0);
 				SexyString aLevelText = StrFormat(GTC(0x80da2c), mLevel);
@@ -1955,7 +2048,9 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 
 void GoodTube::DrawLight(Graphics* g, int theLight, float theAlpha)
 {
-	// 0x70675e (Direct3D: the light is drawn as strips of its arc, up to theAlpha of the way along it)
+	// 0x70675e
+	if (gD3DInterface != nullptr)
+		NotPorted("GoodTube::DrawLight: the 3D strips of the light's arc (0x70675e)");
 	int aLastLight = Board::GetLevelSteps(mUnknown27C) - 1;
 	if (aLastLight < theLight)
 		theLight = aLastLight;

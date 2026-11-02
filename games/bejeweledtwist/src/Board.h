@@ -14,6 +14,7 @@
 #include "CurvedVal.h"
 #include "MTRand.h"
 #include "Rect.h"
+#include "SexyMatrix.h"
 
 #include <deque>
 #include <map>
@@ -297,6 +298,7 @@ public:
 	CurvedVal mUnknown2748;                 // +0x2748
 	CurvedVal mUnknown2908;                 // +0x2908
 	CurvedVal mUnknown2978;                 // +0x2978
+	SexyTransform2D mTransform;             // +0x29e8: DrawAll's scale and offsets, pushed to the device in 3D mode (0x44f320 clears it)
 	bool mUnknown1420 = false;              // +0x1420
 	float mUnknown1424 = 0;                 // +0x1424: the glint's run, 0 to 1
 	float mUnknown1428 = 0;                 // +0x1428

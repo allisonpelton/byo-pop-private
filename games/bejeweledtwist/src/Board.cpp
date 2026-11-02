@@ -28,6 +28,7 @@
 #include "SoundManager.h"
 #include "TwistUtil.h"
 #include "VizManager.h"
+#include "TwistD3D.h"
 #include "WinTwistApp.h"
 #include "WidgetManager.h"
 #include "X86Math.h"
@@ -185,8 +186,12 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 		mGoodTube->SetUnknown15C(1);
 	}
 
-	// port: the first manager's Direct3D height image (0x6f5ea6, +0xb6 and +0xa1) is left out
 	mFXManager = new EffectsManager();
+	// 0x6f5ea6 makes the first manager's height image (a half-size target "HeightImage", flags 8 and the target's 0x10,
+	// cleared to grey by 0x6f55b0) when there is a device and none yet: its use is the distortion drawing, not ported
+	// (EffectsManager::DrawOverlay), so the image is not made
+	mFXManager->mUnknownB6 = true;  // +0xb6
+	mFXManager->mUnknownA1 = true;  // +0xa1: the depth test goes off first (0x6f6451)
 	mFXManager2 = new EffectsManager();
 	mFXManager3 = new EffectsManager();
 	mPointsManager = new PointsManager();
@@ -1347,12 +1352,13 @@ void Board::SetChallenge(Challenge* theChallenge)
 	mGoodTube->SetUnknown158(aKind);
 	if (aNightMode)
 		mGoodTube->SetUnknown158(5);
-	// the picture behind: the category's visualizer (the port is 2D only, so Viz2d whatever it says) and backdrop
+	// the picture behind: the category's visualizer (Viz2d in 2D whatever it says) and backdrop
 	std::string aViz = mApp->mChallengeInfo->GetViz(mUnknown2674);
 	int aBackground = mApp->mChallengeInfo->GetBackground(mUnknown2674);
 	if (aViz.empty())
 		aViz = "RedBars";
-	aViz = "Viz2d";
+	if (gD3DInterface == nullptr)
+		aViz = "Viz2d";
 	mApp->mVizManager->SetVizByName(aViz.c_str(), true);
 	mApp->mVizManager->SetBackdrop(aBackground - 1, true);
 	mGoodTube->SetUnknown160(2);
@@ -1836,7 +1842,7 @@ void Board::StartReplay(Buffer& theBuffer, int theRow, int theCol, bool thePlayb
 	mFXManager2->Clear();
 	mFXManager->Clear();
 	// (with Direct3D a menu's replay board also takes the slide's place)
-	if (!mUnknown37C4)
+	if (!mUnknown37C4 || gD3DInterface != nullptr)
 		mBoardX = GetSlideX();
 	LoadGame(theBuffer);
 	if (mUnknown37C4) {
