@@ -1629,10 +1629,11 @@ void Hyperspace::UpdateWorld3D()
 			i++;
 		} while (i < mRingCrystals.size());
 	}
-	// the world's camera (0x716f83): a camera at the origin looking down -z (0x674035 builds its rows by the same
-	// cross products as 0x70ffbd), the sidebar's offset behind it
+	// the world's camera (0x716f83): a camera at the origin looking at (0, 0, -1) (0x674035 builds its rows by the
+	// same cross products as 0x70ffbd, from its place minus the point, so its third row is +z), the sidebar's
+	// offset behind it
 	Transform3D aLook;
-	LookAlong(aLook.mRot, Vec3{0.0f, 0.0f, -1.0f}, Vec3{0.0f, 1.0f, 0.0f});
+	LookAlong(aLook.mRot, Vec3{0.0f, 0.0f, 1.0f}, Vec3{0.0f, 1.0f, 0.0f});
 	GPUMatrix aLookMatrix = WorldMatrixOf(aLook);
 	float aBehind = (float)(mUnknown418.GetOutVal() * 0.5 + 2.7300000190734863);
 	Vec3 anOffset = Mat4TransformPoint(aLookMatrix, Vec3{0.0f, 0.0f, aBehind});
@@ -1898,9 +1899,10 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 	}
 	WorldGraphicsListener aListener(&mCamera139C, false);  // 0x4bd5d0, ebp-0x164
 	PrimitiveListener aPrimitiveListener(&aListener);
-	// 0x4bd4c0, 0x674035: a transform that looks down -z (the same rows as LookAlong); its matrix (0x4c1940) is not used
+	// 0x4bd4c0, 0x674035: a transform at the origin looking at (0, 0, -1) (LookAlong's rows, the third one its place
+	// minus the point, +z); its matrix (0x4c1940) is not used
 	Transform3D aLook;
-	LookAlong(aLook.mRot, Vec3{0.0f, 0.0f, -1.0f}, Vec3{0.0f, 1.0f, 0.0f});
+	LookAlong(aLook.mRot, Vec3{0.0f, 0.0f, 1.0f}, Vec3{0.0f, 1.0f, 0.0f});
 	int aPass = 0;  // ebp-0x28
 	do {
 		double aRatioA = mUnknown568.GetOutVal();  // ebp-0x4c
