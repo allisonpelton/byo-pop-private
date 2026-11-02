@@ -67,6 +67,12 @@ public:
 	int mUnknown214 = 0;              // +0x214
 	int mUnknown218 = 0;              // +0x218
 
+	// The challenge categories' stage (from 1; 0 for a closed category) and best score; the lists grow to reach theCategory
+	void GrowChallengeLists(int theCategory);
+	int GetChallengeStage(int theCategory);          // 0x73497f
+	bool IsChallengeCategoryOpen(int theCategory);   // 0x7349fc
+	void OpenChallengeCategory(int theCategory);     // 0x734a14: stage 1 unless it has got further
+
 	Profile();   // 0x734ef5
 	~Profile();  // 0x734da6
 

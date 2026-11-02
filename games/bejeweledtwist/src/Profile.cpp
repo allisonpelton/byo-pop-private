@@ -435,3 +435,30 @@ void Profile::MarkTutorialDone()
 	mRank = 0;
 	Save();
 }
+
+void Profile::GrowChallengeLists(int theCategory)
+{
+	while ((int)mInts1F4.size() <= theCategory)
+		mInts1F4.push_back(0);
+	while ((int)mInts204.size() <= theCategory)
+		mInts204.push_back(0);
+}
+
+int Profile::GetChallengeStage(int theCategory)
+{
+	GrowChallengeLists(theCategory);
+	return mInts1F4[theCategory];
+}
+
+bool Profile::IsChallengeCategoryOpen(int theCategory)
+{
+	return GetChallengeStage(theCategory) > 0;
+}
+
+void Profile::OpenChallengeCategory(int theCategory)
+{
+	GrowChallengeLists(theCategory);
+	if (mInts1F4[theCategory] == 0)
+		mInts1F4[theCategory] = 1;
+}
+

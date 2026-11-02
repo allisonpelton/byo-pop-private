@@ -1,6 +1,7 @@
 // Sexy::Menu (Menu.h).
 #include "Menu.h"
 
+#include "ChallengeMenu.h"
 #include "Dialog.h"
 #include "EffectsManager.h"
 #include "GameText.h"
@@ -558,7 +559,7 @@ void Menu::ShowNewUser()
 void Menu::RefreshPlayer()
 {
 	mHighScoresPanel->Refresh();
-	mChallengeMenu->Unknown6E0DDB(false, true);
+	mChallengeMenu->UpdateProgress(false, true);
 }
 
 void Menu::SetPan(int theX, int theY, bool theNow)

@@ -11,6 +11,8 @@
 #include "GameOverShow.h"
 #include "GoodTube.h"
 #include "Hyperspace.h"
+#include "ChallengeMenu.h"
+#include "Menu.h"
 #include "LevelUpShow.h"
 #include "GraphicsRecorder.h"
 #include "MusicInterface.h"
@@ -496,9 +498,8 @@ void Board::UpdateGame()
 				}
 			} else {
 				if (gApp->mLastGameMode == 2) {
-					// port: the challenge menu's high scores (app +0x864's +0x4a8, 0x6e2318(4, false)) come with
-					// the challenges
-					NotPorted("Board::UpdateGame: the challenge menu at the end of a game (0x6e2318)");
+					// the challenge menu comes back with the player's progress (app +0x864's +0x4a8, 0x6e2318(4, false))
+					mApp->mMainMenu->mChallengeMenu->SetState(4, false);
 				}
 				aSpace->StartEndGame();
 			}

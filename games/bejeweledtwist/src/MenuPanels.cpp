@@ -1892,22 +1892,6 @@ void OptionsPanel::Answer(bool theYes)
 	mSettingBoxes = false;
 }
 
-ChallengeMenu::ChallengeMenu()
-{
-	NotPorted("ChallengeMenu");
-}
-
-void ChallengeMenu::Show(int, bool)
-{
-	NotPorted("ChallengeMenu::Show");
-}
-
-int ChallengeMenu::Unknown6E0DDB(bool, bool)
-{
-	NotPorted("ChallengeMenu 0x6e0ddb");
-	return 0;
-}
-
 EndStats::EndStats(WinTwistApp* theApp)
 	: mApp(theApp)
 {

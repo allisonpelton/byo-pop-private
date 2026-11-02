@@ -15,6 +15,7 @@
 #include "SliderListener.h"
 #include "TwistDialogListener.h"
 #include "TwistWidget.h"
+#include "ChallengeMenu.h"
 
 #include <vector>
 
@@ -298,14 +299,6 @@ public:
 	// restarts the game
 	void ApplySettings(bool theResolution);
 	void Answer(bool theYes);  // 0x6a028b: dialog 4's answer (anything but Cancel)
-};
-
-// Sexy::ChallengeMenu (0x9e8 bytes; 0x6dd2cd-0x6e665e, menu +0x4a8)
-class ChallengeMenu : public TwistWidget {
-public:
-	ChallengeMenu();          // 0x6e5c3e
-	void Show(int theMode, bool theNow);  // 0x6e30d5
-	int Unknown6E0DDB(bool, bool);        // 0x6e0ddb: the challenges' locks and progress for the player
 };
 
 // Sexy::EndStats (0x4c8 bytes, a TwistWidget and ButtonListener; 0x6fa5be-0x6fc0eb, menu +0x3dc): the stats after

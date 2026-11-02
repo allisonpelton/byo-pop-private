@@ -1224,6 +1224,67 @@ void Board::SetScore(int theScore, bool theUnknown14F8)
 	UpdateProgress(theUnknown14F8);
 }
 
+void Board::SetChallenge(Challenge* theChallenge)
+{
+	mChallenge = theChallenge;
+	mUnknown2634 = 0;
+	mApp->mChallengeInfo->mResult = 0;
+	if (mChallenge == nullptr) {
+		mUnknown2674 = -1;
+		mUnknown2678 = 0;
+		return;
+	}
+	mUnknown2674 = theChallenge->mCategory;
+	mUnknown2678 = theChallenge->mNumber;
+	if (!mChallenge->mConfig.empty()) {
+		// its own properties file, then the config again
+		mApp->LoadProperties(std::string(mChallenge->mConfig.begin(), mChallenge->mConfig.end()), false, false);
+		ReadConfig(false);
+		if (mLockGem.mFirstLevel > -1)
+			mLockGem.mFirstLevel = 1;
+		if (mCounter.mFirstLevel > -1)
+			mCounter.mFirstLevel = 1;
+		if (mCoalGem.mFirstLevel > -1)
+			mCoalGem.mFirstLevel = 1;
+	}
+	bool aNightMode = (theChallenge->mFlags & Challenge::FLAG_NIGHTMODE) != 0;
+	if (aNightMode) {
+		// the night challenge starts from the stage the player has got to
+		mGoodTube->mUnknown150 = mApp->mProfile->mInts204[mUnknown2674];
+		if (mGoodTube->mUnknown150 > 0)
+			mGoodTube->mUnknown768 = true;
+	}
+	if ((mChallenge->mFlags & Challenge::FLAG_TIME_LIMIT) != 0) {
+		mGoodTube->SetUnknown15C(1);
+		mGoodTube->StartUnknown4AC(true, false);
+		mGoodTube->SetUnknown4A8(true);
+		mGoodTube->SetUnknown4BC(mChallenge->mTimeGoal * 100);
+		// port: the challenge's timer (0x6bedd8) comes with the board's challenge flow
+		NotPorted("Board::SetChallenge: the challenge's timer (0x6bedd8)");
+	}
+	unsigned int aFlags = mChallenge->mFlags;
+	int aKind;
+	if ((aFlags & Challenge::FLAG_MOVES) != 0 && mChallenge->mRules.size() == 1)
+		aKind = 3;
+	else if ((aFlags & Challenge::FLAG_PATTERN) == 0)
+		aKind = 2;
+	else
+		aKind = 1;
+	mGoodTube->SetUnknown158(aKind);
+	if (aNightMode)
+		mGoodTube->SetUnknown158(5);
+	// the picture behind: the category's visualizer (the port is 2D only, so Viz2d whatever it says) and backdrop
+	std::string aViz = mApp->mChallengeInfo->GetViz(mUnknown2674);
+	int aBackground = mApp->mChallengeInfo->GetBackground(mUnknown2674);
+	if (aViz.empty())
+		aViz = "RedBars";
+	aViz = "Viz2d";
+	mApp->mVizManager->SetVizByName(aViz.c_str(), true);
+	mApp->mVizManager->SetBackdrop(aBackground - 1, true);
+	mGoodTube->SetUnknown160(2);
+	UpdateChallengeTube(false);
+}
+
 void Board::UpdateChallengeTube(bool theAtOnce)
 {
 	if (mChallenge == nullptr)

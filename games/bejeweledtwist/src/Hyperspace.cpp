@@ -4,7 +4,9 @@
 #include "Board.h"
 #include "GameText.h"
 #include "GemSoul.h"
+#include "ChallengeMenu.h"
 #include "Graphics.h"
+#include "Menu.h"
 #include "Profile.h"
 #include "Res.h"
 #include "TwistUtil.h"
@@ -110,7 +112,9 @@ void Hyperspace::Update()
 		gApp->mBoard->SetUnknown3924((float)mUnknown258.GetOutVal());
 	} else if (mTransition == 11) {
 		if (!mUnknown1570.IncInVal()) {
-			// port: app +0x864's +0x4a8 (a widget it hides) once it is ported
+			// the challenge menu goes (0x715dc7)
+			if (gApp->mMainMenu->mChallengeMenu != nullptr)
+				gApp->mMainMenu->mChallengeMenu->mVisible = false;
 			gApp->mVizManager->SetVisible(true);
 			mState = 10;
 		}
@@ -202,6 +206,20 @@ void Hyperspace::DrawOverlay(Graphics* g)
 {
 	// Direct3D only (+0x156 and +0x157): the planets, the saucer and the tube
 	(void)g;
+}
+
+void Hyperspace::StartChallenge()
+{
+	mState = 3;
+	mTransition = 11;
+	// The 2D branch only (the 3D one flies the camera in to the planet)
+	mFlag15B = false;
+	ChooseViz(false);
+	mUnknown1570.SetCurve(GTS(0x7e6288));
+	mUnknown258.SetCurve(GTS(0x7e6258));
+	gBoard->mUnknown3880.SetCurve(GTS(0x7e6228));
+	gBoard->Update();
+	SetTransition(11);
 }
 
 void Hyperspace::SetTransition(int theTransition)

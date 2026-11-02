@@ -770,6 +770,9 @@ public:
 	// 0x6c77b1: after StartGame: the config again, the basics tutorial or the puzzle's board, the save and the tube
 	void StartLevel();
 	void UpdateChallengeTube(bool theAtOnce);    // 0x6af390: the tube shows how much of the challenge is left
+	// 0x6c7c7b: the challenge to play (null for none): its config, the level values that start at 1, the tube and the
+	// picture behind the board
+	void SetChallenge(Challenge* theChallenge);
 	void SetBlitzColor();                        // 0x6bd1f0: the tube's colour by blitz's time left
 	void ShowBlitzTime(int theSeconds);          // 0x6bea4b: blitz's marks, 30 seconds, 9 to 1 and each minute left
 	// 0x6ba0c2: theText grows in the middle of the board; theClear first ends the words already there

@@ -44,6 +44,9 @@ public:
 	void DrawOverlay(Graphics* g) override;  // 0x713d82
 	using Widget::DrawOverlay;
 
+	// 0x71c18f: the jump from a picked challenge's planet into the game (state 3, transition 11). The planet's place
+	// (the three floats it gets) only aims the 3D camera at it
+	void StartChallenge();
 	// 0x7181b3: sets up the jump theTransition (0 none) and the level's world
 	void SetTransition(int theTransition);
 	// 0x714883: the end of a game, space coming back over the board (transition 13, state 12)
