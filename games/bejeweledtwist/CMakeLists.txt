@@ -32,7 +32,7 @@ endif()
 set(BJT_SOURCES
   src/main.cpp src/WinTwistApp.cpp src/TwistD3D.cpp src/TwistShaders.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp
   src/TwistWidget.cpp src/TwistButton.cpp src/TwistCheckbox.cpp src/TwistSlider.cpp src/CustomBassMusicInterface.cpp src/TwistUtil.cpp src/GraphicsRecorder.cpp src/PlayButton.cpp
-  src/EffectsManager.cpp src/Logo.cpp src/LoaderScreen.cpp src/Hyperspace.cpp src/VizManager.cpp
+  src/EffectsManager.cpp src/Logo.cpp src/LoaderScreen.cpp src/Hyperspace.cpp src/HyperspaceD3D.cpp src/VizManager.cpp
   src/Tutorial.cpp src/ReplayWidget.cpp src/WheelSpin.cpp src/ColorCycle.cpp src/Credits.cpp src/OrbitText.cpp src/ElectroStrike.cpp
   src/MenuButtonWidget.cpp src/Gates.cpp src/Profile.cpp src/MenuPanels.cpp src/Menu.cpp src/Ranks.cpp
   src/TwistEditWidget.cpp src/TwistDialog.cpp src/UnderDialogWidget.cpp
@@ -49,6 +49,9 @@ endif()
 if(EMSCRIPTEN)
   byopop_web_game(bejeweledtwist TITLE "Bejeweled Twist"
     COPYRIGHT "Bejeweled Twist © 2008 PopCap Games, Inc. All rights reserved. Bejeweled is a registered trademark of PopCap Games, Inc." LICENSES libopenmpt openjpeg)
+  # 3D mode draws through WebGL2 (GPUInterfaceGL); 2D mode keeps SDL's renderer. Turning 3D on or off restarts the
+  # game, which reloads the page, so a canvas never holds a WebGL1 context when 3D mode asks for WebGL2
+  target_link_options(bejeweledtwist PRIVATE "-sMAX_WEBGL_VERSION=2")
 else()
   add_custom_command(TARGET bejeweledtwist POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweledtwist>

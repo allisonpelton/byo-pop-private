@@ -9,6 +9,7 @@
 // hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "WinTwistApp.h"
+#include "platform/Relaunch.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
 #include "platform/openjpeg/JP2Decoder.h"
@@ -116,7 +117,12 @@ int main(int argc, char** argv)
 	anApp->Start();
 #ifndef __EMSCRIPTEN__
 	anApp->Shutdown();
+	// The options' 3D box restarts the game (0x6a006a): platform/Relaunch.h; the web page reloads
+	std::vector<std::string> aRestartArgs;
+	bool restart = anApp->TakeRelaunch(&aRestartArgs);
 	delete anApp;
+	if (restart)
+		Platform::Relaunch(aRestartArgs, "Bejeweled Twist");
 #endif
 	return 0;
 }

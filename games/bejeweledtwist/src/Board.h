@@ -941,6 +941,7 @@ public:
 	void DrawAll(ModalFlags* theFlags, Graphics* g) override;  // 0x6aac5e
 	void Draw(Graphics* g) override;                 // 0x6cc7ed
 	void DrawBoardBack(Graphics* g);                 // 0x6cc5a3: the 2D board and the space behind it
+	void DrawBoardBack3D(Graphics* g);               // 0x6cc762: the board with Direct3D
 	void DrawStrikes(Graphics* g);                   // 0x6aafc1
 	void DrawOverlay(Graphics* g) override;          // 0x6b4a39
 	void DrawCounters(Graphics* g);                  // 0x6b42e1

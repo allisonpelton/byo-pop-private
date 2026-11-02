@@ -1877,9 +1877,20 @@ void OptionsPanel::ApplySettings(bool theResolution)
 		if (aWindowed != gApp->mIsWindowed)
 			gApp->SwitchScreenMode(aWindowed, a3D);
 	} else {
-		// port: 3D acceleration on or off is written to the registry ("Is3D", "FullscreenBits") and the game
-		// restarts; the port cannot turn 3D on, so the box never differs
-		NotPorted("OptionsPanel restarting for 3D (0x6a006a)");
+		if (!a3D) {
+			mApp->RegistryWriteBoolean("Is3D", false);
+		} else {
+			mApp->RegistryEraseValue(_S("Is3D"));
+			mApp->mFullscreenBits = 32;
+			mApp->RegistryWriteInteger("FullscreenBits", mApp->mFullscreenBits);
+			// port: while 3D mode is being ported, a run without "Is3D" is 2D, so turning it on writes it
+			mApp->RegistryWriteBoolean("Is3D", true);
+			// The original, when its display has no 3D device's details (0x4a7930), asks for the art's size again
+			// at the next start (0xe13ba4, +0xf35): the port's art size is always 600
+		}
+		// The original's restart (+0x81b, then Shutdown): natively the exe starts again, on the web the page
+		// reloads, so its canvas is new and takes the WebGL2 context 3D mode asks for
+		mApp->RequestRestart(true, nullptr);
 	}
 	mApp->EnableCustomCursors(mCustomCursorsCheckbox->IsChecked());
 	int anArtRes;

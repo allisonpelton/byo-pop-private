@@ -2,6 +2,7 @@
 #include "Hyperspace.h"
 
 #include "Board.h"
+#include "TwistD3D.h"
 #include "GameText.h"
 #include "GemSoul.h"
 #include "ChallengeMenu.h"
@@ -22,7 +23,13 @@ Hyperspace::Hyperspace()
 {
 	// The level comes from the board (+0x158 - 1) when there is one: none yet. The ctor also sets up the curves of the
 	// level's world and the camera (+0x798 to +0x1008), which only the Direct3D drawing and the jumps read.
-	mIs3D = gApp->Is3DAccelerated();
+	// 0x714f98 (0x715298 to 0x7152d4): +0x155, +0x156 and +0x157 start clear, so the 3D parts (the sidebar, the cone) draw
+	// only once a jump or the state 1 to 2 step sets +0x156 (0x7163f3, SetTransition 9 and 10); +0x158 is whether
+	// gD3DInterface is set
+	mIs3D = false;
+	mFlag158 = gD3DInterface != nullptr;
+	if (gD3DInterface != nullptr)
+		MakeOldPicture();  // 0x714f98: the picture state 11 renders into
 	RemoveAllWidgets(true, false);
 }
 
@@ -83,7 +90,13 @@ void Hyperspace::Update()
 	}
 	Widget::Update();
 	mFlag15C = false;
-	// The 2D jumps (the port has no Direct3D)
+	if (gD3DInterface != nullptr) {
+		// 0x715c21 with gD3DInterface set: no 2D chain, the common code of 0x716336 and the world's motion
+		Update3D();
+		MarkDirty();
+		return;
+	}
+	// The 2D jumps (gD3DInterface clear)
 	if (mTransition == 8 || mTransition == 14) {
 		if (!mUnknown1570.IncInVal()) {
 			if (mFlag15B) {
@@ -170,12 +183,16 @@ void Hyperspace::Update()
 
 void Hyperspace::UpdateSpace()
 {
-	// 0x716e2f: the planets (+0xc68's lists) and the camera are only drawn with Direct3D, so the port skips them
+	// 0x716e2f: the crystals, the camera, the ship and the saucer are only drawn with Direct3D
 	Board* aBoard = gApp->mBoard;
 	if (aBoard == nullptr || aBoard->mHyperspace != this)
 		return;
-	// (0x715480, 0x7158f8 and 0x7135cb move the ship and the thrust's particles at +0x14b4, which only Direct3D's
-	// DrawOverlay draws, and drop the spent ones)
+	if (gD3DInterface != nullptr) {
+		UpdateWorld3D();  // 0x716e31 to 0x717...
+		PlaceShip();      // 0x715480
+		PlaceSaucer();    // 0x7158f8
+		NotPorted("Hyperspace::UpdateSpace: the thrust particles' creation 0x714ea9 and update 0x7135cb (+0x14b4)");
+	}
 	// The ship's nine engines each give off a puff of thrust (0x714ea9, Direct3D's particles at +0x14b4); the port
 	// makes none, but draws the framework's random numbers as the original does (0x717620-0x717dbe)
 	int anEngine = 0;
@@ -233,6 +250,10 @@ void Hyperspace::StartEndGame()
 void Hyperspace::Draw(Graphics* g)
 {
 	DeferOverlay(0);
+	if (gD3DInterface != nullptr) {
+		Draw3D(g);  // 0x713e2d's 3D branch (HyperspaceD3D.cpp)
+		return;
+	}
 	// With Direct3D: the level's world in 3D (0x71042e and on); comes with Direct3D, which the port does not have
 	if ((mTransition == 12 || mTransition == 13) && !mFlag155) {
 		// The end of a jump: space fades out over the board
@@ -261,6 +282,10 @@ void Hyperspace::Draw(Graphics* g)
 
 void Hyperspace::DrawTunnel(Graphics* g)
 {
+	if (gD3DInterface != nullptr) {
+		DrawTunnel3D(g);
+		return;
+	}
 	VizManager* aVizManager = gApp->mVizManager;
 	if (aVizManager->mVisible)
 		return;
@@ -274,7 +299,14 @@ void Hyperspace::DrawTunnel(Graphics* g)
 
 void Hyperspace::DrawOldPicture(Graphics* g)
 {
-	// (with Direct3D and state 11 the VizManager draws into +0x160 first)
+	if (mState == 11 && gD3DInterface != nullptr) {
+		// 0x70f836: with 3D the old picture is drawn afresh, the VizManager and then the board into +0x160
+		Graphics aG(mUnknown160);
+		gApp->mVizManager->Draw(&aG);
+		ModalFlags aFlags;
+		mWidgetManager->InitModalFlags(&aFlags);
+		gApp->mBoard->DrawAll(&aFlags, &aG);
+	}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, Ftol(mUnknown12B0.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
@@ -285,6 +317,12 @@ void Hyperspace::DrawOverlay(Graphics* g)
 {
 	// Direct3D only (+0x156 and +0x157): the planets, the saucer and the tube
 	(void)g;
+	if (gD3DInterface != nullptr && mIs3D && mFlag157) {
+		// 0x713d82: with +0x157 set the sidebar, the cone and the thrust are drawn on top, as the overlay
+		Draw3DSidebar();
+		DrawCone();
+		DrawParticles();
+	}
 }
 
 void Hyperspace::StartChallenge()
@@ -304,6 +342,10 @@ void Hyperspace::StartChallenge()
 void Hyperspace::SetTransition(int theTransition)
 {
 	mTransition = theTransition;
+	if (gD3DInterface != nullptr) {
+		SetTransition3D(theTransition);
+		return;
+	}
 	// The 2D jumps only: the port has no Direct3D, whose jumps also set up the level's world and the camera
 	if (theTransition == 14 || theTransition == 8) {
 		// The old level's picture stays for the jump; the VizManager takes the next level's

@@ -427,9 +427,10 @@ void WinTwistApp::ReadFromRegistry()
 	RegistryReadBoolean("DoViz", &mDoViz);
 	RegistryReadBoolean("ShowHints", &mShowHints);
 	// "Is3D" off chooses 2D mode (Use2DMode, which the port's constructor already calls)
+	// port: while 3D mode is being ported, a run without "Is3D" stays in 2D; the options' 3D box writes it true
 	bool is3D = true;
-	if (RegistryReadBoolean("Is3D", &is3D) && !is3D)
-		mUse3D = false;
+	if (RegistryReadBoolean("Is3D", &is3D))
+		mUse3D = mUse3DSwitch < 0 ? is3D : mUse3DSwitch != 0;
 	EnableCustomCursors(mCustomCursorsEnabled);
 	mProfile->mCustomCursors = mCustomCursorsEnabled;
 }
@@ -1032,10 +1033,12 @@ void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std:
 	// port: -3d turns 3D mode on while it is being ported; the original's -nod3d9 and -noacceleration keep 2D
 	if (theParamName == "-3d") {
 		mUse3D = true;
+		mUse3DSwitch = 1;
 		return;
 	}
 	if (theParamName == "-nod3d9" || theParamName == "-noacceleration") {
 		mUse3D = false;
+		mUse3DSwitch = 0;
 		return;
 	}
 	static const char* const kTestSwitches[] = {"-widescreen", "-4x3", "-artres600", "-artres768", "-artres1200",

@@ -79,7 +79,7 @@ void Board::Draw(Graphics* g)
 	if (!is3D)
 		DrawBoardBack(g);
 	else
-		NotPorted("Board::Draw: the 3D board (0x6cc762)");
+		DrawBoardBack3D(g);
 	if (!mUnknown2043)
 		return;
 	if (mUnknown1570 != mUnknown1574 || mUnknown1574 == 0) {
@@ -229,6 +229,21 @@ void Board::DrawBoardBack(Graphics* g)
 	if (!mUnknown15B0 && !mUnknown1FF5)
 		DrawBoard(g, false, false);
 	g->Translate(-anOffset, 0);
+}
+
+// 0x6cc762: Direct3D's board, slid by the same curve in the screen's own pixels
+void Board::DrawBoardBack3D(Graphics* g)
+{
+	float aSlide = (float)mUnknown13B0.GetOutVal();
+	int anOffset = Ftol((double)gSexyAppBase->mWidth * 0.0009765625 * (double)aSlide);
+	g->Translate(-anOffset, 0);
+	if (!mUnknown15B0) {
+		g->Translate(anOffset * 2, 0);
+		DrawBoard(g, false, false);
+		g->Translate(-anOffset, 0);
+	} else {
+		DrawBoard(g, false, true);
+	}
 }
 
 void Board::DrawStrikes(Graphics* g)
