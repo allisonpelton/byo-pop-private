@@ -2,7 +2,7 @@
 // Visualizer (vtable 0x7d804c) with its own images, made by the maker the VizManager's constructor registers by name
 // (0x7597cc, FUN_0075978d). Ported here: RedBars, WindCloud, ContainmentField, UVWarp, Raptis_Pulse, BlobDrift and
 // ParametricFractal (Visualizers3D.cpp), and FluffyStars, PlasmaClouds, SpaceThreads, VizWarpBars and VizKaleidoCat
-// (Visualizers3D2.cpp), and VizRainbowGlyphs, SubAtomic, Cubes and RainDrops (Visualizers3D3.cpp), and Gears, Slipstream (Visualizers3D4.cpp), GravityField, VizBuckyShards and VizMoleculeRedux (Visualizers3D5.cpp), and VizMagicSnakes (Visualizers3D6.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
+// (Visualizers3D2.cpp), and VizRainbowGlyphs, SubAtomic, Cubes and RainDrops (Visualizers3D3.cpp), and Gears, Slipstream (Visualizers3D4.cpp), GravityField, VizBuckyShards and VizMoleculeRedux (Visualizers3D5.cpp), and VizMagicSnakes (Visualizers3D6.cpp), and VizJellyBlob (Visualizers3D7.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
 // VizManager shows Viz2D in their place.
 //
 // Random draws: the original's visualizers draw from the game's Rand (0x45c110 and its Rand(n) 0x45c120 and Rand(float)
@@ -676,6 +676,73 @@ public:
 	void Update() override;                        // 0x68c36b
 	void Draw(Graphics* g) override;               // 0x68c37f
 	// slot 8 (0x68c365): the name for the debug text (the port's Visualizer has no slot 8, so this is not an override)
+	const char* Name() const { return "BLECH"; }
+};
+
+// Sexy::VizJellyBlob (vtable 0x7d81f0, constructor 0x6896d9): a net of 9 rows of 15 and 14 points (hexagonal: every other row
+// shifted half a step, 100 apart) pulled by springs to the mean of their neighbours, drawn as the net's triangles
+// textured with IMAGE_JELLYBLOB_BG, with the net's lines over it (additive, half white) and, round the points it was last
+// knocked at, droplets (one of IMAGE_YINYANG2Z to 7Z each, fading in 200 updates). Every 15th update a point that has
+// all but stopped (up to 9 tries) is knocked in a random direction.
+// Random draws: the C library's rand (CrtRand, 0x77e747) only, none in the constructor, Init or Draw; Update draws, every
+// 15th update, 2 for each try at a point (the row, then the point in it; up to 9 tries, fewer once a slow point is found),
+// 2 for the direction (x, then y) and 1 for the droplet's image: 5 to 21 draws.
+class VizJellyBlob : public Visualizer {
+public:
+	// 0x34 bytes (0x687a9c): a point of the net
+	struct Cell {
+		float mX = 0.0f, mY = 0.0f;        // +0x00
+		float mU = 0.0f, mV = 0.0f;        // +0x08: the place in the picture
+		float mVelX = 0.0f, mVelY = 0.0f;  // +0x10
+		float mAccX = 0.0f, mAccY = 0.0f;  // +0x18: pull towards the neighbours' mean
+		std::vector<Cell*> mNeighbors;     // +0x20
+		bool mFixed = false;               // +0x30: the edge (fewer than six neighbours) does not move
+		void Update();                     // 0x6854e4
+		bool IsSlow() const;               // 0x684802
+	};
+	struct Triangle {  // 0xc bytes (0x687b74)
+		Cell* mCells[3];
+	};
+	// 0x168 bytes (0x686acb): a droplet at a point, its size, turn and alpha worked by three curves
+	struct Droplet {
+		Image* mImage;       // +0x00
+		Cell* mCell;         // +0x04
+		float mLife = 1.0f;  // +0x08: down 0.005 an update
+		float mSize = 1.0f;  // +0x0c
+		float mRot = 0.0f;   // +0x10
+		float mAlpha = 1.0f; // +0x14
+		CurvedVal mSizeCurve;   // +0x18
+		CurvedVal mRotCurve;    // +0x88
+		CurvedVal mAlphaCurve;  // +0xf8
+		Droplet(Image* theImage, Cell* theCell);  // 0x686acb
+		bool Update();                            // 0x68484c: false once the life is gone
+		// 0x687e06: the droplet's quad as six vertices, appended to theVertices
+		void Build(std::vector<TriVertex>& theVertices, float theOffsetX, float theOffsetY, float theScale) const;
+	};
+	// 0x34 bytes (0x6892b4): the net and its droplets
+	struct Blob {
+		VizJellyBlob* mOwner;                    // +0x00
+		std::vector<std::vector<Cell>> mRows;    // +0x04
+		std::vector<Triangle> mTriangles;        // +0x14
+		std::vector<Droplet> mDroplets;          // +0x24
+		explicit Blob(VizJellyBlob* theOwner) : mOwner(theOwner) {}  // 0x6892b4
+		void Make(int theColumns, int theRows, float theSpacing);    // 0x6893ee
+		Cell* GetCell(int theColumn, int theRow);                    // 0x6855e7: null outside the net
+		void AddTriangle(Cell* a, Cell* b, Cell* c);                 // 0x6880c6: only when all three are there
+		void Pulse(float thePower);                                  // 0x68818d
+		void Update();                                               // 0x686831
+		void BuildMesh(std::vector<TriVertex>& theVertices, float theOffsetX, float theOffsetY, float theScale);  // 0x6880fc
+	};
+	std::vector<int> mImageIds;      // +0x28: IMAGE_YINYANG2Z to 7Z
+	std::vector<Image*> mImages;     // +0x38: the droplets' pictures
+	Image* mBackground = nullptr;    // +0x48: IMAGE_JELLYBLOB_BG
+	int mCount = 0;                  // +0x4c: its updates
+	Blob* mBlob = nullptr;           // +0x24
+	explicit VizJellyBlob(WinTwistApp* theApp);  // 0x6896d9
+	~VizJellyBlob() override;                    // 0x689907 (0x689830)
+	void Update() override;                      // 0x6882b4
+	void Draw(Graphics* g) override;             // 0x6882ea
+	// slot 8 (0x68982a): the name for the debug text (the port's Visualizer has no slot 8, so this is not an override)
 	const char* Name() const { return "BLECH"; }
 };
 

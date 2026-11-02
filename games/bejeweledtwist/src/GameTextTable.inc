@@ -2,6 +2,9 @@
 // that the port uses: address in the game image, length and FNV-1a hash (GAMETEXTW: a UTF-16 text, its
 // length in bytes). The texts themselves are read from the player's own BejeweledTwist.exe at start-up
 // (GameText.h); none are in the repository.
+GAMETEXT(0x007d815c, 37, 0x7abfe4a4)
+GAMETEXT(0x007d8184, 37, 0xdfeba7fe)
+GAMETEXT(0x007d81ac, 37, 0x88ca356c)
 GAMETEXT(0x007d85e0, 31, 0x2be71abc)
 GAMETEXT(0x007d8610, 31, 0x43d10400)
 GAMETEXT(0x007d8630, 31, 0x84daf4dc)

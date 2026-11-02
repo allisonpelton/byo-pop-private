@@ -68,6 +68,8 @@ Visualizer* Sexy::MakeVisualizer3D(const char* theName, WinTwistApp* theApp)
 		return new VizMoleculeRedux(theApp);
 	if (sexy_stricmp(theName, "VizMagicSnakes") == 0)
 		return new VizMagicSnakes(theApp);
+	if (sexy_stricmp(theName, "VizJellyBlob") == 0)
+		return new VizJellyBlob(theApp);
 	return nullptr;
 }
 

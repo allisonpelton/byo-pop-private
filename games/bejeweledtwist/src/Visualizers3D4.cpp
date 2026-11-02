@@ -1,4 +1,4 @@
-// Gears, Slipstream, GravityField, VizMoleculeRedux, VizMagicSnakes, VizJellyBlob and VizBuckyShards (Visualizers3D.h).
+// Gears and Slipstream (Visualizers3D.h).
 // As in Visualizers3D.cpp the original's float code runs on the x87 stack (rounded to float only where it stores, and to
 // 53 bits, the CRT's default precision), so expressions are written in double where the original's are. A constant that
 // the export prints short in a float expression is the float the compiler widened to a double (read from the exe: 0.99
