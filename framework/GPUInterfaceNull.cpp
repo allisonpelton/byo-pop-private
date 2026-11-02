@@ -3,6 +3,7 @@
 // made and set where the GL one would, shaders and buffers get handles numbered the same way.
 #include "GPUInterface.h"
 
+#include <set>
 #include <vector>
 
 using namespace Sexy;
@@ -26,35 +27,60 @@ public:
 		if (!mSceneAllowed)
 			return false;
 		if (!mInScene) {
+			mTarget = nullptr;  // the base target
 			mInScene = true;
 			mSceneCount++;
 		}
 		return true;
 	}
-	void EndScene() override { mInScene = false; }
+	void EndScene() override
+	{
+		if (!mInScene)
+			return;
+		mInScene = false;
+		mVertexShader = 0;
+		mPixelShader = 0;
+	}
 	void SetSceneAllowed(bool theAllowed) override { mSceneAllowed = theAllowed; }
 	int GetSceneCount() override { return mSceneCount; }
 
-	bool CreateRenderTarget(Image*) override { return true; }
+	bool CreateRenderTarget(Image* theImage, GPUFormat) override
+	{
+		mTargets.insert(theImage);
+		return true;
+	}
 	bool SetRenderTarget(Image* theImage) override
 	{
-		if (!BeginSceneIfNeeded())
+		if (theImage == nullptr) {
+			if (!BeginSceneIfNeeded())
+				return false;
+			mTarget = nullptr;
+			return true;
+		}
+		if (mTargets.count(theImage) == 0)
 			return false;
-		mTarget = theImage;
+		if (BeginSceneIfNeeded())
+			mTarget = theImage;
 		return true;
 	}
 	Image* GetRenderTarget() override { return mTarget; }
-	void StretchRect(Image*, const Rect&, Image*, const Rect&, GPUTextureFilter) override {}
+	void StretchRect(Image*, const Rect&, Image*, const Rect&, GPUTextureFilter) override { BeginSceneIfNeeded(); }
 	void Clear(unsigned long, unsigned long, float) override {}
 	void SetViewport(const Rect&, float, float) override {}
 	void SetScissorRect(const Rect&) override {}
 
 	bool ReadBack(Image*, MemoryImage*) override { return false; }
+	bool RecoverBits(MemoryImage*) override { return false; }
 	void BitsChanged(Image*) override {}
 	void ImageDeleted(Image* theImage) override
 	{
+		mTargets.erase(theImage);
 		if (mTarget == theImage)
 			mTarget = nullptr;
+	}
+	unsigned long GetCaps(int theWhich) override
+	{
+		return theWhich == 1 ? mPolicy.mMaxTextureBlendStages : mPolicy.mCaps;
 	}
 
 	void SetRenderState(int, unsigned long) override {}
@@ -68,7 +94,11 @@ public:
 
 	GPUVertexShader CreateVertexShader(const std::string&, const char*) override { return ++mShaderCount; }
 	GPUPixelShader CreatePixelShader(const std::string&, const char*) override { return ++mShaderCount; }
-	void SetVertexShader(GPUVertexShader theShader) override { mVertexShader = theShader; }
+	void SetVertexShader(GPUVertexShader theShader) override
+	{
+		BeginSceneIfNeeded();
+		mVertexShader = theShader;
+	}
 	void SetPixelShader(GPUPixelShader theShader) override
 	{
 		BeginSceneIfNeeded();
@@ -81,25 +111,18 @@ public:
 	std::vector<std::string> GetUsedProgramKeys() override { return {}; }
 	void Precompile(const std::vector<std::string>&) override {}
 
-	void DrawPrimitiveUP(GPUPrimitiveType, int thePrimitiveCount, unsigned long, const void*, int) override
-	{
-		if (thePrimitiveCount > 0)
-			BeginSceneIfNeeded();
-	}
+	void DrawPrimitiveUP(GPUPrimitiveType, int, unsigned long, const void*, int) override {}
 	GPUBuffer CreateVertexBuffer(unsigned long, const void*, int, int) override { return mNextBuffer++; }
 	GPUBuffer CreateIndexBuffer(const unsigned short*, int) override { return mNextBuffer++; }
 	void DeleteBuffer(GPUBuffer) override {}
-	void DrawIndexedPrimitive(GPUPrimitiveType, GPUBuffer, GPUBuffer, int, int thePrimitiveCount) override
-	{
-		if (thePrimitiveCount > 0)
-			BeginSceneIfNeeded();
-	}
+	void DrawIndexedPrimitive(GPUPrimitiveType, GPUBuffer, GPUBuffer, int, int) override {}
 
 private:
 	GPUPolicy mPolicy;
 	bool mSceneAllowed = true;
 	bool mInScene = false;
 	int mSceneCount = 0;
+	std::set<Image*> mTargets;
 	Image* mTarget = nullptr;
 	int mShaderCount = 0;
 	GPUVertexShader mVertexShader = 0;

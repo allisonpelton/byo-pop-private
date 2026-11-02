@@ -565,6 +565,7 @@ struct TextureData
 	int mWidth = 0, mHeight = 0;
 	int mBitsChangedCount = -1;
 	bool mTarget = false;
+	GPUFormat mFormat = GPUFMT_A8R8G8B8;
 	GLuint mFramebuffer = 0;
 };
 
@@ -595,7 +596,7 @@ public:
 	void SetSceneAllowed(bool theAllowed) override { mSceneAllowed = theAllowed; }
 	int GetSceneCount() override { return mSceneCount; }
 
-	bool CreateRenderTarget(Image* theImage) override;
+	bool CreateRenderTarget(Image* theImage, GPUFormat theFormat) override;
 	bool SetRenderTarget(Image* theImage) override;
 	Image* GetRenderTarget() override { return mTarget; }
 	void StretchRect(Image* theSource, const Rect& theSrcRect, Image* theDest, const Rect& theDestRect,
@@ -605,6 +606,8 @@ public:
 	void SetScissorRect(const Rect& theRect) override { mScissor = theRect; }
 
 	bool ReadBack(Image* theImage, MemoryImage* theDest) override;
+	bool RecoverBits(MemoryImage* theImage) override;
+	unsigned long GetCaps(int theWhich) override { return theWhich == 1 ? mPolicy.mMaxTextureBlendStages : mPolicy.mCaps; }
 	void BitsChanged(Image* theImage) override;
 	void ImageDeleted(Image* theImage) override;
 
@@ -619,7 +622,7 @@ public:
 
 	GPUVertexShader CreateVertexShader(const std::string& theName, const char* theSource) override;
 	GPUPixelShader CreatePixelShader(const std::string& theName, const char* theSource) override;
-	void SetVertexShader(GPUVertexShader theShader) override { mVertexShader = theShader; }
+	void SetVertexShader(GPUVertexShader theShader) override;
 	void SetPixelShader(GPUPixelShader theShader) override;
 	GPUVertexShader GetVertexShader() override { return mVertexShader; }
 	GPUPixelShader GetPixelShader() override { return mPixelShader; }
@@ -647,6 +650,8 @@ private:
 	int TargetHeight();
 	TextureData* GetTexture(Image* theImage);
 	void UploadTexture(MemoryImage* theImage, TextureData* theData);
+	void RefreshTarget(MemoryImage* theImage, TextureData* theData);
+	bool ReadFramebuffer(GLuint theFramebuffer, int theWidth, int theHeight, unsigned long* theBits);
 	GLuint CompileShader(GLenum theType, const std::string& theSource, const std::string& theKey);
 	Program* GetProgram(const VSKey& theVS, const PSKey& thePS);
 	Program* BuildProgram(const std::string& theKey, const VSKey& theVS, const PSKey& thePS);
@@ -902,7 +907,7 @@ void GPUInterfaceGL::ContextRestored()
 	for (auto& anEntry : mImages) {
 		if (anEntry.second.mTarget) {
 			anEntry.second.mTarget = false;
-			CreateRenderTarget(anEntry.first);
+			CreateRenderTarget(anEntry.first, anEntry.second.mFormat);
 		}
 	}
 	BindTarget(mImages.count(aTarget) ? aTarget : nullptr);
@@ -914,6 +919,8 @@ bool GPUInterfaceGL::BeginSceneIfNeeded()
 		return false;
 	if (mInScene)
 		return true;
+	// PreDraw (0x61a7d0) binds the device's base target, the screen, before the scene begins
+	BindTarget(nullptr);
 	mInScene = true;
 	mSceneCount++;
 	for (const GPUStateSet& aSet : mPolicy.mSceneBegin) {
@@ -929,23 +936,60 @@ bool GPUInterfaceGL::BeginSceneIfNeeded()
 
 void GPUInterfaceGL::EndScene()
 {
+	// 0x6225a0: only a scene in progress ends, and it unbinds both shaders
+	if (!mInScene)
+		return;
 	mInScene = false;
+	mVertexShader = 0;
+	mPixelShader = 0;
 }
 
-bool GPUInterfaceGL::CreateRenderTarget(Image* theImage)
+// An image's pixels as the GL texture takes them (RGBA bytes), from its ARGB bits
+static std::vector<unsigned char> RGBAOf(const unsigned long* theBits, int theCount)
+{
+	std::vector<unsigned char> aPixels((size_t)theCount * 4);
+	for (int i = 0; i < theCount; i++) {
+		unsigned long c = theBits[i];
+		unsigned char* q = &aPixels[(size_t)i * 4];
+		q[0] = (unsigned char)(c >> 16);
+		q[1] = (unsigned char)(c >> 8);
+		q[2] = (unsigned char)c;
+		q[3] = (unsigned char)(c >> 24);
+	}
+	return aPixels;
+}
+
+bool GPUInterfaceGL::CreateRenderTarget(Image* theImage, GPUFormat theFormat)
 {
 	TextureData& aData = mImages[theImage];
 	if (aData.mTarget)
 		return true;
 	if (aData.mTexture != 0)
 		gGL.glDeleteTextures(1, &aData.mTexture);
-	// A target's texture is exactly its size, A8R8G8B8, never cut into pieces
+	// A target's texture is exactly its size, never cut into pieces. X8R8G8B8 is RGB8: it samples and reads alpha 1.
+	if (theFormat != GPUFMT_A8R8G8B8 && theFormat != GPUFMT_X8R8G8B8) {
+		LogOnce("a render target in format " + std::to_string(theFormat) + " (made A8R8G8B8)");
+		theFormat = GPUFMT_A8R8G8B8;
+	}
 	aData.mWidth = theImage->mWidth;
 	aData.mHeight = theImage->mHeight;
 	aData.mTarget = true;
+	aData.mFormat = theFormat;
+	// Its first contents: its bits for A8R8G8B8 (0x61c070's target branch copies them), else black
+	std::vector<unsigned char> aPixels((size_t)aData.mWidth * aData.mHeight * 4, 0);
+	MemoryImage* aMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	if (aMemoryImage != nullptr) {
+		aData.mBitsChangedCount = aMemoryImage->mBitsChangedCount;
+		if (theFormat == GPUFMT_A8R8G8B8 && aMemoryImage->mBits != nullptr)
+			aPixels = RGBAOf(aMemoryImage->mBits, aData.mWidth * aData.mHeight);
+	}
+	bool isOpaque = theFormat == GPUFMT_X8R8G8B8;
 	gGL.glGenTextures(1, &aData.mTexture);
 	gGL.glBindTexture(GL_TEXTURE_2D, aData.mTexture);
-	gGL.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, aData.mWidth, aData.mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	gGL.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	gGL.glTexImage2D(GL_TEXTURE_2D, 0, isOpaque ? GL_RGB8 : GL_RGBA8, aData.mWidth, aData.mHeight, 0,
+		isOpaque ? GL_RGB : GL_RGBA, GL_UNSIGNED_BYTE, aPixels.data());
+	gGL.glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 	gGL.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	gGL.glGenFramebuffers(1, &aData.mFramebuffer);
 	gGL.glBindFramebuffer(GL_FRAMEBUFFER, aData.mFramebuffer);
@@ -954,22 +998,60 @@ bool GPUInterfaceGL::CreateRenderTarget(Image* theImage)
 	return gGL.glGetError() == GL_NO_ERROR;
 }
 
+// 0x61c070's target branch, when a target's bits changed since its texture last took them: an A8R8G8B8 target is
+// filled from its bits; an X8R8G8B8 one is not (0x61b5a0 has no case for its format), so it keeps its pixels
+void GPUInterfaceGL::RefreshTarget(MemoryImage* theImage, TextureData* theData)
+{
+	if (theImage == nullptr || theData->mBitsChangedCount == theImage->mBitsChangedCount)
+		return;
+	theData->mBitsChangedCount = theImage->mBitsChangedCount;
+	if (theData->mFormat != GPUFMT_A8R8G8B8) {
+		LogOnce("the bits of an X8R8G8B8 render target changed (not copied, as in the original)");
+		return;
+	}
+	if (theImage->mBits == nullptr)
+		return;
+	std::vector<unsigned char> aPixels = RGBAOf(theImage->mBits, theData->mWidth * theData->mHeight);
+	gGL.glBindTexture(GL_TEXTURE_2D, theData->mTexture);
+	gGL.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, theData->mWidth, theData->mHeight, GL_RGBA, GL_UNSIGNED_BYTE,
+		aPixels.data());
+}
+
 bool GPUInterfaceGL::SetRenderTarget(Image* theImage)
 {
-	// The original's SetRenderTarget runs PreDraw first and fails with it
-	if (!BeginSceneIfNeeded())
-		return false;
-	if (theImage != nullptr && !mImages[theImage].mTarget) {
+	if (theImage == nullptr) {
+		// For the screen, the answer is PreDraw's (0x621990 through 0x621890)
+		if (!BeginSceneIfNeeded())
+			return false;
+		if (mTarget != nullptr)
+			BindTarget(nullptr);
+		return true;
+	}
+	auto anIt = mImages.find(theImage);
+	if (anIt == mImages.end() || !anIt->second.mTarget) {
 		LogOnce("SetRenderTarget on an image that is not a render target");
 		return false;
 	}
-	BindTarget(theImage);
+	RefreshTarget(dynamic_cast<MemoryImage*>(theImage), &anIt->second);
+	// For an image, true once its texture exists, whether or not PreDraw lets the target change; the bound target set
+	// again changes nothing (0x621890 returns at once)
+	if (BeginSceneIfNeeded() && mTarget != theImage)
+		BindTarget(theImage);
 	return true;
+}
+
+void GPUInterfaceGL::SetVertexShader(GPUVertexShader theShader)
+{
+	// The original's SetVertexShader (0x622ea0) runs PreDraw first
+	BeginSceneIfNeeded();
+	mVertexShader = theShader;
 }
 
 void GPUInterfaceGL::StretchRect(Image* theSource, const Rect& theSrcRect, Image* theDest, const Rect& theDestRect,
 	GPUTextureFilter theFilter)
 {
+	// 0x621dc0 runs PreDraw first, and copies nothing unless the source is a target
+	BeginSceneIfNeeded();
 	GLuint aSource = theSource == nullptr ? mScreenFramebuffer : mImages[theSource].mFramebuffer;
 	GLuint aDest = theDest == nullptr ? mScreenFramebuffer : mImages[theDest].mFramebuffer;
 	if (aSource == 0 || aDest == 0) {
@@ -1033,24 +1115,55 @@ bool GPUInterfaceGL::ReadBack(Image* theImage, MemoryImage* theDest)
 		aHeight = anIt->second.mHeight;
 	}
 	SDL_Log("GPU: read back %s (%dx%d)", theImage == nullptr ? "the screen" : "a render target", aWidth, aHeight);
-	std::vector<unsigned char> aPixels((size_t)aWidth * aHeight * 4);
-	gGL.glBindFramebuffer(GL_READ_FRAMEBUFFER, aFramebuffer);
-	gGL.glReadPixels(0, 0, aWidth, aHeight, GL_RGBA, GL_UNSIGNED_BYTE, aPixels.data());
-	gGL.glBindFramebuffer(GL_FRAMEBUFFER, mTarget == nullptr ? mScreenFramebuffer : mImages[mTarget].mFramebuffer);
 	theDest->Create(aWidth, aHeight);
-	unsigned long* aBits = theDest->GetBits();
-	for (int i = 0; i < aWidth * aHeight; i++) {
-		const unsigned char* p = &aPixels[(size_t)i * 4];
-		aBits[i] = ((unsigned long)p[3] << 24) | ((unsigned long)p[0] << 16) | ((unsigned long)p[1] << 8) | p[2];
-	}
+	bool isRead = ReadFramebuffer(aFramebuffer, aWidth, aHeight, theDest->GetBits());
 	theDest->BitsChanged();
+	return isRead;
+}
+
+// A framebuffer's pixels into ARGB words, D3D's row 0 first
+bool GPUInterfaceGL::ReadFramebuffer(GLuint theFramebuffer, int theWidth, int theHeight, unsigned long* theBits)
+{
+	std::vector<unsigned char> aPixels((size_t)theWidth * theHeight * 4);
+	gGL.glBindFramebuffer(GL_READ_FRAMEBUFFER, theFramebuffer);
+	gGL.glReadPixels(0, 0, theWidth, theHeight, GL_RGBA, GL_UNSIGNED_BYTE, aPixels.data());
+	gGL.glBindFramebuffer(GL_FRAMEBUFFER, mTarget == nullptr ? mScreenFramebuffer : mImages[mTarget].mFramebuffer);
+	for (int i = 0; i < theWidth * theHeight; i++) {
+		const unsigned char* p = &aPixels[(size_t)i * 4];
+		theBits[i] = ((unsigned long)p[3] << 24) | ((unsigned long)p[0] << 16) | ((unsigned long)p[1] << 8) | p[2];
+	}
 	return gGL.glGetError() == GL_NO_ERROR;
+}
+
+// The original's read-back (slot 0x48), which its GetBits uses for an image that has a texture but no bits: the
+// texture's pixels as they are stored (a 16-bit texture gives its quantised colours)
+bool GPUInterfaceGL::RecoverBits(MemoryImage* theImage)
+{
+	auto anIt = mImages.find(theImage);
+	if (mLost || anIt == mImages.end() || anIt->second.mTexture == 0 || theImage->mBits == nullptr)
+		return false;
+	TextureData& aData = anIt->second;
+	if (aData.mWidth != theImage->mWidth || aData.mHeight != theImage->mHeight)
+		return false;
+	SDL_Log("GPU: bits recovered from %s (%dx%d)", aData.mTarget ? "a render target" : "a texture", aData.mWidth,
+		aData.mHeight);
+	GLuint aFramebuffer = aData.mFramebuffer;
+	if (aFramebuffer == 0) {
+		gGL.glGenFramebuffers(1, &aFramebuffer);
+		gGL.glBindFramebuffer(GL_FRAMEBUFFER, aFramebuffer);
+		gGL.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, aData.mTexture, 0);
+	}
+	bool isRead = ReadFramebuffer(aFramebuffer, aData.mWidth, aData.mHeight, theImage->mBits);
+	if (aFramebuffer != aData.mFramebuffer)
+		gGL.glDeleteFramebuffers(1, &aFramebuffer);
+	return isRead;
 }
 
 void GPUInterfaceGL::BitsChanged(Image* theImage)
 {
+	// A texture is made again at its next use; a target takes its bits then as RefreshTarget says
 	auto anIt = mImages.find(theImage);
-	if (anIt != mImages.end() && !anIt->second.mTarget)
+	if (anIt != mImages.end())
 		anIt->second.mBitsChangedCount = -1;
 }
 
@@ -1081,6 +1194,7 @@ TextureData* GPUInterfaceGL::GetTexture(Image* theImage)
 	if (aData.mTarget) {
 		if (theImage == mTarget)
 			LogOnce("an image is sampled while it is the render target");
+		RefreshTarget(dynamic_cast<MemoryImage*>(theImage), &aData);
 		return &aData;
 	}
 	MemoryImage* aMemoryImage = dynamic_cast<MemoryImage*>(theImage);
@@ -1102,22 +1216,19 @@ void GPUInterfaceGL::UploadTexture(MemoryImage* theImage, TextureData* theData)
 	unsigned long* aBits = theImage->GetBits();
 	if (aBits == nullptr)
 		return;
-	enum { FMT_8888, FMT_565, FMT_4444 } aFormat = FMT_8888;
-	unsigned long aFlags = theImage->mD3DFlags;
-	if (mPolicy.mOpaqueAs565 && !theImage->mHasAlpha && !theImage->mHasTrans && (aFlags & 0x18) == 0)
-		aFormat = FMT_565;
-	else if (aFlags & 0x4)
-		aFormat = FMT_4444;
+	GPUFormat aFormat = mPolicy.TextureFormat(theImage->mHasAlpha, theImage->mHasTrans, theImage->mD3DFlags);
 	std::vector<unsigned char> aPixels((size_t)aWidth * aHeight * 4);
 	for (int i = 0; i < aWidth * aHeight; i++) {
 		unsigned long c = aBits[i];
 		unsigned int a = (c >> 24) & 0xff, r = (c >> 16) & 0xff, g = (c >> 8) & 0xff, b = c & 0xff;
-		if (aFormat == FMT_565) {
+		if (aFormat == GPUFMT_R5G6B5) {
 			r = ((r >> 3) << 3) | (r >> 5);
 			g = ((g >> 2) << 2) | (g >> 6);
 			b = ((b >> 3) << 3) | (b >> 5);
 			a = 255;
-		} else if (aFormat == FMT_4444) {
+		} else if (aFormat == GPUFMT_X8R8G8B8) {
+			a = 255;
+		} else if (aFormat == GPUFMT_A4R4G4B4) {
 			r = (r >> 4) * 17;
 			g = (g >> 4) * 17;
 			b = (b >> 4) * 17;
@@ -1217,7 +1328,7 @@ GPUPixelShader GPUInterfaceGL::CreatePixelShader(const std::string& theName, con
 
 void GPUInterfaceGL::SetPixelShader(GPUPixelShader theShader)
 {
-	// The original's SetPixelShader runs PreDraw first
+	// The original's SetPixelShader (0x622dd0) runs PreDraw first
 	BeginSceneIfNeeded();
 	mPixelShader = theShader;
 }
@@ -1617,7 +1728,7 @@ void GPUInterfaceGL::SetVertexAttributes(unsigned long theFVF, const unsigned ch
 
 bool GPUInterfaceGL::PrepareDraw(unsigned long theFVF, Program** theProgram)
 {
-	if (mLost || !BeginSceneIfNeeded())
+	if (mLost)
 		return false;
 	VSKey aVS = MakeVSKey(theFVF);
 	Program* aProgram = GetProgram(aVS, MakePSKey());

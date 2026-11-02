@@ -352,7 +352,7 @@ void TestRenderTarget()
 	Begin("render-target");
 	MemoryImage* aTarget = new MemoryImage();
 	aTarget->Create(16, 8);
-	if (!gGPU->CreateRenderTarget(aTarget))
+	if (!gGPU->CreateRenderTarget(aTarget, GPUFMT_A8R8G8B8))
 		Fail("CreateRenderTarget failed");
 	gGPU->SetRenderTarget(aTarget);
 	gGPU->Clear(GPUCLEAR_TARGET, 0x80102030, 1.0f);
@@ -552,29 +552,170 @@ void TestPrecompile(GLContext* theContext, const GPUPolicy& thePolicy)
 	End();
 }
 
-// The null device answers as the GL one: the scene count, the scene being refused, render targets
-void TestNull(const GPUPolicy& thePolicy)
+// An opaque target (X8R8G8B8, GL RGB8) reads back and samples alpha 1 whatever is drawn or cleared into it
+void TestOpaqueTarget()
 {
-	gTest = "null-device";
+	Begin("opaque-target-alpha");
+	MemoryImage* anOpaque = new MemoryImage();
+	anOpaque->Create(8, 8);
+	MemoryImage* aClear = new MemoryImage();
+	aClear->Create(8, 8);
+	gGPU->CreateRenderTarget(anOpaque, GPUFMT_X8R8G8B8);
+	gGPU->CreateRenderTarget(aClear, GPUFMT_A8R8G8B8);
+	gGPU->SetRenderTarget(anOpaque);
+	gGPU->Clear(GPUCLEAR_TARGET, 0x40102030, 1.0f);
+	RHWQuad(0, 0, 4, 8, 0x20ff0000);
+	Read(anOpaque);
+	Expect(1, 1, 0xffff0000);
+	Expect(6, 6, 0xff102030);
+	// sampled into an A8R8G8B8 target with the texture's alpha
+	gGPU->SetRenderTarget(aClear);
+	gGPU->Clear(GPUCLEAR_TARGET, 0x00000000, 1.0f);
+	gGPU->SetTexture(0, anOpaque);
+	gGPU->SetTextureStageState(0, GPUTSS_COLORARG1, 2);
+	gGPU->SetTextureStageState(0, GPUTSS_ALPHAARG1, 2);
+	RHWQuad(-0.5f, -0.5f, 7.5f, 7.5f, 0xffffffff);
+	gGPU->SetTexture(0, nullptr);
+	Read(aClear);
+	Expect(1, 1, 0xffff0000);
+	Expect(6, 6, 0xff102030);
+	gGPU->SetRenderTarget(nullptr);
+	gGPU->ImageDeleted(anOpaque);
+	gGPU->ImageDeleted(aClear);
+	delete anOpaque;
+	delete aClear;
+	End();
+}
+
+// A target's bits: an A8R8G8B8 target starts from them and takes them again when they change; an X8R8G8B8 one does
+// not; GetBits on a purged target reads it back through the hook
+void TestTargetBits()
+{
+	Begin("target-bits");
+	MemoryImage* aTarget = new MemoryImage();
+	aTarget->Create(4, 4);
+	for (int i = 0; i < 16; i++)
+		aTarget->GetBits()[i] = 0x80112233;
+	aTarget->BitsChanged();
+	MemoryImage* anOpaque = new MemoryImage();
+	anOpaque->Create(4, 4);
+	gGPU->CreateRenderTarget(aTarget, GPUFMT_A8R8G8B8);
+	gGPU->CreateRenderTarget(anOpaque, GPUFMT_X8R8G8B8);
+	Read(aTarget);
+	Expect(2, 2, 0x80112233);
+	// changed bits reach the A8R8G8B8 target at its next use
+	aTarget->GetBits()[0] = 0xff445566;
+	aTarget->BitsChanged();
+	gGPU->SetRenderTarget(aTarget);
+	gGPU->SetRenderTarget(nullptr);
+	Read(aTarget);
+	Expect(0, 0, 0xff445566);
+	// and not the X8R8G8B8 one
+	gGPU->SetRenderTarget(anOpaque);
+	gGPU->Clear(GPUCLEAR_TARGET, 0xff00ff00, 1.0f);
+	for (int i = 0; i < 16; i++)
+		anOpaque->GetBits()[i] = 0xffff0000;
+	anOpaque->BitsChanged();
+	gGPU->SetRenderTarget(nullptr);
+	gGPU->SetRenderTarget(anOpaque);
+	Read(anOpaque);
+	Expect(3, 3, 0xff00ff00);
+	// GetBits on a purged target
+	gGPU->SetRenderTarget(aTarget);
+	gGPU->Clear(GPUCLEAR_TARGET, 0x7f0000ff, 1.0f);
+	gGPU->SetRenderTarget(nullptr);
+	delete[] aTarget->mBits;
+	aTarget->mBits = nullptr;
+	static GPUInterface* sGPU;
+	sGPU = gGPU;
+	gMemoryImageRecoverBits = [](MemoryImage* theImage) { return sGPU->RecoverBits(theImage); };
+	unsigned long* aBits = aTarget->GetBits();
+	gMemoryImageRecoverBits = nullptr;
+	if (aBits[5] != 0x7f0000ff)
+		Fail("recovered bits %08lx, expected 7f0000ff", aBits[5]);
+	gGPU->ImageDeleted(aTarget);
+	gGPU->ImageDeleted(anOpaque);
+	delete aTarget;
+	delete anOpaque;
+	End();
+}
+
+// The policy's format rule, 0x61c070's order (Twist's device takes A8R8G8B8, A4R4G4B4 and R5G6B5)
+void TestFormatRule(const GPUPolicy& thePolicy)
+{
+	gTest = "format-rule";
 	gTestFailed = false;
-	GPUInterface* aNull = GPUInterface::CreateNull(thePolicy, W, H);
-	MemoryImage anImage;
-	anImage.Create(4, 4);
-	if (!aNull->IsNull())
-		Fail("IsNull is false");
-	aNull->DrawPrimitiveUP(GPUPT_TRIANGLELIST, 1, FVF_XYZ, nullptr, 0);
-	aNull->SetRenderTarget(&anImage);
-	aNull->EndScene();
-	aNull->SetPixelShader(0);
-	aNull->SetSceneAllowed(false);
-	aNull->EndScene();
-	if (aNull->SetRenderTarget(nullptr))
-		Fail("SetRenderTarget succeeded while the scene is not allowed");
-	if (aNull->GetSceneCount() != 2)
-		Fail("scene count %d, expected 2", aNull->GetSceneCount());
-	if (aNull->GetRenderTarget() != &anImage)
-		Fail("the render target changed");
-	delete aNull;
+	struct Case { bool mAlpha, mTrans; unsigned long mFlags; GPUFormat mFormat; } aCases[] = {
+		{true, false, 0, GPUFMT_A8R8G8B8},
+		{false, true, 0, GPUFMT_A8R8G8B8},
+		{false, false, 0, GPUFMT_R5G6B5},
+		{false, false, 8, GPUFMT_A8R8G8B8},     // UseA8R8G8B8
+		{false, false, 0x10, GPUFMT_X8R8G8B8},  // an opaque target
+		{true, false, 0x10, GPUFMT_A8R8G8B8},   // a target with alpha
+		{false, false, 4, GPUFMT_R5G6B5},       // UseA4R4G4B4 on an opaque image: R5G6B5 comes first
+		{true, false, 4, GPUFMT_A4R4G4B4},
+		{false, false, 8 | 4, GPUFMT_A4R4G4B4},
+	};
+	for (const Case& aCase : aCases) {
+		GPUFormat aFormat = thePolicy.TextureFormat(aCase.mAlpha, aCase.mTrans, aCase.mFlags);
+		if (aFormat != aCase.mFormat)
+			Fail("alpha %d trans %d flags %lx: format %d, expected %d", aCase.mAlpha, aCase.mTrans, aCase.mFlags,
+				aFormat, aCase.mFormat);
+	}
+	End();
+}
+
+// The scene's rules, the same on the GL and the null device: only PreDraw's callers begin a scene, which rebinds the
+// screen; SetRenderTarget's answers; EndScene unbinds the shaders; the caps
+void TestSceneRules(GPUInterface* theGPU, const char* theName)
+{
+	gTest = std::string("scene-rules-") + theName;
+	gTestFailed = false;
+	MemoryImage a, b, c;
+	a.Create(4, 4);
+	b.Create(4, 4);
+	c.Create(4, 4);
+	theGPU->CreateRenderTarget(&a, GPUFMT_A8R8G8B8);
+	theGPU->CreateRenderTarget(&b, GPUFMT_A8R8G8B8);
+	theGPU->EndScene();
+	theGPU->SetSceneAllowed(true);
+	int aStart = theGPU->GetSceneCount();
+	RHWVertex v[3] = {{0, 0, 0.5f, 1, 0xffffffff, 0, 0}, {4, 0, 0.5f, 1, 0xffffffff, 0, 0},
+		{0, 4, 0.5f, 1, 0xffffffff, 0, 0}};
+	theGPU->DrawPrimitiveUP(GPUPT_TRIANGLELIST, 1, FVF_RHW, v, sizeof(RHWVertex));
+	theGPU->Clear(GPUCLEAR_TARGET, 0xff000000, 1.0f);
+	theGPU->SetRenderState(GPURS_ZENABLE, 0);
+	if (theGPU->GetSceneCount() != aStart)
+		Fail("a draw, a Clear or a state began a scene");
+	if (!theGPU->SetRenderTarget(&a) || theGPU->GetRenderTarget() != &a || theGPU->GetSceneCount() != aStart + 1)
+		Fail("SetRenderTarget(a) did not begin a scene on a");
+	GPUPixelShader aShader = theGPU->CreatePixelShader("scene_ps", "void main() { oC0 = vDiffuse; }\n");
+	theGPU->SetPixelShader(aShader);
+	theGPU->EndScene();
+	if (theGPU->GetPixelShader() != 0)
+		Fail("EndScene left the pixel shader bound");
+	theGPU->SetVertexShader(0);
+	if (theGPU->GetSceneCount() != aStart + 2 || theGPU->GetRenderTarget() != nullptr)
+		Fail("SetVertexShader did not begin a scene on the screen");
+	if (theGPU->SetRenderTarget(&c))
+		Fail("SetRenderTarget succeeded on an image that is not a target");
+	theGPU->SetRenderTarget(&a);
+	theGPU->SetSceneAllowed(false);
+	theGPU->EndScene();
+	if (theGPU->SetRenderTarget(nullptr))
+		Fail("SetRenderTarget(null) succeeded while minimised");
+	if (!theGPU->SetRenderTarget(&b))
+		Fail("SetRenderTarget(b) failed while minimised");
+	if (theGPU->GetRenderTarget() != &a || theGPU->GetSceneCount() != aStart + 2)
+		Fail("the target or the scene changed while minimised");
+	theGPU->SetSceneAllowed(true);
+	if (theGPU->GetCaps(0) != 0x7f || theGPU->GetCaps(1) != 8)
+		Fail("caps %lx and %lu", theGPU->GetCaps(0), theGPU->GetCaps(1));
+	theGPU->EndScene();
+	theGPU->SetRenderTarget(nullptr);
+	theGPU->ImageDeleted(&a);
+	theGPU->ImageDeleted(&b);
+	theGPU->ImageDeleted(&c);
 	End();
 }
 
@@ -603,7 +744,6 @@ int main(int argc, char** argv)
 	gRead = new MemoryImage();
 	GPUPolicy aPolicy = GPUPolicy::Twist();
 	aPolicy.mSceneBegin.clear();
-	aPolicy.mOpaqueAs565 = false;
 	gGPU = GPUInterface::Create(aContext, aPolicy, W, H);
 	if (gGPU == nullptr) {
 		std::printf("gpu: GPUInterface::Create failed\n");
@@ -617,6 +757,8 @@ int main(int argc, char** argv)
 	TestMatrices();
 	TestTextures(false);
 	TestRenderTarget();
+	TestOpaqueTarget();
+	TestTargetBits();
 	TestBlend();
 	TestAlphaTest();
 	TestStages();
@@ -625,12 +767,15 @@ int main(int argc, char** argv)
 	TestGameShaders();
 	TestBuffers();
 	TestPrecompile(aContext, aPolicy);
+	TestSceneRules(gGPU, "gl");
 	delete gGPU;
-	aPolicy.mOpaqueAs565 = true;
 	gGPU = GPUInterface::Create(aContext, aPolicy, W, H);
 	TestTextures(true);
 	delete gGPU;
-	TestNull(aPolicy);
+	GPUInterface* aNull = GPUInterface::CreateNull(aPolicy, W, H);
+	TestSceneRules(aNull, "null");
+	delete aNull;
+	TestFormatRule(aPolicy);
 	std::printf("gpu: %d tests, %d failed (%s)\n", gTests, gFailed, aContext->Description().c_str());
 	delete aContext;
 	SDL_DestroyWindow(aWindow);

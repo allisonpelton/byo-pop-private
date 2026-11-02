@@ -1,7 +1,8 @@
 #ifndef __GPUINTERFACE_H__
 #define __GPUINTERFACE_H__
 
-// port: the GPU display path (draft 3, for review; not built yet). It stands where PopCap's framework has its
+// port: the GPU display path (draft 3 with its review's edits; GPUInterface is built and tested, GPU2D and GPUDisplay
+// are not written yet). It stands where PopCap's framework has its
 // D3DInterface: a Direct3D 9 device as the games drive it, carried out through OpenGL ES 3.0 / WebGL2 (natively the
 // driver's ES context, which rundesk's private desktop gives too, else GL 3.3 core). Only games that opt in use it
 // (GPUDisplay, below); every other game keeps DDInterface and its SDL_Renderer exactly as they are, and
@@ -19,7 +20,7 @@
 //   ladder, the slots' shader-argument rule for constants (below). The adapter owns the meshes it loads and the
 //   textures their callback gives them (shared images from the resource manager, released with the mesh).
 //
-// Where D3D9 and GL differ, the GL implementation converts in one place (GPUConventions.h, one unit test each):
+// Where D3D9 and GL differ, the GL implementation converts in one place (GPUInterfaceGL.cpp, one unit test each in tools/gputest):
 // - pixel centres: D3D9's are on integers, GL's on half-integers. Every vertex path (pre-transformed XYZRHW,
 //   fixed-function, game vertex shaders) gets clip x += w/W and the y term below, with W and H the viewport's size (the
 //   signs are fixed by the half-pixel test, not by this comment).
@@ -34,7 +35,10 @@
 // - textures in 16-bit formats (R5G6B5, A4R4G4B4) are quantised as D3D9 stores them, truncating, when the policy's
 //   format rule picks them; the GL texture may be RGBA8 holding the quantised values.
 // - the screen is X8R8G8B8: its target reads alpha 1 when copied, sampled or read back; the canvas has alpha off.
-//   Render targets are A8R8G8B8 (the back buffer's X8R8G8B8 becomes A8R8G8B8 for a texture, 0x621c60).
+//   A render target's format is the caller's, from the policy's format rule (0x61c070): an opaque target (flag 0x10,
+//   made opaque by SetImageMode(false, false) first: Twist's 3D-mode screen, the visualizers' targets, Hyperspace's
+//   picture, slot 0xa0's) is X8R8G8B8, a GL RGB8 texture that samples and reads back alpha 1; one with alpha or
+//   transparency (UnderDialogWidget's, 0x7567e7: verify) is A8R8G8B8.
 // - one texture level: MIPFILTER is recorded and ignored, TEXTURE_MAX_LEVEL 0.
 // - fixed function: texture coordinates of two components expand to (u, v, 1, 0) before a texture matrix (COUNT2), so
 //   its translation is row 2; D3D9's lighting equations (a point light's range cut-off and attenuation, LOCALVIEWER,
@@ -168,8 +172,8 @@ struct GPUStateSet
 // when the first such game opts in, from its own export.
 struct GPUPolicy
 {
-	// The scene begins lazily: at the first draw of a frame, at SetRenderTarget and at SetPixelShader (Twist's PreDraw,
-	// slot 0x1c, 0x61a7d0; EndScene is 0x24, 0x6225a0). It then applies this list once, and clears GPU2D's filter cache.
+	// The scene begins lazily, at the first PreDraw of a frame (Twist's slot 0x1c, 0x61a7d0; EndScene is 0x24,
+	// 0x6225a0). It then rebinds the base target, applies this list once, and GPU2D clears its filter cache.
 	// Twist's list: ALPHABLENDENABLE 1, SRCBLEND SRCALPHA, DESTBLEND INVSRCALPHA, LIGHTING 0, ALPHATESTENABLE 0,
 	// ALPHAREF 0, ALPHAFUNC GREATER; sampler 0 MIN, MAG and MIP POINT, ADDRESSU and ADDRESSV CLAMP; DITHERENABLE 0,
 	// SPECULARENABLE 0, ZWRITEENABLE 0, ZENABLE 0, CULLMODE NONE, FILLMODE SOLID; stage 0 colour and alpha
@@ -177,10 +181,15 @@ struct GPUPolicy
 	// app that normal play leaves 0, are not carried.)
 	std::vector<GPUStateSet> mSceneBegin;
 
-	// Texture formats (Twist: 0x61c070, with the formats the device accepts, probed by 0x61a520): A8R8G8B8; R5G6B5 for an
-	// image with neither alpha nor transparency that is not a render target; A4R4G4B4 for an image that asks for it
-	// (UseA4R4G4B4). Twist's probe has no P8, so its paletted path never runs.
-	bool mOpaqueAs565;
+	// Texture formats (Twist: 0x61c070, with the formats the device accepts, probed by 0x61a520 into the mask: bit 1
+	// A8R8G8B8, 2 A4R4G4B4, 4 R5G6B5; Twist's probe has no P8, so its paletted path never runs). TextureFormat is the rule
+	// in 0x61c070's order: an image with neither alpha nor transparency is R5G6B5 when the device takes it, unless it has
+	// flag 8 (UseA8R8G8B8) or is a target (flag 0x10) on a display that is not R5G6B5; such a target is X8R8G8B8. Then an
+	// image still A8R8G8B8 is A4R4G4B4 when it has flag 4 (UseA4R4G4B4) and the device takes it, or when the device does
+	// not take A8R8G8B8. So an opaque image asking for A4R4G4B4 is R5G6B5.
+	unsigned long mAcceptedFormats;
+	bool mDisplayIs565;
+	GPUFormat TextureFormat(bool theHasAlpha, bool theHasTrans, unsigned long theFlags) const;
 
 	// Texture pieces (Twist: 0x61bd00 with 0x61b970, the sizes from the device caps, 0x6192d0). Twist on a card that
 	// takes non-power-of-two textures (every card the port runs on; the policy fixes that answer): a piece is the image's
@@ -204,11 +213,19 @@ struct GPUPolicy
 	bool mDirectDrawCopies;
 
 	// The device's answers the game can branch on. Fixed values, the same for the GL and the null renderer, so a
-	// headless run takes the branches and random draws the real one takes: the caps (Twist's slot 0x04: bit 2 for
-	// ps_2_0, read at 0x756a92 and by Hyperspace; bit 4, read by the constant slots), ValidateDevice's result for each
-	// shader (0x30, whose answer the fixed-function ladder saves under <name>_fallback), the accepted formats.
+	// headless run takes the branches and random draws the real one takes: the caps (GetCaps; Twist's slot 0x04,
+	// 0x61eec0, takes an argument: 0 gives 0x19, plus 2 for ps_2_0 (read at 0x756a92 and by Hyperspace), 4 for vs_2_0
+	// (read by the constant slots), 0x20 cube maps and 0x40 volume maps, so 0x7f on a modern card; 1 gives
+	// MaxTextureBlendStages, read by RainbowCubeFixedFunctionShader, 0x70f389), ValidateDevice's result for each shader
+	// (0x30, whose answer the fixed-function ladder saves under <name>_fallback), the accepted formats. Cube and volume
+	// textures are not carried: a request for one is logged (Twist's one cube map, resources.xml:816, is never read).
 	unsigned long mCaps;
+	unsigned long mMaxTextureBlendStages;
 	bool mValidateDevice;
+
+	// D3DDEVCAPS2_CAN_STRETCHRECT_FROM_TEXTURES (0x6192d0 stores it in DAT_00e0c9b6): every card the port stands for has
+	// it, so StretchRect (slot 0xac, 0x621dc0) always takes the device branch and its quad branch is never needed
+	bool mCanStretchRectFromTextures;
 
 	// The depth buffer's bits (D3DFMT_D16 or D24X8)
 	int mDepthBits;
@@ -265,28 +282,36 @@ public:
 	virtual void ContextLost() = 0;
 	virtual void ContextRestored() = 0;
 
-	// The scene, as the policy describes it: BeginSceneIfNeeded applies mSceneBegin once per scene and returns false
-	// where the original's PreDraw fails (the app minimised: Twist's app+0x4d8). GPU2D and every draw call it, as the
-	// original's draws, SetRenderTarget and SetPixelShader call PreDraw. EndScene ends the frame's scene [0x24].
+	// The scene, as the policy describes it: BeginSceneIfNeeded is the original's PreDraw. It returns false when the app
+	// is minimised (Twist's app+0x4d8, SetSceneAllowed) and otherwise true; at a scene's start it rebinds the base
+	// target (the screen) and applies mSceneBegin. Only PreDraw's callers call it: here SetRenderTarget, SetPixelShader,
+	// SetVertexShader and StretchRect (0x621890, 0x622dd0, 0x622ea0, 0x621dc0); GPU2D's 2D draws, DrawTrianglesTex and
+	// FillPoly, and the adapter's DrawPrimitiveEx, before they draw. Clear, the state setters, SetTexture and the
+	// primitives never do (DrawObject's mesh path draws without one), so a state set before the frame's first PreDraw is
+	// overwritten by the list, as in the original. EndScene [0x24] ends the scene and unbinds both shaders.
 	virtual bool BeginSceneIfNeeded() = 0;
 	virtual void EndScene() = 0;
 	virtual void SetSceneAllowed(bool theAllowed) = 0;  // GPUDisplay: false while the app is minimised
 	virtual int GetSceneCount() = 0;                    // GPU2D clears its filter cache when this moves
 
-	// Draws execute in call order. GPU2D's batch of quads (the original's dynamic vertex buffer) is flushed through
-	// DrawPrimitiveUP before any state change, upload, texture deletion, read-back or target change, as the original
-	// flushes (0x624830) before its draw-mode slots.
+	// Every call takes effect at once, in call order; the device keeps no batch and never flushes. GPU2D owns the
+	// original's quad batch and flushes it exactly where the original does (0x624830: a changed render, stage or sampler
+	// state, texture, target or shader, DrawPrimitiveEx, DrawObject, ClearDepth, a draw-mode slot whose value changes,
+	// EndScene, a full batch; not Clear, the constant slots, SetTransform, lights, material or read-back), so
+	// under_dialog's three passes draw with the constants the original's do and a Clear after batched quads clears
+	// underneath them.
 
-	// Render targets [0x44, 0x98]: an image the GPU draws into and samples like any other, exactly its own size.
-	// SetRenderTarget(null) is the screen; it returns false only where the original's does (BeginSceneIfNeeded failing),
-	// and the visualizers skip their blocks then (0x6822a5, 0x689b0d, 0x689be3).
-	virtual bool CreateRenderTarget(Image* theImage) = 0;
+	// Render targets [0x44, 0x94, 0x98]: an image the GPU draws into and samples like any other, exactly its own size,
+	// in the format the caller gives (GPUPolicy::TextureFormat with the target's flag 0x10). SetRenderTarget (0x621990)
+	// for an image returns true once it is a target, even when PreDraw fails and the target is left as it was; for null
+	// (the screen) it returns false when PreDraw fails. Setting the bound target again changes nothing (the viewport
+	// stays). The visualizers skip their blocks on false (0x6822a5, 0x689b0d, 0x689be3).
+	virtual bool CreateRenderTarget(Image* theImage, GPUFormat theFormat) = 0;
 	virtual bool SetRenderTarget(Image* theImage) = 0;
 	virtual Image* GetRenderTarget() = 0;
-	// The device's StretchRect: a copy from the screen or a target into a target with D3D's filter, no shader, the
-	// scissor off for the blit. (Slot 0xac, 0x621dc0, has a second branch that draws a quad through the bound pixel
-	// shader when the source has a texture container: that is GPU2D's, and GPU2D takes the device branch for the screen
-	// on purpose, since D3D9's back buffer has no texture container though the port's screen FBO does.) The screen is
+	// The device's StretchRect (slot 0xac's device branch, which is the only one taken: mCanStretchRectFromTextures): a
+	// copy from the screen or a target into a target with D3D's filter (Twist always passes LINEAR), no shader, the
+	// scissor off for the blit; the source must be a target, else nothing happens. It calls PreDraw first. The screen is
 	// always copied before it is sampled: WebGL2 rejects drawing from the target being drawn to.
 	virtual void StretchRect(Image* theSource, const Rect& theSrcRect, Image* theDest, const Rect& theDestRect,
 		GPUTextureFilter theFilter) = 0;
@@ -297,14 +322,22 @@ public:
 
 	// Pixel ownership. An ordinary MemoryImage's pixels live in its bits: its texture is made on first use and made
 	// again (or updated with texSubImage, for images rewritten every frame) when mBitsChangedCount moves. A target's and
-	// the screen's pixels live on the GPU, and in normal play the original never reads them back to the CPU (no
-	// normal-path call of its read-back, 0x48). ReadBack is for screenshots and tests, and logs every use, so a game
-	// path that needs one shows. ImageDeleted unbinds the image from every stage and as the target.
+	// the screen's pixels live on the GPU. The original's MemoryImage::GetBits (0x42ecf0) recovers an image that has a
+	// texture but no bits through its read-back (slot 0x48), and render targets (purged by 0x61e7d0) are such images:
+	// RecoverBits is that read-back, for gMemoryImageRecoverBits (MemoryImage.h). It and ReadBack (screenshots, tests)
+	// log every use, so a game path that needs one shows. When a target's mBitsChangedCount moves, its next use as a
+	// texture or target takes its bits as 0x61c070's target branch does: an A8R8G8B8 target is filled from its bits; an
+	// X8R8G8B8 one is not (0x61b5a0 has no case for it), which is logged and leaves it as it was. ImageDeleted unbinds
+	// the image from every stage and as the target.
 	virtual bool ReadBack(Image* theImage, MemoryImage* theDest) = 0;  // null image: the screen
+	virtual bool RecoverBits(MemoryImage* theImage) = 0;  // fills theImage->mBits from its texture; false without one
 	virtual void BitsChanged(Image* theImage) = 0;
 	virtual void ImageDeleted(Image* theImage) = 0;
 
-	// State [0xbc render, 0xc0 stage, 0xc4 sampler, 0xc8-0xf0, 0x100-0x108]
+	// The device's answers (GPUPolicy): theWhich 0 the caps word, 1 MaxTextureBlendStages [0x04]
+	virtual unsigned long GetCaps(int theWhich) = 0;
+
+	// State [0xc0 render, 0xbc stage, 0xc4 sampler, 0xc8-0xf0, 0x100-0x108]
 	virtual void SetRenderState(int theState, unsigned long theValue) = 0;
 	virtual void SetTextureStageState(int theStage, int theType, unsigned long theValue) = 0;
 	virtual void SetSamplerState(int theStage, int theType, unsigned long theValue) = 0;
@@ -345,11 +378,14 @@ public:
 // GPU2D (framework/GPU2D.h, the next draft): the generic framework layer above the device. What it must carry, as read
 // from Twist's D3D9 body (SAF 1.3 where Twist's agrees):
 //
-// - The draw-mode layer, slots 0x114-0x13c, each flushing the quad batch first (0x624830) and caching its value:
-//   0x114 the depth test mode (field 0xd4), 0x118 the depth-write mode (0xd5), 0x11c the alpha reference (0xd6), 0x120
-//   two floats (0xd7, 0xd8; what they feed: verify), each then applying the depth and alpha-test states (0x13c,
-//   0x61fbf0: with both modes 0, alpha test, z and z-write off and ZFUNC ALWAYS; else alpha test on, z-write by 0xd5, z
-//   on with ZFUNC LESSEQUAL or by 0xd4, ALPHAREF 0xd6). 0x138 (0x61fb90) applies a draw's blend from its draw mode and
+// - The draw-mode layer, slots 0x114-0x13c (0x624be0-0x624c70), each caching its value and, only when the new value
+//   differs, flushing the quad batch (0x624830) and applying the depth and alpha-test states (0x13c): 0x114 the depth
+//   test mode (field 0xd4), 0x118 the depth-write mode (0xd5), 0x11c the alpha reference (0xd6), 0x120 two floats (0xd7,
+//   0xd8; the constructor 0x618da0 sets 0.25 and 0.5) that are the z of every 2D vertex: 0xd7 when 0xd5 != 0, else 0xd8
+//   (the vertex builders 0x61ca30, 0x61d700, 0x61e310, 0x620cd0, 0x620ee0, 0x621170, 0x6214a0). 0x13c (0x61fbf0): with
+//   0xd4 and 0xd5 both 0, alpha test, z and z-write off, ALPHAREF 0, ZFUNC ALWAYS. Otherwise alpha test on; z-write on
+//   when 0xd5 != 0; 0xd4 = 0: z on when 0xd5 != 0, ZFUNC ALWAYS; 0xd4 = 2: z on, LESSEQUAL; any other 0xd4: z on,
+//   GREATEREQUAL; ALPHAREF 0xd6 when 0xd5 != 0, else 0. 0x138 (0x61fb90) applies a draw's blend from its draw mode and
 //   0xd5: with 0xd5 = 1, SRCBLEND ZERO and DESTBLEND ONE (the colour is left as it is: a depth-only pass); else normal
 //   SRCALPHA/INVSRCALPHA, additive SRCALPHA/ONE. Every 2D draw, DrawTrianglesTex, the adapter's DrawPrimitiveEx,
 //   StretchRect's quad branch and DrawObject call 0x138, so this layer and its state are GPU2D's and the adapter calls
@@ -363,6 +399,13 @@ public:
 //   a pixel shader, textures in stages 1-3, stage states, TEXTUREFACTOR, alpha test or a stage-0 WRAP left by game code
 //   apply to it as in the original. Filter per draw as SAF 1.3: BltF always linear, an integer Blt never, StretchBlt
 //   !fastStretch, BltMatrix and DrawTrianglesTex their blend argument (DDInterface's IsFractional is not carried).
+// - The quad batch (the original's dynamic vertex buffer) with the original's flush points, listed above
+//   GPUInterface's render targets. Each 2D draw calls Check3D's per-draw SetRenderTarget and skips the draw when it
+//   answers false. The per-draw offsets: 0x61ca30 subtracts 0.5; the others' are read before GPU2D is written.
+// - The format rule of the policy with flag 8 (UseA8R8G8B8, the a8r8g8b8 resource attribute set at 0x469ca0: twelve of
+//   Twist's images, seven of them visualizer backgrounds such as IMAGE_MOLECULE_BG); images with flag 0x20 or 0x40 take
+//   one piece of their own size (0x61bd00's first branch), and Twist duplicates one column and one row into a piece's
+//   padding (0x61b5a0) as SAF 1.3 does.
 // - The private clip scissor: set for each draw that clips in the original and off for everything else (Clear,
 //   StretchRect, DrawTrianglesTex unless Twist's 0x74 clips, the adapter's primitives, DrawObject), so a clipped dialog
 //   draw cannot cut the next mesh.
@@ -377,13 +420,11 @@ public:
 // - Forwarding: an Image draw goes to GPU2D only in 3D mode and only when its destination is the screen or a render
 //   target, as the original's Check3D; every other draw stays in software, so Twist's 2D mode and its frozen baseline
 //   are untouched by this path.
-// - 2D mode in an opted-in game, which has one GL context (a canvas never changes context type, and SDL_Renderer
-//   cannot share WebGL2's): the plan to decide before GPUDisplay is written is either (a) the screen drawn in software in
-//   2D mode, as the original's DirectDraw 2D mode did, its bits uploaded once a frame and presented by the GL quad (then
-//   the 2D frozen baseline is checked against the present SDL_Renderer screen first, and any difference explained), or
-//   (b) SDL_Renderer's GLES2 back end made on the same WebGL2/ES3 context and GPUInterface saving and restoring the GL
-//   state around it. Across a 2D/3D switch the screen's pixels go with it: up to the screen target on 2D->3D, read back
-//   once (logged) on 3D->2D.
+// - 2D mode in an opted-in game (decided, option (a), staged): the mode is fixed for a run, since the original restarts
+//   on a 3D change (0x69ed33), so there is no live handover. GPUDisplay serves 3D runs first, and 2D runs keep today's
+//   DDInterface. Later 2D mode moves to the framework's software 2D path (queued), the screen's bits uploaded once a
+//   frame and presented by the GL quad, compared with the original in 2D mode by shotdiff, not with today's
+//   SDL_Renderer screen. An in-process restart must not leave the web canvas on WebGL1.
 // - DDInterface first gets a behaviour-neutral refactor on main (its renderer-free geometry in one helper both displays
 //   use: letterboxing and the presentation rect, WindowToLogical and LogicalToWindow, HiDPI, the cursor's placement,
 //   resize and full screen; the methods SexyAppBase calls made virtual), checked with Bejeweled's suite; its spec goes
