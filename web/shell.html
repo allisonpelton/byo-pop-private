@@ -7,6 +7,8 @@
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
+<script src="theme.js"></script>
 <style>
 /* Every game's page (docs/WEB_PLAYER.md). Layout: a single stage that fills the viewport (4:3, or the shape the game
    gives: Module.onGameScreen), with a slim tool bar and slide-over panels (mods, game files and any of the game's
@@ -206,6 +208,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   <button id="btn-settings" type="button" aria-controls="panel-settings" aria-expanded="false">Settings</button>
   <button id="btn-sound" type="button" aria-pressed="true" title="Turns this page's sound off or on; the game's own volume is not changed"><span>Sound</span><span aria-hidden="true">: on</span></button>
   <button id="btn-full" type="button">Fullscreen</button>
+  <button id="btn-theme" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false"></button>
 </header>
 <!-- The mod menu inside the game reads out what has the focus here (Module.onModMenuFocus, web/modpanel.js) -->
 <div class="sr-only" id="menu-live" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -320,6 +323,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <script src="settings.js"></script>
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
+<script src="gameimport.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
 <script>
@@ -549,10 +553,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     });
   }
 
-  // A marker ("images/gemsheet6.*") as a pattern for a path relative to the game folder, in any case
-  function markerPattern(marker) {
-    return marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\.\\\*$/, "\\.[a-z0-9]+");
-  }
+  var markerPattern = ByopopImport.markerPattern;
   function hasGameFiles() {
     // with placeholders any of the game's folders will do: the game stands in for the rest
     if (pagePlaceholders())
@@ -585,21 +586,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // The icon that the import read out of the install's exe (importIcon), for boot() to keep with the record once the files are
   // marked as there. The exe is not stored.
   var importedIcon = "";
-  var SKIP_EXE = /^(popuninstall|uninstall[^\/]*|unins\d*|setup[^\/]*|dxsetup|[^\/]*redist[^\/]*|[^\/]*updater[^\/]*)\.exe$/i;
   function iconFromImport(entries, root) {
     importedIcon = "";
-    if (!PAGE.importIcon || !window.ByopopExeIcon || pagePlaceholders()) return Promise.resolve();
-    var exes = entries.filter(function (e) {
-      var rel = e.path.substring(0, root.length) === root ? e.path.substring(root.length) : "";
-      return /^[^\/]+\.exe$/i.test(rel) && !SKIP_EXE.test(rel);
-    }).slice(0, 4);
-    return exes.reduce(function (p, e) {
-      return p.then(function (url) {
-        if (url) return url;
-        return e.read().then(function (bytes) { return ByopopExeIcon.fromBytes(bytes); })
-          .then(function (icon) { return (icon && icon.dataUrl) || ""; }, function () { return ""; });
-      });
-    }, Promise.resolve("")).then(function (url) { importedIcon = url; }, function () {});
+    if (!PAGE.importIcon || pagePlaceholders()) return Promise.resolve();
+    return ByopopImport.exeIcon(entries, root).then(function (url) { importedIcon = url; }, function () {});
   }
   // The icon scaled down to px on its longer side with the browser's best filter, at most halving at each step so a 48 or
   // 64 px icon stays clean at 16 px; null when it is no larger than px already (the icon itself is used then).
@@ -663,49 +653,12 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     } catch (e) {}
   }
 
-  // Finds the folder inside an upload that holds every marker (the game root); with placeholders, failing that,
-  // the shallowest folder that holds one of the game's folders.
-  function findGameRoot(entries) {
-    var first = new RegExp("^(.*/)?" + markerPattern(PAGE.markers[0]) + "$", "i");
-    var others = PAGE.markers.slice(1).map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
-    for (var i = 0; i < entries.length; i++) {
-      var m = first.exec(entries[i].path);
-      if (!m) continue;
-      var root = m[1] || "";
-      var inRoot = entries.filter(function (e) { return e.path.substring(0, root.length) === root; });
-      if (others.every(function (re) { return inRoot.some(function (e) { return re.test(e.path.substring(root.length)); }); }))
-        return root;
-    }
-    if (!pagePlaceholders()) return null;
-    var best = null;
-    entries.forEach(function (e) {
-      var parts = e.path.split("/");
-      for (var j = 0; j < parts.length - 1; j++) {
-        if (GAME_DIRS.indexOf(parts[j].toLowerCase()) >= 0) {
-          var root = parts.slice(0, j).join("/") + (j > 0 ? "/" : "");
-          if ((best === null) || (root.length < best.length)) best = root;
-          break;
-        }
-      }
-    });
-    return best;
-  }
-
-  // The install's files with its paks (PAGE.paks) unpacked: each pak's files take its place, after the loose files, so
-  // that a file in both is written from the pak
+  // The game root inside an upload, and its paks unpacked (web/gameimport.js)
+  function findGameRoot(entries) { return ByopopImport.findRoot(PAGE, entries, pagePlaceholders()); }
   function withPaks(entries, root) {
-    var W = web();
-    var paks = entries.filter(function (e) {
-      return e.path.substring(0, root.length) === root && PAKS.indexOf(e.path.substring(root.length).toLowerCase()) >= 0;
+    return ByopopImport.withPaks(PAGE, entries, root, web().pak, function (names) {
+      $("import-msg").textContent = "Unpacking " + names.join(", ") + "…";
     });
-    if (paks.length > 0) $("import-msg").textContent = "Unpacking " + paks.map(function (e) { return e.path.substring(root.length); }).join(", ") + "…";
-    return paks.reduce(function (p, e) {
-      return p.then(function (all) {
-        return e.read().then(function (bytes) {
-          return all.concat(W.pak.read(bytes).map(function (f) { return { path: root + f.path, read: f.read }; }));
-        });
-      });
-    }, Promise.resolve(entries.filter(function (e) { return paks.indexOf(e) < 0; })));
   }
 
   // The import card's line under the buttons: a note, or an error, which is announced at once (it is read with both
@@ -741,20 +694,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 
   function copyGame(entries, root) {
     var W = web(), msg = $("import-msg");
-    var skip = PAGE.skip || [];
-    var wanted = [];
-    entries.forEach(function (e) {
-      if (e.path.substring(0, root.length) !== root) return;
-      var rel = W.fs.safeRel(e.path.substring(root.length));
-      if (!rel || /\.sig$/i.test(rel) || skip.some(function (re) { return re.test(rel); })) return;
-      var top = rel.split("/")[0];
-      if (GAME_DIRS.indexOf(top.toLowerCase()) >= 0) {
-        // The game's folders are stored in lower case, as PAGE.gameDirs names them: hasGameFiles and the Game files
-        // count look for them that way, and a Steam install's "Images" or "Stomped" would never be found. (The game
-        // itself finds files in any case: VFS::FindCaseInsensitive.)
-        wanted.push({ rel: top.toLowerCase() + rel.substring(top.length), read: e.read });
-      } else if (GAME_FILES.indexOf(rel.toLowerCase()) >= 0) wanted.push({ rel: rel, read: e.read });
-    });
+    var wanted = ByopopImport.pick(PAGE, entries, root, W.fs.safeRel);
     var done = 0;
     importProgress(0, wanted.length);
     msg.textContent = "Copying " + wanted.length + " files…";
