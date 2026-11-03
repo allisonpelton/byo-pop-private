@@ -21,6 +21,7 @@ import tempfile
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '..'))
 BASH = os.environ.get('BASH_EXE') or 'C:/Program Files/Git/usr/bin/bash.exe'
+REGKEY = r'HKLM\SOFTWARE\WOW6432Node\PopCap\Atomica'
 BOARD = '[0x4d00f4]'
 GRID = '[[0x4d00f4]+0x78]'
 
@@ -113,11 +114,15 @@ def run_original(lines, end, seed, names, tag):
             f.write('at %d %s %s\n' % (n, c, ' '.join(a)))
         f.write('at %d move 1 1\nquit\n' % end)
     run = 'cmp' + tag
+    # a fresh game: the original keeps the hints shown and the settings in the registry (the port's are in its user folder);
+    # the user allowed the originals to use their registry (CLAUDE.md)
+    for value in ('GameHints', 'ShowSymbols', 'ShowTips'):
+        subprocess.run(['reg', 'delete', REGKEY, '/v', value, '/f'], capture_output=True)
     shutil.rmtree(os.path.join('C:/byo-og', run), ignore_errors=True)
     shutil.rmtree(os.path.join(ROOT, 'build/origrun', run), ignore_errors=True)
     cmd = [os.path.join(ROOT, 'build/origrun-bin/origrun.exe'), '--game', 'atomica', '--run', run, '--stage-root',
            'C:/byo-og', '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--seed', str(seed),
-           '--timeout', '200']
+           '--timeout', '900']
     for n in names:
         cmd += ['--watch', WATCH[n]]
     p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)

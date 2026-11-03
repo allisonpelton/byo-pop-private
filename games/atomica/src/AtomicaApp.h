@@ -247,6 +247,8 @@ public:
 	virtual void		LoadingThreadCompleted() override;
 	virtual void		WriteToRegistry() override;
 	virtual void		ReadFromRegistry() override;
+	// a click as a script gives it (the test hooks)
+	void				ScriptClick(int theX, int theY);
 	virtual void		HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	virtual void		UpdateFrames() override;
 
@@ -259,6 +261,7 @@ public:
 	bool				mAutoplayBonus;
 	std::string			mAutoplayLog;
 	std::string			mAutoplayShots;
+	std::string			mAutoplayScript;
 	struct AutoplayState*	mAutoplayState;
 	void				AutoplayUpdate();
 	// testhooks/Trace.cpp: -statetrace=<file> writes every change of the state the identical-play pass compares with the original

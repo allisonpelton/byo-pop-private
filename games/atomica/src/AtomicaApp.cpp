@@ -189,6 +189,8 @@ void AtomicaApp::HandleCmdLineParam(const std::string& theParamName, const std::
 		mAutoplayLog = theParamValue;
 	else if (theParamName == "-statetrace")
 		mTraceFile = theParamValue;
+	else if (theParamName == "-autoplayscript")
+		mAutoplayScript = theParamValue;
 	else if (theParamName == "-autoplayshots")
 		mAutoplayShots = theParamValue;
 	else
@@ -200,7 +202,8 @@ void AtomicaApp::UpdateFrames()
 	// the trace is taken before the next update, so that it holds what the last update's draw changed (the random numbers)
 	if (!mTraceFile.empty())
 		TraceUpdate();
-	SexyApp::UpdateFrames();
+	// the bot acts before the update, where a script's commands (and a player's input) come: after the last update's draw
 	if (mAutoplay)
 		AutoplayUpdate();
+	SexyApp::UpdateFrames();
 }

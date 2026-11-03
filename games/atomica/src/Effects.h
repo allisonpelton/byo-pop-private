@@ -209,6 +209,7 @@ public:
 	virtual bool Update();		// 0x417270
 	virtual void Draw(Graphics* g);	// 0x4173f0
 	void		DrawPixels(Graphics* g, int theX1, int theY1, int theX2, int theY2);
+	void		DrawMiniLine(Graphics* g, int theX1, int theY1, int theX2, int theY2);	// 0x4255e0 with the mini spark
 };
 
 

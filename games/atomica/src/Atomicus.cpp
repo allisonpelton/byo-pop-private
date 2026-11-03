@@ -131,7 +131,7 @@ void Atomicus::LipStart(Sound* theSound, unsigned int theLipData)
 void Atomicus::LipUpdate()
 {
 	unsigned int aPrevious = mLipTick;
-	mLipTick = GetTickCount();
+	mLipTick = mApp->GetClockTime();
 	if ((0 < mLipCountdown) && (--mLipCountdown == 0))
 	{
 		mLipSound->Play();
@@ -140,7 +140,7 @@ void Atomicus::LipUpdate()
 	}
 	if (mTalking)
 	{
-		unsigned int aNow = GetTickCount();
+		unsigned int aNow = mApp->GetClockTime();
 		float aPos = mLipPos;
 		float aFrame = mLipFrame;
 		do
