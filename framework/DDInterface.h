@@ -88,6 +88,38 @@ public:
 	bool mClipEnabled;
 	Rect mCurClipRect;
 
+	// The software stretch (off by default; a game whose original drew its screen in software sets it, as Bejeweled
+	// Twist does in 2D). The first piece of the framework's software 2D path: it covers StretchBlt only. The original's
+	// software screen (Twist's DDImage::StretchBlt, 0x41a3e0) stretches a non-fast draw into a temporary image of the
+	// destination's size by averaging (MemoryImage::StretchCopy, 0x433ca0) and blits that with the draw's colour, mode
+	// and clip; a fast one it samples straight onto the screen, texel (srcX * 65536 + i * step) >> 16 with step
+	// srcWidth * 65536 / destWidth, from the corner where SDL's nearest filter samples pixel centres. Here both become
+	// an image of the destination's size, cached and drawn unscaled. Mirrored stretches, and a stretch that is not a
+	// MemoryImage, keep SDL's filtering; so do rotations, transforms and every other draw. A clipped stretch is
+	// stretched whole and clipped as it is drawn, where the original stretched only the clipped part (the same pixels
+	// but for rounding at the clip's edge).
+	bool mSoftwareStretch;
+
+protected:
+	// The stretched copies: at most kStretchCacheSize, the least recently drawn going first. An entry holds its source's
+	// mBitsChangedCount and is remade when that changes; RemoveImageData drops a source's entries, so a deleted image
+	// whose address is reused never finds an old copy.
+	struct StretchCopyEntry
+	{
+		MemoryImage* mSource;
+		Rect mSrcRect;
+		int mWidth, mHeight;
+		bool mFast;
+		int mSourceVersion;
+		MemoryImage* mCopy;
+		unsigned int mLastUse;
+	};
+	enum { kStretchCacheSize = 64 };
+	std::vector<StretchCopyEntry> mStretchCopies;
+	unsigned int mStretchUse;
+	MemoryImage* GetStretchCopy(MemoryImage* theSource, const Rect& theSrcRect, int theWidth, int theHeight, bool fast);
+	void ClearStretchCopies();
+
 protected:
 	void ReleaseRenderer();
 	bool CreateScreenTexture(int theRenderScale);

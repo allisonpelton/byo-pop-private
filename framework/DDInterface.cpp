@@ -142,6 +142,8 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	// above 1 pulls in the neighbouring cell of sprite sheets and fonts (visible slivers between glyphs).
 	mPixelPerfect = true;
 	mFrameCount = 0;
+	mSoftwareStretch = false;
+	mStretchUse = 0;
 
 	mCursorImage = NULL;
 	mCursorX = 0;
@@ -315,6 +317,7 @@ void DDInterface::ReleaseRenderer()
 
 void DDInterface::Cleanup()
 {
+	ClearStretchCopies();
 	if (mScreenImage != NULL)
 	{
 		DDImage* aScreenImage = mScreenImage;
@@ -658,6 +661,22 @@ bool DDInterface::CheckDestination(DDImage* theImage)
 
 void DDInterface::RemoveImageData(MemoryImage* theImage)
 {
+	// a source's stretched copies go with it (taken out of the list before they are deleted, since deleting a copy
+	// comes back here)
+	std::vector<MemoryImage*> aCopies;
+	for (size_t i = 0; i < mStretchCopies.size(); )
+	{
+		if (mStretchCopies[i].mSource == theImage)
+		{
+			aCopies.push_back(mStretchCopies[i].mCopy);
+			mStretchCopies.erase(mStretchCopies.begin() + i);
+		}
+		else
+			i++;
+	}
+	for (MemoryImage* aCopy : aCopies)
+		delete aCopy;
+
 	if ((theImage == NULL) || (theImage->mD3DData == NULL))
 		return;
 
@@ -750,7 +769,102 @@ void DDInterface::StretchBlt(Image* theImage, const FRect& theDestRect, const Re
 	const float aX[4] = { aLeft, aRight, aRight, aLeft };
 	const float aY[4] = { aTop, aTop, aBottom, aBottom };
 	bool isScaled = (theDestRect.mWidth != theSrcRect.mWidth) || (theDestRect.mHeight != theSrcRect.mHeight);
+	if (mSoftwareStretch && !mirror && isScaled)
+	{
+		MemoryImage* aSource = dynamic_cast<MemoryImage*>(theImage);
+		int aWidth = (int) theDestRect.mWidth;
+		int aHeight = (int) theDestRect.mHeight;
+		MemoryImage* aCopy = aSource != NULL ? GetStretchCopy(aSource, theSrcRect, aWidth, aHeight, fastStretch) : NULL;
+		if (aCopy != NULL)
+		{
+			Blt(aCopy, aLeft, aTop, Rect(0, 0, aWidth, aHeight), theColor, theDrawMode, theClipRect);
+			return;
+		}
+	}
 	DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, theClipRect, !fastStretch && isScaled);
+}
+
+MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& theSrcRect, int theWidth, int theHeight, bool fast)
+{
+	if ((theWidth <= 0) || (theHeight <= 0) || (theSrcRect.mWidth <= 0) || (theSrcRect.mHeight <= 0) ||
+		((long long) theWidth * theHeight > 2048 * 2048))
+		return NULL;
+	mStretchUse++;
+	StretchCopyEntry* anEntry = NULL;
+	for (StretchCopyEntry& e : mStretchCopies)
+	{
+		if ((e.mSource == theSource) && (e.mSrcRect == theSrcRect) && (e.mWidth == theWidth) && (e.mHeight == theHeight) &&
+			(e.mFast == fast))
+		{
+			anEntry = &e;
+			break;
+		}
+	}
+	if (anEntry == NULL)
+	{
+		if (mStretchCopies.size() >= kStretchCacheSize)
+		{
+			size_t anOldest = 0;
+			for (size_t i = 1; i < mStretchCopies.size(); i++)
+			{
+				if (mStretchCopies[i].mLastUse < mStretchCopies[anOldest].mLastUse)
+					anOldest = i;
+			}
+			MemoryImage* aCopy = mStretchCopies[anOldest].mCopy;
+			mStretchCopies.erase(mStretchCopies.begin() + anOldest);
+			delete aCopy;
+		}
+		StretchCopyEntry e;
+		e.mSource = theSource;
+		e.mSrcRect = theSrcRect;
+		e.mWidth = theWidth;
+		e.mHeight = theHeight;
+		e.mFast = fast;
+		e.mSourceVersion = theSource->mBitsChangedCount - 1;  // made below
+		e.mCopy = new MemoryImage(mApp);
+		e.mLastUse = 0;
+		mStretchCopies.push_back(e);
+		anEntry = &mStretchCopies.back();
+	}
+	anEntry->mLastUse = mStretchUse;
+	if (anEntry->mSourceVersion != theSource->mBitsChangedCount)
+	{
+		anEntry->mSourceVersion = theSource->mBitsChangedCount;
+		anEntry->mCopy->Create(theWidth, theHeight);
+		if (fast)
+		{
+			// 0x41a3e0's fast stretch: 16.16 steps from the source rectangle's corner
+			ulong* aSrcBits = theSource->GetBits();
+			ulong* aDestBits = anEntry->mCopy->GetBits();
+			int aStepX = (int) ((double) theSrcRect.mWidth * 65536.0 / theWidth);
+			int aStepY = (int) ((double) theSrcRect.mHeight * 65536.0 / theHeight);
+			int aSrcY = theSrcRect.mY * 65536;
+			for (int y = 0; y < theHeight; y++)
+			{
+				ulong* aSrcRow = aSrcBits + (aSrcY >> 16) * theSource->mWidth;
+				int aSrcX = theSrcRect.mX * 65536;
+				for (int x = 0; x < theWidth; x++)
+				{
+					*aDestBits++ = aSrcRow[aSrcX >> 16];
+					aSrcX += aStepX;
+				}
+				aSrcY += aStepY;
+			}
+			anEntry->mCopy->BitsChanged();
+		}
+		else
+			anEntry->mCopy->StretchCopy(theSource, Rect(0, 0, theWidth, theHeight),
+				FRect(theSrcRect.mX, theSrcRect.mY, theSrcRect.mWidth, theSrcRect.mHeight));
+	}
+	return anEntry->mCopy;
+}
+
+void DDInterface::ClearStretchCopies()
+{
+	std::vector<StretchCopyEntry> anEntries;
+	anEntries.swap(mStretchCopies);
+	for (StretchCopyEntry& e : anEntries)
+		delete e.mCopy;
 }
 
 void DDInterface::BltRotated(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY)
