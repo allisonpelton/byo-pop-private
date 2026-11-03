@@ -2,6 +2,7 @@
 #include "Image.h"
 #include "Font.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "MemoryImage.h"
 #include "Rect.h"
 #include "Debug.h"
@@ -74,7 +75,9 @@ Graphics::Graphics(Image* theDestImage)
 	}
 	else
 	{
-		mIs3D = DDImage::Check3D(theDestImage);
+		// port: Check3D says whether the draw goes through the display, which every screen draw does here; a display that
+		// is not 3D (a game's software mode, DDInterface::mIs3D false) draws as the original's software screen did
+		mIs3D = DDImage::Check3D(theDestImage) && static_cast<DDImage*>(theDestImage)->mDDInterface->mIs3D;
 	}
 
 	mClipRect = Rect(0, 0, mDestImage->GetWidth(), mDestImage->GetHeight());
