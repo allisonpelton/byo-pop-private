@@ -206,7 +206,7 @@ part of the terms' version, so a change of stores asks nobody to agree again.
 
 ### The listing page
 
-`build/web/index.html` lists the finished games, so that the site's root shows them instead of a directory listing: a
+`build/web/index.html` lists the finished games, and the ones still to come ("Coming soon", below), so that the site's root shows them instead of a directory listing: a
 tile for each, with the game's `TITLE` and a badge (its initials on a colour of its own from `BYOPOP_WEB_BADGES`,
 drawn by the page, never from the game's files) linking to its page; opened with `?silent=1`, it passes that on to the
 links. Its header has the logo at the size it is drawn, 276 by 64 pixels (the user, 2026-11-02: "Make the logo bigger on the
@@ -217,6 +217,25 @@ option is off). Below the tiles it has three tabs: Players (`#players`; "Player 
 from the records in `web/profiles.js`, Saves (`#saves`; "Save backup" and "Importing saves from an installed game", below) and Settings (`#settings`; "Site settings", below), which `web/settings.js`
 draws (see "The tabs", below); the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
 for the listing page's own: `players.js`, `saves.js` and `saveimport.js`, with the table `platform/saveimport.json` written beside them as `saveimport-table.js`).
+
+**Coming soon.** The user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say
+coming soon. Knock out all the research on where to buy and release date in advance." Among the finished games, sorted with them by
+name or by release date, the listing has a tile for each game still to come: the `BYOPOP_WEB_UPCOMING` list in
+`cmake/ByopopWeb.cmake`, `<target>|<title>` rows beside `BYOPOP_WEB_FINISHED`. It holds the two games with pages not yet merged (Bejeweled
+Twist, Bonnie's Bookstore Deluxe) and the ports still to make (`docs/COORDINATION.md`), each under the title of its Windows
+release and the target its port uses. The list is the coordinator's, and a game's final merge only moves its target from that list
+to `BYOPOP_WEB_FINISHED` (its title then comes from its page): its badge (`BYOPOP_WEB_BADGES`), release date
+(`BYOPOP_WEB_RELEASED`, with its source and a confidence in the comment above each row) and where to buy it (`BYOPOP_BUY_<target>`
+in `cmake/ByopopStores.cmake`, where the 2026-11-02 check of Shockwave, Steam and EA's store is written down) are there already. A
+game in both lists, or a game still to come without a `BYOPOP_BUY` entry, stops the configure.
+
+Such a tile is the finished one's badge, title and year, but not a link: `<div class="tile" role="group">` named "AstroPop Deluxe,
+2004, coming soon" (`aria-label`), with "Coming soon" in the place of the files' state. It is dimmed by its colours rather than by
+opacity, so that its text keeps the page's contrast in both themes: the card on the page's background with a dashed edge, the
+name in the muted colour, and the badge desaturated (`filter: saturate(0.35)`, which keeps its lightness and so the white
+initials' contrast). Its "where to buy" links are always shown, so that a visitor can get the game ready for when its page comes;
+they are the card's only controls. The page's scripts (the files' state, the Players and Saves tabs, the chat's table of games)
+take only the finished games' links, so the coming-soon tiles have no `data-game` and no chat tag.
 
 **Sorting.** Above the tiles is a "Sort by" choice (a `<fieldset>` with a `<legend>` and two radio buttons, **Name** and **Release
 date**), hidden until the page's script has run. Name is the page as built, the alphabetical order of the titles. Release date puts
