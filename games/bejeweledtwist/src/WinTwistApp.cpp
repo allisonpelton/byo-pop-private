@@ -100,6 +100,8 @@ TwistP3DListener gInitP3DListener;
 WinTwistApp::WinTwistApp()
 {
 	gApp = this;
+	// The framework's PutBehind and PutInfront give the widget the reference widget's z-order (0x4c2520, 0x4c2640)
+	gPutCopiesZOrder = true;
 	// port: the original makes them further on, after the board's objects; nothing reads them before
 	MakeTrigTables();
 	mProdName = "BejeweledTwist";
