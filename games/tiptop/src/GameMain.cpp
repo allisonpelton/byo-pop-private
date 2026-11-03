@@ -74,13 +74,19 @@ bool IsPreloadEntry(int theIndex)
 
 } // namespace
 
+uint32_t gRandState = 1;
+uint32_t gRandDraws = 0;
+
 int Rand()
 {
+	gRandState = gRandState * 214013u + 2531011u;
+	gRandDraws++;
 	return Sexy::CrtRand();
 }
 
 void SRand(uint32_t theSeed)
 {
+	gRandState = theSeed;
 	Sexy::CrtSRand(theSeed);
 }
 
