@@ -28,6 +28,7 @@
 #include "Mandala.h"
 #include "Menu.h"
 #include "MenuButtonWidget.h"
+#include "SDLSoundManager.h"
 #include "MenuPanels.h"
 #include "TwistCheckbox.h"
 #include "Profile.h"
@@ -218,6 +219,8 @@ void WinTwistApp::SetGemSize()
 void WinTwistApp::Init()
 {
 	SexyApp::Init();
+	if (SDLSoundManager* aSoundManager = dynamic_cast<SDLSoundManager*>(mSoundManager))
+		aSoundManager->mDBPerFactor = true;   // 0x4fa9e0, 0x4fabb0: this DSoundInstance's volume and frequency
 	// 0x4a588d: SexyAppBase::Init seeds the C library's rand with the tick count (-seed=N in test runs)
 	CrtSRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetTickCount());
 	if (mShutdown)
@@ -1435,8 +1438,9 @@ void WinTwistApp::FadeOutMusic()
 void WinTwistApp::PlaySoundAt(int theSoundId, int theX, float thePitch, float theVolume)
 {
 	int aHalf = mWidth / 2;
-	PlaySoundEx(theSoundId, Ftol((double)((float)(theX - aHalf) / (float)aHalf) * 800.0), thePitch, theVolume, true,
-		true);
+	// the product is stored as a float before it is cut to an int (0x767643): 11/400 * 800 pans by 22, not 21
+	PlaySoundEx(theSoundId, Ftol((float)((double)((float)(theX - aHalf) / (float)aHalf) * 800.0)), thePitch, theVolume,
+		true, true);
 }
 
 void WinTwistApp::Mute(bool autoMute)
