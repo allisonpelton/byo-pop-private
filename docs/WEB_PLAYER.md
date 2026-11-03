@@ -208,7 +208,8 @@ part of the terms' version, so a change of stores asks nobody to agree again.
 
 `build/web/index.html` lists the finished games, and the ones still to come ("Coming soon", below), so that the site's root shows them instead of a directory listing: a
 tile for each, with the game's `TITLE` and a badge (its initials on a colour of its own from `BYOPOP_WEB_BADGES`,
-drawn by the page, never from the game's files) linking to its page; opened with `?silent=1`, it passes that on to the
+drawn by the page, never from the game's files) linking to its page (a game still to come has no page, and its tile is no
+link); opened with `?silent=1`, it passes that on to the
 links. Its header has the logo at the size it is drawn, 276 by 64 pixels (the user, 2026-11-02: "Make the logo bigger on the
 front page"), narrower when the window is, and the heading "Games". `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
@@ -227,11 +228,13 @@ release and the target its port uses. The list is the coordinator's, and a game'
 to `BYOPOP_WEB_FINISHED` (its title then comes from its page): its badge (`BYOPOP_WEB_BADGES`), release date
 (`BYOPOP_WEB_RELEASED`, with its source and a confidence in the comment above each row) and where to buy it (`BYOPOP_BUY_<target>`
 in `cmake/ByopopStores.cmake`, where the 2026-11-02 check of Shockwave, Steam and EA's store is written down) are there already. A
-game in both lists, or a game still to come without a `BYOPOP_BUY` entry, stops the configure.
+row with an empty target or title, a game listed twice or in both lists, and a game still to come without a `BYOPOP_BUY` entry
+of the shape a finished game's needs (the date checked, then a store and a non-empty page for each), stop the configure.
 
 Such a tile is the finished one's badge, title and year, but not a link: `<div class="tile" role="group">` named "AstroPop Deluxe,
 2004, coming soon" (`aria-label`), with "Coming soon" in the place of the files' state. It is dimmed by its colours rather than by
-opacity, so that its text keeps the page's contrast in both themes: the card on the page's background with a dashed edge, the
+opacity, so that its text keeps the page's contrast in both themes: the card on the page's background with a dashed edge in the muted colour (5.7:1 on the page's background in the light theme,
+7.3:1 in the dark one, so the card's edge stays visible), the
 name in the muted colour, and the badge desaturated (`filter: saturate(0.35)`, which keeps its lightness and so the white
 initials' contrast). Its "where to buy" links are always shown, so that a visitor can get the game ready for when its page comes;
 they are the card's only controls. The page's scripts (the files' state, the Players and Saves tabs, the chat's table of games)
@@ -342,8 +345,8 @@ used for copies that were not bought. The rule, in `show()` of `web/index.html`:
 "Play now", when its record says the files were ever loaded (`ByopopGameFiles.everLoaded`: a `loaded` date, whether the files
 are there now or were forgotten (`forgotten`) or lost (`missing`) since), and when the game was played here before (the "?" case:
 saves or a database with entries but no record). They are shown for "Add your files" without such a past, and for "Files
-unknown". `byopop_web_index()` writes each `.buyrow` with the `hidden` attribute, so that a player who owns the game never sees
-the links flash before the check has run. The game pages' terms card (off for now) and the copyright pages keep their buy
+unknown". `byopop_web_index()` writes each finished game's `.buyrow` with the `hidden` attribute, so that a player who owns the
+game never sees the links flash before the check has run; a game still to come has its `.buyrow` shown from the start. The game pages' terms card (off for now) and the copyright pages keep their buy
 note: they are not the card that suggests where to get the game.
 
 **Play time.** Once a game has been played in this browser, its card shows under the name how many times it was started, how long

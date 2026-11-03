@@ -62,8 +62,8 @@ set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica m
 # it ready. The target is the one the game's port uses (or will use), the title the one its Windows release has. The list is
 # the coordinator's: at a game's final merge its target moves from here to BYOPOP_WEB_FINISHED (its title then comes from
 # its page's TITLE), and its badge, release date and BYOPOP_BUY entry stay. Every game here needs a row in
-# BYOPOP_WEB_BADGES and BYOPOP_WEB_RELEASED and a BYOPOP_BUY entry (cmake/ByopopStores.cmake); a target in both lists, or
-# here without a BYOPOP_BUY entry, is a configure error. Bejeweled Twist has a page already, not yet merged; the rest
+# BYOPOP_WEB_BADGES and BYOPOP_WEB_RELEASED and a BYOPOP_BUY entry (cmake/ByopopStores.cmake); an empty target or title, a
+# target listed twice or in both lists, or a game here without a well-formed BYOPOP_BUY entry, is a configure error. Bejeweled Twist has a page already, not yet merged; the rest
 # are "The ports still to make" in docs/COORDINATION.md. Zuma Deluxe, Insaniquarium and Plants vs.
 # Zombies are left out: nobody ports them (the user, 2026-10-26).
 set(BYOPOP_WEB_UPCOMING
@@ -468,13 +468,15 @@ function(byopop_web_index)
   # the games still to come, by the titles in the list (a game with a page not yet merged still shows as coming)
   set(upcoming "")
   foreach(row ${BYOPOP_WEB_UPCOMING})
-    string(REPLACE "|" ";" fields "${row}")
-    list(LENGTH fields field_count)
-    if(NOT field_count EQUAL 2)
+    # both fields non-empty (a list split on "|" would count an empty title as a field)
+    if(NOT row MATCHES "^([^|]+)[|]([^|]+)$")
       message(FATAL_ERROR "BYOPOP_WEB_UPCOMING (cmake/ByopopWeb.cmake) has the row \"${row}\", which is not <target>|<title>")
     endif()
-    list(GET fields 0 soon_target)
-    list(GET fields 1 soon_title)
+    set(soon_target "${CMAKE_MATCH_1}")
+    set(soon_title "${CMAKE_MATCH_2}")
+    if(soon_target IN_LIST upcoming)
+      message(FATAL_ERROR "BYOPOP_WEB_UPCOMING (cmake/ByopopWeb.cmake) lists ${soon_target} twice")
+    endif()
     if(soon_target IN_LIST BYOPOP_WEB_FINISHED)
       message(FATAL_ERROR "${soon_target} is in both BYOPOP_WEB_FINISHED and BYOPOP_WEB_UPCOMING (cmake/ByopopWeb.cmake): "
         "a game's final merge moves it from the second to the first")
@@ -483,6 +485,25 @@ function(byopop_web_index)
       message(FATAL_ERROR "BYOPOP_WEB_UPCOMING (cmake/ByopopWeb.cmake) names ${soon_target}, which has no BYOPOP_BUY_${soon_target} "
         "in cmake/ByopopStores.cmake: its tile shows where to buy it")
     endif()
+    # the same shape byopop_web_shell asks of a finished game's entry: the date checked, then a store and its page each
+    # (quoted, so that an empty page stays in the list and is caught)
+    set(soon_buy "${BYOPOP_BUY_${soon_target}}")
+    list(POP_FRONT soon_buy soon_checked)
+    if(NOT soon_checked MATCHES "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$")
+      message(FATAL_ERROR "BYOPOP_BUY_${soon_target} (cmake/ByopopStores.cmake) starts with \"${soon_checked}\", not a YYYY-MM-DD date")
+    endif()
+    list(LENGTH soon_buy soon_buy_count)
+    math(EXPR odd "${soon_buy_count} % 2")
+    if(odd)
+      message(FATAL_ERROR "BYOPOP_BUY_${soon_target} (cmake/ByopopStores.cmake) needs a store's name and its page for each store")
+    endif()
+    while(soon_buy_count GREATER 0)
+      list(POP_FRONT soon_buy soon_store soon_url)
+      if(soon_store STREQUAL "" OR soon_url STREQUAL "")
+        message(FATAL_ERROR "BYOPOP_BUY_${soon_target} (cmake/ByopopStores.cmake) has a store with an empty name or page")
+      endif()
+      math(EXPR soon_buy_count "${soon_buy_count} - 2")
+    endwhile()
     set(soon_title_${soon_target} "${soon_title}")
     list(APPEND upcoming ${soon_target})
     string(TOLOWER "${soon_title}" key)

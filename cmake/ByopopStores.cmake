@@ -105,15 +105,17 @@ set(BYOPOP_BUY_bejeweledtwist 2026-11-02
 # the page renders its price with JavaScript), and its cart took each game's id and showed its price (AstroPop, Heavy Weapon,
 # Hammer Heads, Bejeweled 2, Venice, Feeding Frenzy, Chuzzle, Peggle, Peggle Nights, Banana Bugs and Zuma's Revenge $9.99;
 # Typer Shark, Pizza Frenzy, Iggle Pop, Feeding Frenzy 2, Talismania and Bejeweled 3 $6.99), and each cart was emptied after.
-# Bejeweled 3 has no landing page (a 404), so its link is the cart's. Gyromancer is in neither its search nor its cart. Steam:
-# its store search and its app data (store.steampowered.com/api/appdetails) show a price for AstroPop, Heavy Weapon, Bejeweled
-# 2, Typer Shark, Pizza Frenzy, Iggle Pop, Feeding Frenzy 2, Chuzzle, Peggle, Peggle Nights, Bejeweled 3, Gyromancer (Square
-# Enix), Zuma's Revenge and Talismania ($4.99 each, Gyromancer $5.99). Hammer Heads (app 3400) and Venice (app 3490) keep their
-# pages with nothing to buy (no package), like Rocket Mania; the first Feeding Frenzy and Banana Bugs are not in its search. EA's
-# store: ea.com/games/<series>/<game> sells Bejeweled 3, Peggle, Peggle Nights, Zuma's Revenge, Feeding Frenzy and Feeding
-# Frenzy 2 ("Buy now", the EA app); bejeweled-2 redirects to Bejeweled Blitz, and the likely addresses of the others give a 404
-# (EA's library renders with JavaScript and its sitemap lists none of these games, so a page under another name could be
-# missed). Other stores were not checked.
+# Bejeweled 3 has no landing page (a 404), so its link is the cart's. Gyromancer is in neither its search nor its cart.
+# Steam: its store search and its app data (store.steampowered.com/api/appdetails) show a price for AstroPop, Heavy
+# Weapon, Bejeweled 2, Typer Shark, Pizza Frenzy, Iggle Pop, Feeding Frenzy 2, Chuzzle, Peggle, Peggle Nights, Bejeweled
+# 3, Gyromancer (Square Enix), Zuma's Revenge and Talismania ($4.99 each, Gyromancer $5.99). Hammer Heads (app 3400) and
+# Venice (app 3490) keep their pages with nothing to buy (no package), like Rocket Mania; the first Feeding Frenzy and
+# Banana Bugs are not in its search. EA's store: ea.com/games/<series>/<game> sells Bejeweled 3, Peggle and Feeding
+# Frenzy 2 for PC through the EA app ("Buy now"). Rechecked 2026-11-02 in the browser: Peggle Nights and Zuma's Revenge
+# have pages that offer only Mac and Origin (no PC icon), and Feeding Frenzy's page is Xbox only (its "Buy now" goes to
+# the Microsoft Store), so none of the three is linked; bejeweled-2 redirects to Bejeweled Blitz, and the likely
+# addresses of the others give a 404 (EA's library renders with JavaScript and its sitemap lists none of these games, so
+# a page under another name could be missed). Other stores were not checked.
 set(BYOPOP_BUY_venice 2026-11-02
   Shockwave "https://www.shockwave.com/gamelanding/venice")
 set(BYOPOP_BUY_heavyweapon 2026-11-02
@@ -137,7 +139,6 @@ set(BYOPOP_BUY_igglepop 2026-11-02
   Steam "https://store.steampowered.com/app/3420/"
   Shockwave "https://www.shockwave.com/gamelanding/igglepop")
 set(BYOPOP_BUY_feedingfrenzy 2026-11-02
-  "EA app" "https://www.ea.com/games/feeding-frenzy/feeding-frenzy"
   Shockwave "https://www.shockwave.com/gamelanding/feedingfrenzy")
 set(BYOPOP_BUY_chuzzle 2026-11-02
   Steam "https://store.steampowered.com/app/3310/"
@@ -152,7 +153,6 @@ set(BYOPOP_BUY_peggle 2026-11-02
   Shockwave "https://www.shockwave.com/gamelanding/peggle")
 set(BYOPOP_BUY_pegglenights 2026-11-02
   Steam "https://store.steampowered.com/app/3540/"
-  "EA app" "https://www.ea.com/games/peggle/peggle-nights"
   Shockwave "https://www.shockwave.com/gamelanding/pegglenights")
 set(BYOPOP_BUY_bejeweled3 2026-11-02
   Steam "https://store.steampowered.com/app/78000/"
@@ -164,7 +164,6 @@ set(BYOPOP_BUY_gyromancer 2026-11-02
   Steam "https://store.steampowered.com/app/23380/")
 set(BYOPOP_BUY_zumasrevenge 2026-11-02
   Steam "https://store.steampowered.com/app/3620/"
-  "EA app" "https://www.ea.com/games/zuma/zumas-revenge"
   Shockwave "https://www.shockwave.com/gamelanding/zumasrevenge")
 set(BYOPOP_BUY_talismania 2026-11-02
   Steam "https://store.steampowered.com/app/3460/"

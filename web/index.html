@@ -64,8 +64,8 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
    buy links. Dimmed by its colours, not by opacity, so that its text keeps the page's contrast: the card on the page's background
    with a dashed edge, the name in the muted colour, and the badge greyed, which keeps its lightness and so the white letters'
    contrast */
-.games > li.soon { background: var(--bg); border-style: dashed; }
-.games > li.soon:hover { border-color: var(--line); }
+.games > li.soon { background: var(--bg); border-style: dashed; border-color: var(--muted); }
+.games > li.soon:hover { border-color: var(--muted); }
 .games > li.soon:focus-within { border-color: var(--accent); }
 .soon .tile { cursor: default; }
 .soon .name { color: var(--muted); }
