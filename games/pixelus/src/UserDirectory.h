@@ -4,7 +4,7 @@
 // UserDirectory.cpp: the players and what each has solved (Pixelus.exe 0x43da10 constructor, app+0x76c; the
 // players 0x439fb0/0x4391c0/0x438450). users/directory.txt lists the player numbers, users/<number> holds a
 // player: name, the flags the tutorial and the screens keep, and per puzzle the best result. The port writes
-// its own byte layout in the same files.
+// the original's byte layout in the same files (version 4; strings with a four-byte length).
 
 #include <map>
 #include <string>
