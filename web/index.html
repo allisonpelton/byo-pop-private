@@ -144,6 +144,11 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .badge[draggable=true] { cursor: grab; }
 .drop-on { outline: 3px dashed var(--accent); outline-offset: 4px; }
 .sortby[hidden] { display: none; }
+.show-unsold { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
+.show-unsold[hidden] { display: none; }
+.show-unsold input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+/* a game no store sells any more, unless its files are here (data-files, set by the files check) */
+.games.hide-unsold > li[data-unsold]:not([data-files=yes]) { display: none; }
 .sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
 .sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
 .sortby label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
@@ -310,6 +315,8 @@ footer a { color: var(--accent); }
         <label><input type="radio" name="sortby" value="plays"> Plays</label>
       </div>
     </fieldset>
+    <!-- Games no store sells any more (data-unsold) are hidden unless this is ticked or their files are here (the script below) -->
+    <label class="show-unsold" id="show-unsold-label" hidden><input type="checkbox" id="show-unsold" aria-label="Show games no longer sold"> Show games no longer sold</label>
     <div class="toolbar-actions">
       <button type="button" class="add-games" id="add-games" hidden>Add games</button>
       <!-- The recycle bin: a game's cap dragged here forgets its files, after a yes in the panel below (web/addgames.js) -->
@@ -386,6 +393,7 @@ footer a { color: var(--accent); }
 <script src="modpanel.js"></script>
 <script src="exeicon.js"></script>
 <script src="gameimport.js"></script>
+<script src="capanim.js"></script>
 <script src="import-games.js"></script>
 <script src="addgames.js"></script>
 <script>
@@ -406,6 +414,32 @@ try {
       lock: t.getAttribute("data-lock") || "", replays: t.getAttribute("data-replays") === "1" };
   }));
 } catch (e) { document.getElementById("saves-body").textContent = "The save backup is not available."; }
+</script>
+<script>
+// Games no longer sold (docs/WEB_PLAYER.md, "The listing page"; the user, 2026-11-03: "add an option to hide games that can no
+// longer be purchased, and default to hiding those games from the front page"): a game with no store in cmake/ByopopStores.cmake
+// has data-unsold on its card, and is hidden unless "Show games no longer sold" is ticked or its files are in this browser (a
+// player who has them can play it). The choice is kept in localStorage ("byopop-listing-unsold": "show", or nothing for the
+// default); a page without storage hides them.
+(function () {
+  var KEY = "byopop-listing-unsold";
+  var list = document.querySelector("ul.games"), box = document.getElementById("show-unsold"), label = document.getElementById("show-unsold-label");
+  if (!list || !box || !label) return;
+  if (!list.querySelector("li[data-unsold]")) return;  // every game is sold somewhere: no choice to offer
+  function apply(show) {
+    box.checked = show;
+    list.classList.toggle("hide-unsold", !show);
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  apply(saved === "show");
+  label.hidden = false;
+  box.addEventListener("change", function () {
+    apply(box.checked);
+    try { if (box.checked) localStorage.setItem(KEY, "show"); else localStorage.removeItem(KEY); } catch (e) {}
+  });
+  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(ev.newValue === "show"); });
+})();
 </script>
 <script>
 // "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles without "Deluxe"), by release
@@ -443,16 +477,18 @@ try {
     return a.title < b.title ? -1 : a.title > b.title ? 1 : a.at - b.at;
   });
 
-  // Most played first, by play time (seconds) or by plays, the other then breaking a tie; games never played (and the games still
-  // to come) after them, by name. Read again at each sort: the counts change as games are played.
+  // Most played first, by play time (seconds) or by plays, the other then breaking a tie; then the games whose files are here
+  // (the card's data-files, from the files check) before the others, each by name, the games still to come among the others.
+  // Read again at each sort: the counts change as games are played, and the files check ends after the first sort.
   function byPlay(field) {
     var play = {};
     try { play = ByopopPlay.all(); } catch (e) {}
     var other = field === "seconds" ? "plays" : "seconds", at = {};
     byName.forEach(function (c, i) { at[c.at] = i; });
     function n(c, f) { var p = c.id && play[c.id]; return p && p[f] > 0 ? p[f] : 0; }
+    function added(c) { return c.li.getAttribute("data-files") === "yes" ? 1 : 0; }
     return cards.slice().sort(function (a, b) {
-      return (n(b, field) - n(a, field)) || (n(b, other) - n(a, other)) || (at[a.at] - at[b.at]);
+      return (n(b, field) - n(a, field)) || (n(b, other) - n(a, other)) || (added(b) - added(a)) || (at[a.at] - at[b.at]);
     });
   }
 
@@ -488,8 +524,9 @@ try {
     if (ev.key === KEY || ev.key === null) apply(ev.newValue, false);
     else if (ev.key === ByopopPlay.KEY && (mode === "time" || mode === "plays")) apply(mode, false);  // a game was played in another tab
   });
-  // back from a game's page (the page may come from the browser's cache)
+  // back from a game's page (the page may come from the browser's cache), and each time the files check has shown the cards
   window.addEventListener("pageshow", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
+  document.addEventListener("byopop-tiles-checked", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
 })();
 </script>
 <script>
@@ -716,7 +753,9 @@ try {
           }
           if (names === null && !rec) { show(tile, info, gen); return null; }  // not known, and not guessed
           return (listed ? scan(persist) : Promise.resolve({ game: false, saves: false, entries: false })).then(function (found) {
-            if (found.game) info.state = "yes";
+            // a record that says the files went missing wins over files in the database: a copy cut off partway (the tab closed
+            // while the listing added it) has some, and the game page refuses it
+            if (found.game && !(rec && rec.missing)) info.state = "yes";
             else {
               info.state = "no";
               // played before: a record (kept when the files are forgotten), a save backup, or entries in the database
@@ -726,6 +765,10 @@ try {
             show(tile, info, gen);
           });
         }));
+      })
+      .then(function () {
+        // for the sort by play (its tie of added before not added) and anything else that reads the cards' data-files
+        if (gen === generation) { try { document.dispatchEvent(new Event("byopop-tiles-checked")); } catch (e) {} }
       });
   }
   document.addEventListener("keydown", function (ev) { if (open && ev.key === "Escape") { ev.preventDefault(); close(true); } });

@@ -23,23 +23,48 @@ var ByopopAddGames = (function () {
   }
 
   // ---------- the queue: one game at a time ----------
-  var queue = [], running = false;
+  // The games added while the queue ran are opened together once it is empty (opened): one game's cap is levered off by the
+  // opener and flips over to the game's icon; several, and the opener falls onto the grid and flips them all (web/capanim.js).
+  // The cards are checked again (their state, the icons) at the end of that.
+  var queue = [], running = false, opened = [];
   function enqueue(job) { job.say("Waiting…"); queue.push(job); if (!running) next(); }
   function next() {
     var job = queue.shift();
-    if (!job) { running = false; return; }
+    if (!job) { running = false; openCaps(); return; }
     running = true;
     var card = cardOf(job.game), own = card && card.querySelector(".own");
     function say(text) { job.say(text); if (own) own.textContent = text; }
     say("Reading…");
     ByopopImport.addGame(job.game, job.entries, job.root, W().pak, W().fs.safeRel, say).then(function (n) {
       job.done(true, "Added (" + n + " files)");
+      if (own) own.textContent = "Added";
+      if (opened.indexOf(job.game) < 0) opened.push(job.game);
     }, function (e) {
       job.done(false, (e && e.message) || "The files could not be added.");
-    }).then(function () {
       try { if (window.ByopopTiles) ByopopTiles.check(); } catch (x) {}
-      next();
+    }).then(next);
+  }
+  function openCaps() {
+    var games = opened;
+    opened = [];
+    function redraw() { try { return window.ByopopTiles ? ByopopTiles.check() : null; } catch (x) { return null; } }
+    if (!games.length) return;
+    var caps = games.map(function (g) { var c = cardOf(g); return c ? c.querySelector(".badge") : null; });
+    // the back of each cap: the game's icon, once the add has read it (else the cap's own face again)
+    var record = {};
+    try { record = ByopopGameFiles.all(); } catch (x) {}
+    var backs = games.map(function (g) {
+      var url = record[g.spec.id] && record[g.spec.id].icon;
+      if (!url) return null;
+      var img = new Image();
+      img.src = url;
+      img.alt = "";
+      return img;
     });
+    try {
+      if (games.length === 1) ByopopCapAnim.pop(caps[0], { back: backs[0], after: redraw });
+      else ByopopCapAnim.drop(caps, backs, redraw);
+    } catch (x) { redraw(); }
   }
 
   // ---------- the panel ----------

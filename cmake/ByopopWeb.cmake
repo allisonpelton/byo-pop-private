@@ -34,7 +34,7 @@ get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/f
 # where each game can be bought (BYOPOP_BUY_<target>), shown under its terms
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopStores.cmake)
 # the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
-set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg cap.svg)
+set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg cap.svg opener.svg)
 # web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
 # settings", "The listing page"): one file that the listing page and every game page load. web/profiles.js keeps the site's
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
@@ -45,7 +45,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # of each game's page, its page's file name, its badge's initials and colour and its title), is written beside them by
 # byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
 # games of its own.
-set(BYOPOP_WEB_SHARED_JS theme.js cursors.js settings.js profiles.js exeicon.js gameimport.js chat.js)
+set(BYOPOP_WEB_SHARED_JS theme.js cursors.js capanim.js settings.js profiles.js exeicon.js gameimport.js chat.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
@@ -248,6 +248,35 @@ function(byopop_web_insert var marker text)
   set(${var} "${inserted}" PARENT_SCOPE)
 endfunction()
 
+# The game's badge (BYOPOP_WEB_BADGES): its initials and colour into <initials_var> and <colour_var>. A game without a row
+# gets the first letters of its TITLE's words, without "Deluxe", and the accent colour.
+function(byopop_web_badge target title initials_var colour_var)
+  set(initials "")
+  set(colour "#6b3fd1")
+  set(found OFF)
+  foreach(badge ${BYOPOP_WEB_BADGES})
+    string(REPLACE "|" ";" fields "${badge}")
+    list(GET fields 0 badge_target)
+    if(badge_target STREQUAL target)
+      list(GET fields 1 initials)
+      list(GET fields 2 colour)
+      set(found ON)
+    endif()
+  endforeach()
+  if(NOT found)
+    string(REPLACE " " ";" words "${title}")
+    list(REMOVE_ITEM words Deluxe)
+    foreach(word ${words})
+      string(SUBSTRING "${word}" 0 1 letter)
+      string(TOUPPER "${letter}" letter)
+      string(APPEND initials "${letter}")
+    endforeach()
+    message(STATUS "byo-pop: ${target} has no badge in BYOPOP_WEB_BADGES (cmake/ByopopWeb.cmake): using \"${initials}\"")
+  endif()
+  set(${initials_var} "${initials}" PARENT_SCOPE)
+  set(${colour_var} "${colour}" PARENT_SCOPE)
+endfunction()
+
 function(byopop_web_shell var target pagedir)
   cmake_parse_arguments(PARSE_ARGV 3 arg "" "TITLE;COPYRIGHT" "LICENSES")
   if(arg_UNPARSED_ARGUMENTS OR NOT arg_TITLE OR NOT arg_COPYRIGHT)
@@ -382,6 +411,10 @@ function(byopop_web_shell var target pagedir)
     string(REPLACE "@BYOPOP_TERMS_GATE@" "false" page "${page}")
   endif()
   string(REPLACE "@BYOPOP_TITLE@" "${arg_TITLE}" page "${page}")
+  # the game's cap over its import card (web/capanim.js): its badge, as on the listing page
+  byopop_web_badge(${target} "${arg_TITLE}" cap_initials cap_colour)
+  string(REPLACE "@BYOPOP_CAP_INITIALS@" "${cap_initials}" page "${page}")
+  string(REPLACE "@BYOPOP_CAP_COLOUR@" "${cap_colour}" page "${page}")
   file(READ ${BYOPOP_WEB_FOOTER} footer)
   file(READ ${BYOPOP_WEB_FOOTER_CSS} css)
   string(REPLACE "@BYOPOP_COPYRIGHT_PAGE@" "${copyright_page}" footer "${footer}")
@@ -547,29 +580,7 @@ function(byopop_web_index)
     set(import_title "${title}")  # the raw title, before the HTML escaping below, for the listing's import rules
     string(REPLACE "\\" "\\\\" chat_title "${chat_title}")
     string(REPLACE "\"" "\\\"" chat_title "${chat_title}")
-    set(initials "")
-    set(colour "#6b3fd1")
-    set(found OFF)
-    foreach(badge ${BYOPOP_WEB_BADGES})
-      string(REPLACE "|" ";" fields "${badge}")
-      list(GET fields 0 badge_target)
-      if(badge_target STREQUAL target)
-        list(GET fields 1 initials)
-        list(GET fields 2 colour)
-        set(found ON)
-      endif()
-    endforeach()
-    if(NOT found)
-      # no row in the table: the first letters of the TITLE's words, without "Deluxe"
-      string(REPLACE " " ";" words "${title}")
-      list(REMOVE_ITEM words Deluxe)
-      foreach(word ${words})
-        string(SUBSTRING "${word}" 0 1 letter)
-        string(TOUPPER "${letter}" letter)
-        string(APPEND initials "${letter}")
-      endforeach()
-      message(STATUS "byo-pop: ${target} has no badge in BYOPOP_WEB_BADGES (cmake/ByopopWeb.cmake): using \"${initials}\"")
-    endif()
+    byopop_web_badge(${target} "${title}" initials colour)
     set(chat_initials "${initials}")
     foreach(field title initials)
       string(REPLACE "&" "&amp;" ${field} "${${field}}")
@@ -655,6 +666,11 @@ function(byopop_web_index)
         set(buy_html "<div class=\"buyrow\" hidden>${buy_html}</div>")
       endif()
     endif()
+    # a game no store sells any more: the listing page hides it unless the player shows those games or its files are here
+    set(unsold_attr "")
+    if(buy_html STREQUAL "")
+      set(unsold_attr " data-unsold=\"1\"")
+    endif()
     # the year under the name (a space between the two spans, so that the link's name reads "Bejeweled Deluxe 2001" even
     # where the spans' text is joined), and the link's name with it, "Bejeweled Deluxe, 2001"; the page adds the files' state to it
     set(year_html "")
@@ -669,7 +685,7 @@ function(byopop_web_index)
       if(NOT year STREQUAL "")
         string(APPEND soon_label ", ${year}")
       endif()
-      string(CONCAT tile "    <li class=\"game soon\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\">"
+      string(CONCAT tile "    <li class=\"game soon\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\"${unsold_attr}>"
         "<div class=\"tile\" role=\"group\" aria-label=\"${soon_label}, coming soon\">"
         "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
         "<span class=\"name\">${title}</span>${year_html}</div><div class=\"ownrow\"><span class=\"own own-soon\" aria-hidden=\"true\">Coming soon</span></div>${buy_html}</li>")
@@ -677,7 +693,7 @@ function(byopop_web_index)
       math(EXPR soon_count "${soon_count} + 1")
       continue()
     endif()
-    string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\">"
+    string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\"${unsold_attr}>"
       "<a class=\"tile\" href=\"${target}.html\" data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}${label_attr}>"
       "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
       "<span class=\"name\">${title}</span>${year_html}</a><div class=\"ownrow\"><span class=\"own\" aria-hidden=\"true\"></span></div>${buy_html}</li>")

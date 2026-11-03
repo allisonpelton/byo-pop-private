@@ -274,8 +274,17 @@ only a year comes after the full dates of that year, then by name; a game withou
 and goes last, and a row that is not a date stops the configure. Like the table of badges, the table is the coordinator's, who
 adds a game's row at its final merge together with its place in `BYOPOP_WEB_FINISHED`. Play time and Plays (the user, 2026-11-03:
 "Add sorts by playtime and number of plays too") put the most played first, by the counts on the cards (`ByopopPlay`, the
-`byopop-play` item): the one breaks a tie in the other, and the games never played here, the games still to come among them, follow
-in name order. They are read again at each sort, when a game is played in another tab and when the page comes back from a game's.
+`byopop-play` item): the one breaks a tie in the other. The games never played here follow, those whose files are here first (the
+user: "Play time/plays sort should sort added but unplayed games above unadded games"), then the others, the games still to come
+among them, each in name order. They are read again at each sort, when a game is played in another tab, when the page comes back
+from a game's, and each time the files check has shown the cards (its `byopop-tiles-checked` event).
+
+**Games no longer sold.** The user, 2026-11-03: "add an option to hide games that can no longer be purchased, and default to
+hiding those games from the front page". A game that no store sells (no store in its `BYOPOP_BUY_<target>` entry,
+`cmake/ByopopStores.cmake`, the same that makes its page say it is not for sale) gets `data-unsold` on its card, and the page
+hides those cards unless "Show games no longer sold", beside "Sort by", is ticked, or the game's files are in this browser (the
+card's `data-files` is `yes`: a player who has them can play it). The choice is kept in localStorage under
+`byopop-listing-unsold` (`show`, or nothing for the default, hidden). A page where every game is sold somewhere shows no box.
 
 Choosing a sort moves the cards' `<li>` elements (no CSS `order`), so the tab order and a screen reader's order are the order on
 screen, and the focus stays on the radio button that was chosen. A polite status line (`role="status"`, out of sight) says "Sorted
@@ -395,8 +404,27 @@ back into view.
 its initials on its colour, is cut to a crown cap's outline seen from above (`web/brand/cap.svg`, our own drawing: a circle with 21
 rounded crimps, used as the badge's CSS `mask`), with the cap's skirt and the ring of its top drawn darker by a radial gradient over
 the colour, which keeps the white initials' contrast. The game's own icon, once its files are here, takes the cap's place (no
-mask). The animation of the opener taking the cap off comes after Bejeweled Twist's last merge; a cap is one element, the `.badge`,
-so it can be animated or flipped there.
+mask). The opener takes the caps off when games are added ("The cap and the opener", below).
+
+**The cap and the opener.** The user's test notes: "Make the game pages have a bottle cap on top that is removed when you upload
+your files via an animation using the bottle opener. Implement this on the front page too if possible. When uploading multiple
+games' files at once, have the bottle opener fall from the top of the screen onto the grid of games, flipping the caps for games
+that are now playable, revealing their logo on the other side." (the go-ahead, 2026-11-03). `web/capanim.js` draws it with the Web
+Animations API on copies of the cap laid over the page (`position: fixed`), so the cap itself is never changed by it, and the
+opener is `web/brand/opener.svg`, the mark's opener without its tile (our own drawing). `pop(cap)`: the opener slides in from
+the right, its slot on the cap's edge, and levers the cap up; on a game page (`away`) the cap then spins up and off, and on the
+listing page it settles and flips over to show the game's icon (or its face again where there is no icon). `drop(caps)`: the
+opener falls from the top of the window onto the middle of the caps that can be seen, bounces, and the caps flip over one after
+another, the nearest first. Both take an `after` step in which the page draws the new state (the listing's `check()`, which then
+shows the icons), before the copies go, so the old cap never shows again in between.
+
+A game page's cap is its badge from the listing page (the same `BYOPOP_WEB_BADGES` row, through `byopop_web_badge()` in
+`cmake/ByopopWeb.cmake`), sitting on the import card's top edge; once an import has finished the opener takes it off, then the page
+boots. On the listing page the queue of adds (`web/addgames.js`) keeps the games added while it runs and opens them together once
+it is empty: one game is popped, several are dropped on, and the cards are checked again at the end of it. A hidden page (no
+animation frames), a browser without the Web Animations API and a cap out of sight skip the animation, and a player who asked for
+less motion (`prefers-reduced-motion`) gets a short fade instead; every step also ends on a timer, so a page hidden partway never
+waits for frames that do not come.
 
 **The recycle bin.** The user, 2026-11-03: "Add a recycle bin to the front page that the game's cap can be dragged into to forget
 its files." The bin is the button beside "Add games", with the bin's icon and named "Forget a game's files". The cap of a game whose files are here is draggable (`draggable="true"`,
@@ -441,8 +469,8 @@ one line for each exe and writes no icon) and against synthetic exes made for ev
 The user, 2026-11-03 (the "Site" section of `testnotes/TEST_NOTES.md`): "Allow many games' files to be added at once. Try to
 infer the game from the folder name, allow the user to manually specify which game a folder is for if unclear, and tell the user
 which folders were rejected", and "allow dragging your game folder onto the logo to add it (representing the use of the bottle
-opener). Also allow a game folder to be dragged onto its game tile to add its files." This is a rough first version; the bottle
-cap and opener animation comes after Bejeweled Twist's last merge.
+opener). Also allow a game folder to be dragged onto its game tile to add its files." This is a rough first version; the opener
+takes the caps off as the games are added ("The cap and the opener", above).
 
 There are three ways in, all in `web/addgames.js`:
 
@@ -475,7 +503,9 @@ mount the database while it is written, then write its old copy back over the ne
 served over https or from localhost) is refused too, since an open page could not be seen there. The write is all or nothing:
 the first transaction deletes the old copy, then the files go in batches of about 32 MB, each with the folder records of its own
 files, and the files the game page checks for (its markers; for a game whose marker is a pak, the files of its game folders, then
-the markers) go last, so a copy cut off partway (the tab closed) is not taken for the game. A write that fails partway (the
+the markers) go last, so a copy cut off partway (the tab closed) is not taken for the game: the game page refuses it, and the
+listing's files check lets the record, which says "missing" from the moment the old copy went until the add ends, win over the
+files it finds in the database. A write that fails partway (the
 storage full, a file of the drop that would not read) deletes what it wrote; one that fails before the old copy is deleted leaves
 that copy and its record. The rules
 for what is copied are the game page's own: `web/gameimport.js` holds the finding of the game root, the unpacking of paks, the
@@ -1049,6 +1079,8 @@ both page templates link them. A web host serves them with the pages.
 | `favicon.ico` | The mark at 16, 32 and 48 px, for browsers without SVG icons. |
 | `apple-touch-icon.png` | 180 px, opaque, for home screens (iOS rounds the corners itself). |
 | `logo.svg`, `logo-dark.svg` | The mark and the wordmark "byo-pop", whose "o" in "pop" is a red crown cap. One file for light backgrounds, one for dark. The top bar shows the one that matches the page's theme, before the game's mark and name, and it is a link to the listing page (`./`, relative, so it works on any host and path); the link's name, "byo-pop, all games", is the light logo's alt, which a dark theme keeps in the page, out of sight, for that. Leaving through the link is leaving the page like any other: the game saves on `beforeunload` and the backup is written (`SexyAppBase::PageGoingAway`), and "ask before leaving" (Site settings) asks. The copyright page shows the logo at the top. |
+| `cap.svg` | A crown cap's outline seen from above, 21 rounded crimps: the mask that cuts a game's badge to a cap. |
+| `opener.svg` | The mark's opener without its tile, head up, for the cap animation (`web/capanim.js`). |
 
 - **Colours.** The colours are taken from PopCap's classic logo: its red (#ED1C24), sky blue and chrome. The shapes
   and lettering are byo-pop's own, and none of PopCap's are copied. The outline is the dark blue #12304A.

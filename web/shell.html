@@ -128,6 +128,15 @@ canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; 
 }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; max-width: 520px; display: grid; gap: 14px; }
 .card h2 { margin: 0; font-size: 20px; text-wrap: balance; }
+/* The game's cap on top of the import card (the listing page's badge for the game, web/index.html: a crown cap's outline,
+   web/brand/cap.svg, in the game's colour with its initials), sitting on the card's top edge */
+.page-cap {
+  justify-self: center; margin-top: -40px; display: flex; align-items: center; justify-content: center; width: 72px; height: 72px;
+  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0, 0, 0, 0.2) 69% 73%, transparent 74% 84%, rgba(0, 0, 0, 0.16) 85%), var(--tile);
+  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat;
+  color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 0.02em;
+}
+.page-cap[hidden] { display: none; }
 .card p { margin: 0; color: var(--muted); }
 .card code, .mono { font-family: var(--font-mono); font-size: 12.5px; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -237,6 +246,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 
     <div class="overlay" id="import-overlay" hidden>
       <div class="card" id="import-card" role="dialog" aria-labelledby="import-title" aria-describedby="import-about" tabindex="-1">
+        <!-- the game's cap, its badge on the listing page: the opener takes it off once the files are in (web/capanim.js) -->
+        <div class="page-cap" id="page-cap" aria-hidden="true" style="--tile: @BYOPOP_CAP_COLOUR@">@BYOPOP_CAP_INITIALS@</div>
         <h2 id="import-title">Load your @BYOPOP_TITLE@ files</h2>
         <p id="import-about"></p>
         <div class="row">
@@ -326,6 +337,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
 <script src="gameimport.js"></script>
+<script src="capanim.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
 <script>
@@ -812,6 +824,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (isAutostart !== true || noMods) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
     askToKeepStorage();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
+    startChat();
     cursorTimer = setInterval(pollCursor, 100);
     applySiteOptions(true, true);
     acquireWake();
@@ -981,6 +994,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (!hasAgreed()) { showTerms(); return; }
     $("start-overlay").hidden = true;
     $("btn-import-cancel").hidden = !hasGameFiles();
+    $("page-cap").hidden = false;
     $("import-overlay").hidden = false;
     if (hasGameFiles()) setStatus("Import the game files again");
     focusCard("import-card", "btn-pick-folder");
@@ -993,7 +1007,13 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     importing = true;
     $("btn-import-cancel").disabled = true;
     promise.then(importGame).then(function (ok) {
-      if (ok) { $("import-overlay").hidden = true; boot(); }
+      if (!ok) return;
+      // the opener takes the cap off, then the game boots
+      var cap = $("page-cap");
+      function off() { cap.hidden = true; }
+      var popped;
+      try { popped = ByopopCapAnim.pop(cap, { away: true, after: off }); } catch (e) { off(); popped = Promise.resolve(); }
+      return popped.then(function () { $("import-overlay").hidden = true; boot(); });
     }).catch(function (e) { importMessage(e.message, true); })
       .then(function () {
         importing = false;
@@ -1541,8 +1561,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var next = stops[(at + stops.length) % stops.length];
     if (next) next.focus();
   }
+  // The chat starts with the game (the user, 2026-11-03: "Don't load the chat until the game has launched"): start() calls this
+  // once, so a page waiting for its files or for Play shows no chat
   function startChat() {
-    if (typeof ByopopChat === "undefined") return;
+    if (chat || typeof ByopopChat === "undefined") return;
     try {
       // ByopopGames is the site's table of games (chat-games.js, which cmake/ByopopWeb.cmake writes beside the pages); without
       // the file the chat draws no game tags. The messages this page sends carry this page's game, PAGE.id.
@@ -1550,7 +1572,6 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
         game: PAGE.id, games: typeof ByopopGames !== "undefined" ? ByopopGames : [] });
     } catch (e) { console.warn("the chat could not start", e); }
   }
-  startChat();
   if (PAGE.init) PAGE.init();
 })();
 </script>
