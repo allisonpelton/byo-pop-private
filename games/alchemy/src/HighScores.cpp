@@ -6,6 +6,7 @@
 #include "Buffer.h"
 #include "DialogButton.h"
 #include "Font.h"
+#include "GameText.h"
 #include "Graphics.h"
 #include "ImageFont.h"
 #include "MemoryImage.h"
@@ -116,13 +117,20 @@ HighScoreWidget::HighScoreWidget(AlchemyApp* theApp)
 	mStartButton->SetFont(mApp->mFont1);
 	mStartButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xe0, 0xb7, 0x28));
 
-	// The names a new table starts with. The original's are ten names inside the game; the port chooses its own
-	// placeholders (a port difference), which properties can replace: DEFAULT_NAME_STRATEGIC_1..5 and
-	// DEFAULT_NAME_TIME_TRIAL_1..5 in properties/default.xml. The scores are the original's, 1000 down to 600.
+	// The names a new table starts with. The original's are ten names inside the game, which the port reads from the
+	// player's own Alchemy.exe (GameText.h); without it the port's placeholders stand in. Properties can replace
+	// either: DEFAULT_NAME_STRATEGIC_1..5 and DEFAULT_NAME_TIME_TRIAL_1..5 in properties/default.xml. The scores are
+	// the original's, 1000 down to 600.
 	static const char* const aNames[NUM_MODES][NUM_ENTRIES] =
 	{
 		{"Adept", "Brewer", "Charmer", "Distiller", "Enchanter"},
 		{"Apothecary", "Conjurer", "Herbalist", "Magus", "Oracle"}
+	};
+	// where the original keeps them in its image (the strategic table's five, then the time trial table's)
+	static const unsigned int aNameVAs[NUM_MODES][NUM_ENTRIES] =
+	{
+		{0x4e4148, 0x4e4140, 0x4e4138, 0x4e4130, 0x4e412c},
+		{0x4e4124, 0x4e411c, 0x4e4114, 0x4e410c, 0x4e4108}
 	};
 	static const char* const aModeIds[NUM_MODES] = {"DEFAULT_NAME_STRATEGIC_", "DEFAULT_NAME_TIME_TRIAL_"};
 	for (int aMode = 0; aMode < NUM_MODES; aMode++)
@@ -132,7 +140,8 @@ HighScoreWidget::HighScoreWidget(AlchemyApp* theApp)
 		{
 			char anId[64];
 			sprintf(anId, "%s%d", aModeIds[aMode], i + 1);
-			mName[aMode][i] = mApp->GetString(anId, aNames[aMode][i]);
+			const std::string& aGameName = GameText(aNameVAs[aMode][i]);
+			mName[aMode][i] = mApp->GetString(anId, aGameName.empty() ? aNames[aMode][i] : aGameName);
 			mScore[aMode][i] = 1000 - i * 100;
 		}
 	}
