@@ -22,8 +22,11 @@ Hooking the copy's clock is allowed (the user, 2026-11-02, asked whether origrun
 functions to run them uncapped: "Yes, hook them"). origrun may replace the time functions the copy imports
 (timeGetTime, QueryPerformanceCounter and the like) with a clock of its own, so that an original can run faster than
 real time, update for update. Asked on 2026-11-03 whether origrun may also skip the copy's timed waits (Sleep and the
-timed Wait functions), not only hook its time reads, the user answered "Yes, waits too". That OK covers the clock's
-reads and waits only: any other hook of a Windows function inside a copy still needs the user's OK first.
+timed Wait functions), not only hook its time reads, the user answered "Yes, waits too". Asked the same day whether
+origrun may hook a copy's GetCursorPos so that it returns origrun's scripted mouse position (Bejeweled Twist's
+framework reads the cursor after posted input, and the sandbox has none, so its board never sees a scripted mouse), the
+user answered "Yes, hook it". Those OKs cover the clock's reads and waits and GetCursorPos only: any other hook of a
+Windows function inside a copy still needs the user's OK first.
 
 How any copy's protection is handled is kept in the private notes under Per-game status, which a public
 snapshot strips out (`docs/PUBLISHING.md`); this document otherwise names games only by title.
@@ -100,6 +103,9 @@ Options:
 - `--clock virtual` / `--clock real` — run the game on origrun's virtual clock, as fast as it can draw and update for
   update as in real time, or on the wall clock (the default). Needs the sound stand-in, so it is refused with
   `--sound real`. See "The virtual clock".
+- `--cursor scripted` / `--cursor real` — the copy's `GetCursorPos` returns the last mouse position the script
+  posted, or Windows' cursor (the default), for a game that reads the cursor after posted input (Bejeweled Twist's
+  board). With or without `--clock virtual`; refused with `--sound real`. See "The scripted cursor".
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
@@ -157,9 +163,14 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
   of them is refused at the start, and each one is refused (logged) should it run on the host anyway. In the
   sandbox `hwmove` lights no hover on a SAF game (Seven Seas, 2026-11-01): use a posted `move` for hover there.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
-  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, or `burst`), then resume it. Lands on the exact update
+  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `down`/`up` or `rdown`/`rup` for one edge of the left or
+  right button, or `burst`), then resume it. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
-  the same game update rather than the same wall-clock time.
+  the same game update rather than the same wall-clock time. A held game reads all the posted messages before its
+  next update, so `at N click x y` gives it the down and the up in the same update, which some games lose; `at N
+  click x y k` (or `rclick`) posts the move and the down at `N` and the up `k` updates later, at `N+k`. `at` does not
+  take the `hw*` commands: in the sandbox the game runs in session 0, which desktop input does not reach anyway
+  (`GetCursorPos` reads 0,0 whatever `SetCursorPos` did; for a game that reads the cursor, see "The scripted cursor").
 - `msgbox <button> <text...>` — when a message box whose caption or text contains `<text>` appears, click the
   button labelled `<button>` (e.g. `msgbox No Trial expired`, `msgbox OK update`). Put these at the top of the
   script; they are registered before the game launches, so even a box that pops up early is answered. A box
@@ -598,9 +609,10 @@ PNG is written. The header is refused unless the pitch is at most 16384 and no m
 **Input in the sandbox.** The sandbox has no real cursor: `GetCursorPos` reads 0,0 whatever `SetCursorPos` or hardware
 input did, so a game that polls the cursor sees nothing. `at <counter> move x y` posts the window messages
 (`WM_MOUSEMOVE`), and `at <counter> down x y` / `at <counter> up x y` post `WM_LBUTTONDOWN` / `WM_LBUTTONUP`; a game
-that reads the cursor with `GetCursorPos` needs a private patch that takes the position from `WM_MOUSEMOVE` (Water Bugs
-has one, `mouse` lines in its patch list). Send the down and the up in separate updates (40 or more apart): a down and
-up read in one update are lost. `--input-eip lo,hi[,lo,hi...]` (config key `inputeip`) holds an input command until the
+that reads the cursor with `GetCursorPos` needs `--cursor scripted` (see "The scripted cursor") or a private patch that
+takes the position from `WM_MOUSEMOVE` (Water Bugs has one, `mouse` lines in its patch list). Send the down and the up
+in separate updates (40 or more apart; `at N click x y k` does it in one line): a down and up read in one update are
+lost. `--input-eip lo,hi[,lo,hi...]` (config key `inputeip`) holds an input command until the
 game thread is outside the listed ranges (Water Bugs: 41f467,41f511, between the message pump and the end of the update
 loop), and the log line `at <cmd>: input at counter N (k holds)` gives the update that read it, which is the number to
 replay in the port. The game's own `SetCursorPos` calls have no effect there, so a port run replaying them needs its
@@ -753,6 +765,49 @@ game time in 15 s.
 - At the end, a game's shutdown loops (Bejeweled's `Sleep(10)` while its other threads finish) run the clock ahead, so
   the game time at exit varies from run to run (59.7 to 96.4 s for the same minute of Bejeweled); play is not affected.
 - Shots on the virtual clock, and a run with no script (both only inside the sandbox), are untested.
+
+## The scripted cursor (`--cursor scripted`)
+
+Posted input moves no cursor. A game that asks `GetCursorPos` where the mouse is finds Windows' cursor: on rundesk's
+desktop the call fails and leaves the point as it was, and in the sandbox it reads 0,0, which the game turns into the
+window's offset from the screen's corner. Bejeweled Twist's board reads it while it draws and puts its twist selector
+there, so posted moves and clicks never reach the board, though the menus and dialogs take posted clicks; Mahjong
+Escape: Ancient Japan reads it for its hover.
+
+With `--cursor scripted` (`cursor=scripted` in the sandbox's run file) the sound stand-in points the copy's
+`GetCursorPos` imports at its own function (`tools/origrun/cursor.c`; the user's OK of 2026-11-03 above, and nothing
+else is hooked). Before it starts the game origrun makes a small shared block (`cursor.h`, `Local\origrun-cursor-<id>`),
+and each command that posts a mouse position writes the point there first: `move`, `click`, `rclick`, `clickready`,
+`at N` with `move`, `click`, `rclick`, `down`, `up`, `rdown` or `rup` (a bare `up` keeps the last point), and
+`hwmove`/`hwclick`/`hwrclick`, which move the real cursor too. The point is kept in screen coordinates, the client
+point through the game window's `ClientToScreen` when the command runs, so the game's `ScreenToClient` gives back the
+script's point. Until the script's first mouse command the call goes to Windows as before. It works on the wall clock
+and on the virtual clock, with the clock's import patching (the stand-in pinned, execute rights kept, the exe and the
+DLLs of its folder but origrun's own and Steam.dll); DLLs the copy loads later are patched at the clock's waits or,
+without the clock, at the next `GetCursorPos` call. The stand-in logs to `logs/cursor.log` (`logs/clock.log` with the
+clock), and origrun's log ends with the number of reads the scripted point answered.
+
+Use it for a game whose board, hover or drag reads the cursor; a run without it is unchanged. A game that reads the
+cursor only while it has the focus (Twist's board) needs a `focus regain` first.
+
+**Tested (2026-11-03)** on the host under rundesk, Bejeweled Twist in 2D Classic (Play, then Classic in the mode
+select, by posted clicks), on the virtual clock and on the wall clock: with the option each `move` onto the board put
+the board's mouse (board +0x15b4) at the script's x and its selector (+0x1c00, +0x1c04) under it at the next update,
+and `at 3201 click 430 230 1` made a twist (the twist count, +0x23c, from 0 to 1 at update 3202). Without it the
+selector jumped to each posted point and back within the update, to where the failed read left the point, and no twist
+was made.
+
+**Limits:**
+- Only `GetCursorPos`. What a game asks besides gets Windows' answer: `WindowFromPoint` at the scripted point finds
+  whatever window lies there on rundesk's shared desktop, and `GetCursorInfo`, `GetMessagePos`, `GetAsyncKeyState` and
+  `GetPhysicalCursorPos` are not hooked (hooking any of them needs the user's OK first). Twist's exe imports none of the
+  last four.
+- The hook lives in the stand-in: a game that never loads `dsound.dll` from its folder never gets it (Mahjong Escape's
+  packed `bass.dll`, as for the clock), and `--sound real` refuses it.
+- Imports bound late (`GetProcAddress`, delay-loaded imports, `api-ms-win-*` sets) are not patched.
+- The point is converted when it is posted: a window moved later keeps the old screen point.
+- One point for the run: every process of the copy reads the last one posted, a process that starts later too, as a
+  real mouse stays where it was.
 
 ## Hardware acceleration (3D mode)
 
@@ -917,10 +972,11 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 | bigmoney | wrapped launcher | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
 | bookworm | wrapped Steam exe | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
 | rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
-| mahjongjapan | local install | **whole stages to the ending, in the sandbox** (2026-11-01) | **yes**, 806×629 in the sandbox | has one; off (`HardwareAcceleration=0` by `--reg`) | none | JollyBear engine, windowed DirectDraw (`FullScreen=0` by `--reg`). Posted clicks need a `move` 150 ms before. Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which inside is SYSTEM's, through the 32-bit view: stage them under `sandbox-files/C/Windows/System32/config/systemprofile/AppData/Local/...`, re-signed for `C:\run\game\` (a player's checksum covers the exe's folder). The game reads the cursor with `GetCursorPos` for its hover, which posted input does not move, and `hwmove` did not light a button either in session 0 |
+| mahjongjapan | local install | **whole stages to the ending, in the sandbox** (2026-11-01) | **yes**, 806×629 in the sandbox | has one; off (`HardwareAcceleration=0` by `--reg`) | none | JollyBear engine, windowed DirectDraw (`FullScreen=0` by `--reg`). Posted clicks need a `move` 150 ms before. Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which inside is SYSTEM's, through the 32-bit view: stage them under `sandbox-files/C/Windows/System32/config/systemprofile/AppData/Local/...`, re-signed for `C:\run\game\` (a player's checksum covers the exe's folder). The game reads the cursor with `GetCursorPos` for its hover, which posted input does not move, and `hwmove` did not light a button either in session 0. `--cursor scripted` would answer that call (the exe imports it), but only in a copy that loads the stand-in, which its packed `bass.dll` does not ("The scripted cursor"); untested |
 | mahjongchina | local install | **whole stages and the ending, in the sandbox** (2026-11-01) | **yes**, with `games/mahjongchina/tools/ddrawcap` beside the copy: without it every sandbox shot is black (China's window class has a black background brush, which the sandbox paints over the software display's output) | has one; off (`HardwareAcceleration=0` by `--reg`) | none | As mahjongjapan, and `games/mahjongchina/tools/sandbox_run.sh` does it all (the copy, ddrawcap, the BASS proxy, the registry and the re-signed players). Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape` (no "Ancient China"), staged the same way. Never click the PopCap and SpinTop logos at the menu's bottom corners: they are links |
 | bookwormadv2 | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | not wrapped; `Steam.dll` auto-copied now |
 | bonnies | installer copy | **in the sandbox (2026-11-01): menus, the classic and action games, help, options** | **yes, in the sandbox**, 806×629 (`shot`, `waitshot`) | none (SDL 1.2) | none: FMOD 3 makes no DirectSound buffer in the sandbox, so `--sound wav` records nothing (the stand-in attached in stub mode) | SDL 1.2 windowed, GDI; `focus lose`/`regain` pause and resume the game as on the user's desktop; the RNG seed is pinned by `games/bonnies/tools/origrun/patches.txt` (`--patches`, `--seed 1`); no registry, the saves beside the exe |
+| bejeweledtwist | Steam copy, prepared by its session | autoplay games on the virtual clock; menus by posted clicks; the 2D board's twists with `--cursor scripted` (on the host, 2026-11-03) | in the sandbox, 806×629 (an 800×600 client) | see its session's notes | an audio session opens and is muted | Not one of the 18; added for the scripted cursor. The board reads the cursor with `GetCursorPos` while it draws (while the window has the focus), so without `--cursor scripted` it never sees a scripted mouse: no selector under it and no twist. With it a `move` puts the selector there and a click twists ("The scripted cursor"). In its 800×600 window the main menu's Play is at 400,300 and Classic at 200,170 in the mode select |
 
 The install paths are in `tools/origrun/games.tsv`, kept out of any publish (`.publishignore`).
 
