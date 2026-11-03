@@ -21,6 +21,13 @@ Compared and identical, to the end of each list that was read:
 - classic, seed 21, 16000 updates, and then the whole game: all values to the original's last logged update (about 200000
   updates, several pyramids; the original's runs end at origrun's 240 s timeout, and the generator's watch is slower than
   the others and got to 21600 updates);
+- **the whole classic game, seed 21, to its victory** (about 1,008,000 updates, 225 chambers, 15 pyramids; origrun's runs of up to an
+  hour): the mummies' and the scorpion's cells (3098, 2797, 1005, 996, 871 and 840 changes), the death timer, the score, maze,
+  file, chamber, pyramid, game mode and clock base (706 changes) are the same at every update, to the victory screen. origrun
+  keeps about 4000 changes of a watched value, so the board, state, explorer and undo lists are compared to their first 3961
+  state changes (update 125029) and the first 3900 explorer and 3998 undo changes; the generator's state is compared to the first
+  21000 updates (its watch is slow). What is compared of the rest of the game is every other value above, which an out of step
+  explorer or a drifted generator would have thrown off within the chamber;
 - classic, seed 77, 60000 updates, into pyramid 1;
 - adventure, seed 5, 16000 updates (chambers, the map, every draw);
 - the tutorial, seed 5, to its end and the classic game that follows it (1368 generator changes);
