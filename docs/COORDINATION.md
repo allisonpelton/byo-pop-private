@@ -100,6 +100,16 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
   work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer that puts a
   native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
+- **A coverage check after the identical-play passes (the user, 2026-11-02: "Queue it").** The user asked whether
+  reccmp, the matching-decompilation tool, would help. It does not fit: it scores, function by function, how closely
+  code rebuilt with the original compiler reproduces the exe's instructions, and our ports are built by clang and
+  Emscripten on a portable framework, with SDL in place of DirectX and the leaks fixed, so its scores would be noise.
+  What it would catch that our comparisons miss is a slip in code no comparison run reaches: options, rare branches,
+  error paths. So once every game plays identical, and before the readability pass, each game gets a coverage check:
+  which of the original's functions its comparison runs reach (origrun would record it), and for each function in our
+  Ghidra export, whether the port has its counterpart, named by its address (today the ports name few: Bejeweled 154
+  distinct addresses, Twist 204). A function the runs never reach is read against the export or given a run that
+  reaches it. The coordinator builds the tool in `tools/` and tries it on one game first.
 - **The site's requested work comes between Twist and the passes (the user, 2026-11-02):** "Slot in the remaining
   requested additions and changes to the site after finishing Twist and before the passes on existing decomps." Then:
   "Any site features that are easy, you can do now. Anything that requires designing an animation or SVG, or that
