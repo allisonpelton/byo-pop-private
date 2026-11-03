@@ -22,9 +22,9 @@ echo "toolchain: $tc"
 
 CFLAGS="-O2 -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function"
 
-echo "building dsound.dll ..."
-"$CC" $CFLAGS -shared -o "$out/dsound.dll" "$here/dsound_proxy.c" "$here/dsound_proxy.def" \
-  -Wl,--enable-stdcall-fixup -lole32
+echo "building dsound.dll (the sound stand-in, which also carries the virtual clock) ..."
+"$CC" $CFLAGS -shared -o "$out/dsound.dll" "$here/dsound_proxy.c" "$here/vclock.c" "$here/dsound_proxy.def" \
+  -Wl,--enable-stdcall-fixup -lole32 -lwinmm -luser32
 
 echo "building origrun.exe ..."
 "$CC" $CFLAGS -o "$out/origrun.exe" "$here/origrun.c" \
