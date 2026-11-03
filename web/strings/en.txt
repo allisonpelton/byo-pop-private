@@ -325,6 +325,14 @@ settings.cursors.label = Use custom cursors
 settings.cursors.on = When available
 settings.cursors.off = Never
 settings.cursors.hint = Some games offer custom cursors, either enabled or disabled by default.
+settings.accel3d.label = 3D acceleration
+settings.accel3d.on = Always
+settings.accel3d.off = Never
+settings.accel3d.hint = Draws the game with your graphics card when the game allows it.
+# the "?" explanation; names the games that read the setting (ACCEL3D_GAMES in web/settings.js)
+settings.accel3d.help = Some games, such as Bejeweled Twist, can draw with your graphics card (3D) or without it (2D).
+  Always uses 3D whenever your browser supports it (WebGL 2), Never always uses 2D, and Game default leaves the game's
+  own choice. A browser without WebGL 2 always gets 2D.
 settings.autostart.label = Start the game when its page opens
 settings.autostart.hint = Requires autoplay enabled in browser settings, and only works in windowed mode.
 settings.wakelock.label = Keep the screen awake while a game runs
