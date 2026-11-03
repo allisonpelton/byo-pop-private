@@ -417,6 +417,13 @@ function(byopop_web_shell var target pagedir)
   string(REPLACE "@BYOPOP_TITLE@" "${arg_TITLE}" page "${page}")
   # the game's cap over its import card (web/capanim.js): its badge, as on the listing page
   byopop_web_badge(${target} "${arg_TITLE}" cap_initials cap_colour)
+  # escaped as the listing's are: the initials are the cap's text, the colour sits in its style attribute
+  foreach(field cap_initials cap_colour)
+    string(REPLACE "&" "&amp;" ${field} "${${field}}")
+    string(REPLACE "<" "&lt;" ${field} "${${field}}")
+    string(REPLACE ">" "&gt;" ${field} "${${field}}")
+    string(REPLACE "\"" "&quot;" ${field} "${${field}}")
+  endforeach()
   string(REPLACE "@BYOPOP_CAP_INITIALS@" "${cap_initials}" page "${page}")
   string(REPLACE "@BYOPOP_CAP_COLOUR@" "${cap_colour}" page "${page}")
   # A game released on Steam: how a player on a Mac or Linux downloads its Windows depot (BYOPOP_STEAM_<target>,
@@ -434,8 +441,8 @@ function(byopop_web_shell var target pagedir)
     set(linux_dir "~/.local/share/Steam/steamapps/content/app_${steam_app}/depot_${steam_depot}")
     set(mac_steam "<div class=\"mac-steam\" id=\"mac-steam\" hidden>
           <h3>On a <span class=\"os-mac\">Mac</span><span class=\"os-linux\">Linux computer</span>?</h3>
-          <p>${arg_TITLE} was released on Steam for Windows only, but Steam can download its Windows files there too, if it is in
-            your Steam library:</p>
+          <p>This page needs the files of ${arg_TITLE}'s Windows version. Steam installs only your own system's version of a
+            game, but it can download the Windows files too, if ${arg_TITLE} is in your Steam library:</p>
           <ol>
             <li>Open Steam's console: <a href=\"steam://open/console\">open it in Steam</a>, or paste
               <code class=\"pick\">steam://open/console</code> into your browser's address bar.</li>

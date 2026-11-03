@@ -354,7 +354,7 @@ var ByopopImport = (function () {
           throw new Error("That folder doesn't hold " + g.title + "'s " + spec.markerText + ".");
         if (say) say("Copying " + files.length + " files…");
         return writeGame(spec.persist, ordered(spec, files), function (n, total) { if (say) say("Copying… " + Math.round(n * 100 / total) + "%"); },
-          function () { try { ByopopGameFiles.lost(spec.id); } catch (e) {} })  // the old copy is gone
+          function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} })  // the old copy is gone
           .then(function () { return icon(spec, all, root, files); })
           .then(function (url) {
             try { ByopopGameFiles.mark(spec.id); if (url) ByopopGameFiles.setIcon(spec.id, url); } catch (e) {}

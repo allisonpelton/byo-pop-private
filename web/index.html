@@ -760,8 +760,8 @@ try {
             if (found.game && !(rec && rec.missing)) info.state = "yes";
             else {
               info.state = "no";
-              // played before: a record (kept when the files are forgotten), a save backup, or entries in the database
-              info.played = !!rec || info.saves || found.entries;
+              // played before: a record of files loaded once (kept when they are forgotten), a save backup, or entries in the database
+              info.played = ByopopGameFiles.everLoaded(rec) || info.saves || found.entries;
               info.saves = info.saves || found.saves;
             }
             show(tile, info, gen);
@@ -777,6 +777,17 @@ try {
   document.addEventListener("click", function (ev) {
     if (open && !open.button.parentNode.parentNode.contains(ev.target)) close(false);
   });
+  // Before the files check (which waits for the database): a card whose record says its files are here is taken as such, so
+  // that a game no store sells, hidden by default unless its files are here, is in the grid from the start instead of
+  // moving the grid when the check ends. The check then sets every card's data-files from what it finds.
+  (function () {
+    var record = {};
+    try { record = ByopopGameFiles.all(); } catch (e) {}
+    tiles.forEach(function (tile) {
+      var li = tile.parentNode, rec = record[tile.getAttribute("data-game")];
+      if (li && !li.hasAttribute("data-files") && ByopopGameFiles.present(rec)) li.setAttribute("data-files", "yes");
+    });
+  })();
   check();
   window.addEventListener("pageshow", check);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });

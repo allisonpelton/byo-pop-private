@@ -662,6 +662,16 @@ var ByopopGameFiles = (function () {
     delete r.icon;
     write(o);
   }
+  // An import has started replacing the files (the old copy is gone, the new one not all there yet): noted as missing
+  // whatever the record held, a first add and a re-add after "Forget game files" too, until mark() records the new copy. A
+  // copy cut off partway (the tab closed) is then not taken for the game by the listing's files check.
+  function replacing(id) {
+    var o = all(), r = o[id] || {};
+    r.missing = today();
+    delete r.icon;
+    o[id] = r;
+    write(o);
+  }
   // The icon read out of the game's exe (a PNG data URL, at most 16 KB), kept with the entry while the files are there
   function setIcon(id, url) {
     if (typeof url !== "string" || url.length > 16384 || url.indexOf("data:image/png;base64,") !== 0) return false;
@@ -676,7 +686,7 @@ var ByopopGameFiles = (function () {
   // Whether a record says the files were ever loaded in this browser, whether they are there now or were forgotten or lost
   // since. The listing page hides a game's buy links for such a game (docs/WEB_PLAYER.md, "The listing page").
   function everLoaded(r) { return !!(r && r.loaded); }
-  return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, present: present, everLoaded: everLoaded, setIcon: setIcon };
+  return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, replacing: replacing, present: present, everLoaded: everLoaded, setIcon: setIcon };
 })();
 
 // How much each game was played in this browser (docs/WEB_PLAYER.md, "The listing page"): one localStorage item for the whole

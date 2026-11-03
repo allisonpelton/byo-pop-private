@@ -1078,10 +1078,11 @@ are not part of the site and are not checked; naming a file checks it anyway.
 
 The user, 2026-11-03: "On pages for games with a Steam release, if user agent is detected that suggests Mac OS, give
 instructions on how to get the depot for the Windows release of a game", then "this should probably support Linux too". Steam
-on a Mac or Linux offers to install only that system's version of a game, and these games were released on Steam for Windows
-only, but its console's `download_depot <app> <depot>` downloads any depot of a game the account owns. A game released on
+on a Mac or Linux installs only that system's version of a game (most of these games have none, a few have a Mac version),
+and the ports read the Windows files, but its console's `download_depot <app> <depot>` downloads any depot of a game the account owns. A game released on
 Steam, whether or not Steam still sells it, has a `BYOPOP_STEAM_<target>` entry in `cmake/ByopopStores.cmake`, its app and
-the depot of its Windows files (read from the user's own Steam library, where each is the app's number plus one), and
+the depot of its Windows files (read from Steam's own app data in the user's Steam client, never a demo's depot; each is the
+app's number plus one), and
 `byopop_web_shell()` puts the steps on its import card, hidden: open the console (a `steam://open/console` link, or the same
 pasted into the address bar), type the command, wait for "Depot download complete", then choose the folder it names, whose
 usual path the card gives (under `~/Library/Application Support/Steam/Steam.AppBundle/...` on a Mac,

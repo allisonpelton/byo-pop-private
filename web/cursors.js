@@ -13,6 +13,9 @@
 var ByopopCursors = (function () {
   "use strict";
   var KEY = "byopop-cursors", CHOICE = "byopop-site-cursor";
+  // the most the sets may take together (characters of their JSON): localStorage's quota is shared with the games' save
+  // backups (sexy-userdata-backup:*), so a set that would go past it is not kept
+  var MAX_TOTAL = 256 * 1024;
   var KINDS = ["pointer", "hand", "drag", "text"];
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
   function plain(o) { return !!o && typeof o === "object" && !Array.isArray(o); }
@@ -46,13 +49,15 @@ var ByopopCursors = (function () {
       return true;
     } catch (e) { return false; }
   }
-  // Keeps a game's set ({pointer, hand, drag, text}, as all() gives them); true when it was new or changed
+  // Keeps a game's set ({pointer, hand, drag, text}, as all() gives them); true when it was new or changed. Not kept (false)
+  // without a pointer, or when the sets would then take more than MAX_TOTAL.
   function save(id, title, set) {
     if (!validId(id) || !plain(set) || !validImage(set.pointer)) return false;
     var o = all(), entry = { title: String(title || id).slice(0, 120) };
     KINDS.forEach(function (k) { if (validImage(set[k])) entry[k] = { url: set[k].url, x: set[k].x, y: set[k].y }; });
     if (JSON.stringify(o[id]) === JSON.stringify(entry)) return false;
     o[id] = entry;
+    if (JSON.stringify(o).length > MAX_TOTAL) return false;
     if (!write(o)) return false;
     apply();
     redraw();

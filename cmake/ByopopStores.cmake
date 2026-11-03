@@ -173,16 +173,20 @@ set(BYOPOP_BUY_talismania 2026-11-02
 # on Steam whether or not Steam still sells them. A game page whose player is on a Mac or Linux tells them how to download that depot
 # through Steam's console (the user, 2026-11-03: "On pages for games with a Steam release, if user agent is detected that
 # suggests Mac OS, give instructions on how to get the depot for the Windows release of a game"; docs/WEB_PLAYER.md, "Steam
-# on a Mac"). Read 2026-11-03 from the user's own Steam library on Windows (each appmanifest_<app>.acf's InstalledDepots):
-# every one of these is the app's number plus one. Gyromancer (app 23380) installs two depots and is not listed until its
-# port shows which of them it needs; Bookworm Adventures (both volumes) are not in the user's Steam library, so their depots
-# were not read.
+# on a Mac or Linux"). Read 2026-11-03 from Steam's own app data in the user's Steam client (appcache/appinfo.vdf, each app's
+# "depots"): the depot whose oslist is windows, or the app's only depot, and never a demo's (BookWorm Deluxe's demo, app 3372,
+# borrows the full game's 3371 with depotfromapp); each is the app's number plus one, and the user's installs
+# (appmanifest_<app>.acf, InstalledDepots) match. Some also have a macos depot (BookWorm Deluxe 3377, Bejeweled 2 3307,
+# Chuzzle 3317, Peggle 3489, Peggle Nights 3543, Bejeweled 3 78011), but the ports read the Windows files. Gyromancer (app
+# 23380) needs two depots and is not listed until its port shows which.
 set(BYOPOP_STEAM_bejeweled "3350 3351")
 set(BYOPOP_STEAM_bigmoney "3360 3361")
 set(BYOPOP_STEAM_bookworm "3370 3371")
 set(BYOPOP_STEAM_dynomite "3380 3381")
 set(BYOPOP_STEAM_rocketmania "3440 3441")
 set(BYOPOP_STEAM_bejeweledtwist "3560 3561")
+set(BYOPOP_STEAM_bookwormadv "3470 3471")
+set(BYOPOP_STEAM_bookwormadv2 "3630 3631")
 set(BYOPOP_STEAM_bejeweled2 "3300 3301")
 set(BYOPOP_STEAM_chuzzle "3310 3311")
 set(BYOPOP_STEAM_astropop "3340 3341")
