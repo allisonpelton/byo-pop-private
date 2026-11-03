@@ -12,6 +12,11 @@
 //   -autoplaycap=N           quit after N updates in any case (default 20000)
 //   -autoplaylog=<file>      the log of what happened (tests compare it)
 //   -autoplayshots=<prefix>  screenshots at the game's milestones
+//   -autoplayui              the bot plays through the mouse only (clicks on the title's link, the selector's and the
+//                            dialogs' buttons, a right click for the forge, moves and clicks for the pieces) and writes
+//                            what it did as script lines to -autoplayscript=<file>, so that a -script run (and origrun
+//                            on the original) gets the same input; -autoplaystart=<n> holds the bot back until update n
+//   -statelog=<file>         (any run) each change of the board's values with its update count: StateLog
 
 #include <cstdio>
 
@@ -20,6 +25,7 @@ namespace Sexy
 
 class AlchemyApp;
 class Board;
+class Widget;
 
 class AutoplayBot
 {
@@ -39,6 +45,8 @@ public:
 	bool			mOverLogged;
 	bool			mFinished;
 	FILE*			mLog;
+	FILE*			mScriptOut;         // -autoplayui: the input as script lines
+	int				mSelStep;           // -autoplayui: 0 the mode's button comes next, 1 the start button
 
 public:
 	AutoplayBot(AlchemyApp* theApp, unsigned int theSeed);
@@ -52,6 +60,29 @@ private:
 	void			Shot(const char* theName, int theNumber);
 	void			PlayBoard(Board* theBoard);
 	void			Finish();
+	void			Move(int theX, int theY);
+	void			Click(int theX, int theY, int theButton);
+	void			ClickWidget(Widget* theWidget);
+	void			Char(char theChar);
+};
+
+// Test hooks: -statelog=<file> writes a line "<update> <name> <value>" each time one of the board's values changes
+// (state, score, moves, discards, boards, the shape and colour of the piece to place, the time trial's pause, the
+// forge-full count and the game-over timer; "-" when there is no board or piece). The original's values for the same names are watched with origrun (--watch), so the two logs are compared
+// update by update.
+class StateLog
+{
+public:
+	AlchemyApp*		mApp;
+	FILE*			mFile;
+	enum { NUM_FIELDS = 11 };
+	int				mLast[NUM_FIELDS];
+
+public:
+	StateLog(AlchemyApp* theApp);
+	~StateLog();
+
+	void			Update();
 };
 
 }

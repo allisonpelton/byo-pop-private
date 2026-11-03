@@ -11,6 +11,9 @@
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
 #include "Compat2004.h"
+#include "Dialog.h"
+#include "EditWidget.h"
+#include "HyperlinkWidget.h"
 
 #include <cstdarg>
 #include <cstdlib>
@@ -36,14 +39,20 @@ AutoplayBot::AutoplayBot(AlchemyApp* theApp, unsigned int theSeed)
 	mOverLogged = false;
 	mFinished = false;
 	mLog = NULL;
+	mScriptOut = NULL;
+	mSelStep = 0;
 	if (!theApp->mAutoplayLogFileName.empty())
 		mLog = fopen(theApp->mAutoplayLogFileName.c_str(), "w");
+	if (theApp->mAutoplayUi && !theApp->mAutoplayScriptFileName.empty())
+		mScriptOut = fopen(theApp->mAutoplayScriptFileName.c_str(), "w");
 }
 
 AutoplayBot::~AutoplayBot()
 {
 	if (mLog != NULL)
 		fclose(mLog);
+	if (mScriptOut != NULL)
+		fclose(mScriptOut);
 }
 
 int AutoplayBot::Rand(int theRange)
@@ -72,6 +81,37 @@ void AutoplayBot::Shot(const char* theName, int theNumber)
 	mApp->AutoplayShot(StrFormat("%s-%s%d.png", mApp->mAutoplayShotPrefix.c_str(), theName, theNumber));
 }
 
+// -autoplayui: the pointer and the buttons, as a -script file's lines. The bot runs after the update's widgets, a script
+// line before the next update's, so a line is for the update after this one.
+void AutoplayBot::Move(int theX, int theY)
+{
+	if (mScriptOut != NULL)
+		fprintf(mScriptOut, "%d move %d %d\n", mApp->mUpdateCount + 1, theX, theY);
+	mApp->TestMouseMoveTo(theX, theY);
+}
+
+void AutoplayBot::Click(int theX, int theY, int theButton)
+{
+	if (mScriptOut != NULL)
+		fprintf(mScriptOut, "%d %s %d %d\n", mApp->mUpdateCount + 1, theButton < 0 ? "rclick" : "click", theX, theY);
+	mApp->TestMouseMoveTo(theX, theY);
+	mApp->mWidgetManager->MouseDown(theX, theY, theButton);
+	mApp->mWidgetManager->MouseUp(theX, theY, theButton);
+}
+
+void AutoplayBot::ClickWidget(Widget* theWidget)
+{
+	Point aPos = theWidget->GetAbsPos();
+	Click(aPos.mX + theWidget->mWidth / 2, aPos.mY + theWidget->mHeight / 2, 1);
+}
+
+void AutoplayBot::Char(char theChar)
+{
+	if (mScriptOut != NULL)
+		fprintf(mScriptOut, "%d char %c\n", mApp->mUpdateCount + 1, theChar);
+	mApp->mWidgetManager->KeyChar((SexyChar) theChar);
+}
+
 void AutoplayBot::Finish()
 {
 	if (mFinished)
@@ -82,6 +122,11 @@ void AutoplayBot::Finish()
 	{
 		fclose(mLog);
 		mLog = NULL;
+	}
+	if (mScriptOut != NULL)
+	{
+		fclose(mScriptOut);
+		mScriptOut = NULL;
 	}
 	mApp->Shutdown();
 }
@@ -118,8 +163,13 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 		int aX = mClickX;
 		int aY = mClickY;
 		mClickX = -1;
-		mApp->mWidgetManager->MouseDown(aX, aY, 1);
-		mApp->mWidgetManager->MouseUp(aX, aY, 1);
+		if (mApp->mAutoplayUi)
+			Click(aX, aY, 1);
+		else
+		{
+			mApp->mWidgetManager->MouseDown(aX, aY, 1);
+			mApp->mWidgetManager->MouseUp(aX, aY, 1);
+		}
 		mMoves++;
 		mWait = 1;
 		return;
@@ -161,7 +211,10 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 		// nowhere to put it: the forge
 		mForges++;
 		Log("forge %d at update %d (piece shape %d color %d)", mForges, mTick, aPiece->mShape, aPiece->mColor);
-		theBoard->MouseDown(0, 0, -1);
+		if (mApp->mAutoplayUi)
+			Click(320, 240, -1);
+		else
+			theBoard->MouseDown(0, 0, -1);
 		mWait = 3;
 		return;
 	}
@@ -181,7 +234,10 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 	// now and the click comes with the next action, when the piece has caught up
 	mClickX = AlchemyApp::BOARD_X + Board::ColToX(aPick % Board::COLS) + 0x30;
 	mClickY = Board::RowToY(aPick / Board::COLS) + 0x30;
-	mApp->mWidgetManager->MouseMove(mClickX, mClickY);
+	if (mApp->mAutoplayUi)
+		Move(mClickX, mClickY);
+	else
+		mApp->mWidgetManager->MouseMove(mClickX, mClickY);
 	mWait = 1;
 }
 
@@ -196,6 +252,8 @@ void AutoplayBot::Update()
 		Finish();
 		return;
 	}
+	if (mTick < mApp->mAutoplayStart)
+		return;
 	if (mWait > 0)
 	{
 		mWait--;
@@ -209,7 +267,10 @@ void AutoplayBot::Update()
 		{
 			Log("title done at update %d", mTick);
 			Shot("title", 0);
-			mApp->mTitleScreen->ButtonDepress(1);
+			if (mApp->mAutoplayUi)
+				ClickWidget(mApp->mTitleScreen->mPlayLink);
+			else
+				mApp->mTitleScreen->ButtonDepress(1);
 			mWait = 5;
 		}
 		return;
@@ -220,7 +281,10 @@ void AutoplayBot::Update()
 	{
 		Log("hint dialog closed at update %d", mTick);
 		Shot("hint", mTick);
-		mApp->ButtonDepress(DIALOG_HINT + 2000);
+		if (mApp->mAutoplayUi)
+			ClickWidget(mApp->GetDialog(DIALOG_HINT)->mYesButton);
+		else
+			mApp->ButtonDepress(DIALOG_HINT + 2000);
 		mWait = 5;
 		return;
 	}
@@ -240,9 +304,29 @@ void AutoplayBot::Update()
 	if (mApp->GetDialog(DIALOG_NAME_ENTRY) != NULL)
 	{
 		Log("name entered at update %d", mTick);
+		{
+			NameEntryDialog* aName = (NameEntryDialog*) mApp->GetDialog(DIALOG_NAME_ENTRY);
+			Point aDialogPos = aName->GetAbsPos();
+			Point anEditPos = aName->mEdit->GetAbsPos();
+			Point aYesPos = aName->mYesButton->GetAbsPos();
+			Point aNoPos = aName->mNoButton != NULL ? aName->mNoButton->GetAbsPos() : Point(-1, -1);
+			Log("name dialog: lines %d chars, header %d chars; at (%d, %d) %d x %d; edit (%d, %d) %d x %d; yes (%d, %d) %d x %d; no (%d, %d)", (int) aName->mDialogLines.length(), (int) aName->mDialogHeader.length(), aDialogPos.mX, aDialogPos.mY,
+				aName->mWidth, aName->mHeight, anEditPos.mX, anEditPos.mY, aName->mEdit->mWidth, aName->mEdit->mHeight, aYesPos.mX,
+				aYesPos.mY, aName->mYesButton->mWidth, aName->mYesButton->mHeight, aNoPos.mX, aNoPos.mY);
+		}
 		Shot("name", mGames);
-		((NameEntryDialog*) mApp->GetDialog(DIALOG_NAME_ENTRY))->mEdit->SetText("Bot");
-		mApp->ButtonDepress(DIALOG_NAME_ENTRY + 2000);
+		if (mApp->mAutoplayUi)
+		{
+			Char('B');
+			Char('o');
+			Char('t');
+			ClickWidget(mApp->GetDialog(DIALOG_NAME_ENTRY)->mYesButton);
+		}
+		else
+		{
+			((NameEntryDialog*) mApp->GetDialog(DIALOG_NAME_ENTRY))->mEdit->SetText("Bot");
+			mApp->ButtonDepress(DIALOG_NAME_ENTRY + 2000);
+		}
 		mWait = 5;
 		return;
 	}
@@ -255,7 +339,10 @@ void AutoplayBot::Update()
 		if (!mOverLogged)
 			return;
 		Shot("scores", mGames);
-		mApp->mHighScores->ButtonDepress(1);
+		if (mApp->mAutoplayUi)
+			ClickWidget(mApp->mHighScores->mStartButton);
+		else
+			mApp->mHighScores->ButtonDepress(1);
 		mWait = 5;
 		return;
 	}
@@ -268,6 +355,16 @@ void AutoplayBot::Update()
 			Finish();
 			return;
 		}
+		if (mApp->mAutoplayUi && mSelStep == 0)
+		{
+			// the mode's button, then (two updates later) the start button
+			bool aTrial = mApp->mAutoplayMode == "timetrial";
+			ClickWidget(aTrial ? (Widget*) mApp->mSelector->mTimeTrialButton : (Widget*) mApp->mSelector->mStrategicButton);
+			mSelStep = 1;
+			mWait = 2;
+			return;
+		}
+		mSelStep = 0;
 		mGames++;
 		mMoves = 0;
 		mForges = 0;
@@ -275,10 +372,15 @@ void AutoplayBot::Update()
 		mLastState = -1;
 		mLastBoards = 0;
 		Shot("selector", mGames);
-		mApp->mTutorialMode = (mApp->mAutoplayMode == "tutorial");
-		mApp->SetTimeTrial(mApp->mAutoplayMode == "timetrial");
 		Log("game %d (%s) starts at update %d", mGames, mApp->mAutoplayMode.c_str(), mTick);
-		mApp->StartGame();
+		if (mApp->mAutoplayUi)
+			ClickWidget(mApp->mSelector->mStartButton);
+		else
+		{
+			mApp->mTutorialMode = (mApp->mAutoplayMode == "tutorial");
+			mApp->SetTimeTrial(mApp->mAutoplayMode == "timetrial");
+			mApp->StartGame();
+		}
 		mWait = 20;
 		return;
 	}
@@ -312,7 +414,14 @@ void AutoplayBot::Update()
 			Log("board %d cleared at update %d: score %d", mLastBoards, mTick, aBoard->mScore);
 			Shot("cleared", mLastBoards);
 		}
-		aBoard->ButtonDepress(0);
+		if (mApp->mAutoplayUi)
+		{
+			if (aBoard->mButton == NULL)
+				return;
+			ClickWidget(aBoard->mButton);
+		}
+		else
+			aBoard->ButtonDepress(0);
 		mWait = 5;
 		return;
 	}
@@ -326,4 +435,59 @@ void AutoplayBot::Update()
 	}
 
 	PlayBoard(aBoard);
+}
+
+StateLog::StateLog(AlchemyApp* theApp)
+{
+	mApp = theApp;
+	mFile = fopen(theApp->mStateLogFileName.c_str(), "w");
+	for (int i = 0; i < NUM_FIELDS; i++)
+		mLast[i] = -999999;
+}
+
+StateLog::~StateLog()
+{
+	if (mFile != NULL)
+		fclose(mFile);
+}
+
+void StateLog::Update()
+{
+	if (mFile == NULL)
+		return;
+
+	static const char* const aNames[NUM_FIELDS] = {"state", "score", "moves", "discards", "boards", "shape", "color", "timetrial",
+		"trialpause", "fullcount", "overtimer"};
+	int aValues[NUM_FIELDS];
+	for (int i = 0; i < NUM_FIELDS; i++)
+		aValues[i] = -1000000;  // "-": no board or piece
+	Board* aBoard = mApp->mBoard;
+	if (aBoard != NULL)
+	{
+		aValues[0] = aBoard->mState;
+		aValues[1] = aBoard->mScore;
+		aValues[2] = aBoard->mMoves;
+		aValues[3] = aBoard->mDiscards;
+		aValues[4] = aBoard->mBoardsCleared;
+		aValues[7] = aBoard->mTimeTrial ? 1 : 0;
+		aValues[8] = aBoard->mTrialPause;
+		aValues[9] = aBoard->mFullCount;
+		aValues[10] = aBoard->mOverTimer;
+		if (aBoard->mCurPiece != NULL)
+		{
+			aValues[5] = aBoard->mCurPiece->mShape;
+			aValues[6] = aBoard->mCurPiece->mColor;
+		}
+	}
+	for (int i = 0; i < NUM_FIELDS; i++)
+	{
+		if (aValues[i] == mLast[i])
+			continue;
+		mLast[i] = aValues[i];
+		if (aValues[i] == -1000000)
+			fprintf(mFile, "%d %s -\n", mApp->mUpdateCount, aNames[i]);
+		else
+			fprintf(mFile, "%d %s %d\n", mApp->mUpdateCount, aNames[i], aValues[i]);
+	}
+	fflush(mFile);
 }

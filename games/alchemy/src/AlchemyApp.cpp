@@ -99,6 +99,9 @@ AlchemyApp::AlchemyApp()
 	mAutoplayCap = 20000;
 	mAutoplayGames = 1;
 	mAutoplayBot = NULL;
+	mAutoplayUi = false;
+	mAutoplayStart = 0;
+	mStateLog = NULL;
 }
 
 // 0x41159c: a game in progress is saved here (the web build does it in ShutdownHook, the app is never deleted there);
@@ -167,6 +170,7 @@ AlchemyApp::~AlchemyApp()
 		delete mSoundImages[i];
 
 	delete mAutoplayBot;
+	delete mStateLog;
 	delete[] mImages;
 }
 
@@ -174,6 +178,13 @@ AlchemyApp::~AlchemyApp()
 void AlchemyApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+
+	if (!mStateLogFileName.empty())
+	{
+		if (mStateLog == NULL)
+			mStateLog = new StateLog(this);
+		mStateLog->Update();
+	}
 
 	if (mAutoplay)
 	{
@@ -222,6 +233,14 @@ void AlchemyApp::HandleCmdLineParam(const std::string& theParamName, const std::
 		mAutoplayCap = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaylog")
 		mAutoplayLogFileName = theParamValue;
+	else if (theParamName == "-autoplayui")
+		mAutoplayUi = true;
+	else if (theParamName == "-autoplayscript")
+		mAutoplayScriptFileName = theParamValue;
+	else if (theParamName == "-autoplaystart")
+		mAutoplayStart = atoi(theParamValue.c_str());
+	else if (theParamName == "-statelog")
+		mStateLogFileName = theParamValue;
 	else if (theParamName == "-autoplayshots")
 		mAutoplayShotPrefix = theParamValue;
 	else

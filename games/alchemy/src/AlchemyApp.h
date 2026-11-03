@@ -31,6 +31,7 @@ class ImageFont;
 class ButtonWidget;
 class Dialog;
 class AutoplayBot;
+class StateLog;
 
 enum DialogId
 {
@@ -116,6 +117,17 @@ public:
 	std::string				mAutoplayLogFileName;
 	std::string				mAutoplayShotPrefix;
 	AutoplayBot*			mAutoplayBot;
+	//   -autoplayui              the bot plays through the mouse: clicks on the buttons, the way a -script does, and writes
+	//                            -autoplayscript=<file> (the clicks and moves as script lines)
+	//   -autoplaystart=<n>       the bot starts at update n (the original's loading takes a while)
+	//   -statelog=<file>         each change of the board's state, score, moves, forged pieces, boards cleared and the
+	//                            piece to place, with the update it came at (the identical-play pass compares it with
+	//                            the original's values)
+	bool					mAutoplayUi;
+	int						mAutoplayStart;
+	std::string				mAutoplayScriptFileName;
+	std::string				mStateLogFileName;
+	StateLog*				mStateLog;
 
 public:
 	AlchemyApp();                                           // 0x4118c9
@@ -137,6 +149,7 @@ public:
 	virtual void			GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
 	virtual void			ShutdownHook() override;                  // port (web): ~AlchemyApp's save (the app is never deleted)
 	virtual void			UpdateFrames() override;                  // port: runs the test hook's bot
+	void					TestMouseMoveTo(int theX, int theY) { MouseMoveTo(theX, theY); }  // port: the bot's pointer, as a script's
 
 	using SexyApp::KillDialog;
 
