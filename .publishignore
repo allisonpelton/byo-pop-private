@@ -26,3 +26,5 @@ games/bejeweled/tools/make_su_gems_mod.py
 games/bejeweled/tools/origcmp/orig.sh
 # Twist's staging script: it carves the game out of its wrapper with the private extract_game_exe (2026-11-03)
 games/bejeweledtwist/tools/stage_bejeweledtwist_assets.py
+# Big Money's comparison runner carves the game out of WinBM.exe with the private extract_game_exe (2026-11-03)
+games/bigmoney/tools/origcmp/orig.sh
