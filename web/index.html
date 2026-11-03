@@ -8,7 +8,9 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
-<script src="theme.js"></script>
+<script src="theme.js"></script><script src="logo.js"></script>
+<!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
+<script src="cursors.js"></script>
 <style>
 /* The list of the finished games (docs/WEB_PLAYER.md, "The listing page"). byopop_web_index() in
    cmake/ByopopWeb.cmake puts one tile per game at the byopop:games marker. A tile's icon is a badge drawn here: the
@@ -63,6 +65,7 @@ main { padding-block: 0 32px; }
   border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
 .theme-btn:hover { color: var(--fg); border-color: var(--accent); }
 h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .games {
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 16px;
@@ -142,6 +145,11 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .badge[draggable=true] { cursor: grab; }
 .drop-on { outline: 3px dashed var(--accent); outline-offset: 4px; }
 .sortby[hidden] { display: none; }
+.show-unsold { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
+.show-unsold[hidden] { display: none; }
+.show-unsold input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+/* a game no store sells any more, unless its files are here (data-files, set by the files check) */
+.games.hide-unsold > li[data-unsold]:not([data-files=yes]) { display: none; }
 .sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
 .sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
 .sortby label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
@@ -291,10 +299,11 @@ footer a { color: var(--accent); }
 <header class="site-header">
   <!-- The logo stands for the bottle opener: game folders dropped on it are added (web/addgames.js) -->
   <div class="logo-drop" id="logo-drop">
-    <img class="logo-light" src="logo.svg" alt="byo-pop" width="276" height="64">
-    <img class="logo-dark" src="logo-dark.svg" alt="" width="276" height="64">
+    <img class="logo-light" src="logo.svg" alt="byo-pop" width="210" height="64">
+    <img class="logo-dark" src="logo-dark.svg" alt="" width="210" height="64">
   </div>
-  <h1 id="games-title">Games</h1>
+  <!-- Out of sight (the user, 2026-11-03: "remove Games from the front page header"), but still the page's heading and the list's name -->
+  <h1 id="games-title" class="visually-hidden">Games</h1>
   <button type="button" class="theme-btn" data-theme-toggle aria-label="Dark theme" aria-pressed="false"></button>
 </header>
 <main>
@@ -304,8 +313,12 @@ footer a { color: var(--accent); }
       <div class="sortby-opts">
         <label><input type="radio" name="sortby" value="name" checked> Name</label>
         <label><input type="radio" name="sortby" value="release"> Release date</label>
+        <label><input type="radio" name="sortby" value="time"> Play time</label>
+        <label><input type="radio" name="sortby" value="plays"> Plays</label>
       </div>
     </fieldset>
+    <!-- Games no store sells any more (data-unsold) are hidden unless this is ticked or their files are here (the script below) -->
+    <label class="show-unsold" id="show-unsold-label" hidden><input type="checkbox" id="show-unsold" aria-label="Show games no longer sold"> Show games no longer sold</label>
     <div class="toolbar-actions">
       <button type="button" class="add-games" id="add-games" hidden>Add games</button>
       <!-- The recycle bin: a game's cap dragged here forgets its files, after a yes in the panel below (web/addgames.js) -->
@@ -362,6 +375,7 @@ footer a { color: var(--accent); }
   <section id="settings" class="tabpanel" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
     <h2 class="pl-sr">Settings</h2>
     <div id="settings-controls"></div>
+    <div id="site-cursor" class="site-cursor-choice"></div>
   </section>
 </main>
 <footer>
@@ -381,11 +395,14 @@ footer a { color: var(--accent); }
 <script src="modpanel.js"></script>
 <script src="exeicon.js"></script>
 <script src="gameimport.js"></script>
+<script src="capanim.js"></script>
 <script src="import-games.js"></script>
 <script src="addgames.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
 try { ByopopSettings.render(document.getElementById("settings-controls")); } catch (e) {}
+// the site's cursor (web/cursors.js): a game's set, chosen for every page
+try { ByopopCursors.render(document.getElementById("site-cursor")); } catch (e) {}
 // The players section (web/players.js): the games are the tiles, in their order
 try {
   ByopopPlayers.init(document.getElementById("players-body"), Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
@@ -401,16 +418,43 @@ try {
 } catch (e) { document.getElementById("saves-body").textContent = "The save backup is not available."; }
 </script>
 <script>
-// "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles without "Deluxe"), or by release
-// date, oldest first. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
+// Games no longer sold (docs/WEB_PLAYER.md, "The listing page"; the user, 2026-11-03: "add an option to hide games that can no
+// longer be purchased, and default to hiding those games from the front page"): a game with no store in cmake/ByopopStores.cmake
+// has data-unsold on its card, and is hidden unless "Show games no longer sold" is ticked or its files are in this browser (a
+// player who has them can play it). The choice is kept in localStorage ("byopop-listing-unsold": "show", or nothing for the
+// default); a page without storage hides them.
+(function () {
+  var KEY = "byopop-listing-unsold";
+  var list = document.querySelector("ul.games"), box = document.getElementById("show-unsold"), label = document.getElementById("show-unsold-label");
+  if (!list || !box || !label) return;
+  if (!list.querySelector("li[data-unsold]")) return;  // every game is sold somewhere: no choice to offer
+  function apply(show) {
+    box.checked = show;
+    list.classList.toggle("hide-unsold", !show);
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  apply(saved === "show");
+  label.hidden = false;
+  box.addEventListener("change", function () {
+    apply(box.checked);
+    try { if (box.checked) localStorage.setItem(KEY, "show"); else localStorage.removeItem(KEY); } catch (e) {}
+  });
+  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(ev.newValue === "show"); });
+})();
+</script>
+<script>
+// "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles without "Deluxe"), by release
+// date, oldest first, or by how much they were played in this browser (ByopopPlay, web/settings.js): play time or plays, most first. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
 // (no CSS order). It runs after the Players and Saves sections took the games in the built order: they keep it. The choice is
 // remembered in localStorage (the page works without it).
 (function () {
-  var KEY = "byopop-listing-sort";  // "name" or "release"
+  var KEY = "byopop-listing-sort";  // "name", "release", "time" or "plays"
   var list = document.querySelector("ul.games"), box = document.getElementById("sortby"), status = document.getElementById("sortby-status");
   if (!list || !box || !status) return;
   var radios = Array.prototype.slice.call(box.querySelectorAll("input[name=sortby]"));
-  var SAID = { name: "Sorted by name", release: "Sorted by release date" };
+  var SAID = { name: "Sorted by name", release: "Sorted by release date", time: "Sorted by play time", plays: "Sorted by plays" };
+  var mode = "name";
 
   // the date of data-released as [year, month, day], 0 for a part it does not give; null for no date or one that is not a date
   function when(text) {
@@ -418,7 +462,9 @@ try {
     return m ? [+m[1], m[2] ? +m[2] : 0, m[3] ? +m[3] : 0] : null;
   }
   var cards = Array.prototype.slice.call(list.children).filter(function (e) { return e.tagName === "LI"; }).map(function (li, at) {
-    return { li: li, at: at, when: when(li.getAttribute("data-released")), title: (li.getAttribute("data-title") || "").toLowerCase().replace(/ deluxe/g, "") };
+    var tile = li.querySelector("a.tile[data-game]");
+    return { li: li, at: at, when: when(li.getAttribute("data-released")), title: (li.getAttribute("data-title") || "").toLowerCase().replace(/ deluxe/g, ""),
+      id: tile ? tile.getAttribute("data-game") : "" };
   });
   var byName = cards.slice();
   // Oldest first. Inside a year, the dates with a month come before a year alone, by month; inside a month, the ones with a day
@@ -433,6 +479,21 @@ try {
     return a.title < b.title ? -1 : a.title > b.title ? 1 : a.at - b.at;
   });
 
+  // Most played first, by play time (seconds) or by plays, the other then breaking a tie; then the games whose files are here
+  // (the card's data-files, from the files check) before the others, each by name, the games still to come among the others.
+  // Read again at each sort: the counts change as games are played, and the files check ends after the first sort.
+  function byPlay(field) {
+    var play = {};
+    try { play = ByopopPlay.all(); } catch (e) {}
+    var other = field === "seconds" ? "plays" : "seconds", at = {};
+    byName.forEach(function (c, i) { at[c.at] = i; });
+    function n(c, f) { var p = c.id && play[c.id]; return p && p[f] > 0 ? p[f] : 0; }
+    function added(c) { return c.li.getAttribute("data-files") === "yes" ? 1 : 0; }
+    return cards.slice().sort(function (a, b) {
+      return (n(b, field) - n(a, field)) || (n(b, other) - n(a, other)) || (added(b) - added(a)) || (at[a.at] - at[b.at]);
+    });
+  }
+
   // Puts the cards in this order, moving only those out of place, and keeps the focus where it was (a moved element that
   // had it loses it)
   function place(order) {
@@ -442,17 +503,17 @@ try {
     });
     if (had && had !== document.activeElement && document.body.contains(had)) { try { had.focus({ preventScroll: true }); } catch (e) {} }
   }
-  function apply(mode, say) {
-    if (mode !== "release") mode = "name";
+  function apply(to, say) {
+    mode = SAID.hasOwnProperty(to) ? to : "name";
     radios.forEach(function (r) { r.checked = r.value === mode; });
-    place(mode === "release" ? byRelease : byName);
+    place(mode === "release" ? byRelease : mode === "time" ? byPlay("seconds") : mode === "plays" ? byPlay("plays") : byName);
     if (say) status.textContent = SAID[mode];  // polite, and only for the player's own choice
   }
 
   var saved = null;
   try { saved = localStorage.getItem(KEY); } catch (e) {}
   box.hidden = false;
-  if (saved === "release") apply("release", false);
+  if (saved && saved !== "name") apply(saved, false);
   radios.forEach(function (r) {
     r.addEventListener("change", function () {
       if (!r.checked) return;
@@ -461,7 +522,13 @@ try {
     });
   });
   // the choice made in another tab
-  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(ev.newValue, false); });
+  window.addEventListener("storage", function (ev) {
+    if (ev.key === KEY || ev.key === null) apply(ev.newValue, false);
+    else if (ev.key === ByopopPlay.KEY && (mode === "time" || mode === "plays")) apply(mode, false);  // a game was played in another tab
+  });
+  // back from a game's page (the page may come from the browser's cache), and each time the files check has shown the cards
+  window.addEventListener("pageshow", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
+  document.addEventListener("byopop-tiles-checked", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
 })();
 </script>
 <script>
@@ -688,22 +755,39 @@ try {
           }
           if (names === null && !rec) { show(tile, info, gen); return null; }  // not known, and not guessed
           return (listed ? scan(persist) : Promise.resolve({ game: false, saves: false, entries: false })).then(function (found) {
-            if (found.game) info.state = "yes";
+            // a record that says the files went missing wins over files in the database: a copy cut off partway (the tab closed
+            // while the listing added it) has some, and the game page refuses it
+            if (found.game && !(rec && rec.missing)) info.state = "yes";
             else {
               info.state = "no";
-              // played before: a record (kept when the files are forgotten), a save backup, or entries in the database
-              info.played = !!rec || info.saves || found.entries;
+              // played before: a record of files loaded once (kept when they are forgotten), a save backup, or entries in the database
+              info.played = ByopopGameFiles.everLoaded(rec) || info.saves || found.entries;
               info.saves = info.saves || found.saves;
             }
             show(tile, info, gen);
           });
         }));
+      })
+      .then(function () {
+        // for the sort by play (its tie of added before not added) and anything else that reads the cards' data-files
+        if (gen === generation) { try { document.dispatchEvent(new Event("byopop-tiles-checked")); } catch (e) {} }
       });
   }
   document.addEventListener("keydown", function (ev) { if (open && ev.key === "Escape") { ev.preventDefault(); close(true); } });
   document.addEventListener("click", function (ev) {
     if (open && !open.button.parentNode.parentNode.contains(ev.target)) close(false);
   });
+  // Before the files check (which waits for the database): a card whose record says its files are here is taken as such, so
+  // that a game no store sells, hidden by default unless its files are here, is in the grid from the start instead of
+  // moving the grid when the check ends. The check then sets every card's data-files from what it finds.
+  (function () {
+    var record = {};
+    try { record = ByopopGameFiles.all(); } catch (e) {}
+    tiles.forEach(function (tile) {
+      var li = tile.parentNode, rec = record[tile.getAttribute("data-game")];
+      if (li && !li.hasAttribute("data-files") && ByopopGameFiles.present(rec)) li.setAttribute("data-files", "yes");
+    });
+  })();
   check();
   window.addEventListener("pageshow", check);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });

@@ -8,7 +8,9 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
-<script src="theme.js"></script>
+<script src="theme.js"></script><script src="logo.js"></script>
+<!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
+<script src="cursors.js"></script>
 <style>
 /* Every game's page (docs/WEB_PLAYER.md). Layout: a single stage that fills the viewport (4:3, or the shape the game
    gives: Module.onGameScreen), with a slim tool bar and slide-over panels (mods, game files and any of the game's
@@ -126,6 +128,15 @@ canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; 
 }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; max-width: 520px; display: grid; gap: 14px; }
 .card h2 { margin: 0; font-size: 20px; text-wrap: balance; }
+/* The game's cap on top of the import card (the listing page's badge for the game, web/index.html: a crown cap's outline,
+   web/brand/cap.svg, in the game's colour with its initials), sitting on the card's top edge */
+.page-cap {
+  justify-self: center; margin-top: -40px; display: flex; align-items: center; justify-content: center; width: 72px; height: 72px;
+  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0, 0, 0, 0.2) 69% 73%, transparent 74% 84%, rgba(0, 0, 0, 0.16) 85%), var(--tile);
+  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat;
+  color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 0.02em;
+}
+.page-cap[hidden] { display: none; }
 .card p { margin: 0; color: var(--muted); }
 .card code, .mono { font-family: var(--font-mono); font-size: 12.5px; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -133,8 +144,9 @@ canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; 
 .progress { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
 .progress > div { height: 100%; width: 0; background: var(--accent); transition: width 120ms linear; }
 .error { color: var(--gem-ruby); }
-/* The terms card (web/terms.html): its text scrolls in its own box, and the card in the stage when the stage is small */
-#terms-overlay { overflow: auto; place-items: safe center; }
+/* The terms card (web/terms.html): its text scrolls in its own box, and the card in the stage when the stage is small (as
+   does the import card, which the Steam steps for a Mac or Linux make taller) */
+#terms-overlay, #import-overlay { overflow: auto; place-items: safe center; }
 .card.terms-card { max-width: 600px; }
 .terms {
   max-height: 15em; overflow: auto; display: grid; gap: 10px; padding: 12px 14px; font-size: 13px;
@@ -146,6 +158,14 @@ canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; 
 /* a small stage: one scroll (the card's), not a box scrolling inside it */
 @media (max-width: 600px), (max-height: 600px) { .terms { max-height: none; overflow: visible; } }
 .card p.terms-buy { font-size: 13px; }
+/* On a Mac, the import card's steps for downloading a Steam game's Windows files */
+.mac-steam { display: grid; gap: 6px; padding: 10px 12px; font-size: 13px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
+.mac-steam[hidden] { display: none; }
+.mac-steam h3 { margin: 0; font-size: 13px; }
+.mac-steam ol { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; color: var(--muted); }
+.mac-steam a { color: var(--accent); font-weight: 600; }
+.mac-steam[data-os=mac] .os-linux, .mac-steam[data-os=linux] .os-mac { display: none; }
+.mac-steam code.pick { user-select: all; -webkit-user-select: all; overflow-wrap: anywhere; color: var(--fg); }
 .terms-buy a { color: var(--accent); font-weight: 600; }
 .agree { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; cursor: pointer; }
 .agree input { accent-color: var(--accent); width: 16px; height: 16px; margin: 2px 0 0; flex: none; }
@@ -201,9 +221,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <body>
 <a class="skip" id="skip-game" href="#canvas">Skip to game</a>
 <header class="bar">
-  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="96" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="96" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
+  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="72" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="72" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
   <span class="status" id="status" role="status">Starting…</span>
-  <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false">Mods</button>
+  <!-- shown once the game's files are here, and never for a game whose port loads no mods (boot(), MODS_SUPPORTED) -->
+  <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false" hidden>Mods</button>
   <button id="btn-files" type="button" aria-controls="panel-files" aria-expanded="false">Game files</button>
   <button id="btn-settings" type="button" aria-controls="panel-settings" aria-expanded="false">Settings</button>
   <button id="btn-sound" type="button" aria-pressed="true" title="Turns this page's sound off or on; the game's own volume is not changed"><span>Sound</span><span aria-hidden="true">: on</span></button>
@@ -235,8 +256,12 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 
     <div class="overlay" id="import-overlay" hidden>
       <div class="card" id="import-card" role="dialog" aria-labelledby="import-title" aria-describedby="import-about" tabindex="-1">
+        <!-- the game's cap, its badge on the listing page: the opener takes it off once the files are in (web/capanim.js) -->
+        <div class="page-cap" id="page-cap" aria-hidden="true" style="--tile: @BYOPOP_CAP_COLOUR@">@BYOPOP_CAP_INITIALS@</div>
         <h2 id="import-title">Load your @BYOPOP_TITLE@ files</h2>
         <p id="import-about"></p>
+        <!-- a game released on Steam: how to download its Windows files on a Mac or Linux (BYOPOP_STEAM_<target>), shown only there -->
+<!-- byopop:mac-steam -->
         <div class="row">
           <button type="button" class="primary" id="btn-pick-folder" data-pick="pick-game-folder" aria-describedby="import-msg">Choose folder</button>
           <input type="file" id="pick-game-folder" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
@@ -315,7 +340,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 
 <aside class="panel" id="panel-settings" hidden aria-labelledby="panel-settings-title" tabindex="-1">
   <header><h2 id="panel-settings-title">Settings: site-wide overrides</h2><button type="button" data-close>Close</button></header>
-  <div class="body" id="settings-body"></div>
+  <div class="body"><div id="settings-body"></div><div class="site-cursor-choice" id="site-cursor-body"></div></div>
 </aside>
 
 <!-- byopop:footer -->
@@ -324,6 +349,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
 <script src="gameimport.js"></script>
+<script src="capanim.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
 <script>
@@ -393,6 +419,21 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       " missing file" + (missingFiles.length > 1 ? "s" : "")) : t;
   }
   $("import-about").innerHTML = PAGE.importHtml;
+  // On a Mac or Linux (the user, 2026-11-03: "this should probably support Linux too"): the steps for downloading a Steam
+  // game's Windows files, where the page has them, with that system's folder and keys. A Mac is what the browser says, or a
+  // Mac's user agent without a touch screen (an iPad asking for the desktop site has one); Linux leaves out Android and
+  // ChromeOS.
+  (function () {
+    var os = null;
+    try {
+      var ua = navigator.userAgentData, p = ua && ua.platform, s = navigator.userAgent;
+      if (p) os = p === "macOS" ? "mac" : p === "Linux" ? "linux" : null;
+      else if (/Macintosh|Mac OS X/.test(s) && !(navigator.maxTouchPoints > 1)) os = "mac";
+      else if (/Linux|X11/.test(s) && !/Android|CrOS/.test(s)) os = "linux";
+    } catch (e) {}
+    var steps = $("mac-steam");
+    if (steps && os) { steps.setAttribute("data-os", os); steps.hidden = false; }
+  })();
   $("busy-name").textContent = PAGE.shortName;
 
   // web/modpanel.js, linked into the game's script: the Mods panel, restarts and the file helpers. It is there
@@ -699,7 +740,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     importProgress(0, wanted.length);
     msg.textContent = "Copying " + wanted.length + " files…";
     W.fs.rmTree(GAME); Module.FS.mkdirTree(GAME);
-    try { ByopopGameFiles.lost(PAGE.id); } catch (e) {}  // the old copy is gone; boot() records the new one
+    try { ByopopGameFiles.replacing(PAGE.id); } catch (e) {}  // the old copy is gone; boot() records the new one
     return wanted.reduce(function (p, e) {
       return p.then(function () {
         return e.read().then(function (data) {
@@ -736,6 +777,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // fails (a private window, blocked site data), it lasts until the page closes. TERMS_GATE (BYOPOP_WEB_TERMS_GATE in
   // cmake/ByopopWeb.cmake) is off for now: then the card never shows, and the pages must not be deployed.
   var TERMS_KEY = "byopop-terms-" + PAGE.id, TERMS_VERSION = "@BYOPOP_TERMS_VERSION@", TERMS_GATE = @BYOPOP_TERMS_GATE@;
+  // false for a game whose port loads no mods yet (BYOPOP_WEB_NO_MODS, cmake/ByopopWeb.cmake): its page has no Mods button (the
+  // user, 2026-11-03: "Don't show a mods button for games with no mod support"); the others show it once the game's files are
+  // here ("Don't show the mods button unless files are uploaded")
+  var MODS_SUPPORTED = @BYOPOP_MODS_SUPPORTED@;
   var termsAgreed = !TERMS_GATE;
   function hasAgreed() {
     if (!termsAgreed) {
@@ -810,6 +855,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (isAutostart !== true || noMods) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
     askToKeepStorage();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
+    startChat();
     cursorTimer = setInterval(pollCursor, 100);
     applySiteOptions(true, true);
     acquireWake();
@@ -831,8 +877,39 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (value) root.style.setProperty("--game-cursor", value); else root.style.removeProperty("--game-cursor");
     root.classList.toggle("game-cursor", !!value);
   }
+  // The game's set of cursors for the site's cursor (web/cursors.js; docs/WEB_PLAYER.md, "The site's cursor"): asked for at each
+  // poll until the game has set its pointer (once its images are loaded), then kept once for this page. A copy whose pointer
+  // has no picture yet is asked for again, at most once a second, until one has. A cursor larger than browsers take (128 px)
+  // is drawn smaller. A build without the call stops asking.
+  var cursorSetTaken = false, cursorSetNext = 0, siteCursorShown = false;
+  function takeCursorSet() {
+    var n, now = Date.now();
+    if (now < cursorSetNext) return;
+    try { n = Module.ccall("byopop_cursor_set_copy", "number", [], []) | 0; } catch (e) { cursorSetTaken = true; return; }
+    if (n <= 0) return;
+    var kinds = ["pointer", "hand", "drag", "text"], set = {};
+    (Module.byopopCursorSet || []).forEach(function (c, i) {
+      if (!c || !c.rgba || c.rgba.length !== c.width * c.height * 4) return;
+      var source = document.createElement("canvas");
+      source.width = c.width; source.height = c.height;
+      source.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(c.rgba.buffer, c.rgba.byteOffset, c.rgba.length), c.width, c.height), 0, 0);
+      var scale = Math.min(1, 128 / Math.max(c.width, c.height)), out = source;
+      if (scale < 1) {
+        out = document.createElement("canvas");
+        out.width = Math.max(1, Math.round(c.width * scale)); out.height = Math.max(1, Math.round(c.height * scale));
+        out.getContext("2d").drawImage(source, 0, 0, out.width, out.height);
+      }
+      set[kinds[i]] = { url: out.toDataURL("image/png"), x: Math.min(out.width - 1, Math.max(0, Math.round(c.hotX * scale))),
+        y: Math.min(out.height - 1, Math.max(0, Math.round(c.hotY * scale))) };
+    });
+    Module.byopopCursorSet = null;
+    if (!set.pointer) { cursorSetNext = now + 1000; return; }
+    cursorSetTaken = true;
+    try { if (window.ByopopCursors) ByopopCursors.save(PAGE.id, $("brand-name").textContent, set); } catch (e) {}
+  }
   function pollCursor() {
     var id = 0, stop = exited;
+    if (!stop && !cursorSetTaken) takeCursorSet();
     if (!stop) {
       try { id = Module.ccall("byopop_cursor", "number", [], []) | 0; }
       catch (e) { stop = true; }
@@ -896,6 +973,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // The listing page shows which games have their files loaded, from this record (web/settings.js): kept whenever the
     // files are found, here at every start and after an import, and noted as missing when they are not there ("Forget game
     // files" notes that it was the player who did). Not with ?placeholders=1, where a part of a game stands for all of it.
+    $("btn-mods").hidden = !(MODS_SUPPORTED && hasGameFiles());
     if (!hasGameFiles()) {
       if (!pagePlaceholders()) { try { ByopopGameFiles.lost(PAGE.id); } catch (e) {} }
       setStatus("Game files needed");
@@ -951,6 +1029,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (!hasAgreed()) { showTerms(); return; }
     $("start-overlay").hidden = true;
     $("btn-import-cancel").hidden = !hasGameFiles();
+    $("page-cap").hidden = false;
     $("import-overlay").hidden = false;
     if (hasGameFiles()) setStatus("Import the game files again");
     focusCard("import-card", "btn-pick-folder");
@@ -963,7 +1042,13 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     importing = true;
     $("btn-import-cancel").disabled = true;
     promise.then(importGame).then(function (ok) {
-      if (ok) { $("import-overlay").hidden = true; boot(); }
+      if (!ok) return;
+      // the opener takes the cap off, then the game boots
+      var cap = $("page-cap");
+      function off() { cap.hidden = true; }
+      var popped;
+      try { popped = ByopopCapAnim.pop(cap, { away: true, after: off }); } catch (e) { off(); popped = Promise.resolve(); }
+      return popped.then(function () { $("import-overlay").hidden = true; boot(); });
     }).catch(function (e) { importMessage(e.message, true); })
       .then(function () {
         importing = false;
@@ -1107,6 +1192,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       if (settingsView) settingsView.refresh();
       else settingsView = ByopopSettings.render($("settings-body"), { live: true, onChange: applySettingNow,
         gameId: PAGE.id, gameName: $("brand-name").textContent, playerNote: playerNote });
+      if (!siteCursorShown) { siteCursorShown = true; ByopopCursors.render($("site-cursor-body")); }
     } catch (e) {
       $("settings-body").textContent = "The settings are not available.";
     }
@@ -1510,8 +1596,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var next = stops[(at + stops.length) % stops.length];
     if (next) next.focus();
   }
+  // The chat starts with the game (the user, 2026-11-03: "Don't load the chat until the game has launched"): start() calls this
+  // once, so a page waiting for its files or for Play shows no chat
   function startChat() {
-    if (typeof ByopopChat === "undefined") return;
+    if (chat || typeof ByopopChat === "undefined") return;
     try {
       // ByopopGames is the site's table of games (chat-games.js, which cmake/ByopopWeb.cmake writes beside the pages); without
       // the file the chat draws no game tags. The messages this page sends carry this page's game, PAGE.id.
@@ -1519,7 +1607,6 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
         game: PAGE.id, games: typeof ByopopGames !== "undefined" ? ByopopGames : [] });
     } catch (e) { console.warn("the chat could not start", e); }
   }
-  startChat();
   if (PAGE.init) PAGE.init();
 })();
 </script>

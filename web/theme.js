@@ -14,10 +14,11 @@ var ByopopTheme = (function () {
   var root = document.documentElement;
   var media = null;
   try { media = window.matchMedia("(prefers-color-scheme: dark)"); } catch (e) {}
-  // the choice when storage is blocked: this page only
-  var pageChoice = null;
+  // the choice when storage is blocked (or refuses a write while it still reads): this page only
+  var pageChoice = null, pageOnly = false;
 
   function stored() {
+    if (pageOnly) return pageChoice;
     try {
       var v = window.localStorage.getItem(KEY);
       return v === "light" || v === "dark" ? v : null;
@@ -54,7 +55,7 @@ var ByopopTheme = (function () {
     pageChoice = next === browser() ? null : next;
     try {
       if (pageChoice) window.localStorage.setItem(KEY, pageChoice); else window.localStorage.removeItem(KEY);
-    } catch (e) {}
+    } catch (e) { pageOnly = true; }
     apply();
   }
   function init() {

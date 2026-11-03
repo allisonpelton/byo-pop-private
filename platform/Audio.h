@@ -85,6 +85,16 @@ public:
 	void StopVoice(int theVoice);
 	bool IsVoicePlaying(int theVoice);
 	void StopAllVoices();
+	// Voices on the game's clock, for -fast (SexyAppBase's virtual clock): there the updates run far ahead of real time,
+	// so a voice the device moves stays playing for many more updates than it lasts, and game logic that waits for a
+	// sound to end (IsVoicePlaying) would wait too long and fill the voices. Once SetGameClocked(true) is called, the
+	// device callback leaves the voices alone (it mixes only the songs, so voices are silent) and AdvanceVoices moves
+	// each one on by theMilliseconds of its own playback, ending a one-shot voice that reaches its end. Songs still play
+	// in real time. Game code that waits for a voice inside one update must move it on itself (IsGameClocked), or it
+	// waits forever. RenderOffline turns the mode off.
+	void SetGameClocked(bool theGameClocked);
+	bool IsGameClocked() const { return mGameClocked; }
+	void AdvanceVoices(double theMilliseconds);
 
 	// --- songs (tracker modules via libxmp or a registered ModulePlayer, or Ogg/WAV tracks from mods) ---
 	// Files theDetector accepts are loaded with theFactory instead of libxmp-lite (first match wins).
@@ -157,8 +167,10 @@ public:
 	void Lock();
 	void Unlock();
 
-	// Mixes theFrames stereo frames into theOut without an audio device (tests and offline checks).
-	void RenderOffline(float* theOut, int theFrames) { Mix(theOut, theFrames); }
+	// Mixes theFrames stereo frames into theOut without an audio device (tests and offline checks). A caller that renders
+	// offline moves the voices itself (Bejeweled's -audiocapture renders one update's worth per update, under -fast too),
+	// so this turns the game clock off: Mix then plays and moves the voices again, and AdvanceVoices leaves them alone.
+	void RenderOffline(float* theOut, int theFrames) { mGameClocked = false; Mix(theOut, theFrames); }
 	// For tools without an audio device: makes the voices at theRate, so that StartVoice works and RenderOffline
 	// mixes them.
 	void InitOffline(int theRate);
@@ -180,6 +192,7 @@ private:
 	float mSiteMusic = 1.0f, mSiteSfx = 1.0f;    // the page's starting volume for a game with no volume option (SetSiteGains)
 #endif
 	bool mOffline = false; // InitOffline: voices without a device
+	bool mGameClocked = false;  // SetGameClocked: AdvanceVoices moves the voices, not Mix
 	std::vector<std::unique_ptr<Voice>> mVoices;
 	std::vector<std::unique_ptr<Song>> mSongs;
 	int mNextVoiceSerial = 1;

@@ -603,7 +603,7 @@ function contrast(a, b) {
           check("the page accepts every entry", table.all().length === list.length, list.length - table.all().length);
           const index = fs.readFileSync(path.join(dir, "index.html"), "utf8");
           const unescape = (x) => x.replace(/&quot;/g, "\"").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-          const tiles = Array.from(index.matchAll(/<li class="game" style="--tile: (#[0-9a-fA-F]{6})"[^>]*data-title="([^"]*)"><a class="tile" href="([^"]+)" data-game="([^"]*)"[^>]*><span class="badge" aria-hidden="true">([^<]*)<\/span>/g))
+          const tiles = Array.from(index.matchAll(/<li class="game" style="--tile: (#[0-9a-fA-F]{6})"[^>]*data-title="([^"]*)"[^>]*><a class="tile" href="([^"]+)" data-game="([^"]*)"[^>]*><span class="badge" aria-hidden="true">([^<]*)<\/span>/g))
             .map((x) => ({ colour: x[1], title: unescape(x[2]), page: x[3], id: x[4], tag: unescape(x[5]) }));
           check("one entry for each tile of the listing page, in its order", tiles.length === list.length && tiles.length >= 1, [tiles.length, list.length]);
           same("the entries are the tiles': id, page, initials, colour and title", list.map((g) => ({ id: g.id, page: g.page, tag: g.tag, colour: g.colour, title: g.title })), tiles.map((x) => ({ id: x.id, page: x.page, tag: x.tag, colour: x.colour, title: x.title })));

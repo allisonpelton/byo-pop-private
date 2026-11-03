@@ -1420,6 +1420,12 @@ bool SexyAppBase::DoUpdateFrames()
 	}
 
 	UpdateFrames();
+
+	// port: under -fast the sound effects play on the game's clock, so that a sound ends after as many updates as it
+	// lasts and not after as much real time (Platform::Mixer::SetGameClocked, set in Init): each update moves them on
+	// by the game time it stands for
+	if (mFastMode)
+		Platform::Mixer::Get().AdvanceVoices(mFrameTime / mUpdateMultiplier);
 	return true;
 }
 
@@ -3539,6 +3545,10 @@ void SexyAppBase::Init()
 
 	if (!mCmdLineParsed)
 		DoParseCmdLine();
+
+	// port: -fast moves the sound effects on in DoUpdateFrames instead of in real time
+	if (mFastMode)
+		Platform::Mixer::Get().SetGameClocked(true);
 
 	// Change directory. port: the game data root is the VFS base dir (set up by main())
 	if ((!mChangeDirTo.empty()) && (!ChangeDirHook(mChangeDirTo.c_str())))

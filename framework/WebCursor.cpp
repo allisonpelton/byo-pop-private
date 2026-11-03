@@ -119,5 +119,53 @@ EMSCRIPTEN_KEEPALIVE int byopop_cursor_copy()
 	return anId;
 }
 
+// The game's set of cursors for the site's cursor (docs/WEB_PLAYER.md, "The site's cursor"): its pointer, hand, dragging
+// and text images, whether or not its custom cursors are on, each copied to Module.byopopCursorSet[n] as
+// byopop_cursor_copy copies the shown one (null where the game has none). Returns -1 before the game has started, 0
+// when it has no pointer image (yet: a game sets its cursors once its images are loaded), else the number copied.
+EMSCRIPTEN_KEEPALIVE int byopop_cursor_set_copy()
+{
+	SexyAppBase* anApp = gSexyAppBase;
+	if ((anApp == NULL) || (!anApp->mInitialized) || (anApp->mShutdown) || (anApp->mSEHOccured) ||
+		(anApp->mDDInterface == NULL))
+		return -1;
+	if (dynamic_cast<MemoryImage*>(anApp->mCursorImages[CURSOR_POINTER]) == NULL)
+		return 0;
+
+	// (byopop_cursor_deliver writes Module.byopopCursor: the page's copy of the shown cursor is put back afterwards)
+	EM_ASM({ Module['byopopCursorSet'] = []; Module['byopopCursorShown'] = Module['byopopCursor']; });
+	std::vector<uint8_t> aPixels;
+	int aCopied = 0;
+	for (int aCursorNum = CURSOR_POINTER; aCursorNum <= CURSOR_TEXT; aCursorNum++)
+	{
+		MemoryImage* anImage = dynamic_cast<MemoryImage*>(anApp->mCursorImages[aCursorNum]);
+		if ((anImage == NULL) || (anImage->mWidth <= 0) || (anImage->mHeight <= 0) ||
+			(anImage->mWidth > kMaxCursorSize) || (anImage->mHeight > kMaxCursorSize))
+			continue;
+		if ((anImage->mBits == NULL) && ((anImage->mColorTable == NULL) || (anImage->mColorIndices == NULL)))
+			continue;
+		int aWidth = anImage->mWidth;
+		int aHeight = anImage->mHeight;
+		size_t aCount = (size_t) aWidth * aHeight;
+		aPixels.resize(aCount * 4);
+		for (size_t i = 0; i < aCount; i++)
+		{
+			uint32_t aPixel = (anImage->mBits != NULL) ? (uint32_t) anImage->mBits[i] : (uint32_t) anImage->mColorTable[anImage->mColorIndices[i]];
+			aPixels[i * 4 + 0] = (uint8_t) (aPixel >> 16);
+			aPixels[i * 4 + 1] = (uint8_t) (aPixel >> 8);
+			aPixels[i * 4 + 2] = (uint8_t) aPixel;
+			aPixels[i * 4 + 3] = (uint8_t) (aPixel >> 24);
+		}
+		int aHotX = kCursorAreaSize / 2 - (kCursorAreaSize - aWidth) / 2;
+		int aHotY = kCursorAreaSize / 2 - (kCursorAreaSize - aHeight) / 2;
+		byopop_cursor_deliver(aCursorNum, aWidth, aHeight, aHotX, aHotY, anApp->mDDInterface->mWidth,
+			anApp->mDDInterface->mHeight, &aPixels[0]);
+		EM_ASM({ Module['byopopCursorSet'][$0] = Module['byopopCursor']; }, aCursorNum);
+		aCopied++;
+	}
+	EM_ASM({ Module['byopopCursor'] = Module['byopopCursorShown']; delete Module['byopopCursorShown']; });
+	return aCopied;
+}
+
 }
 #endif

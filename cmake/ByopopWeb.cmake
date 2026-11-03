@@ -24,6 +24,7 @@ if(EMSCRIPTEN)
 endif()
 set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_open _byopop_mods_state
   _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy
+  _byopop_cursor_set_copy
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_windowed _byopop_mixer_gain)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
@@ -33,7 +34,7 @@ get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/f
 # where each game can be bought (BYOPOP_BUY_<target>), shown under its terms
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopStores.cmake)
 # the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
-set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg cap.svg)
+set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg cap.svg opener.svg)
 # web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
 # settings", "The listing page"): one file that the listing page and every game page load. web/profiles.js keeps the site's
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
@@ -44,7 +45,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # of each game's page, its page's file name, its badge's initials and colour and its title), is written beside them by
 # byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
 # games of its own.
-set(BYOPOP_WEB_SHARED_JS theme.js settings.js profiles.js exeicon.js gameimport.js chat.js)
+set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settings.js profiles.js exeicon.js gameimport.js chat.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
@@ -80,6 +81,10 @@ set(BYOPOP_WEB_UPCOMING
 # colour. Original to byo-pop, never the games' art. The colours keep white text above a 4.5 contrast ratio (the chat's game
 # tags, "[BW]" before a username, use the same row and colour: tools/chattest.js checks the ratio and that the initials are
 # unique, 1 to 4 letters or digits). A game without a row here gets the initials of its TITLE and the accent colour.
+# The games whose ports load no mods yet (their pages' modsIntro says so): their pages show no Mods button (the user,
+# 2026-11-03: "Don't show a mods button for games with no mod support"; web/shell.html's MODS_SUPPORTED). A port that starts
+# loading mods leaves this list.
+set(BYOPOP_WEB_NO_MODS bonnies cosmicbugs mahjongchina mahjongjapan ningpo tiptop waterbugs wordharmony)
 set(BYOPOP_WEB_BADGES
   "bejeweled|BJ|#95233d" "bigmoney|BM|#1f8438" "bookworm|BW|#955c23" "noahsark|NA|#234995" "sevenseas|7S|#1e8080"
   "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
@@ -247,6 +252,35 @@ function(byopop_web_insert var marker text)
   set(${var} "${inserted}" PARENT_SCOPE)
 endfunction()
 
+# The game's badge (BYOPOP_WEB_BADGES): its initials and colour into <initials_var> and <colour_var>. A game without a row
+# gets the first letters of its TITLE's words, without "Deluxe", and the accent colour.
+function(byopop_web_badge target title initials_var colour_var)
+  set(initials "")
+  set(colour "#6b3fd1")
+  set(found OFF)
+  foreach(badge ${BYOPOP_WEB_BADGES})
+    string(REPLACE "|" ";" fields "${badge}")
+    list(GET fields 0 badge_target)
+    if(badge_target STREQUAL target)
+      list(GET fields 1 initials)
+      list(GET fields 2 colour)
+      set(found ON)
+    endif()
+  endforeach()
+  if(NOT found)
+    string(REPLACE " " ";" words "${title}")
+    list(REMOVE_ITEM words Deluxe)
+    foreach(word ${words})
+      string(SUBSTRING "${word}" 0 1 letter)
+      string(TOUPPER "${letter}" letter)
+      string(APPEND initials "${letter}")
+    endforeach()
+    message(STATUS "byo-pop: ${target} has no badge in BYOPOP_WEB_BADGES (cmake/ByopopWeb.cmake): using \"${initials}\"")
+  endif()
+  set(${initials_var} "${initials}" PARENT_SCOPE)
+  set(${colour_var} "${colour}" PARENT_SCOPE)
+endfunction()
+
 function(byopop_web_shell var target pagedir)
   cmake_parse_arguments(PARSE_ARGV 3 arg "" "TITLE;COPYRIGHT" "LICENSES")
   if(arg_UNPARSED_ARGUMENTS OR NOT arg_TITLE OR NOT arg_COPYRIGHT)
@@ -381,6 +415,53 @@ function(byopop_web_shell var target pagedir)
     string(REPLACE "@BYOPOP_TERMS_GATE@" "false" page "${page}")
   endif()
   string(REPLACE "@BYOPOP_TITLE@" "${arg_TITLE}" page "${page}")
+  # the game's cap over its import card (web/capanim.js): its badge, as on the listing page
+  byopop_web_badge(${target} "${arg_TITLE}" cap_initials cap_colour)
+  # escaped as the listing's are: the initials are the cap's text, the colour sits in its style attribute
+  foreach(field cap_initials cap_colour)
+    string(REPLACE "&" "&amp;" ${field} "${${field}}")
+    string(REPLACE "<" "&lt;" ${field} "${${field}}")
+    string(REPLACE ">" "&gt;" ${field} "${${field}}")
+    string(REPLACE "\"" "&quot;" ${field} "${${field}}")
+  endforeach()
+  string(REPLACE "@BYOPOP_CAP_INITIALS@" "${cap_initials}" page "${page}")
+  string(REPLACE "@BYOPOP_CAP_COLOUR@" "${cap_colour}" page "${page}")
+  # A game released on Steam: how a player on a Mac or Linux downloads its Windows depot (BYOPOP_STEAM_<target>,
+  # cmake/ByopopStores.cmake), on the import card, shown by the page only on a Mac or Linux
+  set(mac_steam "")
+  if(DEFINED BYOPOP_STEAM_${target})
+    string(REPLACE " " ";" steam "${BYOPOP_STEAM_${target}}")
+    list(LENGTH steam steam_n)
+    if(NOT steam_n EQUAL 2)
+      message(FATAL_ERROR "BYOPOP_STEAM_${target} (cmake/ByopopStores.cmake) is \"${BYOPOP_STEAM_${target}}\", not \"<app> <depot>\"")
+    endif()
+    list(GET steam 0 steam_app)
+    list(GET steam 1 steam_depot)
+    set(mac_dir "~/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steamapps/content/app_${steam_app}/depot_${steam_depot}")
+    set(linux_dir "~/.local/share/Steam/steamapps/content/app_${steam_app}/depot_${steam_depot}")
+    set(mac_steam "<div class=\"mac-steam\" id=\"mac-steam\" hidden>
+          <h3>On a <span class=\"os-mac\">Mac</span><span class=\"os-linux\">Linux computer</span>?</h3>
+          <p>This page needs the files of ${arg_TITLE}'s Windows version. Steam installs only your own system's version of a
+            game, but it can download the Windows files too, if ${arg_TITLE} is in your Steam library:</p>
+          <ol>
+            <li>Open Steam's console: <a href=\"steam://open/console\">open it in Steam</a>, or paste
+              <code class=\"pick\">steam://open/console</code> into your browser's address bar.</li>
+            <li>Type <code class=\"pick\">download_depot ${steam_app} ${steam_depot}</code> and press
+              <span class=\"os-mac\">Return</span><span class=\"os-linux\">Enter</span>. Steam says nothing while it
+              downloads, then prints &ldquo;Depot download complete&rdquo; and the folder it used, normally
+              <code class=\"pick os-mac\">${mac_dir}</code><code class=\"pick os-linux\">${linux_dir}</code>.</li>
+            <li>Press Choose folder below; in the window that opens, press
+              <span class=\"os-mac\">Shift-Command-G</span><span class=\"os-linux\">Ctrl+L</span>, paste that folder and
+              choose it.</li>
+          </ol>
+        </div>")
+  endif()
+  byopop_web_insert(page "<!-- byopop:mac-steam -->" "${mac_steam}")
+  if(target IN_LIST BYOPOP_WEB_NO_MODS)
+    string(REPLACE "@BYOPOP_MODS_SUPPORTED@" "false" page "${page}")
+  else()
+    string(REPLACE "@BYOPOP_MODS_SUPPORTED@" "true" page "${page}")
+  endif()
   file(READ ${BYOPOP_WEB_FOOTER} footer)
   file(READ ${BYOPOP_WEB_FOOTER_CSS} css)
   string(REPLACE "@BYOPOP_COPYRIGHT_PAGE@" "${copyright_page}" footer "${footer}")
@@ -546,29 +627,7 @@ function(byopop_web_index)
     set(import_title "${title}")  # the raw title, before the HTML escaping below, for the listing's import rules
     string(REPLACE "\\" "\\\\" chat_title "${chat_title}")
     string(REPLACE "\"" "\\\"" chat_title "${chat_title}")
-    set(initials "")
-    set(colour "#6b3fd1")
-    set(found OFF)
-    foreach(badge ${BYOPOP_WEB_BADGES})
-      string(REPLACE "|" ";" fields "${badge}")
-      list(GET fields 0 badge_target)
-      if(badge_target STREQUAL target)
-        list(GET fields 1 initials)
-        list(GET fields 2 colour)
-        set(found ON)
-      endif()
-    endforeach()
-    if(NOT found)
-      # no row in the table: the first letters of the TITLE's words, without "Deluxe"
-      string(REPLACE " " ";" words "${title}")
-      list(REMOVE_ITEM words Deluxe)
-      foreach(word ${words})
-        string(SUBSTRING "${word}" 0 1 letter)
-        string(TOUPPER "${letter}" letter)
-        string(APPEND initials "${letter}")
-      endforeach()
-      message(STATUS "byo-pop: ${target} has no badge in BYOPOP_WEB_BADGES (cmake/ByopopWeb.cmake): using \"${initials}\"")
-    endif()
+    byopop_web_badge(${target} "${title}" initials colour)
     set(chat_initials "${initials}")
     foreach(field title initials)
       string(REPLACE "&" "&amp;" ${field} "${${field}}")
@@ -654,6 +713,11 @@ function(byopop_web_index)
         set(buy_html "<div class=\"buyrow\" hidden>${buy_html}</div>")
       endif()
     endif()
+    # a game no store sells any more: the listing page hides it unless the player shows those games or its files are here
+    set(unsold_attr "")
+    if(buy_html STREQUAL "")
+      set(unsold_attr " data-unsold=\"1\"")
+    endif()
     # the year under the name (a space between the two spans, so that the link's name reads "Bejeweled Deluxe 2001" even
     # where the spans' text is joined), and the link's name with it, "Bejeweled Deluxe, 2001"; the page adds the files' state to it
     set(year_html "")
@@ -668,7 +732,7 @@ function(byopop_web_index)
       if(NOT year STREQUAL "")
         string(APPEND soon_label ", ${year}")
       endif()
-      string(CONCAT tile "    <li class=\"game soon\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\">"
+      string(CONCAT tile "    <li class=\"game soon\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\"${unsold_attr}>"
         "<div class=\"tile\" role=\"group\" aria-label=\"${soon_label}, coming soon\">"
         "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
         "<span class=\"name\">${title}</span>${year_html}</div><div class=\"ownrow\"><span class=\"own own-soon\" aria-hidden=\"true\">Coming soon</span></div>${buy_html}</li>")
@@ -676,7 +740,7 @@ function(byopop_web_index)
       math(EXPR soon_count "${soon_count} + 1")
       continue()
     endif()
-    string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\">"
+    string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\"${unsold_attr}>"
       "<a class=\"tile\" href=\"${target}.html\" data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}${label_attr}>"
       "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
       "<span class=\"name\">${title}</span>${year_html}</a><div class=\"ownrow\"><span class=\"own\" aria-hidden=\"true\"></span></div>${buy_html}</li>")
