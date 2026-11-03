@@ -566,7 +566,7 @@ void Board::Update()
 					p->mFallSpeed--;
 			}
 		}
-		if (!AnyFalling())
+		if (!AnyFalling() && !anApp->ResyncHold())
 		{
 			for (int x = 0; x < 9; x++)
 				for (int y = 0; y < 9; y++)
@@ -578,7 +578,10 @@ void Board::Update()
 				anApp->PlaySample(SOUND_POP);
 			}
 			else
+			{
 				mState = BOARD_PLAYING;
+				anApp->ResyncEvent('r');
+			}
 			if (anApp->mGameMode == GAMEMODE_STAMPEDE)
 			{
 				ClearLinkList();

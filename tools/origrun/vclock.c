@@ -23,10 +23,11 @@
 //     read once the counter has moved, so none is missed however fast the game runs.
 // The stand-in pins itself (a FreeLibrary of dsound.dll would leave the patched entries pointing nowhere). It assumes
 // one main thread drives the game: the one that started at the exe's entry point.
-// The same import patcher serves the scripted cursor (--cursor scripted, ORIGRUN_CURSOR=scripted; cursor.c), with the
-// clock or without it: it points the copy's GetCursorPos imports at cursor.c. Each hook belongs to one of the two, and
-// only the ones that are on are patched. Without the clock, DLLs the copy loads later are patched from the cursor
-// hook's own calls (hooks_rescan).
+// The same import patcher serves the scripted cursor (--cursor scripted, ORIGRUN_CURSOR=scripted; cursor.c) and the
+// message-box hook (on unless --msgbox show, ORIGRUN_MSGBOX=hook; msgbox.c), with the clock or without it: it points the
+// copy's GetCursorPos imports at cursor.c, and its MessageBox and MessageBeep imports at msgbox.c. Each hook belongs to
+// one of the three, and only the ones that are on are patched. Without the clock, DLLs the copy loads later are patched
+// from the other hooks' own calls (hooks_rescan).
 // Written from the public Win32 and PE documentation.
 
 #define PSAPI_VERSION 2   // K32EnumProcessModules from kernel32, no psapi.lib
@@ -47,6 +48,7 @@
 
 static int        gOn;              // the virtual clock is on
 static int        gCursorOn;        // the scripted cursor is on (cursor.c)
+static int        gMsgboxOn;        // the message-box hook is on (msgbox.c)
 static VcShared*  gSh;
 static HANDLE     gMap, gHeldEv, gRelEv, gHostProc;
 static DWORD      gDriver;          // the main thread: its waits drive the clock
@@ -71,15 +73,15 @@ static int        gPatchedN;
 static ULONGLONG  gModScanAt;       // when the module list was last looked at, and its count and checksum then
 static DWORD      gModCnt, gModSum;
 
-static void clog(const char* fmt, ...)
+static void vclog(const char* fmt, va_list ap)
 {
 	if (!gClog) return;
-	va_list ap; va_start(ap, fmt);
 	SYSTEMTIME st; GetLocalTime(&st);   // our own import: the wall clock
 	fprintf(gClog, "[%02d:%02d:%02d.%03d] ", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
 	vfprintf(gClog, fmt, ap); fputc('\n', gClog); fflush(gClog);
-	va_end(ap);
 }
+static void clog(const char* fmt, ...) { va_list ap; va_start(ap, fmt); vclog(fmt, ap); va_end(ap); }
+void hooks_log(const char* fmt, ...) { va_list ap; va_start(ap, fmt); vclog(fmt, ap); va_end(ap); }   // msgbox.c's
 
 static LONGLONG real100(void) { FILETIME f; GetSystemTimeAsFileTime(&f); return ((LONGLONG)f.dwHighDateTime << 32) | f.dwLowDateTime; }
 static LONGLONG qpc100(void)   // the real time for durations, in 100 ns (our own import: the real counter)
@@ -451,11 +453,24 @@ BOOL WINAPI cursor_GetCursorPos(LPPOINT p);   // cursor.c
 int  cursor_open(void);
 void cursor_installed(void);
 void cursor_stats(LONG* reads, LONG* real);
+int WINAPI mbx_MessageBoxA(HWND, LPCSTR, LPCSTR, UINT);   // msgbox.c
+int WINAPI mbx_MessageBoxW(HWND, LPCWSTR, LPCWSTR, UINT);
+int WINAPI mbx_MessageBoxExA(HWND, LPCSTR, LPCSTR, UINT, WORD);
+int WINAPI mbx_MessageBoxExW(HWND, LPCWSTR, LPCWSTR, UINT, WORD);
+int WINAPI mbx_MessageBoxIndirectA(const MSGBOXPARAMSA*);
+int WINAPI mbx_MessageBoxIndirectW(const MSGBOXPARAMSW*);
+int WINAPI mbx_MessageBoxTimeoutA(HWND, LPCSTR, LPCSTR, UINT, WORD, DWORD);
+int WINAPI mbx_MessageBoxTimeoutW(HWND, LPCWSTR, LPCWSTR, UINT, WORD, DWORD);
+BOOL WINAPI mbx_MessageBeep(UINT);
+int  msgbox_open(void);
+void msgbox_installed(void);
+void msgbox_patched(void);
+void msgbox_stats(LONG* boxes, LONG* beeps);
 
-// Each hook belongs to the virtual clock (H_CLOCK) or the scripted cursor (H_CURSOR); only the ones that are on are
-// patched.
-enum { H_CLOCK, H_CURSOR };
-static const char* const kGrpName[] = { "the virtual clock", "the scripted cursor" };
+// Each hook belongs to the virtual clock (H_CLOCK), the scripted cursor (H_CURSOR) or the message-box hook (H_MSGBOX);
+// only the ones that are on are patched.
+enum { H_CLOCK, H_CURSOR, H_MSGBOX };
+static const char* const kGrpName[] = { "the virtual clock", "the scripted cursor", "the message-box hook" };
 typedef struct { const char* dll; const char* name; void* hook; int grp; void* real; LONG patched; } HookDef;
 static HookDef gHooks[] = {
 	{ "winmm.dll",    "timeGetTime",                    (void*)H_timeGetTime,                    H_CLOCK },
@@ -477,9 +492,18 @@ static HookDef gHooks[] = {
 	{ "user32.dll",   "MsgWaitForMultipleObjects",      (void*)H_MsgWaitForMultipleObjects,      H_CLOCK },
 	{ "user32.dll",   "MsgWaitForMultipleObjectsEx",    (void*)H_MsgWaitForMultipleObjectsEx,    H_CLOCK },
 	{ "user32.dll",   "GetCursorPos",                   (void*)cursor_GetCursorPos,              H_CURSOR },
+	{ "user32.dll",   "MessageBoxA",                    (void*)mbx_MessageBoxA,                  H_MSGBOX },
+	{ "user32.dll",   "MessageBoxW",                    (void*)mbx_MessageBoxW,                  H_MSGBOX },
+	{ "user32.dll",   "MessageBoxExA",                  (void*)mbx_MessageBoxExA,                H_MSGBOX },
+	{ "user32.dll",   "MessageBoxExW",                  (void*)mbx_MessageBoxExW,                H_MSGBOX },
+	{ "user32.dll",   "MessageBoxIndirectA",            (void*)mbx_MessageBoxIndirectA,          H_MSGBOX },
+	{ "user32.dll",   "MessageBoxIndirectW",            (void*)mbx_MessageBoxIndirectW,          H_MSGBOX },
+	{ "user32.dll",   "MessageBoxTimeoutA",             (void*)mbx_MessageBoxTimeoutA,           H_MSGBOX },
+	{ "user32.dll",   "MessageBoxTimeoutW",             (void*)mbx_MessageBoxTimeoutW,           H_MSGBOX },
+	{ "user32.dll",   "MessageBeep",                    (void*)mbx_MessageBeep,                  H_MSGBOX },
 };
 #define NHOOK ((int)(sizeof(gHooks) / sizeof(gHooks[0])))
-static int hook_on(int k) { return gHooks[k].grp == H_CLOCK ? gOn : gCursorOn; }
+static int hook_on(int k) { int g = gHooks[k].grp; return g == H_CLOCK ? gOn : g == H_CURSOR ? gCursorOn : gMsgboxOn; }
 
 // The functions a game may import that the clock cannot stand in for; logged when a module imports them.
 static const char* const kUncovered[] = { "timeSetEvent", "SetTimer", "CreateWaitableTimerA", "CreateWaitableTimerW",
@@ -526,6 +550,7 @@ static int patch_module(HMODULE m, const char* leaf)
 			iat[i] = (DWORD)(DWORD_PTR)gHooks[h].hook;
 			VirtualProtect(&iat[i], 4, old, &old);
 			InterlockedIncrement(&gHooks[h].patched);
+			if (gHooks[h].grp == H_MSGBOX) msgbox_patched();
 			n++;
 			clog("  %s: %s!%s -> %s", leaf, dll, gHooks[h].name, kGrpName[gHooks[h].grp]);
 		}
@@ -567,12 +592,14 @@ static void patch_new_modules(void)
 		if (seen || !module_is_games(mods[i], leaf, MAX_PATH)) continue;
 		if (gPatchedN < 64) gPatched[gPatchedN++] = mods[i];
 		int n = patch_module(mods[i], leaf);
-		clog("%s: %d import%s on %s%s%s", leaf, n, n == 1 ? "" : "s", gOn ? kGrpName[H_CLOCK] : "", gOn && gCursorOn ? " and " : "",
-			gCursorOn ? kGrpName[H_CURSOR] : "");
+		char grps[128] = ""; int on[3] = { gOn, gCursorOn, gMsgboxOn };
+		for (int g = 0; g < 3; g++) if (on[g]) { if (grps[0]) lstrcatA(grps, ", "); lstrcatA(grps, kGrpName[g]); }
+		clog("%s: %d import%s on %s", leaf, n, n == 1 ? "" : "s", grps);
 	}
 }
 // A DLL of the copy loaded since the last look: the module list is looked at once per tick of the wall clock (about
-// 16 ms), from the clock's waits and the cursor hook's calls, whichever thread they come from (one at a time).
+// 16 ms), from the clock's waits and the cursor's and message-box hooks' calls, whichever thread they come from (one at
+// a time).
 static LONG gScanBusy;   // a scan of the module list is running (the install's own, or a rescan)
 void hooks_rescan(void)
 {
@@ -685,22 +712,23 @@ static int clock_install(const char* exe)
 	return 1;
 }
 
-// Called from the stand-in's DllMain on process attach: the virtual clock (ORIGRUN_CLOCK=virtual) and the scripted
-// cursor (ORIGRUN_CURSOR=scripted), either or both. Nothing here loads a DLL that is not loaded already (winmm and
-// user32 are the stand-in's own imports), so it is safe under the loader lock.
+// Called from the stand-in's DllMain on process attach: the virtual clock (ORIGRUN_CLOCK=virtual), the scripted cursor
+// (ORIGRUN_CURSOR=scripted) and the message-box hook (ORIGRUN_MSGBOX=hook), any of them. Nothing here loads a DLL that
+// is not loaded already (winmm and user32 are the stand-in's own imports), so it is safe under the loader lock.
 void vclock_install(HMODULE self)
 {
-	char mode[32] = "", cur[32] = "";
+	char mode[32] = "", cur[32] = "", mbx[32] = "";
 	GetEnvironmentVariableA("ORIGRUN_CLOCK", mode, sizeof(mode));
 	GetEnvironmentVariableA("ORIGRUN_CURSOR", cur, sizeof(cur));
-	int clock = !lstrcmpiA(mode, "virtual"), cursor = !lstrcmpiA(cur, "scripted");
-	if (!clock && !cursor) return;
+	GetEnvironmentVariableA("ORIGRUN_MSGBOX", mbx, sizeof(mbx));
+	int clock = !lstrcmpiA(mode, "virtual"), cursor = !lstrcmpiA(cur, "scripted"), msgbox = !lstrcmpiA(mbx, "hook");
+	if (!clock && !cursor && !msgbox) return;
 	gSelf = self;
 	char dir[MAX_PATH] = "", path[MAX_PATH];
 	DWORD dn = GetEnvironmentVariableA("ORIGRUN_DIR", dir, sizeof(dir));
-	if (dn && dn < sizeof(dir)) {   // the clock's log; cursor.log when only the cursor is on
+	if (dn && dn < sizeof(dir)) {   // the clock's log; cursor.log when the cursor is on without it; else msgbox.log
 		wsprintfA(path, "%s\\logs", dir); CreateDirectoryA(path, NULL);
-		wsprintfA(path, "%s\\logs\\%s.log", dir, clock ? "clock" : "cursor"); gClog = fopen(path, "a");
+		wsprintfA(path, "%s\\logs\\%s.log", dir, clock ? "clock" : cursor ? "cursor" : "msgbox"); gClog = fopen(path, "a");
 	}
 	DWORD pid = GetCurrentProcessId();
 	char exe[MAX_PATH]; GetModuleFileNameA(NULL, exe, MAX_PATH);
@@ -709,15 +737,19 @@ void vclock_install(HMODULE self)
 	// Pinned before any import points here: a FreeLibrary of dsound.dll (by the game, BASS or FMOD) must not unmap it.
 	HMODULE pin = NULL;
 	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCSTR)(void*)vclock_install, &pin)) {
-		clog("pid %lu: the stand-in could not be pinned (err %lu): no virtual clock, no scripted cursor", pid, GetLastError());
+		clog("pid %lu: the stand-in could not be pinned (err %lu): no virtual clock, no scripted cursor, no message-box hook", pid, GetLastError());
 		return;
 	}
 	if (cursor) {
 		if (cursor_open()) { gCursorOn = 1; clog("pid %lu %s: scripted cursor installed: GetCursorPos returns origrun's last posted mouse position", pid, exe); }
 		else clog("pid %lu: no block from origrun, or another version (err %lu): no scripted cursor", pid, GetLastError());
 	}
+	if (msgbox) {
+		if (msgbox_open()) { gMsgboxOn = 1; clog("pid %lu %s: message-box hook installed: MessageBox* answers with no window, MessageBeep with no sound", pid, exe); }
+		else clog("pid %lu: no message-box block from origrun, or another version (err %lu): boxes are shown", pid, GetLastError());
+	}
 	int clockOk = clock && clock_install(exe);
-	if (!clockOk && !gCursorOn) return;
+	if (!clockOk && !gCursorOn && !gMsgboxOn) return;
 
 	for (int k = 0; k < NHOOK; k++) {
 		HMODULE m = GetModuleHandleA(gHooks[k].dll);
@@ -728,6 +760,7 @@ void vclock_install(HMODULE self)
 	patch_new_modules();
 	InterlockedExchange(&gScanBusy, 0);
 	if (gCursorOn) cursor_installed();
+	if (gMsgboxOn) msgbox_installed();
 	if (gOn) {
 		VcShared* s = gSh;
 		InterlockedExchange(&s->installed, 1);
@@ -740,11 +773,16 @@ void vclock_install(HMODULE self)
 // Called on process detach: the totals.
 void vclock_detach(void)
 {
-	if (!gOn && !gCursorOn) return;
+	if (!gOn && !gCursorOn && !gMsgboxOn) return;
 	if (gCursorOn) {
 		LONG reads, real; cursor_stats(&reads, &real);
 		clog("pid %lu exits: GetCursorPos answered %ld time%s with origrun's mouse position, %ld passed to Windows (before origrun's first mouse input)",
 			GetCurrentProcessId(), (long)reads, reads == 1 ? "" : "s", (long)real);
+	}
+	if (gMsgboxOn) {
+		LONG boxes, beeps; msgbox_stats(&boxes, &beeps);
+		clog("pid %lu exits: %ld message box%s answered with no window, %ld MessageBeep call%s with no sound",
+			GetCurrentProcessId(), (long)boxes, boxes == 1 ? "" : "es", (long)beeps, beeps == 1 ? "" : "s");
 	}
 	if (gOn && gSh) {
 		gOn = 0;   // from here the hooks pass through (the block stays mapped: their reads still see the virtual clock)

@@ -133,6 +133,9 @@ TipTopApp::TipTopApp()
 	mAutoplayGames = 1;
 	mAutoplayCap = 100000;
 	mAutoplayState = nullptr;
+	mAutoplayUi = false;
+	mAutoplaySave = 0;
+	mStateLog = nullptr;
 }
 
 TipTopApp::~TipTopApp()
@@ -144,6 +147,8 @@ TipTopApp::~TipTopApp()
 	}
 	if (mAutoplayState != nullptr)
 		DeleteAutoplayState(mAutoplayState);
+	if (mStateLog != nullptr)
+		fclose(mStateLog);
 }
 
 void TipTopApp::Init()
@@ -152,7 +157,7 @@ void TipTopApp::Init()
 	if (mShutdown)
 		return;
 	// 0x411fff seeds the C library's generator with GetTickCount(); -seed=N makes a run repeatable
-	CrtSRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetClockTime());
+	tiptop::SRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetClockTime());
 	lowos::HostSetClock(AppClock);
 	lowos::HostSetMessageFunc(AppMessage);
 	lowos::HostSetWindowed(mIsWindowed);
@@ -206,6 +211,8 @@ void TipTopApp::RunFrame()
 		Shutdown();
 		return;
 	}
+	if (!mStateLogName.empty())
+		UpdateStateLog();
 	if (!mCanvasShot.empty())
 		SaveCanvasShot();
 	int aMode = lowos::HostTakeScreenModeRequest();
@@ -262,7 +269,7 @@ void TipTopApp::SetMusicVolume(double theVolume)
 }
 
 // the command line: -autoplay=<seed> -autoplaymode=regular|strategy|speed -autoplaygames=N -autoplaycap=N
-// -autoplaylog=<file> -autoplayshots=<prefix> (testhooks/Autoplay.cpp); -canvas=<width>x<height> (testhooks/Canvas.cpp);
+// -autoplaylog=<file> -autoplayshots=<prefix> -autoplayui -autoplaysave=N -autoplayscript=<file> -statelog=<file> (testhooks/Autoplay.cpp); -canvas=<width>x<height> (testhooks/Canvas.cpp);
 // -soundfont=<file> (MusicSynth.h)
 void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
@@ -282,6 +289,14 @@ void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::s
 		mAutoplayLog = theParamValue;
 	else if (theParamName == "-autoplayshots")
 		mAutoplayShots = theParamValue;
+	else if (theParamName == "-autoplaysave")
+		mAutoplaySave = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplayui")
+		mAutoplayUi = true;
+	else if (theParamName == "-autoplayscript")
+		mAutoplayScript = theParamValue;
+	else if (theParamName == "-statelog")
+		mStateLogName = theParamValue;
 	else if (theParamName == "-canvas")
 	{
 		int aWidth = 0, aHeight = 0;

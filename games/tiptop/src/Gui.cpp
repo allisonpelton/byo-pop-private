@@ -970,6 +970,13 @@ void FreeHandler(Handler* theHandler)
 	aProc(MSG_CLASSFREE, 0, 0, nullptr);
 }
 
+// Test hooks (testhooks/Autoplay.cpp): the handler table, free slots included
+Handler* HandlerTable(uint16_t* theCount)
+{
+	*theCount = gHandlerCount;
+	return gHandlers;
+}
+
 // 0x429692
 Handler* NextHandler(Handler* theHandler)
 {

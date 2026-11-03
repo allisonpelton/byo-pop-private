@@ -171,6 +171,13 @@ public:
 	std::string				mStateLogCells;     // -statelogcells=x,y;x,y: cells whose type is logged at every change
 	struct StateLogState*	mStateLogState;
 	void					StateLogUpdate();
+	// -resync=<file>: lines "n <level> <state>" and "r <level> <state>" (test hook): the C generator's state at the start of
+	// each level (n) and at the end of its get-ready (r) in the original, which the port takes over there to be compared past
+	// the differences of the get-ready (games/noahsark/tools/resync.py writes the file from an origrun run)
+	std::string				mResync;
+	struct ResyncState*		mResyncState;
+	void					ResyncEvent(char theType);
+	bool					ResyncHold();
 
 	// Helpers of the module (WinNoah.exe addresses in NoahApp.cpp)
 	bool					LoadImage(int theImageId);

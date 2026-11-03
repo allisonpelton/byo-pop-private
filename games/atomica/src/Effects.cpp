@@ -454,26 +454,67 @@ void Bolt::DrawPixels(Graphics* g, int aX1, int aY1, int aX2, int aY2)
 	float aStartY = NegCosDeg(aAngle1) * 25.0f + (float) aY1;
 	float aEndX = SinDeg(aAngle2) * 25.0f + (float) aX2;
 	float aEndY = NegCosDeg(aAngle2) * 25.0f + (float) aY2;
-	float aMidX = ((float) aX1 + (float) aX2) * 0.5f;
-	float aMidY = ((float) aY1 + (float) aY2) * 0.5f;
-	float aJX1 = (float) mApp->mRand.Get(8, true) + (aStartX + aMidX) * 0.5f;
-	float aJY1 = (float) mApp->mRand.Get(8, true) + (aStartY + aMidY) * 0.5f;
-	float aJX2 = (float) mApp->mRand.Get(8, true) + (aEndX + aMidX) * 0.5f;
-	float aJY2 = (float) mApp->mRand.Get(8, true) + (aEndY + aMidY) * 0.5f;
+	// the line bends at a point beside the middle of the ends (a quarter of the way from the first atom's line, along the
+	// axis the atoms differ on) and runs start, first jitter, the bend, second jitter, end
+	float aMidX = (aEndX + aStartX) * 0.5f;
+	float aMidY = (aEndY + aStartY) * 0.5f;
+	int aOffsetX = 0;
+	int aOffsetY = 0;
+	if (aX1 == aX2)
+		aOffsetX = (int) ((aMidX - (float) aX1) * 0.25f);
+	else
+		aOffsetY = (int) ((aMidY - (float) aY1) * 0.25f);
+	float aBendX = (float) aOffsetX + aMidX;
+	float aBendY = (float) aOffsetY + aMidY;
+	aBendX = (float) mApp->mRand.Get(8, true) + aBendX;
+	aBendY = (float) mApp->mRand.Get(8, true) + aBendY;
+	float aJX1 = (aBendX + aStartX) * 0.5f;
+	float aJY1 = (aBendY + aStartY) * 0.5f;
+	aJX1 = (float) mApp->mRand.Get(8, true) + aJX1;
+	aJY1 = (float) mApp->mRand.Get(8, true) + aJY1;
+	float aJX2 = (aBendX + aEndX) * 0.5f;
+	float aJY2 = (aBendY + aEndY) * 0.5f;
+	aJX2 = (float) mApp->mRand.Get(8, true) + aJX2;
+	aJY2 = (float) mApp->mRand.Get(8, true) + aJY2;
 
 	mColor.mAlpha = 0x20;
 	g->SetColor(mColor);
 	DrawDots(g, mApp, (int) aStartX, (int) aStartY, (int) aJX1, (int) aJY1, false);
-	DrawDots(g, mApp, (int) aJX1, (int) aJY1, (int) aJX2, (int) aJY2, false);
+	DrawDots(g, mApp, (int) aJX2, (int) aJY2, (int) aEndX, (int) aEndY, false);
 	mColor.mAlpha = 0x80;
 	g->SetColor(mColor);
-	DrawDots(g, mApp, (int) aJX2, (int) aJY2, (int) aEndX, (int) aEndY, false);
+	DrawDots(g, mApp, (int) aJX1, (int) aJY1, (int) aBendX, (int) aBendY, false);
+	DrawDots(g, mApp, (int) aBendX, (int) aBendY, (int) aJX2, (int) aJY2, false);
 	g->SetColor(Color(0xff, 0xff, 0xff, 0x20));
 	DrawDots(g, mApp, (int) aStartX, (int) aStartY, (int) aJX1, (int) aJY1, true);
 	DrawDots(g, mApp, (int) aJX2, (int) aJY2, (int) aEndX, (int) aEndY, true);
 	g->SetColor(Color(0xff, 0xff, 0xff, 0x80));
-	DrawDots(g, mApp, (int) aJX1, (int) aJY1, (int) aJX2, (int) aJY2, true);
+	DrawDots(g, mApp, (int) aJX1, (int) aJY1, (int) aBendX, (int) aBendY, true);
+	DrawDots(g, mApp, (int) aBendX, (int) aBendY, (int) aJX2, (int) aJY2, true);
+
+	// sparks scattered about both ends, then one on each of the lines 10 pixels from the atoms
+	for (int i = 0; i < 4; i++)
+	{
+		float aSparkY = (float) mApp->mRand.Get(6, true) + aStartY;
+		float aSparkX = (float) mApp->mRand.Get(6, true) + aStartX;
+		mApp->mMiniSpark->DrawCenteredF(g, aSparkX, aSparkY);
+		aSparkY = (float) mApp->mRand.Get(6, true) + aEndY;
+		aSparkX = (float) mApp->mRand.Get(6, true) + aEndX;
+		mApp->mMiniSpark->DrawCenteredF(g, aSparkX, aSparkY);
+	}
+	float aNearX1 = SinDeg(aAngle1) * 10.0f + (float) aX1;
+	float aNearY1 = NegCosDeg(aAngle1) * 10.0f + (float) aY1;
+	float aNearX2 = SinDeg(aAngle2) * 10.0f + (float) aX2;
+	float aNearY2 = NegCosDeg(aAngle2) * 10.0f + (float) aY2;
+	mApp->mMiniSpark->DrawCenteredF(g, aNearX1, aNearY1);
+	mApp->mMiniSpark->DrawCenteredF(g, aNearX2, aNearY2);
 	g->SetColorizeImages(false);
+}
+
+// 0x4255e0 for a bond (Grid::DrawBond): a line of the mini spark
+void Bolt::DrawMiniLine(Graphics* g, int theX1, int theY1, int theX2, int theY2)
+{
+	DrawDots(g, mApp, theX1, theY1, theX2, theY2, true);
 }
 
 // ---------------------------------------------------------------------------------------------------------

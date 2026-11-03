@@ -601,6 +601,11 @@ it is for, in `FIELDS` in `web/settings.js`):
   Mania, whose originals also have a 3D option, may read it once their passes settle their 3D modes. BookWorm will not: its
   option only switches the framework's renderer, which the port always runs on the GPU. The setting
   applies at the next start, and the panel says so.
+  Under the setting a line says what this browser offers (the user, 2026-11-03), tested as the games test it: a new
+  canvas's `getContext("webgl2")`, then one with `failIfMajorPerformanceCaveat`, each context let go at once
+  (`WEBGL_lose_context`): "3D available", "3D available, but without the graphics card" (WebGL2 only without the flag:
+  SwiftShader with the browser's hardware acceleration off, say) or "not available, games use 2D" (`accel3d()` in
+  `web/settings.js`).
 - `profile` ("game", "fill" or "create"): **Player names**, with the choices Game default, **Fill in the name** and **Use the
   player**: what a game does with the site's current player (below, "Player profiles"). The setting is applied when a game
   starts, and the panel says so.

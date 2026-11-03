@@ -13,6 +13,8 @@
 //   -autoplayfinish=N     every N moves the level's meter is filled (a test of the level changes)
 //   -autoplaylog=<file>   the log
 //   -autoplayshots=<prefix>  screenshots at each level done and game over
+//   -autoplayscript=<file>   every click the bot makes, as a scenario for games/atomica/tools/identical/compare.py
+//                            ("<update> click <x> <y>", window coordinates), to replay the same game in the original
 
 #include "AtomicaApp.h"
 #include "Board.h"
@@ -34,8 +36,62 @@
 
 using namespace Sexy;
 
+void AtomicaApp::ScriptClick(int theX, int theY)
+{
+	MouseMoveTo(theX, theY);
+	mWidgetManager->MouseDown(theX, theY, 1);
+	mWidgetManager->MouseUp(theX, theY, 1);
+}
+
 namespace Sexy
 {
+
+namespace
+{
+
+// one click of the bot in the scenario file (-autoplayscript); a click is a move, a press and a release in one update
+void RecordLine(AtomicaApp* theApp, const char* theLine, int theX, int theY)
+{
+	static FILE* sScript = NULL;
+	static int sLast = -100;
+	if (theApp->mAutoplayScript.empty())
+		return;
+	if (sScript == NULL)
+		sScript = fopen(theApp->mAutoplayScript.c_str(), "w");
+	if (sScript != NULL)
+	{
+		// the clicks of one action of the bot (select an atom, then its target) come in one update, where a player's
+		// would not: the later ones are put three updates apart, so that they are not a double click
+		int aUpdate = theApp->mUpdateCount;
+		if (aUpdate < sLast + 3)
+			aUpdate = sLast + 3;
+		sLast = aUpdate;
+		if (theLine != NULL)
+			fprintf(sScript, "%d %s\n", aUpdate, theLine);
+		else
+			fprintf(sScript, "%d click %d %d\n", aUpdate, theX, theY);
+		fflush(sScript);
+	}
+}
+
+void Record(AtomicaApp* theApp, int theX, int theY)
+{
+	RecordLine(theApp, NULL, theX, theY);
+}
+
+// a click of the bot goes through the widget manager as a player's does (a box that is up takes it), and is recorded
+void Click(AtomicaApp* theApp, int theX, int theY)
+{
+	Record(theApp, theX, theY);
+	theApp->ScriptClick(theX, theY);
+}
+
+void ClickButton(AtomicaApp* theApp, Widget* theParent, Widget* theButton)
+{
+	Click(theApp, theParent->mX + theButton->mX + theButton->mWidth / 2, theParent->mY + theButton->mY + theButton->mHeight / 2);
+}
+
+}
 
 struct AutoplayState
 {
@@ -51,9 +107,12 @@ struct AutoplayState
 	bool			mMenuSeen;
 	int				mBonusStage;		// 0 waiting for the sign, 1 shape made, 2 element atom seen, 3 effect set off
 	FILE*			mLog;
+	bool			mPending;			// a second click waits for the wait to end (the cell an atom is sent to, a box's button)
+	int				mPendX;
+	int				mPendY;
 
 	AutoplayState(unsigned int theSeed) : mSeed(theSeed), mTick(0), mGames(0), mWait(0), mShots(0), mMoves(0),
-		mLastLevel(0), mOverLogged(false), mLevelLogged(false), mMenuSeen(false), mBonusStage(0), mLog(NULL) {}
+		mLastLevel(0), mOverLogged(false), mLevelLogged(false), mMenuSeen(false), mBonusStage(0), mLog(NULL), mPending(false), mPendX(0), mPendY(0) {}
 
 	int Rand(int theRange)
 	{
@@ -123,10 +182,7 @@ void Press(Grid* g, int theCol, int theRow)
 {
 	int aX = theCol * Grid::CELL + Grid::CELL / 2;
 	int aY = theRow * Grid::CELL + Grid::CELL / 2;
-	g->mIsOver = true;		// the mouse is over the field, as it is for a player
-	g->MouseMove(aX, aY);
-	g->MouseDown(aX, aY, 0, 1);
-	g->MouseUp(aX, aY, 0);
+	Click(g->mApp, g->mX + aX, g->mY + aY);
 }
 
 // a move: select the atom, then the empty cell (the path is shown by the mouse move)
@@ -138,7 +194,12 @@ bool Move(Grid* g, Atom* theAtom, int theToCol, int theToRow)
 	Press(g, theAtom->mCol, theAtom->mRow);
 	if (g->mSelected != theAtom)
 		return false;
-	Press(g, theToCol, theToRow);
+	// the cell is clicked three updates later, as a player's would be (and as a scenario file replays it)
+	AutoplayState* s = g->mApp->mAutoplayState;
+	s->mPending = true;
+	s->mPendX = g->mX + theToCol * Grid::CELL + Grid::CELL / 2;
+	s->mPendY = g->mY + theToRow * Grid::CELL + Grid::CELL / 2;
+	s->mWait = 3;
 	return true;
 }
 
@@ -169,13 +230,21 @@ void AtomicaApp::AutoplayUpdate()
 	}
 	if (mTitleScreen != NULL)
 	{
-		if (mLoaded && (s->mTick > 60))
+		// recording a scenario: the title screen and the menu are left at the updates the original's script clicks them
+		if (mLoaded && (s->mTick > (mAutoplayScript.empty() ? 60 : 1510)))
 			TitleScreenDone();
 		return;
 	}
 	if (s->mWait > 0)
 	{
 		s->mWait--;
+		return;
+	}
+	if (s->mPending)
+	{
+		s->mPending = false;
+		Click(this, s->mPendX, s->mPendY);
+		s->mWait = 2;
 		return;
 	}
 
@@ -187,16 +256,22 @@ void AtomicaApp::AutoplayUpdate()
 		{
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-entry%d.png", mAutoplayShots.c_str(), s->mGames));
-			aDialog->mEdit->SetText("BOT");
-			aDialog->ButtonDepress(2);
-			s->mWait = 5;
+			// the name is typed, and the button pressed three updates later, as a player would
+			RecordLine(this, "text BOT", 0, 0);
+			mWidgetManager->KeyChar('B');
+			mWidgetManager->KeyChar('O');
+			mWidgetManager->KeyChar('T');
+			s->mPending = true;
+			s->mPendX = aDialog->mX + aDialog->mOk->mX + aDialog->mOk->mWidth / 2;
+			s->mPendY = aDialog->mY + aDialog->mOk->mY + aDialog->mOk->mHeight / 2;
+			s->mWait = 3;
 		}
 		return;
 	}
 	if (mMenu != NULL)
 	{
 		MainMenu* aMenu = (MainMenu*) mMenu;
-		if (!aMenu->PanelShown())
+		if (!aMenu->PanelShown() || (!mAutoplayScript.empty() && (mUpdateCount < 2310)))
 			return;
 		if (aMenu->mGameOver && !aMenu->mEntryShown)
 			return;
@@ -222,7 +297,10 @@ void AtomicaApp::AutoplayUpdate()
 		s->mLevelLogged = false;
 		s->mMoves = 0;
 		s->mLastLevel = 0;
-		aMenu->ButtonPress(aMenu->mGameOver ? 7 : (mAutoplayMode == 1 ? 2 : 0));
+		if (aMenu->mGameOver)
+			Click(this, 0x14a + 0x67, 0x178 + 0x12);
+		else
+			Click(this, 0x5a + 0xe2, (mAutoplayMode == 1 ? 0xb1 : 0x4b) + 0x1d);
 		Log(s, "game %d starts at update %d", s->mGames, s->mTick);
 		s->mWait = 20;
 		return;
@@ -256,9 +334,17 @@ void AtomicaApp::AutoplayUpdate()
 				SaveScreenshot(StrFormat("%s-hint%d.png", mAutoplayShots.c_str(), aBox->mHint));
 			}
 			Log(s, "hint %d at update %d", aBox->mHint, s->mTick);
+			// the box's check mark, then (three updates later, as a player's would be) its button
 			if ((aBox->mHint & 1) && aBox->mHasCheck)
-				aBox->ButtonPress(1);
-			aBox->ButtonDepress(0);
+			{
+				ClickButton(this, aBox, aBox->mCheck);
+				s->mPending = true;
+				s->mPendX = aBox->mX + aBox->mContinue->mX + aBox->mContinue->mWidth / 2;
+				s->mPendY = aBox->mY + aBox->mContinue->mY + aBox->mContinue->mHeight / 2;
+				s->mWait = 3;
+				return;
+			}
+			ClickButton(this, aBox, aBox->mContinue);
 			s->mWait = 5;
 		}
 		return;
@@ -274,7 +360,7 @@ void AtomicaApp::AutoplayUpdate()
 				s->mShots++;
 				SaveScreenshot(StrFormat("%s-levelup%d.png", mAutoplayShots.c_str(), s->mShots));
 			}
-			aDialog->ButtonDepress(0);
+			ClickButton(this, aDialog, aDialog->mContinue);
 			s->mWait = 5;
 		}
 		return;
@@ -404,7 +490,6 @@ void AtomicaApp::AutoplayUpdate()
 								s->mMoves++;
 								if ((mAutoplayFinish > 0) && (s->mMoves % mAutoplayFinish == 0))
 									aBoard->mMeter.Add(1000, 0);
-								s->mWait = 2;
 								return;
 							}
 						}
@@ -434,7 +519,6 @@ void AtomicaApp::AutoplayUpdate()
 			s->mMoves++;
 			if ((mAutoplayFinish > 0) && (s->mMoves % mAutoplayFinish == 0))
 				aBoard->mMeter.Add(1000, 0);
-			s->mWait = 2;
 			return;
 		}
 	}

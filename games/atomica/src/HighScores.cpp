@@ -2,22 +2,23 @@
 
 #include "HighScores.h"
 #include "Buffer.h"
+#include "GameText.h"
 
 #include <cstring>
 #include <ctime>
 
 using namespace Sexy;
 
-// 0x41e320: the start values are the original's scores; the names are the port's own (the original's are texts of its code)
+// 0x41e320: the start values are the original's scores, and its names (texts of its exe, read like the others: GameText.h)
 void ScoreTable::Reset()
 {
 	static const int kScores[NUM_SCORES] = {40000, 25000, 15000, 10000, 5000};
-	static const char* const kNames[NUM_SCORES] = {"Quark Quinn", "Proton Pat", "Neutron Nick", "Electron Eve", "Ion Ivy"};
+	static const unsigned int kNames[NUM_SCORES] = {0x4b02ac, 0x4b029c, 0x4b028c, 0x4b0280, 0x4b0270};
 	for (int i = 0; i < NUM_SCORES; i++)
 	{
 		mScores[i] = kScores[i];
 		memset(mNames[i], 0, NAME_SIZE);
-		strncpy(mNames[i], kNames[i], NAME_SIZE - 1);
+		strncpy(mNames[i], GTC(kNames[i]), NAME_SIZE - 1);
 	}
 	mBestToday = -1;
 	memset(mBestName, 0, NAME_SIZE);

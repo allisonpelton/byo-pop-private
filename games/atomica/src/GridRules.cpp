@@ -475,10 +475,43 @@ void Grid::CheckUnsolvable()
 	}
 }
 
-// 0x40f2e0: the bond between two atoms of a molecule (shaking before it flies away): the lightning of the Bolt
-// effect between their places. The original gives its bolt its own jitter; this one draws as a Bolt does.
+// 0x40f2e0: the bond between two atoms of a molecule (shaking before it flies away): a line of the mini spark from a point 25
+// pixels from the first atom, to one 30 from the second, and on to one 25 from the second, each direction jittered. A Bolt is
+// made for the drawing and thrown away (its sound is the one a bolt plays).
 void Grid::DrawBond(Graphics* g, Atom* theA, Atom* theB, bool thePlaySound)
 {
+	float aAX = (float) (theA->mX + theA->mE8);
+	float aAY = (float) (theA->mY + theA->mEC);
+	float aBX = (float) (theB->mX + theB->mE8);
+	float aBY = (float) (theB->mY + theB->mEC);
+	float aCX = aBX;
+	float aCY = aBY;
+	float aDX = aBX;
+	float aDY = aBY;
+	int aAngleBA = CompassAngle((int) aBX, (int) aBY, (int) aAX, (int) aAY);
+	int aAngleAB = CompassAngle((int) aAX, (int) aAY, (int) aBX, (int) aBY);
+	int aAngleA = aAngleAB + mApp->mRand.Get(5, true);
+	if (aAngleA >= 0x168)
+		aAngleA -= 0x168;
+	if (aAngleA < 0)
+		aAngleA += 0x168;
+	int aAngleD = aAngleBA + mApp->mRand.Get(8, true);
+	if (aAngleD >= 0x168)
+		aAngleD -= 0x168;
+	if (aAngleD < 0)
+		aAngleD += 0x168;
+	int aAngleC = aAngleBA + mApp->mRand.Get(5, true);
+	if (aAngleC >= 0x168)
+		aAngleC -= 0x168;
+	if (aAngleC < 0)
+		aAngleC += 0x168;
+	aAX = SinDeg(aAngleA) * 25.0f + aAX;
+	aAY = NegCosDeg(aAngleA) * 25.0f + aAY;
+	aCX = SinDeg(aAngleC) * 25.0f + aCX;
+	aCY = NegCosDeg(aAngleC) * 25.0f + aCY;
+	aDX = SinDeg(aAngleD) * 30.0f + aDX;
+	aDY = NegCosDeg(aAngleD) * 30.0f + aDY;
 	Bolt aBolt(mApp, this, theA->mX, theA->mY, theB->mX, theB->mY, theA->mColor, thePlaySound);
-	aBolt.DrawPixels(g, theA->mX, theA->mY, theB->mX, theB->mY);
+	aBolt.DrawMiniLine(g, (int) aAX, (int) aAY, (int) aDX, (int) aDY);
+	aBolt.DrawMiniLine(g, (int) aDX, (int) aDY, (int) aCX, (int) aCY);
 }

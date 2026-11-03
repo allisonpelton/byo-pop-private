@@ -20,6 +20,9 @@ SETS = {
           ('m1y', '[[%s]+0x68]+0x54' % B)],
     'C': [('sx', '[[%s]+0x6c]+0x50' % B), ('sy', '[[%s]+0x6c]+0x54' % B), ('death2', '[%s]+0x298' % B), ('score', '0x4ac59c')],
     'E': [('mode', '0x4ac570'), ('tbase', '[%s]+0x4b4' % B), ('ebase', '0x4ac640'), ('undo', '[%s]+0x2e4' % B)],
+    'F': [('rng', '0x4aed00')],
+    'H': [('hs', '0x4ac540'), ('hcount', '[0x4ac540]+0xc0'), ('hasked', '[0x4ac540]+0xc4'), ('hlink', '0x4ac544')],
+    'G': [('panel', '0x4ac538'), ('pstate', '[0x4ac538]+0x58'), ('poff', '[0x4ac538]+0x50'), ('mstate', '[%s]+0x5c' % B)],
     'D': [('maze', '[%s]+0x2b0' % B), ('file', '[%s]+0x2b4' % B), ('chamber', '0x4ac5bc'), ('pyramid', '0x4ac5c0')],
 }
 
@@ -131,7 +134,7 @@ def cmd_compare(argv):
     scene = []
     modes = pe.get('mode', [])
     for i, (u, v) in enumerate(modes):
-        if v in ('2', '3'):
+        if v in ('2', '3', '4', '5', '6', '7', '8'):
             scene.append((u, modes[i + 1][0] if i + 1 < len(modes) else 1 << 30))
     def in_scene(u):
         return any(a <= u - off < b for a, b in scene)
@@ -142,9 +145,18 @@ def cmd_compare(argv):
         for n in names:
             a = [(u + off, v) for u, v in pe.get(n, [])]
             b = [(u, v) for u, v in oe.get(n, []) if u <= last_port + off]
+            if n == 'rng':	# the generator's seeding happens before the first update: the games' draws start at the menu click
+                a = [(u, v) for u, v in a if u > 2400]
+                b = [(u, v) for u, v in b if u > 2400]
             if n in ('maze', 'file'):
                 a = [(u, v) for u, v in a if not in_scene(u)]
                 b = [(u, v) for u, v in b if not in_scene(u)]
+                a = [(u, v) for u, v in a if v != '-']	# the board's going away: no value
+                b = [(u, v) for u, v in b if v != '-']
+                a, b = settle(a), settle(b)	# a value the scene left behind equals the next one: not a change
+                a = [(u, v) for i, (u, v) in enumerate(a) if i == 0 or v != a[i - 1][1]]
+                if not a and b and b[0][1] == '0':	# the port never changed from 0: the original's first real value is 0 too
+                    b = b[1:]
             # the original's first reading of a value is "- -> x" or "0 -> x" at the board's start: the same lines
             n_ok = 0
             for i in range(max(len(a), len(b))):

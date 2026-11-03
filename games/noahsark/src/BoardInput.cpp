@@ -259,6 +259,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 				}
 			}
 			mState = BOARD_PLAYING;
+			mApp->ResyncEvent('r');
 		}
 		ClearLinkList();
 		ClearLink();

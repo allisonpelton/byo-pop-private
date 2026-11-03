@@ -25,6 +25,10 @@ bool				LoadGameTexts();
 // The text the original keeps at theVA; "" for an address that is not in the table
 const SexyString&	GameText(unsigned int theVA);
 
+// The mouth data of one of Atomicus' voices (groups of three ints ended by one -1, see make_lipdata.py), read from the
+// executable like the texts; NULL for an address that is not in the table or did not match
+const int*			LipSyncData(unsigned int theVA);
+
 #define GT(theVA) (::Sexy::GameText(theVA))
 #define GTC(theVA) (::Sexy::GameText(theVA).c_str())
 

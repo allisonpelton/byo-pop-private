@@ -52,6 +52,7 @@
 #include <string.h>
 #include "vclock.h"
 #include "cursor.h"
+#include "msgbox.h"
 
 // --------------------------------------------------------------------------------------------------- util
 
@@ -462,6 +463,70 @@ static void cursor_summary(void)
 	else logline("scripted cursor: %ld mouse position%s posted; %ld game process%s patched GetCursorPos, which answered %ld time%s with "
 		"the scripted position and %ld from Windows (before the first); logs/%s.log has the details", (long)c->posts, c->posts==1?"":"s",
 		(long)c->installed, c->installed==1?"":"es", (long)c->reads, c->reads==1?"":"s", (long)c->realReads, gClockVirtual?"clock":"cursor");
+}
+
+// ---------------------------------------------------------------- message boxes and beeps (hooked; --msgbox show)
+// The game's side is msgbox.c, in the sound stand-in: the copy's MessageBox calls answer with no window (so no sound
+// and no change of focus) and its MessageBeep calls with no sound. origrun makes a block before it starts the game
+// (msgbox.h) with the script's msgbox rules in it; the stand-in answers each box by them, else by its default button,
+// and hands origrun each box and beep, which the dialog thread logs in the dialog watch's own words, marked [hooked].
+// On in every run with the stand-in; --msgbox show (msgbox=show in the sandbox's run file) leaves the boxes to the
+// dialog watch, which answers them once they are on screen and have played their sound. See docs/ORIGRUN.md,
+// "Message boxes and beeps (hooked)".
+static int    gMsgboxHook = 1;        // 1: hooked; 0: --msgbox show; -1: no stand-in (--sound real), so shown
+static MbxShared* gMbx = NULL;        // mapped until origrun exits
+static volatile LONG gMbxDraining = 0;
+static const char* mbx_log_name(void) { return gClockVirtual?"clock":gCursorScripted?"cursor":"msgbox"; }
+static const char* mbx_id_name(LONG id)
+{
+	static const char* const n[]={"0","IDOK","IDCANCEL","IDABORT","IDRETRY","IDIGNORE","IDYES","IDNO","IDCLOSE","IDHELP","IDTRYAGAIN","IDCONTINUE"};
+	return id>=0 && id<(LONG)(sizeof(n)/sizeof(n[0])) ? n[id] : "?";
+}
+static const char* mbx_beep_name(DWORD t)
+{
+	switch (t) {
+	case MB_OK: return "MB_OK"; case MB_ICONHAND: return "MB_ICONHAND"; case MB_ICONQUESTION: return "MB_ICONQUESTION";
+	case MB_ICONEXCLAMATION: return "MB_ICONEXCLAMATION"; case MB_ICONASTERISK: return "MB_ICONASTERISK";
+	case 0xFFFFFFFF: return "0xFFFFFFFF, the simple beep";
+	}
+	return "a type Windows plays as MB_OK";
+}
+// The boxes and beeps the game handed over since the last call, into origrun's log (the dialog thread, every 250 ms,
+// and once more after the game ends).
+static void msgbox_drain(void)
+{
+	MbxShared* s=gMbx;
+	if (!s || InterlockedExchange(&gMbxDraining,1)) return;
+	for (;;) {
+		LONG t=s->tail; if (t==s->head) break;
+		MemoryBarrier();
+		MbxRec r=s->ring[t%MBX_RING];
+		InterlockedExchange(&s->tail,t+1);
+		r.caption[sizeof(r.caption)-1]=0; r.text[sizeof(r.text)-1]=0; r.buttons[sizeof(r.buttons)-1]=0; r.answerLabel[sizeof(r.answerLabel)-1]=0; r.fn[sizeof(r.fn)-1]=0;
+		if (r.kind==MBX_REC_BEEP) { logline("MessageBeep(%s) (pid %lu) [hooked: no sound]", mbx_beep_name(r.type), (unsigned long)r.pid); continue; }
+		if (!r.answer) {
+			logline("%s with style 0x%lx, which Windows refuses (pid %lu) [hooked: returned 0 with no box, as Windows does]: caption='%s' text='%s'",
+				r.fn, (unsigned long)r.type, (unsigned long)r.pid, r.caption, r.text);
+			continue;
+		}
+		logline("dialog appeared: '%s' (pid %lu) [hooked %s: no window]", r.caption, (unsigned long)r.pid, r.fn);
+		logline("DIALOG caption='%s' text='%s' buttons=[%s] [hooked]", r.caption, r.text, r.buttons);
+		logline("  answered with '%s' (%s) [hooked: returned %s]", r.answerLabel, r.rule?"script rule":"default button", mbx_id_name(r.answer));
+	}
+	InterlockedExchange(&gMbxDraining,0);
+}
+static void msgbox_summary(void)
+{
+	MbxShared* s=gMbx;
+	if (!s) return;
+	msgbox_drain();
+	if (!s->installed) logline("message boxes: no game process turned on the MessageBox and MessageBeep hooks (did it load the stand-in, "
+		"dsound.dll?): any box it showed went to the dialog watch, with its sound");
+	else logline("message boxes: %ld answered with no window, %ld MessageBeep call%s with no sound; %ld game process%s hooked "
+		"%ld import%s; logs/%s.log has the details", (long)s->boxes, (long)s->beeps, s->beeps==1?"":"s", (long)s->installed,
+		s->installed==1?"":"es", (long)s->patched, s->patched==1?"":"s", mbx_log_name());
+	if (s->dropped) logline("WARNING: %ld hooked message box%s or beeps not logged here (the ring was full); logs/%s.log has them",
+		(long)s->dropped, s->dropped==1?"":"es", mbx_log_name());
 }
 
 static int file_exists(const char* p) { DWORD a=GetFileAttributesA(p); return a!=INVALID_FILE_ATTRIBUTES && !(a&FILE_ATTRIBUTE_DIRECTORY); }
@@ -1838,8 +1903,11 @@ static DWORD WINAPI audio_thread(LPVOID p){ audio_watch(); return 0; }
 // "#32770". We watch our process's desktop for them and, using only documented window APIs from this host
 // (never injected into the game), log each box's caption, text and buttons with the run time, then answer
 // it: with the button a script "msgbox <button> <text>" rule names, else the dialog's default button.
-// Gaps this cannot close (see docs/ORIGRUN.md): the box has already made its own sound by the time it is
-// visible, and a MessageBeep or PlaySound system sound is not a window and is not seen here.
+// A box the game shows through an imported MessageBox call never gets here while the message-box hook is on (the
+// default, with the stand-in): msgbox.c answers it with no window, and this thread logs what it hands over
+// (msgbox_drain). What still comes here: the game's own dialog-template windows, which play no sound, and, with
+// --msgbox show, --sound real or a call the hook cannot see (GetProcAddress, a game that never loads the stand-in),
+// message boxes, which have already made their own sound by the time they are visible.
 
 #define MAX_DLG 128
 static struct { HWND hwnd; DWORD firstTick; int logged; int handled; } gDlg[MAX_DLG];
@@ -1913,10 +1981,11 @@ static BOOL CALLBACK dlg_enum_cb(HWND h, LPARAM lp)
 
 static DWORD WINAPI dialog_thread(LPVOID p)
 {
-	for (int w=0; !gDesk && !gStop && w<30000; w+=50) Sleep(50);   // wait for the driver to open the desktop
-	if (!gDesk) return 0;
+	for (int w=0; !gDesk && !gStop && w<30000; w+=50) { if (w%250==0) msgbox_drain(); Sleep(50); }   // wait for the driver to open the desktop
+	if (!gDesk) { while (!gStop) { msgbox_drain(); for (int i=0;i<5 && !gStop;i++) Sleep(50); } return 0; }
 	SetThreadDesktop(gDesk);   // dialog handles are per-desktop, like the main window's
 	while (!gStop) {
+		msgbox_drain();   // the boxes and beeps the message-box hook answered
 		EnumDesktopWindows(gDesk, dlg_enum_cb, 0);
 		for (int i=0;i<5 && !gStop;i++) Sleep(50);
 	}
@@ -2460,8 +2529,7 @@ static void close_game(Launched* L){ if(L->thread) CloseHandle(L->thread); if(L-
 static int watch_run(Launched* L, const char* script, int timeout, const char* key3d, int hadPrev3d, DWORD prev3d,
 	RegVals* prevTest3dP, const char* logs, const char* logpath)
 {
-	if (script) load_msgbox_rules(script);   // register dialog answers before any dialog can appear
-	HANDLE ath=CreateThread(NULL,0,audio_thread,NULL,0,NULL);
+	HANDLE ath=CreateThread(NULL,0,audio_thread,NULL,0,NULL);   // (the msgbox rules were loaded before the launch)
 	DriverArg da; ZeroMemory(&da,sizeof(da)); if(script) lstrcpynA(da.script,script,MAX_PATH);
 	HANDLE dth=CreateThread(NULL,0,driver_thread,&da,0,NULL);
 	HANDLE gth=CreateThread(NULL,0,dialog_thread,NULL,0,NULL);   // log/answer message boxes on the game desktop
@@ -2487,6 +2555,7 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	if (wth) WaitForSingleObject(wth,3000);
 	if (gClockVirtual) vc_summary();
 	cursor_summary();
+	msgbox_summary();
 	close_game(L);
 
 	// What the game left in its setting (it writes Is3D at exit, and turns it off after a fallback), then the earlier
@@ -3126,6 +3195,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
 	if (gClockVirtual) fprintf(rf,"clock=virtual\n");
 	if (gCursorScripted) fprintf(rf,"cursor=scripted\n");
+	if (gMsgboxHook==0) fprintf(rf,"msgbox=show\n");
 	fclose(rf);
 	// --reg: registry presets, imported inside before the game starts, into the hive the game uses there.
 	if (!probe) {
@@ -3514,17 +3584,40 @@ static void cursor_create(void)
 	logline("--cursor scripted: the game's GetCursorPos returns the last mouse position the script posted (in the stand-in; its log is logs/%s.log)", gClockVirtual?"clock":"cursor");
 }
 
-// The environment the stand-in's virtual clock and scripted cursor read (vclock.c, cursor.c), inherited by the game
-// through rundesk; none of it without --clock virtual or --cursor scripted, so a value left in origrun's own environment
-// never reaches a game.
+// The message-box hook (on unless --msgbox show): its block, with the script's msgbox rules (load_msgbox_rules runs
+// first), and the environment that tells the stand-in about it.
+static void msgbox_create(void)
+{
+	char name[128]; wsprintfA(name,"Local\\origrun-msgbox-%s",gClockId);
+	HANDLE m=CreateFileMappingA(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,sizeof(MbxShared),name);   // open until origrun exits
+	MbxShared* s=m ? (MbxShared*)MapViewOfFile(m,FILE_MAP_ALL_ACCESS,0,0,sizeof(MbxShared)) : NULL;
+	if (!s) { logline("message boxes: no shared block %s (err %lu): the game's boxes are shown and answered by the dialog watch, with their sound", name, GetLastError()); if (m) CloseHandle(m); return; }
+	LONG n=gMsgboxN; if (n>MBX_RULES) n=MBX_RULES;
+	for (LONG i=0;i<n;i++) { lstrcpynA(s->rules[i].text,gMsgbox[i].text,sizeof(s->rules[i].text)); lstrcpynA(s->rules[i].button,gMsgbox[i].button,sizeof(s->rules[i].button)); }
+	s->nrules=n;
+	s->version=MBX_VERSION; s->size=sizeof(MbxShared);
+	MemoryBarrier();
+	s->magic=MBX_MAGIC;
+	gMbx=s;
+	SetEnvironmentVariableA("ORIGRUN_MSGBOX","hook");
+	SetEnvironmentVariableA("ORIGRUN_MSGBOX_ID",gClockId);
+	logline("message boxes: the game's MessageBox calls are answered in the stand-in with no window (by the msgbox rules, else the "
+		"default button) and its MessageBeep calls with no sound; --msgbox show shows them (the stand-in's log is logs/%s.log)", mbx_log_name());
+}
+
+// The environment the stand-in's virtual clock, scripted cursor and message-box hook read (vclock.c, cursor.c,
+// msgbox.c), inherited by the game through rundesk; none of it without --clock virtual, --cursor scripted or the
+// message-box hook, so a value left in origrun's own environment never reaches a game.
 static void clock_env(void)
 {
 	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
-		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID",NULL};
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
-	if (!gClockVirtual && !gCursorScripted) return;
+	if (gMsgboxHook==0) logline("--msgbox show: message boxes are shown as before; the dialog watch answers them once they are on screen, after their sound");
+	if (!gClockVirtual && !gCursorScripted && gMsgboxHook<=0) return;
 	wsprintfA(gClockId,"%lu-%lu",GetCurrentProcessId(),GetTickCount());
 	if (gCursorScripted) cursor_create();
+	if (gMsgboxHook>0) msgbox_create();
 	if (!gClockVirtual) return;
 	char host[16]; wsprintfA(host,"%lu",GetCurrentProcessId());
 	char w[4*257]=""; for (int i=0;i<gWatchN;i++) { if (i) lstrcatA(w,";"); lstrcatA(w,gWatchExpr[i]); }
@@ -3611,11 +3704,12 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
 			else if (ieq(ln,"clock")) gClockVirtual = ieq(v,"virtual");
 			else if (ieq(ln,"cursor")) gCursorScripted = ieq(v,"scripted");
+			else if (ieq(ln,"msgbox")) gMsgboxHook = ieq(v,"show") ? 0 : 1;
 		}
 		fclose(f);
 	}
 	if (!exeRel[0] || strstr(exeRel,"..") || exeRel[0]=='\\' || strchr(exeRel,':')) { logline("bad exe in sandbox-run.txt: '%s'", exeRel); goto done; }
-	if (timeout>240) timeout=240;
+	if (timeout>3600) timeout=3600;
 	if (!inSession) {   // the dead-man's switch: a sandbox whose host origrun was killed still ends
 		DWORD r=arm_guest_shutdown((DWORD)timeout+90);
 		if (r) logline("WARNING: could not arm the sandbox's shutdown timer (err %lu)", r);
@@ -3653,6 +3747,8 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	SetEnvironmentVariableA("ORIGRUN_SOUND", ieq(sound,"real") ? "real" : sound);
 	if (gClockVirtual && ieq(sound,"real")) { logline("clock=virtual needs the sound stand-in, which sound=real leaves out: the run stays on the wall clock"); gClockVirtual=0; }
 	if (gCursorScripted && ieq(sound,"real")) { logline("cursor=scripted needs the sound stand-in, which sound=real leaves out: GetCursorPos stays Windows'"); gCursorScripted=0; }
+	if (gMsgboxHook>0 && ieq(sound,"real")) { logline("sound=real: no stand-in, so no message-box hook: the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
+	if (script[0]) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
 	clock_env();
 
 	import_registry(logs);   // the presets first, in the hive the game uses, so the 3D setting below wins over them
@@ -3758,6 +3854,11 @@ int main(int argc, char** argv)
 			if (ieq(v,"scripted")) gCursorScripted=1; else if (ieq(v,"real")) gCursorScripted=0;
 			else { fprintf(stderr,"--cursor takes scripted or real, not %s\n",v); return 2; }
 		}
+		else if (ieq(argv[i],"--msgbox")&&i+1<argc) {
+			const char* v=argv[++i];
+			if (ieq(v,"show")) gMsgboxHook=0; else if (ieq(v,"hook")) gMsgboxHook=1;
+			else { fprintf(stderr,"--msgbox takes show or hook, not %s\n",v); return 2; }
+		}
 		else if (ieq(argv[i],"--copy-only")) copyOnly=1;
 		else if (ieq(argv[i],"--fresh")) fresh=1;
 		else if (ieq(argv[i],"--stage-root")&&i+1<argc) stageRoot=argv[++i];
@@ -3790,7 +3891,7 @@ int main(int argc, char** argv)
 		return 2;
 	}
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");
-	if (timeout>240) timeout=240;   // the machine rule: nothing longer than about 4 minutes
+	if (timeout>3600) timeout=3600;   // an hour; a run past about 4 minutes goes in its session's background, never in a subagent
 	if (!sandboxHost && !copyOnly && script_needs_sandbox(script)) {
 		fprintf(stderr, "origrun: refusing to start: this run takes shots or sends hw* input, and origrun does neither on the "
 			"host (a capture there can show the user's own screen, and hw* input reaches the user's desktop). Run it with "
@@ -3980,7 +4081,10 @@ int main(int argc, char** argv)
 		wsprintfA(dst,"%s\\dsound.dll",gGameDir);
 		if (CopyFileA(src,dst,FALSE)) logline("placed sound stand-in: %s",dst);
 		else logline("warning: could not place dsound stand-in from %s (err %lu) -- sound may play",src,GetLastError());
-	} else logline("--sound real: no stand-in placed; the game will use the real audio device");
+	} else {
+		logline("--sound real: no stand-in placed; the game will use the real audio device");
+		if (gMsgboxHook>0) { logline("--sound real: no message-box hook either (it lives in the stand-in): the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
+	}
 
 	// --sandbox: everything is staged; the run itself, its registry and its shots happen inside Windows Sandbox.
 	if (sandboxHost) return sandbox_host_run(selfDir, script, timeout, sound, key3d, sandboxVgpu, sandboxWait, 0);
@@ -3988,6 +4092,7 @@ int main(int argc, char** argv)
 	// Environment the stand-in reads, inherited through rundesk.
 	SetEnvironmentVariableA("ORIGRUN_DIR",gRunDir);
 	SetEnvironmentVariableA("ORIGRUN_SOUND", wantSilent ? sound : "real");
+	if (script) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
 	clock_env();
 
 	// The game's 3D setting and cached test results go back after every run whose key is known: on rundesk's desktop

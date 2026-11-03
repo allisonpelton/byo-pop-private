@@ -51,6 +51,7 @@ AtomicaApp::AtomicaApp()
 	mAutoplayFinish = 0;
 	mAutoplayBonus = false;
 	mAutoplayState = NULL;
+	mTraceState = NULL;
 	mMode = 0;
 	mB3ea0 = false;
 	mExpertMode = 0;
@@ -186,6 +187,10 @@ void AtomicaApp::HandleCmdLineParam(const std::string& theParamName, const std::
 		mAutoplayFinish = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaylog")
 		mAutoplayLog = theParamValue;
+	else if (theParamName == "-statetrace")
+		mTraceFile = theParamValue;
+	else if (theParamName == "-autoplayscript")
+		mAutoplayScript = theParamValue;
 	else if (theParamName == "-autoplayshots")
 		mAutoplayShots = theParamValue;
 	else
@@ -194,7 +199,11 @@ void AtomicaApp::HandleCmdLineParam(const std::string& theParamName, const std::
 
 void AtomicaApp::UpdateFrames()
 {
-	SexyApp::UpdateFrames();
+	// the trace is taken before the next update, so that it holds what the last update's draw changed (the random numbers)
+	if (!mTraceFile.empty())
+		TraceUpdate();
+	// the bot acts before the update, where a script's commands (and a player's input) come: after the last update's draw
 	if (mAutoplay)
 		AutoplayUpdate();
+	SexyApp::UpdateFrames();
 }

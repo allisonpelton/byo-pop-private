@@ -136,15 +136,6 @@ static const int kExplorerIdleX[1020] =
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-static const int kTutorialMove[67] =
-{
-	5, 0, 5, 0, 5, 0, 0, 1, 1, 1, 5, 5, 5, 5, 5, 4,
-	1, 1, 1, 0, 0, 0, 5, 5, 5, 5, 1, 4, 1, 1, 1, 0,
-	0, 0, 5, 5, 5, 5, 5, 5, 6, 5, 5, 2, 5, 5, 3, 5,
-	5, 1, 1, 1, 0, 0, 0, 0, 5, 3, 5, 5, 5, 5, 5, 5,
-	5, 5, 7,
-};
-
 static const int kMummyIdleCount[1] =
 {
 	4,
@@ -163,12 +154,6 @@ static const int kExplorerIdleCount[1] =
 static const int kExplorerIdleLen[4] =
 {
 	79, 32, 22, 40,
-};
-
-static const int kRankScore[22] =
-{
-	500, 1000, 1500, 2500, 5000, 7000, 8500, 10000, 12500, 15000, 20000, 25000, 30000, 40000, 50000, 75000,
-	100000, 110000, 125000, 150000, 200000, 300000,
 };
 
 static const unsigned kRankText[23] =

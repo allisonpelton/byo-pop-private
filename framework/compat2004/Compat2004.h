@@ -25,6 +25,7 @@ class Graphics;
 // runs). The host's rand() differs on Emscripten, so the ports never call it.
 void	CrtSRand(unsigned int theSeed);
 int		CrtRand();
+unsigned int	CrtRandState();	// the generator's state word (test logs compare it with the original's)
 // For comparing with an original's run: how many draws have been made, and the generator's state after every 512th.
 unsigned int	CrtRandCount();
 unsigned int	CrtRandSnapshot();

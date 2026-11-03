@@ -19,6 +19,7 @@
 
 using namespace Sexy;
 
+#include "GameLevels.h"
 #include "Tables.inc"
 
 // the keys the board reads from the widget manager's key table (the original's +0x84, +0x89, +0x8a, +0x8b, +0x8c)

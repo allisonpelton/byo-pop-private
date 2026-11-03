@@ -21,6 +21,8 @@ TABLES = [
     ("kMapLinks", 0x481bbc, 225),              # the world map: 15 x 15, 1 where a path joins two pyramids
     ("kMapEdge", 0x481f40, 225),               # the world map: 15 x 15, the number of the path between two pyramids (negative: walked backwards)
     ("kMapWay", 0x4822c4, 252),                # the world map: six waypoints (x, y) per path, path numbers 1 to 19 (path n starts at pair 6n)
+    ("kTutorialMove", 0x48f34c, 67),          # per tutorial step: the one move that is allowed (0 N, 1 W, 2 E, 3 S, 4 wait), 5 none, 6 and 7 the buttons
+    ("kRankScore", 0x491f98, 22),             # the points at which a classic game's rank rises
 ]
 
 # the tutorial's five parts: where the wall statements of each case of the switch in 0x40f520 begin, and their length
