@@ -2126,7 +2126,10 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	if (wait_game(L,timeout)) {
 		logline("timeout (%ds) -- ending the run (the job kills the game and its children)",timeout);
 		end_game(L);
-	} else logline("game exited");
+	} else {
+		DWORD ec=0; GetExitCodeProcess(L->proc,&ec);
+		logline("game exited (its process's exit code 0x%08lX)",(unsigned long)ec);
+	}
 
 	InterlockedExchange(&gStop,1);
 	WaitForSingleObject(dth,3000);
