@@ -37,6 +37,7 @@ using namespace Sexy;
 #define BOT_PYR ((mGameMode == MODE_ADVENTURE) ? mAdvPyramid : mClassicPyramid)
 #define BOT_CHM ((mGameMode == MODE_ADVENTURE) ? mAdvChamber : mClassicChamber)
 
+#include "GameLevels.h"
 #include "Tables.inc"
 
 namespace Sexy

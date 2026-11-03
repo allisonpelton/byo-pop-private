@@ -16,12 +16,10 @@ from make_res import Exe
 TABLES = [
     ("kMummyFightX", 0x48d36c, 4 * 255),       # mummy fight/dance frames: x offset in cells, 255 frames per kind
     ("kExplorerIdleX", 0x48e35c, 4 * 255),     # the explorer's idle animations: x offset in cells per frame
-    ("kTutorialMove", 0x48f34c, 67),           # per tutorial step: the one move that is allowed (0 N, 1 W, 2 E, 3 S, 4 wait), 5..7 text only
     ("kMummyIdleCount", 0x494968, 1),
     ("kMummyIdleLen", 0x49496c, 4),
     ("kExplorerIdleCount", 0x495250, 1),
     ("kExplorerIdleLen", 0x495254, 4),
-    ("kRankScore", 0x491f98, 22),              # the points at which a classic game's rank rises
 ]
 
 # tables of pointers to texts: name, address of the table, count (written as the texts' addresses)

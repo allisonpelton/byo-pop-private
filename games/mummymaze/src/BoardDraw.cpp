@@ -22,6 +22,7 @@
 
 using namespace Sexy;
 
+#include "GameLevels.h"
 #include "Tables.inc"
 #include "TutorialMazes.inc"
 
