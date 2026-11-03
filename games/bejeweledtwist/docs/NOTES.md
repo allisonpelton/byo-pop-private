@@ -403,7 +403,14 @@ without it, silently and without writing "Is3D". The port's GPU display fails to
 context, and DisplayInitFailed makes the window again in 2D. `-3d` asks for 3D and `-nod3d9` (or -noacceleration) for
 2D whatever "Is3D" says. Every test run asks for its mode: check.sh's suite, its frozen baseline and the comparison
 scripts pass `-nod3d9` (they were 2D by default before 3D became the default), and the web build under Node, which has
-no WebGL, falls back to 2D anyway.
+no WebGL, falls back to 2D anyway. On the web the site's "3D acceleration" (Byopop::SiteAccel3D) takes the place of "Is3D" for each run when it
+is always or never, as its cursors setting does for the game's own option; always is still 2D without WebGL2. The
+options' 3D box still writes "Is3D" and restarts, but the site's setting wins again at that start. With the game's own
+choice, a browser whose WebGL2 is drawn without the graphics card counts as having no 3D, as the original takes 3D only
+from a card its driver checks pass: the start picks 2D, and the options' 3D box says 3D is not supported. It is tested
+as the site's indicator tests it (web/settings.js, accel3d): a WebGL2 context, then one with
+failIfMajorPerformanceCaveat, each let go at once; a context made with the flag counts as the card's, since browsers
+honour it unevenly. The site's "always" still takes 3D wherever any WebGL2 context can be made.
 
 The original makes its Direct3D device (0x6193b0, flags 0x140) without D3DCREATE_FPU_PRESERVE, so once it runs, the
 x87 computes in single precision. Two places show it in play: a curve's input steps and thresholds (CurvedVal's X87

@@ -37,6 +37,7 @@ using namespace Sexy;
 #define BOT_PYR ((mGameMode == MODE_ADVENTURE) ? mAdvPyramid : mClassicPyramid)
 #define BOT_CHM ((mGameMode == MODE_ADVENTURE) ? mAdvChamber : mClassicChamber)
 
+#include "GameLevels.h"
 #include "Tables.inc"
 
 namespace Sexy
@@ -57,6 +58,8 @@ struct AutoplayState
 	unsigned int		mTutorialShots;     // the tutorial steps that were photographed
 	bool				mTutorial;          // the tutorial is being played
 	int					mSaveAt;            // save and quit when the board is this many updates old (0: never)
+	int					mQuitAt;            // quit to the main menu through the side panel's button and its dialog when the board is this old (0: never); the game saves
+	int					mQuitTick;          // the tick of that click (0: not yet)
 	bool				mContinue;          // the Continue question is answered with yes
 	bool				mAdventure;         // an adventure is being played
 	bool				mMapShot;           // the world map was photographed
@@ -79,7 +82,7 @@ struct AutoplayState
 	unsigned int		mPrev[24];
 
 	AutoplayState() : mSeed(1), mTick(0), mLastAction(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
-		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mSaveAt(0), mContinue(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
+		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mSaveAt(0), mQuitAt(0), mQuitTick(0), mContinue(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
 		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL), mTrace(false)
 	{
 		for (int i = 0; i < 24; i++)
@@ -130,6 +133,8 @@ void MummyApp::HandleAutoplayParam(const std::string& theParamName, const std::s
 		mAutoplayState->mLevelsPerGame = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaysave")
 		mAutoplayState->mSaveAt = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplayquit")
+		mAutoplayState->mQuitAt = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaytrace")
 		mAutoplayState->mTrace = true;
 	else if (theParamName == "-autoplaycontinue")
@@ -174,8 +179,9 @@ void MummyApp::AutoplayUpdate()
 			{"tbase", b != NULL, b != NULL ? (int) b->mTimeBase : 0},
 			{"ebase", true, mElapsedBase},
 			{"undo", b != NULL, b != NULL ? (int) b->mUndo.size() : 0},
+			{"rng", true, (int) CrtRandState()},
 		};
-		for (int i = 0; i < 20; i++)
+		for (int i = 0; i < 21; i++)
 		{
 			unsigned int aNow = aValues[i].mValid ? (unsigned int) aValues[i].mValue : 0xfffffffdu;
 			if (aNow == s->mPrev[i])
@@ -196,6 +202,20 @@ void MummyApp::AutoplayUpdate()
 		Board* b = mBoard;
 		Log(s, "saved: %d updates in, time base %d, saved %d", (int) b->mUpdateCnt, (int) b->mTimeBase, (int) (b->mUpdateCnt - b->mTimeBase));
 		b->SaveClassic();
+		Shutdown();
+		return;
+	}
+	if (s->mQuitAt > 0 && s->mQuitTick == 0 && mBoard != NULL && mSidePanel != NULL && mBoard->mUpdateCnt >= s->mQuitAt)
+	{
+		Log(s, "quit to the main menu: %d updates in, time base %d", (int) mBoard->mUpdateCnt, (int) mBoard->mTimeBase);
+		LogClick(s, mUpdateCount, mSidePanel->mButtons[4]);
+		mSidePanel->ButtonDepress(14);
+		s->mQuitTick = s->mTick;
+		s->mWait = 5;	// the dialog is answered a few updates later, as a player would
+	}
+	if (s->mQuitTick > 0 && s->mTick >= s->mQuitTick + 150)
+	{
+		Log(s, "quit done at update %d", s->mTick);
 		Shutdown();
 		return;
 	}
@@ -302,7 +322,11 @@ void MummyApp::AutoplayUpdate()
 				((AdventureSlotsDialog*) aDialog)->ButtonDepress(0);
 			}
 			else if (anId == DIALOG_CONTINUE)
+			{
+				if (s->mContinue && aDialog->mYesButton != NULL)
+					LogClick(s, mUpdateCount, aDialog->mYesButton);
 				ButtonDepress((s->mContinue ? 2000 : 3000) + anId);
+			}
 			else
 			{
 				if (aDialog->mYesButton != NULL)
@@ -406,6 +430,7 @@ void MummyApp::AutoplayUpdate()
 				mHighScores->mScores[2], mHighScores->mScores[3], mHighScores->mScores[4], aPlace);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-gameover%d.png", mAutoplayShots.c_str(), s->mGames));
+			LogClick(s, mUpdateCount, mHighScores->mMenuLink);
 			mHighScores->ButtonDepress(1);
 			s->mWait = 20;
 		}
@@ -475,6 +500,7 @@ void MummyApp::AutoplayUpdate()
 			Log(s, "victory: score %d, caught %d times", mScore, mDeaths);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-victory.png", mAutoplayShots.c_str()));
+			LogClick(s, mUpdateCount, mVictory->mMenuLink);
 			mVictory->ButtonDepress(1);
 			s->mWait = 20;
 		}
@@ -556,13 +582,12 @@ void MummyApp::AutoplayUpdate()
 		return;
 	}
 
-	// enough levels: give up, so that the solution plays and the high scores come
+	// enough levels: give up. The explorer walks at random until a mummy catches it, and then Abandon Hope is clicked: the
+	// way a player ends a classic game, with input that the original can be given
 	if (s->mLevels >= s->mLevelsPerGame && !s->mGivenUp && mGameMode == MODE_CLASSIC)
 	{
 		s->mGivenUp = true;
-		ShowGamePanel();
-		s->mWait = 5;
-		return;
+		s->mPlanned = false;
 	}
 
 	// a new level: the dice choose the way
@@ -573,6 +598,11 @@ void MummyApp::AutoplayUpdate()
 		s->mReplans = 0;
 		s->mUseSolver = s->mRandomMoves == 0 && s->Rand(10) < 7;
 		s->mRandomMoves = s->mUseSolver ? 0 : 2 + s->Rand(6);
+		if (s->mGivenUp)
+		{
+			s->mUseSolver = false;
+			s->mRandomMoves = 1000000;
+		}
 		if (s->mUseSolver)
 		{
 			// Solve takes every move back first (Retry): the original is given the click on RESET MAZE
@@ -682,7 +712,7 @@ void MummyApp::AutoplayUpdate()
 			s->mPlanned = false;
 		}
 		// the random walk ends in a solver level or an undo of the last move, by the dice
-		if (s->mRandomMoves == 0 && s->Rand(2) == 0)
+		if (s->mRandomMoves == 0 && !s->mGivenUp && s->Rand(2) == 0)
 		{
 			Log(s, "undo");
 			LogClick(s, mUpdateCount, mSidePanel->mButtons[0]);

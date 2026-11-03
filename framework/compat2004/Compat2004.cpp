@@ -29,6 +29,11 @@ unsigned int Sexy::CrtRandSnapshot()
 	return gCrtRandSnapshot;
 }
 
+unsigned int Sexy::CrtRandState()
+{
+	return gCrtHoldRand;
+}
+
 int Sexy::CrtRand()
 {
 	gCrtHoldRand = gCrtHoldRand * 214013u + 2531011u;

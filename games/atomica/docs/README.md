@@ -75,8 +75,8 @@ registry values (hints shown, hints off, colour-blind symbols, music and sound v
 
 Where the port is not the original's exact picture (each marked in the code):
 
-- `Grid::DrawBond` and the geiger needle's geometry (the needle goes from the dial's middle at the angle the original computes),
-  the lip-sync of Atomicus (the voices' mouth data), the shimmer of the title screen's logo and the Atomicus monitor's scan lines;
+- the geiger needle's geometry (the needle goes from the dial's middle at the angle the original computes) and the shimmer of the
+  title screen's logo (the bond, the bolts, the monitor's static and the lip-sync follow the original, `IDENTICAL_PLAY.md`);
 - the swirls' triangles go through `Image::FillScanLines` instead of the original's raw writes into the display buffer (the same
   spans, the same colours; the original's rounding of a colour to the display's bit depth is not repeated);
 - the "More games" and "Register" buttons and every link to a web page are left out (the port has no online features).

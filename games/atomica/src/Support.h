@@ -143,6 +143,8 @@ public:
 	void	Seed(unsigned int theSeed);			// 0x425e30
 	int		Next();								// 0x425e80: 24 random bits
 	int		Get(int theRange, bool theSigned = false); // 0x425f10: 0 .. theRange-1, negated half the time if signed
+	int		J() const { return mJ; }		// test hooks (testhooks/Trace.cpp): where the generator is
+	int		K() const { return mK; }
 private:
 	int		mJ;			// +4
 	int		mK;			// +8

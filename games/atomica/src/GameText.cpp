@@ -30,6 +30,29 @@ const GameTextEntry gGameTextEntries[] =
 
 const int NUM_GAME_TEXTS = (int) (sizeof(gGameTextEntries) / sizeof(gGameTextEntries[0])) - 1;
 
+struct LipDataEntry
+{
+	uint32_t	mVA;
+	uint32_t	mInts;
+	uint32_t	mHash;
+};
+
+const LipDataEntry gLipDataEntries[] =
+{
+#define LIPDATA(theVA, theInts, theHash) {theVA, theInts, theHash},
+#include "LipDataTable.inc"
+#undef LIPDATA
+	{0, 0, 0}
+};
+
+const int NUM_LIP_DATA = (int) (sizeof(gLipDataEntries) / sizeof(gLipDataEntries[0])) - 1;
+
+std::map<unsigned int, std::vector<int> >& LipData()
+{
+	static std::map<unsigned int, std::vector<int> > sLipData;
+	return sLipData;
+}
+
 std::map<unsigned int, SexyString>& Texts()
 {
 	static std::map<unsigned int, SexyString> sTexts;
@@ -113,6 +136,7 @@ bool Sexy::LoadGameTexts()
 {
 	std::map<unsigned int, SexyString>& aTexts = Texts();
 	aTexts.clear();
+	LipData().clear();
 
 	// The original's executable (version 2.52, 2003-03-28) or a copy of it
 	std::vector<uint8_t> aData;
@@ -125,6 +149,22 @@ bool Sexy::LoadGameTexts()
 		PEImage anImage;
 		if (anImage.Parse(aData))
 		{
+			for (int anId = 0; anId < NUM_LIP_DATA; anId++)
+			{
+				const LipDataEntry& e = gLipDataEntries[anId];
+				size_t anOffset = anImage.Offset(e.mVA);
+				if ((anOffset != 0) && (anOffset + 4 * e.mInts <= aData.size()) &&
+					(TextHash((const char*) &aData[anOffset], 4 * e.mInts) == e.mHash))
+				{
+					std::vector<int>& aList = LipData()[e.mVA];
+					for (uint32_t i = 0; i < e.mInts; i++)
+						aList.push_back((int) ReadU32(aData, anOffset + 4 * i));
+				}
+				else
+				{
+					SDL_Log("GameText: the mouth data at 0x%08x does not match this executable", e.mVA);
+				}
+			}
 			for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
 			{
 				const GameTextEntry& e = gGameTextEntries[anId];
@@ -174,4 +214,11 @@ const SexyString& Sexy::GameText(unsigned int theVA)
 	std::map<unsigned int, SexyString>& aTexts = Texts();
 	std::map<unsigned int, SexyString>::const_iterator anItr = aTexts.find(theVA);
 	return anItr == aTexts.end() ? sEmpty : anItr->second;
+}
+
+const int* Sexy::LipSyncData(unsigned int theVA)
+{
+	std::map<unsigned int, std::vector<int> >& aLipData = LipData();
+	std::map<unsigned int, std::vector<int> >::const_iterator anItr = aLipData.find(theVA);
+	return anItr == aLipData.end() ? NULL : &anItr->second[0];
 }

@@ -472,8 +472,8 @@ void GamePanel::Update()
 	{
 		mLinks[0]->Resize(mX + 0x32, mHeight + mY - 0x46 + mOffset, mWidth / 2 - 0x32, 0x20);
 		mLinks[1]->Resize(mX + 0x32, mHeight + mY - 0x78 + mOffset, mWidth / 2 - 0x32, 0x20);
-		mLinks[3]->Resize(mWidth / 2 + mX, mHeight + mY - 0x46 + mOffset, mWidth / 2 - 0x32, 0x20);
-		mLinks[2]->Resize(mWidth / 2 + mX, mHeight + mY - 0x78 + mOffset, mWidth / 2 - 0x32, 0x20);
+		mLinks[2]->Resize(mWidth / 2 + mX, mHeight + mY - 0x46 + mOffset, mWidth / 2 - 0x32, 0x20);
+		mLinks[3]->Resize(mWidth / 2 + mX, mHeight + mY - 0x78 + mOffset, mWidth / 2 - 0x32, 0x20);
 	}
 	if (mLeaving)
 	{
