@@ -34,12 +34,17 @@
 					unsigned int dg = (((p&0x00FF00)*da)>>8) & 0x00FF00;
 					unsigned int db = (((p&0x0000FF)*da)>>8) & 0x0000FF;
 					
+					// port: the texel's alpha passed the test above before the colour's alpha scaled it, so it can be 0
+					// here; onto a transparent pixel finalAlpha is then 0 and 1.3 divided by it. The pixel stays.
 					int finalAlpha = 256 - (((256 - alpha)*(256 - da))>>8);
-					tr = ((tr + (256-alpha)*dr)/finalAlpha) & 0xFF0000;
-					tg = ((tg + (256-alpha)*dg)/finalAlpha) & 0x00FF00;
-					tb = ((tb + (256-alpha)*db)/finalAlpha) & 0x0000FF;
-					
-					*pix = ((finalAlpha-1)<<24) | tr | tg | tb; 
+					if (finalAlpha > 0)
+					{
+						tr = ((tr + (256-alpha)*dr)/finalAlpha) & 0xFF0000;
+						tg = ((tg + (256-alpha)*dg)/finalAlpha) & 0x00FF00;
+						tb = ((tb + (256-alpha)*db)/finalAlpha) & 0x0000FF;
+
+						*pix = ((finalAlpha-1)<<24) | tr | tg | tb;
+					}
 				}
 				else
 				{
