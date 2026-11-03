@@ -50,7 +50,8 @@ FossilizedApp::FossilizedApp()
 	mMusicVolume = 0.5;
 	mSfxVolume = 0.85;
 	mAngles = new AngleTable();
-	mRand.SRand(GetTickCount());
+	// port: the 2003 framework's MTRand::SRand (0x442d90) is the 69069 seeding (compat2004)
+	SeedMTRand2004(mRand, GetTickCount());
 	mPicker.Seed(GetTickCount() >> 1);
 	mSkill = 1;
 	mFossilKind = 0;
@@ -122,7 +123,7 @@ void FossilizedApp::Init()
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
 	if (mHasSeedParam)
 	{
-		mRand.SRand((unsigned int) mRandSeed);
+		SeedMTRand2004(mRand, (unsigned int) mRandSeed);
 		mPicker.Seed((unsigned int) mRandSeed >> 1);
 	}
 	LoadProperties();
@@ -250,6 +251,20 @@ void FossilizedApp::ConfirmExit()
 {
 	DoDialog(0, true, GetString("EXIT_GAME"), GetString("ARE_YOU_SURE_YOU_WANT_TO_EXIT_DYNOMITE"), "",
 		Dialog::BUTTONS_YES_NO);
+}
+
+// 0x418b60 (slot 56)
+void FossilizedApp::ModalOpen()
+{
+	if (mSideBar != NULL)
+		mSideBar->SetPauseState(1);
+}
+
+// 0x418b80 (slot 57)
+void FossilizedApp::ModalClose()
+{
+	if (mSideBar != NULL)
+		mSideBar->SetPauseState(2);
 }
 
 // 0x418ba0: the options dialog (2)

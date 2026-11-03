@@ -8,6 +8,8 @@
 #include "Graphics.h"
 #include "PortCompat.h"
 #include "Sprite.h"
+#include "SexyAppBase.h"
+#include "compat2004/Compat2004.h"
 #include "Steggy.h"
 #include <cmath>
 #include <cstring>
@@ -28,7 +30,9 @@ Launcher::Launcher(FossilizedApp* theApp, Dynomite* theBoard)
 	mField1c = 0;
 	mRecoilX = 0;
 	mRecoilY = 0;
-	mRand.SRand(GetTickCount());
+	// port: the 2003 MTRand::SRand (0x442d90; compat2004); -seed=N stands for the tick count, as the test patch
+	// gives the original's
+	SeedMTRand2004(mRand, gSexyAppBase->mHasSeedParam ? (unsigned long) gSexyAppBase->mRandSeed : (unsigned long) GetTickCount());
 	mField18 = 0;
 	mFieldA5c = 0x32;
 	int x = mBoard->mField158 + mBoard->mField70;

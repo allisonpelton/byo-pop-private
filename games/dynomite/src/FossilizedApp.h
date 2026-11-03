@@ -280,6 +280,8 @@ public:
 	// 0x418e90 (slot 1): a save slot (600-699) is chosen, a saved game's slot on the main menu (900-999) too and a second
 	// press on it is OK; any other press clicks
 	virtual void	ButtonPress(int theId) override;
+	virtual void	ModalOpen() override;						// 0x418b60 (slot 56): a modal dialog pauses the side bar
+	virtual void	ModalClose() override;					// 0x418b80 (slot 57): and resumes it
 
 	DDImage*		GetGameImage(const std::string& thePath);	// 0x419ad0
 	void			LoadGame();									// 0x419c30 (InitHook, slot 15)
@@ -304,6 +306,15 @@ public:
 	void			TitleScreenDone();							// 0x419250: the play link
 	void			PumpLoading();								// port: the loading runs in the main thread
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;	// port: TestHooks.cpp
+
+	// port: test hooks (TestHooks.cpp). -statelog=<file> writes "<update> <name> <value>" for each value that decides
+	// play when it changes, after each update and its draw, under the names games/dynomite/tools/identical/case.sh gives the
+	// original's addresses. The original does not override these two.
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	virtual void	UpdateFrames() override;
+	void			LogState();
+	FILE*			mStateLog = NULL;
+	std::vector<std::string> mStateValues;
 
 	using SexyAppBase::ButtonPress;
 };
