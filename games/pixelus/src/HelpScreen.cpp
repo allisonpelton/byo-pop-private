@@ -19,6 +19,11 @@ using namespace Sexy;
 HelpScreen::HelpScreen(PixelusApp* theApp) :
 	mApp(theApp)
 {
+	// the original shows a small grid beside the slides (0x40ddd0: a grid of 12 by 12 with one tile in it); the port draws
+	// its picture from the slides' own grid, but the grid and the tile take two draws of the game's random numbers, which
+	// the draws after them depend on
+	mApp->RandNext();
+	mApp->RandNext();
 	mGrid = new Grid(16, 16);
 	Buffer aBuffer;
 	if (mApp->ReadBufferFromFile("levels/helpscreen.txt", &aBuffer))
@@ -33,6 +38,7 @@ HelpScreen::HelpScreen(PixelusApp* theApp) :
 	int aLast = FIRST_SLIDE + SLIDE_GAP * (int) mOrder.size() + SLIDE_UPDATES;
 	mCycle = aLast + HOLD_UPDATES + FADE_UPDATES;
 	mTimer = 0;
+	mDemoFrame = 0;
 
 	mDontShowBox = new Checkbox(mApp->mImages[IMAGE_CHECKBOX_UNCHECKED], mApp->mImages[IMAGE_CHECKBOX_CHECKED], 0, this);
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
@@ -83,6 +89,10 @@ void HelpScreen::Update()
 	Widget::Update();
 	if (++mTimer >= mCycle)
 		mTimer = 0;
+	// the demo throws a tile (a draw) at 50, 150 and 250 of its 950 updates (0x40d483 in 0x40d320)
+	mDemoFrame = (mDemoFrame + 1) % 950;
+	if (mDemoFrame == 50 || mDemoFrame == 150 || mDemoFrame == 250)
+		mApp->RandNext();
 	MarkDirty();
 }
 

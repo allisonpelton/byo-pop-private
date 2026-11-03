@@ -53,6 +53,7 @@ public:
 	Grid*			mGrid;				// the puzzle of the picture
 	std::vector<int> mOrder;			// its wanted cells (row * 32 + column) in the order the tiles come
 	int				mTimer;
+	int				mDemoFrame;		// the original's demo grid runs a clock of its own (0x40d320), 950 updates long
 	int				mCycle;				// updates of the whole demonstration
 
 public:

@@ -103,6 +103,8 @@ public:
 	int			mReveal;			// +0xb100 cells still to show as the picture: rows * cols, down by 3 an update
 	bool		mGlowDone;			// +0xb110 the sweep is over
 	bool		mWaveOn;			// +0xf the shimmer runs
+	int			mClock;				// +0xb188 updates since the grid was made (0x424b30)
+	int			mWaveTime;			// +0x18 the clock's reading when the shimmer comes again
 	double		mWave;				// +0x10 where the shimmer is, in diagonals: -25 up to 60 by 0.6 an update
 
 	bool		mCanPlace;			// +0xb069 a thrown tile would stay

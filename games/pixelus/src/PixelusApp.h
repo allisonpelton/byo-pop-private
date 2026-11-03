@@ -13,6 +13,7 @@
 #include "NcApp.h"
 #include "Res.h"
 #include "Color.h"
+#include "MTRand.h"
 #include <string>
 
 namespace Sexy
@@ -127,6 +128,20 @@ public:
 	std::string				mAutoplayLog;
 	std::string				mAutoplayShots;
 	std::string				mAutoplayShow;          // -autoplayshow=<level>:<puzzle>[:<moves>:<ms>]: open that puzzle (with that record), photograph it, quit
+	bool					mAutoplaySkip;          // -autoplayskip: press the tutorial's skip button (and answer yes) before the first puzzle
+	bool					mAutoplayUI;            // -autoplayui: the bot presses buttons and cells with mouse clicks (script commands), as a -script run does
+	// the game's one generator (the original's static one at 0x579360, seeded in SexyApp::Init with the 2004 SRand); every
+	// draw goes through RandNext so that the draws can be counted against the original's
+	MTRand					mRand;
+	unsigned int			mRandDraws;
+	int						RandNext() { mRandDraws++; return (int) mRand.NextNoAssert(); }
+	// the application's own, which the original makes with the default seed and never reseeds (`*(app + 0x670)`)
+	MTRand					mAppRand;
+	unsigned int			mAppRandDraws;
+	int						AppRandNext() { mAppRandDraws++; return (int) mAppRand.NextNoAssert(); }
+	std::string				mAutoplayScript;        // -autoplayscript=<file>: the bot's input as -script lines (origrun replays them in the original)
+	std::string				mStateLogFileName;      // -statelog=<file>: each change of the screen's values with its update count (StateLog)
+	struct StateLog*		mStateLog;
 	struct AutoplayState*	mAutoplayState;
 	void					AutoplayUpdate();
 	void					AutoplayShot(const std::string& theFileName) { SaveScreenshot(theFileName); }

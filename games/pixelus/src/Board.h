@@ -28,6 +28,7 @@ class PixelusApp;
 class Graphics;
 class DialogButton;
 class TileMaster;
+class Character;
 class UserProfile;
 
 class Board : public Widget, public ButtonListener
@@ -68,6 +69,9 @@ public:
 	DialogButton*	mMenuButton;		// +0x130
 	DialogButton*	mBackButton;		// +0x11c (the way back to the temple) / +0x120 (to the cave)
 	std::string		mLevelName;			// the temple this puzzle belongs to
+	int				mPulseTime;			// +0x1d4 the update at which the sidebar's gleam comes again
+	double			mPulse;				// +0x1d8 how far the gleam has come (0 to 1)
+	Character*		mTeacher;			// +0xf8 the cyclops that teaches in the tutorial
 	int				mPuzzleIndex;		// its place in the temple
 	std::string		mUuid;
 	bool			mTutorial;			// +0x1a1 the first temple: the sidebar teaches

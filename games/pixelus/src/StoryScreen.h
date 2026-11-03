@@ -26,6 +26,7 @@ class PixelusApp;
 class Graphics;
 class DialogButton;
 class WidgetManager;
+class Character;
 
 class StoryScreen : public Widget, public ButtonListener
 {
@@ -50,6 +51,7 @@ public:
 		std::vector<std::string> mLines;
 		int						mY;				// +0
 		double					mStart;			// +0x10 seconds into the screen when it comes in
+		Character*				mCharacter;		// +0x30 the speaker's moods (0x42e110), which move from half a second after it comes in
 	};
 
 	PixelusApp*			mApp;

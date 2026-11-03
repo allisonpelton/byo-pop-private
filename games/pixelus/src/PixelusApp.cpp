@@ -1,4 +1,5 @@
 #include "PixelusApp.h"
+#include "testhooks/StateLog.h"
 #include "GameDialog.h"
 #include "GameText.h"
 #include "LoadingScreen.h"
@@ -62,6 +63,12 @@ PixelusApp::PixelusApp()
 	mAutoplayPuzzles = 3;
 	mAutoplayCap = 200000;
 	mAutoplayState = NULL;
+	mAutoplayUI = false;
+	mAutoplaySkip = false;
+	mRandDraws = 0;
+	mAppRandDraws = 0;
+	SeedMTRand2004(mAppRand, 4357);
+	mStateLog = NULL;
 
 	mProdName = "Pixelus";
 	mTitle = "Pixelus " + mProductVersion;
@@ -78,6 +85,7 @@ PixelusApp::PixelusApp()
 
 PixelusApp::~PixelusApp()
 {
+	delete mStateLog;
 	delete mUserDirectory;
 	delete mProgress;
 	delete mLevelData;
@@ -93,6 +101,7 @@ PixelusApp::~PixelusApp()
 void PixelusApp::Init()
 {
 	NcApp::Init();
+	SeedMTRand2004(mRand, mRandSeed);
 	LoadGameTexts();
 
 	mLevelData = new LevelData(this);
@@ -189,13 +198,13 @@ void PixelusApp::PlayGame()
 	ShowStory(false, 0);
 }
 
-// 0x432e40
+// 0x432e40 (the player dialogs ask SizeDialog for 400 pixels at least: 0x432e89, 0x432f0a, 0x43301a)
 void PixelusApp::ShowUserSelect()
 {
 	KillDialog(0x12);
 	SelectUserDialog* aDialog = new SelectUserDialog(this);
 	StyleDialog(aDialog);
-	SizeDialog(this, aDialog, 0x150);
+	SizeDialog(this, aDialog, 0x190);
 	AddDialog(0x12, aDialog);
 }
 
@@ -205,7 +214,7 @@ void PixelusApp::ShowNewUser()
 	KillDialog(0x13);
 	NewUserDialog* aDialog = new NewUserDialog(this, false);
 	StyleDialog(aDialog);
-	SizeDialog(this, aDialog, 0x150);
+	SizeDialog(this, aDialog, 0x190);
 	AddDialog(0x13, aDialog);
 }
 
@@ -216,7 +225,7 @@ void PixelusApp::ShowRenameDialog(const std::string& theName)
 	NewUserDialog* aDialog = new NewUserDialog(this, true);
 	aDialog->SetName(theName);
 	StyleDialog(aDialog);
-	SizeDialog(this, aDialog, 0x150);
+	SizeDialog(this, aDialog, 0x190);
 	AddDialog(0x15, aDialog);
 }
 
@@ -558,7 +567,14 @@ void PixelusApp::SkipTutorialOK()
 	UserProfile* aUser = mUserDirectory->GetCurrent();
 	if (aUser != NULL)
 		aUser->mFlag79 = true;
-	BackToIsland();
+	// 0x432dc0: the temple goes and the story of the opened temple plays (it ends on the island map)
+	if (mTempleScreen != NULL)
+	{
+		mWidgetManager->RemoveWidget(mTempleScreen);
+		SafeDeleteWidget(mTempleScreen);
+		mTempleScreen = NULL;
+	}
+	ShowStory(false, 1);
 }
 
 // 0x432960: a conversation, named by the temple the player is in and the one that has just opened. A script that is not
@@ -789,6 +805,12 @@ void PixelusApp::ButtonDepress(int theId)
 void PixelusApp::UpdateFrames()
 {
 	NcApp::UpdateFrames();
+	if (!mStateLogFileName.empty())
+	{
+		if (mStateLog == NULL)
+			mStateLog = new StateLog(this);
+		mStateLog->Update();
+	}
 	if (mQuitRequested)
 	{
 		mQuitRequested = false;

@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "Character.h"
 #include "PixelusApp.h"
 #include "TileMaster.h"
 #include "LevelData.h"
@@ -48,6 +49,9 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mApp = theApp;
 	mLevelName = theLevelName;
 	mPuzzleIndex = thePuzzleIndex;
+	mPulse = 1.0;
+	mPulseTime = mApp->RandNext() % 2000 + 1000 + mUpdateCnt;
+	mTeacher = NULL;
 	mGrid = new Grid(16, 16);
 	mTileMaster = NULL;
 	mTutorial = (theLevelName == "Tutorial");
@@ -89,6 +93,9 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mMenuButton = MakeStripButton(mApp, this, ID_MENU, IMAGE_MENU, 0x16, 0x1b0);
 	mBackButton = MakeStripButton(mApp, this, ID_BACK, mTutorial ? IMAGE_BACKTOCAVE : IMAGE_BACKTOTEMPLE, 6, -3);
 
+	if (mTutorial)
+		mTeacher = new Character(mApp, 0, NULL, 2);
+
 	if (LoadPuzzle())
 		Restore();
 }
@@ -96,6 +103,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 // 0x4045e0
 Board::~Board()
 {
+	delete mTeacher;
 	delete mGrid;
 	delete mTileMaster;
 	delete mResetButton;
@@ -163,13 +171,8 @@ bool Board::LoadPuzzle()
 	mApp->mLevelData->mCurrentLevel = mLevelName;
 	mApp->mLevelData->mCurrentPuzzle = mPuzzleIndex;
 
-	for (size_t i = 0; i < mGrid->mObjects.size(); i++)
-		mGrid->mObjects[i]->mVariant = CrtRand() % 5;
-
 	delete mTileMaster;
 	mTileMaster = new TileMaster(mApp, GRID_X, GRID_Y, mGrid->mCols, mGrid->mRows);
-	Aim(Grid::SIDE_UP, mGrid->mCols / 2);
-	mTileMaster->SetTarget(Grid::SIDE_UP, mGrid->mCols / 2, true);
 	mUndo.clear();
 	mCompleted = false;
 	mFinishSounded = false;
@@ -194,7 +197,6 @@ void Board::Restore()
 		return;
 
 	std::string aMoves = aHistory->mMoves;
-	size_t aFirstNew = mGrid->mObjects.size();
 	for (size_t i = 0; i + 6 <= aMoves.size(); i += 6)
 	{
 		Grid::Move aMove;
@@ -225,8 +227,6 @@ void Board::Restore()
 	for (size_t i = 0; i < mGrid->mObjects.size(); i++)
 	{
 		GridObject* anObject = mGrid->mObjects[i];
-		if (i >= aFirstNew)
-			anObject->mVariant = CrtRand() % 5;
 		anObject->mX = anObject->mCol * Grid::CELL_SIZE;
 		anObject->mY = anObject->mRow * Grid::CELL_SIZE;
 		anObject->mState = 0;
@@ -241,8 +241,6 @@ void Board::Restore()
 		mApp->mProgress->RemoveHistory(aUser->mId, mUuid);
 		LoadPuzzle();
 	}
-	Aim(Grid::SIDE_UP, mGrid->mCols / 2);
-	mTileMaster->SetTarget(Grid::SIDE_UP, mGrid->mCols / 2, true);
 }
 
 // 0x405e10: the moves so far are kept for the player (an empty puzzle needs no entry)
@@ -353,7 +351,6 @@ void Board::Undo()
 		GridObject* anObject = mGrid->PutTile(aRow, aCol);
 		if (anObject != NULL)
 		{
-			anObject->mVariant = CrtRand() % 5;
 			LaunchTile(anObject, aStartCol, aStartRow, aMove.mSide, false);
 		}
 		break;
@@ -366,7 +363,6 @@ void Board::Undo()
 		if (mGrid->PlaceTile(false))
 		{
 			GridObject* anObject = mGrid->mObjects.back();
-			anObject->mVariant = CrtRand() % 5;
 			LaunchTile(anObject, aStartCol, aStartRow, aMove.mSide, aBounces);
 			mApp->PlaySample(SOUND_TILE_MOVING_02D);
 		}
@@ -380,7 +376,6 @@ void Board::Undo()
 			int aCol = mGrid->mStartCol, aRow = mGrid->mStartRow;
 			mGrid->Step(&aCol, &aRow, ReverseSide(aMove.mSide), 1);
 			GridObject* anObject = mGrid->NewObject(aRow, aCol);
-			anObject->mVariant = CrtRand() % 5;
 			LaunchTile(anObject, mGrid->mLandCol, mGrid->mLandRow, ReverseSide(aMove.mSide), false);
 			mGrid->mSupply--;
 		}
@@ -440,7 +435,6 @@ void Board::DoThrow()
 		return;
 	}
 	GridObject* anObject = mGrid->mObjects.back();
-	anObject->mVariant = CrtRand() % 5;
 	LaunchTile(anObject, aStartCol, aStartRow, aSide, aBounces);
 	RecordUndo(aSide, aCursor, -1, aBounces ? 2 : aLeaves ? 3 : 0);
 	mTileMaster->Throw();
@@ -570,7 +564,7 @@ void Board::UpdateTiles()
 		{
 			int aVariant;
 			do
-				aVariant = CrtRand() % 5;
+				aVariant = mApp->RandNext() % 5;
 			while (aVariant == anObject->mVariant);
 			anObject->mVariant = aVariant;
 		}
@@ -634,6 +628,17 @@ void Board::Update()
 {
 	Widget::Update();
 	MarkDirty();
+
+	if (mTeacher != NULL)
+		mTeacher->Update(this);
+	// the gleam over the sidebar starts again every 10 to 30 seconds, and takes 333 updates
+	if (mPulseTime <= mUpdateCnt && mPulse == 1.0)
+	{
+		mPulseTime = mApp->RandNext() % 2000 + 1000 + mUpdateCnt;
+		mPulse = 0.0;
+	}
+	if (mPulse < 1.0)
+		mPulse = std::min(1.0, mPulse + 0.003);
 
 	mIntro++;
 	if (mAlpha < 255)

@@ -1,4 +1,5 @@
 #include "TempleScreen.h"
+#include "Character.h"
 #include "Temples.h"
 #include "PixelusApp.h"
 #include "PuzzleImages.h"
@@ -94,28 +95,30 @@ static double ArmSine(int theMode, int theTicks)
 	}
 }
 
-GodFigure::GodFigure(PixelusApp* theApp, int theGod)
+// 0x42e110: the temple screen gives the figure a speech bubble, with the picture of the map behind it where the bubble's
+// mode goes (which the bubble does not understand: -1)
+GodFigure::GodFigure(PixelusApp* theApp, int theGod, Widget* theOwner)
 {
 	mApp = theApp;
 	mGod = theGod;
-	mTicks = 0;
-	mExpression = 2;
-	mExpressionTicks = 0;
+	mCharacter = new Character(theApp, theGod, theOwner, -1);
 }
 
-void GodFigure::Update()
+GodFigure::~GodFigure()
 {
-	mTicks++;
-	if (mExpressionTicks > 0 && --mExpressionTicks == 0)
-		mExpression = 2;
+	delete mCharacter;
+}
+
+// 0x42df40
+void GodFigure::Update(Widget* theOwner)
+{
+	mCharacter->Update(theOwner);
 }
 
 // 0x42de40
 void GodFigure::Poke()
 {
-	static const int aFaces[3] = { 0, 1, 3 };
-	mExpression = aFaces[CrtRand() % 3];
-	mExpressionTicks = 100;
+	mCharacter->Poke();
 }
 
 void GodFigure::Draw(Graphics* g)
@@ -124,7 +127,8 @@ void GodFigure::Draw(Graphics* g)
 		return;
 	const GodInfo& anInfo = gGods[mGod];
 	float aX = anInfo.mX;
-	float aY = anInfo.mY + (float) (anInfo.mBob * sin(mTicks * anInfo.mBobSpeed));
+	int aTicks = mCharacter->mTick;
+	float aY = anInfo.mY + (float) (anInfo.mBob * sin(aTicks * anInfo.mBobSpeed));
 
 	for (int aPass = 0; aPass < 2; aPass++)
 	{
@@ -135,7 +139,7 @@ void GodFigure::Draw(Graphics* g)
 			{
 				Image* aWings = mApp->mImages[IMAGE_CUPID_WINGS];
 				int aFrameHeight = aWings->GetHeight() / 3;
-				g->DrawImage(aWings, (int) aX, (int) aY + 104, Rect(0, aFrameHeight * ((mTicks / 12) % 3), aWings->GetWidth(), aFrameHeight));
+				g->DrawImage(aWings, (int) aX, (int) aY + 104, Rect(0, aFrameHeight * ((aTicks / 12) % 3), aWings->GetWidth(), aFrameHeight));
 			}
 		}
 		for (int i = 0; i < 3; i++)
@@ -148,13 +152,25 @@ void GodFigure::Draw(Graphics* g)
 			if (anArm.mAmplitude == 0)
 				g->DrawImage(anImage, (int) anArm.mX, (int) anArmY);
 			else
-				g->DrawImageRotatedF(anImage, anArm.mX, anArmY, anArm.mAmplitude * ArmSine(anArm.mMode, mTicks), anArm.mPivotX, anArm.mPivotY);
+				g->DrawImageRotatedF(anImage, anArm.mX, anArmY, anArm.mAmplitude * ArmSine(anArm.mMode, aTicks), anArm.mPivotX, anArm.mPivotY);
 		}
 	}
 
-	MemoryImage* aHead = mApp->mHeads[mGod][mExpression];
+	// 0x42de50: the head swings on its spring; a new face comes in over the one before
+	const Character& aCharacter = *mCharacter;
+	if (aCharacter.mFade < 0xff)
+	{
+		MemoryImage* aPrevious = mApp->mHeads[mGod][aCharacter.mPrevPose];
+		if (aPrevious != NULL)
+			g->DrawImageRotatedF(aPrevious, aX, aY, aCharacter.mAngle, aPrevious->GetWidth() / 2, aPrevious->GetHeight() / 2);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, aCharacter.mFade));
+	}
+	MemoryImage* aHead = mApp->mHeads[mGod][aCharacter.mPose];
 	if (aHead != NULL)
-		g->DrawImage(aHead, (int) aX, (int) aY);
+		g->DrawImageRotatedF(aHead, aX, aY, aCharacter.mAngle, aHead->GetWidth() / 2, aHead->GetHeight() / 2);
+	if (aCharacter.mFade < 0xff)
+		g->SetColorizeImages(false);
 }
 
 // 0x413ce0
@@ -170,7 +186,7 @@ TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop)
 	mDragging = false;
 	mDragOffset = 0;
 	mPanel = NULL;
-	mGod = new GodFigure(theApp, mTemple);
+	mGod = new GodFigure(theApp, mTemple, this);
 
 	bool aTutorial = mTemple == 0;
 	mBackButton = MakeStripButton(mApp, this, ID_BACK, IMAGE_BACKTOISLAND, 6, -3);
@@ -382,7 +398,7 @@ void TempleScreen::Update()
 {
 	Widget::Update();
 	mTicks++;
-	mGod->Update();
+	mGod->Update(this);
 	if (mTextAlpha < 240)
 		mTextAlpha = std::min(240, mTextAlpha + 8);
 	for (size_t i = 0; i < mThumbs.size(); i++)
@@ -664,6 +680,16 @@ void TempleScreen::MouseDown(int x, int y, int theClickCount)
 
 	mApp->PlaySample(SOUND_UI_GENERAL_CLICK_02);
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
+	// 0x427430: the puzzle's id comes from loading its file into a grid of its own, which makes the tiles (and draws their
+	// pictures), and is thrown away again
+	{
+		Buffer aBuffer;
+		if (mApp->ReadBufferFromFile("levels/" + mThumbs[aCurrent].mFile, &aBuffer))
+		{
+			Grid aGrid(16, 16);
+			aGrid.LoadFromText(std::string((const char*) aBuffer.GetDataPtr(), aBuffer.GetDataLen()));
+		}
+	}
 	if (aUser != NULL && mApp->mProgress->GetHistory(aUser->mId, mThumbs[aCurrent].mUuid) != NULL)
 		mApp->ShowResumeQuestion();
 	else
