@@ -10,11 +10,7 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   starts no new game session and sends no "Begin"; it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
   Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
   and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
-  For the week of 2026-11-01 to 2026-11-08 the cap is 80% (the user): what remains goes to bugs that make games harder
-  to test (like Seven Seas' tutorial that would not go away) and to site work. Site work runs alongside the game
-  sessions (the user, 2026-11-01). Twist is not paused at 80% this week: told on 2026-11-02, at 61%, that finishing it
-  would take about 60% of a week and that the account would reach 100% around Wednesday night, the user answered "Let
-  it run".
+  Site work runs alongside the game sessions (the user, 2026-11-01).
 - **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage; the coordinator sets
   it on every session it starts.
 
@@ -73,21 +69,19 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   it, Bejeweled 3 (~30x), Banana Bugs, Gyromancer, Zuma's Revenge (~35x) and Talismania (~12-16x after Feeding Frenzy
   2), one session at a time. This moves Typer Shark, which the decision of 2026-10-24 put at the end, into the easier
   group.
-- **No new identical-play passes until Twist is done (the user, 2026-11-01):** asked when Twist was a little over half
-  ported (they had hoped for more than 70%): "Multiple can run at once, just no more until Twist finishes." The passes
-  already running carry on side by side. No other game's pass starts, even when one of them finishes, until Bejeweled
-  Twist's port is done, 3D mode included: when Twist estimated 6 to 10 days for 3D, the user chose to wait for all of
-  it rather than start after the 2D game ("Wait for all", 2026-11-01). The one exception is Bejeweled Deluxe, whose pass
-  the user started at once ("Ok to get Bejeweled running identically now, I decided", 2026-11-01).
+- **The passes after Twist (the user, 2026-11-03):** the passes waited until Bejeweled Twist was done, 3D mode included
+  (the user, 2026-11-01), with Bejeweled Deluxe's the one exception. With Twist finished: "get going on identical play
+  for more games. Start with lowest effort." So the first phase runs for every game that has had no pass, three
+  sessions side by side, each in the game's own session, from the lowest survey estimate up: Noah's Ark, Mummy Maze and
+  Alchemy first (started 2026-11-03), then Atomica (its original stops at startup under origrun), Big Money, Cosmic
+  Bugs (on Water Bugs' engine, whose pass is done), TipTop and Ning Po, Pixelus, BookWorm, Word Harmony, Rocket Mania,
+  Dynomite and Bookworm Adventures Volume 2. A session that finishes its phase frees its slot for the next game.
 - **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
   and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
   when it comes) do both phases. Every game not yet reviewed gets the first phase, and their second phases start only
   once every game plays identical. "If a series of games play out the same in the original and port then the first
-  phase should be considered done." Those first phases start only when the usage allows (the user, 2026-11-01): "Only
-  launch other games if Twist is predicted to finish, down to looking identical, with weekly usage under 80%." So before
-  starting one, the coordinator reads the weekly usage (`get_usage`) and its rate, and starts it only if Twist's
-  remaining work, both phases of its pass included, still fits under 80% in every week it needs.
+  phase should be considered done."
 - **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
   through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
   code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
