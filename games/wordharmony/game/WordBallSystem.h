@@ -167,7 +167,7 @@ public:
 	int mShortestWord;                          // +0x12c
 	std::map<std::string, int> mWordIndex;      // +0x130: the level's words
 	double mLastMatch;                          // +0x140: the time of the last word (the original leaves it unset
-	                                            // until then; the port starts it at 0)
+	                                            // until then: see the constructor)
 	std::string mWord;                          // +0x148
 	std::vector<BallGroup*> mRows;              // +0x164
 	std::vector<BallGroup*> mColumns;           // +0x174

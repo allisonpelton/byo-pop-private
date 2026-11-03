@@ -64,6 +64,12 @@ private:
 	float mFadeLeft;    // +0x50: seconds
 	float mFadeVolume;  // the fade's factor
 	double mPosition;   // seconds of the sound played
+	uint32_t mStartTime;  // port: the engine's time at play()
+
+public:
+	// port: with -fast the sounds end by the engine's clock (the original's DirectSound play cursor, which origrun's
+	// virtual clock moves), not by the mixer's, which runs on the wall clock
+	static bool sGameClock;
 };
 
 class HostSoundSystem : public engine::SoundSystem

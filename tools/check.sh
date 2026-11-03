@@ -76,7 +76,8 @@
 #                times) and a rerun with the same screenshots and best time (under a minute)
 #   wordharmony  Word Harmony: a THINK game from a saved game (a ball dragged into a word, the word sent, the level
 #                ended, level 2 saved) and a TSUNAMI game saved after 20 seconds, each run twice with the same
-#                screenshots (about 20 seconds)
+#                screenshots, and both again in build/baseline-wordharmony/, which must write the same state log
+#                (about 30 seconds)
 #   cosmicbugs   Cosmic Bugs: both art banks, the fonts and every animation the game ships loaded
 #                (cosmicbugs_banktest), a scripted game played headless (cosmicbugs_run: two lines on the first
 #                board) and a rerun with the same screenshots, the windowed exe twice with the same clicks: the
@@ -190,8 +191,8 @@ TT_REGULAR="game 2 over at update 35544: level 7, score 37160, 352 moves"
 TT_STRATEGY="game 1 over at update 2593: level 1, score 2100, 24 moves"
 TT_SPEED="game 1 over at update 37679: level 8, score 49360, 682 moves"
 NP_GAME="Test: 40 tiles left in 00:12"
-WH_THINK="level 2 saved, score 1600"
-WH_TSUNAMI="level 1 saved, score 0, 8 balls, 6 to come"
+WH_THINK="level 2 saved, score 2000"
+WH_TSUNAMI="level 1 saved, score 0, 14 balls, 5 to come"
 CB_BANKS="82 animations, 9 missing, 0 failed; 8 fonts, 0 failed"
 CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: score 729, lives 6, board 0, filled 629 of 85%"
 WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
@@ -1289,7 +1290,8 @@ suite_ningpo() {
 	return $st
 }
 
-wordharmony_game() {  # <name> <think|tsunami>: a scripted game (-fast) that ends saved; prints the saved game
+wordharmony_game() {  # <name> <think|tsunami> [exe]: a scripted game (-fast, seed 1) that ends saved; prints the saved game;
+	# its state log (the values the identical-play pass compared with the original) is <name>/state.txt
 	local d="$OUT/wordharmony/$1" m g rc f s shots="" re=' level="([0-9]+)" score="([0-9]+)"'
 	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
 	if [ "$2" = think ]; then
@@ -1318,8 +1320,8 @@ wordharmony_game() {  # <name> <think|tsunami>: a scripted game (-fast) that end
 	# Save/Quit and Save Game
 	printf '%s\n' "2900 screenshot $d/shots/play.png" "2980 move 155 30" "3000 click 155 30" "3150 move 360 325" \
 		"3170 click 360 325" "3400 screenshot $d/shots/menu.png" "3420 quit" >> "$d/script.txt"
-	timeout 300 "$W/build/native/wordharmony.exe" -gamedir=assets/wordharmony -userdir="$d/user" -fast -script="$d/script.txt" \
-		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	timeout 300 "${3:-$W/build/native/wordharmony.exe}" -gamedir=assets/wordharmony -userdir="$d/user" -fast -seed=1 \
+		-statelog="$d/state.txt" -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	rc=$?
 	[ $rc -eq 0 ] || { echo "exit status $rc"; return; }
 	# the engine's exceptions (WordHarmonyApp::EngineFailed) and any message box the test run did not show
@@ -1348,7 +1350,18 @@ suite_wordharmony() {
 	if diff -rq "$OUT/wordharmony/think/shots" "$OUT/wordharmony/think2/shots" >> "$1" 2>&1 &&
 		diff -rq "$OUT/wordharmony/tsunami/shots" "$OUT/wordharmony/tsunami2/shots" >> "$1" 2>&1 &&
 		[ "$t" = "$t2" ] && [ "$a" = "$a2" ]; then r="reruns identical"; else r="RERUNS DIFFER"; st=1; fi
-	SUMMARY="THINK $t; TSUNAMI $a; $r"
+	# the frozen baseline (build/baseline-wordharmony/, the port when its identical-play pass was done): the same games must
+	# write the same state at every update (games/wordharmony/docs/IDENTICAL_PLAY.md)
+	local base="$W/build/baseline-wordharmony/wordharmony.exe" bl="" g
+	if [ -f "$base" ]; then
+		for g in think tsunami; do
+			wordharmony_game "base-$g" "$g" "$base" > /dev/null
+			[ -s "$OUT/wordharmony/$g/state.txt" ] && [ -s "$OUT/wordharmony/base-$g/state.txt" ] &&
+				cmp -s "$OUT/wordharmony/$g/state.txt" "$OUT/wordharmony/base-$g/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="THINK $t; TSUNAMI $a; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected THINK '$WH_THINK', TSUNAMI '$WH_TSUNAMI')"
 	return $st
 }

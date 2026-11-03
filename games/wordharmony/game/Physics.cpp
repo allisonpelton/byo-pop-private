@@ -113,8 +113,9 @@ void BallArray::accumulate(float theTime)
 					x = aBall->mGravity->x;
 				}
 				aBall->mAcceleration.set(x, y);
-				aBall->mAcceleration.x = theTime * aBall->mAcceleration.x * theTime;
-				aBall->mAcceleration.y = theTime * aBall->mAcceleration.y * theTime;
+				// the x87 products in double
+				aBall->mAcceleration.x = (float)((double)theTime * aBall->mAcceleration.x * theTime);
+				aBall->mAcceleration.y = (float)((double)theTime * aBall->mAcceleration.y * theTime);
 			}
 			else
 			{
@@ -138,20 +139,20 @@ void BallArray::integrate(float theTime, float theLastTime)
 			{
 				if (!aBall->mFixed)
 				{
+					// The x87 code in double: the damped x velocity is stored as a float, the y one and the time ratio are
+					// kept; each step is stored as a float before it is added to the position
 					Point aPos = *aBall->getPosition();
-					float vx = aPos.x - aBall->mOld.x;
-					float aDampingX = aBall->mDamping;
-					float vy = aPos.y - aBall->mOld.y;
-					float aDampingY = aBall->mDamping;
-					float k = 1.0f;
+					float vx = (float)(((double)aPos.x - aBall->mOld.x) * aBall->mDamping);
+					double vy = ((double)aPos.y - aBall->mOld.y) * aBall->mDamping;
+					double k = 1.0;
 					if (theLastTime != 0.0f)
-						k = theTime / theLastTime;
-					float ax = aBall->mAcceleration.x;
-					float ay = aBall->mAcceleration.y;
+						k = (double)theTime / theLastTime;
+					float dx = (float)(vx * k + aBall->mAcceleration.x);
+					float dy = (float)(vy * k + aBall->mAcceleration.y);
 					aBall->mOld = *aBall->getPosition();
 					Point* aNow = aBall->getPosition();
-					aPos.x = aNow->x + vx * aDampingX * k + ax;
-					aPos.y = aNow->y + k * vy * aDampingY + ay;
+					aPos.x = aNow->x + dx;
+					aPos.y = aNow->y + dy;
 					aBall->setPosition(aPos);
 					aBall->mDamping = 1.0f;
 				}
@@ -221,13 +222,13 @@ void Follow::apply()
 	if (!mActive)
 		return;
 	Point p = *mNode->getPosition();
-	p.x = (mTarget.x - p.x) * mRate + p.x;
-	p.y = (mTarget.y - p.y) * mRate + p.y;
+	p.x = (float)(((double)mTarget.x - p.x) * mRate + p.x);
+	p.y = (float)(((double)mTarget.y - p.y) * mRate + p.y);
 	if (mSnap)
 	{
 		double k = 1.0 / mGrid;
-		p.x = (float)((float)(int)(k * mTarget.x) * mGrid + 22.0);
-		p.y = (float)((float)(int)(k * mTarget.y) * mGrid + 22.0);
+		p.x = (float)((double)(int)(k * mTarget.x) * mGrid + 22.0);
+		p.y = (float)((double)(int)(k * mTarget.y) * mGrid + 22.0);
 	}
 	mNode->setPosition(p);
 }
@@ -249,30 +250,34 @@ void Rope::apply()
 		return;
 	Point p = *mBall->getPosition();
 	p.add(mOffset);
-	float dx = mTarget.x - p.x;
+	// The x87 code in double: dx is kept, dy stored as a float; the excess and the inverse length are stored as
+	// floats, the step kept until it is added to the position
+	double dx = (double)mTarget.x - p.x;
 	float dy = mTarget.y - p.y;
-	float aLength2 = dx * dx + dy * dy;
-	float aRest2 = mLength * mLength;
-	if (aLength2 > aRest2)
+	double aLength2 = ((double)mTarget.y - p.y) * dy + dx * dx;
+	double aRest = mLength;
+	if (aLength2 > aRest * aRest)
 	{
-		float anExcess = sqrtf(aLength2) - mLength;
-		float k = 1.0f / sqrtf(aLength2);
-		dx = k * anExcess * dx;
-		dy = k * anExcess * dy;
-		float aStep2 = dx * dx + dy * dy;
-		if (mMaxStep * mMaxStep < aStep2)
+		double aLength = sqrt(aLength2);
+		float anExcess = (float)(aLength - mLength);
+		float k = (float)(1.0 / aLength);
+		double sx = (double)k * anExcess * dx;
+		double sy = (double)k * anExcess * dy;
+		double aStep2 = sy * sy + sx * sx;
+		double aMax = mMaxStep;
+		if (aMax * aMax < aStep2)
 		{
-			k = 1.0f / sqrtf(aStep2);
-			dx = k * dx * mMaxStep;
-			dy = k * dy * mMaxStep;
+			double kk = 1.0 / sqrt(aStep2);
+			sx = kk * sx * mMaxStep;
+			sy = kk * sy * mMaxStep;
 		}
-		p.x = dx * mRate + p.x;
-		p.y = dy * mRate + p.y;
+		p.x = (float)(sx * mRate + p.x);
+		p.y = (float)(sy * mRate + p.y);
 		p.subtract(mOffset);
 		mBall->setPosition(p);
-		float aKeep = 1.0f - mBlend;
-		mBall->mOld.x = aKeep * p.x + mBlend * mBall->mOld.x;
-		mBall->mOld.y = aKeep * p.y + mBlend * mBall->mOld.y;
+		double aKeep = 1.0 - mBlend;
+		mBall->mOld.x = (float)((double)mBlend * mBall->mOld.x + aKeep * p.x);
+		mBall->mOld.y = (float)((double)mBlend * mBall->mOld.y + aKeep * p.y);
 	}
 }
 
@@ -283,19 +288,22 @@ void Distance::apply()
 		return;
 	Point b = *mSecond->getPosition();
 	Point a = *mFirst->getPosition();
+	// The x87 code in double: the distances and their square are stored as floats, the push is kept, the push along y
+	// is stored and the one along x kept
 	float dx = b.x - a.x;
-	float dy = b.y - a.y;
-	float d2 = dx * dx + dy * dy;
+	double aDy = (double)b.y - a.y;  // squared unrounded times stored, as the x87 code's fsts/fmuls
+	float dy = (float)aDy;
+	float d2 = (float)(aDy * dy + (double)dx * dx);
 	if ((mMode != KEEP_AT_LEAST || d2 <= mDistance2) && (mMode != KEEP_AT_MOST || mDistance2 <= d2) &&
 		(mMode != KEEP_EXACTLY || d2 != mDistance2))
 	{
-		float f = mDistance2 / (d2 + mDistance2) - 0.5f;
-		dx = dx * f;
-		dy = f * dy;
-		a.x = a.x - fabsf(mFirst->mInverseMass) * dx;
-		a.y = a.y - fabsf(mFirst->mInverseMass) * dy;
-		b.x = fabsf(mSecond->mInverseMass) * dx + b.x;
-		b.y = fabsf(mSecond->mInverseMass) * dy + b.y;
+		double f = mDistance2 / ((double)d2 + mDistance2) - 0.5;
+		double fx = dx * f;
+		float fy = (float)(f * dy);
+		a.x = (float)(a.x - fabs((double)mFirst->mInverseMass) * fx);
+		a.y = (float)(a.y - fabs((double)mFirst->mInverseMass) * fy);
+		b.x = (float)(fabs((double)mSecond->mInverseMass) * fx + b.x);
+		b.y = (float)(fabs((double)mSecond->mInverseMass) * fy + b.y);
 		mFirst->setPosition(a);
 		mSecond->setPosition(b);
 	}
@@ -318,18 +326,20 @@ void Stick::apply()
 		return;
 	Point b = *mSecond->getPosition();
 	Point a = *mFirst->getPosition();
+	// the x87 code in double, as Distance's
 	float dx = b.x - a.x;
-	float dy = b.y - a.y;
-	float d2 = dx * dx + dy * dy;
+	double aDy = (double)b.y - a.y;  // squared unrounded times stored, as the x87 code's fsts/fmuls
+	float dy = (float)aDy;
+	float d2 = (float)(aDy * dy + (double)dx * dx);
 	if ((mMode != 1 || (d2 <= mMin2 && mMax2 <= d2)) && (mMode != 0 || (mMin2 <= d2 && d2 <= mMax2)))
 	{
-		float f = mMin2 / (d2 + mMin2) - 0.5f;
-		dx = dx * f;
-		f = f * dy;
-		a.x = a.x - fabsf(mFirst->mInverseMass) * dx;
-		a.y = a.y - fabsf(mFirst->mInverseMass) * f;
-		b.x = fabsf(mSecond->mInverseMass) * dx + b.x;
-		b.y = fabsf(mSecond->mInverseMass) * f + b.y;
+		double f = mMin2 / ((double)d2 + mMin2) - 0.5;
+		double fx = dx * f;
+		float fy = (float)(f * dy);
+		a.x = (float)(a.x - fabs((double)mFirst->mInverseMass) * fx);
+		a.y = (float)(a.y - fabs((double)mFirst->mInverseMass) * fy);
+		b.x = (float)(fabs((double)mSecond->mInverseMass) * fx + b.x);
+		b.y = (float)(fabs((double)mSecond->mInverseMass) * fy + b.y);
 		mFirst->setPosition(a);
 		mSecond->setPosition(b);
 	}
@@ -365,8 +375,8 @@ void Chain::apply()
 				do
 				{
 					Ball* aBall = mBalls->getBall(*anIt);
-					float d = aBall->mRadius + aPrev->mRadius;
-					Distance(aPrev, aBall, d * d, mMode).apply();
+					double d = (double)aBall->mRadius + aPrev->mRadius;
+					Distance(aPrev, aBall, (float)(d * d), mMode).apply();
 					++anIt;
 					aPrev = aBall;
 				} while (anIt != mIndices.end());
@@ -374,8 +384,8 @@ void Chain::apply()
 		}
 		Ball* aFirst = mBalls->getBall(mIndices.front());
 		Ball* aLast = mBalls->getBall(mIndices.back());
-		float d = (float)(unsigned int)(mIndices.size() - 1) * (aLast->mRadius + aFirst->mRadius);
-		Distance(aFirst, aLast, d * d, mMode).apply();
+		double d = (double)(unsigned int)(mIndices.size() - 1) * ((double)aLast->mRadius + aFirst->mRadius);
+		Distance(aFirst, aLast, (float)(d * d), mMode).apply();
 	}
 	else
 	{
@@ -387,8 +397,8 @@ void Chain::apply()
 				Ball* a = mBalls->getBall(i);
 				i++;
 				Ball* b = mBalls->getBall(i);
-				float d = (b->mRadius + a->mRadius) - 2.0f;
-				Distance(a, b, d * d, mMode).apply();
+				double d = ((double)b->mRadius + a->mRadius) - 2.0f;
+				Distance(a, b, (float)(d * d), mMode).apply();
 			} while (i < mBalls->mCount - 1);
 		}
 	}
@@ -417,25 +427,28 @@ void Collisions::apply()
 						{
 							Point pb = *b->getPosition();
 							Point pa = *a->getPosition();
+							// The x87 code in double: the distances are stored as floats (dy squared before its rounding times after), the square and the push are
+							// kept, the push along y is stored and the one along x kept
 							float dx = pb.x - pa.x;
-							float dy = pb.y - pa.y;
-							float d2 = dx * dx + dy * dy;
-							if (d2 <= 1936.0f)
+							double aDy = (double)pb.y - pa.y;
+							float dy = (float)aDy;
+							double d2 = aDy * dy + (double)dx * dx;
+							if (d2 <= 1936.0)
 							{
-								float f = 1936.0f / (d2 + 1936.0f) - 0.5f;
-								dx = dx * f;
-								f = f * dy;
-								pa.x = pa.x - fabsf(a->mInverseMass) * dx;
-								pa.y = pa.y - fabsf(a->mInverseMass) * f;
-								pb.x = fabsf(b->mInverseMass) * dx + pb.x;
-								pb.y = fabsf(b->mInverseMass) * f + pb.y;
+								double f = 1936.0 / (d2 + 1936.0) - 0.5;
+								double fx = dx * f;
+								float fy = (float)(f * dy);
+								pa.x = (float)(pa.x - fabs((double)a->mInverseMass) * fx);
+								pa.y = (float)(pa.y - fabs((double)a->mInverseMass) * fy);
+								pb.x = (float)(fabs((double)b->mInverseMass) * fx + pb.x);
+								pb.y = (float)(fabs((double)b->mInverseMass) * fy + pb.y);
 								a->setPosition(pa);
 								b->setPosition(pb);
 							}
 							if (a->mLinked && b->mLinked)
 							{
-								float d = b->mRadius + a->mRadius + 3.0f;
-								Stick(a, b, 1936.0f, d * d, 0).apply();
+								double d = (double)b->mRadius + a->mRadius + 3.0;
+								Stick(a, b, 1936.0f, (float)(d * d), 0).apply();
 							}
 						}
 						j++;
@@ -496,11 +509,12 @@ void Bounds::applyTo(unsigned int theIndex)
 checkY:
 	if (p.y > r)
 	{
-		aLimit = mBottom - r;
-		if (aLimit <= p.y)
+		// the x87 difference, compared before it is stored
+		double aBottom = (double)mBottom - r;
+		if (aBottom <= p.y)
 		{
 			aHits = aHits + 1.0f;
-			p.y = aLimit;
+			p.y = (float)aBottom;
 		}
 	}
 	else
@@ -510,22 +524,24 @@ checkY:
 	}
 	if (0.0f < aHits)
 		aBall->mDamping = aBall->mDamping - aHits * mBalls->mFriction;
-	float aLow = r - 0.05f;
-	float x = aLow;
+	// The x87 code in double: the low margin stays on the stack, the high one is stored as a float, and each is compared
+	// before it is stored
+	double aLow = (double)r - 0.05f;
+	double x = aLow;
 	if (aLow <= aBall->mOld.x)
 		x = aBall->mOld.x;
-	aBall->mOld.x = x;
-	float aHigh = (mRight - r) + 0.05f;
+	aBall->mOld.x = (float)x;
+	double aHigh = ((double)mRight - r) + 0.05f;
 	if (aHigh < x)
-		x = aHigh;
-	aBall->mOld.x = x;
-	float y = aLow;
+		x = (float)aHigh;
+	aBall->mOld.x = (float)x;
+	double y = aLow;
 	if (aLow <= aBall->mOld.y)
 		y = aBall->mOld.y;
-	aBall->mOld.y = y;
-	aHigh = (mBottom - r) + 0.05f;
+	aBall->mOld.y = (float)y;
+	aHigh = ((double)mBottom - r) + 0.05f;
 	if (aHigh < y)
-		y = aHigh;
-	aBall->mOld.y = y;
+		y = (float)aHigh;
+	aBall->mOld.y = (float)y;
 	aBall->setPosition(p);
 }

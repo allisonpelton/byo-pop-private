@@ -23,29 +23,31 @@ bool Obstacle::contains(Point& p)
 }
 
 // The shared part of 0x40f440 and 0x410040: a ball in a corner region is pushed out from the corner nearest it,
-// to its radius. Returns whether it was.
+// to its radius. Returns whether it was. The x87 code in double: the corner's offsets are stored as floats, the rest
+// kept until the position is stored (theDy is the unrounded one the callers keep).
 static bool pushFromCorner(const Point& theOrigin, const Point& theExtents, Ball* theBall, BallArray* theBalls,
-	float theDx, float theDy, Point& p)
+	float theDx, double theDy, Point& p)
 {
 	float cx = fabsf(theExtents.x);
 	float cy = fabsf(theExtents.y);
 	if (theDx < 0.0f)
 		cx = -cx;
-	if (theDy < 0.0f)
+	if (theDy < 0.0)
 		cy = -cy;
-	float vx = p.x - (cx + theOrigin.x);
-	float vy = p.y - (cy + theOrigin.y);
-	float d2 = vx * vx + vy * vy;
-	if (d2 < theBall->mRadius * theBall->mRadius)
+	double vx = p.x - ((double)cx + theOrigin.x);
+	double vy = p.y - ((double)cy + theOrigin.y);
+	double d2 = vy * vy + vx * vx;
+	double r = theBall->mRadius;
+	if (d2 < r * r)
 	{
-		float d = sqrtf(d2);
-		if (d != 0.0f)
+		double d = sqrt(d2);
+		if (d != 0.0)
 		{
-			d = 1.0f / d;
+			d = 1.0 / d;
 			vx = d * vx;
 			vy = d * vy;
 		}
-		p.set(vx * theBall->mRadius + theOrigin.x + cx, vy * theBall->mRadius + theOrigin.y + cy);
+		p.set((float)(vx * r + theOrigin.x + cx), (float)(vy * r + theOrigin.y + cy));
 		theBall->mDamping = theBall->mDamping - theBalls->mFriction;
 		return true;
 	}
@@ -128,20 +130,21 @@ void Box::collide(BallArray* theBalls)
 		Ball* aBall = theBalls->getBall(i);
 		if (aBall->mState != BALL_GONE && !aBall->mFixed && aBall->mState != BALL_STATE_4)
 		{
+			// The x87 code in double: dy is kept unrounded to the end; |dy| is compared before it is stored
 			float hx = mExtents.x + aBall->mRadius;
 			float hy = aBall->mRadius + mExtents.y;
 			Point p = *aBall->getPosition();
 			float dx = p.x - mPosition.x;
-			float dy = p.y - mPosition.y;
+			double dy = (double)p.y - mPosition.y;
 			float ax = fabsf(dx);
 			float ay;
-			if (ax < hx && (ay = fabsf(dy), ay < hy))
+			if (ax < hx && (ay = (float)fabs(dy), fabs(dy) < hy))
 			{
 				if (ax <= mExtents.x || ay <= mExtents.y)
 				{
-					if (hy - ay <= hx - ax)
+					if ((double)hy - ay <= (double)hx - ax)
 					{
-						if (dy <= 0.0f)
+						if (dy <= 0.0)
 						{
 							if (-hy <= dy)
 								dy = -hy;
@@ -160,7 +163,7 @@ void Box::collide(BallArray* theBalls)
 					{
 						dx = hx;
 					}
-					p.set(dx + mPosition.x, dy + mPosition.y);
+					p.set(dx + mPosition.x, (float)(dy + mPosition.y));
 					aBall->mDamping = aBall->mDamping - theBalls->mFriction;
 				}
 				else
@@ -293,23 +296,28 @@ void Ramp::collide(BallArray* theBalls)
 		Ball* aBall = theBalls->getBall(i);
 		if (aBall->mState != BALL_GONE && !aBall->mFixed)
 		{
+			// The x87 code in double: dy is kept unrounded to the end and the region tests are made in double; |dx|,
+			// |dy|, q and the slope's first sum are stored as floats
 			float hx = mExtents.x + aBall->mRadius;
 			float hy = mExtents.y + aBall->mRadius;
 			Point p = *aBall->getPosition();
 			float dx = p.x - mPosition.x;
-			float dy = p.y - mPosition.y;
-			float ex = mExtents.x;
-			float ey = mExtents.y;
+			double dy = (double)p.y - mPosition.y;
+			double x = dx;
+			double ex = mExtents.x;
+			double ey = mExtents.y;
 			int r = mRotation;
 			bool aCorner = false;
-			if (hx <= fabsf(dx) || hy <= fabsf(dy))
+			float ax = fabsf(dx);
+			float ay = (float)fabs(dy);
+			if (hx <= ax || hy <= fabs(dy))
 				goto done;
 			if (r < 181)
 			{
 				if (r == 180)
 				{
-					if ((dx <= ex - (dy - ey) || dy <= ey) && (-ex <= dx || (-dx - ex) - ey <= dy) &&
-						(dx <= ex || -ey <= dy))
+					if ((x <= ex - (dy - ey) || dy <= ey) && (-ex <= x || (-x - ex) - ey <= dy) &&
+						(x <= ex || -ey <= dy))
 						goto slope;
 					aCorner = true;
 				}
@@ -317,9 +325,9 @@ void Ramp::collide(BallArray* theBalls)
 				{
 					if (r == 0)
 					{
-						if (((-dy - ey) - ex <= dx || -ey <= dy) && (dx <= ex || dy <= ey - (dx - ex)))
+						if (((-dy - ey) - ex <= x || -ey <= dy) && (x <= ex || dy <= ey - (x - ex)))
 						{
-							if (-ex <= dx || dy <= ey)
+							if (-ex <= x || dy <= ey)
 								goto slope;
 						}
 					}
@@ -327,8 +335,8 @@ void Ramp::collide(BallArray* theBalls)
 					{
 						if (r != 90)
 							goto other;
-						if (((dy - ey) - ex <= dx || dy <= ey) && (dx <= ex || (dx - ex) - ey <= dy) &&
-							(-ex <= dx || -ey <= dy))
+						if (((dy - ey) - ex <= x || dy <= ey) && (x <= ex || (x - ex) - ey <= dy) &&
+							(-ex <= x || -ey <= dy))
 							goto slope;
 					}
 					aCorner = true;
@@ -338,9 +346,9 @@ void Ramp::collide(BallArray* theBalls)
 			{
 				if (r == 270)
 				{
-					if ((dx <= ex - (-dy - ey) || -ey <= dy) && (-ex <= dx || dy <= ey - (-dx - ex)))
+					if ((x <= ex - (-dy - ey) || -ey <= dy) && (-ex <= x || dy <= ey - (-x - ex)))
 					{
-						if (dx <= ex || dy <= ey)
+						if (x <= ex || dy <= ey)
 							goto slope;
 					}
 					aCorner = true;
@@ -365,9 +373,9 @@ void Ramp::collide(BallArray* theBalls)
 						{
 							if (r != 270 || -dy <= dx)
 							{
-								if (hy - fabsf(dy) <= hx - fabsf(dx))
+								if ((double)hy - ay <= (double)hx - ax)
 								{
-									if (dy <= 0.0f)
+									if (dy <= 0.0)
 									{
 										if (-hy <= dy)
 											dy = -hy;
@@ -386,31 +394,51 @@ void Ramp::collide(BallArray* theBalls)
 								{
 									dx = hx;
 								}
-								p.set(dx + mPosition.x, dy + mPosition.y);
+								p.set(dx + mPosition.x, (float)(dy + mPosition.y));
 								aBall->mDamping = aBall->mDamping - theBalls->mFriction;
 							}
-							else if (-(dy + q) < q + dx)
+							else
 							{
-								float t = ((q + dx) - (dy + q)) * 0.5f;
-								p.set((t + mPosition.x) - q, (mPosition.y - t) - q);
+								float b = q + dx;
+								double c = dy + q;
+								if (-c < b)
+								{
+									double t = (b - c) * 0.5f;
+									p.set((float)(t + mPosition.x - q), (float)(mPosition.y - t - q));
+								}
 							}
 						}
-						else if (dy - q < q + dx)
+						else
 						{
-							float t = ((dy - q) + q + dx) * 0.5f;
-							p.set((t + mPosition.x) - q, t + mPosition.y + q);
+							float b = q + dx;
+							double c = dy - q;
+							if (c < b)
+							{
+								double t = (c + b) * 0.5f;
+								p.set((float)(t + mPosition.x - q), (float)(t + mPosition.y + q));
+							}
 						}
 					}
-					else if (dx - q < -(dy - q))
+					else
 					{
-						float t = ((dx - q) - (dy - q)) * 0.5f;
-						p.set(t + mPosition.x + q, (mPosition.y - t) + q);
+						float b = dx - q;
+						double c = dy - q;
+						if (b < -c)
+						{
+							double t = (b - c) * 0.5f;
+							p.set((float)(t + mPosition.x + q), (float)(mPosition.y - t + q));
+						}
 					}
 				}
-				else if (dx - q < dy + q)
+				else
 				{
-					float t = (dy + q + (dx - q)) * 0.5f;
-					p.set(t + mPosition.x + q, (t + mPosition.y) - q);
+					float b = dx - q;
+					double c = dy + q;
+					if (b < c)
+					{
+						double t = (b + c) * 0.5f;
+						p.set((float)(t + mPosition.x + q), (float)(t + mPosition.y - q));
+					}
 				}
 			}
 		done:

@@ -44,6 +44,8 @@ public:
 	virtual SoundSystem* createSoundSystem() = 0;
 	// GetCommandLineA(): the program's name and its arguments
 	virtual std::string commandLine() { return ""; }
+	// port: a seed given for the game's srand of the tick count (-seed=N), for the identical-play runs
+	virtual bool testSeed(unsigned int& theSeed) { return false; }
 };
 
 void setHost(Host* theHost);

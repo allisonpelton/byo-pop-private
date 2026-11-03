@@ -8,6 +8,8 @@
 #include "engine/Host.h"
 #include "game/Game.h"
 #include "game/GameText.h"
+#include "game/WordBallSystem.h"
+#include "engine/Random.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
 #include "platform/VFS.h"
@@ -27,6 +29,9 @@ WordHarmonyApp* Sexy::gApp = nullptr;
 namespace
 {
 
+bool gTestSeedGiven = false;
+unsigned int gTestSeed = 0;
+
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
 
@@ -34,7 +39,17 @@ const int SCREEN_HEIGHT = 600;
 class WordHarmonyHost : public engine::Host
 {
 public:
-	uint32_t timeMs() override { return gApp->GetClockTime(); }
+	// port: with -fast the engine has a clock of its own, which moves one frame period a frame (WordHarmonyWidget::Update)
+	uint32_t timeMs() override { return gApp->mFastMode ? gApp->mEngineClock : gApp->GetClockTime(); }
+
+	// port: -seed=N, for the game's srand of the tick count
+	bool testSeed(unsigned int& theSeed) override
+	{
+		if (!gTestSeedGiven)
+			return false;
+		theSeed = gTestSeed;
+		return true;
+	}
 
 	bool readGameFile(const std::string& theName, std::vector<uint8_t>& theData) override
 	{
@@ -136,8 +151,9 @@ WordHarmonyWidget::WordHarmonyWidget()
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(SCREEN_WIDTH, SCREEN_HEIGHT);
 	mGraphics = new wordharmony::ScreenGraphics((uint32_t*)mScreenImage->GetBits(), SCREEN_WIDTH, SCREEN_HEIGHT);
-	mLastFrame = gApp->GetClockTime();
-	mLastSoundTick = mLastFrame;
+	mLastLoop = gApp->GetClockTime();
+	mAccumulated = 0;
+	mLastSoundTick = mLastLoop;
 }
 
 WordHarmonyWidget::~WordHarmonyWidget()
@@ -146,8 +162,9 @@ WordHarmonyWidget::~WordHarmonyWidget()
 	delete mScreenImage;
 }
 
-// The run loop (0x4552b0): a frame whenever the frame period has passed; the window's 100 ms timer (WM_TIMER 1) updates
-// the sound system with 100
+// The run loop (0x4552b0): the milliseconds since the last pass are added up, and once they reach the frame period
+// (1000 / the frame rate: 33) a frame runs and the period is taken off; the loop then waits for the rest of the period.
+// The window's 100 ms timer (WM_TIMER 1) updates the sound system with 100.
 void WordHarmonyWidget::Update()
 {
 	Widget::Update();
@@ -160,10 +177,21 @@ void WordHarmonyWidget::Update()
 		if (engine::App::getSoundSystem() != nullptr)
 			engine::App::getSoundSystem()->update(100);
 	}
-	int aFrameRate = engine::App::instance()->getConfig().mFrameRate;
-	if ((int)(aNow - mLastFrame) * aFrameRate < 1000)
-		return;
-	mLastFrame = aNow;
+	int aPeriod = 1000 / engine::App::instance()->getConfig().mFrameRate;
+	if (gApp->mFastMode)
+	{
+		// port: -fast runs a frame each update, as the original does on origrun's virtual clock, which skips the wait for the
+		// rest of the period and moves the clock on by it: each frame is one period after the last
+		gApp->mEngineClock += aPeriod;
+	}
+	else
+	{
+		mAccumulated += (int)(aNow - mLastLoop);
+		mLastLoop = aNow;
+		if (mAccumulated < aPeriod)
+			return;
+		mAccumulated -= aPeriod;
+	}
 	gApp->RunFrame();
 	MarkDirty();
 }
@@ -234,6 +262,9 @@ WordHarmonyApp::WordHarmonyApp()
 	mWidget = nullptr;
 	mEngineRunning = false;
 	mQuitRequested = false;
+	mFrames = 0;
+	mEngineClock = 0;
+	mStateLog = nullptr;
 }
 
 WordHarmonyApp::~WordHarmonyApp()
@@ -267,6 +298,7 @@ void WordHarmonyApp::Init()
 	if (mShutdown)
 		return;
 	engine::setHost(&gHost);
+	wordharmony::HostSound::sGameClock = mFastMode;
 	mWidget = new WordHarmonyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mWidget);
@@ -290,8 +322,14 @@ void WordHarmonyApp::RunFrame()
 	{
 		uint32_t* aBits = (uint32_t*)mWidget->mScreenImage->GetBits();
 		std::fill(aBits, aBits + SCREEN_WIDTH * SCREEN_HEIGHT, 0xff000000);
+		// what the input since the last frame changed is logged under that frame, as origrun logs the original's
+		if (mStateLog != nullptr)
+			LogState();
+		mFrames++;
 		engine::App::instance()->frame(mWidget->mGraphics);
 		mWidget->mScreenImage->BitsChanged();
+		if (mStateLog != nullptr)
+			LogState();
 	}
 	catch (const std::exception& e)
 	{
@@ -300,6 +338,92 @@ void WordHarmonyApp::RunFrame()
 	}
 	if (mQuitRequested)
 		Shutdown();
+}
+
+// port: the test hooks of the identical-play runs (games/wordharmony/docs/IDENTICAL_PLAY.md)
+void WordHarmonyApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-statelog")
+	{
+		mStateLog = fopen(theParamValue.c_str(), "w");
+		return;
+	}
+	if (theParamName == "-seed")
+	{
+		gTestSeedGiven = true;
+		gTestSeed = strtoul(theParamValue.c_str(), nullptr, 10);
+	}
+	SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+namespace
+{
+
+std::string intText(int theValue)
+{
+	return std::to_string(theValue);
+}
+
+// a float as its bits, as origrun's watch reads it
+std::string floatText(float theValue)
+{
+	int aBits;
+	memcpy(&aBits, &theValue, 4);
+	return std::to_string(aBits);
+}
+
+}
+
+// The values compared with the original's (the names of games/wordharmony/tools/identical/case.sh), "-" while they do not
+// exist. A line for each value that changed in the frame.
+void WordHarmonyApp::LogState()
+{
+	std::vector<std::pair<std::string, std::string>> aState;
+	Game* aGame = Game::sInstance;
+	aState.emplace_back("rand", intText((int)engine::crtRandState()));
+	aState.emplace_back("state", intText(aGame->mState));
+	aState.emplace_back("nextstate", intText(aGame->mNextState));
+	aState.emplace_back("timer", floatText(aGame->mTimer));
+	aState.emplace_back("score", intText(aGame->mScore));
+	aState.emplace_back("level", intText(aGame->mLevel));
+	aState.emplace_back("mode", intText(aGame->mMode));
+	aState.emplace_back("template", intText(aGame->mTemplate));
+	aState.emplace_back("time", intText(aGame->mTime));
+	aState.emplace_back("levelpoints", intText(aGame->mLevelPoints));
+	aState.emplace_back("lettersleft", intText(aGame->mLettersLeft));
+	aState.emplace_back("lettersused", intText(aGame->mLettersUsed));
+	aState.emplace_back("bonus", intText(aGame->mBonus));
+	aState.emplace_back("wildcards", intText((int)aGame->mWildcards));
+	aState.emplace_back("hints", intText(aGame->mHints));
+	aState.emplace_back("hintsused", intText(aGame->mHintsUsed));
+	aState.emplace_back("levelhints", intText(aGame->mLevelHintsUsed));
+	aState.emplace_back("leveltime", floatText(aGame->mLevelTime));
+	WordBallSystem* aBalls = aGame->mBallSystem;
+	auto aBallValue = [aBalls](const std::string& theText) { return aBalls != nullptr ? theText : std::string("-"); };
+	aState.emplace_back("ballcount", aBallValue(aBalls ? intText((int)aBalls->mCount) : ""));
+	aState.emplace_back("ballsleft", aBallValue(aBalls ? intText(aBalls->mBallsLeft) : ""));
+	aState.emplace_back("steptime", aBallValue(aBalls ? floatText(aBalls->mStepTime) : ""));
+	aState.emplace_back("spawntime", aBallValue(aBalls ? floatText(aBalls->mSpawnTime) : ""));
+	aState.emplace_back("nextslot", aBallValue(aBalls ? intText(aBalls->mNextSlot) : ""));
+	aState.emplace_back("tocome", aBallValue(aBalls ? intText(aBalls->mBallsToCome) : ""));
+	aState.emplace_back("water", aBallValue(aBalls ? floatText(aBalls->mWaterLevel) : ""));
+	aState.emplace_back("fill", aBallValue(aBalls ? floatText(aBalls->mFill) : ""));
+	aState.emplace_back("hintindex", aBallValue(aBalls ? intText((int)aBalls->mHintIndex) : ""));
+	aState.emplace_back("ball0x", aBallValue(aBalls ? floatText(aBalls->getBall(0)->getPosition()->x) : ""));
+	aState.emplace_back("ball0y", aBallValue(aBalls ? floatText(aBalls->getBall(0)->getPosition()->y) : ""));
+	aState.emplace_back("ball0state", aBallValue(aBalls ? intText(aBalls->getBall(0)->mState) : ""));
+	aState.emplace_back("ball0letter", aBallValue(aBalls ? intText(aBalls->getBall(0)->mLetter) : ""));
+	aState.emplace_back("ball3x", aBallValue(aBalls ? floatText(aBalls->getBall(3)->getPosition()->x) : ""));
+	aState.emplace_back("ball3y", aBallValue(aBalls ? floatText(aBalls->getBall(3)->getPosition()->y) : ""));
+	if (mLoggedState.size() != aState.size())
+		mLoggedState.assign(aState.size(), std::make_pair(std::string(), std::string()));
+	for (size_t i = 0; i < aState.size(); i++)
+	{
+		if (mLoggedState[i].second != aState[i].second)
+			fprintf(mStateLog, "%d %s %s\n", mFrames, aState[i].first.c_str(), aState[i].second.c_str());
+	}
+	mLoggedState = aState;
+	fflush(mStateLog);
 }
 
 void WordHarmonyApp::EngineFailed(const char* theWhat)

@@ -1,12 +1,17 @@
 #include "SoundHost.h"
 
+#include <cmath>
+#include "engine/Host.h"
+
 #include <algorithm>
 
 using namespace wordharmony;
 
+bool HostSound::sGameClock = false;
+
 HostSound::HostSound(HostSoundSystem* theSystem, const std::shared_ptr<Platform::SoundData>& theData)
 	: mSystem(theSystem), mData(theData), mVoice(0), mPlaying(false), mLoop(false), mVolume(1), mPan(0), mPitch(1),
-	  mFadeIn(0), mFadeOut(0), mCategory(0), mFadeState(1), mFadeLeft(0), mFadeVolume(1), mPosition(0)
+	  mFadeIn(0), mFadeOut(0), mCategory(0), mFadeState(1), mFadeLeft(0), mFadeVolume(1), mPosition(0), mStartTime(0)
 {
 }
 
@@ -34,6 +39,7 @@ void HostSound::play()
 		mFadeVolume = 1;
 	}
 	mPosition = 0;
+	mStartTime = engine::getHost()->timeMs();
 	mVoice = Platform::Mixer::Get().StartVoice(mData, 0, 0, mPitch, mLoop);
 	mPlaying = mVoice != 0;
 	applyGain();
@@ -92,9 +98,26 @@ void HostSound::setVolume(float theVolume)
 	applyGain();
 }
 
+// The original plays a sound of up to 2 s from one buffer, which ends after its length; a longer one streams through a
+// 2 s buffer refilled a second at a time (0x444270), and it stops only when the cursor leaves the half that took the
+// last of it: at the whole seconds of its length plus one (as 0x4440f0 reads the end with the last data).
+static double endMs(const Platform::SoundData* theData)
+{
+	double aMs = theData->mFrames * 1000.0 / theData->mRate;
+	if (aMs > 2000.0)
+		aMs = (floor(aMs / 1000.0) + 1) * 1000.0;
+	return aMs;
+}
+
 bool HostSound::isPlaying()
 {
-	if (mPlaying && !Platform::Mixer::Get().IsVoicePlaying(mVoice))
+	if (sGameClock && mPlaying && !mLoop && mData->mRate > 0 &&
+		(double)(uint32_t)(engine::getHost()->timeMs() - mStartTime) * mPitch >= endMs(mData.get()))
+	{
+		halt();
+		mPosition = 0;
+	}
+	else if (!sGameClock && mPlaying && !Platform::Mixer::Get().IsVoicePlaying(mVoice))
 	{
 		mVoice = 0;
 		mPlaying = false;
