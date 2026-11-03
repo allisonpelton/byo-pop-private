@@ -913,6 +913,7 @@ MemoryImage* DDInterface::GetTransformCopy(int theWidth, int theHeight)
 	TransformCopyEntry e;
 	e.mCopy = new MemoryImage(mApp);
 	e.mCopy->Create(aWidth, aHeight);
+	e.mCopy->mRotateRowsByImageWidth = true;
 	e.mLastUse = mStretchUse;
 	mTransformCopies.push_back(e);
 	return e.mCopy;

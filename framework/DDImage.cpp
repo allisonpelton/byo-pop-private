@@ -306,20 +306,30 @@ void DDImage::BltSoftwareTransformed(float theMinX, float theMinY, float theMaxX
 {
 	if (!(theMinX <= theMaxX) || !(theMinY <= theMaxY))
 		return;
-	int aLeft = (int) std::max(std::floor(theMinX) - 1.0f, (float) theClipRect.mX);
-	int aTop = (int) std::max(std::floor(theMinY) - 1.0f, (float) theClipRect.mY);
-	int aRight = (int) std::min(std::ceil(theMaxX) + 2.0f, (float) (theClipRect.mX + theClipRect.mWidth));
-	int aBottom = (int) std::min(std::ceil(theMaxY) + 2.0f, (float) (theClipRect.mY + theClipRect.mHeight));
-	if ((aRight <= aLeft) || (aBottom <= aTop))
+	// clamped and tested in float, so a bound past an int's range never reaches the conversion
+	float aLeftF = std::max(std::floor(theMinX) - 1.0f, (float) theClipRect.mX);
+	float aTopF = std::max(std::floor(theMinY) - 1.0f, (float) theClipRect.mY);
+	float aRightF = std::min(std::ceil(theMaxX) + 2.0f, (float) (theClipRect.mX + theClipRect.mWidth));
+	float aBottomF = std::min(std::ceil(theMaxY) + 2.0f, (float) (theClipRect.mY + theClipRect.mHeight));
+	if (!(aRightF > aLeftF) || !(aBottomF > aTopF))
 		return;
+	int aLeft = (int) aLeftF;
+	int aTop = (int) aTopF;
+	int aRight = (int) aRightF;
+	int aBottom = (int) aBottomF;
 
 	int aWidth = aRight - aLeft;
 	int aHeight = aBottom - aTop;
 	MemoryImage* aCopy = mDDInterface->GetTransformCopy(aWidth, aHeight);
 	ulong* aBits = aCopy->GetBits();
-	for (int y = 0; y < aHeight; y++)
-		std::fill(aBits + y * aCopy->mWidth, aBits + y * aCopy->mWidth + aWidth, (theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? 0xFF000000 : 0);
+	// one more column and row than drawn are cleared too (where the copy has them), so a filtered blit never takes in
+	// an earlier draw's pixels
+	int aClearWidth = std::min(aWidth + 1, aCopy->mWidth);
+	int aClearHeight = std::min(aHeight + 1, aCopy->mHeight);
+	for (int y = 0; y < aClearHeight; y++)
+		std::fill(aBits + y * aCopy->mWidth, aBits + y * aCopy->mWidth + aClearWidth, (theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? 0xFF000000 : 0);
 	theDraw(*aCopy, -aLeft, -aTop, Rect(0, 0, aWidth, aHeight));
+	aCopy->ClearHDBits();  // a source with HD pixels gives the copy some, outside the pool's bound
 	aCopy->BitsChanged();
 	mDDInterface->Blt(aCopy, (float) aLeft, (float) aTop, Rect(0, 0, aWidth, aHeight), Color::White, theDrawMode, &theClipRect);
 }
