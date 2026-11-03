@@ -12,6 +12,25 @@ compatibility_date = "2026-11-01"
 ORIGIN = ""
 # the site's games (the build's table of games, as chat-games.js): a play of any other id is refused
 GAMES = "@BYOPOP_COUNTER_GAMES@"
+# SOURCE_KEY, the secret that keys the hash of a connection's address, is not written here: set it once with
+# `npx wrangler secret put SOURCE_KEY` (any long random text). Without it the Worker takes no play.
+
+# Cloudflare's rate limiters, per location and approximate: a connection source's play sockets (a page opens one a game, and a
+# few more if its connection drops), and an address's counts reads (a listing page reads them every 2 minutes); generous, for
+# many players behind one address
+[[ratelimits]]
+name = "PLAY_LIMIT"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 20
+  period = 60
+
+[[ratelimits]]
+name = "COUNTS_LIMIT"
+namespace_id = "1002"
+  [ratelimits.simple]
+  limit = 60
+  period = 60
 
 [[durable_objects.bindings]]
 name = "COUNTER"
