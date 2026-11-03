@@ -1,0 +1,21 @@
+# Bonnie's original on an action game saved with little time left (te.GAM made by the port; see the game's README):
+# the resume dialog, the resumed game (its clock waits for the first click), a tile clicked twice, the time running
+# out (about 103 s later) and its message, then the main menu.
+waitshot logo 20000
+wait 6000
+shot menu
+click 205 360
+wait 2500
+shot dialog
+click 460 330
+wait 4000
+shot resumed
+click 435 210
+wait 500
+click 435 210
+wait 110000
+shot timeup
+click 444 414
+wait 4000
+shot endmenu
+quit
