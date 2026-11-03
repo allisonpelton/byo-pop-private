@@ -115,8 +115,10 @@ function contrast(a, b) {
   same("day key", [C.dayKey(t0), C.dayKey(local(2026, 0, 1, 0, 0)), C.dayKey(local(2026, 11, 31, 23, 59))], ["2026-10-30", "2026-01-01", "2026-12-31"]);
   const noon = local(2026, 9, 30, 12);
   same("day labels", [C.dayLabel(noon, noon), C.dayLabel(local(2026, 9, 29, 23, 59), noon), C.dayLabel(local(2026, 9, 28, 8), noon), C.dayLabel(local(2025, 11, 31, 8), noon)],
-    ["Today, Friday 30 October 2026", "Yesterday, Thursday 29 October 2026", "Wednesday 28 October 2026", "Wednesday 31 December 2025"]);
-  same("yesterday across a month", C.dayLabel(local(2026, 9, 31, 20), local(2026, 10, 1, 0, 5)), "Yesterday, Saturday 31 October 2026");
+    // keys and what they fill in (tools/stringsload.js): weekday 5 is Friday, month 9 October
+    ["chat.day.today chat.day.date chat.weekdays.5 30 chat.months.9 2026", "chat.day.yesterday chat.day.date chat.weekdays.4 29 chat.months.9 2026",
+      "chat.day.date chat.weekdays.3 28 chat.months.9 2026", "chat.day.date chat.weekdays.3 31 chat.months.11 2025"]);
+  same("yesterday across a month", C.dayLabel(local(2026, 9, 31, 20), local(2026, 10, 1, 0, 5)), "chat.day.yesterday chat.day.date chat.weekdays.6 31 chat.months.9 2026");
   same("the line", C.formatLine({ id: "x", t: t0, user: "alice", text: "hi <b>" }), "09:05 <alice> hi <b>");
   {
     const games = C.createGames(TABLE, "bookworm");
@@ -320,7 +322,7 @@ function contrast(a, b) {
     src.onError((e) => errors.push(e));
     const info = await src.connect();
     check("connect: the sender, with no sign-in yet", info.user.name === "test_player" && info.user.signedIn === false && info.canRename === true && info.testData === true, info);
-    check("connect: says it is test data", /made up/.test(info.note) && src.testData === true);
+    check("connect: says it is test data", info.note === "chat.note" && src.testData === true);
     check("connect: the first message comes in 20 to 60 seconds", timers.set.length === 1 && timers.set[0].ms >= 20000 && timers.set[0].ms < 60000, timers.set.map((t) => t.ms));
     let page = await src.history(50, null);
     check("history: the newest 50, oldest first", page.length === 50 && page.every((m, i) => i === 0 || C.byTime(page[i - 1], m) < 0));
@@ -357,7 +359,7 @@ function contrast(a, b) {
     check("send: exactly 500 is fine, a second after the last one", m2.text.length === 500);
     // the name
     e = await rejection(src.setUsername("a..b"));
-    check("setUsername: refused for the rules", e && e.code === "name" && /two periods/i.test(e.message), e && e.message);
+    check("setUsername: refused for the rules", e && e.code === "name" && e.message === "chat.name.periods", e && e.message);
     e = await rejection(src.setUsername("x"));
     check("setUsername: too short", e && e.code === "name");
     check("setUsername: a name is cleaned, then kept", (await src.setUsername("  Sam.Q_9 ")) === "sam.q_9" && st.data[C.KEYS.name] === "sam.q_9");
@@ -515,7 +517,7 @@ function contrast(a, b) {
     check("the angle brackets are for the eye only", li.children[2].children[0].attrs["aria-hidden"] === "true" && li.children[2].children[2].attrs["aria-hidden"] === "true");
     check("the nick has its hue", li.children[2].style.props["--bpc-h"] === String(C.hueOf("abc")));
     const day = C.renderDay(doc, t0, noon);
-    check("a day separator is its words", day.textContent === "Today, Friday 30 October 2026" && /bpc-day/.test(day.className), day.textContent);
+    check("a day separator is its words", day.textContent === "chat.day.today chat.day.date chat.weekdays.5 30 chat.months.9 2026" && /bpc-day/.test(day.className), day.textContent);
     // ---------- the game tag: the one link ----------
     const games = C.createGames(TABLE, "bookworm");
     const linkOf = (li) => li.children.find((c) => c.tag === "a");

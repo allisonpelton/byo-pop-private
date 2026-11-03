@@ -44,15 +44,15 @@ function throws(name, fn, pattern) {
   let rejected = false;
   try { await badRead[0].read(); } catch (e) { rejected = /checksum/.test(String(e.message)); }
   check("a changed byte fails the checksum", rejected);
-  throws("not a zip", () => S.readZip(bytes("this is not a zip file at all, just text")), /not a \.zip/);
-  throws("a short file", () => S.readZip(new Uint8Array(5)), /not a \.zip/);
+  throws("not a zip", () => S.readZip(bytes("this is not a zip file at all, just text")), /^saves\.zip\.not_zip$/);
+  throws("a short file", () => S.readZip(new Uint8Array(5)), /^saves\.zip\.not_zip$/);
   const enc = zip.slice();
   enc[6] |= 1;   // the first local header's flags: encrypted (the central directory's flags matter here)
   const dirStart = new DataView(zip.buffer, zip.byteOffset, zip.length).getUint32(zip.length - 22 + 16, true);
   enc[dirStart + 8] |= 1;
   throws("an encrypted entry", () => S.readZip(enc), /encrypted/);
   const trunc = zip.slice(0, zip.length - 10);
-  throws("a zip cut short", () => S.readZip(trunc), /not a \.zip/);
+  throws("a zip cut short", () => S.readZip(trunc), /^saves\.zip\.not_zip$/);
   // zip64 markers
   const z64 = zip.slice();
   new DataView(z64.buffer).setUint16(z64.length - 22 + 10, 0xffff, true);
@@ -120,8 +120,9 @@ function throws(name, fn, pattern) {
   check("merged: does not change its input", Object.keys(files).length === 4 && text(files["old.dat"].bytes) === "old");
 
   // ---------- names ----------
-  check("the file's name", S.backupName(new Date(2026, 9, 27)) === "byo-pop saves 2026-10-27.zip", S.backupName(new Date(2026, 9, 27)));
-  same("sizes", [S.size(5), S.size(2048), S.size(5 * 1048576)], ["5 bytes", "2.0 KB", "5.0 MB"]);
+  // keys, then what they fill in (tools/stringsload.js): the wording is the user's
+  check("the file's name", S.backupName(new Date(2026, 9, 27)) === "saves.backup_name 2026-10-27", S.backupName(new Date(2026, 9, 27)));
+  same("sizes", [S.size(5), S.size(2048), S.size(5 * 1048576)], ["size.bytes 5", "size.kb 2.0", "size.mb 5.0"]);
 
   console.log("savestest: " + checks + " checks, " + failed + " failed");
   process.exit(failed ? 1 : 0);

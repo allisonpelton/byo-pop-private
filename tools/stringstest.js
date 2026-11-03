@@ -1,6 +1,6 @@
 // The site's text: web/strings/en.txt against the code that uses it, and web/i18n.js's rules (docs/WEB_PLAYER.md, "The site's
 // text"). Needs build/web/strings.js (build-web) for the runtime checks. Run: node tools/stringstest.js
-//   - en.txt: well formed, keys lower case "area.name", none twice, lines at most 110 characters;
+//   - en.txt: well formed, keys lower case "area.name", none twice (lines may be any length: the user writes it);
 //   - every {{key}} in web/*.html, every ByopopStrings.t/.html("key") (and T("key"), settings.js's short name for t) in
 //     web/*.js and every byopop_web_string() key in cmake/ByopopWeb.cmake is a key of en.txt, and so is every other quoted
 //     "area.name" whose area is one of en.txt's (a key picked by a ternary or held in a table), files like "index.html"
@@ -30,7 +30,6 @@ const table = {}, lines = {};
   const src = read("web/strings/en.txt").replace(/\r\n/g, "\n").split("\n");
   let cur = null;
   src.forEach((line, i) => {
-    if (!/^\s*#/.test(line)) check(line.length <= 110, "en.txt:" + (i + 1) + " is " + line.length + " characters (110 at most)");
     if (/^\s*#/.test(line)) return;      // a note (the build treats an indented # the same way)
     if (/^\s*$/.test(line)) { cur = null; return; }
     if (/^\s/.test(line)) {

@@ -75,7 +75,7 @@ check("a folder of games", brief(I.sort(files("PopCap Games/TipTop Deluxe/TipTop
   { found: [["TipTop Deluxe", "tiptop", "PopCap Games/TipTop Deluxe/", ["tiptop"]],
     ["Mahjong Escape Ancient Japan", "mahjongjapan", "PopCap Games/Mahjong Escape Ancient Japan/", ["mahjongjapan"]]], rejected: ["Common"] });
 check("no game", brief(I.sort(files("Photos/a.jpg", "Photos/b/c.jpg"))), { found: [], rejected: ["Photos"] });
-check("loose files", brief(I.sort(files("TipTop.dat", "TipTop.exe"))), { found: [["(the dropped files)", "tiptop", "", ["tiptop"]]], rejected: [] });
+check("loose files", brief(I.sort(files("TipTop.dat", "TipTop.exe"))), { found: [["import.dropped_files", "tiptop", "", ["tiptop"]]], rejected: [] });
 const both = ["resource.dll", "MahjongEscapeAJ.exe", "MahjongEscapeAC.exe"];
 check("two games at one place, told by the name", brief(I.sort(files(...both.map((f) => "Mahjong Escape Ancient China/" + f)))).found[0][1], "mahjongchina");
 check("two games at one place, left to the player", brief(I.sort(files(...both.map((f) => "Mahjong/" + f)))).found[0].slice(1),

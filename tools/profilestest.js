@@ -236,7 +236,7 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
   data["byopop-play"] = "{nope";
   same("play: damaged storage reads as none", T.all(), {});
   same("play: durations", [T.duration(30), T.duration(60), T.duration(3599), T.duration(3600), T.duration(12000)],
-    ["under a minute", "1 min", "59 min", "1 h", "3 h 20 min"]);
+    ["time.under_minute", "time.minutes 1", "time.minutes 59", "time.hours 1", "time.hours_minutes 3 20"]);  // keys (tools/stringsload.js)
 }
 
 console.log("profilestest: " + checks + " checks, " + failed + " failed");
