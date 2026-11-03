@@ -81,6 +81,12 @@ protected:
 	void ReleaseFinishedChannels();
 
 public:
+	// port: Bejeweled Twist's DSoundInstance (a later framework than PopCap's released one) converts the master, base
+	// and instance volume to hundredths of a dB one by one and adds them, a factor below -2331 counting as -10000 and
+	// a master volume of 0.015 or less muting every sound (0x4fa9e0, 0x4f85b0), and gives DirectSound a frequency in
+	// whole Hz from 100 to 100000 (0x4fabb0). Off: the released DSoundInstance's one conversion of the product.
+	bool mDBPerFactor = false;
+
 	SDLSoundManager();
 	virtual ~SDLSoundManager();
 
