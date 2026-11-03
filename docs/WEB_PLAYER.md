@@ -36,7 +36,8 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
    `main.pak`, XORed with 0xF7) names it in its page's `paks`: the import unpacks it into the game's folder
    (`Module.byopop.pak.read` in `web/modpanel.js`, the format of `tools/popcap_pak.py`) and does not store the pak,
    so the browser keeps one copy of the files, the same tree native staging gives the game.
-   `tools/paktest/paktest.js` checks the reader under Node.
+   `tools/paktest/paktest.js` checks the reader under Node. The rules (which folder is the game's, which files are
+   copied, the paks) are in `web/gameimport.js`, which the listing page uses too ("Adding games from the listing page").
 7. **Play.** Browsers allow sound only after you click or press a key, so the page waits for "Play". Then
    it calls the game's `main()` with folder arguments (`-gamedir=/persist/game -userdir=... -modsdir=...`),
    plus `-gameseed=N` for a `?seed=N` in the address, `-placeholders` for `?placeholders=1` and `-nomods` for
@@ -186,6 +187,11 @@ closes. Boot shows the card, and the import, the start and "Play without mods" r
 agreement. A test in the Browser pane ticks the box once per origin (and game), as a player would; the agreement then
 stays for that origin.
 
+**Before the card is on again:** the listing page's "Add games", its drops and its recycle bin
+("Adding games from the listing page") write and delete a game's files without the terms the game's page shows before any
+import. That is harmless while the gate is off, but it must be handled before the gate goes back on: the listing checks the
+game's `byopop-terms-<id>` agreement (at its current version) before it adds, or sends the player to the game's page.
+
 `BYOPOP_WEB_TERMS_GATE` is a plain CMake variable rather than a cache option, so changing it in the file reaches every
 build folder at its next configure; `byopop_web_shell()` writes it into the page as `TERMS_GATE` (`true` or
 `false`).
@@ -207,8 +213,8 @@ part of the terms' version, so a change of stores asks nobody to agree again.
 ### The listing page
 
 `build/web/index.html` lists the finished games, and the ones still to come ("Coming soon", below), so that the site's root shows them instead of a directory listing: a
-tile for each, with the game's `TITLE` and a badge (its initials on a colour of its own from `BYOPOP_WEB_BADGES`,
-drawn by the page, never from the game's files) linking to its page (a game still to come has no page, and its tile is no
+tile for each, with the game's `TITLE` and a badge (its initials on a colour of its own from `BYOPOP_WEB_BADGES`, in the
+shape of a bottle cap, drawn by the page, never from the game's files; "The bottle caps", below) linking to its page (a game still to come has no page, and its tile is no
 link); opened with `?silent=1`, it passes that on to the
 links. Its header has the logo at the size it is drawn, 276 by 64 pixels (the user, 2026-11-02: "Make the logo bigger on the
 front page"), narrower when the window is, and the heading "Games". `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
@@ -261,7 +267,8 @@ whatever the sort.
 
 **The tabs.** The user, 2026-11-02: "Turn the player, save, and settings managers into separate tabs under the games list
 ... Massively reduce how much text there is." The three managers are tabs under the games, **Players**, **Saves** and **Settings**,
-by name until their icons are designed. They follow the ARIA pattern for tabs with automatic activation: a `role="tablist"` row of
+each shown as an icon of our own (the user, 2026-11-03: "use icons rather than names"; inline SVG line drawings in the page: two
+people, a floppy disk, a gear), named by its `aria-label` and with the name as its tooltip (`title`). They follow the ARIA pattern for tabs with automatic activation: a `role="tablist"` row of
 `<button role="tab">`s, each `aria-controls` its `<section role="tabpanel">`, which is `aria-labelledby` the tab, in the tab order
 (`tabindex="0"`) and hidden while another tab is chosen. Only the chosen tab is in the tab order (`aria-selected="true"`, the others
 `tabindex="-1"`); Left and Right move along the tabs, wrapping round, and show each one's panel at once, Home and End go to the first
@@ -365,6 +372,24 @@ a game's id to `{plays, seconds, last}`, `last` as the player's own date, YYYY-M
 below). Another tab that changes it changes the listing at once (the `storage` event), and the listing reads it again when it comes
 back into view.
 
+**The bottle caps.** The user, 2026-11-03: "Change the placeholder icons to be in the shape of a bottle cap." A game's badge,
+its initials on its colour, is cut to a crown cap's outline seen from above (`web/brand/cap.svg`, our own drawing: a circle with 21
+rounded crimps, used as the badge's CSS `mask`), with the cap's skirt and the ring of its top drawn darker by a radial gradient over
+the colour, which keeps the white initials' contrast. The game's own icon, once its files are here, takes the cap's place (no
+mask). The animation of the opener taking the cap off comes after Bejeweled Twist's last merge; a cap is one element, the `.badge`,
+so it can be animated or flipped there.
+
+**The recycle bin.** The user, 2026-11-03: "Add a recycle bin to the front page that the game's cap can be dragged into to forget
+its files." The bin is the button beside "Add games", with the bin's icon and named "Forget a game's files". The cap of a game whose files are here is draggable (`draggable="true"`,
+set by the files check, which also marks the card `data-files`); dropped on the bin, it opens the bin's panel, which asks "Forget
+<game>'s files in this browser? Its saves stay." with Forget files and Cancel (the focus on Cancel). Nothing is deleted without
+that yes, which the page asks itself: a `confirm()` dialog is not shown in some places the site runs. Clicked, the bin opens the
+same panel with a list of the games whose files are here, for the keyboard and for browsers without drag and drop. Forgetting
+does what the game page's "Forget game files" does: the game folder's records go from the game's IndexedDB database (saves, mods
+and replays stay) and the record of the files says when (`ByopopGameFiles.forget`). Like adding, it holds the game's Web Lock
+(`ByopopImport.forgetGame` in `web/gameimport.js`), so a game whose page is open is refused. Escape closes the panel, and after a
+game is forgotten its list is drawn again once the cards have been checked (the listing's `check()` resolves then).
+
 **The game's own icon.** Once a game's files are loaded, its card shows the game's icon in place of the initials badge
 (an `<img alt="">`, since the card has the name, at the badge's size and with `image-rendering: pixelated` so that a small
 icon stays crisp when enlarged). The game's page shows it in its header in place of the coloured mark, at 20 px for the
@@ -391,6 +416,73 @@ appears for files imported before this existed. It is derived from the files, so
 (and so does finding the files gone), and it is shown only while the files are there. It stays in this browser and is
 never sent anywhere. `tools/exeicontest.js` checks the parser under Node against the exes in `assets/<game>/` (it prints
 one line for each exe and writes no icon) and against synthetic exes made for every decoder, and feeds it damaged files.
+
+### Adding games from the listing page
+
+The user, 2026-11-03 (the "Site" section of `testnotes/TEST_NOTES.md`): "Allow many games' files to be added at once. Try to
+infer the game from the folder name, allow the user to manually specify which game a folder is for if unclear, and tell the user
+which folders were rejected", and "allow dragging your game folder onto the logo to add it (representing the use of the bottle
+opener). Also allow a game folder to be dragged onto its game tile to add its files." This is a rough first version; the bottle
+cap and opener animation comes after Bejeweled Twist's last merge.
+
+There are three ways in, all in `web/addgames.js`:
+
+- **A game's card.** A folder (or a .zip of one) dropped on a finished game's card is taken as that game's, exactly as its own
+  page's import card takes it: the game's markers are looked for in it and nowhere else, and a folder without them is refused
+  with the import card's own words ("That folder doesn't hold Bejeweled Deluxe's images/gemsheet6 file").
+- **The logo.** Folders dropped on the logo stand for the bottle opener: each one is sorted into the game it is.
+- **"Add games".** The button beside "Sort by" opens a folder picker (one folder: a game's, or the folder that holds many, such
+  as "PopCap Games"), sorted the same way. It is the way in for the keyboard and for browsers without drag and drop.
+
+Sorting (`ByopopImport.sort` in `web/gameimport.js`) goes by the files first and the name second, as the files say more surely
+which game a folder is than its name does. A folder is a game's when it holds every one of the game's markers (the files its page
+looks for); a folder that holds several games in different places (the "PopCap Games" folder) is looked into, three levels deep
+at most, and a folder with no game this site plays in it is rejected. Where two games' markers are at the same place (a game and
+its sequel can share file names), the folder's name picks the one whose title, short name or build target it matches, ignoring
+case, punctuation and words every game folder has ("Deluxe", "PopCap", "Games"). When the name cannot tell, the panel asks
+("Which game?", with only the games it could be). A folder that holds one game in one of several subfolders is looked into the same
+way, so the subfolder is the row and the others are named as not added. The panel under the toolbar shows each folder with its
+game and its state, and names the rejected folders in one line; one live region reads out how each folder ended, and the focus
+goes on to the next folder still to choose. On a phone, where no folder can be picked, "Add games" picks .zip files of game
+folders, which are unpacked as a dropped .zip is.
+
+The games are added one at a time. The listing page runs no game, so it cannot use a game's Emscripten file system: it writes the
+files straight into the game's IndexedDB database, in the records IDBFS itself writes and reads (`FILE_DATA`, keyed by path,
+`{timestamp, mode, contents}`, with a directory record for every folder, as `web/saves.js` does for a restore), after deleting
+the old game folder's records. It does so while holding the game's Web Lock (`PAGE.lock`), which a game page takes before it
+reads its storage and holds for its whole life; so a game whose page is open in another tab is refused (the note says the files
+are in use, or that this page is still working on the game when its own add, restore or bin holds the lock), and no page can
+mount the database while it is written, then write its old copy back over the new one. A browser without Web Locks (a page not
+served over https or from localhost) is refused too, since an open page could not be seen there. The write is all or nothing:
+the first transaction deletes the old copy, then the files go in batches of about 32 MB, each with the folder records of its own
+files, and the files the game page checks for (its markers; for a game whose marker is a pak, the files of its game folders, then
+the markers) go last, so a copy cut off partway (the tab closed) is not taken for the game. A write that fails partway (the
+storage full, a file of the drop that would not read) deletes what it wrote; one that fails before the old copy is deleted leaves
+that copy and its record. The rules
+for what is copied are the game page's own: `web/gameimport.js` holds the finding of the game root, the unpacking of paks, the
+choice of files and the icon read out of the exe, the game pages call it from their import card, and the listing page has each
+listed game's `page.js` in `import-games.js`, which `byopop_web_index()` writes, each wrapped in a function that returns its
+`PAGE` (a page.js only declares things, and none of its functions is called there). The listing page loads `web/modpanel.js`
+for its zip and pak readers, with an empty `Module` (it fills `Module.byopop` and starts nothing). After a game is added, the
+record of its files is kept as the game page keeps it after an import (`ByopopGameFiles.mark`, with the icon), the browser is
+asked to keep the site's storage, and the cards are checked again. `tools/gameimporttest.js` (in `unit-web`) checks the rules and
+the sorting under Node with every finished game's `page.js` (a page.js that fails there is a failure, and a change to one picks
+`unit-web` in `tools/check.sh`'s merge mode).
+
+### Light and dark
+
+The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the
+listing, each game's page and its copyright page) follows the browser's `prefers-color-scheme` until the player presses the
+theme button at the right of its header or tool bar: a moon in the light theme, a sun in the dark one (our own line drawings),
+a switch named "Dark theme" that is pressed in the dark theme. The choice sets `<html data-theme="light">` or `"dark"`, and
+every dark rule of the pages (`web/index.html`, `web/shell.html`, `web/copyright.html`, `web/settings.js`, `web/chat.js` and
+each game's `page.css`) is written twice for it: `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) ... }`
+and `:root[data-theme="dark"] ...`. `web/theme.js` holds it: loaded in each page's `<head>`, it sets the attribute before the
+page is drawn, fills every button marked `data-theme-toggle`, and follows the choice made on another tab of the site. The
+choice is one localStorage item for the whole site, `byopop-theme`, kept only while it differs from the browser's: pressing the
+button back to the browser's theme removes it, and so does the browser changing to the chosen theme, so there is no separate
+"follow the browser" setting. With storage blocked the choice lasts for that page only. The games' own screens are not
+changed by it.
 
 ### Site settings
 

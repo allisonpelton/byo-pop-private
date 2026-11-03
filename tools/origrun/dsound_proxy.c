@@ -13,7 +13,8 @@
 //             very first run of a game, before a run has shown it stays silent.
 //   stub      (default) hand back fake objects that accept every call and log, but never play anything.
 // With ORIGRUN_CLOCK=virtual (origrun --clock virtual) the stand-in also carries origrun's virtual clock (vclock.c), and
-// its log's times and its fake play cursor follow that clock instead of the wall clock.
+// its log's times and its fake play cursor follow that clock instead of the wall clock. With ORIGRUN_CURSOR=scripted
+// (origrun --cursor scripted) it points the copy's GetCursorPos at origrun's scripted mouse position (cursor.c).
 // Written from the public DirectSound API (dsound.h); no other project's wrapper was read.
 
 #define COBJMACROS
@@ -32,7 +33,8 @@ static char        gDir[MAX_PATH];
 static LONG        gNextId = 1;
 static LONG        gPlaySeq = 0;
 
-// origrun's virtual clock (vclock.c): installed from DllMain when ORIGRUN_CLOCK=virtual
+// origrun's virtual clock and scripted cursor (vclock.c, cursor.c): installed from DllMain when ORIGRUN_CLOCK=virtual
+// or ORIGRUN_CURSOR=scripted
 void vclock_install(HMODULE self);
 void vclock_detach(void);
 int  vclock_ms(double* out);

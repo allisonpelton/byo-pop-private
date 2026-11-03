@@ -23,6 +23,10 @@
 //     read once the counter has moved, so none is missed however fast the game runs.
 // The stand-in pins itself (a FreeLibrary of dsound.dll would leave the patched entries pointing nowhere). It assumes
 // one main thread drives the game: the one that started at the exe's entry point.
+// The same import patcher serves the scripted cursor (--cursor scripted, ORIGRUN_CURSOR=scripted; cursor.c), with the
+// clock or without it: it points the copy's GetCursorPos imports at cursor.c. Each hook belongs to one of the two, and
+// only the ones that are on are patched. Without the clock, DLLs the copy loads later are patched from the cursor
+// hook's own calls (hooks_rescan).
 // Written from the public Win32 and PE documentation.
 
 #define PSAPI_VERSION 2   // K32EnumProcessModules from kernel32, no psapi.lib
@@ -41,7 +45,8 @@
 #define kHoldCapMs 60000       // the longest a hold lasts once origrun follows the clock; then holds are off for good
 #define kNoWaitMs 5000         // a main thread that has not waited this long after the install is logged
 
-static int        gOn;
+static int        gOn;              // the virtual clock is on
+static int        gCursorOn;        // the scripted cursor is on (cursor.c)
 static VcShared*  gSh;
 static HANDLE     gMap, gHeldEv, gRelEv, gHostProc;
 static DWORD      gDriver;          // the main thread: its waits drive the clock
@@ -215,7 +220,7 @@ static void no_wait_check(void)
 
 static int on_driver(void) { return gOn && GetCurrentThreadId() == gDriver && !gInHold; }
 
-static void patch_new_modules(void);
+void hooks_rescan(void);
 
 // A clock read. On the driver, past kPollFree reads with no wait the read moves the clock (a busy loop), and then it is
 // also where a barrier can hold the game.
@@ -242,9 +247,7 @@ static void vc_wait_enter(int where, DWORD ms)
 	if (gReads > gSh->maxReads) gSh->maxReads = gReads;
 	gReads = 0;
 	InterlockedExchange64((LONGLONG volatile*)&gSh->nowReal100, real100());
-	// a DLL of the copy loaded since: the module list is looked at once per tick of the wall clock (about 16 ms)
-	ULONGLONG t = GetTickCount64();
-	if (t - gModScanAt >= 15) { gModScanAt = t; patch_new_modules(); }
+	hooks_rescan();   // a DLL of the copy loaded since
 	vc_sample(1);
 	vc_barrier(where, vget() + (LONGLONG)ms * VC_UNITS_PER_MS, ms);
 }
@@ -444,28 +447,39 @@ static DWORD WINAPI H_MsgWaitForMultipleObjectsEx(DWORD n, const HANDLE* hs, DWO
 
 // ---------------------------------------------------------------------------------------------- import patching
 
-typedef struct { const char* dll; const char* name; void* hook; void* real; LONG patched; } HookDef;
+BOOL WINAPI cursor_GetCursorPos(LPPOINT p);   // cursor.c
+int  cursor_open(void);
+void cursor_installed(void);
+void cursor_stats(LONG* reads, LONG* real);
+
+// Each hook belongs to the virtual clock (H_CLOCK) or the scripted cursor (H_CURSOR); only the ones that are on are
+// patched.
+enum { H_CLOCK, H_CURSOR };
+static const char* const kGrpName[] = { "the virtual clock", "the scripted cursor" };
+typedef struct { const char* dll; const char* name; void* hook; int grp; void* real; LONG patched; } HookDef;
 static HookDef gHooks[] = {
-	{ "winmm.dll",    "timeGetTime",                    (void*)H_timeGetTime },
-	{ "winmm.dll",    "timeGetSystemTime",              (void*)H_timeGetSystemTime },
-	{ "kernel32.dll", "GetTickCount",                   (void*)H_GetTickCount },
-	{ "kernel32.dll", "GetTickCount64",                 (void*)H_GetTickCount64 },
-	{ "kernel32.dll", "QueryPerformanceCounter",        (void*)H_QueryPerformanceCounter },
-	{ "kernel32.dll", "QueryPerformanceFrequency",      (void*)H_QueryPerformanceFrequency },
-	{ "kernel32.dll", "GetSystemTimeAsFileTime",        (void*)H_GetSystemTimeAsFileTime },
-	{ "kernel32.dll", "GetSystemTimePreciseAsFileTime", (void*)H_GetSystemTimePreciseAsFileTime },
-	{ "kernel32.dll", "GetSystemTime",                  (void*)H_GetSystemTime },
-	{ "kernel32.dll", "GetLocalTime",                   (void*)H_GetLocalTime },
-	{ "kernel32.dll", "Sleep",                          (void*)H_Sleep },
-	{ "kernel32.dll", "SleepEx",                        (void*)H_SleepEx },
-	{ "kernel32.dll", "WaitForSingleObject",            (void*)H_WaitForSingleObject },
-	{ "kernel32.dll", "WaitForSingleObjectEx",          (void*)H_WaitForSingleObjectEx },
-	{ "kernel32.dll", "WaitForMultipleObjects",         (void*)H_WaitForMultipleObjects },
-	{ "kernel32.dll", "WaitForMultipleObjectsEx",       (void*)H_WaitForMultipleObjectsEx },
-	{ "user32.dll",   "MsgWaitForMultipleObjects",      (void*)H_MsgWaitForMultipleObjects },
-	{ "user32.dll",   "MsgWaitForMultipleObjectsEx",    (void*)H_MsgWaitForMultipleObjectsEx },
+	{ "winmm.dll",    "timeGetTime",                    (void*)H_timeGetTime,                    H_CLOCK },
+	{ "winmm.dll",    "timeGetSystemTime",              (void*)H_timeGetSystemTime,              H_CLOCK },
+	{ "kernel32.dll", "GetTickCount",                   (void*)H_GetTickCount,                   H_CLOCK },
+	{ "kernel32.dll", "GetTickCount64",                 (void*)H_GetTickCount64,                 H_CLOCK },
+	{ "kernel32.dll", "QueryPerformanceCounter",        (void*)H_QueryPerformanceCounter,        H_CLOCK },
+	{ "kernel32.dll", "QueryPerformanceFrequency",      (void*)H_QueryPerformanceFrequency,      H_CLOCK },
+	{ "kernel32.dll", "GetSystemTimeAsFileTime",        (void*)H_GetSystemTimeAsFileTime,        H_CLOCK },
+	{ "kernel32.dll", "GetSystemTimePreciseAsFileTime", (void*)H_GetSystemTimePreciseAsFileTime, H_CLOCK },
+	{ "kernel32.dll", "GetSystemTime",                  (void*)H_GetSystemTime,                  H_CLOCK },
+	{ "kernel32.dll", "GetLocalTime",                   (void*)H_GetLocalTime,                   H_CLOCK },
+	{ "kernel32.dll", "Sleep",                          (void*)H_Sleep,                          H_CLOCK },
+	{ "kernel32.dll", "SleepEx",                        (void*)H_SleepEx,                        H_CLOCK },
+	{ "kernel32.dll", "WaitForSingleObject",            (void*)H_WaitForSingleObject,            H_CLOCK },
+	{ "kernel32.dll", "WaitForSingleObjectEx",          (void*)H_WaitForSingleObjectEx,          H_CLOCK },
+	{ "kernel32.dll", "WaitForMultipleObjects",         (void*)H_WaitForMultipleObjects,         H_CLOCK },
+	{ "kernel32.dll", "WaitForMultipleObjectsEx",       (void*)H_WaitForMultipleObjectsEx,       H_CLOCK },
+	{ "user32.dll",   "MsgWaitForMultipleObjects",      (void*)H_MsgWaitForMultipleObjects,      H_CLOCK },
+	{ "user32.dll",   "MsgWaitForMultipleObjectsEx",    (void*)H_MsgWaitForMultipleObjectsEx,    H_CLOCK },
+	{ "user32.dll",   "GetCursorPos",                   (void*)cursor_GetCursorPos,              H_CURSOR },
 };
 #define NHOOK ((int)(sizeof(gHooks) / sizeof(gHooks[0])))
+static int hook_on(int k) { return gHooks[k].grp == H_CLOCK ? gOn : gCursorOn; }
 
 // The functions a game may import that the clock cannot stand in for; logged when a module imports them.
 static const char* const kUncovered[] = { "timeSetEvent", "SetTimer", "CreateWaitableTimerA", "CreateWaitableTimerW",
@@ -494,10 +508,10 @@ static int patch_module(HMODULE m, const char* leaf)
 			const char* nm = NULL;
 			if (names && names[i] && !(names[i] & IMAGE_ORDINAL_FLAG32)) nm = (const char*)((IMAGE_IMPORT_BY_NAME*)(base + names[i]))->Name;
 			int h = -1;
-			for (int k = 0; k < NHOOK && h < 0; k++) if (gHooks[k].real && (void*)(DWORD_PTR)iat[i] == gHooks[k].real) h = k;
-			for (int k = 0; k < NHOOK && h < 0 && nm; k++) if (!lstrcmpiA(dll, gHooks[k].dll) && !strcmp(nm, gHooks[k].name)) h = k;
+			for (int k = 0; k < NHOOK && h < 0; k++) if (hook_on(k) && gHooks[k].real && (void*)(DWORD_PTR)iat[i] == gHooks[k].real) h = k;
+			for (int k = 0; k < NHOOK && h < 0 && nm; k++) if (hook_on(k) && !lstrcmpiA(dll, gHooks[k].dll) && !strcmp(nm, gHooks[k].name)) h = k;
 			if (h < 0) {
-				for (int u = 0; nm && kUncovered[u]; u++)
+				for (int u = 0; gOn && nm && kUncovered[u]; u++)
 					if (!strcmp(nm, kUncovered[u]) && strlen(uncovered) + strlen(nm) + 2 < sizeof(uncovered)) { if (uncovered[0]) strcat(uncovered, " "); strcat(uncovered, nm); }
 				continue;
 			}
@@ -513,7 +527,7 @@ static int patch_module(HMODULE m, const char* leaf)
 			VirtualProtect(&iat[i], 4, old, &old);
 			InterlockedIncrement(&gHooks[h].patched);
 			n++;
-			clog("  %s: %s!%s -> the virtual clock", leaf, dll, gHooks[h].name);
+			clog("  %s: %s!%s -> %s", leaf, dll, gHooks[h].name, kGrpName[gHooks[h].grp]);
 		}
 	}
 	if (uncovered[0]) clog("  %s also imports what the clock does not cover: %s", leaf, uncovered);
@@ -553,8 +567,20 @@ static void patch_new_modules(void)
 		if (seen || !module_is_games(mods[i], leaf, MAX_PATH)) continue;
 		if (gPatchedN < 64) gPatched[gPatchedN++] = mods[i];
 		int n = patch_module(mods[i], leaf);
-		clog("%s: %d import%s on the virtual clock", leaf, n, n == 1 ? "" : "s");
+		clog("%s: %d import%s on %s%s%s", leaf, n, n == 1 ? "" : "s", gOn ? kGrpName[H_CLOCK] : "", gOn && gCursorOn ? " and " : "",
+			gCursorOn ? kGrpName[H_CURSOR] : "");
 	}
+}
+// A DLL of the copy loaded since the last look: the module list is looked at once per tick of the wall clock (about
+// 16 ms), from the clock's waits and the cursor hook's calls, whichever thread they come from (one at a time).
+static LONG gScanBusy;   // a scan of the module list is running (the install's own, or a rescan)
+void hooks_rescan(void)
+{
+	ULONGLONG t = GetTickCount64();
+	if (t - gModScanAt < 15 || InterlockedExchange(&gScanBusy, 1)) return;
+	gModScanAt = t;
+	patch_new_modules();
+	InterlockedExchange(&gScanBusy, 0);
 }
 
 // The process's first thread, which runs the game's main loop: the one that started at the exe's entry point (asked
@@ -597,20 +623,10 @@ int vclock_ms(double* out)
 	return 1;
 }
 
-// Called from the stand-in's DllMain on process attach. Nothing here loads a DLL that is not loaded already (winmm
-// and user32 are the stand-in's own imports), so it is safe under the loader lock.
-void vclock_install(HMODULE self)
+// The clock's half of the install (ORIGRUN_CLOCK=virtual): its block and events, its bases, the main thread and the
+// guard. 1 when the clock can run; its hooks are patched once the caller sets gOn.
+static int clock_install(const char* exe)
 {
-	char mode[32] = "";
-	GetEnvironmentVariableA("ORIGRUN_CLOCK", mode, sizeof(mode));
-	if (lstrcmpiA(mode, "virtual") != 0) return;
-	gSelf = self;
-	char dir[MAX_PATH] = "", path[MAX_PATH];
-	DWORD dn = GetEnvironmentVariableA("ORIGRUN_DIR", dir, sizeof(dir));
-	if (dn && dn < sizeof(dir)) {
-		wsprintfA(path, "%s\\logs", dir); CreateDirectoryA(path, NULL);
-		wsprintfA(path, "%s\\logs\\clock.log", dir); gClog = fopen(path, "a");
-	}
 	char id[64] = "";
 	GetEnvironmentVariableA("ORIGRUN_CLOCK_ID", id, sizeof(id));
 	DWORD pid = GetCurrentProcessId();
@@ -618,11 +634,11 @@ void vclock_install(HMODULE self)
 	wsprintfA(name, "Local\\origrun-vclock-%s-%lu", id, pid);
 	gMap = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(VcShared), name);
 	gSh = gMap ? (VcShared*)MapViewOfFile(gMap, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(VcShared)) : NULL;
-	if (!gSh) { clog("pid %lu: no shared block %s (err %lu): no virtual clock", pid, name, GetLastError()); return; }
+	if (!gSh) { clog("pid %lu: no shared block %s (err %lu): no virtual clock", pid, name, GetLastError()); return 0; }
 	char ev[192];
 	wsprintfA(ev, "%s-held", name); gHeldEv = CreateEventA(NULL, FALSE, FALSE, ev);
 	wsprintfA(ev, "%s-release", name); gRelEv = CreateEventA(NULL, FALSE, FALSE, ev);
-	if (!gHeldEv || !gRelEv) { clog("pid %lu: no events for %s (err %lu): no virtual clock", pid, name, GetLastError()); return; }
+	if (!gHeldEv || !gRelEv) { clog("pid %lu: no events for %s (err %lu): no virtual clock", pid, name, GetLastError()); return 0; }
 	char host[32] = "";
 	if (GetEnvironmentVariableA("ORIGRUN_CLOCK_HOST", host, sizeof(host))) gHostProc = OpenProcess(SYNCHRONIZE, FALSE, strtoul(host, NULL, 10));
 	GetEnvironmentVariableA("ORIGRUN_CLOCK_COUNTER", gCounterExpr, sizeof(gCounterExpr));
@@ -630,21 +646,12 @@ void vclock_install(HMODULE self)
 	if (GetEnvironmentVariableA("ORIGRUN_CLOCK_WATCH", w, sizeof(w)) && w[0]) {
 		for (char* t = strtok(w, ";"); t && gWatchN < 4; t = strtok(NULL, ";")) lstrcpynA(gWatchExpr[gWatchN++], t, 256);
 	}
-	char exe[MAX_PATH]; GetModuleFileNameA(NULL, exe, MAX_PATH);
-	lstrcpynA(gExeDir, exe, MAX_PATH); { char* l = strrchr(gExeDir, '\\'); if (l) *l = 0; }
 
 	// The clock's bases: the real values now, so the game sees no jump.
 	LARGE_INTEGER q; QueryPerformanceFrequency(&q); gQpf = q.QuadPart; QueryPerformanceCounter(&q); gQpc0 = q.QuadPart;
 	gTgt0 = timeGetTime(); gGtc0 = GetTickCount(); gGtc64_0 = GetTickCount64();
 	gFt0 = real100();
 	{ SYSTEMTIME lt; FILETIME lf; GetLocalTime(&lt); SystemTimeToFileTime(&lt, &lf); gLft0 = ((LONGLONG)lf.dwHighDateTime << 32) | lf.dwLowDateTime; }
-
-	// Pinned before any import points here: a FreeLibrary of dsound.dll (by the game, BASS or FMOD) must not unmap it.
-	HMODULE pin = NULL;
-	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCSTR)(void*)vclock_install, &pin)) {
-		clog("pid %lu: the stand-in could not be pinned (err %lu): no virtual clock", pid, GetLastError());
-		return;
-	}
 
 	VcShared* s = gSh;
 	s->pid = pid;
@@ -664,10 +671,6 @@ void vclock_install(HMODULE self)
 	char hs[8] = ""; GetEnvironmentVariableA("ORIGRUN_CLOCK_HOLDSTART", hs, sizeof(hs));
 	if (hs[0] == '1') { s->holdKind = VC_HOLD_NEXT; s->bar = VC_BAR_ARMED; }
 
-	for (int k = 0; k < NHOOK; k++) {
-		HMODULE m = GetModuleHandleA(gHooks[k].dll);
-		gHooks[k].real = m ? (void*)GetProcAddress(m, gHooks[k].name) : NULL;
-	}
 	clog("pid %lu %s: virtual clock installed (thread %lu loaded the stand-in; the main thread %lu drives the clock); "
 		"counter %s; %d watch%s; host %s; first hold %s", pid, exe, GetCurrentThreadId(), gDriver,
 		gCounterExpr[0] ? gCounterExpr : "(none)", gWatchN, gWatchN == 1 ? "" : "es",
@@ -679,36 +682,90 @@ void vclock_install(HMODULE self)
 		ot_scan();
 		if (gGuardOff) clog("the guard is off (ORIGRUN_CLOCK_GUARD=0): the main thread's waits are skipped even while the exe's other threads work");
 	}
-	gOn = 1;
+	return 1;
+}
+
+// Called from the stand-in's DllMain on process attach: the virtual clock (ORIGRUN_CLOCK=virtual) and the scripted
+// cursor (ORIGRUN_CURSOR=scripted), either or both. Nothing here loads a DLL that is not loaded already (winmm and
+// user32 are the stand-in's own imports), so it is safe under the loader lock.
+void vclock_install(HMODULE self)
+{
+	char mode[32] = "", cur[32] = "";
+	GetEnvironmentVariableA("ORIGRUN_CLOCK", mode, sizeof(mode));
+	GetEnvironmentVariableA("ORIGRUN_CURSOR", cur, sizeof(cur));
+	int clock = !lstrcmpiA(mode, "virtual"), cursor = !lstrcmpiA(cur, "scripted");
+	if (!clock && !cursor) return;
+	gSelf = self;
+	char dir[MAX_PATH] = "", path[MAX_PATH];
+	DWORD dn = GetEnvironmentVariableA("ORIGRUN_DIR", dir, sizeof(dir));
+	if (dn && dn < sizeof(dir)) {   // the clock's log; cursor.log when only the cursor is on
+		wsprintfA(path, "%s\\logs", dir); CreateDirectoryA(path, NULL);
+		wsprintfA(path, "%s\\logs\\%s.log", dir, clock ? "clock" : "cursor"); gClog = fopen(path, "a");
+	}
+	DWORD pid = GetCurrentProcessId();
+	char exe[MAX_PATH]; GetModuleFileNameA(NULL, exe, MAX_PATH);
+	lstrcpynA(gExeDir, exe, MAX_PATH); { char* l = strrchr(gExeDir, '\\'); if (l) *l = 0; }
+
+	// Pinned before any import points here: a FreeLibrary of dsound.dll (by the game, BASS or FMOD) must not unmap it.
+	HMODULE pin = NULL;
+	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCSTR)(void*)vclock_install, &pin)) {
+		clog("pid %lu: the stand-in could not be pinned (err %lu): no virtual clock, no scripted cursor", pid, GetLastError());
+		return;
+	}
+	if (cursor) {
+		if (cursor_open()) { gCursorOn = 1; clog("pid %lu %s: scripted cursor installed: GetCursorPos returns origrun's last posted mouse position", pid, exe); }
+		else clog("pid %lu: no block from origrun, or another version (err %lu): no scripted cursor", pid, GetLastError());
+	}
+	int clockOk = clock && clock_install(exe);
+	if (!clockOk && !gCursorOn) return;
+
+	for (int k = 0; k < NHOOK; k++) {
+		HMODULE m = GetModuleHandleA(gHooks[k].dll);
+		gHooks[k].real = m ? (void*)GetProcAddress(m, gHooks[k].name) : NULL;
+	}
+	gOn = clockOk;
+	InterlockedExchange(&gScanBusy, 1);   // nothing is patched yet, so no rescan holds it; a hook's rescan meanwhile skips
 	patch_new_modules();
-	InterlockedExchange(&s->installed, 1);
-	s->version = VC_VERSION; s->size = sizeof(VcShared);
-	MemoryBarrier();
-	s->magic = VC_MAGIC;   // last: origrun follows a block only once it carries this
+	InterlockedExchange(&gScanBusy, 0);
+	if (gCursorOn) cursor_installed();
+	if (gOn) {
+		VcShared* s = gSh;
+		InterlockedExchange(&s->installed, 1);
+		s->version = VC_VERSION; s->size = sizeof(VcShared);
+		MemoryBarrier();
+		s->magic = VC_MAGIC;   // last: origrun follows a block only once it carries this
+	}
 }
 
 // Called on process detach: the totals.
 void vclock_detach(void)
 {
-	if (!gOn || !gSh) return;
-	gOn = 0;   // from here the hooks pass through (the block stays mapped: their reads still see the virtual clock)
-	VcShared* s = gSh;
-	s->gone = 1;
-	double vs = (double)s->v / 1e7, rs = (double)(real100() - s->installReal100) / 1e7;
-	clog("pid %lu exits: virtual %.1f s in %.1f s of wall time (%.1fx); update counter %ld; %ld timed waits skipped, %ld passed on, "
-		"%ld clock reads moved the clock (polling), at most %ld reads between two waits; %ld timed waits took their real time while the "
-		"exe's other threads worked (%.1f s of game time); %ld timed waits on handles went to Windows (%ld ran out; %.1f s of game "
-		"time); %ld holds (%.1f s)%s; %ld timed waits of other threads on the wall clock; %ld watch changes (%ld dropped)",
-		(unsigned long)s->pid, vs, rs, rs > 0 ? vs / rs : 0.0, (long)s->counter, (long)s->waits, (long)s->passWaits, (long)s->polls,
-		(long)s->maxReads, (long)s->realWaits, (double)s->realWait100 / 1e7, (long)s->handleWaits, (long)s->handleTimeouts,
-		(double)s->handleWait100 / 1e7, (long)s->holds, (double)s->heldReal100 / 1e7, s->barrierOff ? ", then holds were off" : "",
-		(long)s->otherWaits, (long)s->ringHead, (long)s->ringDropped);
-	for (int i = 0; i < gSiteN; i++) {
-		WaitSite* w = &gSites[i];
-		if (w->real) clog("  %s on handles from %p went to Windows: %ld, %ld ran out, %.2f s of game time (update counter %ld to %ld)",
-			w->fn, w->at, (long)w->n, (long)w->timeouts, (double)w->t100 / 1e7, (long)w->c0, (long)w->c1);
-		else clog("  %s skipped from %p: %ld, %.1f s of game time (update counter %ld to %ld)", w->fn, w->at, (long)w->n,
-			(double)w->t100 / 1e7, (long)w->c0, (long)w->c1);
+	if (!gOn && !gCursorOn) return;
+	if (gCursorOn) {
+		LONG reads, real; cursor_stats(&reads, &real);
+		clog("pid %lu exits: GetCursorPos answered %ld time%s with origrun's mouse position, %ld passed to Windows (before origrun's first mouse input)",
+			GetCurrentProcessId(), (long)reads, reads == 1 ? "" : "s", (long)real);
+	}
+	if (gOn && gSh) {
+		gOn = 0;   // from here the hooks pass through (the block stays mapped: their reads still see the virtual clock)
+		VcShared* s = gSh;
+		s->gone = 1;
+		double vs = (double)s->v / 1e7, rs = (double)(real100() - s->installReal100) / 1e7;
+		clog("pid %lu exits: virtual %.1f s in %.1f s of wall time (%.1fx); update counter %ld; %ld timed waits skipped, %ld passed on, "
+			"%ld clock reads moved the clock (polling), at most %ld reads between two waits; %ld timed waits took their real time while the "
+			"exe's other threads worked (%.1f s of game time); %ld timed waits on handles went to Windows (%ld ran out; %.1f s of game "
+			"time); %ld holds (%.1f s)%s; %ld timed waits of other threads on the wall clock; %ld watch changes (%ld dropped)",
+			(unsigned long)s->pid, vs, rs, rs > 0 ? vs / rs : 0.0, (long)s->counter, (long)s->waits, (long)s->passWaits, (long)s->polls,
+			(long)s->maxReads, (long)s->realWaits, (double)s->realWait100 / 1e7, (long)s->handleWaits, (long)s->handleTimeouts,
+			(double)s->handleWait100 / 1e7, (long)s->holds, (double)s->heldReal100 / 1e7, s->barrierOff ? ", then holds were off" : "",
+			(long)s->otherWaits, (long)s->ringHead, (long)s->ringDropped);
+		for (int i = 0; i < gSiteN; i++) {
+			WaitSite* w = &gSites[i];
+			if (w->real) clog("  %s on handles from %p went to Windows: %ld, %ld ran out, %.2f s of game time (update counter %ld to %ld)",
+				w->fn, w->at, (long)w->n, (long)w->timeouts, (double)w->t100 / 1e7, (long)w->c0, (long)w->c1);
+			else clog("  %s skipped from %p: %ld, %.1f s of game time (update counter %ld to %ld)", w->fn, w->at, (long)w->n,
+				(double)w->t100 / 1e7, (long)w->c0, (long)w->c1);
+		}
 	}
 	for (int k = 0; k < NHOOK; k++) if (gHooks[k].patched) clog("  %s: %ld import table entr%s", gHooks[k].name, (long)gHooks[k].patched, gHooks[k].patched == 1 ? "y" : "ies");
 	if (gClog) { fclose(gClog); gClog = NULL; }

@@ -51,6 +51,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "vclock.h"
+#include "cursor.h"
 
 // --------------------------------------------------------------------------------------------------- util
 
@@ -434,6 +435,32 @@ static void vc_summary(void)
 		if (s->ringDropped) logline("WARNING: %ld watch changes were dropped (origrun drained them too slowly)", (long)s->ringDropped);
 	} else if (gClockVirtual) logline("--clock virtual: no game process had a clock (did it load the stand-in, dsound.dll?)");
 	LeaveCriticalSection(&gVcLock);
+}
+
+// ------------------------------------------------------------------------- the scripted cursor (--cursor scripted)
+// The game's side is cursor.c, in the sound stand-in: the copy's GetCursorPos returns the last mouse position origrun
+// posted, from a block origrun makes before it starts the game (cursor.h). Each command that posts a mouse position
+// writes it there first, in screen coordinates (the client point through the game window's ClientToScreen at that
+// moment), so a game that reads the cursor after posted input finds it where a real mouse would be. Until the first
+// one, the game reads Windows' cursor. See docs/ORIGRUN.md, "The scripted cursor".
+static int    gCursorScripted = 0;
+static CurShared* gCur = NULL;        // mapped until origrun exits
+static void cursor_note(HWND top, int x, int y)
+{
+	if (!gCur || !top) return;
+	POINT p={x,y}; ClientToScreen(top,&p);
+	InterlockedExchange64(&gCur->pos, ((LONGLONG)p.y<<32) | (DWORD)p.x);
+	InterlockedExchange(&gCur->set,1);
+	InterlockedIncrement(&gCur->posts);
+}
+static void cursor_summary(void)
+{
+	if (!gCursorScripted || !gCur) return;
+	CurShared* c=gCur;
+	if (!c->installed) logline("--cursor scripted: WARNING: no game process patched its GetCursorPos (did it load the stand-in, dsound.dll?)");
+	else logline("scripted cursor: %ld mouse position%s posted; %ld game process%s patched GetCursorPos, which answered %ld time%s with "
+		"the scripted position and %ld from Windows (before the first); logs/%s.log has the details", (long)c->posts, c->posts==1?"":"s",
+		(long)c->installed, c->installed==1?"":"es", (long)c->reads, c->reads==1?"":"s", (long)c->realReads, gClockVirtual?"clock":"cursor");
 }
 
 static int file_exists(const char* p) { DWORD a=GetFileAttributesA(p); return a!=INVALID_FILE_ATTRIBUTES && !(a&FILE_ATTRIBUTE_DIRECTORY); }
@@ -1454,11 +1481,14 @@ static void exec_at(const char* inner)
 	else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,1); }
 	else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hw,parse_vk(v)); }
 	else if (ieq(cmd,"text")){ post_text(hw,rest); }
-	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); }
+	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); } }
 	else if (ieq(cmd,"focus")){ post_focus(hw, ieq(rest,"regain")); }
-	else if (ieq(cmd,"down")||ieq(cmd,"up")){   // one button edge, so that a click can span updates (a down and up read in one update are lost)
+	else if (ieq(cmd,"down")||ieq(cmd,"up")||ieq(cmd,"rdown")||ieq(cmd,"rup")){   // one button edge (rdown/rup: the right one), so that a click can span updates (a down and up read in one update are lost in some games)
+		int r=cmd[0]=='r'||cmd[0]=='R', down=ieq(cmd+r,"down");
 		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
-		if (ieq(cmd,"down")) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,0,lp); PostMessageA(t,WM_LBUTTONDOWN,MK_LBUTTON,lp); } else PostMessageA(t,WM_LBUTTONUP,0,lp);
+		if (n==2) cursor_note(hw,x,y);
+		if (down) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,0,lp); PostMessageA(t,r?WM_RBUTTONDOWN:WM_LBUTTONDOWN,r?MK_RBUTTON:MK_LBUTTON,lp); }
+		else PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,0,lp);
 	}
 	else logline("at: cannot do '%s' at an update",cmd);
 	gInputHeld = 0;
@@ -1502,6 +1532,7 @@ static HWND child_at(HWND top, int x, int y, POINT* outClient)
 
 static void post_click(HWND hwnd,int x,int y,int right)
 {
+	cursor_note(hwnd,x,y);
 	POINT cp; HWND t=child_at(hwnd,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
 	PostMessageA(t, WM_MOUSEMOVE, 0, lp); input_gap(20);
 	if (right){ PostMessageA(t,WM_RBUTTONDOWN,MK_RBUTTON,lp); input_gap(40); PostMessageA(t,WM_RBUTTONUP,0,lp); }
@@ -1545,6 +1576,7 @@ static int hw_refused(const char* what)
 static void hw_move(HWND hwnd,int x,int y)
 {
 	if (hw_refused("hwmove")) return;
+	cursor_note(hwnd,x,y);   // the scripted cursor, if on, goes where the real one does
 	POINT pt={x,y}; ClientToScreen(hwnd,&pt); SetCursorPos(pt.x,pt.y);
 	INPUT in; ZeroMemory(&in,sizeof(in)); in.type=INPUT_MOUSE; in.mi.dwFlags=MOUSEEVENTF_MOVE; SendInput(1,&in,sizeof(INPUT));
 }
@@ -1659,12 +1691,23 @@ static void run_script(DWORD pid, const char* scriptPath)
 			const char* inner=rest+o; while(*inner==' ')inner++;
 			int v=wait_counter((uint32_t)N,30000);
 			logline("at %lu: counter reached %d -> %s", N, v, inner);
+			// at <N> click|rclick <x> <y> <k>: the move and the down at N, the up k updates later, so that a game that
+			// loses a down and an up read in one update sees both. Without k both go at N, as before.
+			char ic[16]=""; int cx,cy,ck=0;
+			if (sscanf(inner,"%15s %d %d %d",ic,&cx,&cy,&ck)==4 && ck>0 && (ieq(ic,"click")||ieq(ic,"rclick"))) {
+				int r=ieq(ic,"rclick"); char a[64];
+				wsprintfA(a,"%s %d %d",r?"rdown":"down",cx,cy); exec_at(a);
+				int v2=wait_counter((uint32_t)(N+ck),30000);
+				logline("at %lu: counter reached %d -> the %s's up", N+ck, v2, ic);
+				wsprintfA(a,"%s %d %d",r?"rup":"up",cx,cy); exec_at(a);
+				continue;
+			}
 			exec_at(inner);
 			continue;
 		}
 		HWND hwnd = resolve_window(0,NULL);   // the live main window of any of our processes, fresh each command
 		if (!hwnd && !ieq(cmd,"quit")) { logline("(%s) no live window -- skipping",cmd); continue; }
-		if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) PostMessageA(hwnd,WM_MOUSEMOVE,0,xy(x,y)); }
+		if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hwnd,x,y); PostMessageA(hwnd,WM_MOUSEMOVE,0,xy(x,y)); } }
 		else if (ieq(cmd,"click")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hwnd,x,y,0); }
 		else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hwnd,x,y,1); }
 		else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hwnd,parse_vk(v)); }
@@ -2426,6 +2469,7 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	if (mth) WaitForSingleObject(mth,3000);
 	if (wth) WaitForSingleObject(wth,3000);
 	if (gClockVirtual) vc_summary();
+	cursor_summary();
 	close_game(L);
 
 	// What the game left in its setting (it writes Is3D at exit, and turns it off after a fallback), then the earlier
@@ -3064,6 +3108,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (key3d && key3d[0]) fprintf(rf,"key3d=%s\n",key3d);
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
 	if (gClockVirtual) fprintf(rf,"clock=virtual\n");
+	if (gCursorScripted) fprintf(rf,"cursor=scripted\n");
 	fclose(rf);
 	// --reg: registry presets, imported inside before the game starts, into the hive the game uses there.
 	if (!probe) {
@@ -3435,14 +3480,35 @@ static DWORD arm_guest_shutdown(DWORD sec)
 		SHTDN_REASON_MAJOR_OTHER|SHTDN_REASON_MINOR_OTHER|SHTDN_REASON_FLAG_PLANNED);
 }
 
-// The environment the stand-in's virtual clock reads (vclock.c), inherited by the game through rundesk; none of it
-// without --clock virtual, so a clock left in origrun's own environment never reaches a game.
+// --cursor scripted: the block the game's GetCursorPos reads (cursor.h), made before the game starts and named after
+// the run's id, and the environment that tells the stand-in about it.
+static void cursor_create(void)
+{
+	char name[128]; wsprintfA(name,"Local\\origrun-cursor-%s",gClockId);
+	HANDLE m=CreateFileMappingA(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,sizeof(CurShared),name);   // open until origrun exits
+	CurShared* c=m ? (CurShared*)MapViewOfFile(m,FILE_MAP_ALL_ACCESS,0,0,sizeof(CurShared)) : NULL;
+	if (!c) { logline("--cursor scripted: no shared block %s (err %lu): the game's GetCursorPos stays Windows'", name, GetLastError()); if (m) CloseHandle(m); return; }
+	c->version=CUR_VERSION; c->size=sizeof(CurShared);
+	MemoryBarrier();
+	c->magic=CUR_MAGIC;
+	gCur=c;
+	SetEnvironmentVariableA("ORIGRUN_CURSOR","scripted");
+	SetEnvironmentVariableA("ORIGRUN_CURSOR_ID",gClockId);
+	logline("--cursor scripted: the game's GetCursorPos returns the last mouse position the script posted (in the stand-in; its log is logs/%s.log)", gClockVirtual?"clock":"cursor");
+}
+
+// The environment the stand-in's virtual clock and scripted cursor read (vclock.c, cursor.c), inherited by the game
+// through rundesk; none of it without --clock virtual or --cursor scripted, so a value left in origrun's own environment
+// never reaches a game.
 static void clock_env(void)
 {
-	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",NULL};
+	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
-	if (!gClockVirtual) return;
+	if (!gClockVirtual && !gCursorScripted) return;
 	wsprintfA(gClockId,"%lu-%lu",GetCurrentProcessId(),GetTickCount());
+	if (gCursorScripted) cursor_create();
+	if (!gClockVirtual) return;
 	char host[16]; wsprintfA(host,"%lu",GetCurrentProcessId());
 	char w[4*257]=""; for (int i=0;i<gWatchN;i++) { if (i) lstrcatA(w,";"); lstrcatA(w,gWatchExpr[i]); }
 	SetEnvironmentVariableA("ORIGRUN_CLOCK","virtual");
@@ -3527,6 +3593,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"key3d")) lstrcpynA(key3d,v,256);
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
 			else if (ieq(ln,"clock")) gClockVirtual = ieq(v,"virtual");
+			else if (ieq(ln,"cursor")) gCursorScripted = ieq(v,"scripted");
 		}
 		fclose(f);
 	}
@@ -3568,6 +3635,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	SetEnvironmentVariableA("ORIGRUN_DIR",gRunDir);
 	SetEnvironmentVariableA("ORIGRUN_SOUND", ieq(sound,"real") ? "real" : sound);
 	if (gClockVirtual && ieq(sound,"real")) { logline("clock=virtual needs the sound stand-in, which sound=real leaves out: the run stays on the wall clock"); gClockVirtual=0; }
+	if (gCursorScripted && ieq(sound,"real")) { logline("cursor=scripted needs the sound stand-in, which sound=real leaves out: GetCursorPos stays Windows'"); gCursorScripted=0; }
 	clock_env();
 
 	import_registry(logs);   // the presets first, in the hive the game uses, so the 3D setting below wins over them
@@ -3667,6 +3735,11 @@ int main(int argc, char** argv)
 			if (ieq(v,"virtual")) gClockVirtual=1; else if (ieq(v,"real")) gClockVirtual=0;
 			else { fprintf(stderr,"--clock takes virtual or real, not %s\n",v); return 2; }
 		}
+		else if (ieq(argv[i],"--cursor")&&i+1<argc) {
+			const char* v=argv[++i];
+			if (ieq(v,"scripted")) gCursorScripted=1; else if (ieq(v,"real")) gCursorScripted=0;
+			else { fprintf(stderr,"--cursor takes scripted or real, not %s\n",v); return 2; }
+		}
 		else if (ieq(argv[i],"--copy-only")) copyOnly=1;
 		else if (ieq(argv[i],"--fresh")) fresh=1;
 		else if (ieq(argv[i],"--stage-root")&&i+1<argc) stageRoot=argv[++i];
@@ -3692,6 +3765,10 @@ int main(int argc, char** argv)
 	if (inSandboxDir) return main_in_sandbox(inSandboxDir, inSession, probe);   // everything else comes from the run folder
 	if (gClockVirtual && ieq(sound,"real")) {
 		fprintf(stderr, "origrun: --clock virtual lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");
+		return 2;
+	}
+	if (gCursorScripted && ieq(sound,"real")) {
+		fprintf(stderr, "origrun: --cursor scripted lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");
 		return 2;
 	}
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");

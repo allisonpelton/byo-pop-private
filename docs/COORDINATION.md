@@ -120,7 +120,13 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   icons are designed). After Twist and before any identical-play pass starts on a game decompiled before Twist (passes
   already running carry on): adding many games' files at once with the game inferred from the folder; a game folder
   dropped on the logo or on a game's tile; bottle-cap placeholder icons; the bottle cap and opener animation; the recycle
-  bin; the managers' tab icons. Ning Po Mahjong's and TipTop's high-score names were fixed (34e6da1, a6547b9). The chat
+  bin; the managers' tab icons. They go from easiest to hardest, and all but the animation start now, beside Twist (the
+user, 2026-11-03: "Tackle the site items now, actually. I decided they won't be too hard to at least do a rough version
+of. Just save the animation for after Twist"): a game folder dropped on its own tile; many games' folders at once, each
+game inferred from its folder, a choice where that is unclear and the rejected folders named; a folder dropped on the
+logo, using that inference; the managers' tab icons; the bottle-cap placeholder icons; the recycle bin, since it takes
+a dragged cap. The bottle cap and opener animation comes after Twist's last merge. Ning Po Mahjong's and TipTop's high-score names
+were fixed (34e6da1, a6547b9). The chat
   is built as a test with made-up messages; its real version waits for funding. What the user asks for while testing is
   still done when asked.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
@@ -130,6 +136,10 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Revenge, the user 2026-10-26) keeps the folder in `.publishignore` but puts the game on the website.
 
 ## Mods
+
+- **A goal for Twist when modding resumes (the user, 2026-11-03):** "a goal for Twist: produce a TAS that scores >5.1
+  million in Blitz mode and save a replay of it that can be recorded and uploaded. This is likely to require a lot of
+  strategizing." It waits, like every mod, until the decompilations are finished.
 
 - **No new mods unless requested (the user, 2026-10-30):** "no new mods for anything unless someone requests it." There
   is no mod phase that goes through a list: the 29 standard mods in `docs/MOD_ROADMAP.md` and each game's listed ideas

@@ -27,7 +27,8 @@
 #                save backup's zip, paths and merge, web/saves.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
-#                web/chat.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
+#                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
+#                web/gameimport.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
 #                landmarks, headings, names, references, live regions and contrast). The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
@@ -275,6 +276,8 @@ classify() {  # <path>: chooses the suites a changed file needs
 			g="${p#games/}"; g="${g%%/*}"; rest="${p#games/$g/}"
 			if [[ "$rest" == docs/* ]]; then NOTHING=$((NOTHING + 1)); return; fi
 			pick build "$AREA" "$p"; pick unit "$AREA" "$p"
+			# a game's page.js: also the listing's import rules (web/gameimport.js), which unit-web's gameimporttest checks
+			if [ "$rest" = web/page.js ]; then pick unit-web "$AREA" "$p"; fi
 			game_suites "$g"
 			for s in $GS; do pick "$s" "$AREA" "$p"; done
 			if [ -f "games/$g/CMakeLists.txt" ]; then  # the game's web targets, and nothing else of the web build
@@ -603,7 +606,7 @@ suite_unit-web() {
 	fi
 	grep -q '^paktest: 0 failed' "$1.pak" || st=1
 	# the page's shared settings and players code (web/settings.js, web/profiles.js), on a fake localStorage
-	local d e f g h
+	local d e f g h i
 	"$NODE" tools/profilestest.js > "$1.pt" 2>&1 || st=1
 	d="$(lastof "$1.pt" 'profilestest:')"
 	# the save backup's zip, paths and merge (web/saves.js)
@@ -612,6 +615,9 @@ suite_unit-web() {
 	# the import of saves from an installed game (web/saveimport.js, and the table platform/saveimport.json it shares with the native games)
 	"$NODE" tools/saveimporttest.js > "$1.si" 2>&1 || st=1
 	g="$(lastof "$1.si" 'saveimporttest:')"
+	# the import rules for a game's files and the sorting of dropped folders into games (web/gameimport.js)
+	"$NODE" tools/gameimporttest.js > "$1.gi" 2>&1 || st=1
+	i="$(lastof "$1.gi" 'gameimporttest:')"
 	# the chat's rules, stored history and local source, and its plain-text rendering (web/chat.js)
 	"$NODE" tools/chattest.js > "$1.ch" 2>&1 || st=1
 	h="$(lastof "$1.ch" 'chattest:')"
@@ -619,8 +625,8 @@ suite_unit-web() {
 	"$NODE" tools/a11ycheck.js --selftest > "$1.a11y" 2>&1 || st=1
 	"$NODE" tools/a11ycheck.js "$web" >> "$1.a11y" 2>&1 || st=1
 	f="$(lastof "$1.a11y" 'a11ycheck:')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.a11y" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.a11y"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $f"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f"
 	return $st
 }
 
