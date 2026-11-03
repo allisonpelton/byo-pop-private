@@ -30,7 +30,9 @@
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
 #                web/gameimport.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
 #                landmarks, headings, names, references, live regions and contrast) and stringstest (tools/stringstest.js: the
-#                site's text, web/strings/en.txt, against the code that uses it, and web/i18n.js's rules). The build folder is build/web;
+#                site's text, web/strings/en.txt, against the code that uses it, and web/i18n.js's rules), playcounttest (the play
+#                counter's Worker and Durable Object, web/counter/playcount.mjs, on stand-ins for Cloudflare's runtime) and
+#                playcountpagetest (its pages' side, web/playcount.js: when it may contact the counter). The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
 #                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
@@ -313,7 +315,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|build.sh|check.sh)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
-				*.js) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
+				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
 				*) pick build "$AREA" "$p" ;;
 			esac ;;
 		framework/*|platform/*|third_party/*|CMakeLists.txt|cmake/*)
@@ -639,8 +641,14 @@ suite_unit-web() {
 	# the site's text (web/strings/en.txt) against the code that uses it, and web/i18n.js's rules
 	"$NODE" tools/stringstest.js > "$1.str" 2>&1 || st=1
 	j="$(lastof "$1.str" 'stringstest:')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j"
+	local k l
+	"$NODE" tools/playcounttest.mjs > "$1.pc" 2>&1 || st=1
+	k="$(lastof "$1.pc" 'playcounttest:')"
+	"$NODE" tools/playcountpagetest.js > "$1.pcp" 2>&1 || st=1
+	l="$(lastof "$1.pcp" 'playcountpagetest:')"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l"
 	return $st
 }
 

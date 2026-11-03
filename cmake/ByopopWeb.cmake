@@ -218,6 +218,13 @@ set(BYOPOP_WEB_TERMS_GATE OFF)
 if(NOT BYOPOP_WEB_TERMS_GATE)
   message(STATUS "byo-pop: the game pages show no terms card (BYOPOP_WEB_TERMS_GATE): do not deploy them")
 endif()
+# The site's play counter (docs/PLAY_COUNTER.md): the address of its Worker's /api, a path on the site's own domain ("/api") or
+# a full https address. Empty, the default, for every local build and test: the pages then never contact anything and the
+# listing shows no counts and no "Most played". A cache option, as each deployed site names its own.
+set(BYOPOP_WEB_COUNTER "" CACHE STRING "The play counter's /api address (docs/PLAY_COUNTER.md), or empty for none")
+if(NOT BYOPOP_WEB_COUNTER STREQUAL "" AND NOT BYOPOP_WEB_COUNTER MATCHES "^(https://[A-Za-z0-9.-]+(:[0-9]+)?)?/[A-Za-z0-9._~/-]*$")
+  message(FATAL_ERROR "BYOPOP_WEB_COUNTER is \"${BYOPOP_WEB_COUNTER}\": not a path (\"/api\") or an https address")
+endif()
 
 # byopop_web_shell(<var> <target> <page folder> TITLE <name> COPYRIGHT <notice> [LICENSES <name>...]): the game's
 # page template: web/shell.html with the game's page.js, page.css and page.html (from <page folder>) at its
@@ -392,6 +399,21 @@ function(byopop_web_strings_js)
     "// The site's text (web/strings/en.txt) and web/i18n.js, written by byopop_web_strings_js() (cmake/ByopopWeb.cmake)\nvar BYOPOP_STRINGS = {\n${rows}};\n${runtime}")
 endfunction()
 
+# playcount.js, the pages' side of the play counter (web/playcount.js, docs/PLAY_COUNTER.md), with the counter's address
+# (BYOPOP_WEB_COUNTER; empty: off) in place of its marker. Loaded by the listing page and every game page.
+function(byopop_web_counter_js)
+  get_property(written GLOBAL PROPERTY BYOPOP_COUNTER_JS_WRITTEN)
+  if(written)
+    return()
+  endif()
+  set_property(GLOBAL PROPERTY BYOPOP_COUNTER_JS_WRITTEN ON)
+  get_filename_component(source "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../web/playcount.js" ABSOLUTE)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${source})
+  file(READ ${source} text)
+  string(REPLACE "\"@BYOPOP_COUNTER@\"" "\"${BYOPOP_WEB_COUNTER}\"" text "${text}")
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/playcount.js "${text}")
+endfunction()
+
 # The game's badge (BYOPOP_WEB_BADGES): its initials and colour into <initials_var> and <colour_var>. A game without a row
 # gets the first letters of its TITLE's words, without "Deluxe", and the accent colour.
 function(byopop_web_badge target title initials_var colour_var)
@@ -535,6 +557,7 @@ function(byopop_web_shell var target pagedir)
     configure_file(${web}/${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
   byopop_web_strings_js()
+  byopop_web_counter_js()
 
   set(copyright_page ${target}-copyright.html)
   file(READ ${web}/copyright.html text)
@@ -694,6 +717,7 @@ function(byopop_web_index)
   endif()
   set(tiles "")
   set(chat_games "")
+  set(counter_games "")
   set(chat_separator "")
   set(import_games "")
   set(count 0)
@@ -816,6 +840,7 @@ function(byopop_web_index)
     # the chat's table: one entry for each finished game on the listing page, in the tiles' order (the game's id is the page's
     # PAGE.id); a game still to come has no page to send from
     if(NOT soon)
+      list(APPEND counter_games "${game_id}")
       string(APPEND chat_games "${chat_separator}  {\"id\": \"${game_id}\", \"page\": \"${target}.html\", \"tag\": \"${chat_initials}\", "
         "\"title\": \"${chat_title}\", \"colour\": \"${colour}\"}")
       set(chat_separator ",\n")
@@ -915,6 +940,7 @@ function(byopop_web_index)
     configure_file(${BYOPOP_WEB_BRAND_DIR}/../${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
   byopop_web_strings_js()
+  byopop_web_counter_js()
   # the table of what is imported from an installed game (platform/saveimport.json, docs/WEB_PLAYER.md, "Importing saves from an
   # installed game"): the native games compile the same file in (framework/CMakeLists.txt)
   get_filename_component(saveimport_json "${BYOPOP_WEB_BRAND_DIR}/../../platform/saveimport.json" ABSOLUTE)
@@ -925,6 +951,17 @@ function(byopop_web_index)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")
+  # the play counter, ready to deploy from its own folder beside the pages' (docs/PLAY_COUNTER.md, "Deploying it"): its Worker and
+  # a wrangler.toml with the same games' ids, which the Worker checks a play's game against. Written by every build; it does
+  # nothing until someone deploys it.
+  list(JOIN counter_games "," counter_games)
+  get_filename_component(counter_dir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../counter" ABSOLUTE)
+  get_filename_component(counter_source "${BYOPOP_WEB_BRAND_DIR}/../counter" ABSOLUTE)
+  configure_file(${counter_source}/playcount.mjs ${counter_dir}/playcount.mjs COPYONLY)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${counter_source}/wrangler.toml.in)
+  file(READ ${counter_source}/wrangler.toml.in counter_toml)
+  string(REPLACE "@BYOPOP_COUNTER_GAMES@" "${counter_games}" counter_toml "${counter_toml}")
+  byopop_write_if_changed(${counter_dir}/wrangler.toml "${counter_toml}")
   # the listed games' import rules, for the listing page's adding of games (web/gameimport.js), loaded after it
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/import-games.js
     "// The listed games' page.js files, for web/gameimport.js (written by byopop_web_index(), cmake/ByopopWeb.cmake)\n${import_games}")

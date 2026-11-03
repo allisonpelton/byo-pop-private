@@ -38,11 +38,14 @@ index.sort.name = Name
 index.sort.release = Release date
 index.sort.time = Play time
 index.sort.plays = Plays
+# by every player's plays, from the site's play counter (docs/PLAY_COUNTER.md); shown only when the site has one
+index.sort.popular = Most played
 # Read out after the player picks a way to sort
 index.sort.said_name = Sorted by name
 index.sort.said_release = Sorted by release date
 index.sort.said_time = Sorted by play time
 index.sort.said_plays = Sorted by plays
+index.sort.said_popular = Sorted by most played
 index.unsold = Show games no longer sold
 index.add.button = Add games
 index.bin.label = Forget a game's files
@@ -77,6 +80,10 @@ index.tile.label_year = {name}, {year}, {state}
 # How much a game was played here: {n} plays, {time} like "2 h 15 min"
 index.played = {n} play · {time} | {n} plays · {time}
 index.played_last = Last played {date}
+# every player's counts under a game's name, from the site's play counter: "2 playing now · 1234 plays"
+index.counts.plays = {n} play | {n} plays
+index.counts.live = {n} playing now
+index.counts.both = {live} · {plays}
 index.played_today = today
 
 # The "?" on a game that was played here before but has no files now

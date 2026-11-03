@@ -350,6 +350,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <script src="capanim.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
+<script src="playcount.js"></script>
 <script>
 (function () {
   "use strict";
@@ -481,6 +482,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       exited = true;
       playClock();
       releaseWake();
+      try { ByopopCounter.stop(); } catch (e) {}
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
       if (session) session.markFinished();
       var restart = !!(info && info.restart), then = afterExit;
@@ -530,6 +532,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     exited = true;
     playClock();
     releaseWake();
+    try { ByopopCounter.stop(); } catch (e) {}
     afterExit = null;
     try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
     if (panel) panel.dead = true;
@@ -1573,10 +1576,17 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // Time counts while the game runs and its page is shown and has the focus (the user, 2026-11-02: "Only count time with the game
   // open and active"): checked every second and at each change, a step of at most 5 s, so that a computer that slept adds nothing.
   // It is written every 30 s and when the count stops, in whole seconds (the rest waits for the next), and when the page goes away.
-  var playSince = null, playMs = 0;
+  // The same clock tells the site's play counter (web/playcount.js) that the game is really playing, after 30 s of it in this
+  // page: a page left on its loading screen or its Ready card is not counted.
+  var playSince = null, playMs = 0, playedHere = 0;
   function playClock() {
     var now = performance.now(), on = gameRunning() && !document.hidden && document.hasFocus() && !hiddenPaused;
-    if (playSince !== null) playMs += Math.min(now - playSince, 5000);
+    if (playSince !== null) {
+      var step = Math.min(now - playSince, 5000);
+      playMs += step;
+      playedHere += step;
+      if (playedHere >= 30000) { try { ByopopCounter.playing(PAGE.id); } catch (e) {} }
+    }
     playSince = on ? now : null;
     if (playMs >= 30000 || (!on && playMs >= 1000)) playSave(false);
   }
