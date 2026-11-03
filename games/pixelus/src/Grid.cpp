@@ -7,6 +7,8 @@
 
 using namespace Sexy;
 
+int (*Grid::sRandom)() = NULL;
+
 // 0x425d40: an empty grid of the given size
 Grid::Grid(int theRows, int theCols)
 {
@@ -14,6 +16,8 @@ Grid::Grid(int theRows, int theCols)
 	mCols = theCols;
 	mDifficulty = 0;
 	Clear();
+	mClock = 0;
+	mWaveTime = Random() % 1000 + 500 + mClock;
 }
 
 // 0x4256b0
@@ -115,7 +119,7 @@ GridObject* Grid::NewObject(int theRow, int theCol)
 	anObject->mX = theCol * CELL_SIZE;
 	anObject->mY = theRow * CELL_SIZE;
 	anObject->mDir = 0;
-	anObject->mVariant = 0;		// the Board picks it (CrtRand)
+	anObject->mVariant = Random() % 5;	// 0x42eee0 draws it for every tile made, in a puzzle's file too
 	anObject->mDead = false;
 	anObject->mBounce = false;
 	anObject->mTrailLen = 0;
@@ -255,6 +259,7 @@ void Grid::Complete()
 // then the picture is swept in, 3 cells an update; the shimmer goes on its own way
 void Grid::UpdateFinish()
 {
+	mClock++;
 	if (mDone && !mTileMoving)
 	{
 		if (mGlow <= -1.5)
@@ -280,6 +285,16 @@ void Grid::UpdateFinish()
 		mWave += 0.6;
 		if (mWave > 60.0)
 			mWaveOn = false;
+	}
+	// the shimmer comes by itself every 2 to 4 seconds
+	if (mWaveTime < mClock)
+	{
+		mWaveTime = Random() % 0x7d1 + 0x7d1 + mClock;
+		if (!mWaveOn)
+		{
+			mWaveOn = true;
+			mWave = -25.0;
+		}
 	}
 }
 

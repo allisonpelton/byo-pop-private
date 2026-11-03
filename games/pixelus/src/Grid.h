@@ -57,6 +57,11 @@ struct GridObject
 class Grid
 {
 public:
+	// the game's random numbers (the original's global generator); the game sets it, a test that uses the rules alone
+	// leaves it, and the tiles' pictures and the wave timer come out as 0
+	static int		(*sRandom)();
+	static int		Random() { return sRandom != NULL ? sRandom() : 0; }
+
 	enum { MAX_SIZE = 32, CELL_SIZE = 20 };
 	enum { SIDE_UP = 0, SIDE_RIGHT = 1, SIDE_DOWN = 2, SIDE_LEFT = 3 };
 
@@ -103,6 +108,8 @@ public:
 	int			mReveal;			// +0xb100 cells still to show as the picture: rows * cols, down by 3 an update
 	bool		mGlowDone;			// +0xb110 the sweep is over
 	bool		mWaveOn;			// +0xf the shimmer runs
+	int			mClock;				// +0xb188 updates since the grid was made (0x424b30)
+	int			mWaveTime;			// +0x18 the clock's reading when the shimmer comes again
 	double		mWave;				// +0x10 where the shimmer is, in diagonals: -25 up to 60 by 0.6 an update
 
 	bool		mCanPlace;			// +0xb069 a thrown tile would stay

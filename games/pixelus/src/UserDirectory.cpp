@@ -20,7 +20,7 @@ UserProfile::UserProfile(PixelusApp* theApp)
 	mApp = theApp;
 	mId = 0;
 	mCurrent = false;
-	mFlag2D = false;
+	mFlag2D = true;
 	mFlag38 = false;
 	memset(mFlags, 0, sizeof(mFlags));
 	mFlag79 = false;

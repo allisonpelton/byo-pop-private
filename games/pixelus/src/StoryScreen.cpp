@@ -1,4 +1,5 @@
 #include "StoryScreen.h"
+#include "Character.h"
 #include "PixelusApp.h"
 #include "Temples.h"
 #include "GameDialog.h"
@@ -54,6 +55,8 @@ StoryScreen::StoryScreen(PixelusApp* theApp, bool theFromMenu, int theFrom, int 
 StoryScreen::~StoryScreen()
 {
 	delete mContinueButton;
+	for (size_t i = 0; i < mSpeeches.size(); i++)
+		delete mSpeeches[i].mCharacter;
 }
 
 // 0x42db50: the script. A line ending in a colon starts a speech, the lines after it are what is said; the first
@@ -94,6 +97,7 @@ void StoryScreen::Load(const std::string& theName)
 			aSpeech.mSpeaker = aSpeaker;
 			aSpeech.mY = aY;
 			aSpeech.mStart = aStart;
+			aSpeech.mCharacter = new Character(mApp, aSpeaker, NULL, 2);
 			mSpeeches.push_back(aSpeech);
 			aStart += SPEECH_GAP;
 			aY += SPEECH_SPACING;
@@ -134,6 +138,10 @@ void StoryScreen::Update()
 	if (mMusicDelay > 0 && --mMusicDelay == 0)
 		StartMusic(mApp, MUSIC_PIXELUS_STORY_SCREEN_LOOP_V01, true);
 	mTime += 0.01;
+	// 0x42c9a0
+	for (size_t i = 0; i < mSpeeches.size(); i++)
+		if (mSpeeches[i].mStart + 0.5 < mTime)
+			mSpeeches[i].mCharacter->Update(NULL);
 	MarkDirty();
 }
 

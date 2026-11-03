@@ -183,7 +183,7 @@ SS_BONUS="game 1 over at update 2746: score 680 level 14 moves 20"
 SS_LATE="game 1 over at update 1852: score 140 level 21 moves 13"
 PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
 PX_START="done: 25 puzzles"
-PX_FULL="done: no temple left, 210 puzzles, log 2edb2003"
+PX_FULL="done: no temple left, 210 puzzles, log 357cb9be"
 MM_CLASSIC="game over: score 1500, list 1500 1000 900 800 700, the bot is number 1"
 MM_TIPS="game over: score 1730, list 1730 1000 900 800 700, the bot is number 1"
 MM_FULL="victory: score 251975, caught 0 times"
@@ -933,6 +933,11 @@ pixelus_game() {  # <name> <puzzles>: a bot game of that many puzzles (at most);
 	grep -E '^(done|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
+pixelus_state_game() {  # <name> <exe> <bot seed> <game seed>: three puzzles played by mouse; its state log is <name>/state.txt
+	local d="$OUT/pixelus/$1"; rm -rf "$d"; mkdir -p "$d"
+	timeout 600 "$2" -userdir="$W/$d/user" -fast -seed="$4" -autoplay="$3" -autoplayui -autoplayskip -autoplaypuzzles=3 -autoplaycap=200000 \n		-autoplaylog="$d/log.txt" -statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_pixelus() {
 	local st=0 g t a r f n h d="$OUT/pixelus"
 	need_assets pixelus || return 1
@@ -957,6 +962,18 @@ suite_pixelus() {
 	[ "$a" = "$PX_START" ] || st=1
 	[ "$f" = "$PX_FULL" ] || [ "${CHECK_QUICK:-0}" = 1 ] || st=1
 	if diff -rq "$d/start/shots" "$d/start2/shots" >> "$1" 2>&1 && diff -q "$d/start/log.txt" "$d/start2/log.txt" >> "$1" 2>&1; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-pixelus/, the port when the first phase of its identical-play pass was done): the
+	# same mouse-played games must give the same state at every update (the values the pass compared with the original)
+	local base="$W/build/baseline-pixelus/pixelus.exe" bl="" k bs gs
+	if [ -f "$base" ]; then
+		for k in "1 1" "2 7"; do
+			read -r bs gs <<< "$k"
+			pixelus_state_game "cur-$gs" "$W/build/native/pixelus.exe" "$bs" "$gs"
+			pixelus_state_game "base-$gs" "$base" "$bs" "$gs"
+			[ -s "$d/cur-$gs/state.txt" ] && [ -s "$d/base-$gs/state.txt" ] && cmp -s "$d/cur-$gs/state.txt" "$d/base-$gs/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && r="$r; baseline identical" || { r="$r; BASELINE DIFFERS"; st=1; }
+	fi
 	SUMMARY="${g#gridtest: }; $t; start ${a#done: }; $r; full ${f#done: }"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected grid '$PX_GRID', start '$PX_START', full '$PX_FULL')"
 	return $st

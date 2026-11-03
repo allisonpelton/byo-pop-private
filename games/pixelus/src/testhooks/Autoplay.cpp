@@ -11,8 +11,16 @@
 //   -autoplaycap=N           quit after N updates in any case
 //   -autoplaylog=<file>      the log
 //   -autoplayshots=<prefix>  screenshots of each screen the bot comes to
+//   -autoplayskip            with -autoplayui: press the tutorial's skip button first
+//   -autoplayui              the bot presses with mouse clicks and typed characters (script commands, as a -script run
+//                            gives them) instead of calling the handlers
+//   -autoplayscript=<file>   with -autoplayui: what it did as -script lines (origrun replays them in the original)
+//   -statelog=<file>         (any run) each change of the screens' and the puzzle's values with its update count: StateLog
 
 #include "PixelusApp.h"
+#include "StateLog.h"
+#include "Compat2004.h"
+#include "HelpScreen.h"
 #include "Board.h"
 #include "IslandMap.h"
 #include "TempleScreen.h"
@@ -28,6 +36,11 @@
 #include "Grid.h"
 #include "Graphics.h"
 #include "WidgetManager.h"
+#include "HyperlinkWidget.h"
+#include "EditWidget.h"
+#include "Checkbox.h"
+#include "DialogButton.h"
+#include "TileMaster.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -43,6 +56,8 @@ namespace Sexy
 
 struct AutoplayState
 {
+	FILE*			mScript;			// -autoplayscript
+	int				mNewUserSeen;
 	unsigned int	mSeed;
 	int				mTick;
 	int				mWait;				// updates to wait before the next action
@@ -54,7 +69,7 @@ struct AutoplayState
 	unsigned int	mScreens;			// bit per kind of screen: its screenshot was taken
 	FILE*			mLog;
 
-	AutoplayState() : mSeed(1), mTick(0), mWait(0), mSolved(0), mMoveIndex(-1), mScreenTicks(0), mScreens(0), mLog(NULL) {}
+	AutoplayState() : mScript(NULL), mNewUserSeen(0), mSeed(1), mTick(0), mWait(0), mSolved(0), mMoveIndex(-1), mScreenTicks(0), mScreens(0), mLog(NULL) {}
 };
 
 }
@@ -78,6 +93,14 @@ void PixelusApp::HandleCmdLineParam(const std::string& theParamName, const std::
 		mAutoplayShots = theParamValue;
 	else if (theParamName == "-autoplayshow")
 		mAutoplayShow = theParamValue;
+	else if (theParamName == "-autoplayui")
+		mAutoplayUI = true;
+	else if (theParamName == "-autoplayskip")
+		mAutoplaySkip = true;
+	else if (theParamName == "-autoplayscript")
+		mAutoplayScript = theParamValue;
+	else if (theParamName == "-statelog")
+		mStateLogFileName = theParamValue;
 	else
 		NcApp::HandleCmdLineParam(theParamName, theParamValue);
 }
@@ -111,7 +134,7 @@ enum { SHOT_MENU, SHOT_ISLAND, SHOT_TEMPLE, SHOT_BOARD, SHOT_BOARD_END, SHOT_COM
 // the first temple that is open and has a puzzle without a result; -1 when there is none
 int FindTemple(PixelusApp* theApp, UserProfile* theUser)
 {
-	for (int i = 0; i < NUM_TEMPLES; i++)
+	for (int i = theApp->mAutoplaySkip ? 1 : 0; i < NUM_TEMPLES; i++)
 	{
 		if (IsTempleLocked(theApp, i) || !IsTempleOpen(theApp, i))
 			continue;
@@ -133,6 +156,158 @@ int FindPuzzle(PixelusApp* theApp, UserProfile* theUser, const std::string& theT
 	return -1;
 }
 
+// the bot's input as -script commands: run by the next update, and written to -autoplayscript for the original
+void Script(PixelusApp* theApp, AutoplayState* s, const char* theCommand, const char* theArgs, const char* theNote = "")
+{
+	theApp->AddScriptCommand(theApp->mUpdateCount + 1, theCommand, theArgs);
+	if (s->mScript != NULL)
+	{
+		fprintf(s->mScript, "%d %s %s%s\n", theApp->mUpdateCount + 1, theCommand, theArgs, theNote);
+		fflush(s->mScript);
+	}
+}
+
+void ClickAt(PixelusApp* theApp, AutoplayState* s, int x, int y, const char* theNote = "")
+{
+	char anArgs[32];
+	snprintf(anArgs, sizeof(anArgs), "%d %d", x, y);
+	Script(theApp, s, "click", anArgs, theNote);
+}
+
+void ClickWidget(PixelusApp* theApp, AutoplayState* s, Widget* theWidget)
+{
+	// the note tells tools/identical/toorig.py that a button is clicked, which the original wants hovered a little earlier
+	ClickAt(theApp, s, theWidget->mX + theWidget->mWidth / 2, theWidget->mY + theWidget->mHeight / 2, " #button");
+}
+
+// the side a click on a cell would use, with the tile maker facing thePreferred (Board::MouseDown picks it from the cell)
+int ClickSide(const Grid* g, int r, int c, int thePreferred, int* theCursor)
+{
+	return g->HasObject(r, c) ? g->FindPullSide(r, c, thePreferred, theCursor) : g->FindThrowSide(r, c, thePreferred, theCursor);
+}
+
+// the pixels of a cell where a click makes the move: a throw into an empty cell or a pull of the tile in one, from the side
+// and the place along it that the solution says. A click uses the side the tile maker faces if the cell allows it, so the
+// bot first moves the mouse over a cell that turns the tile maker to the side it needs (the way a player aims)
+bool FindCell(Board* theBoard, const Grid::Move& theMove, int* theHoverX, int* theHoverY, int* theX, int* theY)
+{
+	const Grid* g = theBoard->mGrid;
+	int aSide = theBoard->mTileMaster->GetSide();
+	*theHoverX = *theHoverY = -1;
+	for (int aTry = 0; aTry < 5; aTry++)
+	{
+		int aPreferred = aTry == 0 ? aSide : aTry - 1;
+		if (aTry > 0 && aPreferred == aSide)
+			continue;
+		for (int r = 0; r < g->mRows; r++)
+			for (int c = 0; c < g->mCols; c++)
+			{
+				if (g->HasObject(r, c) != theMove.mRemove)
+					continue;
+				int aCursor = 0;
+				if (ClickSide(g, r, c, aPreferred, &aCursor) != theMove.mSide || aCursor != theMove.mCursor)
+					continue;
+				if (aPreferred != aSide)
+				{
+					// a cell the mouse can pass over to turn the tile maker to aPreferred
+					bool aHover = false;
+					for (int r2 = 0; r2 < g->mRows && !aHover; r2++)
+						for (int c2 = 0; c2 < g->mCols && !aHover; c2++)
+						{
+							int aCursor2 = 0;
+							if (ClickSide(g, r2, c2, aSide, &aCursor2) == aPreferred)
+							{
+								*theHoverX = Board::GRID_X + c2 * Grid::CELL_SIZE + Grid::CELL_SIZE / 2;
+								*theHoverY = Board::GRID_Y + r2 * Grid::CELL_SIZE + Grid::CELL_SIZE / 2;
+								aHover = true;
+							}
+						}
+					if (!aHover)
+						continue;
+				}
+				*theX = Board::GRID_X + c * Grid::CELL_SIZE + Grid::CELL_SIZE / 2;
+				*theY = Board::GRID_Y + r * Grid::CELL_SIZE + Grid::CELL_SIZE / 2;
+				return true;
+			}
+	}
+	return false;
+}
+
+}
+
+StateLog::StateLog(PixelusApp* theApp)
+{
+	mApp = theApp;
+	mFile = fopen(theApp->mStateLogFileName.c_str(), "w");
+	for (int i = 0; i < NUM_FIELDS; i++)
+		mLast[i] = -999999;
+}
+
+StateLog::~StateLog()
+{
+	if (mFile != NULL)
+		fclose(mFile);
+}
+
+void StateLog::Update()
+{
+	if (mFile == NULL)
+		return;
+
+	static const char* const aNames[NUM_FIELDS] = {"load", "menu", "story", "island", "temple", "board", "completed", "help",
+		"moves", "time", "done", "supply", "cursor", "side", "empty", "stray", "reveal", "moving", "objects",
+		"o0x", "o0y", "o0state", "o1x", "o1y", "o1state", "o2x", "o2y", "o2state", "o2variant", "wanted", "rand", "o0variant", "o1variant", "o3variant", "apprand"};
+	int aValues[NUM_FIELDS];
+	for (int i = 0; i < NUM_FIELDS; i++)
+		aValues[i] = -1000000;  // "-": no board or no such tile
+	aValues[0] = mApp->mLoadingScreen != NULL;
+	aValues[1] = mApp->mMainMenu != NULL;
+	aValues[2] = mApp->mStoryScreen != NULL;
+	aValues[3] = mApp->mIslandMap != NULL;
+	aValues[4] = mApp->mTempleScreen != NULL;
+	aValues[5] = mApp->mBoard != NULL;
+	aValues[6] = mApp->mPuzzleCompleted != NULL;
+	aValues[7] = mApp->mHelpScreen != NULL;
+	if (mApp->mBoard != NULL)
+	{
+		const Grid* g = mApp->mBoard->mGrid;
+		aValues[8] = g->mMoveCount;
+		aValues[9] = g->mTime;
+		aValues[10] = g->mDone ? 1 : 0;
+		aValues[11] = g->mSupply;
+		aValues[12] = g->mCursor;
+		aValues[13] = g->mSide;
+		aValues[14] = g->mEmptyWanted;
+		aValues[15] = g->mStrayTiles;
+		aValues[16] = g->mReveal;
+		aValues[17] = g->mTileMoving ? 1 : 0;
+		aValues[18] = (int) g->mObjects.size();
+		for (int i = 0; i < 3 && i < (int) g->mObjects.size(); i++)
+		{
+			aValues[19 + i * 3] = g->mObjects[i]->mX;
+			aValues[20 + i * 3] = g->mObjects[i]->mY;
+			aValues[21 + i * 3] = g->mObjects[i]->mState;
+		}
+		if (g->mObjects.size() > 2)
+			aValues[28] = g->mObjects[2]->mVariant;
+		for (int i = 0; i < 4 && i < (int) g->mObjects.size(); i++)
+			if (i != 2)
+				aValues[i == 3 ? 33 : 31 + i] = g->mObjects[i]->mVariant;
+		aValues[29] = g->mWantedCells;
+	}
+	aValues[30] = (int) mApp->mRandDraws;
+	aValues[34] = (int) mApp->mAppRandDraws;
+	for (int i = 0; i < 35; i++)
+	{
+		if (aValues[i] == mLast[i])
+			continue;
+		mLast[i] = aValues[i];
+		if (aValues[i] == -1000000)
+			fprintf(mFile, "%d %s -\n", mApp->mUpdateCount, aNames[i]);
+		else
+			fprintf(mFile, "%d %s %d\n", mApp->mUpdateCount, aNames[i], aValues[i]);
+	}
+	fflush(mFile);
 }
 
 // the bot, once per update
@@ -143,6 +318,8 @@ void PixelusApp::AutoplayUpdate()
 		return;
 	if (s->mLog == NULL && !mAutoplayLog.empty())
 		s->mLog = fopen(mAutoplayLog.c_str(), "w");
+	if (s->mScript == NULL && !mAutoplayScript.empty())
+		s->mScript = fopen(mAutoplayScript.c_str(), "w");
 	s->mTick++;
 	if (s->mTick >= mAutoplayCap)
 	{
@@ -161,7 +338,10 @@ void PixelusApp::AutoplayUpdate()
 		if (mLoadingScreen->mLoadDone && ++s->mScreenTicks > 150)
 		{
 			s->mScreenTicks = 0;
-			PlayClicked();
+			if (mAutoplayUI)
+				ClickWidget(this, s, (Widget*) mLoadingScreen->mPlayLink);
+			else
+				PlayClicked();
 			s->mWait = 20;
 		}
 		return;
@@ -170,8 +350,28 @@ void PixelusApp::AutoplayUpdate()
 	// the dialogs: the one for a new player gets a name, the others their first button
 	if (GetDialog(0x13) != NULL)
 	{
-		((NewUserDialog*) GetDialog(0x13))->SetName("Bot");
-		ButtonDepress(2019);
+		if (s->mNewUserSeen == 0)
+		{
+			NewUserDialog* aDialog = (NewUserDialog*) GetDialog(0x13);
+			Log(s, "new player dialog %d,%d %dx%d edit %d,%d %dx%d box %d,%d %dx%d yes %d,%d %dx%d no %d,%d %dx%d", aDialog->mX, aDialog->mY,
+				aDialog->mWidth, aDialog->mHeight, aDialog->mEdit->mX, aDialog->mEdit->mY, aDialog->mEdit->mWidth, aDialog->mEdit->mHeight,
+				aDialog->mExpertBox->mX, aDialog->mExpertBox->mY, aDialog->mExpertBox->mWidth, aDialog->mExpertBox->mHeight,
+				aDialog->mYesButton->mX, aDialog->mYesButton->mY, aDialog->mYesButton->mWidth, aDialog->mYesButton->mHeight,
+				aDialog->mNoButton->mX, aDialog->mNoButton->mY, aDialog->mNoButton->mWidth, aDialog->mNoButton->mHeight);
+			s->mNewUserSeen = 1;
+		}
+		if (mAutoplayUI)
+		{
+			Script(this, s, "char", "B");
+			Script(this, s, "char", "o");
+			Script(this, s, "char", "t");
+			ClickWidget(this, s, ((NewUserDialog*) GetDialog(0x13))->mYesButton);
+		}
+		else
+		{
+			((NewUserDialog*) GetDialog(0x13))->SetName("Bot");
+			ButtonDepress(2019);
+		}
 		s->mWait = 10;
 		return;
 	}
@@ -180,7 +380,10 @@ void PixelusApp::AutoplayUpdate()
 		for (int anId = 0; anId < 64; anId++)
 			if (GetDialog(anId) != NULL)
 			{
-				ButtonDepress(2000 + anId);
+				if (mAutoplayUI)
+					ClickWidget(this, s, GetDialog(anId)->mYesButton);
+				else
+					ButtonDepress(2000 + anId);
 				break;
 			}
 		s->mWait = 10;
@@ -224,7 +427,24 @@ void PixelusApp::AutoplayUpdate()
 		Shot(this, s, SHOT_MENU, "menu");
 		Log(s, "play");
 		s->mScreenTicks = 0;
-		PlayGame();
+		if (mAutoplayUI)
+			ClickWidget(this, s, (Widget*) mMainMenu->mPlayButton);
+		else
+			PlayGame();
+		s->mWait = 20;
+		return;
+	}
+	if (mHelpScreen != NULL)
+	{
+		// the "how to play" screen a new player sees before every puzzle: leave it with its button
+		if (++s->mScreenTicks < 100)
+			return;
+		s->mScreenTicks = 0;
+		Log(s, "help screen");
+		if (mAutoplayUI)
+			ClickWidget(this, s, (Widget*) mHelpScreen->mOKButton);
+		else
+			mHelpScreen->ButtonDepress(HelpScreen::ID_OK);
 		s->mWait = 20;
 		return;
 	}
@@ -242,7 +462,10 @@ void PixelusApp::AutoplayUpdate()
 			return;
 		s->mScreenTicks = 0;
 		Log(s, "story with %d speeches", (int) mStoryScreen->mSpeeches.size());
-		mStoryScreen->ButtonDepress(StoryScreen::ID_CONTINUE);
+		if (mAutoplayUI)
+			ClickWidget(this, s, (Widget*) mStoryScreen->mContinueButton);
+		else
+			mStoryScreen->ButtonDepress(StoryScreen::ID_CONTINUE);
 		s->mWait = 20;
 		return;
 	}
@@ -263,7 +486,10 @@ void PixelusApp::AutoplayUpdate()
 		Log(s, "completed %s moves %d time %d record %d maxed %d opened %d temple %d tutorial %d", s->mUuid.c_str(),
 			mPuzzleCompleted->mMoves, mPuzzleCompleted->mTime, mPuzzleCompleted->mWorldRecord, mPuzzleCompleted->mWasMaxed,
 			mPuzzleCompleted->mOpenedTemple, mPuzzleCompleted->mTempleDone, mPuzzleCompleted->mTutorialDone);
-		mPuzzleCompleted->ButtonDepress(PuzzleCompletedScreen::ID_CONTINUE);
+		if (mAutoplayUI)
+			ClickWidget(this, s, (Widget*) mPuzzleCompleted->mContinueButton);
+		else
+			mPuzzleCompleted->ButtonDepress(PuzzleCompletedScreen::ID_CONTINUE);
 		s->mMoveIndex = -1;
 		s->mWait = 20;
 		return;
@@ -317,11 +543,27 @@ void PixelusApp::AutoplayUpdate()
 			return;
 		}
 		const Grid::Move& aMove = s->mSolution[s->mMoveIndex++];
-		b->Aim(aMove.mSide, aMove.mCursor);
-		if (aMove.mRemove)
-			b->DoPull();
+		int aClickX, aClickY, aHoverX, aHoverY;
+		if (mAutoplayUI && FindCell(b, aMove, &aHoverX, &aHoverY, &aClickX, &aClickY))
+		{
+			if (aHoverX >= 0)
+			{
+				char anArgs[32];
+				snprintf(anArgs, sizeof(anArgs), "%d %d", aHoverX, aHoverY);
+				Script(this, s, "move", anArgs);
+			}
+			ClickAt(this, s, aClickX, aClickY);
+		}
 		else
-			b->DoThrow();
+		{
+			if (mAutoplayUI)
+				Log(s, "no cell makes move %d (side %d cursor %d remove %d kind %d; the tile maker faces %d)", s->mMoveIndex - 1, aMove.mSide, aMove.mCursor, aMove.mRemove, aMove.mKind, b->mTileMaster->GetSide());
+			b->Aim(aMove.mSide, aMove.mCursor);
+			if (aMove.mRemove)
+				b->DoPull();
+			else
+				b->DoThrow();
+		}
 		if (!b->mTutorial && s->mMoveIndex == 3)
 			Shot(this, s, SHOT_PLAY, "play");
 		if (s->mMoveIndex == (int) s->mSolution.size() - 1)
@@ -342,17 +584,50 @@ void PixelusApp::AutoplayUpdate()
 			Shutdown();
 			return;
 		}
+		if (mAutoplaySkip && mTempleScreen->mTemple == 0 && mTempleScreen->mSkipButton->mVisible)
+		{
+			Log(s, "skip the tutorial");
+			ClickWidget(this, s, (Widget*) mTempleScreen->mSkipButton);
+			s->mWait = 60;
+			return;
+		}
 		int aPuzzle = FindPuzzle(this, aUser, mLevelData->mCurrentLevel);
 		if (aPuzzle < 0)
 		{
 			Log(s, "temple %s done", mLevelData->mCurrentLevel.c_str());
-			BackToIsland();
+			if (mAutoplayUI)
+				ClickWidget(this, s, (Widget*) mTempleScreen->mBackButton);
+			else
+				BackToIsland();
 			s->mWait = 20;
 			return;
 		}
-		mLevelData->mCurrentPuzzle = aPuzzle;
 		s->mMoveIndex = -1;
-		StartPuzzle(true);
+		if (mAutoplayUI)
+		{
+			// the thumbnail of the puzzle: the first pixel the screen's hit test gives that puzzle for
+			int aX = -1, aY = -1;
+			for (int y = 0; y < 480 && aX < 0; y += 4)
+				for (int x = 0; x < 640; x += 4)
+					if (mTempleScreen->HitTest(x, y) == aPuzzle)
+					{
+						aX = x;
+						aY = y;
+						break;
+					}
+			if (aX < 0)
+			{
+				Log(s, "no thumbnail for puzzle %d", aPuzzle);
+				Shutdown();
+				return;
+			}
+			ClickAt(this, s, aX, aY);
+		}
+		else
+		{
+			mLevelData->mCurrentPuzzle = aPuzzle;
+			StartPuzzle(true);
+		}
 		s->mWait = 20;
 		return;
 	}
@@ -369,7 +644,7 @@ void PixelusApp::AutoplayUpdate()
 			Shutdown();
 			return;
 		}
-		int aTemple = FindTemple(this, aUser);
+		int aTemple = (mAutoplaySkip && !aUser->mFlag79) ? 0 : FindTemple(this, aUser);
 		if (aTemple < 0)
 		{
 			Log(s, "done: no temple left");
@@ -377,7 +652,10 @@ void PixelusApp::AutoplayUpdate()
 			return;
 		}
 		Log(s, "temple %s", gTemples[aTemple].mName);
-		EnterTemple(aTemple);
+		if (mAutoplayUI)
+			ClickWidget(this, s, (Widget*) mIslandMap->mHotspots[aTemple]);
+		else
+			EnterTemple(aTemple);
 		s->mWait = 20;
 		return;
 	}

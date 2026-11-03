@@ -25,6 +25,7 @@ class Graphics;
 class DialogButton;
 class MemoryImage;
 class Dialog;
+class Character;
 
 // 0x42e110 / 0x42e1f0: the temple's god, a body with a head and arms that sway
 class GodFigure
@@ -32,15 +33,14 @@ class GodFigure
 public:
 	PixelusApp*		mApp;
 	int				mGod;			// +0x20 0 the cyclops of the tutorial, then the temples' gods in order
-	int				mTicks;			// +0x4
-	int				mExpression;	// +0x30 the head shown, one of four
-	int				mExpressionTicks;	// updates until the face goes back to neutral
+	Character*		mCharacter;		// the moods (0x42e110)
 
 public:
-	GodFigure(PixelusApp* theApp, int theGod);
-	void			Update();
+	GodFigure(PixelusApp* theApp, int theGod, Widget* theOwner);
+	~GodFigure();
+	void			Update(Widget* theOwner);
 	void			Draw(Graphics* g);
-	void			Poke();			// 0x42de40: a click on the god makes a face
+	void			Poke();			// 0x42de40: a click on the god hurries its bubble
 };
 
 class TempleScreen : public Widget, public ButtonListener
