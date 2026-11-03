@@ -172,7 +172,7 @@ if(NOT EMSCRIPTEN)
 endif()
 
 # GPU test (tools/gputest): the GL GPUInterface's Direct3D 9 conventions on the real GPU, one test each, exact pixels.
-# Native only; it opens a hidden GL window, so tools/check.sh unit runs it under rundesk.
+# Native only; it opens a hidden GL window, so tools/check.sh gpu runs it under rundesk.
 if(NOT EMSCRIPTEN)
   option(BUILD_GPUTEST "Build the GPU test" ON)
   if(BUILD_GPUTEST)
