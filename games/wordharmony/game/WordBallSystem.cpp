@@ -1,4 +1,6 @@
 #include "WordBallSystem.h"
+#include <cstdint>
+#include <cstring>
 #include "App.h"
 #include "FadeContainer.h"
 #include "Game.h"
@@ -37,7 +39,10 @@ WordBallSystem::WordBallSystem(int theMode)
 	mFill = 0;
 	mShortestWord = 0;
 	m194 = false;
-	mLastMatch = 0;
+	// The original leaves it unset. The heap block it gets held the text "background", whose first eight bytes make a
+	// huge positive double, so the program's first word always counts as quick (twice the points): the same bytes here
+	uint64_t aBits = 0x756f72676b636162ULL;
+	memcpy(&mLastMatch, &aBits, 8);
 	mNoPicking = false;
 	mWaveTime = 0;
 	m1F0 = false;

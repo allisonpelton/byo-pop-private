@@ -250,30 +250,34 @@ void Rope::apply()
 		return;
 	Point p = *mBall->getPosition();
 	p.add(mOffset);
-	float dx = mTarget.x - p.x;
+	// The x87 code in double: dx is kept, dy stored as a float; the excess and the inverse length are stored as
+	// floats, the step kept until it is added to the position
+	double dx = (double)mTarget.x - p.x;
 	float dy = mTarget.y - p.y;
-	float aLength2 = dx * dx + dy * dy;
-	float aRest2 = mLength * mLength;
-	if (aLength2 > aRest2)
+	double aLength2 = ((double)mTarget.y - p.y) * dy + dx * dx;
+	double aRest = mLength;
+	if (aLength2 > aRest * aRest)
 	{
-		float anExcess = sqrtf(aLength2) - mLength;
-		float k = 1.0f / sqrtf(aLength2);
-		dx = k * anExcess * dx;
-		dy = k * anExcess * dy;
-		float aStep2 = dx * dx + dy * dy;
-		if (mMaxStep * mMaxStep < aStep2)
+		double aLength = sqrt(aLength2);
+		float anExcess = (float)(aLength - mLength);
+		float k = (float)(1.0 / aLength);
+		double sx = (double)k * anExcess * dx;
+		double sy = (double)k * anExcess * dy;
+		double aStep2 = sy * sy + sx * sx;
+		double aMax = mMaxStep;
+		if (aMax * aMax < aStep2)
 		{
-			k = 1.0f / sqrtf(aStep2);
-			dx = k * dx * mMaxStep;
-			dy = k * dy * mMaxStep;
+			double kk = 1.0 / sqrt(aStep2);
+			sx = kk * sx * mMaxStep;
+			sy = kk * sy * mMaxStep;
 		}
-		p.x = dx * mRate + p.x;
-		p.y = dy * mRate + p.y;
+		p.x = (float)(sx * mRate + p.x);
+		p.y = (float)(sy * mRate + p.y);
 		p.subtract(mOffset);
 		mBall->setPosition(p);
-		float aKeep = 1.0f - mBlend;
-		mBall->mOld.x = aKeep * p.x + mBlend * mBall->mOld.x;
-		mBall->mOld.y = aKeep * p.y + mBlend * mBall->mOld.y;
+		double aKeep = 1.0 - mBlend;
+		mBall->mOld.x = (float)((double)mBlend * mBall->mOld.x + aKeep * p.x);
+		mBall->mOld.y = (float)((double)mBlend * mBall->mOld.y + aKeep * p.y);
 	}
 }
 

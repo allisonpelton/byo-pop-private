@@ -298,6 +298,7 @@ void WordHarmonyApp::Init()
 	if (mShutdown)
 		return;
 	engine::setHost(&gHost);
+	wordharmony::HostSound::sGameClock = mFastMode;
 	mWidget = new WordHarmonyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mWidget);
@@ -412,6 +413,8 @@ void WordHarmonyApp::LogState()
 	aState.emplace_back("ball0y", aBallValue(aBalls ? floatText(aBalls->getBall(0)->getPosition()->y) : ""));
 	aState.emplace_back("ball0state", aBallValue(aBalls ? intText(aBalls->getBall(0)->mState) : ""));
 	aState.emplace_back("ball0letter", aBallValue(aBalls ? intText(aBalls->getBall(0)->mLetter) : ""));
+	aState.emplace_back("ball3x", aBallValue(aBalls ? floatText(aBalls->getBall(3)->getPosition()->x) : ""));
+	aState.emplace_back("ball3y", aBallValue(aBalls ? floatText(aBalls->getBall(3)->getPosition()->y) : ""));
 	if (mLoggedState.size() != aState.size())
 		mLoggedState.assign(aState.size(), std::make_pair(std::string(), std::string()));
 	for (size_t i = 0; i < aState.size(); i++)

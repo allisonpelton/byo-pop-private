@@ -1,12 +1,15 @@
 #include "SoundHost.h"
+#include "engine/Host.h"
 
 #include <algorithm>
 
 using namespace wordharmony;
 
+bool HostSound::sGameClock = false;
+
 HostSound::HostSound(HostSoundSystem* theSystem, const std::shared_ptr<Platform::SoundData>& theData)
 	: mSystem(theSystem), mData(theData), mVoice(0), mPlaying(false), mLoop(false), mVolume(1), mPan(0), mPitch(1),
-	  mFadeIn(0), mFadeOut(0), mCategory(0), mFadeState(1), mFadeLeft(0), mFadeVolume(1), mPosition(0)
+	  mFadeIn(0), mFadeOut(0), mCategory(0), mFadeState(1), mFadeLeft(0), mFadeVolume(1), mPosition(0), mStartTime(0)
 {
 }
 
@@ -34,6 +37,7 @@ void HostSound::play()
 		mFadeVolume = 1;
 	}
 	mPosition = 0;
+	mStartTime = engine::getHost()->timeMs();
 	mVoice = Platform::Mixer::Get().StartVoice(mData, 0, 0, mPitch, mLoop);
 	mPlaying = mVoice != 0;
 	applyGain();
@@ -94,7 +98,13 @@ void HostSound::setVolume(float theVolume)
 
 bool HostSound::isPlaying()
 {
-	if (mPlaying && !Platform::Mixer::Get().IsVoicePlaying(mVoice))
+	if (sGameClock && mPlaying && !mLoop && mData->mRate > 0 &&
+		(double)(uint32_t)(engine::getHost()->timeMs() - mStartTime) * mPitch >= mData->mFrames * 1000.0 / mData->mRate)
+	{
+		halt();
+		mPosition = 0;
+	}
+	else if (!sGameClock && mPlaying && !Platform::Mixer::Get().IsVoicePlaying(mVoice))
 	{
 		mVoice = 0;
 		mPlaying = false;

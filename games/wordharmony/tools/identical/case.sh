@@ -26,10 +26,10 @@ declare -A EX=(
 	[levelhints]="$G+0x54" [leveltime]="$G+0x18c" [ballcount]="$B+0x4" [ballsleft]="$B+0x8" [steptime]="$B+0xfc"
 	[spawntime]="$B+0x100" [nextslot]="$B+0x10c" [tocome]="$B+0x120" [water]="$B+0x124" [fill]="$B+0x128"
 	[hintindex]="$B+0x1f4" [ball0x]="[$B+0x1c]+0x2c" [ball0y]="[$B+0x1c]+0x30" [ball0state]="[$B+0x1c]+0xd8"
-	[ball0letter]="[$B+0x1c]+0xf0")
+	[ball0letter]="[$B+0x1c]+0xf0" [ball3x]="[$B+0x1c]+0x320" [ball3y]="[$B+0x1c]+0x324")
 ALL=(rand state nextstate timer score level mode template time levelpoints lettersleft lettersused bonus wildcards hints
 	hintsused levelhints leveltime ballcount ballsleft steptime spawntime nextslot tocome water fill hintindex ball0x ball0y
-	ball0state ball0letter)
+	ball0state ball0letter ball3x ball3y)
 if [ -n "$FIELDS" ]; then IFS=, read -ra NAMES <<< "$FIELDS"; else NAMES=("${ALL[@]}"); fi
 # the virtual clock plays several hundred frames a second, after a few seconds of start
 TO=$((LAST / 100 + 30))

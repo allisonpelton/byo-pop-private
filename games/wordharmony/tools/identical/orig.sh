@@ -12,5 +12,5 @@ fi
 [ -n "$REG" ] && { reg import "$(win "$REG")" > /dev/null 2>&1 || echo "reg import $REG failed"; }
 W=""; for e in "$@"; do W="$W --watch $e"; done
 "$RUNDESK" "$(win "$ORIGRUN")" --exe "$(win "$OG_GAME/WordHarmonyGame.exe")" --run "$(basename "$OG_STAGE")" \
-	--script "$(win "$S")" --clock virtual --cursor scripted --counter 0x4aa600 --update-ms 33 --seed "$SEED" \
+	--script "$(win "$S")" --clock virtual --cursor scripted --counter 0x4aa600 --update-ms 33 --seed "$SEED" --watch-max 1000000 \
 	--patches tools/origrun/patches/wordharmony.txt --timeout "$T" $W
