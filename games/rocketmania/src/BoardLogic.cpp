@@ -61,7 +61,7 @@ static int RoundNearest(double theValue)
 // 0x41ad90
 Piece::Piece(int theBorn) :
 	mId(0), m04(false), mX(0), mY(0),
-	m18(((double) Rand() * 4.656612875245797e-10) * 10.0 - 5.0),   // the global generator, 0x45b9ae
+	m18(((double) GlobalRand() * 4.656612875245797e-10) * 10.0 - 5.0),   // the global generator, 0x45b9ae
 	m20(0), mMoving(false), m30(0), m38(0),
 	m40(0), m44(0), m48(0), m4c(0), mRow(0), mColumn(0), mFromRow(0), mFromColumn(0),
 	m60(false), m61(false), mType(7), mKind(-1), mRotation(-1), mBorn(theBorn),
@@ -590,7 +590,7 @@ void Board::ResetState(bool theContinuing)
 	unsigned int aValue = (unsigned int) mRand->Next();
 	if ((aValue & 1) == 0)
 	{
-		int aGlobal = Rand();
+		int aGlobal = GlobalRand();
 		m4d9 = false;
 		m4d0 = ((double) aGlobal * 4.656612875245797e-10 * 16.0 - 8.0) + 25.0;
 		return;
@@ -673,12 +673,12 @@ void Board::Burst(int theKind, int theX, int theY)
 		anEffect->m90 = true; anEffect->mLife = 0x3c; anEffect->mc0 = theX; anEffect->m40 = theY;
 		anEffect = mEffects->Add(0x12, true);
 		anEffect->mLife = 0x3c; anEffect->m90 = true; anEffect->mc0 = theX; anEffect->m40 = theY;
-		anEffect->mY = (double) (0x17c - Rand() % 0x79);
+		anEffect->mY = (double) (0x17c - GlobalRand() % 0x79);
 		anEffect = mEffects->Add(0x12, true);
 		anEffect->mLife = 0x3c; anEffect->m90 = true; anEffect->mc0 = theX; anEffect->m40 = theY;
 		anEffect = mEffects->Add(0x12, true);
 		anEffect->mLife = 0x3c;
-		anEffect->mY = (double) (0x17c - Rand() % 0x79);
+		anEffect->mY = (double) (0x17c - GlobalRand() % 0x79);
 		break;
 	case 8:
 		anEffect = mEffects->Add(8, true);
@@ -924,7 +924,7 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 // 0x423b00: when a bomb goes off: the current update count plus 2500 to 3500 (a random time)
 int Board::RandomTick()
 {
-	int aRand = Rand();
+	int aRand = GlobalRand();
 	int aBase = mUpdateCnt + 3000;
 	return Ftol((double) aRand * 4.656612875245797e-10 * 1000.0 - 500.0 + (double) aBase);
 }
@@ -1235,7 +1235,7 @@ void Board::MakeRocket(int theRow)
 	aPiece->m4c = aPiece->m44 - 200;
 	aPiece->m48 = aPiece->m40 + 200;
 	aPiece->mMoving = true;
-	aPiece->m38 = 0.01;
+	aPiece->m38 = 0.015;
 	aPiece->m30 = 0;
 	Effect* anEffect = mEffects->Add(3, false);
 	aPiece->mFlash = anEffect;

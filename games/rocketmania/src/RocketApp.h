@@ -13,6 +13,7 @@
 #include "Color.h"
 #include "Image.h"
 #include "MemoryImage.h"
+#include "testhooks/UiBot.h"
 #include <list>
 #include <string>
 #include <vector>
@@ -24,6 +25,8 @@ class Board;
 class TalkingHead;
 class SpeechBubble;
 class LoadingScreen;
+class StateLog;
+class UiBot;
 class GameSelector;
 class Image;
 class ImageFont;
@@ -58,6 +61,13 @@ enum Song
 	SONG_GAMEOVER = 2,
 	SONG_LEVELUP = 3
 };
+
+// the 2003 framework's global generator (the original's at 0x52c658, seeded by SexyAppBase::Init with the tick count): 2003
+// initialisation (SeedMTRand2004), which the port's framework Rand() does not have. The game's effects, the head and the
+// seed of each board draw from it.
+int GlobalRand();
+void SeedGlobalRand(unsigned long theSeed);
+void GetGlobalRandState(uint32_t* theState, int* theIndex);       // test hook (the state log)
 
 class RocketApp : public SexyApp
 {
@@ -95,6 +105,9 @@ public:
 	int						mHeadCountdown;         // app+0x860 updates until the head says its first lines in a game (0 none)
 	int						mMode;                  // app+0x530 the chosen game mode (0 arcade, 1 classic, 2 strategy)
 	int						mDifficulty;            // app+0x534 the chosen difficulty (1 easy, 2 medium, 3 hard)
+	UiBotParams				mUiParams;              // port: the test hooks (testhooks/UiBot.h)
+	StateLog*				mStateLog;
+	UiBot*					mUiBot;
 	bool					mNoPopLink;             // app+0x548 the "NoPopLink" property
 	bool					mNoHints;               // app+0x549 an option of the Options dialog (0x4130b0): no hint arrow, no talking head
 	bool					mHintFlags[8];          // app+0x54a to +0x551 the hints that were shown (kept as HintsDisabledFlag%d)
@@ -118,6 +131,8 @@ public:
 	virtual void			ButtonPress(int theId) override;
 	virtual void			ButtonDepress(int theId) override;
 	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
+	virtual void			HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	virtual void			UpdateFrames() override;
 	virtual void			WriteToRegistry() override;                 // 0x42f2b0
 	virtual void			ReadFromRegistry() override;                // 0x42f4b0
 

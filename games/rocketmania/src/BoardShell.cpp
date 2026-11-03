@@ -34,7 +34,8 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	mApp = theApp;
 	mCols = 6;
 	mRows = 9;
-	mRand = new MTRand((unsigned long) Rand());
+	mRand = new MTRand();
+	SeedMTRand2004(*mRand, (unsigned long) GlobalRand());
 	mGen = new PieceGenerator(theApp, this, mRand);
 	mEffects = new EffectManager(mApp);
 	mTip = new HoverTip(mApp);      // 0x413aa0
@@ -58,6 +59,14 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	m78 = 10;
 	m7c = 3;
 	m80 = 3;
+	// 0x41b04e: the arcade mode's first fall delay, or the timed modes' two updates between dropped tiles
+	// (the original also stores -1 in the two fields that are not zero)
+	m348 = -1;
+	m2f0 = -1;
+	if (mApp->mMode == 0)
+		m444 = mGen->Rows20();
+	else if (mApp->mMode == 1 || mApp->mMode == 2)
+		m450 = 2;
 	mState = 0;
 	ResetState(theContinuing);
 	SetupBoard(true, theContinuing);

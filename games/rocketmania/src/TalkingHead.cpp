@@ -251,9 +251,9 @@ void TalkingHead::Update()
 	}
 
 	// now and then it makes a face of its own
-	int aRand = Rand();
+	int aRand = GlobalRand();
 	if (aRand % 250 == 0 && mMood == -1)
-		SetMood(Rand() % 5 + 0x12);
+		SetMood(GlobalRand() % 5 + 0x12);
 
 	mSway = sin((mVelY + mVelX) * 0.2) * 10.0 + 15.0;
 }

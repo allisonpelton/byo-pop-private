@@ -58,7 +58,7 @@ void Board::F428780()
 			static const int sClassicKinds[12] = { 0, 0, 1, 1, 1, 1, 1, 1, 2, 0, 0, 0 };
 			static const int sClassicRotations[12] = { 1, 1, 3, 0, 2, 2, 1, 2, 2, 1, 1, 1 };
 			static const int sStrategyKinds[18] = { 1, 1, 1, 2, 0, 1, 0, 0, 1, 1, 1, 3, 1, 1, 2, 0, 0, 2 };
-			static const int sStrategyRotations[18] = { 3, 0, 3, 0, 2, 1, 1, 1, 3, 0, 2, 2, 1, 2, 2, 1, 1, 1 };
+			static const int sStrategyRotations[18] = { 3, 0, 3, 0, 2, 1, 1, 1, 3, 0, 2, 2, 1, 2, 2, 1, 1, 2 };
 			bool aClassic = mApp->mMode == 1;
 			const int* aKinds = aClassic ? sClassicKinds : sStrategyKinds;
 			const int* aRotations = aClassic ? sClassicRotations : sStrategyRotations;
@@ -259,7 +259,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		else
 		{
 			m37c = 5;
-			m2dc = m444 - 100;
+			m2dc = m444;
 		}
 	}
 	else if (aMode == 1 || aMode == 2)

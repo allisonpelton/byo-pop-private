@@ -718,7 +718,7 @@ void Board::Ignite(int theRow, int theColumn, int theToRow, int theToColumn, boo
 	{
 		aFlame->m48 = CellX(theToColumn);
 		aFlame->m4c = CellY(theToRow);
-		aFlame->m38 = 0.16666666666666666;
+		aFlame->m38 = 0.166666;      // (the original stores the decimal literals 0.166666 and 0.333332)
 		Piece* aTarget = NULL;
 		if (theToRow < mRows && -1 < theToRow && theToColumn < mCols && -1 < theToColumn)
 			aTarget = mGrid[theToRow][theToColumn];
@@ -741,7 +741,7 @@ void Board::Ignite(int theRow, int theColumn, int theToRow, int theToColumn, boo
 		aFlame->m48 = Ftol((aX - aFlame->mX) * 0.5 + aFlame->mX);
 		double aY = (double) CellY(theToRow);
 		aFlame->m4c = Ftol((aY - aFlame->mY) * 0.5 + aFlame->mY);
-		aFlame->m38 = 0.3333333333333333;
+		aFlame->m38 = 0.333332;
 		aFlame->m61 = true;
 	}
 	m2f4++;

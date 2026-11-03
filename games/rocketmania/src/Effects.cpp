@@ -14,7 +14,7 @@ using namespace Sexy;
 // What the constructor (0x4172f0) stores for a kind of effect (generated from it, see EffectKinds.inc)
 struct EffectKind
 {
-	int			mXRandMod, mXRandBase;      // x = Rand() % mod + base (mod 0: the fixed x below)
+	int			mXRandMod, mXRandBase;      // x = GlobalRand() % mod + base (mod 0: the fixed x below)
 	bool		mNormalize;                 // the direction is made a unit vector
 	bool		mNotifyBoard, mSounds;      // +8, +9
 	double		mX, mY, mZ;                 // +0x48
@@ -45,7 +45,7 @@ static const EffectKind sEffectKinds[EFFECT_KINDS] =
 // base plus or minus up to theSpread, evenly
 static double SpreadRand(double theBase, double theSpread)
 {
-	return (((theSpread + theSpread) * (double) Rand() * RAND_UNIT) - theSpread) + theBase;
+	return (((theSpread + theSpread) * (double) GlobalRand() * RAND_UNIT) - theSpread) + theBase;
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -88,7 +88,7 @@ Effect::Effect(RocketApp* theApp, EffectManager* theManager, int theKind, bool t
 	mc0(0), mLife(EFFECT_LIFE), mDirX(0), md0(0), mDirZ(0), mDirSpreadX(0), mDirSpreadY(0), mDirSpreadZ(0), mf8(0),
 	mSpeedSpread(0), m108(0), m110(0), m114(0), m118(0), m11c(0), m120(0)
 {
-	mColorChoice = Rand() % 3 + 3;
+	mColorChoice = GlobalRand() % 3 + 3;
 
 	// six colours the particles start with and six they end with
 	mColors[0] = Color(0, 0xff, 0);
@@ -113,7 +113,7 @@ Effect::Effect(RocketApp* theApp, EffectManager* theManager, int theKind, bool t
 	mSounds = aKind.mSounds;
 	mX = aKind.mX;
 	if (aKind.mXRandMod != 0)
-		mX = (double) (Rand() % aKind.mXRandMod + aKind.mXRandBase);
+		mX = (double) (GlobalRand() % aKind.mXRandMod + aKind.mXRandBase);
 	mY = aKind.mY;
 	mZ = aKind.mZ;
 	mSpreadX = aKind.mSpreadX;
@@ -225,11 +225,11 @@ void Effect::Spawn(int theCount)
 			aParticle->mVY = aSpeed * aParticle->mVY;
 			aParticle->mVZ = aSpeed * aParticle->mVZ;
 
-			int aLife = (Rand() % (m114 * 2 + 1) + m110) - m114;
+			int aLife = (GlobalRand() % (m114 * 2 + 1) + m110) - m114;
 			aParticle->mAge = aLife;
 			aParticle->mLife = aLife;
 			if (mKind == 0xf || mKind == 5)
-				aParticle->mColor = Rand() % 3;
+				aParticle->mColor = GlobalRand() % 3;
 			else
 				aParticle->mColor = mColorChoice;
 			aCount++;
@@ -288,9 +288,9 @@ bool Effect::Update()
 			if (mParticles == NULL)
 				return false;
 		}
-		else if ((m120 == 0) || (Rand() % (m120 + 1) == 0))
+		else if ((m120 == 0) || (GlobalRand() % (m120 + 1) == 0))
 		{
-			int aNumber = (Rand() % (m11c * 2 + 1) + m118) - m11c;
+			int aNumber = (GlobalRand() % (m11c * 2 + 1) + m118) - m11c;
 			if (0 < aNumber)
 				Spawn(aNumber);
 		}
@@ -304,7 +304,7 @@ bool Effect::Update()
 		{
 			if (m40 != -1)
 				mApp->PlaySample(m40);
-			mApp->PlaySample(Rand() % 6 + 0x12);
+			mApp->PlaySample(GlobalRand() % 6 + 0x12);
 		}
 	}
 	return true;
