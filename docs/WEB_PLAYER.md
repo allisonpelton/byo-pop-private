@@ -144,6 +144,22 @@ hotspot). The image is drawn at the size the game's cursor has on screen, at mos
 of everything but the canvas (`.game-cursor` on `<html>`); it is the game's pointer while the mouse is outside the
 canvas, and nothing is set when the game's custom cursors are off or a game has no cursor images.
 
+**The site's cursor.** The user, 2026-11-03: "pull custom cursors out of the user's uploaded games so that they can select one
+to use across the whole site (except for inside other games)", and "If the custom cursor is disabled in a game, could the site's
+custom cursor still display over it?". Once a game has started, its page asks it for its set of cursors at each 100 ms poll until
+the game has set its pointer: `byopop_cursor_set_copy()` (`framework/WebCursor.cpp`, read-only like the calls above) copies its
+pointer, hand, dragging and text images (`mCursorImages`, whether or not its custom cursors are on) to `Module.byopopCursorSet`,
+each with the hot spot the game draws it at. The page keeps them as PNG data URLs, at their own size (at most 128 px), in
+`web/cursors.js`'s localStorage item `byopop-cursors`, one set per game. The Settings (the listing page's tab and every game page's
+panel) have a "Site cursor" choice: the browser's own, or one of the games' sets, each shown by its pointer and hand. The choice,
+`byopop-site-cursor`, applies to every page of the site (`.site-cursor` on `<html>` and one style element): the pointer
+everywhere, the hand on links, buttons and other controls, the text cursor in text fields, the dragging cursor on a cap being
+dragged. On a game's page a game whose own cursor is showing keeps it (`.game-cursor` turns the site's rules off); where it shows
+none, its custom cursors off or none of its own, the site's cursor shows over the game too, by the kind of cursor SDL gives the
+canvas (a hidden cursor stays hidden). The images come from the player's own copy and stay in this browser; forgetting a game's
+files forgets its cursors (`ByopopGameFiles.forget`). A game's cursors are there only once it has been started in this browser:
+each game keeps its cursor images in its own formats and files, and the game itself is the one place that puts them together.
+
 **The footer** is the same on every game's page: one link, which opens the game's copyright page
 (`<game>-copyright.html`, next to the game) in a new tab. The markup is `web/footer.html` and its style
 `web/footer.css`.

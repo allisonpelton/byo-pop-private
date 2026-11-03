@@ -652,6 +652,7 @@ var ByopopGameFiles = (function () {
     delete r.icon;
     o[id] = r;
     write(o);
+    try { if (window.ByopopCursors) ByopopCursors.forget(id); } catch (e) {}  // its cursors came from its files too
   }
   // The files are gone, and not by "Forget game files": noted for a game that had a record
   function lost(id) {

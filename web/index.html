@@ -9,6 +9,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
 <script src="theme.js"></script>
+<!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
+<script src="cursors.js"></script>
 <style>
 /* The list of the finished games (docs/WEB_PLAYER.md, "The listing page"). byopop_web_index() in
    cmake/ByopopWeb.cmake puts one tile per game at the byopop:games marker. A tile's icon is a badge drawn here: the
@@ -362,6 +364,7 @@ footer a { color: var(--accent); }
   <section id="settings" class="tabpanel" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
     <h2 class="pl-sr">Settings</h2>
     <div id="settings-controls"></div>
+    <div id="site-cursor" class="site-cursor-choice"></div>
   </section>
 </main>
 <footer>
@@ -386,6 +389,8 @@ footer a { color: var(--accent); }
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
 try { ByopopSettings.render(document.getElementById("settings-controls")); } catch (e) {}
+// the site's cursor (web/cursors.js): a game's set, chosen for every page
+try { ByopopCursors.render(document.getElementById("site-cursor")); } catch (e) {}
 // The players section (web/players.js): the games are the tiles, in their order
 try {
   ByopopPlayers.init(document.getElementById("players-body"), Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {

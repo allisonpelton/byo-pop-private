@@ -9,6 +9,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
 <script src="theme.js"></script>
+<!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
+<script src="cursors.js"></script>
 <style>
 /* Every game's page (docs/WEB_PLAYER.md). Layout: a single stage that fills the viewport (4:3, or the shape the game
    gives: Module.onGameScreen), with a slim tool bar and slide-over panels (mods, game files and any of the game's
@@ -315,7 +317,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 
 <aside class="panel" id="panel-settings" hidden aria-labelledby="panel-settings-title" tabindex="-1">
   <header><h2 id="panel-settings-title">Settings: site-wide overrides</h2><button type="button" data-close>Close</button></header>
-  <div class="body" id="settings-body"></div>
+  <div class="body"><div id="settings-body"></div><div class="site-cursor-choice" id="site-cursor-body"></div></div>
 </aside>
 
 <!-- byopop:footer -->
@@ -831,8 +833,36 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (value) root.style.setProperty("--game-cursor", value); else root.style.removeProperty("--game-cursor");
     root.classList.toggle("game-cursor", !!value);
   }
+  // The game's set of cursors for the site's cursor (web/cursors.js; docs/WEB_PLAYER.md, "The site's cursor"): asked for at each
+  // poll until the game has set its pointer (once its images are loaded), then kept once for this page. A cursor larger than
+  // browsers take (128 px) is drawn smaller. A build without the call stops asking.
+  var cursorSetTaken = false, siteCursorShown = false;
+  function takeCursorSet() {
+    var n;
+    try { n = Module.ccall("byopop_cursor_set_copy", "number", [], []) | 0; } catch (e) { cursorSetTaken = true; return; }
+    if (n <= 0) return;
+    cursorSetTaken = true;
+    var kinds = ["pointer", "hand", "drag", "text"], set = {};
+    (Module.byopopCursorSet || []).forEach(function (c, i) {
+      if (!c || !c.rgba || c.rgba.length !== c.width * c.height * 4) return;
+      var source = document.createElement("canvas");
+      source.width = c.width; source.height = c.height;
+      source.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(c.rgba.buffer, c.rgba.byteOffset, c.rgba.length), c.width, c.height), 0, 0);
+      var scale = Math.min(1, 128 / Math.max(c.width, c.height)), out = source;
+      if (scale < 1) {
+        out = document.createElement("canvas");
+        out.width = Math.max(1, Math.round(c.width * scale)); out.height = Math.max(1, Math.round(c.height * scale));
+        out.getContext("2d").drawImage(source, 0, 0, out.width, out.height);
+      }
+      set[kinds[i]] = { url: out.toDataURL("image/png"), x: Math.min(out.width - 1, Math.max(0, Math.round(c.hotX * scale))),
+        y: Math.min(out.height - 1, Math.max(0, Math.round(c.hotY * scale))) };
+    });
+    Module.byopopCursorSet = null;
+    try { if (window.ByopopCursors) ByopopCursors.save(PAGE.id, $("brand-name").textContent, set); } catch (e) {}
+  }
   function pollCursor() {
     var id = 0, stop = exited;
+    if (!stop && !cursorSetTaken) takeCursorSet();
     if (!stop) {
       try { id = Module.ccall("byopop_cursor", "number", [], []) | 0; }
       catch (e) { stop = true; }
@@ -1107,6 +1137,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       if (settingsView) settingsView.refresh();
       else settingsView = ByopopSettings.render($("settings-body"), { live: true, onChange: applySettingNow,
         gameId: PAGE.id, gameName: $("brand-name").textContent, playerNote: playerNote });
+      if (!siteCursorShown) { siteCursorShown = true; ByopopCursors.render($("site-cursor-body")); }
     } catch (e) {
       $("settings-body").textContent = "The settings are not available.";
     }

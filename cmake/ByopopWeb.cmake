@@ -24,6 +24,7 @@ if(EMSCRIPTEN)
 endif()
 set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_open _byopop_mods_state
   _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy
+  _byopop_cursor_set_copy
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_windowed _byopop_mixer_gain)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
@@ -44,7 +45,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # of each game's page, its page's file name, its badge's initials and colour and its title), is written beside them by
 # byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
 # games of its own.
-set(BYOPOP_WEB_SHARED_JS theme.js settings.js profiles.js exeicon.js gameimport.js chat.js)
+set(BYOPOP_WEB_SHARED_JS theme.js cursors.js settings.js profiles.js exeicon.js gameimport.js chat.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
