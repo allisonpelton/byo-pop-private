@@ -88,7 +88,8 @@ var ByopopImport = (function () {
   // The markers a folder of files lacks, as the error names them (the user, 2026-11-03: the files it names are the missing
   // ones, not every marker): missingIn() for the files of a known root (paths relative to it), missingMarkers() for picked or
   // dropped files whose root was not found, from the folder among them that holds the most markers (all of them when none
-  // holds any). Each is named with its casing in the game's markerText where that has it ("images/gemsheet6.*" as
+  // holds any). Picked files have their paks unpacked, so a pak marker stands for the game's folders there (hasMarkers);
+  // dropped files are as they came, so every marker, a pak too, is a file to find. Each is named with its casing in the game's markerText where that has it ("images/gemsheet6.*" as
   // "images/gemsheet6"), and the names are joined as a list in the page's language.
   function lacking(spec, rels) {
     return spec.markers.filter(function (m) {
@@ -109,20 +110,27 @@ var ByopopImport = (function () {
     try { return new Intl.ListFormat(ByopopStrings.lang, { style: "long", type: "conjunction" }).format(names); }
     catch (e) { return names.join(", "); }
   }
-  function missingIn(spec, rels) { return markerList(spec, lacking(spec, rels)); }
+  function missingIn(spec, rels) {
+    var miss = lacking(spec, rels);
+    return markerList(spec, miss.length ? miss : spec.markers);
+  }
   function missingMarkers(spec, entries) {
-    var roots = { "": true };
+    // the folders to try: those holding a file that is one of the markers
+    var anyDepth = spec.markers.map(function (m) { return new RegExp("^(.*/)?" + markerPattern(m) + "$", "i"); });
+    var atRoot = spec.markers.map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
+    var roots = {};
     entries.forEach(function (e) {
-      var parts = e.path.split("/");
-      for (var j = 1; j < parts.length; j++) roots[parts.slice(0, j).join("/") + "/"] = true;
+      anyDepth.forEach(function (re) { var m = re.exec(e.path); if (m) roots[m[1] || ""] = true; });
     });
     var best = null;
     Object.keys(roots).forEach(function (r) {
-      var rels = entries.filter(function (e) { return under(e, r); }).map(function (e) { return e.path.substring(r.length); });
-      var miss = lacking(spec, rels);
+      var miss = spec.markers.filter(function (m, i) {
+        return !entries.some(function (e) { return under(e, r) && atRoot[i].test(e.path.substring(r.length)); });
+      });
       if (best === null || miss.length < best.length) best = miss;
     });
-    return markerList(spec, best || spec.markers);
+    // none found, or (oddly) none lacking: name them all
+    return markerList(spec, best && best.length ? best : spec.markers);
   }
 
   // The icon in the install's exe, for a game that does not store its exe (importIcon): the first .exe at the root that is not

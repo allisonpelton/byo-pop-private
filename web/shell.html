@@ -744,7 +744,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       });
     }, Promise.resolve()).then(W.sync).then(function () {
       // boot() would otherwise show this card again, still saying "Copied", as if the page were stuck
-      if (!hasGameFiles()) throw new Error(ByopopStrings.t("game.import.error_missing", {markers: ByopopImport.markerList(PAGE)}));
+      if (!hasGameFiles()) throw new Error(ByopopStrings.t("game.import.error_missing", {markers: ByopopImport.missingIn(PAGE, wanted.map(function (f) { return f.rel; }))}));
       msg.textContent = ByopopStrings.t("game.import.copied", {count: wanted.length});
       askToKeepStorage();
       return iconFromImport(entries, root).then(function () { return true; });
