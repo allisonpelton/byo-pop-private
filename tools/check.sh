@@ -102,7 +102,8 @@
 #   dynomite     Dynomite Deluxe: a scripted Stomped Puzzle (dynomite_run: five shots and the board's state, then the
 #                save dialog's first slot and the name's Save) and a rerun with the same screens and the same saved
 #                game but for its tick counts, and that saved game continued from the main menu with the board as it
-#                was saved (dynomite_load) (under a minute)
+#                was saved (dynomite_load); with build/baseline-dynomite/ (frozen at its identical-play pass), three of
+#                that pass's cases must give the baseline's state log (dynomite_state) (about a minute)
 #   bonnies      Bonnie's Bookstore Deluxe: a tour from a script (games/bonnies/tools/tour_test.txt): a new player,
 #                the classic game's tutorial words, the game's options, high scores, credits and help, the main menu's
 #                options, an action game paused by a focus loss and played until its time is up, and Quit; a rerun
@@ -1591,6 +1592,17 @@ dynomite_load() {  # <name> <run>: the run's saved game continued from the main 
 	dynomite_exe "$d"
 }
 
+dynomite_state() {  # <name> <exe> <seed> <mkscript rng seed> <parts...>: an identical-play case's script (mkscript.py)
+	# played with -statelog, as the pass played it against the original; the log is <name>/state.txt
+	local d="$OUT/dynomite/$1" e="$2" seed="$3" r="$4" u
+	shift 4
+	rm -rf "$d"; dynomite_user "$d/user"
+	python games/dynomite/tools/identical/mkhs.py "$d/user"
+	python games/dynomite/tools/identical/mkscript.py "$d/script.txt" 25000 "$r" "$@"
+	u="$(cygpath -ma "$d")"
+	timeout 300 "$e" -gamedir=assets/dynomite -userdir="$u/user" -fast -drawevery -seed="$seed" -script="$u/script.txt" 		-statelog="$u/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_dynomite() {
 	local st=0 g r l c="$OUT/dynomite" t
 	need_assets dynomite || return 1
@@ -1604,7 +1616,20 @@ suite_dynomite() {
 	if diff -q "$c/game/board.png" "$c/game2/board.png" >> "$1" 2>&1 && diff -q "$c/game/saved.png" "$c/game2/saved.png" >> "$1" 2>&1 &&
 		[ "$g" = "$r" ] && [ -z "$t" ]; then r="rerun identical"; else r="RERUN DIFFERS${t:+ ($t)}"; st=1; fi
 	if [ "$l" = "$g" ]; then l="loads as saved"; else l="LOAD DIFFERS ('$l')"; st=1; fi
-	SUMMARY="$g; $r; $l"
+	# the frozen baseline (build/baseline-dynomite/, the port when its identical-play pass was done): three of the pass's
+	# cases (games/dynomite/tools/identical/cases.sh) must give the same state at every update
+	local base="$W/build/baseline-dynomite/dynomite.exe" bl="" a n
+	if [ -f "$base" ]; then
+		for a in "en 2 3 title menu:endless shots:80:40 wait:300 text:Zed click:352:369 wait:200 click:400:400 wait:300 shots:80:40 quit" 			"st 4 5 title menu:stomped:pack shots:45:40 wait:300 text:Sam click:352:369 wait:200 quit" 			"fp 8 9 title menu:fossil:panic shots:60:40 wait:300 quit"; do
+			set -- $a; n=$1; shift
+			dynomite_state "cur-$n" "$W/build/native/dynomite.exe" "$@"
+			dynomite_state "base-$n" "$base" "$@"
+			[ -s "$c/cur-$n/state.txt" ] && [ -s "$c/base-$n/state.txt" ] &&
+				cmp -s "$c/cur-$n/state.txt" "$c/base-$n/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="$g; $r; $l$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$DY_GAME')"
 	return $st
 }
