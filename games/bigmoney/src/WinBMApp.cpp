@@ -172,6 +172,7 @@ WinBMApp::WinBMApp()
 	mAutoplayLookBag = 30;
 	mAutoplayCheck = false;
 	mAutoplayBot = NULL;
+	mStateLog = NULL;
 
 	mFont1 = NULL;
 	mFont1NoShadow = NULL;
@@ -245,6 +246,8 @@ WinBMApp::WinBMApp()
 WinBMApp::~WinBMApp()
 {
 	delete mAutoplayBot;  // port: test hook
+	if (mStateLog != NULL)
+		fclose(mStateLog);
 	LiveSplitObserver::AppDestroyed(this); // port(mods): the block's last write
 
 	// This is where a game in progress is saved on exit: Shutdown is not overridden
@@ -1376,8 +1379,48 @@ void WinBMApp::UpdateFrames()
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
 
+	if (!mStateLogFileName.empty())
+		LogState();
+
 	// port(mods): the LiveSplit block, after the update (LiveSplitObserver.h)
 	LiveSplitObserver::AfterUpdate(this);
+}
+
+// port: test hook (-statelog). The values and their order are origrun's --watch list for the original
+// (WinBMApp at 0x52ddc8, mBoard +0x6d0): mScore +0x490, mState +0xa0, the board MTRand's mti (+0x88, then
+// +0x9c0) and mLevel +0x5b8, then the MTRand's first state word (+0x88, then +0x0), which orig.sh watches instead of
+// mti for long Action games. Unsigned, and "-" while there is no board, as origrun logs its values.
+void WinBMApp::LogState()
+{
+	if (mStateLog == NULL)
+	{
+		mStateLog = fopen(mStateLogFileName.c_str(), "w");
+		if (mStateLog == NULL)
+		{
+			mStateLogFileName.clear();
+			return;
+		}
+	}
+	std::string aValues[5];
+	for (int i = 0; i < 5; i++)
+		aValues[i] = "-";
+	if (mBoard != NULL)
+	{
+		// mti follows the 624 state words (MTRand.h): the same index the original keeps at +0x9c0
+		const uint32_t* aWords = reinterpret_cast<const uint32_t*>(&mBoard->mRand);
+		const uint32_t aInts[5] = { (uint32_t)mBoard->mScore, (uint32_t)mBoard->mState, aWords[624], (uint32_t)mBoard->mLevel,
+			aWords[0] };
+		for (int i = 0; i < 5; i++)
+			aValues[i] = StrFormat("%u", aInts[i]);
+	}
+	for (int i = 0; i < 5; i++)
+	{
+		if (aValues[i] != mStateLogLast[i])
+			fprintf(mStateLog, "watch %d: %s -> %s at update %d\n", i + 1,
+				mStateLogLast[i].empty() ? "-" : mStateLogLast[i].c_str(), aValues[i].c_str(), mUpdateCount);
+		mStateLogLast[i] = aValues[i];
+	}
+	fflush(mStateLog);
 }
 
 // port: the game's command-line test hooks (see WinBMApp.h); everything else goes to the framework
@@ -1393,6 +1436,11 @@ void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 	if (theParamName == "-replaydir")
 	{
 		mReplayDir = theParamValue; // port(mods)
+		return;
+	}
+	if (theParamName == "-statelog")
+	{
+		mStateLogFileName = theParamValue; // port: test hook
 		return;
 	}
 	if (theParamName == "-livesplitlog")
