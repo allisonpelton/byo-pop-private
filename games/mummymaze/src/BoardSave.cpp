@@ -23,6 +23,7 @@
 
 using namespace Sexy;
 
+#include "GameLevels.h"
 #include "Tables.inc"
 
 static std::string ClassicSavePath()

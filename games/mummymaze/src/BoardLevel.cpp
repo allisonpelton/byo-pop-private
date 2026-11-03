@@ -19,6 +19,7 @@
 
 using namespace Sexy;
 
+#include "GameLevels.h"
 #include "Tables.inc"
 
 bool ChaseState::operator<(const ChaseState& o) const
@@ -860,21 +861,13 @@ void Board::SetupTutorial(int thePart)
 		delete mMummies[i];
 		mMummies[i] = NULL;
 	}
-	const int (*aWalls)[2] = NULL;
-	int aCount = 0;
-	switch (thePart)
-	{
-	case 0: aWalls = kTutorialWalls0; aCount = (int) (sizeof(kTutorialWalls0) / sizeof(kTutorialWalls0[0])); break;
-	case 1: aWalls = kTutorialWalls1; aCount = (int) (sizeof(kTutorialWalls1) / sizeof(kTutorialWalls1[0])); break;
-	case 2: aWalls = kTutorialWalls2; aCount = (int) (sizeof(kTutorialWalls2) / sizeof(kTutorialWalls2[0])); break;
-	case 3: aWalls = kTutorialWalls3; aCount = (int) (sizeof(kTutorialWalls3) / sizeof(kTutorialWalls3[0])); break;
-	case 4: aWalls = kTutorialWalls4; aCount = (int) (sizeof(kTutorialWalls4) / sizeof(kTutorialWalls4[0])); break;
-	default: return;
-	}
+	if (thePart < 0 || thePart > 4)
+		return;
+	const std::vector<TutorialWall>& aWalls = TutorialWalls(thePart);
 	if (thePart == 4)
 		mRed = true;
-	for (int i = 0; i < aCount; i++)
-		mCells[aWalls[i][0] / 10][aWalls[i][0] % 10] |= aWalls[i][1];
+	for (size_t i = 0; i < aWalls.size(); i++)
+		mCells[aWalls[i].mCell / 10][aWalls[i].mCell % 10] |= aWalls[i].mBits;
 	// the exit in the top left corner
 	mCells[0][0] = (mCells[0][0] | EXIT_NORTH) ^ WALL_NORTH;
 

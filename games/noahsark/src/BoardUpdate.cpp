@@ -189,9 +189,48 @@ void Board::Update()
 					if ((aBelow->mType == PIECE_EMPTY) || aBelow->mRemoved || aBelow->mFading ||
 						(aBelow->mMoving && ((aBelow->mX != x) || (aBelow->mY != y + 1))))
 					{
-						std::swap(mGrid[x][y], mGrid[x][y + 1]);
+						// 0x40407c: the animal moves down a cell, and the cell it leaves gets a new piece that copies the one
+						// below (its position, animal, offsets, flags and path); the old lower piece is deleted. The new
+						// piece has the constructor's blink, scale and match fields, which matters: a blinking piece draws
+						// no random number each update and one that is not does.
+						Piece* aOldLower = mGrid[x][y + 1];
+						Piece* aPartner = NULL;
+						if ((aOldLower->mPartner != NULL) && (anApp->mGameMode != GAMEMODE_PUZZLE) && (anApp->mGameMode != GAMEMODE_STAMPEDE))
+							aPartner = aOldLower->mPartner;
+						Piece* aCopy = new Piece();
+						aCopy->mX = aOldLower->mX;
+						aCopy->mY = aOldLower->mY;
+						aCopy->mDestX = aOldLower->mX;
+						aCopy->mDestY = aOldLower->mY;
+						aCopy->mPixelX = aOldLower->mPixelX;
+						aCopy->mPixelY = aOldLower->mPixelY;
+						aCopy->mType = aOldLower->mType;
+						aCopy->mAlpha = aOldLower->mAlpha;
+						aCopy->mOffsetX = aOldLower->mOffsetX;
+						aCopy->mOffsetY = aOldLower->mOffsetY;
+						aCopy->mSelected = aOldLower->mSelected;
+						aCopy->mRemoved = aOldLower->mRemoved;
+						aCopy->mFading = aOldLower->mFading;
+						aCopy->mFallSpeed = aOldLower->mFallSpeed;
+						aCopy->mFacingRight = aOldLower->mFacingRight;
+						aCopy->mPathIndex = aOldLower->mPathIndex;
+						aCopy->mMoving = aOldLower->mMoving;
+						for (size_t i = 0; i < aOldLower->mPath.size(); i++)
+						{
+							if (aOldLower->mPath[i] != NULL)
+								aCopy->mPath.push_back(new PathNode(*aOldLower->mPath[i]));
+						}
+						delete aOldLower;
+						mGrid[x][y + 1] = mGrid[x][y];
+						mGrid[x][y] = aCopy;
 						Piece* aUpper = mGrid[x][y];
 						Piece* aLower = mGrid[x][y + 1];
+						if (aPartner != NULL)
+						{
+							aLower->mPartner = NULL;
+							aUpper->mPartner = aPartner;
+							aPartner->mPartner = aUpper;
+						}
 						if (aLower->mFallSpeed < -5)
 							aLower->mFallSpeed = -6;
 						aLower->mY = y + 1;
@@ -491,7 +530,7 @@ void Board::Update()
 		if ((mWaterY < mWaterTargetY) && (anApp->mGameMode != GAMEMODE_STRATEGY))
 		{
 			mWaterY += 3;
-			int aArk = mWaterY - 0x34;
+			int aArk = mWaterY - 0x37;
 			if (aArk > 0x61)
 				aArk = 0x62;
 			mArkY = aArk;
@@ -561,70 +600,78 @@ void Board::Update()
 			{
 				if (p->mFading)
 				{
-					float dx = (float) abs((int) (mWidth - p->mPixelX));
-					float dy = (float) abs((int) (mHeight - p->mPixelY));
-					float aDist = sqrtf(dx * dx + dy * dy);
-					if (((float) mWidth <= p->mPixelX) || ((float) (mHeight + 0x32) <= p->mPixelY))
+					// 0x405440: the distances are whole numbers (__ftol) and the length a double (x87 at 53 bits)
+					double aTargetX = mWidth + 0x32;
+					double aTargetY = mHeight + 0x32;
+					double dx = (double) abs((int) (aTargetX - p->mPixelX));
+					double dy = (double) abs((int) (aTargetY - p->mPixelY));
+					double aDist = sqrt(dx * dx + dy * dy);
+					if ((aTargetX <= p->mPixelX) || (aTargetY <= p->mPixelY))
 					{
 						p->mFading = false;
 						p->mType = PIECE_EMPTY;
 					}
 					else
 					{
-						float sx = (dx / aDist) * 5.3f;
-						if (sx < 1.0f)
-							sx = 1.0f;
-						p->mPixelX += sx;
-						float sy = (dy / aDist) * 5.3f;
-						if (sy < 1.0f)
-							sy = 1.0f;
-						p->mPixelY += sy;
+						double sx = (dx / aDist) * 5.3;
+						if (sx < 1.0)
+							sx = 1.0;
+						p->mPixelX = (float) (p->mPixelX + sx);
+						double sy = (dy / aDist) * 5.3;
+						if (sy < 1.0)
+							sy = 1.0;
+						p->mPixelY = (float) (p->mPixelY + sy);
 					}
-					if ((p->mPixelX == 0.0f) || (p->mPixelY == 0.0f))
+					// the x87 tests of 0.0 also take a NaN (a distance under one pixel divides 0 by 0) for zero
+					if ((p->mPixelX == 0.0f) || (p->mPixelY == 0.0f) || (p->mPixelX != p->mPixelX) || (p->mPixelY != p->mPixelY))
+					{
 						p->mFading = false;
+						p->mType = PIECE_EMPTY;
+					}
 				}
 			}
 			else
 			{
-				float tx = (float) (mArkX + 0x42);
-				float ty = (float) (mArkY + 0x42);
-				float dx = fabsf(tx - p->mPixelX);
-				float dy = fabsf(ty - p->mPixelY);
-				float aDist = sqrtf(dx * dx + dy * dy);
+				// 0x405408: the same arithmetic as above, towards the ark
+				int aTargetX = mArkX + 0x42;
+				int aTargetY = mArkY + 0x42;
+				double dx = (double) abs((int) (aTargetX - (double) p->mPixelX));
+				double dy = (double) abs((int) (aTargetY - (double) p->mPixelY));
+				double aDist = sqrt(dx * dx + dy * dy);
 				double aScale = p->mScale - 0.2;
 				if (aScale < 35.0)
 					aScale = 35.0;
 				p->mScale = aScale;
-				if (aDist < 100.0f)
+				if (aDist < 100.0)
 				{
 					aScale = aScale - 0.2;
 					if (aScale < 35.0)
 						aScale = 35.0;
 					p->mScale = aScale;
 				}
-				if (aDist < 150.0f)
+				if (aDist < 150.0)
 					p->mAlpha = (int) (aDist) * 2 + 0x69;
-				if ((tx < p->mPixelX) || (p->mPixelY != ty))
+				if (((double) aTargetX < p->mPixelX) || (p->mPixelY != (float) aTargetY))
 				{
-					float sx = (tx < p->mPixelX) ? -1.0f : 1.0f;
-					float sy = (ty < p->mPixelY) ? -1.0f : 1.0f;
-					float nx = (dx / aDist) * sx * 5.3f + p->mPixelX;
-					if (nx <= tx)
-						nx = tx;
-					p->mPixelX = nx;
-					if (ty != p->mPixelY)
+					int sx = ((double) aTargetX < p->mPixelX) ? -1 : 1;
+					int sy = ((float) aTargetY < p->mPixelY) ? -1 : 1;
+					double nx = (dx / aDist) * sx * 5.3 + p->mPixelX;
+					if (!(nx > (double) aTargetX))          // x87: a NaN counts as not above
+						nx = (double) aTargetX;
+					p->mPixelX = (float) nx;
+					if ((float) aTargetY != p->mPixelY)
 					{
-						float ny = (dy / aDist) * sy * 5.3f + p->mPixelY;
+						double ny = (dy / aDist) * sy * 5.3 + p->mPixelY;
 						if (sy < 0)
 						{
-							if (ty >= ny)
-								ny = ty;
+							if (!(ny > (double) aTargetY))
+								ny = (double) aTargetY;
 						}
-						else if (ty <= ny)
-							ny = ty;
-						p->mPixelY = ny;
+						else if ((double) aTargetY <= ny)
+							ny = (double) aTargetY;
+						p->mPixelY = (float) ny;
 					}
-					if ((nx == 0.0f) || (p->mPixelY == 0.0f))
+					if ((nx == 0.0) || (nx != nx) || (p->mPixelY == 0.0f) || (p->mPixelY != p->mPixelY))
 					{
 						p->mRemoved = false;
 						p->mType = PIECE_EMPTY;
