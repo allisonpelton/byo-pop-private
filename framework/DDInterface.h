@@ -97,7 +97,9 @@ public:
 	// an image of the destination's size, cached and drawn unscaled. Mirrored stretches, and a stretch that is not a
 	// MemoryImage, keep SDL's filtering; so do rotations, transforms and every other draw. A clipped stretch is
 	// stretched whole and clipped as it is drawn, where the original stretched only the clipped part (the same pixels
-	// but for rounding at the clip's edge).
+	// but for rounding at the clip's edge). A fast stretch whose source rectangle is not inside the image keeps SDL's. A
+	// destination of fractional width or height is cut to whole pixels. A copy is remade only when its source's
+	// mBitsChangedCount changes, so a source whose pixels change without BitsChanged keeps an old copy.
 	bool mSoftwareStretch;
 
 	// The software transforms (off by default; set with mSoftwareStretch by a game whose original drew its screen in
@@ -120,7 +122,8 @@ public:
 	MemoryImage* GetTransformCopy(int theWidth, int theHeight);
 
 protected:
-	// The stretched copies: at most kStretchCacheSize, the least recently drawn going first. An entry holds its source's
+	// The stretched copies: at most kStretchCacheSize and kCopyCacheBytes of pixels (the transform copies have their own
+	// kCopyCacheBytes; each copy's texture takes as much again), the least recently drawn going first. An entry holds its source's
 	// mBitsChangedCount and is remade when that changes; RemoveImageData drops a source's entries, so a deleted image
 	// whose address is reused never finds an old copy.
 	struct StretchCopyEntry
@@ -135,6 +138,7 @@ protected:
 	};
 	enum { kStretchCacheSize = 64 };
 	enum { kTransformCacheSize = 32 };
+	enum { kCopyCacheBytes = 64 * 1024 * 1024 };
 	struct TransformCopyEntry
 	{
 		MemoryImage* mCopy;

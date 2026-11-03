@@ -790,6 +790,11 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 	if ((theWidth <= 0) || (theHeight <= 0) || (theSrcRect.mWidth <= 0) || (theSrcRect.mHeight <= 0) ||
 		((long long) theWidth * theHeight > 2048 * 2048))
 		return NULL;
+	// the fast stretch samples the source unchecked, so a rectangle not inside the image keeps SDL's (the averaging
+	// stretch clamps its reads)
+	if (fast && ((theSrcRect.mX < 0) || (theSrcRect.mY < 0) || (theSrcRect.mX + theSrcRect.mWidth > theSource->mWidth) ||
+		(theSrcRect.mY + theSrcRect.mHeight > theSource->mHeight)))
+		return NULL;
 	mStretchUse++;
 	StretchCopyEntry* anEntry = NULL;
 	for (StretchCopyEntry& e : mStretchCopies)
@@ -803,7 +808,10 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 	}
 	if (anEntry == NULL)
 	{
-		if (mStretchCopies.size() >= kStretchCacheSize)
+		long long aBytes = (long long) theWidth * theHeight * 4;
+		for (const StretchCopyEntry& e : mStretchCopies)
+			aBytes += (long long) e.mWidth * e.mHeight * 4;
+		while ((mStretchCopies.size() >= kStretchCacheSize) || ((aBytes > kCopyCacheBytes) && !mStretchCopies.empty()))
 		{
 			size_t anOldest = 0;
 			for (size_t i = 1; i < mStretchCopies.size(); i++)
@@ -812,6 +820,7 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 					anOldest = i;
 			}
 			MemoryImage* aCopy = mStretchCopies[anOldest].mCopy;
+			aBytes -= (long long) mStretchCopies[anOldest].mWidth * mStretchCopies[anOldest].mHeight * 4;
 			mStretchCopies.erase(mStretchCopies.begin() + anOldest);
 			delete aCopy;
 		}
@@ -885,7 +894,10 @@ MemoryImage* DDInterface::GetTransformCopy(int theWidth, int theHeight)
 			return e.mCopy;
 		}
 	}
-	if (mTransformCopies.size() >= kTransformCacheSize)
+	long long aBytes = (long long) aWidth * aHeight * 4;
+	for (const TransformCopyEntry& e : mTransformCopies)
+		aBytes += (long long) e.mCopy->mWidth * e.mCopy->mHeight * 4;
+	while ((mTransformCopies.size() >= kTransformCacheSize) || ((aBytes > kCopyCacheBytes) && !mTransformCopies.empty()))
 	{
 		size_t anOldest = 0;
 		for (size_t i = 1; i < mTransformCopies.size(); i++)
@@ -894,6 +906,7 @@ MemoryImage* DDInterface::GetTransformCopy(int theWidth, int theHeight)
 				anOldest = i;
 		}
 		MemoryImage* aCopy = mTransformCopies[anOldest].mCopy;
+		aBytes -= (long long) aCopy->mWidth * aCopy->mHeight * 4;
 		mTransformCopies.erase(mTransformCopies.begin() + anOldest);
 		delete aCopy;
 	}
