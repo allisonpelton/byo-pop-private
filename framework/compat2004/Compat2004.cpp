@@ -16,6 +16,11 @@ void Sexy::CrtSRand(unsigned int theSeed)
 	gCrtHoldRand = theSeed;
 }
 
+unsigned int Sexy::CrtRandState()
+{
+	return gCrtHoldRand;
+}
+
 int Sexy::CrtRand()
 {
 	gCrtHoldRand = gCrtHoldRand * 214013u + 2531011u;

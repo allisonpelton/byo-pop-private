@@ -25,6 +25,7 @@ class Graphics;
 // runs). The host's rand() differs on Emscripten, so the ports never call it.
 void	CrtSRand(unsigned int theSeed);
 int		CrtRand();
+unsigned int	CrtRandState();	// the generator's state word (test logs compare it with the original's)
 
 // The 2004 (SAF 1.2) MTRand::SRand(seed): mt[0] = seed (4357 for 0), mt[i] = mt[i-1] * 69069, next draw
 // regenerates the block. The port's MTRand(seed)/SRand(seed) use 1.3's initialisation, which gives other
