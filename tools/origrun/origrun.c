@@ -1480,6 +1480,11 @@ static void exec_at(const char* inner)
 	if (ieq(cmd,"click")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,0); }
 	else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,1); }
 	else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hw,parse_vk(v)); }
+	else if (ieq(cmd,"kdown")||ieq(cmd,"kup")){   // one key edge, so that a game that polls its key state sees the key down for the updates between (a down and up read in one update are lost)
+		char v[32]; if(sscanf(rest,"%31s",v)==1){ int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
+			if (ieq(cmd,"kdown")) PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16)));
+			else PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); }
+	}
 	else if (ieq(cmd,"text")){ post_text(hw,rest); }
 	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); } }
 	else if (ieq(cmd,"focus")){ post_focus(hw, ieq(rest,"regain")); }

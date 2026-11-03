@@ -17,18 +17,10 @@ TABLES = [
     ("kMummyFightX", 0x48d36c, 4 * 255),       # mummy fight/dance frames: x offset in cells, 255 frames per kind
     ("kExplorerIdleX", 0x48e35c, 4 * 255),     # the explorer's idle animations: x offset in cells per frame
     ("kTutorialMove", 0x48f34c, 67),           # per tutorial step: the one move that is allowed (0 N, 1 W, 2 E, 3 S, 4 wait), 5..7 text only
-    ("kAdventureMaze", 0x48f458, 225),         # per pyramid and chamber (15 x 15): the maze file number
-    ("kAdventureLevel", 0x48f7dc, 225),        # per pyramid and chamber: the maze number in the file, minus 1
-    ("kExcluded", 0x48fb60, 2 * 481),  # (file, maze) pairs a classic game never picks, after a leading word
-    ("kExcludedResume", 0x492708, 2 * 483),    # (file, maze) pairs that LoadClassic (0x41c600) skips when it picks the next chamber of a saved game
     ("kMummyIdleCount", 0x494968, 1),
     ("kMummyIdleLen", 0x49496c, 4),
     ("kExplorerIdleCount", 0x495250, 1),
     ("kExplorerIdleLen", 0x495254, 4),
-    ("kMapPos", 0x481b44, 30),                 # the world map: where each of the 15 pyramids is (x, y pairs)
-    ("kMapLinks", 0x481bbc, 225),              # the world map: 15 x 15, 1 where a path joins two pyramids
-    ("kMapEdge", 0x481f40, 225),               # the world map: 15 x 15, the number of the path between two pyramids (negative: walked backwards)
-    ("kMapWay", 0x4822c4, 252),                # the world map: six waypoints (x, y) per path, path numbers 1 to 19 (path n starts at pair 6n)
     ("kRankScore", 0x491f98, 22),              # the points at which a classic game's rank rises
 ]
 
