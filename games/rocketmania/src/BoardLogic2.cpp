@@ -978,9 +978,11 @@ void Board::SmoothFraction()
 	}
 }
 
-// 0x426620: the night runs out (classic mode) and its warnings
+// 0x426620: the night runs out (classic mode only: the original tests app+0x530 == 1 first) and its warnings
 void Board::NightTimer()
 {
+	if (mApp->mMode != 1)
+		return;
 	if (mState != 0)
 		return;
 	if (m4bc < 1)

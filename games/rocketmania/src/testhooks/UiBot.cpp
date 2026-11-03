@@ -200,6 +200,26 @@ void StateLog::Update()
 			fprintf(mFile, "%d %s %s\n", mApp->mUpdateCount, aName, aBuffer);
 		}
 	}
+	// more of the board's values, for the runs that look at one thing (tools/identical/values_more.txt)
+	for (int i = 0; i < 3; i++)
+	{
+		if (aBoard == NULL)
+			snprintf(aBuffer, sizeof(aBuffer), "-");
+		else
+			snprintf(aBuffer, sizeof(aBuffer), "%d", i == 0 ? aBoard->m108 : i == 1 ? aBoard->m380 : (int) aBoard->mObjects.size());
+		if (!mStarted || mLast[144 + i] != aBuffer)
+		{
+			mLast[144 + i] = aBuffer;
+			fprintf(mFile, "%d %s %s\n", mApp->mUpdateCount, i == 0 ? "m108" : i == 1 ? "m380" : "objs", aBuffer);
+		}
+	}
+	if (aBoard != NULL && getenv("RM_DUMP") != NULL && mApp->mUpdateCount >= 308195 && mApp->mUpdateCount <= 308240)
+	{
+		fprintf(stderr, "DUMP %d kind %d night %f rate %f:", mApp->mUpdateCount, aBoard->m460, aBoard->m310, aBoard->m320);
+		for (std::list<Piece*>::iterator anItr = aBoard->mObjects.begin(); anItr != aBoard->mObjects.end(); ++anItr)
+			fprintf(stderr, " (%d,%d,%d)", (*anItr)->mType, (*anItr)->mKind, (int) (*anItr)->m60);
+		fprintf(stderr, "\n");
+	}
 	mStarted = true;
 	fflush(mFile);
 }
