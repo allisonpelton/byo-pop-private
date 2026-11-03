@@ -1030,7 +1030,7 @@ TipTop moves its focus with Tab and Shift+Tab. No game uses **F6**, which in bro
 regions, so F6 takes the focus from the canvas to the next control on the page (the chat, the footer link, or the open panel) and Shift+F6 to the one
 before it (the Fullscreen button), as Tab and Shift+Tab would; the game never sees either key. The chat does the same: F6 typed in it moves the focus
 on, to the control after the chat, and Shift+F6 to the one before it, and nothing typed in it reaches the game, which takes keys only from its canvas. The canvas is named "<game>, game" (`role="application"`,
-so that a screen reader passes its keys on) and described by "Keys go to the game. F6 moves on to the next control, Shift+F6 to the one before.",
+so that a screen reader passes its keys on) and described by "The game now has your keyboard. To leave it, press F6 (or Shift+F6 to go back).",
 which is also shown on the stage while the keyboard has put the focus there, until the first key goes to the game. Keys held when the focus leaves
 the canvas are let go in the game (a keyup is sent for each), as SDL only does that when the whole window loses the focus. F2 is the game's key to
 open its mod menu: typed on the bar, or with nothing focused, it is passed on to the canvas, and typed in a panel it closes the panel, as before.
@@ -1073,6 +1073,33 @@ Given a folder it checks only the site's own pages, and takes the list from the 
 game page that `index.html` has a tile for (the tiles are made from `BYOPOP_WEB_FINISHED` by `byopop_web_index()`, so the checker reads their
 `href`s), and the copyright page each of those game pages links to. A build folder also holds test pages (`fwtest.html`, `smoke.html`), which
 are not part of the site and are not checked; naming a file checks it anyway.
+
+## The site's text
+
+The user, 2026-11-03: "At the very least, I'd like to be able to edit a single file to rewrite the prose on the site to be more
+human instead of asking you to change individual labels." Every word the site shows is in `web/strings/en.txt`, one
+`key = text` a line (its header says how to write one: lines that go on, `{name}` fills, the `a | b` forms of a count, and the
+`_html` keys that hold markup). The terms (`web/terms.html`) and the licences are not in it: they stay as written. Neither are
+each game's own paragraphs in `games/<game>/web/page.js` (`importHtml`, `modsIntro`), which belong to the game sessions, nor
+what the games themselves draw.
+
+The build reads the file once (`byopop_web_strings_load()` in `cmake/ByopopWeb.cmake`). The pages' markup has `{{key}}`
+markers, which `byopop_web_fill()` replaces with the string, HTML-escaped unless its key ends in `_html`; the game pages and
+their copyright pages fill `{title}` with the game's title. The prose the build writes itself (the buy line with its date, the
+listing's store links and "Coming soon", the Steam steps) comes through `byopop_web_string()`. Text that the scripts write
+comes from `strings.js`, which the build writes and every page loads first in its `<head>`: the strings as `BYOPOP_STRINGS`,
+then `web/i18n.js`, whose `ByopopStrings.t(key, vars)` fills `{name}` from vars and picks a count's form by `vars.n` with the
+page language's plural rules (`Intl.PluralRules`; the forms in the order zero, one, two, few, many, other, leaving out those
+the language lacks), and `ByopopStrings.html()` does the same for innerHTML with its vars escaped. A key that a page or the
+build asks for and the file lacks stops the build; one a script asks for and the file lacks shows as the key itself, with a
+note in the console. `tools/stringstest.js` (in `unit-web`) checks that every key used is in the file and that every key in
+the file is used; the Node tests load `build/web/strings.js` (`tools/stringsload.js`) before the site's scripts.
+
+Translations are not made yet. The plan (the user, the same day: "could at least have LLM translations for languages that
+PopCap games have been released in"): a copy of the file for each language (`de.txt` and so on, the same keys), from which
+the build makes a set of pages for that language (`index.de.html`, `bejeweled.de.html`) with `<html lang>` set, so that a
+page is drawn in its language from the start; a language menu beside the theme button, and the browser's language on a first
+visit. The languages of PopCap's releases on Steam are French, German, Italian and Spanish (Gyromancer also Japanese).
 
 ## Steam on a Mac or Linux
 

@@ -87,38 +87,38 @@ var ByopopProfiles = (function () {
   // Adds a player (the first one is the current one). {ok, profile} or {ok: false, error}
   function add(name) {
     var n = clean(name), o = load();
-    if (!n) return failure("Type a name for the player.");
+    if (!n) return failure(ByopopStrings.t("profiles.err.name_add"));
     var same = find(n);
-    if (same) return failure("There is already a player called “" + same.name + "”.");
+    if (same) return failure(ByopopStrings.t("profiles.err.exists_add", {name: same.name}));
     var p = { id: newId(o), name: n };
     o.profiles.push(p);
     if (!o.current) o.current = p.id;
-    return save(o) ? { ok: true, profile: p } : failure("This browser would not keep the player (its storage is blocked or full).");
+    return save(o) ? { ok: true, profile: p } : failure(ByopopStrings.t("profiles.err.keep_add"));
   }
   function rename(id, name) {
     var n = clean(name), o = load();
-    if (!n) return failure("Type a name for the player.");
+    if (!n) return failure(ByopopStrings.t("profiles.err.name_rename"));
     var target = null;
     o.profiles.forEach(function (p) { if (p.id === id) target = p; });
-    if (!target) return failure("That player is gone.");
+    if (!target) return failure(ByopopStrings.t("profiles.err.gone_rename"));
     var same = find(n);
-    if (same && same.id !== id) return failure("There is already a player called “" + same.name + "”.");
+    if (same && same.id !== id) return failure(ByopopStrings.t("profiles.err.exists_rename", {name: same.name}));
     target.name = n;
-    return save(o) ? { ok: true, profile: target } : failure("This browser would not keep the player (its storage is blocked or full).");
+    return save(o) ? { ok: true, profile: target } : failure(ByopopStrings.t("profiles.err.keep_rename"));
   }
   // Removes the site's player (the games' players stay); the current one falls to the first that is left
   function remove(id) {
     var o = load(), before = o.profiles.length;
     o.profiles = o.profiles.filter(function (p) { return p.id !== id; });
-    if (o.profiles.length === before) return failure("That player is gone.");
+    if (o.profiles.length === before) return failure(ByopopStrings.t("profiles.err.gone_remove"));
     if (o.current === id) o.current = o.profiles.length ? o.profiles[0].id : "";
-    return save(o) ? { ok: true } : failure("This browser would not keep the change.");
+    return save(o) ? { ok: true } : failure(ByopopStrings.t("profiles.err.keep_remove"));
   }
   function setCurrent(id) {
     var o = load();
-    if (id && !o.profiles.some(function (p) { return p.id === id; })) return failure("That player is gone.");
+    if (id && !o.profiles.some(function (p) { return p.id === id; })) return failure(ByopopStrings.t("profiles.err.gone_current"));
     o.current = id || "";
-    return save(o) ? { ok: true } : failure("This browser would not keep the change.");
+    return save(o) ? { ok: true } : failure(ByopopStrings.t("profiles.err.keep_current"));
   }
 
   // ---------- what the games report ----------

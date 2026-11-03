@@ -166,34 +166,34 @@ var ByopopSettings = (function () {
   // What the player sees, in the order it is shown. start: the setting is applied when a game starts, and a game that
   // is running keeps what it started with (the panel in a game's page says so). kind "volume": the starting volume's three
   // settings in one row (a switch, with a "?" that explains it, and two sliders).
-  var GAME_DEFAULT = "Game default";
+  var T = ByopopStrings.t;
+  var GAME_DEFAULT = T("settings.game_default");
   var FIELDS = [
-    { group: "Players" },
-    { name: "profile", label: "Player names", options: [["game", GAME_DEFAULT], ["fill", "Fill in the name"], ["create", "Use the player"]], start: true,
-      hint: "Fill in the name: name boxes start with your player’s name. Use the player: games also make your player and choose it." },
-    { group: "Sound" },
-    { name: "startVolume", kind: "volume", label: "Set the starting volume",
-      hint: "Every game starts at the music and sound volumes you choose.",
-      help: "Most games start with music and sound on, so a game can be loud before you can reach its options. This sets the " +
-        "volume every game starts at, 0 for silence. You can still change it in the game." },
-    { group: "Display" },
-    { name: "fullscreen", label: "Full screen at start", options: [["game", GAME_DEFAULT], ["on", "Full screen"], ["off", "Windowed"]], start: true,
-      hint: "Full screen fills the screen when you press Play." },
-    { name: "cursors", label: "Custom cursors", options: [["game", GAME_DEFAULT], ["on", "When available"], ["off", "Never"]],
-      hint: "The game’s own mouse pointer, or your usual one." },
-    { group: "Page" },
-    { name: "autoStart", label: "Start the game when its page opens",
-      hint: "When your browser lets the page play sound without a click, and not with Full screen at start. Otherwise the page waits for Play." },
-    { name: "wakeLock", label: "Keep the screen awake while a game runs",
-      hint: "Stops the screen dimming or locking. Some browsers don’t allow it." },
-    { name: "confirmLeave", label: "Ask before leaving a page while a game runs",
-      hint: "So a stray click doesn’t end your game." },
-    { name: "pauseHidden", label: "Pause when the tab is hidden",
-      hint: "Stops the game and its sound on another tab. The original games keep running." },
-    { name: "quitHome", label: "Go back to the games after quitting",
-      hint: "Instead of offering Play again." },
-    { name: "showChat", label: "Show chat",
-      hint: "For now a test: the messages are made up and stay in this browser." }
+    { group: T("settings.group.players") },
+    { name: "profile", label: T("settings.profile.label"), options: [["game", GAME_DEFAULT], ["fill", T("settings.profile.fill")], ["create", T("settings.profile.create")]], start: true,
+      hint: T("settings.profile.hint") },
+    { group: T("settings.group.sound") },
+    { name: "startVolume", kind: "volume", label: T("settings.startvolume.label"),
+      hint: T("settings.startvolume.hint"),
+      help: T("settings.startvolume.help") },
+    { group: T("settings.group.display") },
+    { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
+      hint: T("settings.fullscreen.hint") },
+    { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],
+      hint: T("settings.cursors.hint") },
+    { group: T("settings.group.page") },
+    { name: "autoStart", label: T("settings.autostart.label"),
+      hint: T("settings.autostart.hint") },
+    { name: "wakeLock", label: T("settings.wakelock.label"),
+      hint: T("settings.wakelock.hint") },
+    { name: "confirmLeave", label: T("settings.confirmleave.label"),
+      hint: T("settings.confirmleave.hint") },
+    { name: "pauseHidden", label: T("settings.pausehidden.label"),
+      hint: T("settings.pausehidden.hint") },
+    { name: "quitHome", label: T("settings.quithome.label"),
+      hint: T("settings.quithome.hint") },
+    { name: "showChat", label: T("settings.showchat.label"),
+      hint: T("settings.showchat.hint") }
   ];
   var STYLE =
     ".bps { display: grid; gap: 8px; }\n" +
@@ -255,14 +255,14 @@ var ByopopSettings = (function () {
       for (var i = 0; i < f.options.length; i++) if (f.options[i][0] === value) return f.options[i][1];
       return String(value);
     }
-    return value === "on" ? "On" : "Off";
+    return T(value === "on" ? "settings.on" : "settings.off");
   }
   // the starting volume in words: for a game (its own, else the site's), or the site-wide one
   function volumeWords(gameId) {
     var on = gameId ? get("startVolume", gameId) : globalValue("startVolume");
     if (on !== "on") return GAME_DEFAULT;
-    return "Music " + (gameId ? get("startMusic", gameId) : globalValue("startMusic")) + ", Sound " +
-      (gameId ? get("startSound", gameId) : globalValue("startSound"));
+    return T("settings.volume_words", { music: gameId ? get("startMusic", gameId) : globalValue("startMusic"),
+      sound: gameId ? get("startSound", gameId) : globalValue("startSound") });
   }
 
   // The "?" button and the explanation it shows (WCAG 1.4.13): a real button, aria-expanded and aria-controls, and the
@@ -323,8 +323,7 @@ var ByopopSettings = (function () {
     }
     container.textContent = "";
     container.classList.add("bps");
-    container.appendChild(make("p", "bps-about", "For every game. " + GAME_DEFAULT + " leaves a game as it is." +
-      (opts.live ? "" : " A game’s own page can set them for that game alone.")));
+    container.appendChild(make("p", "bps-about", T(opts.live ? "settings.about_live" : "settings.about", { default: GAME_DEFAULT })));
     var controls = {};
     var msg = make("p", "bps-msg");
     msg.setAttribute("role", "status");
@@ -353,9 +352,9 @@ var ByopopSettings = (function () {
     var scopeNote = null;
     if (gameId) {
       var fs = make("fieldset", "bps-scope");
-      fs.appendChild(make("legend", "", "Change the settings for"));
+      fs.appendChild(make("legend", "", T("settings.scope.legend")));
       var scopeName = "bps-scope-" + (++idCount);
-      [["all", "All games (site-wide)"], ["game", "This game only"]].forEach(function (s) {
+      [["all", T("settings.scope.all")], ["game", T("settings.scope.game")]].forEach(function (s) {
         var label = make("label"), radio = make("input");
         radio.type = "radio"; radio.name = scopeName; radio.value = s[0]; radio.checked = s[0] === "all";
         radio.addEventListener("change", function () { if (radio.checked) { scope = s[0]; refresh(); } });
@@ -377,7 +376,7 @@ var ByopopSettings = (function () {
         c.select.hidden = false;
         if (c.checkbox) c.checkbox.hidden = true;
         // the first option says what "same as all games" means now
-        c.select.options[0].textContent = "Same as all games (" + words(f, inherited) + ")";
+        c.select.options[0].textContent = T("settings.inherit", { value: words(f, inherited) });
         c.select.options[0].hidden = c.select.options[0].disabled = false;
         c.select.value = own === null ? "inherit" : own;
       } else if (f.options) {
@@ -391,7 +390,7 @@ var ByopopSettings = (function () {
         c.checkbox.checked = inherited === "on";
       }
       // in the all-games view, say that this game has a value of its own
-      if (c.own) c.own.textContent = (scope === "all" && own !== null) ? "This game has its own: " + words(f, own) + "." : "";
+      if (c.own) c.own.textContent = (scope === "all" && own !== null) ? T("settings.own", { value: words(f, own) }) : "";
     }
     // the starting volume: a switch in the all-games view, a choice in this game's own; the sliders show with it on
     function showVolume(c) {
@@ -399,7 +398,7 @@ var ByopopSettings = (function () {
       var gameScope = scope === "game", on, music, sound;
       if (gameScope) {
         c.select.hidden = false; c.checkbox.hidden = true;
-        c.select.options[0].textContent = "Same as all games (" + volumeWords(null) + ")";
+        c.select.options[0].textContent = T("settings.inherit", { value: volumeWords(null) });
         c.select.value = own === null ? "inherit" : own;
         c.label.htmlFor = c.select.id;
         on = own === "on";
@@ -414,7 +413,7 @@ var ByopopSettings = (function () {
       c.group.hidden = !on;
       c.levels.startMusic.range.value = c.levels.startMusic.number.value = music;
       c.levels.startSound.range.value = c.levels.startSound.number.value = sound;
-      if (c.own) c.own.textContent = (scope === "all" && own !== null) ? "This game has its own: " + volumeWords(gameId) + "." : "";
+      if (c.own) c.own.textContent = (scope === "all" && own !== null) ? T("settings.own", { value: volumeWords(gameId) }) : "";
     }
     // the control the player used for a setting: the one that is showing
     function usedControl(c) {
@@ -424,10 +423,10 @@ var ByopopSettings = (function () {
     // after a write: say so, tell the page, and show what is kept (a level is rounded, a bad one is not stored)
     function saved(name, ok, control) {
       if (ok) {
-        say("Saved.", false);
+        say(T("settings.saved"), false);
         if (opts.onChange) { try { opts.onChange(name, get(name, gameId || undefined)); } catch (e) {} }
       } else {
-        say("This browser would not keep the setting (a level is 0 to 100, or its storage is blocked).", true, control);
+        say(T("settings.save_error"), true, control);
       }
       show(ownerOf(name));
     }
@@ -447,7 +446,7 @@ var ByopopSettings = (function () {
       c.label = make("label", "", f.label);
       var help = make("button", "bps-help", "?");
       help.type = "button";
-      help.setAttribute("aria-label", "What is “" + f.label + "” for?");
+      help.setAttribute("aria-label", T("settings.help_label", { label: f.label }));
       help.setAttribute("aria-expanded", "false");
       help.setAttribute("aria-controls", popId);
       var line = make("div", "bps-labline");
@@ -471,8 +470,8 @@ var ByopopSettings = (function () {
       ctl.appendChild(c.select);
       // the two sliders, each with the number it stands for (the number can also be typed)
       c.group = make("fieldset", "bps-levels");
-      c.group.appendChild(make("legend", "bps-sr", "Starting volumes, 0 to 100"));
-      [["startMusic", "Music"], ["startSound", "Sound"]].forEach(function (L) {
+      c.group.appendChild(make("legend", "bps-sr", T("settings.vol.legend")));
+      [["startMusic", T("settings.vol.music")], ["startSound", T("settings.vol.sound")]].forEach(function (L) {
         var lid = id + "-" + L[0], item = make("div", "bps-level");
         var lab = make("label", "", L[1]);
         lab.htmlFor = lid;
@@ -480,7 +479,7 @@ var ByopopSettings = (function () {
         range.type = "range"; range.min = "0"; range.max = "100"; range.step = "1"; range.id = lid;
         var num = make("input");
         num.type = "number"; num.min = "0"; num.max = "100"; num.step = "1";
-        num.setAttribute("aria-label", L[1] + " volume, 0 to 100");
+        num.setAttribute("aria-label", T("settings.vol.level", { name: L[1] }));
         [range, num].forEach(function (e) { e.setAttribute("aria-describedby", hint.id); e.setAttribute("data-setting", L[0]); });
         // dragging only shows the number; the level is kept (and given to a running game) when the slider is let go, or a key moves it
         range.addEventListener("input", function () { num.value = range.value; });
@@ -531,7 +530,7 @@ var ByopopSettings = (function () {
       if (f.options) {
         f.options.forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
       } else {
-        [["on", "On"], ["off", "Off"]].forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
+        [["on", T("settings.on")], ["off", T("settings.off")]].forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
       }
       c.select.setAttribute("data-setting", f.name);
       ctl.appendChild(c.select);
@@ -545,7 +544,7 @@ var ByopopSettings = (function () {
         // where the checkbox takes its place), so the label always names a control the player can reach
         c.select.removeAttribute("id"); c.checkbox.id = id; c.select.setAttribute("aria-label", f.label);
       }
-      if (f.start && opts.live) hint.appendChild(make("span", "bps-start", "Applies the next time the game starts."));
+      if (f.start && opts.live) hint.appendChild(make("span", "bps-start", T("settings.applies_next")));
       if (gameId) { c.own = make("span", "bps-own"); hint.appendChild(c.own); }
       controls[f.name] = c;
       [c.select, c.checkbox].forEach(function (e) { if (e) e.setAttribute("aria-describedby", hint.id); });
@@ -563,11 +562,11 @@ var ByopopSettings = (function () {
         note.setAttribute("data-player-note", "1");
         note.appendChild(make("span", "bps-note-text"));
         note.appendChild(document.createTextNode(" "));
-        var link = make("a", "", "Manage players");
+        var link = make("a", "", T("settings.manage_players"));
         link.href = "./#players";
         link.target = "_blank";
         link.rel = "noopener";
-        link.appendChild(make("span", "bps-sr", " (opens in a new tab)"));
+        link.appendChild(make("span", "bps-sr", " " + T("site.new_tab")));
         note.appendChild(link);
         row.appendChild(note);
         c.note = note;
@@ -584,8 +583,8 @@ var ByopopSettings = (function () {
       if (scopeNote) {
         var n = ownCount();
         scopeNote.textContent = scope === "game"
-          ? "These values are for " + (opts.gameName || "this game") + " only. “Same as all games” follows the site-wide value."
-          : (n ? "This game has its own value for " + n + " setting" + (n > 1 ? "s; they are" : "; it is") + " marked below." : "");
+          ? T("settings.scope.game_note", { name: opts.gameName || T("settings.scope.this_game") })
+          : (n ? T("settings.scope.own_note", { n: n }) : "");
       }
       if (opts.playerNote && controls.profile && controls.profile.note) {
         try { controls.profile.note.firstChild.textContent = opts.playerNote() || ""; } catch (e) {}
@@ -744,8 +743,8 @@ var ByopopPlay = (function () {
   // "3 h 20 min", "12 min", "under a minute"
   function duration(seconds) {
     var m = Math.floor(count(seconds) / 60), h = Math.floor(m / 60);
-    if (h > 0) return h + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
-    return m > 0 ? m + " min" : "under a minute";
+    if (h > 0) return m % 60 ? ByopopStrings.t("time.hours_minutes", { h: h, m: m % 60 }) : ByopopStrings.t("time.hours", { h: h });
+    return m > 0 ? ByopopStrings.t("time.minutes", { m: m }) : ByopopStrings.t("time.under_minute");
   }
   return { KEY: KEY, all: all, started: started, played: played, duration: duration, today: today };
 })();

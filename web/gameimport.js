@@ -236,8 +236,8 @@ var ByopopImport = (function () {
     return new Promise(function (resolve, reject) {
       var r;
       try { r = indexedDB.open(persist, DB_VERSION); } catch (e) { reject(e); return; }
-      r.onerror = function () { reject(r.error || new Error("The browser would not open the game's storage.")); };
-      r.onblocked = function () { reject(new Error("The game's storage is in use. Close the game's page and try again.")); };
+      r.onerror = function () { reject(r.error || new Error(ByopopStrings.t("import.err.open"))); };
+      r.onblocked = function () { reject(new Error(ByopopStrings.t("import.err.busy"))); };
       r.onupgradeneeded = function (ev) {
         var db = ev.target.result, store = db.objectStoreNames.contains(DB_STORE) ? ev.target.transaction.objectStore(DB_STORE) : db.createObjectStore(DB_STORE);
         if (!store.indexNames.contains("timestamp")) store.createIndex("timestamp", "timestamp", { unique: false });
@@ -248,7 +248,7 @@ var ByopopImport = (function () {
   function done(tx) {
     return new Promise(function (resolve, reject) {
       tx.oncomplete = function () { resolve(); };
-      tx.onerror = tx.onabort = function () { reject(tx.error || new Error("The browser would not keep the files.")); };
+      tx.onerror = tx.onabort = function () { reject(tx.error || new Error(ByopopStrings.t("import.err.keep"))); };
     });
   }
   // Replaces the game folder (persist + "/game") with files [{rel, read}], reading and writing about 32 MB at a time.
@@ -328,13 +328,11 @@ var ByopopImport = (function () {
   function withLock(lock, title, fn) {
     if (!lock) return fn();
     if (!(navigator.locks && navigator.locks.request))
-      return Promise.reject(new Error("This browser can't tell whether " + title + "'s page is open, so its files can't be changed " +
-        "from here. Open the game's page and use its Game files panel."));
+      return Promise.reject(new Error(ByopopStrings.t("import.err.no_locks", {title: title})));
     return new Promise(function (resolve, reject) {
       navigator.locks.request(lock, { ifAvailable: true }, function (held) {
         if (!held) {
-          reject(new Error(mine[lock] ? "This page is still working on " + title + ". Wait for it to finish and try again."
-            : title + "'s files are in use, by its page in another tab or window or by this page. Close the game's page, or wait, and try again."));
+          reject(new Error(ByopopStrings.t(mine[lock] ? "import.err.working" : "import.err.in_use", {title: title})));
           return null;
         }
         mine[lock] = true;
@@ -348,12 +346,12 @@ var ByopopImport = (function () {
   function addGame(g, entries, root, pak, safeRel, say) {
     var spec = g.spec;
     return withLock(spec.lock, g.title, function () {
-      return withPaks(spec, entries, root, pak, function () { if (say) say("Unpacking…"); }).then(function (all) {
+      return withPaks(spec, entries, root, pak, function () { if (say) say(ByopopStrings.t("import.say.unpacking")); }).then(function (all) {
         var files = pick(spec, all, root, safeRel);
         if (!hasMarkers(spec, files.map(function (f) { return f.rel; })))
-          throw new Error("That folder doesn't hold " + g.title + "'s " + spec.markerText + ".");
-        if (say) say("Copying " + files.length + " files…");
-        return writeGame(spec.persist, ordered(spec, files), function (n, total) { if (say) say("Copying… " + Math.round(n * 100 / total) + "%"); },
+          throw new Error(ByopopStrings.t("import.err.wrong_folder", {title: g.title, markers: spec.markerText}));
+        if (say) say(ByopopStrings.t("import.say.copying", {count: files.length}));
+        return writeGame(spec.persist, ordered(spec, files), function (n, total) { if (say) say(ByopopStrings.t("import.say.progress", {percent: Math.round(n * 100 / total)})); },
           function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} })  // the old copy is gone
           .then(function () { return icon(spec, all, root, files); })
           .then(function (url) {

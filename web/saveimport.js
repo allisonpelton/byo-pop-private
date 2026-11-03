@@ -116,7 +116,7 @@ var ByopopSaveImport = (function () {
   function parseReg(u8) {
     var text, unicode = false;
     if (u8.length >= 2 && u8[0] === 0xff && u8[1] === 0xfe) { text = utf16le(u8, 2, u8.length); unicode = true; }
-    else if (u8.length >= 2 && u8[0] === 0xfe && u8[1] === 0xff) return { ok: false, error: "This .reg file is in a byte order this page does not read." };
+    else if (u8.length >= 2 && u8[0] === 0xfe && u8[1] === 0xff) return { ok: false, error: ByopopStrings.t("saveimport.reg.byte_order") };
     else if (u8.length >= 3 && u8[0] === 0xef && u8[1] === 0xbb && u8[2] === 0xbf) text = new TextDecoder("utf-8").decode(u8.subarray(3));
     else text = fromAnsi(bytesToBinary(u8));
     var lines = text.split(/\r\n|\n|\r/);
@@ -124,7 +124,7 @@ var ByopopSaveImport = (function () {
     var version;
     if (/^Windows Registry Editor Version 5\.00$/i.test(first)) version = 5;
     else if (/^REGEDIT4$/i.test(first)) version = 4;
-    else return { ok: false, error: "This is not a .reg file (it does not start with “Windows Registry Editor Version 5.00” or “REGEDIT4”)." };
+    else return { ok: false, error: ByopopStrings.t("saveimport.reg.not_reg") };
     var wide = version === 5 || unicode;
     var events = [], key = null, bad = 0, i;
     // logical lines: a line that ends in a backslash goes on in the next one (hex values)
@@ -241,25 +241,26 @@ var ByopopSaveImport = (function () {
   // A value of the original in the port's form, for the table's type: {value: "dword:1", shown: "1"} or {skip: reason}
   function convert(v, type) {
     if (type === "sz") {
-      if (v.kind !== "sz" && v.kind !== "expand") return { skip: "stored by the original as " + kindName(v) + ", where the port reads text" };
+      if (v.kind !== "sz" && v.kind !== "expand") return { skip: ByopopStrings.t("saveimport.skip.not_text", {kind: kindName(v)}) };
       var a = toAnsi(v.text);
-      if (a === null) return { skip: "its text has characters that Windows-1252 (the games’ text) does not have" };
+      if (a === null) return { skip: ByopopStrings.t("saveimport.skip.charset") };
       var z = a.indexOf("\u0000");
       if (z >= 0) a = a.slice(0, z);
       return { value: "sz:" + escapeSz(a), shown: "“" + (a.length > 40 ? a.slice(0, 40) + "…" : a) + "”" };
     }
     if (type === "dword") {
-      if (v.kind !== "dword") return { skip: "stored by the original as " + kindName(v) + ", where the port reads a number" };
+      if (v.kind !== "dword") return { skip: ByopopStrings.t("saveimport.skip.not_number", {kind: kindName(v)}) };
       return { value: "dword:" + String(v.num | 0), shown: String(v.num | 0) };
     }
     if (type === "hex") {
-      if (v.kind !== "hex" && v.kind !== "multi") return { skip: "stored by the original as " + kindName(v) + ", where the port reads binary data" };
-      return { value: "hex:" + hex(v.bytes), shown: "binary data, " + v.bytes.length + " bytes" };
+      if (v.kind !== "hex" && v.kind !== "multi") return { skip: ByopopStrings.t("saveimport.skip.not_binary", {kind: kindName(v)}) };
+      return { value: "hex:" + hex(v.bytes), shown: ByopopStrings.t("saveimport.shown_binary", {n: v.bytes.length}) };
     }
-    return { skip: "unknown type in the table" };
+    return { skip: ByopopStrings.t("saveimport.skip.unknown_type") };
   }
   function kindName(v) {
-    return { sz: "text", expand: "text", dword: "a number", hex: "binary data", multi: "binary data", qword: "a 64-bit number", other: "a kind of value the port does not read" }[v.kind] || "another kind of value";
+    var key = { sz: "text", expand: "text", dword: "dword", hex: "binary", multi: "binary", qword: "qword", other: "other" }[v.kind] || "unknown";
+    return ByopopStrings.t("saveimport.kind." + key);
   }
 
   // The port's registry file (userdata/registry.ini): a string of one char per byte -> Map of lower-case full path -> {full, value}
@@ -314,7 +315,7 @@ var ByopopSaveImport = (function () {
       var e = merged[lk], v = e.v, rule = null, i;
       for (i = 0; i < reg.rules.length && !rule; i++) if (reg.rules[i].re.test(v.path)) rule = reg.rules[i];
       if (!rule) {
-        var why = "not a value the port keeps";
+        var why = ByopopStrings.t("saveimport.skip.not_kept");
         for (i = 0; i < reg.skips.length; i++) if (reg.skips[i].re.test(v.path)) { why = reg.skips[i].why; break; }
         skipped.push({ path: v.path, hive: e.hive, why: why });
         return;
@@ -331,8 +332,8 @@ var ByopopSaveImport = (function () {
   // Why the port's registry file could not hold a value of this name (it is a line "name=value" in a section), or null
   function badName(path) {
     var leaf = path.slice(path.lastIndexOf("\\") + 1);
-    if (/[\u0000-\u001f]/.test(path)) return "its name has a control character, which the port’s registry file cannot hold";
-    if (leaf.indexOf("=") >= 0 || leaf.charAt(0) === "[" || leaf.charAt(0) === ";") return "its name has a character the port’s registry file cannot hold";
+    if (/[\u0000-\u001f]/.test(path)) return ByopopStrings.t("saveimport.skip.name_control");
+    if (leaf.indexOf("=") >= 0 || leaf.charAt(0) === "[" || leaf.charAt(0) === ";") return ByopopStrings.t("saveimport.skip.name_char");
     return null;
   }
   // The registry file after the import
@@ -362,7 +363,7 @@ var ByopopSaveImport = (function () {
           if (!m) continue;
           matched = true;
           var to = fillTarget(rules.take[i].to, m.slice(1));
-          if (!safeRel(to)) { skipped.push({ rel: f.rel, why: "its path is not one the port can keep in its folder" }); continue; }
+          if (!safeRel(to)) { skipped.push({ rel: f.rel, why: ByopopStrings.t("saveimport.skip.path") }); continue; }
           take[lc(to)] = { to: to, from: f.rel, what: rules.take[i].what, folder: fi, size: f.size, read: f.read, m: f.m };
         }
         for (i = 0; i < rules.skip.length && !matched; i++) {
@@ -378,7 +379,7 @@ var ByopopSaveImport = (function () {
   }
 
   // ---------- what to tell the player to run ----------
-  var HIVE_NAMES = { vs: "the VirtualStore copy", hklm: "the machine’s key", hkcu: "the user’s key" };
+  var HIVE_NAMES = { vs: ByopopStrings.t("saveimport.hive.vs"), hklm: ByopopStrings.t("saveimport.hive.hklm"), hkcu: ByopopStrings.t("saveimport.hive.hkcu") };
   var HIVE_SUFFIX = { vs: "vs", hklm: "hklm", hkcu: "hkcu" };
   // The exact `reg export` command for a place of a game's key: reads only, and needs no administrator rights
   function exportCommand(id, regKey, hive) {
@@ -404,7 +405,8 @@ var ByopopSaveImport = (function () {
     if (text !== undefined && text !== null) e.textContent = text;
     return e;
   }
-  function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
+  // n things, in the count string key ("saveimport.n.file": "{n} file | {n} files")
+  function plural(n, key) { return ByopopStrings.t(key, {n: n}); }
   var uid = 0;
   function nextId(p) { return p + "-" + (++uid); }
 
@@ -416,15 +418,15 @@ var ByopopSaveImport = (function () {
     list.forEach(function (g) { byId[g.id] = g; });
     if (!list.length) return;
 
-    root.appendChild(make("h3", "", "Import from an installed game"));
-    root.appendChild(make("p", "pl-about", "Bring the saves, high scores and settings of a game installed on this computer. Nothing is uploaded or changed on your computer."));
+    root.appendChild(make("h3", "", ByopopStrings.t("saveimport.title")));
+    root.appendChild(make("p", "pl-about", ByopopStrings.t("saveimport.about")));
     var form = make("div", "pl-form");
     var selId = "si-game";
-    var selLabel = make("label", "", "Game to import from:");
+    var selLabel = make("label", "", ByopopStrings.t("saveimport.game_label"));
     selLabel.htmlFor = selId;
     var sel = make("select");
     sel.id = selId;
-    var first = make("option", "", "Choose a game…");
+    var first = make("option", "", ByopopStrings.t("saveimport.choose_game"));
     first.value = "";
     sel.appendChild(first);
     list.forEach(function (g) { var o = make("option", "", g.title); o.value = g.id; sel.appendChild(o); });
@@ -463,7 +465,7 @@ var ByopopSaveImport = (function () {
     });
 
     function copyText(text, what) {
-      function done(ok) { copyStatus.textContent = ok ? "Copied " + what + "." : "Could not copy; select the text and copy it."; }
+      function done(ok) { copyStatus.textContent = ByopopStrings.t(ok ? "saveimport.copied" : "saveimport.copy_failed", {what: what}); }
       // inside the click, the synchronous way first (it needs no permission); the clipboard API if that does not work
       var prev = document.activeElement, ta = make("textarea"), ok = false;
       ta.value = text; ta.setAttribute("readonly", ""); ta.setAttribute("aria-hidden", "true"); ta.style.position = "fixed"; ta.style.left = "-9999px";
@@ -484,75 +486,72 @@ var ByopopSaveImport = (function () {
       if (!chosen) { help.hidden = true; pickers.hidden = true; return; }
       var g = byId[chosen], e = gameEntry(chosen);
       help.hidden = false; pickers.hidden = false;
-      var h = make("h4", "", g.title + ": where the original keeps its saves");
+      var h = make("h4", "", ByopopStrings.t("saveimport.where", {title: g.title}));
       help.appendChild(h);
       if (e.note) help.appendChild(make("p", "", e.note));
       var step = 0;
       if (e.files && e.files.length) {
         step++;
-        help.appendChild(make("p", "si-step", "Step " + step + ". Find the folder with the save files."));
+        help.appendChild(make("p", "si-step", ByopopStrings.t("saveimport.step.files", {step: step})));
         var ul = make("ul", "sv-list");
         e.files.forEach(function (f) {
           var li = make("li");
           li.appendChild(make("code", "", f.from.replace(/\//g, "\\")));
-          li.appendChild(document.createTextNode(": " + f.what + "."));
+          li.appendChild(document.createTextNode(ByopopStrings.t("saveimport.file_what", {what: f.what})));
           ul.appendChild(li);
         });
         help.appendChild(ul);
-        help.appendChild(make("p", "", "These are paths inside the folder that holds them. Look in these places, and choose the folder in which the paths above are found:"));
+        help.appendChild(make("p", "", ByopopStrings.t("saveimport.places")));
         var places = make("ul", "sv-list");
-        function place(parts) { var li = make("li"); parts.forEach(function (p) { li.appendChild(typeof p === "string" ? document.createTextNode(p) : p); }); places.appendChild(li); }
-        place(["The game’s install folder: ", make("code", "", "C:\\Program Files (x86)\\PopCap Games\\" + e.folder), " or ", make("code", "", "C:\\Program Files\\PopCap Games\\" + e.folder),
-          ", or wherever you installed it."]);
-        if (e.steam) place(["A Steam install: ", make("code", "", "steamapps\\common\\" + e.steam), " in your Steam library (a Steam folder can be written to, so the saves are there)."]);
-        place(["An install in Program Files that was not run as administrator: Windows keeps the files the game wrote in a private copy, ", make("code", "", "%LOCALAPPDATA%\\VirtualStore\\Program Files (x86)\\PopCap Games\\" + e.folder),
-          " (or ", make("code", "", "...\\VirtualStore\\Program Files\\PopCap Games\\" + e.folder), "). Type %LOCALAPPDATA% in File Explorer’s address bar to get there. If that folder exists, choose it as the second folder below; its files are the ones the game used."]);
-        if (e.appdata) place(["A game that keeps its files for all users: ", make("code", "", "C:\\ProgramData\\PopCap Games\\" + e.appdata), " (ProgramData is hidden in File Explorer; type the path in the address bar)."]);
+        function place(html) { var li = make("li"); li.innerHTML = html; places.appendChild(li); }
+        place(ByopopStrings.html("saveimport.place.install_html", {folder: e.folder}));
+        if (e.steam) place(ByopopStrings.html("saveimport.place.steam_html", {steam: e.steam}));
+        place(ByopopStrings.html("saveimport.place.virtualstore_html", {folder: e.folder}));
+        if (e.appdata) place(ByopopStrings.html("saveimport.place.appdata_html", {appdata: e.appdata}));
         help.appendChild(places);
       }
       if (e.registry) {
         step++;
-        help.appendChild(make("p", "si-step", "Step " + step + ". Export the game’s settings and scores from the registry."));
-        help.appendChild(make("p", "", "Open a Command Prompt or PowerShell window in a folder you can write to (your Documents folder, for example) and run these commands. " +
-          "No administrator rights are needed, and they only read the registry: each writes a .reg file. A command that says the key was not found just means the game did not use that place."));
+        help.appendChild(make("p", "si-step", ByopopStrings.t("saveimport.step.registry", {step: step})));
+        help.appendChild(make("p", "", ByopopStrings.t("saveimport.registry.intro")));
         var cmds = commands(chosen), box2 = make("div", "si-cmds");
         cmds.forEach(function (c) {
           var row = make("div", "si-cmd");
           var pre = make("pre", "si-pre"), code = make("code", "", c.text);
           pre.appendChild(code);
-          var btn = make("button", "", "Copy");
+          var btn = make("button", "", ByopopStrings.t("saveimport.copy"));
           btn.type = "button";
-          btn.setAttribute("aria-label", "Copy the command for " + HIVE_NAMES[c.hive] + ", " + c.file);
-          btn.addEventListener("click", function () { copyText(c.text, "the command for " + HIVE_NAMES[c.hive]); });
+          btn.setAttribute("aria-label", ByopopStrings.t("saveimport.copy_label", {hive: HIVE_NAMES[c.hive], file: c.file}));
+          btn.addEventListener("click", function () { copyText(c.text, ByopopStrings.t("saveimport.copied_command", {hive: HIVE_NAMES[c.hive]})); });
           row.appendChild(pre); row.appendChild(btn);
           box2.appendChild(row);
         });
         help.appendChild(box2);
-        var all = make("button", "", "Copy all commands");
+        var all = make("button", "", ByopopStrings.t("saveimport.copy_all"));
         all.type = "button";
-        all.addEventListener("click", function () { copyText(cmds.map(function (c) { return c.text; }).join("\r\n"), "all " + cmds.length + " commands"); });
+        all.addEventListener("click", function () { copyText(cmds.map(function (c) { return c.text; }).join("\r\n"), ByopopStrings.t("saveimport.copied_all", {count: cmds.length})); });
         help.appendChild(all);
         var order = e.registry.hives.map(function (hv) { return HIVE_NAMES[hv]; });
-        help.appendChild(make("p", "pl-hint", "Where the same value is in more than one file, the page uses " + order.join(", then ") +
-          (order.length > 1 ? " (what the game itself would read first)" : "") + ", value by value. On a 32-bit Windows leave out “WOW6432Node\\”."));
+        help.appendChild(make("p", "pl-hint", ByopopStrings.t(order.length > 1 ? "saveimport.order_many" : "saveimport.order_one",
+          {order: order.join(", " + ByopopStrings.t("saveimport.then") + " ")})));
       }
       step++;
-      help.appendChild(make("p", "si-step", "Step " + step + ". Choose them here."));
+      help.appendChild(make("p", "si-step", ByopopStrings.t("saveimport.step.choose", {step: step})));
       var tk = make("details", "pl-details");
-      tk.appendChild(make("summary", "", "What the page takes from the original"));
+      tk.appendChild(make("summary", "", ByopopStrings.t("saveimport.takes")));
       var tul = make("ul", "sv-list");
       if (e.registry) {
         var rg = registryOf(e), names = rg.rules.map(function (r) { return r.name; });
-        tul.appendChild(make("li", "", "Registry values (" + e.registry.key + "): " + names.join(", ") + "."));
+        tul.appendChild(make("li", "", ByopopStrings.t("saveimport.takes_registry", {key: e.registry.key, names: names.join(", ")})));
       }
-      (e.files || []).forEach(function (f) { tul.appendChild(make("li", "", "File " + f.from.replace(/\//g, "\\") + ": " + f.what + ".")); });
-      (e.skipFiles || []).forEach(function (f) { tul.appendChild(make("li", "", "Left alone, " + f.from.replace(/\//g, "\\") + ": " + f.why + ".")); });
+      (e.files || []).forEach(function (f) { tul.appendChild(make("li", "", ByopopStrings.t("saveimport.takes_file", {from: f.from.replace(/\//g, "\\"), what: f.what}))); });
+      (e.skipFiles || []).forEach(function (f) { tul.appendChild(make("li", "", ByopopStrings.t("saveimport.takes_skip", {from: f.from.replace(/\//g, "\\"), why: f.why}))); });
       tk.appendChild(tul);
       help.appendChild(tk);
 
       // the pickers
       var fs = make("fieldset", "si-fields");
-      fs.appendChild(make("legend", "", "Choose what to import"));
+      fs.appendChild(make("legend", "", ByopopStrings.t("saveimport.choose")));
       function picker(id, label, accept, multiple, dir, key, hint) {
         var row = make("div", "si-row");
         var lab = make("label", "", label);
@@ -569,10 +568,10 @@ var ByopopSaveImport = (function () {
         return inp;
       }
       if (e.files && e.files.length) {
-        picker("si-folder1", "Folder with the save files:", null, false, true, "folder1", "Your browser asks to “upload” the folder’s files; they stay on this computer, and only the save files in the list are read.");
-        picker("si-folder2", "Second folder (optional), such as the VirtualStore copy:", null, false, true, "folder2", "Its files are used in preference to the first folder’s.");
+        picker("si-folder1", ByopopStrings.t("saveimport.folder1.label"), null, false, true, "folder1", ByopopStrings.t("saveimport.folder1.hint"));
+        picker("si-folder2", ByopopStrings.t("saveimport.folder2.label"), null, false, true, "folder2", ByopopStrings.t("saveimport.folder2.hint"));
       }
-      if (e.registry) picker("si-regs", "Registry files (.reg):", ".reg,text/plain", true, false, "regs", "All of the .reg files the commands wrote.");
+      if (e.registry) picker("si-regs", ByopopStrings.t("saveimport.regs.label"), ".reg,text/plain", true, false, "regs", ByopopStrings.t("saveimport.regs.hint"));
       pickers.appendChild(fs);
     }
 
@@ -589,9 +588,9 @@ var ByopopSaveImport = (function () {
       resetPlan();
       report.textContent = "";
       if (!chosen) return;
-      if (!picks.folder1.length && !picks.folder2.length && !picks.regs.length) { ctx.say("Choose the folder and the .reg files to see what would be imported."); return; }
+      if (!picks.folder1.length && !picks.folder2.length && !picks.regs.length) { ctx.say(ByopopStrings.t("saveimport.choose_first")); return; }
       var my = ++token;
-      ctx.say("Reading what you chose…");
+      ctx.say(ByopopStrings.t("saveimport.reading"));
       build().then(function (p) {
         if (my !== token) return;
         plan = p;
@@ -620,16 +619,16 @@ var ByopopSaveImport = (function () {
       }))]).then(function (r) {
         var cur = r[0], parsed = r[1];
         var out = { game: g, cur: cur, parsed: parsed, notes: [], reg: null, files: null, bad: [] };
-        parsed.forEach(function (p) { if (!p.ok) out.bad.push(p.name + ": " + p.error); });
+        parsed.forEach(function (p) { if (!p.ok) out.bad.push(ByopopStrings.t("saveimport.bad", {name: p.name, error: p.error})); });
         var good = parsed.filter(function (p) { return p.ok; });
         if (e.registry) {
           var col = collect(e, good), ini = cur.merged.files["registry.ini"] ? bytesToBinary(cur.merged.files["registry.ini"].bytes) : "";
           out.reg = planRegistry(e, col, ini);
           out.col = col;
-          if (good.length && !out.reg.items.length && !out.reg.skipped.length) out.notes.push("None of the .reg files holds a key of " + g.title + " (" + e.registry.key + ").");
-          if (col.foreign.length) out.notes.push(plural(col.foreign.length, "key") + " in the .reg files " + (col.foreign.length === 1 ? "is" : "are") + " not for this game and " + (col.foreign.length === 1 ? "was" : "were") + " left out.");
-          if (col.unused.length) out.notes.push("The .reg files hold keys from " + col.unused.map(function (h) { return HIVE_NAMES[h]; }).join(" and ") + ", which this game does not use; they were left out.");
-          if (col.unreadable) out.notes.push(plural(col.unreadable, "line") + " of the .reg files could not be read and " + (col.unreadable === 1 ? "was" : "were") + " left out.");
+          if (good.length && !out.reg.items.length && !out.reg.skipped.length) out.notes.push(ByopopStrings.t("saveimport.note.no_key", {title: g.title, key: e.registry.key}));
+          if (col.foreign.length) out.notes.push(ByopopStrings.t("saveimport.note.foreign", {n: col.foreign.length}));
+          if (col.unused.length) out.notes.push(ByopopStrings.t("saveimport.note.unused", {hives: col.unused.map(function (h) { return HIVE_NAMES[h]; }).join(" " + ByopopStrings.t("saveimport.and") + " ")}));
+          if (col.unreadable) out.notes.push(ByopopStrings.t("saveimport.note.unreadable", {n: col.unreadable}));
         }
         if (e.files && e.files.length) {
           var folders = [folderFiles(picks.folder1), folderFiles(picks.folder2)];
@@ -642,7 +641,7 @@ var ByopopSaveImport = (function () {
           });
           out.tooBig = tooBig;
           if ((picks.folder1.length || picks.folder2.length) && !out.files.take.length && !out.files.skipped.length)
-            out.notes.push("None of " + g.title + "’s save files were found in the folder" + (picks.folder1.length && picks.folder2.length ? "s" : "") + " you chose. Choose the folder in which the paths above are found.");
+            out.notes.push(ByopopStrings.t(picks.folder1.length && picks.folder2.length ? "saveimport.note.no_files_two" : "saveimport.note.no_files", {title: g.title}));
           return Promise.all(out.files.take.map(function (f) {
             return f.read().then(function (b) {
               f.bytes = b;
@@ -663,7 +662,7 @@ var ByopopSaveImport = (function () {
       return true;
     }
 
-    var STATUS = { "new": "new", changes: "replaces the current one", same: "the same as now" };
+    var STATUS = { "new": "saveimport.status.new", changes: "saveimport.status.changes", same: "saveimport.status.same" };
 
     function showPlan() {
       var g = plan.game, e = gameEntry(g.id), openNow = null;
@@ -674,16 +673,14 @@ var ByopopSaveImport = (function () {
       box.setAttribute("role", "alertdialog");
       box.setAttribute("aria-labelledby", "si-confirm-title");
       box.setAttribute("aria-describedby", "si-confirm-desc");
-      var h = make("h4", "", todo ? "Import these into " + g.title + "?" : "Nothing to import into " + g.title);
+      var h = make("h4", "", ByopopStrings.t(todo ? "saveimport.plan.title" : "saveimport.plan.title_none", {title: g.title}));
       h.id = "si-confirm-title";
       box.appendChild(h);
-      var desc = make("p", "", todo ? "This writes the values and files below into this browser, where " + g.title + " reads them at its next start. A value or file that is already there is replaced; " +
-        "everything else of the game’s saves stays. The game’s own browser backup is removed, since the imported files take its place. Nothing on your computer is changed." :
-        "Everything the page found is the same as what this browser already has, or is not something the port keeps.");
+      var desc = make("p", "", ByopopStrings.t(todo ? "saveimport.plan.desc" : "saveimport.plan.desc_none", {title: g.title}));
       desc.id = "si-confirm-desc";
       box.appendChild(desc);
       plan.bad.concat(plan.notes).forEach(function (n) { box.appendChild(make("p", "pl-error", n)); });
-      if (plan.tooBig && plan.tooBig.length) box.appendChild(make("p", "pl-error", plan.tooBig.join(", ") + " is too large to be a save file and was left out."));
+      if (plan.tooBig && plan.tooBig.length) box.appendChild(make("p", "pl-error", ByopopStrings.t("saveimport.too_big", {files: plan.tooBig.join(", ")})));
 
       function section(title, rows, empty) {
         box.appendChild(make("h5", "si-sub", title));
@@ -695,17 +692,18 @@ var ByopopSaveImport = (function () {
       if (e.registry) {
         var rows = items.map(function (it) {
           var li = make("li");
-          li.appendChild(make("strong", "", STATUS[it.status] + ": "));
-          li.appendChild(document.createTextNode(it.path + " = " + it.shown + " (from " + HIVE_NAMES[it.hive] + ")" + (it.status === "changes" ? "; now " + shortValue(it.old) : "")));
+          li.appendChild(make("strong", "", ByopopStrings.t("saveimport.status.label", {status: ByopopStrings.t(STATUS[it.status])}) + " "));
+          li.appendChild(document.createTextNode(ByopopStrings.t(it.status === "changes" ? "saveimport.item_changes" : "saveimport.item",
+            {path: it.path, value: it.shown, hive: HIVE_NAMES[it.hive], old: it.status === "changes" ? shortValue(it.old) : ""})));
           return li;
         });
-        section("Settings and scores (" + plural(items.length, "value") + ")", rows, "No values.");
-        if (plan.reg.overridden) box.appendChild(make("p", "pl-hint", plural(plan.reg.overridden, "value") + " found in more than one place: the one the game reads first was used."));
+        section(ByopopStrings.t("saveimport.section.values", {count: plural(items.length, "saveimport.n.value")}), rows, ByopopStrings.t("saveimport.section.no_values"));
+        if (plan.reg.overridden) box.appendChild(make("p", "pl-hint", ByopopStrings.t("saveimport.overridden", {n: plan.reg.overridden})));
         if (plan.reg.skipped.length) {
           var det = make("details", "pl-details");
-          det.appendChild(make("summary", "", "Values left out (" + plan.reg.skipped.length + ")"));
+          det.appendChild(make("summary", "", ByopopStrings.t("saveimport.left_values", {count: plan.reg.skipped.length})));
           var sul = make("ul", "sv-list");
-          plan.reg.skipped.forEach(function (s) { sul.appendChild(make("li", "", s.path + ": " + s.why + ".")); });
+          plan.reg.skipped.forEach(function (s) { sul.appendChild(make("li", "", ByopopStrings.t("saveimport.skipped_value", {path: s.path, why: s.why}))); });
           det.appendChild(sul);
           box.appendChild(det);
         }
@@ -713,26 +711,27 @@ var ByopopSaveImport = (function () {
       if (e.files && e.files.length) {
         var frows = files.map(function (f) {
           var li = make("li");
-          li.appendChild(make("strong", "", STATUS[f.status] + ": "));
-          li.appendChild(document.createTextNode(f.target + " (" + f.what + ", " + ctx.size(f.size) + ", from " + f.from.replace(/\//g, "\\") + (f.folder === 1 ? " in the second folder" : "") + ")"));
+          li.appendChild(make("strong", "", ByopopStrings.t("saveimport.status.label", {status: ByopopStrings.t(STATUS[f.status])}) + " "));
+          li.appendChild(document.createTextNode(ByopopStrings.t(f.folder === 1 ? "saveimport.file_second" : "saveimport.file",
+            {target: f.target, what: f.what, size: ctx.size(f.size), from: f.from.replace(/\//g, "\\")})));
           return li;
         });
-        section("Files (" + plural(files.length, "file") + ")", frows, "No save files found.");
+        section(ByopopStrings.t("saveimport.section.files", {count: plural(files.length, "saveimport.n.file")}), frows, ByopopStrings.t("saveimport.section.no_files"));
         if (plan.files.skipped.length) {
           var det2 = make("details", "pl-details");
-          det2.appendChild(make("summary", "", "Files left out (" + plan.files.skipped.length + ")"));
+          det2.appendChild(make("summary", "", ByopopStrings.t("saveimport.left_files", {count: plan.files.skipped.length})));
           var sul2 = make("ul", "sv-list");
-          plan.files.skipped.forEach(function (s) { sul2.appendChild(make("li", "", s.rel + ": " + s.why + ".")); });
+          plan.files.skipped.forEach(function (s) { sul2.appendChild(make("li", "", ByopopStrings.t("saveimport.skipped_file", {path: s.rel, why: s.why}))); });
           det2.appendChild(sul2);
           box.appendChild(det2);
         }
-        if (plan.files.ignored) box.appendChild(make("p", "pl-hint", plural(plan.files.ignored, "other file") + " in the folder " + (plan.files.ignored === 1 ? "is" : "are") + " not a save and " + (plan.files.ignored === 1 ? "was" : "were") + " not read."));
+        if (plan.files.ignored) box.appendChild(make("p", "pl-hint", ByopopStrings.t("saveimport.ignored", {n: plan.files.ignored})));
       }
       var act = make("div", "pl-actions");
-      var yes = make("button", "pl-danger", "Import");
+      var yes = make("button", "pl-danger", ByopopStrings.t("saveimport.plan.yes"));
       yes.type = "button";
       yes.disabled = !todo;
-      var no = make("button", "", todo ? "Cancel" : "Close");
+      var no = make("button", "", ByopopStrings.t(todo ? "saveimport.plan.no" : "saveimport.plan.close"));
       no.type = "button";
       act.appendChild(yes); act.appendChild(no);
       var warn = make("p", "pl-error");
@@ -742,14 +741,14 @@ var ByopopSaveImport = (function () {
       no.addEventListener("click", cancel);
       // a game that is open could write over what is imported
       ctx.openGames().then(function (open) {
-        if (open === null) { warn.textContent = "This browser cannot tell whether a game is open (it has no Web Locks), so it does not import. Use a current browser."; yes.disabled = true; }
-        else if (open.indexOf(g.id) >= 0) { warn.textContent = "Close " + g.title + " first: a game that is open could overwrite what is imported."; yes.disabled = true; }
+        if (open === null) { warn.textContent = ByopopStrings.t("saveimport.warn.no_locks"); yes.disabled = true; }
+        else if (open.indexOf(g.id) >= 0) { warn.textContent = ByopopStrings.t("saveimport.warn.open", {title: g.title}); yes.disabled = true; }
       });
-      ctx.say("Here is what would be imported into " + g.title + ". Nothing has been changed yet.");
+      ctx.say(ByopopStrings.t("saveimport.plan.said", {title: g.title}));
       (yes.disabled ? no : yes).focus();
     }
     function shortValue(v) { return v === null ? "" : v.length > 40 ? v.slice(0, 40) + "…" : v; }
-    function cancel() { resetPlan(); ctx.say("Nothing was imported."); sel.focus(); }
+    function cancel() { resetPlan(); ctx.say(ByopopStrings.t("saveimport.nothing")); sel.focus(); }
     box.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !ctx.isBusy()) cancel(); });
 
     // ----- the write -----
@@ -757,10 +756,10 @@ var ByopopSaveImport = (function () {
       if (ctx.isBusy() || !plan) return;
       var p = plan, g = p.game, e = gameEntry(g.id);
       ctx.setBusy(true);
-      ctx.say("Importing…");
+      ctx.say(ByopopStrings.t("saveimport.importing"));
       ctx.openGames().then(function (open) {
-        if (open === null) throw new Error("This browser cannot tell whether a game is open, so it does not import.");
-        if (open.indexOf(g.id) >= 0) throw new Error(g.title + " is open in another tab or window. Close it and import again.");
+        if (open === null) throw new Error(ByopopStrings.t("saveimport.err.no_locks"));
+        if (open.indexOf(g.id) >= 0) throw new Error(ByopopStrings.t("saveimport.err.open", {title: g.title}));
         // read again under the game's lock: the files as the game would find them now
         return ctx.withLocks([g], function () {
           return currentState(g).then(function (cur) {
@@ -790,15 +789,16 @@ var ByopopSaveImport = (function () {
       }).then(function (n) {
         resetPlan();
         report.textContent = "";
-        report.appendChild(make("h3", "", "What was imported"));
+        report.appendChild(make("h3", "", ByopopStrings.t("saveimport.done.title")));
         var ul = make("ul", "sv-list");
-        ul.appendChild(make("li", "", g.title + ": " + plural(n.reg, "registry value") + " and " + plural(n.files, "file") + "."));
+        var counts = {title: g.title, values: plural(n.reg, "saveimport.n.registry_value"), files: plural(n.files, "saveimport.n.file")};
+        ul.appendChild(make("li", "", ByopopStrings.t("saveimport.done.line", counts)));
         report.appendChild(ul);
-        ctx.say("Imported into " + g.title + ": " + plural(n.reg, "registry value") + " and " + plural(n.files, "file") + ". The game reads them the next time it starts.");
+        ctx.say(ByopopStrings.t("saveimport.done.said", counts));
         picks = { folder1: [], folder2: [], regs: [] };
         renderHelp();
         return ctx.refresh();
-      }).catch(function (er) { resetPlan(); ctx.say("Nothing more was imported: " + (er && er.message ? er.message : er), true); }).then(function () {
+      }).catch(function (er) { resetPlan(); ctx.say(ByopopStrings.t("saveimport.failed", {error: er && er.message ? er.message : er}), true); }).then(function () {
         ctx.setBusy(false);
         if (document.activeElement === document.body || !document.activeElement) sel.focus();
       });

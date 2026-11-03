@@ -43,7 +43,7 @@ var ByopopTheme = (function () {
   function show(b) {
     var dark = current() === "dark";
     b.setAttribute("aria-pressed", dark ? "true" : "false");
-    b.title = dark ? "Use the light theme" : "Use the dark theme";
+    b.title = ByopopStrings.t(dark ? "theme.to_light" : "theme.to_dark");
   }
   function apply() {
     var v = stored();
@@ -64,7 +64,7 @@ var ByopopTheme = (function () {
     document.head.appendChild(style);
     Array.prototype.forEach.call(buttons(), function (b) {
       b.classList.add("theme-toggle");
-      b.setAttribute("aria-label", "Dark theme");
+      b.setAttribute("aria-label", ByopopStrings.t("theme.button"));
       b.innerHTML = ICONS;
       b.addEventListener("click", toggle);
     });

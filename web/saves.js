@@ -85,20 +85,20 @@ var ByopopSaves = (function () {
     for (var i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
       if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
     }
-    if (eocd < 0) throw new Error("This file is not a .zip archive.");
+    if (eocd < 0) throw new Error(ByopopStrings.t("saves.zip.not_zip"));
     var count = view.getUint16(eocd + 10, true), off = view.getUint32(eocd + 16, true);
-    if (count === 0xffff || off === 0xffffffff) throw new Error("This .zip uses a format this page does not read (zip64).");
-    if (count > MAX_ENTRIES) throw new Error("This .zip has too many files to be a backup of saves.");
+    if (count === 0xffff || off === 0xffffffff) throw new Error(ByopopStrings.t("saves.zip.zip64"));
+    if (count > MAX_ENTRIES) throw new Error(ByopopStrings.t("saves.zip.too_many"));
     var dec = new TextDecoder("utf-8", { fatal: false }), entries = [];
     for (var n = 0; n < count; n++) {
-      if (off + 46 > bytes.length || view.getUint32(off, true) !== 0x02014b50) throw new Error("The .zip's directory is damaged.");
+      if (off + 46 > bytes.length || view.getUint32(off, true) !== 0x02014b50) throw new Error(ByopopStrings.t("saves.zip.directory"));
       var flags = view.getUint16(off + 8, true), method = view.getUint16(off + 10, true), crc = view.getUint32(off + 16, true);
       var csize = view.getUint32(off + 20, true), size = view.getUint32(off + 24, true);
       var nameLen = view.getUint16(off + 28, true), extraLen = view.getUint16(off + 30, true), commentLen = view.getUint16(off + 32, true);
       var local = view.getUint32(off + 42, true);
-      if (off + 46 + nameLen > bytes.length) throw new Error("The .zip's directory is damaged.");
+      if (off + 46 + nameLen > bytes.length) throw new Error(ByopopStrings.t("saves.zip.directory"));
       var name = dec.decode(bytes.subarray(off + 46, off + 46 + nameLen));
-      if (flags & 1) throw new Error("This .zip is encrypted.");
+      if (flags & 1) throw new Error(ByopopStrings.t("saves.zip.encrypted"));
       entries.push({ name: name, method: method, crc: crc, csize: csize, size: size, local: local });
       off += 46 + nameLen + extraLen + commentLen;
     }
@@ -107,16 +107,16 @@ var ByopopSaves = (function () {
         name: e.name,
         size: e.size,
         read: function () {
-          if (e.local + 30 > bytes.length || view.getUint32(e.local, true) !== 0x04034b50) return Promise.reject(new Error("The .zip is damaged."));
+          if (e.local + 30 > bytes.length || view.getUint32(e.local, true) !== 0x04034b50) return Promise.reject(new Error(ByopopStrings.t("saves.zip.damaged")));
           var start = e.local + 30 + view.getUint16(e.local + 26, true) + view.getUint16(e.local + 28, true);
-          if (start + e.csize > bytes.length) return Promise.reject(new Error("The .zip is shorter than its directory says."));
+          if (start + e.csize > bytes.length) return Promise.reject(new Error(ByopopStrings.t("saves.zip.short")));
           var data = bytes.subarray(start, start + e.csize);
           function check(out) {
-            if (out.length !== e.size || crc32(out) !== e.crc) throw new Error("The .zip is damaged: " + e.name + " does not match its checksum.");
+            if (out.length !== e.size || crc32(out) !== e.crc) throw new Error(ByopopStrings.t("saves.zip.checksum", {name: e.name}));
             return out;
           }
           if (e.method === 0) return Promise.resolve(check(data.slice()));
-          if (e.method !== 8 || typeof DecompressionStream === "undefined") return Promise.reject(new Error("This .zip's " + e.name + " is compressed in a way this page cannot read."));
+          if (e.method !== 8 || typeof DecompressionStream === "undefined") return Promise.reject(new Error(ByopopStrings.t("saves.zip.compressed", {name: e.name})));
           return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()
             .then(function (b) { return check(new Uint8Array(b)); });
         }
@@ -140,7 +140,7 @@ var ByopopSaves = (function () {
     var out = { ok: true, manifest: null, settings: null, profiles: null, files: [], backups: {}, skipped: [] }, seen = {};
     for (var i = 0; i < entries.length; i++) {
       var name = entries[i].name;
-      if (seen[name]) return { ok: false, error: "The .zip lists “" + name + "” twice." };
+      if (seen[name]) return { ok: false, error: ByopopStrings.t("saves.zip.twice", {name: name}) };
       seen[name] = true;
       if (name === "byopop-saves.json") { out.manifest = entries[i]; continue; }
       if (name === "byopop-settings.json") { out.settings = entries[i]; continue; }
@@ -149,7 +149,7 @@ var ByopopSaves = (function () {
       var m = /^([a-z0-9_-]{1,40})\/(userdata|replays)\/(.+)$/.exec(name), b = /^([a-z0-9_-]{1,40})\/browser-backup\.json$/.exec(name);
       if (b && gameIds.indexOf(b[1]) >= 0) { out.backups[b[1]] = entries[i]; continue; }
       if (!m || gameIds.indexOf(m[1]) < 0 || !safeRel(m[3])) {
-        return { ok: false, error: "The .zip has “" + name.slice(0, 80) + "”, which is not in a game’s save folder, so it is not restored." };
+        return { ok: false, error: ByopopStrings.t("saves.zip.stray", {name: name.slice(0, 80)}) };
       }
       out.files.push({ id: m[1], kind: m[2], rel: m[3], entry: entries[i] });
     }
@@ -213,9 +213,13 @@ var ByopopSaves = (function () {
   function playFromManifest(man) {
     return man && man.play && typeof man.play === "object" && !Array.isArray(man.play) ? JSON.stringify(man.play) : null;
   }
-  function backupName(d) { return "byo-pop saves " + dateStamp(d) + ".zip"; }
-  function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
-  function size(n) { return n < 1024 ? n + " bytes" : n < 1048576 ? (n / 1024).toFixed(n < 10240 ? 1 : 0) + " KB" : (n / 1048576).toFixed(1) + " MB"; }
+  function backupName(d) { return ByopopStrings.t("saves.backup_name", {date: dateStamp(d)}); }
+  // n things, in the count string key ("saves.n.file": "{n} file | {n} files")
+  function plural(n, key) { return ByopopStrings.t(key, {n: n}); }
+  function size(n) {
+    return n < 1024 ? ByopopStrings.t("size.bytes", {value: n}) : n < 1048576 ? ByopopStrings.t("size.kb", {value: (n / 1024).toFixed(n < 10240 ? 1 : 0)})
+      : ByopopStrings.t("size.mb", {value: (n / 1048576).toFixed(1)});
+  }
 
   var core = { crc32: crc32, writeZip: writeZip, readZip: readZip, safeRel: safeRel, classify: classify, merged: merged, mergedPlay: mergedPlay, playToManifest: playToManifest, playFromManifest: playFromManifest, backupName: backupName,
     size: size, FORMAT: FORMAT, VERSION: VERSION };
@@ -286,15 +290,15 @@ var ByopopSaves = (function () {
     return new Promise(function (resolve, reject) {
       var known = names && names.indexOf(game.persist) >= 0, r;
       try { r = known ? indexedDB.open(game.persist) : indexedDB.open(game.persist, DB_VERSION); } catch (e) { reject(e); return; }
-      r.onerror = function () { reject(r.error || new Error("The browser would not open the game's storage.")); };
-      r.onblocked = function () { reject(new Error("The game's storage is in use by a game page. Close it and try again.")); };
+      r.onerror = function () { reject(r.error || new Error(ByopopStrings.t("saves.err.open"))); };
+      r.onblocked = function () { reject(new Error(ByopopStrings.t("saves.err.busy"))); };
       r.onupgradeneeded = function (ev) {
         var db = ev.target.result, store = db.objectStoreNames.contains(DB_STORE) ? ev.target.transaction.objectStore(DB_STORE) : db.createObjectStore(DB_STORE);
         if (!store.indexNames.contains("timestamp")) store.createIndex("timestamp", "timestamp", { unique: false });
       };
       r.onsuccess = function () {
         var db = r.result;
-        if (!db.objectStoreNames.contains(DB_STORE)) { db.close(); reject(new Error("The game's storage is not in the form the game makes.")); return; }
+        if (!db.objectStoreNames.contains(DB_STORE)) { db.close(); reject(new Error(ByopopStrings.t("saves.err.form"))); return; }
         var tx = db.transaction(DB_STORE, "readwrite"), store = tx.objectStore(DB_STORE), dirs = {}, written = 0, now = new Date();
         function ensureDir(path) {   // path: "/persist/userdata/players"
           if (dirs[path] !== undefined) return;
@@ -319,7 +323,7 @@ var ByopopSaves = (function () {
           ((folders.remove && folders.remove[folder]) || []).forEach(function (rel) { store.delete(root + "/" + rel); });
         });
         tx.oncomplete = function () { db.close(); resolve(written); };
-        tx.onerror = tx.onabort = function () { try { db.close(); } catch (e) {} reject(tx.error || new Error("The browser would not keep the files.")); };
+        tx.onerror = tx.onabort = function () { try { db.close(); } catch (e) {} reject(tx.error || new Error(ByopopStrings.t("saves.err.keep"))); };
       };
     });
   }
@@ -340,7 +344,7 @@ var ByopopSaves = (function () {
     return Promise.all(pending.map(function (g) {
       return new Promise(function (got, failed) {
         navigator.locks.request(g.lock, { ifAvailable: true }, function (lock) {
-          if (!lock) { failed(new Error(g.title + " is open in another tab or window.")); return null; }
+          if (!lock) { failed(new Error(ByopopStrings.t("saves.err.open_tab", {title: g.title}))); return null; }
           return new Promise(function (release) { releases.push(release); got(); });
         }).catch(failed);
       });
@@ -365,7 +369,7 @@ var ByopopSaves = (function () {
     var busy = false;
     var errorControls = [];   // the controls that an error is read with (the import's, web/saveimport.js, join them)
     root.textContent = "";
-    root.appendChild(make("p", "pl-about", "Your saves are kept only in this browser. A backup is a .zip of them that you keep; nothing is uploaded."));
+    root.appendChild(make("p", "pl-about", ByopopStrings.t("saves.about")));
     // whether the browser has agreed to keep the site's storage (a game page asks after an import, web/shell.html,
     // askToKeepStorage): until it has, a drive that runs low on space can make it clear the whole site, and only then is it said
     var kept = make("p", "pl-about");
@@ -373,7 +377,7 @@ var ByopopSaves = (function () {
     root.appendChild(kept);
     try {
       if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(function (yes) {
-        kept.textContent = "This browser may clear them if your drive runs low on space.";
+        kept.textContent = ByopopStrings.t("saves.kept");
         kept.hidden = yes;
       }, function () {});
     } catch (e) {}
@@ -395,13 +399,13 @@ var ByopopSaves = (function () {
       });
     }
 
-    var listTitle = make("h3", "", "In this browser");
+    var listTitle = make("h3", "", ByopopStrings.t("saves.list.title"));
     var list = make("ul", "sv-list");
     var row = make("div", "pl-actions sv-actions");
-    var backupButton = make("button", "", "Back up saves");
+    var backupButton = make("button", "", ByopopStrings.t("saves.backup.button"));
     backupButton.type = "button";
     var pickId = "sv-pick";
-    var pickLabel = make("label", "", "Restore saves from a backup .zip:");
+    var pickLabel = make("label", "", ByopopStrings.t("saves.restore.label"));
     pickLabel.htmlFor = pickId;
     var pick = make("input");
     pick.type = "file"; pick.id = pickId; pick.accept = ".zip,application/zip";
@@ -428,12 +432,12 @@ var ByopopSaves = (function () {
             var li = make("li");
             li.appendChild(make("strong", "", g.title));
             var parts = [];
-            parts.push(o.files ? plural(o.files, "save file") + " (" + size(o.bytes) + ")" : "no save files");
-            if (g.replays) parts.push(plural(o.replays, "replay") + (o.replays ? " (" + size(o.replayBytes) + ")" : ""));
-            li.appendChild(document.createTextNode(": " + parts.join(", ") + (o.backup ? "; the game’s own browser backup is there" : "") + "."));
+            parts.push(o.files ? ByopopStrings.t("saves.list.files", {n: o.files, size: size(o.bytes)}) : ByopopStrings.t("saves.list.no_files"));
+            if (g.replays) parts.push(o.replays ? ByopopStrings.t("saves.list.replays", {n: o.replays, size: size(o.replayBytes)}) : ByopopStrings.t("saves.list.no_replays"));
+            li.appendChild(document.createTextNode(ByopopStrings.t("saves.list.rest", {parts: parts.join(", "), backup: o.backup ? ByopopStrings.t("saves.list.backup") : ""})));
             list.appendChild(li);
           });
-          if (!any) list.appendChild(make("li", "pl-empty", "No saves yet: no game has been played in this browser."));
+          if (!any) list.appendChild(make("li", "pl-empty", ByopopStrings.t("saves.list.empty")));
         });
       });
     }
@@ -443,7 +447,7 @@ var ByopopSaves = (function () {
       if (busy) return;
       setBusy(true);
       report.textContent = "";
-      say("Reading the saves…");
+      say(ByopopStrings.t("saves.backup.reading"));
       var made = new Date();
       Promise.all([databases(), openGames(games)]).then(function (r) {
         var names = r[0], open = r[1] || [];
@@ -483,23 +487,27 @@ var ByopopSaves = (function () {
           document.body.appendChild(a); a.click(); a.remove();
           setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
           report.textContent = "";
-          report.appendChild(make("h3", "", "What the backup took"));
+          report.appendChild(make("h3", "", ByopopStrings.t("saves.backup.took")));
           var ul = make("ul", "sv-list");
           lines.forEach(function (l) {
             var li = make("li");
             li.appendChild(make("strong", "", l.g.title));
-            var t = ": " + (l.n ? plural(l.n, "save file") + " (" + size(l.bytes) + ")" : "no save files") + (l.g.replays ? ", " + plural(l.rn, "replay") : "") +
-              (l.item ? (l.used ? ", with " + plural(l.used, "file") + " from the game’s own browser backup" : ", the game’s own browser backup kept as it is") : "") + ".";
-            if (l.open) t += " This game is open in another tab: what it has not saved yet may be missing; close it and back up again for the whole of it.";
+            var t = ByopopStrings.t("saves.report.line", {
+              files: l.n ? ByopopStrings.t("saves.report.files", {n: l.n, size: size(l.bytes)}) : ByopopStrings.t("saves.report.no_files"),
+              replays: l.g.replays ? ByopopStrings.t("saves.report.replays", {n: l.rn}) : "",
+              backup: l.item ? (l.used ? ByopopStrings.t("saves.report.with_backup", {n: l.used}) : ByopopStrings.t("saves.report.backup_kept")) : "" });
+            if (l.open) t += " " + ByopopStrings.t("saves.report.open");
             li.appendChild(document.createTextNode(t));
             ul.appendChild(li);
           });
-          ul.appendChild(make("li", "", "The site’s settings: " + (s !== null ? "included" : "none set") + ". The site’s players: " + (pr !== null ? "included" : "none") +
-            ". Play times: " + (play ? "included" : "none") + "."));
+          ul.appendChild(make("li", "", ByopopStrings.t("saves.report.site", {
+            settings: ByopopStrings.t(s !== null ? "saves.report.included" : "saves.report.none_set"),
+            players: ByopopStrings.t(pr !== null ? "saves.report.included" : "saves.report.none"),
+            play: ByopopStrings.t(play ? "saves.report.included" : "saves.report.none") })));
           report.appendChild(ul);
-          say("The backup “" + backupName(made) + "” (" + size(zip.length) + ", " + plural(entries.length, "file") + ") was made; your browser saves it where it saves downloads.");
+          say(ByopopStrings.t("saves.backup.done", {name: backupName(made), size: size(zip.length), count: plural(entries.length, "saves.n.file")}));
         });
-      }).catch(function (e) { say("The backup failed: " + (e && e.message ? e.message : e), true); }).then(function () { setBusy(false); });
+      }).catch(function (e) { say(ByopopStrings.t("saves.backup.failed", {error: e && e.message ? e.message : e}), true); }).then(function () { setBusy(false); });
     }
     backupButton.addEventListener("click", backup);
 
@@ -513,15 +521,15 @@ var ByopopSaves = (function () {
       if (busy) return;
       setBusy(true);
       plan = null; confirmBox.hidden = true; report.textContent = "";
-      say("Reading “" + file.name + "”…");
+      say(ByopopStrings.t("saves.restore.reading", {name: file.name}));
       file.arrayBuffer().then(function (buf) {
         var entries = readZip(new Uint8Array(buf)), sorted = classify(entries, ids);
         if (!sorted.ok) throw new Error(sorted.error);
-        if (!sorted.manifest) throw new Error("This .zip is not a backup made here (it has no byopop-saves.json).");
+        if (!sorted.manifest) throw new Error(ByopopStrings.t("saves.zip.not_backup"));
         return sorted.manifest.read().then(function (b) {
           var man;
           try { man = JSON.parse(new TextDecoder().decode(b)); } catch (e) { man = null; }
-          if (!man || man.format !== FORMAT || man.version !== VERSION) throw new Error("This .zip is not a backup this page can restore (its manifest is of another kind).");
+          if (!man || man.format !== FORMAT || man.version !== VERSION) throw new Error(ByopopStrings.t("saves.zip.manifest"));
           return man;
         }).then(function (man) {
           // the files, read now (checked against their checksums), by game
@@ -538,12 +546,12 @@ var ByopopSaves = (function () {
             });
           }, Promise.resolve()).then(function () {
             var texts = {};
-            return Promise.all([["settings", sorted.settings], ["profiles", sorted.profiles]].map(function (pair) {
+            return Promise.all([["settings", sorted.settings, "saves.zip.bad_settings"], ["profiles", sorted.profiles, "saves.zip.bad_profiles"]].map(function (pair) {
               if (!pair[1]) return null;
               return pair[1].read().then(function (b) {
                 var t = new TextDecoder().decode(b), o = null;
                 try { o = JSON.parse(t); } catch (e) {}
-                if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("The .zip’s " + pair[0] + " are not in the form this page keeps.");
+                if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error(ByopopStrings.t(pair[2]));
                 texts[pair[0]] = t;
               });
             })).then(function () {
@@ -576,7 +584,7 @@ var ByopopSaves = (function () {
         })).then(function (rows) {
           plan = { p: p, rows: rows, open: open };
           showConfirm();
-          say("“" + p.file.name + "” is a backup" + (p.man.made ? " made " + new Date(p.man.made).toLocaleString() : "") + ". Nothing has been changed yet.");
+          say(p.man.made ? ByopopStrings.t("saves.restore.found_made", {name: p.file.name, date: new Date(p.man.made).toLocaleString()}) : ByopopStrings.t("saves.restore.found", {name: p.file.name}));
         });
       });
     }
@@ -587,54 +595,55 @@ var ByopopSaves = (function () {
       confirmBox.setAttribute("role", "alertdialog");
       confirmBox.setAttribute("aria-labelledby", "sv-confirm-title");
       confirmBox.setAttribute("aria-describedby", "sv-confirm-desc");
-      var h = make("h4", "", "Restore these saves?");
+      var h = make("h4", "", ByopopStrings.t("saves.confirm.title"));
       h.id = "sv-confirm-title";
       confirmBox.appendChild(h);
-      var desc = make("p", "", "This replaces the files below with the backup’s. Files the backup doesn’t have stay as they are.");
+      var desc = make("p", "", ByopopStrings.t("saves.confirm.desc"));
       desc.id = "sv-confirm-desc";
       confirmBox.appendChild(desc);
       var ul = make("ul", "sv-list");
       plan.rows.forEach(function (r) {
         var g = byId[r.id], pg = plan.p.perGame[r.id], li = make("li");
         li.appendChild(make("strong", "", g.title));
-        var t = ": holds " + plural(pg.count, "save file") + (g.replays || pg.replayCount ? " and " + plural(pg.replayCount, "replay") : "") + " (" + size(pg.bytes) + "); would replace " + r.replace +
-          " and add " + r.add + (pg.replayCount ? "; of the replays, replace " + r.rReplace + " and add " + r.rAdd : "") + ".";
-        if (plan.open && plan.open.indexOf(r.id) >= 0) t += " This game is open: close it first.";
+        var t = ByopopStrings.t(pg.replayCount ? "saves.confirm.line_replays_detail" : g.replays ? "saves.confirm.line_replays" : "saves.confirm.line",
+          {files: plural(pg.count, "saves.n.save_file"), replays: plural(pg.replayCount, "saves.n.replay"), size: size(pg.bytes),
+            replace: r.replace, add: r.add, rreplace: r.rReplace, radd: r.rAdd});
+        if (plan.open && plan.open.indexOf(r.id) >= 0) t += " " + ByopopStrings.t("saves.confirm.open");
         li.appendChild(document.createTextNode(t));
         ul.appendChild(li);
       });
-      if (!plan.rows.length) ul.appendChild(make("li", "", "No game’s saves."));
-      if (plan.p.texts.settings !== undefined) ul.appendChild(make("li", "", "The site’s settings: replaced by the backup’s."));
-      if (plan.p.texts.profiles !== undefined) ul.appendChild(make("li", "", "The site’s players: replaced by the backup’s."));
-      if (plan.p.texts["play times"] !== undefined) ul.appendChild(make("li", "", "Play times: for each game, the larger of the backup’s and this browser’s."));
+      if (!plan.rows.length) ul.appendChild(make("li", "", ByopopStrings.t("saves.confirm.none")));
+      if (plan.p.texts.settings !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.confirm.settings")));
+      if (plan.p.texts.profiles !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.confirm.players")));
+      if (plan.p.texts["play times"] !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.confirm.play")));
       confirmBox.appendChild(ul);
-      var openNow = plan.open === null ? "This browser cannot tell whether a game is open (it has no Web Locks), so it does not restore. Back up from here, or use a current browser."
-        : plan.open.length ? "Close " + plan.open.map(function (id) { return byId[id].title; }).join(", ") + " first: a game that is open could overwrite what is restored." : "";
+      var openNow = plan.open === null ? ByopopStrings.t("saves.confirm.no_locks")
+        : plan.open.length ? ByopopStrings.t("saves.confirm.close_first", {games: plan.open.map(function (id) { return byId[id].title; }).join(", ")}) : "";
       if (openNow) confirmBox.appendChild(make("p", "pl-error", openNow));
       var act = make("div", "pl-actions");
-      var yes = make("button", "pl-danger", "Restore");
+      var yes = make("button", "pl-danger", ByopopStrings.t("saves.confirm.yes"));
       yes.type = "button";
       yes.disabled = !!openNow;
-      var no = make("button", "", "Cancel");
+      var no = make("button", "", ByopopStrings.t("saves.confirm.no"));
       no.type = "button";
       yes.addEventListener("click", function () { doRestore(); });
-      no.addEventListener("click", function () { plan = null; confirmBox.hidden = true; say("Nothing was restored."); backupButton.focus(); });
+      no.addEventListener("click", function () { plan = null; confirmBox.hidden = true; say(ByopopStrings.t("saves.restore.nothing")); backupButton.focus(); });
       act.appendChild(yes); act.appendChild(no);
       confirmBox.appendChild(act);
       yes.focus();
     }
     confirmBox.addEventListener("keydown", function (ev) {
-      if (ev.key === "Escape" && !busy) { plan = null; confirmBox.hidden = true; say("Nothing was restored."); backupButton.focus(); }
+      if (ev.key === "Escape" && !busy) { plan = null; confirmBox.hidden = true; say(ByopopStrings.t("saves.restore.nothing")); backupButton.focus(); }
     });
     function doRestore() {
       if (busy || !plan) return;
       var p = plan.p, targets = Object.keys(p.perGame).map(function (id) { return byId[id]; });
       setBusy(true);
-      say("Restoring…");
+      say(ByopopStrings.t("saves.restore.working"));
       // the games' pages are held shut while the files are written, and the check is made again just before
       openGames(games).then(function (open) {
-        if (open === null) throw new Error("This browser cannot tell whether a game is open, so it does not restore.");
-        if (open.length) throw new Error(open.map(function (id) { return byId[id].title; }).join(", ") + " is open in another tab or window. Close it and restore again.");
+        if (open === null) throw new Error(ByopopStrings.t("saves.restore.no_locks"));
+        if (open.length) throw new Error(ByopopStrings.t("saves.restore.open", {games: open.map(function (id) { return byId[id].title; }).join(", ")}));
         return databases().then(function (names) {
           return withLocks(games, function () {
             var wrote = [];
@@ -643,7 +652,7 @@ var ByopopSaves = (function () {
                 var pg = p.perGame[g.id];
                 return writeFiles(g, names, { userdata: pg.userdata, replays: pg.replays }).then(function (n) {
                   lsSet(backupKey(g.persist), null);
-                  wrote.push(g.title + ": " + plural(n, "file"));
+                  wrote.push(ByopopStrings.t("saves.restored.game", {title: g.title, count: plural(n, "saves.n.file")}));
                 });
               });
             }, Promise.resolve()).then(function () {
@@ -657,17 +666,17 @@ var ByopopSaves = (function () {
       }).then(function (wrote) {
         plan = null; confirmBox.hidden = true;
         report.textContent = "";
-        report.appendChild(make("h3", "", "What was restored"));
+        report.appendChild(make("h3", "", ByopopStrings.t("saves.restored.title")));
         var ul = make("ul", "sv-list");
-        wrote.forEach(function (t) { ul.appendChild(make("li", "", t + ".")); });
-        if (p.texts.settings !== undefined) ul.appendChild(make("li", "", "The site’s settings."));
-        if (p.texts.profiles !== undefined) ul.appendChild(make("li", "", "The site’s players."));
-        if (p.texts["play times"] !== undefined) ul.appendChild(make("li", "", "Play times."));
+        wrote.forEach(function (t) { ul.appendChild(make("li", "", t)); });
+        if (p.texts.settings !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.restored.settings")));
+        if (p.texts.profiles !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.restored.players")));
+        if (p.texts["play times"] !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.restored.play")));
         report.appendChild(ul);
-        say("The saves were restored. A game reads them the next time it starts.");
+        say(ByopopStrings.t("saves.restore.done"));
         try { window.dispatchEvent(new StorageEvent("storage", { key: null })); } catch (e) {}
         return renderList();
-      }).catch(function (e) { say("Nothing more was restored: " + (e && e.message ? e.message : e), true); renderList(); }).then(function () {
+      }).catch(function (e) { say(ByopopStrings.t("saves.restore.failed", {error: e && e.message ? e.message : e}), true); renderList(); }).then(function () {
         setBusy(false);
         // the question that had the focus is gone
         if (document.activeElement === document.body || !document.activeElement) backupButton.focus();
@@ -686,7 +695,7 @@ var ByopopSaves = (function () {
           addControls: function (list) { list.forEach(function (c) { errorControls.push(c); }); },
           onBusy: function (h) { busyHooks.push(h); }
         });
-      } catch (e) { root.appendChild(make("p", "pl-error", "The import from an installed game is not available.")); }
+      } catch (e) { root.appendChild(make("p", "pl-error", ByopopStrings.t("saves.import_unavailable"))); }
     }
     document.addEventListener("visibilitychange", function () { if (!document.hidden && !busy) renderList(); });
     window.addEventListener("pageshow", function () { if (!busy) renderList(); });

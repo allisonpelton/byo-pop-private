@@ -13,6 +13,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+require("./stringsload").intoGlobal();
 const C = require(path.join(__dirname, "..", "web", "chat.js"));
 
 let checks = 0, failed = 0;

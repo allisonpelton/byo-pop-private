@@ -47,9 +47,6 @@ var ByopopChat = (function () {
   var GAME_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/, GAME_PAGE = /^[a-z0-9][a-z0-9_-]{0,39}\.html$/, GAME_TAG = /^[A-Za-z0-9]{1,4}$/;
   var GAME_COLOUR = /^#[0-9a-fA-F]{6}$/, GAME_COLOUR_DEFAULT = "#6b3fd1", GAME_TITLE_MAX = 100;
   var CHAT_MIN = 240, CHAT_MAX = 340;  // the chat's width beside the stage, in pixels
-  var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  var MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November",
-    "December"];
 
   // ---------- the rules ----------
   function storage() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -61,10 +58,10 @@ var ByopopChat = (function () {
   // (a period may start or end a name). Discord bars a few more names of its own; the real names will come from Discord.
   function usernameError(name) {
     if (typeof name !== "string" || name.length < LIMITS.nameMin || name.length > LIMITS.nameMax) {
-      return "Use " + LIMITS.nameMin + " to " + LIMITS.nameMax + " characters.";
+      return ByopopStrings.t("chat.name.length", {min: LIMITS.nameMin, max: LIMITS.nameMax});
     }
-    if (/[^a-z0-9_.]/.test(name)) return "Only lowercase letters, digits, underscores and periods are allowed.";
-    if (name.indexOf("..") >= 0) return "Two periods in a row are not allowed.";
+    if (/[^a-z0-9_.]/.test(name)) return ByopopStrings.t("chat.name.chars");
+    if (name.indexOf("..") >= 0) return ByopopStrings.t("chat.name.periods");
     return "";
   }
   // A message's text as it is kept: one line. Control characters (a newline, a tab), the characters that hide or reorder text
@@ -116,9 +113,10 @@ var ByopopChat = (function () {
   // The day separator's words: "Friday 30 October 2026", with "Today, " or "Yesterday, " before it
   function dayLabel(t, now) {
     var d = new Date(t), key = dayKey(t), n = new Date(now);
-    var text = DAY_NAMES[d.getDay()] + " " + d.getDate() + " " + MONTH_NAMES[d.getMonth()] + " " + d.getFullYear();
-    if (key === dayKey(now)) return "Today, " + text;
-    if (key === dayKey(new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1).getTime())) return "Yesterday, " + text;
+    var text = ByopopStrings.t("chat.day.date", {weekday: ByopopStrings.t("chat.weekdays").split(", ")[d.getDay()], day: d.getDate(),
+      month: ByopopStrings.t("chat.months").split(", ")[d.getMonth()], year: d.getFullYear()});
+    if (key === dayKey(now)) return ByopopStrings.t("chat.day.today", {date: text});
+    if (key === dayKey(new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1).getTime())) return ByopopStrings.t("chat.day.yesterday", {date: text});
     return text;
   }
   // A message as an IRC line: "09:05 [BW] <alice> hello", with the tag of the game it was sent from when the site's table (a
@@ -420,7 +418,7 @@ var ByopopChat = (function () {
           try { if (typeof window !== "undefined" && window.addEventListener) window.addEventListener("storage", onStorage); } catch (e) {}
           resolve({
             user: { name: name, signedIn: false }, room: "all games", canRename: true, testData: true,
-            note: "Test chat: the messages are made up and stay in this browser. Nothing is sent anywhere."
+            note: ByopopStrings.t("chat.note")
           });
         });
       },
@@ -429,18 +427,18 @@ var ByopopChat = (function () {
       },
       send: function (text) {
         return new Promise(function (resolve, reject) {
-          if (closed || !connected) { reject(sendError("offline", "The chat is not connected.")); return; }
+          if (closed || !connected) { reject(sendError("offline", ByopopStrings.t("chat.send.offline"))); return; }
           var clean = cleanText(text), problem = textProblem(clean);
-          if (problem === "empty") { reject(sendError("empty", "There is nothing to send.")); return; }
-          if (problem === "long") { reject(sendError("long", "A message is at most " + LIMITS.textMax + " characters.")); return; }
-          if (usernameError(name)) { reject(sendError("name", "The username is not valid.")); return; }
+          if (problem === "empty") { reject(sendError("empty", ByopopStrings.t("chat.send.empty"))); return; }
+          if (problem === "long") { reject(sendError("long", ByopopStrings.t("chat.send.long", {max: LIMITS.textMax}))); return; }
+          if (usernameError(name)) { reject(sendError("name", ByopopStrings.t("chat.send.name"))); return; }
           var wait = limiter.take(now());
-          if (wait) { reject(sendError("rate", "One message a second.", wait)); return; }
+          if (wait) { reject(sendError("rate", ByopopStrings.t("chat.send.rate"), wait)); return; }
           var m = make(now(), name, clean, here);
           live.add(m);
           if (!live.isSaved() && !warnedStorage) {
             warnedStorage = true;
-            emit("error", { code: "storage", message: "This browser would not keep the messages; they last until the page closes.", fatal: false });
+            emit("error", { code: "storage", message: ByopopStrings.t("chat.send.storage"), fatal: false });
           }
           emit("message", m);
           resolve(m);
@@ -583,12 +581,12 @@ var ByopopChat = (function () {
   }
   function errorWords(err) {
     var code = err && err.code;
-    if (code === "rate") return "One message a second: wait a moment.";
-    if (code === "long") return "That is longer than " + LIMITS.textMax + " characters.";
-    if (code === "empty") return "Type a message first.";
-    if (code === "name") return "Your username is not valid: change it first.";
-    if (code === "offline") return "The chat is not connected.";
-    return (err && err.message) || "The message was not sent.";
+    if (code === "rate") return ByopopStrings.t("chat.words.rate");
+    if (code === "long") return ByopopStrings.t("chat.words.long", {max: LIMITS.textMax});
+    if (code === "empty") return ByopopStrings.t("chat.words.empty");
+    if (code === "name") return ByopopStrings.t("chat.words.name");
+    if (code === "offline") return ByopopStrings.t("chat.words.offline");
+    return (err && err.message) || ByopopStrings.t("chat.words.failed");
   }
 
   var idCount = 0;
@@ -632,7 +630,7 @@ var ByopopChat = (function () {
       older.hidden = !st.hasMore;
       startNote.hidden = st.hasMore || !st.list.length;
       older.disabled = false;
-      older.textContent = "Show older messages";
+      older.textContent = ByopopStrings.t("chat.older");
     }
     // a new message: after the last one, in place when it is the newest
     function addMessage(m, mine) {
@@ -653,14 +651,14 @@ var ByopopChat = (function () {
     }
     function showUnread() {
       if (!unreadEl) return;
-      unreadEl.textContent = st.unread ? (st.unread > 99 ? "99+" : String(st.unread)) + " new" : "";
+      unreadEl.textContent = st.unread ? ByopopStrings.t("chat.unread", {count: st.unread > 99 ? "99+" : String(st.unread)}) : "";
       unreadEl.hidden = !st.unread;
     }
     function loadOlder() {
       if (st.loading || !st.hasMore || !st.list.length) return;
       st.loading = true;
       older.disabled = true;
-      older.textContent = "Loading…";
+      older.textContent = ByopopStrings.t("chat.loading");
       source.history(LIMITS.page, st.list[0].id).then(function (msgs) {
         st.loading = false;
         if (msgs.length < LIMITS.page) st.hasMore = false;
@@ -672,8 +670,8 @@ var ByopopChat = (function () {
       }, function (err) {
         st.loading = false;
         older.disabled = false;
-        older.textContent = "Show older messages";
-        say((err && err.message) || "The older messages could not be loaded.");
+        older.textContent = ByopopStrings.t("chat.older");
+        say((err && err.message) || ByopopStrings.t("chat.older_failed"));
       });
     }
     function fill() {  // a tall log with few messages: load until it can scroll, or the start
@@ -689,7 +687,7 @@ var ByopopChat = (function () {
       ev.preventDefault();
       if (st.sending) return;
       var clean = cleanText(input.value), problem = textProblem(clean);
-      if (problem === "empty") { say("Type a message first."); return; }
+      if (problem === "empty") { say(errorWords({ code: "empty" })); return; }
       if (problem === "long") { say(errorWords({ code: "long" })); return; }
       if (limiter.take(now())) { say(errorWords({ code: "rate" })); return; }
       st.sending = true;
@@ -706,7 +704,7 @@ var ByopopChat = (function () {
     }
     function updateCount() {
       var left = LIMITS.textMax - input.value.length;
-      countEl.textContent = left <= 60 ? left + " characters left" : "";
+      countEl.textContent = left <= 60 ? ByopopStrings.t("chat.left", {count: left}) : "";
     }
     function nameFormOpen(open) {
       nameForm.hidden = !open;
@@ -738,10 +736,10 @@ var ByopopChat = (function () {
         nameInput.removeAttribute("aria-invalid");
         nameErr.textContent = "";
         nameFormOpen(false);
-        say("You are " + kept + ".");
+        say(ByopopStrings.t("chat.you_are_now", {name: kept}));
       }, function (err) {
         nameInput.setAttribute("aria-invalid", "true");
-        nameErr.textContent = (err && err.message) || "That name was not kept.";
+        nameErr.textContent = (err && err.message) || ByopopStrings.t("chat.name_failed");
         nameInput.focus();
       });
     }
@@ -760,16 +758,16 @@ var ByopopChat = (function () {
       log.setAttribute("role", "log");
       log.setAttribute("aria-live", "polite");
       log.setAttribute("aria-relevant", "additions");
-      log.setAttribute("aria-label", "Chat messages");
+      log.setAttribute("aria-label", ByopopStrings.t("chat.log"));
       log.tabIndex = 0;
-      older = make("button", "bpc-older", "Show older messages");
+      older = make("button", "bpc-older", ByopopStrings.t("chat.older"));
       older.type = "button";
       older.hidden = true;
-      startNote = make("p", "bpc-start", "This is the start of the chat.");
+      startNote = make("p", "bpc-start", ByopopStrings.t("chat.start"));
       startNote.hidden = true;
       listEl = make("ol", "bpc-list");
       log.appendChild(older); log.appendChild(startNote); log.appendChild(listEl);
-      jump = make("button", "bpc-jump", "New messages below");
+      jump = make("button", "bpc-jump", ByopopStrings.t("chat.jump"));
       jump.type = "button";
       jump.hidden = true;
 
@@ -777,7 +775,7 @@ var ByopopChat = (function () {
       note = make("p", "bpc-note");
       var form = make("form", "bpc-form");
       form.noValidate = true;
-      var label = make("label", "bpc-sr", "Message");
+      var label = make("label", "bpc-sr", ByopopStrings.t("chat.message"));
       label.htmlFor = id + "-text";
       input = make("input");
       input.id = id + "-text";
@@ -787,29 +785,29 @@ var ByopopChat = (function () {
       input.spellcheck = false;
       input.setAttribute("autocapitalize", "off");
       input.setAttribute("enterkeyhint", "send");
-      input.setAttribute("placeholder", "Say something");
+      input.setAttribute("placeholder", ByopopStrings.t("chat.placeholder"));
       input.setAttribute("aria-describedby", id + "-hint");
-      var send = make("button", "primary", "Send");
+      var send = make("button", "primary", ByopopStrings.t("chat.send"));
       send.type = "submit";
       form.appendChild(label); form.appendChild(input); form.appendChild(send);
       // (read out with the field, not shown: the placeholder and the count say what matters)
-      var hint = make("p", "bpc-sr", "Plain text, one line, up to " + LIMITS.textMax + " characters, one message a second. Links stay text.");
+      var hint = make("p", "bpc-sr", ByopopStrings.t("chat.hint", {max: LIMITS.textMax}));
       hint.id = id + "-hint";
       countEl = make("p", "bpc-count");
       statusEl = make("p", "bpc-status");
       statusEl.setAttribute("role", "status");
 
       var who = make("div", "bpc-who");
-      who.appendChild(document.createTextNode("You are "));
+      who.appendChild(document.createTextNode(ByopopStrings.t("chat.you") + " "));
       meName = make("strong");
       who.appendChild(meName);
-      changeBtn = make("button", "", "Change name");
+      changeBtn = make("button", "", ByopopStrings.t("chat.change_name"));
       changeBtn.type = "button";
       who.appendChild(changeBtn);
       nameForm = make("form", "bpc-nameform");
       nameForm.noValidate = true;
       nameForm.hidden = true;
-      var nameLabel = make("label", "", "Test username");
+      var nameLabel = make("label", "", ByopopStrings.t("chat.username"));
       nameLabel.htmlFor = id + "-name";
       nameInput = make("input");
       nameInput.id = id + "-name";
@@ -821,20 +819,20 @@ var ByopopChat = (function () {
       nameErr = make("p", "bpc-nameerr");
       nameErr.id = id + "-nameerr";
       nameErr.setAttribute("role", "alert");
-      var nameHint = make("p", "bpc-hint", "2 to 32 characters: lowercase letters, digits, _ and . (never two periods in a row), as on Discord.");
+      var nameHint = make("p", "bpc-hint", ByopopStrings.t("chat.username_hint"));
       nameHint.id = id + "-namehint";
       nameInput.setAttribute("aria-describedby", nameHint.id + " " + nameErr.id);
-      var saveBtn = make("button", "primary", "Save");
+      var saveBtn = make("button", "primary", ByopopStrings.t("chat.save"));
       saveBtn.type = "submit";
-      var cancelBtn = make("button", "", "Cancel");
+      var cancelBtn = make("button", "", ByopopStrings.t("chat.cancel"));
       cancelBtn.type = "button";
       nameForm.appendChild(nameLabel); nameForm.appendChild(nameInput); nameForm.appendChild(saveBtn); nameForm.appendChild(cancelBtn);
       nameForm.appendChild(nameHint); nameForm.appendChild(nameErr);
-      var signin = make("button", "bpc-signin", "Sign in with Discord");
+      var signin = make("button", "bpc-signin", ByopopStrings.t("chat.signin"));
       signin.type = "button";
       signin.setAttribute("aria-disabled", "true");
       signin.setAttribute("aria-describedby", id + "-signin-note");
-      var signinNote = make("span", "bpc-hint", "Not available yet.");
+      var signinNote = make("span", "bpc-hint", ByopopStrings.t("chat.signin_note"));
       signinNote.id = id + "-signin-note";
       var signRow = make("div", "bpc-who");
       signRow.appendChild(signin); signRow.appendChild(signinNote);
@@ -858,12 +856,12 @@ var ByopopChat = (function () {
       nameForm.addEventListener("submit", saveName);
       nameInput.addEventListener("input", function () { nameInput.removeAttribute("aria-invalid"); nameErr.textContent = ""; });
       nameInput.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); nameFormOpen(false); } });
-      signin.addEventListener("click", function () { say("Signing in with Discord is not available yet."); });
+      signin.addEventListener("click", function () { say(ByopopStrings.t("chat.signin_said")); });
 
-      say("Connecting…");
+      say(ByopopStrings.t("chat.connecting"));
       // (a message of this viewer's own that comes in while a send is under way is that send's)
       source.onMessage(function (m) { if (validMessage(m)) addMessage(m, st.sending && m.user === st.me); });
-      source.onError(function (e) { say((e && e.message) || "The chat is not reachable."); if (e && e.fatal) { input.disabled = true; send.disabled = true; } });
+      source.onError(function (e) { say((e && e.message) || ByopopStrings.t("chat.unreachable")); if (e && e.fatal) { input.disabled = true; send.disabled = true; } });
       source.connect().then(function (info) {
         st.me = info.user && info.user.name || "";
         st.canRename = !!info.canRename;
@@ -880,7 +878,7 @@ var ByopopChat = (function () {
         say("");
         fill();
       }, function (err) {
-        say((err && err.message) || "The chat is not reachable.");
+        say((err && err.message) || ByopopStrings.t("chat.unreachable_start"));
         input.disabled = true; send.disabled = true;
       });
       st.built = true;
@@ -891,7 +889,7 @@ var ByopopChat = (function () {
       root.classList.toggle("chat-collapsed", st.collapsed);
       body.hidden = st.collapsed;
       toggle.setAttribute("aria-expanded", st.collapsed ? "false" : "true");
-      toggle.setAttribute("title", st.collapsed ? "Show the chat" : "Hide the chat");
+      toggle.setAttribute("title", ByopopStrings.t(st.collapsed ? "chat.show" : "chat.hide"));
       if (!st.collapsed) { st.unread = 0; showUnread(); if (st.built) { toBottom(); fill(); } }
       if (remember) { try { storage().setItem(KEY_COLLAPSED, st.collapsed ? "1" : "0"); } catch (e) {} }
       layout();
