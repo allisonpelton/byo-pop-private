@@ -70,7 +70,8 @@
 #                mouse-played games (two regular games in a row, a strategy game, a regular game saved and continued)
 #                that must give the frozen baseline's state at every update (about a minute more; not in the quick form)
 #   ningpo       Ning Po Mahjong: a scripted game (the cheat's matches until no pair is left, the name entry, the best
-#                times) and a rerun with the same screenshots and best time (under a minute)
+#                times) and a rerun with the same screenshots and best time; with build/baseline-ningpo, every layout
+#                and two games in a row that must give the frozen baseline's state log (about 20 s)
 #   wordharmony  Word Harmony: a THINK game from a saved game (a ball dragged into a word, the word sent, the level
 #                ended, level 2 saved) and a TSUNAMI game saved after 20 seconds, each run twice with the same
 #                screenshots (about 20 seconds)
@@ -224,7 +225,7 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 # Rough seconds on this machine (the last `all` run, 2026-11-02); the plan adds them up, no more
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
-	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=8 [wordharmony]=17 [cosmicbugs]=5
+	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
 	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52)
 
@@ -1265,14 +1266,32 @@ ningpo_game() {  # <name>: a scripted game (-seed=7): the cheat's matches to the
 
 hexle() { echo $((16#${1:6:2}${1:4:2}${1:2:2}${1:0:2})); }  # <8 hex digits>: the little-endian 32-bit number
 
+ningpo_state_game() {  # <name> <exe> <case> <seed>: an identical-play case's script; its state log is <name>/state.txt
+	local d="$OUT/ningpo/$1"; rm -rf "$d"; mkdir -p "$d"
+	OUT="$OUT/ningpo" "$W/games/ningpo/tools/identical/cases.sh" "$3" "$d/script.txt"
+	timeout 300 "$2" -gamedir=assets/ningpo -userdir="$d/user" -fast -seed="$4" -script="$d/script.txt" \
+		-statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_ningpo() {
-	local st=0 g r
+	local st=0 g r base="$W/build/baseline-ningpo/ningpo.exe" bl="" a
 	need_assets ningpo || return 1
 	g="$(ningpo_game seed7)"; r="$(ningpo_game seed7b)"
 	{ echo "game: $g"; echo "rerun: $r"; } > "$1"
 	[ "$g" = "$NP_GAME" ] || st=1
 	if diff -rq "$OUT/ningpo/seed7/shots" "$OUT/ningpo/seed7b/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="$g; $r"
+	# the frozen port (games/ningpo/docs/IDENTICAL_PLAY.md) on the identical-play pass's cases: every layout, and two
+	# games in a row with the best times, each with the same non-empty state log as the build's
+	if [ -f "$base" ]; then
+		for a in layouts:11 won39:39; do
+			ningpo_state_game "cur-${a%:*}" "$W/build/native/ningpo.exe" "${a%:*}" "${a#*:}"
+			ningpo_state_game "base-${a%:*}" "$base" "${a%:*}" "${a#*:}"
+			[ -s "$OUT/ningpo/cur-${a%:*}/state.txt" ] && [ -s "$OUT/ningpo/base-${a%:*}/state.txt" ] &&
+				cmp -s "$OUT/ningpo/cur-${a%:*}/state.txt" "$OUT/ningpo/base-${a%:*}/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="$g; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$NP_GAME')"
 	return $st
 }
