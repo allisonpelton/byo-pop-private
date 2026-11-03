@@ -12,6 +12,8 @@
 //   nodriver  DirectSoundCreate* return DSERR_NODRIVER, as if the machine had no sound card. Used for the
 //             very first run of a game, before a run has shown it stays silent.
 //   stub      (default) hand back fake objects that accept every call and log, but never play anything.
+// With ORIGRUN_CLOCK=virtual (origrun --clock virtual) the stand-in also carries origrun's virtual clock (vclock.c), and
+// its log's times and its fake play cursor follow that clock instead of the wall clock.
 // Written from the public DirectSound API (dsound.h); no other project's wrapper was read.
 
 #define COBJMACROS
@@ -29,6 +31,11 @@ static int         gWav;        // 1 => also record buffers to WAV (ORIGRUN_SOUN
 static char        gDir[MAX_PATH];
 static LONG        gNextId = 1;
 static LONG        gPlaySeq = 0;
+
+// origrun's virtual clock (vclock.c): installed from DllMain when ORIGRUN_CLOCK=virtual
+void vclock_install(HMODULE self);
+void vclock_detach(void);
+int  vclock_ms(double* out);
 
 static void log_init(void)
 {
@@ -62,8 +69,10 @@ static void log_init(void)
 	}
 }
 
+// Milliseconds since the stand-in attached: on the virtual clock when it runs (it starts as the stand-in attaches).
 static double now_ms(void)
 {
+	double v; if (vclock_ms(&v)) return v;
 	LARGE_INTEGER c; QueryPerformanceCounter(&c);
 	return (double)(c.QuadPart - gStart.QuadPart) * 1000.0 / (double)gFreq.QuadPart;
 }
@@ -147,7 +156,8 @@ typedef struct MyBuf {
 	int    looping;      // last Play was DSBPLAY_LOOPING
 	int    streaming;    // looping buffer -> record as one growing WAV (music)
 	DWORD  byterate;     // bytes/sec from the format, for the cursor
-	LARGE_INTEGER playStart;
+	double playStartMs;  // now_ms() when pos0 was taken: the wall clock, or the virtual clock when it runs
+	DWORD  pos0;         // the play cursor at playStartMs (Play, SetCurrentPosition, SetFrequency), or where Stop left it
 	void*  pcm;          // last full-buffer contents (for a static one-shot dump)
 	DWORD  pcmBytes;
 	FILE*  wav;          // streaming WAV, lazily opened
@@ -195,18 +205,62 @@ static ULONG STDMETHODCALLTYPE Buf_Release(IDirectSoundBuffer8* This)
 }
 static HRESULT STDMETHODCALLTYPE Buf_GetCaps(IDirectSoundBuffer8* This, LPDSBCAPS c)
 { if (c) { c->dwBufferBytes = ((MyBuf*)This)->bytes; } return DS_OK; }
+// The play cursor, moved on by origrun's clock (the wall clock, or the virtual clock when it runs) at the rate of the
+// buffer's format and frequency, from where Play, SetCurrentPosition or SetFrequency last left it. A buffer played
+// once stops at its end with its cursor back at 0, as DirectSound's does; a looping one plays until it is stopped.
+// A streaming source (BASS, FMOD) keeps writing more audio as this cursor moves, and a game that asks GetStatus
+// whether a sound still plays hears the sound's length.
+static double buf_rate(const MyBuf* b)   // bytes per millisecond
+{
+	double r = b->byterate;
+	if (b->freq && b->wfx.nSamplesPerSec && b->freq != b->wfx.nSamplesPerSec) r = r * b->freq / b->wfx.nSamplesPerSec;
+	return r / 1000.0;
+}
+static DWORD buf_cursor(MyBuf* b)
+{
+	if (!b->playing || !b->byterate || !b->bytes) return b->bytes ? b->pos0 % b->bytes : 0;
+	double ms = now_ms() - b->playStartMs;
+	unsigned long long adv = b->pos0 + (unsigned long long)(buf_rate(b) * (ms > 0 ? ms : 0));
+	if (b->looping) return (DWORD)(adv % b->bytes);
+	if (adv >= b->bytes) { b->playing = 0; b->pos0 = 0; return 0; }
+	return (DWORD)adv;
+}
+static void buf_rebase(MyBuf* b, DWORD pos) { b->pos0 = pos; b->playStartMs = now_ms(); }
+
+// Who asked GetStatus, logged as the process detaches: a game whose sounds' ends now take their length on origrun's
+// clock (before 2026-11-03 every buffer answered "stopped").
+static struct { HMODULE mod; LONG calls, playing; } gStatusBy[8];
+static LONG gStatusCalls;
+static void note_status(void* ra, int playing)
+{
+	HMODULE m = NULL;
+	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)ra, &m);
+	InterlockedIncrement(&gStatusCalls);
+	if (!m) return;
+	for (int i = 0; i < 8; i++) {
+		HMODULE cur = gStatusBy[i].mod;
+		if (!cur) { cur = (HMODULE)InterlockedCompareExchangePointer((PVOID volatile*)&gStatusBy[i].mod, m, NULL); if (!cur) cur = m; }
+		if (cur != m) continue;
+		InterlockedIncrement(&gStatusBy[i].calls);
+		if (playing) InterlockedIncrement(&gStatusBy[i].playing);
+		return;
+	}
+}
+static void log_status_summary(void)
+{
+	if (!gStatusCalls) { logf("GetStatus: never asked"); return; }
+	for (int i = 0; i < 8 && gStatusBy[i].mod; i++) {
+		char name[MAX_PATH] = "?";
+		GetModuleFileNameA(gStatusBy[i].mod, name, sizeof(name));
+		const char* base = strrchr(name, '\\'); base = base ? base + 1 : name;
+		logf("GetStatus: %ld calls from %s, %ld of them answered playing", gStatusBy[i].calls, base, gStatusBy[i].playing);
+	}
+}
+
 static HRESULT STDMETHODCALLTYPE Buf_GetCurrentPosition(IDirectSoundBuffer8* This, LPDWORD p, LPDWORD w)
 {
-	// Advance a fake play cursor by wall-clock, so a streaming source (BASS/FMOD) keeps writing more audio.
 	MyBuf* b = (MyBuf*)This;
-	DWORD pos = 0;
-	if (b->playing && b->byterate && b->bytes) {
-		LARGE_INTEGER c; QueryPerformanceCounter(&c);
-		double ms = (double)(c.QuadPart - b->playStart.QuadPart) * 1000.0 / (double)gFreq.QuadPart;
-		unsigned long long adv = (unsigned long long)(b->byterate * (ms/1000.0));
-		if (b->looping) pos = (DWORD)(adv % b->bytes);
-		else { if (adv >= b->bytes) { pos = b->bytes ? b->bytes-1 : 0; } else pos = (DWORD)adv; }
-	}
+	DWORD pos = buf_cursor(b);
 	if (p) *p = pos;
 	if (w) *w = b->bytes ? (pos + (b->byterate/50)) % b->bytes : 0;   // write cursor a little ahead
 	return DS_OK;
@@ -216,7 +270,17 @@ static HRESULT STDMETHODCALLTYPE Buf_GetFormat(IDirectSoundBuffer8* This, LPWAVE
 static HRESULT STDMETHODCALLTYPE Buf_GetVolume(IDirectSoundBuffer8* This, LPLONG v) { if (v) *v=((MyBuf*)This)->vol; return DS_OK; }
 static HRESULT STDMETHODCALLTYPE Buf_GetPan(IDirectSoundBuffer8* This, LPLONG p)    { if (p) *p=((MyBuf*)This)->pan; return DS_OK; }
 static HRESULT STDMETHODCALLTYPE Buf_GetFrequency(IDirectSoundBuffer8* This, LPDWORD f){ if (f) *f=((MyBuf*)This)->freq; return DS_OK; }
-static HRESULT STDMETHODCALLTYPE Buf_GetStatus(IDirectSoundBuffer8* This, LPDWORD s) { if (s) *s=0; return DS_OK; }
+static HRESULT STDMETHODCALLTYPE Buf_GetStatus(IDirectSoundBuffer8* This, LPDWORD s)
+{
+	// Playing from Play until Stop, or until a buffer played once has played its length (buf_cursor); looping too for
+	// one played with DSBPLAY_LOOPING.
+	MyBuf* b = (MyBuf*)This;
+	buf_cursor(b);
+	DWORD st = b->playing ? (DSBSTATUS_PLAYING | (b->looping ? DSBSTATUS_LOOPING : 0)) : 0;
+	note_status(__builtin_return_address(0), st != 0);
+	if (s) *s = st;
+	return DS_OK;
+}
 static HRESULT STDMETHODCALLTYPE Buf_Initialize(IDirectSoundBuffer8* This, LPDIRECTSOUND d, LPCDSBUFFERDESC x) { return DS_OK; }
 
 static HRESULT STDMETHODCALLTYPE Buf_Lock(IDirectSoundBuffer8* This, DWORD off, DWORD bytes,
@@ -262,11 +326,12 @@ static HRESULT STDMETHODCALLTYPE Buf_Unlock(IDirectSoundBuffer8* This, LPVOID p1
 static HRESULT STDMETHODCALLTYPE Buf_Play(IDirectSoundBuffer8* This, DWORD r1, DWORD pri, DWORD flags)
 {
 	MyBuf* b = (MyBuf*)This;
+	DWORD from = buf_cursor(b);   // a stopped buffer plays on from where it stopped; a playing one goes on
 	b->looping = (flags & DSBPLAY_LOOPING) != 0;
 	b->playing = 1;
-	QueryPerformanceCounter(&b->playStart);
 	b->byterate = b->wfx.nAvgBytesPerSec ? b->wfx.nAvgBytesPerSec :
 		(b->wfx.nSamplesPerSec * (b->wfx.nBlockAlign ? b->wfx.nBlockAlign : (b->wfx.nChannels*b->wfx.wBitsPerSample/8)));
+	buf_rebase(b, from);
 	logf("buffer %d play    %s  vol=%ld pan=%ld freq=%luHz", b->id,
 		b->looping ? "looping" : "once", b->vol, b->pan, b->freq);
 	if (gWav) {
@@ -281,7 +346,8 @@ static HRESULT STDMETHODCALLTYPE Buf_Play(IDirectSoundBuffer8* This, DWORD r1, D
 	}
 	return DS_OK;
 }
-static HRESULT STDMETHODCALLTYPE Buf_SetCurrentPosition(IDirectSoundBuffer8* This, DWORD p) { return DS_OK; }
+static HRESULT STDMETHODCALLTYPE Buf_SetCurrentPosition(IDirectSoundBuffer8* This, DWORD p)
+{ MyBuf* b=(MyBuf*)This; buf_cursor(b); buf_rebase(b, b->bytes ? p % b->bytes : 0); return DS_OK; }
 static HRESULT STDMETHODCALLTYPE Buf_SetFormat(IDirectSoundBuffer8* This, LPCWAVEFORMATEX f)
 { if (f) { ((MyBuf*)This)->wfx=*f; ((MyBuf*)This)->freq=f->nSamplesPerSec; } return DS_OK; }
 static HRESULT STDMETHODCALLTYPE Buf_SetVolume(IDirectSoundBuffer8* This, LONG v)
@@ -289,8 +355,9 @@ static HRESULT STDMETHODCALLTYPE Buf_SetVolume(IDirectSoundBuffer8* This, LONG v
 static HRESULT STDMETHODCALLTYPE Buf_SetPan(IDirectSoundBuffer8* This, LONG p)
 { MyBuf* b=(MyBuf*)This; b->pan=p; logf("buffer %d pan     %ld", b->id, p); return DS_OK; }
 static HRESULT STDMETHODCALLTYPE Buf_SetFrequency(IDirectSoundBuffer8* This, DWORD f)
-{ MyBuf* b=(MyBuf*)This; b->freq=f; logf("buffer %d freq    %luHz", b->id, f); return DS_OK; }
-static HRESULT STDMETHODCALLTYPE Buf_Stop(IDirectSoundBuffer8* This) { MyBuf* b=(MyBuf*)This; b->playing=0; if(b->wav) fflush(b->wav); logf("buffer %d stop", b->id); return DS_OK; }
+{ MyBuf* b=(MyBuf*)This; buf_rebase(b, buf_cursor(b)); b->freq=f; logf("buffer %d freq    %luHz", b->id, f); return DS_OK; }
+static HRESULT STDMETHODCALLTYPE Buf_Stop(IDirectSoundBuffer8* This)
+{ MyBuf* b=(MyBuf*)This; b->pos0=buf_cursor(b); b->playing=0; if(b->wav) fflush(b->wav); logf("buffer %d stop", b->id); return DS_OK; }
 static HRESULT STDMETHODCALLTYPE Buf_Restore(IDirectSoundBuffer8* This) { return DS_OK; }
 static HRESULT STDMETHODCALLTYPE Buf_SetFX(IDirectSoundBuffer8* This, DWORD n, LPDSEFFECTDESC d, LPDWORD r) { if (r && d) for (DWORD i=0;i<n;i++) r[i]=DSFXR_LOCSOFTWARE; return DS_OK; }
 static HRESULT STDMETHODCALLTYPE Buf_AcquireResources(IDirectSoundBuffer8* This, DWORD f, DWORD n, LPDWORD r) { return DS_OK; }
@@ -399,6 +466,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv) { if 
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r)
 {
-	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); log_init(); }
+	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); log_init(); vclock_install(h); }
+	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); vclock_detach(); }
 	return TRUE;
 }

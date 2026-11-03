@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "vclock.h"
 
 // --------------------------------------------------------------------------------------------------- util
 
@@ -211,6 +212,228 @@ static int is_our_pid(DWORD pid)
 	if (!ok) return 0;
 	size_t gl = strlen(gGameDir);
 	return _strnicmp(path, gGameDir, gl) == 0;
+}
+
+// ------------------------------------------------------------------------------ the virtual clock (--clock virtual)
+// The game's side is vclock.c, in the sound stand-in; this is origrun's. Each game process of the copy that loads the
+// stand-in publishes its clock in a block named after the run's id and its pid (vclock.h). origrun follows the newest
+// such process (a game may start itself again), and lets any older one run free. Through the block it holds the game's
+// main thread at a wait: at an update (at, burst ... update), at a virtual time (wait), or at the next wait (a step).
+// Between script commands the game stays where it was held, so input and shots land on the same update in every run;
+// the commands that wait for something on the wall clock (clickready, waitshot, record, a burst by interval, quit, the
+// end of the script) let it run free first. See docs/ORIGRUN.md, "The virtual clock".
+static int    gClockVirtual = 0;
+static char   gClockId[40] = "";
+// The clock origrun follows, and its handles: NULL until a game process has one. Read them under gVcLock (the script's
+// thread and the watch thread both use them, and the watch thread may switch to a newer process's clock). A block
+// origrun stops following stays mapped with its handles open until origrun exits (gVcOld), so a pointer or handle a
+// command took under the lock stays valid after it.
+static VcShared* gVc = NULL;
+static HANDLE gVcMap, gVcHeldEv, gVcRelEv, gVcProc;
+static DWORD  gVcPid = 0;
+static ULONGLONG gVcCreated = 0;       // gVc's process's creation time: a newer process with a clock is followed instead
+static int    gVcDead = 0;             // gVc's process ended: its block stays mapped for the watch drain and the summary
+static int    gVcOffLogged = 0;        // gVc's holds went off, and the log says so
+static CRITICAL_SECTION gVcLock;
+static ULONGLONG gVcScanAt = 0;
+typedef struct { VcShared* s; HANDLE map, held, rel, proc; } VcOld;
+static VcOld  gVcOld[16];
+static int    gVcOldN = 0;
+static void watch_drain(VcShared* s);
+static LONGLONG vc_now(VcShared* s) { return InterlockedCompareExchange64((LONGLONG volatile*)&s->v, 0, 0); }
+// Stop following gVc (under gVcLock): kept mapped, as above.
+static void vc_retire(void)
+{
+	if (gVc && gVcOldN<16) { VcOld* o=&gVcOld[gVcOldN++]; o->s=gVc; o->map=gVcMap; o->held=gVcHeldEv; o->rel=gVcRelEv; o->proc=gVcProc; }
+	else if (gVc) { UnmapViewOfFile(gVc); CloseHandle(gVcMap); CloseHandle(gVcHeldEv); CloseHandle(gVcRelEv); if (gVcProc) CloseHandle(gVcProc); }
+	gVc=NULL; gVcMap=gVcHeldEv=gVcRelEv=gVcProc=NULL; gVcPid=0; gVcCreated=0; gVcDead=0; gVcOffLogged=0;
+}
+// Open the clock of one game process: the block, its two events, and the process (to see it end). 0 if it has none.
+static int vc_open(DWORD pid, VcShared** s, HANDLE* map, HANDLE* held, HANDLE* rel, HANDLE* proc)
+{
+	char name[160], ev[192];
+	wsprintfA(name,"Local\\origrun-vclock-%s-%lu",gClockId,pid);
+	*map=OpenFileMappingA(FILE_MAP_ALL_ACCESS,FALSE,name); if (!*map) return 0;
+	*s=(VcShared*)MapViewOfFile(*map,FILE_MAP_ALL_ACCESS,0,0,sizeof(VcShared));
+	wsprintfA(ev,"%s-held",name); *held=OpenEventA(SYNCHRONIZE|EVENT_MODIFY_STATE,FALSE,ev);
+	wsprintfA(ev,"%s-release",name); *rel=OpenEventA(SYNCHRONIZE|EVENT_MODIFY_STATE,FALSE,ev);
+	*proc=OpenProcess(SYNCHRONIZE|PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pid);
+	if (!*s || !*held || !*rel || (*s)->magic!=VC_MAGIC || (*s)->version!=VC_VERSION || (*s)->size!=sizeof(VcShared)) {
+		if (*s && (*s)->magic==VC_MAGIC && ((*s)->version!=VC_VERSION || (*s)->size!=sizeof(VcShared)))
+			logline("--clock virtual: pid %lu's clock is another version than origrun's (rebuild both with tools/origrun/build.sh)", pid);
+		if (*s) UnmapViewOfFile(*s); CloseHandle(*map); if (*held) CloseHandle(*held); if (*rel) CloseHandle(*rel); if (*proc) CloseHandle(*proc);
+		*s=NULL; return 0;
+	}
+	return 1;
+}
+static const char* vc_off_why(LONG w)
+{
+	return w==VC_OFF_CAP ? "a hold lasted 60 s with no release" : w==VC_OFF_HOST ? "origrun ended while it was held"
+		: w==VC_OFF_FAILED ? "a hold's wait failed" : "?";
+}
+// The game's holds went off (it set barrierOff): said once per clock, so a script's results can be judged.
+static void vc_note_off(VcShared* s, DWORD pid)
+{
+	EnterCriticalSection(&gVcLock);
+	if (s==gVc && !gVcOffLogged && s->barrierOff) {
+		gVcOffLogged=1;
+		logline("--clock virtual: WARNING: pid %lu holds no more from update %ld (%s): from there the script's at, wait and "
+			"update bursts land wherever the game is, not on an exact update", pid, (long)s->barrierOffCounter, vc_off_why(s->barrierOffWhy));
+	}
+	LeaveCriticalSection(&gVcLock);
+}
+// Let a clock's game run free: no barrier, and a held game goes on.
+static void vc_let_go(VcShared* s, HANDLE rel) { InterlockedExchange(&s->bar,VC_BAR_FREE); if (rel) SetEvent(rel); }
+// The clock to follow: the newest of the copy's processes that has one. Looked for again at most every 20 ms while
+// there is none or its process ended, and every 250 ms while one is followed, in case a newer one appears.
+static VcShared* vc_get(void)
+{
+	if (!gClockVirtual) return NULL;
+	EnterCriticalSection(&gVcLock);
+	if (gVc && !gVcDead && gVcProc && WaitForSingleObject(gVcProc,0)!=WAIT_TIMEOUT) { gVcDead=1; logline("--clock virtual: the game process %lu ended", gVcPid); }
+	if (gVc && !gVcDead && gVc->barrierOff && !gVcOffLogged) vc_note_off(gVc,gVcPid);
+	ULONGLONG now=GetTickCount64();
+	if (now-gVcScanAt >= ((!gVc || gVcDead) ? 20u : 250u)) {
+		gVcScanAt=now;
+		HANDLE sn=CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0);
+		DWORD pids[16]; int np=0;
+		PROCESSENTRY32 pe; pe.dwSize=sizeof(pe);
+		if (sn!=INVALID_HANDLE_VALUE && Process32First(sn,&pe)) do {
+			if (pe.th32ProcessID==gVcPid || !is_our_pid(pe.th32ProcessID)) continue;
+			if (np<16) pids[np++]=pe.th32ProcessID;
+		} while (Process32Next(sn,&pe));
+		if (sn!=INVALID_HANDLE_VALUE) CloseHandle(sn);
+		// Of those with a clock, the newest (and newer than a followed one still running) is followed; every clock is told
+		// origrun is here, and the ones not followed run free.
+		VcShared* bs=NULL; HANDLE bm=NULL,bh=NULL,br=NULL,bp=NULL; DWORD bpid=0; ULONGLONG bt=0;
+		for (int i=0;i<np;i++) {
+			VcShared* s; HANDLE m,h,r,p;
+			if (!vc_open(pids[i],&s,&m,&h,&r,&p)) continue;
+			int first=!InterlockedExchange(&s->connected,1);
+			FILETIME c,e,k,u; ULONGLONG t=0;
+			if (p && GetProcessTimes(p,&c,&e,&k,&u)) t=((ULONGLONG)c.dwHighDateTime<<32)|c.dwLowDateTime;
+			if ((!gVc || gVcDead || t>gVcCreated) && (!bs || t>=bt)) {
+				if (bs) { vc_let_go(bs,br); UnmapViewOfFile(bs); CloseHandle(bm); CloseHandle(bh); CloseHandle(br); if (bp) CloseHandle(bp); }
+				bs=s; bm=m; bh=h; br=r; bp=p; bpid=pids[i]; bt=t;
+				continue;
+			}
+			if (first) logline("--clock virtual: pid %lu has a clock too; it is not followed and runs free", pids[i]);
+			vc_let_go(s,r);
+			UnmapViewOfFile(s); CloseHandle(m); CloseHandle(h); CloseHandle(r); if (p) CloseHandle(p);
+		}
+		if (bs) {
+			if (gVc) {   // the one followed so far: its last watch changes, then it runs free
+				watch_drain(gVc);
+				if (!gVcDead) { vc_let_go(gVc,gVcRelEv); logline("--clock virtual: pid %lu is newer: it is followed, and pid %lu runs free", bpid, gVcPid); }
+				vc_retire();
+			}
+			gVc=bs; gVcMap=bm; gVcHeldEv=bh; gVcRelEv=br; gVcProc=bp; gVcPid=bpid; gVcCreated=bt;
+			logline("--clock virtual: following the clock of pid %lu (its main thread %lu drives it)", bpid, bs->driverTid);
+		}
+	}
+	VcShared* r=gVcDead?NULL:gVc;
+	LeaveCriticalSection(&gVcLock);
+	return r;
+}
+// The followed clock (live or ended) and its handles, under the lock; NULL when there is none.
+static VcShared* vc_cur(HANDLE* held, HANDLE* rel, HANDLE* proc, DWORD* pid, int* dead)
+{
+	EnterCriticalSection(&gVcLock);
+	VcShared* s=gVc;
+	if (held) *held=gVcHeldEv; if (rel) *rel=gVcRelEv; if (proc) *proc=gVcProc; if (pid) *pid=gVcPid; if (dead) *dead=gVcDead;
+	LeaveCriticalSection(&gVcLock);
+	return s;
+}
+// Wait (on the wall clock) until a game process has a clock; NULL after timeout_ms.
+static VcShared* vc_connect_wait(int timeout_ms)
+{
+	ULONGLONG t0=GetTickCount64();
+	VcShared* s;
+	while (!(s=vc_get()) && !gStop && GetTickCount64()-t0<(ULONGLONG)timeout_ms) Sleep(5);
+	return s;
+}
+static int vc_is_held(void)
+{
+	if (!gClockVirtual) return 0;
+	int dead=0; VcShared* s=vc_cur(NULL,NULL,NULL,NULL,&dead);
+	return s && !dead && s->held && s->bar==VC_BAR_HELD;
+}
+// Arm a barrier (which lets a held game go on), and wait for the hold. 1 held (at once when a held game already meets
+// it), 0 not held (timed out and taken back, the game ended, or another clock is followed now: it runs free), -1 no
+// clock, or the game's holds are off, so that callers fall back to their wall-clock waits (Sleep, the counter poll).
+static int vc_hold_until(int kind, LONG upd, LONGLONG v100, int timeout_ms)
+{
+	if (!vc_get()) return -1;
+	HANDLE held,rel,proc; DWORD pid; int dead;
+	VcShared* s=vc_cur(&held,&rel,&proc,&pid,&dead);
+	if (!s || dead) return -1;
+	if (s->barrierOff) { vc_note_off(s,pid); return -1; }
+	if (s->held && s->bar==VC_BAR_HELD) {   // already there?
+		if (kind==VC_HOLD_UPDATE && s->heldCounter!=-1 && (LONG)(s->heldCounter-upd)>=0) return 1;
+		if (kind==VC_HOLD_TIME && s->heldV>=v100) return 1;
+	}
+	LONG seq0=s->heldSeq;
+	s->holdKind=kind; s->holdUpdate=upd; s->holdV=v100;
+	MemoryBarrier();
+	InterlockedExchange(&s->bar,VC_BAR_ARMED);
+	SetEvent(rel);
+	ULONGLONG t0=GetTickCount64();
+	for (;;) {
+		if (s->heldSeq!=seq0 && s->held && s->bar==VC_BAR_HELD) return 1;
+		if (s->barrierOff) { vc_note_off(s,pid); return -1; }
+		if (gStop || GetTickCount64()-t0>=(ULONGLONG)timeout_ms) break;
+		HANDLE hs[2]={held,proc}; DWORD n=proc?2:1;
+		DWORD r=WaitForMultipleObjects(n,hs,FALSE,20);
+		if (n==2 && r==WAIT_OBJECT_0+1) { vc_get(); return 0; }   // the process ended
+		if (vc_cur(NULL,NULL,NULL,NULL,NULL)!=s) return 0;     // a newer process's clock is followed now (this one runs free)
+	}
+	// Take the barrier back, unless the game claimed it meanwhile: then it holds, or is about to, and that is the answer.
+	if (InterlockedCompareExchange(&s->bar,VC_BAR_FREE,VC_BAR_ARMED)==VC_BAR_HELD) {
+		ULONGLONG t1=GetTickCount64();
+		while (!(s->heldSeq!=seq0 && s->held) && s->bar==VC_BAR_HELD && GetTickCount64()-t1<1000) Sleep(1);
+		if (s->heldSeq!=seq0 && s->held && s->bar==VC_BAR_HELD) return 1;
+		vc_let_go(s,rel);
+	}
+	return 0;
+}
+// Let the game run free: no barrier, and a held game goes on.
+static void vc_free(void)
+{
+	if (!gClockVirtual) return;
+	HANDLE rel; VcShared* s=vc_cur(NULL,&rel,NULL,NULL,NULL);
+	if (s) vc_let_go(s,rel);
+}
+// Move a held game on to its next wait.
+static int vc_step(int timeout_ms){ return vc_hold_until(VC_HOLD_NEXT,0,0,timeout_ms)==1; }
+// A wait of the script on the virtual clock: from where the game is held (or, running free, from its clock now).
+static int vc_wait(int ms)
+{
+	VcShared* s=vc_get(); if (!s) return -1;
+	LONGLONG base = s->held && s->bar==VC_BAR_HELD ? s->heldV : vc_now(s);
+	int r=vc_hold_until(VC_HOLD_TIME,0,base+(LONGLONG)ms*VC_UNITS_PER_MS,60000+ms);
+	if (r==0 && !gStop && !s->barrierOff) logline("wait %d (virtual): the game did not get there within %d s of wall time; it runs free", ms, (60000+ms)/1000);
+	return r;
+}
+static void vc_summary(void)
+{
+	EnterCriticalSection(&gVcLock);
+	VcShared* s=gVc;
+	if (s) {
+		double vs=(double)vc_now(s)/1e7, rs=(double)(s->nowReal100-s->installReal100)/1e7, hs=(double)s->heldReal100/1e7;
+		logline("virtual clock (pid %lu): %.1f s of game time in %.1f s of wall time to its last wait (%.1fx; %.1f s of that held); "
+			"update counter %ld; %ld timed waits skipped, %ld passed on, %ld took their real time while the exe's other threads worked "
+			"(%.1f s of game time), %ld on handles went to Windows (%ld ran out; %.1f s of game time), %ld clock reads moved the clock "
+			"(polling), at most %ld reads between two waits; %ld holds; %ld timed waits of other threads stayed on the wall clock; "
+			"logs/clock.log has the details",
+			gVcPid, vs, rs, rs>0?vs/rs:0.0, hs, (long)s->counter, (long)s->waits, (long)s->passWaits, (long)s->realWaits,
+			(double)s->realWait100/1e7, (long)s->handleWaits, (long)s->handleTimeouts, (double)s->handleWait100/1e7, (long)s->polls,
+			(long)s->maxReads, (long)s->holds, (long)s->otherWaits);
+		if (s->barrierOff) logline("virtual clock: HOLDS WENT OFF at update %ld (%s): the script's at, wait and update bursts after that did not land on exact updates",
+			(long)s->barrierOffCounter, vc_off_why(s->barrierOffWhy));
+		else logline("virtual clock: holds stayed on to the end");
+		if (s->ringDropped) logline("WARNING: %ld watch changes were dropped (origrun drained them too slowly)", (long)s->ringDropped);
+	} else if (gClockVirtual) logline("--clock virtual: no game process had a clock (did it load the stand-in, dsound.dll?)");
+	LeaveCriticalSection(&gVcLock);
 }
 
 static int file_exists(const char* p) { DWORD a=GetFileAttributesA(p); return a!=INVALID_FILE_ATTRIBUTES && !(a&FILE_ATTRIBUTE_DIRECTORY); }
@@ -1038,6 +1261,14 @@ static void write_clip_json(const char* dir, int interval_ms)
 // update of the target.
 static int wait_counter(uint32_t target, int timeout_ms)
 {
+	// On the virtual clock the game is held at its first wait at or past the update (vclock.c), however fast it runs.
+	if (gClockVirtual && vc_get()) {
+		int r=vc_hold_until(VC_HOLD_UPDATE,(LONG)target,0,timeout_ms);
+		VcShared* s=vc_cur(NULL,NULL,NULL,NULL,NULL);   // stays mapped (see gVc)
+		if (r==1) return s ? (int)s->heldCounter : -1;
+		if (r==0 && !gStop && !(s && s->barrierOff)) logline("counter %u not reached within %dms on the virtual clock (last %ld); the game runs free",target,timeout_ms,s?(long)s->counter:-1L);
+		if (r==0) return s && s->counterOk ? (int)s->counter : -1;
+	}
 	int w=0; uint32_t v=0; int everRead=0;
 	while (!gStop) {
 		if (read_counter(gCounterExpr,&v)) { everRead=1; if (v>=target) return (int)v; }
@@ -1080,7 +1311,7 @@ static int capture_held(const char* name)
 			if (gStop) { logline("shot %s not taken: the run is stopping", name); return 0; }
 			// unheld, wait until the game shows its last update; then hold and look again
 			int rf=0;
-			while (exact && !drawn_now(&rf) && !rf && qpc_ms()-t0<500 && !gStop) SwitchToThread();
+			while (exact && !drawn_now(&rf) && !rf && qpc_ms()-t0<500 && !gStop) { if (vc_is_held()) vc_step(500); else SwitchToThread(); }
 			if (exact && !rf && qpc_ms()-t0>=500) { logline("shot %s refused: the game did not show a drawn update for 500 ms (%d holds)", name, holds); return 0; }
 			HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
 			if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
@@ -1102,7 +1333,8 @@ static int capture_held(const char* name)
 					release_held(&held); CloseHandle(th);
 					if (qpc_ms()-t0>2000) { logline("shot %s refused: the surface's gate did not open for 2 s (%d holds)", name, holds); return 0; }
 					uint32_t c2=c; double w0=qpc_ms();
-					while (c2==c && qpc_ms()-w0<100 && !gStop) { Sleep(1); if (!read_counter(gCounterExpr,&c2)) break; }
+					if (vc_is_held()) vc_step(500);   // on the virtual clock: the game's next wait
+					else while (c2==c && qpc_ms()-w0<100 && !gStop) { Sleep(1); if (!read_counter(gCounterExpr,&c2)) break; }
 					continue;
 				}
 				// the pixels and samples are read under the hold; the game runs on while they are converted and written
@@ -1193,7 +1425,7 @@ static int  parse_vk(const char*);
 // (UpdateAppStep), and each millisecond of hold is time its clock runs on. A held click now holds the game for
 // about 0.04 ms instead of 60.
 static int gInputHeld = 0;
-static void input_gap(DWORD ms){ if (!gInputHeld) Sleep(ms); }
+static void input_gap(DWORD ms){ if (!gInputHeld && !vc_is_held()) Sleep(ms); }   // a game held on the virtual clock reads them all in order too
 static void exec_at(const char* inner)
 {
 	char cmd[32]={0}; int off=0; sscanf(inner,"%31s%n",cmd,&off); const char* rest=inner+off; while(*rest==' ')rest++;
@@ -1203,6 +1435,7 @@ static void exec_at(const char* inner)
 		return; }
 	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",inner); return; }
 	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
+	if (th && gInN) rpm_follow_window(hw);   // the gate reads the stack (on the virtual clock no counter read has opened the process yet)
 	if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
 	if (th && gInN) {   // hold only while the thread is outside the code that reads input and steps updates: the posted input is then read at the next frame start, before any update
 		double w0=qpc_ms(); int tries=0;
@@ -1210,7 +1443,8 @@ static void exec_at(const char* inner)
 			hold_end(th); tries++;
 			if (qpc_ms()-w0>3000) { logline("at %s: the thread stayed inside the update code for 3 s (%d holds): posting anyway", cmd, tries); break; }
 			uint32_t c0=0,c1=0; read_counter(gCounterExpr,&c0); double w1=qpc_ms();
-			do { Sleep(1); c1=c0; read_counter(gCounterExpr,&c1); } while (c1==c0 && qpc_ms()-w1<100 && !gStop);
+			if (vc_is_held()) vc_step(3000);   // on the virtual clock: let the game on to its next wait
+			else do { Sleep(1); c1=c0; read_counter(gCounterExpr,&c1); } while (c1==c0 && qpc_ms()-w1<100 && !gStop);
 			if (!hold_begin(th)) { CloseHandle(th); th=NULL; break; }
 		}
 		if (th) { uint32_t c=0; if (read_counter(gCounterExpr,&c)) logline("at %s: input at counter %u (%d holds)", cmd, c, tries+1); }
@@ -1385,17 +1619,21 @@ static void run_script(DWORD pid, const char* scriptPath)
 		char cmd[32]={0}; int off=0; sscanf(p,"%31s%n",cmd,&off); char* rest=p+off; while(*rest==' ')rest++;
 		// Commands that manage timing/the window themselves are not gated on an immediate window.
 		if (ieq(cmd,"msgbox")) continue;   // msgbox rules are loaded up front (load_msgbox_rules), before launch
-		if (ieq(cmd,"wait")){ int ms=atoi(rest); Sleep(ms); continue; }
-		if (ieq(cmd,"waitshot")){ char n[256]="shot"; int ms=8000; sscanf(rest,"%255s %d",n,&ms); capture_ready(n,ms); continue; }
+		if (ieq(cmd,"wait")){ int ms=atoi(rest); if (!gClockVirtual || vc_wait(ms)<0) Sleep(ms); continue; }   // on the virtual clock: game time
+		// The commands below wait for something on the wall clock: on the virtual clock the game runs free during them.
+		if (ieq(cmd,"waitshot")){ vc_free(); char n[256]="shot"; int ms=8000; sscanf(rest,"%255s %d",n,&ms); capture_ready(n,ms); continue; }
 		if (ieq(cmd,"clickready")){   // clickready <x> <y> <timeout_ms>: wait for the window, then click
 			int x=0,y=0,ms=20000; if(sscanf(rest,"%d %d %d",&x,&y,&ms)>=2){
-				int w=0; HWND hw=NULL; while(!(hw=resolve_window(0,NULL)) && w<ms && !gStop){ Sleep(150); w+=150; }
-				if(hw){ Sleep(300); post_click(hw,x,y,0); logline("clickready %d %d (waited %dms)",x,y,w); }
+				int w=0; HWND hw=NULL;
+				if (gClockVirtual && !(hw=resolve_window(0,NULL))) vc_free();   // held with no window yet: let it on
+				while(!(hw=resolve_window(0,NULL)) && w<ms && !gStop){ Sleep(150); w+=150; }
+				if(hw){ if (!gClockVirtual || vc_wait(300)<0) Sleep(300); post_click(hw,x,y,0); logline("clickready %d %d (waited %dms)",x,y,w); }
 				else logline("clickready: no window within %dms",ms);
 			} continue; }
 		if (ieq(cmd,"record")){
 			// record <prefix> <duration_ms> <interval_ms>: grab a numbered frame every interval whenever a
 			// window is present (catches a DRM/activation dialog that appears at an unpredictable time).
+			vc_free();
 			char pre[200]="frame"; int dur=20000, iv=1000; sscanf(rest,"%199s %d %d",pre,&dur,&iv);
 			int t=0, idx=0;
 			while (t<dur && !gStop) {
@@ -1410,7 +1648,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 			char n[256]="burst"; int c=10; char kw[16]=""; int iv=100;
 			int got=sscanf(rest,"%255s %d %15s %d",n,&c,kw,&iv);
 			if (got>=3 && ieq(kw,"update")) do_burst(n,c,0,1,iv>0?iv:1);
-			else do_burst(n,c,(got>=3?atoi(kw):100),0,0);
+			else { vc_free(); do_burst(n,c,(got>=3?atoi(kw):100),0,0); }
 			continue;
 		}
 		if (ieq(cmd,"at")){
@@ -1441,6 +1679,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 		else logline("unknown script command: %s",cmd);
 	}
 	fclose(f);
+	if (gClockVirtual && vc_cur(NULL,NULL,NULL,NULL,NULL)) { vc_free(); logline("--clock virtual: the script is done; the game runs free"); }
 }
 
 // ----------------------------------------------------------------------------------- Core Audio watchdog
@@ -1985,12 +2224,43 @@ static DWORD WINAPI mode3d_thread(LPVOID p)
 // Logs each change of a --watch value ("watch 1: 48 -> 47 at update 2150"; "-" while it cannot be read, as through a
 // null pointer), at most 4000 lines per watch. Polls every millisecond under timeBeginPeriod(1): Sleep in origrun's
 // process otherwise rounds up to the 15.6 ms timer tick, which would miss values that change every update.
+// On the virtual clock the game reads the values itself, at each of its waits and whenever its counter moves, and hands
+// each change over in the clock's block (vclock.c), so none is missed however fast it runs: the lines are the same.
+static char gWatchLast[4][16]={"?","?","?","?"};
+static int  gWatchLines[4];
+static void watch_drain(VcShared* s)   // s: the followed clock, or one origrun stops following (its last changes)
+{
+	char (*last)[16]=gWatchLast; int* lines=gWatchLines;
+	EnterCriticalSection(&gVcLock);
+	if (s) {
+		LONG t=s->ringTail, h=s->ringHead;
+		for (; t!=h; t++) {
+			VcWatchRec r=s->ring[t%VC_RING];
+			int i=r.idx; if (i<0 || i>=gWatchN) continue;
+			char now[16]; if (r.ok) wsprintfA(now,"%lu",(unsigned long)(uint32_t)r.value); else lstrcpyA(now,"-");
+			if (lstrcmpA(now,last[i]) && lines[i]<4000) {
+				if (r.update!=-1) logline("watch %d: %s -> %s at update %lu", i+1, last[i], now, (unsigned long)(uint32_t)r.update);
+				else logline("watch %d: %s -> %s", i+1, last[i], now);
+				if (++lines[i]==4000) logline("watch %d: 4000 changes logged; no more", i+1);
+			}
+			lstrcpyA(last[i],now);
+		}
+		InterlockedExchange(&s->ringTail,t);
+	}
+	LeaveCriticalSection(&gVcLock);
+}
 static DWORD WINAPI watch_thread(LPVOID p)
 {
 	for (int w=0; !gDesk && !gStop && w<30000; w+=50) Sleep(50);
 	timeBeginPeriod(1);
 	char last[4][16]; int lines[4]={0};
 	for (int i=0;i<gWatchN;i++) lstrcpyA(last[i],"?");
+	if (gClockVirtual) {
+		while (!gStop) { vc_get(); watch_drain(vc_cur(NULL,NULL,NULL,NULL,NULL)); Sleep(1); }
+		watch_drain(vc_cur(NULL,NULL,NULL,NULL,NULL));   // what the game handed over before it ended
+		timeEndPeriod(1);
+		return 0;
+	}
 	while (!gStop) {
 		{   // a read fails ("-") while there is no game process
 			for (int i=0;i<gWatchN;i++) {
@@ -2018,6 +2288,20 @@ static DWORD WINAPI driver_thread(LPVOID p)
 {
 	DriverArg* a=(DriverArg*)p;
 	if (!attach_desktop()) return 0;   // so the game's window handles are usable from this thread
+	// On the virtual clock the game holds at its first wait until origrun follows its clock; it is then let on wait by
+	// wait until its window is up, so the script starts at the same point of the game in every run.
+	if (gClockVirtual) {
+		VcShared* vs=vc_connect_wait(20000);
+		if (!vs) logline("--clock virtual: no game process had a clock within 20 s (did it load the stand-in, dsound.dll?); the script runs on the wall clock");
+		else {
+			ULONGLONG t0=GetTickCount64(); int ok=1;
+			while (!gStop && !resolve_window(0,NULL) && GetTickCount64()-t0<20000) { if (!vc_step(20000-(int)(GetTickCount64()-t0))) { ok=0; break; } }
+			if (resolve_window(0,NULL) && (vs=vc_get())!=NULL && !vc_is_held()) ok=vc_step(5000);
+			vs=vc_get();
+			if (ok && vs && vc_is_held()) logline("--clock virtual: the game's window is up; the game is held at its wait %ld (update %ld, %.1f ms of game time)", (long)vs->holds, (long)vs->heldCounter, (double)vs->heldV/VC_UNITS_PER_MS);
+			else logline("--clock virtual: the game was not held with its window up (it runs free); a script's first commands may land later than on another run");
+		}
+	}
 	// Informational only: the game's window can be delayed (activation phone-home) or flaky under load, so we
 	// never bail on this -- the script's own waitshot/record commands poll for the window.
 	DWORD pid=find_game_pid(20000);
@@ -2032,7 +2316,10 @@ static DWORD WINAPI driver_thread(LPVOID p)
 		for (int t=0;t<30 && !gStop;t++){ DWORD rp=0; HWND rw=resolve_window(0,&rp); logline("--- t+%dms  resolve_window -> hwnd=%p pid=%lu ---",t*1000,(void*)rw,rp); dump_desktop(); Sleep(1000); }
 	}
 	if (a->script[0]) run_script(pid, a->script);
-	else { capture_ready("title", 40000); }
+	else {   // no script: the game held with its window up runs free from here
+		if (gClockVirtual && vc_cur(NULL,NULL,NULL,NULL,NULL)) { vc_free(); logline("--clock virtual: no script; the game runs free"); }
+		capture_ready("title", 40000);
+	}
 	return 0;
 }
 
@@ -2132,11 +2419,13 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	}
 
 	InterlockedExchange(&gStop,1);
+	if (gClockVirtual) vc_free();
 	WaitForSingleObject(dth,3000);
 	WaitForSingleObject(gth,3000);
 	WaitForSingleObject(ath,3000);
 	if (mth) WaitForSingleObject(mth,3000);
 	if (wth) WaitForSingleObject(wth,3000);
+	if (gClockVirtual) vc_summary();
 	close_game(L);
 
 	// What the game left in its setting (it writes Is3D at exit, and turns it off after a fallback), then the earlier
@@ -2774,6 +3063,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gMode3dWant>=0) fprintf(rf,"3d=%s\n",gMode3dWant?"on":"off");
 	if (key3d && key3d[0]) fprintf(rf,"key3d=%s\n",key3d);
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
+	if (gClockVirtual) fprintf(rf,"clock=virtual\n");
 	fclose(rf);
 	// --reg: registry presets, imported inside before the game starts, into the hive the game uses there.
 	if (!probe) {
@@ -3145,6 +3435,25 @@ static DWORD arm_guest_shutdown(DWORD sec)
 		SHTDN_REASON_MAJOR_OTHER|SHTDN_REASON_MINOR_OTHER|SHTDN_REASON_FLAG_PLANNED);
 }
 
+// The environment the stand-in's virtual clock reads (vclock.c), inherited by the game through rundesk; none of it
+// without --clock virtual, so a clock left in origrun's own environment never reaches a game.
+static void clock_env(void)
+{
+	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",NULL};
+	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
+	if (!gClockVirtual) return;
+	wsprintfA(gClockId,"%lu-%lu",GetCurrentProcessId(),GetTickCount());
+	char host[16]; wsprintfA(host,"%lu",GetCurrentProcessId());
+	char w[4*257]=""; for (int i=0;i<gWatchN;i++) { if (i) lstrcatA(w,";"); lstrcatA(w,gWatchExpr[i]); }
+	SetEnvironmentVariableA("ORIGRUN_CLOCK","virtual");
+	SetEnvironmentVariableA("ORIGRUN_CLOCK_ID",gClockId);
+	SetEnvironmentVariableA("ORIGRUN_CLOCK_HOST",host);
+	SetEnvironmentVariableA("ORIGRUN_CLOCK_HOLDSTART","1");
+	if (gCounterExpr[0]) SetEnvironmentVariableA("ORIGRUN_CLOCK_COUNTER",gCounterExpr);
+	if (w[0]) SetEnvironmentVariableA("ORIGRUN_CLOCK_WATCH",w);
+	logline("--clock virtual: the game's time functions run on origrun's virtual clock (in the stand-in; its log is logs/clock.log)");
+}
+
 static int main_in_sandbox(const char* dir, int inSession, int probe)
 {
 	char why[300];
@@ -3217,6 +3526,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"3d")) gMode3dWant = ieq(v,"on") ? 1 : 0;
 			else if (ieq(ln,"key3d")) lstrcpynA(key3d,v,256);
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
+			else if (ieq(ln,"clock")) gClockVirtual = ieq(v,"virtual");
 		}
 		fclose(f);
 	}
@@ -3257,6 +3567,8 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	}
 	SetEnvironmentVariableA("ORIGRUN_DIR",gRunDir);
 	SetEnvironmentVariableA("ORIGRUN_SOUND", ieq(sound,"real") ? "real" : sound);
+	if (gClockVirtual && ieq(sound,"real")) { logline("clock=virtual needs the sound stand-in, which sound=real leaves out: the run stays on the wall clock"); gClockVirtual=0; }
+	clock_env();
 
 	import_registry(logs);   // the presets first, in the hive the game uses, so the 3D setting below wins over them
 	DWORD prev3d=0; int hadPrev3d=0; static RegVals prevTest3d;
@@ -3289,6 +3601,7 @@ static LONG WINAPI crash_filter(EXCEPTION_POINTERS* ep)
 {
 	HANDLE held=(HANDLE)InterlockedExchangePointer(&gHeldThread,NULL);   // first of all, let a held game run on
 	if (held) ResumeThread(held);
+	vc_free();   // and one held on the virtual clock (its own cap would free it in a minute)
 	stop_sandbox("origrun crashed");   // and never leave a sandbox running
 	void* a=ep->ExceptionRecord->ExceptionAddress; HMODULE m=NULL; char mod[MAX_PATH]="?";
 	if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,(LPCSTR)a,&m)) GetModuleFileNameA(m,mod,MAX_PATH);
@@ -3311,6 +3624,7 @@ int main(int argc, char** argv)
 	crc_init();
 	SetUnhandledExceptionFilter(crash_filter);
 	InitializeCriticalSection(&gRpmLock);
+	InitializeCriticalSection(&gVcLock);
 	const char* game=NULL; const char* exe=NULL; const char* script=NULL;
 	const char* run=NULL; const char* sound="stub"; int timeout=120; int fresh=0; int copyOnly=0;
 	const char* patches=NULL; const char* counter=NULL; const char* flips=NULL; const char* pending=NULL; const char* ustate=NULL; const char* dempty=NULL;
@@ -3348,6 +3662,11 @@ int main(int argc, char** argv)
 			lstrcatA(gGameArgs,v);
 		}
 		else if (ieq(argv[i],"--update-ms")&&i+1<argc) updateMs=atoi(argv[++i]);
+		else if (ieq(argv[i],"--clock")&&i+1<argc) {
+			const char* v=argv[++i];
+			if (ieq(v,"virtual")) gClockVirtual=1; else if (ieq(v,"real")) gClockVirtual=0;
+			else { fprintf(stderr,"--clock takes virtual or real, not %s\n",v); return 2; }
+		}
 		else if (ieq(argv[i],"--copy-only")) copyOnly=1;
 		else if (ieq(argv[i],"--fresh")) fresh=1;
 		else if (ieq(argv[i],"--stage-root")&&i+1<argc) stageRoot=argv[++i];
@@ -3371,6 +3690,10 @@ int main(int argc, char** argv)
 		else { fprintf(stderr,"unknown or incomplete option: %s\n",argv[i]); return 2; }
 	}
 	if (inSandboxDir) return main_in_sandbox(inSandboxDir, inSession, probe);   // everything else comes from the run folder
+	if (gClockVirtual && ieq(sound,"real")) {
+		fprintf(stderr, "origrun: --clock virtual lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");
+		return 2;
+	}
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");
 	if (timeout>240) timeout=240;   // the machine rule: nothing longer than about 4 minutes
 	if (!sandboxHost && !copyOnly && script_needs_sandbox(script)) {
@@ -3570,6 +3893,7 @@ int main(int argc, char** argv)
 	// Environment the stand-in reads, inherited through rundesk.
 	SetEnvironmentVariableA("ORIGRUN_DIR",gRunDir);
 	SetEnvironmentVariableA("ORIGRUN_SOUND", wantSilent ? sound : "real");
+	clock_env();
 
 	// The game's 3D setting and cached test results go back after every run whose key is known: on rundesk's desktop
 	// the game falls back to software and saves Is3D=0 at exit (and a re-run test caches a failure), which would

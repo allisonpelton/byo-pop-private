@@ -21,8 +21,9 @@ origrun prefers them, and the user turns the speakers off for a run that needs r
 Hooking the copy's clock is allowed (the user, 2026-11-02, asked whether origrun may hook the originals' clock
 functions to run them uncapped: "Yes, hook them"). origrun may replace the time functions the copy imports
 (timeGetTime, QueryPerformanceCounter and the like) with a clock of its own, so that an original can run faster than
-real time, update for update. That OK covers the clock only: any other hook of a Windows function inside a copy still
-needs the user's OK first.
+real time, update for update. Asked on 2026-11-03 whether origrun may also skip the copy's timed waits (Sleep and the
+timed Wait functions), not only hook its time reads, the user answered "Yes, waits too". That OK covers the clock's
+reads and waits only: any other hook of a Windows function inside a copy still needs the user's OK first.
 
 How any copy's protection is handled is kept in the private notes under Per-game status, which a public
 snapshot strips out (`docs/PUBLISHING.md`); this document otherwise names games only by title.
@@ -96,6 +97,9 @@ Options:
   changes: after a held shot the game runs its catch-up updates back to back, faster than a poll, so a value can skip.
   The game's process is looked up again every 100 ms (and soon after a failed read), not at every read: on the
   sandbox's desktop a window enumeration costs about a millisecond.
+- `--clock virtual` / `--clock real` — run the game on origrun's virtual clock, as fast as it can draw and update for
+  update as in real time, or on the wall clock (the default). Needs the sound stand-in, so it is refused with
+  `--sound real`. See "The virtual clock".
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
@@ -401,6 +405,12 @@ A run that needs a save stages it first: files inside the game's folder go into 
 elsewhere go under `<run>/sandbox-files/C/` at their path on `C:` (for example
 `sandbox-files/C/ProgramData/<game>/userdata/...`), which origrun copies onto `C:` before the game starts.
 
+On the host nothing vanishes: a save kept outside the game's folder is the user's own. Bejeweled Deluxe keeps its saved
+game in `C:\ProgramData\Steam\Bejeweled\userdata`, so a host run that quits in the middle of a game leaves one there, and
+the next host run meets it at Play (found 2026-11-03: the new board stayed paused and the script's moves did nothing).
+origrun does not touch that file: a session that runs Bejeweled on the host deletes `savegame.dat` there before and after
+its runs itself (the virtual clock's test scripts of 2026-11-03 did).
+
 The registry starts as a fresh Windows has it. Inside, origrun and the game both run as SYSTEM, so the game's
 HKCU is SYSTEM's own hive (`HKEY_USERS\S-1-5-18`), not the user's, and UAC never virtualizes SYSTEM: a game that
 writes under HKLM writes HKLM itself, not the per-user `Software\Classes\VirtualStore\MACHINE\...` copy where the
@@ -437,6 +447,17 @@ The sound log (`logs/sound.log`) lists every buffer create, data write (size + h
 (once/looping, volume, pan, frequency), volume/pan/frequency change and stop, each with a timestamp — enough to
 line up "which sound plays when" against the port without the WAVs. This catches sounds a game plays through
 DirectSound; a game that mixes elsewhere needs its own path handled (Gaps).
+
+Since 2026-11-03 the stand-in's buffers answer as DirectSound's do in every run, `stub` and `wav` alike, not only on the
+virtual clock. `GetStatus` says a buffer plays from `Play` until `Stop`, or until a buffer played once has played its
+length (before, it said every buffer was stopped); a finished one-shot's cursor reads 0; `Play` after `Stop` goes on
+from where it stopped, and `Play` on a buffer that plays does not restart it; `SetCurrentPosition` and `SetFrequency`
+move the cursor on from the new place or rate. The cursor runs on the wall clock, or on the virtual clock when it runs.
+At the game's exit the log says who asked ("GetStatus: 35254 calls from popcapgame1.exe, 34835 of them answered
+playing"). Bejeweled asks about 340 times in a minute of play and Twist about 35,000 times in 95 s of autoplay; with
+the same seed and script both gave the same watch values with the old answers and the new (Bejeweled checked over its
+first 1351 updates; Twist over 9475, apart from its own 15-update jumps, which differ between runs with either answer
+and which its notes list as an oddity). Seven Seas never asks.
 
 ## Patching the copy
 
@@ -484,8 +505,9 @@ trial-skip entry is a protection detail, so it stays on this machine like `games
 
 Captures and input can be timed to the game's own update counter instead of the wall clock, so frame-rate
 variation drops out of a comparison. origrun reads the counter from **outside** the process with
-`ReadProcessMemory` on the game it launched (a documented debugging API; nothing is injected), at an address a
-game session gives in the per-game config:
+`ReadProcessMemory` on the game it launched (a documented debugging API; nothing is injected; on the virtual clock
+the sound stand-in reads them inside the game instead, see "The virtual clock"), at an address a game session gives
+in the per-game config:
 
     counter=[0x4d125c]+0x368      # the int 0x368 bytes past the pointer stored at 0x4d125c
     flips=[0x4d125c]+0x364        # optional: a counter the game bumps once per presented frame
@@ -606,6 +628,131 @@ one update off, in two runs), where before they ran one or two updates behind, j
 load the original's frames match the port's of 4-5 updates earlier: a long load makes the game catch up on updates
 without drawing, and its curtain opens only once drawn, so this depends on the load's time on the machine, not on
 origrun's holds (3-5 ms per burst frame). Only freezing the game's clock across the load would remove it.
+
+## The virtual clock (`--clock virtual`)
+
+With `--clock virtual` an original runs as fast as it can draw, and update for update as it would in real time: a
+minute of Bejeweled's play takes four or five seconds. The user allowed the hook on 2026-11-02 ("Yes, hook them"; see
+the top of this document), for the time functions only.
+
+**What it does.** The clock lives in the sound stand-in (`tools/origrun/vclock.c`, built into the `dsound.dll` origrun
+places beside the copy), so it is in the game's process from the moment the game loads DirectSound, and it installs
+itself there when origrun's environment says `ORIGRUN_CLOCK=virtual`. It pins the stand-in first, so a game, BASS or
+FMOD that unloads `dsound.dll` leaves it mapped. It patches, in memory only, the import tables of the game's exe and of
+the other DLLs in the copy's folder (not origrun's own stand-ins and wrappers, nor `Steam.dll`), and looks at the list
+of loaded DLLs again about every 16 ms of wall time while the game waits, to patch one loaded later. The game's reads
+of the time (`timeGetTime`, `GetTickCount` and `GetTickCount64`, `QueryPerformanceCounter` and
+`QueryPerformanceFrequency`, `GetSystemTimeAsFileTime`, `GetSystemTimePreciseAsFileTime`, `GetSystemTime`,
+`GetLocalTime`, `timeGetSystemTime`) then answer from a clock that starts at the real time of the install and moves
+only where the game waits.
+
+The clock assumes that one thread runs the game, its main thread: the one that started at the exe's entry point (if
+none did, the oldest thread, and the clock's log says so). When that thread calls `Sleep`, `SleepEx`, or
+`MsgWaitForMultipleObjects(Ex)` on no handles, with a timeout, the stand-in first asks Windows with a zero timeout. If a
+message (or an APC) is ready, that is the answer and the clock stays; otherwise the call returns at once and the clock
+moves on by the timeout. A timed wait of the main thread on handles (`WaitForSingleObject(Ex)`,
+`WaitForMultipleObjects(Ex)`, a `MsgWaitForMultipleObjects(Ex)` with handles) that is not ready at once goes to Windows
+for real, since another thread (a loader, a library's, the C runtime's) may signal it any moment and a timeout handed
+back early would change what the game does next; the clock moves on by the real time it took, or by its timeout when it
+ran out. Waits without a timeout or with a zero timeout, and every wait of the game's other threads, go to Windows as
+before, and those threads read the same virtual clock. Only a timed wait of the main thread that was not ready at once
+resets a count of its clock reads: a main thread that reads the clock 200 times without one (a loop polling the clock,
+or one whose waits have no timeout or a zero timeout) moves it on by 10 µs at each further read, so a loop polling the
+clock still ends. The speed comes only from not waiting: no thread is added to the game, and the game runs on its own
+threads.
+
+**The guard.** A thread the game starts runs on the wall clock while the main thread races ahead: on the virtual clock
+Bejeweled's title screen was still loading at the update its Play button was clicked. So while a thread the exe
+started (its start address lies in the exe; threads of BASS, FMOD, DirectX and Windows are not counted) uses more than
+a quarter of a core, the main thread's waits that would be skipped take their real time, and still move the clock by
+their timeouts. The clock's log says when this starts and stops ("the exe's other threads work"). It is a heuristic: a
+loader that waits on the disk without using the processor is not seen. `ORIGRUN_CLOCK_GUARD=0` in origrun's
+environment turns it off.
+
+**In step with origrun.** Through a block both share, origrun holds the game's main thread at a wait: `at N` arms a
+barrier at which the main thread stops as it enters its first wait once the counter has reached `N`, and while held it
+still answers sent messages. `at` and shots then suspend the window's thread on top of that hold, as in a real-time run,
+for the moment they post their input or read the picture, and the game stays held at its wait afterwards. The game
+starts held: once its window is up origrun steps it wait by wait, so a script starts at the same point in every run.
+Between two script commands the game stays held, so `wait <ms>` is game time from the hold, the gaps inside a click cost
+nothing, and the update an `at` lands on does not depend on the machine. The update counter and the `--watch` values
+are read inside the game, at each of its waits and at each read of the clock once the counter has moved, so no update
+is missed however fast the game runs; origrun logs them in the usual lines. The stand-in's play cursor and `GetStatus`
+follow the virtual clock (see "Recording sound").
+
+`clickready`, `waitshot`, `record`, a `burst` timed in milliseconds, `quit`, the end of the script and a run with no
+script let the game run free, and on the virtual clock running free means uncapped: the game's milliseconds pass at
+whatever speed it can draw (ten to over a hundred times real time in the runs below, the most on a still title
+screen). So a `record` or a timed `burst` covers far more game time than its milliseconds say (a 20-second `record` can
+see several minutes of play), and a `waitshot` may find the game well past where a real-time run would be. For shots
+on exact updates use `at N shot` and bursts by update.
+
+**When holds go off.** If a hold lasts 60 s with no release from origrun, origrun ends while the game is held, or a
+hold's wait fails, the game holds no more for the rest of the run and says so in the block (`barrierOff`, with the
+update and the reason). origrun logs it as soon as it sees it ("WARNING: pid ... holds no more from update N"), stops
+waiting for holds (from then on `at` polls the update counter and `wait` sleeps on the wall clock, as on the real
+clock), and ends its summary with either "HOLDS WENT OFF at update N" or "holds stayed on to the end": a
+script's `at`, `wait` and update bursts after that point did not land on exact updates. The caps run on the wall clock
+(`GetTickCount64`). A first hold that origrun has not taken up within 5 s lets the game run free until origrun arms a
+barrier, without switching holds off.
+
+**Use.** Add `--clock virtual` (inside the sandbox the run file carries `clock=virtual`). origrun's log ends with a
+summary ("virtual clock (pid ...): 77.5 s of game time in 3.7 s of wall time to its last wait ..."), and the run's
+`logs/clock.log` lists the imports it patched, those it does not cover ("also imports what the clock does not
+cover"), the guard's switches, and at the game's exit, for each call site, the waits skipped and the waits on handles
+that went to Windows. origrun follows the newest of the copy's processes that has a clock, and switches to a newer one
+with a clock when it appears (a game that starts itself again); every other one runs free.
+
+**One difference in the watch lines.** A value the game changes while it handles input between updates `N` and `N+1`
+is logged at `N+1` on the virtual clock. A real-time run logs a quick handler's change at `N+1` too (Bejeweled's
+swaps), but a slow one at `N`, as its 1 ms poll catches the value before the next update (Bejeweled's Play, which
+builds the board: 800 in real time, 801 on the virtual clock). The real-time poll also sees values in the middle of an
+update (Twist's level going up and back within one update), which the virtual clock does not; compare the last value
+of each update.
+
+**Tried (2026-11-03, on the host under rundesk, one game at a time):**
+
+| Game | Run | Real time | Virtual clock | Watch values |
+|---|---|---|---|---|
+| Bejeweled Deluxe | seed 3, the gr1 script's 47 clicks to update 5967, four board values | 60.4 s | 4.3 s and 4.2 s | the two virtual runs the same; against real time the same 640 changes, but the Play click's four at 801 for 800 |
+| Bejeweled Twist | 2D, autoplay Classic, seed 1234, 95 s of play (update 9475), score, level, Mersenne Twister position, mode | 106.2 s | 38.4 s and 39.0 s | the two virtual runs the same; against a real-time run the same 160 changes, update for update, where the original's autoplay takes the same branch at its 15-update jump after the level-up at 8351 (three real-time runs took it at 8407, 8422 and 8437; the virtual runs at 8407) |
+| Seven Seas Deluxe | seed 7, the Seven Seas session's saved game and its sinking scenario (four clicks), to update 8000; score, lives, level | 81.1 s | 8.0 s and 8.0 s | the two virtual runs the same; against real time the same five changes (the saved game's board at 5401, the sinking at 5965) |
+
+Twist draws in software in 2D, which is what limits its speed. None of the three paces its frames with a wait on a
+handle: Bejeweled and Seven Seas wait only with `Sleep`, and Twist's two `WaitForSingleObject` calls with a timeout come
+at its start and its exit. A run with an empty script, so that Seven Seas ran free on its title screen, gave 1725 s of
+game time in 15 s.
+
+**What it cannot cover:**
+- `SetTimer` and its `WM_TIMER` stay on the wall clock. Every SexyAppBase original imports it but TipTop, Cosmic Bugs
+  and Water Bugs (Bejeweled's mouse-in check and Twist's run from it). `timeSetEvent`, waitable timers, timer-queue
+  timers, `SignalObjectAndWait` and `GetMessageTime` are not hooked either; a static scan of the 20 originals' imports
+  finds none of these but `SetTimer`, and the clock's log names any it meets.
+- A game that paces its frames by anything but a timed wait of its main thread gets no speed, and its clock crawls:
+  by `WM_TIMER`, by `GetMessage` or another wait with no timeout, or by a vertical-sync or flip wait inside DirectDraw or
+  Direct3D. Its main thread then reads the clock with no skipped wait in between, so after 200 reads each read moves
+  the clock by 10 µs and the game's time runs far slower than the wall clock. The games tried draw windowed without
+  vertical sync.
+- A game that paces its frames by a timed wait on a handle (an event another thread signals, or a timeout on one
+  nobody signals) runs at real speed there, since such waits take their real time.
+- One main thread: only its waits move the clock and only it can be held. A game whose updates run on another thread
+  gets no speed. If the main thread has not waited 5 s after the install while another thread calls the time functions,
+  the clock's log says so.
+- Imports bound late or by another name are not patched: delay-loaded imports, and imports through the `api-ms-win-*`
+  sets.
+- The threads of BASS and FMOD keep the wall clock (they find their functions at run time), and so do a game's
+  music streams: the stand-in's play cursor moves with the virtual clock, so a stream is fed as fast as the game runs,
+  but a game that times something by its music's position as the library reports it would drift.
+- The clock starts when the game loads `dsound.dll`: most originals load it at run time (SexyAppBase's sound manager, or
+  BASS), Seven Seas, Noah's Ark, Mummy Maze, Atomica, TipTop and NingPo import it. Time read before that is real, and a
+  game that never loads DirectSound through the stand-in (Mahjong Escape's packed `bass.dll`, Bonnie's FMOD 3 in the
+  sandbox) never gets the clock. With `--sound real` there is no stand-in, so the option is refused.
+- Loading: a loader thread's time follows the guard (real time while it works), so its screen lasts about as long as in
+  real time on this machine. A load done on the main thread takes no game time at all on the virtual clock, where in
+  real time the game catches up on the updates the load took afterwards (the Bookworm Adventures battle load above).
+- At the end, a game's shutdown loops (Bejeweled's `Sleep(10)` while its other threads finish) run the clock ahead, so
+  the game time at exit varies from run to run (59.7 to 96.4 s for the same minute of Bejeweled); play is not affected.
+- Shots on the virtual clock, and a run with no script (both only inside the sandbox), are untested.
 
 ## Hardware acceleration (3D mode)
 
@@ -843,7 +990,9 @@ Other gaps:
   thread to the input desktop, which would move the user's cursor and click on their screen. Since 2026-11-01 they
   run only inside Windows Sandbox, where the input desktop is the sandbox's own (`Default`, after origrun's
   `SwitchDesktop`); there they are untested too. The in-process
-  import-patch route stays **dropped** (it was stopped by a permission check in round 1; see the hard rule).
+  import-patch route for input stays **dropped** (it was stopped by a permission check in round 1; see the hard rule).
+  The virtual clock patches imports in the game's process too, but only the time functions, which the user allowed
+  on 2026-11-02; patching an input function would still need the user's OK.
 - **Atomica won't start**: it shows "FATAL ERROR — Failed to load sound: sounds\capclick" and exits before any
   window, with the dsound stub, with `nodriver`, and with real audio alike. The Ogg and `fmod.dll` are present,
   so it is FMOD's init/decode of this copy on Windows 11 (or a game-data path) — the Atomica session's to fix;

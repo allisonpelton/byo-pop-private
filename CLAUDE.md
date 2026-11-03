@@ -26,8 +26,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   to run the originals with sound on and mess with my save data", 2026-10-31; the saves they care about are backed
   up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
   entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. origrun
-  may hook a copy's clock functions to run it faster than real time ("Yes, hook them", 2026-11-02); any other hook of a
-  Windows function inside a copy needs the user's OK first (`docs/ORIGRUN.md`). Patch a
+  may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
+  waits too", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
+  (`docs/ORIGRUN.md`). Patch a
   copy as needed (many are not activated): how a protection is taken apart goes only in private blocks, and the
   patching tools in `.publishignore`. origrun cannot stop a message box's own sound or a MessageBeep and has no guard
   against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
