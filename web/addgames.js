@@ -43,7 +43,10 @@ var ByopopAddGames = (function () {
   }
 
   // ---------- the panel ----------
-  var panel, list, rejectedEl, closeBtn;
+  // live: the panel's one live region, which reads out how each folder ended (the rows' own state lines are not live, so a big
+  // folder does not read "Waiting…" for every game)
+  var panel, list, rejectedEl, closeBtn, live;
+  function announce(text) { if (live) live.textContent = text; }
   function openPanel() {
     panel.hidden = false;
   }
@@ -54,15 +57,21 @@ var ByopopAddGames = (function () {
   }
   // A row for one folder: its name, the game, and its state (a live line); unclear: a choice of the games it could be
   function row(found) {
-    var li = make("li", "ag-row");
-    li.appendChild(make("span", "ag-folder", found.folder));
+    var li = make("li", "ag-row"), uid = Math.random().toString(36).slice(2);
+    var folder = make("span", "ag-folder", found.folder);
+    folder.id = "ag-folder-" + uid;
+    li.appendChild(folder);
     var state = make("span", "ag-state");
-    state.setAttribute("role", "status");
+    state.tabIndex = -1;  // the focus goes here once the game is chosen
     function job(game) {
       return {
         game: game, entries: found.entries, root: found.root,
         say: function (t) { state.textContent = t; },
-        done: function (ok, t) { state.textContent = t; state.className = "ag-state " + (ok ? "ag-ok" : "ag-error"); }
+        done: function (ok, t) {
+          state.textContent = t;
+          state.className = "ag-state " + (ok ? "ag-ok" : "ag-error");
+          announce(found.folder + ", " + game.title + ": " + t);
+        }
       };
     }
     if (found.game) {
@@ -70,20 +79,26 @@ var ByopopAddGames = (function () {
       li.appendChild(state);
       enqueue(job(found.game));
     } else {
-      var id = "ag-pick-" + Math.random().toString(36).slice(2);
+      var id = "ag-pick-" + uid;
       var label = make("label", "ag-ask", "Which game?");
       label.htmlFor = id;
       var select = make("select");
       select.id = id;
+      // each row's "Which game?" and "Add" are told apart by the folder they are for
+      select.setAttribute("aria-describedby", folder.id);
       found.choices.forEach(function (g) { var o = make("option", null, g.title); o.value = g.target; select.appendChild(o); });
       var add = make("button", null, "Add");
       add.type = "button";
+      add.setAttribute("aria-describedby", folder.id);
       add.addEventListener("click", function () {
         var g = byTarget[select.value];
         if (!g) return;
         select.disabled = true; add.remove(); label.remove();
         select.replaceWith(make("span", "ag-game", "→ " + g.title));
         enqueue(job(g));
+        // the focus to the next folder still to choose, else to this row's state
+        var nextPick = list.querySelector("select:not([disabled])");
+        (nextPick || state).focus();
       });
       li.appendChild(label); li.appendChild(select); li.appendChild(add); li.appendChild(state);
     }
@@ -164,14 +179,32 @@ var ByopopAddGames = (function () {
     if (!panel || !W()) return;
     list = $("adding-list");
     rejectedEl = $("adding-rejected");
+    live = make("p", "pl-sr");
+    live.setAttribute("role", "status");
+    panel.appendChild(live);
     closeBtn = $("adding-close");
     closeBtn.addEventListener("click", function () { panel.hidden = true; if (!running) clearPanel(); $("add-games").focus(); });
     $("add-games").hidden = false;
     $("add-games").addEventListener("click", function () { $("add-games-pick").click(); });
-    $("add-games-pick").addEventListener("change", function (ev) {
-      var files = W().zip.fromInput(ev.target.files);
+    // Where a folder cannot be picked (phones: a touch screen and no mouse), "Add games" picks files, .zip files of game folders
+    var pick = $("add-games-pick");
+    try { if (window.matchMedia("(pointer: coarse) and (not (any-pointer: fine))").matches) { pick.removeAttribute("webkitdirectory"); pick.accept = ".zip,application/zip"; } }
+    catch (e) {}
+    pick.addEventListener("change", function (ev) {
+      var chosen = Array.prototype.slice.call(ev.target.files || []);
+      var zips = chosen.filter(function (f) { return /\.zip$/i.test(f.name) && !f.webkitRelativePath; });
+      var files = W().zip.fromInput(chosen.filter(function (f) { return zips.indexOf(f) < 0; }));
       ev.target.value = "";
-      if (files.length) fromFiles(Promise.resolve(files));
+      if (!files.length && !zips.length) return;
+      // each .zip as a folder named after it, as when it is dropped
+      fromFiles(zips.reduce(function (p, z) {
+        return p.then(function (out) {
+          return W().zip.fromFile(z).then(function (inner) {
+            var base = z.name.replace(/\.zip$/i, "");
+            return out.concat(inner.map(function (e) { return { path: base + "/" + e.path, read: e.read }; }));
+          });
+        });
+      }, Promise.resolve(files)));
     });
     Array.prototype.forEach.call(document.querySelectorAll("a.tile[data-game]"), function (a) {
       var game = byId[a.getAttribute("data-game")];
@@ -229,6 +262,7 @@ var ByopopAddGames = (function () {
     }
     bin.addEventListener("click", function () { if (binPanel.hidden) show(null); else hide(); });
     $("bin-close").addEventListener("click", hide);
+    binPanel.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !$("bin-yes").disabled) { ev.preventDefault(); hide(); } });
     $("bin-forget").addEventListener("click", function () { var g = byId[$("bin-game").value]; if (g) ask(g); });
     $("bin-no").addEventListener("click", function () { show(null); });
     $("bin-yes").addEventListener("click", function () {
@@ -237,14 +271,18 @@ var ByopopAddGames = (function () {
       $("bin-yes").disabled = $("bin-no").disabled = true;
       status("Forgetting…");
       ByopopImport.forgetGame(g).then(function () {
-        try { if (window.ByopopTiles) ByopopTiles.check(); } catch (x) {}
         return g.title + "'s files are forgotten.";
       }, function (e) { return (e && e.message) || "The files could not be forgotten."; }).then(function (text) {
-        $("bin-yes").disabled = $("bin-no").disabled = false;
-        $("bin-confirm").hidden = true;
-        asking = null;
-        // the list again, once the cards have been checked (data-files)
-        setTimeout(function () { show(null); status(text); }, 300);
+        // the list again, once the cards have been checked (their data-files)
+        var checked;
+        try { checked = window.ByopopTiles ? ByopopTiles.check() : null; } catch (x) { checked = null; }
+        return Promise.resolve(checked).catch(function () {}).then(function () {
+          $("bin-yes").disabled = $("bin-no").disabled = false;
+          $("bin-confirm").hidden = true;
+          asking = null;
+          show(null);
+          status(text);
+        });
       });
     });
     // the caps: a drag carries the game's id

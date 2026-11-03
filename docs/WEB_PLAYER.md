@@ -187,6 +187,11 @@ closes. Boot shows the card, and the import, the start and "Play without mods" r
 agreement. A test in the Browser pane ticks the box once per origin (and game), as a player would; the agreement then
 stays for that origin.
 
+**Before the card is on again:** the listing page's "Add games", its drops and its recycle bin
+("Adding games from the listing page") write and delete a game's files without the terms the game's page shows before any
+import. That is harmless while the gate is off, but it must be handled before the gate goes back on: the listing checks the
+game's `byopop-terms-<id>` agreement (at its current version) before it adds, or sends the player to the game's page.
+
 `BYOPOP_WEB_TERMS_GATE` is a plain CMake variable rather than a cache option, so changing it in the file reaches every
 build folder at its next configure; `byopop_web_shell()` writes it into the page as `TERMS_GATE` (`true` or
 `false`).
@@ -375,14 +380,15 @@ mask). The animation of the opener taking the cap off comes after Bejeweled Twis
 so it can be animated or flipped there.
 
 **The recycle bin.** The user, 2026-11-03: "Add a recycle bin to the front page that the game's cap can be dragged into to forget
-its files." The bin is the button beside "Add games". The cap of a game whose files are here is draggable (`draggable="true"`,
+its files." The bin is the button beside "Add games", with the bin's icon and named "Forget a game's files". The cap of a game whose files are here is draggable (`draggable="true"`,
 set by the files check, which also marks the card `data-files`); dropped on the bin, it opens the bin's panel, which asks "Forget
 <game>'s files in this browser? Its saves stay." with Forget files and Cancel (the focus on Cancel). Nothing is deleted without
 that yes, which the page asks itself: a `confirm()` dialog is not shown in some places the site runs. Clicked, the bin opens the
 same panel with a list of the games whose files are here, for the keyboard and for browsers without drag and drop. Forgetting
 does what the game page's "Forget game files" does: the game folder's records go from the game's IndexedDB database (saves, mods
 and replays stay) and the record of the files says when (`ByopopGameFiles.forget`). Like adding, it holds the game's Web Lock
-(`ByopopImport.forgetGame` in `web/gameimport.js`), so a game whose page is open is refused.
+(`ByopopImport.forgetGame` in `web/gameimport.js`), so a game whose page is open is refused. Escape closes the panel, and after a
+game is forgotten its list is drawn again once the cards have been checked (the listing's `check()` resolves then).
 
 **The game's own icon.** Once a game's files are loaded, its card shows the game's icon in place of the initials badge
 (an `<img alt="">`, since the card has the name, at the badge's size and with `image-rendering: pixelated` so that a small
@@ -434,15 +440,25 @@ looks for); a folder that holds several games in different places (the "PopCap G
 at most, and a folder with no game this site plays in it is rejected. Where two games' markers are at the same place (a game and
 its sequel can share file names), the folder's name picks the one whose title, short name or build target it matches, ignoring
 case, punctuation and words every game folder has ("Deluxe", "PopCap", "Games"). When the name cannot tell, the panel asks
-("Which game?", with only the games it could be). The panel under the toolbar shows each folder with its game and its state
-(a live region), and names the rejected folders in one line.
+("Which game?", with only the games it could be). A folder that holds one game in one of several subfolders is looked into the same
+way, so the subfolder is the row and the others are named as not added. The panel under the toolbar shows each folder with its
+game and its state, and names the rejected folders in one line; one live region reads out how each folder ended, and the focus
+goes on to the next folder still to choose. On a phone, where no folder can be picked, "Add games" picks .zip files of game
+folders, which are unpacked as a dropped .zip is.
 
 The games are added one at a time. The listing page runs no game, so it cannot use a game's Emscripten file system: it writes the
 files straight into the game's IndexedDB database, in the records IDBFS itself writes and reads (`FILE_DATA`, keyed by path,
 `{timestamp, mode, contents}`, with a directory record for every folder, as `web/saves.js` does for a restore), after deleting
 the old game folder's records. It does so while holding the game's Web Lock (`PAGE.lock`), which a game page takes before it
-reads its storage and holds for its whole life; so a game whose page is open in another tab is refused ("... is open in another
-tab or window"), and no page can mount the database while it is written, then write its old copy back over the new one. The rules
+reads its storage and holds for its whole life; so a game whose page is open in another tab is refused (the note says the files
+are in use, or that this page is still working on the game when its own add, restore or bin holds the lock), and no page can
+mount the database while it is written, then write its old copy back over the new one. A browser without Web Locks (a page not
+served over https or from localhost) is refused too, since an open page could not be seen there. The write is all or nothing:
+the first transaction deletes the old copy, then the files go in batches of about 32 MB, each with the folder records of its own
+files, and the files the game page checks for (its markers; for a game whose marker is a pak, the files of its game folders, then
+the markers) go last, so a copy cut off partway (the tab closed) is not taken for the game. A write that fails partway (the
+storage full, a file of the drop that would not read) deletes what it wrote; one that fails before the old copy is deleted leaves
+that copy and its record. The rules
 for what is copied are the game page's own: `web/gameimport.js` holds the finding of the game root, the unpacking of paks, the
 choice of files and the icon read out of the exe, the game pages call it from their import card, and the listing page has each
 listed game's `page.js` in `import-games.js`, which `byopop_web_index()` writes, each wrapped in a function that returns its
@@ -450,7 +466,23 @@ listed game's `page.js` in `import-games.js`, which `byopop_web_index()` writes,
 for its zip and pak readers, with an empty `Module` (it fills `Module.byopop` and starts nothing). After a game is added, the
 record of its files is kept as the game page keeps it after an import (`ByopopGameFiles.mark`, with the icon), the browser is
 asked to keep the site's storage, and the cards are checked again. `tools/gameimporttest.js` (in `unit-web`) checks the rules and
-the sorting under Node with the real games' `page.js` files.
+the sorting under Node with every finished game's `page.js` (a page.js that fails there is a failure, and a change to one picks
+`unit-web` in `tools/check.sh`'s merge mode).
+
+### Light and dark
+
+The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the
+listing, each game's page and its copyright page) follows the browser's `prefers-color-scheme` until the player presses the
+theme button at the right of its header or tool bar: a moon in the light theme, a sun in the dark one (our own line drawings),
+a switch named "Dark theme" that is pressed in the dark theme. The choice sets `<html data-theme="light">` or `"dark"`, and
+every dark rule of the pages (`web/index.html`, `web/shell.html`, `web/copyright.html`, `web/settings.js`, `web/chat.js` and
+each game's `page.css`) is written twice for it: `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) ... }`
+and `:root[data-theme="dark"] ...`. `web/theme.js` holds it: loaded in each page's `<head>`, it sets the attribute before the
+page is drawn, fills every button marked `data-theme-toggle`, and follows the choice made on another tab of the site. The
+choice is one localStorage item for the whole site, `byopop-theme`, kept only while it differs from the browser's: pressing the
+button back to the browser's theme removes it, and so does the browser changing to the chosen theme, so there is no separate
+"follow the browser" setting. With storage blocked the choice lasts for that page only. The games' own screens are not
+changed by it.
 
 ### Site settings
 

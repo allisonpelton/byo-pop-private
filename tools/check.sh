@@ -275,6 +275,8 @@ classify() {  # <path>: chooses the suites a changed file needs
 			g="${p#games/}"; g="${g%%/*}"; rest="${p#games/$g/}"
 			if [[ "$rest" == docs/* ]]; then NOTHING=$((NOTHING + 1)); return; fi
 			pick build "$AREA" "$p"; pick unit "$AREA" "$p"
+			# a game's page.js: also the listing's import rules (web/gameimport.js), which unit-web's gameimporttest checks
+			if [ "$rest" = web/page.js ]; then pick unit-web "$AREA" "$p"; fi
 			game_suites "$g"
 			for s in $GS; do pick "$s" "$AREA" "$p"; done
 			if [ -f "games/$g/CMakeLists.txt" ]; then  # the game's web targets, and nothing else of the web build

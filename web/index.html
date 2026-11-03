@@ -7,6 +7,8 @@
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
+<script src="theme.js"></script>
 <style>
 /* The list of the finished games (docs/WEB_PLAYER.md, "The listing page"). byopop_web_index() in
    cmake/ByopopWeb.cmake puts one tile per game at the byopop:games marker. A tile's icon is a badge drawn here: the
@@ -24,10 +26,15 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff;
     color-scheme: dark;
   }
+}
+/* the theme the player chose with the theme button (web/theme.js) */
+:root[data-theme="dark"] {
+  --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff;
+  color-scheme: dark;
 }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui); }
 /* The focus ring is always visible for the keyboard (docs/WEB_PLAYER.md, "Accessibility"). Nothing here moves by itself, and a player
@@ -46,9 +53,15 @@ main { padding-block: 0 32px; }
 .site-header img { display: block; max-width: 100%; height: auto; }
 .site-header .logo-dark { display: none; }
 @media (prefers-color-scheme: dark) {
-  .site-header .logo-light { display: none; }
-  .site-header .logo-dark { display: block; }
+  :root:not([data-theme="light"]) .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  :root:not([data-theme="light"]) .site-header .logo-dark { display: block; }
 }
+:root[data-theme="dark"] .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+:root[data-theme="dark"] .site-header .logo-dark { display: block; }
+/* the theme button (web/theme.js), at the header's right */
+.theme-btn { margin-left: auto; width: 40px; height: 34px; padding: 0; color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.theme-btn:hover { color: var(--fg); border-color: var(--accent); }
 h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .games {
   list-style: none; margin: 0; padding: 0;
@@ -109,7 +122,8 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .ag-state { color: var(--muted); font-size: 13px; }
 .ag-ok { color: var(--accent); }
 .ag-error, .adding-rejected { color: #b3261e; }
-@media (prefers-color-scheme: dark) { .ag-error, .adding-rejected { color: #ff8a80; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ag-error, :root:not([data-theme="light"]) .adding-rejected { color: #ff8a80; } }
+:root[data-theme="dark"] .ag-error, :root[data-theme="dark"] .adding-rejected { color: #ff8a80; }
 .adding select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; max-width: 100%; }
 .adding-rejected { margin: 8px 0 0; font-size: 13px; }
 .logo-drop { border-radius: var(--radius); }
@@ -122,7 +136,8 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .bin-pick, .bin-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .bin-confirm p { flex-basis: 100%; margin: 0; }
 .adding button.bin-yes { border-color: #b3261e; color: #b3261e; }
-@media (prefers-color-scheme: dark) { .adding button.bin-yes { border-color: #ff8a80; color: #ff8a80; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .adding button.bin-yes { border-color: #ff8a80; color: #ff8a80; } }
+:root[data-theme="dark"] .adding button.bin-yes { border-color: #ff8a80; color: #ff8a80; }
 /* a cap that can go into the bin (the game's files are here) */
 .badge[draggable=true] { cursor: grab; }
 .drop-on { outline: 3px dashed var(--accent); outline-offset: 4px; }
@@ -183,7 +198,8 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .pl-status { min-height: 1.5em; font-size: 13px; }
 .pl-status.pl-alert:empty { display: none; }
 .pl-status.pl-error, .pl-error { color: #b3261e; }
-@media (prefers-color-scheme: dark) { .pl-status.pl-error, .pl-error { color: #ff8a80; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pl-status.pl-error, :root:not([data-theme="light"]) .pl-error { color: #ff8a80; } }
+:root[data-theme="dark"] .pl-status.pl-error, :root[data-theme="dark"] .pl-error { color: #ff8a80; }
 .pl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .pl-use, .pl-game { margin: 0 0 12px; padding: 0; border: 0; min-width: 0; }
 .pl-game { padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
@@ -204,7 +220,8 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 #players button[disabled], #saves button[disabled] { opacity: 0.5; cursor: default; }
 #players button.pl-link { border: 0; background: none; color: var(--accent); padding: 0 2px; text-decoration: underline; font-size: inherit; }
 #players button.pl-danger, #saves button.pl-danger { border-color: #b3261e; color: #b3261e; }
-@media (prefers-color-scheme: dark) { #players button.pl-danger, #saves button.pl-danger { border-color: #ff8a80; color: #ff8a80; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #players button.pl-danger, :root:not([data-theme="light"]) #saves button.pl-danger { border-color: #ff8a80; color: #ff8a80; } }
+:root[data-theme="dark"] #players button.pl-danger, :root[data-theme="dark"] #saves button.pl-danger { border-color: #ff8a80; color: #ff8a80; }
 .pl-badge { font-size: 12px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 99px; padding: 0 8px; }
 .pl-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
 .pl-form[hidden] { display: none; }
@@ -225,7 +242,8 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .pl-names label { cursor: pointer; overflow-wrap: anywhere; }
 .pl-pending, .pl-pending-tag { font-size: 13px; color: var(--accent); }
 .pl-confirm { margin: 12px 0; padding: 14px 16px; background: var(--panel); border: 2px solid #b3261e; border-radius: var(--radius); }
-@media (prefers-color-scheme: dark) { .pl-confirm { border-color: #ff8a80; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pl-confirm { border-color: #ff8a80; } }
+:root[data-theme="dark"] .pl-confirm { border-color: #ff8a80; }
 .pl-confirm h4 { margin: 0 0 8px; font-size: 15px; }
 .pl-confirm ul { margin: 0 0 12px; padding-left: 18px; }
 .pl-results { gap: 4px; margin-bottom: 8px; font-size: 13px; }
@@ -277,6 +295,7 @@ footer a { color: var(--accent); }
     <img class="logo-dark" src="logo-dark.svg" alt="" width="276" height="64">
   </div>
   <h1 id="games-title">Games</h1>
+  <button type="button" class="theme-btn" data-theme-toggle aria-label="Dark theme" aria-pressed="false"></button>
 </header>
 <main>
   <div class="toolbar">
@@ -290,7 +309,7 @@ footer a { color: var(--accent); }
     <div class="toolbar-actions">
       <button type="button" class="add-games" id="add-games" hidden>Add games</button>
       <!-- The recycle bin: a game's cap dragged here forgets its files, after a yes in the panel below (web/addgames.js) -->
-      <button type="button" class="bin" id="bin" aria-label="Recycle bin" title="Recycle bin: drop a game's cap here to forget its files"
+      <button type="button" class="bin" id="bin" aria-label="Forget a game's files" title="Recycle bin: drop a game's cap here to forget its files"
         aria-controls="bin-panel" aria-expanded="false" hidden><svg class="bin-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16M9.5 6.5V4h5v2.5M6 6.5l1 13.5h10l1-13.5"/><path d="M10 10v7M14 10v7"/></svg></button>
     </div>
     <input type="file" id="add-games-pick" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
@@ -646,15 +665,16 @@ try {
     try { return localStorage.getItem("sexy-userdata-backup:" + persist + "/userdata") !== null; } catch (e) { return false; }
   }
 
+  // Resolves once every card has been shown (web/addgames.js waits for it before listing the games whose files are here)
   function check() {
     var gen = ++generation, record = {}, plays = {};
     try { record = ByopopGameFiles.all(); } catch (e) {}
     try { plays = ByopopPlay.all(); } catch (e) {}
     var haveNames = !!(window.indexedDB && typeof indexedDB.databases === "function");
-    (haveNames ? indexedDB.databases().then(function (list) { return list.map(function (d) { return d.name; }); }) : Promise.resolve(null))
+    return (haveNames ? indexedDB.databases().then(function (list) { return list.map(function (d) { return d.name; }); }) : Promise.resolve(null))
       .catch(function () { return null; })
       .then(function (names) {  // null: the browser cannot list its databases
-        tiles.forEach(function (tile) {
+        return Promise.all(tiles.map(function (tile) {
           var id = tile.getAttribute("data-game"), persist = tile.getAttribute("data-persist"), rec = record[id] || null;
           var listed = names !== null && names.indexOf(persist) >= 0;
           var info = { state: "unknown", played: false, loaded: rec && rec.loaded, forgotten: rec && rec.forgotten, saves: hasBackup(persist),
@@ -664,10 +684,10 @@ try {
             // the record says the files are there, and the database that holds them is
             info.state = "yes";
             show(tile, info, gen);
-            return;
+            return null;
           }
-          if (names === null && !rec) { show(tile, info, gen); return; }  // not known, and not guessed
-          (listed ? scan(persist) : Promise.resolve({ game: false, saves: false, entries: false })).then(function (found) {
+          if (names === null && !rec) { show(tile, info, gen); return null; }  // not known, and not guessed
+          return (listed ? scan(persist) : Promise.resolve({ game: false, saves: false, entries: false })).then(function (found) {
             if (found.game) info.state = "yes";
             else {
               info.state = "no";
@@ -677,7 +697,7 @@ try {
             }
             show(tile, info, gen);
           });
-        });
+        }));
       });
   }
   document.addEventListener("keydown", function (ev) { if (open && ev.key === "Escape") { ev.preventDefault(); close(true); } });

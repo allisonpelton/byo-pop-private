@@ -238,7 +238,8 @@ var ByopopSettings = (function () {
     ".bps-msg.bps-error { color: #b3261e; }\n" +
     ".bps-msg.bps-error:empty { display: none; }\n" +
     ".bps-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }\n" +
-    "@media (prefers-color-scheme: dark) { .bps-msg.bps-error { color: #ff8a80; } }\n" +
+    "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .bps-msg.bps-error { color: #ff8a80; } }\n" +
+    ":root[data-theme=\"dark\"] .bps-msg.bps-error { color: #ff8a80; }\n" +
     "@media (max-width: 520px) { .bps-row { grid-template-columns: minmax(0, 1fr); } .bps-ctl, .bps-vol .bps-ctl { grid-column: 1; grid-row: auto; justify-content: flex-start; } }\n";
   var idCount = 0;
 

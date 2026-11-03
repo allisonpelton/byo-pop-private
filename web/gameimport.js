@@ -108,7 +108,8 @@ var ByopopImport = (function () {
   // each listed game's page.js
   var games = [];
   function add(target, title, makeSpec) {
-    try { games.push({ target: target, title: title, spec: makeSpec() }); } catch (e) {}
+    try { games.push({ target: target, title: title, spec: makeSpec() }); }
+    catch (e) { try { console.warn("byo-pop: " + target + "'s page.js failed, so its folders cannot be added here:", e); } catch (x) {} }
   }
   // A name reduced to its letters and digits, without the words every game's folder may have
   function plain(s) {
@@ -153,6 +154,11 @@ var ByopopImport = (function () {
       matches.forEach(function (m) { roots[m.root] = true; });
       if (matches.length > 0 && Object.keys(roots).length === 1) {
         var root = matches[0].root, best = null, top = 0, tie = false;
+        // the game is in a subfolder of a folder that holds others: the subfolder is the row, and the others are named as not added
+        if (depth < 3 && root.length > (group.path ? group.path.length + 1 : 0)) {
+          var subs = groupBy(group.entries, depth + 1).filter(function (g) { return g.path !== group.path; });
+          if (subs.length > 1) { subs.forEach(function (g) { visit(g, depth + 1); }); return; }
+        }
         matches.forEach(function (m) {
           var s = Math.max(nameScore(name, m.game), nameScore(root.replace(/\/$/, "").split("/").pop(), m.game));
           if (s > top) { top = s; best = m.game; tie = false; } else if (s === top && s > 0) tie = true;
@@ -246,20 +252,26 @@ var ByopopImport = (function () {
     });
   }
   // Replaces the game folder (persist + "/game") with files [{rel, read}], reading and writing about 32 MB at a time.
-  // progress(done, total) after each file.
-  function writeGame(persist, files, progress) {
-    var game = persist + "/game", now = new Date();
+  // progress(done, total) after each file; cleared() once the old copy is gone. The files go in their order, so the caller
+  // puts last the ones the game page checks for (ordered): a copy that stops partway (the tab closed) is then not taken for the
+  // game. A write that fails partway takes out what it wrote; one that fails before the old copy is gone leaves that copy.
+  // Each batch writes the folder records of its own files, so a folder is not there before its files are.
+  function writeGame(persist, files, progress, cleared) {
+    var game = persist + "/game", now = new Date(), range = IDBKeyRange.bound(game + "/", game + "/\uffff"), dirs = {};
+    function putDirs(store, rel) {
+      var parts = rel.split("/");
+      for (var i = 1; i < parts.length; i++) {
+        var d = game + "/" + parts.slice(0, i).join("/");
+        if (!dirs[d]) { dirs[d] = true; store.put({ timestamp: now, mode: DIR_MODE }, d); }
+      }
+    }
     return openDb(persist).then(function (db) {
       var tx = db.transaction(DB_STORE, "readwrite"), store = tx.objectStore(DB_STORE);
-      store.delete(IDBKeyRange.bound(game + "/", game + "/\uffff"));
-      var dirs = {};
+      store.delete(range);
+      store.put({ timestamp: now, mode: DIR_MODE }, game);
       dirs[game] = true;
-      files.forEach(function (f) {
-        var parts = f.rel.split("/");
-        for (var i = 1; i < parts.length; i++) dirs[game + "/" + parts.slice(0, i).join("/")] = true;
-      });
-      Object.keys(dirs).forEach(function (d) { store.put({ timestamp: now, mode: DIR_MODE }, d); });
       return done(tx).then(function () {
+        if (cleared) cleared();
         var at = 0;
         function batch() {
           if (at >= files.length) return Promise.resolve();
@@ -271,21 +283,62 @@ var ByopopImport = (function () {
           }
           return readMore().then(function () {
             var t = db.transaction(DB_STORE, "readwrite"), s = t.objectStore(DB_STORE);
-            chunk.forEach(function (c) { s.put({ timestamp: now, mode: FILE_MODE, contents: c.data }, c.key); });
+            chunk.forEach(function (c) {
+              putDirs(s, c.key.substring(game.length + 1));
+              s.put({ timestamp: now, mode: FILE_MODE, contents: c.data }, c.key);
+            });
             return done(t);
           }).then(function () { if (progress) progress(at, files.length); return batch(); });
         }
-        return batch();
+        return batch().catch(function (e) {
+          // (a quota, a file of the drop that would not read): the part written goes, as the game page's Forget would take it
+          var undo;
+          try {
+            var t = db.transaction(DB_STORE, "readwrite"), s = t.objectStore(DB_STORE);
+            s.delete(game);
+            s.delete(range);
+            undo = done(t);
+          } catch (x) { undo = Promise.resolve(); }
+          return undo.catch(function () {}).then(function () { throw e; });
+        });
       }).then(function () { db.close(); }, function (e) { try { db.close(); } catch (x) {} throw e; });
     });
   }
-  // Runs fn while holding the game's Web Lock; rejects when a page of the game is open (it holds the lock all its life)
+  // The files in the order writeGame writes them: last the game's markers (what the game page's hasGameFiles looks for), and
+  // before them, for a game whose marker is a pak (it checks that a game folder holds something), the files of its game folders
+  function ordered(spec, files) {
+    var paks = spec.paks || [], pakMarker = false, res = [];
+    spec.markers.forEach(function (m) {
+      if (paks.indexOf(m.toLowerCase()) >= 0) pakMarker = true;
+      else res.push(new RegExp("^" + markerPattern(m) + "$", "i"));
+    });
+    function rank(f) {
+      if (res.some(function (re) { return re.test(f.rel); })) return 2;
+      var i = f.rel.indexOf("/");
+      return pakMarker && i > 0 && spec.gameDirs.indexOf(f.rel.substring(0, i)) >= 0 ? 1 : 0;
+    }
+    return files.map(function (f, i) { return { f: f, r: rank(f), i: i }; })
+      .sort(function (a, b) { return a.r - b.r || a.i - b.i; }).map(function (x) { return x.f; });
+  }
+  // Runs fn while holding the game's Web Lock; rejects when the lock is held: by a page of the game (it holds the lock all its
+  // life), or by this page's own work on the game (a restore, an add, the bin). A browser without Web Locks (a page not served
+  // over https or from localhost) is refused: an open page of the game could not be seen, and its next save would delete the
+  // files written here.
+  var mine = {};
   function withLock(lock, title, fn) {
-    if (!lock || !(navigator.locks && navigator.locks.request)) return fn();
+    if (!lock) return fn();
+    if (!(navigator.locks && navigator.locks.request))
+      return Promise.reject(new Error("This browser can't tell whether " + title + "'s page is open, so its files can't be changed " +
+        "from here. Open the game's page and use its Game files panel."));
     return new Promise(function (resolve, reject) {
       navigator.locks.request(lock, { ifAvailable: true }, function (held) {
-        if (!held) { reject(new Error(title + " is open in another tab or window. Close it and try again.")); return null; }
-        return Promise.resolve().then(fn).then(resolve, reject);
+        if (!held) {
+          reject(new Error(mine[lock] ? "This page is still working on " + title + ". Wait for it to finish and try again."
+            : title + "'s files are in use, by its page in another tab or window or by this page. Close the game's page, or wait, and try again."));
+          return null;
+        }
+        mine[lock] = true;
+        return Promise.resolve().then(fn).then(function (v) { delete mine[lock]; resolve(v); }, function (e) { delete mine[lock]; reject(e); });
       }).catch(reject);
     });
   }
@@ -300,8 +353,8 @@ var ByopopImport = (function () {
         if (!hasMarkers(spec, files.map(function (f) { return f.rel; })))
           throw new Error("That folder doesn't hold " + g.title + "'s " + spec.markerText + ".");
         if (say) say("Copying " + files.length + " files…");
-        try { ByopopGameFiles.lost(spec.id); } catch (e) {}  // the old copy is about to go
-        return writeGame(spec.persist, files, function (n, total) { if (say) say("Copying… " + Math.round(n * 100 / total) + "%"); })
+        return writeGame(spec.persist, ordered(spec, files), function (n, total) { if (say) say("Copying… " + Math.round(n * 100 / total) + "%"); },
+          function () { try { ByopopGameFiles.lost(spec.id); } catch (e) {} })  // the old copy is gone
           .then(function () { return icon(spec, all, root, files); })
           .then(function (url) {
             try { ByopopGameFiles.mark(spec.id); if (url) ByopopGameFiles.setIcon(spec.id, url); } catch (e) {}
@@ -338,5 +391,5 @@ var ByopopImport = (function () {
 
   return { markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
     games: games, add: add, sort: sort, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
-    forgetGame: forgetGame };
+    forgetGame: forgetGame, ordered: ordered };
 })();

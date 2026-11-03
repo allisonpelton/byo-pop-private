@@ -44,7 +44,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # of each game's page, its page's file name, its badge's initials and colour and its title), is written beside them by
 # byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
 # games of its own.
-set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js gameimport.js chat.js)
+set(BYOPOP_WEB_SHARED_JS theme.js settings.js profiles.js exeicon.js gameimport.js chat.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
@@ -543,6 +543,7 @@ function(byopop_web_index)
     endif()
     # the title as plain text, for the chat's table (the page's own copy is HTML-escaped below): backslash and quote escaped
     set(chat_title "${title}")
+    set(import_title "${title}")  # the raw title, before the HTML escaping below, for the listing's import rules
     string(REPLACE "\\" "\\\\" chat_title "${chat_title}")
     string(REPLACE "\"" "\\\"" chat_title "${chat_title}")
     set(initials "")
@@ -612,7 +613,7 @@ function(byopop_web_index)
       # its own that returns its PAGE (the file only declares things, and none of its functions is called)
       get_property(game_page_js GLOBAL PROPERTY BYOPOP_WEB_pagejs_${target})
       file(READ ${game_page_js} import_page_js)
-      string(REPLACE "\\" "\\\\" import_title "${title}")
+      string(REPLACE "\\" "\\\\" import_title "${import_title}")
       string(REPLACE "\"" "\\\"" import_title "${import_title}")
       string(APPEND import_games "ByopopImport.add(\"${target}\", \"${import_title}\", function () {\n${import_page_js}\n  return PAGE;\n});\n")
     endif()

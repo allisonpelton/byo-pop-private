@@ -7,6 +7,8 @@
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
+<script src="theme.js"></script>
 <style>
 /* Every game's page (docs/WEB_PLAYER.md). Layout: a single stage that fills the viewport (4:3, or the shape the game
    gives: Module.onGameScreen), with a slim tool bar and slide-over panels (mods, game files and any of the game's
@@ -206,6 +208,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   <button id="btn-settings" type="button" aria-controls="panel-settings" aria-expanded="false">Settings</button>
   <button id="btn-sound" type="button" aria-pressed="true" title="Turns this page's sound off or on; the game's own volume is not changed"><span>Sound</span><span aria-hidden="true">: on</span></button>
   <button id="btn-full" type="button">Fullscreen</button>
+  <button id="btn-theme" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false"></button>
 </header>
 <!-- The mod menu inside the game reads out what has the focus here (Module.onModMenuFocus, web/modpanel.js) -->
 <div class="sr-only" id="menu-live" role="status" aria-live="polite" aria-atomic="true"></div>

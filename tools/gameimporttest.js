@@ -15,13 +15,19 @@ const root = path.join(__dirname, "..");
 const ctx = { window: {}, console };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(root, "web", "gameimport.js"), "utf8"), ctx, { filename: "gameimport.js" });
+// every finished game (BYOPOP_WEB_FINISHED in cmake/ByopopWeb.cmake), as the listing registers them; the titles the checks
+// below need, and the target as the title of the others
+const cmake = fs.readFileSync(path.join(root, "cmake", "ByopopWeb.cmake"), "utf8");
+const finished = /\nset\(BYOPOP_WEB_FINISHED([^)]*)\)/.exec(cmake)[1].trim().split(/\s+/);
 const titles = {
   bejeweled: "Bejeweled Deluxe", tiptop: "TipTop Deluxe", mahjongjapan: "Mahjong Escape: Ancient Japan",
   mahjongchina: "Mahjong Escape: Ancient China", bookwormadv: "Bookworm Adventures Deluxe", bookwormadv2: "Bookworm Adventures Volume 2",
 };
-for (const target of Object.keys(titles)) {
+const warned = [];
+ctx.console = { warn: (...a) => warned.push(a.join(" ")), log: console.log };
+for (const target of finished) {
   const js = fs.readFileSync(path.join(root, "games", target, "web", "page.js"), "utf8");
-  vm.runInContext(`ByopopImport.add(${JSON.stringify(target)}, ${JSON.stringify(titles[target])}, function () {\n${js}\n  return PAGE;\n});`, ctx);
+  vm.runInContext(`ByopopImport.add(${JSON.stringify(target)}, ${JSON.stringify(titles[target] || target)}, function () {\n${js}\n  return PAGE;\n});`, ctx);
 }
 const I = vm.runInContext("ByopopImport", ctx);
 const spec = (t) => I.games.filter((g) => g.target === t)[0].spec;
@@ -35,7 +41,8 @@ function check(what, got, want) {
 const files = (...paths) => paths.map((p) => ({ path: p, read: () => Promise.resolve(new Uint8Array(0)) }));
 const safeRel = (p) => { const parts = String(p).split("/").filter((x) => x && x !== "."); return parts.some((x) => x === "..") || !parts.length ? null : parts.join("/"); };
 
-check("registered", I.games.length, Object.keys(titles).length);
+check("every finished game registered", I.games.map((g) => g.target), finished);
+check("no page.js failed", warned, []);
 // the game root
 check("root at the top", I.findRoot(spec("bejeweled"), files("Bejeweled/images/GemSheet6.png", "Bejeweled/x.txt"), false), "Bejeweled/");
 check("root deeper", I.findRoot(spec("tiptop"), files("a/b/TipTop.dat", "a/b/TIPTOP.EXE"), false), "a/b/");
@@ -66,6 +73,17 @@ const both = ["resource.dll", "MahjongEscapeAJ.exe", "MahjongEscapeAC.exe"];
 check("two games at one place, told by the name", brief(I.sort(files(...both.map((f) => "Mahjong Escape Ancient China/" + f)))).found[0][1], "mahjongchina");
 check("two games at one place, left to the player", brief(I.sort(files(...both.map((f) => "Mahjong/" + f)))).found[0].slice(1),
   [null, "Mahjong/", ["mahjongjapan", "mahjongchina"]]);
+check("a folder of games with one game in it", brief(I.sort(files("PopCap Games/TipTop Deluxe/TipTop.dat", "PopCap Games/TipTop Deluxe/TipTop.exe",
+  "PopCap Games/Common/readme.txt"))), { found: [["TipTop Deluxe", "tiptop", "PopCap Games/TipTop Deluxe/", ["tiptop"]]], rejected: ["Common"] });
+check("a game's own folder with the game a level down", brief(I.sort(files("Bejeweled/Game/images/gemsheet6.png"))).found[0].slice(0, 3),
+  ["Bejeweled", "bejeweled", "Bejeweled/Game/"]);
+// the order the files are written in: the markers last, and for a pak marker the game's folders before them
+const rels = (list) => list.map((r) => ({ rel: r }));
+check("order: markers last", I.ordered(spec("tiptop"), rels(["TipTop.exe", "x/y.txt", "TipTop.dat"])).map((f) => f.rel),
+  ["x/y.txt", "TipTop.exe", "TipTop.dat"]);
+check("order: a pak marker's game folders before the markers", I.ordered(spec("bookwormadv"),
+  rels(["BookwormAdventures.exe", "images/a.png", "readme.txt", "sounds/b.ogg"])).map((f) => f.rel),
+  ["readme.txt", "images/a.png", "sounds/b.ogg", "BookwormAdventures.exe"]);
 // the folder's name
 check("name: the same", I.nameScore("TipTop Deluxe", I.games.filter((g) => g.target === "tiptop")[0]), 3);
 check("name: held", I.nameScore("PopCap TipTop Deluxe v1.0", I.games.filter((g) => g.target === "tiptop")[0]), 2);
