@@ -1,7 +1,7 @@
 // The site's play counter (docs/PLAY_COUNTER.md): a Cloudflare Worker and one Durable Object for the whole site. It counts each
-// game's plays for good and the pages playing it now, and holds nothing about the players (no IP address, cookie or
-// identifier). Not deployed: the pages contact it only when a build names its address (BYOPOP_WEB_COUNTER), and nothing goes
-// on a public host until the user decides to put the site up.
+// game's plays for good and the pages playing it now, and keeps no address, cookie or identifier of a player. Not deployed:
+// the pages contact it only when a build names its address (BYOPOP_WEB_COUNTER), and nothing goes on a public host until the
+// user decides to put the site up.
 //
 // The Worker, on the site's own domain:
 //   GET /api/counts          {"games": {"<id>": {"plays": n, "live": n}, ...}}, every game with a play or a page playing it;
@@ -10,14 +10,20 @@
 //                            the page adds &count=0) and while it is open the page counts as playing now
 // Its bindings (wrangler.toml, written by the build): COUNTER, the Durable Object namespace of PlayCounter; GAMES, the site's
 // game ids, comma-separated (from the build's table of games, chat-games.js); ORIGIN, the site's origin, which the play
-// socket's Origin header must be (empty: not checked, for a local test).
+// socket's Origin header must be (empty: not checked, for a local test); SOURCE_KEY, a secret (wrangler secret put) that keys
+// the hash of a connection's address, without which no play is taken; PLAY_LIMIT and COUNTS_LIMIT, Cloudflare's rate limiters
+// for each route (absent: not limited, for a local test).
 //
-// The object keeps the lifetime counts in its SQLite database, one row a game, so a play writes one row. The live count is
-// its open sockets, by the tag of the game each was opened for. It sets no timer or alarm, and the page's keep-alive
-// "ping" is answered by the runtime without waking it (setWebSocketAutoResponse), so between plays it hibernates.
+// A connection source (an address, a household behind it) is known only by a short HMAC-SHA-256 of its address, keyed by
+// SOURCE_KEY and the UTC date, made here in the Worker: the object never sees the address, and the same address has the same
+// tag all day, so the limits hold when the object hibernates and wakes again. The object keeps the lifetime counts in its
+// SQLite database, one row a game, and each source's counted plays of the last COOLDOWN_MS (its tag, the game and the time),
+// so a counted play writes two rows and clears the expired ones. The live count is its open sockets, by the tag of the game
+// each was opened for. It sets no timer or alarm, and the page's keep-alive "ping" is answered by the runtime without waking
+// it (setWebSocketAutoResponse), so between plays it hibernates; any other frame that reaches it closes its socket.
 
-const MAX_FRAME = 64;                 // bytes: the page sends only "ping"; anything larger closes the socket
-const SOCKETS_PER_SOURCE = 8;         // open play sockets for one connection source (an address, a household behind it)
+const SOCKETS_PER_SOURCE = 8;         // open play sockets for one connection source
+const SOCKETS = 10000;                // open play sockets for the whole site
 const COOLDOWN_MS = 5 * 60 * 1000;    // a source's plays of one game in this time count once
 const ID = /^[a-z0-9_-]{1,40}$/;
 
@@ -30,12 +36,28 @@ function json(value, extra) {
 function counter(env) {
   return env.COUNTER.get(env.COUNTER.idFromName("site"));
 }
+// whether the route's rate limiter lets this key through (no limiter bound: yes)
+async function allowed(limiter, key) {
+  if (!limiter || typeof limiter.limit !== "function") return true;
+  try { return (await limiter.limit({ key: key })).success !== false; } catch (e) { return true; }
+}
+// A source's tag: "s:" and 16 hex digits of HMAC-SHA-256(SOURCE_KEY, the UTC date, a space and the address)
+export async function sourceTag(secret, address, now) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const day = new Date(now).toISOString().slice(0, 10);
+  const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(day + " " + address)));
+  return "s:" + Array.from(mac.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const address = request.headers.get("CF-Connecting-IP") || "";
     if (url.pathname === "/api/counts") {
       if (request.method !== "GET") return new Response(null, { status: 405 });
+      // keyed by the address itself: the limiter is Cloudflare's own counter, kept by nobody here
+      if (!(await allowed(env.COUNTS_LIMIT, address))) return new Response(null, { status: 429 });
       const cache = (typeof caches !== "undefined" && caches.default) || null;
       const key = new Request(url.origin + "/api/counts");
       if (cache) {
@@ -52,10 +74,12 @@ export default {
       if (env.ORIGIN && request.headers.get("Origin") !== env.ORIGIN) return new Response(null, { status: 403 });
       const game = url.searchParams.get("game") || "";
       if (!games(env).has(game)) return new Response(null, { status: 404 });
+      if (!env.SOURCE_KEY) return new Response(null, { status: 503 });
+      const source = await sourceTag(env.SOURCE_KEY, address, Date.now());
+      if (!(await allowed(env.PLAY_LIMIT, source))) return new Response(null, { status: 429 });
       const count = url.searchParams.get("count") === "0" ? "0" : "1";
-      // the address goes to the object only to be hashed there, with a salt that lives in its memory; neither keeps it
       return counter(env).fetch(new Request("https://counter/play?game=" + game + "&count=" + count, {
-        headers: { "Upgrade": "websocket", "X-Source": request.headers.get("CF-Connecting-IP") || "" }
+        headers: { "Upgrade": "websocket", "X-Source": source }
       }));
     }
     return new Response(null, { status: 404 });
@@ -67,10 +91,7 @@ export class PlayCounter {
     this.ctx = ctx;
     this.env = env;
     ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS plays (game TEXT PRIMARY KEY, n INTEGER NOT NULL) WITHOUT ROWID");
-    // Memory only, and so new each time the object wakes: the salt of the sources' hashes, and each source's last counted
-    // play of a game. Forgetting them on a wake only loosens the limits for a while.
-    this.salt = crypto.getRandomValues(new Uint8Array(16));
-    this.recent = new Map();
+    ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS recent (k TEXT PRIMARY KEY, at INTEGER NOT NULL) WITHOUT ROWID");
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
   }
 
@@ -79,13 +100,13 @@ export class PlayCounter {
     if (url.pathname === "/counts") return json({ games: this.counts() });
     if (url.pathname === "/play") {
       const game = url.searchParams.get("game") || "";
-      if (!games(this.env).has(game)) return new Response(null, { status: 404 });
-      const source = await this.source(request.headers.get("X-Source") || "");
+      const source = request.headers.get("X-Source") || "";
+      if (!games(this.env).has(game) || !/^s:[0-9a-f]{16}$/.test(source)) return new Response(null, { status: 404 });
       if (this.ctx.getWebSockets(source).length >= SOCKETS_PER_SOURCE) return new Response(null, { status: 429 });
+      if (this.ctx.getWebSockets().length >= SOCKETS) return new Response(null, { status: 503 });
       const pair = new WebSocketPair();
       const client = pair[0], server = pair[1];
       this.ctx.acceptWebSocket(server, [source, "g:" + game]);
-      server.serializeAttachment({ game: game });
       if (url.searchParams.get("count") !== "0" && this.fresh(source, game, Date.now())) {
         this.ctx.storage.sql.exec("INSERT INTO plays (game, n) VALUES (?, 1) ON CONFLICT (game) DO UPDATE SET n = n + 1", game);
       }
@@ -98,38 +119,30 @@ export class PlayCounter {
   counts() {
     const out = {};
     for (const row of this.ctx.storage.sql.exec("SELECT game, n FROM plays")) out[row.game] = { plays: row.n, live: 0 };
-    for (const ws of this.ctx.getWebSockets()) {
-      const a = ws.deserializeAttachment();
-      if (!a || !a.game) continue;
-      out[a.game] = out[a.game] || { plays: 0, live: 0 };
-      out[a.game].live++;
+    for (const id of games(this.env)) {
+      const live = this.ctx.getWebSockets("g:" + id).length;
+      if (!live) continue;
+      out[id] = out[id] || { plays: 0, live: 0 };
+      out[id].live = live;
     }
     return out;
   }
 
-  // A connection source as a short salted hash, the tag its sockets carry while they are open
-  async source(address) {
-    const bytes = new TextEncoder().encode(address);
-    const data = new Uint8Array(this.salt.length + bytes.length);
-    data.set(this.salt);
-    data.set(bytes, this.salt.length);
-    const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
-    return "s:" + Array.from(hash.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
-  }
-
-  // Whether this play of a game from a source counts: not if the source had one counted in the last COOLDOWN_MS
+  // Whether this play of a game from a source counts: not if the source had one counted in the last COOLDOWN_MS. Kept in the
+  // database, so a wake forgets nothing; rows older than that go on the next play.
   fresh(source, game, now) {
-    for (const [key, at] of this.recent) if (now - at >= COOLDOWN_MS) this.recent.delete(key);
+    const sql = this.ctx.storage.sql;
+    sql.exec("DELETE FROM recent WHERE at <= ?", now - COOLDOWN_MS);
     const key = source + " " + game;
-    if (this.recent.has(key)) return false;
-    this.recent.set(key, now);
+    if (Array.from(sql.exec("SELECT k FROM recent WHERE k = ?", key)).length) return false;
+    sql.exec("INSERT INTO recent (k, at) VALUES (?, ?)", key, now);
     return true;
   }
 
-  webSocketMessage(ws, message) {
-    const size = typeof message === "string" ? message.length : message.byteLength;
-    if (size > MAX_FRAME) ws.close(1009, "too big");
-    // anything else is ignored: the page's "ping" is answered by the runtime without waking the object
+  // The page sends only "ping", which the runtime answers without waking the object; a frame that does reach it is not the
+  // page's, and each one would spend a request of the object's daily allowance, so it closes the socket.
+  webSocketMessage(ws) {
+    try { ws.close(1008, "unexpected frame"); } catch (e) {}
   }
 
   webSocketClose(ws, code) {
