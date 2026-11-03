@@ -127,7 +127,7 @@ bool AtomicaApp::HasSavedGame()
 	return ReadBufferFromFile("SAVEGAME.DAT", &aBuffer) && (aBuffer.GetDataLen() > 8);
 }
 
-// 0x405fc0
+// 0x405fc0: the saved game holds the mode and the board (the original does not save the expert flag)
 void AtomicaApp::SaveGame()
 {
 	if (mBoard == NULL)
@@ -136,7 +136,6 @@ void AtomicaApp::SaveGame()
 	if (aFile == NULL)
 		return;
 	fwrite(&mMode, 4, 1, aFile);
-	fwrite(&mExpertMode, 4, 1, aFile);
 	mBoard->Save(aFile);
 	long aSize = ftell(aFile);
 	rewind(aFile);
@@ -168,7 +167,6 @@ void AtomicaApp::ResumeGame()
 	fwrite(aBuffer.GetDataPtr(), 1, (size_t) aBuffer.GetDataLen(), aFile);
 	rewind(aFile);
 	fread(&mMode, 4, 1, aFile);
-	fread(&mExpertMode, 4, 1, aFile);
 	mPauseCount = 0;
 	if (mBoard == NULL)
 	{

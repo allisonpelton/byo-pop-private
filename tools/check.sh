@@ -165,8 +165,8 @@ BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17369: score 6524 mode stampede"
 NA_STRATEGY="level 5 done at update 19538: score 6380 mode strategy"
 NA_PUZZLE="game 1 over at update 6750: score 1450 level 1 moves 37"
-AT_STRATEGY="game 1 over at update 6876: score 1600 level 2 moves 90"
-AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
+AT_STRATEGY="game 1 over at update 2396: score 320 level 1 moves 31"
+AT_ACTION="update 20000: score 2960 level 3 moves 567 atoms 58"
 AL_STRATEGIC="game 1 over at update 12206: score 7432 pieces 830 forged 29 boards 3"
 AL_TIMETRIAL="game 1 over at update 14641: score 15942 pieces 903 forged 87 boards 3"
 AL_TUTORIAL="tutorial button 1 at update 231"
@@ -772,15 +772,32 @@ atomica_game() {  # <name> <mode> <cap>: a bot game; prints its last "game over"
 	grep -E '^(level [0-9]+ done|game [0-9]+ over|update [0-9]+:)' "$d/log.txt" 2>/dev/null | tail -n 1 | sed 's/ (f8c.*//'
 }
 
+atomica_replay() {  # <name> <exe> <scenario> <end>: the port plays a scenario of games/atomica/tools/identical; its state log is $OUT/atomica/<name>/trace.txt
+	local d="$OUT/atomica/$1"
+	rm -rf "$d"; mkdir -p "$d"
+	python "$W/games/atomica/tools/identical/portscript.py" "$W/games/atomica/tools/identical/$3" "$d/script.txt" --end "$4"
+	timeout 600 "$2" -userdir="$d/user" -fast -seed=1 -drawevery -script="$d/script.txt" -statetrace="$d/trace.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_atomica() {
-	local st=0 s a r
+	local st=0 s a r bl="" base="$W/build/baseline-atomica/atomica.exe" sc
 	need_assets atomica || return 1
+	if [ -f "$base" ]; then
+		for sc in "s2.txt 4000" "g5.txt 6500"; do
+			read -r f e <<< "$sc"
+			atomica_replay "cur-$f" "$W/build/native/atomica.exe" "$f" "$e"
+			atomica_replay "base-$f" "$base" "$f" "$e"
+			[ -s "$OUT/atomica/cur-$f/trace.txt" ] && [ -s "$OUT/atomica/base-$f/trace.txt" ] &&
+				cmp -s "$OUT/atomica/cur-$f/trace.txt" "$OUT/atomica/base-$f/trace.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
 	s="$(atomica_game strategy strategy 20000)"; a="$(atomica_game action action 20000)"; r="$(atomica_game strategy2 strategy 20000)"
 	{ echo "strategy: $s"; echo "action: $a"; echo "strategy rerun: $r"; } > "$1"
 	[ "$s" = "$AT_STRATEGY" ] || st=1
 	[ "$a" = "$AT_ACTION" ] || st=1
 	if diff -rq "$OUT/atomica/strategy/shots" "$OUT/atomica/strategy2/shots" >> "$1" 2>&1 && [ "$s" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="strategy ${s#game }; action ${a#update }; $r"
+	SUMMARY="strategy ${s#game }; action ${a#update }; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected strategy '$AT_STRATEGY', action '$AT_ACTION')"
 	return $st
 }
