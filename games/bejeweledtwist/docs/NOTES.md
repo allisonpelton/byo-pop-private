@@ -809,3 +809,22 @@ the board copies only seven, 0x6c59c4), so the sparks' colour is black until a g
   fruit colour (+0x218 modulo 7) and looks for a plain gem of it, but only when FindHintPiece finds no bomb or locked
   gem; otherwise the fruit goes to that gem whatever its colour, and the count still moves on. Seen on any board with a
   bomb or lock when the multiplier passes its top.
+- **A coal gem's embers start from the heap.** Piece's constructor (0x72c1fa) never sets the piece's update counter
+  (+0x4f0), which Piece::Update counts up (0x72c67b) and a coal gem tests every 20 updates (0x72cf01) to light an
+  ember with two Rand draws. In the original the counter starts at whatever the heap block held, so the updates where
+  a coal gem draws, and every random number after, change from run to run: the same seeded 3D autoplay game drew its
+  first ember at update 10003, 10014 or 10016 in three runs and not at all by then in a fourth. The port starts the
+  counter at 0. For comparisons, visrun's `zerocnt` makes the copy's constructor clear it too (a jump from 0x72c57c).
+  Matching the original would mean copying uninitialised memory.
+- **3D mode computes at single precision.** The original makes its Direct3D device without D3DCREATE_FPU_PRESERVE,
+  so while 3D mode runs its x87 rounds every arithmetic result to a float's 24 bits (the window thread's control word
+  reads 0x007f, by visrun's `fpucw`), while double constants keep their value. The port's float math is SSE natively
+  and WebAssembly on the web, and neither has a precision control, so the port follows it only where it was found to
+  decide play: a curve's steps and a curve string's numbers (CurvedVal), and SpeedText's sweep. The rest keeps the
+  2D precision. To see it: the seeded 3D autoplay game (`-3d -autoplay=1 -seed=1234`, the original through visrun with
+  `nomouse` and `zerocnt`) draws the global Rand call for call like the original through update 10282; at 10283 a
+  BlobDrift blob, whose drift sums rounding over thousands of updates, falls off the top and re-enters one update
+  sooner in the original, and the draws part from there. Following it everywhere would mean rounding each step of the
+  3D-only code and of everything the board does in 3D (hundreds of places, the accumulators included), or running the
+  native build's math on the x87, which the web build cannot do. 2D mode, where the original keeps the CRT's 53-bit
+  precision, is where the two are compared for identical play.
