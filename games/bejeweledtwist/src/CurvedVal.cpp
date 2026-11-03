@@ -5,7 +5,6 @@
 
 #include "BSpline.h"
 #include "SexyAppBase.h"
-#include "TwistD3D.h"
 #include "X86Math.h"
 
 #include <cmath>
@@ -14,16 +13,17 @@
 
 namespace Sexy {
 
+bool gCurveSinglePrecision = false;
+
 namespace {
 
 const int CURVE_TABLE_SIZE = 0x2000;
 
-// The original makes its Direct3D device (0x6193b0, flags 0x140) without D3DCREATE_FPU_PRESERVE, so once it runs the
-// x87 computes in single precision: each sum or product of a curve's input is rounded to a float. Without Direct3D
-// it keeps double precision.
+// With Direct3D (gCurveSinglePrecision) each sum or product of a curve's input is rounded to a float; without it the
+// x87 keeps double precision
 double X87(double theValue)
 {
-	return gD3DInterface != nullptr ? (double)(float)theValue : theValue;
+	return gCurveSinglePrecision ? (double)(float)theValue : theValue;
 }
 
 // 0x45dbf0 (StringToDouble): a number of a curve string, its digits summed on the x87 (the fraction's place value starts

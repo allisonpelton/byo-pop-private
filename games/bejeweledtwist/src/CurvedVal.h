@@ -79,4 +79,8 @@ private:
 	void ParseDataString(const std::string& theString);                  // 0x6ec600
 };
 
+// The original makes its Direct3D device (0x6193b0, flags 0x140) without D3DCREATE_FPU_PRESERVE, so while 3D mode runs
+// the x87 computes in single precision and curve arithmetic rounds to float; the app sets this with gD3DInterface
+extern bool gCurveSinglePrecision;
+
 }  // namespace Sexy

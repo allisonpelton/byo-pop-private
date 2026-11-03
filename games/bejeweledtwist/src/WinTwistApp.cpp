@@ -181,6 +181,7 @@ WinTwistApp::~WinTwistApp()
 		delete anObject;
 	delete gD3DInterface;
 	gD3DInterface = nullptr;
+	gCurveSinglePrecision = false;
 	delete gGraphicsRecorder;
 	gGraphicsRecorder = nullptr;
 	gApp = nullptr;
@@ -541,6 +542,7 @@ void WinTwistApp::PostDDInterfaceInitHook()
 		gD3DInterface = new TwistD3D(aDisplay->mDevice, aDisplay->mGPU2D);
 		gD3DInterface->MakeShaders();
 	}
+	gCurveSinglePrecision = true;
 }
 
 void WinTwistApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
