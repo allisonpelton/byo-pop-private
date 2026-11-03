@@ -261,6 +261,10 @@ public:
 	std::string			mAutoplayShots;
 	struct AutoplayState*	mAutoplayState;
 	void				AutoplayUpdate();
+	// testhooks/Trace.cpp: -statetrace=<file> writes every change of the state the identical-play pass compares with the original
+	std::string			mTraceFile;
+	struct TraceState*	mTraceState;
+	void				TraceUpdate();
 
 	void				TitleScreenDone();					// the title screen's play link was clicked
 	void				StartGame();						// 0x405b10
