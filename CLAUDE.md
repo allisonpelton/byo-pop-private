@@ -27,10 +27,12 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
   entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. origrun
   may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
-  waits too", 2026-11-03), and its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
-  2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first (`docs/ORIGRUN.md`). Patch a
-  copy as needed (many are not activated): how a protection is taken apart goes only in private blocks, and the
-  patching tools in `.publishignore`. origrun cannot stop a message box's own sound or a MessageBeep and has no guard
+  waits too", 2026-11-03), its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
+  2026-11-03), and its MessageBox and MessageBeep calls so that a message box is answered without showing or sounding
+  ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
+  (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
+  private blocks, and the patching tools in `.publishignore`. Until its MessageBox hook is in, origrun cannot stop a
+  message box's own sound or a MessageBeep, and it has no guard
   against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
   needs real sound, the user turns the speakers off for a short stretch or overnight. An original counts as a game
   process.

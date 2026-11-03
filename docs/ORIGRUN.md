@@ -25,8 +25,10 @@ real time, update for update. Asked on 2026-11-03 whether origrun may also skip 
 timed Wait functions), not only hook its time reads, the user answered "Yes, waits too". Asked the same day whether
 origrun may hook a copy's GetCursorPos so that it returns origrun's scripted mouse position (Bejeweled Twist's
 framework reads the cursor after posted input, and the sandbox has none, so its board never sees a scripted mouse), the
-user answered "Yes, hook it". Those OKs cover the clock's reads and waits and GetCursorPos only: any other hook of a
-Windows function inside a copy still needs the user's OK first.
+user answered "Yes, hook it". Asked the same day whether origrun may hook a copy's MessageBox and MessageBeep calls,
+so that a message box is answered without appearing and neither plays its sound on the user's speakers, the user
+answered "Yes, hook them". Those OKs cover the clock's reads and waits, GetCursorPos, MessageBox and MessageBeep only:
+any other hook of a Windows function inside a copy still needs the user's OK first.
 
 How any copy's protection is handled is kept in the private notes under Per-game status, which a public
 snapshot strips out (`docs/PUBLISHING.md`); this document otherwise names games only by title.
