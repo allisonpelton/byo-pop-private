@@ -18,6 +18,7 @@
 
 using namespace Sexy;
 
+#include "GameLevels.h"
 #include "Tables.inc"
 
 // 0x410090: the mummies choose their step: a white mummy closes the horizontal distance to the explorer first, a red one
