@@ -108,10 +108,11 @@ void LevelCompleteScreen::Resize(int theX, int theY, int theWidth, int theHeight
 	}
 	if (anApp->mGameMode != MODE_ADVENTURE)
 		return;
-	mMapLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x5f, aWidth, 0x1d);
+	// the next chamber's link is the upper one; the link back to the map is below it and is not placed after the last chamber
+	mNextLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x5f, aWidth, 0x1d);
 	if (anApp->mAdvChamber > 0xd)
 		return;
-	mNextLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x37, aWidth, 0x1d);
+	mMapLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x37, aWidth, 0x1d);
 }
 
 // 0x422a30

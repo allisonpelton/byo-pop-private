@@ -174,8 +174,9 @@ void MummyApp::AutoplayUpdate()
 			{"tbase", b != NULL, b != NULL ? (int) b->mTimeBase : 0},
 			{"ebase", true, mElapsedBase},
 			{"undo", b != NULL, b != NULL ? (int) b->mUndo.size() : 0},
+			{"rng", true, (int) CrtRandState()},
 		};
-		for (int i = 0; i < 20; i++)
+		for (int i = 0; i < 21; i++)
 		{
 			unsigned int aNow = aValues[i].mValid ? (unsigned int) aValues[i].mValue : 0xfffffffdu;
 			if (aNow == s->mPrev[i])

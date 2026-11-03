@@ -20,6 +20,7 @@ SETS = {
           ('m1y', '[[%s]+0x68]+0x54' % B)],
     'C': [('sx', '[[%s]+0x6c]+0x50' % B), ('sy', '[[%s]+0x6c]+0x54' % B), ('death2', '[%s]+0x298' % B), ('score', '0x4ac59c')],
     'E': [('mode', '0x4ac570'), ('tbase', '[%s]+0x4b4' % B), ('ebase', '0x4ac640'), ('undo', '[%s]+0x2e4' % B)],
+    'F': [('rng', '0x4aed00')],
     'D': [('maze', '[%s]+0x2b0' % B), ('file', '[%s]+0x2b4' % B), ('chamber', '0x4ac5bc'), ('pyramid', '0x4ac5c0')],
 }
 
@@ -142,6 +143,9 @@ def cmd_compare(argv):
         for n in names:
             a = [(u + off, v) for u, v in pe.get(n, [])]
             b = [(u, v) for u, v in oe.get(n, []) if u <= last_port + off]
+            if n == 'rng':	# the generator's seeding happens before the first update: the games' draws start at the menu click
+                a = [(u, v) for u, v in a if u > 2400]
+                b = [(u, v) for u, v in b if u > 2400]
             if n in ('maze', 'file'):
                 a = [(u, v) for u, v in a if not in_scene(u)]
                 b = [(u, v) for u, v in b if not in_scene(u)]
