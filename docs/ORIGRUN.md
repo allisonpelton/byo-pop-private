@@ -163,7 +163,7 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
   of them is refused at the start, and each one is refused (logged) should it run on the host anyway. In the
   sandbox `hwmove` lights no hover on a SAF game (Seven Seas, 2026-11-01): use a posted `move` for hover there.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
-  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `down`/`up` or `rdown`/`rup` for one edge of the left or
+  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `kdown`/`kup` for one edge of a key (a game that polls its key state loses a `key`'s down and up in one update), `down`/`up` or `rdown`/`rup` for one edge of the left or
   right button, or `burst`), then resume it. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
   the same game update rather than the same wall-clock time. A held game reads all the posted messages before its
