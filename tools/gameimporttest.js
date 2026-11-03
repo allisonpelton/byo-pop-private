@@ -49,6 +49,12 @@ check("root at the top", I.findRoot(spec("bejeweled"), files("Bejeweled/images/G
 check("root deeper", I.findRoot(spec("tiptop"), files("a/b/TipTop.dat", "a/b/TIPTOP.EXE"), false), "a/b/");
 check("root needs every marker", I.findRoot(spec("tiptop"), files("a/TipTop.dat"), false), null);
 check("markers in one folder", I.findRoot(spec("tiptop"), files("a/TipTop.dat", "b/TipTop.exe"), false), null);
+// the error names only what the best folder lacks, in markerText's casing, as a list
+check("missing: the one marker a folder lacks", I.missingMarkers(spec("tiptop"), files("a/TipTop.dat", "a/readme.txt")), "TipTop.exe");
+check("missing: the folder with the most markers", I.missingMarkers(spec("bookworm"), files("x/wordlist.txt", "y/wordlist.txt", "y/music/bookworm1.mo3")), "Bookworm.exe");
+check("missing: all of them, as a list", I.missingMarkers(spec("tiptop"), files("a/other.txt")), "TipTop.dat and TipTop.exe");
+check("missing: a marker of any type, named without it", I.missingMarkers(spec("bejeweled"), files("Bejeweled/x.txt")), "images/gemsheet6");
+check("missing in a known root", I.missingIn(spec("tiptop"), ["TipTop.exe"]), "TipTop.dat");
 // the files picked
 const picked = I.pick(spec("bejeweled"), files("B/Images/gemsheet6.png", "B/images/x.sig", "B/Bejeweled.exe", "B/readme.txt", "B/Music/m.mo3"), "B/", safeRel)
   .map((f) => f.rel);

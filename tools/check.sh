@@ -286,8 +286,9 @@ classify() {  # <path>: chooses the suites a changed file needs
 			fi ;;
 		web/*|cmake/ByopopWeb.cmake|cmake/ByopopStores.cmake)
 			pick build-web "$AREA" "$p"; pick unit-web "$AREA" "$p"
-			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses)
-			case "$p" in web/modpanel.js|web/shell.html|web/footer.*|web/copyright.html|web/terms.html|web/licenses/*) WEB_FULL_EST=356 ;; esac ;;
+			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses,
+			# and the site's text, which fills the shell)
+			case "$p" in web/modpanel.js|web/shell.html|web/footer.*|web/copyright.html|web/terms.html|web/licenses/*|web/strings/*) WEB_FULL_EST=356 ;; esac ;;
 		tools/*)
 			x="${p#tools/}"
 			case "$x" in
