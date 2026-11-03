@@ -11,23 +11,43 @@ compare: the original's "watch 1..4" lines (board state, score, level, mode: ori
 [0x4d125c]+0x474, +0x43c, +0x444) and the port's "update U: state a score b level c mode d" lines give the sequence of
 (update, state, score, level, mode) in each (the row of the start, update 0 or 1, is skipped); they are compared with the original's updates taken one lower.
 """
+import os
 import re
 import sys
 
 
 def script(menu, bot, out, last):
+    # REPLAY_MAP="[<update>:]x,y=x2,y2;..." moves a bot or menu click (the second game's menu has another layout than the first's:
+    # a Continue button), REPLAY_TEXT_DELAY=<n> types a name n updates later (the original's dialog is not up in the update
+    # the port's is)
+    cmap = {}
+    for ent in os.environ.get('REPLAY_MAP', '').split(';'):
+        if '=' in ent:
+            a, b = ent.split('=')
+            if ':' in a:        # "<update>:x,y=x2,y2": a menu line at that update
+                u, a = a.split(':')
+                cmap[(int(u),) + tuple(int(v) for v in a.split(','))] = b.split(',')
+            else:
+                cmap[tuple(int(v) for v in a.split(','))] = b.split(',')
     lines = []
     for ln in open(menu):
         m = re.match(r'(\d+) (.*)', ln.strip())
         if m:
+            mc = re.match(r'click (\d+) (\d+)$', m.group(2))
+            if mc and (int(m.group(1)), int(mc.group(1)), int(mc.group(2))) in cmap:
+                xy = cmap[(int(m.group(1)), int(mc.group(1)), int(mc.group(2)))]
+                lines.append('at %s click %s %s' % (m.group(1), xy[0], xy[1]))
+                continue
             lines.append('at %s %s' % (m.group(1), m.group(2)))
     for ln in open(bot):
         m = re.match(r'click at update (\d+): (\d+) (\d+)', ln)
         if m:
-            lines.append('at %d click %s %s' % (int(m.group(1)) + 1, m.group(2), m.group(3)))
+            xy = cmap.get((int(m.group(2)), int(m.group(3))), (m.group(2), m.group(3)))
+            lines.append('at %d click %s %s' % (int(m.group(1)) + 1, xy[0], xy[1]))
         m = re.match(r'text at update (\d+): (\S+)', ln)
         if m:
-            lines.append('at %d text %s' % (int(m.group(1)) + 1, m.group(2)))
+            lines.append('at %d text %s' % (int(m.group(1)) + 1 + int(os.environ.get('REPLAY_TEXT_DELAY', '0')), m.group(2)))
+    lines.sort(key=lambda l: int(l.split()[1]))     # a menu line later than a bot click (a second game) keeps its place
     lines.append('at %d move 1 1' % last)
     lines.append('quit')
     open(out, 'w').write('\n'.join(lines) + '\n')
@@ -82,6 +102,9 @@ def compare(orig, port):
             bad += 1
             if bad <= 15:
                 print('update', u, 'orig', od.get(u), 'port', pd.get(u))
+    late = [u for u in pd if u > max(od)]
+    if late:
+        print('note: the original logged nothing after update %d, the port has %d changes after it (a stopped original?)' % (max(od), len(late)))
     print('compared %d changes of the original and %d of the port: %d different' % (len(od), len(pd), bad))
     return bad
 

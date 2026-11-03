@@ -29,6 +29,7 @@ public:
 	void Int(int v) { mData.append((const char*) &v, 4); }
 	void Byte(bool v) { mData.push_back(v ? 1 : 0); }
 	void Double(double v) { mData.append((const char*) &v, 8); }
+	void Float(float v) { mData.append((const char*) &v, 4); }   // the piece's float position, as its bytes
 };
 
 class Reader
@@ -58,6 +59,18 @@ public:
 			return false;
 		}
 		return mData[mPos++] != 0;
+	}
+	float Float()
+	{
+		float v = 0;
+		if (mPos + 4 > mData.size())
+			mOk = false;
+		else
+		{
+			memcpy(&v, mData.data() + mPos, 4);
+			mPos += 4;
+		}
+		return v;
 	}
 	double Double()
 	{
@@ -126,10 +139,9 @@ std::string Board::SaveState()
 	uint32_t aState[MTRAND_N];
 	int aIndex = 0;
 	mRand.GetState(aState, &aIndex);
-	w.Int(MTRAND_N);
+	w.Int(MTRAND_N * 4);                // the saved game holds the generator's 624 words as a string of 2496 bytes (0x423400), no index
 	for (int i = 0; i < MTRAND_N; i++)
 		w.Int((int) aState[i]);
-	w.Int(aIndex);
 	w.Byte(mGravity);
 	w.Int(mApp->mGameMode);
 	w.Int(mWaterY);
@@ -201,9 +213,9 @@ std::string Board::SaveState()
 			w.Double(p->mScale);
 			w.Int(p->mFallSpeed);
 			w.Int(p->mPathIndex);
-			w.Int((int) p->mPixelX);
+			w.Float(p->mPixelX);
 			w.Int(p->mOffsetX);
-			w.Int((int) p->mPixelY);
+			w.Float(p->mPixelY);
 			w.Int(p->mOffsetY);
 		}
 	}
@@ -228,14 +240,13 @@ bool Board::LoadState(const std::string& theData)
 	r.mData = theData;
 	if (r.Int() != 2)
 		return false;
-	if (r.Int() != MTRAND_N)
+	if (r.Int() != MTRAND_N * 4)
 		return false;
 	uint32_t aState[MTRAND_N];
 	for (int i = 0; i < MTRAND_N; i++)
 		aState[i] = (uint32_t) r.Int();
-	int aIndex = r.Int();
 	if (r.mOk)
-		mRand.SetState(aState, aIndex);
+		mRand.SetState(aState, MTRAND_N);   // the index is not saved: the next draw makes new words (the generator is not drawn from after the seeding)
 	mGravity = r.Byte();
 	mApp->mGameMode = r.Int();
 	mWaterY = r.Int();
@@ -307,9 +318,9 @@ bool Board::LoadState(const std::string& theData)
 			p->mScale = r.Double();
 			p->mFallSpeed = r.Int();
 			p->mPathIndex = r.Int();
-			p->mPixelX = (float) r.Int();
+			p->mPixelX = r.Float();
 			p->mOffsetX = r.Int();
-			p->mPixelY = (float) r.Int();
+			p->mPixelY = r.Float();
 			p->mOffsetY = r.Int();
 		}
 	}
