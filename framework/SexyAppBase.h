@@ -400,6 +400,10 @@ protected:
 	// window flags it adds to the window's own (0 unless a game's display needs one, such as SDL_WINDOW_OPENGL)
 	virtual DDInterface* CreateDDInterface();
 	virtual uint32_t GetExtraWindowFlags();
+	// port: called by MakeWindow when its display's Init fails with theResult, before it reports the failure and exits;
+	// a game that can go on without what failed (Bejeweled Twist's 2D mode for a display without 3D) makes its window
+	// again and returns true. False by default.
+	virtual bool DisplayInitFailed(int theResult);
 	virtual void EnforceCursor();
 	virtual void ReInitImages();
 	virtual void DeleteNativeImageData();
