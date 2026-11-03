@@ -2,7 +2,7 @@
 # Give a fresh git worktree the git-ignored files the builds and tests need, copied from the main checkout:
 #   - assets/<game> for every game staged there (copies, never junctions: deleting a worktree then cannot
 #     reach the main checkout's files);
-#   - re/bookwormadv/jp2ref (the reference PNGs of jp2test in the unit suite);
+#   - re/bookwormadv/jp2ref (the reference PNGs of jp2test in the unit suite; tools/jp2test/write_refs.sh remakes them);
 #   - build/baseline and build/baseline-stage0 (Bejeweled's frozen oracle exes) and build/oracle-cache;
 #   - the generated, git-ignored files under games/*/mods (e.g. Bejeweled's bejeweled2-audio, which the
 #     oracle's "mods" case expects).
