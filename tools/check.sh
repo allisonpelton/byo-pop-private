@@ -163,7 +163,7 @@ BW_CLASSIC="level 8, score 58970"
 BW_ACTION="level 14, score 152360"
 BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17369: score 6524 mode stampede"
-NA_STRATEGY="level 5 done at update 19202: score 6610 mode strategy"
+NA_STRATEGY="level 5 done at update 19538: score 6380 mode strategy"
 NA_PUZZLE="game 1 over at update 6750: score 1450 level 1 moves 37"
 AT_STRATEGY="game 1 over at update 6876: score 1600 level 2 moves 90"
 AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
@@ -724,16 +724,16 @@ suite_bigmoney() {
 	return 1
 }
 
-noahsark_game() {  # <name> <mode> <cap>: a bot game; prints the last "level done" or "game over" line
+noahsark_game() {  # <name> <mode> <cap> [exe]: a bot game; prints the last "level done" or "game over" line
 	local d="$OUT/noahsark/$1"
 	rm -rf "$d"; mkdir -p "$d/shots"
-	timeout 600 "$W/build/native/noahsark.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" \
+	timeout 600 "${4:-$W/build/native/noahsark.exe}" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" \
 		-autoplaycap="$3" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(level [0-9]+ done|game [0-9]+ over)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
 suite_noahsark() {
-	local st=0 a s p r m
+	local st=0 a s p r m bl="" base="$W/build/baseline-noahsark/noahsark.exe"
 	need_assets noahsark || return 1
 	a="$(noahsark_game action action 20000)"; s="$(noahsark_game strategy strategy 20000)"
 	p="$(noahsark_game puzzle puzzle 30000)"; r="$(noahsark_game action2 action 20000)"
@@ -747,7 +747,20 @@ suite_noahsark() {
 	cat "$OUT/noahsark/mods.txt" >> "$1"
 	if bash games/noahsark/tools/run_hiscores_test.sh "$OUT/noahsark/hiscores" > "$OUT/noahsark/hiscores.txt" 2>&1; then h="hiscores $(grep -c '^ok' "$OUT/noahsark/hiscores.txt") checks ok"; else h="HISCORES FAILED (see $OUT/noahsark/hiscores.txt)"; st=1; fi
 	cat "$OUT/noahsark/hiscores.txt" >> "$1"
-	SUMMARY="action ${a#level }; strategy ${s#level }; puzzle ${p#game }; $r; $m; $h"
+	# the frozen baseline (build/baseline-noahsark/, a copy of the port made when phase one of the identical-play pass was done): the
+	# same bot games must give the same lines and the same screens, so that later fixes and mods leave unmodded play unchanged
+	if [ -f "$base" ]; then
+		if [ "$(noahsark_game base-action action 20000 "$base")" = "$a" ] && [ "$(noahsark_game base-strategy strategy 20000 "$base")" = "$s" ] &&
+			[ "$(noahsark_game base-puzzle puzzle 30000 "$base")" = "$p" ] &&
+			diff -rq "$OUT/noahsark/action/shots" "$OUT/noahsark/base-action/shots" >> "$1" 2>&1 &&
+			diff -rq "$OUT/noahsark/strategy/shots" "$OUT/noahsark/base-strategy/shots" >> "$1" 2>&1 &&
+			diff -rq "$OUT/noahsark/puzzle/shots" "$OUT/noahsark/base-puzzle/shots" >> "$1" 2>&1; then
+			bl="; baseline identical"
+		else
+			bl="; BASELINE DIFFERS"; st=1
+		fi
+	fi
+	SUMMARY="action ${a#level }; strategy ${s#level }; puzzle ${p#game }; $r; $m; $h$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected action '$NA_ACTION', strategy '$NA_STRATEGY', puzzle '$NA_PUZZLE')"
 	return $st
 }

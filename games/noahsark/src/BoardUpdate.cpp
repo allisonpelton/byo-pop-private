@@ -233,10 +233,9 @@ void Board::Update()
 						}
 						if (aLower->mFallSpeed < -5)
 							aLower->mFallSpeed = -6;
-						aLower->mY = y + 1;
+						aLower->mY++;                       // the new piece keeps the copied position: a walking animal's own cell is not the slot it is in
 						aLower->mPixelY += 50.0f;
 						aLower->mOffsetY -= 0x32;
-						aUpper->mY = y;
 						aSettled = false;
 					}
 				}
