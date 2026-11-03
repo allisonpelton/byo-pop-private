@@ -718,6 +718,43 @@ void Mixer::StopAllVoices()
 	Unlock();
 }
 
+void Mixer::SetGameClocked(bool theGameClocked)
+{
+	Lock();
+	mGameClocked = theGameClocked;
+	Unlock();
+}
+
+// Moves the voices on as Mix would over theMilliseconds of output (the same step per mixed frame, so pitch changes
+// count), and ends a one-shot voice where Mix would: once its position reaches the sound's end.
+void Mixer::AdvanceVoices(double theMilliseconds)
+{
+	Lock();
+	if (mGameClocked)
+	{
+		const double frames = theMilliseconds * mRate / 1000.0;
+		for (auto& vp : mVoices)
+		{
+			Voice& v = *vp;
+			if (!v.mActive || !v.mData)
+				continue;
+			const double len = (double)v.mData->mFrames;
+			v.mPos += v.mStep * frames;
+			if (v.mPos >= len)
+			{
+				if (v.mLoop)
+					v.mPos = std::fmod(v.mPos, len);
+				else
+				{
+					v.mActive = false;
+					v.mData.reset();
+				}
+			}
+		}
+	}
+	Unlock();
+}
+
 // ---------------------------------------------------------------------------------------------
 // Songs
 
@@ -1072,7 +1109,8 @@ void Mixer::Mix(float* theOut, int theFrames)
 	for (auto& vp : mVoices)
 	{
 		Voice& v = *vp;
-		if (!v.mActive || !v.mData)
+		// on the game's clock (SetGameClocked) only AdvanceVoices moves a voice, so the voices are not mixed
+		if (!v.mActive || !v.mData || mGameClocked)
 			continue;
 		const int16_t* src = v.mData->mSamples.data();
 		const int ch = v.mData->mChannels;
