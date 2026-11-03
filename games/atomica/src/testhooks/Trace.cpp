@@ -72,6 +72,23 @@ void AtomicaApp::TraceUpdate()
 	aNow["pause"] = Int(mPauseCount);
 	aNow["rng_j"] = Int(mRand.J());
 	aNow["rng_k"] = Int(mRand.K());
+	for (int t = 0; t < 2; t++)
+	{
+		// the high score tables: the five scores, the first four letters of the five names and the best of the day
+		for (int i = 0; i < ScoreTable::NUM_SCORES; i++)
+		{
+			char aName[32];
+			int aLetters = 0;
+			memcpy(&aLetters, mScoreTables[t].mNames[i], sizeof(aLetters));
+			snprintf(aName, sizeof(aName), "hs%d_s%d", t, i);
+			aNow[aName] = Int(mScoreTables[t].mScores[i]);
+			snprintf(aName, sizeof(aName), "hs%d_n%d", t, i);
+			aNow[aName] = Int(aLetters);
+		}
+		char aBest[32];
+		snprintf(aBest, sizeof(aBest), "hs%d_best", t);
+		aNow[aBest] = Int(mScoreTables[t].mBestToday);
+	}
 	if (mBoard != NULL)
 	{
 		Board* b = mBoard;
@@ -112,6 +129,10 @@ void AtomicaApp::TraceUpdate()
 				}
 		}
 	}
+	// what is gone (no board, no grid) reads as unreadable in the original's memory
+	for (std::map<std::string, std::string>::iterator i = s->mLast.begin(); i != s->mLast.end(); ++i)
+		if (aNow.find(i->first) == aNow.end())
+			aNow[i->first] = "-";
 	for (std::map<std::string, std::string>::iterator i = aNow.begin(); i != aNow.end(); ++i)
 	{
 		std::string& aLast = s->mLast[i->first];

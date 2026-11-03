@@ -50,7 +50,7 @@ namespace
 {
 
 // one click of the bot in the scenario file (-autoplayscript); a click is a move, a press and a release in one update
-void Record(AtomicaApp* theApp, int theX, int theY)
+void RecordLine(AtomicaApp* theApp, const char* theLine, int theX, int theY)
 {
 	static FILE* sScript = NULL;
 	static int sLast = -100;
@@ -66,9 +66,17 @@ void Record(AtomicaApp* theApp, int theX, int theY)
 		if (aUpdate < sLast + 3)
 			aUpdate = sLast + 3;
 		sLast = aUpdate;
-		fprintf(sScript, "%d click %d %d\n", aUpdate, theX, theY);
+		if (theLine != NULL)
+			fprintf(sScript, "%d %s\n", aUpdate, theLine);
+		else
+			fprintf(sScript, "%d click %d %d\n", aUpdate, theX, theY);
 		fflush(sScript);
 	}
+}
+
+void Record(AtomicaApp* theApp, int theX, int theY)
+{
+	RecordLine(theApp, NULL, theX, theY);
 }
 
 // a click of the bot goes through the widget manager as a player's does (a box that is up takes it), and is recorded
@@ -248,9 +256,15 @@ void AtomicaApp::AutoplayUpdate()
 		{
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-entry%d.png", mAutoplayShots.c_str(), s->mGames));
-			aDialog->mEdit->SetText("BOT");
-			aDialog->ButtonDepress(2);
-			s->mWait = 5;
+			// the name is typed, and the button pressed three updates later, as a player would
+			RecordLine(this, "text BOT", 0, 0);
+			mWidgetManager->KeyChar('B');
+			mWidgetManager->KeyChar('O');
+			mWidgetManager->KeyChar('T');
+			s->mPending = true;
+			s->mPendX = aDialog->mX + aDialog->mOk->mX + aDialog->mOk->mWidth / 2;
+			s->mPendY = aDialog->mY + aDialog->mOk->mY + aDialog->mOk->mHeight / 2;
+			s->mWait = 3;
 		}
 		return;
 	}

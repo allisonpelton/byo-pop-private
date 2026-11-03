@@ -22,6 +22,7 @@ import tempfile
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '..'))
 BASH = os.environ.get('BASH_EXE') or 'C:/Program Files/Git/usr/bin/bash.exe'
 REGKEY = r'HKLM\SOFTWARE\WOW6432Node\PopCap\Atomica'
+SAVEFILE = None
 BOARD = '[0x4d00f4]'
 GRID = '[[0x4d00f4]+0x78]'
 
@@ -40,7 +41,14 @@ WATCH = {
 for c in range(9):
     for r in range(8):
         WATCH['cell_%d_%d' % (c, r)] = '[%s+0x%x]+0x8c' % (GRID, 0xb0 + 4 * (c * 8 + r))
+for t, base in enumerate((0x4d3b10, 0x4d3bec)):
+    # the high score tables (app+0x3eb0, +0x3f8c): scores, the first four letters of each name, the best of the day
+    for i in range(5):
+        WATCH['hs%d_s%d' % (t, i)] = '0x%x' % (base + 8 + 4 * i)
+        WATCH['hs%d_n%d' % (t, i)] = '0x%x' % (base + 0x1c + 30 * i)
+    WATCH['hs%d_best' % t] = '0x%x' % (base + 0xb4)
 POINTERS = {n for n in WATCH if n.endswith('_p')}
+SCORE_NAMES = ['hs%d_%s%d' % (t, k, i) for t in range(2) for k in 'sn' for i in range(5)] + ['hs0_best', 'hs1_best']
 DEFAULT_GROUPS = [
     ['board_p', 'menu_p', 'title_p', 'rng_j'],
     ['score', 'level', 'molecules', 'combo'],
@@ -91,17 +99,26 @@ def run_port(lines, end, seed):
     script = os.path.join(d, 's.txt')
     with open(script, 'w', newline='\n') as f:
         for n, c, a in lines:
-            f.write('%d %s %s\n' % (n + 1, c, ' '.join(a)))
+            if c == 'text':
+                # the original types a string in one command, the port one character at a time
+                for ch in ' '.join(a):
+                    f.write('%d char %s\n' % (n + 1, 'SPACE' if ch == ' ' else ch))
+            else:
+                f.write('%d %s %s\n' % (n + 1, c, ' '.join(a)))
         f.write('%d quit\n' % (end + 1))
     trace = os.path.join(d, 'trace.txt')
     ud = os.path.join(d, 'user')
+    if SAVEFILE:
+        # a saved game for both sides to continue (savecmp.py leaves the original's)
+        os.makedirs(ud)
+        shutil.copy(SAVEFILE, os.path.join(ud, 'SAVEGAME.DAT'))
     subprocess.run([BASH, fwd(os.path.join(ROOT, 'games/atomica/tools/run_script.sh')), fwd(script), fwd(ud), '600',
                     '-seed=%d' % seed, '-drawevery', '-statetrace=' + fwd(trace)], cwd=ROOT, stdout=subprocess.DEVNULL,
                    stderr=subprocess.DEVNULL)
     ev = {}
     for l in open(trace):
         u, n, v = l.split()
-        ev.setdefault(n, []).append((int(u), norm(n, v)))
+        ev.setdefault(n, []).append((max(int(u), 1), norm(n, v)))
     shutil.rmtree(d, ignore_errors=True)
     return ev
 
@@ -118,8 +135,13 @@ def run_original(lines, end, seed, names, tag):
     # the user allowed the originals to use their registry (CLAUDE.md)
     for value in ('GameHints', 'ShowSymbols', 'ShowTips'):
         subprocess.run(['reg', 'delete', REGKEY, '/v', value, '/f'], capture_output=True)
-    shutil.rmtree(os.path.join('C:/byo-og', run), ignore_errors=True)
-    shutil.rmtree(os.path.join(ROOT, 'build/origrun', run), ignore_errors=True)
+    if SAVEFILE:
+        # the staged copy savecmp.py made, with the saved game put back in it
+        run = 'savecmp'
+        shutil.copy(SAVEFILE, os.path.join('C:/byo-og', run, 'game', 'SAVEGAME.DAT'))
+    else:
+        shutil.rmtree(os.path.join('C:/byo-og', run), ignore_errors=True)
+        shutil.rmtree(os.path.join(ROOT, 'build/origrun', run), ignore_errors=True)
     cmd = [os.path.join(ROOT, 'build/origrun-bin/origrun.exe'), '--game', 'atomica', '--run', run, '--stage-root',
            'C:/byo-og', '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--seed', str(seed),
            '--timeout', '900']
@@ -150,15 +172,21 @@ def main():
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--end', type=int)
     ap.add_argument('--names')
+    ap.add_argument('--savefile', help='a SAVEGAME.DAT both sides start with (see savecmp.py)')
+    ap.add_argument('--scores', action='store_true', help='also compare the high score tables')
     ap.add_argument('--limit', type=int, default=6)
     ap.add_argument('--dump', type=int, default=0, help='print the first N changes of each name on both sides')
     a = ap.parse_args()
     lines, end = read_scenario(a.scenario)
     end = a.end or end
+    global SAVEFILE
+    SAVEFILE = os.path.abspath(a.savefile) if a.savefile else None
     groups = DEFAULT_GROUPS
     if a.names:
         names = a.names.split(',')
         groups = [names[i:i + 4] for i in range(0, len(names), 4)]
+    if a.scores and not a.names:
+        groups = groups + [SCORE_NAMES[i:i + 4] for i in range(0, len(SCORE_NAMES), 4)]
     port = run_port(lines, end, a.seed)
     bad = 0
     for gi, g in enumerate(groups):
