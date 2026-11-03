@@ -2,6 +2,7 @@
 #include "PixelusApp.h"
 #include "LevelData.h"
 #include "ProgressManager.h"
+#include "Temples.h"
 #include "Buffer.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +14,7 @@
 
 using namespace Sexy;
 
-static const long USER_MAGIC = 0x31555850;		// "PXU1"
+static const long USER_VERSION = 4;			// 0x53df8c
 
 UserProfile::UserProfile(PixelusApp* theApp)
 {
@@ -98,11 +99,35 @@ void UserProfile::SetRecord(const std::string& theUuid, int theSolved, int theMo
 	aRecord.mMoves2 = std::min(aRecord.mMoves2, theMoves2);
 }
 
-// 0x4391c0
+// the original's strings in these files: a four-byte length, then the characters
+static void WriteText(Buffer* theBuffer, const std::string& theString)
+{
+	theBuffer->WriteLong((long) theString.size());
+	theBuffer->WriteBytes((const uchar*) theString.data(), (int) theString.size());
+}
+
+static std::string ReadText(const Buffer* theBuffer)
+{
+	long aLength = theBuffer->ReadLong();
+	if (aLength < 0 || aLength > 255)
+		return "";
+	char aText[256];
+	theBuffer->ReadBytes((uchar*) aText, (int) aLength);
+	return std::string(aText, aLength);
+}
+
+// the original keeps the records of a temple in a map by UUID: ordered by the first four bytes as a signed number
+static bool UuidBefore(const std::string& theA, const std::string& theB)
+{
+	int aA = (int) strtoul(theA.substr(0, 8).c_str(), NULL, 16), aB = (int) strtoul(theB.substr(0, 8).c_str(), NULL, 16);
+	return aA != aB ? aA < aB : theA < theB;
+}
+
+// 0x4391c0 (and 0x438450 for each temple): version 4, the player, then the temples that have something to keep
 void UserProfile::Write(Buffer* theBuffer) const
 {
-	theBuffer->WriteLong(USER_MAGIC);
-	theBuffer->WriteString(mName);
+	theBuffer->WriteLong(USER_VERSION);
+	WriteText(theBuffer, mName);
 	theBuffer->WriteLong(mId);
 	theBuffer->WriteBoolean(mCurrent);
 	theBuffer->WriteBoolean(mFlag2D);
@@ -112,57 +137,96 @@ void UserProfile::Write(Buffer* theBuffer) const
 	theBuffer->WriteBoolean(mFlag79);
 	theBuffer->WriteBoolean(mFlag7A);
 
-	theBuffer->WriteLong((long) mTempleFlags.size());
-	for (std::map<std::string, int>::const_iterator anItr = mTempleFlags.begin(); anItr != mTempleFlags.end(); ++anItr)
+	std::vector<std::string> aUuids[NUM_TEMPLES];
+	int aTemples = 0;
+	for (int t = 0; t < NUM_TEMPLES; t++)
 	{
-		theBuffer->WriteString(anItr->first);
-		theBuffer->WriteLong(anItr->second);
+		const LevelData::Level* aLevel = mApp->mLevelData->GetLevel(gTemples[t].mName);
+		if (aLevel != NULL)
+			for (size_t i = 0; i < aLevel->mPuzzles.size(); i++)
+				if (mRecords.find(aLevel->mPuzzles[i].mUuid) != mRecords.end())
+					aUuids[t].push_back(aLevel->mPuzzles[i].mUuid);
+		std::sort(aUuids[t].begin(), aUuids[t].end(), UuidBefore);
+		std::map<std::string, int>::const_iterator aFlags = mTempleFlags.find(gTemples[t].mName);
+		if (!aUuids[t].empty() || (aFlags != mTempleFlags.end() && aFlags->second != 0))
+			aTemples++;
 	}
 
-	theBuffer->WriteLong((long) mRecords.size());
-	for (std::map<std::string, PuzzleRecord>::const_iterator anItr = mRecords.begin(); anItr != mRecords.end(); ++anItr)
+	theBuffer->WriteLong(aTemples);
+	for (int t = 0; t < NUM_TEMPLES; t++)
 	{
-		theBuffer->WriteString(anItr->first);
-		theBuffer->WriteLong(anItr->second.mSolved);
-		theBuffer->WriteLong(anItr->second.mMoves2);
-		theBuffer->WriteLong(anItr->second.mMoves);
+		std::map<std::string, int>::const_iterator aFlags = mTempleFlags.find(gTemples[t].mName);
+		int aBits = aFlags != mTempleFlags.end() ? aFlags->second : 0;
+		if (aUuids[t].empty() && aBits == 0)
+			continue;
+		theBuffer->WriteLong(t);
+		theBuffer->WriteLong((long) aUuids[t].size());
+		theBuffer->WriteBoolean((aBits & 1) != 0);
+		theBuffer->WriteBoolean((aBits & 2) != 0);
+		theBuffer->WriteBoolean((aBits & 4) != 0);
+		for (size_t i = 0; i < aUuids[t].size(); i++)
+		{
+			const PuzzleRecord& aRecord = mRecords.find(aUuids[t][i])->second;
+			WriteText(theBuffer, aUuids[t][i]);
+			theBuffer->WriteLong(IsMaxed(aRecord, aUuids[t][i]) ? 1 : 0);
+			theBuffer->WriteLong(aRecord.mMoves);
+			theBuffer->WriteLong(aRecord.mMoves2);
+		}
 	}
 }
 
-// 0x439fb0
+// 0x439fb0: the fields a version has (it adds the flags one by one), then the temples with their records
 bool UserProfile::Read(const Buffer* theBuffer)
 {
 	theBuffer->SeekFront();
-	if (theBuffer->GetDataLen() < 8 || theBuffer->ReadLong() != USER_MAGIC)
+	if (theBuffer->GetDataLen() < 8)
 		return false;
-	mName = theBuffer->ReadString();
+	int aVersion = theBuffer->ReadLong();
+	if (aVersion < 0 || aVersion > 100)
+		return false;
+	mName = ReadText(theBuffer);
 	mId = theBuffer->ReadLong();
 	mCurrent = theBuffer->ReadBoolean();
 	mFlag2D = theBuffer->ReadBoolean();
-	mFlag38 = theBuffer->ReadBoolean();
-	for (int i = 0; i < NUM_FLAGS; i++)
-		mFlags[i] = theBuffer->ReadByte();
-	mFlag79 = theBuffer->ReadBoolean();
-	mFlag7A = theBuffer->ReadBoolean();
+	if (aVersion > 0)
+		mFlag38 = theBuffer->ReadBoolean();
+	if (aVersion > 1)
+		for (int i = 0; i < NUM_FLAGS; i++)
+			mFlags[i] = theBuffer->ReadByte();
+	if (aVersion > 2)
+		mFlag79 = theBuffer->ReadBoolean();
+	if (aVersion > 3)
+		mFlag7A = theBuffer->ReadBoolean();
 
 	mTempleFlags.clear();
-	int aCount = theBuffer->ReadLong();
-	for (int i = 0; i < aCount && !theBuffer->AtEnd(); i++)
-	{
-		std::string aName = theBuffer->ReadString();
-		mTempleFlags[aName] = theBuffer->ReadLong();
-	}
-
 	mRecords.clear();
-	aCount = theBuffer->ReadLong();
-	for (int i = 0; i < aCount && !theBuffer->AtEnd(); i++)
+	int aTemples = theBuffer->ReadLong();
+	for (int t = 0; t < aTemples && !theBuffer->AtEnd(); t++)
 	{
-		std::string aUuid = theBuffer->ReadString();
-		PuzzleRecord aRecord;
-		aRecord.mSolved = theBuffer->ReadLong();
-		aRecord.mMoves2 = theBuffer->ReadLong();
-		aRecord.mMoves = theBuffer->ReadLong();
-		mRecords[UuidKey(aUuid)] = aRecord;
+		int aKey = theBuffer->ReadLong();
+		int aCount = theBuffer->ReadLong();
+		bool aVisited = theBuffer->ReadBoolean();
+		bool aSecond = theBuffer->ReadBoolean();
+		bool aThird = theBuffer->ReadBoolean();
+		for (int i = 0; i < aCount && !theBuffer->AtEnd(); i++)
+		{
+			std::string aUuid = ReadText(theBuffer);
+			int aSolved = theBuffer->ReadLong();
+			int aMoves = theBuffer->ReadLong();
+			int aMoves2 = theBuffer->ReadLong();
+			SetRecord(aUuid, aSolved, aMoves, aMoves2);
+		}
+		if (aKey < 0 || aKey >= NUM_TEMPLES)
+			continue;
+		int& aBits = mTempleFlags[gTemples[aKey].mName];
+		if (aSecond)
+			aBits |= 2;
+		if (aThird)
+		{
+			aBits |= 4;
+			if (aVisited)
+				aBits |= 1;
+		}
 	}
 	return true;
 }

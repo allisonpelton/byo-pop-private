@@ -36,6 +36,9 @@ screen). Both match in every value except the two listed under "Oddities".
 | Help screen drew 2 + 3 fewer numbers | its demo grid (0x40ddd0, 0x40d320) makes a grid and a tile and throws a tile at frames 50, 150 and 250 of 950 | `HelpScreen` draws the same numbers; the demo itself is not drawn (phase two) | 3910d0c |
 | Initial cursor on the board | the original does not aim at the board's start | the first `Aim` is gone | 3910d0c |
 | Dialog width of the user dialogs | 0x190 | `SizeDialog(..., 0x190)` | 3910d0c |
+| The tile maker started at the bottom of the grid | 0x42bd40 starts him above it (side 2) at the first column | `TileMaster` starts at `SIDE_DOWN`, cursor 0 | 5e00f97 |
+| Dotted aim line, target and base marks on a fresh board | 0x422ab0 draws those only in control modes 0 and 1; the board's mode (+0x19c) is 2 from its constructor (0x407f10) and nothing else writes it. In mode 2 it draws the cursor on the hovered cell (the red one when a click does nothing) and the arrows | `Board::DrawAim` does the same | 7ff6a91 |
+| The player's file (`users/<n>`) was in a layout of the port's own | 0x4391c0, 0x438450, 0x439fb0: version 4, four-byte string lengths, the temples by number (0 tutorial, 1..9) with their three flags and their records (uuid, "maxed" flag, fewest moves, second count), the records of a temple ordered by UUID as a signed number | `UserProfile::Write/Read` produce and read that layout; the bytes match the original's for the same play | b29b14e |
 
 With these the global generator's draw count matches the original at every update of three puzzles (temples 198 and
 463 draws, boards 159, 85, 79, the help screen's frames), and so do all tile pictures. `tools/check.sh pixelus`'s full-run
@@ -61,16 +64,39 @@ which also adds the check against `build/baseline-pixelus`).
 - The board's sidebar gleam (the colour panel at +0x1d8) is not drawn; its timer is kept.
 - The help screen's demo grid (left of the slides) is not drawn; its draws are kept.
 
+## Compared since the first report
+
+- **The player's file after three scripted puzzles:** `users/1` is byte for byte the original's up to where the original's
+  run went on one puzzle longer (it was stopped later); `users/directory.txt` and the puzzle history `users/his<n>` are
+  identical. This covers the records (fewest moves, second count, "maxed") a puzzle leaves, and a profile saved by one
+  program is read by the other (the port's reader follows 0x439fb0 field by field; it was not run on a file the
+  original wrote beyond the one above).
+- **Control modes 0 and 1** do not exist in play: the board's mode (+0x19c) is set to 2 in its constructor and no code
+  writes it. The keyboard/mouse-aim paths of 0x403370 and 0x408400 for modes 0 and 1 (and the editor's grid flag
+  +0xb0a1) are dead, so they are not ported.
+- **87bce0a (sidebar text, World Record background):** the sidebar of the board is identical to the original's at the
+  frames before, during and after a puzzle's end (shotdiff of the original run in the Sandbox against the port at the
+  same updates, runs s2 to s4); no box lies in the sidebar.
+
+## Phase two findings so far (not fixed; found by those shots)
+
+- The original cross-fades between screens (help to island, board to the completed screen, temple to board); the port
+  swaps them. At the same update the original is mid-fade.
+- The completed picture's sweep: the tiles ahead of the sweep turn yellow in the original and stay stone in the port.
+- The temple screen: the original's puzzle thumbnails are drawn in grey/blue/cream with a "Scroll Puzzles Down" sign; the
+  port draws red crosses and a "puzzles left unsolved" line.
+- Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
+
 ## Open (this phase is not complete)
 
 - **Tutorial.** The original's tutorial board ignores the bot's clicks (no hover, no move), also when they come 300
   updates later; the app's blocking flag (`+0x6a8`) and pause counter (`+0x630`) are both 0, the control mode is 2. The
-  port's tutorial accepts them. The cause is not found; the teacher (0x42e110 with mode 2 on the board) and the helper
-  widget (`board+0xf4`, 0x40ece0) of the original are not ported.
-- A saved game written by one program and continued by the other, the records table after a puzzle, and the other
-  control modes (0 and 1) are not compared.
-- 87bce0a (misplaced text, World Record background) against the original's screen with tools/shotdiff (Windows
-  Sandbox): not done.
+  port's tutorial accepts them. The port has no tutorial lesson at all: the original's board is driven by a script of
+  steps (0x4061f0, 0x406310, 0x406470, 0x4066b0 and their neighbours, using the helper widget `board+0xf4`, 0x40ece0, and
+  the teacher), which decides what a click may do at each step; the port's tutorial board is an ordinary board. Porting
+  the lesson is a separate piece of work (the steps, the helper widget's texts and arrows), not a harness question.
+- The puzzle currently being played (`his<n>` holds its moves) was only compared after the puzzle's end, not
+  continued across programs in mid-puzzle.
 
 ## Notes for the repository
 

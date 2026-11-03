@@ -7,7 +7,7 @@
 #   python tools/shotdiff/shotdiff.py --game pixelus --orig build/origrun/<run id>/shots --port <case dir>/shots-port --run <run id>
 source "$(dirname "$0")/common.sh"
 D="$1"; RUN="${2:-pixsb}"; DELTA="${DELTA:-2500}"
-POINTS="${POINTS:-1200 1300 2600 2700 2850 3100 3350 3600 4000}"
+POINTS="${POINTS:-1200 1300 2600 2700 2850 2900 2980 3050 3100 3150 3350 3600 4000}"
 python "$TOOLS/toorig.py" "$D/script.txt" "$DELTA" > "$D/orig-shots.txt"
 for k in $POINTS; do echo "at $((k + DELTA)) shot u$k" >> "$D/orig-shots.txt"; done
 # origrun runs the lines in order, so they must be in the order of their updates
