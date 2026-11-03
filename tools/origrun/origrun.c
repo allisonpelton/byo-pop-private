@@ -146,7 +146,7 @@ static char   gRepo[MAX_PATH];       // the repository root (origrun.exe sits in
 static char   gRunDir[MAX_PATH];     // build/origrun/<run>
 static char   gGameDir[MAX_PATH];    // <run>/game
 static char   gExePath[MAX_PATH];    // copied exe
-static char   gGameArgs[256];        // --arg: the game's own command line after the exe (letters, digits, - = _ . , and spaces)
+static char   gGameArgs[256];        // --arg: the game's own command line after the exe (letters, digits, - = _ . , one space between values)
 static char   gShotDir[MAX_PATH];
 static volatile LONG gAudioSeen = 0;
 static volatile LONG gStop = 0;
@@ -2043,11 +2043,15 @@ static const char* lookup_game(const char* name, const char* byExe, char* srcDir
 // --------------------------------------------------------------------------------------------- launching
 
 // --arg's text goes into the game's command line unquoted, so it takes only characters that cannot end or start
-// another argument or command: letters, digits, - = _ . , (and the spaces between --arg values)
-static int game_args_ok(const char* v)
+// another argument or command: letters, digits, - = _ . , and, in the sandbox's arg= line only (spaces 1), the single
+// spaces origrun put between --arg values. One --arg is one switch: a space in it is refused.
+static int game_args_ok(const char* v, int spaces)
 {
-	if (!v[0]) return 0;
-	for (const char* q=v;*q;q++) if (!isalnum((unsigned char)*q) && !strchr("-=_.,  ",*q)) return 0;
+	if (!v[0] || v[0]==' ') return 0;
+	for (const char* q=v;*q;q++) {
+		if (*q==' ') { if (!spaces || q[1]==' ' || !q[1]) return 0; continue; }
+		if (!isalnum((unsigned char)*q) && !strchr("-=_.,",*q)) return 0;
+	}
 	return 1;
 }
 
@@ -2059,7 +2063,7 @@ static int launch_game(const char* rundesk, Launched* L)
 	ZeroMemory(L,sizeof(*L));
 	STARTUPINFOA si; ZeroMemory(&si,sizeof(si)); si.cb=sizeof(si);
 	PROCESS_INFORMATION pi; ZeroMemory(&pi,sizeof(pi));
-	char cmd[MAX_PATH*2];
+	char cmd[MAX_PATH*2+sizeof(gGameArgs)+8];  // two quoted paths, a space and the game's switches
 	if (rundesk) {
 		wsprintfA(cmd,"\"%s\" \"%s\"%s%s",rundesk,gExePath,gGameArgs[0]?" ":"",gGameArgs);
 		logline("launching under rundesk: %s",gExePath);
@@ -3206,7 +3210,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"state")) lstrcpynA(gStateExpr,v,256);
 			else if (ieq(ln,"empty")) lstrcpynA(gEmptyExpr,v,256);
 			else if (ieq(ln,"watch") && gWatchN<4) lstrcpynA(gWatchExpr[gWatchN++],v,256);
-			else if (ieq(ln,"arg") && game_args_ok(v)) lstrcpynA(gGameArgs,v,sizeof(gGameArgs));
+			else if (ieq(ln,"arg")) { if (game_args_ok(v,1)) lstrcpynA(gGameArgs,v,sizeof(gGameArgs)); else logline("arg= refused: %s",v); }
 			else if (ieq(ln,"3d")) gMode3dWant = ieq(v,"on") ? 1 : 0;
 			else if (ieq(ln,"key3d")) lstrcpynA(key3d,v,256);
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
@@ -3336,7 +3340,7 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--watch")&&i+1<argc) { if (gWatchN<4) lstrcpynA(gWatchExpr[gWatchN++],argv[++i],256); else { fprintf(stderr,"origrun: at most 4 --watch\n"); return 2; } }
 		else if (ieq(argv[i],"--arg")&&i+1<argc) {
 			const char* v=argv[++i];
-			if (!game_args_ok(v) || strlen(gGameArgs)+1+strlen(v)>=sizeof(gGameArgs)) { fprintf(stderr,"origrun: --arg takes letters, digits, - = _ . , only (and at most %u characters in all)\n",(unsigned)sizeof(gGameArgs)-1); return 2; }
+			if (!game_args_ok(v,0) || strlen(gGameArgs)+1+strlen(v)>=sizeof(gGameArgs)) { fprintf(stderr,"origrun: --arg takes letters, digits, - = _ . , only (and at most %u characters in all)\n",(unsigned)sizeof(gGameArgs)-1); return 2; }
 			if (gGameArgs[0]) lstrcatA(gGameArgs," ");
 			lstrcatA(gGameArgs,v);
 		}
