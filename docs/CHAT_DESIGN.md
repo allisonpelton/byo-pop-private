@@ -47,7 +47,8 @@ The panel keeps no list of games. `cmake/ByopopWeb.cmake` writes `chat-games.js`
 function that writes the listing page), from the same `BYOPOP_WEB_BADGES` and the same titles as the listing page's tiles and in
 their order: `var ByopopGames = [{id, page, tag, title, colour}, ...]`, with `id` the page's own game id (`PAGE.id`), `page` the
 file name of the game's page, `tag` the badge's initials and `title` the game's name. Every game page loads it before `chat.js`
-and hands it to `mount()` with its own game id; `chattest` compares the file with the badge table and with the tiles of
+and hands it to `mount()` with its own game id, once the game has started (the user, 2026-11-03: "Don't load the chat until the
+game has launched": a page waiting for its files or for Play shows none); `chattest` compares the file with the badge table and with the tiles of
 `index.html` when a web build is there. The panel draws every tag from that table by the message's game id, and from nothing
 else: the address, the words and the colour come from the table, the page name has to be a file name beside the page's own
 (`javascript:`, a folder, a query or an address leaves the entry out), and the colour has to be `#rrggbb`. What a message says
