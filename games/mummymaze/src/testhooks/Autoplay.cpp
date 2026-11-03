@@ -57,6 +57,8 @@ struct AutoplayState
 	unsigned int		mTutorialShots;     // the tutorial steps that were photographed
 	bool				mTutorial;          // the tutorial is being played
 	int					mSaveAt;            // save and quit when the board is this many updates old (0: never)
+	int					mQuitAt;            // quit to the main menu through the side panel's button and its dialog when the board is this old (0: never); the game saves
+	int					mQuitTick;          // the tick of that click (0: not yet)
 	bool				mContinue;          // the Continue question is answered with yes
 	bool				mAdventure;         // an adventure is being played
 	bool				mMapShot;           // the world map was photographed
@@ -79,7 +81,7 @@ struct AutoplayState
 	unsigned int		mPrev[24];
 
 	AutoplayState() : mSeed(1), mTick(0), mLastAction(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
-		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mSaveAt(0), mContinue(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
+		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mSaveAt(0), mQuitAt(0), mQuitTick(0), mContinue(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
 		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL), mTrace(false)
 	{
 		for (int i = 0; i < 24; i++)
@@ -130,6 +132,8 @@ void MummyApp::HandleAutoplayParam(const std::string& theParamName, const std::s
 		mAutoplayState->mLevelsPerGame = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaysave")
 		mAutoplayState->mSaveAt = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplayquit")
+		mAutoplayState->mQuitAt = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaytrace")
 		mAutoplayState->mTrace = true;
 	else if (theParamName == "-autoplaycontinue")
@@ -197,6 +201,20 @@ void MummyApp::AutoplayUpdate()
 		Board* b = mBoard;
 		Log(s, "saved: %d updates in, time base %d, saved %d", (int) b->mUpdateCnt, (int) b->mTimeBase, (int) (b->mUpdateCnt - b->mTimeBase));
 		b->SaveClassic();
+		Shutdown();
+		return;
+	}
+	if (s->mQuitAt > 0 && s->mQuitTick == 0 && mBoard != NULL && mSidePanel != NULL && mBoard->mUpdateCnt >= s->mQuitAt)
+	{
+		Log(s, "quit to the main menu: %d updates in, time base %d", (int) mBoard->mUpdateCnt, (int) mBoard->mTimeBase);
+		LogClick(s, mUpdateCount, mSidePanel->mButtons[4]);
+		mSidePanel->ButtonDepress(14);
+		s->mQuitTick = s->mTick;
+		s->mWait = 5;	// the dialog is answered a few updates later, as a player would
+	}
+	if (s->mQuitTick > 0 && s->mTick >= s->mQuitTick + 150)
+	{
+		Log(s, "quit done at update %d", s->mTick);
 		Shutdown();
 		return;
 	}
@@ -303,7 +321,11 @@ void MummyApp::AutoplayUpdate()
 				((AdventureSlotsDialog*) aDialog)->ButtonDepress(0);
 			}
 			else if (anId == DIALOG_CONTINUE)
+			{
+				if (s->mContinue && aDialog->mYesButton != NULL)
+					LogClick(s, mUpdateCount, aDialog->mYesButton);
 				ButtonDepress((s->mContinue ? 2000 : 3000) + anId);
+			}
 			else
 			{
 				if (aDialog->mYesButton != NULL)

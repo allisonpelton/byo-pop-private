@@ -246,10 +246,10 @@ void MummyApp::ShowQuitToMainDialog()
 	}
 	else
 		aLines = GT(0x00494290);
-	DoMessage(DIALOG_QUIT_TO_MAIN, "", aLines, 1, 0xd9, 0x75, 0x164);
-	Dialog* aDialog = GetDialog(DIALOG_QUIT_TO_MAIN);
-	if (aDialog != NULL)
-		aDialog->mDialogHeader = GT(0x004942c4);
+	// the original gives the dialog its header and a fixed height: 0xdc for the question about quitting the game (0x4941e0), 0xf0 for the others
+	Dialog* aDialog = NewDialog(DIALOG_QUIT_TO_MAIN, true, GT(0x004942c4), aLines, "", 1);
+	aDialog->Resize(0xd9, 0x75, 0x164, aLines == GT(0x004941e0) ? 0xdc : 0xf0);
+	AddDialog(DIALOG_QUIT_TO_MAIN, aDialog);
 }
 
 // 0x41f3e0: the name for a high score
