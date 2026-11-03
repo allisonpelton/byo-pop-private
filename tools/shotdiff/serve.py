@@ -44,6 +44,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 		self.wfile.write(body)
 
 	def do_POST(self):
+		# The body is read before any reply, refusals included. A server that answers 403/404 and closes while the
+		# client's body is still unread makes Windows reset the connection (RST), and the client then loses the
+		# reply it was about to read. A body over MAX_BODY (or without a usable Content-Length) is not read: that
+		# client is refused with 413/411 and may see the reset, which is no loss.
+		try:
+			length = int(self.headers.get("Content-Length", ""))
+		except ValueError:
+			length = None
+		body = self.rfile.read(length) if length is not None and 0 <= length <= MAX_BODY else None
 		port = self.server.server_address[1]
 		host = self.headers.get("Host", "")
 		if host not in ("127.0.0.1:%d" % port, "localhost:%d" % port):
@@ -59,14 +68,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 		run_dir = os.path.realpath(os.path.join(root, m.group(1), m.group(2)))
 		if os.path.dirname(os.path.dirname(run_dir)) != root or not os.path.isdir(run_dir):
 			return self.reply(404, {"error": "no such run"})
-		try:
-			length = int(self.headers.get("Content-Length", ""))
-		except ValueError:
+		if length is None:
 			return self.reply(411, {"error": "Content-Length needed"})
-		if length < 0 or length > MAX_BODY:
+		if body is None:
 			return self.reply(413, {"error": "too large"})
 		try:
-			doc = json.loads(self.rfile.read(length).decode("utf-8"))
+			doc = json.loads(body.decode("utf-8"))
 		except (ValueError, UnicodeDecodeError):
 			return self.reply(400, {"error": "not JSON"})
 		if not isinstance(doc, dict) or not isinstance(doc.get("marks"), dict):

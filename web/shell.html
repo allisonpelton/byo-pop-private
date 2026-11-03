@@ -85,6 +85,8 @@ body {
 :root[data-theme="dark"] .brand .logo-dark { display: block; }
 /* the game's mark before its name: page.css draws its own */
 .brand .mark { width: 12px; height: 12px; background: var(--accent); border-radius: 2px; }
+/* the game's own icon in place of the mark once its files are here (showIcon) */
+.brand .game-icon { width: 20px; height: 20px; flex: none; }
 .bar .status { color: var(--muted); font-size: 13px; flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button, .button {
   font: inherit; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg);
@@ -197,7 +199,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <body>
 <a class="skip" id="skip-game" href="#canvas">Skip to game</a>
 <header class="bar">
-  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="96" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="96" height="22"></a><span class="mark" aria-hidden="true"></span><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
+  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="96" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="96" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
   <span class="status" id="status" role="status">Starting…</span>
   <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false">Mods</button>
   <button id="btn-files" type="button" aria-controls="panel-files" aria-expanded="false">Game files</button>
@@ -434,6 +436,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // game (closeGameThen), which goes on from here.
     onGameExit: function (info) {
       exited = true;
+      playClock();
       releaseWake();
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
       if (session) session.markFinished();
@@ -454,6 +457,12 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       whenSaved(function () {
         if (then) { then(info); return; }
         if (restart) { session.restartPage(info); return; }
+        // the site setting "Go back to the games after quitting": the listing page, with ?silent=1 kept for the tests
+        if (setting("quitHome") === "on") {
+          $("exit-msg").textContent = "Going back to the games…";
+          location.href = "./" + (pageSilent() ? "?silent=1" : "");
+          return;
+        }
         $("exit-msg").textContent = hasSave()
           ? "The game has closed. Your game in progress was saved, and you can continue it when you play again."
           : "The game has closed. Your settings and high scores are saved.";
@@ -478,6 +487,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // cause, so the next start can leave them out.
   function showStopped(what) {
     exited = true;
+    playClock();
     releaseWake();
     afterExit = null;
     try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
@@ -591,27 +601,64 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       });
     }, Promise.resolve("")).then(function (url) { importedIcon = url; }, function () {});
   }
-  function setTabIcon(url) {
-    document.querySelectorAll('link[rel~="icon"]').forEach(function (l) { l.remove(); });
-    var link = document.createElement("link");
-    link.rel = "icon"; link.type = "image/png"; link.href = url;
-    document.head.appendChild(link);
+  // The icon scaled down to px on its longer side with the browser's best filter, at most halving at each step so a 48 or
+  // 64 px icon stays clean at 16 px; null when it is no larger than px already (the icon itself is used then).
+  function scaleIcon(img, px) {
+    var src = img, w = img.naturalWidth, h = img.naturalHeight, side = Math.max(w, h);
+    if (!side || side <= px) return null;
+    while (side > px) {
+      var next = Math.max(px, Math.ceil(side / 2));
+      var c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(w * next / side)); c.height = Math.max(1, Math.round(h * next / side));
+      var g = c.getContext("2d");
+      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+      g.drawImage(src, 0, 0, c.width, c.height);
+      src = c; w = c.width; h = c.height; side = next;
+    }
+    return src.toDataURL("image/png");
+  }
+  // The game's icon on this page once its files are here (the user, 2026-11-02): the tab's icon at 16 and 32 px, each
+  // scaled from it (the browser picks the one for its own size), and the header's, in place of the coloured mark, at 20 px
+  // for the screen's pixel ratio. A page without the files (or after "Forget game files", which reloads it) keeps the
+  // site's icon and the mark.
+  var HEADER_ICON_PX = 20;
+  function showIcon(url) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var side = Math.max(img.naturalWidth, img.naturalHeight);
+        document.querySelectorAll('link[rel~="icon"]').forEach(function (l) { l.remove(); });
+        // 16 px, and 32 px or the icon's own size when smaller; no copy larger than the icon
+        (side > 16 ? [16, Math.min(32, side)] : [side]).forEach(function (px) {
+          var link = document.createElement("link");
+          link.rel = "icon"; link.type = "image/png";
+          link.setAttribute("sizes", px + "x" + px);
+          link.href = scaleIcon(img, px) || url;
+          document.head.appendChild(link);
+        });
+        var icon = $("brand-icon");
+        icon.src = scaleIcon(img, Math.round(HEADER_ICON_PX * (window.devicePixelRatio || 1))) || url;
+        icon.hidden = false;
+        document.querySelector(".brand .mark").hidden = true;
+      } catch (e) {}
+    };
+    img.src = url;
   }
   function ensureIcon() {
     if (pagePlaceholders()) return;
     try {
       var rec = ByopopGameFiles.all()[PAGE.id];
-      if (rec && rec.icon) { setTabIcon(rec.icon); return; }
+      if (rec && rec.icon) { showIcon(rec.icon); return; }
       if (importedIcon) {  // read out of the exe at the import, which the game does not store
         var url = importedIcon;
         importedIcon = "";
-        if (ByopopGameFiles.setIcon(PAGE.id, url)) setTabIcon(url);
+        if (ByopopGameFiles.setIcon(PAGE.id, url)) showIcon(url);
         return;
       }
       var name = mainExe();
       if (!name || !window.ByopopExeIcon) return;
       ByopopExeIcon.fromBytes(Module.FS.readFile(GAME + "/" + name)).then(function (icon) {
-        if (icon && icon.dataUrl && ByopopGameFiles.setIcon(PAGE.id, icon.dataUrl)) setTabIcon(icon.dataUrl);
+        if (icon && icon.dataUrl && ByopopGameFiles.setIcon(PAGE.id, icon.dataUrl)) showIcon(icon.dataUrl);
       }).catch(function () {});
     } catch (e) {}
   }
@@ -789,7 +836,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // ?silent=1: no sound, for automated tests in a browser pane that may be hidden (CLAUDE.md). The game
   // still mixes and plays its sounds as usual; Platform::Mixer outputs silence (Module.silentAudio).
   function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
-  // noMods: this run only (-nomods), the rescue when a mod stops the game from starting
+  // isAutostart: true after the game's own restart, "sound" when the page started it on opening (startOnOpen), else a
+  // click. noMods: this run only (-nomods), the rescue when a mod stops the game from starting
   function startGame(isAutostart, noMods) {
     if (started || !hasAgreed()) return;
     started = true;
@@ -797,7 +845,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // (browsers allow it only from one; the restart of the game's own menu has no click, so it does not ask). "Windowed" is
     // told to the games (byopop_site_windowed, below), whose own full screen option then starts off.
     var screenAtStart = setting("fullscreen");
-    if (isAutostart !== true && screenAtStart === "on") goFullscreen();
+    if (!isAutostart && screenAtStart === "on") goFullscreen();
     holdForVolume();
     closePanels("quiet");
     $("start-overlay").hidden = true;
@@ -817,6 +865,9 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
+    // a play (ByopopPlay): every start but the one after the game's own restart, which goes on with the same play. "Play without
+    // mods" after a crash reloads with the same flag, but with noMods, which the restart never sets: that one is a play
+    if (isAutostart !== true || noMods) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
     askToKeepStorage();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     cursorTimer = setInterval(pollCursor, 100);
@@ -920,6 +971,32 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // The Game files panel's "Import again" closed the game for this
     if (session.takeImport()) { showImport(); return; }
     showReady();
+    startOnOpen();
+  }
+  // The site setting "Start the game when its page opens": from the Ready card straight into the game when the browser lets
+  // the page play sound without a click or key. Chrome and Edge do after a click on a page of this site that led here (the
+  // listing, a reload), or with the site allowed to play sound; Firefox with the site's Autoplay permission. Firefox answers
+  // navigator.getAutoplayPolicy; elsewhere a new AudioContext's resume() settles at once only when sound is allowed. Not
+  // after a start that did not finish (the rescue is on the card), with "Full screen at start" (only a click may ask for
+  // it) or with ?silent=1 (the tests press Play), and not once a panel is open or the card is gone.
+  function startOnOpen() {
+    if (setting("autoStart") !== "on" || setting("fullscreen") === "on" || pageSilent() || !$("start-rescue").hidden) return;
+    function go() { if (!started && !$("start-overlay").hidden && !anyPanelOpen()) startGame("sound", false); }
+    try {
+      if (navigator.getAutoplayPolicy) { if (navigator.getAutoplayPolicy("audiocontext") === "allowed") go(); return; }
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      var ctx = new AC(), settled = false;
+      var finish = function (allowed) {
+        if (settled) return;
+        settled = true;
+        try { ctx.close().catch(function () {}); } catch (e) {}
+        if (allowed) go();
+      };
+      if (ctx.state === "running") { finish(true); return; }
+      ctx.resume().then(function () { finish(ctx.state === "running"); }, function () { finish(false); });
+      setTimeout(function () { finish(false); }, 300);
+    } catch (e) {}
   }
   function showReady() {
     var failed = session.lastStartFailed() && panel.enabledCount() > 0;
@@ -1156,11 +1233,30 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   });
   function goFullscreen() {
     var el = $("stage");
+    // the panels are outside the stage: one left open would stay behind it, as for the game's own full screen (openPanel)
+    closePanels("quiet");
     try { if (el.requestFullscreen) el.requestFullscreen().catch(function () {}); } catch (e) {}
-    // The keys go to the game again
-    $("canvas").focus();
+    // The keys go to the game again, while it runs: before a start and after an exit the canvas is out of the tab order and
+    // hidden, and the focus stays where it is (the Ready card's Play, an exit card)
+    if (gameRunning()) $("canvas").focus();
   }
   $("btn-full").addEventListener("click", goFullscreen);
+  // F11 is the Fullscreen button, and F11 again (or Esc, the browser's own) leaves full screen (the user, 2026-11-02: "F11
+  // should make all games go full screen in the browser"). The browser's F11 would put the whole page in full screen, so it is
+  // stopped, but only when the page can do it itself. This listener is the first to see the key (the document, capturing), so
+  // the game never gets it: TipTop's own F11 (App::HandleKeys) would ask SDL for full screen outside a click, which the browser
+  // refuses. Its Options checkbox still uses the game's own path.
+  function onFullscreenKey(e) {
+    if (e.key !== "F11" || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+    if (!document.fullscreenEnabled || !$("stage").requestFullscreen) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.type !== "keydown" || e.repeat) return;
+    if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(function () {}); }
+    else goFullscreen();
+  }
+  document.addEventListener("keydown", onFullscreenKey, true);
+  document.addEventListener("keyup", onFullscreenKey, true);
 
   // ---------- keyboard and focus (docs/WEB_PLAYER.md, "Accessibility") ----------
   // The game has the keyboard only while its canvas has the focus (SDL listens on the canvas, see Module.preRun). The canvas
@@ -1436,7 +1532,30 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) releaseWake(); else acquireWake();
     syncPause();
+    playClock();
   });
+
+  // ---------- play time (web/settings.js, ByopopPlay; docs/WEB_PLAYER.md, "The listing page") ----------
+  // Time counts while the game runs and its page is shown and has the focus (the user, 2026-11-02: "Only count time with the game
+  // open and active"): checked every second and at each change, a step of at most 5 s, so that a computer that slept adds nothing.
+  // It is written every 30 s and when the count stops, in whole seconds (the rest waits for the next), and when the page goes away.
+  var playSince = null, playMs = 0;
+  function playClock() {
+    var now = performance.now(), on = gameRunning() && !document.hidden && document.hasFocus() && !hiddenPaused;
+    if (playSince !== null) playMs += Math.min(now - playSince, 5000);
+    playSince = on ? now : null;
+    if (playMs >= 30000 || (!on && playMs >= 1000)) playSave(false);
+  }
+  function playSave(last) {
+    var whole = (last ? Math.round(playMs / 1000) : Math.floor(playMs / 1000)) * 1000;
+    if (whole <= 0) return;
+    playMs -= whole;
+    try { ByopopPlay.played(PAGE.id, whole); } catch (e) {}
+  }
+  setInterval(playClock, 1000);
+  window.addEventListener("focus", playClock);
+  window.addEventListener("blur", playClock);
+  window.addEventListener("pagehide", function () { playClock(); playSave(true); });
 
   // ---------- the chat (web/chat.js; docs/CHAT_DESIGN.md) ----------
   // One plain-text room for every game, beside the stage (below it on a narrow screen). The site's "Show chat" setting (on unless

@@ -144,8 +144,8 @@ Each game's README covers its game files, options, mods and tests.
 
 - This product includes portions of the PopCap Games Framework, © 2005-2009 PopCap Games, Inc. All rights
   reserved. (http://popcapframework.sourceforge.net/). See `framework/LICENSE.txt`.
-- Bejeweled, Big Money and the other games named here are trademarks of Electronic Arts / PopCap Games.
-  This project is not affiliated with or endorsed by them. The games' code, art, music and sounds remain
-  their property; use your own copies.
+- PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Money, Alchemy and Dynomite! are registered trademarks of
+  Electronic Arts Inc. in the United States. This project is not affiliated with or endorsed by Electronic Arts or
+  any game's publisher. The games' code, art, music and sounds remain their owners' property; use your own copies.
 - [SDL2](https://libsdl.org) (zlib license), [libxmp-lite](https://github.com/libxmp/libxmp) (MIT),
   [stb_image / stb_vorbis / stb_image_write](https://github.com/nothings/stb) (public domain / MIT).

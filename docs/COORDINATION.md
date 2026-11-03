@@ -12,7 +12,9 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
   For the week of 2026-11-01 to 2026-11-08 the cap is 80% (the user): what remains goes to bugs that make games harder
   to test (like Seven Seas' tutorial that would not go away) and to site work. Site work runs alongside the game
-  sessions (the user, 2026-11-01).
+  sessions (the user, 2026-11-01). Twist is not paused at 80% this week: told on 2026-11-02, at 61%, that finishing it
+  would take about 60% of a week and that the account would reach 100% around Wednesday night, the user answered "Let
+  it run".
 - **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage; the coordinator sets
   it on every session it starts.
 
@@ -98,6 +100,19 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
   work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer that puts a
   native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
+- **The site's requested work comes between Twist and the passes (the user, 2026-11-02):** "Slot in the remaining
+  requested additions and changes to the site after finishing Twist and before the passes on existing decomps." Then:
+  "Any site features that are easy, you can do now. Anything that requires designing an animation or SVG, or that
+  requires a lot of code to get working right, save for later." The open items are in the "Site" section of
+  `testnotes/TEST_NOTES.md`. Done now, in a site session: F11 for full screen in every game; play time, last day played
+  and number of plays on the front page, with "Play now" and "Add your files"; a bigger logo on the front page;
+  "Quit Game" back to the home page; the player, save and settings managers as tabs with far less text (names until the
+  icons are designed). After Twist and before any identical-play pass starts on a game decompiled before Twist (passes
+  already running carry on): adding many games' files at once with the game inferred from the folder; a game folder
+  dropped on the logo or on a game's tile; bottle-cap placeholder icons; the bottle cap and opener animation; the recycle
+  bin; the managers' tab icons. Ning Po Mahjong's and TipTop's high-score names were fixed (34e6da1, a6547b9). The chat
+  is built as a test with made-up messages; its real version waits for funding. What the user asks for while testing is
+  still done when asked.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays

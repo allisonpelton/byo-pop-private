@@ -115,6 +115,10 @@ endif()
 if(NOT EMSCRIPTEN)
   add_executable(geomtest tools/geomtest/geomtest.cpp framework/DisplayGeometry.cpp)
   target_include_directories(geomtest PRIVATE framework)
+  # the framework's own floating point (framework/CMakeLists.txt), so the exact compares test the game's arithmetic
+  if((NOT MSVC) AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]86|x86)$"))
+    target_compile_options(geomtest PRIVATE -msse2 -mfpmath=sse)
+  endif()
 endif()
 
 # Sound test (tools/soundtest): sounds kept as 16-bit at their own rate, and voices that resample them as they mix,

@@ -5,7 +5,7 @@
 //
 // A game that is not running cannot be changed from here, so a rename or a delete is queued and the game applies it the
 // next time it starts (with its own functions); until then the section shows it as pending, and afterwards what became of
-// it. A game that has never reported its players (not started since this existed) is listed as such and cannot be targeted.
+// it. A game that has never reported its players (not started since this existed) is not listed and cannot be targeted.
 var ByopopPlayers = (function () {
   "use strict";
   var MODE_WORDS = { game: "as the game does", fill: "fills in the name", create: "uses the player" };
@@ -34,9 +34,6 @@ var ByopopPlayers = (function () {
     var message = { text: "", error: false, undo: null };
 
     root.textContent = "";
-    var about = make("p", "pl-about", "The players you use in the games, kept in this browser. A game uses the one in use for the " +
-      "names it asks for, and can make and select the player itself; the setting “Player names” under Settings decides, " +
-      "for all games or for each one. Renaming and deleting inside the games happens the next time each game starts.");
     var status = make("p", "pl-status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
@@ -44,7 +41,6 @@ var ByopopPlayers = (function () {
     var alertEl = make("p", "pl-status pl-error pl-alert");
     alertEl.id = nextId("pl-alert");
     alertEl.setAttribute("role", "alert");
-    root.appendChild(about);
     root.appendChild(status);
     root.appendChild(alertEl);
 
@@ -65,10 +61,7 @@ var ByopopPlayers = (function () {
     root.appendChild(h3a); root.appendChild(siteList); root.appendChild(addForm); root.appendChild(modeNote);
 
     // ----- the players inside the games -----
-    var h3b = make("h3", "", "Players in the games");
-    var gamesAbout = make("p", "pl-about", "What each game last said of its players, at its last start and whenever its players " +
-      "changed. Tick players, in any games and with any names, to rename them all to one name or to delete them. A game that keeps " +
-      "no players only asks for a name at each high score and remembers the last one; that name can be renamed too.");
+    var h3b = make("h3", "", "In the games");
     var gameList = make("div", "pl-games");
     var bulk = make("form", "pl-form pl-bulk");
     var bulkId = nextId("pl-bulk");
@@ -94,7 +87,7 @@ var ByopopPlayers = (function () {
     var resultsList = make("ul", "pl-results");
     var resultsClear = make("button", "", "Clear this list");
     resultsClear.type = "button";
-    root.appendChild(h3b); root.appendChild(gamesAbout); root.appendChild(gameList); root.appendChild(bulk);
+    root.appendChild(h3b); root.appendChild(gameList); root.appendChild(bulk);
     root.appendChild(confirmBox); root.appendChild(resultsTitle); root.appendChild(resultsList); root.appendChild(resultsClear);
 
     var tied = null;  // the field that the error on show is about
@@ -176,7 +169,7 @@ var ByopopPlayers = (function () {
       var all = ByopopProfiles.list(), cur = ByopopProfiles.current(), recs = ByopopProfiles.games();
       siteList.textContent = "";
       if (!all.length) {
-        siteList.appendChild(make("p", "pl-empty", "No players yet. Add one below, and the games can use its name."));
+        siteList.appendChild(make("p", "pl-empty", "No players yet."));
       }
       var group = make("fieldset", "pl-use");
       group.appendChild(make("legend", "pl-sr", "Player in use"));
@@ -214,7 +207,7 @@ var ByopopPlayers = (function () {
             var m = ByopopProfiles.match(rec, p.name);
             if (m) items.push({ game: g.id, name: m.name });
           });
-          if (!items.length) { say(p.name + " is not a player in any game that has reported its players.", true); return; }
+          if (!items.length) { say(p.name + " isn’t a player in any game yet.", true); return; }
           askDelete(items);
         });
         var rm = make("button", "", "Remove");
@@ -285,7 +278,7 @@ var ByopopPlayers = (function () {
       var parts = Object.keys(modes);
       modeNote.textContent = "";
       if (parts.length === 1 && parts[0] === "game") {
-        modeNote.appendChild(document.createTextNode("No game uses these players yet: the setting “Player names” is “as the game does” for every game. "));
+        modeNote.appendChild(document.createTextNode("The games ask for names as they always did. "));
       } else {
         var VERBS = { game: ["asks as the original does", "ask as the original does"], fill: ["fills in the name", "fill in the name"],
           create: ["uses the player", "use the player"] };
@@ -294,10 +287,9 @@ var ByopopPlayers = (function () {
           return (modes[m] === n ? "all " + n + " games " : modes[m] + " game" + (modes[m] > 1 ? "s " : " ")) + v[modes[m] > 1 ? 1 : 0];
         }).join(", ") + ". "));
       }
-      var a = make("a", "", "Change it under Settings");
+      var a = make("a", "", "Player names in Settings");
       a.href = "#settings";
       modeNote.appendChild(a);
-      modeNote.appendChild(document.createTextNode("."));
     }
 
     addForm.addEventListener("submit", function (ev) {
@@ -320,19 +312,18 @@ var ByopopPlayers = (function () {
       return found;
     }
     function renderGames() {
-      var recs = ByopopProfiles.games(), unseen = [], any = false;
+      var recs = ByopopProfiles.games(), any = false;
       gameList.textContent = "";
       games.forEach(function (g) {
         var rec = recs[g.id], queued = ByopopProfiles.ops(g.id);
-        if (!rec) { unseen.push(g.title); return; }
-        if (!rec.names.length && !queued.length) { any = true; gameList.appendChild(emptyGame(g, rec)); return; }
+        if (!rec) return;
+        if (!rec.names.length && !queued.length) return;
         any = true;
         var fs = make("fieldset", "pl-game");
         var lg = make("legend", "", g.title);
         fs.appendChild(lg);
-        var sub = make("p", "pl-hint", (rec.kind === "scores" ? "High-score names. " : "") + (rec.rules ? "Names: " + rec.rules + ". " : "") +
-          (rec.at ? "Reported " + when(rec.at) + "." : ""));
-        fs.appendChild(sub);
+        var hint = (rec.kind === "scores" ? "High-score names. " : "") + (rec.rules ? "Names: " + rec.rules + "." : "");
+        if (hint) fs.appendChild(make("p", "pl-hint", hint));
         if (queued.length) {
           fs.appendChild(make("p", "pl-pending", queued.length + " change" + (queued.length > 1 ? "s" : "") +
             " waiting: " + g.title + " applies " + (queued.length > 1 ? "them" : "it") + " the next time it starts."));
@@ -366,18 +357,9 @@ var ByopopPlayers = (function () {
         fs.appendChild(ul);
         gameList.appendChild(fs);
       });
-      if (!any && !unseen.length) gameList.appendChild(make("p", "pl-empty", "No games are listed."));
-      if (unseen.length) {
-        var p = make("p", "pl-hint", "Not reported yet (the game has not started since players were added): " + unseen.join(", ") + ".");
-        gameList.appendChild(p);
-      }
+      if (!any) gameList.appendChild(make("p", "pl-empty", "No names yet: a game shows its players here once it has started."));
+      bulk.hidden = !any;
       countTicked();
-    }
-    function emptyGame(g, rec) {
-      var p = make("p", "pl-hint");
-      p.appendChild(make("strong", "", g.title));
-      p.appendChild(document.createTextNode(rec.kind === "scores" ? ": no high-score name remembered yet." : ": no players yet."));
-      return p;
     }
     function tickedItems() {
       var recs = ByopopProfiles.games(), out = [];
@@ -452,8 +434,7 @@ var ByopopPlayers = (function () {
       var h = make("h4", "", "Delete these players in the games?");
       h.id = "pl-confirm-title";
       confirmBox.appendChild(h);
-      var desc = make("p", "", "This deletes each player and what the game keeps for it, the way the game’s own delete does. " +
-        "It cannot be undone. Each game does it the next time it starts.");
+      var desc = make("p", "", "This can’t be undone. Each game does it when it next starts.");
       desc.id = "pl-confirm-desc";
       confirmBox.appendChild(desc);
       var ul = make("ul");

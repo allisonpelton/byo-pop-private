@@ -24,8 +24,8 @@ function load(blocked) {
   for (const f of ["settings.js", "profiles.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "web", f), "utf8"), ctx, { filename: f });
   }
-  vm.runInContext("this.S = ByopopSettings; this.P = ByopopProfiles; this.G = ByopopGameFiles;", ctx);
-  return { S: ctx.S, P: ctx.P, G: ctx.G, data };
+  vm.runInContext("this.S = ByopopSettings; this.P = ByopopProfiles; this.G = ByopopGameFiles; this.T = ByopopPlay;", ctx);
+  return { S: ctx.S, P: ctx.P, G: ctx.G, T: ctx.T, data };
 }
 
 let checks = 0, failed = 0;
@@ -210,7 +210,7 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
 
 // ---------- blocked storage ----------
 {
-  const { S, P, G } = load(true);
+  const { S, P, G, T } = load(true);
   same("settings read with blocked storage", [S.get("fullscreen"), S.get("startVolume"), S.get("startMusic")], ["game", "off", 50]);
   check("settings write says no", S.set("fullscreen", "on") === false);
   check("players: add says no", P.add("Alice").ok === false);
@@ -218,6 +218,24 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
   check("report says no", P.report("pixelus", { names: [] }) === false);
   same("forGame still answers", P.forGame("pixelus").mode, "game");
   same("game files: empty", G.all(), {});
+  check("play: a start says no", T.started("pixelus") === false);
+  same("play: empty", T.all(), {});
+}
+
+// ---------- play times (ByopopPlay) ----------
+{
+  const { T, data } = load();
+  check("play: a start", T.started("pixelus") && T.started("pixelus"));
+  check("play: time", T.played("pixelus", 61400) && T.played("pixelus", 400) === false);
+  const r = T.all().pixelus;
+  same("play: the record", [r.plays, r.seconds, r.last], [2, 61, T.today()]);
+  check("play: a bad game id is refused", T.started("../evil") === false && !("../evil" in T.all()));
+  data["byopop-play"] = JSON.stringify({ pixelus: { plays: -3, seconds: "x", last: "yesterday" }, list: [1] });
+  same("play: a damaged record reads as zero", T.all(), { pixelus: { plays: 0, seconds: 0, last: "" } });
+  data["byopop-play"] = "{nope";
+  same("play: damaged storage reads as none", T.all(), {});
+  same("play: durations", [T.duration(30), T.duration(60), T.duration(3599), T.duration(3600), T.duration(12000)],
+    ["under a minute", "1 min", "59 min", "1 h", "3 h 20 min"]);
 }
 
 console.log("profilestest: " + checks + " checks, " + failed + " failed");

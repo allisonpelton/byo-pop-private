@@ -344,7 +344,8 @@ so nothing crosses through the clipboard, a printer, the microphone or a camera.
 runs the sandbox's remote-desktop client in an AppContainer, in case a client is ever started. `vGPU` is disabled by
 default, so the sandbox renders in software (WARP) and shares nothing of the host's GPU driver; `--sandbox-vgpu`
 enables it for a 3D run (Microsoft notes that a shared GPU widens what the sandbox can reach of the host). The user
-allowed it for Bookworm Adventures' 3D comparison (2026-11-01); another game's 3D runs ask the user first.
+allowed it for Bookworm Adventures' 3D comparison (2026-11-01) and for Bejeweled Twist's 3D mode (2026-11-02); another
+game's 3D runs ask the user first.
 
 There are exactly two mapped folders: the run folder, read-write, as `C:\run`, and origrun's binaries
 (`build/origrun-bin`), read-only, as `C:\origrun`. Never the install folder, the user's profile or the repository:
@@ -663,7 +664,11 @@ the game's own window on their desktop for the 3D comparison ("Yes, capture it",
 picture taken only with PrintWindow, from the game's window itself, never from the screen. Its first version copied the
 screen, and one frame, taken before the game's window was on screen, held the user's own windows; it was deleted with
 every copy, and visrun changed to PrintWindow only (`games/bookwormadv/docs/IDENTICAL_PLAY.md`, "3D mode"). That leave
-was for that comparison alone: the host-capture ban holds for every other run. Bookworm Adventures also needs a short path: it builds absolute paths from the working directory in a
+was for that comparison alone. Bejeweled Twist's 3D comparison got its own on 2026-11-02 (the user's answer: "Sandbox,
+then desktop"): first `--sandbox --sandbox-vgpu --sandbox-connect`, whose sandbox window shows on the user's desktop,
+and only if the original still falls back to 2D there, a run on the user's desktop as above (a copy under `build/`,
+visrun's PrintWindow shots of the game's own window, input posted to that window and never through the user's cursor or
+keyboard). The host-capture ban holds for every other run. Bookworm Adventures also needs a short path: it builds absolute paths from the working directory in a
 256-byte stack buffer (0x6cbb60), so a copy under a worktree's long path dies at start with STATUS_STACK_BUFFER_OVERRUN
 (0xC0000409, the stack check at 0x6cbcea). origrun's sandbox copies run from `C:\run\game` and never meet it.
 

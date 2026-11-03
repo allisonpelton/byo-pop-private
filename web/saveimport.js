@@ -417,9 +417,7 @@ var ByopopSaveImport = (function () {
     if (!list.length) return;
 
     root.appendChild(make("h3", "", "Import from an installed game"));
-    root.appendChild(make("p", "pl-about", "If you have played a game installed on this computer, you can bring its saves, high scores and settings here. Choose the game, run " +
-      "the commands the page shows (they only read), then choose the folder that holds its save files and the .reg files the commands wrote. Nothing is uploaded, " +
-      "nothing is changed on your computer, and only the save files and settings in the page’s list are taken: never the game’s files or its program."));
+    root.appendChild(make("p", "pl-about", "Bring the saves, high scores and settings of a game installed on this computer. Nothing is uploaded or changed on your computer."));
     var form = make("div", "pl-form");
     var selId = "si-game";
     var selLabel = make("label", "", "Game to import from:");
