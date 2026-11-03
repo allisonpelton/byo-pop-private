@@ -547,7 +547,7 @@ void Board::StartBonusChallenge(int theExcludeColor)
 	int aMax = mUnknown158 / 3 + aMin;
 	if (mBonusChallengeMaxGems < aMax)
 		aMax = mBonusChallengeMaxGems;
-	int aRoll = Rand();
+	int aRoll = Rand85B970();  // 0x6a3447, as are the colours below
 	int aPoints = mUnknown2640 * 100;
 	mUnknown2644 = aRoll % (aMax - aMin + 1) + aMin;
 	if (mUnknown2644 == mBonusChallengeMinGems)
@@ -564,7 +564,7 @@ void Board::StartBonusChallenge(int theExcludeColor)
 		do {
 			int aColor;
 			for (;;) {
-				aColor = Rand() % 7;
+				aColor = Rand85B970() % 7;
 				if (i < 2 && aColor == theExcludeColor)
 					continue;
 				if (!mBonusColors.empty() && aColor == mBonusColors.back())
