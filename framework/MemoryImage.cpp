@@ -184,6 +184,7 @@ MemoryImage::MemoryImage(const MemoryImage& theMemoryImage) :
 	mD3DData(NULL)
 {
 	InitHD();
+	mRotateRowsByImageWidth = false;	// a copy is a plain image, as Init leaves one
 
 	bool deleteBits = false;
 
