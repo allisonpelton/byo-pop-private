@@ -120,7 +120,13 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   icons are designed). After Twist and before any identical-play pass starts on a game decompiled before Twist (passes
   already running carry on): adding many games' files at once with the game inferred from the folder; a game folder
   dropped on the logo or on a game's tile; bottle-cap placeholder icons; the bottle cap and opener animation; the recycle
-  bin; the managers' tab icons. Ning Po Mahjong's and TipTop's high-score names were fixed (34e6da1, a6547b9). The chat
+  bin; the managers' tab icons. They go from easiest to hardest (the user, 2026-11-03: "It seems like Twist might finish
+under this week's limit. If it does, move on to the site tasks from easiest to hardest"), starting as soon as Twist's
+last merge lands if the week's usage has not run out: a game folder dropped on its own tile; many games' folders at
+once, each game inferred from its folder, a choice where that is unclear and the rejected folders named; a folder
+dropped on the logo, using that inference; the managers' tab icons; the bottle-cap placeholder icons; the recycle bin,
+since it takes a dragged cap; the bottle cap and opener animation last. Ning Po Mahjong's and TipTop's high-score names
+were fixed (34e6da1, a6547b9). The chat
   is built as a test with made-up messages; its real version waits for funding. What the user asks for while testing is
   still done when asked.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
