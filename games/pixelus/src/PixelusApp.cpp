@@ -31,11 +31,17 @@ using namespace Sexy;
 
 PixelusApp* Sexy::gApp = NULL;
 
+static int GridRandom()
+{
+	return gApp->RandNext();
+}
+
 // 0x435880 (members cleared) + 0x434660 (names). The product version, build number and build date are what the
 // 2004 SexyApp reads from the exe's version resource and build-info block; saved games carry them.
 PixelusApp::PixelusApp()
 {
 	gApp = this;
+	Grid::sRandom = &GridRandom;
 
 	mProductVersion = "1.0";
 	mBuildNum = 51;

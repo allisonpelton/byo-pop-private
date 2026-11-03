@@ -57,6 +57,11 @@ struct GridObject
 class Grid
 {
 public:
+	// the game's random numbers (the original's global generator); the game sets it, a test that uses the rules alone
+	// leaves it, and the tiles' pictures and the wave timer come out as 0
+	static int		(*sRandom)();
+	static int		Random() { return sRandom != NULL ? sRandom() : 0; }
+
 	enum { MAX_SIZE = 32, CELL_SIZE = 20 };
 	enum { SIDE_UP = 0, SIDE_RIGHT = 1, SIDE_DOWN = 2, SIDE_LEFT = 3 };
 

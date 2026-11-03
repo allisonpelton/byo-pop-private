@@ -1,5 +1,4 @@
 #include "Grid.h"
-#include "PixelusApp.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +6,8 @@
 #include <sstream>
 
 using namespace Sexy;
+
+int (*Grid::sRandom)() = NULL;
 
 // 0x425d40: an empty grid of the given size
 Grid::Grid(int theRows, int theCols)
@@ -16,7 +17,7 @@ Grid::Grid(int theRows, int theCols)
 	mDifficulty = 0;
 	Clear();
 	mClock = 0;
-	mWaveTime = gApp->RandNext() % 1000 + 500 + mClock;
+	mWaveTime = Random() % 1000 + 500 + mClock;
 }
 
 // 0x4256b0
@@ -118,7 +119,7 @@ GridObject* Grid::NewObject(int theRow, int theCol)
 	anObject->mX = theCol * CELL_SIZE;
 	anObject->mY = theRow * CELL_SIZE;
 	anObject->mDir = 0;
-	anObject->mVariant = gApp->RandNext() % 5;	// 0x42eee0 draws it for every tile made, in a puzzle's file too
+	anObject->mVariant = Random() % 5;	// 0x42eee0 draws it for every tile made, in a puzzle's file too
 	anObject->mDead = false;
 	anObject->mBounce = false;
 	anObject->mTrailLen = 0;
@@ -288,7 +289,7 @@ void Grid::UpdateFinish()
 	// the shimmer comes by itself every 2 to 4 seconds
 	if (mWaveTime < mClock)
 	{
-		mWaveTime = gApp->RandNext() % 0x7d1 + 0x7d1 + mClock;
+		mWaveTime = Random() % 0x7d1 + 0x7d1 + mClock;
 		if (!mWaveOn)
 		{
 			mWaveOn = true;
