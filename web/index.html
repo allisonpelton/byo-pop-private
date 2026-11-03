@@ -496,7 +496,8 @@ try {
   var radios = Array.prototype.slice.call(box.querySelectorAll("input[name=sortby]"));
   var SAID = { name: "index.sort.said_name", release: "index.sort.said_release", time: "index.sort.said_time", plays: "index.sort.said_plays",
     popular: "index.sort.said_popular" };
-  var mode = "name";
+  var mode = "name";      // the order shown
+  var wanted = "name";    // the player's choice, which differs from it only for "Most popular" before the counts are in
   var site = null;  // every game's counts from the play counter, {id: {plays, live}}, once they are in
 
   // the date of data-released as [year, month, day], 0 for a part it does not give; null for no date or one that is not a date
@@ -557,9 +558,9 @@ try {
     if (had && had !== document.activeElement && document.body.contains(had)) { try { had.focus({ preventScroll: true }); } catch (e) {} }
   }
   function apply(to, say) {
-    mode = SAID.hasOwnProperty(to) ? to : "name";
-    // "Most popular" without a counter is by name, and the choice is kept for a page that has one
-    if (mode === "popular" && !ByopopCounter.on()) mode = "name";
+    wanted = mode = SAID.hasOwnProperty(to) ? to : "name";
+    // "Most popular" is by name until the counts are in, and always without a counter, and the choice is kept for when they come
+    if (mode === "popular" && !site) mode = "name";
     radios.forEach(function (r) { r.checked = r.value === mode; });
     place(mode === "release" ? byRelease : mode === "time" ? byPlay("seconds") : mode === "plays" ? byPlay("plays") :
       mode === "popular" ? byPopular() : byName);
@@ -602,7 +603,6 @@ try {
       box.querySelector(".sortby-opts").appendChild(label);
       radios.push(popular);
       wire(popular);
-      popular.checked = mode === "popular";
     }
     site = games;
     cards.forEach(function (c) {
@@ -618,7 +618,7 @@ try {
       line.textContent = g.live > 0 ? ByopopStrings.t("index.counts.both", { live: ByopopStrings.t("index.counts.live", { n: g.live }), plays: plays }) : plays;
       line.hidden = !(g.plays > 0 || g.live > 0);  // nothing for a game nobody has played yet
     });
-    if (mode === "popular") apply(mode, false);
+    if (wanted === "popular") apply(wanted, false);
   });
 })();
 </script>

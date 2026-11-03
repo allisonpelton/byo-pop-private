@@ -7,8 +7,9 @@
 // Off unless the build names the counter's address (BYOPOP_WEB_COUNTER in cmake/ByopopWeb.cmake, written below in place of the
 // marker): every local build and test has none. Off too with ?silent=1 (the tests), under Node or another host without
 // WebSocket, and in a browser driven by automation (navigator.webdriver). Nothing is sent while the page is hidden (a background
-// tab, or the hidden Browser pane): the first contact waits until it is shown. A page that skipped the terms card (a
-// development host or the site's test key, web/terms.js) counts no play and opens no socket, so tests never add to the counts.
+// tab, or the hidden Browser pane): the first contact waits until it is shown. Off on a development host (web/terms.js, even
+// with ?terms=1) and on a page that skipped the terms card with the site's test key, so local work and tests never add to the
+// counts or read them.
 var ByopopCounter = (function () {
   "use strict";
   var BASE = "@BYOPOP_COUNTER@";   // the Worker's /api, "" for none
@@ -21,6 +22,7 @@ var ByopopCounter = (function () {
       if (typeof window === "undefined" || typeof document === "undefined" || typeof WebSocket === "undefined") return false;
       if (new URLSearchParams(location.search).get("silent") === "1") return false;
       if (navigator.webdriver) return false;
+      if (typeof ByopopTerms === "undefined" || ByopopTerms.devHost(location) || ByopopTerms.skipped()) return false;
     } catch (e) { return false; }
     return true;
   }
@@ -52,42 +54,61 @@ var ByopopCounter = (function () {
   // ---------- a game page ----------
   // The game is really playing: open the socket (once a page). It is kept open with a "ping" every 50 s, which the server's
   // runtime answers without waking the counter, and opened again (not counted) if the connection drops while the game runs.
-  // stop() closes it: the game ended or the page goes.
-  var socket = null, pinger = 0, stopped = false, tries = 0, game = "";
+  // stop() closes it for good: the game ended or the page goes. A page kept in the browser's back/forward cache closes it while
+  // it is away and opens it again (not counted) when it is shown again.
+  var socket = null, pinger = 0, stopped = false, away = false, tries = 0, game = "";
   function playing(id) {
     if (game || !on() || !/^[a-z0-9_-]{1,40}$/.test(id)) return;
-    if (typeof ByopopTerms === "undefined" || ByopopTerms.skipped()) return;
     game = id;
     whenShown(function () { connect(counted(id)); });
-    window.addEventListener("pagehide", stop);
+    window.addEventListener("pagehide", function (ev) {
+      if (!ev.persisted) { stop(); return; }
+      away = true;
+      close();
+    });
+    window.addEventListener("pageshow", function (ev) {
+      if (!ev.persisted || !away) return;
+      away = false;
+      tries = 0;
+      if (!stopped) whenShown(function () { connect(false); });
+    });
   }
   function connect(count) {
-    if (stopped) return;
-    try { socket = new WebSocket(address("/play?game=" + encodeURIComponent(game) + (count ? "" : "&count=0"), true)); }
-    catch (e) { socket = null; return; }
-    socket.onopen = function () {
+    if (stopped || away || socket) return;
+    var ws;
+    try { ws = new WebSocket(address("/play?game=" + encodeURIComponent(game) + (count ? "" : "&count=0"), true)); }
+    catch (e) { return; }
+    socket = ws;
+    ws.onopen = function () {
       tries = 0;
       clearInterval(pinger);
-      pinger = setInterval(function () { try { socket.send("ping"); } catch (e) {} }, 50000);
+      pinger = setInterval(function () { try { ws.send("ping"); } catch (e) {} }, 50000);
     };
-    socket.onclose = function () {
+    ws.onclose = function () {
+      if (socket !== ws) return;  // one this page closed itself (close())
       clearInterval(pinger);
       socket = null;
       // a dropped connection is opened again, a few times, at growing intervals; a refused one (too many from here) too
-      if (!stopped && tries < 5) { tries++; setTimeout(function () { whenShown(function () { connect(false); }); }, 15000 * tries); }
+      if (!stopped && !away && tries < 5) { tries++; setTimeout(function () { whenShown(function () { connect(false); }); }, 15000 * tries); }
     };
+  }
+  function close() {
+    clearInterval(pinger);
+    if (socket) { var s = socket; socket = null; try { s.close(1000); } catch (e) {} }
   }
   function stop() {
     stopped = true;
-    clearInterval(pinger);
-    if (socket) { try { socket.close(1000); } catch (e) {} socket = null; }
+    close();
   }
 
   // ---------- the listing page ----------
   // fn({id: {plays, live}}) with every game's counts, read when the page is shown and again every 2 minutes while it is shown;
   // never called when the counter is off or does not answer
   function counts(fn) {
-    if (!on()) return;
+    var ready = (typeof ByopopTerms !== "undefined" && ByopopTerms.ready) || Promise.resolve();
+    ready.then(function () { if (on()) reads(fn); });
+  }
+  function reads(fn) {
     var last = 0;
     function read() {
       if (document.visibilityState !== "visible" || Date.now() - last < 110000) return;

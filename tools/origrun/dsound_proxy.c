@@ -79,11 +79,15 @@ static void log_init(void)
 }
 
 // Milliseconds since the stand-in attached: on the virtual clock when it runs (it starts as the stand-in attaches).
+static double wall_ms(void)
+{
+	LARGE_INTEGER c; QueryPerformanceCounter(&c);
+	return (double)(c.QuadPart - gStart.QuadPart) * 1000.0 / (double)gFreq.QuadPart;
+}
 static double now_ms(void)
 {
 	double v; if (vclock_ms(&v)) return v;
-	LARGE_INTEGER c; QueryPerformanceCounter(&c);
-	return (double)(c.QuadPart - gStart.QuadPart) * 1000.0 / (double)gFreq.QuadPart;
+	return wall_ms();
 }
 
 static void logf(const char* fmt, ...)
@@ -259,7 +263,8 @@ typedef struct MyBuf {
 	int    looping;      // last Play was DSBPLAY_LOOPING
 	int    streaming;    // looping buffer -> record as one growing WAV (music)
 	DWORD  byterate;     // bytes/sec from the format, for the cursor
-	double playStartMs;  // now_ms() when pos0 was taken: the wall clock, or the virtual clock when it runs
+	int    wall;         // a buffer of a COM-made device (BASS's): its cursor runs on the wall clock (see CF_CreateInstance)
+	double playStartMs;  // buf_now() when pos0 was taken: the wall clock, or the virtual clock when it runs
 	DWORD  pos0;         // the play cursor at playStartMs (Play, SetCurrentPosition, SetFrequency), or where Stop left it
 	void*  pcm;          // last full-buffer contents (for a static one-shot dump)
 	DWORD  pcmBytes;
@@ -319,16 +324,18 @@ static double buf_rate(const MyBuf* b)   // bytes per millisecond
 	if (b->freq && b->wfx.nSamplesPerSec && b->freq != b->wfx.nSamplesPerSec) r = r * b->freq / b->wfx.nSamplesPerSec;
 	return r / 1000.0;
 }
+// A buffer's clock: the virtual clock when it runs, except for a COM-made device's buffers (see CF_CreateInstance)
+static double buf_now(MyBuf* b) { return b->wall ? wall_ms() : now_ms(); }
 static DWORD buf_cursor(MyBuf* b)
 {
 	if (!b->playing || !b->byterate || !b->bytes) return b->bytes ? b->pos0 % b->bytes : 0;
-	double ms = now_ms() - b->playStartMs;
+	double ms = buf_now(b) - b->playStartMs;
 	unsigned long long adv = b->pos0 + (unsigned long long)(buf_rate(b) * (ms > 0 ? ms : 0));
 	if (b->looping) return (DWORD)(adv % b->bytes);
 	if (adv >= b->bytes) { b->playing = 0; b->pos0 = 0; return 0; }
 	return (DWORD)adv;
 }
-static void buf_rebase(MyBuf* b, DWORD pos) { b->pos0 = pos; b->playStartMs = now_ms(); }
+static void buf_rebase(MyBuf* b, DWORD pos) { b->pos0 = pos; b->playStartMs = buf_now(b); }
 
 // Who asked GetStatus, logged as the process detaches: a game whose sounds' ends now take their length on origrun's
 // clock (before 2026-11-03 every buffer answered "stopped").
@@ -476,7 +483,7 @@ static const IDirectSoundBuffer8Vtbl gBufVtbl = {
 // ---------------------------------------------------------------------------------------------------
 // IDirectSound8 stand-in.
 
-typedef struct MyDS { IDirectSound8 iface; LONG ref; } MyDS;
+typedef struct MyDS { IDirectSound8 iface; LONG ref; int wall; } MyDS;   // wall: made through COM (CF_CreateInstance)
 static const IDirectSound8Vtbl gDsVtbl;
 
 static HRESULT STDMETHODCALLTYPE DS_QueryInterface(IDirectSound8* This, REFIID riid, void** ppv)
@@ -485,7 +492,7 @@ static ULONG STDMETHODCALLTYPE DS_AddRef(IDirectSound8* This)  { return Interloc
 static ULONG STDMETHODCALLTYPE DS_Release(IDirectSound8* This)
 { LONG r = InterlockedDecrement(&((MyDS*)This)->ref); if (r==0) free(This); return r; }
 static HRESULT STDMETHODCALLTYPE DS_CreateSoundBuffer(IDirectSound8* This, LPCDSBUFFERDESC d, LPDIRECTSOUNDBUFFER* pp, LPUNKNOWN u)
-{ if (!pp) return E_POINTER; *pp = (LPDIRECTSOUNDBUFFER)NewBuf(d); return DS_OK; }
+{ if (!pp) return E_POINTER; MyBuf* b = NewBuf(d); b->wall = ((MyDS*)This)->wall; *pp = (LPDIRECTSOUNDBUFFER)b; return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_GetCaps(IDirectSound8* This, LPDSCAPS c)
 { if (c) { DWORD sz=c->dwSize; ZeroMemory(c,sz); c->dwSize=sz; c->dwFlags=DSCAPS_PRIMARYSTEREO|DSCAPS_PRIMARY16BIT|DSCAPS_CONTINUOUSRATE; c->dwMinSecondarySampleRate=100; c->dwMaxSecondarySampleRate=200000; c->dwFreeHwMixingAllBuffers=32; } return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_DuplicateSoundBuffer(IDirectSound8* This, LPDIRECTSOUNDBUFFER o, LPDIRECTSOUNDBUFFER* pp)
@@ -502,7 +509,7 @@ static HRESULT STDMETHODCALLTYPE DS_DuplicateSoundBuffer(IDirectSound8* This, LP
 	MyBuf* b = MakeBuf(&d, 0);
 	{
 		b->vol = s->vol; b->pan = s->pan; b->freq = s->freq; b->hash = s->hash;
-		b->byterate = s->byterate;
+		b->byterate = s->byterate; b->wall = s->wall;
 		if (s->pcm && s->pcmBytes) { b->pcm = malloc(s->pcmBytes); if (b->pcm) { memcpy(b->pcm, s->pcm, s->pcmBytes); b->pcmBytes = s->pcmBytes; } }
 		logf("buffer %d duplicate of %d  hash=%016llx", b->id, s->id, s->hash);
 	}
@@ -513,7 +520,10 @@ static HRESULT STDMETHODCALLTYPE DS_SetCooperativeLevel(IDirectSound8* This, HWN
 static HRESULT STDMETHODCALLTYPE DS_Compact(IDirectSound8* This) { return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_GetSpeakerConfig(IDirectSound8* This, LPDWORD c) { if (c) *c=DSSPEAKER_STEREO; return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_SetSpeakerConfig(IDirectSound8* This, DWORD c) { return DS_OK; }
-static HRESULT STDMETHODCALLTYPE DS_Initialize(IDirectSound8* This, LPCGUID g) { return DS_OK; }
+// Called only on an object made through COM (DirectSoundCreate* initialise their own): no device in nodriver mode, as
+// DirectSound's own Initialize answers on a machine without one
+static HRESULT STDMETHODCALLTYPE DS_Initialize(IDirectSound8* This, LPCGUID g)
+{ if (gNoDriver) { logf("IDirectSound::Initialize -> DSERR_NODRIVER"); return DSERR_NODRIVER; } return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_VerifyCertification(IDirectSound8* This, LPDWORD c) { if (c) *c=DS_CERTIFIED; return DS_OK; }
 
 static const IDirectSound8Vtbl gDsVtbl = {
@@ -567,9 +577,45 @@ HRESULT WINAPI DirectSoundFullDuplexCreate(LPCGUID a, LPCGUID b, LPCDSCBUFFERDES
 	HWND h, DWORD lvl, LPDIRECTSOUNDFULLDUPLEX* fd, LPDIRECTSOUNDCAPTUREBUFFER8* cb,
 	LPDIRECTSOUNDBUFFER8* rb, LPUNKNOWN u) { return DSERR_NODRIVER; }
 
-// COM activation path (CoCreateInstance of CLSID_DirectSound). Minimal class factory.
+// COM activation: CoCreateInstance of CLSID_DirectSound or CLSID_DirectSound8. COM finds the stand-in for them through
+// the manifest origrun writes beside the copy's exe (<exe>.manifest, registration-free COM: the copy's own classes, read
+// by Windows as the process starts; nothing is registered and nothing is hooked). Without it COM loads the system's
+// dsound.dll from the registry, past the stand-in: the BASS of Alchemy, Pixelus and Rocket Mania makes its DirectSound
+// that way, and played its music on the real device (2026-11-03). The object is the stand-in's, as DirectSoundCreate
+// makes it; the caller then calls its Initialize. Its buffers' cursors run on the wall clock, as the real device's did:
+// on the virtual clock BASS has to mix its music as fast as that clock runs, and the game slowed with it (Alchemy's case
+// ran at 18x instead of 960x).
+static HRESULT STDMETHODCALLTYPE CF_QueryInterface(IClassFactory* This, REFIID riid, void** ppv)
+{
+	if (!ppv) return E_POINTER;
+	if (IsEqualIID(riid, &IID_IUnknown) || IsEqualIID(riid, &IID_IClassFactory)) { *ppv = This; return S_OK; }
+	*ppv = NULL; return E_NOINTERFACE;
+}
+static ULONG STDMETHODCALLTYPE CF_AddRef(IClassFactory* This) { return 2; }   // a static object
+static ULONG STDMETHODCALLTYPE CF_Release(IClassFactory* This) { return 1; }
+static HRESULT STDMETHODCALLTYPE CF_CreateInstance(IClassFactory* This, IUnknown* outer, REFIID riid, void** ppv)
+{
+	if (!ppv) return E_POINTER;
+	*ppv = NULL;
+	if (outer) return CLASS_E_NOAGGREGATION;
+	logf("COM: a DirectSound object made through CoCreateInstance, by the stand-in");
+	IDirectSound8* ds = NewDS();
+	((MyDS*)ds)->wall = 1;
+	*ppv = ds;
+	return S_OK;
+}
+static HRESULT STDMETHODCALLTYPE CF_LockServer(IClassFactory* This, BOOL lock) { return S_OK; }
+static const IClassFactoryVtbl gFactoryVtbl = { CF_QueryInterface, CF_AddRef, CF_Release, CF_CreateInstance, CF_LockServer };
+static IClassFactory gFactory = { (IClassFactoryVtbl*)&gFactoryVtbl };
 HRESULT WINAPI DllCanUnloadNow(void) { return S_FALSE; }
-HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv) { mute_wait(); if (ppv) *ppv=NULL; return CLASS_E_CLASSNOTAVAILABLE; }
+HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv)
+{
+	mute_wait();
+	if (!ppv) return E_POINTER;
+	*ppv = NULL;
+	if (!IsEqualCLSID(rclsid, &CLSID_DirectSound) && !IsEqualCLSID(rclsid, &CLSID_DirectSound8)) return CLASS_E_CLASSNOTAVAILABLE;
+	return CF_QueryInterface(&gFactory, riid, ppv);
+}
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r)
 {

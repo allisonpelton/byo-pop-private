@@ -222,20 +222,24 @@ dialog alike, that a page skips it in two cases, and in both it keeps no agreeme
   `.test`, or opened as a `file://` page. A deployed site never has those hosts, so local work in the Browser pane,
   headless browsers on localhost and Node harnesses never meet the card, with nothing to switch. `?terms=1` brings the
   card back on such a host, to look at it.
-- With the site's test key: a page opened with `?testkey=<key>` hashes the key with SubtleCrypto (SHA-256) and compares
-  it with the hash the build baked in. On a match it skips the card for the rest of that tab's pages (sessionStorage,
-  `byopop-testkey`, holding the hash), and the key is taken out of the address bar at once. A wrong key, or a build
-  without a key, shows the card as usual. `?terms=1` wins over the key.
+- With the site's test key: a page opened with `#testkey=<key>` in its fragment hashes the key with SubtleCrypto
+  (SHA-256) and compares it with the hash the build baked in. On a match it skips the card for the rest of that tab's
+  pages (sessionStorage, `byopop-testkey`, holding the hash). The key goes in the fragment because a browser never sends
+  the fragment to a server, in the request or in a Referer, and `terms.js` takes it out of the address bar before
+  anything else runs on the page, so the history keeps no copy either (the fragment's other parts, such as the listing's
+  `#mods`, stay). A wrong key, or a build without a key, shows the card as usual. `?terms=1` wins over the key. A key
+  in the query (`?testkey=`) is not read.
 
-A page that skipped the card for either reason counts no play and opens no socket to the play counter
-(`docs/PLAY_COUNTER.md`), so tests never add to the counts.
+A page that skipped the card for either reason, and any page on a development host even with `?terms=1`, counts no play
+and reads no counts (`docs/PLAY_COUNTER.md`), so tests never add to the counts.
 
 **The test key** is the first line of `secrets/web-testkey.txt`, in the checkout's root, which git ignores: it is never in
 the repo or a published snapshot. `python tools/testkey.py` makes one (a random 32-character key; it never overwrites one
 that is there), and `tools/setup_worktree.sh` copies the folder into a new worktree. The web build reads the file at
 configure time and bakes only its SHA-256 into `terms.js` (configure again after making or changing it); a build without
 the file has no test key, says so in a configure line, and its deployed card cannot be skipped. An agent that tests the
-deployed site reads the key from the file and opens the pages with `?testkey=<key>&silent=1`.
+deployed site reads the key from the file and opens the pages with `?silent=1#testkey=<key>`, never writing the key into
+chat, a commit or a doc.
 
 **Deploying** needs nothing more for the terms than the test key's file in the checkout that builds the site, if agents
 are to test the deployed pages. The card is on in every build.
