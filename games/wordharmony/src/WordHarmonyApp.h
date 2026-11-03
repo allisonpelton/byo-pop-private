@@ -10,6 +10,7 @@
 #include "SexyAppBase.h"
 #include "Widget.h"
 
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -29,7 +30,8 @@ class WordHarmonyWidget : public Widget
 public:
 	MemoryImage* mScreenImage;
 	wordharmony::ScreenGraphics* mGraphics;
-	DWORD mLastFrame;
+	DWORD mLastLoop;       // the run loop's last tick count
+	int mAccumulated;      // the milliseconds not yet run as frames (0x4552b0's carry)
 	DWORD mLastSoundTick;
 
 	WordHarmonyWidget();
@@ -52,6 +54,10 @@ public:
 	bool mEngineRunning;
 	bool mQuitRequested;
 	std::string mCommandLine;  // the screen saver's arguments only (/s, /c, /p)
+	int mFrames;               // port: the engine's frames, the identical-play runs' update counter
+	uint32_t mEngineClock;     // port: -fast: the engine's milliseconds, one frame period a frame
+	FILE* mStateLog;           // port: -statelog=<file>, the values that decide play (LogState)
+	std::vector<std::pair<std::string, std::string>> mLoggedState;
 
 	WordHarmonyApp();
 	~WordHarmonyApp() override;
@@ -67,6 +73,9 @@ public:
 	// A frame of the engine (0x4542e0); an exception the original would not survive ends the program
 	void RunFrame();
 	void EngineFailed(const char* theWhat);
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	// port: -statelog: "<frame> <name> <value>" for each value that changed in the frame
+	void LogState();
 };
 
 extern WordHarmonyApp* gApp;

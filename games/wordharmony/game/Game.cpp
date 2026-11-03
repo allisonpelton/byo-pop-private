@@ -159,7 +159,9 @@ void Game::init()
 	mRemoveNext = nullptr;
 	mNextRoot = nullptr;
 	mLevel = 0;
-	crtSrand(App::instance()->getTime());  // GetTickCount()
+	unsigned int aSeed = App::instance()->getTime();  // GetTickCount()
+	getHost()->testSeed(aSeed);                        // port: -seed=N
+	crtSrand(aSeed);
 	// The sound system of the window (DirectSound, 0x443ca0)
 	App::instance()->setSoundSystem(getHost()->createSoundSystem());
 	// (the beta's play time upload is given its URL here: left out)

@@ -10,6 +10,11 @@ void engine::crtSrand(unsigned int theSeed)
 	gHoldRand = theSeed;
 }
 
+unsigned int engine::crtRandState()
+{
+	return gHoldRand;
+}
+
 // 0x446749
 int engine::crtRand()
 {

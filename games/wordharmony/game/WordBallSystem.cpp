@@ -2172,11 +2172,12 @@ void WordBallSystem::update(UpdateInfo& theInfo)
 		mWaveTime = theInfo.mSeconds + mWaveTime;
 		float aTime = theInfo.mSeconds + mStepTime;
 		mStepTime = aTime;
-		if (0.03 < aTime)
+		// 0.03f (0x482784): a float, so the step's time is taken off as a float
+		if (0.03f < aTime)
 		{
 			do
 			{
-				mStepTime = (float)(mStepTime - 0.03);
+				mStepTime = mStepTime - 0.03f;
 				accumulate(0.03f);
 				integrate(0.03f, mLastStep);
 				int i = 3;
@@ -2186,7 +2187,7 @@ void WordBallSystem::update(UpdateInfo& theInfo)
 					i--;
 				} while (i != 0);
 				mLastStep = 0.03f;
-			} while (0.03 < mStepTime);
+			} while (0.03f < mStepTime);
 		}
 
 		unsigned int anIndex = 0;
@@ -2311,22 +2312,23 @@ void WordBallSystem::update(UpdateInfo& theInfo)
 		if (mEditor)
 			goto aHints;
 		Level* aLevel = aGame->mCurrentLevel;
-		float aFill = (1.0f / ((float)aLevel->mMaxBalls * aLevel->mSpawnDelay)) * theInfo.mSeconds + mFill;
-		mFill = aFill;
+		// the x87 sums in double: each is stored as a float, and compared as it was before the store
+		double aFill = 1.0 / ((double)aLevel->mMaxBalls * aLevel->mSpawnDelay) * theInfo.mSeconds + mFill;
+		mFill = (float)aFill;
 		if (aFill <= mWaterLevel)
 		{
 			if (aFill < mWaterLevel)
 			{
-				float aLevelNow = mWaterLevel - theInfo.mSeconds * 0.1f;
-				mWaterLevel = aLevelNow;
+				double aLevelNow = mWaterLevel - (double)theInfo.mSeconds * 0.1f;
+				mWaterLevel = (float)aLevelNow;
 				if (aLevelNow < mFill)
 					mWaterLevel = mFill;
 			}
 		}
 		else
 		{
-			float aLevelNow = theInfo.mSeconds * 0.1f + mWaterLevel;
-			mWaterLevel = aLevelNow;
+			double aLevelNow = (double)theInfo.mSeconds * 0.1f + mWaterLevel;
+			mWaterLevel = (float)aLevelNow;
 			if (mFill < aLevelNow)
 				mWaterLevel = mFill;
 		}

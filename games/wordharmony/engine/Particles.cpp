@@ -241,7 +241,8 @@ void ParticleStream::update(UpdateInfo& theInfo)
 			if (mAutoStopLeft < 0)
 				mEmitting = false;
 		}
-		float aCredit = mEmitRate * theInfo.mSeconds + mEmitCredit;
+		// the x87 sum in double, stored as a float (a float product first emits a frame late now and then)
+		float aCredit = (float)((double)mEmitRate * theInfo.mSeconds + mEmitCredit);
 		// left unset by the original for a group-relative stream, whose emit does not read it
 		Point aPosition;
 		if (mGroupRelative == 0)
