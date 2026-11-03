@@ -184,6 +184,22 @@ void StateLog::Update()
 			fprintf(mFile, "%d %s %s\n", mApp->mUpdateCount, aName, aBuffer);
 		}
 	}
+	// the launchers' numbers on the right edge (tools/identical/values_right.txt)
+	for (int i = 0; i < 8; i++)
+	{
+		Piece* aPiece = (aBoard == NULL || i >= aBoard->mRows) ? NULL : aBoard->mRight[i];
+		if (aPiece == NULL)
+			snprintf(aBuffer, sizeof(aBuffer), "-");
+		else
+			snprintf(aBuffer, sizeof(aBuffer), "%d", aPiece->mIndex);
+		char aName[8];
+		snprintf(aName, sizeof(aName), "x%d", i);
+		if (!mStarted || mLast[136 + i] != aBuffer)
+		{
+			mLast[136 + i] = aBuffer;
+			fprintf(mFile, "%d %s %s\n", mApp->mUpdateCount, aName, aBuffer);
+		}
+	}
 	mStarted = true;
 	fflush(mFile);
 }

@@ -14,6 +14,17 @@ for line in open(orig_file, errors='replace'):
     m = re.search(r'update counter (\d+);', line)
     if m:
         max_update = min(max_update, int(m.group(1)) - 1)
+# origrun logs at most 4000 changes of a watch ("watch k: 4000 changes logged; no more"): a value is compared only up to the
+# last change that was logged
+watch_end = {}
+last_logged = {}
+for line in open(orig_file, errors='replace'):
+    m = re.search(r'watch (\d): (\S+) -> (\S+) at update (\d+)', line)
+    if m:
+        last_logged[int(m.group(1)) - 1] = int(m.group(4))
+    m = re.search(r'watch (\d): \d+ changes logged; no more', line)
+    if m and int(m.group(1)) - 1 < len(names):
+        watch_end[names[int(m.group(1)) - 1]] = last_logged.get(int(m.group(1)) - 1, 0)
 BOOLS = ('burn',)
 
 
@@ -29,7 +40,7 @@ def norm(name, v):
 port = {n: [] for n in names}
 for line in open(port_file):
     u, n, v = line.split()
-    if n in port and 1 < int(u) <= max_update:
+    if n in port and 1 < int(u) <= min(max_update, watch_end.get(n, 10 ** 9)):
         v = norm(n, v)
         if not (port[n] and port[n][-1][1] == v):
             port[n].append((int(u), v))
@@ -41,7 +52,7 @@ for line in open(orig_file, errors='replace'):
         continue
     k = int(m.group(1)) - 1
     u = int(m.group(4))
-    if k >= len(names) or not 1 < u <= max_update:
+    if k >= len(names) or not 1 < u <= min(max_update, watch_end.get(names[k], 10 ** 9)):
         continue
     v = norm(names[k], m.group(3))
     if orig[names[k]] and orig[names[k]][-1][0] == u:

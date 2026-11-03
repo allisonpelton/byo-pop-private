@@ -613,7 +613,7 @@ Piece* Board::AddRight(int theRow)
 	aPiece->mType = 5;
 	unsigned int aKind;
 	int aB;
-	mGen->Seed(&aKind, &aB, this, aPiece->mColumn);
+	mGen->Seed(&aKind, &aB, this, aPiece->mRow);   // the row (the fourth argument is the caller's edx, theRow, still)
 	aPiece->mIndex = (int) aKind;
 	aPiece->mIndex2 = aB;
 	mRight[aPiece->mRow] = aPiece;

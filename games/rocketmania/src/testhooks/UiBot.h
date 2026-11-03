@@ -49,7 +49,7 @@ struct UiBotParams
 class StateLog
 {
 public:
-	enum { NUM_VALUES = 140 };
+	enum { NUM_VALUES = 150 };
 	RocketApp*		mApp;
 	FILE*			mFile;
 	std::string		mLast[NUM_VALUES];

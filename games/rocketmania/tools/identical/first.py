@@ -33,6 +33,18 @@ def limit_of(path):
             return int(m.group(1)) - 1
     return 10 ** 9
 
+def watch_ends(path, names):
+    # origrun logs at most 4000 changes of a watch: that value is compared only up to its last logged change
+    last, ends = {}, {}
+    for line in open(path, errors='replace'):
+        m = re.search(r'watch (\d+): \S+ -> \S+ at update (\d+)', line)
+        if m:
+            last[int(m.group(1))] = int(m.group(2))
+        m = re.search(r'watch (\d+): \d+ changes logged; no more', line)
+        if m and int(m.group(1)) - 1 < len(names):
+            ends[names[int(m.group(1)) - 1]] = last.get(int(m.group(1)), 0)
+    return ends
+
 def series(changes, name, limit):
     out = {}
     for u, v in changes:
@@ -55,11 +67,13 @@ port = load(d + "/state.txt", False)
 for i in range(0, len(names), 4):
     orig = load("%s/orig%d.log" % (d, i // 4), True)
     limit = limit_of("%s/orig%d.log" % (d, i // 4))
+    ends = watch_ends("%s/orig%d.log" % (d, i // 4), names[i:i + 4])
     for j, name in enumerate(names[i:i + 4]):
         if want and name not in want:
             continue
-        a = series(port.get(name, []), name, limit)
-        b = series(orig.get(j + 1, []), name, limit)
+        lim = min(limit, ends.get(name, 10 ** 9))
+        a = series(port.get(name, []), name, lim)
+        b = series(orig.get(j + 1, []), name, lim)
         if name == "burnt":
             # (the original's burn countdown starts as whatever the heap held, see cmp.py)
             a.pop(min(a), None)
