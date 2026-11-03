@@ -156,6 +156,8 @@ public:
 	void Init() override;               // 0x7652cc
 	void LoadingThreadProc() override;  // 0x76497d
 	void UpdateFrames() override;       // 0x765f8d
+	void GotFocus() override;           // 0x75f4f7: the board's focus pause ends
+	void LostFocus() override;          // 0x75f51e: the board pauses (shown in a timed game) while the window is away
 	MusicInterface* CreateMusicInterface() override;  // 0x75f98a
 	void Shutdown() override;           // 0x762a0d
 	void WriteToRegistry() override;    // 0x762b40

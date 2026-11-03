@@ -889,6 +889,21 @@ SoundInstance* WinTwistApp::PlaySoundEx(int theSoundId, int thePan, float thePit
 	return anInstance;
 }
 
+void WinTwistApp::GotFocus()
+{
+	if (mBoard != nullptr)
+		mBoard->Unpause(mBoard->IsTimed());
+	mUnknownF1C = false;
+}
+
+void WinTwistApp::LostFocus()
+{
+	if (mBoard != nullptr)
+		mBoard->Pause(mBoard->IsTimed());
+	if (mLoadingThreadDone)
+		mUnknownF1C = true;
+}
+
 void WinTwistApp::UpdateFrames()
 {
 	// The credits are gone (Credits::Update): out of the widgets and deleted
