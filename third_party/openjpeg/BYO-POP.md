@@ -20,7 +20,10 @@ the low end of the interval its decoded bits leave open, as the games' own decod
 not at its middle as OpenJPEG does. A significant coefficient starts at its decoded magnitude instead of that plus
 half a step, and a refinement bit of 1 adds the step and 0 adds nothing, instead of adding or taking half a step. The
 games' art is coded with the reversible 5/3 wavelet but with its code-blocks truncated, so this moves most of its
-pixels by a level or a few; a full lossless decode, where no interval is left open, is unchanged. The evidence is
+pixels by a level or a few; a full lossless decode, where no interval is left open, is unchanged. An image coded with
+the irreversible 9/7 wavelet changes everywhere, truncated or not, since its every coefficient is quantised and so
+loses its half step: Bejeweled Twist's and both Bookworm Adventures games' files are all 5/3, but the Peggle games,
+Zuma's Revenge and Bejeweled 3 should check theirs against their own originals before relying on it. The evidence is
 Bejeweled Twist's title, read from the original's memory after its decoder ran: with this change 65% of its pixels
 are equal to ours, against 35% before, and the sparkle points the game picks from the brightest opaque pixels match
 all 1299 of the original's, where before some were missing and others extra. Of the rest, most pixels are a level
