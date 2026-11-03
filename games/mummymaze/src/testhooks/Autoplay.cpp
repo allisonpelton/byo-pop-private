@@ -407,6 +407,7 @@ void MummyApp::AutoplayUpdate()
 				mHighScores->mScores[2], mHighScores->mScores[3], mHighScores->mScores[4], aPlace);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-gameover%d.png", mAutoplayShots.c_str(), s->mGames));
+			LogClick(s, mUpdateCount, mHighScores->mMenuLink);
 			mHighScores->ButtonDepress(1);
 			s->mWait = 20;
 		}
@@ -476,6 +477,7 @@ void MummyApp::AutoplayUpdate()
 			Log(s, "victory: score %d, caught %d times", mScore, mDeaths);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-victory.png", mAutoplayShots.c_str()));
+			LogClick(s, mUpdateCount, mVictory->mMenuLink);
 			mVictory->ButtonDepress(1);
 			s->mWait = 20;
 		}
@@ -557,13 +559,12 @@ void MummyApp::AutoplayUpdate()
 		return;
 	}
 
-	// enough levels: give up, so that the solution plays and the high scores come
+	// enough levels: give up. The explorer walks at random until a mummy catches it, and then Abandon Hope is clicked: the
+	// way a player ends a classic game, with input that the original can be given
 	if (s->mLevels >= s->mLevelsPerGame && !s->mGivenUp && mGameMode == MODE_CLASSIC)
 	{
 		s->mGivenUp = true;
-		ShowGamePanel();
-		s->mWait = 5;
-		return;
+		s->mPlanned = false;
 	}
 
 	// a new level: the dice choose the way
@@ -574,6 +575,11 @@ void MummyApp::AutoplayUpdate()
 		s->mReplans = 0;
 		s->mUseSolver = s->mRandomMoves == 0 && s->Rand(10) < 7;
 		s->mRandomMoves = s->mUseSolver ? 0 : 2 + s->Rand(6);
+		if (s->mGivenUp)
+		{
+			s->mUseSolver = false;
+			s->mRandomMoves = 1000000;
+		}
 		if (s->mUseSolver)
 		{
 			// Solve takes every move back first (Retry): the original is given the click on RESET MAZE
@@ -683,7 +689,7 @@ void MummyApp::AutoplayUpdate()
 			s->mPlanned = false;
 		}
 		// the random walk ends in a solver level or an undo of the last move, by the dice
-		if (s->mRandomMoves == 0 && s->Rand(2) == 0)
+		if (s->mRandomMoves == 0 && !s->mGivenUp && s->Rand(2) == 0)
 		{
 			Log(s, "undo");
 			LogClick(s, mUpdateCount, mSidePanel->mButtons[0]);

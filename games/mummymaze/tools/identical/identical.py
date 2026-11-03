@@ -21,6 +21,8 @@ SETS = {
     'C': [('sx', '[[%s]+0x6c]+0x50' % B), ('sy', '[[%s]+0x6c]+0x54' % B), ('death2', '[%s]+0x298' % B), ('score', '0x4ac59c')],
     'E': [('mode', '0x4ac570'), ('tbase', '[%s]+0x4b4' % B), ('ebase', '0x4ac640'), ('undo', '[%s]+0x2e4' % B)],
     'F': [('rng', '0x4aed00')],
+    'H': [('hs', '0x4ac540'), ('hcount', '[0x4ac540]+0xc0'), ('hasked', '[0x4ac540]+0xc4'), ('hlink', '0x4ac544')],
+    'G': [('panel', '0x4ac538'), ('pstate', '[0x4ac538]+0x58'), ('poff', '[0x4ac538]+0x50'), ('mstate', '[%s]+0x5c' % B)],
     'D': [('maze', '[%s]+0x2b0' % B), ('file', '[%s]+0x2b4' % B), ('chamber', '0x4ac5bc'), ('pyramid', '0x4ac5c0')],
 }
 
