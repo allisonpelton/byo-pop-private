@@ -24,6 +24,12 @@ extern SiteVolumeFn gSiteVolume;
 // and Water Bugs (Screen_SetFullscreen). The SexyAppFramework games need nothing: SexyAppBase always starts the web build windowed.
 bool SiteWindowed();
 
+// The site's "3D acceleration" (web/settings.js; byopop_site_accel3d, set by the page before the game starts): -1 leaves it to
+// the game's own choice, 1 is 3D always, 0 never. A game with a 3D option reads it where it reads that option; 1 still
+// means 2D in a browser without WebGL2, which the game checks as it does for its own option. Read by Bejeweled Twist;
+// perhaps later by Bookworm Adventures 1 and 2 and Rocket Mania, once their passes settle their 3D modes.
+int SiteAccel3D();
+
 }
 
 #endif

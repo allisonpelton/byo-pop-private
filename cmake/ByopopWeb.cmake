@@ -25,7 +25,7 @@ endif()
 set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_open _byopop_mods_state
   _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy
   _byopop_cursor_set_copy
-  _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_windowed _byopop_mixer_gain)
+  _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_POST_JS "${CMAKE_CURRENT_LIST_DIR}/../web/modpanel.js" ABSOLUTE)
