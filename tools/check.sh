@@ -1222,7 +1222,8 @@ suite_tiptop() {
 	if diff -rq "$OUT/tiptop/$again/shots" "$OUT/tiptop/${again}2/shots" >> "$1" 2>&1 && [ "$ref" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-tiptop/, the port when phase one of its identical-play pass was done): the same
 	# mouse-played games must give the same state at every update (the values the pass compared with the original), the
-	# meter left out: outside the timed mode it holds uninitialised heap, which differs from run to run
+	# meter left out (outside the timed mode it holds uninitialised heap, which differs from run to run), and so are the
+	# level and blocks left at update 1, read before the first game sets them
 	local base="$W/build/baseline-tiptop/tiptop.exe" bl="" a
 	if [ -f "$base" ] && [ "${CHECK_QUICK:-0}" != 1 ]; then
 		for a in "reg regular 1 1 2" "str strategy 2 3 1" "save regular 2 2 1 -autoplaysave=30"; do
@@ -1230,7 +1231,7 @@ suite_tiptop() {
 			tiptop_state_game "cur-$k" "$W/build/native/tiptop.exe" "$m" "$bs" "$gs" "$n" $x
 			tiptop_state_game "base-$k" "$base" "$m" "$bs" "$gs" "$n" $x
 			[ -s "$OUT/tiptop/cur-$k/state.txt" ] && [ -s "$OUT/tiptop/base-$k/state.txt" ] &&
-				cmp -s <(grep -v ' meter ' "$OUT/tiptop/cur-$k/state.txt") <(grep -v ' meter ' "$OUT/tiptop/base-$k/state.txt") ||
+				cmp -s <(grep -Ev ' meter |^1 (level|blocksleft) ' "$OUT/tiptop/cur-$k/state.txt") <(grep -Ev ' meter |^1 (level|blocksleft) ' "$OUT/tiptop/base-$k/state.txt") ||
 				bl="x"
 		done
 		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
