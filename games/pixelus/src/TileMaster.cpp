@@ -44,7 +44,8 @@ TileMaster::TileMaster(PixelusApp* theApp, int theGridX, int theGridY, int theCo
 	mGridY = theGridY;
 	mCols = theCols;
 	mRows = theRows;
-	mSide = Grid::SIDE_UP;
+	// 0x42bd40: he starts above the grid at its first column (side 2, from 0x42b090's field)
+	mSide = Grid::SIDE_DOWN;
 	mCursor = 0;
 	mThrowTimer = 0;
 	mPull = false;
