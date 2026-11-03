@@ -75,10 +75,16 @@ struct AutoplayState
 	unsigned int		mDialogSeen;        // a bit per dialog id: it has been up for a while
 	int					mShotWait;          // the chamber-done screenshot: 0 not yet, 1 waiting, 2 taken
 	FILE*				mLog;
+	bool				mTrace;             // -autoplaytrace: every change of the values the original is watched on
+	unsigned int		mPrev[16];
 
 	AutoplayState() : mSeed(1), mTick(0), mLastAction(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
 		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mSaveAt(0), mContinue(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
-		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL) {}
+		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL), mTrace(false)
+	{
+		for (int i = 0; i < 16; i++)
+			mPrev[i] = 0xfffffffe;
+	}
 
 	int Rand(int theRange)
 	{
@@ -117,6 +123,8 @@ void MummyApp::HandleAutoplayParam(const std::string& theParamName, const std::s
 		mAutoplayState->mLevelsPerGame = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaysave")
 		mAutoplayState->mSaveAt = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaytrace")
+		mAutoplayState->mTrace = true;
 	else if (theParamName == "-autoplaycontinue")
 		mAutoplayState->mContinue = true;
 	else if (theParamName == "-autoplaystart")
@@ -132,6 +140,46 @@ void MummyApp::AutoplayUpdate()
 	if (s->mLog == NULL && !mAutoplayLog.empty())
 		s->mLog = fopen(mAutoplayLog.c_str(), "w");
 	s->mTick++;
+	if (s->mTrace && s->mLog != NULL)
+	{
+		// the values phase one of the identical-play pass compares with the original's (origrun --watch of the same
+		// expressions: the app's score, chamber and pyramid, the board's maze, file and state, the explorer, the
+		// mummies and the scorpion by cell); a number is logged as the original's 32 bits, "-" for a missing object
+		Board* b = mBoard;
+		struct { const char* mName; bool mValid; int mValue; } aValues[] = {
+			{"board", true, b != NULL ? 1 : 0},
+			{"score", true, mScore},
+			{"chamber", true, mClassicChamber},
+			{"pyramid", true, mClassicPyramid},
+			{"maze", b != NULL, b != NULL ? b->mMaze : 0},
+			{"file", b != NULL, b != NULL ? b->mFile : 0},
+			{"state", b != NULL, b != NULL ? (int) b->mState : 0},
+			{"death2", b != NULL, b != NULL ? b->mDeathTimer2 : 0},
+			{"ex", b != NULL && b->mExplorer != NULL, b != NULL && b->mExplorer != NULL ? b->mExplorer->mX : 0},
+			{"ey", b != NULL && b->mExplorer != NULL, b != NULL && b->mExplorer != NULL ? b->mExplorer->mY : 0},
+			{"m0x", b != NULL && b->mMummies[0] != NULL, b != NULL && b->mMummies[0] != NULL ? b->mMummies[0]->mX : 0},
+			{"m0y", b != NULL && b->mMummies[0] != NULL, b != NULL && b->mMummies[0] != NULL ? b->mMummies[0]->mY : 0},
+			{"m1x", b != NULL && b->mMummies[1] != NULL, b != NULL && b->mMummies[1] != NULL ? b->mMummies[1]->mX : 0},
+			{"m1y", b != NULL && b->mMummies[1] != NULL, b != NULL && b->mMummies[1] != NULL ? b->mMummies[1]->mY : 0},
+			{"sx", b != NULL && b->mScorpion != NULL, b != NULL && b->mScorpion != NULL ? b->mScorpion->mX : 0},
+			{"sy", b != NULL && b->mScorpion != NULL, b != NULL && b->mScorpion != NULL ? b->mScorpion->mY : 0},
+		};
+		for (int i = 0; i < 16; i++)
+		{
+			unsigned int aNow = aValues[i].mValid ? (unsigned int) aValues[i].mValue : 0xfffffffdu;
+			if (aNow == s->mPrev[i])
+				continue;
+			if (s->mPrev[i] == 0xfffffffe)
+				s->mPrev[i] = aNow == 0xfffffffdu ? 0xfffffffdu : 0;
+			if (aNow == s->mPrev[i])
+				continue;
+			if (aNow == 0xfffffffdu)
+				fprintf(s->mLog, "T %d %s -\n", mUpdateCount, aValues[i].mName);
+			else
+				fprintf(s->mLog, "T %d %s %u\n", mUpdateCount, aValues[i].mName, aNow);
+			s->mPrev[i] = aNow;
+		}
+	}
 	if (s->mSaveAt > 0 && mBoard != NULL && mBoard->mUpdateCnt >= s->mSaveAt)
 	{
 		Board* b = mBoard;
@@ -313,6 +361,8 @@ void MummyApp::AutoplayUpdate()
 			return;
 		}
 		Log(s, "game %d: classic from pyramid %d chamber %d", s->mGames, s->mStartPyramid, s->mStartChamber);
+		for (int i = 0; i < 4; i++)
+			Log(s, "  menu link %d at %d,%d size %d x %d", i, mMainMenu->mLinks[i]->mX, mMainMenu->mLinks[i]->mY, mMainMenu->mLinks[i]->mWidth, mMainMenu->mLinks[i]->mHeight);
 		mMainMenu->ButtonDepress(0);
 		mClassicPyramid = s->mStartPyramid;
 		mClassicChamber = s->mStartChamber;
@@ -609,6 +659,7 @@ void MummyApp::AutoplayUpdate()
 			return;
 		}
 	}
+	Log(s, "  key %d at app update %d, board update %d, state %d", aKey, mUpdateCount, b->mUpdateCnt, (int) b->mState);
 	mWidgetManager->KeyDown((KeyCode) aKey);
 	s->mLastKey = aKey;
 	s->mLastAction = s->mTick;
