@@ -306,6 +306,8 @@ footer a { color: var(--accent); }
       <div class="sortby-opts">
         <label><input type="radio" name="sortby" value="name" checked> Name</label>
         <label><input type="radio" name="sortby" value="release"> Release date</label>
+        <label><input type="radio" name="sortby" value="time"> Play time</label>
+        <label><input type="radio" name="sortby" value="plays"> Plays</label>
       </div>
     </fieldset>
     <div class="toolbar-actions">
@@ -406,16 +408,17 @@ try {
 } catch (e) { document.getElementById("saves-body").textContent = "The save backup is not available."; }
 </script>
 <script>
-// "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles without "Deluxe"), or by release
-// date, oldest first. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
+// "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles without "Deluxe"), by release
+// date, oldest first, or by how much they were played in this browser (ByopopPlay, web/settings.js): play time or plays, most first. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
 // (no CSS order). It runs after the Players and Saves sections took the games in the built order: they keep it. The choice is
 // remembered in localStorage (the page works without it).
 (function () {
-  var KEY = "byopop-listing-sort";  // "name" or "release"
+  var KEY = "byopop-listing-sort";  // "name", "release", "time" or "plays"
   var list = document.querySelector("ul.games"), box = document.getElementById("sortby"), status = document.getElementById("sortby-status");
   if (!list || !box || !status) return;
   var radios = Array.prototype.slice.call(box.querySelectorAll("input[name=sortby]"));
-  var SAID = { name: "Sorted by name", release: "Sorted by release date" };
+  var SAID = { name: "Sorted by name", release: "Sorted by release date", time: "Sorted by play time", plays: "Sorted by plays" };
+  var mode = "name";
 
   // the date of data-released as [year, month, day], 0 for a part it does not give; null for no date or one that is not a date
   function when(text) {
@@ -423,7 +426,9 @@ try {
     return m ? [+m[1], m[2] ? +m[2] : 0, m[3] ? +m[3] : 0] : null;
   }
   var cards = Array.prototype.slice.call(list.children).filter(function (e) { return e.tagName === "LI"; }).map(function (li, at) {
-    return { li: li, at: at, when: when(li.getAttribute("data-released")), title: (li.getAttribute("data-title") || "").toLowerCase().replace(/ deluxe/g, "") };
+    var tile = li.querySelector("a.tile[data-game]");
+    return { li: li, at: at, when: when(li.getAttribute("data-released")), title: (li.getAttribute("data-title") || "").toLowerCase().replace(/ deluxe/g, ""),
+      id: tile ? tile.getAttribute("data-game") : "" };
   });
   var byName = cards.slice();
   // Oldest first. Inside a year, the dates with a month come before a year alone, by month; inside a month, the ones with a day
@@ -438,6 +443,19 @@ try {
     return a.title < b.title ? -1 : a.title > b.title ? 1 : a.at - b.at;
   });
 
+  // Most played first, by play time (seconds) or by plays, the other then breaking a tie; games never played (and the games still
+  // to come) after them, by name. Read again at each sort: the counts change as games are played.
+  function byPlay(field) {
+    var play = {};
+    try { play = ByopopPlay.all(); } catch (e) {}
+    var other = field === "seconds" ? "plays" : "seconds", at = {};
+    byName.forEach(function (c, i) { at[c.at] = i; });
+    function n(c, f) { var p = c.id && play[c.id]; return p && p[f] > 0 ? p[f] : 0; }
+    return cards.slice().sort(function (a, b) {
+      return (n(b, field) - n(a, field)) || (n(b, other) - n(a, other)) || (at[a.at] - at[b.at]);
+    });
+  }
+
   // Puts the cards in this order, moving only those out of place, and keeps the focus where it was (a moved element that
   // had it loses it)
   function place(order) {
@@ -447,17 +465,17 @@ try {
     });
     if (had && had !== document.activeElement && document.body.contains(had)) { try { had.focus({ preventScroll: true }); } catch (e) {} }
   }
-  function apply(mode, say) {
-    if (mode !== "release") mode = "name";
+  function apply(to, say) {
+    mode = SAID.hasOwnProperty(to) ? to : "name";
     radios.forEach(function (r) { r.checked = r.value === mode; });
-    place(mode === "release" ? byRelease : byName);
+    place(mode === "release" ? byRelease : mode === "time" ? byPlay("seconds") : mode === "plays" ? byPlay("plays") : byName);
     if (say) status.textContent = SAID[mode];  // polite, and only for the player's own choice
   }
 
   var saved = null;
   try { saved = localStorage.getItem(KEY); } catch (e) {}
   box.hidden = false;
-  if (saved === "release") apply("release", false);
+  if (saved && saved !== "name") apply(saved, false);
   radios.forEach(function (r) {
     r.addEventListener("change", function () {
       if (!r.checked) return;
@@ -466,7 +484,12 @@ try {
     });
   });
   // the choice made in another tab
-  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(ev.newValue, false); });
+  window.addEventListener("storage", function (ev) {
+    if (ev.key === KEY || ev.key === null) apply(ev.newValue, false);
+    else if (ev.key === ByopopPlay.KEY && (mode === "time" || mode === "plays")) apply(mode, false);  // a game was played in another tab
+  });
+  // back from a game's page (the page may come from the browser's cache)
+  window.addEventListener("pageshow", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
 })();
 </script>
 <script>

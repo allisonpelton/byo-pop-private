@@ -262,8 +262,8 @@ initials' contrast). Its "where to buy" links are always shown, so that a visito
 they are the card's only controls. The page's scripts (the files' state, the Players and Saves tabs, the chat's table of games)
 take only the finished games' links, so the coming-soon tiles have no `data-game` and no chat tag.
 
-**Sorting.** Above the tiles is a "Sort by" choice (a `<fieldset>` with a `<legend>` and two radio buttons, **Name** and **Release
-date**), hidden until the page's script has run. Name is the page as built, the alphabetical order of the titles without "Deluxe" (so Bejeweled Deluxe comes before Bejeweled 2 Deluxe and Bejeweled 3). Release date puts
+**Sorting.** Above the tiles is a "Sort by" choice (a `<fieldset>` with a `<legend>` and four radio buttons, **Name**, **Release
+date**, **Play time** and **Plays**), hidden until the page's script has run. Name is the page as built, the alphabetical order of the titles without "Deluxe" (so Bejeweled Deluxe comes before Bejeweled 2 Deluxe and Bejeweled 3). Release date puts
 the oldest game first. The order comes from the game's row in the `BYOPOP_WEB_RELEASED` table of `cmake/ByopopWeb.cmake`
 (`<target>|<date>`, the date as YYYY, YYYY-MM or YYYY-MM-DD, with the source of each row in a comment above it), which is the
 first release of the Windows edition the site plays: the Deluxe download where there is one, and for a game that first came out
@@ -272,12 +272,15 @@ under another publisher (Cosmic Bugs, Water Bugs, Word Harmony) the first releas
 name ("Bejeweled Deluxe, 2001, play now"). A date that is less exact sorts later among the same year's or month's, so a game with
 only a year comes after the full dates of that year, then by name; a game without a row gets a configure warning, shows no year
 and goes last, and a row that is not a date stops the configure. Like the table of badges, the table is the coordinator's, who
-adds a game's row at its final merge together with its place in `BYOPOP_WEB_FINISHED`.
+adds a game's row at its final merge together with its place in `BYOPOP_WEB_FINISHED`. Play time and Plays (the user, 2026-11-03:
+"Add sorts by playtime and number of plays too") put the most played first, by the counts on the cards (`ByopopPlay`, the
+`byopop-play` item): the one breaks a tie in the other, and the games never played here, the games still to come among them, follow
+in name order. They are read again at each sort, when a game is played in another tab and when the page comes back from a game's.
 
 Choosing a sort moves the cards' `<li>` elements (no CSS `order`), so the tab order and a screen reader's order are the order on
 screen, and the focus stays on the radio button that was chosen. A polite status line (`role="status"`, out of sight) says "Sorted
-by release date" or "Sorted by name", for the player's own choice only. The choice is kept in localStorage under
-`byopop-listing-sort` (`name` or `release`), read and written inside `try`, so that a browser without storage shows the page in name
+by release date", "Sorted by play time" and so on, for the player's own choice only. The choice is kept in localStorage under
+`byopop-listing-sort` (`name`, `release`, `time` or `plays`), read and written inside `try`, so that a browser without storage shows the page in name
 order; another tab that changes it changes this one. The Players and Saves tabs list the games in the built (name) order
 whatever the sort.
 
