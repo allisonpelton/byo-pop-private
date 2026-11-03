@@ -5,8 +5,9 @@
 # device, and the 800x600 16-bit screen the game draws into.
 file(GLOB COSMICBUGS_ENGINE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/engine/*.cpp)
 file(GLOB COSMICBUGS_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-# The host (the app and main) goes in the exe; the headless runner has a host of its own
-list(FILTER COSMICBUGS_SOURCES EXCLUDE REGEX "/(CosmicBugsApp|main)\\.cpp$")
+# The host (the app and main) goes in the exe; the headless runner has a host of its own. SiteProfiles.cpp (the web page's
+# players, framework/WebProfiles.h) is for the web exe only: it needs the framework, which this library does not link
+list(FILTER COSMICBUGS_SOURCES EXCLUDE REGEX "/(CosmicBugsApp|main|SiteProfiles)\\.cpp$")
 
 add_library(cosmicbugsengine STATIC ${COSMICBUGS_ENGINE_SOURCES})
 target_include_directories(cosmicbugsengine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine)
@@ -30,6 +31,7 @@ if(NOT MSVC)
   target_compile_options(cosmicbugs PRIVATE -Wall)
 endif()
 if(EMSCRIPTEN)
+  target_sources(cosmicbugs PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/SiteProfiles.cpp)
   byopop_web_game(cosmicbugs TITLE "Cosmic Bugs"
     COPYRIGHT "Cosmic Bugs © 2007 PopCap Games, Inc. All rights reserved. Cosmic Bugs was developed by Retro64, Inc."
     LICENSES libopenmpt)

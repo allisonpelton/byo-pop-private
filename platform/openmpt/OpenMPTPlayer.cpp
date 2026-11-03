@@ -2,8 +2,11 @@
 #include "platform/Audio.h"
 
 #include <libopenmpt/libopenmpt.h>
+#include <libopenmpt/libopenmpt_ext.h>
 #include <SDL.h>
+#include <cmath>
 #include <cstring>
+#include <vector>
 
 namespace Platform
 {
@@ -17,25 +20,81 @@ namespace
 // unless asked, so the renderer uses a 2-tap (linear) filter rather than libopenmpt's 8-tap default.
 // PlayMusic(id, MAKELONG(order, row)) maps to openmpt_module_set_position_order_row; looping songs
 // repeat forever (BASS_MUSIC_LOOP), the others stop at the end of the module.
+//
+// The tempo and the channels' volumes (BASS's BPM and VOL_CHAN music attributes) go through libopenmpt's
+// interactive interfaces. BASS keeps both when the music is played from another position; libopenmpt works out a
+// new position by playing the module up to it, which sets them back, so they are set again after each seek.
 class OpenMPTModule : public ModulePlayer
 {
 public:
-	OpenMPTModule(openmpt_module* theModule, int theRate) : mModule(theModule), mRate(theRate)
+	OpenMPTModule(openmpt_module_ext* theModuleExt, int theRate) :
+		mModuleExt(theModuleExt), mModule(openmpt_module_ext_get_module(theModuleExt)), mRate(theRate)
 	{
+		// A module without the interface (0 returned) keeps mInteractive null: the channel volumes are not scaled
+		mHasInteractive = openmpt_module_ext_get_interface(mModuleExt, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE,
+			&mInteractive, sizeof(mInteractive)) != 0;
+		if (!mHasInteractive)
+			mInteractive = {};
+		mHasInteractive3 = openmpt_module_ext_get_interface(mModuleExt, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE3,
+			&mInteractive3, sizeof(mInteractive3)) != 0;
 		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_INTERPOLATIONFILTER_LENGTH, 2);
 		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_STEREOSEPARATION_PERCENT, 100);
 		openmpt_module_set_repeat_count(mModule, -1);
 		mLoop = true;
+		// The channels' own volumes at the start, which BASS's VOL_CHAN scales. libopenmpt's channel volume is the
+		// same value the module sets (its header's, Mxx, Nxy), so the port scales the starting one: right for modules
+		// with no Mxx or Nxy, as Bejeweled Twist's are (one starts most of its channels below 64)
+		int aChannels = openmpt_module_get_num_channels(mModule);
+		for (int i = 0; mHasInteractive && i < aChannels; i++)
+			mBaseVolumes.push_back(mInteractive.get_channel_volume(mModuleExt, i));
 	}
 
 	~OpenMPTModule() override
 	{
-		openmpt_module_destroy(mModule);
+		openmpt_module_ext_destroy(mModuleExt);
 	}
 
 	void SetPosition(int theOrder, int theRow) override
 	{
 		openmpt_module_set_position_order_row(mModule, theOrder, theRow);
+		if (mTempo > 0)
+			ApplyTempo();
+		for (int i = 0; i < (int)mChannelVolumes.size(); i++)
+			if (mChannelVolumes[i] >= 0)
+				ApplyChannelVolume(i);
+	}
+
+	int GetTempo() override
+	{
+		return (int)std::lround(openmpt_module_get_current_tempo2(mModule));
+	}
+
+	// BASS 2.2 (Bejeweled Twist's bass.dll) keeps the BPM within 1 to 255. libopenmpt refuses a tempo below 32 and
+	// keeps the old one; no game's tempo goes that low (Bejeweled Twist's lowest is 100)
+	void SetTempo(int theBPM) override
+	{
+		mTempo = theBPM < 1 ? 1 : (theBPM > 255 ? 255 : theBPM);
+		ApplyTempo();
+	}
+
+	int GetChannelVolume(int theChannel) override
+	{
+		if (theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))
+			return -1;
+		return theChannel < (int)mChannelVolumes.size() && mChannelVolumes[theChannel] >= 0 ?
+			mChannelVolumes[theChannel] : 100;
+	}
+
+	// 0 to 100, as BASS 2.2 keeps it: a factor on the module's own channel volume
+	void SetChannelVolume(int theChannel, int theVolume) override
+	{
+		if (theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))
+			return;
+		theVolume = theVolume < 0 ? 0 : (theVolume > 100 ? 100 : theVolume);
+		if ((int)mChannelVolumes.size() <= theChannel)
+			mChannelVolumes.resize(theChannel + 1, -1);
+		mChannelVolumes[theChannel] = theVolume;
+		ApplyChannelVolume(theChannel);
 	}
 
 	bool GetPosition(int& theOrder, int& theRow) override
@@ -70,14 +129,49 @@ public:
 	}
 
 private:
+	void ApplyChannelVolume(int theChannel)
+	{
+		if (!mHasInteractive || theChannel >= (int)mBaseVolumes.size())
+			return;
+		mInteractive.set_channel_volume(mModuleExt, theChannel,
+			mBaseVolumes[theChannel] * mChannelVolumes[theChannel] / 100.0);
+	}
+
+	void ApplyTempo()
+	{
+		if (mHasInteractive3)
+			mInteractive3.set_current_tempo2(mModuleExt, (double)mTempo);
+	}
+
+	openmpt_module_ext* mModuleExt;
 	openmpt_module* mModule;
 	int mRate;
 	bool mLoop;
+	openmpt_module_ext_interface_interactive mInteractive = {};
+	openmpt_module_ext_interface_interactive3 mInteractive3 = {};
+	bool mHasInteractive = false;
+	bool mHasInteractive3 = false;
+	int mTempo = 0;                     // the BPM last set, 0 for none
+	std::vector<int> mChannelVolumes;   // 0 to 100 each, -1 for a channel never set
+	std::vector<double> mBaseVolumes;   // each channel's own volume at the start, 0 to 1
 };
 
 bool IsMO3(const std::vector<uint8_t>& theFile)
 {
 	return theFile.size() > 4 && !memcmp(theFile.data(), "MO3", 3);
+}
+
+// An OXM: an XM whose samples are Ogg Vorbis streams (FMOD 3's "Ogg XM", Bonnie's Bookstore), which libxmp-lite cannot
+// read: the XM header and an Ogg page among the samples
+bool IsOXM(const std::vector<uint8_t>& theFile)
+{
+	static const char kHeader[] = "Extended Module: ";
+	if (theFile.size() < 0x150 || memcmp(theFile.data(), kHeader, sizeof(kHeader) - 1) != 0)
+		return false;
+	for (size_t i = 0x150; i + 4 <= theFile.size(); i++)
+		if (!memcmp(theFile.data() + i, "OggS", 4))
+			return true;
+	return false;
 }
 
 void LogError(int theError, const char* theMessage)
@@ -89,7 +183,7 @@ std::unique_ptr<ModulePlayer> CreateModule(const std::vector<uint8_t>& theFile, 
 {
 	int anError = 0;
 	const char* aMessage = nullptr;
-	openmpt_module* aModule = openmpt_module_create_from_memory2(theFile.data(), theFile.size(),
+	openmpt_module_ext* aModule = openmpt_module_ext_create_from_memory(theFile.data(), theFile.size(),
 		openmpt_log_func_silent, nullptr, openmpt_error_func_default, nullptr, &anError, &aMessage, nullptr);
 	if (aModule == nullptr)
 	{
@@ -103,6 +197,11 @@ std::unique_ptr<ModulePlayer> CreateModule(const std::vector<uint8_t>& theFile, 
 
 }
 
+std::unique_ptr<ModulePlayer> CreateOpenMPTModule(const std::vector<uint8_t>& theFile, int theRate)
+{
+	return CreateModule(theFile, theRate);
+}
+
 void RegisterOpenMPTModules()
 {
 	static bool sRegistered = false;
@@ -110,6 +209,15 @@ void RegisterOpenMPTModules()
 		return;
 	sRegistered = true;
 	Mixer::RegisterModuleFormat(IsMO3, CreateModule);
+}
+
+void RegisterOpenMPTOggXM()
+{
+	static bool sRegistered = false;
+	if (sRegistered)
+		return;
+	sRegistered = true;
+	Mixer::RegisterModuleFormat(IsOXM, CreateModule);
 }
 
 }

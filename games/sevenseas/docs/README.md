@@ -54,8 +54,8 @@ tools/build.sh web                                       # build/web/sevenseas.h
 ```
 
 Native: `sevenseas.exe` finds `assets/sevenseas/` next to itself (or up to two levels up), or the retail install;
-`-gamedir=` overrides that. Saves go to `%APPDATA%\wasm-bejeweled\Seven Seas Deluxe\`: `savegame.dat` for the game in
-progress, `hiscores.dat` (the original's layout and check values) and `registry.ini` for the options. Web:
+`-gamedir=` overrides that. Saves go to `%APPDATA%\byo-pop\Seven Seas Deluxe\`: `savegame.dat` for the game in
+progress, `hiscores.dat` (the original's layout and check values) and `registry.ini` for the options. `-importsaves[=<install folder>]` brings in the saves of the original game installed on this computer (`docs/WEB_PLAYER.md`, "Importing saves from an installed game"). Web:
 `sevenseas.html`, the shared page (`web/shell.html`) with this game's settings (`games/sevenseas/web/page.js`), imports
 the player's game folder (or a .zip of it) into its own IndexedDB-backed folder `/sspersist`.
 
@@ -82,15 +82,13 @@ monster) with their warnings, whirlpools, the bonus screens (digging for treasur
 undo, game over, the high-score list with its name entry, and save and Continue.
 
 Not done or approximate:
-- The beginner's demo screen (`WinSS.exe` 0x4132b0, a self-playing board with a "click here to start" button, shown before
-  a beginner's first game) is not ported: a beginner's game starts on the board, with the original's hint box over it.
-- Options → Help (0x40d330, the "return to game" help pages) does nothing; the registration and "submit to the Internet
+- The registration and "submit to the Internet
   High Score List" dialogs, the trial's loading delay and the shareware counters are not ported (the port plays as the
   registered game). The internet score check's object (the +0x6c field of the board) is not either.
-- The pirate's mouth (`TalkWidget`) moves through random frames while a line plays; the original has a table of frames and
-  times per line. The skull's pupils follow the mouse with an estimated formula, and the text lines of the bonus screen's
-  messages are placed by estimate. Nothing could be run to compare with the original, so these are the places where the port
-  may differ on screen.
+- The text lines of the bonus screen's messages are placed by estimate. The pirate's mouth follows the original's table of
+  frames and times per line, and the skull's pupils follow the mouse by the original's formula (kept by `SidePanel::MouseMove`,
+  which nine widgets call with the position they get); both match the original in `origrun` runs, up to a difference of
+  one or two updates that the run's timing allows.
 - The high-score screen (0x40ff70 constructor, 0x412af0 update, 0x411260 draw, 0x412cc0 insert) follows the original's
   positions, colours and the slide-in from the top, and says "You got ... place" in the name dialog after it (0x410ae0).
   The original's second button, "Submit to Internet High Score List", and the timer that re-enables it are not ported.

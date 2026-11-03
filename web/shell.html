@@ -7,6 +7,11 @@
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
+     drawn (web/theme.js) -->
+<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script>
+<!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
+<script src="cursors.js"></script>
 <style>
 /* Every game's page (docs/WEB_PLAYER.md). Layout: a single stage that fills the viewport (4:3, or the shape the game
    gives: Module.onGameScreen), with a slim tool bar and slide-over panels (mods, game files and any of the game's
@@ -24,8 +29,8 @@
   --accent: #6b3fd1;        /* amethyst */
   --accent-fg: #ffffff;
   --gem-ruby: #d1294a;
-  --ok: #1f8a5b;
-  --warn: #a8660a;
+  --ok: #1b7950;            /* (both at least 4.5:1 on every surface: tools/a11ycheck.js) */
+  --warn: #985c09;
   --stage: #000000;
   --font-ui: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", monospace;
@@ -45,6 +50,18 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }  /* .overlay/.panel set display, which would override the attribute */
+/* Text for screen readers only; and the "Skip to game" link, which shows at the top left while it has the focus
+   (docs/WEB_PLAYER.md, "Accessibility") */
+.sr-only, .skip:not(:focus) {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+.skip {
+  position: fixed; left: 8px; top: 8px; z-index: 30; padding: 8px 14px; border-radius: 8px; font-weight: 600; text-decoration: none;
+  background: var(--accent); color: var(--accent-fg);
+}
+/* The focus ring is always visible: every control that takes the focus shows it for the keyboard (:focus-visible) */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible,
+[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui);
@@ -56,40 +73,71 @@ body {
   border-bottom: 1px solid var(--line); background: var(--panel);
 }
 .brand { font-weight: 700; letter-spacing: 0.02em; display: flex; align-items: center; gap: 8px; }
+.brand h1 { margin: 0; font: inherit; letter-spacing: inherit; }  /* the game's name is the page's heading */
 /* the site's logo (web/brand: one file per theme), then the game's mark and name */
-.brand .site { display: flex; padding-right: 12px; border-right: 1px solid var(--line); }
+.brand .site { display: flex; padding-right: 12px; border-right: 1px solid var(--line); color: inherit; text-decoration: none; }
+/* the logo is the link to the listing page of all games (index.html, "./"); its name, "byo-pop, all games", is the light
+   logo's alt, so in a dark theme that logo stays in the page, out of sight, as the link's name */
+.brand .site:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .brand .site img { height: 22px; width: auto; }
 .brand .logo-light { display: block; }
 .brand .logo-dark { display: none; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .brand .logo-light { display: none; }
+  :root:not([data-theme="light"]) .brand .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   :root:not([data-theme="light"]) .brand .logo-dark { display: block; }
 }
-:root[data-theme="dark"] .brand .logo-light { display: none; }
+:root[data-theme="dark"] .brand .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 :root[data-theme="dark"] .brand .logo-dark { display: block; }
 /* the game's mark before its name: page.css draws its own */
 .brand .mark { width: 12px; height: 12px; background: var(--accent); border-radius: 2px; }
+/* the game's own icon in place of the mark once its files are here (showIcon) */
+.brand .game-icon { width: 20px; height: 20px; flex: none; }
 .bar .status { color: var(--muted); font-size: 13px; flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button, .button {
   font: inherit; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg);
   padding: 6px 12px; border-radius: 8px; cursor: pointer;
 }
 button:hover, .button:hover { border-color: var(--accent); }
-button:focus-visible, .button:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
 button[disabled] { opacity: 0.5; cursor: default; }
-.stage-wrap { flex: 1; min-height: 0; display: grid; place-items: center; padding: 12px; }
+/* The workspace holds the stage and the chat (web/chat.js). Beside each other, the stage keeps the width it has without the chat: the
+   chat sits beside it only when the viewport has room for both (ByopopChat's layout), else below it, as on a phone upright. */
+.workspace { flex: 1; min-height: 0; display: flex; }
+.stage-wrap { flex: 1 1 0; min-width: 0; min-height: 0; display: grid; place-items: center; padding: 12px; }
 .stage {
   position: relative; background: var(--stage); aspect-ratio: var(--aspect, 4 / 3); max-width: 100%;
   width: min(100%, calc((100vh - 90px) * var(--aspect-w, 1.3333))); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
 }
 canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-rendering: auto; }
+/* The game has the keyboard while the canvas has the focus. The ring is white inside the stage, over the game's picture, and the
+   accent around the stage, over the page: whichever of the two the picture hides, the other shows */
+canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; }
+.stage:has(> canvas:focus-visible) { box-shadow: 0 0 0 4px var(--accent), 0 10px 40px rgba(0, 0, 0, 0.35); }
+/* How to leave it: read out with the canvas (aria-describedby), and shown while the keyboard has put the focus there
+   (page script: until the first key goes to the game) */
+.canvas-hint {
+  position: absolute; left: 8px; bottom: 8px; z-index: 2; margin: 0; padding: 3px 10px; border-radius: 6px; font-size: 12.5px; max-width: calc(100% - 16px);
+  background: rgba(0, 0, 0, 0.82); color: #ffffff; pointer-events: none;
+}
+.canvas-hint:not(.show) { width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* The game's own cursor on the whole page but its canvas, which draws that cursor itself (pollCursor, below): set while
+   the game shows a custom cursor, so that this rule wins over the buttons' pointer */
+:root.game-cursor, :root.game-cursor :not(canvas) { cursor: var(--game-cursor) !important; }
 .overlay {
   position: absolute; inset: 0; display: grid; place-items: center; padding: 16px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
 }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; max-width: 520px; display: grid; gap: 14px; }
 .card h2 { margin: 0; font-size: 20px; text-wrap: balance; }
+/* The game's cap on top of the import card (the listing page's badge for the game, web/index.html: a crown cap's outline,
+   web/brand/cap.svg, in the game's colour with its initials), sitting on the card's top edge */
+.page-cap {
+  justify-self: center; margin-top: -40px; display: flex; align-items: center; justify-content: center; width: 72px; height: 72px;
+  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0, 0, 0, 0.2) 69% 73%, transparent 74% 84%, rgba(0, 0, 0, 0.16) 85%), var(--tile);
+  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat;
+  color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 0.02em;
+}
+.page-cap[hidden] { display: none; }
 .card p { margin: 0; color: var(--muted); }
 .card code, .mono { font-family: var(--font-mono); font-size: 12.5px; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -97,8 +145,9 @@ canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-
 .progress { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
 .progress > div { height: 100%; width: 0; background: var(--accent); transition: width 120ms linear; }
 .error { color: var(--gem-ruby); }
-/* The terms card (web/terms.html): its text scrolls in its own box, and the card in the stage when the stage is small */
-#terms-overlay { overflow: auto; place-items: safe center; }
+/* The terms card (web/terms.html): its text scrolls in its own box, and the card in the stage when the stage is small (as
+   does the import card, which the Steam steps for a Mac or Linux make taller) */
+#terms-overlay, #import-overlay { overflow: auto; place-items: safe center; }
 .card.terms-card { max-width: 600px; }
 .terms {
   max-height: 15em; overflow: auto; display: grid; gap: 10px; padding: 12px 14px; font-size: 13px;
@@ -107,14 +156,21 @@ canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-
 .terms p { color: var(--fg); }
 .terms .terms-notice { color: var(--muted); }
 .terms ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
-.terms:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* a small stage: one scroll (the card's), not a box scrolling inside it */
 @media (max-width: 600px), (max-height: 600px) { .terms { max-height: none; overflow: visible; } }
 .card p.terms-buy { font-size: 13px; }
+/* On a Mac, the import card's steps for downloading a Steam game's Windows files */
+.mac-steam { display: grid; gap: 6px; padding: 10px 12px; font-size: 13px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
+.mac-steam[hidden] { display: none; }
+.mac-steam h3 { margin: 0; font-size: 13px; }
+.mac-steam ol { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; color: var(--muted); }
+.mac-steam a { color: var(--accent); font-weight: 600; }
+.mac-steam[data-os=mac] .os-linux, .mac-steam[data-os=linux] .os-mac { display: none; }
+.mac-steam code.pick { user-select: all; -webkit-user-select: all; overflow-wrap: anywhere; color: var(--fg); }
 .terms-buy a { color: var(--accent); font-weight: 600; }
 .agree { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; cursor: pointer; }
 .agree input { accent-color: var(--accent); width: 16px; height: 16px; margin: 2px 0 0; flex: none; }
-input[type=file] { display: none; }
+input[type=file] { display: none; }  /* the buttons that open the file pickers are real buttons (data-pick) */
 
 /* Slide-over panels */
 .panel {
@@ -128,110 +184,172 @@ input[type=file] { display: none; }
 .panel .body { padding: 16px; overflow: auto; display: grid; gap: 14px; align-content: start; }
 .panel:focus { outline: none; }
 /* The Mods panel's insides are web/modpanel.js's (shared by every game) */
-@media (prefers-reduced-motion: reduce) { .progress > div { transition: none; } }
+/* The chat (web/chat.js draws its insides): a column beside the stage, or a box below it that the page scrolls to (.chat-below) */
+.chat {
+  --chat-w: 300px;
+  flex: none; width: var(--chat-w); box-sizing: border-box; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  margin: 12px max(12px, env(safe-area-inset-right, 0px)) 12px 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.chat h2 { margin: 0; font-size: 14px; }
+.chat h2 button {
+  display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 9px 12px; border: 0; border-radius: 0; background: transparent;
+  color: var(--fg); font-weight: 700; text-align: left;
+}
+.chat h2 button:hover { background: var(--panel-2); }
+.chat-chevron { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translate(-2px, -2px); flex: none; }
+.chat-collapsed .chat-chevron { transform: rotate(-45deg); }
+.chat-unread { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--accent); }
+.chat-body { flex: 1; min-height: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.chat-collapsed { align-self: flex-start; }
+/* Below the stage (the class is on the root: chat.js's layout): the page scrolls to the chat. Its scrollbar is hidden, since a classic
+   scrollbar takes 15px of the page's width and would make a stage that is as wide as the page narrower than it is without the chat
+   (the wheel, touch, the keyboard and Tab still scroll). */
+.chat-below { scrollbar-width: none; }
+.chat-below::-webkit-scrollbar { display: none; }
+.chat-below .workspace { flex: none; flex-direction: column; }
+.chat-below .workspace > .stage-wrap { flex: none; }
+.chat-below .workspace > .chat {
+  width: auto; height: clamp(18rem, 60vh, 30rem); margin: 0 max(12px, env(safe-area-inset-right, 0px)) 12px max(12px, env(safe-area-inset-left, 0px));
+}
+.chat-below .workspace > .chat.chat-collapsed { height: auto; }
+/* No motion for a player who asked for none: the page has no animation of its own besides this bar's slide */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
 /* byopop:game-css */
 </style>
 </head>
 <body>
-<div class="bar">
-  <span class="brand"><span class="site"><img class="logo-light" src="logo.svg" alt="byo-pop" width="96" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="96" height="22"></span><span class="mark" aria-hidden="true"></span><span id="brand-name">@BYOPOP_TITLE@</span></span>
-  <span class="status" id="status">Starting…</span>
-  <button id="btn-mods" type="button">Mods</button>
-  <button id="btn-files" type="button">Game files</button>
-  <button id="btn-full" type="button">Fullscreen</button>
-</div>
+<a class="skip" id="skip-game" href="#canvas">{{game.skip}}</a>
+<header class="bar">
+  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="{{game.logo_alt}}" width="72" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="72" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
+  <span class="status" id="status" role="status">{{game.status.starting}}</span>
+  <!-- shown once the game's files are here, and never for a game whose port loads no mods (boot(), MODS_SUPPORTED) -->
+  <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false" hidden>{{game.btn.mods}}</button>
+  <button id="btn-files" type="button" aria-controls="panel-files" aria-expanded="false">{{game.btn.files}}</button>
+  <button id="btn-settings" type="button" aria-controls="panel-settings" aria-expanded="false">{{game.btn.settings}}</button>
+  <button id="btn-sound" type="button" aria-pressed="true" title="{{game.sound.title}}"><span>{{game.sound.name}}</span><span aria-hidden="true">{{game.sound.on}}</span></button>
+  <button id="btn-full" type="button">{{game.btn.full}}</button>
+  <button id="btn-theme" type="button" data-theme-toggle aria-label="{{theme.button}}" aria-pressed="false"></button>
+</header>
+<!-- The mod menu inside the game reads out what has the focus here (Module.onModMenuFocus, web/modpanel.js) -->
+<div class="sr-only" id="menu-live" role="status" aria-live="polite" aria-atomic="true"></div>
+<span class="sr-only" id="mods-running-hint">{{game.mods.hint}}</span>
 
-<div class="stage-wrap">
+<div class="workspace" id="workspace">
+<main class="stage-wrap" id="main">
   <div class="stage" id="stage">
-    <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+    <canvas id="canvas" tabindex="-1" role="application" aria-label="{{game.canvas_label}}" aria-describedby="canvas-hint" aria-hidden="true" oncontextmenu="event.preventDefault()"></canvas>
+    <p class="canvas-hint" id="canvas-hint">{{game.canvas_hint}}</p>
 
     <div class="overlay" id="terms-overlay" hidden>
-      <div class="card terms-card" role="dialog" aria-labelledby="terms-title">
-        <h2 id="terms-title">Terms for @BYOPOP_TITLE@</h2>
-        <div class="terms" tabindex="0" aria-label="The terms">
+      <div class="card terms-card" id="terms-card" role="dialog" aria-modal="true" aria-labelledby="terms-title" tabindex="-1">
+        <h2 id="terms-title">{{game.terms.title}}</h2>
+        <div class="terms" tabindex="0" role="region" aria-label="{{game.terms.region}}">
 <!-- byopop:terms -->
         </div>
 <!-- byopop:buy -->
-        <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> I own a licensed copy of
-          @BYOPOP_TITLE@, and I agree to these terms</label>
-        <div class="row"><button class="primary" id="btn-terms" type="button" disabled>Continue</button></div>
+        <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> {{game.terms.agree}}</label>
+        <div class="row"><button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button></div>
       </div>
     </div>
 
     <div class="overlay" id="import-overlay" hidden>
-      <div class="card">
-        <h2>Load your @BYOPOP_TITLE@ files</h2>
+      <div class="card" id="import-card" role="dialog" aria-labelledby="import-title" aria-describedby="import-about" tabindex="-1">
+        <!-- the game's cap, its badge on the listing page: the opener takes it off once the files are in (web/capanim.js) -->
+        <div class="page-cap" id="page-cap" aria-hidden="true" style="--tile: @BYOPOP_CAP_COLOUR@">@BYOPOP_CAP_INITIALS@</div>
+        <h2 id="import-title">{{game.import.title}}</h2>
         <p id="import-about"></p>
+        <!-- a game released on Steam: how to download its Windows files on a Mac or Linux (BYOPOP_STEAM_<target>), shown only there -->
+<!-- byopop:mac-steam -->
         <div class="row">
-          <label class="button primary" for="pick-game-folder">Choose folder</label>
-          <input type="file" id="pick-game-folder" webkitdirectory multiple>
-          <label class="button" for="pick-game-zip">Choose .zip</label>
-          <input type="file" id="pick-game-zip" accept=".zip,application/zip">
-          <button type="button" id="btn-import-cancel" hidden>Cancel</button>
+          <button type="button" class="primary" id="btn-pick-folder" data-pick="pick-game-folder" aria-describedby="import-msg">{{game.import.folder}}</button>
+          <input type="file" id="pick-game-folder" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
+          <button type="button" id="btn-pick-zip" data-pick="pick-game-zip" aria-describedby="import-msg">{{game.import.zip}}</button>
+          <input type="file" id="pick-game-zip" accept=".zip,application/zip" hidden tabindex="-1" aria-hidden="true">
+          <button type="button" id="btn-import-cancel" hidden>{{game.import.cancel}}</button>
         </div>
-        <div class="progress" aria-hidden="true"><div id="import-progress"></div></div>
-        <p class="note" id="import-msg">Files stay in this browser's storage. Nothing is uploaded.</p>
+        <div class="progress" id="import-bar" role="progressbar" aria-label="{{game.import.progress}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="{{game.import.not_started}}"><div id="import-progress"></div></div>
+        <p class="note" id="import-msg" role="status">{{game.import.note}}</p>
       </div>
     </div>
 
     <div class="overlay" id="start-overlay" hidden>
-      <div class="card">
-        <h2>Ready</h2>
-        <p>Click to start. Browsers only allow sound after you interact with the page.</p>
-        <p id="start-rescue" hidden>The game did not finish starting last time. If a mod stops it from starting, play once
-          without mods, then turn that mod off in the mod menu (F2) or remove it under Mods.</p>
-        <div class="row"><button class="primary" id="btn-start" type="button">Play</button>
-          <button id="btn-start-nomods" type="button" hidden>Play without mods</button></div>
+      <div class="card" id="start-card" role="dialog" aria-labelledby="start-title" aria-describedby="start-desc" tabindex="-1">
+        <h2 id="start-title">{{game.start.title}}</h2>
+        <p id="start-desc">{{game.start.desc}}</p>
+        <p id="start-rescue" hidden>{{game.start.rescue}}</p>
+        <div class="row"><button class="primary" id="btn-start" type="button">{{game.start.play}}</button>
+          <button id="btn-start-nomods" type="button" hidden>{{game.start.nomods}}</button></div>
       </div>
     </div>
 
     <div class="overlay" id="busy-overlay" hidden>
-      <div class="card">
-        <h2>Already open</h2>
-        <p><span id="busy-name"></span> is already running in another tab or window. Its saves live in this browser, so only one
-          copy can run at a time. This page starts by itself once the other one is closed.</p>
+      <div class="card" id="busy-card" role="dialog" aria-modal="true" aria-labelledby="busy-title" aria-describedby="busy-desc" tabindex="-1">
+        <h2 id="busy-title">{{game.busy.title}}</h2>
+        <p id="busy-desc"></p>
       </div>
     </div>
 
     <div class="overlay" id="exit-overlay" hidden>
-      <div class="card">
-        <h2 id="exit-title">Thanks for playing</h2>
-        <p id="exit-msg">Saving…</p>
-        <div class="row"><button class="primary" id="btn-play-again" type="button" disabled>Play again</button>
-          <button id="btn-exit-nomods" type="button" hidden>Play without mods</button></div>
+      <div class="card" id="exit-card" role="dialog" aria-labelledby="exit-title" aria-describedby="exit-msg" tabindex="-1">
+        <h2 id="exit-title">{{game.exit.title}}</h2>
+        <p id="exit-msg" role="status">{{game.exit.saving}}</p>
+        <div class="row"><button class="primary" id="btn-play-again" type="button" disabled>{{game.exit.again}}</button>
+          <button id="btn-exit-nomods" type="button" hidden>{{game.exit.nomods}}</button></div>
       </div>
     </div>
   </div>
+</main>
+
+<!-- The chat (web/chat.js; docs/CHAT_DESIGN.md): beside the stage, or below it on a narrow screen. Its heading is the button that
+     collapses it. Hidden until the script has drawn it (and while the site's "Show chat" setting is off). -->
+<aside class="chat" id="chat" hidden aria-labelledby="chat-title">
+  <h2 id="chat-title"><button type="button" data-chat-toggle aria-expanded="true" aria-controls="chat-body"><span class="chat-chevron" aria-hidden="true"></span>{{game.chat.title}}<span class="chat-unread" data-chat-unread hidden></span></button></h2>
+  <div class="chat-body" id="chat-body" data-chat-body></div>
+</aside>
 </div>
 
 <!-- Filled by web/modpanel.js (Module.byopop.ModPanel): adding and removing mods -->
-<aside class="panel" id="panel-mods" hidden aria-label="Mods" tabindex="-1">
-  <header><h2>Mods</h2><button type="button" data-close>Close</button></header>
+<aside class="panel" id="panel-mods" hidden aria-labelledby="panel-mods-title" tabindex="-1">
+  <header><h2 id="panel-mods-title">{{game.mods.title}}</h2><button type="button" data-close>{{game.mods.close}}</button></header>
   <div class="body" id="mods-body"></div>
 </aside>
 
 <!-- byopop:game-panels -->
 
-<aside class="panel" id="panel-files" hidden aria-label="Game files" tabindex="-1">
-  <header><h2>Game files</h2><button type="button" data-close>Close</button></header>
+<aside class="panel" id="panel-files" hidden aria-labelledby="panel-files-title" tabindex="-1">
+  <header><h2 id="panel-files-title">{{game.files.title}}</h2><button type="button" data-close>{{game.files.close}}</button></header>
   <div class="body">
     <p id="files-summary" class="note"></p>
     <div id="files-missing" hidden>
       <p class="note" id="files-missing-summary"></p>
-      <ul class="note" id="files-missing-list"></ul>
+      <ul class="note" id="files-missing-list" aria-labelledby="files-missing-summary"></ul>
     </div>
     <div class="row">
-      <button type="button" id="btn-reimport">Import again</button>
-      <button type="button" id="btn-forget">Forget game files</button>
+      <button type="button" id="btn-reimport">{{game.files.reimport}}</button>
+      <button type="button" id="btn-forget">{{game.files.forget}}</button>
     </div>
-    <p class="note" id="files-ask" hidden><span id="files-ask-text"></span>
-      <button type="button" id="btn-files-yes"></button></p>
-    <p class="note">Saves (high scores, the game in progress and settings) are kept in this browser's storage.</p>
+    <div class="note" id="files-ask" role="alert" hidden><span id="files-ask-text"></span>
+      <button type="button" id="btn-files-yes">{{game.files.continue}}</button></div>
+    <p class="note">{{game.files.saves_note}}</p>
   </div>
+</aside>
+
+<aside class="panel" id="panel-settings" hidden aria-labelledby="panel-settings-title" tabindex="-1">
+  <header><h2 id="panel-settings-title">{{game.settings.title}}</h2><button type="button" data-close>{{game.settings.close}}</button></header>
+  <div class="body"><div id="settings-body"></div><div class="site-cursor-choice" id="site-cursor-body"></div></div>
 </aside>
 
 <!-- byopop:footer -->
 
+<script src="settings.js"></script>
+<script src="profiles.js"></script>
+<script src="exeicon.js"></script>
+<script src="gameimport.js"></script>
+<script src="capanim.js"></script>
+<script src="chat-games.js"></script>
+<script src="chat.js"></script>
 <script>
 (function () {
   "use strict";
@@ -244,7 +362,8 @@ input[type=file] { display: none; }
   //   persist     the browser storage folder (IDBFS names its IndexedDB database after it): the game's files, saves
   //               and mods. Never changed once players have saves there: they would be left behind.
   //   lock        the Web Lock that lets one page at a time run the game; never changed either
-  //   gameDirs    the folders of the install that are copied (and that make a folder of files a mod)
+  //   gameDirs    the folders of the install that are copied (and that make a folder of files a mod), in lower case: the
+  //               import matches them in any case and stores them in lower case
   //   gameFiles   files at the top of the install that are copied too, in lower case (BookWorm: its word lists)
   //   paks        PopCap paks at the top of the install, in lower case (["main.pak"]): the import unpacks each into the
   //               game's folder instead of copying it, as native staging does, and its files count as the install's
@@ -254,6 +373,9 @@ input[type=file] { display: none; }
   //               extension); the import looks for them, and the page asks for an import while one is missing
   //   markerText  the markers as the import's error names them ("images/gemsheet6 file")
   //   skip        patterns (relative paths) of install files that are not copied, beside the .sig files
+  //   importIcon  the game stores no exe (it is not in gameFiles), so the import reads the game's icon out of the exe in the picked
+  //               folder or .zip (the first .exe at its top, but an uninstaller or setup) and keeps only the icon, in the ownership
+  //               record: the exe itself is not stored. A game that stores its exe needs none: boot() reads it from the files.
   //   importHtml  the import card's text (HTML)
   //   modsIntro   the Mods panel's first paragraph
   //   seeds       ?seed=N is the game's -gameseed=N
@@ -279,6 +401,9 @@ input[type=file] { display: none; }
   var GAME_FILES = PAGE.gameFiles || [];
   var PAKS = PAGE.paks || [];
   function $(id) { return document.getElementById(id); }
+  // The page lands on the game, scrolled to the top, whatever way it is reached. With the chat below the stage the page is taller than
+  // the window, and a reload (Play again, a restart from the mod menu) would put it back where it was scrolled to: the chat in view.
+  try { history.scrollRestoration = "manual"; } catch (e) {}
   var statusEl = $("status");
   var statusText = "";
   // ?placeholders=1 (-placeholders, platform/Placeholders.h): stand-ins for missing game files, for testing copies
@@ -288,11 +413,26 @@ input[type=file] { display: none; }
   // the missing files' count goes after " · placeholders", so a status line ends in "silent" when that is on (CLAUDE.md)
   function setStatus(t) {
     statusText = t;
-    statusEl.textContent = missingFiles.length ? t.replace(" · placeholders", " · placeholders, " + missingFiles.length +
-      " missing file" + (missingFiles.length > 1 ? "s" : "")) : t;
+    statusEl.textContent = missingFiles.length ? t.replace(" · " + ByopopStrings.t("game.status.placeholders"),
+      " · " + ByopopStrings.t("game.status.placeholders_missing", {n: missingFiles.length})) : t;
   }
   $("import-about").innerHTML = PAGE.importHtml;
-  $("busy-name").textContent = PAGE.shortName;
+  // On a Mac or Linux (the user, 2026-11-03: "this should probably support Linux too"): the steps for downloading a Steam
+  // game's Windows files, where the page has them, with that system's folder and keys. A Mac is what the browser says, or a
+  // Mac's user agent without a touch screen (an iPad asking for the desktop site has one); Linux leaves out Android and
+  // ChromeOS.
+  (function () {
+    var os = null;
+    try {
+      var ua = navigator.userAgentData, p = ua && ua.platform, s = navigator.userAgent;
+      if (p) os = p === "macOS" ? "mac" : p === "Linux" ? "linux" : null;
+      else if (/Macintosh|Mac OS X/.test(s) && !(navigator.maxTouchPoints > 1)) os = "mac";
+      else if (/Linux|X11/.test(s) && !/Android|CrOS/.test(s)) os = "linux";
+    } catch (e) {}
+    var steps = $("mac-steam");
+    if (steps && os) { steps.setAttribute("data-os", os); steps.hidden = false; }
+  })();
+  $("busy-desc").innerHTML = ByopopStrings.html("game.busy.desc_html", {name: PAGE.shortName});
 
   // web/modpanel.js, linked into the game's script: the Mods panel, restarts and the file helpers. It is there
   // once the game's script has loaded, before onRuntimeInitialized.
@@ -306,6 +446,14 @@ input[type=file] { display: none; }
   var Module = window.Module = {
     canvas: $("canvas"),
     noInitialRun: true,
+    // The game gets keys only while its canvas has the focus (docs/WEB_PLAYER.md, "Accessibility"). SDL's Emscripten backend
+    // listens on the whole window unless it is told an element, and then takes every key typed anywhere on the page, Tab
+    // among them, so that the page's own controls cannot be reached from the keyboard. It reads the element from the
+    // environment variable of its hint SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, which the C library sees from ENV before the
+    // game's code runs. (A build that cannot set it leaves SDL on the window, as it was: the page still works.)
+    preRun: [function () {
+      try { ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = "#canvas"; } catch (e) { console.warn("the keyboard element could not be set", e); }
+    }],
     print: function (t) { console.log(t); },
     printErr: function (t) { console.warn(t); },
     setStatus: function (t) { if (t) setStatus(t); },
@@ -321,6 +469,7 @@ input[type=file] { display: none; }
       var s = $("stage");
       s.style.setProperty("--aspect", w + " / " + h);
       s.style.setProperty("--aspect-w", String(w / h));
+      if (chat) chat.layout();  // the chat is beside the stage only while the stage keeps its size there
     },
     // -placeholders: a game file the game did not find got a stand-in (listed in the Game files panel)
     onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },
@@ -330,26 +479,34 @@ input[type=file] { display: none; }
     // game (closeGameThen), which goes on from here.
     onGameExit: function (info) {
       exited = true;
+      playClock();
+      releaseWake();
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
       if (session) session.markFinished();
       var restart = !!(info && info.restart), then = afterExit;
       afterExit = null;
-      setStatus(then ? "Closing the game…" : restart ? "Restarting…" : "Game closed");
+      setStatus(ByopopStrings.t(then ? "game.status.closing" : restart ? "game.status.restarting" : "game.status.closed"));
       if (then) {
-        $("exit-title").textContent = "Closing the game";
-        $("exit-msg").textContent = "Saving…";
+        $("exit-title").textContent = ByopopStrings.t("game.exit.closing");
+        $("exit-msg").textContent = ByopopStrings.t("game.exit.saving");
       } else if (restart) {
-        $("exit-title").textContent = "Restarting";
-        $("exit-msg").textContent = "Saving, then starting again…";
+        $("exit-title").textContent = ByopopStrings.t("game.exit.restarting");
+        $("exit-msg").textContent = ByopopStrings.t("game.exit.saving_restart");
       }
-      closePanels();
+      closePanels("quiet");
+      syncCanvas();
       $("exit-overlay").hidden = false;
+      focusCard("exit-card");
       whenSaved(function () {
         if (then) { then(info); return; }
         if (restart) { session.restartPage(info); return; }
-        $("exit-msg").textContent = hasSave()
-          ? "The game has closed. Your game in progress was saved, and you can continue it when you play again."
-          : "The game has closed. Your settings and high scores are saved.";
+        // the site setting "Go back to the games after quitting": the listing page, with ?silent=1 kept for the tests
+        if (setting("quitHome") === "on") {
+          $("exit-msg").textContent = ByopopStrings.t("game.exit.going_home");
+          location.href = "./" + (pageSilent() ? "?silent=1" : "");
+          return;
+        }
+        $("exit-msg").textContent = ByopopStrings.t(hasSave() ? "game.exit.closed_saved" : "game.exit.closed_settings");
         $("btn-play-again").disabled = false;
         $("btn-play-again").focus();
       });
@@ -371,20 +528,24 @@ input[type=file] { display: none; }
   // cause, so the next start can leave them out.
   function showStopped(what) {
     exited = true;
+    playClock();
+    releaseWake();
     afterExit = null;
     try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
     if (panel) panel.dead = true;
     var hasMods = !!(panel && panel.enabledCount() > 0);
-    setStatus("The game stopped");
-    closePanels();
+    setStatus(ByopopStrings.t("game.status.stopped"));
+    closePanels("quiet");
+    syncCanvas();
     ["import-overlay", "start-overlay", "busy-overlay"].forEach(function (id) { $(id).hidden = true; });
-    $("exit-title").textContent = "The game stopped";
-    $("exit-msg").textContent = "Something went wrong" + (what ? " (" + String(what).substring(0, 200) + ")" : "") + ". " +
-      (hasMods ? "If a mod caused it, play once without mods, then turn that mod off in the mod menu (F2) or remove it under Mods."
-               : "Play again to start over.");
+    syncModal();
+    $("exit-title").textContent = ByopopStrings.t("game.exit.stopped");
+    $("exit-msg").textContent = ByopopStrings.t(hasMods ? "game.exit.error_mods" : "game.exit.error_plain",
+      {detail: what ? " (" + String(what).substring(0, 200) + ")" : ""});
     $("btn-play-again").disabled = false;
     $("btn-exit-nomods").hidden = !hasMods;
     $("exit-overlay").hidden = false;
+    focusCard("exit-card");
   }
 
   // ---------- one copy at a time ----------
@@ -397,13 +558,16 @@ input[type=file] { display: none; }
     return new Promise(function (resolve) {
       var hold = function () {
         $("busy-overlay").hidden = true;
+        syncModal();
         resolve();
         return new Promise(function () {});
       };
       navigator.locks.request(PAGE.lock, { ifAvailable: true }, function (lock) {
         if (lock) return hold();
-        setStatus("Already open");
+        setStatus(ByopopStrings.t("game.status.busy"));
         $("busy-overlay").hidden = false;
+        syncModal();
+        focusCard("busy-card");
         navigator.locks.request(PAGE.lock, hold);
       }).catch(function () { resolve(); });
     });
@@ -425,10 +589,7 @@ input[type=file] { display: none; }
     });
   }
 
-  // A marker ("images/gemsheet6.*") as a pattern for a path relative to the game folder, in any case
-  function markerPattern(marker) {
-    return marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\.\\\*$/, "\\.[a-z0-9]+");
-  }
+  var markerPattern = ByopopImport.markerPattern;
   function hasGameFiles() {
     // with placeholders any of the game's folders will do: the game stands in for the rest
     if (pagePlaceholders())
@@ -441,58 +602,126 @@ input[type=file] { display: none; }
     });
   }
 
-  // Finds the folder inside an upload that holds every marker (the game root); with placeholders, failing that,
-  // the shallowest folder that holds one of the game's folders.
-  function findGameRoot(entries) {
-    var first = new RegExp("^(.*/)?" + markerPattern(PAGE.markers[0]) + "$", "i");
-    var others = PAGE.markers.slice(1).map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
-    for (var i = 0; i < entries.length; i++) {
-      var m = first.exec(entries[i].path);
-      if (!m) continue;
-      var root = m[1] || "";
-      var inRoot = entries.filter(function (e) { return e.path.substring(0, root.length) === root; });
-      if (others.every(function (re) { return inRoot.some(function (e) { return re.test(e.path.substring(root.length)); }); }))
-        return root;
-    }
-    if (!pagePlaceholders()) return null;
-    var best = null;
-    entries.forEach(function (e) {
-      var parts = e.path.split("/");
-      for (var j = 0; j < parts.length - 1; j++) {
-        if (GAME_DIRS.indexOf(parts[j].toLowerCase()) >= 0) {
-          var root = parts.slice(0, j).join("/") + (j > 0 ? "/" : "");
-          if ((best === null) || (root.length < best.length)) best = root;
-          break;
-        }
-      }
+  // The game's own icon, read out of its exe (web/exeicon.js; docs/WEB_PLAYER.md, "The listing page"): kept in the
+  // ownership record, where the listing page shows it in place of the initials badge, and set as this page's tab icon. The
+  // exe is the one the import stores (an .exe in PAGE.gameFiles; of several, the largest: the game's own binary is bigger
+  // than a helper). It is read at boot, which follows an import and every start, when the record has no icon yet, so it
+  // also covers files imported before this existed. A game that stores no exe, or whose exe has no icon, keeps the badge.
+  // The icon is derived from the files and stays in this browser; "Forget game files" deletes it with them.
+  function mainExe() {
+    var wanted = GAME_FILES.filter(function (f) { return /\.exe$/.test(f); });
+    var best = null, size = -1;
+    web().fs.listDir(GAME).forEach(function (n) {
+      if (wanted.indexOf(n.toLowerCase()) < 0) return;
+      var s = 0;
+      try { s = Module.FS.stat(GAME + "/" + n).size; } catch (e) {}
+      if (s > size) { best = n; size = s; }
     });
     return best;
   }
-
-  // The install's files with its paks (PAGE.paks) unpacked: each pak's files take its place, after the loose files, so
-  // that a file in both is written from the pak
-  function withPaks(entries, root) {
-    var W = web();
-    var paks = entries.filter(function (e) {
-      return e.path.substring(0, root.length) === root && PAKS.indexOf(e.path.substring(root.length).toLowerCase()) >= 0;
-    });
-    if (paks.length > 0) $("import-msg").textContent = "Unpacking " + paks.map(function (e) { return e.path.substring(root.length); }).join(", ") + "…";
-    return paks.reduce(function (p, e) {
-      return p.then(function (all) {
-        return e.read().then(function (bytes) {
-          return all.concat(W.pak.read(bytes).map(function (f) { return { path: root + f.path, read: f.read }; }));
+  // The icon that the import read out of the install's exe (importIcon), for boot() to keep with the record once the files are
+  // marked as there. The exe is not stored.
+  var importedIcon = "";
+  function iconFromImport(entries, root) {
+    importedIcon = "";
+    if (!PAGE.importIcon || pagePlaceholders()) return Promise.resolve();
+    return ByopopImport.exeIcon(entries, root).then(function (url) { importedIcon = url; }, function () {});
+  }
+  // The icon scaled down to px on its longer side with the browser's best filter, at most halving at each step so a 48 or
+  // 64 px icon stays clean at 16 px; null when it is no larger than px already (the icon itself is used then).
+  function scaleIcon(img, px) {
+    var src = img, w = img.naturalWidth, h = img.naturalHeight, side = Math.max(w, h);
+    if (!side || side <= px) return null;
+    while (side > px) {
+      var next = Math.max(px, Math.ceil(side / 2));
+      var c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(w * next / side)); c.height = Math.max(1, Math.round(h * next / side));
+      var g = c.getContext("2d");
+      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+      g.drawImage(src, 0, 0, c.width, c.height);
+      src = c; w = c.width; h = c.height; side = next;
+    }
+    return src.toDataURL("image/png");
+  }
+  // The game's icon on this page once its files are here (the user, 2026-11-02): the tab's icon at 16 and 32 px, each
+  // scaled from it (the browser picks the one for its own size), and the header's, in place of the coloured mark, at 20 px
+  // for the screen's pixel ratio. A page without the files (or after "Forget game files", which reloads it) keeps the
+  // site's icon and the mark.
+  var HEADER_ICON_PX = 20;
+  function showIcon(url) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var side = Math.max(img.naturalWidth, img.naturalHeight);
+        document.querySelectorAll('link[rel~="icon"]').forEach(function (l) { l.remove(); });
+        // 16 px, and 32 px or the icon's own size when smaller; no copy larger than the icon
+        (side > 16 ? [16, Math.min(32, side)] : [side]).forEach(function (px) {
+          var link = document.createElement("link");
+          link.rel = "icon"; link.type = "image/png";
+          link.setAttribute("sizes", px + "x" + px);
+          link.href = scaleIcon(img, px) || url;
+          document.head.appendChild(link);
         });
-      });
-    }, Promise.resolve(entries.filter(function (e) { return paks.indexOf(e) < 0; })));
+        var icon = $("brand-icon");
+        icon.src = scaleIcon(img, Math.round(HEADER_ICON_PX * (window.devicePixelRatio || 1))) || url;
+        icon.hidden = false;
+        document.querySelector(".brand .mark").hidden = true;
+      } catch (e) {}
+    };
+    img.src = url;
+  }
+  function ensureIcon() {
+    if (pagePlaceholders()) return;
+    try {
+      var rec = ByopopGameFiles.all()[PAGE.id];
+      if (rec && rec.icon) { showIcon(rec.icon); return; }
+      if (importedIcon) {  // read out of the exe at the import, which the game does not store
+        var url = importedIcon;
+        importedIcon = "";
+        if (ByopopGameFiles.setIcon(PAGE.id, url)) showIcon(url);
+        return;
+      }
+      var name = mainExe();
+      if (!name || !window.ByopopExeIcon) return;
+      ByopopExeIcon.fromBytes(Module.FS.readFile(GAME + "/" + name)).then(function (icon) {
+        if (icon && icon.dataUrl && ByopopGameFiles.setIcon(PAGE.id, icon.dataUrl)) showIcon(icon.dataUrl);
+      }).catch(function () {});
+    } catch (e) {}
   }
 
+  // The game root inside an upload, and its paks unpacked (web/gameimport.js)
+  function findGameRoot(entries) { return ByopopImport.findRoot(PAGE, entries, pagePlaceholders()); }
+  function withPaks(entries, root) {
+    return ByopopImport.withPaks(PAGE, entries, root, web().pak, function (names) {
+      $("import-msg").textContent = ByopopStrings.t("game.import.unpacking", {names: names.join(", ")});
+    });
+  }
+
+  // The import card's line under the buttons: a note, or an error, which is announced at once (it is read with both
+  // buttons that pick the files, aria-describedby)
+  function importMessage(text, isError) {
+    var msg = $("import-msg");
+    msg.textContent = "";
+    if (!isError) { msg.textContent = text; return; }
+    var span = document.createElement("span");
+    span.className = "error";
+    span.setAttribute("role", "alert");
+    span.textContent = text;
+    msg.appendChild(span);
+  }
+  // The copy's progress bar: its width, and the same as a value for screen readers
+  function importProgress(done, total) {
+    var pct = total ? Math.round(done * 100 / total) : 0;
+    $("import-progress").style.width = total ? (done * 100 / total) + "%" : "0";
+    var bar = $("import-bar");
+    bar.setAttribute("aria-valuenow", String(pct));
+    bar.setAttribute("aria-valuetext", total ? ByopopStrings.t("game.import.progress_text", {done: done, total: total}) : ByopopStrings.t("game.import.not_started"));
+  }
   function importGame(entries) {
     var root = findGameRoot(entries);
     var msg = $("import-msg");
     if (root === null) {
-      msg.innerHTML = '<span class="error"></span>';
-      msg.firstChild.textContent = "That folder doesn't contain the game's " + PAGE.markerText + ". Pick the " +
-        $("brand-name").textContent + " install folder itself.";
+      importMessage(ByopopStrings.t("game.import.wrong_folder", {markers: PAGE.markerText, title: $("brand-name").textContent}), true);
       return Promise.resolve(false);
     }
     return withPaks(entries, root).then(function (all) { return copyGame(all, root); });
@@ -500,29 +729,39 @@ input[type=file] { display: none; }
 
   function copyGame(entries, root) {
     var W = web(), msg = $("import-msg");
-    var skip = PAGE.skip || [];
-    var wanted = [];
-    entries.forEach(function (e) {
-      if (e.path.substring(0, root.length) !== root) return;
-      var rel = W.fs.safeRel(e.path.substring(root.length));
-      if (!rel || /\.sig$/i.test(rel) || skip.some(function (re) { return re.test(rel); })) return;
-      if (GAME_DIRS.indexOf(rel.split("/")[0].toLowerCase()) >= 0 || GAME_FILES.indexOf(rel.toLowerCase()) >= 0)
-        wanted.push({ rel: rel, read: e.read });
-    });
-    var done = 0, bar = $("import-progress");
-    msg.textContent = "Copying " + wanted.length + " files…";
+    var wanted = ByopopImport.pick(PAGE, entries, root, W.fs.safeRel);
+    var done = 0;
+    importProgress(0, wanted.length);
+    msg.textContent = ByopopStrings.t("game.import.copying", {count: wanted.length});
     W.fs.rmTree(GAME); Module.FS.mkdirTree(GAME);
+    try { ByopopGameFiles.replacing(PAGE.id); } catch (e) {}  // the old copy is gone; boot() records the new one
     return wanted.reduce(function (p, e) {
       return p.then(function () {
         return e.read().then(function (data) {
           W.fs.writeFile(GAME + "/" + e.rel, data);
-          bar.style.width = (++done * 100 / wanted.length) + "%";
+          importProgress(++done, wanted.length);
         });
       });
     }, Promise.resolve()).then(W.sync).then(function () {
-      msg.textContent = "Copied " + wanted.length + " files.";
-      return true;
+      // boot() would otherwise show this card again, still saying "Copied", as if the page were stuck
+      if (!hasGameFiles()) throw new Error(ByopopStrings.t("game.import.error_missing", {markers: PAGE.markerText}));
+      msg.textContent = ByopopStrings.t("game.import.copied", {count: wanted.length});
+      askToKeepStorage();
+      return iconFromImport(entries, root).then(function () { return true; });
     });
+  }
+
+  // The site's storage is "best effort" until the browser agrees to keep it: a drive that runs low on space can make the
+  // browser clear the whole site, game files and saves alike. A finished import and each start of a game ask it to keep
+  // the storage (the user, 2026-11-01). Chrome and Edge decide at once from how much the site is used and say no to a
+  // little-used one, so the start asks again until they agree; Firefox asks the player once. The listing page's saves
+  // section shows the answer (web/saves.js).
+  function askToKeepStorage() {
+    try {
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(function (kept) {
+        if (!kept) return navigator.storage.persist();
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   // ---------- terms ----------
@@ -532,6 +771,10 @@ input[type=file] { display: none; }
   // fails (a private window, blocked site data), it lasts until the page closes. TERMS_GATE (BYOPOP_WEB_TERMS_GATE in
   // cmake/ByopopWeb.cmake) is off for now: then the card never shows, and the pages must not be deployed.
   var TERMS_KEY = "byopop-terms-" + PAGE.id, TERMS_VERSION = "@BYOPOP_TERMS_VERSION@", TERMS_GATE = @BYOPOP_TERMS_GATE@;
+  // false for a game whose port loads no mods yet (BYOPOP_WEB_NO_MODS, cmake/ByopopWeb.cmake): its page has no Mods button (the
+  // user, 2026-11-03: "Don't show a mods button for games with no mod support"); the others show it once the game's files are
+  // here ("Don't show the mods button unless files are uploaded")
+  var MODS_SUPPORTED = @BYOPOP_MODS_SUPPORTED@;
   var termsAgreed = !TERMS_GATE;
   function hasAgreed() {
     if (!termsAgreed) {
@@ -544,7 +787,9 @@ input[type=file] { display: none; }
     $("terms-agree").checked = false;  // a reload may bring back the box's last state
     $("btn-terms").disabled = true;
     $("terms-overlay").hidden = false;
-    setStatus("Terms to agree to");
+    setStatus(ByopopStrings.t("game.status.terms"));
+    syncModal();
+    focusCard("terms-card");
   }
   $("terms-agree").addEventListener("change", function (ev) { $("btn-terms").disabled = !ev.target.checked; });
   $("btn-terms").addEventListener("click", function () {
@@ -552,6 +797,7 @@ input[type=file] { display: none; }
     termsAgreed = true;
     try { localStorage.setItem(TERMS_KEY, TERMS_VERSION); } catch (e) {}
     $("terms-overlay").hidden = true;
+    syncModal();
     boot();
   });
 
@@ -569,16 +815,23 @@ input[type=file] { display: none; }
   // ?silent=1: no sound, for automated tests in a browser pane that may be hidden (CLAUDE.md). The game
   // still mixes and plays its sounds as usual; Platform::Mixer outputs silence (Module.silentAudio).
   function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
-  // noMods: this run only (-nomods), the rescue when a mod stops the game from starting
+  // isAutostart: true after the game's own restart, "sound" when the page started it on opening (startOnOpen), else a
+  // click. noMods: this run only (-nomods), the rescue when a mod stops the game from starting
   function startGame(isAutostart, noMods) {
     if (started || !hasAgreed()) return;
     started = true;
-    closePanels();
+    // The site setting "full screen at start": "Full screen" is asked for first, while the click that pressed Play still counts
+    // (browsers allow it only from one; the restart of the game's own menu has no click, so it does not ask). "Windowed" is
+    // told to the games (byopop_site_windowed, below), whose own full screen option then starts off.
+    var screenAtStart = setting("fullscreen");
+    if (!isAutostart && screenAtStart === "on") goFullscreen();
+    holdForVolume();
+    closePanels("quiet");
     $("start-overlay").hidden = true;
     var enabled = panel.enabledCount();
     var seed = pageSeed();
-    var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
-    var modsText = noMods ? "Mods off for this run" : enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active";
+    var seedText = (seed > 0) ? " · " + ByopopStrings.t("game.status.seed", {seed: seed}) : (seed < 0) ? " · " + ByopopStrings.t("game.status.seed_ignored") : "";
+    var modsText = noMods ? ByopopStrings.t("game.status.mods_off") : enabled ? ByopopStrings.t("game.status.mods_active", {n: enabled}) : ByopopStrings.t("game.status.mods_none");
     var run = {
       args: ["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat(PAGE.replays ? ["-replaydir=" + REPLAYS] : [])
         .concat((seed > 0) ? ["-gameseed=" + seed] : []),
@@ -586,19 +839,120 @@ input[type=file] { display: none; }
     };
     if (PAGE.start) PAGE.start(run);
     Module.silentAudio = pageSilent();
-    setStatus(modsText + seedText + run.status + (pagePlaceholders() ? " · placeholders" : "") +
-      (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
+    audioCall("byopop_site_windowed", [screenAtStart === "off" ? 1 : 0]);
+    setStatus(modsText + seedText + run.status + (pagePlaceholders() ? " · " + ByopopStrings.t("game.status.placeholders") : "") +
+      (Module.silentAudio ? " · " + ByopopStrings.t("game.status.silent") : (isAutostart === true ? " · " + ByopopStrings.t("game.status.sound_after") : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
+    // a play (ByopopPlay): every start but the one after the game's own restart, which goes on with the same play. "Play without
+    // mods" after a crash reloads with the same flag, but with noMods, which the restart never sets: that one is a play
+    if (isAutostart !== true || noMods) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
+    askToKeepStorage();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
+    startChat();
+    cursorTimer = setInterval(pollCursor, 100);
+    applySiteOptions(true, true);
+    acquireWake();
+    syncPause();
+    syncCanvas();
     $("canvas").focus();
   }
+  // ---------- the game's cursor on the page ----------
+  // A SexyAppFramework game hides the browser's cursor over the canvas and draws its image cursor into the frame. The
+  // rest of the page shows that image too (framework/WebCursor.cpp): polled every 100 ms, as the browser pane gets no
+  // animation frames while it is hidden, drawn at the size the game's cursor has on screen (never past the 128 px that
+  // browsers accept) and set as the CSS cursor of everything but the canvas. A game that shows no custom cursor leaves
+  // the page's own, and so does one whose build has no such calls: the polling stops at the first failed call.
+  var cursorTimer = 0, cursorId = 0, cursorKey = "", cursorSource = null, cursorOnPage = false;
+  function setPageCursor(value) {
+    if (!value && !cursorOnPage) return;
+    cursorOnPage = !!value;
+    var root = document.documentElement;
+    if (value) root.style.setProperty("--game-cursor", value); else root.style.removeProperty("--game-cursor");
+    root.classList.toggle("game-cursor", !!value);
+  }
+  // The game's set of cursors for the site's cursor (web/cursors.js; docs/WEB_PLAYER.md, "The site's cursor"): asked for at each
+  // poll until the game has set its pointer (once its images are loaded), then kept once for this page. A copy whose pointer
+  // has no picture yet is asked for again, at most once a second, until one has. A cursor larger than browsers take (128 px)
+  // is drawn smaller. A build without the call stops asking.
+  var cursorSetTaken = false, cursorSetNext = 0, siteCursorShown = false;
+  function takeCursorSet() {
+    var n, now = Date.now();
+    if (now < cursorSetNext) return;
+    try { n = Module.ccall("byopop_cursor_set_copy", "number", [], []) | 0; } catch (e) { cursorSetTaken = true; return; }
+    if (n <= 0) return;
+    var kinds = ["pointer", "hand", "drag", "text"], set = {};
+    (Module.byopopCursorSet || []).forEach(function (c, i) {
+      if (!c || !c.rgba || c.rgba.length !== c.width * c.height * 4) return;
+      var source = document.createElement("canvas");
+      source.width = c.width; source.height = c.height;
+      source.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(c.rgba.buffer, c.rgba.byteOffset, c.rgba.length), c.width, c.height), 0, 0);
+      var scale = Math.min(1, 128 / Math.max(c.width, c.height)), out = source;
+      if (scale < 1) {
+        out = document.createElement("canvas");
+        out.width = Math.max(1, Math.round(c.width * scale)); out.height = Math.max(1, Math.round(c.height * scale));
+        out.getContext("2d").drawImage(source, 0, 0, out.width, out.height);
+      }
+      set[kinds[i]] = { url: out.toDataURL("image/png"), x: Math.min(out.width - 1, Math.max(0, Math.round(c.hotX * scale))),
+        y: Math.min(out.height - 1, Math.max(0, Math.round(c.hotY * scale))) };
+    });
+    Module.byopopCursorSet = null;
+    if (!set.pointer) { cursorSetNext = now + 1000; return; }
+    cursorSetTaken = true;
+    try { if (window.ByopopCursors) ByopopCursors.save(PAGE.id, $("brand-name").textContent, set); } catch (e) {}
+  }
+  function pollCursor() {
+    var id = 0, stop = exited;
+    if (!stop && !cursorSetTaken) takeCursorSet();
+    if (!stop) {
+      try { id = Module.ccall("byopop_cursor", "number", [], []) | 0; }
+      catch (e) { stop = true; }
+    }
+    if (!id) {
+      cursorId = 0; cursorKey = ""; cursorSource = null;
+      setPageCursor("");
+      if (stop) { clearInterval(cursorTimer); cursorTimer = 0; }
+      return;
+    }
+    if (id !== cursorId) {
+      cursorId = id; cursorKey = ""; cursorSource = null;
+      Module.byopopCursor = null;
+      Module.ccall("byopop_cursor_copy", "number", [], []);
+      var c = Module.byopopCursor;
+      if (c && c.rgba && c.rgba.length === c.width * c.height * 4) {
+        var source = document.createElement("canvas");
+        source.width = c.width; source.height = c.height;
+        source.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(c.rgba.buffer, c.rgba.byteOffset, c.rgba.length), c.width, c.height), 0, 0);
+        cursorSource = { image: source, width: c.width, height: c.height, hotX: c.hotX, hotY: c.hotY, screenWidth: c.screenWidth, screenHeight: c.screenHeight };
+      }
+    }
+    var s = cursorSource;
+    if (!s) { setPageCursor(""); return; }
+    var cv = $("canvas");
+    var scale = Math.min(cv.clientWidth / s.screenWidth, cv.clientHeight / s.screenHeight);
+    if (!(scale > 0)) scale = 1;
+    var largest = Math.max(s.width, s.height) * scale;
+    if (largest > 128) scale *= 128 / largest;
+    var w = Math.max(1, Math.round(s.width * scale)), h = Math.max(1, Math.round(s.height * scale));
+    var key = id + ":" + w + "x" + h;
+    if (key === cursorKey) return;
+    cursorKey = key;
+    var out = document.createElement("canvas");
+    out.width = w; out.height = h;
+    var g = out.getContext("2d");
+    g.imageSmoothingEnabled = Math.abs(scale - Math.round(scale)) > 0.01;  // the game scales like this: nearest for whole factors
+    g.drawImage(s.image, 0, 0, w, h);
+    var hotX = Math.min(w - 1, Math.max(0, Math.round(s.hotX * w / s.width)));
+    var hotY = Math.min(h - 1, Math.max(0, Math.round(s.hotY * h / s.height)));
+    setPageCursor('url("' + out.toDataURL("image/png") + '") ' + hotX + " " + hotY + ", auto");
+  }
   function boot() {
+    holdForVolume();
     var W = web();
     if (!session) session = new W.Session(PAGE.id);
     if (!panel) {
       panel = new W.ModPanel({
-        game: PAGE.id, body: $("mods-body"), userDir: USER, modsDir: MODS, stagingDir: MODS_INCOMING,
+        game: PAGE.id, body: $("mods-body"), live: $("menu-live"), userDir: USER, modsDir: MODS, stagingDir: MODS_INCOMING,
         gameDirs: GAME_DIRS, gameFiles: GAME_FILES, intro: PAGE.modsIntro,
         isOpen: function () { return !$("panel-mods").hidden; },
         show: function () { openPanel("panel-mods"); },
@@ -610,11 +964,18 @@ input[type=file] { display: none; }
     panel.boot();
     // The terms come before any game files are imported or loaded
     if (!hasAgreed()) { showTerms(); return; }
+    // The listing page shows which games have their files loaded, from this record (web/settings.js): kept whenever the
+    // files are found, here at every start and after an import, and noted as missing when they are not there ("Forget game
+    // files" notes that it was the player who did). Not with ?placeholders=1, where a part of a game stands for all of it.
+    $("btn-mods").hidden = !(MODS_SUPPORTED && hasGameFiles());
     if (!hasGameFiles()) {
-      setStatus("Game files needed");
+      if (!pagePlaceholders()) { try { ByopopGameFiles.lost(PAGE.id); } catch (e) {} }
+      setStatus(ByopopStrings.t("game.status.need_files"));
       showImport();
       return;
     }
+    if (!pagePlaceholders()) { try { ByopopGameFiles.mark(PAGE.id); } catch (e) {} }
+    ensureIcon();
     // After the game's own restart: straight back in, unless the start before did not finish (a mod may stop it)
     var autostart = session.takeAutostart(), noMods = session.takeNoMods();
     var failed = session.lastStartFailed() && panel.enabledCount() > 0;
@@ -622,12 +983,39 @@ input[type=file] { display: none; }
     // The Game files panel's "Import again" closed the game for this
     if (session.takeImport()) { showImport(); return; }
     showReady();
+    startOnOpen();
+  }
+  // The site setting "Start the game when its page opens": from the Ready card straight into the game when the browser lets
+  // the page play sound without a click or key. Chrome and Edge do after a click on a page of this site that led here (the
+  // listing, a reload), or with the site allowed to play sound; Firefox with the site's Autoplay permission. Firefox answers
+  // navigator.getAutoplayPolicy; elsewhere a new AudioContext's resume() settles at once only when sound is allowed. Not
+  // after a start that did not finish (the rescue is on the card), with "Full screen at start" (only a click may ask for
+  // it) or with ?silent=1 (the tests press Play), and not once a panel is open or the card is gone.
+  function startOnOpen() {
+    if (setting("autoStart") !== "on" || setting("fullscreen") === "on" || pageSilent() || !$("start-rescue").hidden) return;
+    function go() { if (!started && !$("start-overlay").hidden && !anyPanelOpen()) startGame("sound", false); }
+    try {
+      if (navigator.getAutoplayPolicy) { if (navigator.getAutoplayPolicy("audiocontext") === "allowed") go(); return; }
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      var ctx = new AC(), settled = false;
+      var finish = function (allowed) {
+        if (settled) return;
+        settled = true;
+        try { ctx.close().catch(function () {}); } catch (e) {}
+        if (allowed) go();
+      };
+      if (ctx.state === "running") { finish(true); return; }
+      ctx.resume().then(function () { finish(ctx.state === "running"); }, function () { finish(false); });
+      setTimeout(function () { finish(false); }, 300);
+    } catch (e) {}
   }
   function showReady() {
     var failed = session.lastStartFailed() && panel.enabledCount() > 0;
-    setStatus(failed ? "The last start did not finish" : "Ready");
+    setStatus(ByopopStrings.t(failed ? "game.status.last_failed" : "game.status.ready"));
     $("start-rescue").hidden = $("btn-start-nomods").hidden = !failed;
     $("start-overlay").hidden = false;
+    focusCard("start-card", "btn-start");
   }
   // The import card, over the Ready card; with game files stored it can go back to that (Cancel). Only before the
   // game starts: once it has, "Import again" closes it and shows this in a new page.
@@ -635,8 +1023,10 @@ input[type=file] { display: none; }
     if (!hasAgreed()) { showTerms(); return; }
     $("start-overlay").hidden = true;
     $("btn-import-cancel").hidden = !hasGameFiles();
+    $("page-cap").hidden = false;
     $("import-overlay").hidden = false;
-    if (hasGameFiles()) setStatus("Import the game files again");
+    if (hasGameFiles()) setStatus(ByopopStrings.t("game.status.reimport"));
+    focusCard("import-card", "btn-pick-folder");
   }
 
   var importing = false;
@@ -646,8 +1036,14 @@ input[type=file] { display: none; }
     importing = true;
     $("btn-import-cancel").disabled = true;
     promise.then(importGame).then(function (ok) {
-      if (ok) { $("import-overlay").hidden = true; boot(); }
-    }).catch(function (e) { $("import-msg").innerHTML = '<span class="error"></span>'; $("import-msg").firstChild.textContent = e.message; })
+      if (!ok) return;
+      // the opener takes the cap off, then the game boots
+      var cap = $("page-cap");
+      function off() { cap.hidden = true; }
+      var popped;
+      try { popped = ByopopCapAnim.pop(cap, { away: true, after: off }); } catch (e) { off(); popped = Promise.resolve(); }
+      return popped.then(function () { $("import-overlay").hidden = true; boot(); });
+    }).catch(function (e) { importMessage(e.message, true); })
       .then(function () {
         importing = false;
         // a failed copy may have left too few files to go back to
@@ -655,6 +1051,10 @@ input[type=file] { display: none; }
         $("btn-import-cancel").hidden = !hasGameFiles();
       });
   }
+  // The buttons that open the file pickers (the inputs are hidden): data-pick names the input
+  document.querySelectorAll("button[data-pick]").forEach(function (b) {
+    b.addEventListener("click", function () { $(b.getAttribute("data-pick")).click(); });
+  });
   $("pick-game-folder").addEventListener("change", function (ev) {
     var files = web().zip.fromInput(ev.target.files);
     ev.target.value = "";
@@ -669,7 +1069,7 @@ input[type=file] { display: none; }
     if (importing || !hasGameFiles()) return;
     $("import-overlay").hidden = true;
     $("import-msg").textContent = IMPORT_NOTE;
-    $("import-progress").style.width = "0";
+    importProgress(0, 0);
     showReady();
   });
   $("btn-start").addEventListener("click", function () { startGame(false, false); });
@@ -679,51 +1079,63 @@ input[type=file] { display: none; }
 
   // ---------- panels ----------
   var PANELS = Array.prototype.map.call(document.querySelectorAll("aside.panel"), function (p) { return p.id; });
+  // The bar's button for each panel; it says whether its panel is open (aria-expanded) and which panel it opens (aria-controls)
+  var PANEL_BUTTONS = { "panel-mods": $("btn-mods"), "panel-files": $("btn-files"), "panel-settings": $("btn-settings") };
   // The game's own panels (page.html) get a button on the bar, before "Game files"
   document.querySelectorAll("aside.panel[data-button]").forEach(function (p) {
     var b = document.createElement("button");
     b.type = "button";
     b.id = p.id.replace(/^panel-/, "btn-");
     b.textContent = p.getAttribute("data-button");
-    b.addEventListener("click", function () { openPanel(p.id); });
+    b.addEventListener("click", function (e) { togglePanel(p.id, e); });
     $("btn-files").parentNode.insertBefore(b, $("btn-files"));
+    PANEL_BUTTONS[p.id] = b;
   });
+  PANELS.forEach(function (id) {
+    if (PANEL_BUTTONS[id]) PANEL_BUTTONS[id].setAttribute("aria-controls", id);
+  });
+  syncPanelButtons();
+  // The element that had the focus when a panel opened: Esc, or Close with the keyboard, gives the focus back to it
+  var panelOpener = null;
+  function syncPanelButtons() {
+    PANELS.forEach(function (id) {
+      var b = PANEL_BUTTONS[id];
+      if (b && !(id === "panel-mods" && gameRunning())) b.setAttribute("aria-expanded", $(id).hidden ? "false" : "true");
+    });
+  }
   function openPanel(id) {
     // The panels are outside the stage: in fullscreen (the game's own "Add or remove mods") they could not be
     // seen, yet would take the keys and the next click
     if (id && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
     if (id && PAGE.shown) PAGE.shown(id);
+    if (id && !anyPanelOpen()) {
+      var a = document.activeElement;
+      panelOpener = (a && a !== document.body && a !== document.documentElement && !(a.closest && a.closest(".panel"))) ? a : null;
+    }
     PANELS.forEach(function (p) { $(p).hidden = p !== id; });
     if ((id === "panel-mods") && panel) panel.shown();
+    syncPanelButtons();
     if (id) $(id).focus();
   }
   function anyPanelOpen() { return PANELS.some(function (p) { return !$(p).hidden; }); }
-  function closePanels() {
-    var wasOpen = anyPanelOpen();
+  // how: where the focus goes. "pointer" (the default): to the game, so that its keys work again; "keyboard": back to the
+  // control that opened the panel (the game when that was it); "quiet": nowhere, the caller moves it
+  function closePanels(how) {
+    var wasOpen = anyPanelOpen(), opener = panelOpener;
+    panelOpener = null;
     openPanel(null);
-    if (wasOpen) $("canvas").focus();
+    if (!wasOpen || how === "quiet") return;
+    if (how === "keyboard" && opener && opener.isConnected && !opener.disabled && opener.getClientRects().length && opener !== $("canvas")) {
+      opener.focus();
+      return;
+    }
+    focusGame();
   }
-  // Keys typed in a panel or on the tool bar stay there: SDL listens to the whole window and would also give them
-  // to the game (Bejeweled pauses on any character, a name being typed would get them, and the open mod menu would
-  // act on them) and keep Backspace, Tab and the arrows from the page's controls. Esc and F2 close a panel; on the
-  // tool bar F2 still reaches the game (its mod menu).
-  document.querySelectorAll(".panel, .bar").forEach(function (p) {
-    var isPanel = p.classList.contains("panel");
-    ["keydown", "keyup", "keypress"].forEach(function (t) {
-      p.addEventListener(t, function (e) {
-        if (!isPanel && (e.key === "F2")) {
-          // On to the game, which opens its mod menu: the keys that follow are for that menu, not the bar
-          if (started && (t === "keydown")) $("canvas").focus();
-          return;
-        }
-        e.stopPropagation();
-        if (isPanel && (t === "keydown") && ((e.key === "Escape") || (e.key === "F2"))) {
-          e.preventDefault();
-          closePanels();
-        }
-      });
-    });
-  });
+  // a click made with the keyboard (Enter, Space) has detail 0; the mouse and touch have 1 or more
+  function closeHow(e) { return (e && e.detail === 0) ? "keyboard" : "pointer"; }
+  function togglePanel(id, e) {
+    if (!$(id).hidden) closePanels(closeHow(e)); else openPanel(id);
+  }
   // While a panel is open the game gets no clicks: a press on the stage closes the panel instead (the release and
   // click that follow it are dropped too). A press released outside the stage leaves no click to end that: the
   // next press on the stage, which the game gets, ends it, so the game always gets that press's release.
@@ -733,7 +1145,7 @@ input[type=file] { display: none; }
       if (!anyPanelOpen()) { swallowUntilClick = false; return; }
       e.stopPropagation(); e.preventDefault();
       swallowUntilClick = true;
-      closePanels();
+      closePanels("pointer");
     }, { capture: true, passive: false });
   });
   ["mouseup", "touchend", "click"].forEach(function (t) {
@@ -743,27 +1155,46 @@ input[type=file] { display: none; }
       if (t !== "mouseup") swallowUntilClick = false;
     }, { capture: true, passive: false });
   });
-  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closePanels); });
+  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", function (e) { closePanels(closeHow(e)); }); });
   // Mods: while the game runs, its own mod menu (where its "Add or remove mods" opens this panel); before
   // that, the panel
-  $("btn-mods").addEventListener("click", function () {
-    if (!$("panel-mods").hidden) { closePanels(); return; }
-    if (started && panel && (panel.menu(-1) >= 0)) { closePanels(); $("canvas").focus(); return; }
+  $("btn-mods").addEventListener("click", function (e) {
+    if (!$("panel-mods").hidden) { closePanels(closeHow(e)); return; }
+    if (started && panel && (panel.menu(-1) >= 0)) { closePanels("quiet"); $("canvas").focus(); return; }
     openPanel("panel-mods");
   });
-  $("btn-files").addEventListener("click", function () {
+  $("btn-files").addEventListener("click", function (e) {
+    if (!$("panel-files").hidden) { closePanels(closeHow(e)); return; }
     var fs = web().fs, n = 0;
     GAME_DIRS.forEach(function (d) { n += fs.listDir(GAME + "/" + d).length; });
     n += fs.listDir(GAME).filter(function (f) { return GAME_FILES.indexOf(f.toLowerCase()) >= 0; }).length;
-    $("files-summary").textContent = hasGameFiles() ? n + " game files are stored in this browser." : "No game files are stored yet.";
+    $("files-summary").textContent = ByopopStrings.t(hasGameFiles() ? "game.files.summary" : "game.files.none", {count: n});
     $("files-ask").hidden = true;
     showMissingFiles();
     openPanel("panel-files");
   });
+  // Settings: the site's settings (web/settings.js), drawn into the panel the first time it opens
+  var settingsView = null;
+  // The line under "Player names": who the site's current player is (web/profiles.js)
+  function playerNote() {
+    var p = ByopopProfiles.current();
+    return p ? ByopopStrings.t("game.settings.player", {name: p.name}) : ByopopStrings.t("game.settings.no_player");
+  }
+  $("btn-settings").addEventListener("click", function (e) {
+    if (!$("panel-settings").hidden) { closePanels(closeHow(e)); return; }
+    try {
+      if (settingsView) settingsView.refresh();
+      else settingsView = ByopopSettings.render($("settings-body"), { live: true, onChange: applySettingNow,
+        gameId: PAGE.id, gameName: $("brand-name").textContent, playerNote: playerNote });
+      if (!siteCursorShown) { siteCursorShown = true; ByopopCursors.render($("site-cursor-body")); }
+    } catch (e) {
+      $("settings-body").textContent = ByopopStrings.t("game.settings.unavailable");
+    }
+    openPanel("panel-settings");
+  });
   function showMissingFiles() {
     $("files-missing").hidden = !missingFiles.length;
-    $("files-missing-summary").textContent = missingFiles.length + " game file" + (missingFiles.length > 1 ? "s were" : " was") +
-      " missing; placeholders stand in for them:";
+    $("files-missing-summary").textContent = ByopopStrings.t("game.files.missing", {n: missingFiles.length});
     var list = $("files-missing-list");
     list.textContent = "";
     missingFiles.forEach(function (f) { var li = document.createElement("li"); li.textContent = f; list.appendChild(li); });
@@ -778,7 +1209,7 @@ input[type=file] { display: none; }
       var r = {};
       try { r = JSON.parse((panel && panel.call("byopop_restart", "string", ["number"], [1])) || "{}"); } catch (e) {}
       if (r.result === "started") { afterExit = then; return; }
-      if (r.result === "blocked") { ask(r.message || "The game cannot close now. Try again in a moment.", null, null); return; }
+      if (r.result === "blocked") { ask(r.message || ByopopStrings.t("game.files.cannot_close"), null, null); return; }
       // "none": it has not finished loading, so there is nothing to save yet
     }
     whenSaved(function () { then(null); });
@@ -799,28 +1230,374 @@ input[type=file] { display: none; }
     askAction = null;
     if (action) action();
   });
-  var CLOSES_FIRST = " The game closes first; a game in progress is saved.";
   function importAgain() {
     if (!started) { openPanel(null); showImport(); return; }
     closeGameThen(function (info) { session.reloadToImport(info); });
   }
   function forgetFiles() {
-    closeGameThen(function (info) { web().fs.rmTree(GAME); web().sync().then(function () { session.reload(info); }); });
+    closeGameThen(function (info) {
+      web().fs.rmTree(GAME);
+      try { ByopopGameFiles.forget(PAGE.id); } catch (e) {}
+      web().sync().then(function () { session.reload(info); });
+    });
   }
   $("btn-reimport").addEventListener("click", function () {
-    if (gameRunning()) ask("Import the game files again?" + CLOSES_FIRST, "Close the game", importAgain);
+    if (gameRunning()) ask(ByopopStrings.t("game.files.reimport_ask"), ByopopStrings.t("game.files.close_game"), importAgain);
     else importAgain();
   });
   $("btn-forget").addEventListener("click", function () {
-    ask("This removes the copied game files from this browser. Saves and mods stay." + (gameRunning() ? CLOSES_FIRST : ""),
-      "Remove files", forgetFiles);
+    ask(ByopopStrings.t(gameRunning() ? "game.files.forget_ask_running" : "game.files.forget_ask"), ByopopStrings.t("game.files.remove"), forgetFiles);
   });
-  $("btn-full").addEventListener("click", function () {
+  function goFullscreen() {
     var el = $("stage");
-    if (el.requestFullscreen) el.requestFullscreen().catch(function () {});
-    // The keys go to the game again (the tool bar keeps the keys typed on it)
-    $("canvas").focus();
+    // the panels are outside the stage: one left open would stay behind it, as for the game's own full screen (openPanel)
+    closePanels("quiet");
+    try { if (el.requestFullscreen) el.requestFullscreen().catch(function () {}); } catch (e) {}
+    // The keys go to the game again, while it runs: before a start and after an exit the canvas is out of the tab order and
+    // hidden, and the focus stays where it is (the Ready card's Play, an exit card)
+    if (gameRunning()) $("canvas").focus();
+  }
+  $("btn-full").addEventListener("click", goFullscreen);
+  // F11 is the Fullscreen button, and F11 again (or Esc, the browser's own) leaves full screen (the user, 2026-11-02: "F11
+  // should make all games go full screen in the browser"). The browser's F11 would put the whole page in full screen, so it is
+  // stopped, but only when the page can do it itself. This listener is the first to see the key (the document, capturing), so
+  // the game never gets it: TipTop's own F11 (App::HandleKeys) would ask SDL for full screen outside a click, which the browser
+  // refuses. Its Options checkbox still uses the game's own path.
+  function onFullscreenKey(e) {
+    if (e.key !== "F11" || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+    if (!document.fullscreenEnabled || !$("stage").requestFullscreen) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.type !== "keydown" || e.repeat) return;
+    if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(function () {}); }
+    else goFullscreen();
+  }
+  document.addEventListener("keydown", onFullscreenKey, true);
+  document.addEventListener("keyup", onFullscreenKey, true);
+
+  // ---------- keyboard and focus (docs/WEB_PLAYER.md, "Accessibility") ----------
+  // The game has the keyboard only while its canvas has the focus (SDL listens on the canvas, see Module.preRun). The canvas
+  // can take the focus by a click or by Tab while a game runs; before that, and after the game has closed, it is out of the
+  // tab order and hidden from screen readers, as nothing is drawn in it.
+  function syncCanvas() {
+    var cv = $("canvas"), live = gameRunning();
+    cv.setAttribute("tabindex", live ? "0" : "-1");
+    if (live) cv.removeAttribute("aria-hidden"); else cv.setAttribute("aria-hidden", "true");
+    // while the game runs, the Mods button opens the game's own menu instead of the panel
+    var mods = $("btn-mods");
+    if (live) {
+      mods.removeAttribute("aria-expanded"); mods.removeAttribute("aria-controls");
+      mods.setAttribute("aria-describedby", "mods-running-hint");
+    } else {
+      mods.setAttribute("aria-controls", "panel-mods");
+      mods.removeAttribute("aria-describedby");
+      syncPanelButtons();
+    }
+  }
+  function focusGame() { if (gameRunning()) $("canvas").focus(); }
+  // The two cards that are aria-modal (the terms, and "Already open": nothing can be played in this page until they are done) make
+  // the rest of the page inert while they are up, so that the focus stays in the card and a screen reader reads only it. The
+  // other cards leave the bar usable, and are not modal.
+  function syncModal() {
+    var on = !$("terms-overlay").hidden || !$("busy-overlay").hidden;
+    // the page's children but the workspace, and the workspace's but the main region (the chat is inert too)
+    var outside = Array.prototype.concat.call(Array.prototype.slice.call(document.body.children), Array.prototype.slice.call($("workspace").children));
+    outside.forEach(function (e) {
+      if (e.id === "main" || e.id === "workspace" || /^(SCRIPT|STYLE)$/.test(e.tagName)) return;
+      if (on) e.setAttribute("inert", ""); else e.removeAttribute("inert");
+    });
+  }
+  // A card that has just come up takes the focus, so that a keyboard or screen reader player finds it: its button when it
+  // has an obvious one, else the card, which reads its name and text
+  function focusCard(cardId, buttonId) {
+    var b = buttonId ? $(buttonId) : null;
+    try { (b && !b.hidden && !b.disabled ? b : $(cardId)).focus(); } catch (e) {}
+  }
+  // "Skip to game": the first thing on the page to take the focus. It goes to the canvas while a game runs, else to the card
+  // that is up (the Ready card, the import card...), else to the main region
+  $("skip-game").addEventListener("click", function (ev) {
+    ev.preventDefault();
+    if (gameRunning()) { $("canvas").focus(); return; }
+    var card = Array.prototype.filter.call(document.querySelectorAll("#stage .overlay"), function (o) { return !o.hidden; })[0];
+    if (card) {
+      var primary = card.querySelector("button.primary:not([disabled]):not([hidden])");
+      (primary || card.querySelector(".card")).focus();
+    } else { $("main").setAttribute("tabindex", "-1"); $("main").focus(); }
   });
+  // The keys the game has been given and not yet let go of: when the focus leaves the canvas they are released, so that none
+  // stays pressed in the game (SDL only resets its keyboard when the whole window loses the focus)
+  var heldKeys = {};
+  function sendKey(type, key, code, keyCode, location) {
+    var cv = $("canvas");
+    try {
+      cv.dispatchEvent(new KeyboardEvent(type, { key: key, code: code, keyCode: keyCode, which: keyCode, location: location || 0, bubbles: true, cancelable: true }));
+    } catch (e) {}
+  }
+  function releaseKeys() {
+    var held = heldKeys;
+    heldKeys = {};
+    Object.keys(held).forEach(function (c) { var h = held[c]; sendKey("keyup", h.key, h.code, h.keyCode, h.location); });
+  }
+  // The elements the Tab key visits, in the page's order
+  function tabStops() {
+    return Array.prototype.filter.call(document.querySelectorAll("a[href], button, input, select, textarea, summary, [tabindex]"), function (e) {
+      if (e.disabled || e.tabIndex < 0 || e.type === "hidden" || e.closest("[hidden], [inert]")) return false;
+      var r = e.getClientRects();
+      return r.length > 0 && getComputedStyle(e).visibility !== "hidden";
+    });
+  }
+  // F6 and Shift+F6 take the focus out of the game, to the control after the canvas and the one before it, as Tab and Shift+Tab
+  // would: the game uses Tab itself (a dialog's fields, BookWorm's hints, TipTop's focus), and no game uses F6
+  function leaveGame(backwards) {
+    var stops = tabStops(), i = stops.indexOf($("canvas"));
+    if (i < 0) return;
+    var next = stops[(i + (backwards ? stops.length - 1 : 1)) % stops.length];
+    if (next && next !== $("canvas")) next.focus(); else $("canvas").blur();
+  }
+  // SDL cancels the browser's action for the arrows, Tab, Backspace, the function keys and Ctrl keys, and for Space as text, but not for
+  // these: with the chat below the stage the page is taller than the window, and the browser would scroll it to the chat
+  var PAGE_SCROLL_KEYS = ["Home", "End", "PageUp", "PageDown"];
+  function onGameKey(e) {
+    if (e.target !== $("canvas")) return;
+    if (e.type === "keydown") {
+      if (e.key === "F6" && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault(); e.stopImmediatePropagation();  // SDL, on the canvas, never sees it
+        leaveGame(e.shiftKey);
+        return;
+      }
+      if (PAGE_SCROLL_KEYS.indexOf(e.key) >= 0 && !e.altKey && !e.metaKey) e.preventDefault();  // the game still gets the key
+      heldKeys[e.code] = { key: e.key, code: e.code, keyCode: e.keyCode, location: e.location };
+      $("canvas-hint").classList.remove("show");
+    } else {
+      delete heldKeys[e.code];
+    }
+  }
+  $("stage").addEventListener("keydown", onGameKey, true);
+  $("stage").addEventListener("keyup", onGameKey, true);
+  $("canvas").addEventListener("blur", function () {
+    releaseKeys();
+    $("canvas-hint").classList.remove("show");
+  });
+  $("canvas").addEventListener("focus", function () {
+    // shown while the keyboard has put the focus there (the ring is :focus-visible); a click needs no hint
+    try { if ($("canvas").matches(":focus-visible")) $("canvas-hint").classList.add("show"); } catch (e) {}
+  });
+  $("canvas").addEventListener("mousedown", function () { $("canvas").focus(); });
+  // The same rule once more, in case SDL listens on the window after all (a build that could not set its keyboard element,
+  // Module.preRun): this listener was added before SDL's, so it runs first on the window, and keys typed anywhere but on the
+  // canvas stop here. With SDL on the canvas it changes nothing.
+  ["keydown", "keyup", "keypress"].forEach(function (t) {
+    window.addEventListener(t, function (e) { if (e.target !== $("canvas")) e.stopImmediatePropagation(); });
+  });
+  // Keys typed on the page that are the game's too: F2 opens the game's mod menu from the tool bar, or with nothing focused. Esc
+  // closes the open panel (or the import card, when it can be cancelled) from wherever the focus is on the page, but not from the
+  // canvas, where it is the game's key; F2 closes a panel too when it is typed in one.
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    if (t === $("canvas") || e.defaultPrevented) return;
+    var inPanel = !!(t.closest && t.closest(".panel"));
+    if (e.key === "Escape" && anyPanelOpen()) { e.preventDefault(); closePanels("keyboard"); return; }
+    // Esc on the import card is its Cancel, when the card has one (game files are stored already)
+    if (e.key === "Escape" && !$("import-overlay").hidden && !$("btn-import-cancel").hidden && !importing) { e.preventDefault(); $("btn-import-cancel").click(); return; }
+    if (e.key === "F2" && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+      if (inPanel) { e.preventDefault(); closePanels("pointer"); return; }
+      if (gameRunning() && (t === document.body || t === document.documentElement || (t.closest && t.closest(".bar")))) {
+        e.preventDefault();
+        $("canvas").focus();
+        sendKey("keydown", "F2", "F2", 113, 0);
+      }
+    }
+  });
+
+  // ---------- the site's settings (web/settings.js; docs/WEB_PLAYER.md, "Site settings") ----------
+  // The player sets them once, on the listing page or in the Settings panel, and every game page applies them when its
+  // game starts; the panel also applies what can be applied at once to the running game. "game" and an unset setting
+  // leave everything as the game has it; a page without settings.js, or with its storage blocked, is such a page.
+  // The value this game uses: its own, else the site-wide one (web/settings.js)
+  function setting(name) { try { return ByopopSettings.get(name, PAGE.id); } catch (e) { return null; } }
+
+  // The page's own mute: the platform's audio output (Platform::Mixer, byopop_audio_mute), below the game's volume and
+  // mute options, which it neither changes nor saves. ?silent=1 stays silent whatever this says. The site's starting volume
+  // holds it from the page's opening until the volumes are applied (holdForVolume, releaseHold), so that nothing plays at the
+  // game's own volume first; the Sound button, once used, has the last word.
+  var soundTouched = false, volumeHold = false;
+  function audioCall(name, args) {
+    try { return Module.ccall(name, "number", args.map(function () { return "number"; }), args); } catch (e) { return undefined; }
+  }
+  function showSound() {
+    var muted = audioCall("byopop_audio_muted", []) === 1;
+    // the button's name is "Sound" and its state is aria-pressed (pressed: the sound is on); the words after the name are for the eye
+    $("btn-sound").lastChild.textContent = ByopopStrings.t(muted ? "game.sound.off" : "game.sound.on");
+    $("btn-sound").setAttribute("aria-pressed", muted ? "false" : "true");
+  }
+  function setPageMuted(muted) { audioCall("byopop_audio_mute", [muted ? 1 : 0]); showSound(); }
+  $("btn-sound").addEventListener("click", function (e) {
+    soundTouched = true;
+    setPageMuted(audioCall("byopop_audio_muted", []) !== 1);
+    // a click goes back to the game, as before; the keyboard stays on the button (a button pressed from the keyboard does not
+    // move the focus away by itself)
+    if (e.detail > 0) focusGame();
+  });
+
+  // The site's starting volume ("Set the starting volume"): the music and sound levels this game starts at, or null when it
+  // is left as it is (Game default)
+  function startVolume() {
+    if (setting("startVolume") !== "on") return null;
+    var m = setting("startMusic"), f = setting("startSound");
+    return { music: typeof m === "number" ? m : 50, sfx: typeof f === "number" ? f : 50 };
+  }
+  // The hold: the page's mute is on from the page's opening (and again at Play, for a start that came with no page of its
+  // own) until the volumes are applied; then it is lifted, unless the Sound button has been used since.
+  function holdForVolume() {
+    if (soundTouched || !startVolume()) return;
+    volumeHold = true;
+    // (again at Play: the page's first call may have come before the module could take it)
+    if (audioCall("byopop_audio_muted", []) !== 1) setPageMuted(true);
+  }
+  function releaseHold() {
+    if (!volumeHold) return;
+    volumeHold = false;
+    if (!soundTouched) setPageMuted(false);
+  }
+
+  // The game's own options that a setting sets (framework/WebSettings.cpp, byopop_site_apply): custom cursors, and the music
+  // and sound volumes. The call returns 0 until the game has finished starting, which is after it has read its saved
+  // options, so the setting wins over them; it is repeated until then. TipTop, Ning Po and Word Harmony have a volume engine of
+  // their own, which SexyAppBase's volumes do not reach: their ports register a function that sets theirs (framework/WebSettings.h),
+  // which byopop_site_apply calls instead. Cosmic Bugs and Water Bugs have no volume option, and fix the output volume at the
+  // original's 60%: the starting volume goes to the mixer's music and sound gains instead (byopop_mixer_gain), at once (page.js
+  // may say PAGE.mixerVolume). A setting that is "game" asks for nothing. The hold on the page's mute ends when the volumes
+  // are applied, or when the game does not start in a minute.
+  var MIXER_VOLUME = ["cosmicbugs", "waterbugs"];
+  function mixerVolume() { return (PAGE.mixerVolume !== undefined) ? !!PAGE.mixerVolume : MIXER_VOLUME.indexOf(PAGE.id) >= 0; }
+  function applySiteOptions(cursors, volume) {
+    var c = cursors ? setting("cursors") : null, v = volume ? startVolume() : null;
+    if (v && mixerVolume()) {
+      audioCall("byopop_mixer_gain", [v.music, v.sfx]);
+      v = null;
+    }
+    var args = [c === "on" ? 1 : c === "off" ? 0 : -1, v ? v.music : -1, v ? v.sfx : -1];
+    if (args.every(function (n) { return n < 0; })) { if (volume) releaseHold(); return; }
+    var tries = 0;
+    (function attempt() {
+      if (exited) return;
+      var r = audioCall("byopop_site_apply", args);
+      if (r === 1 || r === undefined) { if (volume) releaseHold(); return; }  // applied, or this build has no such call
+      if (++tries < 600) setTimeout(attempt, 100); else if (volume) releaseHold();
+    })();
+  }
+  // The Settings panel changed one: what can be applied at once is applied to the running game. Full screen at start and the
+  // player names wait for the next start (the panel says so); "game" leaves the running game as it is. Before the game starts,
+  // the starting volume holds the page's mute (or lets it go).
+  function applySettingNow(name, value) {
+    if (name === "startVolume" || name === "startMusic" || name === "startSound") {
+      if (gameRunning()) applySiteOptions(false, true);
+      else if (!started) { if (startVolume()) holdForVolume(); else releaseHold(); }
+    }
+    else if (name === "cursors") { if (gameRunning()) applySiteOptions(true, false); }
+    else if (name === "wakeLock") { if (value === "on") acquireWake(); else releaseWake(); }
+    else if (name === "pauseHidden") syncPause();
+    else if (name === "showChat") { if (chat) chat.setVisible(value !== "off"); }
+    // confirmLeave is read when the page is left
+  }
+
+  // Keep the screen awake while a game runs: the Screen Wake Lock API, taken after the game starts and released when it
+  // ends (a browser releases it by itself when the page is hidden; it is taken again when the page is shown). A browser
+  // that refuses, or has no such API, is not an error.
+  var wakeLock = null;
+  function wantWake() { return setting("wakeLock") === "on" && gameRunning() && !document.hidden; }
+  function acquireWake() {
+    if (wakeLock || !wantWake()) return;
+    try {
+      if (!(navigator.wakeLock && navigator.wakeLock.request)) return;
+      navigator.wakeLock.request("screen").then(function (lock) {
+        if (!wantWake() || wakeLock) { lock.release().catch(function () {}); return; }
+        wakeLock = lock;
+        lock.addEventListener("release", function () { if (wakeLock === lock) wakeLock = null; });
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function releaseWake() {
+    var lock = wakeLock;
+    wakeLock = null;
+    if (lock) lock.release().catch(function () {});
+  }
+
+  // Ask before leaving the page while a game runs (a closed game's page, and the reloads that follow a close, are not asked)
+  window.addEventListener("beforeunload", function (ev) {
+    if (setting("confirmLeave") !== "on" || !gameRunning()) return;
+    ev.preventDefault();
+    ev.returnValue = "";
+  });
+
+  // Pause when the tab is hidden: the game's main loop and the sound stop, and both go on when the tab is shown. Off by
+  // default, as the originals keep running in a window you cannot see. The browser pane can be hidden while
+  // document.hidden stays false, so this does not touch the pane's tests.
+  var hiddenPaused = false;
+  function syncPause() {
+    var want = gameRunning() && document.hidden && (hiddenPaused || setting("pauseHidden") === "on");
+    if (want === hiddenPaused) return;
+    hiddenPaused = want;
+    if (want) {
+      try { Module.pauseMainLoop(); } catch (e) {}
+      try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
+    } else if (!exited) {
+      try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.resume(); } catch (e) {}
+      try { Module.resumeMainLoop(); } catch (e) {}
+    }
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) releaseWake(); else acquireWake();
+    syncPause();
+    playClock();
+  });
+
+  // ---------- play time (web/settings.js, ByopopPlay; docs/WEB_PLAYER.md, "The listing page") ----------
+  // Time counts while the game runs and its page is shown and has the focus (the user, 2026-11-02: "Only count time with the game
+  // open and active"): checked every second and at each change, a step of at most 5 s, so that a computer that slept adds nothing.
+  // It is written every 30 s and when the count stops, in whole seconds (the rest waits for the next), and when the page goes away.
+  var playSince = null, playMs = 0;
+  function playClock() {
+    var now = performance.now(), on = gameRunning() && !document.hidden && document.hasFocus() && !hiddenPaused;
+    if (playSince !== null) playMs += Math.min(now - playSince, 5000);
+    playSince = on ? now : null;
+    if (playMs >= 30000 || (!on && playMs >= 1000)) playSave(false);
+  }
+  function playSave(last) {
+    var whole = (last ? Math.round(playMs / 1000) : Math.floor(playMs / 1000)) * 1000;
+    if (whole <= 0) return;
+    playMs -= whole;
+    try { ByopopPlay.played(PAGE.id, whole); } catch (e) {}
+  }
+  setInterval(playClock, 1000);
+  window.addEventListener("focus", playClock);
+  window.addEventListener("blur", playClock);
+  window.addEventListener("pagehide", function () { playClock(); playSave(true); });
+
+  // ---------- the chat (web/chat.js; docs/CHAT_DESIGN.md) ----------
+  // One plain-text room for every game, beside the stage (below it on a narrow screen). The site's "Show chat" setting (on unless
+  // the player turned it off) draws it; with it off it is not even built. Keys typed in it stay in it: the game takes keys only while
+  // its canvas has the focus (Module.preRun, above), and the window's guard stops the rest. F6 and Shift+F6 move the focus on from the
+  // chat as they do from the game: to the control after it, or the one before it.
+  var chat = null;
+  function leaveChat(backwards) {
+    var stops = tabStops(), mine = stops.filter(function (e) { return $("chat").contains(e); });
+    if (!mine.length) return;
+    var at = backwards ? stops.indexOf(mine[0]) - 1 : stops.indexOf(mine[mine.length - 1]) + 1;
+    var next = stops[(at + stops.length) % stops.length];
+    if (next) next.focus();
+  }
+  // The chat starts with the game (the user, 2026-11-03: "Don't load the chat until the game has launched"): start() calls this
+  // once, so a page waiting for its files or for Play shows no chat
+  function startChat() {
+    if (chat || typeof ByopopChat === "undefined") return;
+    try {
+      // ByopopGames is the site's table of games (chat-games.js, which cmake/ByopopWeb.cmake writes beside the pages); without
+      // the file the chat draws no game tags. The messages this page sends carry this page's game, PAGE.id.
+      chat = ByopopChat.mount($("chat"), { stage: $("stage"), onLeave: leaveChat, visible: setting("showChat") !== "off",
+        game: PAGE.id, games: typeof ByopopGames !== "undefined" ? ByopopGames : [] });
+    } catch (e) { console.warn("the chat could not start", e); }
+  }
   if (PAGE.init) PAGE.init();
 })();
 </script>

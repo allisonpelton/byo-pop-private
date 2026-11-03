@@ -42,11 +42,12 @@ struct AutoplayState
 	bool			mGameOverLogged;
 	bool			mLevelLogged;
 	int				mMoves;             // moves made in this game
+	int				mWalking;           // animals walking at the last update
 	int				mLastLevel;
 	FILE*			mLog;
 
 	AutoplayState() : mSeed(1), mTick(0), mGames(0), mWait(0), mLevelsSeen(0), mShots(0), mGameOverLogged(false),
-		mLevelLogged(false), mMoves(0), mLastLevel(0), mLog(NULL) {}
+		mLevelLogged(false), mMoves(0), mWalking(0), mLastLevel(0), mLog(NULL) {}
 
 	int Rand(int theRange)
 	{
@@ -133,6 +134,25 @@ void NoahApp::AutoplayUpdate()
 	{
 		s->mLog = fopen(mAutoplayLog.c_str(), "w");
 		Log(s, "autoplay seed %u mode %s diff %d games %d", s->mSeed, ModeName(mAutoplayMode), mAutoplayDiff, mAutoplayGames);
+	}
+	// a pair that starts walking (a match was made): where the two animals are, for screenshots of the walk
+	if (mBoard != NULL)
+	{
+		int aMoving = 0, aFirstX = -1, aFirstY = -1;
+		for (int x = 0; x < 9; x++)
+			for (int y = 0; y < 9; y++)
+				if ((mBoard->mGrid[x][y] != NULL) && mBoard->mGrid[x][y]->mMoving)
+				{
+					if (aMoving == 0)
+					{
+						aFirstX = x;
+						aFirstY = y;
+					}
+					aMoving++;
+				}
+		if ((aMoving > 0) && (s->mWalking == 0))
+			Log(s, "pair joined at update %d: first animal at column %d row %d", s->mTick, aFirstX, aFirstY);
+		s->mWalking = aMoving;
 	}
 	if (s->mTick > mAutoplayCap)
 	{

@@ -1,0 +1,84 @@
+{
+  "ignore": [
+    {
+      "rect": [
+        0,
+        0,
+        800,
+        600
+      ],
+      "pairs": "logo.png",
+      "label": "the logos fade in on the game's clock; origrun's waitshot catches the original's first drawn frame, the port's shot a later one"
+    },
+    {
+      "rect": [
+        160,
+        0,
+        181,
+        215
+      ],
+      "pairs": "menu.png,mainmenu.png,endmenu.png",
+      "label": "the menu's hanging sign swings on the game's clock"
+    },
+    {
+      "rect": [
+        489,
+        184,
+        104,
+        152
+      ],
+      "pairs": "menu.png,mainmenu.png,endmenu.png",
+      "label": "Bonnie's waving hand, on the game's clock"
+    },
+    {
+      "rect": [
+        408,
+        110,
+        335,
+        310
+      ],
+      "pairs": "board.png,tutorial.png,word.png,played.png,cake.png,tale.png,gameoptions.png,action.png,actionword.png,resumed.png",
+      "label": "the board's random letters: sparkles draw from rand every frame, so the board depends on how many frames ran before it; the board itself is compared on a loaded save (run res1)"
+    },
+    {
+      "rect": [
+        390,
+        542,
+        123,
+        36
+      ],
+      "pairs": "word.png,cake.png",
+      "label": "the Submit button's frame cycles its colours on the game's clock while a word is ready"
+    },
+    {
+      "rect": [
+        432,
+        109,
+        42,
+        41
+      ],
+      "pairs": "help3.png",
+      "label": "help 3's star tile cycles its colours on the game's clock"
+    },
+    {
+      "rect": [
+        379,
+        386,
+        44,
+        25
+      ],
+      "pairs": "help3.png",
+      "label": "help 3's demonstration tiles light up on the game's clock"
+    },
+    {
+      "rect": [
+        636,
+        111,
+        34,
+        34
+      ],
+      "pairs": "help3.png",
+      "label": "help 3's demonstration tiles light up on the game's clock"
+    }
+  ]
+}

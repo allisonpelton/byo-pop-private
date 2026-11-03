@@ -21,8 +21,8 @@ DEFAULT_INSTALLS = [
     r"C:\Program Files (x86)\PopCap Games\Pixelus Deluxe",
 ]
 
-# Folders and files the game reads at runtime. Pixelus.exe (PopCap's DRM wrapper with the game inside) is read for
-# the game's texts only, never run. Not copied: Flash.ocx, drm.swf and drmss.jpg (the wrapper's Flash screens),
+# Folders and files the game reads at runtime. Pixelus.exe is read for the game's texts only, never run. Not copied:
+# Flash.ocx, drm.swf and drmss.jpg (the launcher's screens),
 # bass.dll (the port plays music itself), the uninstaller, readme/licence, and the player's own data.
 DIRS = ["images", "data", "levels", "sounds", "music", "properties", "win32ads", "NcFramework"]
 FILES = ["Pixelus.exe", "adlist.txt"]

@@ -14,6 +14,10 @@
 #include "DDImage.h"
 #include "Image.h"
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // 0x401600
@@ -345,6 +349,11 @@ void BWGameSelector::Update()
 				// port: the 2004 EditWidget::SetText leaves mLeftPos alone
 				aDialog->mNameEdit->SetText(mApp->mUserName, false);
 			}
+#ifdef __EMSCRIPTEN__
+			// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it, in place of the above
+			if (aDialog != NULL)
+				SiteFillNewUser(aDialog->mNameEdit);
+#endif
 		}
 	}
 

@@ -22,6 +22,9 @@
 #include "WidgetManager.h"
 #include "lua.h"
 #include "platform/VFS.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 
 using namespace Sexy;
 
@@ -68,6 +71,7 @@ void GameApp::CloseOptionsDialog(bool theApply)
 		bool a3D = aDialog->m3DBox->IsChecked();
 		if (mProfile != nullptr)
 			mProfile->SetBool("DisableTips", aDialog->mNoTooltipsBox->IsChecked());
+		Set3DMode(a3D);
 		SwitchScreenMode(aWindowed, a3D, false);
 		EnableCustomCursors(aDialog->mCursorsBox->IsChecked());
 		ClearUpdateBacklog(false);
@@ -128,6 +132,9 @@ void GameApp::ShowNewUserDialog(int theButtonMode)
 		}
 	}
 	NewUserDialog* aDialog = new NewUserDialog(theButtonMode, aDefaultName);
+#ifdef __EMSCRIPTEN__
+	SiteFillNewUser(aDialog->mEdit);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
+#endif
 	aDialog->Layout(500);
 	aDialog->Move((mWidth - aDialog->mWidth) / 2, (mHeight - aDialog->mHeight) / 2);
 	AddDialog(aDialog->mId, aDialog);
@@ -163,6 +170,9 @@ void GameApp::NewUserDialogDone()
 		mCutScene->mWaitingForCurtain = false;
 	}
 	mPlayIntro = false;
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(this);	// the web page's players (framework/WebProfiles.h): a player was made
+#endif
 	// the main menu, when it is up, takes the player, or says the name is taken and the dialog stays
 	if (mMainMenu != nullptr) {
 		if (mMainMenu->TakeNewUser(aName)) {

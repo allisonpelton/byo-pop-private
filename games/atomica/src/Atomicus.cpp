@@ -191,7 +191,7 @@ void Atomicus::Comment(int theCombo)
 	}
 }
 
-// 0x40b9f0: the monitor shows the head; it is drawn into a window of the monitor's size
+// 0x40b9f0: the monitor shows the head (the mouth is centred on the head's width, not its own: 0x40bdfd to 0x40be09); it is drawn into a window of the monitor's size
 void Atomicus::Draw(Graphics* g, int theX, int theY)
 {
 	Sprite* aMask = mApp->mMonitorMask;
@@ -217,7 +217,7 @@ void Atomicus::Draw(Graphics* g, int theX, int theY)
 	{
 		int aFrame = 10 + mApp->mRand.Get(20, false);
 		Sprite* aMouth = (aGaze == 10) ? mApp->mMouth[aFrame] : mApp->mMouthLeft[aFrame];
-		aMouth->Draw(&aWindow, aWidth / 2 + ((aGaze == 10) ? 0x2e : 0xe) + ((((mOffset == 0) ? 5 : 0) - aGaze) * 2) - aMouth->mWidth / 2,
+		aMouth->Draw(&aWindow, aWidth / 2 + ((aGaze == 10) ? 0x2e : 0xe) + ((((mOffset == 0) ? 5 : 0) - aGaze) * 2) - aHead->mWidth / 2,
 			aHeight / 2 - aHead->mHeight / 2 + 0x54 + mOffset);
 	}
 	aWindow.SetColorizeImages(false);

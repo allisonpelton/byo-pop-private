@@ -11,6 +11,10 @@
 #include <cstring>
 #include <new>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 namespace cb
 {
 
@@ -307,6 +311,9 @@ int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag)
 				aWidth / 2 + (aX * 800) / 800, aY + 0x1e);
 			TextInput_SetFocus(anInput, 1);
 			TextInput_SetCaseMode(anInput, 1);
+#ifdef __EMSCRIPTEN__
+			SiteFillHighScore(anInput, theText->font);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
+#endif
 			TextInput_SetFillColour(anInput, 100, 100, 100, 100);
 			TextInput_SetOutline(anInput, 0);
 			TextInput_SetOnEnter(anInput, HighScore_Entered);

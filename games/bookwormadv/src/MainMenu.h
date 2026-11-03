@@ -179,7 +179,9 @@ public:
 	void MouseDown(int x, int y, int theClickCount) override;  // 0x47b350
 	void MouseUp(int x, int y, int theClickCount) override;    // 0x47b470
 
-	// ButtonListener: the link to change the player (0x47c720)
+	// ButtonListener: the link to change the player clicks (0x47d540) and opens the players' dialog (0x47c720)
+	using ButtonListener::ButtonPress;
+	void ButtonPress(int theId) override;
 	void ButtonDepress(int theId) override;
 
 	// DialogListener: the players' dialog (OK takes the chosen player, CANCEL none, NEW asks a name, DELETE asks

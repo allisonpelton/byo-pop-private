@@ -87,6 +87,20 @@ high-score screen (0x40ff70). The sidebar's four buttons are made at run time fr
 (`SevenSeasApp::TitleScreenDone`): undo (id 10), options (12), new game (14), quit (16). Dialogs: options (0x418760, the
 sliders and check boxes), next level (0x417a30, "Next rank at ..."), record score (0x419f40), the bonus-screen note
 (0x40c7d0) and the warning dialog (0x4262c0), both with a "do not show again" check box that is stored in the registry.
+The beginner's demo (`DemoWidget`, 0x4132b0, `Demo.cpp`) is shown by `StartGame` (0x41eef0) when the difficulty is the first and
+no tutorial is on: a board that plays itself for nine parts (the fade in, four captioned lessons, the fade out) with a fake
+cursor, and a "Click Here to Start!" button that removes it (`RemoveDemo`, 0x41f300) and starts the game. Its random draws
+(`CrtRand`) come in the original's order. Its button is drawn by the 2003 `DrawImageBox` (`Button2003.h`, 0x42beb0): the
+pieces are cut at width/3 and height/3, so a picture that is not a multiple of three (the 98 x 50 wooden button) shows
+different rows at the bottom and right than in the later framework. The demo's captions are two tables of pointers
+(0x4a39f0, 0x4a3a10) that no code refers to by address, so `make_gametext.py` lists them by hand.
+
+The help screen (`HelpWidget`, 0x40d330, `Help.cpp`; Options -> Help) is a board-sized picture: the sea, the four corner
+whirlpools, one ship of each kind on its heading with the eight arrows around the player's ship and two red crosses three
+cells to either side, a block of tutorial-font lines, and two black buttons (play the tutorial: `EndTutorial` with the
+tutorial on; return to game: `CloseHelp`). While it is up, `TalkWidget::Draw` draws nothing (its test is the help widget at
++0x43c, not the map's at +0x438). The black plate of the buttons is the colors of a plain `ButtonWidget` all black.
+
 
 The game-over screen (`HighScoreWidget`, constructor 0x40ff70, 467 x 480 at x 0xad) does nothing but load `hiscores.dat`
 (0x410550: the best score of the day and the five best, each with a name, a score and a check value) when it is made.
@@ -106,3 +120,64 @@ limit of 104 pixels (`+0x8c`), not a number of characters. The dialog draws the 
 `editbox` (96 x 32) as a left cap, a right cap and the middle slice repeated under a clip, in a rectangle 4 pixels larger than
 the widget on each side. The flash after an extra life (`Board::Draw`, 0x406400) draws the large ship (image 37), while
 the side panel's lives are the small icon (image 31).
+
+## 5. Deviations from the original (each without a visible effect)
+
+- **Help buttons' pressed look (0x40d330).** The original gives each help button `mDownImage` = `CopyImage(IMAGE_DBUTTONBLACK)`; the port
+  sets none and draws the black plate with the framework's flat path (`COLOR_BKG` black). `DBUTTONBLACK` is all black, so a pressed
+  button shows black text, offset by 1, over all black either way. To confirm with shotdiff once captures of the original work again.
+- **No Register button.** The options dialog's Register button is hidden (registration is taken out by the user's rule).
+- **Options dialog's four extra buttons' label colour** is gold, and a hovered label stays gold (captured in the Windows Sandbox,
+  2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
+  change under the mouse either (`qh`), nor do the help screen's two labels (`hh`), although the decompilation reads colour 1
+  while the mouse is over a button (+0x1f); a pressed button is not captured yet (origrun cannot hold a button down).
+
+## 6. Comparison with the original, state of 2026-11-01 (sandbox captures)
+
+Static screens match pixel for pixel (title, menu, quit and options dialogs, help screen, the first board and the arrows under the
+mouse). The map scenario (six sailing moves, a sinking and the new ship, 84 shots) shows the same board, ships, kills and score
+texts in every shot. The 2003 exe has no `mHasPendingDraw` or `mUpdateAppState`, but its main loop (0x431c70) counts the updates
+since the last draw at app+0x364, which origrun takes for both (`--pending-draw` and `--update-state` `[0x4e21bc]+0x364`), so a
+shot lands exactly on the update it says. `--input-eip 430ba0,430d40` (the update, vf05) holds each click until the game is
+between updates, and the log's "input at counter N" is the update that read it: the port's script puts the click's move, down and
+up on that update and nothing else is guessed (origrun posts all three back to back in the sandbox). With that, the pirate's start
+delay and every board state of the map scenario (six moves, kills, the sinking) match the original update for update; 25 of the 84
+shots match exactly and 39 more differ only faintly (the corner whirls by at most 8 of 255). The new ship's cell after the sinking is not a fault of the port: it was (2,2) in one original run and (1,9) in a second
+run of the same script and seed (shots at every update from 5726), and (1,9) is the port's cell. Logging every `CrtRand` draw
+of the port with its caller showed the same sites as the decompilation (two per update for the waves, one per enemy move for the
+whirls, two per `PlaceShip` attempt), and `PlaceShip` tries (5,2), rejected by the ship next to it, then (1,9). So the original's
+draw count between its start and the placement varies a little from run to run (something timed, not found), and an exact match
+of the placement cannot be had; the corner whirls and waves are insensitive to the shift (the waves clamp their speed).
+
+**Is3D.** The 2003 exe has no Direct3D mode at all (its export has no D3D or DirectDraw 7 calls beyond the plain surface), so
+there is no Is3D=0 original to compare with and no Hardware Acceleration checkbox to port. The port's framework picks its
+renderer by what SDL gives: the same script (the first moves of the map scenario, seed 7) drawn by the accelerated renderer and
+by `SDL_RENDER_DRIVER=software` differs in 16813 pixels of a shot by at most 3 of 255, never more, so either mode is as
+close to the original's software drawing as the other.
+
+**Continue (fixed 2026-11-01).** After "Continue" the port left the pirate's talk widget visible, a 200 x 200 box at (142, 10) over the
+board that took the clicks (and hover) of every cell under it, so moves failed on some squares and showed no arrows there until a
+new game: the original's case 0xf of 0x421a10 sets its mode to 0, clears the talking flag and hides it, as a new game does. The
+likely cause of the reported "controls fail at random times". Found by loading the original's own savegame.dat (its format is the
+port's; the file the original writes at exit) and clicking a cell under the box.
+
+**Continue: gun smoke on the loaded ships (not emulated).** The original's saved-game loader fills a ship's position, heading and
+type but not its nine gun-smoke timers (`mTrail`), which keep what the heap had there. In the sandbox the two ships showed
+cannon blasts in the diagonal cells (lower left, upper right) 60 updates after the board came up, and one of them again at
+update ~250: a timer that counts down from a large leftover value shows its blast once it falls below 14. The port starts them
+at -1 (no smoke). The leftovers differ with the heap, so there is nothing to copy; the effect is a second of smoke on a
+Continue, now and then. Everything else of the Continue, the level-complete screen and the next level matches (shots lc7000 and
+lc7300 are pixel-identical).
+
+The bonus screen's first message line ("Try to find the", "The Treasure is", "You Win!" and the like) is drawn at the top of the board (y 31), only the second line at the bottom (height - 0x1e); the port had both at the bottom. The Treasure Island nag's button label is the dialog's gold. Where the treasure lies (and so the direction text after a dig) differs between the original and the port in the comparison run: the original's draw count before the bonus level varies from run to run (see the new ship's cell above), so it is not compared.
+
+**Movement arrows (fixed 2026-11-01).** `DrawCellArrow` (0x409840) draws, in each of its three column cases, the picture of the neighbouring
+cell under the mouse; the port drew only the middle column's (the cells above and below the ship), so hovering the cells to the left or
+right, or the diagonals, showed no arrow (the user's "movement arrows don't show up properly"; native and web alike). The first board
+comparison had only hovered the vertical ones. Nine hovers around the ship (all eight neighbours and its own cell) now match the original.
+
+## 7. Oddities (what the original does that the port does not copy)
+
+Each is described in section 6 and in IDENTICAL_PLAY.md: the new ship's cell after a sinking (the original's own draw count varies
+between runs), the gun smoke on the loaded ships of a continued game (uninitialised timers), and the treasure's cell on the bonus
+level (random, same variation).

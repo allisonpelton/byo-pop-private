@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{index.title}}</title>
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
+     drawn (web/theme.js) -->
+<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script>
+<!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
+<script src="cursors.js"></script>
+<style>
+/* The list of the finished games (docs/WEB_PLAYER.md, "The listing page"). byopop_web_index() in
+   cmake/ByopopWeb.cmake puts one tile per game at the byopop:games marker. A tile's icon is a badge drawn here: the
+   game's initials on a colour of its own (the table in cmake/ByopopWeb.cmake); it never uses the games' art. The
+   colour tokens are the game pages' (web/shell.html). */
+:root {
+  --bg: #eceaf2;
+  --panel: #ffffff;
+  --fg: #1d1a29;
+  --muted: #5d5872;
+  --line: #d6d2e3;
+  --accent: #6b3fd1;
+  --font-ui: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff;
+    color-scheme: dark;
+  }
+}
+/* the theme the player chose with the theme button (web/theme.js) */
+:root[data-theme="dark"] {
+  --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff;
+  color-scheme: dark;
+}
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui); }
+/* The focus ring is always visible for the keyboard (docs/WEB_PLAYER.md, "Accessibility"). Nothing here moves by itself, and a player
+   who asks for no motion gets none */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+main, .site-header {
+  max-width: 960px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { padding-block: 0 32px; }
+.site-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-block: 24px; }
+/* The logo at its drawn size, 276 by 64 (the user, 2026-11-02: "Make the logo bigger on the front page"), narrower on a small screen */
+.site-header img { display: block; max-width: 100%; height: auto; }
+.site-header .logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  :root:not([data-theme="light"]) .site-header .logo-dark { display: block; }
+}
+:root[data-theme="dark"] .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+:root[data-theme="dark"] .site-header .logo-dark { display: block; }
+/* the theme button (web/theme.js), at the header's right */
+.theme-btn { margin-left: auto; width: 40px; height: 34px; padding: 0; color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.theme-btn:hover { color: var(--fg); border-color: var(--accent); }
+h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.games {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 16px;
+}
+/* A game's card (the li): the link with the badge and the name, and under it the row with the label for the files */
+.games > li {
+  position: relative; display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.games > li:hover, .games > li:focus-within { border-color: var(--accent); }
+/* A game still to come (cmake/ByopopWeb.cmake, BYOPOP_WEB_UPCOMING): not a link, so nothing on it reacts to the pointer but its
+   buy links. Dimmed by its colours, not by opacity, so that its text keeps the page's contrast: the card on the page's background
+   with a dashed edge, the name in the muted colour, and the badge greyed, which keeps its lightness and so the white letters'
+   contrast */
+.games > li.soon { background: var(--bg); border-style: dashed; border-color: var(--muted); }
+.games > li.soon:hover { border-color: var(--muted); }
+.games > li.soon:focus-within { border-color: var(--accent); }
+.soon .tile { cursor: default; }
+.soon .name { color: var(--muted); }
+.soon .badge { filter: saturate(0.35); box-shadow: none; }
+.own-soon { font-weight: 600; }
+.tile {
+  flex: 1; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 16px 8px 6px; color: inherit; text-decoration: none; text-align: center; border-radius: var(--radius) var(--radius) 0 0;
+}
+.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* A game's placeholder badge is a bottle cap (the user, 2026-11-03: "Change the placeholder icons to be in the shape of a bottle
+   cap"): its colour cut to a crown cap's outline (brand/cap.svg, our own drawing, 21 crimps), with the cap's skirt and the ring of
+   its top darker, and the initials in the middle. The game's own icon, once its files are here, takes the cap's place */
+.badge {
+  display: flex; align-items: center; justify-content: center; flex: none; width: 72px; height: 72px;
+  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0, 0, 0, 0.2) 69% 73%, transparent 74% 84%, rgba(0, 0, 0, 0.16) 85%), var(--tile);
+  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat;
+  color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 0.02em;
+}
+.name { font-weight: 600; overflow-wrap: anywhere; }
+/* The year of the game's release, small under the name (cmake/ByopopWeb.cmake, BYOPOP_WEB_RELEASED); the gap above it is the tile's
+   10 px less 8 */
+.year { margin-top: -8px; font-size: 12px; color: var(--muted); }
+/* "Sort by" (docs/WEB_PLAYER.md, "The listing page"): a radio group above the games. The legend floats, so that it shares a line
+   with the choices; the labels are 32 px high, for a finger. Hidden until the page's script is there to sort. */
+.toolbar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; margin: 0 0 16px; }
+.sortby { box-sizing: border-box; margin: 0; padding: 0; border: 0; min-width: 0; }
+/* Adding games (web/addgames.js): the button, the panel of what each folder was, and the drop targets while files are dragged over */
+.add-games, .adding button {
+  font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
+}
+.add-games:hover, .adding button:hover { border-color: var(--accent); }
+.add-games[hidden], .adding[hidden], .adding-rejected[hidden] { display: none; }
+.adding { margin: 0 0 16px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.adding-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.adding-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.adding-head button { padding: 0 10px; font-size: 18px; line-height: 28px; }
+.adding-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.ag-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; overflow-wrap: anywhere; }
+.ag-folder { font-weight: 600; }
+.ag-state { color: var(--muted); font-size: 13px; }
+.ag-ok { color: var(--accent); }
+.ag-error, .adding-rejected { color: #b3261e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ag-error, :root:not([data-theme="light"]) .adding-rejected { color: #ff8a80; } }
+:root[data-theme="dark"] .ag-error, :root[data-theme="dark"] .adding-rejected { color: #ff8a80; }
+.adding select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; max-width: 100%; }
+.adding-rejected { margin: 8px 0 0; font-size: 13px; }
+.logo-drop { border-radius: var(--radius); }
+.toolbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.bin { display: flex; align-items: center; justify-content: center; width: 40px; height: 34px; padding: 0; color: var(--muted);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.bin:hover, .bin[aria-expanded=true] { color: var(--fg); border-color: var(--accent); }
+.bin[hidden], .bin-confirm[hidden], .bin-pick[hidden] { display: none; }
+.bin-icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.bin-pick, .bin-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.bin-confirm p { flex-basis: 100%; margin: 0; }
+.adding button.bin-yes { border-color: #b3261e; color: #b3261e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .adding button.bin-yes { border-color: #ff8a80; color: #ff8a80; } }
+:root[data-theme="dark"] .adding button.bin-yes { border-color: #ff8a80; color: #ff8a80; }
+/* a cap that can go into the bin (the game's files are here) */
+.badge[draggable=true] { cursor: grab; }
+.drop-on { outline: 3px dashed var(--accent); outline-offset: 4px; }
+.sortby[hidden] { display: none; }
+.show-unsold { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
+.show-unsold[hidden] { display: none; }
+.show-unsold input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+/* a game no store sells any more, unless its files are here (data-files, set by the files check) */
+.games.hide-unsold > li[data-unsold]:not([data-files=yes]) { display: none; }
+.sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
+.sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
+.sortby label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
+.sortby input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+/* A game whose files are loaded shows its own icon in place of the initials: the badge's size, with crisp pixels
+   when it is enlarged (icons are kept at 64 px or less) */
+.badge.has-icon { background: none; box-shadow: none; -webkit-mask: none; mask: none; }
+.badge img { display: block; width: 72px; height: 72px; object-fit: contain; image-rendering: crisp-edges; image-rendering: pixelated; }
+/* Under the name, in words: whether the game's files are loaded in this browser ("Play now") or not ("Add your files"),
+   and for a game played here before, a "?" that explains why they are not (docs/WEB_PLAYER.md, "The listing page") */
+.ownrow { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px 12px; min-height: 20px; }
+.own { font-size: 12px; color: var(--muted); }
+.own:empty { display: none; }
+.own-yes { color: var(--accent); font-weight: 600; }
+/* How much the game was played here (web/settings.js, ByopopPlay), at the foot of the card once it has been */
+.played { margin: -6px 0 0; padding: 0 8px 12px; font-size: 12px; color: var(--muted); text-align: center; }
+.played[hidden] { display: none; }
+.why {
+  flex: none; width: 20px; height: 20px; padding: 0; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--bg); color: var(--fg); font: inherit; font-size: 12px; font-weight: 700; line-height: 1; cursor: pointer;
+}
+.why:hover { border-color: var(--accent); }
+.why:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.why[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.why-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; box-sizing: border-box; width: min(340px, calc(100vw - 32px));
+  padding: 14px 16px; background: var(--panel); color: var(--fg); border: 1px solid var(--accent); border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); text-align: left; font-size: 13px;
+}
+.why-pop h3 { margin: 0 0 8px; font-size: 14px; }
+.why-pop p, .why-pop ul { margin: 0 0 8px; }
+.why-pop :last-child { margin-bottom: 0; }
+.why-pop ul { padding-left: 18px; }
+.why-pop a { color: var(--accent); font-weight: 600; }
+/* The players, the saves and the settings, as tabs under the games (docs/WEB_PLAYER.md, "The listing page"): a row of tabs on a line,
+   the chosen one in the accent colour and joined to its panel */
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 40px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; }
+.tabs [role=tab] {
+  font: inherit; font-weight: 600; color: var(--muted); background: none; cursor: pointer;
+  min-height: 40px; padding: 8px 16px; margin-bottom: -1px;
+  border: 1px solid transparent; border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0;
+}
+.tabs [role=tab]:hover { color: var(--fg); }
+.tab-icon { display: block; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabs [role=tab][aria-selected=true] { color: var(--accent); background: var(--panel); border-color: var(--line); border-bottom: 1px solid var(--panel); }
+.tabs [role=tab]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tabpanel { padding-top: 4px; scroll-margin-top: 16px; }
+.tabpanel[hidden] { display: none; }
+.tabpanel:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }
+/* The players (docs/WEB_PLAYER.md, "Player profiles"): web/players.js builds the section's insides */
+#players h3, #saves h3 { margin: 24px 0 8px; font-size: 15px; font-weight: 600; }
+.pl-about, .pl-hint, .pl-muted { color: var(--muted); font-size: 13px; }
+#players p, #saves p { margin: 0 0 8px; }
+.pl-status { min-height: 1.5em; font-size: 13px; }
+.pl-status.pl-alert:empty { display: none; }
+.pl-status.pl-error, .pl-error { color: #b3261e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pl-status.pl-error, :root:not([data-theme="light"]) .pl-error { color: #ff8a80; } }
+:root[data-theme="dark"] .pl-status.pl-error, :root[data-theme="dark"] .pl-error { color: #ff8a80; }
+.pl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.pl-use, .pl-game { margin: 0 0 12px; padding: 0; border: 0; min-width: 0; }
+.pl-game { padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.pl-game legend { padding: 0 6px; font-weight: 600; }
+.pl-cards, .pl-names, .pl-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pl-names { gap: 4px; }
+.pl-card { padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.pl-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.pl-current { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.pl-current input, .pl-names input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
+.pl-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+#players button, #saves button {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
+}
+#players button:hover, #saves button:hover { border-color: var(--accent); }
+#players button:focus-visible, #saves button:focus-visible, #players input:focus-visible, #saves input:focus-visible,
+#players summary:focus-visible, #saves summary:focus-visible, #saves select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#players button[disabled], #saves button[disabled] { opacity: 0.5; cursor: default; }
+#players button.pl-link { border: 0; background: none; color: var(--accent); padding: 0 2px; text-decoration: underline; font-size: inherit; }
+#players button.pl-danger, #saves button.pl-danger { border-color: #b3261e; color: #b3261e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #players button.pl-danger, :root:not([data-theme="light"]) #saves button.pl-danger { border-color: #ff8a80; color: #ff8a80; } }
+:root[data-theme="dark"] #players button.pl-danger, :root[data-theme="dark"] #saves button.pl-danger { border-color: #ff8a80; color: #ff8a80; }
+.pl-badge { font-size: 12px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 99px; padding: 0 8px; }
+.pl-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.pl-form[hidden] { display: none; }
+.pl-form label { font-weight: 600; }
+.pl-form input[type=text] {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 12em; max-width: 100%;
+}
+.pl-details { margin-top: 8px; }
+.pl-details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.pl-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+.pl-table th, .pl-table td { text-align: left; padding: 5px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+.pl-table thead th { color: var(--muted); font-weight: 600; border-top: 0; }
+.pl-table tbody th { font-weight: 600; white-space: nowrap; }
+@media (max-width: 640px) { .pl-table, .pl-table tbody, .pl-table tr, .pl-table th, .pl-table td { display: block; } .pl-table thead { display: none; }
+  .pl-table tr { border-top: 1px solid var(--line); padding: 4px 0; } .pl-table th, .pl-table td { border-top: 0; padding: 1px 8px; } }
+.pl-flag { color: var(--muted); }
+.pl-names li { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.pl-names label { cursor: pointer; overflow-wrap: anywhere; }
+.pl-pending, .pl-pending-tag { font-size: 13px; color: var(--accent); }
+.pl-confirm { margin: 12px 0; padding: 14px 16px; background: var(--panel); border: 2px solid #b3261e; border-radius: var(--radius); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pl-confirm { border-color: #ff8a80; } }
+:root[data-theme="dark"] .pl-confirm { border-color: #ff8a80; }
+.pl-confirm h4 { margin: 0 0 8px; font-size: 15px; }
+.pl-confirm ul { margin: 0 0 12px; padding-left: 18px; }
+.pl-results { gap: 4px; margin-bottom: 8px; font-size: 13px; }
+.pl-empty { color: var(--muted); }
+/* The save backup (web/saves.js) uses the players section's controls; its list and file field */
+.sv-list { margin: 0 0 12px; padding-left: 18px; font-size: 13px; }
+.sv-actions { margin-left: 0; align-items: center; gap: 10px 12px; margin-bottom: 8px; }
+.sv-actions label { font-weight: 600; }
+.sv-actions input[type=file] { font: inherit; color: var(--fg); max-width: 100%; }
+.sv-report { margin-bottom: 8px; }
+.sv-report h3 { margin-top: 12px; }
+.pl-count { color: var(--muted); font-size: 13px; }
+/* The import from an installed game (web/saveimport.js) */
+#saves select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
+.si-help h4 { margin: 12px 0 8px; font-size: 14px; font-weight: 600; }
+.si-help, .si-pickers { margin: 8px 0; }
+.si-help p, .si-help li { font-size: 13px; }
+.si-help code, .si-confirm code { font-size: 12px; overflow-wrap: anywhere; }
+.si-step { font-weight: 600; margin-top: 14px; }
+.si-cmd { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 8px; }
+.si-pre { flex: 1; min-width: 0; margin: 0; padding: 6px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.si-fields { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; margin: 12px 0; min-width: 0; }
+.si-fields legend { font-weight: 600; padding: 0 6px; }
+.si-row { display: grid; gap: 4px; margin-bottom: 10px; }
+.si-row label { font-weight: 600; }
+.si-row input[type=file] { font: inherit; color: var(--fg); max-width: 100%; }
+.si-sub { margin: 12px 0 4px; font-size: 13px; font-weight: 600; }
+.si-confirm li { overflow-wrap: anywhere; }
+/* The site's settings (docs/WEB_PLAYER.md, "Site settings"): web/settings.js draws the controls and brings their style */
+/* The foot of the page: the disclaimer and the credit, at the page's width, in the muted colour of both themes */
+/* Where a game can still be bought: a link for each store, beside the game's own link in the card (cmake/ByopopStores.cmake) */
+.buyrow { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 10px; padding: 0 8px 12px; font-size: 12px; }
+.buyrow[hidden] { display: none; }
+.buyrow a { color: var(--accent); }
+.buyrow a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+footer {
+  max-width: 960px; margin: 0 auto; padding-block: 0 32px; box-sizing: border-box; color: var(--muted); font-size: 12.5px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+footer p { margin: 0 0 8px; }
+footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <!-- The logo stands for the bottle opener: game folders dropped on it are added (web/addgames.js) -->
+  <div class="logo-drop" id="logo-drop">
+    <img class="logo-light" src="logo.svg" alt="{{index.logo_alt}}" width="210" height="64">
+    <img class="logo-dark" src="logo-dark.svg" alt="" width="210" height="64">
+  </div>
+  <!-- Out of sight (the user, 2026-11-03: "remove Games from the front page header"), but still the page's heading and the list's name -->
+  <h1 id="games-title" class="visually-hidden">{{index.games}}</h1>
+  <button type="button" class="theme-btn" data-theme-toggle aria-label="{{theme.button}}" aria-pressed="false"></button>
+</header>
+<main>
+  <div class="toolbar">
+    <fieldset class="sortby" id="sortby" hidden>
+      <legend>{{index.sort.legend}}</legend>
+      <div class="sortby-opts">
+        <label><input type="radio" name="sortby" value="name" checked> {{index.sort.name}}</label>
+        <label><input type="radio" name="sortby" value="release"> {{index.sort.release}}</label>
+        <label><input type="radio" name="sortby" value="time"> {{index.sort.time}}</label>
+        <label><input type="radio" name="sortby" value="plays"> {{index.sort.plays}}</label>
+      </div>
+    </fieldset>
+    <!-- Games no store sells any more (data-unsold) are hidden unless this is ticked or their files are here (the script below) -->
+    <label class="show-unsold" id="show-unsold-label" hidden><input type="checkbox" id="show-unsold" aria-label="{{index.unsold}}"> {{index.unsold}}</label>
+    <div class="toolbar-actions">
+      <button type="button" class="add-games" id="add-games" hidden>{{index.add.button}}</button>
+      <!-- The recycle bin: a game's cap dragged here forgets its files, after a yes in the panel below (web/addgames.js) -->
+      <button type="button" class="bin" id="bin" aria-label="{{index.bin.label}}" title="{{index.bin.tooltip}}"
+        aria-controls="bin-panel" aria-expanded="false" hidden><svg class="bin-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16M9.5 6.5V4h5v2.5M6 6.5l1 13.5h10l1-13.5"/><path d="M10 10v7M14 10v7"/></svg></button>
+    </div>
+    <input type="file" id="add-games-pick" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
+  </div>
+  <!-- What became of the folders added from this page (web/addgames.js) -->
+  <section class="adding" id="adding" aria-labelledby="adding-title" hidden>
+    <div class="adding-head">
+      <h2 id="adding-title">{{index.adding.heading}}</h2>
+      <button type="button" id="adding-close" aria-label="{{index.adding.close}}">×</button>
+    </div>
+    <ul class="adding-list" id="adding-list"></ul>
+    <p class="adding-rejected" id="adding-rejected" aria-live="polite" hidden></p>
+  </section>
+  <section class="adding" id="bin-panel" aria-labelledby="bin-title" hidden>
+    <div class="adding-head">
+      <h2 id="bin-title">{{index.bin.heading}}</h2>
+      <button type="button" id="bin-close" aria-label="{{index.bin.close}}">×</button>
+    </div>
+    <div class="bin-pick" id="bin-pick">
+      <label for="bin-game">{{index.bin.pick}}</label>
+      <select id="bin-game"></select>
+      <button type="button" id="bin-forget">{{index.bin.forget}}</button>
+    </div>
+    <div class="bin-confirm" id="bin-confirm" hidden>
+      <p id="bin-question"></p>
+      <button type="button" class="bin-yes" id="bin-yes">{{index.bin.yes}}</button>
+      <button type="button" id="bin-no">{{index.bin.no}}</button>
+    </div>
+    <p class="ag-state" id="bin-status" role="status"></p>
+  </section>
+  <p class="pl-sr" id="sortby-status" role="status"></p>
+  <ul class="games" aria-labelledby="games-title">
+<!-- byopop:games -->
+  </ul>
+  <!-- The players, the saves and the settings, as tabs under the games (the tabs script below), each an icon of our own named by its
+       aria-label, with the name as its tooltip (the user, 2026-11-03: "use icons rather than names") -->
+  <div class="tabs" role="tablist" aria-label="{{index.tabs.label}}">
+    <button type="button" role="tab" id="tab-players" aria-controls="players" aria-selected="true" aria-label="{{index.tabs.players}}" title="{{index.tabs.players}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14c2.8 0 5 2.2 5 5"/></svg></button>
+    <button type="button" role="tab" id="tab-saves" aria-controls="saves" aria-selected="false" tabindex="-1" aria-label="{{index.tabs.saves}}" title="{{index.tabs.saves}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 4h12.5L20 7.5V20H4z"/><path d="M8 4v5h7V4"/><rect x="7.5" y="13" width="9" height="7"/></svg></button>
+    <button type="button" role="tab" id="tab-settings" aria-controls="settings" aria-selected="false" tabindex="-1" aria-label="{{index.tabs.settings}}" title="{{index.tabs.settings}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/><circle cx="12" cy="12" r="6.5"/></svg></button>
+  </div>
+  <section id="players" class="tabpanel" role="tabpanel" aria-labelledby="tab-players" tabindex="0">
+    <h2 class="pl-sr">{{index.players.heading}}</h2>
+    <div id="players-body"></div>
+  </section>
+  <section id="saves" class="tabpanel" role="tabpanel" aria-labelledby="tab-saves" tabindex="0" hidden>
+    <h2 class="pl-sr">{{index.saves.heading}}</h2>
+    <div id="saves-body"></div>
+  </section>
+  <section id="settings" class="tabpanel" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
+    <h2 class="pl-sr">{{index.settings.heading}}</h2>
+    <div id="settings-controls"></div>
+    <div id="site-cursor" class="site-cursor-choice"></div>
+  </section>
+</main>
+<footer>
+  <p>{{index.footer.about}}</p>
+  <p>{{index.footer.trademarks}}</p>
+  <p>{{index.footer.credit_html}}</p>
+</footer>
+<script src="settings.js"></script>
+<script src="profiles.js"></script>
+<script src="players.js"></script>
+<script src="saveimport-table.js"></script>
+<script src="saveimport.js"></script>
+<script src="saves.js"></script>
+<!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
+     import rules and each listed game's page.js (import-games.js, written by the build) -->
+<script>var Module = {};</script>
+<script src="modpanel.js"></script>
+<script src="exeicon.js"></script>
+<script src="gameimport.js"></script>
+<script src="capanim.js"></script>
+<script src="import-games.js"></script>
+<script src="addgames.js"></script>
+<script>
+// The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
+try { ByopopSettings.render(document.getElementById("settings-controls")); } catch (e) {}
+// the site's cursor (web/cursors.js): a game's set, chosen for every page
+try { ByopopCursors.render(document.getElementById("site-cursor")); } catch (e) {}
+// The players section (web/players.js): the games are the tiles, in their order
+try {
+  ByopopPlayers.init(document.getElementById("players-body"), Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
+    return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent };
+  }));
+} catch (e) { document.getElementById("players-body").textContent = ByopopStrings.t("index.players.unavailable"); }
+// The saves section (web/saves.js): a backup and a restore of the saves, with each game's database, Web Lock and replays from its card
+try {
+  ByopopSaves.init(document.getElementById("saves-body"), Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
+    return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent, persist: t.getAttribute("data-persist"),
+      lock: t.getAttribute("data-lock") || "", replays: t.getAttribute("data-replays") === "1" };
+  }));
+} catch (e) { document.getElementById("saves-body").textContent = ByopopStrings.t("index.saves.unavailable"); }
+</script>
+<script>
+// Games no longer sold (docs/WEB_PLAYER.md, "The listing page"; the user, 2026-11-03: "add an option to hide games that can no
+// longer be purchased, and default to hiding those games from the front page"): a game with no store in cmake/ByopopStores.cmake
+// has data-unsold on its card, and is hidden unless "Show games no longer sold" is ticked or its files are in this browser (a
+// player who has them can play it). The choice is kept in localStorage ("byopop-listing-unsold": "show", or nothing for the
+// default); a page without storage hides them.
+(function () {
+  var KEY = "byopop-listing-unsold";
+  var list = document.querySelector("ul.games"), box = document.getElementById("show-unsold"), label = document.getElementById("show-unsold-label");
+  if (!list || !box || !label) return;
+  if (!list.querySelector("li[data-unsold]")) return;  // every game is sold somewhere: no choice to offer
+  function apply(show) {
+    box.checked = show;
+    list.classList.toggle("hide-unsold", !show);
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  apply(saved === "show");
+  label.hidden = false;
+  box.addEventListener("change", function () {
+    apply(box.checked);
+    try { if (box.checked) localStorage.setItem(KEY, "show"); else localStorage.removeItem(KEY); } catch (e) {}
+  });
+  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(ev.newValue === "show"); });
+})();
+</script>
+<script>
+// "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles without "Deluxe"), by release
+// date, oldest first, or by how much they were played in this browser (ByopopPlay, web/settings.js): play time or plays, most first. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
+// (no CSS order). It runs after the Players and Saves sections took the games in the built order: they keep it. The choice is
+// remembered in localStorage (the page works without it).
+(function () {
+  var KEY = "byopop-listing-sort";  // "name", "release", "time" or "plays"
+  var list = document.querySelector("ul.games"), box = document.getElementById("sortby"), status = document.getElementById("sortby-status");
+  if (!list || !box || !status) return;
+  var radios = Array.prototype.slice.call(box.querySelectorAll("input[name=sortby]"));
+  var SAID = { name: "index.sort.said_name", release: "index.sort.said_release", time: "index.sort.said_time", plays: "index.sort.said_plays" };
+  var mode = "name";
+
+  // the date of data-released as [year, month, day], 0 for a part it does not give; null for no date or one that is not a date
+  function when(text) {
+    var m = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(text || "");
+    return m ? [+m[1], m[2] ? +m[2] : 0, m[3] ? +m[3] : 0] : null;
+  }
+  var cards = Array.prototype.slice.call(list.children).filter(function (e) { return e.tagName === "LI"; }).map(function (li, at) {
+    var tile = li.querySelector("a.tile[data-game]");
+    return { li: li, at: at, when: when(li.getAttribute("data-released")), title: (li.getAttribute("data-title") || "").toLowerCase().replace(/ deluxe/g, ""),
+      id: tile ? tile.getAttribute("data-game") : "" };
+  });
+  var byName = cards.slice();
+  // Oldest first. Inside a year, the dates with a month come before a year alone, by month; inside a month, the ones with a day
+  // come before a month alone, by day: the less exact a date, the later it sorts among the same year's or month's. No date goes
+  // last. Equals go by title, then as built.
+  var byRelease = cards.slice().sort(function (a, b) {
+    var x = a.when, y = b.when, keys = [];
+    if (x && !y) return -1;
+    if (y && !x) return 1;
+    if (x && y) keys = [x[0] - y[0], (x[1] ? 0 : 1) - (y[1] ? 0 : 1), x[1] - y[1], (x[2] ? 0 : 1) - (y[2] ? 0 : 1), x[2] - y[2]];
+    for (var i = 0; i < keys.length; i++) if (keys[i]) return keys[i];
+    return a.title < b.title ? -1 : a.title > b.title ? 1 : a.at - b.at;
+  });
+
+  // Most played first, by play time (seconds) or by plays, the other then breaking a tie; then the games whose files are here
+  // (the card's data-files, from the files check) before the others, each by name, the games still to come among the others.
+  // Read again at each sort: the counts change as games are played, and the files check ends after the first sort.
+  function byPlay(field) {
+    var play = {};
+    try { play = ByopopPlay.all(); } catch (e) {}
+    var other = field === "seconds" ? "plays" : "seconds", at = {};
+    byName.forEach(function (c, i) { at[c.at] = i; });
+    function n(c, f) { var p = c.id && play[c.id]; return p && p[f] > 0 ? p[f] : 0; }
+    function added(c) { return c.li.getAttribute("data-files") === "yes" ? 1 : 0; }
+    return cards.slice().sort(function (a, b) {
+      return (n(b, field) - n(a, field)) || (n(b, other) - n(a, other)) || (added(b) - added(a)) || (at[a.at] - at[b.at]);
+    });
+  }
+
+  // Puts the cards in this order, moving only those out of place, and keeps the focus where it was (a moved element that
+  // had it loses it)
+  function place(order) {
+    var had = document.activeElement;
+    order.forEach(function (card, at) {
+      if (list.children[at] !== card.li) list.insertBefore(card.li, list.children[at] || null);
+    });
+    if (had && had !== document.activeElement && document.body.contains(had)) { try { had.focus({ preventScroll: true }); } catch (e) {} }
+  }
+  function apply(to, say) {
+    mode = SAID.hasOwnProperty(to) ? to : "name";
+    radios.forEach(function (r) { r.checked = r.value === mode; });
+    place(mode === "release" ? byRelease : mode === "time" ? byPlay("seconds") : mode === "plays" ? byPlay("plays") : byName);
+    if (say) status.textContent = ByopopStrings.t(SAID[mode]);  // polite, and only for the player's own choice
+  }
+
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  box.hidden = false;
+  if (saved && saved !== "name") apply(saved, false);
+  radios.forEach(function (r) {
+    r.addEventListener("change", function () {
+      if (!r.checked) return;
+      apply(r.value, true);
+      try { localStorage.setItem(KEY, r.value); } catch (e) {}
+    });
+  });
+  // the choice made in another tab
+  window.addEventListener("storage", function (ev) {
+    if (ev.key === KEY || ev.key === null) apply(ev.newValue, false);
+    else if (ev.key === ByopopPlay.KEY && (mode === "time" || mode === "plays")) apply(mode, false);  // a game was played in another tab
+  });
+  // back from a game's page (the page may come from the browser's cache), and each time the files check has shown the cards
+  window.addEventListener("pageshow", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
+  document.addEventListener("byopop-tiles-checked", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
+})();
+</script>
+<script>
+// Which games have their files loaded, as a sign that the player owns them (docs/WEB_PLAYER.md, "The listing page"). A
+// game page keeps a record in localStorage (web/settings.js, ByopopGameFiles): when it last found the game's files, and
+// when the player forgot them or the page found them gone. For a game without a record, because its files were imported
+// before the pages kept one, this looks in the game's IDBFS database (the card's data-persist, which is the game's persist
+// folder from its page.js, put in at build time): first indexedDB.databases(), so that opening a name never creates an
+// empty database, and then the keys only, never the files' contents. Without databases() such a game is shown as unknown,
+// not guessed. A game that was played here before but has no files now gets a "?" that explains why. All of it runs again
+// when the page comes back into view, as the files may have been loaded or forgotten in another tab or page.
+(function () {
+  var tiles = Array.prototype.slice.call(document.querySelectorAll("a.tile[data-game]"));
+  var WORDS = { yes: "index.files.yes", no: "index.files.no", unknown: "index.files.unknown" };
+  var WHY = ByopopStrings.t("index.why.title");
+  var generation = 0;
+  var open = null;  // the "?" whose explanation is showing: {button, pop}
+
+  function make(tag, text) {
+    var e = document.createElement(tag);
+    if (text) e.textContent = text;
+    return e;
+  }
+  function close(focusButton) {
+    if (!open) return;
+    var o = open;
+    open = null;
+    o.pop.hidden = true;
+    o.button.setAttribute("aria-expanded", "false");
+    if (focusButton) o.button.focus();
+  }
+  // The explanation, in the card's popover. info: what is known about the game's files (see check)
+  function fill(pop, tile, info) {
+    pop.textContent = "";
+    var title = make("h3", WHY);
+    title.id = pop.id + "-title";
+    pop.setAttribute("aria-labelledby", title.id);
+    pop.appendChild(title);
+    pop.appendChild(make("p", ByopopStrings.t(info.loaded ? "index.why.before_last" : "index.why.before", {date: info.loaded})));
+    pop.appendChild(make("p", ByopopStrings.t("index.why.causes")));
+    var causes = make("ul");
+    causes.appendChild(make("li", info.forgotten
+      ? ByopopStrings.t("index.why.forgot_on", {date: info.forgotten})
+      : ByopopStrings.t("index.why.forgot")));
+    causes.appendChild(make("li", ByopopStrings.t("index.why.cleared")));
+    causes.appendChild(make("li", ByopopStrings.t("index.why.other_browser")));
+    pop.appendChild(causes);
+    pop.appendChild(make("p", ByopopStrings.t("index.why.never_uploads")));
+    if (info.saves) pop.appendChild(make("p", ByopopStrings.t("index.why.saves")));
+    var last = make("p");
+    last.innerHTML = ByopopStrings.html("index.why.back_html", {href: tile.href});
+    pop.appendChild(last);
+  }
+  function toggle(button, tile) {
+    if (open && open.button === button) { close(false); return; }
+    close(false);
+    var pop = button.parentNode.parentNode.querySelector(".why-pop");
+    fill(pop, tile, button.byopopInfo);
+    pop.hidden = false;
+    // beside the card's left edge, or its right edge when that would leave the window
+    pop.style.left = "0"; pop.style.right = "auto";
+    if (pop.getBoundingClientRect().right > document.documentElement.clientWidth - 8) { pop.style.left = "auto"; pop.style.right = "0"; }
+    button.setAttribute("aria-expanded", "true");
+    open = { button: button, pop: pop };
+  }
+  // The label under the game's name, the link's accessible name, and the "?" for a game played before
+  function show(tile, info, gen) {
+    if (gen !== generation) return;  // a newer check has started
+    var card = tile.parentNode, row = card.querySelector(".ownrow"), label = card.querySelector(".own");
+    // the game's own icon (read out of its exe by the game's page, kept in the record) in place of the initials
+    var badge = tile.querySelector(".badge");
+    if (badge.getAttribute("data-initials") === null) badge.setAttribute("data-initials", badge.textContent);
+    if (info.state === "yes" && info.icon) {
+      var shown = badge.querySelector("img");
+      if (!shown) {
+        badge.textContent = "";
+        shown = make("img");
+        shown.alt = "";  // the card has the game's name
+        badge.appendChild(shown);
+        badge.classList.add("has-icon");
+      }
+      if (shown.getAttribute("src") !== info.icon) shown.src = info.icon;
+    } else if (badge.classList.contains("has-icon")) {
+      badge.classList.remove("has-icon");
+      badge.textContent = badge.getAttribute("data-initials");
+    }
+    // a game whose files are here: its cap can be dragged into the recycle bin (web/addgames.js), which lists such games too
+    badge.draggable = info.state === "yes";
+    card.setAttribute("data-files", info.state);
+    label.textContent = ByopopStrings.t(WORDS[info.state]);
+    label.className = "own own-" + info.state;
+    // Where to buy (docs/WEB_PLAYER.md, "The listing page"): not shown to a player whose files for the game are loaded, were
+    // loaded and forgotten or lost since (the record says so), or who has played it here: the links would suggest that the page
+    // is used for copies it was not given by a purchase. They are shown for "Add your files" without such a past, and for
+    // "Files unknown".
+    var buy = card.querySelector(".buyrow");
+    if (buy) buy.hidden = info.state === "yes" || !!info.everLoaded || !!info.played;
+    // the link's accessible name: the game's name, the year of its release when it has one, then the same words
+    // ("Bejeweled Deluxe, 2001, play now")
+    var year = tile.querySelector(".year");
+    tile.setAttribute("aria-label", ByopopStrings.t(year ? "index.tile.label_year" : "index.tile.label",
+      {name: tile.querySelector(".name").textContent, year: year ? year.textContent : "", state: ByopopStrings.t(WORDS[info.state]).toLowerCase()}));
+    showPlayed(card, info.play);
+    var button = row.querySelector(".why"), pop = card.querySelector(".why-pop");
+    if (info.state === "no" && info.played) {
+      if (!button) {
+        var id = "why-" + tile.getAttribute("data-game");
+        button = make("button", "?");
+        button.type = "button";
+        button.className = "why";
+        button.setAttribute("aria-label", WHY);
+        button.title = WHY;
+        button.setAttribute("aria-expanded", "false");
+        button.setAttribute("aria-controls", id);
+        button.addEventListener("click", function () { toggle(button, tile); });
+        row.appendChild(button);
+        pop = make("div");
+        pop.id = id;
+        pop.className = "why-pop";
+        pop.setAttribute("role", "region");
+        pop.hidden = true;
+        card.appendChild(pop);
+      }
+      button.byopopInfo = info;
+      if (open && open.button === button) fill(pop, tile, info);  // showing: the new facts
+    } else if (button) {
+      if (open && open.button === button) close(false);
+      button.remove();
+      pop.remove();
+    }
+  }
+
+  // How much the game was played here (ByopopPlay), once it has been: "3 plays · 2 h 15 min", then "Last played 1 Nov 2026"
+  function showPlayed(card, play) {
+    var line = card.querySelector(".played");
+    if (!play || !(play.plays > 0 || play.seconds > 0)) { if (line) line.hidden = true; return; }
+    if (!line) {
+      line = make("p");
+      line.className = "played";
+      card.insertBefore(line, card.querySelector(".buyrow"));
+    }
+    var when = play.last, m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(when || "");
+    if (m) {
+      var day = new Date(+m[1], +m[2] - 1, +m[3]);
+      if (when === ByopopPlay.today()) when = ByopopStrings.t("index.played_today");
+      else { try { when = day.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); } catch (e) {} }
+    }
+    line.textContent = "";
+    line.appendChild(document.createTextNode(ByopopStrings.t("index.played", {n: play.plays, time: ByopopPlay.duration(play.seconds)})));
+    if (when) { line.appendChild(make("br")); line.appendChild(document.createTextNode(ByopopStrings.t("index.played_last", {date: when}))); }
+    line.hidden = false;
+  }
+
+  // What the IDBFS database called name holds, from its keys only: {game, saves, entries}. A key is a file's when it is in
+  // a folder of the database's folders (game, userdata, mods...) below the first level, or has an extension at that
+  // level (TipTop's files are at the top of game/); the others are folders. game: a file in game/, saves: one in
+  // userdata/, entries: any file.
+  function scan(name) {
+    var found = { game: false, saves: false, entries: false };
+    return new Promise(function (resolve) {
+      var done = false;
+      function end() { if (!done) { done = true; resolve(found); } }
+      try {
+        var request = indexedDB.open(name);
+        request.onerror = request.onblocked = end;
+        // (the database was just listed, so this does not run; if it was deleted since, nothing is created)
+        request.onupgradeneeded = function (ev) { try { ev.target.transaction.abort(); } catch (e) {} end(); };
+        request.onsuccess = function () {
+          var db = request.result;
+          function finish() { try { db.close(); } catch (e) {} end(); }
+          try {
+            if (!db.objectStoreNames.contains("FILE_DATA")) { finish(); return; }
+            var cursor = db.transaction("FILE_DATA", "readonly").objectStore("FILE_DATA").openKeyCursor();
+            cursor.onerror = finish;
+            cursor.onsuccess = function () {
+              var at = cursor.result;
+              if (!at) { finish(); return; }
+              var key = String(at.key);
+              if (key.indexOf(name + "/") === 0) {
+                var segs = key.substring(name.length + 1).split("/");
+                if ((segs.length >= 3) || ((segs.length === 2) && (segs[1].indexOf(".") >= 0))) {
+                  found.entries = true;
+                  if (segs[0] === "game") { found.game = true; finish(); return; }  // all that is needed
+                  if (segs[0] === "userdata") found.saves = true;
+                }
+              }
+              at.continue();
+            };
+          } catch (e) { finish(); }
+        };
+      } catch (e) { end(); }
+    });
+  }
+  // the save backup that the game pages keep in localStorage (platform/WebPersist.cpp): the game's user folder
+  function hasBackup(persist) {
+    try { return localStorage.getItem("sexy-userdata-backup:" + persist + "/userdata") !== null; } catch (e) { return false; }
+  }
+
+  // Resolves once every card has been shown (web/addgames.js waits for it before listing the games whose files are here)
+  function check() {
+    var gen = ++generation, record = {}, plays = {};
+    try { record = ByopopGameFiles.all(); } catch (e) {}
+    try { plays = ByopopPlay.all(); } catch (e) {}
+    var haveNames = !!(window.indexedDB && typeof indexedDB.databases === "function");
+    return (haveNames ? indexedDB.databases().then(function (list) { return list.map(function (d) { return d.name; }); }) : Promise.resolve(null))
+      .catch(function () { return null; })
+      .then(function (names) {  // null: the browser cannot list its databases
+        return Promise.all(tiles.map(function (tile) {
+          var id = tile.getAttribute("data-game"), persist = tile.getAttribute("data-persist"), rec = record[id] || null;
+          var listed = names !== null && names.indexOf(persist) >= 0;
+          var info = { state: "unknown", played: false, loaded: rec && rec.loaded, forgotten: rec && rec.forgotten, saves: hasBackup(persist),
+            everLoaded: ByopopGameFiles.everLoaded(rec), play: plays[id] || null,
+            icon: (rec && ByopopGameFiles.present(rec) && rec.icon) || "" };
+          if (rec && ByopopGameFiles.present(rec) && (names === null || listed)) {
+            // the record says the files are there, and the database that holds them is
+            info.state = "yes";
+            show(tile, info, gen);
+            return null;
+          }
+          if (names === null && !rec) { show(tile, info, gen); return null; }  // not known, and not guessed
+          return (listed ? scan(persist) : Promise.resolve({ game: false, saves: false, entries: false })).then(function (found) {
+            // a record that says the files went missing wins over files in the database: a copy cut off partway (the tab closed
+            // while the listing added it) has some, and the game page refuses it
+            if (found.game && !(rec && rec.missing)) info.state = "yes";
+            else {
+              info.state = "no";
+              // played before: a record of files loaded once (kept when they are forgotten), a save backup, or entries in the database
+              info.played = ByopopGameFiles.everLoaded(rec) || info.saves || found.entries;
+              info.saves = info.saves || found.saves;
+            }
+            show(tile, info, gen);
+          });
+        }));
+      })
+      .then(function () {
+        // for the sort by play (its tie of added before not added) and anything else that reads the cards' data-files
+        if (gen === generation) { try { document.dispatchEvent(new Event("byopop-tiles-checked")); } catch (e) {} }
+      });
+  }
+  document.addEventListener("keydown", function (ev) { if (open && ev.key === "Escape") { ev.preventDefault(); close(true); } });
+  document.addEventListener("click", function (ev) {
+    if (open && !open.button.parentNode.parentNode.contains(ev.target)) close(false);
+  });
+  // Before the files check (which waits for the database): a card whose record says its files are here is taken as such, so
+  // that a game no store sells, hidden by default unless its files are here, is in the grid from the start instead of
+  // moving the grid when the check ends. The check then sets every card's data-files from what it finds.
+  (function () {
+    var record = {};
+    try { record = ByopopGameFiles.all(); } catch (e) {}
+    tiles.forEach(function (tile) {
+      var li = tile.parentNode, rec = record[tile.getAttribute("data-game")];
+      if (li && !li.hasAttribute("data-files") && ByopopGameFiles.present(rec)) li.setAttribute("data-files", "yes");
+    });
+  })();
+  check();
+  window.addEventListener("pageshow", check);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
+  window.addEventListener("storage", function (ev) { if (ev.key === null || ev.key === ByopopGameFiles.KEY || ev.key === ByopopPlay.KEY) check(); });
+  // for web/addgames.js, after it adds a game
+  window.ByopopTiles = { check: check };
+  try { ByopopAddGames.init(); } catch (e) {}
+})();
+</script>
+<script>
+// The tabs under the games (docs/WEB_PLAYER.md, "The listing page"): Players, Saves and Settings, after the ARIA pattern for tabs with
+// automatic activation. Only the chosen tab is in the tab order; the arrow keys move along the tabs and show each one's panel, Home and
+// End go to the first and the last, and Tab goes on into the panel. A link to #players, #saves or #settings (the Players section's
+// "Player names in Settings", a game page's "Manage players"), here or when the page opens, shows that tab and puts the focus on it.
+// The player's own choice goes into the address (replaceState, no history entry), so that a reload keeps it, and is remembered in
+// localStorage for the next visit (the page works without it).
+(function () {
+  var KEY = "byopop-listing-tab";
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".tabs [role=tab]"));
+  if (!tabs.length) return;
+  function panel(tab) { return document.getElementById(tab.getAttribute("aria-controls")); }
+  function choose(tab, focus) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      if (on) t.removeAttribute("tabindex"); else t.setAttribute("tabindex", "-1");
+      panel(t).hidden = !on;
+    });
+    if (focus) tab.focus();
+    try { localStorage.setItem(KEY, panel(tab).id); } catch (e) {}
+  }
+  function byPanel(id) { return tabs.filter(function (t) { return t.getAttribute("aria-controls") === id; })[0] || null; }
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener("click", function () { choose(tab, false); toAddress(tab); });
+    tab.addEventListener("keydown", function (ev) {
+      var to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[ev.key];
+      if (to === undefined || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      ev.preventDefault();
+      var next = tabs[(to + tabs.length) % tabs.length];
+      choose(next, true);
+      toAddress(next);
+    });
+  });
+  function toAddress(tab) {
+    try { history.replaceState(null, "", location.pathname + location.search + "#" + panel(tab).id); } catch (e) {}
+  }
+  // #players, #saves or #settings: that tab, scrolled to
+  function fromHash() {
+    var tab = byPanel(location.hash.slice(1));
+    if (!tab) return false;
+    choose(tab, false);
+    tabs[0].parentNode.scrollIntoView({ block: "start" });
+    return true;
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  if (!fromHash() && byPanel(saved)) choose(byPanel(saved), false);
+  window.addEventListener("hashchange", fromHash);
+  // a link to the tab that is already in the address (the hash does not change): the tab all the same, and the focus on it
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest('a[href^="#"]');
+    var tab = a && byPanel(a.getAttribute("href").slice(1));
+    if (!tab) return;
+    ev.preventDefault();
+    if (location.hash !== a.getAttribute("href")) history.pushState(null, "", a.getAttribute("href"));
+    choose(tab, true);
+    tabs[0].parentNode.scrollIntoView({ block: "start" });
+  });
+})();
+</script>
+<script>
+// A page opened with ?silent=1 (automated tests in a browser pane, CLAUDE.md) opens its games silent too
+try {
+  if (new URLSearchParams(location.search).get("silent") === "1") {
+    for (const a of document.querySelectorAll("a.tile")) a.search = "?silent=1";
+  }
+} catch (e) {}
+</script>
+</body>
+</html>

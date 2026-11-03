@@ -14,6 +14,11 @@ class WidgetManager;
 
 typedef std::list<Widget*> WidgetList;
 
+// A later framework's PutBehind and PutInfront (Bejeweled Twist's, 0x4c2520 and 0x4c2640) first give the widget the
+// reference widget's z-order, so it lands right next to it; SAF 1.3's keep the widget's own and place it among its
+// z-order. Off by default; a game whose framework does it turns it on
+extern bool gPutCopiesZOrder;
+
 
 class WidgetContainer
 {

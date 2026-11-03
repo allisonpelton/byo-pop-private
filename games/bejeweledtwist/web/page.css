@@ -1,0 +1,5 @@
+/* Bejeweled Twist's look on the shared page (web/shell.html): the logo's magenta, with a gem's amber for the brand mark */
+:root { --accent: #a3268f; --gem: #d99a1a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #e47ad2; } }
+:root[data-theme="dark"] { --accent: #e47ad2; }
+.brand .mark { width: 12px; height: 12px; background: var(--gem); transform: rotate(45deg); box-shadow: 0 0 0 2px var(--accent); }

@@ -19,5 +19,7 @@
       'it is never run) are copied.',
     modsIntro: "Mods replace game files: images, sounds, music or data in the same folders the game uses (for example " +
       "images/title.jpg), plus an optional mod.json.",
+    // the game stores no exe: the import reads its icon out of the install's exe (web/shell.html, importIcon)
+    importIcon: true,
     seeds: false
   };

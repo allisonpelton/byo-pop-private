@@ -8,6 +8,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Every game and tool lands in the build folder itself (build/native/bejeweled.exe, build/web/rulestest.js)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+# A build shares the machine with the user and several sessions, and Ninja would run a job per core (20 here) at
+# normal priority: at most 6 compiles and 2 links run at once (the user, 2026-11-01). A web link's wasm-opt has its own
+# cap (cmake/ByopopWeb.cmake).
+set_property(GLOBAL APPEND PROPERTY JOB_POOLS byopop_compile=6 byopop_link=2)
+set(CMAKE_JOB_POOL_COMPILE byopop_compile)
+set(CMAKE_JOB_POOL_LINK byopop_link)
 
 if(EMSCRIPTEN)
   set(SDL2_LIBRARIES "")
@@ -104,6 +110,17 @@ if(NOT EMSCRIPTEN)
     VERBATIM)
 endif()
 
+# Geometry test (tools/geomtest): framework/DisplayGeometry against a table of what DDInterface gave before it moved
+# out. Pure, no SDL; native only, geomtest.exe (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(geomtest tools/geomtest/geomtest.cpp framework/DisplayGeometry.cpp)
+  target_include_directories(geomtest PRIVATE framework)
+  # the framework's own floating point (framework/CMakeLists.txt), so the exact compares test the game's arithmetic
+  if((NOT MSVC) AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]86|x86)$"))
+    target_compile_options(geomtest PRIVATE -msse2 -mfpmath=sse)
+  endif()
+endif()
+
 # Sound test (tools/soundtest): sounds kept as 16-bit at their own rate, and voices that resample them as they mix,
 # against the old pipeline (stereo floats at the device rate). Native only; soundtest.exe (tools/check.sh unit).
 if(NOT EMSCRIPTEN)
@@ -141,19 +158,36 @@ if(BUILD_MODSETTINGSTEST)
   endif()
 endif()
 
-# JPEG 2000 test (tools/jp2test): decodes the .jp2 images of a folder that have a .png beside them through the image
-# loader (platform/openjpeg) and compares the pixels with the PNG's; the loader's mask and extension rules with .jp2
-# files. Native only: tools/check.sh unit runs it on assets/bookwormadv/images when that folder is staged.
+# JPEG 2000 test (tools/jp2test): decodes the .jp2 images of a folder through the image loader (platform/openjpeg)
+# and compares the pixels with reference PNGs, the decoder's own output (-write-ref, tools/jp2test/write_refs.sh);
+# the loader's mask and extension rules with .jp2 files. Native only: tools/check.sh unit runs it on
+# assets/bookwormadv/images when that folder is staged.
 if(NOT EMSCRIPTEN)
   option(BUILD_JP2TEST "Build the JPEG 2000 test" ON)
   if(BUILD_JP2TEST)
     add_executable(jp2test tools/jp2test/jp2test.cpp)
-    target_link_libraries(jp2test PRIVATE sexyframework sexyopenjpeg openjp2)  # openjp2: the encoder, for synthetic images
+    target_link_libraries(jp2test PRIVATE sexyframework sexyopenjpeg openjp2 stb)  # openjp2: the encoder, for synthetic images; stb: -write-ref
     if(NOT MSVC)
       target_compile_options(jp2test PRIVATE -Wall)
     endif()
     add_custom_command(TARGET jp2test POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:jp2test>
+      VERBATIM)
+  endif()
+endif()
+
+# GPU test (tools/gputest): the GL GPUInterface's Direct3D 9 conventions on the real GPU, one test each, exact pixels.
+# Native only; it opens a hidden GL window, so tools/check.sh gpu runs it under rundesk.
+if(NOT EMSCRIPTEN)
+  option(BUILD_GPUTEST "Build the GPU test" ON)
+  if(BUILD_GPUTEST)
+    add_executable(gputest tools/gputest/gputest.cpp)
+    target_link_libraries(gputest PRIVATE sexyframework)
+    if(NOT MSVC)
+      target_compile_options(gputest PRIVATE -Wall)
+    endif()
+    add_custom_command(TARGET gputest POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:gputest>
       VERBATIM)
   endif()
 endif()
@@ -196,6 +230,10 @@ option(BUILD_SEVENSEAS "Build the Seven Seas Deluxe port" ON)
 if(BUILD_SEVENSEAS AND EXISTS ${PROJECT_SOURCE_DIR}/games/sevenseas/CMakeLists.txt)
   add_subdirectory(games/sevenseas)
 endif()
+option(BUILD_ROCKETMANIA "Build the Rocket Mania Deluxe port" ON)
+if(BUILD_ROCKETMANIA AND EXISTS ${PROJECT_SOURCE_DIR}/games/rocketmania/CMakeLists.txt)
+  add_subdirectory(games/rocketmania)
+endif()
 option(BUILD_MUMMYMAZE "Build the Mummy Maze Deluxe port" ON)
 if(BUILD_MUMMYMAZE AND EXISTS ${PROJECT_SOURCE_DIR}/games/mummymaze/CMakeLists.txt)
   add_subdirectory(games/mummymaze)
@@ -204,6 +242,11 @@ endif()
 option(BUILD_BOOKWORMADV "Build the Bookworm Adventures Deluxe port" ON)
 if(BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt)
   add_subdirectory(games/bookwormadv)
+endif()
+# Bookworm Adventures Volume 2: the same engine as Volume 1, copied into its own folder; optional while it is new
+option(BUILD_BOOKWORMADV2 "Build the Bookworm Adventures Volume 2 port" ON)
+if(BUILD_BOOKWORMADV2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv2/CMakeLists.txt)
+  add_subdirectory(games/bookwormadv2)
 endif()
 # TipTop Deluxe: its own engine (games/tiptop/engine) under the framework's app host; optional while it is new
 option(BUILD_TIPTOP "Build the TipTop Deluxe port" ON)
@@ -230,4 +273,37 @@ endif()
 option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
 if(BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt)
   add_subdirectory(games/cosmicbugs)
+endif()
+# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine (games/waterbugs/engine); optional while it is new
+option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+if(BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt)
+  add_subdirectory(games/waterbugs)
+endif()
+# Dynomite Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_DYNOMITE "Build the Dynomite Deluxe port" ON)
+if(BUILD_DYNOMITE AND EXISTS ${PROJECT_SOURCE_DIR}/games/dynomite/CMakeLists.txt)
+  add_subdirectory(games/dynomite)
+endif()
+# Bonnie's Bookstore Deluxe: its own SDL 1.2 engine (games/bonnies/engine) under the framework's app host; optional
+# while it is new; the build skips it if its folder is missing
+option(BUILD_BONNIES "Build the Bonnie's Bookstore Deluxe port" ON)
+if(BUILD_BONNIES AND EXISTS ${PROJECT_SOURCE_DIR}/games/bonnies/CMakeLists.txt)
+  add_subdirectory(games/bonnies)
+endif()
+# Mahjong Escape: Ancient Japan: JollyBear's engine (games/mahjongjapan/engine) under the framework's app host;
+# optional while it is new
+option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
+if(BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt)
+  add_subdirectory(games/mahjongjapan)
+endif()
+# Mahjong Escape: Ancient China: Ancient Japan's port (games/mahjongchina/engine is a copy of its engine) with China's
+# differences; optional while it is new
+option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
+if(BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt)
+  add_subdirectory(games/mahjongchina)
+endif()
+# Bejeweled Twist: optional while it is new; the build skips it if its folder is missing
+option(BUILD_BEJEWELEDTWIST "Build the Bejeweled Twist port" ON)
+if(BUILD_BEJEWELEDTWIST AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweledtwist/CMakeLists.txt)
+  add_subdirectory(games/bejeweledtwist)
 endif()

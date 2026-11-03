@@ -15,6 +15,10 @@
 #include "Insets.h"
 #include <ctype.h>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 static const int NAME_MAX_CHARS = 0x1c;
@@ -47,6 +51,11 @@ NewUserDialog::NewUserDialog(PixelusApp* theApp, bool theRename) :
 		mExpertBox = new Checkbox(theApp->mImages[IMAGE_CHECKBOX_UNCHECKED], theApp->mImages[IMAGE_CHECKBOX_CHECKED], 1, this);
 	else
 		mExpertBox = NULL;
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" a new player's box starts with the site's player
+	if (!theRename)
+		SiteFillNewUser(mEdit);
+#endif
 }
 
 NewUserDialog::~NewUserDialog()

@@ -1,0 +1,28 @@
+# origrun game table: name <TAB> install folder (read-only; copied into build/origrun/<run>/game) <TAB> exe leaf.
+# These are the user's own installs. Paths only -- no game files live in the repo. Edit to match this machine.
+# A wrapped Steam exe (bejeweled's WinBej.exe, big money's WinBM.exe) must first have its real PE carved out with
+# tools/extract_game_exe.py into the copy; see docs/ORIGRUN.md. Such rows point at the wrapper and are marked below.
+# Optional columns 4 and 5, for --3d: the game's registry key under HKCU (where SexyAppBase keeps "Is3D") and the
+# address of the 3D flag it ended up with (mDDInterface->mIs3D, read as a byte; [x] is the pointer stored at x).
+alchemy	C:\Users\Administrator\Documents\claude\byo-pop\re\_installers\AlchemySetup-en\files\Alchemy Deluxe	Alchemy.exe
+atomica	C:\Users\Administrator\Documents\claude\byo-pop\re\_installers\AtomicaSetup\files\Atomica Deluxe	Atomica.exe
+mummymaze	C:\Users\Administrator\Documents\claude\byo-pop\re\_installers\MummyMazeSetup\files\Mummy Maze Deluxe	WinMM.exe
+pixelus	C:\Users\Administrator\Documents\claude\byo-pop\re\_installers\PixelusSetup\files\Pixelus Deluxe	Pixelus.exe
+tiptop	C:\Users\Administrator\Documents\claude\byo-pop\re\_installers\TipTopSetup\files\TipTop Deluxe	TipTop.exe
+noahsark	C:\Users\Administrator\Documents\claude\byo-pop\re\_installers\WinNoah_setup\files\Noah's Ark Deluxe	WinNoah.exe
+sevenseas	C:\Users\Administrator\Documents\claude\byo-pop\re\_installers\WinSevenSeas_setup\files\Seven Seas Deluxe	WinSS.exe
+wordharmony	C:\Users\Administrator\Documents\claude\byo-pop\re\_installers\WordHarmonySetup\files\WordHarmony	WordHarmony.exe
+ningpo	C:\Program Files (x86)\PopCap Games\NingPo MahJong Deluxe	Ningpo.exe
+bookwormadv	C:\Program Files (x86)\PopCap Games\Bookworm Adventures Deluxe	BookwormAdventures.exe	Software\PopCap\WinBAD	[[0x8259e4]+0x36c]+0x38
+cosmicbugs	C:\Program Files (x86)\Popcap Game Collection\Cosmic Bugs	CosmicBugs.exe
+waterbugs	C:\Program Files (x86)\Popcap Game Collection\Water Bugs	WaterBugs.exe
+bookworm	E:\SteamLibrary\steamapps\common\BookWorm Deluxe	Bookworm.exe
+dynomite	A:\SteamLibrary\steamapps\common\Dynomite Deluxe	Dynomite.exe
+rocketmania	A:\SteamLibrary\steamapps\common\Rocket Mania Deluxe	RocketMania.exe
+bookwormadv2	A:\SteamLibrary\steamapps\common\Bookworm Adventures Volume 2	BookwormAdventuresVol2.exe
+# wrapped (carve the real exe into the copy first; then run with --exe):
+bigmoney	A:\SteamLibrary\steamapps\common\Big Money Deluxe	WinBM.exe
+bejeweled	A:\SteamLibrary\steamapps\common\Bejeweled Deluxe	WinBej.exe
+mahjongjapan	C:\Program Files (x86)\Popcap Game Collection\Mahjong Escape Ancient Japan	MahjongEscapeAJ.exe
+mahjongchina	C:\Program Files (x86)\Popcap Game Collection\Mahjong Escape Ancient China	MahjongEscapeAC.exe
+bejeweledtwist	C:\Program Files (x86)\PopCap Games\Bejeweled Twist	BejeweledTwist.exe

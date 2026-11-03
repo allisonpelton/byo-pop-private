@@ -3,6 +3,8 @@
 # Game files copied from the user's own installs (assets/<game>/) - never commit or redistribute
 /assets/
 /build*/
+# The user's notes from playing the games, with screenshots of the games (never commit)
+/testnotes/
 /dist/
 *.pyc
 __pycache__/
@@ -20,3 +22,8 @@ __pycache__/
 # Pre-byo-pop location of the mods above (now games/<game>/mods/). Nothing tracked lives here any more:
 # ignore all of it so a checkout that still holds the old local mods never stages them
 /mods/
+
+# origrun per-machine config (per-game update-counter addresses, seeds) and patch lists (a trial-skip entry is
+# a protection detail). Kept local, like games.tsv's paths; never committed. The format is in docs/ORIGRUN.md.
+/tools/origrun/*.cfg
+/tools/origrun/patches/

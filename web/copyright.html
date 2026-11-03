@@ -3,10 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>@BYOPOP_TITLE@: terms, copyright and licenses</title>
+<title>{{copyright.title}}</title>
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
+     drawn (web/theme.js) -->
+<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script>
+<!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
+<script src="cursors.js"></script>
 <!-- The game's copyright page, linked from its page's footer. byopop_web_shell() in cmake/ByopopWeb.cmake writes it
      as <game>-copyright.html from this template, the game's notice and the license texts in web/licenses/. -->
 <style>
@@ -17,20 +22,40 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff; color-scheme: dark; }
+  :root:not([data-theme="light"]) { --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff; color-scheme: dark; }
 }
+:root[data-theme="dark"] { --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff; color-scheme: dark; }
 body {
   margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font-ui);
   padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-main { max-width: 72ch; margin: 0 auto; display: grid; gap: 8px; }
+main, body > header { max-width: 72ch; margin: 0 auto; }
+main { display: grid; gap: 8px; }
+body > header { margin-bottom: 8px; }
+.site { display: block; width: max-content; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .site img { display: block; height: 32px; width: auto; }
+/* one logo per theme; the light one, whose alt is the link's name, stays in the page out of sight in a dark theme */
+.site .logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .site .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  :root:not([data-theme="light"]) .site .logo-dark { display: block; }
+}
+:root[data-theme="dark"] .site .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+:root[data-theme="dark"] .site .logo-dark { display: block; }
+body > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.theme-btn { width: 40px; height: 34px; padding: 0; color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.theme-btn:hover { color: var(--fg); border-color: var(--accent); }
 h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 8px; text-wrap: balance; }
 h2 { font-size: 1.1rem; margin: 20px 0 0; }
 p, ul, ol { margin: 0; }
 ul, ol { padding-left: 1.2em; display: grid; gap: 4px; }
 a { color: var(--accent); }
-a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
 .notice, .terms-notice { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
 .back { color: var(--muted); font-size: 0.9rem; }
 details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
@@ -42,32 +67,32 @@ details pre {
 </style>
 </head>
 <body>
+<header>
+  <a class="site" href="./"><img class="logo-light" src="logo.svg" alt="{{copyright.logo_alt}}" width="105" height="32"><img class="logo-dark" src="logo-dark.svg" alt="" width="105" height="32"></a>
+  <button type="button" class="theme-btn" data-theme-toggle aria-label="{{theme.button}}" aria-pressed="false"></button>
+</header>
 <main>
-  <picture class="site"><source srcset="logo-dark.svg" media="(prefers-color-scheme: dark)"><img src="logo.svg" alt="byo-pop" width="140" height="32"></picture>
-  <p class="back"><a href="@BYOPOP_GAME_PAGE@">Back to @BYOPOP_TITLE@</a></p>
-  <h1>@BYOPOP_TITLE@: terms, copyright and licenses</h1>
+  <p class="back"><a href="@BYOPOP_GAME_PAGE@">{{copyright.back}}</a></p>
+  <h1>{{copyright.heading}}</h1>
 
-  <h2>The game</h2>
+  <h2>{{copyright.game.heading}}</h2>
   <p class="notice">@BYOPOP_COPYRIGHT@</p>
-  <p>The game's code, art, music, sounds and texts remain the property of their owners.</p>
+  <p>{{copyright.game.rights}}</p>
 
-  <h2>This player</h2>
+  <h2>{{copyright.player.heading}}</h2>
   <ul>
-    <li>It is an unofficial, non-commercial project, not affiliated with, endorsed or sponsored by Electronic Arts or
-      PopCap Games.</li>
-    <li>It comes with none of the game's files. To play, you import the files of your own copy of the game; they are
-      kept in this browser's storage and are never uploaded.</li>
-    <li>Its program reimplements the original game's behaviour so that it runs in a browser, on a port of the PopCap
-      Games Framework.</li>
+    <li>{{copyright.player.unofficial}}</li>
+    <li>{{copyright.player.no_files}}</li>
+    <li>{{copyright.player.reimplements}}</li>
   </ul>
 
-  <h2>Terms</h2>
-  <p>Before the game's files are loaded, the game's page asks you to agree to these terms.</p>
+  <h2>{{copyright.terms.heading}}</h2>
+  <p>{{copyright.terms.intro}}</p>
 @BYOPOP_TERMS@
 @BYOPOP_BUY@
 
-  <h2>Software licenses</h2>
-  <p>The player is built from the following software. Open an entry for its license.</p>
+  <h2>{{copyright.licenses.heading}}</h2>
+  <p>{{copyright.licenses.intro}}</p>
 @BYOPOP_LICENSES@
 </main>
 </body>

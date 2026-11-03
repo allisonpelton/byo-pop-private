@@ -49,7 +49,7 @@ void LuaApp::RegisterClasses()
 		.Method<&SexyAppBase::RegistryEraseKey>("RegistryEraseKey")
 		.Method<&SexyAppBase::RegistryEraseValue>("RegistryEraseValue")
 		.Method<&SexyAppBase::SetCursor>("SetCursor")
-		.Method<&SexyAppBase::Is3DAccelerated>("Is3DAccelerated")
+		.Method<&LuaApp::Is3DMode>("Is3DAccelerated")
 		.Method<&SexyAppBase::CleanSharedImages>("CleanSharedImages")
 		.Raw<&LuaApp::SafeDeleteWidget_>("SafeDeleteWidget")
 		.Raw<&LuaApp::GetWidgetManager_>("GetWidgetManager")
@@ -97,6 +97,19 @@ void LuaApp::Init()
 {
 	RegisterClasses();
 	SexyApp::Init();
+}
+
+void LuaApp::ReadFromRegistry()
+{
+	SexyApp::ReadFromRegistry();
+	RegistryReadBoolean("Is3D", &m3DMode);
+}
+
+void LuaApp::WriteToRegistry()
+{
+	SexyApp::WriteToRegistry();
+	if (mUserChanged3DSetting)
+		RegistryWriteBoolean("Is3D", m3DMode);
 }
 
 void LuaApp::Shutdown()

@@ -11,6 +11,7 @@
 
 #include "AtomicaApp.h"
 #include "platform/ModManager.h"
+#include "platform/SaveImport.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
 
@@ -109,7 +110,7 @@ int main(int argc, char** argv)
 		gameDir = FindGameDir();
 	if (userDir.empty())
 	{
-		char* pref = SDL_GetPrefPath("wasm-bejeweled", "Atomica Deluxe");
+		char* pref = SDL_GetPrefPath("byo-pop", "Atomica Deluxe");
 		userDir = pref ? pref : "userdata";
 		SDL_free(pref);
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
@@ -117,6 +118,16 @@ int main(int argc, char** argv)
 	}
 	if (modsDir.empty())
 		modsDir = ExeDir() + "/mods-atomica";
+#endif
+
+#ifndef __EMSCRIPTEN__
+	// -importsaves[=<install folder>]: brings the saves, high scores and settings of the original game installed on this computer into the
+	// user dir (platform/SaveImport.h), then exits without starting the game. Without it nothing changes.
+	{
+		int anImportResult = 0;
+		if (Platform::RunSaveImportIfRequested(argc, argv, "atomica", gameDir, userDir, &anImportResult))
+			return anImportResult;
+	}
 #endif
 
 	if (gameDir.empty() || !LooksLikeGameDir(gameDir))

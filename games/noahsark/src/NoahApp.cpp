@@ -23,6 +23,10 @@
 #include <cstdio>
 #include <cstring>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 NoahApp* Sexy::gApp = NULL;
@@ -679,6 +683,9 @@ void NoahApp::ButtonDepress(int theId)
 				if (mHighScoreWidget != NULL)
 					mHighScoreWidget->AddScore(aName);
 				mLastScoreName = aName;
+#ifdef __EMSCRIPTEN__
+				SiteScoresChanged(this);
+#endif
 			}
 			KillDialog(DIALOG_RECORD_SCORE);
 			break;

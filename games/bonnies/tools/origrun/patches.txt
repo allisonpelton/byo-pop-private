@@ -1,0 +1,1 @@
+seed BonniesGame.exe va:0x41f4e0 8b44240485c07509 b8{seed}eb0a90 seedRandom (0x41f4e0) takes --seed in place of its argument, as the port's -seed=N does for the time

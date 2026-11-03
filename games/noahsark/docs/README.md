@@ -52,8 +52,8 @@ tools/build.sh web                                     # build/web/noahsark.html
 ```
 
 Native: `noahsark.exe` finds `assets/noahsark/` next to itself (or up to two levels up), or the retail install;
-`-gamedir=` overrides that. Saves go to `%APPDATA%\wasm-bejeweled\Noahs Ark Deluxe\`: `savegame.dat` for the game in
-progress, `hiscores.dat` (the original's layout) and `registry.ini` for the options. Web: `noahsark.html`, every game's
+`-gamedir=` overrides that. Saves go to `%APPDATA%\byo-pop\Noahs Ark Deluxe\`: `savegame.dat` for the game in
+progress, `hiscores.dat` (the original's layout) and `registry.ini` for the options. `-importsaves[=<install folder>]` brings in the saves of the original game installed on this computer (`docs/WEB_PLAYER.md`, "Importing saves from an installed game"). Web: `noahsark.html`, every game's
 page (`web/shell.html`) with this game's settings (`games/noahsark/web/page.js`), imports the player's game folder (or a
 .zip of it) into its own IndexedDB-backed folder `/napersist`, separate from the other games', and saves as the other pages do.
 
@@ -71,6 +71,11 @@ game-over line of each run) are in `tools/check.sh`. `-script=<file>` drives the
 (`<update> click|screenshot|quit ...`); `games/noahsark/tools/run_script.sh` runs one under rundesk. A debug
 build with AddressSanitizer (llvm-mingw has the i386 runtime) is the way to find heap errors: configure a second build
 folder with `-fsanitize=address -g` and run the bot in it.
+
+The bot's log has a "pair joined at update N" line whenever animals start to walk. `tools/run_walk_shots.sh <dir> [N]`
+takes screenshots of the first walking pair of the action bot (seed 1) a few updates apart, to compare two builds.
+The rain animates on every frame, so whole-picture diffs always differ; compare the board region (x 178 to 628, y 16 to
+466), where only the animals and the flood move. The game's drawing is not changed for this.
 
 ## Mods
 

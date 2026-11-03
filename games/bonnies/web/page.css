@@ -1,0 +1,5 @@
+/* Bonnie's look on the shared page (web/shell.html): the green of the bookstore's sign, a book-red brand mark */
+:root { --accent: #3f7d2a; --book: #a8322b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #8cc66f; } }
+:root[data-theme="dark"] { --accent: #8cc66f; }
+.brand .mark { width: 12px; height: 12px; background: var(--book); border-radius: 2px; box-shadow: 0 0 0 2px var(--accent); }

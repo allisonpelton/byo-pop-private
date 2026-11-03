@@ -159,8 +159,10 @@ public:
 
 	void Init() override;                   // 0x445a50
 	void LoadingThreadProc() override;      // 0x4473e0
+	MusicInterface* CreateMusicInterface() override;  // 0x44f470
 	void LoadingThreadCompleted() override; // 0x4481a0
 	bool UpdateAppStep(bool* updated) override;
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void UpdateFrames() override;           // 0x44aa50
 	void Shutdown() override;               // 0x445960
 	void GotFocus() override;               // 0x451230: the screens update again
@@ -233,6 +235,10 @@ public:
 	// function theCallback (when not empty) with true
 	GameDialog* DoOkDialog(const SexyString& theHeader, const SexyString& theLines, const std::string& theCallback,
 	                       Image* theBanner);
+	// 0x44b5e0: the click of a button pressed, and of a dialog's yes or no (2000 + id, 3000 + id): SOUND_CLICK2 for
+	// buttons 1 and 11, SOUND_CLICK1 for the rest
+	using SexyAppBase::ButtonPress;
+	void ButtonPress(int theId) override;
 	// 0x44ad10: the dialogs' answers (2000 + id for yes, 3000 + id for no), and the buttons of the screens
 	// that send theirs here
 	void ButtonDepress(int theId) override;
@@ -377,7 +383,7 @@ private:
 	bool mLoadingGroupStarted = false;
 
 	// One step of the loading thread's work, until theDeadline (SDL ticks; 0: all of it). True when done.
-	bool LoadingStep(unsigned int theDeadline);
+	bool LoadingStep(unsigned int theDeadline, int theTaskLimit = -1);
 	void LoadingFailed();
 	// the scripts' function of dialog 0 or 18, told the answer (then forgotten)
 	void CallDialogCallback(bool theAnswer);
@@ -390,11 +396,22 @@ private:
 	// theError when one fails
 	// port: the thread's work in steps, the next resources until theDeadline (SDL ticks; 0: all of them); true when
 	// it is done (mChapterLoadError says when one failed)
-	bool LoadChapterResources(unsigned int theDeadline);
+	bool LoadChapterResources(unsigned int theDeadline, int theCountLimit = -1);
 	size_t mChapterLoadIndex = 0;          // the resource loading
 	bool mChapterLoadGroupStarted = false;  // its group's loading started
 	bool mChapterLoadDone = false;
 	bool mChapterLoadFailed = false;
+	// port: test hook -chapterloadupdates=N,N,...: the k-th chapter load's screen stays up for exactly N updates (its
+	// resources loaded evenly over them), so that a test run takes the updates the original took, and the hint draws its
+	// screen makes every 50 of them (the pilot measures them in the original with origrun's --watch)
+	std::vector<int> mChapterLoadUpdates;
+	size_t mChapterLoadNum = 0;    // chapter loads started
+	int mChapterLoadWanted = -1;   // this load's N, or -1
+	int mChapterLoadStart = 0;     // mUpdateCount when its screen went up
+	// port: test hook -startloadupdates=N: the startup load (StartLoading) completes N updates after it starts, its
+	// tasks done evenly over them, as the original's loading thread took N in the run measured (the pilot's --watch)
+	int mStartLoadWanted = -1;
+	int mStartLoadStart = 0;
 	std::string mChapterLoadError;
 	// ReturnToChapterSelect's: the groups of mChapterResources deleted, its animations too
 	void FreeChapterResources();

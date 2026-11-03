@@ -84,8 +84,9 @@ struct Mixer::Song
 	bool mLoop = true;
 	float mGain = 1.0f;
 	float mCurGain = 1.0f;  // smoothed per buffer to avoid zipper noise on fades
+	float mAmplify = 1.0f;  // BASS's module amplify (SetSongAmplify); streams keep 1
 
-	// The song's last frames before any gain, the two channels averaged, for GetSongFFT.
+	// The song's last frames before any gain, the two channels averaged, for GetSongFFT (which applies mAmplify).
 	static const int kHistoryFrames = 4096;
 	float mHistory[kHistoryFrames] = {};
 	int mHistoryPos = 0;
@@ -717,6 +718,43 @@ void Mixer::StopAllVoices()
 	Unlock();
 }
 
+void Mixer::SetGameClocked(bool theGameClocked)
+{
+	Lock();
+	mGameClocked = theGameClocked;
+	Unlock();
+}
+
+// Moves the voices on as Mix would over theMilliseconds of output (the same step per mixed frame, so pitch changes
+// count), and ends a one-shot voice where Mix would: once its position reaches the sound's end.
+void Mixer::AdvanceVoices(double theMilliseconds)
+{
+	Lock();
+	if (mGameClocked)
+	{
+		const double frames = theMilliseconds * mRate / 1000.0;
+		for (auto& vp : mVoices)
+		{
+			Voice& v = *vp;
+			if (!v.mActive || !v.mData)
+				continue;
+			const double len = (double)v.mData->mFrames;
+			v.mPos += v.mStep * frames;
+			if (v.mPos >= len)
+			{
+				if (v.mLoop)
+					v.mPos = std::fmod(v.mPos, len);
+				else
+				{
+					v.mActive = false;
+					v.mData.reset();
+				}
+			}
+		}
+	}
+	Unlock();
+}
+
 // ---------------------------------------------------------------------------------------------
 // Songs
 
@@ -909,6 +947,16 @@ void Mixer::SetSongGain(int theSong, float theGain)
 	Unlock();
 }
 
+void Mixer::SetSongAmplify(int theSong, float theGain)
+{
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	// BASS_MusicSetAttribute fails on a stream, so a mod's Ogg or WAV in place of a module plays unamplified
+	if (s && !s->IsStream())
+		s->mAmplify = theGain;
+	Unlock();
+}
+
 bool Mixer::IsSongPlaying(int theSong)
 {
 	Lock();
@@ -940,6 +988,44 @@ bool Mixer::GetSongPosition(int theSong, int& theOrder, int& theRow)
 	return known;
 }
 
+int Mixer::GetSongTempo(int theSong)
+{
+	int aTempo = 0;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mModule)
+		aTempo = s->mModule->GetTempo();
+	Unlock();
+	return aTempo;
+}
+
+void Mixer::SetSongTempo(int theSong, int theBPM)
+{
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mModule)
+		s->mModule->SetTempo(theBPM);
+	Unlock();
+}
+
+int Mixer::GetSongChannelVolume(int theSong, int theChannel)
+{
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	int aVolume = s && s->mModule ? s->mModule->GetChannelVolume(theChannel) : -1;
+	Unlock();
+	return aVolume;
+}
+
+void Mixer::SetSongChannelVolume(int theSong, int theChannel, int theVolume)
+{
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mModule)
+		s->mModule->SetChannelVolume(theChannel, theVolume);
+	Unlock();
+}
+
 bool Mixer::GetSongFFT(int theSong, float* theOut, int theSamples)
 {
 	const int n = theSamples;
@@ -953,7 +1039,7 @@ bool Mixer::GetSongFFT(int theSong, float* theOut, int theSamples)
 	{
 		playing = true;
 		for (int i = 0; i < n; i++)
-			re[i] = s->mHistory[(s->mHistoryPos - n + i) & (Song::kHistoryFrames - 1)];
+			re[i] = s->mHistory[(s->mHistoryPos - n + i) & (Song::kHistoryFrames - 1)] * s->mAmplify;
 	}
 	Unlock();
 	if (!playing)
@@ -1010,6 +1096,10 @@ void Mixer::Callback(void* theUser, uint8_t* theStream, int theLen)
 	m->Mix((float*)theStream, theLen / (int)(sizeof(float) * 2));
 	if (m->mSilent)
 		memset(theStream, 0, theLen);
+#ifdef __EMSCRIPTEN__
+	if (m->mPageMuted)
+		memset(theStream, 0, theLen);
+#endif
 }
 
 void Mixer::Mix(float* theOut, int theFrames)
@@ -1019,7 +1109,8 @@ void Mixer::Mix(float* theOut, int theFrames)
 	for (auto& vp : mVoices)
 	{
 		Voice& v = *vp;
-		if (!v.mActive || !v.mData)
+		// on the game's clock (SetGameClocked) only AdvanceVoices moves a voice, so the voices are not mixed
+		if (!v.mActive || !v.mData || mGameClocked)
 			continue;
 		const int16_t* src = v.mData->mSamples.data();
 		const int ch = v.mData->mChannels;
@@ -1061,7 +1152,7 @@ void Mixer::Mix(float* theOut, int theFrames)
 		if (!s.mPlaying || s.mPaused)
 			continue;
 		// ramp gain across the buffer so per-tick fades don't click
-		float g0 = s.mCurGain * mMusicMaster * s.mTrackGain, g1 = s.mGain * mMusicMaster * s.mTrackGain;
+		float g0 = s.mCurGain * mMusicMaster * s.mTrackGain * s.mAmplify, g1 = s.mGain * mMusicMaster * s.mTrackGain * s.mAmplify;
 		if (s.IsStream())
 		{
 			const double step = (double)s.mSourceRate / mRate;

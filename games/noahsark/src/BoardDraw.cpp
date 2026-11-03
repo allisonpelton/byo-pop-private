@@ -598,8 +598,9 @@ void Board::Draw(Graphics* g)
 				continue;
 			if (p->mMoving && !p->mRemoved && !p->mFading)
 			{
-				int aX = CellLeft(x) + p->mOffsetX;
-				int aY = CellTop(y) + p->mOffsetY;
+				// the cell the animal has walked to (it stays in its grid slot until it is taken in), not the slot's
+				int aX = CellLeft(p->mX) + p->mOffsetX;
+				int aY = CellTop(p->mY) + p->mOffsetY;
 				if (!p->mFacingRight)
 				{
 					aX += 6;

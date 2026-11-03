@@ -2,7 +2,7 @@
    tray, and a ruby for the brand mark */
 .brand .mark { width: 12px; height: 12px; transform: rotate(45deg); background: var(--gem-ruby); border-radius: 2px; }
 /* The Replays panel's list (page.html) */
-.replays { display: grid; gap: 8px; }
+.replays { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
 .replay {
   display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: start;
   padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);

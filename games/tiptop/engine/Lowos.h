@@ -111,7 +111,7 @@ int64_t PerfCounter();                                                          
 void Lock(volatile char* theLock);                                               // 0x42d260
 void Unlock(volatile char* theLock);                                             // 0x42d2a0
 void InitLock(volatile char* theLock);                                           // 0x42d2b0
-typedef void (*ActivateCallback)(char isActive);
+typedef void (*ActivateCallback)(char isInactive);  // 1: the window was deactivated, 0: activated
 typedef void (*CloseCallback)();
 typedef void (*SwitchCallback)(char theMode);
 typedef uint32_t (*RestoreCallback)();

@@ -16,6 +16,10 @@
 #include "Dialog.h"
 #include "Checkbox.h"
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // 0x410ee0: removes a widget from the screen and has the app delete it when it is safe
@@ -291,6 +295,9 @@ void AlchemyApp::ButtonDepress(int theId)
 			NameEntryDialog* aDialog = (NameEntryDialog*) GetDialog(DIALOG_NAME_ENTRY);
 			mHighScores->SetName(aDialog->GetName());
 			mLastScoreName = aDialog->GetName();
+#ifdef __EMSCRIPTEN__
+			SiteScoresChanged(this);
+#endif
 			KillDialog(DIALOG_NAME_ENTRY);
 			break;
 		}

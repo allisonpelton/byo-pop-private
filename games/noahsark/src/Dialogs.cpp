@@ -14,6 +14,10 @@
 #include <algorithm>
 #include <cmath>
 
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // ---------------------------------------------------------------------------------------------------------
@@ -168,6 +172,10 @@ RecordScoreDialog::RecordScoreDialog(NoahApp* theApp, const std::string& thePlac
 	mNameEdit->SetColor(EditWidget::COLOR_HILITE_TEXT, Color(0, 0, 0, 255));
 	mNameEdit->mMaxPixels = 0x78;
 	mNameEdit->SetText(mApp->mLastScoreName);
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("noahsark", mNameEdit, false);
+#endif
 	mNameEdit->SetColor(EditWidget::COLOR_HILITE_TEXT, Color(0xff, 0xff, 0xff));
 }
 

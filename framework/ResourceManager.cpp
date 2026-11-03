@@ -18,7 +18,9 @@ enum D3DImageFlags
 	D3DImageFlag_MinimizeNumSubdivisions	=			0x0001,
 	D3DImageFlag_Use64By64Subdivisions		=			0x0002,
 	D3DImageFlag_UseA4R4G4B4				=			0x0004,
-	D3DImageFlag_UseA8R8G8B8				=			0x0008
+	D3DImageFlag_UseA8R8G8B8				=			0x0008,
+	D3DImageFlag_CubeMap					=			0x0020,
+	D3DImageFlag_VolumeMap				=			0x0040
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -306,6 +308,8 @@ bool ResourceManager::ParseImageResource(XMLElement &theElement)
 		((!mApp->Is3DAccelerated()) && (theElement.mAttributes.find(_S("nobits2d")) != theElement.mAttributes.end()));
 	aRes->mA8R8G8B8 = theElement.mAttributes.find(_S("a8r8g8b8")) != theElement.mAttributes.end();
 	aRes->mMinimizeSubdivisions = theElement.mAttributes.find(_S("minsubdivide")) != theElement.mAttributes.end();
+	aRes->mCubeMap = theElement.mAttributes.find(_S("cubemap")) != theElement.mAttributes.end(); // 0x4671a0
+	aRes->mVolumeMap = theElement.mAttributes.find(_S("volumemap")) != theElement.mAttributes.end();
 	aRes->mAutoFindAlpha = theElement.mAttributes.find(_S("noalpha")) == theElement.mAttributes.end();	
 
 	XMLParamMap::iterator anItr;
@@ -786,6 +790,16 @@ bool ResourceManager::DoLoadImage(ImageRes *theRes)
 
 	if (theRes->mMinimizeSubdivisions)
 		aDDImage->mD3DFlags |= D3DImageFlag_MinimizeNumSubdivisions;
+
+	// 0x469ffc: a cube map is flag 0x20, else a volume map is flag 0x40 (the latter is not carried by the GPU stack)
+	if (theRes->mCubeMap)
+	{
+		aDDImage->mD3DFlags |= D3DImageFlag_CubeMap;
+		if (theRes->mRows * theRes->mCols != 6)
+			return Fail("Invalid CubeMap definition; must have 6 cells (check rows & cols values).");
+	}
+	else if (theRes->mVolumeMap)
+		aDDImage->mD3DFlags |= D3DImageFlag_VolumeMap;
 
 	if (theRes->mAnimInfo.mAnimType != AnimType_None)
 		aDDImage->mAnimInfo = new AnimInfo(theRes->mAnimInfo);

@@ -17,6 +17,8 @@
       "images/coins.gif, or images/coins@2x.png for an HD version), plus an optional mod.json.",
     // ?seed=N: the seed of every new game until one is played on it (its first valid click or its game over;
     // games/bigmoney/src/ModRules.h)
+    // the game stores no exe: the import reads its icon out of the install's exe (web/shell.html, importIcon)
+    importIcon: true,
     seeds: true,
     // games/bigmoney/src/Replay.h
     replays: true,
@@ -45,7 +47,7 @@
     list.textContent = "";
     var names = web().fs.listDir(REPLAYS).filter(function (n) { return /\.bmr$/i.test(n); }).sort().reverse();
     if (!names.length) {
-      var empty = document.createElement("div");
+      var empty = document.createElement("li");
       empty.className = "empty";
       empty.textContent = "No replays yet.";
       list.appendChild(empty);
@@ -54,7 +56,7 @@
     names.forEach(function (n) {
       // <yyyymmdd>-<hhmmss>-<mode>-<skill>-<score>[-<n>][-keep].bmr
       var m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})\d{2}-([a-z]+)-([a-z]+)-(\d+)/.exec(n);
-      var row = document.createElement("div");
+      var row = document.createElement("li");
       row.className = "replay";
       var meta = document.createElement("div");
       meta.className = "meta";
@@ -85,7 +87,7 @@
       del.type = "button"; del.textContent = "Delete"; del.setAttribute("aria-label", "Delete " + n);
       del.addEventListener("click", function () {
         if (del.dataset.armed) { try { Module.FS.unlink(REPLAYS + "/" + n); } catch (e) {} web().sync().then(renderReplays); }
-        else { del.dataset.armed = "1"; del.textContent = "Confirm"; }
+        else { del.dataset.armed = "1"; del.textContent = "Confirm"; del.setAttribute("aria-label", "Confirm: delete " + n); }
       });
       actions.appendChild(watch); actions.appendChild(save); actions.appendChild(del);
       row.appendChild(meta); row.appendChild(actions);

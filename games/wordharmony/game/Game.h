@@ -51,6 +51,10 @@ public:
 	~Game() override;  // 0x4073f0
 
 	static Game* instance() { return sInstance; }  // 0x4995b8
+#ifdef __EMSCRIPTEN__
+	// the web page's volume setting (src/SiteProfiles.cpp) sets the volumes again through the game's own applyVolumes
+	void siteApplyVolumes() { applyVolumes(); }
+#endif
 
 	// The controller's slots
 	void configure(engine::AppConfig& theConfig) override;  // 0x04: 0x402eb0

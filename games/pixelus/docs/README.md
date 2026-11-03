@@ -15,8 +15,13 @@ fonts, not its puzzles, and not its texts either (they are read from the player'
 
 ## The binary
 
-The retail install is a PopCap wrapper around the game: `Pixelus.exe` holds the game's image, which the port never runs. The
-game is a Visual C++ 7.1 program (image base 0x400000) of three parts: the game's own classes (0x401000 to 0x43f000), the
+<!-- private: The retail install has one executable, `Pixelus.exe`, which holds the game's image. The port never runs it; it reads the game's texts from it (`src/GameText.h`). -->
+The retail install is a PopCap wrapper around the game: `Pixelus.exe` (1,634,722 bytes) is a launcher of 282,624 bytes, then the
+18-byte `!popcapdrmprotect!` marker, 400 bytes and the game's PE, unencrypted: 1,351,680 bytes at file
+offset 0x451a2, linked 2004-07-29. The port never runs the wrapper; `LoadGameTexts` finds the PE after the marker and reads each
+text from it by address, and a private tool (not published) copies the PE out as `PixelusGame.exe` for the analysis.
+<!-- /private -->
+The game is a Visual C++ 7.1 program (image base 0x400000) of three parts: the game's own classes (0x401000 to 0x43f000), the
 SexyAppFramework of early 2004, and the small application layer of Nuclide's own (the "Nc" classes at 0x4e2c10 to 0x4ea000:
 the pause count, the quit question, the options and credits dialogs, the loading screen) that sits between the two. The
 framework part is the one BookWorm Deluxe and Typer Shark were built on, so `framework/compat2004/` maps it; the Nc layer is
@@ -49,6 +54,8 @@ overrides that and `-userdir=` moves the saves. The saves are the original's own
 ones they left unfinished. Web: `pixelus.html`, the shared page
 (`web/shell.html`) with this game's settings (`games/pixelus/web/page.js`), imports the player's game folder (or a .zip of
 it) into its own IndexedDB-backed folder `/pxpersist`.
+
+`-autoplayshow=<level>:<puzzle>[:<moves>:<ms>]` (with `-autoplay`, `-autoplayshots=<prefix>`) opens that puzzle from the main menu, optionally after giving the player a record of that many moves and milliseconds for it, waits 250 updates and saves `<prefix>-show.png`: it shows the sidebar with no record, with a record, and with a record already as good as the world record (the layout that shows the time). The letter gaps in some headings ("CONT INUE") are the fonts' own spacing: the port's ImageFont and the exe's width/kerning code agree, to be confirmed against the original with origrun.
 
 Test runs follow `CLAUDE.md`: native runs only under `build/native/rundesk.exe`, web pages only with `?silent=1`.
 

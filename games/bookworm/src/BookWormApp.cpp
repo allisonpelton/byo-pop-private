@@ -44,6 +44,10 @@
 #include <cstring>
 #include <cstdlib>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 BookWormApp* Sexy::gApp = NULL;
@@ -1600,6 +1604,9 @@ void BookWormApp::ShowNewUserDialog(const SexyString& theText)
 	if (mGameSelector != NULL)
 		mGameSelector->SetDisabled(true);
 	NewUserDialog* aDialog = new NewUserDialog(this, theText);
+#ifdef __EMSCRIPTEN__
+	SiteFillNewUser(aDialog->mNameEdit);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
+#endif
 	aDialog->Resize(238, 174, 400, aDialog->GetPreferredHeight(400));
 	AddDialog(DIALOG_NEW_USER, aDialog);
 }

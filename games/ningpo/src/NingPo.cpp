@@ -5,6 +5,10 @@
 #include "HDisplay.h"
 #include "HFileSystem.h"
 #include "PGControl.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#include "WebSettings.h"
+#endif
 
 #include <cstdio>
 #include <cstring>
@@ -207,6 +211,9 @@ bool NingPo::init(const char* theCmdLine, const char* theResourceDir)
 	if (openResourceFile(aPath))
 	{
 		loadSettings();
+#ifdef __EMSCRIPTEN__
+		SiteStart();	// the web page's players and volumes (framework/WebProfiles.h): the settings are read, before the splash waits for a click
+#endif
 		// the cvar c_soundDriver chose DirectSound (port: the platform's mixer either way)
 		if (initDevices(mFullscreen != 0, 0x280, 0x1e0, 2, 0x10, 0x5622))
 		{
@@ -218,10 +225,16 @@ bool NingPo::init(const char* theCmdLine, const char* theResourceDir)
 			bool aLoaded = loadAssets();
 			mFont = mDisplay->createFont(getSprite(SPRITE_FONT), 8, 0xc);
 			loadBestTimes(false);
+#ifdef __EMSCRIPTEN__
+			SiteScoresChanged();	// the web page's players (SiteProfiles.h): the names in the best times
+#endif
 			if (aLoaded && startup())
 			{
 				createControls();
 				toTitle(false);
+#ifdef __EMSCRIPTEN__
+				SiteReady();	// the web page's volumes (framework/WebSettings.h): the music is there to take its volume
+#endif
 				return true;
 			}
 		}
@@ -1143,6 +1156,11 @@ void NingPo::loadSettings()
 			*aVolume = 1.0f;
 		if (!aRegistry->readData("Fullscreen", &mFullscreen, 4, &aSize))
 			mFullscreen = 0;
+#ifdef __EMSCRIPTEN__
+		// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, as its options screen sets it
+		if (Byopop::SiteWindowed())
+			mFullscreen = 0;
+#endif
 		aRegistry->close();
 	}
 	cycleBackground(0);
@@ -1229,6 +1247,9 @@ void NingPo::saveBestTimes()
 		aLayout++;
 	} while (aLayout < NUM_LAYOUTS);
 	aRegistry->close();
+#ifdef __EMSCRIPTEN__
+	SiteScoresChanged();	// the web page's players (SiteProfiles.h): a new best time, or a layout cleared
+#endif
 }
 
 // 0x408010: the best times from the registry; with theReset (and for a time that is not there) the defaults

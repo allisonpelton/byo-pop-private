@@ -714,7 +714,7 @@ largest game left and holds its slot for weeks, so the queue after it runs in th
 takes the least predicted effort first, and a game that waits on another game's engine goes right after that game.
 The model follows CLAUDE.md's rule: Opus for the first game on an engine, Sonnet for a game that can copy one.
 "Published" says where a finished port goes: "yes" is the GitHub snapshot and the website; "no" is neither,
-its folder kept in `.publishignore`.
+its folder kept in `.publishignore`; "web only" is the website, with its folder kept in `.publishignore`.
 
 | # | Game | Model | Published | Effort | Why it stands here |
 |---|---|---|---|---|---|
@@ -743,7 +743,7 @@ its folder kept in `.publishignore`.
 | 23 | Bejeweled 3 | Opus | yes | ~30x | builds the prime-compat layer (PopAnim, PIEffect, CurvedVal) that Zuma's Revenge reuses |
 | 24 | Banana Bugs | Opus | yes | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; its image must first come out of the 2010 DRM |
 | 25 | Gyromancer | Opus | yes | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
-| 26 | Zuma's Revenge! | Opus | yes | ~35x | HARD; prime-compat and JeffLib |
+| 26 | Zuma's Revenge! | Opus | web only | ~35x | HARD; prime-compat and JeffLib. Its source stays out of the snapshot while the user learns more about a PC decompilation in progress (2026-10-26, Appendix E) |
 | 27 | Typer Shark! Deluxe | Sonnet | yes | ~5x | at the end by the decision of 2026-10-24; BookWorm's framework |
 | 28 | Talismania Deluxe | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
 
@@ -1337,6 +1337,52 @@ OpenInsaniquarium, a clean-room reimplementation; the framework's own 1.3 source
 **Decision (the user, 2026-10-25):** the other studios' games come at the very end, after every PopCap game, and World
 of Goo is wanted among them. Which of the others to port is decided then; each needs the user's own copy.
 
+**Octogeddon, first of the other studios' games (the user, 2026-11-01):** "Spiritually, it's a PopCap game." It is by
+All Yes Good (developer and publisher), and the user's Steam copy is app 525620 (705 MB). It doesn't use PopCap's
+framework, so it is not on this appendix's shared engines:
+- **Exe:** a 4.8 MB 32-bit `octogeddon.exe` on Direct3D 9, DirectSound and XInput, with `steam_api.dll`.
+- **Framework:** the studio's own C++ framework (`AppLib`, with `AnimLib`, `Json` and `Pak`).
+- **Class names:** MSVC RTTI names 447 classes, the game's own among them, so the names come free.
+- **Data:** one 700 MB archive, `data.ayg`, whose header starts "AYGP".
+
+The Ghidra route fits, with SDL in place of Direct3D 9 and DirectSound, as in the other ports. Placing it first among
+these games, ahead of World of Goo, follows the user's remark; they may move it.
+
+**Unity games wanted too (the user, 2026-10-27):** Steven Universe: Save the Light, Steven Universe: Unleash the Light
+and OK K.O.! Let's Play Heroes, all three of them Cartoon Network games. They come at the end with the other studios' games. The
+user's Steam copies are Unity Mono builds, with the game's own code in `Assembly-CSharp.dll` and no IL2CPP.
+
+| Game | Year | Developer | Unity | Install | Notes |
+|---|---|---|---|---|---|
+| Steven Universe: Save the Light | 2017 | Grumpyface Studios | 2018.1.0f2, 32-bit | 4.9 GB | 3D; Steamworks.NET |
+| Steven Universe: Unleash the Light | 2019 | Grumpyface Studios | 2020.3.12f1, 64-bit | 1.7 GB | 3D; Steamworks.NET |
+| OK K.O.! Let's Play Heroes | 2018 | Capybara Games | 5.6.1f1, 64-bit | 5.7 GB | FMOD Studio, InControl |
+
+The Bejeweled method does not fit them: their code calls the Unity engine for everything, and the framework covers
+none of it. The user doesn't want the engine decompiled ("I'd just love to play them in my browser and make modding
+easier"), so the plan has two parts. Modding uses BepInEx with Harmony patches on the native game, the usual way to
+mod Unity Mono games. Browser play comes from a local WebGL rebuild of the player's own copy: its assets are ripped
+into a Unity project, the decompiled scripts are added, and the project is built for WebGL in the matching editor.
+Such a build holds the publisher's assets and code, so it stays private and never goes on the website.
+
+Unleash the Light is the best first try: it is on 2020.3 LTS and uses no FMOD. The weak points are shaders recovered
+from a build, the WebGL memory limit and FMOD's web libraries. Every tool (AssetRipper, Unity Hub and the editor, a
+.NET decompiler) is a download that needs the user's OK, and the user accepts Unity's license themselves.
+
+**Glass Tower, last of all (the user, 2026-11-01):** a discontinued Android game. The user's copy is an APK in their
+Downloads folder (version 1.0.10, 40.7 MB), and it won't run on modern Android, such as the user's phone. The user would
+like native, browser and Android versions. The APK holds a Java shell with 2016-era ad and Play services libraries,
+plus the game itself as a 5.9 MB native library, built only for the old 32-bit `armeabi` ABI. That ABI is the likely
+reason it won't install on current phones. Its levels are XML files with PNG maps. So the Ghidra route fits, on ARM
+code instead of x86. The ad and Play services code is left out. An Android build would be a new target for the
+project.
+
+**The Tasty Planet series, after Glass Tower (the user, 2026-11-01):** Dingo Games' series. The user doesn't own every
+game yet and is waiting for the series to go on sale again; each port needs the user's own copy. So far, Tasty Planet
+Forever is installed from Steam (app 946010, 78 MB). It is a 4.4 MB native exe, `tastyplanet4.exe`, on SDL2 and
+SDL2_mixer, with `steam_api.dll`, its data in `assets/`. A native SDL2 game suits the Ghidra route, and the port can
+keep SDL2 itself. Which games make up the series, and the order to port them in, is settled when it is their turn.
+
 ## Appendix E: other projects and modding communities (2026-10-26)
 
 Checked on 2026-10-26 for the publishing rules in section 4 (a research pass; the Peggle Nights, Zuma Deluxe and
@@ -1352,6 +1398,7 @@ GitHub, GameBanana and Nexus showed nothing; Reddit, ModDB and Discord servers w
 | Pizza Frenzy | one unlicensed upload of a decompilation (2026-10-03), nothing since | none found |
 | Chuzzle Deluxe | a repository whose 13 game files are empty (2026-04); an iOS recompilation | dormant (one mod, 2024) |
 | Bejeweled 3, Zuma's Revenge, Bejeweled 2 | console or phone builds being recompiled or decompiled (2026-10) | thin |
+| Zuma's Revenge (PC) | a decompilation in C++ by a developer in China, written without AI, reported to the user on 2026-10-26; a clip showed it crashing at the main menu. Until the user learns more, our port is "web only" | |
 | Bookworm Adventures 1 and 2 | none | thin: one person's mod builder (2026-07); a Spanish translation of Vol. 2 |
 | Bejeweled Twist, Dynomite, Heavy Weapon, Feeding Frenzy 2 | Heavy Weapon has a reimplementation for the Vita | thin: a fix, a recovered official level editor, an input mod, an Archipelago client |
 | Alchemy | flamel, a web remake written from scratch (2026-10) | none found |

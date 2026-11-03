@@ -1,0 +1,32 @@
+// the C runtime and the inlined std::string helpers (VC8)
+{"addr":"00438850","name":"std::string::_Tidy"}
+{"addr":"00438d40","name":"std::wstring::_Tidy"}
+{"addr":"004387e0","name":"std::string::string_cstr"}
+{"addr":"0043fa60","name":"std::string::assign_n"}
+{"addr":"0077e35c","name":"_invalid_parameter_noinfo"}
+{"addr":"0077dfe0","name":"_ftol2"}
+{"addr":"0073e93c","name":"GetImageThrow"}
+{"addr":"0073ea05","name":"GetFontThrow"}
+{"addr":"0073ea76","name":"GetSoundThrow"}
+{"addr":"00e13bc0","label":"gD3DInterface"}
+{"addr": "0041fed0", "name": "Graphics::GetFont"}
+{"addr": "0041fee0", "name": "Graphics::SetFont"}
+{"addr": "0041fef0", "name": "Graphics::SetColor"}
+{"addr": "0041ff10", "name": "Graphics::GetColor"}
+{"addr": "0041ff20", "name": "Graphics::SetDrawMode"}
+{"addr": "0041ff30", "name": "Graphics::GetDrawMode"}
+{"addr": "0041ff40", "name": "Graphics::SetColorizeImages"}
+{"addr": "0041ff50", "name": "Graphics::GetColorizeImages"}
+{"addr": "0041ff60", "name": "Graphics::SetFastStretch"}
+{"addr": "0041ff80", "name": "Graphics::SetLinearBlend"}
+{"addr": "0041ffa0", "name": "Graphics::ClearRect"}
+{"addr": "00420020", "name": "Graphics::FillRect"}
+{"addr": "00420090", "name": "Graphics::FillRectR"}
+{"addr": "004200b0", "name": "Graphics::DrawRect"}
+{"addr": "00420330", "name": "Graphics::PolyFill"}
+{"addr": "00420750", "name": "Graphics::PolyFillAA"}
+{"addr": "00421040", "name": "Graphics::DrawLine"}
+{"addr": "004210e0", "name": "Graphics::DrawLineAA"}
+{"addr": "00421180", "name": "Graphics::DrawString"}
+{"addr": "004211b0", "name": "Graphics::DrawImage"}
+{"addr": "004212d0", "name": "Graphics::DrawImageSrc"}

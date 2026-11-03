@@ -4,7 +4,7 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #7bd17f; } }
 :root[data-theme="dark"] { --accent: #7bd17f; }
 .brand .mark { width: 12px; height: 12px; background: var(--coin); border-radius: 50%; }
-.replays { display: grid; gap: 8px; }
+.replays { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
 .replay {
   display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: start;
   padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);

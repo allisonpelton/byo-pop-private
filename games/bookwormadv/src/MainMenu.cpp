@@ -20,6 +20,9 @@
 #include "SoundPlayer.h"
 #include "UserSelectionDialog.h"
 #include "WidgetManager.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 #include "lua.h"
 
 using namespace Sexy;
@@ -787,6 +790,11 @@ void MainMenu::ContinueArena(bool theContinue)
 	mApp->StartNewGameTransition();
 }
 
+void MainMenu::ButtonPress(int theId)
+{
+	mApp->PlaySample(SOUND_CLICK2);
+}
+
 void MainMenu::ButtonDepress(int theId)
 {
 	if (theId != mChangeUserLink->mId || mApp->IsCurtainMoving())
@@ -965,6 +973,9 @@ void MainMenu::DialogButtonDepress(int theDialogId, int theButtonId)
 		aDeletedCurrent = true;
 	}
 	mApp->EraseFile(GetAppDataFolder() + StrFormat("users/%s.bwa", mUserDialog->mSelected.c_str()));
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(mApp);	// the web page's players (framework/WebProfiles.h): a player was deleted
+#endif
 	FillUserList();
 	mApp->KillDialog(GameApp::DIALOG_CONFIRM);
 	if (mUserDialog->GetUserCount() == 0) {

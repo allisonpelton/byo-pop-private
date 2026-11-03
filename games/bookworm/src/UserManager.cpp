@@ -1,5 +1,8 @@
 #include "UserManager.h"
 #include "BookWormApp.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 
 #include <algorithm>
 #include <cctype>
@@ -149,6 +152,9 @@ void UserManager::DeleteUser(const SexyString& theName)
 		else
 			++anItr;
 	}
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(mApp);	// the web page's players (framework/WebProfiles.h): a player was deleted
+#endif
 }
 
 // 0x435470: NULL when the key does not open; the alias is "" when the profile has none
@@ -176,6 +182,9 @@ bool UserManager::SetCurrentUser(const SexyString& theName)
 			bool success = mApp->RegistryWriteString(SexyString(gUsersKey) + "\\User", theName);
 			if (success)
 				mCurrentUser = theName;
+#ifdef __EMSCRIPTEN__
+			SiteProfilesChanged(mApp);	// the web page's players (framework/WebProfiles.h): a player was made or chosen
+#endif
 			return success;
 		}
 	}

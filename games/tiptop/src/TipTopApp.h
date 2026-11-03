@@ -60,6 +60,7 @@ public:
 	virtual void GotFocus() override;
 	virtual void LostFocus() override;
 	virtual void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+	virtual void SetMusicVolume(double theVolume) override;
 	virtual void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	// Test hooks (testhooks/Script.cpp): TipTop's -script commands, canvasshot and musicwav
 	virtual bool HandleScriptCommand(const ScriptCommand& theCommand) override;

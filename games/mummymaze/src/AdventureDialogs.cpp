@@ -9,6 +9,10 @@
 #include "ImageFont.h"
 #include "WidgetManager.h"
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // the label of a slot: the name that the saved game carries, or NEW GAME
@@ -183,6 +187,9 @@ NewAdventureDialog::NewAdventureDialog(MummyApp* theApp) :
 	mNameEdit->SetFont(mApp->mFont1);
 	mNameEdit->SetColors(kNameEditColors, 5);
 	mNameEdit->mMaxChars = 0x14;
+#ifdef __EMSCRIPTEN__
+	SiteFillAdventureName(mNameEdit);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
+#endif
 }
 
 NewAdventureDialog::~NewAdventureDialog()

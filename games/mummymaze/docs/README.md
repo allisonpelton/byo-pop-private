@@ -56,9 +56,9 @@ tools/build.sh web                                       # build/web/mummymaze.h
 ```
 
 Native: `mummymaze.exe` finds `assets/mummymaze/` next to itself (or up to two levels up), or the retail install;
-`-gamedir=` overrides that. Saves go to `%APPDATA%\wasm-bejeweled\Mummy Maze Deluxe\`: `classic.sav` for the classic game
+`-gamedir=` overrides that. Saves go to `%APPDATA%\byo-pop\Mummy Maze Deluxe\`: `classic.sav` for the classic game
 in progress, `adv<n>.sav` for the five adventure slots (the original's layout, format 2), `hiscores.dat` (the original's
-layout and check values) and `registry.ini` for the options. Web: `mummymaze.html`, the shared page (`web/shell.html`) with
+layout and check values) and `registry.ini` for the options. `-importsaves[=<install folder>]` brings in the saves of the original game installed on this computer (`docs/WEB_PLAYER.md`, "Importing saves from an installed game"). Web: `mummymaze.html`, the shared page (`web/shell.html`) with
 this game's settings (`games/mummymaze/web/page.js`), imports the player's game folder (or a .zip of it) into its own
 IndexedDB-backed folder `/mmpersist`. The preview server for it is `mummymaze-web` in `.claude/launch.json` (port 18773).
 

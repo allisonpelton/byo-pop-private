@@ -9,6 +9,10 @@
 #include "ImageFont.h"
 #include "WidgetManager.h"
 
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // the colours of the name box (0x49539c: background and outline are clear, the frame comes from the picture)
@@ -47,6 +51,10 @@ RecordScoreDialog::RecordScoreDialog(MummyApp* theApp, const SexyString& theLine
 	mNameEdit->SetColors(kNameEditColors, 5);
 	mNameEdit->mMaxPixels = 0x68;
 	mNameEdit->SetText(mApp->mLastScoreName);
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("mummymaze", mNameEdit, false);
+#endif
 }
 
 RecordScoreDialog::~RecordScoreDialog()

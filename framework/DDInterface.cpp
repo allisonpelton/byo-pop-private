@@ -59,8 +59,6 @@ struct DDTextureData
 
 }
 
-static const int MAX_RENDER_SCALE = 4;
-static const int CURSOR_AREA_SIZE = 64;	// 1.3 centers the cursor image in a 64x64 area
 
 static std::vector<uint32_t> gPixelBuffer;
 static const int kPixelBufferSize = 65536; // pixels a texture upload converts at a time (256 KB)
@@ -144,6 +142,9 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	// above 1 pulls in the neighbouring cell of sprite sheets and fonts (visible slivers between glyphs).
 	mPixelPerfect = true;
 	mFrameCount = 0;
+	mSoftwareStretch = false;
+	mSoftwareTransforms = false;
+	mStretchUse = 0;
 
 	mCursorImage = NULL;
 	mCursorX = 0;
@@ -317,6 +318,7 @@ void DDInterface::ReleaseRenderer()
 
 void DDInterface::Cleanup()
 {
+	ClearStretchCopies();
 	if (mScreenImage != NULL)
 	{
 		DDImage* aScreenImage = mScreenImage;
@@ -346,24 +348,9 @@ void DDInterface::UpdateDisplaySize()
 
 	int aWidth = 0;
 	int aHeight = 0;
-	if ((SDL_GetRendererOutputSize(mRenderer, &aWidth, &aHeight) == 0) && (aWidth > 0) && (aHeight > 0))
-	{
-		mDisplayWidth = aWidth;
-		mDisplayHeight = aHeight;
-	}
-
-	// Letterbox the logical screen (keeps its aspect ratio)
-	double aScale = std::min(mDisplayWidth / (double) mWidth, mDisplayHeight / (double) mHeight);
-	int aPresWidth = std::max(1, std::min(mDisplayWidth, (int) (mWidth * aScale + 0.5)));
-	int aPresHeight = std::max(1, std::min(mDisplayHeight, (int) (mHeight * aScale + 0.5)));
-	mPresentationRect = Rect((mDisplayWidth - aPresWidth) / 2, (mDisplayHeight - aPresHeight) / 2, aPresWidth, aPresHeight);
-
-	// Render at the next integer scale at or above the presentation scale, so that HD textures keep
-	// their detail and the final copy only ever scales down (or not at all)
-	int aRenderScale = (mForcedRenderScale > 0) ? mForcedRenderScale : (int) ceil(aScale - 0.01);
-	aRenderScale = std::max(1, std::min(MAX_RENDER_SCALE, aRenderScale));
-	while ((aRenderScale > 1) && ((mWidth * aRenderScale > mMaxTextureWidth) || (mHeight * aRenderScale > mMaxTextureHeight)))
-		aRenderScale--;
+	if (SDL_GetRendererOutputSize(mRenderer, &aWidth, &aHeight) != 0)
+		aWidth = aHeight = 0;
+	int aRenderScale = DisplayGeometry::UpdateDisplaySize(aWidth, aHeight, mMaxTextureWidth, mMaxTextureHeight, mForcedRenderScale);
 
 	if ((mScreenTexture == NULL) || (aRenderScale != mRenderScale))
 		CreateScreenTexture(aRenderScale);
@@ -457,12 +444,9 @@ void DDInterface::DrawCursor()
 	float aScaleX = mPresentationRect.mWidth / (float) mWidth;
 	float aScaleY = mPresentationRect.mHeight / (float) mHeight;
 
-	int aX = mCursorX - (CURSOR_AREA_SIZE / 2) + (CURSOR_AREA_SIZE - anImage->mWidth) / 2;
-	int aY = mCursorY - (CURSOR_AREA_SIZE / 2) + (CURSOR_AREA_SIZE - anImage->mHeight) / 2;
-
 	SDL_Rect aSrcRect = { 0, 0, anImage->mWidth * aData->mScale, anImage->mHeight * aData->mScale };
-	SDL_FRect aDestRect = { mPresentationRect.mX + aX * aScaleX, mPresentationRect.mY + aY * aScaleY,
-		anImage->mWidth * aScaleX, anImage->mHeight * aScaleY };
+	SDL_FRect aDestRect;
+	CursorRect(mCursorX, mCursorY, anImage->mWidth, anImage->mHeight, &aDestRect.x, &aDestRect.y, &aDestRect.w, &aDestRect.h);
 	SDL_Rect aClipRect = { mPresentationRect.mX, mPresentationRect.mY, mPresentationRect.mWidth, mPresentationRect.mHeight };
 
 	SDL_Texture* aTexture = PrepareTexture(anImage, aData, Graphics::DRAWMODE_NORMAL, IsFractional(aScaleX) || IsFractional(aScaleY));
@@ -476,34 +460,27 @@ void DDInterface::DrawCursor()
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+// The window's size in points for DisplayGeometry, 0 when there is no window
+static void GetWindowPoints(SDL_Window* theWindow, int* theWidth, int* theHeight)
+{
+	*theWidth = 0;
+	*theHeight = 0;
+	if (theWindow != NULL)
+		SDL_GetWindowSize(theWindow, theWidth, theHeight);
+}
+
 void DDInterface::WindowToLogical(int theWindowX, int theWindowY, int* theX, int* theY)
 {
-	double aX = theWindowX;
-	double aY = theWindowY;
+	int aWindowWidth, aWindowHeight;
+	GetWindowPoints(mWindow, &aWindowWidth, &aWindowHeight);
+	DisplayGeometry::WindowToLogical(aWindowWidth, aWindowHeight, theWindowX, theWindowY, theX, theY);
+}
 
-	// HiDPI: window coordinates are in points, the drawable is in pixels
-	if (mWindow != NULL)
-	{
-		int aWindowWidth = 0;
-		int aWindowHeight = 0;
-		SDL_GetWindowSize(mWindow, &aWindowWidth, &aWindowHeight);
-		if ((aWindowWidth > 0) && (aWindowHeight > 0))
-		{
-			aX = aX * mDisplayWidth / aWindowWidth;
-			aY = aY * mDisplayHeight / aWindowHeight;
-		}
-	}
-
-	if ((mPresentationRect.mWidth > 0) && (mPresentationRect.mHeight > 0))
-	{
-		aX = (aX - mPresentationRect.mX) * mWidth / mPresentationRect.mWidth;
-		aY = (aY - mPresentationRect.mY) * mHeight / mPresentationRect.mHeight;
-	}
-
-	if (theX != NULL)
-		*theX = (int) floor(aX);
-	if (theY != NULL)
-		*theY = (int) floor(aY);
+void DDInterface::LogicalToWindow(int theX, int theY, int* theWindowX, int* theWindowY)
+{
+	int aWindowWidth, aWindowHeight;
+	GetWindowPoints(mWindow, &aWindowWidth, &aWindowHeight);
+	DisplayGeometry::LogicalToWindow(aWindowWidth, aWindowHeight, theX, theY, theWindowX, theWindowY);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -678,8 +655,29 @@ SDL_Texture* DDInterface::GetTexture(MemoryImage* theImage, int* theTexWidth, in
 	return aTexture;
 }
 
+bool DDInterface::CheckDestination(DDImage* theImage)
+{
+	return theImage->mIsScreen;
+}
+
 void DDInterface::RemoveImageData(MemoryImage* theImage)
 {
+	// a source's stretched copies go with it (taken out of the list before they are deleted, since deleting a copy
+	// comes back here)
+	std::vector<MemoryImage*> aCopies;
+	for (size_t i = 0; i < mStretchCopies.size(); )
+	{
+		if (mStretchCopies[i].mSource == theImage)
+		{
+			aCopies.push_back(mStretchCopies[i].mCopy);
+			mStretchCopies.erase(mStretchCopies.begin() + i);
+		}
+		else
+			i++;
+	}
+	for (MemoryImage* aCopy : aCopies)
+		delete aCopy;
+
 	if ((theImage == NULL) || (theImage->mD3DData == NULL))
 		return;
 
@@ -772,7 +770,152 @@ void DDInterface::StretchBlt(Image* theImage, const FRect& theDestRect, const Re
 	const float aX[4] = { aLeft, aRight, aRight, aLeft };
 	const float aY[4] = { aTop, aTop, aBottom, aBottom };
 	bool isScaled = (theDestRect.mWidth != theSrcRect.mWidth) || (theDestRect.mHeight != theSrcRect.mHeight);
+	if (mSoftwareStretch && !mirror && isScaled)
+	{
+		MemoryImage* aSource = dynamic_cast<MemoryImage*>(theImage);
+		int aWidth = (int) theDestRect.mWidth;
+		int aHeight = (int) theDestRect.mHeight;
+		MemoryImage* aCopy = aSource != NULL ? GetStretchCopy(aSource, theSrcRect, aWidth, aHeight, fastStretch) : NULL;
+		if (aCopy != NULL)
+		{
+			Blt(aCopy, aLeft, aTop, Rect(0, 0, aWidth, aHeight), theColor, theDrawMode, theClipRect);
+			return;
+		}
+	}
 	DrawTexturedQuad(theImage, aX, aY, theSrcRect, mirror, theColor, theDrawMode, theClipRect, !fastStretch && isScaled);
+}
+
+MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& theSrcRect, int theWidth, int theHeight, bool fast)
+{
+	if ((theWidth <= 0) || (theHeight <= 0) || (theSrcRect.mWidth <= 0) || (theSrcRect.mHeight <= 0) ||
+		((long long) theWidth * theHeight > 2048 * 2048))
+		return NULL;
+	// the fast stretch samples the source unchecked, so a rectangle not inside the image keeps SDL's (the averaging
+	// stretch clamps its reads)
+	if (fast && ((theSrcRect.mX < 0) || (theSrcRect.mY < 0) || (theSrcRect.mX + theSrcRect.mWidth > theSource->mWidth) ||
+		(theSrcRect.mY + theSrcRect.mHeight > theSource->mHeight)))
+		return NULL;
+	mStretchUse++;
+	StretchCopyEntry* anEntry = NULL;
+	for (StretchCopyEntry& e : mStretchCopies)
+	{
+		if ((e.mSource == theSource) && (e.mSrcRect == theSrcRect) && (e.mWidth == theWidth) && (e.mHeight == theHeight) &&
+			(e.mFast == fast))
+		{
+			anEntry = &e;
+			break;
+		}
+	}
+	if (anEntry == NULL)
+	{
+		long long aBytes = (long long) theWidth * theHeight * 4;
+		for (const StretchCopyEntry& e : mStretchCopies)
+			aBytes += (long long) e.mWidth * e.mHeight * 4;
+		while ((mStretchCopies.size() >= kStretchCacheSize) || ((aBytes > kCopyCacheBytes) && !mStretchCopies.empty()))
+		{
+			size_t anOldest = 0;
+			for (size_t i = 1; i < mStretchCopies.size(); i++)
+			{
+				if (mStretchCopies[i].mLastUse < mStretchCopies[anOldest].mLastUse)
+					anOldest = i;
+			}
+			MemoryImage* aCopy = mStretchCopies[anOldest].mCopy;
+			aBytes -= (long long) mStretchCopies[anOldest].mWidth * mStretchCopies[anOldest].mHeight * 4;
+			mStretchCopies.erase(mStretchCopies.begin() + anOldest);
+			delete aCopy;
+		}
+		StretchCopyEntry e;
+		e.mSource = theSource;
+		e.mSrcRect = theSrcRect;
+		e.mWidth = theWidth;
+		e.mHeight = theHeight;
+		e.mFast = fast;
+		e.mSourceVersion = theSource->mBitsChangedCount - 1;  // made below
+		e.mCopy = new MemoryImage(mApp);
+		e.mLastUse = 0;
+		mStretchCopies.push_back(e);
+		anEntry = &mStretchCopies.back();
+	}
+	anEntry->mLastUse = mStretchUse;
+	if (anEntry->mSourceVersion != theSource->mBitsChangedCount)
+	{
+		anEntry->mSourceVersion = theSource->mBitsChangedCount;
+		anEntry->mCopy->Create(theWidth, theHeight);
+		if (fast)
+		{
+			// 0x41a3e0's fast stretch: 16.16 steps from the source rectangle's corner
+			ulong* aSrcBits = theSource->GetBits();
+			ulong* aDestBits = anEntry->mCopy->GetBits();
+			int aStepX = (int) ((double) theSrcRect.mWidth * 65536.0 / theWidth);
+			int aStepY = (int) ((double) theSrcRect.mHeight * 65536.0 / theHeight);
+			int aSrcY = theSrcRect.mY * 65536;
+			for (int y = 0; y < theHeight; y++)
+			{
+				ulong* aSrcRow = aSrcBits + (aSrcY >> 16) * theSource->mWidth;
+				int aSrcX = theSrcRect.mX * 65536;
+				for (int x = 0; x < theWidth; x++)
+				{
+					*aDestBits++ = aSrcRow[aSrcX >> 16];
+					aSrcX += aStepX;
+				}
+				aSrcY += aStepY;
+			}
+			anEntry->mCopy->BitsChanged();
+		}
+		else
+			anEntry->mCopy->StretchCopy(theSource, Rect(0, 0, theWidth, theHeight),
+				FRect(theSrcRect.mX, theSrcRect.mY, theSrcRect.mWidth, theSrcRect.mHeight));
+	}
+	return anEntry->mCopy;
+}
+
+void DDInterface::ClearStretchCopies()
+{
+	std::vector<StretchCopyEntry> anEntries;
+	anEntries.swap(mStretchCopies);
+	for (StretchCopyEntry& e : anEntries)
+		delete e.mCopy;
+	std::vector<TransformCopyEntry> aCopies;
+	aCopies.swap(mTransformCopies);
+	for (TransformCopyEntry& e : aCopies)
+		delete e.mCopy;
+}
+
+MemoryImage* DDInterface::GetTransformCopy(int theWidth, int theHeight)
+{
+	int aWidth = (theWidth + 15) & ~15;
+	int aHeight = (theHeight + 15) & ~15;
+	mStretchUse++;
+	for (TransformCopyEntry& e : mTransformCopies)
+	{
+		if ((e.mCopy->mWidth == aWidth) && (e.mCopy->mHeight == aHeight))
+		{
+			e.mLastUse = mStretchUse;
+			return e.mCopy;
+		}
+	}
+	long long aBytes = (long long) aWidth * aHeight * 4;
+	for (const TransformCopyEntry& e : mTransformCopies)
+		aBytes += (long long) e.mCopy->mWidth * e.mCopy->mHeight * 4;
+	while ((mTransformCopies.size() >= kTransformCacheSize) || ((aBytes > kCopyCacheBytes) && !mTransformCopies.empty()))
+	{
+		size_t anOldest = 0;
+		for (size_t i = 1; i < mTransformCopies.size(); i++)
+		{
+			if (mTransformCopies[i].mLastUse < mTransformCopies[anOldest].mLastUse)
+				anOldest = i;
+		}
+		MemoryImage* aCopy = mTransformCopies[anOldest].mCopy;
+		aBytes -= (long long) aCopy->mWidth * aCopy->mHeight * 4;
+		mTransformCopies.erase(mTransformCopies.begin() + anOldest);
+		delete aCopy;
+	}
+	TransformCopyEntry e;
+	e.mCopy = new MemoryImage(mApp);
+	e.mCopy->Create(aWidth, aHeight);
+	e.mLastUse = mStretchUse;
+	mTransformCopies.push_back(e);
+	return e.mCopy;
 }
 
 void DDInterface::BltRotated(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY)

@@ -6,6 +6,9 @@
 #include "HighScoreDialog.h"
 #include "OptionsDialog.h"
 #include "RecordScoreDialog.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 #include "GameConfig.h"
 #include "ModIndicators.h"
 #include "LiveSplitObserver.h"
@@ -1037,6 +1040,9 @@ void WinDMApp::ButtonDepress(int theId)
 				RecordScoreDialog* aRecordDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);
 				mHighScoreWidget->AddHighScore(aRecordDialog->mNameWidget->mString);
 				mLastScoreName = aRecordDialog->mNameWidget->mString;
+#ifdef __EMSCRIPTEN__
+				SiteScoresChanged(this);
+#endif
 				KillDialog(DIALOG_RECORD_SCORE);
 			}
 			break;

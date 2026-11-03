@@ -1,0 +1,4 @@
+# Volume 1 addresses of GT(...) uses whose text has no single match in Volume 2: gametext.py leaves them
+# out (they read as empty) until each is found in Volume 2's decompile and the source rewritten. What is left:
+# the word that starts the Astro Pop flash (TestHooks.cpp).
+0x7aad5c

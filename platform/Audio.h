@@ -9,6 +9,7 @@
 // rendered by libxmp-lite at the device rate inside the audio callback. Other module formats (MO3 via
 // libopenmpt, platform/openmpt/) are rendered by a ModulePlayer a game registers.
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -32,6 +33,16 @@ public:
 	// The module position the player has rendered up to (BASS_ChannelGetPosition with BASS_POS_MUSIC_ORDER);
 	// false when the player cannot tell.
 	virtual bool GetPosition(int& theOrder, int& theRow) { return false; }
+	// The module's current tempo in BPM (BASS_MusicGetAttribute with BASS_MUSIC_ATTRIB_BPM); 0 when the player
+	// cannot tell. After SetTempo it is the BPM set, until the module's own tempo commands change it.
+	virtual int GetTempo() { return 0; }
+	// Sets the current tempo in BPM, as BASS_MusicSetAttribute(BASS_MUSIC_ATTRIB_BPM) does; kept across SetPosition.
+	virtual void SetTempo(int theBPM) {}
+	// A channel's volume, 0 to 100 (BASS_MUSIC_ATTRIB_VOL_CHAN + theChannel in BASS 2.2, 100 until it is set); kept
+	// across SetPosition. GetChannelVolume is -1 past the module's channels, as BASS's attribute is, and so for
+	// every channel when the player cannot tell.
+	virtual int GetChannelVolume(int theChannel) { return -1; }
+	virtual void SetChannelVolume(int theChannel, int theVolume) {}
 };
 
 typedef bool (*ModuleDetector)(const std::vector<uint8_t>& theFile);
@@ -74,6 +85,16 @@ public:
 	void StopVoice(int theVoice);
 	bool IsVoicePlaying(int theVoice);
 	void StopAllVoices();
+	// Voices on the game's clock, for -fast (SexyAppBase's virtual clock): there the updates run far ahead of real time,
+	// so a voice the device moves stays playing for many more updates than it lasts, and game logic that waits for a
+	// sound to end (IsVoicePlaying) would wait too long and fill the voices. Once SetGameClocked(true) is called, the
+	// device callback leaves the voices alone (it mixes only the songs, so voices are silent) and AdvanceVoices moves
+	// each one on by theMilliseconds of its own playback, ending a one-shot voice that reaches its end. Songs still play
+	// in real time. Game code that waits for a voice inside one update must move it on itself (IsGameClocked), or it
+	// waits forever. RenderOffline turns the mode off.
+	void SetGameClocked(bool theGameClocked);
+	bool IsGameClocked() const { return mGameClocked; }
+	void AdvanceVoices(double theMilliseconds);
 
 	// --- songs (tracker modules via libxmp or a registered ModulePlayer, or Ogg/WAV tracks from mods) ---
 	// Files theDetector accepts are loaded with theFactory instead of libxmp-lite (first match wins).
@@ -91,6 +112,9 @@ public:
 	void StopSong(int theSong);
 	void PauseSong(int theSong, bool thePaused);
 	void SetSongGain(int theSong, float theGain);
+	// A module's amplify, as BASS applies it: to what it plays and to its FFT (BASS_DATA_FFT scales with it). A
+	// stream ignores it.
+	void SetSongAmplify(int theSong, float theGain);
 	bool IsSongPlaying(int theSong);
 	// The order and row a playing module has been rendered up to (libxmp's frame info, or a ModulePlayer's
 	// GetPosition). False for a song that is not playing, and for Ogg and WAV tracks.
@@ -100,15 +124,53 @@ public:
 	// two channels averaged, with a Hann window, scaled so that a full-scale sine reads 1.0 in its bin. The bins are
 	// at the mixer's rate. False for a song that is not playing.
 	bool GetSongFFT(int theSong, float* theOut, int theSamples);
+	// A module's tempo and its channels' volumes through its ModulePlayer (BASS's BPM and VOL_CHAN music
+	// attributes); 0, -1 and nothing for libxmp songs and streams.
+	int GetSongTempo(int theSong);
+	void SetSongTempo(int theSong, int theBPM);
+	int GetSongChannelVolume(int theSong, int theChannel);
+	void SetSongChannelVolume(int theSong, int theChannel, int theVolume);
 
+#ifdef __EMSCRIPTEN__
+	// On the web the page's starting volume (web/settings.js, docs/WEB_PLAYER.md, "Site settings") reaches a game with no
+	// volume option of its own (Cosmic Bugs, Water Bugs) through these two gains. The game sets them itself (its music
+	// volume at each level), so the page's level is kept apart and multiplies what the game sets: SetSiteGains is the
+	// page's, 1 leaves the game's gains as they are.
+	void SetMusicMasterGain(float theGain) { mMusicAsked = theGain; mMusicMaster = theGain * mSiteMusic; }
+	void SetSfxMasterGain(float theGain) { mSfxAsked = theGain; mSfxMaster = theGain * mSiteSfx; }
+	void SetSiteGains(float theMusic, float theSfx)
+	{
+		mSiteMusic = theMusic;
+		mSiteSfx = theSfx;
+		SetMusicMasterGain(mMusicAsked);
+		SetSfxMasterGain(mSfxAsked);
+	}
+	float GetSiteMusicGain() const { return mSiteMusic; }
+	float GetSiteSfxGain() const { return mSiteSfx; }
+	// the gains in effect (the game's times the page's), which the page's tests read
+	float GetMusicMasterGain() const { return mMusicMaster; }
+	float GetSfxMasterGain() const { return mSfxMaster; }
+#else
 	void SetMusicMasterGain(float theGain) { mMusicMaster = theGain; }
 	void SetSfxMasterGain(float theGain) { mSfxMaster = theGain; }
+#endif
+
+#ifdef __EMSCRIPTEN__
+	// The web page's own mute (its sound button, and the hold while the starting volume is applied, docs/WEB_PLAYER.md): like
+	// ?silent=1, the mixer goes on mixing, so that playback timing is as it was, and the device gets silence. It is
+	// below every game's volume, mute and options (so it changes and saves none of them), and it reaches every game
+	// that plays through the mixer, SexyAppFramework or not.
+	void SetPageMute(bool theMuted) { mPageMuted = theMuted; }
+	bool IsPageMuted() const { return mPageMuted; }
+#endif
 
 	void Lock();
 	void Unlock();
 
-	// Mixes theFrames stereo frames into theOut without an audio device (tests and offline checks).
-	void RenderOffline(float* theOut, int theFrames) { Mix(theOut, theFrames); }
+	// Mixes theFrames stereo frames into theOut without an audio device (tests and offline checks). A caller that renders
+	// offline moves the voices itself (Bejeweled's -audiocapture renders one update's worth per update, under -fast too),
+	// so this turns the game clock off: Mix then plays and moves the voices again, and AdvanceVoices leaves them alone.
+	void RenderOffline(float* theOut, int theFrames) { mGameClocked = false; Mix(theOut, theFrames); }
 	// For tools without an audio device: makes the voices at theRate, so that StartVoice works and RenderOffline
 	// mixes them.
 	void InitOffline(int theRate);
@@ -124,7 +186,13 @@ private:
 	float mMusicMaster = 1.0f;
 	float mSfxMaster = 1.0f;
 	bool mSilent = false;  // web test runs (web/shell.html ?silent=1): mix as usual, output silence
+#ifdef __EMSCRIPTEN__
+	std::atomic<bool> mPageMuted{false};  // the web page's mute (SetPageMute): likewise
+	float mMusicAsked = 1.0f, mSfxAsked = 1.0f;  // the gains the game last set (SetMusicMasterGain, SetSfxMasterGain)
+	float mSiteMusic = 1.0f, mSiteSfx = 1.0f;    // the page's starting volume for a game with no volume option (SetSiteGains)
+#endif
 	bool mOffline = false; // InitOffline: voices without a device
+	bool mGameClocked = false;  // SetGameClocked: AdvanceVoices moves the voices, not Mix
 	std::vector<std::unique_ptr<Voice>> mVoices;
 	std::vector<std::unique_ptr<Song>> mSongs;
 	int mNextVoiceSerial = 1;

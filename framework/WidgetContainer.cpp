@@ -6,6 +6,8 @@
 
 using namespace Sexy;
 
+bool Sexy::gPutCopiesZOrder = false;
+
 WidgetContainer::WidgetContainer()
 {
 	mX = 0;
@@ -275,6 +277,9 @@ void WidgetContainer::BringToBack(Widget* theWidget)
 
 void WidgetContainer::PutBehind(Widget* theWidget, Widget* theRefWidget)
 {
+	if (gPutCopiesZOrder && theRefWidget != NULL)
+		theWidget->mZOrder = theRefWidget->mZOrder;
+
 	WidgetList::iterator anItr = std::find(mWidgets.begin(), mWidgets.end(), theWidget);
 	if (anItr != mWidgets.end())
 	{
@@ -294,6 +299,9 @@ void WidgetContainer::PutBehind(Widget* theWidget, Widget* theRefWidget)
 
 void WidgetContainer::PutInfront(Widget* theWidget, Widget* theRefWidget)
 {
+	if (gPutCopiesZOrder && theRefWidget != NULL)
+		theWidget->mZOrder = theRefWidget->mZOrder;
+
 	WidgetList::iterator anItr = std::find(mWidgets.begin(), mWidgets.end(), theWidget);
 	if (anItr != mWidgets.end())
 	{

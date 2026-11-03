@@ -9,6 +9,10 @@
 #include "Music.h"
 #include "Res.h"
 #include "SexyAppBase.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#include "WebSettings.h"
+#endif
 
 #include <cmath>
 #include <cstdio>
@@ -349,18 +353,18 @@ static void OnClose()
 		Command(nullptr, 0x18);
 }
 
-// 0x41b2da: the window activated or deactivated
-static void OnActivate(char isActive)
+// 0x41b2da: the window deactivated (isInactive 1: pauses the game and the music, flag 2) or activated (0)
+static void OnActivate(char isInactive)
 {
-	SetPause(isActive, 0);
-	PauseMusic(isActive);
-	if (isActive == 0)
+	SetPause(isInactive, 0);
+	PauseMusic(isInactive);
+	if (isInactive == 0)
 		gPauseFlags = gPauseFlags & 0xfd;
 	else
 		gPauseFlags = gPauseFlags | 2;
 	App::UpdatePause();
 	gSkipMouseDown = 1;
-	if ((gRestoreFullScreen != 0) && (isActive == 0))
+	if ((gRestoreFullScreen != 0) && (isInactive == 0))
 	{
 		gRestoreFullScreen = 0;
 		App::ToggleFullScreen(1);
@@ -411,6 +415,11 @@ int App::Init()
 {
 	// the arrow keys repeat (0x4b, 0x4d and their extended codes)
 	uint32_t aRepeatMask[8] = {0, 0, 0x2800, 0, 0, 0, 0x2800, 0};
+#ifdef __EMSCRIPTEN__
+	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, as its check box sets it
+	if (Byopop::SiteWindowed())
+		gFullScreen = 0;
+#endif
 	char aResult = lowos::InitScreen(1, OnActivate, OnClose, OnSwitch, OnRestore, GTC(0x0046ee40),
 		2 - (gFullScreen != 0), 3);
 	if (aResult == 0)
@@ -1950,6 +1959,9 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 				break;
 			}
 		}
+#ifdef __EMSCRIPTEN__
+		SiteScoresChanged();	// the web page's players (SiteProfiles.h): the name is in the table now
+#endif
 		FreeLayer(theSource->mLayer);
 		break;
 	case 0xe:
@@ -1972,6 +1984,9 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 	case 0x13:
 		FreeLayer(theSource->mLayer);
 		ResetHighScores();
+#ifdef __EMSCRIPTEN__
+		SiteScoresChanged();	// the web page's players (SiteProfiles.h): the tables are empty
+#endif
 		break;
 	case 0x14:
 		gApp.SetScreen(SCREEN_NEWGAME);
@@ -2181,6 +2196,9 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 				aRect.h = 0x78;
 				gApp.mNameInput = NewHandler(TextInputProc, aLayer, &aRect, (uintptr_t)gScreenFont, 0xa000d);
 				gApp.mNameInput->mPass = 3;
+#ifdef __EMSCRIPTEN__
+				SiteFillScoreName(gApp.mNameInput);	// the web page's player (framework/WebProfiles.h), under "fill" and "create"
+#endif
 				aRect = At(gConfig.mHighscoresOkx, gConfig.mHighscoresOky);
 				aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x13, 0xc000000d);
 				aHandler->mPass = 3;
@@ -3571,9 +3589,10 @@ uint32_t PopImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 }
 
 // 0x424421: the end of a bonus round: its image pops up while combo stars burst over the board (2.5 s), then a big
-// star and the bonus's points at the image; at 5 s it sends command 0x3a. Create: a = the image.
+// star and the bonus's points at the image; at 5 s it sends command 0x3a. The image is 0x63, "Bonus Complete!".
 uint32_t BonusEndProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
 {
+	(void)theA;
 	(void)theB;
 	uintptr_t* aSlots = theHandler->u.mSlots;
 	uint8_t aMsg = (uint8_t)theMsg;
@@ -3583,7 +3602,7 @@ uint32_t BonusEndProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 		aSlots[1] = 0;
 		aSlots[2] = 0;
 		gBusy = gBusy + 1;
-		Handler* anImage = NewHandler(PopImageProc, theHandler->mLayer, &theHandler->mRect, theA, 0x80000000);
+		Handler* anImage = NewHandler(PopImageProc, theHandler->mLayer, &theHandler->mRect, 0x63, 0x80000000);
 		anImage->mPass = 2;
 	}
 	else if (aMsg == MSG_DESTROY)

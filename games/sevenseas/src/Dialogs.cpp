@@ -14,6 +14,10 @@
 #include <algorithm>
 #include <cstdio>
 
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // 0x428360 (Widget slot 31): a line of text centred in a widget of the given width, in the current font
@@ -32,6 +36,33 @@ static void DrawFramed(Graphics* g, SevenSeasApp* theApp, int theWidth, int theH
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// GameDialog
+
+// 0x425540
+GameDialog::GameDialog(SevenSeasApp* theApp, int theId, bool isModal, const SexyString& theHeader,
+	const SexyString& theLines, const SexyString& theFooter, int theButtonMode) :
+	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTONBLACK], theId, isModal, theHeader, theLines,
+		theFooter, theButtonMode),
+	mApp(theApp)
+{
+	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTONBLACK]);
+}
+
+// 0x425620
+void GameDialog::Draw(Graphics* g)
+{
+	Dialog2004::Draw(g);
+	g->DrawImage(mApp->mImages[IMAGE_DIALOGSKULL], mWidth / 2 - 0x14, 0);
+}
+
+// 0x425680: the mouse position goes to the side panel too
+void GameDialog::MouseMove(int x, int y)
+{
+	Dialog2004::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // OptionsDialog
 
 // 0x418760
@@ -40,9 +71,15 @@ OptionsDialog::OptionsDialog(SevenSeasApp* theApp) :
 		GT(0x004a3f6c), "", GT(0x004a3590), BUTTONS_FOOTER),
 	mApp(theApp)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_OPTIONSBUTTON]);
 	SetButtonFont(mApp->mFonts[FONT_MT11]);
 	SetHeaderFont(mApp->mFonts[FONT_FONT1]);
 	SetLinesFont(mApp->mFonts[FONT_MT11]);
+	// the caller's part (0x420620, ShowOptions): the colours and the insets
+	SetColor(COLOR_HEADER, Color(0x66, 0x5c, 0x38));
+	SetColor(COLOR_LINES, Color(0, 0, 0));
+	SetColor(COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
+	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
 
 	struct Spec { DialogButton** mButton; int mId; unsigned int mText; };
 	Spec aSpecs[4] =
@@ -52,9 +89,11 @@ OptionsDialog::OptionsDialog(SevenSeasApp* theApp) :
 	};
 	for (int i = 0; i < 4; i++)
 	{
-		DialogButton* aButton = new DialogButton(mApp->mImages[IMAGE_OPTIONSBUTTON], aSpecs[i].mId, this);
+		DialogButton* aButton = new DialogButton2003(mApp->mImages[IMAGE_OPTIONSBUTTON], aSpecs[i].mId, this);
 		aButton->SetFont(mApp->mFonts[FONT_MT11]);
 		aButton->mLabel = GT(aSpecs[i].mText);
+		// measured against the original: its labels are the dialog's gold
+		aButton->SetColor(DialogButton::COLOR_LABEL, Color(0xe0, 0xb7, 0x28));
 		*aSpecs[i].mButton = aButton;
 	}
 	// port: there is nothing to register
@@ -133,6 +172,13 @@ int OptionsDialog::GetPreferredHeight(int theWidth)
 	return 0x16b;
 }
 
+// 0x419970: the mouse position goes to the side panel too
+void OptionsDialog::MouseMove(int x, int y)
+{
+	Dialog2004::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
+}
+
 // 0x4192e0
 void OptionsDialog::Draw(Graphics* g)
 {
@@ -186,6 +232,7 @@ NextLevelDialog::NextLevelDialog(SevenSeasApp* theApp) :
 		GT(0x004a3e6c), "", GT(0x004a3e78), BUTTONS_FOOTER),
 	mApp(theApp)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_OPTIONSBUTTON]);
 	SetButtonFont(mApp->mFonts[FONT_MT11]);
 	SetHeaderFont(mApp->mFonts[FONT_FONT1]);
 	SetLinesFont(mApp->mFonts[FONT_MT11]);
@@ -200,6 +247,13 @@ int NextLevelDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
 	return 0x140;
+}
+
+// 0x425680: the mouse position goes to the side panel too
+void NextLevelDialog::MouseMove(int x, int y)
+{
+	Dialog2004::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
 }
 
 // 0x417ca0
@@ -269,6 +323,7 @@ RecordScoreDialog::RecordScoreDialog(SevenSeasApp* theApp, const SexyString& the
 	mApp(theApp),
 	mPlace(thePlace)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_OPTIONSBUTTON]);
 	SetButtonFont(mApp->mFonts[FONT_MT11]);
 	SetHeaderFont(mApp->mFonts[FONT_FONT1]);
 	SetLinesFont(mApp->mFonts[FONT_MT11]);
@@ -282,6 +337,10 @@ RecordScoreDialog::RecordScoreDialog(SevenSeasApp* theApp, const SexyString& the
 	mNameEdit->SetColors(sEditColors, 5);
 	mNameEdit->mMaxPixels = 0x68;
 	mNameEdit->SetText(mApp->mLastScoreName);
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("sevenseas", mNameEdit, false);
+#endif
 }
 
 RecordScoreDialog::~RecordScoreDialog()
@@ -362,9 +421,10 @@ HighScoreDialog::HighScoreDialog(SevenSeasApp* theApp) :
 		GT(0x004a3584), "", GT(0x004a3590), BUTTONS_FOOTER),
 	mApp(theApp)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_OPTIONSBUTTON]);
 	mScores = new HighScoreWidget(theApp);
 	SetButtonFont(mApp->mFonts[FONT_MT11]);
-	SetHeaderFont(mApp->mFonts[FONT_FONT1]);
+	SetHeaderFont(mApp->mFonts[FONT_MT22]);
 	SetLinesFont(mApp->mFonts[FONT_MT11]);
 	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
 	SetColor(COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
@@ -424,9 +484,12 @@ NagDialog::NagDialog(SevenSeasApp* theApp, int theDialogId, int theWhich) :
 	mApp(theApp),
 	mWhich(theWhich)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_OPTIONSBUTTON]);
 	SetButtonFont(mApp->mFonts[FONT_MT11]);
 	SetHeaderFont(mApp->mFonts[FONT_FONT1]);
 	SetLinesFont(mApp->mFonts[FONT_MT11]);
+	// measured against the original: the button's label is the dialog's gold
+	SetColor(COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
 	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
 	mCheckbox = new Checkbox(mApp->mImages[IMAGE_UNCHECKED], mApp->mImages[IMAGE_CHECKED], 0, this);
 	mCheckbox->SetChecked(false, false);
@@ -463,6 +526,13 @@ int NagDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
 	return (mWhich < 0) ? 0x1ae : 0x136;   // 0x40cb20 (the bonus screen's) and 0x426630 (the warnings')
+}
+
+// 0x40d2b0: the mouse position goes to the side panel too
+void NagDialog::MouseMove(int x, int y)
+{
+	Dialog2004::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, mY + y);
 }
 
 // 0x40cbe0 / 0x4266f0: the framed box, the title in white (the warnings: BEWARE!) and the text in gold, every line

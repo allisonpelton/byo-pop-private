@@ -1,0 +1,46 @@
+# The adventure: the book's map and chapter, a transition into the battle, the battle's start and its conversation,
+# a word (RAIN) and its attack, the enemy's answer with its text, focus in battle, the battle menu.
+# Profile Tester (pilot start state); the seeded board (seedpatch.py) is the same on both sides.
+at 16000
+click 230 300            # the library: Adventure
+wait 4000
+shot map
+click 400 575            # Enter!
+clip enter_transition 2500 100
+wait 3000
+shot battle_intro_1
+click 400 150
+wait 4000
+shot battle_intro_2
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+shot battle_start
+click 325 495            # R  (the seeded board, by rows: UAEN / GNOH / AIJW / RGRE)
+wait 400
+click 325 445            # A
+wait 400
+click 375 445            # I
+wait 400
+click 375 395            # N
+wait 800
+shot word_rain
+click 400 567            # Attack: Lex attacks, then the enemy answers
+clip attacks 6000 100
+wait 1000
+shot after_attacks
+wait 3000
+shot after_attacks_2
+focus lose
+wait 1500
+shot battle_focus_lost
+focus regain
+wait 1500
+shot battle_focus_regained
+click 655 580            # Menu
+wait 1500
+shot battle_menu
+quit

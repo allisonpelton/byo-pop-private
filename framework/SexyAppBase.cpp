@@ -42,6 +42,7 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
+#include "WebProfiles.h"
 #endif
 
 using namespace Sexy;
@@ -494,6 +495,7 @@ SexyAppBase::SexyAppBase()
 	mForcedRenderScale = 0;
 	mDrawingLogicalShot = false;
 	mTraceMode = false;
+	mDrawEvery = false;
 	mFastClock = 0;
 	mLastFastDrawUpdate = 0;
 	mScriptPos = 0;
@@ -1413,10 +1415,17 @@ bool SexyAppBase::DoUpdateFrames()
 		Platform::ReportMissing();
 #ifdef __EMSCRIPTEN__
 		sexyapp_notify_loaded();
+		Byopop::SiteLoaded(this);	// the page's players (framework/WebProfiles.h): the game's start point, if it has one
 #endif
 	}
 
 	UpdateFrames();
+
+	// port: under -fast the sound effects play on the game's clock, so that a sound ends after as many updates as it
+	// lasts and not after as much real time (Platform::Mixer::SetGameClocked, set in Init): each update moves them on
+	// by the game time it stands for
+	if (mFastMode)
+		Platform::Mixer::Get().AdvanceVoices(mFrameTime / mUpdateMultiplier);
 	return true;
 }
 
@@ -1709,6 +1718,21 @@ void SexyAppBase::TranslateMouse(int theWindowX, int theWindowY, int* theX, int*
 		*theX = theWindowX;
 		*theY = theWindowY;
 	}
+}
+
+void SexyAppBase::WarpMouse(int theX, int theY)
+{
+#ifdef __EMSCRIPTEN__
+	(void) theX;
+	(void) theY;
+#else
+	if (IsTestRun() || (mHWnd == NULL) || (mDDInterface == NULL))
+		return;
+	int aWindowX;
+	int aWindowY;
+	mDDInterface->LogicalToWindow(theX, theY, &aWindowX, &aWindowY);
+	SDL_WarpMouseInWindow(mHWnd, aWindowX, aWindowY);
+#endif
 }
 
 void SexyAppBase::MouseMoveTo(int theX, int theY)
@@ -2055,6 +2079,16 @@ std::string SexyAppBase::NotifyCrashHook()
 //////////////////////////////////////////////////////////////////////////
 // Window
 
+DDInterface* SexyAppBase::CreateDDInterface()
+{
+	return new DDInterface(this);
+}
+
+uint32_t SexyAppBase::GetExtraWindowFlags()
+{
+	return 0;
+}
+
 void SexyAppBase::MakeWindow()
 {
 	if (mHWnd == NULL)
@@ -2075,7 +2109,7 @@ void SexyAppBase::MakeWindow()
 		int aScale = 1;
 		int aPlaceX = SDL_WINDOWPOS_CENTERED;
 		int aPlaceY = SDL_WINDOWPOS_CENTERED;
-		Uint32 aFlags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
+		Uint32 aFlags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | GetExtraWindowFlags();
 
 #ifdef __EMSCRIPTEN__
 		// Browsers only enter fullscreen from a user gesture, so the game always starts in the page; the
@@ -2132,7 +2166,7 @@ void SexyAppBase::MakeWindow()
 	}
 
 	if (mDDInterface == NULL)
-		mDDInterface = new DDInterface(this);
+		mDDInterface = CreateDDInterface();
 	mDDInterface->mForcedRenderScale = mForcedRenderScale;
 
 	int aResult = InitDDInterface();
@@ -2376,7 +2410,8 @@ bool SexyAppBase::Process(bool allowSleep)
 
 		if (mUpdateAppState == UPDATESTATE_PROCESS_1)
 		{
-			if ((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded))
+			// port: with -drawevery an update that has not been drawn yet is drawn before the next one
+			if (((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
 			{
 				if (mUpdateFTimeAcc >= aFrameFTime)
 				{
@@ -2428,7 +2463,7 @@ bool SexyAppBase::Process(bool allowSleep)
 			mNonDrawCount = 0;
 
 			// port: with -fast only every FAST_DRAW_INTERVAL-th update is drawn (and the first frame)
-			if ((mHasPendingDraw) && ((!mFastMode) || (mDrawCount == 0) || (mUpdateCount - mLastFastDrawUpdate >= FAST_DRAW_INTERVAL)))
+			if ((mHasPendingDraw) && ((!mFastMode) || (mDrawEvery) || (mDrawCount == 0) || (mUpdateCount - mLastFastDrawUpdate >= FAST_DRAW_INTERVAL)))
 			{
 				DrawDirtyStuff();
 				mLastFastDrawUpdate = mUpdateCount;
@@ -3031,6 +3066,8 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mFastMode = true;
 	else if (theParamName == "-trace")
 		mTraceMode = true;
+	else if (theParamName == "-drawevery")
+		mDrawEvery = true;
 	else if (theParamName == "-renderscale")
 		mForcedRenderScale = atoi(theParamValue.c_str());
 	// port: stand-ins for missing game files (platform/Placeholders.h)
@@ -3185,6 +3222,15 @@ void SexyAppBase::RunScript()
 			SaveScreenshot(aCommand.mArgs);
 		else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
 			SaveScreenshot(aCommand.mArgs, true);
+		else if ((aName == "focus") && ((aCommand.mArgs == "lose") || (aCommand.mArgs == "regain")))
+		{
+			// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
+			mActive = aCommand.mArgs == "regain";
+			RehupFocus();
+
+			if ((mActive) && (!mIsWindowed))
+				mWidgetManager->MarkAllDirty();
+		}
 		else if (aName == "quit")
 			Shutdown();
 		else if (!HandleScriptCommand(aCommand))
@@ -3499,6 +3545,10 @@ void SexyAppBase::Init()
 
 	if (!mCmdLineParsed)
 		DoParseCmdLine();
+
+	// port: -fast moves the sound effects on in DoUpdateFrames instead of in real time
+	if (mFastMode)
+		Platform::Mixer::Get().SetGameClocked(true);
 
 	// Change directory. port: the game data root is the VFS base dir (set up by main())
 	if ((!mChangeDirTo.empty()) && (!ChangeDirHook(mChangeDirTo.c_str())))

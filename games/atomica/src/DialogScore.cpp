@@ -10,6 +10,10 @@
 
 #include <cstdio>
 
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // 0x41cc00
@@ -27,6 +31,10 @@ HighScoreDialog::HighScoreDialog(AtomicaApp* theApp, int theScore) :
 	mOthers.Add(mEdit);
 	mEdit->SetFont(mApp->mMonitorFontMedium);
 	mEdit->mMaxChars = 20;
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("atomica", mEdit, false);
+#endif
 	mOk = AddButton(2);
 	mSkip = AddButton(3);
 }

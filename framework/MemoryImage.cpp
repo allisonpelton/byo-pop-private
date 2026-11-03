@@ -13,6 +13,8 @@
 
 using namespace Sexy;
 
+bool (*Sexy::gMemoryImageRecoverBits)(MemoryImage* theImage) = NULL;
+
 // port: helpers for drawing on HD pixels (see BeginHDMirror at the end of this file)
 namespace
 {
@@ -1438,8 +1440,11 @@ ulong* MemoryImage::GetBits()
 		}
 		else
 		{
-			// port: no D3DInterface::RecoverBits (textures aren't read back), see PurgeBits
+			// port: no D3DInterface::RecoverBits under DDInterface (textures aren't read back, see PurgeBits); a GPU
+			// display reads the texture back, as the original's GetBits does
 			memset(mBits, 0, aSize*sizeof(ulong));
+			if (gMemoryImageRecoverBits != NULL)
+				gMemoryImageRecoverBits(this);
 		}
 	}	
 
@@ -1893,6 +1898,64 @@ void MemoryImage::SlowStretchBlt(Image* theImage, const Rect& theDestRect, const
 		BitsChanged();
 	}	
 }
+
+// The store of 0x433ca0: the new alpha over what is there, the colour weighted by the source's share of it
+#define SLOW_STRETCH_STORE(p, r, g, b, a) \
+	if ((a) != 0) \
+	{ \
+		ulong dest = *(p); \
+		int aDestAlpha = dest >> 24; \
+		int aNewDestAlpha = ((255 - aDestAlpha) * (a)) / 255 + aDestAlpha; \
+		int aWeight = ((a) * 255) / aNewDestAlpha; \
+		int oma = 256 - aWeight; \
+		*(p) = (aNewDestAlpha << 24) | \
+			(((((dest & 0x0000FF) * oma) >> 8) & 0x0000FF) + (((b) * aWeight) >> 8)) | \
+			(((((dest & 0x00FF00) * oma) >> 8) & 0x00FF00) + ((((g) * aWeight) >> 8) << 8)) | \
+			(((((dest & 0xFF0000) * oma) >> 8) & 0xFF0000) + ((((r) * aWeight) >> 8) << 16)); \
+	}
+
+void MemoryImage::StretchCopy(Image* theImage, const Rect& theDestRect, const FRect& theSrcRect)
+{
+	theImage->mDrawn = true;
+
+	ulong* aDestEnd = GetBits() + (mWidth * mHeight);
+
+	MemoryImage* aSrcMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+
+	if (aSrcMemoryImage != NULL)
+	{
+		if (aSrcMemoryImage->mColorTable == NULL)
+		{
+			ulong* aSrcBits = aSrcMemoryImage->GetBits();
+
+			#define SRC_TYPE ulong
+			#define READ_COLOR(ptr) (*(ptr))
+
+			#include "MI_SlowStretchBlt.inc"
+
+			#undef SRC_TYPE
+			#undef READ_COLOR
+		}
+		else
+		{
+			ulong* aColorTable = aSrcMemoryImage->mColorTable;
+			uchar* aSrcBits = aSrcMemoryImage->mColorIndices;
+
+			#define SRC_TYPE uchar
+			#define READ_COLOR(ptr) (aColorTable[*(ptr)])
+
+			#include "MI_SlowStretchBlt.inc"
+
+			#undef SRC_TYPE
+			#undef READ_COLOR
+		}
+
+		BitsChanged();
+	}
+	(void) aDestEnd;
+}
+
+#undef SLOW_STRETCH_STORE
 
 //TODO: Make the special version
 void MemoryImage::FastStretchBlt(Image* theImage, const Rect& theDestRect, const FRect& theSrcRect, const Color& theColor, int theDrawMode)

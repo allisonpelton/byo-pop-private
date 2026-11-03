@@ -1,0 +1,36 @@
+// Names for BookwormAdventures.exe: the C++ runtime helpers, PopLua's API and LuaLib (docs/ENGINE.md, docs/POPLUA.md).
+// Read by tools/decread.py and tools/asm.py, and by Ghidra's ApplySymbols.java.
+// Volume 2's addresses: the names were Volume 1's, carried over by tools/funcmatch.py pairs (same function bodies, the same
+// vtable slots, the same call lists); a name with no counterpart in Volume 2 is left out. Names that Ghidra's export has
+// (RTTI classes) are used for the rest.
+{"addr": "004018e0", "name": "std::string::string_cstr"}
+{"addr": "00401950", "name": "std::string::dtor"}
+{"addr": "00401a10", "name": "std::string::assign_sub"}
+{"addr": "00401b70", "name": "std::string::assign_cstr"}
+{"addr": "00641840", "name": "LuaLib::LuaSupport::PushPath"}
+{"addr": "006422a0", "name": "LuaLib::LuaSupport::CreateClass"}
+{"addr": "00642750", "name": "LuaLib::LuaSupport::SetBaseClass"}
+{"addr": "00642c90", "name": "LuaLib::LuaSupport::SetClassSerializers"}
+{"addr": "00642e80", "name": "LuaLib::LuaSupport::AddMethod"}
+{"addr": "006432a0", "name": "LuaLib::LuaSupport::PushFullObject"}
+{"addr": "00643760", "name": "LuaLib::LuaSupport::CheckObject"}
+{"addr": "00647de0", "name": "LuaLib::LuaSupport::Call"}
+{"addr": "006579d0", "name": "lua_pushstring"}
+{"addr": "00657c50", "name": "lua_newtable"}
+{"addr": "00657e70", "name": "lua_setmetatable"}
+{"addr": "00658260", "name": "lua_newuserdata"}
+{"addr": "00659720", "name": "luaL_argerror"}
+{"addr": "006597e0", "name": "luaL_typerror"}
+{"addr": "00659a00", "name": "luaL_error"}
+{"addr": "00659c80", "name": "luaL_getmetatable"}
+{"addr": "0065a0a0", "name": "luaL_openlib"}
+{"addr": "00673070", "name": "luaH_set"}
+{"addr": "00679720", "name": "luaC_collectgarbage"}
+{"addr": "0067a010", "name": "luaV_toint"}
+{"addr": "0067a070", "name": "luaV_tostring"}
+{"addr": "0067d5f0", "name": "luaF_newCclosure"}
+{"addr": "0067e0f0", "name": "luaS_new"}
+{"addr": "0067e250", "name": "luaS_newudata"}
+{"addr": "00693b6a", "name": "free"}
+{"addr": "00693c2f", "name": "operator_new"}
+{"addr": "00693fe7", "name": "_invalid_parameter_noinfo"}

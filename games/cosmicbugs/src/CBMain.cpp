@@ -9,6 +9,10 @@
 #include <cstdio>
 #include <cstring>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 namespace cb
 {
 
@@ -206,6 +210,9 @@ void SaveProfiles()
 		std::fclose(aFile);
 		Sys_SaveDone();
 	}
+#ifdef __EMSCRIPTEN__
+	SiteChanged();	// the web page's players (framework/WebProfiles.h): every change of the slots ends here
+#endif
 }
 
 // The default high scores, the first player named after the account (else the exe's default name) and the
@@ -225,6 +232,9 @@ void ResetProfiles()
 	for (char* c = gProfiles[0].name; *c != 0; c++)
 		if ('a' <= *c && *c <= 'z')
 			*c = (char)(*c - 0x20);
+#ifdef __EMSCRIPTEN__
+	SiteFirstPlayer(gProfiles[0].name, 0x20);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" it names the first player
+#endif
 	gProfiles[0].levelReached = 0;
 	gProfiles[0].autoFire = 1;
 	gProfiles[0].savedLevel = 0;
@@ -311,6 +321,9 @@ void GameInit()
 {
 	Cursors_Init();
 	LoadProfiles();
+#ifdef __EMSCRIPTEN__
+	SiteStart();	// the web page's players (framework/WebProfiles.h): the slots are read; what the page queued for them is applied
+#endif
 	gUrl[0] = 0;
 	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, kScreenClip);
 }
@@ -485,7 +498,7 @@ void GameStep()
 		if (gLevels.current->kind == 0 && gTrial != 0 && gLevels.current->menus.current != nullptr &&
 			gLevels.current->menus.current->requesters.current == nullptr)
 			gTrialLeft = gTrialLeft + -1;
-		if (Level_Update(gLevels.current) == 0 || Key_Down(0xbe) != 0)
+		if (Level_Update(gLevels.current) == 0 || Key_Pressed(0xbe) != 0)
 		{
 			if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
 				List_RemoveCurrent(&gLevels);
@@ -520,7 +533,7 @@ void GameStep()
 		}
 	}
 escape:
-	if (Key_Down(0x1b) == 0)
+	if (Key_Pressed(0x1b) == 0)
 	{
 		gEscape = 0;
 		return;

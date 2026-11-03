@@ -1,11 +1,13 @@
 // JPEG 2000 test (platform/openjpeg, Platform::RegisterImageFormat): native only, no window, no sound.
 //
 //   jp2test <folder> [-ref=<png folder>] [-tolerance=N]
+//   jp2test <folder> -ref=<png folder> -write-ref
 //
-// Decodes every .jp2 under <folder> that has a reference .png of the same stem (a decode of the same image by
-// another program: Bookworm Adventures' staging writes them to re/bookwormadv/jp2ref/) through
-// Platform::DecodeImage, and compares
-// the pixels with the PNG's (stb_image). The reference is at the same path under -ref's folder, or beside the
+// Decodes every .jp2 under <folder> that has a reference .png of the same stem through Platform::DecodeImage, and
+// compares the pixels with the PNG's (stb_image). The references are this decoder's own output, kept as a regression
+// check: -write-ref writes them (a .png for every .jp2, at its path under -ref's folder) and stops. tools/check.sh
+// uses re/bookwormadv/jp2ref/ (tools/jp2test/write_refs.sh writes it). The decoder rebuilds truncated code-blocks
+// as PopCap's j2k-codec does (third_party/openjpeg/BYO-POP.md), so a decode by another program (Pillow) differs. The reference is at the same path under -ref's folder, or beside the
 // .jp2 without -ref. A file whose size differs, or whose largest channel difference is
 // above the tolerance (default 0), prints one line and fails the run. Then the image loader's own rules with
 // those files, in a scratch folder under the current directory:
@@ -26,6 +28,7 @@
 
 #include <openjpeg.h>
 #include <SDL.h>
+#include <stb_image_write.h>
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -385,18 +388,22 @@ int main(int argc, char** argv)
 {
 	std::string folder, ref;
 	int tolerance = 0;
+	bool writeRef = false;
 	for (int i = 1; i < argc; i++)
 	{
-		if (strncmp(argv[i], "-tolerance=", 11) == 0)
+		if (strcmp(argv[i], "-write-ref") == 0)
+			writeRef = true;
+		else if (strncmp(argv[i], "-tolerance=", 11) == 0)
 			tolerance = atoi(argv[i] + 11);
 		else if (strncmp(argv[i], "-ref=", 5) == 0)
 			ref = argv[i] + 5;
 		else
 			folder = argv[i];
 	}
-	if (folder.empty() || !fs::is_directory(folder) || (!ref.empty() && !fs::is_directory(ref)))
+	if (folder.empty() || !fs::is_directory(folder) || (writeRef ? ref.empty() : (!ref.empty() && !fs::is_directory(ref))))
 	{
-		fprintf(stderr, "usage: jp2test <folder> [-ref=<png folder>] [-tolerance=N]\n");
+		fprintf(stderr, "usage: jp2test <folder> [-ref=<png folder>] [-tolerance=N]\n"
+			"       jp2test <folder> -ref=<png folder> -write-ref\n");
 		return 2;
 	}
 	// the reference .png of a .jp2: at its path under -ref's folder, or beside it
@@ -416,6 +423,40 @@ int main(int argc, char** argv)
 			jp2s.push_back(e.path());
 	}
 	std::sort(jp2s.begin(), jp2s.end());
+
+	if (writeRef)
+	{
+		// the references: this decoder's pixels as PNGs, RGB for an image without alpha (as the staged ones are)
+		int written = 0, failed = 0;
+		for (const fs::path& jp2 : jp2s)
+		{
+			Pic a;
+			fs::path png = pngFor(jp2);
+			std::error_code ec;
+			fs::create_directories(png.parent_path(), ec);
+			bool ok = DecodeFile(jp2, a);
+			int comp = a.mAlpha ? 4 : 3;
+			std::vector<uint8_t> px;
+			for (size_t i = 0; ok && i < a.mBits.size(); i++)
+			{
+				uint32_t c = a.mBits[i];
+				px.push_back((uint8_t)(c >> 16));
+				px.push_back((uint8_t)(c >> 8));
+				px.push_back((uint8_t)c);
+				if (comp == 4)
+					px.push_back((uint8_t)(c >> 24));
+			}
+			if (ok && stbi_write_png(png.string().c_str(), a.mW, a.mH, comp, px.data(), a.mW * comp))
+				written++;
+			else
+			{
+				printf("%s: not written\n", fs::relative(jp2, folder).generic_string().c_str());
+				failed++;
+			}
+		}
+		printf("jp2: wrote %d reference pngs under %s, %d failed\n", written, ref.c_str(), failed);
+		return failed ? 1 : 0;
+	}
 
 	int files = 0, skipped = 0, failures = 0, maxDiff = 0;
 	fs::path maskedPair;  // a "name.jp2" with a "name_.jp2" mask beside it, for the loader rules

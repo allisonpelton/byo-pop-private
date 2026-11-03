@@ -202,3 +202,135 @@ flag written where another was meant, and `Widget::Update` called where the orig
 comments were wrong too. Most of these are omissions beside code that Ghidra renders poorly (dropped arguments,
 unnamed objects), not mistranslations. The session fixed all of it in one turn, and the restored random-number users
 moved its bot's pinned results.
+
+## Estimates against costs (2026-11-01)
+
+The survey (`docs/POPCAP_GAMES_SURVEY.md`) rates each game's effort against Bejeweled Deluxe as 1x, from the size of
+its game code plus the subsystems it needs, each estimate within about 50%. The table sets those estimates beside what
+each port cost up to its first merge: the "Port work" column of README.md's progress table of 2026-10-26, computed by
+`tools/game_costs.py` with each model at its own API price. The last three rows are the ports from before the rules
+of 2026-10-24.
+
+| Game | Model | Estimate | Port cost | Per unit |
+|---|---|---|---:|---:|
+| Noah's Ark | Sonnet | 1-1.5x | $62 | ~$50 |
+| Seven Seas | Sonnet | 1-1.5x | $54 | ~$43 |
+| Atomica | Sonnet | 1.5x | $105 | ~$70 |
+| Cosmic Bugs | Opus | ~2x | $125 | ~$63 |
+| TipTop | Opus | 2-3x | $106 | ~$42 |
+| Ning Po | Opus | 2-3x | $66 | ~$26 |
+| Pixelus | Sonnet | ~3x | $91 | ~$30 |
+| Word Harmony | Opus | 3-4x | $115 | ~$33 |
+| Rocket Mania | Sonnet | 3.5x | $134 | ~$38 |
+| Dynomite | Opus | 4.5x | $164 | ~$36 |
+| Bookworm Adventures Vol. 2 | Sonnet | 4-6x after Vol. 1 | $195 | ~$39 |
+| Bookworm Adventures | Opus | 10-15x | $538 | ~$43 |
+| Bejeweled | Opus | 1x | $251 | $251 |
+| Big Money | Opus | 2x | $263 | ~$132 |
+| BookWorm | Opus | 3-3.5x | $369 | ~$114 |
+
+Mummy Maze ($84), Alchemy ($70) and Water Bugs ($45) were rated only "small" and are left out of what follows.
+
+**A fixed cost per game.** The survey scales effort with code size alone, but every port also pays for work that does
+not grow with the game: staging its files, the Ghidra export, its web page and store entry, a check suite, a review and
+a merge. So the smallest games cost the most per unit: $43-70 for the games of 1-1.5x, $30-43 for those of 3x and
+more. Every port since the token rules lands within about 40% of
+
+    port cost = about $30 + $33 per unit of the survey's estimate
+
+and all but Ning Po within a third. It is a budget for a port before it starts, and a warning when a running port has
+gone far past its own.
+
+**Penalties set too high.** The survey added effort for a game without RTTI and for an archive format to decode before
+anything else. Dynomite, with no game RTTI, cost the same per unit as Rocket Mania, which has it. Ning Po, rated 2-3x
+for its archive, cost what a 1.5x game costs, though TipTop, with the same penalty, came in on its estimate. Two games
+came in over: Atomica, whose session ran to the full context window before Sonnet got the 400K auto-compact (above),
+and Cosmic Bugs, whose engine the survey did not know and guessed at ~2x. Sequels on a shared engine were estimated
+well: Volume 2 (4-6x after a 10-15x first game) cost 36% of Bookworm Adventures' port, and Water Bugs 36% of Cosmic
+Bugs'.
+
+**The process mattered more than the model.** The three ports from before the rules, with subagents and many short
+calls, cost $114-251 per unit; Bejeweled's includes setting up the repository and the framework. Every port since has
+cost between a sixth and a third as much per unit. Sonnet ports cost about the same per unit as Opus ports in API
+dollars: cache reads are most of every session's cost and are priced the same for both models, so Sonnet saves only on
+output and cache writes, and its sessions carried larger contexts. Whether it weighs less against the plan's limits is
+not known, since those have no published formula. Its ports also need the Opus review that found the faults above.
+
+**Mods and shared work.** By the scan of 2026-11-01, mods are $1,709 of the $5,825 spent so far, 29%; Bejeweled's mods
+alone ($1,268) cost five times its port. Shared code and coordination came to $999. The scan counts $283 of work not
+yet classified as shared by default, so that figure is approximate.
+
+**What the estimates leave out.** They are for a first playable port. Since 2026-10-27 a game is done only when it plays
+identically to its original (CLAUDE.md, "Done means identical"), and the survey has nothing for that pass. On the
+games' side its first costs are small (from 2026-10-26 to 2026-11-01: Bookworm Adventures $86, Seven Seas $20, Water
+Bugs $11), while its tools (origrun, shotdiff, the originals' 3D mode) count as shared. A rule for it waits until more
+games have finished the pass.
+
+For the ports under way the rule gives about $180 for Ancient Japan (4-5x), about $195 for Bonnie's Bookstore (4-6x)
+and about $855 for Twist (25x). It gives about $1,020 for Bejeweled 3 and $1,185 for Zuma's Revenge, but those lie far
+past Bookworm Adventures, the only large game it was fitted on, so they are rough.
+
+**Twist, measured (2026-11-03).** Bejeweled Twist's one session ran 2 days 11 hours, from its start (01:06 UTC on
+2026-11-01) to its last commit before its final merge (11:59 UTC on 2026-11-03). It made 14,647 calls, 3,314 of them
+by Sonnet subagents: 3.18B cache reads, 32.4M cache writes and 11.3M output, about $1,076 with every model at Opus's
+prices (`tools/token_report.py`, so the Sonnet share is a little overstated). That covers the port, its 3D mode,
+both phases of its identical-play pass and the shared code it wrote (the GPU core, the software stretch and
+transforms, the OpenJPEG low-end patch). The rule gave $855 for the port alone. Per unit of the survey's 25x it is
+about $43, what Bookworm Adventures paid per unit for its port alone, so the survey's size held and the pass came
+cheaply on top of it. The estimates in days were far off. On the evening of 2026-11-01 Twist put the work left at 14
+to 22 days and its 3D mode at 6 to 10; they took about a day and a half, and about 16 hours from the first GPU commit
+to the 3D merge. At 21:54 UTC on 2026-11-02, with the account at 61%, the coordinator built on Twist's estimate and
+put the rest at about 60 percentage points of the weekly limit (45 to 80); it took about 6 (Twist's $180 of the $384
+every session spent while the account went from 61% to 73%). That week a percentage point came to about $32 ($2,352
+across the project's folders for 73%). So a large game's remaining work is estimated from this rule and the survey,
+at the week's dollars per point, and never from a session's own guess in days.
+
+## The 400K auto-compact (measured 2026-11-01)
+
+Sessions compacted only near the full 1M window until 2026-10-24, when auto-compact moved to 400K for Opus 5.5; Sonnet
+5.5 followed at the end of 2026-10-25. Every main-session call in the byo-pop transcripts, before and after, each API
+response counted once and each model at its own API price:
+
+| Main sessions | Calls | Context per call (average / median / 90th percentile) | Per call | Compactions per 1,000 calls |
+|---|---:|---|---:|---:|
+| Opus, 1M window | 31,775 | 505K / 497K / 863K | $0.141 | 2.9 |
+| Opus, 400K | 26,525 | 234K / 233K / 341K | $0.083 | 6.9 |
+| Sonnet, 1M window | 2,012 | 446K / 401K / 860K | $0.115 | 2.5 |
+| Sonnet, 400K | 9,002 | 243K / 239K / 345K | $0.067 | 6.7 |
+
+A call now costs about 40% less. The calls since the change cost about $2,800; at the old cost per call they would
+have cost about $4,800. Sessions compact more often, about 145 more compactions so far, and each costs about
+$0.40-0.60 (the summary call, and the first call after it writing the new context into the cache): about $90 against
+about $2,000 saved. The other token rules came the same day, but the drop in context per call belongs to the
+threshold: a session's context climbs from its floor to the threshold and starts again, so where it compacts sets the
+average, and how fast it grows sets how often it compacts.
+
+What the table cannot show is whether a task takes more calls once a session has lost what it read before a
+compaction and reads it again. Per unit of the survey's estimate (above), the three Sonnet ports from before the
+change (Noah's Ark, Seven Seas, Atomica) look somewhat dearer than the later ones, not 40% dearer, so the saving per
+task may be smaller than the saving per call; three small games are too few to tell.
+
+A lower threshold gives back less each time. About 87K tokens of every call are fixed (tools, the app's MCP tools, the
+system prompt, CLAUDE.md, skills: a game session's own count on 2026-11-01), and a summary adds about 20K, so a
+session restarts at about 110K. Compacting at about 250K would bring the average call from about 234K to about 170K:
+roughly 10% per call after the extra compactions, before any reading again, which grows as compactions come more
+often. 400K stays unless usage gets tight.
+
+## Calls (measured 2026-11-01)
+
+The game sessions' 33,775 main-session calls from 2026-10-25 to 2026-11-01: 89% made exactly one tool call and 8% two
+or more. About 41% of all calls were a single read or search (a `sed -n` range, grep, `cat`, Read), and 79% of those
+came right after another read (59% in runs of three or more). Edits and scripts were about 23% of calls, game and tool
+runs 7%, builds and suites 5.5%, git 1.5%; calls right after a failed tool call and calls that woke a session (a
+notification or a message) were about 1% each. Batching the reads a session already knows it needs costs nothing
+extra, since the same text enters the context either way, and if a third to a half of the reads in runs were batched,
+about 11-16% of the calls would go. CLAUDE.md asks for it from 2026-11-01, as a trial: measure the same mix again
+once sessions started after that date have done a week of work.
+
+Edits: 6,126 file edits in the same calls. Inline Python failed 8% of the time (2,202 edits), heredocs into a file 8%
+(353), `sed -i` 4% (827), the Edit tool 1% (1,276) and Write none (1,468); a failure is an error result or a failure in
+the output, such as an `assert count == 1` that stopped a replacement. Against the Edit tool's rates that is about 200
+retries and 150 more checking reads, about 1% of the calls. What the count cannot see is a silent fault: Git Bash
+heredocs collapse doubled backslashes. Sessions seldom use the Edit tool because it needs a Read of the file first and
+they read with `sed -n`, and because the auto mode's own instructions suggest sed, heredocs and short scripts for small
+edits. The user decided against a rule for it (2026-11-01): it would not be followed consistently.

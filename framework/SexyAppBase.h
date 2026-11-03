@@ -339,6 +339,8 @@ public:
 	//                                          hovered gem's crossfade from the 1x pixels, as in 1x
 	//                                          rendering, see CreateCrossfadeImage)
 	//                     screenshotfull <png> the same at the render target's size (shows HD art)
+	//                     focus lose|regain    the window loses or regains the focus, as its focus
+	//                                          event does (mute, LostFocus/GotFocus), like origrun's
 	//                     quit                 Shutdown()
 	//                     modmenu <what> ...   the mod menu (framework/ModMenu.h; a mod id with spaces in
 	//                                          "..."): open, close, page <mod> | list, enable <mod> 0|1,
@@ -349,12 +351,17 @@ public:
 	//   -fast           updates run back to back on a virtual clock and the screen is drawn every
 	//                   FAST_DRAW_INTERVAL updates, so a script runs as fast as the machine allows
 	//   -trace          the game prints its state to stdout (WinDMApp: the board when it settles)
+	//   -drawevery      every update is drawn before the next one runs (with -fast too), instead of
+	//                   catching up with updates that are not drawn when the machine falls behind, so
+	//                   game logic that waits for a draw (a transition done once drawn) ends at the same
+	//                   update on any machine; the game runs slower than real time if drawing is slow
 	//   -renderscale=N  render at N times the logical size (1..4) whatever the window size, e.g. to
 	//                   check HD art with screenshotfull
 	enum { FAST_DRAW_INTERVAL = 10 };
 	bool mHasSeedParam;
 	bool mFastMode;
 	bool mTraceMode;
+	bool mDrawEvery;  // -drawevery
 	int mForcedRenderScale;  // -renderscale=N
 	bool mDrawingLogicalShot;  // SaveScreenshot at the logical size is drawing
 	DWORD mFastClock;          // -fast: virtual milliseconds, advanced instead of sleeping
@@ -389,6 +396,10 @@ protected:
 	virtual bool DoUpdateFrames();
 	virtual void DoUpdateFramesF(float theFrac);
 	virtual void MakeWindow();
+	// port: the display MakeWindow makes (a DDInterface unless a game gives another, such as a GPUDisplay), and SDL
+	// window flags it adds to the window's own (0 unless a game's display needs one, such as SDL_WINDOW_OPENGL)
+	virtual DDInterface* CreateDDInterface();
+	virtual uint32_t GetExtraWindowFlags();
 	virtual void EnforceCursor();
 	virtual void ReInitImages();
 	virtual void DeleteNativeImageData();
@@ -668,6 +679,9 @@ public:
 	// True in a test run (rundesk, the oracle, a -script run or a test bot): a restart does not start the game
 	// again (TakeRelaunch), and MsgBox and Popup only log their message, since nobody could answer them
 	bool IsTestRun();
+	// port: moves the mouse pointer to a point of the game (the originals' SetCursorPos). It does nothing in a test run
+	// (IsTestRun: a hidden desktop's warp could move the user's real pointer) and on the web (a page cannot move it).
+	void WarpMouse(int theX, int theY);
 };
 
 extern SexyAppBase* gSexyAppBase;

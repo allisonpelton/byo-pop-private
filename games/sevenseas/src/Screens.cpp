@@ -255,9 +255,11 @@ void IntroWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 void IntroWidget::Update()
 {
 	Widget::Update();
-	if (mApp->mAutoplay && (mUpdateCnt == 0x3c))
+	// the pirate welcomes the player: the first time the menu shows after the program starts
+	if (mApp->mFlag4c4 && (mUpdateCnt == 0x3c))
 	{
-		// the bot plays the beginner game without the tutorial
+		mApp->PlaySample(0xf);
+		mApp->mTalkWidget->SetMouth(0);
 	}
 	if ((mUpdateCnt > 0x3c) && !mApp->mTalkWidget->mTalkingNow)
 	{
@@ -275,7 +277,14 @@ void IntroWidget::Update()
 	mTutorialButton->SetDisabled(true);
 }
 
-// 0x416df0
+// 0x40f750: the mouse position goes to the side panel too
+void IntroWidget::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
+}
+
+// 0x416df0: the hint is told by the button's clip flag (+0x19, set in every widget), so the hint is always shown
 void IntroWidget::Draw(Graphics* g)
 {
 	Image** anImages = mApp->mImages;
@@ -296,7 +305,7 @@ void IntroWidget::Draw(Graphics* g)
 	}
 	g->SetFont(mApp->mFonts[FONT_MT11]);
 	g->SetColor(Color(0xff, 0xff, 0));
-	if (!mTutorialButton->mIsOver)
+	if (!mTutorialButton->mClip)
 	{
 		SexyString aText = GT(0x004a3bf8);
 		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x71);
@@ -306,7 +315,7 @@ void IntroWidget::Draw(Graphics* g)
 		SexyString aText = GT(0x004a3c38);
 		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x61);
 		aText = GT(0x004a3c18);
-		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x71);
+		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x75);
 	}
 }
 
@@ -373,7 +382,7 @@ static const int kMapChapterDots[8] = {359, 0, 8, 17, 22, 27, 32, 35};
 MapWidget::MapWidget(SevenSeasApp* theApp) :
 	mApp(theApp)
 {
-	mNextButton = new DialogButton(mApp->mImages[IMAGE_MAPBUTTONLIT], 100, this);
+	mNextButton = new DialogButton2003(NULL, 100, this);   // no component image: the button draws mButtonImage, mOverImage under the mouse
 	mNextButton->mOverImage = mApp->CopyImage(mApp->mImages[IMAGE_MAPBUTTONLIT]);
 	mNextButton->mButtonImage = mApp->CopyImage(mApp->mImages[IMAGE_MAPBUTTONUNLIT]);
 	mNextButton->mDoFinger = true;
@@ -409,6 +418,21 @@ void MapWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aW = anImage->GetWidth();
 	int aH = anImage->GetHeight();
 	mNextButton->Resize((mWidth - aW) / 2 + 10 + mX, mHeight - aH, aW, aH);
+}
+
+// 0x40f750: the mouse position goes to the side panel too
+void MapWidget::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
+}
+
+// 0x417960: a dot more every 50 updates (the original's Update returns the update count / 50)
+void MapWidget::Update()
+{
+	Widget::Update();
+	if (mUpdateCnt % 0x32 == 0)
+		mDots++;
 }
 
 // 0x4177d0
@@ -461,6 +485,8 @@ void MapWidget::ButtonDepress(int theId)
 SidePanel::SidePanel(SevenSeasApp* theApp) :
 	mApp(theApp),
 	mShownScore(0),
+	mMouseX(0),
+	mMouseY(0),
 	mPupilX(0x15),
 	mPupilY(0x33),
 	mTargetX(0x15),
@@ -509,13 +535,10 @@ void SidePanel::Update()
 			MarkDirty();
 		}
 	}
-	// port: the original takes the pupils' target from the mouse with two floating-point expressions (not
-	// recovered); the pupils move a little toward the mouse
-	// (a test run's pupils look straight ahead: a stray real mouse position must not change its screenshots)
-	int aDX = (mWidgetManager != NULL && !mApp->mScriptedInput ? mWidgetManager->mLastMouseX : 0x55) - 0x55;
-	int aDY = (mWidgetManager != NULL && !mApp->mScriptedInput ? mWidgetManager->mLastMouseY : 0x158) - 0x158;
-	mTargetX = 0x15 + std::max(-6, std::min(6, aDX / 40));
-	mTargetY = 0x33 + std::max(-5, std::min(5, aDY / 40));
+	// the target is the mouse position (kept by MouseMove) scaled to the skull's eye room: x over 640 times 12, y over
+	// the panel's height times 14, both cut at the decimal point
+	mTargetX = (int) (mMouseX * 0.0015625 * 12.0 + 21.0);
+	mTargetY = (int) ((double) mMouseY / mHeight * 14.0 + 51.0);
 	if (mPupilX > mTargetX)
 		mPupilX = mPupilX - 1;
 	if (mPupilX < mTargetX)
@@ -524,6 +547,15 @@ void SidePanel::Update()
 		mPupilY = mPupilY - 1;
 	if (mPupilY < mTargetY)
 		mPupilY = mPupilY + 1;
+}
+
+// 0x41bba0
+void SidePanel::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mMouseX = x;
+	mMouseY = y;
+	mApp->SetCursor(0);
 }
 
 // 0x41b5a0
@@ -587,13 +619,28 @@ TalkWidget::TalkWidget(SevenSeasApp* theApp) :
 	mBlinkTick = mUpdateCnt;
 }
 
+// the mouth of each line (WinSS.exe 0x4a4008, 800 bytes a line): pairs of the mouth picture (0 closed, 1-4 the
+// pictures after the eye) and the updates it stays, ended by a time of 0; the draw reads the picture of the step, the
+// update the time
+static const int kMouthSteps[8][21][2] =
+{
+	{{0, 1}, {2, 13}, {4, 8}, {1, 9}, {2, 11}, {4, 8}, {1, 12}, {3, 13}, {2, 13}, {4, 7}, {1, 7}, {2, 12}, {1, 7}, {0, 6}, {4, 7}, {2, 18}, {4, 12}, {4, 16}, {0, 0}},
+	{{0, 1}, {3, 10}, {2, 8}, {0, 13}, {3, 8}, {2, 13}, {3, 5}, {2, 11}, {1, 9}, {2, 14}, {1, 10}, {3, 18}, {2, 13}, {1, 8}, {3, 6}, {2, 14}, {4, 10}, {1, 7}, {4, 17}, {1, 26}, {0, 0}},
+	{{0, 1}, {3, 11}, {1, 8}, {3, 7}, {2, 14}, {4, 17}, {1, 7}, {2, 7}, {1, 5}, {2, 10}, {4, 7}, {0, 9}, {2, 9}, {1, 5}, {2, 13}, {1, 15}, {4, 25}, {1, 8}, {0, 0}},
+	{{0, 1}, {3, 9}, {2, 21}, {1, 10}, {3, 8}, {2, 13}, {1, 11}, {3, 12}, {2, 29}, {1, 9}, {4, 27}, {0, 0}},
+	{{0, 1}, {4, 5}, {2, 41}, {1, 17}, {3, 5}, {2, 13}, {1, 6}, {2, 11}, {1, 11}, {0, 0}},
+	{{0, 1}, {3, 8}, {2, 12}, {1, 8}, {0, 7}, {1, 8}, {2, 32}, {1, 10}, {3, 6}, {2, 41}, {1, 15}, {4, 26}, {1, 20}, {0, 0}},
+	{{0, 1}, {3, 18}, {2, 18}, {4, 20}, {3, 22}, {2, 22}, {3, 8}, {4, 8}, {1, 25}, {0, 0}},
+	{{0, 1}, {2, 11}, {1, 8}, {2, 12}, {1, 8}, {3, 7}, {2, 5}, {1, 5}, {4, 27}, {1, 25}, {0, 0}}
+};
+
 // 0x419a70: the pirate says a line (the samples 0xe-0x15 are the lines); the mouth moves while it plays
 void TalkWidget::SetMouth(int theSet)
 {
 	mTalkingNow = true;
 	mSet = theSet;
 	mStep = 0;
-	mStepTime = 8 + (theSet % 3);
+	mStepTime = kMouthSteps[theSet][0][1];
 }
 
 // 0x419ce0
@@ -606,10 +653,8 @@ void TalkWidget::Update()
 		if (mStepTime < 1)
 		{
 			mStep++;
-			// port: the original has the mouth's frames and their times in tables, one per line; the port moves the
-			// mouth through the same five frames for the time a line lasts
-			mStepTime = 6 + (CrtRand() % 10);
-			if (mStep > 40)
+			mStepTime = kMouthSteps[mSet][mStep][1];
+			if (mStepTime == 0)
 				mTalkingNow = false;
 			MarkDirty();
 		}
@@ -662,36 +707,41 @@ void TalkWidget::Update()
 // 0x419ac0
 void TalkWidget::Draw(Graphics* g)
 {
-	if ((0.001 <= mProgress) && (mApp->mMapWidget == NULL))
+	if ((0.001 <= mProgress) && (mApp->mHelpWidget == NULL))
 	{
 		if (mProgress < 1.0)
 		{
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, (int) (mProgress * 255.0)));
 		}
-		int aX = -(int) (sin(mBobX) * 2.0) + 4;
-		int aY = -(int) (sin(mBobY) * 2.0);
+		int aX = -(int) (sin(mBobX) * -4.0) + 4;
+		int aY = -(int) (sin(mBobY) * -8.0);
 		Image** anImages = mApp->mImages;
 		g->DrawImage(anImages[IMAGE_PIRATEHEAD], aX, aY + 8);
+		int aMouth = 0;
 		if (mTalkingNow)
+			aMouth = kMouthSteps[mSet][mStep][0];
+		Image* aHead = anImages[IMAGE_PIRATEHEAD];
+		if (aMouth != 0)
 		{
-			// the mouth, one of the four pictures
-			int aMouth = 1 + (mStep % 4);
+			// the head in two slices around the mouth, the mouth at the bottom right
 			Image* aMouthImage = anImages[IMAGE_PIRATEEYE + aMouth];
-			Image* aHead = anImages[IMAGE_PIRATEHEAD];
-			g->DrawImage(aMouthImage, aX + aHead->GetWidth() - aMouthImage->GetWidth(),
-				aY + 8 + aHead->GetHeight() - aMouthImage->GetHeight());
+			int aRest = aHead->GetHeight() - aMouthImage->GetHeight();
+			g->DrawImage(aHead, aX, aY + 8, Rect(0, 0, aHead->GetWidth(), aRest));
+			g->DrawImage(aHead, aX, aY + 0x73, Rect(0, aRest, aHead->GetWidth() - aMouthImage->GetWidth(), aHead->GetHeight() - aRest));
+			g->DrawImage(aMouthImage, aX + aHead->GetWidth() - aMouthImage->GetWidth(), aY + 8 + aRest);
 		}
 		if (mBlink && (mProgress >= 1.0))
-			g->DrawImage(anImages[IMAGE_PIRATEEYE], aX + 0x5f, aY + 0x58);
+			g->DrawImage(anImages[IMAGE_PIRATEEYE], aX + 0x5b, aY + 0x58);
 		g->SetColorizeImages(false);
 	}
 }
 
-// 0x419ed0: the cursor of the game follows the mouse over every widget
+// 0x419ed0
 void TalkWidget::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, mY + y);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -726,7 +776,7 @@ HighScoreWidget::HighScoreWidget(SevenSeasApp* theApp) :
 	mShimmer(0),
 	mReveal(0)
 {
-	mNewGameButton = new DialogButton(mApp->mImages[IMAGE_DBUTTONWOOD], 1, this);
+	mNewGameButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTONWOOD], 1, this);
 	mNewGameButton->SetFont(mApp->mFonts[FONT_MT11]);
 	mNewGameButton->mLabel = GT(0x004a3744);
 	mNewGameButton->SetColor(DialogButton::COLOR_LABEL, Color(0xff, 0xe2, 0x3c));
@@ -855,6 +905,13 @@ static void DrawTotalsLine(Graphics* g, int theDX, int theY, const SexyString& t
 {
 	g->DrawString(theLabel, 0x91 + 0x10 + theDX, theY + 0x44);
 	g->DrawString(theValue, (0x125 - g->GetFont()->StringWidth(theValue)) + 0x91 - 0x10 + theDX, theY + 0x44);
+}
+
+// 0x40f750: the mouse position goes to the side panel too
+void HighScoreWidget::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
 }
 
 // 0x411260: the frame, the totals of the game (each line is drawn 25 times, black around the gold or yellow one,

@@ -304,7 +304,7 @@ void MummyApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mScriptedInput = true;   // the bot's input only, as in a -script run
 		HandleAutoplayParam(theParamName, theParamValue);
 	}
-	else if ((theParamName == "-autoplaylevels") || (theParamName == "-autoplaystart") || (theParamName == "-autoplaycontinue"))
+	else if ((theParamName == "-autoplaylevels") || (theParamName == "-autoplaystart") || (theParamName == "-autoplaycontinue") || (theParamName == "-autoplaysave"))
 		HandleAutoplayParam(theParamName, theParamValue);
 	else if (theParamName == "-autoplaymode")
 		mAutoplayMode = theParamValue;

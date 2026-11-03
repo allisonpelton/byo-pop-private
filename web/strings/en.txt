@@ -1,0 +1,984 @@
+# byo-pop's text: every word the site shows, in one place (docs/WEB_PLAYER.md, "The site's text").
+#
+# One string a line: key = text. A long string can go on over the next lines: a line that starts with spaces is joined to
+# the one before it with a single space. Lines that start with # are notes, and blank lines are skipped.
+#
+#   {name}    filled in by the page: a game's title, a number, a date. Keep each one the string has; move it freely.
+#   a | b     a string that counts something ({n}): the text for one, then the text for any other number.
+#   _html     a key that ends in _html holds markup (links, <code>, <strong>): keep its tags whole.
+#
+# Change the text freely; keep the keys. A key the site asks for and this file lacks stops the build, so a key can't be
+# lost by accident. Rebuild the site (tools/check.sh build-web) to see a change.
+#
+# The terms (web/terms.html) and the licences are not here: they stay word for word as written.
+
+
+# ---- Everywhere: the theme button (web/theme.js)
+
+theme.button = Dark theme
+theme.to_light = Use the light theme
+theme.to_dark = Use the dark theme
+
+
+# ---- Everywhere: new-tab notice and the game pages' footer link (web/footer.html)
+
+# Read out after a link that opens in a new tab (the footer's, and the store links under the terms)
+site.new_tab = (opens in a new tab)
+footer.terms = Terms, copyright and licenses
+
+
+# ---- The listing page (web/index.html)
+
+index.title = byo-pop games
+index.logo_alt = byo-pop
+# The page's heading, kept out of sight
+index.games = Games
+index.sort.legend = Sort by
+index.sort.name = Name
+index.sort.release = Release date
+index.sort.time = Play time
+index.sort.plays = Plays
+# Read out after the player picks a way to sort
+index.sort.said_name = Sorted by name
+index.sort.said_release = Sorted by release date
+index.sort.said_time = Sorted by play time
+index.sort.said_plays = Sorted by plays
+index.unsold = Show games no longer sold
+index.add.button = Add games
+index.bin.label = Forget a game's files
+index.bin.tooltip = Recycle bin: drop a game's cap here to forget its files
+index.adding.heading = Adding games
+index.adding.close = Close
+index.bin.heading = Recycle bin
+index.bin.close = Close
+index.bin.pick = Forget the files of
+index.bin.forget = Forget…
+index.bin.yes = Forget files
+index.bin.no = Cancel
+
+# The tabs under the games: each is an icon, and these are its name and tooltip
+index.tabs.label = Players, saves and settings
+index.tabs.players = Players
+index.tabs.saves = Saves
+index.tabs.settings = Settings
+index.players.heading = Players
+index.saves.heading = Saves
+index.settings.heading = Settings
+index.players.unavailable = The players are not available.
+index.saves.unavailable = The save backup is not available.
+
+# The label under a game's card, by whether its files are in this browser
+index.files.yes = Play now
+index.files.no = Add your files
+index.files.unknown = Files unknown
+# The card's link, read out: {name} the game, {year} its release year, {state} one of the three labels above in lower case
+index.tile.label = {name}, {state}
+index.tile.label_year = {name}, {year}, {state}
+# How much a game was played here: {n} plays, {time} like "2 h 15 min"
+index.played = {n} play · {time} | {n} plays · {time}
+index.played_last = Last played {date}
+index.played_today = today
+
+# The "?" on a game that was played here before but has no files now
+index.why.title = Why aren’t my files here?
+# {date} is the day the files were last loaded
+index.why.before = Your game files were loaded in this browser before, but they are not here now.
+index.why.before_last = Your game files were loaded in this browser before (last on {date}), but they are not
+  here now.
+index.why.causes = The likely causes:
+index.why.forgot_on = You used “Forget game files” on the game’s page on {date}.
+index.why.forgot = “Forget game files” was used on the game’s page.
+index.why.cleared = The browser’s data for this site was cleared, or the browser freed up the storage.
+index.why.other_browser = This is a different browser, profile or device.
+index.why.never_uploads = This site never uploads your game files, and no server keeps a copy. The games
+  belong to their publishers, so your copy stays only in this browser. Each browser and device needs the files
+  loaded from your own install.
+index.why.saves = Your saves and settings for this game are still stored in this browser.
+index.why.back_html = To get them back, <a href="{href}">open the game</a> and load your files again.
+
+index.footer.about = byo-pop is an unofficial, non-commercial project, not affiliated with, endorsed or
+  sponsored by Electronic Arts or PopCap Games. It serves none of the games' files: you load them from your
+  own copy, and they stay in your browser. We don't condone piracy; please play only copies you own. This
+  website does not accept donations. If you have the money, buy some games!
+index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Money, Alchemy and Dynomite! are
+  registered trademarks of Electronic Arts Inc. in the United States. Every name appears here only to say
+  which game each page plays.
+index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
+
+
+# ---- The terms, copyright and licenses page (web/copyright.html)
+
+# {title} is the game's title
+copyright.title = {title}: terms, copyright and licenses
+copyright.heading = {title}: terms, copyright and licenses
+copyright.logo_alt = byo-pop, all games
+copyright.back = Back to {title}
+copyright.game.heading = The game
+copyright.game.rights = The game's code, art, music, sounds and texts remain the property of their owners.
+copyright.player.heading = This player
+copyright.player.unofficial = It is an unofficial, non-commercial project, not affiliated with, endorsed or
+  sponsored by Electronic Arts or PopCap Games.
+copyright.player.no_files = It comes with none of the game's files. To play, you import the files of your own
+  copy of the game; they are kept in this browser's storage and are never uploaded.
+copyright.player.reimplements = Its program reimplements the original game's behaviour so that it runs in a
+  browser, on a port of the PopCap Games Framework.
+copyright.terms.heading = Terms
+copyright.terms.intro = Before the game's files are loaded, the game's page asks you to agree to these terms.
+copyright.licenses.heading = Software licenses
+copyright.licenses.intro = The player is built from the following software. Open an entry for its license.
+
+
+# ---- The listing's cards (cmake/ByopopWeb.cmake)
+
+# A card's link reads "{title}, {year}", the files' state follows it (see index.tile.label above)
+index.tile.name_year = {title}, {year}
+index.soon = Coming soon
+# {label} is the game's title, and its year when it has one
+index.soon_label = {label}, coming soon
+# Links to the stores that sell a game, on its card. {store} is a store's name; {title} the game's.
+# A store whose name ends in "app" (the EA app) takes "the".
+store.buy_on = Buy on {store}
+store.buy_on_app = Buy on the {store}
+store.buy_label = Buy on {store}, {title}
+store.buy_label_app = Buy on the {store}, {title}
+
+
+# ---- Where to buy a game, under its terms (cmake/ByopopWeb.cmake)
+
+# {date} is the day the stores were checked, written by buy.date
+buy.months = January, February, March, April, May, June, July, August, September, October, November, December
+buy.date = {month} {day}, {year}
+buy.none = {title} is not for sale as of {date}.
+# {links} are the stores' names as links, separated by commas
+buy.where = Where to buy {title} digitally, as of {date}: {links}.
+
+
+# ---- On a Mac or Linux: getting a Steam game's Windows files (cmake/ByopopWeb.cmake)
+
+# Shown on the import card of a game released on Steam, only on a Mac or Linux. The spans named os-mac and os-linux show
+# the words for the system that the page runs on. {app} and {depot} are Steam's numbers for the game, {mac_dir} and
+# {linux_dir} the folder Steam keeps the files in.
+steam.heading_html = On a <span class="os-mac">Mac</span><span class="os-linux">Linux computer</span>?
+steam.intro = This page needs the files of {title}'s Windows version. Steam installs only your own system's
+  version of a game, but it can download the Windows files too, if {title} is in your Steam library:
+steam.step1_html = Open Steam's console: <a href="steam://open/console">open it in Steam</a>, or paste <code
+  class="pick">steam://open/console</code> into your browser's address bar.
+steam.step2_html = Type <code class="pick">download_depot {app} {depot}</code> and press <span
+  class="os-mac">Return</span><span class="os-linux">Enter</span>. Steam says nothing while it downloads, then
+  prints &ldquo;Depot download complete&rdquo; and the folder it used, normally <code class="pick
+  os-mac">{mac_dir}</code><code class="pick os-linux">{linux_dir}</code>.
+steam.step3_html = Press Choose folder below; in the window that opens, press <span
+  class="os-mac">Shift-Command-G</span><span class="os-linux">Ctrl+L</span>, paste that folder and choose it.
+
+
+# ---- A game's page (web/shell.html)
+# {title} is the game's title.
+
+game.skip = Skip to game
+game.logo_alt = byo-pop, all games
+game.btn.mods = Mods
+game.btn.files = Game files
+game.btn.settings = Settings
+game.btn.full = Fullscreen
+game.sound.title = Turns this page's sound off or on; the game's own volume is not changed
+# The Sound button reads "Sound: on" or "Sound: off"; the screen reader gets the name and aria-pressed
+game.sound.name = Sound
+game.sound.on = : on
+game.sound.off = : off
+game.mods.hint = While the game runs, this opens the game's own mod menu, the same as F2. Its items are read
+  out as you move through it.
+game.canvas_label = {title}, game
+# Shown at the game's edge when someone reaches the game with the keyboard (Tab), and read out by screen readers. Once
+# the game has the keyboard it takes every key, Tab too (some games use it), so F6 is the way out of it: on to the next
+# part of the page, and Shift+F6 back to the one before.
+game.canvas_hint = The game now has your keyboard. To leave it, press F6 (or Shift+F6 to go back).
+game.chat.title = Chat
+
+# The status line in the bar. Test runs add " · silent" and the like, and the status line ends in "silent" (CLAUDE.md).
+game.status.starting = Starting…
+game.status.ready = Ready
+game.status.last_failed = The last start did not finish
+game.status.need_files = Game files needed
+game.status.reimport = Import the game files again
+game.status.terms = Terms to agree to
+game.status.busy = Already open
+game.status.stopped = The game stopped
+game.status.closing = Closing the game…
+game.status.restarting = Restarting…
+game.status.closed = Game closed
+game.status.mods_off = Mods off for this run
+game.status.mods_none = No mods active
+game.status.mods_active = {n} mod active | {n} mods active
+game.status.seed = seed {seed}
+game.status.seed_ignored = seed ignored: it must be 1 to 4294967295
+game.status.placeholders = placeholders
+# The status line with ?placeholders=1 once the game found files missing
+game.status.placeholders_missing = placeholders, {n} missing file | placeholders, {n} missing files
+game.status.silent = silent
+game.status.sound_after = sound after a click or key
+
+game.terms.title = Terms for {title}
+game.terms.region = The terms
+game.terms.agree = I own a licensed copy of {title}, and I agree to these terms
+game.terms.continue = Continue
+
+game.import.title = Load your {title} files
+game.import.folder = Choose folder
+game.import.zip = Choose .zip
+game.import.cancel = Cancel
+game.import.progress = Copying the game files
+game.import.not_started = Not started
+game.import.note = Files stay in this browser's storage. Nothing is uploaded.
+# {names} the packs being unpacked, separated by commas
+game.import.unpacking = Unpacking {names}…
+# {done} of {total} files copied so far
+game.import.progress_text = {done} of {total} files
+# {markers} names the files that make a folder the game's install (from the game's page), {title} the game
+game.import.wrong_folder = That folder doesn't contain the game's {markers}. Pick the {title} install folder
+  itself.
+game.import.copying = Copying {count} files…
+game.import.copied = Copied {count} files.
+game.import.error_missing = The files were copied, but the page cannot find the game's {markers} among them.
+
+game.start.title = Ready
+game.start.desc = Click to start. Browsers only allow sound after you interact with the page.
+game.start.rescue = The game did not finish starting last time. If a mod stops it from starting, play once
+  without mods, then turn that mod off in the mod menu (F2) or remove it under Mods.
+game.start.play = Play
+game.start.nomods = Play without mods
+
+game.busy.title = Already open
+# {name} is the game's short name
+game.busy.desc_html = <span id="busy-name">{name}</span> is already running in another tab or window. Its
+  saves live in this browser, so only one copy can run at a time. This page starts by itself once the other
+  one is closed.
+
+game.exit.title = Thanks for playing
+game.exit.saving = Saving…
+game.exit.again = Play again
+game.exit.nomods = Play without mods
+game.exit.closing = Closing the game
+game.exit.restarting = Restarting
+game.exit.saving_restart = Saving, then starting again…
+game.exit.going_home = Going back to the games…
+game.exit.closed_saved = The game has closed. Your game in progress was saved, and you can continue it when
+  you play again.
+game.exit.closed_settings = The game has closed. Your settings and high scores are saved.
+game.exit.stopped = The game stopped
+# {detail} is " (" and what the browser said when the game stopped, ")", or nothing
+game.exit.error_mods = Something went wrong{detail}. If a mod caused it, play once without mods, then turn
+  that mod off in the mod menu (F2) or remove it under Mods.
+game.exit.error_plain = Something went wrong{detail}. Play again to start over.
+
+game.mods.title = Mods
+game.mods.close = Close
+
+game.files.title = Game files
+game.files.close = Close
+game.files.reimport = Import again
+game.files.forget = Forget game files
+game.files.continue = Continue
+game.files.saves_note = Saves (high scores, the game in progress and settings) are kept in this browser's
+  storage.
+game.files.summary = {count} game files are stored in this browser.
+game.files.none = No game files are stored yet.
+game.files.missing = {n} game file was missing; placeholders stand in for them: | {n} game files were missing;
+  placeholders stand in for them:
+game.files.cannot_close = The game cannot close now. Try again in a moment.
+game.files.reimport_ask = Import the game files again? The game closes first; a game in progress is saved.
+game.files.close_game = Close the game
+game.files.forget_ask = This removes the copied game files from this browser. Saves and mods stay.
+game.files.forget_ask_running = This removes the copied game files from this browser. Saves and mods stay. The
+  game closes first; a game in progress is saved.
+game.files.remove = Remove files
+
+game.settings.title = Settings: site-wide overrides
+game.settings.close = Close
+game.settings.player = The site’s player is {name}.
+game.settings.no_player = The site has no player yet.
+game.settings.unavailable = The settings are not available.
+
+
+# ---- Play time, as the listing shows it (web/settings.js)
+
+time.hours_minutes = {h} h {m} min
+time.hours = {h} h
+time.minutes = {m} min
+time.under_minute = under a minute
+
+
+# ---- Settings, on the listing page and in a game's panel (web/settings.js)
+
+settings.game_default = Game default
+settings.on = On
+settings.off = Off
+# {default} is the "Game default" text above
+settings.about = For every game. {default} leaves a game as it is. A game’s own page can set them for that
+  game alone.
+settings.about_live = For every game. {default} leaves a game as it is.
+settings.group.players = Players
+settings.group.sound = Sound
+settings.group.display = Display
+settings.group.page = Page
+settings.profile.label = Player names
+settings.profile.fill = Fill in the name
+settings.profile.create = Use the player
+settings.profile.hint = Fill in the name: name boxes start with your player’s name. Use the player: games also
+  make your player and choose it.
+settings.startvolume.label = Set the starting volume
+settings.startvolume.hint = Every game starts at the music and sound volumes you choose.
+settings.startvolume.help = Most games start with music and sound on, so a game can be loud before you can
+  reach its options. This sets the volume every game starts at, 0 for silence. You can still change it in the
+  game.
+settings.fullscreen.label = Full screen at start
+settings.fullscreen.on = Full screen
+settings.fullscreen.off = Windowed
+settings.fullscreen.hint = Full screen fills the screen when you press Play.
+settings.cursors.label = Custom cursors
+settings.cursors.on = When available
+settings.cursors.off = Never
+settings.cursors.hint = The game’s own mouse pointer, or your usual one.
+settings.autostart.label = Start the game when its page opens
+settings.autostart.hint = When your browser lets the page play sound without a click, and not with Full screen
+  at start. Otherwise the page waits for Play.
+settings.wakelock.label = Keep the screen awake while a game runs
+settings.wakelock.hint = Stops the screen dimming or locking. Some browsers don’t allow it.
+settings.confirmleave.label = Ask before leaving a page while a game runs
+settings.confirmleave.hint = So a stray click doesn’t end your game.
+settings.pausehidden.label = Pause when the tab is hidden
+settings.pausehidden.hint = Stops the game and its sound on another tab. The original games keep running.
+settings.quithome.label = Go back to the games after quitting
+settings.quithome.hint = Instead of offering Play again.
+settings.showchat.label = Show chat
+settings.showchat.hint = For now a test: the messages are made up and stay in this browser.
+
+# In a game's panel: the choice of whose settings the controls change
+settings.scope.legend = Change the settings for
+settings.scope.all = All games (site-wide)
+settings.scope.game = This game only
+# {name} is the game's name
+settings.scope.game_note = These values are for {name} only. “Same as all games” follows the site-wide value.
+settings.scope.this_game = this game
+settings.scope.own_note = This game has its own value for {n} setting; it is marked below. | This game has its
+  own value for {n} settings; they are marked below.
+# {value} is what the site-wide setting is now, or the game's own value
+settings.inherit = Same as all games ({value})
+settings.own = This game has its own: {value}.
+settings.volume_words = Music {music}, Sound {sound}
+settings.help_label = What is “{label}” for?
+settings.vol.legend = Starting volumes, 0 to 100
+settings.vol.music = Music
+settings.vol.sound = Sound
+# {name} is Music or Sound
+settings.vol.level = {name} volume, 0 to 100
+settings.applies_next = Applies the next time the game starts.
+settings.manage_players = Manage players
+settings.saved = Saved.
+settings.save_error = This browser would not keep the setting (a level is 0 to 100, or its storage is
+  blocked).
+
+
+# ---- The site's cursor choice (web/cursors.js)
+
+cursors.legend = Site cursor
+cursors.browser = Your browser’s own
+cursors.hint = A game’s cursors are here once it has been started in this browser. Inside a game, its own
+  cursor shows when it has one on.
+cursors.hint_none = A game’s cursors are here once its files are added and it has been started in this
+  browser.
+
+
+# ---- Adding and forgetting a game's files from the listing page (web/gameimport.js)
+
+# {title} is the game's title, {markers} names the files that make a folder its install
+import.err.open = The browser would not open the game's storage.
+import.err.busy = The game's storage is in use. Close the game's page and try again.
+import.err.keep = The browser would not keep the files.
+import.err.no_locks = This browser can't tell whether {title}'s page is open, so its files can't be changed
+  from here. Open the game's page and use its Game files panel.
+import.err.working = This page is still working on {title}. Wait for it to finish and try again.
+import.err.in_use = {title}'s files are in use, by its page in another tab or window or by this page. Close
+  the game's page, or wait, and try again.
+import.err.wrong_folder = That folder doesn't hold {title}'s {markers}.
+import.say.unpacking = Unpacking…
+import.say.copying = Copying {count} files…
+import.say.progress = Copying… {percent}%
+
+
+# ---- Sizes, shown by the saves and the import (web/saves.js)
+
+# {value} is a number
+size.bytes = {value} bytes
+size.kb = {value} KB
+size.mb = {value} MB
+
+
+# ---- Saves: backup and restore (web/saves.js)
+
+saves.about = Your saves are kept only in this browser. A backup is a .zip of them that you keep; nothing is
+  uploaded.
+saves.kept = This browser may clear them if your drive runs low on space.
+saves.list.title = In this browser
+# One game in the list: {title} then this, where {parts} is its save files and replays, {backup} the next string or nothing
+saves.list.rest = : {parts}{backup}.
+saves.list.files = {n} save file ({size}) | {n} save files ({size})
+saves.list.no_files = no save files
+saves.list.replays = {n} replay ({size}) | {n} replays ({size})
+saves.list.no_replays = 0 replays
+saves.list.backup = ; the game’s own browser backup is there
+saves.list.empty = No saves yet: no game has been played in this browser.
+saves.backup.button = Back up saves
+saves.restore.label = Restore saves from a backup .zip:
+
+# Counts, used in the lines below
+saves.n.save_file = {n} save file | {n} save files
+saves.n.replay = {n} replay | {n} replays
+saves.n.file = {n} file | {n} files
+
+# The name of the .zip the backup downloads; {date} is like 2026-10-27
+saves.backup_name = byo-pop saves {date}.zip
+saves.backup.reading = Reading the saves…
+saves.backup.took = What the backup took
+# One game in the report of a backup: {title} then this, built from the three that follow it
+saves.report.line = : {files}{replays}{backup}.
+saves.report.files = {n} save file ({size}) | {n} save files ({size})
+saves.report.no_files = no save files
+saves.report.replays = , {n} replay | , {n} replays
+saves.report.with_backup = , with {n} file from the game’s own browser backup | , with {n} files from the
+  game’s own browser backup
+saves.report.backup_kept = , the game’s own browser backup kept as it is
+saves.report.open = This game is open in another tab: what it has not saved yet may be missing; close it and
+  back up again for the whole of it.
+# {settings}, {players} and {play} are one of the next three
+saves.report.site = The site’s settings: {settings}. The site’s players: {players}. Play times: {play}.
+saves.report.included = included
+saves.report.none_set = none set
+saves.report.none = none
+# {name} is the file's name, {size} like "2.0 KB", {count} like "5 files"
+saves.backup.done = The backup “{name}” ({size}, {count}) was made; your browser saves it where it saves
+  downloads.
+saves.backup.failed = The backup failed: {error}
+
+saves.restore.reading = Reading “{name}”…
+saves.restore.found = “{name}” is a backup. Nothing has been changed yet.
+# {date} is when the backup was made
+saves.restore.found_made = “{name}” is a backup made {date}. Nothing has been changed yet.
+saves.confirm.title = Restore these saves?
+saves.confirm.desc = This replaces the files below with the backup’s. Files the backup doesn’t have stay as
+  they are.
+# One game in the question: {title} then this. {files} and {replays} are counts like "3 save files"
+saves.confirm.line = : holds {files} ({size}); would replace {replace} and add {add}.
+saves.confirm.line_replays = : holds {files} and {replays} ({size}); would replace {replace} and add {add}.
+saves.confirm.line_replays_detail = : holds {files} and {replays} ({size}); would replace {replace} and add
+  {add}; of the replays, replace {rreplace} and add {radd}.
+saves.confirm.open = This game is open: close it first.
+saves.confirm.none = No game’s saves.
+saves.confirm.settings = The site’s settings: replaced by the backup’s.
+saves.confirm.players = The site’s players: replaced by the backup’s.
+saves.confirm.play = Play times: for each game, the larger of the backup’s and this browser’s.
+saves.confirm.no_locks = This browser cannot tell whether a game is open (it has no Web Locks), so it does not
+  restore. Back up from here, or use a current browser.
+# {games} are the titles of the open games, separated by commas
+saves.confirm.close_first = Close {games} first: a game that is open could overwrite what is restored.
+saves.confirm.yes = Restore
+saves.confirm.no = Cancel
+saves.restore.nothing = Nothing was restored.
+saves.restore.working = Restoring…
+saves.restore.no_locks = This browser cannot tell whether a game is open, so it does not restore.
+saves.restore.open = {games} is open in another tab or window. Close it and restore again.
+saves.restored.title = What was restored
+# {count} is like "3 files"
+saves.restored.game = {title}: {count}.
+saves.restored.settings = The site’s settings.
+saves.restored.players = The site’s players.
+saves.restored.play = Play times.
+saves.restore.done = The saves were restored. A game reads them the next time it starts.
+saves.restore.failed = Nothing more was restored: {error}
+saves.import_unavailable = The import from an installed game is not available.
+
+# What is wrong with a .zip that is not a backup
+saves.zip.not_zip = This file is not a .zip archive.
+saves.zip.zip64 = This .zip uses a format this page does not read (zip64).
+saves.zip.too_many = This .zip has too many files to be a backup of saves.
+saves.zip.directory = The .zip's directory is damaged.
+saves.zip.encrypted = This .zip is encrypted.
+saves.zip.damaged = The .zip is damaged.
+saves.zip.short = The .zip is shorter than its directory says.
+# {name} is a file inside the .zip
+saves.zip.checksum = The .zip is damaged: {name} does not match its checksum.
+saves.zip.compressed = This .zip's {name} is compressed in a way this page cannot read.
+saves.zip.twice = The .zip lists “{name}” twice.
+saves.zip.stray = The .zip has “{name}”, which is not in a game’s save folder, so it is not restored.
+saves.zip.not_backup = This .zip is not a backup made here (it has no byopop-saves.json).
+saves.zip.manifest = This .zip is not a backup this page can restore (its manifest is of another kind).
+saves.zip.bad_settings = The .zip’s settings are not in the form this page keeps.
+saves.zip.bad_profiles = The .zip’s profiles are not in the form this page keeps.
+
+# Trouble with a game's storage; {title} is the game's title
+saves.err.open = The browser would not open the game's storage.
+saves.err.busy = The game's storage is in use by a game page. Close it and try again.
+saves.err.form = The game's storage is not in the form the game makes.
+saves.err.keep = The browser would not keep the files.
+saves.err.open_tab = {title} is open in another tab or window.
+
+
+# ---- Saves: import from an installed game (web/saveimport.js)
+
+saveimport.title = Import from an installed game
+saveimport.about = Bring the saves, high scores and settings of a game installed on this computer. Nothing is
+  uploaded or changed on your computer.
+saveimport.game_label = Game to import from:
+saveimport.choose_game = Choose a game…
+# {title} is the game's title
+saveimport.where = {title}: where the original keeps its saves
+# {step} is the number of the step
+saveimport.step.files = Step {step}. Find the folder with the save files.
+saveimport.step.registry = Step {step}. Export the game’s settings and scores from the registry.
+saveimport.step.choose = Step {step}. Choose them here.
+# {what} says what a file holds (from the table of games)
+saveimport.file_what = : {what}.
+saveimport.places = These are paths inside the folder that holds them. Look in these places, and choose the
+  folder in which the paths above are found:
+# Places to look; {folder}, {steam} and {appdata} are folder names from the table of games
+saveimport.place.install_html = The game’s install folder: <code>C:\Program Files (x86)\PopCap
+  Games\{folder}</code> or <code>C:\Program Files\PopCap Games\{folder}</code>, or wherever you installed it.
+saveimport.place.steam_html = A Steam install: <code>steamapps\common\{steam}</code> in your Steam library (a
+  Steam folder can be written to, so the saves are there).
+saveimport.place.virtualstore_html = An install in Program Files that was not run as administrator: Windows
+  keeps the files the game wrote in a private copy, <code>%LOCALAPPDATA%\VirtualStore\Program Files
+  (x86)\PopCap Games\{folder}</code> (or <code>...\VirtualStore\Program Files\PopCap Games\{folder}</code>).
+  Type %LOCALAPPDATA% in File Explorer’s address bar to get there. If that folder exists, choose it as the
+  second folder below; its files are the ones the game used.
+saveimport.place.appdata_html = A game that keeps its files for all users: <code>C:\ProgramData\PopCap
+  Games\{appdata}</code> (ProgramData is hidden in File Explorer; type the path in the address bar).
+saveimport.registry.intro = Open a Command Prompt or PowerShell window in a folder you can write to (your
+  Documents folder, for example) and run these commands. No administrator rights are needed, and they only
+  read the registry: each writes a .reg file. A command that says the key was not found just means the game
+  did not use that place.
+saveimport.copy = Copy
+# {hive} names a part of the registry, {file} the .reg file the command writes
+saveimport.copy_label = Copy the command for {hive}, {file}
+saveimport.copy_all = Copy all commands
+# Said after a copy; {what} is the next two strings
+saveimport.copied = Copied {what}.
+saveimport.copied_command = the command for {hive}
+saveimport.copied_all = all {count} commands
+saveimport.copy_failed = Could not copy; select the text and copy it.
+# {order} lists the parts of the registry, joined with ", then" (the word "then" is the next string)
+saveimport.order_one = Where the same value is in more than one file, the page uses {order}, value by value.
+  On a 32-bit Windows leave out “WOW6432Node\”.
+saveimport.order_many = Where the same value is in more than one file, the page uses {order} (what the game
+  itself would read first), value by value. On a 32-bit Windows leave out “WOW6432Node\”.
+saveimport.then = then
+saveimport.and = and
+saveimport.takes = What the page takes from the original
+saveimport.takes_registry = Registry values ({key}): {names}.
+saveimport.takes_file = File {from}: {what}.
+saveimport.takes_skip = Left alone, {from}: {why}.
+saveimport.choose = Choose what to import
+saveimport.folder1.label = Folder with the save files:
+saveimport.folder1.hint = Your browser asks to “upload” the folder’s files; they stay on this computer, and
+  only the save files in the list are read.
+saveimport.folder2.label = Second folder (optional), such as the VirtualStore copy:
+saveimport.folder2.hint = Its files are used in preference to the first folder’s.
+saveimport.regs.label = Registry files (.reg):
+saveimport.regs.hint = All of the .reg files the commands wrote.
+saveimport.choose_first = Choose the folder and the .reg files to see what would be imported.
+saveimport.reading = Reading what you chose…
+
+# Counts
+saveimport.n.value = {n} value | {n} values
+saveimport.n.file = {n} file | {n} files
+saveimport.n.registry_value = {n} registry value | {n} registry values
+
+# Notes about what was chosen; {name} is a file's name
+saveimport.bad = {name}: {error}
+saveimport.note.no_key = None of the .reg files holds a key of {title} ({key}).
+saveimport.note.foreign = {n} key in the .reg files is not for this game and was left out. | {n} keys in the
+  .reg files are not for this game and were left out.
+# {hives} names parts of the registry, joined with "and"
+saveimport.note.unused = The .reg files hold keys from {hives}, which this game does not use; they were left
+  out.
+saveimport.note.unreadable = {n} line of the .reg files could not be read and was left out. | {n} lines of the
+  .reg files could not be read and were left out.
+saveimport.note.no_files = None of {title}’s save files were found in the folder you chose. Choose the folder
+  in which the paths above are found.
+saveimport.note.no_files_two = None of {title}’s save files were found in the folders you chose. Choose the
+  folder in which the paths above are found.
+# {files} lists file names
+saveimport.too_big = {files} is too large to be a save file and was left out.
+
+# The question before anything is written
+saveimport.plan.title = Import these into {title}?
+saveimport.plan.title_none = Nothing to import into {title}
+saveimport.plan.desc = This writes the values and files below into this browser, where {title} reads them at
+  its next start. A value or file that is already there is replaced; everything else of the game’s saves
+  stays. The game’s own browser backup is removed, since the imported files take its place. Nothing on your
+  computer is changed.
+saveimport.plan.desc_none = Everything the page found is the same as what this browser already has, or is not
+  something the port keeps.
+saveimport.status.label = {status}:
+saveimport.status.new = new
+saveimport.status.changes = replaces the current one
+saveimport.status.same = the same as now
+# {value} is what the original has, {old} what this browser has now
+saveimport.item = {path} = {value} (from {hive})
+saveimport.item_changes = {path} = {value} (from {hive}); now {old}
+# {count} is like "3 values"
+saveimport.section.values = Settings and scores ({count})
+saveimport.section.no_values = No values.
+saveimport.overridden = {n} value found in more than one place: the one the game reads first was used. | {n}
+  values found in more than one place: the one the game reads first was used.
+saveimport.left_values = Values left out ({count})
+saveimport.skipped_value = {path}: {why}.
+saveimport.skip.not_kept = not a value the port keeps
+saveimport.skip.path = its path is not one the port can keep in its folder
+# Why a registry value is left out. {kind} is what the original stored, from the saveimport.kind.* strings
+saveimport.skip.not_text = stored by the original as {kind}, where the port reads text
+saveimport.skip.not_number = stored by the original as {kind}, where the port reads a number
+saveimport.skip.not_binary = stored by the original as {kind}, where the port reads binary data
+saveimport.skip.charset = its text has characters that Windows-1252 (the games’ text) does not have
+saveimport.skip.unknown_type = unknown type in the table
+saveimport.skip.name_control = its name has a control character, which the port’s registry file cannot hold
+saveimport.skip.name_char = its name has a character the port’s registry file cannot hold
+saveimport.kind.text = text
+saveimport.kind.dword = a number
+saveimport.kind.binary = binary data
+saveimport.kind.qword = a 64-bit number
+saveimport.kind.other = a kind of value the port does not read
+saveimport.kind.unknown = another kind of value
+# {n} is the number of bytes
+saveimport.shown_binary = binary data, {n} bytes
+saveimport.hive.vs = the VirtualStore copy
+saveimport.hive.hklm = the machine’s key
+saveimport.hive.hkcu = the user’s key
+# {what} says what a file holds, {size} is like "2.0 KB", {from} a path in the original's folder
+saveimport.file = {target} ({what}, {size}, from {from})
+saveimport.file_second = {target} ({what}, {size}, from {from} in the second folder)
+saveimport.section.files = Files ({count})
+saveimport.section.no_files = No save files found.
+saveimport.left_files = Files left out ({count})
+saveimport.skipped_file = {path}: {why}.
+saveimport.ignored = {n} other file in the folder is not a save and was not read. | {n} other files in the
+  folder are not a save and were not read.
+saveimport.plan.yes = Import
+saveimport.plan.no = Cancel
+saveimport.plan.close = Close
+saveimport.warn.no_locks = This browser cannot tell whether a game is open (it has no Web Locks), so it does
+  not import. Use a current browser.
+saveimport.warn.open = Close {title} first: a game that is open could overwrite what is imported.
+saveimport.plan.said = Here is what would be imported into {title}. Nothing has been changed yet.
+saveimport.nothing = Nothing was imported.
+saveimport.importing = Importing…
+saveimport.err.no_locks = This browser cannot tell whether a game is open, so it does not import.
+saveimport.err.open = {title} is open in another tab or window. Close it and import again.
+saveimport.done.title = What was imported
+# {values} and {files} are counts like "3 registry values"
+saveimport.done.line = {title}: {values} and {files}.
+saveimport.done.said = Imported into {title}: {values} and {files}. The game reads them the next time it
+  starts.
+saveimport.failed = Nothing more was imported: {error}
+
+# What is wrong with a .reg file
+saveimport.reg.byte_order = This .reg file is in a byte order this page does not read.
+saveimport.reg.not_reg = This is not a .reg file (it does not start with “Windows Registry Editor Version
+  5.00” or “REGEDIT4”).
+
+
+# ---- Players: the site's players and the players inside the games (web/players.js, web/profiles.js)
+
+# Why adding, renaming or removing a player failed (web/profiles.js)
+profiles.err.name_add = Type a name for the player.
+profiles.err.name_rename = Type a name for the player.
+# {name} is the name the other player has
+profiles.err.exists_add = There is already a player called “{name}”.
+profiles.err.exists_rename = There is already a player called “{name}”.
+profiles.err.keep_add = This browser would not keep the player (its storage is blocked or full).
+profiles.err.keep_rename = This browser would not keep the player (its storage is blocked or full).
+profiles.err.gone_rename = That player is gone.
+profiles.err.gone_remove = That player is gone.
+profiles.err.gone_current = That player is gone.
+profiles.err.keep_remove = This browser would not keep the change.
+profiles.err.keep_current = This browser would not keep the change.
+
+players.title = Your players
+players.new = New player
+players.add = Add player
+players.undo = Undo
+players.none = No players yet.
+players.in_use_legend = Player in use
+# {name} is a player's name
+players.is_current = {name} is the player in use.
+players.badge = In use
+players.rename = Rename
+players.rename_label = Rename {name}
+players.delete_in_games = Delete in the games…
+players.delete_in_games_label = Delete {name} in the games
+players.not_in_games = {name} isn’t a player in any game yet.
+players.remove = Remove
+players.remove_label = Remove {name} from your players
+players.remove_title = Takes the name off your list. The games’ players are not touched.
+players.keep_change = This browser would not keep the change.
+players.keep_changes = This browser would not keep the changes.
+players.removed = {name} was removed from your players. The games’ players are untouched.
+players.back = {name} is back.
+players.new_name = New name for {name}
+players.save = Save
+players.cancel = Cancel
+players.renamed = Renamed to {name} here. The games keep the names they have until you rename them under
+  Players in the games.
+players.added = {name} was added.
+players.added_current = {name} was added. It is the player in use.
+
+# The card of one player: the games that have the player
+players.card.in_games = In the games ({n} has this player) | In the games ({n} have this player)
+players.card.caption = {name} in each game
+players.card.game = Game
+players.card.name = Name it uses
+players.card.setting = Player names setting
+players.setting.game = As the game does
+players.setting.fill = Fills in the name
+players.setting.create = Uses the player
+players.row.not_started = Not started since players were added
+players.row.no_score_name = No high-score name
+players.row.scores = High scores start with “{name}”
+players.row.no_player = No player of this name
+players.flag.changed = changed by the game’s rules
+players.flag.changed_asked = changed by the game’s rules (you asked for “{name}”)
+players.flag.written = written “{name}” in this game
+players.flag.current = the game’s current player
+players.flag.nothing = the game’s rules leave nothing of this name
+players.flag.would_be = would be “{name}”: the game’s rules change the name
+# After a game's name in the table: {flags} are the notes above, separated by semicolons
+players.flags = — {flags}
+
+# What the Player names setting is across the games. {n} games, or all of them; {verb} for a setting this page does not know
+players.mode.games = The games ask for names as they always did.
+players.mode.note = Player names: {parts}.
+players.mode.link = Player names in Settings
+players.mode.game_all = all {n} games asks as the original does | all {n} games ask as the original does
+players.mode.game_some = {n} game asks as the original does | {n} games ask as the original does
+players.mode.fill_all = all {n} games fills in the name | all {n} games fill in the name
+players.mode.fill_some = {n} game fills in the name | {n} games fill in the name
+players.mode.create_all = all {n} games uses the player | all {n} games use the player
+players.mode.create_some = {n} game uses the player | {n} games use the player
+players.mode.other_all = all {n} games {verb}
+players.mode.other_some = {n} game {verb} | {n} games {verb}
+
+# ---- The players inside the games
+players.in_games = In the games
+players.game.scores = High-score names.
+players.game.rules = Names: {rules}.
+players.game.pending = {n} change waiting: {title} applies it the next time it starts. | {n} changes waiting:
+  {title} applies them the next time it starts.
+players.game.current = current
+players.game.pending_rename = Pending: rename to “{to}”
+players.game.pending_delete = Pending: delete
+players.game.cancel_label = Cancel the pending change of {name} in {title}
+players.game.cancelled = Cancelled.
+players.game.none = No names yet: a game shows its players here once it has started.
+players.bulk.label = Rename the ticked players to
+players.bulk.rename = Rename ticked
+players.bulk.delete = Delete ticked…
+players.bulk.tick_all = Tick all
+players.bulk.tick_none = Tick none
+players.bulk.ticked = {n} ticked
+players.bulk.none_ticked = None ticked
+players.bulk.tick_first = Tick the players to rename first.
+players.bulk.type_first = Type the new name first.
+players.n.rename = {n} rename | {n} renames
+players.n.game = {n} game | {n} games
+# {renames} and {games} are counts like "3 renames" and "2 games"; {to} is the new name
+players.bulk.queued = Queued {renames} to “{to}” in {games}. Each game applies them the next time it starts
+  and reports what it did below; a game that already has a player called “{to}” skips it, as players are never
+  merged.
+
+# Deleting players inside the games
+players.delete.scores_only = A name remembered for high scores is not a player: there is nothing to delete.
+  Rename it instead.
+players.delete.tick_first = Tick the players to delete first.
+players.delete.title = Delete these players in the games?
+players.delete.desc = This can’t be undone. Each game does it when it next starts.
+# {what} says what the game loses with the player (from the game's page)
+players.delete.line = — {what}
+players.delete.default = the player and the progress that goes with it
+players.delete.yes = Delete {n} player | Delete {n} players
+players.delete.queued = Queued {n} delete. Each game does it the next time it starts. | Queued {n} deletes.
+  Each game does it the next time it starts.
+players.delete.no = Keep them
+players.delete.nothing = Nothing was deleted.
+
+# What the games did with the queued changes
+players.results.title = What the games did
+players.results.clear = Clear this list
+players.results.cleared = The list was cleared.
+players.result.game = {title}:
+players.result.rename = rename “{from}” to “{to}”
+players.result.delete = delete “{name}”
+players.result.done = done
+players.result.skipped = skipped
+# {what} and {status} are from the strings above, {note} is what the game said
+players.result.line = {what} — {status}.
+players.result.line_note = {what} — {status}. {note}
+players.result.when = ({when})
+
+
+# ---- The chat (web/chat.js)
+
+chat.log = Chat messages
+chat.older = Show older messages
+chat.loading = Loading…
+chat.older_failed = The older messages could not be loaded.
+chat.start = This is the start of the chat.
+chat.jump = New messages below
+# {count} is a number, or "99+"
+chat.unread = {count} new
+chat.message = Message
+chat.placeholder = Say something
+chat.send = Send
+# Read out with the message field; {max} is the longest message
+chat.hint = Plain text, one line, up to {max} characters, one message a second. Links stay text.
+chat.left = {count} characters left
+chat.you = You are
+chat.you_are_now = You are {name}.
+chat.change_name = Change name
+chat.username = Test username
+chat.username_hint = 2 to 32 characters: lowercase letters, digits, _ and . (never two periods in a row), as
+  on Discord.
+chat.save = Save
+chat.cancel = Cancel
+chat.name_failed = That name was not kept.
+chat.signin = Sign in with Discord
+chat.signin_note = Not available yet.
+chat.signin_said = Signing in with Discord is not available yet.
+chat.connecting = Connecting…
+chat.unreachable = The chat is not reachable.
+chat.unreachable_start = The chat is not reachable.
+chat.show = Show the chat
+chat.hide = Hide the chat
+chat.note = Test chat: the messages are made up and stay in this browser. Nothing is sent anywhere.
+
+# The line between the days of messages: {weekday}, {day}, {month} and {year} make {date}
+# (the weekday and month names are lists, separated by commas, starting with Sunday and January)
+chat.weekdays = Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday
+chat.months = January, February, March, April, May, June, July, August, September, October, November, December
+chat.day.date = {weekday} {day} {month} {year}
+chat.day.today = Today, {date}
+chat.day.yesterday = Yesterday, {date}
+
+# Why a username is refused; {min} and {max} are the shortest and longest
+chat.name.length = Use {min} to {max} characters.
+chat.name.chars = Only lowercase letters, digits, underscores and periods are allowed.
+chat.name.periods = Two periods in a row are not allowed.
+
+# Why a message was not sent
+chat.send.offline = The chat is not connected.
+chat.send.empty = There is nothing to send.
+chat.send.long = A message is at most {max} characters.
+chat.send.name = The username is not valid.
+chat.send.rate = One message a second.
+chat.send.storage = This browser would not keep the messages; they last until the page closes.
+chat.words.rate = One message a second: wait a moment.
+chat.words.long = That is longer than {max} characters.
+chat.words.empty = Type a message first.
+chat.words.name = Your username is not valid: change it first.
+chat.words.offline = The chat is not connected.
+chat.words.failed = The message was not sent.
+
+
+# ---- The Mods panel (web/modpanel.js)
+
+mods.intro = Turn mods on or off, change their order and their settings in the game's mod menu: press F2, or
+  click Mods, while the game runs.
+mods.add_folder = Add mod folder
+mods.add_folder_title = A mod's folder, or a folder of mods: every folder in it with a mod.json is added
+mods.add_zip = Add mod .zip
+mods.add_zip_title = A mod's .zip, or a .zip of several mods
+mods.list = Installed mods
+mods.rescue = If a mod stops the game from starting, play once without mods, then turn that mod off in the mod
+  menu or remove it here.
+mods.play_without = Play without mods
+mods.stopped = The game stopped. Reload the page to add or remove mods.
+mods.empty = No mods installed. Add a mod's folder, a folder of mods, or a .zip of either.
+# {author} is the mod's author, shown before its description
+mods.by = by {author}
+mods.tag.removed = Removed when the game starts again
+mods.tag.on = On
+mods.tag.off = Off
+mods.tag.replaced = Replaced when the game starts again
+mods.tag.restart = Waits for a restart
+mods.tag.next_game = Applies to the next game
+mods.tag.scores = Separate high scores
+mods.tag.features = Adds features
+mods.tag.settings = Settings in the mod menu
+# {label} is the mod's name and version
+mods.keep = Keep
+mods.keep_label = Keep {label}
+mods.remove = Remove
+mods.remove_confirm = Confirm remove
+mods.remove_label = Remove {label}
+mods.remove_confirm_label = Confirm: remove {label}
+mods.replaced = {name} replaced
+mods.restart_yes = Restart
+mods.restart_no = Cancel
+mods.off_run = Mods are off for this run. Restart the game to turn them on.
+# {names} are the mods that wait, separated by commas
+mods.restart_to_apply = Restart to apply: {names}.
+mods.restart_game = Restart game
+mods.restart_now = Restart now?
+mods.cannot_restart = The game cannot restart now.
+mods.restarting = Restarting…
+mods.not_running = The game is not running.
+
+# What the panel says after mods are added; {names} are mod names, separated by commas
+mods.added = Added {names}.
+mods.updated = Updated {names}.
+mods.restart_to_use = Restart the game to use it. | Restart the game to use them.
+mods.waiting = {names}: the new version replaces the one in use when the game starts again.
+mods.nothing_added = Nothing was added.
+# Files in an upload that no mod holds; {names} are file and folder names
+mods.left_out_files = Left out, not a mod (no mod.json and none of the game's folders or files): {names}.
+mods.left_out = Left out, not a mod (no mod.json and none of the game's folders): {names}.
+mods.copying = Copying {count} files into {dir}…
+mods.remove_failed = Could not remove {name}: {error}
+mods.removed_later = {name} is removed when the game starts again. Until then the game keeps using it.
+mods.removed = Removed {name}.
+mods.kept = Kept {name}.
+
+# What is wrong with a .zip or a pak
+mods.zip.not_zip = This file is not a .zip archive.
+mods.zip.directory = The .zip directory is damaged.
+mods.zip.compression = Unsupported compression in {name}
+mods.pak.directory = The pak's directory is damaged.
+mods.pak.not_pak = This file is not a PopCap pak.
+mods.pak.short = The pak is shorter than its directory says.
+
+
+# ---- Adding games and the recycle bin on the listing page (web/addgames.js)
+
+add.waiting = Waiting…
+add.reading = Reading…
+add.reading_files = Reading…
+# {count} files were copied; the card's label is then "Added"
+add.added_count = Added ({count} files)
+add.added = Added
+add.failed = The files could not be added.
+# {folder} is the folder the player dropped, {title} the game it was added to, {text} what happened to it
+add.announce = {folder}, {title}: {text}
+# The game a dropped folder goes to
+add.game = → {title}
+add.which = Which game?
+add.add = Add
+# {folders} are the dropped folders no game of this site uses, separated by commas
+add.rejected = Not added (no game this site plays): {folders}
+add.nothing = Nothing was dropped that could be read. Drop the game's folder, or a .zip of it.
+add.read_failed = The files could not be read.
+add.read_failed_game = The files could not be read.
+# {markers} names the files that make a folder the game's install
+add.wrong_folder = That folder doesn't hold {title}'s {markers}.
+add.bin.question = Forget {title}'s files in this browser? Its saves stay.
+add.bin.none = No game has its files here.
+add.bin.forgetting = Forgetting…
+add.bin.forgotten = {title}'s files are forgotten.
+add.bin.failed = The files could not be forgotten.
+

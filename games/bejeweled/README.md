@@ -46,7 +46,8 @@ Command-line options (native; the web shell passes the equivalent paths):
 | Option | Meaning |
 |---|---|
 | `-gamedir=<dir>` | game data folder |
-| `-userdir=<dir>` | saves, settings (`registry.ini`) and `mods.json` |
+| `-userdir=<dir>` | saves, settings (`registry.ini`) and `mods.json` (default: `%APPDATA%/byo-pop/Bejeweled Deluxe`) |
+| `-importsaves[=<dir>]` | bring the saves, high scores and settings of the original Bejeweled (installed on this computer; `<dir>` is its install folder, else the game folder found) into the user folder, write `import-report.txt` there, then exit without starting the game (`docs/WEB_PLAYER.md`, "Importing saves from an installed game") |
 | `-modsdir=<dir>` | mods folder (default: `mods` next to the executable) |
 | `-nomods` | start without mods (once: the mod menu's Restart game starts with them again) |
 | `-dumpmods` | print the mods, their settings and what is waiting as JSON (the mod menu's model), then exit |

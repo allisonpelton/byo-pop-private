@@ -78,7 +78,9 @@ public:
 	bool Save();
 	// 0x48a390: reads users/<name>.bwa in place of the values. False when there is no file, or when it is from an
 	// older format: that sets mOutOfDateReasons (the caller resets the profile). A current one gets the keys added since.
-	bool Load();
+	// Unless theQuiet (the hall of fame's reads), each value read and the end go to cheat.lua's
+	// _debug_profile_loaded_value and _debug_profile_done_loading while the app has a profile.
+	bool Load(bool theQuiet = false);
 
 private:
 	void Set(const std::string& theKey, const Value& theValue);

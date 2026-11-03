@@ -15,6 +15,7 @@
 #include <SDL.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#include "WebSettings.h"
 #endif
 #include <algorithm>
 #include <cstring>
@@ -59,6 +60,15 @@ public:
 
 	bool registryReadInt(const std::string& theName, int& theValue) override
 	{
+#ifdef __EMSCRIPTEN__
+		// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option reads as off, as if the
+		// player had left it unticked in the game's options, so the game never asks the page for full screen
+		if ((theName == "FullScreen") && Byopop::SiteWindowed())
+		{
+			theValue = 0;
+			return true;
+		}
+#endif
 		return gApp->RegistryReadInteger(theName, &theValue);
 	}
 

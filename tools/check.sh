@@ -2,22 +2,42 @@
 # The project's builds and tests, one summary line each: what a session needs to read to know whether a
 # change is good. Every log goes to a file; open one only when its suite fails (docs/TOKEN_ECONOMY.md).
 #
-#   tools/check.sh [--out <dir>] <suite or set>...
+#   tools/check.sh [--out <dir>] [--jobs <n>] <suite or set>...
+#   tools/check.sh [--out <dir>] --changed <rev> [--inert] [--dry-run] [<suite or set>...]    (merge mode, below)
 #
 # Suites (rough times on this machine):
 #   build        tools/build.sh native, incremental (seconds to minutes)
-#   build-web    tools/build.sh web
+#   build-web    tools/build.sh web; `build-web:<target>,<target>` builds only those targets (TARGET="<a> <b>"
+#                tools/build.sh web), as merge mode does for the games a merge touches
 #   build-nov    tools/build.sh novariants (Bejeweled without its variant code, for the oracle)
 #   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute); fwtest is skipped
 #                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all; then
-#                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, the loader's
+#                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, our
+#                decoder's own earlier output, which tools/jp2test/write_refs.sh writes; the loader's
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images;
-#                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets); spectrumtest
+#                songpostest on Bejeweled's, BookWorm's and Bejeweled Twist's modules, with the MO3s' tempo and
+#                channel volumes (skipped without their assets); spectrumtest
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
-#                their own rate, voices against the old stereo-float pipeline)
+#                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
+#                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
+#                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
-#                Bookworm Adventures' main.pak against assets/bookwormadv when both are there
-#   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
+#                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
+#                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
+#                save backup's zip, paths and merge, web/saves.js), saveimporttest (the import of saves from an installed game:
+#                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
+#                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
+#                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
+#                web/gameimport.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
+#                landmarks, headings, names, references, live regions and contrast) and stringstest (tools/stringstest.js: the
+#                site's text, web/strings/en.txt, against the code that uses it, and web/i18n.js's rules). The build folder is build/web;
+#                BYOPOP_WEB_DIR=build/web-test names another
+#   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
+#                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
+#                lighting, game shaders, buffers, precompiled programs, the null device), exact pixels (seconds)
+#   origrun      tools/origrun/build.sh into build/logs/check/origrun-bin (not into build/origrun-bin, whose origrun.exe
+#                may be running): that the host and its sound stand-in still compile (seconds); not in `all`
+#   verify      Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
 #   bookworm     BookWorm's bot: classic and action games, and a classic rerun with the same screenshots
@@ -35,15 +55,18 @@
 #                Play! stays and Quit quits, the test profile's first chapter won and saved by the port's
 #                "word attack" script command, a run through the screens off the main menu (the credits, the
 #                players dialog, the mini-games' menu, the arena to its first word), and the media player's
-#                spectrum of a song, both ways, with the mouse over the book (about two and a half minutes)
+#                spectrum of a song, both ways, with the mouse over the book (about two minutes, 90 s of them
+#                the load of all 269 animations with their pictures; the quick form loads every 45th instead)
 #   pixelus      Pixelus Deluxe's grid replay test (every puzzle of the game solved by its recorded solution), a scripted tour of the
 #                options, credits and how-to-play screens, the bot's first 25 puzzles and a rerun with the same screenshots,
-#                and the bot's whole game (210 puzzles in all 12 temples, to the ending; about 2 minutes)
+#                and the bot's whole game (210 puzzles in all 12 temples, to the ending; about 2 minutes; the quick form
+#                leaves out the whole game: 40 s)
 #   mummymaze    Mummy Maze's bot: a classic game of 8 chambers (the name box, the options and their dialogs photographed) and
 #                a rerun with the same screenshots, a game from pyramid 3 (the tips), a whole classic game (225 chambers to the
 #                victory screen), a whole adventure (15 pyramids, the map, the saved game) and the tutorial (about 1 minute)
 #   tiptop       TipTop's bot: two regular games, a strategy game and a speed game, and a rerun of the regular ones
-#                with the same screenshots (about two and a half minutes)
+#                with the same screenshots (about two and a half minutes; the quick form leaves out the speed game and
+#                reruns the strategy game instead of the regular ones: 50 s)
 #   ningpo       Ning Po Mahjong: a scripted game (the cheat's matches until no pair is left, the name entry, the best
 #                times) and a rerun with the same screenshots and best time (under a minute)
 #   wordharmony  Word Harmony: a THINK game from a saved game (a ball dragged into a word, the word sent, the level
@@ -53,14 +76,84 @@
 #                (cosmicbugs_banktest), a scripted game played headless (cosmicbugs_run: two lines on the first
 #                board) and a rerun with the same screenshots, and the windowed exe twice with the same clicks: the
 #                runner's state, the same screen (under a minute)
+#   bookwormadv2 Bookworm Adventures Volume 2: PopLua on the game's 462 scripts (bwa2_luarun): the compiler's
+#                dialect checks, every compiled script loaded and its main chunk run, and the 8 scripts/common
+#                sources recompiled instruction for instruction against their shipped chunks; fails on a bad exit
+#                status, a failed load or a count that is not the whole set; the Flash player's self test and its
+#                five movies played to their end (bwa2_swftest); a new player's run from the title through the
+#                prologue's tutorial (PLAY spelled, then the attack) and the same profile's run to the main menu
+#                and the mini-games' menu, and Golden Coins' first words (the game's own runs join it as the
+#                port grows; about 50 seconds)
+#   waterbugs    Water Bugs: the fonts and every animation the game ships loaded
+#                (waterbugs_banktest), a scripted game played headless (waterbugs_run: a beam across the first
+#                board, two state lines) and a rerun with the same screenshots, and the windowed exe twice with the
+#                same clicks: the runner's state, the same screen (under a minute)
+#   rocketmania  Rocket Mania Deluxe: the loading screen, the menu, a hover hint, the difficulty dialog and a new game
+#                started from a script (games/rocketmania/tools/menu_test.txt), four screenshots that must differ (under a
+#                minute)
+#   dynomite     Dynomite Deluxe: a scripted Stomped Puzzle (dynomite_run: five shots and the board's state, then the
+#                save dialog's first slot and the name's Save) and a rerun with the same screens and the same saved
+#                game but for its tick counts, and that saved game continued from the main menu with the board as it
+#                was saved (dynomite_load) (under a minute)
+#   bonnies      Bonnie's Bookstore Deluxe: a tour from a script (games/bonnies/tools/tour_test.txt): a new player,
+#                the classic game's tutorial words, the game's options, high scores, credits and help, the main menu's
+#                options, an action game paused by a focus loss and played until its time is up, and Quit; a rerun
+#                with the same screens and saves, which are the frozen baseline's (and build/baseline-bonnies/
+#                bonnies.exe's, when there is one) (under a minute)
+#   mahjongjapan Mahjong Escape: Ancient Japan: every layout loaded and dealt (mahjongjapan_dealtest), and a scripted
+#                escape stage from a new player (the name, the map, stage 1 won with the solver's clicks, the level's
+#                end and the map again) twice with the same screens, which are the frozen baseline's (under a minute)
+#   mahjongchina Mahjong Escape: Ancient China: every layout loaded and dealt (mahjongchina_dealtest), and a scripted
+#                Dynasty Adventure stage from a new player (the name, the map, stage 1 won with the solver's clicks, the
+#                level's end and the map again) twice with the same screens, which are the frozen baseline's (under a
+#                minute)
+#   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 6000 and a Blitz game to its
+#                end and the high scores, with the same screens as frozen, a Classic rerun, and
+#                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one (about a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo wordharmony cosmicbugs; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
 # the suites' own output folders). Runs itself under build/native/rundesk.exe, so every game it starts is
-# invisible, silent and low priority (CLAUDE.md); suites run one after another.
+# invisible, silent and low priority (CLAUDE.md); suites run one after another (--jobs, below, is the exception).
+#
+# Quick forms: pixelus, bookwormadv and tiptop, the slowest game suites, have a shorter form that still starts the game,
+# plays it and checks that a rerun gives the same result. `<suite>:quick` runs it (CHECK_QUICK=1 does so for every suite
+# named); the suite's summary line says that it was the quick form. A quick form leaves out only what dominates the time
+# (see the suites above) and never changes the normal suite. The other suites have none and ignore the request.
+#
+# --jobs <n> (1 to 3; 1 by default, 3 in merge mode) runs the game suites of the `games` set, longest first, up to n game
+# processes at a time (bonnies, which starts two at once when build/baseline-bonnies/bonnies.exe exists, counts as two).
+# Each suite's line is printed whole when it ends, so the lines come in the order the suites end. The builds, unit,
+# unit-web, gpu, verify, modmenu, livesplit and the oracle always run alone.
+#
+# Merge mode, --changed <rev>: picks the suites a change can affect from `git diff --name-only <rev>` (the working tree,
+# staged changes included, against <rev>: a merge made with --no-commit is checked with `--changed HEAD`; `<a>..<b>` is
+# `git diff --name-only <a> <b>`) instead of running them all. Files that need nothing (docs/**, *.md, testnotes/**,
+# .publishignore, games/*/docs/**, .gitignore, .gitattributes, .claude/**) choose no suite. The others choose, as a union
+# in the order `all` uses:
+#   games/<g>/**   build, unit, the game's own suites (bejeweled: build-nov verify modmenu livesplit oracle; bigmoney:
+#                  bigmoney livesplit; bookworm: bookworm livesplit; any other game: the suite of its name, if there is one)
+#                  and the web build of that game only (build-web:<g>; Bejeweled's also rulestest and bejeweled_verify)
+#   web/**, cmake/ByopopWeb.cmake, cmake/ByopopStores.cmake, platform/saveimport.json
+#                  build-web and unit-web (seconds when only the listing page changed, but a change to web/modpanel.js,
+#                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
+#   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
+#                  (tools/*.js, paktest): unit-web. fwtest, geomtest, jp2test, songpostest, soundtest, spectrumtest, build.sh,
+#                  check.sh, rundesk: build unit. modsettingstest and fixtures: build unit, build-web:modsettingstest and
+#                  unit-web. Anything else under tools/, and any file not named here: build
+#   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
+#                  With --inert (the review found every shared change off unless a game opts in, or reached only from the
+#                  merging game): build, unit, gpu when a GPU or GL file changed (framework/GPU*, platform/GL*), the web
+#                  build of the games whose folders changed and of the shared libraries (sexyframework, sexyopenmpt,
+#                  sexyopenjpeg, sexycompat2004: so that an error only wasm shows is found), and every game suite in its
+#                  quick form (a game whose own folder changed runs in full). It skips the oracle, livesplit, verify,
+#                  modmenu, build-nov and the full web build.
+# --dry-run prints the choice and exits: one line for each suite with a rough time and the areas (a path, when one file)
+# that chose it, then the total. A real run prints the same lines first. When nothing is chosen (docs only) nothing runs and
+# the exit status is 0. Suites named besides --changed are added in full.
 #
 # The bots' expected results are below. A change that is meant to alter how a game plays updates them, in
 # the same commit, with the reason.
@@ -75,9 +168,9 @@ AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
 AL_STRATEGIC="game 1 over at update 12206: score 7432 pieces 830 forged 29 boards 3"
 AL_TIMETRIAL="game 1 over at update 14641: score 15942 pieces 903 forged 87 boards 3"
 AL_TUTORIAL="tutorial button 1 at update 231"
-SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
-SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
-SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
+SS_BEGINNER="game 2 over at update 5868: score 380 level 4 moves 20"
+SS_BONUS="game 1 over at update 2746: score 680 level 14 moves 20"
+SS_LATE="game 1 over at update 1852: score 140 level 21 moves 13"
 PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
 PX_START="done: 25 puzzles"
 PX_FULL="done: no temple left, 210 puzzles, log 2edb2003"
@@ -94,24 +187,293 @@ WH_THINK="level 2 saved, score 1600"
 WH_TSUNAMI="level 1 saved, score 0, 8 balls, 6 to come"
 CB_BANKS="82 animations, 9 missing, 0 failed; 8 fonts, 0 failed"
 CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: score 729, lives 6, board 0, filled 629 of 85%"
+WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
+WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 494, lives 6, board 0, filled 494 of 85%"
+WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
+WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
+MJ_DEAL="222 layouts, 0 failed"
+BB_SHOTS="90f2d44e0574 17f38e9b9790 fa3847002043"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
+MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
+MJC_DEAL="178 layouts, 0 failed"
+MJC_SHOTS="4c18c17f02f2 b63352c04770 7a72965e0cee"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
+DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
+BT_CLASSIC="849661ca3941 645da06bba91 79a58137ffb5 b3041b28645e"  # the first 12 hex digits of the sha256 of the Classic game's screens at 1500, 3000, 4500 and 6000: the frozen baseline
+BT_BLITZ="1a6389926f12 9f06a4076f1f 8a0ccc1e9da8 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 3500, 6000, 8000 (the explosion), 8450 (space, on the way to the scores) and 9000 (the high scores)
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 2
 OUT="build/logs/check"
+QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
+
+# The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist)
+ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
+ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
+known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
+is_game_suite() { case " ${GAME_SUITES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
+# suite_weight <suite>: sets WEIGHT to the game processes the suite has at once (bonnies runs its rerun and the frozen baseline's together)
+suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bonnies.exe ] && WEIGHT=2; return 0; }
+
+# ---- merge mode (--changed): the suites a change can affect ----
+
+# Rough seconds on this machine (the last `all` run, 2026-11-02); the plan adds them up, no more
+declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
+	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
+	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=8 [wordharmony]=17 [cosmicbugs]=5
+	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [oracle]=1080)
+declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52)
+
+declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
+SH_ORDER=() WEB_T=() GL_FILES=()
+NOTHING=0 AREA="" GS="" REASONS="" EST_S=0 WEIGHT=1 SAVEIMPORT=0
+WEB_FULL_EST=10  # the whole web build, unless a change relinks every game's wasm (356 s; 10 s when it only writes the listing page)
+
+area_of() {  # <path>: sets AREA to the folder a path is listed under in the plan
+	local p="$1" top rest
+	top="${p%%/*}"; rest="${p#*/}"
+	if [ "$top" = "$p" ]; then AREA="$p"; return; fi
+	case "$top" in
+		games|tools) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$p"; fi ;;
+		platform|third_party) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$top"; fi ;;
+		cmake) AREA="$p" ;;
+		*) AREA="$top" ;;
+	esac
+}
+
+# note <suite> <area> <path> [count]: <count> files of <area> (the first is <path>) chose <suite>
+note() {
+	local k="$1|$2"
+	if [ -z "${WHY_N[$k]:-}" ]; then WHY_N[$k]=0; WHY_P[$k]="$3"; AREAS[$1]+="$2"$'\n'; fi
+	WHY_N[$k]=$((WHY_N[$k] + ${4:-1}))
+}
+
+# pick <suite> <area> <path> [full|quick] [count]: a suite is chosen; a full choice beats a quick one, and a suite
+# with no quick form (QUICK_FORMS) is its own quick form
+QUICK_FORMS=(pixelus bookwormadv tiptop)
+pick() {
+	local how="${4:-full}"
+	case " ${QUICK_FORMS[*]} " in *" $1 "*) ;; *) how=full ;; esac
+	note "$1" "$2" "$3" "${5:-1}"
+	if [ "$how" = full ] || [ -z "${SEL[$1]:-}" ]; then SEL[$1]="$how"; fi
+}
+
+web_add() { [ -n "${WEB_SEEN[$1]:-}" ] || { WEB_SEEN[$1]=1; WEB_T+=("$1"); }; }  # <target>: a web target to build (when the whole web build is not chosen)
+
+# game_suites <game>: sets GS to the suites that test the game, besides build and unit
+game_suites() {
+	GS=""
+	case "$1" in
+		bejeweled) GS="build-nov verify modmenu livesplit oracle" ;;
+		bigmoney) GS="bigmoney livesplit" ;;
+		bookworm) GS="bookworm livesplit" ;;
+		*) if is_game_suite "$1"; then GS="$1"; fi ;;
+	esac
+}
+
+classify() {  # <path>: chooses the suites a changed file needs
+	local p="$1" g rest x s
+	area_of "$p"
+	case "$p" in
+		*.md|docs/*|testnotes/*|.publishignore|.gitignore|.gitattributes|.claude/*) NOTHING=$((NOTHING + 1)); return ;;
+	esac
+	case "$p" in
+		games/*/*)
+			g="${p#games/}"; g="${g%%/*}"; rest="${p#games/$g/}"
+			if [[ "$rest" == docs/* ]]; then NOTHING=$((NOTHING + 1)); return; fi
+			pick build "$AREA" "$p"; pick unit "$AREA" "$p"
+			# a game's page.js: also the listing's import rules (web/gameimport.js), which unit-web's gameimporttest checks
+			if [ "$rest" = web/page.js ]; then pick unit-web "$AREA" "$p"; fi
+			game_suites "$g"
+			for s in $GS; do pick "$s" "$AREA" "$p"; done
+			if [ -f "games/$g/CMakeLists.txt" ]; then  # the game's web targets, and nothing else of the web build
+				note build-web "$AREA" "$p"
+				if [ "$g" = bejeweled ]; then web_add bejeweled; web_add rulestest; web_add bejeweled_verify; else web_add "$g"; fi
+			fi ;;
+		web/*|cmake/ByopopWeb.cmake|cmake/ByopopStores.cmake)
+			pick build-web "$AREA" "$p"; pick unit-web "$AREA" "$p"
+			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses)
+			case "$p" in web/modpanel.js|web/shell.html|web/footer.*|web/copyright.html|web/terms.html|web/licenses/*) WEB_FULL_EST=356 ;; esac ;;
+		tools/*)
+			x="${p#tools/}"
+			case "$x" in
+				shotdiff/*) pick unit "$AREA" "$p" ;;
+				gputest/*) pick build "$AREA" "$p"; pick gpu "$AREA" "$p" ;;
+				modmenutest/*) pick modmenu "$AREA" "$p" ;;
+				origrun/*) pick origrun "$AREA" "$p" ;;
+				paktest/*) pick unit-web "$AREA" "$p" ;;
+				modsettingstest/*|fixtures/*)  # also built for the web, where unit-web runs it under Node
+					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
+					note build-web "$AREA" "$p"; web_add modsettingstest ;;
+				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|build.sh|check.sh)
+					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
+				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
+				*.js) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
+				*) pick build "$AREA" "$p" ;;
+			esac ;;
+		framework/*|platform/*|third_party/*|CMakeLists.txt|cmake/*)
+			if [ -z "${SH_N[$AREA]:-}" ]; then SH_N[$AREA]=0; SH_P[$AREA]="$p"; SH_ORDER+=("$AREA"); fi
+			SH_N[$AREA]=$((SH_N[$AREA] + 1))
+			case "$p" in framework/GPU*|framework/*GL*|platform/GL*|platform/*GL*) GL_FILES+=("$p") ;; esac
+			# the table the web build embeds (build-web) and unit-web's saveimporttest reads
+			if [ "$p" = platform/saveimport.json ]; then SAVEIMPORT=1; fi ;;
+		*) pick build "$AREA" "$p" ;;  # not known: a build at least
+	esac
+}
+
+# apply_shared: shared code (framework, platform, third_party, CMakeLists.txt, the other cmake files) chose its suites
+apply_shared() {
+	local a n p s x f
+	for a in "${SH_ORDER[@]}"; do
+		n="${SH_N[$a]}"; p="${SH_P[$a]}"
+		if [ "$INERT" = 1 ]; then
+			pick build "$a" "$p" full "$n"; pick unit "$a" "$p" full "$n"
+			for s in "${GAME_SUITES[@]}"; do pick "$s" "$a" "$p" quick "$n"; done
+			note build-web "$a" "$p" "$n"
+			for x in sexyframework sexyopenmpt sexyopenjpeg sexycompat2004; do web_add "$x"; done
+		else
+			for s in "${ALL_SUITES[@]}"; do pick "$s" "$a" "$p" full "$n"; done
+			WEB_FULL_EST=356
+		fi
+	done
+	if [ "$INERT" = 1 ]; then for f in "${GL_FILES[@]}"; do pick gpu "$f" "$f"; done; fi
+	if [ "$SAVEIMPORT" = 1 ]; then  # the table is in the web build (every game's wasm) and unit-web's saveimporttest reads it
+		pick build-web platform platform/saveimport.json full 0
+		pick unit-web platform platform/saveimport.json
+		WEB_FULL_EST=356
+	fi
+}
+
+reasons_of() {  # <suite>: sets REASONS to the areas that chose it (a path where one file did)
+	local s="$1" a k n l shown=0 total=0
+	REASONS=""
+	while IFS= read -r a; do
+		[ -n "$a" ] || continue
+		total=$((total + 1))
+		[ $shown -lt 5 ] || continue
+		shown=$((shown + 1))
+		k="$s|$a"; n="${WHY_N[$k]}"
+		if [ "$n" -eq 1 ]; then l="${WHY_P[$k]}"; else l="$a ($n files)"; fi
+		REASONS+="${REASONS:+, }$l"
+	done <<< "${AREAS[$s]:-}"
+	[ $total -le 5 ] || REASONS+=", +$((total - 5)) more"
+}
+
+web_est() {  # <target,target...>: sets EST_S to a rough time for building only those web targets
+	local t libs=0
+	EST_S=0
+	for t in ${1//,/ }; do
+		case "$t" in
+			sexy*) libs=1 ;;
+			bejeweled|bejeweledtwist|bookwormadv|bookwormadv2) EST_S=$((EST_S + 120)) ;;
+			rulestest|bejeweled_verify|modsettingstest) EST_S=$((EST_S + 20)) ;;
+			*) EST_S=$((EST_S + 45)) ;;
+		esac
+	done
+	[ $libs -eq 0 ] || EST_S=$((EST_S + 65))
+}
+
+# select_changed <rev>: fills SUITES from the files that differ from <rev>, prints the plan
+select_changed() {
+	local rev="$1" f a b t tok base arg name seq=0 games=0 longest=0 wall total e q targets listing shared=""
+	local -a named=("${SUITES[@]}") files=() args
+	SUITES=()
+	case "$rev" in
+		*...*) args=("$rev") ;;
+		*..*) a="${rev%%..*}"; b="${rev#*..}"; args=("$a" "$b") ;;
+		*) args=("$rev") ;;
+	esac
+	listing="$(git -c core.quotepath=off diff --name-only --no-renames "${args[@]}" 2>/dev/null)" || {
+		echo "check: git diff --name-only ${args[*]} failed: $(git diff --name-only "${args[@]}" 2>&1 >/dev/null | head -n 1)" >&2
+		exit 2
+	}
+	[ -z "$listing" ] || mapfile -t files <<< "$listing"
+	for f in "${files[@]}"; do classify "$f"; done
+	[ ${#SH_ORDER[@]} -eq 0 ] || apply_shared
+	for tok in "${named[@]}"; do  # suites named besides --changed
+		base="${tok%%:*}"; arg=""
+		[[ "$tok" == *:* ]] && arg="${tok#*:}"
+		if [ "$base" = build-web ] && [ -n "$arg" ] && [ "$arg" != quick ]; then
+			note build-web "(named)" "$tok"
+			for t in ${arg//,/ }; do web_add "$t"; done
+		elif [ "$arg" = quick ]; then pick "$base" "(named)" "$tok" quick
+		else pick "$base" "(named)" "$tok"
+		fi
+	done
+	if [ ${#SH_ORDER[@]} -gt 0 ]; then
+		if [ "$INERT" = 1 ]; then shared="; shared code changed, inert (--inert): quick forms of the game suites, no oracle, livesplit, verify, modmenu or full web build"
+		else shared="; shared code changed, not inert (no --inert): every suite, as all"; fi
+	fi
+	echo "check: --changed $rev: ${#files[@]} files, $NOTHING need no suite$shared"
+	for name in "${ORDER[@]}"; do
+		targets=""; q=""
+		if [ "$name" = build-web ]; then
+			if [ -n "${SEL[build-web]:-}" ]; then tok="build-web"; e="$WEB_FULL_EST"
+			elif [ ${#WEB_T[@]} -gt 0 ]; then
+				targets="$(IFS=,; echo "${WEB_T[*]}")"; tok="build-web:$targets"; web_est "$targets"; e="$EST_S"
+			else continue
+			fi
+		else
+			[ -n "${SEL[$name]:-}" ] || continue
+			tok="$name"; e="${EST[$name]}"
+			if [ "${SEL[$name]}" = quick ]; then tok="$name:quick"; q=":quick"; e="${EST_QUICK[$name]:-${EST[$name]}}"; fi
+		fi
+		SUITES+=("$tok")
+		if [ "$JOBS" -gt 1 ] && is_game_suite "$name"; then
+			suite_weight "$name"; games=$((games + e * WEIGHT)); [ "$e" -le "$longest" ] || longest="$e"
+		else
+			seq=$((seq + e))
+		fi
+		reasons_of "$name"
+		printf '  %-18s ~%4ss  %s<- %s\n' "$name$q" "$e" "${targets:+[${targets//,/ }] }" "$REASONS"
+	done
+	if [ ${#SUITES[@]} -eq 0 ]; then echo "check: nothing to run"; return; fi
+	wall=$(((games * 115 / 100 + JOBS - 1) / JOBS)); [ "$wall" -ge "$longest" ] || wall="$longest"
+	total=$((seq + wall))
+	e="${seq}s for the suites that run alone"
+	[ "$games" -eq 0 ] || e="$e, ${wall}s for the game suites ($JOBS at a time)"
+	if [ "$total" -lt 90 ]; then t="under 2 minutes"; else t="about $(((total + 30) / 60)) minutes"; fi
+	echo "check: $t ($e; the time of a web build of some targets is a guess)"
+}
+
+# ---- arguments ----
+
 SUITES=()
+CHANGED=""; INERT=0; DRY=0; JOBS=""
 while [ $# -gt 0 ]; do
 	case "$1" in
-		--out) OUT="$2"; shift 2 ;;
+		--out) [ $# -ge 2 ] || { echo "check.sh: --out needs a folder" >&2; exit 2; }; OUT="$2"; shift 2 ;;
 		--out=*) OUT="${1#--out=}"; shift ;;
+		--changed) [ $# -ge 2 ] || { echo "check.sh: --changed needs a revision" >&2; exit 2; }; CHANGED="$2"; shift 2 ;;
+		--changed=*) CHANGED="${1#--changed=}"; shift ;;
+		--inert) INERT=1; shift ;;
+		--dry-run) DRY=1; shift ;;
+		--jobs) [ $# -ge 2 ] || { echo "check.sh: --jobs needs a number" >&2; exit 2; }; JOBS="$2"; shift 2 ;;
+		--jobs=*) JOBS="${1#--jobs=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo wordharmony cosmicbugs); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo wordharmony cosmicbugs oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|oracle) SUITES+=("$1"); shift ;;
-		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
+		games) SUITES+=("${GAME_SUITES[@]}"); shift ;;
+		all) SUITES+=("${ALL_SUITES[@]}"); shift ;;
+		build-web:*) SUITES+=("$1"); shift ;;  # build-web:<target>,<target>...: only those web targets
+		*:quick) if known_suite "${1%:quick}"; then SUITES+=("$1"); shift; else echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2; fi ;;
+		*) if known_suite "$1"; then SUITES+=("$1"); shift; else echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2; fi ;;
 	esac
 done
+[ -n "$JOBS" ] || { [ -n "$CHANGED" ] && JOBS=3 || JOBS=1; }
+case "$JOBS" in
+	1|2|3) ;;
+	""|0|*[!0-9]*) echo "check.sh: --jobs takes 1, 2 or 3" >&2; exit 2 ;;
+	*) echo "check.sh: --jobs $JOBS is more than the 3 game processes at a time CLAUDE.md allows; using 3" >&2; JOBS=3 ;;
+esac
+
+if [ -n "$CHANGED" ]; then
+	select_changed "$CHANGED"
+	[ "$DRY" -eq 0 ] || exit 0
+	[ ${#SUITES[@]} -gt 0 ] || exit 0
+elif [ "$DRY" -eq 1 ]; then
+	echo "check: would run: ${SUITES[*]:-nothing}"
+	exit 0
+fi
 [ ${#SUITES[@]} -gt 0 ] || { echo "check.sh: name a suite or set (tools/check.sh --help)" >&2; exit 2; }
 
 RUNDESK="$ROOT/build/native/rundesk.exe"
@@ -123,13 +485,17 @@ if [ -z "${BYOPOP_TEST_RUN:-}" ]; then
 		tools/build.sh rundesk > "$OUT/rundesk.txt" 2>&1 || echo "check.sh: building rundesk failed -> $OUT/rundesk.txt" >&2
 	fi
 	[ -x "$RUNDESK" ] || { echo "check.sh: $RUNDESK is missing (tools/build.sh rundesk)" >&2; exit 2; }
-	exec "$RUNDESK" bash "$ROOT/tools/check.sh" --out "$OUT" "${SUITES[@]}"
+	exec "$RUNDESK" bash "$ROOT/tools/check.sh" --out "$OUT" --jobs "$JOBS" "${SUITES[@]}"
 fi
 
 mkdir -p "$OUT"
 NODE="$(ls "${EMSDK_ROOT:-E:/retools/emsdk}"/node/*/node.exe 2>/dev/null | head -n 1)"
 W="$(pwd -W)"
 SUMMARY=""
+if [ "$JOBS" -gt 1 ]; then  # --jobs needs `wait -n -p` (bash 5.1)
+	wait -n -p _pid 2>/dev/null
+	if [ $? -eq 2 ]; then echo "check.sh: this bash has no wait -n -p; running one suite at a time" >&2; JOBS=1; fi
+fi
 
 # the last line of a file that matches a pattern, or the file's last line
 lastof() { local l; l="$(grep -E "$2" "$1" 2>/dev/null | tail -n 1)"; [ -n "$l" ] || l="$(tail -n 1 "$1" 2>/dev/null)"; echo "${l#INFO: }"; }
@@ -152,11 +518,19 @@ build_suite() {  # <kind> <log>
 }
 
 suite_build() { build_suite native "$1"; }
-suite_build-web() { build_suite web "$1"; }
+suite_build-web() {  # <log> [<target>,<target>...]: the whole web build, or only those targets
+	local st t="${2//,/ }"
+	if [ -z "$t" ]; then build_suite web "$1"; return; fi
+	export TARGET="$t"
+	build_suite web "$1"; st=$?
+	unset TARGET
+	[ $st -ne 0 ] || SUMMARY="web build ok: $t only"
+	return $st
+}
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d e f g h
+	local st=0 a b c d e f g h i j
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -174,8 +548,8 @@ suite_unit() {
 	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
 	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
 	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
-	# jp2test decodes Bookworm Adventures' .jp2 images against reference PNGs: staging's in re/bookwormadv/jp2ref, or
-	# (older staging) PNGs beside them; skipped without the staged folder
+	# jp2test decodes Bookworm Adventures' .jp2 images against reference PNGs: the decoder's own output in
+	# re/bookwormadv/jp2ref (tools/jp2test/write_refs.sh), a regression check; skipped without the staged folder
 	if [ -d assets/bookwormadv/images ]; then
 		local ref=()
 		[ -d re/bookwormadv/jp2ref/images ] && ref=("-ref=$W/re/bookwormadv/jp2ref/images")
@@ -190,7 +564,14 @@ suite_unit() {
 	if [ -d assets/bejeweled ] && [ -d assets/bookworm ]; then
 		{ timeout 120 build/native/songpostest.exe assets/bejeweled music/1980-autonomus.s3m music/1984-network.s3m &&
 		  timeout 120 build/native/songpostest.exe assets/bookworm music/bookworm1.mo3; } > "$1.sp" 2>&1 || st=1
-		f="songpos: $(grep -c ', start at 2 ok' "$1.sp") of 3 songs ok"
+		n=3
+		# Bejeweled Twist's MO3s: also their tempo and channel volumes
+		if [ -d assets/bejeweledtwist ]; then
+			timeout 120 build/native/songpostest.exe assets/bejeweledtwist "music/bejewel twist 06.10.mo3" \
+				music/bejeweledtwist24.mo3 >> "$1.sp" 2>&1 || st=1
+			n=5
+		fi
+		f="songpos: $(grep -c ', start at 2 ok' "$1.sp") of $n songs ok, tempo: $(grep -c 'silent channels ok' "$1.sp") ok"
 	else
 		echo "$f" > "$1.sp"
 	fi
@@ -200,18 +581,24 @@ suite_unit() {
 	# Mixer's sounds: 16-bit at their own rate, resampled by the voices; needs no game files
 	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || st=1
 	h="$(lastof "$1.snd" 'sound: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h"
+	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server)
+	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || st=1
+	i="$(lastof "$1.sdf" 'shotdiff: [0-9]+ checks, [0-9]+ failed')"
+	# framework/DisplayGeometry (letterbox, render scale, window mapping, cursor) against a table from DDInterface's code
+	(cd build/native && timeout 60 ./geomtest.exe) > "$1.geo" 2>&1 || st=1
+	j="$(lastof "$1.geo" 'geometry: [0-9]+ cases, [0-9]+ checks, [0-9]+ failed')"
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" >> "$1"
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j"
 	return $st
 }
 
 suite_unit-web() {
 	[ -n "$NODE" ] || { SUMMARY="no node.exe under EMSDK_ROOT"; return 1; }
-	local st=0 a b
-	(cd build/web && "$NODE" rulestest.js) > "$1" 2>&1 || st=1
+	local st=0 a b web="${BYOPOP_WEB_DIR:-build/web}"
+	(cd "$web" && "$NODE" rulestest.js) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
-	(cd build/web && "$NODE" modsettingstest.js) > "$1.mst" 2>&1 || st=1
+	(cd "$web" && "$NODE" modsettingstest.js) > "$1.mst" 2>&1 || st=1
 	b="$(lastof "$1.mst" 'checks')"
 	# the page's pak reader (web/modpanel.js); with Bookworm Adventures installed and staged, its main.pak against the
 	# staged files (BWA_PAK names another copy)
@@ -224,8 +611,45 @@ suite_unit-web() {
 		c="$(lastof "$1.pak" 'paktest: synthetic') (no BWA main.pak or assets/bookwormadv)"
 	fi
 	grep -q '^paktest: 0 failed' "$1.pak" || st=1
-	cat "$1.mst" "$1.pak" >> "$1"; rm -f "$1.mst" "$1.pak"
-	SUMMARY="$a; $b; $c"
+	# the page's shared settings and players code (web/settings.js, web/profiles.js), on a fake localStorage
+	local d e f g h i j
+	"$NODE" tools/profilestest.js > "$1.pt" 2>&1 || st=1
+	d="$(lastof "$1.pt" 'profilestest:')"
+	# the save backup's zip, paths and merge (web/saves.js)
+	"$NODE" tools/savestest.js > "$1.sv" 2>&1 || st=1
+	e="$(lastof "$1.sv" 'savestest:')"
+	# the import of saves from an installed game (web/saveimport.js, and the table platform/saveimport.json it shares with the native games)
+	"$NODE" tools/saveimporttest.js > "$1.si" 2>&1 || st=1
+	g="$(lastof "$1.si" 'saveimporttest:')"
+	# the import rules for a game's files and the sorting of dropped folders into games (web/gameimport.js)
+	"$NODE" tools/gameimporttest.js > "$1.gi" 2>&1 || st=1
+	i="$(lastof "$1.gi" 'gameimporttest:')"
+	# the chat's rules, stored history and local source, and its plain-text rendering (web/chat.js)
+	"$NODE" tools/chattest.js > "$1.ch" 2>&1 || st=1
+	h="$(lastof "$1.ch" 'chattest:')"
+	# the built pages' accessibility (tools/a11ycheck.js): one line per page in the log
+	"$NODE" tools/a11ycheck.js --selftest > "$1.a11y" 2>&1 || st=1
+	"$NODE" tools/a11ycheck.js "$web" >> "$1.a11y" 2>&1 || st=1
+	f="$(lastof "$1.a11y" 'a11ycheck:')"
+	# the site's text (web/strings/en.txt) against the code that uses it, and web/i18n.js's rules
+	"$NODE" tools/stringstest.js > "$1.str" 2>&1 || st=1
+	j="$(lastof "$1.str" 'stringstest:')"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j"
+	return $st
+}
+
+suite_gpu() {
+	(cd build/native && timeout 120 ./gputest.exe) > "$1" 2>&1
+	local st=$?
+	SUMMARY="$(lastof "$1" '^gpu:')"
+	return $st
+}
+
+suite_origrun() {  # the host and its sound stand-in compile (into a folder of this run: origrun.exe may be running)
+	ORIGRUN_OUT="$W/$OUT/origrun-bin" tools/origrun/build.sh > "$1" 2>&1
+	local st=$?
+	if [ $st -eq 0 ]; then SUMMARY="origrun.exe and dsound.dll compile"; else SUMMARY="$(grep -m 1 -E 'error|not found' "$1" | cut -c1-160)"; fi
 	return $st
 }
 
@@ -374,9 +798,9 @@ suite_alchemy() {
 }
 
 sevenseas_game() {  # <name> <seed> <difficulty> <start level> <games>: a bot game; prints the last "game N over" line
-	local d="$OUT/sevenseas/$1"
+	local d="$OUT/sevenseas/$1" exe="${SS_EXE:-$W/build/native/sevenseas.exe}"
 	rm -rf "$d"; mkdir -p "$d/shots"
-	timeout 600 "$W/build/native/sevenseas.exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
+	timeout 600 "$exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
 		-autoplaygames="$5" -autoplaycap=60000 -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^game [0-9]+ over' "$d/log.txt" 2>/dev/null | tail -n 1
 }
@@ -391,6 +815,18 @@ suite_sevenseas() {
 	[ "$b" = "$SS_BONUS" ] || st=1
 	[ "$c" = "$SS_LATE" ] || st=1
 	if diff -rq "$OUT/sevenseas/beginner/shots" "$OUT/sevenseas/beginner2/shots" >> "$1" 2>&1 && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-sevenseas/sevenseas.exe, a copy of the port made when it was last checked
+	# against the original): the same three games must give the same lines and the same screenshots
+	local base="$W/build/baseline-sevenseas/sevenseas.exe" bl=""
+	if [ -f "$base" ]; then
+		SS_EXE="$base" sevenseas_game base-beginner 1 1 0 2 > /dev/null; SS_EXE="$base" sevenseas_game base-bonus 2 2 10 1 > /dev/null
+		SS_EXE="$base" sevenseas_game base-late 3 3 21 1 > /dev/null
+		bl="baseline identical"
+		for k in beginner bonus late; do
+			diff -q "$OUT/sevenseas/$k/log.txt" "$OUT/sevenseas/base-$k/log.txt" >> "$1" 2>&1 && diff -rq "$OUT/sevenseas/$k/shots" "$OUT/sevenseas/base-$k/shots" >> "$1" 2>&1 || { bl="BASELINE DIFFERS ($k)"; st=1; }
+		done
+		r="$r; $bl"
+	fi
 	SUMMARY="beginner ${a#game }; bonus ${b#game }; late ${c#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected beginner '$SS_BEGINNER', bonus '$SS_BONUS', late '$SS_LATE')"
 	return $st
@@ -415,13 +851,17 @@ suite_pixelus() {
 	for f in options credits help menu; do [ -s "$d/tour/$f.png" ] || t="$t, $f.png missing"; done
 	[ "$t" = 0 ] && t="tour ok" || { t="TOUR FAILED ($t)"; st=1; }
 	a="$(pixelus_game start 25)"; r="$(pixelus_game start2 25)"
-	f="$(pixelus_game full 400)"
-	n="$(grep -c '^completed' "$d/full/log.txt" 2>/dev/null)"; h="$(sha1sum "$d/full/log.txt" 2>/dev/null | cut -c1-8)"
-	f="$f, $n puzzles, log $h"
+	if [ "${CHECK_QUICK:-0}" = 1 ]; then  # the quick form leaves out the bot's whole game (87 of the 127 seconds)
+		f="skipped (quick form)"
+	else
+		f="$(pixelus_game full 400)"
+		n="$(grep -c '^completed' "$d/full/log.txt" 2>/dev/null)"; h="$(sha1sum "$d/full/log.txt" 2>/dev/null | cut -c1-8)"
+		f="$f, $n puzzles, log $h"
+	fi
 	{ echo "$g"; echo "$t"; echo "start: $a"; echo "start rerun: $r"; echo "full: $f"; } > "$1"
 	[ "$g" = "$PX_GRID" ] || st=1
 	[ "$a" = "$PX_START" ] || st=1
-	[ "$f" = "$PX_FULL" ] || st=1
+	[ "$f" = "$PX_FULL" ] || [ "${CHECK_QUICK:-0}" = 1 ] || st=1
 	if diff -rq "$d/start/shots" "$d/start2/shots" >> "$1" 2>&1 && diff -q "$d/start/log.txt" "$d/start2/log.txt" >> "$1" 2>&1; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="${g#gridtest: }; $t; start ${a#done: }; $r; full ${f#done: }"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected grid '$PX_GRID', start '$PX_START', full '$PX_FULL')"
@@ -434,6 +874,16 @@ mummymaze_game() {  # <name> <bot arguments>...: a bot game; prints the last res
 	rm -rf "$d"; mkdir -p "$d/shots"
 	timeout 600 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast "$@" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(game over|victory|tutorial done|stalled|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
+}
+
+mummymaze_resume() {  # a game saved before its clock starts, then continued: the time of the level must be small (a negative saved time once came out near 2^32 / 100 s)
+	local d="$OUT/mummymaze/resume" t
+	rm -rf "$d"; mkdir -p "$d"
+	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaysave=3 -autoplaycap=3000 -autoplaylog="$d/log1.txt" > "$d/stdout1.txt" 2> "$d/stderr1.txt"
+	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaylevels=1 -autoplaycontinue -autoplaycap=60000 -autoplaylog="$d/log2.txt" > "$d/stdout2.txt" 2> "$d/stderr2.txt"
+	t="$(grep -m1 'level time' "$d/log2.txt" | awk '{print $3}')"
+	MM_RESUME="resume: level time ${t:-none}"
+	[ -n "$t" ] && [ "$t" -gt -1000 ] && [ "$t" -lt 1000 ]
 }
 
 suite_mummymaze() {
@@ -451,8 +901,9 @@ suite_mummymaze() {
 	[ "$c" = "$MM_FULL" ] || st=1
 	[ "$t" = "$MM_TUTORIAL" ] || st=1
 	[ "$v" = "$MM_ADVENTURE" ] || st=1
+	mummymaze_resume || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $r"
+	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $MM_RESUME; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$MM_CLASSIC', tips '$MM_TIPS', full '$MM_FULL', tutorial '$MM_TUTORIAL', adventure '$MM_ADVENTURE')"
 	return $st
 }
@@ -463,7 +914,11 @@ suite_bookwormadv() {
 	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
 	d="$("$b" -gamedir=games/bookwormadv/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1)"
 	l="$("$b" -load 2>&1 | tee -a "$log" | tail -n 1)"
-	p="$("$W/build/native/bwa_pamtest.exe" 2>&1 | tee -a "$log" | tail -n 1 | tr -d '\r')"
+	if [ "${CHECK_QUICK:-0}" = 1 ]; then  # the quick form loads a sample of the animations: the whole set takes 80 to 90 of the 129 seconds
+		p="$(bookwormadv_pam_sample "$log")"
+	else
+		p="$("$W/build/native/bwa_pamtest.exe" 2>&1 | tee -a "$log" | tail -n 1 | tr -d '\r')"
+	fi
 	s="$("$W/build/native/bwa_swftest.exe" 2>&1 | tee -a "$log" | grep -c '; unsupported: none')"
 	m="$(bookwormadv_menu "$log")"
 	c="$(bookwormadv_chapter "$log")"
@@ -479,6 +934,94 @@ suite_bookwormadv() {
 	[ "$w" = "credits, players, mini-games, arena word ANTIBIOSIS" ] || return 1
 	[ "$v" = "spectrum lit both ways" ] || return 1
 	return 0
+}
+
+suite_bookwormadv2() {
+	local log="$1" b="$W/build/native/bwa2_luarun.exe" d l r p st s f m
+	need_assets bookwormadv2 || return 1
+	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
+	# (each tool's own exit status, not tee's or tail's, is the substitution's: a crash after the last line still fails)
+	st=0
+	d="$("$b" -gamedir=games/bookwormadv2/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
+	l="$("$b" -gamedir=assets/bookwormadv2 -load 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
+	r="$("$b" -gamedir=assets/bookwormadv2 -runall 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
+	p="$(python games/bookwormadv2/tests/poplua/pairs.py "$b" assets/bookwormadv2 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
+	# the Flash player: its self test (every line a PASS), then the game's movies to their end with nothing skipped
+	s="$("$W/build/native/bwa2_swftest.exe" -selftest 2>&1 | tee -a "$log" | grep -c '^PASS'; exit "${PIPESTATUS[0]}")" || st=1
+	grep -q '^FAIL' "$log" && st=1
+	f="$("$W/build/native/bwa2_swftest.exe" 2>&1 | tee -a "$log" | grep -c 'done@.*unsupported: none'; exit "${PIPESTATUS[0]}")" || st=1
+	m="$(bookwormadv2_smoke "$log")"
+	SUMMARY="$d; $l; $r; $p; swf: $s checks, $f of 5 movies to their end; $m"
+	[ "$d" = "dialect: 150 checks passed" ] || st=1
+	[ "$l" = "loaded 462 of 462 scripts" ] || st=1
+	[ "$r" = "ran 462 of 462 scripts" ] || st=1
+	[ "$p" = "pairs: 8 of 8 identical" ] || st=1
+	[ "$s" -gt 0 ] && [ "$f" = 5 ] || st=1
+	[ "$m" = "new player: PLAY attacked; main menu, mini-games: ok; a mini-game plays" ] || st=1
+	return $st
+}
+
+bookwormadv2_smoke() {  # <log>: a new player (an empty user folder) through the tutorial's first attack, then its profile to the main menu and the mini-games' menu
+	local d="$W/$OUT/bookwormadv2/smoke" b="$W/build/native/bookwormadv2.exe" a="$W/assets/bookwormadv2" k t n
+	rm -rf "$d"; mkdir -p "$d/user"
+	# Run 1: the title, the new player's name (the default) and the intro's pages, the first battle's tutorial:
+	# P, L, A, Y, then the attack button; the board's word lookup answers from the script (IsNoun, IsVerb, ...)
+	{ printf '%s\n' "800 click 400 435"
+	  for k in $(seq 0 8); do printf '%s\n' "$((2700 + k * 100)) click 400 300"; done
+	  printf '%s\n' "4300 click 650 580" "4500 click 405 313" "4800 click 330 389" "5200 click 376 485" "5600 click 426 335" \
+		"6000 click 476 435" "6400 screenshot $d/word.png" "6600 click 400 568" "8500 screenshot $d/attack.png" \
+		'8600 lua print("SMOKE", gBoard:IsNoun("PLAY"), gBoard:IsVerb("PLAY"), gBoard:IsAdjective("PLAY"), gBoard:IsAdjective("RED"))' \
+		"11000 quit"; } > "$d/newuser.txt"
+	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/newuser.txt" -fast > "$d/newuser.out" 2>&1
+	t=$?
+	cat "$d/newuser.out" >> "$1"
+	[ $t -eq 0 ] || { echo "new player: exit $t"; return; }
+	grep -qiE 'attempt to|stack traceback|FATAL|\.lua:[0-9]+:' "$d/newuser.out" && { echo "new player: a script failed"; return; }
+	grep -q "SMOKE.true.true.false.true" "$d/newuser.out" || { echo "new player: word flags wrong"; return; }
+	for n in word attack; do
+		[ "$(stat -c %s "$d/$n.png" 2>/dev/null || echo 0)" -gt 50000 ] || { echo "new player: no $n picture"; return; }
+	done
+	cmp -s "$d/word.png" "$d/attack.png" && { echo "new player: the attack changed nothing"; return; }
+	# Run 2: that profile again: its settings set so that the main menu comes up (the profile of a finished game),
+	# the player picked, the main menu, then the mini-games' menu
+	{ for k in $(seq 0 6); do
+		printf '%s\n' "$((600 + k * 200)) lua profile.Set(\"NeedsIntroTileHelp\", false); profile.Set(\"AdventureComplete\", true); profile.Set(\"InGame\", false); profile.Set(\"UnlockedMiniGames\", true); profile.Set(\"UnlockedBestiary\", true); profile.Set(\"CurrentBook\", 6)"
+	  done
+	  printf '%s\n' "4000 click 250 330" "5500 click 400 330" "5700 click 300 170" "5800 click 300 170" "6100 click 400 575" \
+		"8000 click 712 505" "8001 click 712 505" "8300 click 405 313" "11000 screenshot $d/menu.png" "11200 click 120 405" \
+		"13500 screenshot $d/minigames.png" "13600 quit"; } > "$d/menus.txt"
+	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/menus.txt" -fast > "$d/menus.out" 2>&1
+	t=$?
+	cat "$d/menus.out" >> "$1"
+	[ $t -eq 0 ] || { echo "main menu: exit $t"; return; }
+	grep -qiE 'attempt to|stack traceback|FATAL|\.lua:[0-9]+:' "$d/menus.out" && { echo "main menu: a script failed"; return; }
+	for n in menu minigames; do
+		[ "$(stat -c %s "$d/$n.png" 2>/dev/null || echo 0)" -gt 50000 ] || { echo "main menu: no $n picture"; return; }
+	done
+	cmp -s "$d/menu.png" "$d/minigames.png" && { echo "main menu: the mini-games' menu did not open"; return; }
+	# Run 3: the same route up to the mini-games' menu, then Golden Coins: its Welcome's OK and the test hook's bot
+	# for a few words (a mini-game has no battle engine, and its first scramble once crashed the board)
+	{ grep -vE ' (quit|screenshot)( |$)' "$d/menus.txt"
+	  printf '%s\n' '12500 lua main.StartMinigameFromMainMenu("GoldenCoins")' "15500 click 400 293" "16000 soak 19000" \
+		"19010 quit"; } > "$d/minigame.txt"
+	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/minigame.txt" -fast > "$d/minigame.out" 2>&1
+	t=$?
+	cat "$d/minigame.out" >> "$1"
+	[ $t -eq 0 ] || { echo "mini-game: exit $t"; return; }
+	grep -qiE 'attempt to|stack traceback|FATAL|\.lua:[0-9]+:' "$d/minigame.out" && { echo "mini-game: a script failed"; return; }
+	[ "$(grep -cE 'script: word [A-Z]+ ' "$d/minigame.out")" -ge 2 ] || { echo "mini-game: the bot spelled no words"; return; }
+	echo "new player: PLAY attacked; main menu, mini-games: ok; a mini-game plays"
+}
+
+bookwormadv_pam_sample() {  # <log>: bwa_pamtest's load of every animation, on every 45th of the sorted .pam files (-info loads one with its pictures); prints "loaded N of M ..."
+	local f n=0 ok=0 list
+	list="$(cd assets/bookwormadv && shopt -s globstar nullglob nocaseglob && printf '%s\n' images/**/*.pam | sed -n '1~45p' | tr '/' '\\')"
+	while IFS= read -r f; do
+		[ -n "$f" ] || continue
+		n=$((n + 1))
+		"$W/build/native/bwa_pamtest.exe" -info "$f" >> "$1" 2>&1 && ok=$((ok + 1))
+	done <<< "$list"
+	echo "loaded $ok of $n (a sample of the whole set)"
 }
 
 bookwormadv_all() {  # <"loaded N of M ...">: true when all of at least one loaded
@@ -588,15 +1131,21 @@ tiptop_game() {  # <name> <mode> <games>: bot games; prints the last "game N ove
 }
 
 suite_tiptop() {
-	local st=0 g s p r
+	local st=0 g s p r again ref
 	need_assets tiptop || return 1
-	g="$(tiptop_game regular regular 2)"; s="$(tiptop_game strategy strategy 1)"; p="$(tiptop_game speed speed 1)"
-	r="$(tiptop_game regular2 regular 2)"
-	{ echo "regular: $g"; echo "strategy: $s"; echo "speed: $p"; echo "regular rerun: $r"; } > "$1"
+	g="$(tiptop_game regular regular 2)"; s="$(tiptop_game strategy strategy 1)"
+	if [ "${CHECK_QUICK:-0}" = 1 ]; then  # the quick form leaves out the speed game (65 s) and reruns the short strategy game, not the regular ones (42 s)
+		p="skipped (quick form)"; again=strategy; ref="$s"
+		r="$(tiptop_game strategy2 strategy 1)"
+	else
+		p="$(tiptop_game speed speed 1)"; again=regular; ref="$g"
+		r="$(tiptop_game regular2 regular 2)"
+	fi
+	{ echo "regular: $g"; echo "strategy: $s"; echo "speed: $p"; echo "$again rerun: $r"; } > "$1"
 	[ "$g" = "$TT_REGULAR" ] || st=1
 	[ "$s" = "$TT_STRATEGY" ] || st=1
-	[ "$p" = "$TT_SPEED" ] || st=1
-	if diff -rq "$OUT/tiptop/regular/shots" "$OUT/tiptop/regular2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	[ "$p" = "$TT_SPEED" ] || [ "${CHECK_QUICK:-0}" = 1 ] || st=1
+	if diff -rq "$OUT/tiptop/$again/shots" "$OUT/tiptop/${again}2/shots" >> "$1" 2>&1 && [ "$ref" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="regular ${g#game }; strategy ${s#game }; speed ${p#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected regular '$TT_REGULAR', strategy '$TT_STRATEGY', speed '$TT_SPEED')"
 	return $st
@@ -731,6 +1280,41 @@ cosmicbugs_window() {  # <name>: the windowed exe with the runner's left clicks;
 	echo "$l"
 }
 
+suite_rocketmania() {
+	local st=0 d="$OUT/rocketmania" e=0 f n=""
+	need_assets rocketmania || return 1
+	rm -rf "$d"; mkdir -p "$d/user"
+	sed "s|@DIR@|$d|" games/rocketmania/tools/menu_test.txt > "$d/script.txt"
+	timeout 300 "$W/build/native/rocketmania.exe" -userdir="$d/user" -fast -seed=1 -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	cat "$d/stdout.txt" "$d/stderr.txt" > "$1"
+	[ "$e" -eq 0 ] || { SUMMARY="the exe exited with status $e"; return 1; }
+	grep -q "Resource Loading Time" "$1" || { SUMMARY="the game did not finish loading"; return 1; }
+	if grep -qE "Failed to load|texts do not match|not found in the game folder" "$1"; then SUMMARY="a load failed (see the log)"; return 1; fi
+	for f in menu hover difficulty after; do
+		[ -s "$d/$f.png" ] || { SUMMARY="no screenshot $f.png"; return 1; }
+	done
+	cmp -s "$d/menu.png" "$d/hover.png" && { SUMMARY="the hover changed nothing"; return 1; }
+	cmp -s "$d/hover.png" "$d/difficulty.png" && { SUMMARY="the click opened no dialog"; return 1; }
+	grep -q "StartBoard: mode 0 difficulty 1" "$1" || { SUMMARY="easy arcade did not start a game"; return 1; }
+	# the Board: a game of each mode played for 3000 updates by the autoplay hook (random clicks; launches are forced)
+	local m line score scores=""
+	for m in 0 1 2; do
+		sed -e "s|@MODE@|$m|" -e "s|@DIFF@|$((m + 1))|" games/rocketmania/tools/board_test.txt > "$d/board$m.txt"
+		e=0
+		timeout 300 "$W/build/native/rocketmania.exe" -userdir="$d/user" -fast -seed=1 -script="$d/board$m.txt" > "$d/board$m.out" 2>&1 || e=$?
+		cat "$d/board$m.out" >> "$1"
+		[ "$e" -eq 0 ] || { SUMMARY="mode $m: the exe exited with status $e"; return 1; }
+		line="$(grep "autoplay: done" "$d/board$m.out" | tail -n 1)"
+		[ -n "$line" ] || { SUMMARY="mode $m: the autoplay did not finish"; return 1; }
+		case "$line" in *"bad cells 0"*) ;; *) SUMMARY="mode $m: a tile stood in the wrong cell ($line)"; return 1;; esac
+		score="$(echo "$line" | sed 's/.* score \([0-9]*\) .*/\1/')"
+		[ "${score:-0}" -gt 0 ] || { SUMMARY="mode $m: no launch scored ($line)"; return 1; }
+		scores="$scores $score"
+	done
+	SUMMARY="loaded, menu, hover, difficulty dialog, and a game of each mode played (scores$scores)"
+	return $st
+}
+
 suite_cosmicbugs() {
 	local st=0 b g r w w2 c="$OUT/cosmicbugs" ea=0 ef=0
 	need_assets cosmicbugs || return 1
@@ -756,6 +1340,298 @@ suite_cosmicbugs() {
 	return $st
 }
 
+waterbugs_run() {  # <name>: the headless runner's scripted game; prints its state lines (and its exit status if not 0)
+	local d="$OUT/waterbugs/$1" e=0 l
+	rm -rf "$d"; mkdir -p "$d"
+	# Start Game, the world map's first area, the first board's start, a beam across the board (times in ms)
+	printf '%s\n' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 state" "20000 shot start" \
+		"24000 click 300 300" "32000 state" "32000 shot beam" "32010 end" > "$d/script.txt"
+	timeout 300 build/native/waterbugs_run.exe assets/waterbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '\r' | paste -sd ';' - | sed 's/;/; /g')"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
+}
+
+wb_hash() {  # <png>: the first 12 hex digits of the sha256 of the pixels; the loss screen's rising bubbles in x 560..690, y 240..520 are zeroed first, because one of them differs by a few pixels from run to run
+	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else i.paste((0,0,0),(405,220,425,235)) if 'beam' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
+}
+
+waterbugs_loss() {  # the last life lost, the click on the game over: the high scores (the game file is read again; it once crashed)
+	local d="$OUT/waterbugs/loss" e=0 l
+	rm -rf "$d"; mkdir -p "$d"
+	printf '%s\n' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" \
+		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
+	timeout 300 build/native/waterbugs_run.exe assets/waterbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '\r')"
+	[ -f "$d/scores.png" ] || l="$l; NO SCREENSHOT"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
+}
+
+waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; prints its state after the beam
+	local d="$OUT/waterbugs/$1" e=0 l u
+	rm -rf "$d"; mkdir -p "$d/user"
+	u="$(cygpath -ma "$d")"  # the exe's paths, also inside its script: absolute Windows ones, from any --out
+	printf '<CP_CONFIG\n    fullscreen="0"\n    desktopResolution="0"\n    wave="1"\n    music="1"\n/>\n' > "$d/user/cp.cfg"
+	# an update is 10 ms, a click holds the button 3 updates (as in the Cosmic Bugs suite)
+	printf '%s\n' "300 down 400 303" "303 up 400 303" "800 down 75 260" "803 up 75 260" "1400 down 400 465" "1403 up 400 465" \
+		"2400 down 300 300" "2403 up 300 300" "3200 state" "3200 screenshot $u/beam.png" "3210 quit" > "$d/script.txt"
+	timeout 300 "$W/build/native/waterbugs.exe" -gamedir=assets/waterbugs -userdir="$u/user" -fast -script="$u/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	l="$(cat "$d/stdout.txt" "$d/stderr.txt" | tr -d '\r' | sed -n 's/^INFO: state: //p' | head -n 1)"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
+}
+
+suite_waterbugs() {
+	local st=0 b g r w w2 l sh c="$OUT/waterbugs" ea=0 ef=0
+	need_assets waterbugs || return 1
+	mkdir -p "$c/banks"
+	# Every animation the game file names and every font, each listing kept (the game file names ten files the game does not ship)
+	timeout 120 build/native/waterbugs_banktest.exe assets/waterbugs "$c/banks" anims > "$c/banks/anims.txt" 2>&1 || ea=$?
+	timeout 120 build/native/waterbugs_banktest.exe assets/waterbugs "$c/banks" fonts > "$c/banks/fonts.txt" 2>&1 || ef=$?
+	b="$(tail -n 1 "$c/banks/anims.txt" | tr -d '\r'); $(tail -n 1 "$c/banks/fonts.txt" | tr -d '\r')"
+	[ $ea -eq 0 ] && [ $ef -eq 0 ] || b="$b; EXIT $ea $ef"
+	g="$(waterbugs_run game)"; r="$(waterbugs_run game2)"
+	# The windowed exe's -fast clock does not step 10 ms on every update, so its animations' phases are not the
+	# runner's: its state after the beam is, and its screen is its rerun's
+	w="$(waterbugs_window window)"; w2="$(waterbugs_window window2)"
+	l="$(waterbugs_loss)"
+	{ echo "banks: $b"; echo "game: $g"; echo "rerun: $r"; echo "window: $w"; echo "window rerun: $w2"; } > "$1"
+	[ "$b" = "$WB_BANKS" ] || st=1
+	[ "$g" = "$WB_GAME" ] || st=1
+	[ "$l" = "$WB_LOSS" ] || st=1
+	sh="$(for f in game/start game/beam loss/scores; do wb_hash "$c/$f.png"; done | paste -sd" " -)"
+	if [ "$sh" = "$WB_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
+	if [ "$(wb_hash "$c/game/start.png")" = "$(wb_hash "$c/game2/start.png")" ] && [ "$(wb_hash "$c/game/beam.png")" = "$(wb_hash "$c/game2/beam.png")" ] &&
+		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
+		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
+	SUMMARY="$b; $g; $r; $w; loss: $l; $sh"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME', '$WB_LOSS')"
+	return $st
+}
+
+# Dynomite's settings as a run of the game leaves them (no game data), so every run starts from the same ones
+dynomite_user() {  # <user dir>
+	mkdir -p "$1"
+	printf '%s\n' '[SOFTWARE\PopCap\Dynomite]' CustomCursors=dword:0 InProgress=dword:0 MusicVolume=dword:50 Muted=dword:0 \
+		PreferredX=dword:-1 PreferredY=dword:-1 ScreenMode=dword:1 SfxVolume=dword:85 TimesExecuted=dword:5 \
+		TimesPlayed=dword:0 WaitForVSync=dword:0 > "$1/registry.ini"
+}
+
+dynomite_exe() {  # <dir>: the game with <dir>/script.txt and <dir>/user; prints its "board" lines
+	local e=0 l u
+	u="$(cygpath -ma "$1")"
+	timeout 300 "$W/build/native/dynomite.exe" -gamedir=assets/dynomite -userdir="$u/user" -fast -seed=2 \
+		-script="$u/script.txt" > "$1/stdout.txt" 2> "$1/stderr.txt" || e=$?
+	l="$(cat "$1/stdout.txt" "$1/stderr.txt" | tr -d '\r' | sed -n 's/^INFO: script: //p' | grep '^board' | paste -sd ';' - | sed 's/;/; /g')"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
+}
+
+dynomite_run() {  # <name>: Stomped Puzzle, five shots, the board, then saved into the first slot; prints the board
+	local d="$OUT/dynomite/$1" u
+	rm -rf "$d"; dynomite_user "$d/user"
+	u="$(cygpath -ma "$d")"
+	# the title, New Game, Stomped Puzzle and OK, Easy and OK; the shots; the side bar's Save, the first slot, Save,
+	# and the name's Save (an update is 10 ms)
+	printf '%s\n' "600 click 320 450" "910 click 486 213" "970 click 465 230" "1030 move 488 432" "1040 click 488 432" \
+		"1100 click 465 162" "1150 move 488 432" "1160 click 488 432" "1700 click 260 140" "1745 click 297 140" \
+		"1790 click 334 140" "1835 click 371 140" "1880 click 408 140" "2095 board" "2100 screenshot $u/board.png" \
+		"2110 move 45 297" "2120 click 45 297" "2205 move 284 207" "2210 click 284 207" "2265 move 354 399" \
+		"2270 click 354 399" "2355 move 357 361" "2360 click 357 361" "2450 screenshot $u/saved.png" "2460 quit" > "$d/script.txt"
+	dynomite_exe "$d"
+}
+
+dynomite_load() {  # <name> <run>: the run's saved game continued from the main menu; prints the board
+	local d="$OUT/dynomite/$1" u
+	rm -rf "$d"; mkdir -p "$d"; cp -r "$OUT/dynomite/$2/user" "$d/user"
+	u="$(cygpath -ma "$d")"
+	# the title, Continue Game and Next, the first saved game and Let's Play
+	printf '%s\n' "600 click 320 450" "910 move 487 286" "920 click 487 286" "960 move 491 434" "970 click 491 434" \
+		"1005 move 380 175" "1010 click 380 175" "1065 move 491 434" "1070 click 491 434" "1110 board" \
+		"1120 screenshot $u/loaded.png" "1130 quit" > "$d/script.txt"
+	dynomite_exe "$d"
+}
+
+suite_dynomite() {
+	local st=0 g r l c="$OUT/dynomite" t
+	need_assets dynomite || return 1
+	g="$(dynomite_run game)"; r="$(dynomite_run game2)"; l="$(dynomite_load load game)"
+	{ echo "game: $g"; echo "rerun: $r"; echo "load: $l"; } > "$1"
+	[ "$g" = "$DY_GAME" ] || st=1
+	# a saved game's only bytes that change from run to run: the tick counts at the start of its board (0x3868)
+	if [ -f "$c/game/user/SLOT0.SAV" ]; then
+		t="$(cmp -l "$c/game/user/SLOT0.SAV" "$c/game2/user/SLOT0.SAV" 2>&1 | awk '$1 < 14441 || $1 > 14448' | head -n 3)"
+	else t="no SLOT0.SAV"; fi
+	if diff -q "$c/game/board.png" "$c/game2/board.png" >> "$1" 2>&1 && diff -q "$c/game/saved.png" "$c/game2/saved.png" >> "$1" 2>&1 &&
+		[ "$g" = "$r" ] && [ -z "$t" ]; then r="rerun identical"; else r="RERUN DIFFERS${t:+ ($t)}"; st=1; fi
+	if [ "$l" = "$g" ]; then l="loads as saved"; else l="LOAD DIFFERS ('$l')"; st=1; fi
+	SUMMARY="$g; $r; $l"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$DY_GAME')"
+	return $st
+}
+
+bonnies_run() {  # <name> [<exe>]: games/bonnies/tools/tour_test.txt into $OUT/bonnies/<name>; prints the exit status
+	local d="$OUT/bonnies/$1" e=0
+	rm -rf "$d"; mkdir -p "$d/user"
+	sed "s|@DIR@|$d|" games/bonnies/tools/tour_test.txt > "$d/script.txt"
+	timeout 300 "${2:-$W/build/native/bonnies.exe}" -gamedir=assets/bonnies -userdir="$d/user" -fast -seed=1 \
+		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
+	echo "$e"
+}
+
+BB_SHOTS_ALL="logo menu name difficulty story board tutorial word played cake tale gameoptions highscores credits help1 help2 help3 mainmenu options action actionword paused resumed timeup endmenu"
+
+bonnies_same() {  # <a> <b>: whether two runs gave the same screens and the same saved files
+	local f
+	for f in $BB_SHOTS_ALL; do cmp -s "$1/$f.png" "$2/$f.png" || return 1; done
+	diff -rq "$1/user" "$2/user" > /dev/null
+}
+
+suite_bonnies() {
+	local d="$OUT/bonnies" e f sh r bl="" base="$W/build/baseline-bonnies/bonnies.exe"
+	need_assets bonnies || return 1
+	e="$(bonnies_run game)"
+	cat "$d/game/stdout.txt" > "$1"
+	[ "$e" -eq 0 ] || { SUMMARY="the exe exited with status $e"; return 1; }
+	grep -q "Resource Loading Time" "$1" || { SUMMARY="the game did not finish loading"; return 1; }
+	for f in $BB_SHOTS_ALL; do
+		[ -s "$d/game/$f.png" ] || { SUMMARY="no screenshot $f.png"; return 1; }
+	done
+	cmp -s "$d/game/menu.png" "$d/game/name.png" && { SUMMARY="Classic Game opened no name dialog"; return 1; }
+	cmp -s "$d/game/tutorial.png" "$d/game/word.png" && { SUMMARY="the clicks chose no letters"; return 1; }
+	cmp -s "$d/game/word.png" "$d/game/played.png" && { SUMMARY="Submit played no word"; return 1; }
+	[ -s "$d/game/user/SavedGames/te.GAM" ] || { SUMMARY="the new player's te.GAM was not saved"; return 1; }
+	# the main menu's Quit ends the game before the script's own quit at update 70000
+	grep -q "Update Count = 6[0-9]\{4\}," "$1" || { SUMMARY="the main menu's Quit did not end the game"; return 1; }
+	# the rerun, and the frozen baseline (build/baseline-bonnies/bonnies.exe, a copy of the port made when it was last
+	# checked against the original) when there is one, at the same time
+	bonnies_run rerun > "$d/rerun.status" &
+	[ -f "$base" ] && bonnies_run base "$base" > "$d/base.status" &
+	wait
+	cat "$d/rerun/stdout.txt" >> "$1"
+	[ "$(cat "$d/rerun.status")" = 0 ] || { SUMMARY="the rerun exited with status $(cat "$d/rerun.status")"; return 1; }
+	bonnies_same "$d/game" "$d/rerun" || { SUMMARY="the rerun's screens or saves differ"; return 1; }
+	sh="$(for f in played highscores timeup; do sha256sum "$d/game/$f.png" | cut -c1-12; done | paste -sd" " -)"
+	[ "$sh" = "$BB_SHOTS" ] || { SUMMARY="SCREENS CHANGED ($sh; frozen $BB_SHOTS)"; return 1; }
+	if [ -f "$base" ]; then
+		bonnies_same "$d/game" "$d/base" || { SUMMARY="the frozen baseline's screens or saves differ"; return 1; }
+		bl="; baseline identical"
+	fi
+	SUMMARY="the tour (classic tutorial, options, high scores, credits, help, an action game paused by a focus loss and played to its end, Quit); rerun identical; screens as frozen$bl"
+	return 0
+}
+
+mahjongjapan_run() {  # <name>: a new player, escape stage 1 won with the solver's clicks; prints the moves and the shots
+	local d="$OUT/mahjongjapan/$1" t=3400 x1 y1 x2 y2 n=0
+	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	# Emperor's Adventure, the name "Test", the map's PLAY, the How To Play tip's OK; the solver's pairs; the Magic
+	# Gold Tiles tip's OK, the level's end and its OK, the map. No click reaches a link.
+	{
+		printf '%s\n' "1400 click 400 270" "1720 char T" "1725 char e" "1730 char s" "1735 char t" "1760 key RETURN" \
+			"2600 click 715 573" "3000 click 400 407" "3300 screenshot $d/shots/board.png"
+		while read -r x1 y1 x2 y2; do
+			echo "$t click $x1 $y1"; echo "$((t + 60)) click $x2 $y2"; t=$((t + 180)); n=$((n + 1))
+		done < "$OUT/mahjongjapan/sol385.txt"
+		printf '%s\n' "$((t + 400)) click 403 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
+			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
+	} > "$d/script.txt"
+	timeout 300 "$W/build/native/mahjongjapan.exe" -gamedir=assets/mahjongjapan -userdir="$d/user" -fast -script="$d/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
+}
+
+suite_mahjongjapan() {
+	local st=0 dl g r sh c="$OUT/mahjongjapan"
+	need_assets mahjongjapan || return 1
+	mkdir -p "$c"
+	dl="$(timeout 120 build/native/mahjongjapan_dealtest.exe assets/mahjongjapan 2>&1 | tail -n 1 | tr -d '\r' | sed 's/, slowest.*//')"
+	[ "$dl" = "$MJ_DEAL" ] || st=1
+	timeout 120 build/native/mahjongjapan_dealtest.exe assets/mahjongjapan --solve 385 > "$c/sol385.txt" 2> "$c/solve.txt" || st=1
+	g="$(mahjongjapan_run game)"; r="$(mahjongjapan_run game2)"
+	{ echo "deal: $dl"; echo "game: $g"; echo "rerun: $r"; } > "$1"
+	sh="$(for f in board won map; do sha256sum "$c/game/shots/$f.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -)"
+	if [ "$sh" = "$MJ_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
+	if diff -rq "$c/game/shots" "$c/game2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="$dl; $g; $r; $sh"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$MJ_DEAL')"
+	return $st
+}
+
+mahjongchina_run() {  # <name>: a new player, Dynasty Adventure stage 1 won with the solver's clicks; prints the moves and the shots
+	local d="$OUT/mahjongchina/$1" t=3400 x1 y1 x2 y2 n=0
+	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	# Dynasty Adventure, the name "Test", the map's PLAY, the How To Play tip's OK; the solver's pairs; the Magic
+	# Gold Tiles tip's OK (its box is at the left), the level's end and its OK, the map. No click reaches a link.
+	{
+		printf '%s\n' "1400 click 400 262" "1720 char T" "1725 char e" "1730 char s" "1735 char t" "1760 key RETURN" \
+			"2600 click 725 565" "3000 click 400 407" "3300 screenshot $d/shots/board.png"
+		while read -r x1 y1 x2 y2; do
+			echo "$t click $x1 $y1"; echo "$((t + 60)) click $x2 $y2"; t=$((t + 180)); n=$((n + 1))
+		done < "$OUT/mahjongchina/sol1.txt"
+		printf '%s\n' "$((t + 400)) click 187 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
+			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
+	} > "$d/script.txt"
+	timeout 300 "$W/build/native/mahjongchina.exe" -gamedir=assets/mahjongchina -userdir="$d/user" -fast -script="$d/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
+}
+
+suite_mahjongchina() {
+	local st=0 dl g r sh c="$OUT/mahjongchina"
+	need_assets mahjongchina || return 1
+	mkdir -p "$c"
+	dl="$(timeout 120 build/native/mahjongchina_dealtest.exe assets/mahjongchina 2>&1 | tail -n 1 | tr -d '\r' | sed 's/, slowest.*//')"
+	[ "$dl" = "$MJC_DEAL" ] || st=1
+	timeout 120 build/native/mahjongchina_dealtest.exe assets/mahjongchina --stage 1 > "$c/sol1.txt" 2> "$c/solve.txt" || st=1
+	g="$(mahjongchina_run game)"; r="$(mahjongchina_run game2)"
+	{ echo "deal: $dl"; echo "game: $g"; echo "rerun: $r"; } > "$1"
+	sh="$(for f in board won map; do sha256sum "$c/game/shots/$f.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -)"
+	if [ "$sh" = "$MJC_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
+	if diff -rq "$c/game/shots" "$c/game2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="$dl; $g; $r; $sh"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$MJC_DEAL')"
+	return $st
+}
+
+twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game; prints its screens' hashes
+	local d="$OUT/bejeweledtwist/$1" exe="$2" mode="$3" last="$4" n
+	shift 4
+	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/user/registry.ini"
+	{ for n in "$@"; do echo "$n screenshot $d/shots/$n.png"; done; echo "$last quit"; } > "$d/script.txt"
+	# autoplay clicks only the board and the mode select, never a link
+	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" -fast -seed=1234 -autoplay="$mode" \
+		-script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	for n in "$@"; do sha256sum "$d/shots/$n.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -
+}
+
+suite_bejeweledtwist() {
+	local st=0 c b r sh bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
+	need_assets bejeweledtwist || return 1
+	c="$(twist_game classic "$exe" 1 6010 1500 3000 4500 6000)"
+	b="$(twist_game blitz "$exe" blitz 9010 3500 6000 8000 8450 9000)"
+	r="$(twist_game classic2 "$exe" 1 6010 1500 3000 4500 6000)"
+	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; } > "$1"
+	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
+	if [ -n "$c" ] && [ "$c" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-bejeweledtwist/, a copy of the port with its DLLs made when it was last
+	# checked against the original): the same games must give the same screens
+	if [ -f "$base" ]; then
+		if [ "$(twist_game base-classic "$base" 1 6010 1500 3000 4500 6000)" = "$c" ] &&
+			[ "$(twist_game base-blitz "$base" blitz 9010 3500 6000 8000 8450 9000)" = "$b" ]; then
+			bl="; baseline identical"
+		else
+			bl="; BASELINE DIFFERS"; st=1
+		fi
+	fi
+	SUMMARY="Classic to 6000 and Blitz to its high scores, 9 screens; $r; $sh$bl"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ')"
+	return $st
+}
+
 suite_oracle() {
 	local others
 	need_assets bejeweled || return 1
@@ -768,19 +1644,61 @@ suite_oracle() {
 	return $st
 }
 
-PASSED=0
-FAILED=0
-for s in "${SUITES[@]}"; do
-	log="$OUT/$s.txt"
+run_suite() {  # <suite>[:<quick or targets>]: runs it and prints its summary line whole; the status is the suite's
+	local s="$1" name arg quick log start
+	name="${s%%:*}"; arg=""
+	[[ "$s" == *:* ]] && arg="${s#*:}"
+	quick="$QUICK_ENV"
+	if [ "$arg" = quick ]; then quick=1; arg=""; fi
+	export CHECK_QUICK="$quick"
+	log="$OUT/$name.txt"
 	start=$SECONDS
 	SUMMARY=""
-	if "suite_$s" "$log"; then
-		echo "PASS $s ($((SECONDS - start))s): $SUMMARY"
-		PASSED=$((PASSED + 1))
-	else
-		echo "FAIL $s ($((SECONDS - start))s): $SUMMARY -> $log"
-		FAILED=$((FAILED + 1))
+	if "suite_$name" "$log" "$arg"; then
+		echo "PASS $name ($((SECONDS - start))s): $SUMMARY"
+		return 0
 	fi
+	echo "FAIL $name ($((SECONDS - start))s): $SUMMARY -> $log"
+	return 1
+}
+
+PASSED=0
+FAILED=0
+count() { if [ "$1" -eq 0 ]; then PASSED=$((PASSED + 1)); else FAILED=$((FAILED + 1)); fi; }
+
+# run_batch <suite>...: game suites, up to $JOBS game processes at a time (a suite counts as the processes it starts
+# at once), the longest first; each prints its line when it ends
+run_batch() {
+	local queue=() used=0 s t pid st
+	local -A weight=()
+	for t in tiptop bookwormadv pixelus bookwormadv2 bonnies mummymaze noahsark; do
+		for s in "$@"; do [ "${s%%:*}" = "$t" ] && queue+=("$s"); done
+	done
+	for s in "$@"; do
+		case " tiptop bookwormadv pixelus bookwormadv2 bonnies mummymaze noahsark " in *" ${s%%:*} "*) ;; *) queue+=("$s") ;; esac
+	done
+	trap 'kill $(jobs -p) 2>/dev/null; exit 130' INT TERM
+	while [ ${#queue[@]} -gt 0 ] || [ $used -gt 0 ]; do
+		while [ ${#queue[@]} -gt 0 ]; do
+			s="${queue[0]}"; suite_weight "${s%%:*}"
+			if [ $used -gt 0 ] && [ $((used + WEIGHT)) -gt "$JOBS" ]; then break; fi
+			queue=("${queue[@]:1}")
+			run_suite "$s" &
+			weight[$!]=$WEIGHT; used=$((used + WEIGHT))
+		done
+		wait -n -p pid; st=$?
+		used=$((used - ${weight[$pid]:-1})); unset 'weight[$pid]'
+		count $st
+	done
+	trap - INT TERM
+}
+
+BATCH=()
+for s in "${SUITES[@]}"; do
+	if [ "$JOBS" -gt 1 ] && is_game_suite "${s%%:*}"; then BATCH+=("$s"); continue; fi
+	if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; BATCH=(); fi
+	run_suite "$s"; count $?
 done
+if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; fi
 echo "check: $PASSED passed, $FAILED failed"
 [ $FAILED -eq 0 ]

@@ -13,6 +13,9 @@
 #include "SoundManager.h"
 #include "WidgetManager.h"
 #include "platform/VFS.h"
+#ifdef __EMSCRIPTEN__
+#include "WebSettings.h"
+#endif
 
 #include <SDL.h>
 #include <cstring>
@@ -344,6 +347,11 @@ void CosmicBugsApp::Init()
 	}
 	// WinMain (0x42ae60): cp.cfg, the screen in its mode, the sound, then the game
 	r64::LoadConfig();
+#ifdef __EMSCRIPTEN__
+	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu sets it
+	if (Byopop::SiteWindowed())
+		r64::Screen_SetFullscreen(0);
+#endif
 	SetGameScreenMode(r64::Screen_Fullscreen() != 0);
 	r64::Sound_Start();
 	cb::GameStart();
