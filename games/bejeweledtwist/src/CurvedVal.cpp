@@ -26,6 +26,36 @@ double X87(double theValue)
 	return gD3DInterface != nullptr ? (double)(float)theValue : theValue;
 }
 
+// 0x45dbf0 (StringToDouble): a number of a curve string, its digits summed on the x87 (the fraction's place value starts
+// at 0.1 and is divided by 10 for each digit), so with Direct3D each step rounds to a float: "0.002" reads as
+// 0.001999999862 there; 0 when the text is not a plain decimal number
+double CurveNumber(const std::string& theString)
+{
+	double aValue = 0.0;
+	if (theString.empty())
+		return 0.0;
+	size_t i = theString[0] == '-' ? 1 : 0;
+	for (; i < theString.length(); i++) {
+		char aChar = theString[i];
+		if (aChar >= '0' && aChar <= '9')
+			aValue = X87(X87(aValue * 10.0) + (double)(aChar - '0'));
+		else if (aChar == '.') {
+			i++;
+			break;
+		} else
+			return 0.0;
+	}
+	double aMult = 0.1;
+	for (; i < theString.length(); i++) {
+		char aChar = theString[i];
+		if (aChar < '0' || aChar > '9')
+			return 0.0;
+		aValue = X87(X87((double)(aChar - '0') * aMult) + aValue);
+		aMult = X87(aMult / 10.0);
+	}
+	return theString[0] == '-' ? -aValue : aValue;
+}
+
 // A control point of a curve string: x, y and, for a Hermite curve, the slope there
 struct CurvePoint {
 	float mX, mY, mSlope;
@@ -281,23 +311,23 @@ void CurvedVal::ParseDataString(const std::string& theString)
 		mIsHermite = true;
 		return;
 	}
-	mOutMin = (float)atof(theString.substr(aPos, aComma - aPos).c_str());
+	mOutMin = (float)CurveNumber(theString.substr(aPos, aComma - aPos));
 	aPos = aComma + 1;
 	aComma = theString.find(',', aPos);
 	if (aComma == std::string::npos)
 		return;
-	mOutMax = (float)atof(theString.substr(aPos, aComma - aPos).c_str());
+	mOutMax = (float)CurveNumber(theString.substr(aPos, aComma - aPos));
 	aPos = aComma + 1;
 	aComma = theString.find(',', aPos);
 	if (aComma == std::string::npos)
 		return;
-	mIncRate = (float)atof(theString.substr(aPos, aComma - aPos).c_str());
+	mIncRate = (float)CurveNumber(theString.substr(aPos, aComma - aPos));
 	aPos = aComma + 1;
 	if (aVersion > 0) {
 		aComma = theString.find(',', aPos);
 		if (aComma == std::string::npos)
 			return;
-		mInMax = (float)atof(theString.substr(aPos, aComma - aPos).c_str());
+		mInMax = (float)CurveNumber(theString.substr(aPos, aComma - aPos));
 		aPos = aComma + 1;
 	}
 
