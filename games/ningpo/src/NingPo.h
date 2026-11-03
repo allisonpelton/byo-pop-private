@@ -237,6 +237,9 @@ public:
 // 0x475550: the game
 NingPo* GetNingPo();
 
+// 0x475544: the clock's seconds (of the minute) at the last tick (NingPo::tick)
+extern int gClockSeconds;
+
 // 0x402ad0: theRect clipped to theClip into theDest, theSrc cut by as much; false when they do not meet. The game
 // repeats this inline in most of its drawing (as the framework does, pg::ClipToRect)
 bool ClipBlitRect(const PGRect* theRect, const PGRect* theClip, PGRect* theDest, PGRect* theSrc);
