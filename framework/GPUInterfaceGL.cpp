@@ -675,7 +675,8 @@ private:
 	void MakeDeviceObjects();
 	void MakeScreen();
 	GLuint DepthFor(int theWidth, int theHeight, bool* isNew);
-	void BindTarget(Image* theImage);
+	void BindTarget(Image* theImage, bool theResetViewport = true);
+	void ReleaseDepthIfUnused(int theWidth, int theHeight);
 	int TargetWidth();
 	int TargetHeight();
 	TextureData* GetTexture(Image* theImage);
@@ -716,6 +717,7 @@ private:
 	Rect mViewport;
 	float mMinZ = 0.0f, mMaxZ = 1.0f;
 	Rect mScissor;
+	GPUFormat mScreenFormat = GPUFMT_X8R8G8B8;  // of the texture the screen's framebuffer holds (SwapScreen exchanges it)
 
 	std::vector<Shader> mShaders;
 	GPUVertexShader mVertexShader = 0;
@@ -844,13 +846,15 @@ void GPUInterfaceGL::MakeDeviceObjects()
 	gGL.glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 	gGL.glPixelStorei(GL_PACK_ALIGNMENT, 4);
 	MakeScreen();
-	BindTarget(nullptr);
+	// The game's viewport stays (a new device's is the whole screen, SetDefaultStates)
+	BindTarget(nullptr, false);
 }
 
 void GPUInterfaceGL::MakeScreen()
 {
 	// The screen is X8R8G8B8: an RGB target reads alpha 1 when copied or read back. A texture, not a renderbuffer, so
 	// that SwapScreen can hand it to an image to sample
+	mScreenFormat = GPUFMT_X8R8G8B8;
 	gGL.glGenTextures(1, &mScreenColor);
 	gGL.glBindTexture(GL_TEXTURE_2D, mScreenColor);
 	gGL.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, mWidth, mHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
@@ -885,7 +889,10 @@ int GPUInterfaceGL::TargetHeight()
 	return mTarget == nullptr ? mHeight : mTarget->mHeight;
 }
 
-void GPUInterfaceGL::BindTarget(Image* theImage)
+// Binds a target's framebuffer and its depth buffer. D3D9's SetRenderTarget sets the viewport to the whole new target,
+// so a bind that is one (theResetViewport) does; one that only puts the binding back after the framebuffer names moved
+// or a target was made keeps the game's viewport (D3D's resource creation never touches it).
+void GPUInterfaceGL::BindTarget(Image* theImage, bool theResetViewport)
 {
 	GLuint aFramebuffer = mScreenFramebuffer;
 	int aWidth = mWidth, aHeight = mHeight;
@@ -894,6 +901,16 @@ void GPUInterfaceGL::BindTarget(Image* theImage)
 		aFramebuffer = aData.mFramebuffer;
 		aWidth = aData.mWidth;
 		aHeight = aData.mHeight;
+	}
+	if (mLost) {
+		// No GL call while the context is lost; ContextRestored binds the target again
+		mTarget = theImage;
+		if (theResetViewport) {
+			mViewport = Rect(0, 0, aWidth, aHeight);
+			mMinZ = 0.0f;
+			mMaxZ = 1.0f;
+		}
+		return;
 	}
 	bool isNew;
 	GLuint aDepth = DepthFor(aWidth, aHeight, &isNew);
@@ -909,18 +926,46 @@ void GPUInterfaceGL::BindTarget(Image* theImage)
 		gGL.glClear(GL_DEPTH_BUFFER_BIT);
 	}
 	mTarget = theImage;
-	// D3D9's SetRenderTarget resets the viewport to the whole target
-	SetViewport(Rect(0, 0, aWidth, aHeight), 0.0f, 1.0f);
+	if (theResetViewport) {
+		// D3D9's SetRenderTarget resets the viewport to the whole target
+		SetViewport(Rect(0, 0, aWidth, aHeight), 0.0f, 1.0f);
+	} else {
+		gGL.glViewport(mViewport.mX, mViewport.mY, mViewport.mWidth, mViewport.mHeight);
+		gGL.glDepthRangef(mMinZ, mMaxZ);
+	}
+}
+
+// A depth buffer no target or screen of its size uses any more is freed
+void GPUInterfaceGL::ReleaseDepthIfUnused(int theWidth, int theHeight)
+{
+	auto aDepth = mDepths.find(std::make_pair(theWidth, theHeight));
+	if (aDepth == mDepths.end() || (theWidth == mWidth && theHeight == mHeight))
+		return;
+	for (auto& anEntry : mImages) {
+		if (anEntry.second.mTarget && anEntry.second.mWidth == theWidth && anEntry.second.mHeight == theHeight)
+			return;
+	}
+	if (!mLost && aDepth->second != 0)
+		gGL.glDeleteRenderbuffers(1, &aDepth->second);
+	mDepths.erase(aDepth);
 }
 
 void GPUInterfaceGL::Resize(int theWidth, int theHeight)
 {
+	int anOldWidth = mWidth, anOldHeight = mHeight;
 	mWidth = theWidth;
 	mHeight = theHeight;
+	if (mLost) {
+		// ContextRestored makes the screen at the new size
+		mViewport = Rect(0, 0, TargetWidth(), TargetHeight());
+		return;
+	}
 	gGL.glDeleteFramebuffers(1, &mScreenFramebuffer);
 	gGL.glDeleteTextures(1, &mScreenColor);
 	MakeScreen();
 	BindTarget(mTarget);
+	// The old screen's depth buffer stays only if a target of that size uses it
+	ReleaseDepthIfUnused(anOldWidth, anOldHeight);
 }
 
 void GPUInterfaceGL::ContextLost()
@@ -962,7 +1007,7 @@ void GPUInterfaceGL::ContextRestored()
 			CreateRenderTarget(anEntry.first, anEntry.second.mFormat);
 		}
 	}
-	BindTarget(mImages.count(aTarget) ? aTarget : nullptr);
+	BindTarget(mImages.count(aTarget) ? aTarget : nullptr, false);
 }
 
 bool GPUInterfaceGL::BeginSceneIfNeeded()
@@ -1013,6 +1058,8 @@ static std::vector<unsigned char> RGBAOf(const unsigned long* theBits, int theCo
 
 bool GPUInterfaceGL::CreateRenderTarget(Image* theImage, GPUFormat theFormat)
 {
+	if (mLost)
+		return false;  // made again at its next use after ContextRestored
 	TextureData& aData = mImages[theImage];
 	if (aData.mTarget)
 		return true;
@@ -1051,7 +1098,9 @@ bool GPUInterfaceGL::CreateRenderTarget(Image* theImage, GPUFormat theFormat)
 	gGL.glGenFramebuffers(1, &aData.mFramebuffer);
 	gGL.glBindFramebuffer(GL_FRAMEBUFFER, aData.mFramebuffer);
 	gGL.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, aData.mTexture, 0);
-	BindTarget(mTarget);
+	// Making a target changes neither the render target nor the viewport (D3D9's CreateTexture does not): the binding
+	// goes back, the depth buffer and the viewport are the game's
+	gGL.glBindFramebuffer(GL_FRAMEBUFFER, mTarget == nullptr ? mScreenFramebuffer : mImages[mTarget].mFramebuffer);
 	return gGL.glGetError() == GL_NO_ERROR;
 }
 
@@ -1059,7 +1108,7 @@ bool GPUInterfaceGL::CreateRenderTarget(Image* theImage, GPUFormat theFormat)
 // filled from its bits; an X8R8G8B8 one is not (0x61b5a0 has no case for its format), so it keeps its pixels
 void GPUInterfaceGL::RefreshTarget(MemoryImage* theImage, TextureData* theData)
 {
-	if (theImage == nullptr || theData->mBitsChangedCount == theImage->mBitsChangedCount)
+	if (mLost || theImage == nullptr || theData->mBitsChangedCount == theImage->mBitsChangedCount)
 		return;
 	theData->mBitsChangedCount = theImage->mBitsChangedCount;
 	if (theData->mFormat != GPUFMT_A8R8G8B8) {
@@ -1070,8 +1119,13 @@ void GPUInterfaceGL::RefreshTarget(MemoryImage* theImage, TextureData* theData)
 		return;
 	std::vector<unsigned char> aPixels = RGBAOf(theImage->mBits, theData->mWidth * theData->mHeight);
 	gGL.glBindTexture(GL_TEXTURE_2D, theData->mTexture);
+	// mFormat describes the texture (SwapScreen moves it with the name), which for A8R8G8B8 is RGBA8
+	gGL.glGetError();
 	gGL.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, theData->mWidth, theData->mHeight, GL_RGBA, GL_UNSIGNED_BYTE,
 		aPixels.data());
+	GLenum anError = gGL.glGetError();
+	if (anError != GL_NO_ERROR)
+		LogOnce("GL error " + std::to_string(anError) + " filling a render target from its bits");
 }
 
 bool GPUInterfaceGL::SetRenderTarget(Image* theImage)
@@ -1103,6 +1157,8 @@ bool GPUInterfaceGL::SwapScreen(Image* theImage)
 {
 	BeginSceneIfNeeded();
 	PrepareTexture(theImage);
+	if (mLost)
+		return false;
 	auto anIt = mImages.find(theImage);
 	if (anIt == mImages.end() || !anIt->second.mTarget || anIt->second.mWidth != mWidth ||
 		anIt->second.mHeight != mHeight || !anIt->second.mMorePieces.empty() || anIt->second.mFramebuffer == 0) {
@@ -1113,8 +1169,9 @@ bool GPUInterfaceGL::SwapScreen(Image* theImage)
 	RefreshTarget(dynamic_cast<MemoryImage*>(theImage), &aData);
 	std::swap(mScreenFramebuffer, aData.mFramebuffer);
 	std::swap(mScreenColor, aData.mTexture);
-	// The bound framebuffer's name moved: bind the current target again (the viewport stays the whole target)
-	BindTarget(mTarget);
+	std::swap(mScreenFormat, aData.mFormat);  // the image now holds the screen's texture, in the screen's format
+	// The bound framebuffer's name moved: bind the current target again, with the game's viewport
+	BindTarget(mTarget, false);
 	return true;
 }
 
@@ -1130,6 +1187,8 @@ void GPUInterfaceGL::StretchRect(Image* theSource, const Rect& theSrcRect, Image
 {
 	// 0x621dc0 runs PreDraw first, and copies nothing unless the source is a target
 	BeginSceneIfNeeded();
+	if (mLost)
+		return;
 	GLuint aSource = theSource == nullptr ? mScreenFramebuffer : mImages[theSource].mFramebuffer;
 	GLuint aDest = theDest == nullptr ? mScreenFramebuffer : mImages[theDest].mFramebuffer;
 	if (aSource == 0 || aDest == 0) {
@@ -1150,6 +1209,8 @@ void GPUInterfaceGL::Clear(unsigned long theFlags, unsigned long theColor, float
 {
 	// D3D9's Clear covers the viewport, within the scissor rectangle when the scissor test is on, and ignores the
 	// write masks
+	if (mLost)
+		return;
 	Rect anArea = mViewport;
 	if (mRenderStates[GPURS_SCISSORTESTENABLE])
 		anArea = anArea.Intersection(mScissor);
@@ -1203,7 +1264,8 @@ void GPUInterfaceGL::PresentImage(Image* theImage, const Rect& theSrcRect, float
 {
 	const GPUPieceLayout* aLayout = PrepareTexture(theImage);
 	TextureData* aData = GetTexture(theImage);
-	if (mLost || aLayout == nullptr || aData == nullptr || aLayout->mPieces.size() != 1)
+	if (mLost || aLayout == nullptr || aData == nullptr || aLayout->mPieces.empty() || theSrcRect.mWidth <= 0 ||
+		theSrcRect.mHeight <= 0)
 		return;
 	if (mPresentProgram == 0) {
 		std::string aHeader = mContext->ShaderHeader();
@@ -1226,13 +1288,8 @@ void GPUInterfaceGL::PresentImage(Image* theImage, const Rect& theSrcRect, float
 		gGL.glSamplerParameteri(mPresentSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		gGL.glSamplerParameteri(mPresentSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
-	const GPUPiece& aPiece = aLayout->mPieces[0];
-	float u1 = (float)theSrcRect.mX / aPiece.mWidth, u2 = (float)(theSrcRect.mX + theSrcRect.mWidth) / aPiece.mWidth;
-	float v1 = (float)theSrcRect.mY / aPiece.mHeight, v2 = (float)(theSrcRect.mY + theSrcRect.mHeight) / aPiece.mHeight;
 	auto X = [&](float x) { return x * 2.0f / theDrawableWidth - 1.0f; };
 	auto Y = [&](float y) { return 1.0f - y * 2.0f / theDrawableHeight; };
-	float aQuad[16] = {X(theX), Y(theY), u1, v1, X(theX + theWidth), Y(theY), u2, v1, X(theX), Y(theY + theHeight), u1, v2,
-		X(theX + theWidth), Y(theY + theHeight), u2, v2};
 	gGL.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	gGL.glViewport(0, 0, theDrawableWidth, theDrawableHeight);
 	gGL.glDisable(GL_SCISSOR_TEST);
@@ -1242,19 +1299,36 @@ void GPUInterfaceGL::PresentImage(Image* theImage, const Rect& theSrcRect, float
 	gGL.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	gGL.glUseProgram(mPresentProgram);
 	gGL.glActiveTexture(GL_TEXTURE0);
-	gGL.glBindTexture(GL_TEXTURE_2D, aData->mTexture);
 	gGL.glBindSampler(0, mPresentSampler);
 	gGL.glUniform1i(mPresentTexture, 0);
 	gGL.glBindVertexArray(mVertexArray);
 	gGL.glBindBuffer(GL_ARRAY_BUFFER, mStreamBuffer);
-	gGL.glBufferData(GL_ARRAY_BUFFER, sizeof(aQuad), aQuad, GL_STREAM_DRAW);
 	for (GLuint i = 0; i < 8; i++)
 		gGL.glDisableVertexAttribArray(i);
 	gGL.glEnableVertexAttribArray(0);
 	gGL.glVertexAttribPointer(0, 2, GL_FLOAT, 0, 16, nullptr);
 	gGL.glEnableVertexAttribArray(1);
 	gGL.glVertexAttribPointer(1, 2, GL_FLOAT, 0, 16, (const void*)8);
-	gGL.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	// One quad for each piece of the image the source rectangle reaches (piece i is at column i % columns, row
+	// i / columns, a piece-size step apart; a piece's texture may be padded past the image)
+	float aScaleX = theWidth / theSrcRect.mWidth, aScaleY = theHeight / theSrcRect.mHeight;
+	for (int i = 0; i < (int)aLayout->mPieces.size(); i++) {
+		const GPUPiece& aPiece = aLayout->mPieces[i];
+		int aLeft = (i % aLayout->mColumns) * aLayout->mPieceWidth, aTop = (i / aLayout->mColumns) * aLayout->mPieceHeight;
+		int aRight = std::min(aLeft + aPiece.mWidth, aData->mWidth), aBottom = std::min(aTop + aPiece.mHeight, aData->mHeight);
+		int x1 = std::max(theSrcRect.mX, aLeft), x2 = std::min(theSrcRect.mX + theSrcRect.mWidth, aRight);
+		int y1 = std::max(theSrcRect.mY, aTop), y2 = std::min(theSrcRect.mY + theSrcRect.mHeight, aBottom);
+		if (x1 >= x2 || y1 >= y2 || (i > 0 && i > (int)aData->mMorePieces.size()))
+			continue;
+		float u1 = (float)(x1 - aLeft) / aPiece.mWidth, u2 = (float)(x2 - aLeft) / aPiece.mWidth;
+		float v1 = (float)(y1 - aTop) / aPiece.mHeight, v2 = (float)(y2 - aTop) / aPiece.mHeight;
+		float l = theX + (x1 - theSrcRect.mX) * aScaleX, r = theX + (x2 - theSrcRect.mX) * aScaleX;
+		float t = theY + (y1 - theSrcRect.mY) * aScaleY, b = theY + (y2 - theSrcRect.mY) * aScaleY;
+		float aQuad[16] = {X(l), Y(t), u1, v1, X(r), Y(t), u2, v1, X(l), Y(b), u1, v2, X(r), Y(b), u2, v2};
+		gGL.glBindTexture(GL_TEXTURE_2D, i == 0 ? aData->mTexture : aData->mMorePieces[i - 1]);
+		gGL.glBufferData(GL_ARRAY_BUFFER, sizeof(aQuad), aQuad, GL_STREAM_DRAW);
+		gGL.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
 	gGL.glBindSampler(0, mSamplers[0]);
 	RestoreAfterPresent();
 }
@@ -1268,6 +1342,8 @@ void GPUInterfaceGL::RestoreAfterPresent()
 
 bool GPUInterfaceGL::ReadBack(Image* theImage, MemoryImage* theDest)
 {
+	if (mLost)
+		return false;
 	GLuint aFramebuffer = mScreenFramebuffer;
 	int aWidth = mWidth, aHeight = mHeight;
 	if (theImage != nullptr) {
@@ -1364,13 +1440,17 @@ void GPUInterfaceGL::ImageDeleted(Image* theImage)
 		if (anIt->second.mFramebuffer != 0)
 			gGL.glDeleteFramebuffers(1, &anIt->second.mFramebuffer);
 	}
+	bool wasTarget = anIt->second.mTarget;
+	int aWidth = anIt->second.mWidth, aHeight = anIt->second.mHeight;
 	mImages.erase(anIt);
+	if (wasTarget)
+		ReleaseDepthIfUnused(aWidth, aHeight);
 }
 
 TextureData* GPUInterfaceGL::GetTexture(Image* theImage)
 {
-	if (theImage == nullptr)
-		return nullptr;
+	if (theImage == nullptr || mLost)
+		return nullptr;  // no texture is made while the context is lost
 	TextureData& aData = mImages[theImage];
 	if (aData.mTarget) {
 		if (theImage == mTarget)
@@ -1786,7 +1866,9 @@ Program* GPUInterfaceGL::BuildProgram(const std::string& theKey, const VSKey& th
 		if (aProgram.mSamplers[i] >= 0)
 			gGL.glUniform1i(aProgram.mSamplers[i], i);
 	}
-	mUsedKeys.push_back(theKey);
+	// A program built again after a lost context is listed once
+	if (std::find(mUsedKeys.begin(), mUsedKeys.end(), theKey) == mUsedKeys.end())
+		mUsedKeys.push_back(theKey);
 	return &aProgram;
 }
 

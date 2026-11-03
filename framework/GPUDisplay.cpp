@@ -6,9 +6,15 @@
 #include "MemoryImage.h"
 #include "SexyAppBase.h"
 #include "SexyMatrix.h"
+#include "WidgetManager.h"
 #include "platform/GLContext.h"
 
 #include <SDL.h>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
 
 #include <set>
 #include <string>
@@ -23,6 +29,21 @@ static bool RecoverBitsFromGPU(MemoryImage* theImage)
 	return (gGPUDisplay != NULL) && (gGPUDisplay->mDevice != NULL) && gGPUDisplay->mDevice->RecoverBits(theImage);
 }
 
+#ifdef __EMSCRIPTEN__
+// The canvas's WebGL context was dropped: preventDefault (the EM_TRUE) lets the browser give it back
+static EM_BOOL GPUContextLostCallback(int theEventType, const void* theReserved, void* theArg)
+{
+	((GPUDisplay*) theArg)->OnContextLost();
+	return EM_TRUE;
+}
+
+static EM_BOOL GPUContextRestoredCallback(int theEventType, const void* theReserved, void* theArg)
+{
+	((GPUDisplay*) theArg)->OnContextRestored();
+	return EM_TRUE;
+}
+#endif
+
 GPUDisplay::GPUDisplay(SexyAppBase* theApp, const GPUPolicy& thePolicy) :
 	DDInterface(theApp)
 {
@@ -30,6 +51,10 @@ GPUDisplay::GPUDisplay(SexyAppBase* theApp, const GPUPolicy& thePolicy) :
 	mContext = NULL;
 	mDevice = NULL;
 	mGPU2D = NULL;
+	mContextLost = false;
+	mRestorePending = false;
+	mDeviceWidth = 0;
+	mDeviceHeight = 0;
 	mRenderScale = 1;
 	mMaxTextureWidth = 4096;
 	mMaxTextureHeight = 4096;
@@ -65,7 +90,6 @@ int GPUDisplay::Init(SDL_Window* theWindow, bool vsync)
 		mContext = GLContext::Create(mWindow);
 		if (mContext == NULL)
 			return RESULT_3D_FAIL;
-		SDL_GL_SetSwapInterval(vsync ? 1 : 0);
 		mDevice = GPUInterface::Create(mContext, mPolicy, mWidth, mHeight);
 		if (mDevice == NULL)
 		{
@@ -73,15 +97,29 @@ int GPUDisplay::Init(SDL_Window* theWindow, bool vsync)
 			mContext = NULL;
 			return RESULT_3D_FAIL;
 		}
+		mDeviceWidth = mWidth;
+		mDeviceHeight = mHeight;
 		mGPU2D = new GPU2D(mDevice, mPolicy);
 		mGPU2D->SetScreenSize(mWidth, mHeight);
 		SDL_Log("GPUDisplay: %s", mContext->Description().c_str());
+#ifdef __EMSCRIPTEN__
+		emscripten_set_webglcontextlost_callback("#canvas", this, EM_TRUE, GPUContextLostCallback);
+		emscripten_set_webglcontextrestored_callback("#canvas", this, EM_TRUE, GPUContextRestoredCallback);
+#endif
 	}
 	else
 	{
-		mDevice->Resize(mWidth, mHeight);
+		// A display-mode switch comes here again; the device is remade only for another size
+		if ((mWidth != mDeviceWidth) || (mHeight != mDeviceHeight))
+		{
+			mDevice->Resize(mWidth, mHeight);
+			mDeviceWidth = mWidth;
+			mDeviceHeight = mHeight;
+		}
 		mGPU2D->SetScreenSize(mWidth, mHeight);
 	}
+	// Every Init sets it: a mode switch can change the setting
+	SDL_GL_SetSwapInterval(vsync ? 1 : 0);
 	gGPUDisplay = this;
 	gMemoryImageRecoverBits = RecoverBitsFromGPU;
 
@@ -100,6 +138,13 @@ int GPUDisplay::Init(SDL_Window* theWindow, bool vsync)
 
 void GPUDisplay::Cleanup()
 {
+#ifdef __EMSCRIPTEN__
+	if (mContext != NULL)
+	{
+		emscripten_set_webglcontextlost_callback("#canvas", NULL, EM_TRUE, NULL);
+		emscripten_set_webglcontextrestored_callback("#canvas", NULL, EM_TRUE, NULL);
+	}
+#endif
 	if (mScreenImage != NULL)
 	{
 		DDImage* aScreenImage = mScreenImage;
@@ -134,19 +179,51 @@ void GPUDisplay::UpdateDisplaySize()
 
 void GPUDisplay::ReleaseTextures()
 {
-	// No SDL renderer: a lost GL context is the device's ContextLost / ContextRestored
+	// No SDL renderer: a lost GL context is the device's ContextLost / ContextRestored (OnContextLost, OnContextRestored)
+}
+
+// D3D9's device-lost state: the device drops its GL names and makes no GL call until the context is given back
+void GPUDisplay::OnContextLost()
+{
+	if ((mDevice == NULL) || mContextLost)
+		return;
+	mContextLost = true;
+	mRestorePending = false;
+	mDevice->ContextLost();
+	SDL_Log("GPUDisplay: the GL context was lost");
+}
+
+// Only noted here: the device is rebuilt at the next BeginFrame, between frames, so no GL call runs inside a draw
+void GPUDisplay::OnContextRestored()
+{
+	if (mContextLost)
+		mRestorePending = true;
 }
 
 void GPUDisplay::BeginFrame()
 {
 	UpdateDisplaySize();
-	if (mDevice != NULL)
-		mDevice->SetSceneAllowed((mWindow == NULL) || ((SDL_GetWindowFlags(mWindow) & SDL_WINDOW_MINIMIZED) == 0));
+	if (mDevice == NULL)
+		return;
+	if (mContextLost && mRestorePending)
+	{
+		// D3D9's Reset: programs, buffers, targets and textures are made again, empty or from their bits; the screen is
+		// empty, so every widget redraws (as SDL_RENDER_TARGETS_RESET does)
+		mDevice->ContextRestored();
+		mContextLost = false;
+		mRestorePending = false;
+		if ((mApp != NULL) && (mApp->mWidgetManager != NULL))
+			mApp->mWidgetManager->MarkAllDirty();
+		SDL_Log("GPUDisplay: the GL context was restored");
+	}
+	// While lost no scene begins, so every draw falls to the software path and no GL call is made
+	mDevice->SetSceneAllowed(!mContextLost &&
+		((mWindow == NULL) || ((SDL_GetWindowFlags(mWindow) & SDL_WINDOW_MINIMIZED) == 0)));
 }
 
 void GPUDisplay::Present()
 {
-	if (mDevice == NULL)
+	if ((mDevice == NULL) || mContextLost)
 		return;
 	mGPU2D->EndScene();
 	mDevice->Present(mPresentationRect, mDisplayWidth, mDisplayHeight);
@@ -256,7 +333,7 @@ void GPUDisplay::ClearRect(const Rect& theRect)
 
 bool GPUDisplay::ReadScreen(ulong* theBits)
 {
-	if (mDevice == NULL)
+	if ((mDevice == NULL) || mContextLost)
 		return false;
 	mGPU2D->Flush();
 	MemoryImage anImage(mApp);

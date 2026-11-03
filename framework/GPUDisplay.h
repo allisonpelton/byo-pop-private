@@ -36,11 +36,20 @@ public:
 	GLContext* mContext;
 	GPUInterface* mDevice;
 	GPU2D* mGPU2D;
+	bool mContextLost;
+	bool mRestorePending;
+	int mDeviceWidth, mDeviceHeight;  // the size the device was made or last resized to
 
 	int Init(SDL_Window* theWindow, bool vsync) override;
 	void Cleanup() override;
 	void UpdateDisplaySize() override;
 	void ReleaseTextures() override;
+
+	// The GL context was lost and given back (the web's webglcontextlost and webglcontextrestored events; a native GL
+	// context is not reported lost). The device forgets its GL names at once and no GL call is made until the next
+	// BeginFrame after the restore, which has the device rebuild everything and marks every widget dirty.
+	void OnContextLost();
+	void OnContextRestored();
 
 	void BeginFrame() override;
 	void Present() override;

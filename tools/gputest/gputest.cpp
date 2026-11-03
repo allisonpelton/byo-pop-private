@@ -15,6 +15,7 @@
 #include "framework/SexyMatrix.h"
 #include "framework/TriVertex.h"
 #include "platform/GLContext.h"
+#include "platform/GLFuncs.h"
 
 #include <SDL.h>
 #include <cstdarg>
@@ -383,6 +384,173 @@ void TestRenderTarget()
 	Expect(16, 48, 0xff102030);
 	Expect(31, 63, 0xff102030);
 	gGPU->ImageDeleted(aTarget);
+	delete aTarget;
+	End();
+}
+
+// The viewport is the game's until SetRenderTarget: making a render target mid-scene (PrepareTexture of an image with
+// flag 0x10) and SwapScreen leave it alone, as D3D9's resource creation does; SetRenderTarget sets it to the whole target
+void TestTargetKeepsViewport()
+{
+	Begin("target-keeps-viewport");
+	const unsigned long aBlack = 0xff000000;
+	gGPU->BeginSceneIfNeeded();
+	gGPU->SetViewport(Rect(8, 8, 16, 16), 0.0f, 1.0f);
+	MemoryImage* aTarget = new MemoryImage();
+	aTarget->Create(32, 16);
+	aTarget->mD3DFlags |= 0x10;
+	if (gGPU->PrepareTexture(aTarget) == nullptr)
+		Fail("PrepareTexture did not make the target");
+	gGPU->Clear(GPUCLEAR_TARGET, 0xff0000ff, 1.0f);  // the viewport's 16x16 only
+	Read();
+	ExpectBox(8, 8, 24, 24, 0xff0000ff, aBlack);
+	ClipQuad(0, 0, W, H, 0xff00ff00);  // the whole clip space is the viewport
+	Read();
+	ExpectBox(8, 8, 24, 24, 0xff00ff00, aBlack);
+	// SetRenderTarget sets the whole new target as the viewport, the screen again as well
+	gGPU->SetRenderTarget(aTarget);
+	gGPU->Clear(GPUCLEAR_TARGET, 0xffff0000, 1.0f);
+	Read(aTarget);
+	Expect(0, 0, 0xffff0000);
+	Expect(31, 15, 0xffff0000);
+	gGPU->SetRenderTarget(nullptr);
+	gGPU->Clear(GPUCLEAR_TARGET, 0xff0000ff, 1.0f);
+	Read();
+	Expect(0, 0, 0xff0000ff);
+	Expect(W - 1, H - 1, 0xff0000ff);
+
+	// A target of the screen's size made mid-scene, and swapped in
+	gGPU->Clear(GPUCLEAR_TARGET, aBlack, 1.0f);
+	gGPU->SetViewport(Rect(8, 8, 16, 16), 0.0f, 1.0f);
+	MemoryImage* aScreenSized = new MemoryImage();
+	aScreenSized->Create(W, H);
+	aScreenSized->mD3DFlags |= 0x10;
+	if (gGPU->PrepareTexture(aScreenSized) == nullptr)
+		Fail("PrepareTexture did not make the screen-sized target");
+	gGPU->Clear(GPUCLEAR_TARGET, 0xffff0000, 1.0f);
+	Read();
+	ExpectBox(8, 8, 24, 24, 0xffff0000, aBlack);
+	if (!gGPU->SwapScreen(aScreenSized))
+		Fail("SwapScreen failed");
+	gGPU->Clear(GPUCLEAR_TARGET, 0xffffff00, 1.0f);  // still the viewport, on the new screen
+	ClipQuad(0, 0, W, H, 0xff00ffff);
+	Read();
+	ExpectBox(8, 8, 24, 24, 0xff00ffff, Pixel(0, 0));
+	gGPU->SwapScreen(aScreenSized);  // the screen gets its own RGB8 texture back for the tests after
+	gGPU->SetRenderTarget(nullptr);
+	gGPU->ImageDeleted(aTarget);
+	gGPU->ImageDeleted(aScreenSized);
+	delete aTarget;
+	delete aScreenSized;
+	End();
+}
+
+// SwapScreen gives the image the screen's texture, which is RGB8, and the screen the image's: the formats go with the
+// textures. Changed bits then reach the image only if its format takes them (A8R8G8B8, not the screen's X8R8G8B8), with
+// no GL error
+void TestSwapScreenFormat()
+{
+	Begin("swap-screen-format");
+	gGPU->Clear(GPUCLEAR_TARGET, 0xff336699, 1.0f);
+	MemoryImage* anImage = new MemoryImage();
+	anImage->Create(W, H);
+	for (int i = 0; i < W * H; i++)
+		anImage->GetBits()[i] = 0x80102030;
+	anImage->BitsChanged();
+	if (!gGPU->CreateRenderTarget(anImage, GPUFMT_A8R8G8B8))
+		Fail("CreateRenderTarget failed");
+	gGPU->SetTextureStageState(0, GPUTSS_COLORARG1, 2);
+	gGPU->SetTextureStageState(0, GPUTSS_ALPHAARG1, 2);
+	gGL.glGetError();
+	if (!gGPU->SwapScreen(anImage))
+		Fail("SwapScreen failed");
+	// The image holds the old screen (opaque); its changed bits are not copied into that RGB texture
+	for (int i = 0; i < W * H; i++)
+		anImage->GetBits()[i] = 0xff00ff00;
+	anImage->BitsChanged();
+	gGPU->SetTexture(0, anImage);
+	RHWQuad(-0.5f, -0.5f, W - 0.5f, H - 0.5f, 0xffffffff);  // onto the new screen, the image's old RGBA texture
+	gGPU->SetTexture(0, nullptr);
+	if (gGL.glGetError() != GL_NO_ERROR)
+		Fail("a GL error after changed bits reached the swapped-in screen texture");
+	Read();
+	Expect(10, 10, 0xff336699);
+	Read(anImage);
+	Expect(5, 5, 0xff336699);
+	// The screen holds the image's RGBA texture now: its alpha reads back
+	gGPU->Clear(GPUCLEAR_TARGET, 0x80102030, 1.0f);
+	Read();
+	Expect(3, 3, 0x80102030);
+	// Swapped back, the image is A8R8G8B8 again and takes changed bits into its RGBA texture
+	if (!gGPU->SwapScreen(anImage))
+		Fail("the second SwapScreen failed");
+	for (int i = 0; i < W * H; i++)
+		anImage->GetBits()[i] = 0xff00ff00;
+	anImage->BitsChanged();
+	gGPU->SetTexture(0, anImage);
+	RHWQuad(-0.5f, -0.5f, W - 0.5f, H - 0.5f, 0xffffffff);
+	gGPU->SetTexture(0, nullptr);
+	if (gGL.glGetError() != GL_NO_ERROR)
+		Fail("a GL error after changed bits reached the image's own texture");
+	Read();
+	Expect(10, 10, 0xff00ff00);
+	Read(anImage);
+	Expect(10, 10, 0xff00ff00);
+	gGPU->ImageDeleted(anImage);
+	delete anImage;
+	End();
+}
+
+// A lost context and its return (ContextLost, ContextRestored): nothing is drawn or read while lost, and a texture, a
+// target and the screen draw again after, from their bits or empty
+void TestContextLoss()
+{
+	Begin("context-loss");
+	MemoryImage* aTexture = MakeImage(4, 4, std::vector<unsigned long>(16, 0xff00ff00));
+	MemoryImage* aTarget = new MemoryImage();
+	aTarget->Create(16, 8);
+	for (int i = 0; i < 16 * 8; i++)
+		aTarget->GetBits()[i] = 0xff112233;
+	aTarget->BitsChanged();
+	gGPU->CreateRenderTarget(aTarget, GPUFMT_A8R8G8B8);
+	gGPU->SetTextureStageState(0, GPUTSS_COLORARG1, 2);
+	gGPU->SetTextureStageState(0, GPUTSS_ALPHAARG1, 2);
+	gGPU->SetTexture(0, aTexture);
+	RHWQuad(31.5f, 31.5f, 35.5f, 35.5f, 0xffffffff);
+	Read();
+	Expect(32, 32, 0xff00ff00);
+	gGPU->ContextLost();
+	RHWQuad(0, 0, 8, 8, 0xffffffff);  // dropped
+	gGPU->Clear(GPUCLEAR_TARGET, 0xffff0000, 1.0f);
+	gGPU->SetRenderTarget(aTarget);
+	gGPU->StretchRect(aTarget, Rect(0, 0, 16, 8), nullptr, Rect(0, 0, 16, 8), GPUTEXF_POINT);
+	gGPU->SetRenderTarget(nullptr);
+	if (gGPU->ReadBack(nullptr, gRead))
+		Fail("a read back succeeded while the context was lost");
+	gGPU->ContextRestored();
+	gGPU->SetRenderTarget(nullptr);
+	gGPU->SetViewport(Rect(0, 0, W, H), 0.0f, 1.0f);
+	gGPU->Clear(GPUCLEAR_TARGET, 0xff000000, 1.0f);
+	gGPU->SetTexture(0, aTexture);
+	RHWQuad(31.5f, 31.5f, 35.5f, 35.5f, 0xffffffff);  // made again from its bits
+	gGPU->SetTexture(0, nullptr);
+	Read();
+	Expect(32, 32, 0xff00ff00);
+	Expect(0, 0, 0xff000000);
+	gGPU->SetRenderTarget(aTarget);  // the target is back, with its bits
+	Read(aTarget);
+	Expect(3, 3, 0xff112233);
+	gGPU->Clear(GPUCLEAR_TARGET, 0xff445566, 1.0f);
+	gGPU->SetTextureStageState(0, GPUTSS_COLORARG1, 0);  // the diffuse colour again
+	gGPU->SetTextureStageState(0, GPUTSS_ALPHAARG1, 0);
+	RHWQuad(0, 0, 8, 4, 0xff00ff00);
+	gGPU->SetRenderTarget(nullptr);
+	Read(aTarget);
+	Expect(1, 1, 0xff00ff00);
+	Expect(12, 6, 0xff445566);
+	gGPU->ImageDeleted(aTexture);
+	gGPU->ImageDeleted(aTarget);
+	delete aTexture;
 	delete aTarget;
 	End();
 }
@@ -1253,6 +1421,9 @@ int main(int argc, char** argv)
 	TestRenderTarget();
 	TestOpaqueTarget();
 	TestTargetBits();
+	TestTargetKeepsViewport();
+	TestSwapScreenFormat();
+	TestContextLoss();
 	TestBlend();
 	TestAlphaTest();
 	TestStages();
