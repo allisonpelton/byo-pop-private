@@ -76,9 +76,9 @@ Five sets of screens were played:
 
 | Set | What it covers | Result |
 | --- | --- | --- |
-| 1 | The loader, the main menu, the mode select, the seeded Classic game's board and its first level-up | the same (shotdiff shifted the loader by 3 pixels to align it; unshifted, its logo matches), apart from the rotated draws below |
-| 2 | A new player typed in, the menu, high scores (both tables), statistics, options, the three help pages, the quit question, the player list and deleting a player, the mode select and the tutorial's first tips | the same; the help pages' animations and the cursor spiral differ only at their edges (below) |
-| 3 | The seeded Classic game played on to update 29,000: level-ups, special gems, the bomb wheel's spin | the same once the wheel's rings were fixed; the wheel's lower glass is the rotated-draw item below |
+| 1 | The loader, the main menu, the mode select, the seeded Classic game's board and its first level-up | the same; the loader's device slides in on the loading thread's progress, so where it stands at a given update varies from run to run |
+| 2 | A new player typed in, the menu, high scores (both tables), statistics, options, the three help pages, the quit question, the player list and deleting a player, the mode select and the tutorial's first tips | the same: all 18 screens within shotdiff's faint threshold once the rotated and matrix draws were done in software |
+| 3 | The seeded Classic game played on to update 29,000: level-ups, special gems, the bomb wheel's spin | the same once the wheel's rings were fixed and the rotated draws done in software; elsewhere only the effects of the autoplay's jumps |
 | 4 | Blitz from its start to the explosion at its end, the statistics, the high scores and the next game | from the explosion on every screen identical pixel for pixel; in play only the effects of the autoplay's jumps |
 | 5 | Losing and regaining the focus during Classic and during Blitz | the same mute and the same pause screen (below) |
 
@@ -94,6 +94,22 @@ track starts at the same order and update, every stop, and the volume steps of e
 
 The web build was run under Node in real time on the Blitz set and compared with the native build. The boards and every
 screen from the explosion on are identical. The explosion's shards and smoke drift a little, from libm's last bits.
+After the software draws below, set 2 was run on the web build under Node too: 12 of its 18 screens are within the
+faint threshold against the original, and the other six differ only in a few particles that stand a fraction of a
+pixel apart (libm again).
+
+3D mode was compared screen by screen as well, with the original on the visible desktop through visrun (the user's leave
+for this comparison, 2026-11-02; Windows Sandbox gives it no Direct3D), PrintWindow shots of its own window only, and the
+port under rundesk with `-3d`; both windows 1228 by 768, the screen's aspect. Phase one had compared the hyperspace
+jump and the first board (updates 1000 to 3000), which match to within a few levels per channel. This pass added set 2
+in 3D: the new player, menu, high scores, statistics, options, help pages, player list, mode select and the tutorial.
+With the port's shot three updates after visrun's, the tutorial's board is identical pixel for pixel. The menu scenes
+keep a difference of one to seven levels on average at every offset, all of it in things that move on their own clock
+in a real-time run (the nebula behind the menus, the mode select's sparkles and pillars, panels and buttons in mid-
+slide) and in button highlights, because visrun posts its mouse moves to the window but does not script the original's
+GetCursorPos, which then sees the user's own cursor. Not compared in 3D: the level-ups and the bomb wheel, Blitz, the
+focus and the sound. A long 3D game cannot be lined up past update 10282 anyway, where the original's single-precision
+x87 parts from the port (see "Oddities" in NOTES.md).
 
 ### Changes the pass made
 
@@ -107,6 +123,7 @@ screen from the explosion on are identical. The explosion's shards and smoke dri
 | Half the sounds were up to 0.8 dB off, and high chain sounds played above 100,000 Hz | this DSoundInstance converts each volume factor to dB on its own and adds them (0x4fa9e0, 0x4f85b0), and sets a whole-Hz frequency capped at 100,000 (0x4fabb0) | the same, behind a switch of the framework's sound manager that Twist turns on | 5270a2f (shared), 6ae2713 |
 | Some panned sounds were one step off centre | PlaySoundAt stores its pan as a float before cutting it to an int (0x767643) | the same | 6ae2713 |
 | Losing the focus did not pause the board, and a paused Blitz game showed no "PAUSED" | the app's LostFocus and GotFocus (0x75f51e, 0x75f4f7) pause and unpause the board; DrawPaused (0x756925) draws the pause text | both ported | 7e6e14b |
+| In 2D the cursor's spiral, the tutorial's arrows, the help pages' animations and the bomb wheel's glass were drawn on the GPU with SDL's filtering, and the tutorial's arrows went missing once SWTri drew | the software screen rotates with its own bilinear code (DDImage::BltRotated, 0x41c5c0), draws matrices and triangles with SWTri (0x4355e0), blits at a fractional place as a rotation at no angle (0x412fd0), and its constructor registers SWTri's drawers (0x50f7e0) | the framework can draw these in software into a copy and blit it (an opt-in Twist turns on in 2D), and Twist registers the drawers; SWTri's blend no longer divides by zero onto a transparent pixel | 105440e, f8624d2 (shared), 679953e |
 
 ### Oddities left alone
 
@@ -115,17 +132,15 @@ phase one.
 
 ### Differences that remain
 
-- **Rotated and matrix draws in 2D.** In 2D the original draws these in software (BltRotated, 0x41c5c0, and its
-  triangle rasteriser for BltMatrix), while the port draws them on the GPU with linear filtering. Their edges differ by a
-  level or two over a pixel: the cursor spiral, the help pages' animations, and the bomb wheel's glass, whose lower
-  slices are opaque in the original and see-through in the port. Fixing it is the same kind of work as the stretches: the
-  framework would rasterise such a draw in software for a game whose screen was software. It is left for that shared
-  change.
+- **Additive matrix and triangle draws in 2D** still go through SDL: the framework's SWTri (PopCap's 1.3) has no
+  additive triangles, where Twist's later one does (0x60d250's flag 0x80). None of the compared screens showed one.
 - **The unfocused stretch under origrun.** While the original is unfocused, origrun sees its update counter stand still
   (on the real clock too) while its screen still changes, so those screens cannot be lined up by update. What was
   compared there matches: the mute, the hidden board and the pause text.
-- **The web build under Node** samples rotated images without filtering, because Node gives SDL no WebGL; a browser
-  filters them as the native build does.
+- **The web build under Node** places a few particles a fraction of a pixel apart from the native build, from libm's
+  last bits.
+- **3D in real time.** visrun runs the original in real time and does not script its cursor, so the menus' own-clock
+  animations and the button under the user's cursor cannot be lined up with the port in 3D (above).
 
 ### Deviations that remain
 
