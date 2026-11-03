@@ -10,15 +10,30 @@ using namespace Sexy;
 
 // MSVC 7.0 CRT rand.c (_holdrand of the main thread)
 static unsigned int gCrtHoldRand = 1;
+static unsigned int gCrtRandCount = 0;
+static unsigned int gCrtRandSnapshot = 0;
 
 void Sexy::CrtSRand(unsigned int theSeed)
 {
 	gCrtHoldRand = theSeed;
+	gCrtRandCount = 0;
+}
+
+unsigned int Sexy::CrtRandCount()
+{
+	return gCrtRandCount;
+}
+
+unsigned int Sexy::CrtRandSnapshot()
+{
+	return gCrtRandSnapshot;
 }
 
 int Sexy::CrtRand()
 {
 	gCrtHoldRand = gCrtHoldRand * 214013u + 2531011u;
+	if ((++gCrtRandCount & 0x1ff) == 0)
+		gCrtRandSnapshot = gCrtHoldRand;
 	return (int) ((gCrtHoldRand >> 16) & 0x7fff);
 }
 
