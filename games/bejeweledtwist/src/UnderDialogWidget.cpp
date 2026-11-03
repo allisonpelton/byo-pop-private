@@ -1,8 +1,10 @@
 // The layer behind the dialogs (UnderDialogWidget.h).
 #include "UnderDialogWidget.h"
 
+#include "Board.h"
 #include "DDImage.h"
 #include "Graphics.h"
+#include "Res.h"
 #include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
@@ -100,8 +102,23 @@ void UnderDialogWidget::DrawBlurred(Graphics* g)
 
 void UnderDialogWidget::DrawPaused(Graphics* g)
 {
-	// The pause text (string BOARD_PAUSED in FONT_INCREDIBLE, gold, faded with mDialogDim, over the board's middle)
-	// shows only over a board that is paused without the options up; it comes with the board
-	if (gApp->mBoard == nullptr)
+	// The pause text (string BOARD_PAUSED in FONT_INCREDIBLE, gold, faded with mDialogDim) over a board that is paused
+	// (+0x1570), not between games (+0x160) or in a jump (+0x200c), with neither the options nor a dialog up
+	if (gBoard == nullptr || gApp->mOptionsDialog != nullptr || gBoard->mUnknown1570 == 0 || gApp->mDialogList.size() != 0 ||
+		gBoard->mUnknown160 != 0 || gBoard->mHyperspace != nullptr)
 		return;
+	SexyString aText = gApp->GetString("BOARD_PAUSED", _S(""));
+	g->SetFont(FONT_INCREDIBLE);
+	if (g->GetFont() == nullptr)
+		return;
+	// the board's middle, or the screen's while the board is busy, hidden (+0x3924 at 0) or kept (+0x37c4)
+	int aX, aY;
+	if (!gBoard->mUnknown37C4 && !gBoard->IsBusy() && gBoard->mUnknown3924 != 0.0f) {
+		gBoard->GetCenter(&aX, &aY);
+	} else {
+		aX = mWidth / 2;
+		aY = mHeight / 2;
+	}
+	g->SetColor(Color(255, 215, 63, Ftol((double)gApp->mDialogDim * 255.0)));
+	g->DrawString(aText, aX - g->StringWidth(aText) / 2, aY);
 }

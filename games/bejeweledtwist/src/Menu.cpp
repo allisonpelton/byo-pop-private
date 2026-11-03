@@ -1,6 +1,7 @@
 // Sexy::Menu (Menu.h).
 #include "Menu.h"
 
+#include "platform/Audio.h"
 #include "ChallengeMenu.h"
 #include "Dialog.h"
 #include "EffectsManager.h"
@@ -373,8 +374,13 @@ void Menu::DialogButtonDepress(int theDialogId, int theButtonId)
 			if (aSound != nullptr) {
 #ifndef __EMSCRIPTEN__
 				// port: on the web the sound plays only once this returns, so the wait is left out there
-				while (aSound->IsPlaying())
-					SDL_Delay(10);
+				// under -fast the voices move only on the game's clock, so the wait moves the voice on itself
+				while (aSound->IsPlaying()) {
+					if (Platform::Mixer::Get().IsGameClocked())
+						Platform::Mixer::Get().AdvanceVoices(10);
+					else
+						SDL_Delay(10);
+				}
 #endif
 				aSound->Release();
 			}

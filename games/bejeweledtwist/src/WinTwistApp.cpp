@@ -28,6 +28,7 @@
 #include "Mandala.h"
 #include "Menu.h"
 #include "MenuButtonWidget.h"
+#include "SDLSoundManager.h"
 #include "MenuPanels.h"
 #include "TwistCheckbox.h"
 #include "Profile.h"
@@ -218,6 +219,8 @@ void WinTwistApp::SetGemSize()
 void WinTwistApp::Init()
 {
 	SexyApp::Init();
+	if (SDLSoundManager* aSoundManager = dynamic_cast<SDLSoundManager*>(mSoundManager))
+		aSoundManager->mDBPerFactor = true;   // 0x4fa9e0, 0x4fabb0: this DSoundInstance's volume and frequency
 	// 0x4a588d: SexyAppBase::Init seeds the C library's rand with the tick count (-seed=N in test runs)
 	CrtSRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetTickCount());
 	if (mShutdown)
@@ -240,6 +243,11 @@ void WinTwistApp::Init()
 	LoadMusic();
 	// 0x4a3c20: properties\default.xml, the texts of the high scores' stats page and others
 	LoadProperties();
+	// 0x7627ea: how far and how fast the other sounds ramp down under a voice (UpdateVoice)
+	mVolumeRampMin = GetDouble("VOLUME_RAMP_MIN", 0.6);
+	mVolumeRampTime = 0.005;
+	if (0.005 <= GetDouble("VOLUME_RAMP_TIME", 0.3))
+		mVolumeRampTime = GetDouble("VOLUME_RAMP_TIME", 0.3);
 	mRanks = new Ranks();
 	mChallengeInfo = new ChallengeInfo();  // 0x6dd087: loads properties\challenges.xml
 
@@ -309,6 +317,31 @@ void WinTwistApp::PlayVoice(int theSoundId, bool theInterrupt)
 		mUnmanagedSound = nullptr;
 	}
 	mUnmanagedSound = PlaySoundEx(theSoundId, 0, 0.0f, 1.0f, false, false);
+}
+
+void WinTwistApp::UpdateVoice()
+{
+	// The voice is not a tracked sound: it is released here once it ends. While it speaks the tracked sounds ramp
+	// down to mVolumeRampMin, and back up to 1 once it has ended.
+	// (The original also plays a voice queued at +0x93c after a delay at +0x940; nothing ever queues one.)
+	double aStep = (1.0 - mVolumeRampMin) * 0.01 * (1.0 / mVolumeRampTime);
+	if (mUnmanagedSound != nullptr) {
+		if (!mUnmanagedSound->IsPlaying()) {
+			mUnmanagedSound->Release();
+			mUnmanagedSound = nullptr;
+		} else {
+			double aScale = mSfxVolumeScale - aStep;
+			if (aScale < mVolumeRampMin)
+				aScale = mVolumeRampMin;
+			mSfxVolumeScale = aScale;
+		}
+	}
+	if (mUnmanagedSound == nullptr) {
+		double aScale = mSfxVolumeScale + aStep;
+		if (1.0 < aScale)
+			aScale = 1.0;
+		mSfxVolumeScale = aScale;
+	}
 }
 
 void WinTwistApp::PlaySample(int theSoundNum)
@@ -520,7 +553,10 @@ DDInterface* WinTwistApp::CreateDDInterface()
 {
 	if (mUse3D)
 		return new GPUDisplay(this, GPUPolicy::Twist());
-	return SexyApp::CreateDDInterface();
+	// port: the original's 2D screen is software, so its non-fast stretches average (DDImage::StretchBlt, 0x41a3e0)
+	DDInterface* anInterface = SexyApp::CreateDDInterface();
+	anInterface->mSoftwareStretch = true;
+	return anInterface;
 }
 
 uint32_t WinTwistApp::GetExtraWindowFlags()
@@ -853,6 +889,21 @@ SoundInstance* WinTwistApp::PlaySoundEx(int theSoundId, int thePan, float thePit
 	return anInstance;
 }
 
+void WinTwistApp::GotFocus()
+{
+	if (mBoard != nullptr)
+		mBoard->Unpause(mBoard->IsTimed());
+	mUnknownF1C = false;
+}
+
+void WinTwistApp::LostFocus()
+{
+	if (mBoard != nullptr)
+		mBoard->Pause(mBoard->IsTimed());
+	if (mLoadingThreadDone)
+		mUnknownF1C = true;
+}
+
 void WinTwistApp::UpdateFrames()
 {
 	// The credits are gone (Credits::Update): out of the widgets and deleted
@@ -877,6 +928,7 @@ void WinTwistApp::UpdateFrames()
 				aSound.mInstance->SetVolume(aVolume);
 		}
 	}
+	UpdateVoice();
 	if (mLoaderScreen != nullptr && mLoaderScreen->mFinished) {
 		mWidgetManager->RemoveWidget(mLoaderScreen);
 		SafeDeleteWidget(mLoaderScreen);
@@ -1401,8 +1453,9 @@ void WinTwistApp::FadeOutMusic()
 void WinTwistApp::PlaySoundAt(int theSoundId, int theX, float thePitch, float theVolume)
 {
 	int aHalf = mWidth / 2;
-	PlaySoundEx(theSoundId, Ftol((double)((float)(theX - aHalf) / (float)aHalf) * 800.0), thePitch, theVolume, true,
-		true);
+	// the product is stored as a float before it is cut to an int (0x767643): 11/400 * 800 pans by 22, not 21
+	PlaySoundEx(theSoundId, Ftol((float)((double)((float)(theX - aHalf) / (float)aHalf) * 800.0)), thePitch, theVolume,
+		true, true);
 }
 
 void WinTwistApp::Mute(bool autoMute)

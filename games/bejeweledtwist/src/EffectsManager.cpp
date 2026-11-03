@@ -6,6 +6,7 @@
 #include "EffectsManager.h"
 
 #include "Board.h"
+#include "Piece.h"
 #include "DDImage.h"
 #include "MemoryImage.h"
 #include "Graphics.h"
@@ -660,10 +661,14 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 		Effect* anEffect = anIt->second;
 		if (anEffect->mOverlay != theOverlay)
 			continue;
+		// An effect on a piece is drawn at the piece's place plus its own (the board's piece, app +0x7e4), and not at all
+		// without a board or once the piece is gone
+		Piece* aPiece = nullptr;
 		if (anEffect->mPieceId != -1) {
-			// Drawn relative to the board's piece (app +0x7e4): comes with the board. Without a board the original
-			// skips the effect too.
-			continue;
+			if (gApp->mBoard == nullptr || (aPiece = gApp->mBoard->GetPieceById(anEffect->mPieceId)) == nullptr)
+				continue;
+			anEffect->mX = aPiece->mX + anEffect->mX;
+			anEffect->mY = aPiece->mY + anEffect->mY;
 		}
 		if (anEffect->mType == 44) {
 			anEffect->Draw(g);
@@ -871,6 +876,10 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 		default:
 			LogUnportedType("Draw", anEffect->mType);
 			break;
+		}
+		if (aPiece != nullptr) {
+			anEffect->mX = anEffect->mX - aPiece->mX;
+			anEffect->mY = anEffect->mY - aPiece->mY;
 		}
 	}
 }

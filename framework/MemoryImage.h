@@ -96,6 +96,10 @@ public:
 
 	void					SlowStretchBlt(Image* theImage, const Rect& theDestRect, const FRect& theSrcRect, const Color& theColor, int theDrawMode);
 	void					FastStretchBlt(Image* theImage, const Rect& theDestRect, const FRect& theSrcRect, const Color& theColor, int theDrawMode);
+	// port: SlowStretchBlt's averaging with the later framework's store (Bejeweled Twist's 0x433ca0), which divides the
+	// colour's weight by the new alpha (onto transparent bits it keeps the colour at full strength, with the averaged
+	// alpha) where the 2004 one above darkens it by the alpha. DDInterface's software stretch draws with it.
+	void					StretchCopy(Image* theImage, const Rect& theDestRect, const FRect& theSrcRect);
 	bool					BltRotatedClipHelper(float &theX, float &theY, const Rect &theSrcRect, const Rect &theClipRect, double theRot, FRect &theDestRect, float theRotCenterX, float theRotCenterY);
 	bool					StretchBltClipHelper(const Rect &theSrcRect, const Rect &theClipRect, const Rect &theDestRect, FRect &theSrcRectOut, Rect &theDestRectOut);
 	bool					StretchBltMirrorClipHelper(const Rect &theSrcRect, const Rect &theClipRect, const Rect &theDestRect, FRect &theSrcRectOut, Rect &theDestRectOut);

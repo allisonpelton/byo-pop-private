@@ -140,8 +140,10 @@ public:
 	bool mShowHints = true;             // +0xf8e: the options' hints box (registry ShowHints)
 	bool mDoViz = true;                 // +0xf86: the options' visualizers box (registry DoViz)
 	bool mSoundsOff = false;            // +0x928: no sound effects (set elsewhere, not yet read)
-	SoundInstance* mUnmanagedSound = nullptr;  // +0x938: a tracked sound whose volume UpdateFrames leaves alone
-	double mSfxVolumeScale = 1.0;       // +0x948: applied to the tracked sounds
+	SoundInstance* mUnmanagedSound = nullptr;  // +0x938: the voice (PlayVoice), released by UpdateVoice once it ends
+	double mSfxVolumeScale = 1.0;       // +0x948: applied to the tracked sounds; lowered while a voice speaks
+	double mVolumeRampMin = 0.6;        // +0x950: VOLUME_RAMP_MIN, the lowest mSfxVolumeScale under a voice
+	double mVolumeRampTime = 0.3;       // +0x958: VOLUME_RAMP_TIME, seconds to ramp from 1 to mVolumeRampMin
 	struct TrackedSound {
 		SoundInstance* mInstance;
 		double mVolume;
@@ -154,6 +156,8 @@ public:
 	void Init() override;               // 0x7652cc
 	void LoadingThreadProc() override;  // 0x76497d
 	void UpdateFrames() override;       // 0x765f8d
+	void GotFocus() override;           // 0x75f4f7: the board's focus pause ends
+	void LostFocus() override;          // 0x75f51e: the board pauses (shown in a timed game) while the window is away
 	MusicInterface* CreateMusicInterface() override;  // 0x75f98a
 	void Shutdown() override;           // 0x762a0d
 	void WriteToRegistry() override;    // 0x762b40
@@ -181,6 +185,7 @@ public:
 	// 0x75f672: unmutes, and a fruit dance's music goes on at the louder of the music's and the sounds' volumes
 	void Unmute(bool autoMute = false) override;
 	void PlayVoice(int theSoundId, bool theInterrupt);  // 0x767584 (slot 108): one at a time in mUnmanagedSound
+	void UpdateVoice();                 // 0x75f1df: the ended voice released, the other sounds ramped down under one
 	using SexyApp::PlaySample;
 
 	// 0x75fada: the score list of a game mode (0 for mode 1, 1 for mode 3), -1 for a mode without one
