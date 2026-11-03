@@ -8,6 +8,8 @@
 #include "SexyAppBase.h"
 #include "SexyMatrix.h"
 #include "TriVertex.h"
+#include <algorithm>
+#include <cmath>
 
 using namespace Sexy;
 
@@ -260,6 +262,12 @@ void DDImage::BltF(Image* theImage, float theX, float theY, const Rect& theSrcRe
 
 	if (Check3D(this))
 	{
+		// the software transforms: a software screen's BltF is its BltRotated at no angle (Twist's 0x412fd0)
+		if (mDDInterface->mSoftwareTransforms && (dynamic_cast<MemoryImage*>(theImage) != NULL))
+		{
+			BltRotated(theImage, theX, theY, theSrcRect, theClipRect, theColor, theDrawMode, 0, 0, 0);
+			return;
+		}
 		mDDInterface->Blt(theImage, theX, theY, theSrcRect, theColor, theDrawMode, &theClipRect);
 		return;
 	}
@@ -273,11 +281,47 @@ void DDImage::BltRotated(Image* theImage, float theX, float theY, const Rect& th
 
 	if (Check3D(this))
 	{
+		if (mDDInterface->mSoftwareTransforms && (dynamic_cast<MemoryImage*>(theImage) != NULL))
+		{
+			FRect aBounds;
+			float aX = theX, aY = theY;
+			if (BltRotatedClipHelper(aX, aY, theSrcRect, theClipRect, theRot, aBounds, theRotCenterX, theRotCenterY))
+				BltSoftwareTransformed(aBounds.mX, aBounds.mY, aBounds.mX + aBounds.mWidth, aBounds.mY + aBounds.mHeight, theClipRect, theDrawMode,
+					[&](MemoryImage& theCopy, int theDX, int theDY, const Rect& theCopyClip)
+					{ theCopy.BltRotated(theImage, theX + theDX, theY + theDY, theSrcRect, theCopyClip, theColor, theDrawMode, theRot, theRotCenterX, theRotCenterY); });
+			return;
+		}
 		mDDInterface->BltRotated(theImage, theX, theY, theSrcRect, &theClipRect, theColor, theDrawMode, theRot, theRotCenterX, theRotCenterY);
 		return;
 	}
 
 	MemoryImage::BltRotated(theImage, theX, theY, theSrcRect, theClipRect, theColor, theDrawMode, theRot, theRotCenterX, theRotCenterY);
+}
+
+// port: DDInterface::mSoftwareTransforms. theDraw draws, moved by (theDX, theDY) and clipped to the area, into the
+// top-left of a copy, an area that covers the bounds (rounded out by a pixel) within theClipRect: transparent for a
+// normal draw, opaque black for an additive draw, as MemoryImage's additive code adds onto its destination's colours
+// and keeps its alpha. The area is then blitted at its place in the draw's mode.
+void DDImage::BltSoftwareTransformed(float theMinX, float theMinY, float theMaxX, float theMaxY, const Rect& theClipRect, int theDrawMode, const std::function<void(MemoryImage& theCopy, int theDX, int theDY, const Rect& theCopyClip)>& theDraw)
+{
+	if (!(theMinX <= theMaxX) || !(theMinY <= theMaxY))
+		return;
+	int aLeft = (int) std::max(std::floor(theMinX) - 1.0f, (float) theClipRect.mX);
+	int aTop = (int) std::max(std::floor(theMinY) - 1.0f, (float) theClipRect.mY);
+	int aRight = (int) std::min(std::ceil(theMaxX) + 2.0f, (float) (theClipRect.mX + theClipRect.mWidth));
+	int aBottom = (int) std::min(std::ceil(theMaxY) + 2.0f, (float) (theClipRect.mY + theClipRect.mHeight));
+	if ((aRight <= aLeft) || (aBottom <= aTop))
+		return;
+
+	int aWidth = aRight - aLeft;
+	int aHeight = aBottom - aTop;
+	MemoryImage* aCopy = mDDInterface->GetTransformCopy(aWidth, aHeight);
+	ulong* aBits = aCopy->GetBits();
+	for (int y = 0; y < aHeight; y++)
+		std::fill(aBits + y * aCopy->mWidth, aBits + y * aCopy->mWidth + aWidth, (theDrawMode == Graphics::DRAWMODE_ADDITIVE) ? 0xFF000000 : 0);
+	theDraw(*aCopy, -aLeft, -aTop, Rect(0, 0, aWidth, aHeight));
+	aCopy->BitsChanged();
+	mDDInterface->Blt(aCopy, (float) aLeft, (float) aTop, Rect(0, 0, aWidth, aHeight), Color::White, theDrawMode, &theClipRect);
 }
 
 void DDImage::StretchBlt(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect, const Rect& theClipRect, const Color& theColor, int theDrawMode, bool fastStretch)
@@ -300,6 +344,24 @@ void DDImage::BltMatrix(Image* theImage, float x, float y, const SexyMatrix3& th
 
 	if (Check3D(this))
 	{
+		if (mDDInterface->mSoftwareTransforms && (theDrawMode == Graphics::DRAWMODE_NORMAL) && (dynamic_cast<MemoryImage*>(theImage) != NULL))
+		{
+			// the corners as MemoryImage::BltMatrixHelper places them
+			float aMinX = 1e30f, aMinY = 1e30f, aMaxX = -1e30f, aMaxY = -1e30f;
+			for (int i = 0; i < 4; i++)
+			{
+				SexyVector3 v((i & 1) ? theSrcRect.mWidth / 2.0f : -theSrcRect.mWidth / 2.0f, (i & 2) ? theSrcRect.mHeight / 2.0f : -theSrcRect.mHeight / 2.0f, 1);
+				v = theMatrix * v;
+				aMinX = std::min(aMinX, v.x + x - 0.5f);
+				aMaxX = std::max(aMaxX, v.x + x - 0.5f);
+				aMinY = std::min(aMinY, v.y + y - 0.5f);
+				aMaxY = std::max(aMaxY, v.y + y - 0.5f);
+			}
+			BltSoftwareTransformed(aMinX, aMinY, aMaxX, aMaxY, theClipRect, theDrawMode,
+				[&](MemoryImage& theCopy, int theDX, int theDY, const Rect& theCopyClip)
+				{ theCopy.BltMatrix(theImage, x + theDX, y + theDY, theMatrix, theCopyClip, theColor, theDrawMode, theSrcRect, blend); });
+			return;
+		}
 		mDDInterface->BltTransformed(theImage, &theClipRect, theColor, theDrawMode, theSrcRect, theMatrix, blend, x, y, true);
 		return;
 	}
@@ -313,6 +375,24 @@ void DDImage::BltTrianglesTex(Image* theTexture, const TriVertex theVertices[][3
 
 	if (Check3D(this))
 	{
+		if (mDDInterface->mSoftwareTransforms && (theDrawMode == Graphics::DRAWMODE_NORMAL) && (dynamic_cast<MemoryImage*>(theTexture) != NULL))
+		{
+			float aMinX = 1e30f, aMinY = 1e30f, aMaxX = -1e30f, aMaxY = -1e30f;
+			for (int i = 0; i < theNumTriangles; i++)
+			{
+				for (int j = 0; j < 3; j++)
+				{
+					aMinX = std::min(aMinX, theVertices[i][j].x + tx);
+					aMaxX = std::max(aMaxX, theVertices[i][j].x + tx);
+					aMinY = std::min(aMinY, theVertices[i][j].y + ty);
+					aMaxY = std::max(aMaxY, theVertices[i][j].y + ty);
+				}
+			}
+			BltSoftwareTransformed(aMinX, aMinY, aMaxX, aMaxY, theClipRect, theDrawMode,
+				[&](MemoryImage& theCopy, int theDX, int theDY, const Rect& theCopyClip)
+				{ theCopy.BltTrianglesTex(theTexture, theVertices, theNumTriangles, theCopyClip, theColor, theDrawMode, tx + theDX, ty + theDY, blend); });
+			return;
+		}
 		mDDInterface->DrawTrianglesTex(theTexture, theVertices, theNumTriangles, &theClipRect, theColor, theDrawMode, tx, ty, blend);
 		return;
 	}

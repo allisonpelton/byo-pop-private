@@ -143,6 +143,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mPixelPerfect = true;
 	mFrameCount = 0;
 	mSoftwareStretch = false;
+	mSoftwareTransforms = false;
 	mStretchUse = 0;
 
 	mCursorImage = NULL;
@@ -865,6 +866,43 @@ void DDInterface::ClearStretchCopies()
 	anEntries.swap(mStretchCopies);
 	for (StretchCopyEntry& e : anEntries)
 		delete e.mCopy;
+	std::vector<TransformCopyEntry> aCopies;
+	aCopies.swap(mTransformCopies);
+	for (TransformCopyEntry& e : aCopies)
+		delete e.mCopy;
+}
+
+MemoryImage* DDInterface::GetTransformCopy(int theWidth, int theHeight)
+{
+	int aWidth = (theWidth + 15) & ~15;
+	int aHeight = (theHeight + 15) & ~15;
+	mStretchUse++;
+	for (TransformCopyEntry& e : mTransformCopies)
+	{
+		if ((e.mCopy->mWidth == aWidth) && (e.mCopy->mHeight == aHeight))
+		{
+			e.mLastUse = mStretchUse;
+			return e.mCopy;
+		}
+	}
+	if (mTransformCopies.size() >= kTransformCacheSize)
+	{
+		size_t anOldest = 0;
+		for (size_t i = 1; i < mTransformCopies.size(); i++)
+		{
+			if (mTransformCopies[i].mLastUse < mTransformCopies[anOldest].mLastUse)
+				anOldest = i;
+		}
+		MemoryImage* aCopy = mTransformCopies[anOldest].mCopy;
+		mTransformCopies.erase(mTransformCopies.begin() + anOldest);
+		delete aCopy;
+	}
+	TransformCopyEntry e;
+	e.mCopy = new MemoryImage(mApp);
+	e.mCopy->Create(aWidth, aHeight);
+	e.mLastUse = mStretchUse;
+	mTransformCopies.push_back(e);
+	return e.mCopy;
 }
 
 void DDInterface::BltRotated(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY)

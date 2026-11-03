@@ -10,6 +10,7 @@
 // (BitsChanged), the HD pixels are discarded and the texture follows mBits.
 
 #include "MemoryImage.h"
+#include <functional>
 
 namespace Sexy
 {
@@ -62,6 +63,7 @@ public:
 	virtual void BltMatrix(Image* theImage, float x, float y, const SexyMatrix3& theMatrix, const Rect& theClipRect, const Color& theColor, int theDrawMode, const Rect& theSrcRect, bool blend);
 	virtual void BltTrianglesTex(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect& theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend);
 	virtual void BltMirror(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode);
+	void BltSoftwareTransformed(float theMinX, float theMinY, float theMaxX, float theMaxY, const Rect& theClipRect, int theDrawMode, const std::function<void(MemoryImage& theCopy, int theDX, int theDY, const Rect& theCopyClip)>& theDraw);
 	virtual void StretchBltMirror(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect, const Rect& theClipRect, const Color& theColor, int theDrawMode, bool fastStretch);
 
 	virtual void SetBits(ulong* theBits, int theWidth, int theHeight, bool commitBits = true);
