@@ -1030,7 +1030,7 @@ TipTop moves its focus with Tab and Shift+Tab. No game uses **F6**, which in bro
 regions, so F6 takes the focus from the canvas to the next control on the page (the chat, the footer link, or the open panel) and Shift+F6 to the one
 before it (the Fullscreen button), as Tab and Shift+Tab would; the game never sees either key. The chat does the same: F6 typed in it moves the focus
 on, to the control after the chat, and Shift+F6 to the one before it, and nothing typed in it reaches the game, which takes keys only from its canvas. The canvas is named "<game>, game" (`role="application"`,
-so that a screen reader passes its keys on) and described by "Keys go to the game. F6 moves on to the next control, Shift+F6 to the one before.",
+so that a screen reader passes its keys on) and described by "The game now has your keyboard. To leave it, press F6 (or Shift+F6 to go back).",
 which is also shown on the stage while the keyboard has put the focus there, until the first key goes to the game. Keys held when the focus leaves
 the canvas are let go in the game (a keyup is sent for each), as SDL only does that when the whole window loses the focus. F2 is the game's key to
 open its mod menu: typed on the bar, or with nothing focused, it is passed on to the canvas, and typed in a panel it closes the panel, as before.

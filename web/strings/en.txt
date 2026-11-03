@@ -188,7 +188,10 @@ game.sound.off = : off
 game.mods.hint = While the game runs, this opens the game's own mod menu, the same as F2. Its items are read
   out as you move through it.
 game.canvas_label = {title}, game
-game.canvas_hint = Keys go to the game. F6 moves on to the next control, Shift+F6 to the one before.
+# Shown at the game's edge when someone reaches the game with the keyboard (Tab), and read out by screen readers. Once
+# the game has the keyboard it takes every key, Tab too (some games use it), so F6 is the way out of it: on to the next
+# part of the page, and Shift+F6 back to the one before.
+game.canvas_hint = The game now has your keyboard. To leave it, press F6 (or Shift+F6 to go back).
 game.chat.title = Chat
 
 # The status line in the bar. Test runs add " · silent" and the like, and the status line ends in "silent" (CLAUDE.md).
