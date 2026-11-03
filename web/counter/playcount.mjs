@@ -1,7 +1,7 @@
 // The site's play counter (docs/PLAY_COUNTER.md): a Cloudflare Worker and one Durable Object for the whole site. It counts each
 // game's plays for good and the pages playing it now, and holds nothing about the players (no IP address, cookie or
 // identifier). Not deployed: the pages contact it only when a build names its address (BYOPOP_WEB_COUNTER), and nothing goes
-// on a public host until the terms card is on again (docs/WEB_PLAYER.md, "The terms").
+// on a public host until the user decides to put the site up.
 //
 // The Worker, on the site's own domain:
 //   GET /api/counts          {"games": {"<id>": {"plays": n, "live": n}, ...}}, every game with a play or a page playing it;

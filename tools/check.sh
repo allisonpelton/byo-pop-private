@@ -32,7 +32,8 @@
 #                landmarks, headings, names, references, live regions and contrast) and stringstest (tools/stringstest.js: the
 #                site's text, web/strings/en.txt, against the code that uses it, and web/i18n.js's rules), playcounttest (the play
 #                counter's Worker and Durable Object, web/counter/playcount.mjs, on stand-ins for Cloudflare's runtime) and
-#                playcountpagetest (its pages' side, web/playcount.js: when it may contact the counter). The build folder is build/web;
+#                playcountpagetest (its pages' side, web/playcount.js: when it may contact the counter) and termstest (web/terms.js:
+#                when a page skips the terms card, the development hosts, ?terms=1 and the test key). The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
 #                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
@@ -646,9 +647,12 @@ suite_unit-web() {
 	k="$(lastof "$1.pc" 'playcounttest:')"
 	"$NODE" tools/playcountpagetest.js > "$1.pcp" 2>&1 || st=1
 	l="$(lastof "$1.pcp" 'playcountpagetest:')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l"
+	local m
+	"$NODE" tools/termstest.js > "$1.tt" 2>&1 || st=1
+	m="$(lastof "$1.tt" 'termstest:')"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m"
 	return $st
 }
 

@@ -1,12 +1,12 @@
 # The play counter
 
 The site's first feature with a server: how many pages are playing each game now, how many times each game has been played on
-the site, and a "Most played" sort on the listing page. The user asked for it on 2026-11-03 ("Would be great to add a lifetime
+the site, and a "Most popular" sort on the listing page. The user asked for it on 2026-11-03 ("Would be great to add a lifetime
 play count sort to the site", then "Yes, build them"). It runs on Cloudflare's free plan, as `docs/CHAT_DESIGN.md`, "A backend
 that is only Cloudflare", lays out for the chat, whose pricing and limits (read on 2026-10-31) this page relies on.
 
 It is built and tested but not deployed. No Cloudflare account, tool or connector was used and nothing was created there, and
-nothing goes on a public host until the terms card is on again (`docs/WEB_PLAYER.md`, "The terms").
+nothing goes on a public host until the user decides to put the site up.
 
 ## How it works
 
@@ -34,15 +34,15 @@ The listing page asks `/api/counts` for every game's counts in one request (`Byo
 every 2 minutes while it stays shown. The answer is `{"games": {"<id>": {"plays": n, "live": n}}}` for each game that has a play
 or a page playing it. The Worker caches it at the edge for 30 seconds (the Cache API on the site's domain), so a busy listing
 page wakes the object at most about twice a minute in each Cloudflare location. Under each game's name the listing shows
-"2 playing now · 1234 plays", or the plays alone when nobody is playing it, and "Most played" joins the sorts: by lifetime plays,
+"2 playing now · 1234 plays", or the plays alone when nobody is playing it, and "Most popular" joins the sorts: by lifetime plays,
 then by the number playing now, then by name. Until the counts arrive, and always without a counter, neither shows, and a saved
-"Most played" choice sorts by name.
+"Most popular" choice sorts by name.
 
 ## Off by default
 
 The counter's address is a build option, `BYOPOP_WEB_COUNTER` in `cmake/ByopopWeb.cmake`: a path on the site's own domain
 (`/api`) or an https address, empty by default. The build writes it into `playcount.js`. With it empty, which is every local build
-and every test, the pages contact nothing and show no counts and no "Most played". Even with an address, a page contacts nothing
+and every test, the pages contact nothing and show no counts and no "Most popular". Even with an address, a page contacts nothing
 with `?silent=1` (the tests), under Node or anywhere without `WebSocket`, in a browser driven by automation
 (`navigator.webdriver`), or while it is hidden: the first contact waits until the page is shown, so a page in the hidden Browser
 pane never makes one.
@@ -103,7 +103,7 @@ first limit back if it is near.
 
 ## Deploying it
 
-Not now: nothing is deployed until the terms card is on again, and the user decides when. When it is time, every web build already
+Not now: nothing is deployed until the user decides to put the site up. When it is time, every web build already
 writes the counter's folder beside the pages', `build/counter/` (for the build folder `build/web`): `playcount.mjs` and a
 `wrangler.toml` with the site's game ids in `GAMES` (from `web/counter/wrangler.toml.in`). To deploy it, with the user's own
 Cloudflare account and Wrangler:

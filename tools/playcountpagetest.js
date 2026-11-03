@@ -40,6 +40,7 @@ function page(opts) {
       contacts.push({ kind: "fetch", url });
       return Promise.resolve({ ok: true, json: () => Promise.resolve(opts.answer || { games: {} }) });
     },
+    ByopopTerms: { skipped: () => opts.skipped || null },
     console
   };
   if (!opts.noWebSocket) ctx.WebSocket = FakeSocket;
@@ -70,6 +71,12 @@ const tick = () => new Promise((r) => setImmediate(r));
     p.C.counts(() => {});
     await tick();
     check("off, " + what, [p.C.on(), p.contacts.length], [false, 0]);
+  }
+  // a page that skipped the terms card counts nothing
+  for (const why of ["dev", "testkey", "pending"]) {
+    const p = page({ skipped: why });
+    p.C.playing("bejeweled");
+    check("no play after the card was skipped (" + why + ")", p.contacts.length, 0);
   }
   // a game page
   {

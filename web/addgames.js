@@ -3,7 +3,8 @@
 // chosen with "Add games", one game's folder or a folder of many (the "PopCap Games" folder), are sorted into the games they are
 // (web/gameimport.js), and the panel under the toolbar says what each one is, asks where that is unclear and names the folders
 // that hold no game this site plays. The games are added one at a time, each while its Web Lock is held, so a game whose page is
-// open is refused with a note. Nothing leaves the browser. The recycle bin beside "Add games" forgets a game's files (below).
+// open is refused with a note. Each game's terms come first, one game at a time (below). Nothing leaves the browser. The recycle
+// bin beside "Add games" forgets a game's files (below).
 var ByopopAddGames = (function () {
   "use strict";
   function $(id) { return document.getElementById(id); }
@@ -34,15 +35,85 @@ var ByopopAddGames = (function () {
     running = true;
     var card = cardOf(job.game), own = card && card.querySelector(".own");
     function say(text) { job.say(text); if (own) own.textContent = text; }
-    say(ByopopStrings.t("add.reading"));
-    ByopopImport.addGame(job.game, job.entries, job.root, W().pak, W().fs.safeRel, say).then(function (n) {
-      job.done(true, ByopopStrings.t("add.added_count", {count: n}));
-      if (own) own.textContent = ByopopStrings.t("add.added");
-      if (opened.indexOf(job.game) < 0) opened.push(job.game);
-    }, function (e) {
-      job.done(false, (e && e.message) || ByopopStrings.t("add.failed"));
+    agreeTo(job.game).then(function (ok) {
+      if (ok) { add(); return; }
+      job.done(false, ByopopStrings.t("add.not_agreed"));
+      if (own) own.textContent = "";
+      notAgreed(job.game);
       try { if (window.ByopopTiles) ByopopTiles.check(); } catch (x) {}
-    }).then(next);
+      next();
+    });
+    function add() {
+      say(ByopopStrings.t("add.reading"));
+      ByopopImport.addGame(job.game, job.entries, job.root, W().pak, W().fs.safeRel, say).then(function (n) {
+        job.done(true, ByopopStrings.t("add.added_count", {count: n}));
+        if (own) own.textContent = ByopopStrings.t("add.added");
+        if (opened.indexOf(job.game) < 0) opened.push(job.game);
+      }, function (e) {
+        job.done(false, (e && e.message) || ByopopStrings.t("add.failed"));
+        try { if (window.ByopopTiles) ByopopTiles.check(); } catch (x) {}
+      }).then(next);
+    }
+  }
+
+  // ---------- the terms ----------
+  // Each game's terms before its files are added (docs/WEB_PLAYER.md, "The terms"; the user, 2026-11-03: "Make it go through an
+  // agreement for each game uploaded but allow it to be done on the front page"): the dialog shows the same text, checkbox and
+  // Continue as the game's own terms card (terms-games.js, written by the build from the same filled-in terms) and keeps the same
+  // agreement, byopop-terms-<id> at the terms' version (web/terms.js), so the game's page does not ask again. Each game is asked
+  // on its own, one after another as the queue reaches it; a game already agreed to at its current version is not asked, and
+  // neither is any game on a page that skips the card (a development host, the site's test key). "Don't add this game" or Escape
+  // leaves the game out, and the panel names the games left out. Where localStorage fails, an agreement lasts until the page closes.
+  var agreedHere = {}, leftOut = [], leftOutEl = null;
+  function agreeTo(game) {
+    var id = game.spec.id, terms = (window.ByopopTermsTexts || {})[id];
+    if (!terms) return Promise.resolve(false);  // a game the build gave no terms: never added without them
+    if (agreedHere[id] === terms.version || ByopopTerms.agreed(id, terms.version)) return Promise.resolve(true);
+    var dialog = $("terms-dialog");
+    if (!dialog || typeof dialog.showModal !== "function") return Promise.resolve(false);
+    return new Promise(function (resolve) {
+      var box = $("terms-agree"), go = $("btn-terms"), skip = $("btn-terms-skip"), had = document.activeElement;
+      $("terms-title").textContent = ByopopStrings.t("game.terms.title", {title: game.title});
+      $("terms-text").innerHTML = terms.html;  // the build's own text (web/terms.html, filled in), never anything the player gave
+      $("terms-agree-text").textContent = ByopopStrings.t("game.terms.agree", {title: game.title});
+      box.checked = false;
+      go.disabled = true;
+      function onBox() { go.disabled = !box.checked; }
+      function onGo() {
+        if (!box.checked) return;
+        agreedHere[id] = terms.version;
+        ByopopTerms.agree(id, terms.version);
+        done(true);
+      }
+      function onSkip() { done(false); }
+      function onCancel(ev) { ev.preventDefault(); done(false); }  // Escape
+      function done(ok) {
+        box.removeEventListener("change", onBox);
+        go.removeEventListener("click", onGo);
+        skip.removeEventListener("click", onSkip);
+        dialog.removeEventListener("cancel", onCancel);
+        dialog.close();
+        if (had && document.body.contains(had)) { try { had.focus(); } catch (e) {} }
+        resolve(ok);
+      }
+      box.addEventListener("change", onBox);
+      go.addEventListener("click", onGo);
+      skip.addEventListener("click", onSkip);
+      dialog.addEventListener("cancel", onCancel);
+      dialog.showModal();
+      $("terms-text").scrollTop = 0;
+    });
+  }
+  // the games left out for their terms, named under the panel's list, as the folders with no game are
+  function notAgreed(game) {
+    if (leftOut.indexOf(game.title) < 0) leftOut.push(game.title);
+    if (!leftOutEl) {
+      leftOutEl = make("p", "adding-rejected");
+      leftOutEl.setAttribute("aria-live", "polite");
+      rejectedEl.parentNode.insertBefore(leftOutEl, rejectedEl.nextSibling);
+    }
+    leftOutEl.hidden = false;
+    leftOutEl.textContent = ByopopStrings.t("add.not_agreed_list", {titles: leftOut.join(", ")});
   }
   function openCaps() {
     var games = opened;
@@ -79,6 +150,8 @@ var ByopopAddGames = (function () {
     list.textContent = "";
     rejectedEl.textContent = "";
     rejectedEl.hidden = true;
+    leftOut = [];
+    if (leftOutEl) { leftOutEl.textContent = ""; leftOutEl.hidden = true; }
   }
   // A row for one folder: its name, the game, and its state (a live line); unclear: a choice of the games it could be
   function row(found) {

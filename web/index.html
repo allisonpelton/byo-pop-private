@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
      drawn (web/theme.js) -->
-<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script>
+<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script><script src="terms.js"></script>
 <!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
 <script src="cursors.js"></script>
 <style>
@@ -123,6 +123,32 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .adding-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .ag-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; overflow-wrap: anywhere; }
 .ag-folder { font-weight: 600; }
+/* The terms of a game being added (web/addgames.js), as the game's own terms card shows them (web/shell.html) */
+.terms-dialog {
+  box-sizing: border-box; width: min(600px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 24px;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.terms-dialog[open] { display: grid; gap: 14px; }
+.terms-dialog::backdrop { background: color-mix(in srgb, var(--bg) 88%, transparent); }
+.terms-dialog h2 { margin: 0; font-size: 20px; text-wrap: balance; }
+.terms-dialog .terms {
+  max-height: 15em; overflow: auto; display: grid; gap: 10px; padding: 12px 14px; font-size: 13px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+}
+.terms-dialog .terms p { margin: 0; }
+.terms-dialog .terms-notice, .terms-dialog .terms-buy { color: var(--muted); }
+.terms-dialog .terms ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+.terms-dialog .terms-buy a { color: var(--accent); font-weight: 600; }
+@media (max-width: 600px), (max-height: 600px) { .terms-dialog .terms { max-height: none; overflow: visible; } }
+.terms-dialog .agree { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; cursor: pointer; }
+.terms-dialog .agree input { accent-color: var(--accent); width: 16px; height: 16px; margin: 2px 0 0; flex: none; }
+.terms-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.terms-row button {
+  font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 14px; cursor: pointer;
+}
+.terms-row button:hover { border-color: var(--accent); }
+.terms-row button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.terms-row button[disabled] { opacity: 0.5; cursor: default; }
 .ag-state { color: var(--muted); font-size: 13px; }
 .ag-ok { color: var(--accent); }
 .ag-error, .adding-rejected { color: #b3261e; }
@@ -340,6 +366,14 @@ footer a { color: var(--accent); }
     <ul class="adding-list" id="adding-list"></ul>
     <p class="adding-rejected" id="adding-rejected" aria-live="polite" hidden></p>
   </section>
+  <!-- The terms of each game added from this page whose terms the player has not agreed to (web/addgames.js): the same text,
+       checkbox and Continue as the game's own terms card, and the same agreement kept -->
+  <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
+    <h2 id="terms-title">{{index.terms.heading}}</h2>
+    <div class="terms" id="terms-text" tabindex="0" role="region" aria-label="{{game.terms.region}}"></div>
+    <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> <span id="terms-agree-text">{{index.terms.agree}}</span></label>
+    <div class="terms-row"><button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button><button type="button" id="btn-terms-skip">{{index.terms.skip}}</button></div>
+  </dialog>
   <section class="adding" id="bin-panel" aria-labelledby="bin-title" hidden>
     <div class="adding-head">
       <h2 id="bin-title">{{index.bin.heading}}</h2>
@@ -402,6 +436,7 @@ footer a { color: var(--accent); }
 <script src="gameimport.js"></script>
 <script src="capanim.js"></script>
 <script src="import-games.js"></script>
+<script src="terms-games.js"></script>
 <script src="addgames.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
@@ -451,7 +486,7 @@ try {
 <script>
 // "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles without "Deluxe"), by release
 // date, oldest first, or by how much they were played in this browser (ByopopPlay, web/settings.js): play time or plays, most first;
-// with the site's play counter (web/playcount.js), also "Most played", by every player's plays, which shows once the counts are in. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
+// with the site's play counter (web/playcount.js), also "Most popular", by every player's plays, which shows once the counts are in. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
 // (no CSS order). It runs after the Players and Saves sections took the games in the built order: they keep it. The choice is
 // remembered in localStorage (the page works without it).
 (function () {
@@ -487,7 +522,7 @@ try {
     return a.title < b.title ? -1 : a.title > b.title ? 1 : a.at - b.at;
   });
 
-  // Most played first, by play time (seconds) or by plays, the other then breaking a tie; then the games whose files are here
+  // Most popular first, by play time (seconds) or by plays, the other then breaking a tie; then the games whose files are here
   // (the card's data-files, from the files check) before the others, each by name, the games still to come among the others.
   // Read again at each sort: the counts change as games are played, and the files check ends after the first sort.
   function byPlay(field) {
@@ -502,7 +537,7 @@ try {
     });
   }
 
-  // Most played by everyone first (the play counter's lifetime plays), then most playing now, then by name
+  // Most popular by everyone first (the play counter's lifetime plays), then most playing now, then by name
   function byPopular() {
     var at = {};
     byName.forEach(function (c, i) { at[c.at] = i; });
@@ -523,7 +558,7 @@ try {
   }
   function apply(to, say) {
     mode = SAID.hasOwnProperty(to) ? to : "name";
-    // "Most played" without a counter is by name, and the choice is kept for a page that has one
+    // "Most popular" without a counter is by name, and the choice is kept for a page that has one
     if (mode === "popular" && !ByopopCounter.on()) mode = "name";
     radios.forEach(function (r) { r.checked = r.value === mode; });
     place(mode === "release" ? byRelease : mode === "time" ? byPlay("seconds") : mode === "plays" ? byPlay("plays") :
@@ -553,7 +588,7 @@ try {
   document.addEventListener("byopop-tiles-checked", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
 
   // Every player's counts (docs/PLAY_COUNTER.md): under each game's name "2 playing now · 1,234 plays", or the plays alone when
-  // nobody is playing it, and "Most played" among the sorts. Without a counter in the build, or before it answers, none of it shows.
+  // nobody is playing it, and "Most popular" among the sorts. Without a counter in the build, or before it answers, none of it shows.
   var popular = null;
   ByopopCounter.counts(function (games) {
     if (!popular) {

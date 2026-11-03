@@ -186,12 +186,6 @@ its own: `byopop_web_game(<target> TITLE "..." COPYRIGHT "..." [LICENSES <name>.
 
 ### The terms
 
-**Off for now; this blocks deployment.** On 2026-10-26 the user turned the terms card off on every game's page
-until further notice: `BYOPOP_WEB_TERMS_GATE` in `cmake/ByopopWeb.cmake` is `OFF`, so the page treats the terms as
-agreed and never shows the card, and every configure says so in a status line. The copyright page still shows the
-terms. Bringing the card back blocks deployment: the pages must not go on a public host, by any tool, until the
-variable is `ON` again and a page has been seen to show the card. What follows describes the card when it is on.
-
 Before a game's files are imported or loaded, its page shows the game's terms with a checkbox ("I own a licensed copy
 of ..., and I agree to these terms") and a Continue button that stays disabled until the box is ticked. The terms say
 that the player owns a licensed copy and loads the files from it (a never-bought trial is not one), keeps the files to
@@ -205,17 +199,46 @@ section (`@BYOPOP_TERMS@`). The page keeps the agreement in localStorage under `
 first 12 hex digits of the SHA-1 of the filled-in text as its version: each game asks on its own, and any change to
 the wording, or to a game's name or notice, asks again. Where localStorage fails, the agreement lasts until the page
 closes. Boot shows the card, and the import, the start and "Play without mods" refuse to go ahead without the
-agreement. A test in the Browser pane ticks the box once per origin (and game), as a player would; the agreement then
-stays for that origin.
+agreement.
 
-**Before the card is on again:** the listing page's "Add games", its drops and its recycle bin
-("Adding games from the listing page") write and delete a game's files without the terms the game's page shows before any
-import. That is harmless while the gate is off, but it must be handled before the gate goes back on: the listing checks the
-game's `byopop-terms-<id>` agreement (at its current version) before it adds, or sends the player to the game's page.
+**The listing page asks too** (the user, 2026-11-03: "Make it go through an agreement for each game uploaded but allow it
+to be done on the front page"). "Add games", a folder dropped on a game's tile or on the logo, and a folder of many games
+("Adding games from the listing page") add a game's files only once its terms are agreed to. Before the queue adds a game
+whose terms the player has not agreed to at their current version, the page shows that game's terms in a dialog
+(`web/addgames.js`): the same filled-in text with its line on where to buy the game, the same checkbox and Continue, and
+"Don't add this game". The build writes each listed game's text and version into `terms-games.js` from the same filled-in
+terms as the game's card, and Continue keeps the same `byopop-terms-<id>` entry, so the game's page does not ask again.
+Each game is asked on its own, one after another as the queue reaches it; one box never covers several games. A game left
+out (its "Don't add this game", or Escape) is not written, its row says so, and a line under the panel names the games
+left out, as it names the folders that hold no game. The recycle bin asks nothing: it only forgets files, which the
+terms themselves ask of a player who no longer owns a copy.
 
-`BYOPOP_WEB_TERMS_GATE` is a plain CMake variable rather than a cache option, so changing it in the file reaches every
-build folder at its next configure; `byopop_web_shell()` writes it into the page as `TERMS_GATE` (`true` or
-`false`).
+**When the card skips itself** (the user, 2026-11-03: "We need a way to hide the terms during dev work that doesn't involve
+manually switching them off and on"). Every build has the card, and no build option switches it off. `web/terms.js`
+(`ByopopTerms`, loaded by the listing page and every game page) decides, for the game pages' card and the listing's
+dialog alike, that a page skips it in two cases, and in both it keeps no agreement:
+
+- On a development host: a page served from 127.0.0.1, localhost or [::1], from a name that ends in `.localhost` or
+  `.test`, or opened as a `file://` page. A deployed site never has those hosts, so local work in the Browser pane,
+  headless browsers on localhost and Node harnesses never meet the card, with nothing to switch. `?terms=1` brings the
+  card back on such a host, to look at it.
+- With the site's test key: a page opened with `?testkey=<key>` hashes the key with SubtleCrypto (SHA-256) and compares
+  it with the hash the build baked in. On a match it skips the card for the rest of that tab's pages (sessionStorage,
+  `byopop-testkey`, holding the hash), and the key is taken out of the address bar at once. A wrong key, or a build
+  without a key, shows the card as usual. `?terms=1` wins over the key.
+
+A page that skipped the card for either reason counts no play and opens no socket to the play counter
+(`docs/PLAY_COUNTER.md`), so tests never add to the counts.
+
+**The test key** is the first line of `secrets/web-testkey.txt`, in the checkout's root, which git ignores: it is never in
+the repo or a published snapshot. `python tools/testkey.py` makes one (a random 32-character key; it never overwrites one
+that is there), and `tools/setup_worktree.sh` copies the folder into a new worktree. The web build reads the file at
+configure time and bakes only its SHA-256 into `terms.js` (configure again after making or changing it); a build without
+the file has no test key, says so in a configure line, and its deployed card cannot be skipped. An agent that tests the
+deployed site reads the key from the file and opens the pages with `?testkey=<key>&silent=1`.
+
+**Deploying** needs nothing more for the terms than the test key's file in the checkout that builds the site, if agents
+are to test the deployed pages. The card is on in every build.
 
 ### Where to buy
 
@@ -269,7 +292,7 @@ they are the card's only controls. The page's scripts (the files' state, the Pla
 take only the finished games' links, so the coming-soon tiles have no `data-game` and no chat tag.
 
 **Sorting.** Above the tiles is a "Sort by" choice (a `<fieldset>` with a `<legend>` and four radio buttons, **Name**, **Release
-date**, **Play time** and **Plays**, and a fifth, **Most played**, by every player's plays, when the site has a play counter:
+date**, **Play time** and **Plays**, and a fifth, **Most popular**, by every player's plays, when the site has a play counter:
 `docs/PLAY_COUNTER.md`), hidden until the page's script has run. Name is the page as built, the alphabetical order of the titles without "Deluxe" (so Bejeweled Deluxe comes before Bejeweled 2 Deluxe and Bejeweled 3). Release date puts
 the oldest game first. The order comes from the game's row in the `BYOPOP_WEB_RELEASED` table of `cmake/ByopopWeb.cmake`
 (`<target>|<date>`, the date as YYYY, YYYY-MM or YYYY-MM-DD, with the source of each row in a comment above it), which is the

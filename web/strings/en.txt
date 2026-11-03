@@ -39,13 +39,13 @@ index.sort.release = Release date
 index.sort.time = Play time
 index.sort.plays = Plays
 # by every player's plays, from the site's play counter (docs/PLAY_COUNTER.md); shown only when the site has one
-index.sort.popular = Most played
+index.sort.popular = Most popular
 # Read out after the player picks a way to sort
 index.sort.said_name = Sorted by name
 index.sort.said_release = Sorted by release date
 index.sort.said_time = Sorted by play time
 index.sort.said_plays = Sorted by plays
-index.sort.said_popular = Sorted by most played
+index.sort.said_popular = Sorted by most popular
 index.unsold = Show games no longer sold
 index.add.button = Add games
 index.bin.label = Forget a game's files
@@ -221,6 +221,11 @@ game.terms.title = Terms for {title}
 game.terms.region = The terms
 game.terms.agree = I own a licensed copy of {title}, and I agree to these terms
 game.terms.continue = Continue
+# the listing page asks for each game's terms before it adds that game's files (web/addgames.js); the heading and the box then
+# take the game's own game.terms.title and game.terms.agree, these are only what the page holds before it asks
+index.terms.heading = Terms
+index.terms.agree = I own a licensed copy of the game, and I agree to these terms
+index.terms.skip = Don't add this game
 
 game.import.title = Load {title} files
 game.import.folder = Choose folder
@@ -968,6 +973,9 @@ add.reading_files = Reading…
 add.added_count = Added ({count} files)
 add.added = Added
 add.failed = The files could not be added.
+# a game whose terms the player did not agree to on the listing page (the dialog's "Don't add this game" or Escape)
+add.not_agreed = Not added: its terms were not agreed to
+add.not_agreed_list = Not added without agreeing to their terms: {titles}
 # {folder} is the folder the player dropped, {title} the game it was added to, {text} what happened to it
 add.announce = {folder}, {title}: {text}
 # The game a dropped folder goes to

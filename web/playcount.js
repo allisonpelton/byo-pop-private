@@ -7,7 +7,8 @@
 // Off unless the build names the counter's address (BYOPOP_WEB_COUNTER in cmake/ByopopWeb.cmake, written below in place of the
 // marker): every local build and test has none. Off too with ?silent=1 (the tests), under Node or another host without
 // WebSocket, and in a browser driven by automation (navigator.webdriver). Nothing is sent while the page is hidden (a background
-// tab, or the hidden Browser pane): the first contact waits until it is shown.
+// tab, or the hidden Browser pane): the first contact waits until it is shown. A page that skipped the terms card (a
+// development host or the site's test key, web/terms.js) counts no play and opens no socket, so tests never add to the counts.
 var ByopopCounter = (function () {
   "use strict";
   var BASE = "@BYOPOP_COUNTER@";   // the Worker's /api, "" for none
@@ -55,6 +56,7 @@ var ByopopCounter = (function () {
   var socket = null, pinger = 0, stopped = false, tries = 0, game = "";
   function playing(id) {
     if (game || !on() || !/^[a-z0-9_-]{1,40}$/.test(id)) return;
+    if (typeof ByopopTerms === "undefined" || ByopopTerms.skipped()) return;
     game = id;
     whenShown(function () { connect(counted(id)); });
     window.addEventListener("pagehide", stop);

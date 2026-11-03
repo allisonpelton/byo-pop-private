@@ -1,5 +1,5 @@
 # The site's play counter (docs/PLAY_COUNTER.md, "Deploying it"), written by the web build into build/counter/ beside the pages.
-# Not deployed: nothing goes on a public host until the terms card is on again (docs/WEB_PLAYER.md, "The terms").
+# Not deployed: nothing goes on a public host until the user decides to put the site up.
 name = "byopop-counter"
 main = "playcount.mjs"
 compatibility_date = "2026-11-01"
