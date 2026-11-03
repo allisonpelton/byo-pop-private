@@ -802,7 +802,7 @@ is reported in IDENTICAL_PLAY.md.
   between the native and web builds from libm's last bits (sin and cos), with the same random draws: the boards stay
   identical.
 - **Rotated and matrix draws in 2D are the original's software ones.** In 2D the original rotates with its own
-  bilinear code (DDImage::BltRotated, 0x41c5c0), draws matrices and triangles with SWTri (BltMatrix, 0x4355e0) and blits
+  bilinear code (DDImage::BltRotated, 0x413150), draws matrices and triangles with SWTri (BltMatrix, 0x4355e0) and blits
   at a fractional place as a rotation at no angle (BltF, 0x412fd0). The port turns on the framework's
   mSoftwareTransforms in 2D (f8624d2), which draws these with MemoryImage's software code into a copy and blits it, and
   the constructor registers SWTri's drawers as the original's does (0x766ce7 calls 0x50f7e0); without them SWTri drew

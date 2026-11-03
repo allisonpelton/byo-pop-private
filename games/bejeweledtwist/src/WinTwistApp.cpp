@@ -558,7 +558,7 @@ DDInterface* WinTwistApp::CreateDDInterface()
 	if (mUse3D)
 		return new GPUDisplay(this, GPUPolicy::Twist());
 	// port: the original's 2D screen is software, so its non-fast stretches average (DDImage::StretchBlt, 0x41a3e0) and
-	// its rotated, matrix and triangle draws are its own bilinear and SWTri code (0x41c5c0, 0x4355e0)
+	// its rotated, matrix and triangle draws are its own bilinear and SWTri code (0x413150, 0x4355e0)
 	DDInterface* anInterface = SexyApp::CreateDDInterface();
 	anInterface->mSoftwareStretch = true;
 	anInterface->mSoftwareTransforms = true;
