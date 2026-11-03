@@ -11,12 +11,19 @@
 //              board's Chain does a match later; logs "script: combo <n>" ("script: combo none" without the side bar)
 #include <SDL.h>
 #include <cstdlib>
+#include <cstring>
 
 #include "CellButton.h"
 #include "Dynomite.h"
+#include "DynomiteFossil.h"
+#include "DynomitePanic.h"
+#include "DynomiteStomped.h"
+#include "DynomiteTimeTrial.h"
 #include "EggGrid.h"
 #include "FossilizedApp.h"
 #include "InchySmall.h"
+#include "Launcher.h"
+#include "Egg.h"
 #include "SideBar.h"
 #include "Tutorial.h"
 
@@ -73,4 +80,123 @@ bool FossilizedApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 	return SexyAppBase::HandleScriptCommand(theCommand);
+}
+
+void FossilizedApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-statelog")
+		mStateLog = fopen(theParamValue.c_str(), "w");
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+// The state after the last update and its draw (the modes draw random numbers while drawing), under that update's number,
+// as origrun reads the original's at its wait after the draw
+void FossilizedApp::UpdateFrames()
+{
+	if (mStateLog != NULL)
+		LogState();
+	SexyApp::UpdateFrames();
+}
+
+namespace
+{
+
+std::string StateInt(int theValue)
+{
+	return StrFormat("%d", theValue);
+}
+
+std::string StateFloat(float theValue)
+{
+	unsigned int aBits;
+	memcpy(&aBits, &theValue, 4);
+	return StrFormat("%d", (int) aBits);
+}
+
+}
+
+// The values in case.sh's order; "-" where the original's pointer is null
+void FossilizedApp::LogState()
+{
+	std::vector<std::string> aValues;
+	uint32_t aState[MTRAND_N];
+	int anIndex;
+	mRand.GetState(aState, &anIndex);
+	aValues.push_back(StateInt(anIndex));								// mti
+	aValues.push_back(StateInt((int) aState[0]));						// mt0
+	aValues.push_back(StateInt(mPicker.mI));							// fibi
+	aValues.push_back(StateInt(mPicker.mJ));							// fibj
+	aValues.push_back((mSideBar != NULL) ? StateInt(mSideBar->mScore) : "-");	// score
+	Dynomite* b = mBoard;
+	const char* aNone = "-";
+	aValues.push_back(b ? StateInt(b->mGameType) : aNone);				// type
+	aValues.push_back(b ? StateInt(b->mChain) : aNone);					// chain
+	aValues.push_back(b ? StateInt(b->mLongestChain) : aNone);			// longest
+	aValues.push_back(b ? StateInt(b->mBabies) : aNone);				// babies
+	aValues.push_back(b ? StateInt(b->mBonusBits) : aNone);				// bonus
+	aValues.push_back(b ? StateInt(b->mRank) : aNone);					// rank
+	aValues.push_back(b ? StateInt(b->mPauseCount) : aNone);			// pause
+	aValues.push_back(b ? StateInt(b->mField15c) : aNone);				// fired
+	EggGrid* g = b ? b->mGrid : NULL;
+	aValues.push_back(g ? StateInt(g->mEggCount) : aNone);				// eggs
+	aValues.push_back(g ? StateInt(g->mMaxColor) : aNone);				// maxcolor
+	aValues.push_back(g ? StateInt(g->mBottom) : aNone);				// bottom
+	aValues.push_back(g ? StateFloat(g->mCeiling) : aNone);				// ceiling
+	aValues.push_back(g ? StateFloat(g->mRows) : aNone);				// rows
+	aValues.push_back(g ? StateInt(g->mPastLineFrames) : aNone);		// pastline
+	Launcher* l = b ? b->mLauncher : NULL;
+	aValues.push_back(l ? StateInt(l->mAngle) : aNone);					// angle
+	aValues.push_back((l && l->mLoaded) ? StateInt(l->mLoaded->mColor) : aNone);	// loaded
+	aValues.push_back((l && l->mHeld) ? StateInt(l->mHeld->mColor) : aNone);		// held
+	aValues.push_back(l ? StateInt(l->mFrozen) : aNone);				// frozen
+	// the mode's own: Stomped, Panic, Fossil, Time Trial (four slots, by the board's type)
+	int aType = b ? b->mGameType : -1;
+	for (int i = 0; i < 4; i++)
+	{
+		std::string aValue = aNone;
+		if (aType == 0)
+		{
+			DynomiteStomped* s = (DynomiteStomped*) b;
+			int aFields[4] = { s->mRound, s->mShotsLeft, s->mEggIndex, s->mShots };
+			aValue = StateInt(aFields[i]);
+		}
+		else if (aType == 1)
+		{
+			DynomitePanic* p = (DynomitePanic*) b;
+			if (i == 2)
+				aValue = StateFloat(p->mKick);
+			else
+			{
+				int aFields[4] = { p->mWhirleyLevel, p->mWhirleysHit, 0, p->mWhirleys.mCount };
+				aValue = StateInt(aFields[i]);
+			}
+		}
+		else if (aType == 2)
+		{
+			DynomiteFossil* f = (DynomiteFossil*) b;
+			int aFields[4] = { f->mLevel, f->mRound, f->mPushes, f->mFossilFell };
+			aValue = StateInt(aFields[i]);
+		}
+		else if (aType == 3)
+		{
+			DynomiteTimeTrial* t = (DynomiteTimeTrial*) b;
+			int aFields[4] = { t->mEggsBroken, t->mEggsDropped, t->mRowsCleared, 0 };
+			aValue = StateInt(aFields[i]);
+		}
+		aValues.push_back(aValue);
+	}
+	static const char* gNames[] = { "mti", "mt0", "fibi", "fibj", "score", "type", "chain", "longest", "babies", "bonus",
+		"rank", "pause", "fired", "eggs", "maxcolor", "bottom", "ceiling", "rows", "pastline", "angle", "loaded", "held",
+		"frozen", "m0", "m1", "m2", "m3" };
+	mStateValues.resize(aValues.size());
+	for (size_t i = 0; i < aValues.size(); i++)
+	{
+		if (aValues[i] != mStateValues[i])
+		{
+			fprintf(mStateLog, "%d %s %s\n", mUpdateCount, gNames[i], aValues[i].c_str());
+			mStateValues[i] = aValues[i];
+		}
+	}
+	fflush(mStateLog);
 }

@@ -305,6 +305,15 @@ public:
 	void			PumpLoading();								// port: the loading runs in the main thread
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;	// port: TestHooks.cpp
 
+	// port: test hooks (TestHooks.cpp). -statelog=<file> writes "<update> <name> <value>" for each value that decides
+	// play when it changes, after each update and its draw, under the names games/dynomite/tools/identical/case.sh gives the
+	// original's addresses. The original does not override these two.
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	virtual void	UpdateFrames() override;
+	void			LogState();
+	FILE*			mStateLog = NULL;
+	std::vector<std::string> mStateValues;
+
 	using SexyAppBase::ButtonPress;
 };
 
