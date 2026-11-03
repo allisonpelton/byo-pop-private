@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
      drawn (web/theme.js) -->
-<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script>
+<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script><script src="terms.js"></script>
 <!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
 <script src="cursors.js"></script>
 <style>
@@ -350,6 +350,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <script src="capanim.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
+<script src="playcount.js"></script>
 <script>
 (function () {
   "use strict";
@@ -457,7 +458,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     print: function (t) { console.log(t); },
     printErr: function (t) { console.warn(t); },
     setStatus: function (t) { if (t) setStatus(t); },
-    onRuntimeInitialized: function () { acquireInstanceLock().then(mountStorage).then(boot); },
+    onRuntimeInitialized: function () { acquireInstanceLock().then(mountStorage).then(function () { return ByopopTerms.ready; }).then(boot); },
     onAbort: function (what) { showStopped(what); },
     // The game has loaded: no mod stopped this start
     onGameLoaded: function () { if (session) session.markFinished(); },
@@ -481,6 +482,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       exited = true;
       playClock();
       releaseWake();
+      try { ByopopCounter.stop(); } catch (e) {}
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
       if (session) session.markFinished();
       var restart = !!(info && info.restart), then = afterExit;
@@ -530,6 +532,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     exited = true;
     playClock();
     releaseWake();
+    try { ByopopCounter.stop(); } catch (e) {}
     afterExit = null;
     try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
     if (panel) panel.dead = true;
@@ -768,18 +771,16 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // The game's terms (web/terms.html, with its name and notice) come before its files are imported or loaded: boot shows
   // them first, and the import and the start check them again. The agreement is kept per game, with the version of
   // its terms (a hash of their text), so each game asks on its own and changed terms ask again. Where localStorage
-  // fails (a private window, blocked site data), it lasts until the page closes. TERMS_GATE (BYOPOP_WEB_TERMS_GATE in
-  // cmake/ByopopWeb.cmake) is off for now: then the card never shows, and the pages must not be deployed.
-  var TERMS_KEY = "byopop-terms-" + PAGE.id, TERMS_VERSION = "@BYOPOP_TERMS_VERSION@", TERMS_GATE = @BYOPOP_TERMS_GATE@;
+  // fails (a private window, blocked site data), it lasts until the page closes. On a development host, or with the
+  // site's test key, the card never shows and nothing is kept (web/terms.js, ByopopTerms).
+  var TERMS_VERSION = "@BYOPOP_TERMS_VERSION@";
   // false for a game whose port loads no mods yet (BYOPOP_WEB_NO_MODS, cmake/ByopopWeb.cmake): its page has no Mods button (the
   // user, 2026-11-03: "Don't show a mods button for games with no mod support"); the others show it once the game's files are
   // here ("Don't show the mods button unless files are uploaded")
   var MODS_SUPPORTED = @BYOPOP_MODS_SUPPORTED@;
-  var termsAgreed = !TERMS_GATE;
+  var termsAgreed = false;  // agreed in this page, for where localStorage fails
   function hasAgreed() {
-    if (!termsAgreed) {
-      try { termsAgreed = localStorage.getItem(TERMS_KEY) === TERMS_VERSION; } catch (e) {}
-    }
+    if (!termsAgreed) termsAgreed = ByopopTerms.agreed(PAGE.id, TERMS_VERSION);
     return termsAgreed;
   }
   function showTerms() {
@@ -795,7 +796,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   $("btn-terms").addEventListener("click", function () {
     if (!$("terms-agree").checked) return;
     termsAgreed = true;
-    try { localStorage.setItem(TERMS_KEY, TERMS_VERSION); } catch (e) {}
+    ByopopTerms.agree(PAGE.id, TERMS_VERSION);
     $("terms-overlay").hidden = true;
     syncModal();
     boot();
@@ -1573,10 +1574,17 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // Time counts while the game runs and its page is shown and has the focus (the user, 2026-11-02: "Only count time with the game
   // open and active"): checked every second and at each change, a step of at most 5 s, so that a computer that slept adds nothing.
   // It is written every 30 s and when the count stops, in whole seconds (the rest waits for the next), and when the page goes away.
-  var playSince = null, playMs = 0;
+  // The same clock tells the site's play counter (web/playcount.js) that the game is really playing, after 30 s of it in this
+  // page: a page left on its loading screen or its Ready card is not counted.
+  var playSince = null, playMs = 0, playedHere = 0;
   function playClock() {
     var now = performance.now(), on = gameRunning() && !document.hidden && document.hasFocus() && !hiddenPaused;
-    if (playSince !== null) playMs += Math.min(now - playSince, 5000);
+    if (playSince !== null) {
+      var step = Math.min(now - playSince, 5000);
+      playMs += step;
+      playedHere += step;
+      if (playedHere >= 30000) { try { ByopopCounter.playing(PAGE.id); } catch (e) {} }
+    }
     playSince = on ? now : null;
     if (playMs >= 30000 || (!on && playMs >= 1000)) playSave(false);
   }
