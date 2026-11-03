@@ -107,7 +107,7 @@ public:
 	// BltMatrix and BltTrianglesTex on the screen draw with MemoryImage's software code (the bilinear rotation of
 	// BltRotatedHelper.inc, SWTri's triangles) into an image that covers the draw's bounds within its clip, and that
 	// image is blitted onto the screen, as the original's software screen drew them straight onto its surface (Twist's
-	// DDImage::BltRotated, 0x41c5c0; its BltMatrix, 0x4355e0). BltF, a blit at a fractional place, is BltRotated at no
+	// DDImage::BltRotated, 0x413150; its BltMatrix, 0x4355e0). BltF, a blit at a fractional place, is BltRotated at no
 	// angle, as on a software screen (Twist's 0x412fd0). A normal draw goes into a transparent image whose alpha then
 	// blends it, which gives the original's colours to within one step; an additive rotation goes into an opaque black
 	// image that is then added. Additive matrix and triangle draws keep SDL's: SWTri here has no additive triangles
