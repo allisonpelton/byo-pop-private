@@ -14,7 +14,7 @@
 //
 // What it does: clicks the title screen's play link once loading is done; types a player name and presses
 // Enter when the new-user dialog appears; picks the mode on the game selector (-autoplaymode=classic,
-// action or both: Classic, then Action); continues past the help screen. On the board, whenever it takes
+// action or both: Classic, then Action; or a comma-separated list of those, played in order); continues past the help screen. On the board, whenever it takes
 // input (no dialog, no summary, play state, no tile falling or burning), it finds the words on the board
 // by a DFS over neighbouring tiles (Board::IsAdjacent, the hex layout; a Q tile is "QU") with the app's
 // dictionary, and plays mostly a word (the bonus word when it is there, else a long word or a short one

@@ -7,10 +7,10 @@
 #
 # Runs (<out dir>/<run>/block.log is the game's -livesplitlog, probe.log lsprobe.py's). The mod folder is
 # the real one (games/bookworm/mods/livesplit), so the split templates are copied too:
-#   bot_classic    a Classic bot game (-autoplay=1): GO, seven level clears, a fire tile burns through
-#   bot_action     an Action bot game (-autoplay=1): GO, thirteen level clears, the countdown runs out
+#   bot_classic    a Classic bot game (-autoplay=8): GO, seven level clears, a fire tile burns through
+#   bot_action     an Action bot game (-autoplay=7): GO, twelve level clears, the countdown runs out
 #   bot_both       a Classic game and then an Action game in one process (boards 1 and 2)
-#   bot_modded     the Classic bot with a second mod that has a score key, to level 3
+#   bot_modded     the Classic bot (-autoplay=1) with a second mod that has a score key, to level 3
 #   quit           bot_classic's input to just after level 1, then quit
 #   leave          bot_classic's input to level 2, LEAVE GAME, then a new game (the saved one declined), quit
 #   resume         bot_classic's input to the middle of level 1, quit (saved); then a second run continues it
@@ -54,33 +54,33 @@ bot() { # <run> <seed> <mode> <mods dir> [args...]: a bot game at -fast
 		-autoplaylog="$OUT/$name/input.txt" "$@"
 }
 
-bot bot_classic 1 classic "$OUT/mods" &
-bot bot_action 1 action "$OUT/mods" &
+bot bot_classic 8 classic "$OUT/mods" &
+bot bot_action 7 action "$OUT/mods" &
 bot bot_both 2 both "$OUT/mods" &
 wait
 
 # Scripts from bot_classic's input (its update numbers: the same seed replays it). Level 1 is clear at update
-# 949 and its summary is gone at 1364; the coordinates below are the 640x480 screen's: LEAVE GAME on the board,
+# 886 and its summary's continue is clicked at 1271 (the bot's next click is at 1320); the coordinates below are the 640x480 screen's: LEAVE GAME on the board,
 # "Quit!" in its dialog, the Classic book on the selector, "New Game" in the continue dialog, the help
 # screen's continue button
 IN="$OUT/bot_classic/input.txt"
 mkdir -p "$OUT/quit" "$OUT/leave" "$OUT/resume"
-{ grep -v '^#' "$IN" | awk '$1 <= 1364'; echo "1500 quit"; } > "$OUT/quit/s.txt"
-{ grep -v '^#' "$IN" | awk '$1 <= 1364'; printf '%s\n' "1400 move 111 461" "1401 click 111 461" "1500 move 365 307" "1501 click 365 307" \
+{ grep -v '^#' "$IN" | awk '$1 <= 1290'; echo "1500 quit"; } > "$OUT/quit/s.txt"
+{ grep -v '^#' "$IN" | awk '$1 <= 1290'; printf '%s\n' "1400 move 111 461" "1401 click 111 461" "1500 move 365 307" "1501 click 365 307" \
 	"1900 move 485 89" "1901 click 485 89" "2000 move 506 316" "2001 click 506 316" "2100 move 314 444" "2101 click 314 444" \
 	"2500 quit"; } > "$OUT/leave/s.txt"
 { grep -v '^#' "$IN" | awk '$1 <= 700'; echo "800 quit"; } > "$OUT/resume/s1.txt"
 
 bot bot_modded 1 classic "$OUT/mods_keyed" -autoplaycap=3000 &
-game quit "$OUT/mods" -fast -seed=1 -script="$OUT/quit/s.txt" &
-game leave "$OUT/mods" -fast -seed=1 -script="$OUT/leave/s.txt" &
+game quit "$OUT/mods" -fast -seed=8 -script="$OUT/quit/s.txt" &
+game leave "$OUT/mods" -fast -seed=8 -script="$OUT/leave/s.txt" &
 wait
 
 # resume: the first run saves the game in progress; only the second run's block log counts (the bot there
 # answers the continue question with yes)
 T="$OUT/resume"
 mkdir -p "$T/user"
-timeout 400 "$EXE" -userdir="$T/user" -modsdir="$OUT/mods" -fast -seed=1 -script="$T/s1.txt" > "$T/log1.txt" 2>&1
+timeout 400 "$EXE" -userdir="$T/user" -modsdir="$OUT/mods" -fast -seed=8 -script="$T/s1.txt" > "$T/log1.txt" 2>&1
 game resume "$OUT/mods" -fast -seed=7 -autoplay=7 -autoplaymode=classic -autoplaycontinue=1 -autoplaycap=2500
 
 # probe_classic: real speed, probed (no other game starts while a probe waits for one)

@@ -41,6 +41,7 @@ class MusicInterface;
 class BookWormApp;
 namespace Replay { struct File; }
 class AutoplayBot;
+class StateLog;
 class SidePanel;
 
 extern BookWormApp* gApp;   // 0x5347d4 (only WinMain used it; port: set by the ctor)
@@ -187,6 +188,7 @@ public:
 	bool					mAutoplayType;          // -autoplaytype=1: words typed (the mod "type-word"; Autoplay.h)
 	AutoplayBot*			mAutoplayBot;
 	int						mDailyDate;             // -dailydate=<yyyymmdd>: the mod "daily-board"'s day (0: today; DailyBoard.h)
+	StateLog*				mStateLog;             // -statelog=<file>: the game values after each update (testhooks/StateLog.h)
 	SidePanel*				mSidePanel;             // port(mod): the mod "widescreen"'s panel, NULL without it (SidePanel.h)
 	// port(mod): replays (Replay.h). -replay=<file> watches one once the title is done, -replaydir=<dir> is where
 	// they go, -replayspeed=<1|2|4|8> the watch's speed at first, -replayquit=1 (test hook) quits at its end

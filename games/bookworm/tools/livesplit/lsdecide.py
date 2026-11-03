@@ -223,7 +223,7 @@ def levels(n):
 
 # (name, run, category, segments, settings, attach, expected). The runs are run_tests.sh's (see there).
 SCENARIOS = [
-    # Classic seed 1 clears 7 levels and dies in the 8th: the killing word takes the score past the level's
+    # Classic seed 8 clears 7 levels and dies in the 8th: the killing word takes the score past the level's
     # mark (it is no level clear, the fire tile has already burned through), so the 8th level has no split
     ("classic_10_levels", "bot_classic", "Classic - 10 Levels", levels(10), {}, 0,
      "start board=1; split 0; split 1; split 2; split 3; split 4; split 5; split 6; reset resetFire"),
@@ -241,9 +241,9 @@ SCENARIOS = [
      "start board=1; split 0; split 1; split 2; split 3; split 4; split 5; split 6; reset resetFire"),
     ("classic_score", "bot_classic", "Classic - 50K Points", ["10K", "25,000", "50K"], {}, 0,
      "start board=1; split 0; split 1; split 2"),
-    # 58000 is reached by the killing word only (54430 -> 58970): its split comes with the game over, which
+    # 53000 is reached by the killing word only (52080 -> 53130): its split comes with the game over, which
     # then does not reset a finished run; 60000 is not reached, so the game over resets
-    ("classic_score_killing_word", "bot_classic", "Classic - 58K Points", ["10K", "25K", "58000"], {}, 0,
+    ("classic_score_killing_word", "bot_classic", "Classic - 53K Points", ["10K", "25K", "53000"], {}, 0,
      "start board=1; split 0; split 1; split 2"),
     ("classic_score_not_reached", "bot_classic", "Classic - 60K Points", ["10K", "25K", "60000"], {}, 0,
      "start board=1; split 0; split 1; reset resetFire"),
@@ -251,28 +251,28 @@ SCENARIOS = [
     ("classic_mixed", "bot_classic", "Classic", ["Level 1", "10000", "Level 2", "1M"], {}, 0,
      "start board=1; split 0; split 1; split 2; split 3"),
     ("classic_attach_mid_game", "bot_classic", "Classic - 10 Levels", levels(10), {}, 2000, ""),
-    # Action seed 1 clears 13 levels; the countdown ends the game in the 14th
+    # Action seed 7 clears 12 levels; the countdown ends the game in the 13th
     ("action_10_levels", "bot_action", "Action - 10 Levels", levels(10), {}, 0,
      "start board=1; split 0; split 1; split 2; split 3; split 4; split 5; split 6; split 7; split 8; split 9"),
     ("action_15_levels", "bot_action", "Action - 15 Levels", levels(15), {}, 0,
      "start board=1; split 0; split 1; split 2; split 3; split 4; split 5; split 6; split 7; split 8; split 9; "
-     "split 10; split 11; split 12; reset resetCountdown"),
+     "split 10; split 11; reset resetCountdown"),
     ("action_countdown_reset_off", "bot_action", "Action - 15 Levels", levels(15), {"resetCountdown": False}, 0,
      "start board=1; split 0; split 1; split 2; split 3; split 4; split 5; split 6; split 7; split 8; split 9; "
-     "split 10; split 11; split 12; reset exit"),
+     "split 10; split 11; reset exit"),
     ("action_mode_guard", "bot_action", "Classic - 10 Levels", levels(10), {}, 0, ""),
-    # One process, a Classic game (3 level clears) and then an Action game (6): boards 1 and 2
+    # One process, a Classic game (2 level clears) and then an Action game (6): boards 1 and 2
     ("both_any_mode", "bot_both", "BookWorm - 10 Levels", levels(10), {}, 0,
-     "start board=1; split 0; split 1; split 2; reset resetFire; "
+     "start board=1; split 0; split 1; reset resetFire; "
      "start board=2; split 0; split 1; split 2; split 3; split 4; split 5; reset resetCountdown"),
     ("both_classic_only", "bot_both", "Classic - 10 Levels", levels(10), {}, 0,
-     "start board=1; split 0; split 1; split 2; reset resetFire"),
+     "start board=1; split 0; split 1; reset resetFire"),
     ("both_action_only", "bot_both", "Action - 10 Levels", levels(10), {}, 0,
      "start board=2; split 0; split 1; split 2; split 3; split 4; split 5; reset resetCountdown"),
     # A gameplay mod (a score key) is on: the run starts unless the script is set to vanilla games only. The bot
-    # quits at update 3000, after 3 level clears; the board is gone in the game's last block write
+    # quits at update 3000, after 2 level clears; the board is gone in the game's last block write
     ("modded_runs", "bot_modded", "Classic - 10 Levels", levels(10), {}, 0,
-     "start board=1; split 0; split 1; split 2; reset resetQuit"),
+     "start board=1; split 0; split 1; reset resetQuit"),
     ("modded_vanilla_only", "bot_modded", "Classic - 10 Levels", levels(10), {"vanillaOnly": True}, 0, ""),
     # LEAVE GAME in the 2nd level, then a new game (the saved one declined) in the same process, which quits.
     # The game's quit is a block write with no board, then the exit action: resetQuit at the write, or "exit"
