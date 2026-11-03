@@ -121,7 +121,7 @@ function scan(text, file) {
 // the build's own text
 {
   const cmake = read("cmake/ByopopWeb.cmake");
-  cmake.replace(/byopop_web_string\(\s*\S+\s+([a-z0-9_.]+)\s*\)/g, (m, k) => { note(k, "cmake/ByopopWeb.cmake"); return m; });
+  cmake.replace(/byopop_web_string\(\s*\w+\s+([a-z0-9_.]+)[\s)]/g, (m, k) => { note(k, "cmake/ByopopWeb.cmake"); return m; });
   cmake.replace(/"([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)"/g, (s, k) => { if (k in table) note(k, "cmake/ByopopWeb.cmake"); return s; });
 }
 // the games' pages are not converted, but a page may read a site key through the shell's text

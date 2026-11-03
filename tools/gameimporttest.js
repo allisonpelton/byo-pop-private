@@ -54,7 +54,9 @@ check("missing: the one marker a folder lacks", I.missingMarkers(spec("tiptop"),
 check("missing: the folder with the most markers", I.missingMarkers(spec("bookworm"), files("x/wordlist.txt", "y/wordlist.txt", "y/music/bookworm1.mo3")), "Bookworm.exe");
 check("missing: all of them, as a list", I.missingMarkers(spec("tiptop"), files("a/other.txt")), "TipTop.dat and TipTop.exe");
 check("missing: a marker of any type, named without it", I.missingMarkers(spec("bejeweled"), files("Bejeweled/x.txt")), "images/gemsheet6");
-check("missing in a known root", I.missingIn(spec("tiptop"), ["TipTop.exe"]), "TipTop.dat");
+check("missing: a pak in dropped files is a file to find", I.missingMarkers(spec("bookwormadv"), files("B/BookwormAdventures.exe", "B/Images/a.png")), "main.pak");
+check("missing: a pak game's exe, any case", I.missingMarkers(spec("bookwormadv"), files("B/MAIN.PAK", "B/other.exe")), "BookwormAdventures.exe");
+check("missing in a known root",I.missingIn(spec("tiptop"), ["TipTop.exe"]), "TipTop.dat");
 // the files picked
 const picked = I.pick(spec("bejeweled"), files("B/Images/gemsheet6.png", "B/images/x.sig", "B/Bejeweled.exe", "B/readme.txt", "B/Music/m.mo3"), "B/", safeRel)
   .map((f) => f.rel);
