@@ -870,7 +870,9 @@ Groundwork (libopenmpt, AU, extractor marker, Ghidra VC7 fixes, JP2 staging, mul
    - **The Steam BookWorm Deluxe 1.13** (2006, delisted in 2016) is not installed and is not needed. It would only add a `main.pak` build.
    - **Peggle Deluxe.** Thunderball's matching target is `%TEMP%\popcapgame1.exe`, the file the wrapper writes at runtime. Its hash differs from our carved image, so the wrapper probably patches the image when it writes it. To reuse Thunderball's reccmp setup, copy that file while the game is running.
    - **Typer Shark Abyss.** Checking TCRF's claim of leftover source means downloading the 411 MB Typing Instructor Deluxe 17 setup from archive.org. That needs your approval.
+<!-- private: 7. **Bejeweled Twist (Steam).** The Steam copy's inner exe is locally patched. The retail copy is the clean image and should be used for analysis. No action is needed. -->
 7. **Bejeweled Twist (Steam).** The Steam copy's inner exe has 3 local `jcc`→`jmp` patches (at 0x402df9, 0x403039 and 0x4a39c7). They skip the video-memory, unsupported-card and properties-signature checks, and the exe file is dated 2026-01-16. The retail copy is the clean image and should be used for analysis. No action is needed.
+<!-- /private -->
 8. **Typer Shark on touch devices.** Choose between a hidden-input soft keyboard and an in-game on-screen keyboard, and decide whether to add a slower "touch" difficulty.
 9. **3DS roadmap item.** It is already recorded in [MOD_ROADMAP.md](MOD_ROADMAP.md) ("Nintendo 3DS port (after Bejeweled works fully with mods)"). This survey did not research the Super Mario 64 3DS port.
    - **SAF-on-3DS precedents found along the way:**

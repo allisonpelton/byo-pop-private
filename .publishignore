@@ -24,3 +24,5 @@ games/zuma*
 games/bejeweled/tools/make_su_gems_mod.py
 # Bejeweled's comparison runner: its --prepare carves the game out of the protected launcher (2026-11-01)
 games/bejeweled/tools/origcmp/orig.sh
+# Twist's staging script: it carves the game out of its wrapper with the private extract_game_exe (2026-11-03)
+games/bejeweledtwist/tools/stage_bejeweledtwist_assets.py
