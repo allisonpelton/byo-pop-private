@@ -84,6 +84,12 @@ void Sexy::GetRandMTState(uint32_t* theState, int* theIndex)
 	gMTRand.GetState(theState, theIndex);
 }
 
+// port: see SetRandMTState
+bool Sexy::SetRandMTState(const uint32_t* theState, int theIndex)
+{
+	return gMTRand.SetState(theState, theIndex);
+}
+
 // port: the Windows version checks have no meaning on the port's platforms.
 bool Sexy::CheckFor98Mill()
 {

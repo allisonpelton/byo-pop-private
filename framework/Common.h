@@ -121,6 +121,10 @@ std::string			GetRandState();
 // only. A replay of a game on the global stream starts from it, and its CHECK hashes it
 // (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.2, 6.6).
 void				GetRandMTState(uint32_t* theState, int* theIndex);
+// port: sets the Rand() generator's complete state (MTRand::SetState: false, and nothing changed, for a state it
+// refuses). For a game whose own framework seeded this generator otherwise than the port's SRand (BookWorm's 2004
+// framework seeds it the SAF 1.2 way, Compat2004.h's SeedMTRand2004), so that a seed gives the original's draws.
+bool				SetRandMTState(const uint32_t* theState, int theIndex);
 extern std::string	vformat(const char* fmt, va_list argPtr);
 extern std::wstring	vformat(const wchar_t* fmt, va_list argPtr);
 extern std::string	StrFormat(const char* fmt ...);
