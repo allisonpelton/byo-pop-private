@@ -1484,6 +1484,11 @@ static void exec_at(const char* inner)
 	else if (ieq(cmd,"text")){ post_text(hw,rest); }
 	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); } }
 	else if (ieq(cmd,"focus")){ post_focus(hw, ieq(rest,"regain")); }
+	else if (ieq(cmd,"keydown")||ieq(cmd,"keyup")){   // one key edge, so that a press can span updates (a game that clears a key on its release loses a press and release read in one update)
+		char v[32]; if(sscanf(rest,"%31s",v)==1) { int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
+			if (ieq(cmd,"keydown")) PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16)));
+			else PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); }
+	}
 	else if (ieq(cmd,"down")||ieq(cmd,"up")||ieq(cmd,"rdown")||ieq(cmd,"rup")){   // one button edge (rdown/rup: the right one), so that a click can span updates (a down and up read in one update are lost in some games)
 		int r=cmd[0]=='r'||cmd[0]=='R', down=ieq(cmd+r,"down");
 		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
@@ -1686,7 +1691,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 		}
 		if (ieq(cmd,"at")){
 			// at <N> <command...>: when the update counter reaches N, hold the game's window thread and run the
-			// command (shot/click/key/text/move/focus/burst). Needs an update counter (--counter or config).
+			// command (shot/click/key/text/move/focus/burst, or keydown/keyup and down/up for one edge). Needs an update counter (--counter or config).
 			if (!gCounterExpr[0]) { logline("at: no update counter configured (--counter or games.cfg); skipping '%s'",rest); continue; }
 			unsigned long N=0; int o=0; if (sscanf(rest,"%lu%n",&N,&o)!=1) { logline("at: need 'at <N> <command>'"); continue; }
 			const char* inner=rest+o; while(*inner==' ')inner++;
@@ -1701,6 +1706,16 @@ static void run_script(DWORD pid, const char* scriptPath)
 				int v2=wait_counter((uint32_t)(N+ck),30000);
 				logline("at %lu: counter reached %d -> the %s's up", N+ck, v2, ic);
 				wsprintfA(a,"%s %d %d",r?"rup":"up",cx,cy); exec_at(a);
+				continue;
+			}
+			// at <N> key <vk> <k>: the key's down at N and its up k updates later, for the same reason
+			char kv[32]=""; int kk=0;
+			if (sscanf(inner,"%15s %31s %d",ic,kv,&kk)==3 && kk>0 && ieq(ic,"key")) {
+				char a[64];
+				wsprintfA(a,"keydown %s",kv); exec_at(a);
+				int v2=wait_counter((uint32_t)(N+kk),30000);
+				logline("at %lu: counter reached %d -> the key's up", N+kk, v2);
+				wsprintfA(a,"keyup %s",kv); exec_at(a);
 				continue;
 			}
 			exec_at(inner);
