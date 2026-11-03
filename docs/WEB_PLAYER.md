@@ -1093,7 +1093,9 @@ page language's plural rules (`Intl.PluralRules`; the forms in the order zero, o
 the language lacks), and `ByopopStrings.html()` does the same for innerHTML with its vars escaped. A key that a page or the
 build asks for and the file lacks stops the build; one a script asks for and the file lacks shows as the key itself, with a
 note in the console. `tools/stringstest.js` (in `unit-web`) checks that every key used is in the file and that every key in
-the file is used; the Node tests load `build/web/strings.js` (`tools/stringsload.js`) before the site's scripts.
+the file is used. The Node tests of the site's scripts check keys, never wording, which is the user's to rewrite:
+`tools/stringsload.js` gives them `web/i18n.js` over a table in which each string reads as its key followed by what it
+fills in (`size.kb 2.0`, `chat.day.today chat.day.date ...`), so a test sees which string a script picked and with what.
 
 Translations are not made yet. The plan (the user, the same day: "could at least have LLM translations for languages that
 PopCap games have been released in"): a copy of the file for each language (`de.txt` and so on, the same keys), from which

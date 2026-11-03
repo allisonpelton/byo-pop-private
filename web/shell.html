@@ -721,7 +721,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var root = findGameRoot(entries);
     var msg = $("import-msg");
     if (root === null) {
-      importMessage(ByopopStrings.t("game.import.wrong_folder", {markers: PAGE.markerText, title: $("brand-name").textContent}), true);
+      importMessage(ByopopStrings.t("game.import.wrong_folder", {markers: ByopopImport.missingMarkers(PAGE, entries), title: $("brand-name").textContent}), true);
       return Promise.resolve(false);
     }
     return withPaks(entries, root).then(function (all) { return copyGame(all, root); });
@@ -744,7 +744,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       });
     }, Promise.resolve()).then(W.sync).then(function () {
       // boot() would otherwise show this card again, still saying "Copied", as if the page were stuck
-      if (!hasGameFiles()) throw new Error(ByopopStrings.t("game.import.error_missing", {markers: PAGE.markerText}));
+      if (!hasGameFiles()) throw new Error(ByopopStrings.t("game.import.error_missing", {markers: ByopopImport.markerList(PAGE)}));
       msg.textContent = ByopopStrings.t("game.import.copied", {count: wanted.length});
       askToKeepStorage();
       return iconFromImport(entries, root).then(function () { return true; });

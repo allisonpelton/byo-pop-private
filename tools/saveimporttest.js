@@ -126,7 +126,7 @@ same("a value only the machine has is taken", got["Muted"].value, "dword:-1");
 same("the last player", got["Users\\User"].value, "sz:Allison");
 same("a player's value", got["Users\\Allison\\ShowHelp"].value, "dword:1");
 check("an installer value is not taken", !got["InstallPath"] && plan.skipped.some((s) => s.path === "InstallPath" && /installer/.test(s.why)), plan.skipped);
-check("a value that is not in the table is left out with the reason", plan.skipped.some((s) => s.path === "Users\\Allison\\Long" && /not a value the port keeps/.test(s.why)));
+check("a value that is not in the table is left out with the reason", plan.skipped.some((s) => s.path === "Users\\Allison\\Long" && /^saveimport\.skip\.not_kept$/.test(s.why)));
 same("one value was found in two places", plan.overridden, 1);
 check("a key of another game is reported, not taken", col.foreign.length === 1 && /Chuzzle/.test(col.foreign[0]), col.foreign);
 // a deleted key and value
@@ -135,7 +135,7 @@ same("a deleted value is gone, a deleted key's values too", Object.keys(colDel.m
 // the type must match the table's
 const typed = "Windows Registry Editor Version 5.00" + NL + NL + "[HKEY_CURRENT_USER\\Software\\PopCap\\WinBAD]" + NL + "\"LastUser\"=dword:00000001" + NL + "\"AppTime\"=\"7\"" + NL;
 const pt = S.planRegistry(table.games.bookwormadv, S.collect(table.games.bookwormadv, [S.parseReg(reg5(typed))]), "");
-check("a value of the wrong type is left out", pt.items.length === 0 && pt.skipped.length === 2 && /stored by the original as/.test(pt.skipped[0].why), pt);
+check("a value of the wrong type is left out", pt.items.length === 0 && pt.skipped.length === 2 && /^saveimport\.skip\.not_(number|text) /.test(pt.skipped[0].why), pt);
 // the binary values (BookWorm's scores are REG_MULTI_SZ)
 const scores = "Windows Registry Editor Version 5.00" + NL + NL + "[HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\PopCap\\BookWorm\\Scores]" + NL + "\"Classic\"=hex(7):41,00,00,00,00" + NL;
 const ps = S.planRegistry(bw, S.collect(bw, [S.parseReg(reg5(scores))]), "");
@@ -149,7 +149,7 @@ same("Word Harmony's values", pw.items.map((i) => i.path + "=" + i.value), ["Def
 check("a promotional value is left out", S.planRegistry(wh, S.collect(wh, [S.parseReg(reg5(whReg.replace("\"FullScreen\"", "\"ShowLink\"=dword:00000001" + NL + "\"FullScreen\"")))]), "").skipped.some((s) => s.path === "ShowLink" && /promotional/.test(s.why)));
 // text the games cannot keep
 const wide = S.planRegistry(wh, S.collect(wh, [S.parseReg(reg5(whReg.replace("Zo\xeb", "\u4e2d")))]), "");
-check("a character that Windows-1252 does not have is left out", wide.skipped.some((s) => s.path === "DefaultScoreName" && /Windows-1252/.test(s.why)));
+check("a character that Windows-1252 does not have is left out", wide.skipped.some((s) => s.path === "DefaultScoreName" && /^saveimport\.skip\.charset$/.test(s.why)));
 same("a backslash and a line end are escaped as the port does", S.convert({ kind: "sz", text: "a\\b\nc\rd" }, "sz").value, "sz:a\\\\b\\nc\\rd");
 same("the euro sign is the byte 0x80", S.toAnsi("\u20ac").charCodeAt(0), 0x80);
 

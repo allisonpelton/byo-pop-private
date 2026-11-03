@@ -29,8 +29,9 @@ var ByopopStrings = (function () {
     return forms[i >= 0 && i < forms.length ? i : forms.length - 1];
   }
   function fill(s, vars, escape) {
-    if (!vars) return s;
-    if (typeof vars.n === "number") s = form(s, vars.n);
+    // a count string asked for without its number: the form for any other number, never the "a | b" source
+    if (!vars || typeof vars.n !== "number") { if (s.indexOf(" | ") >= 0) s = s.split(" | ").pop(); if (!vars) return s; }
+    else s = form(s, vars.n);
     return s.replace(/\{([A-Za-z0-9_]+)\}/g, function (m, k) {
       if (!Object.prototype.hasOwnProperty.call(vars, k)) return m;
       return escape ? escapeHtml(String(vars[k])) : String(vars[k]);

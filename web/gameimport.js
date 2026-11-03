@@ -85,6 +85,46 @@ var ByopopImport = (function () {
     });
   }
 
+  // The markers a folder of files lacks, as the error names them (the user, 2026-11-03: the files it names are the missing
+  // ones, not every marker): missingIn() for the files of a known root (paths relative to it), missingMarkers() for picked or
+  // dropped files whose root was not found, from the folder among them that holds the most markers (all of them when none
+  // holds any). Each is named with its casing in the game's markerText where that has it ("images/gemsheet6.*" as
+  // "images/gemsheet6"), and the names are joined as a list in the page's language.
+  function lacking(spec, rels) {
+    return spec.markers.filter(function (m) {
+      return !hasMarkers({ markers: [m], paks: spec.paks, gameDirs: spec.gameDirs }, rels);
+    });
+  }
+  function markerName(spec, m) {
+    var text = spec.markerText || "", low = text.toLowerCase();
+    var names = [m, m.replace(/\.\*$/, "")];
+    for (var i = 0; i < names.length; i++) {
+      var at = low.indexOf(names[i].toLowerCase());
+      if (at >= 0) return text.substring(at, at + names[i].length);
+    }
+    return names[1];
+  }
+  function markerList(spec, markers) {
+    var names = (markers || spec.markers).map(function (m) { return markerName(spec, m); });
+    try { return new Intl.ListFormat(ByopopStrings.lang, { style: "long", type: "conjunction" }).format(names); }
+    catch (e) { return names.join(", "); }
+  }
+  function missingIn(spec, rels) { return markerList(spec, lacking(spec, rels)); }
+  function missingMarkers(spec, entries) {
+    var roots = { "": true };
+    entries.forEach(function (e) {
+      var parts = e.path.split("/");
+      for (var j = 1; j < parts.length; j++) roots[parts.slice(0, j).join("/") + "/"] = true;
+    });
+    var best = null;
+    Object.keys(roots).forEach(function (r) {
+      var rels = entries.filter(function (e) { return under(e, r); }).map(function (e) { return e.path.substring(r.length); });
+      var miss = lacking(spec, rels);
+      if (best === null || miss.length < best.length) best = miss;
+    });
+    return markerList(spec, best || spec.markers);
+  }
+
   // The icon in the install's exe, for a game that does not store its exe (importIcon): the first .exe at the root that is not
   // an uninstaller or setup. Resolves with a PNG data URL, or "".
   var SKIP_EXE = /^(popuninstall|uninstall[^\/]*|unins\d*|setup[^\/]*|dxsetup|[^\/]*redist[^\/]*|[^\/]*updater[^\/]*)\.exe$/i;
@@ -144,7 +184,7 @@ var ByopopImport = (function () {
   function sort(entries) {
     var found = [], rejected = [];
     function visit(group, depth) {
-      var name = group.path.split("/").pop() || "(the dropped files)";
+      var name = group.path.split("/").pop() || ByopopStrings.t("import.dropped_files");
       var matches = [];
       games.forEach(function (g) {
         var root = findRoot(g.spec, group.entries, false);
@@ -349,7 +389,7 @@ var ByopopImport = (function () {
       return withPaks(spec, entries, root, pak, function () { if (say) say(ByopopStrings.t("import.say.unpacking")); }).then(function (all) {
         var files = pick(spec, all, root, safeRel);
         if (!hasMarkers(spec, files.map(function (f) { return f.rel; })))
-          throw new Error(ByopopStrings.t("import.err.wrong_folder", {title: g.title, markers: spec.markerText}));
+          throw new Error(ByopopStrings.t("import.err.wrong_folder", {title: g.title, markers: missingIn(spec, files.map(function (f) { return f.rel; }))}));
         if (say) say(ByopopStrings.t("import.say.copying", {count: files.length}));
         return writeGame(spec.persist, ordered(spec, files), function (n, total) { if (say) say(ByopopStrings.t("import.say.progress", {percent: Math.round(n * 100 / total)})); },
           function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} })  // the old copy is gone
@@ -389,5 +429,5 @@ var ByopopImport = (function () {
 
   return { markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
     games: games, add: add, sort: sort, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
-    forgetGame: forgetGame, ordered: ordered };
+    forgetGame: forgetGame, ordered: ordered, missingIn: missingIn, missingMarkers: missingMarkers, markerList: markerList };
 })();
