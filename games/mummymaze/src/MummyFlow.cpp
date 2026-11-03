@@ -198,6 +198,7 @@ void MummyApp::StartClassicOrContinue()
 // 0x41c3c0: the tutorial
 void MummyApp::StartTutorial()
 {
+	RemoveLevelComplete();	// 0x41b7b0 first: with no world map up it starts a board (and its draws) that the tutorial then replaces
 	if (mMainMenu != NULL)
 	{
 		mWidgetManager->RemoveWidget(mMainMenu);
