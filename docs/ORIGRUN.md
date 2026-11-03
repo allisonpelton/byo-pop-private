@@ -66,7 +66,8 @@ Options:
 - `--sound nodriver` — the stand-in reports no sound device (`DSERR_NODRIVER`); use for a game's very first run.
 - `--sound wav` — silent stand-in that also records to `snd/` what the game writes to its DirectSound buffers.
 - `--sound real` — no stand-in; the game uses the real audio device (turn the speakers off first).
-- `--timeout <sec>` — wall-clock cap (default 120, max 240; a run is one game process and must stay short).
+- `--timeout <sec>` — wall-clock cap (default 120, max 3600). A run past about 4 minutes goes in the background of the
+  session that owns it, never in a subagent (CLAUDE.md, "Token economy"); it is still one game process.
 - `--fresh` — note to re-copy (delete `build/origrun/<run>` first to force a clean copy).
 - `--copy-only` — stage the copy (and print its folder and exe) without launching. Use it to place a copy you
   then prepare by hand (e.g. extracting a wrapped exe into it) before running it with `--exe`.
