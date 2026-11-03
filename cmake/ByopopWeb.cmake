@@ -54,7 +54,8 @@ set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js)
 # with a web page that is not in the list is not shown (fwtest and smoke are test pages and never are); a name in the
 # list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
-  pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina)
+  pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina
+  bonnies)
 # The games still to come, <target>|<title>, each shown on the listing page as a "Coming soon" tile among the finished ones
 # (the user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say coming soon"):
 # the badge, the title and the year, sorted with the rest, not a link, and where to buy the game, so that a visitor can get
@@ -62,11 +63,11 @@ set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica m
 # the coordinator's: at a game's final merge its target moves from here to BYOPOP_WEB_FINISHED (its title then comes from
 # its page's TITLE), and its badge, release date and BYOPOP_BUY entry stay. Every game here needs a row in
 # BYOPOP_WEB_BADGES and BYOPOP_WEB_RELEASED and a BYOPOP_BUY entry (cmake/ByopopStores.cmake); a target in both lists, or
-# here without a BYOPOP_BUY entry, is a configure error. Bejeweled Twist and Bonnie's Bookstore have pages already, not
-# yet merged; the rest are "The ports still to make" in docs/COORDINATION.md. Zuma Deluxe, Insaniquarium and Plants vs.
+# here without a BYOPOP_BUY entry, is a configure error. Bejeweled Twist has a page already, not yet merged; the rest
+# are "The ports still to make" in docs/COORDINATION.md. Zuma Deluxe, Insaniquarium and Plants vs.
 # Zombies are left out: nobody ports them (the user, 2026-10-26).
 set(BYOPOP_WEB_UPCOMING
-  "bejeweledtwist|Bejeweled Twist" "bonnies|Bonnie's Bookstore Deluxe" "venice|Venice Deluxe"
+  "bejeweledtwist|Bejeweled Twist" "venice|Venice Deluxe"
   "heavyweapon|Heavy Weapon Deluxe" "hammerheads|Hammer Heads Deluxe" "bejeweled2|Bejeweled 2 Deluxe"
   "astropop|AstroPop Deluxe" "typershark|Typer Shark! Deluxe" "pizzafrenzy|Pizza Frenzy Deluxe" "igglepop|Iggle Pop Deluxe"
   "feedingfrenzy|Feeding Frenzy Deluxe" "chuzzle|Chuzzle Deluxe" "feedingfrenzy2|Feeding Frenzy 2 Deluxe"
@@ -81,9 +82,9 @@ set(BYOPOP_WEB_BADGES
   "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
   "pixelus|PX|#952395" "alchemy|AL|#95236b" "wordharmony|WH|#232795" "cosmicbugs|CB|#412395" "waterbugs|WB|#236f95"
   "rocketmania|RM|#952723" "dynomite|DY|#78781c" "bookwormadv2|BA2|#637c1d" "mahjongjapan|MJ|#4b5d73"
-  "mahjongchina|MC|#655873"
+  "mahjongchina|MC|#655873" "bonnies|BB|#8a3a4f"
   # the games still to come, in BYOPOP_WEB_UPCOMING
-  "bejeweledtwist|BT|#7a2395" "bonnies|BB|#8a3a4f" "venice|VE|#1f5f8c" "heavyweapon|HW|#5c6420" "hammerheads|HH|#7a5a1e"
+  "bejeweledtwist|BT|#7a2395" "venice|VE|#1f5f8c" "heavyweapon|HW|#5c6420" "hammerheads|HH|#7a5a1e"
   "bejeweled2|BJ2|#a02a2a" "astropop|AP|#2a3fa0" "typershark|TS|#1d6a7a" "pizzafrenzy|PF|#a33a1a" "igglepop|IP|#8a238a"
   "feedingfrenzy|FF|#1d6e8e" "chuzzle|CH|#9a3c6e" "feedingfrenzy2|FF2|#16707a" "peggle|PG|#2f6f2f" "pegglenights|PN|#3a2f8a"
   "bejeweled3|BJ3|#6e2370" "bananabugs|BN|#7a6a12" "gyromancer|GY|#4a4a8e" "zumasrevenge|ZR|#2a7a46" "talismania|TA|#8a4a1e")
@@ -148,15 +149,15 @@ set(BYOPOP_WEB_RELEASED
   # MobyGames: 2006. The days disagree: Metacritic has April 20, 2006, VGTimes and VideoGameGeek March 9, 2007, and later dates
   # are regional editions; the exe the site plays was built in August 2006 (docs/POPCAP_GAMES_SURVEY.md). Low, so the year only.
   "mahjongchina|2006"
+  # VGTimes (https://vgtimes.com/games/bonnies-bookstore/release-dates/): PC, December 6, 2005 (Mac March 23, 2006); Wikipedia's
+  # list has it among 2005's games. Medium.
+  "bonnies|2005-12-06"
   # The games still to come (BYOPOP_WEB_UPCOMING), researched 2026-11-02 the same way: Wikipedia (each game's article, through
   # its API, and its "List of PopCap Games games"), VGTimes' release-date pages (vgtimes.com/games/<name>/release-dates/),
   # Steam's app data (its release dates are the Steam releases, 2006 and later, so they only bound a date) and Shockwave's
   # search API (its first release dates are when Shockwave added a game, weeks to years late, and are not used).
   # Wikipedia, "Bejeweled Twist": Windows, October 27, 2008, citing PopCap's press release. High.
   "bejeweledtwist|2008-10-27"
-  # VGTimes (https://vgtimes.com/games/bonnies-bookstore/release-dates/): PC, December 6, 2005 (Mac March 23, 2006); Wikipedia's
-  # list has it among 2005's games. Medium.
-  "bonnies|2005-12-06"
   # Wikipedia, "Venice (video game)": June 22, 2007, citing GamesIndustry ("PopCap Launches Venice For PC"); Steam's page has
   # June 25, 2007. High.
   "venice|2007-06-22"

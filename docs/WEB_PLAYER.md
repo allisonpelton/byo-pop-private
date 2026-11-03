@@ -221,8 +221,8 @@ for the listing page's own: `players.js`, `saves.js` and `saveimport.js`, with t
 **Coming soon.** The user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say
 coming soon. Knock out all the research on where to buy and release date in advance." Among the finished games, sorted with them by
 name or by release date, the listing has a tile for each game still to come: the `BYOPOP_WEB_UPCOMING` list in
-`cmake/ByopopWeb.cmake`, `<target>|<title>` rows beside `BYOPOP_WEB_FINISHED`. It holds the two games with pages not yet merged (Bejeweled
-Twist, Bonnie's Bookstore Deluxe) and the ports still to make (`docs/COORDINATION.md`), each under the title of its Windows
+`cmake/ByopopWeb.cmake`, `<target>|<title>` rows beside `BYOPOP_WEB_FINISHED`. It holds the game with a page not yet merged (Bejeweled
+Twist) and the ports still to make (`docs/COORDINATION.md`), each under the title of its Windows
 release and the target its port uses. The list is the coordinator's, and a game's final merge only moves its target from that list
 to `BYOPOP_WEB_FINISHED` (its title then comes from its page): its badge (`BYOPOP_WEB_BADGES`), release date
 (`BYOPOP_WEB_RELEASED`, with its source and a confidence in the comment above each row) and where to buy it (`BYOPOP_BUY_<target>`
