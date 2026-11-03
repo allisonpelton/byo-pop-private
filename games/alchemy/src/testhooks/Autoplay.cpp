@@ -16,6 +16,7 @@
 #include "HyperlinkWidget.h"
 
 #include <cstdarg>
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
@@ -142,7 +143,14 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 	{
 		Log("tutorial step %d at update %d", theBoard->mTutStep, mTick);
 		Shot("tutorial", theBoard->mTutStep);
-		theBoard->ButtonDepress(2);
+		if (mApp->mAutoplayUi)
+		{
+			if (theBoard->mButton == NULL)
+				return;
+			ClickWidget(theBoard->mButton);
+		}
+		else
+			theBoard->ButtonDepress(2);
 		mWait = 5;
 		return;
 	}
@@ -151,7 +159,10 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 	{
 		Log("tutorial button %d at update %d", theBoard->mButton->mId, mTick);
 		Shot("tutorialend", theBoard->mButton->mId);
-		theBoard->ButtonDepress(theBoard->mButton->mId);
+		if (mApp->mAutoplayUi)
+			ClickWidget(theBoard->mButton);
+		else
+			theBoard->ButtonDepress(theBoard->mButton->mId);
 		mWait = 5;
 		return;
 	}
@@ -220,7 +231,19 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 	}
 
 	int aPick = -1;
-	if (Rand(10) == 0)
+	if (mApp->mAutoplayUi && mApp->mAutoplayMiss > 0 && Rand(mApp->mAutoplayMiss) == 0)
+	{
+		// a cell the piece cannot go to (the game answers with a message of the wizard's)
+		std::vector<int> aBad;
+		for (int i = 0; i < Board::ROWS * Board::COLS; i++)
+			if (std::find(aCells.begin(), aCells.end(), i) == aCells.end())
+				aBad.push_back(i);
+		if (!aBad.empty())
+			aPick = aBad[Rand((int) aBad.size())];
+	}
+	if (aPick >= 0)
+		;
+	else if (Rand(10) == 0)
 		aPick = aCells[Rand((int) aCells.size())];
 	else
 	{
@@ -355,12 +378,33 @@ void AutoplayBot::Update()
 			Finish();
 			return;
 		}
-		if (mApp->mAutoplayUi && mSelStep == 0)
+		if (mApp->mAutoplayUi && mApp->mAutoplayMode == "tutorial")
 		{
-			// the mode's button, then (two updates later) the start button
+			// the tutorial's picture button starts it
+			mGames++;
+			mMoves = 0;
+			mForges = 0;
+			mOverLogged = false;
+			mLastState = -1;
+			mLastBoards = 0;
+			Log("game %d (tutorial) starts at update %d", mGames, mTick);
+			ClickWidget(mApp->mSelector->mTutorialPicButton);
+			mWait = 20;
+			return;
+		}
+		if (mApp->mAutoplayUi && mSelStep == 0 && mApp->mAutoplaySkill >= 0)
+		{
+			// the skill level's button, then the mode's, then (each two updates later) the start button
+			ClickWidget(mApp->mSelector->mSkillButtons[mApp->mAutoplaySkill]);
+			mSelStep = 1;
+			mWait = 2;
+			return;
+		}
+		if (mApp->mAutoplayUi && mSelStep <= 1)
+		{
 			bool aTrial = mApp->mAutoplayMode == "timetrial";
 			ClickWidget(aTrial ? (Widget*) mApp->mSelector->mTimeTrialButton : (Widget*) mApp->mSelector->mStrategicButton);
-			mSelStep = 1;
+			mSelStep = 2;
 			mWait = 2;
 			return;
 		}
@@ -457,7 +501,8 @@ void StateLog::Update()
 		return;
 
 	static const char* const aNames[NUM_FIELDS] = {"state", "score", "moves", "discards", "boards", "shape", "color", "timetrial",
-		"trialpause", "fullcount", "overtimer"};
+		"trialpause", "fullcount", "overtimer", "multimoves", "run", "longest", "pause", "numshapes", "numcolors", "bombchance",
+		"skullchance", "elapsed", "totalseconds", "numvalid", "lastshape", "tutorial", "tutstep", "tutcount", "tutwaiting"};
 	int aValues[NUM_FIELDS];
 	for (int i = 0; i < NUM_FIELDS; i++)
 		aValues[i] = -1000000;  // "-": no board or piece
@@ -473,6 +518,22 @@ void StateLog::Update()
 		aValues[8] = aBoard->mTrialPause;
 		aValues[9] = aBoard->mFullCount;
 		aValues[10] = aBoard->mOverTimer;
+		aValues[11] = aBoard->mMultiMoves;
+		aValues[12] = aBoard->mRun;
+		aValues[13] = aBoard->mLongestRun;
+		aValues[14] = aBoard->mPause;
+		aValues[15] = aBoard->mNumShapes;
+		aValues[16] = aBoard->mNumColors;
+		aValues[17] = aBoard->mBombChance;
+		aValues[18] = aBoard->mSkullChance;
+		aValues[19] = aBoard->mElapsed;
+		aValues[20] = aBoard->mTotalSeconds;
+		aValues[21] = aBoard->mNumValid;
+		aValues[22] = aBoard->mLastShape;
+		aValues[23] = aBoard->mTutorial ? 1 : 0;
+		aValues[24] = aBoard->mTutStep;
+		aValues[25] = aBoard->mTutCount;
+		aValues[26] = aBoard->mTutWaiting ? 1 : 0;
 		if (aBoard->mCurPiece != NULL)
 		{
 			aValues[5] = aBoard->mCurPiece->mShape;

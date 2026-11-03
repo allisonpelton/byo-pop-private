@@ -100,6 +100,8 @@ AlchemyApp::AlchemyApp()
 	mAutoplayGames = 1;
 	mAutoplayBot = NULL;
 	mAutoplayUi = false;
+	mAutoplaySkill = -1;
+	mAutoplayMiss = 0;
 	mAutoplayStart = 0;
 	mStateLog = NULL;
 }
@@ -235,6 +237,10 @@ void AlchemyApp::HandleCmdLineParam(const std::string& theParamName, const std::
 		mAutoplayLogFileName = theParamValue;
 	else if (theParamName == "-autoplayui")
 		mAutoplayUi = true;
+	else if (theParamName == "-autoplayskill")
+		mAutoplaySkill = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaymiss")
+		mAutoplayMiss = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplayscript")
 		mAutoplayScriptFileName = theParamValue;
 	else if (theParamName == "-autoplaystart")

@@ -25,7 +25,7 @@ for line in open(orig_file, errors='replace'):
     if k >= len(names) or not 1 < u <= max_update:
         continue
     v = m.group(3)
-    if names[k] == 'timetrial' and v != '-':
+    if names[k] in ('timetrial', 'tutorial', 'tutwaiting') and v != '-':
         v = str(int(v) & 255)  # a bool the watch reads inside an int
     if not (orig[names[k]] and orig[names[k]][-1][1] == v):
         orig[names[k]].append((u, v))

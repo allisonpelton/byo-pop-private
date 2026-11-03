@@ -123,7 +123,11 @@ public:
 	//   -statelog=<file>         each change of the board's state, score, moves, forged pieces, boards cleared and the
 	//                            piece to place, with the update it came at (the identical-play pass compares it with
 	//                            the original's values)
+	//   -autoplayskill=<0..2>    (with -autoplayui) clicks that skill level's button before the mode's
+	//   -autoplaymiss=<n>        (with -autoplayui) one piece in n is put on a cell it cannot go to
 	bool					mAutoplayUi;
+	int						mAutoplaySkill;
+	int						mAutoplayMiss;
 	int						mAutoplayStart;
 	std::string				mAutoplayScriptFileName;
 	std::string				mStateLogFileName;
