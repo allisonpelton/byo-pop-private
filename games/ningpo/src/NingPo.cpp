@@ -552,11 +552,12 @@ void NingPo::updateRemovedTiles()
 	} while (i != 0);
 }
 
+// 0x475544: the clock's seconds (of the minute) at the last tick
+int gClockSeconds = 0;
+
 // 0x404250: the tick (and the quit event): false quits
 bool NingPo::tick()
 {
-	// 0x475544: the clock's seconds at the last tick
-	static int sClockSeconds = 0;
 	if (mState == STATE_EXIT)
 		return false;
 	if (mAutohint != 0 && mState == STATE_PLAYING)
@@ -620,9 +621,9 @@ bool NingPo::tick()
 	PyTime aPaused = getTime();
 	int aSeconds = ((int)aPlayed - (int)aPaused) / 1000 + mPenalty;
 	aSeconds = aSeconds % 0x3c;
-	if (aSeconds != sClockSeconds)
+	if (aSeconds != gClockSeconds)
 	{
-		sClockSeconds = aSeconds;
+		gClockSeconds = aSeconds;
 		invalidateRect(&mClockRect);
 	}
 	return true;
@@ -872,6 +873,11 @@ void NingPo::toTitle(bool theAsk)
 bool NingPo::newGame()
 {
 	restartMusic();
+	mHints = 0;
+	mUndos = 0;
+	mShuffles = 0;
+	mFinalTime = 0;
+	mFinalRawTime = 0;
 	setMusicOn(true);
 	setMusicVolume(mMusicSetting);
 	mBoard.newGame(LAYOUT_FILES[mLayout]);
@@ -880,6 +886,7 @@ bool NingPo::newGame()
 	invalidateAll();
 	mGameStart = mEventTime;
 	mLastAction = mEventTime;
+	mNoMatchTime = 0;
 	// slot 0xcc: the time paused starts again from 0
 	mPausedTime = 0;
 	return true;

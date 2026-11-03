@@ -44,6 +44,11 @@ public:
 		gApp->RunFramework(theMs);
 	}
 
+	void EventRead() override
+	{
+		gApp->UpdateStateLog();
+	}
+
 	void ScreenChanged() override
 	{
 		if (gApp->mWidget != nullptr)
@@ -305,10 +310,13 @@ NingPoApp::NingPoApp()
 	mGame = nullptr;
 	mGameRunning = false;
 	mApplyingGameMode = false;
+	mStateLog = nullptr;
 }
 
 NingPoApp::~NingPoApp()
 {
+	if (mStateLog != nullptr)
+		fclose(mStateLog);
 	if (mWidget != nullptr)
 	{
 		mWidgetManager->RemoveWidget(mWidget);
@@ -443,4 +451,86 @@ void NingPoApp::SetGameFullscreen(bool theFullscreen)
 	mApplyingGameMode = true;
 	SwitchScreenMode(!theFullscreen);
 	mApplyingGameMode = false;
+}
+
+void NingPoApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-statelog")
+		mStateLogFileName = theParamValue;
+	else
+		SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+// The values -statelog follows, with the original's addresses (the game is the global at 0x475550) in the comments:
+// games/ningpo/tools/identical/case.sh watches the same names there
+namespace
+{
+struct StateValue
+{
+	const char* mName;
+	int (*mGet)(ningpo::NingPo* theGame);
+};
+
+const StateValue STATE_VALUES[] =
+{
+	{"state", [](ningpo::NingPo* g) { return g->mState; }},                                // +0x81c0
+	{"tilesleft", [](ningpo::NingPo* g) { return g->mBoard.mTilesLeft; }},                 // +0x81b8
+	{"moves", [](ningpo::NingPo* g) { return g->mBoard.mMoves; }},                         // +0x81bc
+	{"penalty", [](ningpo::NingPo* g) { return g->mPenalty; }},                            // +0x6b1c
+	{"hints", [](ningpo::NingPo* g) { return g->mHints; }},                                // +0x81c4
+	{"undos", [](ningpo::NingPo* g) { return g->mUndos; }},                                // +0x81c8
+	{"shuffles", [](ningpo::NingPo* g) { return g->mShuffles; }},                          // +0x81cc
+	{"finaltime", [](ningpo::NingPo* g) { return g->mFinalTime; }},                        // +0x81d0
+	{"finalraw", [](ningpo::NingPo* g) { return g->mFinalRawTime; }},                      // +0x81d4
+	{"rngindex", [](ningpo::NingPo* g) { return (int)g->mRandom.mIndex; }},                // +0x68fc
+	{"clock", [](ningpo::NingPo*) { return ningpo::gClockSeconds; }},                      // 0x475544
+	{"layout", [](ningpo::NingPo* g) { return g->mLayout; }},                              // +0x8254
+	{"undoindex", [](ningpo::NingPo* g) { return g->mBoard.mUndoIndex; }},                 // +0x6d68
+	{"tile0", [](ningpo::NingPo* g) { return g->mBoard.mTiles[0].mType; }},                // +0x6fb4
+	{"tile71", [](ningpo::NingPo* g) { return g->mBoard.mTiles[71].mType; }},              // +0x7894
+	{"tile143", [](ningpo::NingPo* g) { return g->mBoard.mTiles[143].mType; }},            // +0x8194
+	{"best0tiles", [](ningpo::NingPo* g) { return g->mBestTimes[0][0].mTilesLeft; }},      // +0xacf0
+	{"best0time", [](ningpo::NingPo* g) { return g->mBestTimes[0][0].mTime; }},            // +0xace8
+	{"best1tiles", [](ningpo::NingPo* g) { return g->mBestTimes[0][1].mTilesLeft; }},      // +0xad20
+	{"best1time", [](ningpo::NingPo* g) { return g->mBestTimes[0][1].mTime; }},            // +0xad18
+};
+const int NUM_STATE_VALUES = sizeof(STATE_VALUES) / sizeof(STATE_VALUES[0]);
+}
+
+void NingPoApp::UpdateStateLog()
+{
+	if (mStateLogFileName.empty() || mGame == nullptr)
+		return;
+	bool aFirst = false;
+	if (mStateLog == nullptr)
+	{
+		mStateLog = fopen(mStateLogFileName.c_str(), "w");
+		if (mStateLog == nullptr)
+		{
+			mStateLogFileName.clear();
+			return;
+		}
+		aFirst = true;
+	}
+	uint32_t aTime = (uint32_t)mGame->mEventTime;
+	bool aDealt = false;
+	for (int i = 0; i < NUM_STATE_VALUES && i < 32; i++)
+	{
+		int aValue = STATE_VALUES[i].mGet(mGame);
+		if (aFirst || aValue != mStateLogValues[i])
+		{
+			mStateLogValues[i] = aValue;
+			fprintf(mStateLog, "%u %s %d\n", aTime, STATE_VALUES[i].mName, aValue);
+			aDealt = aDealt || (!aFirst && strcmp(STATE_VALUES[i].mName, "rngindex") == 0);
+		}
+	}
+	// the generator moved (a deal or a shuffle): the board, a line "<time> board <tile> <type> <x> <y> <z>" for each
+	// tile on it, from which games/ningpo/tools/identical/mouse.py picks the pairs a case clicks
+	for (int i = 0; aDealt && i < ningpo::Board::NUM_TILES; i++)
+	{
+		const ningpo::Tile& aTile = mGame->mBoard.mTiles[i];
+		if (aTile.mActive)
+			fprintf(mStateLog, "%u board %d %d %d %d %d\n", aTime, i, aTile.mType, aTile.mX, aTile.mY, aTile.mZ);
+	}
+	fflush(mStateLog);
 }

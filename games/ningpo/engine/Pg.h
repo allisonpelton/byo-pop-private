@@ -80,6 +80,8 @@ public:
 	virtual uint32_t TimeMs() = 0;
 	// Sleep(): the host runs its frame here (the window's messages, which post input events, and the screen)
 	virtual void Sleep(int theMs) = 0;
+	// port: a test hook, called as the game reads its event queue, before the event read becomes the current one
+	virtual void EventRead() {}
 	// The display flipped: the screen holds a new frame
 	virtual void ScreenChanged() = 0;
 	// A file of the game's folder (ningpo.pyz)
@@ -115,6 +117,8 @@ uint32_t HTimeGetTime();
 double HSin(float theDegrees);
 // 0x414192: Sleep()
 void HSleep(uint32_t theMs);
+// port: Host::EventRead (a test hook)
+void HEventRead();
 // 0x4138ed HStrncpy: copies at most theSize - 1 characters and always terminates
 void HStrncpy(char* theDest, const char* theSrc, int theSize);
 // 0x41387c HStricmp

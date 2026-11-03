@@ -69,6 +69,7 @@ bool HInput::peekEvent(PGEvent* theEvent)
 
 bool HInput::getEvent(PGEvent* theEvent, bool theWait)
 {
+	HEventRead();
 	if (peekEvent(theEvent))
 	{
 		mRead = (mRead + 1) % 128;
