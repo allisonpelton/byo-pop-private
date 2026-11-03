@@ -17,6 +17,7 @@
 #include "R64Sys.h"
 #include "CBGlobals.h"
 #include "CBLevel.h"
+#include "CBGame.h"
 
 #include "stb_image.h"
 #include "stb_image_write.h"
@@ -70,8 +71,11 @@ public:
 		return ok;
 	}
 
+	// CB_NOWARP=1 ignores the game's warps, as origrun's scripted cursor does for the original's SetCursorPos
 	void SetMousePos(int x, int y) override
 	{
+		if (std::getenv("CB_NOWARP") != nullptr)
+			return;
 		mMouseX = x;
 		mMouseY = y;
 	}
@@ -245,6 +249,11 @@ int main(int argc, char** argv)
 	size_t aNext = 0;
 	bool aRunning = true;
 	int aFrames = 0;
+	// CB_WATCH=1: origrun's --watch lines for the seed, the score, the lives and the filled cells, read after each frame
+	// (where origrun's virtual clock reads them, at the frame's wait), for comparing a run with the original's
+	bool aWatch = std::getenv("CB_WATCH") != nullptr;
+	int aWatched[4] = {0, 0, 0, 0};
+	bool aKnown[4] = {false, false, false, false};
 	while (aRunning)
 	{
 		while (aNext < anEvents.size() && anEvents[aNext].time <= (int)gHost.mTime)
@@ -279,6 +288,19 @@ int main(int argc, char** argv)
 		}
 		aFrames++;
 		gHost.mTime += 10;
+		if (aWatch)
+		{
+			cb::Level* aLevel = cb::gLevels.current;
+			int aNow[4] = {cb::RandValue(), cb::gScore, cb::gLives, aLevel != nullptr ? aLevel->filledCells : 0};
+			for (int i = 0; i < 4; i++)
+			{
+				if (aKnown[i] && aNow[i] == aWatched[i])
+					continue;
+				std::printf("watch %d: %u at update %d\n", i + 1, (unsigned)aNow[i], cb::gFrame);
+				aWatched[i] = aNow[i];
+				aKnown[i] = true;
+			}
+		}
 	}
 	cb::GameEnd();
 	Sound_Shutdown();
