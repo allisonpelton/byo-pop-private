@@ -87,7 +87,29 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .year { margin-top: -8px; font-size: 12px; color: var(--muted); }
 /* "Sort by" (docs/WEB_PLAYER.md, "The listing page"): a radio group above the games. The legend floats, so that it shares a line
    with the choices; the labels are 32 px high, for a finger. Hidden until the page's script is there to sort. */
-.sortby { box-sizing: border-box; margin: 0 0 16px; padding: 0; border: 0; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; margin: 0 0 16px; }
+.sortby { box-sizing: border-box; margin: 0; padding: 0; border: 0; min-width: 0; }
+/* Adding games (web/addgames.js): the button, the panel of what each folder was, and the drop targets while files are dragged over */
+.add-games, .adding button {
+  font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
+}
+.add-games:hover, .adding button:hover { border-color: var(--accent); }
+.add-games[hidden], .adding[hidden], .adding-rejected[hidden] { display: none; }
+.adding { margin: 0 0 16px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.adding-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.adding-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.adding-head button { padding: 0 10px; font-size: 18px; line-height: 28px; }
+.adding-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.ag-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; overflow-wrap: anywhere; }
+.ag-folder { font-weight: 600; }
+.ag-state { color: var(--muted); font-size: 13px; }
+.ag-ok { color: var(--accent); }
+.ag-error, .adding-rejected { color: #b3261e; }
+@media (prefers-color-scheme: dark) { .ag-error, .adding-rejected { color: #ff8a80; } }
+.adding select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; max-width: 100%; }
+.adding-rejected { margin: 8px 0 0; font-size: 13px; }
+.logo-drop { border-radius: var(--radius); }
+.drop-on { outline: 3px dashed var(--accent); outline-offset: 4px; }
 .sortby[hidden] { display: none; }
 .sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
 .sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
@@ -232,18 +254,34 @@ footer a { color: var(--accent); }
 </head>
 <body>
 <header class="site-header">
-  <img class="logo-light" src="logo.svg" alt="byo-pop" width="276" height="64">
-  <img class="logo-dark" src="logo-dark.svg" alt="" width="276" height="64">
+  <!-- The logo stands for the bottle opener: game folders dropped on it are added (web/addgames.js) -->
+  <div class="logo-drop" id="logo-drop">
+    <img class="logo-light" src="logo.svg" alt="byo-pop" width="276" height="64">
+    <img class="logo-dark" src="logo-dark.svg" alt="" width="276" height="64">
+  </div>
   <h1 id="games-title">Games</h1>
 </header>
 <main>
-  <fieldset class="sortby" id="sortby" hidden>
-    <legend>Sort by</legend>
-    <div class="sortby-opts">
-      <label><input type="radio" name="sortby" value="name" checked> Name</label>
-      <label><input type="radio" name="sortby" value="release"> Release date</label>
+  <div class="toolbar">
+    <fieldset class="sortby" id="sortby" hidden>
+      <legend>Sort by</legend>
+      <div class="sortby-opts">
+        <label><input type="radio" name="sortby" value="name" checked> Name</label>
+        <label><input type="radio" name="sortby" value="release"> Release date</label>
+      </div>
+    </fieldset>
+    <button type="button" class="add-games" id="add-games" hidden>Add games</button>
+    <input type="file" id="add-games-pick" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
+  </div>
+  <!-- What became of the folders added from this page (web/addgames.js) -->
+  <section class="adding" id="adding" aria-labelledby="adding-title" hidden>
+    <div class="adding-head">
+      <h2 id="adding-title">Adding games</h2>
+      <button type="button" id="adding-close" aria-label="Close">×</button>
     </div>
-  </fieldset>
+    <ul class="adding-list" id="adding-list"></ul>
+    <p class="adding-rejected" id="adding-rejected" aria-live="polite" hidden></p>
+  </section>
   <p class="pl-sr" id="sortby-status" role="status"></p>
   <ul class="games" aria-labelledby="games-title">
 <!-- byopop:games -->
@@ -278,6 +316,14 @@ footer a { color: var(--accent); }
 <script src="saveimport-table.js"></script>
 <script src="saveimport.js"></script>
 <script src="saves.js"></script>
+<!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
+     import rules and each listed game's page.js (import-games.js, written by the build) -->
+<script>var Module = {};</script>
+<script src="modpanel.js"></script>
+<script src="exeicon.js"></script>
+<script src="gameimport.js"></script>
+<script src="import-games.js"></script>
+<script src="addgames.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
 try { ByopopSettings.render(document.getElementById("settings-controls")); } catch (e) {}
@@ -599,6 +645,9 @@ try {
   window.addEventListener("pageshow", check);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
   window.addEventListener("storage", function (ev) { if (ev.key === null || ev.key === ByopopGameFiles.KEY || ev.key === ByopopPlay.KEY) check(); });
+  // for web/addgames.js, after it adds a game
+  window.ByopopTiles = { check: check };
+  try { ByopopAddGames.init(); } catch (e) {}
 })();
 </script>
 <script>

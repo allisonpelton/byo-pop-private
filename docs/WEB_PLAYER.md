@@ -36,7 +36,8 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
    `main.pak`, XORed with 0xF7) names it in its page's `paks`: the import unpacks it into the game's folder
    (`Module.byopop.pak.read` in `web/modpanel.js`, the format of `tools/popcap_pak.py`) and does not store the pak,
    so the browser keeps one copy of the files, the same tree native staging gives the game.
-   `tools/paktest/paktest.js` checks the reader under Node.
+   `tools/paktest/paktest.js` checks the reader under Node. The rules (which folder is the game's, which files are
+   copied, the paks) are in `web/gameimport.js`, which the listing page uses too ("Adding games from the listing page").
 7. **Play.** Browsers allow sound only after you click or press a key, so the page waits for "Play". Then
    it calls the game's `main()` with folder arguments (`-gamedir=/persist/game -userdir=... -modsdir=...`),
    plus `-gameseed=N` for a `?seed=N` in the address, `-placeholders` for `?placeholders=1` and `-nomods` for
@@ -391,6 +392,47 @@ appears for files imported before this existed. It is derived from the files, so
 (and so does finding the files gone), and it is shown only while the files are there. It stays in this browser and is
 never sent anywhere. `tools/exeicontest.js` checks the parser under Node against the exes in `assets/<game>/` (it prints
 one line for each exe and writes no icon) and against synthetic exes made for every decoder, and feeds it damaged files.
+
+### Adding games from the listing page
+
+The user, 2026-11-03 (the "Site" section of `testnotes/TEST_NOTES.md`): "Allow many games' files to be added at once. Try to
+infer the game from the folder name, allow the user to manually specify which game a folder is for if unclear, and tell the user
+which folders were rejected", and "allow dragging your game folder onto the logo to add it (representing the use of the bottle
+opener). Also allow a game folder to be dragged onto its game tile to add its files." This is a rough first version; the bottle
+cap and opener animation comes after Bejeweled Twist's last merge.
+
+There are three ways in, all in `web/addgames.js`:
+
+- **A game's card.** A folder (or a .zip of one) dropped on a finished game's card is taken as that game's, exactly as its own
+  page's import card takes it: the game's markers are looked for in it and nowhere else, and a folder without them is refused
+  with the import card's own words ("That folder doesn't hold Bejeweled Deluxe's images/gemsheet6 file").
+- **The logo.** Folders dropped on the logo stand for the bottle opener: each one is sorted into the game it is.
+- **"Add games".** The button beside "Sort by" opens a folder picker (one folder: a game's, or the folder that holds many, such
+  as "PopCap Games"), sorted the same way. It is the way in for the keyboard and for browsers without drag and drop.
+
+Sorting (`ByopopImport.sort` in `web/gameimport.js`) goes by the files first and the name second, as the files say more surely
+which game a folder is than its name does. A folder is a game's when it holds every one of the game's markers (the files its page
+looks for); a folder that holds several games in different places (the "PopCap Games" folder) is looked into, three levels deep
+at most, and a folder with no game this site plays in it is rejected. Where two games' markers are at the same place (a game and
+its sequel can share file names), the folder's name picks the one whose title, short name or build target it matches, ignoring
+case, punctuation and words every game folder has ("Deluxe", "PopCap", "Games"). When the name cannot tell, the panel asks
+("Which game?", with only the games it could be). The panel under the toolbar shows each folder with its game and its state
+(a live region), and names the rejected folders in one line.
+
+The games are added one at a time. The listing page runs no game, so it cannot use a game's Emscripten file system: it writes the
+files straight into the game's IndexedDB database, in the records IDBFS itself writes and reads (`FILE_DATA`, keyed by path,
+`{timestamp, mode, contents}`, with a directory record for every folder, as `web/saves.js` does for a restore), after deleting
+the old game folder's records. It does so while holding the game's Web Lock (`PAGE.lock`), which a game page takes before it
+reads its storage and holds for its whole life; so a game whose page is open in another tab is refused ("... is open in another
+tab or window"), and no page can mount the database while it is written, then write its old copy back over the new one. The rules
+for what is copied are the game page's own: `web/gameimport.js` holds the finding of the game root, the unpacking of paks, the
+choice of files and the icon read out of the exe, the game pages call it from their import card, and the listing page has each
+listed game's `page.js` in `import-games.js`, which `byopop_web_index()` writes, each wrapped in a function that returns its
+`PAGE` (a page.js only declares things, and none of its functions is called there). The listing page loads `web/modpanel.js`
+for its zip and pak readers, with an empty `Module` (it fills `Module.byopop` and starts nothing). After a game is added, the
+record of its files is kept as the game page keeps it after an import (`ByopopGameFiles.mark`, with the icon), the browser is
+asked to keep the site's storage, and the cards are checked again. `tools/gameimporttest.js` (in `unit-web`) checks the rules and
+the sorting under Node with the real games' `page.js` files.
 
 ### Site settings
 

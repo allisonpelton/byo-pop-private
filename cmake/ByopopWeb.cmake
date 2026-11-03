@@ -37,16 +37,19 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
 # settings", "The listing page"): one file that the listing page and every game page load. web/profiles.js keeps the site's
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
-# web/exeicon.js reads a game's icon out of its exe (the game pages load it). web/chat.js is the chat beside the game
-# (docs/CHAT_DESIGN.md). All four are copied next to the pages. chat-games.js, the chat's table of the site's games (the id
+# web/exeicon.js reads a game's icon out of its exe (the game pages and the listing page load it). web/gameimport.js holds the
+# rules for importing a game's files, which the game pages' import card and the listing page's adding of games share
+# (docs/WEB_PLAYER.md, "Adding games from the listing page"). web/chat.js is the chat beside the game (docs/CHAT_DESIGN.md). All
+# five are copied next to the pages. chat-games.js, the chat's table of the site's games (the id
 # of each game's page, its page's file name, its badge's initials and colour and its title), is written beside them by
 # byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
 # games of its own.
-set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js chat.js)
+set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js gameimport.js chat.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
-# saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), copied
-# next to index.html only
-set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js)
+# saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
+# adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
+# game's page.js, which byopop_web_index() writes), copied next to index.html only
+set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -426,6 +429,7 @@ function(byopop_web_game target)
     set_property(GLOBAL PROPERTY BYOPOP_WEB_replays_${target} "")
   endif()
   set_property(GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target} "${arg_TITLE}")
+  set_property(GLOBAL PROPERTY BYOPOP_WEB_pagejs_${target} "${arg_PAGE}/page.js")
   set(export_list ${BYOPOP_WEB_EXPORTED_FUNCTIONS} ${arg_EXPORTS})
   list(REMOVE_DUPLICATES export_list)
   list(JOIN export_list "','" exports)
@@ -459,6 +463,7 @@ function(byopop_web_index)
   set(tiles "")
   set(chat_games "")
   set(chat_separator "")
+  set(import_games "")
   set(count 0)
   set(soon_count 0)
   # the tiles go in alphabetical order of the games' titles, ignoring case (the user, 2026-10-27) and "Deluxe", so
@@ -603,6 +608,13 @@ function(byopop_web_index)
       string(APPEND chat_games "${chat_separator}  {\"id\": \"${game_id}\", \"page\": \"${target}.html\", \"tag\": \"${chat_initials}\", "
         "\"title\": \"${chat_title}\", \"colour\": \"${colour}\"}")
       set(chat_separator ",\n")
+      # the game's import rules for a folder dropped on the listing page (web/gameimport.js): its page.js, run in a function of
+      # its own that returns its PAGE (the file only declares things, and none of its functions is called)
+      get_property(game_page_js GLOBAL PROPERTY BYOPOP_WEB_pagejs_${target})
+      file(READ ${game_page_js} import_page_js)
+      string(REPLACE "\\" "\\\\" import_title "${title}")
+      string(REPLACE "\"" "\\\"" import_title "${import_title}")
+      string(APPEND import_games "ByopopImport.add(\"${target}\", \"${import_title}\", function () {\n${import_page_js}\n  return PAGE;\n});\n")
     endif()
     # the game's Web Lock (its page holds it while it runs) and whether it keeps replays, for the save backup (web/saves.js)
     get_property(game_lock GLOBAL PROPERTY BYOPOP_WEB_lock_${target})
@@ -690,6 +702,9 @@ function(byopop_web_index)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")
+  # the listed games' import rules, for the listing page's adding of games (web/gameimport.js), loaded after it
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/import-games.js
+    "// The listed games' page.js files, for web/gameimport.js (written by byopop_web_index(), cmake/ByopopWeb.cmake)\n${import_games}")
   message(STATUS "byo-pop: the listing page shows ${count} games and ${soon_count} coming soon")
 endfunction()
 if(EMSCRIPTEN)
