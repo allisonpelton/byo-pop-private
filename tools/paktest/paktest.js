@@ -8,6 +8,8 @@
 var fs = require("fs");
 var path = require("path");
 
+// the site's text first, as on a page (modpanel.js's errors are its strings)
+require("../stringsload").intoGlobal();
 global.Module = {};
 require(path.join(__dirname, "../../web/modpanel.js"));
 var pak = global.Module.byopop.pak;

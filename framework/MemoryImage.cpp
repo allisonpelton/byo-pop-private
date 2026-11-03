@@ -184,6 +184,7 @@ MemoryImage::MemoryImage(const MemoryImage& theMemoryImage) :
 	mD3DData(NULL)
 {
 	InitHD();
+	mRotateRowsByImageWidth = false;	// a copy is a plain image, as Init leaves one
 
 	bool deleteBits = false;
 
@@ -311,6 +312,7 @@ void MemoryImage::Init()
 
 	mPurgeBits = false;
 	mWantPal = false;
+	mRotateRowsByImageWidth = false;
 
 	mApp->AddMemoryImage(this);
 }
@@ -1814,7 +1816,7 @@ void MemoryImage::BltRotated(Image* theImage, float theX, float theY, const Rect
 	{	
 		if (aMemoryImage->mColorTable == NULL)
 		{			
-			ulong* aSrcBits = aMemoryImage->GetBits() + theSrcRect.mX + theSrcRect.mY*theSrcRect.mWidth;			
+			ulong* aSrcBits = aMemoryImage->GetBits() + theSrcRect.mX + theSrcRect.mY*(mRotateRowsByImageWidth ? aMemoryImage->mWidth : theSrcRect.mWidth);			
 
 			#define SRC_TYPE ulong
 			#define READ_COLOR(ptr) (*(ptr))
@@ -1834,7 +1836,7 @@ void MemoryImage::BltRotated(Image* theImage, float theX, float theY, const Rect
 		else
 		{			
 			ulong* aColorTable = aMemoryImage->mColorTable;
-			uchar* aSrcBits = aMemoryImage->mColorIndices + theSrcRect.mX + theSrcRect.mY*theSrcRect.mWidth;
+			uchar* aSrcBits = aMemoryImage->mColorIndices + theSrcRect.mX + theSrcRect.mY*(mRotateRowsByImageWidth ? aMemoryImage->mWidth : theSrcRect.mWidth);
 
 			#define SRC_TYPE uchar
 			#define READ_COLOR(ptr) (aColorTable[*(ptr)])

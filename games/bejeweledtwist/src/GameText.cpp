@@ -138,8 +138,7 @@ bool Sexy::LoadGameTexts()
 	int aMismatched = 0;
 	if (aRead)
 	{
-		// The install's exe is a launcher with the game's image appended after a marker (the retail copy's CD check, the
-		// Steam copy's wrapper); a staged copy is the image itself
+		// The install's exe may hold the game's image after a marker; a staged copy is the image itself
 		size_t aBase = 0;
 		for (const char* aMarker : {"!popcapcdprotect!", "!popcapdrmprotect!"})
 		{

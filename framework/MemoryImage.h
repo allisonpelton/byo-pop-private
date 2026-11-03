@@ -42,6 +42,12 @@ public:
 	bool					mIsVolatile;
 	bool					mPurgeBits;
 	bool					mWantPal;
+	// port: BltRotated finds its source's first row by the image's width, where 1.3's MemoryImage::BltRotated
+	// multiplies the source rectangle's top by the rectangle's own width (and so starts too high for a cel below a
+	// sheet's first row; Bejeweled Twist's MemoryImage::BltRotated, 0x431160, does too). Off by default, so a game keeps
+	// those reads; DDInterface's transform copies set it, since they stand in for a software screen, and DDImage's
+	// BltRotated finds the row by the image's width (Bejeweled Twist's 0x413150).
+	bool					mRotateRowsByImageWidth;
 	
 	ulong*					mNativeAlphaData;
 	uchar*					mRLAlphaData;
