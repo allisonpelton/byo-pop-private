@@ -74,8 +74,10 @@
 #                screenshots (about 20 seconds)
 #   cosmicbugs   Cosmic Bugs: both art banks, the fonts and every animation the game ships loaded
 #                (cosmicbugs_banktest), a scripted game played headless (cosmicbugs_run: two lines on the first
-#                board) and a rerun with the same screenshots, and the windowed exe twice with the same clicks: the
-#                runner's state, the same screen (under a minute)
+#                board) and a rerun with the same screenshots, the windowed exe twice with the same clicks: the
+#                runner's state, the same screen, and the series of games that play out as the original's
+#                (games/cosmicbugs/test/plays) against build/baseline-cosmicbugs/'s runner when there is one
+#                (under a minute)
 #   bookwormadv2 Bookworm Adventures Volume 2: PopLua on the game's 462 scripts (bwa2_luarun): the compiler's
 #                dialect checks, every compiled script loaded and its main chunk run, and the 8 scripts/common
 #                sources recompiled instruction for instruction against their shipped chunks; fails on a bad exit
@@ -1334,8 +1336,23 @@ suite_rocketmania() {
 	return $st
 }
 
+cosmicbugs_plays() {  # <exe> <tag>: the series of games checked against the original (games/cosmicbugs/test/plays), each
+	# played by the runner with origrun's watches; prints the checksum of all their watch lines, and EMPTY with the games
+	# that printed none (an exe that fails at start-up would otherwise give the checksum of nothing on both sides)
+	local exe="$1" d="$OUT/cosmicbugs/plays-$2" f n empty=""
+	rm -rf "$d"; mkdir -p "$d"
+	for f in games/cosmicbugs/test/plays/*.txt; do
+		n="$(basename "$f" .txt)"; case "$n" in *.orig) continue ;; esac
+		mkdir -p "$d/$n"
+		CB_NOWARP=1 CB_WATCH=1 timeout 300 "$exe" assets/cosmicbugs "$d/$n" "$f" 2>&1 | tr -d '\r' | grep '^watch ' > "$d/$n.txt"
+		[ -s "$d/$n.txt" ] || empty="$empty $n"
+	done
+	ls "$d"/*.txt > /dev/null 2>&1 || empty=" (no games)"
+	echo "$(cat "$d"/*.txt 2>/dev/null | md5sum | cut -c1-12), $(cat "$d"/*.txt 2>/dev/null | wc -l) watch lines${empty:+; EMPTY:$empty}"
+}
+
 suite_cosmicbugs() {
-	local st=0 b g r w w2 c="$OUT/cosmicbugs" ea=0 ef=0
+	local st=0 b g r w w2 p pb c="$OUT/cosmicbugs" ea=0 ef=0
 	need_assets cosmicbugs || return 1
 	mkdir -p "$c/banks"
 	# Every animation bugs.xml names and every font, each listing kept (bugs.xml names nine files the game does not ship)
@@ -1347,14 +1364,20 @@ suite_cosmicbugs() {
 	# The windowed exe's -fast clock does not step 10 ms on every update, so its animations' phases are not the
 	# runner's: its state after the first line is, and its screen is its rerun's
 	w="$(cosmicbugs_window window)"; w2="$(cosmicbugs_window window2)"
-	{ echo "banks: $b"; echo "game: $g"; echo "rerun: $r"; echo "window: $w"; echo "window rerun: $w2"; } > "$1"
+	# the series of games that play out as the original's (games/cosmicbugs/docs/IDENTICAL_PLAY.md), against the frozen
+	# baseline (build/baseline-cosmicbugs/, the runner as it was when they were last checked against the original)
+	p="$(cosmicbugs_plays build/native/cosmicbugs_run.exe now)"; pb=""
+	[ -f build/baseline-cosmicbugs/cosmicbugs_run.exe ] && pb="$(cosmicbugs_plays build/baseline-cosmicbugs/cosmicbugs_run.exe base)"
+	{ echo "banks: $b"; echo "game: $g"; echo "rerun: $r"; echo "window: $w"; echo "window rerun: $w2"; echo "plays: $p"; echo "baseline plays: $pb"; } > "$1"
 	[ "$b" = "$CB_BANKS" ] || st=1
 	[ "$g" = "$CB_GAME" ] || st=1
 	if diff -q "$c/game/line1.png" "$c/game2/line1.png" >> "$1" 2>&1 && diff -q "$c/game/line2.png" "$c/game2/line2.png" >> "$1" 2>&1 &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g%%;*}" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/line1.png" "$c/window2/line1.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
-	SUMMARY="$b; $g; $r; $w"
+	if [[ "$p$pb" == *EMPTY* ]]; then p="PLAYS EMPTY (now: $p; baseline: $pb)"; st=1
+	elif [ -z "$pb" ]; then p="plays $p, no baseline"; elif [ "$p" = "$pb" ]; then p="plays as the baseline"; else p="PLAYS DIFFER FROM THE BASELINE"; st=1; fi
+	SUMMARY="$b; $g; $r; $w; $p"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$CB_BANKS', '$CB_GAME')"
 	return $st
 }

@@ -64,11 +64,12 @@ void ParseHex3(const char* theText, int* a, int* b, int* c)
 	*c = (int)v;
 }
 
-// Schrage's step with the original's constants (q = 2), in 32-bit wrapping arithmetic
+// Schrage's step with the original's constants (q = 2), in 32-bit wrapping arithmetic; the seed is divided unsigned
+// (the original's div at 0x420297)
 void Rand()
 {
-	gRandSeed = (int32_t)((uint32_t)(gRandSeed % kRandQ) * (uint32_t)kRandA -
-		(uint32_t)(gRandSeed / kRandQ) * (uint32_t)kRandR);
+	uint32_t aSeed = (uint32_t)gRandSeed;
+	gRandSeed = (int32_t)((aSeed % (uint32_t)kRandQ) * (uint32_t)kRandA - (aSeed / (uint32_t)kRandQ) * (uint32_t)kRandR);
 }
 
 void SeedRand(int theSeed)
@@ -93,12 +94,14 @@ int RandValue()
 	return gRandSeed;
 }
 
+// 0x420300: the differences are stored as floats, and so is the sum of their squares before its square root
 float Dist3(const float* a, const float* b)
 {
-	double dx = (double)b[0] - a[0];
-	double dy = (double)b[1] - a[1];
-	double dz = (double)b[2] - a[2];
-	return (float)std::sqrt(dz * dz + dx * dx + dy * dy);
+	float dx = b[0] - a[0];
+	float dy = b[1] - a[1];
+	float dz = b[2] - a[2];
+	float aSum = (float)((double)dz * dz + ((double)dy * dy + (double)dx * dx));
+	return (float)std::sqrt((double)aSum);
 }
 
 float SegmentDist3(const float* p, const float* a, const float* b)

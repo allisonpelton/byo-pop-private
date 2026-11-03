@@ -276,8 +276,18 @@ void Beam_Destroy(Beam* theBeam)
 	Obj_Destroy(theBeam);
 }
 
+// The port forgets the beam in every enemy that touched it last: the original keeps the freed pointer, so a beam the
+// heap puts at the same address later makes no rider on that enemy, by the heap's chance (IDENTICAL_PLAY.md)
 void List_DeleteNode(Beam* theBeam)
 {
+	if (gLevels.current != nullptr)
+	{
+		for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
+		{
+			if (anEnemy->lastBeam == theBeam)
+				anEnemy->lastBeam = nullptr;
+		}
+	}
 	Beam_Destroy(theBeam);
 	::operator delete(theBeam);
 }

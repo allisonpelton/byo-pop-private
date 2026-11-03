@@ -86,6 +86,9 @@ screenshots. Then it runs the windowed exe twice with the same clicks (`-fast -s
 line must be the runner's, and its screen the same both times. The scripts click only the menu, the instructions and
 the board, never a link.
 
+The suite also plays the series of games that play out the same in the original (`test/plays`; IDENTICAL_PLAY.md
+says how they were compared) and checks them against the frozen runner in `build/baseline-cosmicbugs/`.
+
 Other runs (2026-10-26) toured the options (and their Back), the Hall of Fame, the credits and Quit, and played five
 minutes of game time with a line every 2.5 seconds at varying places: several boards finished (their bonuses, the
 next boards' intros and tile sets), lives lost down to the game's end, and the Hall of Fame with the new score under
