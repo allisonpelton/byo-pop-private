@@ -49,6 +49,14 @@ check("root at the top", I.findRoot(spec("bejeweled"), files("Bejeweled/images/G
 check("root deeper", I.findRoot(spec("tiptop"), files("a/b/TipTop.dat", "a/b/TIPTOP.EXE"), false), "a/b/");
 check("root needs every marker", I.findRoot(spec("tiptop"), files("a/TipTop.dat"), false), null);
 check("markers in one folder", I.findRoot(spec("tiptop"), files("a/TipTop.dat", "b/TipTop.exe"), false), null);
+// the error names only what the best folder lacks, in markerText's casing, as a list
+check("missing: the one marker a folder lacks", I.missingMarkers(spec("tiptop"), files("a/TipTop.dat", "a/readme.txt")), "TipTop.exe");
+check("missing: the folder with the most markers", I.missingMarkers(spec("bookworm"), files("x/wordlist.txt", "y/wordlist.txt", "y/music/bookworm1.mo3")), "Bookworm.exe");
+check("missing: all of them, as a list", I.missingMarkers(spec("tiptop"), files("a/other.txt")), "TipTop.dat and TipTop.exe");
+check("missing: a marker of any type, named without it", I.missingMarkers(spec("bejeweled"), files("Bejeweled/x.txt")), "images/gemsheet6");
+check("missing: a pak in dropped files is a file to find", I.missingMarkers(spec("bookwormadv"), files("B/BookwormAdventures.exe", "B/Images/a.png")), "main.pak");
+check("missing: a pak game's exe, any case", I.missingMarkers(spec("bookwormadv"), files("B/MAIN.PAK", "B/other.exe")), "BookwormAdventures.exe");
+check("missing in a known root",I.missingIn(spec("tiptop"), ["TipTop.exe"]), "TipTop.dat");
 // the files picked
 const picked = I.pick(spec("bejeweled"), files("B/Images/gemsheet6.png", "B/images/x.sig", "B/Bejeweled.exe", "B/readme.txt", "B/Music/m.mo3"), "B/", safeRel)
   .map((f) => f.rel);
@@ -69,7 +77,7 @@ check("a folder of games", brief(I.sort(files("PopCap Games/TipTop Deluxe/TipTop
   { found: [["TipTop Deluxe", "tiptop", "PopCap Games/TipTop Deluxe/", ["tiptop"]],
     ["Mahjong Escape Ancient Japan", "mahjongjapan", "PopCap Games/Mahjong Escape Ancient Japan/", ["mahjongjapan"]]], rejected: ["Common"] });
 check("no game", brief(I.sort(files("Photos/a.jpg", "Photos/b/c.jpg"))), { found: [], rejected: ["Photos"] });
-check("loose files", brief(I.sort(files("TipTop.dat", "TipTop.exe"))), { found: [["(the dropped files)", "tiptop", "", ["tiptop"]]], rejected: [] });
+check("loose files", brief(I.sort(files("TipTop.dat", "TipTop.exe"))), { found: [["import.dropped_files", "tiptop", "", ["tiptop"]]], rejected: [] });
 const both = ["resource.dll", "MahjongEscapeAJ.exe", "MahjongEscapeAC.exe"];
 check("two games at one place, told by the name", brief(I.sort(files(...both.map((f) => "Mahjong Escape Ancient China/" + f)))).found[0][1], "mahjongchina");
 check("two games at one place, left to the player", brief(I.sort(files(...both.map((f) => "Mahjong/" + f)))).found[0].slice(1),

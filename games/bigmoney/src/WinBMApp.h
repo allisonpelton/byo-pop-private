@@ -180,6 +180,12 @@ public:
 	//                          -autoplaygames=<n> games (default 1), -autoplaycap=<n> updates
 	//                          (default 200000), -autoplaylog=<file> (the input as a -script file),
 	//                          -autoplayshot=<prefix> (screenshots at level ends and game overs)
+	//   -statelog=<file>       the board's score, state, RNG index, level and first RNG word, a line at each change with the
+	//                          update, as origrun's --watch logs the original's (games/bigmoney/docs/IDENTICAL_PLAY.md)
+	std::string		mStateLogFileName;
+	FILE*			mStateLog;
+	std::string		mStateLogLast[5];
+	void			LogState();
 	bool			mAutoplay;
 	unsigned long	mAutoplaySeed;
 	int				mAutoplayMode;

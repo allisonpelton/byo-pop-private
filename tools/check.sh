@@ -160,9 +160,9 @@
 BW_CLASSIC="level 8, score 58970"
 BW_ACTION="level 14, score 152360"
 BM_GAME1="score 66646"
-NA_ACTION="level 4 done at update 17083: score 7622 mode stampede"
-NA_STRATEGY="level 4 done at update 15469: score 4430 mode strategy"
-NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
+NA_ACTION="level 4 done at update 17369: score 6524 mode stampede"
+NA_STRATEGY="level 5 done at update 19202: score 6610 mode strategy"
+NA_PUZZLE="game 1 over at update 6750: score 1450 level 1 moves 37"
 AT_STRATEGY="game 1 over at update 6876: score 1600 level 2 moves 90"
 AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
 AL_STRATEGIC="game 1 over at update 12206: score 7432 pieces 830 forged 29 boards 3"
@@ -292,8 +292,9 @@ classify() {  # <path>: chooses the suites a changed file needs
 			fi ;;
 		web/*|cmake/ByopopWeb.cmake|cmake/ByopopStores.cmake)
 			pick build-web "$AREA" "$p"; pick unit-web "$AREA" "$p"
-			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses)
-			case "$p" in web/modpanel.js|web/shell.html|web/footer.*|web/copyright.html|web/terms.html|web/licenses/*) WEB_FULL_EST=356 ;; esac ;;
+			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses,
+			# and the site's text, which fills the shell)
+			case "$p" in web/modpanel.js|web/shell.html|web/footer.*|web/copyright.html|web/terms.html|web/licenses/*|web/strings/*) WEB_FULL_EST=356 ;; esac ;;
 		tools/*)
 			x="${p#tools/}"
 			case "$x" in
@@ -777,6 +778,11 @@ alchemy_game() {  # <name> <mode> <cap> [user dir to keep]: a bot game; prints i
 	grep -E '^(game [0-9]+ over|tutorial button|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
+alchemy_state_game() {  # <name> <exe> <mode> <bot seed> <game seed> <skill>: a game played by mouse; its state log is <name>/state.txt
+	local d="$OUT/alchemy/$1"; rm -rf "$d"; mkdir -p "$d"
+	timeout 600 "$2" -userdir="$d/user" -fast -seed="$5" -autoplayui -autoplaystart=450 -autoplay="$4" -autoplaymode="$3" -autoplayskill="$6" -autoplaycap=20000 		-statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_alchemy() {
 	local st=0 s t u r v sv
 	need_assets alchemy || return 1
@@ -792,7 +798,20 @@ suite_alchemy() {
 	[ "$u" = "$AL_TUTORIAL" ] || st=1
 	[ "$v" = 1 ] || st=1
 	if diff -rq "$OUT/alchemy/strategic/shots" "$OUT/alchemy/strategic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/alchemy/strategic/log.txt" "$OUT/alchemy/strategic2/log.txt" && [ "$s" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="strategic ${s#game 1 over at update }; time trial ${t#game 1 over at update }; ${u}; saved game loaded $v time; $r"
+	# the frozen baseline (build/baseline-alchemy/, the port when its identical-play pass was done): the same mouse-played
+	# games must give the same state at every update (the values the pass compared with the original)
+	local base="$W/build/baseline-alchemy/alchemy.exe" bl="" a
+	if [ -f "$base" ]; then
+		for a in "strategic 7 1 -1" "timetrial 1 1 -1" "strategic 3 4 2"; do
+			read -r m bs gs sk <<< "$a"
+			alchemy_state_game "cur-$m-$gs" "$W/build/native/alchemy.exe" "$m" "$bs" "$gs" "$sk"
+			alchemy_state_game "base-$m-$gs" "$base" "$m" "$bs" "$gs" "$sk"
+			[ -s "$OUT/alchemy/cur-$m-$gs/state.txt" ] && [ -s "$OUT/alchemy/base-$m-$gs/state.txt" ] &&
+				cmp -s "$OUT/alchemy/cur-$m-$gs/state.txt" "$OUT/alchemy/base-$m-$gs/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="strategic ${s#game 1 over at update }; time trial ${t#game 1 over at update }; ${u}; saved game loaded $v time; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected strategic '$AL_STRATEGIC', time trial '$AL_TIMETRIAL', tutorial '$AL_TUTORIAL')"
 	return $st
 }

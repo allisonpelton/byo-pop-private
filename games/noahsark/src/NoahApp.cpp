@@ -90,7 +90,9 @@ NoahApp::NoahApp()
 	mAutoplayDiff = 0;
 	mAutoplayGames = 1;
 	mAutoplayCap = 200000;
+	mAutoplayMenu = false;
 	mAutoplayState = NULL;
+	mStateLogState = NULL;
 }
 
 NoahApp::~NoahApp()
@@ -233,6 +235,8 @@ void NoahApp::ButtonPress(int theId)
 void NoahApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	if (!mStateLog.empty())
+		StateLogUpdate();                   // before the bot's clicks: the original handles a click inside the next update
 	if (mAutoplay)
 		AutoplayUpdate();
 	if (mMainSongStarted && !mMusicInterface->IsPlaying(SONG_GAME_INTRO) && !mMusicInterface->IsPlaying(SONG_GAME) &&

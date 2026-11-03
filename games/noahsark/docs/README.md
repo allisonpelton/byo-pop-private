@@ -10,6 +10,7 @@ Nothing from the game itself is in the repository: not its images, sounds, music
 |---|---|
 | [GAME_NOTES.md](GAME_NOTES.md) | Behaviour notes of the game code: binary layout, resources, the board's data and rules |
 | [FRAMEWORK_2002.md](FRAMEWORK_2002.md) | The 2002 SexyApp framework the game was built on, and how the port maps it |
+| [IDENTICAL_PLAY.md](IDENTICAL_PLAY.md) | The identical-play pass against the original: how it was compared, the changes, the oddities left |
 | [MOD_IDEAS.md](MOD_IDEAS.md) | The brainstorm for this game's mods, what was made and how each mod works |
 | `symbols/*.jsonl` | Names for Ghidra (`ApplySymbols.java`): the framework's core classes |
 
