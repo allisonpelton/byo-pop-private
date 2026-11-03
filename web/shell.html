@@ -817,8 +817,21 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
   // isAutostart: true after the game's own restart, "sound" when the page started it on opening (startOnOpen), else a
   // click. noMods: this run only (-nomods), the rescue when a mod stops the game from starting
+  // Play is safe at any moment: a press before boot() has the mods panel and the game's files (a click or key that reached the
+  // button while its card was still hidden) does nothing, and an error before the game's main runs puts the Ready card back
+  // instead of leaving the page started with no game.
+  var mainCalled = false;
   function startGame(isAutostart, noMods) {
-    if (started || !hasAgreed()) return;
+    if (started || !hasAgreed() || !panel || !session || !hasGameFiles()) return;
+    try { runGame(isAutostart, noMods); }
+    catch (e) {
+      console.error("byo-pop: the start failed", e);
+      if (mainCalled) return;
+      started = false;
+      showReady();
+    }
+  }
+  function runGame(isAutostart, noMods) {
     started = true;
     // The site setting "full screen at start": "Full screen" is asked for first, while the click that pressed Play still counts
     // (browsers allow it only from one; the restart of the game's own menu has no click, so it does not ask). "Windowed" is
@@ -851,6 +864,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // mods" after a crash reloads with the same flag, but with noMods, which the restart never sets: that one is a play
     if (isAutostart !== true || noMods) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
     askToKeepStorage();
+    mainCalled = true;
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     startChat();
     cursorTimer = setInterval(pollCursor, 100);
