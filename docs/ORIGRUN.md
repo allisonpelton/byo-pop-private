@@ -110,6 +110,10 @@ Options:
 - `--cursor scripted` / `--cursor real` — the copy's `GetCursorPos` returns the last mouse position the script
   posted, or Windows' cursor (the default), for a game that reads the cursor after posted input (Bejeweled Twist's
   board). With or without `--clock virtual`; refused with `--sound real`. See "The scripted cursor".
+- `--msgbox show` — show the copy's message boxes as before (each plays its sound, and the dialog watch answers it once
+  it is on screen) instead of answering them in the stand-in with no window and no sound, which every run with the
+  stand-in does by default (`--msgbox hook`). For a phase-two comparison that photographs a box; turn the speakers off
+  for it. See "Message boxes and beeps (hooked)".
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
@@ -181,7 +185,8 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
   button labelled `<button>` (e.g. `msgbox No Trial expired`, `msgbox OK update`). Put these at the top of the
   script; they are registered before the game launches, so even a box that pops up early is answered. A box
   with no matching rule is answered by its own default button. The label match ignores the `&` accelerator and
-  case. Never name a link/"Buy"/"More Games" button here (see the warning below).
+  case. The same rules answer the boxes the stand-in hooks, which never appear ("Message boxes and beeps (hooked)").
+  Never name a link/"Buy"/"More Games" button here (see the warning below).
 - `quit` — ask the window to close, and end the run.
 
 **A script must never click a link button** — "Buy", "Buy Now", "Register", "More Games", a store or web
@@ -234,8 +239,10 @@ coordinates that land on Play.
    the dialog's own default button, by posting `BM_CLICK` to that button. Only documented window APIs are used;
    nothing is injected into the game. Checked: a test program that pops two boxes was answered correctly — the
    first by a `msgbox No Trial expired` rule (it returned IDNO) and the second by its default (it returned IDOK)
-   — both logged, and the program then exited, which proves the clicks landed. See the gaps below for what this
-   cannot do (it sees a box only once it is already on screen).
+   — both logged, and the program then exited, which proves the clicks landed. The watch sees a box only once it is
+   on screen, after its sound, so since 2026-11-03 the stand-in answers the copy's MessageBox calls itself, with no
+   window and no sound, by the same rules, and silences MessageBeep ("Message boxes and beeps (hooked)"); the watch
+   still answers every other dialog, and the boxes of a run with `--msgbox show` or `--sound real`.
 
 Registry and save redirection is **not** implemented on the host (the user allowed the originals to use their real
 registry and saves). A host run therefore writes the game's settings and trial state to the real registry and save
@@ -815,6 +822,70 @@ was made.
 - One point for the run: every process of the copy reads the last one posted, a process that starts later too, as a
   real mouse stays where it was.
 
+## Message boxes and beeps (hooked)
+
+A message box plays its sound as it appears (the error chime or question ding of its icon), and the dialog watch
+(guarantee 6) sees a box only once it is on screen. So until 2026-11-03 every box an original showed rang on the user's
+speakers before origrun answered it, and every `MessageBeep` rang too: Ning Po's "Sound will be unavailable" box did on
+each run.
+
+Now, in every run that has the sound stand-in (`--sound stub`, `nodriver` and `wav`), on the host and in the sandbox,
+the stand-in points the copy's imports of `MessageBoxA`/`W`, `MessageBoxExA`/`W`, `MessageBoxIndirectA`/`W`,
+`MessageBoxTimeoutA`/`W` and `MessageBeep` at its own functions (`tools/origrun/msgbox.c`; the user's OK of 2026-11-03
+above, and nothing else is hooked). It uses the clock's import patching, as the scripted cursor does: the stand-in
+pinned, the exe and the DLLs of its folder but origrun's own and Steam.dll, and DLLs the copy loads later patched at the
+clock's waits or at the next hooked call.
+
+A hooked box makes no window, so it plays no sound and takes no focus. The call returns the button the dialog watch
+would have clicked: the button of the first `msgbox` rule whose text the caption or the text contains and whose button
+the box has (labels compared without case; never Help, which MessageBox never returns), else the box's default
+button, where `MB_DEFBUTTON1` to `4` pick the nth button of its type's set (the first when the set is shorter) and the
+first is the default. It returns that button's ID: `IDOK`, `IDCANCEL`, `IDYES`, `IDNO` and the others. A style Windows
+refuses (a type above `MB_CANCELTRYCONTINUE`) returns 0 with no box, as MessageBox does; a string resource in
+`MessageBoxIndirect` is loaded from its `hInstance`. `MessageBeep` returns TRUE with no sound.
+
+Before it starts the game origrun makes a small shared block (`msgbox.h`, `Local\origrun-msgbox-<id>`) with the
+script's `msgbox` rules in it (they are now read before the launch), and the stand-in hands each box and beep back
+through it. origrun's dialog thread writes them to its log in the dialog watch's own words, marked `[hooked]`, so a
+script that greps those lines still finds them (a line break in the text is written `\n`):
+
+    dialog appeared: 'Error' (pid 31164) [hooked MessageBoxA: no window]
+    DIALOG caption='Error' text='DirectSoundCreate failed with error '120'.  Sound will be unavailable.' buttons=[OK] [hooked]
+      answered with 'OK' (default button) [hooked: returned IDOK]
+    MessageBeep(MB_ICONHAND) (pid 35952) [hooked: no sound]
+
+The lines come within 250 ms of the call, or after the game's last line when it exits first, and the run ends with the
+count of boxes and beeps. The stand-in's own log, `logs/msgbox.log` (`logs/cursor.log` with the scripted cursor,
+`logs/clock.log` with the clock), lists the import entries it patched and each box with its style.
+
+`--msgbox show` (`msgbox=show` in the sandbox's run file) leaves the boxes as they were: shown, with their sound, and
+answered by the dialog watch once they are on screen. A phase-two comparison needs it to photograph a box and to see
+the focus go to the box and come back; turn the speakers off for it. A `--sound real` run has no stand-in and so no
+hooks, and says so in its log: its boxes show and ring as before. The dialog watch stays on for every other dialog: a
+game's own dialog-template windows (class `#32770` as well) are not message boxes and play no sound.
+
+**Tested (2026-11-03)** on the host under rundesk, with a scratch program that loads `dsound.dll` and calls
+`MessageBoxA` (`MB_OK`), `MessageBoxW` (`MB_YESNO | MB_DEFBUTTON2`), `MessageBoxIndirectA`
+(`MB_RETRYCANCEL | MB_DEFBUTTON2`) and `MessageBeep(MB_ICONHAND)`, in stub mode: no window came up, the log had the
+lines above, and the calls returned 1 (`IDOK`), 7 (`IDNO`), 2 (`IDCANCEL`) and TRUE. With a `msgbox Yes Save the game`
+rule the `MessageBoxW` returned 6 (`IDYES`, "script rule"). With `--clock virtual` and `--cursor scripted` as well the
+returns were the same, and the stand-in logged to `clock.log`. With `--msgbox show` a box was shown, rang once, and the
+dialog watch answered it 'No' (7), unmarked. In Windows Sandbox (`--sandbox`, with the rule) the same program returned
+1, 6, 2 and TRUE, and the inside log had the hooked lines. On a game: Ning Po with `--sound nodriver`, whose
+"DirectSoundCreate failed with error '120'. Sound will be unavailable." box (`MessageBoxA`, style 0x52030) was answered
+OK with no window; the game then ran on to the script's `quit`.
+
+**Limits:**
+- Calls bound late are not patched: `GetProcAddress` (which the C runtime's own error boxes use), delay-loaded imports
+  and `api-ms-win-*` sets. Such a box is shown, rings and goes to the dialog watch.
+- The hooks live in the stand-in: a game that never loads `dsound.dll` from its folder gets none (as with the scripted
+  cursor), and a game that loads it late (with `LoadLibrary`) shows the boxes that come before it.
+- Nothing else is hooked: `PlaySound` and the other sound functions still play (hooking any of them needs the user's
+  OK first), and there is still no guard against URL or program launches.
+- A hooked box takes no time, where a shown one stayed up at least 300 ms before the watch clicked it, and the game's
+  windows get no messages from a box's modal loop. A game that asks again until it gets another answer (a Retry box)
+  asks at full speed; a `msgbox` rule that picks the way out ends it.
+
 ## Hardware acceleration (3D mode)
 
 A SexyAppBase game with a 3D mode (the Options dialog's Hardware Acceleration checkbox) keeps the player's choice in
@@ -1006,15 +1077,17 @@ Preparing a wrapped or Steam copy to run under origrun:
 
 ## Gaps / next steps
 
-Known limits of the message-box watch (guarantee 6). These are open; the coordinator is taking them to the
-user:
+Known limits of the message-box watch (guarantee 6):
 
-- **A box's own sound still plays.** The watch sees a dialog only once it is already on screen, so the sound
-  Windows plays as the box appears (an error chime, a question ding) has already sounded before the box is
-  logged and dismissed.
-- **`MessageBeep` and `PlaySound` system sounds are not seen.** These make a sound without a window, so the
-  watch — which looks for dialog windows — neither logs nor stops them. The Core Audio watch may still catch and
-  mute a sound routed through the default audio session, but a system-sounds beep is not reliably caught.
+- **A shown box's own sound still plays.** The watch sees a dialog only once it is already on screen, so the sound
+  Windows plays as the box appears has already sounded before the box is logged and dismissed. Since 2026-11-03 the
+  stand-in answers the copy's MessageBox calls with no window, so this is left only for a run with `--msgbox show` or
+  `--sound real`, a game that never loads the stand-in, and boxes called through `GetProcAddress` ("Message boxes and
+  beeps (hooked)").
+- **`PlaySound` system sounds are not seen.** They make a sound without a window, so the watch neither logs nor stops
+  them, and hooking them needs the user's OK. `MessageBeep` is hooked with the boxes (same section, same limits). The
+  Core Audio watch may still catch and mute a sound routed through the default audio session, but a system-sounds beep
+  is not reliably caught.
 - **No guard against URL or program launches.** Nothing in origrun blocks an original that calls
   `ShellExecute`/`WinExec`/`CreateProcess` (for instance a "More Games" `steam://` link, which would bring up the
   user's Steam client). The only safeguard is the rule that **a script must never click a link, "Buy" or "More
