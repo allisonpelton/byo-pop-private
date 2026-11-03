@@ -76,13 +76,13 @@ struct AutoplayState
 	int					mShotWait;          // the chamber-done screenshot: 0 not yet, 1 waiting, 2 taken
 	FILE*				mLog;
 	bool				mTrace;             // -autoplaytrace: every change of the values the original is watched on
-	unsigned int		mPrev[16];
+	unsigned int		mPrev[24];
 
 	AutoplayState() : mSeed(1), mTick(0), mLastAction(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
 		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mSaveAt(0), mContinue(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
 		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL), mTrace(false)
 	{
-		for (int i = 0; i < 16; i++)
+		for (int i = 0; i < 24; i++)
 			mPrev[i] = 0xfffffffe;
 	}
 
@@ -109,6 +109,13 @@ void Log(AutoplayState* s, const char* theFormat, ...)
 	va_end(args);
 	fputc('\n', s->mLog);
 	fflush(s->mLog);
+}
+
+// the click the original is given for a button the bot depresses: its middle, in the window (identical.py's input)
+void LogClick(AutoplayState* s, int theUpdate, Widget* theWidget, const char* theKind = "click")
+{
+	Point aPos = theWidget->GetAbsPos();
+	Log(s, "  %s %d %d at app update %d", theKind, aPos.mX + theWidget->mWidth / 2, aPos.mY + theWidget->mHeight / 2, theUpdate);
 }
 
 }
@@ -163,8 +170,12 @@ void MummyApp::AutoplayUpdate()
 			{"m1y", b != NULL && b->mMummies[1] != NULL, b != NULL && b->mMummies[1] != NULL ? b->mMummies[1]->mY : 0},
 			{"sx", b != NULL && b->mScorpion != NULL, b != NULL && b->mScorpion != NULL ? b->mScorpion->mX : 0},
 			{"sy", b != NULL && b->mScorpion != NULL, b != NULL && b->mScorpion != NULL ? b->mScorpion->mY : 0},
+			{"mode", true, mGameMode},
+			{"tbase", b != NULL, b != NULL ? (int) b->mTimeBase : 0},
+			{"ebase", true, mElapsedBase},
+			{"undo", b != NULL, b != NULL ? (int) b->mUndo.size() : 0},
 		};
-		for (int i = 0; i < 16; i++)
+		for (int i = 0; i < 20; i++)
 		{
 			unsigned int aNow = aValues[i].mValid ? (unsigned int) aValues[i].mValue : 0xfffffffdu;
 			if (aNow == s->mPrev[i])
@@ -277,9 +288,13 @@ void MummyApp::AutoplayUpdate()
 				sprintf(aName, "Bot%d", s->mGames);
 				((RecordScoreDialog*) aDialog)->mNameEdit->SetText(aName);
 				Log(s, "high score: name %s", aName);
+				Log(s, "  text %s at app update %d", aName, mUpdateCount);
 			}
 			if (anId == DIALOG_NEW_ADVENTURE_NAME)
+			{
+				Log(s, "  text Bot at app update %d", mUpdateCount);
 				((NewAdventureDialog*) aDialog)->mNameEdit->SetText("Bot");
+			}
 			if (anId == DIALOG_ADVENTURE_NEW)
 			{
 				// the saved adventures: the first one goes on
@@ -289,7 +304,11 @@ void MummyApp::AutoplayUpdate()
 			else if (anId == DIALOG_CONTINUE)
 				ButtonDepress((s->mContinue ? 2000 : 3000) + anId);
 			else
+			{
+				if (aDialog->mYesButton != NULL)
+					LogClick(s, mUpdateCount, aDialog->mYesButton);
 				ButtonDepress(2000 + anId);
+			}
 			s->mWait = 5;
 			return;
 		}
@@ -324,6 +343,7 @@ void MummyApp::AutoplayUpdate()
 		}
 		Log(s, "adventure: map, marker on pyramid %d, going to %d (progress %d)", m->mCurrent, aPyramid, m->mProgress[aPyramid]);
 		s->mPlanned = false;
+		LogClick(s, mUpdateCount, m->mPyramids[aPyramid]);
 		m->ButtonDepress(aPyramid + 1);
 		s->mWait = 10;
 		return;
@@ -344,6 +364,7 @@ void MummyApp::AutoplayUpdate()
 		{
 			Log(s, "tutorial");
 			s->mTutorial = true;
+			LogClick(s, mUpdateCount, mMainMenu->mLinks[3], "menuclick");
 			mMainMenu->ButtonDepress(3);
 			s->mWait = 5;
 			return;
@@ -356,6 +377,7 @@ void MummyApp::AutoplayUpdate()
 		{
 			Log(s, "game %d: adventure", s->mGames);
 			s->mAdventure = true;
+			LogClick(s, mUpdateCount, mMainMenu->mLinks[1], "menuclick");
 			mMainMenu->ButtonDepress(1);
 			s->mWait = 5;
 			return;
@@ -363,6 +385,7 @@ void MummyApp::AutoplayUpdate()
 		Log(s, "game %d: classic from pyramid %d chamber %d", s->mGames, s->mStartPyramid, s->mStartChamber);
 		for (int i = 0; i < 4; i++)
 			Log(s, "  menu link %d at %d,%d size %d x %d", i, mMainMenu->mLinks[i]->mX, mMainMenu->mLinks[i]->mY, mMainMenu->mLinks[i]->mWidth, mMainMenu->mLinks[i]->mHeight);
+		LogClick(s, mUpdateCount, mMainMenu->mLinks[0], "menuclick");
 		mMainMenu->ButtonDepress(0);
 		mClassicPyramid = s->mStartPyramid;
 		mClassicChamber = s->mStartChamber;
@@ -417,6 +440,7 @@ void MummyApp::AutoplayUpdate()
 			Log(s, "chamber done: pyramid %d chamber %d, score %d", BOT_PYR, BOT_CHM, mScore);
 		s->mLevels++;
 		s->mPlanned = false;
+		LogClick(s, mUpdateCount, mLevelComplete->mNextLink);
 		mLevelComplete->ButtonDepress(0);
 		s->mWait = 5;
 		return;
@@ -430,11 +454,13 @@ void MummyApp::AutoplayUpdate()
 		if (s->mGivenUp)
 		{
 			Log(s, "abandon hope at pyramid %d chamber %d", BOT_PYR, BOT_CHM);
+			LogClick(s, mUpdateCount, mGamePanel->mLinks[3]);
 			mGamePanel->ButtonDepress(3);
 		}
 		else
 		{
 			Log(s, "caught at pyramid %d chamber %d", BOT_PYR, BOT_CHM);
+			LogClick(s, mUpdateCount, mGamePanel->mLinks[1]);
 			mGamePanel->ButtonDepress(1);
 		}
 		s->mWait = 5;
@@ -475,6 +501,7 @@ void MummyApp::AutoplayUpdate()
 				s->mTutorialShots |= 1 << b->mTutorialStep % 24;
 				SaveScreenshot(StrFormat("%s-step%d.png", mAutoplayShots.c_str(), b->mTutorialStep));
 			}
+			LogClick(s, mUpdateCount, b->mPlayNowButton0->mVisible ? (Widget*) b->mPlayNowButton0 : (Widget*) b->mPlayNowButton);
 			b->ButtonDepress(anId);
 			s->mWait = 10;
 			return;
@@ -484,6 +511,7 @@ void MummyApp::AutoplayUpdate()
 		if (aMove < 0 || aMove > 4)
 			return;
 		Log(s, "tutorial part %d step %d: move %d", mGameMode, b->mTutorialStep, aMove);
+		Log(s, "  key %d at app update %d, board update %d, state %d", kKeys[aMove], mUpdateCount, b->mUpdateCnt, (int) b->mState);
 		mWidgetManager->KeyDown((KeyCode) kKeys[aMove]);
 		s->mHeldKey = kKeys[aMove];
 		s->mWait = 1;
@@ -502,6 +530,7 @@ void MummyApp::AutoplayUpdate()
 			if (!mAutoplayShots.empty() && mClassicPyramid == 0)
 				SaveScreenshot(StrFormat("%s-pyramid0.png", mAutoplayShots.c_str()));
 			s->mPlanned = false;
+			LogClick(s, mUpdateCount, mBoard->mContinueLink);
 			mBoard->ButtonDepress(3);
 			s->mWait = 20;
 		}
@@ -546,6 +575,8 @@ void MummyApp::AutoplayUpdate()
 		s->mRandomMoves = s->mUseSolver ? 0 : 2 + s->Rand(6);
 		if (s->mUseSolver)
 		{
+			// Solve takes every move back first (Retry): the original is given the click on RESET MAZE
+			LogClick(s, mUpdateCount, mSidePanel->mButtons[1]);
 			b->Solve();
 			s->mPath = b->mSolution;
 			s->mPathIndex = 0;
@@ -654,6 +685,7 @@ void MummyApp::AutoplayUpdate()
 		if (s->mRandomMoves == 0 && s->Rand(2) == 0)
 		{
 			Log(s, "undo");
+			LogClick(s, mUpdateCount, mSidePanel->mButtons[0]);
 			b->Undo();
 			s->mWait = 5;
 			return;
