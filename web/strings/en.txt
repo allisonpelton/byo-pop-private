@@ -332,7 +332,13 @@ settings.accel3d.hint = Draws the game with your graphics card when the game all
 # the "?" explanation; names the games that read the setting (ACCEL3D_GAMES in web/settings.js)
 settings.accel3d.help = Some games, such as Bejeweled Twist, can draw with your graphics card (3D) or without it (2D).
   Always uses 3D whenever your browser supports it (WebGL 2), Never always uses 2D, and Game default leaves the game's
-  own choice. A browser without WebGL 2 always gets 2D.
+  own choice. A browser without WebGL 2 always gets 2D. The line under the setting says what this browser offers: 3D on
+  your graphics card; 3D drawn without it, which works but may be slow; or no 3D, so games use 2D. Your browser's
+  hardware acceleration setting decides this.
+# what this browser offers, under the setting (settings.js, accel3d())
+settings.accel3d.support.hardware = This browser: 3D available.
+settings.accel3d.support.software = This browser: 3D available, but without the graphics card, so it may be slow.
+settings.accel3d.support.none = This browser: 3D not available, games use 2D.
 settings.autostart.label = Start the game when its page opens
 settings.autostart.hint = Requires autoplay enabled in browser settings, and only works in windowed mode.
 settings.wakelock.label = Keep the screen awake while a game runs
