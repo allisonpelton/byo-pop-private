@@ -164,13 +164,14 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
   of them is refused at the start, and each one is refused (logged) should it run on the host anyway. In the
   sandbox `hwmove` lights no hover on a SAF game (Seven Seas, 2026-11-01): use a posted `move` for hover there.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
-  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `kdown`/`kup` for one edge of a key (a game that polls its key state loses a `key`'s down and up in one update), `down`/`up` or `rdown`/`rup` for one edge of the left or
+  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `keydown`/`keyup` for one edge of a key (`kdown`/`kup` are the same; a game that polls its key state, or clears a key
+  when it is let go, loses a `key`'s down and up in one update), `down`/`up` or `rdown`/`rup` for one edge of the left or
   right button, or `burst`), then resume it. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
   the same game update rather than the same wall-clock time. A held game reads all the posted messages before its
   next update, so `at N click x y` gives it the down and the up in the same update, which some games lose; `at N
   click x y k` (or `rclick`) posts the move and the down at `N` and the up `k` updates later, at `N+k`. `at N key vk k` does
-  the same for a key (`keydown`/`keyup` post one edge), for a game that clears a key when it is let go. `at` does not
+  the same for a key, with a `keydown` at `N` and a `keyup` at `N+k`. `at` does not
   take the `hw*` commands: in the sandbox the game runs in session 0, which desktop input does not reach anyway
   (`GetCursorPos` reads 0,0 whatever `SetCursorPos` did; for a game that reads the cursor, see "The scripted cursor").
 - `msgbox <button> <text...>` — when a message box whose caption or text contains `<text>` appears, click the
