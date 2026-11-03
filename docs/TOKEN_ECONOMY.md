@@ -270,6 +270,21 @@ For the ports under way the rule gives about $180 for Ancient Japan (4-5x), abou
 and about $855 for Twist (25x). It gives about $1,020 for Bejeweled 3 and $1,185 for Zuma's Revenge, but those lie far
 past Bookworm Adventures, the only large game it was fitted on, so they are rough.
 
+**Twist, measured (2026-11-03).** Bejeweled Twist's one session ran 2 days 11 hours, from its start (01:06 UTC on
+2026-11-01) to its last commit before its final merge (11:59 UTC on 2026-11-03). It made 14,647 calls, 3,314 of them
+by Sonnet subagents: 3.18B cache reads, 32.4M cache writes and 11.3M output, about $1,076 with every model at Opus's
+prices (`tools/token_report.py`, so the Sonnet share is a little overstated). That covers the port, its 3D mode,
+both phases of its identical-play pass and the shared code it wrote (the GPU core, the software stretch and
+transforms, the OpenJPEG low-end patch). The rule gave $855 for the port alone. Per unit of the survey's 25x it is
+about $43, what Bookworm Adventures paid per unit for its port alone, so the survey's size held and the pass came
+cheaply on top of it. The estimates in days were far off. On the evening of 2026-11-01 Twist put the work left at 14
+to 22 days and its 3D mode at 6 to 10; they took about a day and a half, and about 16 hours from the first GPU commit
+to the 3D merge. At 21:54 UTC on 2026-11-02, with the account at 61%, the coordinator built on Twist's estimate and
+put the rest at about 60 percentage points of the weekly limit (45 to 80); it took about 6 (Twist's $180 of the $384
+every session spent while the account went from 61% to 73%). That week a percentage point came to about $32 ($2,352
+across the project's folders for 73%). So a large game's remaining work is estimated from this rule and the survey,
+at the week's dollars per point, and never from a session's own guess in days.
+
 ## The 400K auto-compact (measured 2026-11-01)
 
 Sessions compacted only near the full 1M window until 2026-10-24, when auto-compact moved to 400K for Opus 5.5; Sonnet
