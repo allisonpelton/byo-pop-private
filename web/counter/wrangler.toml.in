@@ -1,0 +1,23 @@
+# The site's play counter (docs/PLAY_COUNTER.md, "Deploying it"), written by the web build into build/counter/ beside the pages.
+# Not deployed: nothing goes on a public host until the user decides to put the site up.
+name = "byopop-counter"
+main = "playcount.mjs"
+compatibility_date = "2026-11-01"
+
+# The Worker answers only /api/*, on the site's own domain; set the route to that domain before deploying.
+# routes = [ { pattern = "example.org/api/*", zone_name = "example.org" } ]
+
+[vars]
+# the site's origin: a play socket from any other page is refused (empty: not checked)
+ORIGIN = ""
+# the site's games (the build's table of games, as chat-games.js): a play of any other id is refused
+GAMES = "@BYOPOP_COUNTER_GAMES@"
+
+[[durable_objects.bindings]]
+name = "COUNTER"
+class_name = "PlayCounter"
+
+# SQLite-backed, which the Free plan requires
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PlayCounter"]
