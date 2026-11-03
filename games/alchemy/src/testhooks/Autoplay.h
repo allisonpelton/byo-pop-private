@@ -18,6 +18,7 @@
 //                            on the original) gets the same input; -autoplaystart=<n> holds the bot back until update n
 //   -autoplayskill=<0..2>    (with -autoplayui) clicks that skill level's button before the mode's
 //   -autoplaymiss=<n>        (with -autoplayui) one piece in n is put on a cell it cannot go to (the game's messages)
+//   -autoplayextra=<n>       (with -autoplayui) before one piece in n the bot clicks the hint button or presses a key (the pause)
 //   -statelog=<file>         (any run) each change of the board's values with its update count: StateLog
 
 #include <cstdio>
@@ -48,6 +49,7 @@ public:
 	bool			mFinished;
 	FILE*			mLog;
 	FILE*			mScriptOut;         // -autoplayui: the input as script lines
+	int				mPausedFor;         // -autoplayextra: updates the game has been paused
 	int				mSelStep;           // -autoplayui: 0 the mode's button comes next, 1 the start button
 
 public:
@@ -79,7 +81,7 @@ class StateLog
 public:
 	AlchemyApp*		mApp;
 	FILE*			mFile;
-	enum { NUM_FIELDS = 27 };
+	enum { NUM_FIELDS = 29 };
 	int				mLast[NUM_FIELDS];
 
 public:

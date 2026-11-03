@@ -42,6 +42,7 @@ AutoplayBot::AutoplayBot(AlchemyApp* theApp, unsigned int theSeed)
 	mLog = NULL;
 	mScriptOut = NULL;
 	mSelStep = 0;
+	mPausedFor = 0;
 	if (!theApp->mAutoplayLogFileName.empty())
 		mLog = fopen(theApp->mAutoplayLogFileName.c_str(), "w");
 	if (theApp->mAutoplayUi && !theApp->mAutoplayScriptFileName.empty())
@@ -135,6 +136,16 @@ void AutoplayBot::Finish()
 // A player's move: the piece follows the mouse to a cell, then a click puts it down
 void AutoplayBot::PlayBoard(Board* theBoard)
 {
+	// a key paused the game: another one goes on
+	if (mApp->mAutoplayUi && mApp->mAutoplayExtra > 0 && theBoard->mState == Board::STATE_PLAYING && (theBoard->mPause > 0 || theBoard->mTrialPause > 0))
+	{
+		if (++mPausedFor >= 40)
+		{
+			mPausedFor = 0;
+			Char('k');
+		}
+		return;
+	}
 	if (theBoard->mState != Board::STATE_PLAYING || theBoard->mPause > 0 || theBoard->mTrialPause > 0)
 		return;
 
@@ -183,6 +194,25 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 		}
 		mMoves++;
 		mWait = 1;
+		return;
+	}
+
+	if (mApp->mAutoplayUi && mApp->mAutoplayExtra > 0 && Rand(mApp->mAutoplayExtra) == 0)
+	{
+		// the side panel's hint button, or a key (it pauses)
+		bool isHint = Rand(2) == 0;
+		if (isHint)
+		{
+			for (std::list<ButtonWidget*>::iterator anItr = mApp->mButtons.begin(); anItr != mApp->mButtons.end(); ++anItr)
+				if ((*anItr)->mId == BUTTON_HINT)
+				{
+					ClickWidget(*anItr);
+					break;
+				}
+		}
+		else
+			Char('k');
+		mWait = 3;
 		return;
 	}
 
@@ -317,7 +347,10 @@ void AutoplayBot::Update()
 	{
 		Log("saved game loaded at update %d", mTick);
 		Shot("loaddialog", mTick);
-		mApp->ButtonDepress(DIALOG_LOAD_GAME + 2000);
+		if (mApp->mAutoplayUi)
+			ClickWidget(mApp->GetDialog(DIALOG_LOAD_GAME)->mYesButton);
+		else
+			mApp->ButtonDepress(DIALOG_LOAD_GAME + 2000);
 		mGames = 1;
 		mWait = 20;
 		return;
@@ -502,7 +535,7 @@ void StateLog::Update()
 
 	static const char* const aNames[NUM_FIELDS] = {"state", "score", "moves", "discards", "boards", "shape", "color", "timetrial",
 		"trialpause", "fullcount", "overtimer", "multimoves", "run", "longest", "pause", "numshapes", "numcolors", "bombchance",
-		"skullchance", "elapsed", "totalseconds", "numvalid", "lastshape", "tutorial", "tutstep", "tutcount", "tutwaiting"};
+		"skullchance", "elapsed", "totalseconds", "numvalid", "lastshape", "tutorial", "tutstep", "tutcount", "tutwaiting", "hinton", "hinttimer"};
 	int aValues[NUM_FIELDS];
 	for (int i = 0; i < NUM_FIELDS; i++)
 		aValues[i] = -1000000;  // "-": no board or piece
@@ -534,6 +567,8 @@ void StateLog::Update()
 		aValues[24] = aBoard->mTutStep;
 		aValues[25] = aBoard->mTutCount;
 		aValues[26] = aBoard->mTutWaiting ? 1 : 0;
+		aValues[27] = aBoard->mHintOn ? 1 : 0;
+		aValues[28] = aBoard->mHintTimer;
 		if (aBoard->mCurPiece != NULL)
 		{
 			aValues[5] = aBoard->mCurPiece->mShape;

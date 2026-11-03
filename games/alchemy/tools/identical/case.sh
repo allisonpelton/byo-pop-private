@@ -15,10 +15,10 @@ python "$TOOLS/toorig.py" "$D/script.txt" -1 > "$D/orig.txt"
 # the original's board is the pointer at 0x516f04 (the app global at 0x5160b0, +0xe54); the piece to place is at board +0xae8
 B='[0x516f04]'
 NAMES=(state score moves discards boards shape color trialpause fullcount overtimer timetrial multimoves run longest pause
-	numshapes numcolors bombchance skullchance elapsed totalseconds numvalid lastshape tutorial tutstep tutcount tutwaiting)
+	numshapes numcolors bombchance skullchance elapsed totalseconds numvalid lastshape tutorial tutstep tutcount tutwaiting hinton hinttimer)
 EXPRS=("$B+0x60" "$B+0xd18" "$B+0xaf0" "$B+0xaf4" "$B+0xe0c" "[$B+0xae8]+0x68" "[$B+0xae8]+0x6c" "$B+0xdf8" "$B+0xe00"
 	"$B+0xd90" "$B+0xaed" "$B+0xaf8" "$B+0xe04" "$B+0xe08" "$B+0xdf4" "$B+0xd98" "$B+0xd9c" "$B+0xda0" "$B+0xda4" "$B+0xdec"
-	"$B+0xdf0" "$B+0xd00" "$B+0xe60" "$B+0xdd0" "$B+0xdd4" "$B+0xdd8" "$B+0xe44")
+	"$B+0xdf0" "$B+0xd00" "$B+0xe60" "$B+0xdd0" "$B+0xdd4" "$B+0xdd8" "$B+0xe44" "$B+0xe30" "$B+0xe34")
 # the virtual clock plays about 1000 updates a second, after about 5 seconds of start
 LAST=$(tail -1 "$D/script.txt" | cut -d' ' -f1)
 TO=$((LAST / 700 + 10))

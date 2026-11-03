@@ -125,9 +125,11 @@ public:
 	//                            the original's values)
 	//   -autoplayskill=<0..2>    (with -autoplayui) clicks that skill level's button before the mode's
 	//   -autoplaymiss=<n>        (with -autoplayui) one piece in n is put on a cell it cannot go to
+	//   -autoplayextra=<n>       (with -autoplayui) before one piece in n the bot clicks the hint button or presses a key (the pause)
 	bool					mAutoplayUi;
 	int						mAutoplaySkill;
 	int						mAutoplayMiss;
+	int						mAutoplayExtra;
 	int						mAutoplayStart;
 	std::string				mAutoplayScriptFileName;
 	std::string				mStateLogFileName;
