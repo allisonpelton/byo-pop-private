@@ -178,6 +178,7 @@ static char   gStateExpr[256] = "";
 static char   gEmptyExpr[256] = "";
 // --watch <expr> (up to 4): values of the game's memory logged at each change with the update counter, polled every
 // millisecond (watch_thread), to measure how many updates something takes in the original (a loading screen, say).
+// --watch-max <n>: at most n changes logged per watch (4000 unless given), more for a whole game's RNG seed.
 static char   gWatchExpr[4][256];
 static int    gWatchN = 0;
 static int    gUpdateMs = 10;        // SexyAppBase runs 100 updates/s
@@ -2265,12 +2266,13 @@ static DWORD WINAPI mode3d_thread(LPVOID p)
 }
 
 // Logs each change of a --watch value ("watch 1: 48 -> 47 at update 2150"; "-" while it cannot be read, as through a
-// null pointer), at most 4000 lines per watch. Polls every millisecond under timeBeginPeriod(1): Sleep in origrun's
+// null pointer), at most 4000 lines per watch (--watch-max). Polls every millisecond under timeBeginPeriod(1): Sleep in origrun's
 // process otherwise rounds up to the 15.6 ms timer tick, which would miss values that change every update.
 // On the virtual clock the game reads the values itself, at each of its waits and whenever its counter moves, and hands
 // each change over in the clock's block (vclock.c), so none is missed however fast it runs: the lines are the same.
 static char gWatchLast[4][16]={"?","?","?","?"};
 static int  gWatchLines[4];
+static int  gWatchMax=4000;     // --watch-max
 static void watch_drain(VcShared* s)   // s: the followed clock, or one origrun stops following (its last changes)
 {
 	char (*last)[16]=gWatchLast; int* lines=gWatchLines;
@@ -2281,10 +2283,10 @@ static void watch_drain(VcShared* s)   // s: the followed clock, or one origrun 
 			VcWatchRec r=s->ring[t%VC_RING];
 			int i=r.idx; if (i<0 || i>=gWatchN) continue;
 			char now[16]; if (r.ok) wsprintfA(now,"%lu",(unsigned long)(uint32_t)r.value); else lstrcpyA(now,"-");
-			if (lstrcmpA(now,last[i]) && lines[i]<4000) {
+			if (lstrcmpA(now,last[i]) && lines[i]<gWatchMax) {
 				if (r.update!=-1) logline("watch %d: %s -> %s at update %lu", i+1, last[i], now, (unsigned long)(uint32_t)r.update);
 				else logline("watch %d: %s -> %s", i+1, last[i], now);
-				if (++lines[i]==4000) logline("watch %d: 4000 changes logged; no more", i+1);
+				if (++lines[i]==gWatchMax) logline("watch %d: %d changes logged; no more", i+1, gWatchMax);
 			}
 			lstrcpyA(last[i],now);
 		}
@@ -2309,11 +2311,11 @@ static DWORD WINAPI watch_thread(LPVOID p)
 			for (int i=0;i<gWatchN;i++) {
 				uint32_t v=0; char now[16];
 				if (read_counter(gWatchExpr[i],&v)) wsprintfA(now,"%lu",(unsigned long)v); else lstrcpyA(now,"-");
-				if (lstrcmpA(now,last[i]) && lines[i]<4000) {
+				if (lstrcmpA(now,last[i]) && lines[i]<gWatchMax) {
 					uint32_t c=0; int hc = gCounterExpr[0] && read_counter(gCounterExpr,&c);
 					if (hc) logline("watch %d: %s -> %s at update %lu", i+1, last[i], now, (unsigned long)c);
 					else logline("watch %d: %s -> %s", i+1, last[i], now);
-					if (++lines[i]==4000) logline("watch %d: 4000 changes logged; no more", i+1);
+					if (++lines[i]==gWatchMax) logline("watch %d: %d changes logged; no more", i+1, gWatchMax);
 				}
 				lstrcpyA(last[i],now);
 			}
@@ -3722,6 +3724,7 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--surface-gate")&&i+1<argc) gSurfaceGate=(uint32_t)strtoul(argv[++i],NULL,16);
 		else if (ieq(argv[i],"--update-state")&&i+1<argc) ustate=argv[++i];
 		else if (ieq(argv[i],"--draw-empty")&&i+1<argc) dempty=argv[++i];
+		else if (ieq(argv[i],"--watch-max")&&i+1<argc) gWatchMax=atoi(argv[++i]);
 		else if (ieq(argv[i],"--watch")&&i+1<argc) { if (gWatchN<4) lstrcpynA(gWatchExpr[gWatchN++],argv[++i],256); else { fprintf(stderr,"origrun: at most 4 --watch\n"); return 2; } }
 		else if (ieq(argv[i],"--arg")&&i+1<argc) {
 			const char* v=argv[++i];
