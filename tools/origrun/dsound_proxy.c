@@ -447,10 +447,12 @@ HRESULT WINAPI DirectSoundCreate8(LPCGUID dev, LPDIRECTSOUND8* pp, LPUNKNOWN u)
 	*pp = NewDS();
 	return DS_OK;
 }
+// One device, the default one (a null GUID), unless the machine is meant to have none: FMOD 3 (Atomica) lists the
+// drivers first and fails its init on an empty list.
 HRESULT WINAPI DirectSoundEnumerateA(LPDSENUMCALLBACKA cb, LPVOID ctx)
-{ return DS_OK; }   // enumerate no devices
+{ if (cb && !gNoDriver) cb(NULL, "Primary Sound Driver", "", ctx); return DS_OK; }
 HRESULT WINAPI DirectSoundEnumerateW(LPDSENUMCALLBACKW cb, LPVOID ctx)
-{ return DS_OK; }
+{ if (cb && !gNoDriver) cb(NULL, L"Primary Sound Driver", L"", ctx); return DS_OK; }
 HRESULT WINAPI DirectSoundCaptureCreate(LPCGUID g, LPDIRECTSOUNDCAPTURE* pp, LPUNKNOWN u)
 { if (pp) *pp=NULL; return DSERR_NODRIVER; }
 HRESULT WINAPI DirectSoundCaptureCreate8(LPCGUID g, LPDIRECTSOUNDCAPTURE8* pp, LPUNKNOWN u)
