@@ -414,8 +414,10 @@ original on the desktop through visrun for this comparison only): the board's ge
 the jump, the cube, the tube's arrival and the boards match to within a few levels per channel. Open: from update
 1804 (the first board after the jump) the original draws about 170 more numbers from the global Rand in one update
 and then about one more every second update, so the background's clouds and some particles differ (not the play);
-the menu's and the selector's rotating backgrounds stand at slightly different angles. The web build's 3D run is not
-compared yet.
+the menu's and the selector's rotating backgrounds stand at slightly different angles. The web build's 3D run (the
+same seed, script and shots, in the Browser pane) matches the native port's from update 1300 to 3000 within a few
+levels per channel; before that its main menu shows the site's player name and its buttons' labels sooner, because
+the site makes the player rather than the autoplay.
 
 ## Deviations
 
