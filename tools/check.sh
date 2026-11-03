@@ -803,8 +803,11 @@ suite_alchemy() {
 	local base="$W/build/baseline-alchemy/alchemy.exe" bl="" a
 	if [ -f "$base" ]; then
 		for a in "strategic 7 1 -1" "timetrial 1 1 -1" "strategic 3 4 2"; do
-			set -- $a; alchemy_state_game cur-$1-$3 "$W/build/native/alchemy.exe" "$@"; alchemy_state_game base-$1-$3 "$base" "$@"
-			cmp -s "$OUT/alchemy/cur-$1-$3/state.txt" "$OUT/alchemy/base-$1-$3/state.txt" || bl="x"
+			read -r m bs gs sk <<< "$a"
+			alchemy_state_game "cur-$m-$gs" "$W/build/native/alchemy.exe" "$m" "$bs" "$gs" "$sk"
+			alchemy_state_game "base-$m-$gs" "$base" "$m" "$bs" "$gs" "$sk"
+			[ -s "$OUT/alchemy/cur-$m-$gs/state.txt" ] && [ -s "$OUT/alchemy/base-$m-$gs/state.txt" ] &&
+				cmp -s "$OUT/alchemy/cur-$m-$gs/state.txt" "$OUT/alchemy/base-$m-$gs/state.txt" || bl="x"
 		done
 		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
 	fi
