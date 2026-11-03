@@ -84,9 +84,11 @@ Five sets of screens were played:
 
 The sound was compared by its state rather than by ear. origrun's DirectSound stand-in logs every buffer the original
 plays, with its volume, pan and frequency, and a small proxy for BASS (tools/bassproxy) logs its music; tools/soundcmp.py
-pairs both with the port's own sound log. These runs were in real time, because under `-fast` the port's mixer still
-plays in real time and a voice outlasts its updates. In the seeded Classic game both sides play the same 425 sounds in
-the same order; all 425 have the same frequency, 422 the same pan and 419 the same volume. In Blitz both play the same
+pairs both with the port's own sound log. These runs were in real time at first, because under `-fast` the port's
+mixer then played in real time and a voice outlasted its updates; with the mixer on the game's clock (a86c720) a `-fast`
+run gives the same. In the seeded Classic game both sides play the same 425 sounds in the same order; all 425 have the
+same frequency, 422 the same pan and 422 the same volume (419 in real time). The few left over are a voice's end
+falling an update apart, which moves the ramp of the other sounds under it, and the autoplay's jump near update 8407. In Blitz both play the same
 465, all with the same volume and frequency and all but seven with the same pan. The music matches event for event: every
 track starts at the same order and update, every stop, and the volume steps of each fade (99, 99, 98, 98, 98, 97 ...).
 

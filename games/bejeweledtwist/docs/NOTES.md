@@ -786,9 +786,9 @@ is reported in IDENTICAL_PLAY.md.
 - **Sound.** origrun's DirectSound stand-in logs the original's buffers (logs/sound.log, which keeps every run: take the
   part after its last "dsound stand-in attached"), and tools/bassproxy logs its music through BASS. BASS 2.2 finds no
   sound device in the sandbox and the game then loads no music, so the proxy hands BASS_Init the "no sound" device.
-  tools/soundcmp.py pairs both with the port's BYOPOP_SOUNDLOG. Sound comparisons run in real time: under `-fast` the
-  port's mixer still plays in real time, so a voice outlasts its updates, the voice ramp and the praise that waits for
-  it come late, and the instance pool fills.
+  tools/soundcmp.py pairs both with the port's BYOPOP_SOUNDLOG. Since a86c720 the port's voices follow the game's
+  clock under `-fast`, so sound comparisons can use it; before that a voice outlasted its updates there, and the voice
+  ramp and the praise that waits for it came late.
 - **The volume rule.** This DSoundInstance converts the master, base and instance volume to hundredths of a dB one by
   one and adds them (0x4fa9e0, 0x4f85b0: a factor below -2331 counts as -10000, a master of 0.015 or less mutes), and
   sets a whole-Hz frequency from 100 to 100000, cut down (0x4fabb0). The port's sound manager does the same
