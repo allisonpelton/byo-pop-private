@@ -1,0 +1,8 @@
+# Bonnie's original: the logos and the main menu with its sound recorded (--sound wav)
+waitshot logo 20000
+wait 20000
+shot menu
+click 205 415
+wait 3000
+shot options
+quit

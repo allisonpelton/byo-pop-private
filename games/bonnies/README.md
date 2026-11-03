@@ -39,14 +39,17 @@ original's `rand` as `-seed=1` does the port's. `tools/shotdiff` then pairs the 
 (`games/bonnies/shotdiff.json` masks the animations that run on the game's clock, each with its reason). The board's
 random letters cannot match in a run by the clock: the sparkles draw from `rand` every frame, so the board depends on
 how many frames ran before it. The board is therefore compared on a game the original saved and both sides load
-(`resume.txt`), where it matches exactly. `tools/origcmp.py` compares a single capture.
+(`resume.txt`), where it matches exactly. `tools/origcmp.py` compares a single capture. `tools/origrun/actend.txt` plays the action game's end from a game saved with little time
+left, and `tools/soundcount.py` counts each function's sound calls on both sides, as `tools/rngcount.py` does the random
+draws. The web build runs a script under Node with `games/bookwormadv2/tools/wasmrun.js` (the native run's switches);
+there a script's `focus 0` stalls a `-fast` run, so check the focus on the web without `-fast`.
+`docs/IDENTICAL_PLAY.md` reports the comparison.
 
 ## Status
 
 The whole game is translated: the menus, players, options, help, high scores, the classic and action games over the
 50 books, the story and the book ends. Natively and on the web it plays from the logos into the books; compared with
-the original in Windows Sandbox (2026-11-01) every screen of the tour up to the action game's pause and resumption
-matches, apart from the masked clock animations; the action game's end is still to be captured, as it outlasts
-origrun's 240 s. `docs/DEVIATIONS.md`
+the original in Windows Sandbox (2026-11-01) every screen compared matches, natively and in the web build, apart from the masked clock
+animations (`docs/IDENTICAL_PLAY.md`). `docs/DEVIATIONS.md`
 lists every place the port does something other than the original, the leak it fixed and the memory the original
 reads before setting it. Mods: none yet (`docs/MOD_IDEAS.md` lists ideas).

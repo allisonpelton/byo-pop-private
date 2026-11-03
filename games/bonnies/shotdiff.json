@@ -12,12 +12,12 @@
     },
     {
       "rect": [
-        170,
+        160,
         0,
-        161,
-        211
+        181,
+        215
       ],
-      "pairs": "menu.png,mainmenu.png",
+      "pairs": "menu.png,mainmenu.png,endmenu.png",
       "label": "the menu's hanging sign swings on the game's clock"
     },
     {
@@ -27,7 +27,7 @@
         104,
         152
       ],
-      "pairs": "menu.png,mainmenu.png",
+      "pairs": "menu.png,mainmenu.png,endmenu.png",
       "label": "Bonnie's waving hand, on the game's clock"
     },
     {
