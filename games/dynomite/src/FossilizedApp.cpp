@@ -253,6 +253,20 @@ void FossilizedApp::ConfirmExit()
 		Dialog::BUTTONS_YES_NO);
 }
 
+// 0x418b60 (slot 56)
+void FossilizedApp::ModalOpen()
+{
+	if (mSideBar != NULL)
+		mSideBar->SetPauseState(1);
+}
+
+// 0x418b80 (slot 57)
+void FossilizedApp::ModalClose()
+{
+	if (mSideBar != NULL)
+		mSideBar->SetPauseState(2);
+}
+
 // 0x418ba0: the options dialog (2)
 void FossilizedApp::ShowOptions()
 {

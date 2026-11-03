@@ -280,6 +280,8 @@ public:
 	// 0x418e90 (slot 1): a save slot (600-699) is chosen, a saved game's slot on the main menu (900-999) too and a second
 	// press on it is OK; any other press clicks
 	virtual void	ButtonPress(int theId) override;
+	virtual void	ModalOpen() override;						// 0x418b60 (slot 56): a modal dialog pauses the side bar
+	virtual void	ModalClose() override;					// 0x418b80 (slot 57): and resumes it
 
 	DDImage*		GetGameImage(const std::string& thePath);	// 0x419ad0
 	void			LoadGame();									// 0x419c30 (InitHook, slot 15)

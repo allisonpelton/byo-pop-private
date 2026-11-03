@@ -25,6 +25,7 @@
 #include "Launcher.h"
 #include "Egg.h"
 #include "SideBar.h"
+#include "Steggy.h"
 #include "Tutorial.h"
 
 using namespace Sexy;
@@ -150,6 +151,8 @@ void FossilizedApp::LogState()
 	aValues.push_back((l && l->mLoaded) ? StateInt(l->mLoaded->mColor) : aNone);	// loaded
 	aValues.push_back((l && l->mHeld) ? StateInt(l->mHeld->mColor) : aNone);		// held
 	aValues.push_back(l ? StateInt(l->mFrozen) : aNone);				// frozen
+	Steggy* st = b ? b->mSteggy : NULL;
+	aValues.push_back((st && st->mNext) ? StateInt(st->mNext->mColor) : aNone);	// next: the egg Steggy holds
 	// the mode's own: Stomped, Panic, Fossil, Time Trial (four slots, by the board's type)
 	int aType = b ? b->mGameType : -1;
 	for (int i = 0; i < 4; i++)
@@ -188,7 +191,7 @@ void FossilizedApp::LogState()
 	}
 	static const char* gNames[] = { "mti", "mt0", "fibi", "fibj", "score", "type", "chain", "longest", "babies", "bonus",
 		"rank", "pause", "fired", "eggs", "maxcolor", "bottom", "ceiling", "rows", "pastline", "angle", "loaded", "held",
-		"frozen", "m0", "m1", "m2", "m3" };
+		"frozen", "next", "m0", "m1", "m2", "m3" };
 	mStateValues.resize(aValues.size());
 	for (size_t i = 0; i < aValues.size(); i++)
 	{
