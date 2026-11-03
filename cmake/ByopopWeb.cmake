@@ -54,7 +54,25 @@ set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js)
 # with a web page that is not in the list is not shown (fwtest and smoke are test pages and never are); a name in the
 # list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
-  pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina)
+  pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina
+  bonnies)
+# The games still to come, <target>|<title>, each shown on the listing page as a "Coming soon" tile among the finished ones
+# (the user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say coming soon"):
+# the badge, the title and the year, sorted with the rest, not a link, and where to buy the game, so that a visitor can get
+# it ready. The target is the one the game's port uses (or will use), the title the one its Windows release has. The list is
+# the coordinator's: at a game's final merge its target moves from here to BYOPOP_WEB_FINISHED (its title then comes from
+# its page's TITLE), and its badge, release date and BYOPOP_BUY entry stay. Every game here needs a row in
+# BYOPOP_WEB_BADGES and BYOPOP_WEB_RELEASED and a BYOPOP_BUY entry (cmake/ByopopStores.cmake); an empty target or title, a
+# target listed twice or in both lists, or a game here without a well-formed BYOPOP_BUY entry, is a configure error. Bejeweled Twist has a page already, not yet merged; the rest
+# are "The ports still to make" in docs/COORDINATION.md. Zuma Deluxe, Insaniquarium and Plants vs.
+# Zombies are left out: nobody ports them (the user, 2026-10-26).
+set(BYOPOP_WEB_UPCOMING
+  "bejeweledtwist|Bejeweled Twist" "venice|Venice Deluxe"
+  "heavyweapon|Heavy Weapon Deluxe" "hammerheads|Hammer Heads Deluxe" "bejeweled2|Bejeweled 2 Deluxe"
+  "astropop|AstroPop Deluxe" "typershark|Typer Shark! Deluxe" "pizzafrenzy|Pizza Frenzy Deluxe" "igglepop|Iggle Pop Deluxe"
+  "feedingfrenzy|Feeding Frenzy Deluxe" "chuzzle|Chuzzle Deluxe" "feedingfrenzy2|Feeding Frenzy 2 Deluxe"
+  "peggle|Peggle Deluxe" "pegglenights|Peggle Nights" "bejeweled3|Bejeweled 3" "bananabugs|Banana Bugs"
+  "gyromancer|Gyromancer" "zumasrevenge|Zuma's Revenge!" "talismania|Talismania Deluxe")
 # A game's badge on the listing page, <target>|<initials>|<colour>: the initials in white on a rounded square of the
 # colour. Original to byo-pop, never the games' art. The colours keep white text above a 4.5 contrast ratio (the chat's game
 # tags, "[BW]" before a username, use the same row and colour: tools/chattest.js checks the ratio and that the initials are
@@ -64,8 +82,13 @@ set(BYOPOP_WEB_BADGES
   "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
   "pixelus|PX|#952395" "alchemy|AL|#95236b" "wordharmony|WH|#232795" "cosmicbugs|CB|#412395" "waterbugs|WB|#236f95"
   "rocketmania|RM|#952723" "dynomite|DY|#78781c" "bookwormadv2|BA2|#637c1d" "mahjongjapan|MJ|#4b5d73"
-  "mahjongchina|MC|#655873")
-# When each finished game was first released, <target>|<date> with the date as YYYY, YYYY-MM or YYYY-MM-DD, as exact as the
+  "mahjongchina|MC|#655873" "bonnies|BB|#8a3a4f"
+  # the games still to come, in BYOPOP_WEB_UPCOMING
+  "bejeweledtwist|BT|#7a2395" "venice|VE|#1f5f8c" "heavyweapon|HW|#5c6420" "hammerheads|HH|#7a5a1e"
+  "bejeweled2|BJ2|#a02a2a" "astropop|AP|#2a3fa0" "typershark|TS|#1d6a7a" "pizzafrenzy|PF|#a33a1a" "igglepop|IP|#8a238a"
+  "feedingfrenzy|FF|#1d6e8e" "chuzzle|CH|#9a3c6e" "feedingfrenzy2|FF2|#16707a" "peggle|PG|#2f6f2f" "pegglenights|PN|#3a2f8a"
+  "bejeweled3|BJ3|#6e2370" "bananabugs|BN|#7a6a12" "gyromancer|GY|#4a4a8e" "zumasrevenge|ZR|#2a7a46" "talismania|TA|#8a4a1e")
+# When each finished or upcoming game was first released, <target>|<date> with the date as YYYY, YYYY-MM or YYYY-MM-DD, as exact as the
 # sources allow (the user, 2026-10-27: the listing page can sort by release date, docs/WEB_PLAYER.md, "The listing page"). It is
 # the first release of the Windows edition that the site plays, the Deluxe download where there is one, not a web, Java or
 # phone version; a game that came out first under another publisher is dated by that first release. The tile shows the
@@ -125,7 +148,59 @@ set(BYOPOP_WEB_RELEASED
   "mahjongjapan|2006-11-13"
   # MobyGames: 2006. The days disagree: Metacritic has April 20, 2006, VGTimes and VideoGameGeek March 9, 2007, and later dates
   # are regional editions; the exe the site plays was built in August 2006 (docs/POPCAP_GAMES_SURVEY.md). Low, so the year only.
-  "mahjongchina|2006")
+  "mahjongchina|2006"
+  # VGTimes (https://vgtimes.com/games/bonnies-bookstore/release-dates/): PC, December 6, 2005 (Mac March 23, 2006); Wikipedia's
+  # list has it among 2005's games. Medium.
+  "bonnies|2005-12-06"
+  # The games still to come (BYOPOP_WEB_UPCOMING), researched 2026-11-02 the same way: Wikipedia (each game's article, through
+  # its API, and its "List of PopCap Games games"), VGTimes' release-date pages (vgtimes.com/games/<name>/release-dates/),
+  # Steam's app data (its release dates are the Steam releases, 2006 and later, so they only bound a date) and Shockwave's
+  # search API (its first release dates are when Shockwave added a game, weeks to years late, and are not used).
+  # Wikipedia, "Bejeweled Twist": Windows, October 27, 2008, citing PopCap's press release. High.
+  "bejeweledtwist|2008-10-27"
+  # Wikipedia, "Venice (video game)": June 22, 2007, citing GamesIndustry ("PopCap Launches Venice For PC"); Steam's page has
+  # June 25, 2007. High.
+  "venice|2007-06-22"
+  # Wikipedia, "Heavy Weapon": March 1, 2005, citing PopCap's "What's New" page as archived on March 6, 2005; VGTimes
+  # (https://vgtimes.com/games/heavy-weapon-deluxe/release-dates/) has PC, February 24, 2005. Medium.
+  "heavyweapon|2005-03-01"
+  # Wikipedia, "Hammer Heads", and VGTimes (https://vgtimes.com/games/hammer-heads-deluxe/release-dates/): May 23, 2006. High.
+  "hammerheads|2006-05-23"
+  # Wikipedia, "Bejeweled 2": Windows, November 16, 2004 (the console and phone editions came later). High.
+  "bejeweled2|2004-11-16"
+  # Wikipedia, "AstroPop": April 6, 2004, the day its exe was built (docs/POPCAP_GAMES_SURVEY.md); VGTimes
+  # (https://vgtimes.com/games/astropop/release-dates/) has PC, March 30, 2004. Medium to high.
+  "astropop|2004-04-06"
+  # VGTimes (https://vgtimes.com/games/typer-shark-deluxe/release-dates/): PC, June 10, 2003; Wikipedia's list has 2003. The exe
+  # of Typer Shark Deluxe 1.02 is from April 2004, a later version. Medium.
+  "typershark|2003-06-10"
+  # Wikipedia, "Pizza Frenzy": February 2, 2005. Medium.
+  "pizzafrenzy|2005-02-02"
+  # Wikipedia's list: Windows, 2004 (Sprout Games); VGTimes has only the Mac edition (January 30, 2006), and Shockwave's March
+  # 2005 is when it added the game. Low, so the year only.
+  "igglepop|2004"
+  # Wikipedia, "Feeding Frenzy (video game)": March 17, 2004, citing GameHouse's "Recently Released" list as archived in May
+  # 2004 (Sprout Games). Medium.
+  "feedingfrenzy|2004-03-17"
+  # Wikipedia, "Chuzzle", and VGTimes (https://vgtimes.com/games/chuzzle-deluxe/release-dates/): PC, May 12, 2005. High.
+  "chuzzle|2005-05-12"
+  # Wikipedia, "Feeding Frenzy 2": PC, March 15, 2006, citing GamesIndustry ("PopCap Games Launches Feeding Frenzy 2"). High.
+  "feedingfrenzy2|2006-03-15"
+  # Wikipedia, "Peggle": Windows, February 27, 2007 (Steam's March 6, 2007 is the Steam release). High.
+  "peggle|2007-02-27"
+  # Wikipedia, "Peggle Nights": Windows, September 16, 2008 (Steam, October 15, 2008). High.
+  "pegglenights|2008-09-16"
+  # Wikipedia, "Bejeweled 3": Windows and OS X, December 7, 2010; Steam's page has the same day. High.
+  "bejeweled3|2010-12-07"
+  # Wikipedia's list: Windows, 2010; it has no article, VGTimes has no page for it, and Shockwave's August 3, 2010 may be when it
+  # added the game. Low, so the year only.
+  "bananabugs|2010"
+  # Wikipedia, "Gyromancer", and Steam's page: November 18, 2009 (Square Enix with PopCap). High.
+  "gyromancer|2009-11-18"
+  # Wikipedia, "Zuma's Revenge!": September 15, 2009; Steam's page has the same day. High.
+  "zumasrevenge|2009-09-15"
+  # VGTimes (https://vgtimes.com/games/talismania-deluxe/release-dates/): PC, July 20, 2006; Wikipedia's list has 2006. Medium.
+  "talismania|2006-07-20")
 get_filename_component(BYOPOP_WEB_INDEX "${CMAKE_CURRENT_LIST_DIR}/../web/index.html" ABSOLUTE)
 # Whether a game's page asks the player to agree to its terms (the terms card and its checkbox) before the game's
 # files are imported or loaded. OFF for now (the user, 2026-10-26), and the pages must not be deployed until it is
@@ -366,6 +441,8 @@ endfunction()
 # data-title, which the page's "Sort by" reads (BYOPOP_WEB_RELEASED; a game without a row gets a warning, no year and an
 # empty data-released). It runs when the top-level CMakeLists.txt has added every game (cmake_language(DEFER), below).
 # A game whose BUILD_<TARGET> option is OFF is left out; any other name in the list that has no web page is an error.
+# Among them, sorted with them by title, a "Coming soon" tile for each game in BYOPOP_WEB_UPCOMING: its badge, title and
+# year in a group named "<title>, <year>, coming soon", not a link, with its "where to buy" links always shown.
 function(byopop_web_index)
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BYOPOP_WEB_INDEX})
   file(READ ${BYOPOP_WEB_INDEX} page)
@@ -379,6 +456,7 @@ function(byopop_web_index)
   set(chat_games "")
   set(chat_separator "")
   set(count 0)
+  set(soon_count 0)
   # the tiles go in alphabetical order of the games' titles, ignoring case (the user, 2026-10-27); a game with no
   # web page has no title, sorts first and is dealt with below
   set(ordered "")
@@ -387,20 +465,70 @@ function(byopop_web_index)
     string(TOLOWER "${title}" key)
     list(APPEND ordered "${key}|${target}")
   endforeach()
+  # the games still to come, by the titles in the list (a game with a page not yet merged still shows as coming)
+  set(upcoming "")
+  foreach(row ${BYOPOP_WEB_UPCOMING})
+    # both fields non-empty (a list split on "|" would count an empty title as a field)
+    if(NOT row MATCHES "^([^|]+)[|]([^|]+)$")
+      message(FATAL_ERROR "BYOPOP_WEB_UPCOMING (cmake/ByopopWeb.cmake) has the row \"${row}\", which is not <target>|<title>")
+    endif()
+    set(soon_target "${CMAKE_MATCH_1}")
+    set(soon_title "${CMAKE_MATCH_2}")
+    if(soon_target IN_LIST upcoming)
+      message(FATAL_ERROR "BYOPOP_WEB_UPCOMING (cmake/ByopopWeb.cmake) lists ${soon_target} twice")
+    endif()
+    if(soon_target IN_LIST BYOPOP_WEB_FINISHED)
+      message(FATAL_ERROR "${soon_target} is in both BYOPOP_WEB_FINISHED and BYOPOP_WEB_UPCOMING (cmake/ByopopWeb.cmake): "
+        "a game's final merge moves it from the second to the first")
+    endif()
+    if(NOT DEFINED BYOPOP_BUY_${soon_target})
+      message(FATAL_ERROR "BYOPOP_WEB_UPCOMING (cmake/ByopopWeb.cmake) names ${soon_target}, which has no BYOPOP_BUY_${soon_target} "
+        "in cmake/ByopopStores.cmake: its tile shows where to buy it")
+    endif()
+    # the same shape byopop_web_shell asks of a finished game's entry: the date checked, then a store and its page each
+    # (quoted, so that an empty page stays in the list and is caught)
+    set(soon_buy "${BYOPOP_BUY_${soon_target}}")
+    list(POP_FRONT soon_buy soon_checked)
+    if(NOT soon_checked MATCHES "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$")
+      message(FATAL_ERROR "BYOPOP_BUY_${soon_target} (cmake/ByopopStores.cmake) starts with \"${soon_checked}\", not a YYYY-MM-DD date")
+    endif()
+    list(LENGTH soon_buy soon_buy_count)
+    math(EXPR odd "${soon_buy_count} % 2")
+    if(odd)
+      message(FATAL_ERROR "BYOPOP_BUY_${soon_target} (cmake/ByopopStores.cmake) needs a store's name and its page for each store")
+    endif()
+    while(soon_buy_count GREATER 0)
+      list(POP_FRONT soon_buy soon_store soon_url)
+      if(soon_store STREQUAL "" OR soon_url STREQUAL "")
+        message(FATAL_ERROR "BYOPOP_BUY_${soon_target} (cmake/ByopopStores.cmake) has a store with an empty name or page")
+      endif()
+      math(EXPR soon_buy_count "${soon_buy_count} - 2")
+    endwhile()
+    set(soon_title_${soon_target} "${soon_title}")
+    list(APPEND upcoming ${soon_target})
+    string(TOLOWER "${soon_title}" key)
+    list(APPEND ordered "${key}|${soon_target}")
+  endforeach()
   list(SORT ordered)
   list(TRANSFORM ordered REPLACE "^.*\\|" "")
   foreach(target ${ordered})
-    get_property(has_title GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target} SET)
-    if(NOT has_title)
-      string(TOUPPER ${target} upper)
-      if(DEFINED BUILD_${upper} AND NOT BUILD_${upper})
-        message(STATUS "byo-pop: ${target} is off (BUILD_${upper}), so the listing page leaves it out")
-        continue()
+    set(soon OFF)
+    if(target IN_LIST upcoming)
+      set(soon ON)
+      set(title "${soon_title_${target}}")
+    else()
+      get_property(has_title GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target} SET)
+      if(NOT has_title)
+        string(TOUPPER ${target} upper)
+        if(DEFINED BUILD_${upper} AND NOT BUILD_${upper})
+          message(STATUS "byo-pop: ${target} is off (BUILD_${upper}), so the listing page leaves it out")
+          continue()
+        endif()
+        message(FATAL_ERROR "BYOPOP_WEB_FINISHED (cmake/ByopopWeb.cmake) names ${target}, which has no web page: "
+          "no byopop_web_game(${target} ...) was configured")
       endif()
-      message(FATAL_ERROR "BYOPOP_WEB_FINISHED (cmake/ByopopWeb.cmake) names ${target}, which has no web page: "
-        "no byopop_web_game(${target} ...) was configured")
+      get_property(title GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target})
     endif()
-    get_property(title GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target})
     # the title as plain text, for the chat's table (the page's own copy is HTML-escaped below): backslash and quote escaped
     set(chat_title "${title}")
     string(REPLACE "\\" "\\\\" chat_title "${chat_title}")
@@ -462,10 +590,13 @@ function(byopop_web_index)
     # its browser database (the persist folder), for the label under the name and its "?" (web/index.html)
     get_property(game_id GLOBAL PROPERTY BYOPOP_WEB_id_${target})
     get_property(game_persist GLOBAL PROPERTY BYOPOP_WEB_persist_${target})
-    # the chat's table: one entry for each game on the listing page, in the tiles' order (the game's id is the page's PAGE.id)
-    string(APPEND chat_games "${chat_separator}  {\"id\": \"${game_id}\", \"page\": \"${target}.html\", \"tag\": \"${chat_initials}\", "
-      "\"title\": \"${chat_title}\", \"colour\": \"${colour}\"}")
-    set(chat_separator ",\n")
+    # the chat's table: one entry for each finished game on the listing page, in the tiles' order (the game's id is the page's
+    # PAGE.id); a game still to come has no page to send from
+    if(NOT soon)
+      string(APPEND chat_games "${chat_separator}  {\"id\": \"${game_id}\", \"page\": \"${target}.html\", \"tag\": \"${chat_initials}\", "
+        "\"title\": \"${chat_title}\", \"colour\": \"${colour}\"}")
+      set(chat_separator ",\n")
+    endif()
     # the game's Web Lock (its page holds it while it runs) and whether it keeps replays, for the save backup (web/saves.js)
     get_property(game_lock GLOBAL PROPERTY BYOPOP_WEB_lock_${target})
     get_property(game_replays GLOBAL PROPERTY BYOPOP_WEB_replays_${target})
@@ -475,7 +606,8 @@ function(byopop_web_index)
     endif()
     # where the game can still be bought (cmake/ByopopStores.cmake, the data of the game pages' buy note): a link for each
     # store, in the card but beside the game's own link, since a link cannot hold a link; none for a game with no store
-    # (hidden: the listing page shows them for a game whose files were never loaded in this browser, web/index.html)
+    # (hidden: the listing page shows them for a game whose files were never loaded in this browser, web/index.html; always shown
+    # for a game still to come, which has no files to load yet)
     set(buy_html "")
     if(DEFINED BYOPOP_BUY_${target})
       set(buy ${BYOPOP_BUY_${target}})
@@ -496,7 +628,9 @@ function(byopop_web_index)
         endif()
         string(APPEND buy_html "<a href=\"${url}\" rel=\"noopener\" aria-label=\"Buy on ${on}, ${title}\">Buy on ${on}</a>")
       endwhile()
-      if(NOT buy_html STREQUAL "")
+      if(NOT buy_html STREQUAL "" AND soon)
+        set(buy_html "<div class=\"buyrow\">${buy_html}</div>")
+      elseif(NOT buy_html STREQUAL "")
         set(buy_html "<div class=\"buyrow\" hidden>${buy_html}</div>")
       endif()
     endif()
@@ -507,6 +641,20 @@ function(byopop_web_index)
     if(NOT year STREQUAL "")
       set(year_html " <span class=\"year\">${year}</span>")
       set(label_attr " aria-label=\"${title_attr}, ${year}\"")
+    endif()
+    if(soon)
+      # not a link: a group named with the state, "AstroPop Deluxe, 2004, coming soon", and the words on the card
+      set(soon_label "${title_attr}")
+      if(NOT year STREQUAL "")
+        string(APPEND soon_label ", ${year}")
+      endif()
+      string(CONCAT tile "    <li class=\"game soon\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\">"
+        "<div class=\"tile\" role=\"group\" aria-label=\"${soon_label}, coming soon\">"
+        "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
+        "<span class=\"name\">${title}</span>${year_html}</div><div class=\"ownrow\"><span class=\"own own-soon\" aria-hidden=\"true\">Coming soon</span></div>${buy_html}</li>")
+      list(APPEND tiles "${tile}")
+      math(EXPR soon_count "${soon_count} + 1")
+      continue()
     endif()
     string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\">"
       "<a class=\"tile\" href=\"${target}.html\" data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}${label_attr}>"
@@ -535,7 +683,7 @@ function(byopop_web_index)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")
-  message(STATUS "byo-pop: the listing page shows ${count} games")
+  message(STATUS "byo-pop: the listing page shows ${count} games and ${soon_count} coming soon")
 endfunction()
 if(EMSCRIPTEN)
   # (a deferred call runs at the end of this directory, the top level, after every game's byopop_web_game())

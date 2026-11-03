@@ -60,6 +60,17 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
 }
 .games > li:hover, .games > li:focus-within { border-color: var(--accent); }
+/* A game still to come (cmake/ByopopWeb.cmake, BYOPOP_WEB_UPCOMING): not a link, so nothing on it reacts to the pointer but its
+   buy links. Dimmed by its colours, not by opacity, so that its text keeps the page's contrast: the card on the page's background
+   with a dashed edge, the name in the muted colour, and the badge greyed, which keeps its lightness and so the white letters'
+   contrast */
+.games > li.soon { background: var(--bg); border-style: dashed; border-color: var(--muted); }
+.games > li.soon:hover { border-color: var(--muted); }
+.games > li.soon:focus-within { border-color: var(--accent); }
+.soon .tile { cursor: default; }
+.soon .name { color: var(--muted); }
+.soon .badge { filter: saturate(0.35); box-shadow: none; }
+.own-soon { font-weight: 600; }
 .tile {
   flex: 1; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 16px 8px 6px; color: inherit; text-decoration: none; text-align: center; border-radius: var(--radius) var(--radius) 0 0;

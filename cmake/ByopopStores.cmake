@@ -1,8 +1,8 @@
 # Where each game can be bought digitally, shown under its terms on its page and its copyright page
-# (docs/WEB_PLAYER.md, "Where to buy"). Every game with a web page needs an entry; byopop_web_shell() stops at one
-# without. An entry is the date the stores were checked, then a store's name and its page for the game, for each store
-# that sells it (where a store still sells a game it no longer has a page for, the link that puts it in the store's
-# cart instead):
+# (docs/WEB_PLAYER.md, "Where to buy"), and on the listing page's card. Every game with a web page needs an entry
+# (byopop_web_shell() stops at one without), and so does every game in BYOPOP_WEB_UPCOMING (byopop_web_index()). An
+# entry is the date the stores were checked, then a store's name and its page for the game, for each store that sells it
+# (where a store still sells a game it no longer has a page for, the link that puts it in the store's cart instead):
 #   set(BYOPOP_BUY_<target> <YYYY-MM-DD> [<store> <url>]...)
 # With no store, the page says the game is not for sale as of that date. Only stores that sell the game new and
 # digitally under the publisher's license, linked on their own trusted sites: the publisher's store (the EA app),
@@ -21,6 +21,7 @@
 # 2008, now only a free online game), and every guessed id for the others. For games still being ported: Shockwave
 # sells AstroPop, Heavy Weapon, Hammer Heads, Bejeweled 2, Venice and Banana Bugs (gamelanding/astropop,
 # heavyweapon, hammerheads, bejeweled2, venice, banana-bugs), and its cart takes Bejeweled 3 (bejeweled-3-pc, $6.99).
+# The whole check of the games still to come is above their entries, at the end of this file.
 # EA's own proofs of use in its trademark renewals (2015 to 2026) show only Steam, the EA app, Xbox and mobile stores.
 # Checked 2026-10-25: Steam (its store search and app pages) and EA's store had Bejeweled Deluxe (Steam) and Big Money
 # Deluxe (Steam, EA app); BookWorm Deluxe was delisted from Steam, Origin and Pogo in 2016; Big Fish Games, GameHouse,
@@ -98,3 +99,72 @@ set(BYOPOP_BUY_bejeweledtwist 2026-11-02
   Steam "https://store.steampowered.com/app/3560/"
   "EA app" "https://www.ea.com/games/bejeweled/bejeweled-twist"
   Shockwave "https://www.shockwave.com/gamelanding/bejeweledtwist")
+
+# The games still to come (BYOPOP_WEB_UPCOMING, cmake/ByopopWeb.cmake), whose "Coming soon" tiles show where to buy them.
+# Checked 2026-11-02. Shockwave: its search API found every game but Gyromancer, each landing page answers (gamelanding/<name>,
+# the page renders its price with JavaScript), and its cart took each game's id and showed its price (AstroPop, Heavy Weapon,
+# Hammer Heads, Bejeweled 2, Venice, Feeding Frenzy, Chuzzle, Peggle, Peggle Nights, Banana Bugs and Zuma's Revenge $9.99;
+# Typer Shark, Pizza Frenzy, Iggle Pop, Feeding Frenzy 2, Talismania and Bejeweled 3 $6.99), and each cart was emptied after.
+# Bejeweled 3 has no landing page (a 404), so its link is the cart's. Gyromancer is in neither its search nor its cart.
+# Steam: its store search and its app data (store.steampowered.com/api/appdetails) show a price for AstroPop, Heavy
+# Weapon, Bejeweled 2, Typer Shark, Pizza Frenzy, Iggle Pop, Feeding Frenzy 2, Chuzzle, Peggle, Peggle Nights, Bejeweled
+# 3, Gyromancer (Square Enix), Zuma's Revenge and Talismania ($4.99 each, Gyromancer $5.99). Hammer Heads (app 3400) and
+# Venice (app 3490) keep their pages with nothing to buy (no package), like Rocket Mania; the first Feeding Frenzy and
+# Banana Bugs are not in its search. EA's store: ea.com/games/<series>/<game> sells Bejeweled 3, Peggle and Feeding
+# Frenzy 2 for PC through the EA app ("Buy now"). Rechecked 2026-11-02 in the browser: Peggle Nights and Zuma's Revenge
+# have pages that offer only Mac and Origin (no PC icon), and Feeding Frenzy's page is Xbox only (its "Buy now" goes to
+# the Microsoft Store), so none of the three is linked; bejeweled-2 redirects to Bejeweled Blitz, and the likely
+# addresses of the others give a 404 (EA's library renders with JavaScript and its sitemap lists none of these games, so
+# a page under another name could be missed). Other stores were not checked.
+set(BYOPOP_BUY_venice 2026-11-02
+  Shockwave "https://www.shockwave.com/gamelanding/venice")
+set(BYOPOP_BUY_heavyweapon 2026-11-02
+  Steam "https://store.steampowered.com/app/3410/"
+  Shockwave "https://www.shockwave.com/gamelanding/heavyweapon")
+set(BYOPOP_BUY_hammerheads 2026-11-02
+  Shockwave "https://www.shockwave.com/gamelanding/hammerheads")
+set(BYOPOP_BUY_bejeweled2 2026-11-02
+  Steam "https://store.steampowered.com/app/3300/"
+  Shockwave "https://www.shockwave.com/gamelanding/bejeweled2")
+set(BYOPOP_BUY_astropop 2026-11-02
+  Steam "https://store.steampowered.com/app/3340/"
+  Shockwave "https://www.shockwave.com/gamelanding/astropop")
+set(BYOPOP_BUY_typershark 2026-11-02
+  Steam "https://store.steampowered.com/app/3450/"
+  Shockwave "https://www.shockwave.com/gamelanding/typershark")
+set(BYOPOP_BUY_pizzafrenzy 2026-11-02
+  Steam "https://store.steampowered.com/app/3430/"
+  Shockwave "https://www.shockwave.com/gamelanding/pizzafrenzy")
+set(BYOPOP_BUY_igglepop 2026-11-02
+  Steam "https://store.steampowered.com/app/3420/"
+  Shockwave "https://www.shockwave.com/gamelanding/igglepop")
+set(BYOPOP_BUY_feedingfrenzy 2026-11-02
+  Shockwave "https://www.shockwave.com/gamelanding/feedingfrenzy")
+set(BYOPOP_BUY_chuzzle 2026-11-02
+  Steam "https://store.steampowered.com/app/3310/"
+  Shockwave "https://www.shockwave.com/gamelanding/chuzzle")
+set(BYOPOP_BUY_feedingfrenzy2 2026-11-02
+  Steam "https://store.steampowered.com/app/3390/"
+  "EA app" "https://www.ea.com/games/feeding-frenzy/feeding-frenzy-2"
+  Shockwave "https://www.shockwave.com/gamelanding/feedingfrenzy2")
+set(BYOPOP_BUY_peggle 2026-11-02
+  Steam "https://store.steampowered.com/app/3480/"
+  "EA app" "https://www.ea.com/games/peggle/peggle"
+  Shockwave "https://www.shockwave.com/gamelanding/peggle")
+set(BYOPOP_BUY_pegglenights 2026-11-02
+  Steam "https://store.steampowered.com/app/3540/"
+  Shockwave "https://www.shockwave.com/gamelanding/pegglenights")
+set(BYOPOP_BUY_bejeweled3 2026-11-02
+  Steam "https://store.steampowered.com/app/78000/"
+  "EA app" "https://www.ea.com/games/bejeweled/bejeweled-3"
+  Shockwave "https://storefront.shockwave.com/sw/cart/purchase.jsp?add=bejeweled-3-pc")
+set(BYOPOP_BUY_bananabugs 2026-11-02
+  Shockwave "https://www.shockwave.com/gamelanding/banana-bugs")
+set(BYOPOP_BUY_gyromancer 2026-11-02
+  Steam "https://store.steampowered.com/app/23380/")
+set(BYOPOP_BUY_zumasrevenge 2026-11-02
+  Steam "https://store.steampowered.com/app/3620/"
+  Shockwave "https://www.shockwave.com/gamelanding/zumasrevenge")
+set(BYOPOP_BUY_talismania 2026-11-02
+  Steam "https://store.steampowered.com/app/3460/"
+  Shockwave "https://www.shockwave.com/gamelanding/talismania")
