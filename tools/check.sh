@@ -197,8 +197,8 @@ MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of 
 MJC_DEAL="178 layouts, 0 failed"
 MJC_SHOTS="4c18c17f02f2 b63352c04770 7a72965e0cee"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
-BT_CLASSIC="28db3003ce53 543be9162c45 a877befa7541 2bab036e404c"  # the first 12 hex digits of the sha256 of the Classic game's screens at 1500, 3000, 4500 and 6000: the frozen baseline
-BT_BLITZ="7e99a176350b c8b25cf3f761 e07b8a86db1c cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 3500, 6000, 8000 (the explosion), 8450 (space, on the way to the scores) and 9000 (the high scores)
+BT_CLASSIC="849661ca3941 645da06bba91 79a58137ffb5 b3041b28645e"  # the first 12 hex digits of the sha256 of the Classic game's screens at 1500, 3000, 4500 and 6000: the frozen baseline
+BT_BLITZ="1a6389926f12 9f06a4076f1f 8a0ccc1e9da8 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 3500, 6000, 8000 (the explosion), 8450 (space, on the way to the scores) and 9000 (the high scores)
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

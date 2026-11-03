@@ -797,16 +797,17 @@ is reported in IDENTICAL_PLAY.md.
   shown in a timed game: the gems hide and BOARD_PAUSED fades in (0x756925). Under origrun the original's update counter
   then stands still until the focus comes back, on the real clock too, while its screen still changes (the pause text
   fades in), so shots of the unfocused stretch cannot be lined up by update count; the port keeps counting.
-- **The web build under Node** has no WebGL, so SDL renders in software and samples rotated images without
-  filtering (the cursor spiral looks dotted); a browser does not. The shards and smoke of an explosion drift a little
+- **The web build under Node** has no WebGL, so SDL renders in software; in 2D the rotated draws are the framework's
+  software ones (below), so they no longer depend on it, but 3D's still sample without filtering. The shards and smoke of an explosion drift a little
   between the native and web builds from libm's last bits (sin and cos), with the same random draws: the boards stay
   identical.
-- **Rotated and matrix draws in 2D are not the original's yet.** In 2D the original draws them in software (DDImage's
-  BltRotated, 0x41c5c0, and BltMatrix, its triangle rasteriser), while the port draws them on the GPU with linear
-  filtering. Their edges differ by a level or two over a pixel: the cursor spiral, the help pages' PopAnim
-  animations, and the bomb wheel's glass, whose lower slices come out opaque in the original and see-through in the
-  port. It would take what the stretches got (97d664a): the framework rasterising the draw into an image with SWTri and
-  blitting that, for a game whose screen was software.
+- **Rotated and matrix draws in 2D are the original's software ones.** In 2D the original rotates with its own
+  bilinear code (DDImage::BltRotated, 0x41c5c0), draws matrices and triangles with SWTri (BltMatrix, 0x4355e0) and blits
+  at a fractional place as a rotation at no angle (BltF, 0x412fd0). The port turns on the framework's
+  mSoftwareTransforms in 2D (f8624d2), which draws these with MemoryImage's software code into a copy and blits it, and
+  the constructor registers SWTri's drawers as the original's does (0x766ce7 calls 0x50f7e0); without them SWTri drew
+  nothing, the tutorial's click-now arrows among it. Additive matrix and triangle draws still go through SDL, since
+  1.3's SWTri has no additive triangles (Twist's has, 0x60d250's flag 0x80). It costs about 2 ms a frame.
 
 ## Oddities
 
