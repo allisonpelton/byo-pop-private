@@ -88,6 +88,12 @@ the pass added is the comparison: `testhooks/Autoplay.cpp` (`-autoplayui`, `-aut
 mode (direct calls, `tools/check.sh alchemy`) is unchanged. Commit 38eaccc, the ten default score names read from the player's
 `Alchemy.exe`, goes in with this phase's merge.
 
+## Frozen baseline
+
+`build/baseline-alchemy/` (git-ignored: a copy of `alchemy.exe` and its DLLs made when this pass was done) is checked by
+`tools/check.sh alchemy`: three mouse-played games (strategic, time trial, strategic at skill 2) run in both the current port and the
+baseline must write the same state log, so later fixes and mods leave unmodded play as compared with the original.
+
 ## Oddities (skipped)
 
 - **The original's "Updates" question.** It appears at the first start (about update 115) with `partner.xml`'s `DontUpdate` false and

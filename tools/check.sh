@@ -778,6 +778,11 @@ alchemy_game() {  # <name> <mode> <cap> [user dir to keep]: a bot game; prints i
 	grep -E '^(game [0-9]+ over|tutorial button|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
+alchemy_state_game() {  # <name> <exe> <mode> <bot seed> <game seed> <skill>: a game played by mouse; its state log is <name>/state.txt
+	local d="$OUT/alchemy/$1"; rm -rf "$d"; mkdir -p "$d"
+	timeout 600 "$2" -userdir="$d/user" -fast -seed="$5" -autoplayui -autoplaystart=450 -autoplay="$4" -autoplaymode="$3" -autoplayskill="$6" -autoplaycap=20000 		-statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_alchemy() {
 	local st=0 s t u r v sv
 	need_assets alchemy || return 1
@@ -793,7 +798,20 @@ suite_alchemy() {
 	[ "$u" = "$AL_TUTORIAL" ] || st=1
 	[ "$v" = 1 ] || st=1
 	if diff -rq "$OUT/alchemy/strategic/shots" "$OUT/alchemy/strategic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/alchemy/strategic/log.txt" "$OUT/alchemy/strategic2/log.txt" && [ "$s" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="strategic ${s#game 1 over at update }; time trial ${t#game 1 over at update }; ${u}; saved game loaded $v time; $r"
+	# the frozen baseline (build/baseline-alchemy/, the port when its identical-play pass was done): the same mouse-played
+	# games must give the same state at every update (the values the pass compared with the original)
+	local base="$W/build/baseline-alchemy/alchemy.exe" bl="" a
+	if [ -f "$base" ]; then
+		for a in "strategic 7 1 -1" "timetrial 1 1 -1" "strategic 3 4 2"; do
+			read -r m bs gs sk <<< "$a"
+			alchemy_state_game "cur-$m-$gs" "$W/build/native/alchemy.exe" "$m" "$bs" "$gs" "$sk"
+			alchemy_state_game "base-$m-$gs" "$base" "$m" "$bs" "$gs" "$sk"
+			[ -s "$OUT/alchemy/cur-$m-$gs/state.txt" ] && [ -s "$OUT/alchemy/base-$m-$gs/state.txt" ] &&
+				cmp -s "$OUT/alchemy/cur-$m-$gs/state.txt" "$OUT/alchemy/base-$m-$gs/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="strategic ${s#game 1 over at update }; time trial ${t#game 1 over at update }; ${u}; saved game loaded $v time; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected strategic '$AL_STRATEGIC', time trial '$AL_TIMETRIAL', tutorial '$AL_TUTORIAL')"
 	return $st
 }
