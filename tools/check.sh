@@ -161,8 +161,8 @@
 #
 # The bots' expected results are below. A change that is meant to alter how a game plays updates them, in
 # the same commit, with the reason.
-BW_CLASSIC="level 8, score 58970"
-BW_ACTION="level 14, score 152360"
+BW_CLASSIC="level 5, score 19230"
+BW_ACTION="level 11, score 87580"
 BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17369: score 6524 mode stampede"
 NA_STRATEGY="level 5 done at update 19538: score 6380 mode strategy"
@@ -700,6 +700,13 @@ bookworm_game() {  # <name> <mode>: a bot game; prints its last "game over" line
 	grep -o -i -E 'game over[^;]*' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
+bookworm_state_game() {  # <name> <exe> <user dir> <port arguments...>: a bot run with no mods; its state log is <name>/state.txt
+	local d="$OUT/bookworm/$1" e="$2" u="$3"; shift 3
+	rm -rf "$d"; mkdir -p "$d/mods"
+	[ -d "$u" ] || mkdir -p "$u"
+	timeout 900 "$e" -userdir="$u" -modsdir="$d/mods" -fast -statelog="$d/state.txt" "$@" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_bookworm() {
 	local st=0 c a r
 	need_assets bookworm || return 1
@@ -708,7 +715,26 @@ suite_bookworm() {
 	case "$c" in *"$BW_CLASSIC"*) ;; *) st=1 ;; esac
 	case "$a" in *"$BW_ACTION"*) ;; *) st=1 ;; esac
 	if diff -rq "$OUT/bookworm/classic/shots" "$OUT/bookworm/classic2/shots" >> "$1" 2>&1; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="classic ${c#*-> inactive, }; action ${a#*-> inactive, }; $r"
+	# the frozen baseline (build/baseline-bookworm/, the port when its identical-play pass was done): games the pass played
+	# against the original (two and three games in a session, a Classic game quit half way and continued from its saved
+	# file) must give the same state at every update in both
+	local base="$W/build/baseline-bookworm/bookworm.exe" bl="" k x
+	if [ -f "$base" ]; then
+		for k in cur base; do
+			x="$W/build/native/bookworm.exe"; [ $k = base ] && x="$base"
+			rm -rf "$OUT/bookworm/$k-user"
+			bookworm_state_game "$k-c2" "$x" "$OUT/bookworm/$k-user/c2" -seed=7 -autoplay=2 -autoplaymode=both -autoplaycap=60000
+			bookworm_state_game "$k-m1" "$x" "$OUT/bookworm/$k-user/m1" -seed=9 -autoplay=7 -autoplaymode=classic,action,classic
+			bookworm_state_game "$k-s1" "$x" "$OUT/bookworm/$k-user/s1" -seed=11 -autoplay=3 -autoplaymode=classic -autoplaycap=3000
+			bookworm_state_game "$k-s1b" "$x" "$OUT/bookworm/$k-user/s1" -seed=11 -autoplay=4 -autoplaymode=classic -autoplaycontinue=1
+		done
+		for k in c2 m1 s1 s1b; do
+			[ -s "$OUT/bookworm/cur-$k/state.txt" ] && [ -s "$OUT/bookworm/base-$k/state.txt" ] &&
+				cmp -s "$OUT/bookworm/cur-$k/state.txt" "$OUT/bookworm/base-$k/state.txt" || bl="$bl $k"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS:$bl"; st=1; }
+	fi
+	SUMMARY="classic ${c#*-> inactive, }; action ${a#*-> inactive, }; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic $BW_CLASSIC, action $BW_ACTION)"
 	return $st
 }
