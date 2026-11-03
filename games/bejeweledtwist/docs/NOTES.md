@@ -288,9 +288,12 @@ MarketingMode is LevelLock, and the mode select opens Blitz at once only for a r
 
 The port stages Steam's `properties/` (PORT_PLAN.md, "Which copy's files"): the retail resources.xml names the zendrops
 by paths no copy has, and the retail game quits on the first one it needs. So the port reads LevelLock, Steam's
-registry key (`Steam\BejeweledTwist`) and its sound volumes. For the comparisons, origrun's copy of the original carries
-the same `properties/` and the patch that skips the properties-signature check (0x4a39c7), as the user's Steam exe
-does; its registry preset goes under the Steam key. During a 2D jump Hyperspace draws the level's picture over space
+registry key (`Steam\BejeweledTwist`) and its sound volumes.
+<!-- private: For the comparisons, origrun's copy of the original reads the same `properties/`, as the user's Steam copy does; its registry preset goes under the Steam key. -->
+For the comparisons, origrun's copy of the original carries the same `properties/` and the patch that skips the
+properties-signature check (0x4a39c7), as the user's Steam exe does; its registry preset goes under the Steam key.
+<!-- /private -->
+During a 2D jump Hyperspace draws the level's picture over space
 while the VizManager is hidden (0x711b65, the old picture for the first half, faded in by +0x1570), and at the end of
 one the old picture at +0x12b0's alpha (0x70f836), or space fading out over the board.
 
