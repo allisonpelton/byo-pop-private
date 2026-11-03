@@ -4,6 +4,7 @@
 
 #include "AtomicaApp.h"
 #include "Screens.h"
+#include "GameText.h"
 #include "Graphics.h"
 #include "ImageFont.h"
 #include "MemoryImage.h"
@@ -143,7 +144,7 @@ void AtomicaApp::LoadingThreadProc()
 		mBigExplosion[i] = mSprites->Cell(mBigExplosionSheet, 110, 110, i);
 		mCompletedLoadingThreadTasks++;
 	}
-	mLoadingText = "Unpacking Atomic Machine...";
+	mLoadingText = GT(0x4af420);
 	for (int aType = 0; aType < 3; aType++)
 	{
 		int aSize = (aType == 0) ? 0x96 : (aType == 1) ? 0x12c : 0x1c2;
@@ -156,7 +157,7 @@ void AtomicaApp::LoadingThreadProc()
 			mCompletedLoadingThreadTasks++;
 		}
 	}
-	mLoadingText = "Adjusting quantum fluxes...";
+	mLoadingText = GT(0x4af404);
 	PumpLoading();
 
 	mAtomsSheet = mSprites->Load("atoms");
@@ -190,7 +191,7 @@ void AtomicaApp::LoadingThreadProc()
 	mAnnounceFont = new ImageFont(this, "data\\announcefont.txt");
 	mMouseoverFont = new ImageFont(this, "data\\mouseoverfont.txt");
 
-	mLoadingText = "Ionizing atoms...";
+	mLoadingText = GT(0x4af21c);
 	PumpLoading();
 	mChromium = mSprites->Load("chromiumatom");
 	mCompletedLoadingThreadTasks++;
@@ -220,7 +221,7 @@ void AtomicaApp::LoadingThreadProc()
 
 	LoadAtoms();
 
-	mLoadingText = "Wrangling electrons...";
+	mLoadingText = GT(0x4af14c);
 	PumpLoading();
 	mPreAtom = mSprites->Load("preatom");
 	mCompletedLoadingThreadTasks++;
@@ -234,7 +235,7 @@ void AtomicaApp::LoadingThreadProc()
 	mStarBurst = mSprites->Load("starburst");
 	mCompletedLoadingThreadTasks++;
 
-	mLoadingText = "Paging Dr. Atomicus...";
+	mLoadingText = GT(0x4af110);
 	PumpLoading();
 	mMachineScore = mSprites->Load("atomicmachine(score)");
 	mCompletedLoadingThreadTasks++;
@@ -334,7 +335,7 @@ void AtomicaApp::LoadingThreadProc()
 	mFreeze = mSprites->Load("Freeze");
 	mCompletedLoadingThreadTasks++;
 
-	mLoadingText = "Playing with strange matter...";
+	mLoadingText = GT(0x4aee54);
 	PumpLoading();
 	mElementalSheet = mSprites->Load("elemental");
 	mCompletedLoadingThreadTasks++;
@@ -446,7 +447,7 @@ void AtomicaApp::LoadingThreadProc()
 	mLevelWord = mSprites->SubSprite(mLevelNumbersSheet, 2, 0x27, 0x1c, 0xd);
 	mCompletedLoadingThreadTasks++;
 
-	mLoadingText = "Tuning audio resonators...";
+	mLoadingText = GT(0x4aec78);
 	PumpLoading();
 	mSndAtomAppear = LoadSound("atomappear");
 	mSndCreateMolecule = LoadSound("createmolecule");
