@@ -992,15 +992,21 @@ next_match:
 				if (aGem != nullptr) {
 					int aCount = (int)aMatch.mIds.size();
 					int aLift = Ftol((double)gApp->mScale * 24.0);
-					AddPoints(aSumX / aCount, aSumY / aCount - aLift, aMatch.mUnknown2C, gGemColors[aGem->mColor],
-						aMatch.mSerial, true, true, aFirst, true);
-					// port: with the first points of a cascade and more than one object at +0x2170, the last one's
-					// +0x50 and +0x70 change; the points' +0x6c takes aDelay. Both come with the points
+					Points* aPoints = AddPoints(aSumX / aCount, aSumY / aCount - aLift, aMatch.mUnknown2C,
+						gGemColors[aGem->mColor], aMatch.mSerial, true, true, aFirst, true);
+					if (aFirst && 1 < mUnknown2170.size()) {
+						// The first points of a cascade, with other smoke already on its way: theirs waits and goes
+						// slower
+						SmokeTraveller* aSmoke = static_cast<SmokeTraveller*>(mUnknown2170.back());
+						aSmoke->mDelay = 0.1f;
+						aSmoke->mHurry = (float)((double)aSmoke->mHurry * 0.3499999940395355);
+					}
 					aFirst = false;
+					if (aPoints != nullptr)
+						aPoints->mDelay = aDelay;
 				}
 			}
 			aDelay += 15;
-			(void)aDelay;
 		}
 	}
 	if (mUnknown1508 == 1) {
