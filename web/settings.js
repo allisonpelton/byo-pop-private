@@ -172,6 +172,25 @@ var ByopopSettings = (function () {
   // The games that read "3D acceleration" (Byopop::SiteAccel3D, framework/WebSettings.h): a game page of another game does
   // not show it. Perhaps later, once their passes settle their 3D modes: Bookworm Adventures 1 and 2, Rocket Mania.
   var ACCEL3D_GAMES = ["bejeweledtwist"];
+  // What this browser gives the games for 3D, shown under that setting: "hardware", "software" or "none". Tested as the
+  // games test it (Twist's Is3DAccelerationSupported asks a new canvas for "webgl2"), then once more with
+  // failIfMajorPerformanceCaveat, which a browser refuses when its WebGL2 is drawn without the graphics card (Chrome's
+  // SwiftShader with hardware acceleration off). Each context is let go at once (WEBGL_lose_context). Asked once a page.
+  var accel3dSupport = null;
+  function accel3d() {
+    if (accel3dSupport) return accel3dSupport;
+    function context(attrs) {
+      try {
+        var gl = document.createElement("canvas").getContext("webgl2", attrs);
+        if (!gl) return false;
+        var lose = gl.getExtension("WEBGL_lose_context");
+        if (lose) lose.loseContext();
+        return true;
+      } catch (e) { return false; }
+    }
+    accel3dSupport = !context(undefined) ? "none" : context({ failIfMajorPerformanceCaveat: true }) ? "hardware" : "software";
+    return accel3dSupport;
+  }
   var FIELDS = [
     { group: T("settings.group.players") },
     { name: "profile", label: T("settings.profile.label"), options: [["game", GAME_DEFAULT], ["fill", T("settings.profile.fill")], ["create", T("settings.profile.create")]], start: true,
@@ -583,6 +602,13 @@ var ByopopSettings = (function () {
         wireHelp(help, pop, row);
       } else {
         row.appendChild(label); row.appendChild(ctl); row.appendChild(hint);
+      }
+      if (f.name === "accel3d") {
+        var support = make("p", "bps-hint", T("settings.accel3d.support." + accel3d()));
+        support.id = id + "-support";
+        support.setAttribute("data-accel3d-support", accel3d());
+        row.appendChild(support);
+        c.select.setAttribute("aria-describedby", c.select.getAttribute("aria-describedby") + " " + support.id);
       }
       container.appendChild(row);
       if (f.name === "profile" && opts.playerNote) {
