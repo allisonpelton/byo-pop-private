@@ -4,6 +4,8 @@
 // the scripts 73 methods (RegisterGameAppMethods, GameAppLua.cpp).
 #pragma once
 
+#include <cstdio>
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -128,6 +130,18 @@ public:
 	int mTotalBooks = 0;                           // +0x8f8, from main.LoadRequiredScripts
 	int mRegTotalBooks = 0;                        // +0x8fc, the registry's TotalBooks
 	int mAppTime = 0;                              // +0x900, the registry's AppTime, counting updates
+	// port: test hooks -startloadupdates=N and -chapterloadupdates=a,b,c (TestHooks.cpp): the startup load completes at update N
+	// and the k-th chapter load after a updates, as the original's loading threads took in the run compared with
+	// (they take as long as the machine's work does, which no -fast run can know). Normal play never uses them.
+	int mStartLoadWanted = -1;
+	bool mStartLoadPending = false;
+	std::vector<int> mChapterLoadUpdates;
+	int mChapterLoadWanted = -1;
+	int mChapterLoadStart = 0;
+	int mChapterLoadsStarted = 0;
+	std::string mStateLogFileName;                 // port: -statelog
+	FILE* mStateLog = nullptr;
+	std::map<std::string, std::string> mStateLogLast;
 	int mUserUpdates = 0;                          // +0x97c, updates since the player was selected
 	bool mNukeProfile = false;                     // +0x910: the scripts' _NukeProfile once the book is up
 	bool mChapterInitQueued = false;               // +0x911: the player's ChapterInit once the curtain is open
@@ -181,6 +195,9 @@ public:
 	void LostFocus() override;              // V1:0x451160: the screens stop updating
 	// port: the test scripts' "word" (TestHooks.cpp)
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: -statelog=<file> (TestHooks.cpp): a line "<update> <name> <value>" each time a value of the battle changes
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	void LogState();
 	// V1:0x44f5c0: through the sound player, not again within 5 updates
 	void PlaySample(int theSoundNum) override;
 	// V1:0x44f600: the same at a pan

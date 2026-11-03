@@ -453,3 +453,56 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	return true;
 }
+
+void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-statelog")
+		mStateLogFileName = theParamValue;
+	else if (theParamName == "-startloadupdates")
+		mStartLoadWanted = theParamValue.empty() ? -1 : atoi(theParamValue.c_str());
+	else if (theParamName == "-chapterloadupdates") {
+		mChapterLoadUpdates.clear();
+		size_t aPos = 0;
+		while (aPos <= theParamValue.size()) {
+			size_t aComma = theParamValue.find(',', aPos);
+			if (aComma == std::string::npos)
+				aComma = theParamValue.size();
+			if (aComma > aPos)
+				mChapterLoadUpdates.push_back(atoi(theParamValue.substr(aPos, aComma - aPos).c_str()));
+			aPos = aComma + 1;
+		}
+	} else
+		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+// -statelog: the values the identical-play comparison reads, written when one changes ("-" when there is none): the
+// RNG's draws (Sexy::GetRandCount), and in a battle the engine's state and the tiles of the grid and of the word
+void GameApp::LogState()
+{
+	if (mStateLog == nullptr) {
+		mStateLog = fopen(mStateLogFileName.c_str(), "w");
+		if (mStateLog == nullptr) {
+			mStateLogFileName.clear();
+			return;
+		}
+	}
+	std::vector<std::pair<std::string, std::string>> aValues;
+	aValues.push_back({"rand", StrFormat("%u", GetRandCount())});
+	aValues.push_back({"loaded", StrFormat("%d", (int)mLoadingThreadCompleted)});
+	aValues.push_back({"dialogs", StrFormat("%d", GetDialogCount())});
+	aValues.push_back({"title", mTitleScreen != nullptr ? "1" : "0"});
+	aValues.push_back({"menu", mMainMenu != nullptr ? "1" : "0"});
+	aValues.push_back({"trans", StrFormat("%d", (int)mTransitionState)});
+	aValues.push_back({"chload", mChapterLoadScreen != nullptr ? "1" : "0"});
+	aValues.push_back({"estate", gBattleEngine != nullptr ? StrFormat("%d", gBattleEngine->mState) : "-"});
+	aValues.push_back({"tiles", mBoard != nullptr ? StrFormat("%d", (int)mBoard->mTiles.size()) : "-"});
+	aValues.push_back({"selected", mBoard != nullptr ? StrFormat("%d", (int)mBoard->mSelected.size()) : "-"});
+	for (auto& aValue : aValues) {
+		std::string& aLast = mStateLogLast[aValue.first];
+		if (aLast != aValue.second) {
+			aLast = aValue.second;
+			fprintf(mStateLog, "%d %s %s\n", mUpdateCount, aValue.first.c_str(), aValue.second.c_str());
+		}
+	}
+	fflush(mStateLog);
+}

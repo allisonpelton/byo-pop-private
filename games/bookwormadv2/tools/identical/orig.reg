@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\WildTangent\BWAVol2]
+"ScreenMode"=dword:00000000
+"Is3D"=dword:00000000
+"MusicVolume"=dword:00000000
+"SfxVolume"=dword:00000000
+"Muted"=dword:00000000
+"CustomCursors"=dword:00000000
+"WaitForVSync"=dword:00000000
+"TotalBooks"=dword:00000006
+"TimesExecuted"=dword:00000003

@@ -10,7 +10,9 @@ next to itself or up to two levels up).
 
 main.pak (XOR 0xF7, tools/popcap_pak.py) is unpacked; the game reads its files exactly as it reads loose ones, and
 loose files win over the pak's in the original too. Names are staged in lower case, so case-sensitive file systems
-(Emscripten MEMFS/IDBFS, Linux) see the names the game asks for. The game loads its 34 JPEG 2000 images (.jp2)
+(Emscripten MEMFS/IDBFS, Linux) see the names the game asks for; the names whose case the game's files had go to
+<out>/filecase.txt, which sexy.GetFilesInDirectory reads so that the scripts see the original's names ("Book4.luc").
+--case-only writes that file alone. The game loads its 34 JPEG 2000 images (.jp2)
 itself (platform/openjpeg); they are also decoded with Pillow into re/bookwormadv2/jp2ref/ (the same paths, as .png),
 the reference the unit suite's jp2test compares that decoder with. PNG copies that earlier staging wrote next to them
 are removed, so that the game reads the .jp2 files as in the browser.
@@ -46,11 +48,18 @@ def find_install(explicit):
     return None
 
 
+CASES = []
+CASE_ONLY = False
+
+
 def write(out, rel, data):
+    if rel != rel.lower():
+        CASES.append(rel.replace("\\", "/"))
     path = os.path.join(out, rel.lower())
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "wb") as f:
-        f.write(data)
+    if not CASE_ONLY:
+        with open(path, "wb") as f:
+            f.write(data)
     return path
 
 
@@ -58,7 +67,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("install", nargs="?", help="Bookworm Adventures Volume 2 install folder (contains main.pak)")
     ap.add_argument("--out", default=os.path.join(ROOT, "assets", "bookwormadv2"))
+    ap.add_argument("--case-only", action="store_true", help="write out/filecase.txt only")
     args = ap.parse_args()
+    global CASE_ONLY
+    CASE_ONLY = args.case_only
 
     src = find_install(args.install)
     if not src:
@@ -102,6 +114,8 @@ def main():
             if os.path.isfile(path[:-4] + ".png"):
                 os.remove(path[:-4] + ".png")
 
+    with open(os.path.join(out, "filecase.txt"), "w", newline="") as f:
+        f.write("".join(c + "\n" for c in sorted(set(CASES))))
     missing = [r for r in REQUIRED if not os.path.isfile(os.path.join(out, r))]
     if missing:
         sys.exit(f"Staged {count} files but required files are missing: {missing}")
