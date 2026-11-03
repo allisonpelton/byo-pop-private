@@ -172,10 +172,10 @@ void StateLog::Update()
 		int aRow = (i % 54) / 6;
 		int aColumn = i % 6;
 		Piece* aPiece = aBoard == NULL ? NULL : aBoard->mGrid[aRow][aColumn];
-		if (aBoard == NULL)
+		if (aPiece == NULL)
 			snprintf(aBuffer, sizeof(aBuffer), "-");
 		else
-			snprintf(aBuffer, sizeof(aBuffer), "%d", aPiece == NULL ? 0 : (i < 54 ? aPiece->mRotation : aPiece->mKind));
+			snprintf(aBuffer, sizeof(aBuffer), "%d", i < 54 ? aPiece->mRotation : aPiece->mKind);
 		char aName[8];
 		snprintf(aName, sizeof(aName), "%c%d%d", i < 54 ? 'r' : 'k', aRow, aColumn);
 		if (!mStarted || mLast[28 + i] != aBuffer)

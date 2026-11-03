@@ -448,6 +448,8 @@ Points::Points(RocketApp* theApp, Font* theFont, const std::string& theText, int
 	mApp(theApp), mText(theText), mFont(theFont), mBackImage(NULL), mBackColor(255, 255, 255), mLife(theLife), mPhase(0),
 	mStatic(false), mTextWidth(theFont->StringWidth(theText)), mLeft(theX), mTop(theY), mMode(theMode), mBaseline(0)
 {
+	// the text is only to be looked at: a click goes through it to the board (the original's constructor clears the mouse flag)
+	mMouseVisible = false;
 	Position();
 }
 
