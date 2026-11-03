@@ -31,8 +31,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   2026-11-03), and its MessageBox and MessageBeep calls so that a message box is answered without showing or sounding
   ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
   (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
-  private blocks, and the patching tools in `.publishignore`. Until its MessageBox hook is in, origrun cannot stop a
-  message box's own sound or a MessageBeep, and it has no guard
+  private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
+  and its MessageBeep calls with no sound, unless `--msgbox show` (a box then rings, as do boxes called through
+  GetProcAddress, `--sound real` runs and games that never load the stand-in; `docs/ORIGRUN.md`). It has no guard
   against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
   needs real sound, the user turns the speakers off for a short stretch or overnight. An original counts as a game
   process.
