@@ -50,7 +50,8 @@ FossilizedApp::FossilizedApp()
 	mMusicVolume = 0.5;
 	mSfxVolume = 0.85;
 	mAngles = new AngleTable();
-	mRand.SRand(GetTickCount());
+	// port: the 2003 framework's MTRand::SRand (0x442d90) is the 69069 seeding (compat2004)
+	SeedMTRand2004(mRand, GetTickCount());
 	mPicker.Seed(GetTickCount() >> 1);
 	mSkill = 1;
 	mFossilKind = 0;
@@ -122,7 +123,7 @@ void FossilizedApp::Init()
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
 	if (mHasSeedParam)
 	{
-		mRand.SRand((unsigned int) mRandSeed);
+		SeedMTRand2004(mRand, (unsigned int) mRandSeed);
 		mPicker.Seed((unsigned int) mRandSeed >> 1);
 	}
 	LoadProperties();
