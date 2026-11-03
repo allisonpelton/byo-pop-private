@@ -875,7 +875,7 @@ pixelus_game() {  # <name> <puzzles>: a bot game of that many puzzles (at most);
 
 pixelus_state_game() {  # <name> <exe> <bot seed> <game seed>: three puzzles played by mouse; its state log is <name>/state.txt
 	local d="$OUT/pixelus/$1"; rm -rf "$d"; mkdir -p "$d"
-	timeout 600 "$2" -userdir="$W/$d/user" -fast -seed="$4" -autoplay="$3" -autoplayui -autoplayskip -autoplaypuzzles=3 -autoplaycap=200000 		-autoplaylog="$d/log.txt" -statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	timeout 600 "$2" -userdir="$W/$d/user" -fast -seed="$4" -autoplay="$3" -autoplayui -autoplayskip -autoplaypuzzles=3 -autoplaycap=200000 \n		-autoplaylog="$d/log.txt" -statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 }
 
 suite_pixelus() {
@@ -904,7 +904,7 @@ suite_pixelus() {
 	if diff -rq "$d/start/shots" "$d/start2/shots" >> "$1" 2>&1 && diff -q "$d/start/log.txt" "$d/start2/log.txt" >> "$1" 2>&1; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-pixelus/, the port when the first phase of its identical-play pass was done): the
 	# same mouse-played games must give the same state at every update (the values the pass compared with the original)
-	local base="$W/build/baseline-pixelus/pixelus.exe" bl="" k
+	local base="$W/build/baseline-pixelus/pixelus.exe" bl="" k bs gs
 	if [ -f "$base" ]; then
 		for k in "1 1" "2 7"; do
 			read -r bs gs <<< "$k"
