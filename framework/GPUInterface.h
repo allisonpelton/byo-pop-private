@@ -245,8 +245,9 @@ struct GPUPolicy
 	// 0x61eec0, takes an argument: 0 gives 0x19, plus 2 for ps_2_0 (read at 0x756a92 and by Hyperspace), 4 for vs_2_0
 	// (read by the constant slots), 0x20 cube maps and 0x40 volume maps, so 0x7f on a modern card; 1 gives
 	// MaxTextureBlendStages, read by RainbowCubeFixedFunctionShader, 0x70f389), ValidateDevice's result for each shader
-	// (0x30, whose answer the fixed-function ladder saves under <name>_fallback), the accepted formats. Cube and volume
-	// textures are not carried: a request for one is logged (Twist's one cube map, resources.xml:816, is never read).
+	// (0x30, whose answer the fixed-function ladder saves under <name>_fallback), the accepted formats. A cube texture
+	// (flag 0x20: Twist's IMAGE_CUBEMAP_6X1_VIZBUCKYSHARDS_CUBE, resources.xml:816) is carried, sampled by a stage's
+	// texture coordinate as a direction; volume textures (0x40) are not: a request for one is logged.
 	unsigned long mCaps;
 	unsigned long mMaxTextureBlendStages;
 	bool mValidateDevice;

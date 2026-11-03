@@ -1,5 +1,6 @@
 #include "SpeedText.h"
 
+#include "CurvedVal.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "Res.h"
@@ -44,12 +45,17 @@ void SpeedText::Update()
 			mState = 1;
 		}
 	} else if (mState == 1) {
-		mHold = mHold - 0.01f;
+		mHold = (float)((double)mHold - 0.01);  // 0x81d368: a double
 		if (mHold <= 0.0f)
 			mState = 2;
 	} else if (mState == 2) {
 		int aWidth = mGlow->mWidth;
-		mX += (int)((double)gApp->mScale * -50.0);
+		// with Direct3D the x87 rounds the product to a float (gCurveSinglePrecision): at a scale of 0.64 it is -32, not
+		// the -31.99999928 that truncates to -31
+		double aStep = (double)gApp->mScale * -50.0;
+		if (gCurveSinglePrecision)
+			aStep = (float)aStep;
+		mX += (int)aStep;
 		if (mX < -aWidth) {
 			mX = -aWidth;
 			mGone = true;

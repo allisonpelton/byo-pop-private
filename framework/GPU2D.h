@@ -61,7 +61,8 @@ public:
 	// state 0xbc (0x6229f0), sampler state 0xc4 (0x622ad0): a map per kind whose unset value is 0xffffffff (0x623380).
 	// Texture 0xd0 (0x622c70): a cache per stage at this+0x158, null at construction, binding a texture piece. Texture
 	// 0xd4 (0x622cc0): null binds null through 0xd0; an image is prepared (slot 0x44, the device's PrepareTexture) and
-	// its piece 0 bound through 0xd0; a cube or volume texture (image flags 0x20, 0x40) is logged and binds nothing.
+	// its piece 0 bound through 0xd0, a cube texture (image flag 0x20) too, held by the device as a cube; a volume texture
+	// (flag 0x40) is logged and binds nothing.
 	// Target, shaders: flush when the value changes. The draws' own calls and the adapter's game calls all go through
 	// these, so the cache always holds the device's state and a batched quad never draws with the next draw's texture.
 	void SetRenderState(int theState, unsigned long theValue);
@@ -237,9 +238,10 @@ private:
 // (SetDrawHook; the original's callers are BltTransformed 0x61d700 at its quad, DrawTrianglesTex 0x61e310 and
 // DrawTriangle 0x621170; the region mesh's call, 0x61d700's per-cell (4, 2, ...), is not carried with the mesh). The hook at
 // this+0x14 is zeroed by 0x4bdb40 and nothing in Twist's export stores to it or calls it (no store through
-// gD3DInterface[5] anywhere; the draws read only +0x10), so it is never set and is not carried; cube and volume
-// textures (flags 0x20, 0x40; Twist's one, IMAGE_CUBEMAP_6X1_VIZBUCKYSHARDS_CUBE, is never read) are logged and drawn
-// as nothing.
+// gD3DInterface[5] anywhere; the draws read only +0x10), so it is never set and is not carried. A cube texture
+// (flag 0x20; Twist's one, IMAGE_CUBEMAP_6X1_VIZBUCKYSHARDS_CUBE, VizBuckyShards' stage 0) is bound for the 3D draws;
+// 2D draws of a cube or volume texture (flags 0x20, 0x40) are logged and drawn as nothing, and a volume texture
+// is not carried.
 //
 // For GPUDisplay, outside this layer: Check3D's callers that are not draws (Graphics's constructor through 0x404a40,
 // which stores the answer at Graphics+0x4c; 0x421d50; LockSurface 0x404aa0; UnlockSurface 0x404b10) rebind the target

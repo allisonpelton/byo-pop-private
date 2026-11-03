@@ -79,6 +79,9 @@ Options:
   exactly the update it is labelled with. `mLastDrawWasEmpty` (one byte) is optional and tells a skipped draw apart.
   In the per-game config these are `pending_draw=`, `update_state=` and `draw_empty=`. Giving only one of the first
   two logs a warning. See "Timing to the game's updates".
+- `--arg <text>` — added to the game's own command line after the exe, e.g. `--arg -autoplay` for a game's test
+  switch. Repeatable (the values go in order, one space apart, at most 255 characters in all); letters, digits and
+  `- = _ . ,` only, since the text goes in unquoted. Passed into the sandbox too.
 - `--watch <expr>` — a value in the game's memory (read as 32 bits), logged at each change with the update counter:
   "watch 1: 48 -> 47 at update 2150", and "-" while it cannot be read (through a null pointer, say). Up to four, each
   polled every millisecond and logging at most 4000 changes. It measures how many updates something lasts in the

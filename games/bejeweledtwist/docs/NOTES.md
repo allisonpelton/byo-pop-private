@@ -406,15 +406,20 @@ here first.
 All 24 visualizers are ported (Visualizers3D*.cpp), each with its own generator kept in the original's order: some
 draw from the global Rand, VizJellyBlob and VizZenWheels from the C library's rand (CrtRand, seeded from the game's
 seed), VizMagicSnakes from its own LCG seeded 0xbeef0b01 and VizKaleidoCat from another. VizBuckyShards' environment
-map needs a cube map, which the shared GPU code does not have yet. Slot 4 of a visualizer takes a key (VizZenWheels
-answers b, c, e, g and r), but the VizManager's key function that asks it (0x758034) has no callers in the original.
+map is a cube map (the image's `cubemap` attribute, flag 0x20): the shared GPU code makes a GL cube texture from its
+six cells in the original's face order and samples it by stage 0's camera-space reflection vector. It is checked
+only in the port (a forced-visualizer run): the original shows it in blitz after an even number of blitz games,
+which no seeded run here reaches yet. Slot 4 of a visualizer takes a key (VizZenWheels answers b, c, e, g and r), but
+the VizManager's key function that asks it (0x758034) has no callers in the original.
 
 Compared with the original (seeded autoplay, 3D, updates 1000 to 3000 and the generators' states to 6000; the
 original on the desktop through visrun for this comparison only): the board's generator matches at every sample, and
-the jump, the cube, the tube's arrival and the boards match to within a few levels per channel. Open: from update
-1804 (the first board after the jump) the original draws about 170 more numbers from the global Rand in one update
-and then about one more every second update, so the background's clouds and some particles differ (not the play);
-the menu's and the selector's rotating backgrounds stand at slightly different angles. The web build's 3D run (the
+the jump, the cube, the tube's arrival and the boards match to within a few levels per channel. The global Rand's
+draws match call for call in every update compared (visrun's Rand hook, which tags each call with the update
+counter: 1002 to 1365 and 1795 to 1815). They once parted at 1804, and the rotating backgrounds stood at other
+angles, because the mode select ran one update early: Twist's framework gives a widget the reference's z-order in
+PutBehind (gPutCopiesZOrder), which keeps the new mode select behind the menu and out of the frame it is made in.
+The web build's 3D run (the
 same seed, script and shots, in the Browser pane) matches the native port's from update 1300 to 3000 within a few
 levels per channel; before that its main menu shows the site's player name and its buttons' labels sooner, because
 the site makes the player rather than the autoplay.
@@ -804,3 +809,30 @@ the board copies only seven, 0x6c59c4), so the sparks' colour is black until a g
   fruit colour (+0x218 modulo 7) and looks for a plain gem of it, but only when FindHintPiece finds no bomb or locked
   gem; otherwise the fruit goes to that gem whatever its colour, and the count still moves on. Seen on any board with a
   bomb or lock when the multiplier passes its top.
+- **A coal gem's embers start from the heap.** Piece's constructor (0x72c1fa) never sets the piece's update counter
+  (+0x4f0), which Piece::Update counts up (0x72c67b) and a coal gem tests every 20 updates (0x72cf01) to light an
+  ember with two Rand draws. In the original the counter starts at whatever the heap block held, so the updates where
+  a coal gem draws, and every random number after, change from run to run: the same seeded 3D autoplay game drew its
+  first ember at update 10003, 10014 or 10016 in three runs and not at all by then in a fourth. The port starts the
+  counter at 0. For comparisons, visrun's `zerocnt` makes the copy's constructor clear it too (a jump from 0x72c57c).
+  Matching the original would mean copying uninitialised memory.
+- **3D mode computes at single precision.** The original makes its Direct3D device without D3DCREATE_FPU_PRESERVE,
+  so while 3D mode runs its x87 rounds every arithmetic result to a float's 24 bits (the window thread's control word
+  reads 0x007f, by visrun's `fpucw`), while double constants keep their value. The port's float math is SSE natively
+  and WebAssembly on the web, and neither has a precision control, so the port follows it only where it was found to
+  decide play: a curve's steps and a curve string's numbers (CurvedVal), and SpeedText's sweep. The rest keeps the
+  2D precision. To see it: the seeded 3D autoplay game (`-3d -autoplay=1 -seed=1234`, the original through visrun with
+  `nomouse` and `zerocnt`) draws the global Rand call for call like the original through update 10282; at 10283 a
+  BlobDrift blob, whose drift sums rounding over thousands of updates, falls off the top and re-enters one update
+  sooner in the original, and the draws part from there. Following it everywhere would mean rounding each step of the
+  3D-only code and of everything the board does in 3D (hundreds of places, the accumulators included), or running the
+  native build's math on the x87, which the web build cannot do. 2D mode, where the original keeps the CRT's 53-bit
+  precision, is where the two are compared for identical play.
+- **The original's autoplay sometimes moves 15 updates late or early.** In the seeded 2D autoplay game
+  (`-autoplay -seed=1234`, the original through origrun with `--seed 1234 --3d off --arg -autoplay`), one run of the
+  original made every move from update 14059 on 15 updates sooner than the port, while another made the moves from
+  11019 to 14105 15 updates later and then fell back in step. Between those stretches each run matches the port
+  update for update, the boards, draws and scores included, so the port keeps the timing the original shows when it
+  does not jump. The cause was not looked for: it varies from run to run of the same copy and seed, so it must come
+  from something outside the game's own updates, such as a real-time clock. To see it, run the original twice and
+  compare origrun's `--watch "[0x85aef4]+0x168"` (the score) lines.
