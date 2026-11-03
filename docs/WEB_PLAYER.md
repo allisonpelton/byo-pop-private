@@ -1074,6 +1074,22 @@ game page that `index.html` has a tile for (the tiles are made from `BYOPOP_WEB_
 `href`s), and the copyright page each of those game pages links to. A build folder also holds test pages (`fwtest.html`, `smoke.html`), which
 are not part of the site and are not checked; naming a file checks it anyway.
 
+## Steam on a Mac or Linux
+
+The user, 2026-11-03: "On pages for games with a Steam release, if user agent is detected that suggests Mac OS, give
+instructions on how to get the depot for the Windows release of a game", then "this should probably support Linux too". Steam
+on a Mac or Linux offers to install only that system's version of a game, and these games were released on Steam for Windows
+only, but its console's `download_depot <app> <depot>` downloads any depot of a game the account owns. A game released on
+Steam, whether or not Steam still sells it, has a `BYOPOP_STEAM_<target>` entry in `cmake/ByopopStores.cmake`, its app and
+the depot of its Windows files (read from the user's own Steam library, where each is the app's number plus one), and
+`byopop_web_shell()` puts the steps on its import card, hidden: open the console (a `steam://open/console` link, or the same
+pasted into the address bar), type the command, wait for "Depot download complete", then choose the folder it names, whose
+usual path the card gives (under `~/Library/Application Support/Steam/Steam.AppBundle/...` on a Mac,
+`~/.local/share/Steam/steamapps/content/...` on Linux) with the file window's key for typing a path (Shift-Command-G, Ctrl+L).
+The page shows them when the browser says it runs on macOS or Linux (`navigator.userAgentData.platform`, else the user agent,
+leaving out an iPad asking for the desktop site, Android and ChromeOS), with only that system's folder and keys. A depot
+downloaded this way is the same set of files as a Windows install's folder, so the import takes it like any Steam copy.
+
 ## The site's logo and icons
 
 `web/brand` holds byo-pop's logo and icons. `byopop_web_game()` copies them next to the pages (`build/web`), and

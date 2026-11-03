@@ -419,6 +419,37 @@ function(byopop_web_shell var target pagedir)
   byopop_web_badge(${target} "${arg_TITLE}" cap_initials cap_colour)
   string(REPLACE "@BYOPOP_CAP_INITIALS@" "${cap_initials}" page "${page}")
   string(REPLACE "@BYOPOP_CAP_COLOUR@" "${cap_colour}" page "${page}")
+  # A game released on Steam: how a player on a Mac or Linux downloads its Windows depot (BYOPOP_STEAM_<target>,
+  # cmake/ByopopStores.cmake), on the import card, shown by the page only on a Mac or Linux
+  set(mac_steam "")
+  if(DEFINED BYOPOP_STEAM_${target})
+    string(REPLACE " " ";" steam "${BYOPOP_STEAM_${target}}")
+    list(LENGTH steam steam_n)
+    if(NOT steam_n EQUAL 2)
+      message(FATAL_ERROR "BYOPOP_STEAM_${target} (cmake/ByopopStores.cmake) is \"${BYOPOP_STEAM_${target}}\", not \"<app> <depot>\"")
+    endif()
+    list(GET steam 0 steam_app)
+    list(GET steam 1 steam_depot)
+    set(mac_dir "~/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steamapps/content/app_${steam_app}/depot_${steam_depot}")
+    set(linux_dir "~/.local/share/Steam/steamapps/content/app_${steam_app}/depot_${steam_depot}")
+    set(mac_steam "<div class=\"mac-steam\" id=\"mac-steam\" hidden>
+          <h3>On a <span class=\"os-mac\">Mac</span><span class=\"os-linux\">Linux computer</span>?</h3>
+          <p>${arg_TITLE} was released on Steam for Windows only, but Steam can download its Windows files there too, if it is in
+            your Steam library:</p>
+          <ol>
+            <li>Open Steam's console: <a href=\"steam://open/console\">open it in Steam</a>, or paste
+              <code class=\"pick\">steam://open/console</code> into your browser's address bar.</li>
+            <li>Type <code class=\"pick\">download_depot ${steam_app} ${steam_depot}</code> and press
+              <span class=\"os-mac\">Return</span><span class=\"os-linux\">Enter</span>. Steam says nothing while it
+              downloads, then prints &ldquo;Depot download complete&rdquo; and the folder it used, normally
+              <code class=\"pick os-mac\">${mac_dir}</code><code class=\"pick os-linux\">${linux_dir}</code>.</li>
+            <li>Press Choose folder below; in the window that opens, press
+              <span class=\"os-mac\">Shift-Command-G</span><span class=\"os-linux\">Ctrl+L</span>, paste that folder and
+              choose it.</li>
+          </ol>
+        </div>")
+  endif()
+  byopop_web_insert(page "<!-- byopop:mac-steam -->" "${mac_steam}")
   if(target IN_LIST BYOPOP_WEB_NO_MODS)
     string(REPLACE "@BYOPOP_MODS_SUPPORTED@" "false" page "${page}")
   else()

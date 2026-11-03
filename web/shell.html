@@ -144,8 +144,9 @@ canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; 
 .progress { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
 .progress > div { height: 100%; width: 0; background: var(--accent); transition: width 120ms linear; }
 .error { color: var(--gem-ruby); }
-/* The terms card (web/terms.html): its text scrolls in its own box, and the card in the stage when the stage is small */
-#terms-overlay { overflow: auto; place-items: safe center; }
+/* The terms card (web/terms.html): its text scrolls in its own box, and the card in the stage when the stage is small (as
+   does the import card, which the Steam steps for a Mac or Linux make taller) */
+#terms-overlay, #import-overlay { overflow: auto; place-items: safe center; }
 .card.terms-card { max-width: 600px; }
 .terms {
   max-height: 15em; overflow: auto; display: grid; gap: 10px; padding: 12px 14px; font-size: 13px;
@@ -157,6 +158,14 @@ canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; 
 /* a small stage: one scroll (the card's), not a box scrolling inside it */
 @media (max-width: 600px), (max-height: 600px) { .terms { max-height: none; overflow: visible; } }
 .card p.terms-buy { font-size: 13px; }
+/* On a Mac, the import card's steps for downloading a Steam game's Windows files */
+.mac-steam { display: grid; gap: 6px; padding: 10px 12px; font-size: 13px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
+.mac-steam[hidden] { display: none; }
+.mac-steam h3 { margin: 0; font-size: 13px; }
+.mac-steam ol { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; color: var(--muted); }
+.mac-steam a { color: var(--accent); font-weight: 600; }
+.mac-steam[data-os=mac] .os-linux, .mac-steam[data-os=linux] .os-mac { display: none; }
+.mac-steam code.pick { user-select: all; -webkit-user-select: all; overflow-wrap: anywhere; color: var(--fg); }
 .terms-buy a { color: var(--accent); font-weight: 600; }
 .agree { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; cursor: pointer; }
 .agree input { accent-color: var(--accent); width: 16px; height: 16px; margin: 2px 0 0; flex: none; }
@@ -251,6 +260,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
         <div class="page-cap" id="page-cap" aria-hidden="true" style="--tile: @BYOPOP_CAP_COLOUR@">@BYOPOP_CAP_INITIALS@</div>
         <h2 id="import-title">Load your @BYOPOP_TITLE@ files</h2>
         <p id="import-about"></p>
+        <!-- a game released on Steam: how to download its Windows files on a Mac or Linux (BYOPOP_STEAM_<target>), shown only there -->
+<!-- byopop:mac-steam -->
         <div class="row">
           <button type="button" class="primary" id="btn-pick-folder" data-pick="pick-game-folder" aria-describedby="import-msg">Choose folder</button>
           <input type="file" id="pick-game-folder" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
@@ -408,6 +419,21 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       " missing file" + (missingFiles.length > 1 ? "s" : "")) : t;
   }
   $("import-about").innerHTML = PAGE.importHtml;
+  // On a Mac or Linux (the user, 2026-11-03: "this should probably support Linux too"): the steps for downloading a Steam
+  // game's Windows files, where the page has them, with that system's folder and keys. A Mac is what the browser says, or a
+  // Mac's user agent without a touch screen (an iPad asking for the desktop site has one); Linux leaves out Android and
+  // ChromeOS.
+  (function () {
+    var os = null;
+    try {
+      var ua = navigator.userAgentData, p = ua && ua.platform, s = navigator.userAgent;
+      if (p) os = p === "macOS" ? "mac" : p === "Linux" ? "linux" : null;
+      else if (/Macintosh|Mac OS X/.test(s) && !(navigator.maxTouchPoints > 1)) os = "mac";
+      else if (/Linux|X11/.test(s) && !/Android|CrOS/.test(s)) os = "linux";
+    } catch (e) {}
+    var steps = $("mac-steam");
+    if (steps && os) { steps.setAttribute("data-os", os); steps.hidden = false; }
+  })();
   $("busy-name").textContent = PAGE.shortName;
 
   // web/modpanel.js, linked into the game's script: the Mods panel, restarts and the file helpers. It is there

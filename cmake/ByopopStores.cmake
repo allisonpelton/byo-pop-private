@@ -168,3 +168,32 @@ set(BYOPOP_BUY_zumasrevenge 2026-11-02
 set(BYOPOP_BUY_talismania 2026-11-02
   Steam "https://store.steampowered.com/app/3460/"
   Shockwave "https://www.shockwave.com/gamelanding/talismania")
+
+# Steam releases: "<app> <depot>", the game's Steam app and the depot that holds its Windows files, for the games released
+# on Steam whether or not Steam still sells them. A game page whose player is on a Mac or Linux tells them how to download that depot
+# through Steam's console (the user, 2026-11-03: "On pages for games with a Steam release, if user agent is detected that
+# suggests Mac OS, give instructions on how to get the depot for the Windows release of a game"; docs/WEB_PLAYER.md, "Steam
+# on a Mac"). Read 2026-11-03 from the user's own Steam library on Windows (each appmanifest_<app>.acf's InstalledDepots):
+# every one of these is the app's number plus one. Gyromancer (app 23380) installs two depots and is not listed until its
+# port shows which of them it needs; Bookworm Adventures (both volumes) are not in the user's Steam library, so their depots
+# were not read.
+set(BYOPOP_STEAM_bejeweled "3350 3351")
+set(BYOPOP_STEAM_bigmoney "3360 3361")
+set(BYOPOP_STEAM_bookworm "3370 3371")
+set(BYOPOP_STEAM_dynomite "3380 3381")
+set(BYOPOP_STEAM_rocketmania "3440 3441")
+set(BYOPOP_STEAM_bejeweledtwist "3560 3561")
+set(BYOPOP_STEAM_bejeweled2 "3300 3301")
+set(BYOPOP_STEAM_chuzzle "3310 3311")
+set(BYOPOP_STEAM_astropop "3340 3341")
+set(BYOPOP_STEAM_feedingfrenzy2 "3390 3391")
+set(BYOPOP_STEAM_hammerheads "3400 3401")
+set(BYOPOP_STEAM_heavyweapon "3410 3411")
+set(BYOPOP_STEAM_igglepop "3420 3421")
+set(BYOPOP_STEAM_pizzafrenzy "3430 3431")
+set(BYOPOP_STEAM_typershark "3450 3451")
+set(BYOPOP_STEAM_talismania "3460 3461")
+set(BYOPOP_STEAM_peggle "3480 3481")
+set(BYOPOP_STEAM_pegglenights "3540 3541")
+set(BYOPOP_STEAM_zumasrevenge "3620 3621")
+set(BYOPOP_STEAM_bejeweled3 "78000 78001")
