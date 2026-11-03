@@ -393,10 +393,17 @@ The camera, the motion, the planets' software drawing and the sun, the moon and 
 
 ## 3D mode
 
-`-3d` (or the options' 3D box, which needs WebGL2 on the web) runs the game as the original does with Direct3D: the port's
-GPUDisplay draws the 2D layers, TwistD3D (DrawPrimitiveEx, the .p3d meshes, render states and texture stages) the 3D
-ones, through the shared GPU2D interface. A run without it keeps the 2D path (DDInterface), and the checks compare
-2D runs against a reference to show that 3D work leaves them alone.
+3D mode runs the game as the original does with Direct3D: the port's GPUDisplay draws the 2D layers, TwistD3D
+(DrawPrimitiveEx, the .p3d meshes, render states and texture stages) the 3D ones, through the shared GPU2D interface.
+As in the original it is the default: the start-up reads "Is3D" (0x762da8) and chooses 2D mode (Use2DMode, 0x760659)
+only when it is there and false, which the options' 3D box writes when it is turned off (and erases when it is turned
+on). Otherwise the display decides: the original's DDInterface::Init (0x504ce0) sets up Direct3D, whose driver checks
+(Is3DSupported, 0x6193b0) can leave it without, and then calls the app's 0x7606de, which chooses 2D mode for a display
+without it, silently and without writing "Is3D". The port's GPU display fails to be made without WebGL2 or a GL
+context, and DisplayInitFailed makes the window again in 2D. `-3d` asks for 3D and `-nod3d9` (or -noacceleration) for
+2D whatever "Is3D" says. Every test run asks for its mode: check.sh's suite, its frozen baseline and the comparison
+scripts pass `-nod3d9` (they were 2D by default before 3D became the default), and the web build under Node, which has
+no WebGL, falls back to 2D anyway.
 
 The original makes its Direct3D device (0x6193b0, flags 0x140) without D3DCREATE_FPU_PRESERVE, so once it runs, the
 x87 computes in single precision. Two places show it in play: a curve's input steps and thresholds (CurvedVal's X87
