@@ -897,3 +897,67 @@ is reported in IDENTICAL_PLAY.md.
   opaque pixels, are all the same. The cause of the rest was not found (perhaps the wavelet's rounding or the colour
   transform); finding it would mean comparing the original decoder's coefficients with ours stage by stage. Too
   small to see.
+
+## Performance (web)
+
+The web half of Twist's performance pass starts here (2026-11-03): how fast the web build runs in a browser with the
+graphics card, with software rendering, and on a slower processor. `tools/webperf.js` drives headless Edge 156 over the
+DevTools protocol with Node's own WebSocket (no Puppeteer, no Playwright), with a fresh profile under build/ and
+`?silent=1`. It serves build/web, imports the game's files into the profile through the page's own zip input, and for
+each run reloads the page with the site's "3D acceleration" on never (2D) or always (3D). The game starts with
+`-autoplay=1 -seed=1234` in real time, never `-fast`.
+
+The stretch measured is update 1000 to update 9000, 80 seconds at full speed. It runs from the title through the mode
+select into a Classic game: specials, cascades, two level-ups and their hyperspace jumps, the heaviest scenes autoplay
+reaches reliably. An injected script records every requestAnimationFrame time. A `-script` screenshot every 1000 updates
+gives the game's own update count against the clock, so the updates per second tell a game that slows down from one
+that only drops draws. The frame of each screenshot is left out of the frame times. The CPU slowdown
+(Emulation.setCPUThrottlingRate) is set once update 1000 is reached, so the loading is not slowed. Each case ran 3 times,
+and the table gives the median of the three. ">16.7 ms" counts frames longer than 17 ms (one refresh missed at 60 Hz),
+and ">33 ms" counts frames longer than 34 ms.
+
+The machine has an Intel Core i7-12700F (12 cores, 20 threads) and a GeForce GTX 1080. The headless browser was the only
+game process this session ran. Meanwhile other sessions had 5 to 8 rundesk processes and 9 to 15 origrun processes
+running on the same machine, so the timings carry some of their load.
+
+| Rendering | Window (CSS px, scale) | Canvas | Mode | Slowdown | Updates/s | Frames/s | Median ms | 95th ms | >16.7 ms | >33 ms |
+|---|---|---|---|---|---|---|---|---|---|---|
+| hardware | 1280x800, 1 | 823x617 | 2D | 1x | 99.4 | 56.1 | 16.7 | 16.8 | 3.5% | 0.2% |
+| hardware | 1280x800, 1 | 823x617 | 2D | 2x | 97.3 | 50.0 | 16.7 | 16.8 | 4.5% | 3.8% |
+| hardware | 1280x800, 1 | 823x617 | 2D | 4x | 88.5 | 40.1 | 16.7 | 33.4 | 22.4% | 2.3% |
+| hardware | 1280x800, 1 | 823x617 | 2D | 6x | 77.8 | 20.3 | 33.3 | 66.7 | 72.7% | 32.3% |
+| hardware | 1280x800, 1 | 823x617 | 3D | 1x | 99.5 | 56.6 | 16.7 | 16.8 | 2.1% | 0.0% |
+| hardware | 1280x800, 1 | 823x617 | 3D | 2x | 96.3 | 49.8 | 16.7 | 33.3 | 9.2% | 1.1% |
+| hardware | 1280x800, 1 | 823x617 | 3D | 4x | 88.6 | 16.8 | 50.0 | 99.9 | 92.1% | 66.0% |
+| hardware | 1280x800, 1 | 823x617 | 3D | 6x | 75.4 | 10.3 | 66.8 | 166.8 | 93.9% | 85.0% |
+| SwiftShader | 1280x800, 1 | 823x617 | 2D | 1x | 99.0 | 46.6 | 16.7 | 33.4 | 22.1% | 1.1% |
+| SwiftShader | 1280x800, 1 | 823x617 | 2D | 2x | 97.2 | 43.6 | 16.7 | 33.4 | 26.8% | 1.5% |
+| SwiftShader | 1280x800, 1 | 823x617 | 2D | 4x | 92.3 | 30.2 | 33.3 | 49.9 | 69.0% | 5.7% |
+| SwiftShader | 1280x800, 1 | 823x617 | 2D | 6x | 86.7 | 23.0 | 33.3 | 50.1 | 87.6% | 25.6% |
+| SwiftShader | 1280x800, 1 | 823x617 | 3D | 1x | 99.2 | 41.0 | 16.7 | 33.4 | 39.6% | 1.3% |
+| SwiftShader | 1280x800, 1 | 823x617 | 3D | 2x | 97.5 | 32.2 | 33.3 | 50.0 | 67.3% | 7.8% |
+| SwiftShader | 1280x800, 1 | 823x617 | 3D | 4x | 94.2 | 22.3 | 33.4 | 66.7 | 93.8% | 42.4% |
+| SwiftShader | 1280x800, 1 | 823x617 | 3D | 6x | 91.6 | 15.8 | 50.0 | 83.4 | 99.0% | 79.2% |
+| hardware | 1280x720, 1.5 (1920x1080) | 1075x806 | 2D | 1x | 99.6 | 58.0 | 16.7 | 16.8 | 0.7% | 0.1% |
+| hardware | 1280x720, 1.5 (1920x1080) | 1075x806 | 3D | 1x | 99.8 | 58.3 | 16.7 | 16.8 | 0.0% | 0.0% |
+
+The renderer strings were "ANGLE (NVIDIA, NVIDIA GeForce GTX 1080 ... Direct3D11 ...)" for hardware and "ANGLE (Google,
+Vulkan 1.3.0 (SwiftShader Device (Subzero)) ...)" for `--use-angle=swiftshader --enable-unsafe-swiftshader`. In every run
+the game kept its updates at full speed or close to it; the browser dropped draws first. The game is a 100 Hz update
+loop that draws once a frame, so a slow frame costs only smoothness until the slowdown is large. On this machine, with
+the graphics card, both modes hold 60 frames a second with almost no missed frames, and so does a budget laptop's
+screen size: the page's canvas there is 1075x806, a little over twice the pixels of the 823x617 one. With SwiftShader,
+2D still runs at full game speed and about 47 frames a second, and 3D at about 41.
+
+The CPU slowdown stands for a slower processor. By PassMark's single-thread ratings (cpubenchmark.net, read 2026-11-03),
+this i7-12700F scores 3,842, an Intel N100 1,879, a Celeron N4500 1,252 and a Celeron N4020 1,122. So an N100 is about a
+2x slowdown, and a Celeron-class laptop chip about 3x to 3.5x. At 2x both modes stay at about 50 frames a second with the
+game at full speed. At 4x, a little slower than a Celeron, 2D holds 40 frames a second but 3D falls to about 17. The
+DevTools slowdown slows only the page's main thread, not the GPU process, so the SwiftShader rows under a slowdown are
+too kind to a real slow laptop, which would draw its software WebGL2 on the same slow cores. That is also why, under a
+slowdown, SwiftShader loses less game speed than hardware: it draws fewer frames, so the main thread has more time
+for updates. Hardware 3D at 4x and 6x falls further than SwiftShader 3D. Its cause was not looked into.
+
+What it means: on an N100-class machine with any GPU, both modes should play smoothly. On a Celeron-class machine 2D
+is playable at around 40 frames a second. 3D drops to under 20 frames a second, though the game itself keeps nearly
+full speed. A browser without the graphics card already starts in 2D (the game's own choice, above in "3D mode").
