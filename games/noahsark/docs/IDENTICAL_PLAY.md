@@ -33,8 +33,7 @@ per run).
 Series compared: action 9000 updates (levels 1 and 2), strategy to its first level and a half (since the walker fix
 below: to its first two levels and up to the start of the third), puzzle 9000 updates up to its game over, the name entry
 and the high-score screen, and the first level of an action game on medium and on hard difficulty (the same clicks,
-the difficulty button of the dialog being the only change). Not compared: stampede levels and a series of several
-games (both lie behind the get-ready difference below, which stops the replay at level 2 or 3).
+the difficulty button of the dialog being the only change). Past the get-ready difference, with the resync below: strategy to its third level and action on medium and on hard to their third. Not compared: stampede levels (level 4 of action on easy, behind the click-dependent get-ready end) and a series of several games.
 
 The random draws are compared too, since a draw taken by another consumer is the first thing that shows when two games
 part. The port counts its draws (`CrtRandCount()`, `CrtRandSnapshot()`) and `-statelogcells=r` or `c` writes the
@@ -45,14 +44,33 @@ draw number (running the generator from the seed) and says at which update the t
 `games/noahsark/tools/rngc.py` lists the updates in which the two made a different number of draws. The original keeps at
 most about 4000 rows of a watch, so a run is read in windows (the snapshot from a chosen draw on).
 
+### Comparing past the get-ready (the resync)
+
+The get-ready of a level (the waiting animals' release, see Oddities) does not end the same way in the two games, which
+moves the generator and with it every later board. So that the rest of a level can still be compared, the port takes over
+the original's generator state at two points: at each level's start (right after the level counter went up) and at the
+end of each get-ready (`-resync=<file>`, lines `n <level> <state> <update>` and `r <level> <state> <update>`; at an `r`
+event the port also holds its own get-ready end until the update the original's ended). The original's states are read
+from a run of its copy with the generator patch (`games/noahsark/tools/resync.py`), and
+`games/noahsark/tools/resync_mode.sh <name> <menu script> <mode> <cap> [seed] [difficulty] [rounds]` repeats port run,
+original run and conversion until the event list stops changing, then compares a final pair of runs. Level boards and
+everything after a get-ready then agree again, and a comparison reaches one level further for each round.
+
+What the resync cannot give: it assumes that the original plays out the same in two runs of the same clicks. That fails
+where a click decides the original's get-ready end (the end moves with the clicks, which move with the port's end), as in
+the third level of an action game on easy, and where the original's timing differs between two runs (the end of strategy's
+third level came at 12193 in one run and 12197 in another, so the next level's generator state, taken from another run,
+no longer fits). The comparison stops there; it is not a difference of the port.
+
 ### Result
 
 | Mode | Result |
 |---|---|
 | Puzzle (260 changes of state, score, level) | identical, including game over, name entry and the high-score screen |
-| Strategy, levels 1 and 2 | identical (every state, score, level); the board of level 3 differs, see Oddities |
-| Action, levels 1 and 2 | identical, except the start of level 2 (see Oddities) |
-| Action, level 1 on medium and on hard | identical |
+| Strategy, levels 1 to 3 (resync) | identical (every state, score, level, board); level 4 not comparable (see above) |
+| Action, levels 1 and 2 | identical, except the start of level 2 without the resync |
+| Action on medium and on hard, levels 1 to 3 (resync) | identical (342 and 519 changes of the original, none different) |
+| Action on easy, level 3 | not comparable (the get-ready end depends on the clicks, see above); stampede (level 4) not reached |
 
 ### Changes (each is the original's own logic, from the Ghidra export)
 

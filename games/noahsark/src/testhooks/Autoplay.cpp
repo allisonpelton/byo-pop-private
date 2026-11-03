@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 #include <cstdarg>
 #include <vector>
 
@@ -60,6 +61,70 @@ struct AutoplayState
 
 }
 
+namespace
+{
+struct ResyncEntry { char mType; int mLevel; unsigned int mState; int mUpdate; };
+}
+
+namespace Sexy
+{
+struct ResyncState
+{
+	std::vector<ResyncEntry>	mEntries;
+	size_t						mNext[2];                // the next entry to look at, for the level starts and for the get-ready ends
+	ResyncState() { mNext[0] = mNext[1] = 0; }
+};
+}
+
+// A start of a level ('n', right after its level counter went up) or the end of its get-ready ('r'): the original's state
+// there, if the -resync file has one
+void NoahApp::ResyncEvent(char theType)
+{
+	if (mResync.empty())
+		return;
+	if (mResyncState == NULL)
+	{
+		mResyncState = new ResyncState();
+		FILE* f = fopen(mResync.c_str(), "r");
+		char t;
+		int l;
+		unsigned int s;
+		int u;
+		while ((f != NULL) && (fscanf(f, " %c %d %u %d", &t, &l, &s, &u) == 4))
+		{
+			ResyncEntry e = { t, l, s, u };
+			mResyncState->mEntries.push_back(e);
+		}
+		if (f != NULL)
+			fclose(f);
+	}
+	ResyncState* r = mResyncState;
+	size_t& aNext = r->mNext[theType == 'r' ? 1 : 0];
+	for (size_t i = aNext; i < r->mEntries.size(); i++)
+	{
+		if ((r->mEntries[i].mType == theType) && (r->mEntries[i].mLevel == mLevel))
+		{
+			CrtSRand(r->mEntries[i].mState);
+			aNext = i + 1;
+			return;
+		}
+	}
+}
+
+// The get-ready may not end before the update the original's did (the original's lasts a little longer: the bot's clicks are
+// timed by update)
+bool NoahApp::ResyncHold()
+{
+	if (mResync.empty())
+		return false;
+	ResyncEvent(0);
+	ResyncState* r = mResyncState;
+	for (size_t i = r->mNext[1]; i < r->mEntries.size(); i++)
+		if ((r->mEntries[i].mType == 'r') && (r->mEntries[i].mLevel == mLevel))
+			return mUpdateCount < r->mEntries[i].mUpdate - 2;
+	return false;
+}
+
 void NoahApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-autoplay")
@@ -83,6 +148,8 @@ void NoahApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 		mAutoplayMenu = true;
 	else if (theParamName == "-statelogcells")
 		mStateLogCells = theParamValue;
+	else if (theParamName == "-resync")
+		mResync = theParamValue;
 	else if (theParamName == "-statelog")
 		mStateLog = theParamValue;
 	else if (theParamName == "-autoplayshots")
