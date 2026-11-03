@@ -21,9 +21,7 @@
 # 2008, now only a free online game), and every guessed id for the others. For games still being ported: Shockwave
 # sells AstroPop, Heavy Weapon, Hammer Heads, Bejeweled 2, Venice and Banana Bugs (gamelanding/astropop,
 # heavyweapon, hammerheads, bejeweled2, venice, banana-bugs), and its cart takes Bejeweled 3 (bejeweled-3-pc, $6.99).
-# Not planned, but PopCap's and sold the same way, with no page: Poker Superstars (pokersuperstars-pc), II
-# (pokersuperstars2-pc) and III (pokersuperstars3-pc), $6.99 each, and Operation Mania (operationmania-pc, $6.99). The
-# whole check of the games still to come is above their entries, at the end of this file.
+# The whole check of the games still to come is above their entries, at the end of this file.
 # EA's own proofs of use in its trademark renewals (2015 to 2026) show only Steam, the EA app, Xbox and mobile stores.
 # Checked 2026-10-25: Steam (its store search and app pages) and EA's store had Bejeweled Deluxe (Steam) and Big Money
 # Deluxe (Steam, EA app); BookWorm Deluxe was delisted from Steam, Origin and Pogo in 2016; Big Fish Games, GameHouse,
