@@ -2,6 +2,7 @@
 #include "WinTwistApp.h"
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#include "WebSettings.h"
 #endif
 
 #include "CustomBassMusicInterface.h"
@@ -487,6 +488,12 @@ void WinTwistApp::ReadFromRegistry()
 	// display decides (DisplayInitFailed), so a first start is 3D where the display can do it
 	bool is3D = true;
 	RegistryReadBoolean("Is3D", &is3D);
+	// port: on the web the site's "3D acceleration" (always or never) takes the place of "Is3D" for this run, as its cursors
+	// setting does for the game's own; always is still 2D without WebGL2 (DisplayInitFailed)
+#ifdef __EMSCRIPTEN__
+	if (Byopop::SiteAccel3D() >= 0)
+		is3D = Byopop::SiteAccel3D() != 0;
+#endif
 	mUse3D = mUse3DSwitch < 0 ? is3D : mUse3DSwitch != 0;
 	EnableCustomCursors(mCustomCursorsEnabled);
 	mProfile->mCustomCursors = mCustomCursorsEnabled;
