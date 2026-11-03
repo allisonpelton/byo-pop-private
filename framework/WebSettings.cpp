@@ -3,6 +3,8 @@
 //
 // byopop_site_windowed() tells the games the player chose "Windowed" for the site's "Full screen at start" (SiteWindowed, framework/WebSettings.h).
 //
+// byopop_site_accel3d() tells them the site's "3D acceleration" (SiteAccel3D, framework/WebSettings.h).
+//
 // byopop_mixer_gain() sets the page's starting volume for the games with no volume option of their own (Cosmic Bugs, Water Bugs), on the
 // mixer's music and sound master gains (platform/Audio.h, SetSiteGains).
 //
@@ -36,6 +38,13 @@ bool Byopop::SiteWindowed()
 	return sSiteWindowed;
 }
 
+static int sSiteAccel3D = -1;
+
+int Byopop::SiteAccel3D()
+{
+	return sSiteAccel3D;
+}
+
 extern "C"
 {
 
@@ -43,6 +52,12 @@ extern "C"
 EMSCRIPTEN_KEEPALIVE void byopop_site_windowed(int theWindowed)
 {
 	sSiteWindowed = theWindowed != 0;
+}
+
+// The site's "3D acceleration", called before the game starts (SiteAccel3D): -1 the game's own choice, 1 always, 0 never
+EMSCRIPTEN_KEEPALIVE void byopop_site_accel3d(int theAccel3D)
+{
+	sSiteAccel3D = theAccel3D < 0 ? -1 : (theAccel3D != 0 ? 1 : 0);
 }
 
 // The starting volume of a game that has no volume option of its own: a level from 0 to 100 for the music and for the sounds

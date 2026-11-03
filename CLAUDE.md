@@ -27,10 +27,12 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
   entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. origrun
   may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
-  waits too", 2026-11-03), and its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
-  2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first (`docs/ORIGRUN.md`). Patch a
-  copy as needed (many are not activated): how a protection is taken apart goes only in private blocks, and the
-  patching tools in `.publishignore`. origrun cannot stop a message box's own sound or a MessageBeep and has no guard
+  waits too", 2026-11-03), its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
+  2026-11-03), and its MessageBox and MessageBeep calls so that a message box is answered without showing or sounding
+  ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
+  (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
+  private blocks, and the patching tools in `.publishignore`. Until its MessageBox hook is in, origrun cannot stop a
+  message box's own sound or a MessageBeep, and it has no guard
   against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
   needs real sound, the user turns the speakers off for a short stretch or overnight. An original counts as a game
   process.
@@ -56,8 +58,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
   on itself forever and blocks every other agent. How to run the oracle (its variants, cache and partial runs):
   `docs/BUILDS.md`, "Running the oracle".
-- Leave nothing running: loops started in the background end before you finish, and a stopped task's child processes
-  are killed.
+- Leave nothing running: loops started in the background end before you finish. Stopping a task can leave its loop's
+  shells alive and still starting runs (Ning Po, 2026-11-03), so afterwards look for processes whose command line is
+  inside your folder and stop them by id.
 - End a turn waiting only on something that wakes you: a background command or a Monitor that ends by itself and
   notifies you. A run you watch in the Browser pane never wakes you, and a page in a hidden pane runs no
   requestAnimationFrame unless it is shimmed, so it can stand still for good. A session that ended its turn on "waiting
@@ -160,8 +163,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   original, what the port does now, and the commit. It lists every oddity skipped and why, how to see each one, and the
   deviations that remain. Write it in prose, with a table for the list of changes if that reads better.
 - **Order of the work (the user, 2026-11-01):** first every fault the user reported and anything that makes a game
-  hard to test, then the identical-play pass. A readability pass (`docs/CODE_STANDARDS.md`) and taking out code the
-  ports do not need (registration and the like) come once every game is done (`docs/COORDINATION.md`).
+  hard to test, then the identical-play pass. A performance pass (the user, 2026-11-03), then a readability pass
+  (`docs/CODE_STANDARDS.md`) and taking out code the ports do not need (registration and the like) come once every game
+  is done (`docs/COORDINATION.md`).
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open

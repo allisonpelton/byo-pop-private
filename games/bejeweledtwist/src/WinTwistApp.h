@@ -110,9 +110,9 @@ public:
 	UnknownFA0 mUnknownFA0[3];
 	bool mUnknownF85 = false;           // +0xf85: StartMainMenu starts a classic game at once
 	int mAutoPlayMode = -1;             // +0x1044: -autoplay's game (1 classic, 3 blitz, 4 zen), -1 none
-	// port: this run draws through the GPU (GPUDisplay), as the original does with Direct3D. Off unless -3d or "Is3D" on
-	// asks for it while 3D mode is being ported; "Is3D" off, -nod3d9 and -noacceleration keep 2D, as in the original
-	bool mUse3D = false;
+	// port: this run draws through the GPU (GPUDisplay), as the original does with Direct3D: unless "Is3D" off, -nod3d9
+	// or -noacceleration ask for 2D, or the display cannot do 3D (DisplayInitFailed)
+	bool mUse3D = true;
 	int mUse3DSwitch = -1;  // port: -3d (1), -nod3d9 or -noacceleration (0), which win over "Is3D"
 	float mAutoPlayDelay = 0;           // +0x1048: -autoplay starts its game when this falls to 0
 	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
@@ -246,6 +246,7 @@ public:
 	bool Is3DAccelerationRecommended() { return Is3DAccelerationSupported(); }
 	// port: a 3D run's display is GPUDisplay, in an OpenGL window
 	DDInterface* CreateDDInterface() override;
+	bool DisplayInitFailed(int theResult) override;  // 0x7606de
 	uint32_t GetExtraWindowFlags() override;
 	// 0x76063e (slot 69): with 3D as the framework has it
 	void SwitchScreenMode(bool wantWindowed) override;

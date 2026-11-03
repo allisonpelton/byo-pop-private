@@ -483,11 +483,11 @@ void WinTwistApp::ReadFromRegistry()
 	int anArtRes;
 	if (RegistryReadInteger("ArtRes", &anArtRes))
 		mArtRes = anArtRes;
-	// "Is3D" off chooses 2D mode (Use2DMode; the port chooses it in MakeWindow, after the switches)
-	// port: while 3D mode is being ported, a run without "Is3D" stays in 2D; the options' 3D box writes it true
+	// "Is3D" off chooses 2D mode (Use2DMode; the port chooses it in MakeWindow, after the switches); without it the
+	// display decides (DisplayInitFailed), so a first start is 3D where the display can do it
 	bool is3D = true;
-	if (RegistryReadBoolean("Is3D", &is3D))
-		mUse3D = mUse3DSwitch < 0 ? is3D : mUse3DSwitch != 0;
+	RegistryReadBoolean("Is3D", &is3D);
+	mUse3D = mUse3DSwitch < 0 ? is3D : mUse3DSwitch != 0;
 	EnableCustomCursors(mCustomCursorsEnabled);
 	mProfile->mCustomCursors = mCustomCursorsEnabled;
 }
@@ -562,6 +562,23 @@ DDInterface* WinTwistApp::CreateDDInterface()
 	anInterface->mSoftwareStretch = true;
 	anInterface->mSoftwareTransforms = true;
 	return anInterface;
+}
+
+// 0x7606de: once DDInterface::Init (0x504ce0) has set up Direct3D, a display that came out without it chooses 2D mode
+// (Use2DMode, 0x760659), without a word and without writing "Is3D" back, so the next start tries 3D again.
+// port: a GPU display that could not be made (no WebGL2, no GL context) is that display; MakeWindow makes the window
+// again in 2D, since the 3D one was made for OpenGL at another size.
+bool WinTwistApp::DisplayInitFailed(int theResult)
+{
+	if ((theResult != DDInterface::RESULT_3D_FAIL) || !mUse3D)
+		return false;
+	mUse3D = false;
+	delete mDDInterface;
+	mDDInterface = nullptr;
+	SDL_DestroyWindow(mHWnd);
+	mHWnd = nullptr;
+	MakeWindow();
+	return true;
 }
 
 uint32_t WinTwistApp::GetExtraWindowFlags()
@@ -1164,7 +1181,7 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
-	// port: -3d turns 3D mode on while it is being ported; the original's -nod3d9 and -noacceleration keep 2D
+	// port: -3d asks for 3D mode whatever "Is3D" says (a test switch); the original's -nod3d9 and -noacceleration keep 2D
 	if (theParamName == "-3d") {
 		mUse3D = true;
 		mUse3DSwitch = 1;

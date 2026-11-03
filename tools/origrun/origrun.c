@@ -178,6 +178,7 @@ static char   gStateExpr[256] = "";
 static char   gEmptyExpr[256] = "";
 // --watch <expr> (up to 4): values of the game's memory logged at each change with the update counter, polled every
 // millisecond (watch_thread), to measure how many updates something takes in the original (a loading screen, say).
+// --watch-max <n>: at most n changes logged per watch (4000 unless given), more for a whole game's RNG seed.
 static char   gWatchExpr[4][256];
 static int    gWatchN = 0;
 static int    gUpdateMs = 10;        // SexyAppBase runs 100 updates/s
@@ -1480,14 +1481,14 @@ static void exec_at(const char* inner)
 	if (ieq(cmd,"click")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,0); }
 	else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,1); }
 	else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hw,parse_vk(v)); }
-	else if (ieq(cmd,"kdown")||ieq(cmd,"kup")){   // one key edge, so that a game that polls its key state sees the key down for the updates between (a down and up read in one update are lost)
-		char v[32]; if(sscanf(rest,"%31s",v)==1){ int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
-			if (ieq(cmd,"kdown")) PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16)));
-			else PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); }
-	}
 	else if (ieq(cmd,"text")){ post_text(hw,rest); }
 	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); } }
 	else if (ieq(cmd,"focus")){ post_focus(hw, ieq(rest,"regain")); }
+	else if (ieq(cmd,"keydown")||ieq(cmd,"keyup")||ieq(cmd,"kdown")||ieq(cmd,"kup")){   // one key edge (kdown/kup: the same), so that a press can span updates (a game that polls its key state, or clears a key when it is let go, loses a down and up read in one update)
+		char v[32]; if(sscanf(rest,"%31s",v)==1) { int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
+			if (ieq(cmd,"keydown")||ieq(cmd,"kdown")) PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16)));
+			else PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); }
+	}
 	else if (ieq(cmd,"down")||ieq(cmd,"up")||ieq(cmd,"rdown")||ieq(cmd,"rup")){   // one button edge (rdown/rup: the right one), so that a click can span updates (a down and up read in one update are lost in some games)
 		int r=cmd[0]=='r'||cmd[0]=='R', down=ieq(cmd+r,"down");
 		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
@@ -1690,7 +1691,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 		}
 		if (ieq(cmd,"at")){
 			// at <N> <command...>: when the update counter reaches N, hold the game's window thread and run the
-			// command (shot/click/key/text/move/focus/burst). Needs an update counter (--counter or config).
+			// command (shot/click/key/text/move/focus/burst, or keydown/keyup and down/up for one edge). Needs an update counter (--counter or config).
 			if (!gCounterExpr[0]) { logline("at: no update counter configured (--counter or games.cfg); skipping '%s'",rest); continue; }
 			unsigned long N=0; int o=0; if (sscanf(rest,"%lu%n",&N,&o)!=1) { logline("at: need 'at <N> <command>'"); continue; }
 			const char* inner=rest+o; while(*inner==' ')inner++;
@@ -1705,6 +1706,16 @@ static void run_script(DWORD pid, const char* scriptPath)
 				int v2=wait_counter((uint32_t)(N+ck),30000);
 				logline("at %lu: counter reached %d -> the %s's up", N+ck, v2, ic);
 				wsprintfA(a,"%s %d %d",r?"rup":"up",cx,cy); exec_at(a);
+				continue;
+			}
+			// at <N> key <vk> <k>: the key's down at N and its up k updates later, for the same reason
+			char kv[32]=""; int kk=0;
+			if (sscanf(inner,"%15s %31s %d",ic,kv,&kk)==3 && kk>0 && ieq(ic,"key")) {
+				char a[64];
+				wsprintfA(a,"keydown %s",kv); exec_at(a);
+				int v2=wait_counter((uint32_t)(N+kk),30000);
+				logline("at %lu: counter reached %d -> the key's up", N+kk, v2);
+				wsprintfA(a,"keyup %s",kv); exec_at(a);
 				continue;
 			}
 			exec_at(inner);
@@ -2270,12 +2281,13 @@ static DWORD WINAPI mode3d_thread(LPVOID p)
 }
 
 // Logs each change of a --watch value ("watch 1: 48 -> 47 at update 2150"; "-" while it cannot be read, as through a
-// null pointer), at most 4000 lines per watch. Polls every millisecond under timeBeginPeriod(1): Sleep in origrun's
+// null pointer), at most 4000 lines per watch (--watch-max). Polls every millisecond under timeBeginPeriod(1): Sleep in origrun's
 // process otherwise rounds up to the 15.6 ms timer tick, which would miss values that change every update.
 // On the virtual clock the game reads the values itself, at each of its waits and whenever its counter moves, and hands
 // each change over in the clock's block (vclock.c), so none is missed however fast it runs: the lines are the same.
 static char gWatchLast[4][16]={"?","?","?","?"};
 static int  gWatchLines[4];
+static int  gWatchMax=4000;     // --watch-max
 static void watch_drain(VcShared* s)   // s: the followed clock, or one origrun stops following (its last changes)
 {
 	char (*last)[16]=gWatchLast; int* lines=gWatchLines;
@@ -2286,10 +2298,10 @@ static void watch_drain(VcShared* s)   // s: the followed clock, or one origrun 
 			VcWatchRec r=s->ring[t%VC_RING];
 			int i=r.idx; if (i<0 || i>=gWatchN) continue;
 			char now[16]; if (r.ok) wsprintfA(now,"%lu",(unsigned long)(uint32_t)r.value); else lstrcpyA(now,"-");
-			if (lstrcmpA(now,last[i]) && lines[i]<4000) {
+			if (lstrcmpA(now,last[i]) && lines[i]<gWatchMax) {
 				if (r.update!=-1) logline("watch %d: %s -> %s at update %lu", i+1, last[i], now, (unsigned long)(uint32_t)r.update);
 				else logline("watch %d: %s -> %s", i+1, last[i], now);
-				if (++lines[i]==4000) logline("watch %d: 4000 changes logged; no more", i+1);
+				if (++lines[i]==gWatchMax) logline("watch %d: %d changes logged; no more", i+1, gWatchMax);
 			}
 			lstrcpyA(last[i],now);
 		}
@@ -2314,11 +2326,11 @@ static DWORD WINAPI watch_thread(LPVOID p)
 			for (int i=0;i<gWatchN;i++) {
 				uint32_t v=0; char now[16];
 				if (read_counter(gWatchExpr[i],&v)) wsprintfA(now,"%lu",(unsigned long)v); else lstrcpyA(now,"-");
-				if (lstrcmpA(now,last[i]) && lines[i]<4000) {
+				if (lstrcmpA(now,last[i]) && lines[i]<gWatchMax) {
 					uint32_t c=0; int hc = gCounterExpr[0] && read_counter(gCounterExpr,&c);
 					if (hc) logline("watch %d: %s -> %s at update %lu", i+1, last[i], now, (unsigned long)c);
 					else logline("watch %d: %s -> %s", i+1, last[i], now);
-					if (++lines[i]==4000) logline("watch %d: 4000 changes logged; no more", i+1);
+					if (++lines[i]==gWatchMax) logline("watch %d: %d changes logged; no more", i+1, gWatchMax);
 				}
 				lstrcpyA(last[i],now);
 			}
@@ -3603,7 +3615,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 		fclose(f);
 	}
 	if (!exeRel[0] || strstr(exeRel,"..") || exeRel[0]=='\\' || strchr(exeRel,':')) { logline("bad exe in sandbox-run.txt: '%s'", exeRel); goto done; }
-	if (timeout>240) timeout=240;
+	if (timeout>3600) timeout=3600;
 	if (!inSession) {   // the dead-man's switch: a sandbox whose host origrun was killed still ends
 		DWORD r=arm_guest_shutdown((DWORD)timeout+90);
 		if (r) logline("WARNING: could not arm the sandbox's shutdown timer (err %lu)", r);
@@ -3727,6 +3739,7 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--surface-gate")&&i+1<argc) gSurfaceGate=(uint32_t)strtoul(argv[++i],NULL,16);
 		else if (ieq(argv[i],"--update-state")&&i+1<argc) ustate=argv[++i];
 		else if (ieq(argv[i],"--draw-empty")&&i+1<argc) dempty=argv[++i];
+		else if (ieq(argv[i],"--watch-max")&&i+1<argc) gWatchMax=atoi(argv[++i]);
 		else if (ieq(argv[i],"--watch")&&i+1<argc) { if (gWatchN<4) lstrcpynA(gWatchExpr[gWatchN++],argv[++i],256); else { fprintf(stderr,"origrun: at most 4 --watch\n"); return 2; } }
 		else if (ieq(argv[i],"--arg")&&i+1<argc) {
 			const char* v=argv[++i];
@@ -3777,7 +3790,7 @@ int main(int argc, char** argv)
 		return 2;
 	}
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");
-	if (timeout>240) timeout=240;   // the machine rule: nothing longer than about 4 minutes
+	if (timeout>3600) timeout=3600;   // an hour; a run past about 4 minutes goes in its session's background, never in a subagent
 	if (!sandboxHost && !copyOnly && script_needs_sandbox(script)) {
 		fprintf(stderr, "origrun: refusing to start: this run takes shots or sends hw* input, and origrun does neither on the "
 			"host (a capture there can show the user's own screen, and hw* input reaches the user's desktop). Run it with "
