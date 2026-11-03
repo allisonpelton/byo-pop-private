@@ -30,8 +30,11 @@ public:
 	OpenMPTModule(openmpt_module_ext* theModuleExt, int theRate) :
 		mModuleExt(theModuleExt), mModule(openmpt_module_ext_get_module(theModuleExt)), mRate(theRate)
 	{
-		openmpt_module_ext_get_interface(mModuleExt, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE, &mInteractive,
-			sizeof(mInteractive));
+		// A module without the interface (0 returned) keeps mInteractive null: the channel volumes are not scaled
+		mHasInteractive = openmpt_module_ext_get_interface(mModuleExt, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE,
+			&mInteractive, sizeof(mInteractive)) != 0;
+		if (!mHasInteractive)
+			mInteractive = {};
 		mHasInteractive3 = openmpt_module_ext_get_interface(mModuleExt, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE3,
 			&mInteractive3, sizeof(mInteractive3)) != 0;
 		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_INTERPOLATIONFILTER_LENGTH, 2);
@@ -42,7 +45,7 @@ public:
 		// same value the module sets (its header's, Mxx, Nxy), so the port scales the starting one: right for modules
 		// with no Mxx or Nxy, as Bejeweled Twist's are (one starts most of its channels below 64)
 		int aChannels = openmpt_module_get_num_channels(mModule);
-		for (int i = 0; i < aChannels; i++)
+		for (int i = 0; mHasInteractive && i < aChannels; i++)
 			mBaseVolumes.push_back(mInteractive.get_channel_volume(mModuleExt, i));
 	}
 
@@ -128,6 +131,8 @@ public:
 private:
 	void ApplyChannelVolume(int theChannel)
 	{
+		if (!mHasInteractive || theChannel >= (int)mBaseVolumes.size())
+			return;
 		mInteractive.set_channel_volume(mModuleExt, theChannel,
 			mBaseVolumes[theChannel] * mChannelVolumes[theChannel] / 100.0);
 	}
@@ -144,6 +149,7 @@ private:
 	bool mLoop;
 	openmpt_module_ext_interface_interactive mInteractive = {};
 	openmpt_module_ext_interface_interactive3 mInteractive3 = {};
+	bool mHasInteractive = false;
 	bool mHasInteractive3 = false;
 	int mTempo = 0;                     // the BPM last set, 0 for none
 	std::vector<int> mChannelVolumes;   // 0 to 100 each, -1 for a channel never set
