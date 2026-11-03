@@ -3,7 +3,7 @@
 // chosen with "Add games", one game's folder or a folder of many (the "PopCap Games" folder), are sorted into the games they are
 // (web/gameimport.js), and the panel under the toolbar says what each one is, asks where that is unclear and names the folders
 // that hold no game this site plays. The games are added one at a time, each while its Web Lock is held, so a game whose page is
-// open is refused with a note. Nothing leaves the browser.
+// open is refused with a note. Nothing leaves the browser. The recycle bin beside "Add games" forgets a game's files (below).
 var ByopopAddGames = (function () {
   "use strict";
   function $(id) { return document.getElementById(id); }
@@ -182,6 +182,91 @@ var ByopopAddGames = (function () {
     // a drop anywhere else does nothing, rather than the browser opening the file in place of the page
     document.addEventListener("dragover", function (ev) { if (ByopopImport.hasFiles(ev.dataTransfer)) ev.preventDefault(); });
     document.addEventListener("drop", function (ev) { if (ByopopImport.hasFiles(ev.dataTransfer)) ev.preventDefault(); });
+    initBin();
+  }
+
+  // ---------- the recycle bin ----------
+  // A game's cap (its badge, draggable while its files are here) dragged into the bin forgets the game's files, as "Forget game
+  // files" on its page does: saves and mods stay. It deletes what the player loaded, so nothing goes without a yes in the bin's own
+  // panel (a confirm() dialog is not shown in some places the site runs). The bin's button opens the same panel with a list of the
+  // games whose files are here, for the keyboard and for browsers without drag and drop.
+  var CAP_TYPE = "application/x-byopop-game";
+  var asking = null;  // the game whose files the panel asks about
+  function initBin() {
+    var bin = $("bin"), binPanel = $("bin-panel");
+    if (!bin || !binPanel) return;
+    bin.hidden = false;
+    function gamesWithFiles() {
+      return Array.prototype.filter.call(document.querySelectorAll("a.tile[data-game]"), function (a) {
+        return a.parentNode.getAttribute("data-files") === "yes" && byId[a.getAttribute("data-game")];
+      }).map(function (a) { return byId[a.getAttribute("data-game")]; });
+    }
+    function status(text) { $("bin-status").textContent = text; }
+    function ask(game) {
+      asking = game;
+      $("bin-question").textContent = "Forget " + game.title + "'s files in this browser? Its saves stay.";
+      $("bin-confirm").hidden = false;
+      $("bin-pick").hidden = true;
+      $("bin-no").focus();
+    }
+    function show(game) {
+      binPanel.hidden = false;
+      bin.setAttribute("aria-expanded", "true");
+      status("");
+      var select = $("bin-game"), list = gamesWithFiles();
+      select.textContent = "";
+      list.forEach(function (g) { var o = make("option", null, g.title); o.value = g.spec.id; select.appendChild(o); });
+      $("bin-forget").disabled = list.length === 0;
+      if (!list.length) status("No game has its files here.");
+      if (game) ask(game);
+      else { $("bin-confirm").hidden = true; $("bin-pick").hidden = false; asking = null; (list.length ? select : $("bin-close")).focus(); }
+    }
+    function hide() {
+      binPanel.hidden = true;
+      bin.setAttribute("aria-expanded", "false");
+      asking = null;
+      bin.focus();
+    }
+    bin.addEventListener("click", function () { if (binPanel.hidden) show(null); else hide(); });
+    $("bin-close").addEventListener("click", hide);
+    $("bin-forget").addEventListener("click", function () { var g = byId[$("bin-game").value]; if (g) ask(g); });
+    $("bin-no").addEventListener("click", function () { show(null); });
+    $("bin-yes").addEventListener("click", function () {
+      var g = asking;
+      if (!g) return;
+      $("bin-yes").disabled = $("bin-no").disabled = true;
+      status("Forgetting…");
+      ByopopImport.forgetGame(g).then(function () {
+        try { if (window.ByopopTiles) ByopopTiles.check(); } catch (x) {}
+        return g.title + "'s files are forgotten.";
+      }, function (e) { return (e && e.message) || "The files could not be forgotten."; }).then(function (text) {
+        $("bin-yes").disabled = $("bin-no").disabled = false;
+        $("bin-confirm").hidden = true;
+        asking = null;
+        // the list again, once the cards have been checked (data-files)
+        setTimeout(function () { show(null); status(text); }, 300);
+      });
+    });
+    // the caps: a drag carries the game's id
+    document.addEventListener("dragstart", function (ev) {
+      var badge = ev.target && ev.target.closest ? ev.target.closest(".badge[draggable=true]") : null;
+      var a = badge && badge.closest("a.tile[data-game]");
+      if (!a) return;
+      ev.stopPropagation();
+      ev.dataTransfer.setData(CAP_TYPE, a.getAttribute("data-game"));
+      ev.dataTransfer.effectAllowed = "move";
+    }, true);
+    function isCap(ev) { return !!ev.dataTransfer && Array.prototype.indexOf.call(ev.dataTransfer.types || [], CAP_TYPE) >= 0; }
+    bin.addEventListener("dragenter", function (ev) { if (isCap(ev)) { ev.preventDefault(); bin.classList.add("drop-on"); } });
+    bin.addEventListener("dragover", function (ev) { if (isCap(ev)) { ev.preventDefault(); ev.dataTransfer.dropEffect = "move"; } });
+    bin.addEventListener("dragleave", function () { bin.classList.remove("drop-on"); });
+    bin.addEventListener("drop", function (ev) {
+      bin.classList.remove("drop-on");
+      if (!isCap(ev)) return;
+      ev.preventDefault();
+      var g = byId[ev.dataTransfer.getData(CAP_TYPE)];
+      if (g) show(g);
+    });
   }
   return { init: init, fromFiles: fromFiles, onCardDrop: onCardDrop };
 })();

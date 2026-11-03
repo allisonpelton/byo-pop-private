@@ -208,8 +208,8 @@ part of the terms' version, so a change of stores asks nobody to agree again.
 ### The listing page
 
 `build/web/index.html` lists the finished games, and the ones still to come ("Coming soon", below), so that the site's root shows them instead of a directory listing: a
-tile for each, with the game's `TITLE` and a badge (its initials on a colour of its own from `BYOPOP_WEB_BADGES`,
-drawn by the page, never from the game's files) linking to its page (a game still to come has no page, and its tile is no
+tile for each, with the game's `TITLE` and a badge (its initials on a colour of its own from `BYOPOP_WEB_BADGES`, in the
+shape of a bottle cap, drawn by the page, never from the game's files; "The bottle caps", below) linking to its page (a game still to come has no page, and its tile is no
 link); opened with `?silent=1`, it passes that on to the
 links. Its header has the logo at the size it is drawn, 276 by 64 pixels (the user, 2026-11-02: "Make the logo bigger on the
 front page"), narrower when the window is, and the heading "Games". `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
@@ -262,7 +262,8 @@ whatever the sort.
 
 **The tabs.** The user, 2026-11-02: "Turn the player, save, and settings managers into separate tabs under the games list
 ... Massively reduce how much text there is." The three managers are tabs under the games, **Players**, **Saves** and **Settings**,
-by name until their icons are designed. They follow the ARIA pattern for tabs with automatic activation: a `role="tablist"` row of
+each shown as an icon of our own (the user, 2026-11-03: "use icons rather than names"; inline SVG line drawings in the page: two
+people, a floppy disk, a gear), named by its `aria-label` and with the name as its tooltip (`title`). They follow the ARIA pattern for tabs with automatic activation: a `role="tablist"` row of
 `<button role="tab">`s, each `aria-controls` its `<section role="tabpanel">`, which is `aria-labelledby` the tab, in the tab order
 (`tabindex="0"`) and hidden while another tab is chosen. Only the chosen tab is in the tab order (`aria-selected="true"`, the others
 `tabindex="-1"`); Left and Right move along the tabs, wrapping round, and show each one's panel at once, Home and End go to the first
@@ -365,6 +366,23 @@ localStorage item for the site, `byopop-play` (`ByopopPlay` in `web/settings.js`
 a game's id to `{plays, seconds, last}`, `last` as the player's own date, YYYY-MM-DD. The save backup takes it ("Save backup",
 below). Another tab that changes it changes the listing at once (the `storage` event), and the listing reads it again when it comes
 back into view.
+
+**The bottle caps.** The user, 2026-11-03: "Change the placeholder icons to be in the shape of a bottle cap." A game's badge,
+its initials on its colour, is cut to a crown cap's outline seen from above (`web/brand/cap.svg`, our own drawing: a circle with 21
+rounded crimps, used as the badge's CSS `mask`), with the cap's skirt and the ring of its top drawn darker by a radial gradient over
+the colour, which keeps the white initials' contrast. The game's own icon, once its files are here, takes the cap's place (no
+mask). The animation of the opener taking the cap off comes after Bejeweled Twist's last merge; a cap is one element, the `.badge`,
+so it can be animated or flipped there.
+
+**The recycle bin.** The user, 2026-11-03: "Add a recycle bin to the front page that the game's cap can be dragged into to forget
+its files." The bin is the button beside "Add games". The cap of a game whose files are here is draggable (`draggable="true"`,
+set by the files check, which also marks the card `data-files`); dropped on the bin, it opens the bin's panel, which asks "Forget
+<game>'s files in this browser? Its saves stay." with Forget files and Cancel (the focus on Cancel). Nothing is deleted without
+that yes, which the page asks itself: a `confirm()` dialog is not shown in some places the site runs. Clicked, the bin opens the
+same panel with a list of the games whose files are here, for the keyboard and for browsers without drag and drop. Forgetting
+does what the game page's "Forget game files" does: the game folder's records go from the game's IndexedDB database (saves, mods
+and replays stay) and the record of the files says when (`ByopopGameFiles.forget`). Like adding, it holds the game's Web Lock
+(`ByopopImport.forgetGame` in `web/gameimport.js`), so a game whose page is open is refused.
 
 **The game's own icon.** Once a game's files are loaded, its card shows the game's icon in place of the initials badge
 (an `<img alt="">`, since the card has the name, at the badge's size and with `image-rendering: pixelated` so that a small

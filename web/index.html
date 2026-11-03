@@ -76,10 +76,14 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
   padding: 16px 8px 6px; color: inherit; text-decoration: none; text-align: center; border-radius: var(--radius) var(--radius) 0 0;
 }
 .tile:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* A game's placeholder badge is a bottle cap (the user, 2026-11-03: "Change the placeholder icons to be in the shape of a bottle
+   cap"): its colour cut to a crown cap's outline (brand/cap.svg, our own drawing, 21 crimps), with the cap's skirt and the ring of
+   its top darker, and the initials in the middle. The game's own icon, once its files are here, takes the cap's place */
 .badge {
   display: flex; align-items: center; justify-content: center; flex: none; width: 72px; height: 72px;
-  border-radius: 16px; background: var(--tile); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
-  color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: 0.02em;
+  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0, 0, 0, 0.2) 69% 73%, transparent 74% 84%, rgba(0, 0, 0, 0.16) 85%), var(--tile);
+  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat;
+  color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 0.02em;
 }
 .name { font-weight: 600; overflow-wrap: anywhere; }
 /* The year of the game's release, small under the name (cmake/ByopopWeb.cmake, BYOPOP_WEB_RELEASED); the gap above it is the tile's
@@ -109,6 +113,18 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .adding select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; max-width: 100%; }
 .adding-rejected { margin: 8px 0 0; font-size: 13px; }
 .logo-drop { border-radius: var(--radius); }
+.toolbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.bin { display: flex; align-items: center; justify-content: center; width: 40px; height: 34px; padding: 0; color: var(--muted);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.bin:hover, .bin[aria-expanded=true] { color: var(--fg); border-color: var(--accent); }
+.bin[hidden], .bin-confirm[hidden], .bin-pick[hidden] { display: none; }
+.bin-icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.bin-pick, .bin-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.bin-confirm p { flex-basis: 100%; margin: 0; }
+.adding button.bin-yes { border-color: #b3261e; color: #b3261e; }
+@media (prefers-color-scheme: dark) { .adding button.bin-yes { border-color: #ff8a80; color: #ff8a80; } }
+/* a cap that can go into the bin (the game's files are here) */
+.badge[draggable=true] { cursor: grab; }
 .drop-on { outline: 3px dashed var(--accent); outline-offset: 4px; }
 .sortby[hidden] { display: none; }
 .sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
@@ -117,7 +133,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .sortby input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 /* A game whose files are loaded shows its own icon in place of the initials: the badge's size, with crisp pixels
    when it is enlarged (icons are kept at 64 px or less) */
-.badge.has-icon { background: none; box-shadow: none; }
+.badge.has-icon { background: none; box-shadow: none; -webkit-mask: none; mask: none; }
 .badge img { display: block; width: 72px; height: 72px; object-fit: contain; image-rendering: crisp-edges; image-rendering: pixelated; }
 /* Under the name, in words: whether the game's files are loaded in this browser ("Play now") or not ("Add your files"),
    and for a game played here before, a "?" that explains why they are not (docs/WEB_PLAYER.md, "The listing page") */
@@ -154,6 +170,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
   border: 1px solid transparent; border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0;
 }
 .tabs [role=tab]:hover { color: var(--fg); }
+.tab-icon { display: block; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tabs [role=tab][aria-selected=true] { color: var(--accent); background: var(--panel); border-color: var(--line); border-bottom: 1px solid var(--panel); }
 .tabs [role=tab]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .tabpanel { padding-top: 4px; scroll-margin-top: 16px; }
@@ -270,7 +287,12 @@ footer a { color: var(--accent); }
         <label><input type="radio" name="sortby" value="release"> Release date</label>
       </div>
     </fieldset>
-    <button type="button" class="add-games" id="add-games" hidden>Add games</button>
+    <div class="toolbar-actions">
+      <button type="button" class="add-games" id="add-games" hidden>Add games</button>
+      <!-- The recycle bin: a game's cap dragged here forgets its files, after a yes in the panel below (web/addgames.js) -->
+      <button type="button" class="bin" id="bin" aria-label="Recycle bin" title="Recycle bin: drop a game's cap here to forget its files"
+        aria-controls="bin-panel" aria-expanded="false" hidden><svg class="bin-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16M9.5 6.5V4h5v2.5M6 6.5l1 13.5h10l1-13.5"/><path d="M10 10v7M14 10v7"/></svg></button>
+    </div>
     <input type="file" id="add-games-pick" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
   </div>
   <!-- What became of the folders added from this page (web/addgames.js) -->
@@ -282,15 +304,33 @@ footer a { color: var(--accent); }
     <ul class="adding-list" id="adding-list"></ul>
     <p class="adding-rejected" id="adding-rejected" aria-live="polite" hidden></p>
   </section>
+  <section class="adding" id="bin-panel" aria-labelledby="bin-title" hidden>
+    <div class="adding-head">
+      <h2 id="bin-title">Recycle bin</h2>
+      <button type="button" id="bin-close" aria-label="Close">×</button>
+    </div>
+    <div class="bin-pick" id="bin-pick">
+      <label for="bin-game">Forget the files of</label>
+      <select id="bin-game"></select>
+      <button type="button" id="bin-forget">Forget…</button>
+    </div>
+    <div class="bin-confirm" id="bin-confirm" hidden>
+      <p id="bin-question"></p>
+      <button type="button" class="bin-yes" id="bin-yes">Forget files</button>
+      <button type="button" id="bin-no">Cancel</button>
+    </div>
+    <p class="ag-state" id="bin-status" role="status"></p>
+  </section>
   <p class="pl-sr" id="sortby-status" role="status"></p>
   <ul class="games" aria-labelledby="games-title">
 <!-- byopop:games -->
   </ul>
-  <!-- The players, the saves and the settings, as tabs under the games (the tabs script below) -->
+  <!-- The players, the saves and the settings, as tabs under the games (the tabs script below), each an icon of our own named by its
+       aria-label, with the name as its tooltip (the user, 2026-11-03: "use icons rather than names") -->
   <div class="tabs" role="tablist" aria-label="Players, saves and settings">
-    <button type="button" role="tab" id="tab-players" aria-controls="players" aria-selected="true">Players</button>
-    <button type="button" role="tab" id="tab-saves" aria-controls="saves" aria-selected="false" tabindex="-1">Saves</button>
-    <button type="button" role="tab" id="tab-settings" aria-controls="settings" aria-selected="false" tabindex="-1">Settings</button>
+    <button type="button" role="tab" id="tab-players" aria-controls="players" aria-selected="true" aria-label="Players" title="Players"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14c2.8 0 5 2.2 5 5"/></svg></button>
+    <button type="button" role="tab" id="tab-saves" aria-controls="saves" aria-selected="false" tabindex="-1" aria-label="Saves" title="Saves"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 4h12.5L20 7.5V20H4z"/><path d="M8 4v5h7V4"/><rect x="7.5" y="13" width="9" height="7"/></svg></button>
+    <button type="button" role="tab" id="tab-settings" aria-controls="settings" aria-selected="false" tabindex="-1" aria-label="Settings" title="Settings"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/><circle cx="12" cy="12" r="6.5"/></svg></button>
   </div>
   <section id="players" class="tabpanel" role="tabpanel" aria-labelledby="tab-players" tabindex="0">
     <h2 class="pl-sr">Players</h2>
@@ -494,6 +534,9 @@ try {
       badge.classList.remove("has-icon");
       badge.textContent = badge.getAttribute("data-initials");
     }
+    // a game whose files are here: its cap can be dragged into the recycle bin (web/addgames.js), which lists such games too
+    badge.draggable = info.state === "yes";
+    card.setAttribute("data-files", info.state);
     label.textContent = WORDS[info.state];
     label.className = "own own-" + info.state;
     // Where to buy (docs/WEB_PLAYER.md, "The listing page"): not shown to a player whose files for the game are loaded, were

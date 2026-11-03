@@ -251,7 +251,7 @@ var ByopopImport = (function () {
     var game = persist + "/game", now = new Date();
     return openDb(persist).then(function (db) {
       var tx = db.transaction(DB_STORE, "readwrite"), store = tx.objectStore(DB_STORE);
-      store.delete(IDBKeyRange.bound(game + "/", game + "/￿"));
+      store.delete(IDBKeyRange.bound(game + "/", game + "/\uffff"));
       var dirs = {};
       dirs[game] = true;
       files.forEach(function (f) {
@@ -311,6 +311,19 @@ var ByopopImport = (function () {
       });
     });
   }
+  // Forgets a game's files from the listing page, as the game page's "Forget game files" does: the game folder's records go (saves,
+  // mods and replays stay), and the record of the files says when they were forgotten. Held under the game's Web Lock, like addGame.
+  function forgetGame(g) {
+    var spec = g.spec, game = spec.persist + "/game";
+    return withLock(spec.lock, g.title, function () {
+      return openDb(spec.persist).then(function (db) {
+        var tx = db.transaction(DB_STORE, "readwrite"), store = tx.objectStore(DB_STORE);
+        store.delete(game);
+        store.delete(IDBKeyRange.bound(game + "/", game + "/\uffff"));
+        return done(tx).then(function () { db.close(); }, function (e) { try { db.close(); } catch (x) {} throw e; });
+      }).then(function () { try { ByopopGameFiles.forget(spec.id); } catch (e) {} });
+    });
+  }
   // The game's icon for the record: from the install's exe (importIcon), or from the exe it stores (the largest of its .exe files)
   function icon(spec, all, root, files) {
     if (spec.importIcon) return exeIcon(all, root);
@@ -324,5 +337,6 @@ var ByopopImport = (function () {
   }
 
   return { markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
-    games: games, add: add, sort: sort, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame };
+    games: games, add: add, sort: sort, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
+    forgetGame: forgetGame };
 })();
