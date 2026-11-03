@@ -25,7 +25,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   origrun is silent by default (rundesk silences only SDL). The user allows sound and changed saves ("You are welcome
   to run the originals with sound on and mess with my save data", 2026-10-31; the saves they care about are backed
   up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
-  entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. Patch a
+  entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. origrun
+  may hook a copy's clock functions to run it faster than real time ("Yes, hook them", 2026-11-02); any other hook of a
+  Windows function inside a copy needs the user's OK first (`docs/ORIGRUN.md`). Patch a
   copy as needed (many are not activated): how a protection is taken apart goes only in private blocks, and the
   patching tools in `.publishignore`. origrun cannot stop a message box's own sound or a MessageBeep and has no guard
   against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
@@ -39,6 +41,13 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - Under rundesk the framework never opens a URL (it logs "OpenURL in a test run"), but builds and frozen exes from
   before that guard do: a click on a game's "more games" link brings up the user's Steam client. Random or generated
   input never clicks link buttons (Options dialog, "buy" or "more games" screens) in any build.
+- **Uncapped, one core each (the user, 2026-11-02):** "As much as possible, allow programs to run at uncapped speed on
+  a single thread, to speed up development." A port runs with `-fast` (its virtual clock: no waiting, a draw every few
+  updates) in every test run that does not need real time, in a session's own comparison scripts as in check.sh's
+  suites; an original runs on origrun's virtual clock once it has one (`docs/ORIGRUN.md`). Real time only where the run
+  needs it: LiveSplit's real-time runs, sound and focus checks, the Browser pane. Before relying on `-fast`, check that
+  it leaves the run's results unchanged (a game that draws random numbers while drawing would not). Speed comes from
+  not waiting, never from threads: no game's code is made multithreaded to run faster (the user, 2026-11-02).
 - Run at most 3 game processes at a time, and never add artificial CPU load. The oracle runs 3 at a time by default
   (`--jobs`, at most 3): start no other game tests while it runs.
 - Only one oracle runs on the machine at a time. To wait for another, look for processes that run the oracle script

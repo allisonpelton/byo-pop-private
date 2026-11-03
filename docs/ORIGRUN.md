@@ -18,6 +18,12 @@ The user's position (2026-10-31): "You are welcome to run the originals with sou
 data" (their saves are backed up). So silence and leaving the registry untouched are conveniences, not gates:
 origrun prefers them, and the user turns the speakers off for a run that needs real sound.
 
+Hooking the copy's clock is allowed (the user, 2026-11-02, asked whether origrun may hook the originals' clock
+functions to run them uncapped: "Yes, hook them"). origrun may replace the time functions the copy imports
+(timeGetTime, QueryPerformanceCounter and the like) with a clock of its own, so that an original can run faster than
+real time, update for update. That OK covers the clock only: any other hook of a Windows function inside a copy still
+needs the user's OK first.
+
 How any copy's protection is handled is kept in the private notes under Per-game status, which a public
 snapshot strips out (`docs/PUBLISHING.md`); this document otherwise names games only by title.
 
