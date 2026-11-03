@@ -161,10 +161,16 @@ public:
 	int						mAutoplayDiff;
 	int						mAutoplayGames;
 	int						mAutoplayCap;
+	bool					mAutoplayMenu;
 	std::string				mAutoplayLog;
 	std::string				mAutoplayShots;
 	struct AutoplayState*	mAutoplayState;
 	void					AutoplayUpdate();
+	// -statelog=<file>: the game's state at each update that changes it (test hook, compared with origrun's --watch)
+	std::string				mStateLog;
+	std::string				mStateLogCells;     // -statelogcells=x,y;x,y: cells whose type is logged at every change
+	struct StateLogState*	mStateLogState;
+	void					StateLogUpdate();
 
 	// Helpers of the module (WinNoah.exe addresses in NoahApp.cpp)
 	bool					LoadImage(int theImageId);
