@@ -550,7 +550,10 @@ DDInterface* WinTwistApp::CreateDDInterface()
 {
 	if (mUse3D)
 		return new GPUDisplay(this, GPUPolicy::Twist());
-	return SexyApp::CreateDDInterface();
+	// port: the original's 2D screen is software, so its non-fast stretches average (DDImage::StretchBlt, 0x41a3e0)
+	DDInterface* anInterface = SexyApp::CreateDDInterface();
+	anInterface->mSoftwareStretch = true;
+	return anInterface;
 }
 
 uint32_t WinTwistApp::GetExtraWindowFlags()
