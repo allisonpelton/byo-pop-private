@@ -8,6 +8,8 @@
 #                               # (BEJ_NO_VARIANTS), a second candidate for its oracle; no tests or tools
 #   tools/build.sh web-test     # build/web-test: a second web build for automated browser tests (served
 #                               # on port 18766 by .claude/launch.json), so they never touch build/web
+# TARGET=<name> builds only that target (native, rundesk) and TARGET="<a> <b>" those targets of the web build
+# (tools/check.sh --changed builds only the games a merge touches this way).
 # Run it from anywhere; the game files it needs at run time are staged separately (assets/<game>/).
 # Options given once to cmake (e.g. -DBUILD_SMOKE=ON) stay in that build folder's cache.
 # Tool locations can be overridden with LLVM_MINGW_ROOT, SDL2_DIR, EMSDK_ROOT.
@@ -44,7 +46,8 @@ web() {  # <build folder> [cmake options]
 	stale_cache "$dir"
 	"$EMSDK_ROOT/upstream/emscripten/emcmake.exe" cmake -S "$ROOT" -B "$dir" -G Ninja \
 		-DCMAKE_BUILD_TYPE="$BUILD_TYPE" "$@"
-	cmake --build "$dir"
+	# (TARGET unquoted: several targets, separated by spaces)
+	cmake --build "$dir" ${TARGET:+--target $TARGET}
 }
 
 case "${1:-all}" in

@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # Build origrun (the host) and its sound stand-in (dsound.dll), 32-bit, with llvm-mingw's i686 target.
 # The originals are 32-bit, so the stand-in must be 32-bit to load into them; the host is built 32-bit too,
-# for one toolchain. Output goes to build/origrun-bin/ (git-ignored). Run from anywhere.
+# for one toolchain. Output goes to build/origrun-bin/ (git-ignored), or to $ORIGRUN_OUT when that is set
+# (tools/check.sh origrun builds into its own folder, so an origrun.exe that is running is not overwritten).
+# Run from anywhere.
 #
 #   tools/origrun/build.sh
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/../.." && pwd)"
-out="$repo/build/origrun-bin"
+out="${ORIGRUN_OUT:-$repo/build/origrun-bin}"
 mkdir -p "$out"
 
 # Find llvm-mingw's i686 clang under E:/retools (the folder name carries a date).
