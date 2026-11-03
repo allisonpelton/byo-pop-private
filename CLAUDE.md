@@ -58,8 +58,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
   on itself forever and blocks every other agent. How to run the oracle (its variants, cache and partial runs):
   `docs/BUILDS.md`, "Running the oracle".
-- Leave nothing running: loops started in the background end before you finish, and a stopped task's child processes
-  are killed.
+- Leave nothing running: loops started in the background end before you finish. Stopping a task can leave its loop's
+  shells alive and still starting runs (Ning Po, 2026-11-03), so afterwards look for processes whose command line is
+  inside your folder and stop them by id.
 - End a turn waiting only on something that wakes you: a background command or a Monitor that ends by itself and
   notifies you. A run you watch in the Browser pane never wakes you, and a page in a hidden pane runs no
   requestAnimationFrame unless it is shimmed, so it can stand still for good. A session that ended its turn on "waiting
