@@ -8,7 +8,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
-<script src="theme.js"></script>
+<script src="theme.js"></script><script src="logo.js"></script>
 <!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
 <script src="cursors.js"></script>
 <style>
@@ -212,9 +212,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <body>
 <a class="skip" id="skip-game" href="#canvas">Skip to game</a>
 <header class="bar">
-  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="96" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="96" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
+  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="72" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="72" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
   <span class="status" id="status" role="status">Starting…</span>
-  <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false">Mods</button>
+  <!-- shown once the game's files are here, and never for a game whose port loads no mods (boot(), MODS_SUPPORTED) -->
+  <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false" hidden>Mods</button>
   <button id="btn-files" type="button" aria-controls="panel-files" aria-expanded="false">Game files</button>
   <button id="btn-settings" type="button" aria-controls="panel-settings" aria-expanded="false">Settings</button>
   <button id="btn-sound" type="button" aria-pressed="true" title="Turns this page's sound off or on; the game's own volume is not changed"><span>Sound</span><span aria-hidden="true">: on</span></button>
@@ -750,6 +751,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // fails (a private window, blocked site data), it lasts until the page closes. TERMS_GATE (BYOPOP_WEB_TERMS_GATE in
   // cmake/ByopopWeb.cmake) is off for now: then the card never shows, and the pages must not be deployed.
   var TERMS_KEY = "byopop-terms-" + PAGE.id, TERMS_VERSION = "@BYOPOP_TERMS_VERSION@", TERMS_GATE = @BYOPOP_TERMS_GATE@;
+  // false for a game whose port loads no mods yet (BYOPOP_WEB_NO_MODS, cmake/ByopopWeb.cmake): its page has no Mods button (the
+  // user, 2026-11-03: "Don't show a mods button for games with no mod support"); the others show it once the game's files are
+  // here ("Don't show the mods button unless files are uploaded")
+  var MODS_SUPPORTED = @BYOPOP_MODS_SUPPORTED@;
   var termsAgreed = !TERMS_GATE;
   function hasAgreed() {
     if (!termsAgreed) {
@@ -939,6 +944,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // The listing page shows which games have their files loaded, from this record (web/settings.js): kept whenever the
     // files are found, here at every start and after an import, and noted as missing when they are not there ("Forget game
     // files" notes that it was the player who did). Not with ?placeholders=1, where a part of a game stands for all of it.
+    $("btn-mods").hidden = !(MODS_SUPPORTED && hasGameFiles());
     if (!hasGameFiles()) {
       if (!pagePlaceholders()) { try { ByopopGameFiles.lost(PAGE.id); } catch (e) {} }
       setStatus("Game files needed");

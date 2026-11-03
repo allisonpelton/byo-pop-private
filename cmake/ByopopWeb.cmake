@@ -45,7 +45,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # of each game's page, its page's file name, its badge's initials and colour and its title), is written beside them by
 # byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
 # games of its own.
-set(BYOPOP_WEB_SHARED_JS theme.js cursors.js capanim.js settings.js profiles.js exeicon.js gameimport.js chat.js)
+set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settings.js profiles.js exeicon.js gameimport.js chat.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
@@ -81,6 +81,10 @@ set(BYOPOP_WEB_UPCOMING
 # colour. Original to byo-pop, never the games' art. The colours keep white text above a 4.5 contrast ratio (the chat's game
 # tags, "[BW]" before a username, use the same row and colour: tools/chattest.js checks the ratio and that the initials are
 # unique, 1 to 4 letters or digits). A game without a row here gets the initials of its TITLE and the accent colour.
+# The games whose ports load no mods yet (their pages' modsIntro says so): their pages show no Mods button (the user,
+# 2026-11-03: "Don't show a mods button for games with no mod support"; web/shell.html's MODS_SUPPORTED). A port that starts
+# loading mods leaves this list.
+set(BYOPOP_WEB_NO_MODS bonnies cosmicbugs mahjongchina mahjongjapan ningpo tiptop waterbugs wordharmony)
 set(BYOPOP_WEB_BADGES
   "bejeweled|BJ|#95233d" "bigmoney|BM|#1f8438" "bookworm|BW|#955c23" "noahsark|NA|#234995" "sevenseas|7S|#1e8080"
   "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
@@ -415,6 +419,11 @@ function(byopop_web_shell var target pagedir)
   byopop_web_badge(${target} "${arg_TITLE}" cap_initials cap_colour)
   string(REPLACE "@BYOPOP_CAP_INITIALS@" "${cap_initials}" page "${page}")
   string(REPLACE "@BYOPOP_CAP_COLOUR@" "${cap_colour}" page "${page}")
+  if(target IN_LIST BYOPOP_WEB_NO_MODS)
+    string(REPLACE "@BYOPOP_MODS_SUPPORTED@" "false" page "${page}")
+  else()
+    string(REPLACE "@BYOPOP_MODS_SUPPORTED@" "true" page "${page}")
+  endif()
   file(READ ${BYOPOP_WEB_FOOTER} footer)
   file(READ ${BYOPOP_WEB_FOOTER_CSS} css)
   string(REPLACE "@BYOPOP_COPYRIGHT_PAGE@" "${copyright_page}" footer "${footer}")

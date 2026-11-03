@@ -49,6 +49,11 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
 
 ## The top bar and side panels
 
+The Mods button shows once the game's files are in the browser (the user, 2026-11-03: "Don't show the mods button unless
+files are uploaded"), and never on the page of a game whose port loads no mods yet ("Don't show a mods button for games with
+no mod support"): those games are the `BYOPOP_WEB_NO_MODS` list in `cmake/ByopopWeb.cmake`, which sets the page's
+`MODS_SUPPORTED`, and a port leaves the list when it starts loading mods.
+
 The bar and panels are ordinary HTML around the canvas, not part of the game. They reach the game in
 four ways:
 
@@ -232,8 +237,9 @@ part of the terms' version, so a change of stores asks nobody to agree again.
 tile for each, with the game's `TITLE` and a badge (its initials on a colour of its own from `BYOPOP_WEB_BADGES`, in the
 shape of a bottle cap, drawn by the page, never from the game's files; "The bottle caps", below) linking to its page (a game still to come has no page, and its tile is no
 link); opened with `?silent=1`, it passes that on to the
-links. Its header has the logo at the size it is drawn, 276 by 64 pixels (the user, 2026-11-02: "Make the logo bigger on the
-front page"), narrower when the window is, and the heading "Games". `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
+links. Its header has the logo at the size it is drawn, 210 by 64 pixels (the user, 2026-11-02: "Make the logo bigger on the
+front page"), narrower when the window is. Its heading, "Games", is there for screen readers only and names the list of games
+(the user, 2026-11-03: "remove Games from the front page header"). `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
 option is off). Below the tiles it has three tabs: Players (`#players`; "Player profiles", below), which `web/players.js` builds
@@ -1078,7 +1084,7 @@ both page templates link them. A web host serves them with the pages.
 | `favicon.svg` | The mark: a bottle opener (chrome head, red handle) on a sky-blue tile. It is the tab icon in browsers that take SVG icons. |
 | `favicon.ico` | The mark at 16, 32 and 48 px, for browsers without SVG icons. |
 | `apple-touch-icon.png` | 180 px, opaque, for home screens (iOS rounds the corners itself). |
-| `logo.svg`, `logo-dark.svg` | The mark and the wordmark "byo-pop", whose "o" in "pop" is a red crown cap. One file for light backgrounds, one for dark. The top bar shows the one that matches the page's theme, before the game's mark and name, and it is a link to the listing page (`./`, relative, so it works on any host and path); the link's name, "byo-pop, all games", is the light logo's alt, which a dark theme keeps in the page, out of sight, for that. Leaving through the link is leaving the page like any other: the game saves on `beforeunload` and the backup is written (`SexyAppBase::PageGoingAway`), and "ask before leaving" (Site settings) asks. The copyright page shows the logo at the top. |
+| `logo.svg`, `logo-dark.svg` | The wordmark "byo-pop", whose hyphen is the bottle opener, its head toward "pop", and whose "o" in "pop" is a red crown cap (the user, 2026-11-03, instead of the mark beside the wordmark: "Use the version with head toward pop"). One file for light backgrounds, one for dark. `web/logo.js` puts logo.svg's drawing inline in their place on the listing page, the game pages and the copyright page, its "byo" in the theme's ink (`--bp-logo-ink`), so that on mouseover (or the link's focus) the opener nudges toward "pop" and levers twice, as if to open the cap, which stays on ("animate the logo so on mouseover the bottle opener moves as if to open the cap (without actually opening it)"); not with `prefers-reduced-motion`. Where logo.svg cannot be read the two images stay, and the top bar shows the one that matches the page's theme, before the game's mark and name, and it is a link to the listing page (`./`, relative, so it works on any host and path); the link's name, "byo-pop, all games", is the light logo's alt, which a dark theme keeps in the page, out of sight, for that. Leaving through the link is leaving the page like any other: the game saves on `beforeunload` and the backup is written (`SexyAppBase::PageGoingAway`), and "ask before leaving" (Site settings) asks. The copyright page shows the logo at the top. |
 | `cap.svg` | A crown cap's outline seen from above, 21 rounded crimps: the mask that cuts a game's badge to a cap. |
 | `opener.svg` | The mark's opener without its tile, head up, for the cap animation (`web/capanim.js`). |
 
