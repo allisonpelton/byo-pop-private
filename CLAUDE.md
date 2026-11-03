@@ -22,7 +22,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   window, play no sound and open no URL. A web build under Node still counts as a game process.
 - **Originals** run only through `tools/origrun` (`docs/ORIGRUN.md`: what it does, its status table for each game, its
   gaps), from a copy under build/, invisibly under rundesk; an install folder is never written to or run in place.
-  origrun is silent by default (rundesk silences only SDL). The user allows sound and changed saves ("You are welcome
+  origrun is silent by default (rundesk silences only SDL); its stand-in also mutes the copy's own audio sessions as
+  it loads, so sound that goes past it (the BASS music of Alchemy, Pixelus and Rocket Mania, which reaches the
+  system's DirectSound through COM; waveOut; PlaySound) never reaches the speakers, and a run's RESULT line says
+  `SOUND LEAK` if any did. The user allows sound and changed saves ("You are welcome
   to run the originals with sound on and mess with my save data", 2026-10-31; the saves they care about are backed
   up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
   entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. origrun
@@ -39,9 +42,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   process.
 - Open web builds in the Browser pane only with `?silent=1`, e.g. `http://127.0.0.1:18766/bejeweled.html?silent=1`
   (the status line then ends in "silent"): the pane may be hidden, and without it the game plays its music and sounds
-  on the user's speakers. The terms card is off on every game page for now (the user, 2026-10-26;
-  `BYOPOP_WEB_TERMS_GATE` in `cmake/ByopopWeb.cmake`): leave it off. No game page goes on a public host until it is
-  on again (`docs/WEB_PLAYER.md`, "The terms").
+  on the user's speakers. The terms card is on in every build but skips itself on a development host (127.0.0.1,
+  localhost, [::1], *.localhost, *.test, file://), so local tests never meet it; `?terms=1` shows it there. On the
+  deployed site an agent skips it with the test key from the git-ignored `secrets/web-testkey.txt`, which is never
+  written into chat, commits or docs; either skip counts no play (`docs/WEB_PLAYER.md`, "The terms"). The site goes
+  on a public host only when the user says so.
 - Under rundesk the framework never opens a URL (it logs "OpenURL in a test run"), but builds and frozen exes from
   before that guard do: a click on a game's "more games" link brings up the user's Steam client. Random or generated
   input never clicks link buttons (Options dialog, "buy" or "more games" screens) in any build.

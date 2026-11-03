@@ -4,9 +4,12 @@
 // size and a hash of the PCM the game wrote), so a port session can compare "which sound plays when"
 // against its own build.
 //
-// It catches plain DirectSound and anything layered on it (BASS uses DirectSound underneath). FMOD 3 and
-// a few non-PopCap engines use their own output; those are not silenced here (the host's Core Audio watch
-// reports them, and the user mutes the speakers for such a run).
+// It catches plain DirectSound and anything layered on it that loads it by name. Sound that goes another way (a BASS
+// that makes its DirectSound through COM, which loads the system's dsound.dll from its registered path, winmm's waveOut
+// and PlaySound, FMOD's own output) is silenced by
+// the session mute below: as it loads, the stand-in mutes the process's own default audio session on every render
+// device, so whatever the process plays there later is muted from its first sample. The host's Core Audio watch
+// (origrun.c) checks every session of the game's and says whether any sound reached the speakers.
 //
 // Modes, from the ORIGRUN_SOUND environment variable the host sets:
 //   nodriver  DirectSoundCreate* return DSERR_NODRIVER, as if the machine had no sound card. Used for the
@@ -23,6 +26,8 @@
 #define INITGUID
 #include <windows.h>
 #include <dsound.h>
+#include <mmdeviceapi.h>
+#include <audiopolicy.h>
 #include <stdio.h>
 #include <stdint.h>
 
@@ -101,6 +106,100 @@ static uint64_t fnv1a(const void* p, size_t n)
 	uint64_t h = 1469598103934665603ULL;
 	for (size_t i = 0; i < n; i++) { h ^= b[i]; h *= 1099511628211ULL; }
 	return h;
+}
+
+// ---------------------------------------------------------------------------------------------------
+// The process's audio sessions, muted. Windows puts every stream a process opens without a session of its own (waveOut,
+// PlaySound, DirectSound, BASS and FMOD through either, the mixer API's wave volume) into the process's default audio
+// session of the device it plays on, and that session's mute holds for every stream that joins it later. So the stand-in
+// mutes the default session (GUID_NULL, not shared with other processes) on every active render device before the game
+// can play anything: the sound the game plays past the stand-in (the BASS of Alchemy, Pixelus and Rocket Mania makes
+// its DirectSound through COM, CLSID_DirectSound, which loads the system's dsound.dll) is muted from its first sample,
+// and never reaches the speakers. COM may not be used in
+// DllMain, so DllMain starts a thread that does it, and the stand-in's entry points wait for that thread before they
+// answer: a game that asks the stand-in for DirectSound gets it only once its sessions are muted. A stream with a
+// session GUID of its own, or on a device that became active later, is not covered; the host's watch mutes and reports
+// those. Measured 2026-11-03: the mute holds after this thread has released its objects and ended, and waveOut, PlaySound
+// and DirectSound streams opened later all join the muted session.
+static HANDLE gMuteDone;   // set once the mute thread has finished (or could not start)
+static LONG   gMuteLate;   // the wait for it ran out once: do not wait again
+static const GUID kNullGuid = { 0 };
+typedef HRESULT (WINAPI *CoInitEx_t)(LPVOID, DWORD);
+typedef HRESULT (WINAPI *CoCreate_t)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID*);
+typedef void    (WINAPI *CoUninit_t)(void);
+
+static DWORD WINAPI mute_thread(LPVOID unused)
+{
+	LARGE_INTEGER q0, q1; QueryPerformanceCounter(&q0);   // the time it takes, on the wall clock
+	// ole32 is loaded here, outside the loader lock, rather than imported, so the stand-in's own load is as before
+	HMODULE ole = LoadLibraryA("ole32.dll");
+	CoInitEx_t coInit = ole ? (CoInitEx_t)GetProcAddress(ole, "CoInitializeEx") : NULL;
+	CoCreate_t coCreate = ole ? (CoCreate_t)GetProcAddress(ole, "CoCreateInstance") : NULL;
+	CoUninit_t coUninit = ole ? (CoUninit_t)GetProcAddress(ole, "CoUninitialize") : NULL;
+	int devs = 0, muted = 0, playing = 0;
+	HRESULT why = E_FAIL;
+	if (coInit && coCreate && coUninit) {
+		HRESULT hi = coInit(NULL, COINIT_MULTITHREADED);
+		IMMDeviceEnumerator* en = NULL;
+		why = coCreate(&CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, &IID_IMMDeviceEnumerator, (void**)&en);
+		if (SUCCEEDED(why) && en) {
+			IMMDeviceCollection* col = NULL;
+			if (SUCCEEDED(why = IMMDeviceEnumerator_EnumAudioEndpoints(en, eRender, DEVICE_STATE_ACTIVE, &col)) && col) {
+				UINT n = 0; IMMDeviceCollection_GetCount(col, &n);
+				for (UINT i = 0; i < n; i++) {
+					IMMDevice* dev = NULL;
+					if (FAILED(IMMDeviceCollection_Item(col, i, &dev)) || !dev) continue;
+					devs++;
+					IAudioSessionManager* m = NULL;
+					if (SUCCEEDED(why = IMMDevice_Activate(dev, &IID_IAudioSessionManager, CLSCTX_ALL, NULL, (void**)&m)) && m) {
+						ISimpleAudioVolume* sv = NULL;   // makes the session if the process has none yet
+						if (SUCCEEDED(why = IAudioSessionManager_GetSimpleAudioVolume(m, &kNullGuid, FALSE, &sv)) && sv) {
+							if (SUCCEEDED(why = ISimpleAudioVolume_SetMute(sv, TRUE, NULL))) muted++;
+							ISimpleAudioVolume_Release(sv);
+						}
+						// a stream already playing in it has played unmuted until now
+						IAudioSessionControl* ctl = NULL; AudioSessionState st = AudioSessionStateInactive;
+						if (SUCCEEDED(IAudioSessionManager_GetAudioSessionControl(m, &kNullGuid, 0, &ctl)) && ctl) {
+							IAudioSessionControl_GetState(ctl, &st); IAudioSessionControl_Release(ctl);
+						}
+						if (st == AudioSessionStateActive) playing++;
+						IAudioSessionManager_Release(m);
+					}
+					IMMDevice_Release(dev);
+				}
+				IMMDeviceCollection_Release(col);
+			}
+			IMMDeviceEnumerator_Release(en);
+		}
+		if (SUCCEEDED(hi)) coUninit();
+	}
+	QueryPerformanceCounter(&q1);
+	if (devs && muted == devs)
+		logf("audio: the process's default audio session muted on %d render device%s (it took %.1f ms of wall time)", devs, devs == 1 ? "" : "s",
+			(double)(q1.QuadPart - q0.QuadPart) * 1000.0 / (double)gFreq.QuadPart);
+	else
+		logf("audio: WARNING: the process's default audio session muted on %d of %d render devices (0x%08lx); the host's watch mutes the rest",
+			muted, devs, (unsigned long)why);
+	if (playing)
+		logf("audio: WARNING: a stream was already playing in it on %d device%s, unmuted until now (the game played before it loaded the stand-in)",
+			playing, playing == 1 ? "" : "s");
+	SetEvent(gMuteDone);
+	return 0;
+}
+static void mute_start(void)
+{
+	gMuteDone = CreateEventA(NULL, TRUE, FALSE, NULL);
+	HANDLE t = gMuteDone ? CreateThread(NULL, 0, mute_thread, NULL, 0, NULL) : NULL;
+	if (t) { CloseHandle(t); return; }
+	logf("audio: WARNING: no thread to mute the process's audio sessions (err %lu); the host's watch mutes them", GetLastError());
+	if (gMuteDone) SetEvent(gMuteDone);
+}
+// Called by every entry point a game reaches before it can play through the stand-in, outside the loader lock.
+static void mute_wait(void)
+{
+	if (!gMuteDone || gMuteLate) return;
+	if (WaitForSingleObject(gMuteDone, 5000) == WAIT_TIMEOUT && !InterlockedExchange(&gMuteLate, 1))
+		logf("audio: WARNING: the process's audio sessions were not muted after 5 s; going on without waiting");
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -437,6 +536,7 @@ static IDirectSound8* NewDS(void)
 
 HRESULT WINAPI DirectSoundCreate(LPCGUID dev, LPDIRECTSOUND* pp, LPUNKNOWN u)
 {
+	mute_wait();
 	if (gNoDriver) { logf("DirectSoundCreate -> DSERR_NODRIVER"); if (pp) *pp=NULL; return DSERR_NODRIVER; }
 	if (!pp) return E_POINTER;
 	*pp = (LPDIRECTSOUND)NewDS();
@@ -444,6 +544,7 @@ HRESULT WINAPI DirectSoundCreate(LPCGUID dev, LPDIRECTSOUND* pp, LPUNKNOWN u)
 }
 HRESULT WINAPI DirectSoundCreate8(LPCGUID dev, LPDIRECTSOUND8* pp, LPUNKNOWN u)
 {
+	mute_wait();
 	if (gNoDriver) { logf("DirectSoundCreate8 -> DSERR_NODRIVER"); if (pp) *pp=NULL; return DSERR_NODRIVER; }
 	if (!pp) return E_POINTER;
 	*pp = NewDS();
@@ -452,9 +553,9 @@ HRESULT WINAPI DirectSoundCreate8(LPCGUID dev, LPDIRECTSOUND8* pp, LPUNKNOWN u)
 // One device, the default one (a null GUID), unless the machine is meant to have none: FMOD 3 (Atomica) lists the
 // drivers first and fails its init on an empty list.
 HRESULT WINAPI DirectSoundEnumerateA(LPDSENUMCALLBACKA cb, LPVOID ctx)
-{ if (cb && !gNoDriver) cb(NULL, "Primary Sound Driver", "", ctx); return DS_OK; }
+{ mute_wait(); if (cb && !gNoDriver) cb(NULL, "Primary Sound Driver", "", ctx); return DS_OK; }
 HRESULT WINAPI DirectSoundEnumerateW(LPDSENUMCALLBACKW cb, LPVOID ctx)
-{ if (cb && !gNoDriver) cb(NULL, L"Primary Sound Driver", L"", ctx); return DS_OK; }
+{ mute_wait(); if (cb && !gNoDriver) cb(NULL, L"Primary Sound Driver", L"", ctx); return DS_OK; }
 HRESULT WINAPI DirectSoundCaptureCreate(LPCGUID g, LPDIRECTSOUNDCAPTURE* pp, LPUNKNOWN u)
 { if (pp) *pp=NULL; return DSERR_NODRIVER; }
 HRESULT WINAPI DirectSoundCaptureCreate8(LPCGUID g, LPDIRECTSOUNDCAPTURE8* pp, LPUNKNOWN u)
@@ -468,11 +569,11 @@ HRESULT WINAPI DirectSoundFullDuplexCreate(LPCGUID a, LPCGUID b, LPCDSCBUFFERDES
 
 // COM activation path (CoCreateInstance of CLSID_DirectSound). Minimal class factory.
 HRESULT WINAPI DllCanUnloadNow(void) { return S_FALSE; }
-HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv) { if (ppv) *ppv=NULL; return CLASS_E_CLASSNOTAVAILABLE; }
+HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv) { mute_wait(); if (ppv) *ppv=NULL; return CLASS_E_CLASSNOTAVAILABLE; }
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r)
 {
-	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); log_init(); vclock_install(h); }
+	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); log_init(); vclock_install(h); mute_start(); }
 	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); vclock_detach(); }
 	return TRUE;
 }

@@ -13,8 +13,9 @@
 //   4. From this host (not injected into the game) it finds the game's top-level window on that desktop and
 //      runs the input script: waits, mouse moves/clicks, keys, typed text, focus lose/regain, and screen
 //      shots to PNG. Input is posted to the window, so it works across the desktop boundary.
-//   5. Watches Windows Core Audio for a session belonging to the game; if one appears it mutes it and notes
-//      it in the run log (a stand-in let sound through, or --sound real was used).
+//   5. Watches Windows Core Audio for the game's audio sessions on every render device (the stand-in mutes the game's
+//      default session as it loads): one not muted yet is muted at once, and each session's peak meter says whether
+//      the game made sound before its mute (a leak) or only while muted (the run log's RESULT line).
 //   6. Waits for the game to exit, or ends it (and its children, via rundesk's job) at the timeout.
 //   7. With the game's registry key and 3D-flag address known (games.tsv), logs the 3D mode the game ran in, read
 //      from its memory, and puts its Is3D setting and cached Direct3D test results back afterwards; --3d on|off
@@ -151,7 +152,6 @@ static char   gGameDir[MAX_PATH];    // <run>/game
 static char   gExePath[MAX_PATH];    // copied exe
 static char   gGameArgs[256];        // --arg: the game's own command line after the exe (letters, digits, - = _ . , one space between values)
 static char   gShotDir[MAX_PATH];
-static volatile LONG gAudioSeen = 0;
 static volatile LONG gStop = 0;
 
 #define MAX_MSGBOX 32
@@ -1807,7 +1807,16 @@ static void run_script(DWORD pid, const char* scriptPath)
 }
 
 // ----------------------------------------------------------------------------------- Core Audio watchdog
-
+//
+// The second check behind the sound stand-in, which mutes the game's own default audio session on every render device
+// as it loads, before the game can play anything (dsound_proxy.c, "The process's audio sessions, muted"). This watch
+// looks at every audio session of the copy's processes on every active render device: at once when Windows creates a
+// session (its notification wakes the watch) and every 20 ms. A session that is not muted is muted here. Each session's
+// peak meter, which Windows measures before the session's mute is applied, says whether the game made sound and when:
+// sound measured while the session was not muted reached the speakers (a leak), sound measured while it was muted did
+// not. Each session is logged when first seen, at its first sound, and on any leak, and the run's RESULT line tells a
+// game whose sessions were all muted from their start from one that played before a mute.
+//
 // Host runs with --sandbox watch the host's audio sessions of the sandbox's own processes instead of the game's:
 // they are logged and their loudest peak kept, not muted (the user allows the originals' sound), to tell whether
 // the sandbox's sound reaches the host.
@@ -1841,58 +1850,276 @@ static int is_sandbox_leaf(const char* leaf)
 static int is_broker_leaf(const char* leaf){ return ieq(leaf,"WindowsSandboxServer.exe"); }
 static int pid_before(DWORD pid);
 
+// One audio session of the game, as the watch saw it. Times are seconds since the watch began (the game's launch).
+typedef struct {
+	WCHAR id[512];        // the session's instance identifier (device, exe, session GUID, pid)
+	char  what[64];       // "the default session" or its GUID
+	DWORD pid;
+	int   dev;
+	double seen;          // first seen
+	int   firstMuted, firstActive; float firstPeak;   // as first seen
+	double mutedAt;       // when it was first seen muted, or muted here; -1 never
+	int   byWatch;        // this watch muted it (the stand-in had not)
+	int   remutes;        // found unmuted again after a mute, and muted again
+	double firstSound;    // the first non-zero peak; -1 none
+	int   firstSoundMuted;
+	float maxPeak;
+	double leakFrom, leakTo;   // sound measured while not muted (reached the speakers); -1 none
+	int   openUnmuted;    // a stream open while not muted, with no sound measured
+} AudSess;
+#define MAX_AUDSESS 32
+static AudSess gAud[MAX_AUDSESS];
+static int gAudN, gAudLost;
+static LARGE_INTEGER gAudQ0, gAudQf;
+static HANDLE volatile gAudWake;
+static double aud_now(void){ LARGE_INTEGER q; QueryPerformanceCounter(&q); return (double)(q.QuadPart-gAudQ0.QuadPart)/(double)gAudQf.QuadPart; }
+
+// Windows calls this when any process opens a new audio session on a device the watch registered with: wake the watch,
+// which looks at the sessions at once (the session manager is not called from inside its own notification).
+static HRESULT STDMETHODCALLTYPE an_qi(IAudioSessionNotification* This, REFIID riid, void** ppv)
+{
+	if (IsEqualIID(riid,&IID_IUnknown) || IsEqualIID(riid,&IID_IAudioSessionNotification)) { *ppv=This; return S_OK; }
+	*ppv=NULL; return E_NOINTERFACE;
+}
+static ULONG STDMETHODCALLTYPE an_addref(IAudioSessionNotification* This){ return 2; }   // a static object
+static ULONG STDMETHODCALLTYPE an_release(IAudioSessionNotification* This){ return 1; }
+static HRESULT STDMETHODCALLTYPE an_created(IAudioSessionNotification* This, IAudioSessionControl* s)
+{ HANDLE w=gAudWake; if (w) SetEvent(w); return S_OK; }
+static IAudioSessionNotificationVtbl gAudNotifyVtbl = { an_qi, an_addref, an_release, an_created };
+static IAudioSessionNotification gAudNotify = { &gAudNotifyVtbl };
+
+// The active render devices, each with its session manager and the creation notification; looked at again every second
+// for a device that became active since.
+typedef struct { WCHAR id[160]; IAudioSessionManager2* mgr; int reg; } AudDev;
+#define MAX_AUDDEV 8
+static AudDev gAudDev[MAX_AUDDEV];
+static int gAudDevN;
+static void aud_devices(IMMDeviceEnumerator* en)
+{
+	IMMDeviceCollection* col=NULL;
+	if (FAILED(IMMDeviceEnumerator_EnumAudioEndpoints(en,eRender,DEVICE_STATE_ACTIVE,&col)) || !col) return;
+	UINT n=0; IMMDeviceCollection_GetCount(col,&n);
+	for (UINT i=0;i<n && gAudDevN<MAX_AUDDEV;i++) {
+		IMMDevice* dev=NULL;
+		if (FAILED(IMMDeviceCollection_Item(col,i,&dev)) || !dev) continue;
+		LPWSTR id=NULL;
+		if (SUCCEEDED(IMMDevice_GetId(dev,&id)) && id) {
+			int known=0;
+			for (int k=0;k<gAudDevN;k++) if (!wcscmp(gAudDev[k].id,id)) { known=1; break; }
+			IAudioSessionManager2* mgr=NULL;
+			if (!known && SUCCEEDED(IMMDevice_Activate(dev,&IID_IAudioSessionManager2,CLSCTX_ALL,NULL,(void**)&mgr)) && mgr) {
+				AudDev* d=&gAudDev[gAudDevN++];
+				lstrcpynW(d->id,id,160); d->mgr=mgr;
+				// Windows sends the creation notifications only once the manager has listed its sessions
+				IAudioSessionEnumerator* se=NULL;
+				if (SUCCEEDED(IAudioSessionManager2_GetSessionEnumerator(mgr,&se)) && se) IAudioSessionEnumerator_Release(se);
+				d->reg=SUCCEEDED(IAudioSessionManager2_RegisterSessionNotification(mgr,&gAudNotify));
+				if (!d->reg) logline("audio: render device %d gives no session notifications; its sessions are looked at every 20 ms", gAudDevN-1);
+			}
+			CoTaskMemFree(id);
+		}
+		IMMDevice_Release(dev);
+	}
+	IMMDeviceCollection_Release(col);
+}
+
+// Is this pid the copy's? Asked of every session's pid at every look, so the answers are kept for a second.
+static struct { DWORD pid; int ours; } gAudPid[64];
+static int gAudPidN;
+static int aud_ours(DWORD pid)
+{
+	for (int i=0;i<gAudPidN;i++) if (gAudPid[i].pid==pid) return gAudPid[i].ours;
+	int ours=is_our_pid(pid);
+	if (gAudPidN<64) { gAudPid[gAudPidN].pid=pid; gAudPid[gAudPidN].ours=ours; gAudPidN++; }
+	return ours;
+}
+
+// The session GUID from an instance identifier ("...\game.exe%b{GUID}|1%b<pid>").
+static void aud_what(const WCHAR* id, char* out, int cap)
+{
+	const WCHAR* g=wcsstr(id,L"%b{");
+	int i=0;
+	if (g) for (g+=2; g[i] && i<cap-1; i++) { out[i]=(char)g[i]; if (g[i]==L'}') { i++; break; } }
+	out[i]=0;
+	if (!i) lstrcpynA(out,"a session of unknown GUID",cap);
+	else if (!strcmp(out,"{00000000-0000-0000-0000-000000000000}")) lstrcpynA(out,"the default session",cap);
+}
+
+// The sound modules the game process has loaded, read from outside (as the GPU modules are), so a session's log says
+// which path it could have come through: the stand-in or a system dsound.dll, winmm's driver (waveOut, PlaySound and the
+// mixer), MIDI, MCI, DirectShow, XAudio, BASS, FMOD, an ActiveX control (Flash).
+static void aud_modules(DWORD pid, char* out, int cap)
+{
+	out[0]=0;
+	HANDLE p=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,FALSE,pid);
+	if (!p) { lstrcpynA(out,"(not readable)",cap); return; }
+	static HMODULE mods[1024]; DWORD need=0;
+	if (EnumProcessModulesEx(p,mods,sizeof(mods),&need,LIST_MODULES_ALL)) {
+		DWORD n=need/sizeof(HMODULE); if (n>1024) n=1024;
+		static const char* const kSnd[] = { "dsound.dll", "wdmaud.drv", "midimap.dll", "audioses.dll", "quartz.dll", "mciwave.dll",
+			"mciseq.dll", "mcicda.dll", NULL };
+		for (DWORD i=0;i<n;i++) {
+			char path[MAX_PATH], one[MAX_PATH+40];
+			if (!GetModuleFileNameExA(p,mods[i],path,sizeof(path))) continue;
+			const char* b=strrchr(path,'\\'); b=b?b+1:path;
+			size_t bl=strlen(b);
+			int hit=0;
+			for (int k=0;kSnd[k];k++) if (ieq(b,kSnd[k])) hit=1;
+			if (!_strnicmp(b,"bass",4) || !_strnicmp(b,"fmod",4) || !_strnicmp(b,"xaudio",6) || (bl>4 && ieq(b+bl-4,".ocx"))) hit=1;
+			if (!hit) continue;
+			if (ieq(b,"dsound.dll")) wsprintfA(one,"dsound.dll (%s)", !_strnicmp(path,gGameDir,strlen(gGameDir)) ? "the stand-in" : path);
+			else lstrcpynA(one,b,sizeof(one));
+			if (out[0] && lstrlenA(out)+2<cap) lstrcatA(out,", ");
+			if (lstrlenA(out)+lstrlenA(one)<cap) lstrcatA(out,one);
+		}
+	}
+	CloseHandle(p);
+	if (!out[0]) lstrcpynA(out,"none",cap);
+}
+
+// One look at a session of the game's: note what it does, and mute it if it is not muted.
+static void aud_game_session(IAudioSessionControl2* c2, DWORD pid, int dev)
+{
+	LPWSTR wid=NULL;
+	if (FAILED(IAudioSessionControl2_GetSessionInstanceIdentifier(c2,&wid)) || !wid) return;
+	AudSess* s=NULL;
+	for (int i=0;i<gAudN;i++) if (!wcscmp(gAud[i].id,wid)) { s=&gAud[i]; break; }
+	AudioSessionState st=AudioSessionStateInactive; IAudioSessionControl2_GetState(c2,&st);
+	int active=(st==AudioSessionStateActive);
+	float pk=0; Meter* mi=NULL;
+	if (SUCCEEDED(IAudioSessionControl2_QueryInterface(c2,&kIID_IAudioMeterInformation,(void**)&mi)) && mi) { mi->lpVtbl->GetPeakValue(mi,&pk); mi->lpVtbl->Release(mi); }
+	ISimpleAudioVolume* sv=NULL; BOOL m=FALSE;
+	if (FAILED(IAudioSessionControl2_QueryInterface(c2,&IID_ISimpleAudioVolume,(void**)&sv))) sv=NULL;
+	if (sv) ISimpleAudioVolume_GetMute(sv,&m);
+	double t=aud_now();
+	int isNew=0;
+	if (!s) {
+		if (gAudN>=MAX_AUDSESS) { gAudLost++; s=NULL; }
+		else {
+			s=&gAud[gAudN++]; ZeroMemory(s,sizeof(*s)); isNew=1;
+			lstrcpynW(s->id,wid,512); aud_what(wid,s->what,sizeof(s->what));
+			s->pid=pid; s->dev=dev; s->seen=t; s->firstMuted=m; s->firstActive=active; s->firstPeak=pk;
+			s->mutedAt=s->firstSound=s->leakFrom=s->leakTo=-1;
+		}
+	}
+	CoTaskMemFree(wid);
+	int muteNow=!m && sv && SUCCEEDED(ISimpleAudioVolume_SetMute(sv,TRUE,NULL));
+	if (sv) ISimpleAudioVolume_Release(sv);
+	if (!s) {   // past the table: still muted, never lost from the result
+		if (!m && pk>0) logline("WARNING: SOUND LEAK: an audio session of the game (pid %lu) made sound before it was muted, %.3f s into the run -- muted it now", pid, t);
+		return;
+	}
+	if (pk>s->maxPeak) s->maxPeak=pk;
+	char mods[512]="";
+	if (isNew || (pk>0 && s->firstSound<0)) aud_modules(pid,mods,sizeof(mods));
+	if (isNew)
+		logline("audio: the game (pid %lu) has an audio session, %s on render device %d, seen %.3f s into the run: %s; %s, peak %.4g; "
+			"its sound modules: %s", pid, s->what, dev, t, m ? "muted already" : muteNow ? "not muted: muted it now" : "not muted, and it could not be muted",
+			active ? "a stream is playing" : "no stream playing", pk, mods);
+	if (!m) {
+		if (pk>0) {
+			if (s->leakFrom<0) logline("WARNING: SOUND LEAK: the game's audio session (pid %lu, %s) made sound (peak %.4g) while it was not muted, %.3f s into the run -- %s",
+				pid, s->what, pk, t, muteNow ? "muted it now" : "it could not be muted");
+			if (s->leakFrom<0) s->leakFrom=t;
+			s->leakTo=t;
+		} else if (active && !s->openUnmuted) {
+			s->openUnmuted=1;
+			logline("WARNING: the game's audio session (pid %lu, %s) had a stream open while it was not muted, %.3f s into the run, with no sound measured -- %s",
+				pid, s->what, t, muteNow ? "muted it now" : "it could not be muted");
+		}
+		if (!isNew && s->mutedAt>=0) { s->remutes++; logline("audio: WARNING: the game's session (%s) was not muted any more at %.3f s (the game unmuted it?); %s", s->what, t, muteNow ? "muted it again" : "it could not be muted"); }
+		if (muteNow) { s->byWatch=1; if (s->mutedAt<0) s->mutedAt=t; }
+	} else if (s->mutedAt<0) s->mutedAt=t;
+	if (pk>0 && s->firstSound<0) {
+		s->firstSound=t; s->firstSoundMuted=m;
+		if (m) logline("audio: the game's first sound in its session (%s): %.3f s into the run, peak %.4g, muted (since %.3f s); its sound modules: %s",
+			s->what, t, pk, s->mutedAt, mods);
+	}
+}
+
 static void audio_watch(void)
 {
 	if (FAILED(CoInitializeEx(NULL, COINIT_MULTITHREADED))) return;
+	QueryPerformanceFrequency(&gAudQf); QueryPerformanceCounter(&gAudQ0);
+	gAudWake=CreateEventA(NULL,FALSE,FALSE,NULL);
 	IMMDeviceEnumerator* en=NULL;
 	if (FAILED(CoCreateInstance(&CLSID_MMDeviceEnumerator,NULL,CLSCTX_ALL,&IID_IMMDeviceEnumerator,(void**)&en))) { CoUninitialize(); return; }
-	while (!gStop) {
-		IMMDevice* dev=NULL;
-		if (SUCCEEDED(IMMDeviceEnumerator_GetDefaultAudioEndpoint(en,eRender,eConsole,&dev)) && dev) {
-			IAudioSessionManager2* mgr=NULL;
-			if (SUCCEEDED(IMMDevice_Activate(dev,&IID_IAudioSessionManager2,CLSCTX_ALL,NULL,(void**)&mgr)) && mgr) {
-				IAudioSessionEnumerator* se=NULL;
-				if (SUCCEEDED(IAudioSessionManager2_GetSessionEnumerator(mgr,&se)) && se) {
-					int count=0; IAudioSessionEnumerator_GetCount(se,&count);
-					for (int i=0;i<count;i++) {
-						IAudioSessionControl* ctl=NULL;
-						if (FAILED(IAudioSessionEnumerator_GetSession(se,i,&ctl)) || !ctl) continue;
-						IAudioSessionControl2* c2=NULL;
-						if (SUCCEEDED(IAudioSessionControl_QueryInterface(ctl,&IID_IAudioSessionControl2,(void**)&c2)) && c2) {
-							DWORD pid=0; IAudioSessionControl2_GetProcessId(c2,&pid);
-							char leaf[MAX_PATH];
-							if (gAudioSandbox) {
-								if (pid && proc_leaf(pid,leaf,sizeof(leaf)) && (is_sandbox_leaf(leaf) || is_broker_leaf(leaf) || (ieq(leaf,"vmwp.exe") && !pid_before(pid)))) {
-									float pk=0; Meter* mi=NULL;
-									if (SUCCEEDED(IAudioSessionControl2_QueryInterface(c2,&kIID_IAudioMeterInformation,(void**)&mi)) && mi) { mi->lpVtbl->GetPeakValue(mi,&pk); mi->lpVtbl->Release(mi); }
-									LONG v=(LONG)(pk*1000.0f), was=gSbAudioPeak;
-									if (was<0) logline("the sandbox's %s (pid %lu) has an audio session on the host", leaf, pid);
-									if (v>was) InterlockedExchange(&gSbAudioPeak,v);
-								}
-							}
-							else if (is_our_pid(pid)) {
-								ISimpleAudioVolume* sv=NULL;
-								if (SUCCEEDED(IAudioSessionControl2_QueryInterface(c2,&IID_ISimpleAudioVolume,(void**)&sv)) && sv) {
-									ISimpleAudioVolume_SetMute(sv,TRUE,NULL);
-									ISimpleAudioVolume_Release(sv);
-								}
-								if (InterlockedExchange(&gAudioSeen,1)==0)
-									logline("WARNING: game opened an audio session (pid %lu) -- muted it. A sound stand-in let output through, or --sound real was used.", pid);
-							}
-							IAudioSessionControl2_Release(c2);
+	for (int pass=0; !gStop; pass++) {
+		if (pass%50==0) { aud_devices(en); gAudPidN=0; }   // every second: a new device; pids asked again
+		for (int d=0; d<gAudDevN; d++) {
+			IAudioSessionEnumerator* se=NULL;
+			if (FAILED(IAudioSessionManager2_GetSessionEnumerator(gAudDev[d].mgr,&se)) || !se) continue;
+			int count=0; IAudioSessionEnumerator_GetCount(se,&count);
+			for (int i=0;i<count;i++) {
+				IAudioSessionControl* ctl=NULL;
+				if (FAILED(IAudioSessionEnumerator_GetSession(se,i,&ctl)) || !ctl) continue;
+				IAudioSessionControl2* c2=NULL;
+				if (SUCCEEDED(IAudioSessionControl_QueryInterface(ctl,&IID_IAudioSessionControl2,(void**)&c2)) && c2) {
+					DWORD pid=0; IAudioSessionControl2_GetProcessId(c2,&pid);
+					char leaf[MAX_PATH];
+					if (gAudioSandbox) {
+						if (pid && proc_leaf(pid,leaf,sizeof(leaf)) && (is_sandbox_leaf(leaf) || is_broker_leaf(leaf) || (ieq(leaf,"vmwp.exe") && !pid_before(pid)))) {
+							float pk=0; Meter* mi=NULL;
+							if (SUCCEEDED(IAudioSessionControl2_QueryInterface(c2,&kIID_IAudioMeterInformation,(void**)&mi)) && mi) { mi->lpVtbl->GetPeakValue(mi,&pk); mi->lpVtbl->Release(mi); }
+							LONG v=(LONG)(pk*1000.0f), was=gSbAudioPeak;
+							if (was<0) logline("the sandbox's %s (pid %lu) has an audio session on the host", leaf, pid);
+							if (v>was) InterlockedExchange(&gSbAudioPeak,v);
 						}
-						IAudioSessionControl_Release(ctl);
 					}
-					IAudioSessionEnumerator_Release(se);
+					else if (pid && aud_ours(pid)) aud_game_session(c2,pid,d);
+					IAudioSessionControl2_Release(c2);
 				}
-				IAudioSessionManager2_Release(mgr);
+				IAudioSessionControl_Release(ctl);
 			}
-			IMMDevice_Release(dev);
+			IAudioSessionEnumerator_Release(se);
 		}
-		for (int i=0;i<10 && !gStop;i++) Sleep(50);
+		WaitForSingleObject(gAudWake, gAudioSandbox ? 500 : 20);   // a new session wakes it at once
 	}
+	for (int d=0; d<gAudDevN; d++) {
+		if (gAudDev[d].reg) IAudioSessionManager2_UnregisterSessionNotification(gAudDev[d].mgr,&gAudNotify);
+		IAudioSessionManager2_Release(gAudDev[d].mgr);
+	}
+	gAudDevN=0;
 	IMMDeviceEnumerator_Release(en);
 	CoUninitialize();
+	// gAudWake stays open: a notification already on its way may still set it
+}
+
+// The run's audio lines: each session of the game, and one RESULT. "Muted from its start": no sound and no open stream
+// was ever measured in it while it was not muted, so nothing it played reached the speakers.
+static void audio_result(void)
+{
+	if (!gAudN && !gAudLost) { logline("RESULT: no audio session from the game was seen."); return; }
+	int leaks=0, open=0, standIn=0, sounds=0; double lf=-1, lt=-1, first=-1; float peak=0;
+	for (int i=0;i<gAudN;i++) {
+		AudSess* s=&gAud[i];
+		if (s->leakFrom>=0) { leaks++; if (lf<0 || s->leakFrom<lf) lf=s->leakFrom; if (s->leakTo>lt) lt=s->leakTo; }
+		else if (s->openUnmuted) open++;
+		if (s->firstMuted) standIn++;
+		if (s->firstSound>=0) { sounds++; if (first<0 || s->firstSound<first) first=s->firstSound; }
+		if (s->maxPeak>peak) peak=s->maxPeak;
+		char snd[96];
+		if (s->firstSound>=0) _snprintf(snd,sizeof(snd),"its first sound at %.3f s, loudest peak %.4g",s->firstSound,s->maxPeak); else lstrcpyA(snd,"it made no sound");
+		snd[sizeof(snd)-1]=0;
+		char how[64];
+		if (s->firstMuted) lstrcpyA(how,"muted when first seen (the stand-in's mute)");
+		else if (s->byWatch) lstrcpyA(how,"muted by this watch");
+		else if (s->mutedAt>=0) _snprintf(how,sizeof(how),"muted at %.3f s",s->mutedAt), how[sizeof(how)-1]=0;
+		else lstrcpyA(how,"never muted");
+		logline("audio: session %d of the game (pid %lu, %s, render device %d): seen at %.3f s, %s; %s; %s%s", i+1, s->pid, s->what, s->dev, s->seen,
+			how,
+			snd,
+			s->leakFrom>=0 ? "SOUND LEAK: it played before it was muted" : s->openUnmuted ? "a stream was open before it was muted (no sound measured)" : "muted from its start",
+			s->remutes ? " (it was found unmuted again later, and muted again)" : "");
+	}
+	if (gAudLost) logline("audio: %d more session%s of the game than the watch keeps; each was muted when seen", gAudLost, gAudLost==1?"":"s");
+	if (leaks) logline("RESULT: SOUND LEAK: the game made sound in %d audio session%s before %s muted (measured from %.3f s to %.3f s into the run; see the warnings above).",
+		leaks, leaks==1?"":"s", leaks==1?"it was":"they were", lf, lt);
+	else if (open) logline("RESULT: %d audio session%s of the game had a stream open before %s muted, with no sound measured (see the warnings above).",
+		open, open==1?"":"s", open==1?"it was":"they were");
+	else if (sounds) logline("RESULT: %d audio session%s of the game (%d muted when first seen), each muted from its start: its sound (the first at %.3f s, loudest peak %.4g) never reached the speakers.",
+		gAudN, gAudN==1?"":"s", standIn, first, peak);
+	else logline("RESULT: %d audio session%s of the game (%d muted when first seen), each muted from its start; none made a sound.", gAudN, gAudN==1?"":"s", standIn);
 }
 
 static DWORD WINAPI audio_thread(LPVOID p){ audio_watch(); return 0; }
@@ -2574,8 +2801,7 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	}
 
 	logline("done. captures in %s, logs in %s", gShotDir, logs);
-	logline(gAudioSeen ? "RESULT: an audio session appeared and was muted (see warning above)."
-	                   : "RESULT: no audio session from the game was seen.");
+	audio_result();
 	int rc=0;
 	if (gMode3dExpr[0]) {
 		LONG m=gMode3dLast;
