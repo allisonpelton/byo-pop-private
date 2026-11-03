@@ -372,11 +372,11 @@ that curve reaches 0 the board sets +0x1ff5 and the app goes back to the main me
 restarts of a challenge (0x6c9987) and of Blitz (0x6c7a75) are described under "The challenge's flow on the board". In the original, as in the port, Escape does not
 close How to Play.
 
-Comparing with the original in origrun's sandbox: the sandbox has no cursor, and the original's framework reads the
-real one (GetCursorPos) after posted input. So its widget manager's last mouse point (+0xe0, +0xe4) turns into the
-window's offset from the screen's corner, (-67, -90), rather than the last click. FinishLevelUp (0x6bab49) hands that
-point to the board, so in the sandbox the board takes the mouse as off the grid and draws no twist selector; on a real
-desktop, as in the port, the selector sits under the mouse. Shots of the first tip differ by that selector alone.
+Comparing with the original in origrun's sandbox: the sandbox has no cursor, and the original's board reads the real
+one (GetCursorPos) while it draws and has the focus, so without help it never sees a scripted mouse: no selector and no
+twist. origrun's `--cursor scripted` (2026-11-03, with the user's OK) makes the copy's GetCursorPos return the
+scripted mouse; a script puts a `focus regain` before its moves. With it the tutorial's shots match the port's, the
+selector under the mouse included.
 
 ## The challenges' data and goal (Challenge.cpp)
 
@@ -774,6 +774,40 @@ the tilt times pi / 4 and raised by 25 times the bob. The constructor, destructo
 everything (no leak). gGemColors before the first board are ten Color() (opaque black, static initialiser 0x7d5096;
 the board copies only seven, 0x6c59c4), so the sparks' colour is black until a game has started (unseen: see above).
 
+## Comparing the looks (phase two)
+
+How the original and the port were compared screen by screen, and what a comparison has to allow for. The pass itself
+is reported in IDENTICAL_PLAY.md.
+
+- **Shots.** The original runs in origrun's sandbox on the virtual clock (2D, `--seed 1234`, the patch list), shooting
+  at update counts; the port shoots one update later (origrun's `at N` lands where the port's update N + 1 does).
+  Where the original's autoplay has jumped by 15 updates (see "Oddities"), its shots line up with the port's at a
+  multiple of 15 updates away; an effect that began inside a jump stays where it was.
+- **Sound.** origrun's DirectSound stand-in logs the original's buffers (logs/sound.log, which keeps every run: take the
+  part after its last "dsound stand-in attached"), and tools/bassproxy logs its music through BASS. BASS 2.2 finds no
+  sound device in the sandbox and the game then loads no music, so the proxy hands BASS_Init the "no sound" device.
+  tools/soundcmp.py pairs both with the port's BYOPOP_SOUNDLOG. Since a86c720 the port's voices follow the game's
+  clock under `-fast`, so sound comparisons can use it; before that a voice outlasted its updates there, and the voice
+  ramp and the praise that waits for it came late.
+- **The volume rule.** This DSoundInstance converts the master, base and instance volume to hundredths of a dB one by
+  one and adds them (0x4fa9e0, 0x4f85b0: a factor below -2331 counts as -10000, a master of 0.015 or less mutes), and
+  sets a whole-Hz frequency from 100 to 100000, cut down (0x4fabb0). The port's sound manager does the same
+  (`mDBPerFactor`).
+- **The focus.** Losing the focus mutes every sound (both) and pauses the board through the app's LostFocus (0x75f51e),
+  shown in a timed game: the gems hide and BOARD_PAUSED fades in (0x756925). Under origrun the original's update counter
+  then stands still until the focus comes back, on the real clock too, while its screen still changes (the pause text
+  fades in), so shots of the unfocused stretch cannot be lined up by update count; the port keeps counting.
+- **The web build under Node** has no WebGL, so SDL renders in software and samples rotated images without
+  filtering (the cursor spiral looks dotted); a browser does not. The shards and smoke of an explosion drift a little
+  between the native and web builds from libm's last bits (sin and cos), with the same random draws: the boards stay
+  identical.
+- **Rotated and matrix draws in 2D are not the original's yet.** In 2D the original draws them in software (DDImage's
+  BltRotated, 0x41c5c0, and BltMatrix, its triangle rasteriser), while the port draws them on the GPU with linear
+  filtering. Their edges differ by a level or two over a pixel: the cursor spiral, the help pages' PopAnim
+  animations, and the bomb wheel's glass, whose lower slices come out opaque in the original and see-through in the
+  port. It would take what the stretches got (97d664a): the framework rasterising the draw into an image with SWTri and
+  blitting that, for a game whose screen was software.
+
 ## Oddities
 
 - **The credits' sparks start their turn from the heap.** The Effect constructor (0x6f4a05) does not set +0x9c,
@@ -836,3 +870,12 @@ the board copies only seven, 0x6c59c4), so the sparks' colour is black until a g
   does not jump. The cause was not looked for: it varies from run to run of the same copy and seed, so it must come
   from something outside the game's own updates, such as a real-time clock. To see it, run the original twice and
   compare origrun's `--watch "[0x85aef4]+0x168"` (the score) lines.
+
+- **The JPEG 2000 art still differs from the original's decode by a level or two.** The game's .jp2 art is coded with
+  truncated code-blocks, and our OpenJPEG rebuilds them at the low end of each interval, as the original's decoder
+  does (third_party/openjpeg/BYO-POP.md). Compared with the title as the original decoded it (read from its memory,
+  app +0xc70, +0x3c8, +0x1f4, bits at +0x38), 65% of the pixels are equal, 87% within one level, 92% within two, and a
+  few differ by up to 31; alpha is equal everywhere, and the title's 1299 sparkle points, picked from its brightest
+  opaque pixels, are all the same. The cause of the rest was not found (perhaps the wavelet's rounding or the colour
+  transform); finding it would mean comparing the original decoder's coefficients with ours stage by stage. Too
+  small to see.

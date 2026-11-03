@@ -250,6 +250,11 @@
 			/*aDestBits[(theDestRect.mY+y)*mWidth+theDestRect.mX+x] =
 				(r) | (g << 8) | (b << 16) | (a << 24);*/
 
+#ifdef SLOW_STRETCH_STORE
+			// port: the includer's own store (MemoryImage::StretchCopy)
+			SLOW_STRETCH_STORE(aDestPixels, r, g, b, a);
+			aDestPixels++;
+#else
 			if (a != 0)
 			{		
 				ulong dest = *aDestPixels;
@@ -268,6 +273,7 @@
 			}
 			else
 				aDestPixels++;
+#endif
 		}
 	}
 

@@ -12,7 +12,8 @@
 #   build-nov    tools/build.sh novariants (Bejeweled without its variant code, for the oracle)
 #   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute); fwtest is skipped
 #                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all; then
-#                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, the loader's
+#                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, our
+#                decoder's own earlier output, which tools/jp2test/write_refs.sh writes; the loader's
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images;
 #                songpostest on Bejeweled's, BookWorm's and Bejeweled Twist's modules, with the MO3s' tempo and
 #                channel volumes (skipped without their assets); spectrumtest
@@ -106,9 +107,12 @@
 #                Dynasty Adventure stage from a new player (the name, the map, stage 1 won with the solver's clicks, the
 #                level's end and the map again) twice with the same screens, which are the frozen baseline's (under a
 #                minute)
+#   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 6000 and a Blitz game to its
+#                end and the high scores, with the same screens as frozen, a Classic rerun, and
+#                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one (about a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -193,6 +197,8 @@ MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of 
 MJC_DEAL="178 layouts, 0 failed"
 MJC_SHOTS="4c18c17f02f2 b63352c04770 7a72965e0cee"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
+BT_CLASSIC="28db3003ce53 543be9162c45 a877befa7541 2bab036e404c"  # the first 12 hex digits of the sha256 of the Classic game's screens at 1500, 3000, 4500 and 6000: the frozen baseline
+BT_BLITZ="7e99a176350b c8b25cf3f761 e07b8a86db1c cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 3500, 6000, 8000 (the explosion), 8450 (space, on the way to the scores) and 9000 (the high scores)
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -201,7 +207,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist)
 ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
@@ -215,7 +221,7 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=8 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [oracle]=1080)
+	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -543,8 +549,8 @@ suite_unit() {
 	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
 	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
 	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
-	# jp2test decodes Bookworm Adventures' .jp2 images against reference PNGs: staging's in re/bookwormadv/jp2ref, or
-	# (older staging) PNGs beside them; skipped without the staged folder
+	# jp2test decodes Bookworm Adventures' .jp2 images against reference PNGs: the decoder's own output in
+	# re/bookwormadv/jp2ref (tools/jp2test/write_refs.sh), a regression check; skipped without the staged folder
 	if [ -d assets/bookwormadv/images ]; then
 		local ref=()
 		[ -d re/bookwormadv/jp2ref/images ] && ref=("-ref=$W/re/bookwormadv/jp2ref/images")
@@ -1588,6 +1594,42 @@ suite_mahjongchina() {
 	if diff -rq "$c/game/shots" "$c/game2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="$dl; $g; $r; $sh"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$MJC_DEAL')"
+	return $st
+}
+
+twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game; prints its screens' hashes
+	local d="$OUT/bejeweledtwist/$1" exe="$2" mode="$3" last="$4" n
+	shift 4
+	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/user/registry.ini"
+	{ for n in "$@"; do echo "$n screenshot $d/shots/$n.png"; done; echo "$last quit"; } > "$d/script.txt"
+	# autoplay clicks only the board and the mode select, never a link
+	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" -fast -seed=1234 -autoplay="$mode" \
+		-script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	for n in "$@"; do sha256sum "$d/shots/$n.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -
+}
+
+suite_bejeweledtwist() {
+	local st=0 c b r sh bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
+	need_assets bejeweledtwist || return 1
+	c="$(twist_game classic "$exe" 1 6010 1500 3000 4500 6000)"
+	b="$(twist_game blitz "$exe" blitz 9010 3500 6000 8000 8450 9000)"
+	r="$(twist_game classic2 "$exe" 1 6010 1500 3000 4500 6000)"
+	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; } > "$1"
+	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
+	if [ -n "$c" ] && [ "$c" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-bejeweledtwist/, a copy of the port with its DLLs made when it was last
+	# checked against the original): the same games must give the same screens
+	if [ -f "$base" ]; then
+		if [ "$(twist_game base-classic "$base" 1 6010 1500 3000 4500 6000)" = "$c" ] &&
+			[ "$(twist_game base-blitz "$base" blitz 9010 3500 6000 8000 8450 9000)" = "$b" ]; then
+			bl="; baseline identical"
+		else
+			bl="; BASELINE DIFFERS"; st=1
+		fi
+	fi
+	SUMMARY="Classic to 6000 and Blitz to its high scores, 9 screens; $r; $sh$bl"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ')"
 	return $st
 }
 

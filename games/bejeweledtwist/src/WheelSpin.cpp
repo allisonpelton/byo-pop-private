@@ -137,7 +137,7 @@ WheelSpin::WheelSpin(Board* theBoard, Piece* thePiece)
 	mGlow.SetCurve(GTS(0x7f2f60), &mArrive);
 	mUnfold.SetCurve(GTS(0x7f2f44), &mArrive);
 	mWheelAlpha.SetCurve(GTS(0x7f2f28), &mArrive);
-	mAlert.SetCurve(GTS(gD3DInterface == nullptr ? 0x7f2edc : 0x7f2f04), &mArrive);  // Direct3D's alert ring has its own curve
+	mAlert.SetCurve(gD3DInterface == nullptr ? GTS(0x7f2edc) : GTS(0x7f2f04), &mArrive);  // Direct3D's alert ring has its own curve
 	mIconAlpha.SetCurve(GTS(0x7f2ebc), &mArrive);
 	gWheelSpin = this;
 }

@@ -591,7 +591,7 @@ static void opj_t1_dec_sigpass_raw(
     const OPJ_UINT32 l_w = t1->w;
     one = 1 << bpno;
     half = one >> 1;
-    oneplushalf = one | half;
+    oneplushalf = one; /* byo-pop: the low end, as j2k-codec (BYO-POP.md); was one | half */
 
     for (k = 0; k < (t1->h & ~3U); k += 4, flagsp += 2, data += 3 * l_w) {
         for (i = 0; i < l_w; ++i, ++flagsp, ++data) {
@@ -655,7 +655,7 @@ static void opj_t1_dec_sigpass_raw(
         register OPJ_UINT32 v; \
         one = 1 << bpno; \
         half = one >> 1; \
-        oneplushalf = one | half; \
+        oneplushalf = one; /* byo-pop: the low end (BYO-POP.md) */ \
         for (k = 0; k < (h & ~3u); k += 4, data += 3*l_w, flagsp += 2) { \
                 for (i = 0; i < l_w; ++i, ++data, ++flagsp) { \
                         opj_flag_t flags = *flagsp; \
@@ -778,7 +778,10 @@ static INLINE void opj_t1_dec_refpass_step_raw(
     if ((*flagsp & ((T1_SIGMA_THIS | T1_PI_THIS) << (ci * 3U))) ==
             (T1_SIGMA_THIS << (ci * 3U))) {
         v = opj_mqc_raw_decode(mqc);
-        *datap += (v ^ (*datap < 0)) ? poshalf : -poshalf;
+        /* byo-pop: a refinement bit of 1 adds the step and 0 adds nothing, the low end (BYO-POP.md) */
+        if (v) {
+            *datap += (*datap < 0) ? -(poshalf << 1) : (poshalf << 1);
+        }
         *flagsp |= T1_MU_THIS << (ci * 3U);
     }
 }
@@ -791,7 +794,10 @@ static INLINE void opj_t1_dec_refpass_step_raw(
         OPJ_UINT32 ctxt = opj_t1_getctxno_mag(flags >> (ci * 3U)); \
         opj_t1_setcurctx(curctx, ctxt); \
         opj_mqc_decode_macro(v, mqc, curctx, a, c, ct); \
-        data[ci*data_stride] += (v ^ (data[ci*data_stride] < 0)) ? poshalf : -poshalf; \
+        /* byo-pop: the low end (BYO-POP.md) */ \
+        if (v) { \
+            data[ci*data_stride] += (data[ci*data_stride] < 0) ? -(poshalf << 1) : (poshalf << 1); \
+        } \
         flags |= T1_MU_THIS << (ci * 3U); \
     } \
 }
@@ -1264,7 +1270,7 @@ static void opj_t1_enc_clnpass(
     register OPJ_UINT32 v; \
     one = 1 << bpno; \
     half = one >> 1; \
-    oneplushalf = one | half; \
+    oneplushalf = one; /* byo-pop: the low end (BYO-POP.md) */ \
     for (k = 0; k < (h & ~3u); k += 4, data += 3*l_w, flagsp += 2) { \
         for (i = 0; i < l_w; ++i, ++data, ++flagsp) { \
             opj_flag_t flags = *flagsp; \

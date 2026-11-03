@@ -5,6 +5,7 @@
 
 #include "SexyAppBase.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
@@ -79,6 +80,20 @@ SDLSoundInstance::~SDLSoundInstance()
 // The volume as DSoundInstance hands it to DirectSound (DSoundManager::VolumeToDB), for the sound log
 int SDLSoundInstance::LogVolume() const
 {
+	if (mManager->mDBPerFactor)
+	{
+		if (!(mManager->mMasterVolume > 0.015))
+			return -10000;
+		int aSum = 0;
+		for (double aFactor : {mManager->mMasterVolume, mBaseVolume, mVolume})
+		{
+			if (!(aFactor > 0.0) || !std::isfinite(aFactor))
+				return -10000;
+			int aDB = (int)((std::log10(1.0 + aFactor * 9.0) - 1.0) * 2333.0);
+			aSum += aDB < -2331 ? -10000 : aDB;
+		}
+		return aSum < -10000 ? -10000 : aSum;
+	}
 	double aVolume = mBaseVolume * mVolume * mManager->mMasterVolume;
 	if (!(aVolume > 0.0) || !std::isfinite(aVolume))   // silent, or not a number the cast below could take
 		return -10000;
@@ -88,7 +103,14 @@ int SDLSoundInstance::LogVolume() const
 
 void SDLSoundInstance::RehupVolume()
 {
-	double gain = SDLSoundManager::VolumeToGain(mBaseVolume * mVolume * mManager->mMasterVolume);
+	double gain;
+	if (mManager->mDBPerFactor)
+	{
+		int aDB = LogVolume();   // above 0 DirectSound refuses it, as in VolumeToGain
+		gain = aDB <= -10000 ? 0.0 : aDB >= 0 ? 1.0 : std::pow(10.0, aDB / 2000.0);
+	}
+	else
+		gain = SDLSoundManager::VolumeToGain(mBaseVolume * mVolume * mManager->mMasterVolume);
 	int pan = mBasePan + mPan;
 	if (pan < -10000) pan = -10000;
 	if (pan > 10000) pan = 10000;
@@ -127,6 +149,12 @@ void SDLSoundInstance::SetBasePan(int theBasePan)
 void SDLSoundInstance::AdjustPitch(double theNumSteps)
 {
 	mPitch = std::pow(2.0, theNumSteps / 12.0);
+	if (mManager->mDBPerFactor)
+	{
+		double aRate = mData ? mData->mRate : 44100.0;
+		double aFreq = std::min(std::max(aRate * mPitch, 100.0), 100000.0);
+		mPitch = std::trunc(aFreq) / aRate;   // whole Hz, cut down (39288.9 Hz plays at 39288 in its runs)
+	}
 	SoundLog("pitch %d #%d %.4f", mSfxID, mLogNum, mPitch);
 	if (mVoice)
 		Mixer::Get().SetVoicePitch(mVoice, mPitch);
