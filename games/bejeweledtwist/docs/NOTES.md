@@ -828,3 +828,11 @@ the board copies only seven, 0x6c59c4), so the sparks' colour is black until a g
   3D-only code and of everything the board does in 3D (hundreds of places, the accumulators included), or running the
   native build's math on the x87, which the web build cannot do. 2D mode, where the original keeps the CRT's 53-bit
   precision, is where the two are compared for identical play.
+- **The original's autoplay sometimes moves 15 updates late or early.** In the seeded 2D autoplay game
+  (`-autoplay -seed=1234`, the original through origrun with `--seed 1234 --3d off --arg -autoplay`), one run of the
+  original made every move from update 14059 on 15 updates sooner than the port, while another made the moves from
+  11019 to 14105 15 updates later and then fell back in step. Between those stretches each run matches the port
+  update for update, the boards, draws and scores included, so the port keeps the timing the original shows when it
+  does not jump. The cause was not looked for: it varies from run to run of the same copy and seed, so it must come
+  from something outside the game's own updates, such as a real-time clock. To see it, run the original twice and
+  compare origrun's `--watch "[0x85aef4]+0x168"` (the score) lines.
