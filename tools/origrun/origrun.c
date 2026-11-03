@@ -146,6 +146,7 @@ static char   gRepo[MAX_PATH];       // the repository root (origrun.exe sits in
 static char   gRunDir[MAX_PATH];     // build/origrun/<run>
 static char   gGameDir[MAX_PATH];    // <run>/game
 static char   gExePath[MAX_PATH];    // copied exe
+static char   gGameArgs[256];        // --arg: the game's own command line after the exe (letters, digits, - = _ . , and spaces)
 static char   gShotDir[MAX_PATH];
 static volatile LONG gAudioSeen = 0;
 static volatile LONG gStop = 0;
@@ -2041,6 +2042,15 @@ static const char* lookup_game(const char* name, const char* byExe, char* srcDir
 
 // --------------------------------------------------------------------------------------------- launching
 
+// --arg's text goes into the game's command line unquoted, so it takes only characters that cannot end or start
+// another argument or command: letters, digits, - = _ . , (and the spaces between --arg values)
+static int game_args_ok(const char* v)
+{
+	if (!v[0]) return 0;
+	for (const char* q=v;*q;q++) if (!isalnum((unsigned char)*q) && !strchr("-=_.,  ",*q)) return 0;
+	return 1;
+}
+
 typedef struct { HANDLE proc, thread, job; } Launched;
 // rundesk given: the host's way, the game on rundesk's hidden desktop (rundesk's job ends it). rundesk NULL: inside
 // the sandbox, the game on the sandbox's own WinSta0\Default, in a job of origrun's that ends it and its children.
@@ -2051,7 +2061,7 @@ static int launch_game(const char* rundesk, Launched* L)
 	PROCESS_INFORMATION pi; ZeroMemory(&pi,sizeof(pi));
 	char cmd[MAX_PATH*2];
 	if (rundesk) {
-		wsprintfA(cmd,"\"%s\" \"%s\"",rundesk,gExePath);
+		wsprintfA(cmd,"\"%s\" \"%s\"%s%s",rundesk,gExePath,gGameArgs[0]?" ":"",gGameArgs);
 		logline("launching under rundesk: %s",gExePath);
 		if (!CreateProcessA(NULL,cmd,NULL,NULL,FALSE,0,NULL,gGameDir,&si,&pi))
 			{ logline("CreateProcess(rundesk) failed (err %lu)",GetLastError()); return 0; }
@@ -2064,7 +2074,7 @@ static int launch_game(const char* rundesk, Launched* L)
 			SetInformationJobObject(L->job,JobObjectExtendedLimitInformation,&li,sizeof(li));
 		}
 		si.lpDesktop=(LPSTR)"WinSta0\\Default";
-		wsprintfA(cmd,"\"%s\"",gExePath);
+		wsprintfA(cmd,"\"%s\"%s%s",gExePath,gGameArgs[0]?" ":"",gGameArgs);
 		logline("launching on the sandbox's own desktop (WinSta0\\Default): %s",gExePath);
 		if (!CreateProcessA(NULL,cmd,NULL,NULL,FALSE,CREATE_SUSPENDED|BELOW_NORMAL_PRIORITY_CLASS,NULL,cwd,&si,&pi))
 			{ logline("CreateProcess failed (err %lu)",GetLastError()); if (L->job) CloseHandle(L->job); L->job=NULL; return 0; }
@@ -2753,6 +2763,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gStateExpr[0]) fprintf(rf,"state=%s\n",gStateExpr);
 	if (gEmptyExpr[0]) fprintf(rf,"empty=%s\n",gEmptyExpr);
 	for (int i=0;i<gWatchN;i++) fprintf(rf,"watch=%s\n",gWatchExpr[i]);
+	if (gGameArgs[0]) fprintf(rf,"arg=%s\n",gGameArgs);
 	if (gMode3dWant>=0) fprintf(rf,"3d=%s\n",gMode3dWant?"on":"off");
 	if (key3d && key3d[0]) fprintf(rf,"key3d=%s\n",key3d);
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
@@ -3195,6 +3206,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"state")) lstrcpynA(gStateExpr,v,256);
 			else if (ieq(ln,"empty")) lstrcpynA(gEmptyExpr,v,256);
 			else if (ieq(ln,"watch") && gWatchN<4) lstrcpynA(gWatchExpr[gWatchN++],v,256);
+			else if (ieq(ln,"arg") && game_args_ok(v)) lstrcpynA(gGameArgs,v,sizeof(gGameArgs));
 			else if (ieq(ln,"3d")) gMode3dWant = ieq(v,"on") ? 1 : 0;
 			else if (ieq(ln,"key3d")) lstrcpynA(key3d,v,256);
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
@@ -3322,6 +3334,12 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--update-state")&&i+1<argc) ustate=argv[++i];
 		else if (ieq(argv[i],"--draw-empty")&&i+1<argc) dempty=argv[++i];
 		else if (ieq(argv[i],"--watch")&&i+1<argc) { if (gWatchN<4) lstrcpynA(gWatchExpr[gWatchN++],argv[++i],256); else { fprintf(stderr,"origrun: at most 4 --watch\n"); return 2; } }
+		else if (ieq(argv[i],"--arg")&&i+1<argc) {
+			const char* v=argv[++i];
+			if (!game_args_ok(v) || strlen(gGameArgs)+1+strlen(v)>=sizeof(gGameArgs)) { fprintf(stderr,"origrun: --arg takes letters, digits, - = _ . , only (and at most %u characters in all)\n",(unsigned)sizeof(gGameArgs)-1); return 2; }
+			if (gGameArgs[0]) lstrcatA(gGameArgs," ");
+			lstrcatA(gGameArgs,v);
+		}
 		else if (ieq(argv[i],"--update-ms")&&i+1<argc) updateMs=atoi(argv[++i]);
 		else if (ieq(argv[i],"--copy-only")) copyOnly=1;
 		else if (ieq(argv[i],"--fresh")) fresh=1;
