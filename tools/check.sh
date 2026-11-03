@@ -1337,15 +1337,18 @@ suite_rocketmania() {
 }
 
 cosmicbugs_plays() {  # <exe> <tag>: the series of games checked against the original (games/cosmicbugs/test/plays), each
-	# played by the runner with origrun's watches; prints the checksum of all their watch lines and the last game's state
-	local exe="$1" d="$OUT/cosmicbugs/plays-$2" f n
+	# played by the runner with origrun's watches; prints the checksum of all their watch lines, and EMPTY with the games
+	# that printed none (an exe that fails at start-up would otherwise give the checksum of nothing on both sides)
+	local exe="$1" d="$OUT/cosmicbugs/plays-$2" f n empty=""
 	rm -rf "$d"; mkdir -p "$d"
 	for f in games/cosmicbugs/test/plays/*.txt; do
 		n="$(basename "$f" .txt)"; case "$n" in *.orig) continue ;; esac
 		mkdir -p "$d/$n"
 		CB_NOWARP=1 CB_WATCH=1 timeout 300 "$exe" assets/cosmicbugs "$d/$n" "$f" 2>&1 | tr -d '\r' | grep '^watch ' > "$d/$n.txt"
+		[ -s "$d/$n.txt" ] || empty="$empty $n"
 	done
-	echo "$(cat "$d"/*.txt | md5sum | cut -c1-12), $(cat "$d"/*.txt | wc -l) watch lines"
+	ls "$d"/*.txt > /dev/null 2>&1 || empty=" (no games)"
+	echo "$(cat "$d"/*.txt 2>/dev/null | md5sum | cut -c1-12), $(cat "$d"/*.txt 2>/dev/null | wc -l) watch lines${empty:+; EMPTY:$empty}"
 }
 
 suite_cosmicbugs() {
@@ -1372,7 +1375,8 @@ suite_cosmicbugs() {
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g%%;*}" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/line1.png" "$c/window2/line1.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
-	if [ -z "$pb" ]; then p="plays $p, no baseline"; elif [ "$p" = "$pb" ]; then p="plays as the baseline"; else p="PLAYS DIFFER FROM THE BASELINE"; st=1; fi
+	if [[ "$p$pb" == *EMPTY* ]]; then p="PLAYS EMPTY (now: $p; baseline: $pb)"; st=1
+	elif [ -z "$pb" ]; then p="plays $p, no baseline"; elif [ "$p" = "$pb" ]; then p="plays as the baseline"; else p="PLAYS DIFFER FROM THE BASELINE"; st=1; fi
 	SUMMARY="$b; $g; $r; $w; $p"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$CB_BANKS', '$CB_GAME')"
 	return $st
