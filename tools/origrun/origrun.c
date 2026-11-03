@@ -3615,7 +3615,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 		fclose(f);
 	}
 	if (!exeRel[0] || strstr(exeRel,"..") || exeRel[0]=='\\' || strchr(exeRel,':')) { logline("bad exe in sandbox-run.txt: '%s'", exeRel); goto done; }
-	if (timeout>240) timeout=240;
+	if (timeout>3600) timeout=3600;
 	if (!inSession) {   // the dead-man's switch: a sandbox whose host origrun was killed still ends
 		DWORD r=arm_guest_shutdown((DWORD)timeout+90);
 		if (r) logline("WARNING: could not arm the sandbox's shutdown timer (err %lu)", r);
@@ -3790,7 +3790,7 @@ int main(int argc, char** argv)
 		return 2;
 	}
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");
-	if (timeout>240) timeout=240;   // the machine rule: nothing longer than about 4 minutes
+	if (timeout>3600) timeout=3600;   // an hour; a run past about 4 minutes goes in its session's background, never in a subagent
 	if (!sandboxHost && !copyOnly && script_needs_sandbox(script)) {
 		fprintf(stderr, "origrun: refusing to start: this run takes shots or sends hw* input, and origrun does neither on the "
 			"host (a capture there can show the user's own screen, and hw* input reaches the user's desktop). Run it with "
