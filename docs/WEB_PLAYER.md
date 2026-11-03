@@ -198,7 +198,9 @@ or that it is not for sale as of a date. The stores are in `cmake/ByopopStores.c
 game: `set(BYOPOP_BUY_<target> <YYYY-MM-DD> [<store> <url>]...)`, the date the stores were checked and each store
 that sells the game. A game with a web page and no entry stops the configure with a message. Only stores that sell
 the game new and digitally under the publisher's license are listed, on their own trusted sites: the publisher's
-store, platforms like Steam, established game stores. Key resellers and second-hand sales are not. The file records
+store, platforms like Steam, established game stores. Key resellers and second-hand sales are not. A store that still
+sells a game it no longer has a page for is linked by the address that puts the game in its cart (Shockwave's
+BookWorm Deluxe). The file records
 which stores were checked; check them again before a launch, and change the date with the result. The line is not
 part of the terms' version, so a change of stores asks nobody to agree again.
 
