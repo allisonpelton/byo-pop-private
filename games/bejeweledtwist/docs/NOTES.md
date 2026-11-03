@@ -414,10 +414,12 @@ the VizManager's key function that asks it (0x758034) has no callers in the orig
 
 Compared with the original (seeded autoplay, 3D, updates 1000 to 3000 and the generators' states to 6000; the
 original on the desktop through visrun for this comparison only): the board's generator matches at every sample, and
-the jump, the cube, the tube's arrival and the boards match to within a few levels per channel. Open: from update
-1804 (the first board after the jump) the original draws about 170 more numbers from the global Rand in one update
-and then about one more every second update, so the background's clouds and some particles differ (not the play);
-the menu's and the selector's rotating backgrounds stand at slightly different angles. The web build's 3D run (the
+the jump, the cube, the tube's arrival and the boards match to within a few levels per channel. The global Rand's
+draws match call for call in every update compared (visrun's Rand hook, which tags each call with the update
+counter: 1002 to 1365 and 1795 to 1815). They once parted at 1804, and the rotating backgrounds stood at other
+angles, because the mode select ran one update early: Twist's framework gives a widget the reference's z-order in
+PutBehind (gPutCopiesZOrder), which keeps the new mode select behind the menu and out of the frame it is made in.
+The web build's 3D run (the
 same seed, script and shots, in the Browser pane) matches the native port's from update 1300 to 3000 within a few
 levels per channel; before that its main menu shows the site's player name and its buttons' labels sooner, because
 the site makes the player rather than the autoplay.
