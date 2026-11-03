@@ -836,3 +836,12 @@ the board copies only seven, 0x6c59c4), so the sparks' colour is black until a g
   does not jump. The cause was not looked for: it varies from run to run of the same copy and seed, so it must come
   from something outside the game's own updates, such as a real-time clock. To see it, run the original twice and
   compare origrun's `--watch "[0x85aef4]+0x168"` (the score) lines.
+
+- **The JPEG 2000 art still differs from the original's decode by a level or two.** The game's .jp2 art is coded with
+  truncated code-blocks, and our OpenJPEG rebuilds them at the low end of each interval, as the original's decoder
+  does (third_party/openjpeg/BYO-POP.md). Compared with the title as the original decoded it (read from its memory,
+  app +0xc70, +0x3c8, +0x1f4, bits at +0x38), 65% of the pixels are equal, 87% within one level, 92% within two, and a
+  few differ by up to 31; alpha is equal everywhere, and the title's 1299 sparkle points, picked from its brightest
+  opaque pixels, are all the same. The cause of the rest was not found (perhaps the wavelet's rounding or the colour
+  transform); finding it would mean comparing the original decoder's coefficients with ours stage by stage. Too
+  small to see.

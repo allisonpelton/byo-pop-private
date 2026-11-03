@@ -240,6 +240,11 @@ void WinTwistApp::Init()
 	LoadMusic();
 	// 0x4a3c20: properties\default.xml, the texts of the high scores' stats page and others
 	LoadProperties();
+	// 0x7627ea: how far and how fast the other sounds ramp down under a voice (UpdateVoice)
+	mVolumeRampMin = GetDouble("VOLUME_RAMP_MIN", 0.6);
+	mVolumeRampTime = 0.005;
+	if (0.005 <= GetDouble("VOLUME_RAMP_TIME", 0.3))
+		mVolumeRampTime = GetDouble("VOLUME_RAMP_TIME", 0.3);
 	mRanks = new Ranks();
 	mChallengeInfo = new ChallengeInfo();  // 0x6dd087: loads properties\challenges.xml
 
@@ -309,6 +314,31 @@ void WinTwistApp::PlayVoice(int theSoundId, bool theInterrupt)
 		mUnmanagedSound = nullptr;
 	}
 	mUnmanagedSound = PlaySoundEx(theSoundId, 0, 0.0f, 1.0f, false, false);
+}
+
+void WinTwistApp::UpdateVoice()
+{
+	// The voice is not a tracked sound: it is released here once it ends. While it speaks the tracked sounds ramp
+	// down to mVolumeRampMin, and back up to 1 once it has ended.
+	// (The original also plays a voice queued at +0x93c after a delay at +0x940; nothing ever queues one.)
+	double aStep = (1.0 - mVolumeRampMin) * 0.01 * (1.0 / mVolumeRampTime);
+	if (mUnmanagedSound != nullptr) {
+		if (!mUnmanagedSound->IsPlaying()) {
+			mUnmanagedSound->Release();
+			mUnmanagedSound = nullptr;
+		} else {
+			double aScale = mSfxVolumeScale - aStep;
+			if (aScale < mVolumeRampMin)
+				aScale = mVolumeRampMin;
+			mSfxVolumeScale = aScale;
+		}
+	}
+	if (mUnmanagedSound == nullptr) {
+		double aScale = mSfxVolumeScale + aStep;
+		if (1.0 < aScale)
+			aScale = 1.0;
+		mSfxVolumeScale = aScale;
+	}
 }
 
 void WinTwistApp::PlaySample(int theSoundNum)
@@ -877,6 +907,7 @@ void WinTwistApp::UpdateFrames()
 				aSound.mInstance->SetVolume(aVolume);
 		}
 	}
+	UpdateVoice();
 	if (mLoaderScreen != nullptr && mLoaderScreen->mFinished) {
 		mWidgetManager->RemoveWidget(mLoaderScreen);
 		SafeDeleteWidget(mLoaderScreen);
