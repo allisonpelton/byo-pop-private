@@ -47,7 +47,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   on itself forever and blocks every other agent. How to run the oracle (its variants, cache and partial runs):
   `docs/BUILDS.md`, "Running the oracle".
 - Leave nothing running: loops started in the background end before you finish, and a stopped task's child processes
-  are killed. Stop only processes you started, identified by a command line inside your own folder or worktree;
+  are killed.
+- End a turn waiting only on something that wakes you: a background command or a Monitor that ends by itself and
+  notifies you. A run you watch in the Browser pane never wakes you, and a page in a hidden pane runs no
+  requestAnimationFrame unless it is shimmed, so it can stand still for good. A session that ended its turn on "waiting
+  for the web tour" sat idle for a day (2026-11-03). Stop only processes you started, identified by a command line inside your own folder or worktree;
   several sessions share this machine, so never stop a game exe by its name alone.
 - Never run `-script`/`-autoplay` runs on the user's desktop. `ORACLE_VISIBLE=1` exists only for the user.
 

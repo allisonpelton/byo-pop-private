@@ -14,11 +14,15 @@
 # a 404. It sells Bejeweled Deluxe, Bejeweled Twist, Dynomite, Rocket Mania, Bonnie's Bookstore and Water Bugs (as
 # "Distributed by PlayFirst", the same game). Its cart (storefront.shockwave.com/sw/cart/purchase.jsp?add=<id>) still
 # takes some games it no longer shows: BookWorm Deluxe (bookworm-pc, $9.99; its page went in April 2016, with EA's
-# removal of the Bookworm games from Pogo, Origin, Steam and Big Fish). Refused there: bookwormadventures-pc and
+# removal of the Bookworm games from Pogo, Origin, Steam and Big Fish) and Word Harmony (wordharmony-pc, $6.99, "Word
+# Harmony for Windows"; no capture of its page ever showed it). The cart ids come from the Wayback Machine's 2,974
+# archived purchase.jsp?add= links: every archived id for these games was still accepted, and no guessed one was. Refused there: bookwormadventures-pc and
 # bookwormadventures2-pc (the real old ids, gone in April 2016), tiptop-pc (gone in 2006), alchemy (a download until
 # 2008, now only a free online game), and every guessed id for the others. For games still being ported: Shockwave
 # sells AstroPop, Heavy Weapon, Hammer Heads, Bejeweled 2, Venice and Banana Bugs (gamelanding/astropop,
-# heavyweapon, hammerheads, bejeweled2, venice, banana-bugs), and its cart takes Bejeweled 3 (bejeweled-3-pc, $6.99); the
+# heavyweapon, hammerheads, bejeweled2, venice, banana-bugs), and its cart takes Bejeweled 3 (bejeweled-3-pc, $6.99).
+# Not planned, but PopCap's and sold the same way, with no page: Poker Superstars (pokersuperstars-pc), II
+# (pokersuperstars2-pc) and III (pokersuperstars3-pc), $6.99 each, and Operation Mania (operationmania-pc, $6.99). The
 # whole check of the games still to come is above their entries, at the end of this file.
 # EA's own proofs of use in its trademark renewals (2015 to 2026) show only Steam, the EA app, Xbox and mobile stores.
 # Checked 2026-10-25: Steam (its store search and app pages) and EA's store had Bejeweled Deluxe (Steam) and Big Money
@@ -49,7 +53,8 @@ set(BYOPOP_BUY_alchemy 2026-10-26
 # Checked 2026-10-26: Word Harmony (Sprout Games, 2006) is not in Steam's store search or on
 # EA's store, GameHouse has no page for it (only a support note that it does not suit Windows 10 and 11), and a search
 # of Big Fish Games, iWin and Pogo found none.
-set(BYOPOP_BUY_wordharmony 2026-10-26)
+set(BYOPOP_BUY_wordharmony 2026-11-02
+  Shockwave "https://storefront.shockwave.com/sw/cart/purchase.jsp?add=wordharmony-pc")
 # Checked 2026-10-26: Cosmic Bugs (Retro64, published by PopCap in 2005) is not in Steam's store search or on EA's
 # store, Retro64's site no longer answers, and GameHouse names it only on a support page of games that suit Windows 10
 # and 11, with no store page found there or at Big Fish Games, iWin or Pogo.
