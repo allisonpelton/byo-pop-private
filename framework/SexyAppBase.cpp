@@ -2084,6 +2084,12 @@ DDInterface* SexyAppBase::CreateDDInterface()
 	return new DDInterface(this);
 }
 
+bool SexyAppBase::DisplayInitFailed(int theResult)
+{
+	(void)theResult;
+	return false;
+}
+
 uint32_t SexyAppBase::GetExtraWindowFlags()
 {
 	return 0;
@@ -2170,6 +2176,8 @@ void SexyAppBase::MakeWindow()
 	mDDInterface->mForcedRenderScale = mForcedRenderScale;
 
 	int aResult = InitDDInterface();
+	if ((aResult != DDInterface::RESULT_OK) && DisplayInitFailed(aResult))
+		return;
 	if (aResult != DDInterface::RESULT_OK)
 	{
 		Popup(GetString("FAILED_INIT_DIRECTDRAW", _S("Failed to initialize the display: ")) + StringToSexyString(SDL_GetError()));

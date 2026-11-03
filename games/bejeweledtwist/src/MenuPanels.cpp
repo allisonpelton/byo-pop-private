@@ -1902,8 +1902,6 @@ void OptionsPanel::ApplySettings(bool theResolution)
 			mApp->RegistryEraseValue(_S("Is3D"));
 			mApp->mFullscreenBits = 32;
 			mApp->RegistryWriteInteger("FullscreenBits", mApp->mFullscreenBits);
-			// port: while 3D mode is being ported, a run without "Is3D" is 2D, so turning it on writes it
-			mApp->RegistryWriteBoolean("Is3D", true);
 			// The original, when its display has no 3D device's details (0x4a7930), asks for the art's size again
 			// at the next start (0xe13ba4, +0xf35): the port's art size is always 600
 		}

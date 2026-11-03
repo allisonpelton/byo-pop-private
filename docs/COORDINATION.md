@@ -87,7 +87,8 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
   code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
   well)." So first every fault the user reported, in every game, and anything that makes a game hard to test; then the
-  identical-play pass above, game by game; once every game is done, a readability pass to the project's code standards
+  identical-play pass above, game by game; once every game is done, the coverage check and a performance pass (both
+  below), then a readability pass to the project's code standards
   (`docs/CODE_STANDARDS.md`, written and approved by the user first); last, taking out code the ports do not need, such
   as all registration code (trial, nag and unlock paths: "It is misleading and adds unnecessary bloat"). The game's
   regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more
@@ -105,6 +106,17 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Ghidra export, whether the port has its counterpart, named by its address (today the ports name few: Bejeweled 154
   distinct addresses, Twist 204). A function the runs never reach is read against the export or given a run that
   reaches it. The coordinator builds the tool in `tools/` and tries it on one game first.
+- **A performance pass before the readability pass (the user, 2026-11-03):** "Slot in performance passes for the games
+  before readability passes. There's got to be a few things to speed up in most games." It comes after the coverage
+  check. First each original and its native port are measured over the same scripted play, on a quiet machine (no
+  passes running): the original through origrun under rundesk, the port as Bejeweled's was
+  (`games/bejeweled/docs/PROFILE.md`, `tools/profile`: working set, private bytes, processor time and where the time
+  goes), and the web build's memory and frame time in a browser. Then each game's session speeds up what the profile
+  shows, natively and on the web. A speed-up changes how the port works, never what it does: the same draws, the same
+  random numbers, the same screens, proved by the game's frozen baseline. One that changes what the player sees (fewer
+  frames, smaller images) is a mod, off by default, like Bejeweled's `lean`. No game's code is made multithreaded
+  (CLAUDE.md, "Uncapped, one core each"). Shared costs (the framework's drawing, the mixer, image loading) are found
+  once and fixed in the framework for every game. Each game's notes record its numbers before and after.
 - **The site's requested work comes between Twist and the passes (the user, 2026-11-02):** "Slot in the remaining
   requested additions and changes to the site after finishing Twist and before the passes on existing decomps." Then:
   "Any site features that are easy, you can do now. Anything that requires designing an animation or SVG, or that

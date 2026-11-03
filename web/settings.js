@@ -32,6 +32,7 @@ var ByopopSettings = (function () {
   var DEFS = {
     fullscreen: { values: CHOICE, def: "game" },    // on: Play asks for full screen; off: the game stays windowed
     cursors: { values: CHOICE, def: "game" },       // on or off: the game's custom cursors, whatever it saved
+    accel3d: { values: CHOICE, def: "game" },       // on: 3D whenever the browser has WebGL2; off: never (ACCEL3D_GAMES)
     startVolume: { values: SWITCH, def: "off" },    // on: every game starts at the two volumes below
     startMusic: { values: null, def: 50 },          // a level: the music volume a game starts at
     startSound: { values: null, def: 50 },          // a level: the sound volume a game starts at
@@ -168,6 +169,9 @@ var ByopopSettings = (function () {
   // settings in one row (a switch, with a "?" that explains it, and two sliders).
   var T = ByopopStrings.t;
   var GAME_DEFAULT = T("settings.game_default");
+  // The games that read "3D acceleration" (Byopop::SiteAccel3D, framework/WebSettings.h): a game page of another game does
+  // not show it. Perhaps later, once their passes settle their 3D modes: Bookworm Adventures 1 and 2, Rocket Mania.
+  var ACCEL3D_GAMES = ["bejeweledtwist"];
   var FIELDS = [
     { group: T("settings.group.players") },
     { name: "profile", label: T("settings.profile.label"), options: [["game", GAME_DEFAULT], ["fill", T("settings.profile.fill")], ["create", T("settings.profile.create")]], start: true,
@@ -181,6 +185,8 @@ var ByopopSettings = (function () {
       hint: T("settings.fullscreen.hint") },
     { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],
       hint: T("settings.cursors.hint") },
+    { name: "accel3d", label: T("settings.accel3d.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.accel3d.on")], ["off", T("settings.accel3d.off")]], start: true,
+      games: ACCEL3D_GAMES, hint: T("settings.accel3d.hint"), help: T("settings.accel3d.help") },
     { group: T("settings.group.page") },
     { name: "autoStart", label: T("settings.autostart.label"),
       hint: T("settings.autostart.hint") },
@@ -515,11 +521,25 @@ var ByopopSettings = (function () {
     FIELDS.forEach(function (f) {
       if (f.group) { container.appendChild(make("h3", "bps-group", f.group)); return; }
       if (f.kind === "volume") { buildVolume(f); return; }
+      // a setting only some games read is left out of the other games' pages
+      if (f.games && gameId && f.games.indexOf(gameId) < 0) return;
       var row = make("div", "bps-row"), id = "bps-" + (++idCount) + "-" + f.name;
       var label = make("label", "", f.label);
       label.htmlFor = id;
       var hint = make("p", "bps-hint", f.hint);
       hint.id = id + "-hint";
+      // the "?" button and its explanation, as the starting volume has them
+      var help = null, pop = null;
+      if (f.help) {
+        pop = make("p", "bps-pop", f.help);
+        pop.id = id + "-help";
+        pop.hidden = true;
+        help = make("button", "bps-help", "?");
+        help.type = "button";
+        help.setAttribute("aria-label", T("settings.help_label", { label: f.label }));
+        help.setAttribute("aria-expanded", "false");
+        help.setAttribute("aria-controls", pop.id);
+      }
       var c = { field: f, select: null, checkbox: null, own: null };
       var ctl = make("div", "bps-ctl");
       // a select: a choice, and in "This game only" every setting (its first option is "Same as all games")
@@ -547,7 +567,7 @@ var ByopopSettings = (function () {
       if (f.start && opts.live) hint.appendChild(make("span", "bps-start", T("settings.applies_next")));
       if (gameId) { c.own = make("span", "bps-own"); hint.appendChild(c.own); }
       controls[f.name] = c;
-      [c.select, c.checkbox].forEach(function (e) { if (e) e.setAttribute("aria-describedby", hint.id); });
+      [c.select, c.checkbox].forEach(function (e) { if (e) e.setAttribute("aria-describedby", hint.id + (pop ? " " + pop.id : "")); });
       c.select.addEventListener("change", function () {
         var v = c.select.value;
         applyChange(f.name, (scope === "game" && v === "inherit") ? null : v, c.select);
@@ -555,7 +575,15 @@ var ByopopSettings = (function () {
       if (c.checkbox) c.checkbox.addEventListener("change", function () {
         applyChange(f.name, c.checkbox.checked ? "on" : "off", c.checkbox);
       });
-      row.appendChild(label); row.appendChild(ctl); row.appendChild(hint);
+      if (help) {
+        var line = make("div", "bps-labline");
+        line.appendChild(label);
+        line.appendChild(help);
+        row.appendChild(line); row.appendChild(ctl); row.appendChild(pop); row.appendChild(hint);
+        wireHelp(help, pop, row);
+      } else {
+        row.appendChild(label); row.appendChild(ctl); row.appendChild(hint);
+      }
       container.appendChild(row);
       if (f.name === "profile" && opts.playerNote) {
         var note = make("p", "bps-hint");

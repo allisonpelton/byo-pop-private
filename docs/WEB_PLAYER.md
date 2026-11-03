@@ -590,6 +590,17 @@ it is for, in `FIELDS` in `web/settings.js`):
   finished, which is after the game has read its saved options, so the setting wins over them, and the page calls it again
   every 100 ms until it returns 1. Only SexyAppFramework games have the option; for the others it does nothing and
   raises no error. "Game default" leaves the game's own option alone.
+- `accel3d` ("game", "on" or "off"): **3D acceleration**, with the choices **Game default**, **Always** (`"on"`) and
+  **Never** (`"off"`), and a "?" explanation (the user, 2026-11-03: "add a sitewide setting between game's default, always use
+  3D, and never like with other settings"). Before the game starts the page calls `byopop_site_accel3d` with -1, 1 or 0, as it
+  calls `byopop_site_windowed`, and a game with a 3D option reads `Byopop::SiteAccel3D()` (`framework/WebSettings.h`, web
+  only) where it reads that option: -1 the game's own choice, 1 always, 0 never. "Always" is 3D whenever the browser can
+  (WebGL2): a browser without it still gets 2D, which the game checks as it does for its own option. The games that read it
+  are listed in `ACCEL3D_GAMES` (`web/settings.js`), and a game page of any other game leaves the setting out (the listing
+  page shows it, its explanation naming such a game). Bejeweled Twist reads it now; Bookworm Adventures 1 and 2 and Rocket
+  Mania, whose originals also have a 3D option, may read it once their passes settle their 3D modes. BookWorm will not: its
+  option only switches the framework's renderer, which the port always runs on the GPU. The setting
+  applies at the next start, and the panel says so.
 - `profile` ("game", "fill" or "create"): **Player names**, with the choices Game default, **Fill in the name** and **Use the
   player**: what a game does with the site's current player (below, "Player profiles"). The setting is applied when a game
   starts, and the panel says so.
@@ -666,7 +677,7 @@ nothing.
 
 The settings apply when a game starts. In a game's page, the Settings panel also applies at once what can be: the starting
 volume and custom cursors (to the running game), the wake lock and pause when hidden; "ask before leaving" is read when the
-page is left, and the Sound button acts at once. "Full screen at start" and "Player names" only apply at the next start, and
+page is left, and the Sound button acts at once. "Full screen at start", "3D acceleration" and "Player names" only apply at the next start, and
 the panel says so. Choosing "Game default" again leaves the running game as it is.
 
 **The old volume settings.** Until 2026-10-27 the volume was three settings: `mute` ("game" or "on"; "Start muted"), and

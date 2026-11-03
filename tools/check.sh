@@ -74,8 +74,10 @@
 #                screenshots (about 20 seconds)
 #   cosmicbugs   Cosmic Bugs: both art banks, the fonts and every animation the game ships loaded
 #                (cosmicbugs_banktest), a scripted game played headless (cosmicbugs_run: two lines on the first
-#                board) and a rerun with the same screenshots, and the windowed exe twice with the same clicks: the
-#                runner's state, the same screen (under a minute)
+#                board) and a rerun with the same screenshots, the windowed exe twice with the same clicks: the
+#                runner's state, the same screen, and the series of games that play out as the original's
+#                (games/cosmicbugs/test/plays) against build/baseline-cosmicbugs/'s runner when there is one
+#                (under a minute)
 #   bookwormadv2 Bookworm Adventures Volume 2: PopLua on the game's 462 scripts (bwa2_luarun): the compiler's
 #                dialect checks, every compiled script loaded and its main chunk run, and the 8 scripts/common
 #                sources recompiled instruction for instruction against their shipped chunks; fails on a bad exit
@@ -161,7 +163,7 @@ BW_CLASSIC="level 8, score 58970"
 BW_ACTION="level 14, score 152360"
 BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17369: score 6524 mode stampede"
-NA_STRATEGY="level 5 done at update 19202: score 6610 mode strategy"
+NA_STRATEGY="level 5 done at update 19538: score 6380 mode strategy"
 NA_PUZZLE="game 1 over at update 6750: score 1450 level 1 moves 37"
 AT_STRATEGY="game 1 over at update 6876: score 1600 level 2 moves 90"
 AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
@@ -722,16 +724,16 @@ suite_bigmoney() {
 	return 1
 }
 
-noahsark_game() {  # <name> <mode> <cap>: a bot game; prints the last "level done" or "game over" line
+noahsark_game() {  # <name> <mode> <cap> [exe]: a bot game; prints the last "level done" or "game over" line
 	local d="$OUT/noahsark/$1"
 	rm -rf "$d"; mkdir -p "$d/shots"
-	timeout 600 "$W/build/native/noahsark.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" \
+	timeout 600 "${4:-$W/build/native/noahsark.exe}" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" \
 		-autoplaycap="$3" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(level [0-9]+ done|game [0-9]+ over)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
 suite_noahsark() {
-	local st=0 a s p r m
+	local st=0 a s p r m bl="" base="$W/build/baseline-noahsark/noahsark.exe"
 	need_assets noahsark || return 1
 	a="$(noahsark_game action action 20000)"; s="$(noahsark_game strategy strategy 20000)"
 	p="$(noahsark_game puzzle puzzle 30000)"; r="$(noahsark_game action2 action 20000)"
@@ -745,7 +747,20 @@ suite_noahsark() {
 	cat "$OUT/noahsark/mods.txt" >> "$1"
 	if bash games/noahsark/tools/run_hiscores_test.sh "$OUT/noahsark/hiscores" > "$OUT/noahsark/hiscores.txt" 2>&1; then h="hiscores $(grep -c '^ok' "$OUT/noahsark/hiscores.txt") checks ok"; else h="HISCORES FAILED (see $OUT/noahsark/hiscores.txt)"; st=1; fi
 	cat "$OUT/noahsark/hiscores.txt" >> "$1"
-	SUMMARY="action ${a#level }; strategy ${s#level }; puzzle ${p#game }; $r; $m; $h"
+	# the frozen baseline (build/baseline-noahsark/, a copy of the port made when phase one of the identical-play pass was done): the
+	# same bot games must give the same lines and the same screens, so that later fixes and mods leave unmodded play unchanged
+	if [ -f "$base" ]; then
+		if [ "$(noahsark_game base-action action 20000 "$base")" = "$a" ] && [ "$(noahsark_game base-strategy strategy 20000 "$base")" = "$s" ] &&
+			[ "$(noahsark_game base-puzzle puzzle 30000 "$base")" = "$p" ] &&
+			diff -rq "$OUT/noahsark/action/shots" "$OUT/noahsark/base-action/shots" >> "$1" 2>&1 &&
+			diff -rq "$OUT/noahsark/strategy/shots" "$OUT/noahsark/base-strategy/shots" >> "$1" 2>&1 &&
+			diff -rq "$OUT/noahsark/puzzle/shots" "$OUT/noahsark/base-puzzle/shots" >> "$1" 2>&1; then
+			bl="; baseline identical"
+		else
+			bl="; BASELINE DIFFERS"; st=1
+		fi
+	fi
+	SUMMARY="action ${a#level }; strategy ${s#level }; puzzle ${p#game }; $r; $m; $h$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected action '$NA_ACTION', strategy '$NA_STRATEGY', puzzle '$NA_PUZZLE')"
 	return $st
 }
@@ -1348,8 +1363,23 @@ suite_rocketmania() {
 	return $st
 }
 
+cosmicbugs_plays() {  # <exe> <tag>: the series of games checked against the original (games/cosmicbugs/test/plays), each
+	# played by the runner with origrun's watches; prints the checksum of all their watch lines, and EMPTY with the games
+	# that printed none (an exe that fails at start-up would otherwise give the checksum of nothing on both sides)
+	local exe="$1" d="$OUT/cosmicbugs/plays-$2" f n empty=""
+	rm -rf "$d"; mkdir -p "$d"
+	for f in games/cosmicbugs/test/plays/*.txt; do
+		n="$(basename "$f" .txt)"; case "$n" in *.orig) continue ;; esac
+		mkdir -p "$d/$n"
+		CB_NOWARP=1 CB_WATCH=1 timeout 300 "$exe" assets/cosmicbugs "$d/$n" "$f" 2>&1 | tr -d '\r' | grep '^watch ' > "$d/$n.txt"
+		[ -s "$d/$n.txt" ] || empty="$empty $n"
+	done
+	ls "$d"/*.txt > /dev/null 2>&1 || empty=" (no games)"
+	echo "$(cat "$d"/*.txt 2>/dev/null | md5sum | cut -c1-12), $(cat "$d"/*.txt 2>/dev/null | wc -l) watch lines${empty:+; EMPTY:$empty}"
+}
+
 suite_cosmicbugs() {
-	local st=0 b g r w w2 c="$OUT/cosmicbugs" ea=0 ef=0
+	local st=0 b g r w w2 p pb c="$OUT/cosmicbugs" ea=0 ef=0
 	need_assets cosmicbugs || return 1
 	mkdir -p "$c/banks"
 	# Every animation bugs.xml names and every font, each listing kept (bugs.xml names nine files the game does not ship)
@@ -1361,14 +1391,20 @@ suite_cosmicbugs() {
 	# The windowed exe's -fast clock does not step 10 ms on every update, so its animations' phases are not the
 	# runner's: its state after the first line is, and its screen is its rerun's
 	w="$(cosmicbugs_window window)"; w2="$(cosmicbugs_window window2)"
-	{ echo "banks: $b"; echo "game: $g"; echo "rerun: $r"; echo "window: $w"; echo "window rerun: $w2"; } > "$1"
+	# the series of games that play out as the original's (games/cosmicbugs/docs/IDENTICAL_PLAY.md), against the frozen
+	# baseline (build/baseline-cosmicbugs/, the runner as it was when they were last checked against the original)
+	p="$(cosmicbugs_plays build/native/cosmicbugs_run.exe now)"; pb=""
+	[ -f build/baseline-cosmicbugs/cosmicbugs_run.exe ] && pb="$(cosmicbugs_plays build/baseline-cosmicbugs/cosmicbugs_run.exe base)"
+	{ echo "banks: $b"; echo "game: $g"; echo "rerun: $r"; echo "window: $w"; echo "window rerun: $w2"; echo "plays: $p"; echo "baseline plays: $pb"; } > "$1"
 	[ "$b" = "$CB_BANKS" ] || st=1
 	[ "$g" = "$CB_GAME" ] || st=1
 	if diff -q "$c/game/line1.png" "$c/game2/line1.png" >> "$1" 2>&1 && diff -q "$c/game/line2.png" "$c/game2/line2.png" >> "$1" 2>&1 &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g%%;*}" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/line1.png" "$c/window2/line1.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
-	SUMMARY="$b; $g; $r; $w"
+	if [[ "$p$pb" == *EMPTY* ]]; then p="PLAYS EMPTY (now: $p; baseline: $pb)"; st=1
+	elif [ -z "$pb" ]; then p="plays $p, no baseline"; elif [ "$p" = "$pb" ]; then p="plays as the baseline"; else p="PLAYS DIFFER FROM THE BASELINE"; st=1; fi
+	SUMMARY="$b; $g; $r; $w; $p"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$CB_BANKS', '$CB_GAME')"
 	return $st
 }
@@ -1629,14 +1665,14 @@ suite_mahjongchina() {
 	return $st
 }
 
-twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game; prints its screens' hashes
+twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game (-nod3d9: 3D is the default); prints its screens' hashes
 	local d="$OUT/bejeweledtwist/$1" exe="$2" mode="$3" last="$4" n
 	shift 4
 	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
 	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/user/registry.ini"
 	{ for n in "$@"; do echo "$n screenshot $d/shots/$n.png"; done; echo "$last quit"; } > "$d/script.txt"
 	# autoplay clicks only the board and the mode select, never a link
-	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" -fast -seed=1234 -autoplay="$mode" \
+	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" -nod3d9 -fast -seed=1234 -autoplay="$mode" \
 		-script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	for n in "$@"; do sha256sum "$d/shots/$n.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -
 }

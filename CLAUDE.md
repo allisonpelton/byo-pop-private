@@ -160,8 +160,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   original, what the port does now, and the commit. It lists every oddity skipped and why, how to see each one, and the
   deviations that remain. Write it in prose, with a table for the list of changes if that reads better.
 - **Order of the work (the user, 2026-11-01):** first every fault the user reported and anything that makes a game
-  hard to test, then the identical-play pass. A readability pass (`docs/CODE_STANDARDS.md`) and taking out code the
-  ports do not need (registration and the like) come once every game is done (`docs/COORDINATION.md`).
+  hard to test, then the identical-play pass. A performance pass (the user, 2026-11-03), then a readability pass
+  (`docs/CODE_STANDARDS.md`) and taking out code the ports do not need (registration and the like) come once every game
+  is done (`docs/COORDINATION.md`).
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
