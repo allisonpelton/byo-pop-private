@@ -2,7 +2,7 @@
 
 This is the report of the pass that compares the port with the original exe (popcapgame1.exe from the Steam copy). It says
 what was compared and how, what the pass changed, what it left alone and why, and what still differs. Phase one, "plays
-identical", is done; phase two, "looks identical", follows and will be added here.
+identical", and phase two, "looks identical", are both below.
 
 ## Phase one: plays identical
 
@@ -61,3 +61,70 @@ Each is written up under "Oddities" in NOTES.md, with how to see it.
 
 The port's deviations from the original are listed under "Deviations" in NOTES.md; none of them changed the play in the
 games above. The pass added none.
+
+## Phase two: looks identical
+
+### What was compared and how
+
+The original ran in origrun's Windows Sandbox from a copy under build/, in 2D, on origrun's virtual clock, with the same
+seed and patch list as in phase one, and took its screenshots at update counts. The port ran under rundesk with a fresh
+user folder and took its own one update later, which is where the two line up. tools/shotdiff compared each pair, and
+every box it flagged was looked at in its crops and either fixed or explained. Where the original's autoplay had made one
+of its 15-update jumps, the port's shot was also taken 15 and 30 updates either side, and the best of those was judged.
+
+Five sets of screens were played:
+
+| Set | What it covers | Result |
+| --- | --- | --- |
+| 1 | The loader, the main menu, the mode select, the seeded Classic game's board and its first level-up | the same (shotdiff shifted the loader by 3 pixels to align it; unshifted, its logo matches), apart from the rotated draws below |
+| 2 | A new player typed in, the menu, high scores (both tables), statistics, options, the three help pages, the quit question, the player list and deleting a player, the mode select and the tutorial's first tips | the same; the help pages' animations and the cursor spiral differ only at their edges (below) |
+| 3 | The seeded Classic game played on to update 29,000: level-ups, special gems, the bomb wheel's spin | the same once the wheel's rings were fixed; the wheel's lower glass is the rotated-draw item below |
+| 4 | Blitz from its start to the explosion at its end, the statistics, the high scores and the next game | from the explosion on every screen identical pixel for pixel; in play only the effects of the autoplay's jumps |
+| 5 | Losing and regaining the focus during Classic and during Blitz | the same mute and the same pause screen (below) |
+
+The sound was compared by its state rather than by ear. origrun's DirectSound stand-in logs every buffer the original
+plays, with its volume, pan and frequency, and a small proxy for BASS (tools/bassproxy) logs its music; tools/soundcmp.py
+pairs both with the port's own sound log. These runs were in real time, because under `-fast` the port's mixer still
+plays in real time and a voice outlasts its updates. In the seeded Classic game both sides play the same 425 sounds in
+the same order; all 425 have the same frequency, 422 the same pan and 419 the same volume. In Blitz both play the same
+465, all with the same volume and frequency and all but seven with the same pan. The music matches event for event: every
+track starts at the same order and update, every stop, and the volume steps of each fade (99, 99, 98, 98, 98, 97 ...).
+
+The web build was run under Node in real time on the Blitz set and compared with the native build. The boards and every
+screen from the explosion on are identical. The explosion's shards and smoke drift a little, from libm's last bits.
+
+### Changes the pass made
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| A praise came up to 20 updates late, and sounds did not dip under a voice | UpdateFrames ends with 0x75f1df, which lets the voice go once it has spoken and ramps the other sounds down under it and back up after | the same (UpdateVoice) | 1712d7e |
+| Scaled images in 2D were blurred, the board's "GO!" among them | in 2D the original's screen is software: a stretch averages (or samples in 16.16 steps when fast) into an image of the destination's size, which is then drawn unscaled (0x41a3e0) | the framework can stretch as a software screen did (an opt-in Twist turns on) | 5dfea01 (shared), 97d664a |
+| 2D overlays were blended as in 3D | Graphics::Is3D is true only on the 3D display; the port's said yes for every screen draw | Is3D also asks the display, which Twist marks as not 3D in 2D | 225bd46 (shared) |
+| A flame gem's flames were thin | DrawEffects draws an effect tied to a piece at the piece's place (0x6f6451); the port skipped them | the same as the original | 8b66c23 |
+| The bomb wheel's alert and danger rings never showed in 2D | the 2D curve's text was not in the port's table of the exe's strings, so the curve was empty | the table has it, and the rings show through the spin | e56b55d |
+| Half the sounds were up to 0.8 dB off, and high chain sounds played above 100,000 Hz | this DSoundInstance converts each volume factor to dB on its own and adds them (0x4fa9e0, 0x4f85b0), and sets a whole-Hz frequency capped at 100,000 (0x4fabb0) | the same, behind a switch of the framework's sound manager that Twist turns on | 5270a2f (shared), 6ae2713 |
+| Some panned sounds were one step off centre | PlaySoundAt stores its pan as a float before cutting it to an int (0x767643) | the same | 6ae2713 |
+| Losing the focus did not pause the board, and a paused Blitz game showed no "PAUSED" | the app's LostFocus and GotFocus (0x75f51e, 0x75f4f7) pause and unpause the board; DrawPaused (0x756925) draws the pause text | both ported | 7e6e14b |
+
+### Oddities left alone
+
+Nothing new: the effects that differ in the autoplay games come from the original's 15-update jumps already listed in
+phase one.
+
+### Differences that remain
+
+- **Rotated and matrix draws in 2D.** In 2D the original draws these in software (BltRotated, 0x41c5c0, and its
+  triangle rasteriser for BltMatrix), while the port draws them on the GPU with linear filtering. Their edges differ by a
+  level or two over a pixel: the cursor spiral, the help pages' animations, and the bomb wheel's glass, whose lower
+  slices are opaque in the original and see-through in the port. Fixing it is the same kind of work as the stretches: the
+  framework would rasterise such a draw in software for a game whose screen was software. It is left for that shared
+  change.
+- **The unfocused stretch under origrun.** While the original is unfocused, origrun sees its update counter stand still
+  (on the real clock too) while its screen still changes, so those screens cannot be lined up by update. What was
+  compared there matches: the mute, the hidden board and the pause text.
+- **The web build under Node** samples rotated images without filtering, because Node gives SDL no WebGL; a browser
+  filters them as the native build does.
+
+### Deviations that remain
+
+The deviations in NOTES.md's "Deviations" are unchanged. The pass added none.
