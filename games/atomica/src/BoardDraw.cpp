@@ -285,15 +285,15 @@ void Board::Draw(Graphics* g)
 			const char* aLine3 = NULL;
 			if (anAtom->mKind == KIND_BIOHAZARD)
 			{
-				aLine1 = "BIOHAZARD";
-				aLine2 = "DESTROY BEFORE";
-				aLine3 = "IT MULTIPLIES";
+				aLine1 = GTC(0x4b209c);
+				aLine2 = GTC(0x4b30a0);
+				aLine3 = GTC(0x4b3090);
 			}
 			else if (anAtom->mKind == KIND_CHROMIUM)
 			{
-				aLine1 = "CHROMIUM";
-				aLine2 = "WILDCARD";
-				aLine3 = "MATCHES ANY ATOM";
+				aLine1 = GTC(0x4b1f6c);
+				aLine2 = GTC(0x4b3084);
+				aLine3 = GTC(0x4b3070);
 			}
 			if (aLine1 != NULL)
 			{
@@ -309,7 +309,7 @@ void Board::Draw(Graphics* g)
 		else
 		{
 			g->SetColor(Color(255, 150, 255, mGrid->mTooltipAlpha));
-			const char* aLines[4] = {"BONUS", "MOLECULE", "DOUBLE-CLICK", "TO ACTIVATE"};
+			const char* aLines[4] = {GTC(0x4b30d8), GTC(0x4b30cc), GTC(0x4b30bc), GTC(0x4b30b0)};
 			static const int aOffsets[4] = {-0x37, -0x28, 0x37, 0x46};
 			for (int i = 0; i < 4; i++)
 			{
