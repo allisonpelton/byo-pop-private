@@ -8,7 +8,7 @@
 // it. A game that has never reported its players (not started since this existed) is not listed and cannot be targeted.
 var ByopopPlayers = (function () {
   "use strict";
-  var MODE_WORDS = { game: "as the game does", fill: "fills in the name", create: "uses the player" };
+  var MODE_WORDS = { game: "players.setting.game", fill: "players.setting.fill", create: "players.setting.create" };
 
   function make(tag, className, text) {
     var e = document.createElement(tag);
@@ -16,7 +16,6 @@ var ByopopPlayers = (function () {
     if (text !== undefined && text !== null) e.textContent = text;
     return e;
   }
-  function quote(name) { return "“" + name + "”"; }
   function when(iso) {
     try { var d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toLocaleString(); } catch (e) { return ""; }
   }
@@ -45,47 +44,47 @@ var ByopopPlayers = (function () {
     root.appendChild(alertEl);
 
     // ----- your players -----
-    var h3a = make("h3", "", "Your players");
+    var h3a = make("h3", "", ByopopStrings.t("players.title"));
     var siteList = make("div", "pl-site");
     var addForm = make("form", "pl-form");
     var addId = nextId("pl-add");
-    var addLabel = make("label", "", "New player");
+    var addLabel = make("label", "", ByopopStrings.t("players.new"));
     addLabel.htmlFor = addId;
     var addInput = make("input");
     addInput.type = "text"; addInput.id = addId; addInput.maxLength = ByopopProfiles.NAME_MAX; addInput.autocomplete = "off";
     addInput.setAttribute("autocapitalize", "off"); addInput.spellcheck = false;
-    var addButton = make("button", "", "Add player");
+    var addButton = make("button", "", ByopopStrings.t("players.add"));
     addButton.type = "submit";
     addForm.appendChild(addLabel); addForm.appendChild(addInput); addForm.appendChild(addButton);
     var modeNote = make("p", "pl-hint");
     root.appendChild(h3a); root.appendChild(siteList); root.appendChild(addForm); root.appendChild(modeNote);
 
     // ----- the players inside the games -----
-    var h3b = make("h3", "", "In the games");
+    var h3b = make("h3", "", ByopopStrings.t("players.in_games"));
     var gameList = make("div", "pl-games");
     var bulk = make("form", "pl-form pl-bulk");
     var bulkId = nextId("pl-bulk");
-    var bulkLabel = make("label", "", "Rename the ticked players to");
+    var bulkLabel = make("label", "", ByopopStrings.t("players.bulk.label"));
     bulkLabel.htmlFor = bulkId;
     var bulkInput = make("input");
     bulkInput.type = "text"; bulkInput.id = bulkId; bulkInput.maxLength = ByopopProfiles.NAME_MAX; bulkInput.autocomplete = "off";
     bulkInput.spellcheck = false;
-    var bulkRename = make("button", "", "Rename ticked");
+    var bulkRename = make("button", "", ByopopStrings.t("players.bulk.rename"));
     bulkRename.type = "submit";
-    var bulkDelete = make("button", "pl-danger", "Delete ticked…");
+    var bulkDelete = make("button", "pl-danger", ByopopStrings.t("players.bulk.delete"));
     bulkDelete.type = "button";
-    var tickAll = make("button", "", "Tick all");
+    var tickAll = make("button", "", ByopopStrings.t("players.bulk.tick_all"));
     tickAll.type = "button";
-    var tickNone = make("button", "", "Tick none");
+    var tickNone = make("button", "", ByopopStrings.t("players.bulk.tick_none"));
     tickNone.type = "button";
     var bulkCount = make("span", "pl-count");
     bulk.appendChild(bulkLabel); bulk.appendChild(bulkInput); bulk.appendChild(bulkRename); bulk.appendChild(bulkDelete);
     bulk.appendChild(tickAll); bulk.appendChild(tickNone); bulk.appendChild(bulkCount);
     var confirmBox = make("div", "pl-confirm");
     confirmBox.hidden = true;
-    var resultsTitle = make("h3", "", "What the games did");
+    var resultsTitle = make("h3", "", ByopopStrings.t("players.results.title"));
     var resultsList = make("ul", "pl-results");
-    var resultsClear = make("button", "", "Clear this list");
+    var resultsClear = make("button", "", ByopopStrings.t("players.results.clear"));
     resultsClear.type = "button";
     root.appendChild(h3b); root.appendChild(gameList); root.appendChild(bulk);
     root.appendChild(confirmBox); root.appendChild(resultsTitle); root.appendChild(resultsList); root.appendChild(resultsClear);
@@ -116,7 +115,7 @@ var ByopopPlayers = (function () {
       status.appendChild(document.createTextNode(text));
       if (undo) {
         status.appendChild(document.createTextNode(" "));
-        var b = make("button", "pl-link", "Undo");
+        var b = make("button", "pl-link", ByopopStrings.t("players.undo"));
         b.type = "button";
         b.addEventListener("click", function () { undo(); });
         status.appendChild(b);
@@ -132,33 +131,32 @@ var ByopopPlayers = (function () {
       var tr = make("tr");
       tr.appendChild(make("th", "", g.title));
       tr.firstChild.scope = "row";
-      var used = make("td"), setting = make("td", "", capital(MODE_WORDS[modeOf(g.id)] || MODE_WORDS.game));
+      var used = make("td"), setting = make("td", "", ByopopStrings.t(MODE_WORDS[modeOf(g.id)] || MODE_WORDS.game));
       if (!rec) {
-        used.appendChild(make("span", "pl-muted", "Not started since players were added"));
+        used.appendChild(make("span", "pl-muted", ByopopStrings.t("players.row.not_started")));
       } else {
         var m = ByopopProfiles.match(rec, p.name);
         var fit = (rec.fits && typeof rec.fits[p.name] === "string") ? rec.fits[p.name] : null;
         var flags = [];
         if (rec.kind === "scores") {
-          if (fit === "") used.appendChild(make("span", "pl-muted", "No high-score name"));
-          else used.appendChild(document.createTextNode("High scores start with " + quote(fit === null ? p.name : fit)));
-          if (fit !== null && fit !== "" && fit !== p.name) flags.push("changed by the game’s rules");
+          if (fit === "") used.appendChild(make("span", "pl-muted", ByopopStrings.t("players.row.no_score_name")));
+          else used.appendChild(document.createTextNode(ByopopStrings.t("players.row.scores", {name: fit === null ? p.name : fit})));
+          if (fit !== null && fit !== "" && fit !== p.name) flags.push(ByopopStrings.t("players.flag.changed"));
         } else if (m) {
           used.appendChild(make("strong", "", m.name));
           if (!m.exact) flags.push(fit !== null && fit !== p.name && fit.toLowerCase() === m.name.toLowerCase()
-            ? "changed by the game’s rules (you asked for " + quote(p.name) + ")" : "written " + quote(m.name) + " in this game");
-          if (rec.current && rec.current.toLowerCase() === m.name.toLowerCase()) flags.push("the game’s current player");
+            ? ByopopStrings.t("players.flag.changed_asked", {name: p.name}) : ByopopStrings.t("players.flag.written", {name: m.name}));
+          if (rec.current && rec.current.toLowerCase() === m.name.toLowerCase()) flags.push(ByopopStrings.t("players.flag.current"));
         } else {
-          used.appendChild(make("span", "pl-muted", "No player of this name"));
-          if (fit === "") flags.push("the game’s rules leave nothing of this name");
-          else if (fit !== null && fit !== p.name) flags.push("would be " + quote(fit) + ": the game’s rules change the name");
+          used.appendChild(make("span", "pl-muted", ByopopStrings.t("players.row.no_player")));
+          if (fit === "") flags.push(ByopopStrings.t("players.flag.nothing"));
+          else if (fit !== null && fit !== p.name) flags.push(ByopopStrings.t("players.flag.would_be", {name: fit}));
         }
-        if (flags.length) used.appendChild(make("span", "pl-flag", " — " + flags.join("; ")));
+        if (flags.length) used.appendChild(make("span", "pl-flag", " " + ByopopStrings.t("players.flags", {flags: flags.join("; ")})));
       }
       tr.appendChild(used); tr.appendChild(setting);
       return tr;
     }
-    function capital(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
     // a list that is drawn again loses the focus: give it back to a player's Rename button
     function focusRename(id) {
       var b = siteList.querySelector('button[data-rename="' + id + '"]');
@@ -169,10 +167,10 @@ var ByopopPlayers = (function () {
       var all = ByopopProfiles.list(), cur = ByopopProfiles.current(), recs = ByopopProfiles.games();
       siteList.textContent = "";
       if (!all.length) {
-        siteList.appendChild(make("p", "pl-empty", "No players yet."));
+        siteList.appendChild(make("p", "pl-empty", ByopopStrings.t("players.none")));
       }
       var group = make("fieldset", "pl-use");
-      group.appendChild(make("legend", "pl-sr", "Player in use"));
+      group.appendChild(make("legend", "pl-sr", ByopopStrings.t("players.in_use_legend")));
       var cards = make("ul", "pl-cards");
       group.appendChild(cards);
       all.forEach(function (p) {
@@ -184,21 +182,21 @@ var ByopopPlayers = (function () {
         var radio = make("input");
         radio.type = "radio"; radio.name = "pl-current"; radio.id = rid; radio.value = p.id; radio.checked = !!cur && cur.id === p.id;
         radio.addEventListener("change", function () {
-          if (radio.checked && ByopopProfiles.setCurrent(p.id).ok) { say(p.name + " is the player in use."); renderAll(); }
+          if (radio.checked && ByopopProfiles.setCurrent(p.id).ok) { say(ByopopStrings.t("players.is_current", {name: p.name})); renderAll(); }
         });
         label.appendChild(radio);
         label.appendChild(make("span", "pl-name", p.name));
         head.appendChild(label);
-        if (cur && cur.id === p.id) head.appendChild(make("span", "pl-badge", "In use"));
+        if (cur && cur.id === p.id) head.appendChild(make("span", "pl-badge", ByopopStrings.t("players.badge")));
         var actions = make("div", "pl-actions");
-        var rn = make("button", "", "Rename");
+        var rn = make("button", "", ByopopStrings.t("players.rename"));
         rn.type = "button";
-        rn.setAttribute("aria-label", "Rename " + p.name);
+        rn.setAttribute("aria-label", ByopopStrings.t("players.rename_label", {name: p.name}));
         rn.setAttribute("data-rename", p.id);
         rn.addEventListener("click", function () { renaming = p.id; renderSite(); var f = siteList.querySelector(".pl-rename input"); if (f) f.focus(); });
-        var inGames = make("button", "", "Delete in the games…");
+        var inGames = make("button", "", ByopopStrings.t("players.delete_in_games"));
         inGames.type = "button";
-        inGames.setAttribute("aria-label", "Delete " + p.name + " in the games");
+        inGames.setAttribute("aria-label", ByopopStrings.t("players.delete_in_games_label", {name: p.name}));
         inGames.addEventListener("click", function () {
           var items = [];
           games.forEach(function (g) {
@@ -207,20 +205,20 @@ var ByopopPlayers = (function () {
             var m = ByopopProfiles.match(rec, p.name);
             if (m) items.push({ game: g.id, name: m.name });
           });
-          if (!items.length) { say(p.name + " isn’t a player in any game yet.", true); return; }
+          if (!items.length) { say(ByopopStrings.t("players.not_in_games", {name: p.name}), true); return; }
           askDelete(items);
         });
-        var rm = make("button", "", "Remove");
+        var rm = make("button", "", ByopopStrings.t("players.remove"));
         rm.type = "button";
-        rm.setAttribute("aria-label", "Remove " + p.name + " from your players");
-        rm.title = "Takes the name off your list. The games’ players are not touched.";
+        rm.setAttribute("aria-label", ByopopStrings.t("players.remove_label", {name: p.name}));
+        rm.title = ByopopStrings.t("players.remove_title");
         rm.addEventListener("click", function () {
           var wasCurrent = !!cur && cur.id === p.id;
-          if (!ByopopProfiles.remove(p.id).ok) { say("This browser would not keep the change.", true); return; }
-          say(p.name + " was removed from your players. The games’ players are untouched.", false, function () {
+          if (!ByopopProfiles.remove(p.id).ok) { say(ByopopStrings.t("players.keep_change"), true); return; }
+          say(ByopopStrings.t("players.removed", {name: p.name}), false, function () {
             var back = ByopopProfiles.add(p.name);
             if (back.ok && wasCurrent) ByopopProfiles.setCurrent(back.profile.id);
-            say(p.name + " is back.");
+            say(ByopopStrings.t("players.back", {name: p.name}));
             renderAll();
             addInput.focus();
           });
@@ -233,19 +231,19 @@ var ByopopPlayers = (function () {
         if (renaming === p.id) {
           var form = make("form", "pl-form pl-rename");
           var iid = nextId("pl-rn");
-          var l2 = make("label", "", "New name for " + p.name);
+          var l2 = make("label", "", ByopopStrings.t("players.new_name", {name: p.name}));
           l2.htmlFor = iid;
           var input = make("input");
           input.type = "text"; input.id = iid; input.value = p.name; input.maxLength = ByopopProfiles.NAME_MAX; input.autocomplete = "off";
-          var save = make("button", "", "Save"); save.type = "submit";
-          var cancel = make("button", "", "Cancel"); cancel.type = "button";
+          var save = make("button", "", ByopopStrings.t("players.save")); save.type = "submit";
+          var cancel = make("button", "", ByopopStrings.t("players.cancel")); cancel.type = "button";
           cancel.addEventListener("click", function () { renaming = null; renderSite(); focusRename(p.id); });
           form.addEventListener("submit", function (ev) {
             ev.preventDefault();
             var r = ByopopProfiles.rename(p.id, input.value);
             if (!r.ok) { say(r.error, true, null, input); input.focus(); return; }
             renaming = null;
-            say("Renamed to " + r.profile.name + " here. The games keep the names they have until you rename them under Players in the games.");
+            say(ByopopStrings.t("players.renamed", {name: r.profile.name}));
             renderAll();
             focusRename(p.id);
           });
@@ -256,13 +254,13 @@ var ByopopPlayers = (function () {
         var details = make("details", "pl-details");
         var have = 0;
         games.forEach(function (g) { var rec = recs[g.id]; if (rec && rec.kind !== "scores" && ByopopProfiles.match(rec, p.name)) have++; });
-        details.appendChild(make("summary", "", "In the games (" + have + " " + (have === 1 ? "has" : "have") + " this player)"));
+        details.appendChild(make("summary", "", ByopopStrings.t("players.card.in_games", {n: have})));
         details.open = !!openCards[p.id];
         details.addEventListener("toggle", function () { openCards[p.id] = details.open; });
         var table = make("table", "pl-table");
-        var cap = make("caption", "pl-sr", p.name + " in each game");
+        var cap = make("caption", "pl-sr", ByopopStrings.t("players.card.caption", {name: p.name}));
         var thead = make("thead"), hr = make("tr");
-        ["Game", "Name it uses", "Player names setting"].forEach(function (t) { var th = make("th", "", t); th.scope = "col"; hr.appendChild(th); });
+        [ByopopStrings.t("players.card.game"), ByopopStrings.t("players.card.name"), ByopopStrings.t("players.card.setting")].forEach(function (t) { var th = make("th", "", t); th.scope = "col"; hr.appendChild(th); });
         thead.appendChild(hr);
         var tbody = make("tbody");
         games.forEach(function (g) { tbody.appendChild(gameRow(p, g, recs[g.id])); });
@@ -278,16 +276,15 @@ var ByopopPlayers = (function () {
       var parts = Object.keys(modes);
       modeNote.textContent = "";
       if (parts.length === 1 && parts[0] === "game") {
-        modeNote.appendChild(document.createTextNode("The games ask for names as they always did. "));
+        modeNote.appendChild(document.createTextNode(ByopopStrings.t("players.mode.games") + " "));
       } else {
-        var VERBS = { game: ["asks as the original does", "ask as the original does"], fill: ["fills in the name", "fill in the name"],
-          create: ["uses the player", "use the player"] };
-        modeNote.appendChild(document.createTextNode("Player names: " + parts.map(function (m) {
-          var v = VERBS[m] || [m, m];
-          return (modes[m] === n ? "all " + n + " games " : modes[m] + " game" + (modes[m] > 1 ? "s " : " ")) + v[modes[m] > 1 ? 1 : 0];
-        }).join(", ") + ". "));
+        modeNote.appendChild(document.createTextNode(ByopopStrings.t("players.mode.note", {parts: parts.map(function (m) {
+          // a mode this page does not know is named as it is
+          var known = m === "game" || m === "fill" || m === "create";
+          return ByopopStrings.t("players.mode." + (known ? m : "other") + (modes[m] === n ? "_all" : "_some"), {n: modes[m], verb: m});
+        }).join(", ")}) + " "));
       }
-      var a = make("a", "", "Player names in Settings");
+      var a = make("a", "", ByopopStrings.t("players.mode.link"));
       a.href = "#settings";
       modeNote.appendChild(a);
     }
@@ -297,7 +294,7 @@ var ByopopPlayers = (function () {
       var r = ByopopProfiles.add(addInput.value);
       if (!r.ok) { say(r.error, true, null, addInput); addInput.focus(); return; }
       addInput.value = "";
-      say(r.profile.name + " was added." + (ByopopProfiles.current() && ByopopProfiles.current().id === r.profile.id ? " It is the player in use." : ""));
+      say(ByopopStrings.t(ByopopProfiles.current() && ByopopProfiles.current().id === r.profile.id ? "players.added_current" : "players.added", {name: r.profile.name}));
       renderAll();
       addInput.focus();
     });
@@ -322,11 +319,10 @@ var ByopopPlayers = (function () {
         var fs = make("fieldset", "pl-game");
         var lg = make("legend", "", g.title);
         fs.appendChild(lg);
-        var hint = (rec.kind === "scores" ? "High-score names. " : "") + (rec.rules ? "Names: " + rec.rules + "." : "");
+        var hint = (rec.kind === "scores" ? ByopopStrings.t("players.game.scores") + " " : "") + (rec.rules ? ByopopStrings.t("players.game.rules", {rules: rec.rules}) : "");
         if (hint) fs.appendChild(make("p", "pl-hint", hint));
         if (queued.length) {
-          fs.appendChild(make("p", "pl-pending", queued.length + " change" + (queued.length > 1 ? "s" : "") +
-            " waiting: " + g.title + " applies " + (queued.length > 1 ? "them" : "it") + " the next time it starts."));
+          fs.appendChild(make("p", "pl-pending", ByopopStrings.t("players.game.pending", {n: queued.length, title: g.title})));
         }
         var ul = make("ul", "pl-names");
         rec.names.forEach(function (n) {
@@ -341,15 +337,15 @@ var ByopopPlayers = (function () {
           var lb = make("label", "", n);
           lb.htmlFor = cid;
           li.appendChild(cb); li.appendChild(lb);
-          if (rec.current && rec.current === n && rec.kind !== "scores") li.appendChild(make("span", "pl-badge", "current"));
+          if (rec.current && rec.current === n && rec.kind !== "scores") li.appendChild(make("span", "pl-badge", ByopopStrings.t("players.game.current")));
           var op = pendingFor(g.id, n);
           if (op) {
-            var t = op.op === "rename" ? "Pending: rename to " + quote(op.to) : "Pending: delete";
+            var t = op.op === "rename" ? ByopopStrings.t("players.game.pending_rename", {to: op.to}) : ByopopStrings.t("players.game.pending_delete");
             li.appendChild(make("span", "pl-pending-tag", t));
-            var cx = make("button", "pl-link", "Cancel");
+            var cx = make("button", "pl-link", ByopopStrings.t("players.cancel"));
             cx.type = "button";
-            cx.setAttribute("aria-label", "Cancel the pending change of " + n + " in " + g.title);
-            cx.addEventListener("click", function () { ByopopProfiles.cancel(g.id, op.id); say("Cancelled."); renderAll(); });
+            cx.setAttribute("aria-label", ByopopStrings.t("players.game.cancel_label", {name: n, title: g.title}));
+            cx.addEventListener("click", function () { ByopopProfiles.cancel(g.id, op.id); say(ByopopStrings.t("players.game.cancelled")); renderAll(); });
             li.appendChild(cx);
           }
           ul.appendChild(li);
@@ -357,7 +353,7 @@ var ByopopPlayers = (function () {
         fs.appendChild(ul);
         gameList.appendChild(fs);
       });
-      if (!any) gameList.appendChild(make("p", "pl-empty", "No names yet: a game shows its players here once it has started."));
+      if (!any) gameList.appendChild(make("p", "pl-empty", ByopopStrings.t("players.game.none")));
       bulk.hidden = !any;
       countTicked();
     }
@@ -372,7 +368,7 @@ var ByopopPlayers = (function () {
     }
     function countTicked() {
       var n = tickedItems().length;
-      bulkCount.textContent = n ? n + " ticked" : "None ticked";
+      bulkCount.textContent = n ? ByopopStrings.t("players.bulk.ticked", {n: n}) : ByopopStrings.t("players.bulk.none_ticked");
     }
     tickAll.addEventListener("click", function () {
       var recs = ByopopProfiles.games();
@@ -384,8 +380,8 @@ var ByopopPlayers = (function () {
     bulk.addEventListener("submit", function (ev) {
       ev.preventDefault();
       var items = tickedItems(), to = ByopopProfiles.clean(bulkInput.value);
-      if (!items.length) { say("Tick the players to rename first.", true); return; }
-      if (!to) { say("Type the new name first.", true, null, bulkInput); bulkInput.focus(); return; }
+      if (!items.length) { say(ByopopStrings.t("players.bulk.tick_first"), true); return; }
+      if (!to) { say(ByopopStrings.t("players.bulk.type_first"), true, null, bulkInput); bulkInput.focus(); return; }
       var queued = 0, games_ = {};
       items.forEach(function (it) {
         if (ByopopProfiles.queue(it.game, { op: "rename", from: it.name, to: to })) { queued++; games_[it.game] = true; }
@@ -393,9 +389,8 @@ var ByopopPlayers = (function () {
       ticked = {};
       bulkInput.value = "";
       var n = Object.keys(games_).length;
-      say(queued ? "Queued " + queued + " rename" + (queued > 1 ? "s" : "") + " to " + quote(to) + " in " + n + " game" + (n > 1 ? "s" : "") +
-        ". Each game applies them the next time it starts and reports what it did below; a game that already has a player called " +
-        quote(to) + " skips it, as players are never merged." : "This browser would not keep the changes.", !queued);
+      say(queued ? ByopopStrings.t("players.bulk.queued", {renames: ByopopStrings.t("players.n.rename", {n: queued}), to: to, games: ByopopStrings.t("players.n.game", {n: n})})
+        : ByopopStrings.t("players.keep_changes"), !queued);
       renderAll();
     });
 
@@ -403,7 +398,7 @@ var ByopopPlayers = (function () {
     bulkDelete.addEventListener("click", function () {
       var items = tickedItems().filter(function (it) { return it.kind !== "scores"; });
       var skipped = tickedItems().length - items.length;
-      if (!items.length) { say(skipped ? "A name remembered for high scores is not a player: there is nothing to delete. Rename it instead." : "Tick the players to delete first.", true); return; }
+      if (!items.length) { say(ByopopStrings.t(skipped ? "players.delete.scores_only" : "players.delete.tick_first"), true); return; }
       askDelete(items);
     });
     // The in-page confirmation: what will be lost, game by game, and the player's yes
@@ -431,10 +426,10 @@ var ByopopPlayers = (function () {
       confirmBox.setAttribute("role", "alertdialog");
       confirmBox.setAttribute("aria-labelledby", "pl-confirm-title");
       confirmBox.setAttribute("aria-describedby", "pl-confirm-desc");
-      var h = make("h4", "", "Delete these players in the games?");
+      var h = make("h4", "", ByopopStrings.t("players.delete.title"));
       h.id = "pl-confirm-title";
       confirmBox.appendChild(h);
-      var desc = make("p", "", "This can’t be undone. Each game does it when it next starts.");
+      var desc = make("p", "", ByopopStrings.t("players.delete.desc"));
       desc.id = "pl-confirm-desc";
       confirmBox.appendChild(desc);
       var ul = make("ul");
@@ -442,30 +437,30 @@ var ByopopPlayers = (function () {
         var rec = recs[it.game] || {};
         var li = make("li");
         li.appendChild(make("strong", "", (title[it.game] || it.game) + ": " + it.name));
-        li.appendChild(document.createTextNode(" — " + (rec.deletes || "the player and the progress that goes with it")));
+        li.appendChild(document.createTextNode(" " + ByopopStrings.t("players.delete.line", {what: rec.deletes || ByopopStrings.t("players.delete.default")})));
         ul.appendChild(li);
       });
       confirmBox.appendChild(ul);
       var row = make("div", "pl-actions");
-      var yes = make("button", "pl-danger", "Delete " + confirming.items.length + " player" + (confirming.items.length > 1 ? "s" : ""));
+      var yes = make("button", "pl-danger", ByopopStrings.t("players.delete.yes", {n: confirming.items.length}));
       yes.type = "button";
       yes.addEventListener("click", function () {
         var queued = 0;
         confirming.items.forEach(function (it) { if (ByopopProfiles.queue(it.game, { op: "delete", name: it.name })) queued++; });
         confirming = null;
         ticked = {};
-        say(queued ? "Queued " + queued + " delete" + (queued > 1 ? "s" : "") + ". Each game does it the next time it starts." : "This browser would not keep the changes.", !queued);
+        say(queued ? ByopopStrings.t("players.delete.queued", {n: queued}) : ByopopStrings.t("players.keep_changes"), !queued);
         renderAll();
         returnFocus();
       });
-      var no = make("button", "", "Keep them");
+      var no = make("button", "", ByopopStrings.t("players.delete.no"));
       no.type = "button";
-      no.addEventListener("click", function () { confirming = null; renderConfirm(); say("Nothing was deleted."); returnFocus(); });
+      no.addEventListener("click", function () { confirming = null; renderConfirm(); say(ByopopStrings.t("players.delete.nothing")); returnFocus(); });
       row.appendChild(yes); row.appendChild(no);
       confirmBox.appendChild(row);
     }
     confirmBox.addEventListener("keydown", function (ev) {
-      if (ev.key === "Escape") { confirming = null; renderConfirm(); say("Nothing was deleted."); returnFocus(); }
+      if (ev.key === "Escape") { confirming = null; renderConfirm(); say(ByopopStrings.t("players.delete.nothing")); returnFocus(); }
     });
 
     // ---------- what the games did ----------
@@ -480,17 +475,18 @@ var ByopopPlayers = (function () {
       resultsTitle.hidden = resultsClear.hidden = !items.length;
       items.slice(0, 30).forEach(function (it) {
         var r = it.r, li = make("li", r.status === "done" ? "pl-done" : "pl-skipped");
-        var what = r.op === "rename" ? "rename " + quote(r.from || "") + " to " + quote(r.to || "") : "delete " + quote(r.name || "");
-        li.appendChild(make("strong", "", it.game.title + ": "));
-        li.appendChild(document.createTextNode(what + " — " + (r.status === "done" ? "done" : "skipped") + (r.note ? ". " + r.note : ".")));
+        var what = r.op === "rename" ? ByopopStrings.t("players.result.rename", {from: r.from || "", to: r.to || ""}) : ByopopStrings.t("players.result.delete", {name: r.name || ""});
+        li.appendChild(make("strong", "", ByopopStrings.t("players.result.game", {title: it.game.title}) + " "));
+        li.appendChild(document.createTextNode(ByopopStrings.t(r.note ? "players.result.line_note" : "players.result.line",
+          {what: what, status: ByopopStrings.t(r.status === "done" ? "players.result.done" : "players.result.skipped"), note: r.note})));
         var t = when(r.at);
-        if (t) li.appendChild(make("span", "pl-muted", " (" + t + ")"));
+        if (t) li.appendChild(make("span", "pl-muted", " " + ByopopStrings.t("players.result.when", {when: t})));
         resultsList.appendChild(li);
       });
     }
     resultsClear.addEventListener("click", function () {
       ByopopProfiles.clearResults();
-      say("The list was cleared.");
+      say(ByopopStrings.t("players.results.cleared"));
       renderAll();
     });
 

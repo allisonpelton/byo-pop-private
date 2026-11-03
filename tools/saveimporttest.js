@@ -10,6 +10,7 @@
 const fs = require("fs");
 const path = require("path");
 const root = path.join(__dirname, "..");
+require("./stringsload").intoGlobal();
 const S = require(path.join(root, "web", "saveimport.js"));
 const table = JSON.parse(fs.readFileSync(path.join(root, "platform", "saveimport.json"), "utf8"));
 S.setTable(table);

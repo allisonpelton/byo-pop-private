@@ -21,6 +21,7 @@ function load(blocked) {
   if (blocked) Object.defineProperty(window, "localStorage", { get() { throw new Error("blocked"); } });
   const ctx = { window, document: {}, console };
   vm.createContext(ctx);
+  require("./stringsload").into(ctx);
   for (const f of ["settings.js", "profiles.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "web", f), "utf8"), ctx, { filename: f });
   }

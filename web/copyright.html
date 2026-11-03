@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>@BYOPOP_TITLE@: terms, copyright and licenses</title>
+<title>{{copyright.title}}</title>
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
-<script src="theme.js"></script><script src="logo.js"></script>
+<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
+     drawn (web/theme.js) -->
+<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script>
 <!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
 <script src="cursors.js"></script>
 <!-- The game's copyright page, linked from its page's footer. byopop_web_shell() in cmake/ByopopWeb.cmake writes it
@@ -67,34 +68,31 @@ details pre {
 </head>
 <body>
 <header>
-  <a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="105" height="32"><img class="logo-dark" src="logo-dark.svg" alt="" width="105" height="32"></a>
-  <button type="button" class="theme-btn" data-theme-toggle aria-label="Dark theme" aria-pressed="false"></button>
+  <a class="site" href="./"><img class="logo-light" src="logo.svg" alt="{{copyright.logo_alt}}" width="105" height="32"><img class="logo-dark" src="logo-dark.svg" alt="" width="105" height="32"></a>
+  <button type="button" class="theme-btn" data-theme-toggle aria-label="{{theme.button}}" aria-pressed="false"></button>
 </header>
 <main>
-  <p class="back"><a href="@BYOPOP_GAME_PAGE@">Back to @BYOPOP_TITLE@</a></p>
-  <h1>@BYOPOP_TITLE@: terms, copyright and licenses</h1>
+  <p class="back"><a href="@BYOPOP_GAME_PAGE@">{{copyright.back}}</a></p>
+  <h1>{{copyright.heading}}</h1>
 
-  <h2>The game</h2>
+  <h2>{{copyright.game.heading}}</h2>
   <p class="notice">@BYOPOP_COPYRIGHT@</p>
-  <p>The game's code, art, music, sounds and texts remain the property of their owners.</p>
+  <p>{{copyright.game.rights}}</p>
 
-  <h2>This player</h2>
+  <h2>{{copyright.player.heading}}</h2>
   <ul>
-    <li>It is an unofficial, non-commercial project, not affiliated with, endorsed or sponsored by Electronic Arts or
-      PopCap Games.</li>
-    <li>It comes with none of the game's files. To play, you import the files of your own copy of the game; they are
-      kept in this browser's storage and are never uploaded.</li>
-    <li>Its program reimplements the original game's behaviour so that it runs in a browser, on a port of the PopCap
-      Games Framework.</li>
+    <li>{{copyright.player.unofficial}}</li>
+    <li>{{copyright.player.no_files}}</li>
+    <li>{{copyright.player.reimplements}}</li>
   </ul>
 
-  <h2>Terms</h2>
-  <p>Before the game's files are loaded, the game's page asks you to agree to these terms.</p>
+  <h2>{{copyright.terms.heading}}</h2>
+  <p>{{copyright.terms.intro}}</p>
 @BYOPOP_TERMS@
 @BYOPOP_BUY@
 
-  <h2>Software licenses</h2>
-  <p>The player is built from the following software. Open an entry for its license.</p>
+  <h2>{{copyright.licenses.heading}}</h2>
+  <p>{{copyright.licenses.intro}}</p>
 @BYOPOP_LICENSES@
 </main>
 </body>

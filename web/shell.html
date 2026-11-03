@@ -7,8 +7,9 @@
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<!-- the light or dark theme, set before the page is drawn (web/theme.js) -->
-<script src="theme.js"></script><script src="logo.js"></script>
+<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
+     drawn (web/theme.js) -->
+<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script>
 <!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
 <script src="cursors.js"></script>
 <style>
@@ -219,38 +220,37 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 </style>
 </head>
 <body>
-<a class="skip" id="skip-game" href="#canvas">Skip to game</a>
+<a class="skip" id="skip-game" href="#canvas">{{game.skip}}</a>
 <header class="bar">
-  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="byo-pop, all games" width="72" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="72" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
-  <span class="status" id="status" role="status">Starting…</span>
+  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="{{game.logo_alt}}" width="72" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="72" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
+  <span class="status" id="status" role="status">{{game.status.starting}}</span>
   <!-- shown once the game's files are here, and never for a game whose port loads no mods (boot(), MODS_SUPPORTED) -->
-  <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false" hidden>Mods</button>
-  <button id="btn-files" type="button" aria-controls="panel-files" aria-expanded="false">Game files</button>
-  <button id="btn-settings" type="button" aria-controls="panel-settings" aria-expanded="false">Settings</button>
-  <button id="btn-sound" type="button" aria-pressed="true" title="Turns this page's sound off or on; the game's own volume is not changed"><span>Sound</span><span aria-hidden="true">: on</span></button>
-  <button id="btn-full" type="button">Fullscreen</button>
-  <button id="btn-theme" type="button" data-theme-toggle aria-label="Dark theme" aria-pressed="false"></button>
+  <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false" hidden>{{game.btn.mods}}</button>
+  <button id="btn-files" type="button" aria-controls="panel-files" aria-expanded="false">{{game.btn.files}}</button>
+  <button id="btn-settings" type="button" aria-controls="panel-settings" aria-expanded="false">{{game.btn.settings}}</button>
+  <button id="btn-sound" type="button" aria-pressed="true" title="{{game.sound.title}}"><span>{{game.sound.name}}</span><span aria-hidden="true">{{game.sound.on}}</span></button>
+  <button id="btn-full" type="button">{{game.btn.full}}</button>
+  <button id="btn-theme" type="button" data-theme-toggle aria-label="{{theme.button}}" aria-pressed="false"></button>
 </header>
 <!-- The mod menu inside the game reads out what has the focus here (Module.onModMenuFocus, web/modpanel.js) -->
 <div class="sr-only" id="menu-live" role="status" aria-live="polite" aria-atomic="true"></div>
-<span class="sr-only" id="mods-running-hint">While the game runs, this opens the game's own mod menu, the same as F2. Its items are read out as you move through it.</span>
+<span class="sr-only" id="mods-running-hint">{{game.mods.hint}}</span>
 
 <div class="workspace" id="workspace">
 <main class="stage-wrap" id="main">
   <div class="stage" id="stage">
-    <canvas id="canvas" tabindex="-1" role="application" aria-label="@BYOPOP_TITLE@, game" aria-describedby="canvas-hint" aria-hidden="true" oncontextmenu="event.preventDefault()"></canvas>
-    <p class="canvas-hint" id="canvas-hint">Keys go to the game. F6 moves on to the next control, Shift+F6 to the one before.</p>
+    <canvas id="canvas" tabindex="-1" role="application" aria-label="{{game.canvas_label}}" aria-describedby="canvas-hint" aria-hidden="true" oncontextmenu="event.preventDefault()"></canvas>
+    <p class="canvas-hint" id="canvas-hint">{{game.canvas_hint}}</p>
 
     <div class="overlay" id="terms-overlay" hidden>
       <div class="card terms-card" id="terms-card" role="dialog" aria-modal="true" aria-labelledby="terms-title" tabindex="-1">
-        <h2 id="terms-title">Terms for @BYOPOP_TITLE@</h2>
-        <div class="terms" tabindex="0" role="region" aria-label="The terms">
+        <h2 id="terms-title">{{game.terms.title}}</h2>
+        <div class="terms" tabindex="0" role="region" aria-label="{{game.terms.region}}">
 <!-- byopop:terms -->
         </div>
 <!-- byopop:buy -->
-        <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> I own a licensed copy of
-          @BYOPOP_TITLE@, and I agree to these terms</label>
-        <div class="row"><button class="primary" id="btn-terms" type="button" disabled>Continue</button></div>
+        <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> {{game.terms.agree}}</label>
+        <div class="row"><button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button></div>
       </div>
     </div>
 
@@ -258,47 +258,45 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       <div class="card" id="import-card" role="dialog" aria-labelledby="import-title" aria-describedby="import-about" tabindex="-1">
         <!-- the game's cap, its badge on the listing page: the opener takes it off once the files are in (web/capanim.js) -->
         <div class="page-cap" id="page-cap" aria-hidden="true" style="--tile: @BYOPOP_CAP_COLOUR@">@BYOPOP_CAP_INITIALS@</div>
-        <h2 id="import-title">Load your @BYOPOP_TITLE@ files</h2>
+        <h2 id="import-title">{{game.import.title}}</h2>
         <p id="import-about"></p>
         <!-- a game released on Steam: how to download its Windows files on a Mac or Linux (BYOPOP_STEAM_<target>), shown only there -->
 <!-- byopop:mac-steam -->
         <div class="row">
-          <button type="button" class="primary" id="btn-pick-folder" data-pick="pick-game-folder" aria-describedby="import-msg">Choose folder</button>
+          <button type="button" class="primary" id="btn-pick-folder" data-pick="pick-game-folder" aria-describedby="import-msg">{{game.import.folder}}</button>
           <input type="file" id="pick-game-folder" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
-          <button type="button" id="btn-pick-zip" data-pick="pick-game-zip" aria-describedby="import-msg">Choose .zip</button>
+          <button type="button" id="btn-pick-zip" data-pick="pick-game-zip" aria-describedby="import-msg">{{game.import.zip}}</button>
           <input type="file" id="pick-game-zip" accept=".zip,application/zip" hidden tabindex="-1" aria-hidden="true">
-          <button type="button" id="btn-import-cancel" hidden>Cancel</button>
+          <button type="button" id="btn-import-cancel" hidden>{{game.import.cancel}}</button>
         </div>
-        <div class="progress" id="import-bar" role="progressbar" aria-label="Copying the game files" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="Not started"><div id="import-progress"></div></div>
-        <p class="note" id="import-msg" role="status">Files stay in this browser's storage. Nothing is uploaded.</p>
+        <div class="progress" id="import-bar" role="progressbar" aria-label="{{game.import.progress}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="{{game.import.not_started}}"><div id="import-progress"></div></div>
+        <p class="note" id="import-msg" role="status">{{game.import.note}}</p>
       </div>
     </div>
 
     <div class="overlay" id="start-overlay" hidden>
       <div class="card" id="start-card" role="dialog" aria-labelledby="start-title" aria-describedby="start-desc" tabindex="-1">
-        <h2 id="start-title">Ready</h2>
-        <p id="start-desc">Click to start. Browsers only allow sound after you interact with the page.</p>
-        <p id="start-rescue" hidden>The game did not finish starting last time. If a mod stops it from starting, play once
-          without mods, then turn that mod off in the mod menu (F2) or remove it under Mods.</p>
-        <div class="row"><button class="primary" id="btn-start" type="button">Play</button>
-          <button id="btn-start-nomods" type="button" hidden>Play without mods</button></div>
+        <h2 id="start-title">{{game.start.title}}</h2>
+        <p id="start-desc">{{game.start.desc}}</p>
+        <p id="start-rescue" hidden>{{game.start.rescue}}</p>
+        <div class="row"><button class="primary" id="btn-start" type="button">{{game.start.play}}</button>
+          <button id="btn-start-nomods" type="button" hidden>{{game.start.nomods}}</button></div>
       </div>
     </div>
 
     <div class="overlay" id="busy-overlay" hidden>
       <div class="card" id="busy-card" role="dialog" aria-modal="true" aria-labelledby="busy-title" aria-describedby="busy-desc" tabindex="-1">
-        <h2 id="busy-title">Already open</h2>
-        <p id="busy-desc"><span id="busy-name"></span> is already running in another tab or window. Its saves live in this browser, so only one
-          copy can run at a time. This page starts by itself once the other one is closed.</p>
+        <h2 id="busy-title">{{game.busy.title}}</h2>
+        <p id="busy-desc"></p>
       </div>
     </div>
 
     <div class="overlay" id="exit-overlay" hidden>
       <div class="card" id="exit-card" role="dialog" aria-labelledby="exit-title" aria-describedby="exit-msg" tabindex="-1">
-        <h2 id="exit-title">Thanks for playing</h2>
-        <p id="exit-msg" role="status">Saving…</p>
-        <div class="row"><button class="primary" id="btn-play-again" type="button" disabled>Play again</button>
-          <button id="btn-exit-nomods" type="button" hidden>Play without mods</button></div>
+        <h2 id="exit-title">{{game.exit.title}}</h2>
+        <p id="exit-msg" role="status">{{game.exit.saving}}</p>
+        <div class="row"><button class="primary" id="btn-play-again" type="button" disabled>{{game.exit.again}}</button>
+          <button id="btn-exit-nomods" type="button" hidden>{{game.exit.nomods}}</button></div>
       </div>
     </div>
   </div>
@@ -307,21 +305,21 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <!-- The chat (web/chat.js; docs/CHAT_DESIGN.md): beside the stage, or below it on a narrow screen. Its heading is the button that
      collapses it. Hidden until the script has drawn it (and while the site's "Show chat" setting is off). -->
 <aside class="chat" id="chat" hidden aria-labelledby="chat-title">
-  <h2 id="chat-title"><button type="button" data-chat-toggle aria-expanded="true" aria-controls="chat-body"><span class="chat-chevron" aria-hidden="true"></span>Chat<span class="chat-unread" data-chat-unread hidden></span></button></h2>
+  <h2 id="chat-title"><button type="button" data-chat-toggle aria-expanded="true" aria-controls="chat-body"><span class="chat-chevron" aria-hidden="true"></span>{{game.chat.title}}<span class="chat-unread" data-chat-unread hidden></span></button></h2>
   <div class="chat-body" id="chat-body" data-chat-body></div>
 </aside>
 </div>
 
 <!-- Filled by web/modpanel.js (Module.byopop.ModPanel): adding and removing mods -->
 <aside class="panel" id="panel-mods" hidden aria-labelledby="panel-mods-title" tabindex="-1">
-  <header><h2 id="panel-mods-title">Mods</h2><button type="button" data-close>Close</button></header>
+  <header><h2 id="panel-mods-title">{{game.mods.title}}</h2><button type="button" data-close>{{game.mods.close}}</button></header>
   <div class="body" id="mods-body"></div>
 </aside>
 
 <!-- byopop:game-panels -->
 
 <aside class="panel" id="panel-files" hidden aria-labelledby="panel-files-title" tabindex="-1">
-  <header><h2 id="panel-files-title">Game files</h2><button type="button" data-close>Close</button></header>
+  <header><h2 id="panel-files-title">{{game.files.title}}</h2><button type="button" data-close>{{game.files.close}}</button></header>
   <div class="body">
     <p id="files-summary" class="note"></p>
     <div id="files-missing" hidden>
@@ -329,17 +327,17 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       <ul class="note" id="files-missing-list" aria-labelledby="files-missing-summary"></ul>
     </div>
     <div class="row">
-      <button type="button" id="btn-reimport">Import again</button>
-      <button type="button" id="btn-forget">Forget game files</button>
+      <button type="button" id="btn-reimport">{{game.files.reimport}}</button>
+      <button type="button" id="btn-forget">{{game.files.forget}}</button>
     </div>
     <div class="note" id="files-ask" role="alert" hidden><span id="files-ask-text"></span>
-      <button type="button" id="btn-files-yes">Continue</button></div>
-    <p class="note">Saves (high scores, the game in progress and settings) are kept in this browser's storage.</p>
+      <button type="button" id="btn-files-yes">{{game.files.continue}}</button></div>
+    <p class="note">{{game.files.saves_note}}</p>
   </div>
 </aside>
 
 <aside class="panel" id="panel-settings" hidden aria-labelledby="panel-settings-title" tabindex="-1">
-  <header><h2 id="panel-settings-title">Settings: site-wide overrides</h2><button type="button" data-close>Close</button></header>
+  <header><h2 id="panel-settings-title">{{game.settings.title}}</h2><button type="button" data-close>{{game.settings.close}}</button></header>
   <div class="body"><div id="settings-body"></div><div class="site-cursor-choice" id="site-cursor-body"></div></div>
 </aside>
 
@@ -415,8 +413,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // the missing files' count goes after " · placeholders", so a status line ends in "silent" when that is on (CLAUDE.md)
   function setStatus(t) {
     statusText = t;
-    statusEl.textContent = missingFiles.length ? t.replace(" · placeholders", " · placeholders, " + missingFiles.length +
-      " missing file" + (missingFiles.length > 1 ? "s" : "")) : t;
+    statusEl.textContent = missingFiles.length ? t.replace(" · " + ByopopStrings.t("game.status.placeholders"),
+      " · " + ByopopStrings.t("game.status.placeholders_missing", {n: missingFiles.length})) : t;
   }
   $("import-about").innerHTML = PAGE.importHtml;
   // On a Mac or Linux (the user, 2026-11-03: "this should probably support Linux too"): the steps for downloading a Steam
@@ -434,7 +432,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var steps = $("mac-steam");
     if (steps && os) { steps.setAttribute("data-os", os); steps.hidden = false; }
   })();
-  $("busy-name").textContent = PAGE.shortName;
+  $("busy-desc").innerHTML = ByopopStrings.html("game.busy.desc_html", {name: PAGE.shortName});
 
   // web/modpanel.js, linked into the game's script: the Mods panel, restarts and the file helpers. It is there
   // once the game's script has loaded, before onRuntimeInitialized.
@@ -487,13 +485,13 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       if (session) session.markFinished();
       var restart = !!(info && info.restart), then = afterExit;
       afterExit = null;
-      setStatus(then ? "Closing the game…" : restart ? "Restarting…" : "Game closed");
+      setStatus(ByopopStrings.t(then ? "game.status.closing" : restart ? "game.status.restarting" : "game.status.closed"));
       if (then) {
-        $("exit-title").textContent = "Closing the game";
-        $("exit-msg").textContent = "Saving…";
+        $("exit-title").textContent = ByopopStrings.t("game.exit.closing");
+        $("exit-msg").textContent = ByopopStrings.t("game.exit.saving");
       } else if (restart) {
-        $("exit-title").textContent = "Restarting";
-        $("exit-msg").textContent = "Saving, then starting again…";
+        $("exit-title").textContent = ByopopStrings.t("game.exit.restarting");
+        $("exit-msg").textContent = ByopopStrings.t("game.exit.saving_restart");
       }
       closePanels("quiet");
       syncCanvas();
@@ -504,13 +502,11 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
         if (restart) { session.restartPage(info); return; }
         // the site setting "Go back to the games after quitting": the listing page, with ?silent=1 kept for the tests
         if (setting("quitHome") === "on") {
-          $("exit-msg").textContent = "Going back to the games…";
+          $("exit-msg").textContent = ByopopStrings.t("game.exit.going_home");
           location.href = "./" + (pageSilent() ? "?silent=1" : "");
           return;
         }
-        $("exit-msg").textContent = hasSave()
-          ? "The game has closed. Your game in progress was saved, and you can continue it when you play again."
-          : "The game has closed. Your settings and high scores are saved.";
+        $("exit-msg").textContent = ByopopStrings.t(hasSave() ? "game.exit.closed_saved" : "game.exit.closed_settings");
         $("btn-play-again").disabled = false;
         $("btn-play-again").focus();
       });
@@ -538,15 +534,14 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
     if (panel) panel.dead = true;
     var hasMods = !!(panel && panel.enabledCount() > 0);
-    setStatus("The game stopped");
+    setStatus(ByopopStrings.t("game.status.stopped"));
     closePanels("quiet");
     syncCanvas();
     ["import-overlay", "start-overlay", "busy-overlay"].forEach(function (id) { $(id).hidden = true; });
     syncModal();
-    $("exit-title").textContent = "The game stopped";
-    $("exit-msg").textContent = "Something went wrong" + (what ? " (" + String(what).substring(0, 200) + ")" : "") + ". " +
-      (hasMods ? "If a mod caused it, play once without mods, then turn that mod off in the mod menu (F2) or remove it under Mods."
-               : "Play again to start over.");
+    $("exit-title").textContent = ByopopStrings.t("game.exit.stopped");
+    $("exit-msg").textContent = ByopopStrings.t(hasMods ? "game.exit.error_mods" : "game.exit.error_plain",
+      {detail: what ? " (" + String(what).substring(0, 200) + ")" : ""});
     $("btn-play-again").disabled = false;
     $("btn-exit-nomods").hidden = !hasMods;
     $("exit-overlay").hidden = false;
@@ -569,7 +564,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       };
       navigator.locks.request(PAGE.lock, { ifAvailable: true }, function (lock) {
         if (lock) return hold();
-        setStatus("Already open");
+        setStatus(ByopopStrings.t("game.status.busy"));
         $("busy-overlay").hidden = false;
         syncModal();
         focusCard("busy-card");
@@ -698,7 +693,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   function findGameRoot(entries) { return ByopopImport.findRoot(PAGE, entries, pagePlaceholders()); }
   function withPaks(entries, root) {
     return ByopopImport.withPaks(PAGE, entries, root, web().pak, function (names) {
-      $("import-msg").textContent = "Unpacking " + names.join(", ") + "…";
+      $("import-msg").textContent = ByopopStrings.t("game.import.unpacking", {names: names.join(", ")});
     });
   }
 
@@ -720,14 +715,13 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     $("import-progress").style.width = total ? (done * 100 / total) + "%" : "0";
     var bar = $("import-bar");
     bar.setAttribute("aria-valuenow", String(pct));
-    bar.setAttribute("aria-valuetext", total ? done + " of " + total + " files" : "Not started");
+    bar.setAttribute("aria-valuetext", total ? ByopopStrings.t("game.import.progress_text", {done: done, total: total}) : ByopopStrings.t("game.import.not_started"));
   }
   function importGame(entries) {
     var root = findGameRoot(entries);
     var msg = $("import-msg");
     if (root === null) {
-      importMessage("That folder doesn't contain the game's " + PAGE.markerText + ". Pick the " +
-        $("brand-name").textContent + " install folder itself.", true);
+      importMessage(ByopopStrings.t("game.import.wrong_folder", {markers: PAGE.markerText, title: $("brand-name").textContent}), true);
       return Promise.resolve(false);
     }
     return withPaks(entries, root).then(function (all) { return copyGame(all, root); });
@@ -738,7 +732,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var wanted = ByopopImport.pick(PAGE, entries, root, W.fs.safeRel);
     var done = 0;
     importProgress(0, wanted.length);
-    msg.textContent = "Copying " + wanted.length + " files…";
+    msg.textContent = ByopopStrings.t("game.import.copying", {count: wanted.length});
     W.fs.rmTree(GAME); Module.FS.mkdirTree(GAME);
     try { ByopopGameFiles.replacing(PAGE.id); } catch (e) {}  // the old copy is gone; boot() records the new one
     return wanted.reduce(function (p, e) {
@@ -750,8 +744,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       });
     }, Promise.resolve()).then(W.sync).then(function () {
       // boot() would otherwise show this card again, still saying "Copied", as if the page were stuck
-      if (!hasGameFiles()) throw new Error("The files were copied, but the page cannot find the game's " + PAGE.markerText + " among them.");
-      msg.textContent = "Copied " + wanted.length + " files.";
+      if (!hasGameFiles()) throw new Error(ByopopStrings.t("game.import.error_missing", {markers: PAGE.markerText}));
+      msg.textContent = ByopopStrings.t("game.import.copied", {count: wanted.length});
       askToKeepStorage();
       return iconFromImport(entries, root).then(function () { return true; });
     });
@@ -793,7 +787,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     $("terms-agree").checked = false;  // a reload may bring back the box's last state
     $("btn-terms").disabled = true;
     $("terms-overlay").hidden = false;
-    setStatus("Terms to agree to");
+    setStatus(ByopopStrings.t("game.status.terms"));
     syncModal();
     focusCard("terms-card");
   }
@@ -836,8 +830,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     $("start-overlay").hidden = true;
     var enabled = panel.enabledCount();
     var seed = pageSeed();
-    var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
-    var modsText = noMods ? "Mods off for this run" : enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active";
+    var seedText = (seed > 0) ? " · " + ByopopStrings.t("game.status.seed", {seed: seed}) : (seed < 0) ? " · " + ByopopStrings.t("game.status.seed_ignored") : "";
+    var modsText = noMods ? ByopopStrings.t("game.status.mods_off") : enabled ? ByopopStrings.t("game.status.mods_active", {n: enabled}) : ByopopStrings.t("game.status.mods_none");
     var run = {
       args: ["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat(PAGE.replays ? ["-replaydir=" + REPLAYS] : [])
         .concat((seed > 0) ? ["-gameseed=" + seed] : []),
@@ -846,8 +840,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (PAGE.start) PAGE.start(run);
     Module.silentAudio = pageSilent();
     audioCall("byopop_site_windowed", [screenAtStart === "off" ? 1 : 0]);
-    setStatus(modsText + seedText + run.status + (pagePlaceholders() ? " · placeholders" : "") +
-      (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
+    setStatus(modsText + seedText + run.status + (pagePlaceholders() ? " · " + ByopopStrings.t("game.status.placeholders") : "") +
+      (Module.silentAudio ? " · " + ByopopStrings.t("game.status.silent") : (isAutostart === true ? " · " + ByopopStrings.t("game.status.sound_after") : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
     // a play (ByopopPlay): every start but the one after the game's own restart, which goes on with the same play. "Play without
@@ -976,7 +970,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     $("btn-mods").hidden = !(MODS_SUPPORTED && hasGameFiles());
     if (!hasGameFiles()) {
       if (!pagePlaceholders()) { try { ByopopGameFiles.lost(PAGE.id); } catch (e) {} }
-      setStatus("Game files needed");
+      setStatus(ByopopStrings.t("game.status.need_files"));
       showImport();
       return;
     }
@@ -1018,7 +1012,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   }
   function showReady() {
     var failed = session.lastStartFailed() && panel.enabledCount() > 0;
-    setStatus(failed ? "The last start did not finish" : "Ready");
+    setStatus(ByopopStrings.t(failed ? "game.status.last_failed" : "game.status.ready"));
     $("start-rescue").hidden = $("btn-start-nomods").hidden = !failed;
     $("start-overlay").hidden = false;
     focusCard("start-card", "btn-start");
@@ -1031,7 +1025,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     $("btn-import-cancel").hidden = !hasGameFiles();
     $("page-cap").hidden = false;
     $("import-overlay").hidden = false;
-    if (hasGameFiles()) setStatus("Import the game files again");
+    if (hasGameFiles()) setStatus(ByopopStrings.t("game.status.reimport"));
     focusCard("import-card", "btn-pick-folder");
   }
 
@@ -1174,7 +1168,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var fs = web().fs, n = 0;
     GAME_DIRS.forEach(function (d) { n += fs.listDir(GAME + "/" + d).length; });
     n += fs.listDir(GAME).filter(function (f) { return GAME_FILES.indexOf(f.toLowerCase()) >= 0; }).length;
-    $("files-summary").textContent = hasGameFiles() ? n + " game files are stored in this browser." : "No game files are stored yet.";
+    $("files-summary").textContent = ByopopStrings.t(hasGameFiles() ? "game.files.summary" : "game.files.none", {count: n});
     $("files-ask").hidden = true;
     showMissingFiles();
     openPanel("panel-files");
@@ -1184,7 +1178,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // The line under "Player names": who the site's current player is (web/profiles.js)
   function playerNote() {
     var p = ByopopProfiles.current();
-    return p ? "The site’s player is " + p.name + "." : "The site has no player yet.";
+    return p ? ByopopStrings.t("game.settings.player", {name: p.name}) : ByopopStrings.t("game.settings.no_player");
   }
   $("btn-settings").addEventListener("click", function (e) {
     if (!$("panel-settings").hidden) { closePanels(closeHow(e)); return; }
@@ -1194,14 +1188,13 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
         gameId: PAGE.id, gameName: $("brand-name").textContent, playerNote: playerNote });
       if (!siteCursorShown) { siteCursorShown = true; ByopopCursors.render($("site-cursor-body")); }
     } catch (e) {
-      $("settings-body").textContent = "The settings are not available.";
+      $("settings-body").textContent = ByopopStrings.t("game.settings.unavailable");
     }
     openPanel("panel-settings");
   });
   function showMissingFiles() {
     $("files-missing").hidden = !missingFiles.length;
-    $("files-missing-summary").textContent = missingFiles.length + " game file" + (missingFiles.length > 1 ? "s were" : " was") +
-      " missing; placeholders stand in for them:";
+    $("files-missing-summary").textContent = ByopopStrings.t("game.files.missing", {n: missingFiles.length});
     var list = $("files-missing-list");
     list.textContent = "";
     missingFiles.forEach(function (f) { var li = document.createElement("li"); li.textContent = f; list.appendChild(li); });
@@ -1216,7 +1209,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       var r = {};
       try { r = JSON.parse((panel && panel.call("byopop_restart", "string", ["number"], [1])) || "{}"); } catch (e) {}
       if (r.result === "started") { afterExit = then; return; }
-      if (r.result === "blocked") { ask(r.message || "The game cannot close now. Try again in a moment.", null, null); return; }
+      if (r.result === "blocked") { ask(r.message || ByopopStrings.t("game.files.cannot_close"), null, null); return; }
       // "none": it has not finished loading, so there is nothing to save yet
     }
     whenSaved(function () { then(null); });
@@ -1237,7 +1230,6 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     askAction = null;
     if (action) action();
   });
-  var CLOSES_FIRST = " The game closes first; a game in progress is saved.";
   function importAgain() {
     if (!started) { openPanel(null); showImport(); return; }
     closeGameThen(function (info) { session.reloadToImport(info); });
@@ -1250,12 +1242,11 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     });
   }
   $("btn-reimport").addEventListener("click", function () {
-    if (gameRunning()) ask("Import the game files again?" + CLOSES_FIRST, "Close the game", importAgain);
+    if (gameRunning()) ask(ByopopStrings.t("game.files.reimport_ask"), ByopopStrings.t("game.files.close_game"), importAgain);
     else importAgain();
   });
   $("btn-forget").addEventListener("click", function () {
-    ask("This removes the copied game files from this browser. Saves and mods stay." + (gameRunning() ? CLOSES_FIRST : ""),
-      "Remove files", forgetFiles);
+    ask(ByopopStrings.t(gameRunning() ? "game.files.forget_ask_running" : "game.files.forget_ask"), ByopopStrings.t("game.files.remove"), forgetFiles);
   });
   function goFullscreen() {
     var el = $("stage");
@@ -1436,7 +1427,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   function showSound() {
     var muted = audioCall("byopop_audio_muted", []) === 1;
     // the button's name is "Sound" and its state is aria-pressed (pressed: the sound is on); the words after the name are for the eye
-    $("btn-sound").lastChild.textContent = muted ? ": off" : ": on";
+    $("btn-sound").lastChild.textContent = ByopopStrings.t(muted ? "game.sound.off" : "game.sound.on");
     $("btn-sound").setAttribute("aria-pressed", muted ? "false" : "true");
   }
   function setPageMuted(muted) { audioCall("byopop_audio_mute", [muted ? 1 : 0]); showSound(); }

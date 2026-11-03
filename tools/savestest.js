@@ -6,6 +6,7 @@
 // It prints "savestest: N checks, M failed" and exits 1 when any failed.
 "use strict";
 const path = require("path");
+require("./stringsload").intoGlobal();
 const S = require(path.join(__dirname, "..", "web", "saves.js"));
 
 let checks = 0, failed = 0;

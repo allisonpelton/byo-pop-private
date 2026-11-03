@@ -14,6 +14,7 @@ const vm = require("vm");
 const root = path.join(__dirname, "..");
 const ctx = { window: {}, console };
 vm.createContext(ctx);
+require("./stringsload").into(ctx);
 vm.runInContext(fs.readFileSync(path.join(root, "web", "gameimport.js"), "utf8"), ctx, { filename: "gameimport.js" });
 // every finished game (BYOPOP_WEB_FINISHED in cmake/ByopopWeb.cmake), as the listing registers them; the titles the checks
 // below need, and the target as the title of the others

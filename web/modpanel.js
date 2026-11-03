@@ -89,11 +89,11 @@ Module["byopop"] = (function () {
     for (var i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
       if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
     }
-    if (eocd < 0) throw new Error("This file is not a .zip archive.");
+    if (eocd < 0) throw new Error(ByopopStrings.t("mods.zip.not_zip"));
     var count = view.getUint16(eocd + 10, true), off = view.getUint32(eocd + 16, true);
     var entries = [];
     for (var n = 0; n < count; n++) {
-      if (view.getUint32(off, true) !== 0x02014b50) throw new Error("The .zip directory is damaged.");
+      if (view.getUint32(off, true) !== 0x02014b50) throw new Error(ByopopStrings.t("mods.zip.directory"));
       var method = view.getUint16(off + 10, true), csize = view.getUint32(off + 20, true);
       var nameLen = view.getUint16(off + 28, true), extraLen = view.getUint16(off + 30, true), commentLen = view.getUint16(off + 32, true);
       var local = view.getUint32(off + 42, true);
@@ -108,7 +108,7 @@ Module["byopop"] = (function () {
           var lnl = view.getUint16(e.local + 26, true), lel = view.getUint16(e.local + 28, true);
           var data = bytes.subarray(e.local + 30 + lnl + lel, e.local + 30 + lnl + lel + e.csize);
           if (e.method === 0) return Promise.resolve(data.slice());
-          if (e.method !== 8) return Promise.reject(new Error("Unsupported compression in " + e.name));
+          if (e.method !== 8) return Promise.reject(new Error(ByopopStrings.t("mods.zip.compression", {name: e.name})));
           var ds = new DecompressionStream("deflate-raw");
           return new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer().then(function (b) { return new Uint8Array(b); });
         }
@@ -131,11 +131,11 @@ Module["byopop"] = (function () {
   function readPak(bytes, key) {
     key = (key === undefined) ? 0xf7 : key;
     function byte(i) {
-      if (i >= bytes.length) throw new Error("The pak's directory is damaged.");
+      if (i >= bytes.length) throw new Error(ByopopStrings.t("mods.pak.directory"));
       return bytes[i] ^ key;
     }
     function u32(i) { return (byte(i) | (byte(i + 1) << 8) | (byte(i + 2) << 16) | (byte(i + 3) << 24)) >>> 0; }
-    if (bytes.length < 9 || u32(0) !== 0xbac04ac0) throw new Error("This file is not a PopCap pak.");
+    if (bytes.length < 9 || u32(0) !== 0xbac04ac0) throw new Error(ByopopStrings.t("mods.pak.not_pak"));
     var pos = 8, records = [];
     for (;;) {
       var flags = byte(pos++);
@@ -148,7 +148,7 @@ Module["byopop"] = (function () {
     return records.map(function (r) {
       var start = pos;
       pos += r.size;
-      if (pos > bytes.length) throw new Error("The pak is shorter than its directory says.");
+      if (pos > bytes.length) throw new Error(ByopopStrings.t("mods.pak.short"));
       return {
         path: r.path,
         read: function () {
@@ -311,8 +311,7 @@ Module["byopop"] = (function () {
     var root = this.root = el("div", "mp-panel");
     root.tabIndex = -1;  // keeps the focus (and so the keys) in the panel when a control it was on is redrawn
     if (options.intro) root.appendChild(el("p", "note", options.intro));
-    root.appendChild(el("p", "note", "Turn mods on or off, change their order and their settings in the game's mod menu: " +
-      "press F2, or click Mods, while the game runs."));
+    root.appendChild(el("p", "note", ByopopStrings.t("mods.intro")));
     var pickers = el("div", "row");
     this.pickFolder = el("input");
     this.pickFolder.type = "file";
@@ -323,23 +322,22 @@ Module["byopop"] = (function () {
     this.pickZip.accept = ".zip,application/zip";
     this.pickZip.multiple = true;
     [this.pickFolder, this.pickZip].forEach(function (input) { input.hidden = true; input.tabIndex = -1; });
-    this.addFolderButton = button("Add mod folder", function () { self.pickFolder.click(); });
-    this.addFolderButton.title = "A mod's folder, or a folder of mods: every folder in it with a mod.json is added";
-    this.addZipButton = button("Add mod .zip", function () { self.pickZip.click(); });
-    this.addZipButton.title = "A mod's .zip, or a .zip of several mods";
+    this.addFolderButton = button(ByopopStrings.t("mods.add_folder"), function () { self.pickFolder.click(); });
+    this.addFolderButton.title = ByopopStrings.t("mods.add_folder_title");
+    this.addZipButton = button(ByopopStrings.t("mods.add_zip"), function () { self.pickZip.click(); });
+    this.addZipButton.title = ByopopStrings.t("mods.add_zip_title");
     pickers.appendChild(this.addFolderButton);
     pickers.appendChild(this.addZipButton);
     pickers.appendChild(this.pickFolder);
     pickers.appendChild(this.pickZip);
     root.appendChild(pickers);
     this.list = el("ul", "mp-list");
-    this.list.setAttribute("aria-label", "Installed mods");
+    this.list.setAttribute("aria-label", ByopopStrings.t("mods.list"));
     root.appendChild(this.list);
     this.rescue = el("div", "mp-box");
-    this.rescue.appendChild(el("p", "note", "If a mod stops the game from starting, play once without mods, then turn that mod off " +
-      "in the mod menu or remove it here."));
+    this.rescue.appendChild(el("p", "note", ByopopStrings.t("mods.rescue")));
     var rescueRow = el("div", "row");
-    rescueRow.appendChild(button("Play without mods", function () { if (self.o.playWithoutMods) self.o.playWithoutMods(); }));
+    rescueRow.appendChild(button(ByopopStrings.t("mods.play_without"), function () { if (self.o.playWithoutMods) self.o.playWithoutMods(); }));
     this.rescue.appendChild(rescueRow);
     root.appendChild(this.rescue);
     this.restartBox = el("div", "mp-box");
@@ -377,7 +375,7 @@ Module["byopop"] = (function () {
     catch (e) {
       console.warn(name + " failed:", e);
       this.dead = true;
-      this.say("The game stopped. Reload the page to add or remove mods.");
+      this.say(ByopopStrings.t("mods.stopped"));
       return null;
     }
   };
@@ -485,7 +483,7 @@ Module["byopop"] = (function () {
     this.list.textContent = "";
     this.addFolderButton.disabled = this.addZipButton.disabled = this.dead;
     if (!st.mods.length) {
-      var empty = el("li", "mp-empty", "No mods installed. Add a mod's folder, a folder of mods, or a .zip of either.");
+      var empty = el("li", "mp-empty", ByopopStrings.t("mods.empty"));
       this.list.appendChild(empty);
     }
     st.mods.forEach(function (m) {
@@ -494,18 +492,18 @@ Module["byopop"] = (function () {
       var row = el("li", "mp-mod");
       var meta = el("div", "mp-meta");
       meta.appendChild(el("div", "mp-name", m.name + (m.version ? " " + m.version : "")));
-      meta.appendChild(el("div", "mp-sub", [m.author && ("by " + m.author), m.description].filter(Boolean).join(" · ") || m.dir));
+      meta.appendChild(el("div", "mp-sub", [m.author && ByopopStrings.t("mods.by", {author: m.author}), m.description].filter(Boolean).join(" · ") || m.dir));
       var tags = el("div", "mp-tags");
       var tag = function (text, cls) { tags.appendChild(el("span", "mp-tag" + (cls ? " " + cls : ""), text)); };
-      if (queued) tag("Removed when the game starts again", "pending");
+      if (queued) tag(ByopopStrings.t("mods.tag.removed"), "pending");
       else {
-        tag(m.enabled ? "On" : "Off", m.enabled ? "on" : "");
-        if (staged) tag("Replaced when the game starts again", "pending");
-        else if (running && m.pending === "restart") tag("Waits for a restart", "pending");
-        else if (running && m.pending === "nextGame") tag("Applies to the next game", "pending");
-        if (m.scores && m.enabled) tag("Separate high scores", "scores");
-        if (m.features) tag("Adds features", "features");
-        if (m.hasSettings) tag("Settings in the mod menu");
+        tag(ByopopStrings.t(m.enabled ? "mods.tag.on" : "mods.tag.off"), m.enabled ? "on" : "");
+        if (staged) tag(ByopopStrings.t("mods.tag.replaced"), "pending");
+        else if (running && m.pending === "restart") tag(ByopopStrings.t("mods.tag.restart"), "pending");
+        else if (running && m.pending === "nextGame") tag(ByopopStrings.t("mods.tag.next_game"), "pending");
+        if (m.scores && m.enabled) tag(ByopopStrings.t("mods.tag.scores"), "scores");
+        if (m.features) tag(ByopopStrings.t("mods.tag.features"), "features");
+        if (m.hasSettings) tag(ByopopStrings.t("mods.tag.settings"));
       }
       meta.appendChild(tags);
       (m.errors || []).slice(0, 3).forEach(function (t) { meta.appendChild(el("div", "mp-msg error", t)); });
@@ -513,17 +511,17 @@ Module["byopop"] = (function () {
       var actions = el("div", "mp-actions");
       var label = m.name + (m.version ? " " + m.version : "");
       if (queued) {
-        var undo = button("Keep", function () { self.keep(m); });
-        undo.setAttribute("aria-label", "Keep " + label);
+        var undo = button(ByopopStrings.t("mods.keep"), function () { self.keep(m); });
+        undo.setAttribute("aria-label", ByopopStrings.t("mods.keep_label", {label: label}));
         undo.disabled = self.dead;
         actions.appendChild(undo);
       } else {
         var armed = self.armed === m.dir;
-        var del = button(armed ? "Confirm remove" : "Remove", function () {
+        var del = button(ByopopStrings.t(armed ? "mods.remove_confirm" : "mods.remove"), function () {
           if (self.armed === m.dir) { self.armed = null; self.remove(m); }
           else { self.armed = m.dir; self.render(); self.focusRemove(m.dir); }
         });
-        del.setAttribute("aria-label", (armed ? "Confirm: remove " : "Remove ") + label);
+        del.setAttribute("aria-label", ByopopStrings.t(armed ? "mods.remove_confirm_label" : "mods.remove_label", {label: label}));
         del.setAttribute("data-dir", m.dir);
         del.disabled = self.dead;
         actions.appendChild(del);
@@ -538,7 +536,7 @@ Module["byopop"] = (function () {
 
     // While the game runs: what waits for a restart, and the restart
     var box = this.restartBox, waiting = ((st.pending && st.pending.restart) || []).slice();
-    st.mods.forEach(function (m) { if (exists(o.stagingDir + "/" + m.dir)) waiting.push(m.name + " replaced"); });
+    st.mods.forEach(function (m) { if (exists(o.stagingDir + "/" + m.dir)) waiting.push(ByopopStrings.t("mods.replaced", {name: m.name})); });
     box.textContent = "";
     var nomods = running && st.nomods;
     box.hidden = !(running && (waiting.length || nomods || this.question));
@@ -546,12 +544,12 @@ Module["byopop"] = (function () {
       var row2 = el("div", "row");
       if (this.question) {
         box.appendChild(el("p", "", this.question));
-        row2.appendChild(button("Restart", function () { self.restart(true); }, "primary"));
-        row2.appendChild(button("Cancel", function () { self.question = null; self.render(); }));
+        row2.appendChild(button(ByopopStrings.t("mods.restart_yes"), function () { self.restart(true); }, "primary"));
+        row2.appendChild(button(ByopopStrings.t("mods.restart_no"), function () { self.question = null; self.render(); }));
       } else {
-        box.appendChild(el("p", "note", nomods ? "Mods are off for this run. Restart the game to turn them on." :
-          "Restart to apply: " + waiting.join(", ") + "."));
-        row2.appendChild(button("Restart game", function () { self.restart(false); }));
+        box.appendChild(el("p", "note", nomods ? ByopopStrings.t("mods.off_run") :
+          ByopopStrings.t("mods.restart_to_apply", {names: waiting.join(", ")})));
+        row2.appendChild(button(ByopopStrings.t("mods.restart_game"), function () { self.restart(false); }));
       }
       box.appendChild(row2);
     }
@@ -569,15 +567,15 @@ Module["byopop"] = (function () {
     try { r = JSON.parse(text || "{}"); } catch (e) {}
     this.question = null;
     if (r.result === "confirm") {
-      this.question = r.message || "Restart now?";
+      this.question = r.message || ByopopStrings.t("mods.restart_now");
       this.render();
       var yes = this.restartBox.querySelector("button.primary");
       if (yes) yes.focus();
       return;
     }
-    if (r.result === "blocked") this.say(r.message || "The game cannot restart now.");
-    else if (r.result === "started") this.say("Restarting…");
-    else this.say("The game is not running.");
+    if (r.result === "blocked") this.say(r.message || ByopopStrings.t("mods.cannot_restart"));
+    else if (r.result === "started") this.say(ByopopStrings.t("mods.restarting"));
+    else this.say(ByopopStrings.t("mods.not_running"));
     this.render();
   };
 
@@ -602,11 +600,11 @@ Module["byopop"] = (function () {
       };
       var added = pick(false, false), updated = pick(false, true), waiting = pick(true);
       var parts = [];
-      if (added.length) parts.push("Added " + names(added) + ".");
-      if (updated.length) parts.push("Updated " + names(updated) + ".");
-      if (running && (added.length || updated.length)) parts.push("Restart the game to use " + (added.length + updated.length > 1 ? "them." : "it."));
-      if (waiting.length) parts.push(names(waiting) + ": the new version replaces the one in use when the game starts again.");
-      if (!parts.length) parts.push("Nothing was added.");
+      if (added.length) parts.push(ByopopStrings.t("mods.added", {names: names(added)}));
+      if (updated.length) parts.push(ByopopStrings.t("mods.updated", {names: names(updated)}));
+      if (running && (added.length || updated.length)) parts.push(ByopopStrings.t("mods.restart_to_use", {n: added.length + updated.length}));
+      if (waiting.length) parts.push(ByopopStrings.t("mods.waiting", {names: names(waiting)}));
+      if (!parts.length) parts.push(ByopopStrings.t("mods.nothing_added"));
       results.forEach(function (r) { if (r.note) parts.push(r.note); });
       self.say(parts.join(" "));
       return sync();
@@ -676,8 +674,7 @@ Module["byopop"] = (function () {
         left[rel.split("/")[0]] = 1;
       });
       var names = Object.keys(left);
-      if (names.length) notes.push({ note: "Left out, not a mod (no mod.json and none of the game's " +
-        (gameFiles.length ? "folders or files" : "folders") + "): " + names.join(", ") + "." });
+      if (names.length) notes.push({ note: ByopopStrings.t(gameFiles.length ? "mods.left_out_files" : "mods.left_out", {names: names.join(", ")}) });
     }
     return mods.reduce(function (p, m) {
       return p.then(function (done) {
@@ -704,7 +701,7 @@ Module["byopop"] = (function () {
     var target = (inUse ? o.stagingDir : o.modsDir) + "/" + dir;
     rmTree(target);
     if (!inUse) rmTree(o.stagingDir + "/" + dir);
-    this.say("Copying " + files.length + " files into " + dir + "…");
+    this.say(ByopopStrings.t("mods.copying", {count: files.length, dir: dir}));
     return files.reduce(function (p, f) {
       return p.then(function () { return f.read().then(function (d) { writeFile(target + "/" + f.rel, d); }); });
     }, Promise.resolve()).then(function () {
@@ -727,11 +724,11 @@ Module["byopop"] = (function () {
       if (error) {
         // Still on: it would not be removed (a queued mod that is on is kept)
         this.unqueue(m.dir);
-        this.say("Could not remove " + m.name + ": " + error);
+        this.say(ByopopStrings.t("mods.remove_failed", {name: m.name, error: error}));
         this.refresh();
         return;
       }
-      this.say(m.name + " is removed when the game starts again. Until then the game keeps using it.");
+      this.say(ByopopStrings.t("mods.removed_later", {name: m.name}));
       this.refresh();
       return;
     }
@@ -740,7 +737,7 @@ Module["byopop"] = (function () {
     this.call("byopop_mods_rescan", null, [], []);
     // Its place in the order and its on/off state go too (its settings' values stay, should it come back)
     this.edit({ op: "forget", mod: m.id });
-    this.say("Removed " + m.name + ".");
+    this.say(ByopopStrings.t("mods.removed", {name: m.name}));
     this.refresh();
     sync();
   };
@@ -748,7 +745,7 @@ Module["byopop"] = (function () {
   ModPanel.prototype.keep = function (m) {
     var q = this.unqueue(m.dir);
     if (q && q.wasEnabled) this.edit({ op: "enable", mod: q.id, on: true });
-    this.say("Kept " + m.name + ".");
+    this.say(ByopopStrings.t("mods.kept", {name: m.name}));
     this.refresh();
   };
 

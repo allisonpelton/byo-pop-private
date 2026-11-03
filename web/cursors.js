@@ -145,7 +145,7 @@ var ByopopCursors = (function () {
     var sets = all(), pick = chosen(), name = "bpc-cur-" + (++idCount);
     el.textContent = "";
     var fs = make("fieldset", "bpc-cur"), box = make("div", "bpc-cur-box");
-    fs.appendChild(make("legend", null, "Site cursor"));
+    fs.appendChild(make("legend", null, ByopopStrings.t("cursors.legend")));
     fs.appendChild(box);
     function option(id, text, set) {
       var label = make("label"), input = make("input");
@@ -165,12 +165,12 @@ var ByopopCursors = (function () {
       label.appendChild(document.createTextNode(text));
       box.appendChild(label);
     }
-    option("", "Your browser’s own", null);
+    option("", ByopopStrings.t("cursors.browser"), null);
     Object.keys(sets).sort(function (a, b) { return sets[a].title.localeCompare(sets[b].title); })
       .forEach(function (id) { option(id, sets[id].title, sets[id]); });
     box.appendChild(make("p", "bpc-cur-hint", Object.keys(sets).length
-      ? "A game’s cursors are here once it has been started in this browser. Inside a game, its own cursor shows when it has one on."
-      : "A game’s cursors are here once its files are added and it has been started in this browser."));
+      ? ByopopStrings.t("cursors.hint")
+      : ByopopStrings.t("cursors.hint_none")));
     el.appendChild(fs);
   }
   function render(el) {
