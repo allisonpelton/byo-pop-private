@@ -359,8 +359,8 @@ void NoahApp::AutoplayUpdate()
 		s->mWait = 5;
 		return;
 	}
-	if (GetDialog(DIALOG_TUTORIAL) != NULL)
-		return;
+	if ((GetDialog(DIALOG_TUTORIAL) != NULL) || (GetDialog(DIALOG_QUIT) != NULL))
+		return;                     // a script answers these dialogs; the bot plays on the board only
 	Board* b = mBoard;
 	if (b->mPaused)
 		b->mPaused = false;

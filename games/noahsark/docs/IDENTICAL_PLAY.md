@@ -62,20 +62,44 @@ the third level of an action game on easy, and where the original's timing diffe
 third level came at 12193 in one run and 12197 in another, so the next level's generator state, taken from another run,
 no longer fits). The comparison stops there; it is not a difference of the port.
 
+### A series of games, and a saved game (puzzle)
+
+The two-game series is one run: the bot plays a puzzle game to its game over, enters a name, the script returns to the main
+menu, picks puzzle again and the bot plays a second game to its game over and name entry
+(`compare_mode.sh` with a menu script that holds the second game's clicks; the clicks are merged with the bot's by update). A
+saved game is made by the in-game Quit to Main at update 1500 and its Yes at 1560 (the script's clicks), resumed with the menu's
+Continue button at 1800 and played on to update 14000; a second run stops right after the save and the two games' `savegame.dat`
+are compared as files. The original's copy needs two things for this, both patches of the copy and not of the repository: the
+unregistered game stops a puzzle game after 6000 board updates ("Time up, register now?"), and its high-score dialog offers
+to register instead of asking for a name, so the copy counts as registered, as the port always does. An earlier run
+of the first game compared only the part up to that stop (the compare tool skips what the original no longer logs) and
+missed it; the compare tool now prints a note when the port has changes after the original's last logged update. The name entry's text is typed 3
+updates later in the original than the port's bot types it (the dialog is not yet up in that update; the
+`REPLAY_TEXT_DELAY` of the replay tool).
+
+The saved game differed in two places, both from the file's format: the generator's state is a string of 2496 bytes (a length,
+then the 624 words) and no index follows it, and a piece's float position (`mPixelX`, `mPixelY`) is the float's four bytes,
+not the integer part. The port wrote the index and the integer parts, so its saves differed from the original's and could
+not be read by it (the port reads the original's file now: a game saved by the original resumes in the port with the same
+score and the same play afterwards). The level's start tick in the file is the tick count of the game's clock and differs
+between the original's clock and the port's (two bytes), which is not a difference of play.
+
 ### Result
 
 | Mode | Result |
 |---|---|
-| Puzzle (260 changes of state, score, level) | identical, including game over, name entry and the high-score screen |
+| Puzzle, two games in one run (874 changes of state, score, level) | identical: game over, name entry, the high-score screen, back to the menu, a second game to its game over and name entry; the high-score files are byte for byte the same |
 | Strategy, levels 1 to 3 (resync) | identical (every state, score, level, board); level 4 not comparable (see above) |
 | Action, levels 1 and 2 | identical, except the start of level 2 without the resync |
 | Action on medium and on hard, levels 1 to 3 (resync) | identical (342 and 519 changes of the original, none different) |
+| Puzzle, a save by Quit to Main, Continue and play on (576 changes) | identical to update 14000; the saved game written at the quit is the original's byte for byte except the level's start tick (the two clocks) |
 | Action on easy, level 3 | not comparable (the get-ready end depends on the clicks, see above); stampede (level 4) not reached |
 
 ### Changes (each is the original's own logic, from the Ghidra export)
 
 | Change | Cause in the original | Commit |
 |---|---|---|
+| The saved game (`savegame.dat`) has the original's format | 0x40dbe0: the generator is saved as a string of 2496 bytes with no index after it, and the pieces' `mPixelX` and `mPixelY` are written as the floats' own four bytes; the port wrote a count of words, an index and the integer parts | 3010c88 |
 | A falling animal's cell gets a **new piece** copied from the lower one; the old lower piece is deleted | 0x40407c: it copies the position, type, alpha, offsets, flags, fall speed and path into a new piece (blink, scale, flash, pending and match fields start at their defaults) and keeps the partner link only outside puzzle and stampede. The port swapped the two pieces, so a swapped piece kept its blink and the per-update random draws (one per piece with blink 0) came out in another number | ace140c |
 | Flights to the ark and the fading of abandoned animals use the original's arithmetic | 0x405408 and 0x405440: int-truncated distances, a double square root, the step `(dx / dist) * 5.3` with a floor of 1, a clamp written with an unordered compare (the x87 treats a NaN as "not greater", so a zero distance snaps the animal to its target); on a zero or NaN position the piece becomes empty | ace140c |
 | The ark rises to water - 0x37 in the get-ready | the original takes the water level before the +3 step and subtracts 0x34 | ace140c |
