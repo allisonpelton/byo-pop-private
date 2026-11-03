@@ -10,7 +10,7 @@ source "$(dirname "$0")/common.sh"
 N="$1"; SEED="$2"; SCRIPT="$3"; MODE="$4"; shift 4
 D="$OUT/$N"
 mkdir -p "$D"
-cp "$SCRIPT" "$D/script.txt"
+[ "$SCRIPT" -ef "$D/script.txt" ] || cp "$SCRIPT" "$D/script.txt"
 "$TOOLS/port.sh" "$D" -seed=$SEED -script="$(win "$D/script.txt")" -statelog="$(win "$D/state.txt")" "$@" > /dev/null
 python "$TOOLS/toorig.py" "$D/script.txt" -1 > "$D/orig.txt"
 LAST=$(grep '^at ' "$D/orig.txt" | tail -1 | cut -d' ' -f2)
@@ -18,10 +18,10 @@ LAST=$(grep '^at ' "$D/orig.txt" | tail -1 | cut -d' ' -f2)
 APP=0x5304f8
 B='[0x531ee4]'; G="[$B+0x8c]"; L="[$B+0x5c]"
 NAMES=(mti mt0 fibi fibj score type chain longest babies bonus rank pause fired eggs maxcolor bottom ceiling rows pastline
-	angle loaded held frozen)
+	angle loaded held frozen next)
 EXPRS=(0x531490 0x530ad0 0x531498 0x53149c '[0x531edc]+0x68' "$B+0x7c" "$B+0x14c" "$B+0x1d0" "$B+0x1d4" "$B+0x12c"
 	"$B+0x1c0" "$B+0x150" "$B+0x15c" "$G+0x46e0" "$G+0x10" "$G+0xc" "$G+4" "$G+8" "$G+0x4684" "$L+0x14" "[$L+0xc]+4"
-	"[$L+0xaa8]+4" "$L+0xaa4")
+	"[$L+0xaa8]+4" "$L+0xaa4" "[[$B+0x84]+0x20]+4")
 case "$MODE" in
 	stomped) NAMES+=(m0 m1 m2 m3); EXPRS+=("$B+0x5b8" "$B+0x398" "$B+0x59c" "$B+0x5b4") ;;
 	panic) NAMES+=(m0 m1 m2 m3); EXPRS+=("$B+0x264" "$B+0x270" "$B+0x26c" "$B+0x250") ;;
