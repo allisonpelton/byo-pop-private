@@ -5,6 +5,7 @@
 #include "Screens.h"
 #include "Dialogs.h"
 #include "GameText.h"
+#include "GameLevels.h"
 #include "Compat2004.h"
 #include "Dialog.h"
 #include "DialogButton.h"
@@ -138,6 +139,7 @@ void MummyApp::Init()
 	// the 2002 SexyApp::Init seeds the C library generator with the tick count; -seed=N makes a run repeatable
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
 	LoadGameTexts();
+	LoadGameLevels();
 
 	mImages = new Image*[NUM_IMAGES];
 	for (int i = 0; i < NUM_IMAGES; i++)
@@ -304,7 +306,7 @@ void MummyApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mScriptedInput = true;   // the bot's input only, as in a -script run
 		HandleAutoplayParam(theParamName, theParamValue);
 	}
-	else if ((theParamName == "-autoplaylevels") || (theParamName == "-autoplaystart") || (theParamName == "-autoplaycontinue") || (theParamName == "-autoplaysave"))
+	else if ((theParamName == "-autoplaylevels") || (theParamName == "-autoplaystart") || (theParamName == "-autoplaycontinue") || (theParamName == "-autoplaytrace") || (theParamName == "-autoplaysave"))
 		HandleAutoplayParam(theParamName, theParamValue);
 	else if (theParamName == "-autoplaymode")
 		mAutoplayMode = theParamValue;

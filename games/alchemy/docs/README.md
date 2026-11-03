@@ -3,7 +3,8 @@
 A port of PopCap's Alchemy Deluxe (version 1.6, linked 2004-08-23) to the shared SexyAppFramework port: it plays
 natively (Windows, SDL2) and in the browser (Emscripten). The game code is a translation of the original's game classes,
 found by decompiling the game inside `Alchemy.exe` with Ghidra; the game's files (pictures, sounds, the two modules and
-the texts in `properties/default.xml`) come from the player's own copy and are never in the repository.
+the texts in `properties/default.xml`, and the ten default names of the score tables, which `GameText.cpp` reads from the
+player's `Alchemy.exe`) come from the player's own copy and are never in the repository.
 
 What the original's player sees is ported: the title screen and its loading bar, the selector (skill, strategic or time
 trial, the tutorial), the board with its runes, bombs, skulls and the forge, the wizard's messages, the tutorial's steps,

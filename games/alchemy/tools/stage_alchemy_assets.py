@@ -3,7 +3,8 @@
 
 The port never ships PopCap's assets (images, fonts, sounds, music) or the game's texts (properties/default.xml);
 every build stages them from the user's own copy into the git-ignored assets/alchemy/ folder (the native exe finds it
-next to itself or up to two levels up). Alchemy.exe is not needed: the port's code is a translation of it.
+next to itself or up to two levels up). Alchemy.exe is copied too, but never run: the port's code is a translation of it
+and reads only the score tables' ten default names from it (src/GameText.h).
 
     python games/alchemy/tools/stage_alchemy_assets.py ["C:/Program Files/PopCap Games/Alchemy Deluxe"] [--out assets/alchemy]
 """
@@ -21,7 +22,7 @@ DEFAULT_INSTALLS = [
 # copy-protection wrapper's drm folder and screens, readme/licence, the partner file's signature, and the player's own
 # data (userdata, hiscores.dat, savegame.dat).
 DIRS = ["images", "data", "sounds", "music", "properties"]
-FILES = []
+FILES = ["Alchemy.exe"]
 REQUIRED = ["properties/default.xml", "music/alch_intro.s3m", "images/title.jpg", "data/font1.txt"]
 SKIP = {"savegame.dat", "hiscores.dat", "thumbs.db", "partner.xml.sig"}
 
