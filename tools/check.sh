@@ -1651,14 +1651,14 @@ suite_mahjongchina() {
 	return $st
 }
 
-twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game; prints its screens' hashes
+twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game (-nod3d9: 3D is the default); prints its screens' hashes
 	local d="$OUT/bejeweledtwist/$1" exe="$2" mode="$3" last="$4" n
 	shift 4
 	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
 	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/user/registry.ini"
 	{ for n in "$@"; do echo "$n screenshot $d/shots/$n.png"; done; echo "$last quit"; } > "$d/script.txt"
 	# autoplay clicks only the board and the mode select, never a link
-	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" -fast -seed=1234 -autoplay="$mode" \
+	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" -nod3d9 -fast -seed=1234 -autoplay="$mode" \
 		-script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	for n in "$@"; do sha256sum "$d/shots/$n.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -
 }
