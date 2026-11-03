@@ -29,6 +29,7 @@
 #include "Menu.h"
 #include "MenuButtonWidget.h"
 #include "SDLSoundManager.h"
+#include "SWTri.h"
 #include "MenuPanels.h"
 #include "TwistCheckbox.h"
 #include "Profile.h"
@@ -105,6 +106,9 @@ WinTwistApp::WinTwistApp()
 	gPutCopiesZOrder = true;
 	// port: the original makes them further on, after the board's objects; nothing reads them before
 	MakeTrigTables();
+	// the software triangle drawers (0x50f7e0, from the constructor 0x766ce7), for matrix and triangle draws into
+	// memory images and onto the 2D screen; without them SWTri draws nothing
+	SWTri_AddAllDrawTriFuncs();
 	mProdName = "BejeweledTwist";
 	mRegKey = "PopCap\\BejeweledTwist";
 	mMusicVolume = 0.85;
@@ -553,9 +557,11 @@ DDInterface* WinTwistApp::CreateDDInterface()
 {
 	if (mUse3D)
 		return new GPUDisplay(this, GPUPolicy::Twist());
-	// port: the original's 2D screen is software, so its non-fast stretches average (DDImage::StretchBlt, 0x41a3e0)
+	// port: the original's 2D screen is software, so its non-fast stretches average (DDImage::StretchBlt, 0x41a3e0) and
+	// its rotated, matrix and triangle draws are its own bilinear and SWTri code (0x41c5c0, 0x4355e0)
 	DDInterface* anInterface = SexyApp::CreateDDInterface();
 	anInterface->mSoftwareStretch = true;
+	anInterface->mSoftwareTransforms = true;
 	return anInterface;
 }
 
