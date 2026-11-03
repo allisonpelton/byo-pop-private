@@ -416,7 +416,11 @@ struct StateLogState
 	int				mCellX[4], mCellY[4], mCellType[4], mCells;
 	int				mWater;                 // -statelogcells=w: the water level (the board's mWaterY) at every change
 	bool			mLogWater;
-	StateLogState() : mFile(NULL), mState(-2), mScore(-2), mLevel(-2), mMode(-2), mCells(0), mWater(-99999), mLogWater(false) {}
+	unsigned int	mRng;                   // -statelogcells=r: the C generator's state after every 512th draw
+	bool			mLogRng;
+	unsigned int	mRngCount;              // -statelogcells=c: the number of draws made, at every update that made some
+	bool			mLogRngCount;
+	StateLogState() : mFile(NULL), mState(-2), mScore(-2), mLevel(-2), mMode(-2), mCells(0), mWater(-99999), mLogWater(false), mRng(0), mLogRng(false), mRngCount(0), mLogRngCount(false) {}
 };
 }
 
@@ -428,9 +432,14 @@ void NoahApp::StateLogUpdate()
 		mStateLogState->mFile = fopen(mStateLog.c_str(), "w");
 		const char* c = mStateLogCells.c_str();
 		int x, y, n;
-		if (*c == 'w')
+		while ((*c == 'w') || (*c == 'r') || (*c == 'c'))
 		{
-			mStateLogState->mLogWater = true;
+			if (*c == 'w')
+				mStateLogState->mLogWater = true;
+			else if (*c == 'r')
+				mStateLogState->mLogRng = true;
+			else
+				mStateLogState->mLogRngCount = true;
 			c++;
 			if (*c == ';')
 				c++;
@@ -452,6 +461,16 @@ void NoahApp::StateLogUpdate()
 	{
 		fprintf(s->mFile, "water %d -> %d at update %d\n", s->mWater, mBoard->mWaterY, mUpdateCount);
 		s->mWater = mBoard->mWaterY;
+	}
+	if (s->mLogRngCount && (CrtRandCount() != s->mRngCount))
+	{
+		fprintf(s->mFile, "rngc %u at update %d\n", CrtRandCount(), mUpdateCount);
+		s->mRngCount = CrtRandCount();
+	}
+	if (s->mLogRng && (CrtRandSnapshot() != s->mRng))
+	{
+		fprintf(s->mFile, "rng %u -> %u at update %d\n", s->mRng, CrtRandSnapshot(), mUpdateCount);
+		s->mRng = CrtRandSnapshot();
 	}
 	for (int i = 0; (i < s->mCells) && (mBoard != NULL); i++)
 	{
