@@ -7,7 +7,8 @@
 // What it does, in order:
 //   1. Copies the game's folder into build/origrun/<run>/game (the install is never written to or run in
 //      place). --exe runs an already-placed copy as-is.
-//   2. Places the sound stand-in (dsound.dll) beside the copied exe, unless --sound real.
+//   2. Places the sound stand-in (dsound.dll) beside the copied exe, and a manifest (<exe>.manifest) that makes it
+//      COM's DirectSound too, unless --sound real.
 //   3. Launches the copy through build/native/rundesk.exe, which puts it on a private, invisible desktop
 //      at below-normal priority. The game inherits that desktop; nothing is shown and focus is never taken.
 //   4. From this host (not injected into the game) it finds the game's top-level window on that desktop and
@@ -1977,6 +1978,47 @@ static void aud_modules(DWORD pid, char* out, int cap)
 	if (!out[0]) lstrcpynA(out,"none",cap);
 }
 
+// A dsound.dll other than the stand-in in the game process: the system's DirectSound, whose sound goes past the
+// stand-in (COM's, before origrun's manifest made the stand-in COM's DirectSound too). Each process with a session is
+// looked at every half second while it runs, so the result can say whether one was ever loaded.
+typedef struct { DWORD pid; int sys; double at; char path[MAX_PATH]; } AudProc;
+static AudProc gAudProc[16];
+static int gAudProcN;
+static int gStandIn;   // the stand-in was placed beside the exe (not --sound real)
+static int aud_sys_dsound(DWORD pid, char* path, int cap)
+{
+	HANDLE p=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,FALSE,pid);
+	if (!p) return 0;
+	static HMODULE mods[1024]; DWORD need=0; int found=0;
+	if (EnumProcessModulesEx(p,mods,sizeof(mods),&need,LIST_MODULES_ALL)) {
+		DWORD n=need/sizeof(HMODULE); if (n>1024) n=1024;
+		for (DWORD i=0;i<n && !found;i++) {
+			char m[MAX_PATH];
+			if (!GetModuleFileNameExA(p,mods[i],m,sizeof(m))) continue;
+			const char* b=strrchr(m,'\\'); b=b?b+1:m;
+			if (ieq(b,"dsound.dll") && _strnicmp(m,gGameDir,strlen(gGameDir))) { lstrcpynA(path,m,cap); found=1; }
+		}
+	}
+	CloseHandle(p);
+	return found;
+}
+static void aud_proc_check(DWORD pid)   // pid 0: every process seen so far
+{
+	if (!gStandIn) return;
+	if (pid) {
+		int k=0; while (k<gAudProcN && gAudProc[k].pid!=pid) k++;
+		if (k==gAudProcN && gAudProcN<16) { ZeroMemory(&gAudProc[k],sizeof(gAudProc[k])); gAudProc[k].pid=pid; gAudProcN++; }
+	}
+	for (int k=0;k<gAudProcN;k++) {
+		AudProc* a=&gAudProc[k];
+		if (a->sys || (pid && a->pid!=pid)) continue;
+		if (aud_sys_dsound(a->pid,a->path,sizeof(a->path))) {
+			a->sys=1; a->at=aud_now();
+			logline("audio: WARNING: the game (pid %lu) loaded the system's DirectSound, %s, %.3f s into the run: what it plays through it goes past the stand-in (into its muted session)", a->pid, a->path, a->at);
+		}
+	}
+}
+
 // One look at a session of the game's: note what it does, and mute it if it is not muted.
 static void aud_game_session(IAudioSessionControl2* c2, DWORD pid, int dev)
 {
@@ -2012,6 +2054,7 @@ static void aud_game_session(IAudioSessionControl2* c2, DWORD pid, int dev)
 	if (pk>s->maxPeak) s->maxPeak=pk;
 	char mods[512]="";
 	if (isNew || (pk>0 && s->firstSound<0)) aud_modules(pid,mods,sizeof(mods));
+	if (isNew) aud_proc_check(pid);
 	if (isNew)
 		logline("audio: the game (pid %lu) has an audio session, %s on render device %d, seen %.3f s into the run: %s; %s, peak %.4g; "
 			"its sound modules: %s", pid, s->what, dev, t, m ? "muted already" : muteNow ? "not muted: muted it now" : "not muted, and it could not be muted",
@@ -2046,6 +2089,7 @@ static void audio_watch(void)
 	if (FAILED(CoCreateInstance(&CLSID_MMDeviceEnumerator,NULL,CLSCTX_ALL,&IID_IMMDeviceEnumerator,(void**)&en))) { CoUninitialize(); return; }
 	for (int pass=0; !gStop; pass++) {
 		if (pass%50==0) { aud_devices(en); gAudPidN=0; }   // every second: a new device; pids asked again
+		if (pass%25==0 && !gAudioSandbox) aud_proc_check(0);   // every half second: the system's dsound.dll loaded?
 		for (int d=0; d<gAudDevN; d++) {
 			IAudioSessionEnumerator* se=NULL;
 			if (FAILED(IAudioSessionManager2_GetSessionEnumerator(gAudDev[d].mgr,&se)) || !se) continue;
@@ -2113,6 +2157,10 @@ static void audio_result(void)
 			s->remutes ? " (it was found unmuted again later, and muted again)" : "");
 	}
 	if (gAudLost) logline("audio: %d more session%s of the game than the watch keeps; each was muted when seen", gAudLost, gAudLost==1?"":"s");
+	int sysDs=0;
+	for (int k=0;k<gAudProcN;k++) if (gAudProc[k].sys) sysDs++;
+	if (sysDs) logline("audio: %d game process%s loaded the system's DirectSound past the stand-in (see the warnings above)", sysDs, sysDs==1?"":"es");
+	else if (gAudProcN && gStandIn) logline("audio: no game process loaded the system's DirectSound (each was looked at every half second while it ran)");
 	if (leaks) logline("RESULT: SOUND LEAK: the game made sound in %d audio session%s before %s muted (measured from %.3f s to %.3f s into the run; see the warnings above).",
 		leaks, leaks==1?"":"s", leaks==1?"it was":"they were", lf, lt);
 	else if (open) logline("RESULT: %d audio session%s of the game had a stream open before %s muted, with no sound measured (see the warnings above).",
@@ -2444,6 +2492,73 @@ static int rollback_wrapper(WrapEntry* e, int n)
 	}
 	if (!write_marker(left,nl)) logline("--dgvoodoo: could not rewrite %s\\%s", gGameDir, kWrapMarker);
 	return nl==0;
+}
+
+// ------------------------------------------------------------------------------------------- COM's DirectSound
+// BASS (Alchemy, Pixelus, Rocket Mania) makes its DirectSound with CoCreateInstance, and COM loads the dsound.dll the
+// registry names for the class, System32's, past the stand-in beside the exe: that is how their music reached the
+// speakers (2026-11-03). A manifest beside the exe (<exe>.manifest) naming the stand-in as the server of DirectSound's
+// two classes makes COM use the stand-in instead (registration-free COM, read by Windows as the process starts; nothing
+// is registered and nothing is hooked). It says nothing else, so every other setting stays what Windows gives an exe
+// without a manifest. Windows reads an exe's manifest once and keeps the answer until the exe changes (a copy that ran
+// before kept the system's dsound.dll until its exe was touched), so the exe's write time is set to now on every run
+// that writes the manifest and on the run that takes it out. An exe with a manifest of its own ignores one beside it
+// (none of the games so far has one); the stand-in's session mute still covers that case.
+#define COM_MARK "<!-- origrun: the sound stand-in serves DirectSound's COM classes -->"
+static const char kComManifest[] =
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n"
+	COM_MARK "\r\n"
+	"<assembly xmlns=\"urn:schemas-microsoft-com:asm.v1\" manifestVersion=\"1.0\">\r\n"
+	"  <file name=\"dsound.dll\">\r\n"
+	"    <comClass clsid=\"{47D4D946-62E8-11CF-93BC-444553540000}\" threadingModel=\"Both\"/>\r\n"   // CLSID_DirectSound
+	"    <comClass clsid=\"{3901CC3F-84B5-4FA4-BA35-AA8172B8A09B}\" threadingModel=\"Both\"/>\r\n"   // CLSID_DirectSound8
+	"  </file>\r\n"
+	"</assembly>\r\n";
+static int exe_own_manifest(const char* exe)
+{
+	HMODULE m=LoadLibraryExA(exe,NULL,LOAD_LIBRARY_AS_DATAFILE|LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+	if (!m) return 0;
+	int has = FindResourceA(m,MAKEINTRESOURCEA(1),MAKEINTRESOURCEA(24))!=NULL;   // RT_MANIFEST, the exe's own (id 1)
+	FreeLibrary(m);
+	return has;
+}
+static void touch_exe(void)
+{
+	HANDLE h=CreateFileA(gExePath,FILE_WRITE_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,0,NULL);
+	FILETIME now; GetSystemTimeAsFileTime(&now);
+	if (h==INVALID_HANDLE_VALUE || !SetFileTime(h,NULL,NULL,&now))
+		logline("warning: could not set the write time of %s (err %lu): Windows may keep the exe's manifest from an earlier run", gExePath, GetLastError());
+	if (h!=INVALID_HANDLE_VALUE) CloseHandle(h);
+}
+// 1: the file is the manifest origrun wrote (it carries COM_MARK); 0: there is none; -1: it is someone else's.
+static int com_manifest_state(const char* path)
+{
+	FILE* f=fopen(path,"rb"); if(!f) return 0;
+	char buf[4096]; size_t n=fread(buf,1,sizeof(buf)-1,f); fclose(f); buf[n]=0;
+	return strstr(buf,COM_MARK) ? 1 : -1;
+}
+// silent: write the manifest (the stand-in is in place); otherwise take out the one an earlier run wrote.
+static void com_manifest(int silent)
+{
+	char mf[MAX_PATH]; wsprintfA(mf,"%s.manifest",gExePath);
+	int st=com_manifest_state(mf);
+	if (!silent) {
+		if (st!=1) return;
+		if (delete_guarded(mf)) { touch_exe(); logline("took out origrun's %s: COM's DirectSound is the system's again", mf); }
+		else logline("warning: could not take out origrun's %s (err %lu): COM's DirectSound stays the stand-in's", mf, GetLastError());
+		return;
+	}
+	if (st<0) { logline("note: %s is not origrun's and is left alone, so COM's DirectSound (BASS's) is the system's; the session mute covers it", mf); return; }
+	if (exe_own_manifest(gExePath)) {
+		logline("note: the exe has a manifest of its own, which Windows takes over one beside it, so COM's DirectSound (BASS's) is the system's; the session mute covers it");
+		if (st==1) delete_guarded(mf);
+		return;
+	}
+	FILE* f=fopen(mf,"wb");
+	if (!f) { logline("warning: could not write %s (err %lu), so COM's DirectSound (BASS's) is the system's; the session mute covers it", mf, GetLastError()); return; }
+	fputs(kComManifest,f); fclose(f);
+	touch_exe();
+	logline("wrote %s: COM's DirectSound is the stand-in's", mf);
 }
 
 // Take out the wrapper an earlier run placed. 0 stops the run: a file of it that could not be deleted, or that changed
@@ -4307,7 +4422,10 @@ int main(int argc, char** argv)
 		wsprintfA(dst,"%s\\dsound.dll",gGameDir);
 		if (CopyFileA(src,dst,FALSE)) logline("placed sound stand-in: %s",dst);
 		else logline("warning: could not place dsound stand-in from %s (err %lu) -- sound may play",src,GetLastError());
+		gStandIn=file_exists(dst);
+		com_manifest(gStandIn);   // COM's DirectSound too, through a manifest beside the exe (only with a stand-in there)
 	} else {
+		com_manifest(0);
 		logline("--sound real: no stand-in placed; the game will use the real audio device");
 		if (gMsgboxHook>0) { logline("--sound real: no message-box hook either (it lives in the stand-in): the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
 	}

@@ -41,7 +41,8 @@ Builds, 32-bit (the originals are 32-bit), with llvm-mingw's i686 target under `
 `build/origrun-bin/` (git-ignored):
 
 - `origrun.exe` — the host: copies the game, launches it under rundesk, drives it, captures, watches audio.
-- `dsound.dll` — the DirectSound sound stand-in placed beside the copy (silence + a log, optionally WAVs).
+- `dsound.dll` — the DirectSound sound stand-in placed beside the copy (silence + a log, optionally WAVs). With it
+  origrun writes `<exe>.manifest` beside the copy's exe, which makes the stand-in COM's DirectSound too (guarantee 3).
 
 A run on the host needs `build/native/rundesk.exe` (`cmake --build build/native --target rundesk`). A `--sandbox`
 run needs the Windows Sandbox feature and its `wsb` command (Windows 11 24H2 or later), and no rundesk.
@@ -69,7 +70,7 @@ Options:
 - `--sound wav` — silent stand-in that also records to `snd/` what the game writes to its DirectSound buffers.
 - `--sound real` — no stand-in; the game uses the real audio device (turn the speakers off first). The audio watch
   still mutes each of its sessions as soon as it appears, so its sound reaches the speakers only for the moment before
-  that (a `SOUND LEAK` line says so).
+  that (a `SOUND LEAK` line says so). It takes out the manifest an earlier run wrote beside the exe.
 - `--timeout <sec>` — wall-clock cap (default 120, max 3600). A run past about 4 minutes goes in the background of the
   session that owns it, never in a subagent (CLAUDE.md, "Token economy"); it is still one game process.
 - `--fresh` — note to re-copy (delete `build/origrun/<run>` first to force a clean copy).
@@ -209,7 +210,20 @@ coordinates that land on Play.
    (see "Windows Sandbox").
 3. **Silent by default.** The `dsound.dll` stand-in beside the copy makes `IDirectSound`/`IDirectSoundBuffer`
    objects that accept every call and never open a device, so DirectSound and anything on top of it that loads it by
-   name stays silent. Sound that goes past the stand-in is silenced by a session mute (since 2026-11-03): as the
+   name stays silent. So does a DirectSound made through COM (`CoCreateInstance` of `CLSID_DirectSound` or
+   `CLSID_DirectSound8`, as the BASS of Alchemy, Pixelus and Rocket Mania makes it), since 2026-11-03: origrun writes a
+   manifest beside the copy's exe (`<exe>.manifest`, marked as origrun's) that names the stand-in as the server of those
+   two classes, and Windows' registration-free COM then makes them in the stand-in instead of loading the system's
+   `dsound.dll` from the registry. Nothing is registered or hooked, and the manifest says nothing else. Windows keeps
+   what it read of an exe's manifest until the exe changes (a copy that had run before went on loading the system's
+   `dsound.dll` until its exe was touched), so origrun sets the exe's write time to now whenever it writes or takes out
+   the manifest. The buffers of such a DirectSound keep their play cursor on the wall clock, as the real device did:
+   on the virtual clock BASS has to mix its music as fast as that clock runs, and the game slowed with it (Alchemy's
+   case ran at 18x instead of 960x). A manifest beside the exe that is not origrun's is left alone, and an
+   exe with a manifest of its own ignores one beside it (none of the games so far has one); the log says so, and the
+   session mute below still covers them. `--sound real` takes origrun's manifest out.
+
+   Sound that goes past the stand-in is silenced by a session mute (since 2026-11-03): as the
    stand-in loads, a thread of its own mutes the process's default audio session (`GUID_NULL`, the one every stream
    without a session of its own joins) on every active render device, and the stand-in's entry points wait for that
    thread before they answer. A stream the game opens later, through the system's DirectSound, winmm's `waveOut` or
@@ -220,7 +234,9 @@ coordinates that land on Play.
    session's mute. Sound measured while a session was not muted reached the speakers; the run log then has a
    `WARNING: SOUND LEAK` line and its RESULT line says `SOUND LEAK`, with the times. Otherwise the RESULT line says that
    each of the game's sessions was muted from its start, and whether the game made sound in them at all (the first at
-   which time, and the loudest peak). With the stand-in a run always shows its sessions, one per render device, muted
+   which time, and the loudest peak). The watch also looks at the modules of each game process with a session every half
+   second: a `WARNING` line says when one loaded the system's `dsound.dll`, and the run's audio lines end with whether
+   any did. With the stand-in a run always shows its sessions, one per render device, muted
    and silent in a game whose sound all goes to the stand-in; "no audio session from the game was seen" now means the
    copy never loaded the stand-in and played nothing.
 
@@ -242,6 +258,20 @@ coordinates that land on Play.
    becomes active during the run, a `PlaySound` with `SND_SYSTEM` (the shared system-sounds session) and a game that
    never loads the stand-in (see Gaps); the watch mutes the first two within milliseconds of their start and reports
    any sound they made as a leak.
+
+   Checked again (2026-11-03, afternoon), after the user heard the leak once more during a Rocket Mania run: that copy
+   still had a stand-in from before the session mute (a worktree's own build), and its process had the system's
+   `dsound.dll` loaded beside the stand-in, which is how BASS's COM path looks. With the manifest, a case each of Rocket
+   Mania, Pixelus and Alchemy made BASS's DirectSound objects in the stand-in, the system's `dsound.dll` was never
+   loaded, and no session made a sound. Each case's counter-timed actions came at the same updates as in its runs
+   before the manifest, and Rocket Mania's case ended on the same update. A Ning Po case and three of four runs of a
+   Big Money case gave the same `--watch` values as before; in the fourth Big Money run the game stayed in its menus,
+   with a second worker thread at its start that no other run had (Big Money makes no DirectSound through COM, so the
+   manifest changes nothing it uses; not seen again). With the stand-in's own mute left out (a scratch build), the
+   Rocket Mania case still showed one session: silent, never active, with winmm's driver loaded, most likely the
+   mixer's master volume as above. A SexyApp game therefore shows a session even when nothing goes past the stand-in.
+   `--sound nodriver` stops BASS's music as well: the game's own `DirectSoundCreate` fails first, so BASS is never
+   started and COM is never asked, and the game plays no sound at all.
 4. **Screens, only inside Windows Sandbox.** `shot`/`waitshot`/`record`/`burst` capture the window with
    `PrintWindow`, or a blit of the window's own DC where `PrintWindow` fails or comes out flat, and write a PNG.
    Inside the sandbox only `PrintWindow` sees a game: there a blit of the window DC or of the screen DC (with or
@@ -798,7 +828,9 @@ game time in 15 s.
   sets.
 - The threads of BASS and FMOD keep the wall clock (they find their functions at run time), and so do a game's
   music streams: the stand-in's play cursor moves with the virtual clock, so a stream is fed as fast as the game runs,
-  but a game that times something by its music's position as the library reports it would drift.
+  but a game that times something by its music's position as the library reports it would drift. A DirectSound made
+  through COM (BASS's, in Alchemy, Pixelus and Rocket Mania) keeps its buffers on the wall clock, as the real device
+  it played on before 2026-11-03 did (guarantee 3).
 - The clock starts when the game loads `dsound.dll`: most originals load it at run time (SexyAppBase's sound manager, or
   BASS), Seven Seas, Noah's Ark, Mummy Maze, Atomica, TipTop and NingPo import it. Time read before that is real, and a
   game that never loads DirectSound through the stand-in (Mahjong Escape's packed `bass.dll`, Bonnie's FMOD 3 in the
@@ -1063,12 +1095,12 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 
 | Game | Source | Reached under origrun | Capture | 3D | Audio seen | Notes |
 |------|--------|-----------------------|---------|----|------------|-------|
-| alchemy | local install | trial, then into the game past Play | yes | has one; on needs `--dgvoodoo` (untried) | its BASS music, through the system's DirectSound past the stand-in: muted from its start since 2026-11-03 (before, its start could reach the speakers) | its music is the sound not via the stand-in (see Audio seen) |
+| alchemy | local install | trial, then into the game past Play | yes | has one; on needs `--dgvoodoo` (untried) | its BASS music, through COM's DirectSound, which is the stand-in since 2026-11-03 (origrun's manifest): none past the stand-in; before, the system's DirectSound past the stand-in, whose start could reach the speakers | its music is the sound not via the stand-in (see Audio seen) |
 | atomica | local install | FATAL ERROR at startup, then exits | — | none | none | FMOD fails to load `sounds\capclick` (Ogg); not the stand-in or display — the Atomica session's to fix |
 | mummymaze | local install | title after a slow (~45 s) start | yes, 646×509 | none | none | window is late to appear |
 | noahsark | local install | own title screen | yes, 646×509 | none | none | update counter proven here (`[0x4d125c]+0x368`); `at` lands on the exact update |
 | sevenseas | local install | own title screen | yes, 646×509 | none | none | |
-| pixelus | local install | trial screen (not clicked through yet) | yes | has one; on needs `--dgvoodoo` (untried) | its BASS music, through the system's DirectSound past the stand-in: muted from its start since 2026-11-03 (before, its start could reach the speakers) | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
+| pixelus | local install | trial screen (not clicked through yet) | yes | has one; on needs `--dgvoodoo` (untried) | its BASS music, through COM's DirectSound, which is the stand-in since 2026-11-03 (origrun's manifest): none past the stand-in; before, the system's DirectSound past the stand-in, whose start could reach the speakers | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
 | tiptop | local install | trial, plays | yes | none | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
 | wordharmony | local install | trial (60 min), Play present | yes | none | none | |
 | bookwormadv | local install | in-game Updates dialog; in the sandbox the pilot's menus and battle (2026-11-01) | **in the sandbox** (2026-11-01), 806×629, client at (3,26); update-timed shots and bursts `printwindow-bracketed (sandbox)`, exact with `--pending-draw [0x8259e4]+0x45a --update-state [0x8259e4]+0x488 --draw-empty [0x8259e4]+0x459` | **off and on proven** (on with `--dgvoodoo`) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
@@ -1079,7 +1111,7 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 | bejeweled | wrapped launcher | **title, prepared copy runs** | **yes** | has one; on needs `--dgvoodoo` (untried) | none | prepared as the private notes below say, run via an absolute `--exe` |
 | bigmoney | wrapped launcher | **whole games on the host, on the virtual clock** (2026-11-03): title, selector, help, every mode to its game over, name entry, play again, a saved game continued | none on the host | has one; on needs `--dgvoodoo` (untried) | none past the stand-in (2026-11-03): the session it opened before was the mixer's master volume | prepared as Bejeweled (`games/bigmoney/tools/origcmp/orig.sh --prepare`). About 11 times real time with `--clock virtual`. The carved exe runs without registry virtualization: it reads the real `HKLM\SOFTWARE\WOW6432Node\PopCap\BigMoney` and, origrun not being elevated, cannot write it, so every run starts from the same settings. Run one copy at a time: one started while another ran exited at once, before its window. Give it `focus regain` first. `games/bigmoney/docs/IDENTICAL_PLAY.md` |
 | bookworm | wrapped Steam exe | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | none past the stand-in (2026-11-03, a whole case of the retail 1.03 exe its session runs): the session it opened before was the mixer's master volume | prepare as Bejeweled (not launched yet) |
-| rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | its BASS music (the same `bass.dll` as Pixelus's), through the system's DirectSound past the stand-in: muted from its start since 2026-11-03 (before, its start could reach the speakers) | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
+| rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | its BASS music (the same `bass.dll` as Pixelus's), through COM's DirectSound, which is the stand-in since 2026-11-03 (origrun's manifest): none past the stand-in; before, the system's DirectSound past the stand-in, whose start could reach the speakers | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
 | mahjongjapan | local install | **whole stages to the ending, in the sandbox** (2026-11-01) | **yes**, 806×629 in the sandbox | has one; off (`HardwareAcceleration=0` by `--reg`) | none | JollyBear engine, windowed DirectDraw (`FullScreen=0` by `--reg`). Posted clicks need a `move` 150 ms before. Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which inside is SYSTEM's, through the 32-bit view: stage them under `sandbox-files/C/Windows/System32/config/systemprofile/AppData/Local/...`, re-signed for `C:\run\game\` (a player's checksum covers the exe's folder). The game reads the cursor with `GetCursorPos` for its hover, which posted input does not move, and `hwmove` did not light a button either in session 0. `--cursor scripted` would answer that call (the exe imports it), but only in a copy that loads the stand-in, which its packed `bass.dll` does not ("The scripted cursor"); untested |
 | mahjongchina | local install | **whole stages and the ending, in the sandbox** (2026-11-01) | **yes**, with `games/mahjongchina/tools/ddrawcap` beside the copy: without it every sandbox shot is black (China's window class has a black background brush, which the sandbox paints over the software display's output) | has one; off (`HardwareAcceleration=0` by `--reg`) | none | As mahjongjapan, and `games/mahjongchina/tools/sandbox_run.sh` does it all (the copy, ddrawcap, the BASS proxy, the registry and the re-signed players). Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape` (no "Ancient China"), staged the same way. Never click the PopCap and SpinTop logos at the menu's bottom corners: they are links |
 | bookwormadv2 | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | not wrapped; `Steam.dll` auto-copied now |
@@ -1164,9 +1196,10 @@ Other gaps:
   window, with the dsound stub, with `nodriver`, and with real audio alike. The Ogg and `fmod.dll` are present,
   so it is FMOD's init/decode of this copy on Windows 11 (or a game-data path) — the Atomica session's to fix;
   origrun cannot capture a game that will not start.
-- **Sound past the stand-in** (the BASS music of Alchemy, Pixelus and Rocket Mania, made through COM's DirectSound;
-  `waveOut`, `PlaySound`, FMOD's own output) is muted from its start by the stand-in's session mute since 2026-11-03
-  (guarantee 3). Still open: a stream with a session GUID of its own (none seen yet), a render device that becomes
+- **Sound past the stand-in.** The BASS music of Alchemy, Pixelus and Rocket Mania, made through COM's DirectSound,
+  goes to the stand-in since 2026-11-03 through the manifest origrun writes beside the exe. What can still get past
+  it (`waveOut`, `PlaySound`, FMOD's own output, COM's DirectSound in an exe whose own manifest wins over ours) is
+  muted from its start by the stand-in's session mute (guarantee 3). Still open: a stream with a session GUID of its own (none seen yet), a render device that becomes
   active during a run, and a copy that never loads the stand-in (Mahjong Escape Ancient Japan's packed `bass.dll`, say,
   where the stand-in is not used); for those the watch mutes each session within milliseconds of its start and reports
   any sound before that as a `SOUND LEAK`. Bookworm Adventures, Bejeweled Twist and the FMOD games have not been run with

@@ -22,10 +22,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   window, play no sound and open no URL. A web build under Node still counts as a game process.
 - **Originals** run only through `tools/origrun` (`docs/ORIGRUN.md`: what it does, its status table for each game, its
   gaps), from a copy under build/, invisibly under rundesk; an install folder is never written to or run in place.
-  origrun is silent by default (rundesk silences only SDL); its stand-in also mutes the copy's own audio sessions as
-  it loads, so sound that goes past it (the BASS music of Alchemy, Pixelus and Rocket Mania, which reaches the
-  system's DirectSound through COM; waveOut; PlaySound) never reaches the speakers, and a run's RESULT line says
-  `SOUND LEAK` if any did. The user allows sound and changed saves ("You are welcome
+  origrun is silent by default (rundesk silences only SDL): its stand-in also serves the DirectSound a copy asks COM
+  for (BASS in Alchemy, Pixelus and Rocket Mania) and mutes the copy's audio sessions as it loads, so nothing reaches
+  the speakers, and a run's RESULT line says `SOUND LEAK` if anything did. A copy keeps the stand-in its last run
+  placed, so a worktree merges the trunk (2026-11-03 or later) and rebuilds origrun before running originals. The user allows sound and changed saves ("You are welcome
   to run the originals with sound on and mess with my save data", 2026-10-31; the saves they care about are backed
   up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
   entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. origrun
