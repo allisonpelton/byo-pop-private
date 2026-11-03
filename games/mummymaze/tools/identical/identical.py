@@ -149,6 +149,8 @@ def cmd_compare(argv):
             if n in ('maze', 'file'):
                 a = [(u, v) for u, v in a if not in_scene(u)]
                 b = [(u, v) for u, v in b if not in_scene(u)]
+                a = [(u, v) for u, v in a if v != '-']	# the board's going away: no value
+                b = [(u, v) for u, v in b if v != '-']
                 a, b = settle(a), settle(b)	# a value the scene left behind equals the next one: not a change
                 a = [(u, v) for i, (u, v) in enumerate(a) if i == 0 or v != a[i - 1][1]]
                 if not a and b and b[0][1] == '0':	# the port never changed from 0: the original's first real value is 0 too

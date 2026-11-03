@@ -872,7 +872,7 @@ mummymaze_game() {  # <name> <bot arguments>...: a bot game; prints the last res
 	local n="$1" d
 	d="$OUT/mummymaze/$n"; shift
 	rm -rf "$d"; mkdir -p "$d/shots"
-	timeout 600 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast "$@" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" 		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	timeout 600 "${MM_EXE:-$W/build/native/mummymaze.exe}" -userdir="$d/user" -fast "$@" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(game over|victory|tutorial done|stalled|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
@@ -903,6 +903,20 @@ suite_mummymaze() {
 	[ "$v" = "$MM_ADVENTURE" ] || st=1
 	mummymaze_resume || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-mummymaze/mummymaze.exe, a copy of the port made when it was last checked against
+	# the original, 2026-11-03): the same games must give the same log lines and the same screenshots. Refreeze it only on purpose,
+	# with the reason in games/mummymaze/docs/IDENTICAL_PLAY.md.
+	local base="$W/build/baseline-mummymaze/mummymaze.exe" bl="" k
+	if [ -f "$base" ]; then
+		MM_EXE="$base" mummymaze_game base-classic -seed=1 -autoplay=7 -autoplaygames=1 -autoplaylevels=8 -autoplaycap=60000 > /dev/null
+		MM_EXE="$base" mummymaze_game base-tips -seed=3 -autoplay=5 -autoplaygames=1 -autoplaystart=3,0 -autoplaylevels=4 -autoplaycap=60000 > /dev/null
+		MM_EXE="$base" mummymaze_game base-tutorial -seed=1 -autoplay=3 -autoplaymode=tutorial -autoplaycap=100000 > /dev/null
+		bl="baseline identical"
+		for k in classic tips tutorial; do
+			cmp -s "$OUT/mummymaze/$k/log.txt" "$OUT/mummymaze/base-$k/log.txt" && diff -rq "$OUT/mummymaze/$k/shots" "$OUT/mummymaze/base-$k/shots" >> "$1" 2>&1 || { bl="BASELINE DIFFERS ($k)"; st=1; }
+		done
+		r="$r; $bl"
+	fi
 	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $MM_RESUME; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$MM_CLASSIC', tips '$MM_TIPS', full '$MM_FULL', tutorial '$MM_TUTORIAL', adventure '$MM_ADVENTURE')"
 	return $st
