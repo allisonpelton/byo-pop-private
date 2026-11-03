@@ -1891,14 +1891,14 @@ void Game::update(UpdateInfo& theInfo)
 			}
 			if (mTimer < 1.0f && 0 < mBonus && mMode != 0)
 			{
-				// A hundred points at a time, faster as it goes
-				float aStep = 2.0f - mCountUp;
+				// A hundred points at a time, faster as it goes (the step kept in double, as the x87 code keeps it)
+				double aStep = 2.0f - (double)mCountUp;
 				if (aStep <= 0.0f)
 					aStep = 0.0f;
 				mBonus = mBonus - 100;
 				aStep = aStep * 0.15f + 0.05f;
-				mCountUp = aStep + mCountUp;
-				mTimer = aStep + mTimer;
+				mCountUp = (float)(aStep + mCountUp);
+				mTimer = (float)(aStep + mTimer);
 				playSound("STATS_COUNTUP");
 				TextEffect* aPoints = mTextEffects->create("bonusPoints", 570.0f, 394.0f, &Game::pointsShown, 100);
 				aPoints->setText("100");

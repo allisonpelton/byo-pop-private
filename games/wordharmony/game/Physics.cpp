@@ -222,13 +222,13 @@ void Follow::apply()
 	if (!mActive)
 		return;
 	Point p = *mNode->getPosition();
-	p.x = (mTarget.x - p.x) * mRate + p.x;
-	p.y = (mTarget.y - p.y) * mRate + p.y;
+	p.x = (float)(((double)mTarget.x - p.x) * mRate + p.x);
+	p.y = (float)(((double)mTarget.y - p.y) * mRate + p.y);
 	if (mSnap)
 	{
 		double k = 1.0 / mGrid;
-		p.x = (float)((float)(int)(k * mTarget.x) * mGrid + 22.0);
-		p.y = (float)((float)(int)(k * mTarget.y) * mGrid + 22.0);
+		p.x = (float)((double)(int)(k * mTarget.x) * mGrid + 22.0);
+		p.y = (float)((double)(int)(k * mTarget.y) * mGrid + 22.0);
 	}
 	mNode->setPosition(p);
 }
@@ -291,8 +291,9 @@ void Distance::apply()
 	// The x87 code in double: the distances and their square are stored as floats, the push is kept, the push along y
 	// is stored and the one along x kept
 	float dx = b.x - a.x;
-	float dy = b.y - a.y;
-	float d2 = (float)((double)dy * dy + (double)dx * dx);
+	double aDy = (double)b.y - a.y;  // squared unrounded times stored, as the x87 code's fsts/fmuls
+	float dy = (float)aDy;
+	float d2 = (float)(aDy * dy + (double)dx * dx);
 	if ((mMode != KEEP_AT_LEAST || d2 <= mDistance2) && (mMode != KEEP_AT_MOST || mDistance2 <= d2) &&
 		(mMode != KEEP_EXACTLY || d2 != mDistance2))
 	{
@@ -327,8 +328,9 @@ void Stick::apply()
 	Point a = *mFirst->getPosition();
 	// the x87 code in double, as Distance's
 	float dx = b.x - a.x;
-	float dy = b.y - a.y;
-	float d2 = (float)((double)dy * dy + (double)dx * dx);
+	double aDy = (double)b.y - a.y;  // squared unrounded times stored, as the x87 code's fsts/fmuls
+	float dy = (float)aDy;
+	float d2 = (float)(aDy * dy + (double)dx * dx);
 	if ((mMode != 1 || (d2 <= mMin2 && mMax2 <= d2)) && (mMode != 0 || (mMin2 <= d2 && d2 <= mMax2)))
 	{
 		double f = mMin2 / ((double)d2 + mMin2) - 0.5;
@@ -373,8 +375,8 @@ void Chain::apply()
 				do
 				{
 					Ball* aBall = mBalls->getBall(*anIt);
-					float d = aBall->mRadius + aPrev->mRadius;
-					Distance(aPrev, aBall, d * d, mMode).apply();
+					double d = (double)aBall->mRadius + aPrev->mRadius;
+					Distance(aPrev, aBall, (float)(d * d), mMode).apply();
 					++anIt;
 					aPrev = aBall;
 				} while (anIt != mIndices.end());
@@ -382,8 +384,8 @@ void Chain::apply()
 		}
 		Ball* aFirst = mBalls->getBall(mIndices.front());
 		Ball* aLast = mBalls->getBall(mIndices.back());
-		float d = (float)(unsigned int)(mIndices.size() - 1) * (aLast->mRadius + aFirst->mRadius);
-		Distance(aFirst, aLast, d * d, mMode).apply();
+		double d = (double)(unsigned int)(mIndices.size() - 1) * ((double)aLast->mRadius + aFirst->mRadius);
+		Distance(aFirst, aLast, (float)(d * d), mMode).apply();
 	}
 	else
 	{
@@ -395,8 +397,8 @@ void Chain::apply()
 				Ball* a = mBalls->getBall(i);
 				i++;
 				Ball* b = mBalls->getBall(i);
-				float d = (b->mRadius + a->mRadius) - 2.0f;
-				Distance(a, b, d * d, mMode).apply();
+				double d = ((double)b->mRadius + a->mRadius) - 2.0f;
+				Distance(a, b, (float)(d * d), mMode).apply();
 			} while (i < mBalls->mCount - 1);
 		}
 	}
@@ -425,11 +427,12 @@ void Collisions::apply()
 						{
 							Point pb = *b->getPosition();
 							Point pa = *a->getPosition();
-							// The x87 code in double: the distances are stored as floats, the square and the push are
+							// The x87 code in double: the distances are stored as floats (dy squared before its rounding times after), the square and the push are
 							// kept, the push along y is stored and the one along x kept
 							float dx = pb.x - pa.x;
-							float dy = pb.y - pa.y;
-							double d2 = (double)dy * dy + (double)dx * dx;
+							double aDy = (double)pb.y - pa.y;
+							float dy = (float)aDy;
+							double d2 = aDy * dy + (double)dx * dx;
 							if (d2 <= 1936.0)
 							{
 								double f = 1936.0 / (d2 + 1936.0) - 0.5;

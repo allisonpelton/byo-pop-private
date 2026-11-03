@@ -1,4 +1,6 @@
 #include "SoundHost.h"
+
+#include <cmath>
 #include "engine/Host.h"
 
 #include <algorithm>
@@ -96,10 +98,21 @@ void HostSound::setVolume(float theVolume)
 	applyGain();
 }
 
+// The original plays a sound of up to 2 s from one buffer, which ends after its length; a longer one streams through a
+// 2 s buffer refilled a second at a time (0x444270), and it stops only when the cursor leaves the half that took the
+// last of it: at the whole seconds of its length plus one (as 0x4440f0 reads the end with the last data).
+static double endMs(const Platform::SoundData* theData)
+{
+	double aMs = theData->mFrames * 1000.0 / theData->mRate;
+	if (aMs > 2000.0)
+		aMs = (floor(aMs / 1000.0) + 1) * 1000.0;
+	return aMs;
+}
+
 bool HostSound::isPlaying()
 {
 	if (sGameClock && mPlaying && !mLoop && mData->mRate > 0 &&
-		(double)(uint32_t)(engine::getHost()->timeMs() - mStartTime) * mPitch >= mData->mFrames * 1000.0 / mData->mRate)
+		(double)(uint32_t)(engine::getHost()->timeMs() - mStartTime) * mPitch >= endMs(mData.get()))
 	{
 		halt();
 		mPosition = 0;
