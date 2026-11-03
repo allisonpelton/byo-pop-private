@@ -49,6 +49,8 @@ copy_dir re/bookwormadv/jp2ref
 copy_dir build/baseline
 copy_dir build/baseline-stage0
 [ "$CACHE" = 1 ] && copy_dir build/oracle-cache
+# the site's test key (docs/WEB_PLAYER.md, "The terms"): the web build reads it, agents read it for their test URLs
+copy_dir secrets
 
 # Generated mod files: what git ignores under games/*/mods in the main checkout
 n=0

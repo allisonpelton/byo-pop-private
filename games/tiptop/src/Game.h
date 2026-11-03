@@ -46,6 +46,9 @@ extern uint32_t gLevelListCount;        // 0x4884a8
 // MSVC's rand (0x44ccaf) and srand: the same sequence for a seed as the original
 int Rand();
 void SRand(uint32_t theSeed);
+// test hooks (the state log): the generator's state after the last draw or seed, and the draws made
+extern uint32_t gRandState;
+extern uint32_t gRandDraws;
 
 // --- 0x4113db-0x411c85: sounds, music, preferences ---
 lowos::Sound* LoadSound(int theId);     // 0x4113db

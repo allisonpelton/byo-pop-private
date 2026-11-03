@@ -22,23 +22,31 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   window, play no sound and open no URL. A web build under Node still counts as a game process.
 - **Originals** run only through `tools/origrun` (`docs/ORIGRUN.md`: what it does, its status table for each game, its
   gaps), from a copy under build/, invisibly under rundesk; an install folder is never written to or run in place.
-  origrun is silent by default (rundesk silences only SDL). The user allows sound and changed saves ("You are welcome
+  origrun is silent by default (rundesk silences only SDL): its stand-in also serves the DirectSound a copy asks COM
+  for (BASS in Alchemy, Pixelus and Rocket Mania) and mutes the copy's audio sessions as it loads, so nothing reaches
+  the speakers, and a run's RESULT line says `SOUND LEAK` if anything did. A copy keeps the stand-in its last run
+  placed, so a worktree merges the trunk (2026-11-03 or later) and rebuilds origrun before running originals. The user allows sound and changed saves ("You are welcome
   to run the originals with sound on and mess with my save data", 2026-10-31; the saves they care about are backed
   up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
   entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. origrun
   may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
-  waits too", 2026-11-03), and its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
-  2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first (`docs/ORIGRUN.md`). Patch a
-  copy as needed (many are not activated): how a protection is taken apart goes only in private blocks, and the
-  patching tools in `.publishignore`. origrun cannot stop a message box's own sound or a MessageBeep and has no guard
+  waits too", 2026-11-03), its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
+  2026-11-03), and its MessageBox and MessageBeep calls so that a message box is answered without showing or sounding
+  ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
+  (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
+  private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
+  and its MessageBeep calls with no sound, unless `--msgbox show` (a box then rings, as do boxes called through
+  GetProcAddress, `--sound real` runs and games that never load the stand-in; `docs/ORIGRUN.md`). It has no guard
   against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
   needs real sound, the user turns the speakers off for a short stretch or overnight. An original counts as a game
   process.
 - Open web builds in the Browser pane only with `?silent=1`, e.g. `http://127.0.0.1:18766/bejeweled.html?silent=1`
   (the status line then ends in "silent"): the pane may be hidden, and without it the game plays its music and sounds
-  on the user's speakers. The terms card is off on every game page for now (the user, 2026-10-26;
-  `BYOPOP_WEB_TERMS_GATE` in `cmake/ByopopWeb.cmake`): leave it off. No game page goes on a public host until it is
-  on again (`docs/WEB_PLAYER.md`, "The terms").
+  on the user's speakers. The terms card is on in every build but skips itself on a development host (127.0.0.1,
+  localhost, [::1], *.localhost, *.test, file://), so local tests never meet it; `?terms=1` shows it there. On the
+  deployed site an agent skips it with the test key from the git-ignored `secrets/web-testkey.txt`, which is never
+  written into chat, commits or docs; either skip counts no play (`docs/WEB_PLAYER.md`, "The terms"). The site goes
+  on a public host only when the user says so.
 - Under rundesk the framework never opens a URL (it logs "OpenURL in a test run"), but builds and frozen exes from
   before that guard do: a click on a game's "more games" link brings up the user's Steam client. Random or generated
   input never clicks link buttons (Options dialog, "buy" or "more games" screens) in any build.
@@ -56,8 +64,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
   on itself forever and blocks every other agent. How to run the oracle (its variants, cache and partial runs):
   `docs/BUILDS.md`, "Running the oracle".
-- Leave nothing running: loops started in the background end before you finish, and a stopped task's child processes
-  are killed.
+- Leave nothing running: loops started in the background end before you finish. Stopping a task can leave its loop's
+  shells alive and still starting runs (Ning Po, 2026-11-03), so afterwards look for processes whose command line is
+  inside your folder and stop them by id.
 - End a turn waiting only on something that wakes you: a background command or a Monitor that ends by itself and
   notifies you. A run you watch in the Browser pane never wakes you, and a page in a hidden pane runs no
   requestAnimationFrame unless it is shimmed, so it can stand still for good. A session that ended its turn on "waiting

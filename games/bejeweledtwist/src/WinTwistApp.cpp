@@ -2,6 +2,28 @@
 #include "WinTwistApp.h"
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#include "WebSettings.h"
+
+// port: what the browser's WebGL2 is, tested as the site's "3D acceleration" tests it (web/settings.js, accel3d), each
+// context let go at once: 0 none, 1 drawn without the graphics card (a context with failIfMajorPerformanceCaveat is
+// refused; SwiftShader with hardware acceleration off), 2 on it. Browsers honour the flag unevenly, so it is a hint: a
+// context made with it counts as the graphics card's.
+EM_JS(int, bjt_webgl2_support, (), {
+	function context(attrs) {
+		try {
+			var gl = document.createElement("canvas").getContext("webgl2", attrs);
+			if (!gl)
+				return false;
+			var lose = gl.getExtension("WEBGL_lose_context");
+			if (lose)
+				lose.loseContext();
+			return true;
+		} catch (e) {
+			return false;
+		}
+	}
+	return !context(undefined) ? 0 : context({ failIfMajorPerformanceCaveat: true }) ? 2 : 1;
+});
 #endif
 
 #include "CustomBassMusicInterface.h"
@@ -487,6 +509,14 @@ void WinTwistApp::ReadFromRegistry()
 	// display decides (DisplayInitFailed), so a first start is 3D where the display can do it
 	bool is3D = true;
 	RegistryReadBoolean("Is3D", &is3D);
+	// port: on the web the site's "3D acceleration" (always or never) takes the place of "Is3D" for this run, as its cursors
+	// setting does for the game's own; always is still 2D without WebGL2 (DisplayInitFailed)
+#ifdef __EMSCRIPTEN__
+	if (Byopop::SiteAccel3D() >= 0)
+		is3D = Byopop::SiteAccel3D() != 0;
+	else if (is3D && bjt_webgl2_support() < 2)
+		is3D = false;  // the original takes 3D only from a card its driver checks pass (0x6193b0): WebGL2 without one is 2D
+#endif
 	mUse3D = mUse3DSwitch < 0 ? is3D : mUse3DSwitch != 0;
 	EnableCustomCursors(mCustomCursorsEnabled);
 	mProfile->mCustomCursors = mCustomCursorsEnabled;
@@ -497,13 +527,8 @@ bool WinTwistApp::Is3DAccelerationSupported()
 	if (Is3DAccelerated())
 		return true;
 #ifdef __EMSCRIPTEN__
-	return EM_ASM_INT({
-		try {
-			return document.createElement('canvas').getContext('webgl2') ? 1 : 0;
-		} catch (e) {
-			return 0;
-		}
-	}) != 0;
+	// WebGL2 drawn without the graphics card counts as no 3D, as at the start (ReadFromRegistry)
+	return bjt_webgl2_support() == 2;
 #else
 	return true;
 #endif

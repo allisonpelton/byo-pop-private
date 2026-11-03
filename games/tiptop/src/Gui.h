@@ -243,6 +243,7 @@ void FreeAllLayers();                                                          /
 Handler* NewHandler(HandlerProc theProc, Layer* theLayer, const GuiRect* theRect, uintptr_t theA,
 	uintptr_t theB);  // 0x4294f7
 void FreeHandler(Handler* theHandler);                                         // 0x429611
+Handler* HandlerTable(uint16_t* theCount);                                     // test hooks: the handler table
 Handler* NextHandler(Handler* theHandler);                                     // 0x429692
 Handler* PrevHandler(Handler* theHandler);                                     // 0x4296d1
 void Dispatch(uint32_t theMsg, uintptr_t theA, uintptr_t theB);                // 0x429711

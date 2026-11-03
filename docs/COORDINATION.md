@@ -6,8 +6,9 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 
 ## Usage
 
-- **Weekly cap (the user, 2026-10-26):** when the account's weekly usage (all models) reaches 85%, the coordinator
-  starts no new game session and sends no "Begin"; it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
+- **Weekly cap (the user, 2026-10-26; 2026-11-03):** when the account's weekly usage (all models) reaches 97%, the
+  coordinator starts no new game session and sends no "Begin" ("I only need 3% usage in reserve for the week", the
+  user, 2026-11-03; it was 85%); it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
   Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
   and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
   Site work runs alongside the game sessions (the user, 2026-11-01).

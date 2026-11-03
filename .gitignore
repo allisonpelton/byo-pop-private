@@ -27,3 +27,6 @@ __pycache__/
 # a protection detail). Kept local, like games.tsv's paths; never committed. The format is in docs/ORIGRUN.md.
 /tools/origrun/*.cfg
 /tools/origrun/patches/
+
+# The site's test key (docs/WEB_PLAYER.md, "The terms"; tools/testkey.py): never committed or published
+/secrets/

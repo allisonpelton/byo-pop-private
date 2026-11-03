@@ -2,9 +2,9 @@
 #define __ATOMICA_ATOMICUS_H__
 
 // Atomicus.cpp: the adviser on the machine's monitor (Atomica.exe 0x40b200-0x40c240, 0x421c40-0x421e10): a head that
-// looks about, blinks and speaks a voice clip when something happens. A message is a sound after a delay.
-// port: the original keeps lip-sync data (a table of mouth shapes for each clip); it is not ported, the mouth moves
-// at random while a clip is due to play.
+// looks about, blinks and speaks a voice clip when something happens. A message is a sound after a delay, with the
+// clip's mouth data (a list of keyframes, read from the executable: GameText.h); the mouth follows it from the update the
+// sound starts, and the head talks until the list ends (0x421c40-0x421e10).
 
 #include "Support.h"
 #include <vector>
@@ -21,9 +21,10 @@ class Atomicus
 public:
 	struct Message
 	{
-		int		mDelay;			// updates left
-		Sound*	mSound;
-		int		mTalk;			// updates the mouth moves
+		int		mDelay;			// +0 updates between the message and its sound
+		int		mCount;			// +4 updates left
+		Sound*	mSound;			// +8
+		unsigned int	mLipData;	// +0xc the address of the clip's mouth data in the original
 	};
 
 	AtomicaApp*	mApp;			// +4
@@ -40,8 +41,17 @@ public:
 	float		mBlinkFrame;	// +0x34
 	int			mBlinkCount;	// +0x38
 	bool		mOnlyLevelUp;	// +0x3c only the level-up voice is heard
-	bool		mTalking;		// +0x44 a clip plays
-	int			mTalkTick;
+	// the lip-sync (0x421c40, the original's object at +0x40)
+	bool		mTalking;		// +0x44 the mouth data is running
+	bool		mPending;		// +0x45 a clip is waiting to start (set from the beginning: no looking about until one has played)
+	const int*	mLipCursor;		// +0x4c the next keyframe
+	float		mLipFrame;		// +0x50 the mouth picture shown
+	float		mLipPos;		// +0x54
+	float		mLipStep;		// +0x58
+	float		mLipTarget;		// +0x5c
+	unsigned int	mLipTick;	// +0x60 the clock at the last update
+	int			mLipCountdown;	// +0x64 updates until the sound starts
+	Sound*		mLipSound;		// +0x68
 	std::vector<Message>	mMessages;	// +0x6c
 
 	Atomicus(AtomicaApp* theApp);					// 0x40b200
@@ -50,6 +60,9 @@ public:
 	void	Say(int theMessage);					// 0x40b5a0
 	void	Comment(int theCombo);					// 0x40c000
 	void	Blink();								// 0x40b550
+	void	LipStart(Sound* theSound, unsigned int theLipData);	// 0x421e10
+	void	LipUpdate();							// 0x421d00
+	void	LipNext();								// 0x421c70
 	void	Draw(Graphics* g, int theX, int theY);	// 0x40b9f0
 };
 

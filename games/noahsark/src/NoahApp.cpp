@@ -93,6 +93,7 @@ NoahApp::NoahApp()
 	mAutoplayMenu = false;
 	mAutoplayState = NULL;
 	mStateLogState = NULL;
+	mResyncState = NULL;
 }
 
 NoahApp::~NoahApp()

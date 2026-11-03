@@ -12,6 +12,16 @@
 //   -autoplaycap=N        quit after N updates in any case
 //   -autoplaylog=<file>   the log ("level N done at update U", "game N over at update U")
 //   -autoplayshots=<prefix>  screenshots at each level summary and game over
+//   -autoplayui           where it would press Enter, click the button Enter presses (the original reads its keys with
+//                         DirectInput, which origrun's posted input does not reach), and type the high score's name
+//                         before it clicks OK
+//   -autoplayscript=<file>   the bot's input as a -script file, each line at the update it is run
+//   -autoplaysave=N       after N blocks in the first game, end it through End game and save it, then continue it from
+//                         the new game screen
+//
+// -statelog=<file> (any run): a line "<update> <name> <value>" at each change of the values that decide play, read
+// after the update's pass; "-" while there is no board. The names are those games/tiptop/tools/identical/case.sh
+// watches in the original.
 
 #include "TipTopApp.h"
 #include "App.h"
@@ -23,7 +33,13 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
+
+namespace tiptop
+{
+uint32_t SummaryItemProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler);  // App.cpp, 0x424e66
+}
 
 using namespace Sexy;
 
@@ -40,10 +56,12 @@ struct AutoplayState
 	int mMoves;           // blocks dropped in this game
 	bool mNameTyped;
 	bool mShot;           // the screenshot of this screen is taken
+	int mSaveStep;        // -autoplaysave: 0 to do, 1 End game clicked, 2 saved, 3 continued
 	FILE* mLog;
+	FILE* mScriptOut;
 
 	AutoplayState(unsigned int theSeed) : mSeed(theSeed), mWait(0), mGames(0), mLastScreen(-1), mShots(0), mMoves(0),
-		mNameTyped(false), mShot(false), mLog(nullptr) {}
+		mNameTyped(false), mShot(false), mSaveStep(0), mLog(nullptr), mScriptOut(nullptr) {}
 
 	int Rand(int theRange)
 	{
@@ -61,6 +79,8 @@ void DeleteAutoplayState(AutoplayState* theState)
 {
 	if (theState->mLog != nullptr)
 		fclose(theState->mLog);
+	if (theState->mScriptOut != nullptr)
+		fclose(theState->mScriptOut);
 	delete theState;
 }
 
@@ -78,6 +98,71 @@ void Log(AutoplayState* s, const char* theFormat, ...)
 	vfprintf(s->mLog, theFormat, args);
 	va_end(args);
 	fflush(s->mLog);
+}
+
+// Input for the next update, written to the -autoplayscript file as well
+void Add(AutoplayState* s, const std::string& theCommand, const std::string& theArgs)
+{
+	gApp->AddScriptCommand(gApp->mUpdateCount, theCommand, theArgs);
+	if (s->mScriptOut != nullptr)
+	{
+		fprintf(s->mScriptOut, "%d %s %s\n", gApp->mUpdateCount + 1, theCommand.c_str(), theArgs.c_str());
+		fflush(s->mScriptOut);
+	}
+}
+
+// What Enter would press: a button of the top modal layer that Enter presses, or the level summary's continue item once
+// it takes input; nullptr if none
+tiptop::Handler* EnterTarget()
+{
+	uint16_t aCount = 0;
+	tiptop::Handler* aTable = tiptop::HandlerTable(&aCount);
+	for (int i = 0; i < aCount; i++)
+	{
+		tiptop::Handler* h = &aTable[i];
+		if (h->mProc == nullptr || tiptop::InTopModal(h->mLayer) == 0)
+			continue;
+		if ((h->mProc == tiptop::ButtonProc || h->mProc == tiptop::ShapedButtonProc) &&
+			(h->u.button.mCommand & 0x80000000) != 0)
+			return h;
+		if (h->mProc == tiptop::SummaryItemProc && h->u.mSlots[0] == 4 && (h->u.mSlots[3] & 4) != 0)
+			return h;
+	}
+	return nullptr;
+}
+
+// Clicks the button of the top modal layer that sends theCommand; false if there is none
+bool ClickCommand(AutoplayState* s, uint32_t theCommand)
+{
+	uint16_t aCount = 0;
+	tiptop::Handler* aTable = tiptop::HandlerTable(&aCount);
+	for (int i = 0; i < aCount; i++)
+	{
+		tiptop::Handler* h = &aTable[i];
+		if (h->mProc != nullptr && tiptop::InTopModal(h->mLayer) != 0 &&
+			(h->mProc == tiptop::ButtonProc || h->mProc == tiptop::ShapedButtonProc) &&
+			(h->u.button.mCommand & 0x3fffffff) == theCommand)
+		{
+			Add(s, "click", StrFormat("%d %d", h->mRect.x + h->mRect.w / 2, h->mRect.y + h->mRect.h / 2));
+			return true;
+		}
+	}
+	return false;
+}
+
+// Enter, or with -autoplayui a click on what Enter would press; false if there is nothing to click yet
+bool Enter(AutoplayState* s)
+{
+	if (!gApp->mAutoplayUi)
+	{
+		Add(s, "key", "RETURN");
+		return true;
+	}
+	tiptop::Handler* h = EnterTarget();
+	if (h == nullptr)
+		return false;
+	Add(s, "click", StrFormat("%d %d", h->mRect.x + h->mRect.w / 2, h->mRect.y + h->mRect.h / 2));
+	return true;
 }
 
 // The cells of the same kind joined to theIndex (theKind placed there), counted once each
@@ -160,6 +245,8 @@ void TipTopApp::Autoplay()
 	AutoplayState* s = mAutoplayState;
 	if (s->mLog == nullptr && !mAutoplayLog.empty())
 		s->mLog = fopen(mAutoplayLog.c_str(), "w");
+	if (s->mScriptOut == nullptr && !mAutoplayScript.empty())
+		s->mScriptOut = fopen(mAutoplayScript.c_str(), "w");
 	if (mUpdateCount >= mAutoplayCap)
 	{
 		Log(s, "update %d: cap reached (game %d, %d moves)\n", mUpdateCount, s->mGames + 1, s->mMoves);
@@ -206,7 +293,7 @@ void TipTopApp::Autoplay()
 	{
 	case tiptop::SCREEN_SPLASH:
 		// "click here to play", once the load bar is full
-		AddScriptCommand(mUpdateCount, "click", "186 288");
+		Add(s, "click", "186 288");
 		s->mWait = 100;
 		break;
 	case tiptop::SCREEN_MAINMENU:
@@ -216,12 +303,22 @@ void TipTopApp::Autoplay()
 			Shutdown();
 			return;
 		}
-		AddScriptCommand(mUpdateCount, "click", "165 88");  // Play
+		Add(s, "click", "165 88");  // Play
 		s->mWait = 100;
 		break;
 	case tiptop::SCREEN_NEWGAME:
-		// the new game screen's Regular, Strategy and Speed buttons
-		AddScriptCommand(mUpdateCount, "click", mAutoplayMode == 1 ? "145 260" : mAutoplayMode == 2 ? "240 325" :
+		// the new game screen's Regular, Strategy and Speed buttons, or Continue for the game just saved
+		if (s->mSaveStep == 2)
+		{
+			if (ClickCommand(s, 0x24))
+			{
+				Log(s, "update %d: continue the saved game\n", mUpdateCount);
+				s->mSaveStep = 3;
+				s->mWait = 100;
+			}
+			break;
+		}
+		Add(s, "click", mAutoplayMode == 1 ? "145 260" : mAutoplayMode == 2 ? "240 325" :
 			"232 185");
 		s->mWait = 100;
 		break;
@@ -230,19 +327,46 @@ void TipTopApp::Autoplay()
 		tiptop::Board* aBoard = anApp.mBoard;
 		if (tiptop::InTopModal(anApp.mLayer) == 0)
 		{
+			if (s->mSaveStep == 1)
+			{
+				// the save dialog: save (command 3), back to the main menu
+				if (ClickCommand(s, 3))
+				{
+					Log(s, "update %d: saved after %d moves, score %u\n", mUpdateCount, s->mMoves,
+						aBoard != nullptr ? aBoard->GetScore() : 0);
+					s->mSaveStep = 2;
+					s->mWait = 100;
+				}
+				break;
+			}
 			// the tips (or another dialog) over the game: its default button
-			AddScriptCommand(mUpdateCount, "key", "RETURN");
-			s->mWait = 100;
+			if (Enter(s))
+				s->mWait = 100;
 			break;
 		}
 		if (aBoard == nullptr || aBoard->mField == nullptr || aBoard->mGameOver != 0 || tiptop::gBusy != 0)
 			break;
+		// a press the column cursor still holds (a click that came while the game was busy) is tapped first: a click in
+		// the same pass would make the original, whose scripted cursor moves in the middle of a pass, tap the held
+		// press in the new click's column (phase one of the identical-play pass, the speed game)
+		if (anApp.mEC != nullptr && anApp.mEC->u.mSlots[1] != 0)
+			break;
+		if (s->mSaveStep == 0 && mAutoplaySave > 0 && s->mMoves >= mAutoplaySave && s->mGames == 0)
+		{
+			// End game (command 2), which asks whether to save
+			if (ClickCommand(s, 2))
+			{
+				s->mSaveStep = 1;
+				s->mWait = 100;
+			}
+			break;
+		}
 		int aColumn = ChooseColumn(s, aBoard);
 		if (aColumn < 0)
 			break;
 		int x = tiptop::gConfig.mBlockgridX + aColumn * tiptop::gConfig.mBlockWidth + tiptop::gConfig.mBlockWidth / 2;
 		int y = tiptop::gConfig.mBlockgridY + tiptop::gConfig.mBlockHeight * tiptop::gConfig.mNumRows / 2;
-		AddScriptCommand(mUpdateCount, "click", StrFormat("%d %d", x, y));
+		Add(s, "click", StrFormat("%d %d", x, y));
 		s->mMoves++;
 		s->mWait = (mAutoplayMode == 2) ? 40 : 60;
 		break;
@@ -253,22 +377,112 @@ void TipTopApp::Autoplay()
 		if (tiptop::InTopModal(anApp.mLayer) == 0 && !s->mNameTyped)
 		{
 			for (const char* c = "Bot"; *c != 0; c++)
-				AddScriptCommand(mUpdateCount, "char", std::string(1, *c));
+				Add(s, "char", std::string(1, *c));
 			s->mNameTyped = true;
+			if (mAutoplayUi)
+			{
+				// the game takes one typed character a pass: OK once they are in
+				s->mWait = 50;
+				break;
+			}
 		}
-		else if (s->mGames >= mAutoplayGames)
+		else if (s->mGames >= mAutoplayGames && (!mAutoplayUi || tiptop::InTopModal(anApp.mLayer) != 0))
 		{
+			// (with -autoplayui the name's OK is clicked first)
 			Log(s, "done\n");
 			Shutdown();
 			return;
 		}
-		AddScriptCommand(mUpdateCount, "key", "RETURN");
-		s->mWait = 200;
+		if (Enter(s))
+			s->mWait = 200;
 		break;
 	default:
 		// the level summary, the high scores: Enter goes on
-		AddScriptCommand(mUpdateCount, "key", "RETURN");
-		s->mWait = 200;
+		if (Enter(s))
+			s->mWait = 200;
 		break;
 	}
+}
+
+// -statelog: the values that decide play, as the original's memory holds them (the names of case.sh's watches)
+void TipTopApp::UpdateStateLog()
+{
+	if (mStateLog == nullptr)
+	{
+		mStateLog = fopen(mStateLogName.c_str(), "w");
+		if (mStateLog == nullptr)
+		{
+			mStateLogName.clear();
+			return;
+		}
+	}
+	static const char* const kNames[] = {"screen", "mode", "rng", "draws", "score", "level", "blocksleft", "meter",
+		"gameover", "levelcomplete", "ending", "next0", "next1", "fnext", "lowrow", "highrow", "pending", "floaters",
+		"bestchain", "bestmatch", "totaltime", "leveltime", "spawndelay", "paused", "bonus", "queueindex", "busy", "lockfall", "lockspawn",
+		"shifting", "hs0", "hs1", "hs2", "hs3", "hsname"};
+	const int kCount = (int)(sizeof(kNames) / sizeof(kNames[0]));
+	static std::string sLast[sizeof(kNames) / sizeof(kNames[0])];
+	std::string aValues[kCount];
+	for (int i = 0; i < kCount; i++)
+		aValues[i] = "-";
+	tiptop::App& anApp = tiptop::gApp;
+	aValues[0] = StrFormat("%d", anApp.mScreen);
+	aValues[1] = StrFormat("%u", tiptop::gGameMode);
+	aValues[2] = StrFormat("%u", tiptop::gRandState);
+	aValues[3] = StrFormat("%u", tiptop::gRandDraws);
+	aValues[23] = StrFormat("%u", (uint32_t)(uint8_t)tiptop::gPaused[0] | (uint32_t)(uint8_t)tiptop::gPaused[1] << 8 |
+		(uint32_t)(uint8_t)tiptop::gPaused[2] << 16);
+	aValues[24] = StrFormat("%u", (uint32_t)(uint8_t)tiptop::gBonusRound);
+	aValues[26] = StrFormat("%u", (uint32_t)(uint8_t)tiptop::gBusy);
+	// the high score table of the mode: its first four scores and the first four bytes of the top name
+	if (tiptop::gGameMode < 4)
+	{
+		for (int i = 0; i < 4; i++)
+			aValues[30 + i] = StrFormat("%d", tiptop::gHighScores[tiptop::gGameMode][i].mScore);
+		uint32_t aName;
+		memcpy(&aName, tiptop::gHighScores[tiptop::gGameMode][0].mName, 4);
+		aValues[34] = StrFormat("%u", aName);
+	}
+	tiptop::Board* aBoard = anApp.mBoard;
+	if (aBoard != nullptr)
+	{
+		uint32_t aMeter;
+		memcpy(&aMeter, &aBoard->mState.mMeter, 4);
+		aValues[5] = StrFormat("%u", aBoard->mState.mLevel);
+		aValues[6] = StrFormat("%d", aBoard->mState.mBlocksLeft);
+		aValues[7] = StrFormat("%u", aMeter);
+		aValues[8] = StrFormat("%d", aBoard->mGameOver);
+		aValues[9] = StrFormat("%d", aBoard->mLevelComplete);
+		aValues[10] = StrFormat("%d", aBoard->mEnding);
+		aValues[11] = StrFormat("%d", aBoard->mNextBlocks[0].mKind);
+		aValues[12] = StrFormat("%d", aBoard->mNextBlocks[1].mKind);
+		aValues[25] = StrFormat("%d", aBoard->mQueueIndex);
+		aValues[29] = StrFormat("%d", aBoard->mQueueShifting);
+		tiptop::Field* aField = aBoard->mField;
+		if (aField != nullptr)
+		{
+			aValues[4] = StrFormat("%u", aField->mScore);
+			aValues[13] = StrFormat("%d", aField->mNext.mKind);
+			aValues[14] = StrFormat("%d", aField->mLowRow);
+			aValues[15] = StrFormat("%d", aField->mHighRow);
+			aValues[16] = StrFormat("%u", aField->mPendingSpawns);
+			aValues[17] = StrFormat("%u", aField->mPendingFloaters);
+			aValues[18] = StrFormat("%u", aField->mBestChain);
+			aValues[19] = StrFormat("%u", aField->mBestMatch);
+			aValues[20] = StrFormat("%u", aField->mTotalTime);
+			aValues[21] = StrFormat("%u", aField->mLevelTime);
+			aValues[22] = StrFormat("%d", aField->mSpawnDelay);
+			aValues[27] = StrFormat("%u", aField->mLockFall);
+			aValues[28] = StrFormat("%u", aField->mLockSpawn);
+		}
+	}
+	for (int i = 0; i < kCount; i++)
+	{
+		if (aValues[i] != sLast[i])
+		{
+			fprintf(mStateLog, "%d %s %s\n", mUpdateCount, kNames[i], aValues[i].c_str());
+			sLast[i] = aValues[i];
+		}
+	}
+	fflush(mStateLog);
 }

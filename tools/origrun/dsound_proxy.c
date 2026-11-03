@@ -4,9 +4,12 @@
 // size and a hash of the PCM the game wrote), so a port session can compare "which sound plays when"
 // against its own build.
 //
-// It catches plain DirectSound and anything layered on it (BASS uses DirectSound underneath). FMOD 3 and
-// a few non-PopCap engines use their own output; those are not silenced here (the host's Core Audio watch
-// reports them, and the user mutes the speakers for such a run).
+// It catches plain DirectSound and anything layered on it that loads it by name. Sound that goes another way (a BASS
+// that makes its DirectSound through COM, which loads the system's dsound.dll from its registered path, winmm's waveOut
+// and PlaySound, FMOD's own output) is silenced by
+// the session mute below: as it loads, the stand-in mutes the process's own default audio session on every render
+// device, so whatever the process plays there later is muted from its first sample. The host's Core Audio watch
+// (origrun.c) checks every session of the game's and says whether any sound reached the speakers.
 //
 // Modes, from the ORIGRUN_SOUND environment variable the host sets:
 //   nodriver  DirectSoundCreate* return DSERR_NODRIVER, as if the machine had no sound card. Used for the
@@ -14,13 +17,17 @@
 //   stub      (default) hand back fake objects that accept every call and log, but never play anything.
 // With ORIGRUN_CLOCK=virtual (origrun --clock virtual) the stand-in also carries origrun's virtual clock (vclock.c), and
 // its log's times and its fake play cursor follow that clock instead of the wall clock. With ORIGRUN_CURSOR=scripted
-// (origrun --cursor scripted) it points the copy's GetCursorPos at origrun's scripted mouse position (cursor.c).
+// (origrun --cursor scripted) it points the copy's GetCursorPos at origrun's scripted mouse position (cursor.c). With
+// ORIGRUN_MSGBOX=hook (every origrun run with the stand-in, unless --msgbox show) it answers the copy's MessageBox calls
+// with no window and its MessageBeep calls with no sound (msgbox.c).
 // Written from the public DirectSound API (dsound.h); no other project's wrapper was read.
 
 #define COBJMACROS
 #define INITGUID
 #include <windows.h>
 #include <dsound.h>
+#include <mmdeviceapi.h>
+#include <audiopolicy.h>
 #include <stdio.h>
 #include <stdint.h>
 
@@ -33,8 +40,8 @@ static char        gDir[MAX_PATH];
 static LONG        gNextId = 1;
 static LONG        gPlaySeq = 0;
 
-// origrun's virtual clock and scripted cursor (vclock.c, cursor.c): installed from DllMain when ORIGRUN_CLOCK=virtual
-// or ORIGRUN_CURSOR=scripted
+// origrun's virtual clock, scripted cursor and message-box hook (vclock.c, cursor.c, msgbox.c): installed from DllMain
+// when ORIGRUN_CLOCK=virtual, ORIGRUN_CURSOR=scripted or ORIGRUN_MSGBOX=hook
 void vclock_install(HMODULE self);
 void vclock_detach(void);
 int  vclock_ms(double* out);
@@ -72,11 +79,15 @@ static void log_init(void)
 }
 
 // Milliseconds since the stand-in attached: on the virtual clock when it runs (it starts as the stand-in attaches).
+static double wall_ms(void)
+{
+	LARGE_INTEGER c; QueryPerformanceCounter(&c);
+	return (double)(c.QuadPart - gStart.QuadPart) * 1000.0 / (double)gFreq.QuadPart;
+}
 static double now_ms(void)
 {
 	double v; if (vclock_ms(&v)) return v;
-	LARGE_INTEGER c; QueryPerformanceCounter(&c);
-	return (double)(c.QuadPart - gStart.QuadPart) * 1000.0 / (double)gFreq.QuadPart;
+	return wall_ms();
 }
 
 static void logf(const char* fmt, ...)
@@ -99,6 +110,100 @@ static uint64_t fnv1a(const void* p, size_t n)
 	uint64_t h = 1469598103934665603ULL;
 	for (size_t i = 0; i < n; i++) { h ^= b[i]; h *= 1099511628211ULL; }
 	return h;
+}
+
+// ---------------------------------------------------------------------------------------------------
+// The process's audio sessions, muted. Windows puts every stream a process opens without a session of its own (waveOut,
+// PlaySound, DirectSound, BASS and FMOD through either, the mixer API's wave volume) into the process's default audio
+// session of the device it plays on, and that session's mute holds for every stream that joins it later. So the stand-in
+// mutes the default session (GUID_NULL, not shared with other processes) on every active render device before the game
+// can play anything: the sound the game plays past the stand-in (the BASS of Alchemy, Pixelus and Rocket Mania makes
+// its DirectSound through COM, CLSID_DirectSound, which loads the system's dsound.dll) is muted from its first sample,
+// and never reaches the speakers. COM may not be used in
+// DllMain, so DllMain starts a thread that does it, and the stand-in's entry points wait for that thread before they
+// answer: a game that asks the stand-in for DirectSound gets it only once its sessions are muted. A stream with a
+// session GUID of its own, or on a device that became active later, is not covered; the host's watch mutes and reports
+// those. Measured 2026-11-03: the mute holds after this thread has released its objects and ended, and waveOut, PlaySound
+// and DirectSound streams opened later all join the muted session.
+static HANDLE gMuteDone;   // set once the mute thread has finished (or could not start)
+static LONG   gMuteLate;   // the wait for it ran out once: do not wait again
+static const GUID kNullGuid = { 0 };
+typedef HRESULT (WINAPI *CoInitEx_t)(LPVOID, DWORD);
+typedef HRESULT (WINAPI *CoCreate_t)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID*);
+typedef void    (WINAPI *CoUninit_t)(void);
+
+static DWORD WINAPI mute_thread(LPVOID unused)
+{
+	LARGE_INTEGER q0, q1; QueryPerformanceCounter(&q0);   // the time it takes, on the wall clock
+	// ole32 is loaded here, outside the loader lock, rather than imported, so the stand-in's own load is as before
+	HMODULE ole = LoadLibraryA("ole32.dll");
+	CoInitEx_t coInit = ole ? (CoInitEx_t)GetProcAddress(ole, "CoInitializeEx") : NULL;
+	CoCreate_t coCreate = ole ? (CoCreate_t)GetProcAddress(ole, "CoCreateInstance") : NULL;
+	CoUninit_t coUninit = ole ? (CoUninit_t)GetProcAddress(ole, "CoUninitialize") : NULL;
+	int devs = 0, muted = 0, playing = 0;
+	HRESULT why = E_FAIL;
+	if (coInit && coCreate && coUninit) {
+		HRESULT hi = coInit(NULL, COINIT_MULTITHREADED);
+		IMMDeviceEnumerator* en = NULL;
+		why = coCreate(&CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, &IID_IMMDeviceEnumerator, (void**)&en);
+		if (SUCCEEDED(why) && en) {
+			IMMDeviceCollection* col = NULL;
+			if (SUCCEEDED(why = IMMDeviceEnumerator_EnumAudioEndpoints(en, eRender, DEVICE_STATE_ACTIVE, &col)) && col) {
+				UINT n = 0; IMMDeviceCollection_GetCount(col, &n);
+				for (UINT i = 0; i < n; i++) {
+					IMMDevice* dev = NULL;
+					if (FAILED(IMMDeviceCollection_Item(col, i, &dev)) || !dev) continue;
+					devs++;
+					IAudioSessionManager* m = NULL;
+					if (SUCCEEDED(why = IMMDevice_Activate(dev, &IID_IAudioSessionManager, CLSCTX_ALL, NULL, (void**)&m)) && m) {
+						ISimpleAudioVolume* sv = NULL;   // makes the session if the process has none yet
+						if (SUCCEEDED(why = IAudioSessionManager_GetSimpleAudioVolume(m, &kNullGuid, FALSE, &sv)) && sv) {
+							if (SUCCEEDED(why = ISimpleAudioVolume_SetMute(sv, TRUE, NULL))) muted++;
+							ISimpleAudioVolume_Release(sv);
+						}
+						// a stream already playing in it has played unmuted until now
+						IAudioSessionControl* ctl = NULL; AudioSessionState st = AudioSessionStateInactive;
+						if (SUCCEEDED(IAudioSessionManager_GetAudioSessionControl(m, &kNullGuid, 0, &ctl)) && ctl) {
+							IAudioSessionControl_GetState(ctl, &st); IAudioSessionControl_Release(ctl);
+						}
+						if (st == AudioSessionStateActive) playing++;
+						IAudioSessionManager_Release(m);
+					}
+					IMMDevice_Release(dev);
+				}
+				IMMDeviceCollection_Release(col);
+			}
+			IMMDeviceEnumerator_Release(en);
+		}
+		if (SUCCEEDED(hi)) coUninit();
+	}
+	QueryPerformanceCounter(&q1);
+	if (devs && muted == devs)
+		logf("audio: the process's default audio session muted on %d render device%s (it took %.1f ms of wall time)", devs, devs == 1 ? "" : "s",
+			(double)(q1.QuadPart - q0.QuadPart) * 1000.0 / (double)gFreq.QuadPart);
+	else
+		logf("audio: WARNING: the process's default audio session muted on %d of %d render devices (0x%08lx); the host's watch mutes the rest",
+			muted, devs, (unsigned long)why);
+	if (playing)
+		logf("audio: WARNING: a stream was already playing in it on %d device%s, unmuted until now (the game played before it loaded the stand-in)",
+			playing, playing == 1 ? "" : "s");
+	SetEvent(gMuteDone);
+	return 0;
+}
+static void mute_start(void)
+{
+	gMuteDone = CreateEventA(NULL, TRUE, FALSE, NULL);
+	HANDLE t = gMuteDone ? CreateThread(NULL, 0, mute_thread, NULL, 0, NULL) : NULL;
+	if (t) { CloseHandle(t); return; }
+	logf("audio: WARNING: no thread to mute the process's audio sessions (err %lu); the host's watch mutes them", GetLastError());
+	if (gMuteDone) SetEvent(gMuteDone);
+}
+// Called by every entry point a game reaches before it can play through the stand-in, outside the loader lock.
+static void mute_wait(void)
+{
+	if (!gMuteDone || gMuteLate) return;
+	if (WaitForSingleObject(gMuteDone, 5000) == WAIT_TIMEOUT && !InterlockedExchange(&gMuteLate, 1))
+		logf("audio: WARNING: the process's audio sessions were not muted after 5 s; going on without waiting");
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -158,7 +263,8 @@ typedef struct MyBuf {
 	int    looping;      // last Play was DSBPLAY_LOOPING
 	int    streaming;    // looping buffer -> record as one growing WAV (music)
 	DWORD  byterate;     // bytes/sec from the format, for the cursor
-	double playStartMs;  // now_ms() when pos0 was taken: the wall clock, or the virtual clock when it runs
+	int    wall;         // a buffer of a COM-made device (BASS's): its cursor runs on the wall clock (see CF_CreateInstance)
+	double playStartMs;  // buf_now() when pos0 was taken: the wall clock, or the virtual clock when it runs
 	DWORD  pos0;         // the play cursor at playStartMs (Play, SetCurrentPosition, SetFrequency), or where Stop left it
 	void*  pcm;          // last full-buffer contents (for a static one-shot dump)
 	DWORD  pcmBytes;
@@ -218,16 +324,18 @@ static double buf_rate(const MyBuf* b)   // bytes per millisecond
 	if (b->freq && b->wfx.nSamplesPerSec && b->freq != b->wfx.nSamplesPerSec) r = r * b->freq / b->wfx.nSamplesPerSec;
 	return r / 1000.0;
 }
+// A buffer's clock: the virtual clock when it runs, except for a COM-made device's buffers (see CF_CreateInstance)
+static double buf_now(MyBuf* b) { return b->wall ? wall_ms() : now_ms(); }
 static DWORD buf_cursor(MyBuf* b)
 {
 	if (!b->playing || !b->byterate || !b->bytes) return b->bytes ? b->pos0 % b->bytes : 0;
-	double ms = now_ms() - b->playStartMs;
+	double ms = buf_now(b) - b->playStartMs;
 	unsigned long long adv = b->pos0 + (unsigned long long)(buf_rate(b) * (ms > 0 ? ms : 0));
 	if (b->looping) return (DWORD)(adv % b->bytes);
 	if (adv >= b->bytes) { b->playing = 0; b->pos0 = 0; return 0; }
 	return (DWORD)adv;
 }
-static void buf_rebase(MyBuf* b, DWORD pos) { b->pos0 = pos; b->playStartMs = now_ms(); }
+static void buf_rebase(MyBuf* b, DWORD pos) { b->pos0 = pos; b->playStartMs = buf_now(b); }
 
 // Who asked GetStatus, logged as the process detaches: a game whose sounds' ends now take their length on origrun's
 // clock (before 2026-11-03 every buffer answered "stopped").
@@ -375,7 +483,7 @@ static const IDirectSoundBuffer8Vtbl gBufVtbl = {
 // ---------------------------------------------------------------------------------------------------
 // IDirectSound8 stand-in.
 
-typedef struct MyDS { IDirectSound8 iface; LONG ref; } MyDS;
+typedef struct MyDS { IDirectSound8 iface; LONG ref; int wall; } MyDS;   // wall: made through COM (CF_CreateInstance)
 static const IDirectSound8Vtbl gDsVtbl;
 
 static HRESULT STDMETHODCALLTYPE DS_QueryInterface(IDirectSound8* This, REFIID riid, void** ppv)
@@ -384,7 +492,7 @@ static ULONG STDMETHODCALLTYPE DS_AddRef(IDirectSound8* This)  { return Interloc
 static ULONG STDMETHODCALLTYPE DS_Release(IDirectSound8* This)
 { LONG r = InterlockedDecrement(&((MyDS*)This)->ref); if (r==0) free(This); return r; }
 static HRESULT STDMETHODCALLTYPE DS_CreateSoundBuffer(IDirectSound8* This, LPCDSBUFFERDESC d, LPDIRECTSOUNDBUFFER* pp, LPUNKNOWN u)
-{ if (!pp) return E_POINTER; *pp = (LPDIRECTSOUNDBUFFER)NewBuf(d); return DS_OK; }
+{ if (!pp) return E_POINTER; MyBuf* b = NewBuf(d); b->wall = ((MyDS*)This)->wall; *pp = (LPDIRECTSOUNDBUFFER)b; return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_GetCaps(IDirectSound8* This, LPDSCAPS c)
 { if (c) { DWORD sz=c->dwSize; ZeroMemory(c,sz); c->dwSize=sz; c->dwFlags=DSCAPS_PRIMARYSTEREO|DSCAPS_PRIMARY16BIT|DSCAPS_CONTINUOUSRATE; c->dwMinSecondarySampleRate=100; c->dwMaxSecondarySampleRate=200000; c->dwFreeHwMixingAllBuffers=32; } return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_DuplicateSoundBuffer(IDirectSound8* This, LPDIRECTSOUNDBUFFER o, LPDIRECTSOUNDBUFFER* pp)
@@ -401,7 +509,7 @@ static HRESULT STDMETHODCALLTYPE DS_DuplicateSoundBuffer(IDirectSound8* This, LP
 	MyBuf* b = MakeBuf(&d, 0);
 	{
 		b->vol = s->vol; b->pan = s->pan; b->freq = s->freq; b->hash = s->hash;
-		b->byterate = s->byterate;
+		b->byterate = s->byterate; b->wall = s->wall;
 		if (s->pcm && s->pcmBytes) { b->pcm = malloc(s->pcmBytes); if (b->pcm) { memcpy(b->pcm, s->pcm, s->pcmBytes); b->pcmBytes = s->pcmBytes; } }
 		logf("buffer %d duplicate of %d  hash=%016llx", b->id, s->id, s->hash);
 	}
@@ -412,7 +520,10 @@ static HRESULT STDMETHODCALLTYPE DS_SetCooperativeLevel(IDirectSound8* This, HWN
 static HRESULT STDMETHODCALLTYPE DS_Compact(IDirectSound8* This) { return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_GetSpeakerConfig(IDirectSound8* This, LPDWORD c) { if (c) *c=DSSPEAKER_STEREO; return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_SetSpeakerConfig(IDirectSound8* This, DWORD c) { return DS_OK; }
-static HRESULT STDMETHODCALLTYPE DS_Initialize(IDirectSound8* This, LPCGUID g) { return DS_OK; }
+// Called only on an object made through COM (DirectSoundCreate* initialise their own): no device in nodriver mode, as
+// DirectSound's own Initialize answers on a machine without one
+static HRESULT STDMETHODCALLTYPE DS_Initialize(IDirectSound8* This, LPCGUID g)
+{ if (gNoDriver) { logf("IDirectSound::Initialize -> DSERR_NODRIVER"); return DSERR_NODRIVER; } return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_VerifyCertification(IDirectSound8* This, LPDWORD c) { if (c) *c=DS_CERTIFIED; return DS_OK; }
 
 static const IDirectSound8Vtbl gDsVtbl = {
@@ -435,6 +546,7 @@ static IDirectSound8* NewDS(void)
 
 HRESULT WINAPI DirectSoundCreate(LPCGUID dev, LPDIRECTSOUND* pp, LPUNKNOWN u)
 {
+	mute_wait();
 	if (gNoDriver) { logf("DirectSoundCreate -> DSERR_NODRIVER"); if (pp) *pp=NULL; return DSERR_NODRIVER; }
 	if (!pp) return E_POINTER;
 	*pp = (LPDIRECTSOUND)NewDS();
@@ -442,15 +554,18 @@ HRESULT WINAPI DirectSoundCreate(LPCGUID dev, LPDIRECTSOUND* pp, LPUNKNOWN u)
 }
 HRESULT WINAPI DirectSoundCreate8(LPCGUID dev, LPDIRECTSOUND8* pp, LPUNKNOWN u)
 {
+	mute_wait();
 	if (gNoDriver) { logf("DirectSoundCreate8 -> DSERR_NODRIVER"); if (pp) *pp=NULL; return DSERR_NODRIVER; }
 	if (!pp) return E_POINTER;
 	*pp = NewDS();
 	return DS_OK;
 }
+// One device, the default one (a null GUID), unless the machine is meant to have none: FMOD 3 (Atomica) lists the
+// drivers first and fails its init on an empty list.
 HRESULT WINAPI DirectSoundEnumerateA(LPDSENUMCALLBACKA cb, LPVOID ctx)
-{ return DS_OK; }   // enumerate no devices
+{ mute_wait(); if (cb && !gNoDriver) cb(NULL, "Primary Sound Driver", "", ctx); return DS_OK; }
 HRESULT WINAPI DirectSoundEnumerateW(LPDSENUMCALLBACKW cb, LPVOID ctx)
-{ return DS_OK; }
+{ mute_wait(); if (cb && !gNoDriver) cb(NULL, L"Primary Sound Driver", L"", ctx); return DS_OK; }
 HRESULT WINAPI DirectSoundCaptureCreate(LPCGUID g, LPDIRECTSOUNDCAPTURE* pp, LPUNKNOWN u)
 { if (pp) *pp=NULL; return DSERR_NODRIVER; }
 HRESULT WINAPI DirectSoundCaptureCreate8(LPCGUID g, LPDIRECTSOUNDCAPTURE8* pp, LPUNKNOWN u)
@@ -462,13 +577,49 @@ HRESULT WINAPI DirectSoundFullDuplexCreate(LPCGUID a, LPCGUID b, LPCDSCBUFFERDES
 	HWND h, DWORD lvl, LPDIRECTSOUNDFULLDUPLEX* fd, LPDIRECTSOUNDCAPTUREBUFFER8* cb,
 	LPDIRECTSOUNDBUFFER8* rb, LPUNKNOWN u) { return DSERR_NODRIVER; }
 
-// COM activation path (CoCreateInstance of CLSID_DirectSound). Minimal class factory.
+// COM activation: CoCreateInstance of CLSID_DirectSound or CLSID_DirectSound8. COM finds the stand-in for them through
+// the manifest origrun writes beside the copy's exe (<exe>.manifest, registration-free COM: the copy's own classes, read
+// by Windows as the process starts; nothing is registered and nothing is hooked). Without it COM loads the system's
+// dsound.dll from the registry, past the stand-in: the BASS of Alchemy, Pixelus and Rocket Mania makes its DirectSound
+// that way, and played its music on the real device (2026-11-03). The object is the stand-in's, as DirectSoundCreate
+// makes it; the caller then calls its Initialize. Its buffers' cursors run on the wall clock, as the real device's did:
+// on the virtual clock BASS has to mix its music as fast as that clock runs, and the game slowed with it (Alchemy's case
+// ran at 18x instead of 960x).
+static HRESULT STDMETHODCALLTYPE CF_QueryInterface(IClassFactory* This, REFIID riid, void** ppv)
+{
+	if (!ppv) return E_POINTER;
+	if (IsEqualIID(riid, &IID_IUnknown) || IsEqualIID(riid, &IID_IClassFactory)) { *ppv = This; return S_OK; }
+	*ppv = NULL; return E_NOINTERFACE;
+}
+static ULONG STDMETHODCALLTYPE CF_AddRef(IClassFactory* This) { return 2; }   // a static object
+static ULONG STDMETHODCALLTYPE CF_Release(IClassFactory* This) { return 1; }
+static HRESULT STDMETHODCALLTYPE CF_CreateInstance(IClassFactory* This, IUnknown* outer, REFIID riid, void** ppv)
+{
+	if (!ppv) return E_POINTER;
+	*ppv = NULL;
+	if (outer) return CLASS_E_NOAGGREGATION;
+	logf("COM: a DirectSound object made through CoCreateInstance, by the stand-in");
+	IDirectSound8* ds = NewDS();
+	((MyDS*)ds)->wall = 1;
+	*ppv = ds;
+	return S_OK;
+}
+static HRESULT STDMETHODCALLTYPE CF_LockServer(IClassFactory* This, BOOL lock) { return S_OK; }
+static const IClassFactoryVtbl gFactoryVtbl = { CF_QueryInterface, CF_AddRef, CF_Release, CF_CreateInstance, CF_LockServer };
+static IClassFactory gFactory = { (IClassFactoryVtbl*)&gFactoryVtbl };
 HRESULT WINAPI DllCanUnloadNow(void) { return S_FALSE; }
-HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv) { if (ppv) *ppv=NULL; return CLASS_E_CLASSNOTAVAILABLE; }
+HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv)
+{
+	mute_wait();
+	if (!ppv) return E_POINTER;
+	*ppv = NULL;
+	if (!IsEqualCLSID(rclsid, &CLSID_DirectSound) && !IsEqualCLSID(rclsid, &CLSID_DirectSound8)) return CLASS_E_CLASSNOTAVAILABLE;
+	return CF_QueryInterface(&gFactory, riid, ppv);
+}
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r)
 {
-	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); log_init(); vclock_install(h); }
+	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); log_init(); vclock_install(h); mute_start(); }
 	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); vclock_detach(); }
 	return TRUE;
 }

@@ -25,8 +25,10 @@ real time, update for update. Asked on 2026-11-03 whether origrun may also skip 
 timed Wait functions), not only hook its time reads, the user answered "Yes, waits too". Asked the same day whether
 origrun may hook a copy's GetCursorPos so that it returns origrun's scripted mouse position (Bejeweled Twist's
 framework reads the cursor after posted input, and the sandbox has none, so its board never sees a scripted mouse), the
-user answered "Yes, hook it". Those OKs cover the clock's reads and waits and GetCursorPos only: any other hook of a
-Windows function inside a copy still needs the user's OK first.
+user answered "Yes, hook it". Asked the same day whether origrun may hook a copy's MessageBox and MessageBeep calls,
+so that a message box is answered without appearing and neither plays its sound on the user's speakers, the user
+answered "Yes, hook them". Those OKs cover the clock's reads and waits, GetCursorPos, MessageBox and MessageBeep only:
+any other hook of a Windows function inside a copy still needs the user's OK first.
 
 How any copy's protection is handled is kept in the private notes under Per-game status, which a public
 snapshot strips out (`docs/PUBLISHING.md`); this document otherwise names games only by title.
@@ -39,7 +41,8 @@ Builds, 32-bit (the originals are 32-bit), with llvm-mingw's i686 target under `
 `build/origrun-bin/` (git-ignored):
 
 - `origrun.exe` — the host: copies the game, launches it under rundesk, drives it, captures, watches audio.
-- `dsound.dll` — the DirectSound sound stand-in placed beside the copy (silence + a log, optionally WAVs).
+- `dsound.dll` — the DirectSound sound stand-in placed beside the copy (silence + a log, optionally WAVs). With it
+  origrun writes `<exe>.manifest` beside the copy's exe, which makes the stand-in COM's DirectSound too (guarantee 3).
 
 A run on the host needs `build/native/rundesk.exe` (`cmake --build build/native --target rundesk`). A `--sandbox`
 run needs the Windows Sandbox feature and its `wsb` command (Windows 11 24H2 or later), and no rundesk.
@@ -65,8 +68,11 @@ Options:
 - `--sound stub` (default) — the silent stand-in that accepts every call and logs it.
 - `--sound nodriver` — the stand-in reports no sound device (`DSERR_NODRIVER`); use for a game's very first run.
 - `--sound wav` — silent stand-in that also records to `snd/` what the game writes to its DirectSound buffers.
-- `--sound real` — no stand-in; the game uses the real audio device (turn the speakers off first).
-- `--timeout <sec>` — wall-clock cap (default 120, max 240; a run is one game process and must stay short).
+- `--sound real` — no stand-in; the game uses the real audio device (turn the speakers off first). The audio watch
+  still mutes each of its sessions as soon as it appears, so its sound reaches the speakers only for the moment before
+  that (a `SOUND LEAK` line says so). It takes out the manifest an earlier run wrote beside the exe.
+- `--timeout <sec>` — wall-clock cap (default 120, max 3600). A run past about 4 minutes goes in the background of the
+  session that owns it, never in a subagent (CLAUDE.md, "Token economy"); it is still one game process.
 - `--fresh` — note to re-copy (delete `build/origrun/<run>` first to force a clean copy).
 - `--copy-only` — stage the copy (and print its folder and exe) without launching. Use it to place a copy you
   then prepare by hand (e.g. extracting a wrapped exe into it) before running it with `--exe`.
@@ -107,6 +113,10 @@ Options:
 - `--cursor scripted` / `--cursor real` — the copy's `GetCursorPos` returns the last mouse position the script
   posted, or Windows' cursor (the default), for a game that reads the cursor after posted input (Bejeweled Twist's
   board). With or without `--clock virtual`; refused with `--sound real`. See "The scripted cursor".
+- `--msgbox show` — show the copy's message boxes as before (each plays its sound, and the dialog watch answers it once
+  it is on screen) instead of answering them in the stand-in with no window and no sound, which every run with the
+  stand-in does by default (`--msgbox hook`). For a phase-two comparison that photographs a box; turn the speakers off
+  for it. See "Message boxes and beeps (hooked)".
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
@@ -178,7 +188,8 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
   button labelled `<button>` (e.g. `msgbox No Trial expired`, `msgbox OK update`). Put these at the top of the
   script; they are registered before the game launches, so even a box that pops up early is answered. A box
   with no matching rule is answered by its own default button. The label match ignores the `&` accelerator and
-  case. Never name a link/"Buy"/"More Games" button here (see the warning below).
+  case. The same rules answer the boxes the stand-in hooks, which never appear ("Message boxes and beeps (hooked)").
+  Never name a link/"Buy"/"More Games" button here (see the warning below).
 - `quit` — ask the window to close, and end the run.
 
 **A script must never click a link button** — "Buy", "Buy Now", "Register", "More Games", a store or web
@@ -198,11 +209,69 @@ coordinates that land on Play.
    whose window origrun never opens (but with `--sandbox-connect`, below); a guard stops the sandbox at once if one appears
    (see "Windows Sandbox").
 3. **Silent by default.** The `dsound.dll` stand-in beside the copy makes `IDirectSound`/`IDirectSoundBuffer`
-   objects that accept every call and never open a device, so DirectSound and anything on top of it (BASS uses
-   DirectSound) stays silent. As a second check the host watches Windows Core Audio: if a session appears for
-   the game it mutes it and says so in the run result. A game that plays through another path (winmm `waveOut`
-   / `PlaySound`, or FMOD on its own output) is not silenced by the dsound stand-in yet (see Gaps); the audio
-   watch still mutes and reports it, and for such a run the user turns the speakers off.
+   objects that accept every call and never open a device, so DirectSound and anything on top of it that loads it by
+   name stays silent. So does a DirectSound made through COM (`CoCreateInstance` of `CLSID_DirectSound` or
+   `CLSID_DirectSound8`, as the BASS of Alchemy, Pixelus and Rocket Mania makes it), since 2026-11-03: origrun writes a
+   manifest beside the copy's exe (`<exe>.manifest`, marked as origrun's) that names the stand-in as the server of those
+   two classes, and Windows' registration-free COM then makes them in the stand-in instead of loading the system's
+   `dsound.dll` from the registry. Nothing is registered or hooked, and the manifest says nothing else. Windows keeps
+   what it read of an exe's manifest until the exe changes (a copy that had run before went on loading the system's
+   `dsound.dll` until its exe was touched), so origrun sets the exe's write time to now whenever it writes or takes out
+   the manifest. The buffers of such a DirectSound keep their play cursor on the wall clock, as the real device did:
+   on the virtual clock BASS has to mix its music as fast as that clock runs, and the game slowed with it (Alchemy's
+   case ran at 18x instead of 960x). A manifest beside the exe that is not origrun's is left alone, and an
+   exe with a manifest of its own ignores one beside it (none of the games so far has one); the log says so, and the
+   session mute below still covers them. `--sound real` takes origrun's manifest out.
+
+   Sound that goes past the stand-in is silenced by a session mute (since 2026-11-03): as the
+   stand-in loads, a thread of its own mutes the process's default audio session (`GUID_NULL`, the one every stream
+   without a session of its own joins) on every active render device, and the stand-in's entry points wait for that
+   thread before they answer. A stream the game opens later, through the system's DirectSound, winmm's `waveOut` or
+   `PlaySound`, or FMOD's own output, joins a session that is already muted, and its sound never reaches the speakers.
+   Nothing in Windows is hooked for it. As a second check the host watches Windows Core Audio: it looks at each of the
+   game's audio sessions on every render device as soon as Windows creates it (a notification wakes the watch) and every
+   20 ms, mutes one that is not muted yet, and reads each session's peak meter, which Windows measures before the
+   session's mute. Sound measured while a session was not muted reached the speakers; the run log then has a
+   `WARNING: SOUND LEAK` line and its RESULT line says `SOUND LEAK`, with the times. Otherwise the RESULT line says that
+   each of the game's sessions was muted from its start, and whether the game made sound in them at all (the first at
+   which time, and the loudest peak). The watch also looks at the modules of each game process with a session every half
+   second: a `WARNING` line says when one loaded the system's `dsound.dll`, and the run's audio lines end with whether
+   any did. With the stand-in a run always shows its sessions, one per render device, muted
+   and silent in a game whose sound all goes to the stand-in; "no audio session from the game was seen" now means the
+   copy never loaded the stand-in and played nothing.
+
+   Checked (2026-11-03): a scratch program showed that the default session's mute, set from a thread that then released
+   everything and ended, holds for `waveOut` and `PlaySound` streams the process opens later, and that the session's
+   meter reads the same peak muted or not (its test tone was 84 dB below full scale, inaudible). The leak the user heard
+   came from BASS in Alchemy, Pixelus and Rocket Mania: their `bass.dll` makes its DirectSound through COM
+   (`CLSID_DirectSound`), which loads the system's `dsound.dll` from its registered path, past the stand-in, and plays
+   the music through it. Before the session mute the watch looked every 500 ms and muted the session only when it saw
+   it, so the start of the music (in Pixelus it began about 0.2 s after the session appeared) reached the speakers in
+   the runs where that look came after it, and not in the others. With the session mute, a case of each played its music
+   (loudest peaks 0.23 to 0.26) in a session muted about half a second before the first sound, and a Pixelus run
+   whose watch muted nothing itself showed the stand-in's mute alone in place 2 ms after the session appeared and 0.5 s
+   before the music. BookWorm Deluxe, Big Money and Ning Po made no sound past the stand-in. The "audio session" every SexyApp game
+   showed before was the framework's master volume: `DSoundManager::SetMasterVolume` sets the wave-out volume through
+   the mixer API, which Windows maps to the process's own session volume, so the session appears (silent) when the game
+   starts, sound or none. A Big Money and a Ning Po case gave the same `--watch` values, update for update, with this
+   stand-in as with the one before it. Not covered: a stream with a session GUID of its own, a render device that
+   becomes active during the run, a `PlaySound` with `SND_SYSTEM` (the shared system-sounds session) and a game that
+   never loads the stand-in (see Gaps); the watch mutes the first two within milliseconds of their start and reports
+   any sound they made as a leak.
+
+   Checked again (2026-11-03, afternoon), after the user heard the leak once more during a Rocket Mania run: that copy
+   still had a stand-in from before the session mute (a worktree's own build), and its process had the system's
+   `dsound.dll` loaded beside the stand-in, which is how BASS's COM path looks. With the manifest, a case each of Rocket
+   Mania, Pixelus and Alchemy made BASS's DirectSound objects in the stand-in, the system's `dsound.dll` was never
+   loaded, and no session made a sound. Each case's counter-timed actions came at the same updates as in its runs
+   before the manifest, and Rocket Mania's case ended on the same update. A Ning Po case and three of four runs of a
+   Big Money case gave the same `--watch` values as before; in the fourth Big Money run the game stayed in its menus,
+   with a second worker thread at its start that no other run had (Big Money makes no DirectSound through COM, so the
+   manifest changes nothing it uses; not seen again). With the stand-in's own mute left out (a scratch build), the
+   Rocket Mania case still showed one session: silent, never active, with winmm's driver loaded, most likely the
+   mixer's master volume as above. A SexyApp game therefore shows a session even when nothing goes past the stand-in.
+   `--sound nodriver` stops BASS's music as well: the game's own `DirectSoundCreate` fails first, so BASS is never
+   started and COM is never asked, and the game plays no sound at all.
 4. **Screens, only inside Windows Sandbox.** `shot`/`waitshot`/`record`/`burst` capture the window with
    `PrintWindow`, or a blit of the window's own DC where `PrintWindow` fails or comes out flat, and write a PNG.
    Inside the sandbox only `PrintWindow` sees a game: there a blit of the window DC or of the screen DC (with or
@@ -231,8 +300,10 @@ coordinates that land on Play.
    the dialog's own default button, by posting `BM_CLICK` to that button. Only documented window APIs are used;
    nothing is injected into the game. Checked: a test program that pops two boxes was answered correctly — the
    first by a `msgbox No Trial expired` rule (it returned IDNO) and the second by its default (it returned IDOK)
-   — both logged, and the program then exited, which proves the clicks landed. See the gaps below for what this
-   cannot do (it sees a box only once it is already on screen).
+   — both logged, and the program then exited, which proves the clicks landed. The watch sees a box only once it is
+   on screen, after its sound, so since 2026-11-03 the stand-in answers the copy's MessageBox calls itself, with no
+   window and no sound, by the same rules, and silences MessageBeep ("Message boxes and beeps (hooked)"); the watch
+   still answers every other dialog, and the boxes of a run with `--msgbox show` or `--sound real`.
 
 Registry and save redirection is **not** implemented on the host (the user allowed the originals to use their real
 registry and saves). A host run therefore writes the game's settings and trial state to the real registry and save
@@ -757,7 +828,9 @@ game time in 15 s.
   sets.
 - The threads of BASS and FMOD keep the wall clock (they find their functions at run time), and so do a game's
   music streams: the stand-in's play cursor moves with the virtual clock, so a stream is fed as fast as the game runs,
-  but a game that times something by its music's position as the library reports it would drift.
+  but a game that times something by its music's position as the library reports it would drift. A DirectSound made
+  through COM (BASS's, in Alchemy, Pixelus and Rocket Mania) keeps its buffers on the wall clock, as the real device
+  it played on before 2026-11-03 did (guarantee 3).
 - The clock starts when the game loads `dsound.dll`: most originals load it at run time (SexyAppBase's sound manager, or
   BASS), Seven Seas, Noah's Ark, Mummy Maze, Atomica, TipTop and NingPo import it. Time read before that is real, and a
   game that never loads DirectSound through the stand-in (Mahjong Escape's packed `bass.dll`, Bonnie's FMOD 3 in the
@@ -811,6 +884,70 @@ was made.
 - The point is converted when it is posted: a window moved later keeps the old screen point.
 - One point for the run: every process of the copy reads the last one posted, a process that starts later too, as a
   real mouse stays where it was.
+
+## Message boxes and beeps (hooked)
+
+A message box plays its sound as it appears (the error chime or question ding of its icon), and the dialog watch
+(guarantee 6) sees a box only once it is on screen. So until 2026-11-03 every box an original showed rang on the user's
+speakers before origrun answered it, and every `MessageBeep` rang too: Ning Po's "Sound will be unavailable" box did on
+each run.
+
+Now, in every run that has the sound stand-in (`--sound stub`, `nodriver` and `wav`), on the host and in the sandbox,
+the stand-in points the copy's imports of `MessageBoxA`/`W`, `MessageBoxExA`/`W`, `MessageBoxIndirectA`/`W`,
+`MessageBoxTimeoutA`/`W` and `MessageBeep` at its own functions (`tools/origrun/msgbox.c`; the user's OK of 2026-11-03
+above, and nothing else is hooked). It uses the clock's import patching, as the scripted cursor does: the stand-in
+pinned, the exe and the DLLs of its folder but origrun's own and Steam.dll, and DLLs the copy loads later patched at the
+clock's waits or at the next hooked call.
+
+A hooked box makes no window, so it plays no sound and takes no focus. The call returns the button the dialog watch
+would have clicked: the button of the first `msgbox` rule whose text the caption or the text contains and whose button
+the box has (labels compared without case; never Help, which MessageBox never returns), else the box's default
+button, where `MB_DEFBUTTON1` to `4` pick the nth button of its type's set (the first when the set is shorter) and the
+first is the default. It returns that button's ID: `IDOK`, `IDCANCEL`, `IDYES`, `IDNO` and the others. A style Windows
+refuses (a type above `MB_CANCELTRYCONTINUE`) returns 0 with no box, as MessageBox does; a string resource in
+`MessageBoxIndirect` is loaded from its `hInstance`. `MessageBeep` returns TRUE with no sound.
+
+Before it starts the game origrun makes a small shared block (`msgbox.h`, `Local\origrun-msgbox-<id>`) with the
+script's `msgbox` rules in it (they are now read before the launch), and the stand-in hands each box and beep back
+through it. origrun's dialog thread writes them to its log in the dialog watch's own words, marked `[hooked]`, so a
+script that greps those lines still finds them (a line break in the text is written `\n`):
+
+    dialog appeared: 'Error' (pid 31164) [hooked MessageBoxA: no window]
+    DIALOG caption='Error' text='DirectSoundCreate failed with error '120'.  Sound will be unavailable.' buttons=[OK] [hooked]
+      answered with 'OK' (default button) [hooked: returned IDOK]
+    MessageBeep(MB_ICONHAND) (pid 35952) [hooked: no sound]
+
+The lines come within 250 ms of the call, or after the game's last line when it exits first, and the run ends with the
+count of boxes and beeps. The stand-in's own log, `logs/msgbox.log` (`logs/cursor.log` with the scripted cursor,
+`logs/clock.log` with the clock), lists the import entries it patched and each box with its style.
+
+`--msgbox show` (`msgbox=show` in the sandbox's run file) leaves the boxes as they were: shown, with their sound, and
+answered by the dialog watch once they are on screen. A phase-two comparison needs it to photograph a box and to see
+the focus go to the box and come back; turn the speakers off for it. A `--sound real` run has no stand-in and so no
+hooks, and says so in its log: its boxes show and ring as before. The dialog watch stays on for every other dialog: a
+game's own dialog-template windows (class `#32770` as well) are not message boxes and play no sound.
+
+**Tested (2026-11-03)** on the host under rundesk, with a scratch program that loads `dsound.dll` and calls
+`MessageBoxA` (`MB_OK`), `MessageBoxW` (`MB_YESNO | MB_DEFBUTTON2`), `MessageBoxIndirectA`
+(`MB_RETRYCANCEL | MB_DEFBUTTON2`) and `MessageBeep(MB_ICONHAND)`, in stub mode: no window came up, the log had the
+lines above, and the calls returned 1 (`IDOK`), 7 (`IDNO`), 2 (`IDCANCEL`) and TRUE. With a `msgbox Yes Save the game`
+rule the `MessageBoxW` returned 6 (`IDYES`, "script rule"). With `--clock virtual` and `--cursor scripted` as well the
+returns were the same, and the stand-in logged to `clock.log`. With `--msgbox show` a box was shown, rang once, and the
+dialog watch answered it 'No' (7), unmarked. In Windows Sandbox (`--sandbox`, with the rule) the same program returned
+1, 6, 2 and TRUE, and the inside log had the hooked lines. On a game: Ning Po with `--sound nodriver`, whose
+"DirectSoundCreate failed with error '120'. Sound will be unavailable." box (`MessageBoxA`, style 0x52030) was answered
+OK with no window; the game then ran on to the script's `quit`.
+
+**Limits:**
+- Calls bound late are not patched: `GetProcAddress` (which the C runtime's own error boxes use), delay-loaded imports
+  and `api-ms-win-*` sets. Such a box is shown, rings and goes to the dialog watch.
+- The hooks live in the stand-in: a game that never loads `dsound.dll` from its folder gets none (as with the scripted
+  cursor), and a game that loads it late (with `LoadLibrary`) shows the boxes that come before it.
+- Nothing else is hooked: `PlaySound` and the other sound functions still play (hooking any of them needs the user's
+  OK first), and there is still no guard against URL or program launches.
+- A hooked box takes no time, where a shown one stayed up at least 300 ms before the watch clicked it, and the game's
+  windows get no messages from a box's modal loop. A game that asks again until it gets another answer (a Retry box)
+  asks at full speed; a `msgbox` rule that picks the way out ends it.
 
 ## Hardware acceleration (3D mode)
 
@@ -958,23 +1095,23 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 
 | Game | Source | Reached under origrun | Capture | 3D | Audio seen | Notes |
 |------|--------|-----------------------|---------|----|------------|-------|
-| alchemy | local install | trial, then into the game past Play | yes | has one; on needs `--dgvoodoo` (untried) | muted a session | some sound is not via DirectSound |
+| alchemy | local install | trial, then into the game past Play | yes | has one; on needs `--dgvoodoo` (untried) | its BASS music, through COM's DirectSound, which is the stand-in since 2026-11-03 (origrun's manifest): none past the stand-in; before, the system's DirectSound past the stand-in, whose start could reach the speakers | its music is the sound not via the stand-in (see Audio seen) |
 | atomica | local install | FATAL ERROR at startup, then exits | — | none | none | FMOD fails to load `sounds\capclick` (Ogg); not the stand-in or display — the Atomica session's to fix |
 | mummymaze | local install | title after a slow (~45 s) start | yes, 646×509 | none | none | window is late to appear |
 | noahsark | local install | own title screen | yes, 646×509 | none | none | update counter proven here (`[0x4d125c]+0x368`); `at` lands on the exact update |
 | sevenseas | local install | own title screen | yes, 646×509 | none | none | |
-| pixelus | local install | trial screen (not clicked through yet) | yes | has one; on needs `--dgvoodoo` (untried) | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
+| pixelus | local install | trial screen (not clicked through yet) | yes | has one; on needs `--dgvoodoo` (untried) | its BASS music, through COM's DirectSound, which is the stand-in since 2026-11-03 (origrun's manifest): none past the stand-in; before, the system's DirectSound past the stand-in, whose start could reach the speakers | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
 | tiptop | local install | trial, plays | yes | none | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
 | wordharmony | local install | trial (60 min), Play present | yes | none | none | |
 | bookwormadv | local install | in-game Updates dialog; in the sandbox the pilot's menus and battle (2026-11-01) | **in the sandbox** (2026-11-01), 806×629, client at (3,26); update-timed shots and bursts `printwindow-bracketed (sandbox)`, exact with `--pending-draw [0x8259e4]+0x45a --update-state [0x8259e4]+0x488 --draw-empty [0x8259e4]+0x459` | **off and on proven** (on with `--dgvoodoo`) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
-| ningpo | local install | main window | **yes** (after init); **in the sandbox too** (2026-11-01) | none | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
+| ningpo | local install | main window | **yes** (after init); **in the sandbox too** (2026-11-01) | none | none past the stand-in (2026-11-03) | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
 | waterbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode; dgVoodoo2 gives it a desktop-sized window |
 | cosmicbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | same as Water Bugs |
 | dynomite | Steam copy | **title and on** | **yes** | has one; on needs `--dgvoodoo` (untried) | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
 | bejeweled | wrapped launcher | **title, prepared copy runs** | **yes** | has one; on needs `--dgvoodoo` (untried) | none | prepared as the private notes below say, run via an absolute `--exe` |
-| bigmoney | wrapped launcher | **whole games on the host, on the virtual clock** (2026-11-03): title, selector, help, every mode to its game over, name entry, play again, a saved game continued | none on the host | has one; on needs `--dgvoodoo` (untried) | an audio session opens and is muted | prepared as Bejeweled (`games/bigmoney/tools/origcmp/orig.sh --prepare`). About 11 times real time with `--clock virtual`. The carved exe runs without registry virtualization: it reads the real `HKLM\SOFTWARE\WOW6432Node\PopCap\BigMoney` and, origrun not being elevated, cannot write it, so every run starts from the same settings. Run one copy at a time: one started while another ran exited at once, before its window. Give it `focus regain` first. `games/bigmoney/docs/IDENTICAL_PLAY.md` |
-| bookworm | wrapped Steam exe | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
-| rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
+| bigmoney | wrapped launcher | **whole games on the host, on the virtual clock** (2026-11-03): title, selector, help, every mode to its game over, name entry, play again, a saved game continued | none on the host | has one; on needs `--dgvoodoo` (untried) | none past the stand-in (2026-11-03): the session it opened before was the mixer's master volume | prepared as Bejeweled (`games/bigmoney/tools/origcmp/orig.sh --prepare`). About 11 times real time with `--clock virtual`. The carved exe runs without registry virtualization: it reads the real `HKLM\SOFTWARE\WOW6432Node\PopCap\BigMoney` and, origrun not being elevated, cannot write it, so every run starts from the same settings. Run one copy at a time: one started while another ran exited at once, before its window. Give it `focus regain` first. `games/bigmoney/docs/IDENTICAL_PLAY.md` |
+| bookworm | wrapped Steam exe | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | none past the stand-in (2026-11-03, a whole case of the retail 1.03 exe its session runs): the session it opened before was the mixer's master volume | prepare as Bejeweled (not launched yet) |
+| rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | its BASS music (the same `bass.dll` as Pixelus's), through COM's DirectSound, which is the stand-in since 2026-11-03 (origrun's manifest): none past the stand-in; before, the system's DirectSound past the stand-in, whose start could reach the speakers | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
 | mahjongjapan | local install | **whole stages to the ending, in the sandbox** (2026-11-01) | **yes**, 806×629 in the sandbox | has one; off (`HardwareAcceleration=0` by `--reg`) | none | JollyBear engine, windowed DirectDraw (`FullScreen=0` by `--reg`). Posted clicks need a `move` 150 ms before. Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which inside is SYSTEM's, through the 32-bit view: stage them under `sandbox-files/C/Windows/System32/config/systemprofile/AppData/Local/...`, re-signed for `C:\run\game\` (a player's checksum covers the exe's folder). The game reads the cursor with `GetCursorPos` for its hover, which posted input does not move, and `hwmove` did not light a button either in session 0. `--cursor scripted` would answer that call (the exe imports it), but only in a copy that loads the stand-in, which its packed `bass.dll` does not ("The scripted cursor"); untested |
 | mahjongchina | local install | **whole stages and the ending, in the sandbox** (2026-11-01) | **yes**, with `games/mahjongchina/tools/ddrawcap` beside the copy: without it every sandbox shot is black (China's window class has a black background brush, which the sandbox paints over the software display's output) | has one; off (`HardwareAcceleration=0` by `--reg`) | none | As mahjongjapan, and `games/mahjongchina/tools/sandbox_run.sh` does it all (the copy, ddrawcap, the BASS proxy, the registry and the re-signed players). Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape` (no "Ancient China"), staged the same way. Never click the PopCap and SpinTop logos at the menu's bottom corners: they are links |
 | bookwormadv2 | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | not wrapped; `Steam.dll` auto-copied now |
@@ -1003,15 +1140,18 @@ Preparing a wrapped or Steam copy to run under origrun:
 
 ## Gaps / next steps
 
-Known limits of the message-box watch (guarantee 6). These are open; the coordinator is taking them to the
-user:
+Known limits of the message-box watch (guarantee 6):
 
-- **A box's own sound still plays.** The watch sees a dialog only once it is already on screen, so the sound
-  Windows plays as the box appears (an error chime, a question ding) has already sounded before the box is
-  logged and dismissed.
-- **`MessageBeep` and `PlaySound` system sounds are not seen.** These make a sound without a window, so the
-  watch — which looks for dialog windows — neither logs nor stops them. The Core Audio watch may still catch and
-  mute a sound routed through the default audio session, but a system-sounds beep is not reliably caught.
+- **A shown box's own sound still plays.** The watch sees a dialog only once it is already on screen, so the sound
+  Windows plays as the box appears has already sounded before the box is logged and dismissed. Since 2026-11-03 the
+  stand-in answers the copy's MessageBox calls with no window, so this is left only for a run with `--msgbox show` or
+  `--sound real`, a game that never loads the stand-in, and boxes called through `GetProcAddress` ("Message boxes and
+  beeps (hooked)").
+- **`PlaySound` system sounds are not seen.** They make a sound without a window, so the dialog watch neither logs
+  nor stops them, and hooking them needs the user's OK. `MessageBeep` is hooked with the boxes (same section, same
+  limits). A `PlaySound` from the game's process (tested with a sound in memory) plays in its default audio session,
+  which the stand-in has muted (guarantee 3); one with `SND_SYSTEM` plays in the shared system-sounds session, which is
+  not the game's, and is not muted.
 - **No guard against URL or program launches.** Nothing in origrun blocks an original that calls
   `ShellExecute`/`WinExec`/`CreateProcess` (for instance a "More Games" `steam://` link, which would bring up the
   user's Steam client). The only safeguard is the rule that **a script must never click a link, "Buy" or "More
@@ -1056,9 +1196,14 @@ Other gaps:
   window, with the dsound stub, with `nodriver`, and with real audio alike. The Ogg and `fmod.dll` are present,
   so it is FMOD's init/decode of this copy on Windows 11 (or a game-data path) — the Atomica session's to fix;
   origrun cannot capture a game that will not start.
-- **Audio not carried by DirectSound** (some Alchemy and Bookworm Adventures sound, and FMOD games) is not
-  silenced by the `dsound` stand-in. The Core Audio watch mutes the game's session and reports it; for a run that
-  must be truly silent, use `--sound real` with the speakers off, or rely on the watch's mute.
+- **Sound past the stand-in.** The BASS music of Alchemy, Pixelus and Rocket Mania, made through COM's DirectSound,
+  goes to the stand-in since 2026-11-03 through the manifest origrun writes beside the exe. What can still get past
+  it (`waveOut`, `PlaySound`, FMOD's own output, COM's DirectSound in an exe whose own manifest wins over ours) is
+  muted from its start by the stand-in's session mute (guarantee 3). Still open: a stream with a session GUID of its own (none seen yet), a render device that becomes
+  active during a run, and a copy that never loads the stand-in (Mahjong Escape Ancient Japan's packed `bass.dll`, say,
+  where the stand-in is not used); for those the watch mutes each session within milliseconds of its start and reports
+  any sound before that as a `SOUND LEAK`. Bookworm Adventures, Bejeweled Twist and the FMOD games have not been run with
+  the session mute yet: their RESULT lines will say whether any of their sound gets past it.
 - **Long staging paths**: some launchers (Bookworm Adventures) exit at once when the staged copy sits under a
   worktree's long `build/origrun` path. Use `--stage-root <short dir>` to stage the copy under a short path
   (shots and logs stay under the run folder).

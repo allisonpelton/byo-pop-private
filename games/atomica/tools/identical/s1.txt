@@ -1,0 +1,6 @@
+# title click, the main menu's strategy button: the first updates of a strategy game
+1500 move 320 445
+1510 click 320 445
+2300 move 200 100
+2310 click 200 100
+end 3200

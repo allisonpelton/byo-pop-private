@@ -7,14 +7,16 @@
 // What it does, in order:
 //   1. Copies the game's folder into build/origrun/<run>/game (the install is never written to or run in
 //      place). --exe runs an already-placed copy as-is.
-//   2. Places the sound stand-in (dsound.dll) beside the copied exe, unless --sound real.
+//   2. Places the sound stand-in (dsound.dll) beside the copied exe, and a manifest (<exe>.manifest) that makes it
+//      COM's DirectSound too, unless --sound real.
 //   3. Launches the copy through build/native/rundesk.exe, which puts it on a private, invisible desktop
 //      at below-normal priority. The game inherits that desktop; nothing is shown and focus is never taken.
 //   4. From this host (not injected into the game) it finds the game's top-level window on that desktop and
 //      runs the input script: waits, mouse moves/clicks, keys, typed text, focus lose/regain, and screen
 //      shots to PNG. Input is posted to the window, so it works across the desktop boundary.
-//   5. Watches Windows Core Audio for a session belonging to the game; if one appears it mutes it and notes
-//      it in the run log (a stand-in let sound through, or --sound real was used).
+//   5. Watches Windows Core Audio for the game's audio sessions on every render device (the stand-in mutes the game's
+//      default session as it loads): one not muted yet is muted at once, and each session's peak meter says whether
+//      the game made sound before its mute (a leak) or only while muted (the run log's RESULT line).
 //   6. Waits for the game to exit, or ends it (and its children, via rundesk's job) at the timeout.
 //   7. With the game's registry key and 3D-flag address known (games.tsv), logs the 3D mode the game ran in, read
 //      from its memory, and puts its Is3D setting and cached Direct3D test results back afterwards; --3d on|off
@@ -52,6 +54,7 @@
 #include <string.h>
 #include "vclock.h"
 #include "cursor.h"
+#include "msgbox.h"
 
 // --------------------------------------------------------------------------------------------------- util
 
@@ -150,7 +153,6 @@ static char   gGameDir[MAX_PATH];    // <run>/game
 static char   gExePath[MAX_PATH];    // copied exe
 static char   gGameArgs[256];        // --arg: the game's own command line after the exe (letters, digits, - = _ . , one space between values)
 static char   gShotDir[MAX_PATH];
-static volatile LONG gAudioSeen = 0;
 static volatile LONG gStop = 0;
 
 #define MAX_MSGBOX 32
@@ -462,6 +464,70 @@ static void cursor_summary(void)
 	else logline("scripted cursor: %ld mouse position%s posted; %ld game process%s patched GetCursorPos, which answered %ld time%s with "
 		"the scripted position and %ld from Windows (before the first); logs/%s.log has the details", (long)c->posts, c->posts==1?"":"s",
 		(long)c->installed, c->installed==1?"":"es", (long)c->reads, c->reads==1?"":"s", (long)c->realReads, gClockVirtual?"clock":"cursor");
+}
+
+// ---------------------------------------------------------------- message boxes and beeps (hooked; --msgbox show)
+// The game's side is msgbox.c, in the sound stand-in: the copy's MessageBox calls answer with no window (so no sound
+// and no change of focus) and its MessageBeep calls with no sound. origrun makes a block before it starts the game
+// (msgbox.h) with the script's msgbox rules in it; the stand-in answers each box by them, else by its default button,
+// and hands origrun each box and beep, which the dialog thread logs in the dialog watch's own words, marked [hooked].
+// On in every run with the stand-in; --msgbox show (msgbox=show in the sandbox's run file) leaves the boxes to the
+// dialog watch, which answers them once they are on screen and have played their sound. See docs/ORIGRUN.md,
+// "Message boxes and beeps (hooked)".
+static int    gMsgboxHook = 1;        // 1: hooked; 0: --msgbox show; -1: no stand-in (--sound real), so shown
+static MbxShared* gMbx = NULL;        // mapped until origrun exits
+static volatile LONG gMbxDraining = 0;
+static const char* mbx_log_name(void) { return gClockVirtual?"clock":gCursorScripted?"cursor":"msgbox"; }
+static const char* mbx_id_name(LONG id)
+{
+	static const char* const n[]={"0","IDOK","IDCANCEL","IDABORT","IDRETRY","IDIGNORE","IDYES","IDNO","IDCLOSE","IDHELP","IDTRYAGAIN","IDCONTINUE"};
+	return id>=0 && id<(LONG)(sizeof(n)/sizeof(n[0])) ? n[id] : "?";
+}
+static const char* mbx_beep_name(DWORD t)
+{
+	switch (t) {
+	case MB_OK: return "MB_OK"; case MB_ICONHAND: return "MB_ICONHAND"; case MB_ICONQUESTION: return "MB_ICONQUESTION";
+	case MB_ICONEXCLAMATION: return "MB_ICONEXCLAMATION"; case MB_ICONASTERISK: return "MB_ICONASTERISK";
+	case 0xFFFFFFFF: return "0xFFFFFFFF, the simple beep";
+	}
+	return "a type Windows plays as MB_OK";
+}
+// The boxes and beeps the game handed over since the last call, into origrun's log (the dialog thread, every 250 ms,
+// and once more after the game ends).
+static void msgbox_drain(void)
+{
+	MbxShared* s=gMbx;
+	if (!s || InterlockedExchange(&gMbxDraining,1)) return;
+	for (;;) {
+		LONG t=s->tail; if (t==s->head) break;
+		MemoryBarrier();
+		MbxRec r=s->ring[t%MBX_RING];
+		InterlockedExchange(&s->tail,t+1);
+		r.caption[sizeof(r.caption)-1]=0; r.text[sizeof(r.text)-1]=0; r.buttons[sizeof(r.buttons)-1]=0; r.answerLabel[sizeof(r.answerLabel)-1]=0; r.fn[sizeof(r.fn)-1]=0;
+		if (r.kind==MBX_REC_BEEP) { logline("MessageBeep(%s) (pid %lu) [hooked: no sound]", mbx_beep_name(r.type), (unsigned long)r.pid); continue; }
+		if (!r.answer) {
+			logline("%s with style 0x%lx, which Windows refuses (pid %lu) [hooked: returned 0 with no box, as Windows does]: caption='%s' text='%s'",
+				r.fn, (unsigned long)r.type, (unsigned long)r.pid, r.caption, r.text);
+			continue;
+		}
+		logline("dialog appeared: '%s' (pid %lu) [hooked %s: no window]", r.caption, (unsigned long)r.pid, r.fn);
+		logline("DIALOG caption='%s' text='%s' buttons=[%s] [hooked]", r.caption, r.text, r.buttons);
+		logline("  answered with '%s' (%s) [hooked: returned %s]", r.answerLabel, r.rule?"script rule":"default button", mbx_id_name(r.answer));
+	}
+	InterlockedExchange(&gMbxDraining,0);
+}
+static void msgbox_summary(void)
+{
+	MbxShared* s=gMbx;
+	if (!s) return;
+	msgbox_drain();
+	if (!s->installed) logline("message boxes: no game process turned on the MessageBox and MessageBeep hooks (did it load the stand-in, "
+		"dsound.dll?): any box it showed went to the dialog watch, with its sound");
+	else logline("message boxes: %ld answered with no window, %ld MessageBeep call%s with no sound; %ld game process%s hooked "
+		"%ld import%s; logs/%s.log has the details", (long)s->boxes, (long)s->beeps, s->beeps==1?"":"s", (long)s->installed,
+		s->installed==1?"":"es", (long)s->patched, s->patched==1?"":"s", mbx_log_name());
+	if (s->dropped) logline("WARNING: %ld hooked message box%s or beeps not logged here (the ring was full); logs/%s.log has them",
+		(long)s->dropped, s->dropped==1?"":"es", mbx_log_name());
 }
 
 static int file_exists(const char* p) { DWORD a=GetFileAttributesA(p); return a!=INVALID_FILE_ATTRIBUTES && !(a&FILE_ATTRIBUTE_DIRECTORY); }
@@ -1742,7 +1808,16 @@ static void run_script(DWORD pid, const char* scriptPath)
 }
 
 // ----------------------------------------------------------------------------------- Core Audio watchdog
-
+//
+// The second check behind the sound stand-in, which mutes the game's own default audio session on every render device
+// as it loads, before the game can play anything (dsound_proxy.c, "The process's audio sessions, muted"). This watch
+// looks at every audio session of the copy's processes on every active render device: at once when Windows creates a
+// session (its notification wakes the watch) and every 20 ms. A session that is not muted is muted here. Each session's
+// peak meter, which Windows measures before the session's mute is applied, says whether the game made sound and when:
+// sound measured while the session was not muted reached the speakers (a leak), sound measured while it was muted did
+// not. Each session is logged when first seen, at its first sound, and on any leak, and the run's RESULT line tells a
+// game whose sessions were all muted from their start from one that played before a mute.
+//
 // Host runs with --sandbox watch the host's audio sessions of the sandbox's own processes instead of the game's:
 // they are logged and their loudest peak kept, not muted (the user allows the originals' sound), to tell whether
 // the sandbox's sound reaches the host.
@@ -1776,58 +1851,323 @@ static int is_sandbox_leaf(const char* leaf)
 static int is_broker_leaf(const char* leaf){ return ieq(leaf,"WindowsSandboxServer.exe"); }
 static int pid_before(DWORD pid);
 
+// One audio session of the game, as the watch saw it. Times are seconds since the watch began (the game's launch).
+typedef struct {
+	WCHAR id[512];        // the session's instance identifier (device, exe, session GUID, pid)
+	char  what[64];       // "the default session" or its GUID
+	DWORD pid;
+	int   dev;
+	double seen;          // first seen
+	int   firstMuted, firstActive; float firstPeak;   // as first seen
+	double mutedAt;       // when it was first seen muted, or muted here; -1 never
+	int   byWatch;        // this watch muted it (the stand-in had not)
+	int   remutes;        // found unmuted again after a mute, and muted again
+	double firstSound;    // the first non-zero peak; -1 none
+	int   firstSoundMuted;
+	float maxPeak;
+	double leakFrom, leakTo;   // sound measured while not muted (reached the speakers); -1 none
+	int   openUnmuted;    // a stream open while not muted, with no sound measured
+} AudSess;
+#define MAX_AUDSESS 32
+static AudSess gAud[MAX_AUDSESS];
+static int gAudN, gAudLost;
+static LARGE_INTEGER gAudQ0, gAudQf;
+static HANDLE volatile gAudWake;
+static double aud_now(void){ LARGE_INTEGER q; QueryPerformanceCounter(&q); return (double)(q.QuadPart-gAudQ0.QuadPart)/(double)gAudQf.QuadPart; }
+
+// Windows calls this when any process opens a new audio session on a device the watch registered with: wake the watch,
+// which looks at the sessions at once (the session manager is not called from inside its own notification).
+static HRESULT STDMETHODCALLTYPE an_qi(IAudioSessionNotification* This, REFIID riid, void** ppv)
+{
+	if (IsEqualIID(riid,&IID_IUnknown) || IsEqualIID(riid,&IID_IAudioSessionNotification)) { *ppv=This; return S_OK; }
+	*ppv=NULL; return E_NOINTERFACE;
+}
+static ULONG STDMETHODCALLTYPE an_addref(IAudioSessionNotification* This){ return 2; }   // a static object
+static ULONG STDMETHODCALLTYPE an_release(IAudioSessionNotification* This){ return 1; }
+static HRESULT STDMETHODCALLTYPE an_created(IAudioSessionNotification* This, IAudioSessionControl* s)
+{ HANDLE w=gAudWake; if (w) SetEvent(w); return S_OK; }
+static IAudioSessionNotificationVtbl gAudNotifyVtbl = { an_qi, an_addref, an_release, an_created };
+static IAudioSessionNotification gAudNotify = { &gAudNotifyVtbl };
+
+// The active render devices, each with its session manager and the creation notification; looked at again every second
+// for a device that became active since.
+typedef struct { WCHAR id[160]; IAudioSessionManager2* mgr; int reg; } AudDev;
+#define MAX_AUDDEV 8
+static AudDev gAudDev[MAX_AUDDEV];
+static int gAudDevN;
+static void aud_devices(IMMDeviceEnumerator* en)
+{
+	IMMDeviceCollection* col=NULL;
+	if (FAILED(IMMDeviceEnumerator_EnumAudioEndpoints(en,eRender,DEVICE_STATE_ACTIVE,&col)) || !col) return;
+	UINT n=0; IMMDeviceCollection_GetCount(col,&n);
+	for (UINT i=0;i<n && gAudDevN<MAX_AUDDEV;i++) {
+		IMMDevice* dev=NULL;
+		if (FAILED(IMMDeviceCollection_Item(col,i,&dev)) || !dev) continue;
+		LPWSTR id=NULL;
+		if (SUCCEEDED(IMMDevice_GetId(dev,&id)) && id) {
+			int known=0;
+			for (int k=0;k<gAudDevN;k++) if (!wcscmp(gAudDev[k].id,id)) { known=1; break; }
+			IAudioSessionManager2* mgr=NULL;
+			if (!known && SUCCEEDED(IMMDevice_Activate(dev,&IID_IAudioSessionManager2,CLSCTX_ALL,NULL,(void**)&mgr)) && mgr) {
+				AudDev* d=&gAudDev[gAudDevN++];
+				lstrcpynW(d->id,id,160); d->mgr=mgr;
+				// Windows sends the creation notifications only once the manager has listed its sessions
+				IAudioSessionEnumerator* se=NULL;
+				if (SUCCEEDED(IAudioSessionManager2_GetSessionEnumerator(mgr,&se)) && se) IAudioSessionEnumerator_Release(se);
+				d->reg=SUCCEEDED(IAudioSessionManager2_RegisterSessionNotification(mgr,&gAudNotify));
+				if (!d->reg) logline("audio: render device %d gives no session notifications; its sessions are looked at every 20 ms", gAudDevN-1);
+			}
+			CoTaskMemFree(id);
+		}
+		IMMDevice_Release(dev);
+	}
+	IMMDeviceCollection_Release(col);
+}
+
+// Is this pid the copy's? Asked of every session's pid at every look, so the answers are kept for a second.
+static struct { DWORD pid; int ours; } gAudPid[64];
+static int gAudPidN;
+static int aud_ours(DWORD pid)
+{
+	for (int i=0;i<gAudPidN;i++) if (gAudPid[i].pid==pid) return gAudPid[i].ours;
+	int ours=is_our_pid(pid);
+	if (gAudPidN<64) { gAudPid[gAudPidN].pid=pid; gAudPid[gAudPidN].ours=ours; gAudPidN++; }
+	return ours;
+}
+
+// The session GUID from an instance identifier ("...\game.exe%b{GUID}|1%b<pid>").
+static void aud_what(const WCHAR* id, char* out, int cap)
+{
+	const WCHAR* g=wcsstr(id,L"%b{");
+	int i=0;
+	if (g) for (g+=2; g[i] && i<cap-1; i++) { out[i]=(char)g[i]; if (g[i]==L'}') { i++; break; } }
+	out[i]=0;
+	if (!i) lstrcpynA(out,"a session of unknown GUID",cap);
+	else if (!strcmp(out,"{00000000-0000-0000-0000-000000000000}")) lstrcpynA(out,"the default session",cap);
+}
+
+// The sound modules the game process has loaded, read from outside (as the GPU modules are), so a session's log says
+// which path it could have come through: the stand-in or a system dsound.dll, winmm's driver (waveOut, PlaySound and the
+// mixer), MIDI, MCI, DirectShow, XAudio, BASS, FMOD, an ActiveX control (Flash).
+static void aud_modules(DWORD pid, char* out, int cap)
+{
+	out[0]=0;
+	HANDLE p=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,FALSE,pid);
+	if (!p) { lstrcpynA(out,"(not readable)",cap); return; }
+	static HMODULE mods[1024]; DWORD need=0;
+	if (EnumProcessModulesEx(p,mods,sizeof(mods),&need,LIST_MODULES_ALL)) {
+		DWORD n=need/sizeof(HMODULE); if (n>1024) n=1024;
+		static const char* const kSnd[] = { "dsound.dll", "wdmaud.drv", "midimap.dll", "audioses.dll", "quartz.dll", "mciwave.dll",
+			"mciseq.dll", "mcicda.dll", NULL };
+		for (DWORD i=0;i<n;i++) {
+			char path[MAX_PATH], one[MAX_PATH+40];
+			if (!GetModuleFileNameExA(p,mods[i],path,sizeof(path))) continue;
+			const char* b=strrchr(path,'\\'); b=b?b+1:path;
+			size_t bl=strlen(b);
+			int hit=0;
+			for (int k=0;kSnd[k];k++) if (ieq(b,kSnd[k])) hit=1;
+			if (!_strnicmp(b,"bass",4) || !_strnicmp(b,"fmod",4) || !_strnicmp(b,"xaudio",6) || (bl>4 && ieq(b+bl-4,".ocx"))) hit=1;
+			if (!hit) continue;
+			if (ieq(b,"dsound.dll")) wsprintfA(one,"dsound.dll (%s)", !_strnicmp(path,gGameDir,strlen(gGameDir)) ? "the stand-in" : path);
+			else lstrcpynA(one,b,sizeof(one));
+			if (out[0] && lstrlenA(out)+2<cap) lstrcatA(out,", ");
+			if (lstrlenA(out)+lstrlenA(one)<cap) lstrcatA(out,one);
+		}
+	}
+	CloseHandle(p);
+	if (!out[0]) lstrcpynA(out,"none",cap);
+}
+
+// A dsound.dll other than the stand-in in the game process: the system's DirectSound, whose sound goes past the
+// stand-in (COM's, before origrun's manifest made the stand-in COM's DirectSound too). Each process with a session is
+// looked at every half second while it runs, so the result can say whether one was ever loaded.
+typedef struct { DWORD pid; int sys; double at; char path[MAX_PATH]; } AudProc;
+static AudProc gAudProc[16];
+static int gAudProcN;
+static int gStandIn;   // the stand-in was placed beside the exe (not --sound real)
+static int aud_sys_dsound(DWORD pid, char* path, int cap)
+{
+	HANDLE p=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,FALSE,pid);
+	if (!p) return 0;
+	static HMODULE mods[1024]; DWORD need=0; int found=0;
+	if (EnumProcessModulesEx(p,mods,sizeof(mods),&need,LIST_MODULES_ALL)) {
+		DWORD n=need/sizeof(HMODULE); if (n>1024) n=1024;
+		for (DWORD i=0;i<n && !found;i++) {
+			char m[MAX_PATH];
+			if (!GetModuleFileNameExA(p,mods[i],m,sizeof(m))) continue;
+			const char* b=strrchr(m,'\\'); b=b?b+1:m;
+			if (ieq(b,"dsound.dll") && _strnicmp(m,gGameDir,strlen(gGameDir))) { lstrcpynA(path,m,cap); found=1; }
+		}
+	}
+	CloseHandle(p);
+	return found;
+}
+static void aud_proc_check(DWORD pid)   // pid 0: every process seen so far
+{
+	if (!gStandIn) return;
+	if (pid) {
+		int k=0; while (k<gAudProcN && gAudProc[k].pid!=pid) k++;
+		if (k==gAudProcN && gAudProcN<16) { ZeroMemory(&gAudProc[k],sizeof(gAudProc[k])); gAudProc[k].pid=pid; gAudProcN++; }
+	}
+	for (int k=0;k<gAudProcN;k++) {
+		AudProc* a=&gAudProc[k];
+		if (a->sys || (pid && a->pid!=pid)) continue;
+		if (aud_sys_dsound(a->pid,a->path,sizeof(a->path))) {
+			a->sys=1; a->at=aud_now();
+			logline("audio: WARNING: the game (pid %lu) loaded the system's DirectSound, %s, %.3f s into the run: what it plays through it goes past the stand-in (into its muted session)", a->pid, a->path, a->at);
+		}
+	}
+}
+
+// One look at a session of the game's: note what it does, and mute it if it is not muted.
+static void aud_game_session(IAudioSessionControl2* c2, DWORD pid, int dev)
+{
+	LPWSTR wid=NULL;
+	if (FAILED(IAudioSessionControl2_GetSessionInstanceIdentifier(c2,&wid)) || !wid) return;
+	AudSess* s=NULL;
+	for (int i=0;i<gAudN;i++) if (!wcscmp(gAud[i].id,wid)) { s=&gAud[i]; break; }
+	AudioSessionState st=AudioSessionStateInactive; IAudioSessionControl2_GetState(c2,&st);
+	int active=(st==AudioSessionStateActive);
+	float pk=0; Meter* mi=NULL;
+	if (SUCCEEDED(IAudioSessionControl2_QueryInterface(c2,&kIID_IAudioMeterInformation,(void**)&mi)) && mi) { mi->lpVtbl->GetPeakValue(mi,&pk); mi->lpVtbl->Release(mi); }
+	ISimpleAudioVolume* sv=NULL; BOOL m=FALSE;
+	if (FAILED(IAudioSessionControl2_QueryInterface(c2,&IID_ISimpleAudioVolume,(void**)&sv))) sv=NULL;
+	if (sv) ISimpleAudioVolume_GetMute(sv,&m);
+	double t=aud_now();
+	int isNew=0;
+	if (!s) {
+		if (gAudN>=MAX_AUDSESS) { gAudLost++; s=NULL; }
+		else {
+			s=&gAud[gAudN++]; ZeroMemory(s,sizeof(*s)); isNew=1;
+			lstrcpynW(s->id,wid,512); aud_what(wid,s->what,sizeof(s->what));
+			s->pid=pid; s->dev=dev; s->seen=t; s->firstMuted=m; s->firstActive=active; s->firstPeak=pk;
+			s->mutedAt=s->firstSound=s->leakFrom=s->leakTo=-1;
+		}
+	}
+	CoTaskMemFree(wid);
+	int muteNow=!m && sv && SUCCEEDED(ISimpleAudioVolume_SetMute(sv,TRUE,NULL));
+	if (sv) ISimpleAudioVolume_Release(sv);
+	if (!s) {   // past the table: still muted, never lost from the result
+		if (!m && pk>0) logline("WARNING: SOUND LEAK: an audio session of the game (pid %lu) made sound before it was muted, %.3f s into the run -- muted it now", pid, t);
+		return;
+	}
+	if (pk>s->maxPeak) s->maxPeak=pk;
+	char mods[512]="";
+	if (isNew || (pk>0 && s->firstSound<0)) aud_modules(pid,mods,sizeof(mods));
+	if (isNew) aud_proc_check(pid);
+	if (isNew)
+		logline("audio: the game (pid %lu) has an audio session, %s on render device %d, seen %.3f s into the run: %s; %s, peak %.4g; "
+			"its sound modules: %s", pid, s->what, dev, t, m ? "muted already" : muteNow ? "not muted: muted it now" : "not muted, and it could not be muted",
+			active ? "a stream is playing" : "no stream playing", pk, mods);
+	if (!m) {
+		if (pk>0) {
+			if (s->leakFrom<0) logline("WARNING: SOUND LEAK: the game's audio session (pid %lu, %s) made sound (peak %.4g) while it was not muted, %.3f s into the run -- %s",
+				pid, s->what, pk, t, muteNow ? "muted it now" : "it could not be muted");
+			if (s->leakFrom<0) s->leakFrom=t;
+			s->leakTo=t;
+		} else if (active && !s->openUnmuted) {
+			s->openUnmuted=1;
+			logline("WARNING: the game's audio session (pid %lu, %s) had a stream open while it was not muted, %.3f s into the run, with no sound measured -- %s",
+				pid, s->what, t, muteNow ? "muted it now" : "it could not be muted");
+		}
+		if (!isNew && s->mutedAt>=0) { s->remutes++; logline("audio: WARNING: the game's session (%s) was not muted any more at %.3f s (the game unmuted it?); %s", s->what, t, muteNow ? "muted it again" : "it could not be muted"); }
+		if (muteNow) { s->byWatch=1; if (s->mutedAt<0) s->mutedAt=t; }
+	} else if (s->mutedAt<0) s->mutedAt=t;
+	if (pk>0 && s->firstSound<0) {
+		s->firstSound=t; s->firstSoundMuted=m;
+		if (m) logline("audio: the game's first sound in its session (%s): %.3f s into the run, peak %.4g, muted (since %.3f s); its sound modules: %s",
+			s->what, t, pk, s->mutedAt, mods);
+	}
+}
+
 static void audio_watch(void)
 {
 	if (FAILED(CoInitializeEx(NULL, COINIT_MULTITHREADED))) return;
+	QueryPerformanceFrequency(&gAudQf); QueryPerformanceCounter(&gAudQ0);
+	gAudWake=CreateEventA(NULL,FALSE,FALSE,NULL);
 	IMMDeviceEnumerator* en=NULL;
 	if (FAILED(CoCreateInstance(&CLSID_MMDeviceEnumerator,NULL,CLSCTX_ALL,&IID_IMMDeviceEnumerator,(void**)&en))) { CoUninitialize(); return; }
-	while (!gStop) {
-		IMMDevice* dev=NULL;
-		if (SUCCEEDED(IMMDeviceEnumerator_GetDefaultAudioEndpoint(en,eRender,eConsole,&dev)) && dev) {
-			IAudioSessionManager2* mgr=NULL;
-			if (SUCCEEDED(IMMDevice_Activate(dev,&IID_IAudioSessionManager2,CLSCTX_ALL,NULL,(void**)&mgr)) && mgr) {
-				IAudioSessionEnumerator* se=NULL;
-				if (SUCCEEDED(IAudioSessionManager2_GetSessionEnumerator(mgr,&se)) && se) {
-					int count=0; IAudioSessionEnumerator_GetCount(se,&count);
-					for (int i=0;i<count;i++) {
-						IAudioSessionControl* ctl=NULL;
-						if (FAILED(IAudioSessionEnumerator_GetSession(se,i,&ctl)) || !ctl) continue;
-						IAudioSessionControl2* c2=NULL;
-						if (SUCCEEDED(IAudioSessionControl_QueryInterface(ctl,&IID_IAudioSessionControl2,(void**)&c2)) && c2) {
-							DWORD pid=0; IAudioSessionControl2_GetProcessId(c2,&pid);
-							char leaf[MAX_PATH];
-							if (gAudioSandbox) {
-								if (pid && proc_leaf(pid,leaf,sizeof(leaf)) && (is_sandbox_leaf(leaf) || is_broker_leaf(leaf) || (ieq(leaf,"vmwp.exe") && !pid_before(pid)))) {
-									float pk=0; Meter* mi=NULL;
-									if (SUCCEEDED(IAudioSessionControl2_QueryInterface(c2,&kIID_IAudioMeterInformation,(void**)&mi)) && mi) { mi->lpVtbl->GetPeakValue(mi,&pk); mi->lpVtbl->Release(mi); }
-									LONG v=(LONG)(pk*1000.0f), was=gSbAudioPeak;
-									if (was<0) logline("the sandbox's %s (pid %lu) has an audio session on the host", leaf, pid);
-									if (v>was) InterlockedExchange(&gSbAudioPeak,v);
-								}
-							}
-							else if (is_our_pid(pid)) {
-								ISimpleAudioVolume* sv=NULL;
-								if (SUCCEEDED(IAudioSessionControl2_QueryInterface(c2,&IID_ISimpleAudioVolume,(void**)&sv)) && sv) {
-									ISimpleAudioVolume_SetMute(sv,TRUE,NULL);
-									ISimpleAudioVolume_Release(sv);
-								}
-								if (InterlockedExchange(&gAudioSeen,1)==0)
-									logline("WARNING: game opened an audio session (pid %lu) -- muted it. A sound stand-in let output through, or --sound real was used.", pid);
-							}
-							IAudioSessionControl2_Release(c2);
+	for (int pass=0; !gStop; pass++) {
+		if (pass%50==0) { aud_devices(en); gAudPidN=0; }   // every second: a new device; pids asked again
+		if (pass%25==0 && !gAudioSandbox) aud_proc_check(0);   // every half second: the system's dsound.dll loaded?
+		for (int d=0; d<gAudDevN; d++) {
+			IAudioSessionEnumerator* se=NULL;
+			if (FAILED(IAudioSessionManager2_GetSessionEnumerator(gAudDev[d].mgr,&se)) || !se) continue;
+			int count=0; IAudioSessionEnumerator_GetCount(se,&count);
+			for (int i=0;i<count;i++) {
+				IAudioSessionControl* ctl=NULL;
+				if (FAILED(IAudioSessionEnumerator_GetSession(se,i,&ctl)) || !ctl) continue;
+				IAudioSessionControl2* c2=NULL;
+				if (SUCCEEDED(IAudioSessionControl_QueryInterface(ctl,&IID_IAudioSessionControl2,(void**)&c2)) && c2) {
+					DWORD pid=0; IAudioSessionControl2_GetProcessId(c2,&pid);
+					char leaf[MAX_PATH];
+					if (gAudioSandbox) {
+						if (pid && proc_leaf(pid,leaf,sizeof(leaf)) && (is_sandbox_leaf(leaf) || is_broker_leaf(leaf) || (ieq(leaf,"vmwp.exe") && !pid_before(pid)))) {
+							float pk=0; Meter* mi=NULL;
+							if (SUCCEEDED(IAudioSessionControl2_QueryInterface(c2,&kIID_IAudioMeterInformation,(void**)&mi)) && mi) { mi->lpVtbl->GetPeakValue(mi,&pk); mi->lpVtbl->Release(mi); }
+							LONG v=(LONG)(pk*1000.0f), was=gSbAudioPeak;
+							if (was<0) logline("the sandbox's %s (pid %lu) has an audio session on the host", leaf, pid);
+							if (v>was) InterlockedExchange(&gSbAudioPeak,v);
 						}
-						IAudioSessionControl_Release(ctl);
 					}
-					IAudioSessionEnumerator_Release(se);
+					else if (pid && aud_ours(pid)) aud_game_session(c2,pid,d);
+					IAudioSessionControl2_Release(c2);
 				}
-				IAudioSessionManager2_Release(mgr);
+				IAudioSessionControl_Release(ctl);
 			}
-			IMMDevice_Release(dev);
+			IAudioSessionEnumerator_Release(se);
 		}
-		for (int i=0;i<10 && !gStop;i++) Sleep(50);
+		WaitForSingleObject(gAudWake, gAudioSandbox ? 500 : 20);   // a new session wakes it at once
 	}
+	for (int d=0; d<gAudDevN; d++) {
+		if (gAudDev[d].reg) IAudioSessionManager2_UnregisterSessionNotification(gAudDev[d].mgr,&gAudNotify);
+		IAudioSessionManager2_Release(gAudDev[d].mgr);
+	}
+	gAudDevN=0;
 	IMMDeviceEnumerator_Release(en);
 	CoUninitialize();
+	// gAudWake stays open: a notification already on its way may still set it
+}
+
+// The run's audio lines: each session of the game, and one RESULT. "Muted from its start": no sound and no open stream
+// was ever measured in it while it was not muted, so nothing it played reached the speakers.
+static void audio_result(void)
+{
+	if (!gAudN && !gAudLost) { logline("RESULT: no audio session from the game was seen."); return; }
+	int leaks=0, open=0, standIn=0, sounds=0; double lf=-1, lt=-1, first=-1; float peak=0;
+	for (int i=0;i<gAudN;i++) {
+		AudSess* s=&gAud[i];
+		if (s->leakFrom>=0) { leaks++; if (lf<0 || s->leakFrom<lf) lf=s->leakFrom; if (s->leakTo>lt) lt=s->leakTo; }
+		else if (s->openUnmuted) open++;
+		if (s->firstMuted) standIn++;
+		if (s->firstSound>=0) { sounds++; if (first<0 || s->firstSound<first) first=s->firstSound; }
+		if (s->maxPeak>peak) peak=s->maxPeak;
+		char snd[96];
+		if (s->firstSound>=0) _snprintf(snd,sizeof(snd),"its first sound at %.3f s, loudest peak %.4g",s->firstSound,s->maxPeak); else lstrcpyA(snd,"it made no sound");
+		snd[sizeof(snd)-1]=0;
+		char how[64];
+		if (s->firstMuted) lstrcpyA(how,"muted when first seen (the stand-in's mute)");
+		else if (s->byWatch) lstrcpyA(how,"muted by this watch");
+		else if (s->mutedAt>=0) _snprintf(how,sizeof(how),"muted at %.3f s",s->mutedAt), how[sizeof(how)-1]=0;
+		else lstrcpyA(how,"never muted");
+		logline("audio: session %d of the game (pid %lu, %s, render device %d): seen at %.3f s, %s; %s; %s%s", i+1, s->pid, s->what, s->dev, s->seen,
+			how,
+			snd,
+			s->leakFrom>=0 ? "SOUND LEAK: it played before it was muted" : s->openUnmuted ? "a stream was open before it was muted (no sound measured)" : "muted from its start",
+			s->remutes ? " (it was found unmuted again later, and muted again)" : "");
+	}
+	if (gAudLost) logline("audio: %d more session%s of the game than the watch keeps; each was muted when seen", gAudLost, gAudLost==1?"":"s");
+	int sysDs=0;
+	for (int k=0;k<gAudProcN;k++) if (gAudProc[k].sys) sysDs++;
+	if (sysDs) logline("audio: %d game process%s loaded the system's DirectSound past the stand-in (see the warnings above)", sysDs, sysDs==1?"":"es");
+	else if (gAudProcN && gStandIn) logline("audio: no game process loaded the system's DirectSound (each was looked at every half second while it ran)");
+	if (leaks) logline("RESULT: SOUND LEAK: the game made sound in %d audio session%s before %s muted (measured from %.3f s to %.3f s into the run; see the warnings above).",
+		leaks, leaks==1?"":"s", leaks==1?"it was":"they were", lf, lt);
+	else if (open) logline("RESULT: %d audio session%s of the game had a stream open before %s muted, with no sound measured (see the warnings above).",
+		open, open==1?"":"s", open==1?"it was":"they were");
+	else if (sounds) logline("RESULT: %d audio session%s of the game (%d muted when first seen), each muted from its start: its sound (the first at %.3f s, loudest peak %.4g) never reached the speakers.",
+		gAudN, gAudN==1?"":"s", standIn, first, peak);
+	else logline("RESULT: %d audio session%s of the game (%d muted when first seen), each muted from its start; none made a sound.", gAudN, gAudN==1?"":"s", standIn);
 }
 
 static DWORD WINAPI audio_thread(LPVOID p){ audio_watch(); return 0; }
@@ -1838,8 +2178,11 @@ static DWORD WINAPI audio_thread(LPVOID p){ audio_watch(); return 0; }
 // "#32770". We watch our process's desktop for them and, using only documented window APIs from this host
 // (never injected into the game), log each box's caption, text and buttons with the run time, then answer
 // it: with the button a script "msgbox <button> <text>" rule names, else the dialog's default button.
-// Gaps this cannot close (see docs/ORIGRUN.md): the box has already made its own sound by the time it is
-// visible, and a MessageBeep or PlaySound system sound is not a window and is not seen here.
+// A box the game shows through an imported MessageBox call never gets here while the message-box hook is on (the
+// default, with the stand-in): msgbox.c answers it with no window, and this thread logs what it hands over
+// (msgbox_drain). What still comes here: the game's own dialog-template windows, which play no sound, and, with
+// --msgbox show, --sound real or a call the hook cannot see (GetProcAddress, a game that never loads the stand-in),
+// message boxes, which have already made their own sound by the time they are visible.
 
 #define MAX_DLG 128
 static struct { HWND hwnd; DWORD firstTick; int logged; int handled; } gDlg[MAX_DLG];
@@ -1913,10 +2256,11 @@ static BOOL CALLBACK dlg_enum_cb(HWND h, LPARAM lp)
 
 static DWORD WINAPI dialog_thread(LPVOID p)
 {
-	for (int w=0; !gDesk && !gStop && w<30000; w+=50) Sleep(50);   // wait for the driver to open the desktop
-	if (!gDesk) return 0;
+	for (int w=0; !gDesk && !gStop && w<30000; w+=50) { if (w%250==0) msgbox_drain(); Sleep(50); }   // wait for the driver to open the desktop
+	if (!gDesk) { while (!gStop) { msgbox_drain(); for (int i=0;i<5 && !gStop;i++) Sleep(50); } return 0; }
 	SetThreadDesktop(gDesk);   // dialog handles are per-desktop, like the main window's
 	while (!gStop) {
+		msgbox_drain();   // the boxes and beeps the message-box hook answered
 		EnumDesktopWindows(gDesk, dlg_enum_cb, 0);
 		for (int i=0;i<5 && !gStop;i++) Sleep(50);
 	}
@@ -2148,6 +2492,73 @@ static int rollback_wrapper(WrapEntry* e, int n)
 	}
 	if (!write_marker(left,nl)) logline("--dgvoodoo: could not rewrite %s\\%s", gGameDir, kWrapMarker);
 	return nl==0;
+}
+
+// ------------------------------------------------------------------------------------------- COM's DirectSound
+// BASS (Alchemy, Pixelus, Rocket Mania) makes its DirectSound with CoCreateInstance, and COM loads the dsound.dll the
+// registry names for the class, System32's, past the stand-in beside the exe: that is how their music reached the
+// speakers (2026-11-03). A manifest beside the exe (<exe>.manifest) naming the stand-in as the server of DirectSound's
+// two classes makes COM use the stand-in instead (registration-free COM, read by Windows as the process starts; nothing
+// is registered and nothing is hooked). It says nothing else, so every other setting stays what Windows gives an exe
+// without a manifest. Windows reads an exe's manifest once and keeps the answer until the exe changes (a copy that ran
+// before kept the system's dsound.dll until its exe was touched), so the exe's write time is set to now on every run
+// that writes the manifest and on the run that takes it out. An exe with a manifest of its own ignores one beside it
+// (none of the games so far has one); the stand-in's session mute still covers that case.
+#define COM_MARK "<!-- origrun: the sound stand-in serves DirectSound's COM classes -->"
+static const char kComManifest[] =
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n"
+	COM_MARK "\r\n"
+	"<assembly xmlns=\"urn:schemas-microsoft-com:asm.v1\" manifestVersion=\"1.0\">\r\n"
+	"  <file name=\"dsound.dll\">\r\n"
+	"    <comClass clsid=\"{47D4D946-62E8-11CF-93BC-444553540000}\" threadingModel=\"Both\"/>\r\n"   // CLSID_DirectSound
+	"    <comClass clsid=\"{3901CC3F-84B5-4FA4-BA35-AA8172B8A09B}\" threadingModel=\"Both\"/>\r\n"   // CLSID_DirectSound8
+	"  </file>\r\n"
+	"</assembly>\r\n";
+static int exe_own_manifest(const char* exe)
+{
+	HMODULE m=LoadLibraryExA(exe,NULL,LOAD_LIBRARY_AS_DATAFILE|LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+	if (!m) return 0;
+	int has = FindResourceA(m,MAKEINTRESOURCEA(1),MAKEINTRESOURCEA(24))!=NULL;   // RT_MANIFEST, the exe's own (id 1)
+	FreeLibrary(m);
+	return has;
+}
+static void touch_exe(void)
+{
+	HANDLE h=CreateFileA(gExePath,FILE_WRITE_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,0,NULL);
+	FILETIME now; GetSystemTimeAsFileTime(&now);
+	if (h==INVALID_HANDLE_VALUE || !SetFileTime(h,NULL,NULL,&now))
+		logline("warning: could not set the write time of %s (err %lu): Windows may keep the exe's manifest from an earlier run", gExePath, GetLastError());
+	if (h!=INVALID_HANDLE_VALUE) CloseHandle(h);
+}
+// 1: the file is the manifest origrun wrote (it carries COM_MARK); 0: there is none; -1: it is someone else's.
+static int com_manifest_state(const char* path)
+{
+	FILE* f=fopen(path,"rb"); if(!f) return 0;
+	char buf[4096]; size_t n=fread(buf,1,sizeof(buf)-1,f); fclose(f); buf[n]=0;
+	return strstr(buf,COM_MARK) ? 1 : -1;
+}
+// silent: write the manifest (the stand-in is in place); otherwise take out the one an earlier run wrote.
+static void com_manifest(int silent)
+{
+	char mf[MAX_PATH]; wsprintfA(mf,"%s.manifest",gExePath);
+	int st=com_manifest_state(mf);
+	if (!silent) {
+		if (st!=1) return;
+		if (delete_guarded(mf)) { touch_exe(); logline("took out origrun's %s: COM's DirectSound is the system's again", mf); }
+		else logline("warning: could not take out origrun's %s (err %lu): COM's DirectSound stays the stand-in's", mf, GetLastError());
+		return;
+	}
+	if (st<0) { logline("note: %s is not origrun's and is left alone, so COM's DirectSound (BASS's) is the system's; the session mute covers it", mf); return; }
+	if (exe_own_manifest(gExePath)) {
+		logline("note: the exe has a manifest of its own, which Windows takes over one beside it, so COM's DirectSound (BASS's) is the system's; the session mute covers it");
+		if (st==1) delete_guarded(mf);
+		return;
+	}
+	FILE* f=fopen(mf,"wb");
+	if (!f) { logline("warning: could not write %s (err %lu), so COM's DirectSound (BASS's) is the system's; the session mute covers it", mf, GetLastError()); return; }
+	fputs(kComManifest,f); fclose(f);
+	touch_exe();
+	logline("wrote %s: COM's DirectSound is the stand-in's", mf);
 }
 
 // Take out the wrapper an earlier run placed. 0 stops the run: a file of it that could not be deleted, or that changed
@@ -2460,8 +2871,7 @@ static void close_game(Launched* L){ if(L->thread) CloseHandle(L->thread); if(L-
 static int watch_run(Launched* L, const char* script, int timeout, const char* key3d, int hadPrev3d, DWORD prev3d,
 	RegVals* prevTest3dP, const char* logs, const char* logpath)
 {
-	if (script) load_msgbox_rules(script);   // register dialog answers before any dialog can appear
-	HANDLE ath=CreateThread(NULL,0,audio_thread,NULL,0,NULL);
+	HANDLE ath=CreateThread(NULL,0,audio_thread,NULL,0,NULL);   // (the msgbox rules were loaded before the launch)
 	DriverArg da; ZeroMemory(&da,sizeof(da)); if(script) lstrcpynA(da.script,script,MAX_PATH);
 	HANDLE dth=CreateThread(NULL,0,driver_thread,&da,0,NULL);
 	HANDLE gth=CreateThread(NULL,0,dialog_thread,NULL,0,NULL);   // log/answer message boxes on the game desktop
@@ -2487,6 +2897,7 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	if (wth) WaitForSingleObject(wth,3000);
 	if (gClockVirtual) vc_summary();
 	cursor_summary();
+	msgbox_summary();
 	close_game(L);
 
 	// What the game left in its setting (it writes Is3D at exit, and turns it off after a fallback), then the earlier
@@ -2505,8 +2916,7 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	}
 
 	logline("done. captures in %s, logs in %s", gShotDir, logs);
-	logline(gAudioSeen ? "RESULT: an audio session appeared and was muted (see warning above)."
-	                   : "RESULT: no audio session from the game was seen.");
+	audio_result();
 	int rc=0;
 	if (gMode3dExpr[0]) {
 		LONG m=gMode3dLast;
@@ -3126,6 +3536,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
 	if (gClockVirtual) fprintf(rf,"clock=virtual\n");
 	if (gCursorScripted) fprintf(rf,"cursor=scripted\n");
+	if (gMsgboxHook==0) fprintf(rf,"msgbox=show\n");
 	fclose(rf);
 	// --reg: registry presets, imported inside before the game starts, into the hive the game uses there.
 	if (!probe) {
@@ -3514,17 +3925,40 @@ static void cursor_create(void)
 	logline("--cursor scripted: the game's GetCursorPos returns the last mouse position the script posted (in the stand-in; its log is logs/%s.log)", gClockVirtual?"clock":"cursor");
 }
 
-// The environment the stand-in's virtual clock and scripted cursor read (vclock.c, cursor.c), inherited by the game
-// through rundesk; none of it without --clock virtual or --cursor scripted, so a value left in origrun's own environment
-// never reaches a game.
+// The message-box hook (on unless --msgbox show): its block, with the script's msgbox rules (load_msgbox_rules runs
+// first), and the environment that tells the stand-in about it.
+static void msgbox_create(void)
+{
+	char name[128]; wsprintfA(name,"Local\\origrun-msgbox-%s",gClockId);
+	HANDLE m=CreateFileMappingA(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,sizeof(MbxShared),name);   // open until origrun exits
+	MbxShared* s=m ? (MbxShared*)MapViewOfFile(m,FILE_MAP_ALL_ACCESS,0,0,sizeof(MbxShared)) : NULL;
+	if (!s) { logline("message boxes: no shared block %s (err %lu): the game's boxes are shown and answered by the dialog watch, with their sound", name, GetLastError()); if (m) CloseHandle(m); return; }
+	LONG n=gMsgboxN; if (n>MBX_RULES) n=MBX_RULES;
+	for (LONG i=0;i<n;i++) { lstrcpynA(s->rules[i].text,gMsgbox[i].text,sizeof(s->rules[i].text)); lstrcpynA(s->rules[i].button,gMsgbox[i].button,sizeof(s->rules[i].button)); }
+	s->nrules=n;
+	s->version=MBX_VERSION; s->size=sizeof(MbxShared);
+	MemoryBarrier();
+	s->magic=MBX_MAGIC;
+	gMbx=s;
+	SetEnvironmentVariableA("ORIGRUN_MSGBOX","hook");
+	SetEnvironmentVariableA("ORIGRUN_MSGBOX_ID",gClockId);
+	logline("message boxes: the game's MessageBox calls are answered in the stand-in with no window (by the msgbox rules, else the "
+		"default button) and its MessageBeep calls with no sound; --msgbox show shows them (the stand-in's log is logs/%s.log)", mbx_log_name());
+}
+
+// The environment the stand-in's virtual clock, scripted cursor and message-box hook read (vclock.c, cursor.c,
+// msgbox.c), inherited by the game through rundesk; none of it without --clock virtual, --cursor scripted or the
+// message-box hook, so a value left in origrun's own environment never reaches a game.
 static void clock_env(void)
 {
 	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
-		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID",NULL};
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
-	if (!gClockVirtual && !gCursorScripted) return;
+	if (gMsgboxHook==0) logline("--msgbox show: message boxes are shown as before; the dialog watch answers them once they are on screen, after their sound");
+	if (!gClockVirtual && !gCursorScripted && gMsgboxHook<=0) return;
 	wsprintfA(gClockId,"%lu-%lu",GetCurrentProcessId(),GetTickCount());
 	if (gCursorScripted) cursor_create();
+	if (gMsgboxHook>0) msgbox_create();
 	if (!gClockVirtual) return;
 	char host[16]; wsprintfA(host,"%lu",GetCurrentProcessId());
 	char w[4*257]=""; for (int i=0;i<gWatchN;i++) { if (i) lstrcatA(w,";"); lstrcatA(w,gWatchExpr[i]); }
@@ -3611,11 +4045,12 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
 			else if (ieq(ln,"clock")) gClockVirtual = ieq(v,"virtual");
 			else if (ieq(ln,"cursor")) gCursorScripted = ieq(v,"scripted");
+			else if (ieq(ln,"msgbox")) gMsgboxHook = ieq(v,"show") ? 0 : 1;
 		}
 		fclose(f);
 	}
 	if (!exeRel[0] || strstr(exeRel,"..") || exeRel[0]=='\\' || strchr(exeRel,':')) { logline("bad exe in sandbox-run.txt: '%s'", exeRel); goto done; }
-	if (timeout>240) timeout=240;
+	if (timeout>3600) timeout=3600;
 	if (!inSession) {   // the dead-man's switch: a sandbox whose host origrun was killed still ends
 		DWORD r=arm_guest_shutdown((DWORD)timeout+90);
 		if (r) logline("WARNING: could not arm the sandbox's shutdown timer (err %lu)", r);
@@ -3653,6 +4088,8 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	SetEnvironmentVariableA("ORIGRUN_SOUND", ieq(sound,"real") ? "real" : sound);
 	if (gClockVirtual && ieq(sound,"real")) { logline("clock=virtual needs the sound stand-in, which sound=real leaves out: the run stays on the wall clock"); gClockVirtual=0; }
 	if (gCursorScripted && ieq(sound,"real")) { logline("cursor=scripted needs the sound stand-in, which sound=real leaves out: GetCursorPos stays Windows'"); gCursorScripted=0; }
+	if (gMsgboxHook>0 && ieq(sound,"real")) { logline("sound=real: no stand-in, so no message-box hook: the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
+	if (script[0]) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
 	clock_env();
 
 	import_registry(logs);   // the presets first, in the hive the game uses, so the 3D setting below wins over them
@@ -3758,6 +4195,11 @@ int main(int argc, char** argv)
 			if (ieq(v,"scripted")) gCursorScripted=1; else if (ieq(v,"real")) gCursorScripted=0;
 			else { fprintf(stderr,"--cursor takes scripted or real, not %s\n",v); return 2; }
 		}
+		else if (ieq(argv[i],"--msgbox")&&i+1<argc) {
+			const char* v=argv[++i];
+			if (ieq(v,"show")) gMsgboxHook=0; else if (ieq(v,"hook")) gMsgboxHook=1;
+			else { fprintf(stderr,"--msgbox takes show or hook, not %s\n",v); return 2; }
+		}
 		else if (ieq(argv[i],"--copy-only")) copyOnly=1;
 		else if (ieq(argv[i],"--fresh")) fresh=1;
 		else if (ieq(argv[i],"--stage-root")&&i+1<argc) stageRoot=argv[++i];
@@ -3790,7 +4232,7 @@ int main(int argc, char** argv)
 		return 2;
 	}
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");
-	if (timeout>240) timeout=240;   // the machine rule: nothing longer than about 4 minutes
+	if (timeout>3600) timeout=3600;   // an hour; a run past about 4 minutes goes in its session's background, never in a subagent
 	if (!sandboxHost && !copyOnly && script_needs_sandbox(script)) {
 		fprintf(stderr, "origrun: refusing to start: this run takes shots or sends hw* input, and origrun does neither on the "
 			"host (a capture there can show the user's own screen, and hw* input reaches the user's desktop). Run it with "
@@ -3980,7 +4422,13 @@ int main(int argc, char** argv)
 		wsprintfA(dst,"%s\\dsound.dll",gGameDir);
 		if (CopyFileA(src,dst,FALSE)) logline("placed sound stand-in: %s",dst);
 		else logline("warning: could not place dsound stand-in from %s (err %lu) -- sound may play",src,GetLastError());
-	} else logline("--sound real: no stand-in placed; the game will use the real audio device");
+		gStandIn=file_exists(dst);
+		com_manifest(gStandIn);   // COM's DirectSound too, through a manifest beside the exe (only with a stand-in there)
+	} else {
+		com_manifest(0);
+		logline("--sound real: no stand-in placed; the game will use the real audio device");
+		if (gMsgboxHook>0) { logline("--sound real: no message-box hook either (it lives in the stand-in): the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
+	}
 
 	// --sandbox: everything is staged; the run itself, its registry and its shots happen inside Windows Sandbox.
 	if (sandboxHost) return sandbox_host_run(selfDir, script, timeout, sound, key3d, sandboxVgpu, sandboxWait, 0);
@@ -3988,6 +4436,7 @@ int main(int argc, char** argv)
 	// Environment the stand-in reads, inherited through rundesk.
 	SetEnvironmentVariableA("ORIGRUN_DIR",gRunDir);
 	SetEnvironmentVariableA("ORIGRUN_SOUND", wantSilent ? sound : "real");
+	if (script) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
 	clock_env();
 
 	// The game's 3D setting and cached test results go back after every run whose key is known: on rundesk's desktop

@@ -10,6 +10,9 @@
 #include "SexyAppBase.h"
 #include "Widget.h"
 
+#include <cstdio>
+#include <string>
+
 namespace ningpo
 {
 class NingPo;
@@ -48,6 +51,12 @@ public:
 	ningpo::NingPo* mGame;
 	bool mGameRunning;
 	bool mApplyingGameMode;  // SwitchScreenMode is the game's own request (pg::Host::SetFullscreen)
+	// test hook: -statelog=<file> writes a line "<time> <name> <value>" each time one of the game's values that decide
+	// play changes, <time> being the time of the event handled last (PGApp::mEventTime, the original's 0x47be70), so
+	// that a run can be compared with the original's watched values (games/ningpo/tools/identical)
+	std::string mStateLogFileName;
+	FILE* mStateLog;
+	int mStateLogValues[32];
 
 	NingPoApp();
 	virtual ~NingPoApp();
@@ -58,6 +67,7 @@ public:
 	void GotFocus() override;
 	void LostFocus() override;
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	using SexyAppBase::SwitchScreenMode;
 
 	// The event the window procedure would have posted, with the modifier keys held
@@ -67,6 +77,9 @@ public:
 	void RunFramework(int theMs);
 	// pg::Host::SetFullscreen
 	void SetGameFullscreen(bool theFullscreen);
+	// -statelog: the values that changed since the last call, each time the game reads its event queue (origrun reads
+	// the original's watches at its waits and clock reads, which come at the same points of its loop)
+	void UpdateStateLog();
 };
 
 extern NingPoApp* gApp;

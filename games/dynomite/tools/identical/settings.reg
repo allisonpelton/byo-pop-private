@@ -1,0 +1,14 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\PopCap\Dynomite]
+"CustomCursors"=dword:00000000
+"InProgress"=dword:00000000
+"MusicVolume"=dword:00000032
+"Muted"=dword:00000000
+"PreferredX"=dword:ffffffff
+"PreferredY"=dword:ffffffff
+"ScreenMode"=dword:00000001
+"SfxVolume"=dword:00000055
+"TimesExecuted"=dword:00000005
+"TimesPlayed"=dword:00000000
+"WaitForVSync"=dword:00000000

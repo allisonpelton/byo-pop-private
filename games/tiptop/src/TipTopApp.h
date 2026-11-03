@@ -49,7 +49,15 @@ public:
 	int mAutoplayCap;
 	std::string mAutoplayLog;
 	std::string mAutoplayShots;
+	int mAutoplaySave;        // -autoplaysave=N
+	bool mAutoplayUi;         // -autoplayui: clicks the button Enter would press, for the original, which reads its keys
+	                          // with DirectInput (games/tiptop/tools/identical/)
+	std::string mAutoplayScript;  // -autoplayscript=<file>: the bot's input as a -script file
 	AutoplayState* mAutoplayState;
+	// -statelog=<file>: a line "<update> <name> <value>" at each change of the values that decide play (testhooks/Autoplay.cpp)
+	std::string mStateLogName;
+	FILE* mStateLog;
+	void UpdateStateLog();
 
 	TipTopApp();
 	virtual ~TipTopApp();

@@ -1,0 +1,11 @@
+# idle game after the hints, started early so that it ends within the original's run
+300 move 320 445
+310 click 320 445
+700 move 316 104
+710 click 316 104
+1164 click 300 192
+1171 click 240 315
+1175 click 390 265
+1276 click 246 318
+1280 click 495 317
+end 6200

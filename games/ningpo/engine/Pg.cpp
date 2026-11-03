@@ -69,6 +69,11 @@ void HSleep(uint32_t theMs)
 	gHost->Sleep((int)theMs);
 }
 
+void HEventRead()
+{
+	gHost->EventRead();
+}
+
 void HStrncpy(char* theDest, const char* theSrc, int theSize)
 {
 	// unlike strncpy, the rest of theDest is left as it is (the best times copy a name with a size larger than

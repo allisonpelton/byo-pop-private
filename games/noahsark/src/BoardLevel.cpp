@@ -168,6 +168,7 @@ Board::~Board()
 void Board::NewLevel()
 {
 	mApp->mLevel++;
+	mApp->ResyncEvent('n');
 	mFloodSpeed = mApp->mDifficulty + mApp->mLevel;
 	if (((mApp->mLevel & 3) == 0) && (mApp->mGameMode == GAMEMODE_ACTION))
 	{

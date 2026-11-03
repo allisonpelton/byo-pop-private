@@ -22,6 +22,7 @@
 #include "LiveSplitObserver.h"
 #include "SidePanel.h"
 #include "testhooks/Autoplay.h"
+#include "testhooks/StateLog.h"
 
 #include "WidgetManager.h"
 #include "Dialog.h"
@@ -348,6 +349,7 @@ BookWormApp::BookWormApp()
 	mAutoplayType = false;
 	mAutoplayBot = NULL;
 	mDailyDate = 0;
+	mStateLog = NULL;
 	mSidePanel = NULL;
 	mReplayDir = "replays";
 	mWatchFile = NULL;
@@ -364,6 +366,7 @@ BookWormApp::BookWormApp()
 BookWormApp::~BookWormApp()
 {
 	delete mAutoplayBot; // port: the -autoplay test hook
+	delete mStateLog;    // port: the -statelog test hook
 	delete mWatchFile;   // port(mod)
 	LiveSplitObserver::AppDestroyed(this); // port(mod): the LiveSplit block's last write
 
@@ -636,6 +639,8 @@ void BookWormApp::UpdateFrames()
 			mAutoplayShotPrefix, mAutoplayShotWords, mAutoplayHints, mAutoplayUndo, mAutoplayModel, mAutoplayType);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
+	if (mStateLog != NULL)
+		mStateLog->Update(this);  // port: the -statelog test hook (testhooks/StateLog.h)
 
 	// port(mod): the LiveSplit block, after the update (LiveSplitObserver.h)
 	LiveSplitObserver::AfterUpdate(this);
@@ -671,6 +676,11 @@ void BookWormApp::HandleCmdLineParam(const std::string& theParamName, const std:
 		mAutoplayContinue = atoi(theParamValue.c_str()) != 0;
 	else if (theParamName == "-autoplaytype")
 		mAutoplayType = atoi(theParamValue.c_str()) != 0;
+	else if (theParamName == "-statelog")
+	{
+		delete mStateLog;
+		mStateLog = new StateLog(theParamValue);
+	}
 	else if (theParamName == "-dailydate")
 		mDailyDate = atoi(theParamValue.c_str());
 	else if (theParamName == "-replay")
@@ -731,6 +741,19 @@ void BookWormApp::Init()
 	// (Compat2004.h); -seed=N test runs seed it with N, as they do the framework's Rand(), so a run is
 	// reproducible (the game's own generators are seeded from Rand())
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
+
+	// The 2004 SexyApp::Init (0x48aaf0) seeds Rand()'s generator with its GetTickCount() through MTRand::SRand
+	// (0x4665f0), which seeds the SAF 1.2 way; the port's SexyAppBase::Init seeded it with the same value the 1.3
+	// way. Seeded again here as the original was, so a seed gives the original's draws (the game generator's seed
+	// among them, below) and nothing has drawn from it yet
+	{
+		MTRand aRand;
+		SeedMTRand2004(aRand, (unsigned long) mRandSeed);
+		uint32_t aState[MTRAND_N];
+		int anIndex;
+		aRand.GetState(aState, &anIndex);
+		SetRandMTState(aState, anIndex);
+	}
 
 	if (!CheckRegistryAccess())
 	{

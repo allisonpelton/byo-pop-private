@@ -30,7 +30,10 @@
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
 #                web/gameimport.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
 #                landmarks, headings, names, references, live regions and contrast) and stringstest (tools/stringstest.js: the
-#                site's text, web/strings/en.txt, against the code that uses it, and web/i18n.js's rules). The build folder is build/web;
+#                site's text, web/strings/en.txt, against the code that uses it, and web/i18n.js's rules), playcounttest (the play
+#                counter's Worker and Durable Object, web/counter/playcount.mjs, on stand-ins for Cloudflare's runtime) and
+#                playcountpagetest (its pages' side, web/playcount.js: when it may contact the counter) and termstest (web/terms.js:
+#                when a page skips the terms card, the development hosts, ?terms=1 and the test key). The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
 #                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
@@ -66,12 +69,16 @@
 #                victory screen), a whole adventure (15 pyramids, the map, the saved game) and the tutorial (about 1 minute)
 #   tiptop       TipTop's bot: two regular games, a strategy game and a speed game, and a rerun of the regular ones
 #                with the same screenshots (about two and a half minutes; the quick form leaves out the speed game and
-#                reruns the strategy game instead of the regular ones: 50 s)
+#                reruns the strategy game instead of the regular ones: 50 s); with build/baseline-tiptop/ also three
+#                mouse-played games (two regular games in a row, a strategy game, a regular game saved and continued)
+#                that must give the frozen baseline's state at every update (about a minute more; not in the quick form)
 #   ningpo       Ning Po Mahjong: a scripted game (the cheat's matches until no pair is left, the name entry, the best
-#                times) and a rerun with the same screenshots and best time (under a minute)
+#                times) and a rerun with the same screenshots and best time; with build/baseline-ningpo, every layout
+#                and two games in a row that must give the frozen baseline's state log (about 20 s)
 #   wordharmony  Word Harmony: a THINK game from a saved game (a ball dragged into a word, the word sent, the level
 #                ended, level 2 saved) and a TSUNAMI game saved after 20 seconds, each run twice with the same
-#                screenshots (about 20 seconds)
+#                screenshots, and both again in build/baseline-wordharmony/, which must write the same state log
+#                (about 30 seconds)
 #   cosmicbugs   Cosmic Bugs: both art banks, the fonts and every animation the game ships loaded
 #                (cosmicbugs_banktest), a scripted game played headless (cosmicbugs_run: two lines on the first
 #                board) and a rerun with the same screenshots, the windowed exe twice with the same clicks: the
@@ -96,7 +103,8 @@
 #   dynomite     Dynomite Deluxe: a scripted Stomped Puzzle (dynomite_run: five shots and the board's state, then the
 #                save dialog's first slot and the name's Save) and a rerun with the same screens and the same saved
 #                game but for its tick counts, and that saved game continued from the main menu with the board as it
-#                was saved (dynomite_load) (under a minute)
+#                was saved (dynomite_load); with build/baseline-dynomite/ (frozen at its identical-play pass), three of
+#                that pass's cases must give the baseline's state log (dynomite_state) (about a minute)
 #   bonnies      Bonnie's Bookstore Deluxe: a tour from a script (games/bonnies/tools/tour_test.txt): a new player,
 #                the classic game's tutorial words, the game's options, high scores, credits and help, the main menu's
 #                options, an action game paused by a focus loss and played until its time is up, and Quit; a rerun
@@ -159,14 +167,14 @@
 #
 # The bots' expected results are below. A change that is meant to alter how a game plays updates them, in
 # the same commit, with the reason.
-BW_CLASSIC="level 8, score 58970"
-BW_ACTION="level 14, score 152360"
+BW_CLASSIC="level 5, score 19230"
+BW_ACTION="level 11, score 87580"
 BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17369: score 6524 mode stampede"
 NA_STRATEGY="level 5 done at update 19538: score 6380 mode strategy"
 NA_PUZZLE="game 1 over at update 6750: score 1450 level 1 moves 37"
-AT_STRATEGY="game 1 over at update 6876: score 1600 level 2 moves 90"
-AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
+AT_STRATEGY="game 1 over at update 2396: score 320 level 1 moves 31"
+AT_ACTION="update 20000: score 2960 level 3 moves 567 atoms 58"
 AL_STRATEGIC="game 1 over at update 12206: score 7432 pieces 830 forged 29 boards 3"
 AL_TIMETRIAL="game 1 over at update 14641: score 15942 pieces 903 forged 87 boards 3"
 AL_TUTORIAL="tutorial button 1 at update 231"
@@ -183,10 +191,10 @@ MM_ADVENTURE="victory: score 0, caught 49 times"
 MM_TUTORIAL="tutorial done at update 6591"
 TT_REGULAR="game 2 over at update 35544: level 7, score 37160, 352 moves"
 TT_STRATEGY="game 1 over at update 2593: level 1, score 2100, 24 moves"
-TT_SPEED="game 1 over at update 57249: level 11, score 78250, 1081 moves"
+TT_SPEED="game 1 over at update 37679: level 8, score 49360, 682 moves"
 NP_GAME="Test: 40 tiles left in 00:12"
-WH_THINK="level 2 saved, score 1600"
-WH_TSUNAMI="level 1 saved, score 0, 8 balls, 6 to come"
+WH_THINK="level 2 saved, score 2000"
+WH_TSUNAMI="level 1 saved, score 0, 14 balls, 5 to come"
 CB_BANKS="82 animations, 9 missing, 0 failed; 8 fonts, 0 failed"
 CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: score 729, lives 6, board 0, filled 629 of 85%"
 WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
@@ -222,7 +230,7 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 # Rough seconds on this machine (the last `all` run, 2026-11-02); the plan adds them up, no more
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
-	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=8 [wordharmony]=17 [cosmicbugs]=5
+	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
 	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52)
 
@@ -311,7 +319,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|build.sh|check.sh)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
-				*.js) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
+				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
 				*) pick build "$AREA" "$p" ;;
 			esac ;;
 		framework/*|platform/*|third_party/*|CMakeLists.txt|cmake/*)
@@ -637,8 +645,17 @@ suite_unit-web() {
 	# the site's text (web/strings/en.txt) against the code that uses it, and web/i18n.js's rules
 	"$NODE" tools/stringstest.js > "$1.str" 2>&1 || st=1
 	j="$(lastof "$1.str" 'stringstest:')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j"
+	local k l
+	"$NODE" tools/playcounttest.mjs > "$1.pc" 2>&1 || st=1
+	k="$(lastof "$1.pc" 'playcounttest:')"
+	"$NODE" tools/playcountpagetest.js > "$1.pcp" 2>&1 || st=1
+	l="$(lastof "$1.pcp" 'playcountpagetest:')"
+	local m
+	"$NODE" tools/termstest.js > "$1.tt" 2>&1 || st=1
+	m="$(lastof "$1.tt" 'termstest:')"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m"
 	return $st
 }
 
@@ -698,6 +715,13 @@ bookworm_game() {  # <name> <mode>: a bot game; prints its last "game over" line
 	grep -o -i -E 'game over[^;]*' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
+bookworm_state_game() {  # <name> <exe> <user dir> <port arguments...>: a bot run with no mods; its state log is <name>/state.txt
+	local d="$OUT/bookworm/$1" e="$2" u="$3"; shift 3
+	rm -rf "$d"; mkdir -p "$d/mods"
+	[ -d "$u" ] || mkdir -p "$u"
+	timeout 900 "$e" -userdir="$u" -modsdir="$d/mods" -fast -statelog="$d/state.txt" "$@" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_bookworm() {
 	local st=0 c a r
 	need_assets bookworm || return 1
@@ -706,7 +730,26 @@ suite_bookworm() {
 	case "$c" in *"$BW_CLASSIC"*) ;; *) st=1 ;; esac
 	case "$a" in *"$BW_ACTION"*) ;; *) st=1 ;; esac
 	if diff -rq "$OUT/bookworm/classic/shots" "$OUT/bookworm/classic2/shots" >> "$1" 2>&1; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="classic ${c#*-> inactive, }; action ${a#*-> inactive, }; $r"
+	# the frozen baseline (build/baseline-bookworm/, the port when its identical-play pass was done): games the pass played
+	# against the original (two and three games in a session, a Classic game quit half way and continued from its saved
+	# file) must give the same state at every update in both
+	local base="$W/build/baseline-bookworm/bookworm.exe" bl="" k x
+	if [ -f "$base" ]; then
+		for k in cur base; do
+			x="$W/build/native/bookworm.exe"; [ $k = base ] && x="$base"
+			rm -rf "$OUT/bookworm/$k-user"
+			bookworm_state_game "$k-c2" "$x" "$OUT/bookworm/$k-user/c2" -seed=7 -autoplay=2 -autoplaymode=both -autoplaycap=60000
+			bookworm_state_game "$k-m1" "$x" "$OUT/bookworm/$k-user/m1" -seed=9 -autoplay=7 -autoplaymode=classic,action,classic
+			bookworm_state_game "$k-s1" "$x" "$OUT/bookworm/$k-user/s1" -seed=11 -autoplay=3 -autoplaymode=classic -autoplaycap=3000
+			bookworm_state_game "$k-s1b" "$x" "$OUT/bookworm/$k-user/s1" -seed=11 -autoplay=4 -autoplaymode=classic -autoplaycontinue=1
+		done
+		for k in c2 m1 s1 s1b; do
+			[ -s "$OUT/bookworm/cur-$k/state.txt" ] && [ -s "$OUT/bookworm/base-$k/state.txt" ] &&
+				cmp -s "$OUT/bookworm/cur-$k/state.txt" "$OUT/bookworm/base-$k/state.txt" || bl="$bl $k"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS:$bl"; st=1; }
+	fi
+	SUMMARY="classic ${c#*-> inactive, }; action ${a#*-> inactive, }; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic $BW_CLASSIC, action $BW_ACTION)"
 	return $st
 }
@@ -772,15 +815,32 @@ atomica_game() {  # <name> <mode> <cap>: a bot game; prints its last "game over"
 	grep -E '^(level [0-9]+ done|game [0-9]+ over|update [0-9]+:)' "$d/log.txt" 2>/dev/null | tail -n 1 | sed 's/ (f8c.*//'
 }
 
+atomica_replay() {  # <name> <exe> <scenario> <end>: the port plays a scenario of games/atomica/tools/identical; its state log is $OUT/atomica/<name>/trace.txt
+	local d="$OUT/atomica/$1"
+	rm -rf "$d"; mkdir -p "$d"
+	python "$W/games/atomica/tools/identical/portscript.py" "$W/games/atomica/tools/identical/$3" "$d/script.txt" --end "$4"
+	timeout 600 "$2" -userdir="$d/user" -fast -seed=1 -drawevery -script="$d/script.txt" -statetrace="$d/trace.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_atomica() {
-	local st=0 s a r
+	local st=0 s a r bl="" base="$W/build/baseline-atomica/atomica.exe" sc
 	need_assets atomica || return 1
+	if [ -f "$base" ]; then
+		for sc in "s2.txt 4000" "g5.txt 6500"; do
+			read -r f e <<< "$sc"
+			atomica_replay "cur-$f" "$W/build/native/atomica.exe" "$f" "$e"
+			atomica_replay "base-$f" "$base" "$f" "$e"
+			[ -s "$OUT/atomica/cur-$f/trace.txt" ] && [ -s "$OUT/atomica/base-$f/trace.txt" ] &&
+				cmp -s "$OUT/atomica/cur-$f/trace.txt" "$OUT/atomica/base-$f/trace.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
 	s="$(atomica_game strategy strategy 20000)"; a="$(atomica_game action action 20000)"; r="$(atomica_game strategy2 strategy 20000)"
 	{ echo "strategy: $s"; echo "action: $a"; echo "strategy rerun: $r"; } > "$1"
 	[ "$s" = "$AT_STRATEGY" ] || st=1
 	[ "$a" = "$AT_ACTION" ] || st=1
 	if diff -rq "$OUT/atomica/strategy/shots" "$OUT/atomica/strategy2/shots" >> "$1" 2>&1 && [ "$s" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="strategy ${s#game }; action ${a#update }; $r"
+	SUMMARY="strategy ${s#game }; action ${a#update }; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected strategy '$AT_STRATEGY', action '$AT_ACTION')"
 	return $st
 }
@@ -923,7 +983,7 @@ mummymaze_game() {  # <name> <bot arguments>...: a bot game; prints the last res
 	local n="$1" d
 	d="$OUT/mummymaze/$n"; shift
 	rm -rf "$d"; mkdir -p "$d/shots"
-	timeout 600 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast "$@" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" 		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	timeout 600 "${MM_EXE:-$W/build/native/mummymaze.exe}" -userdir="$d/user" -fast "$@" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(game over|victory|tutorial done|stalled|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
@@ -954,6 +1014,20 @@ suite_mummymaze() {
 	[ "$v" = "$MM_ADVENTURE" ] || st=1
 	mummymaze_resume || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-mummymaze/mummymaze.exe, a copy of the port made when it was last checked against
+	# the original, 2026-11-03): the same games must give the same log lines and the same screenshots. Refreeze it only on purpose,
+	# with the reason in games/mummymaze/docs/IDENTICAL_PLAY.md.
+	local base="$W/build/baseline-mummymaze/mummymaze.exe" bl="" k
+	if [ -f "$base" ]; then
+		MM_EXE="$base" mummymaze_game base-classic -seed=1 -autoplay=7 -autoplaygames=1 -autoplaylevels=8 -autoplaycap=60000 > /dev/null
+		MM_EXE="$base" mummymaze_game base-tips -seed=3 -autoplay=5 -autoplaygames=1 -autoplaystart=3,0 -autoplaylevels=4 -autoplaycap=60000 > /dev/null
+		MM_EXE="$base" mummymaze_game base-tutorial -seed=1 -autoplay=3 -autoplaymode=tutorial -autoplaycap=100000 > /dev/null
+		bl="baseline identical"
+		for k in classic tips tutorial; do
+			cmp -s "$OUT/mummymaze/$k/log.txt" "$OUT/mummymaze/base-$k/log.txt" && diff -rq "$OUT/mummymaze/$k/shots" "$OUT/mummymaze/base-$k/shots" >> "$1" 2>&1 || { bl="BASELINE DIFFERS ($k)"; st=1; }
+		done
+		r="$r; $bl"
+	fi
 	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $MM_RESUME; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$MM_CLASSIC', tips '$MM_TIPS', full '$MM_FULL', tutorial '$MM_TUTORIAL', adventure '$MM_ADVENTURE')"
 	return $st
@@ -1181,6 +1255,13 @@ tiptop_game() {  # <name> <mode> <games>: bot games; prints the last "game N ove
 	grep -E '^(game [0-9]+ over|update [0-9]+:)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
+tiptop_state_game() {  # <name> <exe> <mode> <bot seed> <game seed> <games> [port arguments]: games played by mouse; the state log is <name>/state.txt
+	local d="$OUT/tiptop/$1" exe="$2" m="$3" bs="$4" gs="$5" n="$6"; shift 6
+	rm -rf "$d"; mkdir -p "$d"
+	timeout 600 "$exe" -gamedir=assets/tiptop -userdir="$d/user" -fast -seed="$gs" -autoplay="$bs" -autoplayui -autoplaymode="$m" \
+		-autoplaygames="$n" -autoplaycap=80000 -statelog="$d/state.txt" "$@" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_tiptop() {
 	local st=0 g s p r again ref
 	need_assets tiptop || return 1
@@ -1197,7 +1278,23 @@ suite_tiptop() {
 	[ "$s" = "$TT_STRATEGY" ] || st=1
 	[ "$p" = "$TT_SPEED" ] || [ "${CHECK_QUICK:-0}" = 1 ] || st=1
 	if diff -rq "$OUT/tiptop/$again/shots" "$OUT/tiptop/${again}2/shots" >> "$1" 2>&1 && [ "$ref" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="regular ${g#game }; strategy ${s#game }; speed ${p#game }; $r"
+	# the frozen baseline (build/baseline-tiptop/, the port when phase one of its identical-play pass was done): the same
+	# mouse-played games must give the same state at every update (the values the pass compared with the original), the
+	# meter left out (outside the timed mode it holds uninitialised heap, which differs from run to run), and so are the
+	# level and blocks left at update 1, read before the first game sets them
+	local base="$W/build/baseline-tiptop/tiptop.exe" bl="" a
+	if [ -f "$base" ] && [ "${CHECK_QUICK:-0}" != 1 ]; then
+		for a in "reg regular 1 1 2" "str strategy 2 3 1" "save regular 2 2 1 -autoplaysave=30"; do
+			read -r k m bs gs n x <<< "$a"
+			tiptop_state_game "cur-$k" "$W/build/native/tiptop.exe" "$m" "$bs" "$gs" "$n" $x
+			tiptop_state_game "base-$k" "$base" "$m" "$bs" "$gs" "$n" $x
+			[ -s "$OUT/tiptop/cur-$k/state.txt" ] && [ -s "$OUT/tiptop/base-$k/state.txt" ] &&
+				cmp -s <(grep -Ev ' meter |^1 (level|blocksleft) ' "$OUT/tiptop/cur-$k/state.txt") <(grep -Ev ' meter |^1 (level|blocksleft) ' "$OUT/tiptop/base-$k/state.txt") ||
+				bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="regular ${g#game }; strategy ${s#game }; speed ${p#game }; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected regular '$TT_REGULAR', strategy '$TT_STRATEGY', speed '$TT_SPEED')"
 	return $st
 }
@@ -1226,19 +1323,38 @@ ningpo_game() {  # <name>: a scripted game (-seed=7): the cheat's matches to the
 
 hexle() { echo $((16#${1:6:2}${1:4:2}${1:2:2}${1:0:2})); }  # <8 hex digits>: the little-endian 32-bit number
 
+ningpo_state_game() {  # <name> <exe> <case> <seed>: an identical-play case's script; its state log is <name>/state.txt
+	local d="$OUT/ningpo/$1"; rm -rf "$d"; mkdir -p "$d"
+	OUT="$OUT/ningpo" "$W/games/ningpo/tools/identical/cases.sh" "$3" "$d/script.txt"
+	timeout 300 "$2" -gamedir=assets/ningpo -userdir="$d/user" -fast -seed="$4" -script="$d/script.txt" \
+		-statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_ningpo() {
-	local st=0 g r
+	local st=0 g r base="$W/build/baseline-ningpo/ningpo.exe" bl="" a
 	need_assets ningpo || return 1
 	g="$(ningpo_game seed7)"; r="$(ningpo_game seed7b)"
 	{ echo "game: $g"; echo "rerun: $r"; } > "$1"
 	[ "$g" = "$NP_GAME" ] || st=1
 	if diff -rq "$OUT/ningpo/seed7/shots" "$OUT/ningpo/seed7b/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="$g; $r"
+	# the frozen port (games/ningpo/docs/IDENTICAL_PLAY.md) on the identical-play pass's cases: every layout, and two
+	# games in a row with the best times, each with the same non-empty state log as the build's
+	if [ -f "$base" ]; then
+		for a in layouts:11 won39:39; do
+			ningpo_state_game "cur-${a%:*}" "$W/build/native/ningpo.exe" "${a%:*}" "${a#*:}"
+			ningpo_state_game "base-${a%:*}" "$base" "${a%:*}" "${a#*:}"
+			[ -s "$OUT/ningpo/cur-${a%:*}/state.txt" ] && [ -s "$OUT/ningpo/base-${a%:*}/state.txt" ] &&
+				cmp -s "$OUT/ningpo/cur-${a%:*}/state.txt" "$OUT/ningpo/base-${a%:*}/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="$g; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$NP_GAME')"
 	return $st
 }
 
-wordharmony_game() {  # <name> <think|tsunami>: a scripted game (-fast) that ends saved; prints the saved game
+wordharmony_game() {  # <name> <think|tsunami> [exe]: a scripted game (-fast, seed 1) that ends saved; prints the saved game;
+	# its state log (the values the identical-play pass compared with the original) is <name>/state.txt
 	local d="$OUT/wordharmony/$1" m g rc f s shots="" re=' level="([0-9]+)" score="([0-9]+)"'
 	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
 	if [ "$2" = think ]; then
@@ -1267,8 +1383,8 @@ wordharmony_game() {  # <name> <think|tsunami>: a scripted game (-fast) that end
 	# Save/Quit and Save Game
 	printf '%s\n' "2900 screenshot $d/shots/play.png" "2980 move 155 30" "3000 click 155 30" "3150 move 360 325" \
 		"3170 click 360 325" "3400 screenshot $d/shots/menu.png" "3420 quit" >> "$d/script.txt"
-	timeout 300 "$W/build/native/wordharmony.exe" -gamedir=assets/wordharmony -userdir="$d/user" -fast -script="$d/script.txt" \
-		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	timeout 300 "${3:-$W/build/native/wordharmony.exe}" -gamedir=assets/wordharmony -userdir="$d/user" -fast -seed=1 \
+		-statelog="$d/state.txt" -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	rc=$?
 	[ $rc -eq 0 ] || { echo "exit status $rc"; return; }
 	# the engine's exceptions (WordHarmonyApp::EngineFailed) and any message box the test run did not show
@@ -1297,7 +1413,18 @@ suite_wordharmony() {
 	if diff -rq "$OUT/wordharmony/think/shots" "$OUT/wordharmony/think2/shots" >> "$1" 2>&1 &&
 		diff -rq "$OUT/wordharmony/tsunami/shots" "$OUT/wordharmony/tsunami2/shots" >> "$1" 2>&1 &&
 		[ "$t" = "$t2" ] && [ "$a" = "$a2" ]; then r="reruns identical"; else r="RERUNS DIFFER"; st=1; fi
-	SUMMARY="THINK $t; TSUNAMI $a; $r"
+	# the frozen baseline (build/baseline-wordharmony/, the port when its identical-play pass was done): the same games must
+	# write the same state at every update (games/wordharmony/docs/IDENTICAL_PLAY.md)
+	local base="$W/build/baseline-wordharmony/wordharmony.exe" bl="" g
+	if [ -f "$base" ]; then
+		for g in think tsunami; do
+			wordharmony_game "base-$g" "$g" "$base" > /dev/null
+			[ -s "$OUT/wordharmony/$g/state.txt" ] && [ -s "$OUT/wordharmony/base-$g/state.txt" ] &&
+				cmp -s "$OUT/wordharmony/$g/state.txt" "$OUT/wordharmony/base-$g/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="THINK $t; TSUNAMI $a; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected THINK '$WH_THINK', TSUNAMI '$WH_TSUNAMI')"
 	return $st
 }
@@ -1527,6 +1654,17 @@ dynomite_load() {  # <name> <run>: the run's saved game continued from the main 
 	dynomite_exe "$d"
 }
 
+dynomite_state() {  # <name> <exe> <seed> <mkscript rng seed> <parts...>: an identical-play case's script (mkscript.py)
+	# played with -statelog, as the pass played it against the original; the log is <name>/state.txt
+	local d="$OUT/dynomite/$1" e="$2" seed="$3" r="$4" u
+	shift 4
+	rm -rf "$d"; dynomite_user "$d/user"
+	python games/dynomite/tools/identical/mkhs.py "$d/user"
+	python games/dynomite/tools/identical/mkscript.py "$d/script.txt" 25000 "$r" "$@"
+	u="$(cygpath -ma "$d")"
+	timeout 300 "$e" -gamedir=assets/dynomite -userdir="$u/user" -fast -drawevery -seed="$seed" -script="$u/script.txt" 		-statelog="$u/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_dynomite() {
 	local st=0 g r l c="$OUT/dynomite" t
 	need_assets dynomite || return 1
@@ -1540,7 +1678,20 @@ suite_dynomite() {
 	if diff -q "$c/game/board.png" "$c/game2/board.png" >> "$1" 2>&1 && diff -q "$c/game/saved.png" "$c/game2/saved.png" >> "$1" 2>&1 &&
 		[ "$g" = "$r" ] && [ -z "$t" ]; then r="rerun identical"; else r="RERUN DIFFERS${t:+ ($t)}"; st=1; fi
 	if [ "$l" = "$g" ]; then l="loads as saved"; else l="LOAD DIFFERS ('$l')"; st=1; fi
-	SUMMARY="$g; $r; $l"
+	# the frozen baseline (build/baseline-dynomite/, the port when its identical-play pass was done): three of the pass's
+	# cases (games/dynomite/tools/identical/cases.sh) must give the same state at every update
+	local base="$W/build/baseline-dynomite/dynomite.exe" bl="" a n
+	if [ -f "$base" ]; then
+		for a in "en 2 3 title menu:endless shots:80:40 wait:300 text:Zed click:352:369 wait:200 click:400:400 wait:300 shots:80:40 quit" 			"st 4 5 title menu:stomped:pack shots:45:40 wait:300 text:Sam click:352:369 wait:200 quit" 			"fp 8 9 title menu:fossil:panic shots:60:40 wait:300 quit"; do
+			set -- $a; n=$1; shift
+			dynomite_state "cur-$n" "$W/build/native/dynomite.exe" "$@"
+			dynomite_state "base-$n" "$base" "$@"
+			[ -s "$c/cur-$n/state.txt" ] && [ -s "$c/base-$n/state.txt" ] &&
+				cmp -s "$c/cur-$n/state.txt" "$c/base-$n/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="$g; $r; $l$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$DY_GAME')"
 	return $st
 }

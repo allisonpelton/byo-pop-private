@@ -28,3 +28,7 @@ games/bejeweled/tools/origcmp/orig.sh
 games/bejeweledtwist/tools/stage_bejeweledtwist_assets.py
 # Big Money's comparison runner carves the game out of WinBM.exe with the private extract_game_exe (2026-11-03)
 games/bigmoney/tools/origcmp/orig.sh
+# TipTop's comparison setup writes the copy's patch list, which includes the patch that reads it as registered (2026-11-03)
+games/tiptop/tools/identical/setup.sh
+# Ning Po's comparison setup writes the copy's patch list, which includes the patch that reads it as registered (2026-11-03)
+games/ningpo/tools/identical/setup.sh

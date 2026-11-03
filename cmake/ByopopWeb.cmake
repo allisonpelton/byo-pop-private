@@ -210,13 +210,30 @@ set(BYOPOP_WEB_RELEASED
   # VGTimes (https://vgtimes.com/games/talismania-deluxe/release-dates/): PC, July 20, 2006; Wikipedia's list has 2006. Medium.
   "talismania|2006-07-20")
 get_filename_component(BYOPOP_WEB_INDEX "${CMAKE_CURRENT_LIST_DIR}/../web/index.html" ABSOLUTE)
-# Whether a game's page asks the player to agree to its terms (the terms card and its checkbox) before the game's
-# files are imported or loaded. OFF for now (the user, 2026-10-26), and the pages must not be deployed until it is
-# ON again (docs/WEB_PLAYER.md, "The terms"). The copyright page shows the terms either way. A plain variable, not
-# a cache option, so that changing it here reaches every build folder.
-set(BYOPOP_WEB_TERMS_GATE OFF)
-if(NOT BYOPOP_WEB_TERMS_GATE)
-  message(STATUS "byo-pop: the game pages show no terms card (BYOPOP_WEB_TERMS_GATE): do not deploy them")
+# Every build has the terms card (docs/WEB_PLAYER.md, "The terms"; the user, 2026-11-03). A page skips it only on a
+# development host or with the site's test key (web/terms.js): the key is the first line of the git-ignored
+# secrets/web-testkey.txt (tools/testkey.py makes one), and the build bakes in only its SHA-256. A build without the file has
+# no test key, and its card cannot be skipped on a deployed site. Configure again after making or changing the file.
+get_filename_component(BYOPOP_WEB_TESTKEY_FILE "${CMAKE_CURRENT_LIST_DIR}/../secrets/web-testkey.txt" ABSOLUTE)
+set(BYOPOP_WEB_TESTKEY_HASH "")
+if(EXISTS "${BYOPOP_WEB_TESTKEY_FILE}")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${BYOPOP_WEB_TESTKEY_FILE}")
+  file(STRINGS "${BYOPOP_WEB_TESTKEY_FILE}" testkey LIMIT_COUNT 1)
+  string(STRIP "${testkey}" testkey)
+  if(NOT testkey STREQUAL "")
+    string(SHA256 BYOPOP_WEB_TESTKEY_HASH "${testkey}")
+  endif()
+  unset(testkey)
+endif()
+if(BYOPOP_WEB_TESTKEY_HASH STREQUAL "")
+  message(STATUS "byo-pop: no test key (secrets/web-testkey.txt): a deployed page's terms card cannot be skipped")
+endif()
+# The site's play counter (docs/PLAY_COUNTER.md): the address of its Worker's /api, a path on the site's own domain ("/api") or
+# a full https address. Empty, the default, for every local build and test: the pages then never contact anything and the
+# listing shows no counts and no "Most popular". A cache option, as each deployed site names its own.
+set(BYOPOP_WEB_COUNTER "" CACHE STRING "The play counter's /api address (docs/PLAY_COUNTER.md), or empty for none")
+if(NOT BYOPOP_WEB_COUNTER STREQUAL "" AND NOT BYOPOP_WEB_COUNTER MATCHES "^(https://[A-Za-z0-9.-]+(:[0-9]+)?)?/[A-Za-z0-9._~/-]*$")
+  message(FATAL_ERROR "BYOPOP_WEB_COUNTER is \"${BYOPOP_WEB_COUNTER}\": not a path (\"/api\") or an https address")
 endif()
 
 # byopop_web_shell(<var> <target> <page folder> TITLE <name> COPYRIGHT <notice> [LICENSES <name>...]): the game's
@@ -392,6 +409,46 @@ function(byopop_web_strings_js)
     "// The site's text (web/strings/en.txt) and web/i18n.js, written by byopop_web_strings_js() (cmake/ByopopWeb.cmake)\nvar BYOPOP_STRINGS = {\n${rows}};\n${runtime}")
 endfunction()
 
+# <value> as a JSON string, quotes included, into <out>
+function(byopop_json_string out value)
+  string(REPLACE "\\" "\\\\" value "${value}")
+  string(REPLACE "\"" "\\\"" value "${value}")
+  string(REPLACE "\n" "\\n" value "${value}")
+  string(REPLACE "\r" "\\r" value "${value}")
+  string(REPLACE "\t" "\\t" value "${value}")
+  set(${out} "\"${value}\"" PARENT_SCOPE)
+endfunction()
+
+# terms.js, which decides when a page skips the terms card (web/terms.js), with the test key's hash (BYOPOP_WEB_TESTKEY_HASH;
+# empty: none) in place of its marker. Loaded by the listing page and every game page.
+function(byopop_web_terms_js)
+  get_property(written GLOBAL PROPERTY BYOPOP_TERMS_JS_WRITTEN)
+  if(written)
+    return()
+  endif()
+  set_property(GLOBAL PROPERTY BYOPOP_TERMS_JS_WRITTEN ON)
+  get_filename_component(source "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../web/terms.js" ABSOLUTE)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${source})
+  file(READ ${source} text)
+  string(REPLACE "\"@BYOPOP_TESTKEY_HASH@\"" "\"${BYOPOP_WEB_TESTKEY_HASH}\"" text "${text}")
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/terms.js "${text}")
+endfunction()
+
+# playcount.js, the pages' side of the play counter (web/playcount.js, docs/PLAY_COUNTER.md), with the counter's address
+# (BYOPOP_WEB_COUNTER; empty: off) in place of its marker. Loaded by the listing page and every game page.
+function(byopop_web_counter_js)
+  get_property(written GLOBAL PROPERTY BYOPOP_COUNTER_JS_WRITTEN)
+  if(written)
+    return()
+  endif()
+  set_property(GLOBAL PROPERTY BYOPOP_COUNTER_JS_WRITTEN ON)
+  get_filename_component(source "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../web/playcount.js" ABSOLUTE)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${source})
+  file(READ ${source} text)
+  string(REPLACE "\"@BYOPOP_COUNTER@\"" "\"${BYOPOP_WEB_COUNTER}\"" text "${text}")
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/playcount.js "${text}")
+endfunction()
+
 # The game's badge (BYOPOP_WEB_BADGES): its initials and colour into <initials_var> and <colour_var>. A game without a row
 # gets the first letters of its TITLE's words, without "Deluxe", and the accent colour.
 function(byopop_web_badge target title initials_var colour_var)
@@ -535,6 +592,8 @@ function(byopop_web_shell var target pagedir)
     configure_file(${web}/${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
   byopop_web_strings_js()
+  byopop_web_counter_js()
+  byopop_web_terms_js()
 
   set(copyright_page ${target}-copyright.html)
   file(READ ${web}/copyright.html text)
@@ -558,11 +617,10 @@ function(byopop_web_shell var target pagedir)
   byopop_web_insert(page "<!-- byopop:terms -->" "${terms}")
   byopop_web_insert(page "<!-- byopop:buy -->" "${buy_html}")
   string(REPLACE "@BYOPOP_TERMS_VERSION@" "${terms_version}" page "${page}")
-  if(BYOPOP_WEB_TERMS_GATE)
-    string(REPLACE "@BYOPOP_TERMS_GATE@" "true" page "${page}")
-  else()
-    string(REPLACE "@BYOPOP_TERMS_GATE@" "false" page "${page}")
-  endif()
+  # the same terms for the listing page's agreement when it adds this game's files (terms-games.js, byopop_web_index()):
+  # their version and the card's text, as a JSON entry
+  byopop_json_string(terms_json "${terms}\n${buy_html}")
+  set_property(GLOBAL PROPERTY BYOPOP_WEB_terms_${target} "{\"version\": \"${terms_version}\", \"html\": ${terms_json}}")
   string(REPLACE "@BYOPOP_TITLE@" "${arg_TITLE}" page "${page}")
   # the game's cap over its import card (web/capanim.js): its badge, as on the listing page
   byopop_web_badge(${target} "${arg_TITLE}" cap_initials cap_colour)
@@ -694,6 +752,8 @@ function(byopop_web_index)
   endif()
   set(tiles "")
   set(chat_games "")
+  set(counter_games "")
+  set(terms_games "")
   set(chat_separator "")
   set(import_games "")
   set(count 0)
@@ -816,6 +876,9 @@ function(byopop_web_index)
     # the chat's table: one entry for each finished game on the listing page, in the tiles' order (the game's id is the page's
     # PAGE.id); a game still to come has no page to send from
     if(NOT soon)
+      list(APPEND counter_games "${game_id}")
+      get_property(game_terms GLOBAL PROPERTY BYOPOP_WEB_terms_${target})
+      string(APPEND terms_games "${chat_separator}  \"${game_id}\": ${game_terms}")
       string(APPEND chat_games "${chat_separator}  {\"id\": \"${game_id}\", \"page\": \"${target}.html\", \"tag\": \"${chat_initials}\", "
         "\"title\": \"${chat_title}\", \"colour\": \"${colour}\"}")
       set(chat_separator ",\n")
@@ -915,6 +978,8 @@ function(byopop_web_index)
     configure_file(${BYOPOP_WEB_BRAND_DIR}/../${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
   byopop_web_strings_js()
+  byopop_web_counter_js()
+  byopop_web_terms_js()
   # the table of what is imported from an installed game (platform/saveimport.json, docs/WEB_PLAYER.md, "Importing saves from an
   # installed game"): the native games compile the same file in (framework/CMakeLists.txt)
   get_filename_component(saveimport_json "${BYOPOP_WEB_BRAND_DIR}/../../platform/saveimport.json" ABSOLUTE)
@@ -925,6 +990,20 @@ function(byopop_web_index)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")
+  # each listed game's terms, for the agreement the listing page asks for before it adds a game's files (web/addgames.js):
+  # the same text and version as the game's own terms card
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/terms-games.js "var ByopopTermsTexts = {\n${terms_games}\n};\n")
+  # the play counter, ready to deploy from its own folder beside the pages' (docs/PLAY_COUNTER.md, "Deploying it"): its Worker and
+  # a wrangler.toml with the same games' ids, which the Worker checks a play's game against. Written by every build; it does
+  # nothing until someone deploys it.
+  list(JOIN counter_games "," counter_games)
+  get_filename_component(counter_dir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../counter" ABSOLUTE)
+  get_filename_component(counter_source "${BYOPOP_WEB_BRAND_DIR}/../counter" ABSOLUTE)
+  configure_file(${counter_source}/playcount.mjs ${counter_dir}/playcount.mjs COPYONLY)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${counter_source}/wrangler.toml.in)
+  file(READ ${counter_source}/wrangler.toml.in counter_toml)
+  string(REPLACE "@BYOPOP_COUNTER_GAMES@" "${counter_games}" counter_toml "${counter_toml}")
+  byopop_write_if_changed(${counter_dir}/wrangler.toml "${counter_toml}")
   # the listed games' import rules, for the listing page's adding of games (web/gameimport.js), loaded after it
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/import-games.js
     "// The listed games' page.js files, for web/gameimport.js (written by byopop_web_index(), cmake/ByopopWeb.cmake)\n${import_games}")

@@ -10,4 +10,4 @@ python -I "$T/identical.py" script "$D/$N.port.txt" "$D/$N.script.txt" --offset 
 LAST=$(grep -o "^at [0-9]*" "$D/$N.script.txt" | tail -1 | cut -d" " -f2)
 TO=${TIMEOUT:-$(( (LAST + 3000) / 500 + 30 ))}
 bash "$T/run_orig.sh" "$R" "$D/$N.script.txt" "$D/$N" "$TO"
-python -I "$T/identical.py" compare "$D/$N.port.txt" "$OFF" "$D/$N.A.log:A" "$D/$N.B.log:B" "$D/$N.C.log:C" "$D/$N.D.log:D" "$D/$N.E.log:E"
+python -I "$T/identical.py" compare "$D/$N.port.txt" "$OFF" "$D/$N.A.log:A" "$D/$N.B.log:B" "$D/$N.C.log:C" "$D/$N.D.log:D" "$D/$N.E.log:E" "$D/$N.F.log:F"

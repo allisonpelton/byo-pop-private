@@ -14,6 +14,8 @@ namespace engine
 void crtSrand(unsigned int theSeed);
 // 0x446749
 int crtRand();
+// port: the generator's state (0x49729c), for the identical-play runs' state log
+unsigned int crtRandState();
 
 // 0x42bce0: a whole number from theLow towards theHigh, cut towards theLow; theHigh itself never comes (rand()'s
 // largest value times the scale is a little under 1)
