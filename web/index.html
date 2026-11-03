@@ -296,7 +296,7 @@ try {
 } catch (e) { document.getElementById("saves-body").textContent = "The save backup is not available."; }
 </script>
 <script>
-// "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles), or by release
+// "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles without "Deluxe"), or by release
 // date, oldest first. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
 // (no CSS order). It runs after the Players and Saves sections took the games in the built order: they keep it. The choice is
 // remembered in localStorage (the page works without it).
@@ -313,7 +313,7 @@ try {
     return m ? [+m[1], m[2] ? +m[2] : 0, m[3] ? +m[3] : 0] : null;
   }
   var cards = Array.prototype.slice.call(list.children).filter(function (e) { return e.tagName === "LI"; }).map(function (li, at) {
-    return { li: li, at: at, when: when(li.getAttribute("data-released")), title: (li.getAttribute("data-title") || "").toLowerCase() };
+    return { li: li, at: at, when: when(li.getAttribute("data-released")), title: (li.getAttribute("data-title") || "").toLowerCase().replace(/ deluxe/g, "") };
   });
   var byName = cards.slice();
   // Oldest first. Inside a year, the dates with a month come before a year alone, by month; inside a month, the ones with a day

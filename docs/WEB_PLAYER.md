@@ -241,7 +241,7 @@ they are the card's only controls. The page's scripts (the files' state, the Pla
 take only the finished games' links, so the coming-soon tiles have no `data-game` and no chat tag.
 
 **Sorting.** Above the tiles is a "Sort by" choice (a `<fieldset>` with a `<legend>` and two radio buttons, **Name** and **Release
-date**), hidden until the page's script has run. Name is the page as built, the alphabetical order of the titles. Release date puts
+date**), hidden until the page's script has run. Name is the page as built, the alphabetical order of the titles without "Deluxe" (so Bejeweled Deluxe comes before Bejeweled 2 Deluxe and Bejeweled 3). Release date puts
 the oldest game first. The order comes from the game's row in the `BYOPOP_WEB_RELEASED` table of `cmake/ByopopWeb.cmake`
 (`<target>|<date>`, the date as YYYY, YYYY-MM or YYYY-MM-DD, with the source of each row in a comment above it), which is the
 first release of the Windows edition the site plays: the Deluxe download where there is one, and for a game that first came out
