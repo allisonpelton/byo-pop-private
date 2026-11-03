@@ -2,7 +2,7 @@
 // Visualizer (vtable 0x7d804c) with its own images, made by the maker the VizManager's constructor registers by name
 // (0x7597cc, FUN_0075978d). Ported here: RedBars, WindCloud, ContainmentField, UVWarp, Raptis_Pulse, BlobDrift and
 // ParametricFractal (Visualizers3D.cpp), and FluffyStars, PlasmaClouds, SpaceThreads, VizWarpBars and VizKaleidoCat
-// (Visualizers3D2.cpp), and VizRainbowGlyphs, SubAtomic, Cubes and RainDrops (Visualizers3D3.cpp), and Gears, Slipstream (Visualizers3D4.cpp), GravityField, VizBuckyShards and VizMoleculeRedux (Visualizers3D5.cpp), and VizMagicSnakes (Visualizers3D6.cpp), and VizJellyBlob (Visualizers3D7.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
+// (Visualizers3D2.cpp), and VizRainbowGlyphs, SubAtomic, Cubes and RainDrops (Visualizers3D3.cpp), and Gears, Slipstream (Visualizers3D4.cpp), GravityField, VizBuckyShards and VizMoleculeRedux (Visualizers3D5.cpp), and VizMagicSnakes (Visualizers3D6.cpp), and VizJellyBlob (Visualizers3D7.cpp), and VizZenWheels (Visualizers3D8.cpp); the other 3D ones are not ported yet and MakeVisualizer3D answers null for them, so the
 // VizManager shows Viz2D in their place.
 //
 // Random draws: the original's visualizers draw from the game's Rand (0x45c110 and its Rand(n) 0x45c120 and Rand(float)
@@ -744,6 +744,114 @@ public:
 	void Draw(Graphics* g) override;             // 0x6882ea
 	// slot 8 (0x68982a): the name for the debug text (the port's Visualizer has no slot 8, so this is not an override)
 	const char* Name() const { return "BLECH"; }
+};
+
+// A vertex of FVF 0x142 (position, diffuse, one texture coordinate; 0x18 bytes) as VizZenWheels' meshes hold them
+struct ZenVertex {
+	float x = 0.0f, y = 0.0f, z = 0.0f;  // +0x00
+	unsigned int mColor = 0;             // +0x0c
+	float u = 0.0f, v = 0.0f;            // +0x10
+};
+
+class ZenWheelYinYang;
+
+// Sexy::VizZenWheels (vtable 0x7d84cc, constructor 0x69279c): the Zen mode's background. Two level pictures (IMAGE_ZENDROP1
+// to 47, picked at random) laid over a wheel picture that turns in a tree of copies of itself (ZenWheelYinYang, 0x690612),
+// the first at half alpha, the second whole. NewLevel brings the wheels in (state 1), a cascade (NextLook) swaps the
+// pictures for the next pair (state 3 going out). Held (state 2) and with the `g` key's flag on, the Scene is drawn
+// instead (0x68fc63): the app's three space meshes, turning, and six rings of the pictures in front of them.
+// Random draws: the C library's rand (CrtRand, 0x77e747) only, all in PickImages (0x6907c9); Update and Draw draw
+// nothing else. PickImages(1, 0) (the constructor, Init and the `r` key) draws the next id of the first picture until it
+// differs from both current ones (at least one draw: the ids start at 0 and the loop tests the first), then the next id
+// of the second until it differs from all three (at least one); PickImages(1, 1) (NextLook, the end of the hold when a
+// cascade is waiting, and the `c` key) swaps the two and draws the next id of the first until it differs from both.
+class VizZenWheels : public Visualizer {
+public:
+	// VizZenWheels::IZenWheel (vtable 0x7d8400, 0x10 bytes, constructor 0x68f4f0): one wheel picture of the background
+	class IZenWheel {
+	public:
+		VizZenWheels* mViz;  // +0x04
+		explicit IZenWheel(VizZenWheels* theViz) : mViz(theViz) {}  // 0x68f4f0
+		virtual ~IZenWheel() {}                                     // 0 (0x68f50c)
+		virtual void Init() = 0;                                    // 1: loads its pictures
+		virtual void Release() = 0;                                 // 2: lets them go
+		virtual void Update() = 0;                                  // 3
+		virtual void Draw(Graphics* g) = 0;                         // 4
+		virtual void GetAlphas(int* theFirst, int* theSecond) = 0;  // 5: the alphas of the two level pictures
+	};
+
+	// 0x58 bytes (constructor 0x691bc3): a disc or a ring of the six, as three lists of triangles
+	struct Ring {
+		std::vector<ZenVertex> mFace;    // +0x00: the face at z of the depth
+		std::vector<ZenVertex> mBack;    // +0x10: the face turned over (z negated, u from the other side)
+		std::vector<ZenVertex> mWalls;   // +0x20: the rim (and the inner rim of a ring), faded by the curve
+		int mUnknown30 = 0;              // +0x30
+		Mat3 mUnknown34;                 // +0x34
+		void Build(float theInner, float theOuter, int theSegments, float theDepth, float theAspectX, float theAspectY);  // 0x691e55
+		void SetTexCoords(float theScaleX, float theScaleY, bool theFace, bool theBack);  // 0x68fad3
+		void Fade(float theAlpha);       // 0x68fb89
+	};
+
+	// 0x288 bytes (constructor 0x691c08): six rings of increasing radius and the curve that fades them in
+	struct Scene {
+		VizZenWheels* mViz;       // +0x00
+		int mUnknown4 = 0;        // +0x04: set to the board's level less one by NewLevel and to 0 by it first
+		Ring mRings[6];           // +0x08
+		CurvedVal mCurve;         // +0x218
+		explicit Scene(VizZenWheels* theViz) : mViz(theViz) {}  // 0x691c08
+		void Make(int theWidth, int theHeight);                 // 0x6926f2
+		void Update(int theCount);                              // 0x68fbf2
+		void Draw(Graphics* g);                                 // 0x68fc63
+	};
+
+	int mCount = 0;                   // +0x24: its updates
+	int mState = 0;                   // +0x28: 0 at rest, 1 growing in, 2 held, 3 going out
+	float mPhase = 0.0f;              // +0x2c: how far through the state, 0 to 1
+	Scene* mScene = nullptr;          // +0x30
+	Image* mEdge = nullptr;           // +0x38: IMAGE_ZENGYRO_EDGETEXTURE
+	bool mShowScene = true;           // +0x3c: the `g` key toggles it
+	bool mPending = false;            // +0x3d: a cascade came in state 2
+	std::vector<IZenWheel*> mWheels;  // +0x40
+	int mWheelIndex = 0;              // +0x50
+	int mIdA = 0;                     // +0x54: the id of the first level picture (IMAGE_ZENDROP1 to 47 are 1000 to 1046)
+	int mIdB = 0;                     // +0x58
+	Image* mImageA = nullptr;         // +0x5c
+	Image* mImageB = nullptr;         // +0x60
+	int mNextIdA = 0;                 // +0x64
+	int mNextIdB = 0;                 // +0x68
+	// (+0x6c is set to -1 by the constructor and never read)
+
+	explicit VizZenWheels(WinTwistApp* theApp);  // 0x69279c
+	~VizZenWheels() override;                    // 0x6928c9 (0x691d33)
+	void Init() override;                        // 0x690ac9
+	void Update() override;                      // 0x6913fe
+	void Draw(Graphics* g) override;             // 0x691533
+	bool Slot4(char theChar) override;           // 0x690af4: b, c, e, g and r
+	void NextLook() override;                    // 0x690ad3
+	void NewLevel() override;                    // 0x68f572
+	// slot 8 (0x691da5): the name for the debug text (the port's Visualizer has no slot 8, so this is not an override)
+	const char* Name() const { return "BLECH"; }
+
+	// 0x6907c9: with theDo, the ids of the next pair of pictures; theSwap puts the next pair in the place of the current one
+	void PickImages(bool theDo, bool theSwap);
+	// 0x6912da: loads the pictures the ids call for and lets the old ones go
+	void LoadPicked();
+};
+
+// ZenWheelYinYang (vtable 0x7d841c, constructor 0x68f52c): IMAGE_YINYANG_BLACKTOALPHAZERO turning in a tree of itself
+class ZenWheelYinYang : public VizZenWheels::IZenWheel {
+public:
+	Image* mImage = nullptr;       // +0x08
+	Image* mFillCircle = nullptr;  // +0x0c: IMAGE_FRUITBLAST_FILLCIRCLE as it was at Init (never drawn)
+	explicit ZenWheelYinYang(VizZenWheels* theViz) : IZenWheel(theViz) {}  // 0x68f52c
+	~ZenWheelYinYang() override;                                            // 0x691aa3 (0x691a77)
+	void Init() override;                                                   // 0x68f549
+	void Release() override;                                                // 0x69128d
+	void Update() override {}                                               // 0x68f571
+	void Draw(Graphics* g) override;                                        // 0x690612
+	void GetAlphas(int* theFirst, int* theSecond) override;                 // 0x69076b
+	// 0x69041e: the wheel at the point, and two more turned about it at either end of a line through it, each half the size
+	void DrawTree(Graphics* g, int theCount, float theX, float theY, float theSize, int theDepth, bool theIsRoot);
 };
 
 }  // namespace Sexy
