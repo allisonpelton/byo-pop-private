@@ -193,17 +193,20 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 			SDL_Log("autoplay: cannot write %s", theLogFileName.c_str());
 	}
 
-	if (mModeName == "action")
-		mModes.push_back(GAMEMODE_ACTION);
-	else if (mModeName == "both")
+	// a comma-separated list of games in order: classic, action, or both (Classic, then Action)
+	std::string aList = mModeName + ",";
+	for (size_t aStart = 0, aComma; (aComma = aList.find(',', aStart)) != std::string::npos; aStart = aComma + 1)
 	{
-		mModes.push_back(GAMEMODE_CLASSIC);
-		mModes.push_back(GAMEMODE_ACTION);
+		std::string aName = aList.substr(aStart, aComma - aStart);
+		if ((aName == "classic") || (aName == "both"))
+			mModes.push_back(GAMEMODE_CLASSIC);
+		if ((aName == "action") || (aName == "both"))
+			mModes.push_back(GAMEMODE_ACTION);
+		if ((aName != "classic") && (aName != "action") && (aName != "both"))
+			SDL_Log("autoplay: unknown game \"%s\" in -autoplaymode=%s, skipped", aName.c_str(), mModeName.c_str());
 	}
-	else
+	if (mModes.empty())
 	{
-		if (mModeName != "classic")
-			SDL_Log("autoplay: unknown -autoplaymode=%s, playing classic", mModeName.c_str());
 		mModeName = "classic";
 		mModes.push_back(GAMEMODE_CLASSIC);
 	}

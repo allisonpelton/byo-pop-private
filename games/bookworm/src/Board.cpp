@@ -589,8 +589,9 @@ Board::Board(BookWormApp* theApp)
 	mHintDelay = 0;
 	mHintId = 0;
 	mSubmitBlinkWords = 3;
-	// port: never initialised by the original (heap contents; mUnused1b2 is only saved, the praise flag is
-	// set before it is read once a special tile is awarded)
+	// port: never initialised by the original (heap contents; mUnused1b2 is only saved). The praise flag is read every
+	// update once Lex rests, so a nonzero leftover costs one draw of the board's generator, with no praise, the first
+	// time he does (games/bookworm/docs/IDENTICAL_PLAY.md, "Oddities"); the port starts it false.
 	mUnused1b2 = 0;
 	mLexPraisePending = false;
 	mLexPraiseType = 0;
