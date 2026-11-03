@@ -3171,14 +3171,21 @@ void SexyAppBase::RunScript()
 				continue;
 			}
 			MouseMoveTo(x, y);
+			// a real click is a press and a release, each preceded by the move to its point (a drag when the button is
+			// down: Rocket Mania's original drags the pressed tile on the release), so the click does the same
 			if ((aName == "click") || (aName == "down"))
 				mWidgetManager->MouseDown(x, y, 1);
 			if ((aName == "click") || (aName == "up"))
+			{
+				if (aName == "click")
+					MouseMoveTo(x, y);
 				mWidgetManager->MouseUp(x, y, 1);
+			}
 			if (aName == "rclick")
 			{
 				// right button: click code -1, as GetClickCode gives a real right click
 				mWidgetManager->MouseDown(x, y, -1);
+				MouseMoveTo(x, y);
 				mWidgetManager->MouseUp(x, y, -1);
 			}
 		}
