@@ -978,72 +978,51 @@ void Board::DrawTrail(Graphics* g, GridObject* theObject)
 	aClipped.DrawImage(anImage, aX, aY, aSource);
 }
 
-// the marks that show where the next tile will go (0x422ab0, the second half)
+// 0x422ab0, the second half, in control mode 2: the only mode there is, the constructor (0x407f10) sets +0x19c to 2 and
+// nothing else writes it. The aim marks of modes 0 and 1 (the target, the dots and the thrower's base) are not drawn
+// then: just the cursor on the cell under the mouse (red when a click there does nothing) and, when it does something,
+// the arrows towards the thrower.
 void Board::DrawAim(Graphics* g)
 {
 	if (mGrid->mDone || mApp->IsPaused())
 		return;
-	bool aThrow = mGrid->mCanPlace || mGrid->mSlidesOut;
-	bool aPull = mGrid->mCanPull;
-	if (!aThrow && !aPull)
+
+	int aCol = mHoverCol, aRow = mHoverRow;
+	bool aValid = mHoverValid;
+	if (mHintShown)
+	{
+		aCol = mGrid->mCanPull ? mGrid->mStuckCol : mGrid->mLandCol;
+		aRow = mGrid->mCanPull ? mGrid->mStuckRow : mGrid->mLandRow;
+		aValid = true;
+	}
+	if (!mGrid->InGrid(aRow, aCol))
 		return;
 
-	int aSide = mGrid->mSide;
-	// the images face right; the side is where the tile comes from
-	double aAngle = 0.0;
-	switch (aSide)
-	{
-	case 0: aAngle = 90.0; break;
-	case 1: aAngle = 0.0; break;
-	case 2: aAngle = 270.0; break;
-	case 3: aAngle = 180.0; break;
-	}
-	aAngle *= PI / 180.0;
-
-	bool aOnTile = mHoverValid && mGrid->InGrid(mHoverRow, mHoverCol) && mGrid->HasObject(mHoverRow, mHoverCol);
-	int aTargetCol = mGrid->mLandCol, aTargetRow = mGrid->mLandRow;
-	if (aOnTile)
-	{
-		aTargetCol = mGrid->mStuckCol;
-		aTargetRow = mGrid->mStuckRow;
-	}
-
+	const int S = Grid::CELL_SIZE;
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, mAlpha));
-	const int S = Grid::CELL_SIZE;
+	Image* aCursor = mApp->mImages[aValid ? IMAGE_AIM_CURSOR : IMAGE_AIM_CURSOR_RED];
+	g->DrawImage(aCursor, aCol * S + GRID_X + S / 2 - aCursor->GetWidth() / 2, aRow * S + GRID_Y + S / 2 - aCursor->GetHeight() / 2);
 
-	if (aThrow && !aOnTile)
+	bool aOnPull = mGrid->mCanPull && aCol == mGrid->mStuckCol && aRow == mGrid->mStuckRow;
+	if (aValid && ((mGrid->mCanPlace && mGrid->mSupply > 0) || aOnPull))
 	{
-		g->DrawImageRotated(mApp->mImages[IMAGE_AIM_TARGET_SHADOW], aTargetCol * S - 5 + GRID_X, aTargetRow * S - 5 + GRID_Y, aAngle);
-		g->DrawImageRotated(mApp->mImages[IMAGE_AIM_TARGET], aTargetCol * S - 8 + GRID_X, aTargetRow * S - 8 + GRID_Y, aAngle);
-	}
+		int aSide = mGrid->mSide;
+		// the images face right; the side is where the tile comes from
+		double aAngle = 0.0;
+		switch (aSide)
+		{
+		case 0: aAngle = 90.0; break;
+		case 1: aAngle = 0.0; break;
+		case 2: aAngle = 270.0; break;
+		case 3: aAngle = 180.0; break;
+		}
+		aAngle = (aAngle + (aOnPull ? 180.0 : 0.0)) * PI / 180.0;
 
-	// the dots along the line from the edge up to the target
-	int aCol = mGrid->mStartCol, aRow = mGrid->mStartRow;
-	int aDirection = aThrow ? aSide : aSide;
-	int aGuard = 0;
-	while ((aCol != aTargetCol || aRow != aTargetRow) && aGuard++ < 40)
-	{
-		g->DrawImageRotated(mApp->mImages[IMAGE_AIM_DOT_SHADOW], aCol * S - 2 + GRID_X, aRow * S - 2 + GRID_Y, aAngle);
-		g->DrawImageRotated(mApp->mImages[IMAGE_AIM_DOT], aCol * S - 5 + GRID_X, aRow * S - 5 + GRID_Y, aAngle);
-		mGrid->Step(&aCol, &aRow, aDirection, 1);
-	}
-
-	// the thrower's mark just outside the edge
-	int aBaseCol = mGrid->mStartCol, aBaseRow = mGrid->mStartRow;
-	mGrid->Step(&aBaseCol, &aBaseRow, ReverseSide(aSide), 1);
-	g->DrawImageRotated(mApp->mImages[IMAGE_AIM_BASE_SHADOW], aBaseCol * S - 8 + GRID_X, aBaseRow * S - 8 + GRID_Y, aAngle);
-	g->DrawImageRotated(mApp->mImages[IMAGE_AIM_BASE], aBaseCol * S - 11 + GRID_X, aBaseRow * S - 11 + GRID_Y, aAngle);
-
-	// arrows from the hovered cell towards the thrower
-	if (mHoverValid && (!aOnTile || aPull) && (mGrid->mSupply > 0 || aOnTile))
-	{
-		int aArrowCol = mHoverCol, aArrowRow = mHoverRow;
-		int aStep = aOnTile ? 1 : 2;
-		double aArrowAngle = aAngle + (aOnTile ? PI : 0.0);
+		int aArrowCol = aCol, aArrowRow = aRow;
+		int aStep = aOnPull ? 1 : 2;
 		int aOffset = (mUpdateCnt / 2) % 10;
-		int aGuard2 = 0;
-		while (mGrid->InGrid(aArrowRow, aArrowCol) && aGuard2++ < 40)
+		do
 		{
 			mGrid->Step(&aArrowCol, &aArrowRow, ReverseSide(aSide), aStep);
 			aStep = 2;
@@ -1056,18 +1035,9 @@ void Board::DrawAim(Graphics* g)
 			case 2: aY -= aOffset; break;
 			case 3: aX += aOffset; break;
 			}
-			if (!mGrid->InGrid(aArrowRow, aArrowCol))
-				break;
-			g->DrawImageRotated(mApp->mImages[IMAGE_AIM_ARROW], aX, aY, aArrowAngle);
+			g->DrawImageRotated(mApp->mImages[IMAGE_AIM_ARROW], aX, aY, aAngle);
 		}
-	}
-
-	if (mHoverValid || mHintShown)
-	{
-		int aCursorCol = mHintShown ? aTargetCol : mHoverCol;
-		int aCursorRow = mHintShown ? aTargetRow : mHoverRow;
-		if (mGrid->InGrid(aCursorRow, aCursorCol))
-			g->DrawImage(mApp->mImages[IMAGE_AIM_CURSOR], aCursorCol * S + GRID_X + S / 2 - 15, aCursorRow * S + GRID_Y + S / 2 - 15);
+		while (mGrid->InGrid(aArrowRow, aArrowCol));
 	}
 	g->SetColorizeImages(false);
 }
