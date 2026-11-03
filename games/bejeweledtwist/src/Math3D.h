@@ -59,6 +59,8 @@ struct PerspectiveCamera {
 
 	// 0x67417d: theFovTimesAspect is 45 times theAspect in the menu (so the half angle is 22.5 degrees)
 	PerspectiveCamera(float theFovTimesAspect, float theAspect, float theNear, float theFar);
+	// 0x673c7f: the planes and factors again (the 3D draws set them every frame)
+	void SetFov(float theFovTimesAspect, float theAspect, float theNear, float theFar);
 	// 0x674208: a point of the camera's space as x and y from 0 to 1 across the screen and its depth (negative behind)
 	Vec3 Project(const Vec3& theCameraPoint) const;
 	// 0x6dd19b: a point of the world on the screen

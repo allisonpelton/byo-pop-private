@@ -4,6 +4,7 @@
 #include "ElectroStrike.h"
 
 #include "ColorCycle.h"
+#include "DDImage.h"
 #include "EffectsManager.h"
 #include "FlyingText.h"
 #include "GameOverShow.h"
@@ -20,6 +21,9 @@
 #include "GemSoul.h"
 #include "Traveller.h"
 #include "TwistUtil.h"
+#include "GoodTube.h"
+#include "TwistD3D.h"
+#include "VizManager.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
 
@@ -29,26 +33,66 @@ using namespace Sexy;
 
 void Board::DrawAll(ModalFlags* theFlags, Graphics* g)
 {
-	// Moved or scaled (with Direct3D the scale and the second offset go through the transform at +0x29e8)
+	// Moved or scaled
 	bool aMoved = !(mShakeX == 0.0f && mShakeY == 0.0f && mUnknown268C == 1.0f && mUnknown37EC == 0.0f &&
 		mUnknown37F0 == 0.0f);
-	if (aMoved)
-		g->Translate(Ftol(mShakeX), Ftol(mShakeY));
+	Rect aSavedClip = g->mClipRect;  // 0x439450
+	mTransform.LoadIdentity();       // 0x44f320
+	if (aMoved) {
+		if (gD3DInterface == nullptr)
+			g->Translate(Ftol(mShakeX), Ftol(mShakeY));
+		else {
+			// With Direct3D the scale and the offsets go through the transform at +0x29e8
+			int aHalfHeight = mHeight / 2;
+			int aHalfWidth = mWidth / 2;
+			float aMoveY = (float)((double)-aHalfHeight + (double)mShakeY + (double)mUnknown37F0);
+			float aMoveX = (float)((double)-aHalfWidth + (double)mShakeX + (double)mUnknown37EC);
+			mTransform.Translate(aMoveX, aMoveY);  // 0x44f8a0
+			mTransform.Scale(mUnknown268C, mUnknown268C);  // 0x44f990
+			mTransform.Translate((float)(mWidth / 2), (float)(mHeight / 2));
+			gD3DInterface->PushTransform(mTransform, true);  // slot 0x14
+			g->mClipRect.mY = 1;  // +0x24
+		}
+	}
 	if (mUnknown15DC != 0) {
 		// An image of the whole board instead (drawn at 0, 0, also in 2D). Never reached: only the constructor
 		// (0x6c5d1f) writes +0x15dc, a 0
 		NotPorted("Board::DrawAll: the board's image (+0x15dc)");
 		return;
 	}
-	// (with Direct3D: the nuke's flash over the board, IMAGE_BOOM_NUKE, while +0x26cc's curve runs)
+	if (mUnknown160 == 7 && gD3DInterface != nullptr)
+		gD3DInterface->ClearDepth();  // slot 0x124
+	if (mUnknown26D8.GetOutVal() != 0.0 && mUnknown2043 && gD3DInterface != nullptr) {
+		// With Direct3D: the nuke's flash over the board, IMAGE_BOOM_NUKE, while +0x26cc's curve runs
+		gD3DInterface->SetDepthWriteMode(1);  // slot 0x118
+		gD3DInterface->SetAlphaRef(0);        // slot 0x11c
+		Transform aTransform;
+		float aScaleY = (float)(mUnknown26D8.GetOutVal() * 0.9300000071525574);
+		float aScaleX = (float)(mUnknown26D8.GetOutVal() * 0.9300000071525574);
+		aTransform.Scale(aScaleX, aScaleY);
+		g->SetColor(Color::White);
+		float aY = (float)((double)(gGemHeight / 2) + (double)mUnknown26CC->mY);
+		float aX = (float)((double)(gGemWidth / 2) + (double)mUnknown26CC->mX);
+		g->DrawImageTransform(IMAGE_BOOM_NUKE, aTransform, aX, aY);  // 0x422000
+		gD3DInterface->SetDepthWriteMode(0);
+		gD3DInterface->SetDepthTestMode(2);  // slot 0x114
+	}
 	if (mHyperspace != nullptr && mHyperspace->mTransition == 11) {
 		// A challenge's start: the jump's tunnel under the board (in 2D the level's picture while the VizManager is
-		// hidden; with Direct3D the deferred overlays are flushed first)
+		// hidden; with Direct3D the depth buffer is cleared first)
+		if (gD3DInterface != nullptr)
+			gD3DInterface->ClearDepth();
 		mHyperspace->DrawTunnel(g);
 	}
 	TwistWidget::DrawAll(theFlags, g);
-	if (aMoved)
-		g->Translate(-Ftol(mShakeX), -Ftol(mShakeY));
+	if (aMoved) {
+		if (gD3DInterface == nullptr)
+			g->Translate(-Ftol(mShakeX), -Ftol(mShakeY));
+		else {
+			gD3DInterface->PopTransform();  // slot 0x18
+			g->mClipRect = aSavedClip;
+		}
+	}
 	if (mUnknown1F88.mAlpha != 0) {
 		g->SetColor(mUnknown1F88);
 		g->FillRect(0, 0, mWidth, mHeight);
@@ -59,7 +103,11 @@ void Board::Draw(Graphics* g)
 {
 	bool is3D = mApp->Is3DAccelerated();
 	DeferOverlay(99);
-	// (with Direct3D, outside the hyperspace and the menus: the screen is cleared to black first)
+	if (!mApp->mVizManager->mVisible && mHyperspace == nullptr && !mApp->mUnknownF85 && !mUnknown37C4 &&
+		mUnknown160 != 7 && gD3DInterface != nullptr) {
+		// (the original has no null test: 2D never gets here) With Direct3D, outside the hyperspace and the menus: the screen is cleared to black first (slot 0x9c)
+		gD3DInterface->Clear(Color::Black.mRed, Color::Black.mGreen, Color::Black.mBlue, Color::Black.mAlpha);
+	}
 	int aShakeX = Ftol((double)gSexyAppBase->mWidth * 0.0009765625 * (double)mUnknown1520);
 	int aShakeY = Ftol((double)gSexyAppBase->mHeight / 768.0 * (double)mUnknown1524);
 	g->Translate(aShakeX, aShakeY);
@@ -79,7 +127,7 @@ void Board::Draw(Graphics* g)
 	if (!is3D)
 		DrawBoardBack(g);
 	else
-		NotPorted("Board::Draw: the 3D board (0x6cc762)");
+		DrawBoardBack3D(g);
 	if (!mUnknown2043)
 		return;
 	if (mUnknown1570 != mUnknown1574 || mUnknown1574 == 0) {
@@ -229,6 +277,21 @@ void Board::DrawBoardBack(Graphics* g)
 	if (!mUnknown15B0 && !mUnknown1FF5)
 		DrawBoard(g, false, false);
 	g->Translate(-anOffset, 0);
+}
+
+// 0x6cc762: Direct3D's board, slid by the same curve in the screen's own pixels
+void Board::DrawBoardBack3D(Graphics* g)
+{
+	float aSlide = (float)mUnknown13B0.GetOutVal();
+	int anOffset = Ftol((double)gSexyAppBase->mWidth * 0.0009765625 * (double)aSlide);
+	g->Translate(-anOffset, 0);
+	if (!mUnknown15B0) {
+		g->Translate(anOffset * 2, 0);
+		DrawBoard(g, false, false);
+		g->Translate(-anOffset, 0);
+	} else {
+		DrawBoard(g, false, true);
+	}
 }
 
 void Board::DrawStrikes(Graphics* g)
@@ -517,13 +580,29 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 				aPiece->Draw(g, true);
 		}
 	}
-	// (the original gathers rectangles over the bombs' cells here (+0x14cc) for Direct3D's heat haze; nothing else
-	// uses them)
+	// The bombs' heat haze: the mask shader's pass into the first manager's height image and the rectangles over the
+	// bombs' cells (+0x14cc) that its distortion drawing (0x6f7ab4) takes from here
+	mHazeRects.clear();  // 0x6b1746
+	{
+		float aScaleOff = (float)((double)mUnknown268C - 1.0);
+		float aHazeFactor = 1.0f;
+		if (mHyperspace != nullptr)
+			aHazeFactor = 0.0f;
+		aHazeFactor = (float)((1.0 - (std::fabs((double)aScaleOff) + std::fabs((double)aScaleOff))) * (double)aHazeFactor);
+		bool aHaze = !mUnknown37C4 && mUnknown3924 != 0.0f;
+		// port: the original gathers the rectangles in 2D too, where nothing reads them
+		if (gD3DInterface != nullptr && !mBombList.empty() && aHaze && 0.0f < aHazeFactor) {
+			DrawBombHaze(g, aHazeFactor);
+			GatherHazeRects();
+		}
+	}
 	mBombList.clear();
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-	// (the hyperspace's +0x158, set only with Direct3D, would hide the travellers)
-	for (GemSoul* aSoul : mUnknown26B0)
-		aSoul->Draw(g);
+	// The hyperspace's +0x158 (set only with Direct3D) hides the souls
+	if (mHyperspace == nullptr || !mHyperspace->mFlag158) {
+		for (GemSoul* aSoul : mUnknown26B0)
+			aSoul->Draw(g);
+	}
 	for (Shockwave* aWave : mUnknown1660)
 		aWave->Draw(g);
 	if (GetUnknown23F5())
@@ -532,6 +611,255 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 		DrawSelector(g, true);
 	if (mUnknown21A8 != nullptr)
 		mUnknown21A8->Draw(g);
+}
+
+// 0x6a333f (with 0x684796): a vertex of FVF 0x2c4, pre-transformed, diffuse as given, no specular, two texture sets
+struct HazeVertex {
+	float x, y, z, rhw;
+	unsigned int mDiffuse, mSpecular;
+	float u0, v0, u1, v1;
+};
+
+static HazeVertex MakeHazeVertex(float theX, float theY, unsigned int theColor, float theU0, float theV0, float theU1,
+	float theV1)
+{
+	HazeVertex aVertex;
+	aVertex.x = theX;
+	aVertex.mSpecular = 0;
+	aVertex.y = theY;
+	aVertex.mDiffuse = theColor;
+	aVertex.u0 = theU0;
+	aVertex.v0 = theV0;
+	aVertex.z = 0;
+	aVertex.rhw = 1.0f;
+	aVertex.u1 = theU1;
+	aVertex.v1 = theV1;
+	return aVertex;
+}
+
+// 0x6caa13's mask pass (the part under the Direct3D test): each bomb draws four fans of five vertices (IMAGE_HEAT_DISTORTION
+// on stage 0, IMAGE_SHADER_TEST on stage 1) through the mask shader into the first manager's height image, in the
+// screen's size scaled to the image's, under the board's own scale and offsets
+void Board::DrawBombHaze(Graphics* g, float theHazeFactor)
+{
+	// The shader (slot 0xd8) answers a failure when the device cannot run pixel shaders
+	if ((gD3DInterface->GetCaps(0) & 2) == 0)
+		return;
+	gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_MASK]);
+	DDImage* aHeight = mFXManager->GetHeightImage();  // 0x6f5efc
+	if (aHeight == nullptr)  // port: the original does not look
+		return;
+	gD3DInterface->SetRenderTarget(aHeight);
+	mFXManager->mUnknownB5 = true;
+	float aScaleX = (float)aHeight->mWidth / (float)gApp->mWidth;
+	float aScaleY = (float)aHeight->mHeight / (float)gApp->mHeight;
+	// With the board moved or scaled the transform changes to one that also divides by the image's scale, so the
+	// vertices below stand in the screen's pixels of the board
+	bool aMoved = !(mShakeX == 0.0f && mShakeY == 0.0f && mUnknown268C == 1.0f && mUnknown37EC == 0.0f &&
+		mUnknown37F0 == 0.0f);
+	if (aMoved) {
+		SexyTransform2D aTransform;
+		gD3DInterface->PopTransform();  // slot 0x18
+		aTransform.LoadIdentity();      // 0x44f860
+		float aInverse = (float)(1.0 / (double)aScaleX);
+		aTransform.Scale(aInverse, aInverse);  // 0x44f990
+		float aMoveX = (float)((double)-(mWidth / 2) + (double)mShakeX + (double)mUnknown37EC);
+		float aMoveY = (float)((double)-(mHeight / 2) + (double)mShakeY + (double)mUnknown37F0);
+		aTransform.Translate(aMoveX, aMoveY);  // 0x44f8a0
+		aTransform.Scale(mUnknown268C, mUnknown268C);
+		aTransform.Translate((float)(mWidth / 2), (float)(mHeight / 2));
+		aTransform.Scale(aScaleX, aScaleX);
+		gD3DInterface->PushTransform(aTransform, true);  // slot 0x14
+	}
+	int aBombCount = (int)mBombList.size();
+	int aBomb = 0;
+	if (0 < aBombCount) {
+		do {
+			Piece* aPiece = mBombList[aBomb];
+			((MemoryImage*)IMAGE_HEAT_DISTORTION)->mD3DFlags = 8;  // +0x44
+			float aT = (float)((double)aPiece->mBombCount / 9.0);
+			float aFade = (float)(1.0 - (double)aT);
+			float aStrength = aFade * theHazeFactor;
+			// 0x77e016 is a floor
+			int aAlpha = (int)std::floor((double)aStrength * 28.0 + 10.0);
+			unsigned int aColor = ((unsigned int)aAlpha << 24) | 0xffffff;
+			double aPeriodF = (double)aT * 85.0;
+			if (aPeriodF < 55.0)
+				aPeriodF = 55.0;
+			int aPeriod = Ftol(aPeriodF);
+			float aPhase = (float)(1.0 - (double)(gApp->mUpdateCount % aPeriod) / (double)aPeriod);
+			float aPhase2 = (float)(1.0 + (double)aPhase);
+			float aCenterX = (float)(gGemWidth / 2) + aPiece->mX;
+			float aCenterY = (float)(gGemHeight / 2) + aPiece->mY;
+			float aGrow1 = (float)((double)aStrength * 2.0 + 2.0);
+			if (3.15f < aGrow1)
+				aGrow1 = 3.15f;
+			float aGrow2 = (float)((double)aStrength * 2.0 + 2.5);
+			if (4.4f < aGrow2)
+				aGrow2 = 4.4f;
+			gD3DInterface->SetSamplerState(0, 1, 1);
+			gD3DInterface->SetSamplerState(0, 2, 1);
+			gD3DInterface->SetTexture(0, IMAGE_HEAT_DISTORTION);  // slot 0xd4
+			gD3DInterface->SetTexture(1, IMAGE_SHADER_TEST);
+			int aQuad = 0;
+			do {
+				float aAngle = (float)((double)aQuad * 3.1415927410125732 * 0.5 + 0.7853981852531433);
+				float aAngleB = aAngle - 0.25132743f;
+				float aAngleC = aAngle - 0.47123894f;
+				float aAngleD = aAngle + 0.25132743f;
+				float aAngleE = aAngle + 0.47123894f;
+				float aRadiusA = (float)IMAGE_SHADER_TEST->mHeight * aGrow1;
+				float aRadiusC = (float)IMAGE_SHADER_TEST->mHeight * aGrow2;
+				float aRadiusB = gApp->mScale * 100.0f;
+				HazeVertex aVertices[5];
+				// Each vertex: the point on its radius at its angle, then the board's place, in the image's scale
+				float aSin = sinf(aAngleE);
+				float aY = (float)(((double)aRadiusA * (double)aSin + aCenterY) * aScaleY - 0.5);
+				float aX = (float)(((double)cosf(aAngleE) * aRadiusA + aCenterX) * aScaleX - 0.5);
+				aVertices[0] = MakeHazeVertex(aX, aY, aColor, 1.0f, aPhase2, 1.0f, 1.0f);  // 0x6a333f
+				aSin = sinf(aAngleD);
+				aY = (float)(((double)aRadiusB * (double)aSin + aCenterY) * aScaleY - 0.5);
+				aX = (float)(((double)cosf(aAngleD) * aRadiusB + aCenterX) * aScaleX - 0.5);
+				aVertices[1] = MakeHazeVertex(aX, aY, aColor, 0.7f, aPhase, 1.0f, 0.0f);
+				aSin = sinf(aAngle);
+				aY = (float)(((double)aRadiusC * (double)aSin + aCenterY) * aScaleY - 0.5);
+				aX = (float)(((double)cosf(aAngle) * aRadiusC + aCenterX) * aScaleX - 0.5);
+				aVertices[2] = MakeHazeVertex(aX, aY, aColor, 0.5f, aPhase2, 0.5f, 1.0f);
+				aSin = sinf(aAngleB);
+				aY = (float)(((double)aRadiusB * (double)aSin + aCenterY) * aScaleY - 0.5);
+				aX = (float)(((double)cosf(aAngleB) * aRadiusB + aCenterX) * aScaleX - 0.5);
+				aVertices[3] = MakeHazeVertex(aX, aY, aColor, 0.3f, aPhase, 0.0f, 0.0f);
+				aSin = sinf(aAngleC);
+				aY = (float)(((double)aRadiusA * (double)aSin + aCenterY) * aScaleY - 0.5);
+				aX = (float)(((double)cosf(aAngleC) * aRadiusA + aCenterX) * aScaleX - 0.5);
+				aVertices[4] = MakeHazeVertex(aX, aY, aColor, 0.0f, aPhase2, 0.0f, 1.0f);
+				// The middle vertex's place again, its sum rounded to a float before the scale
+				float aMidX = (float)((double)cosf(aAngle) * aRadiusC + aCenterX);
+				aVertices[2].x = aMidX * aScaleX - 0.5f;
+				float aMidY = (float)((double)sinf(aAngle) * aRadiusC + aCenterY);
+				aVertices[2].y = aMidY * aScaleY - 0.5f;
+				gD3DInterface->DrawPrimitiveEx(0x2c4, GPUPT_TRIANGLESTRIP, aVertices, 3, Color::White, 0, 0.0f, 0.0f, true,
+					nullptr);  // slot 0x7c
+				aQuad++;
+			} while (aQuad < 4);
+			aBomb++;
+		} while (aBomb < aBombCount);
+	}
+	if (aMoved) {
+		gD3DInterface->PopTransform();  // slot 0x18
+		gD3DInterface->PushTransform(mTransform, true);  // slot 0x14
+	}
+	gD3DInterface->SetRenderTarget(g != nullptr ? g->mDestImage : nullptr);  // slot 0x98
+	gD3DInterface->SetPixelShader(nullptr);
+}
+
+// 0x6caa13's rectangles: the cells of the pieces at the four corners of each bomb's cell, made into runs along each row
+// (0x6b9e8d), runs of the same columns in rows below one another merged, and each run given its rectangle in the
+// screen's pixels (0x6b9ace into +0x14cc)
+void Board::GatherHazeRects()
+{
+	struct Run { int mLeft, mRight, mTop, mBottom; };  // 0x10 bytes
+	std::vector<unsigned char> aMask((size_t)mRows * (size_t)mCols, 0);
+	std::vector<Piece*> aCorners;  // 0x6b99c3
+	int aCount = (int)mBombList.size();
+	int aBomb = 0;
+	if (0 < aCount) {
+		do {
+			Piece* aBombPiece = mBombList[aBomb];
+			aCorners.push_back(GetPieceAt(aBombPiece->mRow - 1, aBombPiece->mCol - 1));
+			aCorners.push_back(GetPieceAt(aBombPiece->mRow - 1, aBombPiece->mCol + 1));
+			aCorners.push_back(GetPieceAt(aBombPiece->mRow + 1, aBombPiece->mCol - 1));
+			aCorners.push_back(GetPieceAt(aBombPiece->mRow + 1, aBombPiece->mCol + 1));
+			aBomb++;
+		} while (aBomb < aCount);
+	}
+	int aCornerCount = (int)aCorners.size();
+	int i = 0;
+	if (0 < aCornerCount) {
+		do {
+			Piece* aPiece = aCorners[i];
+			if (aPiece != nullptr)
+				aMask[aPiece->mRow * mCols + aPiece->mCol] = 1;
+			i++;
+		} while (i < aCornerCount);
+	}
+	std::vector<std::vector<Run> > aRows((size_t)mRows);
+	const unsigned char* aCell = aMask.data();
+	int aRow = 0;
+	if (0 < mRows) {
+		do {
+			int aStart = -1;
+			int aEnd = -1;
+			int aCol = 0;
+			int aLimit = mCols + 1;
+			if (0 < aLimit) {
+				do {
+					if (aCol < mCols && aCell[aCol] != 0) {
+						aEnd = aCol;
+						if (aStart < 0)
+							aStart = aCol;
+					} else if (-1 < aStart) {
+						Run aRun = {aStart, aEnd, aRow, aRow};
+						aRows[aRow].push_back(aRun);  // 0x6b9e8d
+						aStart = -1;
+						aEnd = -1;
+					}
+					aCol++;
+					aLimit = mCols + 1;
+				} while (aCol < aLimit);
+			}
+			aCell += mCols;
+			aRow++;
+		} while (aRow < mRows);
+	}
+	// From the bottom up, a run takes the bottom of the run of the same columns in the row below, which is dropped
+	for (int r = mRows - 2; -1 < r; r--) {
+		std::vector<Run>& anUpper = aRows[r];
+		std::vector<Run>& aLower = aRows[r + 1];
+		size_t j = 0;
+		if (!anUpper.empty()) {
+			do {
+				size_t k = 0;
+				if (!aLower.empty()) {
+					do {
+						if (anUpper[j].mLeft == aLower[k].mLeft && anUpper[j].mRight == aLower[k].mRight) {
+							anUpper[j].mBottom = aLower[k].mBottom;
+							aLower[k].mLeft = -1;
+						}
+						k++;
+					} while (k < aLower.size());
+				}
+				j++;
+			} while (j < anUpper.size());
+		}
+	}
+	int aHalfWidth = mWidth / 2;
+	int aHalfHeight = mHeight / 2;
+	aRow = 0;
+	if (0 < mRows) {
+		do {
+			size_t k = 0;
+			if (!aRows[aRow].empty()) {
+				do {
+					const Run& aRun = aRows[aRow][k];
+					if (-1 < aRun.mLeft) {
+						HazeRect aRect;
+						aRect.mLeft = (float)aHalfWidth + mUnknown268C *
+							((float)((double)mUnknown37EC + (double)mShakeX + ((double)GetColX(aRun.mLeft) - (double)aHalfWidth)));
+						aRect.mTop = (float)aHalfHeight + mUnknown268C *
+							((float)((double)mUnknown37F0 + (double)mShakeY + ((double)GetRowY(aRun.mTop) - (double)aHalfHeight)));
+						aRect.mRight = (float)((((double)GetColX(aRun.mRight + 1) - (double)aHalfWidth) + (double)mShakeX +
+							(double)mUnknown37EC) * (double)mUnknown268C + (double)aHalfWidth);
+						aRect.mBottom = (float)((((double)GetRowY(aRun.mBottom + 1) - (double)aHalfHeight) + (double)mShakeY +
+							(double)mUnknown37F0) * (double)mUnknown268C + (double)aHalfHeight);
+						mHazeRects.push_back(aRect);  // 0x6b9ace
+					}
+					k++;
+				} while (k < aRows[aRow].size());
+			}
+			aRow++;
+		} while (aRow < mRows);
+	}
 }
 
 void Board::DrawTutorialCursor(Graphics* g)
@@ -823,7 +1151,10 @@ void Board::DrawOverlay(Graphics* g)
 		g->SetColor(Color(0, 0, 0, Ftol(aDark * 255.0)));
 		g->FillRect(0, 0, mWidth, mHeight);
 	}
-	g->Translate(Ftol(mShakeX), Ftol(mShakeY));
+	if (gD3DInterface == nullptr)
+		g->Translate(Ftol(mShakeX), Ftol(mShakeY));
+	else if (mUnknown268C != 1.0f)
+		gD3DInterface->PushTransform(mTransform, true);  // slot 0x14
 	if (0.0f < mUnknown248) {
 		// and the gems it can reach are drawn over the dark, which the board's own pass left out (UpdateUnknown248)
 		int aCount = mCols * mRows;
@@ -841,7 +1172,10 @@ void Board::DrawOverlay(Graphics* g)
 		}
 	}
 	DrawCounters(g);
-	g->Translate(-Ftol(mShakeX), -Ftol(mShakeY));
+	if (gD3DInterface == nullptr)
+		g->Translate(-Ftol(mShakeX), -Ftol(mShakeY));
+	else if (mUnknown268C != 1.0f)
+		gD3DInterface->PopTransform();  // slot 0x18
 	if (mUnknown36B0 && mGameMode == MODE_BLITZ && 4 < mUnknown26C8) {
 		// Blitz's FINAL SCORE (end state 5) and then its score (6) zoom in with a rainbow trail behind them: copies
 		// from each one's lowest scale up to its current one, the one at 1 drawn plainly
@@ -904,9 +1238,67 @@ void Board::DrawOverlay(Graphics* g)
 	if (mUnknown2629)
 		aReplay = true;
 	if (aReplay && !mUnknown37C4) {
-		// (the exe brackets this with MTRand::SetRandAllowed, 0x456310, a debug count. With Direct3D the rewind's
-		// streaks are red and green lines down the left edge instead)
-		if (mUnknown160 == 1) {
+		// (the exe brackets this with MTRand::SetRandAllowed, 0x456310, a debug count)
+		if (gD3DInterface != nullptr) {
+			// With Direct3D the streaks are lines one pixel wide down the left edge: a rewind's red and green, else
+			// green. (Its draws come from +0x2a80's generator too.)
+			if (mUnknown160 == 1) {
+				g->SetColor(Color(0x201000));
+				g->FillRect(0, 0, 1, mHeight);
+				int i = 0;
+				while (true) {
+					int aLimit = mUnknown3448 * 5;
+					if (0x31 < aLimit)
+						aLimit = 0x32;
+					if (aLimit <= i)
+						break;
+					g->SetColor(Color(255, 0, 0, 0x28));
+					int aHeight = (int)(mUnknown2A80.Next() % 0x1e) + 0x1e;
+					int aY = (int)(mUnknown2A80.Next() % (unsigned long)(unsigned int)mHeight);
+					g->FillRect(0, aY, 1, aHeight);
+					i++;
+				}
+				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+				i = 0;
+				while (true) {
+					int aLimit = mUnknown3448 / 3;
+					if (4 < aLimit)
+						aLimit = 5;
+					if (aLimit <= i)
+						break;
+					g->SetColor(Color(0, 255, 0, 0x40));
+					int aHeight = (int)(mUnknown2A80.Next() % 10) + 2;
+					int aY = (int)(mUnknown2A80.Next() % (unsigned long)(unsigned int)mHeight);
+					g->FillRect(0, aY, 1, aHeight);
+					i++;
+				}
+			} else {
+				g->SetColor(Color(0));
+				g->FillRect(0, 0, 1, mHeight);
+				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+				int i = 0;
+				if (0 < (int)mUnknown2A80.Next() % 3 + 2) {
+					do {
+						g->SetColor(Color(0, 255, 0, 4));
+						int aHeight = (int)(mUnknown2A80.Next() % 6) + 4;
+						int aY = (int)(mUnknown2A80.Next() % (unsigned long)(unsigned int)mHeight);
+						g->FillRect(0, aY, 1, aHeight);
+						i++;
+					} while (i < (int)mUnknown2A80.Next() % 3 + 2);
+				}
+			}
+			if ((gD3DInterface->GetCaps(0) & 2) != 0) {
+				// The whole screen is taken (0x4f6670 "Rewind": slot 0xa0 hands the screen's picture to a pooled target
+				// and leaves a cleared one) and drawn back through the rewind shader (0x85db10)
+				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);  // 0x41ff20
+				TargetHold aHold;
+				DDImage* aScreen = gD3DInterface->HoldScreen(&aHold, "Rewind");
+				gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_REWIND]);  // slot 0xd8, 0x85db10
+				g->DrawImage(aScreen, 0, 0);  // 0x4211b0
+				gD3DInterface->SetPixelShader(nullptr);
+				gD3DInterface->ReleaseTarget(&aHold);
+			}
+		} else if (mUnknown160 == 1) {
 			g->SetColor(Color(64, 64, 64, 128));
 			g->FillRect(0, 0, mWidth, mHeight);
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -930,10 +1322,63 @@ void Board::DrawOverlay(Graphics* g)
 		aTraveller->Draw();
 	if (mUnknown26CC != nullptr) {
 		if (mUnknown160 == 7) {
-			// The nuke: the gem that set it off, its nova and the blast. (With Direct3D the board and the tube also
-			// zoom about the gem with +0x2908, IMAGE_BOOM_BOARD and IMAGE_BOOM_FTUBE over them.)
+			// The nuke: the gem that set it off, its nova and the blast
+			if (gD3DInterface != nullptr) {
+				// With Direct3D the board and the tube are drawn again over the game's, the tube turned and moved by
+				// +0x2978 and the board's gems cleared by IMAGE_BOOM_BOARD, the crater and the bars
+				gD3DInterface->PushTransform(mTransform, true);  // slot 0x14
+				gD3DInterface->SetDepthTestMode(1);              // slot 0x114
+				g->SetColor(Color::White);
+				if (mUnknown2041) {
+					double aTurn = mUnknown2978.GetOutVal();
+					int aTubeDownI = Ftol((double)gApp->mScale * 64.0);
+					double aMoveY = mUnknown2978.GetOutVal();
+					float aRiseY = (float)((double)gApp->mScale * 42.0);
+					int aTubeRightI = Ftol((double)gApp->mScale * 32.0);
+					double aMoveX = mUnknown2978.GetOutVal();
+					int aY = Ftol((double)(mGoodTube->mY + aTubeDownI) + (double)aRiseY * aMoveY);
+					float aRiseX = (float)((double)gApp->mScale * -8.0);
+					int aX = Ftol(aMoveX * (double)aRiseX + (double)(mGoodTube->mX + aTubeRightI));
+					g->DrawImageRotated(IMAGE_BOOM_FTUBE, aX, aY, aTurn * 0.10000000149011612, nullptr);  // 0x4219d0
+				}
+				if (mUnknown2043) {
+					g->DrawImage(IMAGE_BOOM_BOARD, GetColX(0), GetRowY(0));
+					Graphics aClipG(*g);  // 0x41fbc0
+					aClipG.SetClipRect(GetColX(0), GetRowY(0), mCols * gGemWidth, mRows * gGemHeight);  // 0x4222e0
+					Image* aCrater = IMAGE_BOOM_CRATER;
+					int aCraterY = Ftol(((double)(gGemHeight / 2) + (double)mUnknown26CC->mY) - (double)(aCrater->mHeight / 2));
+					int aCraterX = Ftol(((double)(gGemWidth / 2) + (double)mUnknown26CC->mX) - (double)(aCrater->mWidth / 2));
+					aClipG.DrawImage(aCrater, aCraterX, aCraterY);
+					Board* aBoard = gBoard;
+					int aHalfGrid = (aBoard->mRows * gGemHeight) / 2;
+					Image* aBarTop = IMAGE_BOOM_FGRIDBAR_TOP;
+					int aBarHeight = aBarTop->mHeight;
+					float aBarHalf = (float)(aBarHeight / 2);
+					int aBarTopY = Ftol(((double)(aBoard->GetRowY(0) + aHalfGrid) - (double)GetGridMidY()) - (double)aBarHalf);
+					int aBarBotY = Ftol((double)((double)(aBoard->GetRowY(0) + aHalfGrid) + (double)GetGridMidY() - (double)aBarHalf) +
+						(double)Ftol((double)gApp->mScale * 10.0));
+					int aBarX = aBoard->GetColX(0) + ((aBoard->mCols * gGemWidth) / 2 - mUnknown2590 / 2) + 2;
+					g->DrawImage(aBarTop, aBarX, aBarTopY);
+					Image* aBarBot = IMAGE_BOOM_FGRIDBAR_BOT;
+					g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown259C * 255.0 * (double)mUnknown3924)));
+					g->DrawImage(aBarBot, aBarX, aBarBotY, mUnknown2590, aBarHeight);  // 0x4216f0
+				}
+				gD3DInterface->SetDepthTestMode(0);
+			}
+			// The gem is drawn zoomed about its middle by +0x2908 in 3D (the matrix, 0x44f860 and on, is also made in 2D)
+			SexyTransform2D aNukeMatrix;
+			float aNukeBackY = (float)((double)-mUnknown26CC->mY - (double)(gGemHeight / 2));
+			aNukeMatrix.Translate((float)((double)-mUnknown26CC->mX - (double)(gGemWidth / 2)), aNukeBackY);
+			float aNukeZoom = (float)mUnknown2908.GetOutVal();
+			aNukeMatrix.Scale((float)mUnknown2908.GetOutVal(), aNukeZoom);
+			aNukeMatrix.Translate((float)((double)(gGemWidth / 2) + (double)mUnknown26CC->mX),
+				(float)((double)(gGemHeight / 2) + (double)mUnknown26CC->mY));
+			if (gD3DInterface != nullptr)
+				gD3DInterface->PushTransform(aNukeMatrix, true);
 			if (!mUnknown26CC->mUnknown2F6)
 				DrawNukeGem(g, mUnknown26CC);
+			if (gD3DInterface != nullptr)
+				gD3DInterface->PopTransform();
 			g->SetColorizeImages(true);
 			g->SetColor(Color(255, 255, 255, Ftol(mUnknown2748.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
 			Transform aTransform;
@@ -951,6 +1396,8 @@ void Board::DrawOverlay(Graphics* g)
 				aX = (float)((double)(gGemWidth / 2) + (double)mUnknown26CC->mX);
 				g->DrawImageTransform(IMAGE_BOOM_NUKE, aTransform, aX, aY);
 			}
+			if (gD3DInterface != nullptr)
+				gD3DInterface->PopTransform();  // the board's, pushed above
 		}
 		g->SetColorizeImages(true);
 		for (Shockwave* aWave : mUnknown1660)
@@ -989,7 +1436,8 @@ void Board::DrawOverlay(Graphics* g)
 			g->FillRect(0, 0, mWidth, mHeight);
 		}
 	}
-	// (With Direct3D a device call comes here when +0x268c is not 1.)
+	if (mUnknown268C != 1.0f && gD3DInterface != nullptr)
+		gD3DInterface->PushTransform(mTransform, true);  // slot 0x14
 	if (0.0f < mUnknown248) {
 		// A fruit's blast: its four rings in turning colours (IMAGE_FRUITNOVA), and the fruit's glow growing
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -1027,7 +1475,9 @@ void Board::DrawOverlay(Graphics* g)
 		g->Translate(-mUnknown267C->mX, -mUnknown267C->mY);
 	}
 	mPointsManager->DrawOverlay(g, 0x62);
-	// (With Direct3D a device call comes here when +0x268c is not 1.) The banner of a mode just unlocked (0x6b40b5)
+	if (mUnknown268C != 1.0f && gD3DInterface != nullptr)
+		gD3DInterface->PopTransform();  // slot 0x18
+	// The banner of a mode just unlocked (0x6b40b5)
 	if (mUnknown498.GetOutVal() != 0.0) {
 		g->SetColorizeImages(true);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);

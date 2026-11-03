@@ -13,6 +13,7 @@
 #include "Profile.h"
 #include "Res.h"
 #include "Shockwave.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "TriVertex.h"
@@ -58,8 +59,8 @@ Piece::Piece()
 	mColorCycle.mColors.push_back(Color(255, 0, 255));
 	mColorCycle.mColors.push_back(Color(255, 255, 255));
 	mColorCycle.mColors.push_back(Color(255, 0, 255));
-	// 2, or 8 with Direct3D
-	mUnknown4F8 = 2;
+	// 2, or 8 with Direct3D (Is3DAccelerated 0x4a7900)
+	mUnknown4F8 = (gApp->Is3DAccelerated() ? 6 : 0) + 2;
 }
 
 Piece::~Piece()
@@ -155,15 +156,18 @@ Effect* Piece::AddSpark(bool theBig, float theSpeed, float theAngle)
 	anEffect->mDY = std::sin(anAngle) * aSpeed;
 	if (!theBig)
 		gBoard->mFXManager->AddEffect(anEffect);
-	// Without Direct3D the effects move with the board's shake
-	anEffect->mX = gBoard->mShakeX + anEffect->mX;
-	anEffect->mY = gBoard->mShakeY + anEffect->mY;
+	// Without Direct3D (gD3DInterface null) the effects move with the board's shake
+	if (gD3DInterface == nullptr) {
+		anEffect->mX = gBoard->mShakeX + anEffect->mX;
+		anEffect->mY = gBoard->mShakeY + anEffect->mY;
+	}
 	return anEffect;
 }
 
-void Piece::AddShards(float theSpeed)
+void Piece::AddShards(float theSpeed, bool theSecondManager)
 {
-	Effect* anEffect = gBoard->mFXManager->AllocEffect(10);
+	EffectsManager* aManager = theSecondManager ? gBoard->mFXManager2 : gBoard->mFXManager;
+	Effect* anEffect = aManager->AllocEffect(10);
 	float anAngle = std::fabs(RandSigned() * kTwoPi);
 	float aDist = std::fabs((float)((double)RandSigned() * (double)gGemWidth / 3.5));
 	float aYOffset = 0.0f;
@@ -171,18 +175,20 @@ void Piece::AddShards(float theSpeed)
 		aYOffset = 15.0f;
 	else if (mColor == 6)
 		aYOffset = -12.0f;
-	anEffect->mX = std::cos(anAngle) * theSpeed * aDist + (float)(gGemWidth / 2) + mX;
-	anEffect->mY = std::sin(anAngle) * theSpeed * aDist + (float)(gGemHeight / 2) + mY + aYOffset;
-	float aPush = theSpeed * theSpeed * 0.025f;
-	anEffect->mDX = (float)((double)std::cos(anAngle) * aPush * aDist);
-	anEffect->mDY = (float)((double)std::sin(anAngle) * aPush * aDist);
-	anEffect->mScale = theSpeed * 0.5f;
+	anEffect->mX =
+		(float)((double)(gGemWidth / 2) + (double)mX + (double)cosf(anAngle) * (double)theSpeed * (double)aDist);
+	anEffect->mY = (float)((double)(gGemHeight / 2) + (double)mY +
+						   (double)sinf(anAngle) * (double)theSpeed * (double)aDist + (double)aYOffset);
+	double aPush = (double)theSpeed * (double)theSpeed * 0.02500000037252903;
+	anEffect->mDX = (float)((double)cosf(anAngle) * aPush * (double)aDist);
+	anEffect->mDY = (float)((double)sinf(anAngle) * aPush * (double)aDist);
+	anEffect->mScale = (float)((double)theSpeed * 0.5);
 	anEffect->mGravity = 0;
 	anEffect->mDAlpha = -0.005f;
 	anEffect->mUnknown9C = 0;
 	anEffect->mUnknownA0 = RandSigned();
 	anEffect->mUnknownA4 = RandSigned();
-	gBoard->mFXManager->AddEffect(anEffect);
+	aManager->AddEffect(anEffect);
 }
 
 void Piece::AddDust()
@@ -481,14 +487,19 @@ void Piece::Draw(Graphics* g, bool theForce)
 				g->DrawImageCel(aGlow, aRect, mColor);
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 				g->SetColor(anOldColor);
-				// port: without Direct3D the bomb drawn ahead at its size (with it, IMAGE_BOMBGEMS at half size while
-				// the board's +0x268c is above 1.002)
-				anImage = gApp->mBombImages[mColor];
-				aWidth = (float)anImage->mWidth;
-				aSrcX = 0;
-				aSrcY = 0;
-				aHeight = (float)anImage->mHeight;
-				aScale = 1.0f;
+				// Without Direct3D, or while the board's +0x268c is 1.002 or less, the bomb drawn ahead at its size
+				// (otherwise IMAGE_BOMBGEMS stays, at half size)
+				float aBombScale = 0;
+				if (gD3DInterface != nullptr)
+					aBombScale = (float)((double)aBoard->mUnknown268C * 0.5);
+				if (gD3DInterface == nullptr || (double)aBombScale <= 0.501) {
+					anImage = gApp->mBombImages[mColor];
+					aWidth = (float)anImage->mWidth;
+					aSrcX = 0;
+					aSrcY = 0;
+					aHeight = (float)anImage->mHeight;
+					aScale = 1.0f;
+				}
 			} else {
 				anImage = IMAGE_GEMS;
 				if (IsFlagSet(FLAG_FRUIT)) {
@@ -502,8 +513,10 @@ void Piece::Draw(Graphics* g, bool theForce)
 					}
 				} else {
 					aScale = (float)(aScale * 0.5);
-					// port: with Direct3D, times the board's +0x268c
+					// With Direct3D (gD3DInterface) the board's +0x268c times it
 					float aDrawnScale = aScale;
+					if (gD3DInterface != nullptr)
+						aDrawnScale = aBoard->mUnknown268C * aScale;
 					if (!(0.501f < aDrawnScale)) {
 						// The gem drawn ahead at the cell's size, its cell cut from the middle of the image
 						aWidth = (float)gGemWidth;
@@ -731,7 +744,18 @@ void Piece::DrawBack(Graphics* g)
 		g->SetColorizeImages(true);
 		g->SetColor(Color(255, 255, 255, Ftol(mAlpha * 128.0)));
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-		// port: with Direct3D two black halos (IMAGE_BLACKHALO_2) turn behind a bomb at mHaloAngles[0] and [1]
+		if (gD3DInterface != nullptr) {
+			// Two black halos turn behind the bomb, at mHaloAngles[0] and [1]
+			float* aHaloAngle = mHaloAngles;
+			int aHaloCount = 2;
+			do {
+				int aHaloY = gGemHeight / 2 + Ftol(mY);
+				int aHaloX = gGemWidth / 2 + Ftol(mX);
+				DrawImageCentered(g, IMAGE_BLACKHALO_2, (float)aHaloX, (float)aHaloY, (double)*aHaloAngle, 1.0f, 1.0f);
+				aHaloAngle++;
+				aHaloCount--;
+			} while (aHaloCount != 0);
+		}
 		g->SetColor(Color(255, 255, 255, 255));
 		if (0.0f < mFruitGlow) {
 			// The bomb's shockwave image of its colour, growing as it fades
@@ -781,7 +805,8 @@ static void DrawBeam(Graphics* g, Image* theImage, float theX0, float theY0, flo
 	double anOffsetY = aNormalSin * theWidth;
 	float aStartY = (float)(theY0 + anOffsetY);
 	double anOffsetX = aNormalCos * theWidth;
-	// The strip's eight corners (x, y, u, v); the original also gives each its colour for Direct3D
+	// The strip's eight corners (x, y, u, v); with Direct3D each also has its colour: the start's for the first four,
+	// the end's for the last four
 	float aVerts[8][4] = {
 		{(float)(aStartX + anOffsetX), aStartY, 0, 0},
 		{(float)(aStartX - anOffsetX), (float)(theY0 - anOffsetY), 0, 1},
@@ -792,7 +817,30 @@ static void DrawBeam(Graphics* g, Image* theImage, float theX0, float theY0, flo
 		{(float)(anEndX + anOffsetX), (float)(theY1 + anOffsetY), 1, 0},
 		{(float)(anEndX - anOffsetX), (float)(theY1 - anOffsetY), 1, 1},
 	};
-	// port: Direct3D draws the strip at once with the corners' colours
+	if (gD3DInterface != nullptr) {
+		// Direct3D draws the strip at once with the corners' colours (0x72b40b: FVF 0x1c4, a vertex of 0x20 bytes)
+		struct BeamVertex {
+			float mX, mY, mZ, mRHW;
+			unsigned int mDiffuse;
+			unsigned int mSpecular;
+			float mU, mV;
+		};
+		BeamVertex aBeam[8];
+		for (int i = 0; i < 8; i++) {
+			aBeam[i].mX = aVerts[i][0];
+			aBeam[i].mY = aVerts[i][1];
+			aBeam[i].mZ = 0.0f;
+			aBeam[i].mRHW = 1.0f;
+			aBeam[i].mDiffuse = (i < 4 ? theColor0 : theColor1).ToInt();
+			aBeam[i].mSpecular = 0;
+			aBeam[i].mU = aVerts[i][2];
+			aBeam[i].mV = aVerts[i][3];
+		}
+		gD3DInterface->SetTexture(0, theImage);
+		gD3DInterface->DrawPrimitiveEx(0x1c4, GPUPT_TRIANGLESTRIP, aBeam, 6, Color::White, 1, 0.0f, 0.0f, true,
+			nullptr);
+		return;
+	}
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	int aTriangle = 6;
 	float (*aVert)[4] = aVerts;
@@ -823,15 +871,19 @@ void Piece::DrawFront(Graphics* g)
 			Image* aShineImage = nullptr;
 			int aShine = 0;
 			do {
-				// port: with Direct3D each of the nine shines (+0x50 to +0x70) is drawn; without it their sum, once, as
-				// the last
+				// With Direct3D each of the nine shines (+0x50 to +0x70) is drawn; without it their sum, once, as the
+				// last
 				float anAmount = 0.0f;
-				for (int i = 0; i < 8; i++)
-					anAmount = (float)(mUnknown50[i] * 0.10000000149011612 + anAmount);
-				anAmount = (float)(mUnknown70 * 0.5 + anAmount);
-				if (anAmount < 0.05)
-					anAmount = 0.0f;
-				aShine = 8;
+				if (gD3DInterface == nullptr) {
+					for (int i = 0; i < 8; i++)
+						anAmount = (float)(mUnknown50[i] * 0.10000000149011612 + anAmount);
+					anAmount = (float)(mUnknown70 * 0.5 + anAmount);
+					if (anAmount < 0.05)
+						anAmount = 0.0f;
+					aShine = 8;
+				} else {
+					anAmount = aShine < 8 ? mUnknown50[aShine] : mUnknown70;
+				}
 				if (0.01 < anAmount) {
 					if (1.0 < anAmount)
 						anAmount = 1.0f;
@@ -1126,7 +1178,7 @@ void Piece::DrawFront(Graphics* g)
 	}
 
 	// The shockwave of the gem's colour, shrinking from four times its size as +0x2e4 falls (half that without
-	// Direct3D)
+	// Direct3D, gD3DInterface null)
 	if ((gBoard->mGameMode != Board::MODE_PUZZLE || !gBoard->mUnknown1324) && 0.0f < mDevilGlow &&
 		!IsFlagSet(FLAG_DEVIL)) {
 		g->SetColorizeImages(true);
@@ -1135,7 +1187,8 @@ void Piece::DrawFront(Graphics* g)
 		if (aWave != nullptr) {
 			aColor.mAlpha = Ftol(mDevilGlow * 255.0 * mAlpha);
 			float aScale = (float)((1.0 - mDevilGlow) * 3.0 + 1.0);
-			aScale = (float)(aScale * 0.5);
+			if (gD3DInterface == nullptr)
+				aScale = (float)(aScale * 0.5);
 			int aWidth = Ftol(aWave->mWidth * aScale);
 			int aHeight = Ftol(aWave->mHeight * aScale);
 			g->SetColor(aColor);
@@ -1152,6 +1205,13 @@ void Piece::DrawFront(Graphics* g)
 	// Coal glowing as it smokes (+0x2f8): two of its cels added over it; the smoke itself is drawn only with
 	// Direct3D (a fan of triangles over 32 of +0x3e8's values for each cel)
 	if (IsFlagSet(FLAG_COAL) && !mBreaking && !gBoard->mUnknown1BF2 && mUnknown535) {
+		int aCoalHalfWidth = IMAGE_COAL->GetCelWidth() / 2;
+		int aCenterX = Ftol((double)(float)(gGemWidth / 2) + (double)mX);
+		int aCenterY = Ftol((double)(float)(gGemHeight / 2) + (double)mY);
+		float aCelCount = (float)(IMAGE_COAL->mNumCols * IMAGE_COAL->mNumRows);
+		float aHalfWidth = (float)aCoalHalfWidth;
+		float aCelUnit = 1.0f / aCelCount;
+		float* anEmber = mUnknown3E8;  // 32 of its values for each cel
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		float aGlow = 1.0f;
 		if (mUnknown2F8 <= 0.0f)
@@ -1165,6 +1225,54 @@ void Piece::DrawFront(Graphics* g)
 				int aY = Ftol(mY);
 				int aX = Ftol(mX);
 				gGraphicsRecorder->DrawImageCel(g, IMAGE_COAL, aX, aY, aCel + 1);
+			}
+			if (gD3DInterface != nullptr) {
+				// The smoke: for each of the cel's 32 values a fan of up to 32 triangles round the gem's middle,
+				// growing outward and fading by 11 each
+				float aCelF = (float)aCel;
+				float aU = (float)(((double)aCelF + 1.5) * 0.3333333432674408);
+				float aStep = (float)((double)kTwoPi * 0.03125);
+				float anAngle = (float)((double)aStep * (double)aCelF * 0.5);
+				int aLeft = 32;
+				do {
+					float aNextAngle = anAngle + aStep;
+					float aSineArg = (float)((double)*anEmber * 3.1415927410125732);
+					int anAlpha = Ftol((double)sinf(aSineArg) * 100.0 + 0.0);
+					int aTriangles = 0;
+					float aRadius = 1.0f;
+					TriVertex aVertices[32][3];
+					if (0 < anAlpha) {
+						do {
+							if (0x1f < aTriangles)
+								break;
+							unsigned long aColor = Color(255, 255, 255, anAlpha).ToInt();
+							float aCY = (float)aCenterY;
+							float aCX = (float)aCenterX;
+							aVertices[aTriangles][0] = TriVertex(aCX, aCY, aU, 0.5f, aColor);
+							float aSin = sinf(anAngle);
+							float aCos = cosf(anAngle);
+							float aV = (float)((double)aSin * 0.5 + 0.5);
+							float aTexU = (float)((double)aCelUnit * (double)aCos * 0.5 + (double)aU);
+							float aVY = (float)((double)aRadius * (double)aSin * (double)aHalfWidth + (double)aCY);
+							float aVX = (float)((double)aRadius * (double)aCos * (double)aHalfWidth + (double)aCX);
+							aVertices[aTriangles][1] = TriVertex(aVX, aVY, aTexU, aV, aColor);
+							aSin = sinf(aNextAngle);
+							aCos = cosf(aNextAngle);
+							aV = (float)((double)aSin * 0.5 + 0.5);
+							aTexU = (float)((double)aCelUnit * (double)aCos * 0.5 + (double)aU);
+							aVY = (float)((double)aRadius * (double)aSin * (double)aHalfWidth + (double)aCY);
+							aVX = (float)((double)aRadius * (double)aCos * (double)aHalfWidth + (double)aCX);
+							aVertices[aTriangles][2] = TriVertex(aVX, aVY, aTexU, aV, aColor);
+							anAlpha = Ftol((double)anAlpha - 11.0);
+							aTriangles++;
+							aRadius = (float)((double)aRadius + 0.10999999940395355);
+						} while (0 < anAlpha);
+					}
+					gD3DInterface->DrawTrianglesTex(IMAGE_COAL, aVertices, aTriangles, Color::White, 1, 0.0f, 0.0f, true);
+					anEmber++;
+					anAngle = aNextAngle;
+					aLeft--;
+				} while (aLeft != 0);
 			}
 			aCel++;
 		} while (aCel <= 1);
@@ -1209,10 +1317,12 @@ void Piece::UpdatePowerSparks()
 			aManager = Rand() % 2 == 0 ? gApp->mBoard->mFXManager : gApp->mBoard->mFXManager2;
 			anEffect = aManager->AllocEffect(5);
 			anEffect->mAlpha = 1.0f;
-			// port: with Direct3D the spark is drawn at twice the size, from IMAGE_SPARKLET
+			// With Direct3D (gD3DInterface) the spark is drawn at twice the size (+0x48), from IMAGE_SPARKLET
+			if (gD3DInterface != nullptr)
+				anEffect->mScale = 2.0f;
 			anEffect->mFrame = 0;
 			anEffect->mDScale = -0.01f;
-			anEffect->mImage = IMAGE_SPARKLET_FAT;
+			anEffect->mImage = gD3DInterface == nullptr ? IMAGE_SPARKLET_FAT : IMAGE_SPARKLET;
 			float aBase = (float)((double)gApp->mScale * -0.4);
 			float aRange = (float)((double)gApp->mScale * 0.15);
 			anEffect->mDY = (float)((double)RandSigned() * (double)aRange + (double)aBase);
@@ -1231,7 +1341,12 @@ void Piece::UpdatePowerSparks()
 			anEffect->mDAngle = 0.0f;
 			anEffect->mAlpha = 0.0f;
 			anEffect->mDAlpha = (float)((double)RandSigned() * 0.001500000013038516 + 0.007499999832361937);
-			// port: with Direct3D its scale (0.12 +- 0.035) and its growth (0.01 +- 0.005) are random
+			// With Direct3D its scale (0.12 +- 0.035) and its growth (0.01 +- 0.005) are random, drawn after the alpha
+			// step and before the rise
+			if (gD3DInterface != nullptr) {
+				anEffect->mScale = (float)((double)RandSigned() * 0.03500000014901161 + 0.11999999731779099);
+				anEffect->mDScale = (float)((double)RandSigned() * 0.004999999888241291 + 0.009999999776482582);
+			}
 			float aBase = (float)((double)gApp->mScale * -0.12);
 			float aRange = (float)((double)gApp->mScale * -0.05);
 			anEffect->mDY = (float)((double)RandSigned() * (double)aRange + (double)aBase);
@@ -1702,7 +1817,7 @@ void Piece::Update()
 				gApp->mBoard->mFXManager->AddEffect(anEffect);
 			} else if (IsFlagSet(FLAG_6)) {
 				for (int i = 5; i != 0; i--)
-					AddShards(1.0f);
+					AddShards(1.0f, true);
 				if ((gBoard->mUpdateCnt & 3) == 0) {
 					Effect* anEffect = gApp->mBoard->mFXManager->AllocEffect(0);
 					anEffect->mImage = IMAGE_SPARKLET;
@@ -2093,8 +2208,9 @@ void Piece::UpdateElectro()
 	}
 
 	bool aMore = RandFloat() < 0.2f;
-	// port: with Direct3D the draw above decides; without it, as here, this one does
-	aMore = RandFloat() < 0.001f;
+	// With Direct3D (gD3DInterface) the draw above decides; without it, a second draw does
+	if (gD3DInterface == nullptr)
+		aMore = RandFloat() < 0.001f;
 	if ((int)mArcs.size() < 6 || aMore) {
 		// A new arc: now and then one to a neighbouring piece, or one bright arc right round the gem; otherwise a
 		// loop out from the outline and back
@@ -2149,8 +2265,14 @@ void Piece::UpdateElectro()
 				anArc.mEndSpeed = (float)((double)RandSigned() * 0.0020000000949949026 + (double)anArc.mStartSpeed);
 			}
 		}
-		// port: with Direct3D an arc has 2 to 6 segments
-		anArc.mSegments = Rand() % 2 + 3;
+		// An arc has 3 or 4 segments; with Direct3D 2 to 6 (a draw of 4, then one of 2)
+		if (gD3DInterface == nullptr) {
+			anArc.mSegments = Rand() % 2 + 3;
+		} else {
+			int aBase = (int)(Rand() % 4);
+			int anExtra = (int)(Rand() % 2);
+			anArc.mSegments = anExtra + 2 + aBase;
+		}
 		for (int i = 0; i < anArc.mSegments; i++) {
 			anArc.mOffsets[i] = (float)((double)RandSigned() * 10.0);
 			anArc.mSpeeds[i] = (float)((double)RandSigned() * 0.20000000298023224);
@@ -2303,14 +2425,17 @@ void Piece::MakeCountImage()
 	if (gGemHeight <= aFontHeight)
 		aHeight = aFontHeight;
 	aHeight = aHeight - Ftol((double)gApp->mScale * -18.0);
-	// port: the original also sets each image's +0x44 to 0x80, a Direct3D flag
+	// Each new image's +0x44 (mD3DFlags) is set to 0x80, in 2D mode too (the flag only keeps Direct3D's region mesh
+	// from it)
 	if (mCountImage == nullptr) {
 		mCountImage = new MemoryImage(gApp);
 		mCountImage->SetImageMode(true, true);
+		mCountImage->mD3DFlags = 0x80;
 	}
 	if (mCountImage2 == nullptr) {
 		mCountImage2 = new MemoryImage(gApp);
 		mCountImage2->SetImageMode(true, true);
+		mCountImage2->mD3DFlags = 0x80;
 	}
 	if (mCountImage->mWidth < aWidth || mCountImage->mHeight < aHeight) {
 		mCountImage->Create(aWidth, aHeight);
@@ -2387,7 +2512,11 @@ void Piece::Blast()
 	}
 	gApp->mBoard->mUnknown1660.push_back(new BlastShockwave(this, 1, 1));  // 0x6bc3cd
 	gApp->mBoard->LiftAround(this, 1.0f);
-	// (unless the board is +0x37c4's, the original adds a heat wave here, 0x6f9efe: Direct3D only)
+	// Unless the board is +0x37c4's, a heat wave here, of the strength +0x1c5c plus 1 (no Direct3D test: 2D mode
+	// adds it too, and only ages it)
+	if (!gApp->mBoard->mUnknown37C4)
+		gApp->mBoard->mFXManager->AddHeatWave((float)(gGemWidth / 2) + mX, (float)(gGemHeight / 2) + mY,
+			(float)(gApp->mBoard->mUnknown1C5C + 1));
 	gApp->mBoard->PlayPieceSound(this, SOUND_GEM_SHATTERS, 0, 0, true);
 	gApp->mBoard->AddPoints(Ftol((double)(gGemWidth / 2) + (double)mX),
 		Ftol((double)(gGemHeight / 2) + (double)mY), 50, gGemColors[mColor], mUnknown2EC, true, true, false, true);

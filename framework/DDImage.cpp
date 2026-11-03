@@ -57,7 +57,7 @@ bool DDImage::Check3D(Image* theImage)
 
 bool DDImage::Check3D(DDImage* theImage)
 {
-	return (theImage != NULL) && theImage->mIsScreen && (theImage->mDDInterface != NULL);
+	return (theImage != NULL) && (theImage->mDDInterface != NULL) && theImage->mDDInterface->CheckDestination(theImage);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -80,7 +80,8 @@ void DDImage::SetBits(ulong* theBits, int theWidth, int theHeight, bool commitBi
 
 ulong* DDImage::GetBits()
 {
-	if (mIsScreen && (mDDInterface != NULL) && (mDDInterface->mRenderer != NULL))
+	// (a GPUDisplay has no SDL renderer but is 3D)
+	if (mIsScreen && (mDDInterface != NULL) && ((mDDInterface->mRenderer != NULL) || mDDInterface->mIs3D))
 	{
 		// port: the screen lives on the GPU, so it is read back on every request
 		if (mBits == NULL)

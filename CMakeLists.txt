@@ -175,6 +175,22 @@ if(NOT EMSCRIPTEN)
   endif()
 endif()
 
+# GPU test (tools/gputest): the GL GPUInterface's Direct3D 9 conventions on the real GPU, one test each, exact pixels.
+# Native only; it opens a hidden GL window, so tools/check.sh unit runs it under rundesk.
+if(NOT EMSCRIPTEN)
+  option(BUILD_GPUTEST "Build the GPU test" ON)
+  if(BUILD_GPUTEST)
+    add_executable(gputest tools/gputest/gputest.cpp)
+    target_link_libraries(gputest PRIVATE sexyframework)
+    if(NOT MSVC)
+      target_compile_options(gputest PRIVATE -Wall)
+    endif()
+    add_custom_command(TARGET gputest POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:gputest>
+      VERBATIM)
+  endif()
+endif()
+
 # Test launcher (tools/rundesk): runs a command on a private, invisible desktop so test runs of a game
 # never show a window or take focus. games/bejeweled/tools/oracle/compare.sh runs itself under it.
 if(WIN32 AND NOT EMSCRIPTEN)

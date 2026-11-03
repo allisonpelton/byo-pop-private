@@ -9,6 +9,7 @@
 #include "MemoryImage.h"
 #include "Res.h"
 #include "SexyMatrix.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
@@ -27,9 +28,14 @@ LevelUpShow::LevelUpShow(Board* theBoard)
 	mCompleteImage = IMAGE_LEVELCOMPLETE_COMPLETE;
 	mFXManager = new EffectsManager();
 	mClip = false;
-	// (Direct3D has curves of its own, 0x7e6678 and 0x7e6640)
-	mScaleCurve.SetCurve(GTS(0x7e660c));
-	mHeightCurve.SetCurve(GTS(0x7e65e4), &mScaleCurve);
+	if (gD3DInterface == nullptr) {
+		mScaleCurve.SetCurve(GTS(0x7e660c));
+		mHeightCurve.SetCurve(GTS(0x7e65e4), &mScaleCurve);
+	} else {
+		// Direct3D has curves of its own
+		mScaleCurve.SetCurve(GTS(0x7e6678));
+		mHeightCurve.SetCurve(GTS(0x7e6640), &mScaleCurve);
+	}
 	mNumberScale = 0.8f;
 
 	// The level's number, its digits a space apart except next to a 1
@@ -116,7 +122,7 @@ void LevelUpShow::Draw(Graphics* g)
 	float aFade = (float)anAlpha;
 	float aCenterX = (float)Ftol((double)mWidth * 0.45);
 	float aY = 0;
-	// (Direct3D builds a SexyTransform2D for each picture as well and draws by it)
+	// Direct3D draws each picture by a SexyTransform2D (the picture's middle at the origin, scaled, then put in place)
 	for (int i = 0; i < 2; i++) {
 		Image* anImage;
 		int aX;
@@ -131,19 +137,39 @@ void LevelUpShow::Draw(Graphics* g)
 		float aScale = (float)(mScaleCurve.GetOutVal() * (double)mNumberScale);
 		if (0.0f < aFade) {
 			g->SetColor(Color(255, 255, 255, Ftol((double)aFade * 255.0)));
-			Transform aTransform;
-			aTransform.Translate((float)(anImage->mWidth / 2 + aX), 0);
-			aTransform.Scale(aScale, aScale);
-			aTransform.Translate(aCenterX, aY);
-			g->DrawImageTransform(anImage, aTransform, 0, 0);
+			if (gD3DInterface == nullptr) {
+				Transform aTransform;
+				aTransform.Translate((float)(anImage->mWidth / 2 + aX), 0);
+				aTransform.Scale(aScale, aScale);
+				aTransform.Translate(aCenterX, aY);
+				g->DrawImageTransform(anImage, aTransform, 0, 0);
+			} else {
+				SexyTransform2D aMatrix;  // 0x44f860
+				aMatrix.Translate((float)aX, (float)-(anImage->mHeight / 2));
+				aMatrix.Scale(aScale, aScale);
+				aMatrix.Translate(aCenterX, aY);
+				gD3DInterface->PushTransform(aMatrix, true);  // slot 0x14
+				g->DrawImageF(anImage, 0, 0);                 // 0x4218f0
+				gD3DInterface->PopTransform();                // slot 0x18
+			}
 		}
 	}
 	float aScale = (float)(mScaleCurve.GetOutVal() * 1.25 * (double)mNumberScale);
 	float aX = (float)Ftol((double)gApp->mScale * 0.0);
 	g->SetColor(Color(255, 255, 255, Ftol((double)aFade * 255.0)));
-	Transform aTransform;
-	aTransform.Translate(aX, 0);
-	aTransform.Scale(aScale, aScale);
-	aTransform.Translate(aCenterX, aY);
-	g->DrawImageTransform(mNumber, aTransform, 0, 0);
+	if (gD3DInterface == nullptr) {
+		Transform aTransform;
+		aTransform.Translate(aX, 0);
+		aTransform.Scale(aScale, aScale);
+		aTransform.Translate(aCenterX, aY);
+		g->DrawImageTransform(mNumber, aTransform, 0, 0);
+	} else {
+		SexyTransform2D aMatrix;
+		aMatrix.Translate((float)(-(mNumber->mWidth / 2)) + aX, (float)-(mNumber->mHeight / 2));
+		aMatrix.Scale(aScale, aScale);
+		aMatrix.Translate(aCenterX, aY);
+		gD3DInterface->PushTransform(aMatrix, true);
+		g->DrawImageF(mNumber, 0, 0);
+		gD3DInterface->PopTransform();
+	}
 }

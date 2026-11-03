@@ -1,4 +1,6 @@
 #include "ModeButton.h"
+#include "MemoryImage.h"
+#include "TwistD3D.h"
 
 #include "Font.h"
 #include "Graphics.h"
@@ -98,8 +100,24 @@ void ModeButton::Draw(Graphics* g)
 			aCel = mDoorCel;
 		}
 		if (mDoorOpen < 1.0f) {
-			// (with Direct3D the original draws the door's two halves through a shader instead, IMAGE_DOORS_SUBMENU_TOP
-			// and _BOTTOM sliding apart by mDoorOpen)
+			if (gD3DInterface != nullptr && (gD3DInterface->GetCaps(0) & 2) != 0 && 0.0f < mDoorOpen) {
+				// with Direct3D (and the pixel shaders) the door's two halves slide apart through a shader
+				Image* aTop = IMAGE_DOORS_SUBMENU_TOP;
+				gD3DInterface->SetTexture(1, IMAGE_DOORS_SUBMENU_BOTTOM);  // slot 0xd4
+				gD3DInterface->SetTextureWrap(0, false);                   // slot 0xcc
+				gD3DInterface->SetTextureWrap(1, false);
+				gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_BUTTONCOVER]);  // slot 0xd8
+				float aConstant[4] = {(float)((double)mDoorOpen * 0.85), 0.0f, 0.0f, 0.0f};
+				gD3DInterface->SetShaderConstant(gTwistShaders[TWISTSHADER_BUTTONCOVER], 0, aConstant);  // slot 0x108
+				((MemoryImage*)aTop)->mD3DFlags |= 0x80;
+				double aTopY = (double)mHeight * 0.5040000081062317;
+				double aTopX = (double)mWidth * 0.5019999742507935;
+				int aDoorY = Ftol(aTopY - (double)(aTop->GetCelHeight() / 2));
+				int aDoorX = Ftol(aTopX - (double)(aTop->GetCelWidth() / 2));
+				g->DrawImage(aTop, aDoorX, aDoorY);
+				gD3DInterface->SetPixelShader(nullptr);
+				return;
+			}
 			double aHalfHeight = (double)mHeight * 0.5;
 			double aHalfWidth = (double)mWidth * 0.4950000047683716;
 			int aY = Ftol(aHalfHeight - (double)(mDoor->GetCelHeight() / 2));

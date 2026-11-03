@@ -1797,7 +1797,13 @@ void Board::BlowUpPiece(Piece* thePiece, float theX, float theY, bool theBreak, 
 			anEffect->mGravity = 0;
 			aFXManager->AddEffect(anEffect);
 		}
-		// (unless the board is +0x37c4's, the original adds a heat wave at the gem, 0x6f9efe: Direct3D only)
+		// Unless the board is +0x37c4's, a heat wave at the gem (0x6f9efe, no Direct3D test: 2D mode adds it too and
+		// only ages it), of the strength 0.8 and the growth 0.02
+		if (!mUnknown37C4) {
+			HeatWave* aWave = mFXManager->AddHeatWave((float)(gGemWidth / 2) + thePiece->mX,
+				(float)(gGemHeight / 2) + thePiece->mY, 0.8f);
+			aWave->mGrowth = 0.02f;
+		}
 	}
 
 	if (mUnknown1430 == thePiece)
@@ -2137,7 +2143,13 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 				}
 				i++;
 			} while (i < 10);
-			// (two heat waves at the gem follow, 0x6f9efe with 2.0 and their +0x28 0.01 and 0.012: Direct3D only)
+			// Two heat waves at the gem follow (0x6f9efe with 2.0, no Direct3D test), their growth 0.01 and 0.012
+			HeatWave* aWave = mFXManager->AddHeatWave((float)(gGemWidth / 2) + thePiece->mX,
+				(float)(gGemHeight / 2) + thePiece->mY, 2.0f);
+			aWave->mGrowth = 0.01f;
+			aWave = mFXManager->AddHeatWave((float)(gGemWidth / 2) + thePiece->mX,
+				(float)(gGemHeight / 2) + thePiece->mY, 2.0f);
+			aWave->mGrowth = 0.012f;
 		}
 		return;
 	}

@@ -1,11 +1,20 @@
 // Sexy::WinTwistApp (WinTwistApp.h).
 #include "WinTwistApp.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #include "CustomBassMusicInterface.h"
 #include "CustomResourceManager.h"
 #include "Board.h"
 #include "Buffer.h"
+#include "Compat2004.h"
 #include "Challenge.h"
+#include "Credits.h"
+#include "DDInterface.h"
+#include "GPUDisplay.h"
+#include "GPU2D.h"
+#include "TwistD3D.h"
 #include "ButtonWidget.h"
 #include "EffectsManager.h"
 #include "GameText.h"
@@ -59,6 +68,33 @@ int ChooseArtRes(bool theAllow1200, int theTotalPhysMB, int theScreenHeight, int
 	return WinTwistApp::ART_RES_600;
 }
 
+// TwistP3DListener (vtable 0x7f380c): a mesh's texture from the art's own folder, else NonResize's
+class TwistP3DListener : public D3DObjectListener {
+public:
+	SharedImageRef LoadTexture(D3DObject* theObject, const std::string& theFrame, const std::string& theMesh,
+		const std::string& theKey, const std::string& theFileName) override
+	{
+		// 0x761d62
+		(void)theObject; (void)theFrame; (void)theMesh; (void)theKey;
+		std::string aName = GetFileName(theFileName, true);
+		SharedImageRef anImage = gApp->GetSharedImage(StrFormat("images/%d/tex/%s", gApp->mArtRes, aName.c_str()), "",
+			nullptr);
+		if ((Image*)anImage == nullptr)
+			anImage = gApp->GetSharedImage(StrFormat("images/NonResize/tex/%s", aName.c_str()), "", nullptr);
+		MemoryImage* anImageBits = (MemoryImage*)anImage;
+		if (anImageBits != nullptr) {
+			if (aName.find("nebula1") == std::string::npos)
+				anImageBits->mD3DFlags = 8;
+			anImageBits->mPurgeBits = true;
+		}
+		return anImage;
+	}
+};
+
+// Two listeners, as the original has (0xe0b6e0 for the loading thread's models, 0xe0b6e8 for Init's)
+TwistP3DListener gLoadingP3DListener;
+TwistP3DListener gInitP3DListener;
+
 }  // namespace
 
 WinTwistApp::WinTwistApp()
@@ -71,10 +107,15 @@ WinTwistApp::WinTwistApp()
 	mMusicVolume = 0.85;
 	mSfxVolume = 0.85;
 
-	// port: the machine as the original would see a current one: the art size is decided again by Use2DMode
+	// port: the machine as the original would see a current one (2D mode takes 600 again, Use2DMode)
 	SDL_DisplayMode aMode;
 	int aScreenHeight = SDL_GetDesktopDisplayMode(0, &aMode) == 0 ? aMode.h : 1080;
-	mArtRes = ChooseArtRes(mAllowArtRes1200, SDL_GetSystemRAM(), aScreenHeight, 256);
+	int aMemoryMB = SDL_GetSystemRAM();
+#ifdef __EMSCRIPTEN__
+	// port: a browser gives SDL no memory size; navigator.deviceMemory is in gigabytes (at most 8), 4 when unknown
+	aMemoryMB = EM_ASM_INT({ return (navigator.deviceMemory || 4) * 1024; });
+#endif
+	mArtRes = ChooseArtRes(mAllowArtRes1200, aMemoryMB, aScreenHeight, 256);
 	mScale = (float)mArtRes / 1200.0f;
 
 	mProfile = new Profile();
@@ -84,8 +125,7 @@ WinTwistApp::WinTwistApp()
 	// 0x7606de's neighbour: made here in the original too (0x7597cc), set up by Init
 	mVizManager = new VizManager(this);
 
-	// port: the framework draws in software, so the game runs as the original does without Direct3D (0x7606de)
-	Use2DMode();
+	// (2D mode, Use2DMode, is chosen by ReadFromRegistry once "Is3D" and the switches are known)
 }
 
 WinTwistApp::~WinTwistApp()
@@ -93,6 +133,10 @@ WinTwistApp::~WinTwistApp()
 	if (mLoaderScreen != nullptr) {
 		mWidgetManager->RemoveWidget(mLoaderScreen);
 		delete mLoaderScreen;
+	}
+	if (mCredits != nullptr) {
+		mWidgetManager->RemoveWidget(mCredits);
+		delete mCredits;
 	}
 	if (mMainMenu != nullptr) {
 		mWidgetManager->RemoveWidget(mMainMenu);
@@ -127,6 +171,17 @@ WinTwistApp::~WinTwistApp()
 		mWidgetManager->RemoveWidget(mVizManager);
 		delete mVizManager;
 	}
+	// port: the original never deletes its models or its Direct3D interface's game side
+	for (D3DObject* anObject : {mSidebarObject, mSpaceObject, mOuterSpaceObject, mStarsObject, mSaucerObject,
+			mSaucerLightsObject, mPlanetRingsObject, mWarpConeObject})
+		delete anObject;
+	for (D3DObject* anObject : mCrystalObjects)
+		delete anObject;
+	for (D3DObject* anObject : mPlanetObjects)
+		delete anObject;
+	delete gD3DInterface;
+	gD3DInterface = nullptr;
+	gCurveSinglePrecision = false;
 	delete gGraphicsRecorder;
 	gGraphicsRecorder = nullptr;
 	gApp = nullptr;
@@ -161,6 +216,8 @@ void WinTwistApp::SetGemSize()
 void WinTwistApp::Init()
 {
 	SexyApp::Init();
+	// 0x4a588d: SexyAppBase::Init seeds the C library's rand with the tick count (-seed=N in test runs)
+	CrtSRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetTickCount());
 	if (mShutdown)
 		return;
 	// 0x7653a1: unless partner.xml's MarketingMode is "LevelLock" (Steam's copy), +0x759 and +0x758 are set: a full
@@ -172,6 +229,10 @@ void WinTwistApp::Init()
 	LoadResourceManifest();
 	LoadGameTexts();
 	// port: the original reads the scores before the properties; their defaults need the game's texts here
+	mScale = (float)mArtRes / 1200.0f;  // 0x7652cc: the art size over 1200, again
+	// 0x7652cc: the VizManager starts in 3D when the visualizers box is on and Direct3D runs (else Viz2D), so a game's
+	// first ChooseViz picks a 3D visualizer although the VizManager has had no update yet
+	mVizManager->m2D = !mDoViz || gD3DInterface == nullptr;
 	SetGemSize();
 	LoadScores();
 	LoadMusic();
@@ -218,6 +279,9 @@ void WinTwistApp::Init()
 	// both random number generators from the recording)
 	mVizManager->mZOrder = -100;
 	mVizManager->Resize(0, 0, mWidth, mHeight);
+	mOuterSpaceObject = LoadD3DObject("outerspace.p3d", &gInitP3DListener);
+	mSpaceObject = LoadD3DObject("space.p3d", &gInitP3DListener);
+	mStarsObject = LoadD3DObject("stars.p3d", &gInitP3DListener);
 	if (!mUseSexyCache) {
 		ShowHyperspace();
 		mLoaderScreen = new LoaderScreen(this);
@@ -377,14 +441,108 @@ void WinTwistApp::ReadFromRegistry()
 	RegistryReadBoolean("CustomCursors", &mCustomCursorsEnabled);
 	RegistryReadBoolean("DoViz", &mDoViz);
 	RegistryReadBoolean("ShowHints", &mShowHints);
-	// port: "Is3D" off chooses 2D mode (Use2DMode), which the port always uses
+	// The art's size, unless a switch chose it (+0xf34; the port has none of those switches)
+	int anArtRes;
+	if (RegistryReadInteger("ArtRes", &anArtRes))
+		mArtRes = anArtRes;
+	// "Is3D" off chooses 2D mode (Use2DMode; the port chooses it in MakeWindow, after the switches)
+	// port: while 3D mode is being ported, a run without "Is3D" stays in 2D; the options' 3D box writes it true
+	bool is3D = true;
+	if (RegistryReadBoolean("Is3D", &is3D))
+		mUse3D = mUse3DSwitch < 0 ? is3D : mUse3DSwitch != 0;
 	EnableCustomCursors(mCustomCursorsEnabled);
 	mProfile->mCustomCursors = mCustomCursorsEnabled;
+}
+
+bool WinTwistApp::Is3DAccelerationSupported()
+{
+	if (Is3DAccelerated())
+		return true;
+#ifdef __EMSCRIPTEN__
+	return EM_ASM_INT({
+		try {
+			return document.createElement('canvas').getContext('webgl2') ? 1 : 0;
+		} catch (e) {
+			return 0;
+		}
+	}) != 0;
+#else
+	return true;
+#endif
+}
+
+void WinTwistApp::MakeWindow()
+{
+	// port: 2D mode (Use2DMode) for "Is3D" off (0x762da8) and for a display without Direct3D (0x7606de), here once the
+	// registry and the switches are read
+	if (!mUse3D)
+		Use2DMode();
+	// The window's aspect is the screen's (SexyAppBase's constructor 0x766ce7, from GetSystemMetrics), kept between the
+	// app's narrowest and widest (+0x600 and +0x608, by 0x503fd0 and 0x504010); 2D mode keeps 4:3 (Use2DMode)
+	// port: here, since SDL knows no display before its video starts, which is started now with the framework's own
+	// hints (SexyAppBase::MakeWindow); where the two limits are set was not found: the original on a 16:9 screen opens
+	// at 16:10, so 16:10 is the widest, and 4:3 is taken as the narrowest
+	if (mUse3D && !SDL_WasInit(SDL_INIT_VIDEO)) {
+#ifndef __EMSCRIPTEN__
+		SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
+		SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+#endif
+		SDL_InitSubSystem(SDL_INIT_VIDEO);
+	}
+	SDL_DisplayMode aMode;
+	if (mUse3D && SDL_GetDesktopDisplayMode(0, &aMode) == 0 && aMode.w > 0 && aMode.h > 0) {
+		int aWidth = aMode.w, aHeight = aMode.h;
+		if (aWidth * 3 < aHeight * 4) {
+			aWidth = 4;
+			aHeight = 3;
+		} else if (aWidth * 10 > aHeight * 16) {
+			aWidth = 16;
+			aHeight = 10;
+		}
+		mWindowAspect.Set(aWidth, aHeight);
+	}
+	// 0x75ef2a: the game is as high as its art (2D mode's is 600) and as wide as the window's aspect makes it
+	mHeight = mArtRes;
+	mWidth = (mWindowAspect.mNumerator * mArtRes) / mWindowAspect.mDenominator;
+	// port: the window's own size and place (with Direct3D: at most 3/4 of the screen's width in height and 9/10 of
+	// the work area's, and resizable) are the framework's
+	SexyApp::MakeWindow();
 }
 
 void WinTwistApp::SwitchScreenMode(bool wantWindowed)
 {
 	SwitchScreenMode(wantWindowed, SexyAppBase::Is3DAccelerated());
+}
+
+DDInterface* WinTwistApp::CreateDDInterface()
+{
+	if (mUse3D)
+		return new GPUDisplay(this, GPUPolicy::Twist());
+	return SexyApp::CreateDDInterface();
+}
+
+uint32_t WinTwistApp::GetExtraWindowFlags()
+{
+	return mUse3D ? SDL_WINDOW_OPENGL : SexyApp::GetExtraWindowFlags();
+}
+
+void WinTwistApp::PostDDInterfaceInitHook()
+{
+	SexyApp::PostDDInterfaceInitHook();
+	// port: the framework calls its display 3D-accelerated whenever SDL's renderer runs on the GPU (in a browser, and on
+	// most desktops), but for Twist Is3DAccelerated means Direct3D and its 3D mode: a 2D run says no, as the original
+	// does without Direct3D (Use2DMode); GPUDisplay says yes
+	if (!mUse3D) {
+		mDDInterface->mIs3D = false;
+		return;
+	}
+	// The original's gD3DInterface, and its shader table (made at the resources' init, 0x73ef19)
+	GPUDisplay* aDisplay = static_cast<GPUDisplay*>(mDDInterface);
+	if (gD3DInterface == nullptr) {
+		gD3DInterface = new TwistD3D(aDisplay->mDevice, aDisplay->mGPU2D);
+		gD3DInterface->MakeShaders();
+	}
+	gCurveSinglePrecision = true;
 }
 
 void WinTwistApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
@@ -445,6 +603,16 @@ void WinTwistApp::ShowOptionsDialog()
 	mWidgetManager->AddWidget(aPanel);
 	mWidgetManager->AddBaseModal(aPanel);
 	mWidgetManager->SetFocus(aPanel);
+}
+
+void WinTwistApp::ShowCredits()
+{
+	mCredits = new Credits();
+	mCredits->mZOrder = 1000;
+	mWidgetManager->AddWidget(mCredits);
+	// port: as in the original, nothing takes the base modal away again; taking the credits out of the widget manager
+	// only clears it (the stale entry is dropped by the next RemoveBaseModal)
+	mWidgetManager->AddBaseModal(mCredits);
 }
 
 void WinTwistApp::ShowHelpDialog()
@@ -629,7 +797,15 @@ void WinTwistApp::LoadingThreadProc()
 			mLoadingFailed = true;
 			return;
 		}
-		// The original loads its 3D models here (sidebar, saucer, planets, crystals): 3D mode only
+		mSidebarObject = LoadD3DObject("sidebar.p3d", &gLoadingP3DListener);
+		mSaucerObject = LoadD3DObject("saucer.p3d", &gLoadingP3DListener);
+		mSaucerLightsObject = LoadD3DObject("saucerlights.p3d", &gLoadingP3DListener);
+		mPlanetRingsObject = LoadD3DObject("planetrings.p3d", &gLoadingP3DListener);
+		mWarpConeObject = LoadD3DObject("warpcone.p3d", &gLoadingP3DListener);
+		for (int i = 0; i < 2; i++)
+			mPlanetObjects[i] = LoadD3DObject(StrFormat("planet%i.p3d", i + 1), &gLoadingP3DListener);
+		for (int i = 0; i < 7; i++)
+			mCrystalObjects[i] = LoadD3DObject(StrFormat("crystal%i.p3d", i + 1), &gLoadingP3DListener);
 	}
 	if (mLoadMode != 1) {
 		mResourceManager->StartLoadResources("Sounds");
@@ -677,6 +853,12 @@ SoundInstance* WinTwistApp::PlaySoundEx(int theSoundId, int thePan, float thePit
 
 void WinTwistApp::UpdateFrames()
 {
+	// The credits are gone (Credits::Update): out of the widgets and deleted
+	if (mCredits != nullptr && mCredits->mClicked) {
+		mWidgetManager->RemoveWidget(mCredits);
+		SafeDeleteWidget(mCredits);
+		mCredits = nullptr;
+	}
 	SexyApp::UpdateFrames();
 	// The tracked sounds: the ended ones are released, the others follow mSfxVolumeScale
 	for (size_t i = 0; i < mTrackedSounds.size(); i++) {
@@ -923,11 +1105,22 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
+	// port: -3d turns 3D mode on while it is being ported; the original's -nod3d9 and -noacceleration keep 2D
+	if (theParamName == "-3d") {
+		mUse3D = true;
+		mUse3DSwitch = 1;
+		return;
+	}
+	if (theParamName == "-nod3d9" || theParamName == "-noacceleration") {
+		mUse3D = false;
+		mUse3DSwitch = 0;
+		return;
+	}
 	static const char* const kTestSwitches[] = {"-widescreen", "-4x3", "-artres600", "-artres768", "-artres1200",
-		"-skipmenu", "-nod3d9", "-noacceleration", "-record", "-playback"};
+		"-skipmenu", "-record", "-playback"};
 	for (const char* aSwitch : kTestSwitches) {
 		if (theParamName == aSwitch) {
-			// port: the original's screen size, art size, Direct3D and seed recording switches are not ported
+			// port: the original's screen size, art size and seed recording switches are not ported
 			NotPorted("WinTwistApp::HandleCmdLineParam: a test switch");
 			return;
 		}
@@ -1048,6 +1241,16 @@ bool WinTwistApp::KillDialog(int theDialogId)
 	if (aDialog != nullptr)
 		static_cast<TwistDialog*>(aDialog)->Close();
 	return aDialog != nullptr;
+}
+
+void WinTwistApp::ButtonDepress(int theId)
+{
+	if (theId == 0x2a) {
+		// the button at the top right in full screen
+		SwitchScreenMode(true);
+	}
+	// (0x2b, the registration widget's button, comes with the registration code)
+	PlaySample(SOUND_CLICK);
 }
 
 void WinTwistApp::DialogButtonDepress(int theDialogId, int theButtonId)

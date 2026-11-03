@@ -6,6 +6,8 @@
 #include "Graphics.h"
 #include "Image.h"
 #include "Res.h"
+#include "SexyMatrix.h"
+#include "TwistD3D.h"
 #include "TwistDialogListener.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
@@ -219,9 +221,21 @@ void TwistDialog::Draw(Graphics* g)
 void TwistDialog::DrawAll(ModalFlags* theFlags, Graphics* g)
 {
 	gApp->mWidgetManager->FlushDeferredOverlayWidgets(INT_MAX);
-	// The original draws itself scaled by mPopScale about its middle, with Direct3D only; the game takes its 2D
-	// paths, where it is drawn unscaled
+	// With Direct3D it is drawn scaled by mPopScale about its middle
+	float aPopScale = mPopScale;
+	bool aScaled = mPopScale != 1.0f && gD3DInterface != nullptr;
+	if (aScaled) {
+		SexyTransform2D aMatrix;  // 0x44f860
+		aMatrix.Translate((float)((double)(float)mX * -1.0 - (double)(float)mWidth * 0.5),
+			(float)((double)(float)mY * -1.0 - (double)(float)mHeight * 0.5));  // 0x44f8a0
+		aMatrix.Scale(aPopScale, aPopScale);                                     // 0x44f990
+		aMatrix.Translate((float)((double)(float)mWidth * 0.5 + (double)(float)mX),
+			(float)((double)(float)mY + (double)(float)mHeight * 0.5));
+		gD3DInterface->PushTransform(aMatrix, true);  // slot 0x14
+	}
 	WidgetContainer::DrawAll(theFlags, g);
+	if (aScaled)
+		gD3DInterface->PopTransform();  // slot 0x18
 }
 
 void TwistDialog::Resize(int theX, int theY, int theWidth, int theHeight)

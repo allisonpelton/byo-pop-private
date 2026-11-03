@@ -4,6 +4,7 @@
 #include "Board.h"
 #include "GameText.h"
 #include "Graphics.h"
+#include "TwistD3D.h"
 #include "Image.h"
 #include "Piece.h"
 #include "Res.h"
@@ -18,9 +19,9 @@ using namespace Sexy;
 
 namespace {
 
-// 0x85d850: the bolts' colours by the gem's colour. Nothing in the exe writes this table, so every bolt is
-// Color(0, 0, 0, 0): its glow (additive black) shows nothing and its lightning is the mid grey of half white.
-const Color kBoltColors[10] = {};
+// 0x85d850: the bolts' colours by the gem's colour, made by the static initialiser 0x7d5bf3
+const Color kBoltColors[8] = {Color(255, 32, 32), Color(255, 255, 255), Color(0, 255, 0), Color(255, 255, 0),
+	Color(255, 0, 255), Color(255, 128, 0), Color(0, 128, 255), Color(0, 0, 0)};
 
 }  // namespace
 
@@ -122,7 +123,11 @@ void ElectroBolt::Draw(Graphics* g)
 		anAlpha = 1.0f;
 	else
 		anAlpha = (float)aFade;
-	// With Direct3D the strips are drawn by the 3D interface with the z buffer switched off: NotPorted (Direct3D)
+	// With Direct3D the strips are drawn by the 3D interface (slot 0x74, which has no z buffer) with the texture's
+	// horizontal addressing wrapped (slot 0xc4) for the run and clamped after
+	bool a3D = gD3DInterface != nullptr;
+	if (a3D)
+		gD3DInterface->SetSamplerState(0, 1, 1);
 	int aLast = (int)mLeft.size() - 1;
 	int i = 0;
 	if (0 < aLast) {
@@ -153,24 +158,38 @@ void ElectroBolt::Draw(Graphics* g)
 				{TriVertex(aX0, aY0, 0, 0), TriVertex(aX1, aY1, 1, 0), TriVertex(aX2, aY2, 1, 1)},
 				{TriVertex(aX2, aY2, 1, 1), TriVertex(aX3, aY3, 0, 1), TriVertex(aX0, aY0, 0, 0)},
 			};
-			g->SetColor(Color(mColor.mRed, mColor.mGreen, mColor.mBlue, aShown));
-			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-			g->DrawTrianglesTex(IMAGE_GRITTYBLURRY, aGlow, 2);
-			g->DrawTrianglesTex(IMAGE_GRITTYBLURRY, aGlow, 2);
+			if (a3D) {
+				Color aGlowColor(mColor.mRed, mColor.mGreen, mColor.mBlue, aShown);
+				gD3DInterface->DrawTrianglesTex(IMAGE_GRITTYBLURRY, aGlow, 2, aGlowColor, 1, 0.0f, 0.0f, true);
+				gD3DInterface->DrawTrianglesTex(IMAGE_GRITTYBLURRY, aGlow, 2, aGlowColor, 1, 0.0f, 0.0f, true);
+			} else {
+				g->SetColor(Color(mColor.mRed, mColor.mGreen, mColor.mBlue, aShown));
+				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+				g->DrawTrianglesTex(IMAGE_GRITTYBLURRY, aGlow, 2);
+				g->DrawTrianglesTex(IMAGE_GRITTYBLURRY, aGlow, 2);
+			}
 			// The lightning's cel, half way to white
 			TriVertex aBolt[2][3] = {
 				{TriVertex(aX0, aY0, aU0, 0), TriVertex(aX1, aY1, aU1, 0), TriVertex(aX2, aY2, aU1, 1)},
 				{TriVertex(aX2, aY2, aU1, 1), TriVertex(aX3, aY3, aU0, 1), TriVertex(aX0, aY0, aU0, 0)},
 			};
 			Color aWhite(255, 255, 255);
-			g->SetColor(Color((mColor.mRed + aWhite.mRed) / 2, (mColor.mGreen + aWhite.mGreen) / 2,
-				(mColor.mBlue + aWhite.mBlue) / 2, aShown));
-			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-			g->DrawTrianglesTex(IMAGE_LIGHTNING, aBolt, 2);
-			g->DrawTrianglesTex(IMAGE_LIGHTNING, aBolt, 2);
+			Color aBoltColor((mColor.mRed + aWhite.mRed) / 2, (mColor.mGreen + aWhite.mGreen) / 2,
+				(mColor.mBlue + aWhite.mBlue) / 2, aShown);
+			if (a3D) {
+				gD3DInterface->DrawTrianglesTex(IMAGE_LIGHTNING, aBolt, 2, aBoltColor, 1, 0.0f, 0.0f, true);
+				gD3DInterface->DrawTrianglesTex(IMAGE_LIGHTNING, aBolt, 2, aBoltColor, 1, 0.0f, 0.0f, true);
+			} else {
+				g->SetColor(aBoltColor);
+				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+				g->DrawTrianglesTex(IMAGE_LIGHTNING, aBolt, 2);
+				g->DrawTrianglesTex(IMAGE_LIGHTNING, aBolt, 2);
+			}
 			i = j;
 		} while (j < aLast);
 	}
+	if (a3D)
+		gD3DInterface->SetSamplerState(0, 2, 3);
 }
 
 ElectroStrike::ElectroStrike(Piece* thePiece)

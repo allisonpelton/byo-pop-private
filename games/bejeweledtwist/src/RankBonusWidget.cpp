@@ -1,4 +1,6 @@
 #include "RankBonusWidget.h"
+#include "TwistD3D.h"
+#include "SexyMatrix.h"
 
 #include "AwardTelly.h"
 #include "Board.h"
@@ -445,8 +447,13 @@ void RankBonusWidget::Draw(Graphics* g)
 	}
 	DeferOverlay(0);
 	TwistWidget::Draw(g);
-	// (the original also sets up a zoom by mScale about the screen's middle, which only its Direct3D draw of the
-	// stars uses)
+	// A zoom by mScale about the screen's middle, which only the Direct3D draw of the stars uses
+	SexyTransform2D aZoomMatrix;  // 0x44f860
+	aZoomMatrix.Translate((float)-(gApp->mWidth / 2), (float)-(gApp->mHeight / 2));  // 0x44f8a0
+	aZoomMatrix.Scale(mScale, mScale);                                               // 0x44f990
+	aZoomMatrix.Translate((float)(gApp->mWidth / 2), (float)(gApp->mHeight / 2));
+	if (gD3DInterface != nullptr)
+		gD3DInterface->PushTransform(aZoomMatrix, true);  // slot 0x14
 
 	// The waiting and flying stars' shadows
 	int i = (int)mStars.size() - 1;
@@ -461,6 +468,8 @@ void RankBonusWidget::Draw(Graphics* g)
 		}
 		i--;
 	}
+	if (gD3DInterface != nullptr)
+		gD3DInterface->PopTransform();  // slot 0x18
 	if (mTelly != nullptr) {
 		double aDark = (1.0 - mTelly->mShow.GetOutVal()) * 0.7 * 255.0;
 		if (aDark < 0.0)

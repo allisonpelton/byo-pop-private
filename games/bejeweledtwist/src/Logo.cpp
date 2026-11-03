@@ -6,6 +6,7 @@
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "Res.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
@@ -67,7 +68,7 @@ void Logo::Update()
 	// Once the title is in place, sparkles now and then (with Direct3D also during a game)
 	if (!mDrop.IncInVal()) {
 		int aLeft = mWidth / 2 - mLogoImage->mWidth / 2;
-		if (mAlpha == 1.0f && gApp->mBoard == nullptr) {
+		if (mAlpha == 1.0f && (gD3DInterface != nullptr || gApp->mBoard == nullptr)) {
 			if (Rand() % 25 == 0) {
 				Effect* anEffect = mFXManager->AllocEffect(0);
 				float anAngle = std::fabs((float)(RandSigned() * 6.2831854820251465));
@@ -135,8 +136,21 @@ void Logo::Draw(Graphics* g)
 	int aY = Ftol((double)(anEndY - aStartY) * mDrop.GetOutVal() + aStartY);
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, Ftol((double)mAlpha * 255.0)));
-	// With Direct3D the title is drawn mLogoScale large with the shine's pixel shader
-	DrawImageScaledCentered(g, mLogoImage, (float)(mWidth / 2), (float)aY, ALIGN_CENTER, 1.0f, 1.0f);
+	if (gD3DInterface == nullptr) {
+		DrawImageScaledCentered(g, mLogoImage, (float)(mWidth / 2), (float)aY, ALIGN_CENTER, 1.0f, 1.0f);
+	} else {
+		// With Direct3D the title is drawn mLogoScale large, with the shine's pixel shader while the shine runs
+		if (mShine.mInVal != 0.0) {
+			TwistShader* aShader = gTwistShaders[TWISTSHADER_LOGO];
+			gD3DInterface->SetPixelShader(aShader);  // slot 0xd8
+			float aConstant[4] = {(float)mShine.GetOutVal(), (float)mShineGreen.GetOutVal(), (float)mShineBlue.GetOutVal(),
+				0.0f};
+			gD3DInterface->SetShaderConstant(aShader, 0, aConstant);  // slot 0x108
+			gD3DInterface->SetTexture(1, IMAGE_BEJTWISTLOGO_NORMAL);  // slot 0xd4
+		}
+		DrawImageScaledCentered(g, mLogoImage, (float)(mWidth / 2), (float)aY, mLogoScale, mLogoScale);  // 0x757751
+		gD3DInterface->SetPixelShader(nullptr);
+	}
 	mLogoTop = aY - mLogoImage->mHeight / 2;
 	g->SetColor(Color(255, 255, 255, Ftol((double)mAlpha * 255.0)));
 	if (mTrademarkAlpha.GetOutVal() > 0.0) {

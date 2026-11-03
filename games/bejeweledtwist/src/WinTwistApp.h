@@ -12,6 +12,8 @@
 namespace Sexy {
 
 class Board;
+class D3DObject;
+class Credits;
 class ButtonWidget;
 class CustomBassMusicInterface;
 class CustomResourceManager;
@@ -108,15 +110,31 @@ public:
 	UnknownFA0 mUnknownFA0[3];
 	bool mUnknownF85 = false;           // +0xf85: StartMainMenu starts a classic game at once
 	int mAutoPlayMode = -1;             // +0x1044: -autoplay's game (1 classic, 3 blitz, 4 zen), -1 none
+	// port: this run draws through the GPU (GPUDisplay), as the original does with Direct3D. Off unless -3d or "Is3D" on
+	// asks for it while 3D mode is being ported; "Is3D" off, -nod3d9 and -noacceleration keep 2D, as in the original
+	bool mUse3D = false;
+	int mUse3DSwitch = -1;  // port: -3d (1), -nod3d9 or -noacceleration (0), which win over "Is3D"
 	float mAutoPlayDelay = 0;           // +0x1048: -autoplay starts its game when this falls to 0
 	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
 	Hyperspace* mHyperspace = nullptr;  // +0xf20: the space behind every screen
 	VizManager* mVizManager = nullptr;  // +0xc6c: the background behind a game
+	// The 3D models (0x508650; empty in 2D mode): Init loads space's, the loading thread the rest
+	D3DObject* mSidebarObject = nullptr;       // +0x81c
+	D3DObject* mSpaceObject = nullptr;         // +0x820
+	D3DObject* mOuterSpaceObject = nullptr;    // +0x824
+	D3DObject* mStarsObject = nullptr;         // +0x828
+	D3DObject* mSaucerObject = nullptr;        // +0x82c
+	D3DObject* mSaucerLightsObject = nullptr;  // +0x830
+	D3DObject* mCrystalObjects[7] = {};        // +0x834
+	D3DObject* mPlanetObjects[2] = {};         // +0x850
+	D3DObject* mPlanetRingsObject = nullptr;   // +0x858
+	D3DObject* mWarpConeObject = nullptr;      // +0x85c
 	bool mUnknownF1C = false;           // +0xf1c: the game was paused by losing the focus (0x75f51e)
 	Widget* mUnknownF24 = nullptr;      // +0xf24: a 0x420-byte widget over everything (0x7243b1)
 	EffectsManager* mFXManager = nullptr;  // +0xf78: the effects over the whole screen
 	UnderDialogWidget* mUnderDialog = nullptr;  // +0xf7c: darkens the screen behind the dialogs
 	float mDialogDim = 0;               // +0xf90: how dark mUnderDialog is, 0 to 1
+	Credits* mCredits = nullptr;        // +0xf94: the credits while they are up (ShowCredits)
 	Widget* mOptionsDialog = nullptr;   // +0xf40: the options while they are up (comes with the options)
 	Widget* mUnknownF44 = nullptr;      // +0xf44: another widget the screen darkens behind (not yet known)
 	bool mShowHints = true;             // +0xf8e: the options' hints box (registry ShowHints)
@@ -140,6 +158,7 @@ public:
 	void Shutdown() override;           // 0x762a0d
 	void WriteToRegistry() override;    // 0x762b40
 	void ReadFromRegistry() override;   // 0x762da8
+	void MakeWindow() override;         // 0x75ef2a
 	// 0x75fa42: every dialog is a TwistDialog that pops up, heard by the app
 	Dialog* NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 		const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
@@ -149,6 +168,7 @@ public:
 	// 0x75fab7: the dialog shrinks away first; it leaves the app's dialogs once it is gone (TwistDialog::Update)
 	bool KillDialog(int theDialogId) override;
 	using SexyApp::KillDialog;
+	void ButtonDepress(int theId) override;  // 0x75f54e
 	void DialogButtonDepress(int theDialogId, int theButtonId) override;  // 0x7633ea (also 0x767579)
 	void DialogThirdButtonDepress(int theDialogId) override;  // 0x75f94f
 	// port (tests): newgame <mode>, a new game of that mode at once, as the mode menu would start it
@@ -211,16 +231,22 @@ public:
 	void Use2DMode();
 	// 0x75fcd7: gGemWidth and gGemHeight for the art's size (64, 82 or 128)
 	void SetGemSize();
-	// port: the game's own question "is Direct3D on" (the base's answers whether SDL's renderer is accelerated). The
-	// port draws as the original does without Direct3D, so the game always hears no.
-	bool Is3DAccelerated() { return false; }
-	// port: and no to whether it could be on (the "Not Supported" answers of the options)
-	bool Is3DAccelerationSupported() { return false; }
-	bool Is3DAccelerationRecommended() { return false; }
+	// port: the game's own question "is Direct3D on": yes when this run draws through GPUDisplay (2D runs clear the
+	// framework's flag, which says whether SDL's renderer is accelerated, in PostDDInterfaceInitHook)
+	bool Is3DAccelerated() { return SexyAppBase::Is3DAccelerated(); }
+	// Whether it could be on (the options' "Not Supported" and "not recommended" answers; the original asks the
+	// Direct3D device's caps). port: whether 3D mode's context can be had, WebGL2 in a browser; natively the port's
+	// OpenGL is always there
+	bool Is3DAccelerationSupported();
+	bool Is3DAccelerationRecommended() { return Is3DAccelerationSupported(); }
+	// port: a 3D run's display is GPUDisplay, in an OpenGL window
+	DDInterface* CreateDDInterface() override;
+	uint32_t GetExtraWindowFlags() override;
 	// 0x76063e (slot 69): with 3D as the framework has it
 	void SwitchScreenMode(bool wantWindowed) override;
 	// 0x75ed1e (slot 107): the windowed button and the options' full screen boxes follow
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+	void PostDDInterfaceInitHook() override;
 	using SexyApp::SwitchScreenMode;
 	// 0x7632f7: the options close: their settings are applied (the resolution with theResolution); over the menu
 	// the panel stays, over a game the dialog zooms out
@@ -229,6 +255,9 @@ public:
 	void ShowOptionsDialog();
 	// 0x75f82d: the help comes up over the game (if it is not up), as a base modal
 	void ShowHelpDialog();
+	// 0x75fd40: the credits come up over everything (z order 1000) as a base modal; the Mandala's hidden sequence
+	// is their only way in
+	void ShowCredits();
 	using SexyAppBase::RehupFocus;
 	// 0x766974: plays a sound unless sounds are off, the app has no focus or the board is paused; theTrack keeps it
 	// in mTrackedSounds, theScaleVolume multiplies its volume by mSfxVolumeScale

@@ -1,16 +1,19 @@
 // Sexy::Effect and Sexy::EffectsManager (EffectsManager.h).
 //
-// port: the parts every effect shares and the types the board uses so far (0, 5, 6, 7, 11, 12, 13, 14, 16, 17, 23, 24,
+// port: the parts every effect shares and the types the board uses so far (0, 5, 6, 7, 10, 11, 12, 13, 14, 16, 17, 23, 24,
 // 26, 29, 30, 38, 39 and 41). The others (the rest of the board's explosions, fire, lightning and the shows' effects) come with
 // their parts of the game; until then an effect of one of them logs once and only moves and fades.
 #include "EffectsManager.h"
 
 #include "Board.h"
+#include "DDImage.h"
+#include "MemoryImage.h"
 #include "Graphics.h"
 #include "GraphicsRecorder.h"
 #include "Image.h"
 #include "Res.h"
 #include "SexyMatrix.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
@@ -107,6 +110,10 @@ Effect::Effect(int theType) : mType(theType)
 	case 41:  // the cursor's trail of rings (Board::UpdateCursor)
 	case 43:  // the nova of coal breaking (Board::BreakSpecial)
 		break;
+	case 10:  // a wisp of steam turning as it goes (Piece::AddShards, the credits' sparks)
+		// 0x6f4a05 has no case for it. It does not set +0x9c, +0xa0 and +0xa4 either, so they hold what the heap had;
+		// AddShards sets them and the credits (0x6e903c) do not (port: 0, see NOTES, "Oddities")
+		break;
 	case 40:  // a spark of a geode (Board::UpdateGame)
 		mImage = IMAGE_GEM_FRUIT_SPARK;
 		mIsAdditive = true;
@@ -124,8 +131,11 @@ Effect::Effect(int theType) : mType(theType)
 		mScale = 0.2f;
 		mAlpha = 1.0f;
 		mDAlpha = -0.005f;
-		// With Direct3D a random angle: RandSigned() * pi
-		mAngle = 0;
+		// (Is3DAccelerated 0x4a7900) With Direct3D a random angle, the draw after the two of the velocity
+		if (gApp->Is3DAccelerated())
+			mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+		else
+			mAngle = 0;
 		break;
 	case 16:  // a gem's shards (Board::BlowUpPiece)
 		mFrame = (int)(Rand() % 40);
@@ -166,7 +176,12 @@ Effect::Effect(int theType) : mType(theType)
 			mImage = IMAGE_GEMSHARD;
 			mAngle = 0;
 		}
-		// With Direct3D a random angle (RandSigned() * pi) and turn (RandSigned() * 0.2)
+		// With Direct3D (gD3DInterface != 0) a random angle and turn, drawn after the turning shard's own and before
+		// the frame
+		if (gD3DInterface != nullptr) {
+			mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+			mDAngle = (float)((double)RandSigned() * 0.20000000298023224);
+		}
 		mFrame = (int)Rand() % (mImage->mNumCols * mImage->mNumRows);
 		mColor = Color::White;
 		mDX = (float)((double)(cosf(aDir) * aSpeed) * 1.25);
@@ -304,7 +319,18 @@ void EffectsManager::Update()
 	mIs3D = gApp->Is3DAccelerated();
 	mWidth = gApp->mWidth;
 	mHeight = gApp->mHeight;
-	// The heat waves of the list at +0x94 come here: Direct3D only
+	// The heat waves of the list at +0x94 grow and go (added in 2D mode too, only drawn in 3D)
+	if (!mHeatWaves.empty()) {
+		auto aWaveIt = mHeatWaves.begin();
+		while (aWaveIt != mHeatWaves.end()) {
+			float aProgress = aWaveIt->mGrowth + aWaveIt->mProgress;
+			aWaveIt->mProgress = aProgress;
+			if (1.0 < (double)aProgress)
+				aWaveIt = mHeatWaves.erase(aWaveIt);
+			else
+				++aWaveIt;
+		}
+	}
 
 	auto anIt = mEffects.begin();
 	while (anIt != mEffects.end()) {
@@ -491,13 +517,41 @@ void EffectsManager::Update()
 				anEffect->mDeleteMe = true;
 			break;
 		}
+		case 10: {
+			// it fades and turns by its fall; its velocity turns by a rate that moves from +0xa0 to +0xa4 as +0x9c runs
+			// from 0 to 1, and then a new rate is drawn
+			anEffect->mAlpha = (float)((double)anEffect->mAlpha - 0.0024999999441206455);
+			anEffect->mAngle = (float)((double)anEffect->mDY * 0.10000000149011612 + (double)anEffect->mAngle);
+			float aRate = (float)((1.0 - (double)anEffect->mUnknown9C) * (double)anEffect->mUnknownA0 +
+								  (double)anEffect->mUnknownA4 * (double)anEffect->mUnknown9C);
+			float aTurn = (float)((double)aRate * 0.05000000074505806);
+			float anOldDX = anEffect->mDX;
+			float aCos = cosf(aTurn);
+			float aSin = sinf(aTurn);
+			anEffect->mDX = (float)((double)anOldDX * (double)aCos + (double)aSin * (double)anEffect->mDY);
+			aCos = cosf(aTurn);
+			aSin = sinf(aTurn);
+			anEffect->mDY = (float)((double)aCos * (double)anEffect->mDY - (double)anOldDX * (double)aSin);
+			float aPos = (float)((double)anEffect->mUnknown9C + 0.009999999776482582);
+			anEffect->mUnknown9C = aPos;
+			if (1.0f < aPos) {
+				anEffect->mUnknown9C = 0;
+				anEffect->mUnknownA0 = anEffect->mUnknownA4;
+				anEffect->mUnknownA4 = RandSigned();
+			}
+			break;
+		}
 		case 11:
 			if (anEffect->mScale > 0.85f)
 				anEffect->mScale = 0.85f;
 			break;
 		case 12: {
 			anEffect->mDY = anEffect->mGravity + anEffect->mDY;
-			// With Direct3D the angle also turns by mDY * 0.02
+			// With Direct3D (Is3DAccelerated) the angle also turns by mDY * 0.02
+			float aTurn = 0.0f;
+			if (gApp->Is3DAccelerated())
+				aTurn = (float)((double)anEffect->mDY * 0.02);
+			anEffect->mAngle = aTurn + anEffect->mAngle;
 			float aScale = (float)((double)anEffect->mScale + 0.05);
 			anEffect->mScale = aScale;
 			if (0.5f < aScale)
@@ -599,7 +653,9 @@ void EffectsManager::Update()
 
 void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 {
-	// With Direct3D the manager may first switch off the z buffer (+0xa1)
+	// With the manager's +0xa1 set and Direct3D, the depth test goes off first
+	if (mUnknownA1 && gD3DInterface != nullptr)
+		gD3DInterface->SetDepthTestMode(0);
 	for (auto anIt = mEffects.begin(); anIt != mEffects.end(); ++anIt) {
 		Effect* anEffect = anIt->second;
 		if (anEffect->mOverlay != theOverlay)
@@ -629,6 +685,36 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 					anEffect->mY, (double)anEffect->mAngle, anEffect->mScale, anEffect->mScale);
 				g->SetColorizeImages(false);
 			}
+			break;
+		}
+		case 10: {
+			// five copies of the steam, smaller each, back along a path that turns the other way: a trail
+			float aDX = anEffect->mDX;
+			float aDY = anEffect->mDY;
+			float aX = anEffect->mX;
+			float aY = anEffect->mY;
+			float aSize = 1.0f;
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColorizeImages(true);
+			g->SetColor(Color(125, 145, 255, Ftol((double)anOpacity * 105.0)));  // the effect's own colour is not used
+			float aRate = (float)((1.0 - (double)anEffect->mUnknown9C) * (double)anEffect->mUnknownA0 +
+								  (double)anEffect->mUnknownA4 * (double)anEffect->mUnknown9C);
+			float aTurn = (float)((double)aRate * -0.30000001192092896);
+			int aCount = 5;
+			do {
+				float aScale = anEffect->mScale * aSize;
+				DrawImageCentered(g, IMAGE_FX_STEAM, aX, aY, (double)anEffect->mAngle, aScale, aScale);
+				aX = (float)((double)aX - (double)aDX * 6.0);
+				aY = (float)((double)aY - (double)aDY * 6.0);
+				float anOldDX = aDX;
+				float aCos = cosf(aTurn);
+				aDX = (float)((double)sinf(aTurn) * (double)aDY + (double)aCos * (double)aDX);
+				aCos = cosf(aTurn);
+				double aCosDY = (double)aCos * (double)aDY;
+				aDY = (float)(aCosDY - (double)sinf(aTurn) * (double)anOldDX);
+				aSize = (float)((double)aSize - 0.11999999731779099);
+			} while (--aCount != 0);
+			// the draw mode and colorizing are left set, as the original leaves them
 			break;
 		}
 		case 11: {
@@ -733,14 +819,20 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 					anEffect->mScale, anEffect->mScale);
 				break;
 			}
-			// With Direct3D scaled and turned; without it the cel of its brightness, at the colour's own alpha
+			// The cel of its brightness, at the colour's own alpha; with Direct3D (gD3DInterface) scaled by mScale
+			// and turned by mAngle (when it is not 0) and drawn as floats (0x70e2d5), otherwise unscaled (0x70e26a)
 			int aCel = Ftol((double)anEffect->mAlpha * 64.0);
 			if (63 < aCel)
 				aCel = 63;
 			Transform aTransform;
+			if (gD3DInterface != nullptr) {
+				aTransform.Scale(anEffect->mScale, anEffect->mScale);
+				if (anEffect->mAngle != 0.0f)
+					aTransform.RotateRad(anEffect->mAngle);
+			}
 			g->SetColor(anEffect->mColor);
 			gGraphicsRecorder->DrawImageTransform(g, anEffect->mImage, aTransform, anEffect->mImage->GetCelRect(aCel),
-				anEffect->mX, anEffect->mY, false);
+				anEffect->mX, anEffect->mY, gD3DInterface != nullptr);
 			break;
 		}
 		case 40: {
@@ -785,8 +877,13 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 
 void EffectsManager::Draw(Graphics* g)
 {
-	// With Direct3D the board's distortion target (0x85aef4) is set around the drawing
+	// With the manager's +0xa0 set, a board and Direct3D, the board's transform (+0x29e8) is pushed around the drawing
+	bool aBoardTransform = mUnknownA0 && gBoard != nullptr && gD3DInterface != nullptr;
+	if (aBoardTransform)
+		gD3DInterface->PushTransform(gBoard->mTransform, true);  // slot 0x14 (0x6f7a45)
 	DrawEffects(g, false);
+	if (aBoardTransform)
+		gD3DInterface->PopTransform();
 	if (mWidgetManager != nullptr)
 		DeferOverlay(0x31);
 }
@@ -794,7 +891,249 @@ void EffectsManager::Draw(Graphics* g)
 void EffectsManager::DrawOverlay(Graphics* g)
 {
 	DrawEffects(g, true);
-	// The heat waves and the distortion pass (0x6f7ab4, 0x6f55b0, flags +0xb4/+0xb5) are Direct3D only
+	// The heat waves and the distortion pass (0x6f80a4): with a heat wave in the list, or the bombs' haze marked (+0xb5)
+	// while the widget manager's image is the one drawn to, the distortion drawing (0x6f7ab4) runs, then the height
+	// image goes grey again (0x6f55b0) and +0xb5 clear. Both need the 3D interface, as the height image is made only
+	// with one.
+	mUnknownB4 = mUnknownB4 || !mHeatWaves.empty();
+	if (!mHeatWaves.empty() ||
+		(gD3DInterface != nullptr && mUnknownB5 && mWidgetManager != nullptr &&
+			(Image*)mWidgetManager->mImage == g->mDestImage)) {
+		if (gD3DInterface != nullptr) {
+			DrawDistortion(g);
+			ClearHeightImage(g);
+		}
+		mUnknownB5 = false;
+	}
+}
+
+void EffectsManager::MakeHeightImage()
+{
+	// 0x6f5ea6: a half-size pooled target (flags 8, and the pool's 0x10), grey; port: the hold is the manager's
+	if (mHeightImage == nullptr && gD3DInterface != nullptr) {
+		mHeightImage = gD3DInterface->HoldTarget(&mHeightHold, gApp->mWidth / 2, gApp->mHeight / 2, 8, "HeightImage");
+		ClearHeightImage(nullptr);
+	}
+}
+
+DDImage* EffectsManager::GetHeightImage()
+{
+	// 0x6f5efc
+	if (mHeightImage == nullptr)
+		MakeHeightImage();
+	mUnknownB4 = true;
+	return mHeightImage;
+}
+
+void EffectsManager::ClearHeightImage(Graphics* g)
+{
+	// 0x6f55b0: the height image is cleared to grey (128, 128, 128, 255), then drawing goes on in g's image (the screen
+	// for none). port: the screen's own image is the device's null target
+	if (mHeightImage != nullptr && gD3DInterface != nullptr) {
+		mUnknownB4 = false;
+		if (gD3DInterface->SetRenderTarget(mHeightImage))
+			gD3DInterface->Clear(0x80, 0x80, 0x80, 0xff);
+		Image* aTarget = g != nullptr ? g->mDestImage : nullptr;
+		if (aTarget != nullptr && mWidgetManager != nullptr && aTarget == (Image*)mWidgetManager->mImage)
+			aTarget = nullptr;
+		gD3DInterface->SetRenderTarget(aTarget);
+	}
+}
+
+// 0x6f49c9: a vertex of FVF 0x2c4 (pre-transformed, diffuse, specular, two texture sets)
+struct DistortVertex {
+	float x, y, z, rhw;
+	unsigned int mDiffuse, mSpecular;
+	float u0, v0, u1, v1;
+};
+
+static DistortVertex MakeDistortVertex(float theX, float theY, float theU0, float theV0, float theU1, float theV1)
+{
+	DistortVertex aVertex;
+	aVertex.x = theX;
+	aVertex.y = theY;
+	aVertex.z = 0;
+	aVertex.rhw = 1.0f;
+	aVertex.mDiffuse = 0;
+	aVertex.mSpecular = 0;
+	aVertex.u0 = theU0;
+	aVertex.v0 = theV0;
+	aVertex.u1 = theU1;
+	aVertex.v1 = theV1;
+	return aVertex;
+}
+
+// 0x6f5aaf: theRect (x, y, width, height) drawn as a strip with theImage on stage 0 and the whole of stage 1's picture
+// spread over the app's size (times theScale) on its second texture coordinates
+static void DrawDistortRect(Image* theImage, const double theRect[4], const Color& theColor, float theScale)
+{
+	float aWidth = (float)gApp->mWidth;
+	float aHeight = (float)gApp->mHeight;
+	float aX = (float)theRect[0];
+	float aU1 = theScale * (aX / aWidth);
+	float aRight = (float)((double)theRect[2] + (double)theRect[0]);
+	float aU2 = theScale * (aRight / aWidth);
+	float aV1 = theScale * ((float)theRect[1] / aHeight);
+	float aV2 = ((float)((double)theRect[3] + (double)theRect[1]) / aHeight) * theScale;
+	DistortVertex aVertices[4];
+	float aLeftEdge = aX - 0.5f;
+	aVertices[0] = MakeDistortVertex(aLeftEdge, (float)theRect[1] - 0.5f, 0, 0, aU1, aV1);
+	aRight = aRight - 0.5f;
+	aVertices[1] = MakeDistortVertex(aRight, (float)theRect[1] - 0.5f, 1.0f, 0, aU2, aV1);
+	float aBottom = (float)((double)theRect[3] + (double)theRect[1]) - 0.5f;
+	aVertices[2] = MakeDistortVertex(aLeftEdge, aBottom, 0, 1.0f, aU1, aV2);
+	aVertices[3] = MakeDistortVertex(aRight, aBottom, 1.0f, 1.0f, aU2, aV2);
+	gD3DInterface->SetTexture(0, theImage);  // slot 0xd4
+	gD3DInterface->DrawPrimitiveEx(0x2c4, GPUPT_TRIANGLESTRIP, aVertices, 2, theColor, 0, 0.0f, 0.0f, true, nullptr);  // slot 0x7c
+}
+
+// 0x6f5c7d: like 0x6f5aaf, but theSource (x, y, width, height of the manager's size) picks the part of theImage
+static void DrawDistortSource(EffectsManager* theManager, Image* theImage, const double theRect[4],
+	const double theSource[4], const Color& theColor, float theScale)
+{
+	float aSourceW = (float)theManager->mWidth;
+	float aSourceH = (float)theManager->mHeight;
+	float aU1 = (float)theSource[0] / aSourceW;
+	float aU2 = (float)((double)theSource[2] + (double)theSource[0]) / aSourceW;
+	float aV1 = (float)theSource[1] / aSourceH;
+	float aV2 = (float)((double)theSource[3] + (double)theSource[1]) / aSourceH;
+	float aWidth = (float)gApp->mWidth;
+	float aHeight = (float)gApp->mHeight;
+	float aT1 = theScale * ((float)theRect[0] / aWidth);
+	float aRight = (float)((double)theRect[2] + (double)theRect[0]);
+	float aT2 = theScale * (aRight / aWidth);
+	float aS1 = theScale * ((float)theRect[1] / aHeight);
+	float aS2 = ((float)((double)theRect[1] + (double)theRect[3]) / aHeight) * theScale;
+	DistortVertex aVertices[4];
+	float aLeftEdge = (float)theRect[0] - 0.5f;
+	aVertices[0] = MakeDistortVertex(aLeftEdge, (float)theRect[1] - 0.5f, aU1, aV1, aT1, aS1);
+	float aRightEdge = aRight - 0.5f;
+	aVertices[1] = MakeDistortVertex(aRightEdge, (float)theRect[1] - 0.5f, aU2, aV1, aT2, aS1);
+	float aBottom = (float)((double)theRect[1] + (double)theRect[3]) - 0.5f;
+	aVertices[2] = MakeDistortVertex(aLeftEdge, aBottom, aU1, aV2, aT1, aS2);
+	aVertices[3] = MakeDistortVertex(aRightEdge, aBottom, aU2, aV2, aT2, aS2);
+	gD3DInterface->SetTexture(0, theImage);  // slot 0xd4
+	gD3DInterface->DrawPrimitiveEx(0x2c4, GPUPT_TRIANGLESTRIP, aVertices, 2, theColor, 0, 0.0f, 0.0f, true, nullptr);  // slot 0x7c
+}
+
+// The tent of width 1/3 around a point (0x401ad0 is |x|): 1 - 3 |distance| where positive, else 0
+static float HeatTent(double theDistance)
+{
+	double aTent = 0.0;
+	if (0.0 < 1.0 - std::fabs(theDistance) * 3.0)
+		aTent = 1.0 - std::fabs(theDistance) * 3.0;
+	return (float)aTent;
+}
+
+void EffectsManager::DrawDistortion(Graphics* g)
+{
+	(void)g;
+	// 0x6f7ab4: the waves into the height image, then the screen's copy over the rectangles (or all of it) through the
+	// screen_distort shader with the height image on stage 1
+	DDImage* aHeight = GetHeightImage();
+	if (aHeight == nullptr || (gD3DInterface->GetCaps(0) & 2) == 0)
+		return;
+	gD3DInterface->SetSamplerState(1, 6, 2);
+	gD3DInterface->SetSamplerState(1, 5, 2);
+	gD3DInterface->SetSamplerState(1, 7, 2);
+	gD3DInterface->SetRenderTarget(aHeight);
+	gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_WAVE]);  // slot 0xd8, 0x85e8f8
+	auto aWaveIt = mHeatWaves.begin();
+	while (aWaveIt != mHeatWaves.end()) {
+		HeatWave& aWave = *aWaveIt;
+		float aProgress = aWave.mProgress;
+		float aFade = (float)(1.1 - (double)aProgress * 1.1);
+		float aCap = aFade;
+		if (1.0 <= aFade)
+			aCap = 1.0f;
+		float aStrength = (float)((double)aProgress * 5.0);
+		if (aCap < aStrength) {
+			aStrength = 1.0f;
+			if (aFade < 1.0f)
+				aStrength = aFade;
+		}
+		aStrength = aStrength * aWave.mOpacity;
+		float aConstants[4];
+		aConstants[0] = HeatTent((double)aProgress) * aStrength;
+		aConstants[1] = HeatTent((double)aProgress - 0.333) * aStrength;
+		aConstants[2] = HeatTent((double)aProgress - 0.667) * aStrength;
+		aConstants[3] = HeatTent((double)aProgress - 1.0) * aStrength;
+		float aSize = (float)((double)aProgress * (double)aWave.mEndSize + (1.0 - (double)aProgress) * (double)aWave.mStartSize);
+		double aRect[4];
+		aRect[0] = (double)((((float)((double)aProgress * (double)(float)aWave.mEndX) + (float)aWave.mX) - aSize) * 0.5f);
+		aRect[1] = (double)((((float)((double)(float)aWave.mEndY * (double)aProgress) + (float)aWave.mY) - aSize) * 0.5f);
+		aRect[2] = (double)aSize;
+		aRect[3] = (double)aSize;
+		gD3DInterface->SetShaderConstant(gTwistShaders[TWISTSHADER_WAVE], 0, aConstants);  // slot 0x108
+		((MemoryImage*)IMAGE_HEATWAVE)->mD3DFlags = 8;  // +0x44
+		DrawDistortRect(IMAGE_HEATWAVE, aRect, Color(255, 255, 255, 255), 2.0f);
+		++aWaveIt;
+	}
+	// The slot 0xd8 call's argument is lost in the export; screen_distort is the shader whose constant follows
+	gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_SCREEN_DISTORT]);
+	float aDistort[4] = {0.02f, 0.02f, 0.0f, 0.0f};
+	gD3DInterface->SetShaderConstant(gTwistShaders[TWISTSHADER_SCREEN_DISTORT], 0, aDistort);  // slot 0x108, 0x85e7d0
+	TargetHold aHold;
+	if (mHeatWaves.empty()) {
+		// The rectangles over the bombs' cells (the board's +0x14cc): the screen so far drawn back over each through
+		// the shader (DistortQuadA), then the result over each again plain (DistortQuadB)
+		DDImage* aScreen = gD3DInterface->HoldScreen(&aHold, "DistortQuadA");
+		gD3DInterface->SetTexture(1, aHeight);
+		int aCount = 0;
+		if (gBoard != nullptr)
+			aCount = (int)gBoard->mHazeRects.size();
+		int i = 0;
+		if (0 < aCount) {
+			do {
+				const Board::HazeRect& aHaze = gBoard->mHazeRects[i];
+				double aRect[4] = {(double)aHaze.mLeft, (double)aHaze.mTop, (double)(aHaze.mRight - aHaze.mLeft),
+					(double)(aHaze.mBottom - aHaze.mTop)};
+				DrawDistortSource(this, aScreen, aRect, aRect, Color(255, 255, 255, 64), 1.0f);
+				i++;
+			} while (i < aCount);
+		}
+		gD3DInterface->ReleaseTarget(&aHold);
+		aScreen = gD3DInterface->HoldScreen(&aHold, "DistortQuadB");
+		i = 0;
+		gD3DInterface->SetPixelShader(nullptr);
+		if (0 < aCount) {
+			do {
+				const Board::HazeRect& aHaze = gBoard->mHazeRects[i];
+				double aRect[4] = {(double)aHaze.mLeft, (double)aHaze.mTop, (double)(aHaze.mRight - aHaze.mLeft),
+					(double)(aHaze.mBottom - aHaze.mTop)};
+				DrawDistortSource(this, aScreen, aRect, aRect, Color(255, 255, 255, 255), 1.0f);
+				i++;
+			} while (i < aCount);
+		}
+		gD3DInterface->SetTexture(1, nullptr);
+		gD3DInterface->ReleaseTarget(&aHold);
+	} else {
+		DDImage* aScreen = gD3DInterface->HoldScreen(&aHold, "DistortFull");
+		gD3DInterface->SetTexture(1, aHeight);
+		double aRect[4] = {0.0, 0.0, (double)mWidth, (double)mHeight};
+		DrawDistortRect(aScreen, aRect, Color(255, 255, 255, 64), 1.0f);
+		gD3DInterface->SetTexture(1, nullptr);
+		gD3DInterface->ReleaseTarget(&aHold);
+	}
+	gD3DInterface->SetPixelShader(nullptr);
+}
+
+HeatWave* EffectsManager::AddHeatWave(float theX, float theY, float theStrength)
+{
+	// 0x6f5a46 makes it; the end size is the app's scale times 400
+	HeatWave aWave;
+	aWave.mUnknown00 = 0;
+	aWave.mGrowth = 0.025f;
+	aWave.mOpacity = 1.0f;
+	aWave.mStartSize = 0;
+	aWave.mEndSize = (float)((double)gApp->mScale * 400.0);
+	aWave.mProgress = 0;
+	aWave.mX = (double)theX;
+	aWave.mY = (double)theY;
+	aWave.mEndSize = aWave.mEndSize * theStrength;
+	aWave.mGrowth = (float)((double)aWave.mGrowth * 0.5);
+	mHeatWaves.push_back(aWave);
+	return &mHeatWaves.back();
 }
 
 void EffectsManager::AddBombFlash(float theX, float theY, const Color& theColor)
@@ -891,5 +1230,10 @@ void EffectsManager::AddBombFlash(float theX, float theY, const Color& theColor)
 		AddEffect(anEffect);
 		aCount--;
 	} while (aCount != 0);
-	// With no board image (+0x200c) a heat wave (0x6f9efe, its strength doubled): Direct3D only
+	// With no hyperspace behind the board (+0x200c) a heat wave of half the strength, its growth (+0x28) doubled
+	// (no Direct3D test: 2D mode adds it too, and only ages it)
+	if (gBoard->mHyperspace == nullptr) {
+		HeatWave* aWave = AddHeatWave(theX, theY, 0.5f);
+		aWave->mGrowth = aWave->mGrowth + aWave->mGrowth;
+	}
 }

@@ -28,6 +28,7 @@
 #include "SoundManager.h"
 #include "TwistUtil.h"
 #include "VizManager.h"
+#include "TwistD3D.h"
 #include "WinTwistApp.h"
 #include "WidgetManager.h"
 #include "X86Math.h"
@@ -48,10 +49,9 @@ int Sexy::Rand85B970()
 {
 	return (int)gUnknown85B970.Next();
 }
-// port: the constructor's copy comes with it; until then the table is set here
-Color Sexy::gGemColors[10] = {Color(255, 32, 32), Color(255, 255, 255), Color(0, 255, 0), Color(255, 255, 0),
-	Color(255, 0, 255), Color(255, 128, 0), Color(0, 128, 255), Color(0, 0, 0), Color(255, 255, 255),
-	Color(255, 255, 255)};
+// The static initialiser 0x7d5096 makes all ten Color() (opaque black); the first board's constructor copies the
+// seven colours over the first seven, and the last three stay black (the credits' sparks are black until a game starts)
+Color Sexy::gGemColors[10];
 
 namespace {
 
@@ -101,7 +101,7 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	}
 	mUnknown1328 = aCount;
 	static const int kRolls[25] = {1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 5};
-	mUnknown21E0 = kRolls[Rand() % 25];
+	mUnknown21E0 = kRolls[Rand85B970() % 25];  // 0x6a3447: the board's own generator
 	if (gApp->mProfile->mGamesPlayed == 0)
 		mUnknown21E0 = 3;
 	mZOrder = -5;
@@ -186,8 +186,11 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 		mGoodTube->SetUnknown15C(1);
 	}
 
-	// port: the first manager's Direct3D height image (0x6f5ea6, +0xb6 and +0xa1) is left out
 	mFXManager = new EffectsManager();
+	// 0x6f5ea6 makes the first manager's height image when there is a device and none yet
+	mFXManager->MakeHeightImage();
+	mFXManager->mUnknownB6 = true;  // +0xb6
+	mFXManager->mUnknownA1 = true;  // +0xa1: the depth test goes off first (0x6f6451)
 	mFXManager2 = new EffectsManager();
 	mFXManager3 = new EffectsManager();
 	mPointsManager = new PointsManager();
@@ -544,7 +547,7 @@ void Board::StartBonusChallenge(int theExcludeColor)
 	int aMax = mUnknown158 / 3 + aMin;
 	if (mBonusChallengeMaxGems < aMax)
 		aMax = mBonusChallengeMaxGems;
-	int aRoll = Rand();
+	int aRoll = Rand85B970();  // 0x6a3447, as are the colours below
 	int aPoints = mUnknown2640 * 100;
 	mUnknown2644 = aRoll % (aMax - aMin + 1) + aMin;
 	if (mUnknown2644 == mBonusChallengeMinGems)
@@ -561,7 +564,7 @@ void Board::StartBonusChallenge(int theExcludeColor)
 		do {
 			int aColor;
 			for (;;) {
-				aColor = Rand() % 7;
+				aColor = Rand85B970() % 7;
 				if (i < 2 && aColor == theExcludeColor)
 					continue;
 				if (!mBonusColors.empty() && aColor == mBonusColors.back())
@@ -1235,7 +1238,7 @@ bool Board::LoadGame(Buffer& theBuffer)
 	mUnknown2590 = GetGridRight();
 	mUnknown259C = 1.0f;
 	// (the original logs "Load game ENDS" to the debugger)
-	// (0x7581e5 after each branch takes the VizManager's visualizer made by its thread, +0x188; only with Direct3D's
+	// (0x7581e5 after each branch takes the VizManager's visualizer made for the jump's ChooseViz; only with Direct3D's
 	// visualizers is one made, so in 2D it does nothing)
 	if (mHyperspace != nullptr) {
 		// A hyperspace still running ends at once: the VizManager's background for the level (0x6c967c)
@@ -1247,6 +1250,7 @@ bool Board::LoadGame(Buffer& theBuffer)
 		mUnknown3924 = 1.0f;
 		mHyperspace = nullptr;
 		mUnknown26A8 = 0;
+		mApp->mVizManager->TakePendingViz();  // 0x7581e5
 		if (mUnknown26AC != nullptr) {
 			mUnknown26AC->mParent->RemoveWidget(mUnknown26AC);
 			mApp->SafeDeleteWidget(mUnknown26AC);
@@ -1276,6 +1280,7 @@ bool Board::LoadGame(Buffer& theBuffer)
 		mGoodTube->SetLevel(mUnknown158);
 		delete mHyperspace;
 		mHyperspace = nullptr;
+		mApp->mVizManager->TakePendingViz();  // 0x7581e5
 	}
 	UpdateProgress(true);
 	for (GemSoul* aSoul : mUnknown26B0)
@@ -1348,12 +1353,13 @@ void Board::SetChallenge(Challenge* theChallenge)
 	mGoodTube->SetUnknown158(aKind);
 	if (aNightMode)
 		mGoodTube->SetUnknown158(5);
-	// the picture behind: the category's visualizer (the port is 2D only, so Viz2d whatever it says) and backdrop
+	// the picture behind: the category's visualizer (Viz2d in 2D whatever it says) and backdrop
 	std::string aViz = mApp->mChallengeInfo->GetViz(mUnknown2674);
 	int aBackground = mApp->mChallengeInfo->GetBackground(mUnknown2674);
 	if (aViz.empty())
 		aViz = "RedBars";
-	aViz = "Viz2d";
+	if (gD3DInterface == nullptr)
+		aViz = "Viz2d";
 	mApp->mVizManager->SetVizByName(aViz.c_str(), true);
 	mApp->mVizManager->SetBackdrop(aBackground - 1, true);
 	mGoodTube->SetUnknown160(2);
@@ -1837,7 +1843,7 @@ void Board::StartReplay(Buffer& theBuffer, int theRow, int theCol, bool thePlayb
 	mFXManager2->Clear();
 	mFXManager->Clear();
 	// (with Direct3D a menu's replay board also takes the slide's place)
-	if (!mUnknown37C4)
+	if (!mUnknown37C4 || gD3DInterface != nullptr)
 		mBoardX = GetSlideX();
 	LoadGame(theBuffer);
 	if (mUnknown37C4) {

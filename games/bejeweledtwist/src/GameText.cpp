@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstring>
 #include <map>
+#include <set>
 #include <vector>
 
 using namespace Sexy;
@@ -231,7 +232,14 @@ const SexyString& Sexy::GameText(unsigned int theVA)
 	static const SexyString sEmpty;
 	std::map<unsigned int, SexyString>& aTexts = Texts();
 	std::map<unsigned int, SexyString>::const_iterator anItr = aTexts.find(theVA);
-	return anItr == aTexts.end() ? sEmpty : anItr->second;
+	if (anItr == aTexts.end()) {
+		// an address the table lacks (gametext.py not run after a new GT use): said once, in every run
+		static std::set<unsigned int> sMissing;
+		if (sMissing.insert(theVA).second)
+			SDL_Log("GameText: 0x%08x is not in GameTextTable.inc (run games/bejeweledtwist/tools/gametext.py)", theVA);
+		return sEmpty;
+	}
+	return anItr->second;
 }
 
 const std::string& Sexy::GameTextA(unsigned int theVA)

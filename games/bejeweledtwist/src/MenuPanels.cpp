@@ -15,12 +15,14 @@
 #include "Image.h"
 #include "ListWidget.h"
 #include "Menu.h"
+#include "Piece.h"
 #include "MenuButtonWidget.h"
 #include "Profile.h"
 #include "Ranks.h"
 #include "Res.h"
 #include "TwistButton.h"
 #include "TwistCheckbox.h"
+#include "TwistD3D.h"
 #include "TwistDialog.h"
 #include "TwistEditWidget.h"
 #include "TwistSlider.h"
@@ -680,7 +682,9 @@ void HighScoresPanel::ButtonDepress(int theId)
 				mReplayButtons[aButton]->SetDisabled(true);
 				aButton++;
 			}
-			// (with Direct3D the menu pans to the board here.) port: the exe also sets a flag of its sound manager
+			if (mApp->Is3DAccelerated())
+				mMenu->SetPan(0, 0, false);  // 0x69af49: with Direct3D the menu pans to the board
+			// port: the exe also sets a flag of its sound manager
 			// (+0x300a0) that puts every sound started from now on through DirectSound's parametric equaliser,
 			// until the board is removed; the port's sound manager has none. It also makes a Buffer it never uses.
 			mApp->mScoresLoaded = false;
@@ -702,9 +706,20 @@ void HighScoresPanel::ButtonDepress(int theId)
 			aBoard->mShakeY = 0;
 			aBoard->mShakeX = 0;
 			aBoard->StartReplay(aGame.mData, aGame.mUnknown20, aGame.mUnknown24, false);
-			// (with Direct3D the gems and the effects run 25 updates ahead instead)
-			aBoard->mBoardX = mApp->mWidth;
-			aBoard->mUnknown37C8 = 100;
+			if (gD3DInterface == nullptr) {
+				aBoard->mBoardX = mApp->mWidth;
+				aBoard->mUnknown37C8 = 100;
+			} else {
+				// with Direct3D the gems and the effects run 25 updates ahead instead
+				for (int anUpdate = 25; anUpdate != 0; anUpdate--) {
+					for (int aCell = 0; aCell < aBoard->mCols * aBoard->mRows; aCell++) {
+						if (aBoard->mGrid[aCell] != nullptr)
+							aBoard->mGrid[aCell]->Update();
+					}
+					aBoard->mFXManager->Update();
+					aBoard->mFXManager2->Update();
+				}
+			}
 			aBoard->mUnknown20E4 = 0;
 			aBoard->mModeFlags = 8;
 			aBoard->mUnknown20E0 = 0;
@@ -1521,8 +1536,8 @@ OptionsPanel::OptionsPanel(WinTwistApp* theApp)
 	mCustomCursorsCheckbox = MakeCheckbox(IMAGE_MAINMENU_RADIOBUTTONCUSTOMCURSORS_ID, CHECKBOX_CUSTOM_CURSORS);
 	mCustomCursorsCheckbox->SetChecked(theApp->mProfile->mCustomCursors, true);
 	mVisualizersCheckbox = MakeCheckbox(IMAGE_MAINMENU_RADIOBUTTONVISUALIZERS_ID, CHECKBOX_VISUALIZERS);
-	// port: the visualizers need Direct3D (gD3DInterface), which the port does not have, as in 2D mode
-	mVisualizersCheckbox->SetChecked(false, true);
+	// the visualizers need Direct3D
+	mVisualizersCheckbox->SetChecked(theApp->mDoViz && gD3DInterface != nullptr, true);
 	int i = 0;
 	if (0 < ResCount()) {
 		do {
@@ -1626,7 +1641,8 @@ void OptionsPanel::Draw(Graphics* g)
 {
 	mClip = false;
 	Rect anOldClip = g->mClipRect;
-	// The original opens the clip wide with Direct3D, which the port does not have
+	if (gD3DInterface != nullptr)
+		g->mClipRect = Rect(-1000, -1000, 5000, 5000);  // with Direct3D the clip is opened wide
 	g->DrawImage(GetImageById(mUnknownB0), 0, 0);
 	if (gApp->mBoard != nullptr) {
 		// the bar of the game's buttons, the large one with three
@@ -1743,15 +1759,18 @@ void OptionsPanel::CheckboxChecked(int theId, bool checked)
 		mApp->mCustomCursorsEnabled = checked;
 		mApp->EnableCustomCursors(mApp->mCustomCursorsEnabled);
 	} else if (theId == CHECKBOX_VISUALIZERS) {
-		// port: without Direct3D (gD3DInterface, which the port does not have) the box goes off again; with it the
-		// original sets mDoViz
-		mSettingBoxes = true;
-		mVisualizersCheckbox->SetChecked(false, true);
-		mSettingBoxes = false;
-		SexyString aFooter = OptionsText(GTA(0x80d3c8), GTA(0x80d9a4));
-		SexyString aLines = OptionsText(GTA(0x7db010), GTA(0x7dafa0));
-		SexyString aHeader = OptionsText(GTA(0x7db230), GTA(0x7db214));
-		gApp->DoDialog(0x28, true, aHeader, aLines, aFooter, TwistDialog::BUTTON_MODE_NO);
+		if (gD3DInterface == nullptr) {
+			// without Direct3D the box goes off again
+			mSettingBoxes = true;
+			mVisualizersCheckbox->SetChecked(false, true);
+			mSettingBoxes = false;
+			SexyString aFooter = OptionsText(GTA(0x80d3c8), GTA(0x80d9a4));
+			SexyString aLines = OptionsText(GTA(0x7db010), GTA(0x7dafa0));
+			SexyString aHeader = OptionsText(GTA(0x7db230), GTA(0x7db214));
+			gApp->DoDialog(0x28, true, aHeader, aLines, aFooter, TwistDialog::BUTTON_MODE_NO);
+		} else {
+			mApp->mDoViz = checked;
+		}
 	} else if (CHECKBOX_RES_FIRST - 1 < theId && theId < CHECKBOX_RES_FIRST + RES_COUNT) {
 		if (checked) {
 			if (!m3DCheckbox->mChecked) {
@@ -1877,9 +1896,20 @@ void OptionsPanel::ApplySettings(bool theResolution)
 		if (aWindowed != gApp->mIsWindowed)
 			gApp->SwitchScreenMode(aWindowed, a3D);
 	} else {
-		// port: 3D acceleration on or off is written to the registry ("Is3D", "FullscreenBits") and the game
-		// restarts; the port cannot turn 3D on, so the box never differs
-		NotPorted("OptionsPanel restarting for 3D (0x6a006a)");
+		if (!a3D) {
+			mApp->RegistryWriteBoolean("Is3D", false);
+		} else {
+			mApp->RegistryEraseValue(_S("Is3D"));
+			mApp->mFullscreenBits = 32;
+			mApp->RegistryWriteInteger("FullscreenBits", mApp->mFullscreenBits);
+			// port: while 3D mode is being ported, a run without "Is3D" is 2D, so turning it on writes it
+			mApp->RegistryWriteBoolean("Is3D", true);
+			// The original, when its display has no 3D device's details (0x4a7930), asks for the art's size again
+			// at the next start (0xe13ba4, +0xf35): the port's art size is always 600
+		}
+		// The original's restart (+0x81b, then Shutdown): natively the exe starts again, on the web the page
+		// reloads, so its canvas is new and takes the WebGL2 context 3D mode asks for
+		mApp->RequestRestart(true, nullptr);
 	}
 	mApp->EnableCustomCursors(mCustomCursorsCheckbox->IsChecked());
 	int anArtRes;
@@ -2049,9 +2079,8 @@ void EndStats::Update()
 {
 	TwistWidget::Update();
 	if (mApp->mBoard == nullptr) {
-		if (mState != 0 && mDrop.HasBeenTriggered() && mDrop.GetOutVal() < -1.0) {
-			// (without Direct3D, gD3DInterface, which the port does not have: once it is out of sight above it takes
-			// another curve)
+		if (gD3DInterface == nullptr && mState != 0 && mDrop.HasBeenTriggered() && mDrop.GetOutVal() < -1.0) {
+			// without Direct3D, once it is out of sight above it takes another curve
 			mDrop.SetCurve(GTS(0x7e21d4));
 		}
 		mReplayFade = (float)((double)mReplayFade - 0.019999999552965164);
@@ -2313,8 +2342,8 @@ void EndStats::ButtonDepress(int theId)
 	} else if (0 < theId && theId < 4) {
 		// One of the game's replays, on a board of its own (+0x37c4) under the stats; it shows once mReplayFade has
 		// risen past half (Update)
-		// (without Direct3D, gD3DInterface: the stats rise out of the way)
-		mDrop.SetCurve(GTS(0x7e2334));
+		if (gD3DInterface == nullptr)
+			mDrop.SetCurve(GTS(0x7e2334));  // without Direct3D the stats rise out of the way
 		// port: the exe also sets a flag of its sound manager (+0x300a0) that puts every sound started from now on
 		// through DirectSound's parametric equaliser, until the board is removed; the port's sound manager has
 		// none. It also makes a Buffer it never uses.
@@ -2354,10 +2383,21 @@ void EndStats::ButtonDepress(int theId)
 		aBoard->SetVisible(false);
 		mUnknown354 = 1.5f;
 		mReplayFade = 0;
-		// (with Direct3D the gems and the effects run 25 updates ahead instead)
-		aBoard->mUnknown37C8 = 100;
-		aBoard->StartUnknown3880();
-		aBoard->mUnknown25A6 = true;
+		if (gD3DInterface == nullptr) {
+			aBoard->mUnknown37C8 = 100;
+			aBoard->StartUnknown3880();
+			aBoard->mUnknown25A6 = true;
+		} else {
+			// with Direct3D the gems and the effects run 25 updates ahead instead
+			for (int anUpdate = 25; anUpdate != 0; anUpdate--) {
+				for (int aCell = 0; aCell < aBoard->mCols * aBoard->mRows; aCell++) {
+					if (aBoard->mGrid[aCell] != nullptr)
+						aBoard->mGrid[aCell]->Update();
+				}
+				aBoard->mFXManager->Update();
+				aBoard->mFXManager2->Update();
+			}
+		}
 		aBoard->LayoutTube();
 		Update();
 	}

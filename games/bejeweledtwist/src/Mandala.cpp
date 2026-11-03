@@ -15,6 +15,7 @@
 #include "Profile.h"
 #include "Res.h"
 #include "TwistButton.h"
+#include "TwistD3D.h"
 #include "TwistDialog.h"
 #include "SexyMatrix.h"
 #include "TwistUtil.h"
@@ -279,9 +280,8 @@ void Mandala::Update()
 {
 	if (mEgg) {
 		mEgg = false;
-		// 0x75fd40 puts up the credits (Sexy::Credits, 0x288 bytes, ctor 0x6e8c0e, app +0xf94, z order 1000), whose
-		// only way in is this hidden sequence (ButtonMouseEnter); not ported yet
-		NotPorted("Mandala: the app's 0x75fd40 (the credits)");
+		// the credits, whose only way in is this hidden sequence (ButtonMouseEnter)
+		gApp->ShowCredits();
 		return;
 	}
 	TwistWidget::Update();
@@ -445,13 +445,20 @@ void Mandala::DrawAll(ModalFlags* theFlags, Graphics* g)
 		g->SetColor(Color(0, 0, 0, Ftol(mZoom.GetOutVal() * 200.0)));
 		g->FillRect(0, 0, mWidth, mHeight);
 	}
+	// The zoom by mZoom about the screen's middle (mOffsetY lower), which only Direct3D applies
+	SexyTransform2D aZoomMatrix;  // 0x44f860
 	if (mZoom.GetOutVal() != 1.0) {
-		// the original builds a zoom by mZoom about the screen's middle (mOffsetY lower), which only Direct3D applies
-		mZoom.GetOutVal();
-		mZoom.GetOutVal();
+		aZoomMatrix.Translate((float)-(gApp->mWidth / 2), (float)-(gApp->mHeight / 2));
+		float aZoomX = (float)mZoom.GetOutVal();
+		float aZoomY = (float)mZoom.GetOutVal();
+		aZoomMatrix.Scale(aZoomY, aZoomX);
+		aZoomMatrix.Translate((float)(gApp->mWidth / 2), (float)(float)(gApp->mHeight / 2) + mOffsetY);
+		if (gD3DInterface != nullptr)
+			gD3DInterface->PushTransform(aZoomMatrix, true);  // slot 0x14
 	}
 	Widget::DrawAll(theFlags, g);
-	mZoom.GetOutVal();
+	if (mZoom.GetOutVal() != 1.0 && gD3DInterface != nullptr)
+		gD3DInterface->PopTransform();  // slot 0x18
 }
 
 void Mandala::Draw(Graphics* g)
@@ -528,10 +535,16 @@ void Mandala::DrawOverlay(Graphics* g)
 			gApp->GetString(GTS(0x7e706c), GT(0x7e7018));
 		WriteCenteredLine(g, Ftol((double)gApp->mScale * 200.0), aTitle);
 	}
+	SexyTransform2D aZoomMatrix;  // 0x44f860
 	if (mZoom.GetOutVal() != 1.0) {
-		// (Direct3D's zoom, as in DrawAll)
-		mZoom.GetOutVal();
-		mZoom.GetOutVal();
+		// Direct3D's zoom, as in DrawAll
+		aZoomMatrix.Translate((float)-(gApp->mWidth / 2), (float)-(gApp->mHeight / 2));
+		float aZoomX = (float)mZoom.GetOutVal();
+		float aZoomY = (float)mZoom.GetOutVal();
+		aZoomMatrix.Scale(aZoomY, aZoomX);
+		aZoomMatrix.Translate((float)(gApp->mWidth / 2), (float)(float)(gApp->mHeight / 2) + mOffsetY);
+		if (gD3DInterface != nullptr)
+			gD3DInterface->PushTransform(aZoomMatrix, true);  // slot 0x14
 	}
 	float anArt = (float)gApp->mArtRes / 1200.0f;
 	g->SetColorizeImages(true);
@@ -662,7 +675,8 @@ void Mandala::DrawOverlay(Graphics* g)
 		g->WriteWordWrapped(aRect, aHint, Ftol((double)gApp->mScale * 68.0), 0);
 	}
 
-	mZoom.GetOutVal();
+	if (mZoom.GetOutVal() != 1.0 && gD3DInterface != nullptr)
+		gD3DInterface->PopTransform();  // slot 0x18
 	if (mDarken.GetOutVal() != 0.0) {
 		g->SetColor(CurveColor(mDarken));
 		g->FillRect(0, 0, mWidth, mHeight);
@@ -695,7 +709,7 @@ void Mandala::ButtonMouseEnter(int theId)
 	mOver = theId;
 	mPortal = theId;
 	mShowPortal = true;
-	// The buttons gone over from the last to the first, twelve times, start the app's 0x75fd40
+	// The buttons gone over from the last to the first, twelve times, start the credits (WinTwistApp::ShowCredits)
 	if (theId == mEggNext) {
 		mEggNext--;
 		if (mEggNext < 0)

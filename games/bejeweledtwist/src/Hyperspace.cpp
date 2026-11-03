@@ -2,6 +2,7 @@
 #include "Hyperspace.h"
 
 #include "Board.h"
+#include "TwistD3D.h"
 #include "GameText.h"
 #include "GemSoul.h"
 #include "ChallengeMenu.h"
@@ -22,7 +23,25 @@ Hyperspace::Hyperspace()
 {
 	// The level comes from the board (+0x158 - 1) when there is one: none yet. The ctor also sets up the curves of the
 	// level's world and the camera (+0x798 to +0x1008), which only the Direct3D drawing and the jumps read.
-	mIs3D = gApp->Is3DAccelerated();
+	// 0x714f98 (0x715298 to 0x7152d4): +0x155, +0x156 and +0x157 start clear, so the 3D parts (the sidebar, the cone) draw
+	// only once a jump or the state 1 to 2 step sets +0x156 (0x7163f3, SetTransition 9 and 10); +0x158 is whether
+	// gD3DInterface is set
+	mIs3D = false;
+	mFlag158 = gD3DInterface != nullptr;
+	if (gD3DInterface != nullptr)
+		MakeOldPicture();  // 0x714f98: the picture state 11 renders into
+	// 0x7152ff to 0x71544f: the cube's step along +0x8e8 (1, so it waits 50 ahead of where the jump starts), the three
+	// backdrops' fields of view and the cube's faces
+	mUnknown900.SetConstant(1.0);
+	mUnknownF28.SetCurve(GTS(0x7e4688));
+	mUnknownF28.SetMode(1);
+	mUnknownF98.SetCurve(GTS(0x7e4658));
+	mUnknownF98.SetMode(1);
+	mUnknown1008.SetCurve(GTS(0x7e4628));
+	mUnknown1008.SetMode(1);
+	mUnknown798.SetCurve(GTS(0x7e4600));
+	mUnknown808.SetCurve(GTS(0x7e45d8));
+	mUnknown878.SetCurve(GTS(0x7e45b0));
 	RemoveAllWidgets(true, false);
 }
 
@@ -40,9 +59,10 @@ void Hyperspace::MakeOldPicture()
 	if (mUnknown160 != nullptr && mOwnsUnknown160)
 		return;
 	DDImage* anImage = new DDImage(gApp->mDDInterface);
-	// (the original also sets the image's +0x44 to 0x10, a Direct3D flag)
+	anImage->mD3DFlags = 0x10;  // +0x44: a render target (the VizManager draws the next level into it, ChooseViz)
 	anImage->Create(gApp->mWidth, gApp->mHeight);
 	anImage->SetImageMode(false, false);
+	gD3DInterface->PrepareImage(anImage);  // port: made a target now, as HoldTarget does
 	mUnknown160 = anImage;
 	mOwnsUnknown160 = true;
 }
@@ -83,7 +103,13 @@ void Hyperspace::Update()
 	}
 	Widget::Update();
 	mFlag15C = false;
-	// The 2D jumps (the port has no Direct3D)
+	if (gD3DInterface != nullptr) {
+		// 0x715c21 with gD3DInterface set: no 2D chain, the common code of 0x716336 and the world's motion
+		Update3D();
+		MarkDirty();
+		return;
+	}
+	// The 2D jumps (gD3DInterface clear)
 	if (mTransition == 8 || mTransition == 14) {
 		if (!mUnknown1570.IncInVal()) {
 			if (mFlag15B) {
@@ -170,30 +196,16 @@ void Hyperspace::Update()
 
 void Hyperspace::UpdateSpace()
 {
-	// 0x716e2f: the planets (+0xc68's lists) and the camera are only drawn with Direct3D, so the port skips them
+	// 0x716e2f: the crystals, the camera, the ship and the saucer are only drawn with Direct3D
 	Board* aBoard = gApp->mBoard;
 	if (aBoard == nullptr || aBoard->mHyperspace != this)
 		return;
-	// (0x715480, 0x7158f8 and 0x7135cb move the ship and the thrust's particles at +0x14b4, which only Direct3D's
-	// DrawOverlay draws, and drop the spent ones)
-	// The ship's nine engines each give off a puff of thrust (0x714ea9, Direct3D's particles at +0x14b4); the port
-	// makes none, but draws the framework's random numbers as the original does (0x717620-0x717dbe)
-	int anEngine = 0;
-	do {
-		int aPuff = 0;
-		if (0 < Rand() % 6) {
-			do {
-				RandSigned();  // the puff's offset, x, y and z (times 0.2)
-				RandSigned();
-				RandSigned();
-				RandFloat();   // how far along the engine's direction
-				RandSigned();  // two of the particle's rates (times 0.01 less 0.05, times 0.0003 less 0.001)
-				RandSigned();
-				aPuff++;
-			} while (aPuff < Rand() % 6);
-		}
-		anEngine++;
-	} while (anEngine < 9);
+	if (gD3DInterface != nullptr) {
+		UpdateWorld3D();  // 0x716e31 to 0x717...
+		PlaceShip();      // 0x715480
+		PlaceSaucer();    // 0x7158f8
+	}
+	UpdateThrust();  // 0x715c21 (0x7172be to 0x717dbe): in 2D and 3D alike, the random numbers in the original's order
 }
 
 void Hyperspace::StartEndGame()
@@ -233,6 +245,10 @@ void Hyperspace::StartEndGame()
 void Hyperspace::Draw(Graphics* g)
 {
 	DeferOverlay(0);
+	if (gD3DInterface != nullptr) {
+		Draw3D(g);  // 0x713e2d's 3D branch (HyperspaceD3D.cpp)
+		return;
+	}
 	// With Direct3D: the level's world in 3D (0x71042e and on); comes with Direct3D, which the port does not have
 	if ((mTransition == 12 || mTransition == 13) && !mFlag155) {
 		// The end of a jump: space fades out over the board
@@ -261,6 +277,10 @@ void Hyperspace::Draw(Graphics* g)
 
 void Hyperspace::DrawTunnel(Graphics* g)
 {
+	if (gD3DInterface != nullptr) {
+		DrawTunnel3D(g);
+		return;
+	}
 	VizManager* aVizManager = gApp->mVizManager;
 	if (aVizManager->mVisible)
 		return;
@@ -274,7 +294,14 @@ void Hyperspace::DrawTunnel(Graphics* g)
 
 void Hyperspace::DrawOldPicture(Graphics* g)
 {
-	// (with Direct3D and state 11 the VizManager draws into +0x160 first)
+	if (mState == 11 && gD3DInterface != nullptr) {
+		// 0x70f836: with 3D the old picture is drawn afresh, the VizManager and then the board into +0x160
+		Graphics aG(mUnknown160);
+		gApp->mVizManager->Draw(&aG);
+		ModalFlags aFlags;
+		mWidgetManager->InitModalFlags(&aFlags);
+		gApp->mBoard->DrawAll(&aFlags, &aG);
+	}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, Ftol(mUnknown12B0.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
@@ -285,6 +312,12 @@ void Hyperspace::DrawOverlay(Graphics* g)
 {
 	// Direct3D only (+0x156 and +0x157): the planets, the saucer and the tube
 	(void)g;
+	if (gD3DInterface != nullptr && mIs3D && mFlag157) {
+		// 0x713d82: with +0x157 set the sidebar, the cone and the thrust are drawn on top, as the overlay
+		Draw3DSidebar();
+		DrawCone();
+		DrawParticles();
+	}
 }
 
 void Hyperspace::StartChallenge()
@@ -304,6 +337,10 @@ void Hyperspace::StartChallenge()
 void Hyperspace::SetTransition(int theTransition)
 {
 	mTransition = theTransition;
+	if (gD3DInterface != nullptr) {
+		SetTransition3D(theTransition);
+		return;
+	}
 	// The 2D jumps only: the port has no Direct3D, whose jumps also set up the level's world and the camera
 	if (theTransition == 14 || theTransition == 8) {
 		// The old level's picture stays for the jump; the VizManager takes the next level's
@@ -369,21 +406,35 @@ void Hyperspace::ChooseViz(bool theDraw)
 		aVizManager->SetBackdrop(-1, true);
 		aVizManager->SetVizByName("VizWarpBars", true);
 	} else if (aBoard->mGameMode == Board::MODE_BLITZ) {
-		// (with Direct3D: VizBuckyShards after an even number of blitz games, when the card can)
+		// With Direct3D VizBuckyShards after an even number of blitz games, when the card can (slot 4's bit 0x20 set)
 		int aGames = gApp->mProfile->mUnknown140[3];
-		aVizManager->SetVizByName("VizKaleidoCat", true);
+		const char* aVizName = "VizKaleidoCat";
+		if (aGames % 2 == 0 && gD3DInterface != nullptr && (gD3DInterface->GetCaps(0) & 0x20) != 0)
+			aVizName = "VizBuckyShards";
+		aVizManager->SetVizByName(aVizName, true);
 		aVizManager->SetBackdrop(46 - aGames % 47, true);
 	} else if (aBoard->mGameMode == Board::MODE_ZEN) {
 		aVizManager->SetBackdrop(aBoard->mUnknown158, true);
 		aVizManager->SetVizByName("VizZenWheels", true);
 	} else if (aBoard->mGameMode != Board::MODE_CHALLENGE) {
-		aVizManager->SetBackdrop(aBoard->mUnknown158, false);
-		if (aVizManager->mViz == nullptr)
-			aVizManager->SetViz(VizManager::FindViz("Viz2D"), true);
-		static_cast<Viz2D*>(aVizManager->mViz)->SetImageFromIndex();
-		// port: 0x7593ea picks the 3D visualizer for the mode and level (+0x190); 2D never shows it
+		aVizManager->SetBackdrop(aBoard->mUnknown158, gD3DInterface != nullptr);
+		if (gD3DInterface == nullptr) {
+			if (aVizManager->mViz == nullptr)
+				aVizManager->SetViz(VizManager::FindViz("Viz2D"), true);
+			static_cast<Viz2D*>(aVizManager->mViz)->SetImageFromIndex();
+		}
+		// 0x7593ea picks the 3D visualizer for the mode and level (+0x190); 2D never shows it, so only 3D calls it
+		if (gD3DInterface != nullptr) {
+			int aKey = aBoard->mUnknown158 + 1;
+			if (aKey < 0)
+				aKey = -aKey;  // 0x77e769
+			aVizManager->SetVizForMode(aBoard->mGameMode, (unsigned int)aKey, true, !theDraw);
+		}
 	}
-	// (with Direct3D and theDraw: the VizManager draws into the jump's picture, +0x160)
-	(void)theDraw;
+	// With Direct3D and theDraw the VizManager draws into the jump's picture, +0x160
+	if (gD3DInterface != nullptr && theDraw) {
+		Graphics aG(mUnknown160);
+		aVizManager->Draw(&aG);
+	}
 	gApp->ClearUpdateBacklog(false);
 }

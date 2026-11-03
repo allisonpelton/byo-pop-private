@@ -12,6 +12,7 @@
 #include "MenuPanels.h"
 #include "Profile.h"
 #include "Res.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
@@ -335,8 +336,13 @@ void Gates::Draw(Graphics* g)
 
 void Gates::DrawAll(ModalFlags* theFlags, Graphics* g)
 {
-	// With Direct3D the menu's zoom transform (+0x480) is pushed around the drawing while mPos is between 0 and 1
+	// The menu's zoom transform (+0x480) is pushed around the drawing while the menu's zoom is between 0 and 1
+	Menu* aMenu = gApp->mMainMenu;
+	if (aMenu->mZoom.GetOutVal() != 0.0 && aMenu->mZoom.GetOutVal() != 1.0)
+		gD3DInterface->PushTransform(aMenu->mZoomMatrix, true);  // slot 0x14
 	Widget::DrawAll(theFlags, g);
+	if (aMenu->mZoom.GetOutVal() != 0.0 && aMenu->mZoom.GetOutVal() != 1.0)
+		gD3DInterface->PopTransform();  // slot 0x18
 }
 
 void Gates::ButtonPress(int theId, int theClickCount)

@@ -1,5 +1,6 @@
 // Sexy::CurvedVal (CurvedVal.h). The original computes in the x87's precision and stores floats and doubles where its
-// fields are; the port computes in double and stores at the same places.
+// fields are; the port computes in double and stores at the same places. With Direct3D the x87 runs in single
+// precision (X87 below), and the input's steps round as the original's do.
 #include "CurvedVal.h"
 
 #include "BSpline.h"
@@ -12,9 +13,48 @@
 
 namespace Sexy {
 
+bool gCurveSinglePrecision = false;
+
 namespace {
 
 const int CURVE_TABLE_SIZE = 0x2000;
+
+// With Direct3D (gCurveSinglePrecision) each sum or product of a curve's input is rounded to a float; without it the
+// x87 keeps double precision
+double X87(double theValue)
+{
+	return gCurveSinglePrecision ? (double)(float)theValue : theValue;
+}
+
+// 0x45dbf0 (StringToDouble): a number of a curve string, its digits summed on the x87 (the fraction's place value starts
+// at 0.1 and is divided by 10 for each digit), so with Direct3D each step rounds to a float: "0.002" reads as
+// 0.001999999862 there; 0 when the text is not a plain decimal number
+double CurveNumber(const std::string& theString)
+{
+	double aValue = 0.0;
+	if (theString.empty())
+		return 0.0;
+	size_t i = theString[0] == '-' ? 1 : 0;
+	for (; i < theString.length(); i++) {
+		char aChar = theString[i];
+		if (aChar >= '0' && aChar <= '9')
+			aValue = X87(X87(aValue * 10.0) + (double)(aChar - '0'));
+		else if (aChar == '.') {
+			i++;
+			break;
+		} else
+			return 0.0;
+	}
+	double aMult = 0.1;
+	for (; i < theString.length(); i++) {
+		char aChar = theString[i];
+		if (aChar < '0' || aChar > '9')
+			return 0.0;
+		aValue = X87(X87((double)(aChar - '0') * aMult) + aValue);
+		aMult = X87(aMult / 10.0);
+	}
+	return theString[0] == '-' ? -aValue : aValue;
+}
 
 // A control point of a curve string: x, y and, for a Hermite curve, the slope there
 struct CurvePoint {
@@ -271,23 +311,23 @@ void CurvedVal::ParseDataString(const std::string& theString)
 		mIsHermite = true;
 		return;
 	}
-	mOutMin = (float)atof(theString.substr(aPos, aComma - aPos).c_str());
+	mOutMin = (float)CurveNumber(theString.substr(aPos, aComma - aPos));
 	aPos = aComma + 1;
 	aComma = theString.find(',', aPos);
 	if (aComma == std::string::npos)
 		return;
-	mOutMax = (float)atof(theString.substr(aPos, aComma - aPos).c_str());
+	mOutMax = (float)CurveNumber(theString.substr(aPos, aComma - aPos));
 	aPos = aComma + 1;
 	aComma = theString.find(',', aPos);
 	if (aComma == std::string::npos)
 		return;
-	mIncRate = (float)atof(theString.substr(aPos, aComma - aPos).c_str());
+	mIncRate = (float)CurveNumber(theString.substr(aPos, aComma - aPos));
 	aPos = aComma + 1;
 	if (aVersion > 0) {
 		aComma = theString.find(',', aPos);
 		if (aComma == std::string::npos)
 			return;
-		mInMax = (float)atof(theString.substr(aPos, aComma - aPos).c_str());
+		mInMax = (float)CurveNumber(theString.substr(aPos, aComma - aPos));
 		aPos = aComma + 1;
 	}
 
@@ -452,7 +492,7 @@ double CurvedVal::GetInVal()
 	if (mLinkedVal == nullptr) {
 		if (mAutoInc) {
 			if (gSexyAppBase)
-				v = (double)(gSexyAppBase->mUpdateCount - mInitAppUpdateCount) * mIncRate + mInMin;
+				v = X87(X87((double)(gSexyAppBase->mUpdateCount - mInitAppUpdateCount) * mIncRate) + mInMin);
 			if (mMode == MODE_REPEAT || mMode == MODE_PING_PONG)
 				v = std::fmod(v - mInMin, mInMax - mInMin) + mInMin;
 			else if (mInMax <= v)
@@ -498,7 +538,7 @@ bool CurvedVal::IncInVal(double theInc)
 {
 	mPrevOutVal = GetOutVal();
 	mPrevInVal = mInVal;
-	mInVal += theInc;
+	mInVal = X87(mInVal + theInc);
 	if (CheckClamping())
 		return true;
 	if (!mTriggered) {
@@ -519,7 +559,12 @@ int CurvedVal::GetLengthInUpdates() const
 {
 	if (mIncRate == 0.0)
 		return -1;
-	return Ftol(std::ceil((mInMax - mInMin) / mIncRate));
+	return Ftol(std::ceil(X87(X87(mInMax - mInMin) / mIncRate)));
+}
+
+double CurvedVal::GetInValAtUpdate(int theUpdateCount) const
+{
+	return X87(X87(theUpdateCount * mIncRate) + mInMin);
 }
 
 bool CurvedVal::CheckInThreshold(double theInVal)
@@ -528,7 +573,7 @@ bool CurvedVal::CheckInThreshold(double theInVal)
 	double aPrev = mPrevInVal;
 	if (mAutoInc) {
 		aCur = GetInVal();
-		aPrev = aCur - mIncRate * 1.5;
+		aPrev = X87(aCur - X87(mIncRate * 1.5));
 	}
 	return aPrev < theInVal && theInVal <= aCur;
 }

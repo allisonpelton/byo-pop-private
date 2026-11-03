@@ -6,6 +6,8 @@
 #include "Image.h"
 #include "Piece.h"
 #include "Res.h"
+#include "TriVertex.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
@@ -590,9 +592,45 @@ void FruitShockwave::Draw(Graphics* g)
 	g->DrawImage(IMAGE_FRUITBLAST_OUTERRING, Ftol((double)mX - (double)anOuter), Ftol((double)mY - (double)anOuter),
 		aSize, aSize);
 	if (-1 < mState && gApp->Is3DAccelerated()) {
-		// Direct3D only (0x749f89): the arc as a ribbon of triangles (IMAGE_FRUITBLAST_ARC and its highlights) through the
-		// Direct3D interface
-		NotPorted("FruitShockwave::Draw: the arc (Direct3D)");
+		// Direct3D only (0x749f89): the arc as a ribbon of two triangles from the gem's end of it (mUnknownC4 of the way to
+		// the tube) to the far end (mUnknownC8), a mWidth wide, drawn twice: the arc's picture tinted by the hint's colour,
+		// then its highlights added
+		gD3DInterface->SetSamplerState(0, GPUSAMP_ADDRESSV, 3);  // slot 0xc4: clamped
+		float aDX = mStartX - mEndX;
+		float aDY = mStartY - mEndY;
+		float aFromX = mUnknownC4 * aDX + mEndX;
+		float aFromY = mEndY + aDY * mUnknownC4;
+		float aToX = mUnknownC8 * aDX + mEndX;
+		float aToY = aDY * mUnknownC8 + mEndY;
+		float aSideX = -aDX;
+		float aSideY = aDY;
+		float aLengthSquared = aSideX * aSideX + aDY * aDY;
+		float aLength = (float)std::sqrt((double)aLengthSquared);  // 0x4c0650
+		if (aLength != 0.0f) {
+			aSideY = aDY / aLength;
+			aSideX = aSideX / aLength;
+		}
+		// the ribbon's four corners: the near end's two (0,1), (0,0) and the far end's (1,1), (1,0)
+		TriVertex aCorners[4];
+		aCorners[0] = TriVertex((float)((double)aFromX - (double)mWidth * (double)aSideY * 0.5),
+			(float)((double)aFromY - (double)mWidth * (double)aSideX * 0.5), 0.0f, 1.0f);
+		aCorners[1] = TriVertex((float)((double)mWidth * (double)aSideY * 0.5 + (double)aFromX),
+			(float)((double)aFromY + (double)mWidth * (double)aSideX * 0.5), 0.0f, 0.0f);
+		aCorners[2] = TriVertex((float)((double)aToX - (double)mWidth * (double)aSideY * 0.5),
+			(float)((double)aToY - (double)mWidth * (double)aSideX * 0.35), 1.0f, 1.0f);
+		aCorners[3] = TriVertex((float)((double)mWidth * (double)aSideY * 0.5 + (double)aToX),
+			(float)((double)mWidth * (double)aSideX * 0.65 + (double)aToY), 1.0f, 0.0f);
+		for (int aPass = 0; aPass < 2; aPass++) {
+			Image* anArc = aPass == 0 ? IMAGE_FRUITBLAST_ARC : IMAGE_FRUITBLAST_ARC_HIGHLIGHTS;
+			Color anArcColor = aPass == 0
+				? Color(mColor.mRed, mColor.mGreen, mColor.mBlue, Ftol((double)mUnknown24 * 64.0))
+				: Color(255, 255, 255, Ftol((double)mUnknown24 * 128.0));
+			// slot 0x70 (0x6220b0): a triangle through the textured draw, the blend argument 1 as its tx
+			TriVertex aFirst[1][3] = {{aCorners[0], aCorners[1], aCorners[3]}};
+			gD3DInterface->DrawTrianglesTex(anArc, aFirst, 1, anArcColor, aPass, 1.0f, 0.0f, true);
+			TriVertex aSecond[1][3] = {{aCorners[3], aCorners[2], aCorners[0]}};
+			gD3DInterface->DrawTrianglesTex(anArc, aSecond, 1, anArcColor, aPass, 1.0f, 0.0f, true);
+		}
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	g->SetColorizeImages(true);

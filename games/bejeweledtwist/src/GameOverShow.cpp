@@ -56,8 +56,8 @@ TextImage::TextImage(Font* theFont, const SexyString& theText, int thePadX, int 
 	int aHeight = theFont->GetHeight();
 	aRect.mY += thePadY - Ftol((double)aHeight * 0.10000000149011612);
 	g.WriteWordWrapped(aRect, theText, aLineSpacing, theJustification);
-	// (and a Direct3D flag at +0x44)
-	BitsChanged();
+	BitsChanged();  // 0x42c050
+	mD3DFlags = 1;  // +0x44: the Direct3D image flag 1 (the texture is made in the fewest pieces); the original sets it in both modes
 }
 
 GameOverShow::GameOverShow(Board* theBoard)

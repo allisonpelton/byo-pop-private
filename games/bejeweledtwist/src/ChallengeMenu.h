@@ -2,10 +2,10 @@
 // 0x7e011c): the planets of the challenge categories, picked from the main menu's play menu.
 //
 // The original draws its planets in a small 3D world: a camera on curves (ChallengeMenu::Update 0x6e3f41) and a planet
-// at each place on a circle (AddedToManager 0x6dfc49). With Direct3D off (Is3DAccelerated() false, as here) a planet is
-// a picture made for each frame (0x6dde98): the flat planet image, IMAGE_PLANET, says for each pixel where to look in
-// the planet's cloud-and-surface layer and how bright to make it. The sun, the moon and the texts are drawn over the
-// planets (0x6e132d); the sphere meshes (0x6e4fad) and the rest of the 3D drawing are left out (NOTES.md).
+// at each place on a circle (AddedToManager 0x6dfc49). With Direct3D (gD3DInterface) a planet is a sphere mesh (0x6e4fad)
+// under a point light at the sun, with a second sphere of clouds; without it a planet is a picture made for each frame
+// (0x6dde98): the flat planet image, IMAGE_PLANET, says for each pixel where to look in the planet's cloud-and-surface
+// layer and how bright to make it. The sun, the moon and the texts are drawn over the planets (0x6e132d).
 #pragma once
 
 #include "ButtonListener.h"

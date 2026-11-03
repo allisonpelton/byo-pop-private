@@ -651,6 +651,11 @@ SDL_Texture* DDInterface::GetTexture(MemoryImage* theImage, int* theTexWidth, in
 	return aTexture;
 }
 
+bool DDInterface::CheckDestination(DDImage* theImage)
+{
+	return theImage->mIsScreen;
+}
+
 void DDInterface::RemoveImageData(MemoryImage* theImage)
 {
 	if ((theImage == NULL) || (theImage->mD3DData == NULL))

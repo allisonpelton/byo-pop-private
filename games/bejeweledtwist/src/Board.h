@@ -14,6 +14,7 @@
 #include "CurvedVal.h"
 #include "MTRand.h"
 #include "Rect.h"
+#include "SexyMatrix.h"
 
 #include <deque>
 #include <map>
@@ -141,6 +142,8 @@ public:
 	// +0x149c: the electro gems' strikes (the class at 0x71eb9e, not yet ported); ClearBoard deletes them
 	std::vector<void*> mUnknown149C;
 	std::vector<Piece*> mBombList;     // +0x14bc: bombs about to go off, drawn over the board (Piece::DrawFront)
+	struct HazeRect { float mLeft, mTop, mRight, mBottom; };
+	std::vector<HazeRect> mHazeRects;  // +0x14cc: the rectangles over the bombs' cells the distortion drawing (0x6f7ab4) takes
 	std::map<int, Piece*> mPieceMap;   // +0x1364: the pieces by id (0x6b8c20 adds, 0x6b677b drops)
 	float mShineAmount = 1.0f;            // +0x163c
 	float mPieceAlpha = 1.0f;          // +0x1640
@@ -297,6 +300,7 @@ public:
 	CurvedVal mUnknown2748;                 // +0x2748
 	CurvedVal mUnknown2908;                 // +0x2908
 	CurvedVal mUnknown2978;                 // +0x2978
+	SexyTransform2D mTransform;             // +0x29e8: DrawAll's scale and offsets, pushed to the device in 3D mode (0x44f320 clears it)
 	bool mUnknown1420 = false;              // +0x1420
 	float mUnknown1424 = 0;                 // +0x1424: the glint's run, 0 to 1
 	float mUnknown1428 = 0;                 // +0x1428
@@ -941,6 +945,7 @@ public:
 	void DrawAll(ModalFlags* theFlags, Graphics* g) override;  // 0x6aac5e
 	void Draw(Graphics* g) override;                 // 0x6cc7ed
 	void DrawBoardBack(Graphics* g);                 // 0x6cc5a3: the 2D board and the space behind it
+	void DrawBoardBack3D(Graphics* g);               // 0x6cc762: the board with Direct3D
 	void DrawStrikes(Graphics* g);                   // 0x6aafc1
 	void DrawOverlay(Graphics* g) override;          // 0x6b4a39
 	void DrawCounters(Graphics* g);                  // 0x6b42e1
@@ -948,6 +953,8 @@ public:
 	void DrawBoard(Graphics* g, bool theToImage, bool theSkipPieces);
 	void DrawGrid(Graphics* g, float theArtScale);  // 0x6caa13's grid
 	void DrawPieces(Graphics* g, Graphics& theLightG, bool is3D);  // 0x6caa13's gems
+	void DrawBombHaze(Graphics* g, float theHazeFactor);  // 0x6caa13's mask pass of the bombs' heat haze (0x6cb2f4)
+	void GatherHazeRects();                               // 0x6caa13's rectangles over the bombs' cells into mHazeRects
 	// 0x6aa3bc: in a tip, the forced move's "click here" and the arrows around the cursor
 	void DrawTutorialCursor(Graphics* g);
 	void DrawSelector(Graphics* g, bool theRing);  // 0x6aa6d1: the twist cursor, its ring or its spiral
@@ -1035,8 +1042,8 @@ extern Board* gBoard;
 extern int gSettleCount;  // 0x84e88c: how often the board has come to rest
 extern MTRand gUnknown85B970;  // 0x85b970: a generator of its own, seeded from the time by each new board
 int Rand85B970();  // 0x6a3447
-// 0x85af08: each colour's tint, copied by the board's constructor from the table at 0x85c378 (and Color(0, 0, 0),
-// then two whites, after it)
+// 0x85af08: each colour's tint, copied by the board's constructor from the table at 0x85c378 (seven of them; the last
+// three stay Color(), opaque black)
 extern Color gGemColors[10];
 
 }

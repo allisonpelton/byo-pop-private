@@ -124,6 +124,13 @@ and draw by type, and within a type in the order they were added. The common mot
 scalars, gravity, alpha and scale steps, the scale and alpha limits) is ported, and type 0; the types 1-43 are big
 switch cases in the constructor (0x6f4a05), Update (0x6f8792) and DrawEffects (0x6f6451) that come with the board.
 Type 44 effects are objects of their own (virtual Update and Draw). The list at +0x94 holds heat waves, Direct3D only.
+Type 10 (Piece::AddShards 0x728f69, the credits' sparks 0x6e903c; nothing else makes one) has no constructor case. Its
+update fades it by 0.0025 more, turns it by 0.1 of its fall, and turns its velocity by 0.05 of a rate that blends from
++0xa0 to +0xa4 as +0x9c runs from 0 to 1 by 0.01; past 1, +0x9c goes back to 0, +0xa4 to +0xa0 and a RandSigned to
++0xa4. Its draw is IMAGE_FX_STEAM additive in Color(125, 145, 255) at 105 times the opacity (the effect's colour is not
+used), five times, from scale 1 down by 0.12 each, stepping back six velocities along a path turned by -0.3 times the
+rate; it leaves the draw mode and colorizing set. AddShards' second argument picks the board's second manager
+(+0x164c) over the first: Piece::Update passes true (0x72da35), BreakPiece's never-reached ice gem false.
 
 ## The main menu
 
@@ -232,7 +239,10 @@ where the custom cursors are kept.
 
 Game texts: the original's wide texts (L"...", such as the tooltips and the dialog texts) are UTF-16 in the exe;
 gametext.py lists them as GAMETEXTW (length in bytes) and GameText.cpp converts them. Before this, every wide text
-was read as its first letter.
+was read as its first letter. The table (GameTextTable.inc) lists only the addresses the code uses: after any new GT,
+GTS, GTA, GTB or GTP use, run `python games/bejeweledtwist/tools/gametext.py`. An address missing from the table reads
+as an empty text, and GameText logs it once (a curve string read as empty is a flat curve, which is how the
+hyperspace's constructor curves went unnoticed).
 
 ## The board (being ported)
 
@@ -377,6 +387,37 @@ The app owns the challenge list (WinTwistApp+0xf5c, `ChallengeInfo`, 0x18 bytes,
 The menu is ChallengeMenu (0x9e8 bytes, 0x6dd2cd-0x6e665e, main menu +0x4a8, z order -98; a TwistWidget, ButtonListener and TwistDialogListener) with one ChallengeButton (0x658 bytes, vtable 0x7e011c) for each category and two TwistButtons below them (100 "PLAY MENU" at +0x174, 101 "MAIN MENU" at +0x178). A planet's id is its category's number. It is reached from the Mandala's challenge door (`Mandala::ButtonDepress`, mode 2: `Menu::ShowChallenges(false)`, `Show(1, false)`), and from the end of a challenge (Board::UpdateGame: `SetState(4, false)`, shown at once). `UpdateProgress` (0x6e0ddb, also run by `Menu::RefreshPlayer`) reads the player's stage of each category (Profile +0x1f4, the new `GetChallengeStage` 0x73497f, `IsChallengeCategoryOpen` 0x7349fc, `OpenChallengeCategory` 0x734a14, which grow the lists to the category): 0 is closed, a stage past the category's last challenge makes the planet an eclipse (its night challenge, number count + 1), and the planet's best is Profile +0x204. A click on a planet (`ButtonDepress`) picks its category and stage; with a saved game for it (`SaveExists(2, category)`) the "continue or new" dialog (id 0, Yes 1000 continues, No 1001 deletes the save) asks, otherwise `Start(true)`. `Start` (0x6e4ab6) is `NewGame(2, new, category)`, and for a new game `Board::SetChallenge(ChallengeInfo::GetChallenge(category, stage))`, then `Hyperspace::StartChallenge` (0x71c18f: state 3, transition 11, the board's three curves), the board's brightness at 0 and `Close(3)`; the hyperspace's transition 11 hides the menu when its curve ends (0x715dc7). `Board::SetChallenge` (0x6c7c7b) keeps the challenge, loads its own config and restarts the lock, counter and coal level values at level 1, sets the tube (the night mode's stage from Profile +0x204, a time limit's blitz-like clock, the tube kind 1, 2 or 3 by the pattern and moves flags), the visualizer (Viz2d, with the category's bkg2d) and the tube's first fill. The trial gate (more than the third stage or the third category in an unregistered copy) only plays SOUND_TRIALCLICK here, as the copy is registered.
 
 The camera, the motion, the planets' software drawing and the sun, the moon and the texts over them are ported (the planets' tips too, see "The challenge's flow on the board"). The original with 3D off (`Is3DAccelerated()` false) still runs a small 3D world in software. **Ported** (Math3D.h/.cpp, ChallengeMenu.cpp): `SetState` (0x6e2318) sets the curves of every state, all but a few linked to the open curve `mOpen` (+0x1c8, whose value runs the menu in or out): the buttons' slide `mButtonSlide` (+0x238), the camera's turn about x, y and z (+0x2b0, +0x320, +0x390, in degrees), its distance along the third axis from 16.15 (+0x400), along the first and second axes (+0x470, +0x4e0), its shifts of x and y (+0x550, +0x5c0), three curves not yet understood (+0x640, +0x6b0, +0x720), the turn of the hyperspace's camera `mCameraTurn` (+0x790), the fly to the picked planet `mZoom` (+0x830), and the sun's (global 0x85c558); state 1 also turns the camera's start (the three rotations, 0.625 of the way to the identity by quaternions, transposed) into `mCameraTarget` (+0x800); states 3 and 4 copy the picked planet's world position (ChallengeButton +0x5a8, now `mWorldPos`, set in AddedToManager 0x6dfc49) to +0x824; state 3 continues from where state 4's curve stood. `Update` (0x6e3f41) steps the sun, +0x640 and +0x6b0 and keeps 1 - +0x6b0 (not below 0.25) in global 0x85c508, fades the hover texts (+0x198, and +0x9d0 and +0x9d4 while nothing is hovered), blends the glow colours (globals 0x85c5c8 and 0x85c50c) by the curve at +0x928, updates the glow's EffectsManager (+0x1bc), drags the camera stack's entry with the mouse (see below), waits out +0x2a8 and steps the open curve, at whose end it makes the buttons and planets clickable (a state 1 or 4 menu fully in also starts +0x640's second curve), makes the camera Transform3D (global 0x85c51c: the position from the camera curves in states 1 and 2, otherwise a line from (0, -12, 16.15) to the picked planet's place plus (0, 0.15, 7.5) by +0x830; none in state 5), turns the hyperspace's camera (+0x1548) from the identity to +0x800 by +0x790, puts the two buttons at y = ((1 - +0x238) * 0.5 + 0.925) * height, moves the glow manager down by (1 - open) * the art scale * 1500, sets its alpha to the sun's value (states 1, 4, 5) and the aspect globals (0x84ebf8, 0x84ebfc), and, with the menu all the way in and no challenge started, throws a glow particle (type 0, one of the two ECLIPSE_FLARE images, grey 240 to 254, additive off) about the sun's centre with a chance of 1 in 5 an update (with Direct3D two each update: NotPorted). The camera stack (+0x998) is the file properties/camerastack.txt (two lines of three numbers for each camera) that the mouse drag edits (left button: y and x by 0.002 a pixel, left with right: z); nothing reads it, and the mouse wheel's choice of entry (0x6dfe2a) is only enabled by a flag (+0x9bc), which Show and the constructor clear and which was not traced further. `Close` waits while the open curve runs backwards. The 0x6e32c9 function (the night mode's unlock message: a DoDialog with the texts 0x7e0aa8 and 0x7e09a8, the +0x928 curve 0x7e0964, the sound at 0x85e918 and UpdateProgress(false, false)) is never called: the exe has no call to it and no pointer to it, so it is not ported and +0x928 stays at 0 and the unlock message widget at +0x9dc (set by the board's code, 0x6b3412; Update's block for it, 0x6e4989-0x6e4a1f, steps it and, once it is done, removes it and goes from state 5 to state 4; its type is not identified) are not ported. **Planets (ported, piece 2).** AddedToManager (0x6dfc49) puts the planets on an ellipse: the angles spread over 0.9 of a turn from 0.25 turn less half the gap, world position (cos * 4.8 * 1.5 + camera x, sin * 4.8 + camera y, 0). ChallengeButton::Draw (0x6dde98), with Direct3D off, projects mWorldPos through a PerspectiveCamera (Math3D.h: gMenuCamera, gAspect45, gAspect, planes 1 and 10000) every Draw and sets the button's x and y from it, so clicks land on the planet; the size is 76 px times 0.00151515 over the depth. The sphere is the 384 wide IMAGE_PLANET lookup (R light, G/2 row and B column into the category's layer pictures, found by GetIdByName on the upper-cased IMAGE_ name) written into the menu's 512 by 512 MemoryImage (+0x9e0) and drawn with a source rectangle; then the ring, the name, the moon-meter bar of cells, the lock glow, the eclipse title and the bar and name glows. ChallengeButton::Update (0x6e3b0e) makes the sparks, the glow chain and the eclipse flares; UpdateProgress (0x6e0ddb) sets the bar's curves and plays the unlock sample. Menu Draw (0x6dd322) draws the glow manager and the menu graphic behind the two buttons. **Not ported yet**, NotPorted with addresses in the code: the zoom's own effects; UpdateProgress's glow; and what only Direct3D runs (the sphere meshes 0x6e4fad, light and fog, the eclipse title's flare strips, two glow particles each update). SetState plays track 0x130 for states 1 and 4 only (the two PlayMusic calls at 0x6e237f and 0x6e2b91); Close(2) plays track 0. The board's challenge flow is described under "The challenge's flow on the board" at the end.
+
+## 3D mode
+
+`-3d` (or the options' 3D box, which needs WebGL2 on the web) runs the game as the original does with Direct3D: the port's
+GPUDisplay draws the 2D layers, TwistD3D (DrawPrimitiveEx, the .p3d meshes, render states and texture stages) the 3D
+ones, through the shared GPU2D interface. A run without it keeps the 2D path (DDInterface), and the checks compare
+2D runs against a reference to show that 3D work leaves them alone.
+
+The original makes its Direct3D device (0x6193b0, flags 0x140) without D3DCREATE_FPU_PRESERVE, so once it runs, the
+x87 computes in single precision. Two places show it in play: a curve's input steps and thresholds (CurvedVal's X87
+rounds them to float while gD3DInterface is set), and a curve string's numbers, which the original reads with
+StringToDouble (0x45dbf0) digit by digit, so "0.002" is 0.001999999862 and a 500-update curve is 501 long
+(CurveNumber). Without them the hyperspace's states changed one update early. Other float code in the 3D paths is
+written in double where the original's is, as in the 2D paths; if a 3D path is found to differ by a rounding, look
+here first.
+
+All 24 visualizers are ported (Visualizers3D*.cpp), each with its own generator kept in the original's order: some
+draw from the global Rand, VizJellyBlob and VizZenWheels from the C library's rand (CrtRand, seeded from the game's
+seed), VizMagicSnakes from its own LCG seeded 0xbeef0b01 and VizKaleidoCat from another. VizBuckyShards' environment
+map needs a cube map, which the shared GPU code does not have yet. Slot 4 of a visualizer takes a key (VizZenWheels
+answers b, c, e, g and r), but the VizManager's key function that asks it (0x758034) has no callers in the original.
+
+Compared with the original (seeded autoplay, 3D, updates 1000 to 3000 and the generators' states to 6000; the
+original on the desktop through visrun for this comparison only): the board's generator matches at every sample, and
+the jump, the cube, the tube's arrival and the boards match to within a few levels per channel. Open: from update
+1804 (the first board after the jump) the original draws about 170 more numbers from the global Rand in one update
+and then about one more every second update, so the background's clouds and some particles differ (not the play);
+the menu's and the selector's rotating backgrounds stand at slightly different angles. The web build's 3D run (the
+same seed, script and shots, in the Browser pane) matches the native port's from update 1300 to 3000 within a few
+levels per channel; before that its main menu shows the site's player name and its buttons' labels sooner, because
+the site makes the player rather than the autoplay.
 
 ## Deviations
 
@@ -606,8 +647,9 @@ BreakSpecial); once nothing is left to light and the lightning has crossed the b
 the strike fades out in four steps. A strike after the n-th waits while the n-th is younger than 25 * n updates. With
 Direct3D the bolts go through the 3D interface: not ported. Two things differ from the exe, neither visibly: the port
 deletes a finished strike (the original only takes it off the list, a leak), and ClearBoard deletes the strikes it
-clears (0x71eb9e). The bolts' colour table (0x85d850) is never written by the exe, so every bolt has Color(0, 0, 0, 0)
-there too: the glow is additive black and the lightning grey.
+clears (0x71eb9e). The bolts take their colour from the table at 0x85d850, by the gem's colour: red (255, 32, 32),
+white, green, yellow, magenta, orange (255, 128, 0), blue (0, 128, 255) and black, made by the static initialiser
+0x7d5bf3. (An earlier reading missed that initialiser and drew every bolt grey; the user spotted it from videos.)
 
 **The fruit gem** (FruitAwardScreen.h/.cpp, BoardTurn.cpp, BoardMatch.cpp, BoardUpdate.cpp, BoardDraw.cpp). A fruit is
 awarded when the multiplier goes past its top level (SetLevelSteps sets +0x214) and at update 2190 of a fruit dance.
@@ -697,10 +739,44 @@ set only by the droppers' own update); FlyingText's kind 1 (both makers are give
 (+0x1f4, +0x1f8 only ever 0); the board's image +0x15dc, the objects at +0x1488 and the pieces' +0x528 (only ever 0);
 +0x284's growth (only ever 0 or copied); 0x6c425f (+0x23d8 set only by 0x6bb145, which nothing calls); 0x74db1b
 (+0x210c only ever 0); NewLevel's backdrop (no twist-back image in the game's files). BurstGems' two property reads
-("ExplosionChainBonus" and "ExplosionChainBonusAdd") are dropped by the original and left out. Left for later: the
-credits (Sexy::Credits, 0x6e8c0e), which only the mode select's hidden sequence of button hovers opens.
+("ExplosionChainBonus" and "ExplosionChainBonusAdd") are dropped by the original and left out.
+
+## The credits (Credits.cpp)
+
+Sexy::Credits (0x288 bytes, a TwistWidget and ButtonListener, 0x6e7f36-0x6e95f1) is the mode select's easter egg.
+Mandala::ButtonMouseEnter (0x722c74) counts the mode buttons entered in the order 0, 3, 2, 1, 0, ... (classic, zen,
+blitz, challenge, round the circle backwards); any other button entered (the main menu button too) starts the count
+again, and the twelfth sets +0x419, on which the next Mandala::Update calls the app's 0x75fd40
+(`WinTwistApp::ShowCredits`) instead of its own update: a new Credits at app +0xf94, z order 1000, added and made a
+base modal (0x4c3a10 is AddBaseModal with the manager's default flags). AddedToManager (0x6e8760) plays
+SOUND_TROPHY_AWARDED, makes the Continue button (IMAGE_RANKBAR_CONTINUEBUTTON, centred, 115 art pixels above the
+bottom; only its ButtonDepress, 0x6e8403, is heard: state 5) and adds the sparks' EffectsManager, and starts two
+looping curves (0x7e0e10 the fruits' tilt, 0x7e0dc8 their bob). Update (0x6e903c): the box is three quarters of the
+screen each way, in the middle; state 1 darkens the screen (+0x160 by 0.02, drawn by DrawAll as Color(0, 0, 4) at 200
+times it), 2 grows the bars (+0x170 by 0.01), 3 brings in the box (+0x15c by 0.005) until both are 1, 4 adds a line
+of the list each time +0x194 falls to 0 or below (then +50 art pixels), and 5 fades both back to 0, when it sets
+mClicked; the app's UpdateFrames (0x765f8d, before the framework's) then removes and deletes it. While the bars grow
+(states 2 to 4, grow below 1) every update makes five type-10 effects at the box's top or bottom edge in the gem
+colours (Rand() % 7, Rand() % 2, RandSigned, in that order; type 10 draws in its own blue, so the colour is never seen). Every other update (+0x28 even) the lines rise by mScale:
+each line's alpha goes 5 down at or above 150 art pixels under the box's top and 5 up below it; a line above the top
+goes, and the last one gone closes the credits. The list (0x85c668, 142 wide texts, the count at 0x84ecb4) is set by
+the static initialiser 0x7d51ae: a line starting with a backslash loses two characters, "\B" making it a heading in
+FONT_SCORE Color(200, 40, 150), the others FONT_DIALOG_CHECKBOX Color(255, 220, 52); "GEM" (0x7e0f88) becomes
+IMAGE_FRUITS's next cel (0 to 6) in white. Draw (0x6e817f): the box tiled with IMAGE_INGAMEUI_GRIDSQUARE in Color(128,
+128, 255) at 225 times +0x15c, the two bars (both as tall as the top one) stretched to the box's width times the growth
+times 1.03 in Color(200, 200, 255), then inside the box the lines centred, the fruits by DrawImageCentered turned by
+the tilt times pi / 4 and raised by 25 times the bob. The constructor, destructor and RemovedFromManager free
+everything (no leak). gGemColors before the first board are ten Color() (opaque black, static initialiser 0x7d5096;
+the board copies only seven, 0x6c59c4), so the sparks' colour is black until a game has started (unseen: see above).
 
 ## Oddities
+
+- **The credits' sparks start their turn from the heap.** The Effect constructor (0x6f4a05) does not set +0x9c,
+  +0xa0 or +0xa4, which type 10's update and draw read (the turning rate's blend), and the credits (0x6e903c) do not
+  set them either (AddShards does). In the original they hold what the heap block held, often a dead effect's values;
+  a +0x9c above 1 makes the first update draw a RandSigned, a NaN never does. The credits' sparks do not move (no
+  velocity), so the turn has no visible effect, only the possible Rand draws. The port starts them at 0, so a spark
+  dies (80 updates) before +0x9c reaches 1 and draws nothing. Matching it would mean copying uninitialised memory.
 
 - **A one-move goal's colour comes from another list.** The challenge display's one-move branch (GoodTube::DrawBody,
   0x7095fd-0x709625) gives a colour stat (75 to 81) the icon of the tube's own stat list at the same index (+0x56c,
@@ -716,11 +792,6 @@ credits (Sexy::Credits, 0x6e8c0e), which only the mode select's hidden sequence 
   match, the original loops for ever and the game freezes. The port keeps the loop as it is. To see it, a board whose
   36 inner gems all carry flags when a doom gem is due (level 13 or later in Classic, or a constant-doom challenge).
   Fixing it would take a limit on the search, which the original does not have.
-- **The electro bolts' colour table is empty.** ElectroStrike's constructor (0x71f10e) gives each bolt the colour at
-  0x85d850 + 16 * the gem's colour, a table in the uninitialised data that nothing in the exe writes. Every bolt is
-  therefore black with no alpha: its IMAGE_GRITTYBLURRY glow, drawn additive in that colour, adds nothing, and its
-  IMAGE_LIGHTNING is drawn in the mid grey half way to white. The port keeps the empty table. It was most likely meant
-  to hold the gems' colours; filling it would be a change to the original's look.
 - **The fruit dance's points can run past their lists.** PopAnimCommand (0x6c3cf5) takes each "small" or "large"
   command's points from a list on its stack (42 and 15 entries) by a count it never checks, so further commands would
   read whatever lies beside the list. fruitdance.pam sends 37 and 15, so the original stays inside them; the port gives

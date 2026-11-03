@@ -6,8 +6,11 @@
 #include "Graphics.h"
 #include "Hyperspace.h"
 #include "Image.h"
+#include "Math3D.h"
 #include "Piece.h"
 #include "Res.h"
+#include "SexyMatrix.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
@@ -87,11 +90,27 @@ void GemSoul::SetTarget(Piece* thePiece)
 	mState = 2;
 	mTargetX = (float)(gBoard->GetColX(thePiece->mCol) + gGemWidth / 2);
 	mTargetY = (float)(gBoard->GetRowY(mUnknown680->mRow) + gGemHeight / 2);
-	// (Direct3D starts it from a random point below the screen, with curves of its own)
-	mUnknown660 = 2.0f;
-	mUnknown7E0.SetCurve(GTS(0x7e3318));
-	mUnknown7E0.mIncRate = (double)RandSigned() * 0.001500000013038516 + mUnknown7E0.mIncRate;
-	mUnknown858.SetCurve(GTS(0x7e32f0), &mUnknown7E0);
+	if (gD3DInterface == nullptr) {
+		mUnknown660 = 2.0f;
+		mUnknown7E0.SetCurve(GTS(0x7e3318));
+		mUnknown7E0.mIncRate = (double)RandSigned() * 0.001500000013038516 + mUnknown7E0.mIncRate;
+		mUnknown858.SetCurve(GTS(0x7e32f0), &mUnknown7E0);
+	} else {
+		// Direct3D starts it from a random point below the screen (x across the app's width, y from the screen's
+		// bottom to 256 times the scale below it), with curves of its own
+		mUnknown660 = 1.0f;
+		mUnknown850 = Ftol((double)RandFloat() * (double)gApp->mWidth);
+		int aBelow = Ftol((double)gApp->mScale * 256.0);
+		mUnknown854 = Ftol((double)RandFloat() * (double)aBelow + (double)(gApp->mHeight + aBelow));
+		mUnknown7E0.SetCurve(GTS(0x7e3360));
+		float aDX = (float)mUnknown850 - mTargetX;
+		float aDY = (float)mUnknown854 - mTargetY;
+		float aDistance = std::sqrt(aDX * aDX + aDY * aDY);
+		int aScaled = Ftol((double)gApp->mScale * 1000.0);
+		mUnknown7E0.mIncRate = (double)aScaled / (double)aDistance * 0.012000000104308128 + 0.00800000037997961;
+		mUnknown7E0.mIncRate = (double)RandSigned() * 0.004999999888241291 + mUnknown7E0.mIncRate;
+		mUnknown858.SetCurve(GTS(0x7e333c), &mUnknown7E0);
+	}
 	Update();
 }
 
@@ -101,13 +120,39 @@ void GemSoul::Update()
 		if (gBoard->mHyperspace->mFlag15C)
 			return;
 		mUnknown748.IncInVal();
-		// (Direct3D's place in space, mUnknown7BC to mUnknown7D4, follows the hyperspace's camera; the port keeps only
-		// the draws of its first update)
+		// Its place in space (mUnknown7BC to mUnknown7D4, only drawn in 3D mode, but worked out in 2D too) follows
+		// the ship's place on the camera's path (the hyperspace's +0x14c0): a point behind the ship, one more behind
+		// it for each soul before this one
+		Vec3 aBehind{0.0f, -0.17000000178813934f, (float)(-12.0 - (double)mIndex * 2.0999999046325684)};
+		Vec3 aPlace = TransformPoint(gBoard->mHyperspace->mUnknown14C0, aBehind);
+		mUnknown7C8[0] = aPlace.x;
+		mUnknown7C8[1] = aPlace.y;
+		mUnknown7C8[2] = aPlace.z;
 		if (mUpdateCnt == 0) {
-			RandSigned();
-			RandSigned();
-			RandSigned();
+			// A random start about it
+			float aRandX = RandSigned();
+			float aRandY = (float)((double)RandSigned() * 0.25);
+			float aRandZ = RandSigned();
+			mUnknown7BC[0] = (float)((double)mUnknown7C8[0] + (double)(float)((double)aRandX * 0.30000001192092896));
+			mUnknown7BC[1] = (float)((double)mUnknown7C8[1] + (double)(float)((double)aRandY * 0.30000001192092896));
+			mUnknown7BC[2] = (float)((double)mUnknown7C8[2] + (double)(float)((double)aRandZ * 0.30000001192092896));
 		}
+		// It drifts after its place: a velocity (7D4) of a 0.005 of the way there, damped, then moved by
+		float aDiffX = (float)((double)mUnknown7C8[0] - (double)mUnknown7BC[0]);
+		float aDiffY = (float)((double)mUnknown7C8[1] - (double)mUnknown7BC[1]);
+		float aDiffZ = (float)((double)mUnknown7C8[2] - (double)mUnknown7BC[2]);
+		mUnknown7D4[0] = (float)((double)(float)((double)aDiffX * 0.004999999888241291) + (double)mUnknown7D4[0]);
+		mUnknown7D4[1] = (float)((double)(float)((double)aDiffY * 0.004999999888241291) + (double)mUnknown7D4[1]);
+		mUnknown7D4[2] = (float)((double)(float)((double)aDiffZ * 0.004999999888241291) + (double)mUnknown7D4[2]);
+		mUnknown7D4[0] = (float)((double)0.9900000095367432f * (double)mUnknown7D4[0]);
+		mUnknown7D4[1] = (float)((double)mUnknown7D4[1] * (double)0.9900000095367432f);
+		mUnknown7D4[2] = (float)((double)0.9900000095367432f * (double)mUnknown7D4[2]);
+		mUnknown7D4[2] = (float)((double)mUnknown7D4[2] * 0.949999988079071);
+		mUnknown7BC[2] = (float)(((double)mUnknown7C8[2] - (double)mUnknown7BC[2]) * 0.20000000298023224 +
+			(double)mUnknown7BC[2]);
+		mUnknown7BC[0] = (float)((double)mUnknown7D4[0] + (double)mUnknown7BC[0]);
+		mUnknown7BC[1] = (float)((double)mUnknown7D4[1] + (double)mUnknown7BC[1]);
+		mUnknown7BC[2] = (float)((double)mUnknown7D4[2] + (double)mUnknown7BC[2]);
 	}
 	mUpdateCnt++;
 	// Towards the target, no faster than twice the warm-up
@@ -178,8 +223,8 @@ void GemSoul::Update()
 			}
 		}
 	}
-	// (with Direct3D, from state 2 on the swirl is left to the 3D drawing)
-	{
+	// With Direct3D, from state 2 on the swirl is left to the 3D drawing
+	if (mState < 2 || gD3DInterface == nullptr) {
 		float aCos = std::cos(mAngle);
 		int aX = Ftol((double)mRadius * (double)aCos + (double)mX);
 		mUnknown850 = aX;
@@ -285,13 +330,31 @@ void GemSoul::Draw(Graphics* g)
 		else
 			aScale = (float)aShrink;
 		if (0.0f < aScale) {
-			// (with Direct3D the gem is drawn through a SexyTransform2D scaled about the soul; in 2D it takes the scale)
-			mPiece->mDrawScale = aScale;
+			// With Direct3D the gem is drawn through a SexyTransform2D scaled about the soul; in 2D it takes the scale
+			SexyTransform2D aMatrix;
+			aMatrix.LoadIdentity();
+			aMatrix.Translate((float)-mDrawX, (float)-mDrawY);
+			aMatrix.Scale(aScale, aScale);
+			aMatrix.Translate((float)mDrawX, (float)mDrawY);
+			if (gD3DInterface == nullptr)
+				mPiece->mDrawScale = aScale;
+			else
+				gD3DInterface->PushTransform(aMatrix, true);
 			mPiece->Draw(g, true);
 			mPiece->Draw(g, false);
+			if (gD3DInterface != nullptr)
+				gD3DInterface->PopTransform();
 		}
 	}
-	// (Direct3D draws the rest through a SexyTransform2D scaled by mUnknown684 about the soul)
+	// Direct3D draws the rest through a SexyTransform2D scaled by mUnknown684 about the soul
+	if (gD3DInterface != nullptr) {
+		SexyTransform2D aMatrix;
+		aMatrix.LoadIdentity();
+		aMatrix.Translate((float)-mDrawX, (float)-mDrawY);
+		aMatrix.Scale(mUnknown684, mUnknown684);
+		aMatrix.Translate((float)mDrawX, (float)mDrawY);
+		gD3DInterface->PushTransform(aMatrix, true);
+	}
 	g->SetColorizeImages(true);
 	// (the original picks a colour by the type here, and when mUnknown740 is 1 works out twelve beams with it, drawing
 	// none of them)
@@ -340,4 +403,6 @@ void GemSoul::Draw(Graphics* g)
 	aWidth = Ftol((double)mSheen->mWidth * (double)mUnknown740);
 	aHeight = Ftol((double)mSheen->mHeight * (double)mUnknown740);
 	g->DrawImage(mSheen, mDrawX - aWidth / 2, mDrawY - aHeight / 2, aWidth, aHeight);
+	if (gD3DInterface != nullptr)
+		gD3DInterface->PopTransform();
 }

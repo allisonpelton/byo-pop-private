@@ -13,6 +13,7 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "TwistButton.h"
+#include "TwistD3D.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "VizManager.h"
@@ -57,8 +58,8 @@ WheelSpin::WheelSpin(Board* theBoard, Piece* thePiece)
 	}
 	mPaused = false;
 	mUnknownC28 = nullptr;
-	// (with Direct3D the manager would also draw through the board's distortion, its +0xa0)
 	mFXManager = new EffectsManager();
+	mFXManager->mUnknownA0 = true;  // +0xa0, set in both modes (drawn under the board's transform, 0x6f7a45)
 	mGemScale = 1.0f;
 	mPiece->mJustMade = 0;
 	mPiece->mDevilGlow = 0;
@@ -136,8 +137,7 @@ WheelSpin::WheelSpin(Board* theBoard, Piece* thePiece)
 	mGlow.SetCurve(GTS(0x7f2f60), &mArrive);
 	mUnfold.SetCurve(GTS(0x7f2f44), &mArrive);
 	mWheelAlpha.SetCurve(GTS(0x7f2f28), &mArrive);
-	// (with Direct3D the alert ring's curve is 0x7f2f04)
-	mAlert.SetCurve(GTS(0x7f2edc), &mArrive);
+	mAlert.SetCurve(GTS(gD3DInterface == nullptr ? 0x7f2edc : 0x7f2f04), &mArrive);  // Direct3D's alert ring has its own curve
 	mIconAlpha.SetCurve(GTS(0x7f2ebc), &mArrive);
 	gWheelSpin = this;
 }
@@ -744,8 +744,36 @@ void WheelSpin::Draw(Graphics* g)
 
 void WheelSpin::DrawHole(Graphics* g, int theX, int theY, float theDark, float theSize)
 {
-	// (the app's, 0x7607d9; with Direct3D it draws the hole as a textured quad)
+	// (the app's, 0x7607d9)
 	Image* aHole = IMAGE_TRANSPARENT_HOLE;
+	if (gD3DInterface != nullptr) {
+		// With Direct3D the hole is a quad over the whole screen, textured by the hole's picture, which the texture
+		// coordinates put about theX, theY, theSize times smaller than the screen (the picture's edge is clamped)
+		struct HoleVertex {  // FVF 0x1c4, 0x20 bytes
+			float mX, mY, mZ, mRHW;
+			unsigned int mDiffuse;
+			unsigned int mSpecular;
+			float mU, mV;
+		};
+		int aScreenWidth = gApp->mWidth;
+		int aScreenHeight = gApp->mHeight;
+		double aWidthD = (double)aScreenWidth;
+		float aTop = (float)((double)(float)((double)(float)-theY / (double)(float)aScreenWidth) * (double)theSize + 0.5);
+		float aLeft = (float)((double)(float)((double)(float)-theX / (double)(float)aScreenWidth) * (double)theSize + 0.5);
+		float aRight = (float)((double)(float)((double)(float)(aScreenWidth - theX) / aWidthD) * (double)theSize + 0.5);
+		float aBottom = (float)((double)(float)((double)(float)(aScreenHeight - theY) / aWidthD) * (double)theSize + 0.5);
+		HoleVertex aVertices[4] = {
+			{0.0f, 0.0f, 0.0f, 1.0f, 0, 0, aLeft, aTop},
+			{(float)aScreenWidth, 0.0f, 0.0f, 1.0f, 0, 0, aRight, aTop},
+			{0.0f, (float)aScreenHeight, 0.0f, 1.0f, 0, 0, aLeft, aBottom},
+			{(float)aScreenWidth, (float)aScreenHeight, 0.0f, 1.0f, 0, 0, aRight, aBottom},
+		};
+		gD3DInterface->SetTextureWrap(0, false);   // slot 0xcc
+		gD3DInterface->SetTexture(0, aHole);       // slot 0xd4
+		gD3DInterface->DrawPrimitiveEx(0x1c4, GPUPT_TRIANGLESTRIP, aVertices, 2, Color(0, 0, 0, Ftol((double)theDark * 255.0)), 0,
+			0.0f, 0.0f, true, nullptr);  // slot 0x7c
+		return;
+	}
 	int aWidth = Ftol((double)aHole->mWidth / (double)theSize * 6.0);
 	int aHeight = Ftol((double)aHole->mHeight / (double)theSize * 6.0);
 	int aX = theX - aWidth / 2;

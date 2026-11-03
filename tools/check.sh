@@ -27,6 +27,9 @@
 #                web/chat.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
 #                landmarks, headings, names, references, live regions and contrast). The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
+#   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
+#                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
+#                lighting, game shaders, buffers, precompiled programs, the null device), exact pixels (seconds)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -158,8 +161,8 @@ while [ $# -gt 0 ]; do
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
 		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|dynomite|mahjongjapan|mahjongchina|bonnies|oracle) SUITES+=("$1"); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web gpu verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|gpu|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|dynomite|mahjongjapan|mahjongchina|bonnies|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -307,6 +310,13 @@ suite_unit-web() {
 	f="$(lastof "$1.a11y" 'a11ycheck:')"
 	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.a11y" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.a11y"
 	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $f"
+	return $st
+}
+
+suite_gpu() {
+	(cd build/native && timeout 120 ./gputest.exe) > "$1" 2>&1
+	local st=$?
+	SUMMARY="$(lastof "$1" '^gpu:')"
 	return $st
 }
 
