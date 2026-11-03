@@ -423,6 +423,92 @@ void TestAlphaTest()
 	End();
 }
 
+struct CubeVertex
+{
+	float x, y, z, u, v, w;
+};
+const unsigned long FVF_CUBE = GPUFVF_XYZ | GPUFVF_TEX1 | 0x10000;  // set 0 with three components (D3DFVF_TEXCOORDSIZE3(0))
+
+// A cube map (an image with flag 0x20, 6x1 cells; 0x61ad60, 0x61b740): cell i goes to D3D face {5, 1, 4, 0, 3, 2}[i] (the
+// faces +X, -X, +Y, -Y, +Z, -Z), each face's rows top row first, and a stage with one samples with its texture
+// coordinate as a direction. Asserts, with point sampling: (1) each of the six axis directions gives the colour of the
+// cell the table puts on that face; (2) D3D9's face orientation on the -X face, where the texture's v grows toward -Y
+// (the split cell's top rows show toward +Y); (3) TEXCOORDINDEX 0x30000, the camera-space reflection vector of a ray
+// along +Z (not a local viewer) off a quad's normal, picks the face of that vector's largest component.
+void TestCubeMap()
+{
+	Begin("cube-map");
+	const unsigned long kCells[6] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff};
+	const unsigned long kSplitTop = 0xff00ff00, kSplitBottom = 0xffff8000;  // cell 1 (the -X face) is split
+	const int kFace[6] = {5, 1, 4, 0, 3, 2};
+	int aCell[6];  // the cell on each face
+	for (int i = 0; i < 6; i++)
+		aCell[kFace[i]] = i;
+	// six cells of 4 x 4 in a row
+	std::vector<unsigned long> aBits(24 * 4);
+	for (int y = 0; y < 4; y++)
+		for (int i = 0; i < 6; i++)
+			for (int x = 0; x < 4; x++)
+				aBits[y * 24 + i * 4 + x] = i == 1 ? (y < 2 ? kSplitTop : kSplitBottom) : kCells[i];
+	MemoryImage* anImage = MakeImage(24, 4, aBits);
+	anImage->mNumCols = 6;
+	anImage->mNumRows = 1;
+	anImage->mD3DFlags = 0x20 | 0x8;
+	anImage->BitsChanged();
+	gGPU->SetTexture(0, anImage);
+	gGPU->SetTextureStageState(0, GPUTSS_COLOROP, 2);
+	gGPU->SetTextureStageState(0, GPUTSS_COLORARG1, 2);
+	gGPU->SetTextureStageState(0, GPUTSS_ALPHAOP, 2);
+	gGPU->SetTextureStageState(0, GPUTSS_ALPHAARG1, 2);
+	gGPU->SetTextureStageState(0, GPUTSS_TEXCOORDINDEX, 0);
+	gGPU->SetRenderState(GPURS_LOCALVIEWER, 0);
+	auto X = [](float s) { return s * 2.0f / W - 1.0f; };
+	auto Y = [](float s) { return 1.0f - s * 2.0f / H; };
+	// (1) a direction for each face, +X, -X, +Y, -Y, +Z, -Z, in a 10 x 10 quad each
+	// (the -X face's y is 0.25, off the boundary between the split cell's halves)
+	const float kDirections[6][3] = {{1, 0, 0}, {-1, 0.25f, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+	for (int f = 0; f < 6; f++) {
+		const float* d = kDirections[f];
+		float l = X(2.0f + f * 10), r = X(12.0f + f * 10), t = Y(0), b = Y(10);
+		CubeVertex v[4] = {{l, t, 0.5f, d[0], d[1], d[2]}, {r, t, 0.5f, d[0], d[1], d[2]}, {l, b, 0.5f, d[0], d[1], d[2]},
+			{r, b, 0.5f, d[0], d[1], d[2]}};
+		gGPU->DrawPrimitiveUP(GPUPT_TRIANGLESTRIP, 2, FVF_CUBE, v, sizeof(CubeVertex));
+	}
+	// (2) the -X face over a quad whose direction runs from y = +0.5 at the top to -0.5 at the bottom
+	{
+		float l = X(0), r = X(32), t = Y(12), b = Y(44);
+		CubeVertex v[4] = {{l, t, 0.5f, -1, 0.5f, 0}, {r, t, 0.5f, -1, 0.5f, 0}, {l, b, 0.5f, -1, -0.5f, 0},
+			{r, b, 0.5f, -1, -0.5f, 0}};
+		gGPU->DrawPrimitiveUP(GPUPT_TRIANGLESTRIP, 2, FVF_CUBE, v, sizeof(CubeVertex));
+	}
+	// (3) three quads facing the camera at different normals (camera space; the ray is along +Z):
+	// (0, 0, -1) reflects to -Z; (0.6, 0, -0.8) to (0.96, 0, -0.28), +X; (0, -0.6, -0.8) to (0, -0.96, -0.28), -Y
+	gGPU->SetTextureStageState(0, GPUTSS_TEXCOORDINDEX, 0x30000);
+	const float kNormals[3][3] = {{0, 0, -1}, {0.6f, 0, -0.8f}, {0, -0.6f, -0.8f}};
+	for (int q = 0; q < 3; q++) {
+		const float* n = kNormals[q];
+		float l = X(34.0f + q * 10), r = X(44.0f + q * 10), t = Y(12), b = Y(22);
+		NormalVertex v[4] = {{l, t, 0.5f, n[0], n[1], n[2]}, {r, t, 0.5f, n[0], n[1], n[2]}, {l, b, 0.5f, n[0], n[1], n[2]},
+			{r, b, 0.5f, n[0], n[1], n[2]}};
+		gGPU->DrawPrimitiveUP(GPUPT_TRIANGLESTRIP, 2, FVF_NORMAL, v, sizeof(NormalVertex));
+	}
+	gGPU->SetTextureStageState(0, GPUTSS_TEXCOORDINDEX, 0);
+	Read();
+	for (int f = 0; f < 6; f++)
+		Expect(7 + f * 10, 5, f == 1 ? kSplitTop : kCells[aCell[f]]);
+	Expect(16, 16, kSplitTop);
+	Expect(16, 26, kSplitTop);
+	Expect(16, 30, kSplitBottom);
+	Expect(16, 40, kSplitBottom);
+	Expect(39, 17, kCells[aCell[5]]);
+	Expect(49, 17, kCells[aCell[0]]);
+	Expect(59, 17, kCells[aCell[3]]);
+	gGPU->SetTexture(0, nullptr);
+	gGPU->ImageDeleted(anImage);
+	delete anImage;
+	End();
+}
+
 // Texture stages: TFACTOR, MODULATE2X, a second stage, the argument modifiers
 void TestStages()
 {
@@ -1170,6 +1256,7 @@ int main(int argc, char** argv)
 	TestBlend();
 	TestAlphaTest();
 	TestStages();
+	TestCubeMap();
 	TestScissor();
 	TestLines();
 	TestLighting();

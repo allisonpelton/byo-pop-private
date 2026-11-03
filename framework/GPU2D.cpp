@@ -128,9 +128,10 @@ void GPU2D::SetTexture(int theStage, Image* theImage)
 		return;
 	}
 	MemoryImage* aMemoryImage = dynamic_cast<MemoryImage*>(theImage);
-	if ((aMemoryImage != NULL) && ((aMemoryImage->mD3DFlags & 0x60) != 0))
+	if ((aMemoryImage != NULL) && ((aMemoryImage->mD3DFlags & 0x40) != 0))
 	{
-		SDL_Log("GPU2D: a cube or volume texture is bound (nothing bound)");
+		// a cube texture (flag 0x20) is prepared and bound like any image; the device holds it as a cube
+		SDL_Log("GPU2D: a volume texture is bound (nothing bound)");
 		return;
 	}
 	if (mDevice->PrepareTexture(theImage) != NULL)

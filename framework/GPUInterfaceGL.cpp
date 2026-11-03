@@ -169,7 +169,8 @@ struct PSKey
 	enum { COMBINERS, GAME } mKind = COMBINERS;
 	std::string mGame;
 	// per stage, while enabled: COLOROP, COLORARG1, COLORARG2, COLORARG0, ALPHAOP, ALPHAARG1, ALPHAARG2, ALPHAARG0,
-	// RESULTARG, whether a texture is bound
+	// RESULTARG, what is bound: 0 nothing, 1 a 2D texture, 2 a cube texture (an image with flag 0x20, sampled with the
+	// stage's texture coordinate as a direction; keys saved before cube maps only hold 0 and 1)
 	std::vector<std::vector<long long>> mStages;
 	long long mSpecularAdd = 0;
 
@@ -227,8 +228,6 @@ const char* kVSPrelude =
 const char* kPSPrelude =
 	"in vec4 vDiffuse;\nin vec4 vSpecular;\n"
 	"in vec4 vTex0;\nin vec4 vTex1;\nin vec4 vTex2;\nin vec4 vTex3;\n"
-	"uniform sampler2D uSampler0;\nuniform sampler2D uSampler1;\nuniform sampler2D uSampler2;\n"
-	"uniform sampler2D uSampler3;\n"
 	"uniform vec4 uPS[32];\n"
 	"uniform vec4 uTFactor;\n"
 	"uniform vec4 uAlphaTest;\n"  // x: D3DCMPFUNC (8, always, when alpha test is off), y: ALPHAREF
@@ -247,6 +246,17 @@ const char* kPSPrelude =
 	"  if (f == 7) return v >= r;\n"
 	"  return true;\n"
 	"}\n";
+
+// The sampler declarations: a 2D sampler for each stage, a cube sampler for a combiner stage with a cube texture
+std::string PSSamplers(const PSKey& theKey)
+{
+	std::string s;
+	for (int st = 0; st < kStages; st++) {
+		bool isCube = theKey.mKind == PSKey::COMBINERS && st < (int)theKey.mStages.size() && theKey.mStages[st][9] == 2;
+		s += std::string("uniform ") + (isCube ? "samplerCube" : "sampler2D") + " uSampler" + std::to_string(st) + ";\n";
+	}
+	return s;
+}
 
 std::string TexAttr(int theIndex)
 {
@@ -442,7 +452,8 @@ std::string GenerateCombinersPS(const PSKey& theKey)
 	for (size_t st = 0; st < theKey.mStages.size(); st++) {
 		const std::vector<long long>& v = theKey.mStages[st];
 		std::string n = std::to_string(st);
-		s += "  vec4 tex" + n + " = " + (v[9] ? "texture(uSampler" + n + ", vTex" + n + ".xy)" : std::string("vec4(1.0)")) + ";\n";
+		s += "  vec4 tex" + n + " = " + (v[9] == 2 ? "texture(uSampler" + n + ", vTex" + n + ".xyz)"
+			: v[9] ? "texture(uSampler" + n + ", vTex" + n + ".xy)" : std::string("vec4(1.0)")) + ";\n";
 		std::string aColor = StageOp(v[0], StageArg(v[1], (int)st, false), StageArg(v[2], (int)st, false),
 			StageArg(v[3], (int)st, false), (int)st, "vec3");
 		std::string anAlpha = v[4] == 1 ? std::string("current.a")
@@ -579,6 +590,7 @@ struct TextureData
 	bool mTarget = false;
 	GPUFormat mFormat = GPUFMT_A8R8G8B8;
 	GLuint mFramebuffer = 0;
+	bool mCube = false;  // mTexture is a GL_TEXTURE_CUBE_MAP (an image with flag 0x20), one piece of the image's size
 };
 
 struct BufferData
@@ -668,6 +680,7 @@ private:
 	int TargetHeight();
 	TextureData* GetTexture(Image* theImage);
 	void UploadTexture(MemoryImage* theImage, TextureData* theData);
+	void UploadCubeTexture(MemoryImage* theImage, TextureData* theData, const std::vector<unsigned char>& thePixels);
 	void RefreshTarget(MemoryImage* theImage, TextureData* theData);
 	bool ReadFramebuffer(GLuint theFramebuffer, int theWidth, int theHeight, unsigned long* theBits);
 	GLuint CompileShader(GLenum theType, const std::string& theSource, const std::string& theKey);
@@ -824,6 +837,10 @@ void GPUInterfaceGL::MakeDeviceObjects()
 	gGL.glGenBuffers(1, &mStreamIndexBuffer);
 	gGL.glGenSamplers(kStages, mSamplers);
 	gGL.glDisable(GL_DITHER);
+	// Cube maps filter across their faces' edges, as Direct3D 9 does on the cards the port stands for (OpenGL ES 3.0 and
+	// WebGL2 always do; desktop GL only with this switch)
+	if (!mContext->IsES())
+		gGL.glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	gGL.glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 	gGL.glPixelStorei(GL_PACK_ALIGNMENT, 4);
 	MakeScreen();
@@ -1371,6 +1388,58 @@ TextureData* GPUInterfaceGL::GetTexture(Image* theImage)
 	return &aData;
 }
 
+// 0x61c070 with flag 0x20 (0x61ad60, 0x61b740): CreateCubeTexture of the cell's size, one level, in the image's format;
+// the cells, left to right and then down a row, go to the faces kFace names (D3D's order: +X, -X, +Y, -Y, +Z, -Z, which
+// GL_TEXTURE_CUBE_MAP_POSITIVE_X + n shares), each face's rows top row first as the 2D path uploads them
+void GPUInterfaceGL::UploadCubeTexture(MemoryImage* theImage, TextureData* theData, const std::vector<unsigned char>& thePixels)
+{
+	static const int kFace[6] = {5, 1, 4, 0, 3, 2};
+	int aWidth = theImage->mWidth, aHeight = theImage->mHeight;
+	int aColumns = std::max(theImage->mNumCols, 1), aRows = std::max(theImage->mNumRows, 1);
+	if (aColumns * aRows != 6) {
+		LogOnce("a cube map that does not have 6 cells");
+		return;
+	}
+	int aCellWidth = aWidth / aColumns, aCellHeight = aHeight / aRows;
+	int anEdge = aCellWidth;
+	if (theData->mTexture != 0 && (!theData->mCube || theData->mWidth != aWidth || theData->mHeight != aHeight)) {
+		gGL.glDeleteTextures(1, &theData->mTexture);
+		theData->mTexture = 0;
+	}
+	if (!theData->mMorePieces.empty()) {
+		gGL.glDeleteTextures((GLsizei)theData->mMorePieces.size(), theData->mMorePieces.data());
+		theData->mMorePieces.clear();
+	}
+	theData->mLayout = mPolicy.Pieces(aWidth, aHeight, theImage->mD3DFlags);  // one piece of the image's size
+	std::vector<unsigned char> aFaces[6];
+	for (int f = 0; f < 6; f++)
+		aFaces[f].assign((size_t)anEdge * anEdge * 4, 0);
+	for (int i = 0; i < 6; i++) {
+		int aLeft = (i % aColumns) * aCellWidth, aTop = (i / aColumns) * aCellHeight;
+		for (int y = 0; y < std::min(aCellHeight, anEdge); y++)
+			std::memcpy(&aFaces[kFace[i]][(size_t)y * anEdge * 4], &thePixels[((size_t)(aTop + y) * aWidth + aLeft) * 4],
+				(size_t)anEdge * 4);
+	}
+	if (theData->mTexture == 0)
+		gGL.glGenTextures(1, &theData->mTexture);
+	gGL.glBindTexture(GL_TEXTURE_CUBE_MAP, theData->mTexture);
+	for (int f = 0; f < 6; f++)
+		gGL.glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + f, 0, GL_RGBA8, anEdge, anEdge, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+			aFaces[f].data());
+	gGL.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
+	theData->mCube = true;
+	theData->mWidth = aWidth;
+	theData->mHeight = aHeight;
+	theData->mBitsChangedCount = theImage->mBitsChangedCount;
+}
+
+// Whether an image is a cube map (flag 0x20, set by the resource's cubemap attribute, 0x469ffc)
+bool IsCubeImage(Image* theImage)
+{
+	MemoryImage* aMemoryImage = dynamic_cast<MemoryImage*>(theImage);
+	return aMemoryImage != nullptr && (aMemoryImage->mD3DFlags & 0x20) != 0;
+}
+
 // The image's bits as RGBA, in the format the policy's rule picks: 16-bit formats are quantised as D3D9 stores them and
 // expanded back as it samples them
 void GPUInterfaceGL::UploadTexture(MemoryImage* theImage, TextureData* theData)
@@ -1404,9 +1473,13 @@ void GPUInterfaceGL::UploadTexture(MemoryImage* theImage, TextureData* theData)
 		p[2] = (unsigned char)b;
 		p[3] = (unsigned char)a;
 	}
+	if ((theImage->mD3DFlags & 0x20) != 0) {
+		UploadCubeTexture(theImage, theData, aPixels);
+		return;
+	}
 	// The pieces (0x61bd00); a new size or new flags make them again
 	GPUPieceLayout aLayout = mPolicy.Pieces(aWidth, aHeight, theImage->mD3DFlags);
-	bool isNew = theData->mTexture == 0 || theData->mWidth != aWidth || theData->mHeight != aHeight ||
+	bool isNew = theData->mTexture == 0 || theData->mCube || theData->mWidth != aWidth || theData->mHeight != aHeight ||
 		theData->mLayout.mPieces.size() != aLayout.mPieces.size() || theData->mLayout.mPieceWidth != aLayout.mPieceWidth ||
 		theData->mLayout.mPieceHeight != aLayout.mPieceHeight;
 	if (isNew) {
@@ -1415,6 +1488,7 @@ void GPUInterfaceGL::UploadTexture(MemoryImage* theImage, TextureData* theData)
 		if (!theData->mMorePieces.empty())
 			gGL.glDeleteTextures((GLsizei)theData->mMorePieces.size(), theData->mMorePieces.data());
 		theData->mTexture = 0;
+		theData->mCube = false;
 		theData->mMorePieces.assign(aLayout.mPieces.size() - 1, 0);
 		theData->mLayout = aLayout;
 	}
@@ -1644,7 +1718,7 @@ Program* GPUInterfaceGL::BuildProgram(const std::string& theKey, const VSKey& th
 	} else {
 		aVSSource += GenerateFixedVS(theVS);
 	}
-	std::string aPSSource = aHeader + kPSPrelude;
+	std::string aPSSource = aHeader + kPSPrelude + PSSamplers(thePS);
 	if (thePS.mKind == PSKey::GAME) {
 		const Shader* aShader = FindShader(thePS.mGame, false);
 		if (aShader == nullptr)
@@ -1770,7 +1844,7 @@ PSKey GPUInterfaceGL::MakePSKey()
 		aKey.mStages.push_back({(long long)v[GPUTSS_COLOROP], (long long)v[GPUTSS_COLORARG1], (long long)v[GPUTSS_COLORARG2],
 			(long long)v[GPUTSS_COLORARG0], (long long)v[GPUTSS_ALPHAOP], (long long)v[GPUTSS_ALPHAARG1],
 			(long long)v[GPUTSS_ALPHAARG2], (long long)v[GPUTSS_ALPHAARG0], (long long)v[GPUTSS_RESULTARG] == 5 ? 5 : 1,
-			mTextures[s] != nullptr ? 1 : 0});
+			mTextures[s] == nullptr ? 0 : IsCubeImage(mTextures[s]) ? 2 : 1});
 	}
 	aKey.mSpecularAdd = mRenderStates[GPURS_SPECULARENABLE] != 0;
 	return aKey;
@@ -1905,6 +1979,9 @@ void GPUInterfaceGL::BindTextures()
 	for (int s = 0; s < kStages; s++) {
 		TextureData* aData = GetTexture(mTextures[s]);
 		GLuint aTexture = 0;
+		bool isCube = aData != nullptr && aData->mCube;
+		if (isCube && mPixelShader != 0)
+			LogOnce("a cube texture is bound under a game pixel shader (declared as a 2D sampler)");
 		if (aData != nullptr) {
 			int aPiece = mTexturePieces[s];
 			if (aPiece > 0 && aPiece <= (int)aData->mMorePieces.size())
@@ -1913,7 +1990,9 @@ void GPUInterfaceGL::BindTextures()
 				aTexture = aData->mTexture;
 		}
 		gGL.glActiveTexture(GL_TEXTURE0 + s);
-		gGL.glBindTexture(GL_TEXTURE_2D, aTexture);
+		// A unit holds one kind of texture for the program's sampler: the other target is unbound
+		gGL.glBindTexture(GL_TEXTURE_2D, isCube ? 0 : aTexture);
+		gGL.glBindTexture(GL_TEXTURE_CUBE_MAP, isCube ? aTexture : 0);
 		// Sampler state belongs to the stage, as in D3D9
 		const unsigned long* v = mSamplerStates[s];
 		auto Address = [](unsigned long theMode) -> GLint {
@@ -1925,6 +2004,7 @@ void GPUInterfaceGL::BindTextures()
 		};
 		gGL.glSamplerParameteri(mSamplers[s], GL_TEXTURE_WRAP_S, Address(v[GPUSAMP_ADDRESSU]));
 		gGL.glSamplerParameteri(mSamplers[s], GL_TEXTURE_WRAP_T, Address(v[GPUSAMP_ADDRESSV]));
+		gGL.glSamplerParameteri(mSamplers[s], GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);  // a cube map ignores the address modes
 		gGL.glSamplerParameteri(mSamplers[s], GL_TEXTURE_MAG_FILTER, v[GPUSAMP_MAGFILTER] >= 2 ? GL_LINEAR : GL_NEAREST);
 		// MIPFILTER is ignored: every texture has one level
 		gGL.glSamplerParameteri(mSamplers[s], GL_TEXTURE_MIN_FILTER, v[GPUSAMP_MINFILTER] >= 2 ? GL_LINEAR : GL_NEAREST);

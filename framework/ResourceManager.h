@@ -64,6 +64,8 @@ protected:
 		bool mDDSurface;
 		bool mPurgeBits;
 		bool mMinimizeSubdivisions;
+		bool mCubeMap;
+		bool mVolumeMap;
 		int mRows;
 		int mCols;	
 		int mTotal;
