@@ -406,8 +406,11 @@ here first.
 All 24 visualizers are ported (Visualizers3D*.cpp), each with its own generator kept in the original's order: some
 draw from the global Rand, VizJellyBlob and VizZenWheels from the C library's rand (CrtRand, seeded from the game's
 seed), VizMagicSnakes from its own LCG seeded 0xbeef0b01 and VizKaleidoCat from another. VizBuckyShards' environment
-map needs a cube map, which the shared GPU code does not have yet. Slot 4 of a visualizer takes a key (VizZenWheels
-answers b, c, e, g and r), but the VizManager's key function that asks it (0x758034) has no callers in the original.
+map is a cube map (the image's `cubemap` attribute, flag 0x20): the shared GPU code makes a GL cube texture from its
+six cells in the original's face order and samples it by stage 0's camera-space reflection vector. It is checked
+only in the port (a forced-visualizer run): the original shows it in blitz after an even number of blitz games,
+which no seeded run here reaches yet. Slot 4 of a visualizer takes a key (VizZenWheels answers b, c, e, g and r), but
+the VizManager's key function that asks it (0x758034) has no callers in the original.
 
 Compared with the original (seeded autoplay, 3D, updates 1000 to 3000 and the generators' states to 6000; the
 original on the desktop through visrun for this comparison only): the board's generator matches at every sample, and
