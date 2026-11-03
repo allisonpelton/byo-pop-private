@@ -71,11 +71,12 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   group.
 - **The passes after Twist (the user, 2026-11-03):** the passes waited until Bejeweled Twist was done, 3D mode included
   (the user, 2026-11-01), with Bejeweled Deluxe's the one exception. With Twist finished: "get going on identical play
-  for more games. Start with lowest effort." So the first phase runs for every game that has had no pass, three
-  sessions side by side, each in the game's own session, from the lowest survey estimate up: Noah's Ark, Mummy Maze and
-  Alchemy first (started 2026-11-03), then Atomica (its original stops at startup under origrun), Big Money, Cosmic
-  Bugs (on Water Bugs' engine, whose pass is done), TipTop and Ning Po, Pixelus, BookWorm, Word Harmony, Rocket Mania,
-  Dynomite and Bookworm Adventures Volume 2. A session that finishes its phase frees its slot for the next game.
+  for more games. Start with lowest effort." So the first phase runs for every game that has had no pass, up to five
+  sessions side by side ("Ok to run up to 5 identical play sessions at once", the user, 2026-11-03), each in the game's
+  own session where one fits, from the lowest survey estimate up: Noah's Ark, Mummy Maze, Alchemy, Atomica and Big
+  Money first (started 2026-11-03; Big Money in a new session), then Cosmic Bugs (on Water Bugs' engine, whose pass is
+  done), TipTop and Ning Po, Pixelus, BookWorm, Word Harmony, Rocket Mania, Dynomite and Bookworm Adventures Volume 2.
+  A session that finishes its phase frees its slot for the next game.
 - **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
   and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's

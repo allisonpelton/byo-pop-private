@@ -288,9 +288,12 @@ MarketingMode is LevelLock, and the mode select opens Blitz at once only for a r
 
 The port stages Steam's `properties/` (PORT_PLAN.md, "Which copy's files"): the retail resources.xml names the zendrops
 by paths no copy has, and the retail game quits on the first one it needs. So the port reads LevelLock, Steam's
-registry key (`Steam\BejeweledTwist`) and its sound volumes. For the comparisons, origrun's copy of the original carries
-the same `properties/` and the patch that skips the properties-signature check (0x4a39c7), as the user's Steam exe
-does; its registry preset goes under the Steam key. During a 2D jump Hyperspace draws the level's picture over space
+registry key (`Steam\BejeweledTwist`) and its sound volumes.
+<!-- private: For the comparisons, origrun's copy of the original reads the same `properties/`, as the user's Steam copy does; its registry preset goes under the Steam key. -->
+For the comparisons, origrun's copy of the original carries the same `properties/` and the patch that skips the
+properties-signature check (0x4a39c7), as the user's Steam exe does; its registry preset goes under the Steam key.
+<!-- /private -->
+During a 2D jump Hyperspace draws the level's picture over space
 while the VizManager is hidden (0x711b65, the old picture for the first half, faded in by +0x1570), and at the end of
 one the old picture at +0x12b0's alpha (0x70f836), or space fading out over the board.
 
@@ -802,7 +805,7 @@ is reported in IDENTICAL_PLAY.md.
   between the native and web builds from libm's last bits (sin and cos), with the same random draws: the boards stay
   identical.
 - **Rotated and matrix draws in 2D are the original's software ones.** In 2D the original rotates with its own
-  bilinear code (DDImage::BltRotated, 0x41c5c0), draws matrices and triangles with SWTri (BltMatrix, 0x4355e0) and blits
+  bilinear code (DDImage::BltRotated, 0x413150), draws matrices and triangles with SWTri (BltMatrix, 0x4355e0) and blits
   at a fractional place as a rotation at no angle (BltF, 0x412fd0). The port turns on the framework's
   mSoftwareTransforms in 2D (f8624d2), which draws these with MemoryImage's software code into a copy and blits it, and
   the constructor registers SWTri's drawers as the original's does (0x766ce7 calls 0x50f7e0); without them SWTri drew

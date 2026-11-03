@@ -1,8 +1,13 @@
 // The site's text: web/strings/en.txt against the code that uses it, and web/i18n.js's rules (docs/WEB_PLAYER.md, "The site's
 // text"). Needs build/web/strings.js (build-web) for the runtime checks. Run: node tools/stringstest.js
-//   - en.txt: well formed, keys lower case "area.name", none twice, lines at most 110 characters;
-//   - every {{key}} in web/*.html, every ByopopStrings.t/.html("key") in web/*.js and every byopop_web_string() key in
-//     cmake/ByopopWeb.cmake is a key of en.txt; every key of en.txt is used somewhere;
+//   - en.txt: well formed, keys lower case "area.name", none twice (lines may be any length: the user writes it);
+//   - every {{key}} in web/*.html, every ByopopStrings.t/.html("key") (and T("key"), settings.js's short name for t) in
+//     web/*.js and every byopop_web_string() key in cmake/ByopopWeb.cmake is a key of en.txt, and so is every other quoted
+//     "area.name" whose area is one of en.txt's (a key picked by a ternary or held in a table), files like "index.html"
+//     aside;
+//   - every key of en.txt is used somewhere. This is approximate: any quoted literal that is a key counts as a use, a
+//     prefix ("players.mode." + name) counts for every key under it, and theme.* are exempt; a key that only looks used
+//     passes, a key used nowhere at all does not;
 //   - no {{key}} inside a script (the build fills markup only), and a "_html" key is only used as markup;
 //   - every {placeholder} a script passes is in the string, and every placeholder of a string is passed;
 //   - ByopopStrings: placeholders, count forms, a missing key, HTML escaping.
@@ -25,7 +30,6 @@ const table = {}, lines = {};
   const src = read("web/strings/en.txt").replace(/\r\n/g, "\n").split("\n");
   let cur = null;
   src.forEach((line, i) => {
-    if (!/^\s*#/.test(line)) check(line.length <= 110, "en.txt:" + (i + 1) + " is " + line.length + " characters (110 at most)");
     if (/^\s*#/.test(line)) return;      // a note (the build treats an indented # the same way)
     if (/^\s*$/.test(line)) { cur = null; return; }
     if (/^\s/.test(line)) {
@@ -45,6 +49,9 @@ const table = {}, lines = {};
 }
 const keys = Object.keys(table);
 check(keys.length > 100, "en.txt holds " + keys.length + " keys");
+const areas = {};
+keys.forEach((k) => { areas[k.split(".")[0]] = true; });
+const FILE = /\.(html|js|json|css|svg|png|jpg|ico|txt|xml|dat|exe|pak|zip|ogg|mo3|it|s3m|wav|bbk|saf|pyz|dll|egg)$/i;
 
 // ---- uses
 const used = {};            // key -> [places]
@@ -91,24 +98,30 @@ function objectKeys(text, i) {
   return null;
 }
 function scan(text, file) {
-  const re = /ByopopStrings\.(t|html)\(\s*"([a-z0-9_.]+)"\s*(,\s*\{)?/g;
+  // ByopopStrings.t/.html, and T (settings.js: var T = ByopopStrings.t)
+  const re = /(?:ByopopStrings\.(t|html)|\bT)\(\s*"([a-z0-9_.]+)"\s*(,\s*\{)?/g;
   let m;
   while ((m = re.exec(text))) {
     if (/\.$/.test(m[2])) continue;       // a key built from a prefix, below
     const after = text.slice(m.index + m[0].length).match(/^\s*[,)]/);
     const vars = m[3] ? objectKeys(text, m.index + m[0].length - 1) : (after && after[0].indexOf(",") >= 0 ? null : []);
-    calls.push({ key: m[2], vars, file, kind: m[1] });
+    calls.push({ key: m[2], vars, file, kind: m[1] || "t" });
     note(m[2], file);
   }
   // a key built from a prefix ("players.mode." + name + "_all") uses every key under that prefix
   text.replace(/"([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)*\.)"\s*\+/g, (s, p) => { prefixes.push([p, file]); return s; });
-  // a key held in a variable or a table: "area.name" strings that are keys
-  text.replace(/"([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)"/g, (s, k) => { if (k in table) note(k, file); return s; });
+  // a key held in a variable or a table: "area.name" strings that are keys, and those of a known area that are not (a
+  // misspelled key picked by a ternary would otherwise show as itself); file names ("index.html") are not keys
+  text.replace(/"([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)"/g, (s, k) => {
+    if (k in table) note(k, file);
+    else if (areas[k.split(".")[0]] && !FILE.test(k)) note(k, file);
+    return s;
+  });
 }
 // the build's own text
 {
   const cmake = read("cmake/ByopopWeb.cmake");
-  cmake.replace(/byopop_web_string\(\s*\S+\s+([a-z0-9_.]+)\s*\)/g, (m, k) => { note(k, "cmake/ByopopWeb.cmake"); return m; });
+  cmake.replace(/byopop_web_string\(\s*\w+\s+([a-z0-9_.]+)[\s)]/g, (m, k) => { note(k, "cmake/ByopopWeb.cmake"); return m; });
   cmake.replace(/"([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)"/g, (s, k) => { if (k in table) note(k, "cmake/ByopopWeb.cmake"); return s; });
 }
 // the games' pages are not converted, but a page may read a site key through the shell's text

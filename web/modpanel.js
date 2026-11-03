@@ -382,7 +382,7 @@ Module["byopop"] = (function () {
   // One edit of the model ({op, mod, ...}); "" or why nothing changed
   ModPanel.prototype.edit = function (op) {
     var r = this.call("byopop_mods_edit", "string", ["string"], [JSON.stringify(op)]);
-    return r === null ? "the game stopped" : r;
+    return r === null ? ByopopStrings.t("mods.err.stopped") : r;
   };
   ModPanel.prototype.say = function (text) { this.message = text; this.msg.textContent = text; };
   // What the in-game menu's focus is on, to the live region. The same words twice in a row (a setting changed back to

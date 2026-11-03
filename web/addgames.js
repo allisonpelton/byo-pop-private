@@ -188,7 +188,7 @@ var ByopopAddGames = (function () {
       var root = ByopopImport.findRoot(game.spec, entries, false);
       if (root === null) {
         rejectedEl.hidden = false;
-        rejectedEl.textContent = ByopopStrings.t("add.wrong_folder", {title: game.title, markers: game.spec.markerText});
+        rejectedEl.textContent = ByopopStrings.t("add.wrong_folder", {title: game.title, markers: ByopopImport.missingMarkers(game.spec, entries)});
         return;
       }
       var top = (entries[0] && entries[0].path.split("/")[0]) || game.title;

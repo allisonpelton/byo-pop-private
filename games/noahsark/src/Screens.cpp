@@ -299,7 +299,7 @@ NextLevelWidget::NextLevelWidget(NoahApp* theApp) :
 	mSeconds = (mApp->mBoard == NULL) ? 0 : (int) ((GameTickCount() - mApp->mBoard->mStartTick) / 1000);
 	int aKinds = (mApp->mGameMode == GAMEMODE_STRATEGY) ? 3 : 4;
 	mTip = CrtRand() % aKinds;
-	if (mApp->mDifficulty == 0 && false)
+	if (mApp->mGameMode == GAMEMODE_STRATEGY)
 		mTip++;
 	mApp->PlaySample(SOUND_LEVELUPVOICE);
 }

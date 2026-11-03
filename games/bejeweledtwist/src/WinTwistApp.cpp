@@ -231,8 +231,7 @@ void WinTwistApp::Init()
 		return;
 	// 0x7653a1: unless partner.xml's MarketingMode is "LevelLock" (Steam's copy), +0x759 and +0x758 are set: a full
 	// version whose Blitz is earned by play. With LevelLock +0x758 is the wrapper's check (0x73321a) and the mode
-	// select opens Blitz at once for a registered copy; the port counts as registered. (The retail exe rejects Steam's
-	// partner.xml by its signature; the user's Steam copy skips that check, so its game reads LevelLock.)
+	// select opens Blitz at once for a registered copy; the port counts as registered.
 	mUnknown759 = GetString("MarketingMode", _S("")) != _S("LevelLock");
 	LoadProperties("properties/config.xml", true, false);
 	LoadResourceManifest();
@@ -558,7 +557,7 @@ DDInterface* WinTwistApp::CreateDDInterface()
 	if (mUse3D)
 		return new GPUDisplay(this, GPUPolicy::Twist());
 	// port: the original's 2D screen is software, so its non-fast stretches average (DDImage::StretchBlt, 0x41a3e0) and
-	// its rotated, matrix and triangle draws are its own bilinear and SWTri code (0x41c5c0, 0x4355e0)
+	// its rotated, matrix and triangle draws are its own bilinear and SWTri code (0x413150, 0x4355e0)
 	DDInterface* anInterface = SexyApp::CreateDDInterface();
 	anInterface->mSoftwareStretch = true;
 	anInterface->mSoftwareTransforms = true;

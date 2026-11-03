@@ -356,10 +356,9 @@ void Board::MouseMove(int x, int y)
 	if ((0x165 < x) && (10 < y) && (x < 0x1a3) && (y < 0x38))
 	{
 		// the geiger counter: the name of the combo
-		static const char* const aNames[] = {"No Combo!", "No Combo!", "Combo!", "Super Combo!", "Mega Combo!",
-			"Ultra Combo!", "Hyper Combo!", "Giga Combo!"};
+		static const unsigned int aNames[] = {0x4b3020, 0x4b3020, 0x4b3018, 0x4b3008, 0x4b2ffc, 0x4b2fec, 0x4b2fdc, 0x4b2fd0};
 		unsigned int aCombo = (unsigned int) mGrid->mCombo;
-		strcpy(mTooltip, aCombo < 8 ? aNames[aCombo] : "Max Combo!");
+		strcpy(mTooltip, GTC(aCombo < 8 ? aNames[aCombo] : 0x4b2fc4));
 		return;
 	}
 	if ((0xd7 < x) && (0xf < y) && (x < 0x23c) && (y < 0x23) && (mApp->mMode == 0) && (mMeter.mLevel % 5 != 0))
