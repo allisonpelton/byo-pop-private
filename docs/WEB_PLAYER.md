@@ -163,10 +163,16 @@ everywhere"), and the set chosen still shows its own in text fields. Each image 
 hot spot taken from the crop and a hash of the cropped pixels (`crop` and `picture` in `web/cursors.js`, from the game page's
 `takeCursorSet`), so the same design drawn on canvases of different sizes (Bejeweled's 54 by 54, Alchemy's 37 by 37) keeps one
 picture and makes smaller CSS cursors; sets kept before cropping are cropped once as a page of the site loads (`upgrade`), with no
-need to start each game again. Games whose sets are the same (every compared kind with the same cropped pixels, hot spot and
-frames; Alchemy and Bejeweled, for one) share one entry named with all their titles, "Alchemy Deluxe and Bejeweled Deluxe" (the
-user, 2026-11-04); the sets are still kept one a game, choosing the entry keeps one member's id, and the entries form again from
-what is kept, so a set that changes leaves its group. The choice,
+need to start each game again. Games whose sets look the same share one entry named with all their titles, "Alchemy Deluxe and
+Big Money Deluxe" (the user, 2026-11-04: entries that look the same are one entry, and differences nobody can see do not split
+one). Two sets look the same when every compared kind does: its pixels that show are the same size, they differ nowhere by more
+than 16 of 255 in any colour drawn over white and over black, the hot spots are no more than a pixel apart, and the frames match
+(`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The games that use PopCap's usual cursors make three entries:
+Alchemy, Big Money, BookWorm, Mummy Maze, Pixelus, Rocket Mania and Seven Seas as one (BookWorm's pointer has colours up to three steps off Alchemy's); Atomica
+and Dynomite, whose cursors are green; and Bejeweled, whose dragging cursor is an open hand without the shadow, since its mask
+is a smaller image than its picture and the game, like the original, leaves a mask of another size out. The sets are still kept
+one a game, choosing the entry keeps one member's id, and the entries form again from what is kept, so a set that changes
+leaves its group. The choice,
 `byopop-site-cursor`, applies to every page of the site (`.site-cursor` on `<html>` and one style element), each cursor where the
 site means what the game means by it (the table below): the pointer everywhere, the hand on links, buttons and other controls
 that can be used, the text cursor in text fields, the dragging cursor on a cap being dragged, the circle-slash on a disabled

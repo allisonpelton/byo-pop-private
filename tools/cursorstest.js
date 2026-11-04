@@ -3,8 +3,9 @@
 // well-formed), the rules each context gets (the pointer, hand and text always, the circle-slash on disabled controls and the wait
 // cursor while the site is busy only from a set that has them), busy() and the frames of an animated cursor (swapped on the
 // element under the mouse while the mouse stays still, and given back when it leaves; no timer for a set without frames), and the
-// Settings' choice, where games with the same set share one entry: the same cropped pictures and hot spots in every kind but the
-// text cursor, sets kept before images were cropped included once they are cropped.
+// Settings' choice, where games whose sets look the same share one entry: in every kind but the text cursor, cropped pictures
+// that differ by nothing anyone can see (colours a few steps off, a hot spot a pixel away), sets kept before images were
+// cropped included.
 //   node tools/cursorstest.js
 // It prints "cursorstest: N checks, M failed" and exits 1 when any failed.
 "use strict";
@@ -221,12 +222,13 @@ function codec(p) {
     done({ width, height, data: new Uint8ClampedArray(data) });
   };
 }
-// a canvas of w by h with a design drawn at (ox, oy): an arrow-ish shape in a colour, with a half-transparent shadow
-function canvas(w, h, ox, oy, colour) {
+// a canvas of w by h with a design drawn at (ox, oy): an arrow-ish shape in a colour, with a half-transparent shadow unless
+// `bare` (as Bejeweled's dragging hand has none: its mask is another size, so the game leaves it out)
+function canvas(w, h, ox, oy, colour, bare) {
   const data = new Uint8ClampedArray(w * h * 4);
   const put = (x, y, r, g, b, a) => data.set([r, g, b, a], ((oy + y) * w + ox + x) * 4);
   for (let y = 0; y < 6; y++) for (let x = 0; x <= y; x++) put(x, y, colour, 20, 30, 255);
-  put(1, 6, 0, 0, 0, 128);
+  if (!bare) put(1, 6, 0, 0, 0, 128);
   return { width: w, height: h, data };
 }
 {
@@ -250,18 +252,24 @@ function entryNames(p) {
 {
   const p = page();
   codec(p);
-  const pic = (w, ox, colour, hx) => p.C.picture(canvas(w, w, ox, ox, colour), ox + (hx || 0), ox);
+  const pic = (w, ox, colour, hx, bare) => p.C.picture(canvas(w, w, ox, ox, colour, bare), ox + (hx || 0), ox);
   const set = (colours, text) => ({ pointer: pic(54, 9, colours[0]), hand: pic(37, 2, colours[1]), drag: pic(40, 5, colours[2]), text });
-  p.C.save("bejeweled", "Bejeweled Deluxe", set([10, 20, 30], pic(54, 20, 99)));
-  p.C.save("alchemy", "Alchemy Deluxe", set([10, 20, 30], pic(37, 1, 77)));
-  p.C.save("p", "Pointer Differs", set([11, 20, 30], pic(37, 1, 77)));
-  p.C.save("h", "Hand Differs", set([10, 21, 30], pic(37, 1, 77)));
-  p.C.save("d", "Drag Differs", set([10, 20, 31], pic(37, 1, 77)));
-  p.C.save("hot", "Hot Spot Differs", Object.assign(set([10, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 1) }));
-  check("sets that differ only in their text cursor share an entry; one picture or hot spot apart in a pointer, hand or drag keeps a set apart",
-    entryNames(p), ["Default", "Alchemy Deluxe and Bejeweled Deluxe", "Drag Differs", "Hand Differs", "Hot Spot Differs", "Pointer Differs"]);
-  p.C.choose("bejeweled");
-  const bej = p.C.all().bejeweled.text.url, alc = p.C.all().alchemy.text.url;
+  p.C.save("alchemy", "Alchemy Deluxe", set([200, 20, 30], pic(37, 1, 77)));
+  p.C.save("bigmoney", "Big Money Deluxe", set([200, 20, 30], pic(54, 20, 99)));
+  // BookWorm's pointer: Alchemy's, its colours up to three steps off
+  p.C.save("bookworm", "BookWorm Deluxe", set([197, 20, 30], pic(37, 1, 77)));
+  p.C.save("near", "Hot Spot A Pixel Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 1) }));
+  // Atomica's are green
+  p.C.save("p", "Pointer Differs", set([90, 20, 30], pic(37, 1, 77)));
+  p.C.save("h", "Hand Differs", set([200, 120, 30], pic(37, 1, 77)));
+  p.C.save("bejeweled", "Bejeweled Deluxe", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { drag: pic(54, 9, 30, 0, true) }));
+  p.C.save("hot", "Hot Spot Three Pixels Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 3) }));
+  check("sets that differ only in their text cursor, by colours a few steps off or by a hot spot a pixel away share an entry; " +
+    "another colour, a missing shadow or a hot spot further away keeps a set apart", entryNames(p),
+    ["Default", "Alchemy Deluxe, Big Money Deluxe, BookWorm Deluxe and Hot Spot A Pixel Off", "Bejeweled Deluxe", "Hand Differs",
+      "Hot Spot Three Pixels Off", "Pointer Differs"]);
+  p.C.choose("bigmoney");
+  const bej = p.C.all().bigmoney.text.url, alc = p.C.all().alchemy.text.url;
   check("a member's own text cursor shows in text fields", [p.css().indexOf(bej) >= 0, p.css().indexOf(alc) >= 0], [true, false]);
 }
 {
@@ -274,7 +282,7 @@ function entryNames(p) {
   codec(p);
   const pic = (w, ox, colour) => p.C.picture(canvas(w, w, ox, ox, colour), ox, ox);
   p.C.save("bejeweled", "Bejeweled Deluxe", { pointer: pic(54, 9, 10), hand: pic(54, 9, 20), drag: pic(54, 9, 30), text: pic(54, 9, 40) });
-  check("before it is cropped, an old set has its own entry", entryNames(p), ["Default", "Alchemy Deluxe", "Bejeweled Deluxe"]);
+  check("an old set looks like the same set taken since, before it is cropped", entryNames(p), ["Default", "Alchemy Deluxe and Bejeweled Deluxe"]);
   p.C.choose("alchemy");
   p.C.upgrade();
   check("cropped, it shares the entry of the same set taken since", entryNames(p), ["Default", "Alchemy Deluxe and Bejeweled Deluxe"]);
