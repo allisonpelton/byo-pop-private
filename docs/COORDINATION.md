@@ -9,7 +9,7 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 - **Weekly cap (the user, 2026-10-26; 2026-11-03):** when the account's weekly usage (all models) reaches 97%, the
   coordinator starts no new game session and sends no "Begin" ("I only need 3% usage in reserve for the week", the
   user, 2026-11-03; it was 85%); it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
-  Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
+  The cap is for the identical-play sessions; site work goes ahead past it (the user, 2026-11-04). Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
   and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
   Site work runs alongside the game sessions (the user, 2026-11-01).
 - **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage; the coordinator sets
@@ -35,6 +35,15 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   test-then-increment loop does not become a for loop), checks what a comment claims about the original before
   writing it, and builds with AddressSanitizer at the first sign of a crash or memory corruption. If a Sonnet
   game's review finds many faults, or its port runs far over its estimate, games of its kind move to Opus.
+
+- **Finished games' sessions are archived (the user, 2026-11-04):** to free the boot drive, the sessions of the games
+  that are done and identical were archived and their worktrees removed (about 62 GB), with the three abandoned
+  worktrees and the five game sessions that never started (AstroPop, Bejeweled 2, Hammer Heads, Heavy Weapon, Venice).
+  Every branch stays. What only those worktrees held is now in the main checkout: each game's Ghidra exports and
+  analysis in `re/<game>/` (scratch folders left out), the Seven Seas and Bonnie's baselines in `build/`, and Twist's
+  one uncommitted debug change as a patch in `build/worktree-leftovers/`. A later pass on one of those games (the
+  performance and readability passes) starts a fresh session from `main`, which copies its `re/<game>/` in from the
+  main checkout. So does each of the five games when its turn comes.
 
 ## Publishing
 
