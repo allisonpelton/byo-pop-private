@@ -2,9 +2,9 @@
 
 This is the report of the pass that compares the port with the original exe: the game carved out of the Steam
 `WinBM.exe` (`tools/extract_game_exe.py`), the same image our Ghidra export in `re/bigmoney/` was made from. It says what
-was compared and how, what the pass changed, what it left alone and why, and what still differs. Only the first phase,
-**plays identical**, has been done so far; the second, **looks identical** (screens with shotdiff, sound, focus, the web
-build), waits until every game plays identical (CLAUDE.md, "Two phases").
+was compared and how, what the pass changed, what it left alone and why, and what still differs. It has two phases
+(CLAUDE.md, "Two phases"): **plays identical** (the game's state) and **looks identical** (screens with shotdiff, sound
+and music, focus, the web build).
 
 ## Phase one: plays identical
 
@@ -106,3 +106,99 @@ To repeat a game: `games/bigmoney/tools/origcmp/orig.sh --prepare` once, then fo
 `games/bigmoney/tools/origcmp/game.sh s3 1 3 4 60000 -autoplaygames=2` (Strategy, skill 3, seed 4, cap 60 000 updates;
 `WATCH3=mt0` for a long Action game). The saved game: `ORIG_SAVE=<savegame.dat> orig.sh sv1 <script> 1`, `toport.py`,
 then `PORT_SAVE=<savegame.dat> port.sh sv1 <script> 1` and `statecmp.py`. Run one original at a time.
+
+## Phase two: looks identical
+
+### How both sides are driven
+
+The original runs inside Windows Sandbox (the only place origrun takes shots) on origrun's virtual clock, with
+`--cursor scripted` and the input gate of the git-ignored `tools/origrun/bigmoney.cfg`, from the same settings each time:
+`games/bigmoney/tools/origcmp/settings.txt` is imported into the sandbox's registry, and the port gets the same values in
+its `registry.ini` (`regini.py`). A shot lands on an update origrun records (`shots/landed.tsv`); `toport.py` gives the
+port the original's input on the same updates and takes the port's shot at the landed update + 1, the frame that is on
+screen when the original's shot is taken. `tour.sh` runs one origrun script that way and compares four things: the state
+(`statecmp.py`, as in phase one), the shots (`tools/shotdiff`), the sound and music (`soundcmp.py`), and the web build
+(`webport.sh`: the same port script under Node with `wasmrun.js`, compared with the native port by its state log and its
+shots). `gametour.sh` does the same for a game the port's bot plays, with a shot every N updates and at each level's end
+and the game's end (`fromport.py --shots`).
+
+Sound: the original plays its sounds through DirectSound, which origrun's stand-in logs, and its music through an older
+BASS (2004), which a logging proxy (`games/bigmoney/tools/bassproxy`, after Bookworm Adventures') records, passing every
+call on. The port logs both through `BYOPOP_SOUNDLOG`. `soundcmp.py` compares every sound play in order with its volume,
+pan and pitch, and the music by what can be heard: which song plays from which order, its volume while it plays (each
+step of every fade), pauses and stops. Both runs were silent: every RESULT line said no audio session was seen.
+
+### What was compared
+
+| Run | What it covers | Result |
+|---|---|---|
+| menus (`tours/menus.txt`) | the title while loading, finished and hovered; the selector arriving, its types, skills and side buttons hovered and clicked; Options with the music slider dragged; Scores; Credits (twice, the clouds moving); Help from Options, hovered, with the focus lost and regained; an Action board from the help: its vault, "get ready", "go"; the new-game confirmation (No); Options over the running board (a modal pause) and its Help over the board; the focus lost and regained on the board; New Game (Yes), the selector sliding over the frozen board; the quit confirmation (No) | state identical to update 3 141; 34 shots: 7 identical, 18 only faintly different, 9 with visible boxes (below); 25 sound plays and 864 music events identical |
+| gs3 | Strategy, skill 3, seed 4, two games: the help, both boards, the move digits, both game overs, the high-score table and "play again" (25 shots) | state, 501 sound plays and 508 music events identical; visible boxes: the play time (below) and the move digit's zoom |
+| gp2 | Puzzle, skill 2, seed 9, two games: a level won with its stats and the level-up sign, both game overs (30 shots) | state, 357 sound plays and 710 music events identical; no visible box |
+| ga2 | Action, skill 2, seed 7 (the bot lost early from these settings): a board and its game over (6 shots) | state, 246 plays and 255 music events identical; visible boxes: the play time |
+| ga1 | Action, skill 1, seed 1: four levels won, each with its stats panel, the "next level" button and the level-up sign, to update 41 571 (36 shots) | state, 2 553 sound plays and 1 014 music events identical; every shot identical or only faintly different |
+
+Every one of these runs was also replayed by the web build under Node: its state log is identical to the native port's in
+all five, and its shots differ from the native ones only at the rotated sprites (below).
+
+### Every visible box, judged
+
+- **The Options dialog's size** (menus: Options, its music slider, the board's Options, the shot after Scores, and the
+  Options dialog's light column behind Scores and Credits). The original's Options dialog has a fourth row, a "More
+  Games" button for the Steam partner link (`partner.xml`), which the port leaves out (`OptionsDialog.cpp`, the partner
+  links; as Alchemy's port does), so the original's dialog is one row taller and its Done button sits where the port's
+  More Games would be. A deviation by choice: the button opens a store page. Because of it no script presses the Options
+  dialog's Done: the port's Done is where the original's More Games is. The tour leaves Options through Scores, Credits or
+  Help, which sit in the same place on both sides.
+- **The play time on the stats panel** (gs3, ga2). The original takes it from `GetTickCount`, which moves 10 ms an update
+  on origrun's virtual clock; the port's `GetTickCount` is the wall clock (shared `framework/Common.cpp`), so a `-fast` run
+  shows 0 seconds. Replayed in real time (`PORT_REALTIME=1 port.sh`), the port shows the original's times in every shot
+  of gs3 and the boxes go away. It is not a difference of the game.
+- **Transformed sprites sampled differently** (menus: Mr. Money in one selector shot, the selector's slide; gs3: the
+  move digit's zoom and the flying coins at the board's left edge). Mr. Money is drawn rotated (`DrawImageRotated`, his
+  wobble), the selector slides as a stretched snapshot, the digit zooms and the loose coins are drawn scaled and edge-on.
+  In each pair the sprite sits in the same place at the same size and angle; only the edge pixels differ, as the two
+  renderers sample a transformed image differently. In every other shot the same sprites came out only faintly
+  different. No mask was used.
+
+### Changes the pass made
+
+| Difference | Cause in the original | What the port does now | Commit |
+|---|---|---|---|
+| Over a frozen board, and whenever the selector came back, the port faded in the selector's song (song 12, order 89); the original never plays it | `ShowGameSelector` fades it in only when `IsPlaying(title)` is false. The original's BASS (2004) answers `BASS_ChannelIsActive` with 1 for a music it played and stopped since (its log: 1 after the title's `BASS_ChannelStop`), and the title plays from the start, so the answer is always yes | keeps the original's answer: the selector's song is never faded in (`WinBMApp::ShowGameSelector`) | (this commit) |
+
+The change touches only the music, which the frozen baseline does not hold: `tools/check.sh bigmoney` passes with its
+frozen score (66 646), so nothing was refrozen. The pass also added the tools named above (`tour.sh`, `gametour.sh`,
+`webport.sh`, `soundcmp.py`, `regini.py`, `settings.txt`, the bassproxy, `tours/menus.txt`), `ORIG_SANDBOX`, `ORIG_SOUND`
+and `ORIG_NOCACHE` in `orig.sh`, and `PORT_SETTINGS` and `PORT_REALTIME` in `port.sh`.
+
+### Oddities skipped
+
+- **The "bad" sound is cut short in the original.** The original decodes its Ogg sounds with FMOD and keeps the result
+  in `cached/sounds/<name>.wav`, which it loads from then on. The install's cache (made in 2018) holds only the first
+  4 096 frames of `bad.ogg` (0.19 s of 0.52 s); the other 47 are whole. (A fresh decode cannot be checked under origrun:
+  without a sound device FMOD writes silence for every sound, `ORIG_NOCACHE=1`.) The port plays the whole sound. "bad" is played only for an invalid
+  registration code, a path the Steam build never takes and the port leaves out, so it is never heard. `soundcmp.py`
+  lists it as known. To see it: compare `cached/sounds/bad.wav` in the install with `sounds/bad.ogg`. Matching it would
+  mean cutting that one sound to FMOD's length.
+
+### Deviations that remain, and what was not compared
+
+- The Options dialog's "More Games" button (above).
+- **The web build under Node places rotated sprites about a pixel off.** Its state and every other pixel match the native
+  port, but Mr. Money (rotated, his wobble), the "Level up!" sign and the zoomed digits come out about one pixel from where
+  the native port and the original draw them: under Node the web build draws through SDL's software renderer, whose
+  rasterization of a rotated quad differs from the native renderer's. The code is shared (`framework/DDInterface.cpp`,
+  SDL), so it went to the coordinator. A browser with WebGL may not take that path; it was not checked there.
+- The play time under `-fast` (above).
+- Full screen and the 3D mode; the registration and trial paths; the Options dialog's checkboxes for full screen and
+  custom cursors were not clicked.
+- Losing the focus over an open dialog was not compared (the focus was lost and regained on the help screen and on a
+  running board, and both sides paused and showed the same).
+
+To repeat phase two: `orig.sh --prepare` once, build the proxy
+(`i686-w64-mingw32-clang -O2 -shared bassproxy.c bassproxy.def -o build/bassproxy-bm/bass.dll`) and the web build
+(`TARGET=bigmoney tools/build.sh web`), then `games/bigmoney/tools/origcmp/tour.sh menus
+games/bigmoney/tools/origcmp/tours/menus.txt` and, for a game, `gametour.sh ga1 0 1 1 40000 1500` (name, mode, skill,
+seed, cap, a shot every N updates; `-autoplaygames=2` after them for two games). One sandbox runs at a time on the machine;
+origrun queues for it.

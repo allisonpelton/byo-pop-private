@@ -191,7 +191,7 @@ enum SongId
 	SONG_GAMEOVER = 9,          // order 67
 	SONG_UNUSED10 = 10,         // loaded, never played
 	SONG_TITLE = 11,            // order 87  title; keeps playing into the game selector
-	SONG_SELECTOR = 12,         // order 89  game selector (when the title song has stopped)
+	SONG_SELECTOR = 12,         // order 89  game selector; never heard (ShowGameSelector)
 	SONG_UNUSED13 = 13,         // loaded, never played
 	NUM_SONGS = 14
 };
