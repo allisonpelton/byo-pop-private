@@ -1,0 +1,6 @@
+99 title
+900 shot menu
+1000 click 185 376
+1120 shot classic_start
+1300 shot classic_700
+1400 quit
