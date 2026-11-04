@@ -41,6 +41,7 @@ public:
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
+	virtual void		ButtonPress(int theId) override;
 	virtual void		ButtonDepress(int theId) override;
 	using Widget::Resize;
 };
@@ -87,6 +88,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual void		Draw(Graphics* g) override;
+	virtual void		ButtonPress(int theId) override;
 	virtual void		ButtonDepress(int theId) override;
 	using Widget::Resize;
 };
@@ -111,6 +113,7 @@ public:
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
+	virtual void		ButtonPress(int theId) override;
 	virtual void		ButtonDepress(int theId) override;
 	using Widget::Resize;
 

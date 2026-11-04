@@ -131,6 +131,13 @@ void TitleScreen::Draw(Graphics* g)
 	}
 }
 
+// 0x420550: a press on the link clicks, through the app
+void TitleScreen::ButtonPress(int theId)
+{
+	(void) theId;
+	mApp->ButtonPress(0);
+}
+
 // 0x420560: the play link starts the game's menus
 void TitleScreen::ButtonDepress(int theId)
 {
@@ -337,6 +344,13 @@ void NextLevelWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 	Widget::Resize(theX, theY, theWidth, theHeight);
 	int aWidth = mNextLink->mFont->StringWidth(mNextLink->mLabel);
 	mNextLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x37, aWidth + 8, 0x1d);   // the original's y has no mY added
+}
+
+// 0x420550: a press on the link clicks, through the app
+void NextLevelWidget::ButtonPress(int theId)
+{
+	(void) theId;
+	mApp->ButtonPress(0);
 }
 
 // 0x416650: the link ends the bonus round and starts the next level
@@ -653,6 +667,13 @@ void HighScoreWidget::Draw(Graphics* g)
 		g->DrawString(aScoreText, (mWidth - aFont->StringWidth(aScoreText)) - 0x96, aY);
 		aY += 0x1e;
 	}
+}
+
+// 0x420550: a press on the link clicks, through the app
+void HighScoreWidget::ButtonPress(int theId)
+{
+	(void) theId;
+	mApp->ButtonPress(0);
 }
 
 // 0x413520

@@ -86,6 +86,13 @@ int DifficultyDialog::GetPreferredHeight(int theWidth)
 	return 0x140;
 }
 
+// 0x411290: the dialog's own press, then a click through the app
+void DifficultyDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->ButtonPress(0);
+}
+
 // 0x4112b0: the three buttons set the difficulty and start the game over
 void DifficultyDialog::ButtonDepress(int theId)
 {
@@ -390,6 +397,13 @@ void OptionsDialog::Draw(Graphics* g)
 	g->DrawString(GT(0x00495fe0), (mHintsCheckbox->mX - mX) + 0x30, (mHintsCheckbox->mY - mY) + 0x1a);
 }
 
+// 0x41d3e0: the dialog's own press, then a click through the app
+void OptionsDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->ButtonPress(0);
+}
+
 // 0x41d410: the buttons of the dialog (the footer button is the app's: ButtonDepress(2003))
 void OptionsDialog::ButtonDepress(int theId)
 {
@@ -460,6 +474,13 @@ TutorialDialog::TutorialDialog(NoahApp* theApp) :
 TutorialDialog::~TutorialDialog()
 {
 	delete mAgainCheckbox;
+}
+
+// 0x411290: the dialog's own press, then a click through the app
+void TutorialDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->ButtonPress(0);
 }
 
 void TutorialDialog::AddedToManager(WidgetManager* theWidgetManager)
