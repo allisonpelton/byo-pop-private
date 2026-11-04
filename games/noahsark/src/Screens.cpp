@@ -609,9 +609,9 @@ void HighScoreWidget::Draw(Graphics* g)
 {
 	int aAlpha = (int) mFade;
 	g->SetColorizeImages(true);
-	g->SetColor(Color(0x59, 0x72, 0xb3, aAlpha));
+	g->SetColor(Color(0x59, 0x72, 0xb3));
 	g->FillRect(0, 0, mWidth, mHeight);
-	g->SetColor(Color(0xff, 0xff, 0xff, aAlpha));
+	g->SetColor(Color(0xff, 0xff, 0xff));
 	if (mApp->mBoard != NULL)
 	{
 		mApp->mBoard->DrawFish(g);

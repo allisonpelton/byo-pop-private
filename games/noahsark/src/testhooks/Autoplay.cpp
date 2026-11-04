@@ -282,7 +282,9 @@ void NoahApp::AutoplayUpdate()
 				if (((RecordScoreDialog*) aDialog)->mNameEdit->mString.empty())
 				{
 					Log(s, "text at update %d: BOT", mUpdateCount);
-					((RecordScoreDialog*) aDialog)->mNameEdit->SetText("BOT");
+					// typed like a player (the original is given the characters too), so nothing is selected
+					for (const char* c = "BOT"; *c != 0; c++)
+						((RecordScoreDialog*) aDialog)->mNameEdit->KeyChar((SexyChar) *c);
 					s->mWait = 5;
 				}
 				else
