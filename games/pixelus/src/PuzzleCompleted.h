@@ -52,6 +52,8 @@ public:
 	bool			mSilver;				// +0xc1 within 5
 	bool			mTempleDone;			// the last puzzle of the temple
 	bool			mGameDone;				// the last puzzle of the last temple
+	int				mMode;					// +0xf8: 0 none, 1 temple, 2 game, 5 tutorial (0x41b3c0 sets those)
+	int				mSub;					// +0xfc: 3 the temple is maxed, 4 the game is maxed
 	bool			mTutorialDone;			// +0xf8 == 5: the tutorial is finished
 
 	int				mTime;					// +0xc4 milliseconds spent on the puzzle

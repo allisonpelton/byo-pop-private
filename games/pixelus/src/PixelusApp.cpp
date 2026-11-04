@@ -1,4 +1,5 @@
 #include "PixelusApp.h"
+#include "DialogButton.h"
 #include "testhooks/StateLog.h"
 #include "GameDialog.h"
 #include "GameText.h"
@@ -11,6 +12,7 @@
 #include "IslandMap.h"
 #include "TempleScreen.h"
 #include "PuzzleCompleted.h"
+#include "CompletionScreen.h"
 #include "StoryScreen.h"
 #include "OptionsDialog.h"
 #include "CreditsDialog.h"
@@ -57,6 +59,7 @@ PixelusApp::PixelusApp()
 	mMoreGames = NULL;
 	mHintOverlay = NULL;
 	mHintScreen = NULL;
+	mCompletion = NULL;
 	mStoryScreen = NULL;
 	for (int i = 0; i < NUM_HEADS; i++)
 		for (int j = 0; j < NUM_HEAD_EXPRESSIONS; j++)
@@ -715,7 +718,8 @@ void PixelusApp::PuzzleCompleted(Board* theBoard)
 
 // the tablet's button: the board goes, and the temple's puzzles or, when a temple has opened or been finished, the island
 // comes
-void PixelusApp::ContinueAfterPuzzle(int theOpenedTemple, bool theTempleDone, bool theGameDone)
+// the tablet and the board go (0x432b60, 0x432c90, 0x433e00)
+void PixelusApp::RemoveTabletAndBoard()
 {
 	if (mPuzzleCompleted != NULL)
 	{
@@ -729,20 +733,64 @@ void PixelusApp::ContinueAfterPuzzle(int theOpenedTemple, bool theTempleDone, bo
 		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
-	if (theGameDone)
+}
+
+// 0x432b60: the screen that says what was completed
+void PixelusApp::ShowCompletion(int theMode, int theSub, int theOpenedTemple)
+{
+	RemoveTabletAndBoard();
+	mCompletionSub = theSub;
+	mCompletionOpened = theOpenedTemple;
+	mCompletion = new CompletionScreen(this, theMode);
+	mCompletion->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mCompletion);
+	mWidgetManager->SetFocus(mCompletion);
+	PlaySample(theMode == 2 || theMode == 4 ? SOUND_PIXELUS_GAME_COMPLETED_STING_V01 : SOUND_PIXELUS_TEMPLE_COMPLETED_STING_V01);
+}
+
+// 0x40b760: its button
+void PixelusApp::ContinueAfterCompletion()
+{
+	int aMode = mCompletion->mMode;
+	if (mCompletion != NULL)
 	{
-		PlaySample(SOUND_PIXELUS_GAME_COMPLETED_STING_V01);
-		ShowStory(false, 3);
-		return;
+		mWidgetManager->RemoveWidget(mCompletion);
+		SafeDeleteWidget(mCompletion);
+		mCompletion = NULL;
 	}
-	if (theTempleDone)
-		PlaySample(SOUND_PIXELUS_TEMPLE_COMPLETED_STING_V01);
-	if (theOpenedTemple >= 0)
-		ShowStory(false, 1, theOpenedTemple);
-	else if (theTempleDone)
-		BackToIsland();
+	bool anOpened = mCompletionOpened >= 0;
+	if ((aMode != 1 && mCompletionSub != 3 && aMode != 5) || aMode == 2)
+		ShowStory(false, 3);
+	else if (anOpened)
+		ShowStory(false, 1, mCompletionOpened);
+	else if (mCompletionSub == 3)
+		ShowStory(false, 2);
 	else
+		BackToIsland();
+}
+
+// 0x419c20: the tablet's button
+void PixelusApp::ContinueAfterPuzzle(int theMode, int theSub, int theOpenedTemple)
+{
+	if (theMode != 0)
+		ShowCompletion(theMode, theSub, theOpenedTemple);
+	else if (theOpenedTemple >= 0)
+	{
+		RemoveTabletAndBoard();
+		ShowStory(false, 1, theOpenedTemple);
+	}
+	else if (theSub == 4)
+		ShowCompletion(4, 4, -1);
+	else if (theSub == 3)
+	{
+		RemoveTabletAndBoard();
+		ShowStory(false, 2);
+	}
+	else
+	{
+		RemoveTabletAndBoard();
 		ShowTemple();
+	}
 }
 
 // 0x435310: the answers of the dialogs the game opens (2000 + id: the yes or OK button, 3000 + id: the no)
@@ -769,6 +817,9 @@ void PixelusApp::ButtonDepress(int theId)
 		KillDialog(0x19);
 		if (mTempleScreen != NULL)
 			mWidgetManager->SetFocus(mTempleScreen);
+		return;
+	case 2031:		// a hint is read
+		KillDialog(0x1f);
 		return;
 	case 2027:		// skip the tutorial
 		SkipTutorialOK();
@@ -854,6 +905,50 @@ void PixelusApp::StyleDialog(GameDialog* theDialog)
 	theDialog->SetColor(Dialog::COLOR_LINES, Color(255, 255, 255, 255));
 	theDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(255, 255, 255, 255));
 	theDialog->mContentInsets = Insets(0x30, 0x3c, 0x30, 0x20);
+}
+
+// 0x40f160 (the dialog is 0x40ef30): a hint in a speech bubble over the board, one OK button, centred on the grid at 0x196
+// (and the screen's middle plus theY: the tutorial's -1 and the glue hint's 200)
+void PixelusApp::ShowHint(int theWidth, int theY, const SexyString& theHeader, const SexyString& theText, int theCellCount, const int (*theCells)[2])
+{
+	KillDialog(0x1f);
+	GameDialog* aDialog = new GameDialog(this, mImages[IMAGE_DIALOG_HINTBUBBLE], mImages[IMAGE_DIALOGBUTTON_HINTBUBBLE], 0x1f, true,
+		theHeader, theText, GT(0x50b558), Dialog::BUTTONS_FOOTER, NULL);
+	aDialog->SetHeaderFont(mFonts[FONT_GARAMOND20]);
+	aDialog->SetLinesFont(mFonts[FONT_GARAMOND14]);
+	aDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255, 255));
+	aDialog->SetColor(Dialog::COLOR_LINES, Color(255, 255, 255, 255));
+	aDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(255, 255, 255, 255));
+	aDialog->mContentInsets.mLeft = 24;
+	aDialog->mContentInsets.mRight = 24;
+	StyleButton(this, aDialog->mYesButton, 3);
+	// 0x40f160: the height is the wrapped text's plus 0x32; the middle is measured from the original's screen
+	Graphics aGraphics;
+	aGraphics.SetFont(mFonts[FONT_GARAMOND14]);
+	int aHeight = GetWordWrappedHeight2004(&aGraphics, theWidth - aDialog->mContentInsets.mRight - aDialog->mContentInsets.mLeft -
+		aDialog->mBackgroundInsets.mRight - aDialog->mBackgroundInsets.mLeft - 4, theText,
+		mFonts[FONT_GARAMOND14]->GetLineSpacing() + aDialog->mLineSpacingOffset) + 0x32;
+	aDialog->mContentInsets.mBottom = 10;
+	aDialog->Resize(428 - theWidth / 2, theY + 161 - aHeight / 2, theWidth, aHeight);
+	// the button as the original's screen shows it: 24 pixels in from both sides, 25 high, 10 above the bottom
+	if (theCellCount < 0)
+		aDialog->Resize(theCells[0][0], theCells[0][1], theWidth, aHeight);	// a measured top left corner
+	else if (theCellCount > 0)
+	{
+		// the original's screen: the bubble is centred on the lesson's cells, 20 pixels above them when they lie in the lower
+		// half of the screen and 19 below them otherwise (measured on the first two tutorial puzzles)
+		int aSumX = 0, aMinY = 1000, aMaxY = 0;
+		for (int i = 0; i < theCellCount; i++)
+		{
+			aSumX += Board::GRID_X + theCells[i][1] * Grid::CELL_SIZE + Grid::CELL_SIZE / 2;
+			aMinY = std::min(aMinY, Board::GRID_Y + theCells[i][0] * Grid::CELL_SIZE);
+			aMaxY = std::max(aMaxY, Board::GRID_Y + (theCells[i][0] + 1) * Grid::CELL_SIZE);
+		}
+		int aY = (aMinY + aMaxY) / 2 < 240 ? aMaxY + 19 : aMinY - 20 - aHeight;
+		aDialog->Resize(aSumX / theCellCount + 2 - theWidth / 2, aY, theWidth, aHeight);
+	}
+	aDialog->mYesButton->Resize(aDialog->mX + 24, aDialog->mY + aHeight - 10 - 25, theWidth - 48, 25);
+	AddDialog(0x1f, aDialog);
 }
 
 // 0x4331e0 slot 21: every dialog the game opens is a GameDialog, 336 wide at the top of the screen

@@ -212,7 +212,8 @@ void StoryScreen::ButtonDepress(int theId)
 {
 	if (theId != ID_CONTINUE)
 		return;
-	if (mAfter == AFTER_MENU)
+	// the ending (0x433d00) goes to the main menu
+	if (mAfter == AFTER_MENU || mAfter == AFTER_ENDING)
 		mApp->EndStory(true);
 	else
 		mApp->EndStory(false);

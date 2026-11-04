@@ -71,6 +71,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	memset(mFlash, 0, sizeof(mFlash));
 	memset(mFlashWanted, 0, sizeof(mFlashWanted));
 	mHintShown = false;
+	mLessonShown = false;
 	mHintTicks = 0;
 	mHintMove.mSide = mHintMove.mCursor = mHintMove.mPosition = 0;
 	mHintMove.mRemove = false;
@@ -701,6 +702,63 @@ void Board::Update()
 			Complete();
 		}
 	}
+
+	// 0x409bd0: every fifth update the hint of a tutorial puzzle is looked at; the first puzzle with sticky spots brings up
+	// the hint about them (once for a player: the profile's flag +0x3d)
+	if (mUpdateCnt % 5 == 0)
+		HintCheck();
+	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
+	if (mGrid->mHasStart && aUser != NULL && !aUser->mFlags[4])
+	{
+		mApp->ShowHint(0x104, 200, GT(0x50c4cc), aUser->mFlag38 ? GT(0x50b8c8) : GT(0x50b940));
+		aUser->mFlags[4] = 1;
+	}
+}
+
+// 0x407aa0: the hints of the tutorial puzzles (the ninth is the 'try it yourself' note): each puts up its text once. The
+// bubbles that point at cells (0x406050, 0x40ece0) come later with the drawing.
+void Board::HintCheck()
+{
+	if (mApp->GetHintsDisabled() || mApp->IsPaused() || !mTutorial || mLessonShown)
+		return;
+	static const int aWidths[9] = { 0xfa, 0xfa, 0xfa, 0xdc, 0xfa, 0xdc, 0xfa, 0xdc, 300 };
+	static const unsigned int aTexts[8] = { 0x50be48, 0x50bdd8, 0x50bd68, 0x50bd08, 0x50bca8, 0x50bc50, 0x50bc00, 0x50bbd0 };
+	if (mPuzzleIndex < 0 || mPuzzleIndex > 8)
+		return;
+	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
+	bool anExpert = aUser != NULL && aUser->mFlag38;
+	mLessonShown = true;
+	// the cells each lesson step marks when it shows its bubble (0x4061f0 and its neighbours): row, column
+	static const int aCells0[2][2] = { { 9, 8 }, { 9, 9 } };
+	static const int aCells1[2][2] = { { 5, 9 }, { 5, 12 } };
+	static const int aCells2[1][2] = { { 2, 4 } };
+	static const int aPos4[1][2] = { { 247, 166 } };
+	static const int aPos5[1][2] = { { 245, 219 } };
+	static const int aPos3[1][2] = { { 347, 219 } };	// no cells: the corner measured on the original's screen
+	static const int aPos6[1][2] = { { 282, 326 } };
+	static const int aPos7[1][2] = { { 290, 82 } };
+	if (mPuzzleIndex < 8)
+	{
+		int aCount = 0;
+		const int (*aCells)[2] = NULL;
+		switch (mPuzzleIndex)
+		{
+		case 0: aCount = 2; aCells = aCells0; break;
+		case 1: aCount = 2; aCells = aCells1; break;
+		case 2: aCount = 1; aCells = aCells2; break;
+		case 3: aCount = -1; aCells = aPos3; break;
+		case 4: aCount = -1; aCells = aPos4; break;
+		case 5: aCount = -1; aCells = aPos5; break;
+		case 6: aCount = -1; aCells = aPos6; break;
+		case 7: aCount = -1; aCells = aPos7; break;
+		}
+		mApp->ShowHint(aWidths[mPuzzleIndex], -1, "", GT(aTexts[mPuzzleIndex]), aCount, aCells);
+	}
+	else
+	{
+		static const int aPos8[1][2] = { { 257, 101 } };
+		mApp->ShowHint(aWidths[8], -1, "", anExpert ? GT(0x50b9a8) : GT(0x50bab8), -1, aPos8);
+	}
 }
 
 // the end of a puzzle: the player's record and the best known solution take the result (0x41b3c0 does the rest)
@@ -731,7 +789,8 @@ void Board::MouseLeave()
 void Board::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
-	if (mApp->IsPaused() || mGrid->mDone)
+	// the original makes its grid in the first update (0x409880): a move before it finds none and does nothing
+	if (mUpdateCnt == 0 || mApp->IsPaused() || mGrid->mDone)
 		return;
 
 	PixelToCell(x, y, &mHoverCol, &mHoverRow);
