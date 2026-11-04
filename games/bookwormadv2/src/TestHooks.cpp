@@ -136,6 +136,13 @@ static std::string PickTreasureClick()
 	return aResult;
 }
 
+// A click or a move the test hooks make, logged so that the run's input can be replayed in the original (tools/identical/toorig.py)
+void GameApp::AddInput(int theUpdate, const std::string& theCommand, const std::string& theArgs)
+{
+	SDL_Log("script: input %d %s %s", theUpdate, theCommand.c_str(), theArgs.c_str());
+	AddScriptCommand(theUpdate, theCommand, theArgs);
+}
+
 bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	if (theCommand.mCommand == "lua") {
@@ -228,28 +235,28 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			} else
 				aClick.clear();
 			if (!aClick.empty())
-				AddScriptCommand(mUpdateCount + 1, "click", aClick);
+				AddInput(mUpdateCount + 1, "click", aClick);
 		}
 		else if (mBoard == nullptr || !mBoard->mVisible) {
 			if (aWordTurn)
 				SDL_Log("script: soak %d: board hidden: click Enter", mUpdateCount);
-			AddScriptCommand(mUpdateCount + 1, "click", "400 575");  // the chapter map's Enter button
+			AddInput(mUpdateCount + 1, "click", "400 575");  // the chapter map's Enter button
 		}
 		else if (!mBoard->mIsMiniGame && gBattleEngine != nullptr && gBattleEngine->mState == BattleEngine::BE_IDLE &&
 		         gBattleEngine->LostTurn() && gBattleEngine->CallLinkedMethod("CanEndLostTurnRound", 0).Bool() &&
 		         gBattleEngine->CallLinkedMethod("AttackerIsPlayer", 0).Bool()) {
 			// stunned: the panel on the grid ends the lost turn when clicked (Board::MouseDown)
 			SDL_Log("script: soak %d: lost turn: click the grid", mUpdateCount);
-			AddScriptCommand(mUpdateCount + 1, "click", "400 420");
+			AddInput(mUpdateCount + 1, "click", "400 420");
 		}
 		else if (ShowingConversationPanel() || !aWordTurn)
-			AddScriptCommand(mUpdateCount + 1, "click", "400 290");
+			AddInput(mUpdateCount + 1, "click", "400 290");
 		else if (mBoard != nullptr && !sSoakNoWords) {
 			if (mProfile != nullptr && mProfile->GetBool("TutorialNeedsPower")) {
 				// the first battle's potion tutorial locks the grid until a potion is used
-				AddScriptCommand(mUpdateCount + 1, "click", "68 330");
-				AddScriptCommand(mUpdateCount + 6, "click", "143 330");
-				AddScriptCommand(mUpdateCount + 11, "click", "225 330");
+				AddInput(mUpdateCount + 1, "click", "68 330");
+				AddInput(mUpdateCount + 6, "click", "143 330");
+				AddInput(mUpdateCount + 11, "click", "225 330");
 			}
 			AddScriptCommand(mUpdateCount + 20, "word", "attack preferruby");
 		}
@@ -294,7 +301,7 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		if (mMainMenu == nullptr && !IsCurtainMoving() && mDialogMap.empty() && aPhase % 5 == 2)
-			AddScriptCommand(mUpdateCount + 1, "click", "400 575");  // the chapter map's Enter button
+			AddInput(mUpdateCount + 1, "click", "400 575");  // the chapter map's Enter button
 		AddScriptCommand(mUpdateCount + 20, "battle", StrFormat("%d %d %d", aBook, aStage, aPhase + 1));
 		return true;
 	}
@@ -304,6 +311,19 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (theCommand.mCommand == "wordmax") {
 		sSoakMaxWordLen = atoi(theCommand.mArgs.c_str());
+		return true;
+	}
+	if (theCommand.mCommand == "pams") {
+		// every animation the scripts hold: id, playing, label, frame of frames, rate, callback
+		if (mPopAnimManager != nullptr)
+			for (const auto& aPair : mPopAnimManager->mAnims) {
+				PopAnim* anAnim = aPair.second.mAnim;
+				if (anAnim == nullptr || anAnim->mRoot == nullptr || anAnim->mData == nullptr)
+					continue;
+				SDL_Log("script: pams %d: playing %d label %s frame %d of %d rate %d cb %s", aPair.first, (int)anAnim->mPlaying,
+				        anAnim->mLabel.c_str(), anAnim->mRoot->mFrameNum, (int)anAnim->mData->mMain.mFrames.size(), anAnim->mFrameRate,
+				        aPair.second.mCallback.c_str());
+			}
 		return true;
 	}
 	if (theCommand.mCommand == "pam") {
@@ -340,7 +360,7 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			std::string aClick = std::to_string(aButton->mX + aButton->mWidth / 2) + " " +
 			                     std::to_string(aButton->mY + aButton->mHeight / 2);
 			SDL_Log("script: dismiss: click %s (update %d)", aClick.c_str(), mUpdateCount);
-			AddScriptCommand(mUpdateCount + 1, "click", aClick);
+			AddInput(mUpdateCount + 1, "click", aClick);
 			return true;
 		}
 		SDL_Log("script: dismiss: Escape (update %d)", mUpdateCount);
@@ -440,7 +460,7 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 	int aWhen = mUpdateCount + 1;
 	for (Tile* aTile : aBestOrder) {
-		AddScriptCommand(aWhen, "click", StrFormat("%d %d", aTile->mX + 25, aTile->mY + 25));
+		AddInput(aWhen, "click", StrFormat("%d %d", aTile->mX + 25, aTile->mY + 25));
 		aWhen += 8;
 	}
 	if (theCommand.mArgs.find("attack") != std::string::npos) {
@@ -448,8 +468,63 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		Widget* anAttack = mBoard->mButtons[Board::BUTTON_ATTACK];
 		std::string aCentre = StrFormat("%d %d", mBoard->mX + anAttack->mX + anAttack->mWidth / 2,
 		                                mBoard->mY + anAttack->mY + anAttack->mHeight / 2);
-		AddScriptCommand(aWhen, "move", aCentre);
-		AddScriptCommand(aWhen + 20, "click", aCentre);
+		AddInput(aWhen, "move", aCentre);
+		AddInput(aWhen + 20, "click", aCentre);
 	}
 	return true;
+}
+
+void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-statelog")
+		mStateLogFileName = theParamValue;
+	else if (theParamName == "-reseedengine")
+		mReseedEngine = atoi(theParamValue.c_str());
+	else if (theParamName == "-startloadupdates")
+		mStartLoadWanted = theParamValue.empty() ? -1 : atoi(theParamValue.c_str());
+	else if (theParamName == "-chapterloadupdates") {
+		mChapterLoadUpdates.clear();
+		size_t aPos = 0;
+		while (aPos <= theParamValue.size()) {
+			size_t aComma = theParamValue.find(',', aPos);
+			if (aComma == std::string::npos)
+				aComma = theParamValue.size();
+			if (aComma > aPos)
+				mChapterLoadUpdates.push_back(atoi(theParamValue.substr(aPos, aComma - aPos).c_str()));
+			aPos = aComma + 1;
+		}
+	} else
+		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+// -statelog: the values the identical-play comparison reads, written when one changes ("-" when there is none): the
+// RNG's draws (Sexy::GetRandCount), and in a battle the engine's state and the tiles of the grid and of the word
+void GameApp::LogState()
+{
+	if (mStateLog == nullptr) {
+		mStateLog = fopen(mStateLogFileName.c_str(), "w");
+		if (mStateLog == nullptr) {
+			mStateLogFileName.clear();
+			return;
+		}
+	}
+	std::vector<std::pair<std::string, std::string>> aValues;
+	aValues.push_back({"rand", StrFormat("%u", GetRandCount() - mRandOffset)});
+	aValues.push_back({"loaded", StrFormat("%d", (int)mLoadingThreadCompleted)});
+	aValues.push_back({"dialogs", StrFormat("%d", GetDialogCount())});
+	aValues.push_back({"title", mTitleScreen != nullptr ? "1" : "0"});
+	aValues.push_back({"menu", mMainMenu != nullptr ? "1" : "0"});
+	aValues.push_back({"trans", StrFormat("%d", (int)mTransitionState)});
+	aValues.push_back({"chload", mChapterLoadScreen != nullptr ? "1" : "0"});
+	aValues.push_back({"estate", gBattleEngine != nullptr ? StrFormat("%d", gBattleEngine->mState) : "-"});
+	aValues.push_back({"tiles", mBoard != nullptr ? StrFormat("%d", (int)mBoard->mTiles.size()) : "-"});
+	aValues.push_back({"selected", mBoard != nullptr ? StrFormat("%d", (int)mBoard->mSelected.size()) : "-"});
+	for (auto& aValue : aValues) {
+		std::string& aLast = mStateLogLast[aValue.first];
+		if (aLast != aValue.second) {
+			aLast = aValue.second;
+			fprintf(mStateLog, "%d %s %s\n", mUpdateCount, aValue.first.c_str(), aValue.second.c_str());
+		}
+	}
+	fflush(mStateLog);
 }

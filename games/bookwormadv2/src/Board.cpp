@@ -177,6 +177,12 @@ void Board::InitMiniGame(const std::string& theName, int x, int y, int theXGap, 
 	// V1:0x426230: the scripts' Board:InitMiniGame(theName) makes the mini-game (gMiniGame) and loads its resources
 	lua_pushstring(LS(), theName.c_str());
 	CallLinkedMethod("InitMiniGame", 1);
+	if (mApp->mReseedEngine != 0) {  // test option -reseedengine (tools/identical): every mini-game goes on from the same RNG state
+		// (the original's watch of the generator sees only the index after the update: the draws this update made before the
+		// reseed are not seen, so the state log leaves them out too)
+		mApp->mRandOffset += GetRandCount() - mApp->mRandAtUpdateStart;
+		SRand(mApp->mReseedEngine);
+	}
 	mApp->ClearUpdateBacklog(false);
 }
 

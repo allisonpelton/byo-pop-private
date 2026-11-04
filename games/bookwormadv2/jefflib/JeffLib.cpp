@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
+#include <fstream>
+#include <map>
 
 #include "platform/VFS.h"
 
@@ -99,6 +101,37 @@ static std::string FindDirectory(const std::string& theRoot, const std::string& 
 	return aPath;
 }
 
+// port: the staged game files have lower-case names (tools/stage_bookwormadv2_assets.py, so that case-sensitive file
+// systems find them), but the original listed the names its pak and its folder held ("Book4.luc"), and the scripts
+// compare them with the names of their classes (BookManager.LoadBookScripts skips the books it already has). The stager
+// writes the names whose case differs to filecase.txt, one path a line.
+static std::string OriginalCase(const std::string& theBaseDir, const std::string& theDir, const std::string& theName)
+{
+	static std::map<std::string, std::string> aCases;
+	static bool aLoaded = false;
+	if (!aLoaded) {
+		aLoaded = true;
+		std::ifstream aFile(theBaseDir + "/filecase.txt");
+		std::string aLine;
+		while (std::getline(aFile, aLine)) {
+			while (!aLine.empty() && (aLine.back() == '\r' || aLine.back() == '\n'))
+				aLine.pop_back();
+			std::replace(aLine.begin(), aLine.end(), '\\', '/');
+			std::string aKey = aLine;
+			for (char& c : aKey)
+				c = (char)tolower((unsigned char)c);
+			size_t aSlash = aLine.find_last_of('/');
+			aCases[aKey] = aSlash == std::string::npos ? aLine : aLine.substr(aSlash + 1);
+		}
+	}
+	std::string aKey = theDir + "/" + theName;
+	std::replace(aKey.begin(), aKey.end(), '\\', '/');
+	for (char& c : aKey)
+		c = (char)tolower((unsigned char)c);
+	auto aFound = aCases.find(aKey);
+	return aFound != aCases.end() ? aFound->second : theName;
+}
+
 std::vector<std::string> GetFilesInDirectory(const std::string& thePattern)
 {
 	std::string aPattern = thePattern;
@@ -115,7 +148,7 @@ std::vector<std::string> GetFilesInDirectory(const std::string& thePattern)
 			continue;
 		for (const std::string& aFile : Platform::ListDirectory(aRealDir))
 			if (WildMatch(aName.c_str(), aFile.c_str()))
-				aFiles.push_back(aFile);
+				aFiles.push_back(aRoot == aVFS.GetBaseDir() ? OriginalCase(aRoot, aDir, aFile) : aFile);
 		break;
 	}
 	std::sort(aFiles.begin(), aFiles.end());

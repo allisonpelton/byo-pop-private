@@ -1076,7 +1076,9 @@ suite_bookwormadv2() {
 	grep -q '^FAIL' "$log" && st=1
 	f="$("$W/build/native/bwa2_swftest.exe" 2>&1 | tee -a "$log" | grep -c 'done@.*unsupported: none'; exit "${PIPESTATUS[0]}")" || st=1
 	m="$(bookwormadv2_smoke "$log")"
-	SUMMARY="$d; $l; $r; $p; swf: $s checks, $f of 5 movies to their end; $m"
+	local bl=""
+	bl="$(bookwormadv2_baseline)" || st=1
+	SUMMARY="$d; $l; $r; $p; swf: $s checks, $f of 5 movies to their end; $m$bl"
 	[ "$d" = "dialect: 150 checks passed" ] || st=1
 	[ "$l" = "loaded 462 of 462 scripts" ] || st=1
 	[ "$r" = "ran 462 of 462 scripts" ] || st=1
@@ -1084,6 +1086,29 @@ suite_bookwormadv2() {
 	[ "$s" -gt 0 ] && [ "$f" = 5 ] || st=1
 	[ "$m" = "new player: PLAY attacked; main menu, mini-games: ok; a mini-game plays" ] || st=1
 	return $st
+}
+
+bookwormadv2_state_game() {  # <name> <exe> <script> [user dir to copy]: a replayed input; its state log is <name>/state.txt
+	local d="$W/$OUT/bookwormadv2/$1"; rm -rf "$d"; mkdir -p "$d"
+	if [ -n "${4:-}" ]; then cp -r "$4" "$d/user"; else mkdir -p "$d/user"; fi
+	timeout 300 "$2" -gamedir="$W/assets/bookwormadv2" -userdir="$d/user" -fast -seed=1 -reseedengine=1 -startloadupdates=742 -chapterloadupdates=2990 		-script="$3" -statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
+bookwormadv2_baseline() {  # prints "; baseline identical" (or "; BASELINE DIFFERS", status 1) when build/baseline-bookwormadv2/ exists
+	# the frozen baseline (the port when its identical-play pass was done): the inputs the pass replayed in the original (new player through
+	# the first battles; Golden Coins from a saved profile) must give the same state log at every update (the draws and engine states
+	# the pass compared with the original)
+	local base="$W/build/baseline-bookwormadv2/bookwormadv2.exe" t="$W/games/bookwormadv2/tools/identical" c bad=""
+	[ -f "$base" ] || return 0
+	for c in "prologue" "goldencoins $t/profiles/goldencoins"; do
+		set -- $c
+		bookwormadv2_state_game "cur-$1" "$W/build/native/bookwormadv2.exe" "$t/cases/replay-$1.txt" ${2:-}
+		bookwormadv2_state_game "base-$1" "$base" "$t/cases/replay-$1.txt" ${2:-}
+		[ -s "$OUT/bookwormadv2/cur-$1/state.txt" ] && [ -s "$OUT/bookwormadv2/base-$1/state.txt" ] &&
+			cmp -s "$OUT/bookwormadv2/cur-$1/state.txt" "$OUT/bookwormadv2/base-$1/state.txt" || bad=x
+	done
+	[ -z "$bad" ] && { echo "; baseline identical"; return 0; }
+	echo "; BASELINE DIFFERS"; return 1
 }
 
 bookwormadv2_smoke() {  # <log>: a new player (an empty user folder) through the tutorial's first attack, then its profile to the main menu and the mini-games' menu

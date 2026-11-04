@@ -1,0 +1,7 @@
+# The profile of a player with the mini-games unlocked (case.sh with PROFILE=<that user folder>): the main menu, Moxie's mini-games,
+# Golden Coins and its Welcome's OK, then the test hooks' bot plays it
+3000 click 120 405
+4500 click 395 215
+6000 click 400 293
+7000 soak 25000
+25100 quit

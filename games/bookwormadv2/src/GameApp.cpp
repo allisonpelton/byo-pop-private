@@ -181,12 +181,18 @@ bool GameApp::UpdateAppStep(bool* updated)
 {
 	// A chapter's resources load between the frames while its loading screen is up (StartLoadChapterResources);
 	// with -fast all of them at once
-	if (mChapterLoadScreen != nullptr && !mChapterLoadDone)
+	if (mChapterLoadScreen != nullptr && !mChapterLoadDone) {
 		mChapterLoadDone = LoadChapterResources(mFastMode ? 0 : SDL_GetTicks() + 20);
+		if (mChapterLoadDone && mChapterLoadWanted >= 0 && mUpdateCount - mChapterLoadStart + 1 < mChapterLoadWanted)
+			mChapterLoadDone = false;
+	}
 	// The loading thread's next 20 ms of work, between the frames (StartLoading); with -fast all of it at once,
 	// so that a test run reaches the menu at the same update on any machine
-	if (mLoadingPhase != LOADING_IDLE && mLoadingPhase != LOADING_DONE && mDrawCount > 0) {
-		if (LoadingStep(mFastMode ? 0 : SDL_GetTicks() + 20)) {
+	if (mLoadingPhase != LOADING_IDLE && (mLoadingPhase != LOADING_DONE || mStartLoadPending) && mDrawCount > 0) {
+		bool aDone = mLoadingPhase == LOADING_DONE || LoadingStep(mFastMode ? 0 : SDL_GetTicks() + 20);
+		// port: -startloadupdates holds the end of the load until the original's update
+		mStartLoadPending = aDone && mStartLoadWanted >= 0 && mUpdateCount + 1 < mStartLoadWanted;
+		if (aDone && !mStartLoadPending) {
 			mLoadingThreadRunning = false;
 			mLoadingThreadCompleted = true;  // DoUpdateFrames calls LoadingThreadCompleted
 		}
@@ -196,6 +202,7 @@ bool GameApp::UpdateAppStep(bool* updated)
 
 void GameApp::UpdateFrames()
 {
+	mRandAtUpdateStart = GetRandCount();
 	// (SexyApp's: not LuaApp's, whose UpdateState the original called only with a development flag set)
 	SexyApp::UpdateFrames();
 	// (the original's music interface did this in its Update, the end of SexyAppBase::UpdateFrames)
@@ -208,6 +215,8 @@ void GameApp::UpdateFrames()
 		mUserUpdates++;
 	}
 	mSoundPlayer->Update();
+	if (!mStateLogFileName.empty())
+		LogState();
 }
 
 void GameApp::Shutdown()
@@ -1711,6 +1720,9 @@ int GameApp::StartLoadChapterResources(lua_State* L)
 	mChapterLoadDone = false;
 	mChapterLoadFailed = false;
 	mChapterLoadError.clear();
+	mChapterLoadStart = mUpdateCount;
+	mChapterLoadWanted = mChapterLoadsStarted < (int)mChapterLoadUpdates.size() ? mChapterLoadUpdates[mChapterLoadsStarted] : -1;
+	mChapterLoadsStarted++;
 	mLoadingDone = false;
 #ifdef __EMSCRIPTEN__
 	// port: the browser shows nothing until the game returns to it, and the scripts need the resources when

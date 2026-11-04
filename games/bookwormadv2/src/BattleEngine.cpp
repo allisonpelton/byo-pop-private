@@ -40,6 +40,8 @@ static bool AskScript(BattleEngine* theEngine, const char* theMethod)
 BattleEngine::BattleEngine(Board* theBoard, GameApp* theApp) : mApp(theApp), mBoard(theBoard)
 {
 	RegisterLua();
+	if (mApp->mReseedEngine != 0)  // test option -reseedengine (tools/identical): every battle starts from the same RNG state
+		SRand(mApp->mReseedEngine);
 	gBattleEngine = this;
 	mEnums["BE_UNDEFINED"] = BE_UNDEFINED;
 	mEnums["BE_INITIALIZED"] = BE_INITIALIZED;

@@ -85,6 +85,7 @@ void CutScene::Update()
 	CurtainTransition* aCurtain = mApp->mCurtain;
 	if ((aCurtain == nullptr || (aCurtain->mDone && aCurtain->mDrawn)) && !mSkipButtonEnabled) {
 		mSkipButtonEnabled = true;
+		mSkipButton->SetVisible(true);  // (the original shows it once the curtain is open: its movies are skipped by it)
 		mSkipButton->SetDisabled(false);
 	}
 }

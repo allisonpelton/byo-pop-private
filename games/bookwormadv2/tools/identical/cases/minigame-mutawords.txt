@@ -1,0 +1,6 @@
+# mutawords from the mini-games menu (profile: profiles/goldencoins)
+3000 click 120 405
+4500 click 395 150
+6000 click 400 293
+7000 soak 14000
+14100 quit
