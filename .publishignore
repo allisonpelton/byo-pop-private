@@ -5,6 +5,8 @@
 # but the public repository does not show how to take the protection apart.
 tools/extract_game_exe.py
 tools/triage_popcap.py
+# The tool that turns a 2010 DRM launcher's encrypted <Game>.dat (Banana Bugs) into the clear game exe (2026-11-04)
+tools/extract_popcap2010.py
 
 # origrun's table of where the user's original game installs live on this machine (local paths, not game
 # files). The tool and its docs are public; this per-machine list is not.

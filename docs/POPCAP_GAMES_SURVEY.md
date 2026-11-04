@@ -95,7 +95,7 @@ copy another port. Efforts are the estimates without references ([3.3](#33-verdi
 | 12 | [Peggle Deluxe](#512-peggle-deluxe) | Sonnet | no | ~12x | Bejeweled's framework generation; JPEG 2000 and MO3; a Mac build |
 | 13 | [Peggle Nights](#513-peggle-nights) | Sonnet | no | ~4-5x after Deluxe | Peggle Deluxe's port; a Mac build |
 | 14 | [Bejeweled 3](#514-bejeweled-3) | Opus | yes | ~30x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
-| 15 | [Banana Bugs](#515-banana-bugs) | Opus | yes | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; the image must first come out of the 2010 DRM |
+| 15 | [Banana Bugs](#515-banana-bugs) | Opus | yes | ~15x | a public-generation SAF with PakInterface, BASS and JPEG 2000; game RTTI; a clear image of the installed copy is in `re/bananabugs/bin/` |
 | 16 | [Gyromancer](#516-gyromancer) | Opus | yes | large | Square Enix's own engine; a clear image of the Steam build is in `re/gyromancer/bin/` |
 | 17 | [Zuma's Revenge!](#517-zumas-revenge) | Opus | web only | ~35x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
 | 18 | [Talismania Deluxe](#518-talismania-deluxe) | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
@@ -171,8 +171,8 @@ These are listed roughly in order of how much they affect the effort:
    conversion step, and the first three are built now.
 
 Getting an analysable image was not a differentiator for the first 26 games: none uses a commercial packer on its game
-image ([3.4](#34-findings-that-apply-to-many-games)). Two games found later are the exceptions: Banana Bugs and
-Gyromancer's Steam exe, though a clear image of Gyromancer has since been found (section 5).
+image ([3.4](#34-findings-that-apply-to-many-games)). Two games found later were the exceptions, Banana Bugs and
+Gyromancer's Steam exe, but both now have a clear image (section 5).
 
 ### 3.3 Verdicts and effort
 
@@ -191,7 +191,7 @@ game without RTTI and for an archive to decode first were set too high.
 
 ### 3.4 Findings that apply to many games
 
-<!-- private: **Protection.** Of the first 26 games, none needs real unpacking. Most builds carry the unencrypted game inside one of four PopCap wrappers or launchers, which the private tool copies it out of; Bookworm Adventures Deluxe, Bookworm Adventures Vol. 2, Peggle WoW and Bejeweled 3 have no wrapper. Two games found later, Banana Bugs and Gyromancer's Steam exe, are encrypted, though a clear Gyromancer image has since been found (section 5). -->
+<!-- private: **Protection.** Of the first 26 games, none needs real unpacking. Most builds carry the unencrypted game inside one of four PopCap wrappers or launchers, which the private tool copies it out of; Bookworm Adventures Deluxe, Bookworm Adventures Vol. 2, Peggle WoW and Bejeweled 3 have no wrapper. Two games found later, Banana Bugs and Gyromancer's Steam exe, are encrypted; both now have a clear image (section 5). -->
 
 **Protection.** Of the first 26 games, none needs real unpacking. There are four wrapper variants, plus a few games with
 no wrapper:
@@ -203,10 +203,12 @@ no wrapper:
 | 2008-10-08 wrapper | Bejeweled Twist (Steam), Peggle Nights, Plants vs. Zombies, Zuma's Revenge | unchanged |
 | PopCap "CDProtect" launcher, marker `!popcapcdprotect!` | BookWorm Deluxe 1.03 (retail); Bejeweled Twist (retail, ends at `!popcapcdprotend!`) | `extract_game_exe.py` accepts this marker too |
 | no wrapper | Bookworm Adventures Deluxe, Bookworm Adventures Vol. 2, Peggle WoW, Bejeweled 3 | load the exe directly |
+| PopCap 2010 DRM launcher: `<Game>.exe` beside an encrypted `<Game>.dat` | Banana Bugs | `extract_popcap2010.py` decrypts the `.dat` with the key in its header ([5.15](#515-banana-bugs)) |
 
 Two games found later are encrypted: Banana Bugs behind PopCap's 2010 DRM and Gyromancer behind Steam's DRM stub
 ([5.15](#515-banana-bugs), [5.16](#516-gyromancer)). A cracked copy of Gyromancer's Steam build has since given a
-clear image ([5.16](#516-gyromancer)).
+clear image ([5.16](#516-gyromancer)), and Banana Bugs' launcher keeps everything its `.dat` needs inside the file,
+so the private tool above writes the clear exe without running anything ([5.15](#515-banana-bugs)).
 
 <!-- /private -->
 
@@ -246,11 +248,12 @@ The first-generation SexyApp of 2002 and early 2003 (Noah's Ark, Mummy Maze, Sev
 `games/noahsark/docs/FRAMEWORK_2002.md` and the `FRAMEWORK_2003.md` of Seven Seas and Atomica; no remaining game uses
 it. Pixelus and Alchemy (2004) are on BookWorm's generation. FRAMEWORK_2004.md's "Reuse for Typer Shark and AstroPop"
 gives the steps for the next 2004 game. The other SAF games are of the 1.3 generation: Zuma Deluxe, Insaniquarium, the
-Peggle family, Plants vs. Zombies, Venice and both Bookworm Adventures games, whose ports run on `framework/` as it is.
-Bejeweled Twist (2008), Zuma's Revenge (2009) and Bejeweled 3 (2011) use later internal generations with no public
+Peggle family, Plants vs. Zombies, Venice and both Bookworm Adventures games, whose ports run on `framework/` as it
+is. Bejeweled Twist (2008), Zuma's Revenge (2009) and Bejeweled 3 (2011) use later internal generations with no public
 source. Twist's is ported: its D3D9 interface became the framework's GPU path (`framework/GPU2D.h`, `GPUInterface.h`,
-`GPUDisplay.h`), and its 3D drawing is in `games/bejeweledtwist/src/`. Banana Bugs is on a 2010 generation near
-Bejeweled 3's.
+`GPUDisplay.h`), and its 3D drawing is in `games/bejeweledtwist/src/`. Banana Bugs, once its image was read, turned
+out to be on the public generation too (`SexyAppBase`, `DDInterface`, `D3DInterface`, `WidgetManager`), not a 2010 one
+near Bejeweled 3's as guessed from its launcher.
 
 Of the engines that are not SAF, Sprout's first generation is ported in Word Harmony (`games/wordharmony/engine/`,
 described in its `docs/ENGINE.md`), and Pizza Frenzy, Iggle Pop and Feeding Frenzy start from it. Sprout's second
@@ -316,7 +319,7 @@ group.
 | Peggle World of Warcraft Edition | 2009-06-19, VS2005 LTCG | no wrapper | SAF ~1.3 (Nights branch) | none | ~660-880 KB; RTTI | DIRECT | ~1-2x after Nights | not decompiled: settings of Nights |
 | Bookworm Adventures Vol. 2 | 2009-07-22, VS2005 | no wrapper | SAF 1.3 generation + PopAnim v1-3 | as Vol. 1 | C++ ~557 KB / ~1,994 fn, plus 462 `.luc` | EXTRA WORK | ~15x alone; ~4-6x after Vol. 1 | [ported](../games/bookwormadv2/docs/README.md) |
 | Zuma's Revenge! | 2009-08-14, VS2005 LTCG | 2008 wrapper; carve; uses `steam_api` | internal 2009 SAF: RenderDevice3D, D3D8/9, `.fx` effects | JeffLib, PIL, AELib, PIEffect, PopAnim, FEAST | ~1.15-1.75 MB + 0.6-1 MB libraries; RTTI | HARD | ~35x | [to port](#517-zumas-revenge) |
-| Banana Bugs | 2010-05 (the launcher) | PopCap's 2010 DRM: the game is encrypted | PopCap's 2010 framework, near Bejeweled 3's | BASS, XLayout, JPEG 2000 | not readable yet (a 2.4 MB encrypted image) | | waits on the image | [to port](#515-banana-bugs) |
+| Banana Bugs | 2010-04-09, VS2005 | PopCap's 2010 DRM launcher; a clear image is in `re/bananabugs/bin/` | public-generation SAF (`SexyAppBase`, `DDInterface`, `D3DInterface`, `WidgetManager`) | PakInterface, BASS, JPEG 2000 (`j2k-codec.dll`) | ~1.87 MB `.text`, 6,946 fn in Ghidra with libraries; RTTI (about 85 game classes) | DIRECT | ~15x | [to port](#515-banana-bugs) |
 | Plants vs. Zombies GOTY 1.2.0.1096 | 2010-12-10, VS2008 | 2008 wrapper; carve | internal SAF (~2009-10) | TodLib | >1 MB; **no game RTTI** | | | not decompiled |
 | Bejeweled 3 | 2011-10-26, VS2008 LTCG | no wrapper; uses `steam_api` | post-2010 "prime" framework (drivers, RenderDevice3D, `.d3dfx`) | PopAnim, PIEffect, CurvedVal, FEAST | ~1.0-1.13 MB + ~0.6 MB framework; RTTI | EXTRA WORK | ~30x | [to port](#514-bejeweled-3) |
 | Ning Po Mahjong Deluxe | 2002-09 | no wrapper | its own engine, not SAF | none | 396 KB in all; a `ningpo.pyz` archive | | ~2-3x | [ported](../games/ningpo/docs/README.md) |
@@ -351,7 +354,7 @@ One section for each game, in the order of section 2. Where a Mac build exists i
 `re/<game>/mac/` with a demangled list of its function and class names (CLAUDE.md, "Mac versions"; git-ignored, so a
 worktree copies the folder in). Its names and class layout guide the port, but the PC exe stays the authority for
 behaviour. The image each port starts from, carved where the game is wrapped, is already in the main checkout's
-`re/<game>/bin/` for every game but Banana Bugs (Appendix C).
+`re/<game>/bin/` for every game (Appendix C).
 
 ### 5.1 Venice Deluxe
 
@@ -699,30 +702,59 @@ the first download. The first download also holds another build of `igglepop-bin
 
 ### 5.15 Banana Bugs
 
-**Opus, published, effort waits on the image.** Added on 2026-10-25.
+**Opus, published, ~15x.** Added on 2026-10-25; its clear image was made on 2026-11-04.
 
 - **Copy:** the installer (`BananaBugsSetup.exe`, 82 MB) was unpacked into `re/_installers/BananaBugsSetup/` without
   running it, and the game is installed in `C:\Program Files (x86)\PopCap Games\Banana Bugs`.
-- **Engine:** despite the name and the rope-walling play it is not Retro64's engine but PopCap's own of 2010:
-  `Main.pak` (62 MB, the usual PopCap pak), 120 OGG sounds, BASS, and `j2k-codec.dll` for JPEG 2000 images, which
-  `platform/openjpeg` replaces.
+- **Engine:** despite the name and the rope-walling play it is not Retro64's engine but PopCap's own: `Main.pak`
+  (62 MB, the usual PopCap pak), 120 OGG sounds, BASS, and `j2k-codec.dll` for JPEG 2000 images, which
+  `platform/openjpeg` replaces. The image shows the framework is the public SexyAppFramework generation
+  (`SexyAppBase`, `DDInterface`, `D3DInterface`, `WidgetManager`, `ResourceManager`, `BassMusicInterface`,
+  `PakInterface`), which the ports already have, not a 2010 one near Bejeweled 3's as the launcher's date suggested.
 - **Image:** it is the only game here behind PopCap's 2010 DRM. `BananaBugs.exe` (2010-05, readable, with RTTI) is the
   launcher, its licensing and update client and `XLayout.dll`, and the game itself is the encrypted `BananaBugs.dat`
-  (2.4 MB, entropy 8.0). So the game image has to be taken out of the launcher's protection before any analysis; the
-  how-to and any tool for it stay private. After that it is a port on a 2010 framework near Bejeweled 3's, and an
-  estimate waits on the image.
-- **Two more installers (2026-11-04).** The user found two more, which stay in the Downloads folder; both were unpacked
-  without running them. `bananabugssetup.exe` is PopCap's own installer, signed by PopCap Games in June 2010, and all
-  485 of its files are identical to our copy's. `InstallBananaBugs.exe` is Shockwave.com's installer, built in 2010 and
-  signed in 2015 by Defy Media, which then owned Shockwave. Its `Main.pak`, its 120 OGG sounds, `bass.dll` and
-  `j2k-codec.dll` are identical to ours. Neither holds a clear game image, so nothing was saved and the image still
-  waits.
+  (2.4 MB, entropy 8.0). A clear image was made from the installed copy on 2026-11-04 and is kept as
+  `re/bananabugs/bin/BananaBugsGame.exe` beside the copied files, with a `README.txt` on where each came from; how the
+  scheme works and the tool that undoes it stay private. The image is the game exe itself: linked 2010-04-09 with
+  VS2005, v1.0.0.7, 2,413,936 bytes, a 1.87 MB `.text` with 6,946 functions in Ghidra (libraries included; the export
+  is in `re/bananabugs/game/`), imports from the system DLLs only (BASS and `j2k-codec.dll` are loaded at run time),
+  and 170 RTTI names, about 85 of them the game's own classes (the bugs and their `BugBrain` AIs, twenty `Bonus`
+  classes, the board, the map and its buildings), the rest the framework's. Its link date, version and section sizes
+  match the Armadillo-wrapped Shockwave and Big Fish builds below.
+- **Effort:** DIRECT, about 15x: the framework is public and the game classes have RTTI, so the extra work is the
+  size alone, over a megabyte of game code on a par with Bookworm Adventures Vol. 2's and Zuma's Revenge's, with
+  BASS and JPEG 2000 already built. The 2010 DRM launcher and its licensing client are left out of the port.
+- **Two more installers (2026-11-04).** The user found two more, which stay in the Downloads folder; both were
+  unpacked without running them. `bananabugssetup.exe` is PopCap's own installer, signed by PopCap Games in June 2010,
+  and all 485 of its files are identical to our copy's. `InstallBananaBugs.exe` is Shockwave.com's installer, built in
+  2010 and signed in 2015 by Defy Media, which then owned Shockwave. Its `Main.pak`, its 120 OGG sounds, `bass.dll`
+  and `j2k-codec.dll` are identical to ours. Neither holds a clear game image, so nothing was saved.
 - **A repack (2026-11-04).** A third copy, Big Fish Games' build of July 2010 in a repack of PopCap's games that the
   user downloaded from the Internet Archive (`PopCap Games Repacked.zip`, which stays in the Downloads folder), holds
   the same game exe as Shockwave's, still protected, beside a `Main.pak` identical to ours, so it gives no clear image
   either and nothing was saved.
 
 <!-- private -->
+
+**The 2010 DRM scheme and the tool (2026-11-04).** Read from the launcher's code in `re/bananabugs/launcher/`, with
+nothing run. `FUN_004c6780` (the only caller of the "Unable to extract game executable" box) opens the `.dat`, reads a
+0x44-byte header and decrypts the rest in memory, then writes the result to `popcapgame1.exe` in a temp folder
+(`FUN_004c65a0` picks the path) and runs it. The header is a zero dword, the SHA-256 of the clear exe (bytes 4..36)
+and the AES-256 key (bytes 36..68): the key is in the file, which is why the unbought game plays its trial offline.
+Ghidra's stack layout put the key four bytes later, so the disassembly had to settle it. `FUN_00469510` is a textbook
+AES-256 inverse key schedule (seven round constants, Td tables at 0x506d40, Te at 0x503d40, an AES-NI flag in the
+schedule's last byte; Crypto++ 5.6's shape) and `FUN_004c6230` is CBC with the first 16 bytes as the IV and
+ciphertext stealing for the partial last block: the second-to-last block is decrypted, its tail pads the partial
+block, which is then decrypted as the second-to-last plaintext block, and the partial plaintext is the head of the
+first result XORed with the partial ciphertext. The plaintext is a container: `PCWE`, the exe's size, its SHA-256
+again, a chunk count, then chunks of an 11-byte header (a zero flag byte, two unused bytes, offset, length) and data.
+The 35 chunks are shuffled; the launcher puts them in a `std::set` keyed by offset (VC9's node has the value before
+its colour byte, so the value sits at the fourth dword) and insists they tile the exe without gaps, hashing them in
+order (`FUN_00467c30`, `FUN_00469180`, `FUN_004692b0` are SHA-256) and comparing with both stored hashes.
+`tools/extract_popcap2010.py <Game.dat> <out.exe>` (in `.publishignore`) does the same in pure Python, with no third
+party module, in about two seconds, and refuses to write unless both hashes match. An earlier attempt had found the
+AES and the header but used a home-made AES that decrypted wrongly, so it never saw `PCWE`. The Armadillo copies
+below were not needed, only used as a check: the image's link date, version and virtual section sizes match them.
 
 **How the two installers are built.** PopCap's is a VS2008 stub of 2010-05-18 with an LZX cabinet after it, which
 7-Zip opens. Shockwave's is Wise's signing stub of 2007 (`SIGNSTUB.EXE`). Its code finds a second PE in its own
@@ -735,15 +767,15 @@ and an Offercast installer.
 
 The shortcuts point at `Banana Bugs.exe`, which by its version resource is Shockwave's Keyhole DRM Application 3.2
 (2007-12-19). Beside it is `BananaBugs.exe` (2,367,488 bytes, v1.0.0.7, linked 2010-04-09), the game's own name. That
-second exe is the game itself, not PopCap's launcher, and there is
-no `.dat`: its image has a 1.87 MB `.text`, 0x31f10 bytes of `.rdata` and 0xab97c of `.data`, where PopCap's launcher
-has a 1.0 MB `.text`. Both exes are wrapped by Armadillo (Silicon Realms): linker version 83.82, the sections `.text1`,
-`.adata`, `.data1` and `.pdata`, and the strings `ARMDEBUG=` and `ARMSPLASHOFF`. The game's three sections have no
-bytes in the file. They are compressed and encrypted inside the 1.5 MB `.pdata` (entropy 8.0), and only the
-protector's own loader (boost and std RTTI) and the resources are clear. So the Shockwave build is a second route to
-the image, through a widely known commercial protector instead of PopCap's own 2010 scheme, but neither route works
-without running the game under a dumper or a downloaded unpacker, which is the user's call. The scripts that read the
-installers stayed in a scratch folder, since deleted.
+second exe is the game itself, not PopCap's launcher, and there is no `.dat`: its image has a 1.87 MB `.text`, 0x31f10
+bytes of `.rdata` and 0xab97c of `.data`, where PopCap's launcher has a 1.0 MB `.text`. Both exes are wrapped by
+Armadillo (Silicon Realms): linker version 83.82, the sections `.text1`, `.adata`, `.data1` and `.pdata`, and the
+strings `ARMDEBUG=` and `ARMSPLASHOFF`. The game's three sections have no bytes in the file. They are compressed and
+encrypted inside the 1.5 MB `.pdata` (entropy 8.0), and only the protector's own loader (boost and std RTTI) and the
+resources are clear. So the Shockwave build was a second route to the image, through a widely known commercial
+protector, which would have needed a dumper or a downloaded unpacker; PopCap's own scheme (above) needed neither, and
+the Armadillo figures now serve only as a check on the clear image. The scripts that read the installers stayed in a
+scratch folder, since deleted.
 
 **The repack's exe.** The repack's `BananaBugs.exe` (3,936,256 bytes, dated 2010-07-20) is the same Armadillo-wrapped
 game as Shockwave's: linked 2010-04-09, v1.0.0.7, linker version 83.82, its entry point in `.adata`, and the same
@@ -911,11 +943,10 @@ not packed and has full RTTI. It is just large.
    ([5.8](#58-iggle-pop-deluxe), [5.9](#59-feeding-frenzy-deluxe)), and they name Pizza Frenzy's engine too. PCGamingWiki
    credits a 2005 OS X port of Pizza Frenzy to Ryan C. Gordon, without a source. Nothing shows a Mac release of
    AstroPop, Heavy Weapon, Venice, Gyromancer or Banana Bugs. Any Mac build the user finds goes into `re/<game>/mac/`.
-4. **Banana Bugs' image needs the user first.** Gyromancer's no longer does: a clear image of the Steam build was
-   found on 2026-11-04 and is kept in `re/gyromancer/bin/` ([5.16](#516-gyromancer)). Banana Bugs' image still has to
-   come out of a protection: the two installers the user found on 2026-11-04 hold no clear image
-   ([5.15](#515-banana-bugs)), though one of them gives a second route, which may also need a tool. Each download
-   needs the user's OK (name, source, size), and the how-to stays private.
+4. **Both late images are in hand.** A clear image of Gyromancer's Steam build was found on 2026-11-04 and is kept in
+   `re/gyromancer/bin/` ([5.16](#516-gyromancer)), and Banana Bugs' was made from the installed copy the same day
+   and is kept in `re/bananabugs/bin/` ([5.15](#515-banana-bugs)); the how-to stays private. No image waits on a
+   download any more.
 5. **The survey's leftovers.** The old session's scratchpad folder
    (`C:/Users/Administrator/AppData/Local/Temp/claude/C--Users-Administrator-Documents-claude-wasm-bejeweled/bb6f3864-facb-48c7-acfa-f782a25ef960/scratchpad/survey/`)
    survives only in fragments: 1,058 files and 27 MB of partial Ghidra exports, with every script gone. The scripts
@@ -1066,6 +1097,7 @@ The remaining games' copies, all read only:
 - **The Downloads folder:** Glass Tower's APK, the two Banana Bugs installers of [5.15](#515-banana-bugs), and the Mac
   downloads of Iggle Pop and Feeding Frenzy.
 
-In the main checkout (git-ignored), `re/<game>/bin/` holds the exe or carved image of every remaining game but Banana
-Bugs, `re/peggle/<edition>/` holds the four Peggle images with their Ghidra exports, and `re/<game>/mac/` the Mac builds
-(section 5). The survey's own working files are in question 5 of [section 6](#6-open-questions).
+In the main checkout (git-ignored), `re/<game>/bin/` holds the exe or carved image of every remaining game (Banana
+Bugs' made from its `.dat` on 2026-11-04), `re/peggle/<edition>/` holds the four Peggle images with their Ghidra
+exports, and `re/<game>/mac/` the Mac builds (section 5). The survey's own working files are in question 5 of
+[section 6](#6-open-questions).
