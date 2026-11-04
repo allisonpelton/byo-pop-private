@@ -37,7 +37,28 @@ const GameTextEntry gGameTextEntries[] =
 	{0x004e4108, 3, 0x6b825e40}
 };
 
+struct GameTableEntry
+{
+	uint32_t	mVA;
+	uint32_t	mCount;		// 32-bit values
+	uint32_t	mHash;		// FNV-1a of their bytes
+};
+
+// 0x4de400: the order in which the pixels of a newly lit tile light up (Board::Update's dissolve, BoardUpdate.cpp)
+const GameTableEntry gGameTableEntries[] =
+{
+	{0x004de400, 2749, 0x87741464}
+};
+
+const int NUM_GAME_TABLES = (int) (sizeof(gGameTableEntries) / sizeof(gGameTableEntries[0]));
+
 const int NUM_GAME_TEXTS = (int) (sizeof(gGameTextEntries) / sizeof(gGameTextEntries[0]));
+
+std::map<unsigned int, std::vector<int> >& Tables()
+{
+	static std::map<unsigned int, std::vector<int> > sTables;
+	return sTables;
+}
 
 std::map<unsigned int, std::string>& Texts()
 {
@@ -143,6 +164,7 @@ bool Sexy::LoadGameTexts()
 {
 	std::map<unsigned int, std::string>& aTexts = Texts();
 	aTexts.clear();
+	Tables().clear();
 
 	std::vector<uint8_t> aData;
 	bool aRead = false;
@@ -180,6 +202,19 @@ bool Sexy::LoadGameTexts()
 			aMatched++;
 		}
 	}
+	for (int anId = 0; anId < NUM_GAME_TABLES; anId++)
+	{
+		const GameTableEntry& e = gGameTableEntries[anId];
+		size_t anOffset = anImage.Offset(e.mVA);
+		if ((anOffset != 0) && (anOffset + e.mCount * 4 <= aData.size()) && (TextHash(&aData[anOffset], e.mCount * 4) == e.mHash))
+		{
+			std::vector<int>& aTable = Tables()[e.mVA];
+			for (uint32_t i = 0; i < e.mCount; i++)
+				aTable.push_back((int) ReadU32(aData, anOffset + i * 4));
+		}
+		else
+			SDL_Log("GameText: the table at 0x%x does not match this executable", e.mVA);
+	}
 	if (aMatched < NUM_GAME_TEXTS)
 		SDL_Log("GameText: %d of %d texts do not match this executable (Alchemy Deluxe 1.6 expected)",
 			NUM_GAME_TEXTS - aMatched, NUM_GAME_TEXTS);
@@ -192,4 +227,11 @@ const std::string& Sexy::GameText(unsigned int theVA)
 	std::map<unsigned int, std::string>& aTexts = Texts();
 	std::map<unsigned int, std::string>::const_iterator anItr = aTexts.find(theVA);
 	return anItr == aTexts.end() ? sEmpty : anItr->second;
+}
+
+const std::vector<int>& Sexy::GameTable(unsigned int theVA)
+{
+	static const std::vector<int> sEmpty;
+	std::map<unsigned int, std::vector<int> >::const_iterator anItr = Tables().find(theVA);
+	return anItr == Tables().end() ? sEmpty : anItr->second;
 }

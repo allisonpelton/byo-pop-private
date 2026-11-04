@@ -81,7 +81,7 @@ class StateLog
 public:
 	AlchemyApp*		mApp;
 	FILE*			mFile;
-	enum { NUM_FIELDS = 29 };
+	enum { NUM_FIELDS = 30 };
 	int				mLast[NUM_FIELDS];
 
 public:

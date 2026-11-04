@@ -1,0 +1,69 @@
+# Phase two tour 5: the tutorial (game seed 1), every step: a shot six and forty updates after each step begins. Made from the identical-play pass's "tu" script.
+2990 screenshot tu_title
+3001 click 320 441
+3005 screenshot tu_selector
+3007 click 255 442
+3013 screenshot tu_s0
+3028 move 468 347
+3030 click 468 347
+3032 click 552 415
+3036 screenshot tu_s1
+3038 move 416 295
+3039 screenshot tu_s2
+3040 click 416 295
+3042 move 364 347
+3044 click 364 347
+3046 move 416 399
+3047 screenshot tu_s0_late
+3048 click 416 399
+3050 move 416 451
+3052 click 416 451
+3054 click 552 415
+3058 screenshot tu_s3
+3060 move 624 347
+3061 screenshot tu_s4
+3062 click 624 347
+3068 screenshot tu_s5
+3070 screenshot tu_s1_late
+3072 screenshot tu_s2_late
+3092 screenshot tu_s3_late
+3094 screenshot tu_s4_late
+3102 screenshot tu_s5_late
+3163 click 552 415
+3168 screenshot tu_s6
+3169 rclick 320 240
+3170 screenshot tu_s7
+3194 move 468 399
+3196 click 468 399
+3198 click 552 415
+3199 screenshot tu_s8
+3202 screenshot tu_s9
+3203 screenshot tu_s7_late
+3204 move 416 399
+3205 screenshot tu_s10
+3206 click 416 399
+3208 click 552 415
+3212 screenshot tu_s11
+3214 move 520 347
+3215 screenshot tu_s12
+3216 click 520 347
+3218 move 416 347
+3220 click 416 347
+3222 click 552 415
+3223 screenshot tu_s13
+3226 screenshot tu_s14
+3228 click 395 416
+3229 screenshot tu_s15
+3233 screenshot tu_s8_late
+3236 screenshot tu_s9_late
+3237 screenshot tu_after
+3238 screenshot tu_s10_late
+3246 screenshot tu_s11_late
+3248 screenshot tu_s12_late
+3256 screenshot tu_s13_late
+3260 screenshot tu_s14_late
+3262 screenshot tu_s15_late
+3288 screenshot tu_after2
+3308 click 72 448
+3348 click 325 204
+3388 quit
