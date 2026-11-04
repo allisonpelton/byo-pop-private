@@ -25,13 +25,17 @@ var ByopopCursors = (function () {
   // A game whose image for a kind means something else (WEB_PLAYER.md, "The site's cursor", the table): it is not kept for that
   // kind. Seven Seas keeps its shovel, the cursor of its bonus on the board, where the framework keeps the circle-slash.
   var OTHER_MEANING = { sevenseas: ["notallowed"] };
+  // The kinds the Settings' choice pictures and compares sets by: every game's text cursor is the same I-beam (only its canvas
+  // differs), so it tells no set from another. A set's own text cursor still shows in text fields.
+  var COMPARED = ["pointer", "hand", "drag", "notallowed", "wait"];
   var MAX_FRAMES = 32;
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
   function plain(o) { return !!o && typeof o === "object" && !Array.isArray(o); }
   function validId(id) { return typeof id === "string" && /^[a-z0-9_-]{1,40}$/.test(id); }
   function validFrame(c) {
     return plain(c) && typeof c.url === "string" && c.url.indexOf("data:image/png;base64,") === 0 && c.url.length < 200000 &&
-      c.x === (c.x | 0) && c.y === (c.y | 0) && c.x >= 0 && c.y >= 0 && c.x < 512 && c.y < 512;
+      c.x === (c.x | 0) && c.y === (c.y | 0) && c.x >= 0 && c.y >= 0 && c.x < 512 && c.y < 512 &&
+      (c.k === undefined || (typeof c.k === "string" && /^[0-9a-f]{8}$/.test(c.k)));
   }
   // a kind's image, its frames (if any) all well-formed and few, each shown for 40 ms to 2 s
   function validImage(c) {
@@ -40,10 +44,15 @@ var ByopopCursors = (function () {
     return Array.isArray(c.frames) && c.frames.length >= 1 && c.frames.length < MAX_FRAMES && c.frames.every(validFrame) &&
       c.ms === (c.ms | 0) && c.ms >= 40 && c.ms <= 2000;
   }
-  function copyImage(c) {
+  function copyFrame(c) {
     var out = { url: c.url, x: c.x, y: c.y };
+    if (c.k) out.k = c.k;
+    return out;
+  }
+  function copyImage(c) {
+    var out = copyFrame(c);
     if (c.frames) {
-      out.frames = c.frames.map(function (f) { return { url: f.url, x: f.x, y: f.y }; });
+      out.frames = c.frames.map(copyFrame);
       out.ms = c.ms;
     }
     return out;
@@ -106,6 +115,110 @@ var ByopopCursors = (function () {
       if (s) { if (id && validId(id)) s.setItem(CHOICE, id); else s.removeItem(CHOICE); }
     } catch (e) {}
     apply();
+  }
+
+  // ---------- the pictures ----------
+  // A cursor's image is kept cropped to the pixels that show (alpha above 0) and its hot spot, which is taken from the crop's
+  // corner, with `k`, a hash of the cropped pixels: two games that draw one design on canvases of different sizes (Bejeweled's
+  // hand on 54 by 54, Alchemy's on 37 by 37) then keep the same picture and hot spot. crop() takes pixels ({width, height, data}
+  // as RGBA, as ImageData has them) and a hot spot, and gives the cropped pixels with the hot spot in them.
+  function crop(px, hx, hy) {
+    var w = px.width, h = px.height, d = px.data, x0 = hx, y0 = hy, x1 = hx, y1 = hy, x, y;
+    for (y = 0; y < h; y++) {
+      for (x = 0; x < w; x++) {
+        if (!d[(y * w + x) * 4 + 3]) continue;
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(w - 1, x1); y1 = Math.min(h - 1, y1);
+    var cw = Math.max(1, x1 - x0 + 1), ch = Math.max(1, y1 - y0 + 1), out = new Uint8ClampedArray(cw * ch * 4), i;
+    for (y = 0; y < ch && y0 + y < h; y++) {
+      for (x = 0; x < cw && x0 + x < w; x++) {
+        i = ((y0 + y) * w + x0 + x) * 4;
+        // a pixel that does not show is all zero, as a canvas keeps it
+        if (d[i + 3]) out.set([d[i], d[i + 1], d[i + 2], d[i + 3]], (y * cw + x) * 4);
+      }
+    }
+    return { width: cw, height: ch, data: out, x: Math.min(cw - 1, Math.max(0, hx - x0)), y: Math.min(ch - 1, Math.max(0, hy - y0)) };
+  }
+  // FNV-1a over the size and pixels, as 8 hex digits
+  function hash(px) {
+    var h = 0x811c9dc5, d = px.data, i;
+    function add(b) { h = Math.imul(h ^ b, 16777619) >>> 0; }
+    add(px.width & 255); add(px.width >> 8); add(px.height & 255); add(px.height >> 8);
+    for (i = 0; i < d.length; i++) add(d[i]);
+    return ("0000000" + h.toString(16)).slice(-8);
+  }
+  // A kind's image to keep, {url, x, y, k}, from pixels and their hot spot. The pixels should be the ones a canvas gives back
+  // (getImageData), so that they hash alike whether they come from the game or from a kept image decoded again.
+  function picture(px, hx, hy) {
+    var c = crop(px, hx, hy);
+    return { url: codec.encode(c), x: c.x, y: c.y, k: hash(c) };
+  }
+  // the browser's PNG decoding and encoding (tools/cursorstest.js puts its own in their place)
+  var codec = {
+    decode: function (url, done) {
+      if (typeof Image === "undefined") { done(null); return; }
+      var im = new Image();
+      im.onload = function () {
+        try {
+          var cv = document.createElement("canvas"), g;
+          cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+          g = cv.getContext("2d");
+          g.drawImage(im, 0, 0);
+          done(g.getImageData(0, 0, cv.width, cv.height));
+        } catch (e) { done(null); }
+      };
+      im.onerror = function () { done(null); };
+      im.src = url;
+    },
+    encode: function (px) {
+      var cv = document.createElement("canvas");
+      cv.width = px.width; cv.height = px.height;
+      cv.getContext("2d").putImageData(new ImageData(px.data, px.width, px.height), 0, 0);
+      return cv.toDataURL("image/png");
+    }
+  };
+  // Sets kept before their images were cropped (an image without `k`) are cropped once, as a page of the site loads, so that
+  // they compare like the ones taken since without the game being started again. Decoding takes the browser a moment; then the
+  // cropped images go in place of the same ones in what is kept by then, and the cursors and the choice are drawn again.
+  var upgrading = false;
+  function upgrade() {
+    if (upgrading) return;
+    var o = all(), byKey = {}, keys = [];
+    function key(f) { return f.url + " " + f.x + " " + f.y; }
+    function each(sets, fn) {
+      Object.keys(sets).forEach(function (id) {
+        KINDS.forEach(function (k) {
+          var c = sets[id][k];
+          if (c) [c].concat(c.frames || []).forEach(function (f) { if (!f.k) fn(f); });
+        });
+      });
+    }
+    each(o, function (f) { if (!byKey.hasOwnProperty(key(f))) { byKey[key(f)] = null; keys.push(f); } });
+    if (!keys.length) return;
+    upgrading = true;
+    var left = keys.length;
+    keys.forEach(function (f) {
+      codec.decode(f.url, function (px) {
+        try { if (px) byKey[key(f)] = picture(px, f.x, f.y); } catch (e) {}
+        if (--left) return;
+        upgrading = false;
+        var now = all(), changed = false;
+        each(now, function (g) {
+          var p = byKey[key(g)];
+          if (!p) return;
+          g.url = p.url; g.x = p.x; g.y = p.y; g.k = p.k;
+          changed = true;
+        });
+        if (!changed || !write(now)) return;
+        apply();
+        redraw();
+      });
+    });
   }
 
   // ---------- showing it ----------
@@ -261,9 +374,10 @@ var ByopopCursors = (function () {
       input.addEventListener("change", function () { if (input.checked) choose(id); });
       label.appendChild(input);
       if (set) {
-        // every cursor the set has, in KINDS' order (an animated one by its first frame), as pictures only: the names say which
+        // every cursor the set has but its text cursor, in KINDS' order (an animated one by its first frame), as pictures only:
+        // the names say which
         var pics = make("span", "bpc-cur-pics");
-        KINDS.forEach(function (k) {
+        COMPARED.forEach(function (k) {
           if (!set[k]) return;
           var img = make("img");
           img.src = set[k].url; img.alt = "";
@@ -286,12 +400,18 @@ var ByopopCursors = (function () {
       : ByopopStrings.t("cursors.hint_none")));
     el.appendChild(fs);
   }
-  // The sets in groups of the same images, {ids} each with its games sorted by title, the groups by their first title
+  // The sets in groups of the same pictures, {ids} each with its games sorted by title, the groups by their first title. Two
+  // sets are the same when every kind in COMPARED has the same cropped pixels (`k`; the image itself for one not yet cropped),
+  // hot spot and frames.
   function groups(sets) {
     var byLook = {}, out = [];
     function byTitle(a, b) { return sets[a].title.localeCompare(sets[b].title) || (a < b ? -1 : a > b ? 1 : 0); }
+    function frame(f) { return [f.k || f.url, f.x, f.y]; }
     Object.keys(sets).sort(byTitle).forEach(function (id) {
-      var look = JSON.stringify(KINDS.map(function (k) { return sets[id][k] || null; }));
+      var look = JSON.stringify(COMPARED.map(function (k) {
+        var c = sets[id][k];
+        return c ? [frame(c), c.ms || 0, (c.frames || []).map(frame)] : null;
+      }));
       if (!byLook[look]) out.push(byLook[look] = { ids: [] });
       byLook[look].ids.push(id);
     });
@@ -316,11 +436,12 @@ var ByopopCursors = (function () {
   }
 
   apply();
+  setTimeout(upgrade, 0);
   window.addEventListener("storage", function (ev) {
     if (ev.key !== null && ev.key !== KEY && ev.key !== CHOICE) return;
     apply();
     redraw();
   });
   return { KEY: KEY, CHOICE: CHOICE, all: all, save: save, forget: forget, chosen: chosen, choose: choose, apply: apply, render: render,
-    refresh: redraw, busy: busy };
+    refresh: redraw, busy: busy, crop: crop, picture: picture, codec: codec, upgrade: upgrade };
 })();

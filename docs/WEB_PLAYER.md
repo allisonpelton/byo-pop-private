@@ -156,11 +156,17 @@ the game has set its pointer: `byopop_cursor_set_copy()` (`framework/WebCursor.c
 image for every kind from `CURSOR_POINTER` to `CURSOR_WAIT` (`mCursorImages`, whether or not its custom cursors are on) to
 `Module.byopopCursorSet`, each with the hot spot the game draws it at, and the page keeps the six kinds the site shows (below). The page keeps them as PNG data URLs, at their own size (at most 128 px), in
 `web/cursors.js`'s localStorage item `byopop-cursors`, one set per game. The Settings (the listing page's tab and every game page's
-panel) have a "Site cursor" choice: the browser's own, or one of the games' sets, each shown by every cursor it has (pointer, hand, dragging, text, then the
-circle-slash and wait where it has them; an animated one by its first frame). Games whose
-sets are the same (every kind with the same image, hot spot and frames; Alchemy and Bejeweled, for one) share one entry named with
-all their titles, "Alchemy Deluxe and Bejeweled Deluxe" (the user, 2026-11-04); the sets are still kept one a game, choosing the
-entry keeps one member's id, and the entries form again from what is kept, so a set that changes leaves its group. The choice,
+panel) have a "Site cursor" choice: the browser's own, or one of the games' sets, each shown by its pointer, hand and dragging
+cursor, then the circle-slash and wait where it has them (an animated one by its first frame). The text cursor is not shown or
+compared: every game's is the same I-beam on a canvas of another size (the user, 2026-11-04: "text cursor is the same
+everywhere"), and the set chosen still shows its own in text fields. Each image is kept cropped to the pixels that show, with its
+hot spot taken from the crop and a hash of the cropped pixels (`crop` and `picture` in `web/cursors.js`, from the game page's
+`takeCursorSet`), so the same design drawn on canvases of different sizes (Bejeweled's 54 by 54, Alchemy's 37 by 37) keeps one
+picture and makes smaller CSS cursors; sets kept before cropping are cropped once as a page of the site loads (`upgrade`), with no
+need to start each game again. Games whose sets are the same (every compared kind with the same cropped pixels, hot spot and
+frames; Alchemy and Bejeweled, for one) share one entry named with all their titles, "Alchemy Deluxe and Bejeweled Deluxe" (the
+user, 2026-11-04); the sets are still kept one a game, choosing the entry keeps one member's id, and the entries form again from
+what is kept, so a set that changes leaves its group. The choice,
 `byopop-site-cursor`, applies to every page of the site (`.site-cursor` on `<html>` and one style element), each cursor where the
 site means what the game means by it (the table below): the pointer everywhere, the hand on links, buttons and other controls
 that can be used, the text cursor in text fields, the dragging cursor on a cap being dragged, the circle-slash on a disabled
