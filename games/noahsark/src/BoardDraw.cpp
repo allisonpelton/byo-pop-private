@@ -714,8 +714,7 @@ void Board::Draw(Graphics* g)
 		}
 		if (((mState == BOARD_WON) || (mState == BOARD_LEVEL_DONE)) && BoardCleared() && (aMode == GAMEMODE_ACTION))
 		{
-			char aBuffer[64];
-			const SexyString& aSpeed = GT(0x00494244);
+						const SexyString& aSpeed = GT(0x00494244);
 			const SexyString& aBonus = GT(0x0049423c);
 			g->SetFont(anApp->mFonts[FONT_GARAMOND_SMALL]);
 			g->SetColor(Color(0, 0, 0, 0x96));
@@ -724,14 +723,14 @@ void Board::Draw(Graphics* g)
 				{
 					g->DrawString(aSpeed, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aSpeed)) / 2 + dx, 0xfa + dy);
 					g->DrawString(aBonus, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBonus)) / 2 + dx, 0x110 + dy);
-					snprintf(aBuffer, sizeof(aBuffer), "%d", mBonusPoints);
-					g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2 + dx, 0x126 + dy);
+					SexyString aBuffer = FormatText(GT(0x00494234), mBonusPoints);
+					g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2 - g->GetFont()->StringWidth(GT(0x00494230)) / 2 + dx, 0x126 + dy);
 				}
 			g->SetColor(Color(0xff, 0xff, 0xff, 0xff));
 			g->DrawString(aSpeed, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aSpeed)) / 2, 0xfa);
 			g->DrawString(aBonus, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBonus)) / 2, 0x110);
-			snprintf(aBuffer, sizeof(aBuffer), "%d", mBonusPoints);
-			g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2, 0x126);
+			SexyString aBuffer = FormatText(GT(0x00494234), mBonusPoints);
+			g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2 - g->GetFont()->StringWidth(GT(0x00494230)) / 2, 0x126);
 		}
 	}
 }

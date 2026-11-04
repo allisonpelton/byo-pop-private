@@ -2,5 +2,13 @@
  "ignore": [
   {"rect": [0, 200, 175, 60], "pairs": "p?.png",
    "label": "danger water: the red pulse of the flood (mPulseA) changes every update and a capture shows the last drawn frame, so its phase differs between the two runs"},
-  {"rect": [636, 200, 4, 60], "pairs": "p?.png", "label": "the same pulse, at the right edge"}
+  {"rect": [636, 200, 4, 60], "pairs": "p?.png", "label": "the same pulse, at the right edge"},
+  {"rect": [0, 40, 640, 105], "pairs": "b_done[12]*.png",
+   "label": "the wave band behind the sliding level-up ship: the waves scroll on the app's own clock, so the captured frame's phase differs by a pixel or two between the runs"},
+  {"rect": [178, 16, 450, 450], "pairs": "b_done3.png",
+   "label": "the next level's board: the animals come from the random generator, which a bot run does not resynchronise between the original and the port as the phase-one comparison does, so the two fill differently; the panel, the Get Ready text and the frame are still compared"},
+  {"rect": [0, 200, 112, 104], "pairs": "b_done3.png",
+   "label": "Noah in the sidebar: his talking and pointing animation runs on the app's own clock, so the captured frame differs"},
+  {"rect": [110, 0, 60, 12], "pairs": "b_done1b.png",
+   "label": "a lightning flash in the storm: it runs on the app's own clock, so the captured frame differs"}
  ]}

@@ -336,7 +336,7 @@ void NextLevelWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
 	int aWidth = mNextLink->mFont->StringWidth(mNextLink->mLabel);
-	mNextLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x37 + mY, aWidth + 8, 0x1d);
+	mNextLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x37, aWidth + 8, 0x1d);   // the original's y has no mY added
 }
 
 // 0x416650: the link ends the bonus round and starts the next level
@@ -380,8 +380,8 @@ void NextLevelWidget::Draw(Graphics* g)
 	ig.SetFont(mApp->mFonts[FONT_BIG]);
 	ig.SetColor(Color(0x32, 0x32, 0x32, 200));
 	for (int dx = 0; dx < 2; dx++)
-		for (int dy = 0; dy < 2; dy++)
-			ig.DrawString(aTitle, (mWidth - ig.GetFont()->StringWidth(aTitle)) / 2 + dx, 0x3c + dy);
+		for (int aPass = 0; aPass < 2; aPass++)
+			ig.DrawString(aTitle, (mWidth - ig.GetFont()->StringWidth(aTitle)) / 2 + dx, 0x3c);
 	ig.SetColor(Color(0xff, 0xff, 0xff));
 	ig.DrawString(aTitle, (mWidth - ig.GetFont()->StringWidth(aTitle)) / 2, 0x3c);
 
@@ -412,15 +412,15 @@ void NextLevelWidget::Draw(Graphics* g)
 	ig.DrawString(aRight, aRightX, 100);
 
 	// the rank
-	DrawCentered(&ig, mApp->mFonts[FONT_SMALL], GT(0x00494ecc), mWidth, 0x104, Color(0xff, 0xff, 0xff));
+	DrawCentered(&ig, aTiny, GT(0x00494ecc), mWidth, 0x104, Color(0x75, 0x5d, 0x43));
 	int aRank = 0;
 	while ((aRank < 23) && (mApp->mGameScore >= gRankThresholds[aRank]))
 		aRank++;
 	if (aRank > 22)
 		aRank = 22;
 	DrawCentered(&ig, mApp->mFonts[FONT_MEDIUM], GT(gRankNames[aRank]), mWidth, 0x128, Color(0xff, 0xff, 0xff));
-	DrawCentered(&ig, mApp->mFonts[FONT_SMALL], FormatText(GT(0x00494eb4), gRankThresholds[aRank]), mWidth, 0x144,
-		Color(0xff, 0xff, 0xff));
+	DrawCentered(&ig, aTiny, FormatText(GT(0x00494eb4), gRankThresholds[aRank]), mWidth, 0x144,
+		Color(0x75, 0x5d, 0x43));
 
 	DrawCentered(&ig, aTiny, GT(gTipLines[mTip]), mWidth, 0x169, Color(0xc2, 0x9f, 0x83));
 	DrawCentered(&ig, aTiny, GT(gTipLines2[mTip]), mWidth, 0x182, Color(0xc2, 0x9f, 0x83));
