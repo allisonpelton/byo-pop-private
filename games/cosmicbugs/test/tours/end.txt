@@ -1,0 +1,19 @@
+# The game's end, after the input of test/plays/c7 up to 9.7 s from a save (life1h.cbdat: a game in progress on
+# board 4 with one life and 15000 points; see IDENTICAL_PLAY.md). tour.py writes this part,
+# joined after c7's runner lines before 9700 (its origrun lines before "at 9681").
+11000 shot gameover
+12000 shot gameover2
+13000 click 400 300
+13500 shot hof_fade
+14500 shot hof
+15000 key 65
+16000 shot hof_key
+20500 click 400 543
+21500 shot title_after
+22500 shot title_after2
+24000 click 175 313
+25000 shot worlds
+26000 shot worlds2
+26500 move 400 300
+27000 shot worlds_hover
+27500 end

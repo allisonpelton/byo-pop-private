@@ -18,6 +18,7 @@
 #endif
 
 #include <SDL.h>
+#include <cstdio>
 #include <cstring>
 #include <string>
 
@@ -467,8 +468,22 @@ void CosmicBugsApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 		r64::Screen_SetFullscreen(wantWindowed ? 0 : 1);
 }
 
+// The script's "state", and "rdown"/"rup" [<x> <y>]: the right button pressed or let go (there, else where the
+// pointer is, which the game's own warps may have moved). The game polls its buttons once an update, so the
+// framework's rclick (pressed and let go in one update) never reaches it.
 bool CosmicBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
+	if (theCommand.mCommand == "rdown" || theCommand.mCommand == "rup")
+	{
+		int x = 0, y = 0;
+		if (std::sscanf(theCommand.mArgs.c_str(), "%d %d", &x, &y) == 2)
+		{
+			mMouseX = x;
+			mMouseY = y;
+		}
+		r64::Sys_MouseButton(2, theCommand.mCommand == "rdown" ? 1 : 0);
+		return true;
+	}
 	if (theCommand.mCommand != "state")
 		return SexyAppBase::HandleScriptCommand(theCommand);
 	cb::Level* aLevel = cb::gLevels.current;

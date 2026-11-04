@@ -181,7 +181,7 @@ void Rect_Intersect(int* theOut, int l1, int t1, int r1, int b1, int l2, int t2,
 	theOut[3] = b1;
 }
 
-// 0x42bc10 (rounded to the nearest, as the original's fistp)
+// 0x42bc10 (truncated: the original's fistp runs with the rounding control set to chop)
 void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t r0, uint8_t g0, uint8_t b0, uint8_t r1,
 	uint8_t g1, uint8_t b1)
 {
@@ -195,9 +195,9 @@ void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t r0, u
 	double aDb = (double)b1 - b;
 	for (int i = 0; i < aSteps; i++)
 	{
-		thePalette->rgb[theFrom * 4] = (uint8_t)(int)std::nearbyint(r);
-		thePalette->rgb[theFrom * 4 + 1] = (uint8_t)(int)std::nearbyint(g);
-		thePalette->rgb[theFrom * 4 + 2] = (uint8_t)(int)std::nearbyint(b);
+		thePalette->rgb[theFrom * 4] = (uint8_t)(int)r;
+		thePalette->rgb[theFrom * 4 + 1] = (uint8_t)(int)g;
+		thePalette->rgb[theFrom * 4 + 2] = (uint8_t)(int)b;
 		theFrom = theFrom + (anUp ? 1 : -1);
 		r = r + aDr / aSteps;
 		g = g + aDg / aSteps;

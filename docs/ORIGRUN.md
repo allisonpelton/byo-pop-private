@@ -671,7 +671,7 @@ shot at the update the original's landed on.
 A game that draws straight to a locked screen, or whose window a wrapper such as cnc-ddraw presents through Direct3D,
 leaves nothing in the window for PrintWindow. For it a held shot can read the frame from the game's memory instead
 ("surface-read (sandbox)", landed.tsv says "or-earlier (surface)"). All addresses are hex. `--surface-screen
-bitsAt,pitchAt,w,h,bpp` names two globals holding the pixel pointer and the pitch (5-6-5 at 16 bpp, 8-8-8 at 32);
+bitsAt,pitchAt,w,h,bpp` names two globals holding the pixel pointer and the pitch (5-6-5 at 16 bpp, 5-5-5 at 15, 8-8-8 at 32: Cosmic Bugs gets 5-5-5 in Windows Sandbox);
 `--surface <addr>` names an Image-like header instead (pixel pointer at +0, width at +4, height at +8, pitch at +0x1c,
 bpp at +0x44, then the masks, bit counts and shifts). A surface shot needs a gate, and is refused without one:
 `--surface-eip lo,hi[,lo,hi...]` lists every function of the game that writes the locked screen (all it runs between
