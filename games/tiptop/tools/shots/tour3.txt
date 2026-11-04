@@ -1,0 +1,51 @@
+# Phase two tour 3: a regular game's start (the tips), pause, the window losing and regaining the focus, the options and
+# instructions from the game, End game with its question, saving, the new game screen with the saved game, continuing it
+# and leaving it unsaved.
+304 click 186 288
+406 click 165 88
+508 click 232 185
+520 screenshot tips
+600 move 500 388
+610 screenshot tips_hover_ok
+665 click 500 388
+700 screenshot board
+766 click 317 234
+780 screenshot board_drop
+800 click 65 350
+820 screenshot paused
+850 click 65 350
+870 screenshot unpaused
+900 focus lose
+905 screenshot focus_lost
+960 screenshot focus_lost_later
+1000 focus regain
+1005 screenshot focus_back
+1050 screenshot focus_back_later
+1100 click 154 362
+1120 screenshot game_options
+1130 click 550 442
+1150 screenshot game_after_options
+1160 click 66 402
+1180 screenshot game_instructions
+1190 click 550 440
+1210 screenshot game_after_instructions
+1220 click 152 442
+1240 screenshot end_question
+1250 move 346 269
+1260 screenshot end_hover_save
+1270 click 346 269
+1290 screenshot after_save
+1300 click 166 91
+1320 screenshot newgame_saved
+1330 move 543 344
+1340 screenshot ng_hover_continue
+1350 click 543 344
+1370 screenshot continued
+1450 screenshot continued_later
+1500 click 152 442
+1520 screenshot end_question2
+1530 click 453 269
+1550 screenshot end_cancelled
+1600 click 389 234
+1620 screenshot continued_drop
+1700 quit

@@ -136,6 +136,8 @@ TipTopApp::TipTopApp()
 	mAutoplayUi = false;
 	mAutoplaySave = 0;
 	mStateLog = nullptr;
+	mButtonLog = nullptr;
+	mSoundLog = nullptr;
 }
 
 TipTopApp::~TipTopApp()
@@ -149,6 +151,13 @@ TipTopApp::~TipTopApp()
 		DeleteAutoplayState(mAutoplayState);
 	if (mStateLog != nullptr)
 		fclose(mStateLog);
+	if (mButtonLog != nullptr)
+		fclose(mButtonLog);
+	if (mSoundLog != nullptr)
+	{
+		lowos::SetSoundLog(nullptr, nullptr);
+		fclose(mSoundLog);
+	}
 }
 
 void TipTopApp::Init()
@@ -213,6 +222,10 @@ void TipTopApp::RunFrame()
 	}
 	if (!mStateLogName.empty())
 		UpdateStateLog();
+	if (!mButtonLogName.empty())
+		UpdateButtonLog();
+	if (mSoundLog != nullptr)
+		UpdateMusicLog();
 	if (!mCanvasShot.empty())
 		SaveCanvasShot();
 	int aMode = lowos::HostTakeScreenModeRequest();
@@ -269,7 +282,7 @@ void TipTopApp::SetMusicVolume(double theVolume)
 }
 
 // the command line: -autoplay=<seed> -autoplaymode=regular|strategy|speed -autoplaygames=N -autoplaycap=N
-// -autoplaylog=<file> -autoplayshots=<prefix> -autoplayui -autoplaysave=N -autoplayscript=<file> -statelog=<file> (testhooks/Autoplay.cpp); -canvas=<width>x<height> (testhooks/Canvas.cpp);
+// -autoplaylog=<file> -autoplayshots=<prefix> -autoplayui -autoplaysave=N -autoplayscript=<file> -statelog=<file> -buttonlog=<file> -soundlog=<file> (testhooks/Autoplay.cpp); -canvas=<width>x<height> (testhooks/Canvas.cpp);
 // -soundfont=<file> (MusicSynth.h)
 void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
@@ -297,6 +310,15 @@ void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::s
 		mAutoplayScript = theParamValue;
 	else if (theParamName == "-statelog")
 		mStateLogName = theParamValue;
+	else if (theParamName == "-buttonlog")
+		mButtonLogName = theParamValue;
+	else if (theParamName == "-soundlog")
+	{
+		if (mSoundLog == nullptr)
+			mSoundLog = fopen(theParamValue.c_str(), "w");
+		if (mSoundLog != nullptr)
+			lowos::SetSoundLog(mSoundLog, &mUpdateCount);
+	}
 	else if (theParamName == "-canvas")
 	{
 		int aWidth = 0, aHeight = 0;

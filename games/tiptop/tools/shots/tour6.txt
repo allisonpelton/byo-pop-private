@@ -1,0 +1,51 @@
+# Phase two tour 6: a speed game's first two levels (phase one's case spd: bot seed 3, game seed 4), the board every
+# 200 updates and the level summary.
+102 click 186 288
+203 click 186 288
+304 click 186 288
+406 click 165 88
+508 click 240 325
+520 screenshot s00520
+663 click 500 388
+700 screenshot s00700
+764 click 353 234
+805 click 317 234
+846 click 461 234
+887 click 497 234
+900 screenshot s00900
+928 click 317 234
+969 click 497 234
+1010 click 317 234
+1051 click 353 234
+1092 click 281 234
+1100 screenshot s01100
+1133 click 317 234
+1174 click 389 234
+1215 click 461 234
+1256 click 425 234
+1297 click 425 234
+1300 screenshot s01300
+1338 click 425 234
+1379 click 497 234
+1420 click 389 234
+1461 click 425 234
+1500 screenshot s01500
+1502 click 389 234
+1543 click 281 234
+1584 click 317 234
+1625 click 353 234
+1700 screenshot s01700
+1754 click 353 234
+1760 screenshot s01760
+1800 screenshot s01800
+1900 screenshot s01900
+2000 screenshot s02000
+2100 screenshot s02100
+2300 screenshot s02300
+2500 screenshot s02500
+2550 click 357 350
+2605 screenshot s02605
+2700 screenshot s02700
+2757 click 245 234
+2798 click 353 234
+2810 quit

@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 
 namespace lowos
 {
@@ -173,6 +174,8 @@ void UninitSound();                                                             
 Sound* CreateSound(const void* theWav, uint32_t theSize, uint32_t theParam, uint8_t theFlags);  // 0x432ea0
 void FreeSound(Sound* theSound);                                                 // 0x432f30
 void PlaySound(Sound* theSound, uint32_t theVolume, char theMode);               // 0x432f80
+// test hook (-soundlog): each sound's creation and each start, with the update count *theUpdate
+void SetSoundLog(FILE* theLog, const int* theUpdate);
 
 } // namespace lowos
 

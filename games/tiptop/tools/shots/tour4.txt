@@ -1,0 +1,84 @@
+# Phase two tour 4: a whole strategy game (phase one's case str: bot seed 2, game seed 3), the board every 300
+# updates, the level summary, the game over and its screen.
+102 click 186 288
+203 click 186 288
+304 click 186 288
+406 click 165 88
+508 click 145 260
+520 screenshot s00520
+663 click 500 388
+700 screenshot s00700
+764 click 245 234
+825 click 497 234
+886 click 317 234
+947 click 461 234
+1000 screenshot s01000
+1008 click 425 234
+1069 click 281 234
+1130 click 353 234
+1191 click 389 234
+1252 click 353 234
+1300 screenshot s01300
+1313 click 425 234
+1374 click 425 234
+1435 click 389 234
+1496 click 281 234
+1557 click 389 234
+1600 screenshot s01600
+1618 click 317 234
+1679 click 317 234
+1740 click 317 234
+1801 click 389 234
+1862 click 353 234
+1900 screenshot s01900
+1923 click 425 234
+1984 click 389 234
+2045 click 389 234
+2106 click 389 234
+2160 screenshot s02160
+2200 screenshot s02200
+2400 screenshot s02400
+2500 screenshot s02500
+2748 click 357 350
+2800 screenshot s02800
+2974 click 461 234
+3035 click 317 234
+3096 click 353 234
+3100 screenshot s03100
+3157 click 497 234
+3218 click 389 234
+3279 click 425 234
+3340 click 281 234
+3400 screenshot s03400
+3401 click 245 234
+3462 click 353 234
+3523 click 353 234
+3584 click 497 234
+3645 click 497 234
+3700 screenshot s03700
+3706 click 461 234
+3767 click 353 234
+3828 click 389 234
+3889 click 425 234
+3950 click 245 234
+4000 screenshot s04000
+4011 click 461 234
+4072 click 281 234
+4133 click 353 234
+4194 click 317 234
+4255 click 497 234
+4300 screenshot s04300
+4316 click 389 234
+4377 click 461 234
+4438 click 245 234
+4499 click 353 234
+4560 click 281 234
+4600 screenshot s04600
+4621 click 245 234
+4682 click 353 234
+4705 screenshot s04705
+4800 screenshot s04800
+5000 screenshot s05000
+5125 screenshot s05125
+5200 screenshot s05200
+5310 quit

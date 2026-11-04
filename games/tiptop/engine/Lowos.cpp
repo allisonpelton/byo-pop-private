@@ -953,6 +953,15 @@ void UninitSound()
 	gSlots.clear();
 }
 
+static FILE* gSoundLog = nullptr;
+static const int* gSoundLogUpdate = nullptr;
+
+void SetSoundLog(FILE* theLog, const int* theUpdate)
+{
+	gSoundLog = theLog;
+	gSoundLogUpdate = theUpdate;
+}
+
 // 0x432ea0: a sound from 16-bit PCM (theWav points at the samples of the WAV image the resource converter made,
 // 0x2c bytes after its header); theFlags bit 1: stereo.
 Sound* CreateSound(const void* theWav, uint32_t theSize, uint32_t theParam, uint8_t theFlags)
@@ -972,6 +981,8 @@ Sound* CreateSound(const void* theWav, uint32_t theSize, uint32_t theParam, uint
 	aSlot.mData = Platform::Mixer::Get().LoadSoundData(aFile, "tiptop sound");
 	aSound->mHandle = (int)gSlots.size();
 	gSlots.push_back(aSlot);
+	if (gSoundLog != nullptr)
+		fprintf(gSoundLog, "%d load %d bytes=%u flags=%u\n", *gSoundLogUpdate, aSound->mHandle, theSize, theFlags);
 	Sound** aLink = &gSounds;
 	while (*aLink != nullptr)
 		aLink = &(*aLink)->mNext;
@@ -1007,6 +1018,10 @@ void PlaySound(Sound* theSound, uint32_t theVolume, char theMode)
 		aMixer.StopVoice(aSlot.mVoice);
 		aSlot.mVoice = 0;
 	}
+	// a test run's mixer may not play (-fast, no device), so the log has every stop the call asks for, and the
+	// comparison decides from the sound's length whether it still played
+	if (gSoundLog != nullptr && (theMode == 0 || theMode == 1))
+		fprintf(gSoundLog, "%d stop %d\n", *gSoundLogUpdate, theSound->mHandle);
 	if (!gActive)
 		return;
 	float aGain = (float)((double)(theVolume >> 14) * (1.0 / 262144.0));
@@ -1018,6 +1033,8 @@ void PlaySound(Sound* theSound, uint32_t theVolume, char theMode)
 		return;
 	if (aSlot.mData)
 		aSlot.mVoice = aMixer.StartVoice(aSlot.mData, aGain, aGain, 1.0, false);
+	if (gSoundLog != nullptr)
+		fprintf(gSoundLog, "%d play%s %d\n", *gSoundLogUpdate, theMode == 2 ? "2" : "", theSound->mHandle);
 }
 
 } // namespace lowos

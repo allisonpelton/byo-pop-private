@@ -1,0 +1,72 @@
+# Phase two tour 1: the splash, the main menu and its hovers, high scores (and the clear question), options, the
+# instructions' pages, credits, the quit question and the new game screen. Lines of the port's -script; "screenshot
+# <name>" is a shot (make.py adds the folder). The options screen's publisher button (command 0x37) opens a web page:
+# never click it.
+150 screenshot splash_loading
+240 screenshot splash
+244 move 188 293
+250 screenshot splash_hover
+300 click 188 293
+320 screenshot mainmenu
+330 move 166 91
+340 screenshot mm_hover_newgame
+350 move 131 191
+360 screenshot mm_hover_highscores
+370 move 265 157
+380 screenshot mm_hover_options
+390 move 245 243
+400 screenshot mm_hover_instructions
+410 move 199 352
+420 screenshot mm_hover_quit
+430 click 131 191
+450 screenshot highscores
+460 move 549 371
+470 screenshot hs_hover_clear
+480 click 549 371
+500 screenshot hs_clear_question
+510 move 432 275
+515 screenshot hs_clear_hover_no
+520 click 432 275
+540 click 550 440
+560 click 265 157
+580 screenshot options
+590 click 183 357
+600 screenshot options_tips_toggled
+610 click 183 357
+620 move 300 400
+630 screenshot options_tips_back
+640 click 550 442
+660 click 245 243
+680 screenshot instructions1
+690 click 225 408
+710 screenshot instructions2
+720 click 225 408
+740 screenshot instructions3
+750 click 225 408
+770 screenshot instructions4
+775 click 225 408
+790 screenshot instructions5
+795 click 225 408
+810 screenshot instructions6
+815 click 225 408
+830 screenshot instructions7
+835 click 144 408
+850 screenshot instructions_prev
+855 click 550 440
+900 click 159 298
+920 screenshot credits
+930 click 550 440
+950 click 199 352
+970 screenshot quit_question
+980 click 432 275
+1000 click 166 91
+1020 screenshot newgame
+1030 move 236 189
+1040 screenshot ng_hover_regular
+1050 move 240 329
+1060 screenshot ng_hover_speed
+1070 move 147 261
+1080 screenshot ng_hover_strategy
+1090 click 550 440
+1110 screenshot mainmenu_back
+1120 quit

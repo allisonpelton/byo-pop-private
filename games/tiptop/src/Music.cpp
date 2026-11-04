@@ -277,6 +277,11 @@ char MusicPlaying()
 	return gPlaying;
 }
 
+char MusicPauseCount()
+{
+	return gPauseCount;
+}
+
 // 0x427fef: the original asked the thread to end, waited for it and closed the MIDI output
 void StopMusic_()
 {
