@@ -807,8 +807,12 @@ not packed and has full RTTI. It is just large.
    focused on a tap that forwards characters, with the canvas laid out above the soft keyboard, or an on-screen
    keyboard drawn by the web player. Which one is the user's choice.
 3. **More Mac builds.** A Mac build names the classes of a game whose PC exe has no game RTTI, as Chuzzle's does. Of the
-   games left, AstroPop, Heavy Weapon, Venice, Pizza Frenzy, Iggle Pop and Feeding Frenzy lack it. Any Mac build the
-   user finds of these goes into `re/<game>/mac/`.
+   games left, AstroPop, Heavy Weapon, Venice, Pizza Frenzy, Iggle Pop and Feeding Frenzy lack it. A web search
+   (2026-11-04) found Mac releases of two: Iggle Pop Deluxe (OS X, January 2006, for PowerPC and Intel; PCGamingWiki
+   says the Steam version runs on macOS) and Feeding Frenzy (OS X, 2007, Intel). Both were in PopCap's own bundle of
+   its 13 Mac games. Either would name Sprout's first-generation engine, which Pizza Frenzy shares. PCGamingWiki credits
+   a 2005 OS X port of Pizza Frenzy to Ryan C. Gordon, without a source. Nothing shows a Mac release of AstroPop, Heavy
+   Weapon, Venice, Gyromancer or Banana Bugs. Any Mac build the user finds goes into `re/<game>/mac/`.
 4. **Two images need the user first.** Gyromancer's Steam stub can only come off with a tool that is a download, and
    Banana Bugs' image has to come out of PopCap's 2010 DRM, which may need one too. Each download needs the user's OK
    (name, source, size), and the how-to stays private.
