@@ -156,7 +156,8 @@ the game has set its pointer: `byopop_cursor_set_copy()` (`framework/WebCursor.c
 image for every kind from `CURSOR_POINTER` to `CURSOR_WAIT` (`mCursorImages`, whether or not its custom cursors are on) to
 `Module.byopopCursorSet`, each with the hot spot the game draws it at, and the page keeps the six kinds the site shows (below). The page keeps them as PNG data URLs, at their own size (at most 128 px), in
 `web/cursors.js`'s localStorage item `byopop-cursors`, one set per game. The Settings (the listing page's tab and every game page's
-panel) have a "Site cursor" choice: the browser's own, or one of the games' sets, each shown by its pointer and hand. Games whose
+panel) have a "Site cursor" choice: the browser's own, or one of the games' sets, each shown by every cursor it has (pointer, hand, dragging, text, then the
+circle-slash and wait where it has them; an animated one by its first frame). Games whose
 sets are the same (every kind with the same image, hot spot and frames; Alchemy and Bejeweled, for one) share one entry named with
 all their titles, "Alchemy Deluxe and Bejeweled Deluxe" (the user, 2026-11-04); the sets are still kept one a game, choosing the
 entry keeps one member's id, and the entries form again from what is kept, so a set that changes leaves its group. The choice,

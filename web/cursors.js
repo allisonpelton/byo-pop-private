@@ -234,9 +234,12 @@ var ByopopCursors = (function () {
     // the legend as the Settings' group headings (web/settings.js, .bps-group), the choices in one box as its rows
     ".bpc-cur legend { padding: 0; margin-bottom: 8px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted, #6b6680); }\n" +
     ".bpc-cur .bpc-cur-box { display: grid; gap: 4px; padding: 10px 14px; border: 1px solid var(--line, #d9d5e3); border-radius: 10px; background: var(--panel-2, var(--panel, transparent)); }\n" +
-    ".bpc-cur label { display: flex; align-items: center; gap: 8px; min-height: 32px; }\n" +
-    ".bpc-cur .bpc-cur-pics { display: inline-flex; align-items: center; gap: 4px; min-width: 72px; }\n" +
+    // a row: the button, the set's cursors and the games' names; on a narrow screen the cursors wrap and the names go under them
+    ".bpc-cur label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-height: 32px; }\n" +
+    ".bpc-cur .bpc-cur-pics { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 72px; max-width: 100%; }\n" +
     ".bpc-cur .bpc-cur-pics img { max-width: 32px; max-height: 32px; image-rendering: pixelated; }\n" +
+    ".bpc-cur .bpc-cur-name { flex: 1 1 8em; min-width: 0; overflow-wrap: anywhere; }\n" +
+    "@media (max-width: 480px) { .bpc-cur .bpc-cur-pics img { max-width: 24px; max-height: 24px; } }\n" +
     ".bpc-cur .bpc-cur-hint { margin: 0; color: var(--muted, #6b6680); font-size: 13px; }\n";
   var rendered = [], idCount = 0;
   function redraw() { rendered.forEach(fill); }
@@ -258,16 +261,18 @@ var ByopopCursors = (function () {
       input.addEventListener("change", function () { if (input.checked) choose(id); });
       label.appendChild(input);
       if (set) {
+        // every cursor the set has, in KINDS' order (an animated one by its first frame), as pictures only: the names say which
         var pics = make("span", "bpc-cur-pics");
-        ["pointer", "hand"].forEach(function (k) {
+        KINDS.forEach(function (k) {
           if (!set[k]) return;
           var img = make("img");
           img.src = set[k].url; img.alt = "";
+          img.setAttribute("data-kind", k);
           pics.appendChild(img);
         });
         label.appendChild(pics);
       }
-      label.appendChild(document.createTextNode(text));
+      label.appendChild(make("span", "bpc-cur-name", text));
       box.appendChild(label);
     }
     option("", ByopopStrings.t("cursors.browser"), null);
