@@ -290,8 +290,8 @@ void Board::AddFloatingText(int thePoints, int theMultiplier, int theUnused, con
 
 	FloatingText* aText = new FloatingText();
 	int aMode = mApp->mGameMode;
-	const char* aFormat = (thePoints < 0) ? "-%d" : (((aMode == GAMEMODE_STAMPEDE) || (aMode == GAMEMODE_PUZZLE)) ? "%d" : "+%d");
-	snprintf(aText->mText, sizeof(aText->mText), aFormat, thePoints < 0 ? -thePoints : thePoints);
+	const char* aFormat = (thePoints < 0) ? "-%d" : (((aMode == GAMEMODE_STAMPEDE) || (aMode == GAMEMODE_PUZZLE)) ? "+%d" : "%d");
+	snprintf(aText->mText, sizeof(aText->mText), aFormat, thePoints < 0 ? -thePoints : thePoints * theMultiplier);
 	int r = std::max(0, theColor.mRed - 0x14);
 	int g = std::max(0, theColor.mGreen - 0x14);
 	int b = std::max(0, theColor.mBlue - 0x14);
@@ -327,9 +327,9 @@ void Board::AddSparkle(int theX, int theY)
 	Sparkle* aSparkle = new Sparkle();
 	aSparkle->mX = theX;
 	aSparkle->mY = theY;
-	aSparkle->mLife = 0x6e;
-	aSparkle->mFrame = 0;
-	aSparkle->mHeight = CrtRand() % 5;
+	aSparkle->mLife = 0xd2;
+	aSparkle->mHeight = CrtRand();
+	aSparkle->mFrame = aSparkle->mHeight;
 	mSparkles.push_back(aSparkle);
 }
 

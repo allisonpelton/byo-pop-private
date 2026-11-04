@@ -619,7 +619,7 @@ void Board::Draw(Graphics* g)
 					aClip.SetColorizeImages(true);
 					aClip.SetColor(Color(mPulseB, mPulseB, mPulseB));
 				}
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY - 6 * 0x32);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY);
 				aClip.SetColorizeImages(false);
 				continue;
 			}
@@ -644,16 +644,16 @@ void Board::Draw(Graphics* g)
 			}
 			if (p->mRemoved)
 			{
-				if (p->mAlpha < 0xff)
+				// the animal is stretched into a picture of its own with the framework's fast stretch (0x40a6f9 does so for
+				// the translucent ones, the opaque ones go straight to the screen, which a software surface stretches the same way)
+				MemoryImage aStretched(mApp);
+				aStretched.Create(aSize, aSize);
 				{
-					Rect aSrc(aType * 0x32, 0xfa, 0x32, 0x32);
-					aClip.DrawImage(anImages[IMAGE_ANIMALS], Rect(aX, aY, aSize, aSize), aSrc);
+					Graphics aStretch(&aStretched);
+					aStretch.SetFastStretch(true);
+					aStretch.DrawImage(anImages[IMAGE_ANIMALS], Rect(0, 0, aSize, aSize), Rect(aType * 0x32, 0xfa, 0x32, 0x32));
 				}
-				else
-				{
-					Rect aSrc(aType * 0x32, 0xfa, 0x32, 0x32);
-					aClip.DrawImage(anImages[IMAGE_ANIMALS], Rect(aX, aY, aSize, aSize), aSrc);
-				}
+				aClip.DrawImage(&aStretched, aX, aY);
 			}
 			else if (p->mFading)
 			{

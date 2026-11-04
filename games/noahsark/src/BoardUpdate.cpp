@@ -321,8 +321,8 @@ void Board::Update()
 						aPartner->mPixelY = (float) CellTop(aPartner->mY);
 						for (int i = 0; i < 4; i++)
 						{
-							int ax = (CrtRand() % 0x14) + 5 + (int) aPartner->mPixelX;
 							int ay = (CrtRand() % 0x14) + 5 + (int) aPartner->mPixelY;
+							int ax = (CrtRand() % 0x14) + 5 + (int) aPartner->mPixelX;
 							AddSparkle(ax, ay);
 						}
 						if (mState != BOARD_ABANDON)

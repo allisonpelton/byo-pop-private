@@ -11,7 +11,7 @@ D="build/noahtest/p2/$N"
 rm -rf "$D"; mkdir -p "$D"
 python -I games/noahsark/tools/tour.py "$TOUR" "$D"
 rm -rf "build/noahtest/ud_p2_$N"
-games/noahsark/tools/run_script.sh "$D/port.txt" "build/noahtest/ud_p2_$N" 300 -seed=1 "$@" > "$D/port.log" 2>&1
+games/noahsark/tools/run_script.sh "$D/port.txt" "build/noahtest/ud_p2_$N" 300 -seed=1 -drawevery "$@" > "$D/port.log" 2>&1
 rm -rf "build/origrun/p2_$N"
 SANDBOX=1 games/noahsark/tools/run_original.sh "p2_$N" "$D/orig.txt" 1 > "$D/orig.out" 2>&1
 mkdir -p "$D/orig"; cp "build/origrun/p2_$N/shots/"*.png "$D/orig/" 2>/dev/null

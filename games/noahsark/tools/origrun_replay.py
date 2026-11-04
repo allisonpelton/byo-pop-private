@@ -43,7 +43,7 @@ def script(menu, bot, out, last):
         m = re.match(r'click at update (\d+): (\d+) (\d+)', ln)
         if m:
             xy = cmap.get((int(m.group(2)), int(m.group(3))), (m.group(2), m.group(3)))
-            lines.append('at %d click %s %s' % (int(m.group(1)) + 1, xy[0], xy[1]))
+            lines.append('at %d click %s %s' % (int(m.group(1)) + 1 + int(os.environ.get('REPLAY_CLICK_DELAY', '0')), xy[0], xy[1]))
         m = re.match(r'text at update (\d+): (\S+)', ln)
         if m:
             lines.append('at %d text %s' % (int(m.group(1)) + 1 + int(os.environ.get('REPLAY_TEXT_DELAY', '0')), m.group(2)))
