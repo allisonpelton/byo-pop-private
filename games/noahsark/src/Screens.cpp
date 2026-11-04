@@ -263,6 +263,14 @@ static const int gRankThresholds[24] =
 	100000, 150000, 200000, 500000, 1000000, 5000000, 10000000, 999999999
 };
 
+// 0x4944c0: the ranks of the game-over screen, the same names in capitals
+static const unsigned int gRankNamesCaps[23] =
+{
+	0x0049466c, 0x0049465c, 0x00494650, 0x00494644, 0x00494638, 0x00494624, 0x00494618, 0x00494608, 0x004945f8,
+	0x004945e8, 0x004945d8, 0x004945c8, 0x004945b8, 0x004945ac, 0x004945a0, 0x00494594, 0x00494588, 0x00494574,
+	0x00494564, 0x00494558, 0x00494544, 0x00494538, 0x00494528
+};
+
 // 0x494ab4: the names of the ranks from the lowest
 static const unsigned int gRankNames[23] =
 {
@@ -613,19 +621,19 @@ void HighScoreWidget::Draw(Graphics* g)
 	int aScore = mApp->mGameScore;
 	Font* aFont = mApp->mFonts[FONT_MEDIUM];
 	g->SetColor(Color(0xff, 0xbf, 0x22, aAlpha));
-	g->DrawString(GT(0x004947d8), (mWidth - aFont->StringWidth(GT(0x004947d8))) / 2, 0x32);
+	g->DrawString(GT(0x004947d8), (mWidth - aFont->StringWidth(GT(0x004947d8))) / 2, 0x27);
 	g->SetColor(Color(0xff, 0xff, 0, aAlpha));
 	SexyString aPoints = FormatText(GT(0x004947cc), aScore);
-	g->DrawString(aPoints, (mWidth - aFont->StringWidth(aPoints)) / 2, 0x58);
+	g->DrawString(aPoints, (mWidth - aFont->StringWidth(aPoints)) / 2, 0x48);
 	g->SetColor(Color(0xff, 0xbf, 0x22, aAlpha));
-	g->DrawString(GT(0x004947b4), (mWidth - aFont->StringWidth(GT(0x004947b4))) / 2, 0x7a);
+	g->DrawString(GT(0x004947b4), (mWidth - aFont->StringWidth(GT(0x004947b4))) / 2, 0x72);
 	int aRank = 0;
 	while ((aRank < 23) && (aScore >= gRankThresholds[aRank]))
 		aRank++;
 	if (aRank > 22)
 		aRank = 22;
 	g->SetColor(Color(0xff, 0xff, 0, aAlpha));
-	g->DrawString(GT(gRankNames[aRank]), (mWidth - aFont->StringWidth(GT(gRankNames[aRank]))) / 2, 0x95);
+	g->DrawString(GT(gRankNamesCaps[aRank]), (mWidth - aFont->StringWidth(GT(gRankNamesCaps[aRank]))) / 2, 0x95);
 
 	g->SetColor(Color(0xff, 0xff, 0xff, aAlpha));
 	DrawImageBox2003(g, Rect((mWidth - 0x19f) / 2, 0xa0, 0x19f, 0xf0), mApp->mImages[IMAGE_DIALOG]);

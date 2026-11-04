@@ -1,0 +1,6 @@
+{"client": [640, 480],
+ "ignore": [
+  {"rect": [0, 200, 175, 60], "pairs": "p?.png",
+   "label": "danger water: the red pulse of the flood (mPulseA) changes every update and a capture shows the last drawn frame, so its phase differs between the two runs"},
+  {"rect": [636, 200, 4, 60], "pairs": "p?.png", "label": "the same pulse, at the right edge"}
+ ]}

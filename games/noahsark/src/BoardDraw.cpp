@@ -73,9 +73,9 @@ void Board::DrawBubbles(Graphics* g)
 		Graphics aClip(*g);
 		aClip.ClipRect((int) aBubble->mX, (int) aBubble->mY, 0xf, 0xf);
 		int aOffset = (aBubble->mY <= (double) (mWaterY + 0x14)) ? 0 : -0xf;
-		aClip.SetColorizeImages(true);
+		aClip.SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		aClip.DrawImage(mApp->mImages[IMAGE_BUBBLES], (int) aBubble->mX + aOffset, (int) aBubble->mY);
-		aClip.SetColorizeImages(false);
+		aClip.SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 }
 
