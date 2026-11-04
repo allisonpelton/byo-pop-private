@@ -222,9 +222,9 @@ The saved game carries the generator state, so both play the same boards. It fou
 
 | Change | Cause in the original | Commit |
 |---|---|---|
-| A Stampede click took the clicked animal into the group twice (group of 8 scored as 9) | 0x40e340 takes the group the move highlighted as it is; the port's port(mod) push of the clicked piece added a duplicate | see log |
-| The saved game numbers the two obstacle kinds the other way round from the port's internal numbers (a strategy save from the original loaded with block and crate pictures exchanged, and the port's differed from it in 3 bytes) | the files are written and read with the 0xf and 0x10 exchanged now; compared with the original's file of the same strategy game: equal but for the level start tick and two bytes of two animals' animation fields | see log |
-| The bot logs its Stampede clicks (to replay them) | test hook only | see log |
+| A Stampede click took the clicked animal into the group twice (group of 8 scored as 9) | 0x40e340 takes the group the move highlighted as it is; the port's port(mod) push of the clicked piece added a duplicate | ed3d7f4 |
+| The saved game numbers the two obstacle kinds the other way round from the port's internal numbers (a strategy save from the original loaded with block and crate pictures exchanged, and the port's differed from it in 3 bytes) | the files are written and read with the 0xf and 0x10 exchanged now; compared with the original's file of the same strategy game: equal but for the level start tick and two bytes of two animals' animation fields | ed3d7f4 |
+| The bot logs its Stampede clicks (to replay them) | test hook only | ed3d7f4 |
 
 The Stampede round from the save then matches the original: the same boards, scores (3,000 updates in, equal), the round's end;
 differences left are the animals' walk to the ark one update off (the replayed click reaches the original one update after the
