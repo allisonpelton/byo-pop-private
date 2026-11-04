@@ -96,7 +96,7 @@ copy another port. Efforts are the estimates without references ([3.3](#33-verdi
 | 13 | [Peggle Nights](#513-peggle-nights) | Sonnet | no | ~4-5x after Deluxe | Peggle Deluxe's port; a Mac build |
 | 14 | [Bejeweled 3](#514-bejeweled-3) | Opus | yes | ~30x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
 | 15 | [Banana Bugs](#515-banana-bugs) | Opus | yes | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; the image must first come out of the 2010 DRM |
-| 16 | [Gyromancer](#516-gyromancer) | Opus | yes | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
+| 16 | [Gyromancer](#516-gyromancer) | Opus | yes | large | Square Enix's own engine; a clear image of the Steam build is in `re/gyromancer/bin/` |
 | 17 | [Zuma's Revenge!](#517-zumas-revenge) | Opus | web only | ~35x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
 | 18 | [Talismania Deluxe](#518-talismania-deluxe) | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
 
@@ -172,7 +172,7 @@ These are listed roughly in order of how much they affect the effort:
 
 Getting an analysable image was not a differentiator for the first 26 games: none uses a commercial packer on its game
 image ([3.4](#34-findings-that-apply-to-many-games)). Two games found later are the exceptions: Banana Bugs and
-Gyromancer (section 5).
+Gyromancer's Steam exe, though a clear image of Gyromancer has since been found (section 5).
 
 ### 3.3 Verdicts and effort
 
@@ -191,7 +191,7 @@ game without RTTI and for an archive to decode first were set too high.
 
 ### 3.4 Findings that apply to many games
 
-<!-- private: **Protection.** Of the first 26 games, none needs real unpacking. Most builds carry the unencrypted game inside one of four PopCap wrappers or launchers, which the private tool copies it out of; Bookworm Adventures Deluxe, Bookworm Adventures Vol. 2, Peggle WoW and Bejeweled 3 have no wrapper. Two games found later, Banana Bugs and Gyromancer, are encrypted (section 5). -->
+<!-- private: **Protection.** Of the first 26 games, none needs real unpacking. Most builds carry the unencrypted game inside one of four PopCap wrappers or launchers, which the private tool copies it out of; Bookworm Adventures Deluxe, Bookworm Adventures Vol. 2, Peggle WoW and Bejeweled 3 have no wrapper. Two games found later, Banana Bugs and Gyromancer's Steam exe, are encrypted, though a clear Gyromancer image has since been found (section 5). -->
 
 **Protection.** Of the first 26 games, none needs real unpacking. There are four wrapper variants, plus a few games with
 no wrapper:
@@ -205,7 +205,8 @@ no wrapper:
 | no wrapper | Bookworm Adventures Deluxe, Bookworm Adventures Vol. 2, Peggle WoW, Bejeweled 3 | load the exe directly |
 
 Two games found later are encrypted: Banana Bugs behind PopCap's 2010 DRM and Gyromancer behind Steam's DRM stub
-([5.15](#515-banana-bugs), [5.16](#516-gyromancer)).
+([5.15](#515-banana-bugs), [5.16](#516-gyromancer)). A cracked copy of Gyromancer's Steam build has since given a
+clear image ([5.16](#516-gyromancer)).
 
 <!-- /private -->
 
@@ -332,7 +333,7 @@ group.
 | Bonnie's Bookstore Deluxe (New Crayon) | 2006-11-10, VS2003 | DRM wrapper; carve | New Crayon's own engine on SDL 1.2 and FMOD 3 | SDL_image | 349 KB in all | | ~4-6x | [ported](../games/bonnies/README.md) |
 | Water Bugs (Retro64) | 2007-10 | plain exe, no wrapper | Retro64's own engine, DirectDraw | BASS | ~350 KB in all; no RTTI | | small after Cosmic Bugs | [ported](../games/waterbugs/docs/README.md) |
 | Cosmic Bugs (Retro64) | 2007-11 | plain exe, no wrapper | Retro64's own engine, DirectDraw | BASS | ~350 KB in all; no RTTI | | ~2x | [ported](../games/cosmicbugs/docs/README.md) |
-| Gyromancer (PopCap with Square Enix) | 2009-09 | Steam's DRM stub encrypts the code | Square Enix's own engine, not SAF | none known | 80 game classes | | large | [to port](#516-gyromancer) |
+| Gyromancer (PopCap with Square Enix) | 2009-09 | Steam's DRM stub encrypts the Steam exe; a clear image is kept | Square Enix's own engine, not SAF | none known | 80 game classes | | large | [to port](#516-gyromancer) |
 
 Note 1: Peggle Deluxe's survey pass rated it EXTRA WORK, citing JPEG 2000. The pass that covered Peggle Extreme, Nights
 and WoW rated them DIRECT, and they have the same requirements. This report uses DIRECT for the whole family, with JPEG
@@ -716,6 +717,10 @@ the first download. The first download also holds another build of `igglepop-bin
   signed in 2015 by Defy Media, which then owned Shockwave. Its `Main.pak`, its 120 OGG sounds, `bass.dll` and
   `j2k-codec.dll` are identical to ours. Neither holds a clear game image, so nothing was saved and the image still
   waits.
+- **A repack (2026-11-04).** A third copy, Big Fish Games' build of July 2010 in a repack of PopCap's games that the
+  user downloaded from the Internet Archive (`PopCap Games Repacked.zip`, which stays in the Downloads folder), holds
+  the same game exe as Shockwave's, still protected, beside a `Main.pak` identical to ours, so it gives no clear image
+  either and nothing was saved.
 
 <!-- private -->
 
@@ -740,6 +745,17 @@ the image, through a widely known commercial protector instead of PopCap's own 2
 without running the game under a dumper or a downloaded unpacker, which is the user's call. The scripts that read the
 installers stayed in a scratch folder, since deleted.
 
+**The repack's exe.** The repack's `BananaBugs.exe` (3,936,256 bytes, dated 2010-07-20) is the same Armadillo-wrapped
+game as Shockwave's: linked 2010-04-09, v1.0.0.7, linker version 83.82, its entry point in `.adata`, and the same
+virtual sizes for `.text`, `.rdata` and `.data`, which again have no bytes in the file. Its `.pdata` is 3.0 MB where
+Shockwave's is 1.5 MB, because here its first megabyte holds Armadillo's licensing engine in the clear (a second PE
+with the key-entry, trial and hardware-locking screens), and the game's sections follow in about 2 MB at entropy 8.0.
+Its 87 RTTI names are boost's, std's and that engine's own (an embedded IE window, `SecurityCertificate`), none of the
+game's, and its imports are the loader's 181 functions from three system DLLs. PopCap's Authenticode signature lies
+stale at the end of `.pdata`, where the header's security entry no longer points. Big Fish's launcher is not in the
+repack (its `bfgstate.xml` names another exe), and whether the repacker changed the wrapper cannot be seen without
+running it. So the repack is a third copy on the Armadillo route, not a way round it.
+
 <!-- /private -->
 
 ### 5.16 Gyromancer
@@ -747,13 +763,31 @@ installers stayed in a scratch folder, since deleted.
 **Opus, published, large.** Added on 2026-10-25.
 
 - **Copy:** Steam, `E:/SteamLibrary/steamapps/common/Gyromancer` (2009-09). A puzzle RPG made by PopCap with Square
-  Enix, which published it, on battles like Bejeweled Twist's. The copy in `re/gyromancer/bin/` is the Steam exe as it
-  is.
+  Enix, which published it, on battles like Bejeweled Twist's. `re/gyromancer/bin/` holds the Steam exe as it is and a
+  clear image of the same build.
 - **Engine:** not Twist's or any PopCap framework: no SexyApp class strings at all, and 80 game classes of Square Enix's
   own engine (`CGM_*` game modes, `CData*` tables, effects). Its data is in its own archives (`.bjm`, `.cab`, `.dat`).
   So it no longer depends on Twist.
-- **Image:** Steam's DRM stub has encrypted the code section (entropy 8.0), so analysis needs the stub removed first,
-  with a tool that would be a download (the user's OK first) and a how-to that stays private.
+- **Image:** Steam's DRM stub has encrypted the Steam exe's code section (entropy 8.0). A clear image of the same
+  build was found on 2026-11-04. It is kept as `re/gyromancer/bin/Gyromancer_clear.exe` beside the Steam exe, with a
+  README, so analysis no longer waits on a tool.
+
+<!-- private -->
+
+**How the clear image differs from the Steam exe.** Two of the user's downloads hold the same cracked exe (1,671,168
+bytes, dated 2009-11-18): the `Gyromancer\` folder of the repack in [5.15](#515-banana-bugs) and a separate
+`Gyromancer.rar`. It is the Steam exe with Valve's stub taken off. Its link date (2009-09-18), version 1.0.0.1, PDB
+path and checksum field are the Steam exe's. Its `.data` and `.rsrc` are byte-identical, and its `.rdata` differs only
+in the import descriptors. The `.bind` section and Valve's signature are gone, `.text` is decrypted (entropy 6.6, with
+the usual MSVC 8 CRT start as its entry point), and the header's `VLV` marker now reads `THT`. `steam_api.dll` was
+dropped from the imports, which leaves its six IAT slots unresolved. To make up for that, the code jumps over its
+calls into Steam's API: two of those `call` instructions became short jumps, and two more jumps skip the blocks that
+make the other calls, all between 0x418100 and 0x4181c0. `re/gyromancer/bin/README.txt` lists the sites. Apart from
+them the image should be the original code, though the Steam exe's encrypted `.text` cannot be used to check it byte
+for byte. Its 99 RTTI names are the same as the Steam exe's. Both downloads' data files are identical to Steam's. The
+RAR adds a save from 2023 and someone's `Uninstal.exe`, which were not kept.
+
+<!-- /private -->
 
 ### 5.17 Zuma's Revenge!
 
@@ -877,10 +911,11 @@ not packed and has full RTTI. It is just large.
    ([5.8](#58-iggle-pop-deluxe), [5.9](#59-feeding-frenzy-deluxe)), and they name Pizza Frenzy's engine too. PCGamingWiki
    credits a 2005 OS X port of Pizza Frenzy to Ryan C. Gordon, without a source. Nothing shows a Mac release of
    AstroPop, Heavy Weapon, Venice, Gyromancer or Banana Bugs. Any Mac build the user finds goes into `re/<game>/mac/`.
-4. **Two images need the user first.** Gyromancer's Steam stub can only come off with a tool that is a download.
-   Banana Bugs' image has to come out of a protection too: the two installers the user found on 2026-11-04 hold no
-   clear image ([5.15](#515-banana-bugs)), though one of them gives a second route, which may also need a tool. Each
-   download needs the user's OK (name, source, size), and the how-to stays private.
+4. **Banana Bugs' image needs the user first.** Gyromancer's no longer does: a clear image of the Steam build was
+   found on 2026-11-04 and is kept in `re/gyromancer/bin/` ([5.16](#516-gyromancer)). Banana Bugs' image still has to
+   come out of a protection: the two installers the user found on 2026-11-04 hold no clear image
+   ([5.15](#515-banana-bugs)), though one of them gives a second route, which may also need a tool. Each download
+   needs the user's OK (name, source, size), and the how-to stays private.
 5. **The survey's leftovers.** The old session's scratchpad folder
    (`C:/Users/Administrator/AppData/Local/Temp/claude/C--Users-Administrator-Documents-claude-wasm-bejeweled/bb6f3864-facb-48c7-acfa-f782a25ef960/scratchpad/survey/`)
    survives only in fragments: 1,058 files and 27 MB of partial Ghidra exports, with every script gone. The scripts
