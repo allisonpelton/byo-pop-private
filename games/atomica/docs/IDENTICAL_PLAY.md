@@ -102,6 +102,7 @@ in its crop and judged; what is left is below.
 | Options box | the label rows' y, the colour of each name in the credits | the same |
 | Quit box | texts and the red third button | the same |
 | Reset hints | clears the hints shown only, not the grid's flag (0x424430) | the same |
+| Title music | the title screen plays the song's order 6 from update 0 and stops it when it goes (0x42fe90, 0x42fd10) | the same (it was silent) |
 | Default volumes | music 0.5, sound 0.85 (0x4066d4) | the same |
 | Level over atoms | x, then y, then the wobble from the game's generator; the plain sprite under the glow (0x4037f0) | the same: the whole board matched, it had shown stronger highlights |
 | High score entry box | six shadow copies of "A NEW HIGH SCORE!!!" climbing from faint, the score above it between two arrows that come and go (the tick runs 0 to 300 in fours), the monitor's line and the prompt in the cycling colours, the name on a picture of a field with no field of its own (light text, white highlight, 15 characters, 140 pixels), SAVE and CANCEL as green fields (0x41cf90, 0x41ca50, 0x41cc00) | the same (it was a simplified drawing with white field and OKAY) |
@@ -130,19 +131,42 @@ The fixes are drawing and box state only; the frozen baseline replays the same n
   p2-g5.txt --run h1` and open those pictures. A fix would need the original's rotation rounding.
 - The edge antialiasing of the atom symbol icons (`g2650`, `g6150`) differs by a few levels.
 - A molecule's halo shake (`g3350`, `g7400`): see the masks.
+- Pictures of the native port in real time and under `-fast` differ at the same update (the web build equals the real-time ones), while the
+  state is equal; the `-fast` pictures match the original's. Cause not found (the menu panel and doors at update 2341, `p2-web.txt`, `web.sh`
+  after `shots.py ... --port-only`, and a native run without `-fast`); it belongs to the shared frame loop, not to Atomica.
 
 ## Sound, focus and the web build
 
 - **Focus:** `p2-focus.txt` loses the focus in a strategy game's first hint box, regains it, and loses and regains it
   in a row (`focus lose` / `focus regain`, as the window gets the deactivate and activate messages). The pictures after each
   step are the same in both (the box stays, no pause picture is drawn, the board is not redrawn differently).
-- **Sound:** compared by state, not by recording. origrun's sandbox mutes the original (its run says no audio session
-  appeared), so no recording of what the original plays exists; the port's Play calls follow the call sites of the export
-  (the entry box's voice, the new high score jingle, the door and swoop sounds, the volumes 0.5 and 0.85 as the original's
-  constructor sets them).
-- **Web build:** `tools/check.sh build-web:atomica` builds it, and the web build run under Node (`wasmrun.js game
-  --timeout 500 build/web/atomica.js ... -script=s2.txt -statetrace=...`) plays `s2.txt` for 4,000 updates with a state trace
-  equal to the native port's (7,398 lines). The web page itself was not opened.
+- **Sound and music, against the original's own calls.** `tools/identical/sound_orig.sh <scenario> <name>` runs the original on the host
+  (rundesk, virtual clock) with origrun's recording stand-in (`--sound wav`: every DirectSound buffer create and play, in
+  `logs/sound.log`) and with `tools/fmodproxy` as its `fmod.dll` (a logging stand-in for FMOD 3, the Big Money bassproxy adapted:
+  the real DLL is renamed `fmod_real.dll`; every call of the 25 imported functions is written to `fmodlog.txt` with the game's update
+  counter). `sound_cmp.sh` then runs the port on the same input with `BYOPOP_SOUNDLOG` and sets the two logs side by side:
+  `soundcmp.py` the sample plays (the effects are decoded by FMOD and played through DirectSound; a play is named by its
+  buffer's size, electric2 and electric3 being one size, and set against the port's by order, sample, volume, pan and update within
+  two; the original's time is the virtual clock's ms/10 with the load as an offset) and `musiccmp.py` the music (the song is played
+  through FMUSIC: `PlaySong`/`SetOrder`/`StopSong` by update). The original's registry key is deleted before each run, since the
+  host registry keeps the game's hints off between runs and a run without hint boxes is not the port's fresh one. Results:
+  the strategy bot's game `s2.txt` (4,000 updates: 214 plays) and an action game `a1.txt` (4,400 updates: 154 plays) have the same
+  plays in the same order, sample, volume, pan and update (0 differences), and the same five music events (the title's tune at 0,
+  the menu's song at 1510, the title's stop at 1556, the game's tune at 2310, the menu's stop at 2375). **The music log found two
+  faults, both fixed:** the title screen starts its own tune (order 6, 0x42fe90) and stops it when it goes (0x42fd10), which the port
+  did not do (the title and the first 1,500 updates were silent; the song also went on playing under the menu's). The original's
+  runs are deterministic (two runs of `s2.txt` gave the same 478 plays at the same times). Later than update 4,400 the original's
+  board stops updating at a point that varies (Oddities), so what it plays after is not compared. Not compared: the game over and
+  high score entry voices (they come after that point in every scenario; the entry box's drawing is compared in pictures).
+- **Web build pictures.** `tools/identical/web.sh <scenario> <run>` plays a scenario in the web build under Node
+  (`wasmrun.js game`) and compares its pictures with the native port's by shotdiff. Against the native port **in real time** (without
+  `-fast`) all 68 pictures of `p2-s2.txt` match (57 exactly, 11 within the faint tolerance): the web build draws what the native
+  game does. Against the native port under `-fast` they do not (28 of 68 differ, the menu panel and the doors by a few updates'
+  motion, atoms at other places): the same difference appears between the native port's `-fast` and real-time runs (a
+  picture of `p2-web.txt` at update 2341: 78,000 pixels). The game's state at those updates is the same in both (the panel's y, the
+  door and the alpha, printed at each shot, are equal), the pictures are not. The pictures of this pass's comparisons with the original
+  are `-fast` ones that match the original's (virtual clock), so this is a finding for the shared loop (`-fast` against real time) and
+  not a deviation from the original that was found; it is not chased here (Oddities).
 
 ## Deviations left in phase two
 

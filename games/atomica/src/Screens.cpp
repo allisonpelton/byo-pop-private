@@ -1,6 +1,7 @@
 // The full-screen widgets of Atomica Deluxe (see Screens.h).
 
 #include "Screens.h"
+#include "MusicInterface.h"
 #include "AtomicaApp.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -45,10 +46,15 @@ TitleScreen::TitleScreen(AtomicaApp* theApp) :
 	mPlayLink->mLabel = "";
 	mPlayLink->SetVisible(false);
 	mHasTransparencies = false;
+	// 0x42fe90: the title's own tune (order 6 of the song), until the menu starts its
+	mApp->mMusicInterface->PlayMusic(0, 6, false);
 }
 
+// 0x42fd10: the title's tune stops with it
 TitleScreen::~TitleScreen()
 {
+	if (mApp->mMusicInterface != NULL)
+		mApp->mMusicInterface->StopMusic(0);
 	delete mPlayLink;
 }
 
