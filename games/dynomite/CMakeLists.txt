@@ -13,8 +13,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/FossilizedApp.cpp)
     target_compile_options(dynomite PRIVATE -Wall -Wno-unused-private-field)
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(dynomite TITLE "Dynomite Deluxe"
-      COPYRIGHT "Dynomite Deluxe © 2003 PopCap Games, Inc. All rights reserved.")
+    byopop_web_game(dynomite TITLE "Dynomite"
+      COPYRIGHT "Dynomite © 2003 PopCap Games, Inc. All rights reserved.")
   else()
     add_custom_command(TARGET dynomite POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:dynomite>

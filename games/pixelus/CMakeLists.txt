@@ -22,8 +22,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/PixelusApp.cpp)
     endif()
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(pixelus TITLE "Pixelus Deluxe"
-      COPYRIGHT "Pixelus Deluxe © 2004 Nuclide Games and PopCap Games, Inc. All rights reserved.")
+    byopop_web_game(pixelus TITLE "Pixelus"
+      COPYRIGHT "Pixelus © 2004 Nuclide Games and PopCap Games, Inc. All rights reserved.")
   else()
     add_custom_command(TARGET pixelus POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:pixelus>

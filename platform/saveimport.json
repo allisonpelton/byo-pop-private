@@ -58,7 +58,7 @@
     },
     "bookworm": {
       "folder": "BookWorm Deluxe", "steam": "BookWorm Deluxe",
-      "note": "The port follows the 2004 edition of BookWorm Deluxe (the one that keeps its players under the registry key Users). The Steam edition is a later build that keeps each player in players\\<name>\\profile.dat and scores.dat; the port does not read those.",
+      "note": "The port follows the 2004 edition of the original Windows game (the one that keeps its players under the registry key Users). The Steam edition is a later build that keeps each player in players\\<name>\\profile.dat and scores.dat; the port does not read those.",
       "registry": { "key": "PopCap\\BookWorm", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
         "values": ["Users\\User=sz", "Users\\*\\Alias=sz", "Users\\*\\ShowHelp=dword", "Users\\*\\ShowHints=dword", "Users\\*\\ShowDefs=dword", "Users\\*\\TimesPlayed=dword",
           "Scores\\Classic=hex", "Scores\\Action=hex", "Scores\\Best=hex", "Scores\\Longest=hex"] },

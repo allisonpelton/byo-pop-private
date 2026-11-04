@@ -29,8 +29,8 @@ if(NOT MSVC)
 endif()
 if(EMSCRIPTEN)
   target_link_options(bonnies PRIVATE "-sASYNCIFY=1" "-sASYNCIFY_STACK_SIZE=65536")
-  byopop_web_game(bonnies TITLE "Bonnie's Bookstore Deluxe"
-    COPYRIGHT "Bonnie's Bookstore Deluxe © 2008 PopCap Games, Inc. All rights reserved.")
+  byopop_web_game(bonnies TITLE "Bonnie's Bookstore"
+    COPYRIGHT "Bonnie's Bookstore © 2008 PopCap Games, Inc. All rights reserved.")
 else()
   add_custom_command(TARGET bonnies POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bonnies>

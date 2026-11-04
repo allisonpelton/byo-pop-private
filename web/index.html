@@ -730,7 +730,7 @@ try {
     var buy = card.querySelector(".buyrow");
     if (buy) buy.hidden = info.state === "yes" || !!info.everLoaded || !!info.played;
     // the link's accessible name: the game's name, the year of its release when it has one, then the same words
-    // ("Bejeweled Deluxe, 2001, play now")
+    // ("Bejeweled, 2001, play now")
     var year = tile.querySelector(".year");
     tile.setAttribute("aria-label", ByopopStrings.t(year ? "index.tile.label_year" : "index.tile.label",
       {name: tile.querySelector(".name").textContent, year: year ? year.textContent : "", state: ByopopStrings.t(WORDS[info.state]).toLowerCase()}));

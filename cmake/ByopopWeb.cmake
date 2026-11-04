@@ -71,12 +71,12 @@ set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica m
 # are "The ports still to make" in docs/COORDINATION.md. Zuma Deluxe, Insaniquarium and Plants vs.
 # Zombies are left out: nobody ports them (the user, 2026-10-26).
 set(BYOPOP_WEB_UPCOMING
-  "bejeweledtwist|Bejeweled Twist" "venice|Venice Deluxe"
-  "heavyweapon|Heavy Weapon Deluxe" "hammerheads|Hammer Heads Deluxe" "bejeweled2|Bejeweled 2 Deluxe"
-  "astropop|AstroPop Deluxe" "typershark|Typer Shark! Deluxe" "pizzafrenzy|Pizza Frenzy Deluxe" "igglepop|Iggle Pop Deluxe"
-  "feedingfrenzy|Feeding Frenzy Deluxe" "chuzzle|Chuzzle Deluxe" "feedingfrenzy2|Feeding Frenzy 2 Deluxe"
-  "peggle|Peggle Deluxe" "pegglenights|Peggle Nights" "bejeweled3|Bejeweled 3" "bananabugs|Banana Bugs"
-  "gyromancer|Gyromancer" "zumasrevenge|Zuma's Revenge!" "talismania|Talismania Deluxe")
+  "bejeweledtwist|Bejeweled Twist" "venice|Venice"
+  "heavyweapon|Heavy Weapon" "hammerheads|Hammer Heads" "bejeweled2|Bejeweled 2"
+  "astropop|AstroPop" "typershark|Typer Shark!" "pizzafrenzy|Pizza Frenzy" "igglepop|Iggle Pop"
+  "feedingfrenzy|Feeding Frenzy" "chuzzle|Chuzzle" "feedingfrenzy2|Feeding Frenzy 2"
+  "peggle|Peggle" "pegglenights|Peggle Nights" "bejeweled3|Bejeweled 3" "bananabugs|Banana Bugs"
+  "gyromancer|Gyromancer" "zumasrevenge|Zuma's Revenge!" "talismania|Talismania")
 # A game's badge on the listing page, <target>|<initials>|<colour>: the initials in white on a rounded square of the
 # colour. Original to byo-pop, never the games' art. The colours keep white text above a 4.5 contrast ratio (the chat's game
 # tags, "[BW]" before a username, use the same row and colour: tools/chattest.js checks the ratio and that the initials are
@@ -936,8 +936,8 @@ function(byopop_web_index)
     if(buy_html STREQUAL "")
       set(unsold_attr " data-unsold=\"1\"")
     endif()
-    # the year under the name (a space between the two spans, so that the link's name reads "Bejeweled Deluxe 2001" even
-    # where the spans' text is joined), and the link's name with it, "Bejeweled Deluxe, 2001"; the page adds the files' state to it
+    # the year under the name (a space between the two spans, so that the link's name reads "Bejeweled 2001" even
+    # where the spans' text is joined), and the link's name with it, "Bejeweled, 2001"; the page adds the files' state to it
     set(year_html "")
     set(label_attr "")
     if(NOT year STREQUAL "")
@@ -946,7 +946,7 @@ function(byopop_web_index)
       set(label_attr " aria-label=\"${name_year}\"")
     endif()
     if(soon)
-      # not a link: a group named with the state, "AstroPop Deluxe, 2004, coming soon", and the words on the card
+      # not a link: a group named with the state, "AstroPop, 2004, coming soon", and the words on the card
       set(soon_label "${title_attr}")
       if(NOT year STREQUAL "")
         set(soon_label "${name_year}")

@@ -20,8 +20,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/TipTopApp.cpp)
     target_compile_options(tiptop PRIVATE -Wall -Wno-unused-private-field)
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(tiptop TITLE "TipTop Deluxe"
-      COPYRIGHT "TipTop Deluxe © 2003 PopCap Games, Inc. All rights reserved." LICENSES tinysoundfont generaluser-gs)
+    byopop_web_game(tiptop TITLE "TipTop"
+      COPYRIGHT "TipTop © 2003 PopCap Games, Inc. All rights reserved." LICENSES tinysoundfont generaluser-gs)
     target_link_options(tiptop PRIVATE "--embed-file=${TIPTOP_SOUNDFONT}@/tiptop.sf2")
     set_property(TARGET tiptop APPEND PROPERTY LINK_DEPENDS ${TIPTOP_SOUNDFONT})
   else()

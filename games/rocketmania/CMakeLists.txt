@@ -21,8 +21,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/RocketApp.cpp)
     endif()
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(rocketmania TITLE "Rocket Mania Deluxe"
-      COPYRIGHT "Rocket Mania Deluxe © 2003 PopCap Games, Inc. All rights reserved.")
+    byopop_web_game(rocketmania TITLE "Rocket Mania"
+      COPYRIGHT "Rocket Mania © 2003 PopCap Games, Inc. All rights reserved.")
   else()
     add_custom_command(TARGET rocketmania POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:rocketmania>
