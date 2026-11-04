@@ -1,0 +1,151 @@
+// Checks the site's cursor (web/cursors.js; docs/WEB_PLAYER.md, "The site's cursor") under Node, in a stand-in page: which of a
+// game's cursors are kept (the six kinds the site shows, none whose image means something else in that game, frames only when
+// well-formed), the rules each context gets (the pointer, hand and text always, the circle-slash on disabled controls and the wait
+// cursor while the site is busy only from a set that has them), busy() and the frames of an animated cursor (swapped on the
+// element under the mouse while the mouse stays still, and given back when it leaves; no timer for a set without frames).
+//   node tools/cursorstest.js
+// It prints "cursorstest: N checks, M failed" and exits 1 when any failed.
+"use strict";
+const fs = require("fs");
+const path = require("path");
+const vm = require("vm");
+
+const source = fs.readFileSync(path.join(__dirname, "..", "web", "cursors.js"), "utf8");
+
+function classList() {
+  const set = new Set();
+  return { add: (c) => set.add(c), remove: (c) => set.delete(c), contains: (c) => set.has(c),
+    toggle: (c, on) => { if (on === undefined) on = !set.has(c); if (on) set.add(c); else set.delete(c); return on; } };
+}
+// An element: its tag, the selectors it matches and its inline style
+function element(tag, matches) {
+  const style = {};
+  return { nodeType: 1, tagName: tag, matches: (sel) => (matches || []).indexOf(sel) >= 0, getAttribute: () => null,
+    style: { setProperty: (k, v, p) => { style[k] = v + (p ? " !" + p : ""); }, removeProperty: (k) => { delete style[k]; } }, inline: style };
+}
+function page(store) {
+  const listeners = {}, timers = new Map();
+  let nextTimer = 1;
+  const root = { classList: classList() };
+  const head = { children: [], appendChild(e) { this.children.push(e); } };
+  const document = {
+    documentElement: root, head, visibilityState: "visible",
+    createElement: (t) => ({ tagName: t, textContent: "", id: "" }),
+    addEventListener: (t, f) => { (listeners[t] = listeners[t] || []).push(f); }
+  };
+  const local = Object.assign({}, store || {});
+  const ctx = {
+    document, JSON, Object, Array, String,
+    window: { localStorage: { getItem: (k) => (k in local ? local[k] : null), setItem: (k, v) => { local[k] = String(v); }, removeItem: (k) => { delete local[k]; } },
+      addEventListener: () => {} },
+    setInterval: (f, ms) => { timers.set(nextTimer, { f, ms }); return nextTimer++; },
+    clearInterval: (id) => { timers.delete(id); },
+    setTimeout: (f) => { f(); return 0; }
+  };
+  vm.createContext(ctx);
+  vm.runInContext(source, ctx, { filename: "cursors.js" });
+  return {
+    C: vm.runInContext("ByopopCursors", ctx), root, local, timers,
+    css: () => (head.children[0] || { textContent: "" }).textContent,
+    fire(t, ev) { (listeners[t] || []).forEach((f) => f(ev)); },
+    tick() { [...timers.values()].forEach((t) => t.f()); }
+  };
+}
+const img = (n, x, y) => ({ url: "data:image/png;base64,AAAA" + n, x: x || 0, y: y || 0 });
+
+let checks = 0, failed = 0;
+function check(what, got, want) {
+  checks++;
+  const g = JSON.stringify(got), w = JSON.stringify(want);
+  if (g !== w) { failed++; console.log(`FAIL ${what}: got ${g}, want ${w}`); }
+}
+
+// which cursors are kept
+{
+  const p = page();
+  const full = { pointer: img("p"), hand: img("h"), drag: img("d"), text: img("t"), notallowed: img("n", 3, 4), wait: img("w"), sizeall: img("s") };
+  check("a set is kept", p.C.save("bejeweled", "Bejeweled Deluxe", full), true);
+  check("the six kinds the site shows, nothing else", Object.keys(p.C.all().bejeweled), ["title", "pointer", "hand", "drag", "text", "notallowed", "wait"]);
+  p.C.save("sevenseas", "Seven Seas", full);
+  check("Seven Seas' shovel is not the circle-slash", p.C.all().sevenseas.notallowed, undefined);
+  check("its other kinds are kept", !!p.C.all().sevenseas.wait, true);
+  check("no set without a pointer", p.C.save("tiptop", "TipTop", { hand: img("h") }), false);
+  const anim = { pointer: Object.assign(img("p0"), { frames: [img("p1"), img("p2")], ms: 100 }) };
+  p.C.save("bananabugs", "Banana Bugs", anim);
+  check("an animated cursor keeps its frames", p.C.all().bananabugs.pointer, Object.assign(img("p0"), { frames: [img("p1"), img("p2")], ms: 100 }));
+  for (const [what, bad] of [["too many frames", { frames: Array.from({ length: 40 }, (_, i) => img("f" + i)), ms: 100 }],
+    ["a frame that is not a PNG", { frames: [{ url: "javascript:x", x: 0, y: 0 }], ms: 100 }],
+    ["no time", { frames: [img("f")] }], ["too fast", { frames: [img("f")], ms: 5 }], ["no frames", { frames: [], ms: 100 }]]) {
+    const q = page();
+    q.C.save("bananabugs", "Banana Bugs", { pointer: img("p"), hand: Object.assign(img("h"), bad) });
+    check("a cursor with " + what + " is not kept", q.C.all().bananabugs.hand, undefined);
+  }
+}
+// the rules for each context
+{
+  const p = page();
+  p.C.save("bejeweled", "Bejeweled Deluxe", { pointer: img("p"), hand: img("h"), text: img("t") });
+  p.C.choose("bejeweled");
+  const css = p.css();
+  check("chosen: the page's class", p.root.classList.contains("site-cursor"), true);
+  check("the pointer, hand and text rules", [css.indexOf("AAAAp") >= 0, /a\[href\][^{]*\{ cursor: url\("data:image\/png;base64,AAAAh"\)/.test(css), css.indexOf("AAAAt") >= 0], [true, true, true]);
+  check("no circle-slash or wait rule without their images", [css.indexOf(":disabled {") >= 0 || css.indexOf("[aria-disabled=true] {") >= 0, css.indexOf("site-busy") >= 0], [false, false]);
+  check("a disabled button is not given the hand", /button:not\(:disabled\)/.test(css), true);
+  p.C.save("alchemy", "Alchemy", { pointer: img("p"), notallowed: img("n", 2, 2), wait: img("w", 5, 6) });
+  p.C.choose("alchemy");
+  const css2 = p.css();
+  check("the circle-slash on disabled controls", /button:disabled[^{]*\[aria-disabled=true\] \{ cursor: url\("data:image\/png;base64,AAAAn"\) 2 2, not-allowed !important; \}/.test(css2), true);
+  check("the wait cursor while busy, under the dragging rule", [/site-busy[^{]*\{ cursor: url\("data:image\/png;base64,AAAAw"\) 5 6, wait/.test(css2),
+    css2.indexOf("site-busy") < css2.indexOf(".badge[draggable=true]:active")], [true, true]);
+  p.C.choose("");
+  check("the browser's own: no class, no rules", [p.root.classList.contains("site-cursor"), p.css()], [false, ""]);
+}
+// busy()
+{
+  const p = page();
+  p.C.busy("saves", true);
+  p.C.busy("addgames", true);
+  p.C.busy("saves", false);
+  check("busy while any work has not ended", p.root.classList.contains("site-busy"), true);
+  p.C.busy("addgames", false);
+  p.C.busy("addgames", false);
+  check("not once all have ended", p.root.classList.contains("site-busy"), false);
+}
+// animated cursors
+{
+  const p = page();
+  p.C.save("plain", "Plain", { pointer: img("p"), hand: img("h") });
+  p.C.choose("plain");
+  const el = element("DIV");
+  p.fire("mouseover", { target: el });
+  check("a set without frames starts no timer", [p.timers.size, el.inline], [0, {}]);
+
+  p.C.save("bananabugs", "Banana Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1")], ms: 120 }), hand: img("h"),
+    wait: Object.assign(img("w0"), { frames: [img("w1"), img("w2")], ms: 80 }) });
+  p.C.choose("bananabugs");
+  p.fire("mouseover", { target: el });
+  check("the pointer's first frame on the element under the mouse", el.inline.cursor, 'url("data:image/png;base64,AAAAp0") 0 0, auto !important');
+  check("one timer, at the frames' pace", [...p.timers.values()].map((t) => t.ms), [120]);
+  p.tick();
+  check("the next frame with the mouse still", el.inline.cursor, 'url("data:image/png;base64,AAAAp1") 0 0, auto !important');
+  p.tick();
+  check("and round again", el.inline.cursor, 'url("data:image/png;base64,AAAAp0") 0 0, auto !important');
+  const link = element("A", ["a[href]"]);
+  p.fire("mouseover", { target: link });
+  check("onto a link, whose hand is still: the element given back, no timer", [el.inline, link.inline, p.timers.size], [{}, {}, 0]);
+  p.fire("mouseover", { target: el });
+  p.C.busy("addgames", true);
+  check("busy: the wait cursor's frames", [el.inline.cursor, [...p.timers.values()].map((t) => t.ms)], ['url("data:image/png;base64,AAAAw0") 0 0, wait !important', [80]]);
+  p.C.busy("addgames", false);
+  check("busy no more: the pointer's again", el.inline.cursor, 'url("data:image/png;base64,AAAAp0") 0 0, auto !important');
+  p.root.classList.add("game-cursor");
+  p.fire("mouseover", { target: el });
+  check("a game's own cursor showing: nothing animated", [el.inline, p.timers.size], [{}, 0]);
+  p.root.classList.remove("game-cursor");
+  p.fire("mouseover", { target: el });
+  p.fire("mouseout", { target: el, relatedTarget: null });
+  check("the mouse leaves the page: given back, no timer", [el.inline, p.timers.size], [{}, 0]);
+}
+
+console.log(`cursorstest: ${checks} checks, ${failed} failed`);
+process.exit(failed ? 1 : 0);

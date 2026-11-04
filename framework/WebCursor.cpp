@@ -119,10 +119,12 @@ EMSCRIPTEN_KEEPALIVE int byopop_cursor_copy()
 	return anId;
 }
 
-// The game's set of cursors for the site's cursor (docs/WEB_PLAYER.md, "The site's cursor"): its pointer, hand, dragging
-// and text images, whether or not its custom cursors are on, each copied to Module.byopopCursorSet[n] as
-// byopop_cursor_copy copies the shown one (null where the game has none). Returns -1 before the game has started, 0
-// when it has no pointer image (yet: a game sets its cursors once its images are loaded), else the number copied.
+// The game's set of cursors for the site's cursor (docs/WEB_PLAYER.md, "The site's cursor"): every kind's image from
+// CURSOR_POINTER to CURSOR_WAIT (the pointer, hand, dragging and text, the circle-slash, the sizing arrows and the wait),
+// whether or not its custom cursors are on, each copied to Module.byopopCursorSet[kind] as byopop_cursor_copy copies the
+// shown one (absent where the game has none); the page keeps the kinds the site has a use for. CURSOR_NONE has no image
+// and CURSOR_CUSTOM is one a game makes as it goes, so neither is part of a set. Returns -1 before the game has started,
+// 0 when it has no pointer image (yet: a game sets its cursors once its images are loaded), else the number copied.
 EMSCRIPTEN_KEEPALIVE int byopop_cursor_set_copy()
 {
 	SexyAppBase* anApp = gSexyAppBase;
@@ -136,7 +138,7 @@ EMSCRIPTEN_KEEPALIVE int byopop_cursor_set_copy()
 	EM_ASM({ Module['byopopCursorSet'] = []; Module['byopopCursorShown'] = Module['byopopCursor']; });
 	std::vector<uint8_t> aPixels;
 	int aCopied = 0;
-	for (int aCursorNum = CURSOR_POINTER; aCursorNum <= CURSOR_TEXT; aCursorNum++)
+	for (int aCursorNum = CURSOR_POINTER; aCursorNum <= CURSOR_WAIT; aCursorNum++)
 	{
 		MemoryImage* anImage = dynamic_cast<MemoryImage*>(anApp->mCursorImages[aCursorNum]);
 		if ((anImage == NULL) || (anImage->mWidth <= 0) || (anImage->mHeight <= 0) ||
