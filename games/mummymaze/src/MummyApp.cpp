@@ -1,5 +1,6 @@
 // The application class of Mummy Maze Deluxe 1.1 (WinMM.exe 0x419bb0-0x4210xx). See MummyApp.h and docs/GAME_NOTES.md.
 
+#include "Button2003.h"
 #include "MummyApp.h"
 #include "Board.h"
 #include "Screens.h"
@@ -273,8 +274,9 @@ Dialog* MummyApp::NewDialog(int theDialogId, bool isModal, const SexyString& the
 {
 	Dialog* aDialog = new Dialog2004(mImages[IMAGE_DIALOG], mImages[IMAGE_DBUTTON], theDialogId, isModal,
 		theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
-	aDialog->SetButtonFont(mHeaderFont);
-	aDialog->SetHeaderFont(mFont1);
+	Use2003Buttons(aDialog, mImages[IMAGE_DBUTTON]);
+	aDialog->SetButtonFont(mFont1);
+	aDialog->SetHeaderFont(mHeaderFont);
 	aDialog->SetLinesFont(mFont1);
 	aDialog->SetColor(Dialog::COLOR_HEADER, Color(0x66, 0x5c, 0x38));
 	aDialog->SetColor(Dialog::COLOR_LINES, Color(0x2e, 0x14, 0));
