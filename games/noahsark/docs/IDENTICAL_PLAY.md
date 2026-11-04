@@ -2,8 +2,7 @@
 
 "A game is done when it plays identically to the original" (CLAUDE.md, 2026-10-27). This file records the pass in
 phases. Phase one is play: with the same input, a game plays out the same in the original and in the port (boards,
-random draws, moves, scores, levels, timers, endings). Phase two (screens, sounds, focus, the web build) is not
-started.
+random draws, moves, scores, levels, timers, endings). Phase two (screens, sounds, focus, the web build) is the last section.
 
 ## Phase one (2026-11-03)
 
@@ -162,3 +161,63 @@ the screen comparison of phase two.
 - The comparison watches 4 values; pixel positions, the fish and bubbles, the sparkles and the texts are not compared
   (phase two compares screens).
 - Stampede, the later levels of medium and hard, and a series of games remain to compare once the get-ready difference is understood.
+
+## Phase two: looks identical (2026-11-04)
+
+### How it was compared
+
+Screens: `tools/tour.py` turns a list of "update, command" lines into a script for the port (`screenshot` at the update) and one for
+the original (origrun in Windows Sandbox on the virtual clock, `at N shot`), and `tools/phase2.sh` runs both and then `tools/shotdiff`.
+Bot games (`phase2_bot.sh`) replay the port bot's clicks in the original, so whole games to their game-over, level-up and
+high-score screens are compared. The original's capture at counter N shows the state the port shows at update N; the clicks go
+in at N+1. Tours covered the title, intro, difficulty and tutorial dialogs, options, quit, the three modes' boards (get-ready, play,
+swaps, matches, pairs walking to the ark, popups, sparkles, obstacles), the level-up panel, the game-over screen, name entry and
+the high-score screen. Every flagged box was looked at in its crop and fixed or explained.
+
+Sound: the original on the host under rundesk with `--sound wav` (its `logs/sound.log`), the port with `BYOPOP_SOUNDLOG`, for one
+puzzle bot game (8800 updates): `tools/soundcmp.py` pairs the plays by sample and order. All 382 plays agree, the original's
+update (ms / 10) 1 to 2 later than the port's. The music (ogg streamed by the game) was compared by its start and end only: the
+stream starts at update 1190 and stops at 8603, as in the port's log. No run said SOUND LEAK.
+
+Focus: `focus lose` at update 1720 in an action game and `focus regain` at 1900/1901; shots during the pause (the paused board) and
+after match, apart from the one-update offset between the two clocks' regain (a shot two updates after it shows the original still
+paused when the regain is sent one update later, and the matching frame when it is not).
+
+Web build: the web build under Node (`wasmrun.js`) played the puzzle bot game to its game-over and the name entry: all 10 shots equal
+the native port's.
+
+### Masks (shotdiff.json, each with its reason there)
+
+After the first level the bot's boards and Noah's sprite come from the random generator, which a bot run does not resynchronise;
+the board and sprite are masked in those shots (`b_done3`, `t2` to `t5`), everything else is compared.
+
+### Changes
+
+| Change | Cause in the original | Commit |
+|---|---|---|
+| 2003-style image boxes and buttons; quit dialog from the menu; title logo order and outline; sidebar behind modal dialogs; tutorial X | the original's own drawing of dialogs (DrawImageBox of 2003) | 3fada6f |
+| High-score dialog button label; block and crate pictures chosen by the original's groups | picture indices by group | 59cf27c |
+| Game-over screen: capital ranks, line positions, additive bubbles | the original's draw | b3eecb9 |
+| Level-up panel: title shadow loop, rank lines, speed bonus number, bubbles | draw at 0x416... | aef2158 |
+| Walking animals from row 0 of the picture; ark-bound animals stretched with the framework's fast stretch (a temporary software image); popup text "+%d" only in puzzle and stampede and the number is points times the combo; sparkle life, frame and draw order | the original's draw and AddFloatingText / AddSparkle | 7a198a5 |
+| High-score screen: opaque ground and fish; the bot types the name key by key | widget draw | c14d84b |
+| Presses on the title, level-up and high-score links and on the difficulty, options and tutorial dialogs click through the app | the original's listener slot 1 (0x420550, 0x411290, 0x41d3e0) calls the app's button press | 4c6e418 |
+
+The frozen baseline was made again from this build (screens changed, the logic lines did not: action level 4 done 17369 score 6524,
+strategy level 5 done 19538 score 6380, puzzle game 1 over 6750 score 1450).
+
+### Oddities (not fixed)
+
+- **Ark-bound animals' path and size.** In puzzle and strategy an animal walking to the ark is 1 to 3 pixels off in y after about 30
+  updates and about 4 px off in size after its column falls; x is identical and the formulas equal the disassembly's. See it with
+  `phase2_bot.sh pz4 ... "7790:u90 7795:u95 7798:u98 7800:u00 7802:u02 7805:u05"` (puzzle) and strategy shots b10/b20. Not found after the hour.
+- Rotated sprites are about 1 px off (the framework's rotation), as in the other games.
+- The crossed numbering of block and crate pictures of the original is kept.
+
+### Deviations left
+
+- Stampede (the bonus round after action level 3) and levels past the first of bot runs could not be compared: past update 10300 of an
+  action game the bot's play diverges from the original even with the generator resync. Its screens are compared only by the
+  shared draw code with the other modes.
+- Registration dialog, flood/lost screens and the strategy game-over panel were not toured.
+- Music content was compared by start and stop only.
