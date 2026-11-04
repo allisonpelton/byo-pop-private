@@ -1,6 +1,7 @@
 // The dialogs of Mummy Maze Deluxe that are classes of their own (WinMM.exe 0x427dc0 ...). The ones that only show
 // lines of text and buttons are MummyApp::DoMessage calls (MummyFlow.cpp).
 
+#include "Button2003.h"
 #include "Dialogs.h"
 #include "MummyApp.h"
 #include "GameText.h"
@@ -39,8 +40,9 @@ RecordScoreDialog::RecordScoreDialog(MummyApp* theApp, const SexyString& theLine
 		theLines, "", BUTTONS_OK_CANCEL),
 	mApp(theApp)
 {
-	SetButtonFont(mApp->mHeaderFont);
-	SetHeaderFont(mApp->mFont1);
+	Use2003Buttons(this, mApp->mImages[IMAGE_DBUTTON]);
+	SetButtonFont(mApp->mFont1);
+	SetHeaderFont(mApp->mHeaderFont);
 	SetLinesFont(mApp->mFont1);
 	SetColor(Dialog::COLOR_HEADER, Color(0x66, 0x5c, 0x38));
 	SetColor(Dialog::COLOR_LINES, Color(0x2e, 0x14, 0));

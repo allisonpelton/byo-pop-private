@@ -1,7 +1,7 @@
 # Alchemy Deluxe: the identical-play pass
 
 Phase one of the pass CLAUDE.md names: **plays identical**. The same input gives the same games in the original and the
-port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is not done.
+port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is described at the end.
 
 The original is the game carved out of `Alchemy.exe` (`re/alchemy/bin/AlchemyGame.exe`, image base 0x400000), run only through
 `tools/origrun`, from a copy under a short path (`C:\byo-og\alch\game`), under rundesk (invisible, silent, below normal
@@ -111,3 +111,82 @@ baseline must write the same state log, so later fixes and mods leave unmodded p
 - Not compared in phase one, on purpose: the original's saved game loaded by the port (`-importsaves` covers the format), the
   options dialog's sliders and full-screen box, the help, the quit and new-game questions, a game cut off by quitting.
   Their effects are not on the game's state; phase two looks at their screens.
+
+## Phase two: looks identical (2026-11-03)
+
+**How.** The original ran inside Windows Sandbox (`tools/origrun --sandbox`), on the virtual clock with the scripted cursor and the
+seed patch, from a copy staged in `build/origrun/alsb-<tour>`; `games/alchemy/tools/shots/orig.sh <tour>` runs one tour, `port.sh`
+runs the same tour in the port (`-script`, `screenshot` lines, `-fast`), and `cmp.sh` runs `tools/shotdiff` and prints one line per
+differing pair. A tour (`tour1.txt` to `tour7.txt`) is one script in the port's format with `screenshot <name>` lines; `make.py`
+turns it into the port's script and into origrun's (`at <update - 1>`, as in phase one; a line marked `@orig` or `@port` is for one side
+only). Every tour starts at update 3000, after the original's loading thread (which takes real time, so a title shot at update
+2990 can still show the loading bar in a slow run: tour 6's did once; a rerun matched). The "Updates" question is answered first,
+as in phase one.
+
+**Tours.** 1: title (with the link lit), selector (skill and mode buttons, lit and chosen), options, help, high scores (both tabs),
+the quit question and "No". 2: a whole strategic game (40 shots: a grid of boards, the three board-cleared panels, the forge warning,
+the game over, the name entry, the score table, the quit question). 3: a whole time trial game with bad cells and hint or pause
+inputs (44 shots: the time trial's pause, the hint, the window losing and regaining the focus twice, the game over, the name entry).
+4: the forge's bubbles every four updates at the end of tour 2's game. 5: the tutorial, every step at its start and forty updates
+later (35 shots). 6: a saved game: the continue question, the loaded board, the side panel's new game question, options, help, mute
+and discard, the quit question (17 shots). 7: six of the wizard's messages for a piece on a bad cell, before and after the answer.
+In all, 167 shots; every pair matches or differs only faintly except the items below.
+
+**The C library's rand, every update.** The original's `_rand` keeps its state in the thread's data, which origrun cannot watch, so
+`tools/origrun/patches/alchemy-rand.txt` (git-ignored, written by hand from `identical/randcase.sh`'s notes) jumps from `_rand`'s
+store into a cave in the padding of `.text` that also writes the state to 0x54f800, and `randcase.sh` compares that value after every
+update with the port's `rand` field of `-statelog`. Two whole games (143 and 830 pieces: 733 and 4641 changes) gave the same state at
+every update, so the effects' draws (sparkles, bubbles, popups) are in the original's order.
+
+### Changes
+
+| Difference | Its cause in the original | What the port does now | Commit |
+|---|---|---|---|
+| A newly lit tile dissolved in with a smooth round edge; the original's has a dotted one | The order in which the 2704 pixels of a tile light up is a table in the exe (0x4de400: 45 groups of pixel numbers, 2749 values); the port had invented an order from a fixed seed | The table is read from the player's own `Alchemy.exe` like the default score names (address, count and hash in `GameText.cpp`, no data in the repository); the invented order is the fallback without the exe | 1629d18 |
+
+After it tour 2 has no visible difference. The change is to what is drawn, not to play: the frozen baseline's state logs are unchanged.
+
+### Oddities and masks
+
+- **The options dialog.** The original's holds two more buttons, "Check for Updates" and "Play More Great Games!", below High Scores
+  (partner.xml's update and web settings); the port omits them on purpose (update checks and links to the web are not ported, `Dialogs.cpp`
+  at 0x40de70), so the dialog is 0x44 shorter and its DONE button sits higher: a tour clicks DONE at 395,338 in the original and 395,270 in
+  the port (`@orig` and `@port` lines). Never click the original's two new buttons; the first starts an update check.
+- **The fullscreen box.** The port's options show the box ticked (partner.xml says `DefaultWindowed` false), the original's unticked: the
+  sandbox has no 16-bit full screen, so the original falls back to a window. A test environment difference.
+- **The forge's rim.** A faint 14-pixel edge difference (largest change 47 of 255) on the forge's oval clip in every shot; not visible.
+- **The forge's bubbles in a held shot.** A shot of the original shows update N or an earlier one (`landed.tsv` says "or-earlier": the
+  game has no pending-draw flag origrun knows). A frame taken one update early puts a few bubbles a pixel or two off; at updates where the
+  frame is exact (15160, 15180, 15200 of tour 4) the two sides match, and the rand state matches at every update.
+- **The wizard on the options and score dialogs** moves by its own clock; no shot of it differs visibly.
+
+### Sound
+
+The original plays through BASS 1.x, whose software mixing writes music and samples into one DirectSound stream, but each sample play makes
+a duplicate buffer in origrun's stand-in, which logs it (`--sound wav`; `shots/sound_orig.sh`). `soundcmp.py` names each play by the
+size and rate of the buffer it duplicates (set against the port's load lines) and compares it, with its update (virtual ms / 10), with the
+port's `BYOPOP_SOUNDLOG`. **A game's window must be active first:** an original that never got the focus plays no sample (the app mutes while
+inactive), so the host script starts with `focus regain`.
+
+Over tours 2, 3, 5, 6 and 7 the two sides made **the same 2378 sample plays in the same order, with the same sample, at the same
+update** (within two). The music was compared on the tutorial tour: the intro's fade out (updates 3001 to 3250) and the play song's
+fade in (3001 to 3347, to the same volume) have the same updates and lengths on both sides. The original's "bad" sample is a 16384-byte
+buffer in the stand-in's log where the port's load line says 46080 bytes (`soundcmp.py` maps it by hand). A logging `bass.dll` (as Mahjong's
+`bassproxy`) was tried and dropped: Alchemy's 2003 BASS answers `BASS_Init` with error 23 when it is loaded as `bass_real.dll` behind a proxy.
+
+### The web build
+
+`shots/web.sh` runs `build/web/alchemy.js` under Node (`wasmrun.js game`, `-fast`, the same script), and `webcmp.sh` sets its shots against
+the native port's. The whole strategic game (tour 2, 40 shots), the whole time trial with its focus losses (tour 3, 44), the tutorial (35)
+and the wizard's messages (14) are **pixel for pixel identical to the native port's**, nothing faint. Tour 1 and tour 6 differ only
+in the options dialog: the web build starts in a window, so its Fullscreen box is unticked (the web host writes the setting off, as in every game's
+web build), and a scripted click on the options dialog's DONE button right after the high scores' DONE button (tour 1) or after
+the help screen (tour 6) is lost on the web, where the same script works natively; a second click an update later closes it, and the
+dialogs that follow are the same. This is listed as an oddity: the framework's script clicks are not what a mouse sends, the cause was not
+found in the time given, and it was not seen with a mouse.
+
+### Not compared
+
+The loading screen (its length follows the real time of the original's loading thread, so a shot of its bar cannot be lined up), the
+wizard's other messages (skull, four-way, no moves: the same dialog and text properties as the six compared), the web build's music in a
+browser, and the time trial's score table screens.

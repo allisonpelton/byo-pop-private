@@ -7,6 +7,7 @@ S="$1"; SEED="$2"; T="$3"; shift 3
 rm -f "$OG_GAME/hiscores.dat"
 [ -n "$KEEP_SAVE" ] || rm -f "$OG_GAME/savegame.dat"
 W=""; for e in "$@"; do W="$W --watch $e"; done
+[ -z "$WATCHMAX" ] || W="$W --watch-max $WATCHMAX"
 "$RUNDESK" "$(win "$ORIGRUN")" --exe "$(win "$OG_GAME/AlchemyGame.exe")" --run "$(basename "$OG_STAGE")" \
 	--script "$(win "$S")" --clock virtual --cursor scripted --counter 0x516570 --update-ms 10 --seed "$SEED" \
-	--patches tools/origrun/patches/alchemy.txt --timeout "$T" $W
+	--patches "${PATCHES:-tools/origrun/patches/alchemy.txt}" --timeout "$T" $W

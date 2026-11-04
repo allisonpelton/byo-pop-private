@@ -1,0 +1,15 @@
+99 title
+1000 click 185 376
+1500 shot f1500
+1520 focus lose
+1700 shot f1700
+1900 shot f1900
+1950 focus regain
+2100 shot f2100
+2300 shot f2300
+2310 focus lose
+2330 click 74 245
+2400 shot f2400
+2320 focus regain
+2600 shot f2600
+2700 quit

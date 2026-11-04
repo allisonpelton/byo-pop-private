@@ -1,0 +1,16 @@
+99 title
+1000 click 185 376
+1300 click 74 451
+1330 click 466 294
+1360 shot after_no
+1400 click 74 194
+1430 shot reset
+1500 click 74 247
+1560 click 527 313
+1600 shot highscores
+1700 click 394 402
+1730 shot after_hs
+1800 click 74 247
+1860 click 498 355
+1900 shot credits
+2000 quit

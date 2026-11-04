@@ -1,0 +1,16 @@
+# The settings both sides start from in the sandbox runs (orig.sh with ORIG_SANDBOX=1, port.sh with PORT_SETTINGS):
+# the values of HKLM\SOFTWARE\PopCap\BigMoney, name, type (dword or sz) and value. Windowed, since partner.xml makes a
+# first run full screen; a few games played, so the title shows its usual screen.
+ScreenMode dword 0
+CustomCursors dword 0
+MusicVolume dword 8
+SfxVolume dword 7
+Muted dword 0
+TimesPlayed dword 3
+TimesExecuted dword 3
+SkillLevel dword 1
+GameType dword 0
+DontShowHelp0 dword 0
+DontShowHelp1 dword 0
+DontShowHelp2 dword 0
+LastScoreName sz Bot

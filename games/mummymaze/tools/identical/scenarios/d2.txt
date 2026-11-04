@@ -1,0 +1,15 @@
+99 title
+1000 click 185 376
+1300 click 74 247
+1400 click 394 402
+1430 shot options_done
+1500 click 74 451
+1530 shot quitmain
+1600 click 74 194
+1630 shot reset
+1700 click 74 247
+1760 click 527 313
+1790 shot highscores
+1900 key 27
+1930 shot hs_esc
+2000 quit

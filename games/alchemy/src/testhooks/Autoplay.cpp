@@ -535,7 +535,7 @@ void StateLog::Update()
 
 	static const char* const aNames[NUM_FIELDS] = {"state", "score", "moves", "discards", "boards", "shape", "color", "timetrial",
 		"trialpause", "fullcount", "overtimer", "multimoves", "run", "longest", "pause", "numshapes", "numcolors", "bombchance",
-		"skullchance", "elapsed", "totalseconds", "numvalid", "lastshape", "tutorial", "tutstep", "tutcount", "tutwaiting", "hinton", "hinttimer"};
+		"skullchance", "elapsed", "totalseconds", "numvalid", "lastshape", "tutorial", "tutstep", "tutcount", "tutwaiting", "hinton", "hinttimer", "rand"};
 	int aValues[NUM_FIELDS];
 	for (int i = 0; i < NUM_FIELDS; i++)
 		aValues[i] = -1000000;  // "-": no board or piece
@@ -575,6 +575,7 @@ void StateLog::Update()
 			aValues[6] = aBoard->mCurPiece->mColor;
 		}
 	}
+	aValues[29] = (int) CrtRandState();  // the C library's rand, after this update
 	for (int i = 0; i < NUM_FIELDS; i++)
 	{
 		if (aValues[i] == mLast[i])

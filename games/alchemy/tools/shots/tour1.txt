@@ -1,0 +1,43 @@
+# Phase two tour 1: title, selector, options, help, high scores, quit question. "<update> <command>" lines of the port's -script;
+# "screenshot <name>" lines are shots (name only; make.py adds the folder). Client coordinates.
+2990 screenshot title
+2994 move 320 441
+2998 screenshot title_hover
+3000 click 320 441
+3010 screenshot selector
+3012 move 270 303
+3016 screenshot sel_hover_avg
+3020 click 495 289
+3024 screenshot sel_hard
+3030 click 468 372
+3034 screenshot sel_trial
+3040 click 318 372
+3044 click 72 241
+3060 screenshot options
+3064 move 318 237
+3068 screenshot options_hover_help
+3070 click 318 237
+3080 screenshot help
+3084 move 520 432
+3088 screenshot help_hover_return
+3090 click 520 432
+3100 screenshot sel_after_help
+3104 click 72 241
+3110 click 470 237
+3120 screenshot highscores
+3124 click 485 131
+3130 screenshot highscores_trial
+3134 click 395 338
+3138 screenshot options_after_hs
+3139 @port move 395 270
+3139 @orig move 395 338
+3140 @port click 395 270
+3140 @orig click 395 338
+3144 screenshot sel_after_hs
+3148 click 72 448
+3160 screenshot quit
+3164 click 465 204
+3170 screenshot quit_no
+3174 click 72 448
+3180 click 325 204
+3200 quit
