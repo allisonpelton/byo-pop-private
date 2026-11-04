@@ -12,11 +12,13 @@ tools/origrun/games.tsv
 
 # The Peggle ports (the user, 2026-10-26): Deluxe and Nights stay unpublished while Thunderball's decompilation is in
 # progress and Nights has an active modding community. Extreme and World of Warcraft Edition are not ported: they become
-# mods of Deluxe and Nights and stay unpublished with them (docs/POPCAP_GAMES_SURVEY.md section 4).
+# settings of Deluxe and Nights and stay unpublished with them (docs/POPCAP_GAMES_SURVEY.md, section 2, "Peggle Extreme
+# and Peggle World of Warcraft Edition").
 games/peggle*
 
 # Zuma's Revenge (the user, 2026-10-26): "web only". Its source stays out of the snapshot while the user learns more about
-# a PC decompilation in progress; its web build may still go on the website (docs/POPCAP_GAMES_SURVEY.md Appendix E).
+# a PC decompilation in progress; its web build may still go on the website (docs/POPCAP_GAMES_SURVEY.md, Appendix B,
+# "Other projects and modding communities").
 games/zuma*
 
 # Bejeweled's Steven Universe gems: fan art of Cartoon Network's designs, never redistributed (the user, 2026-10-25),

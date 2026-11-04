@@ -205,8 +205,8 @@ moved its bot's pinned results.
 
 ## Estimates against costs (2026-11-01)
 
-The survey (`docs/POPCAP_GAMES_SURVEY.md`) rates each game's effort against Bejeweled Deluxe as 1x, from the size of
-its game code plus the subsystems it needs, each estimate within about 50%. The table sets those estimates beside what
+The survey (`docs/POPCAP_GAMES_SURVEY.md`, 3.3 "Verdicts and effort") rates each game's effort against Bejeweled
+Deluxe as 1x, from the size of its game code plus the subsystems it needs, each estimate within about 50%. The table sets those estimates beside what
 each port cost up to its first merge: the "Port work" column of README.md's progress table of 2026-10-26, computed by
 `tools/game_costs.py` with each model at its own API price. The last three rows are the ports from before the rules
 of 2026-10-24.

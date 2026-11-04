@@ -36,9 +36,9 @@ disassembly; inferred ones are marked.
 
 No source of this framework generation is public. The map combines four sources:
 
-1. **RTTI.** Ghidra 12 recovers no classes from MSVC 7.0 binaries (docs/POPCAP_GAMES_SURVEY.md 1.4), so
-   `tools/rtti_msvc70.py` reads the RTTI itself: 159 classes, 187 vtables, and a `Class::vfNN` name for
-   every virtual function.
+1. **RTTI.** Ghidra 12 recovers no classes from MSVC 7.0 binaries (docs/POPCAP_GAMES_SURVEY.md 3.4, "Findings
+   that apply to many games"), so `tools/rtti_msvc70.py` reads the RTTI itself: 159 classes, 187 vtables, and a
+   `Class::vfNN` name for every virtual function.
 2. **Byte matching against Big Money Deluxe.** Big Money (2005-11, SAF 1.2) was built with the same
    compiler, and its Ghidra project is named slot by slot (`games/bigmoney/docs/FRAMEWORK_12.md`).
    `tools/funcmatch.py` pairs functions whose bytes are identical once addresses are masked, then pairs the

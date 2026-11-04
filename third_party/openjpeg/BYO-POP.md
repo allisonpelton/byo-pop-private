@@ -32,5 +32,6 @@ Bejeweled Twist's notes list them. tools/jp2test's references are this
 decoder's output (`tools/jp2test/write_refs.sh` remakes them), so they hold it to this change.
 
 It decodes the JPEG 2000 images of the games that have them: both Bookworm Adventures games, the Peggle games,
-Bejeweled 3, Bejeweled Twist and Zuma's Revenge (docs/POPCAP_GAMES_SURVEY.md, G5). Those games' web pages decode
-them at run time from the player's imported files, so the library is in the game, not only in the asset staging.
+Bejeweled 3, Bejeweled Twist and Zuma's Revenge (docs/POPCAP_GAMES_SURVEY.md, 3.6 "Shared components"). Those
+games' web pages decode them at run time from the player's imported files, so the library is in the game, not only
+in the asset staging.

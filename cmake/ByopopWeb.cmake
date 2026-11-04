@@ -155,7 +155,8 @@ set(BYOPOP_WEB_RELEASED
   # Metacritic and GameFAQs have December 7, 2006, and LaunchBox's March 28, 2008 is a later Deluxe edition. Medium.
   "mahjongjapan|2006-11-13"
   # MobyGames: 2006. The days disagree: Metacritic has April 20, 2006, VGTimes and VideoGameGeek March 9, 2007, and later dates
-  # are regional editions; the exe the site plays was built in August 2006 (docs/POPCAP_GAMES_SURVEY.md). Low, so the year only.
+  # are regional editions; the exe the site plays was built in August 2006 (docs/POPCAP_GAMES_SURVEY.md, "All games at a
+  # glance"). Low, so the year only.
   "mahjongchina|2006"
   # VGTimes (https://vgtimes.com/games/bonnies-bookstore/release-dates/): PC, December 6, 2005 (Mac March 23, 2006); Wikipedia's
   # list has it among 2005's games. Medium.
@@ -176,8 +177,8 @@ set(BYOPOP_WEB_RELEASED
   "hammerheads|2006-05-23"
   # Wikipedia, "Bejeweled 2": Windows, November 16, 2004 (the console and phone editions came later). High.
   "bejeweled2|2004-11-16"
-  # Wikipedia, "AstroPop": April 6, 2004, the day its exe was built (docs/POPCAP_GAMES_SURVEY.md); VGTimes
-  # (https://vgtimes.com/games/astropop/release-dates/) has PC, March 30, 2004. Medium to high.
+  # Wikipedia, "AstroPop": April 6, 2004, the day its exe was built (docs/POPCAP_GAMES_SURVEY.md, "All games at a
+  # glance"); VGTimes (https://vgtimes.com/games/astropop/release-dates/) has PC, March 30, 2004. Medium to high.
   "astropop|2004-04-06"
   # VGTimes (https://vgtimes.com/games/typer-shark-deluxe/release-dates/): PC, June 10, 2003; Wikipedia's list has 2003. The exe
   # of Typer Shark Deluxe 1.02 is from April 2004, a later version. Medium.

@@ -1029,7 +1029,7 @@ Everything in 2.3 that is marked as coordinator-owned:
 - rundesk;
 - the unit tests and the fixture mod.
 
-A shared `web/modpanel.js` is a step towards the survey's shell template (G6, `docs/POPCAP_GAMES_SURVEY.md:667`).
+A shared `web/modpanel.js` is a step towards one web shell that every game shares.
 
 ### 8.2 Bejeweled (Bejeweled session)
 

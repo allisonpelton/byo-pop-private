@@ -38,18 +38,24 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 
 ## Publishing
 
+- **The SAF Extractor/Packer (the user, 2026-11-04):** "The Talismania decomp session should publish a working version
+  of the SAF Extractor/Packer. I forked the repo: https://github.com/allisonpelton/Popcap_.SAF_Extractor-Packer". So
+  when Talismania's turn comes, its session clones that fork (the user's OK for that download), makes the tool read and
+  write `.saf` archives correctly (the format is in `docs/POPCAP_GAMES_SURVEY.md`, "Talismania Deluxe"), keeps its
+  author's credit and license, and pushes the working version to the fork. That fork is the one place outside the
+  coordinator's snapshots that a session pushes to; byo-pop itself is never pushed by a game session.
 - Before each publish the coordinator checks the trunk for game files and game text.
 
 ## Which games, in what order
 
 - **Order of work (the user, 2026-10-24; updated 2026-10-25):** the measured one-session experiment (Noah's Ark,
   `docs/TOKEN_ECONOMY.md`) showed an improvement, so up to three decompilation sessions run at once, besides
-  Bejeweled's mods session. The order of games is the survey's decision of 2026-10-24
-  (`docs/POPCAP_GAMES_SURVEY.md` section 4): the BookWorm series, then Bejeweled Twist, then the least predicted
-  effort first. A slot that the next game in that order cannot use yet, because it waits on another game's
-  engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
-  the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
-  mods were the one exception, part of the Sonnet trial).
+  Bejeweled's mods session. The order of games is the survey's decision of 2026-10-24 (recorded in
+  `docs/POPCAP_GAMES_SURVEY.md` until 2026-11-04, now replaced by the bullets below): the BookWorm series, then
+  Bejeweled Twist, then the least predicted effort first. A slot that the next game in that order cannot use yet,
+  because it waits on another game's engine, goes to the cheapest remaining game. New game sessions list the mods
+  worth making but make none without the user's approval, and no further game gets mods until every PopCap game works
+  in the browser (Noah's Ark's mods were the one exception, part of the Sonnet trial).
 - **The merged games first (the user, 2026-10-27):** the 18 games merged by 2026-10-27 are not done until they pass
   the identical-play comparison (CLAUDE.md, "Done means identical"); from the weekly reset (2026-11-01) they come
   first, and no new port starts until all 18 are done.
@@ -64,12 +70,12 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 - **The ports still to make (the user, 2026-11-01):** they wait until every current game is fully done, both phases of
   identical play included. Then: "anything easier than Chuzzle can run in parallel, and anything harder has to be done
   in sequence AFTER all easier games have been finished." By the survey's estimates (`docs/POPCAP_GAMES_SURVEY.md`
-  section 4), the easier ones, run side by side as before, are Venice, Heavy Weapon, Hammer Heads, Bejeweled 2,
-  AstroPop, Typer Shark, and Pizza Frenzy with Iggle Pop and Feeding Frenzy after it (4x to 8x). Chuzzle (~8-12x) itself
-  starts the sequence, then in the survey's order Feeding Frenzy 2 (~10x), Peggle Deluxe (~12x) and Peggle Nights after
-  it, Bejeweled 3 (~30x), Banana Bugs, Gyromancer, Zuma's Revenge (~35x) and Talismania (~12-16x after Feeding Frenzy
-  2), one session at a time. This moves Typer Shark, which the decision of 2026-10-24 put at the end, into the easier
-  group.
+  section 2, "The plan for the remaining games"), the easier ones, run side by side as before, are Venice, Heavy
+  Weapon, Hammer Heads, Bejeweled 2, AstroPop, Typer Shark, and Pizza Frenzy with Iggle Pop and Feeding Frenzy after
+  it (4x to 8x). Chuzzle (~8-12x) itself starts the sequence, then in the survey's order Feeding Frenzy 2 (~10x),
+  Peggle Deluxe (~12x) and Peggle Nights after it, Bejeweled 3 (~30x), Banana Bugs, Gyromancer, Zuma's Revenge (~35x)
+  and Talismania (~12-16x after Feeding Frenzy 2), one session at a time. This moves Typer Shark, which the decision
+  of 2026-10-24 put at the end, into the easier group.
 - **The passes after Twist (the user, 2026-11-03):** the passes waited until Bejeweled Twist was done, 3D mode included
   (the user, 2026-11-01), with Bejeweled Deluxe's the one exception. With Twist finished: "get going on identical play
   for more games. Start with lowest effort." So the first phase runs for every game that has had no pass, up to five
@@ -156,8 +162,9 @@ were fixed (34e6da1, a6547b9). The chat
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
-  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which; "web only" (Zuma's
-  Revenge, the user 2026-10-26) keeps the folder in `.publishignore` but puts the game on the website.
+  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 2 ("The plan for the remaining
+  games") says which; "web only" (Zuma's Revenge, the user 2026-10-26) keeps the folder in `.publishignore` but puts
+  the game on the website.
 
 ## Mods
 

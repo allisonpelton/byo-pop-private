@@ -2,8 +2,8 @@
 """Recover C++ classes and vtables from MSVC RTTI, including VS.NET 2002 (MSVC 7.0) binaries.
 
 Ghidra 12's RTTI analyzer recovers no classes from MSVC 7.0 images: their BaseClassDescriptors are 24
-bytes, without the pClassDescriptor field, and Ghidra rejects them (docs/POPCAP_GAMES_SURVEY.md 1.4).
-This scanner only follows CompleteObjectLocator -> TypeDescriptor / ClassHierarchyDescriptor, which is
+bytes, without the pClassDescriptor field, and Ghidra rejects them (docs/POPCAP_GAMES_SURVEY.md 3.4, "Findings
+that apply to many games"). This scanner only follows CompleteObjectLocator -> TypeDescriptor / ClassHierarchyDescriptor, which is
 the same in every MSVC version, and writes:
 
   <out>.jsonl        ApplySymbols.java lines: Class::vfNN names for virtual functions, vftable labels, and

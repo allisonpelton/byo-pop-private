@@ -131,10 +131,11 @@ Once Bejeweled Deluxe and all of the mods above are done and working:
    wrapper (SexyAppFramework RTTI), so the unwrapping tool (`tools/extract_game_exe.py`, private), the
    Ghidra pipeline (`tools/ghidra_scripts`, `tools/ghidra_headless.sh`) and the framework-identification
    approach carry over. A separate `BigMoney.exe` (2005-11-14, no framework RTTI) needs a look first.
-2. **Other PopCap games**, in the order agreed on 2026-10-18 (since replaced: the order of work in CLAUDE.md, 2026-10-24; details, effort and prerequisites in
-   [POPCAP_GAMES_SURVEY.md](POPCAP_GAMES_SURVEY.md), section 4):
+2. **Other PopCap games**, in the order agreed on 2026-10-18 (since replaced: the plan in
+   [POPCAP_GAMES_SURVEY.md](POPCAP_GAMES_SURVEY.md), section 2, "The plan for the remaining games", with each game's
+   effort and prerequisites in its section 5, "The remaining games"):
    1. BookWorm Deluxe. It is now also the first second-game target, so it takes on the multi-game
-      layout groundwork (survey G6).
+      layout groundwork.
    2. Typer Shark! Deluxe, which uses the same 2004 framework.
    3. Bookworm Adventures Deluxe + Volume 2.
    4. The Sprout-engine line: Feeding Frenzy 2 + Talismania, then Iggle Pop and Feeding Frenzy Deluxe (added 2026-10-25). Pizza Frenzy now comes
@@ -144,7 +145,8 @@ Once Bejeweled Deluxe and all of the mods above are done and working:
    7. The remaining classic titles: Rocket Mania, Hammer Heads, Heavy Weapon, Dynomite, AstroPop.
    8. The newer frameworks: Bejeweled 3, Bejeweled Twist, Zuma's Revenge.
 
-   **Decided 2026-10-26 (POPCAP_GAMES_SURVEY.md section 4):** every game may be decompiled, with no other project as a
+   **Decided 2026-10-26 (COORDINATION.md, "Which games, and where they are published"; POPCAP_GAMES_SURVEY.md
+   section 2, "The plan for the remaining games"):** every game may be decompiled, with no other project as a
    reference, except Plants vs. Zombies, Insaniquarium and Zuma Deluxe, whose fan communities are left to their own work, and
    Chuzzle's Christmas Edition. Games with another PC decompilation in progress or an active modding community (Peggle
    Deluxe and Nights) are built but not published. Pizza Frenzy and Chuzzle Deluxe are back in the order.

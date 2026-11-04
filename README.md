@@ -71,8 +71,9 @@ repository, and its work counts for Bejeweled. Port and mod work are split commi
 of the work since the one before, classified by what it did. "Other" is publishing, the website, licences, usage
 measurement and rules for the sessions. `tools/game_costs.py` computes the costs; the table is refreshed when asked.
 
-Later candidates, and what it takes to port each, are surveyed in
-[docs/POPCAP_GAMES_SURVEY.md](docs/POPCAP_GAMES_SURVEY.md); planned mods are in
+The games still to port, their order and what it takes to port each are in
+[docs/POPCAP_GAMES_SURVEY.md](docs/POPCAP_GAMES_SURVEY.md) ("The plan for the remaining games" and "The remaining
+games"), with the facts about every game surveyed; planned mods are in
 [docs/MOD_ROADMAP.md](docs/MOD_ROADMAP.md).
 
 ## Mods
