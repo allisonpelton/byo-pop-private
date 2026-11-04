@@ -153,17 +153,69 @@ canvas, and nothing is set when the game's custom cursors are off or a game has 
 to use across the whole site (except for inside other games)", and "If the custom cursor is disabled in a game, could the site's
 custom cursor still display over it?". Once a game has started, its page asks it for its set of cursors at each 100 ms poll until
 the game has set its pointer: `byopop_cursor_set_copy()` (`framework/WebCursor.cpp`, read-only like the calls above) copies its
-pointer, hand, dragging and text images (`mCursorImages`, whether or not its custom cursors are on) to `Module.byopopCursorSet`,
-each with the hot spot the game draws it at. The page keeps them as PNG data URLs, at their own size (at most 128 px), in
+image for every kind from `CURSOR_POINTER` to `CURSOR_WAIT` (`mCursorImages`, whether or not its custom cursors are on) to
+`Module.byopopCursorSet`, each with the hot spot the game draws it at, and the page keeps the six kinds the site shows (below). The page keeps them as PNG data URLs, at their own size (at most 128 px), in
 `web/cursors.js`'s localStorage item `byopop-cursors`, one set per game. The Settings (the listing page's tab and every game page's
 panel) have a "Site cursor" choice: the browser's own, or one of the games' sets, each shown by its pointer and hand. The choice,
-`byopop-site-cursor`, applies to every page of the site (`.site-cursor` on `<html>` and one style element): the pointer
-everywhere, the hand on links, buttons and other controls, the text cursor in text fields, the dragging cursor on a cap being
-dragged. On a game's page a game whose own cursor is showing keeps it (`.game-cursor` turns the site's rules off); where it shows
+`byopop-site-cursor`, applies to every page of the site (`.site-cursor` on `<html>` and one style element), each cursor where the
+site means what the game means by it (the table below): the pointer everywhere, the hand on links, buttons and other controls
+that can be used, the text cursor in text fields, the dragging cursor on a cap being dragged, the circle-slash on a disabled
+control and the wait cursor while the site is busy. On a game's page a game whose own cursor is showing keeps it (`.game-cursor` turns the site's rules off); where it shows
 none, its custom cursors off or none of its own, the site's cursor shows over the game too, by the kind of cursor SDL gives the
 canvas (a hidden cursor stays hidden). The images come from the player's own copy and stay in this browser; forgetting a game's
 files forgets its cursors (`ByopopGameFiles.forget`). A game's cursors are there only once it has been started in this browser:
 each game keeps its cursor images in its own formats and files, and the game itself is the one place that puts them together.
+
+**Each game's cursors, and where they show** (the user, 2026-11-04: "Some games have cursor sets rather than a single cursor
+used during all of gameplay. We should figure out in what game contexts a particular cursor is used and make them contextual on
+the site too"). Read from the ports' code, the calls that set cursor images (`SetCursorImage`) and the ones that pick the cursor
+(`SetCursor`). No game adds kinds of its own: every set uses the framework's (`framework/SexyAppBase.h`), and nearly all of them
+only the first four. The framework itself picks the hand over a widget that asks for it (buttons, links, a list's clickable rows,
+`Widget.cpp`, `ListWidget.cpp`), the text cursor over an edit field (`EditWidget.cpp`), the dragging cursor while a slider's thumb
+or a dialog's title bar is dragged (`Slider.cpp`, `Dialog.cpp`) and the pointer everywhere else; it never picks the wait cursor.
+The names that sound like cursors in Bejeweled Twist and Pixelus (`IMAGE_CURSOR_YELLOW1` to 24, `RING`, `MULTIBULBS`,
+`MULTIPULSE`, `CLICKHERE`, `CLICKNOW`, `BWCURSOR`, Pixelus' aim cursors) are sprites the game draws on its board, not mouse
+cursors. None of the games' cursor images is animated.
+
+| Game | Its cursor images (pointer, hand, dragging, text) | Others | Where the game itself changes the cursor |
+| --- | --- | --- | --- |
+| Alchemy, Atomica, Bejeweled, Dynomite | `cursor1`, `pointer2`, `overhand`, `typer` | none | nowhere: the framework's places only |
+| Big Money | `cursor_pointer`, `cursor_hand`, `cursor_dragging`, `cursor_text` | none | the dragging cursor on its own sliders' thumbs |
+| BookWorm, Rocket Mania, Pixelus | `cursor_pointer`, `cursor_hand`, `cursor_dragging`, `cursor_text` | none | nowhere |
+| Mummy Maze | `pointer`, `hand`, `dragging`, `text` | none | nowhere |
+| Seven Seas | `cursor1`, `pointer2`, `overhand`, `typer` | `cursorshovel`, in the circle-slash's place | on the board: the pointer, the hand over the button a tutorial step points at, the shovel while a bonus is on; the pointer on the map |
+| Bejeweled Twist | its pointer, hand and dragging; no text cursor | none | the pointer when the board goes or a tube takes the focus |
+| Bookworm Adventures, Volume 2 | its own pointer, hand, dragging and text | none | the hand over a tile that can be picked, the battle's buttons while they can be used, the menu's items and (Volume 2) a book or Begin on the book screen; the pointer elsewhere, as screens, dialogs and curtains open; its scripts can pick either |
+| Bonnie's Bookstore | none fixed: one cursor (`CURSOR_CUSTOM`) made from the original's 32 by 32 bitmap whenever the game asks for a new one | | as the game asks; the set has no pointer, so the site gets no set from it |
+| Mahjong Escape: Ancient China, Ancient Japan | none: the browser's own hand over buttons and wait while a screen changes | | |
+| Cosmic Bugs, Water Bugs | none: they hide the cursor | | |
+| Ning Po, Noah's Ark, TipTop, Word Harmony | none | | |
+
+The site maps a game's cursors by their meaning, and only where a site context means the same:
+
+| Site context | The game's cursor | Without it |
+| --- | --- | --- |
+| everywhere else | pointer | the browser's |
+| links, buttons and other controls that can be used | hand | the browser's hand |
+| text fields | text | the browser's text cursor |
+| a cap being dragged | dragging | the game's hand |
+| a disabled control | circle-slash (no ported game has one: Seven Seas' is its shovel and is not kept, `OTHER_MEANING` in `web/cursors.js`) | the pointer, as before |
+| the site busy: a game page's script loading, games being added, a save backup, restore or import (`ByopopCursors.busy`) | wait (no ported game has one) | as before |
+
+The sizing arrows have no place on the site, and the games' other contexts (a tutorial's button, the shovel's bonus) have none
+either, so with today's games the site shows what it showed before: the four kinds are the whole of every set. The circle-slash
+and the wait cursor are there for a game that has them.
+
+**Animated cursors.** None of the ported games has one; Banana Bugs will (`docs/POPCAP_GAMES_SURVEY.md`, its "Animated cursors on
+the site"). Browsers animate no cursor image, so a stored kind may carry `frames` (the images after the first, at most 31, each a
+PNG with its hot spot like the first) and `ms` (how long each shows, 40 ms to 2 s). Where the chosen set has frames,
+`web/cursors.js` follows the element under the mouse and, while the site's rules give that element an animated kind, sets each
+frame in turn as its inline cursor on one timer, which also changes the cursor while the mouse stays still. It gives the element
+back when the mouse leaves it, when another rule applies (a press, the site turning busy) or a game's own cursor shows, and runs
+no timer while the page is hidden or for a set without frames, so a page pays nothing for it otherwise. The frames, like every
+cursor, are at most 128 px: the game page draws a larger one smaller. Filling `frames` from a game is Banana Bugs' part: its
+cursor class would hand the framework its frames, and `byopop_cursor_set_copy` and the game page's `takeCursorSet` would copy and
+keep them.
 
 **The footer** is the same on every game's page: one link, which opens the game's copyright page
 (`<game>-copyright.html`, next to the game) in a new tab. The markup is `web/footer.html` and its style

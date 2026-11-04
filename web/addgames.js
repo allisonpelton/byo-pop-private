@@ -28,15 +28,18 @@ var ByopopAddGames = (function () {
   // opener and flips over to the game's icon; several, and the opener falls onto the grid and flips them all (web/capanim.js).
   // The cards are checked again (their state, the icons) at the end of that.
   var queue = [], running = false, opened = [];
+  // the site's wait cursor while a game's files are read (web/cursors.js)
+  function busy(on) { try { if (window.ByopopCursors) ByopopCursors.busy("addgames", on); } catch (e) {} }
   function enqueue(job) { job.say(ByopopStrings.t("add.waiting")); queue.push(job); if (!running) next(); }
   function next() {
     var job = queue.shift();
-    if (!job) { running = false; openCaps(); return; }
+    if (!job) { running = false; busy(false); openCaps(); return; }
     running = true;
+    busy(false);  // (not while the terms wait for the player)
     var card = cardOf(job.game), own = card && card.querySelector(".own");
     function say(text) { job.say(text); if (own) own.textContent = text; }
     agreeTo(job.game).then(function (ok) {
-      if (ok) { add(); return; }
+      if (ok) { busy(true); add(); return; }
       job.done(false, ByopopStrings.t("add.not_agreed"));
       if (own) own.textContent = "";
       notAgreed(job.game);

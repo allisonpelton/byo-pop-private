@@ -444,6 +444,9 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   var exited = false;  // it has closed or stopped
   var afterExit = null;  // closeGameThen's next step, which onGameExit takes once the save is written
 
+  // The site's wait cursor, if the chosen site cursor has one (web/cursors.js), while the game's script loads and compiles
+  function siteBusy(on) { try { if (window.ByopopCursors) ByopopCursors.busy("game-loading", on); } catch (e) {} }
+  siteBusy(true);
   var Module = window.Module = {
     canvas: $("canvas"),
     noInitialRun: true,
@@ -458,7 +461,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     print: function (t) { console.log(t); },
     printErr: function (t) { console.warn(t); },
     setStatus: function (t) { if (t) setStatus(t); },
-    onRuntimeInitialized: function () { acquireInstanceLock().then(mountStorage).then(function () { return ByopopTerms.ready; }).then(boot); },
+    onRuntimeInitialized: function () { siteBusy(false); acquireInstanceLock().then(mountStorage).then(function () { return ByopopTerms.ready; }).then(boot); },
     onAbort: function (what) { showStopped(what); },
     // The game has loaded: no mod stopped this start
     onGameLoaded: function () { if (session) session.markFinished(); },
@@ -530,6 +533,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // cause, so the next start can leave them out.
   function showStopped(what) {
     exited = true;
+    siteBusy(false);
     playClock();
     releaseWake();
     try { ByopopCounter.stop(); } catch (e) {}
@@ -899,9 +903,11 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (now < cursorSetNext) return;
     try { n = Module.ccall("byopop_cursor_set_copy", "number", [], []) | 0; } catch (e) { cursorSetTaken = true; return; }
     if (n <= 0) return;
-    var kinds = ["pointer", "hand", "drag", "text"], set = {};
+    // the framework's kinds by number (framework/SexyAppBase.h) that the site shows somewhere (web/cursors.js); the sizing arrows
+    // have no place on the site
+    var kinds = { 0: "pointer", 1: "hand", 2: "drag", 3: "text", 4: "notallowed", 10: "wait" }, set = {};
     (Module.byopopCursorSet || []).forEach(function (c, i) {
-      if (!c || !c.rgba || c.rgba.length !== c.width * c.height * 4) return;
+      if (!kinds[i] || !c || !c.rgba || c.rgba.length !== c.width * c.height * 4) return;
       var source = document.createElement("canvas");
       source.width = c.width; source.height = c.height;
       source.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(c.rgba.buffer, c.rgba.byteOffset, c.rgba.length), c.width, c.height), 0, 0);

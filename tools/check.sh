@@ -33,7 +33,9 @@
 #                site's text, web/strings/en.txt, against the code that uses it, and web/i18n.js's rules), playcounttest (the play
 #                counter's Worker and Durable Object, web/counter/playcount.mjs, on stand-ins for Cloudflare's runtime) and
 #                playcountpagetest (its pages' side, web/playcount.js: when it may contact the counter) and termstest (web/terms.js:
-#                when a page skips the terms card, the development hosts, ?terms=1 and the test key). The build folder is build/web;
+#                when a page skips the terms card, the development hosts, ?terms=1 and the test key) and cursorstest (web/cursors.js:
+#                the site's cursor, which of a game's cursors it keeps, its rules for each context, busy() and animated
+#                cursors). The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
 #                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
@@ -653,9 +655,12 @@ suite_unit-web() {
 	local m
 	"$NODE" tools/termstest.js > "$1.tt" 2>&1 || st=1
 	m="$(lastof "$1.tt" 'termstest:')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m"
+	local n
+	"$NODE" tools/cursorstest.js > "$1.cur" 2>&1 || st=1
+	n="$(lastof "$1.cur" 'cursorstest:')"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n"
 	return $st
 }
 

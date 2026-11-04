@@ -418,7 +418,10 @@ var ByopopSaves = (function () {
     errorControls.push(backupButton, pick);
     // the import (web/saveimport.js) is told to stand still too while anything runs
     var busyHooks = [];
-    function setBusy(b) { busy = b; backupButton.disabled = b; pick.disabled = b; busyHooks.forEach(function (h) { h(b); }); }
+    function setBusy(b) {
+      busy = b; backupButton.disabled = b; pick.disabled = b; busyHooks.forEach(function (h) { h(b); });
+      try { if (window.ByopopCursors) ByopopCursors.busy("saves", b); } catch (e) {}  // the site's wait cursor (web/cursors.js)
+    }
 
     function renderList() {
       return databases().then(function (names) {
