@@ -24,6 +24,9 @@ theme.to_dark = Use the dark theme
 
 # Read out after a link that opens in a new tab (the footer's, and the store links under the terms)
 site.new_tab = (opens in a new tab)
+# A list of names: two, and three or more ({rest} is all but the last, joined with ", ")
+site.list_two = {first} and {second}
+site.list_many = {rest} and {last}
 footer.terms = Terms, copyright and licenses
 
 

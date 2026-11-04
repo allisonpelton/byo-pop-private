@@ -2,7 +2,8 @@
 // game's cursors are kept (the six kinds the site shows, none whose image means something else in that game, frames only when
 // well-formed), the rules each context gets (the pointer, hand and text always, the circle-slash on disabled controls and the wait
 // cursor while the site is busy only from a set that has them), busy() and the frames of an animated cursor (swapped on the
-// element under the mouse while the mouse stays still, and given back when it leaves; no timer for a set without frames).
+// element under the mouse while the mouse stays still, and given back when it leaves; no timer for a set without frames), and the
+// Settings' choice, where games with the same set share one entry.
 //   node tools/cursorstest.js
 // It prints "cursorstest: N checks, M failed" and exits 1 when any failed.
 "use strict";
@@ -23,6 +24,17 @@ function element(tag, matches) {
   return { nodeType: 1, tagName: tag, matches: (sel) => (matches || []).indexOf(sel) >= 0, getAttribute: () => null,
     style: { setProperty: (k, v, p) => { style[k] = v + (p ? " !" + p : ""); }, removeProperty: (k) => { delete style[k]; } }, inline: style };
 }
+// A node of the Settings' choice: its children, attributes and listeners
+function node(tag) {
+  const n = { tagName: tag, children: [], listeners: {}, id: "", className: "",
+    appendChild(c) { this.children.push(c); return c; },
+    addEventListener(t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); },
+    // the text a screen reader would read for it
+    text() { return this.children.map((c) => c.tagName === "#text" ? c.text : c.text()).join("") + (this._text || ""); } };
+  Object.defineProperty(n, "textContent", { get() { return n._text || ""; }, set(v) { n._text = v; n.children = []; } });
+  return n;
+}
+const STRINGS = { "cursors.browser": "Default", "site.list_two": "{first} and {second}", "site.list_many": "{rest} and {last}" };
 function page(store) {
   const listeners = {}, timers = new Map();
   let nextTimer = 1;
@@ -30,12 +42,15 @@ function page(store) {
   const head = { children: [], appendChild(e) { this.children.push(e); } };
   const document = {
     documentElement: root, head, visibilityState: "visible",
-    createElement: (t) => ({ tagName: t, textContent: "", id: "" }),
+    createElement: (t) => node(t),
+    createTextNode: (text) => ({ tagName: "#text", text }),
+    getElementById: () => null,
     addEventListener: (t, f) => { (listeners[t] = listeners[t] || []).push(f); }
   };
   const local = Object.assign({}, store || {});
   const ctx = {
     document, JSON, Object, Array, String,
+    ByopopStrings: { t: (k, f) => (STRINGS[k] || k).replace(/\{(\w+)\}/g, (m, n) => f[n]) },
     window: { localStorage: { getItem: (k) => (k in local ? local[k] : null), setItem: (k, v) => { local[k] = String(v); }, removeItem: (k) => { delete local[k]; } },
       addEventListener: () => {} },
     setInterval: (f, ms) => { timers.set(nextTimer, { f, ms }); return nextTimer++; },
@@ -145,6 +160,37 @@ function check(what, got, want) {
   p.fire("mouseover", { target: el });
   p.fire("mouseout", { target: el, relatedTarget: null });
   check("the mouse leaves the page: given back, no timer", [el.inline, p.timers.size], [{}, 0]);
+}
+
+// the Settings' choice: games with the same set share one entry
+{
+  const p = page();
+  const look = { pointer: img("p", 1, 2), hand: img("h"), drag: img("d"), text: img("t") };
+  p.C.save("bejeweled", "Bejeweled Deluxe", look);
+  p.C.save("alchemy", "Alchemy Deluxe", look);
+  p.C.save("atomica", "Atomica Deluxe", look);
+  p.C.save("bigmoney", "Big Money Deluxe", Object.assign({}, look, { text: img("t2") }));
+  p.C.save("bookworm", "BookWorm Deluxe", Object.assign({}, look, { pointer: img("p", 1, 3) }));
+  function entries() {
+    const el = node("div");
+    p.C.render(el);
+    const box = el.children[0].children[1];
+    return box.children.filter((l) => l.tagName === "label").map((l) => ({ value: l.children[0].value, checked: l.children[0].checked, name: l.text().trim() }));
+  }
+  check("identical sets make one entry, named with every title in order; a set that differs in one kind or one hot spot keeps its own",
+    entries().map((e) => e.name), ["Default", "Alchemy Deluxe, Atomica Deluxe and Bejeweled Deluxe", "Big Money Deluxe", "BookWorm Deluxe"]);
+  check("nothing chosen: the browser's own is checked", entries().filter((e) => e.checked).map((e) => e.name), ["Default"]);
+  p.C.choose("bejeweled");
+  check("a choice of any member selects its group, and keeps that member", [entries().filter((e) => e.checked).map((e) => e.name), entries()[1].value],
+    [["Alchemy Deluxe, Atomica Deluxe and Bejeweled Deluxe"], "bejeweled"]);
+  p.C.choose("alchemy");
+  check("the first member too", entries().filter((e) => e.checked).map((e) => e.value), ["alchemy"]);
+  p.C.forget("atomica");
+  check("forgetting one game leaves the rest of its group", entries()[1].name, "Alchemy Deluxe and Bejeweled Deluxe");
+  p.C.save("alchemy", "Alchemy Deluxe", Object.assign({}, look, { hand: img("h2") }));
+  check("a set that changes leaves its group, and the choice stays with it",
+    entries().map((e) => [e.name, e.checked]), [["Default", false], ["Alchemy Deluxe", true], ["Bejeweled Deluxe", false], ["Big Money Deluxe", false], ["BookWorm Deluxe", false]]);
+  check("the sets stay one a game", Object.keys(p.C.all()).sort(), ["alchemy", "bejeweled", "bigmoney", "bookworm"]);
 }
 
 console.log(`cursorstest: ${checks} checks, ${failed} failed`);
