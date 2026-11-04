@@ -165,7 +165,7 @@ all five, and its shots differ from the native ones only at the rotated sprites 
 
 | Difference | Cause in the original | What the port does now | Commit |
 |---|---|---|---|
-| Over a frozen board, and whenever the selector came back, the port faded in the selector's song (song 12, order 89); the original never plays it | `ShowGameSelector` fades it in only when `IsPlaying(title)` is false. The original's BASS (2004) answers `BASS_ChannelIsActive` with 1 for a music it played and stopped since (its log: 1 after the title's `BASS_ChannelStop`), and the title plays from the start, so the answer is always yes | keeps the original's answer: the selector's song is never faded in (`WinBMApp::ShowGameSelector`) | (this commit) |
+| Over a frozen board, and whenever the selector came back, the port faded in the selector's song (song 12, order 89); the original never plays it | `ShowGameSelector` fades it in only when `IsPlaying(title)` is false. The original's BASS (2004) answers `BASS_ChannelIsActive` with 1 for a music it played and stopped since (its log: 1 after the title's `BASS_ChannelStop`), and the title plays from the start, so the answer is always yes | keeps the original's answer: the selector's song is never faded in (`WinBMApp::ShowGameSelector`) | ed0666e |
 
 The change touches only the music, which the frozen baseline does not hold: `tools/check.sh bigmoney` passes with its
 frozen score (66 646), so nothing was refrozen. The pass also added the tools named above (`tour.sh`, `gametour.sh`,
