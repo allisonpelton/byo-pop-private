@@ -881,8 +881,9 @@ suite_alchemy() {
 			read -r m bs gs sk <<< "$a"
 			alchemy_state_game "cur-$m-$gs" "$W/build/native/alchemy.exe" "$m" "$bs" "$gs" "$sk"
 			alchemy_state_game "base-$m-$gs" "$base" "$m" "$bs" "$gs" "$sk"
+			# the baseline predates the log's "rand" field (the CRT's random state), so that field is left out
 			[ -s "$OUT/alchemy/cur-$m-$gs/state.txt" ] && [ -s "$OUT/alchemy/base-$m-$gs/state.txt" ] &&
-				cmp -s "$OUT/alchemy/cur-$m-$gs/state.txt" "$OUT/alchemy/base-$m-$gs/state.txt" || bl="x"
+				cmp -s <(grep -v ' rand ' "$OUT/alchemy/cur-$m-$gs/state.txt" | tr -d '\r') <(tr -d '\r' < "$OUT/alchemy/base-$m-$gs/state.txt") || bl="x"
 		done
 		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
 	fi
