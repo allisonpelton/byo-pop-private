@@ -1,4 +1,5 @@
 #include "PixelusApp.h"
+#include "DialogButton.h"
 #include "testhooks/StateLog.h"
 #include "GameDialog.h"
 #include "GameText.h"
@@ -770,6 +771,9 @@ void PixelusApp::ButtonDepress(int theId)
 		if (mTempleScreen != NULL)
 			mWidgetManager->SetFocus(mTempleScreen);
 		return;
+	case 2031:		// a hint is read
+		KillDialog(0x1f);
+		return;
 	case 2027:		// skip the tutorial
 		SkipTutorialOK();
 		return;
@@ -854,6 +858,50 @@ void PixelusApp::StyleDialog(GameDialog* theDialog)
 	theDialog->SetColor(Dialog::COLOR_LINES, Color(255, 255, 255, 255));
 	theDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(255, 255, 255, 255));
 	theDialog->mContentInsets = Insets(0x30, 0x3c, 0x30, 0x20);
+}
+
+// 0x40f160 (the dialog is 0x40ef30): a hint in a speech bubble over the board, one OK button, centred on the grid at 0x196
+// (and the screen's middle plus theY: the tutorial's -1 and the glue hint's 200)
+void PixelusApp::ShowHint(int theWidth, int theY, const SexyString& theHeader, const SexyString& theText, int theCellCount, const int (*theCells)[2])
+{
+	KillDialog(0x1f);
+	GameDialog* aDialog = new GameDialog(this, mImages[IMAGE_DIALOG_HINTBUBBLE], mImages[IMAGE_DIALOGBUTTON_HINTBUBBLE], 0x1f, true,
+		theHeader, theText, GT(0x50b558), Dialog::BUTTONS_FOOTER, NULL);
+	aDialog->SetHeaderFont(mFonts[FONT_GARAMOND20]);
+	aDialog->SetLinesFont(mFonts[FONT_GARAMOND14]);
+	aDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255, 255));
+	aDialog->SetColor(Dialog::COLOR_LINES, Color(255, 255, 255, 255));
+	aDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(255, 255, 255, 255));
+	aDialog->mContentInsets.mLeft = 24;
+	aDialog->mContentInsets.mRight = 24;
+	StyleButton(this, aDialog->mYesButton, 3);
+	// 0x40f160: the height is the wrapped text's plus 0x32; the middle is measured from the original's screen
+	Graphics aGraphics;
+	aGraphics.SetFont(mFonts[FONT_GARAMOND14]);
+	int aHeight = GetWordWrappedHeight2004(&aGraphics, theWidth - aDialog->mContentInsets.mRight - aDialog->mContentInsets.mLeft -
+		aDialog->mBackgroundInsets.mRight - aDialog->mBackgroundInsets.mLeft - 4, theText,
+		mFonts[FONT_GARAMOND14]->GetLineSpacing() + aDialog->mLineSpacingOffset) + 0x32;
+	aDialog->mContentInsets.mBottom = 10;
+	aDialog->Resize(428 - theWidth / 2, theY + 161 - aHeight / 2, theWidth, aHeight);
+	// the button as the original's screen shows it: 24 pixels in from both sides, 25 high, 10 above the bottom
+	if (theCellCount < 0)
+		aDialog->Resize(theCells[0][0], theCells[0][1], theWidth, aHeight);	// a measured top left corner
+	else if (theCellCount > 0)
+	{
+		// the original's screen: the bubble is centred on the lesson's cells, 20 pixels above them when they lie in the lower
+		// half of the screen and 19 below them otherwise (measured on the first two tutorial puzzles)
+		int aSumX = 0, aMinY = 1000, aMaxY = 0;
+		for (int i = 0; i < theCellCount; i++)
+		{
+			aSumX += Board::GRID_X + theCells[i][1] * Grid::CELL_SIZE + Grid::CELL_SIZE / 2;
+			aMinY = std::min(aMinY, Board::GRID_Y + theCells[i][0] * Grid::CELL_SIZE);
+			aMaxY = std::max(aMaxY, Board::GRID_Y + (theCells[i][0] + 1) * Grid::CELL_SIZE);
+		}
+		int aY = (aMinY + aMaxY) / 2 < 240 ? aMaxY + 19 : aMinY - 20 - aHeight;
+		aDialog->Resize(aSumX / theCellCount + 2 - theWidth / 2, aY, theWidth, aHeight);
+	}
+	aDialog->mYesButton->Resize(aDialog->mX + 24, aDialog->mY + aHeight - 10 - 25, theWidth - 48, 25);
+	AddDialog(0x1f, aDialog);
 }
 
 // 0x4331e0 slot 21: every dialog the game opens is a GameDialog, 336 wide at the top of the screen

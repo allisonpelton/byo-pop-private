@@ -120,6 +120,7 @@ public:
 	void					DeleteUserOK(bool theOK);                       // 0x434cf0
 	void					RenameUserOK(bool theOK);                       // 0x4350a0
 	void					StyleDialog(class GameDialog* theDialog);       // what 0x4331e0 does to every dialog
+	void					ShowHint(int theWidth, int theY, const SexyString& theHeader, const SexyString& theText, int theCellCount = 0, const int (*theCells)[2] = NULL);	// 0x40f160 (dialog 0x1f)
 
 	// Test hooks (testhooks/Autoplay.cpp): the bot that plays the puzzles with the best known solutions
 	bool					mAutoplay;

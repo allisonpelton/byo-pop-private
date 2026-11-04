@@ -1,9 +1,10 @@
 # Pixelus Deluxe: identical-play pass, first phase (2026-11-03)
 
 Phase one compares the game's state, update by update, between the original (`tools/origrun`, virtual clock, scripted
-cursor, the seed patched in) and the port (`-fast`). It is **not finished**: the tutorial, a saved game carried from one
-program to the other, and the records table after a puzzle are not compared yet (see "Open"). The screens (phase two)
-have not been started either.
+cursor, the seed patched in) and the port (`-fast`). It is **not finished**: the screen that follows the tutorial's last
+puzzle (the "you completed the tutorial" screen, which the port lacks), a saved game carried from one program to the other
+and the records table after a puzzle are not compared yet (see "Open"). The screens (phase two) have not been started
+either.
 
 ## How it was compared
 
@@ -22,7 +23,9 @@ have not been started either.
 
 Cases played: bot seed 1 / game seed 1 and bot seed 2 / game seed 7, three puzzles each, the tutorial skipped
 (`-autoplayskip`), from a first run (user question, new player, help screen, story, island, temple, board, completed
-screen). Both match in every value except the two listed under "Oddities".
+screen). Both match in every value except the two listed under "Oddities". Then the tutorial itself, not skipped: bot
+seed 1 / game seed 1 over all nine puzzles and bot seed 2 / game seed 7 over eight, each puzzle's lesson dialog answered
+by the bot's click on its OK button (see the lesson's row below and "Open" for what does not match yet).
 
 ## Changes this pass made
 
@@ -39,11 +42,13 @@ screen). Both match in every value except the two listed under "Oddities".
 | The tile maker started at the bottom of the grid | 0x42bd40 starts him above it (side 2) at the first column | `TileMaster` starts at `SIDE_DOWN`, cursor 0 | 5e00f97 |
 | Dotted aim line, target and base marks on a fresh board | 0x422ab0 draws those only in control modes 0 and 1; the board's mode (+0x19c) is 2 from its constructor (0x407f10) and nothing else writes it. In mode 2 it draws the cursor on the hovered cell (the red one when a click does nothing) and the arrows | `Board::DrawAim` does the same | 7ff6a91 |
 | The player's file (`users/<n>`) was in a layout of the port's own | 0x4391c0, 0x438450, 0x439fb0: version 4, four-byte string lengths, the temples by number (0 tutorial, 1..9) with their three flags and their records (uuid, "maxed" flag, fewest moves, second count), the records of a temple ordered by UUID as a signed number | `UserProfile::Write/Read` produce and read that layout; the bytes match the original's for the same play | b29b14e |
+| The tutorial had no lesson | the nine puzzles of the tutorial open a modal bubble (dialog 0x1f, ctor 0x40ef30, made by 0x40f160, answered by 2031) from the step functions 0x4061f0, 0x406310, 0x406470, 0x4066b0, 0x406b10, 0x406e60, 0x407150, 0x407510 and 0x402f80, called every fifth update by the dispatcher 0x407aa0; a click that is not on its OK does nothing while it is up (the board is behind a modal dialog); the board ignores a mouse move that comes before its first update (the grid is made there, 0x409880); the "sticky spots" bubble (0x409bd0) opens once for a profile on the first board that has a start tile | `Board::HintCheck` and the sticky-spots hint in `Board::Update`, `PixelusApp::ShowHint` (the bubble: 250/220/300 wide, 24 inset, text height plus 0x32, the OK button 24 in from both sides), the bubble's place for each puzzle (see "Open"), `MouseMove` before the first update does nothing | this commit |
 
 With these the global generator's draw count matches the original at every update of three puzzles (temples 198 and
 463 draws, boards 159, 85, 79, the help screen's frames), and so do all tile pictures. `tools/check.sh pixelus`'s full-run
 hash changed from 2edb2003 to 357cb9be because the pictures now come from the original's sequence (shared commit 6ca7d85,
-which also adds the check against `build/baseline-pixelus`).
+which also adds the check against `build/baseline-pixelus`), and from 357cb9be to 53a08556 because the bot now answers the
+tutorial's bubbles and the sticky-spots bubble, which takes updates.
 
 ## Oddities (not chased)
 
@@ -89,12 +94,27 @@ which also adds the check against `build/baseline-pixelus`).
 
 ## Open (this phase is not complete)
 
-- **Tutorial.** The original's tutorial board ignores the bot's clicks (no hover, no move), also when they come 300
-  updates later; the app's blocking flag (`+0x6a8`) and pause counter (`+0x630`) are both 0, the control mode is 2. The
-  port's tutorial accepts them. The port has no tutorial lesson at all: the original's board is driven by a script of
-  steps (0x4061f0, 0x406310, 0x406470, 0x4066b0 and their neighbours, using the helper widget `board+0xf4`, 0x40ece0, and
-  the teacher), which decides what a click may do at each step; the port's tutorial board is an ordinary board. Porting
-  the lesson is a separate piece of work (the steps, the helper widget's texts and arrows), not a harness question.
+- **The tutorial's last screen.** After the ninth puzzle's tablet the original shows a screen of its own, "YOU COMPLETED
+  THE TUTORIAL!" (hero picture, CONTINUE at the bottom right; the class with vftable 0x50c8c8, Draw 0x40bd80, created by
+  0x432b60 from the tablet's button 0x419c20 with a mode 1 to 5: temple done, game done, tutorial done). The port goes
+  straight to the story. The same screen is shown when a temple or the game is completed (modes 1 to 4), so none of its
+  uses exist in the port. Its button runs 0x40b760 (the way on is 0x432d00 or 0x432be0 by mode and flags). Until it is
+  ported the cases stop at the ninth puzzle's tablet: the screens `story` and `island` differ after it, every other value
+  matches.
+- **Tile pictures with game seed 7.** In the tutorial case with game seed 7 (bot seed 2) the pictures of the tiles that a
+  puzzle starts with differ from the third puzzle on: the original's object *i* has the port's object *i + 1* picture
+  (a shift by one draw on the tile generator), although the draw counts agree. With game seed 1 all nine puzzles match.
+  The cause is not found.
+- **The bubble's place.** The original puts each puzzle's bubble in a different place (measured on its screen: the
+  corner of puzzles 4 to 9 is a fixed point in `Board::HintCheck`; puzzles 1 to 3 are placed by their lesson cells). The
+  rule behind these places is not in our export (0x40f160 gives the same y for all, -1); the click on OK is what the
+  comparison needs, and it hits in the original for all nine. A drag of the bubble (`Dialog::MouseDrag`) is not tested.
+- **Not ported, presentation only (phase two):** the helper widget's bubbles with arrows (0x40ece0, 0x406050, 0x406140),
+  the glowing lesson cells (0x422610), the teacher's figure in the tutorial's sidebar and its texts per step (the
+  original shows the cyclops and a sentence for each puzzle; the port the tile icons), the sidebar's RESET, HINT and UNDO
+  buttons with their labels.
+- The non-expert check of a click on the tile just placed (0x403930, 0x403fb0, called from 0x408400, 0x409160, 0x409bd0)
+  was not compared.
 - The puzzle currently being played (`his<n>` holds its moves) was only compared after the puzzle's end, not
   continued across programs in mid-puzzle.
 
