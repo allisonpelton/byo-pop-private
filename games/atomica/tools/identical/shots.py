@@ -45,6 +45,7 @@ def main():
     ap.add_argument('--port-only', action='store_true')
     ap.add_argument('--orig-only', action='store_true')
     ap.add_argument('--savefile')
+    ap.add_argument('--hs', help='a HS.CFG to start both games with (a table every score beats shows the entry box)')
     a = ap.parse_args()
     lines, end = read(a.scenario)
     out = os.path.join(ROOT, 'build/shots-atomica', a.run)
@@ -66,9 +67,12 @@ def main():
                     f.write('%d %s %s\n' % (n + 1, c, ' '.join(w)))
             f.write('%d quit\n' % (end + 1))
         ud = os.path.join(d, 'user')
-        if a.savefile:
+        if a.savefile or a.hs:
             os.makedirs(ud)
+        if a.savefile:
             shutil.copy(a.savefile, os.path.join(ud, 'SAVEGAME.DAT'))
+        if a.hs:
+            shutil.copy(a.hs, os.path.join(ud, 'HS.CFG'))
         subprocess.run([BASH, fwd(os.path.join(ROOT, 'games/atomica/tools/run_script.sh')), fwd(script), fwd(ud), '600',
                         '-seed=%d' % a.seed, '-drawevery'], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         shutil.rmtree(d, ignore_errors=True)
@@ -82,11 +86,14 @@ def main():
             f.write('at %d move 1 1\nquit\n' % end)
         run = 'shot-' + a.run
         shutil.rmtree(os.path.join(ROOT, 'build/origrun', run), ignore_errors=True)
-        if a.savefile:
+        if a.savefile or a.hs:
             # origrun stages the copy itself: stage it, put the saved game in, run
             subprocess.run([os.path.join(ROOT, 'build/origrun-bin/origrun.exe'), '--game', 'atomica', '--run', run,
                             '--copy-only'], cwd=ROOT, capture_output=True)
-            shutil.copy(a.savefile, os.path.join(ROOT, 'build/origrun', run, 'game', 'SAVEGAME.DAT'))
+            if a.savefile:
+                shutil.copy(a.savefile, os.path.join(ROOT, 'build/origrun', run, 'game', 'SAVEGAME.DAT'))
+            if a.hs:
+                shutil.copy(a.hs, os.path.join(ROOT, 'build/origrun', run, 'game', 'HS.CFG'))
         p = subprocess.run([os.path.join(ROOT, 'build/origrun-bin/origrun.exe'), '--game', 'atomica', '--run', run,
                             '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--seed', str(a.seed),
                             '--sandbox', '--timeout', '200'], cwd=ROOT, capture_output=True, text=True)

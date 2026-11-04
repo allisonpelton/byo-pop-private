@@ -291,7 +291,7 @@ void MainMenu::FillButton(Graphics* g, int theId)
 
 // 0x41a010: the 256 colours the high score rows cycle through: red, green and blue run up and down between their ends at
 // their own steps (-25 from 255, 5 from 185 and 25 from -255, the negative ends being black), the alpha is the page's
-static void BuildScoreColors(Color* theColors, int theAlpha)
+void BuildScoreColors(Color* theColors, int theAlpha)
 {
 	int aRed = 255, aRedStep = -25;
 	int aGreen = 0xb9, aGreenStep = 5;

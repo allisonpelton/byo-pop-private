@@ -167,6 +167,66 @@
       ],
       "pairs": "g6150.png",
       "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        294,
+        59,
+        101,
+        96
+      ],
+      "pairs": "hs8300.png",
+      "label": "the board's atoms in the game over state are shaken by random numbers that the draw itself takes (0x4037f0: x, y and the wobble each frame), so their offsets depend on how many frames were drawn before; no input lines that up"
+    },
+    {
+      "rect": [
+        403,
+        47,
+        82,
+        61
+      ],
+      "pairs": "hs8300.png",
+      "label": "the board's atoms in the game over state are shaken by random numbers that the draw itself takes (0x4037f0: x, y and the wobble each frame), so their offsets depend on how many frames were drawn before; no input lines that up"
+    },
+    {
+      "rect": [
+        483,
+        110,
+        25,
+        57
+      ],
+      "pairs": "hs8300.png",
+      "label": "the board's atoms in the game over state are shaken by random numbers that the draw itself takes (0x4037f0: x, y and the wobble each frame), so their offsets depend on how many frames were drawn before; no input lines that up"
+    },
+    {
+      "rect": [
+        385,
+        171,
+        28,
+        13
+      ],
+      "pairs": "hs8300.png",
+      "label": "the board's atoms in the game over state are shaken by random numbers that the draw itself takes (0x4037f0: x, y and the wobble each frame), so their offsets depend on how many frames were drawn before; no input lines that up"
+    },
+    {
+      "rect": [
+        425,
+        200,
+        30,
+        30
+      ],
+      "pairs": "c2700.png",
+      "label": "atoms drawn from the pre-rotated glow sprites sit a pixel or a rotation step off the original's (see Oddities in IDENTICAL_PLAY.md); the game state is identical"
+    },
+    {
+      "rect": [
+        376,
+        201,
+        29,
+        29
+      ],
+      "pairs": "c2700.png",
+      "label": "atoms drawn from the pre-rotated glow sprites sit a pixel or a rotation step off the original's (see Oddities in IDENTICAL_PLAY.md); the game state is identical"
     }
   ]
 }
