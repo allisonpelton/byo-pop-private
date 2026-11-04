@@ -3,7 +3,8 @@
 // well-formed), the rules each context gets (the pointer, hand and text always, the circle-slash on disabled controls and the wait
 // cursor while the site is busy only from a set that has them), busy() and the frames of an animated cursor (swapped on the
 // element under the mouse while the mouse stays still, and given back when it leaves; no timer for a set without frames), and the
-// Settings' choice, where games with the same set share one entry.
+// Settings' choice, where games with the same set share one entry: the same cropped pictures and hot spots in every kind but the
+// text cursor, sets kept before images were cropped included once they are cropped.
 //   node tools/cursorstest.js
 // It prints "cursorstest: N checks, M failed" and exits 1 when any failed.
 "use strict";
@@ -64,7 +65,7 @@ function page(store) {
   vm.runInContext(source, ctx, { filename: "cursors.js" });
   return {
     C: vm.runInContext("ByopopCursors", ctx), root, local, timers,
-    css: () => (head.children[0] || { textContent: "" }).textContent,
+    css: () => (head.children.find((c) => c.id === "byopop-site-cursor") || { textContent: "" }).textContent,
     fire(t, ev) { (listeners[t] || []).forEach((f) => f(ev)); },
     tick() { [...timers.values()].forEach((t) => t.f()); }
   };
@@ -172,7 +173,7 @@ function check(what, got, want) {
   p.C.save("bejeweled", "Bejeweled Deluxe", look);
   p.C.save("alchemy", "Alchemy Deluxe", look);
   p.C.save("atomica", "Atomica Deluxe", look);
-  p.C.save("bigmoney", "Big Money Deluxe", Object.assign({}, look, { text: img("t2") }));
+  p.C.save("bigmoney", "Big Money Deluxe", Object.assign({}, look, { drag: img("d2") }));
   p.C.save("bookworm", "BookWorm Deluxe", Object.assign({}, look, { pointer: img("p", 1, 3) }));
   function entries() {
     const el = node("div");
@@ -202,13 +203,88 @@ function check(what, got, want) {
     pointer: Object.assign(img("p0"), { frames: [img("p1")], ms: 100 }) });
   p.C.save("one", "Just A Pointer", { pointer: img("q") });
   p.C.save("gaps", "Some Gaps", { pointer: img("g"), text: img("gt"), wait: img("gw") });
+  p.C.save("text", "Only Text", { pointer: img("o"), text: img("ot") });
   const el = node("div");
   p.C.render(el);
   const labels = el.children[0].children[1].children.filter((l) => l.tagName === "label");
   check("the kinds each entry pictures", labels.map((l) => [l.text().trim(), l.kinds()]),
-    [["Default", []], ["All Six", ["pointer", "hand", "drag", "text", "notallowed", "wait"]], ["Just A Pointer", ["pointer"]], ["Some Gaps", ["pointer", "text", "wait"]]]);
+    [["Default", []], ["All Six", ["pointer", "hand", "drag", "notallowed", "wait"]], ["Just A Pointer", ["pointer"]], ["Only Text", ["pointer"]],
+      ["Some Gaps", ["pointer", "wait"]]]);
   const pics = labels[1].children[1].children;
   check("an animated cursor by its first frame, every picture decorative", [pics[0].src, pics.every((i) => i.alt === "")], ["data:image/png;base64,AAAAp0", true]);
+}
+// Pictures compared after cropping: a stand-in codec whose "PNG" is the pixels as JSON
+function codec(p) {
+  p.C.codec.encode = (px) => "data:image/png;base64," + Buffer.from(JSON.stringify([px.width, px.height, Array.from(px.data)])).toString("base64");
+  p.C.codec.decode = (url, done) => {
+    const [width, height, data] = JSON.parse(Buffer.from(url.slice(22), "base64").toString());
+    done({ width, height, data: new Uint8ClampedArray(data) });
+  };
+}
+// a canvas of w by h with a design drawn at (ox, oy): an arrow-ish shape in a colour, with a half-transparent shadow
+function canvas(w, h, ox, oy, colour) {
+  const data = new Uint8ClampedArray(w * h * 4);
+  const put = (x, y, r, g, b, a) => data.set([r, g, b, a], ((oy + y) * w + ox + x) * 4);
+  for (let y = 0; y < 6; y++) for (let x = 0; x <= y; x++) put(x, y, colour, 20, 30, 255);
+  put(1, 6, 0, 0, 0, 128);
+  return { width: w, height: h, data };
+}
+{
+  const p = page();
+  codec(p);
+  // Bejeweled's 54 by 54 and Alchemy's 37 by 37: the same design, its hot spot on its tip
+  const big = p.C.picture(canvas(54, 54, 9, 11, 200), 9, 11), small = p.C.picture(canvas(37, 37, 2, 3, 200), 2, 3);
+  check("the same design on two canvases keeps one picture and hot spot", [small.url === big.url, small.k === big.k, big.x, big.y], [true, true, 0, 0]);
+  const cut = p.C.crop(canvas(54, 54, 9, 11, 200), 12, 13);
+  check("a crop to the pixels that show, the hot spot taken from its corner", [cut.width, cut.height, cut.x, cut.y], [6, 7, 3, 2]);
+  const out = p.C.crop(canvas(54, 54, 9, 11, 200), 20, 2);
+  check("a hot spot outside them stays in the crop", [out.width, out.height, out.x, out.y], [12, 16, 11, 0]);
+  const other = p.C.picture(canvas(37, 37, 2, 3, 100), 2, 3);
+  check("another colour, another hash", other.k !== big.k, true);
+}
+function entryNames(p) {
+  const el = node("div");
+  p.C.render(el);
+  return el.children[0].children[1].children.filter((l) => l.tagName === "label").map((l) => l.text().trim());
+}
+{
+  const p = page();
+  codec(p);
+  const pic = (w, ox, colour, hx) => p.C.picture(canvas(w, w, ox, ox, colour), ox + (hx || 0), ox);
+  const set = (colours, text) => ({ pointer: pic(54, 9, colours[0]), hand: pic(37, 2, colours[1]), drag: pic(40, 5, colours[2]), text });
+  p.C.save("bejeweled", "Bejeweled Deluxe", set([10, 20, 30], pic(54, 20, 99)));
+  p.C.save("alchemy", "Alchemy Deluxe", set([10, 20, 30], pic(37, 1, 77)));
+  p.C.save("p", "Pointer Differs", set([11, 20, 30], pic(37, 1, 77)));
+  p.C.save("h", "Hand Differs", set([10, 21, 30], pic(37, 1, 77)));
+  p.C.save("d", "Drag Differs", set([10, 20, 31], pic(37, 1, 77)));
+  p.C.save("hot", "Hot Spot Differs", Object.assign(set([10, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 1) }));
+  check("sets that differ only in their text cursor share an entry; one picture or hot spot apart in a pointer, hand or drag keeps a set apart",
+    entryNames(p), ["Default", "Alchemy Deluxe and Bejeweled Deluxe", "Drag Differs", "Hand Differs", "Hot Spot Differs", "Pointer Differs"]);
+  p.C.choose("bejeweled");
+  const bej = p.C.all().bejeweled.text.url, alc = p.C.all().alchemy.text.url;
+  check("a member's own text cursor shows in text fields", [p.css().indexOf(bej) >= 0, p.css().indexOf(alc) >= 0], [true, false]);
+}
+{
+  // Alchemy's set as the site kept it before images were cropped: whole canvases, no hash; Bejeweled's taken since
+  const old = page();
+  codec(old);
+  const raw = (w, ox, colour) => ({ url: old.C.codec.encode(canvas(w, w, ox, ox, colour)), x: ox, y: ox });
+  const kept = { alchemy: { title: "Alchemy Deluxe", pointer: raw(37, 2, 10), hand: raw(37, 2, 20), drag: raw(37, 2, 30), text: raw(37, 4, 40) } };
+  const p = page({ "byopop-cursors": JSON.stringify(kept) });
+  codec(p);
+  const pic = (w, ox, colour) => p.C.picture(canvas(w, w, ox, ox, colour), ox, ox);
+  p.C.save("bejeweled", "Bejeweled Deluxe", { pointer: pic(54, 9, 10), hand: pic(54, 9, 20), drag: pic(54, 9, 30), text: pic(54, 9, 40) });
+  check("before it is cropped, an old set has its own entry", entryNames(p), ["Default", "Alchemy Deluxe", "Bejeweled Deluxe"]);
+  p.C.choose("alchemy");
+  p.C.upgrade();
+  check("cropped, it shares the entry of the same set taken since", entryNames(p), ["Default", "Alchemy Deluxe and Bejeweled Deluxe"]);
+  const a = p.C.all();
+  check("and is kept cropped, with its hot spot from the crop", [a.alchemy.hand.url === a.bejeweled.hand.url, a.alchemy.hand.k === a.bejeweled.hand.k,
+    a.alchemy.hand.x, a.alchemy.hand.y, JSON.parse(p.local["byopop-cursors"]).alchemy.text.k === a.bejeweled.text.k], [true, true, 0, 0, true]);
+  check("the site's cursors are drawn again from the cropped images", p.css().indexOf(a.alchemy.pointer.url) >= 0, true);
+  const before = p.local["byopop-cursors"];
+  p.C.upgrade();
+  check("a second pass changes nothing", p.local["byopop-cursors"] === before, true);
 }
 
 console.log(`cursorstest: ${checks} checks, ${failed} failed`);
