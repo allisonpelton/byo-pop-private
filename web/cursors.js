@@ -224,8 +224,11 @@ var ByopopCursors = (function () {
   document.addEventListener("visibilitychange", function () { animate(hovered); });
 
   // ---------- the choice in the Settings ----------
-  // A group of radio buttons: the browser's own cursor, then each game's set with its pointer and hand. Rendered into el, kept
-  // up to date with the other tabs.
+  // A group of radio buttons: the browser's own cursor, then each set with its pointer and hand. Games whose sets are the same,
+  // every kind with the same image, hot spot and frames, share one choice named with all their titles (the user, 2026-11-04:
+  // "Alchemy and Bejeweled have the same cursor ... doesn't help to list both"); the sets stay one per game, and choosing the
+  // group keeps one member's id, so the groups form again from what is kept: a set that changes leaves its group, and forgetting a
+  // game leaves the rest. Rendered into el, kept up to date with the other tabs.
   var STYLE =
     ".bpc-cur { margin: 12px 0 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 6px; }\n" +
     // the legend as the Settings' group headings (web/settings.js, .bps-group), the choices in one box as its rows
@@ -268,12 +271,32 @@ var ByopopCursors = (function () {
       box.appendChild(label);
     }
     option("", ByopopStrings.t("cursors.browser"), null);
-    Object.keys(sets).sort(function (a, b) { return sets[a].title.localeCompare(sets[b].title); })
-      .forEach(function (id) { option(id, sets[id].title, sets[id]); });
+    groups(sets).forEach(function (g) {
+      // the chosen member stands for its group; else the first by title
+      var id = g.ids.indexOf(pick) >= 0 ? pick : g.ids[0];
+      option(id, names(g.ids.map(function (i) { return sets[i].title; })), sets[id]);
+    });
     box.appendChild(make("p", "bpc-cur-hint", Object.keys(sets).length
       ? ByopopStrings.t("cursors.hint")
       : ByopopStrings.t("cursors.hint_none")));
     el.appendChild(fs);
+  }
+  // The sets in groups of the same images, {ids} each with its games sorted by title, the groups by their first title
+  function groups(sets) {
+    var byLook = {}, out = [];
+    function byTitle(a, b) { return sets[a].title.localeCompare(sets[b].title) || (a < b ? -1 : a > b ? 1 : 0); }
+    Object.keys(sets).sort(byTitle).forEach(function (id) {
+      var look = JSON.stringify(KINDS.map(function (k) { return sets[id][k] || null; }));
+      if (!byLook[look]) out.push(byLook[look] = { ids: [] });
+      byLook[look].ids.push(id);
+    });
+    return out;
+  }
+  // "Alchemy", "Alchemy and Bejeweled", "Alchemy, Atomica and Bejeweled"
+  function names(titles) {
+    if (titles.length < 2) return titles[0] || "";
+    if (titles.length === 2) return ByopopStrings.t("site.list_two", {first: titles[0], second: titles[1]});
+    return ByopopStrings.t("site.list_many", {rest: titles.slice(0, -1).join(", "), last: titles[titles.length - 1]});
   }
   function render(el) {
     if (!el) return;
