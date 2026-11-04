@@ -167,7 +167,7 @@ public:
 	bool					LoadImage(int theImageId);
 	// the clock of the times that a game takes (the original's GetTickCount): the bot's runs count updates instead, 10 ms each,
 	// so that their scores do not depend on how fast the machine is
-	DWORD					GameTick() { return mAutoplay ? (DWORD) mUpdateCount * 10 : GetTickCount(); }
+	DWORD					GameTick() { return (mAutoplay || mFastMode) ? (DWORD) mUpdateCount * 10 : GetTickCount(); }
 	void					SetMusicOrder(int theOrder, bool theFade);
 	void					TitleDone();                            // 0x41e970
 	void					ShowMainMenu(int theEntry, bool theFade);   // 0x41b160

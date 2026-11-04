@@ -1,6 +1,7 @@
 // The dialogs of the adventure mode: the saved adventures to choose from (WinMM.exe 0x401000), the one to delete (0x412750)
 // and the name of a new one (0x421db0).
 
+#include "Button2003.h"
 #include "Dialogs.h"
 #include "MummyApp.h"
 #include "GameText.h"
@@ -31,19 +32,20 @@ AdventureSlotsDialog::AdventureSlotsDialog(MummyApp* theApp) :
 	mApp(theApp),
 	mHasDelete(true)
 {
-	SetButtonFont(mApp->mHeaderFont);
-	SetHeaderFont(mApp->mFont1);
+	Use2003Buttons(this, mApp->mImages[IMAGE_DBUTTON]);
+	SetButtonFont(mApp->mFont1);
+	SetHeaderFont(mApp->mHeaderFont);
 	SetLinesFont(mApp->mFont1);
 	bool aAny = false;
 	for (int i = 0; i < 5; i++)
 	{
-		mSlots[i] = new DialogButton(mApp->mImages[IMAGE_DBUTTON], i, this);
+		mSlots[i] = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], i, this);
 		mSlots[i]->SetFont(mApp->mFont1);
 		mSlots[i]->mLabel = SlotLabel(mApp, i);
 		if (mApp->AdventureExists(i))
 			aAny = true;
 	}
-	mDeleteButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], 5, this);
+	mDeleteButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 5, this);
 	mDeleteButton->SetFont(mApp->mFont1);
 	mDeleteButton->mLabel = GT(0x0048d1a0);
 	mDeleteButton->SetColor(0, Color(0, 0, 0));
@@ -117,12 +119,13 @@ DeleteAdventureDialog::DeleteAdventureDialog(MummyApp* theApp) :
 		GT(0x0048d1f0), BUTTONS_FOOTER),
 	mApp(theApp)
 {
-	SetButtonFont(mApp->mHeaderFont);
-	SetHeaderFont(mApp->mFont1);
+	Use2003Buttons(this, mApp->mImages[IMAGE_DBUTTON]);
+	SetButtonFont(mApp->mFont1);
+	SetHeaderFont(mApp->mHeaderFont);
 	SetLinesFont(mApp->mFont1);
 	for (int i = 0; i < 5; i++)
 	{
-		mSlots[i] = new DialogButton(mApp->mImages[IMAGE_DBUTTON], i, this);
+		mSlots[i] = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], i, this);
 		mSlots[i]->SetFont(mApp->mFont1);
 		mSlots[i]->mLabel = SlotLabel(mApp, i);
 	}
@@ -180,8 +183,9 @@ NewAdventureDialog::NewAdventureDialog(MummyApp* theApp) :
 		GT(0x004949dc), BUTTONS_FOOTER),
 	mApp(theApp)
 {
-	SetButtonFont(mApp->mHeaderFont);
-	SetHeaderFont(mApp->mFont1);
+	Use2003Buttons(this, mApp->mImages[IMAGE_DBUTTON]);
+	SetButtonFont(mApp->mFont1);
+	SetHeaderFont(mApp->mHeaderFont);
 	SetLinesFont(mApp->mFont1);
 	mNameEdit = new EditWidget(0, this);
 	mNameEdit->SetFont(mApp->mFont1);
