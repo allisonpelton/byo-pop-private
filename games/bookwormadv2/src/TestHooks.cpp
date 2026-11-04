@@ -313,6 +313,19 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		sSoakMaxWordLen = atoi(theCommand.mArgs.c_str());
 		return true;
 	}
+	if (theCommand.mCommand == "pams") {
+		// every animation the scripts hold: id, playing, label, frame of frames, rate, callback
+		if (mPopAnimManager != nullptr)
+			for (const auto& aPair : mPopAnimManager->mAnims) {
+				PopAnim* anAnim = aPair.second.mAnim;
+				if (anAnim == nullptr || anAnim->mRoot == nullptr || anAnim->mData == nullptr)
+					continue;
+				SDL_Log("script: pams %d: playing %d label %s frame %d of %d rate %d cb %s", aPair.first, (int)anAnim->mPlaying,
+				        anAnim->mLabel.c_str(), anAnim->mRoot->mFrameNum, (int)anAnim->mData->mMain.mFrames.size(), anAnim->mFrameRate,
+				        aPair.second.mCallback.c_str());
+			}
+		return true;
+	}
 	if (theCommand.mCommand == "pam") {
 		// where a script's animation is: pam <id> (the id is the animation's mAnimId)
 		PopAnim* anAnim = mPopAnimManager != nullptr ? mPopAnimManager->Get(atoi(theCommand.mArgs.c_str())) : nullptr;
@@ -496,7 +509,7 @@ void GameApp::LogState()
 		}
 	}
 	std::vector<std::pair<std::string, std::string>> aValues;
-	aValues.push_back({"rand", StrFormat("%u", GetRandCount())});
+	aValues.push_back({"rand", StrFormat("%u", GetRandCount() - mRandOffset)});
 	aValues.push_back({"loaded", StrFormat("%d", (int)mLoadingThreadCompleted)});
 	aValues.push_back({"dialogs", StrFormat("%d", GetDialogCount())});
 	aValues.push_back({"title", mTitleScreen != nullptr ? "1" : "0"});

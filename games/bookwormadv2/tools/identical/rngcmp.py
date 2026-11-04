@@ -16,7 +16,7 @@ def orig(f):
         v = int(m.group(2)); u = int(m.group(3))
         if last is None:
             last = v; cum = 0; continue
-        if v == 624 and u in made:
+        if v == 624 and last != 624:  # a reseed (an engine's, a mini-game's), which is no draws
             last = v; r.append((u, cum)); continue
         cum += (v - last) % 624 if v != last else 0
         last = v
@@ -51,14 +51,37 @@ print("original: %d changes, last count %d at update %d; port: %d changes, last 
 # edge of an update), so the counts differ for a moment after a change. After each change, once TOL updates have passed
 # with no other change in either program, the two counts must be equal (modulo 624).
 changes = sorted(set(u for u, c in o) | set(u for u, c in p))
+# A battle's victory (engine state 7) draws a random number per frame for its fireworks and effects, which the port's draw rate
+# (-fast) does not match. The counts are therefore compared from each engine's making (both programs reseed there) up to its
+# victory, and not from there to the next engine's making (the original's watch of the engine is watch 2).
+bounds = []; masks = []
+ev = []
+for l in open(sys.argv[1], errors='replace'):
+    m = re.search(r'watch 2: \S+ -> (\S+) at update (\d+)', l)
+    if m: ev.append((int(m.group(2)), m.group(1)))
+for u, v in ev:
+    if v == '4294967295': bounds.append(u)
+    elif v == '7': masks.append(u)
+def seg(u):
+    k = bisect.bisect_right(bounds, u) - 1
+    if k < 0: return None
+    nxt = bounds[k + 1] if k + 1 < len(bounds) else 1 << 30
+    m = [x for x in masks if bounds[k] < x < nxt]
+    return bounds[k], (m[0] if m else nxt)
 bad = 0; seen = 0
 for k, c in enumerate(changes):
     if c > end: break
     u = c + TOL + 1
     if k + 1 < len(changes) and changes[k + 1] <= u: continue
+    sg = seg(u)
+    if sg is not None:
+        if u >= sg[1]: continue
+        d = (sp(u) - sp(sg[0] - TOL - 1)) - (so(u) - so(sg[0] - TOL - 1))
+    else:
+        d = sp(u) - so(u)
     seen += 1
-    if (sp(u) - so(u)) % 624 != 0:
-        if bad < 10: print("update %d (settled since %d): original count %d, port %d (%+d)" % (u, c, so(u), sp(u), sp(u) - so(u)))
+    if d % 624 != 0:
+        if bad < 10: print("update %d (settled since %d): original count %d, port %d (%+d)" % (u, c, so(u), sp(u), d))
         bad += 1
 if bad == 0:
     print("IDENTICAL draws up to update %d: the counts agree (modulo the original's 624 wrap) at %d settled points, and every change of either program is within %d updates of the other's" % (end, seen, TOL))

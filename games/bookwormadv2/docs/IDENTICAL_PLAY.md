@@ -19,6 +19,40 @@ Three cases, all identical to the end of the compared stretch:
 | chapter1 | the same, then on into chapter 1's battles | 46251 |
 | minigame-goldencoins | a profile written by the port and continued by the original, then Golden Coins | 9838 |
 
+Five more cases cover the other mini-games, each from the same port-written profile (`profiles/goldencoins`, loaded by the original in
+its sandbox), each identical in draw counts and timing to the end of the compared stretch:
+
+| Mini-game | Identical to update |
+| --- | --- |
+| Mutant Words | 9545 |
+| Word Up | 13988 |
+| Link n' Spell | 10038 |
+| Letter Rip | 10945 |
+| Word Master | 11145 |
+
+The original makes a mini-game (`Board::InitMiniGame`, 0x411370) after its loading screen, and the loading screen's letters, whose number
+depends on how long the real-time loader ran, are drawn before it. Both programs therefore reseed Sexy::Rand when the mini-game's init
+returns (the original through a patch in `tools/origrun/patches/bookwormadv2.txt`, the port under `-reseedengine`), and the comparison counts
+only the draws after that. The mini-game's own init draws (its tiles) are made in the same update as the reseed, where the original's watch
+cannot see them, so only Golden Coins' (the first case, which had no reseed) vouch for those.
+
+A battle case, `boss-chapter1` (profile `profiles/bosschapter1`: book 4, chapter 1, three enemies before and including Dish and Spoon, the
+boss), is partly done. Its first two battles (the Space Cow and one more) match: every engine state change within one update and the draws
+after each engine's making (the engine states are `watch 2` of origrun). It does **not** show the boss: after the second victory (update
+16437) the original's engine watch reports no further change while its draw counts go on rising as in the port, so the third and later battles
+are compared by draw counts only, and those only up to each victory (the fireworks draw per frame, see below). Why the engine watch stops is not
+found (the pointer behind `[0x7870a4]+0x30` may be another object by then). To see it:
+`PROFILE=<profiles/bosschapter1> CALLOAD=9000 bash tools/identical/case.sh boss-chapter1 cases/boss-chapter1.txt`.
+
+One difference this case found was the port's, in the test setup: the board updates only every eighth update while the kill-zoom runs
+when the display is 3D accelerated (`Board::UpdateF`, from the original), which made the attack state last 629 updates in the port and 314 in
+the original, whose sandbox has no 3D (`Is3D=0`). `tools/identical/port.sh` now runs the port on SDL's software renderer
+(`SDL_RENDER_DRIVER=software`; `NO3D=0` keeps the normal one), after which the states agree. The 3D path cannot be compared with the original
+(the sandbox has none), so it is a gap of the pass.
+
+The draws of a victory's fireworks and effects are one per frame, which the port's draw rate (`-fast`) does not match: `rngcmp.py` compares
+the counts from each engine's making to its victory and not after it, and rebases at the next engine's making.
+
 The profile of the third case was written by the port and loaded by the original (its saved fields, the unlocked mini-games
 and the book), so the save format is read the same way by the original. The other direction (a save written by the original,
 continued by the port) could not be tested: the sandbox does not give its files back.
@@ -60,8 +94,7 @@ it green.
 
 ## Not covered
 
-The soak (the scripted player) does not get further than the early game on its own: later chapters, the bosses and the later
-mini-games were not compared. Only the first battles of chapter 1 and Golden Coins were. Phase two (screens, dialogs, sound,
+The soak (the scripted player) does not get further than the early game on its own: later chapters and the bosses were not compared (the boss case above stops at its first difference). Phase two (screens, dialogs, sound,
 focus) and the original-to-port save direction are open.
 
 ## Open item for phase two: the web build's file case

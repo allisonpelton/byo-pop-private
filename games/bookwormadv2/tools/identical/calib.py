@@ -17,7 +17,8 @@ for l in open(orig, errors='replace'):
         first = u
     if last is not None and (v - last) % 624 == 1: letters.append(u)
     # a load ends with a burst of at least 10 draws (a battle's board, a mini-game's tiles); a reseed is no burst
-    if last is not None and not (v == 624 and u in made) and (v - last) % 624 >= 10:
+    # (a mini-game's reseed, at Board::InitMiniGame, is such an end too)
+    if last is not None and u > 0 and not (v == 624 and u in made) and ((v - last) % 624 >= 10 or (v == 624 and last != 624)):
         jumps.append(u)
     last = v
 loaded = rand32 = None; starts = []

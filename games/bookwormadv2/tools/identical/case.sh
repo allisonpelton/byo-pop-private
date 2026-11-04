@@ -20,7 +20,7 @@ if [ -n "$PROFILE" ]; then
 	export REGFILE="$D/orig16.reg" PROFILE="$D/profile"
 fi
 portrun() { if [ -n "$PROFILE" ]; then rm -rf "$1/user"; mkdir -p "$1"; cp -r "$PROFILE" "$1/user"; KEEP_USER=1 bash "$TOOLS/port.sh" "$@"; else bash "$TOOLS/port.sh" "$@"; fi; }
-portrun "$D/cal" -seed=$SEED -reseedengine=$SEED -startloadupdates=820 -chapterloadupdates=4107 -script="$PORTSCRIPT" -statelog="$D/cal/state.txt" > /dev/null
+portrun "$D/cal" -seed=$SEED -reseedengine=$SEED -startloadupdates=820 -chapterloadupdates=${CALLOAD:-4107} -script="$PORTSCRIPT" -statelog="$D/cal/state.txt" > /dev/null
 # the input of the run: its script's clicks and the ones the hooks made (soak, word), in the port's script form
 ( grep -E '^[0-9]+ (click|move|rclick|key|text|char|focus)( |$)' "$PORTSCRIPT"
   grep 'script: input' "$D/cal/out.txt" | awk '{print $4, $5, $6, $7}' ) | sort -n -s -k1,1 > "$D/inputs.txt"
@@ -29,7 +29,7 @@ portrun "$D/cal" -seed=$SEED -reseedengine=$SEED -startloadupdates=820 -chapterl
 ( cat "$D/inputs.txt"; awk '$2=="quit"' "$PORTSCRIPT" ) | sort -n -s -k1,1 > "$D/replay.txt"
 python "$TOOLS/toorig.py" "$D/inputs.txt" -1 > "$D/orig.txt"
 END=$(awk '$2=="quit"{print $1}' "$PORTSCRIPT" | tail -1)
-bash "$TOOLS/sbox.sh" "$D/orig.txt" $SEED $(( ${END:-30000} / 300 + 60 )) 0x7c0000 '[0x7870a4]+0x30' > "$D/sbox.log" 2>&1
+bash "$TOOLS/sbox.sh" "$D/orig.txt" $SEED $(( ${END:-30000} / 100 + 60 )) 0x7c0000 '[0x7870a4]+0x30' > "$D/sbox.log" 2>&1
 cp build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log"
 OPTS=$(python "$TOOLS/calib.py" "$D/orig.log" "$D/cal/state.txt")
 echo "load lengths of the original: $OPTS"

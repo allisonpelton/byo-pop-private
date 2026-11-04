@@ -1,0 +1,4 @@
+# the profile bosschapter1 (book 4, chapter 1, the battle before its boss, Dish and Spoon): the main menu, Adventure, then the test hooks play it
+3000 click 245 325
+5000 soak 30000
+30100 quit

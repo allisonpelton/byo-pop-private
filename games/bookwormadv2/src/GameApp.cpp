@@ -202,6 +202,7 @@ bool GameApp::UpdateAppStep(bool* updated)
 
 void GameApp::UpdateFrames()
 {
+	mRandAtUpdateStart = GetRandCount();
 	// (SexyApp's: not LuaApp's, whose UpdateState the original called only with a development flag set)
 	SexyApp::UpdateFrames();
 	// (the original's music interface did this in its Update, the end of SexyAppBase::UpdateFrames)
