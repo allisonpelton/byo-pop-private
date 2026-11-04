@@ -948,9 +948,136 @@ void Board::DrawBoard(Graphics* g, bool theWithExplorer)
 			}
 		}
 	}
+	// the second loop: the trap's block, and the near half of the walls over the figures
+	DrawNearWalls(&gm, g);
 	g->Translate(-10, 0);
 	if (mApp->mGameMode > 3)
 		DrawTutorialText(0, PixelX(5) + 0x11, mWidth, (mHeight - PixelX(5)) - 0x11, g);
+}
+
+// the skull trap's block that falls on the explorer (the first part of the second loop of 0x4095f0): 0x36 x 0x5a at 6 x 6, a
+// sheet of frames; shown from the 0x29th update of the death, then one frame per four updates after the 0x81st
+void Board::DrawTrapBlock(Graphics* g, int x, int y)
+{
+	if (mDeathTimer < 0 || mExitStyle != 0)
+		return;
+	bool aOnTrap0 = x == mTrapX[0] && y == mTrapY[0] && mExplorer->mX == mTrapX[0] && mExplorer->mY == mTrapY[0];
+	bool aOnTrap1 = x == mTrapX[1] && y == mTrapY[1] && mExplorer->mX == mTrapX[1] && mExplorer->mY == mTrapY[1];
+	if (!aOnTrap0 && !aOnTrap1)
+		return;
+	int aW = 0x36, aH = 0x5a;
+	if (mSize == 8)
+	{
+		aW = 0x27;
+		aH = 0x41;
+	}
+	else if (mSize == 10)
+	{
+		aW = 0x20;
+		aH = 0x35;
+	}
+	int aPY = PixelY(y);
+	Graphics gc(*g);
+	gc.ClipRect(PixelX(x) + (mCellSize - aW) / 2, aPY, aW, aH);
+	int aX;
+	if (mDeathTimer < 0x82)
+	{
+		if (mDeathTimer <= 0x28)
+			return;
+		aX = PixelX(x) + (mCellSize - aW) / 2;
+	}
+	else
+	{
+		int aStep = mDeathTimer - 0x81;
+		if (aStep > 0x3f)
+			aStep = 0x3f;
+		aX = PixelX(x) + (mCellSize - aW) / 2 - ((aStep + ((aStep >> 31) & 3)) >> 2) * aW;
+	}
+	gc.DrawImage(IMG(IMAGE_BLOCK6 + SizeIndex()), aX, aPY);
+}
+
+// the near half of the walls (the east walls 6 wide, the south walls and the gate cut short), drawn over the figures: the end of
+// DrawFront (0x40b2f0) and the second loop of DrawBoard (0x4095f0). Inside the caller's translation, clipped to the maze.
+void Board::DrawNearWalls(Graphics* theClip, Graphics* theBlockGraphics)
+{
+	int aSize = SizeIndex();
+	int aCell = mCellSize;
+	Graphics& gm = *theClip;
+	for (int y = -2; y < mSize + 2; y++)
+	{
+		for (int x = 0; x < mSize; x++)
+		{
+			if (theBlockGraphics != NULL)
+				DrawTrapBlock(theBlockGraphics, x, y);
+			int aFlags = (y >= 0 && y < MAX_SIZE) ? mCells[x][y] : 0;
+			if (y < 0 || mSize - 1 <= y)
+			{
+				if (y == mSize - 1 && (aFlags & WALL_EAST) && x < mSize - 1)
+				{
+					int aW = 6, aH = 0x4b, aImgOff = 0x54, aYOff = 0;
+					if (mSize == 8)
+					{
+						aImgOff = 0x45;
+						aH = 0x3c;
+					}
+					if (mSize == 10)
+					{
+						aW = 4;
+						aH = 0x2e;
+						aImgOff = 0x34;
+						aYOff = 5;
+					}
+					WALL(&gm, (x + 1) * aCell + 0x33, aCell * y + 0x42 + aYOff, aW, aH, ((x + 1) * aCell - aImgOff) + 0x33,
+						aCell * y + 0x42 + aYOff);
+				}
+			}
+			else
+			{
+				if ((aFlags & WALL_EAST) && x < mSize - 1)
+				{
+					int aW = 6, aH = 0x43, aYOff = 0;
+					if (mSize == 8)
+						aH = 0x34;
+					if (mSize == 10)
+					{
+						aW = 4;
+						aH = 0x29;
+						aYOff = 5;
+					}
+					WALL(&gm, (x + 1) * aCell + 0x33, aCell * y + 0x42 + aYOff, aW, aH, (x + 1) * aCell + 0x33, aCell * y + 0x42 + aYOff);
+				}
+				if ((aFlags & WALL_SOUTH) && y < mSize - 1 && (mGateX != x || mGateY != y))
+				{
+					int aClipW = 0x42, aClipH = 10, aImgOff = 0xc, aYOff = 0;
+					if (mSize == 8)
+						aClipW = 0x33;
+					if (mSize == 10)
+					{
+						aClipW = 0x28;
+						aClipH = 9;
+						aImgOff = 8;
+						aYOff = 5;
+					}
+					WALL(&gm, aCell * x + 0x33, (y + 1) * aCell + 0x42 + aYOff, aClipW, aClipH, (aCell * x - aImgOff) + 0x33,
+						(y + 1) * aCell + 0x42 + aYOff);
+				}
+				if (x == mGateX && y == mGateY)
+				{
+					int aClipW = 0x48, aClipH = 0xc, aYOff = 0;
+					if (mSize == 8)
+						aClipW = 0x39;
+					if (mSize == 10)
+					{
+						aClipW = 0x2c;
+						aClipH = 9;
+						aYOff = 5;
+					}
+					DrawClipped(&gm, IMG(IMAGE_GATE6 + aSize), (aCell * x - mGateAnim * aClipW) + 0x33, (y + 1) * aCell + 0x42 + aYOff,
+						aCell * x + 0x33, (y + 1) * aCell + 0x42 + aYOff, aClipW, aClipH);
+				}
+			}
+		}
+	}
 }
 
 // 0x40b2f0: the walls drawn again over the figures, half as wide on the near side
@@ -1043,79 +1170,7 @@ void Board::DrawFront(Graphics* g)
 			DrawExplorer(g);
 	}
 	// the second pass: the near half of the walls once more, over the figures
-	for (int y = -2; y < mSize + 2; y++)
-	{
-		for (int x = 0; x < mSize; x++)
-		{
-			int aFlags = (y >= 0 && y < MAX_SIZE) ? mCells[x][y] : 0;
-			if (y < 0 || mSize - 1 <= y)
-			{
-				if (y == mSize - 1 && (aFlags & WALL_EAST) && x < mSize - 1)
-				{
-					int aW = 6, aH = 0x4b, aImgOff = 0x54, aYOff = 0;
-					if (mSize == 8)
-					{
-						aImgOff = 0x45;
-						aH = 0x3c;
-					}
-					if (mSize == 10)
-					{
-						aW = 4;
-						aH = 0x2e;
-						aImgOff = 0x34;
-						aYOff = 5;
-					}
-					WALL(&gm, (x + 1) * aCell + 0x33, aCell * y + 0x42 + aYOff, aW, aH, ((x + 1) * aCell - aImgOff) + 0x33,
-						aCell * y + 0x42 + aYOff);
-				}
-			}
-			else
-			{
-				if ((aFlags & WALL_EAST) && x < mSize - 1)
-				{
-					int aW = 6, aH = 0x43, aYOff = 0;
-					if (mSize == 8)
-						aH = 0x34;
-					if (mSize == 10)
-					{
-						aW = 4;
-						aH = 0x29;
-						aYOff = 5;
-					}
-					WALL(&gm, (x + 1) * aCell + 0x33, aCell * y + 0x42 + aYOff, aW, aH, (x + 1) * aCell + 0x33, aCell * y + 0x42 + aYOff);
-				}
-				if ((aFlags & WALL_SOUTH) && y < mSize - 1 && (mGateX != x || mGateY != y))
-				{
-					int aClipW = 0x42, aClipH = 10, aImgOff = 0xc, aYOff = 0;
-					if (mSize == 8)
-						aClipW = 0x33;
-					if (mSize == 10)
-					{
-						aClipW = 0x28;
-						aClipH = 9;
-						aImgOff = 8;
-						aYOff = 5;
-					}
-					WALL(&gm, aCell * x + 0x33, (y + 1) * aCell + 0x42 + aYOff, aClipW, aClipH, (aCell * x - aImgOff) + 0x33,
-						(y + 1) * aCell + 0x42 + aYOff);
-				}
-				if (x == mGateX && y == mGateY)
-				{
-					int aClipW = 0x48, aClipH = 0xc, aYOff = 0;
-					if (mSize == 8)
-						aClipW = 0x39;
-					if (mSize == 10)
-					{
-						aClipW = 0x2c;
-						aClipH = 9;
-						aYOff = 5;
-					}
-					DrawClipped(&gm, IMG(IMAGE_GATE6 + aSize), (aCell * x - mGateAnim * aClipW) + 0x33, (y + 1) * aCell + 0x42 + aYOff,
-						aCell * x + 0x33, (y + 1) * aCell + 0x42 + aYOff, aClipW, aClipH);
-				}
-			}
-		}
-	}
+	DrawNearWalls(&gm);
 	g->Translate(-10, 0);
 	if (mApp->mGameMode > 3)
 		DrawTutorialText(0, PixelX(5) + 0x11, mWidth, (mHeight - PixelX(5)) - 0x11, g);

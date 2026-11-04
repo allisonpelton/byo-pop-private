@@ -55,6 +55,10 @@ def make(scn, name, outdir):
         elif c == 'char':
             port.append((u, 'char %s' % a))
             orig.append((u + OFFSET, 'text %s' % a))
+        elif c == 'text':
+            for ch in a:
+                port.append((u, 'char %s' % ch))
+            orig.append((u + OFFSET, 'text %s' % a))
         elif c == 'focus':
             port.append((u, 'focus %s' % a))
             orig.append((u + OFFSET, 'focus %s' % a))
