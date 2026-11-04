@@ -121,9 +121,11 @@ var ByopopCursors = (function () {
   // A cursor's image is kept cropped to the pixels that show (alpha above 0) and its hot spot, which is taken from the crop's
   // corner, with `k`, a hash of the cropped pixels: two games that draw one design on canvases of different sizes (Bejeweled's
   // hand on 54 by 54, Alchemy's on 37 by 37) then keep the same picture and hot spot. crop() takes pixels ({width, height, data}
-  // as RGBA, as ImageData has them) and a hot spot, and gives the cropped pixels with the hot spot in them.
+  // as RGBA, as ImageData has them) and a hot spot, and gives the cropped pixels with the hot spot in them and the crop's
+  // corner in the image (left, top); without a hot spot it crops to the pixels that show alone.
   function crop(px, hx, hy) {
-    var w = px.width, h = px.height, d = px.data, x0 = hx, y0 = hy, x1 = hx, y1 = hy, x, y;
+    var w = px.width, h = px.height, d = px.data, x, y, spot = hx !== undefined;
+    var x0 = spot ? hx : w, y0 = spot ? hy : h, x1 = spot ? hx : -1, y1 = spot ? hy : -1;
     for (y = 0; y < h; y++) {
       for (x = 0; x < w; x++) {
         if (!d[(y * w + x) * 4 + 3]) continue;
@@ -133,6 +135,7 @@ var ByopopCursors = (function () {
         if (y > y1) y1 = y;
       }
     }
+    if (x1 < 0) { x0 = y0 = x1 = y1 = 0; }
     x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(w - 1, x1); y1 = Math.min(h - 1, y1);
     var cw = Math.max(1, x1 - x0 + 1), ch = Math.max(1, y1 - y0 + 1), out = new Uint8ClampedArray(cw * ch * 4), i;
     for (y = 0; y < ch && y0 + y < h; y++) {
@@ -142,7 +145,8 @@ var ByopopCursors = (function () {
         if (d[i + 3]) out.set([d[i], d[i + 1], d[i + 2], d[i + 3]], (y * cw + x) * 4);
       }
     }
-    return { width: cw, height: ch, data: out, x: Math.min(cw - 1, Math.max(0, hx - x0)), y: Math.min(ch - 1, Math.max(0, hy - y0)) };
+    return { width: cw, height: ch, data: out, left: x0, top: y0,
+      x: spot ? Math.min(cw - 1, Math.max(0, hx - x0)) : 0, y: spot ? Math.min(ch - 1, Math.max(0, hy - y0)) : 0 };
   }
   // FNV-1a over the size and pixels, as 8 hex digits
   function hash(px) {
@@ -364,6 +368,7 @@ var ByopopCursors = (function () {
   }
   function fill(el) {
     var sets = all(), pick = chosen(), name = "bpc-cur-" + (++idCount);
+    lookAt(sets);
     el.textContent = "";
     var fs = make("fieldset", "bpc-cur"), box = make("div", "bpc-cur-box");
     fs.appendChild(make("legend", null, ByopopStrings.t("cursors.legend")));
@@ -400,20 +405,72 @@ var ByopopCursors = (function () {
       : ByopopStrings.t("cursors.hint_none")));
     el.appendChild(fs);
   }
-  // The sets in groups of the same pictures, {ids} each with its games sorted by title, the groups by their first title. Two
-  // sets are the same when every kind in COMPARED has the same cropped pixels (`k`; the image itself for one not yet cropped),
-  // hot spot and frames.
-  function groups(sets) {
-    var byLook = {}, out = [];
-    function byTitle(a, b) { return sets[a].title.localeCompare(sets[b].title) || (a < b ? -1 : a > b ? 1 : 0); }
-    function frame(f) { return [f.k || f.url, f.x, f.y]; }
-    Object.keys(sets).sort(byTitle).forEach(function (id) {
-      var look = JSON.stringify(COMPARED.map(function (k) {
+  // ---------- sets that look the same ----------
+  // Two sets look the same, and share an entry, when every kind in COMPARED looks the same in both: pictures whose pixels that
+  // show are the same size and, drawn over white and over black, differ nowhere by more than LOOK_ALIKE of 255 in any colour,
+  // with hot spots no more than a pixel apart (the user, 2026-11-04: differences nobody can see do not split an entry). BookWorm's
+  // pointer is Alchemy's with colours a step or three off; Bejeweled's dragging hand is an open one without the shadow (its
+  // mask is another size, so the game leaves it out) and keeps Bejeweled apart. The pictures are decoded once a URL; until then,
+  // or when one cannot be decoded, a picture looks the same only as the same pixels (`k`) or image with the same hot spot.
+  var LOOK_ALIKE = 16;
+  var seen = {}, seeing = {};  // URL: the pixels that show {width, height, data, left, top}, or null; URL: being decoded
+  function lookAt(sets) {
+    var urls = [], now = true, left;
+    Object.keys(sets).forEach(function (id) {
+      COMPARED.forEach(function (k) {
         var c = sets[id][k];
-        return c ? [frame(c), c.ms || 0, (c.frames || []).map(frame)] : null;
-      }));
-      if (!byLook[look]) out.push(byLook[look] = { ids: [] });
-      byLook[look].ids.push(id);
+        if (c) [c].concat(c.frames || []).forEach(function (f) {
+          if (!seen.hasOwnProperty(f.url) && !seeing[f.url] && urls.indexOf(f.url) < 0) urls.push(f.url);
+        });
+      });
+    });
+    left = urls.length;
+    urls.forEach(function (u) {
+      seeing[u] = true;
+      codec.decode(u, function (px) {
+        try { seen[u] = px ? crop(px) : null; } catch (e) { seen[u] = null; }
+        delete seeing[u];
+        // drawn again once all are in, unless they came at once (the stand-in codec), before the entries are made
+        if (!--left && !now) redraw();
+      });
+    });
+    now = false;
+  }
+  function frameAlike(a, b) {
+    if (a.k && a.k === b.k && a.x === b.x && a.y === b.y) return true;
+    var pa = seen[a.url], pb = seen[b.url], da, db, i, c, bg, va, vb;
+    if (!pa || !pb) return (a.k || a.url) === (b.k || b.url) && a.x === b.x && a.y === b.y;
+    if (pa.width !== pb.width || pa.height !== pb.height) return false;
+    if (Math.abs((a.x - pa.left) - (b.x - pb.left)) > 1 || Math.abs((a.y - pa.top) - (b.y - pb.top)) > 1) return false;
+    da = pa.data; db = pb.data;
+    for (i = 0; i < da.length; i += 4) {
+      if (da[i] === db[i] && da[i + 1] === db[i + 1] && da[i + 2] === db[i + 2] && da[i + 3] === db[i + 3]) continue;
+      for (bg = 0; bg <= 255; bg += 255) {
+        for (c = 0; c < 3; c++) {
+          va = (da[i + c] * da[i + 3] + bg * (255 - da[i + 3])) / 255;
+          vb = (db[i + c] * db[i + 3] + bg * (255 - db[i + 3])) / 255;
+          if (Math.abs(va - vb) > LOOK_ALIKE) return false;
+        }
+      }
+    }
+    return true;
+  }
+  function kindAlike(a, b) {
+    if (!a || !b) return !a && !b;
+    var fa = [a].concat(a.frames || []), fb = [b].concat(b.frames || []);
+    return (a.ms || 0) === (b.ms || 0) && fa.length === fb.length && fa.every(function (f, i) { return frameAlike(f, fb[i]); });
+  }
+  function setsAlike(s, t) { return COMPARED.every(function (k) { return kindAlike(s[k], t[k]); }); }
+  // The sets in groups that look the same, {ids} each with its games sorted by title, the groups by their first title; a set
+  // joins the first group whose first set it looks like
+  function groups(sets) {
+    var out = [];
+    function byTitle(a, b) { return sets[a].title.localeCompare(sets[b].title) || (a < b ? -1 : a > b ? 1 : 0); }
+    Object.keys(sets).sort(byTitle).forEach(function (id) {
+      for (var i = 0; i < out.length; i++) {
+        if (setsAlike(sets[out[i].ids[0]], sets[id])) { out[i].ids.push(id); return; }
+      }
+      out.push({ ids: [id] });
     });
     return out;
   }
