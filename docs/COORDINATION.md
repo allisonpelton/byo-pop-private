@@ -78,6 +78,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Money first (started 2026-11-03; Big Money in a new session), then Cosmic Bugs (on Water Bugs' engine, whose pass is
   done), TipTop and Ning Po, Pixelus, BookWorm, Word Harmony, Rocket Mania, Dynomite and Bookworm Adventures Volume 2.
   A session that finishes its phase frees its slot for the next game.
+- **The second phases (2026-11-03):** with Bookworm Adventures Volume 2's merge (07c6bdb) every ported game plays
+  identical, so the second phase runs for the fourteen games whose pass had only the first, in the same order and in
+  the same sessions, up to five at once: Noah's Ark, Mummy Maze, Alchemy, Atomica and Big Money first (started
+  2026-11-03, at 90% of the week), then Cosmic Bugs, TipTop, Ning Po, Pixelus, BookWorm, Word Harmony, Rocket Mania,
+  Dynomite and Bookworm Adventures Volume 2. Bejeweled, Twist, Bonnie's, Bookworm Adventures, Water Bugs, Seven Seas and
+  the two Mahjong Escapes did both phases in their passes. Ning Po's needs origrun's stand-in to stop stalling under
+  `--sound stub` with `--clock virtual` (after the title music); its own session, which found the stall, fixes it in a
+  `shared:` commit. The ports still to make (above) wait until these are done.
 - **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
   and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
