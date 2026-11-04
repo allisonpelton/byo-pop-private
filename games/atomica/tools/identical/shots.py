@@ -89,7 +89,7 @@ def main():
             shutil.copy(a.savefile, os.path.join(ROOT, 'build/origrun', run, 'game', 'SAVEGAME.DAT'))
         p = subprocess.run([os.path.join(ROOT, 'build/origrun-bin/origrun.exe'), '--game', 'atomica', '--run', run,
                             '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--seed', str(a.seed),
-                            '--sandbox', '--reg', os.path.join(HERE, 'registered.reg'), '--timeout', '200'], cwd=ROOT, capture_output=True, text=True)
+                            '--sandbox', '--timeout', '200'], cwd=ROOT, capture_output=True, text=True)
         for l in p.stdout.splitlines():
             if 'RESULT' in l or 'SOUND LEAK' in l:
                 print(l[:200])

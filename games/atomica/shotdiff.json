@@ -47,6 +47,126 @@
       ],
       "pairs": "g7400.png",
       "label": "the halo of a molecule that has just formed: the original's Draw shakes it by random numbers (0x413880, the game's generator, three draws a member each frame), so its offsets depend on how many frames were drawn before; the port draws the same with its own count, which no input can line up (the draws are a function of the frame rate, not of the game state)"
+    },
+    {
+      "rect": [
+        265,
+        62,
+        241,
+        55
+      ],
+      "pairs": "a3310.png",
+      "label": "the options box of the original also holds 'Register' and 'More games at PopCap.com' buttons (the shareware sales links); the port is a game with no online features and no registration, so it leaves them out (docs/GAME_NOTES.md section 3)"
+    },
+    {
+      "rect": [
+        265,
+        293,
+        241,
+        55
+      ],
+      "pairs": "a3330.png",
+      "label": "the options box of the original also holds 'Register' and 'More games at PopCap.com' buttons (the shareware sales links); the port is a game with no online features and no registration, so it leaves them out (docs/GAME_NOTES.md section 3)"
+    },
+    {
+      "rect": [
+        265,
+        0,
+        241,
+        48
+      ],
+      "pairs": "a4510.png",
+      "label": "the options box of the original also holds 'Register' and 'More games at PopCap.com' buttons (the shareware sales links); the port is a game with no online features and no registration, so it leaves them out (docs/GAME_NOTES.md section 3)"
+    },
+    {
+      "rect": [
+        224,
+        100,
+        31,
+        29
+      ],
+      "pairs": "g2900.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        324,
+        200,
+        31,
+        29
+      ],
+      "pairs": "g2900.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        524,
+        250,
+        31,
+        29
+      ],
+      "pairs": "g2900.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        233,
+        58,
+        13,
+        13
+      ],
+      "pairs": "g3150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        283,
+        108,
+        13,
+        13
+      ],
+      "pairs": "g3150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        333,
+        158,
+        13,
+        13
+      ],
+      "pairs": "g3150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        232,
+        257,
+        16,
+        16
+      ],
+      "pairs": "g7150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        222,
+        298,
+        36,
+        34
+      ],
+      "pairs": "g2650.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        220,
+        296,
+        40,
+        38
+      ],
+      "pairs": "g6150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
     }
   ]
 }

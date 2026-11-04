@@ -591,7 +591,7 @@ HighScoresBox::HighScoresBox(AtomicaApp* theApp) :
 	mReturn = new ButtonWidget(0, this);
 	mReturn->mBtnNoDraw = true;
 	mReturn->mDoFinger = true;
-	mReturn->Resize(0xd9, 0x178, 0xce, 0x25);
+	mReturn->Resize(0xd9, 0x17c, 0xce, 0x25);
 }
 
 HighScoresBox::~HighScoresBox()
@@ -709,11 +709,14 @@ void HighScoresBox::Draw(Graphics* g)
 	g->SetFont(mApp->mAnnounceFont);
 	g->SetColor(Color(0, 255, 0, 200));
 	std::string aAtomic = "ATOMIC";
-	g->DrawString(aAtomic, 0x140 - mApp->mAnnounceFont->StringWidth(aAtomic) / 2, 0x50 - aPY);
+	g->DrawString(aAtomic, 0x140 - mApp->mAnnounceFont->StringWidth(aAtomic) / 2, 0x64 - aPY);
 	const std::string& aTitle = GT(0x4afe88);
-	g->DrawString(aTitle, 0x140 - mApp->mAnnounceFont->StringWidth(aTitle) / 2, 0x82 - aPY);
+	g->DrawString(aTitle, 0x140 - mApp->mAnnounceFont->StringWidth(aTitle) / 2, 0x87 - aPY);
 	// the tables
 	Font* aMedium = mApp->mMonitorFontMedium;
+	Color aColors[256];
+	BuildScoreColors(aColors, mAlpha);
+	Color aScoreColor(0, 255, 0, 200);
 	for (int aKind = 0; aKind < 2; aKind++)
 	{
 		ScoreTable& aTable = mApp->mScoreTables[aKind];
@@ -725,15 +728,25 @@ void HighScoresBox::Draw(Graphics* g)
 		const std::string& aHeading = GT(aKind == 0 ? 0x4b038c : 0x4b039c);
 		g->DrawString(aHeading, aCenter - mApp->mMonitorFont->StringWidth(aHeading) / 2, 0xb4 - aPY);
 		const std::string& aToday = GT(0x4b037c);
-		g->DrawString(aToday, aCenter - mApp->mMonitorFont->StringWidth(aToday) / 2, 0x140 - aPY);
+		g->DrawString(aToday, aCenter - mApp->mMonitorFont->StringWidth(aToday) / 2, 0x13b - aPY);
 		g->SetFont(aMedium);
-		g->SetColor(Color(0, 255, 0, mAlpha));
+		// the rows run through the cycle of colours, each one on from the one above (both tables from the same one)
+		int aColor = (int) mSpin;
 		for (int i = 0; i < ScoreTable::NUM_SCORES; i++)
 		{
+			g->SetColor(aColors[aColor]);
 			g->DrawString(aTable.mNames[i], aNameX, 0xd2 + 0x12 * i - aPY);
+			// the scores are drawn in the colour the page itself holds: the title's for the first table, then the one the
+			// row of the best of the day set
+			g->SetColor(aScoreColor);
 			std::string aScore = Format(GT(0x4aff20), aTable.mScores[i]);
 			g->DrawString(aScore, aScoreX - aMedium->StringWidth(aScore), 0xd2 + 0x12 * i - aPY);
+			aColor++;
+			if (aColor > 0xff)
+				aColor -= 0xff;
 		}
+		g->SetColor(aColors[aColor]);
+		aScoreColor = aColors[aColor];
 		if ((aTable.mDate == ScoreTable::DateCode()) && (aTable.mBestToday != -1))
 		{
 			g->DrawString(aTable.mBestName, aNameX, 0x159 - aPY);

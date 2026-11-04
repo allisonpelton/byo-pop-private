@@ -59,12 +59,10 @@ void AtomicaApp::ShowOptions()
 	}
 }
 
-// the hints that were shown (the original keeps them in app+0x406c) are shown again
+// 0x424430 (button 9): the hints that were shown (the original keeps them in app+0x406c) are shown again; the ones this
+// game has shown already stay shown
 void AtomicaApp::ResetHints()
 {
-	if ((mBoard != NULL) && (mBoard->mGrid != NULL))
-		for (int i = 0; i < 0xff; i++)
-			mBoard->mGrid->mHintShown[i] = false;
 	for (int i = 0; i < 0xff; i++)
 		mHintsShown[i] = false;
 }
