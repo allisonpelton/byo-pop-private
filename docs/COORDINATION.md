@@ -146,9 +146,9 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   goes), and the web build's memory and frame time in a browser. Then each game's session speeds up what the profile
   shows, natively and on the web. A speed-up changes how the port works, never what it does: the same draws, the same
   random numbers, the same screens, proved by the game's frozen baseline. One that changes what the player sees is a
-  mod: a fix mod, on by default on the site, when it keeps the original's look and only stops wasting time (TipTop's
-  loading bar), and otherwise a mod that starts off, like Bejeweled's `lean` with its fewer frames
-  (`docs/MOD_ROADMAP.md`, "Fix mods"). No game's code is made multithreaded
+  mod: a toggle in the game's fixes mod, on by default on the site, when it keeps the original's look and only stops
+  wasting time (TipTop's loading bar), and otherwise a mod of its own that starts off, like Bejeweled's `lean`
+  with its fewer frames (`docs/MOD_ROADMAP.md`, "The fixes mod"). No game's code is made multithreaded
   (CLAUDE.md, "Uncapped, one core each"). Shared costs (the framework's drawing, the mixer, image loading) are found
   once and fixed in the framework for every game. Each game's notes record its numbers before and after.
 - **The site's requested work comes between Twist and the passes (the user, 2026-11-02):** "Slot in the remaining
@@ -188,9 +188,10 @@ were fixed (34e6da1, a6547b9). The chat
   become the first entries of a feedback page the website will have for each game, where players suggest mods and vote
   on them, and the user decides which to make. Fixes and suggestions for the mods that already exist are noted (the user's
   `testnotes/TEST_NOTES.md`) and wait until every decompilation is finished.
-- **Fix mods (the user, 2026-11-04):** the site will serve each game with a set of fix mods on by default, which the
-  player can turn off for the original as it was (`docs/MOD_ROADMAP.md`, "Fix mods"). They are made with the other
-  mods; until then a session that finds one lists it in its game's notes under "Fix mod candidates".
+- **The fixes mod (the user, 2026-11-04):** the site will serve each game with one mod of fixes on by default, each
+  fix a toggle in it, and the player can turn single fixes or the whole mod off for the original as it was
+  (`docs/MOD_ROADMAP.md`, "The fixes mod"). It is made with the other mods; until then a session that finds a fix
+  lists it in its game's notes under "Fix candidates".
 
 ## History
 
