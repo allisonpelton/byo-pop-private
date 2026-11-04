@@ -52,6 +52,7 @@ public:
 	int mMouseX = 400, mMouseY = 300;
 	int mSounds = 0;
 	std::string mSavePath;
+	bool m555 = std::getenv("CB_555") != nullptr;
 
 	bool ReadFile(const char* thePath, std::vector<uint8_t>& theData) override
 	{
@@ -134,6 +135,13 @@ void WritePng(const std::string& thePath)
 		int aRed = (p >> 11) & 0x1f, aGreen = (p >> 5) & 0x3f, aBlue = p & 0x1f;
 		aRgb[i * 3] = (uint8_t)((aRed << 3) | (aRed >> 2));
 		aRgb[i * 3 + 1] = (uint8_t)((aGreen << 2) | (aGreen >> 4));
+		if (gHost.m555)
+		{
+			aRed = (p >> 10) & 0x1f;
+			aGreen = (p >> 5) & 0x1f;
+			aRgb[i * 3] = (uint8_t)((aRed << 3) | (aRed >> 2));
+			aRgb[i * 3 + 1] = (uint8_t)((aGreen << 3) | (aGreen >> 2));
+		}
 		aRgb[i * 3 + 2] = (uint8_t)((aBlue << 3) | (aBlue >> 2));
 	}
 	stbi_write_png(thePath.c_str(), 800, 600, 3, aRgb.data(), 800 * 3);
@@ -228,7 +236,11 @@ int main(int argc, char** argv)
 		return 2;
 	}
 	static PixelFormat aFormat;
-	PixelFormat_Init(&aFormat, 16, 0xf800, 0x7e0, 0x1f);
+	// CB_555=1 draws on a 5-5-5 screen, the mode the original gets in Windows Sandbox, for comparing shots with its own
+	if (std::getenv("CB_555") != nullptr)
+		PixelFormat_Init(&aFormat, 16, 0x7c00, 0x3e0, 0x1f);
+	else
+		PixelFormat_Init(&aFormat, 16, 0xf800, 0x7e0, 0x1f);
 	Sys_SetScreenFormat(&aFormat);
 	Sys_SetHost(&gHost);
 	if (!cb::LoadGameTexts())
@@ -246,6 +258,23 @@ int main(int argc, char** argv)
 	LoadConfig();
 	Sound_Start();
 	cb::GameStart();
+	// In Windows Sandbox the original is handed the 5-5-5 screen after it has loaded, so its screen-lost callback
+	// (0x41e6f0) runs once: 0x40d1f0 makes every level's background again from the bank and redraws the screen, which
+	// leaves the menus' images and logos blended onto the backgrounds once instead of twice. CB_555 does the same.
+	// (Its repacking of palettes and animations changes nothing when the format is already 5-5-5.)
+	if (std::getenv("CB_555") != nullptr)
+	{
+		for (cb::Level* aLevel = cb::gLevels.head; aLevel != nullptr; aLevel = cb::Node_Next(aLevel))
+		{
+			if (aLevel->background == nullptr)
+				continue;
+			Image_Destroy(aLevel->background);
+			::operator delete(aLevel->background);
+			aLevel->background = new Image;
+			Image_Copy(aLevel->background, Bank_FindImage2(&cb::gArtBank, aLevel->backImage));
+		}
+		cb::Screen_Redraw();
+	}
 	size_t aNext = 0;
 	bool aRunning = true;
 	int aFrames = 0;

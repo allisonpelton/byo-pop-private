@@ -1,0 +1,91 @@
+# The menus: the title as it settles, each item hovered, Help, Options, the Hall of Fame, Instructions, Credits,
+# Change User with a new player, then a board started, Enter pressed, paused with Esc, left with Esc and resumed. Never Quit, the video
+# option or a link.
+200 shot t0200
+500 shot t0500
+1000 shot t1000
+2000 shot t2000
+2600 move 175 269
+2800 shot hover_help
+3000 move 175 313
+3200 shot hover_start
+3400 move 175 357
+3600 shot hover_options
+3800 move 175 401
+4000 shot hover_hs
+4200 move 175 444
+4400 shot hover_instr
+4600 move 175 489
+4800 shot hover_credits
+5000 move 175 532
+5200 shot hover_quit
+5400 move 175 590
+5600 shot hover_user
+6000 click 175 269
+6500 shot help
+7500 shot help2
+8000 click 400 563
+9000 shot help_back
+9500 click 175 357
+10500 shot options
+11000 move 400 410
+11200 shot options_hover
+11500 click 400 410
+12000 shot options_auto
+12500 click 400 410
+13000 shot options_manual
+13500 click 400 330
+14000 shot options_music_off
+14500 click 400 330
+15000 click 400 520
+16000 shot options_back
+16500 click 175 401
+17500 shot hof
+19000 shot hof2
+19500 click 400 543
+20500 click 175 444
+21500 shot instr
+22000 click 400 563
+23000 click 175 489
+24000 shot credits
+27000 shot credits2
+27500 click 400 518
+28500 click 175 590
+29500 shot users
+30000 click 400 190
+31000 shot newname
+31500 key 65
+31800 key 66
+32100 key 67
+32500 shot newname_abc
+33000 key 13
+34000 shot users_abc
+34500 click 470 442
+35500 shot title_abc
+36000 click 175 313
+37500 shot instructions_play
+38000 click 400 563
+38500 shot board_0500
+39500 shot board_1500
+41000 shot board_3000
+43000 move 300 250
+44000 shot board_ship
+44500 click 300 250
+45000 shot board_beam
+46500 shot board_fill
+47000 rclick
+47500 shot board_turned
+48000 key 13
+48500 shot enter
+50000 shot enter2
+52000 key 27
+53000 shot paused
+55000 shot paused2
+56000 key 27
+57000 shot esc_title
+58000 click 175 313
+59000 shot start_again
+59500 click 400 563
+61000 shot board_again
+62500 shot board_again2
+63000 end
