@@ -724,6 +724,15 @@ the first download. The first download also holds another build of `igglepop-bin
 - **Effort:** DIRECT, about 15x: the framework is public and the game classes have RTTI, so the extra work is the
   size alone, over a megabyte of game code on a par with Bookworm Adventures Vol. 2's and Zuma's Revenge's, with
   BASS and JPEG 2000 already built. The 2010 DRM launcher and its licensing client are left out of the port.
+- **Animated cursors on the site (the user, 2026-11-04).** The game's cursors are animated (its own `Cursor` class and
+  `images/cursor_anim`). Over the canvas the port shows them with no site work, since the framework draws the cursor
+  into each frame. Two places need it once the web build runs. The game page copies the cursor to the rest of the page
+  only every 100 ms (`framework/WebCursor.cpp`, `web/shell.html`'s `pollCursor`), so it should poll fast enough to
+  show the animation. And the site cursor (`web/cursors.js`, WEB_PLAYER.md's "The site's cursor") keeps one image per
+  kind, while browsers animate no cursor image, so a set would keep its frames and the site would swap them on a
+  timer: check that the cursor still changes while the mouse is still, keep to the 128 px limit, and keep the cost
+  small on every page. Both are shared code, so the Banana Bugs session sends the coordinator a spec when its web
+  build runs.
 - **Two more installers (2026-11-04).** The user found two more, which stay in the Downloads folder; both were
   unpacked without running them. `bananabugssetup.exe` is PopCap's own installer, signed by PopCap Games in June 2010,
   and all 485 of its files are identical to our copy's. `InstallBananaBugs.exe` is Shockwave.com's installer, built in
