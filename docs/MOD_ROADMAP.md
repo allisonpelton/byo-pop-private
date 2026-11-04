@@ -48,6 +48,27 @@ Moved here from CLAUDE.md on 2026-11-01, word for word; CLAUDE.md keeps the rule
 | Arrow gems | Some gems are arrows pointing up, down, left or right. After every settled move each one steps a cell that way, trading places with the gem there; an arrow that would step off the board ends the game, so it has to be matched first. A four-way take on Bejeweled 3's Butterflies (none of that mode's art or texts), asked for by the user on 2026-10-25. Bejeweled's stage 18, after stage 17 (CODE_MODS_DESIGN.md 4.20). |
 | Sweet Tooth look (maybe) | Bejeweled restyled to look like Sweet Tooth To Go, PopCap's candy match-three made for Pogo, which the user decided on 2026-10-25 not to port, though they may want this look instead. Images only. Like the Steven Universe gems, its art comes from a local generator and stays git-ignored, since it would recreate another game's look. No engine change. Not yet planned. |
 
+## Fix mods
+
+The user, 2026-11-04: "I think we'll want the default way to serve games on the site be to include a bunch of mods
+making changes that fix bugs in the original or make it more performant (without doing things like Bejeweled's Lean
+mod) by default. The user can turn them off for a more 'true' experience. That way these don't have to be
+'deviations' and can instead be features."
+
+A **fix** mod is a fourth kind. It fixes a bug of the original, or stops the original wasting the player's time or
+the machine's, and otherwise leaves the game as it was: its look, rules, sounds and pace of play. TipTop's loading bar
+is the first candidate: it loads one of its 229 items a frame, so it fills at a steady crawl however fast they load
+(2.3 seconds in the port, about 3.8 in the original on a 60 Hz screen, where a frame waits for the vertical blank). A
+mod that trades the original's look or feel for speed or memory, like Bejeweled's `lean` with its lower frame rate,
+is not a fix mod and starts off as before.
+
+The site starts each game with its fix mods on, and the player can turn them off to play the original as it was. The
+port itself stays the unmodified original, so a native build without the mods, the oracle and the frozen baselines
+all play the original, and the rules of CLAUDE.md ("Port first, unmodified", "Done means identical") still hold for
+the port. Like the other mods, fix mods are made once every decompilation is finished. Until then a session that
+finds a candidate keeps the original's behaviour in the port and lists the candidate in its game's notes under "Fix
+mod candidates": what the original does, how to see it, and what the fix would change.
+
 ## Standard mods for every game
 
 The user approved this list on 2026-10-26 as the mod plan of every game. A port is first the original game, unmodified
