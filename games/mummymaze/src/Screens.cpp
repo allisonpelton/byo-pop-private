@@ -3,6 +3,7 @@
 #include "Screens.h"
 #include "MummyApp.h"
 #include "Board.h"
+#include "GameLevels.h"
 #include "GameText.h"
 #include "Compat2004.h"
 #include "Graphics.h"
@@ -560,12 +561,13 @@ SidePanel::SidePanel(MummyApp* theApp) :
 		mMumY = 0xd;
 	else
 		mMumY = -0x46;
-	// the buttons: pictures cut from the strip IMAGE_BUTTONSTRIP, normal and lit
+	// the buttons: pictures cut from the strip IMAGE_BUTTONSTRIP. The backdrop holds the buttons' normal look: they have only
+	// the lit picture (while the pointer is over), the pressed one and, for the world map, the disabled one (0x42a2f0 ff.)
 	static const int kButtons[5][4] = {
-		{10, 0, 0x2a, -1},         // undo (normal row, lit row)
+		{10, 0, 0x2a, -1},         // undo (lit row, pressed row)
 		{11, 0x54, 0x7e, -1},      // retry
 		{12, 0xa8, 0xd2, -1},      // options
-		{13, 0xfc, 0x126, 0x150},  // world map (adventure only)
+		{13, 0xfc, 0x126, 0x150},  // world map (adventure only): lit, pressed, disabled
 		{14, 0x17a, 0x1a4, -1}     // quit
 	};
 	for (int i = 0; i < 5; i++)
@@ -573,10 +575,10 @@ SidePanel::SidePanel(MummyApp* theApp) :
 		ButtonWidget* aButton = new ButtonWidget(kButtons[i][0], this);
 		aButton->mDoFinger = true;
 		Image* aStrip = mApp->mImages[IMAGE_BUTTONSTRIP];
-		aButton->mButtonImage = mApp->CopyImage(aStrip, Rect(0, kButtons[i][1], 0x87, 0x2a));
-		aButton->mOverImage = mApp->CopyImage(aStrip, Rect(0, kButtons[i][2], 0x87, 0x2a));
+		aButton->mOverImage = mApp->CopyImage(aStrip, Rect(0, kButtons[i][1], 0x87, 0x2a));
+		aButton->mDownImage = mApp->CopyImage(aStrip, Rect(0, kButtons[i][2], 0x87, 0x2a));
 		if (kButtons[i][3] >= 0)
-			aButton->mDownImage = mApp->CopyImage(aStrip, Rect(0, kButtons[i][3], 0x87, 0x2a));
+			aButton->mDisabledImage = mApp->CopyImage(aStrip, Rect(0, kButtons[i][3], 0x87, 0x2a));
 		aButton->mMouseInsets = Insets(-1, -1, -1, -1);
 		mButtons[i] = aButton;
 	}
@@ -589,9 +591,9 @@ SidePanel::~SidePanel()
 {
 	for (int i = 0; i < 5; i++)
 	{
-		delete mButtons[i]->mButtonImage;
 		delete mButtons[i]->mOverImage;
 		delete mButtons[i]->mDownImage;
+		delete mButtons[i]->mDisabledImage;
 		delete mButtons[i];
 	}
 }
@@ -702,6 +704,43 @@ void SidePanel::Draw(Graphics* g)
 	{
 		aSub = mApp->mAdvPyramid;
 		aLevel = mApp->mAdvChamber;
+	}
+	// the pyramid map: the chamber's mark, and the marks of the chambers before it
+	int aChamber = mApp->mClassicChamber;
+	int aPyramid = mApp->mClassicPyramid;
+	if (aMode == MODE_ADVENTURE || aMode == MODE_ADVENTURE_DONE)
+	{
+		aChamber = mApp->mAdvChamber;
+		aPyramid = mApp->mAdvPyramid;
+		if (aChamber > 0xe)
+			aChamber = 0xe;
+	}
+	if (aPyramid == 9)
+		aPyramid = 10;
+	else if (aPyramid == 10)
+		aPyramid = 0xb;
+	else if (aPyramid == 0xb)
+		aPyramid = 9;
+	g->DrawImage(mApp->mImages[IMAGE_MAP], 8, 0x13d);
+	{
+		Graphics aClip(*g);
+		aClip.ClipRect(0x3b, 0x145, 0x1e, 0x1e);
+		aClip.DrawImage(mApp->mImages[IMAGE_SMALLTREASURES], aPyramid * -0x1e + 0x3b, 0x145);
+	}
+	g->DrawImage(mApp->mImages[IMAGE_MAPHEAD], kPyramidX[aChamber] + 3, kPyramidY[aChamber] + 0x138);
+	for (int i = 0; i < aChamber; i++)
+		g->DrawImage(mApp->mImages[IMAGE_MAPX], kPyramidX[i] + 6, kPyramidY[i] + 0x13a);
+	if (aMode == MODE_CLASSIC || aMode == MODE_CLASSIC_DONE)
+	{
+		// the pyramid's number on the card below the map
+		g->DrawImage(mApp->mImages[IMAGE_PYRAMIDTEXT], 0xf, 0x147);
+		char aNumber[256];
+		sprintf(aNumber, GTC(0x0048d338), mApp->mClassicPyramid + 1);
+		SexyString aNumberStr = aNumber;
+		int aNumberWidth = mApp->mPyramidFont->StringWidth(aNumberStr);
+		g->SetFont(mApp->mPyramidFont);
+		g->SetColor(Color(0xff, 0xff, 0xff, 0xff));
+		g->DrawString(aNumberStr, (0x2a - aNumberWidth) / 2 + 0xf, 0x15d);
 	}
 	// the Ankh
 	if (aBoard != NULL && (aMode == 8 || (aMode < 2 && mApp->mShowAnkh)) && aBoard->mSize == 6)

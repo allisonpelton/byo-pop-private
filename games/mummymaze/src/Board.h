@@ -274,6 +274,8 @@ public:
 	// drawing (BoardDraw.cpp)
 	void				DrawBoard(Graphics* g, bool theWithExplorer);   // 0x4095f0
 	void				DrawFront(Graphics* g);         // 0x40b2f0
+	void				DrawNearWalls(Graphics* theClip, Graphics* theBlockGraphics = NULL);
+	void				DrawTrapBlock(Graphics* g, int x, int y);
 	void				DrawMummy(Graphics* g, int theIndex, bool theFull); // 0x40d130
 	void				DrawExplorer(Graphics* g);      // 0x40d910
 	void				DrawScorpion(Graphics* g);      // 0x40de00

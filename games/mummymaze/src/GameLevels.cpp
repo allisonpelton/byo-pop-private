@@ -16,6 +16,8 @@ int Sexy::kMapLinks[225];
 int Sexy::kMapEdge[225];
 int Sexy::kMapWay[252];
 int Sexy::kTutorialMove[67];
+int Sexy::kPyramidX[15];
+int Sexy::kPyramidY[15];
 int Sexy::kRankScore[22];
 
 namespace

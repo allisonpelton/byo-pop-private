@@ -12,6 +12,7 @@
 #include "PortCompat.h"
 #include "Compat2004.h"
 #include <math.h>
+#include "GameText.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -24,11 +25,16 @@ using namespace Sexy;
 
 // The order in which the pixels of a newly lit tile light up (the original keeps it as a table, 0x4de400): 45 groups of
 // pixels that appear together (the 2704 pixels of a tile), all but the last ended by -1 and the last directly by -2, so
-// the dissolve takes 45 steps; from the middle outward, with a bell of group sizes. This one is made the same way, from a
-// fixed seed.
+// the dissolve takes 45 steps; from the middle outward, with a bell of group sizes. The table is read from the player's
+// own Alchemy.exe (GameText.h, not in the repository); without it this one stands in, made the same way from a fixed seed.
 static const std::vector<int>& LightOrder()
 {
 	static std::vector<int> aOrder;
+	if (!aOrder.empty())
+		return aOrder;
+
+	// the original's own table, from the player's Alchemy.exe
+	aOrder = GameTable(0x4de400);
 	if (!aOrder.empty())
 		return aOrder;
 

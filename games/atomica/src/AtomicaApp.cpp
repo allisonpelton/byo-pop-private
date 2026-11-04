@@ -29,6 +29,9 @@ AtomicaApp::AtomicaApp()
 	mTitle = "Atomica Deluxe " + mProductVersion;
 	mWidth = GAME_WIDTH;
 	mHeight = GAME_HEIGHT;
+	// 0x4066d4: the game starts with its music at half and its sound effects at 85%
+	mMusicVolume = 0.5;
+	mSfxVolume = 0.85;
 
 	mAtomicFont = NULL;
 	mLevelFont = NULL;

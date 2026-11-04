@@ -205,7 +205,7 @@ void OptionsDialog::Draw(Graphics* g)
 		g->SetFont(aSmall);
 		int aMiddle = mWidth / 2;
 		static const unsigned int kLabels[6] = {0x4b07f8, 0x4b07e8, 0x4b07e0, 0x4b07d8, 0x4b07c8, 0x4b07c0};
-		static const int kLabelY[6] = {200, 0xd9, 0xea, 0xf9, 0x108, 0x13b};
+		static const int kLabelY[6] = {200, 0xd9, 0xea, 0x119, 0x12a, 0x13b};
 		static const unsigned int kNames[8] = {0x4b07b0, 0x4b07a4, 0x4b0794, 0x4b0784, 0x4b07a4, 0x4b0774, 0x4b0768, 0x4b075c};
 		static const int kNameY[8] = {200, 0xd9, 0xea, 0xf9, 0x108, 0x119, 0x12a, 0x13b};
 		for (int i = 0; i < 6; i++)
@@ -213,8 +213,13 @@ void OptionsDialog::Draw(Graphics* g)
 			const std::string& aLabel = GT(kLabels[i]);
 			g->DrawString(aLabel, aMiddle - 5 - aSmall->StringWidth(aLabel), kLabelY[i]);
 		}
+		// the names go from green towards yellow: the colour changes before some of them and stays for the others
+		static const int kNameRed[8] = {0xaf, 0xb9, 0xc3, 0xc3, 0xc3, 0xcd, 0xd7, 0xe1};
 		for (int i = 0; i < 8; i++)
+		{
+			g->SetColor(Color(kNameRed[i], 255, 0, 255));
 			g->DrawString(GT(kNames[i]), aMiddle + 5, kNameY[i]);
+		}
 		DrawButton(g, mDone, GT(0x4b0754));
 	}
 }

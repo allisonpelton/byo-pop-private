@@ -8,6 +8,7 @@
 // caller falls back to its own placeholder. GameText.cpp lists the addresses, lengths and hashes: no text.
 
 #include <string>
+#include <vector>
 
 namespace Sexy
 {
@@ -16,6 +17,9 @@ namespace Sexy
 bool				LoadGameTexts();
 // The text the original keeps at theVA; "" for an address that is not in the table or did not match
 const std::string&	GameText(unsigned int theVA);
+// A table of 32-bit values the original keeps in its program (read, like the texts, from the player's executable, with a
+// length and hash check); empty for an address that is not in the list or did not match
+const std::vector<int>&	GameTable(unsigned int theVA);
 
 }
 

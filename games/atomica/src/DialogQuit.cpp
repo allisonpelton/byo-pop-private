@@ -102,15 +102,18 @@ void QuitDialog::Draw(Graphics* g)
 	}
 	g->SetFont(aFont);
 	ButtonWidget* aButtons[3] = {mSaveQuit, mQuit, mCancel};
-	unsigned int aTexts[3] = {0x4afa68, 0x4afa50, 0x4b01d0};
+	unsigned int aTexts[3] = {0x4afa68, 0x4afa50, 0x4afa3c};
 	for (int i = 0; i < 3; i++)
 	{
 		ButtonWidget* aButton = aButtons[i];
-		g->SetColor(Color(0, 255, 0, 0x80));
+		// 0x417ef0: the third button, "no", is the yellow one
+		int aRed = (i == 2) ? 255 : 0;
+		int aBlue = (i == 2) ? 100 : 0;
+		g->SetColor(Color(aRed, 255, aBlue, 0x80));
 		if (aButton->mIsOver)
-			g->SetColor(Color(0, 255, 0, 255));
+			g->SetColor(Color(aRed, 255, aBlue, 255));
 		if (aButton->mIsDown)
-			g->SetColor(Color(0, 255, 0, 0xaf));
+			g->SetColor(Color(aRed, 255, aBlue, 0xaf));
 		g->FillRect(aButton->mX - mX, aButton->mY - mY, aButton->mWidth, aButton->mHeight);
 		g->SetColor(Color(0, 0x32, 0, 255));
 		const std::string& aText = GT(aTexts[i]);

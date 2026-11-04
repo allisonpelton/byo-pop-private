@@ -1,5 +1,6 @@
 // The options dialog (WinMM.exe 0x4250f0) and the high scores dialog (0x413c30).
 
+#include "Button2003.h"
 #include "Dialogs.h"
 #include "MummyApp.h"
 #include "Screens.h"
@@ -23,8 +24,9 @@ OptionsDialog::OptionsDialog(MummyApp* theApp) :
 		GT(0x00491f90), BUTTONS_FOOTER),
 	mApp(theApp)
 {
-	SetButtonFont(mApp->mHeaderFont);
-	SetHeaderFont(mApp->mFont1);
+	Use2003Buttons(this, mApp->mImages[IMAGE_DBUTTON]);
+	SetButtonFont(mApp->mFont1);
+	SetHeaderFont(mApp->mHeaderFont);
 	SetLinesFont(mApp->mFont1);
 
 	struct Spec { DialogButton** mButton; int mId; unsigned int mText; };
@@ -35,7 +37,7 @@ OptionsDialog::OptionsDialog(MummyApp* theApp) :
 	};
 	for (int i = 0; i < 5; i++)
 	{
-		DialogButton* aButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], aSpecs[i].mId, this);
+		DialogButton* aButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], aSpecs[i].mId, this);
 		aButton->SetFont(mApp->mFont1);
 		aButton->mLabel = GT(aSpecs[i].mText);
 		*aSpecs[i].mButton = aButton;
@@ -223,8 +225,9 @@ HighScoreDialog::HighScoreDialog(MummyApp* theApp) :
 	mApp(theApp)
 {
 	mScores = new HighScoreScreen(theApp);
-	SetButtonFont(mApp->mHeaderFont);
-	SetHeaderFont(mApp->mFont1);
+	Use2003Buttons(this, mApp->mImages[IMAGE_DBUTTON]);
+	SetButtonFont(mApp->mFont1);
+	SetHeaderFont(mApp->mHeaderFont);
 	SetLinesFont(mApp->mFont1);
 	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
 	SetColor(Dialog::COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
@@ -283,8 +286,9 @@ TipDialog::TipDialog(MummyApp* theApp, int theWhich) :
 	mApp(theApp),
 	mWhich(theWhich)
 {
-	SetButtonFont(mApp->mHeaderFont);
-	SetHeaderFont(mApp->mFont1);
+	Use2003Buttons(this, mApp->mImages[IMAGE_DBUTTON]);
+	SetButtonFont(mApp->mFont1);
+	SetHeaderFont(mApp->mHeaderFont);
 	SetLinesFont(mApp->mFont1);
 	MemoryImage* aChecked = mCheckedImage = new MemoryImage(mApp);
 	aChecked->Create(0x24, 0x25);

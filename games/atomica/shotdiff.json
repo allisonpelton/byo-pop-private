@@ -1,0 +1,232 @@
+{
+  "orig": {
+    "crop": [
+      3,
+      26,
+      640,
+      480
+    ]
+  },
+  "ignore": [
+    {
+      "rect": [
+        16,
+        8,
+        609,
+        79
+      ],
+      "pairs": "t*.png",
+      "label": "the title logo's colour waves move on once for every 20 updates of the title screen; the original loads on a thread, the title runs about 4000 updates in its first 300 frames, the port loads in the main thread and the title runs one update a frame, so the two logos are in other phases (the port's waves equal the original's for the same count of updates, checked by fitting both pictures to the same formula)"
+    },
+    {
+      "rect": [
+        130,
+        378,
+        380,
+        90
+      ],
+      "pairs": "t300.png",
+      "label": "the loading bar and its text: the original is still loading in its thread at frame 300 (the bar part full, 'Paging Dr. Atomicus...'), the port loads in the main thread and has finished; the same picture of the finished load is compared in t1000.png"
+    },
+    {
+      "rect": [
+        199,
+        42,
+        128,
+        108
+      ],
+      "pairs": "g3350.png",
+      "label": "the halo of a molecule that has just formed: the original's Draw shakes it by random numbers (0x413880, the game's generator, three draws a member each frame), so its offsets depend on how many frames were drawn before; the port draws the same with its own count, which no input can line up (the draws are a function of the frame rate, not of the game state)"
+    },
+    {
+      "rect": [
+        363,
+        269,
+        115,
+        130
+      ],
+      "pairs": "g7400.png",
+      "label": "the halo of a molecule that has just formed: the original's Draw shakes it by random numbers (0x413880, the game's generator, three draws a member each frame), so its offsets depend on how many frames were drawn before; the port draws the same with its own count, which no input can line up (the draws are a function of the frame rate, not of the game state)"
+    },
+    {
+      "rect": [
+        265,
+        62,
+        241,
+        55
+      ],
+      "pairs": "a3310.png",
+      "label": "the options box of the original also holds 'Register' and 'More games at PopCap.com' buttons (the shareware sales links); the port is a game with no online features and no registration, so it leaves them out (docs/GAME_NOTES.md section 3)"
+    },
+    {
+      "rect": [
+        265,
+        293,
+        241,
+        55
+      ],
+      "pairs": "a3330.png",
+      "label": "the options box of the original also holds 'Register' and 'More games at PopCap.com' buttons (the shareware sales links); the port is a game with no online features and no registration, so it leaves them out (docs/GAME_NOTES.md section 3)"
+    },
+    {
+      "rect": [
+        265,
+        0,
+        241,
+        48
+      ],
+      "pairs": "a4510.png",
+      "label": "the options box of the original also holds 'Register' and 'More games at PopCap.com' buttons (the shareware sales links); the port is a game with no online features and no registration, so it leaves them out (docs/GAME_NOTES.md section 3)"
+    },
+    {
+      "rect": [
+        224,
+        100,
+        31,
+        29
+      ],
+      "pairs": "g2900.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        324,
+        200,
+        31,
+        29
+      ],
+      "pairs": "g2900.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        524,
+        250,
+        31,
+        29
+      ],
+      "pairs": "g2900.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        233,
+        58,
+        13,
+        13
+      ],
+      "pairs": "g3150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        283,
+        108,
+        13,
+        13
+      ],
+      "pairs": "g3150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        333,
+        158,
+        13,
+        13
+      ],
+      "pairs": "g3150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        232,
+        257,
+        16,
+        16
+      ],
+      "pairs": "g7150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        222,
+        298,
+        36,
+        34
+      ],
+      "pairs": "g2650.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        220,
+        296,
+        40,
+        38
+      ],
+      "pairs": "g6150.png",
+      "label": "atoms drawn from the pre-rotated glow sprites (orbit rings) sit a pixel or a rotation step off the original's: the sprites are built by rotating the mask with the framework's software rotate (listed under Oddities in IDENTICAL_PLAY.md); the game state (glow, aim angle) is identical in the trace"
+    },
+    {
+      "rect": [
+        294,
+        59,
+        101,
+        96
+      ],
+      "pairs": "hs8300.png",
+      "label": "the board's atoms in the game over state are shaken by random numbers that the draw itself takes (0x4037f0: x, y and the wobble each frame), so their offsets depend on how many frames were drawn before; no input lines that up"
+    },
+    {
+      "rect": [
+        403,
+        47,
+        82,
+        61
+      ],
+      "pairs": "hs8300.png",
+      "label": "the board's atoms in the game over state are shaken by random numbers that the draw itself takes (0x4037f0: x, y and the wobble each frame), so their offsets depend on how many frames were drawn before; no input lines that up"
+    },
+    {
+      "rect": [
+        483,
+        110,
+        25,
+        57
+      ],
+      "pairs": "hs8300.png",
+      "label": "the board's atoms in the game over state are shaken by random numbers that the draw itself takes (0x4037f0: x, y and the wobble each frame), so their offsets depend on how many frames were drawn before; no input lines that up"
+    },
+    {
+      "rect": [
+        385,
+        171,
+        28,
+        13
+      ],
+      "pairs": "hs8300.png",
+      "label": "the board's atoms in the game over state are shaken by random numbers that the draw itself takes (0x4037f0: x, y and the wobble each frame), so their offsets depend on how many frames were drawn before; no input lines that up"
+    },
+    {
+      "rect": [
+        425,
+        200,
+        30,
+        30
+      ],
+      "pairs": "c2700.png",
+      "label": "atoms drawn from the pre-rotated glow sprites sit a pixel or a rotation step off the original's (see Oddities in IDENTICAL_PLAY.md); the game state is identical"
+    },
+    {
+      "rect": [
+        376,
+        201,
+        29,
+        29
+      ],
+      "pairs": "c2700.png",
+      "label": "atoms drawn from the pre-rotated glow sprites sit a pixel or a rotation step off the original's (see Oddities in IDENTICAL_PLAY.md); the game state is identical"
+    }
+  ]
+}

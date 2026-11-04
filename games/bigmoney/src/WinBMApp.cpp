@@ -480,7 +480,12 @@ void WinBMApp::ShowGameSelector()
 		mGameSelector->SlideIn();
 	}
 
-	if (!mMusicInterface->IsPlaying(SONG_TITLE))
+	// The original asks BASS_ChannelIsActive whether the title song plays. Its BASS (2004) answers yes for a music
+	// that played and was stopped since (its log in a scripted run: 1 after the title's BASS_ChannelStop), and the
+	// title plays from the start (LoadingThreadProc), so the answer is always yes and the selector's song never fades
+	// in. The port's music interface answers by the playing state, so the original's answer is kept here.
+	bool aTitleActive = true; // port: BASS's answer, not mMusicInterface->IsPlaying(SONG_TITLE)
+	if (!aTitleActive)
 		mMusicInterface->FadeIn(SONG_SELECTOR, ORDER_SELECTOR, 0.005, false);
 }
 

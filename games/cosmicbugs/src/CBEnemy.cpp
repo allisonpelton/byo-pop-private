@@ -22,6 +22,9 @@ Enemy* Enemy_Init(Enemy* theEnemy)
 	theEnemy->lastTurn = 0;
 	theEnemy->countdown = 0;
 	theEnemy->shotDelay = aTime;
+	// (the original leaves lastZap +0xd0 as the heap had it, so whether an enemy's first touch of a beam zaps is
+	// chance; 0, what a fresh block holds, is what the original had in every run compared)
+	theEnemy->lastZap = 0;
 	return theEnemy;
 }
 

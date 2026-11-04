@@ -13,6 +13,8 @@ port = {n: [] for n in names}
 for line in open(port_file):
     u, n, v = line.split()
     if n in port and 1 < int(u) <= max_update:
+        if n == 'rand' and v != '-':
+            v = str(int(v) & 0xffffffff)  # the watch reads it unsigned
         port[n].append((int(u), v))
 
 orig = {n: [] for n in names}

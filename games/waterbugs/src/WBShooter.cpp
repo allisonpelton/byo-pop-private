@@ -283,7 +283,7 @@ int Region_Count(int theCol, int theRow, int* theCells, int* theEnemies, int* th
 		if (theCol == (int)anEnemy->x / 16 && theRow == (int)anEnemy->y / 16)
 		{
 			*theEnemies = *theEnemies + 1;
-			*theSumX = *theSumX + (int)std::nearbyint(anEnemy->x);
+			*theSumX = *theSumX + (int)anEnemy->x;
 		}
 	});
 	*theCells = *theCells + 1;

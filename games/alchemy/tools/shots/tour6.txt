@@ -1,0 +1,38 @@
+# Phase two tour 6: a saved game (the port's own, written at update 1500 of a strategic game): the continue question, the loaded board, the board's
+# side-panel buttons (new game, options, help, sound) and the quit question, which saves the game again.
+2990 screenshot sg_title
+3000 click 320 441
+3010 click 527 442
+3020 screenshot sg_continue
+3024 move 465 244
+3028 screenshot sg_continue_hover_no
+3030 click 325 244
+3050 screenshot sg_board
+3060 move 300 240
+3070 screenshot sg_board_hover
+3080 click 72 123
+3090 screenshot sg_newgame_q
+3094 click 465 204
+3100 screenshot sg_newgame_no
+3110 click 72 241
+3120 screenshot sg_options
+3124 @port click 395 270
+3124 @orig click 395 338
+3126 move 300 240
+3130 screenshot sg_options_done
+3140 click 32 421
+3150 screenshot sg_help
+3154 click 520 432
+3160 screenshot sg_help_back
+3170 click 113 421
+3180 screenshot sg_mute
+3184 click 113 421
+3190 screenshot sg_unmute
+3200 click 72 286
+3210 screenshot sg_discard_a
+3230 screenshot sg_discard_b
+3250 screenshot sg_discard_c
+3260 click 72 448
+3270 screenshot sg_quit_q
+3274 click 325 204
+3300 quit

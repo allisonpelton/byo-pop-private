@@ -1,0 +1,10 @@
+# phase two: the loading screen, the title screen and the menu coming up
+300 shot t300
+1000 shot t1000
+1500 move 320 445
+1520 shot t1520
+1530 click 320 445
+1600 shot menu1600
+1800 shot menu1800
+2200 shot menu2200
+end 2400

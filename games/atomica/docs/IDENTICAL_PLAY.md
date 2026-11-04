@@ -1,7 +1,7 @@
 # Atomica Deluxe: identical play
 
-Phase one of the identical-play pass: with the same input, the original and the port play out the same games. (Phase two,
-screen by screen, sound, focus and the web build, is not done.)
+Phase one of the identical-play pass: with the same input, the original and the port play out the same games. Phase two
+("looks identical", screen by screen) is at the end of this file.
 
 ## What was compared and how
 
@@ -76,3 +76,101 @@ rerun. A later fix that changes unmodded play refreezes it on purpose.
 
 The geiger needle's geometry and the title logo's shimmer (README), the swirls' scan-line fill, and the missing "More games"
 and "Register" links. The high score table's "best name" and the saved game's garbage words were not compared by value.
+
+# Phase two: looks identical
+
+## What was compared and how
+
+`tools/identical/shots.py <scenario> --run <id>` plays one scenario (the same `N command` lines as phase one, plus `N shot
+<name>`) in the original (origrun, `--sandbox`, virtual clock, scripted cursor, its own copy of the game) and in the port
+(`-script`, `-fast`, under rundesk), takes a picture at each `shot` line and hands both sets to `tools/shotdiff` with the
+masks of `games/atomica/shotdiff.json`. The scenarios are `p2-title.txt` (the title screen and its fade), `p2-start.txt` and
+`p2-start2.txt` (menu pages, start of a game), `p2-s2.txt` and `p2-g5.txt` (the bot's games: board, atoms, molecules, level
+up, game over page), `p2-dialogs.txt` (options, credits, high scores box, reset hints, quit box) and `p2-hs.txt` (a game over
+that earns a place: the entry box, `--hs` starts both games with a table every score beats). Each flagged box was looked at
+in its crop and judged; what is left is below.
+
+## Changes made
+
+| Screen | Difference in the original | Port now |
+| --- | --- | --- |
+| Title | the logo's colour waves, the play link | waves move as the original's (same count of updates, same picture); the play link as the original |
+| Main menu | expert fields, portrait position, atom picture drawn onto its mask, the spinning-atom sprites made by a blend that is copied into a blank sprite (0x438b00, 0x437f40) | the same |
+| Board | the geiger needle, sparkles' alpha, molecule overlay alpha, Atomicus's nod | the same |
+| Game over page | the rank label and comment (22 phrases, 0x4cbd08), the score rows' colour cycle (256 colours, a start in the page's spin, one more per row) | the same |
+| High scores box | the title, "TODAY'S BEST" and Return button positions, the colour cycle of the rows (0x41ec90) | the same |
+| Options box | the label rows' y, the colour of each name in the credits | the same |
+| Quit box | texts and the red third button | the same |
+| Reset hints | clears the hints shown only, not the grid's flag (0x424430) | the same |
+| Title music | the title screen plays the song's order 6 from update 0 and stops it when it goes (0x42fe90, 0x42fd10) | the same (it was silent) |
+| Default volumes | music 0.5, sound 0.85 (0x4066d4) | the same |
+| Level over atoms | x, then y, then the wobble from the game's generator; the plain sprite under the glow (0x4037f0) | the same: the whole board matched, it had shown stronger highlights |
+| High score entry box | six shadow copies of "A NEW HIGH SCORE!!!" climbing from faint, the score above it between two arrows that come and go (the tick runs 0 to 300 in fours), the monitor's line and the prompt in the cycling colours, the name on a picture of a field with no field of its own (light text, white highlight, 15 characters, 140 pixels), SAVE and CANCEL as green fields (0x41cf90, 0x41ca50, 0x41cc00) | the same (it was a simplified drawing with white field and OKAY) |
+| High scores file | HS.CFG is read whenever the file holds two tables (416 bytes) | the port asked for 448 bytes and never read back what it wrote: fixed |
+
+The fixes are drawing and box state only; the frozen baseline replays the same non-empty logs (`tools/check.sh atomica`).
+
+## Masks (`shotdiff.json`)
+
+- The title logo's waves (`t*.png`): they move once for every 20 title updates; the original loads on a thread and runs
+  about 4000 updates in its first 300 frames, the port loads in the main thread and runs one a frame. The port's waves equal
+  the original's for the same update count (both pictures fitted to the same formula).
+- The loading bar at frame 300 of the title run: the original is still loading, the port has finished (the finished picture
+  is compared at `t1000.png`).
+- The halo of a molecule that has just formed (`g3350`, `g7400`) and the shaken atoms of the game over state (`hs8300`): the
+  original's draw functions take numbers from the game's generator (0x413880), so offsets depend on how many frames were
+  drawn; no input lines that up.
+- The options box's "Register" and "More games" rows (`a3310`, `a3330`, `a4510`): shareware links, left out on purpose.
+- Atoms drawn from the rotated glow sprites (`g2650`, `g2900`, `g3150`, `g6150`, `g7150`): see the oddities.
+
+## Oddities skipped (phase two)
+
+- Rotated glow-sprite atoms sit a pixel up and left of the original's (`g4050`, `g3750`, the flying atoms in `g5350`), and
+  their orbit rings are off by a rotation step in some pictures (`g2900`). The sprites are the mask rotated by the
+  framework's software rotation; the state (glow, aim angle) is identical in both traces. To see it, run `shots.py
+  p2-g5.txt --run h1` and open those pictures. A fix would need the original's rotation rounding.
+- The edge antialiasing of the atom symbol icons (`g2650`, `g6150`) differs by a few levels.
+- A molecule's halo shake (`g3350`, `g7400`): see the masks.
+- Pictures of the native port in real time and under `-fast` differ at the same update (the web build equals the real-time ones), while the
+  state is equal; the `-fast` pictures match the original's. Cause not found (the menu panel and doors at update 2341, `p2-web.txt`, `web.sh`
+  after `shots.py ... --port-only`, and a native run without `-fast`); it belongs to the shared frame loop, not to Atomica.
+
+## Sound, focus and the web build
+
+- **Focus:** `p2-focus.txt` loses the focus in a strategy game's first hint box, regains it, and loses and regains it
+  in a row (`focus lose` / `focus regain`, as the window gets the deactivate and activate messages). The pictures after each
+  step are the same in both (the box stays, no pause picture is drawn, the board is not redrawn differently).
+- **Sound and music, against the original's own calls.** `tools/identical/sound_orig.sh <scenario> <name>` runs the original on the host
+  (rundesk, virtual clock) with origrun's recording stand-in (`--sound wav`: every DirectSound buffer create and play, in
+  `logs/sound.log`) and with `tools/fmodproxy` as its `fmod.dll` (a logging stand-in for FMOD 3, the Big Money bassproxy adapted:
+  the real DLL is renamed `fmod_real.dll`; every call of the 25 imported functions is written to `fmodlog.txt` with the game's update
+  counter). `sound_cmp.sh` then runs the port on the same input with `BYOPOP_SOUNDLOG` and sets the two logs side by side:
+  `soundcmp.py` the sample plays (the effects are decoded by FMOD and played through DirectSound; a play is named by its
+  buffer's size, electric2 and electric3 being one size, and set against the port's by order, sample, volume, pan and update within
+  two; the original's time is the virtual clock's ms/10 with the load as an offset) and `musiccmp.py` the music (the song is played
+  through FMUSIC: `PlaySong`/`SetOrder`/`StopSong` by update). The original's registry key is deleted before each run, since the
+  host registry keeps the game's hints off between runs and a run without hint boxes is not the port's fresh one. Results:
+  the strategy bot's game `s2.txt` (4,000 updates: 214 plays) and an action game `a1.txt` (4,400 updates: 154 plays) have the same
+  plays in the same order, sample, volume, pan and update (0 differences), and the same five music events (the title's tune at 0,
+  the menu's song at 1510, the title's stop at 1556, the game's tune at 2310, the menu's stop at 2375). **The music log found two
+  faults, both fixed:** the title screen starts its own tune (order 6, 0x42fe90) and stops it when it goes (0x42fd10), which the port
+  did not do (the title and the first 1,500 updates were silent; the song also went on playing under the menu's). The original's
+  runs are deterministic (two runs of `s2.txt` gave the same 478 plays at the same times). Later than update 4,400 the original's
+  board stops updating at a point that varies (Oddities), so what it plays after is not compared. Not compared: the game over and
+  high score entry voices (they come after that point in every scenario; the entry box's drawing is compared in pictures).
+- **Web build pictures.** `tools/identical/web.sh <scenario> <run>` plays a scenario in the web build under Node
+  (`wasmrun.js game`) and compares its pictures with the native port's by shotdiff. Against the native port **in real time** (without
+  `-fast`) all 68 pictures of `p2-s2.txt` match (57 exactly, 11 within the faint tolerance): the web build draws what the native
+  game does. Against the native port under `-fast` they do not (28 of 68 differ, the menu panel and the doors by a few updates'
+  motion, atoms at other places): the same difference appears between the native port's `-fast` and real-time runs (a
+  picture of `p2-web.txt` at update 2341: 78,000 pixels). The game's state at those updates is the same in both (the panel's y, the
+  door and the alpha, printed at each shot, are equal), the pictures are not. The pictures of this pass's comparisons with the original
+  are `-fast` ones that match the original's (virtual clock), so this is a finding for the shared loop (`-fast` against real time) and
+  not a deviation from the original that was found; it is not chased here (Oddities).
+
+## Deviations left in phase two
+
+The options box's "Register" and "More games" buttons (shareware links, left out on purpose), the atom sprites of the oddities
+above, and the shimmer of the title logo when the original's load order differs. The frozen baseline was refrozen at the end of
+phase two: the only difference from the first freeze is five more names in the state trace (the cursor, the hold counters, the
+glow); the traces of `s2.txt` and `g5.txt` without those names are equal to the old baseline's, byte for byte.

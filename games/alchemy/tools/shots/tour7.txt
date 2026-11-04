@@ -1,0 +1,72 @@
+# Phase two tour 7: the wizard's messages for a piece put on a cell it cannot go to (bot seed 2, game seed 2, a bad cell one time in 3): a shot four updates before and three after the bot answers each message.
+3001 click 320 441
+3005 screenshot w_sel
+3007 click 318 372
+3010 click 527 442
+3020 screenshot w_board
+3031 move 468 243
+3033 click 468 243
+3035 move 572 399
+3037 click 572 399
+3038 screenshot w0_a
+3039 click 395 224
+3041 screenshot w0_b
+3045 move 624 191
+3047 click 624 191
+3048 screenshot w1_a
+3049 click 395 224
+3051 screenshot w1_b
+3055 move 416 191
+3057 click 416 191
+3059 move 416 295
+3061 click 416 295
+3063 move 468 347
+3065 click 468 347
+3066 screenshot w2_a
+3067 click 395 224
+3069 screenshot w2_b
+3073 move 416 399
+3075 click 416 399
+3076 screenshot w3_a
+3077 click 395 224
+3079 screenshot w3_b
+3083 move 572 87
+3085 click 572 87
+3086 screenshot w4_a
+3087 click 395 224
+3089 screenshot w4_b
+3093 move 260 87
+3095 click 260 87
+3096 screenshot w5_a
+3097 click 395 224
+3099 screenshot w5_b
+3103 move 364 243
+3105 click 364 243
+3107 move 364 191
+3109 click 364 191
+3111 move 468 191
+3113 click 468 191
+3115 move 312 347
+3117 click 312 347
+3119 move 312 191
+3121 click 312 191
+3123 move 312 243
+3125 click 312 243
+3127 move 260 243
+3129 click 260 243
+3131 move 520 243
+3133 click 520 243
+3135 move 260 399
+3137 click 260 399
+3139 move 260 191
+3141 click 260 191
+3143 move 260 295
+3145 click 260 295
+3147 move 364 295
+3149 click 364 295
+3151 move 364 347
+3153 click 364 347
+3155 move 260 347
+3175 click 72 448
+3215 click 325 204
+3255 quit

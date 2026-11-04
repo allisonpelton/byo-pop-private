@@ -1,6 +1,7 @@
 // The board's level set-up, undo and solver: WinMM.exe 0x404770-0x405580, 0x40e0e0, 0x40e1d0, 0x411640-0x411a90.
 // See Board.h and docs/GAME_NOTES.md.
 
+#include "Button2003.h"
 #include "Board.h"
 #include "GameText.h"
 #include "ImageFont.h"
@@ -127,12 +128,12 @@ Board::Board(MummyApp* theApp) :
 		mDust[1][i] = CrtRand() % (mCellSize - 0xb);
 	}
 
-	mPlayNowButton0 = new DialogButton(mApp->mImages[IMAGE_TUTBUTTON], 0, this);
+	mPlayNowButton0 = new DialogButton2003(mApp->mImages[IMAGE_TUTBUTTON], 0, this);
 	mPlayNowButton0->SetFont(mApp->mFont1);
 	mPlayNowButton0->SetColor(0, Color(0, 0, 0));
 	mPlayNowButton0->mLabel = GT(0x00491ddc);
 	mPlayNowButton0->SetVisible(false);
-	mPlayNowButton = new DialogButton(mApp->mImages[IMAGE_TUTBUTTON], 2, this);
+	mPlayNowButton = new DialogButton2003(mApp->mImages[IMAGE_TUTBUTTON], 2, this);
 	mPlayNowButton->SetFont(mApp->mFont1);
 	mPlayNowButton->SetColor(0, Color(0, 0, 0));
 	mPlayNowButton->mLabel = GT(0x00491dd0);

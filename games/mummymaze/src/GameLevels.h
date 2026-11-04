@@ -27,6 +27,8 @@ extern int			kMapLinks[225];			// the world map: 15 x 15, 1 where a path joins t
 extern int			kMapEdge[225];			// the world map: 15 x 15, the number of the path between two pyramids (negative: walked backwards)
 extern int			kMapWay[252];			// the world map: six waypoints (x, y) per path, path numbers 1 to 19 (path n starts at pair 6n)
 extern int			kTutorialMove[67];		// per tutorial step: the one move that is allowed (0 N, 1 W, 2 E, 3 S, 4 wait), 5 none, 6 and 7 the buttons
+extern int			kPyramidX[15];			// the side panel's pyramid map: where each chamber's mark is
+extern int			kPyramidY[15];
 extern int			kRankScore[22];			// the points at which a classic game's rank rises
 
 struct TutorialWall

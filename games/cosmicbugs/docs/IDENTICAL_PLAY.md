@@ -94,3 +94,135 @@ comparison of the web build looks for it again, with a second launch in the same
 None in play. The saves differ only in the player's name, which the site's player name hooks supply. The one pixel
 that changed with the fill above means some particle field the original leaves uninitialised is still read; it is
 for phase two's screen comparison.
+
+## Phase two: looks identical (2026-11-04)
+
+The original and the port now show the same screens, dialogs and texts. They play the same sounds and music at the
+same updates, and they behave the same when the window loses and regains the focus. The web build draws the same frames
+as the exe. Two changes to the port were needed. What is left is a handful of invisible one-step differences on the
+soft edges of blended images, and the order in which overlapping sprites are drawn. Both are listed below.
+
+### How the screens were compared
+
+The original's shots were taken in Windows Sandbox through origrun (`--sandbox`, with the screen read from the game's
+own surface by `--surface-screen`). The patches, seed and virtual clock were the same as in phase one.
+
+On this machine the original is given a 5-5-5 screen, both windowed on the host and in the sandbox. origrun learned to
+read a 15-bit surface for this (c36e00c). The port always draws 5-6-5, but the runner's `CB_555=1` makes it draw 5-5-5.
+
+`CB_555` also repeats what the original does when it is handed its screen after loading. Its screen-lost callback
+(0x41e6f0) converts the art again, makes every board's background again from the bank (0x40d1f0) and redraws. That
+leaves the menus' images and logos blended onto the backgrounds once. The port never loses its screen, so it has
+blended them twice. With `CB_555` the runner's shots can be compared pixel for pixel. Without it the difference is one
+step on the soft edges of those images, which no one can see.
+
+`games/cosmicbugs/tools/play/tour.py` turns a tour (in runner times) into a runner script and an origrun script, with
+the timing of phase one. Three tours were shot and compared by `tools/shotdiff`, which flags any box whose pixels
+differ:
+
+| Tour | What it covers | Result |
+|---|---|---|
+| menus (`test/tours/menus.txt`, 47 shots) | the title and every button's hover, Instructions, Credits, High Scores, Options (both shooter modes, music off and on), Change User with a name typed, Start Game, a board with the ship turned, Enter to pause and again, Esc to the title, Start Game again | 35 identical, 12 one step on soft edges |
+| g2 (100 shots, one every 4 s) | phase one's 400-second game: boards, bonuses, deaths, the next boards | 83 identical, 3 one step, 14 flagged (each explained below) |
+| end (`test/tours/end.txt`, 10 shots) | phase one's c7 save played to its game over, the high-score list with a name typed, back to the title, the world screen | 8 identical, 2 one step |
+
+Most of the 14 flagged g2 shots are the original's shot landing a frame or two late, because the sandbox's capture is
+slower than the game on the virtual clock. Each of these equals the port's shot at the update it landed on: the
+runner's re-shots at those updates were 3 of 3 identical. The rest differ only where two enemies overlap and are drawn
+in the other order (see Oddities).
+
+### Sound
+
+All of the game's sound and music goes through BASS. `games/cosmicbugs/tools/bassproxy` is a logging stand-in for a
+copy's `bass.dll`: it writes every BASS call with the game's update counter.
+
+Under origrun, BASS cannot open a real device. It gets its DirectSound through COM, and `BASS_Init` fails on the host
+as it does in the sandbox. After that failure the game loads no sounds. So the proxy gives BASS its "no sound" device,
+on which the music still loads and plays, and answers the sample calls itself.
+
+On the port's side, the runner's `CB_SOUNDLOG=1` prints the engine's sound and music calls. `tools/play/soundcmp.py`
+compares the two logs by event and update. The events are loads, plays (by file), stopping all sounds, and the music's
+load, play, pause, resume, free and volume.
+
+| Run | Events | Result |
+|---|---|---|
+| g2 | 1492 | the same, update for update |
+| the menu tour (Options' music off and on included) | 164 | the same, update for update |
+| the end tour | 121 | the same, update for update |
+
+The only difference is the shutdown's last four calls. They come ten updates later in the original, which is where
+origrun ends the run. Before the fix, the end tour showed the original playing the electricity sound twice where the
+port did not. That led to the second change below.
+
+### Focus
+
+origrun's `focus lose` and `focus regain` were compared with the runner's new `focus` events, on the title and in the
+middle of g2. In both games, while the window is inactive, updating stops, the music pauses and the sounds stop. On
+regaining the focus, the music resumes and play carries on.
+
+After the mid-game loss, the rest of g2 is the same in both. Every seed change in the port's log has the original's
+value at the same update. The score, lives, fill and all 1491 sound events are the same too.
+
+### The web build
+
+`tools/play/webtour.sh` plays a runner script three times, from the same save: on the runner, on the exe (`-fast`,
+under rundesk) and on the web build under Node (`wasmrun.js`). It compares the exe's shots with the runner's and the
+web build's with the exe's.
+
+`fwscript.py` writes the exe's `-script` from the runner's script. A script command at update N runs after that
+update's frame, so the runner's event at T ms is update ceil(T/10) - 1.
+
+The game reads its buttons once an update. The framework's `rclick` presses and lets go within one update, so it never
+reaches the game. The app's own script commands `rdown` and `rup` instead press and let go the right button where the
+pointer is.
+
+| Tour | exe against the runner | web against the exe |
+|---|---|---|
+| menus, 47 shots | all identical | all identical |
+| g2, 100 shots | 98 identical; 2 with overlapping enemies drawn in the other order | 97 identical, 1 one step; 2 with overlapping enemies |
+| end, 10 shots (a saved game resumed) | all identical | 9 identical, 1 one step |
+
+The user's report from phase one did not show up. That report was a yellow flicker on the title on a second launch,
+then the panel's digits drawn offset after resuming a game. The end tour is a second launch that resumes a saved game,
+and its panel and title are the same on the web as natively.
+
+### The changes
+
+| Difference | Its cause in the original | What the port does now | Commit |
+|---|---|---|---|
+| Every text was one colour step too bright | `Palette_Gradient` (0x42bc10) converts each colour with `fistp` while the FPU's rounding control is set to chop, so it truncates; the port rounded | truncates | 006eb58 |
+| The electricity sound (an enemy touching a beam) was sometimes not played | the enemy's constructor (0x404fc0) leaves the age of its last zap (+0xd0) as the heap had it, and the zap plays only once the enemy's age is 1000 past it. 0, what a fresh block holds, is what the original had in every run compared; the port's own leftover varied from run to run | starts it at 0 | 1ef5f12 |
+
+Neither change alters play: `tools/check.sh cosmicbugs` still plays as the frozen baseline.
+
+The tools are in two commits:
+- 7923e44: `CB_555`, `tour.py` and the menu tour;
+- b1cbade: the BASS proxy, `soundcmp.py`, the runner's sound log and focus events, the end tour, `webtour.sh`, and
+  `rdown`/`rup`.
+
+Shared: c36e00c (origrun reads a 15-bit surface).
+
+### Oddities
+
+**Overlapping sprites at the same depth are drawn in the order of their addresses.** The draw list (0x4211d0) sorts by
+depth and then by a sequence number, which is the object's own address. So where two enemies of the same depth
+overlap, the heap decides which is on top. The order differs between the original and the port, and between the
+port's own builds. To see it, compare g2's shots at 112 s and 212 s. Matching it would take the original's heap.
+
+**The menus after a game, and the Change User frame's edge, are one step off on soft edges.** The title seen after
+returning from a game (the menu tour's `esc_title`, the end tour's `title_after`) and the frame around Change User have
+had their images blended onto the background a different number of times than in the port, even with `CB_555`. The
+difference is one step of a colour channel on the antialiased edges. It was not tracked down after more than an hour.
+
+**Nine pixels of the top row.** The original keeps nine faint pixels in the screen's top row that the port never draws
+there. One step or two, invisible.
+
+### Deviations left
+
+The port draws on a 5-6-5 screen, where the original on this machine gets 5-5-5. The port also never loses its screen,
+so the menus' images keep their second blend: at most one step on soft edges, invisible.
+
+The web build under Node can draw rotated and scaled sprites about a pixel off; this is known for every game, and none
+of this game's tours showed one.
+
+The port's enemies start with a last zap of 0, where the original's is the heap's leftover (above).

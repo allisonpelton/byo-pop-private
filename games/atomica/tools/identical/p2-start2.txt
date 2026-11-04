@@ -1,0 +1,12 @@
+# phase two: sparkles
+1500 move 320 445
+1510 click 320 445
+2300 move 316 104
+2310 click 316 104
+2407 shot f2407
+2408 shot f2408
+2409 shot f2409
+2410 shot f2410
+2411 shot f2411
+2412 shot f2412
+end 2420

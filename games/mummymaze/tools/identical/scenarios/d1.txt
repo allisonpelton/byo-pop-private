@@ -1,0 +1,14 @@
+99 title
+900 shot menu
+1000 click 185 376
+1300 click 74 247
+1330 shot options
+1400 move 74 247
+1500 shot options2
+1520 key 27
+1560 shot after_esc
+1600 click 74 451
+1630 shot quit_dialog
+1700 click 74 194
+1730 shot reset_dialog
+1800 quit
