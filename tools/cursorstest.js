@@ -26,11 +26,14 @@ function element(tag, matches) {
 }
 // A node of the Settings' choice: its children, attributes and listeners
 function node(tag) {
-  const n = { tagName: tag, children: [], listeners: {}, id: "", className: "",
+  const n = { tagName: tag, children: [], listeners: {}, attrs: {}, id: "", className: "",
+    setAttribute(k, v) { this.attrs[k] = String(v); },
     appendChild(c) { this.children.push(c); return c; },
     addEventListener(t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); },
     // the text a screen reader would read for it
-    text() { return this.children.map((c) => c.tagName === "#text" ? c.text : c.text()).join("") + (this._text || ""); } };
+    text() { return this.children.map((c) => c.tagName === "#text" ? c.text : c.text()).join("") + (this._text || ""); },
+    // the kinds of the cursors it pictures, in order
+    kinds() { return this.children.flatMap((c) => c.tagName === "img" ? [c.attrs["data-kind"]] : c.kinds ? c.kinds() : []); } };
   Object.defineProperty(n, "textContent", { get() { return n._text || ""; }, set(v) { n._text = v; n.children = []; } });
   return n;
 }
@@ -191,6 +194,21 @@ function check(what, got, want) {
   check("a set that changes leaves its group, and the choice stays with it",
     entries().map((e) => [e.name, e.checked]), [["Default", false], ["Alchemy Deluxe", true], ["Bejeweled Deluxe", false], ["Big Money Deluxe", false], ["BookWorm Deluxe", false]]);
   check("the sets stay one a game", Object.keys(p.C.all()).sort(), ["alchemy", "bejeweled", "bigmoney", "bookworm"]);
+}
+// each entry pictures every cursor its set has, in order, and nothing for one it lacks
+{
+  const p = page();
+  p.C.save("all", "All Six", { wait: img("w"), notallowed: img("n"), text: img("t"), drag: img("d"), hand: img("h"),
+    pointer: Object.assign(img("p0"), { frames: [img("p1")], ms: 100 }) });
+  p.C.save("one", "Just A Pointer", { pointer: img("q") });
+  p.C.save("gaps", "Some Gaps", { pointer: img("g"), text: img("gt"), wait: img("gw") });
+  const el = node("div");
+  p.C.render(el);
+  const labels = el.children[0].children[1].children.filter((l) => l.tagName === "label");
+  check("the kinds each entry pictures", labels.map((l) => [l.text().trim(), l.kinds()]),
+    [["Default", []], ["All Six", ["pointer", "hand", "drag", "text", "notallowed", "wait"]], ["Just A Pointer", ["pointer"]], ["Some Gaps", ["pointer", "text", "wait"]]]);
+  const pics = labels[1].children[1].children;
+  check("an animated cursor by its first frame, every picture decorative", [pics[0].src, pics.every((i) => i.alt === "")], ["data:image/png;base64,AAAAp0", true]);
 }
 
 console.log(`cursorstest: ${checks} checks, ${failed} failed`);
