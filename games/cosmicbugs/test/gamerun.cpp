@@ -9,7 +9,9 @@
 //   <ms> key <vk>             a key (its virtual-key code, decimal or 0x) pressed and let go 30 ms later
 //   <ms> hold|release <vk>    a key pressed, or let go
 //   <ms> shot <name>          the screen to <outdir>/<name>.png
+//   <ms> focus lose|regain    the window loses or regains the focus (the host's IsActive)
 //   <ms> state                prints the score, the lives, the board in its set and the board's filled cells
+//   <ms> enemies              prints each enemy of the board: its place, tint and animation
 //   <ms> end                  stops (the game's end runs)
 // The player's files (cp.cfg, cb.dat) are in <outdir>; a missing cp.cfg is made windowed.
 
@@ -50,6 +52,13 @@ public:
 	std::vector<uint16_t> mScreen = std::vector<uint16_t>(800 * 600, 0);
 	uint32_t mTime = 0;
 	int mMouseX = 400, mMouseY = 300;
+	bool mActive = true;
+
+	bool IsActive() override
+	{
+		return mActive;
+	}
+
 	int mSounds = 0;
 	std::string mSavePath;
 	bool m555 = std::getenv("CB_555") != nullptr;
@@ -99,16 +108,57 @@ public:
 		return mTime;
 	}
 
-	// The sounds load as ids that play nothing
-	int LoadSound(const char*) override
+	// The sounds load as ids that play nothing. CB_SOUNDLOG=1 prints each call of the engine's sound and music, with the
+	// update, for comparing with the original's BASS calls (tools/play/soundcmp.py)
+	bool mSoundLog = std::getenv("CB_SOUNDLOG") != nullptr;
+
+	void SoundLog(const char* theEvent, const char* theArg = "")
 	{
+		if (mSoundLog)
+			std::printf("sound %d: %s %s\n", cb::gFrame, theEvent, theArg);
+	}
+
+	int LoadSound(const char* thePath) override
+	{
+		SoundLog("load", thePath);
 		return mSounds++;
+	}
+
+	void PlaySound(int theSound) override
+	{
+		SoundLog("play", std::to_string(theSound).c_str());
+	}
+
+	void StopSounds() override
+	{
+		SoundLog("stopall");
 	}
 
 	bool LoadMusic(const char* thePath) override
 	{
 		std::printf("%u ms: music %s\n", mTime, thePath);
+		SoundLog("musicload", thePath);
 		return true;
+	}
+
+	void FreeMusic() override
+	{
+		SoundLog("musicfree");
+	}
+
+	void PlayMusic(int theRestart) override
+	{
+		SoundLog(theRestart != 0 ? "musicplay" : "musicresume");
+	}
+
+	void PauseMusic() override
+	{
+		SoundLog("musicpause");
+	}
+
+	void SetMusicVolume(int theVolume) override
+	{
+		SoundLog("musicvolume", std::to_string(theVolume).c_str());
 	}
 
 	void OpenURL(const char* theUrl) override
@@ -236,7 +286,8 @@ int main(int argc, char** argv)
 		return 2;
 	}
 	static PixelFormat aFormat;
-	// CB_555=1 draws on a 5-5-5 screen, the mode the original gets in Windows Sandbox, for comparing shots with its own
+	// CB_555=1 draws on a 5-5-5 screen, the mode the original gets on this machine (windowed on the host and in Windows
+	// Sandbox), for comparing shots with its own
 	if (std::getenv("CB_555") != nullptr)
 		PixelFormat_Init(&aFormat, 16, 0x7c00, 0x3e0, 0x1f);
 	else
@@ -258,7 +309,7 @@ int main(int argc, char** argv)
 	LoadConfig();
 	Sound_Start();
 	cb::GameStart();
-	// In Windows Sandbox the original is handed the 5-5-5 screen after it has loaded, so its screen-lost callback
+	// On this machine the original is handed the 5-5-5 screen after it has loaded, so its screen-lost callback
 	// (0x41e6f0) runs once: 0x40d1f0 makes every level's background again from the bank and redraws the screen, which
 	// leaves the menus' images and logos blended onto the backgrounds once instead of twice. CB_555 does the same.
 	// (Its repacking of palettes and animations changes nothing when the format is already 5-5-5.)
@@ -280,9 +331,13 @@ int main(int argc, char** argv)
 	int aFrames = 0;
 	// CB_WATCH=1: origrun's --watch lines for the seed, the score, the lives and the filled cells, read after each frame
 	// (where origrun's virtual clock reads them, at the frame's wait), for comparing a run with the original's
+	// (CB_WATCH=enemies: instead the tints of the board's first eight enemies, as origrun's [[0x473138]+0x41c]+0x40,
+	// [[[0x473138]+0x41c]]+0x40 and so on along the list)
 	bool aWatch = std::getenv("CB_WATCH") != nullptr;
-	int aWatched[4] = {0, 0, 0, 0};
-	bool aKnown[4] = {false, false, false, false};
+	bool anEnemies = aWatch && std::strcmp(std::getenv("CB_WATCH"), "enemies") == 0;
+	int aCount = anEnemies ? 8 : 4;
+	int aWatched[8] = {};
+	bool aKnown[8] = {};
 	while (aRunning)
 	{
 		while (aNext < anEvents.size() && anEvents[aNext].time <= (int)gHost.mTime)
@@ -297,6 +352,8 @@ int main(int argc, char** argv)
 				Sys_MouseButton(e.a != 0 ? e.a : 1, e.what == "down" ? 1 : 0);
 			else if (e.what == "hold" || e.what == "release")
 				Sys_KeyEvent(e.a, e.what == "hold" ? 1 : 0);
+			else if (e.what == "focus")
+				gHost.mActive = e.name == "regain";
 			else if (e.what == "shot")
 				WritePng(gHost.mOut + "/" + e.name + ".png");
 			else if (e.what == "state")
@@ -304,6 +361,13 @@ int main(int argc, char** argv)
 				cb::Level* aLevel = cb::gLevels.current;
 				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, cb::gScore, cb::gLives,
 					cb::gLevelInSet, aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+			}
+			else if (e.what == "enemies")
+			{
+				std::printf("enemies at %u ms\n", gHost.mTime);
+				for (cb::Enemy* anEnemy = cb::gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = cb::Node_Next(anEnemy))
+					std::printf("enemy at %.1f,%.1f tint %d anim %s\n", anEnemy->x, anEnemy->y, anEnemy->tint,
+						anEnemy->anim != nullptr ? anEnemy->anim->name : "-");
 			}
 			else if (e.what == "end")
 				aRunning = false;
@@ -320,8 +384,17 @@ int main(int argc, char** argv)
 		if (aWatch)
 		{
 			cb::Level* aLevel = cb::gLevels.current;
-			int aNow[4] = {cb::RandValue(), cb::gScore, cb::gLives, aLevel != nullptr ? aLevel->filledCells : 0};
-			for (int i = 0; i < 4; i++)
+			int aNow[8] = {cb::RandValue(), cb::gScore, cb::gLives, aLevel != nullptr ? aLevel->filledCells : 0};
+			if (anEnemies)
+			{
+				cb::Enemy* anEnemy = aLevel != nullptr ? aLevel->enemies.head : nullptr;
+				for (int i = 0; i < 8; i++)
+				{
+					aNow[i] = anEnemy != nullptr ? anEnemy->tint : -1;
+					anEnemy = anEnemy != nullptr ? cb::Node_Next(anEnemy) : nullptr;
+				}
+			}
+			for (int i = 0; i < aCount; i++)
 			{
 				if (aKnown[i] && aNow[i] == aWatched[i])
 					continue;

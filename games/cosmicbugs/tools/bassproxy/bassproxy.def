@@ -1,0 +1,16 @@
+LIBRARY BASS.dll
+EXPORTS
+BASS_ChannelPause = Thunk0
+BASS_ChannelPlay = Thunk1
+BASS_Free = Thunk2
+BASS_Init = Thunk3
+BASS_MusicFree = Thunk4
+BASS_MusicLoad = Thunk5
+BASS_SampleFree = Thunk6
+BASS_SampleGetChannel = Thunk7
+BASS_SampleLoad = Thunk8
+BASS_SampleStop = Thunk9
+BASS_SetConfig = Thunk10
+BASS_SetVolume = Thunk11
+BASS_Start = Thunk12
+BASS_Stop = Thunk13
