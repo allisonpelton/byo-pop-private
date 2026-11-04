@@ -206,18 +206,53 @@ the board and sprite are masked in those shots (`b_done3`, `t2` to `t5`), everyt
 The frozen baseline was made again from this build (screens changed, the logic lines did not: action level 4 done 17369 score 6524,
 strategy level 5 done 19538 score 6380, puzzle game 1 over 6750 score 1450).
 
+### Added after the coordinator's review (2026-11-04): the screens you get by losing, Stampede through a saved game
+
+**The flood.** An action game left alone (no input) floods to the end: `lose.tour` shoots it from the first level's play to the
+ark sailing off, the sinking board and the game-over panel (original in the sandbox, port with -drawevery). Two faults found and
+fixed: the foreground waves of the flood's danger colour take the pulse itself (`mPulseA + shift`, the back wave alone takes 0x48 off:
+0x4092a0), and the sway of the sinking pieces is `sin(y * 0.5 + tick * 0.0667) * (64 - alpha / 4)`, so it grows as they fade
+(0x409d1e: the port had a constant 20). The sea, ark and Noah match from then on. One difference stays, under Oddities.
+
+**Stampede, through a saved game.** The bot cannot reach the bonus round with the original (the get-ready divergence after level 3), but
+the port writes the original's savegame.dat: `tools/phase2_save.sh` has the port's bot play to the Stampede round, a script quits to the
+main menu (the save), and both exes resume that one file (the menu's Continue, then the round's bot clicks replayed in the original).
+The saved game carries the generator state, so both play the same boards. It found two real faults, both fixed, and the pins moved
+(`tools/check.sh noahsark` action line 6524 to 6074, the mod test's tide 0 line 6871 to 6421):
+
+| Change | Cause in the original | Commit |
+|---|---|---|
+| A Stampede click took the clicked animal into the group twice (group of 8 scored as 9) | 0x40e340 takes the group the move highlighted as it is; the port's port(mod) push of the clicked piece added a duplicate | see log |
+| The saved game numbers the two obstacle kinds the other way round from the port's internal numbers (a strategy save from the original loaded with block and crate pictures exchanged, and the port's differed from it in 3 bytes) | the files are written and read with the 0xf and 0x10 exchanged now; compared with the original's file of the same strategy game: equal but for the level start tick and two bytes of two animals' animation fields | see log |
+| The bot logs its Stampede clicks (to replay them) | test hook only | see log |
+
+The Stampede round from the save then matches the original: the same boards, scores (3,000 updates in, equal), the round's end;
+differences left are the animals' walk to the ark one update off (the replayed click reaches the original one update after the
+port's) and the next level's board (the random generator is not resynchronised after the round).
+
+**The strategy game-over panel.** A strategy game of the bot's loses on hard at level 9 after 25,000 updates (the original cannot be
+replayed that far: the bot's play diverges after level 3). A saved game of that level resumed in both exes stands on a board with no
+move left in both (frozen alike at update 8000, the same screens but for the crate pictures the fix above corrected); the original only
+looks for "no moves" after a move, as the port does, so no loss follows. The panel itself is the one shown for the other modes
+(compared there). Not toured in strategy.
+
 ### Oddities (not fixed)
 
 - **Ark-bound animals' path and size.** In puzzle and strategy an animal walking to the ark is 1 to 3 pixels off in y after about 30
   updates and about 4 px off in size after its column falls; x is identical and the formulas equal the disassembly's. See it with
   `phase2_bot.sh pz4 ... "7790:u90 7795:u95 7798:u98 7800:u00 7802:u02 7805:u05"` (puzzle) and strategy shots b10/b20. Not found after the hour.
+- **The sinking board of a flood.** When the ark sails off with animals left, the original shows the board 27 px to the left and about
+  1 px lower at the update after the port's (the port: +14 px down, no sideways move). The sway block of 0x409d1e (x plus the sway,
+  y plus 14) cannot give that with the pieces' alpha of 250; the pieces' fields could not be watched in the original (the watch
+  chain gave nothing). The sinking then goes on at the same 1 px per update. See it with `tools/phase2.sh` on a tour that waits
+  8,880 to 9,050 updates in an action game on easy with no input (`lose.tour` in the notes).
 - Rotated sprites are about 1 px off (the framework's rotation), as in the other games.
 - The crossed numbering of block and crate pictures of the original is kept.
 
 ### Deviations left
 
-- Stampede (the bonus round after action level 3) and levels past the first of bot runs could not be compared: past update 10300 of an
+- Levels past the first of bot runs could not be compared (the Stampede is compared through a saved game, above): past update 10300 of an
   action game the bot's play diverges from the original even with the generator resync. Its screens are compared only by the
   shared draw code with the other modes.
-- Registration dialog, flood/lost screens and the strategy game-over panel were not toured.
+- The registration dialog was not toured (registration code comes out in a later pass); the strategy game-over panel was not reached (above).
 - Music content was compared by start and stop only.

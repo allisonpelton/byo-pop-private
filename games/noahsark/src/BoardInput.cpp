@@ -289,8 +289,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 		{
 			if (mLink.empty())
 				return;
-			mLink.push_back(mGrid[aCellX][aCellY]);
-			RemoveGroup();
+			RemoveGroup();   // 0x40e340: the group the move highlighted, the clicked animal in it once
 			return;
 		}
 

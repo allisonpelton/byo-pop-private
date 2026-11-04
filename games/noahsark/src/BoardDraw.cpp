@@ -464,7 +464,7 @@ void Board::Draw(Graphics* g)
 		{
 			if ((mWaterY < mArkLevelY + 0x14) && ((mState == BOARD_PLAYING) || (mState == BOARD_SWAP) ||
 				(mState == BOARD_SWAP_BACK) || (mState == BOARD_SETTLE)))
-				aColor = Color(std::min(0xff, std::max(0, mPulseA - 0x48) + aShift), aShift, aShift);
+				aColor = Color(std::min(0xff, mPulseA + aShift), aShift, aShift);   // 0x4092a0: the pulse itself, only the back wave takes 0x48 off
 			else
 				aColor = Color(std::min(0xff, 0x2c + aShift), std::min(0xff, 0x45 + aShift), 0xb3);
 		}
@@ -519,7 +519,7 @@ void Board::Draw(Graphics* g)
 				{
 					if ((p->mAlpha < 0xff) && (mState == BOARD_LEVEL_DONE))
 					{
-						aX += (int) (sinf(y * 0.5f + mUpdateCnt * 0.0667f) * 20.0f);
+						aX += (int) (sin(y * 0.5 + mUpdateCnt * 0.06666666666666667) * (64.0f - p->mAlpha * 0.25f));   // 0x409d1e: the sway grows as the piece fades
 						aY += 14;
 					}
 					// the original's first group of obstacles (0x401ce0, the ones the port numbers 0x10) shows block.jpg, its second the crate
@@ -530,7 +530,7 @@ void Board::Draw(Graphics* g)
 					continue;
 				if ((p->mAlpha < 0xff) && (mState == BOARD_LEVEL_DONE))
 				{
-					aX += (int) (sinf(y * 0.5f + mUpdateCnt * 0.0667f) * 20.0f);
+					aX += (int) (sin(y * 0.5 + mUpdateCnt * 0.06666666666666667) * (64.0f - p->mAlpha * 0.25f));   // 0x409d1e: the sway grows as the piece fades
 					aY += 14;
 				}
 				Graphics aClip(*g);
