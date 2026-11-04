@@ -1,0 +1,48 @@
+{
+ "client": [
+  640,
+  480
+ ],
+ "ignore": [
+  {
+   "rect": [
+    178,
+    16,
+    450,
+    450
+   ],
+   "pairs": "b_done3.png",
+   "label": "the next level's board: the animals come from the random generator, which a bot run does not resynchronise between the original and the port as the phase-one comparison does, so the two fill differently; the panel, the Get Ready text and the frame are still compared"
+  },
+  {
+   "rect": [
+    0,
+    200,
+    112,
+    104
+   ],
+   "pairs": "b_done3.png",
+   "label": "Noah in the sidebar of the next level: his sprite is picked with the random generator, which a bot run does not resynchronise after the first level (as for the board)"
+  },
+  {
+   "rect": [
+    170,
+    0,
+    470,
+    480
+   ],
+   "pairs": "t[2-5].png",
+   "label": "the next level's board in a strategy bot run: its animals come from the random generator, which a bot run does not resynchronise after the first level (phase one compares those levels by state); the sidebar, frame, Get Ready text and panels are still compared"
+  },
+  {
+   "rect": [
+    0,
+    200,
+    112,
+    104
+   ],
+   "pairs": "t[2-5].png",
+   "label": "Noah in the sidebar of the next level: his sprite is picked with the same random generator"
+  }
+ ]
+}

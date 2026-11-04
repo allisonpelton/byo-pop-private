@@ -170,7 +170,7 @@
 BW_CLASSIC="level 5, score 19230"
 BW_ACTION="level 11, score 87580"
 BM_GAME1="score 66646"
-NA_ACTION="level 4 done at update 17369: score 6524 mode stampede"
+NA_ACTION="level 4 done at update 17369: score 6074 mode stampede"
 NA_STRATEGY="level 5 done at update 19538: score 6380 mode strategy"
 NA_PUZZLE="game 1 over at update 6750: score 1450 level 1 moves 37"
 AT_STRATEGY="game 1 over at update 2396: score 320 level 1 moves 31"

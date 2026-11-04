@@ -2,6 +2,7 @@
 
 #include "Screens.h"
 #include "NoahApp.h"
+#include "Button2003.h"
 #include "Board.h"
 #include "GameText.h"
 #include "ModFeatures.h"
@@ -99,15 +100,15 @@ void TitleScreen::Draw(Graphics* g)
 	g->DrawImage(anImages[IMAGE_TITLE], 0, 0);
 	Image* aBar = anImages[IMAGE_TITLEBAR];
 	g->DrawImage(aBar, 0x99, 0x174, Rect(0, 0, (int) (mProgress * aBar->mWidth), aBar->mHeight));
-	g->DrawImage(anImages[IMAGE_POPCAPLOGO], 0x20b, 0x1cb);
-	g->DrawImage(anImages[IMAGE_POPCAPURL], 0x20b, 0x16a);
+	g->DrawImage(anImages[IMAGE_POPCAPLOGO], 0x20b, 0x16a);
+	g->DrawImage(anImages[IMAGE_POPCAPURL], 0x20b, 0x1cb);
 
 	// the line in the middle (registered: the thanks), black outline then yellow
 	SexyString aLine = GT(0x0049620c);
 	g->SetFont(mApp->mFonts[FONT_SMALL]);
 	g->SetColor(Color(0, 0, 0));
-	for (int dx = -1; dx < 1; dx++)
-		for (int dy = 0; dy < 2; dy++)
+	for (int dx = -1; dx < 2; dx++)
+		for (int dy = -1; dy < 2; dy++)
 		{
 			int aWidth = g->GetFont()->StringWidth(aLine);
 			g->DrawString(aLine, (mWidth - aWidth) / 2 + dx, dy + 0x170);
@@ -128,6 +129,13 @@ void TitleScreen::Draw(Graphics* g)
 			for (int dy = -2; dy < 1; dy++)
 				g->DrawString(mPlayLink->mLabel, (mWidth - aWidth) / 2 + dx, dy + 0x1d8);
 	}
+}
+
+// 0x420550: a press on the link clicks, through the app
+void TitleScreen::ButtonPress(int theId)
+{
+	(void) theId;
+	mApp->ButtonPress(0);
 }
 
 // 0x420560: the play link starts the game's menus
@@ -220,7 +228,7 @@ void IntroWidget::Draw(Graphics* g)
 	if (mContinueButton == NULL)
 	{
 		// no saved game: the Continue button is drawn dimmed, as a picture
-		g->DrawImageBox(Rect(100, 0x147, 0xc4, 0x2f), mApp->mImages[IMAGE_BUTTONBACK]);
+		DrawImageBox2003(g, Rect(100, 0x147, 0xc4, 0x2f), mApp->mImages[IMAGE_BUTTONBACK]);
 		g->SetFont(mApp->mFonts[FONT_COLORLESS]);
 		g->SetColor(Color(0x78, 0x78, 0x78));
 		SexyString aText = GT(0x00494a28);
@@ -260,6 +268,14 @@ static const int gRankThresholds[24] =
 {
 	1250, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 75000,
 	100000, 150000, 200000, 500000, 1000000, 5000000, 10000000, 999999999
+};
+
+// 0x4944c0: the ranks of the game-over screen, the same names in capitals
+static const unsigned int gRankNamesCaps[23] =
+{
+	0x0049466c, 0x0049465c, 0x00494650, 0x00494644, 0x00494638, 0x00494624, 0x00494618, 0x00494608, 0x004945f8,
+	0x004945e8, 0x004945d8, 0x004945c8, 0x004945b8, 0x004945ac, 0x004945a0, 0x00494594, 0x00494588, 0x00494574,
+	0x00494564, 0x00494558, 0x00494544, 0x00494538, 0x00494528
 };
 
 // 0x494ab4: the names of the ranks from the lowest
@@ -327,7 +343,14 @@ void NextLevelWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
 	int aWidth = mNextLink->mFont->StringWidth(mNextLink->mLabel);
-	mNextLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x37 + mY, aWidth + 8, 0x1d);
+	mNextLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x37, aWidth + 8, 0x1d);   // the original's y has no mY added
+}
+
+// 0x420550: a press on the link clicks, through the app
+void NextLevelWidget::ButtonPress(int theId)
+{
+	(void) theId;
+	mApp->ButtonPress(0);
 }
 
 // 0x416650: the link ends the bonus round and starts the next level
@@ -365,14 +388,14 @@ void NextLevelWidget::Draw(Graphics* g)
 	Graphics ig(mBackground);
 	Image** anImages = mApp->mImages;
 	ig.DrawImage(anImages[IMAGE_FRAME], 0, 0);
-	ig.DrawImageBox(Rect(0, 0, 0x1d8, 0x1d7), anImages[IMAGE_DIALOG]);
+	DrawImageBox2003(&ig, Rect(0, 0, 0x1d8, 0x1d7), anImages[IMAGE_DIALOG]);
 
 	SexyString aTitle = GT(0x00494f34);
 	ig.SetFont(mApp->mFonts[FONT_BIG]);
 	ig.SetColor(Color(0x32, 0x32, 0x32, 200));
 	for (int dx = 0; dx < 2; dx++)
-		for (int dy = 0; dy < 2; dy++)
-			ig.DrawString(aTitle, (mWidth - ig.GetFont()->StringWidth(aTitle)) / 2 + dx, 0x3c + dy);
+		for (int aPass = 0; aPass < 2; aPass++)
+			ig.DrawString(aTitle, (mWidth - ig.GetFont()->StringWidth(aTitle)) / 2 + dx, 0x3c);
 	ig.SetColor(Color(0xff, 0xff, 0xff));
 	ig.DrawString(aTitle, (mWidth - ig.GetFont()->StringWidth(aTitle)) / 2, 0x3c);
 
@@ -403,15 +426,15 @@ void NextLevelWidget::Draw(Graphics* g)
 	ig.DrawString(aRight, aRightX, 100);
 
 	// the rank
-	DrawCentered(&ig, mApp->mFonts[FONT_SMALL], GT(0x00494ecc), mWidth, 0x104, Color(0xff, 0xff, 0xff));
+	DrawCentered(&ig, aTiny, GT(0x00494ecc), mWidth, 0x104, Color(0x75, 0x5d, 0x43));
 	int aRank = 0;
 	while ((aRank < 23) && (mApp->mGameScore >= gRankThresholds[aRank]))
 		aRank++;
 	if (aRank > 22)
 		aRank = 22;
 	DrawCentered(&ig, mApp->mFonts[FONT_MEDIUM], GT(gRankNames[aRank]), mWidth, 0x128, Color(0xff, 0xff, 0xff));
-	DrawCentered(&ig, mApp->mFonts[FONT_SMALL], FormatText(GT(0x00494eb4), gRankThresholds[aRank]), mWidth, 0x144,
-		Color(0xff, 0xff, 0xff));
+	DrawCentered(&ig, aTiny, FormatText(GT(0x00494eb4), gRankThresholds[aRank]), mWidth, 0x144,
+		Color(0x75, 0x5d, 0x43));
 
 	DrawCentered(&ig, aTiny, GT(gTipLines[mTip]), mWidth, 0x169, Color(0xc2, 0x9f, 0x83));
 	DrawCentered(&ig, aTiny, GT(gTipLines2[mTip]), mWidth, 0x182, Color(0xc2, 0x9f, 0x83));
@@ -600,9 +623,9 @@ void HighScoreWidget::Draw(Graphics* g)
 {
 	int aAlpha = (int) mFade;
 	g->SetColorizeImages(true);
-	g->SetColor(Color(0x59, 0x72, 0xb3, aAlpha));
+	g->SetColor(Color(0x59, 0x72, 0xb3));
 	g->FillRect(0, 0, mWidth, mHeight);
-	g->SetColor(Color(0xff, 0xff, 0xff, aAlpha));
+	g->SetColor(Color(0xff, 0xff, 0xff));
 	if (mApp->mBoard != NULL)
 	{
 		mApp->mBoard->DrawFish(g);
@@ -612,22 +635,22 @@ void HighScoreWidget::Draw(Graphics* g)
 	int aScore = mApp->mGameScore;
 	Font* aFont = mApp->mFonts[FONT_MEDIUM];
 	g->SetColor(Color(0xff, 0xbf, 0x22, aAlpha));
-	g->DrawString(GT(0x004947d8), (mWidth - aFont->StringWidth(GT(0x004947d8))) / 2, 0x32);
+	g->DrawString(GT(0x004947d8), (mWidth - aFont->StringWidth(GT(0x004947d8))) / 2, 0x27);
 	g->SetColor(Color(0xff, 0xff, 0, aAlpha));
 	SexyString aPoints = FormatText(GT(0x004947cc), aScore);
-	g->DrawString(aPoints, (mWidth - aFont->StringWidth(aPoints)) / 2, 0x58);
+	g->DrawString(aPoints, (mWidth - aFont->StringWidth(aPoints)) / 2, 0x48);
 	g->SetColor(Color(0xff, 0xbf, 0x22, aAlpha));
-	g->DrawString(GT(0x004947b4), (mWidth - aFont->StringWidth(GT(0x004947b4))) / 2, 0x7a);
+	g->DrawString(GT(0x004947b4), (mWidth - aFont->StringWidth(GT(0x004947b4))) / 2, 0x72);
 	int aRank = 0;
 	while ((aRank < 23) && (aScore >= gRankThresholds[aRank]))
 		aRank++;
 	if (aRank > 22)
 		aRank = 22;
 	g->SetColor(Color(0xff, 0xff, 0, aAlpha));
-	g->DrawString(GT(gRankNames[aRank]), (mWidth - aFont->StringWidth(GT(gRankNames[aRank]))) / 2, 0x95);
+	g->DrawString(GT(gRankNamesCaps[aRank]), (mWidth - aFont->StringWidth(GT(gRankNamesCaps[aRank]))) / 2, 0x95);
 
 	g->SetColor(Color(0xff, 0xff, 0xff, aAlpha));
-	g->DrawImageBox(Rect((mWidth - 0x19f) / 2, 0xa0, 0x19f, 0xf0), mApp->mImages[IMAGE_DIALOG]);
+	DrawImageBox2003(g, Rect((mWidth - 0x19f) / 2, 0xa0, 0x19f, 0xf0), mApp->mImages[IMAGE_DIALOG]);
 	g->SetColorizeImages(false);
 	g->SetFont(aFont);
 	g->SetColor(Color(0xff, 0xbf, 0x22, aAlpha));
@@ -644,6 +667,13 @@ void HighScoreWidget::Draw(Graphics* g)
 		g->DrawString(aScoreText, (mWidth - aFont->StringWidth(aScoreText)) - 0x96, aY);
 		aY += 0x1e;
 	}
+}
+
+// 0x420550: a press on the link clicks, through the app
+void HighScoreWidget::ButtonPress(int theId)
+{
+	(void) theId;
+	mApp->ButtonPress(0);
 }
 
 // 0x413520

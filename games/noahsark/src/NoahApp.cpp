@@ -2,6 +2,7 @@
 // docs/GAME_NOTES.md section 3.
 
 #include "NoahApp.h"
+#include "Button2003.h"
 #include "Board.h"
 #include "Screens.h"
 #include "Dialogs.h"
@@ -216,6 +217,7 @@ Dialog* NoahApp::NewDialog(int theDialogId, bool isModal, const SexyString& theD
 {
 	Dialog* aDialog = new Dialog2004(mImages[IMAGE_DIALOG], mImages[IMAGE_DBUTTON], theDialogId, isModal,
 		theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
+	Use2003Buttons(aDialog, mImages[IMAGE_DBUTTON]);
 	aDialog->SetButtonFont(mFonts[FONT_SMALL]);
 	aDialog->SetHeaderFont(mFonts[FONT_MEDIUM]);
 	aDialog->SetLinesFont(mFonts[FONT_GARAMOND_SMALL]);
@@ -268,7 +270,7 @@ void NoahApp::LostFocus()
 // 0x417320: a button of the menus, in the app's list
 DialogButton* NoahApp::AddDialogButton(int theId, const Rect& theRect, Image* theImage)
 {
-	DialogButton* aButton = new DialogButton(theImage, theId, this);
+	DialogButton* aButton = new DialogButton2003(theImage, theId, this);
 	aButton->Resize(theRect);
 	aButton->mDoFinger = true;
 	aButton->mMouseInsets = Insets(-1, -1, -1, -1);
@@ -352,8 +354,8 @@ void NoahApp::ShowIntro(bool theKeepMusic)
 	mWidgetManager->AddWidget(mIntroWidget);
 	mWidgetManager->BringToBack(mIntroWidget);
 	mWidgetManager->SetFocus(mIntroWidget);
-	mWidgetManager->BringToFront(mOptionsButton);
-	mWidgetManager->BringToFront(mQuitButton);
+	mWidgetManager->BringToBack(mOptionsButton);   // 0x4185c0 sends the sidebar's buttons back too; nothing brings them forward again, so a dialog is above them
+	mWidgetManager->BringToBack(mQuitButton);
 	// the sidebar's buttons belong to the board screens only
 	mOptionsButton->SetVisible(false);
 	mQuitButton->SetVisible(false);
@@ -415,8 +417,6 @@ void NoahApp::StartGame(bool theContinue)
 	mGameStartTick = GameTickCount();
 	mOptionsButton->SetVisible(true);
 	mQuitButton->SetVisible(true);
-	mWidgetManager->BringToFront(mOptionsButton);
-	mWidgetManager->BringToFront(mQuitButton);
 	PlayGameMusic();
 }
 
@@ -430,8 +430,6 @@ void NoahApp::ShowNextLevel()
 		mImages[IMAGE_FRAME]->mHeight);
 	mWidgetManager->AddWidget(mNextLevelWidget);
 	mWidgetManager->SetFocus(mNextLevelWidget);
-	mWidgetManager->BringToFront(mOptionsButton);
-	mWidgetManager->BringToFront(mQuitButton);
 }
 
 // 0x4188c0
@@ -504,16 +502,14 @@ void NoahApp::ShowTutorial()
 // 0x416e80
 void NoahApp::ShowQuitDialog()
 {
-	Dialog* aDialog;
 	if (mBoard != NULL)
 	{
-		aDialog = DoDialog(DIALOG_QUIT, true, GT(0x004956ec), GT(0x004956fc), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
+		Dialog* aDialog = DoDialog(DIALOG_QUIT, true, GT(0x004956ec), GT(0x004956fc), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
 		aDialog->Resize(0xbb, 0x57, 0x1a0, 300);
 	}
 	else
 	{
-		aDialog = DoDialog(DIALOG_QUIT, true, GT(0x0049c510), GT(0x00495760), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
-		aDialog->Resize(0xbb, 0x57, 0x1a0, 300);
+		DoDialog(DIALOG_QUIT, true, GT(0x00494a20), GT(0x00495760), GT(0x0049c510), Dialog::BUTTONS_YES_NO);   // no resize: the dialog keeps NewDialog's size
 	}
 }
 

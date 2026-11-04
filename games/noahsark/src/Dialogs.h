@@ -39,6 +39,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual int			GetPreferredHeight(int theWidth) override;
+	virtual void		ButtonPress(int theId) override;
 	virtual void		ButtonDepress(int theId) override;
 	using Widget::Resize;
 };
@@ -106,6 +107,7 @@ public:
 	virtual int			GetPreferredHeight(int theWidth) override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		SetColor(int theIdx, const Color& theColor) override;
+	virtual void		ButtonPress(int theId) override;
 	virtual void		ButtonDepress(int theId) override;
 	virtual void		SliderVal(int theId, double theVal) override;
 	using Widget::Resize;
@@ -131,6 +133,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual int			GetPreferredHeight(int theWidth) override;
+	virtual void		ButtonPress(int theId) override;
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
 	using Widget::Resize;

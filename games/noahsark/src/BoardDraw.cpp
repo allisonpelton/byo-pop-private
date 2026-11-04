@@ -73,9 +73,9 @@ void Board::DrawBubbles(Graphics* g)
 		Graphics aClip(*g);
 		aClip.ClipRect((int) aBubble->mX, (int) aBubble->mY, 0xf, 0xf);
 		int aOffset = (aBubble->mY <= (double) (mWaterY + 0x14)) ? 0 : -0xf;
-		aClip.SetColorizeImages(true);
+		aClip.SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		aClip.DrawImage(mApp->mImages[IMAGE_BUBBLES], (int) aBubble->mX + aOffset, (int) aBubble->mY);
-		aClip.SetColorizeImages(false);
+		aClip.SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 }
 
@@ -464,7 +464,7 @@ void Board::Draw(Graphics* g)
 		{
 			if ((mWaterY < mArkLevelY + 0x14) && ((mState == BOARD_PLAYING) || (mState == BOARD_SWAP) ||
 				(mState == BOARD_SWAP_BACK) || (mState == BOARD_SETTLE)))
-				aColor = Color(std::min(0xff, std::max(0, mPulseA - 0x48) + aShift), aShift, aShift);
+				aColor = Color(std::min(0xff, mPulseA + aShift), aShift, aShift);   // 0x4092a0: the pulse itself, only the back wave takes 0x48 off
 			else
 				aColor = Color(std::min(0xff, 0x2c + aShift), std::min(0xff, 0x45 + aShift), 0xb3);
 		}
@@ -519,17 +519,18 @@ void Board::Draw(Graphics* g)
 				{
 					if ((p->mAlpha < 0xff) && (mState == BOARD_LEVEL_DONE))
 					{
-						aX += (int) (sinf(y * 0.5f + mUpdateCnt * 0.0667f) * 20.0f);
+						aX += (int) (sin(y * 0.5 + mUpdateCnt * 0.06666666666666667) * (64.0f - p->mAlpha * 0.25f));   // 0x409d1e: the sway grows as the piece fades
 						aY += 14;
 					}
-					g->DrawImage(anImages[(aType == PIECE_BLOCK) ? IMAGE_BLOCK : IMAGE_CRATE], aX, aY);
+					// the original's first group of obstacles (0x401ce0, the ones the port numbers 0x10) shows block.jpg, its second the crate
+					g->DrawImage(anImages[(aType == PIECE_BLOCK) ? IMAGE_CRATE : IMAGE_BLOCK], aX, aY);
 					continue;
 				}
 				if ((aType == PIECE_EMPTY) || !aQuiet)
 					continue;
 				if ((p->mAlpha < 0xff) && (mState == BOARD_LEVEL_DONE))
 				{
-					aX += (int) (sinf(y * 0.5f + mUpdateCnt * 0.0667f) * 20.0f);
+					aX += (int) (sin(y * 0.5 + mUpdateCnt * 0.06666666666666667) * (64.0f - p->mAlpha * 0.25f));   // 0x409d1e: the sway grows as the piece fades
 					aY += 14;
 				}
 				Graphics aClip(*g);
@@ -618,7 +619,7 @@ void Board::Draw(Graphics* g)
 					aClip.SetColorizeImages(true);
 					aClip.SetColor(Color(mPulseB, mPulseB, mPulseB));
 				}
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY - 6 * 0x32);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY);
 				aClip.SetColorizeImages(false);
 				continue;
 			}
@@ -643,16 +644,16 @@ void Board::Draw(Graphics* g)
 			}
 			if (p->mRemoved)
 			{
-				if (p->mAlpha < 0xff)
+				// the animal is stretched into a picture of its own with the framework's fast stretch (0x40a6f9 does so for
+				// the translucent ones, the opaque ones go straight to the screen, which a software surface stretches the same way)
+				MemoryImage aStretched(mApp);
+				aStretched.Create(aSize, aSize);
 				{
-					Rect aSrc(aType * 0x32, 0xfa, 0x32, 0x32);
-					aClip.DrawImage(anImages[IMAGE_ANIMALS], Rect(aX, aY, aSize, aSize), aSrc);
+					Graphics aStretch(&aStretched);
+					aStretch.SetFastStretch(true);
+					aStretch.DrawImage(anImages[IMAGE_ANIMALS], Rect(0, 0, aSize, aSize), Rect(aType * 0x32, 0xfa, 0x32, 0x32));
 				}
-				else
-				{
-					Rect aSrc(aType * 0x32, 0xfa, 0x32, 0x32);
-					aClip.DrawImage(anImages[IMAGE_ANIMALS], Rect(aX, aY, aSize, aSize), aSrc);
-				}
+				aClip.DrawImage(&aStretched, aX, aY);
 			}
 			else if (p->mFading)
 			{
@@ -713,8 +714,7 @@ void Board::Draw(Graphics* g)
 		}
 		if (((mState == BOARD_WON) || (mState == BOARD_LEVEL_DONE)) && BoardCleared() && (aMode == GAMEMODE_ACTION))
 		{
-			char aBuffer[64];
-			const SexyString& aSpeed = GT(0x00494244);
+						const SexyString& aSpeed = GT(0x00494244);
 			const SexyString& aBonus = GT(0x0049423c);
 			g->SetFont(anApp->mFonts[FONT_GARAMOND_SMALL]);
 			g->SetColor(Color(0, 0, 0, 0x96));
@@ -723,14 +723,14 @@ void Board::Draw(Graphics* g)
 				{
 					g->DrawString(aSpeed, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aSpeed)) / 2 + dx, 0xfa + dy);
 					g->DrawString(aBonus, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBonus)) / 2 + dx, 0x110 + dy);
-					snprintf(aBuffer, sizeof(aBuffer), "%d", mBonusPoints);
-					g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2 + dx, 0x126 + dy);
+					SexyString aBuffer = FormatText(GT(0x00494234), mBonusPoints);
+					g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2 - g->GetFont()->StringWidth(GT(0x00494230)) / 2 + dx, 0x126 + dy);
 				}
 			g->SetColor(Color(0xff, 0xff, 0xff, 0xff));
 			g->DrawString(aSpeed, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aSpeed)) / 2, 0xfa);
 			g->DrawString(aBonus, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBonus)) / 2, 0x110);
-			snprintf(aBuffer, sizeof(aBuffer), "%d", mBonusPoints);
-			g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2, 0x126);
+			SexyString aBuffer = FormatText(GT(0x00494234), mBonusPoints);
+			g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2 - g->GetFont()->StringWidth(GT(0x00494230)) / 2, 0x126);
 		}
 	}
 }

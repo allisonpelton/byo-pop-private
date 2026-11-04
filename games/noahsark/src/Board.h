@@ -72,7 +72,7 @@ struct Sparkle
 // A score that floats up from a cell (0x407bd0 makes it, 0x407f00 moves it, 0x407fa0 draws it)
 struct FloatingText
 {
-	char			mText[256];             // +0x000 "%d", "+%d" or "-%d"
+	char			mText[256];             // +0x000 "-%d", "+%d" (puzzle and stampede) or "%d"
 	Color			mColor;                 // +0x100
 	int				mX;                     // +0x110 cell left
 	int				mY;                     // +0x114
