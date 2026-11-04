@@ -1,8 +1,8 @@
 # TipTop Deluxe: the identical-play pass
 
-This is phase one of the pass that CLAUDE.md describes: **plays identical**. Given the same input, the original and the port
-play the same games, judged by the game's state rather than by pictures. Phase two has not started: screens with shotdiff,
-sound, focus and the web build.
+This is the pass that CLAUDE.md describes. Phase one, **plays identical**: given the same input, the original and the port
+play the same games, judged by the game's state rather than by pictures. Phase two, **looks identical** (at the end): the
+screens with shotdiff, the sound and the music, the loss of the focus, and the web build.
 
 The original is the installed `TipTop.exe`. It runs only through `tools/origrun`, from a copy under a short path
 (`C:\byo-og\tt\game`, staged by `games/tiptop/tools/identical/setup.sh`), under rundesk, which keeps it invisible, silent
@@ -141,4 +141,119 @@ changed its reference result with this pass, because the bot now waits for a hel
 ## Deviations left
 
 None in play. The port's deviations from the original, where they exist, are in the game's notes and are outside the
-game's logic. Phase two will compare screens, sound, focus and the web build.
+game's logic. Phase two found none on the screen or in the sound either (below).
+
+## Phase two: looks identical (2026-11-04)
+
+**How.** The original ran inside Windows Sandbox (`tools/origrun --sandbox`) on the virtual clock with the scripted cursor,
+from a copy staged in `build/origrun/ttsb-<tour>` with phase one's patch list. `games/tiptop/tools/shots/orig.sh <tour>`
+runs a tour on it, `port.sh` runs the same tour in the port (`-script` with `screenshot` lines, `-fast`), and `cmp.sh`
+runs `tools/shotdiff` and lists every pair that is not identical. A tour (`tour1.txt` to `tour6.txt`) is one script in the
+port's format; `make.py` turns it into both sides' scripts. Tours 4 to 6 were made by `mktour.py` from phase one's bot
+scripts, with shots added.
+
+TipTop draws through DirectDraw, and inside the sandbox PrintWindow sees none of its picture, so origrun reads the frame
+from the game's memory (`--surface-screen`). For that, a static patch has LOWOS's Blit (0x430190), which locks the screen
+for its software blits, also store the locked pixels' address and pitch in the data section's zero tail (0x48cfe0,
+0x48cfe4), and the frame is read while the game is held between two of its frames (`--surface-eip` on 0x41b9fe-0x41bbce).
+Phase one's typed name never reached the original, which turned out to be two things in the copy's LOWOS, both patched:
+the sandbox has no DirectInput keyboard, so the keyboard was switched off (0x431c66); and a hidden window never owns the
+keyboard, so every poll found it "lost" and threw the typed characters away (0x4317b2). Input is posted only while the
+game is held at its input reads or in its frame (`--input-eip`), so a click never lands halfway through a pass.
+
+**Lining up the updates.** Three alignments were measured, not assumed. A click in the port's update K is posted at K-1 in
+the original, as in phase one. A shot is taken at the same number on both sides: the frame read when the original's
+counter shows N is the port's screenshot at update N (with K-1 the board's falling blocks were one frame apart). A focus
+change also goes at the same number: at K-1 the "Paused!" picture's zoom was one update ahead in the original. And
+origrun's click posts the move with the press, but the original reads the move a pass before the press: its rollover
+sound and the board's column sound played at K-1. The port's side of every tour therefore moves the cursor at K-1 before
+each click at K. That leaves the port's game unchanged (tour 2's state log is the same with and without the move), and
+it makes every hover and sound fall on the original's update.
+
+**Tours.** 1: the splash and its loading bar, the main menu and the hover of each button, the high scores and the clear
+question (answered No), the options and the tips check box, all seven pages of the instructions and back, the credits,
+the quit question (No) and the new game screen with its hovers (31 shots). 2: phase one's whole regular game (bot seed
+1, game seed 1): the tips over the board, the board every 250 updates, both level summaries, the game over, the name
+entry and the high score screen (54 shots). 3: a regular game's start with the tips, pause and unpause, the window losing
+the focus at update 900 and getting it back at 1000, the options and instructions from the game, End game with its
+question and the save, the new game screen with the saved game, continuing it and leaving it unsaved (24 shots). 4:
+phase one's strategy game (bot seed 2, game seed 3), the board every 300 updates, the level summary and the game over
+(22 shots). 5: phase one's saved game (bot seed 2, game seed 2): End game after 30 blocks, saved and continued, level 3's
+summary and the bonus round after it, every 100 updates, to level 4's start (25 shots). 6: a speed game's first two
+levels (phase one's case spd), the board every 200 updates and the level summary (16 shots).
+
+In all, 172 shots, and **every pair is identical**: shotdiff flags no box in any tour. Until the alignments above were
+in place, the flags were all timing (a falling block a frame apart, a column's glow lit a pass early, the "Paused!" zoom
+an update ahead) or input (the name never typed), and none needed a change to the port. One box was the saved game's
+date on the new game screen, when the two shots were taken on different days; tours are run on one day.
+
+### Changes
+
+The game's code needed no change. The port's test hooks gained `-buttonlog` (every control of the screen, with its box and
+command, used to find the click points), `-soundlog` (every sound loaded, started and stopped, and the music's state)
+and a getter for the music's pause count. The tools are in `games/tiptop/tools/shots/`; the original's new patches are
+written by `tools/identical/setup.sh`. Nothing changed unmodded play, so the frozen baseline stands, and
+`tools/check.sh tiptop` reports it identical.
+
+### Oddities and masks
+
+No mask was needed. Two things were seen and not chased, both in the harness rather than the game:
+
+- **The loss of the focus on the host.** In the sandbox, losing and regaining the focus gives the same pictures as the
+  port (tour 3). On the host, a "focus regain" at the start of a run made the original's tour 2 game go another way from
+  update 790, its random draws coming five updates late, while without it every draw comes at the port's update. The host
+  runs for sound therefore leave the focus alone (below).
+- **The original's clock while it is inactive.** During tour 3's loss of the focus, origrun's virtual clock jumped ahead
+  (by 515 s in one run and 751 s in another), though the update counter went on as before. The sound stand-in times
+  sounds by that clock, so tour 3's later sounds are compared by order and by a constant shift.
+
+### Sound
+
+The original's sound was recorded on the host without playing (`shots/sound.sh`: origrun with `--sound wav`, whose
+DirectSound stand-in logs every buffer it makes, every start and every stop, by the virtual clock), and the port's with
+`-soundlog`. `soundcmp.py` names each sound by its place in the order of creation, checks that the sizes agree (all 36
+do), and compares the starts and stops in order and by update. A test run's mixer does not play, so whether a sound is
+still playing (which decides whether a stop happens and whether a "start unless playing" starts) is worked out from the
+sound's length, as the stand-in works it out for the original.
+
+Two patches were needed for this. LOWOS plays a sound only while the window is in front (0x43300c), which a hidden
+window never is; the port asks only whether it is active, so the check is lifted. And with no patch the original would
+send its music to Windows' MIDI mapper, which origrun's silence does not cover, so phase one never started it; for the
+sound runs, the music starts and its player thread runs, but its calls to the MIDI device are skipped (the open answers
+success with no device; a separate patch list, `tiptop-music.txt`). The music's state is then watched: its playing flag
+(0x48a098), its pause count (0x489f08) and its volume (0x47e298), against the same values in the port's log.
+
+| Tour | Starts | Stops | Music |
+| --- | --- | --- | --- |
+| 1 | 49 | 20 | starts at 430 |
+| 2 | 346 | 115 | starts at 406 |
+| 3 | 44 | 10 | starts at 406; paused 800-850 and while the focus is lost |
+| 4 | 193 | 70 | starts at 406 |
+| 5 | 473 | 152 | starts at 406 |
+| 6 | 88 | 36 | starts at 406 |
+
+Every start and stop is the same sound at the same update on both sides, and every run's RESULT line says the game made
+no sound. The music's playing flag and volume change at the same updates. Its pause count differs by one update when the
+focus is lost: the original's goes 0, 1, 2 over updates 899 and 900 (the window's message in one pass, the game's own
+pause in the next), the port's goes 0 to 2 in update 900, and back to 0 at 999 against 1000. That is the same one-pass
+offset of a focus change measured for the pictures; the music is silent either way, so nothing can be heard.
+
+Two harness faults were found and fixed on the way. A script that ends early posts the close too soon, and after the
+close the original plays nothing (tour 4's game-over sound was missing until the script was held to the tour's end); and
+the stand-in's starts had first seemed to stop at update 1455, which was the focus line above sending the game another
+way.
+
+### The web build
+
+Every tour was shot again from the web build under Node (`shots/web.sh`, `games/bejeweled/tools/verify/wasmrun.js`) and
+compared with the native port's shots by shotdiff (`webcmp.sh`): all 172 pairs are identical. TipTop draws no rotated or
+scaled sprites, so the web build's known 1 px offset on those does not arise. The web build's `-soundlog` on every tour
+(`websound.sh`) has the same sounds, starts, stops and music states as the native port's.
+
+### Not compared
+
+The hidden timed mode, whose button lies off the screen (as in phase one). The sound and music volume sliders, which no
+tour moves, and the full screen check box. The music's notes themselves: the original's player is a thread that runs on
+real time with 20 ms sleeps, so its notes cannot be lined up with updates; its state is compared instead. The publisher
+link on the options screen (command 0x37), which is never clicked. The Browser pane was not used: the web build was run
+under Node.

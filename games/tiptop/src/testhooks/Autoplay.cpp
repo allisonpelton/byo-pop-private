@@ -28,6 +28,7 @@
 #include "Board.h"
 #include "Config.h"
 #include "Game.h"
+#include "Music.h"
 #include "Gui.h"
 
 #include <cstdarg>
@@ -404,6 +405,22 @@ void TipTopApp::Autoplay()
 	}
 }
 
+// -soundlog: the music's state as the original's memory holds it (playing 0x48a098, the pause count 0x489f08, the
+// music volume 0x47e298), a line at each change
+void TipTopApp::UpdateMusicLog()
+{
+	static std::string sLast;
+	std::string aState = StrFormat("music %d %d %u", tiptop::MusicPlaying(), tiptop::MusicPauseCount(),
+		tiptop::MusicVolume());
+	if (aState != sLast)
+	{
+		fprintf(mSoundLog, "%d %s\n", mUpdateCount, aState.c_str());
+		sLast = aState;
+	}
+	// a web build under Node ends without closing the log
+	fflush(mSoundLog);
+}
+
 // -statelog: the values that decide play, as the original's memory holds them (the names of case.sh's watches)
 void TipTopApp::UpdateStateLog()
 {
@@ -485,4 +502,50 @@ void TipTopApp::UpdateStateLog()
 		}
 	}
 	fflush(mStateLog);
+}
+
+void TipTopApp::UpdateButtonLog()
+{
+	if (mButtonLog == nullptr)
+	{
+		mButtonLog = fopen(mButtonLogName.c_str(), "w");
+		if (mButtonLog == nullptr)
+		{
+			mButtonLogName.clear();
+			return;
+		}
+	}
+	static const struct { tiptop::HandlerProc mProc; const char* mName; } kProcs[] = {{tiptop::ButtonProc, "button"},
+		{tiptop::ShapedButtonProc, "shaped"}, {tiptop::CheckBoxProc, "check"}, {tiptop::SliderProc, "slider"},
+		{tiptop::ScrollBarProc, "scroll"}, {tiptop::TextInputProc, "input"}, {tiptop::TextAreaProc, "text"},
+		{tiptop::SummaryItemProc, "summary"}};
+	std::string aList;
+	uint16_t aCount = 0;
+	tiptop::Handler* aTable = tiptop::HandlerTable(&aCount);
+	for (int i = 0; i < aCount; i++)
+	{
+		tiptop::Handler* h = &aTable[i];
+		if (h->mProc == nullptr || tiptop::InTopModal(h->mLayer) == 0)
+			continue;
+		for (const auto& k : kProcs)
+		{
+			if (h->mProc == k.mProc)
+			{
+				uint32_t aCommand = (h->mProc == tiptop::ButtonProc || h->mProc == tiptop::ShapedButtonProc) ?
+					h->u.button.mCommand : 0;
+				aList += StrFormat("  %s %d %d %d %d centre %d %d command 0x%x\n", k.mName, h->mRect.x, h->mRect.y,
+					h->mRect.w, h->mRect.h, h->mRect.x + h->mRect.w / 2, h->mRect.y + h->mRect.h / 2, aCommand);
+				break;
+			}
+		}
+	}
+	static std::string sLast;
+	static int sLastScreen = -1;
+	if (aList != sLast || tiptop::gApp.mScreen != sLastScreen)
+	{
+		fprintf(mButtonLog, "%d screen %d\n%s", mUpdateCount, tiptop::gApp.mScreen, aList.c_str());
+		fflush(mButtonLog);
+		sLast = aList;
+		sLastScreen = tiptop::gApp.mScreen;
+	}
 }

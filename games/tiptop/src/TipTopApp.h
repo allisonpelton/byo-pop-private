@@ -58,6 +58,14 @@ public:
 	std::string mStateLogName;
 	FILE* mStateLog;
 	void UpdateStateLog();
+	// -buttonlog=<file>: the controls of the top layer (procedure, rectangle, command) whenever they change, for the
+	// phase-two tours (testhooks/Autoplay.cpp)
+	std::string mButtonLogName;
+	// -soundlog=<file>: each sound's creation and start (engine/Lowos.cpp)
+	FILE* mSoundLog;
+	FILE* mButtonLog;
+	void UpdateButtonLog();
+	void UpdateMusicLog();
 
 	TipTopApp();
 	virtual ~TipTopApp();

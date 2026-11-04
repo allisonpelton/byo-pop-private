@@ -1,0 +1,169 @@
+# Phase two tour 2: a whole regular game (phase one's bot, seed 1, game seed 1, by mouse): the tips over the
+# board, the board every 250 updates, both level summaries, the game over, the name entry and the game over screen.
+# Made from the port's -autoplayui script, with shots added.
+102 click 186 288
+203 click 186 288
+304 click 186 288
+406 click 165 88
+508 click 232 185
+520 screenshot g_tips_520
+600 screenshot g_tips_600
+665 click 500 388
+670 screenshot g_tips_670
+700 screenshot g_play_700
+766 click 317 234
+827 click 245 234
+888 click 389 234
+949 click 353 234
+950 screenshot g_play_950
+1010 click 281 234
+1071 click 425 234
+1132 click 353 234
+1193 click 317 234
+1200 screenshot g_play_1200
+1254 click 353 234
+1315 click 317 234
+1376 click 317 234
+1437 click 353 234
+1450 screenshot g_play_1450
+1498 click 497 234
+1559 click 317 234
+1620 click 281 234
+1681 click 461 234
+1700 screenshot g_play_1700
+1742 click 461 234
+1803 click 389 234
+1864 click 461 234
+1925 click 245 234
+1950 screenshot g_play_1950
+1986 click 497 234
+2047 click 353 234
+2108 click 353 234
+2169 click 353 234
+2200 screenshot g_play_2200
+2230 click 425 234
+2291 click 317 234
+2352 click 281 234
+2413 click 317 234
+2450 screenshot g_play_2450
+2474 click 425 234
+2535 click 281 234
+2550 screenshot g_2550
+2570 screenshot g_2570
+2620 screenshot g_2620
+2700 screenshot g_2700
+2830 screenshot g_2830
+2950 screenshot g_2950
+3112 click 357 350
+3170 screenshot g_3170
+3200 screenshot g_play_3200
+3318 click 500 388
+3320 screenshot g_3320
+3419 click 245 234
+3450 screenshot g_play_3450
+3480 click 389 234
+3541 click 461 234
+3602 click 317 234
+3663 click 281 234
+3700 screenshot g_play_3700
+3724 click 353 234
+3785 click 281 234
+3846 click 425 234
+3907 click 317 234
+3950 screenshot g_play_3950
+3968 click 461 234
+4029 click 281 234
+4090 click 461 234
+4151 click 497 234
+4200 screenshot g_play_4200
+4212 click 425 234
+4273 click 389 234
+4334 click 281 234
+4395 click 281 234
+4450 screenshot g_play_4450
+4456 click 317 234
+4517 click 245 234
+4578 click 245 234
+4639 click 389 234
+4700 click 461 234
+4700 screenshot g_play_4700
+4761 click 425 234
+4822 click 461 234
+4883 click 461 234
+4944 click 425 234
+4950 screenshot g_play_4950
+5005 click 461 234
+5066 click 425 234
+5127 click 461 234
+5188 click 317 234
+5200 screenshot g_play_5200
+5249 click 389 234
+5310 click 353 234
+5371 click 425 234
+5432 click 461 234
+5450 screenshot g_play_5450
+5493 click 281 234
+5554 click 317 234
+5615 click 317 234
+5640 screenshot g_5640
+5689 click 317 234
+5700 screenshot g_5700
+5950 screenshot g_play_5950
+5990 screenshot g_5990
+6200 screenshot g_play_6200
+6275 click 357 350
+6330 screenshot g_6330
+6450 screenshot g_play_6450
+6480 click 500 388
+6490 screenshot g_6490
+6581 click 497 234
+6642 click 425 234
+6700 screenshot g_play_6700
+6703 click 317 234
+6764 click 281 234
+6825 click 245 234
+6886 click 245 234
+6947 click 245 234
+6950 screenshot g_play_6950
+7008 click 245 234
+7069 click 389 234
+7130 click 425 234
+7191 click 281 234
+7200 screenshot g_play_7200
+7252 click 389 234
+7313 click 245 234
+7374 click 245 234
+7435 click 425 234
+7450 screenshot g_play_7450
+7496 click 245 234
+7557 click 461 234
+7618 click 245 234
+7679 click 245 234
+7700 screenshot g_play_7700
+7740 click 245 234
+7801 click 245 234
+7862 click 245 234
+7923 click 353 234
+7950 screenshot g_play_7950
+7984 click 245 234
+8045 click 461 234
+8106 click 245 234
+8167 click 281 234
+8200 screenshot g_play_8200
+8228 click 245 234
+8289 click 281 234
+8345 screenshot g_8345
+8400 screenshot g_8400
+8600 screenshot g_8600
+8770 screenshot g_8770
+8900 screenshot g_8900
+9000 screenshot g_9000
+9365 char B
+9365 char o
+9365 char t
+9370 screenshot g_9370
+9380 screenshot g_9380
+9416 click 304 279
+9420 screenshot g_9420
+9500 screenshot g_9500
+9600 quit

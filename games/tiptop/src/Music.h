@@ -22,6 +22,7 @@ void BuildMusicVolumes(uint32_t theVolume);         // 0x42782c (0..0x100)
 uint32_t MusicVolume();                             // 0x427921
 char PlayMusic(int theGroup, int theId);            // 0x427f35 1 on failure
 char MusicPlaying();                                // 0x427fe5
+char MusicPauseCount();                             // test hooks: the pause count (0x489f08)
 void StopMusic_();                                  // 0x427fef
 void PauseMusic(char isPaused);                     // 0x428031 counted
 // One pass of the player thread's loop (0x427ddc), from the synth's rendering; theTime is the milliseconds of sound
