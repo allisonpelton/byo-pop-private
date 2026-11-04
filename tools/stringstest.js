@@ -61,7 +61,9 @@ const prefixes = [];        // [prefix, file] of keys built from a prefix
 function note(key, where) { (used[key] = used[key] || []).push(where); }
 
 const webDir = path.join(root, "web");
-for (const f of fs.readdirSync(webDir)) {
+// the site's pages and scripts, and the pages of Jungle Juice (web/jungle/)
+const webFiles = fs.readdirSync(webDir).concat(fs.readdirSync(path.join(webDir, "jungle")).map((f) => "jungle/" + f));
+for (const f of webFiles) {
   if (!/\.(html|js)$/.test(f) || f === "i18n.js") continue;
   const text = read("web/" + f);
   if (f.endsWith(".html")) {

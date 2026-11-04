@@ -1009,6 +1009,21 @@ function(byopop_web_index)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/import-games.js
     "// The listed games' page.js files, for web/gameimport.js (written by byopop_web_index(), cmake/ByopopWeb.cmake)\n${import_games}")
   message(STATUS "byo-pop: the listing page shows ${count} games and ${soon_count} coming soon")
+  byopop_web_jungle()
+endfunction()
+
+# byopop_web_jungle(): writes Jungle Juice, the site's page for other projects' decompilations (docs/WEB_PLAYER.md, "Jungle
+# Juice"; the user, 2026-11-04): every page of web/jungle/ into build/web/jungle/, its {{key}} markers filled from the site's
+# text. Its pages reach the site's shared files (the logo, theme.js, strings.js) one folder up.
+function(byopop_web_jungle)
+  get_filename_component(source "${BYOPOP_WEB_BRAND_DIR}/../jungle" ABSOLUTE)
+  file(GLOB pages RELATIVE ${source} CONFIGURE_DEPENDS ${source}/*.html)
+  foreach(name ${pages})
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${source}/${name})
+    file(READ ${source}/${name} page)
+    byopop_web_fill(page)
+    byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/jungle/${name} "${page}")
+  endforeach()
 endfunction()
 if(EMSCRIPTEN)
   # (a deferred call runs at the end of this directory, the top level, after every game's byopop_web_game())
