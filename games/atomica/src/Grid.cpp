@@ -920,7 +920,7 @@ void Grid::DrawField(Graphics* g)
 			g->SetColor(Color(0xff, 0xff, 0xff, 100));
 			mApp->mAtomC[aMember->mType]->DrawCentered(g, mApp->mRand.Get(aShake / 2, true) + aMember->mX,
 				mApp->mRand.Get(aShake / 2, true) + aMember->mY);
-			g->SetColor(Color(0xff, 0xff, 0xff, aMember->mE4 > 0xff ? 0xff : aMember->mE4));
+			g->SetColor(Color(0xff, 0xff, 0xff, (int) ((double) aMember->mE4 * (double) 0.02f * 255.0)));
 			mApp->mAtomC[11]->DrawCentered(g, aX, aY);
 			if (aMember->mKind == KIND_BIOHAZARD)
 			{

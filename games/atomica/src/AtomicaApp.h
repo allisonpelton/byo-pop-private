@@ -264,6 +264,9 @@ public:
 	std::string			mAutoplayScript;
 	struct AutoplayState*	mAutoplayState;
 	void				AutoplayUpdate();
+	virtual bool		HandleScriptCommand(const ScriptCommand& theCommand) override;	// test hooks: "shot <file>" (testhooks/Autoplay.cpp)
+	virtual bool		DrawDirtyStuff() override;				// test hooks: takes the pending "shot" from the frame just drawn
+	std::string			mPendingShot;
 	// testhooks/Trace.cpp: -statetrace=<file> writes every change of the state the identical-play pass compares with the original
 	std::string			mTraceFile;
 	struct TraceState*	mTraceState;

@@ -5,6 +5,7 @@
 #include "GameText.h"
 #include "Graphics.h"
 #include "ImageFont.h"
+#include "MemoryImage.h"
 #include "SexyAppBase.h"
 #include "WidgetManager.h"
 #include "Support.h"
@@ -41,9 +42,7 @@ TitleScreen::TitleScreen(AtomicaApp* theApp) :
 	mPlayLink = new HyperlinkWidget(1, this);
 	mPlayLink->SetFont(mApp->mAtomicFont);
 	mPlayLink->mColor = Color(0xff, 0xff, 0);
-	mPlayLink->mOverColor = Color(0xff, 0xff, 0);
 	mPlayLink->mLabel = "";
-	mPlayLink->mUnderlineSize = 0;
 	mPlayLink->SetVisible(false);
 	mHasTransparencies = false;
 }
@@ -99,6 +98,56 @@ void TitleScreen::Update()
 		}
 		MarkDirty();
 	}
+
+	// 0x430bd0: the logo's letters are a white sprite that the update repaints every 20th update with three triangle
+	// waves between 150 and 255, one per colour channel, that run down the rows (steps of 2, 3 and 4 a row), and that
+	// move on by 5 steps of 1, 0.5 and 1/3 each time. The values are the original's globals (0x4cbe18-0x4cbe28, 0x4d40e0).
+	static float sB = 0.0f, sBDir = 1.0f;			// 0x4d40e0, 0x4cbe1c
+	static float sG = 255.0f, sGDir = -1.0f;		// 0x4cbe28, 0x4cbe20
+	static float sR = 255.0f, sRDir = -1.0f;		// 0x4cbe24, 0x4cbe18
+	if (mBlink == 0)
+	{
+		float aB = sB, aG = sG, aBDir = sBDir, aGDir = sGDir, aRDir = sRDir;
+		double aR = sR;
+		MemoryImage* anImage = (MemoryImage*) mLogo->mImage;
+		unsigned char* aBits = (unsigned char*) anImage->GetBits();
+		for (int aRow = 0; aRow < anImage->mHeight; aRow++)
+		{
+			unsigned char aFirst = (unsigned char) (int) aB, aSecond = (unsigned char) (int) aG, aThird = (unsigned char) (int) aR;
+			for (int aCol = 0; aCol < anImage->mWidth; aCol++)
+			{
+				// the original's buffer holds them in the order red, green, blue (the first wave is the red one)
+				aBits[2] = aFirst;
+				aBits[1] = aSecond;
+				aBits[0] = aThird;
+				aBits += 4;
+			}
+			aB = aB + aBDir * 2.0f;
+			aG = aG + aGDir * 3.0f;
+			aR = aR + 4.0 * aRDir;
+			if (aB >= 255.0f) { aB = 255.0f; aBDir = -1.0f; }
+			else if (aB <= 150.0f) { aB = 150.0f; aBDir = 1.0f; }
+			if (aG >= 255.0f) { aG = 255.0f; aGDir = -1.0f; }
+			else if (aG <= 150.0f) { aG = 150.0f; aGDir = 1.0f; }
+			if (aR >= 255.0) { aR = 255.0; aRDir = -1.0f; }
+			else if (aR <= 150.0) { aR = 150.0; aRDir = 1.0f; }
+		}
+		anImage->BitsChanged();
+		for (int i = 0; i < 5; i++)
+		{
+			sB = sBDir + sB;
+			sG = sGDir * 0.5f + sG;
+			sR = sRDir * 0.33333334f + sR;
+			if (sB >= 255.0f) { sB = 255.0f; sBDir = -1.0f; }
+			else if (sB <= 150.0f) { sB = 150.0f; sBDir = 1.0f; }
+			if (sG >= 255.0f) { sG = 255.0f; sGDir = -1.0f; }
+			else if (sG <= 150.0f) { sG = 150.0f; sGDir = 1.0f; }
+			if (sR >= 255.0f) { sR = 255.0f; sRDir = -1.0f; }
+			else if (sR <= 150.0f) { sR = 150.0f; sRDir = 1.0f; }
+		}
+	}
+	if (++mBlink > 19)
+		mBlink = 0;
 	MarkDirty();
 }
 

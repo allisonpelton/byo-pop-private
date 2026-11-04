@@ -506,7 +506,7 @@ void AtomicaApp::LoadingThreadProc()
 
 // 0x407..0x408ca0: every atom type's pictures. The sheet holds three cells for each type (3k, 3k+1, 3k+2); the
 // plain atoms and the chromium atom (types 0 to 11) also get 20 turned copies of the mask and the atom blended
-// with each. Types 5, 7 and 9 lose a symbol's lines (the colour-blind fix: swirl, teeth, crescent).
+// with each (the mask has the atom drawn on it first). Types 5, 7 and 9 lose a symbol's lines (the colour-blind fix: swirl, teeth, crescent).
 void AtomicaApp::LoadAtoms()
 {
 	Sprite* aSwirl = mSprites->Load("colorizeswirl");
@@ -546,6 +546,11 @@ void AtomicaApp::LoadAtoms()
 		{
 			Sprite* aMask = mSprites->Load("AtomMask");
 			mCompletedLoadingThreadTasks++;
+			// the atom's own picture is drawn over the mask before it is turned (0x407..: the turned copies hold the atom)
+			{
+				Graphics aMaskGraphics(aMask->mImage);
+				aMaskGraphics.DrawImage(mAtomA[aType]->mImage, 0, 0, mAtomA[aType]->mSrc);
+			}
 			// the mask turned a step at a time, with the unturned mask's transparency
 			for (int j = 0; j < NUM_SPIN_FRAMES; j++)
 			{
@@ -564,7 +569,15 @@ void AtomicaApp::LoadAtoms()
 			mSprites->Free(aMask);
 			for (int j = 0; j < NUM_SPIN_FRAMES; j++)
 			{
-				mAtomSpin[aType][j] = BlendSprites(mAtomShrink[aType][0], mAtomMask[aType][j], 0.29499998688697815);
+				Sprite* aBlend = BlendSprites(mAtomShrink[aType][0], mAtomMask[aType][j], 0.29499998688697815);
+					// 0x438b00: the blend is drawn into a new image of its size, so its translucent pixels are blended
+					// with the clear one
+					mAtomSpin[aType][j] = mSprites->Blank(aBlend->mWidth, aBlend->mHeight);
+					{
+						Graphics aCopyGraphics(mAtomSpin[aType][j]->mImage);
+						aCopyGraphics.DrawImage(aBlend->mImage, 0, 0, aBlend->mSrc);
+					}
+					mSprites->Free(aBlend);
 				mCompletedLoadingThreadTasks++;
 			}
 

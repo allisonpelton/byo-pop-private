@@ -116,6 +116,11 @@ void AtomicaApp::TraceUpdate()
 			aNow["combo"] = Int(g->mCombo);
 			aNow["numcolors"] = Int(g->mNumColors);
 			aNow["g_overtick"] = Int(g->mOverTick);
+			aNow["cursor_x"] = Int(g->mCursorX);
+			aNow["cursor_y"] = Int(g->mCursorY);
+			aNow["m31c"] = Int(g->mM31c);
+			aNow["m320"] = Int(g->mM320);
+			aNow["select_glow"] = Int(g->mSelectGlow);
 			aNow["rounds"] = Int(g->mRounds);
 			aNow["bonus_atoms"] = Int(g->mI364);
 			aNow["selected_p"] = Set(g->mSelected);
