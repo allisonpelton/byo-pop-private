@@ -85,7 +85,13 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Dynomite and Bookworm Adventures Volume 2. Bejeweled, Twist, Bonnie's, Bookworm Adventures, Water Bugs, Seven Seas and
   the two Mahjong Escapes did both phases in their passes. Ning Po's needs origrun's stand-in to stop stalling under
   `--sound stub` with `--clock virtual` (after the title music); its own session, which found the stall, fixes it in a
-  `shared:` commit. The ports still to make (above) wait until these are done.
+  `shared:` commit. The ports still to make (above) wait until these are done. A phase two merges only with sound
+  compared against the original and the web build's pictures compared, not just its log (Mummy Maze's and Atomica's
+  first reports lacked them, and Mummy Maze's turned up two real faults once done). Sound effects: origrun's
+  `--sound wav` log on the host against the port's BYOPOP_SOUNDLOG, as Alchemy did. Music a library mixes into one
+  stream: that library's calls, logged by a stand-in (games/bigmoney/tools/bassproxy for BASS,
+  games/mummymaze/tools/fmodproxy for FMOD 3). Pictures: shots from the web build under Node, shotdiffed against
+  native. Each brief says so.
 - **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
   and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
