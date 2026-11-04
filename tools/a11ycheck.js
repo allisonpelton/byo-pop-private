@@ -729,7 +729,8 @@ function selftest() {
 
 // ---------- the command line ----------
 // The site's own pages in a build folder, from the build itself: index.html, the games that index.html has a tile for (the tiles
-// are made from BYOPOP_WEB_FINISHED by byopop_web_index()) and the copyright page each game page links to. Test pages are left out.
+// are made from BYOPOP_WEB_FINISHED by byopop_web_index()), the copyright page each game page links to, and the pages of Jungle
+// Juice (jungle/). Test pages are left out.
 function siteFiles(dir) {
   var fs = require("fs"), path = require("path"), out = [], seen = {};
   function add(name) {
@@ -745,6 +746,8 @@ function siteFiles(dir) {
     var game = fs.readFileSync(path.join(dir, href[1]), "utf8"), cr = /\bhref=["']?([a-z0-9_-]+-copyright\.html)\b/.exec(game);
     if (cr) add(cr[1]);
   }
+  var jungle = path.join(dir, "jungle");
+  if (fs.existsSync(jungle)) fs.readdirSync(jungle).filter(function (f) { return /\.html$/.test(f); }).sort().forEach(function (f) { add("jungle/" + f); });
   return out;
 }
 
@@ -760,7 +763,7 @@ function main(argv) {
     else files.push(a);
   });
   // index first, then game pages and copyright pages
-  files.sort(function (x, y) { var a = path.basename(x), b = path.basename(y); return (a === "index.html" ? 0 : 1) - (b === "index.html" ? 0 : 1) || (a < b ? -1 : a > b ? 1 : 0); });
+  files.sort(function (x, y) { var a = path.basename(x), b = path.basename(y); return (a === "index.html" ? 0 : 1) - (b === "index.html" ? 0 : 1) || (x < y ? -1 : x > y ? 1 : 0); });
   if (!files.length) { console.log("a11ycheck: no pages found in " + args.join(", ")); return 1; }
   var errors = 0, warnings = 0, pages = 0;
   files.forEach(function (f) {

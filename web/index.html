@@ -317,6 +317,15 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .buyrow[hidden] { display: none; }
 .buyrow a { color: var(--accent); }
 .buyrow a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+/* The link to Jungle Juice under the games: a card as wide as the list, in the tiles' colours */
+.jungle-link {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 24px; padding: 14px 16px;
+  color: var(--fg); text-decoration: none; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.jungle-link:hover, .jungle-link:focus-visible { border-color: var(--accent); }
+.jungle-name { font-size: 16px; font-weight: 600; color: var(--accent); }
+.jungle-name::after { content: "\2192" / ""; margin-left: 6px; }
+.jungle-about { color: var(--muted); }
 footer {
   max-width: 960px; margin: 0 auto; padding-block: 0 32px; box-sizing: border-box; color: var(--muted); font-size: 12.5px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -395,6 +404,9 @@ footer a { color: var(--accent); }
   <ul class="games" aria-labelledby="games-title">
 <!-- byopop:games -->
   </ul>
+  <!-- Jungle Juice, the page for other projects' decompilations (web/jungle/index.html; the user, 2026-11-04: "the front page will
+       link to it after the game tiles") -->
+  <a class="jungle-link" href="jungle/"><span class="jungle-name">{{index.jungle.name}}</span> <span class="jungle-about">{{index.jungle.about}}</span></a>
   <!-- The players, the saves and the settings, as tabs under the games (the tabs script below), each an icon of our own named by its
        aria-label, with the name as its tooltip (the user, 2026-11-03: "use icons rather than names") -->
   <div class="tabs" role="tablist" aria-label="{{index.tabs.label}}">

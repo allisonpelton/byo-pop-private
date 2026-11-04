@@ -498,6 +498,20 @@ appears for files imported before this existed. It is derived from the files, so
 never sent anywhere. `tools/exeicontest.js` checks the parser under Node against the exes in `assets/<game>/` (it prints
 one line for each exe and writes no icon) and against synthetic exes made for every decoder, and feeds it damaged files.
 
+### Jungle Juice
+
+Jungle Juice is the site's second page, which will hold games decompiled by other projects (the user, 2026-11-04: "Prepare a
+second page on the website, "Jungle Juice", that will eventually hold third-party decomps. All its pages will go under
+/jungle, and the front page will link to it after the game tiles."). For now it is a placeholder: `web/jungle/index.html`, in
+the listing page's look (its colour tokens, the logo, the theme button and the footer's first and last lines), says in a line
+what the page will hold and links back to the front page. It has no third-party content and no links out yet.
+
+Every Jungle Juice page lives in `web/jungle/`, and `byopop_web_jungle()` in `cmake/ByopopWeb.cmake` writes each `*.html` there
+into `build/web/jungle/`, its `{{key}}` markers filled from the site's text (`jungle.*` in `web/strings/en.txt`), so the site
+serves them under `/jungle/`. They reach the site's shared files one folder up (`../strings.js`, `../theme.js`, `../logo.js`,
+`../logo.svg`, the icons). The listing page links to `jungle/` in a card under the game tiles (`.jungle-link`).
+`tools/stringstest.js` and `tools/a11ycheck.js` check these pages with the others.
+
 ### Adding games from the listing page
 
 The user, 2026-11-03 (the "Site" section of `testnotes/TEST_NOTES.md`): "Allow many games' files to be added at once. Try to

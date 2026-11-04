@@ -110,6 +110,20 @@ index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Mone
   registered trademarks of Electronic Arts Inc. in the United States.
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
+# The link to Jungle Juice, after the games (the user, 2026-11-04)
+index.jungle.name = Jungle Juice
+index.jungle.about = Games decompiled by other projects, coming later
+
+
+# ---- Jungle Juice, the page for other projects' decompilations (web/jungle/index.html)
+
+jungle.title = Jungle Juice · byo-pop
+jungle.logo_alt = byo-pop, back to the games
+jungle.heading = Jungle Juice
+jungle.intro = Jungle Juice will hold games decompiled by other projects, to play here with your own copy of each
+  game's files, as you do the games on the front page. Nothing is here yet.
+jungle.back = Back to the games
+
 
 # ---- The terms, copyright and licenses page (web/copyright.html)
 
