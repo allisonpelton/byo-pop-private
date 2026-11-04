@@ -501,6 +501,20 @@ tutor makes no sense on a touch screen.
 checked against the new binary before its offsets are trusted; keyboard-only play; and the registration, trial, beta,
 update and crash-report code to stub out.
 
+**Typer Shark Abyss.** Individual Software's 2006 release in Typing Instructor Deluxe 17 holds no source (section 6).
+Its Wise installer carries two older builds of the game. One is the Abyss exe, linked 2006-10-15 with the same VS.NET
+2002 compiler, unwrapped and without debug information. The other is PopCap's Typer Shark Deluxe 1.0 trial, build 141
+of 2003-06-03, in a bundled PopCap installer. Both are the June 2003 code on the 2003 framework generation (Widget 43
+slots, Dialog 48, SexyApp 61, as Dynomite), not 1.02's April 2004 one, so field offsets and slots differ throughout.
+Abyss swaps the mode menu for a lesson-type list that loads Individual's word lists, and it drops NewUserDialog. Neither
+build has symbols, a PDB path or extra debug strings; both have fewer than 1.02, without MODVAL, demo recording or the
+profiler. All of 1.02's data files, sounds and music are byte-identical to the Abyss copies, as are 480 of its 518
+images; the rest is rebranded art. The CVS metadata names the module `GameSrc/cpp/WinWS` and dates the data files'
+revisions up to 2003-06-03. The two exes and the CVS files are kept in `re/typershark/abyss/` with a README. As a second
+compile of most of the game code against another layout, they can confirm function boundaries and show what changed
+between 1.0 and 1.02, but the port does not need them. The `Typer Shark.swf` beside the installer is a short preview of
+Abyss for Typing Instructor's game menu.
+
 Several GitHub repositories named "...Typer-Shark-Deluxe-Crack" are spam or malware bait and must not be used.
 
 ### 5.7 Pizza Frenzy
@@ -782,11 +796,13 @@ not packed and has full RTTI. It is just large.
 
 ## 6. Open questions
 
-1. **Typer Shark's leftover source.** TCRF reports that the "Typer Shark Abyss" release, bundled with Typing Instructor
-   Deluxe 17 ([archive.org item](https://archive.org/details/typing-istructor-deluxe-17-typer-shark-abyss), a 411 MB
-   setup), contains a CVS folder with some source files. This is **unverified**: TCRF was behind a Cloudflare challenge.
-   Checking it means downloading the setup, which needs the user's OK, and whether the port may read such files is the
-   user's call too.
+1. **Typer Shark's leftover source: there is none (checked 2026-11-04).** The "Typer Shark Abyss" release, bundled with
+   Typing Instructor Deluxe 17 ([archive.org item](https://archive.org/details/typing-istructor-deluxe-17-typer-shark-abyss)),
+   was downloaded and unpacked without running anything. Its "CVS folder" is PopCap's CVS working-copy metadata in five
+   data folders: file names, revisions and dates of data files, and no code. The release has no `.cpp`, `.h`, project,
+   map or PDB file. What it does hold is two older builds of the game, described in
+   [5.6](#56-typer-shark-deluxe). No decision about source is left. The older builds are PopCap's own exes, like the
+   Mac builds, which the project's rules already let a port use as a guide with the PC exe as the authority.
 2. **Typing on phones (Typer Shark).** The web build needs a way to type on a touch screen: either a hidden `<input>`
    focused on a tap that forwards characters, with the canvas laid out above the soft keyboard, or an on-screen
    keyboard drawn by the web player. Which one is the user's choice.
