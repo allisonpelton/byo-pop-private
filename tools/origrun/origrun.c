@@ -868,8 +868,9 @@ static int surface_grab(const char* name, struct SurfaceSnap* sn)
 	EnterCriticalSection(&gRpmLock);
 	if (gScrBitsAt) {
 		ok = rpm_buf(gScrBitsAt,&hd[0],4) && rpm_buf(gScrPitchAt,&hd[0x1c/4],4);
-		hd[1]=gScrW; hd[2]=gScrH; hd[0x44/4]=gScrBpp;
-		if (gScrBpp==16) { hd[0x48/4]=0xf800; hd[0x4c/4]=5; hd[0x50/4]=11; hd[0x58/4]=0x7e0; hd[0x5c/4]=6; hd[0x60/4]=5; hd[0x68/4]=0x1f; hd[0x6c/4]=5; hd[0x70/4]=0; }
+		hd[1]=gScrW; hd[2]=gScrH; hd[0x44/4]=gScrBpp==15?16:gScrBpp;
+		if (gScrBpp==15) { hd[0x48/4]=0x7c00; hd[0x4c/4]=5; hd[0x50/4]=10; hd[0x58/4]=0x3e0; hd[0x5c/4]=5; hd[0x60/4]=5; hd[0x68/4]=0x1f; hd[0x6c/4]=5; hd[0x70/4]=0; }   // 5-5-5 (a DirectDraw mode Windows Sandbox's WARP gives some games)
+		else if (gScrBpp==16) { hd[0x48/4]=0xf800; hd[0x4c/4]=5; hd[0x50/4]=11; hd[0x58/4]=0x7e0; hd[0x5c/4]=6; hd[0x60/4]=5; hd[0x68/4]=0x1f; hd[0x6c/4]=5; hd[0x70/4]=0; }
 		else { hd[0x48/4]=0xff0000; hd[0x4c/4]=8; hd[0x50/4]=16; hd[0x58/4]=0xff00; hd[0x5c/4]=8; hd[0x60/4]=8; hd[0x68/4]=0xff; hd[0x6c/4]=8; hd[0x70/4]=0; }
 	} else ok=rpm_buf(gSurfaceAddr,hd,sizeof(hd));
 	if (!ok) { LeaveCriticalSection(&gRpmLock); logline("shot %s refused: the surface header at 0x%08X could not be read", name, gScrBitsAt?gScrBitsAt:gSurfaceAddr); return 0; }
