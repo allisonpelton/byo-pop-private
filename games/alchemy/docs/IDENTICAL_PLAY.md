@@ -1,7 +1,7 @@
 # Alchemy Deluxe: the identical-play pass
 
 Phase one of the pass CLAUDE.md names: **plays identical**. The same input gives the same games in the original and the
-port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is partly done: see "Phase two" at the end.
+port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is described at the end.
 
 The original is the game carved out of `Alchemy.exe` (`re/alchemy/bin/AlchemyGame.exe`, image base 0x400000), run only through
 `tools/origrun`, from a copy under a short path (`C:\byo-og\alch\game`), under rundesk (invisible, silent, below normal
@@ -112,7 +112,7 @@ baseline must write the same state log, so later fixes and mods leave unmodded p
   options dialog's sliders and full-screen box, the help, the quit and new-game questions, a game cut off by quitting.
   Their effects are not on the game's state; phase two looks at their screens.
 
-## Phase two: looks identical (started 2026-11-03, not finished)
+## Phase two: looks identical (2026-11-03)
 
 **How.** The original ran inside Windows Sandbox (`tools/origrun --sandbox`), on the virtual clock with the scripted cursor and the
 seed patch, from a copy staged in `build/origrun/alsb-<tour>`; `games/alchemy/tools/shots/orig.sh <tour>` runs one tour, `port.sh`
@@ -160,9 +160,33 @@ After it tour 2 has no visible difference. The change is to what is drawn, not t
   frame is exact (15160, 15180, 15200 of tour 4) the two sides match, and the rand state matches at every update.
 - **The wizard on the options and score dialogs** moves by its own clock; no shot of it differs visibly.
 
-### Not done yet
+### Sound
 
-The sound (the original's BASS music and samples reach origrun's DirectSound stand-in, `--sound wav`, whose `logs/sound.log` would be
-set against the port's `BYOPOP_SOUNDLOG`), the web build under Node against the native shots, the tutorial's and the game's focus loss
-in the web build, the loading screen, the other wizard messages (skull, four-way, no moves) and the time trial's high-score table
-screens. The session stopped at the weekly usage limit (92%) on 2026-11-03; none of these has been compared.
+The original plays through BASS 1.x, whose software mixing writes music and samples into one DirectSound stream, but each sample play makes
+a duplicate buffer in origrun's stand-in, which logs it (`--sound wav`; `shots/sound_orig.sh`). `soundcmp.py` names each play by the
+size and rate of the buffer it duplicates (set against the port's load lines) and compares it, with its update (virtual ms / 10), with the
+port's `BYOPOP_SOUNDLOG`. **A game's window must be active first:** an original that never got the focus plays no sample (the app mutes while
+inactive), so the host script starts with `focus regain`.
+
+Over tours 2, 3, 5, 6 and 7 the two sides made **the same 2378 sample plays in the same order, with the same sample, at the same
+update** (within two). The music was compared on the tutorial tour: the intro's fade out (updates 3001 to 3250) and the play song's
+fade in (3001 to 3347, to the same volume) have the same updates and lengths on both sides. The original's "bad" sample is a 16384-byte
+buffer in the stand-in's log where the port's load line says 46080 bytes (`soundcmp.py` maps it by hand). A logging `bass.dll` (as Mahjong's
+`bassproxy`) was tried and dropped: Alchemy's 2003 BASS answers `BASS_Init` with error 23 when it is loaded as `bass_real.dll` behind a proxy.
+
+### The web build
+
+`shots/web.sh` runs `build/web/alchemy.js` under Node (`wasmrun.js game`, `-fast`, the same script), and `webcmp.sh` sets its shots against
+the native port's. The whole strategic game (tour 2, 40 shots), the whole time trial with its focus losses (tour 3, 44), the tutorial (35)
+and the wizard's messages (14) are **pixel for pixel identical to the native port's**, nothing faint. Tour 1 and tour 6 differ only
+in the options dialog: the web build starts in a window, so its Fullscreen box is unticked (the web host writes the setting off, as in every game's
+web build), and a scripted click on the options dialog's DONE button right after the high scores' DONE button (tour 1) or after
+the help screen (tour 6) is lost on the web, where the same script works natively; a second click an update later closes it, and the
+dialogs that follow are the same. This is listed as an oddity: the framework's script clicks are not what a mouse sends, the cause was not
+found in the time given, and it was not seen with a mouse.
+
+### Not compared
+
+The loading screen (its length follows the real time of the original's loading thread, so a shot of its bar cannot be lined up), the
+wizard's other messages (skull, four-way, no moves: the same dialog and text properties as the six compared), the web build's music in a
+browser, and the time trial's score table screens.

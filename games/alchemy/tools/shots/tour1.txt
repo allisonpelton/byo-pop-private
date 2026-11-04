@@ -29,6 +29,8 @@
 3130 screenshot highscores_trial
 3134 click 395 338
 3138 screenshot options_after_hs
+3139 @port move 395 270
+3139 @orig move 395 338
 3140 @port click 395 270
 3140 @orig click 395 338
 3144 screenshot sel_after_hs

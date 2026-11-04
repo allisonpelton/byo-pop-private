@@ -9,24 +9,29 @@ for l in open(tour):
     if l:
         k, cmd, *rest = l.split(None, 2)
         if cmd in ('@port', '@orig'):  # a line for one side only (the options dialog is taller in the original)
-            if cmd[1:] != side:
+            if cmd[1:] != ('orig' if side == 'host' else side):
                 continue
             cmd, *rest = ' '.join(rest).split(None, 1)
         lines.append((int(k), cmd, ' '.join(rest)))
-if side == 'port':
+if side in ('port', 'web'):
     for k, cmd, a in lines:
         if cmd == 'screenshot':
-            a = "%s/port/%s.png" % (out, a)
+            a = ("%s/port/%s.png" % (out, a)) if side == 'port' else ("shots/%s.png" % a)  # the web run's folder is its working directory
         elif cmd == 'text':
             cmd, a = 'char', a
         print("%d %s %s" % (k, cmd, a))
 else:
+    host = side == 'host'  # no shots on the host (origrun takes none there)
+    if host:
+        print("at 200 focus regain")
     print("at 300 move 390 244")
     print("at 310 click 390 244")
     for k, cmd, a in lines:
         if cmd == 'quit':
             continue
         if cmd == 'screenshot':
+            if host:
+                continue
             cmd = 'shot'
         if cmd == 'char':
             cmd = 'text'
