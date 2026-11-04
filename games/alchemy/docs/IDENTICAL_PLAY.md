@@ -1,7 +1,7 @@
 # Alchemy Deluxe: the identical-play pass
 
 Phase one of the pass CLAUDE.md names: **plays identical**. The same input gives the same games in the original and the
-port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is not done.
+port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is partly done: see "Phase two" at the end.
 
 The original is the game carved out of `Alchemy.exe` (`re/alchemy/bin/AlchemyGame.exe`, image base 0x400000), run only through
 `tools/origrun`, from a copy under a short path (`C:\byo-og\alch\game`), under rundesk (invisible, silent, below normal
@@ -111,3 +111,58 @@ baseline must write the same state log, so later fixes and mods leave unmodded p
 - Not compared in phase one, on purpose: the original's saved game loaded by the port (`-importsaves` covers the format), the
   options dialog's sliders and full-screen box, the help, the quit and new-game questions, a game cut off by quitting.
   Their effects are not on the game's state; phase two looks at their screens.
+
+## Phase two: looks identical (started 2026-11-03, not finished)
+
+**How.** The original ran inside Windows Sandbox (`tools/origrun --sandbox`), on the virtual clock with the scripted cursor and the
+seed patch, from a copy staged in `build/origrun/alsb-<tour>`; `games/alchemy/tools/shots/orig.sh <tour>` runs one tour, `port.sh`
+runs the same tour in the port (`-script`, `screenshot` lines, `-fast`), and `cmp.sh` runs `tools/shotdiff` and prints one line per
+differing pair. A tour (`tour1.txt` to `tour7.txt`) is one script in the port's format with `screenshot <name>` lines; `make.py`
+turns it into the port's script and into origrun's (`at <update - 1>`, as in phase one; a line marked `@orig` or `@port` is for one side
+only). Every tour starts at update 3000, after the original's loading thread (which takes real time, so a title shot at update
+2990 can still show the loading bar in a slow run: tour 6's did once; a rerun matched). The "Updates" question is answered first,
+as in phase one.
+
+**Tours.** 1: title (with the link lit), selector (skill and mode buttons, lit and chosen), options, help, high scores (both tabs),
+the quit question and "No". 2: a whole strategic game (40 shots: a grid of boards, the three board-cleared panels, the forge warning,
+the game over, the name entry, the score table, the quit question). 3: a whole time trial game with bad cells and hint or pause
+inputs (44 shots: the time trial's pause, the hint, the window losing and regaining the focus twice, the game over, the name entry).
+4: the forge's bubbles every four updates at the end of tour 2's game. 5: the tutorial, every step at its start and forty updates
+later (35 shots). 6: a saved game: the continue question, the loaded board, the side panel's new game question, options, help, mute
+and discard, the quit question (17 shots). 7: six of the wizard's messages for a piece on a bad cell, before and after the answer.
+In all, 167 shots; every pair matches or differs only faintly except the items below.
+
+**The C library's rand, every update.** The original's `_rand` keeps its state in the thread's data, which origrun cannot watch, so
+`tools/origrun/patches/alchemy-rand.txt` (git-ignored, written by hand from `identical/randcase.sh`'s notes) jumps from `_rand`'s
+store into a cave in the padding of `.text` that also writes the state to 0x54f800, and `randcase.sh` compares that value after every
+update with the port's `rand` field of `-statelog`. Two whole games (143 and 830 pieces: 733 and 4641 changes) gave the same state at
+every update, so the effects' draws (sparkles, bubbles, popups) are in the original's order.
+
+### Changes
+
+| Difference | Its cause in the original | What the port does now | Commit |
+|---|---|---|---|
+| A newly lit tile dissolved in with a smooth round edge; the original's has a dotted one | The order in which the 2704 pixels of a tile light up is a table in the exe (0x4de400: 45 groups of pixel numbers, 2749 values); the port had invented an order from a fixed seed | The table is read from the player's own `Alchemy.exe` like the default score names (address, count and hash in `GameText.cpp`, no data in the repository); the invented order is the fallback without the exe | 1629d18 |
+
+After it tour 2 has no visible difference. The change is to what is drawn, not to play: the frozen baseline's state logs are unchanged.
+
+### Oddities and masks
+
+- **The options dialog.** The original's holds two more buttons, "Check for Updates" and "Play More Great Games!", below High Scores
+  (partner.xml's update and web settings); the port omits them on purpose (update checks and links to the web are not ported, `Dialogs.cpp`
+  at 0x40de70), so the dialog is 0x44 shorter and its DONE button sits higher: a tour clicks DONE at 395,338 in the original and 395,270 in
+  the port (`@orig` and `@port` lines). Never click the original's two new buttons; the first starts an update check.
+- **The fullscreen box.** The port's options show the box ticked (partner.xml says `DefaultWindowed` false), the original's unticked: the
+  sandbox has no 16-bit full screen, so the original falls back to a window. A test environment difference.
+- **The forge's rim.** A faint 14-pixel edge difference (largest change 47 of 255) on the forge's oval clip in every shot; not visible.
+- **The forge's bubbles in a held shot.** A shot of the original shows update N or an earlier one (`landed.tsv` says "or-earlier": the
+  game has no pending-draw flag origrun knows). A frame taken one update early puts a few bubbles a pixel or two off; at updates where the
+  frame is exact (15160, 15180, 15200 of tour 4) the two sides match, and the rand state matches at every update.
+- **The wizard on the options and score dialogs** moves by its own clock; no shot of it differs visibly.
+
+### Not done yet
+
+The sound (the original's BASS music and samples reach origrun's DirectSound stand-in, `--sound wav`, whose `logs/sound.log` would be
+set against the port's `BYOPOP_SOUNDLOG`), the web build under Node against the native shots, the tutorial's and the game's focus loss
+in the web build, the loading screen, the other wizard messages (skull, four-way, no moves) and the time trial's high-score table
+screens. The session stopped at the weekly usage limit (92%) on 2026-11-03; none of these has been compared.
