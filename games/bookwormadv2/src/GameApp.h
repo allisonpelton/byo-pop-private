@@ -197,7 +197,9 @@ public:
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	// port: -statelog=<file> (TestHooks.cpp): a line "<update> <name> <value>" each time a value of the battle changes
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	int mReseedEngine = 0;                         // -reseedengine=<seed>: SRand(seed) as each battle engine is made (0: off)
 	void LogState();
+	void AddInput(int theUpdate, const std::string& theCommand, const std::string& theArgs);
 	// V1:0x44f5c0: through the sound player, not again within 5 updates
 	void PlaySample(int theSoundNum) override;
 	// V1:0x44f600: the same at a pan
