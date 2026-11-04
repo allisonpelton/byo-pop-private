@@ -523,8 +523,12 @@ void Board::DrawDark(Graphics* g)
 	int aSize = SizeIndex();
 	int aWin = (aSize == 0) ? 0xf0 : ((aSize == 1) ? 200 : 0xa0);
 	Explorer* e = mExplorer;
-	int aPX = (int) ((double) PixelX(e->mX) + (double) (e->mTargetX - e->mX) * e->mProgress);
-	int aPY = (int) ((double) PixelY(e->mY) + (double) (e->mTargetY - e->mY) * e->mProgress);
+	// the window is centred on the explorer's cell, a few pixels off by the size
+	int aOffX = (aSize == 1) ? 1 : 2;
+	int aOffY = (aSize == 0) ? -6 : ((aSize == 1) ? -9 : -8);
+	int aCentre = mCellSize / 2 - aWin / 2;
+	int aPX = (int) ((double) (aCentre + aOffX + PixelX(e->mX) + 10) + (double) (e->mTargetX - e->mX) * e->mProgress);
+	int aPY = (int) ((double) (aCentre + aOffY + PixelY(e->mY) + 10) + (double) (e->mTargetY - e->mY) * e->mProgress);
 	{
 		Graphics gc(*g);
 		gc.ClipRect(0, 5, mWidth - 5, mHeight - 10);

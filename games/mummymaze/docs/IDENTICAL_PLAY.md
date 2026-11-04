@@ -98,6 +98,7 @@ A scenario is either written by hand or `p2.py fromlog` replays a phase-one bot 
 few hundred updates. Scenarios (in `tools/identical/scenarios/`):
 
 - menu and title, classic start (s1); a classic game of 6000 updates, 20 shots (c6); an adventure game, 28 shots (adv);
+- a saved game in pyramid 14, the dark pyramid, from the Continue question on, 12 shots (dark);
 - the Options, Quit to Main, High Scores and Credits dialogs (d1, d2, d3);
 - the tutorial from its menu link to its end, 16 shots (tut);
 - a classic game to its end: caught, the Abandon Hope click, the game-over scene, the name entry and the table, 24 shots
@@ -105,7 +106,18 @@ few hundred updates. Scenarios (in `tools/identical/scenarios/`):
 - losing and regaining the focus on the board and with the Options dialog opened (focus), 7 shots.
 
 Every pair ends faint or matching with no box left to judge. The web build (rebuilt from this tree) was run under Node
-(`wasmrun.js game`, the classic bot game of the suite, 312 log lines): its log is byte for byte the native one.
+(`wasmrun.js game`): the classic bot game of the suite (312 log lines) gives a log byte for byte the native one, and
+`tools/identical/web.sh` runs a scenario in the web build, whose shots (the tutorial, the end of a game, the classic
+game and the dark pyramid, 72 shots in all) are pixel for pixel the native port's (`--allow 0`).
+
+**Sound.** The original plays its samples through DirectSound (the music is a module mixed by BASS into one streaming
+buffer). `origrun --sound wav` logs every buffer, and `tools/identical/soundcmp.py` sets its plays (a duplicate of a loaded
+buffer, named by size and rate, with volume and pan, time in virtual ms) against the port's `BYOPOP_SOUNDLOG` plays, in
+order and by update (within 2). The classic game c6 (28 plays) is the same in both; the end-of-game scenario (hs1, 286 port
+plays against 290) is the same in order, sample, volume, pan and update, except for the double click below. The music is
+not compared by state: the original's module is rendered inside BASS and reaches the log only as mixed audio, so its order
+changes and fades cannot be read as events; the port's own log lists them (`music fadein/fadeout`, offsets as the
+translated calls give).
 
 ## Changes the pass made
 
@@ -114,6 +126,7 @@ Every pair ends faint or matching with no box left to judge. The web build (rebu
 | The side panel had no pyramid map, pyramid number or ankh position, and its buttons' lit and pressed pictures were wrong | `0x42a2c0` draws the map block (chamber marks and map head from two 15-entry tables, the small treasures clipped to the pyramid, the "Pyramid" text and number in classic); the buttons load only their over, down and (world map) disabled pictures | the same | c6930e8 |
 | Dialog headers and buttons were in each other's fonts, and their buttons were drawn with the framework's box | `NewDialog` (`0x41aa90`): button and lines font mFont1, header font mHeaderFont; `DialogButton` (`0x430050`) draws with the 2003 `DrawImageBox` | the same (`Button2003.h`) | 4c1c655 |
 | Walls and the skull trap's block were missing in front of the explorer and the mummies | the second loop of `DrawBoard` (`0x4095f0`) draws the trap block and the near walls over the figures | `Board::DrawNearWalls`, `DrawTrapBlock` | 91c42f7 |
+| The dark pyramids' window of light was put at the explorer's cell corner, not around the explorer | `0x40cb70` places the window at the cell's pixel plus half a cell minus half the window, a size-dependent offset and 10 | the same | (this commit) |
 | (a test run only) The level-complete bonus read the wall clock when the port ran `-fast` from a script, so the score differed from the original's by a few ten points | the original reads its clock, which origrun runs virtually | `GameTick` counts updates (10 ms each) under `-fast` as it already did under the bot; normal play still reads the clock | (this commit) |
 
 The baseline `build/baseline-mummymaze` was refrozen after the second and third rows: the screenshots of the tutorial game changed
@@ -123,8 +136,9 @@ The baseline `build/baseline-mummymaze` was refrozen after the second and third 
 
 - A click while the window has lost focus is dropped by the port's script path but acted on by the original; a real click
   first reactivates the window, so no player meets it. Not chased.
-- **Not compared by running the original:** music and sound by state. origrun's stand-in is silent and logs no per-sound
-  calls for this game, so sounds were not read from the original; the port's calls are the translated ones. Not compared
-  in the screens either: the unregistered build's nag and register screens, the dark pyramid (pyramid 14), the
-  trap-death animation frame by frame (its first frames and block are drawn as in the original, found by shotdiff), and the
-  web build's screenshots (the Browser pane's pictures are the same engine's; only the log was compared).
+- **A double click sound at a dialog's Yes button.** In the end-of-game scenario the original plays the click sample twice
+  at the same update whenever the bot's Yes click lands on a dialog's button (4 of 4 times; all other buttons click once);
+  the port plays it once. The press path in our export (`0x42e7f0`, the dialog's listener forwarding to the application's
+  `ButtonPress`) shows one call, and the second was not found in about 25 minutes. Not chased.
+- Not compared: the unregistered build's nag and register screens, the trap-death animation frame by frame (its first
+  frames and block are drawn as in the original, found by shotdiff), and the music by state (above).
