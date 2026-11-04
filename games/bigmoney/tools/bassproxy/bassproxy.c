@@ -1,0 +1,176 @@
+// A logging stand-in for BASS.dll (Big Money's BASS, older than Bookworm Adventures' 2.3; after
+// games/bookwormadv/tools/bassproxy), put beside a copy of BigMoneyGame.exe (never an install) with the real BASS
+// renamed to bass_real.dll: every BASS call the game makes is written to basslog.txt in the same folder (the time, the
+// arguments, the result, and a CRC of the data a music is loaded from), then passed on unchanged. The game loads BASS
+// itself and asks for these 21 functions by name (SexyAppFramework 1.2's BassLoader); every one is passed on. Big
+// Money plays only its music through BASS; its sounds go through DirectSound, which origrun's stand-in logs.
+//
+// Each export is a thunk that needs no signature: it logs the first six words on the stack, calls the real function
+// with the caller's arguments in place (BASS is stdcall, so the real function pops them) and logs the result on the
+// way back. The caller's return address waits on a per-thread stack, since a sync callback may call BASS again.
+//
+// Windows Sandbox has no sound device, and the game plays no music when BASS_Init fails, so BASS_Init is given BASS's
+// "no sound" device (0), which still runs the music.
+//
+// Build (32-bit): i686-w64-mingw32-clang -O2 -shared bassproxy.c bassproxy.def -o build/bassproxy-bm/bass.dll
+#include <windows.h>
+#include <stdio.h>
+
+#define COUNT 21
+static const char* const kNames[COUNT] = {
+	"BASS_ChannelIsActive", "BASS_ChannelPause", "BASS_ChannelResume", "BASS_ChannelSetAttributes",
+	"BASS_ChannelSetPosition", "BASS_ChannelStop", "BASS_Free", "BASS_Init",
+	"BASS_MusicFree", "BASS_MusicLoad", "BASS_MusicPlay", "BASS_MusicPlayEx",
+	"BASS_MusicSetAmplify", "BASS_SetConfig", "BASS_SetGlobalVolumes", "BASS_SetVolume",
+	"BASS_Start", "BASS_Stop", "BASS_StreamCreateFile", "BASS_StreamFree",
+	"BASS_StreamPlay",
+};
+enum
+{
+	kInit = 7, kMusicLoad = 9
+};
+
+static FARPROC gReal[COUNT];
+static FILE* gLog;
+static CRITICAL_SECTION gLock;
+static LARGE_INTEGER gFreq, gStart;
+static DWORD gTls;
+
+typedef struct
+{
+	DWORD mRet[64];
+	int mIndex[64];
+	int mDepth;
+} Frames;
+
+static Frames* GetFrames(void)
+{
+	Frames* f = (Frames*)TlsGetValue(gTls);
+	if (f == NULL)
+	{
+		f = (Frames*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(Frames));
+		TlsSetValue(gTls, f);
+	}
+	return f;
+}
+
+static DWORD Crc32(const BYTE* theData, DWORD theSize)
+{
+	DWORD aCrc = 0xffffffff;
+	for (DWORD i = 0; i < theSize; i++)
+	{
+		aCrc ^= theData[i];
+		for (int k = 0; k < 8; k++)
+			aCrc = (aCrc >> 1) ^ (0xedb88320 & (0 - (aCrc & 1)));
+	}
+	return ~aCrc;
+}
+
+static unsigned Ms(void)
+{
+	LARGE_INTEGER t;
+	QueryPerformanceCounter(&t);
+	return (unsigned)((t.QuadPart - gStart.QuadPart) * 1000 / gFreq.QuadPart);
+}
+
+// cdecl, from the thunk: theFrame[0] the function's index, [1] the caller's return address, [2..] the arguments.
+// Returns the real function's address.
+FARPROC __cdecl ProxyEnter(DWORD* theFrame)
+{
+	int i = (int)theFrame[0];
+	Frames* f = GetFrames();
+	if (f->mDepth < 64)
+	{
+		f->mRet[f->mDepth] = theFrame[1];
+		f->mIndex[f->mDepth] = i;
+	}
+	f->mDepth++;
+	DWORD* a = theFrame + 2;
+	EnterCriticalSection(&gLock);
+	if (i == kInit && a[0] != 0)
+	{
+		if (gLog)
+			fprintf(gLog, "# BASS_Init: device %ld becomes 0 (no sound)\n", (long)a[0]);
+		a[0] = 0;
+	}
+	if (gLog)
+	{
+		fprintf(gLog, "%u %lu %s %lx %lx %lx %lx %lx %lx", Ms(), GetCurrentThreadId(), kNames[i], a[0], a[1], a[2],
+			a[3], a[4], a[5]);
+		// BASS_MusicLoad from memory: (TRUE, data, offset, length, ...); the CRC covers the first 32 KB, as the
+		// port's side does
+		if (i == kMusicLoad && a[0] != 0 && a[1] != 0 && !IsBadReadPtr((void*)a[1], 0x8000))
+			fprintf(gLog, " crc %08lx len %lu", Crc32((const BYTE*)a[1], 0x8000), 0x8000UL);
+		// from a file: (FALSE, name, offset, length, ...)
+		else if (i == kMusicLoad && a[0] == 0 && a[1] != 0 && !IsBadStringPtrA((const char*)a[1], MAX_PATH))
+			fprintf(gLog, " file %s", (const char*)a[1]);
+		fprintf(gLog, "\n");
+		fflush(gLog);
+	}
+	LeaveCriticalSection(&gLock);
+	return gReal[i];
+}
+
+// cdecl: logs the result and returns the caller's return address
+DWORD __cdecl ProxyLeave(DWORD* theResult)
+{
+	Frames* f = GetFrames();
+	f->mDepth--;
+	int d = f->mDepth < 64 ? f->mDepth : 63;
+	int i = f->mIndex[d];
+	EnterCriticalSection(&gLock);
+	if (gLog)
+	{
+		fprintf(gLog, "%u %lu = %s %lx\n", Ms(), GetCurrentThreadId(), kNames[i], *theResult);
+		fflush(gLog);
+	}
+	LeaveCriticalSection(&gLock);
+	return f->mRet[d];
+}
+
+__asm__(
+	".text\n"
+	"_ProxyCommon:\n"
+	"	pushl %esp\n"
+	"	call _ProxyEnter\n"
+	"	addl $4, %esp\n"
+	"	addl $8, %esp\n"         // the index and the caller's return address (kept by ProxyEnter)
+	"	call *%eax\n"            // the real function pops the arguments
+	"	pushl %eax\n"            // the result
+	"	pushl %esp\n"
+	"	call _ProxyLeave\n"
+	"	addl $4, %esp\n"
+	"	movl %eax, %ecx\n"
+	"	popl %eax\n"
+	"	pushl %ecx\n"
+	"	ret\n");
+
+#define THUNK(n) \
+	__asm__(".globl _Thunk" #n "\n_Thunk" #n ":\n	pushl $" #n "\n	jmp _ProxyCommon\n");
+THUNK(0) THUNK(1) THUNK(2) THUNK(3) THUNK(4) THUNK(5) THUNK(6) THUNK(7) THUNK(8) THUNK(9) THUNK(10) THUNK(11)
+THUNK(12) THUNK(13) THUNK(14) THUNK(15) THUNK(16) THUNK(17) THUNK(18) THUNK(19) THUNK(20)
+
+BOOL WINAPI DllMain(HINSTANCE theInstance, DWORD theReason, LPVOID theReserved)
+{
+	if (theReason != DLL_PROCESS_ATTACH)
+		return TRUE;
+	InitializeCriticalSection(&gLock);
+	gTls = TlsAlloc();
+	QueryPerformanceFrequency(&gFreq);
+	QueryPerformanceCounter(&gStart);
+	char aPath[MAX_PATH];
+	DWORD n = GetModuleFileNameA(theInstance, aPath, MAX_PATH);
+	while (n > 0 && aPath[n - 1] != '\\')
+		n--;
+	aPath[n] = 0;
+	char aFile[MAX_PATH];
+	wsprintfA(aFile, "%sbasslog.txt", aPath);
+	gLog = fopen(aFile, "w");
+	wsprintfA(aFile, "%sbass_real.dll", aPath);
+	HMODULE aReal = LoadLibraryA(aFile);
+	if (gLog)
+		fprintf(gLog, "# bass proxy: %s %s\n", aFile, aReal ? "loaded" : "NOT LOADED");
+	for (int i = 0; i < COUNT; i++)
+		gReal[i] = aReal ? GetProcAddress(aReal, kNames[i]) : NULL;
+	return TRUE;
+}

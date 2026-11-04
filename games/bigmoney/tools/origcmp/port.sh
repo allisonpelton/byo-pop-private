@@ -4,7 +4,8 @@
 #   games/bigmoney/tools/origcmp/port.sh <run id> <script.txt | -> [seed] [extra game args...]
 # ("-" runs no script, for a bot game: -autoplay=... as extra arguments)
 # Writes build/bmcmp/<run>/state.txt (the -statelog lines, for statecmp.py) and out.txt. BM_EXE names another exe
-# (default build/native/bigmoney.exe); PORT_SAVE=<file> starts from a saved game (orig.sh's ORIG_SAVE).
+# (default build/native/bigmoney.exe); PORT_SAVE=<file> starts from a saved game (orig.sh's ORIG_SAVE);
+# PORT_SETTINGS=<settings.txt> gives the sandbox runs' settings instead of a copy of the original's HKLM key.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HERE="$ROOT/games/bigmoney/tools/origcmp"
@@ -15,21 +16,14 @@ DIR="$ROOT/build/bmcmp/$RUN"
 rm -rf "$DIR"; mkdir -p "$DIR/user" "$DIR/mods"
 SARG=()
 if [ "$SCRIPT" != - ]; then cp "$SCRIPT" "$DIR/script.txt"; SARG=(-script="$(cygpath -w "$DIR/script.txt")"); fi
-# the settings the original reads (orig.sh): its HKLM key, which it cannot write, copied into the port's registry.ini
-MSYS_NO_PATHCONV=1 reg query 'HKLM\SOFTWARE\WOW6432Node\PopCap\BigMoney' | tr -d '\r' | python -c '
-import sys
-print(r"[SOFTWARE\PopCap\BigMoney]")
-for ln in sys.stdin:
-    p = ln.strip().split(None, 2)
-    if len(p) == 3 and p[1] == "REG_DWORD":
-        print("%s=dword:%d" % (p[0], int(p[2], 16)))
-    elif len(p) == 3 and p[1] == "REG_SZ":
-        print("%s=sz:%s" % (p[0], p[2]))
-' > "$DIR/user/registry.ini"
+# the settings the original starts from (regini.py): its HKLM key, or PORT_SETTINGS for the sandbox runs
+if [ -n "${PORT_SETTINGS:-}" ]; then python "$HERE/regini.py" --settings "$PORT_SETTINGS" > "$DIR/user/registry.ini"
+else python "$HERE/regini.py" --hklm > "$DIR/user/registry.ini"; fi
 [ -n "${PORT_SAVE:-}" ] && cp "$PORT_SAVE" "$DIR/user/savegame.dat"
-cd "$DIR"
+mkdir -p "$DIR/shots"; cd "$DIR/shots"   # the script's screenshots land here
+FAST=(-fast); [ "${PORT_REALTIME:-0}" = 1 ] && FAST=()   # PORT_REALTIME=1: real time (the stats panel's game time)
 timeout "${PORT_TIMEOUT:-300}" "$ROOT/build/native/rundesk.exe" "$EXE" -gamedir="$(cygpath -w "$ROOT/assets/bigmoney")" \
-	-userdir="$(cygpath -w "$DIR/user")" -modsdir="$(cygpath -w "$DIR/mods")" -seed="$SEED" -fast \
+	-userdir="$(cygpath -w "$DIR/user")" -modsdir="$(cygpath -w "$DIR/mods")" -seed="$SEED" "${FAST[@]}" \
 	"${SARG[@]}" -statelog="$(cygpath -w "$DIR/state.txt")" "$@" > "$DIR/out.txt" 2>&1
 status=$?
 # A hung run whose rundesk was killed by timeout: stop only this run's game (its user folder is on its command line)
