@@ -293,9 +293,11 @@ void MummyApp::ButtonPress(int theId)
 	PlaySample(SOUND_CLICK);
 }
 
+// 0x41e9b0: the music's update runs a second time (the fades take half as many updates as the framework's one step gives)
 void MummyApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	mMusicInterface->Update();
 	if (mAutoplay)
 		AutoplayUpdate();
 }
