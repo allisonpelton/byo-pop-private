@@ -111,6 +111,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Bookworm Adventures Volume 2 start after the weekly reset (2026-11-08 00:00 UTC), five at a time again. That week
   also makes each game's fixes mod (the user, 2026-11-04: "next week will have a bunch of that in addition to
   finishing phase 2 of identical play"; `docs/MOD_ROADMAP.md`, "The fixes mod").
+- **Reports still open from the user's test notes (cleared 2026-11-04):** each goes to its game's session with its
+  next brief. Bookworm Adventures: "Sound effects seem to come about a second after they should." Its pass found every
+  sound at the original's update natively, so check the web build, where the user plays. Its smashed tile "looks
+  wrong" (`testnotes/images/bookwormadv-smashed-tile.png`): the countdown that ToColor hid is fixed (d63c8e5b), but
+  the tile was never compared with that screenshot. Every game: "In fullscreen the original freezes while it does not
+  have the focus; the port keeps running" (`docs/FRAMEWORK_2004.md` on the focus): each phase two's focus check covers
+  it, natively in full screen. Cosmic Bugs' yellow flicker and offset digits at a second launch were not reproduced
+  (its IDENTICAL_PLAY.md says how it was looked for).
 - **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
   and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
@@ -130,6 +138,13 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
   work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer that puts a
   native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
+<!-- private -->
+- **Building the web port in the browser (the user's test notes, moved here 2026-11-04):** "I'm starting to feel more
+  open to trying to build the WASM version in the browser (either saving it to localStorage or to a connected Google
+  Drive) to completely avoid infringement. Let's try it on the simplest possible game and see how long it takes to
+  build in the browser and how much work it adds for each game." Not started; it belongs with the work before the
+  website is ready.
+<!-- /private -->
 - **A coverage check after the identical-play passes (the user, 2026-11-02: "Queue it").** The user asked whether
   reccmp, the matching-decompilation tool, would help. It does not fit: it scores, function by function, how closely
   code rebuilt with the original compiler reproduces the exe's instructions, and our ports are built by clang and
@@ -156,8 +171,8 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 - **The site's requested work comes between Twist and the passes (the user, 2026-11-02):** "Slot in the remaining
   requested additions and changes to the site after finishing Twist and before the passes on existing decomps." Then:
   "Any site features that are easy, you can do now. Anything that requires designing an animation or SVG, or that
-  requires a lot of code to get working right, save for later." The open items are in the "Site" section of
-  `testnotes/TEST_NOTES.md`. Done now, in a site session: F11 for full screen in every game; play time, last day played
+  requires a lot of code to get working right, save for later." Every item the user listed for the site was done
+  by 2026-11-04. Done now, in a site session: F11 for full screen in every game; play time, last day played
   and number of plays on the front page, with "Play now" and "Add your files"; a bigger logo on the front page;
   "Quit Game" back to the home page; the player, save and settings managers as tabs with far less text (names until the
   icons are designed). After Twist and before any identical-play pass starts on a game decompiled before Twist (passes
@@ -185,11 +200,13 @@ were fixed (34e6da1, a6547b9). The chat
   million in Blitz mode and save a replay of it that can be recorded and uploaded. This is likely to require a lot of
   strategizing." It waits, like every mod, until the decompilations are finished.
 
-- **No new mods unless requested (the user, 2026-10-30):** "no new mods for anything unless someone requests it." There
-  is no mod phase that goes through a list: the 29 standard mods in `docs/MOD_ROADMAP.md` and each game's listed ideas
-  become the first entries of a feedback page the website will have for each game, where players suggest mods and vote
-  on them, and the user decides which to make. Fixes and suggestions for the mods that already exist are noted (the user's
-  `testnotes/TEST_NOTES.md`) and wait until every decompilation is finished.
+- **No new mods unless requested (the user, 2026-10-30):** "no new mods for anything unless someone requests it."
+  There is no mod phase that goes through a list: the 29 standard mods in `docs/MOD_ROADMAP.md` and each game's listed
+  ideas become the first entries of a feedback page the website will have for each game, where players suggest mods
+  and vote on them, and the user decides which to make ("Implementation of the mod could even be automated based on a
+  comment getting enough upvotes (and my approval, of course)."). Fixes and suggestions for the mods that already
+  exist are noted in `docs/MOD_ROADMAP.md` ("The user's notes on the mods that exist") and wait until every
+  decompilation is finished.
 - **The fixes mod (the user, 2026-11-04):** the site will serve each game with one mod of fixes on by default, each
   fix a toggle in it, and the player can turn single fixes or the whole mod off for the original as it was
   (`docs/MOD_ROADMAP.md`, "The fixes mod"). With it on, a game plays the same on every run (no 15-update jumps as in

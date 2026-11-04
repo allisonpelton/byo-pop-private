@@ -131,7 +131,7 @@ Every call re-reads the whole context, so what costs is context times calls, and
 - **Port first, unmodified (the user, 2026-10-26):** a port is the original game, unmodified and working like its exe;
   it adds nothing for later mods, not even hooks (the site's own hooks for player names and settings are the
   exception). No new mods unless the user requests one ("no new mods for anything unless someone requests it",
-  2026-10-30); fixes and suggestions for the mods that exist wait in the user's `testnotes/TEST_NOTES.md` until every
+  2026-10-30); fixes and suggestions for the mods that exist wait in `docs/MOD_ROADMAP.md` until every
   decompilation is finished. Code that makes a game moddable makes things configurable and never overwrites the
   original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle a
   fix, and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that

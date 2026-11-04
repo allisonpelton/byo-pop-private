@@ -595,7 +595,7 @@ serves them under `/jungle/`. They reach the site's shared files one folder up (
 
 ### Adding games from the listing page
 
-The user, 2026-11-03 (the "Site" section of `testnotes/TEST_NOTES.md`): "Allow many games' files to be added at once. Try to
+The user, 2026-11-03 (the "Site" section of their test notes): "Allow many games' files to be added at once. Try to
 infer the game from the folder name, allow the user to manually specify which game a folder is for if unclear, and tell the user
 which folders were rejected", and "allow dragging your game folder onto the logo to add it (representing the use of the bottle
 opener). Also allow a game folder to be dragged onto its game tile to add its files." This is a rough first version; the opener

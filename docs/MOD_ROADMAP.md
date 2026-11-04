@@ -86,6 +86,73 @@ merged get theirs in the week from 2026-11-08, beside the second phases. A port 
 that finds a fix keeps the original's behaviour in the port and lists the fix in its game's notes under "Fix
 candidates": what the original does, how to see it, and what the fix would change.
 
+## The user's notes on the mods that exist
+
+From the user's test notes, moved here in their own words when the notes were cleared (2026-11-04). Like every mod,
+they wait until every decompilation is finished (`docs/COORDINATION.md`, "Mods").
+
+The mod system:
+
+- "We should classify mods that overwrite a gamemode separately from ones that just change bits of gameplay. Mostly
+  relevant to Bejeweled currently but any game should support it in theory."
+- "Mod menu should have a button to quickly copy a list of mods and versions installed and their hash. Useful for
+  debugging."
+
+Bejeweled:
+
+- "Bejeweled Arrowhead mod seems to leave a gap when the arrowhead goes off screen, at least going down."
+- "In Halo, Hints should probably indicate where to twist and which direction instead of highlighting gems. Maybe
+  highlight both? It was very hard for me to spot."
+- "Also, would be nice to enable all four (later on, more) gamemodes at once, then being able to select one of them to
+  play through the in-game menu, rather than enabling only one in the mod menu and restarting."
+- "Bejeweled drawn graphics 'CLICK HERE TO PLAY AGAIN' text is cut off so it says LICK and AGAI"
+- "I think Arrowhead would be more fun if instead of just seemingly scoring more points with each subsequent one
+  matched, you get points based on how many turns it spends on-screen. It could be exponential with rounding. Also
+  would be neat if arrow gems exploded when they collided with each other. Maybe they would explode but not give
+  points (although the destroyed gems could still give points). They could have a move counter on them. Direction
+  changes could also be what increases their score."
+- "I shouldn't lose my power gems when leveling up. It's ok if they change color, though."
+- "The Bejeweled 2 music mod should use any of the tracks that can appear during gameplay and randomly select one."
+- "Another mode to consider with arrow gems: collector (maybe think of a better name?) where you have a big board with
+  few colors and the goal is to keep arrow gems from leaving the board. They could start randomly distributed near the
+  middle. Maybe make them immune to being matched?"
+
+BookWorm:
+
+- "Bookworm word type mod should not repeat the sound every frame while a key for a letter that can't be played is
+  held down. It should also turn off highlighting every tile matching the letter typed once narrowed down to a single
+  sequence on the board."
+- "It seems like Collins definitions aren't appearing. 'SPIRALS' showed nothing. I had BWA2 words, right click closes
+  balloons, Collins words, greedy bots, replays, rude words, definitions while searching, word solver, type a word,
+  undo, widescreen, and word journal all enabled when this happened."
+- "Bookworm type words mod should have a key to open/close the menu, a key to scramble the board, in-game tab
+  navigation, tab to cycle through different ways to play a single typed word. Should also have an option to disable
+  typing if the current selection isn't a prefix of any word (off by default, since it may be sort of cheaty). Type
+  words should allow typing the U after Q to be skipped."
+- "Experiment with having the Bookworm solver try to facilitate the construction of the bonus word, potentially
+  allowing burning tiles to fall to make it possible if that improves score."
+- "If rude words are enabled, solver should have an option to show rude words on the board separately (option turned
+  off by default)."
+- "Should be a mod to disable the Bookworm level up screen and let you just play continuously, showing the stats
+  elsewhere on the board at all times (probably the sidebar for widescreen)."
+- "Find a current-ish APK for Boggle With Friends and extract the wordlist. Use it to create another dictionary
+  expanding mod for Bookworm. I also want to know how many new words it would add compared to base game, base + BWA2,
+  base + Collins, and all of them together." Getting the APK is a download, so it needs the user's OK first, with its
+  name, source and size.
+
+Big Money:
+
+- "Big Money: does a puzzle bot perform better if it tries to only click coin groups with an even number of coins
+  (since those could be groups from the original build)? Solver should stop thinking once level is unwinnable."
+
+Bookworm Adventures:
+
+- "Sound effect volumes vary a lot: at a volume where most effects are normal, the cheer after beating a chapter hurts
+  the ears. Normalization would be welcome (if the original's sounds really differ that much, this is an option for
+  the mod phase; first check that the port plays each sound at the original's volume)." The pass found every sound at
+  the original's volume and fixed the chapter's cheer (games/bookwormadv/docs/FIXES_FOR_VOLUME2.md), so normalisation
+  is left as a mod idea.
+
 ## Standard mods for every game
 
 The user approved this list on 2026-10-26 as the mod plan of every game. A port is first the original game, unmodified
@@ -188,6 +255,35 @@ Once Bejeweled Deluxe and all of the mods above are done and working:
    reference, except Plants vs. Zombies, Insaniquarium and Zuma Deluxe, whose fan communities are left to their own work, and
    Chuzzle's Christmas Edition. Games with another PC decompilation in progress or an active modding community (Peggle
    Deluxe and Nights) are built but not published. Pizza Frenzy and Chuzzle Deluxe are back in the order.
+
+<!-- private -->
+## Very far out: an original match-3 game
+
+From the user's test notes (moved here 2026-11-04), in their words. It comes after every decompilation, the
+third-party ones too.
+
+"Add gems that work like fruit, hypercube, and supernova, so more gamemodes can be made with them. Also add sliding
+support like Chuzzle and time bombs, doom gems, and coal from Twist. New ideas for gems too: a detonator gem that sets
+off all power gems, or a gem that can only be set off by a detonator. Instead of just points, coal could spawn a flame
+gem or blow up. So many ways you can be creative. What about support for a board that can change shape over the course
+of the game? Could also add support for bonuses from making speedy moves (like Blazing Speed in 3 or hyperspeed in
+Twist). I am mostly interested in maximizing what can be done with this one title rather than making every Bejeweled
+game the same; I'm kind of thinking of Bejeweled as a centerpiece of the whole project, showing what can be done with
+modding now that the decomps exist."
+
+"Crazy mod idea: a fan game built on Bejeweled 1 called 'Bejeweled 64' with Nintendo 64-style graphics and 64 game
+modes to choose from."
+
+"You could make Bejeweled into a roguelike with a goal like 'create an infinite cascade' or something."
+
+"Why not diagonal matches or even arbitrary rules for what kind of matches are permissible? How about adding conveyors
+that move with each match made? A gem could reorganize your board to make a huge cascade!"
+
+"Actually, now that I think about it, some of this stuff sounds like great material for an original match 3 game with
+incremental/upgrade progression elements. Actually, let's call all the stuff I just mentioned ideas for this new
+original game I'm thinking about. Not necessarily based on the PopCap framework, but whatever is very lightweight and
+would work on virtually any platform. This would be after all the decomps, even the third party ones."
+<!-- /private -->
 
 ## Very far out: the Build-a-Lot series
 
