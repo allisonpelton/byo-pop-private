@@ -2,6 +2,7 @@
 
 #include "Dialogs.h"
 #include "NoahApp.h"
+#include "Button2003.h"
 #include "Screens.h"
 #include "GameText.h"
 #include "Board.h"
@@ -29,17 +30,18 @@ DifficultyDialog::DifficultyDialog(NoahApp* theApp) :
 		GT(0x00494410), GT(0x0049c510), GT(0x0049441c), BUTTONS_FOOTER),
 	mApp(theApp)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
 	SetButtonFont(mApp->mFonts[FONT_SMALL]);
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
 
-	mEasyButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], 0x3c, this);
+	mEasyButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 0x3c, this);
 	mEasyButton->SetFont(mApp->mFonts[FONT_SMALL]);
 	mEasyButton->mLabel = GT(0x00494408);
-	mMediumButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], 0x3d, this);
+	mMediumButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 0x3d, this);
 	mMediumButton->SetFont(mApp->mFonts[FONT_SMALL]);
 	mMediumButton->mLabel = GT(0x00494400);
-	mHardButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], 0x3e, this);
+	mHardButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 0x3e, this);
 	mHardButton->SetFont(mApp->mFonts[FONT_SMALL]);
 	mHardButton->mLabel = GT(0x004943f8);
 }
@@ -110,6 +112,7 @@ HighScoreDialog::HighScoreDialog(NoahApp* theApp) :
 		GT(0x0049444c), GT(0x0049c510), GT(0x0049c510), BUTTONS_FOOTER),
 	mApp(theApp)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
 	mScores = new HighScoreWidget(theApp);
 	SetButtonFont(mApp->mFonts[FONT_SMALL]);
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
@@ -160,6 +163,7 @@ RecordScoreDialog::RecordScoreDialog(NoahApp* theApp, const std::string& thePlac
 		GT(0x00495ef0), thePlace, GT(0x0049c510), BUTTONS_OK_CANCEL),
 	mApp(theApp)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
 	SetButtonFont(mApp->mFonts[FONT_SMALL]);
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
@@ -258,6 +262,7 @@ OptionsDialog::OptionsDialog(NoahApp* theApp) :
 		GT(0x00495fd8), GT(0x0049c510), GT(0x00494458), BUTTONS_FOOTER),
 	mApp(theApp)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
 	SetButtonFont(mApp->mFonts[FONT_GARAMOND_SMALL]);
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
@@ -270,7 +275,7 @@ OptionsDialog::OptionsDialog(NoahApp* theApp) :
 	};
 	for (int i = 0; i < 5; i++)
 	{
-		DialogButton* aButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], aSpecs[i].mId, this);
+		DialogButton* aButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], aSpecs[i].mId, this);
 		aButton->SetFont(mApp->mFonts[FONT_GARAMOND_SMALL]);
 		aButton->mLabel = GT(aSpecs[i].mText);
 		*aSpecs[i].mButton = aButton;
@@ -432,6 +437,7 @@ TutorialDialog::TutorialDialog(NoahApp* theApp) :
 	mCursorY(0x4e),
 	mClicked(false)
 {
+	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
 	SetButtonFont(mApp->mFonts[FONT_GARAMOND_SMALL]);
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
@@ -644,8 +650,8 @@ void TutorialDialog::Draw(Graphics* g)
 	g->SetColor(Color(0xff, 0, 0));
 	g->SetFont(mApp->mFonts[FONT_GARAMOND_MED]);
 	SexyString anX = GT(0x004962ec);
-	g->DrawString(anX, (0x32 - g->GetFont()->StringWidth(anX)) / 2 + 0x37 + aPanel + 5, 0xe8);
-	g->DrawString(anX, (0x32 - g->GetFont()->StringWidth(anX)) / 2 + 5 + aPanel + 5, 0x11f);
+	g->DrawString(anX, (0x32 - g->GetFont()->StringWidth(anX)) / 2 + 0x37 + aPanel, 0xe8);
+	g->DrawString(anX, (0x32 - g->GetFont()->StringWidth(anX)) / 2 + 5 + aPanel, 0x11f);
 
 	g->DrawImage(mApp->mImages[IMAGE_ARROW], mCursorX, mCursorY);
 }

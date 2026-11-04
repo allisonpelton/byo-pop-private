@@ -2,6 +2,7 @@
 
 #include "Screens.h"
 #include "NoahApp.h"
+#include "Button2003.h"
 #include "Board.h"
 #include "GameText.h"
 #include "ModFeatures.h"
@@ -99,15 +100,15 @@ void TitleScreen::Draw(Graphics* g)
 	g->DrawImage(anImages[IMAGE_TITLE], 0, 0);
 	Image* aBar = anImages[IMAGE_TITLEBAR];
 	g->DrawImage(aBar, 0x99, 0x174, Rect(0, 0, (int) (mProgress * aBar->mWidth), aBar->mHeight));
-	g->DrawImage(anImages[IMAGE_POPCAPLOGO], 0x20b, 0x1cb);
-	g->DrawImage(anImages[IMAGE_POPCAPURL], 0x20b, 0x16a);
+	g->DrawImage(anImages[IMAGE_POPCAPLOGO], 0x20b, 0x16a);
+	g->DrawImage(anImages[IMAGE_POPCAPURL], 0x20b, 0x1cb);
 
 	// the line in the middle (registered: the thanks), black outline then yellow
 	SexyString aLine = GT(0x0049620c);
 	g->SetFont(mApp->mFonts[FONT_SMALL]);
 	g->SetColor(Color(0, 0, 0));
-	for (int dx = -1; dx < 1; dx++)
-		for (int dy = 0; dy < 2; dy++)
+	for (int dx = -1; dx < 2; dx++)
+		for (int dy = -1; dy < 2; dy++)
 		{
 			int aWidth = g->GetFont()->StringWidth(aLine);
 			g->DrawString(aLine, (mWidth - aWidth) / 2 + dx, dy + 0x170);
@@ -220,7 +221,7 @@ void IntroWidget::Draw(Graphics* g)
 	if (mContinueButton == NULL)
 	{
 		// no saved game: the Continue button is drawn dimmed, as a picture
-		g->DrawImageBox(Rect(100, 0x147, 0xc4, 0x2f), mApp->mImages[IMAGE_BUTTONBACK]);
+		DrawImageBox2003(g, Rect(100, 0x147, 0xc4, 0x2f), mApp->mImages[IMAGE_BUTTONBACK]);
 		g->SetFont(mApp->mFonts[FONT_COLORLESS]);
 		g->SetColor(Color(0x78, 0x78, 0x78));
 		SexyString aText = GT(0x00494a28);
@@ -365,7 +366,7 @@ void NextLevelWidget::Draw(Graphics* g)
 	Graphics ig(mBackground);
 	Image** anImages = mApp->mImages;
 	ig.DrawImage(anImages[IMAGE_FRAME], 0, 0);
-	ig.DrawImageBox(Rect(0, 0, 0x1d8, 0x1d7), anImages[IMAGE_DIALOG]);
+	DrawImageBox2003(&ig, Rect(0, 0, 0x1d8, 0x1d7), anImages[IMAGE_DIALOG]);
 
 	SexyString aTitle = GT(0x00494f34);
 	ig.SetFont(mApp->mFonts[FONT_BIG]);
@@ -627,7 +628,7 @@ void HighScoreWidget::Draw(Graphics* g)
 	g->DrawString(GT(gRankNames[aRank]), (mWidth - aFont->StringWidth(GT(gRankNames[aRank]))) / 2, 0x95);
 
 	g->SetColor(Color(0xff, 0xff, 0xff, aAlpha));
-	g->DrawImageBox(Rect((mWidth - 0x19f) / 2, 0xa0, 0x19f, 0xf0), mApp->mImages[IMAGE_DIALOG]);
+	DrawImageBox2003(g, Rect((mWidth - 0x19f) / 2, 0xa0, 0x19f, 0xf0), mApp->mImages[IMAGE_DIALOG]);
 	g->SetColorizeImages(false);
 	g->SetFont(aFont);
 	g->SetColor(Color(0xff, 0xbf, 0x22, aAlpha));
