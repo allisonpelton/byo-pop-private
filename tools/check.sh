@@ -1458,6 +1458,11 @@ cosmicbugs_window() {  # <name>: the windowed exe with the runner's left clicks;
 	echo "$l"
 }
 
+rocketmania_state_game() {  # <name> <exe> <mode> <difficulty> <bot seed> <game seed>: a game played by mouse (the bot of testhooks/UiBot.cpp); its state log is <name>/state.txt
+	local d="$OUT/rocketmania/$1"; rm -rf "$d"; mkdir -p "$d"
+	timeout 600 "$2" -userdir="$d/user" -fast -drawevery -seed="$6" -uibot="$5" -uistart=300000 -uimodes="$3" -uidiffs="$4" -uigames=1 -uicap=3000 		-statelog="$d/state.txt" -uiscript="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+}
+
 suite_rocketmania() {
 	local st=0 d="$OUT/rocketmania" e=0 f n=""
 	need_assets rocketmania || return 1
@@ -1489,7 +1494,20 @@ suite_rocketmania() {
 		[ "${score:-0}" -gt 0 ] || { SUMMARY="mode $m: no launch scored ($line)"; return 1; }
 		scores="$scores $score"
 	done
-	SUMMARY="loaded, menu, hover, difficulty dialog, and a game of each mode played (scores$scores)"
+	# the frozen baseline (build/baseline-rocketmania/, the port when its identical-play pass was done): the same mouse-played
+	# games must give the same state at every update (the values the pass compared with the original)
+	local base="$W/build/baseline-rocketmania/rocketmania.exe" bl="" g
+	if [ -f "$base" ]; then
+		for g in "0 2 2 777" "1 2 1 12345" "2 3 3 4242"; do
+			read -r m df bs gs <<< "$g"
+			rocketmania_state_game "cur-$m" "$W/build/native/rocketmania.exe" "$m" "$df" "$bs" "$gs"
+			rocketmania_state_game "base-$m" "$base" "$m" "$df" "$bs" "$gs"
+			[ -s "$OUT/rocketmania/cur-$m/state.txt" ] && [ -s "$OUT/rocketmania/base-$m/state.txt" ] &&
+				cmp -s "$OUT/rocketmania/cur-$m/state.txt" "$OUT/rocketmania/base-$m/state.txt" || bl="x"
+		done
+		[ -z "$bl" ] && bl="; baseline identical" || { bl="; BASELINE DIFFERS"; st=1; }
+	fi
+	SUMMARY="loaded, menu, hover, difficulty dialog, and a game of each mode played (scores$scores)$bl"
 	return $st
 }
 

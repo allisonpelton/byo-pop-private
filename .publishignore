@@ -32,3 +32,5 @@ games/bigmoney/tools/origcmp/orig.sh
 games/tiptop/tools/identical/setup.sh
 # Ning Po's comparison setup writes the copy's patch list, which includes the patch that reads it as registered (2026-11-03)
 games/ningpo/tools/identical/setup.sh
+# Rocket Mania's identical-play pass: the staging script carves the game out of RocketMania.exe with the private extract_game_exe and writes the copy's patch list (2026-11-03)
+games/rocketmania/tools/identical/setup.sh

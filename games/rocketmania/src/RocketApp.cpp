@@ -95,6 +95,8 @@ RocketApp::RocketApp()
 	mHeadCountdown = 0;
 	mMode = 0;
 	mDifficulty = 0;
+	mStateLog = NULL;
+	mUiBot = NULL;
 	mNoPopLink = false;
 	mNoHints = false;
 	for (int i = 0; i < 8; i++)
@@ -104,6 +106,8 @@ RocketApp::RocketApp()
 
 RocketApp::~RocketApp()
 {
+	delete mStateLog;
+	delete mUiBot;
 	if (mBoard != NULL)
 		mWidgetManager->RemoveWidget((Widget*) mBoard);
 	if (mHead != NULL)
@@ -156,10 +160,28 @@ MemoryImage* RocketApp::CopyImage(Image* theImage, const Rect& theRect)
 	return aCopy;
 }
 
+static MTRand sGlobalRand;
+
+int Sexy::GlobalRand()
+{
+	return (int) sGlobalRand.Next();
+}
+
+void Sexy::SeedGlobalRand(unsigned long theSeed)
+{
+	SeedMTRand2004(sGlobalRand, theSeed);
+}
+
+void Sexy::GetGlobalRandState(uint32_t* theState, int* theIndex)
+{
+	sGlobalRand.GetState(theState, theIndex);
+}
+
 // 0x42b9b0
 void RocketApp::Init()
 {
 	SexyApp::Init();
+	SeedGlobalRand(mRandSeed);      // (SexyAppBase::Init seeds the generator at 0x52c658 with the tick count)
 
 	// the 2003 SexyApp::Init seeds the C library generator with the tick count; -seed=N makes a run repeatable
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
@@ -288,6 +310,31 @@ bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 	}
 	return true;
+}
+
+// port: the test hooks (testhooks/UiBot.h)
+void RocketApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (!mUiParams.Parse(theParamName, theParamValue))
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+void RocketApp::UpdateFrames()
+{
+	SexyApp::UpdateFrames();
+
+	if (!mUiParams.mStateFile.empty())
+	{
+		if (mStateLog == NULL)
+			mStateLog = new StateLog(this);
+		mStateLog->Update();
+	}
+	if (mUiParams.mOn)
+	{
+		if (mUiBot == NULL)
+			mUiBot = new UiBot(this, mUiParams);
+		mUiBot->Update();
+	}
 }
 
 // 0x42ed10: the dialogs' buttons arrive as 2000 + dialog id (yes, ok) and 3000 + dialog id (no, cancel)
@@ -675,12 +722,12 @@ void RocketApp::StartBoard(bool theContinuing)
 		mGameSelector = NULL;
 	}
 	SDL_Log("StartBoard: mode %d difficulty %d", mMode, mDifficulty);
+	AddBoardButtons();
 	mBoard = new Board(this, theContinuing);
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mBoard);
-	mWidgetManager->BringToFront(mBoard);
+	mWidgetManager->BringToBack(mBoard);   // (0x42fe78; the head and the dialogs stay in front of it)
 	mWidgetManager->SetFocus(mBoard);
-	AddBoardButtons();
 	if (!theContinuing)
 	{
 		DeleteSavedGame(mMode);
