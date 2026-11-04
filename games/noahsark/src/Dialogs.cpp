@@ -109,7 +109,7 @@ void DifficultyDialog::ButtonDepress(int theId)
 // 0x4113e0
 HighScoreDialog::HighScoreDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_HIGH_SCORES, true,
-		GT(0x0049444c), GT(0x0049c510), GT(0x0049c510), BUTTONS_FOOTER),
+		GT(0x0049444c), GT(0x0049c510), GT(0x00494458), BUTTONS_FOOTER),
 	mApp(theApp)
 {
 	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);

@@ -522,7 +522,8 @@ void Board::Draw(Graphics* g)
 						aX += (int) (sinf(y * 0.5f + mUpdateCnt * 0.0667f) * 20.0f);
 						aY += 14;
 					}
-					g->DrawImage(anImages[(aType == PIECE_BLOCK) ? IMAGE_BLOCK : IMAGE_CRATE], aX, aY);
+					// the original's first group of obstacles (0x401ce0, the ones the port numbers 0x10) shows block.jpg, its second the crate
+					g->DrawImage(anImages[(aType == PIECE_BLOCK) ? IMAGE_CRATE : IMAGE_BLOCK], aX, aY);
 					continue;
 				}
 				if ((aType == PIECE_EMPTY) || !aQuiet)
