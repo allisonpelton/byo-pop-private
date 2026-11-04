@@ -289,6 +289,52 @@ void MainMenu::FillButton(Graphics* g, int theId)
 	// the caption is drawn by the caller
 }
 
+// 0x41a010: the 256 colours the high score rows cycle through: red, green and blue run up and down between their ends at
+// their own steps (-25 from 255, 5 from 185 and 25 from -255, the negative ends being black), the alpha is the page's
+void BuildScoreColors(Color* theColors, int theAlpha)
+{
+	int aRed = 255, aRedStep = -25;
+	int aGreen = 0xb9, aGreenStep = 5;
+	int aBlue = -255, aBlueStep = 25;
+	for (int i = 0; i < 256; i++)
+	{
+		theColors[i] = Color(aRed < 1 ? 0 : aRed, aGreen < 1 ? 0 : aGreen, aBlue < 1 ? 0 : aBlue, theAlpha);
+		aRed += aRedStep;
+		if (aRed < -255)
+		{
+			aRed = -255;
+			aRedStep = (aRedStep < 0) ? -aRedStep : aRedStep;
+		}
+		else if (aRed > 255)
+		{
+			aRed = 255;
+			aRedStep = (aRedStep < 0) ? aRedStep : -aRedStep;
+		}
+		aGreen += aGreenStep;
+		if (aGreen < 0xb9)
+		{
+			aGreen = 0xb9;
+			aGreenStep = (aGreenStep < 0) ? -aGreenStep : aGreenStep;
+		}
+		else if (aGreen > 255)
+		{
+			aGreen = 255;
+			aGreenStep = (aGreenStep < 0) ? aGreenStep : -aGreenStep;
+		}
+		aBlue += aBlueStep;
+		if (aBlue < -255)
+		{
+			aBlue = -255;
+			aBlueStep = (aBlueStep < 0) ? -aBlueStep : aBlueStep;
+		}
+		else if (aBlue > 255)
+		{
+			aBlue = 255;
+			aBlueStep = (aBlueStep < 0) ? aBlueStep : -aBlueStep;
+		}
+	}
+}
+
 // 0x41a010
 void MainMenu::Draw(Graphics* g)
 {
@@ -343,6 +389,9 @@ void MainMenu::Draw(Graphics* g)
 				g->DrawString(aRows[i].mValue, 0xe3, aRows[i].mY - aPY);
 			}
 			// the rank
+			g->SetColor(Color(0, 255, 0, mAlpha));
+			const std::string& aRankLabel = GT(0x4afe94);
+			g->DrawString(aRankLabel, 0xaf - aSmall->StringWidth(aRankLabel) / 2, 0xe0 - aPY);
 			g->SetFont(mApp->mMonitorFontMedium);
 			g->SetColor(Color(0xaf, 255, 100, mAlpha));
 			const std::string& aRankName = GT(kRankNames[mRank]);
@@ -357,14 +406,29 @@ void MainMenu::Draw(Graphics* g)
 			g->DrawString(aTitle, 0x186 - mApp->mMonitorFont->StringWidth(aTitle) / 2, 0xb4 - aPY);
 			const std::string& aDayTitle = GT(0x4afe70);
 			g->DrawString(aDayTitle, 0x186 - mApp->mMonitorFont->StringWidth(aDayTitle) / 2, 0x140 - aPY);
-			g->SetFont(mApp->mMonitorFontMedium);
+			// what the monitor says of the score, in the box at the top right
 			g->SetColor(Color(0, 255, 0, mAlpha));
+			g->SetFont(mApp->mCommentFont);
+			static const unsigned int kComments[22] = {0x4afd4c, 0x4afd38, 0x4afd20, 0x4afd08, 0x4afcfc, 0x4afce0, 0x4afccc,
+				0x4afcb8, 0x4afca8, 0x4afc98, 0x4afc7c, 0x4afc70, 0x4afc60, 0x4afc54, 0x4afc44, 0x4afc30, 0x4afc18, 0x4afbf4,
+				0x4afbe0, 0x4afbc4, 0x4afba4, 0x4afb88};
+			WriteWordWrapped(g, Rect(0x125, 0x3c - aPY, 0xa7, 0x50), std::string("\"") + GT(kComments[mRank]) + "\"", 0x10, 1);
+			// the rows run through the cycle of colours, each one on from the one above
+			Color aColors[256];
+			BuildScoreColors(aColors, mAlpha);
+			int aColor = (int) mSpin;
+			g->SetFont(mApp->mMonitorFontMedium);
 			for (int i = 0; i < ScoreTable::NUM_SCORES; i++)
 			{
+				g->SetColor(aColors[aColor]);
 				g->DrawString(aTable.mNames[i], 0x10e, 0xd2 + 0x12 * i - aPY);
 				std::string aScore = Format(GT(0x4aff20), aTable.mScores[i]);
 				g->DrawString(aScore, 0x1fe - mApp->mMonitorFontMedium->StringWidth(aScore), 0xd2 + 0x12 * i - aPY);
+				aColor++;
+				if (aColor > 0xff)
+					aColor -= 0xff;
 			}
+			g->SetColor(aColors[aColor]);
 			if ((aTable.mDate == ScoreTable::DateCode()) && (aTable.mBestToday != -1))
 			{
 				g->DrawString(aTable.mBestName, 0x10e, 0x159 - aPY);
@@ -391,12 +455,10 @@ void MainMenu::Draw(Graphics* g)
 				g->SetColor(Color((aOver || aExpertOver) ? 0x80 : 0, 0x80, 0, mAlpha / 2));
 				g->FillRect(0x5a, aY - aPY, 0x17f, 0x3c);
 				if (aExpertOver)
-				{
 					g->SetColor(Color(200, 200, 0, mAlpha / 2));
-					g->FillRect(0x1de, aY - aPY, 0x41, 0x3c);
-				}
+				g->FillRect(0x1de, aY - aPY, 0x41, 0x3c);
 				g->SetColor(Color((aOver || aExpertOver) ? 255 : 0, 255, 0, mAlpha));
-				mApp->mGameType[aGame]->Draw(g, 100, aY - 10 - aPY);
+				mApp->mGameType[aGame]->Draw(g, 100, aY - 10 - 2 * aGame - aPY);	// 0x41 and 0xa5 in the original
 				g->DrawString(GT(aGame == 0 ? 0x4b0000 : 0x4affd8), 0xbe, aY + 0x14 - aPY);
 				g->SetFont(aSmall);
 				g->DrawString(GT(aGame == 0 ? 0x4affe0 : 0x4affbc), 0xbe, aY + 0x28 - aPY);
@@ -529,7 +591,7 @@ HighScoresBox::HighScoresBox(AtomicaApp* theApp) :
 	mReturn = new ButtonWidget(0, this);
 	mReturn->mBtnNoDraw = true;
 	mReturn->mDoFinger = true;
-	mReturn->Resize(0xd9, 0x178, 0xce, 0x25);
+	mReturn->Resize(0xd9, 0x17c, 0xce, 0x25);
 }
 
 HighScoresBox::~HighScoresBox()
@@ -647,11 +709,14 @@ void HighScoresBox::Draw(Graphics* g)
 	g->SetFont(mApp->mAnnounceFont);
 	g->SetColor(Color(0, 255, 0, 200));
 	std::string aAtomic = "ATOMIC";
-	g->DrawString(aAtomic, 0x140 - mApp->mAnnounceFont->StringWidth(aAtomic) / 2, 0x50 - aPY);
+	g->DrawString(aAtomic, 0x140 - mApp->mAnnounceFont->StringWidth(aAtomic) / 2, 0x64 - aPY);
 	const std::string& aTitle = GT(0x4afe88);
-	g->DrawString(aTitle, 0x140 - mApp->mAnnounceFont->StringWidth(aTitle) / 2, 0x82 - aPY);
+	g->DrawString(aTitle, 0x140 - mApp->mAnnounceFont->StringWidth(aTitle) / 2, 0x87 - aPY);
 	// the tables
 	Font* aMedium = mApp->mMonitorFontMedium;
+	Color aColors[256];
+	BuildScoreColors(aColors, mAlpha);
+	Color aScoreColor(0, 255, 0, 200);
 	for (int aKind = 0; aKind < 2; aKind++)
 	{
 		ScoreTable& aTable = mApp->mScoreTables[aKind];
@@ -663,15 +728,25 @@ void HighScoresBox::Draw(Graphics* g)
 		const std::string& aHeading = GT(aKind == 0 ? 0x4b038c : 0x4b039c);
 		g->DrawString(aHeading, aCenter - mApp->mMonitorFont->StringWidth(aHeading) / 2, 0xb4 - aPY);
 		const std::string& aToday = GT(0x4b037c);
-		g->DrawString(aToday, aCenter - mApp->mMonitorFont->StringWidth(aToday) / 2, 0x140 - aPY);
+		g->DrawString(aToday, aCenter - mApp->mMonitorFont->StringWidth(aToday) / 2, 0x13b - aPY);
 		g->SetFont(aMedium);
-		g->SetColor(Color(0, 255, 0, mAlpha));
+		// the rows run through the cycle of colours, each one on from the one above (both tables from the same one)
+		int aColor = (int) mSpin;
 		for (int i = 0; i < ScoreTable::NUM_SCORES; i++)
 		{
+			g->SetColor(aColors[aColor]);
 			g->DrawString(aTable.mNames[i], aNameX, 0xd2 + 0x12 * i - aPY);
+			// the scores are drawn in the colour the page itself holds: the title's for the first table, then the one the
+			// row of the best of the day set
+			g->SetColor(aScoreColor);
 			std::string aScore = Format(GT(0x4aff20), aTable.mScores[i]);
 			g->DrawString(aScore, aScoreX - aMedium->StringWidth(aScore), 0xd2 + 0x12 * i - aPY);
+			aColor++;
+			if (aColor > 0xff)
+				aColor -= 0xff;
 		}
+		g->SetColor(aColors[aColor]);
+		aScoreColor = aColors[aColor];
 		if ((aTable.mDate == ScoreTable::DateCode()) && (aTable.mBestToday != -1))
 		{
 			g->DrawString(aTable.mBestName, aNameX, 0x159 - aPY);

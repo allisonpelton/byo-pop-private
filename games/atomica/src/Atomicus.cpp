@@ -73,7 +73,7 @@ void Atomicus::Update()
 		mArrive--;
 	}
 	if (mApp->mRand.Get(0x32, false) == 5)
-		mBrightness = (mBrightness != 0xff) ? 0xff : 0xfb;
+		mBrightness = (mBrightness != 0xff) ? 0xff : 0xfa;
 	if (mLookRight == 1)
 	{
 		if (mGaze < 10.0f)
@@ -292,14 +292,31 @@ void Atomicus::Draw(Graphics* g, int theX, int theY)
 	aWindow.SetColorizeImages(true);
 	aWindow.SetColor(Color(0xff, 0xff, 0xff, mBrightness));
 	int aGaze = (int) mGaze;
-	if (aGaze > 10)
-		aGaze = 10;
+	// the coat follows the head's gaze, and while the head nods (mBlinking, set by Blink) the nod's frame lifts it; the head is
+	// the picture of the gaze, or of the nod's frame (turned to the right or to the left)
+	static const int sNodY[8] = {-1, 3, 5, 7, 12, 6, 4, -1};
 	Sprite* aCoat = mApp->mCoat;
-	aCoat->Draw(&aWindow, aWidth / 2 + 10 - aCoat->mWidth / 2, aHeight / 2 - aCoat->mHeight / 2 + 0x5a + mOffset);
+	int aNod = (int) mBlinkFrame;
+	int aCoatY = aHeight / 2 - aCoat->mHeight / 2 + 0x5a + mOffset;
+	if (mBlinking)
+		aCoatY = aHeight / 2 - ((sNodY[aNod] + (((sNodY[aNod] >> 31) & 3))) >> 2) - (aCoat->mHeight >> 1) + 0x5a + mOffset;
+	aCoat->Draw(&aWindow, (int) ((double) (aWidth / 2 + 10) - (double) mGaze * 2.0) - (aCoat->mWidth >> 1), aCoatY);
+	int aStep = ((mOffset == 0) ? 5 : 0) - aGaze;
 	Sprite* aHead = mApp->mSmallHead[aGaze];
-	int aHeadX = ((((mOffset == 0) ? 5 : 0) - aGaze) * 2) - aHead->mWidth / 2 + aWidth / 2;
-	int aHeadY = aHeight / 2 - aHead->mHeight / 2 + mOffset;
-	aHead->Draw(&aWindow, aHeadX, aHeadY);
+	if (!mBlinking)
+		aHead->Draw(&aWindow, aStep * 2 - (aHead->mWidth >> 1) + aWidth / 2, aHeight / 2 - (aHead->mHeight >> 1) + mOffset);
+	else if (mLookRight == 1)
+	{
+		Sprite* aNodHead = mApp->mRightNod[aNod];
+		aNodHead->Draw(&aWindow, aStep * 2 - (aNodHead->mWidth >> 1) + aWidth / 2,
+			aHeight / 2 + mOffset + (sNodY[aNod] - (aNodHead->mHeight >> 1)));
+	}
+	else
+	{
+		Sprite* aNodHead = mApp->mLeftNod[aNod];
+		aNodHead->Draw(&aWindow, aStep * 2 - 4 - (aNodHead->mWidth >> 1) + aWidth / 2,
+			aHeight / 2 + mOffset + (sNodY[aNod] - (aNodHead->mHeight >> 1)));
+	}
 	if (mTalking)
 	{
 		int aFrame = (int) mLipFrame;

@@ -1,0 +1,45 @@
+# phase two: the options box, credits, high scores, reset hints and the quit box
+1500 move 320 445
+1510 click 320 445
+2300 move 316 104
+2310 click 316 104
+2764 click 300 192
+2771 click 240 315
+2775 click 390 265
+2876 click 246 318
+2880 click 495 317
+3031 click 540 265
+3035 click 190 215
+3060 click 340 215
+3064 click 540 65
+3086 click 240 115
+3090 click 590 165
+3200 shot a3200
+3300 click 73 266
+3310 shot a3310
+3330 shot a3330
+3350 shot a3350
+3400 shot a3400
+3450 click 324 276
+3470 shot a3470
+3500 shot a3500
+3600 shot a3600
+3650 click 382 363
+3750 shot a3750
+3800 click 447 305
+3820 shot a3820
+3900 shot a3900
+4100 shot a4100
+4150 click 297 394
+4300 shot a4300
+4400 click 447 276
+4450 shot a4450
+4500 click 384 363
+4510 shot a4510
+4550 shot a4550
+4700 shot a4700
+4800 click 68 460
+4820 shot a4820
+4900 shot a4900
+5000 shot a5000
+end 5050

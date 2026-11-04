@@ -1,0 +1,16 @@
+# phase two: losing and regaining the focus, in the menu, in a strategy game and in an action game
+1500 move 320 445
+1510 click 320 445
+2300 move 316 104
+2310 click 316 104
+2700 shot c2700
+2800 focus lose
+2810 shot c2810
+2900 shot c2900
+2910 focus regain
+2920 shot c2920
+3000 shot c3000
+3100 focus lose
+3110 focus regain
+3200 shot c3200
+end 3230

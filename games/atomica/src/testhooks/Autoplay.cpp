@@ -26,6 +26,9 @@
 #include "PathFinder.h"
 #include "Screens.h"
 #include "Graphics.h"
+#include "DDInterface.h"
+#include <stb_image_write.h>
+#include <vector>
 #include "WidgetManager.h"
 
 #include <cstdarg>
@@ -41,6 +44,39 @@ void AtomicaApp::ScriptClick(int theX, int theY)
 	MouseMoveTo(theX, theY);
 	mWidgetManager->MouseDown(theX, theY, 1);
 	mWidgetManager->MouseUp(theX, theY, 1);
+}
+
+// "shot <file>": the next frame that is drawn goes to a PNG as it is (drawing it again would take more random numbers and step
+// the animations that move in the draw). The script line stands at the update the frame follows.
+bool AtomicaApp::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	if (theCommand.mCommand != "shot")
+		return SexyApp::HandleScriptCommand(theCommand);
+	mPendingShot = theCommand.mArgs;
+	return true;
+}
+
+bool AtomicaApp::DrawDirtyStuff()
+{
+	bool aDrawn = SexyApp::DrawDirtyStuff();
+	if (aDrawn && !mPendingShot.empty())
+	{
+		std::vector<ulong> aBits(mWidth * mHeight);
+		if (mDDInterface->ReadScreen(&aBits[0]))
+		{
+			std::vector<uchar> aRGBA(mWidth * mHeight * 4);
+			for (int i = 0; i < mWidth * mHeight; i++)
+			{
+				aRGBA[i * 4 + 0] = (uchar) (aBits[i] >> 16);
+				aRGBA[i * 4 + 1] = (uchar) (aBits[i] >> 8);
+				aRGBA[i * 4 + 2] = (uchar) aBits[i];
+				aRGBA[i * 4 + 3] = 255;
+			}
+			stbi_write_png(mPendingShot.c_str(), mWidth, mHeight, 4, &aRGBA[0], mWidth * 4);
+		}
+		mPendingShot.clear();
+	}
+	return aDrawn;
 }
 
 namespace Sexy

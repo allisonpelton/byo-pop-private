@@ -180,7 +180,8 @@ void Board::Draw(Graphics* g)
 		anApp->mMagnet[5]->Draw(g, 0x20f, 0);
 	}
 
-	// the geiger counter's needle: from the middle of the dial to the angle of the combo (-52 to +67 degrees)
+	// the geiger counter's needle: a line from 18 to 30 pixels from the middle of the dial (389, 60), at the angle of the
+	// combo (-52 to +67 degrees)
 	{
 		int aAngle = (int) mNeedle - 0x34;
 		if (0x167 < aAngle)
@@ -189,16 +190,16 @@ void Board::Draw(Graphics* g)
 			aAngle += 0x168;
 		float aSin = SinDeg(aAngle);
 		float aCos = NegCosDeg(aAngle);
-		int aBaseX = 0x184;
-		int aBaseY = 0x37;
-		int aTipX = aBaseX + (int) (aSin * 40.0f);
-		int aTipY = aBaseY + (int) (aCos * 40.0f);
+		int aX1 = (int) (aSin * 18.0f + 389.0f);
+		int aY1 = (int) (60.0f + aCos * 18.0f);
+		int aX2 = (int) (aSin * 30.0f + 389.0f);
+		int aY2 = (int) (60.0f + aCos * 30.0f);
 		g->SetColor(Color(0, 0, 0, 0x80));
-		g->DrawLine(aBaseX + 1, aBaseY + 1, aTipX + 1, aTipY + 1);
+		g->DrawLine(aX1 + 1, aY1 + 1, aX2 + 1, aY2 + 1);
 		g->SetColor(Color(255, 0, 0, 255));
-		g->DrawLine(aBaseX, aBaseY, aTipX, aTipY);
-		g->DrawLine(aBaseX, aBaseY, aTipX + 1, aTipY);
-		g->DrawLine(aBaseX, aBaseY, aTipX - 1, aTipY);
+		g->DrawLine(aX1, aY1, aX2, aY2);
+		g->DrawLine(aX1, aY1, aX2 + 1, aY2);
+		g->DrawLine(aX1, aY1, aX2 - 1, aY2);
 	}
 
 	if (0 < mI180)

@@ -1,0 +1,17 @@
+# phase two: the first moments of a game, a picture every other update, native against the web build
+1500 move 320 445
+1510 click 320 445
+2300 move 316 104
+2310 click 316 104
+2340 shot k2340
+2342 shot k2342
+2344 shot k2344
+2346 shot k2346
+2348 shot k2348
+2350 shot k2350
+2352 shot k2352
+2354 shot k2354
+2356 shot k2356
+2358 shot k2358
+2360 shot k2360
+end 2370

@@ -1,0 +1,27 @@
+LIBRARY fmod.dll
+EXPORTS
+_FSOUND_Init@12 = Thunk0
+_FSOUND_SetHWND@4 = Thunk1
+_FSOUND_Close@0 = Thunk2
+_FSOUND_Sample_Load@16 = Thunk3
+_FSOUND_Sample_Alloc@28 = Thunk4
+_FSOUND_Sample_Free@4 = Thunk5
+_FSOUND_Sample_GetLength@4 = Thunk6
+_FSOUND_Sample_GetMode@4 = Thunk7
+_FSOUND_Sample_GetDefaults@20 = Thunk8
+_FSOUND_Sample_Lock@28 = Thunk9
+_FSOUND_Sample_Unlock@20 = Thunk10
+_FSOUND_Sample_SetLoopPoints@12 = Thunk11
+_FSOUND_SetLoopMode@8 = Thunk12
+_FSOUND_PlaySound@8 = Thunk13
+_FSOUND_StopSound@4 = Thunk14
+_FSOUND_IsPlaying@4 = Thunk15
+_FSOUND_SetVolume@8 = Thunk16
+_FSOUND_SetPaused@8 = Thunk17
+_FMUSIC_LoadSong@4 = Thunk18
+_FMUSIC_PlaySong@4 = Thunk19
+_FMUSIC_StopSong@4 = Thunk20
+_FMUSIC_SetOrder@8 = Thunk21
+_FMUSIC_SetMasterVolume@8 = Thunk22
+_FMUSIC_SetPaused@8 = Thunk23
+_FMUSIC_IsPlaying@4 = Thunk24

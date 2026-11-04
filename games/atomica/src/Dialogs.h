@@ -14,7 +14,11 @@
 #include "EditListener.h"
 #include "Slider.h"
 #include "SliderListener.h"
+#include "Color.h"
 #include <string>
+
+// Menu.cpp 0x41a010: the 256 colours the score rows and the entry box cycle through
+void BuildScoreColors(Sexy::Color* theColors, int theAlpha);
 
 namespace Sexy
 {
@@ -88,8 +92,9 @@ public:
 class HighScoreDialog : public GameDialog, public EditListener
 {
 public:
+	float			mSpin;				// +0xb0 the colour the box is at (up 0.05 an update)
 	int				mScore;				// +0xb4
-	int				mTick;				// +0xb8
+	int				mTick;				// +0xb8 0 to 300 in fours: the arrows beside the score come and go
 	const char*		mPhrase;			// +0xc0 what the monitor says
 	EditWidget*		mEdit;				// +0xc4
 	ButtonWidget*	mOk;				// +0xc8 id 2

@@ -846,13 +846,11 @@ void Atom::Draw(Graphics* g)
 					}
 					else
 						aShake = 5;
-					int aDY = mApp->mRand.Get(aShake, true) + mY;
+					// 0x4037f0: x, then y, then the wobble; the picture under the glow is the plain one
 					int aDX = mApp->mRand.Get(aShake, true) + mX;
+					int aDY = mApp->mRand.Get(aShake, true) + mY;
 					mWobble = mApp->mRand.Get(5, false);
-					if (mType < AtomicaApp::NUM_SPIN_TYPES)
-						mApp->mAtomMask[mType][19 - aSpin]->DrawCentered(g, aDX, aDY);
-					else
-						mApp->mAtomShrink[mType][mWobble]->DrawCentered(g, aDX, aDY);
+					mApp->mAtomShrink[mType][0]->DrawCentered(g, aDX, aDY);
 					Color aSaved = mColor;
 					g->SetColorizeImages(true);
 					g->SetColor(Color(0xff, 0xff, 0xff, aGrid->mSelectGlow));

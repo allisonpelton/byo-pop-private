@@ -770,8 +770,9 @@ void Sparkle::Draw(Graphics* g)
 	if ((0.0f < mY) && (mY < (float) aGrid->mHeight))
 		mApp->mGridBug->DrawCenteredF(g, mX, mY);
 	int aIndex = mTrailIndex;
-	int aAlpha = mAlpha;
-	int aStep = mAlpha / 0x28;
+	int aHalf = mAlpha / 2;
+	int aStep = aHalf / 0x28;
+	int aAlpha = aHalf - aStep;
 	for (int i = 0; i < 20; i++)
 	{
 		g->SetColor(ClampedColor(0xff, 0xff, 0xff, aAlpha));

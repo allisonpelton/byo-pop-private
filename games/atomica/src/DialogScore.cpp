@@ -19,6 +19,7 @@ using namespace Sexy;
 // 0x41cc00
 HighScoreDialog::HighScoreDialog(AtomicaApp* theApp, int theScore) :
 	GameDialog(theApp, false),
+	mSpin(1.0f),
 	mScore(theScore),
 	mTick(0)
 {
@@ -30,7 +31,11 @@ HighScoreDialog::HighScoreDialog(AtomicaApp* theApp, int theScore) :
 	mEdit = new EditWidget(0, this);
 	mOthers.Add(mEdit);
 	mEdit->SetFont(mApp->mMonitorFontMedium);
-	mEdit->mMaxChars = 20;
+	// 0x41cc00: no field or outline of its own (the box draws the picture of one), light text, a white highlight
+	static int kEditColors[5][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {240, 240, 255, 255}, {255, 255, 255, 255}, {0, 0, 0, 255}};
+	mEdit->SetColors(kEditColors, 5);
+	mEdit->mMaxChars = 15;
+	mEdit->mMaxPixels = 140;
 #ifdef __EMSCRIPTEN__
 	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
 	Byopop::SiteType("atomica", mEdit, false);
@@ -58,7 +63,13 @@ void HighScoreDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 void HighScoreDialog::Update()
 {
 	GameDialog::Update();
-	mTick++;
+	// 0x41ca50
+	mSpin += 0.05f;
+	if (mSpin >= 256.0f)
+		mSpin -= 256.0f;
+	mTick += 4;
+	if (mTick > 300)
+		mTick = 0;
 }
 
 // 0x41cf00: "okay" puts the name in the table (and the voice cheers), "skip" closes the box
@@ -86,32 +97,79 @@ void HighScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 	ButtonDepress(2);
 }
 
-// 0x41cf90: port: the title, the score, what the monitor says, the name line (on the picture of a text field) and the two
-// buttons (the original also cycles colours and slides a head across the monitor)
+// 0x41cf90: the colours of the page's scores run through the title (six copies climbing, faint to full), the score
+// between two arrows that come and go, what the monitor says and the prompt; the name goes on a picture of a field and the
+// buttons are plain green fields
 void HighScoreDialog::Draw(Graphics* g)
 {
 	GameDialog::Draw(g);
-	Font* aMonitor = mApp->mMonitorFont;
-	int aPulse = 160 + (int) (95.0f * (mTick % 100) / 100.0f);
-	g->SetFont(aMonitor);
-	g->SetColor(Color(0, aPulse, 0, 255));
+	Color aColors[256];
+	BuildScoreColors(aColors, 255);
+	// each use steps on to the next colour, round the 256 by 255 as the original does
+	int aIndex = (int) mSpin;
+	g->SetFont(mApp->mMonitorFont);
 	const std::string& aTitle = GT(0x4b0258);
-	g->DrawString(aTitle, mWidth / 2 - aMonitor->StringWidth(aTitle) / 2, 0xa0);
+	int aTitleX = mWidth / 2 - mApp->mMonitorFont->StringWidth(aTitle) / 2;
+	int aY = 0xdc;
+	for (int anAlpha = 0; anAlpha < 0x40; anAlpha += 12)
+	{
+		g->SetColor(Color(aColors[aIndex].mRed, aColors[aIndex].mGreen, aColors[aIndex].mBlue, anAlpha));
+		g->DrawString(aTitle, aTitleX, aY);
+		aY -= 3;
+		aIndex = (aIndex + 1 > 0xff) ? aIndex - 0xff : aIndex + 1;
+	}
+	g->SetColor(Color(aColors[aIndex].mRed, aColors[aIndex].mGreen, aColors[aIndex].mBlue, 255));
+	g->DrawString(aTitle, aTitleX, 0xca);
+
+	aIndex = (aIndex + 1 > 0xff) ? aIndex - 0xff : aIndex + 1;
+	aIndex = 0xff - aIndex;
+	int aRed = aColors[aIndex].mRed;
+	int aGreen = aColors[aIndex].mGreen;
+	if (aGreen < 0xb0)
+		aGreen = 0xaf;
+	if (aRed < 0xb0)
+		aRed = 0xaf;
+	g->SetFont(mApp->mScoreFont);
+	g->SetColor(Color(aRed, aGreen, aColors[aIndex].mBlue, 255));
 	char aScore[16];
 	snprintf(aScore, sizeof(aScore), "%d", mScore);
-	g->SetFont(mApp->mScoreFont);
-	g->SetColor(Color(0xb0, 255, 0, 255));
 	std::string aScoreText = aScore;
-	g->DrawString(aScoreText, mWidth / 2 - mApp->mScoreFont->StringWidth(aScoreText) / 2, 0xc8);
+	int aScoreWidth = mApp->mScoreFont->StringWidth(aScoreText);
+	g->DrawString(aScoreText, mWidth / 2 - aScoreWidth / 2, 0xb4);
+	int anArrowGap = (mTick < 0x32) ? 0x10 : 0x16;
+	if ((mTick < 0x32) || (mTick >= 0x97))
+	{
+		g->SetColorizeImages(true);
+		mApp->mScoreArrows[0]->DrawCentered(g, mWidth / 2 - aScoreWidth / 2 - anArrowGap, 0xab);
+		mApp->mScoreArrows[1]->DrawCentered(g, aScoreWidth / 2 + anArrowGap + mWidth / 2, 0xab);
+		g->SetColorizeImages(false);
+	}
+
+	aIndex = (aIndex + 1 > 0xff) ? aIndex - 0xff : aIndex + 1;
 	g->SetFont(mApp->mMonitorFontMedium);
-	g->SetColor(Color(0, 255, 100, 255));
+	g->SetColor(Color(aColors[aIndex].mRed, aColors[aIndex].mGreen, aColors[aIndex].mBlue, (mTick < 0x65) ? 0x80 : 0xff));
 	std::string aPhrase = mPhrase;
 	g->DrawString(aPhrase, mWidth / 2 - mApp->mMonitorFontMedium->StringWidth(aPhrase) / 2, 0xeb);
 	g->SetFont(mApp->mMonitorFontSmall);
-	g->SetColor(Color(0, 255, 0, 255));
+	g->SetColor(Color(aColors[aIndex].mRed, aColors[aIndex].mGreen, aColors[aIndex].mBlue, 255));
 	const std::string& aPrompt = GT(0x4b0244);
 	g->DrawString(aPrompt, mWidth / 2 - mApp->mMonitorFontSmall->StringWidth(aPrompt) / 2, 0x10e);
+
 	mApp->mTextEdit->Draw(g, mEdit->mX - mX, mEdit->mY - mY);
-	DrawButton(g, mOk, GT(0x4b01c8));
-	DrawButton(g, mSkip, GT(0x4b01d0));
+	g->SetFont(mApp->mMonitorFont);
+	ButtonWidget* aButtons[2] = {mOk, mSkip};
+	const std::string aCaptions[2] = {GT(0x4b01d8), GT(0x4b01d0)};
+	for (int i = 0; i < 2; i++)
+	{
+		ButtonWidget* aButton = aButtons[i];
+		g->SetColor(Color(0, 255, 0, 0x80));
+		if (aButton->mIsDown)
+			g->SetColor(Color(0, 255, 0, 0xff));
+		if (aButton->mIsOver)
+			g->SetColor(Color(0, 255, 0, 0xaf));
+		g->FillRect(aButton->mX - mX, aButton->mY - mY, aButton->mWidth, aButton->mHeight);
+		g->SetColor(Color(0, 0x32, 0, 255));
+		g->DrawString(aCaptions[i], aButton->mX - mX + aButton->mWidth / 2 - mApp->mMonitorFont->StringWidth(aCaptions[i]) / 2,
+			aButton->mY - mY + 0x14);
+	}
 }

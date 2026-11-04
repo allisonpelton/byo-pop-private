@@ -59,12 +59,10 @@ void AtomicaApp::ShowOptions()
 	}
 }
 
-// the hints that were shown (the original keeps them in app+0x406c) are shown again
+// 0x424430 (button 9): the hints that were shown (the original keeps them in app+0x406c) are shown again; the ones this
+// game has shown already stay shown
 void AtomicaApp::ResetHints()
 {
-	if ((mBoard != NULL) && (mBoard->mGrid != NULL))
-		for (int i = 0; i < 0xff; i++)
-			mBoard->mGrid->mHintShown[i] = false;
 	for (int i = 0; i < 0xff; i++)
 		mHintsShown[i] = false;
 }
@@ -95,11 +93,11 @@ void AtomicaApp::ShowHighScoreEntry(int theScore)
 	}
 }
 
-// 0x405ed0: HS.CFG holds the two tables
+// 0x405ed0: HS.CFG holds the two tables, 208 bytes each (5 scores, 5 names, the best of the day, its name and its date)
 void AtomicaApp::ReadHighScores()
 {
 	Buffer aBuffer;
-	if (ReadBufferFromFile("HS.CFG", &aBuffer) && (aBuffer.GetDataLen() >= 2 * (int) (4 * 6 + 150 + 30 + 20)))
+	if (ReadBufferFromFile("HS.CFG", &aBuffer) && (aBuffer.GetDataLen() >= 2 * (int) (4 * 5 + 150 + 4 + 30 + 4)))
 	{
 		mScoreTables[0].Read(&aBuffer);
 		mScoreTables[1].Read(&aBuffer);

@@ -28,7 +28,7 @@ GRID = '[[0x4d00f4]+0x78]'
 
 WATCH = {
     'board_p': '0x4d00f4', 'menu_p': '0x4d00f8', 'title_p': '0x4d00fc',
-    'mode': '0x4d3b04', 'pause': '0x4d3cc8', 'rng_j': '0x4d3a08', 'rng_k': '0x4d3a0c',
+    'mode': '0x4d3b04', 'pi': '0x4d3a00', 'pause': '0x4d3cc8', 'rng_j': '0x4d3a08', 'rng_k': '0x4d3a0c',
     'score': BOARD + '+0x1bc', 'level': BOARD + '+0xc8', 'molecules': BOARD + '+0xcc',
     'meter_value': BOARD + '+0xd0', 'meter_max': BOARD + '+0xd8', 'meter_tick': BOARD + '+0xdc',
     'meter_countdown': BOARD + '+0xe0', 'meter_over': BOARD + '+0xe8', 'f8c': BOARD + '+0x8c',
@@ -36,7 +36,7 @@ WATCH = {
     'stat_atoms': BOARD + '+0x1cc', 'stat_molecules': BOARD + '+0x1d0', 'stat_combo': BOARD + '+0x1d4',
     'grid_p': BOARD + '+0x78', 'swirls': BOARD + '+0x114', 'i90': BOARD + '+0x90',
     'combo': GRID + '+0x330', 'numcolors': GRID + '+0x328', 'g_overtick': GRID + '+0x338', 'rounds': GRID + '+0x3b0',
-    'bonus_atoms': GRID + '+0x364', 'selected_p': GRID + '+0x1d0',
+    'bonus_atoms': GRID + '+0x364', 'cursor_x': GRID + '+0x2f4', 'cursor_y': GRID + '+0x2f8', 'm31c': GRID + '+0x31c', 'm320': GRID + '+0x320', 'select_glow': GRID + '+0x64', 'selected_p': GRID + '+0x1d0',
 }
 for c in range(9):
     for r in range(8):

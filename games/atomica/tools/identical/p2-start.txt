@@ -1,0 +1,30 @@
+# phase two: the first moments of a strategy game, a picture every 6 updates
+1500 move 320 445
+1510 click 320 445
+2300 move 316 104
+2310 click 316 104
+2316 shot f2316
+2322 shot f2322
+2328 shot f2328
+2334 shot f2334
+2340 shot f2340
+2346 shot f2346
+2352 shot f2352
+2358 shot f2358
+2364 shot f2364
+2370 shot f2370
+2376 shot f2376
+2382 shot f2382
+2388 shot f2388
+2394 shot f2394
+2400 shot f2400
+2406 shot f2406
+2412 shot f2412
+2418 shot f2418
+2424 shot f2424
+2430 shot f2430
+2436 shot f2436
+2442 shot f2442
+2448 shot f2448
+2454 shot f2454
+end 2470
