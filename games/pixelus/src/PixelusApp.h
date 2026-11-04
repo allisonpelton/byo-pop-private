@@ -91,11 +91,11 @@ public:
 	void					ShowGameMenu();                                 // 0x4194d0
 	void					ShowHint();                                     // 0x433050 (0x432820)
 	void					PuzzleCompleted(Board* theBoard);               // 0x435250: the board's last tile went down
-	void					ShowCompletion(int theMode, int theOpenedTemple, bool theTempleDone, bool theGameDone);	// 0x432b60
+	void					RemoveTabletAndBoard();
+	void					ShowCompletion(int theMode, int theSub, int theOpenedTemple);	// 0x432b60
 	void					ContinueAfterCompletion();
-	int						mCompletionOpened;
-	bool					mCompletionTempleDone, mCompletionGameDone;
-	void					ContinueAfterPuzzle(int theOpenedTemple, bool theTempleDone, bool theGameDone);	// the tablet's button
+	int						mCompletionSub, mCompletionOpened;
+	void					ContinueAfterPuzzle(int theMode, int theSub, int theOpenedTemple);	// the tablet's button
 	void					ShowMainMenu();                                 // 0x40b1c0
 	void					PlayGame();                                     // 0x432a40: the menu's play button
 	void					ShowUserSelect();                               // 0x432e40 (dialog 0x12)

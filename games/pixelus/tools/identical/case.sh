@@ -25,7 +25,7 @@ EXPRS=(0x543434 0x543438 0x543450 0x54343c 0x543430 0x543428 0x543448 0x54342c "
 	"$G+0xb054" "$G+0xb058" "$G+0xb164" "$G+0xb168" "$G+0xb100" "$G+0xb0a8" "$G+0xb16c" "$E0+0x8" "$E0+0xc" "$E0+0x44"
 	"$E1+0x8" "$E1+0xc" "$E1+0x44" "$E2+0x8" "$E2+0xc" "$E2+0x44" "$E2+0x1c" "$E0+0x1c" "$E1+0x1c" "$E3+0x1c")
 LAST=$(tail -1 "$D/script.txt" | cut -d' ' -f1)
-TO=$(( (LAST + DELTA) / 300 + 20 ))
+TO=$(( (LAST + DELTA) / 300 + 20 + ${EXTRA_T:-0} ))
 st=0
 for ((i = 0; i < ${#NAMES[@]}; i += 4)); do
 	"$TOOLS/orig.sh" "$D/orig.txt" $GS $TO "${EXPRS[@]:i:4}" > "$D/orig$((i / 4)).log" 2>&1

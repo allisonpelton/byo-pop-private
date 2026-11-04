@@ -30,6 +30,20 @@ bool IsTempleSolved(PixelusApp* theApp, UserProfile* theUser, const std::string&
 	return theUser != NULL && theUser->CountSolved(theName) == theApp->mLevelData->GetPuzzleCount(theName);
 }
 
+// 0x40ba10 and 0x40ba90: every puzzle of the temple (of the nine) has its fewest moves
+static bool IsTempleMaxed(PixelusApp* theApp, UserProfile* theUser, const std::string& theName)
+{
+	return theUser != NULL && theUser->CountMaxed(theName) == theApp->mLevelData->GetPuzzleCount(theName);
+}
+
+static bool IsGameMaxed(PixelusApp* theApp, UserProfile* theUser)
+{
+	for (int i = 1; i < NUM_TEMPLES; i++)
+		if (!IsTempleMaxed(theApp, theUser, gTemples[i].mName))
+			return false;
+	return true;
+}
+
 // ... and every one of the nine temples that come after the cave
 bool IsGameSolved(PixelusApp* theApp, UserProfile* theUser)
 {
@@ -79,6 +93,9 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 	int aBest = mApp->mProgress->GetBestMoves(theUuid);
 	bool aTempleDoneBefore = IsTempleSolved(mApp, aUser, aLevel);
 	bool aGameDoneBefore = IsGameSolved(mApp, aUser);
+	bool aTempleMaxedBefore = IsTempleMaxed(mApp, aUser, aLevel);
+	bool aGameMaxedBefore = IsGameMaxed(mApp, aUser);
+	bool aWasMaxedBefore = aPrevious != NULL && aUser->IsMaxed(*aPrevious, theUuid);
 	if (aPrevious != NULL)
 	{
 		mPreviousMoves = aPrevious->mMoves;
@@ -127,10 +144,58 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 			mOpenedIndex = 1;
 		}
 	}
+	// 0x41b3c0, from "mode": which screen the tablet's button leads to
+	bool aPreviousOpen = aPrevious != NULL && !aWasMaxedBefore;
+	bool aTempleSolved = IsTempleSolved(mApp, aUser, aLevel), aGameSolved = IsGameSolved(mApp, aUser);
+	bool aTempleMaxed = IsTempleMaxed(mApp, aUser, aLevel), aGameMaxed = IsGameMaxed(mApp, aUser);
+	mMode = mSub = 0;
+	if (aPreviousOpen || aPrevious == NULL)
+	{
+		if (!mWorldRecord)
+		{
+			if (aPrevious == NULL)
+			{
+				if (!aGameSolved || aGameDoneBefore)
+				{
+					if (aTempleSolved && !aTempleDoneBefore)
+						mMode = mTutorial ? 5 : 1;
+				}
+				else
+					mMode = 2;
+			}
+		}
+		else if (!aGameMaxed || aGameMaxedBefore)
+		{
+			if (!aGameSolved || aGameDoneBefore)
+			{
+				if (!aTempleMaxed || aTempleMaxedBefore)
+				{
+					if (aTempleSolved && !aTempleDoneBefore)
+						mMode = mTutorial ? 5 : 1;
+				}
+				else if (!mTutorial)
+				{
+					mSub = 3;
+					if (!aTempleDoneBefore)
+						mMode = 1;
+				}
+				else if (!aTempleDoneBefore)
+					mMode = 5;
+			}
+			else
+				mMode = 2;
+		}
+		else
+		{
+			mSub = 4;
+			if (!aGameDoneBefore)
+				mMode = 2;
+		}
+	}
 	mTempleDone = !aTempleDoneBefore && IsTempleSolved(mApp, aUser, aLevel);
 	mGameDone = !aGameDoneBefore && IsGameSolved(mApp, aUser);
 	// mode 5 of 0x41b3c0: only the solve that finishes the tutorial says so (the same test before and after the record)
-	mTutorialDone = mTutorial && !aTempleDoneBefore && aTutorialDone;
+	mTutorialDone = mMode == 5;
 	if (mTutorialDone && aUser != NULL)
 		aUser->mFlag79 = true;
 
@@ -462,9 +527,5 @@ void PuzzleCompletedScreen::ButtonDepress(int theId)
 {
 	if (theId != ID_CONTINUE)
 		return;
-	int anOpened = mOpenedTemple ? mOpenedIndex : -1;
-	if (mTutorialDone)
-		mApp->ShowCompletion(CompletionScreen::MODE_TUTORIAL, anOpened, mTempleDone, mGameDone);
-	else
-		mApp->ContinueAfterPuzzle(anOpened, mTempleDone, mGameDone);
+	mApp->ContinueAfterPuzzle(mMode, mSub, mOpenedTemple ? mOpenedIndex : -1);
 }

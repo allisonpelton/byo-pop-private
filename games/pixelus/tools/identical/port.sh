@@ -4,5 +4,6 @@
 source "$(dirname "$0")/common.sh"
 D="$1"; shift
 mkdir -p "$D"; [ -n "$KEEP_USER" ] || rm -rf "$D/user"
+[ -z "$PRESET" ] || { rm -rf "$D/user"; cp -r "$PRESET" "$D/user"; }
 "$RUNDESK" "$(win build/native/pixelus.exe)" -userdir="$(win "$D/user")" -fast "$@" > "$D/out.txt" 2>&1
 echo "exit $?"

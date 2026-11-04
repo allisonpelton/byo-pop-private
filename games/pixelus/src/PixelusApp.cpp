@@ -718,8 +718,8 @@ void PixelusApp::PuzzleCompleted(Board* theBoard)
 
 // the tablet's button: the board goes, and the temple's puzzles or, when a temple has opened or been finished, the island
 // comes
-// 0x432b60: the tablet and the board go, the screen that says what was completed comes
-void PixelusApp::ShowCompletion(int theMode, int theOpenedTemple, bool theTempleDone, bool theGameDone)
+// the tablet and the board go (0x432b60, 0x432c90, 0x433e00)
+void PixelusApp::RemoveTabletAndBoard()
 {
 	if (mPuzzleCompleted != NULL)
 	{
@@ -733,54 +733,64 @@ void PixelusApp::ShowCompletion(int theMode, int theOpenedTemple, bool theTemple
 		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
+}
+
+// 0x432b60: the screen that says what was completed
+void PixelusApp::ShowCompletion(int theMode, int theSub, int theOpenedTemple)
+{
+	RemoveTabletAndBoard();
+	mCompletionSub = theSub;
 	mCompletionOpened = theOpenedTemple;
-	mCompletionTempleDone = theTempleDone;
-	mCompletionGameDone = theGameDone;
 	mCompletion = new CompletionScreen(this, theMode);
 	mCompletion->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mCompletion);
 	mWidgetManager->SetFocus(mCompletion);
+	PlaySample(theMode == 2 || theMode == 4 ? SOUND_PIXELUS_GAME_COMPLETED_STING_V01 : SOUND_PIXELUS_TEMPLE_COMPLETED_STING_V01);
 }
 
+// 0x40b760: its button
 void PixelusApp::ContinueAfterCompletion()
 {
+	int aMode = mCompletion->mMode;
 	if (mCompletion != NULL)
 	{
 		mWidgetManager->RemoveWidget(mCompletion);
 		SafeDeleteWidget(mCompletion);
 		mCompletion = NULL;
 	}
-	ContinueAfterPuzzle(mCompletionOpened, mCompletionTempleDone, mCompletionGameDone);
+	bool anOpened = mCompletionOpened >= 0;
+	if ((aMode != 1 && mCompletionSub != 3 && aMode != 5) || aMode == 2)
+		ShowStory(false, 3);
+	else if (anOpened)
+		ShowStory(false, 1, mCompletionOpened);
+	else if (mCompletionSub == 3)
+		ShowStory(false, 2);
+	else
+		BackToIsland();
 }
 
-void PixelusApp::ContinueAfterPuzzle(int theOpenedTemple, bool theTempleDone, bool theGameDone)
+// 0x419c20: the tablet's button
+void PixelusApp::ContinueAfterPuzzle(int theMode, int theSub, int theOpenedTemple)
 {
-	if (mPuzzleCompleted != NULL)
+	if (theMode != 0)
+		ShowCompletion(theMode, theSub, theOpenedTemple);
+	else if (theOpenedTemple >= 0)
 	{
-		mWidgetManager->RemoveWidget(mPuzzleCompleted);
-		SafeDeleteWidget(mPuzzleCompleted);
-		mPuzzleCompleted = NULL;
-	}
-	if (mBoard != NULL)
-	{
-		mWidgetManager->RemoveWidget(mBoard);
-		SafeDeleteWidget(mBoard);
-		mBoard = NULL;
-	}
-	if (theGameDone)
-	{
-		PlaySample(SOUND_PIXELUS_GAME_COMPLETED_STING_V01);
-		ShowStory(false, 3);
-		return;
-	}
-	if (theTempleDone)
-		PlaySample(SOUND_PIXELUS_TEMPLE_COMPLETED_STING_V01);
-	if (theOpenedTemple >= 0)
+		RemoveTabletAndBoard();
 		ShowStory(false, 1, theOpenedTemple);
-	else if (theTempleDone)
-		BackToIsland();
+	}
+	else if (theSub == 4)
+		ShowCompletion(4, 4, -1);
+	else if (theSub == 3)
+	{
+		RemoveTabletAndBoard();
+		ShowStory(false, 2);
+	}
 	else
+	{
+		RemoveTabletAndBoard();
 		ShowTemple();
+	}
 }
 
 // 0x435310: the answers of the dialogs the game opens (2000 + id: the yes or OK button, 3000 + id: the no)
