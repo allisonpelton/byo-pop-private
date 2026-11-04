@@ -133,9 +133,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   exception). No new mods unless the user requests one ("no new mods for anything unless someone requests it",
   2026-10-30); fixes and suggestions for the mods that exist wait in the user's `testnotes/TEST_NOTES.md` until every
   decompilation is finished. Code that makes a game moddable makes things configurable and never overwrites the
-  original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle
-  a fix (the user, 2026-11-04): a bug of the original, or a wait that only costs the player time, is kept in the port
-  and listed under "Fix candidates" in the game's notes (`docs/MOD_ROADMAP.md`, "The fixes mod").
+  original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle a
+  fix, and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that
+  only costs the player time, is kept in the port and fixed in the mod (listed until then under "Fix candidates" in
+  the game's notes), and with the mod on a game plays the same on every run. Memory leaks are still fixed in the port
+  itself (`docs/MOD_ROADMAP.md`, "The fixes mod").
 - **Done means identical (the user, 2026-10-27):** "A game is done when it plays identically to the original in the
   browser and natively." No port is hurried to get through the list. A port's own suite matching its earlier output
   proves nothing about the original, and the hidden, silent pane never changes focus or plays music: before its final

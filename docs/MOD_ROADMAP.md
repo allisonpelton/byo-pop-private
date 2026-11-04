@@ -56,7 +56,10 @@ mod) by default. The user can turn them off for a more 'true' experience. That w
 'deviations' and can instead be features."
 
 Then: "I think it would make the most sense to have it as a single mod with each fix/improvement being a toggle in
-that mod, actually."
+that mod, actually." And: "Before a decomp can be considered done, such a mod should be made for it. So next week
+will have a bunch of that in addition to finishing phase 2 of identical play. One goal of the mod should be for the
+game to play exactly the same way. Memory issues stay part of the decomp rather than the default mod." And: "Same with
+each run, I mean, so no 15-update variance on Twist."
 
 So each game gets one **fixes** mod, a fourth kind, and each of its settings is a toggle for one fix. A fix mends a
 bug of the original, or stops the original wasting the player's time or the machine's, and otherwise leaves the game
@@ -69,10 +72,19 @@ starts off as before.
 The site starts each game with its fixes mod on and every fix in it turned on. The player can turn single fixes off in
 the mod menu, or the whole mod off to play the original as it was. The port itself stays the unmodified original, so a
 native build without the mods, the oracle and the frozen baselines all play the original, and the rules of CLAUDE.md
-("Port first, unmodified", "Done means identical") still hold for the port. Like the other mods, the fixes mods are
-made once every decompilation is finished. Until then a session that finds a candidate keeps the original's behaviour
-in the port and lists it in its game's notes under "Fix candidates": what the original does, how to see it, and what
-the fix would change.
+("Port first, unmodified", "Done means identical") still hold for the port.
+
+With the mod on, a game plays exactly the same way on every run: with the same seed and the same input, the same
+series of games, update for update. Nothing from outside the game's own updates (the machine's speed, load times, the
+heap, memory never set) changes play, as it does in Twist's original, whose autoplay moves 15 updates early or late
+from one run to the next (games/bejeweledtwist/docs/IDENTICAL_PLAY.md, "Oddities"). Memory faults are not fixes for
+the mod: the port fixes every leak of the original itself, mod or no mod (CLAUDE.md, "Done means identical").
+
+A game's fixes mod is part of its decompilation: the game is not done until the mod is made, and the games already
+merged get theirs in the week from 2026-11-08, beside the second phases. A port that loads no mods yet (the
+`BYOPOP_WEB_NO_MODS` list in `cmake/ByopopWeb.cmake`) learns to load them first. Until a game's mod is made, a session
+that finds a fix keeps the original's behaviour in the port and lists the fix in its game's notes under "Fix
+candidates": what the original does, how to see it, and what the fix would change.
 
 ## Standard mods for every game
 

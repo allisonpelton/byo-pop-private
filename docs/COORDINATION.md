@@ -108,7 +108,9 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   games/mummymaze/tools/fmodproxy for FMOD 3). Pictures: shots from the web build under Node, shotdiffed against
   native. Each brief says so. By 2026-11-04 seven were merged (Big Money, Alchemy, Mummy Maze, Cosmic Bugs, Atomica,
   TipTop, Noah's Ark), and the week stood at 96%; Ning Po, Pixelus, BookWorm, Word Harmony, Rocket Mania, Dynomite and
-  Bookworm Adventures Volume 2 start after the weekly reset (2026-11-08 00:00 UTC), five at a time again.
+  Bookworm Adventures Volume 2 start after the weekly reset (2026-11-08 00:00 UTC), five at a time again. That week
+  also makes each game's fixes mod (the user, 2026-11-04: "next week will have a bunch of that in addition to
+  finishing phase 2 of identical play"; `docs/MOD_ROADMAP.md`, "The fixes mod").
 - **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
   and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
@@ -190,7 +192,9 @@ were fixed (34e6da1, a6547b9). The chat
   `testnotes/TEST_NOTES.md`) and wait until every decompilation is finished.
 - **The fixes mod (the user, 2026-11-04):** the site will serve each game with one mod of fixes on by default, each
   fix a toggle in it, and the player can turn single fixes or the whole mod off for the original as it was
-  (`docs/MOD_ROADMAP.md`, "The fixes mod"). It is made with the other mods; until then a session that finds a fix
+  (`docs/MOD_ROADMAP.md`, "The fixes mod"). With it on, a game plays the same on every run (no 15-update jumps as in
+  Twist's original); memory leaks stay fixed in the port itself. A game is done only once its fixes mod is made, so
+  the week from 2026-11-08 makes them beside the second phases; until a game's mod is made, a session that finds a fix
   lists it in its game's notes under "Fix candidates".
 
 ## History
