@@ -26,6 +26,7 @@
 #include "TempleScreen.h"
 #include "PuzzleCompleted.h"
 #include "StoryScreen.h"
+#include "CompletionScreen.h"
 #include "MainMenu.h"
 #include "LoadingScreen.h"
 #include "Temples.h"
@@ -445,6 +446,19 @@ void PixelusApp::AutoplayUpdate()
 			ClickWidget(this, s, (Widget*) mHelpScreen->mOKButton);
 		else
 			mHelpScreen->ButtonDepress(HelpScreen::ID_OK);
+		s->mWait = 20;
+		return;
+	}
+	if (mCompletion != NULL)
+	{
+		if (++s->mScreenTicks < 100)
+			return;
+		s->mScreenTicks = 0;
+		Log(s, "completion screen mode %d", mCompletion->mMode);
+		if (mAutoplayUI)
+			ClickWidget(this, s, (Widget*) mCompletion->mContinueButton);
+		else
+			mCompletion->ButtonDepress(CompletionScreen::ID_CONTINUE);
 		s->mWait = 20;
 		return;
 	}

@@ -1,4 +1,5 @@
 #include "PuzzleCompleted.h"
+#include "CompletionScreen.h"
 #include "PixelusApp.h"
 #include "Temples.h"
 #include "GameDialog.h"
@@ -459,6 +460,11 @@ void PuzzleCompletedScreen::Draw(Graphics* g)
 // temple the puzzle belongs to
 void PuzzleCompletedScreen::ButtonDepress(int theId)
 {
-	if (theId == ID_CONTINUE)
-		mApp->ContinueAfterPuzzle(mOpenedTemple ? mOpenedIndex : -1, mTempleDone, mGameDone);
+	if (theId != ID_CONTINUE)
+		return;
+	int anOpened = mOpenedTemple ? mOpenedIndex : -1;
+	if (mTutorialDone)
+		mApp->ShowCompletion(CompletionScreen::MODE_TUTORIAL, anOpened, mTempleDone, mGameDone);
+	else
+		mApp->ContinueAfterPuzzle(anOpened, mTempleDone, mGameDone);
 }

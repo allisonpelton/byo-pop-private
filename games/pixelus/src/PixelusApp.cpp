@@ -12,6 +12,7 @@
 #include "IslandMap.h"
 #include "TempleScreen.h"
 #include "PuzzleCompleted.h"
+#include "CompletionScreen.h"
 #include "StoryScreen.h"
 #include "OptionsDialog.h"
 #include "CreditsDialog.h"
@@ -58,6 +59,7 @@ PixelusApp::PixelusApp()
 	mMoreGames = NULL;
 	mHintOverlay = NULL;
 	mHintScreen = NULL;
+	mCompletion = NULL;
 	mStoryScreen = NULL;
 	for (int i = 0; i < NUM_HEADS; i++)
 		for (int j = 0; j < NUM_HEAD_EXPRESSIONS; j++)
@@ -716,6 +718,41 @@ void PixelusApp::PuzzleCompleted(Board* theBoard)
 
 // the tablet's button: the board goes, and the temple's puzzles or, when a temple has opened or been finished, the island
 // comes
+// 0x432b60: the tablet and the board go, the screen that says what was completed comes
+void PixelusApp::ShowCompletion(int theMode, int theOpenedTemple, bool theTempleDone, bool theGameDone)
+{
+	if (mPuzzleCompleted != NULL)
+	{
+		mWidgetManager->RemoveWidget(mPuzzleCompleted);
+		SafeDeleteWidget(mPuzzleCompleted);
+		mPuzzleCompleted = NULL;
+	}
+	if (mBoard != NULL)
+	{
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = NULL;
+	}
+	mCompletionOpened = theOpenedTemple;
+	mCompletionTempleDone = theTempleDone;
+	mCompletionGameDone = theGameDone;
+	mCompletion = new CompletionScreen(this, theMode);
+	mCompletion->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mCompletion);
+	mWidgetManager->SetFocus(mCompletion);
+}
+
+void PixelusApp::ContinueAfterCompletion()
+{
+	if (mCompletion != NULL)
+	{
+		mWidgetManager->RemoveWidget(mCompletion);
+		SafeDeleteWidget(mCompletion);
+		mCompletion = NULL;
+	}
+	ContinueAfterPuzzle(mCompletionOpened, mCompletionTempleDone, mCompletionGameDone);
+}
+
 void PixelusApp::ContinueAfterPuzzle(int theOpenedTemple, bool theTempleDone, bool theGameDone)
 {
 	if (mPuzzleCompleted != NULL)

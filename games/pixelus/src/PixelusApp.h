@@ -26,6 +26,7 @@ class IslandMap;
 class TempleScreen;
 class PuzzleCompletedScreen;
 class StoryScreen;
+class CompletionScreen;
 class HelpScreen;
 class LoadingScreen;
 class MemoryImage;
@@ -55,6 +56,7 @@ public:
 	Widget*					mMoreGames;         // +0x694 (0x432780)
 	Widget*					mHintOverlay;       // +0x698
 	Widget*					mHintScreen;        // +0x69c (0x432820)
+	CompletionScreen*		mCompletion;        // +0x690 (0x4326c0)
 	StoryScreen*			mStoryScreen;       // +0x6a0 (0x432960)
 	Color*					mColorDark;         // +0x6ac (0x1a, 0x5e, 0x49)
 	Color*					mColorMid;          // +0x6b0 (0x39, 0x79, 0x68)
@@ -89,6 +91,10 @@ public:
 	void					ShowGameMenu();                                 // 0x4194d0
 	void					ShowHint();                                     // 0x433050 (0x432820)
 	void					PuzzleCompleted(Board* theBoard);               // 0x435250: the board's last tile went down
+	void					ShowCompletion(int theMode, int theOpenedTemple, bool theTempleDone, bool theGameDone);	// 0x432b60
+	void					ContinueAfterCompletion();
+	int						mCompletionOpened;
+	bool					mCompletionTempleDone, mCompletionGameDone;
 	void					ContinueAfterPuzzle(int theOpenedTemple, bool theTempleDone, bool theGameDone);	// the tablet's button
 	void					ShowMainMenu();                                 // 0x40b1c0
 	void					PlayGame();                                     // 0x432a40: the menu's play button
