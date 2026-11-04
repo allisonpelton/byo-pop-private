@@ -359,7 +359,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // its functions can use the page's (web(), $(), setStatus(), openPanel()) and its folders (USER, REPLAYS...).
   //   id          the game's name for web/modpanel.js ("bejeweled"): the localStorage keys of its restarts, its
   //               rescue and its removals
-  //   shortName   as in "<shortName> is already running in another tab or window"
+  //   shortName   another name for the game's folders when they are added (web/gameimport.js); the page itself shows its
+  //               TITLE
   //   persist     the browser storage folder (IDBFS names its IndexedDB database after it): the game's files, saves
   //               and mods. Never changed once players have saves there: they would be left behind.
   //   lock        the Web Lock that lets one page at a time run the game; never changed either
@@ -433,7 +434,8 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var steps = $("mac-steam");
     if (steps && os) { steps.setAttribute("data-os", os); steps.hidden = false; }
   })();
-  $("busy-desc").innerHTML = ByopopStrings.html("game.busy.desc_html", {name: PAGE.shortName});
+  // the game's name as the site gives it (its TITLE: the user, 2026-11-04), else the page's own
+  $("busy-desc").innerHTML = ByopopStrings.html("game.busy.desc_html", {name: $("brand-name").textContent || PAGE.shortName});
 
   // web/modpanel.js, linked into the game's script: the Mods panel, restarts and the file helpers. It is there
   // once the game's script has loaded, before onRuntimeInitialized.
@@ -447,6 +449,16 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // The site's wait cursor, if the chosen site cursor has one (web/cursors.js), while the game's script loads and compiles
   function siteBusy(on) { try { if (window.ByopopCursors) ByopopCursors.busy("game-loading", on); } catch (e) {} }
   siteBusy(true);
+
+  // The tab keeps the page's own title. SDL's web backend writes a window's title to document.title as the game makes its
+  // window (the framework's mTitle, the original's own name) or changes it (Bonnie's caption), and the site names
+  // its games by their site titles only (the user, 2026-11-04).
+  (function keepTitle() {
+    var title = document.title, el = document.querySelector("title");
+    function back() { if (document.title !== title) document.title = title; }
+    try { if (el && window.MutationObserver) new MutationObserver(back).observe(el, { childList: true, characterData: true, subtree: true }); } catch (e) {}
+    try { if (document.head && window.MutationObserver) new MutationObserver(back).observe(document.head, { childList: true }); } catch (e) {}
+  })();
   var Module = window.Module = {
     canvas: $("canvas"),
     noInitialRun: true,

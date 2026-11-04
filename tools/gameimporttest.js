@@ -21,8 +21,8 @@ vm.runInContext(fs.readFileSync(path.join(root, "web", "gameimport.js"), "utf8")
 const cmake = fs.readFileSync(path.join(root, "cmake", "ByopopWeb.cmake"), "utf8");
 const finished = /\nset\(BYOPOP_WEB_FINISHED([^)]*)\)/.exec(cmake)[1].trim().split(/\s+/);
 const titles = {
-  bejeweled: "Bejeweled Deluxe", tiptop: "TipTop Deluxe", mahjongjapan: "Mahjong Escape: Ancient Japan",
-  mahjongchina: "Mahjong Escape: Ancient China", bookwormadv: "Bookworm Adventures Deluxe", bookwormadv2: "Bookworm Adventures Volume 2",
+  bejeweled: "Bejeweled", tiptop: "TipTop", mahjongjapan: "Mahjong Escape: Ancient Japan",
+  mahjongchina: "Mahjong Escape: Ancient China", bookwormadv: "Bookworm Adventures", bookwormadv2: "Bookworm Adventures Volume 2",
 };
 const warned = [];
 ctx.console = { warn: (...a) => warned.push(a.join(" ")), log: console.log };

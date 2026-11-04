@@ -84,7 +84,7 @@ function check(what, got, want) {
 {
   const p = page();
   const full = { pointer: img("p"), hand: img("h"), drag: img("d"), text: img("t"), notallowed: img("n", 3, 4), wait: img("w"), sizeall: img("s") };
-  check("a set is kept", p.C.save("bejeweled", "Bejeweled Deluxe", full), true);
+  check("a set is kept", p.C.save("bejeweled", "Bejeweled", full), true);
   check("the six kinds the site shows, nothing else", Object.keys(p.C.all().bejeweled), ["title", "pointer", "hand", "drag", "text", "notallowed", "wait"]);
   p.C.save("sevenseas", "Seven Seas", full);
   check("Seven Seas' shovel is not the circle-slash", p.C.all().sevenseas.notallowed, undefined);
@@ -104,7 +104,7 @@ function check(what, got, want) {
 // the rules for each context
 {
   const p = page();
-  p.C.save("bejeweled", "Bejeweled Deluxe", { pointer: img("p"), hand: img("h"), text: img("t") });
+  p.C.save("bejeweled", "Bejeweled", { pointer: img("p"), hand: img("h"), text: img("t") });
   p.C.choose("bejeweled");
   const css = p.css();
   check("chosen: the page's class", p.root.classList.contains("site-cursor"), true);
@@ -171,11 +171,11 @@ function check(what, got, want) {
 {
   const p = page();
   const look = { pointer: img("p", 1, 2), hand: img("h"), drag: img("d"), text: img("t") };
-  p.C.save("bejeweled", "Bejeweled Deluxe", look);
-  p.C.save("alchemy", "Alchemy Deluxe", look);
-  p.C.save("atomica", "Atomica Deluxe", look);
-  p.C.save("bigmoney", "Big Money Deluxe", Object.assign({}, look, { hand: img("h3") }));
-  p.C.save("bookworm", "BookWorm Deluxe", Object.assign({}, look, { pointer: img("p", 1, 3) }));
+  p.C.save("bejeweled", "Bejeweled", look);
+  p.C.save("alchemy", "Alchemy", look);
+  p.C.save("atomica", "Atomica", look);
+  p.C.save("bigmoney", "Big Money", Object.assign({}, look, { hand: img("h3") }));
+  p.C.save("bookworm", "BookWorm", Object.assign({}, look, { pointer: img("p", 1, 3) }));
   function entries() {
     const el = node("div");
     p.C.render(el);
@@ -183,18 +183,18 @@ function check(what, got, want) {
     return box.children.filter((l) => l.tagName === "label").map((l) => ({ value: l.children[0].value, checked: l.children[0].checked, name: l.text().trim() }));
   }
   check("identical sets make one entry, named with every title in order; a set that differs in one kind or one hot spot keeps its own",
-    entries().map((e) => e.name), ["Default", "Alchemy Deluxe, Atomica Deluxe and Bejeweled Deluxe", "Big Money Deluxe", "BookWorm Deluxe"]);
+    entries().map((e) => e.name), ["Default", "Alchemy, Atomica and Bejeweled", "Big Money", "BookWorm"]);
   check("nothing chosen: the browser's own is checked", entries().filter((e) => e.checked).map((e) => e.name), ["Default"]);
   p.C.choose("bejeweled");
   check("a choice of any member selects its group, and keeps that member", [entries().filter((e) => e.checked).map((e) => e.name), entries()[1].value],
-    [["Alchemy Deluxe, Atomica Deluxe and Bejeweled Deluxe"], "bejeweled"]);
+    [["Alchemy, Atomica and Bejeweled"], "bejeweled"]);
   p.C.choose("alchemy");
   check("the first member too", entries().filter((e) => e.checked).map((e) => e.value), ["alchemy"]);
   p.C.forget("atomica");
-  check("forgetting one game leaves the rest of its group", entries()[1].name, "Alchemy Deluxe and Bejeweled Deluxe");
-  p.C.save("alchemy", "Alchemy Deluxe", Object.assign({}, look, { hand: img("h2") }));
+  check("forgetting one game leaves the rest of its group", entries()[1].name, "Alchemy and Bejeweled");
+  p.C.save("alchemy", "Alchemy", Object.assign({}, look, { hand: img("h2") }));
   check("a set that changes leaves its group, and the choice stays with it",
-    entries().map((e) => [e.name, e.checked]), [["Default", false], ["Alchemy Deluxe", true], ["Bejeweled Deluxe", false], ["Big Money Deluxe", false], ["BookWorm Deluxe", false]]);
+    entries().map((e) => [e.name, e.checked]), [["Default", false], ["Alchemy", true], ["Bejeweled", false], ["Big Money", false], ["BookWorm", false]]);
   check("the sets stay one a game", Object.keys(p.C.all()).sort(), ["alchemy", "bejeweled", "bigmoney", "bookworm"]);
 }
 // each entry pictures every cursor its set has, in order, and nothing for one it lacks
@@ -254,21 +254,21 @@ function entryNames(p) {
   codec(p);
   const pic = (w, ox, colour, hx, bare) => p.C.picture(canvas(w, w, ox, ox, colour, bare), ox + (hx || 0), ox);
   const set = (colours, text) => ({ pointer: pic(54, 9, colours[0]), hand: pic(37, 2, colours[1]), drag: pic(40, 5, colours[2]), text });
-  p.C.save("alchemy", "Alchemy Deluxe", set([200, 20, 30], pic(37, 1, 77)));
-  p.C.save("bigmoney", "Big Money Deluxe", set([200, 20, 30], pic(54, 20, 99)));
+  p.C.save("alchemy", "Alchemy", set([200, 20, 30], pic(37, 1, 77)));
+  p.C.save("bigmoney", "Big Money", set([200, 20, 30], pic(54, 20, 99)));
   // BookWorm's pointer: Alchemy's, its colours up to three steps off
-  p.C.save("bookworm", "BookWorm Deluxe", set([197, 20, 30], pic(37, 1, 77)));
+  p.C.save("bookworm", "BookWorm", set([197, 20, 30], pic(37, 1, 77)));
   p.C.save("near", "Hot Spot A Pixel Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 1) }));
   // Atomica's are green
   p.C.save("p", "Pointer Differs", set([90, 20, 30], pic(37, 1, 77)));
   p.C.save("h", "Hand Differs", set([200, 120, 30], pic(37, 1, 77)));
   // Bejeweled's dragging hand: an open one without the shadow
-  p.C.save("bejeweled", "Bejeweled Deluxe", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { drag: pic(54, 9, 30, 0, true) }));
+  p.C.save("bejeweled", "Bejeweled", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { drag: pic(54, 9, 30, 0, true) }));
   p.C.save("bare", "Hand Without Shadow", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 0, true) }));
   p.C.save("hot", "Hot Spot Three Pixels Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 3) }));
   check("sets that differ only in their text or dragging cursor, by colours a few steps off or by a hot spot a pixel away share " +
     "an entry; another colour, a missing shadow or a hot spot further away in the pointer or hand keeps a set apart", entryNames(p),
-    ["Default", "Alchemy Deluxe, Bejeweled Deluxe, Big Money Deluxe, BookWorm Deluxe and Hot Spot A Pixel Off", "Hand Differs",
+    ["Default", "Alchemy, Bejeweled, Big Money, BookWorm and Hot Spot A Pixel Off", "Hand Differs",
       "Hand Without Shadow", "Hot Spot Three Pixels Off", "Pointer Differs"]);
   const dragPic = () => { const el = node("div"); p.C.render(el);
     return el.children[0].children[1].children[1].children[1].children.find((i) => i.attrs["data-kind"] === "drag").src; };
@@ -285,15 +285,15 @@ function entryNames(p) {
   const old = page();
   codec(old);
   const raw = (w, ox, colour) => ({ url: old.C.codec.encode(canvas(w, w, ox, ox, colour)), x: ox, y: ox });
-  const kept = { alchemy: { title: "Alchemy Deluxe", pointer: raw(37, 2, 10), hand: raw(37, 2, 20), drag: raw(37, 2, 30), text: raw(37, 4, 40) } };
+  const kept = { alchemy: { title: "Alchemy", pointer: raw(37, 2, 10), hand: raw(37, 2, 20), drag: raw(37, 2, 30), text: raw(37, 4, 40) } };
   const p = page({ "byopop-cursors": JSON.stringify(kept) });
   codec(p);
   const pic = (w, ox, colour) => p.C.picture(canvas(w, w, ox, ox, colour), ox, ox);
-  p.C.save("bejeweled", "Bejeweled Deluxe", { pointer: pic(54, 9, 10), hand: pic(54, 9, 20), drag: pic(54, 9, 30), text: pic(54, 9, 40) });
-  check("an old set looks like the same set taken since, before it is cropped", entryNames(p), ["Default", "Alchemy Deluxe and Bejeweled Deluxe"]);
+  p.C.save("bejeweled", "Bejeweled", { pointer: pic(54, 9, 10), hand: pic(54, 9, 20), drag: pic(54, 9, 30), text: pic(54, 9, 40) });
+  check("an old set looks like the same set taken since, before it is cropped", entryNames(p), ["Default", "Alchemy and Bejeweled"]);
   p.C.choose("alchemy");
   p.C.upgrade();
-  check("cropped, it shares the entry of the same set taken since", entryNames(p), ["Default", "Alchemy Deluxe and Bejeweled Deluxe"]);
+  check("cropped, it shares the entry of the same set taken since", entryNames(p), ["Default", "Alchemy and Bejeweled"]);
   const a = p.C.all();
   check("and is kept cropped, with its hot spot from the crop", [a.alchemy.hand.url === a.bejeweled.hand.url, a.alchemy.hand.k === a.bejeweled.hand.k,
     a.alchemy.hand.x, a.alchemy.hand.y, JSON.parse(p.local["byopop-cursors"]).alchemy.text.k === a.bejeweled.text.k], [true, true, 0, 0, true]);

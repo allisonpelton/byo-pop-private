@@ -20,8 +20,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/AlchemyApp.cpp)
     endif()
   endif()
   if(EMSCRIPTEN)
-    byopop_web_game(alchemy TITLE "Alchemy Deluxe"
-      COPYRIGHT "Alchemy Deluxe © 2004 PopCap Games, Inc. All rights reserved.")
+    byopop_web_game(alchemy TITLE "Alchemy"
+      COPYRIGHT "Alchemy © 2004 PopCap Games, Inc. All rights reserved.")
   else()
     add_custom_command(TARGET alchemy POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:alchemy>

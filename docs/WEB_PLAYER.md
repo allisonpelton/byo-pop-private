@@ -163,8 +163,8 @@ everywhere"), and the set chosen still shows its own in text fields. Each image 
 hot spot taken from the crop and a hash of the cropped pixels (`crop` and `picture` in `web/cursors.js`, from the game page's
 `takeCursorSet`), so the same design drawn on canvases of different sizes (Bejeweled's 54 by 54, Alchemy's 37 by 37) keeps one
 picture and makes smaller CSS cursors; sets kept before cropping are cropped once as a page of the site loads (`upgrade`), with no
-need to start each game again. Games whose sets look the same share one entry named with all their titles, "Alchemy Deluxe and
-Big Money Deluxe" (the user, 2026-11-04: entries that look the same are one entry, and differences nobody can see do not split
+need to start each game again. Games whose sets look the same share one entry named with all their titles, "Alchemy and
+Big Money" (the user, 2026-11-04: entries that look the same are one entry, and differences nobody can see do not split
 one). Two sets look the same when their pointers and their hands do: the pixels that show are the same size, they differ nowhere
 by more than 16 of 255 in any colour drawn over white and over black, the hot spots are no more than a pixel apart, and the frames
 match (`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The dragging cursor, the circle-slash and the
@@ -184,6 +184,15 @@ none, its custom cursors off or none of its own, the site's cursor shows over th
 canvas (a hidden cursor stays hidden). The images come from the player's own copy and stay in this browser; forgetting a game's
 files forgets its cursors (`ByopopGameFiles.forget`). A game's cursors are there only once it has been started in this browser:
 each game keeps its cursor images in its own formats and files, and the game itself is the one place that puts them together.
+
+**No "Deluxe" in the site's names** (the user, 2026-11-04: "Let's not use the name Deluxe anywhere in names on the site,
+since it is supposed to specifically refer to the original desktop versions and might draw the ire of EA"). Every name the site
+shows for a game is its TITLE in `games/<game>/CMakeLists.txt` (`byopop_web_game`) or its row in `BYOPOP_WEB_UPCOMING`, none of
+them with "Deluxe": the tiles, the page and tab titles, the copyright pages, the chat, the cursor choice and every message. A game
+page's tab keeps its own title while the game runs (SDL's web backend would put the game's window title, the original's own
+name, there), and its "already running" message names the TITLE, not `PAGE.shortName`. What still says "Deluxe" is what finds
+the original's files: the install and Steam folder names the save import looks in (`platform/saveimport.json`), the folder names
+the game import recognises (it ignores the word), store links, and the game's own art and texts from the player's files.
 
 **Each game's cursors, and where they show** (the user, 2026-11-04: "Some games have cursor sets rather than a single cursor
 used during all of gameplay. We should figure out in what game contexts a particular cursor is used and make them contextual on
@@ -318,14 +327,14 @@ are to test the deployed pages. The card is on in every build.
 ### Where to buy
 
 Under the terms, on the card and on the copyright page, one line says where the game can be bought digitally ("Where
-to buy Big Money Deluxe digitally, as of October 25, 2026: Steam, EA app", each store a link that opens in a new tab)
+to buy Big Money digitally, as of October 25, 2026: Steam, EA app", each store a link that opens in a new tab)
 or that it is not for sale as of a date. The stores are in `cmake/ByopopStores.cmake`, one shared file for every
 game: `set(BYOPOP_BUY_<target> <YYYY-MM-DD> [<store> <url>]...)`, the date the stores were checked and each store
 that sells the game. A game with a web page and no entry stops the configure with a message. Only stores that sell
 the game new and digitally under the publisher's license are listed, on their own trusted sites: the publisher's
 store, platforms like Steam, established game stores. Key resellers and second-hand sales are not. A store that still
 sells a game it no longer has a page for is linked by the address that puts the game in its cart (Shockwave's
-BookWorm Deluxe). The file records
+BookWorm). The file records
 which stores were checked; check them again before a launch, and change the date with the result. The line is not
 part of the terms' version, so a change of stores asks nobody to agree again.
 
@@ -357,7 +366,7 @@ in `cmake/ByopopStores.cmake`, where the 2026-11-02 check of Shockwave, Steam an
 row with an empty target or title, a game listed twice or in both lists, and a game still to come without a `BYOPOP_BUY` entry
 of the shape a finished game's needs (the date checked, then a store and a non-empty page for each), stop the configure.
 
-Such a tile is the finished one's badge, title and year, but not a link: `<div class="tile" role="group">` named "AstroPop Deluxe,
+Such a tile is the finished one's badge, title and year, but not a link: `<div class="tile" role="group">` named "AstroPop,
 2004, coming soon" (`aria-label`), with "Coming soon" in the place of the files' state. It is dimmed by its colours rather than by
 opacity, so that its text keeps the page's contrast in both themes: the card on the page's background with a dashed edge in the muted colour (5.7:1 on the page's background in the light theme,
 7.3:1 in the dark one, so the card's edge stays visible), the
@@ -368,13 +377,14 @@ take only the finished games' links, so the coming-soon tiles have no `data-game
 
 **Sorting.** Above the tiles is a "Sort by" choice (a `<fieldset>` with a `<legend>` and four radio buttons, **Name**, **Release
 date**, **Play time** and **Plays**, and a fifth, **Most popular**, by every player's plays, when the site has a play counter:
-`docs/PLAY_COUNTER.md`), hidden until the page's script has run. Name is the page as built, the alphabetical order of the titles without "Deluxe" (so Bejeweled Deluxe comes before Bejeweled 2 Deluxe and Bejeweled 3). Release date puts
+`docs/PLAY_COUNTER.md`), hidden until the page's script has run. Name is the page as built, the alphabetical order of the titles (so Bejeweled comes before Bejeweled 2 and Bejeweled 3; a title's "Deluxe", which no title on
+the site has any more, would be left out of the order). Release date puts
 the oldest game first. The order comes from the game's row in the `BYOPOP_WEB_RELEASED` table of `cmake/ByopopWeb.cmake`
 (`<target>|<date>`, the date as YYYY, YYYY-MM or YYYY-MM-DD, with the source of each row in a comment above it), which is the
 first release of the Windows edition the site plays: the Deluxe download where there is one, and for a game that first came out
 under another publisher (Cosmic Bugs, Water Bugs, Word Harmony) the first release. `byopop_web_index()` writes it on the card as
 `data-released`, as given, next to `data-title`, and shows the year small under the name, which is part of the link's accessible
-name ("Bejeweled Deluxe, 2001, play now"). A date that is less exact sorts later among the same year's or month's, so a game with
+name ("Bejeweled, 2001, play now"). A date that is less exact sorts later among the same year's or month's, so a game with
 only a year comes after the full dates of that year, then by name; a game without a row gets a configure warning, shows no year
 and goes last, and a row that is not a date stops the configure. Like the table of badges, the table is the coordinator's, who
 adds a game's row at its final merge together with its place in `BYOPOP_WEB_FINISHED`. Play time and Plays (the user, 2026-11-03:
@@ -430,7 +440,7 @@ opens normally, with no name or email beside it.
 **Which games are yours.** Under each game's name the card says, in words, whether the game's files are loaded in this
 browser, as a sign that the player owns the game: "Play now" when they are, "Add your files" when they are not, and
 "Files unknown" when the page cannot tell (below). The link's accessible name carries the same words, after the game's name
-and the year of its release ("Bejeweled Deluxe, 2001, play now"). The page knows without starting any game, from a record that the game pages keep. The record is one
+and the year of its release ("Bejeweled, 2001, play now"). The page knows without starting any game, from a record that the game pages keep. The record is one
 localStorage item for the whole site, `byopop-game-files` (`ByopopGameFiles` in `web/settings.js`): a JSON object from a
 game's id to `{loaded, forgotten, missing}`, with dates as YYYY-MM-DD. `loaded` is when the game's files were last found,
 `forgotten` when the player used "Forget game files" on the game's page, and `missing` when a game page found the files
@@ -475,7 +485,7 @@ features, as there are none.
 
 **Where to buy.** A game that can still be bought has a small link for each store under its label, "Buy on Steam" or "Buy on
 the EA app" (a store whose name ends in "app" takes "the"), with `rel="noopener"` and an accessible name that includes the
-game ("Buy Big Money Deluxe on Steam"). `byopop_web_index()` writes them at build time from the same data as the game pages'
+game ("Buy Big Money on Steam"). `byopop_web_index()` writes them at build time from the same data as the game pages'
 buy note, `BYOPOP_BUY_<target>` in `cmake/ByopopStores.cmake` (a check date, then each store's name and page), so the two
 cannot disagree; a game with no store shows nothing. The links are in the same list item as the game's link but not inside
 it, in a `.buyrow` beside it, as a link cannot hold a link.
@@ -595,7 +605,7 @@ There are three ways in, all in `web/addgames.js`:
 
 - **A game's card.** A folder (or a .zip of one) dropped on a finished game's card is taken as that game's, exactly as its own
   page's import card takes it: the game's markers are looked for in it and nowhere else, and a folder without them is refused
-  with the import card's own words ("That folder doesn't hold Bejeweled Deluxe's images/gemsheet6 file").
+  with the import card's own words ("That folder doesn't hold Bejeweled's images/gemsheet6 file").
 - **The logo.** Folders dropped on the logo stand for the bottle opener: each one is sorted into the game it is.
 - **"Add games".** The button beside "Sort by" opens a folder picker (one folder: a game's, or the folder that holds many, such
   as "PopCap Games"), sorted the same way. It is the way in for the keyboard and for browsers without drag and drop.

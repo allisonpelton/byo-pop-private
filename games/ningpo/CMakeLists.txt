@@ -27,8 +27,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/NingPoApp.cpp)
   endif()
   if(EMSCRIPTEN)
     target_link_options(ningpo PRIVATE "-sASYNCIFY=1" "-sASYNCIFY_STACK_SIZE=65536")
-    byopop_web_game(ningpo TITLE "Ning Po Mahjong Deluxe"
-      COPYRIGHT "Ning Po Mahjong Deluxe © 2002 Pyrogon, Inc. All rights reserved.")
+    byopop_web_game(ningpo TITLE "Ning Po Mahjong"
+      COPYRIGHT "Ning Po Mahjong © 2002 Pyrogon, Inc. All rights reserved.")
   else()
     add_custom_command(TARGET ningpo POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:ningpo>

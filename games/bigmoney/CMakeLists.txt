@@ -14,8 +14,8 @@ if(NOT MSVC)
   target_compile_options(bigmoney PRIVATE -Wall -Wno-unused-private-field)
 endif()
 if(EMSCRIPTEN)
-  byopop_web_game(bigmoney TITLE "Big Money Deluxe" COPYRIGHT
-    "Big Money Deluxe © 2000-2006 PopCap Games, Inc. All rights reserved. Big Money is a registered trademark of PopCap Games, Inc.")
+  byopop_web_game(bigmoney TITLE "Big Money" COPYRIGHT
+    "Big Money © 2000-2006 PopCap Games, Inc. All rights reserved. Big Money is a registered trademark of PopCap Games, Inc.")
 else()
   add_custom_command(TARGET bigmoney POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bigmoney>

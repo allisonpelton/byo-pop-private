@@ -37,9 +37,9 @@ function fakeStorage(blocked) {
 const local = (y, mo, d, h, mi, s) => new Date(y, mo, d, h || 0, mi || 0, s || 0).getTime();
 // a few of the site's games, as the table (build/web/chat-games.js) lists them, for the tests
 const TABLE = [
-  { id: "bookworm", page: "bookworm.html", tag: "BW", title: "BookWorm Deluxe", colour: "#955c23" },
-  { id: "sevenseas", page: "sevenseas.html", tag: "7S", title: "Seven Seas Deluxe", colour: "#1e8080" },
-  { id: "noahsark", page: "noahsark.html", tag: "NA", title: "Noah's Ark Deluxe", colour: "#234995" },
+  { id: "bookworm", page: "bookworm.html", tag: "BW", title: "BookWorm", colour: "#955c23" },
+  { id: "sevenseas", page: "sevenseas.html", tag: "7S", title: "Seven Seas", colour: "#1e8080" },
+  { id: "noahsark", page: "noahsark.html", tag: "NA", title: "Noah's Ark", colour: "#234995" },
 ];
 // n made-up games
 const bigTable = (n) => Array.from({ length: n }, (_, i) => ({ id: "game" + String(i).padStart(2, "0"), page: "game" + String(i).padStart(2, "0") + ".html", tag: "G" + i, title: "Game Number " + i, colour: "#234995" }));
@@ -167,7 +167,7 @@ function contrast(a, b) {
       ["an empty tag", { tag: "" }], ["a long tag", { tag: "ABCDE" }], ["a tag with markup", { tag: "<b>" }], ["a tag with a space", { tag: "B W" }], ["a tag with brackets", { tag: "[B]" }], ["no tag", { tag: undefined }],
       ["no title", { title: undefined }], ["an empty title", { title: "" }], ["a blank title", { title: " \n " }], ["a long title", { title: "x".repeat(101) }], ["a number for a title", { title: 5 }],
     ]) check("an entry with " + name + " is left out", one(over) === 0);
-    check("the same id twice is one game", C.createGames([TABLE[0], Object.assign({}, TABLE[0], { title: "Other" })]).all().length === 1 && C.createGames([TABLE[0], TABLE[0]]).get("bookworm").title === "BookWorm Deluxe");
+    check("the same id twice is one game", C.createGames([TABLE[0], Object.assign({}, TABLE[0], { title: "Other" })]).all().length === 1 && C.createGames([TABLE[0], TABLE[0]]).get("bookworm").title === "BookWorm");
     check("a bad entry among good ones does not stop the rest", C.createGames([TABLE[0], null, { id: "x" }, TABLE[1]]).all().length === 2);
     for (const bad of ["red", "#fff", "#12345g", "url(x)", "#1234567", "rgb(1,2,3)", 5, undefined, null, ""]) {
       check("a bad colour falls back to the default: " + String(bad), C.createGames([Object.assign({}, TABLE[0], { colour: bad })]).get("bookworm").colour === C.GAME_COLOUR_DEFAULT);
@@ -176,11 +176,11 @@ function contrast(a, b) {
     check("an upper-case colour is fine", C.createGames([Object.assign({}, TABLE[0], { colour: "#ABCDEF" })]).get("bookworm").colour === "#ABCDEF");
     check("a title is one clean line", C.createGames([Object.assign({}, TABLE[0], { title: " Two\nLines  here " })]).get("bookworm").title === "Two Lines here");
     // the game fields of a message
-    same("fields for a known game", C.gameFields(g, "sevenseas"), { game: "sevenseas", tag: "7S", gameTitle: "Seven Seas Deluxe" });
+    same("fields for a known game", C.gameFields(g, "sevenseas"), { game: "sevenseas", tag: "7S", gameTitle: "Seven Seas" });
     same("fields for a game the table lacks: its id only", C.gameFields(g, "mystery_game"), { game: "mystery_game" });
     same("fields with no table: the id only", C.gameFields(null, "bookworm"), { game: "bookworm" });
     for (const bad of ["", "Bad Id", "a/b", undefined, null, 5, "x".repeat(41), "javascript:alert(1)"]) same("no fields for the id " + JSON.stringify(bad), C.gameFields(g, bad), {});
-    same("cleanGame keeps good fields", C.cleanGame({ game: "bookworm", tag: "BW", gameTitle: "BookWorm Deluxe", extra: 1 }), { game: "bookworm", tag: "BW", gameTitle: "BookWorm Deluxe" });
+    same("cleanGame keeps good fields", C.cleanGame({ game: "bookworm", tag: "BW", gameTitle: "BookWorm", extra: 1 }), { game: "bookworm", tag: "BW", gameTitle: "BookWorm" });
     same("cleanGame: a bad tag or title is dropped, the id kept", C.cleanGame({ game: "bookworm", tag: "<b>x", gameTitle: "x".repeat(101) }), { game: "bookworm" });
     same("cleanGame: a title is cleaned", C.cleanGame({ game: "bookworm", gameTitle: "a\nb" }), { game: "bookworm", gameTitle: "a b" });
     same("cleanGame: without a good id, nothing", [C.cleanGame({ tag: "BW" }), C.cleanGame({ game: "Bad Id", tag: "BW" }), C.cleanGame({ game: 5 }), C.cleanGame(null), C.cleanGame("x")], [{}, {}, {}, {}, {}]);
@@ -215,10 +215,10 @@ function contrast(a, b) {
     {
       const gs = fakeStorage();
       const gstore = C.createStore(gs, KEY, 300);
-      gstore.add(mk(1, { game: "bookworm", tag: "BW", gameTitle: "BookWorm Deluxe" }));
+      gstore.add(mk(1, { game: "bookworm", tag: "BW", gameTitle: "BookWorm" }));
       gstore.add(mk(2));
       gstore.add(mk(3, { game: "retired_game" }));
-      same("a message keeps its game through the store", C.createStore(gs, KEY, 300).all().map((m) => [m.game, m.tag, m.gameTitle]), [["bookworm", "BW", "BookWorm Deluxe"], [undefined, undefined, undefined], ["retired_game", undefined, undefined]]);
+      same("a message keeps its game through the store", C.createStore(gs, KEY, 300).all().map((m) => [m.game, m.tag, m.gameTitle]), [["bookworm", "BW", "BookWorm"], [undefined, undefined, undefined], ["retired_game", undefined, undefined]]);
       const gevil = fakeStorage();
       gevil.data[KEY] = JSON.stringify({ v: 1, messages: [
         mk(1, { game: "Bad Id", tag: "BW" }), mk(2, { game: "bookworm", tag: "<script>" }), mk(3, { game: "bookworm", gameTitle: "x".repeat(101) }), mk(4, { game: 5, tag: 6, gameTitle: 7 }),
@@ -445,9 +445,9 @@ function contrast(a, b) {
     const a = mkSource(shared, { game: "sevenseas", games: TABLE });
     await a.connect();
     const m = await a.send("hello from one game");
-    check("send: carries the page's game, its initials and its title", m.game === "sevenseas" && m.tag === "7S" && m.gameTitle === "Seven Seas Deluxe" && C.validMessage(m), m);
+    check("send: carries the page's game, its initials and its title", m.game === "sevenseas" && m.tag === "7S" && m.gameTitle === "Seven Seas" && C.validMessage(m), m);
     const stored = JSON.parse(shared.data[C.KEYS.messages]).messages.find((x) => x.id === m.id);
-    check("the stored message has them too", stored && stored.game === "sevenseas" && stored.tag === "7S" && stored.gameTitle === "Seven Seas Deluxe", stored);
+    check("the stored message has them too", stored && stored.game === "sevenseas" && stored.tag === "7S" && stored.gameTitle === "Seven Seas", stored);
     clock += 1500;
     const b = mkSource(shared, { game: "bookworm", games: C.createGames(TABLE, "bookworm") });
     await b.connect();
@@ -455,7 +455,7 @@ function contrast(a, b) {
     const seen = hist.find((x) => x.id === m.id);
     check("another game's page has the message, still from the first game", seen && seen.game === "sevenseas" && seen.tag === "7S", seen);
     const mb = await b.send("and a reply from another game");
-    check("and sends its own game", mb.game === "bookworm" && mb.tag === "BW" && mb.gameTitle === "BookWorm Deluxe");
+    check("and sends its own game", mb.game === "bookworm" && mb.tag === "BW" && mb.gameTitle === "BookWorm");
     check("the seeded history is from games too", hist.filter((x) => /-s\d{4}$/.test(x.id)).length > 100 &&hist.filter((x) => x.game && TABLE.some((g) => g.id === x.game)).length > 100);
     clock += 1500;
     const c = mkSource(fakeStorage(), { game: "mystery_game", games: TABLE });
@@ -523,12 +523,12 @@ function contrast(a, b) {
     const linkOf = (li) => li.children.find((c) => c.tag === "a");
     const madeBefore = made.filter((t) => t === "a").length;
     {
-      const m = { id: "i", t: t0, user: "alice", text: "hi", game: "sevenseas", tag: "7S", gameTitle: "Seven Seas Deluxe" };
+      const m = { id: "i", t: t0, user: "alice", text: "hi", game: "sevenseas", tag: "7S", gameTitle: "Seven Seas" };
       const li = C.renderRow(doc, m, "bob", games), a = linkOf(li);
       check("a row from a known game has the tag in its line", li.textContent === C.formatLine(m, games) && li.textContent === "09:05 [7S] <alice> hi", li.textContent);
       check("the tag is a link to the game's page", a && a.tag === "a" && a.attrs.href === "sevenseas.html", a && a.attrs);
-      check("its hover text is the game's full title", a.attrs.title === "Seven Seas Deluxe");
-      check("its name holds the full title and the initials it shows", a.attrs["aria-label"] === "Seven Seas Deluxe (7S)");
+      check("its hover text is the game's full title", a.attrs.title === "Seven Seas");
+      check("its name holds the full title and the initials it shows", a.attrs["aria-label"] === "Seven Seas (7S)");
       const visible = a.children.filter((c) => c.attrs["aria-hidden"] !== "true").map((c) => c.textContent).join("");
       const norm = (x) => x.toLowerCase().replace(/[^a-z0-9 ]/g, "");
       check("the name contains the words the link shows (label in name)", visible === "7S" && norm(a.attrs["aria-label"]).indexOf(norm(visible)) >= 0, visible);
@@ -539,15 +539,15 @@ function contrast(a, b) {
       check("the order is time, tag, name, text", li.children[0].tag === "time" && li.children[2] === a && li.children[4].children[1].textContent === "alice" && li.children[6].textContent === "hi");
       const own = linkOf(C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "bookworm" }, "bob", games));
       check("the page's own game is marked as the current page", own.attrs["aria-current"] === "page" && own.attrs.href === "bookworm.html" && own.textContent === "[BW]");
-      check("a title with an apostrophe goes in as it is", linkOf(C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "noahsark" }, "bob", games)).attrs.title === "Noah's Ark Deluxe");
+      check("a title with an apostrophe goes in as it is", linkOf(C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "noahsark" }, "bob", games)).attrs.title === "Noah's Ark");
     }
     {
       // what the message says about its tag is never drawn: the table is the site's
       const forged = { id: "i", t: t0, user: "alice", text: "hi", game: "bookworm", tag: "ADMIN", gameTitle: "<b>Official</b>" };
       const li = C.renderRow(doc, forged, "bob", games), a = linkOf(li);
-      check("a forged tag and title are not drawn: the table's are", a.textContent === "[BW]" && a.attrs.title === "BookWorm Deluxe" && li.textContent.indexOf("ADMIN") < 0 && li.textContent.indexOf("Official") < 0, li.textContent);
+      check("a forged tag and title are not drawn: the table's are", a.textContent === "[BW]" && a.attrs.title === "BookWorm" && li.textContent.indexOf("ADMIN") < 0 && li.textContent.indexOf("Official") < 0, li.textContent);
       // a game the site does not know has no tag and no link
-      for (const unknown of [{ game: "oldgame", tag: "OG", gameTitle: "Old Game" }, { game: "javascript:alert(1)", tag: "JS" }, { game: "constructor" }, { game: "__proto__" }, { game: 5 }, { game: null }, { game: { id: "bookworm" } }, { game: ["bookworm"] }, { tag: "BW", gameTitle: "BookWorm Deluxe" }, {}]) {
+      for (const unknown of [{ game: "oldgame", tag: "OG", gameTitle: "Old Game" }, { game: "javascript:alert(1)", tag: "JS" }, { game: "constructor" }, { game: "__proto__" }, { game: 5 }, { game: null }, { game: { id: "bookworm" } }, { game: ["bookworm"] }, { tag: "BW", gameTitle: "BookWorm" }, {}]) {
         const m = Object.assign({ id: "i", t: t0, user: "alice", text: "hi" }, unknown);
         const row = C.renderRow(doc, m, "bob", games);
         check("no tag and no link for " + JSON.stringify(unknown), !linkOf(row) && row.textContent === "09:05 <alice> hi", row.textContent);
