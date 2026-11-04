@@ -88,8 +88,8 @@ copy another port. Efforts are the estimates without references ([3.3](#33-verdi
 | 5 | [AstroPop Deluxe](#55-astropop-deluxe) | Sonnet | yes | ~7-8x | BookWorm's 2004 framework; no game RTTI; MO3 |
 | 6 | [Typer Shark! Deluxe](#56-typer-shark-deluxe) | Sonnet | yes | ~5x | BookWorm's 2004 framework; MO3 and `.au` sounds; typing on phones |
 | 7 | [Pizza Frenzy](#57-pizza-frenzy) | Opus | yes | ~8x | Sprout's first-generation engine, from Word Harmony's port; no RTTI |
-| 8 | [Iggle Pop Deluxe](#58-iggle-pop-deluxe) | Sonnet | yes | ~5-6x after Pizza Frenzy | Pizza Frenzy's engine build (72% of its functions identical) |
-| 9 | [Feeding Frenzy Deluxe](#59-feeding-frenzy-deluxe) | Sonnet | yes | small to medium after Iggle Pop | the same engine in an older build |
+| 8 | [Iggle Pop Deluxe](#58-iggle-pop-deluxe) | Sonnet | yes | ~5-6x after Pizza Frenzy | Pizza Frenzy's engine build (72% of its functions identical); a Mac build with class names |
+| 9 | [Feeding Frenzy Deluxe](#59-feeding-frenzy-deluxe) | Sonnet | yes | small to medium after Iggle Pop | the same engine in an older build; a Mac build with class names |
 | 10 | [Chuzzle Deluxe](#510-chuzzle-deluxe) | Opus | yes | ~8-12x | Raptisoft's own engine, no RTTI; a Mac build with names |
 | 11 | [Feeding Frenzy 2 Deluxe](#511-feeding-frenzy-2-deluxe) | Opus | yes | ~10x | Sprout's second-generation engine, which no port has; `.theora` animations |
 | 12 | [Peggle Deluxe](#512-peggle-deluxe) | Sonnet | no | ~12x | Bejeweled's framework generation; JPEG 2000 and MO3; a Mac build |
@@ -532,6 +532,10 @@ Several GitHub repositories named "...Typer-Shark-Deluxe-Crack" are spam or malw
   changed between the two. Its `ResourceManager` already reads `.saf` archives. It was kept free of game code so that
   it can move to shared code when a second Sprout game is ported, which is this one; moving it is a shared change for
   the coordinator.
+- **Class names:** Pizza Frenzy has no Mac build here, but Iggle Pop's and Feeding Frenzy's name this engine's classes
+  and their bases ([5.8](#58-iggle-pop-deluxe), [5.9](#59-feeding-frenzy-deluxe)). Iggle Pop's has 43 in the `engine`
+  namespace, and nine of them have the same names in Word Harmony's port (`Object`, `ResourceManager`, `Font`, `Image`
+  among them). Iggle Pop shares Pizza Frenzy's engine build, so its names serve this port too.
 
 ### 5.8 Iggle Pop Deluxe
 
@@ -542,12 +546,30 @@ Several GitHub repositories named "...Typer-Shark-Deluxe-Crack" are spam or malw
 - **Engine:** the same Sprout engine build as Pizza Frenzy. After masking relocations, 651 of 900 engine-region
   functions (72%) are byte-identical, as are 85% of the DirectDraw functions and 87% of the CRT.
 - **RTTI:** none: 10 exception type names and about 386 unnamed vtables. Names come from the XML class and aiClass names
-  (ChainCounter, WarpHole, FreezePickup, GuardZoog...).
+  (ChainCounter, WarpHole, FreezePickup, GuardZoog...), and now from the Mac build.
 - **Game code:** ~480 KB / ~1,200 functions.
 - **Data:** `IgglePop.saf` (6.9 MB, 1,628 entries: 161 extension-less level XML files, monster definitions, 74 screen
   layouts, 840 theme files, 96 OGG), fully XML-driven.
-- **Plan:** link Pizza Frenzy's engine, name the shared engine functions by byte matching (`tools/funcmatch.py`), and
-  translate only the game code.
+- **Mac build:** `re/igglepop/mac/`, Iggle Pop Deluxe 1.0.0 for the Mac, a universal PowerPC and Intel binary
+  (`igglepop-bin`). Its symbol table is stripped to 17 names, none from C++, but GCC left its RTTI in. That names 399
+  classes with their base classes: 43 of the engine's (`engine::Object`, `engine::ResourceManager`...), 30 of its SDL
+  and OpenGL driver, sound and signal libraries, and the game's own, down to nested state classes such as
+  `GameMgr::PlayState`. `IgglePop.symbols.txt` gives each class's typeinfo and vtables with their addresses; the
+  `rttinames.py` beside it makes the list. So the Mac build names the classes and their virtual functions' order, but
+  not the functions. Its engine draws through SDL and OpenGL where the PC's uses DirectDraw.
+- **Plan:** link Pizza Frenzy's engine, name the shared engine functions by byte matching (`tools/funcmatch.py`), take
+  class names and bases from the Mac build, and translate only the game code.
+
+<!-- private -->
+
+The user's first Mac download (`IgglePop.dmg`, 2026-10-31) keeps the game in `Contents/Resources/Iggle Pop!.payload`
+behind the `MacProtectRun` launcher. The second (`Iggle_Pop_Deluxe_1.0.1_Full.dmg`, 2026-11-04) is a cracked copy whose
+`igglepop-bin` is that payload with each 16-byte block reversed and the last, partial block left as it is: byte for
+byte the same binary, saved here. Its `Info.plist` was edited to say 1.0.1, so the saved one is PopCap's 1.0.0 from
+the first download. The first download also holds another build of `igglepop-bin` (5,083,564 bytes) in a leftover
+`.svn` folder, with the same 399 class names. Feeding Frenzy's two downloads are built the same way.
+
+<!-- /private -->
 
 ### 5.9 Feeding Frenzy Deluxe
 
@@ -559,6 +581,13 @@ Several GitHub repositories named "...Typer-Shark-Deluxe-Crack" are spam or malw
   classes (Exception, Interface and Object, as in Pizza Frenzy and Iggle Pop), but source file names
   (`SimpleSoundDX.cpp`, `WaveFileReader.cpp`) and the PDB name are left in.
 - **Data:** an 8 MB `FFArchive.saf` plus loose WAV, music and menu files.
+- **Mac build:** `re/feedingfrenzy/mac/`, Feeding Frenzy Deluxe 1.0.0 for the Mac, a universal PowerPC and Intel binary
+  (`Feeding Frenzy`, saved as `FeedingFrenzy`). It is stripped the same way as Iggle Pop's (19 names, none from C++),
+  and its RTTI names 148 classes with their bases: 36 of the engine's, 25 of the driver, sound and signal libraries,
+  and the game's fish, bonus bubbles, screens and stages. The screensaver in the same bundle has the same 148. Of these
+  names, 87 are also in Iggle Pop's build: most of the engine, and a layer above it that both games use (`FadeContainer`,
+  `ParticleSystem`, `MusicSystem`, `ScreenLayout`, `TextItem`...). `FeedingFrenzy.symbols.txt` is made as Iggle Pop's.
+  Its copyright runs to 2007, so it may be a later build than the PC exe of 2005, which stays the authority.
 - **Plan:** copy Pizza Frenzy's and Iggle Pop's engine, and find where this older build differs, as Word Harmony's did.
 
 ### 5.10 Chuzzle Deluxe
@@ -681,6 +710,37 @@ Several GitHub repositories named "...Typer-Shark-Deluxe-Crack" are spam or malw
   (2.4 MB, entropy 8.0). So the game image has to be taken out of the launcher's protection before any analysis; the
   how-to and any tool for it stay private. After that it is a port on a 2010 framework near Bejeweled 3's, and an
   estimate waits on the image.
+- **Two more installers (2026-11-04).** The user found two more, which stay in the Downloads folder; both were unpacked
+  without running them. `bananabugssetup.exe` is PopCap's own installer, signed by PopCap Games in June 2010, and all
+  485 of its files are identical to our copy's. `InstallBananaBugs.exe` is Shockwave.com's installer, built in 2010 and
+  signed in 2015 by Defy Media, which then owned Shockwave. Its `Main.pak`, its 120 OGG sounds, `bass.dll` and
+  `j2k-codec.dll` are identical to ours. Neither holds a clear game image, so nothing was saved and the image still
+  waits.
+
+<!-- private -->
+
+**How the two installers are built.** PopCap's is a VS2008 stub of 2010-05-18 with an LZX cabinet after it, which
+7-Zip opens. Shockwave's is Wise's signing stub of 2007 (`SIGNSTUB.EXE`). Its code finds a second PE in its own
+resources at file offset 0x1800, writes 0x11800 bytes of it to a temp file and runs that on the outer file. The inner
+exe is a Wise 9.02 installer. Its data are raw deflate streams, each followed by its CRC-32 (a few one byte later),
+from file offset 0x2565f; Python's `zlib` with `wbits=-15` walks all 220 of them from there. One of the first is the
+installer's WSE script: Shockwave's "GAF" build `gaf.banana-bugs-pc.shockwave.com.32.en-us` of a 2010-07-29 game drop.
+It installs a `KEYHOLED` folder, checks for a Shockwave Unlimited subscription, and offers a Yahoo toolbar, OpenCandy
+and an Offercast installer.
+
+The shortcuts point at `Banana Bugs.exe`, which by its version resource is Shockwave's Keyhole DRM Application 3.2
+(2007-12-19). Beside it is `BananaBugs.exe` (2,367,488 bytes, v1.0.0.7, linked 2010-04-09), the game's own name. That
+second exe is the game itself, not PopCap's launcher, and there is
+no `.dat`: its image has a 1.87 MB `.text`, 0x31f10 bytes of `.rdata` and 0xab97c of `.data`, where PopCap's launcher
+has a 1.0 MB `.text`. Both exes are wrapped by Armadillo (Silicon Realms): linker version 83.82, the sections `.text1`,
+`.adata`, `.data1` and `.pdata`, and the strings `ARMDEBUG=` and `ARMSPLASHOFF`. The game's three sections have no
+bytes in the file. They are compressed and encrypted inside the 1.5 MB `.pdata` (entropy 8.0), and only the
+protector's own loader (boost and std RTTI) and the resources are clear. So the Shockwave build is a second route to
+the image, through a widely known commercial protector instead of PopCap's own 2010 scheme, but neither route works
+without running the game under a dumper or a downloaded unpacker, which is the user's call. The scripts that read the
+installers stayed in a scratch folder, since deleted.
+
+<!-- /private -->
 
 ### 5.16 Gyromancer
 
@@ -810,12 +870,17 @@ not packed and has full RTTI. It is just large.
    games left, AstroPop, Heavy Weapon, Venice, Pizza Frenzy, Iggle Pop and Feeding Frenzy lack it. A web search
    (2026-11-04) found Mac releases of two: Iggle Pop Deluxe (OS X, January 2006, for PowerPC and Intel; PCGamingWiki
    says the Steam version runs on macOS) and Feeding Frenzy (OS X, 2007, Intel). Both were in PopCap's own bundle of
-   its 13 Mac games. Either would name Sprout's first-generation engine, which Pizza Frenzy shares. PCGamingWiki credits
-   a 2005 OS X port of Pizza Frenzy to Ryan C. Gordon, without a source. Nothing shows a Mac release of AstroPop, Heavy
-   Weapon, Venice, Gyromancer or Banana Bugs. Any Mac build the user finds goes into `re/<game>/mac/`.
-4. **Two images need the user first.** Gyromancer's Steam stub can only come off with a tool that is a download, and
-   Banana Bugs' image has to come out of PopCap's 2010 DRM, which may need one too. Each download needs the user's OK
-   (name, source, size), and the how-to stays private.
+   its 13 Mac games. The user found both (2026-10-31), and then copies without the launcher's protection (2026-11-04)
+   that hold the same game binaries, both universal PowerPC and Intel builds. Their symbol tables are stripped (17 and
+   19 names, none from C++), but GCC left their RTTI in: Iggle Pop's names 399 classes and Feeding Frenzy's 148, with
+   their base classes, Sprout's engine among them. Both are now in `re/<game>/mac/`
+   ([5.8](#58-iggle-pop-deluxe), [5.9](#59-feeding-frenzy-deluxe)), and they name Pizza Frenzy's engine too. PCGamingWiki
+   credits a 2005 OS X port of Pizza Frenzy to Ryan C. Gordon, without a source. Nothing shows a Mac release of
+   AstroPop, Heavy Weapon, Venice, Gyromancer or Banana Bugs. Any Mac build the user finds goes into `re/<game>/mac/`.
+4. **Two images need the user first.** Gyromancer's Steam stub can only come off with a tool that is a download.
+   Banana Bugs' image has to come out of a protection too: the two installers the user found on 2026-11-04 hold no
+   clear image ([5.15](#515-banana-bugs)), though one of them gives a second route, which may also need a tool. Each
+   download needs the user's OK (name, source, size), and the how-to stays private.
 5. **The survey's leftovers.** The old session's scratchpad folder
    (`C:/Users/Administrator/AppData/Local/Temp/claude/C--Users-Administrator-Documents-claude-wasm-bejeweled/bb6f3864-facb-48c7-acfa-f782a25ef960/scratchpad/survey/`)
    survives only in fragments: 1,058 files and 27 MB of partial Ghidra exports, with every script gone. The scripts
@@ -963,7 +1028,8 @@ The remaining games' copies, all read only:
 - **`C:/Program Files (x86)/PopCap Games/`:** Venice Deluxe, Banana Bugs and Peggle World of Warcraft Edition. Venice's
   and Banana Bugs' installers are also unpacked, unrun, into `re/_installers/`.
 - **`C:/Program Files (x86)/Popcap Game Collection/`:** Feeding Frenzy Deluxe.
-- **The Downloads folder:** Glass Tower's APK.
+- **The Downloads folder:** Glass Tower's APK, the two Banana Bugs installers of [5.15](#515-banana-bugs), and the Mac
+  downloads of Iggle Pop and Feeding Frenzy.
 
 In the main checkout (git-ignored), `re/<game>/bin/` holds the exe or carved image of every remaining game but Banana
 Bugs, `re/peggle/<edition>/` holds the four Peggle images with their Ghidra exports, and `re/<game>/mac/` the Mac builds
