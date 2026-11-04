@@ -165,14 +165,17 @@ hot spot taken from the crop and a hash of the cropped pixels (`crop` and `pictu
 picture and makes smaller CSS cursors; sets kept before cropping are cropped once as a page of the site loads (`upgrade`), with no
 need to start each game again. Games whose sets look the same share one entry named with all their titles, "Alchemy Deluxe and
 Big Money Deluxe" (the user, 2026-11-04: entries that look the same are one entry, and differences nobody can see do not split
-one). Two sets look the same when every compared kind does: its pixels that show are the same size, they differ nowhere by more
-than 16 of 255 in any colour drawn over white and over black, the hot spots are no more than a pixel apart, and the frames match
-(`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The games that use PopCap's usual cursors make three entries:
-Alchemy, Big Money, BookWorm, Mummy Maze, Pixelus, Rocket Mania and Seven Seas as one (BookWorm's pointer has colours up to three steps off Alchemy's); Atomica
-and Dynomite, whose cursors are green; and Bejeweled, whose dragging cursor is an open hand without the shadow, since its mask
-is a smaller image than its picture and the game, like the original, leaves a mask of another size out. The sets are still kept
-one a game, choosing the entry keeps one member's id, and the entries form again from what is kept, so a set that changes
-leaves its group. The choice,
+one). Two sets look the same when their pointers and their hands do: the pixels that show are the same size, they differ nowhere
+by more than 16 of 255 in any colour drawn over white and over black, the hot spots are no more than a pixel apart, and the frames
+match (`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The dragging cursor, the circle-slash and the
+wait cursor are pictured but not compared: Bejeweled's dragging cursor is an open hand without the shadow, since its mask is a
+smaller image than its picture and the game, like the original, leaves a mask of another size out, and the user wants Bejeweled
+with the others ("One-line fix it is, then", 2026-11-04). The games that use PopCap's usual cursors make two entries: Atomica and
+Dynomite, whose cursors are green, and the rest (Alchemy, Bejeweled, Big Money, BookWorm, Mummy Maze, Pixelus, Rocket Mania and
+Seven Seas; BookWorm's pointer has colours up to three steps off Alchemy's). An entry pictures the set of the member that stands
+for it, the chosen one or else the first by title (Alchemy's), and the site shows the chosen game's own cursors. The sets are
+still kept one a game, choosing the entry keeps one member's id, and the entries form again from what is kept, so a set that
+changes leaves its group. The choice,
 `byopop-site-cursor`, applies to every page of the site (`.site-cursor` on `<html>` and one style element), each cursor where the
 site means what the game means by it (the table below): the pointer everywhere, the hand on links, buttons and other controls
 that can be used, the text cursor in text fields, the dragging cursor on a cap being dragged, the circle-slash on a disabled

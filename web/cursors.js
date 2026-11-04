@@ -28,6 +28,10 @@ var ByopopCursors = (function () {
   // The kinds the Settings' choice pictures and compares sets by: every game's text cursor is the same I-beam (only its canvas
   // differs), so it tells no set from another. A set's own text cursor still shows in text fields.
   var COMPARED = ["pointer", "hand", "drag", "notallowed", "wait"];
+  // The kinds that decide which sets look the same (setsAlike): the pointer and the hand, the two a player sees all the time.
+  // Bejeweled's dragging hand is an open one without the shadow (its mask is another size, so the game, like the original,
+  // leaves it out) and the user wants it with the others ("One-line fix it is, then", 2026-11-04).
+  var LOOKS = ["pointer", "hand"];
   var MAX_FRAMES = 32;
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
   function plain(o) { return !!o && typeof o === "object" && !Array.isArray(o); }
@@ -406,18 +410,18 @@ var ByopopCursors = (function () {
     el.appendChild(fs);
   }
   // ---------- sets that look the same ----------
-  // Two sets look the same, and share an entry, when every kind in COMPARED looks the same in both: pictures whose pixels that
+  // Two sets look the same, and share an entry, when every kind in LOOKS looks the same in both: pictures whose pixels that
   // show are the same size and, drawn over white and over black, differ nowhere by more than LOOK_ALIKE of 255 in any colour,
   // with hot spots no more than a pixel apart (the user, 2026-11-04: differences nobody can see do not split an entry). BookWorm's
-  // pointer is Alchemy's with colours a step or three off; Bejeweled's dragging hand is an open one without the shadow (its
-  // mask is another size, so the game leaves it out) and keeps Bejeweled apart. The pictures are decoded once a URL; until then,
+  // pointer is Alchemy's with colours a step or three off. An entry pictures the set of the member that stands for it (the
+  // chosen one, else the first by title), whose dragging cursor may not be every member's. The pictures are decoded once a URL; until then,
   // or when one cannot be decoded, a picture looks the same only as the same pixels (`k`) or image with the same hot spot.
   var LOOK_ALIKE = 16;
   var seen = {}, seeing = {};  // URL: the pixels that show {width, height, data, left, top}, or null; URL: being decoded
   function lookAt(sets) {
     var urls = [], now = true, left;
     Object.keys(sets).forEach(function (id) {
-      COMPARED.forEach(function (k) {
+      LOOKS.forEach(function (k) {
         var c = sets[id][k];
         if (c) [c].concat(c.frames || []).forEach(function (f) {
           if (!seen.hasOwnProperty(f.url) && !seeing[f.url] && urls.indexOf(f.url) < 0) urls.push(f.url);
@@ -460,7 +464,7 @@ var ByopopCursors = (function () {
     var fa = [a].concat(a.frames || []), fb = [b].concat(b.frames || []);
     return (a.ms || 0) === (b.ms || 0) && fa.length === fb.length && fa.every(function (f, i) { return frameAlike(f, fb[i]); });
   }
-  function setsAlike(s, t) { return COMPARED.every(function (k) { return kindAlike(s[k], t[k]); }); }
+  function setsAlike(s, t) { return LOOKS.every(function (k) { return kindAlike(s[k], t[k]); }); }
   // The sets in groups that look the same, {ids} each with its games sorted by title, the groups by their first title; a set
   // joins the first group whose first set it looks like
   function groups(sets) {

@@ -174,7 +174,7 @@ function check(what, got, want) {
   p.C.save("bejeweled", "Bejeweled Deluxe", look);
   p.C.save("alchemy", "Alchemy Deluxe", look);
   p.C.save("atomica", "Atomica Deluxe", look);
-  p.C.save("bigmoney", "Big Money Deluxe", Object.assign({}, look, { drag: img("d2") }));
+  p.C.save("bigmoney", "Big Money Deluxe", Object.assign({}, look, { hand: img("h3") }));
   p.C.save("bookworm", "BookWorm Deluxe", Object.assign({}, look, { pointer: img("p", 1, 3) }));
   function entries() {
     const el = node("div");
@@ -262,12 +262,20 @@ function entryNames(p) {
   // Atomica's are green
   p.C.save("p", "Pointer Differs", set([90, 20, 30], pic(37, 1, 77)));
   p.C.save("h", "Hand Differs", set([200, 120, 30], pic(37, 1, 77)));
+  // Bejeweled's dragging hand: an open one without the shadow
   p.C.save("bejeweled", "Bejeweled Deluxe", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { drag: pic(54, 9, 30, 0, true) }));
+  p.C.save("bare", "Hand Without Shadow", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 0, true) }));
   p.C.save("hot", "Hot Spot Three Pixels Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 3) }));
-  check("sets that differ only in their text cursor, by colours a few steps off or by a hot spot a pixel away share an entry; " +
-    "another colour, a missing shadow or a hot spot further away keeps a set apart", entryNames(p),
-    ["Default", "Alchemy Deluxe, Big Money Deluxe, BookWorm Deluxe and Hot Spot A Pixel Off", "Bejeweled Deluxe", "Hand Differs",
-      "Hot Spot Three Pixels Off", "Pointer Differs"]);
+  check("sets that differ only in their text or dragging cursor, by colours a few steps off or by a hot spot a pixel away share " +
+    "an entry; another colour, a missing shadow or a hot spot further away in the pointer or hand keeps a set apart", entryNames(p),
+    ["Default", "Alchemy Deluxe, Bejeweled Deluxe, Big Money Deluxe, BookWorm Deluxe and Hot Spot A Pixel Off", "Hand Differs",
+      "Hand Without Shadow", "Hot Spot Three Pixels Off", "Pointer Differs"]);
+  const dragPic = () => { const el = node("div"); p.C.render(el);
+    return el.children[0].children[1].children[1].children[1].children.find((i) => i.attrs["data-kind"] === "drag").src; };
+  check("the entry pictures the dragging cursor of the first by title", dragPic(), p.C.all().alchemy.drag.url);
+  p.C.choose("bejeweled");
+  check("or of the member chosen, whose own shows on the site", [dragPic(), p.css().indexOf(p.C.all().bejeweled.drag.url) >= 0],
+    [p.C.all().bejeweled.drag.url, true]);
   p.C.choose("bigmoney");
   const bej = p.C.all().bigmoney.text.url, alc = p.C.all().alchemy.text.url;
   check("a member's own text cursor shows in text fields", [p.css().indexOf(bej) >= 0, p.css().indexOf(alc) >= 0], [true, false]);
