@@ -91,7 +91,9 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   `--sound wav` log on the host against the port's BYOPOP_SOUNDLOG, as Alchemy did. Music a library mixes into one
   stream: that library's calls, logged by a stand-in (games/bigmoney/tools/bassproxy for BASS,
   games/mummymaze/tools/fmodproxy for FMOD 3). Pictures: shots from the web build under Node, shotdiffed against
-  native. Each brief says so.
+  native. Each brief says so. By 2026-11-04 seven were merged (Big Money, Alchemy, Mummy Maze, Cosmic Bugs, Atomica,
+  TipTop, Noah's Ark), and the week stood at 96%; Ning Po, Pixelus, BookWorm, Word Harmony, Rocket Mania, Dynomite and
+  Bookworm Adventures Volume 2 start after the weekly reset (2026-11-08 00:00 UTC), five at a time again.
 - **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
   and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
