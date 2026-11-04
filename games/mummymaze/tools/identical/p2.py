@@ -76,7 +76,8 @@ def make(scn, name, outdir):
 def fromlog(log, out, step, last):
     """A scenario that replays a phase-one bot log (its keys and clicks, from the menu click on) and takes a shot every
     STEP updates up to LAST updates after the menu click"""
-    sys.path.insert(0, __file__.rsplit('/', 1)[0] if '/' in __file__ else '.')
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from identical import port_inputs
     ins = port_inputs(log)
     menu = [i for i, (u, c) in enumerate(ins) if c.startswith('menuclick')]
