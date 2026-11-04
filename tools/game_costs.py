@@ -43,7 +43,7 @@ TITLES = {
     'Water Bugs': 'waterbugs', 'Bookworm Adventures Volume 2': 'bookwormadv2', 'Dynomite Deluxe': 'dynomite',
     "Bonnie's Bookstore Deluxe": 'bonnies', 'Venice Deluxe': 'venice', 'Heavy Weapon Deluxe': 'heavyweapon',
     'Hammer Heads Deluxe': 'hammerheads', 'Bejeweled 2 Deluxe': 'bejeweled2', 'AstroPop Deluxe': 'astropop',
-    'Mahjong Escape: Ancient Japan': 'mahjongjapan', 'Mahjong Escape: Ancient China': 'mahjongchina',
+    'Mahjong Escape: Ancient Japan': 'mahjongjapan', 'Mahjong Escape: Ancient China': 'mahjongchina', 'Bejeweled Twist': 'bejeweledtwist',
 }
 RULES = """You are classifying pieces of work from Claude Code sessions on byo-pop, a repository that decompiles PopCap games, ports them to native and WebAssembly builds on a shared framework, and makes mods for them. Each piece ("#<id> [<group>] <time> $<cost>") is the work between two commits: the instruction in force (USER = the human, PEER <name> = another Claude session), the commits or merges that ended it, the agents it started and the files it edited.
 
@@ -143,7 +143,7 @@ def scan():
             for r in records(os.path.join(full, name)):
                 if r.get('type') == 'custom-title':
                     title = r.get('customTitle') or r.get('title') or title
-            if title.startswith('byo-pop coordinator'):
+            if title.startswith('byo-pop coordinator') or title == 'a-Website':  # the site session: classified like the coordinator's
                 group = 'coord'
             elif title in TITLES:
                 group = TITLES[title]
