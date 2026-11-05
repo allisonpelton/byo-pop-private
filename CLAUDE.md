@@ -151,7 +151,12 @@ Every call re-reads the whole context, so what costs is context times calls, and
   game is tested as Bejeweled is: its deviations listed in its notes, each without a visible effect; every RNG draw
   kept in its order; a frozen baseline of the port with a regression check that proves later fixes and mods leave
   unmodded play unchanged. Every memory leak of the original is fixed: memory the original still uses after
-  "leaking" it (Bejeweled's FillBoard orphans) is freed after its last possible use.
+  "leaking" it (Bejeweled's FillBoard orphans) is freed after its last possible use. Autoplay, script commands and
+  runs under Node never pass through the real input path, so before its final merge a session also plays the game with
+  real mouse and key events only: through the page in the Browser pane (`?silent=1`, requestAnimationFrame shimmed
+  while hidden) and through the window natively under rundesk (posted input, as visrun does), from launch through the
+  tutorial and a whole game of every mode, in 2D and 3D where both exist, windowed and in full screen. Twist passed
+  every comparison and still could not twist a gem in the browser (the user, 2026-11-05).
 - **Two phases: plays identical, then looks identical (the user, 2026-11-01).** The first phase is the game's logic:
   with the same input, a series of games plays out the same in the original and the port (the same boards and random
   draws, moves, scores, levels, timers and endings). Check it by the game's state (origrun's `--watch` values at an
