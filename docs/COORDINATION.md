@@ -118,7 +118,11 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   the tile was never compared with that screenshot. Every game: "In fullscreen the original freezes while it does not
   have the focus; the port keeps running" (`docs/FRAMEWORK_2004.md` on the focus): each phase two's focus check covers
   it, natively in full screen. Cosmic Bugs' yellow flicker and offset digits at a second launch were not reproduced
-  (its IDENTICAL_PLAY.md says how it was looked for).
+  (its IDENTICAL_PLAY.md says how it was looked for). Bejeweled Twist (the user, 2026-11-05, once it was on the site):
+  "I can't twist the gems on the web version (stuck in the tutorial)! And the native version doesn't run either."
+  Natively it showed a black or blank screen with ScreenMode=1 (full screen) in its registry.ini, though it ran about
+  3 minutes and closed cleanly; a run under rundesk with a fresh user folder started fine (GL ES 3.0, GPUDisplay).
+  Twist's session fixes both at the start of the week from 2026-11-08, before its fixes mod.
 - **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
   and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
