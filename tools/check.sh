@@ -129,9 +129,13 @@
 #   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 5156 and a Blitz game to its
 #                end and the high scores, with the same screens as frozen, a Classic rerun, and
 #                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one (about a minute)
-#   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
+#   bejeweled2   Bejeweled 2 Deluxe played by the port's own bot (tools/playbymove, -hold, seeded, a new player with every
+#                mode unlocked) in each of its nine modes: the transcript of every state and move, and the end screen, must be
+#                the frozen ones; an Action rerun is identical, and so are the games played by
+#                build/baseline-bejeweled2/bejeweled2.exe when there is one (two minutes, four with the baseline)
+#   oracle      Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -220,6 +224,11 @@ BT_CLASSIC="88e59f1eea61 291f70580d89 dd8e6206d1bf 0bc138035904"  # the first 12
 BT_BLITZ="8ef83c337f3e 9c9ceb17343f e69ac2a54d49 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
 BT_MENU="640866e0b565 da8353fcb954"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone):
 # the port only (its loader moved on to the original's hand-over, 2026-11-08), so not against the older baseline
+# Bejeweled 2 Deluxe: per mode, the first 12 hex digits of the sha256 of the bot's transcript (every state and move, tools/playbymove's
+# driver.txt without its screenshot line) and of its end screen, for the steps in bej2_steps: the frozen baseline
+declare -A BJ2_PLAYS=([classic]="d645dd282cee:0b21fd763248" [action]="b0fd7f27a100:950c77b82a20" [puzzle]="27f63cd9bdc5:2529e1429b25" [endless]="6430c39c792d:6c7b27839583" [twilight]="16f79f616a23:eadeb68eef44" [hyper]="c621bb4ee398:fcdbbae9607a" [cognito]="223aa7e53ba1:db4f92024a35" [finity]="d1579f7fdf24:d9680fc31501" [hidden]="e131248f891b:7afbbb32f140")
+declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
+BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -228,7 +237,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2)
 ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
@@ -242,7 +251,7 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [oracle]=1080)
+	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -390,7 +399,7 @@ web_est() {  # <target,target...>: sets EST_S to a rough time for building only 
 	for t in ${1//,/ }; do
 		case "$t" in
 			sexy*) libs=1 ;;
-			bejeweled|bejeweledtwist|bookwormadv|bookwormadv2) EST_S=$((EST_S + 120)) ;;
+			bejeweled|bejeweledtwist|bejeweled2|bookwormadv|bookwormadv2) EST_S=$((EST_S + 120)) ;;
 			rulestest|bejeweled_verify|modsettingstest|jpegtest) EST_S=$((EST_S + 20)) ;;
 			*) EST_S=$((EST_S + 45)) ;;
 		esac
@@ -1978,6 +1987,43 @@ suite_bejeweledtwist() {
 	fi
 	SUMMARY="the start's menu, Classic to 5156 and Blitz to its high scores, 11 screens; $r; $sh$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU')"
+	return $st
+}
+
+bej2_play() {  # <name> <exe> <mode>: the port's bot plays a mode from a new player (tools/playbymove: -hold, -fast, seeded); prints "<transcript hash>:<end screen hash>"
+	local d="$OUT/bejeweled2/$1" exe="$2" mode="$3" t s
+	rm -rf "$d"; mkdir -p "$d/user"
+	python tools/playbymove/playbymove.py --dir "$W/$d" --steps "${BJ2_STEPS[$mode]}" --first "unlock all" --first "goto $mode" --timeout 120 		--shot "$W/$d/end.png" "$exe" "-gamedir=$W/assets/bejeweled2" "-userdir=$W/$d/user" -seed=1 > "$d/summary.txt" 2>&1
+	t="$(grep -v screenshot "$d/driver.txt" 2>/dev/null | sha256sum | cut -c1-12)"
+	s="$(sha256sum "$d/end.png" 2>/dev/null | cut -c1-12)"
+	echo "$t:$s"
+}
+
+suite_bejeweled2() {
+	local st=0 m g r bl="" bad="" badbase="" exe="$W/build/native/bejeweled2.exe" base="$W/build/baseline-bejeweled2/bejeweled2.exe"
+	declare -A got=()
+	need_assets bejeweled2 || return 1
+	: > "$1"
+	for m in $BJ2_MODES; do
+		got[$m]="$(bej2_play "$m" "$exe" "$m")"
+		echo "$m: ${got[$m]}" >> "$1"
+		[ "${got[$m]}" = "${BJ2_PLAYS[$m]}" ] || bad="$bad $m"
+	done
+	r="$(bej2_play action2 "$exe" action)"
+	echo "action rerun: $r" >> "$1"
+	# the frozen baseline (build/baseline-bejeweled2/, a copy of the port with its DLLs made when it was last checked against the
+	# original): the same games must give the same transcripts and screens
+	if [ -f "$base" ]; then
+		for m in $BJ2_MODES; do
+			g="$(bej2_play "base-$m" "$base" "$m")"
+			echo "baseline $m: $g" >> "$1"
+			[ "$g" = "${got[$m]}" ] || badbase="$badbase $m"
+		done
+		if [ -z "$badbase" ]; then bl="; baseline identical"; else bl="; BASELINE DIFFERS in$badbase"; st=1; fi
+	fi
+	if [ -z "$bad" ]; then g="games as frozen"; else g="GAMES CHANGED in$bad"; st=1; fi
+	if [ "$r" = "${got[action]}" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="the bot's games in the nine modes, $r; $g$bl"
 	return $st
 }
 
