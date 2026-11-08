@@ -84,11 +84,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   it (4x to 8x). Chuzzle (~8-12x) itself starts the sequence, then in the survey's order Feeding Frenzy 2 (~10x),
   Peggle Deluxe (~12x) and Peggle Nights after it, Bejeweled 3 (~30x), Banana Bugs, Gyromancer, Zuma's Revenge (~35x)
   and Talismania (~12-16x after Feeding Frenzy 2), one session at a time. This moves Typer Shark, which the decision
-  of 2026-10-24 put at the end, into the easier group. Since 2026-11-08 none of them runs side by side (the user: "In-progress decomps can continue, but
-  for the remaining games, I want to tackle them in full one-at-a-time"): Typer Shark, AstroPop and Bejeweled 2 go on,
-  and after every current game's readability pass the rest start one at a time in the order above, the easier group
-  first, each taken all the way through (translation, both phases of identical play, the finishing items and its
-  readability pass) before the next begins.
+  of 2026-10-24 put at the end, into the easier group. Typer Shark, AstroPop and Bejeweled 2 go on. The rest start
+  after every current game's readability pass, the easier group side by side and the harder ones one at a time after
+  it, each taken all the way through (translation, both phases of identical play, the finishing items and its
+  readability pass). For most of 2026-11-08 none was to run side by side (the user: "In-progress decomps can continue,
+  but for the remaining games, I want to tackle them in full one-at-a-time"), so that wasteful token use would show
+  sooner; the user dropped that the same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd
+  allow inefficient token usage to be spotted sooner, overall saving time, but now we have a much better idea of
+  procedure".
 - **The passes after Twist (the user, 2026-11-03):** the passes waited until Bejeweled Twist was done, 3D mode included
   (the user, 2026-11-01), with Bejeweled Deluxe's the one exception. With Twist finished: "get going on identical play
   for more games. Start with lowest effort." So the first phase runs for every game that has had no pass, up to five
@@ -171,8 +174,8 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   well)." So first every fault the user reported, in every game, and anything that makes a game hard to test; then the
   identical-play pass above, game by game; then a readability pass to the project's code standards
   (`docs/CODE_STANDARDS.md`, written on one game and approved by the user first), moved up on 2026-11-08 to come
-  before any further decomp (below, "The readability pass first"); once every game is done, the coverage check and a
-  performance pass (both below); last, taking out the other code the ports do not need. Registration code (trial, nag and unlock
+  before any further decomp (below, "The readability pass first"); then, game by game since 2026-11-08 (below, "Done
+  means every phase but modding"), the coverage check and a performance pass (both below); last, taking out the other code the ports do not need. Registration code (trial, nag and unlock
   paths: "It is misleading and adds unnecessary bloat") moved up (the user, 2026-11-07: "Move up the removal of all
   registration-related code to be part of the current phase before beginning other decomps"). Each game takes it out
   before its final merge, as part of being finished, and no further decomp begins until every current game has; a
@@ -186,8 +189,8 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   user, 2026-11-07, asked whether it should come out now too: "Yes, now too"), "More Games" first (asked earlier that
   day whether it might open the site's listing: "Remove the button entirely, as requested in the past. Other buttons
   can be resized to avoid the appearance of a gap"), with the buttons beside it widened or moved to close the gap, and
-  the code and images only it used go with it. The game's regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more step once every decompilation is done (the
-  user, 2026-11-01): each game ported only from its Steam copy is compared with its version on the PopCap Game
+  the code and images only it used go with it. The game's regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more step (the
+  user, 2026-11-01; since 2026-11-08 part of each game's own finishing): each game ported only from its Steam copy is compared with its version on the PopCap Game
   Collection disc (the user's ISO in their Downloads folder), and its build must work with that version's files too.
   Planned alongside the website (the user, 2026-11-01): an installer that puts a native port beside its Steam
   original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
@@ -201,7 +204,8 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 - **The readability pass first (the user, 2026-11-08):** "Move up readability passes to come before additional
   decomps. In-progress decomps can continue, but for the remaining games, I want to tackle them in full
   one-at-a-time. Part of the readability pass: NO unknown/unnamed variables. Use one game to set the full standards
-  for what constitutes readable and see that they actually make sense." Bejeweled Deluxe is the pilot: the first
+  for what constitutes readable and see that they actually make sense." (The one-at-a-time part was dropped the same
+  day: "Which games, in what order".) Bejeweled Deluxe is the pilot: the first
   port, with the strongest proof that a change leaves play alone (its oracle against the original, beside its frozen
   baseline), and its Mac build's symbols for names. Its session writes `docs/CODE_STANDARDS.md` while applying it to
   the whole port, changes a rule wherever it fails in practice, and builds a checker in `tools/` that finds unnamed
@@ -211,14 +215,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   its pass second, once its current fixes are merged, and the standards change wherever they fail there. The user
   approves them after that; then each finished game takes its pass in its own session, a readable port changing nothing it does (its frozen
   baseline, and the oracle for Bejeweled), and keeping each function's address so the coverage check can still pair
-  it with the export. The coverage check and the performance pass stay after every game is done, as below; each
-  finished game already records its performance numbers.
+  it with the export. The coverage check and the performance pass now come game by game (below, "Done means every
+  phase but modding"); each finished game already records its performance numbers.
 - **A coverage check after the identical-play passes (the user, 2026-11-02: "Queue it").** The user asked whether
   reccmp, the matching-decompilation tool, would help. It does not fit: it scores, function by function, how closely
   code rebuilt with the original compiler reproduces the exe's instructions, and our ports are built by clang and
   Emscripten on a portable framework, with SDL in place of DirectX and the leaks fixed, so its scores would be noise.
   What it would catch that our comparisons miss is a slip in code no comparison run reaches: options, rare branches,
-  error paths. So once every game plays identical, and before the readability pass, each game gets a coverage check:
+  error paths. So each game gets a coverage check once it plays identical:
   which of the original's functions its comparison runs reach (origrun would record it), and for each function in our
   Ghidra export, whether the port has its counterpart, named by its address (today the ports name few: Bejeweled 154
   distinct addresses, Twist 204). A function the runs never reach is read against the export or given a run that
@@ -239,6 +243,21 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   need not wait for the pass to speed up its own port (the user, 2026-11-08: "Sessions should be allowed to improve
   performance early on so they can test with -fast and run even faster"): a speed-up that makes its `-fast` runs
   quicker may come at any time, under these rules, and is listed in its notes with the numbers.
+- **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to go through every phase
+  except modding before a game can be considered done and ready for the live site, and just publish whatever games are
+  ready by the end of December. I'm in no hurry to get games out in a less-than-stellar state." A game is done only once
+  it has had every step: the user's faults fixed; both phases of identical play, with the real-input play of CLAUDE.md
+  ("Done means identical"); registration and the buttons that lead out of the game removed; its fixes mod; the
+  readability pass, once the user approves the standards after Twist's pilot; the coverage check; the performance pass;
+  the other code it does not need taken out; and, for a game ported from its Steam copy, the check against its PopCap
+  Game Collection version. The coverage check and the performance pass, planned for after every game was done, become
+  steps of each game's own finishing, in the order above where a game has not begun its readability pass (coverage,
+  then performance, then readability, as the user ordered on 2026-11-03), and after it for the pilots. The coordinator
+  builds the coverage tool first. A performance measurement needs a quiet machine, so the coordinator gives each game a
+  measuring slot when few game processes run. Modding is what waits: new mods and the changes listed in
+  `docs/MOD_ROADMAP.md`; the fixes mod is not modding here, since the site serves every game with it on. On the last
+  day of December 2026 the games that are done go on the live site (the site going public is still the user's word),
+  and the rest follow when each is done.
 - **The site's requested work comes between Twist and the passes (the user, 2026-11-02):** "Slot in the remaining
   requested additions and changes to the site after finishing Twist and before the passes on existing decomps." Then:
   "Any site features that are easy, you can do now. Anything that requires designing an animation or SVG, or that

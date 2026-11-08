@@ -33,6 +33,7 @@
 #include "WidgetManager.h"
 #include "X86Math.h"
 
+#include <SDL.h>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -1709,6 +1710,7 @@ void Board::PlayPieceSound(Piece* thePiece, int theSoundId, float thePitch, floa
 void Board::SaveGame(Buffer* theBuffer, bool theReplays)
 {
 	// (the original logs "SaveGame starts" to the debugger)
+	int aStart = theBuffer->mWriteBitPos / 8;  // port (web): see mSaveRanges
 	theBuffer->WriteLong(0x3e);
 	theBuffer->WriteLong(mGameMode);
 	theBuffer->WriteLong(mModeFlags);
@@ -1793,17 +1795,10 @@ void Board::SaveGame(Buffer* theBuffer, bool theReplays)
 	theBuffer->WriteLong(Ftol((double)mUnknown220 * 10000.0));
 	theBuffer->WriteLong(mUnknown3458);
 	theBuffer->WriteLong(mUnknown818);
-	if (!theReplays) {
+	if (!theReplays)
 		theBuffer->WriteBoolean(false);
-	} else {
-		theBuffer->WriteBoolean(true);
-		for (WinTwistApp::UnknownFA0& aSlot : mApp->mUnknownFA0) {  // 0x6a3192
-			theBuffer->WriteShort((short)aSlot.mUnknown20);
-			theBuffer->WriteShort((short)aSlot.mUnknown24);
-			theBuffer->WriteLong(aSlot.mUnknown28);
-			theBuffer->WriteBuffer(aSlot.mBuffer.mData);
-		}
-	}
+	else
+		WriteReplays(theBuffer);
 	if (mChallenge == nullptr) {
 		theBuffer->WriteBoolean(false);
 	} else {
@@ -1827,6 +1822,141 @@ void Board::SaveGame(Buffer* theBuffer, bool theReplays)
 	theBuffer->WriteBytes((const uchar*)&mUnknown392C, 4);
 	theBuffer->WriteLong(mUnknown1FC);
 	// (and "SaveGame ENDS")
+	if (!theReplays && (theBuffer == &mSaveBuffer || theBuffer == &mUnknown23B4)) {
+		// port (web): this save replaces any this buffer held from here on
+		for (size_t i = mSaveRanges.size(); i-- > 0;)
+			if (mSaveRanges[i].mBuffer == theBuffer && mSaveRanges[i].mStart >= aStart)
+				mSaveRanges.erase(mSaveRanges.begin() + i);
+		mSaveRanges.push_back({theBuffer, aStart, theBuffer->mWriteBitPos / 8});
+	}
+}
+
+void Board::WriteReplays(Buffer* theBuffer)
+{
+	theBuffer->WriteBoolean(true);
+	for (WinTwistApp::UnknownFA0& aSlot : mApp->mUnknownFA0) {  // 0x6a3192
+		theBuffer->WriteShort((short)aSlot.mUnknown20);
+		theBuffer->WriteShort((short)aSlot.mUnknown24);
+		theBuffer->WriteLong(aSlot.mUnknown28);
+		theBuffer->WriteBuffer(aSlot.mBuffer.mData);
+	}
+}
+
+// port (web): RemovedFromManager's save. A game left in a replay or between a twist and its settle is saved as it was
+// before (mUnknown23B4, mSaveBuffer: LoadGame of it, then SaveGame with the replays), which ResaveAsLoaded gives from
+// that save's bytes; LoadGame reads a buffer from its read position, and one it cannot read leaves the board as it is.
+// The level and mode that decide are the loaded save's, as they are after LoadGame.
+bool Board::GetQuitSave(Buffer* theSave, int* theMode)
+{
+	bool aTutorialDone = mUnknown37C4 || (mUnknown2584 != nullptr && mUnknown2584->mKind == 0xe);
+	bool anOver = mUnknown36B0 ||
+				  (mGameMode == MODE_CHALLENGE && (mApp->mChallengeInfo->mResult == 1 || mUnknown266A));
+	if (aTutorialDone || mUnknown1390 || anOver)
+		return false;
+	const Buffer* aSource = nullptr;
+	if (mUnknown2629)
+		aSource = &mUnknown23B4;
+	else if (((!mUnknown25A5 || mUnknown160 != 0) && mSaveBuffer.GetDataLen() != 0) || IsBusy())
+		aSource = &mSaveBuffer;
+	const SaveRange* aRange = nullptr;
+	if (aSource != nullptr) {
+		for (const SaveRange& aSaved : mSaveRanges)
+			if (aSaved.mBuffer == aSource && aSaved.mStart * 8 == aSource->mReadBitPos &&
+				aSaved.mEnd <= aSource->GetDataLen())
+				aRange = &aSaved;
+		if (aRange == nullptr && aSource->mReadBitPos < aSource->GetDataLenBits())
+			SDL_Log("Board::GetQuitSave: a save not written by SaveGame; the board as it is instead");
+	}
+	if (aRange != nullptr)
+		ResaveAsLoaded(aSource->GetDataPtr() + aRange->mStart, theSave);
+	else
+		SaveGame(theSave, true);
+	theSave->SeekFront();
+	theSave->ReadLong();
+	int aMode = theSave->ReadLong();
+	theSave->ReadLong();
+	theSave->ReadByte();
+	int aLevel = theSave->ReadLong();
+	theSave->SeekFront();
+	if (!(0 < aLevel) || aMode == MODE_BLITZ || HasChallengeFlag(2))
+		return false;
+	*theMode = aMode;
+	return true;
+}
+
+// port (web): what LoadGame of a save SaveGame wrote without the replays, then SaveGame with them, writes. It walks
+// the save by SaveGame's layout and copies it, but for what the two change: SetScore puts the score in stat 0x49 (the
+// app's and the board's), the level's time (+0x230) is read into a float and written again, and so are the three
+// values kept as ten-thousandths (+0x1454, +0x1458, +0x220); the replays' flag becomes the app's replays. A piece
+// (Piece::Save, or the short -1 of none) loads and saves as it was. The suite compares this with a quit's save.
+void Board::ResaveAsLoaded(const uchar* theSave, Buffer* theOut)
+{
+	const uchar* p = theSave;
+	auto Copy = [&](int theBytes) {
+		theOut->WriteBytes(p, theBytes);
+		p += theBytes;
+	};
+	auto Long = [&]() {
+		int aValue;
+		std::memcpy(&aValue, p, 4);
+		return aValue;
+	};
+	auto Short = [&]() {
+		short aValue;
+		std::memcpy(&aValue, p, 2);
+		return (int)aValue;
+	};
+	auto TenThousandths = [&]() {
+		float aValue = (float)((double)Long() / 10000.0);
+		p += 4;
+		theOut->WriteLong(Ftol((double)aValue * 10000.0));
+	};
+	auto LenString = [&]() { Copy(2 + Short()); };
+	int aScore;
+	std::memcpy(&aScore, theSave + 26, 4);  // +0x168, after 0x3e, the mode, the flags, +0x154 and four more
+	Copy(38);
+	int aStats = Short();
+	Copy(2);
+	for (int anArray = 0; anArray < 2; anArray++)
+		for (int i = 0; i < aStats; i++) {
+			int aStat = Long();
+			p += 4;
+			theOut->WriteLong(i == 0x49 ? aScore : aStat);
+		}
+	Copy(27);  // +0x208 to the level's record
+	std::string aTime((const char*)p + 2, Short());
+	p += 2 + aTime.size();
+	theOut->WriteString(StrFormat(GTC(0x7dc1e0), (double)(float)std::atof(aTime.c_str())));
+	Copy(32);  // +0x234 to +0x1fc4
+	TenThousandths();
+	TenThousandths();
+	Copy(10);  // +0x1464, +0x1468, the spark block
+	int aRows = Long();
+	int aCols;
+	std::memcpy(&aCols, p + 4, 4);
+	Copy(8);
+	for (int i = 0; i < aRows * aCols; i++) {
+		Copy(Short() == -1 ? 2 : 23);
+		Copy(1);
+	}
+	for (int i = 0; i < 8; i++)  // the generator and the seven level values
+		LenString();
+	Copy(35);  // +0x21d0 to +0x21e0
+	int aColors = Short();
+	Copy(2 + 2 * aColors);
+	Copy(15);  // +0x2658 to +0x265c
+	TenThousandths();
+	Copy(8);  // +0x3458, +0x818
+	p++;
+	WriteReplays(theOut);
+	if (*p != 0)
+		Copy(1 + 2 * 3 + 4 * 2);  // the challenge
+	else
+		Copy(1);
+	Copy(24);  // +0x1f64 to +0x1f0
+	LenString();  // +0x3918
+	LenString();  // +0x3914
+	Copy(12);  // +0x3928, +0x392c, +0x1fc
 }
 
 void Board::StartReplay(Buffer& theBuffer, int theRow, int theCol, bool thePlayback)

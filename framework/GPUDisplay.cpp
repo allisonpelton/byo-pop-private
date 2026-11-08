@@ -322,6 +322,8 @@ void GPUDisplay::BltTransformed(Image* theImage, const Rect* theClipRect, const 
 void GPUDisplay::DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles,
 	const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend)
 {
+	if (DrawTrianglesTexWrapped(theTexture, theVertices, theNumTriangles, theClipRect, theColor, theDrawMode, tx, ty, blend))
+		return;
 	// Twist's slot 0x74 takes no clip rectangle
 	mGPU2D->DrawTrianglesTex(theTexture, theVertices, theNumTriangles, theColor, theDrawMode, tx, ty, blend);
 }

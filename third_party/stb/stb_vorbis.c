@@ -2086,7 +2086,9 @@ static int residue_decode(vorb *f, Codebook *book, float *target, int offset, in
    if (rtype == 0) {
       int step = n / book->dimensions;
       for (k=0; k < step; ++k)
-         if (!codebook_decode_step(f, book, target+offset+k, n-offset-k, step))
+         // byo-pop: n-k, not n-offset-k: offset is already counted in target, so the type 0 residue of every
+         // partition after the first decoded nothing and only the lowest band was heard (Bejeweled Twist, 2026-11-08)
+         if (!codebook_decode_step(f, book, target+offset+k, n-k, step))
             return FALSE;
    } else {
       for (k=0; k < n; ) {

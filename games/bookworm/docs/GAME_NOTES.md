@@ -150,6 +150,41 @@ takes. A `partner.xml` that set MaxTime to 0, MaxPlays, ShowTrialStatus or Regis
 and no longer changes the port. The options dialog's "more games" partner link was already left out (the user,
 2026-10-24) and its row closed up; the original's dialog is one row taller for it.
 
+### The standard test commands
+
+The port answers the standard test commands (`docs/TEST_COMMANDS.md`) in `BookWormApp::HandleScriptCommand`
+(`src/testhooks/Commands.cpp`), reachable only from a test: `-script` lines and the live channel (`-commands`, the
+web's `?driver=move`). A run that sends none plays as before (the suites and the frozen baseline are unchanged). Each
+answers with one line: `STATE {...}`, `MOVE {...}`, `OK <command>` or `ERROR <command>: <reason>`.
+
+| Command | What it does |
+|---|---|
+| `state` | `STATE {json}`: `screen` (title, menu, help, highscores, game, none), `dialog` (options, continue, quit, hint, credits, message, users, deleteuser, confirmdelete, newuser, leave, other; null without one), `mode` (classic, action), `player`, and in a game `level` (from 1), `score`, `timer` (Action's fire timer), `fire` (the fire meter), `bonus` (the bonus word), `board` (`state`, `busy`, `letters` and `types` as eight strings of seven, `.` where a column is short, and the `selection`), then `over` (the game-over table is up) and `busy`. |
+| `goto <screen>` | `menu`, `options`, `help`, `highscores`, `credits`, `classic` or `action` through the game's own functions. `title` is an error: the title screen does not come back. |
+| `level <n>` | Level n (1 to 42) of the game in play: the level before it with its score threshold reached, then the game's own `NextLevel`. |
+| `unlock all` | `ERROR`: the game has nothing locked. |
+| `set <name> <value>` | `score`, `timer`, `fire`, or `mode classic`/`action` (outside a game: the mode the next game starts in). |
+| `win` | The level's threshold reached and the level completed as a word would complete it (the summary follows). |
+| `lose` | The game lost as it loses one: the first unselected tile of the bottom row turns to fire (in Action the fire countdown also runs out), then the game's own fire scan (`BurnTiles(false)`) starts the shake, the burn-down, the jingle, the high scores and the game-over summary. `lose <n>` instead arms it: the next `move` after the driver has played n words answers `lose` and starts it, so a driver plays a whole game that ends. It is the one case where `move` changes anything, and only after a test armed it. |
+| `seed <n>` | The C library generator, the framework's reseed and the game's generator (`gGameRand`) from it, as a start seeds them. |
+| `move` | `MOVE {json}`: the next input of the port's word solver (`Solver::FirstHint`, the first hint the hint button would give), or `MOVE null` (loading, the board busy, an animation running). Its `what`: `play` (the title's link), `name` (the new-player dialog: "Driver" and Enter), `ok` (a hint or message dialog; the continue question is answered no), `help`, `newgame` (the selector's mode button), `word` (with `word`, `score` and `kind`: the path's tiles clicked, then Submit, or a second click on the last tile when a definition balloon covers Submit), `scramble` (Lex clicked when the board spells nothing), `summary`/`gameover` (the level summary's button), `fame` (the Hall of Fame's continue). Every click goes to a point of its widget that the widget manager reaches. |
+
+
+### The fixes mod
+
+`mods/fixes/mod.json` (`docs/MOD_ROADMAP.md`, "The fixes mod"): one toggle per bug of the original that the port
+keeps, each on by default, read through `FixEnabled` (`ModFeatures.h`). It changes no play: with it on, a game plays
+as it does without it, update for update.
+
+| Toggle | The original's bug | With the toggle on |
+|---|---|---|
+| `scoreGlow` | `Board::DrawScore` 0x405580 truncates the glow (0 to 0.5) to an int before multiplying it by 255, so the heated score (`FONT_GOLDSCOREHEATED`, a font loaded for nothing else) is drawn with alpha 0 and never shows. | The glow is multiplied first: the score turns pale gold while points are added and fades back. |
+
+Fix candidates looked at and left out: the high-score tie that sets `mNewHighScore` for a pruned entry (nothing the
+player sees reads the flag); the music FadeIn skipped while the song fades out (a player cannot reach it, Part 1
+section 4); the endless loop on an odd count of Best-word strings in the registry (Part 1 section 9.2) and
+`Ember::Load`'s fwrite, which can read a saved game out of step (Part 3's load bug): a hang and a broken save, so the
+port itself mends them, as CLAUDE.md asks of bugs that break play.
 ---
 
 ## Part 1. The application (BookWormApp, Math, user profiles)
@@ -772,7 +807,8 @@ the base already did; BookWormApp::Init calls it after SexyApp::Init made the in
 
 Quirk: a FadeIn guarded by `!IsPlaying(n)` is skipped while a previous FadeOut(n, stop) of the same song is
 still running (it still counts as playing), so the song finishes fading out and stays silent (menu -> game
-within 0.5 s). Translate literally.
+within 0.5 s). Translate literally. A player cannot reach it (measured 2026-11-08): leaving a game fades its song
+out in 49 updates, and the selector takes no click until it has slid in, about 70 updates later.
 
 ### 5. Screen flow and app functions
 
