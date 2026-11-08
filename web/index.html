@@ -354,8 +354,8 @@ footer a { color: var(--accent); }
 <header class="site-header">
   <!-- The logo stands for the bottle opener: game folders dropped on it are added (web/addgames.js) -->
   <div class="logo-drop" id="logo-drop">
-    <img class="logo-light" src="logo.svg" alt="{{index.logo_alt}}" width="210" height="64">
-    <img class="logo-dark" src="logo-dark.svg" alt="" width="210" height="64">
+    <img class="logo-light" src="logo.svg" alt="{{index.logo_alt}}" width="210" height="64" draggable="false">
+    <img class="logo-dark" src="logo-dark.svg" alt="" width="210" height="64" draggable="false">
   </div>
   <!-- Out of sight (the user, 2026-11-03: "remove Games from the front page header"), but still the page's heading and the list's name -->
   <h1 id="games-title" class="visually-hidden">{{index.games}}</h1>
@@ -454,6 +454,7 @@ footer a { color: var(--accent); }
   <p>{{index.footer.trademarks}}</p>
   <p>{{index.footer.credit_html}}</p>
 </footer>
+<script src="settingsicons.js"></script>
 <script src="settings.js"></script>
 <script src="playcount.js"></script>
 <script src="profiles.js"></script>
@@ -476,7 +477,16 @@ footer a { color: var(--accent); }
 <script src="addgames.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
-try { ByopopSettings.render(document.getElementById("settings-controls")); } catch (e) {}
+// (its sections: a row of tabs; in Desktop 95 the folder's icons each open the section's own window, below. The site's
+// mouse pointer is part of Input. #settings-<section> opens at that section.)
+var siteSettingsView = null;
+try {
+  siteSettingsView = ByopopSettings.render(document.getElementById("settings-controls"), {
+    extra: { input: document.getElementById("site-cursor") },
+    section: (/^#settings-([a-z]+)$/.exec(location.hash) || [])[1],
+    openSection: function (id) { if (window.ByopopSkin && ByopopSkin.desk.show("set-" + id)) return; siteSettingsView.select(id, true); }
+  });
+} catch (e) {}
 // the site's cursor (web/cursors.js): a game's set, chosen for every page
 try { ByopopCursors.render(document.getElementById("site-cursor")); } catch (e) {}
 // The players section (web/players.js): the games are the tiles, in their order
@@ -1081,11 +1091,18 @@ try {
   function onDesk(tab) {
     try { return ByopopSkin.desk.show("tab-" + panel(tab).id); } catch (e) { return false; }
   }
-  // #players, #saves or #settings: that tab, scrolled to
+  // #players, #saves or #settings: that tab, scrolled to; #settings-<section>: Settings at that section (on the desktop, its
+  // window over the Settings folder)
   function fromHash() {
-    var tab = byPanel(location.hash.slice(1));
+    var sec = /^#settings-([a-z]+)$/.exec(location.hash);
+    var tab = byPanel(sec ? "settings" : location.hash.slice(1));
     if (!tab) return false;
     choose(tab, false);
+    if (sec && window.siteSettingsView) {
+      try { if (!ByopopSkin.desk.show("tab-settings") || !ByopopSkin.desk.show("set-" + sec[1])) siteSettingsView.select(sec[1], false); } catch (e) { siteSettingsView.select(sec[1], false); }
+      if (!(window.ByopopSkin && ByopopSkin.desk.isOn())) tabs[0].parentNode.scrollIntoView({ block: "start" });
+      return true;
+    }
     if (!onDesk(tab)) tabs[0].parentNode.scrollIntoView({ block: "start" });
     return true;
   }
@@ -1180,11 +1197,22 @@ try {
       d.add(sec, { id: "tab-" + id, title: tab.getAttribute("aria-label"), closable: true, closed: true, body: true, lift: true,
         pic: tab.querySelector("svg"), at: function (left, vw) { return [Math.max(left, vw - 620) - i * 28, top() + 24 + i * 28]; } });
     });
+    // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>
+    if (siteSettingsView) siteSettingsView.sections.forEach(function (r, i) {
+      d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true,
+        at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, top() + 60 + (i % 5) * 24]; } });
+    });
     d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true, body: true,
       at: function (left, vw) { return [Math.max(left, vw - 500), top() + 220]; } });
     ByopopSkin.deskSync();
     // the page opened at #settings and the like: that tab's window (the tabs' script ran before these windows were added)
     if (/^#(settings|players|saves|music)$/.test(location.hash)) d.show("tab-" + location.hash.slice(1));
+    // a game's window closed on its page: All games open and in front (web/shell.html, closeProgram)
+    var want = null;
+    try { want = sessionStorage.getItem("byopop-desk-open"); sessionStorage.removeItem("byopop-desk-open"); } catch (e) {}
+    if (want === "games") d.show("games");
+    var sec = /^#settings-([a-z]+)$/.exec(location.hash);
+    if (sec && d.find("set-" + sec[1])) { d.show("tab-settings"); d.show("set-" + sec[1]); }
   })();
 } catch (e) { console.warn("the desktop's windows could not be added", e); }
 </script>
