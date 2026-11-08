@@ -35,19 +35,7 @@ void Board::Fn46e9b0()
 	NOT_TRANSLATED("Fn46e9b0", "0x46e9b0");
 }
 
-void Board::Fn45ab90()
-{
-	NOT_TRANSLATED("Fn45ab90", "0x45ab90");
-}
-
 void Board::Fn45e680()
 {
 	NOT_TRANSLATED("Fn45e680", "0x45e680");
-}
-
-void Board::Fn459040(bool theFlag, int theValue)
-{
-	(void) theFlag;
-	(void) theValue;
-	NOT_TRANSLATED("Fn459040", "0x459040");
 }

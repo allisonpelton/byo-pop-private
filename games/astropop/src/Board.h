@@ -26,6 +26,9 @@ class Image;
 class FuelCell;
 class SpecialBrick;
 class Particle;
+class AstroButton;
+class Checkbox;
+class SoundInstance;
 
 // a cell of the field (the original keeps vectors of these: 8 bytes each)
 struct CellRef
@@ -39,7 +42,7 @@ struct CellRef3
 {
 	int		mCol;
 	int		mRow;
-	int		mValue;
+	Brick*	mBrick;
 };
 
 // A row of the table that sets the speed of the game by the time played (24 bytes, the vector at +0x280)
@@ -101,7 +104,10 @@ struct StarRec
 // +0x220). Placeholder: the parts the Board's update touches.
 struct StageBg
 {
-	unsigned char	m00[0x5c];
+	int				mRed;               // +0x00 the colour of the stage (the warp tints the theme buttons with it)
+	int				mGreen;             // +0x04
+	int				mBlue;              // +0x08
+	unsigned char	m0c[0x50];
 	int				m5c;                // +0x5c
 	unsigned char	m60[0x10];
 	FrameAnim		m70;                // +0x70
@@ -178,14 +184,20 @@ public:
 	std::vector<StarRec>	m190;// +0x190 the stars
 	std::vector<CellRef3>	m1a0;// +0x1a0
 	std::vector<FrameAnim*>	m1b0;// +0x1b0 the animations of the explosion at the end of a game (8)
+	std::vector<Widget*>	m1c0;// +0x1c0 the buttons of the field (the first one is the main button)
 	std::vector<int>	m1f0;// +0x1f0 counters that count down from 2000 (set when a special brick is made)
 	std::vector<CellRef3>	m200;// +0x200 ?
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
 	std::vector<Warp*>	m230;// +0x230
 	std::vector<RampRecord>	m280;// +0x280 the speed table (UpdateRamp)
+	std::vector<int>	m290;// +0x290
 	std::vector<Particle*>	m2a0;// +0x2a0 the falling sparks of the energy mode
 	std::vector<HintBox*>	m2b0;// +0x2b0 the hint boxes
 	std::vector<DemoStep>	m2d0;// +0x2d0 the demo's steps
+	Widget*	m2e0 = NULL;// +0x2e0
+	Widget*	m2e4 = NULL;// +0x2e4
+	Widget*	m2e8 = NULL;// +0x2e8
+	Widget*	m2ec = NULL;// +0x2ec
 	Image*	m2f8 = NULL;// +0x2f8 the lightning image now on the screen
 	GoalChecker*	m310 = NULL;// +0x310 the check of the level's goal
 	std::vector<std::vector<Brick*> >	m314;// +0x314 the field: 19 rows of 10 bricks, row 0 on top
@@ -197,14 +209,22 @@ public:
 	Color	m3d0;// +0x3d0 the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
 	FrameAnim	m420;// +0x420
 	FrameAnim	mSirenAnim;// +0x4a0 the siren (IMAGE_SIREN)
+	FrameAnim	mAnim520;// +0x520
 	FrameAnim	mAnim5e0;// +0x5e0 ?
 	FrameAnim	mAnim620;// +0x620
 	bool	m648 = false;// +0x648
 	BoardOverlay	mOverlay;// +0x660 the widget over the field
 	Color	m6c8;// +0x6c8
 	bool	m6e0 = false;// +0x6e0 ?
+	SoundInstance*	m6e4 = NULL;// +0x6e4
 	int	m6e8 = 0;// +0x6e8 ?
 	int	m6ec = 0;// +0x6ec ?
+	int	m6f0 = 0;// +0x6f0
+	int	m6f4 = 0;// +0x6f4
+	int	m6f8 = 0;// +0x6f8
+	int	m6fc = 0;// +0x6fc
+	AstroButton*	m74c = NULL;// +0x74c the theme button (id 0xfa2)
+	Checkbox*	m750 = NULL;// +0x750 the theme checkbox (id 0xfa3)
 	Buffer	m758;// +0x758 the replay recording (RecordStep)
 	ScrollLayer	m77c;// +0x77c the scenery layer
 	int	m7a8 = 0;// +0x7a8 ?
@@ -220,6 +240,7 @@ public:
 	bool	m8dc = false;// +0x8dc the demo plays
 	bool	m8dd = false;// +0x8dd ?
 	bool	m8de = false;// +0x8de ?
+	bool	m8df = false;// +0x8df
 	bool	m8e0 = false;// +0x8e0 ?
 	bool	m8e1 = false;// +0x8e1
 	bool	m8e3 = false;// +0x8e3 ?
@@ -242,6 +263,7 @@ public:
 	bool	m8f4 = false;// +0x8f4
 	bool	m8f5 = false;// +0x8f5 ?
 	bool	m8f6 = false;// +0x8f6 ?
+	bool	m8f7 = false;// +0x8f7
 	bool	m8f8 = false;// +0x8f8 ?
 	bool	m8f9 = false;// +0x8f9 ?
 	bool	m8fa = false;// +0x8fa ?
@@ -273,6 +295,7 @@ public:
 	bool	m91f = false;// +0x91f ?
 	bool	m920 = false;// +0x920 ?
 	bool	m921 = false;// +0x921 ?
+	bool	m922 = false;// +0x922
 	bool	m924 = false;// +0x924 ?
 	float	m928 = 0.0f;// +0x928
 	float	m92c = 0.0f;// +0x92c ?
@@ -351,6 +374,7 @@ public:
 	int	m1a8c = 0;// +0x1a8c ?
 	int	m1a98 = 0;// +0x1a98 ?
 	int	m1a9c = 0;// +0x1a9c ?
+	int	m1aa0 = 0;// +0x1aa0
 	int	m1aa4 = 0;// +0x1aa4 ?
 	int	m1aa8 = 0;// +0x1aa8 ?
 	int	m1aac = 0;// +0x1aac ?
@@ -359,6 +383,12 @@ public:
 	int	m1abc = 0;// +0x1abc ?
 	int	m1ac0 = 0;// +0x1ac0 ?
 	int	m1ac4 = 0;// +0x1ac4 ?
+	int	m1ad0 = 0;// +0x1ad0
+	int	m1ad4 = 0;// +0x1ad4
+	int	m1ad8 = 0;// +0x1ad8
+	int	m1adc = 0;// +0x1adc
+	int	m1ae0 = 0;// +0x1ae0
+	int	m1aec = 0;// +0x1aec
 	int	m1af0 = 0;// +0x1af0 ?
 	int	m1af4 = 0;// +0x1af4 ?
 	int	m1afc = 0;// +0x1afc ?
@@ -375,7 +405,9 @@ public:
 	int	m1b44 = 0;// +0x1b44 ?
 	int	m1b48 = 0;// +0x1b48 ?
 	int	m1b4c = 0;// +0x1b4c
+	int	m1b50 = 0;// +0x1b50
 	int	m1b54 = 0;// +0x1b54 ?
+	int	m1b58 = 0;// +0x1b58
 	int	m1b5c = 0;// +0x1b5c ?
 	int	m1b60 = 0;// +0x1b60 ?
 	int	m1b64 = 0;// +0x1b64 ?
@@ -394,6 +426,8 @@ public:
 	float	m1bfc = 0.0f;// +0x1bfc
 	float	m1c00 = 0.0f;// +0x1c00
 	int	mDropTicks = 0;// +0x1c04 updates a mutated brick waits before it drops
+	bool	m1c08 = false;// +0x1c08 profile setting 0x2a + mode is 1
+	bool	m1c09 = false;// +0x1c09
 	// END FIELDS
 
 	Board();
@@ -446,9 +480,14 @@ public:
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
 	void			Fn46e420();                                     // 0x46e420 (1356 bytes)
 	void			Fn46e9b0();                                     // 0x46e9b0 (1615 bytes)
-	void			Fn45ab90();                                     // 0x45ab90 (225 bytes)
 	void			Fn45e680();                                     // 0x45e680 (664 bytes)
-	void			Fn459040(bool theFlag, int theValue);           // 0x459040 (879 bytes)
+
+	// ---- pause and play (BoardPlay.cpp)
+	void			Pause(bool theStart, bool theFlag);             // 0x459040 a dialog opens (true) or closes (false)
+	void			RecolorThemeButtons();                          // 0x437910
+	void			ShowThemeButtons();                             // 0x45ab90
+	void			BeginPlay();                                    // 0x457930 the player's first move: the mode's play starts
+	static void		SortCells(std::vector<CellRef>& theCells);     // 0x450c00
 
 	// ---- the update (BoardUpdate.cpp)
 	void			RevealBricks();                                 // part of 0x479480: the bricks of a new field appear one by one

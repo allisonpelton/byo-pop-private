@@ -167,7 +167,7 @@ void Board::Update()
 		Fn475040();
 		if (!gFlag5A5100 && m1a60 != 2 && !mFlag8E8 && m1940 > 1)
 			SaveGameState();
-		Fn45ab90();
+		ShowThemeButtons();
 		if (m1a44 < 0)
 			UpdateScenery();
 		if (mFlag8E8)
@@ -470,7 +470,7 @@ bool Board::SpawnControl()
 			mApp->mUser->GetInt(0x2e, &aValue);
 			if (aValue == 1 && m1bdc <= m1bd8)
 			{
-				Fn459040(true, 0);
+				Pause(true, false);
 				mOverlay.SetFlag78(true);
 				return true;
 			}

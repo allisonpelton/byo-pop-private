@@ -17,14 +17,20 @@ f8	std::vector<int>	mf8
 190	std::vector<StarRec>	m190	the stars
 1a0	std::vector<CellRef3>	m1a0
 1b0	std::vector<FrameAnim*>	m1b0	the animations of the explosion at the end of a game (8)
+1c0	std::vector<Widget*>	m1c0	the buttons of the field (the first one is the main button)
 1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
 200	std::vector<CellRef3>	m200	?
 220	std::vector<StageBg*>	m220	the picture of each stage
 230	std::vector<Warp*>	m230
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
+290	std::vector<int>	m290
 2a0	std::vector<Particle*>	m2a0	the falling sparks of the energy mode
 2b0	std::vector<HintBox*>	m2b0	the hint boxes
 2d0	std::vector<DemoStep>	m2d0	the demo's steps
+2e0	Widget*	m2e0
+2e4	Widget*	m2e4
+2e8	Widget*	m2e8
+2ec	Widget*	m2ec
 2f8	Image*	m2f8	the lightning image now on the screen
 310	GoalChecker*	m310	the check of the level's goal
 314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
@@ -36,14 +42,22 @@ f8	std::vector<int>	mf8
 3d0	Color	m3d0	the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
 420	FrameAnim	m420
 4a0	FrameAnim	mSirenAnim	the siren (IMAGE_SIREN)
+520	FrameAnim	mAnim520
 5e0	FrameAnim	mAnim5e0	?
 620	FrameAnim	mAnim620
 648	bool	m648
 660	BoardOverlay	mOverlay	the widget over the field
 6c8	Color	m6c8
 6e0	bool	m6e0	?
+6e4	SoundInstance*	m6e4
 6e8	int	m6e8	?
 6ec	int	m6ec	?
+6f0	int	m6f0
+6f4	int	m6f4
+6f8	int	m6f8
+6fc	int	m6fc
+74c	AstroButton*	m74c	the theme button (id 0xfa2)
+750	Checkbox*	m750	the theme checkbox (id 0xfa3)
 758	Buffer	m758	the replay recording (RecordStep)
 77c	ScrollLayer	m77c	the scenery layer
 7a8	int	m7a8	?
@@ -59,6 +73,7 @@ f8	std::vector<int>	mf8
 8dc	bool	m8dc	the demo plays
 8dd	bool	m8dd	?
 8de	bool	m8de	?
+8df	bool	m8df
 8e0	bool	m8e0	?
 8e1	bool	m8e1
 8e3	bool	m8e3	?
@@ -81,6 +96,7 @@ f8	std::vector<int>	mf8
 8f4	bool	m8f4
 8f5	bool	m8f5	?
 8f6	bool	m8f6	?
+8f7	bool	m8f7
 8f8	bool	m8f8	?
 8f9	bool	m8f9	?
 8fa	bool	m8fa	?
@@ -112,6 +128,7 @@ f8	std::vector<int>	mf8
 91f	bool	m91f	?
 920	bool	m920	?
 921	bool	m921	?
+922	bool	m922
 924	bool	m924	?
 928	float	m928
 92c	float	m92c	?
@@ -190,6 +207,7 @@ f8	std::vector<int>	mf8
 1a8c	int	m1a8c	?
 1a98	int	m1a98	?
 1a9c	int	m1a9c	?
+1aa0	int	m1aa0
 1aa4	int	m1aa4	?
 1aa8	int	m1aa8	?
 1aac	int	m1aac	?
@@ -198,6 +216,12 @@ f8	std::vector<int>	mf8
 1abc	int	m1abc	?
 1ac0	int	m1ac0	?
 1ac4	int	m1ac4	?
+1ad0	int	m1ad0
+1ad4	int	m1ad4
+1ad8	int	m1ad8
+1adc	int	m1adc
+1ae0	int	m1ae0
+1aec	int	m1aec
 1af0	int	m1af0	?
 1af4	int	m1af4	?
 1afc	int	m1afc	?
@@ -214,7 +238,9 @@ f8	std::vector<int>	mf8
 1b44	int	m1b44	?
 1b48	int	m1b48	?
 1b4c	int	m1b4c
+1b50	int	m1b50
 1b54	int	m1b54	?
+1b58	int	m1b58
 1b5c	int	m1b5c	?
 1b60	int	m1b60	?
 1b64	int	m1b64	?
@@ -233,3 +259,5 @@ f8	std::vector<int>	mf8
 1bfc	float	m1bfc
 1c00	float	m1c00
 1c04	int	mDropTicks	updates a mutated brick waits before it drops
+1c08	bool	m1c08	profile setting 0x2a + mode is 1
+1c09	bool	m1c09
