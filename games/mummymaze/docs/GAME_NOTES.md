@@ -226,3 +226,47 @@ removal leaves the baseline's logs and screenshots alone except where it is said
 
 Loading was already as fast as the machine allows: the loading thread runs in one go after the first frame (the framework), it loads
 the 25 sounds and the fonts without waiting, and the title polls its progress every fourth update. There is no minimum time.
+
+## Performance (measured 2026-11-08, original and port back to back)
+
+`tools/profile/perf.py` takes the numbers; the docstring has the commands. It samples the game's process from outside every 0.1 s
+(working set, private bytes, kernel plus user time) and takes the load time from the process's creation to the title screen's play
+link: the port answers `move` with the kind "title", and for the original the script reads the title's `mPlayShown` byte out of the
+copy's memory. The original ran under origrun on its real clock, from a fresh copy each time with the play count reset and
+the copy's patch list applied (the registration check answers yes and `srand` stores the run's seed, so it is the registered game
+and starts its random numbers where the port does, which phase one showed gives the same boards; this run did not check them again; the patch list and the config with the update counter at app+0x328 are git-ignored, and were rewritten for
+this run). The port ran natively under rundesk without `-fast`, the same way. No speed-ups were made to this port, so these are the
+port as merged. The scripted minute is the 6000 updates after the classic game's start click, the phase-two scenario `c6` (the
+original's updates 3326 to 9326, the port's 1020 to 7020), seed 21; the port marks the minute's first update with one screenshot,
+the original's is found from its update counter.
+
+**The machine was not quiet.** All of it ran with 9 to 12 game processes of other sessions on the machine (TipTop, Bejeweled twice,
+Bookworm Adventures, Dynomite, Pixelus, Rocket Mania, Word Harmony twice and others) and the whole machine 97 to 100 % busy, so every
+figure is slower and noisier than on a quiet one, the original's more than the port's (it fell behind real time: 74 and 81 updates a
+second against the game's 100, the port 98 and 97). The performance pass re-measures later on a quiet machine.
+
+| First screen that takes input | Original under origrun | Port native |
+|---|---|---|
+| Seconds from launch, every run | 16.1, 8.4, 4.2, 4.0, 4.5 | 1.4, 1.6, 1.7, 1.7, 2.1, 2.5, 2.5, 2.9 |
+| Median | 4.5 s | 1.9 s |
+
+An earlier set of three port runs on a less busy machine (seven other game processes, 80 % busy) gave 0.95, 1.07 and 3.0 s (the first
+was cold). At the title the port holds 71 MB of working set and 71 MB of private bytes, the original 72 to 80 MB and 58 to 60 MB.
+
+| The scripted minute (6000 updates) | Original A | Original B | Port A | Port B |
+|---|---|---|---|---|
+| Peak working set | 86.8 MB | 86.4 MB | 93.9 MB | 93.9 MB |
+| Peak private bytes | 65.7 MB | 65.2 MB | 87.3 MB | 87.1 MB |
+| Processor time | 5.77 s | 5.69 s | 3.83 s | 5.30 s |
+| Processor time per update | 0.96 ms | 0.95 ms | 0.64 ms | 0.88 ms |
+| Wall time (updates a second) | 73.9 s (81) | 81.2 s (74) | 61.2 s (98) | 61.9 s (97) |
+
+The runs went original A, port A, original B, port B. The peaks over the whole run (the load included) are within 1.5 MB of these
+for both. In memory the port is the larger of the two: 7 MB more working set and 22 MB more private bytes; the cause was not looked
+into. In processor time the port used 0.64 to 0.88 ms an update against the original's 0.95 ms, and its two runs differ by a third,
+which is the busy machine: the processor time of a run follows what the other sessions do to the caches and the other half of its core.
+
+**Not measured: the web build's load.** The only page that can be timed is the player-only test page, and it fetches the staged game files
+from the loopback server and imports them into its test profile on every load, while the player on the site reads a folder it has
+already imported; the Browser pane is often hidden here, and a hidden pane paces its frames itself instead of the game. A figure from that page
+would not be the site's, so none is given; it needs a visible browser on the deployed site.
