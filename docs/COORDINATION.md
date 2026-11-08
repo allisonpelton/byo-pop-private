@@ -177,11 +177,11 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   their code checks, expiry, and the strings, images and registry values only those use. A button or menu item that
   exists only for them goes too, its neighbours closing the gap as below. Each removal is listed in the game's notes,
   with a word on any visible change, and the frozen baseline proves play unchanged (how a protection's own checks were
-  taken apart stays in private blocks). The last step still takes out every button that leads out of a
-  game, "More Games" first (the user, 2026-11-07, asked whether it might open the site's listing: "Remove the button
-  entirely, as requested in the past. Other buttons can be resized to avoid the appearance of a gap"), with the
-  buttons beside it widened or moved to close the gap. The game's regression check proves each step leaves play
-  unchanged. All of it comes before the website is ready. So does one more step once every decompilation is done (the
+  taken apart stays in private blocks). Every button that leads out of a game comes out in the same phase (the
+  user, 2026-11-07, asked whether it should come out now too: "Yes, now too"), "More Games" first (asked earlier that
+  day whether it might open the site's listing: "Remove the button entirely, as requested in the past. Other buttons
+  can be resized to avoid the appearance of a gap"), with the buttons beside it widened or moved to close the gap, and
+  the code and images only it used go with it. The game's regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more step once every decompilation is done (the
   user, 2026-11-01): each game ported only from its Steam copy is compared with its version on the PopCap Game
   Collection disc (the user's ISO in their Downloads folder), and its build must work with that version's files too.
   Planned alongside the website (the user, 2026-11-01): an installer that puts a native port beside its Steam

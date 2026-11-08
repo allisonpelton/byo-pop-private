@@ -38,10 +38,13 @@
 #include <cmath>
 #include <cstdio>
 #include <sstream>
+#include <sys/stat.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
+#include <emscripten/heap.h>
+#include <malloc.h>
 #include "WebProfiles.h"
 #endif
 
@@ -208,6 +211,41 @@ static int GetControlChar(const SDL_Keysym& theKeysym)
 	return 0;
 }
 
+// port: -realinput (SexyAppBase.h). While RunRealInput pushes an event this is set, and the filter lets through only
+// those of the kinds it plays: the system's own mouse, keyboard, text and focus events never reach the game
+static bool gPushingRealInput = false;
+static bool gRealInputFilterSet = false;
+
+static bool IsPlayedInput(const SDL_Event& theEvent)
+{
+	switch (theEvent.type)
+	{
+	case SDL_MOUSEMOTION:
+	case SDL_MOUSEBUTTONDOWN:
+	case SDL_MOUSEBUTTONUP:
+	case SDL_MOUSEWHEEL:
+	case SDL_KEYDOWN:
+	case SDL_KEYUP:
+	case SDL_TEXTINPUT:
+	case SDL_TEXTEDITING:
+	case SDL_FINGERDOWN:
+	case SDL_FINGERUP:
+	case SDL_FINGERMOTION:
+		return true;
+	case SDL_WINDOWEVENT:
+		return (theEvent.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) || (theEvent.window.event == SDL_WINDOWEVENT_FOCUS_LOST) ||
+			(theEvent.window.event == SDL_WINDOWEVENT_TAKE_FOCUS) || (theEvent.window.event == SDL_WINDOWEVENT_ENTER) ||
+			(theEvent.window.event == SDL_WINDOWEVENT_LEAVE);
+	}
+	return false;
+}
+
+static int SDLCALL RealInputFilter(void* theUserData, SDL_Event* theEvent)
+{
+	(void) theUserData;
+	return ((gPushingRealInput) || (!IsPlayedInput(*theEvent))) ? 1 : 0;
+}
+
 // WM_xBUTTONDOWN / WM_xBUTTONDBLCLK click codes: 1 left, -1 right, 3 middle, 2 / -2 double-click. Like
 // Windows, every second click of a rapid series is the double-click.
 static int GetClickCode(const SDL_MouseButtonEvent& theEvent, bool isDown)
@@ -345,12 +383,51 @@ EMSCRIPTEN_KEEPALIVE void byopop_hold_updates_at(int theUpdate)
 {
 	gWebHoldAt = theUpdate;
 }
+
+// port: the site's performance panel (web/perf.js; docs/WEB_PLAYER.md, "The performance panel"), web only and read only: the
+// images the framework keeps (its MemoryImage set) with the bytes of their pixels and the blitters' caches, the loaded
+// sounds with the bytes of their samples, and the wasm heap's size and the bytes malloc has handed out, as one JSON line. The panel calls it about once a second while it is open; nothing
+// else does.
+EMSCRIPTEN_KEEPALIVE const char* byopop_perf_json()
+{
+	static std::string aJson;
+	if (gSexyAppBase == NULL)
+		return "null";
+	size_t anImageBytes = 0;
+	for (MemoryImage* anImage : gSexyAppBase->mMemoryImageSet)
+	{
+		size_t aPixels = (size_t) std::max(anImage->mWidth, 0) * (size_t) std::max(anImage->mHeight, 0);
+		if (anImage->mBits != NULL) anImageBytes += aPixels * sizeof(ulong);
+		if (anImage->mColorTable != NULL) anImageBytes += 256 * sizeof(ulong);
+		if (anImage->mColorIndices != NULL) anImageBytes += aPixels;
+		if (anImage->mNativeAlphaData != NULL) anImageBytes += aPixels * sizeof(ulong);
+		if (anImage->mRLAlphaData != NULL) anImageBytes += aPixels;
+		if (anImage->mRLAdditiveData != NULL) anImageBytes += aPixels;
+		anImageBytes += anImage->mHDBits.capacity() * sizeof(uint32_t);
+	}
+	int aSounds = 0;
+	size_t aSoundBytes = 0;
+	SDLSoundManager* aSoundManager = dynamic_cast<SDLSoundManager*>(gSexyAppBase->mSoundManager);
+	if (aSoundManager != NULL)
+	{
+		aSounds = aSoundManager->GetNumSounds();
+		aSoundBytes = aSoundManager->GetSoundBytes();
+	}
+	struct mallinfo anInfo = mallinfo();
+	char aBuf[320];
+	snprintf(aBuf, sizeof(aBuf), "{\"updates\":%d,\"images\":%d,\"imageBytes\":%zu,\"sounds\":%d,\"soundBytes\":%zu,\"heap\":%zu,\"heapUsed\":%zu}",
+		gSexyAppBase->mUpdateCount, (int) gSexyAppBase->mMemoryImageSet.size(), anImageBytes, aSounds, aSoundBytes,
+		(size_t) emscripten_get_heap_size(), (size_t) anInfo.uordblks);
+	aJson = aBuf;
+	return aJson.c_str();
+}
 }
 
 // port: the player-only page's frame hook (web/testkit.js, Module.byopopTestFrame), after each browser frame's updates and
 // draw (whether it drew); no other page sets it. (The runtime's own Module.postMainLoop is compiled out of these builds.)
-EM_JS(void, sexyapp_test_frame, (int theDrew), {
-	if (Module.byopopTestFrame) Module.byopopTestFrame(theDrew != 0);
+// It also gets the time the frame's updates and draw took (ms), which the performance panel shows (web/perf.js).
+EM_JS(void, sexyapp_test_frame, (int theDrew, double theMs), {
+	if (Module.byopopTestFrame) Module.byopopTestFrame(theDrew != 0, theMs);
 });
 
 EM_JS(void, sexyapp_alert, (const char* theText), {
@@ -556,6 +633,17 @@ SexyAppBase::SexyAppBase()
 	mLastFastDrawUpdate = 0;
 	mScriptPos = 0;
 	mScriptedInput = false;
+	mRealInputPos = 0;
+	mRealMouseX = -1;
+	mRealMouseY = -1;
+	mRealButtons = 0;
+	mRealClicks = 1;
+	mRealMouseIn = false;
+	mRealMods = 0;
+	mCommandsFilePos = 0;
+	mCommandsFileLine = 0;
+	mCommandsWaitLogged = false;
+	mLiveCommandCount = 0;
 	mModMenu = NULL;
 	mModMenuKeyDown = false;
 	mModMenuClosingKey = KEYCODE_UNKNOWN;
@@ -1444,6 +1532,13 @@ void SexyAppBase::UpdateFrames()
 
 	if (mScriptPos < mScript.size())
 		RunScript();
+	if (mRealInputPos < mRealInput.size())
+		RunRealInput();
+	// -commands: a look at the file each update, every few with -fast, where updates come back to back
+	if ((!mCommandsFileName.empty()) && ((!mFastMode) || ((mUpdateCount % FAST_DRAW_INTERVAL) == 0)))
+		PollLiveCommands();
+	if (!mLiveCommands.empty())
+		RunLiveCommands();
 
 	// port: a test run played with real input (a driver posting window messages, which a -script run ignores) asks for
 	// a picture by writing the file BYOPOP_SHOT_REQUEST names, holding the picture's path; the game takes it and deletes
@@ -2219,6 +2314,14 @@ void SexyAppBase::MakeWindow()
 			DoExit(1);
 		}
 
+		// -realinput: from here on only its own input reaches the game. SDL_SetEventFilter also empties SDL's
+		// queue, so it is set once, before the window exists.
+		if ((!mRealInputFileName.empty()) && (!gRealInputFilterSet))
+		{
+			SDL_SetEventFilter(RealInputFilter, NULL);
+			gRealInputFilterSet = true;
+		}
+
 		int aScale = 1;
 		int aPlaceX = SDL_WINDOWPOS_CENTERED;
 		int aPlaceY = SDL_WINDOWPOS_CENTERED;
@@ -2686,6 +2789,7 @@ void SexyAppBase::EmscriptenMainLoop(void* theArg)
 	// One browser frame: step until every due update ran and a frame was drawn, or until nothing is due
 	// before the next animation frame (where 1.3 would have slept).
 	int aDrawCount = anApp->mDrawCount;
+	double aStart = emscripten_get_now();
 	for (int aStep = 0; (aStep < 1000) && (!anApp->mShutdown); aStep++)
 	{
 		if (anApp->mExitToTop)
@@ -2695,7 +2799,7 @@ void SexyAppBase::EmscriptenMainLoop(void* theArg)
 		if ((anApp->mDrawCount != aDrawCount) || (anApp->mNothingDue))
 			break;
 	}
-	sexyapp_test_frame(anApp->mDrawCount != aDrawCount);
+	sexyapp_test_frame(anApp->mDrawCount != aDrawCount, emscripten_get_now() - aStart);
 
 	if (anApp->mShutdown)
 	{
@@ -3215,6 +3319,8 @@ void SexyAppBase::ParseCmdLine(const std::string& theCmdLine)
 	}
 }
 
+static void LiveLogOutput(void* theData, int theCategory, SDL_LogPriority thePriority, const char* theMessage);
+
 void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-changedir")
@@ -3229,6 +3335,13 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 	}
 	else if (theParamName == "-script")
 		mScriptFileName = theParamValue;
+	else if (theParamName == "-realinput")
+		mRealInputFileName = theParamValue;
+	else if (theParamName == "-commands")
+	{
+		mCommandsFileName = theParamValue;
+		SDL_LogSetOutputFunction(LiveLogOutput, NULL);
+	}
 	else if (theParamName == "-fast")
 		mFastMode = true;
 	else if (theParamName == "-trace")
@@ -3255,15 +3368,26 @@ DWORD SexyAppBase::GetClockTime()
 
 bool SexyAppBase::LoadScript(const std::string& theFileName)
 {
+	if (!LoadScriptFile(theFileName, "script", &mScript))
+		return false;
+	mScriptPos = 0;
+	return true;
+}
+
+// Reads a -script file (also -realinput's) into theCommands, sorted by update count; theWhat starts its messages
+static std::string StripScriptComment(const std::string& theLine);
+static std::string TrimScriptArgs(const std::string& theRest);
+
+bool SexyAppBase::LoadScriptFile(const std::string& theFileName, const char* theWhat, std::vector<ScriptCommand>* theCommands)
+{
 	FILE* aFile = fopen(theFileName.c_str(), "r");
 	if (aFile == NULL)
 	{
-		SDL_Log("script: cannot open %s", theFileName.c_str());
+		SDL_Log("%s: cannot open %s", theWhat, theFileName.c_str());
 		return false;
 	}
 
-	mScript.clear();
-	mScriptPos = 0;
+	theCommands->clear();
 
 	char aLine[1024];
 	int aLineNum = 0;
@@ -3271,19 +3395,7 @@ bool SexyAppBase::LoadScript(const std::string& theFileName)
 	while (fgets(aLine, sizeof(aLine), aFile) != NULL)
 	{
 		aLineNum++;
-		std::string aText = aLine;
-		// '#' starts a comment, except inside "..." (a colour: modmenu set <mod> tint "#ff8800")
-		bool isQuoted = false;
-		for (size_t i = 0; i < aText.size(); i++)
-		{
-			if (aText[i] == '"')
-				isQuoted = !isQuoted;
-			else if ((aText[i] == '#') && (!isQuoted))
-			{
-				aText.erase(i);
-				break;
-			}
-		}
+		std::string aText = StripScriptComment(aLine);
 		if (aText.find_first_not_of(" \t\r\n") == std::string::npos)
 			continue;
 
@@ -3292,19 +3404,18 @@ bool SexyAppBase::LoadScript(const std::string& theFileName)
 		aCommand.mLine = aLineNum;
 		if ((!(aStream >> aCommand.mUpdateCount)) || (!(aStream >> aCommand.mCommand)))
 		{
-			SDL_Log("script: %s:%d: expected \"<update count> <command> [args]\"", theFileName.c_str(), aLineNum);
+			SDL_Log("%s: %s:%d: expected \"<update count> <command> [args]\"", theWhat, theFileName.c_str(), aLineNum);
 			ok = false;
 			continue;
 		}
-		std::getline(aStream, aCommand.mArgs);
-		size_t aStart = aCommand.mArgs.find_first_not_of(" \t");
-		size_t anEnd = aCommand.mArgs.find_last_not_of(" \t\r\n");
-		aCommand.mArgs = (aStart == std::string::npos) ? "" : aCommand.mArgs.substr(aStart, anEnd - aStart + 1);
-		mScript.push_back(aCommand);
+		std::string aRest;
+		std::getline(aStream, aRest);
+		aCommand.mArgs = TrimScriptArgs(aRest);
+		theCommands->push_back(aCommand);
 	}
 	fclose(aFile);
 
-	std::stable_sort(mScript.begin(), mScript.end(),
+	std::stable_sort(theCommands->begin(), theCommands->end(),
 		[](const ScriptCommand& a, const ScriptCommand& b) { return a.mUpdateCount < b.mUpdateCount; });
 	return ok;
 }
@@ -3317,102 +3428,118 @@ void SexyAppBase::RunScript()
 		// A copy: the command reaches game code (HandleScriptCommand, widgets), which may queue more
 		// commands with AddScriptCommand and so reallocate mScript
 		const ScriptCommand aCommand = mScript[mScriptPos++];
-		const std::string& aName = aCommand.mCommand;
-		std::istringstream anArgs(aCommand.mArgs);
-		int x = 0;
-		int y = 0;
-
-		// a bare "move" is the test command that asks the game's bot for its next move (docs/TEST_COMMANDS.md); "move
-		// <x> <y>" moves the mouse
-		if ((aName == "click") || (aName == "rclick") || (aName == "down") || (aName == "up") ||
-			((aName == "move") && (aCommand.mArgs.find_first_not_of(" \t") != std::string::npos)))
-		{
-			if (!(anArgs >> x >> y))
-			{
-				SDL_Log("script: line %d: %s needs <x> <y>", aCommand.mLine, aName.c_str());
-				continue;
-			}
-			MouseMoveTo(x, y);
-			// a real click is a press and a release, each preceded by the move to its point (a drag when the button is
-			// down: Rocket Mania's original drags the pressed tile on the release), so the click does the same
-			if ((aName == "click") || (aName == "down"))
-				mWidgetManager->MouseDown(x, y, 1);
-			if ((aName == "click") || (aName == "up"))
-			{
-				if (aName == "click")
-					MouseMoveTo(x, y);
-				mWidgetManager->MouseUp(x, y, 1);
-			}
-			if (aName == "rclick")
-			{
-				// right button: click code -1, as GetClickCode gives a real right click
-				mWidgetManager->MouseDown(x, y, -1);
-				MouseMoveTo(x, y);
-				mWidgetManager->MouseUp(x, y, -1);
-			}
-		}
-		else if (aName == "key")
-		{
-			char* anEnd = NULL;
-			long aNum = strtol(aCommand.mArgs.c_str(), &anEnd, 10);
-			KeyCode aKeyCode = ((anEnd != aCommand.mArgs.c_str()) && (*anEnd == 0)) ? (KeyCode) aNum : GetKeyCodeFromName(aCommand.mArgs);
-			if ((aKeyCode <= KEYCODE_UNKNOWN) || (aKeyCode >= 0xFF))
-			{
-				SDL_Log("script: line %d: unknown key '%s'", aCommand.mLine, aCommand.mArgs.c_str());
-				continue;
-			}
-			mWidgetManager->KeyDown(aKeyCode);
-			// like GetControlChar: these keys also type their control character (same value as the key code)
-			if ((aKeyCode == KEYCODE_BACK) || (aKeyCode == KEYCODE_TAB) || (aKeyCode == KEYCODE_RETURN) || (aKeyCode == KEYCODE_ESCAPE))
-				mWidgetManager->KeyChar((SexyChar) aKeyCode);
-			mWidgetManager->KeyUp(aKeyCode);
-		}
-		else if ((aName == "keydown") || (aName == "keyup"))
-		{
-			// port: one half of a key press, e.g. to hold SHIFT or MENU (Alt) around another key; types nothing
-			char* anEnd = NULL;
-			long aNum = strtol(aCommand.mArgs.c_str(), &anEnd, 10);
-			KeyCode aKeyCode = ((anEnd != aCommand.mArgs.c_str()) && (*anEnd == 0)) ? (KeyCode) aNum : GetKeyCodeFromName(aCommand.mArgs);
-			if ((aKeyCode <= KEYCODE_UNKNOWN) || (aKeyCode >= 0xFF))
-			{
-				SDL_Log("script: line %d: unknown key '%s'", aCommand.mLine, aCommand.mArgs.c_str());
-				continue;
-			}
-			if (aName == "keydown")
-				mWidgetManager->KeyDown(aKeyCode);
-			else
-				mWidgetManager->KeyUp(aKeyCode);
-		}
-		else if (aName == "modmenu")
-			ModMenu::RunScriptCommand(this, aCommand);
-		else if ((aName == "char") && (!aCommand.mArgs.empty()))
-		{
-			// The arguments are trimmed, so a space is spelled "char SPACE" (exactly; anything else types
-			// its first character, as before). "key SPACE" types nothing: only the keys GetControlChar
-			// covers do.
-			if (aCommand.mArgs == "SPACE")
-				mWidgetManager->KeyChar((SexyChar) ' ');
-			else
-				mWidgetManager->KeyChar((SexyChar) aCommand.mArgs[0]);
-		}
-		else if ((aName == "screenshot") && (!aCommand.mArgs.empty()))
-			SaveScreenshot(aCommand.mArgs);
-		else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
-			SaveScreenshot(aCommand.mArgs, true);
-		else if ((aName == "focus") && ((aCommand.mArgs == "lose") || (aCommand.mArgs == "regain")))
-		{
-			// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
-			mActive = aCommand.mArgs == "regain";
-			RehupFocus();
-
-			if ((mActive) && (!mIsWindowed))
-				mWidgetManager->MarkAllDirty();
-		}
-		else if (aName == "quit")
-			Shutdown();
-		else if (!HandleScriptCommand(aCommand))
-			SDL_Log("script: line %d: unknown command '%s %s'", aCommand.mLine, aName.c_str(), aCommand.mArgs.c_str());
+		std::string anError;
+		int aResult = RunScriptCommand(aCommand, &anError);
+		if (aResult == SCRIPT_FAILED)
+			SDL_Log("script: line %d: %s", aCommand.mLine, anError.c_str());
+		else if (aResult == SCRIPT_UNKNOWN)
+			SDL_Log("script: line %d: unknown command '%s %s'", aCommand.mLine, aCommand.mCommand.c_str(), aCommand.mArgs.c_str());
 	}
+}
+
+// One -script command (or a live one, RunLiveCommands): the framework's own commands, then the game's
+// HandleScriptCommand. theError gets the reason of a SCRIPT_FAILED.
+int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* theError)
+{
+	const ScriptCommand& aCommand = theCommand;
+	const std::string& aName = aCommand.mCommand;
+	std::istringstream anArgs(aCommand.mArgs);
+	int x = 0;
+	int y = 0;
+
+	// a bare "move" is the test command that asks the game's bot for its next move (docs/TEST_COMMANDS.md); "move
+	// <x> <y>" moves the mouse
+	if ((aName == "click") || (aName == "rclick") || (aName == "down") || (aName == "up") ||
+		((aName == "move") && (aCommand.mArgs.find_first_not_of(" \t") != std::string::npos)))
+	{
+		if (!(anArgs >> x >> y))
+		{
+			*theError = aName + " needs <x> <y>";
+			return SCRIPT_FAILED;
+		}
+		MouseMoveTo(x, y);
+		// a real click is a press and a release, each preceded by the move to its point (a drag when the button is
+		// down: Rocket Mania's original drags the pressed tile on the release), so the click does the same
+		if ((aName == "click") || (aName == "down"))
+			mWidgetManager->MouseDown(x, y, 1);
+		if ((aName == "click") || (aName == "up"))
+		{
+			if (aName == "click")
+				MouseMoveTo(x, y);
+			mWidgetManager->MouseUp(x, y, 1);
+		}
+		if (aName == "rclick")
+		{
+			// right button: click code -1, as GetClickCode gives a real right click
+			mWidgetManager->MouseDown(x, y, -1);
+			MouseMoveTo(x, y);
+			mWidgetManager->MouseUp(x, y, -1);
+		}
+	}
+	else if (aName == "key")
+	{
+		char* anEnd = NULL;
+		long aNum = strtol(aCommand.mArgs.c_str(), &anEnd, 10);
+		KeyCode aKeyCode = ((anEnd != aCommand.mArgs.c_str()) && (*anEnd == 0)) ? (KeyCode) aNum : GetKeyCodeFromName(aCommand.mArgs);
+		if ((aKeyCode <= KEYCODE_UNKNOWN) || (aKeyCode >= 0xFF))
+		{
+			*theError = "unknown key '" + aCommand.mArgs + "'";
+			return SCRIPT_FAILED;
+		}
+		mWidgetManager->KeyDown(aKeyCode);
+		// like GetControlChar: these keys also type their control character (same value as the key code)
+		if ((aKeyCode == KEYCODE_BACK) || (aKeyCode == KEYCODE_TAB) || (aKeyCode == KEYCODE_RETURN) || (aKeyCode == KEYCODE_ESCAPE))
+			mWidgetManager->KeyChar((SexyChar) aKeyCode);
+		mWidgetManager->KeyUp(aKeyCode);
+	}
+	else if ((aName == "keydown") || (aName == "keyup"))
+	{
+		// port: one half of a key press, e.g. to hold SHIFT or MENU (Alt) around another key; types nothing
+		char* anEnd = NULL;
+		long aNum = strtol(aCommand.mArgs.c_str(), &anEnd, 10);
+		KeyCode aKeyCode = ((anEnd != aCommand.mArgs.c_str()) && (*anEnd == 0)) ? (KeyCode) aNum : GetKeyCodeFromName(aCommand.mArgs);
+		if ((aKeyCode <= KEYCODE_UNKNOWN) || (aKeyCode >= 0xFF))
+		{
+			*theError = "unknown key '" + aCommand.mArgs + "'";
+			return SCRIPT_FAILED;
+		}
+		if (aName == "keydown")
+			mWidgetManager->KeyDown(aKeyCode);
+		else
+			mWidgetManager->KeyUp(aKeyCode);
+	}
+	else if (aName == "modmenu")
+		ModMenu::RunScriptCommand(this, aCommand);
+	else if ((aName == "char") && (!aCommand.mArgs.empty()))
+	{
+		// The arguments are trimmed, so a space is spelled "char SPACE" (exactly; anything else types
+		// its first character, as before). "key SPACE" types nothing: only the keys GetControlChar
+		// covers do.
+		if (aCommand.mArgs == "SPACE")
+			mWidgetManager->KeyChar((SexyChar) ' ');
+		else
+			mWidgetManager->KeyChar((SexyChar) aCommand.mArgs[0]);
+	}
+	else if ((aName == "screenshot") && (!aCommand.mArgs.empty()))
+		SaveScreenshot(aCommand.mArgs);
+	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
+		SaveScreenshot(aCommand.mArgs, true);
+	else if ((aName == "focus") && ((aCommand.mArgs == "lose") || (aCommand.mArgs == "regain")))
+	{
+		// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
+		mActive = aCommand.mArgs == "regain";
+		RehupFocus();
+
+		if ((mActive) && (!mIsWindowed))
+			mWidgetManager->MarkAllDirty();
+	}
+	else if (aName == "quit")
+		Shutdown();
+	else if (HandleScriptCommand(aCommand))
+		return SCRIPT_GAME;
+	else
+		return SCRIPT_UNKNOWN;
+	return SCRIPT_RAN;
 }
 
 bool SexyAppBase::HandleScriptCommand(const ScriptCommand& theCommand)
@@ -3434,6 +3561,658 @@ void SexyAppBase::AddScriptCommand(int theUpdateCount, const std::string& theCom
 	while ((anItr != mScript.end()) && (anItr->mUpdateCount <= theUpdateCount))
 		++anItr;
 	mScript.insert(anItr, aCommand);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// port: live commands (see SexyAppBase.h, docs/TEST_COMMANDS.md "Sending them"): a driver that decides as it goes
+// sends "<command> [args]" lines, natively by appending them to the -commands file and on the web through
+// byopop_test_command; each runs at the next update through -script's dispatch (-realinput's when it is on) and
+// is answered on the log
+
+// A script line without its comment: '#' starts one, except inside "..." (a colour: modmenu set <mod> tint "#ff8800")
+static std::string StripScriptComment(const std::string& theLine)
+{
+	std::string aText = theLine;
+	bool isQuoted = false;
+	for (size_t i = 0; i < aText.size(); i++)
+	{
+		if (aText[i] == '"')
+			isQuoted = !isQuoted;
+		else if ((aText[i] == '#') && (!isQuoted))
+		{
+			aText.erase(i);
+			break;
+		}
+	}
+	return aText;
+}
+
+// The rest of a script line, trimmed: a command's arguments
+static std::string TrimScriptArgs(const std::string& theRest)
+{
+	size_t aStart = theRest.find_first_not_of(" \t");
+	size_t anEnd = theRest.find_last_not_of(" \t\r\n");
+	return (aStart == std::string::npos) ? "" : theRest.substr(aStart, anEnd - aStart + 1);
+}
+
+// -commands: the log as SDL writes it ("INFO: ..." on stderr), flushed line by line. SDL2.dll writes through its own C
+// runtime, which keeps a redirected log until exit, and a driver reads each answer as it comes.
+static void LiveLogOutput(void* theData, int theCategory, SDL_LogPriority thePriority, const char* theMessage)
+{
+	static const char* const kPrefixes[SDL_NUM_LOG_PRIORITIES] = { NULL, "VERBOSE", "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL" };
+	const char* aPrefix = ((thePriority > 0) && (thePriority < SDL_NUM_LOG_PRIORITIES)) ? kPrefixes[thePriority] : "INFO";
+	fprintf(stderr, "%s: %s\n", aPrefix, theMessage);
+	fflush(stderr);
+}
+
+bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
+{
+	std::string aText = StripScriptComment(theLine);
+	std::istringstream aStream(aText);
+	ScriptCommand aCommand;
+	aCommand.mUpdateCount = 0;
+	aCommand.mLine = theLineNum;
+	if (!(aStream >> aCommand.mCommand))
+		return false;  // a blank line or a comment
+	if (mLiveCommands.size() >= 1024)
+	{
+		SDL_Log("commands: more than 1024 commands wait for the next update; '%s' dropped", aText.c_str());
+		return false;
+	}
+	std::string aRest;
+	std::getline(aStream, aRest);
+	aCommand.mArgs = TrimScriptArgs(aRest);
+	mLiveCommands.push_back(aCommand);
+	return true;
+}
+
+// -commands: the file's new whole lines, read from where the last look stopped (a line still being written waits
+// for its end of line). A file not there yet is waited for; one that got shorter was started again, and is read from
+// its start.
+void SexyAppBase::PollLiveCommands()
+{
+	struct stat aStat;
+	if (stat(mCommandsFileName.c_str(), &aStat) != 0)
+	{
+		if (!mCommandsWaitLogged)
+		{
+			SDL_Log("commands: waiting for %s", mCommandsFileName.c_str());
+			fflush(stdout);
+			fflush(stderr);
+		}
+		mCommandsWaitLogged = true;
+		return;
+	}
+	long long aSize = (long long) aStat.st_size;
+	if (aSize < mCommandsFilePos)
+	{
+		SDL_Log("commands: %s got shorter; reading it from its start", mCommandsFileName.c_str());
+		mCommandsFilePos = 0;
+		mCommandsFileLine = 0;
+	}
+	if (aSize == mCommandsFilePos)
+		return;
+
+	FILE* aFile = fopen(mCommandsFileName.c_str(), "rb");
+	if (aFile == NULL)
+		return;
+	std::string aData;
+	if (fseek(aFile, (long) mCommandsFilePos, SEEK_SET) == 0)
+	{
+		char aBuf[4096];
+		size_t aRead;
+		while ((aRead = fread(aBuf, 1, sizeof(aBuf), aFile)) > 0)
+			aData.append(aBuf, aRead);
+	}
+	fclose(aFile);
+
+	size_t aLast = aData.rfind('\n');
+	if (aLast == std::string::npos)
+		return;
+	size_t aPos = 0;
+	while (aPos <= aLast)
+	{
+		size_t anEnd = aData.find('\n', aPos);
+		mCommandsFileLine++;
+		QueueLiveCommand(aData.substr(aPos, anEnd - aPos), mCommandsFileLine);
+		aPos = anEnd + 1;
+	}
+	mCommandsFilePos += (long long) (aLast + 1);
+}
+
+// The queued live commands, in order, each answered on the log: "OK <command>" when the framework did it,
+// "ERROR <command>: <reason>" when it could not or nobody knows the command; a game's command answers itself
+// (docs/TEST_COMMANDS.md)
+void SexyAppBase::RunLiveCommands()
+{
+	// a copy: a command runs game code, which may queue more (they wait for the next update)
+	std::vector<ScriptCommand> aCommands;
+	aCommands.swap(mLiveCommands);
+	for (size_t i = 0; (i < aCommands.size()) && (!mShutdown); i++)
+	{
+		const ScriptCommand& aCommand = aCommands[i];
+		std::string aLine = aCommand.mArgs.empty() ? aCommand.mCommand : (aCommand.mCommand + " " + aCommand.mArgs);
+		std::string anError;
+		int aResult = mRealInputFileName.empty() ? RunScriptCommand(aCommand, &anError) : RunRealInputCommand(aCommand, &anError);
+		if (aResult == SCRIPT_RAN)
+			SDL_Log("OK %s", aLine.c_str());
+		else if (aResult == SCRIPT_FAILED)
+			SDL_Log("ERROR %s: %s", aLine.c_str(), anError.c_str());
+		else if (aResult == SCRIPT_UNKNOWN)
+			SDL_Log("ERROR %s: unknown command", aLine.c_str());
+		// the driver reads the answer from the log as it comes: a log redirected to a file is buffered until exit
+		fflush(stdout);
+		fflush(stderr);
+	}
+}
+
+#ifdef __EMSCRIPTEN__
+extern "C"
+{
+
+// The player-only test page's live command (byopop.test.command(line), docs/WEB_PLAYER.md; cmake/ByopopWeb.cmake
+// exports it): queues one "<command> [args]" line for the next update, as -commands does natively. Its answer is
+// printed on the log when it runs. Returns 1 when queued, 0 when refused: no game runs, the line holds no command,
+// or too many wait.
+EMSCRIPTEN_KEEPALIVE int byopop_test_command(const char* theLine)
+{
+	SexyAppBase* anApp = gSexyAppBase;
+	if ((anApp == NULL) || (!anApp->mInitialized) || (anApp->mShutdown) || (theLine == NULL))
+		return 0;
+	anApp->mLiveCommandCount++;
+	return anApp->QueueLiveCommand(theLine, anApp->mLiveCommandCount) ? 1 : 0;
+}
+
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+// port: -realinput (see SexyAppBase.h, docs/REAL_INPUT.md): timed SDL events pushed into SDL's own queue, so that
+// they reach the game the way a hand's events do, through SDL_PollEvent and HandleEvent
+
+// "<x> <y>" in window pixels, or "game <x> <y>" in the game's, mapped to the window as it shows the game now
+static bool ReadRealPoint(SexyAppBase* theApp, std::istringstream& theArgs, int* theX, int* theY)
+{
+	std::streampos aStart = theArgs.tellg();
+	std::string aWord;
+	bool isGame = false;
+	if ((theArgs >> aWord) && (aWord == "game"))
+		isGame = true;
+	else
+	{
+		theArgs.clear();
+		theArgs.seekg(aStart);
+	}
+
+	int x = 0;
+	int y = 0;
+	if (!(theArgs >> x >> y))
+		return false;
+	if ((isGame) && (theApp->mDDInterface != NULL))
+		theApp->mDDInterface->LogicalToWindow(x, y, &x, &y);
+	*theX = x;
+	*theY = y;
+	return true;
+}
+
+// [button]: left (also when there is none), right, middle, x1 or x2; 0 for another word
+static int ReadRealButton(std::istringstream& theArgs)
+{
+	std::string aWord;
+	if (!(theArgs >> aWord))
+		return SDL_BUTTON_LEFT;
+	if (aWord == "left")
+		return SDL_BUTTON_LEFT;
+	if (aWord == "right")
+		return SDL_BUTTON_RIGHT;
+	if (aWord == "middle")
+		return SDL_BUTTON_MIDDLE;
+	if (aWord == "x1")
+		return SDL_BUTTON_X1;
+	if (aWord == "x2")
+		return SDL_BUTTON_X2;
+	return 0;
+}
+
+// The argument without one pair of "..." around it
+static std::string UnquoteRealText(const std::string& theText)
+{
+	if ((theText.length() >= 2) && (theText[0] == '"') && (theText[theText.length() - 1] == '"'))
+		return theText.substr(1, theText.length() - 2);
+	return theText;
+}
+
+// The modifier a key is, as SDL keeps them
+static Uint16 RealKeyModifier(SDL_Keycode theKey)
+{
+	switch (theKey)
+	{
+	case SDLK_LSHIFT:	return KMOD_LSHIFT;
+	case SDLK_RSHIFT:	return KMOD_RSHIFT;
+	case SDLK_LCTRL:	return KMOD_LCTRL;
+	case SDLK_RCTRL:	return KMOD_RCTRL;
+	case SDLK_LALT:		return KMOD_LALT;
+	case SDLK_RALT:		return KMOD_RALT;
+	case SDLK_LGUI:		return KMOD_LGUI;
+	case SDLK_RGUI:		return KMOD_RGUI;
+	case SDLK_MODE:		return KMOD_MODE;
+	}
+	return KMOD_NONE;
+}
+
+static const char kRealPlainKeys[] = "`1234567890-=[]\\;',./";
+static const char kRealShiftedKeys[] = "~!@#$%^&*()_+{}|:\"<>?";
+
+// The character a key types with these modifiers on a US layout, as Windows' TranslateMessage makes WM_CHAR of it, or 0.
+// With Ctrl, Alt or the Windows key held it types none that SDL passes on as text (Enter, Tab, Backspace and Esc are
+// control characters, never text: GetControlChar types them).
+static char RealKeyText(SDL_Keycode theKey, Uint16 theMods)
+{
+	if ((theMods & (KMOD_CTRL | KMOD_ALT | KMOD_GUI)) != 0)
+		return 0;
+
+	bool isShift = (theMods & KMOD_SHIFT) != 0;
+	if ((theKey >= SDLK_a) && (theKey <= SDLK_z))
+	{
+		bool isUpper = isShift != ((theMods & KMOD_CAPS) != 0);
+		return (char) (isUpper ? (theKey - SDLK_a + 'A') : theKey);
+	}
+
+	switch (theKey)
+	{
+	case SDLK_KP_DIVIDE:	return '/';
+	case SDLK_KP_MULTIPLY:	return '*';
+	case SDLK_KP_MINUS:		return '-';
+	case SDLK_KP_PLUS:		return '+';
+	}
+	if ((theMods & KMOD_NUM) != 0)
+	{
+		if ((theKey >= SDLK_KP_1) && (theKey <= SDLK_KP_9))
+			return (char) ('1' + (theKey - SDLK_KP_1));
+		if (theKey == SDLK_KP_0)
+			return '0';
+		if (theKey == SDLK_KP_PERIOD)
+			return '.';
+	}
+
+	if ((theKey < 0x20) || (theKey > 0x7E))
+		return 0;
+	if (isShift)
+	{
+		const char* aPos = strchr(kRealPlainKeys, (char) theKey);
+		if (aPos != NULL)
+			return kRealShiftedKeys[aPos - kRealPlainKeys];
+	}
+	return (char) theKey;
+}
+
+void SexyAppBase::PushRealEvent(SDL_Event* theEvent)
+{
+	gPushingRealInput = true;
+	if (SDL_PushEvent(theEvent) < 0)
+		SDL_Log("realinput: SDL_PushEvent failed: %s", SDL_GetError());
+	gPushingRealInput = false;
+}
+
+void SexyAppBase::PushRealWindowEvent(int theWindowEvent)
+{
+	SDL_Event anEvent;
+	SDL_zero(anEvent);
+	anEvent.type = SDL_WINDOWEVENT;
+	anEvent.window.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+	anEvent.window.event = (Uint8) theWindowEvent;
+	PushRealEvent(&anEvent);
+}
+
+// A move to the point, after the window's ENTER when the mouse was not on it. No move when the point is the same,
+// as SDL drops a motion that moves nowhere.
+void SexyAppBase::PushRealMouseMove(int theX, int theY)
+{
+	if (!mRealMouseIn)
+	{
+		PushRealWindowEvent(SDL_WINDOWEVENT_ENTER);
+		mRealMouseIn = true;
+	}
+	if ((theX == mRealMouseX) && (theY == mRealMouseY))
+		return;
+
+	SDL_Event anEvent;
+	SDL_zero(anEvent);
+	anEvent.type = SDL_MOUSEMOTION;
+	anEvent.motion.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+	anEvent.motion.which = 0;
+	anEvent.motion.state = mRealButtons;
+	anEvent.motion.x = theX;
+	anEvent.motion.y = theY;
+	anEvent.motion.xrel = (mRealMouseX < 0) ? 0 : theX - mRealMouseX;
+	anEvent.motion.yrel = (mRealMouseY < 0) ? 0 : theY - mRealMouseY;
+	mRealMouseX = theX;
+	mRealMouseY = theY;
+	PushRealEvent(&anEvent);
+}
+
+// A press or release at the point (window pixels), after the move to it: SDL gives a button event the mouse's last
+// position, which Windows' WM_MOUSEMOVE before the press set
+void SexyAppBase::PushRealButton(int theButton, bool isDown, int theX, int theY, int theClicks)
+{
+	PushRealMouseMove(theX, theY);
+	if (isDown)
+	{
+		mRealButtons |= SDL_BUTTON(theButton);
+		mRealClicks = theClicks;
+	}
+	else
+		mRealButtons &= ~SDL_BUTTON(theButton);
+
+	SDL_Event anEvent;
+	SDL_zero(anEvent);
+	anEvent.type = isDown ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+	anEvent.button.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+	anEvent.button.which = 0;
+	anEvent.button.button = (Uint8) theButton;
+	anEvent.button.state = isDown ? SDL_PRESSED : SDL_RELEASED;
+	anEvent.button.clicks = (Uint8) mRealClicks;
+	anEvent.button.x = theX;
+	anEvent.button.y = theY;
+	PushRealEvent(&anEvent);
+}
+
+// A key's press or release as SDL sends it: the modifier state is updated first (and not by a repeat), so a modifier's
+// own press carries it and its release does not; a lock key toggles on its press. A press that types sends its text next.
+void SexyAppBase::PushRealKey(int theKey, bool isDown, bool isRepeat)
+{
+	SDL_Keycode aKey = (SDL_Keycode) theKey;
+	std::vector<int>::iterator anItr = std::find(mRealKeysDown.begin(), mRealKeysDown.end(), theKey);
+	if (!isRepeat)
+	{
+		Uint16 aModifier = RealKeyModifier(aKey);
+		if (isDown)
+		{
+			if (aKey == SDLK_CAPSLOCK)
+				mRealMods ^= KMOD_CAPS;
+			else if (aKey == SDLK_NUMLOCKCLEAR)
+				mRealMods ^= KMOD_NUM;
+			else if (aKey == SDLK_SCROLLLOCK)
+				mRealMods ^= KMOD_SCROLL;
+			else
+				mRealMods |= aModifier;
+			if (anItr == mRealKeysDown.end())
+				mRealKeysDown.push_back(theKey);
+		}
+		else
+		{
+			mRealMods &= ~aModifier;
+			if (anItr != mRealKeysDown.end())
+				mRealKeysDown.erase(anItr);
+		}
+	}
+
+	SDL_Event anEvent;
+	SDL_zero(anEvent);
+	anEvent.type = isDown ? SDL_KEYDOWN : SDL_KEYUP;
+	anEvent.key.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+	anEvent.key.state = isDown ? SDL_PRESSED : SDL_RELEASED;
+	anEvent.key.repeat = isRepeat ? 1 : 0;
+	anEvent.key.keysym.scancode = SDL_GetScancodeFromKey(aKey);
+	anEvent.key.keysym.sym = aKey;
+	anEvent.key.keysym.mod = mRealMods;
+	PushRealEvent(&anEvent);
+
+	if (isDown)
+	{
+		char aChar = RealKeyText(aKey, mRealMods);
+		if (aChar != 0)
+			PushRealText(std::string(1, aChar));
+	}
+}
+
+// SDL_TEXTINPUT, in pieces that fit its 32 bytes without splitting a UTF-8 character
+void SexyAppBase::PushRealText(const std::string& theText)
+{
+	size_t aPos = 0;
+	while (aPos < theText.length())
+	{
+		size_t aLen = std::min(theText.length() - aPos, (size_t) (SDL_TEXTINPUTEVENT_TEXT_SIZE - 1));
+		while ((aPos + aLen < theText.length()) && (aLen > 1) && ((((unsigned char) theText[aPos + aLen]) & 0xC0) == 0x80))
+			aLen--;
+
+		SDL_Event anEvent;
+		SDL_zero(anEvent);
+		anEvent.type = SDL_TEXTINPUT;
+		anEvent.text.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+		memcpy(anEvent.text.text, theText.data() + aPos, aLen);
+		anEvent.text.text[aLen] = 0;
+		PushRealEvent(&anEvent);
+		aPos += aLen;
+	}
+}
+
+// Pushes the events due at this update; HandleEvent gets them when the update is done, before the next one
+void SexyAppBase::RunRealInput()
+{
+	static bool sWarnedScriptedInput = false;
+	if ((mScriptedInput) && (!sWarnedScriptedInput))
+	{
+		SDL_Log("realinput: the game's own test bot is on (mScriptedInput), which drops real input");
+		sWarnedScriptedInput = true;
+	}
+
+	while ((mRealInputPos < mRealInput.size()) && (mRealInput[mRealInputPos].mUpdateCount <= mUpdateCount) && (!mShutdown))
+	{
+		// a copy: HandleScriptCommand may run game code
+		const ScriptCommand aCommand = mRealInput[mRealInputPos++];
+		std::string anError;
+		int aResult = RunRealInputCommand(aCommand, &anError);
+		if (aResult == SCRIPT_FAILED)
+			SDL_Log("realinput: line %d: %s", aCommand.mLine, anError.c_str());
+		else if (aResult == SCRIPT_UNKNOWN)
+			SDL_Log("realinput: line %d: unknown command '%s %s'", aCommand.mLine, aCommand.mCommand.c_str(), aCommand.mArgs.c_str());
+	}
+}
+
+// One -realinput command (or a live one when -realinput is on, RunLiveCommands): its events pushed, or the game's
+// HandleScriptCommand. theError gets the reason of a SCRIPT_FAILED.
+int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::string* theError)
+{
+	const ScriptCommand& aCommand = theCommand;
+	const std::string& aName = aCommand.mCommand;
+	std::istringstream anArgs(aCommand.mArgs);
+	int x = 0;
+	int y = 0;
+
+	// a bare "move" is the test command that asks the game's bot for its next move (docs/TEST_COMMANDS.md), as in
+	// RunScriptCommand, so a driver on the live channel with -realinput can ask for it; "move <point>" moves the mouse
+	if ((aName == "move") && (aCommand.mArgs.find_first_not_of(" \t") == std::string::npos))
+		return HandleScriptCommand(aCommand) ? SCRIPT_GAME : SCRIPT_UNKNOWN;
+
+	if ((aName == "move") || (aName == "down") || (aName == "up") || (aName == "click") || (aName == "dblclick"))
+	{
+		if (!ReadRealPoint(this, anArgs, &x, &y))
+		{
+			*theError = StrFormat("%s needs <x> <y> or game <x> <y>", aName.c_str());
+			return SCRIPT_FAILED;
+		}
+		if (aName == "move")
+		{
+			PushRealMouseMove(x, y);
+			return SCRIPT_RAN;
+		}
+
+		int aButton = ReadRealButton(anArgs);
+		int aClicks = 1;
+		if ((aName == "down") && (!(anArgs >> aClicks)))
+			aClicks = 1;
+		if ((aButton == 0) || (aClicks < 1) || (aClicks > 255))
+		{
+			*theError = StrFormat("'%s %s': [button] is left, right, middle, x1 or x2", aName.c_str(), aCommand.mArgs.c_str());
+			return SCRIPT_FAILED;
+		}
+
+		if (aName == "down")
+			PushRealButton(aButton, true, x, y, aClicks);
+		else if (aName == "up")
+			PushRealButton(aButton, false, x, y, mRealClicks);
+		else
+		{
+			PushRealButton(aButton, true, x, y, 1);
+			PushRealButton(aButton, false, x, y, 1);
+			if (aName == "dblclick")
+			{
+				PushRealButton(aButton, true, x, y, 2);
+				PushRealButton(aButton, false, x, y, 2);
+			}
+		}
+	}
+	else if (aName == "wheel")
+	{
+		int aDeltaY = 0;
+		int aDeltaX = 0;
+		if (!(anArgs >> aDeltaY))
+		{
+			*theError = StrFormat("wheel needs <dy> [dx]");
+			return SCRIPT_FAILED;
+		}
+		anArgs >> aDeltaX;
+
+		SDL_Event anEvent;
+		SDL_zero(anEvent);
+		anEvent.type = SDL_MOUSEWHEEL;
+		anEvent.wheel.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+		anEvent.wheel.which = 0;
+		anEvent.wheel.x = aDeltaX;
+		anEvent.wheel.y = aDeltaY;
+		anEvent.wheel.direction = SDL_MOUSEWHEEL_NORMAL;
+		anEvent.wheel.preciseX = (float) aDeltaX;
+		anEvent.wheel.preciseY = (float) aDeltaY;
+		anEvent.wheel.mouseX = mRealMouseX;
+		anEvent.wheel.mouseY = mRealMouseY;
+		PushRealEvent(&anEvent);
+	}
+	else if ((aName == "enter") || (aName == "leave"))
+	{
+		mRealMouseIn = aName == "enter";
+		// a mouse that comes back has moved: its next move is pushed even to the point it left from
+		if (!mRealMouseIn)
+		{
+			mRealMouseX = -1;
+			mRealMouseY = -1;
+		}
+		PushRealWindowEvent(mRealMouseIn ? SDL_WINDOWEVENT_ENTER : SDL_WINDOWEVENT_LEAVE);
+	}
+	else if ((aName == "keydown") || (aName == "keyup") || (aName == "key") || (aName == "keyrepeat"))
+	{
+		SDL_Keycode aKey = SDL_GetKeyFromName(aCommand.mArgs.c_str());
+		if (aKey == SDLK_UNKNOWN)
+		{
+			*theError = StrFormat("unknown SDL key name '%s'", aCommand.mArgs.c_str());
+			return SCRIPT_FAILED;
+		}
+		if (aName == "keyrepeat")
+			PushRealKey(aKey, true, true);
+		else
+		{
+			if (aName != "keyup")
+				PushRealKey(aKey, true, false);
+			if (aName != "keydown")
+				PushRealKey(aKey, false, false);
+		}
+	}
+	else if (aName == "type")
+	{
+		std::string aText = UnquoteRealText(aCommand.mArgs);
+		for (size_t i = 0; i < aText.length(); i++)
+		{
+			char aChar = aText[i];
+			SDL_Keycode aKey = SDLK_UNKNOWN;
+			bool needsShift = false;
+			const char* aShifted = (aChar != 0) ? strchr(kRealShiftedKeys, aChar) : NULL;
+			if ((aChar >= 'A') && (aChar <= 'Z'))
+			{
+				aKey = SDLK_a + (aChar - 'A');
+				needsShift = true;
+			}
+			else if (aShifted != NULL)
+			{
+				aKey = kRealPlainKeys[aShifted - kRealShiftedKeys];
+				needsShift = true;
+			}
+			else if ((aChar >= 0x20) && (aChar <= 0x7E))
+				aKey = aChar;
+			else
+			{
+				*theError = "type takes printable ASCII only (text sends any)";
+				return SCRIPT_FAILED;
+			}
+			// with Caps Lock on a capital needs no Shift and a small letter does
+			if ((aKey >= SDLK_a) && (aKey <= SDLK_z) && ((mRealMods & KMOD_CAPS) != 0))
+				needsShift = !needsShift;
+
+			bool pressShift = (needsShift) && ((mRealMods & KMOD_SHIFT) == 0);
+			if (pressShift)
+				PushRealKey(SDLK_LSHIFT, true, false);
+			PushRealKey(aKey, true, false);
+			PushRealKey(aKey, false, false);
+			if (pressShift)
+				PushRealKey(SDLK_LSHIFT, false, false);
+		}
+	}
+	else if (aName == "text")
+		PushRealText(UnquoteRealText(aCommand.mArgs));
+	else if ((aName == "focus") && ((aCommand.mArgs == "lost") || (aCommand.mArgs == "lose") ||
+		(aCommand.mArgs == "gained") || (aCommand.mArgs == "regain")))
+	{
+		bool isLost = (aCommand.mArgs == "lost") || (aCommand.mArgs == "lose");
+		if (isLost)
+		{
+			// SDL_ResetKeyboard: every held key is released, in scancode order, before the window's FOCUS_LOST
+			std::vector<int> aKeys = mRealKeysDown;
+			std::sort(aKeys.begin(), aKeys.end(),
+				[](int a, int b) { return SDL_GetScancodeFromKey(a) < SDL_GetScancodeFromKey(b); });
+			for (size_t i = 0; i < aKeys.size(); i++)
+				PushRealKey(aKeys[i], false, false);
+		}
+		PushRealWindowEvent(isLost ? SDL_WINDOWEVENT_FOCUS_LOST : SDL_WINDOWEVENT_FOCUS_GAINED);
+	}
+	else if ((aName == "minimize") || (aName == "restore") || (aName == "maximize") || (aName == "resize"))
+	{
+		if (mHWnd == NULL)
+		{
+			*theError = "no window yet";
+			return SCRIPT_FAILED;
+		}
+		if (aName == "minimize")
+			SDL_MinimizeWindow(mHWnd);
+		else if (aName == "restore")
+			SDL_RestoreWindow(mHWnd);
+		else if (aName == "maximize")
+			SDL_MaximizeWindow(mHWnd);
+		else if (anArgs >> x >> y)
+			SDL_SetWindowSize(mHWnd, x, y);
+		else
+		{
+			*theError = "resize needs <w> <h>";
+			return SCRIPT_FAILED;
+		}
+	}
+	else if (aName == "close")
+	{
+		PushRealWindowEvent(SDL_WINDOWEVENT_CLOSE);
+		SDL_Event anEvent;
+		SDL_zero(anEvent);
+		anEvent.type = SDL_QUIT;
+		PushRealEvent(&anEvent);
+	}
+	else if ((aName == "screenshot") && (!aCommand.mArgs.empty()))
+		SaveScreenshot(aCommand.mArgs);
+	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
+		SaveScreenshot(aCommand.mArgs, true);
+	else if (aName == "quit")
+		Shutdown();
+	else if (HandleScriptCommand(aCommand))
+		return SCRIPT_GAME;
+	else
+		return SCRIPT_UNKNOWN;
+	return SCRIPT_RAN;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3534,7 +4313,7 @@ void SexyAppBase::GetModMessages(std::vector<ModMessage>* theMessages)
 bool SexyAppBase::IsTestRun()
 {
 	return (SDL_getenv("BYOPOP_TEST_RUN") != NULL) || (SDL_getenv("BEJ_TEST_DESKTOP") != NULL) || (!mScriptFileName.empty()) ||
-		(mScriptedInput);
+		(mScriptedInput) || (!mRealInputFileName.empty()) || (!mCommandsFileName.empty());
 }
 
 int SexyAppBase::RequestRestart(bool isConfirmed, SexyString* theMessage)
@@ -3738,6 +4517,18 @@ void SexyAppBase::Init()
 
 	if ((!mScriptFileName.empty()) && (!LoadScript(mScriptFileName)))
 		DoExit(1);
+	// -realinput: not with -script, whose filter in HandleEvent drops every real event
+	if (!mRealInputFileName.empty())
+	{
+		if (!mScriptFileName.empty())
+		{
+			SDL_Log("realinput: -realinput does not go with -script, which drops real input");
+			DoExit(1);
+		}
+		if (!LoadScriptFile(mRealInputFileName, "realinput", &mRealInput))
+			DoExit(1);
+		mRealInputPos = 0;
+	}
 
 	srand(GetTickCount());
 
