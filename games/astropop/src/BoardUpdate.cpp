@@ -189,7 +189,7 @@ void Board::Update()
 		UpdateAnimCounters();
 		if (m8e6)
 			FadeBackdrop();
-		Fn46e9b0();
+		UpdateBricks();
 		if (m1a60 == 2)
 			UpdateRamp();
 

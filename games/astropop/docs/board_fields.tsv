@@ -4,7 +4,7 @@
 88	std::list<Brick*>	m88	bricks (emptied by ClearField)
 94	std::list<std::list<Brick*> >	m94
 a0	std::list<Brick*>	ma0
-a8	std::vector<void*>	ma8	freed by ClearField, element type not seen
+a8	std::vector<CellRef>	ma8	the cells that have been emptied this update (RemoveBrick), the bricks above them fall (DropUnsupported)
 b8	std::vector<CellRef>	mb8	the cells that CollectConnected has gathered
 c8	std::vector<CellRef>	mc8
 d8	std::vector<BlinkRec>	md8	the 40 blinking pictures of the backdrop
@@ -39,6 +39,8 @@ f8	std::vector<int>	mf8
 2e8	Widget*	m2e8
 2ec	Widget*	m2ec
 2f8	Image*	m2f8	the lightning image now on the screen
+304	MemoryImage*	m304	the banner text (BuildBanner)
+308	MemoryImage*	m308	the banner's second image, 0x30 taller (BuildBanner)
 30c	MemoryImage*	m30c	the picture of the rank
 310	GoalChecker*	m310	the check of the level's goal
 314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
@@ -177,6 +179,7 @@ f8	std::vector<int>	mf8
 934	float	m934	?
 938	float	m938
 940	float	m940
+944	int	m944	?
 948	unsigned char	m948
 949	unsigned char	m949
 94c	int	m94c	?
@@ -308,8 +311,11 @@ ade	int	made	?
 1b74	int	m1b74	?
 1b78	int	m1b78
 1b7c	int	m1b7c	?
+1b80	int	m1b80	?
+1b84	int	m1b84	?
 1b88	int	m1b88	?
 1b8c	int	m1b8c	?
+1b90	int	m1b90	?
 1b94	int	m1b94	?
 1b98	int	m1b98	?
 1b9c	int	m1b9c	?
@@ -318,6 +324,7 @@ ade	int	made	?
 1ba8	int	m1ba8	?
 1bac	int	m1bac	?
 1bb0	int	m1bb0	?
+1bb4	int	m1bb4	?
 1bbc	int	m1bbc	?
 1bc0	int	m1bc0	?
 1bc4	int	m1bc4	?

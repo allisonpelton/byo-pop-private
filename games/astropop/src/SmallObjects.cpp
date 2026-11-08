@@ -35,6 +35,29 @@ FloatText::FloatText(const std::string& theText, Font* theFont, float theX, floa
 		mX = (float) (0x140 - mWidth / 2);
 }
 
+// 0x4108e0: a text that rises from the bottom of the screen (y 480) to theTargetY at theSpeed, waits there theHold updates and
+// goes on up (the clear bonus).
+FloatText::FloatText(const std::string& theText, Font* theFont, float theX, float theTargetY, int theHold, float theSpeed)
+{
+	m18 = 0;
+	m50 = 0xff;
+	m10 = 0;
+	mLife = 0xfa;
+	mX = theX;
+	mY = 480.0f;
+	mText = theText;
+	m40 = theX;
+	mTargetY = theTargetY;
+	mFont = theFont;
+	mNoFade = false;
+	mDone = false;
+	mAge = 0;
+	mHold = theHold;
+	mHoldStart = 0;
+	mSpeed = theSpeed;
+	mWidth = theFont->StringWidth(mText);
+}
+
 // 0x40b600
 LevelUpText::LevelUpText(Image* theImage, int theY)
 {

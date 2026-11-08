@@ -57,6 +57,7 @@ public:
 	float		mSpeed;         // +0x54
 
 	FloatText(const std::string& theText, Font* theFont, float theX, float theY, bool theFlag);  // 0x4107e0
+	FloatText(const std::string& theText, Font* theFont, float theX, float theTargetY, int theHold, float theSpeed);  // 0x4108e0
 	void		Update();       // 0x408890
 };
 

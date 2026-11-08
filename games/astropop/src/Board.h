@@ -216,7 +216,7 @@ public:
 	std::list<Brick*>	m88;// +0x88 bricks (emptied by ClearField)
 	std::list<std::list<Brick*> >	m94;// +0x94
 	std::list<Brick*>	ma0;// +0xa0
-	std::vector<void*>	ma8;// +0xa8 freed by ClearField, element type not seen
+	std::vector<CellRef>	ma8;// +0xa8 the cells that have been emptied this update (RemoveBrick), the bricks above them fall (DropUnsupported)
 	std::vector<CellRef>	mb8;// +0xb8 the cells that CollectConnected has gathered
 	std::vector<CellRef>	mc8;// +0xc8
 	std::vector<BlinkRec>	md8;// +0xd8 the 40 blinking pictures of the backdrop
@@ -251,6 +251,8 @@ public:
 	Widget*	m2e8 = NULL;// +0x2e8
 	Widget*	m2ec = NULL;// +0x2ec
 	Image*	m2f8 = NULL;// +0x2f8 the lightning image now on the screen
+	MemoryImage*	m304 = NULL;// +0x304 the banner text (BuildBanner)
+	MemoryImage*	m308 = NULL;// +0x308 the banner's second image, 0x30 taller (BuildBanner)
 	MemoryImage*	m30c = NULL;// +0x30c the picture of the rank
 	GoalChecker*	m310 = NULL;// +0x310 the check of the level's goal
 	std::vector<std::vector<Brick*> >	m314;// +0x314 the field: 19 rows of 10 bricks, row 0 on top
@@ -389,6 +391,7 @@ public:
 	float	m934 = 0.0f;// +0x934 ?
 	float	m938 = 0.0f;// +0x938
 	float	m940 = 0.0f;// +0x940
+	int	m944 = 0;// +0x944 ?
 	unsigned char	m948 = 0;// +0x948
 	unsigned char	m949 = 0;// +0x949
 	int	m94c = 0;// +0x94c ?
@@ -520,8 +523,11 @@ public:
 	int	m1b74 = 0;// +0x1b74 ?
 	int	m1b78 = 0;// +0x1b78
 	int	m1b7c = 0;// +0x1b7c ?
+	int	m1b80 = 0;// +0x1b80 ?
+	int	m1b84 = 0;// +0x1b84 ?
 	int	m1b88 = 0;// +0x1b88 ?
 	int	m1b8c = 0;// +0x1b8c ?
+	int	m1b90 = 0;// +0x1b90 ?
 	int	m1b94 = 0;// +0x1b94 ?
 	int	m1b98 = 0;// +0x1b98 ?
 	int	m1b9c = 0;// +0x1b9c ?
@@ -530,6 +536,7 @@ public:
 	int	m1ba8 = 0;// +0x1ba8 ?
 	int	m1bac = 0;// +0x1bac ?
 	int	m1bb0 = 0;// +0x1bb0 ?
+	int	m1bb4 = 0;// +0x1bb4 ?
 	int	m1bbc = 0;// +0x1bbc ?
 	int	m1bc0 = 0;// +0x1bc0 ?
 	int	m1bc4 = 0;// +0x1bc4 ?
@@ -618,7 +625,16 @@ public:
 	Brick*			CreateKillAll(int theColor);                    // 0x439350
 	void			ShowHint(int theKind, int theCol, int theRow, bool theFlag);   // 0x44fd60
 	void			GameOver();                                     // 0x450f80
-	void			Fn46e9b0();                                     // 0x46e9b0 (1615 bytes)
+	void			UpdateBricks();                                 // 0x46e9b0
+	void			RemoveBrick(Brick* theBrick, int theCol, int theRow, bool theCrack);   // 0x450d70
+	bool			HitByNeighbour(int theCol, int theRow, int theKind);   // 0x4515f0
+	void			DamageNeighbour(int theCol, int theRow, std::vector<CellRef>& theCracked);   // part of 0x4582d0
+	void			DamageNeighbours(const std::vector<CellRef>& theKilled);   // 0x4582d0
+	void			BuildBanner(const std::string& theText, int theTime, Font* theFont);   // 0x433df0
+	void			ClearBonus();                                   // 0x4545b0
+	void			StartClearCount();                              // 0x45a750
+	void			DropUnsupported(std::vector<CellRef>& theCells);   // 0x46cc20
+	bool			AnyMoveLeft(bool* theFlag);                     // 0x459bc0
 	void			UpdateGameOver();                               // 0x45e680
 	void			CreateEndButtons();                             // 0x4593b0
 	int				WeaponLevelSum();                               // 0x432e90
