@@ -289,6 +289,8 @@ Layer* Manager::PopAnimated(int theCount)
 	return nullptr;
 }
 
+bool gFastStart = false;
+
 // 0x42ae80
 void Manager::SwitchTo(Layer* theLayer)
 {
@@ -299,6 +301,12 @@ void Manager::SwitchTo(Layer* theLayer)
 	mFade = 1;
 	mFadeAlpha = 0xff;
 	mNextLayer = theLayer;
+	// port: the first screen has nothing to fade out of, and the original lets 0.77 s of black pass before it
+	if (gFastStart && mLayers.empty())
+	{
+		mFade = 3;
+		mFadeAlpha = 0;
+	}
 }
 
 // 0x42aed0

@@ -80,7 +80,7 @@ extern int gFirstWeapon;                   // 0x46003c  no orbiting weapon has b
 extern int gLevelInSet;                    // 0x46e5ec
 extern int gMouseX;                        // 0x46e5bc
 extern int gMouseY;                        // 0x46e5c0
-extern int gTrialSlot;                     // 0x460044  cb.dat's third field (the trial's ms left in the original), kept so the file stays the original's
+extern int gSaveFormatField;               // 0x460044  cb.dat's third field: only a placeholder for the file's format (nothing reads it; written back as read, so saves move between the port and the original)
 extern int gLives;                         // 0x460040
 extern float gBeamSpeed;                   // 0x460038  the ship's beams' speed at the start
 extern int gDifficulty;                    // 0x46e5e0  -1, 0 or 1 (the options' cycle)

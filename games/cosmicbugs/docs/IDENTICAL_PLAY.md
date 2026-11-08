@@ -319,8 +319,28 @@ started again on the same folder, the 84 of the unmodded run, byte for byte. On 
 
 The trial, nag and registration code is out, and with it every button that led out of the game (README.md, "Registration and
 links"): the game plays as the full version it already was, `tools/check.sh cosmicbugs` still finds every play as the frozen
-baseline, and `cb.dat` keeps the original's three fields. The nag screens' levels are still read from the game file as inert
+baseline, and `cb.dat` keeps the original's format. The nag screens' levels are still read from the game file as inert
 screens, since loading them draws from the generator.
+
+A second look at what the trial left (2026-11-08, at the coordinator's request) found one thing to take out: the third field of
+`cb.dat`, where the original kept the trial's time left, was still read into a global (`gTrialSlot`) and clamped to at least
+60000 as the trial's loader does. It is now `gSaveFormatField`, a placeholder for the file's format that is written back as it was
+read (3600000 in a new file), with no clamp and no reader, so saves still move between the port and the original byte for byte.
+The only saves that differ from the original's registered copy are ones a trial copy wrote with under a minute left, which the
+original's loader would have raised to 60000 on its next save; the baseline and the suite are unchanged. What else was checked
+and kept is listed in README.md, "Registration and links": the nag screens' levels (the draws of their loading), the `nag_logo`
+animation their menus name, the `closing_nag` item type of the title's QUIT, the `fv` skips, and `gDemo`, the attract mode nothing starts.
+
+### Start-up logos
+
+The site's "Always skip start-up logos" (2026-11-08) is read where the game's logo screens are (README.md, "Start-up logos"): with
+it on, a logo screen (level kind 0xe, the PopCap logo, once for each portal animation file, about two seconds each) goes on as Esc
+on it does, the original's own skip, to the main menu. The logos draw no random number: the headless runner's seed series
+(`CB_WATCH=1`) is identical for a natural start, for Esc at the first logo and for the skip (`CB_SKIPLOGOS=1`), the first draw
+being at update 2171, 11 and 11, so the game's draws after the logos do not move. Natively the exe with `-skiplogos` shows the title at its first
+sample (update 1001 of a `-fast` run, where it shows the logo without the flag), and in the Browser pane the web build with the setting on
+shows the title at update 411 where the same start without it is still on the logo at 311. With the setting off nothing changes
+(the baseline and the suite hold).
 
 ### Performance
 

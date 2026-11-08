@@ -2,7 +2,7 @@
 test command `state` asks until the menu is drawn and settled. The port loads at the machine's speed (a few files a frame
 only where the window must keep drawing), so this is the loading the player waits for. N runs, medians printed.
 
-    build/native/rundesk.exe python games/mahjongjapan/tools/realplay/perfload.py <out dir> --game japan|china [--runs 5] [--mods]"""
+    build/native/rundesk.exe python games/mahjongjapan/tools/realplay/perfload.py <out dir> --game japan|china [--runs 5] [--mods] [--logos]"""
 import os
 import statistics
 import sys
@@ -17,7 +17,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..',
 
 def main():
     args = sys.argv[1:]
-    out, which, runs, mods = None, 'japan', 5, False
+    out, which, runs, mods, logos = None, 'japan', 5, False, False
     while args:
         a = args.pop(0)
         if a == '--game':
@@ -25,7 +25,9 @@ def main():
         elif a == '--runs':
             runs = int(args.pop(0))
         elif a == '--mods':
-            mods = True    # the fixes mod on (its skipLogos ends the two 2 s logo screens at once)
+            mods = True    # the fixes mod on (steadyClock and seededDeals; the loading is the same)
+        elif a == '--logos':
+            logos = True   # the original's two 2 s logo screens kept
         else:
             out = a
     if out is None:
@@ -34,7 +36,7 @@ def main():
     seconds = []
     for i in range(runs):
         g = Game(os.path.join(out, 'run%d' % i), os.path.join(ROOT, exe), os.path.join(ROOT, gamedir), False,
-                 ['-modsdir=' + os.path.join(ROOT, 'games', 'mahjong' + which, 'mods')] if mods else ['-nomods'])
+                 (['-modsdir=' + os.path.join(ROOT, 'games', 'mahjong' + which, 'mods')] if mods else ['-nomods']) + (['-logos'] if logos else []))
         t0 = time.time()
         try:
             st = g.until('the main menu', lambda s: s['screen'] == 'menu' and s['dialog'] is None and not s['busy'], 120, 0.01)

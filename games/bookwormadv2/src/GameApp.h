@@ -24,6 +24,7 @@ namespace Sexy {
 class Board;
 class BookManager;
 class BookSelectScreen;
+class Tile;
 class ConversationPanel;
 class Credits;
 class CurtainTransition;
@@ -202,6 +203,19 @@ public:
 	unsigned int mRandOffset = 0;                         // -reseedengine=<seed>: SRand(seed) as each battle engine is made (0: off)
 	void LogState();
 	void AddInput(int theUpdate, const std::string& theCommand, const std::string& theArgs);
+	// port: test helpers (TestHooks.cpp): the standard test commands (docs/TEST_COMMANDS.md) and what the bot's move reads
+	bool BoardBusyForTests();
+	std::string BestWordForTests(size_t theMax, std::vector<Tile*>& theOrder, std::vector<std::string>* theLongest = nullptr,
+	                             size_t theCount = 0);
+	std::string ScreenForTests();
+	std::string MoveForTests();
+	void RetryForTests(const std::string& theCommand, const std::string& theArgs);
+	void RunRetriesForTests();
+	std::vector<ScriptCommand> mRetriesForTests;  // the live channel's commands waiting to try again
+	std::vector<std::string> WordMasterRowsForTests(std::string& theRows);
+	std::string WordMasterGuessForTests(const std::vector<std::string>& theRow);
+	bool HandleDriverCommand(const ScriptCommand& theCommand);  // state, goto, unlock, set, win, lose, level, seed, move
+	std::string mMiniGameName;  // port: the mini-game playing (StartMiniGame), for the test command state
 	// V1:0x44f5c0: through the sound player, not again within 5 updates
 	void PlaySample(int theSoundNum) override;
 	// V1:0x44f600: the same at a pan

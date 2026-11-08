@@ -35,7 +35,8 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
    own `DecompressionStream` unpacks a .zip. A game whose files are in a PopCap pak (Bookworm Adventures'
    `main.pak`, XORed with 0xF7) names it in its page's `paks`: the import unpacks it into the game's folder
    (`Module.byopop.pak.read` in `web/modpanel.js`, the format of `tools/popcap_pak.py`) and does not store the pak,
-   so the browser keeps one copy of the files, the same tree native staging gives the game.
+   so the browser keeps one copy of the files, the same tree native staging gives the game. A folder or .zip whose pak is
+   already unpacked (the staged `assets/<game>/`, or a zip of it) is taken too: there the game's folders stand for the pak.
    `tools/paktest/paktest.js` checks the reader under Node. The rules (which folder is the game's, which files are
    copied, the paks) are in `web/gameimport.js`, which the listing page uses too ("Adding games from the listing page").
 7. **Play.** Browsers allow sound only after you click or press a key, so the page waits for "Play". Then
@@ -744,6 +745,13 @@ and drawn only in a skin, so changing the skin needs no script.
 **The cap board.** In a skin the listing's caps stay caps: a game whose files are here keeps its initials, with its own icon
 faint under them (the user, 2026-11-07: "Add the game's icon so it shows semi-faint under the game's initials"), the icon read
 out of the player's own exe at the import (web/exeicon.js) and never shipped or redrawn; Plain shows the icon alone, as before.
+The icon is fitted to the cap (`fitIcon` in web/index.html; the user, 2026-11-08: "The logos overlaid on the caps need work so
+they fit properly and are better centered"): in a skin inside the cap's flat face, a 32 px box within the crimped rim, and in
+Plain a 64 px box. The record keeps two of the exe's images, the one nearest 48 to 64 px (`icon`) and the one nearest 32 px
+(`small`, "" when the exe has none smaller); of these the page takes the smallest that is at least the box's size in device
+pixels, else the largest, crops it to its visible pixels (many icons have empty space on one side) and draws it at the
+screen's own pixels: smaller with smoothing, larger only a whole number of times, pixel for pixel, centred on whole pixels.
+A record from before `small` was kept gets it the next time the game's page opens, where the game stores its exe.
 In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
 its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps").
 The other studies are on the cap of a game whose files are here, in every skin, from what this browser already keeps
@@ -758,16 +766,55 @@ record, set when a new copy is marked and kept while it is there), short, on the
 none until the files are added again.
 
 **Desktop 95's windows.** In B a game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The controls (the
-page's bar, with the sound switch), the game, the chat and every panel (Settings, Game files, Mods and the game's own) are
+page's bar), the game, the chat and every panel (Settings, Game files, Mods and the game's own) are
 windows dragged by their title bars, or moved 8 pixels at a time with Alt and the arrows while the focus is in a title bar. A
 column of icons at the left opens each one again. The game window can be closed and reopened; a panel's icon presses the
 panel's own button on the bar. The game window is always pixel-perfect: one canvas pixel for each game pixel, or the largest
 whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Where the windows are, and whether the
-game window is closed, is kept for each game in the localStorage item `byopop-desk`. The footer lies along the bottom like a
-task bar. Each game keeps its own page, so a game's address still opens that game. The listing is its own desktop: the games
-(with their tabs) in one window and the page's notes in another, each dragged, closed and opened from its icon like a game
-page's, and kept under "index". On a screen under 760 pixels wide, or in another skin, the page is laid out as
-usual. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
+game window is closed, is kept for each game in the localStorage item `byopop-desk`. Each game keeps its own page, so a game's
+address still opens that game. The listing is its own desktop: the games in one window, each of the tabs under them (Settings,
+Players, Saves, Music) in a window of its own, and the page's notes in another, each dragged, closed and opened from its icon
+like a game page's, and kept under "index"; the games' window and the notes are open at first, the tabs' windows closed until
+their icons or a link to #settings and the like open them. The desktop never scrolls (the user, 2026-11-08: "The whole window
+shouldn't be scrollable"): every window is at most the size of the browser's window above the task bar and scrolls its own
+contents, and it is moved to fit on the screen when it opens and when the browser's window changes size.
+
+**The task bar.** Along the desktop's bottom edge (the user, 2026-11-08: "Add a task bar to the bottom with a start menu,
+replacing "Start" with "Pop""): the Pop button at the left, with the site's cap beside the word, then a button for each open
+window (the front one pressed in: a click brings a window to the front, or minimizes the one in front, and a minimized window
+comes back from it), and the tray at the right with the clock and, on a game page, the sound switch. A window's minimize
+button, and the chat's collapser on the desktop, put it there; whether a window is minimized is kept with its place. The
+page's footer (the copyright line and "Full terms") is in an About window, opened from the Pop menu or its icon. The Pop menu
+opens upward, with "byo-pop" down the band at its side: Games (a list of the games whose files are here, each opening its
+page), Settings and the managers (on the listing their windows, on a game page its Settings panel and links to the listing's
+Players, Saves and Music), on a game page each of its windows, About, and on a game page "Back to all games". It works from
+the keyboard: the arrows, Home and End move through it, Enter, Space or the right arrow opens an entry, Escape (or the left
+arrow in the games' list) closes it with the focus back on the Pop button, and Tab leaves it closed; the Windows key is left
+alone. No entry imitates the real menu's words, and nothing in it is a system dialog.
+
+**Favourites.** Every game's card on the listing has a star button (the user, 2026-11-08: "User should be able to save some
+games as their favorites. In other skins, with a star icon, and on Windows 95, a desktop icon specifically for that game"), a
+coming-soon game's too: an outline while the game is not a favourite, filled while it is, each skin's own drawing (Desktop 95's
+pixel by pixel on a small raised button). Its name is "Favourite: <game>" and its state `aria-pressed`. The favourites are kept
+in this browser in the settings' own item, `byopop-settings`, as its field `favourites` (`ByopopSettings.favourites`,
+`setFavourite`, web/settings.js): a list of {id, title, tag, colour, page}, so that a game page can draw them without the
+listing, and the save backup and its restore carry them with the settings. A coming-soon game's id is "soon-" and its title's
+letters. A game hidden as no longer sold stays a favourite. In Desktop 95 each favourite also has an icon on the desktop, on
+the listing and on every game page, after the windows' icons: the game's own icon where the player's files hold one, else its
+cap with its initials, and its name. A double-click, Enter or Space opens the game's page; its menu (a right click, the menu
+key or Shift+F10) opens it or takes it out of the favourites, and the icon goes. In the Pop menu's Games the favourites come
+first.
+
+**Desktop 95's controls.** The skin draws its controls as the 1995 desktop did (the user, 2026-11-08: "the dropdowns, check
+boxes, and selectors should be redesigned to look more like authentic Windows 95. Rounded corners are very un-95"): white
+sunken fields, a drop-down's raised grey button with its black triangle, a check box's black tick, an option button's black
+dot, raised buttons that press in with a dotted focus rectangle inside, a slider's sunken groove and raised thumb, and in
+Chromium and Safari scroll bars with grey arrows, a raised thumb and the dithered track (the others the browser's own, in the
+skin's grey). The pictures are SVG of our own, drawn pixel by pixel in web/skins.css. Nothing in the skin has rounded corners
+but the round things (an option button, a game's cap). A drop-down's list is the browser's own. The controls' keys, focus
+order and names are the pages' own.
+
+On a screen under 760 pixels wide, or in another skin, the page is laid out as usual, with its footer. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
 title, ...})`. The parody keeps to the rules of the skins: everything drawn here, system fonts by name, no real logos, icons
 or sounds, and no imitation system prompts.
 
@@ -1437,7 +1484,9 @@ canvas (only while a game runs: before that and after it closes it is out of the
 panels, the footer link. The focus ring is a 2 px `:focus-visible` outline in the accent colour on every control; the canvas has a white ring
 inside the stage and an accent ring around it, so one of them shows over any picture. A panel's button has `aria-expanded` and `aria-controls`
 (the Mods button has neither while a game runs, when it opens the game's own mod menu instead, and says so with `aria-describedby`), the Sound button
-is `aria-pressed` (pressed: the sound is on). Opening a panel moves the focus into it. **Esc** closes it from wherever the focus is on the
+is an icon, a speaker with waves while the sound is on and crossed out while it is off, each skin's own drawing (the user,
+2026-11-08: "On all skins, replace the Sound: on/off button with an icon"); it is `aria-pressed` (pressed: the sound is on),
+and its name and tooltip say "Sound on" or "Sound off". Opening a panel moves the focus into it. **Esc** closes it from wherever the focus is on the
 page, and so does **Close**, and with the keyboard the focus goes back to the button that opened the panel (or to the canvas when the game's
 menu opened it); with the mouse, closing goes back to the game, as before. Esc on the import card is its Cancel. The cards are dialogs
 (`role="dialog"`, named by their heading and described by their text): a card that comes up takes the focus (the Play and Choose folder buttons, else
@@ -1713,6 +1762,30 @@ from its own button), Cosmic Bugs and Water Bugs (whose first-level help follows
 (whose per-player flags the first board's generation also reads), and Ning Po and the two Mahjong Escapes (which have an idle
 hint, but no tutorial).
 
+### Always skip start-up logos
+
+**Always skip start-up logos** (`skipLogos`, off by default, and like every setting it can be set for one game only) has the
+games go straight past their start-up logos (the user, 2026-11-08: "Add a site-wide option to skip all start-up logos"). A
+player who never sets it sees every game as it is. Start-up logos are the PopCap logo, a publisher's or developer's logo and
+a "presents" splash before the loading or title screen. The loading screen's progress bar and the title screen's own
+animation are not logos. With the setting on, a game goes on from each logo as a click or key on it would take it, the
+original's own skip, so play afterwards is the same. Logos that held the player are already gone under the loading rule
+(CLAUDE.md, "Port first, unmodified"), with `-popcaplogo` and `-splashhold` keeping them for comparisons, so they need nothing.
+
+The logos come before anything the page could call once the game is running, so the page tells the game before it starts,
+as it does for "Full screen at start": `byopop_site_skiplogos(1)` before `callMain` (`framework/WebSettings.cpp`). It is
+never set on the player-only test page. A game reads `Byopop::SiteSkipLogos()` (`framework/WebSettings.h`). The call exists on
+both builds, so game code needs no `#ifdef`. Natively it is true under `-skiplogos`, which `SexyAppBase::HandleCmdLineParam`
+takes, so a session can test its wiring under rundesk. A game whose own host parses its command line (Bonnie's Bookstore,
+Ning Po Mahjong) calls `Byopop::SetSiteSkipLogos(true)` for `-skiplogos` itself.
+
+A game that does not read it is left as it is, logos and all. Games that read it so far: Cosmic Bugs (its PopCap logo
+screens, one for each portal animation, each taken as Esc on it, straight to the main menu), Water Bugs (its one PopCap
+logo screen, as Esc on it; the logo the menu can call up later still plays) and Bejeweled Twist (the loader's PopCap logo
+and its trademark sign, which never fade in; the game's title stays). None of their logos draws a random number, so play
+afterwards is the same either way. Each game's session names what its game skips when it is ready to merge, and the
+coordinator adds it here.
+
 ## The player-only page
 
 For sessions that test a game in the Browser pane (the user, 2026-11-07: "For agent browser testing use, build a stripped down
@@ -1787,7 +1860,12 @@ depends on the frames.
   focus is the test's alone: the browser's own blur and focus events on the window, and on the canvas while the window has lost
   the focus, stop in the kit before SDL and the page see them, and `document.hasFocus()` leaves out the window's real focus. A
   hidden Browser pane sends a real blur, which paused TipTop's runs until their driver gave the focus back (2026-11-08); native
-  `-realinput` drops the system's focus events the same way. `?realfocus=1` lets the browser's events through.
+  `-realinput` drops the system's focus events the same way. The visibility is the test's as well: the browser's own
+  `visibilitychange` stops in the kit, and `document.hidden` is true only between `blur({hidden: true})` and `focus()`. A hidden
+  page takes the game's focus away at once (`SexyAppBase::EmscriptenPageHidden`), while focus coming back waits a frame in
+  SDL's queue. So a real `visibilitychange` that came after `focus()`'s gain had been taken left Noah's Ark without the focus,
+  its updates running and the game paused, until a second `focus()` (2026-11-08). `?realfocus=1` lets the browser's events
+  through, its visibility too.
 - **the log**: `log(since)` the game's printed lines from number `since` on (`{seq, kind, text, update}`, the last 20000 kept),
   `logNext()` the number the next line will have, and `waitLog(pattern, {since, timeout})`, which resolves with the first line
   from `since` on (by default the next one printed) that matches a RegExp or contains a string, and rejects after `timeout` ms
@@ -1806,7 +1884,7 @@ depends on the frames.
 - **readings**, all copies: `watch()` a port's
   watch values where it gives them (`byopop_watch_json`), null otherwise; `mixer()` the mixer's state once the shared
   session's `platform/Audio.cpp` gives it (`byopop_mixer_json`), null until then; `screen()` the game's size.
-- **profile** (test profile only): `wipe()` deletes its saves (the staged files stay), `seed({path: data})` writes files into
+- **profile** (test profile only): `wipe()` deletes its saves and their localStorage backup (`sexy-userdata-backup:<dir>`, which the game would restore at its start; the staged files stay), `seed({path: data})` writes files into
   its user folder from a fixture save (strings, ArrayBuffers or Uint8Arrays), `list()` and `read(path)` read them; then reload
   or `start()`.
 
