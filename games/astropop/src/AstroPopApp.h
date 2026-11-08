@@ -118,6 +118,8 @@ public:
 
 	void			PlaySong(int theOrder);                     // 0x408b90
 	void			PlaySampleAt(int theSound, int theColumn);  // 0x408cc0 a sample panned by the column it happens in
+	void			PlaySamplePitched(int theSound, int thePitch);  // 0x408d30 a new instance of a sample at a pitch (in steps)
+	void			PlayComboPing(int thePitch);                // 0x409250 SOUND_COMBO_PING, not twice within 45 updates
 	void			PauseMusicForFocus(bool lost);              // 0x4252b0
 	void			SetLoopSoundsMuted(bool muted);             // 0x408db0
 	std::string		GetRankName(int theScore, int* theIndex);   // 0x40f110 the name of the rank of a score (and its number)

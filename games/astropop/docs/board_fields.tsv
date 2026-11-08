@@ -84,6 +84,10 @@ f8	std::vector<int>	mf8
 6f4	int	m6f4
 6f8	int	m6f8
 6fc	int	m6fc
+700	int	m700	the meter's text, step of its move (OnHyperBrick)
+704	int	m704	the meter's text, top
+708	int	m708	the meter's text, steps
+70c	int	m70c	the meter's text, distance
 710	std::string	m710	the text of the supa weapon prompt
 72c	std::string	m72c
 748	int	m748	?

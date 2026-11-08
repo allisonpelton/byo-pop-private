@@ -32,3 +32,10 @@ void Board::BuildStoryText()
 {
 	NOT_TRANSLATED("BuildStoryText", "0x47a940");
 }
+
+void Board::UpdateSupercharge(bool theCheck, int theColour)
+{
+	(void) theCheck;
+	(void) theColour;
+	NOT_TRANSLATED("UpdateSupercharge", "0x45ac80");
+}

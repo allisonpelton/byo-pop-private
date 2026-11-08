@@ -389,6 +389,10 @@ public:
 	int	m6f4 = 0;// +0x6f4
 	int	m6f8 = 0;// +0x6f8
 	int	m6fc = 0;// +0x6fc
+	int	m700 = 0;// +0x700 the meter's text, step of its move (OnHyperBrick)
+	int	m704 = 0;// +0x704 the meter's text, top
+	int	m708 = 0;// +0x708 the meter's text, steps
+	int	m70c = 0;// +0x70c the meter's text, distance
 	std::string	m710;// +0x710 the text of the supa weapon prompt
 	std::string	m72c;// +0x72c
 	int	m748 = 0;// +0x748 ?
@@ -834,6 +838,36 @@ public:
 	void			CreateEndButtons();                             // 0x4593b0
 	int				WeaponLevelSum();                               // 0x432e90
 	void			SaveFinalScore();                               // 0x43e050
+
+	// ---- the events of the bricks (BoardEvents.cpp, BoardArrive.cpp; the Board's handlers of the bus)
+	virtual void	OnEvent(int theEvent, EventListener* theSource, int theArg) override;   // the table of the Board's listener part
+	void			OnBrickArrived(Brick* theBrick);                // 0x473b20 event 5: a rising brick (or a group) reaches its place
+	void			OnBrickGone(Brick* theBrick);                   // 0x46d1e0 event 6: a brick's death is over
+	void			OnBrickLanded(Brick* theBrick);                 // 0x45cae0 event 7: a brick has fallen to the floor
+	void			OnBrickFaded(Brick* theBrick);                  // 0x450f10 event 8
+	void			OnBrickBounced(Brick* theBrick);                // 0x458770 event 0xb: the bounce of a brick is over
+	void			OnBrickFinished(Brick* theBrick);               // 0x44bac0 event 0xc: the brick is to be deleted
+	void			OnColumnNuke(Brick* theBrick);                  // 0x453250 event 0xd
+	void			OnPowerBrickDone(Brick* theBrick);              // 0x45e920 event 0xe
+	void			OnMutatorSpread(Brick* theBrick);               // 0x45d910 event 0xf
+	void			OnHyperBrick(Brick* theBrick);                  // 0x452e70 event 0x12
+	void			OnBoosterEnd(Brick* theBrick);                  // 0x44bba0 event 0x13
+	void			OnBrickPopped(Brick* theBrick);                 // 0x45d7a0 event 0x1a
+	void			OnBrickSettled(Brick* theBrick);                // 0x438e10 event 0x1b
+	void			OnFreezeBomb(Brick* theBrick);                  // 0x43b910 event 0x1c
+	void			OnKillAllDone(Brick* theBrick, int theType);    // 0x451380 event 0x1f
+	void			OnBlast(Brick* theBrick, int theArg);           // 0x45ce40 event 0x26
+	void			OnColourBrickDie(Brick* theBrick, int theType); // 0x45d6f0 event 0x27
+	void			OnPieceBrickHit(Brick* theBrick);               // 0x451430 event 0x29
+	void			AdvanceChain();                                 // 0x434320 one more set in a row
+	void			CheckSparseField();                             // 0x437830
+	void			SortFallingGroups();                            // 0x46cfd0 the groups in m94 by the height of their first brick
+	void			UpdateSupercharge(bool theCheck, int theColour); // 0x45ac80 the colours that are charged (not translated yet)
+	std::vector<CellRef>	BlastNeighbours(int theCol, int theRow, Brick* theBrick);   // 0x4588d0
+	void			RemoveCells(const std::vector<CellRef>& theCells, Image* theImage);   // (inside 0x45ce40) take the bricks of the cells out together
+	void			HideCellHint(Brick* theBrick);                  // (inlined in the handlers) the cell hint goes when its brick does
+	static int		CellColumn(float theX) { return ((int) theX - 0xa6) / 0x2c; }
+	static int		CellRow(float theY) { int aY = (int) theY; return aY < 0x22 ? 0 : (aY - 0x22) / 0x19 + 1; }
 
 	// ---- pause and play (BoardPlay.cpp)
 	void			Pause(bool theStart, bool theFlag);             // 0x459040 a dialog opens (true) or closes (false)

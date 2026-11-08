@@ -521,6 +521,29 @@ void AstroPopApp::PlaySampleAt(int theSound, int theColumn)
 	PlaySample(theSound, (int) (aPan * 2000.0f));
 }
 
+// 0x408d30
+void AstroPopApp::PlaySamplePitched(int theSound, int thePitch)
+{
+	if (mSoundManager == NULL)
+		return;
+	SoundInstance* anInstance = mSoundManager->GetSoundInstance(theSound);
+	if (anInstance != NULL)
+	{
+		anInstance->AdjustPitch((double) thePitch);
+		anInstance->Play(false, true);
+	}
+}
+
+// 0x409250
+void AstroPopApp::PlayComboPing(int thePitch)
+{
+	if (mTimer664 < 1)
+	{
+		PlaySamplePitched(SOUND_COMBO_PING, thePitch);
+		mTimer664 = 0x2d;
+	}
+}
+
 void AstroPopApp::ButtonDepress(int theId)
 {
 	if (theId == 0x898)
