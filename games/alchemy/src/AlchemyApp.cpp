@@ -43,7 +43,7 @@ static const char* const gImageNames[NUM_IMAGES] =
 	"tinybubble1", "forgeback2", "bubbleburst", "gems1", "gems2", "levelfont1", "bigexplosion", "smsparkle",
 	"tinysparkle", "selectorbutton", "glassbuttons", "level2", "level3", "level4", "level5", "level6", "level7",
 	"level8", "level9", "gameselector_base", "gameselector_greenon", "gameselector_redon", "gameselector_tuton",
-	"gameselector_newgameon", "hiscorebox", "hiscorebtn", "gameover", "redcircle", "helparrow"
+	"gameselector_newgameon", "gameover", "redcircle", "helparrow"
 };
 
 // 0x510300: the sound names (sounds\<name>); "finalvanish" is in the table twice
@@ -449,8 +449,6 @@ void AlchemyApp::WriteToRegistry()
 
 	if (!mLastScoreName.empty())
 		RegistryWriteString("LastScoreName", mLastScoreName);
-	if (!mLastInternetScoreName.empty())
-		RegistryWriteString("LastInternetScoreName", mLastInternetScoreName);
 	RegistryWriteInteger("SkillLevel", mSkillLevel);
 	RegistryWriteInteger("TimeTrial", mTimeTrial ? 1 : 0);
 }
@@ -464,8 +462,6 @@ void AlchemyApp::ReadFromRegistry()
 	int anInt;
 	if (RegistryReadString("LastScoreName", &aString))
 		mLastScoreName = aString;
-	if (RegistryReadString("LastInternetScoreName", &aString))
-		mLastInternetScoreName = aString;
 	if (RegistryReadInteger("SkillLevel", &anInt))
 		mSkillLevel = anInt;
 	if (RegistryReadInteger("TimeTrial", &anInt))

@@ -4,7 +4,9 @@
 // and this sends it as the page's mouse and key events.
 // Parameters of the page: mode= strategic (default), timetrial or tutorial; skill= 1 (default), 2 or 3; seconds= the most to
 // play (900); blur= the number of pieces placed at which the window loses the focus for a while and gets it back (0: never);
-// shots= every that many pieces a shot is saved (60).
+// shots= every that many pieces a shot is saved (60); waitfull=1 shows the page's bar (the player-only page hides it), waits until
+// the page is in full screen (a real click on its Fullscreen button, made from outside: the browser accepts nothing else), plays
+// there, and at the end waits until full screen is left (F11 or Esc, or the button again).
 // Opened as .../alchemy.html?player=1&assets=1&fast=1&silent=1&driver=games/alchemy/tools/web/onegame.js&run=web-strategic
 var params = new URLSearchParams(location.search);
 var mode = params.get("mode") || "strategic";
@@ -18,6 +20,8 @@ var notes = [];
 var last = null;
 var seen = {};
 var blurred = false;
+var waitFull = params.get("waitfull") === "1";
+var full = [];
 
 function note(text) {
   notes.push({ at: Math.round((Date.now() - started) / 1000), update: t.updates(), text: text });
@@ -64,7 +68,33 @@ async function untilState(pred, ms, what) {
   }
 }
 
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+// what the page shows of its full screen, with the game's own idea of the window
+async function fullNote(what) {
+  var fe = document.fullscreenElement;
+  var cv = document.getElementById("canvas");
+  var r = cv ? cv.getBoundingClientRect() : null;
+  var s2 = await t.state();
+  var o = { what: what, fullscreenElement: fe ? (fe.id || fe.tagName) : null, screen: [screen.width, screen.height],
+    inner: [innerWidth, innerHeight], canvas: r ? [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] : null,
+    gameWindowed: s2.windowed, active: s2.active, muted: s2.muted };
+  full.push(o);
+  note("full screen, " + what + ": " + JSON.stringify(o));
+}
+
 try {
+  if (waitFull) {
+    document.documentElement.classList.remove("player-only");
+    var tw = Date.now();
+    note("waiting for a real click on the Fullscreen button");
+    while (!document.fullscreenElement) {
+      if (Date.now() - tw > 300000) throw new Error("no full screen within 300 s");
+      await sleep(250);
+    }
+    await sleep(1500);
+    await fullNote("entered");
+  }
   // the title: its link is the bot's first move
   await untilState(function (s) { return s.screen === "title" && s.ready; }, 120000, "the title link");
   await t.shot("title");
@@ -85,8 +115,17 @@ try {
     await t.shot("selector-" + mode + "-" + skill);
     await press(last.selector.start, "start");
   }
-  await untilState(function (s) { return s.screen === "game"; }, 30000, "the board");
+  await untilState(function (s) { return s.screen === "game" || s.dialog === "load"; }, 30000, "the board");
+  if (last.dialog === "load") {
+    // a game left unfinished by an earlier run is in the test profile's saves: the question to load it is answered No
+    await press(last.buttons.no, "no to the saved game");
+    await untilState(function (s) { return s.screen === "menu" && !s.dialog; }, 30000, "the selector again");
+    last = await t.state();
+    await press(last.selector.start, "start again");
+    await untilState(function (s) { return s.screen === "game"; }, 30000, "the board");
+  }
   await t.shot(mode + "-start");
+  if (waitFull) await fullNote("the board");
 
   // the game: until the selector is back
   var lastShot = 0;
@@ -146,8 +185,20 @@ try {
   }
   last = await t.state();
   await t.shot(mode + "-end");
+  if (waitFull) {
+    await fullNote("the game is over");
+    var tl = Date.now();
+    note("waiting for full screen to be left");
+    while (document.fullscreenElement) {
+      if (Date.now() - tl > 300000) throw new Error("full screen not left within 300 s");
+      await sleep(250);
+    }
+    await sleep(1500);
+    await fullNote("left");
+    await t.shot(mode + "-left");
+  }
 } catch (e) {
   note("error: " + (e && e.message || e));
 }
 return { mode: mode, skill: skill, stats: stats, seconds: Math.round((Date.now() - started) / 1000), updates: t.updates(), last: last,
-  notes: notes, errors: t.errors.slice(0, 5) };
+  notes: notes, fullscreen: full, errors: t.errors.slice(0, 5) };
