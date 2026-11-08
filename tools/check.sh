@@ -1884,7 +1884,7 @@ mahjongjapan_run() {  # <name>: a new player, escape stage 1 won with the solver
 		printf '%s\n' "$((t + 400)) click 403 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
 			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
 	} > "$d/script.txt"
-	timeout 300 "$W/build/native/mahjongjapan.exe" -gamedir=assets/mahjongjapan -userdir="$d/user" -fast -script="$d/script.txt" \
+	timeout 300 "$W/build/native/mahjongjapan.exe" -gamedir=assets/mahjongjapan -userdir="$d/user" -fast -logos -script="$d/script.txt" \
 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
 }
@@ -1920,7 +1920,7 @@ mahjongchina_run() {  # <name>: a new player, Dynasty Adventure stage 1 won with
 		printf '%s\n' "$((t + 400)) click 187 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
 			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
 	} > "$d/script.txt"
-	timeout 300 "$W/build/native/mahjongchina.exe" -gamedir=assets/mahjongchina -userdir="$d/user" -fast -script="$d/script.txt" \
+	timeout 300 "$W/build/native/mahjongchina.exe" -gamedir=assets/mahjongchina -userdir="$d/user" -fast -logos -script="$d/script.txt" \
 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
 }

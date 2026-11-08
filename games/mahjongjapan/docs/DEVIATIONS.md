@@ -96,6 +96,15 @@ flight whose end closes the round is gone: the board stays empty, the clock keep
 port ignores the shuffle once no tile is left (`mLeft == 0`), the one line `OnCommand` needs, so the round closes as it
 does when the shuffle is not clicked. A player cannot see the difference except by clicking Shuffle in that second.
 
+## The game opens at its main menu (2026-11-08)
+
+The original shows two logo screens first, 2 s each (`Logo::Update`, 0x42f8c0, counts down and reads no click or key; the
+publisher's SplashLogo picture, then Jolly Bear's), after 0.77 s of black (`Manager::SwitchTo`, 0x42ae80, fades out of a
+screen when there is none), and loads nothing meanwhile. The port takes that wait out (the loading rule): the first layer is
+the main menu (`MahjongGame::CreateFirstLayer`, 0x40f540, which the original gives the splash) and `SwitchTo` has no fade-out
+when no layer is shown (`jb::gFastStart`); the menu's own fade-in stays. `-logos` keeps the original's start. A player sees it:
+the menu comes up in about a second where it took eight. `GAME_NOTES.md`, "The start", has the numbers.
+
 ## Hooks for the fixes mod (2026-11-08)
 
 The fixes mod (`mods/fixes`, `GAME_NOTES.md`) needs three places where the clock is read to be asked of the host. Without
@@ -104,5 +113,4 @@ the mod each answers as the original does, so the game plays the same: `Host::Ti
 search's time limit, checked at 0x413fa0 and started at 0x413500; under `-fast` it is `SDL_GetTicks`, because the virtual clock does not
 move while a deal searches), and `Host::SeedTick` is the clock again at the three deal sites (`Board::SetLayout` 0x40aa40,
 `Board::Start` 0x40ae60, `Board::Reshuffle` 0x40b0a0). `steadyClock` replaces the first with a clock of the updates,
-`seededDeals` the third with a seed the page gives, and `skipLogos` ends the splash's logos (`gSkipLogos`, `Logo::Update`, 0x42f8c0) at
-their first update.
+and `seededDeals` the third with a seed the page gives.

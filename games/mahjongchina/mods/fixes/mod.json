@@ -9,14 +9,6 @@
   },
   "settings": [
     {
-      "id": "skipLogos",
-      "label": "Skip the logo screens",
-      "type": "bool",
-      "default": true,
-      "apply": "restart",
-      "help": "The game opens with the publisher's logo and then Jolly Bear's, two seconds each, and loads nothing meanwhile. They are over at once. Only the wait is shorter."
-    },
-    {
       "id": "seededDeals",
       "label": "Deals follow the seed",
       "type": "bool",

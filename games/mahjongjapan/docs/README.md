@@ -76,6 +76,8 @@ under rundesk: the menu, the help, a new player, the whole adventure to the endi
 of the board and of the in-game menu, a second classic game, the focus lost and regained, Quit; `--fullscreen` does it from
 Alt+Enter. `tools/web/realplay.js` plays the web build through the DOM's events (`?driver=`). `tools/realplay/modtest.py`
 checks the fixes mod, `perfload.py` times the launch, `syncbot.sh` copies the bot and the commands to the other game.
+The game opens at its main menu; `-logos` keeps the original's two logo screens and the black before them (`GAME_NOTES.md`,
+"The start"), as `tools/check.sh` and any comparison with the original run it.
 
 `dealtest --solve <layout> [seed quad]` finds the pairs that win a stage. A stage after the first deals most of its
 tiles, so it takes the stage's seed and difficulty as well; stage 2 (layout 386, seed 524627644, difficulty 0) dealt
@@ -124,7 +126,7 @@ they had ended, which the game then paused and resumed.
 
 ## Mods
 
-The fixes mod (`mods/fixes`: `skipLogos`, `seededDeals` and `steadyClock`, on by default on the site; `GAME_NOTES.md`, "Fix
+The fixes mod (`mods/fixes`: `seededDeals` and `steadyClock`, on by default on the site; `GAME_NOTES.md`, "Fix
 candidates and the fixes mod"). No other mods (the user's rule: no new mods unless someone requests one); `MOD_IDEAS.md` lists
 the ones worth making.
 

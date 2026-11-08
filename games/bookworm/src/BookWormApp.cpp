@@ -54,11 +54,12 @@ using namespace Sexy;
 BookWormApp* Sexy::gApp = NULL;
 MTRand* Sexy::gGameRand = NULL;
 
-// 0x52e410
+// 0x52e410. NULL: an image only registration drew (2, 5, 6, 9, 10, 11), not loaded
 const char* const Sexy::gImageNames[NUM_IMAGES] =
 {
-	"backdrop_title", "backdrop_title_loadmeter", "logo_title", "title_loadmeter",
-	"dialog", "dialogbutton", "editbox", "cursor_pointer", "cursor_hand",
+	"backdrop_title", "backdrop_title_loadmeter", NULL, "logo_title", "title_loadmeter",
+	NULL, NULL, "dialog", "dialogbutton", NULL,
+	NULL, NULL, "editbox", "cursor_pointer", "cursor_hand",
 	"cursor_dragging", "cursor_text", "backdrop_board", "backdrop_board_scorched", "backdrop_bonus",
 	"backdrop_menu", "backdrop_fame", "backdrop_help", "backdrop_help_box", "backdrop_ihs",
 	"backdrop_wb_speech", "backdrop_wb_thought", "backdrop_wb_text", "gameselect_action",
@@ -742,7 +743,6 @@ void BookWormApp::Init()
 		return;
 	}
 
-
 	SetMusicVolume(mMusicVolume);
 
 	mImages = new Image*[NUM_IMAGES];
@@ -751,6 +751,8 @@ void BookWormApp::Init()
 
 	for (int i = 0; i < NUM_INIT_IMAGES; i++)
 	{
+		if (gImageNames[i] == NULL)
+			continue;   // an image only registration drew
 		if (!LoadImage(i))
 		{
 			Shutdown();
