@@ -223,6 +223,65 @@ def settle(hw, p, seconds, note):
         fresh = [l for l in log_lines() if l['n'] > used]
         if fresh:
             used = fresh[-1]['n']
+        dialog = ([l for l in fresh if l['kind'] == 'dialog'] or [None])[-1]
+        if dialog:
+            click(hw, *dialog['ok'])
+            clicks += 1
+            quiet = time.time()
+        elif talking():
+            click(hw, 400, 150)
+            clicks += 1
+            quiet = time.time()
+        elif time.time() - quiet > 2:
+            break
+        time.sleep(0.8)
+    note('settle: %d clicks, %ds, on %s' % (clicks, time.time() - t0, screen()))
+
+
+def shot_now(hw):
+    """A screenshot on demand: a file named shotnow in the output folder becomes now.png there."""
+    if OUT and os.path.exists(os.path.join(OUT, 'shotnow')):
+        im = grab(hw)
+        if im is not None:
+            im.save(os.path.join(OUT, 'now.png'))
+        os.remove(os.path.join(OUT, 'shotnow'))
+
+
+def chapter(hw, p, seconds, note, target='battle', minimize_on=None):
+    """One chapter's battles, as tools/driver.js's bwa.battle does on the web: from the map Enter, then each board's
+    word spelled with clicks and Attack, Scramble for a board without one, a dialog's first button, a click to move a
+    conversation on, until the screen is no longer the battle. Notes a summary line."""
+    t0 = time.time()
+    end = t0 + seconds
+    all_lines = log_lines()
+    used = max([l['n'] for l in all_lines] or [0])
+    if all_lines and all_lines[-1]['kind'] in ('board', 'wordmaster', 'dialog', 'lostturn', 'hint', 'tutorial'):
+        used -= 1  # a board, a dialog or a lost turn already waiting is played, answered or ended
+    seen, next_talk, words, scrambles, dialogs, result, picks = False, 0, [], 0, 0, '', 0
+    sound_log = os.environ.get('BYOPOP_SOUNDLOG')
+    sound_seen = len(open(sound_log).readlines()) if minimize_on and sound_log and os.path.exists(sound_log) else 0
+    while time.time() < end and p.poll() is None:
+        shot_now(hw)
+        if minimize_on and sound_log and os.path.exists(sound_log):
+            # the window minimized for a minute the moment the sound log shows minimize_on (a song starting)
+            sound = open(sound_log).readlines()
+            if any(minimize_on in l for l in sound[sound_seen:]):
+                note('minimize on %r' % minimize_on)
+                u32.ShowWindow(hw, 6)
+                time.sleep(60)
+                u32.ShowWindow(hw, 9)
+                note('restore')
+                minimize_on = None
+            sound_seen = len(sound)
+        fresh = [l for l in log_lines() if l['n'] > used]
+        scr = screen()
+        if scr == target:
+            seen = True
+        elif seen and scr != 'none':
+            result = scr
+            break
+        if fresh:
+            used = fresh[-1]['n']
         board = ([l for l in fresh if l['kind'] in ('board', 'wordmaster')] or [None])[-1]
         # the first line that asks for a click: a dialog's button, the tutorial's tile or Attack, an arrow's hot spot, a
         # lost turn's grid. The lines after it stay new for the next round (a board logged with a hint is played then)
