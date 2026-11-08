@@ -1779,8 +1779,12 @@ both builds, so game code needs no `#ifdef`. Natively it is true under `-skiplog
 takes, so a session can test its wiring under rundesk. A game whose own host parses its command line (Bonnie's Bookstore,
 Ning Po Mahjong) calls `Byopop::SetSiteSkipLogos(true)` for `-skiplogos` itself.
 
-A game that does not read it is left as it is, logos and all. Games that read it so far: none yet. Each game's session adds
-its game here when it registers.
+A game that does not read it is left as it is, logos and all. Games that read it so far: Cosmic Bugs (its PopCap logo
+screens, one for each portal animation, each taken as Esc on it, straight to the main menu), Water Bugs (its one PopCap
+logo screen, as Esc on it; the logo the menu can call up later still plays) and Bejeweled Twist (the loader's PopCap logo
+and its trademark sign, which never fade in; the game's title stays). None of their logos draws a random number, so play
+afterwards is the same either way. Each game's session names what its game skips when it is ready to merge, and the
+coordinator adds it here.
 
 ## The player-only page
 
