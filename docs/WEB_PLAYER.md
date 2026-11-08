@@ -696,6 +696,28 @@ chosen keeps these rules, each in the user's words of 2026-11-07:
   Microsoft font files. A free lookalike may be a fallback for machines without them, and only that one is listed on the
   licences page.
 
+### Skins
+
+The user chose three of the directions as selectable skins (2026-11-07: "Offer A, B, and C as selectable skins... D feels too
+generic"): A **Demo Disc**, B **Desktop 95** and C **Soda Fountain**, each with a light and a dark version, the dark one from its
+own era rather than inverted colours (the design page's "After dark" section has each with its verdict). `web/skins.js` sets
+`<html data-skin="demo" | "d95" | "soda">` in each page's `<head>`, before the body is drawn, and `web/skins.css` holds the looks.
+**Plain**, the site's look without a skin, is the fourth choice. The skins restyle the listing page and the game pages; the
+other pages (the terms, the licences, a game's copyright page) keep the plain look.
+
+The choice is the site setting `skin` (web/settings.js, the Display group), so it is kept with the other settings, a game may
+have its own like any other setting, and Settings changes it at any time, at once. Until the player chose one it is "unset":
+the first page of the site they open shows a card with the three, and closing it without a choice keeps Plain, chosen, so the
+card is asked once. As with the terms card, it never shows on a development host (`?skins=1` shows it there) and never on the
+player-only page, which has no skin.
+
+How a skin is written: each one sets the pages' own colour variables (`--bg`, `--panel`, `--panel-2`, `--fg`, `--muted`,
+`--line`, `--accent`, `--accent-fg`, `--font-ui`, `--radius`) and its own `--sk-*` ones, once for light and once for dark in the
+pages' two dark forms (web/theme.js); the rules after them only read variables, so each is written once for both themes.
+Period fonts are named and never shipped (Verdana for A; the 1995 desktop's sans serif, then Tahoma, for B; Cooper Black, then
+Bookman and Georgia, for C's signs). Still to come: the setup wizard with the terms as its licence page, the cap board, and
+Desktop 95's windows.
+
 ### Light and dark
 
 The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the

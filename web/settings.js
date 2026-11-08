@@ -44,7 +44,10 @@ var ByopopSettings = (function () {
     showChat: { values: SWITCH, def: "on" },        // off: the chat beside the game is not drawn (web/chat.js)
     chatPlace: { values: ["edge", "game"], def: "edge" },  // game: the chat beside the game, the two centred; edge: at the page's right edge
     pixelPerfect: { values: SWITCH, def: "off" },   // on: the game takes its own size, one game pixel a whole number of device pixels
-    profile: { values: ["game", "fill", "create"], def: "game" }  // fill: names start with the site's player; create: and the player is made and chosen
+    profile: { values: ["game", "fill", "create"], def: "game" },  // fill: names start with the site's player; create: and the player is made and chosen
+    // the site's skin (web/skins.js): "unset" until the player chose one on their first visit, which is not one of its values, so
+    // that every choice, Plain too, is stored and the first visit's card is asked only once
+    skin: { values: ["plain", "demo", "d95", "soda"], def: "unset" }
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -202,6 +205,8 @@ var ByopopSettings = (function () {
       hint: T("settings.startvolume.hint"),
       help: T("settings.startvolume.help") },
     { group: T("settings.group.display") },
+    { name: "skin", label: T("settings.skin.label"), options: [["plain", T("skin.plain")], ["demo", T("skin.demo")], ["d95", T("skin.d95")], ["soda", T("skin.soda")]],
+      hint: T("settings.skin.hint") },
     { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
       hint: T("settings.fullscreen.hint") },
     { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],
@@ -459,6 +464,8 @@ var ByopopSettings = (function () {
       if (ok) {
         say(T("settings.saved"), false);
         if (opts.onChange) { try { opts.onChange(name, get(name, gameId || undefined)); } catch (e) {} }
+        // for the page's own parts that follow a setting at once (web/skins.js)
+        try { window.dispatchEvent(new CustomEvent("byopop-setting", { detail: { name: name } })); } catch (e) {}
       } else {
         say(T("settings.save_error"), true, control);
       }

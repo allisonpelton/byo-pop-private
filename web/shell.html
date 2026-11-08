@@ -240,6 +240,8 @@ html.player-only .stage-wrap { place-items: start; padding: 0; }
 html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 /* byopop:game-css */
 </style>
+<!-- the site's skins (web/skins.js sets <html data-skin>; docs/WEB_PLAYER.md, "Skins") -->
+<link rel="stylesheet" href="skins.css"><script src="skins.js"></script>
 </head>
 <body>
 <a class="skip" id="skip-game" href="#canvas">{{game.skip}}</a>
@@ -426,6 +428,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     document.documentElement.classList.add("player-only");
     document.write('<script src="testkit.js"><\/script>');
   }
+  // the game's own skin, where its settings give it one (web/skins.js); none on the player-only page
+  try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
   var PERSIST = PAGE.persist + (TEST_PROFILE ? "-test" : "");
   var LOCK = PAGE.lock + (TEST_PROFILE ? "-test" : "");
   var GAME = PERSIST + "/game";

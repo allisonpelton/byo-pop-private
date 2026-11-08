@@ -18,6 +18,19 @@
 theme.button = Dark theme
 theme.to_light = Use the light theme
 theme.to_dark = Use the dark theme
+skin.plain = Plain
+skin.demo = Demo Disc
+skin.demo.about = Sky-blue gloss and gel buttons, after the free-demo sites of the early 2000s.
+skin.d95 = Desktop 95
+skin.d95.about = Grey windows on a teal desktop: every part of the site is a window you can move.
+skin.soda = Soda Fountain
+skin.soda.about = An awning, a chrome counter and a board for your bottle caps.
+skin.pick.title = Pick a look for the site
+skin.pick.text = Each comes in a light and a dark version and changes only the page around the games.
+skin.pick.plain = No thanks, keep it plain
+skin.pick.later = You can change it any time in Settings.
+settings.skin.label = Skin
+settings.skin.hint = The site's look around the game. The game itself never changes.
 
 
 # ---- Everywhere: new-tab notice and the game pages' footer link (web/footer.html)
