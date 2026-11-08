@@ -34,7 +34,13 @@ test hooks of their own keep them and add these names beside them, sharing the c
 | `set <name> <value>` | sets one of the `state` keys (`score 90000`, `enemy 1`, `timer 5`) |
 | `win`, `lose` | ends the current level or game now, as a win or a loss, through the game's own ending |
 | `seed <n>` | seeds the game's random numbers, where the game draws them from one generator |
-| `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and the real input that makes it (`clicks`, `drags`, `keys` in game coordinates), or `MOVE null` when there is none; it changes nothing |
+| `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and `input`, the real input that makes it, as an ordered list of steps in game coordinates (below); or `MOVE null` when there is none; it changes nothing |
+
+A move's `input` steps, played in order (Twist's and Alchemy's drivers set the form, 2026-11-07): `{"move":[x,y]}` moves
+the pointer there (a hover: a piece that hangs from the pointer needs one before its click), `{"click":[x,y]}` clicks
+there, with `"button":"right"` for the right button, `{"press":[x,y]}` and `{"release":[x,y]}` hold and let go for a
+drag (the `move` steps between them carry it), `{"key":"B"}` presses and releases a key, and `{"wait":n}` waits n
+updates. A port that printed `clicks` or `drags` lists earlier moves over to `input`.
 
 ## The bot behind `move`
 
@@ -49,8 +55,9 @@ asking for a move changes nothing. A game without a bot gets one in the port whe
 that already has a solver of its own keeps it, since rewriting a working driver costs more than it saves.
 
 The framework's own commands (`click`, `key`, `focus lose|regain`, `screenshot`, `modmenu ...`) stay as they are. The
-moves a driver makes are real input, not script clicks: DOM events on the web, burst-posted messages natively
-(CLAUDE.md, "Done means identical").
+moves a driver makes are real input, not script clicks: DOM events on the web, `-realinput` natively (its events
+through SDL's own queue, `docs/REAL_INPUT.md`; posted messages reach only clicks and keys there; CLAUDE.md, "Done
+means identical").
 
 ## Sending them
 
@@ -61,5 +68,16 @@ web through the exported function the player-only test page calls (`byopop.test.
 the reply lines). Both go through the same dispatch as `-script`: the framework's commands first, then the game's
 `HandleScriptCommand`. The live channel is the framework's (the shared session builds it); the page's call is the
 site's (`docs/WEB_PLAYER.md`). The shared loop that plays a game by `move` is also theirs: natively a tool that runs
-the game under rundesk with `-commands` and sends each move as posted input, and on the web a driver the test page
-runs (`?driver=`).
+the game under rundesk with `-commands` and sends each move as real input (`-realinput` lines through the same file,
+below), and on the web a driver the test page runs (`?driver=`).
+
+Natively the option is `-commands=<file>`: the file may come after the game starts, a line still being written waits
+for its end of line, and the run is a test run. The framework answers its own commands on the live channel (`OK click
+320 450`, `ERROR click 10: click needs <x> <y>`, `ERROR <command>: unknown command` for one nobody knows) and flushes
+the log line by line, so a driver can wait for each answer before it sends the next line; given with `-realinput` (an
+empty file will do) the lines take its dispatch, so the driver's moves are real SDL events through the same file
+(`docs/REAL_INPUT.md`). `tools/fwtest/commands.sh` is a driver of that kind. On the web the exported function is
+`byopop_test_command(line)`: it returns 1 when the line is queued and 0 when it is refused (no game running, no command
+in the line, too many waiting), and the line runs inside the next update, so a page that holds the game's updates
+steps one to run it. The answers are the ordinary log lines, which SDL's log starts with `INFO: `. The full description is with
+`-script`'s in `framework/SexyAppBase.h`.
