@@ -46,6 +46,11 @@ lets through only what the file pushes), so the run is the same whatever happens
 It does not go with `-script` (the run stops with an error), nor with a game's `-autoplay`, which sets `mScriptedInput`
 and so drops real input (the run logs it).
 
+A driver that decides as it goes (a solver that reads the board before each move) gives `-commands=<file>` as well,
+with an empty `-realinput` file: the lines it appends to the commands file, with no update count, are played the same
+way at the next update and answered on the log (`OK click game 320 450`), and the game's test commands (`state`,
+`goto`, docs/TEST_COMMANDS.md) answer through the same file. `tools/fwtest/commands.sh` drives fwtest that way.
+
 ## How it differs from a hand
 
 The file says everything a hand's input would make Windows send, and nothing more is made up for it. A hand that clicks

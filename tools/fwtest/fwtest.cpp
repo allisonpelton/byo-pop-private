@@ -233,8 +233,8 @@ public:
 
 		mMusicInterface->PlayMusic(0);
 
-		// -realinput's clicks reach the board: no modal dialog over it
-		if (mRealInputFileName.empty())
+		// -realinput's and -commands' clicks reach the board: no modal dialog over it
+		if ((mRealInputFileName.empty()) && (mCommandsFileName.empty()))
 			ShowTestDialog();
 	}
 
@@ -300,25 +300,28 @@ public:
 			gHotkeyFailures++;
 	}
 
-	// -realinput's own lines (tools/fwtest/realinput.txt): "expect <what> <values>" checks the state the events left,
-	// "killdialog" closes the test dialog, "report" prints the count and shuts down
+	// -realinput's and -commands' own lines (tools/fwtest/realinput.txt, tools/fwtest/commands.sh): "expect <what>
+	// <values>" checks the state the events left, "killdialog" closes the test dialog, "report" prints the count and
+	// shuts down. Each answers on the log as a game's test command does (docs/TEST_COMMANDS.md): OK or ERROR.
 	virtual bool HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		if (theCommand.mCommand == "killdialog")
 		{
 			KillDialog(DIALOG_TEST);
+			SDL_Log("OK killdialog");
 			return true;
 		}
 		if (theCommand.mCommand == "report")
 		{
-			SDL_Log("realinput: %d checks, %d failed", mChecks, gHotkeyFailures);
+			SDL_Log("%s: %d checks, %d failed", mCheckName, mChecks, gHotkeyFailures);
+			SDL_Log("OK report");
 			Shutdown();
 			return true;
 		}
 		if (theCommand.mCommand != "expect")
 			return false;
 
-		mCheckName = "realinput";
+		mCheckName = mCommandsFileName.empty() ? "realinput" : "commands";
 		std::istringstream anArgs(theCommand.mArgs);
 		std::string aWhat;
 		anArgs >> aWhat;
@@ -390,6 +393,10 @@ public:
 
 		std::string aLine = StrFormat("line %d (update %d): expect %s", theCommand.mLine, mUpdateCount, theCommand.mArgs.c_str());
 		Check(aLine.c_str(), isOk);
+		if (isOk)
+			SDL_Log("OK expect %s", theCommand.mArgs.c_str());
+		else
+			SDL_Log("ERROR expect %s: not so", theCommand.mArgs.c_str());
 		return true;
 	}
 

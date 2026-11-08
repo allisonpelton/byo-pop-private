@@ -397,6 +397,20 @@ public:
 	//                     screenshot, screenshotfull, quit  as in -script (done at once, not pushed)
 	//                   Full screen is Alt+Enter: "keydown Left Alt", "key Return", "keyup Left Alt". Other
 	//                   commands go to the game's HandleScriptCommand, run at once.
+	//   -commands=<file>  live commands, for a driver that decides as it goes (docs/TEST_COMMANDS.md, "Sending
+	//                   them"): it appends lines "<command> [args]" to the file (no update count; '#' comments and
+	//                   blank lines as in -script), and the framework reads the new whole lines between updates (each
+	//                   update, every FAST_DRAW_INTERVAL with -fast) and runs them at the next one, in order, through
+	//                   -script's dispatch: the framework's commands above, then the game's HandleScriptCommand. With
+	//                   -realinput (its file may be empty) they take -realinput's instead, so a driver's moves are
+	//                   real SDL events. A line still being written waits for its end of line; a file not there yet
+	//                   is waited for; one that gets shorter is read again from its start. Each command is answered
+	//                   on the log, which is then flushed line by line: "OK <command>" when the framework did it,
+	//                   "ERROR <command>: <reason>" when it could not or nobody knows the command, and a game's own
+	//                   command answers itself (STATE {...}, OK, ERROR). The window's own input still counts, as in
+	//                   a plain run (with -realinput it is dropped). The run is a test run (IsTestRun). On the web,
+	//                   byopop_test_command(line) queues one line the same way (the player-only test page's
+	//                   byopop.test.command, docs/WEB_PLAYER.md).
 	enum { FAST_DRAW_INTERVAL = 10 };
 	bool mHasSeedParam;
 	bool mFastMode;
@@ -421,6 +435,13 @@ public:
 	bool mRealMouseIn;         // the window has had SDL_WINDOWEVENT_ENTER and no LEAVE since
 	unsigned short mRealMods;  // KMOD_ state
 	std::vector<int> mRealKeysDown;  // the SDL keycodes held
+	// live commands: -commands=<file> natively, byopop_test_command on the web (RunLiveCommands)
+	std::string mCommandsFileName;
+	long long mCommandsFilePos;    // bytes of the file read so far
+	int mCommandsFileLine;         // its lines read so far
+	bool mCommandsWaitLogged;      // "waiting for" the file was logged
+	int mLiveCommandCount;         // the web's commands so far (their line numbers)
+	std::vector<ScriptCommand> mLiveCommands;  // waiting for the next update
 
 	// port: the mod menu (framework/ModMenu.h, docs/MOD_MENU_DESIGN.md). F2 opens and closes it; nothing of it
 	// exists until it first opens.
@@ -479,6 +500,14 @@ protected:
 	bool LoadScriptFile(const std::string& theFileName, const char* theWhat, std::vector<ScriptCommand>* theCommands);
 	void RunScript();
 	void RunRealInput();
+	// one command of -script, -realinput or the live channel: what became of it, and the reason of a failure
+	enum { SCRIPT_RAN, SCRIPT_GAME, SCRIPT_FAILED, SCRIPT_UNKNOWN };
+	int RunScriptCommand(const ScriptCommand& theCommand, std::string* theError);
+	int RunRealInputCommand(const ScriptCommand& theCommand, std::string* theError);
+	// a live command line, queued for the next update (false for a blank line, a comment or a full queue)
+	bool QueueLiveCommand(const std::string& theLine, int theLineNum);
+	void PollLiveCommands();
+	void RunLiveCommands();
 	void PushRealEvent(SDL_Event* theEvent);
 	void PushRealWindowEvent(int theWindowEvent);
 	void PushRealMouseMove(int theX, int theY);
