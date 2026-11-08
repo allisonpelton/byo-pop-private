@@ -189,6 +189,9 @@ def play(a):
             if s['over']:
                 result['stop'] = 'over'
                 break
+            if s.get('moves', 0) > a.maxmoves:
+                result['stop'] = 'loop in a chamber: %d moves taken in %s' % (s['moves'], json.dumps({k: s[k] for k in ('mode', 'level', 'pyramid', 'chamber')}))
+                break
             if a.steps and moves >= a.steps:
                 result['stop'] = 'steps'
                 break
@@ -267,6 +270,7 @@ if __name__ == '__main__':
     p.add_argument('--steps', type=int, default=0)
     p.add_argument('--stuck', type=int, default=20000)
     p.add_argument('--timeout', type=int, default=120)
+    p.add_argument('--maxmoves', type=int, default=500)
     p.add_argument('--at', action='append', default=[])
     p.add_argument('--pre', default='')
     p.add_argument('--finish', action='store_true')
