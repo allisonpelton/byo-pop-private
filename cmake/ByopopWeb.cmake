@@ -47,8 +47,8 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # of each game's page, its page's file name, its badge's initials and colour and its title), is written beside them by
 # byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
 # games of its own. web/testkit.js is the player-only page's test tools, which a game page loads only at ?player=1 on a
-# development host (docs/WEB_PLAYER.md, "The player-only page").
-set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js)
+# development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
+set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js skins.js skins.css)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed

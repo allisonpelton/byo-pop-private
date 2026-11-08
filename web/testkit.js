@@ -283,9 +283,9 @@
   // The standard test commands (docs/TEST_COMMANDS.md: state, goto <screen>, level <n>, unlock all, set <name> <value>, win,
   // lose, seed <n>), through the framework's live channel (byopop_test_command, which queues the line for the next update and
   // the -script dispatch). Resolves with the lines printed from the call up to the answer, STATE {json}, OK <command> or
-  // ERROR <command>: <reason> (the last of them); rejects after timeout ms (default 10000), or at once where the build has no
+  // MOVE {json} | null, ERROR <command>: <reason> (the last of them); rejects after timeout ms (default 10000), or at once where the build has no
   // channel. A held game is stepped one update, so that the command runs.
-  var ANSWER = /^(INFO: )?(STATE |OK |ERROR )/;
+  var ANSWER = /^(INFO: )?(STATE |MOVE |OK |ERROR )/;
   test.command = function (line, opts) {
     if (typeof M._byopop_test_command !== "function") return Promise.reject(new Error("byopop.test.command: the build has no byopop_test_command"));
     var since = logSeq;
@@ -303,6 +303,61 @@
       var last = lines[lines.length - 1];
       if (!/^STATE /.test(last)) throw new Error("byopop.test.state: " + last);
       return JSON.parse(last.substring(6));
+    });
+  };
+
+  // the move the port's own bot would make next, parsed: command("move")'s MOVE line, null when it has none
+  test.botMove = function () {
+    return test.command("move").then(function (lines) {
+      var last = lines[lines.length - 1];
+      if (!/^MOVE /.test(last)) throw new Error("byopop.test.botMove: " + last);
+      return JSON.parse(last.substring(5));
+    });
+  };
+  // Plays one MOVE through real DOM input, in game coordinates: its "input" list in order where it has one, else its clicks,
+  // then its drags, then its keys; then waits its "updates" (1 by default)
+  test.playMove = function (m) {
+    var steps = [];
+    if (Array.isArray(m.input)) m.input.forEach(function (i) { steps.push(i); });
+    else {
+      (m.clicks || []).forEach(function (c) { steps.push({ click: c }); });
+      (m.drags || []).forEach(function (d) { steps.push({ drag: d }); });
+      (m.keys || []).forEach(function (k) { steps.push({ key: k }); });
+    }
+    var p = Promise.resolve();
+    steps.forEach(function (st) {
+      p = p.then(function () {
+        if (st.click) return test.click(st.click.x, st.click.y, st.click.button || "left");
+        if (st.drag) return test.drag(st.drag.x0, st.drag.y0, st.drag.x1, st.drag.y1, st.drag.steps || 4);
+        if (st.key) return test.key(st.key);
+      });
+    });
+    return p.then(function () { return test.wait(m.updates > 0 ? m.updates : 1); });
+  };
+  // The built-in driver ?driver=move (docs/TEST_COMMANDS.md, "The bot behind move"): plays the game by the port's own bot. Each
+  // step asks for the state and the move and sends the move as real input. It stops when the state says "over", on MOVE null twice
+  // running, an ERROR, or after ?steps= moves (2000 by default). Returns { moves, stop, state, updates, errors }.
+  test.playByMove = function (opts) {
+    var limit = (opts && opts.steps) || Number(params.get("steps")) || 2000;
+    var moves = 0, nulls = 0, st = null;
+    function step() {
+      return test.state().then(function (s) {
+        st = s;
+        if (s && s.over) return "over";
+        if (moves >= limit) return "limit";
+        return test.botMove().then(function (m) {
+          if (m === null) {
+            if (++nulls >= 2) return "no move";
+            return test.wait(30).then(step);
+          }
+          nulls = 0;
+          moves++;
+          return test.playMove(m).then(step);
+        });
+      });
+    }
+    return step().catch(function (e) { return "error: " + String(e && e.message || e); }).then(function (stop) {
+      return { moves: moves, stop: stop, state: st, updates: test.updates(), errors: test.errors.length };
     });
   };
 
@@ -384,13 +439,16 @@
     return test.ready;
   };
 
-  // ?driver=<path>: a session's driver script, games/<game>/tools/<...>.js in the repo (served by tools/webtest/serve.py at
+  // ?driver=move: the built-in driver that plays by the port's bot (playByMove). ?driver=<path>: a session's driver script, games/<game>/tools/<...>.js in the repo (served by tools/webtest/serve.py at
   // /__repo/), run once the game is ready, as the body of an async function of t (byopop.test): it may await, and what it returns
   // is byopop.test.result. byopop.test.driver resolves with the same result (or rejects with the driver's error, which also goes
   // into errors); result is {error: message} after a failure.
   var driverPath = params.get("driver");
   test.result = undefined;
-  if (driverPath) {
+  if (driverPath === "move") {
+    test.driver = test.ready.then(function () { return test.playByMove(); });
+    test.driver.then(function (v) { test.result = v; }, function (e) { addError("driver", (e && e.stack) || e); test.result = { error: String(e && e.message || e) }; });
+  } else if (driverPath) {
     test.driver = !/^games\/[a-z0-9]+\/tools\/[A-Za-z0-9._\/-]+\.js$/.test(driverPath) || driverPath.indexOf("..") >= 0
       ? Promise.reject(new Error("byopop.test: a driver is games/<game>/tools/<path>.js"))
       : fetch("/__repo/" + driverPath, { cache: "no-store" }).then(function (r) {

@@ -240,6 +240,8 @@ html.player-only .stage-wrap { place-items: start; padding: 0; }
 html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 /* byopop:game-css */
 </style>
+<!-- the site's skins (web/skins.js sets <html data-skin>; docs/WEB_PLAYER.md, "Skins") -->
+<link rel="stylesheet" href="skins.css"><script src="skins.js"></script>
 </head>
 <body>
 <a class="skip" id="skip-game" href="#canvas">{{game.skip}}</a>
@@ -426,6 +428,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     document.documentElement.classList.add("player-only");
     document.write('<script src="testkit.js"><\/script>');
   }
+  // the game's own skin, where its settings give it one (web/skins.js); none on the player-only page
+  try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
   var PERSIST = PAGE.persist + (TEST_PROFILE ? "-test" : "");
   var LOCK = PAGE.lock + (TEST_PROFILE ? "-test" : "");
   var GAME = PERSIST + "/game";
@@ -515,19 +519,25 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function sizeStage() {
     var s = document.getElementById("stage"), w = 0;
     if (!s) return;
+    var desktop = document.documentElement.classList.contains("d95-desk");
     // the player-only page: one canvas pixel for each game pixel, always (exact shots, docs/WEB_PLAYER.md)
     if (PLAYER_ONLY) w = gameScreen.w / (window.devicePixelRatio || 1);
-    else if (setting("pixelPerfect") === "on") {
+    else if (setting("pixelPerfect") === "on" || desktop) {
       var dpr = window.devicePixelRatio || 1, n = Math.max(1, Math.round(dpr));
       var roomW = (document.documentElement.clientWidth || window.innerWidth) - 24, roomH = window.innerHeight - 90;
+      // Desktop 95's game window (web/skins.js): the icons at the left, the controls above it, its own title bar
+      if (desktop) { roomW -= 120; roomH -= 60; }
       for (; n >= 1 && !w; n--) {
         var cw = gameScreen.w * n / dpr, ch = gameScreen.h * n / dpr;
         if (cw <= roomW && ch <= roomH) w = cw;
       }
+      // a window that does not fit is still pixel-perfect: one canvas pixel for each device pixel, and the desktop scrolls
+      if (!w && desktop) w = gameScreen.w / dpr;
     }
     if (w) s.style.setProperty("--pp-w", w + "px"); else s.style.removeProperty("--pp-w");
     document.documentElement.classList.toggle("pixel-perfect", !!w);
     if (chat) chat.layout();
+    if (desktop) try { ByopopSkin.desk.layout(); } catch (e) {}
   }
   window.addEventListener("resize", sizeStage);
 
@@ -1812,6 +1822,36 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     document.documentElement.classList.toggle("chat-attached", setting("chatPlace") === "game");
     if (chat) chat.layout();
   }
+  // the cards before play as a setup wizard's pages, drawn only in a skin (web/skins.js, ByopopSkin.wizard)
+  try {
+    ByopopSkin.wizard({ game: $("brand-name").textContent, bar: $("import-bar"),
+      cap: { colour: $("page-cap").style.getPropertyValue("--tile"), text: $("page-cap").textContent },
+      cards: [[$("terms-card"), 0], [$("import-card"), 1], [$("start-card"), 3]] });
+  } catch (e) { console.warn("the wizard's parts could not be added", e); }
+  // Desktop 95's windows (web/skins.js, ByopopSkin.desk): drawn only in that skin, on a wide screen. The controls (the bar) at the
+  // top, the game under them, the chat beside the game, the panels at the right; the game's size follows (sizeStage)
+  if (!PLAYER_ONLY) try {
+    (function () {
+      var d = ByopopSkin.desk;
+      d.add(document.querySelector("header.bar"), { id: "controls", title: ByopopStrings.t("skin.desk.controls"),
+        at: function (left) { return [left, 12]; } });
+      d.add($("main"), { id: "game", title: $("brand-name").textContent, snap: $("canvas"), closable: true,
+        at: function (left) { var c = d.find("controls"); return [left, c ? c.y + c.el.offsetHeight + 12 : 12]; } });
+      d.add($("chat"), { id: "chat", title: $("chat-title").textContent, handle: $("chat-title"),
+        at: function (left, vw) { var g = d.find("game"); return g ? [Math.min(g.x + g.el.offsetWidth + 12, vw - 312), g.y] : [left, 12]; } });
+      PANELS.forEach(function (id) {
+        var p = $(id), wid = id;
+        d.add(p, { id: wid, title: PANEL_BUTTONS[id] ? PANEL_BUTTONS[id].textContent : p.querySelector("h2").textContent, handle: p.querySelector("header"), button: PANEL_BUTTONS[id],
+          // the bar's own button, which fills the panel as it opens it (Settings)
+          open: function () { if (p.hidden) { if (PANEL_BUTTONS[id]) PANEL_BUTTONS[id].click(); else openPanel(id); } }, at: function (left, vw) { return [Math.max(left, vw - 470), 60]; } });
+        // a panel that opens comes to the front, where it was left
+        if (window.MutationObserver) new MutationObserver(function () { if (!p.hidden) { d.raise(wid); d.place(wid); } })
+          .observe(p, { attributes: true, attributeFilter: ["hidden"] });
+      });
+      window.addEventListener("byopop-desk", sizeStage);
+      ByopopSkin.deskSync();
+    })();
+  } catch (e) { console.warn("the desktop's windows could not be added", e); }
   placeChat();
   sizeStage();
   if (PAGE.init) PAGE.init();

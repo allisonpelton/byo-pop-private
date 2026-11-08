@@ -1,0 +1,324 @@
+/* The site's skins (docs/WEB_PLAYER.md, "Skins"; web/skins.js sets <html data-skin>): A Demo Disc, B Desktop 95, C Soda Fountain;
+   A and C light and dark, B light only. Loaded by the listing page and every game page after their own styles; Plain is those styles alone. A skin
+   changes the page around the game and never the game's picture. Each skin sets the pages' own colour variables (--bg, --panel,
+   --panel-2, --fg, --muted, --line, --accent, --accent-fg, --font-ui, --radius) and its own --sk-* ones, light first, then dark
+   the way the pages write it (web/theme.js); the rules after them read the variables, so they are written once for both. Period
+   fonts are named, never shipped: the player's own machine has them or the next one in the list. */
+
+/* ======================= A · Demo Disc: after the free-demo portals of 2003 to 2006 ======================= */
+:root[data-skin="demo"] {
+  --bg: #eaf4ff; --panel: #ffffff; --panel-2: #f1f7ff; --fg: #0b2a4a; --muted: #3d5a78; --line: #b9d6f5;
+  --accent: #1a64c0; --accent-fg: #ffffff; --ok: #1b7950; --warn: #8a5208;
+  --font-ui: Verdana, Tahoma, "DejaVu Sans", sans-serif; --radius: 10px;
+  --sk-page: linear-gradient(#d6eaff, #ffffff 360px);
+  --sk-bar: linear-gradient(#1e6fd0, #3d8ee8 55%, #2a7ddd); --sk-bar-fg: #ffffff; --sk-bar-edge: #ffb547;
+  --sk-head: linear-gradient(#5aa4f0, #1e6fd0); --sk-head-fg: #ffffff;
+  --sk-card: linear-gradient(#ffffff, #f1f7ff);
+  --sk-btn: linear-gradient(#ffffff, #dcebfb); --sk-btn-edge: #8fb8e6;
+  --sk-gel: linear-gradient(#ffc061, #ff8a00 50%, #e66d00); --sk-gel-edge: #b85300; --sk-gel-fg: #1d1000;
+  --sk-glow: none;
+}
+@media (prefers-color-scheme: dark) { :root[data-skin="demo"]:not([data-theme="light"]) {
+  --bg: #0a1220; --panel: #101b2c; --panel-2: #16253b; --fg: #dce9f7; --muted: #9db4cc; --line: #284566;
+  --accent: #5cb8ff; --accent-fg: #04121f; --ok: #4fd39a; --warn: #f0b252;
+  --sk-page: radial-gradient(ellipse at 50% -10%, #17304f, #0a1220 55%, #05080e);
+  --sk-bar: linear-gradient(#323c49, #121820 50%, #070a0f 51%, #0c1118); --sk-bar-fg: #ffffff; --sk-bar-edge: #3fa9ff;
+  --sk-head: linear-gradient(#2f4f73, #142a44 50%, #0d1f35 51%, #12304f); --sk-head-fg: #ffffff;
+  --sk-card: linear-gradient(rgba(255,255,255,.07), rgba(255,255,255,.02));
+  --sk-btn: linear-gradient(#2c3846, #161d26); --sk-btn-edge: #3a4a5e;
+  --sk-glow: 0 2px 12px rgba(63,169,255,.35);
+  color-scheme: dark; } }
+:root[data-skin="demo"][data-theme="dark"] {
+  --bg: #0a1220; --panel: #101b2c; --panel-2: #16253b; --fg: #dce9f7; --muted: #9db4cc; --line: #284566;
+  --accent: #5cb8ff; --accent-fg: #04121f; --ok: #4fd39a; --warn: #f0b252;
+  --sk-page: radial-gradient(ellipse at 50% -10%, #17304f, #0a1220 55%, #05080e);
+  --sk-bar: linear-gradient(#323c49, #121820 50%, #070a0f 51%, #0c1118); --sk-bar-fg: #ffffff; --sk-bar-edge: #3fa9ff;
+  --sk-head: linear-gradient(#2f4f73, #142a44 50%, #0d1f35 51%, #12304f); --sk-head-fg: #ffffff;
+  --sk-card: linear-gradient(rgba(255,255,255,.07), rgba(255,255,255,.02));
+  --sk-btn: linear-gradient(#2c3846, #161d26); --sk-btn-edge: #3a4a5e;
+  --sk-glow: 0 2px 12px rgba(63,169,255,.35);
+  color-scheme: dark;
+}
+:root[data-skin="demo"] body { background: var(--sk-page) no-repeat, var(--bg); background-attachment: fixed; }
+/* the glossy bar: the listing's header across the page (its content still within the page's width), the game page's bar */
+:root[data-skin="demo"] .site-header, :root[data-skin="demo"] .bar {
+  background: var(--sk-bar); color: var(--sk-bar-fg); border-bottom: 3px solid var(--sk-bar-edge); box-shadow: var(--sk-glow);
+}
+:root[data-skin="demo"] .site-header { max-width: none; padding-inline: max(16px, calc((100% - 960px) / 2 + 16px)); margin-bottom: 20px; padding-block: 14px; }
+:root[data-skin="demo"] .bar .status { color: rgba(255,255,255,.85); }
+:root[data-skin="demo"] .brand .site { border-right-color: rgba(255,255,255,.35); }
+/* buttons: glossy, the primary ones the orange gel */
+:root[data-skin="demo"] button, :root[data-skin="demo"] .button { background: var(--sk-btn); border-color: var(--sk-btn-edge); border-radius: 12px; color: var(--fg); }
+:root[data-skin="demo"] .bar button { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.35); color: #ffffff; }
+:root[data-skin="demo"] button.primary, :root[data-skin="demo"] .add-games, :root[data-skin="demo"] .terms-row button.primary {
+  background: var(--sk-gel); border: 1px solid var(--sk-gel-edge); color: var(--sk-gel-fg); font-weight: bold; box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+}
+:root[data-skin="demo"] .theme-btn { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.4); color: #ffffff; }
+/* the shelf: glossy cards */
+:root[data-skin="demo"] .games > li { background: var(--sk-card); border-color: var(--line); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }
+:root[data-skin="demo"] .games > li.soon { background: transparent; }
+:root[data-skin="demo"] .tabs [role=tab][aria-selected=true] { background: var(--sk-head); color: var(--sk-head-fg); border-color: var(--line); }
+/* box headings: the panels', the chat's */
+:root[data-skin="demo"] .panel header, :root[data-skin="demo"] .chat h2 button { background: var(--sk-head); color: var(--sk-head-fg); }
+:root[data-skin="demo"] .panel header button { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.4); color: #ffffff; }
+:root[data-skin="demo"] .stage-wrap { background: transparent; }
+
+/* ======================= B · Desktop 95: an affectionate parody of the 1995 desktop ======================= */
+/* Its windows (every part of a game's page a window on one desktop) are web/skins.js's and the page's; this is their look */
+:root[data-skin="d95"] {
+  --bg: #008080; --panel: #c0c0c0; --panel-2: #c0c0c0; --fg: #000000; --muted: #3a3a3a; --line: #808080;
+  --accent: #000080; --accent-fg: #ffffff; --ok: #005c2a; --warn: #6b3d00;
+  --font-ui: "MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Segoe UI", sans-serif; --radius: 0px;
+  --sk-hi: #ffffff; --sk-lo: #808080; --sk-dk: #000000; --sk-mid: #dfdfdf; --sk-well: #ffffff;
+  --sk-title: linear-gradient(90deg, #000080, #1084d0); --sk-title-fg: #ffffff; --sk-desk-fg: #ffffff;
+}
+/* B has a light version only (the user, 2026-11-07: "Only A and C"): in a dark theme it stays light, and the theme button,
+   which would change nothing, is not shown */
+:root[data-skin="d95"] { color-scheme: light; }
+:root[data-skin="d95"] [data-theme-toggle] { display: none; }
+:root[data-skin="d95"] body { font-size: 13px; }
+/* the raised bevel of a window or a button, and the sunken one of a field */
+:root[data-skin="d95"] .games > li, :root[data-skin="d95"] main:not(.stage-wrap), :root[data-skin="d95"] .bar, :root[data-skin="d95"] .panel,
+:root[data-skin="d95"] .chat, :root[data-skin="d95"] button, :root[data-skin="d95"] .button {
+  background: var(--panel); border: 0; border-radius: 0;
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid);
+}
+:root[data-skin="d95"] button:active:not([disabled]), :root[data-skin="d95"] button[aria-pressed=true], :root[data-skin="d95"] button[aria-expanded=true] {
+  box-shadow: inset 1px 1px var(--sk-dk), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-lo), inset -2px -2px var(--sk-mid);
+}
+:root[data-skin="d95"] input:not([type=checkbox]):not([type=radio]):not([type=range]), :root[data-skin="d95"] select, :root[data-skin="d95"] textarea {
+  background: var(--sk-well); color: var(--fg); border: 0; border-radius: 0;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid);
+}
+:root[data-skin="d95"] button.primary { outline: 1px solid var(--sk-dk); outline-offset: -1px; background: var(--panel); color: var(--fg); }
+/* the listing: the desktop with its logo, and the page's content in one window */
+:root[data-skin="d95"] .site-header { color: var(--sk-desk-fg); }
+:root[data-skin="d95"] .theme-btn { color: var(--fg); }
+:root[data-skin="d95"] main:not(.stage-wrap) { padding: 14px 16px 24px; margin-bottom: 24px; }
+:root[data-skin="d95"] .games > li.soon { background: var(--panel); opacity: 1; }
+:root[data-skin="d95"] .tabs [role=tab][aria-selected=true] { background: var(--panel); color: var(--fg);
+  box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo); border: 0; }
+/* title bars: the panels', the chat's */
+:root[data-skin="d95"] .panel header, :root[data-skin="d95"] .chat h2 button { background: var(--sk-title); color: var(--sk-title-fg); margin: 3px; padding: 3px 6px; box-shadow: none; border: 0; font-weight: bold; }
+:root[data-skin="d95"] .panel header h2 { font-size: 13px; }
+:root[data-skin="d95"] .panel header button { padding: 0 6px; min-height: 0; }
+:root[data-skin="d95"] .chat-body { border-top: 0; }
+:root[data-skin="d95"] .stage { border-radius: 0; }
+:root[data-skin="d95"] .bar .status { color: var(--muted); }
+
+/* The desktop of a game page (html.d95-desk, web/skins.js): every part a window placed by the script, the icons at the left, the
+   footer along the bottom. The title bars added by the script are drawn only here. */
+.d95-tb, .d95-icons { display: none; }
+html.d95-desk { overflow-x: hidden; }
+html.d95-desk body { display: block; position: relative; min-height: 100%; height: auto; padding-bottom: 40px; box-sizing: border-box; }
+html.d95-desk .workspace { display: block; }
+html.d95-desk .d95-win { position: absolute; margin: 0; z-index: 10; box-sizing: border-box; padding: 3px;
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid);
+  background: var(--panel); }
+html.d95-desk .d95-win.d95-closed { display: none !important; }
+html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title); color: var(--sk-title-fg);
+  padding: 2px 3px 2px 6px; font-weight: bold; min-height: 18px; white-space: nowrap; overflow: hidden; }
+html.d95-desk .d95-tb > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+html.d95-desk .d95-handle { cursor: default; touch-action: none; -webkit-user-select: none; user-select: none; }
+html.d95-dragging, html.d95-dragging * { -webkit-user-select: none !important; user-select: none !important; }
+/* the close button: an X drawn with two strokes */
+html.d95-desk .d95-x { width: 16px; height: 14px; padding: 0; flex: none; position: relative; color: var(--fg); }
+html.d95-desk .d95-x::before, html.d95-desk .d95-x::after { content: ""; position: absolute; left: 3px; right: 4px; top: 5px; height: 2px;
+  background: currentColor; transform: rotate(45deg); }
+html.d95-desk .d95-x::after { transform: rotate(-45deg); }
+/* the controls: the page's bar, its buttons wrapping in a window no wider than the screen */
+html.d95-desk .bar.d95-win { width: min(760px, calc(100vw - 150px)); padding: 3px 8px 8px; gap: 8px; border: 0; }
+html.d95-desk .bar.d95-win > .d95-tb { flex: 1 0 100%; margin: 0 -5px 2px; }
+/* the game: its stage exactly the size sizeStage gives it, no margin, no shadow */
+html.d95-desk .stage-wrap.d95-win { display: block; place-items: normal; width: max-content; padding: 3px; }
+html.d95-desk .stage-wrap.d95-win > .d95-tb { margin-bottom: 2px; }
+html.d95-desk .stage-wrap .stage { box-shadow: none; max-width: none; }
+/* the chat: a fixed size, whatever room the page has beside the game (chat.js's chat-below has no part here) */
+html.d95-desk .chat.d95-win { width: 300px; height: 480px; max-height: calc(100vh - 60px); }
+html.d95-desk .chat.d95-win.chat-collapsed { height: auto; }
+html.d95-desk .chat.d95-win h2 button { margin: 0; }
+/* the panels: windows at the right, as high as their contents */
+html.d95-desk .panel.d95-win { width: min(440px, calc(100vw - 32px)); bottom: auto; right: auto; max-height: calc(100vh - 80px); padding: 3px; border: 0; }
+html.d95-desk .panel.d95-win > header { margin: 0; }
+/* the footer along the bottom, as a task bar */
+html.d95-desk .byopop-footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; padding: 4px 12px; background: var(--panel);
+  box-shadow: inset 0 1px var(--sk-mid), inset 0 2px var(--sk-hi); color: var(--fg); }
+/* the desktop icons: a picture drawn here (a little window, its title bar the window's own colour) and a name under it */
+html.d95-desk .d95-icons { display: flex; flex-direction: column; gap: 6px; position: absolute; left: 8px; top: 12px; width: 84px; z-index: 1; }
+html.d95-desk .d95-icon { display: grid; justify-items: center; gap: 4px; padding: 4px 2px; background: transparent; box-shadow: none;
+  color: var(--sk-desk-fg); font-size: 12px; text-align: center; }
+html.d95-desk .d95-icon[hidden] { display: none; }
+html.d95-desk .d95-icon:hover, html.d95-desk .d95-icon:focus-visible { background: rgba(0, 0, 128, .45); }
+html.d95-desk .d95-icon[aria-pressed=true] { box-shadow: none; }
+html.d95-desk .d95-icon > i { display: block; width: 32px; height: 26px; background: var(--panel); position: relative;
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), 1px 1px 0 rgba(0, 0, 0, .4); }
+html.d95-desk .d95-icon > i::before { content: ""; position: absolute; left: 2px; right: 2px; top: 2px; height: 6px; background: var(--sk-title); }
+html.d95-desk .d95-icon > i::after { content: ""; position: absolute; left: 6px; right: 6px; top: 11px; bottom: 5px; }
+html.d95-desk .d95-icon-game > i::after { background: #000000; }
+html.d95-desk .d95-icon-controls > i::after { bottom: auto; height: 4px; box-shadow: 0 6px 0 var(--sk-lo); background: var(--sk-lo); }
+html.d95-desk .d95-icon-chat > i::after { background: var(--sk-well); border-radius: 0 0 0 0; box-shadow: inset 0 0 0 1px var(--sk-lo); }
+html.d95-desk .d95-icon-panel-settings > i::after { border-radius: 50%; border: 3px dotted var(--sk-lo); left: 10px; right: 10px; }
+html.d95-desk .d95-icon-panel-files > i::after { background: #e6c35a; clip-path: polygon(0 0, 40% 0, 50% 25%, 100% 25%, 100% 100%, 0 100%); }
+html.d95-desk .d95-icon-panel-mods > i::after { background: var(--accent); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+
+/* ======================= C · Soda Fountain: byo-pop taken at its word ======================= */
+:root[data-skin="soda"] {
+  --bg: #fdf3e1; --panel: #fffaf0; --panel-2: #f7ead2; --fg: #3a1d12; --muted: #6b4a3a; --line: #e0c9a6;
+  --accent: #b20d29; --accent-fg: #ffffff; --ok: #1b6b47; --warn: #8a4f08;
+  --font-ui: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; --radius: 12px;
+  --sk-sign: "Cooper Black", "Bookman Old Style", Georgia, serif;
+  --sk-awning: repeating-linear-gradient(90deg, #c8102e 0 28px, #ffffff 28px 56px); --sk-awning-edge: #8c0b20; --sk-awning-glow: none;
+  --sk-felt: radial-gradient(circle at 30% 20%, #3c6b5c, #1f3d34); --sk-wood: #6b4228; --sk-wood-dk: #4a2c19;
+  --sk-chrome1: #f2f4f6; --sk-chrome2: #aab1b9; --sk-chrome3: #8b939c;
+  --sk-board-fg: #f7ecd4; --sk-board-muted: #d9c9aa;
+  --sk-menu: #2b1d16; --sk-menu-fg: #f7ecd4; --sk-menu-head: #ffd27a;
+  --sk-sign-shadow: 2px 2px 0 #ffd27a;
+}
+@media (prefers-color-scheme: dark) { :root[data-skin="soda"]:not([data-theme="light"]) {
+  --bg: #120c14; --panel: #1d1419; --panel-2: #2a1d24; --fg: #f6e6cf; --muted: #c9b49c; --line: #4a3340;
+  --accent: #ff5c78; --accent-fg: #1a0a10; --ok: #4fe0a8; --warn: #f0b252;
+  --sk-awning: repeating-linear-gradient(90deg, #5e0a1a 0 28px, #2b1d22 28px 56px); --sk-awning-edge: #1a0a10;
+  --sk-awning-glow: 0 3px 0 -1px #ff3b5c, 0 4px 14px rgba(255,59,92,.6);
+  --sk-felt: radial-gradient(circle at 30% 20%, #234338, #0f211b); --sk-wood: #3d2516; --sk-wood-dk: #24150c;
+  --sk-chrome1: #5d646d; --sk-chrome2: #2a2f35; --sk-chrome3: #15181c;
+  --sk-board-fg: #e6d8bd; --sk-board-muted: #bfae90;
+  --sk-menu: #0b0709; --sk-menu-fg: #f7ecd4; --sk-menu-head: #fff4d6;
+  --sk-sign-shadow: 0 0 4px #ff3b5c, 0 0 12px #ff3b5c;
+  color-scheme: dark; } }
+:root[data-skin="soda"][data-theme="dark"] {
+  --bg: #120c14; --panel: #1d1419; --panel-2: #2a1d24; --fg: #f6e6cf; --muted: #c9b49c; --line: #4a3340;
+  --accent: #ff5c78; --accent-fg: #1a0a10; --ok: #4fe0a8; --warn: #f0b252;
+  --sk-awning: repeating-linear-gradient(90deg, #5e0a1a 0 28px, #2b1d22 28px 56px); --sk-awning-edge: #1a0a10;
+  --sk-awning-glow: 0 3px 0 -1px #ff3b5c, 0 4px 14px rgba(255,59,92,.6);
+  --sk-felt: radial-gradient(circle at 30% 20%, #234338, #0f211b); --sk-wood: #3d2516; --sk-wood-dk: #24150c;
+  --sk-chrome1: #5d646d; --sk-chrome2: #2a2f35; --sk-chrome3: #15181c;
+  --sk-board-fg: #e6d8bd; --sk-board-muted: #bfae90;
+  --sk-menu: #0b0709; --sk-menu-fg: #f7ecd4; --sk-menu-head: #fff4d6;
+  --sk-sign-shadow: 0 0 4px #ff3b5c, 0 0 12px #ff3b5c;
+  color-scheme: dark;
+}
+/* the awning across the top of every page */
+:root[data-skin="soda"] body::before {
+  content: ""; display: block; flex: none; height: 18px; background: var(--sk-awning); border-bottom: 3px solid var(--sk-awning-edge); box-shadow: var(--sk-awning-glow);
+}
+:root[data-skin="soda"] h1, :root[data-skin="soda"] h2, :root[data-skin="soda"] .brand h1 { font-family: var(--sk-sign); font-weight: normal; letter-spacing: .01em; }
+:root[data-skin="soda"] .brand h1 { color: var(--accent); text-shadow: var(--sk-sign-shadow); font-size: 18px; }
+:root[data-skin="soda"] button, :root[data-skin="soda"] .button { border-radius: 999px; }
+:root[data-skin="soda"] button.primary, :root[data-skin="soda"] .add-games { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+/* the listing: the games on the felt board in its wooden frame */
+:root[data-skin="soda"] .games {
+  padding: 18px; border-radius: 14px; background: var(--sk-felt);
+  box-shadow: inset 0 0 0 8px var(--sk-wood), inset 0 0 0 10px var(--sk-wood-dk), 0 8px 18px rgba(0,0,0,.25);
+  padding: 26px;
+}
+:root[data-skin="soda"] .games > li { --fg: var(--sk-board-fg); --muted: var(--sk-board-muted); --line: rgba(255,255,255,.18); --panel: transparent;
+  background: transparent; border-color: transparent; color: var(--sk-board-fg); }
+:root[data-skin="soda"] .games > li:hover, :root[data-skin="soda"] .games > li:focus-within { border-color: rgba(255,255,255,.35); }
+:root[data-skin="soda"] .games > li.soon { background: transparent; border-color: rgba(255,255,255,.22); }
+:root[data-skin="soda"] .games a { color: var(--sk-board-fg); }
+:root[data-skin="soda"] .tabs [role=tab][aria-selected=true] { color: var(--accent); }
+/* a game's page: the stage behind chrome, the chat a menu board, the bar the counter's front */
+:root[data-skin="soda"] .bar { background: var(--panel); border-bottom: 2px solid var(--accent); }
+:root[data-skin="soda"] .stage { border-radius: 6px;
+  box-shadow: 0 0 0 3px var(--sk-chrome1), 0 0 0 7px var(--sk-chrome2), 0 0 0 10px var(--sk-chrome3), 0 12px 36px rgba(0,0,0,.35); }
+:root[data-skin="soda"] .stage-wrap { padding: 20px; }
+:root[data-skin="soda"] .chat { --panel: var(--sk-menu); --panel-2: #3a2a20; --fg: var(--sk-menu-fg); --muted: #cdbb9f; --line: #4a3628;
+  background: var(--sk-menu); color: var(--sk-menu-fg); border-color: #4a3628; }
+:root[data-skin="soda"] .chat h2 button { font-family: var(--sk-sign); font-weight: normal; color: var(--sk-menu-head); font-size: 16px; }
+:root[data-skin="soda"] .panel header { border-bottom: 2px solid var(--accent); }
+
+/* The logo for dark grounds on the Demo Disc's blue bar and the Desktop 95 desktop, in both themes: the light logo stays in the
+   page out of sight, since its alt text names the link (as the dark theme does it) */
+:root[data-skin="demo"] .site-header .logo-light, :root[data-skin="demo"] .brand .logo-light,
+:root[data-skin="d95"] .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+:root[data-skin="demo"] .site-header .logo-dark, :root[data-skin="demo"] .brand .logo-dark,
+:root[data-skin="d95"] .site-header .logo-dark { display: block; }
+
+/* ======================= the setup wizard (web/skins.js, ByopopSkin.wizard): a game's cards before play ======================= */
+/* Plain draws none of it */
+.wiz-head, .wiz-art { display: none; }
+:root[data-skin] .wiz-card { position: relative; grid-template-columns: 112px minmax(0, 1fr); max-width: 620px; padding: 0 20px 20px 0; gap: 12px 18px; overflow: hidden; align-items: start; align-content: start; }
+:root[data-skin] .wiz-card > * { grid-column: 2; }
+:root[data-skin] .wiz-card > .wiz-head { display: grid; gap: 6px; grid-column: 1 / -1; margin-right: -20px; padding: 7px 12px; position: relative; z-index: 1; }
+/* the art column fills the card's height at its left, under the title bar */
+:root[data-skin] .wiz-card > .wiz-art { display: grid; justify-items: center; align-content: start; gap: 12px; position: absolute; left: 0; top: 0; bottom: 0; width: 112px; padding: 70px 0 18px; box-sizing: border-box;
+  grid-column: auto; grid-row: auto; /* an absolute grid item's containing block is its grid area: none, the card's padding box */ }
+:root[data-skin] .wiz-card > .page-cap { grid-column: 1; grid-row: 2; justify-self: center; margin-top: 18px; position: relative; z-index: 1; }
+:root[data-skin] .wiz-card:has(> .page-cap) > .wiz-art { padding-top: 150px; }
+.wiz-title { font-weight: bold; }
+.wiz-steps { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; font-size: 11.5px; }
+.wiz-steps li { padding: 1px 8px; border-radius: 999px; opacity: .75; }
+.wiz-card[data-wiz-step="0"] .wiz-steps li:nth-child(1), .wiz-card[data-wiz-step="1"] .wiz-steps li:nth-child(2),
+.wiz-card[data-wiz-step="2"] .wiz-steps li:nth-child(3), .wiz-card[data-wiz-step="3"] .wiz-steps li:nth-child(4) { opacity: 1; font-weight: bold; }
+/* the cap, as the listing draws a game's badge */
+.wiz-cap { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; color: #ffffff; font-size: 22px; font-weight: 700;
+  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0,0,0,.2) 69% 73%, transparent 74% 84%, rgba(0,0,0,.16) 85%), var(--tile);
+  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat; }
+/* C's bottle, filling with the copy (--wiz-fill, the import's progress) and full at Finish */
+.wiz-bottle { display: none; width: 52px; height: 124px; border-radius: 20px 20px 10px 10px / 36px 36px 10px 10px; border: 3px solid #7aa7a0; position: relative; overflow: hidden; background: #eef7f6; }
+.wiz-bottle i { position: absolute; left: 0; right: 0; bottom: 0; height: var(--wiz-fill, 0%); background: linear-gradient(#b5452c, #7a2210); transition: height 200ms linear; }
+.wiz-card[data-wiz-step="3"] .wiz-bottle i { height: 100%; }
+.wiz-title-bottle { display: none; }
+
+/* A: the blue setup window of the portals' installers; dark: black glass */
+:root[data-skin="demo"] .wiz-card > .wiz-head { background: linear-gradient(#3b8af2, #1953c8 45%, #1d58cf); color: #ffffff; }
+:root[data-skin="demo"] .wiz-steps li { background: rgba(255,255,255,.15); }
+:root[data-skin="demo"] .wiz-card > .wiz-art { background: linear-gradient(160deg, #2a7ddd, #8cc8ff); }
+@media (prefers-color-scheme: dark) { :root[data-skin="demo"]:not([data-theme="light"]) .wiz-card > .wiz-head { background: linear-gradient(#3a4656, #19202a 50%, #0b0f15 51%, #141b24); border-bottom: 1px solid #3fa9ff; }
+  :root[data-skin="demo"]:not([data-theme="light"]) .wiz-card > .wiz-art { background: radial-gradient(circle at 50% 30%, #1f7fd6, #0a2342 75%); } }
+:root[data-skin="demo"][data-theme="dark"] .wiz-card > .wiz-head { background: linear-gradient(#3a4656, #19202a 50%, #0b0f15 51%, #141b24); border-bottom: 1px solid #3fa9ff; }
+:root[data-skin="demo"][data-theme="dark"] .wiz-card > .wiz-art { background: radial-gradient(circle at 50% 30%, #1f7fd6, #0a2342 75%); }
+:root[data-skin="demo"] .progress { height: 14px; border-radius: 3px; border: 1px solid var(--line); background: var(--panel); padding: 1px; }
+:root[data-skin="demo"] .progress > div { background: repeating-linear-gradient(90deg, #39b54a 0 8px, transparent 8px 10px); border-radius: 0; }
+
+/* B: a window with a title bar, the wizard's picture at the left, a chunked progress bar */
+:root[data-skin="d95"] .card { background: var(--panel); border: 0; border-radius: 0; padding: 18px;
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
+:root[data-skin="d95"] .wiz-card { padding: 3px 14px 14px 3px; }
+:root[data-skin="d95"] .wiz-card > .wiz-head { background: var(--sk-title); color: var(--sk-title-fg); margin-right: -11px; padding: 3px 6px; }
+:root[data-skin="d95"] .wiz-steps { display: none; }
+:root[data-skin="d95"] .wiz-card > .wiz-art { background: linear-gradient(var(--bg), color-mix(in srgb, var(--bg) 60%, #000)); left: 11px; top: 11px; bottom: 11px; width: 96px;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
+:root[data-skin="d95"] .progress { height: 18px; border-radius: 0; padding: 3px; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk); }
+:root[data-skin="d95"] .progress > div { background: repeating-linear-gradient(90deg, var(--accent) 0 9px, transparent 9px 11px); }
+
+/* C: the bottling line, the bottle at the left */
+:root[data-skin="soda"] .wiz-card { border: 2px solid var(--accent); }
+:root[data-skin="soda"] .wiz-card > .wiz-head { background: var(--accent); color: var(--accent-fg); }
+:root[data-skin="soda"] .wiz-title-setup { display: none; }
+:root[data-skin="soda"] .wiz-title-bottle { display: inline; font: 17px var(--sk-sign); }
+:root[data-skin="soda"] .wiz-steps li { border: 1px solid currentColor; }
+:root[data-skin="soda"] .wiz-cap { display: none; }
+:root[data-skin="soda"] .wiz-bottle { display: block; }
+:root[data-skin="soda"] .wiz-card > .page-cap { margin-top: 10px; transform: scale(.7); }
+@media (prefers-color-scheme: dark) { :root[data-skin="soda"]:not([data-theme="light"]) .wiz-bottle { background: #0f1d1b; border-color: #4fa89b; box-shadow: 0 0 16px rgba(79,224,200,.35); }
+  :root[data-skin="soda"]:not([data-theme="light"]) .wiz-card { box-shadow: 0 0 0 1px rgba(255,59,92,.35), 0 8px 24px rgba(0,0,0,.4); } }
+:root[data-skin="soda"][data-theme="dark"] .wiz-bottle { background: #0f1d1b; border-color: #4fa89b; box-shadow: 0 0 16px rgba(79,224,200,.35); }
+:root[data-skin="soda"][data-theme="dark"] .wiz-card { box-shadow: 0 0 0 1px rgba(255,59,92,.35), 0 8px 24px rgba(0,0,0,.4); }
+
+/* ======================= the cap board: the listing's caps in every skin ======================= */
+/* A game whose files are here keeps its cap and initials, its own icon (read from the player's exe at the import, web/exeicon.js:
+   never shipped or redrawn) faint under them; Plain shows the icon alone (web/index.html) */
+:root[data-skin] .badge.has-icon { position: relative; isolation: isolate;
+  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0,0,0,.2) 69% 73%, transparent 74% 84%, rgba(0,0,0,.16) 85%), var(--tile);
+  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat; }
+:root[data-skin] .badge.has-icon img { position: absolute; inset: 14px; width: auto; height: auto; opacity: .6; z-index: -1; }
+:root[data-skin] .badge.has-icon .badge-initials { display: inline; text-shadow: 0 1px 2px rgba(0,0,0,.55); }
+/* C: the board has a hole for every game; a cap sits in it once the game's files are here */
+:root[data-skin="soda"] .games > li:not([data-files="yes"]) .badge {
+  -webkit-mask: none; mask: none; border-radius: 50%; width: 64px; height: 64px; margin: 4px;
+  background: radial-gradient(circle, rgba(0,0,0,.42), rgba(0,0,0,.18) 70%); box-shadow: inset 0 3px 7px rgba(0,0,0,.55);
+  color: rgba(255,255,255,.55); font-size: 15px; filter: none; }
+:root[data-skin="soda"] .games .own-yes { color: #ffd27a; }
+
+/* Ambient light (web/skins.js): the dark Demo Disc and Soda Fountain only, on a game page; C's a little stronger, as a lit jukebox
+   on the counter. The glow stays inside the stage's box. */
+.sk-glow { display: none; }
+html.sk-ambient .stage-wrap { position: relative; overflow: hidden; isolation: isolate; }
+html.sk-ambient .stage-wrap > .stage { z-index: 1; }
+html.sk-ambient .sk-glow { display: block; position: absolute; z-index: 0; pointer-events: none; opacity: 0;
+  filter: blur(42px) saturate(1.5); transition: opacity 1.6s ease; }
+html.sk-ambient .sk-glow.on { opacity: var(--sk-amb, .75); }
+:root[data-skin="soda"] { --sk-amb: .85; }
+@media (prefers-reduced-motion: reduce) { html.sk-ambient .sk-glow { transition: none; } }

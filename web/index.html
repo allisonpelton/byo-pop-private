@@ -185,6 +185,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 /* A game whose files are loaded shows its own icon in place of the initials: the badge's size, with crisp pixels
    when it is enlarged (icons are kept at 64 px or less) */
 .badge.has-icon { background: none; box-shadow: none; -webkit-mask: none; mask: none; }
+.badge.has-icon .badge-initials { display: none; }
 .badge img { display: block; width: 72px; height: 72px; object-fit: contain; image-rendering: crisp-edges; image-rendering: pixelated; }
 /* Under the name, in words: whether the game's files are loaded in this browser ("Play now") or not ("Add your files"),
    and for a game played here before, a "?" that explains why they are not (docs/WEB_PLAYER.md, "The listing page") */
@@ -345,6 +346,8 @@ footer {
 footer p { margin: 0 0 8px; }
 footer a { color: var(--accent); }
 </style>
+<!-- the site's skins (web/skins.js sets <html data-skin>; docs/WEB_PLAYER.md, "Skins") -->
+<link rel="stylesheet" href="skins.css"><script src="skins.js"></script>
 </head>
 <body>
 <header class="site-header">
@@ -727,7 +730,8 @@ try {
   function show(tile, info, gen) {
     if (gen !== generation) return;  // a newer check has started
     var card = tile.parentNode, row = card.querySelector(".ownrow"), label = card.querySelector(".own");
-    // the game's own icon (read out of its exe by the game's page, kept in the record) in place of the initials
+    // the game's own icon (read out of its exe by the game's page, kept in the record) in place of the initials; in a skin, faint
+    // under them on the cap (web/skins.css, "The cap board"), so the initials stay in the badge, out of sight in Plain
     var badge = tile.querySelector(".badge");
     if (badge.getAttribute("data-initials") === null) badge.setAttribute("data-initials", badge.textContent);
     if (info.state === "yes" && info.icon) {
@@ -737,6 +741,9 @@ try {
         shown = make("img");
         shown.alt = "";  // the card has the game's name
         badge.appendChild(shown);
+        var initials = make("span", badge.getAttribute("data-initials"));
+        initials.className = "badge-initials";
+        badge.appendChild(initials);
         badge.classList.add("has-icon");
       }
       if (shown.getAttribute("src") !== info.icon) shown.src = info.icon;
