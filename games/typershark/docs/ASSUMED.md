@@ -36,7 +36,7 @@ are `mShipName` / `mShipNames` / `mUsedShipNames`, `mString6d0` / `mVector704` /
 Translated; the headers are the contract now. Renames the job made in the callers: `mUserCount` is `mUsers.size()`, `mField34` is
 `mBestDepth` (registry AnnoDomini), `mField10` is `mLastDepth`, `mField60` is `mLastLesson`, `GetUserField34` is
 `GetUserBestDepth`. The manager declares `GetDefaultUserNumber` and `FirstFreeUserNumber`, which stay in WinWSAppGame.cpp.
-Placeholders left in the profile: mField0c, mField64, mField68, `StatGroup::mField0` / `mField8`, and `mField1c8` (the original
+Placeholders left in the profile: mField0c, mField64, `StatGroup::mField0` / `mField8`, and `mField1c8` (the original
 never sets it; zeroed). The default high-score names are read through GT from the static initializer's texts (0x52d87c...).
 Quirks kept (for the game notes): a loaded profile's stat groups hold 70 records, of which only the first 35 are written
 back; `WriteDataToDisk` stores `mField1ec` where `LoadDataFromDisk` reads `mField1b4`; `RegisterDefaultUserName` always
@@ -45,6 +45,11 @@ returns false; `SaveUser` does not free the profile it replaces.
 ## Screens, widgets, dialogs (jobs S1, W1, D1, D2, T1)
 - MenuScreen(WinWSApp*) (0x4436e0); TitleScreen(WinWSApp*), `AddControls()` (0x448f40), `mPlayButton` (+0x78);
   HighScoreScreen(WinWSApp*) (its +0x58 is set to the app's mProfileMgr).
+- W1 done (StatusBar, TabbedWidget, TabPanel, TutorialPanel, AdventurePanel, AbyssPanel, StatsScreen; headers are the contract). Profile
+  renames: mField68 `mBestTreasureWords`, mField6c `mGemsFound`, mField84 `mSecretsFound`, mField22c `mGamesCompleted`.
+  XWidget::MouseDown (0x458cb0) assumes of MapScreen: `HyperlinkWidget* mContinueLink` (+0x178, the "press space bar to continue"
+  link), `char mChosenLetter` (+0x235) and `void OnLevelChosen()` (0x4538e0, with its helper 0x4537b0; attribute.py files both
+  under XWidget but they are MapScreen's: job S1 translates them). 0x4506a0 is MapScreen's too.
 - MapScreen(WinWSApp*) (0x458d10, sizeof 0x238; +0x228 is the chosen level `mLevel`), `OnEnter()` (0x4533b0), `ResetScroll()`
   (0x441030), `ClearNodeWidgets()` (0x443e20), `SetFinalLevel(bool)` (0x441080), `std::map<int,MapNode*> mMap1a8`,
   `vector<ProfilePair*> mVector1c4`, `vector<MapNode*> mVector1d4`, mField1f8, mFlag224, mFlag234.

@@ -62,6 +62,19 @@ void TooltipWidget::SetArmed(bool on)
 	mDisabled = true;
 }
 
+// added for W1
+// 0x449870: the text and the font are set, and the tooltip is resized to the text: the text's width plus 8 by the font's
+// ascent plus 6, at its own x and y (the original passes the text by value and calls Widget's Resize directly)
+void TooltipWidget::SetTextAndFont(SexyString theText, Font* theFont)
+{
+	mText = theText;
+	mFont = theFont;
+	int aWidth = mFont->StringWidth(mText);
+	int aHeight = mFont->GetAscent();
+	Rect aRect(mX, mY, aWidth + 8, aHeight + 6);
+	Widget::Resize(aRect);
+}
+
 // 0x4431d0 slot 16 (the leading call of the export is the empty Widget::Draw)
 void TooltipWidget::Draw(Graphics* g)
 {

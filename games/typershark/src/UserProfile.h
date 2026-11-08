@@ -73,10 +73,10 @@ public:
 	int						mAbyssPiranhasKilled;	// +0x5c NumAbyssPiranhasKilled
 	int						mLastLesson;			// +0x60 LastLesson
 	int						mField64;				// +0x64 saved in the file, no other role known
-	int						mField68;				// +0x68 saved in the file, no other role known
-	int						mField6c[6];			// +0x6c counted by 0x412690 (with mField234)
-	int						mField84[4];			// +0x84 counted by 0x4126b0 (with mField24c)
-	int						mField94[19];			// +0x94 -1 at the start
+	int						mBestTreasureWords;		// +0x68 the most treasure words of any game (the board raises it); the stats screen's "Highest number of treasure words"
+	int						mGemsFound[6];			// +0x6c how many of each of the six gems were found (CountGemFound 0x412690, with mField234); the stats screen's "Gems found"
+	int						mSecretsFound[4];		// +0x84 how many of each of the four secret items (crown, figurine, necklace, scepter) were found (CountSecretFound 0x4126b0, with mField24c)
+	int						mField94[19];			// +0x94 per lesson (0 is the typing test): -1 until the lesson has been completed (the stats screen's tutorial page tests it)
 	std::vector<StatRecord>	mRecordsE0;				// +0xe0 (pad) +0xe4 first, +0xe8 last, +0xec end: 19 records
 	StatGroup				mGroups[6];				// +0xf0, 0x20 bytes each
 	int						mField1b0;				// +0x1b0 saved game (0x412520 / 0x412580)
@@ -101,7 +101,7 @@ public:
 	bool					mShowHints;				// +0x1fd true at the start
 	int						mWPM[10];				// +0x200 the last ten speeds (registry WPM<i>)
 	int						mField228;				// +0x228 index of the next mWPM entry (registry LastWPMIndex)
-	int						mField22c;				// +0x22c registry NGC
+	int						mGamesCompleted;		// +0x22c registry NGC: finished adventure games ("expeditions completed"; 1-2 bronze, 3-4 silver, 5 or more gold medal)
 	bool					mFlag230;				// +0x230 registry RNGC, true at the start
 	int						mField234[6];			// +0x234 registry GTT<i>
 	int						mField24c[4];			// +0x24c registry SGTT<i>
@@ -132,12 +132,16 @@ public:
 	void					RecordResult(bool theFlag, int theField1b0, int theField1b4, int theField1c0, int theField1c4,
 								int theField1c8);										// 0x412580
 	int						GetBestScore();												// 0x4125d0
+	// ---- added for W1 (the typing-test graphs of the tutorial page of the stats screen) ----
+	int						GetAverageWPM(int theLesson);								// 0x413d10 the lesson's total words per minute over its runs (0 when it has none)
+	int						GetAverageAdjustedWPM(int theLesson);						// 0x413d40 the same for the adjusted words per minute
+	int						GetAverageAccuracy(int theLesson);							// 0x413d70 the same for the accuracy
 	void					CountSharkKilled(bool theAbyss);							// 0x412610
 	void					SetField1f4(int theValue);									// 0x412640
 	void					SetField1f8(int theValue);									// 0x412650
 	void					CountPiranhaKilled(bool theAbyss);							// 0x412660
-	void					CountField6c(int theIndex);									// 0x412690
-	void					CountField84(int theIndex);									// 0x4126b0
+	void					CountGemFound(int theIndex);									// 0x412690
+	void					CountSecretFound(int theIndex);									// 0x4126b0
 	int						GetField1e4();												// 0x4126d0
 	void					SetField1e4(int theValue);									// 0x4126e0
 	void					ClearFields1cc();											// 0x4126f0

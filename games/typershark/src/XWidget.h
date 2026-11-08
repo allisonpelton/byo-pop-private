@@ -22,7 +22,7 @@ public:
 	Widget*					mOwner;			// +0x5c the screen that made the widget (second constructor argument)
 	bool					mFadingUp;		// +0x60 true while the alpha rises (ctor false: it starts by falling)
 	int						mAlpha;			// +0x64 ctor 255
-	int						mField68;		// +0x68 set by the creating screen (0x45ad20); not by the constructor
+	int						mLevel;			// +0x68 the map's level (node) this X stands for; set by the creating screen (0x45ad20), not by the constructor
 	TooltipWidget*			mTooltip;		// +0x6c owned; added to the manager with the widget
 	Image*					mImage;			// +0x70 drawn at 0, 0
 	char					mLetter;		// +0x74 the letter the widget stands for (constructor argument)
@@ -38,8 +38,10 @@ public:
 	virtual void			Update() override;								// 0x440f60 slot 17
 	virtual void			MouseEnter() override;							// 0x441e30 slot 23
 	virtual void			MouseLeave() override;							// 0x441e50 slot 24
+	virtual void			MouseDown(int x, int y, int theClickCount) override;	// 0x458cb0 slot 27 (the 2004 MouseDown(x, y, clickCount); any button)
 
 	using Widget::Resize;
+	using Widget::MouseDown;
 };
 
 }

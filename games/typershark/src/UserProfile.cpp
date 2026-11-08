@@ -57,7 +57,7 @@ void UserProfile::InitDefaults()
 	mLastMode = 0;
 	mLastDepth = 0;
 	mField0c = 0;
-	mField22c = 0;
+	mGamesCompleted = 0;
 	mFlag284 = false;
 	mField1c0 = -1;
 	mDouble1b8 = -1.0;                          // 0xbff00000 in the high half
@@ -96,15 +96,15 @@ void UserProfile::InitDefaults()
 		mRecordsE0.push_back(StatRecord());
 	}
 	mField64 = 0;
-	mField68 = 0;
+	mBestTreasureWords = 0;
 	for (i = 0; i < 6; i++)
 	{
-		mField6c[i] = 0;
+		mGemsFound[i] = 0;
 		mField234[i] = 0;
 	}
 	for (i = 0; i < 4; i++)
 	{
-		mField84[i] = 0;
+		mSecretsFound[i] = 0;
 		mField24c[i] = 0;
 	}
 }
@@ -177,7 +177,7 @@ int UserProfile::GetField9c()
 // 0x412350
 int UserProfile::GetField8c()
 {
-	return mField84[2];
+	return mSecretsFound[2];
 }
 
 // 0x412390
@@ -284,6 +284,37 @@ int UserProfile::GetBestScore()
 	return aScore;
 }
 
+// added for W1
+// 0x413d10: the lesson's record holds the sum of the speeds at +8 and the number of runs at +0xc
+int UserProfile::GetAverageWPM(int theLesson)
+{
+	StatRecord& aRecord = mRecordsE0[theLesson];
+	int aRuns = aRecord.mField[3];
+	if (aRuns == 0)
+		return 0;
+	return aRecord.mField[2] / aRuns;
+}
+
+// 0x413d40: the sum of the adjusted speeds is at +0x18, the number of runs at +0x1c
+int UserProfile::GetAverageAdjustedWPM(int theLesson)
+{
+	StatRecord& aRecord = mRecordsE0[theLesson];
+	int aRuns = aRecord.mField[7];
+	if (aRuns == 0)
+		return 0;
+	return aRecord.mField[6] / aRuns;
+}
+
+// 0x413d70: the sum of the accuracies is at +0x28, the number of runs at +0x2c
+int UserProfile::GetAverageAccuracy(int theLesson)
+{
+	StatRecord& aRecord = mRecordsE0[theLesson];
+	int aRuns = aRecord.mField[11];
+	if (aRuns == 0)
+		return 0;
+	return aRecord.mField[10] / aRuns;
+}
+
 // 0x412610: a shark killed (in the abyss mode or not), counted for the profile and for the round
 void UserProfile::CountSharkKilled(bool theAbyss)
 {
@@ -322,17 +353,17 @@ void UserProfile::CountPiranhaKilled(bool theAbyss)
 	mField1f8 = mField1f8 + 1;
 }
 
-// 0x412690: one more in mField6c[theIndex] and in mField234[theIndex] (the registry GTT<i>)
-void UserProfile::CountField6c(int theIndex)
+// 0x412690: one more in mGemsFound[theIndex] and in mField234[theIndex] (the registry GTT<i>)
+void UserProfile::CountGemFound(int theIndex)
 {
-	mField6c[theIndex] = mField6c[theIndex] + 1;
+	mGemsFound[theIndex] = mGemsFound[theIndex] + 1;
 	mField234[theIndex] = mField234[theIndex] + 1;
 }
 
-// 0x4126b0: one more in mField84[theIndex] and in mField24c[theIndex] (the registry SGTT<i>)
-void UserProfile::CountField84(int theIndex)
+// 0x4126b0: one more in mSecretsFound[theIndex] and in mField24c[theIndex] (the registry SGTT<i>)
+void UserProfile::CountSecretFound(int theIndex)
 {
-	mField84[theIndex] = mField84[theIndex] + 1;
+	mSecretsFound[theIndex] = mSecretsFound[theIndex] + 1;
 	mField24c[theIndex] = mField24c[theIndex] + 1;
 }
 
@@ -421,8 +452,8 @@ void UserProfile::SetSpacePauses(bool theValue)
 }
 
 // 0x4172f0: the profile's data file users\user<N>.dat. Every number is the text of "%d". Order: the version; for each of
-// the six stat groups four ints and 35 records of twelve ints; mField94 (19); the 19 records at +0xe0; mField64; mField6c
-// (6); mField84 (4); mField68; mField1b0; mField1ec; the double * 100 as an int; mField1c0 to mField1d8; the number of
+// the six stat groups four ints and 35 records of twelve ints; mField94 (19); the 19 records at +0xe0; mField64; mGemsFound
+// (6); mSecretsFound (4); mBestTreasureWords; mField1b0; mField1ec; the double * 100 as an int; mField1c0 to mField1d8; the number of
 // map pairs and the pairs; the number of node ids and the ids; mField1e0; the four kill counts.
 // theCopyField1b4 makes mField1ec the value of mField1b4 first.
 void UserProfile::WriteDataToDisk(bool theCopyField1b4)
@@ -467,10 +498,10 @@ void UserProfile::WriteDataToDisk(bool theCopyField1b4)
 
 	WriteFileInt(aBuffer, mField64);
 	for (i = 0; i < 6; i++)
-		WriteFileInt(aBuffer, mField6c[i]);
+		WriteFileInt(aBuffer, mGemsFound[i]);
 	for (i = 0; i < 4; i++)
-		WriteFileInt(aBuffer, mField84[i]);
-	WriteFileInt(aBuffer, mField68);
+		WriteFileInt(aBuffer, mSecretsFound[i]);
+	WriteFileInt(aBuffer, mBestTreasureWords);
 
 	if (theCopyField1b4)
 		mField1ec = mField1b4;
@@ -530,13 +561,13 @@ bool UserProfile::LoadDataFromDisk()
 		return false;
 
 	mField64 = 0;
-	mField68 = 0;
+	mBestTreasureWords = 0;
 	for (i = 0; i < 6; i++)
-		mField6c[i] = 0;
-	mField84[0] = 0;
-	mField84[1] = 0;
-	mField84[2] = 0;
-	mField84[3] = 0;
+		mGemsFound[i] = 0;
+	mSecretsFound[0] = 0;
+	mSecretsFound[1] = 0;
+	mSecretsFound[2] = 0;
+	mSecretsFound[3] = 0;
 
 	mGameVersion = aBuffer.ReadString();
 	double aFileVersion = atof(mGameVersion.c_str());
@@ -590,15 +621,15 @@ bool UserProfile::LoadDataFromDisk()
 	if (!aBuffer.AtEnd())
 	{
 		for (i = 0; i < 6; i++)
-			mField6c[i] = ReadFileInt(aBuffer);
+			mGemsFound[i] = ReadFileInt(aBuffer);
 	}
 	if (!aBuffer.AtEnd())
 	{
 		for (i = 0; i < 4; i++)
-			mField84[i] = ReadFileInt(aBuffer);
+			mSecretsFound[i] = ReadFileInt(aBuffer);
 	}
 	if (!aBuffer.AtEnd())
-		mField68 = ReadFileInt(aBuffer);
+		mBestTreasureWords = ReadFileInt(aBuffer);
 
 	if (!aBuffer.AtEnd())
 		mField1b0 = ReadFileInt(aBuffer);

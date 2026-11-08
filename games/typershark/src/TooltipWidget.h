@@ -39,6 +39,9 @@ public:
 	virtual void			Update() override;								// 0x4416a0 slot 17
 
 	void					SetArmed(bool on);								// 0x441640
+
+	// ---- added for W1 (the StatusBar and MapScreen make their tooltips with it) ----
+	void					SetTextAndFont(SexyString theText, Font* theFont);	// 0x449870 sets mText and mFont and sizes the tip to the text (x and y stay)
 };
 
 }

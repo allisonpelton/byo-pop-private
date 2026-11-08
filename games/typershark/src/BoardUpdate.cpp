@@ -314,7 +314,7 @@ void Board::ShowTreasure()
 	mContinueLink->SetVisible(true);
 	mApp->mUser->mField25c[mLessonManager->GetLevel()] = 1;
 	unsigned long aRand = gGameRand->NextNoAssert();
-	mApp->mUser->CountField84(aRand & 3);
+	mApp->mUser->CountSecretFound(aRand & 3);
 	mTreasureImage = mApp->mImages[IMAGE_SECRET_CROWN_LRG + (aRand & 3)];
 	mApp->mProfileMgr->WriteUserProfileToRegistry(mApp->mUser, false, false);
 	mApp->PlaySample(SOUND_WINGEM);
@@ -1056,9 +1056,9 @@ void Board::Update()
 			{
 				if (mField0f0c > mApp->mUser->mField64)
 					mApp->mUser->mField64 = mField0f0c;
-				mApp->mUser->CountField6c(mApp->GetTreasureIndex() - 10);
-				if (mField0f30 > mApp->mUser->mField68)
-					mApp->mUser->mField68 = mField0f30;
+				mApp->mUser->CountGemFound(mApp->GetTreasureIndex() - 10);
+				if (mField0f30 > mApp->mUser->mBestTreasureWords)
+					mApp->mUser->mBestTreasureWords = mField0f30;
 				mPlayer->AddScore(GetLevelBonus());
 				mTimer0f00->SetDisabled(false);
 				mTimer0f00->Reset();

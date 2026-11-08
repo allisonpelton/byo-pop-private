@@ -2,7 +2,7 @@
 #define __TYPERSHARK_FADEBUTTON_H__
 
 // FadeButton.cpp: an image button whose "over" image fades in or out over the normal image (mAlpha 0..255,
-// raised by mFadeStep every mFadeInterval updates), with a tooltip. Used by the menus and the map.
+// raised by mFadeStep every mFadeInterval updates), with a tooltip. Used by the menus, the map and the status bar.
 // Original: class Sexy::FadeButton : public ButtonWidget, vftable 0x52f544, sizeof 0xfc (constructor 0x443440,
 // destructor 0x443540, deleting destructor 0x443510).
 
@@ -43,8 +43,11 @@ public:
 	virtual void			MouseLeave() override;							// 0x443d40 slot 24
 	// 0x440d10 is the 2004 MouseUp(x, y) (slot 30); the port's ButtonWidget does its work in the 4-argument one
 	virtual void			MouseUp(int x, int y, int theBtnNum, int theClickCount) override;
+	// 0x440cc0 is the 2004 MouseDown(x, y, clickCount) (slot 27); likewise done in the 4-argument one
+	virtual void			MouseDown(int x, int y, int theBtnNum, int theClickCount) override;
 
 	using ButtonWidget::MouseUp;
+	using ButtonWidget::MouseDown;
 
 private:
 	void					PositionTooltip();								// the tail shared by both Resize overloads

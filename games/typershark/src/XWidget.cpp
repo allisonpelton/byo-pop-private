@@ -1,5 +1,6 @@
 #include "XWidget.h"
 #include "TooltipWidget.h"
+#include "MapScreen.h"
 #include "WidgetManager.h"
 #include "SexyAppBase.h"
 #include "Graphics.h"
@@ -18,7 +19,7 @@ XWidget::XWidget(SexyAppBase* theApp, Widget* theOwner, Image* theImage, char th
 	mAlpha = 255;
 	mHasAlpha = true;
 	mFadingUp = false;
-	mField68 = 0;	// port: the original leaves +0x68 for the creating screen to set
+	mLevel = 0;	// port: the original leaves +0x68 for the creating screen to set
 	mTooltip = new TooltipWidget();
 	mTooltip->mShowDelay = 0;
 	mTooltip->mHideDelay = 90000;
@@ -126,4 +127,23 @@ void XWidget::MouseLeave()
 {
 	mApp->SetCursor(0);
 	mTooltip->SetArmed(false);
+}
+
+// added for W1
+// 0x458cb0 slot 27 (no Widget::MouseDown): the owner is the map screen. A click on an X is noted (mFlag224); if no level
+// has been chosen yet, this X stops fading (alpha 255), the owner's "continue" link shows, the owner takes this X's level
+// and letter as the chosen ones and starts the level (a method of the map screen, written by its job: it takes the other
+// X widgets away and sets up the level's route)
+void XWidget::MouseDown(int x, int y, int theClickCount)
+{
+	MapScreen* aMap = (MapScreen*)mOwner;
+	aMap->mFlag224 = true;
+	if (aMap->mLevel == -1)
+	{
+		mAlpha = 0xff;
+		aMap->mContinueLink->SetVisible(true);
+		aMap->mLevel = mLevel;
+		aMap->mChosenLetter = mLetter;
+		aMap->OnLevelChosen();	// the map screen's 0x4538e0 (with its helper 0x4537b0)
+	}
 }

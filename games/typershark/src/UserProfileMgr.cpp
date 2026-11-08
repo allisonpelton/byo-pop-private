@@ -429,7 +429,7 @@ UserProfile* UserProfileMgr::LoadUserProfileFromRegistry(const std::string& theN
 	aProfile->SetSpacePauses(aSpacePauses);
 	aProfile->SetField1f4(aSKTR);
 	aProfile->SetField1f8(aPKTR);
-	aProfile->mField22c = aNGC;
+	aProfile->mGamesCompleted = aNGC;
 	aProfile->mFlag230 = aRNGC;
 
 	if (mApp->RegistryReadBoolean(StrFormat("%ssvm", aPrefix.c_str()), &aBool))
@@ -514,7 +514,7 @@ void UserProfileMgr::WriteUserProfileToRegistry(UserProfile* theProfile, bool th
 
 	mApp->RegistryWriteString(aPrefix + "SeenTutorial", StrFormat("%d", theProfile->mFlag1dc ? 1 : 0));
 	mApp->RegistryWriteString(aPrefix + "AbyssBoss", StrFormat("%d", theProfile->GetField1e4()));
-	mApp->RegistryWriteString(aPrefix + "NGC", StrFormat("%d", theProfile->mField22c));
+	mApp->RegistryWriteString(aPrefix + "NGC", StrFormat("%d", theProfile->mGamesCompleted));
 	mApp->RegistryWriteBoolean(aPrefix + "RNGC", theProfile->mFlag230);
 
 	for (i = 0; i < 6; i++)

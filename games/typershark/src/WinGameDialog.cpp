@@ -96,7 +96,7 @@ void WinGameDialog::Draw(Graphics* g)
 	WriteWordWrapped2004(g, aTextRect, aText, mLinesFont->GetLineSpacing() + mLineSpacingOffset, -1);
 
 	// the medal: bronze for 1 or 2 finished games, silver for 3 or 4, gold for more; none for 0
-	int aGamesWon = mApp->mUser->mField22c;
+	int aGamesWon = mApp->mUser->mGamesCompleted;
 	if (aGamesWon != 0)
 	{
 		Image* aMedal;

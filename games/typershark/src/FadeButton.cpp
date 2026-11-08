@@ -271,6 +271,15 @@ void FadeButton::MouseLeave()
 	MarkDirty();
 }
 
+// 0x440cc0 slot 27 (the 2004 MouseDown(x, y, clickCount)): the fade restarts from 0 when it runs while the button is
+// held, else the over image is complete
+void FadeButton::MouseDown(int x, int y, int theBtnNum, int theClickCount)
+{
+	ButtonWidget::MouseDown(x, y, theBtnNum, theClickCount);
+	mAlpha = mFadeOnDown ? 0 : 255;
+	MarkDirty();
+}
+
 // 0x440d10 slot 30 (the 2004 MouseUp(x, y))
 void FadeButton::MouseUp(int x, int y, int theBtnNum, int theClickCount)
 {
