@@ -697,6 +697,9 @@ static std::string WithExtensionOf(const std::string& theName, const std::string
 // lines logs exactly what the same script without them logs.
 bool WinDMApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
+	// port: the standard test commands (testhooks/TestCommands.cpp)
+	if (HandleTestCommand(theCommand))
+		return true;
 	// port(variant): gemsheet <file.png>, the gem sheet as loaded and grown (stage 8), its HD pixels to <file>@<n>x.png
 	if ((theCommand.mCommand == "gemsheet") && (mImages != NULL) && (mImages[IMAGE_GEMSHEET] != NULL))
 	{

@@ -2526,3 +2526,57 @@ edge as the farthest such gem; the straight directions keep their draws, so the 
 11. **OptionsDialog base order.** The analyst places SliderListener at +0x150 and CheckboxListener at +0x154; FRAMEWORK_NOTES lists them in the other order. Layout-only; it does not affect the port.
 12. **Dialog 17.** "Check for updates" is handled but never created (dead code); its strings exist only in default.xml.
 13. **Pre-Vista AppData.** GetAppDataFolder() returns "" there, so saves go to the working directory. The port always uses its user dir.
+
+---
+
+## 15. Test commands (2026-11-07)
+
+The standard test commands of `docs/TEST_COMMANDS.md`, in `src/testhooks/TestCommands.cpp`, offered first by
+`WinDMApp::HandleScriptCommand`; the existing `save <file>`, `gemsheet <file>` and `memreport <file>` stay beside them. They are
+reachable only from a test (`-script`, `-commands`, the web page's `byopop.test.command`); a normal run never gives one, so
+unmodded play and the oracle are unchanged. Each answers on stdout with one line.
+
+| Command | Answer |
+|---|---|
+| `state` | `STATE {...}`: `screen` (loading, title, game, gameover, recordscore, options, highscores, help, quit, dialog), `mode` (normal, timed), `level` (the 1-based one shown), `score`, `shown` (the rolling score), `start` and `target` (the level's score window), `bar` (the progress or time bar's width, 0 to 340), `drain` (timed: the points drained from the bar), `phase` (the board's state: falling, playing, swapping, clearing, vortex, level wipe, fall out, game over ...), `tick`, `moves`, `over` (the game is over: the board's states 5 and 6), `busy` (the board takes no move now), `paused`, `newgame`, `selected` (`[col,row]`, when a gem is selected) and `board` (8 strings, a gem by its colour's digit, `.` for none) |
+| `goto normal` / `timed` / `game` | a new game in that mode (`game`: the current mode) through `SetTimedMode`, as the side bar's buttons start one; from the title it first does the play link's own click (`TitleScreenIsFinished`), and a saved game then asks its continue question, which stays open (`screen` says dialog; answer it with real input) |
+| `goto options` / `highscores` / `help` | the dialog the side bar's Options button, the High Scores link or Help opens; `goto menu` closes any of them. `goto title` and `goto credits` answer an error: the game has neither to return to |
+| `unlock all` | `OK`: nothing is locked |
+| `level <n>` | n from 2: the level's score is reached at once (`win`) with the level set so that the vortex ends at level n, the game's own level-up |
+| `win` | the board's score is set to the level's goal, so that its own update starts the vortex and the next level |
+| `lose` | the game's own ending: the "no more moves" banner (normal) or "time up" (timed) and `GameOver(200)` |
+| `set score <n>` | the score and the shown score; a score past the goal ends the level at once, as play would |
+| `set drain <n>` | timed only: the points drained from the bar (there are no seconds in Bejeweled's clock); a big number ends the game |
+| `seed <n>` | `SRand(n)`, the same as `-seed=<n>` |
+| `move` | `MOVE {"kind":"swap","from":[c,r],"to":[c,r],"input":[{"move":[x,y]},{"click":[x,y]},{"move":[x,y]},{"click":[x,y]},{"wait":4}]}`: a valid swap and the pointer and two clicks that make it, in game pixels (the steps of `docs/TEST_COMMANDS.md`). The choice is one of the valid swaps whose gems take a click (`AutoplayBot::ValidClickableMoves`, the list `-autoplay`'s valid moves choose from), picked by a hash of the board and the score: nothing is drawn from the game's random numbers, nothing changes, and the same board gets the same move. While the board is busy (falling, swapping, clearing, the vortex, a pause or a gem still selected) it answers `{"kind":"wait","input":[{"wait":10}]}`, so a driver that only plays what it is given waits; `MOVE null` when the game is over, no game is on or no move is left. On a board whose rules twist or slide (a code mod) it answers an error: the bot there is `-autoplay`'s |
+
+`games/bejeweled/tools/commands_test.sh` runs `commands_test.txt` as a script under rundesk and checks the answers.
+
+## 16. Fix candidates and the fixes mod (2026-11-07)
+
+`games/bejeweled/mods/fixes` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): the feature `features.fixes`
+(`GameFeatures::mFixes`) with one setting for each fix, all on by default, on the site by default and off when the player turns
+the mod off. It shares the high scores and the saved game with the original (no rules change, so no variant board and no v2
+save). The port without the mod is the original, and a replay never carries a fix: the verifier and the watch play with the
+features of the default configuration. `tools/fixes_test.sh` plays each fix with the mod off and on and checks that only the
+fix differs.
+
+**Made**
+- `selection`: a gem selected when Timed mode's board falls out and refills (no move left) stays selected in the original
+  though it is no longer on the board (`FillBoard` drops the grid and keeps the pointer). The next click targets it:
+  `MouseDown` with a stale selection runs `StartSwap(stale, clicked)`, which plays the "bad" sound and clears the selection when
+  the gems are far apart, so the click selects nothing, and when they are next to each other (by the stale gem's old column
+  and row) puts the stale gem back into the grid and loses the gem there. With the fix `Board::DropStaleSelection` (called in
+  `MouseDown` and `MouseDrag`) drops a selection that is no longer in the grid, records a deselect, and the click selects what
+  it hits. To see it: a Timed game whose board has one move left (`tools/origcmp/nomoves.py --one`), select a gem as the board
+  falls out, click another after the refill.
+- `resumeLook`: `LoadGame` does not call `SetupLevel` (section 3.14), so a saved game of level 2 or later comes back with the
+  first level's background tint and texture until the next level-up. With the fix `Board::ResumeLevelLook` runs `SetupLevel`
+  after the load, keeps the level's values and the drain that the save holds, and draws the loaded level's look. A save taken
+  in the middle of the level wipe, and a board with code-mod rules, keep the original's.
+
+**Looked at and not made**
+- `FindMove`'s NULL test of the fixed cell (section 14, 2): harmless on a full board.
+- Time up in Normal mode through hint penalties (section 14, 3): reachable only by spamming hints, not seen in play.
+- The truncated `hiscores.dat` read (section 14, 6) is a memory fault and belongs to the port, not the mod.
+- The double `NewGame` at start-up: it keeps the random numbers in the original's order, so it is not touched.

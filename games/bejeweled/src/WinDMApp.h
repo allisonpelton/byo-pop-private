@@ -286,6 +286,10 @@ public:
 	// port: test hooks (see mTraceHashFileName)
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: the standard test commands (docs/TEST_COMMANDS.md; testhooks/TestCommands.cpp): state, goto, level, unlock, set,
+	// win, lose, seed and move. HandleScriptCommand offers a command to it first
+	bool			HandleTestCommand(const ScriptCommand& theCommand);
+	std::string		TestScreen();
 
 	using SexyApp::ButtonPress;
 	using SexyApp::KillDialog;

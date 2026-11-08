@@ -508,6 +508,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		return;
 	}
 
+	DropStaleSelection(); // port(mods): fixes.selection
 	Piece* aTarget = GetPieceAt(x, y);
 	if (mSelectedPiece == NULL)
 	{
@@ -567,6 +568,8 @@ void Board::MouseDrag(int x, int y)
 	if (mVariant.mScaled) mLayout.ToLogical(&x, &y); // port(variant)
 	if (mVariant.mMoves && MouseDragVariant(x, y)) return; // port(variant): a slide's drag (BoardMoves.cpp)
 	if (!mMouseDown || mSelectedPiece == NULL || mState != STATE_PLAYING)
+		return;
+	if (DropStaleSelection()) // port(mods): fixes.selection
 		return;
 
 	int aDeltaX = x - mMouseDownX;
@@ -843,6 +846,31 @@ void Board::SetupLevel()
 	mTimeDrainRate = (mApp->mTimeDrainPerLevel * aLevel + mApp->mTimeDrainBase) * mPointMultiplier;
 	mTimeDrainAccel = (aLevel * mApp->mTimeDrainAccelPerLevel + mApp->mTimeDrainAccelBase) * mPointMultiplier;
 	if (mVariant.mGold) SetupLevelGold(); // port(variant): no gold yet, the level's time (BoardGold.cpp)
+}
+
+// ---- the fixes mod (features.fixes; docs/MOD_ROADMAP.md "The fixes mod"; GAME_NOTES.md "Fix candidates") ----
+
+// fixes.resumeLook. LoadGame does not call SetupLevel, so a saved game of level 2 or later comes back with the first level's
+// background and tint until the next level-up. This draws the loaded level's look and keeps what SetupLevel also sets (the
+// level's values and the drain, which the save holds).
+void Board::ResumeLevelLook()
+{
+	if (!gGameConfig.mFeatures.mFixes || !gGameConfig.mFeatures.mFixResumeLook)
+		return;
+	if (mLevel <= 0 || mVariant.mAny || mPlaybackOnly || mBackgroundImage == NULL || mNextBackgroundImage == NULL ||
+		mState == STATE_LEVEL_WIPE)
+		return;
+	double aTimeDrain = mTimeDrain, aMultiplier = mPointMultiplier, aRate = mTimeDrainRate, aAccel = mTimeDrainAccel;
+	int aPoints = mLevelPoints;
+	SetupLevel();
+	mTimeDrain = aTimeDrain;
+	mPointMultiplier = aMultiplier;
+	mTimeDrainRate = aRate;
+	mTimeDrainAccel = aAccel;
+	mLevelPoints = aPoints;
+	Graphics g(mBackgroundImage);
+	g.DrawImage(mNextBackgroundImage, 0, 0);
+	MarkDirty();
 }
 
 // 0x4cb182
