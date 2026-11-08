@@ -20,6 +20,7 @@
 #include "MenuPanels.h"
 #include "RankBonusWidget.h"
 #include "WheelSpin.h"
+#include "WidgetManager.h"
 #include <SDL.h>
 
 #include <cstdio>
@@ -162,7 +163,9 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 			if (gWheelSpin != nullptr)
 				aLine += ",\"wheel\":true";  // the second chance's wheel is up
 			if (TestRankBar(aBoard) != nullptr)
-				aLine += ",\"rank\":true";  // the rank bar after a level or a game (and the new rank's badge)
+				aLine += ",\"rank\":true";
+			if (dynamic_cast<Mandala*>(mUnknownF24) != nullptr && static_cast<Mandala*>(mUnknownF24)->mMode != 0)
+				aLine += ",\"zenjump\":true";  // the zen jump's mode select over the game  // the rank bar after a level or a game (and the new rank's badge)
 			// a tip or the tutorial (+0x2584): its wait (Tutorial::STATE_), whether its dialog with buttons holds
 			// the board (+0x210) and the square a forced move turns (+0x2404, +0x2400)
 			if (aBoard->mUnknown2584 != nullptr) {
@@ -318,6 +321,23 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		if (aScreen == "highscores" && aBoard == nullptr) {
+			// after a game the bar under the scores (ShowBar) holds Play Again and Main Menu: its quit button leaves for
+			// the main menu (the topmost, since the bar keeps an old pair under a new one)
+			HighScoresPanel* aScores = mMainMenu != nullptr ? mMainMenu->mHighScoresPanel : nullptr;
+			if (aScores != nullptr && aScores->mBar != nullptr && aScores->mBar->mParent != nullptr &&
+				(aScores->mBar->mWidgetFlagsMod.mRemoveFlags & WIDGETFLAGS_ALLOW_MOUSE) == 0) {
+				TwistButton* aQuit = nullptr;
+				for (Widget* aChild : aScores->mBar->mWidgets) {
+					TwistButton* aButton = dynamic_cast<TwistButton*>(aChild);
+					if (aButton != nullptr && aButton->mId == HighScoresPanel::BUTTON_QUIT)
+						aQuit = aButton;
+				}
+				if (aScores->mState == 0 && !aScores->mBarPressed && aQuit != nullptr && !aQuit->mDisabled)
+					aClick(aQuit, "back");
+				else
+					Reply("MOVE null");
+				return true;
+			}
 			if (mGates != nullptr && mGates->mScoresButton != nullptr && mGates->mButtonsOn &&
 				!mGates->mScoresButton->mDisabled)
 				aClick(mGates->mScoresButton, "back");
@@ -329,8 +349,21 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 			Reply("MOVE null");
 			return true;
 		}
-		// The second chance's wheel: -autoplay stops it as soon as its button can be pressed (WheelSpin::UpdateState)
-		if (gWheelSpin != nullptr) {
+		// The zen jump (Board::ShowZenJump, once a player): the mode select over the game asks whether to go on or move
+		// to the other mode; the board's own mode's button goes on (Classic's over Classic, Zen's over Zen)
+		Mandala* aJump = dynamic_cast<Mandala*>(mUnknownF24);
+		if (aJump != nullptr && aJump->mMode != 0) {
+			ModeButton* aStay = aJump->mButtons.size() == 4 ? aJump->mButtons[aJump->mMode == 1 ? 0 : 3] : nullptr;
+			if (aJump->mState == 1 && aStay != nullptr && aStay->mVisible && !aStay->mDisabled)
+				aClick(aStay, "continue");
+			else
+				Reply("MOVE null");
+			return true;
+		}
+		// The second chance's wheel: -autoplay stops it as soon as its button can be pressed (WheelSpin::UpdateState).
+		// Before that its tip ("one last chance") may hold it with a dialog, whose button comes below.
+		bool aTipDialog = aBoard->mUnknown2584 != nullptr && aBoard->mUnknown2584->mUnknown210;
+		if (gWheelSpin != nullptr && !aTipDialog) {
 			TwistButton* aStop = gWheelSpin->mButton;
 			if (gWheelSpin->mState != 5 || aStop == nullptr || aStop->mDisabled) {
 				Reply("MOVE null");
@@ -389,10 +422,13 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 			for (int aCol = 0; aCol < aCols; aCol++) {
 				Piece* aPiece = aBoard->GetPieceAt(aRow, aCol);
 				int i = aRow * aCols + aCol;
-				if (aPiece == nullptr || aPiece->IsFlagSet(Piece::FLAG_LOCKED)) {
+				if (aPiece == nullptr) {
 					aFixed[i] = 1;
 					continue;
 				}
+				// a locked gem cannot turn, but it still makes a line with the gems turned next to it
+				if (aPiece->IsFlagSet(Piece::FLAG_LOCKED))
+					aFixed[i] = 1;
 				if (!aPiece->IsFlagSet(Piece::FLAG_COAL) && !aPiece->IsFlagSet(Piece::FLAG_DEVIL) &&
 					0 <= aPiece->mColor && aPiece->mColor <= 6)
 					aGrid[i] = aPiece->mColor;
@@ -460,6 +496,40 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 				}
 			}
 		}
+		if (aBestRow < 0 && !aBoard->IsBusy() && 0 <= aBoard->mUnknown201C && 0 <= aBoard->mUnknown2020) {
+			// the grid found none, but the board's own FindMove (SettleTurn keeps its answer at +0x201c, +0x2020) did:
+			// its match check (MoveCursor) is the game's, so its move goes first (a web Classic board had one the grid
+			// missed)
+			aBestRow = aBoard->mUnknown201C;
+			aBestCol = aBoard->mUnknown2020;
+		}
+		bool aMatches = 0 <= aBestRow;
+		if (aBestRow < 0 && !aBoard->IsBusy()) {
+			// no turn makes a line: -autoplay then clicks a random square (Rand), which would draw from the game's own
+			// generator; the bot takes a square it can turn instead, which makes no line but changes the board: the
+			// squares counted top down and left to right, the one the board's move count picks, so that a board with
+			// no line is not turned four times about one square back to where it was
+			int aCount = 0;
+			for (int aPass = 0; aPass < 2 && aBestRow < 0; aPass++) {
+				int aIndex = 0;
+				int aPick = aPass == 0 ? 0 : aBoard->mUnknown23C % aCount;
+				for (int aRow = 0; aRow < aRows - 1 && aBestRow < 0; aRow++) {
+					for (int aCol = 0; aCol < aCols - 1 && aBestRow < 0; aCol++) {
+						int aTL = aRow * aCols + aCol;
+						if (!aFixed[aTL] && !aFixed[aTL + 1] && !aFixed[aTL + aCols] && !aFixed[aTL + aCols + 1]) {
+							if (aPass == 0)
+								aCount++;
+							else if (aIndex++ == aPick) {
+								aBestRow = aRow;
+								aBestCol = aCol;
+							}
+						}
+					}
+				}
+				if (aCount == 0)
+					break;
+			}
+		}
 		if (aBestRow < 0) {
 			Reply("MOVE null");
 			return true;
@@ -467,8 +537,9 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		// the click -autoplay makes for it: the corner the turn goes about, in the board's (and the game's) pixels
 		int aX = aBoard->mX + aBoard->GetColX(aBestCol) + gGemWidth;
 		int aY = aBoard->mY + aBoard->GetRowY(aBestRow) + gGemHeight;
-		Reply(StrFormat("MOVE {\"kind\":\"twist\",\"row\":%d,\"col\":%d,\"bomb\":%s,\"input\":[{\"move\":[%d,%d]},"
-			"{\"click\":[%d,%d]}]}", aBestRow, aBestCol, aBestBomb ? "true" : "false", aX, aY, aX, aY));
+		Reply(StrFormat("MOVE {\"kind\":\"twist\",\"row\":%d,\"col\":%d,\"bomb\":%s,\"match\":%s,\"input\":"
+			"[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}", aBestRow, aBestCol, aBestBomb ? "true" : "false",
+			aMatches ? "true" : "false", aX, aY, aX, aY));
 		return true;
 	}
 

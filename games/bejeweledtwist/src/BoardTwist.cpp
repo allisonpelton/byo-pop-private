@@ -5,6 +5,7 @@
 #include "Challenge.h"
 #include "GoodTube.h"
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -550,6 +551,21 @@ void Board::NextTurnGems()
 	int aCursorX = mUnknown1C00;
 	int aCursorY = mUnknown1C04;
 	int aTries = 100;
+	// port: when no gem inside the border can take it (none plain, or every plain one in some move's line) the
+	// original's search never ends and the game freezes (NOTES.md, "Deviations"). The gems some move would match are
+	// the same for every pick, so the first sweep tells whether any pick can succeed; if none can, no doom gem comes
+	// this turn. Where one can, the picks, the random draws and the sweeps are the original's.
+	auto aCanTake = [](Piece* thePiece) {
+		return thePiece != nullptr && !thePiece->mBlasted && !thePiece->mBreaking && thePiece->mColor <= 6 &&
+			thePiece->mFlags == 0;
+	};
+	bool anyPlain = false;
+	for (int aRow = 1; aRow < mRows - 1; aRow++)
+		for (int aCol = 1; aCol < mCols - 1; aCol++)
+			anyPlain = anyPlain || aCanTake(mGrid[aCol + aRow * mCols]);
+	if (!anyPlain)
+		return;
+	bool aSwept = false;
 	do {
 		while (!mUnknown1F6C) {
 			int aRowPick = Rand85B970() % (mRows - 2);
@@ -559,6 +575,7 @@ void Board::NextTurnGems()
 				continue;
 			Piece* aSaved = mUnknown1430;
 			bool aMatched = false;
+			std::vector<int> aLineIds;  // port: every gem some move matches (see above)
 			MatchInfo anInfo;  // 0x6b97b6
 			int aRow = 0;
 			do {
@@ -570,6 +587,8 @@ void Board::NextTurnGems()
 						for (unsigned int j = 0; !anInfo.mIds.empty() && j < anInfo.mIds.size(); j++) {
 							if (anInfo.mIds[j] == aPiece->mId)
 								aMatched = true;
+							if (!aSwept)
+								aLineIds.push_back(anInfo.mIds[j]);
 						}
 					}
 					aCol++;
@@ -582,6 +601,20 @@ void Board::NextTurnGems()
 				aPiece->SetFlag(Piece::FLAG_12, true);
 				mApp->PlaySample(SOUND_DOOMGEM_APPEARS);
 				mUnknown1F6C = true;
+			} else if (!aSwept) {
+				aSwept = true;
+				bool aFree = false;
+				for (int aRow = 1; aRow < mRows - 1 && !aFree; aRow++) {
+					for (int aCol = 1; aCol < mCols - 1 && !aFree; aCol++) {
+						Piece* aCell = mGrid[aCol + aRow * mCols];
+						aFree = aCanTake(aCell) &&
+							std::find(aLineIds.begin(), aLineIds.end(), aCell->mId) == aLineIds.end();
+					}
+				}
+				if (!aFree) {
+					aTries = 1;
+					break;
+				}
 			}
 		}
 		aTries--;

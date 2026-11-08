@@ -16,6 +16,9 @@ Steps, run in order in one game process (a failed goal ends the run with code 1)
     play <n>                n twists by the bot (tips and forced twists too), or until the game is over
     finish                  play until the game is over, then on to the main menu (clicks given by the bot's `move`)
     unlock                  the test command `unlock all` (every mode)
+    cmd <command>           one standard test command (docs/TEST_COMMANDS.md), e.g. "level 10", answered OK
+    lose                    the test command `lose` (the game's own ending, as when no move is left), then on to the
+                            main menu as finish does: Classic seldom ends by itself while the bot defuses its bombs
     zenquit                 the tube's menu button, the options' Main Menu and Yes in "Save and Quit", by clicks
     focus                   "focus lost" for 100 updates (the game must say it is not active and not change), then
                             "focus gained"
@@ -213,6 +216,27 @@ class Live:
         self.sleep_updates(50)
         self.shot(mode + '-start')
 
+    def when_free(self, line):
+        """Sends a test command that needs a free board (`level`, `lose`): until the board is free, answers what holds it
+        (a dialog, the wheel, the rank bar) with the bot's own click and waits; a command is never sent twice."""
+        t0 = time.time()
+        while time.time() - t0 < 120:
+            st = self.get_state()
+            if st.get('over'):
+                return False
+            if st['screen'] == 'game' and not st.get('busy'):
+                mv = self.get_move()
+                if mv is None or mv['kind'] in ('twist', 'forced'):
+                    self.do(line)
+                    return True
+                self.act(mv)
+            elif st['screen'] == 'game':
+                mv = self.get_move()
+                if mv is not None and mv['kind'] in ('dialog', 'stop', 'continue'):
+                    self.act(mv)
+            self.sleep_updates(20)
+        raise Failure('the board was not free for "%s" within 120 s' % line)
+
     def s_finish(self):
         st = self.play(None)
         self.say('game over:', json.dumps(st)[:400])
@@ -387,6 +411,17 @@ def main():
                 g.play(int(steps[i]))
                 i += 1
             elif s == 'finish':
+                g.s_finish()
+            elif s == 'cmd':
+                g.say('step cmd', steps[i])
+                if not g.when_free(steps[i]):
+                    g.say('the game had ended')
+                i += 1
+            elif s == 'lose':
+                st = g.get_state()
+                g.say('step lose at', json.dumps(st)[:200])
+                if not g.when_free('lose'):
+                    g.say('the game ended by itself')
                 g.s_finish()
             elif s == 'zenquit':
                 pts = [tuple(int(v) for v in p.split(',')) for p in steps[i].split(';')]
