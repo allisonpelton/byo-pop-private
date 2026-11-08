@@ -298,6 +298,13 @@ void GameSelector::Draw(Graphics* g)
 	mEffects->Draw(g, false);       // 0x41abb0: the leaves
 }
 
+// 0x405ec0: every button of the selector beeps when it is pressed
+void GameSelector::ButtonPress(int theId)
+{
+	(void) theId;
+	mApp->ButtonPress(0);
+}
+
 // 0x406220
 void GameSelector::ButtonDepress(int theId)
 {
