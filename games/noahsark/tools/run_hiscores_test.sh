@@ -23,7 +23,7 @@ cat > "$OUT/shot.txt" <<'EOS'
 420 click 400 405
 700 click 400 240
 800 click 70 410
-900 click 325 365
+900 click 480 301
 1000 screenshot SHOT
 1001 quit
 EOS

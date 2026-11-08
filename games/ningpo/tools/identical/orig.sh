@@ -20,6 +20,6 @@ W=""; for e in "$@"; do W="$W --watch $e"; done
 # stand-in listed one; its "DirectSoundCreate failed" box is answered by origrun's hook, with no window and no sound
 # the exe's own sound thread (it mixes the music) keeps origrun's guard on, so the main thread's waits would take
 # their real time and a run would go slower than real time; it draws nothing from the generator and changes no state
-ORIGRUN_CLOCK_GUARD=0 "$RUNDESK" "$(win "$ORIGRUN")" --exe "$(win "$OG_GAME/Ningpo.exe")" --run "$(basename "$OG_STAGE")" \
+ORIGRUN_CLOCK_GUARD=0 "$ORIGRUN" --exe "$(win "$OG_GAME/Ningpo.exe")" --run "$(basename "$OG_STAGE")" \
 	--script "$(win "$S")" --clock virtual --cursor scripted --counter 0x47be70 --update-ms 1 --sound nodriver --seed "$SEED" \
 	--patches tools/origrun/patches/ningpo.txt --timeout "$T" $W

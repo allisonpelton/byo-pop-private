@@ -7,9 +7,9 @@
 // Original: class Sexy::TitleScreen : public Widget, public ButtonListener, sizeof 0x118 (new in
 // WinBMApp::Init 0x41d9a0), vftable 0x4fbf0c (54 slots), ButtonListener vftable 0x4fbeec.
 // Offsets are absolute (Widget is 0x80 bytes in 1.2). Behaviour spec: re/bigmoney/analysis/screens.md.
-// The port is always registered (partner.xml NoReg=true: mIsRegistered and mBuildUnlocked are true), so
-// only the registered paths are ported: no trial play limit, nag delay on the bar, expiry/quit link,
-// trial badge or unregistered status texts.
+// The registered original's paths only: the registration code (the trial's play limit, the nag delay on the
+// bar, the register link, the expiry and quit link, the unregistered status texts) is left out
+// (GAME_NOTES.md, "Registration code").
 
 #include "Widget.h"
 #include "ButtonListener.h"
@@ -32,21 +32,13 @@ class TitleScreen : public Widget, public ButtonListener
 public:
 	enum
 	{
-		REGISTER_LINK_ID = 0,
 		PLAY_LINK_ID = 1
 	};
 
 	// +0x080 ButtonListener vfptr
 	WinBMApp*		mApp;                   // +0x084
 	double			mLoadProgress;          // +0x088 loading bar fraction 0..1 (exactly 1.0 when done)
-	double			mNagProgress;           // +0x090 trial delay timer 0..1 (+0.01/mNagSeconds per update); caps the bar only when unregistered
 	bool			mLoadDone;              // +0x098 bar complete and play link shown
-	int				mShownTimesPlayed;      // +0x09c number for YOU_HAVE_PLAYED_X_TIMES (unregistered text); only causes MarkDirty here
-	bool			mWantRegister;          // +0x0a0 register link clicked: Update opens the register dialog once loaded
-	bool			mTrialExpired;          // +0x0a1 always false when registered (copied to app->mTimedOut)
-	int				mNagSeconds;            // +0x0a4 10, or mTimesPlayed + 5 after 10 plays; 0 with property RealArcade
-	int				mMaxPlays;              // +0x0a8 trial limit; port: not computed (trial only), 0
-	bool			mCountdownTrial;        // +0x0ac true (selects the unregistered texts; unused when registered)
 	int				mLogoY;                 // +0x0b0 bigmoneylogo y offset, -239 -> 0
 	double			mLogoAngle;             // +0x0b8 += 0.016 per update from update 25
 	int				mMoneybagsDY;           // +0x0c0 mrmoneybags offset below its rest position, 403 -> 0
@@ -56,7 +48,6 @@ public:
 	int				mStripScroll;           // +0x0e0 dollar rows scroll 64..0, -1 every 8 updates
 	double			mCigarPhase;            // +0x0e8 += 0.05 every 8 updates, wraps above 1.0
 	double			mEyePhase;              // +0x0f0 += 0.06 every 8 updates, wraps above 1.0
-	HyperlinkWidget* mRegisterLink;         // +0x0f8 id 0, mFont3OutlineUnderlined, (32,255,32); hidden when registered
 	HyperlinkWidget* mPlayLink;             // +0x0fc id 1, mFont1OutlineUnderlined, (32,255,32); shown when loaded
 	MemoryImage*	mDeluxeImage;           // +0x100 IMAGE_DELUXOR with the luminosity boost applied
 	ulong*			mDeluxeHSL;             // +0x104 IMAGE_DELUXOR as HSL (hue bits 0-7, saturation 8-15, luminosity 16-23)

@@ -128,6 +128,12 @@
       "port": 18787
     },
     {
+      "name": "webtest-player",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18797"],
+      "port": 18797
+    },
+    {
       "name": "shotreview",
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/shotdiff/serve.py"],

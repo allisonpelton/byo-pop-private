@@ -145,10 +145,11 @@ sandbox and refuses to run anywhere else.
 One command per line; `#` starts a comment. Input is posted to the game's window (it works across the hidden
 desktop). Coordinates are in the window's client area; a click is routed to the child control under the point,
 so a dialog button is hit as well as a game that hit-tests in its own window. The client area is the game's own
-size (640x480 for most), so take coordinates in it, never in a scaled screenshot's pixels. A title screen often takes
-no click until the game has finished loading, from seconds to over a minute of real time and different on every run
-(Seven Seas, 2026-11-07), and a click before that is lost without a sign: wait for the game's loaded state (a
-`--watch` value or a screenshot) before the first click.
+size (640x480 for most), so take coordinates in it, never in a scaled screenshot's pixels. A title screen may take no
+click until the game has loaded, and a click before that is lost without a sign: wait for the game's loaded state (an
+update count by `at`, a `--watch` value or a screenshot) before the first click, never a guessed `wait`. Seven Seas'
+unregistered copy first fills a delay bar and takes a click from about update 1000, the same on every run: 10 s in
+real time, a fraction of a second on the virtual clock ("Load times", under Windows Sandbox).
 
 - `wait <ms>` — pause.
 - `move <x> <y>` — move the mouse.
@@ -190,6 +191,9 @@ no click until the game has finished loading, from seconds to over a minute of r
   the same for a key, with a `keydown` at `N` and a `keyup` at `N+k`. `at` does not
   take the `hw*` commands: in the sandbox the game runs in session 0, which desktop input does not reach anyway
   (`GetCursorPos` reads 0,0 whatever `SetCursorPos` did; for a game that reads the cursor, see "The scripted cursor").
+- `mark` � reads the update counter now; `at +<N> <command...>` then waits for the counter to reach N past that value.
+  For a counter that does not start at 0, such as an event time on the virtual clock, which starts at the real time
+  (Ning Po: a `wait` to the first input, the input, `mark`, then `at +N` lines at the port's updates from there).
 - `msgbox <button> <text...>` — when a message box whose caption or text contains `<text>` appears, click the
   button labelled `<button>` (e.g. `msgbox No Trial expired`, `msgbox OK update`). Put these at the top of the
   script; they are registered before the game launches, so even a box that pops up early is answered. A box
@@ -469,6 +473,36 @@ holder's `pid`, `run`, `since` and `dir`, and while its sandbox may be up, `sand
 killed"). A sandbox run counts as one game process for the machine's limit of 3, while it waits in the queue as
 well. The run folder has its own lock besides, `<run>/run.lock` (see `--run`).
 
+### Load times (measured 2026-11-08)
+
+Seven Seas reported that its original took from seconds to over a minute before its title took a click, and that one
+run never got past the title. Timed on a quiet machine (after the restart at 01:19), a sandbox run splits like this.
+`wsb start` returns in about 2 s, and origrun runs inside about 3 s after the start began: the medians of the 49
+sandbox runs logged across the worktrees so far are 2.1 s and 2.9 s. The game's window comes within a second of its
+launch, or 3 s on a copy's first run, when its files are read for the first time. Seven Seas' counter runs from the
+window at 100 updates a second. Its title fills the unregistered copy's delay bar (the copy says that registering
+removes the delay), a quarter of the bar by update 300 and half by 600, and shows its click-to-play text at about
+update 1000. A click at update 1050 opened the main menu. That is 10 s in real time and the same on every run, since
+the bar follows the updates. On the virtual clock it takes a fraction of a second: Seven Seas ran 1725 s of game time
+in 15 s there ("The virtual clock"). So a Seven Seas run reaches its main menu about 15 s after the start began in
+real time, 3 s of which is the sandbox. The bar is the game's own registration delay, which its port leaves out.
+
+The long times had other causes. Seven Seas' early runs read `+0x368` as the counter, its frame time ("Timing to the
+game's updates"), so no `at` fired and a run sat at the title until its timeout. A later script waited for update 6480
+before its first click, to be safe. And the machine was short of memory on the evening of 2026-11-07, from a kernel
+leak that the restart ended. Six of the 49 runs from then took 12 to 66 s for `wsb start` and up to 84 s before origrun
+ran inside. Games took 6 to 31 s to show their windows, on the host under rundesk as well as in the sandbox: Rocket
+Mania 20 and 25 s, Pixelus 20 s, Dynomite 31 s on the host. Word Harmony's first run just after the restart, with
+every session starting again at once, took 42 s. The same games, with the same lack of a network, came up within a
+second or two on a quiet machine, so no phone-home wait shows. The queue on the lock is the other real cost: a run waits
+there for minutes while other sessions' sandboxes run, and its log says so. `--timeout` counts from the game's launch,
+so neither the queue nor the boot shortens a run.
+
+A sandbox that stays up between runs and stops itself when idle was allowed (the user, 2026-11-07: "Yes, if it
+helps"), and it is not built. On a quiet machine it would save the 3 s start and the 2 s stop of a run that takes 15 s
+or more, and the slow starts came from a machine short of memory, where a sandbox kept up would hold its memory
+between runs.
+
 ### How origrun knows it is in the sandbox
 
 `--in-sandbox` and every capture depend on a check origrun makes for itself, which no option or environment variable
@@ -685,7 +719,7 @@ leaves nothing in the window for PrintWindow. For it a held shot can read the fr
 ("surface-read (sandbox)", landed.tsv says "or-earlier (surface)"). All addresses are hex. `--surface-screen
 bitsAt,pitchAt,w,h,bpp` names two globals holding the pixel pointer and the pitch (5-6-5 at 16 bpp, 5-5-5 at 15, 8-8-8 at 32: Cosmic Bugs gets 5-5-5 in Windows Sandbox);
 `--surface <addr>` names an Image-like header instead (pixel pointer at +0, width at +4, height at +8, pitch at +0x1c,
-bpp at +0x44, then the masks, bit counts and shifts). A surface shot needs a gate, and is refused without one:
+bpp at +0x44, then the masks, bit counts and shifts). With `--surface-screen-base ptrAt`, bitsAt and pitchAt are offsets into the object whose pointer the global at ptrAt holds, read at each shot (Ning Po's display is on the heap and its static app holds the pointer). A surface shot needs a gate, and is refused without one:
 `--surface-eip lo,hi[,lo,hi...]` lists every function of the game that writes the locked screen (all it runs between
 its lock and unlock), and the shot waits (the game running) until the held thread is in none of them and has no return
 address into one anywhere in its stack (to the end of the stack's region, at most 64 KB; an unreadable page closes the gate); `--surface-gate <addr>` is an int that must read 0

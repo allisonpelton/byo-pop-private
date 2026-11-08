@@ -52,6 +52,8 @@
 #ifdef __EMSCRIPTEN__
 static int gWebHoldAt = -1;
 static bool WebUpdatesHeld(int theUpdateCount) { return (gWebHoldAt >= 0) && (theUpdateCount >= gWebHoldAt); }
+// port: the player-only page's budget for one browser frame (byopop_set_frame_budget, below), web only; 0 sets none
+static double gWebFrameBudget = 0;
 #else
 static bool WebUpdatesHeld(int) { return false; }
 #endif
@@ -384,6 +386,34 @@ EMSCRIPTEN_KEEPALIVE void byopop_hold_updates_at(int theUpdate)
 	gWebHoldAt = theUpdate;
 }
 
+// port: the player-only page's cap on one browser frame (web/testkit.js, fast runs): the frame returns to the browser once its
+// steps took theMs, between two steps of the update state machine, which carries on in the next frame as it would have in this
+// one, so that the page's own JS is served between frames. 0 (the default) sets no cap. It changes no update and no draw.
+EMSCRIPTEN_KEEPALIVE void byopop_set_frame_budget(double theMs)
+{
+	gWebFrameBudget = theMs;
+}
+
+// port: the site's game speed setting (web/controls.js; docs/WEB_PLAYER.md, "Game speed"), web only: SexyAppFramework's own
+// update multiplier, which runs mFrameTime's updates theSpeed times as often in real time (Process). 1, the default, and every
+// run but a player's choice, leaves the game as it was. Held to 0.25 to 4. A game whose own host runs its loop (Bonnie's
+// Bookstore, Ning Po Mahjong) has no SexyAppBase and is not reached; nor is a timer a game reads from the wall clock itself.
+EMSCRIPTEN_KEEPALIVE void byopop_set_speed(double theSpeed)
+{
+	if (gSexyAppBase == NULL)
+		return;
+	if (!(theSpeed >= 0.25))
+		theSpeed = (theSpeed > 0) ? 0.25 : 1;
+	if (theSpeed > 4)
+		theSpeed = 4;
+	gSexyAppBase->mUpdateMultiplier = theSpeed;
+}
+
+EMSCRIPTEN_KEEPALIVE double byopop_speed()
+{
+	return (gSexyAppBase != NULL) ? gSexyAppBase->mUpdateMultiplier : 0;
+}
+
 // port: the site's performance panel (web/perf.js; docs/WEB_PLAYER.md, "The performance panel"), web only and read only: the
 // images the framework keeps (its MemoryImage set) with the bytes of their pixels and the blitters' caches, the loaded
 // sounds with the bytes of their samples, and the wasm heap's size and the bytes malloc has handed out, as one JSON line. The panel calls it about once a second while it is open; nothing
@@ -436,6 +466,39 @@ EM_JS(void, sexyapp_alert, (const char* theText), {
 
 EM_JS(int, sexyapp_confirm, (const char* theText), {
 	return confirm(UTF8ToString(theText)) ? 1 : 0;
+});
+
+// port: a browser enters full screen only when it allows it: the page may have it (an embedding page can forbid it), and a
+// gesture of the player's is still active (a key or a click in the last few seconds). Asked otherwise, SDL's window took the
+// screen's size at once and the game was drawn for it, several times too big in its 640x480 canvas with its clicks off (TipTop's
+// Alt+Enter from a test's DOM events, 2026-11-08), while Emscripten held the request for a gesture to come. So SwitchScreenMode
+// asks only when this says the browser would take the request now; Emscripten's own test is the same user activation.
+EM_JS(int, sexyapp_fullscreen_allowed, (), {
+	if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) return 0;
+	return (!navigator.userActivation || navigator.userActivation.isActive) ? 1 : 0;
+});
+
+// port: a browser that takes the request may still refuse it, and answers later (the Browser pane refuses every one with
+// "Permissions check failed"). Emscripten sizes the canvas for the screen before it asks, and puts it back only on the
+// fullscreenchange that leaves full screen, which a refusal never sends. So while a request is out (theWatch), its refusal is
+// taken as leaving full screen at once: a fullscreenchange with no full-screen element, on which Emscripten's own restore gives
+// the canvas its size back and SDL's own handler makes its window windowed, as when the player leaves full screen;
+// SDL_WINDOWEVENT_SIZE_CHANGED then puts the framework back in its windowed geometry.
+EM_JS(void, sexyapp_watch_fullscreen_refusal, (int theWatch), {
+	if (Module.byopopFullscreenWatch) Module.byopopFullscreenWatch();
+	if (!theWatch) return;
+	var done = function () {
+		document.removeEventListener('fullscreenchange', done);
+		document.removeEventListener('fullscreenerror', refused);
+		Module.byopopFullscreenWatch = null;
+	};
+	var refused = function () {
+		done();
+		if (!document.fullscreenElement) document.dispatchEvent(new Event('fullscreenchange'));
+	};
+	document.addEventListener('fullscreenchange', done);
+	document.addEventListener('fullscreenerror', refused);
+	Module.byopopFullscreenWatch = done;
 });
 
 // The browser may close, reload or discard the page without giving control back, while 1.3 only
@@ -644,6 +707,9 @@ SexyAppBase::SexyAppBase()
 	mCommandsFileLine = 0;
 	mCommandsWaitLogged = false;
 	mLiveCommandCount = 0;
+	mCommandsHold = false;
+	mLiveRunUntil = 0;
+	mLiveWaitUntil = -1;
 	mModMenu = NULL;
 	mModMenuKeyDown = false;
 	mModMenuClosingKey = KEYCODE_UNKNOWN;
@@ -1537,7 +1603,7 @@ void SexyAppBase::UpdateFrames()
 	// -commands: a look at the file each update, every few with -fast, where updates come back to back
 	if ((!mCommandsFileName.empty()) && ((!mFastMode) || ((mUpdateCount % FAST_DRAW_INTERVAL) == 0)))
 		PollLiveCommands();
-	if (!mLiveCommands.empty())
+	if ((!mLiveCommands.empty()) || (mLiveWaitUntil >= 0))
 		RunLiveCommands();
 
 	// port: a test run played with real input (a driver posting window messages, which a -script run ignores) asks for
@@ -1945,8 +2011,11 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 	// game) are ignored too, so the run is the same whatever happens to the window (also while a test
 	// bot drives the game, see mScriptedInput). A -script run played with posted input (gPostedInput) keeps its mouse and
 	// keys, but not the focus changes: its driver asks the game through the script (the test commands) and plays with
-	// real messages, on a desktop where the window is never active.
-	if ((!mScript.empty()) || (mScriptedInput))
+	// real messages, on a desktop where the window is never active. A -script run is one with a script file (natively and in
+	// a web build under Node; the web page never passes one): a test command that retries through AddScriptCommand also puts
+	// lines in mScript, and those must not stop real input (one waiting goto on the live channel kept every real click out of
+	// Bookworm Adventures, 2026-11-08).
+	if ((!mScriptFileName.empty()) || (mScriptedInput))
 	{
 		switch (theEvent.type)
 		{
@@ -2504,6 +2573,15 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	if (mForceFullscreen)
 		wantWindowed = false;
 
+#ifdef __EMSCRIPTEN__
+	// port: a browser that would refuse full screen now leaves the game windowed (sexyapp_fullscreen_allowed)
+	if ((!wantWindowed) && (mIsWindowed) && (!sexyapp_fullscreen_allowed()))
+	{
+		SDL_Log("SwitchScreenMode: the browser would refuse full screen now (no player's gesture, or none in this page): staying windowed");
+		wantWindowed = true;
+	}
+#endif
+
 	if (mIsWindowed == wantWindowed && !force)
 	{
 		Set3DAcclerated(is3d);
@@ -2519,6 +2597,11 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	if (mHWnd != NULL)
 	{
 		SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+#ifdef __EMSCRIPTEN__
+		// a page that has no full screen at all refuses at once, and SDL leaves its window windowed; a later refusal is watched
+		mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
+		sexyapp_watch_fullscreen_refusal(mIsWindowed ? 0 : 1);
+#endif
 		mIsPhysWindowed = mIsWindowed;
 
 		if (mDDInterface != NULL)
@@ -2655,14 +2738,16 @@ bool SexyAppBase::Process(bool allowSleep)
 		// the updates to make it draw 10 times per second in "game time"
 
 		bool didUpdate = false;
+		bool isHeld = false;
 
 		if (mUpdateAppState == UPDATESTATE_PROCESS_1)
 		{
 			// port: with -drawevery an update that has not been drawn yet is drawn before the next one
 			if (((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
 			{
-				// port: a test may hold the updates (byopop_hold_updates_at, web only): the frame is still drawn
-				if ((mUpdateFTimeAcc >= aFrameFTime) && (!WebUpdatesHeld(mUpdateCount)))
+				// port: a test may hold the updates (byopop_hold_updates_at on the web, -hold natively): the frame is still
+				// drawn, and -fast's clock stops at the held update's time
+				if ((mUpdateFTimeAcc >= aFrameFTime) && (!WebUpdatesHeld(mUpdateCount)) && (!(isHeld = LiveUpdatesHeld())))
 				{
 					bool hadRealUpdate = DoUpdateFrames();
 					if (hadRealUpdate)
@@ -2739,6 +2824,9 @@ bool SexyAppBase::Process(bool allowSleep)
 					}
 				}
 			}
+			// port: -hold waits for the driver's next line without spinning (no clock moves meanwhile)
+			if ((isHeld) && (allowSleep))
+				SDL_Delay(1);
 		}
 	}
 
@@ -2797,6 +2885,9 @@ void SexyAppBase::EmscriptenMainLoop(void* theArg)
 		anApp->UpdateAppStep(NULL);
 
 		if ((anApp->mDrawCount != aDrawCount) || (anApp->mNothingDue))
+			break;
+		// port: a test's cap on the frame (byopop_set_frame_budget)
+		if ((gWebFrameBudget > 0) && (emscripten_get_now() - aStart >= gWebFrameBudget))
 			break;
 	}
 	sexyapp_test_frame(anApp->mDrawCount != aDrawCount, emscripten_get_now() - aStart);
@@ -3342,6 +3433,8 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mCommandsFileName = theParamValue;
 		SDL_LogSetOutputFunction(LiveLogOutput, NULL);
 	}
+	else if (theParamName == "-hold")
+		mCommandsHold = true;
 	else if (theParamName == "-fast")
 		mFastMode = true;
 	else if (theParamName == "-trace")
@@ -3680,11 +3773,36 @@ void SexyAppBase::PollLiveCommands()
 	mCommandsFilePos += (long long) (aLast + 1);
 }
 
+// -hold (natively, with -commands): once the game has loaded, an update runs only when the driver lets it, so a game
+// under -fast does not run on while its driver decides (and a run with the same lines plays the same way). New lines
+// let one update run them; "wait <n>" lets n run. Held, the file is looked at here, each pass of the main loop.
+bool SexyAppBase::LiveUpdatesHeld()
+{
+	if ((!mCommandsHold) || (mCommandsFileName.empty()) || (!mLoaded) || (mShutdown) || (mUpdateCount < mLiveRunUntil))
+		return false;
+	PollLiveCommands();
+	if (mLiveCommands.empty())
+		return true;
+	mLiveRunUntil = mUpdateCount + 1;
+	return false;
+}
+
 // The queued live commands, in order, each answered on the log: "OK <command>" when the framework did it,
 // "ERROR <command>: <reason>" when it could not or nobody knows the command; a game's command answers itself
 // (docs/TEST_COMMANDS.md)
 void SexyAppBase::RunLiveCommands()
 {
+	// "wait <n>" (the channel's own command, never a game's): the lines after it wait n updates, and it is answered
+	// when they are up
+	if (mLiveWaitUntil >= 0)
+	{
+		if (mUpdateCount < mLiveWaitUntil)
+			return;
+		mLiveWaitUntil = -1;
+		SDL_Log("OK %s", mLiveWaitLine.c_str());
+		fflush(stdout);
+		fflush(stderr);
+	}
 	// a copy: a command runs game code, which may queue more (they wait for the next update)
 	std::vector<ScriptCommand> aCommands;
 	aCommands.swap(mLiveCommands);
@@ -3692,6 +3810,28 @@ void SexyAppBase::RunLiveCommands()
 	{
 		const ScriptCommand& aCommand = aCommands[i];
 		std::string aLine = aCommand.mArgs.empty() ? aCommand.mCommand : (aCommand.mCommand + " " + aCommand.mArgs);
+		if (aCommand.mCommand == "wait")
+		{
+			int aCount = -1;
+			char aRest = 0;
+			if ((sscanf(aCommand.mArgs.c_str(), "%d %c", &aCount, &aRest) != 1) || (aCount < 0))
+				SDL_Log("ERROR %s: wait needs <updates>", aLine.c_str());
+			else if (aCount == 0)
+				SDL_Log("OK %s", aLine.c_str());
+			else
+			{
+				// the rest go back before any a command queued meanwhile; with -hold the updates run until then
+				mLiveWaitUntil = mUpdateCount + aCount;
+				mLiveWaitLine = aLine;
+				if (mLiveRunUntil < mLiveWaitUntil)
+					mLiveRunUntil = mLiveWaitUntil;
+				mLiveCommands.insert(mLiveCommands.begin(), aCommands.begin() + i + 1, aCommands.end());
+				return;
+			}
+			fflush(stdout);
+			fflush(stderr);
+			continue;
+		}
 		std::string anError;
 		int aResult = mRealInputFileName.empty() ? RunScriptCommand(aCommand, &anError) : RunRealInputCommand(aCommand, &anError);
 		if (aResult == SCRIPT_RAN)

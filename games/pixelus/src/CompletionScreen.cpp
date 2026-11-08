@@ -15,7 +15,7 @@ CompletionScreen::CompletionScreen(PixelusApp* theApp, int theMode)
 	mApp = theApp;
 	mMode = theMode;
 	mProgress = 0;
-	mContinueButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_CONTINUE, this);
+	mContinueButton = new SoundButton(mApp, mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_CONTINUE, this);
 	mContinueButton->mLabel = GT(0x50c9a0);
 	StyleButton(mApp, mContinueButton, 3);
 }

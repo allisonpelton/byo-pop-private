@@ -44,7 +44,6 @@ enum FontId
 	FONT_GARAMOND_SMALL = 5,     // data/garamondfontsmall.txt app+0x3f8
 	FONT_GARAMOND_TINY = 6,      // data/garamondfonttiny.txt  app+0x3fc
 	FONT_SCORE = 7,              // data/scorefont.txt      app+0x400
-	FONT_REGISTER = 8,           // data/registerfont.txt   app+0x404
 	NUM_FONTS
 };
 
@@ -65,14 +64,9 @@ enum DialogId
 	DIALOG_MODE_INTRO = 2,       // how to play the chosen mode
 	DIALOG_OPTIONS = 3,
 	DIALOG_TUTORIAL = 4,
-	DIALOG_REGISTER = 5,
-	DIALOG_REG_INVALID = 6,
-	DIALOG_NO_WINDOWED = 7,
-	DIALOG_HIGH_SCORE_NOTE = 9,
 	DIALOG_HIGH_SCORES = 10,
 	DIALOG_RECORD_SCORE = 11,
-	DIALOG_DIFFICULTY = 12,
-	DIALOG_PUZZLE_TIME_UP = 13
+	DIALOG_DIFFICULTY = 12
 };
 
 // Button ids
@@ -98,7 +92,7 @@ public:
 		NUM_LOADING_TASKS = 34   // one per sound
 	};
 
-	Image**					mImages;            // +0x3e0 new Image*[83] (NUM_IMAGES), loaded by Init (GetImage)
+	Image**					mImages;            // +0x3e0 new Image*[82] (NUM_IMAGES), loaded by Init (GetImage)
 	ImageFont*				mFonts[NUM_FONTS];  // +0x3e4 .. +0x404
 	Board*					mBoard;             // +0x408 the game in progress (StartGame)
 	NextLevelWidget*		mNextLevelWidget;   // +0x40c shown between levels
@@ -122,8 +116,6 @@ public:
 	bool					mShowTutorial;      // +0x491 registry ShowTutorial
 	DWORD					mGameStartTick;     // +0x494
 	SexyString				mLastScoreName;     // +0x498 registry LastScoreName
-	int						mTimesPlayed;       // +0x3b0
-	bool					mRegistered;        // +0x328 (always true in the port: see GAME_NOTES.md section 3)
 	bool					mMainSongStarted;
 	bool					mMainSongLooping;
 
@@ -171,6 +163,17 @@ public:
 	std::string				mStateLogCells;     // -statelogcells=x,y;x,y: cells whose type is logged at every change
 	struct StateLogState*	mStateLogState;
 	void					StateLogUpdate();
+	// Test commands (testhooks/TestCommands.cpp, docs/TEST_COMMANDS.md): state, goto, level, set, seed, win, lose, move.
+	// Reached only from a -script or the live command channel; a game that is never given one is not touched.
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
+	bool					HandleTestCommand(const ScriptCommand& theCommand);
+	std::string				TestScreen();
+	void					UpdateTestGoto();
+	int						mTestGotoMode;      // "goto <mode>": the mode whose dialogs are answered as they come up (0: none)
+	int						mTestGotoDiff;
+	int						mTestWantMode;      // "move <mode> <difficulty>": the game the bot starts from the menu (0: none)
+	int						mTestWantDiff;
+	unsigned int			mTestBotSeed;       // the bot's own generator for "move" (the seed command sets it)
 	// -resync=<file>: lines "n <level> <state>" and "r <level> <state>" (test hook): the C generator's state at the start of
 	// each level (n) and at the end of its get-ready (r) in the original, which the port takes over there to be compared past
 	// the differences of the get-ready (games/noahsark/tools/resync.py writes the file from an origrun run)
@@ -198,7 +201,6 @@ public:
 	void					ShowNewGameDialog(int theGameMode);
 	void					ShowModeIntroDialog(int theMode);
 	void					ShowHighScores();
-	void					ShowRegisteredDialog();
 	void					ShowCredits();
 	void					ShowRecordScore(const SexyString& thePlace);
 	void					PlayGameMusic();

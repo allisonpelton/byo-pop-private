@@ -15,6 +15,8 @@
 #                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, our
 #                decoder's own earlier output, which tools/jp2test/write_refs.sh writes; the loader's
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images;
+#                jpegtest (JPEG: Platform::DecodeJPEG and the loader's routing against IJG libjpeg 6b's reference output
+#                for its own test files, third_party/libjpeg/test, and synthetic pictures; needs no game files);
 #                songpostest on Bejeweled's, BookWorm's and Bejeweled Twist's modules, with the MO3s' tempo and
 #                channel volumes (skipped without their assets); spectrumtest
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
@@ -23,8 +25,10 @@
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and tools/fwtest/commands.sh
-#                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's)
-#   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
+#                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's);
+#                and tools/playbymove on fwtest (the shared driver loop plays its small task by its "move" answers under
+#                -hold, twice, with the same transcript)
+#   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
 #                save backup's zip, paths and merge, web/saves.js), saveimporttest (the import of saves from an installed game:
@@ -157,7 +161,7 @@
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
 #   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
 #                  (tools/*.js, paktest): unit-web. fwtest, geomtest, jp2test, songpostest, soundtest, spectrumtest, build.sh,
-#                  check.sh, rundesk: build unit. modsettingstest and fixtures: build unit, build-web:modsettingstest and
+#                  check.sh, rundesk: build unit. modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
 #                  unit-web. Anything else under tools/, and any file not named here: build
 #   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
 #                  With --inert (the review found every shared change off unless a game opts in, or reached only from the
@@ -185,7 +189,7 @@ AL_TIMETRIAL="game 1 over at update 14641: score 15942 pieces 903 forged 87 boar
 AL_TUTORIAL="tutorial button 1 at update 231"
 SS_BEGINNER="game 2 over at update 5868: score 380 level 4 moves 20"
 SS_BONUS="game 1 over at update 2746: score 680 level 14 moves 20"
-SS_LATE="game 1 over at update 1852: score 140 level 21 moves 13"
+SS_LATE="game 1 over at update 1958: score 200 level 21 moves 14"
 PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
 PX_START="done: 25 puzzles"
 PX_FULL="done: no temple left, 210 puzzles, log 45b76e98"
@@ -194,9 +198,9 @@ MM_TIPS="game over: score 1730, list 1730 1000 900 800 700, the bot is number 1"
 MM_FULL="victory: score 251975, caught 0 times"
 MM_ADVENTURE="victory: score 0, caught 49 times"
 MM_TUTORIAL="tutorial done at update 6591"
-TT_REGULAR="game 2 over at update 35544: level 7, score 37160, 352 moves"
-TT_STRATEGY="game 1 over at update 2593: level 1, score 2100, 24 moves"
-TT_SPEED="game 1 over at update 37679: level 8, score 49360, 682 moves"
+TT_REGULAR="game 2 over at update 30691: level 4, score 18860, 168 moves"
+TT_STRATEGY="game 1 over at update 6430: level 2, score 7800, 76 moves"
+TT_SPEED="game 1 over at update 66989: level 12, score 85560, 1293 moves"
 NP_GAME="Test: 40 tiles left in 00:12"
 WH_THINK="level 2 saved, score 2000"
 WH_TSUNAMI="level 1 saved, score 0, 14 balls, 5 to come"
@@ -207,7 +211,7 @@ WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 4
 WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
 WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
 MJ_DEAL="222 layouts, 0 failed"
-BB_SHOTS="90f2d44e0574 17f38e9b9790 fa3847002043"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
+BB_SHOTS="99a302e2a141 fbf6b1061117 8b26c14dac8a"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
 MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
 MJC_DEAL="178 layouts, 0 failed"
 MJC_SHOTS="4c18c17f02f2 b63352c04770 7a72965e0cee"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
@@ -321,7 +325,10 @@ classify() {  # <path>: chooses the suites a changed file needs
 				modsettingstest/*|fixtures/*)  # also built for the web, where unit-web runs it under Node
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add modsettingstest ;;
-				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|build.sh|check.sh)
+				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
+					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
+					note build-web "$AREA" "$p"; web_add jpegtest ;;
+				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
@@ -382,7 +389,7 @@ web_est() {  # <target,target...>: sets EST_S to a rough time for building only 
 		case "$t" in
 			sexy*) libs=1 ;;
 			bejeweled|bejeweledtwist|bookwormadv|bookwormadv2) EST_S=$((EST_S + 120)) ;;
-			rulestest|bejeweled_verify|modsettingstest) EST_S=$((EST_S + 20)) ;;
+			rulestest|bejeweled_verify|modsettingstest|jpegtest) EST_S=$((EST_S + 20)) ;;
 			*) EST_S=$((EST_S + 45)) ;;
 		esac
 	done
@@ -546,7 +553,7 @@ suite_build-web() {  # <log> [<target>,<target>...]: the whole web build, or onl
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d e f g h i j
+	local st=0 a b c d e f g h i j k
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -619,11 +626,26 @@ suite_unit() {
 		timeout 200 bash tools/fwtest/commands.sh "$1.cm$m.log" "$OUT/commands-$m.txt" $m "$OUT/no-game-files" > "$1.cm$m" 2>&1 || st=1
 	done
 	l="commands: $(tail -1 "$1.cmscript" | sed 's/^commands //'), $(tail -1 "$1.cmrealinput" | sed 's/^commands //')"
+	# tools/playbymove: the shared driver loop plays fwtest's small task by its "move" answers, under -hold; twice, and
+	# the two transcripts must be the same line for line
+	local pm pb='playbymove fwtest: 7 moves, stop over; STATE {"screen":"board","typed":"Hi","rightdowns":1,"drags":4,"dialogs":2,"over":true}'
+	for m in 1 2; do
+		timeout 120 python tools/playbymove/playbymove.py --dir "$OUT/playbymove$m" --timeout 30 build/native/fwtest.exe \
+			-placeholders -gamedir="$OUT/no-game-files" > "$1.pm$m" 2>&1 || st=1
+	done
+	if [ "$(tail -1 "$1.pm1")" != "$pb" ]; then pm="playbymove: $(tail -1 "$1.pm1")"; st=1
+	elif ! cmp -s "$OUT/playbymove1/driver.txt" "$OUT/playbymove2/driver.txt"; then pm="playbymove: 7 moves, over, RERUN DIFFERS"; st=1
+	else pm="playbymove: 7 moves, over, rerun identical"; fi
+	# JPEG decoding through IJG libjpeg 6b (platform/JPEGDecoder.cpp): IJG's own test files against its reference output,
+	# synthetic pictures against the hashes of PopCap's copy of the library, the loader's routing; needs no game files
+	local jp
+	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || st=1
+	jp="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" >> "$1"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $k; $l"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $k; $l; $pm; $jp"
 	return $st
 }
 
@@ -676,12 +698,15 @@ suite_unit-web() {
 	local m
 	"$NODE" tools/termstest.js > "$1.tt" 2>&1 || st=1
 	m="$(lastof "$1.tt" 'termstest:')"
-	local n
+	local n o
 	"$NODE" tools/cursorstest.js > "$1.cur" 2>&1 || st=1
 	n="$(lastof "$1.cur" 'cursorstest:')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n"
+	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
+	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
+	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n; $o"
 	return $st
 }
 

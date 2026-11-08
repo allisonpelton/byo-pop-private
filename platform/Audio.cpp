@@ -1,5 +1,6 @@
 #include "Audio.h"
 #include "VFS.h"
+#include "MusicLevels.h"
 
 #include <SDL.h>
 #include <xmp.h>
@@ -1140,7 +1141,7 @@ int Mixer::LoadSong(const std::string& theGamePath)
 			return 0;
 		}
 		xmp_start_player(song->mCtx, mRate, 0);
-		xmp_set_player(song->mCtx, XMP_PLAYER_INTERP, XMP_INTERP_SPLINE);
+		xmp_set_player(song->mCtx, XMP_PLAYER_INTERP, BYOPOP_XMP_INTERP);  // platform/MusicLevels.h
 	}
 	song->mLoaded = true;
 	Lock();
