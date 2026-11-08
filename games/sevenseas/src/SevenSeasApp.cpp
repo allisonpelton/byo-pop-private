@@ -1073,12 +1073,6 @@ void SevenSeasApp::ButtonDepress(int theId)
 		if (theId - 3000 == DIALOG_CONTINUE)
 		{
 			KillDialog(DIALOG_CONTINUE);
-			// A fix of the original's fault (0x421a10 case 3000 + 0xf starts the game as 0x41ed70 does, but never puts the pirate
-			// away): the pirate fades out of the new game's first update on, and his 200 x 200 box, still visible, takes the
-			// clicks and the hover of board columns 1 to 4, rows 1 to 5 for the whole game. Put away here as in ContinueGame.
-			mTalkWidget->mMode = 0;
-			mTalking = false;
-			mTalkWidget->SetVisible(false);
 			StartGame();
 		}
 		else

@@ -161,14 +161,6 @@ new game: the original's case 0xf of 0x421a10 sets its mode to 0, clears the tal
 likely cause of the reported "controls fail at random times". Found by loading the original's own savegame.dat (its format is the
 port's; the file the original writes at exit) and clicking a cell under the box.
 
-**New game from the Continue dialog (fixed 2026-11-07).** The same box took the clicks again after the Continue dialog's "No":
-case 3000 + 0xf of 0x421a10 starts a new game without putting the pirate away (only 0x41ed70's no-saved-game branch and case 0xf do),
-so on Average or Hard (Easy goes through the demo and its button first) the board's first update fades him out and his 200 x 200
-box, still visible, took the clicks and the hover of columns 1 to 4, rows 1 to 5 for the whole game: no arrow and no move on
-those squares (the user's "column 4, rows 1-3", 2026-11-07). The original has the same fault, so this is a fix of its bug that the port
-makes now at the user's request: the pirate is put away as in ContinueGame. Seen in the web build with real mouse events (a saved
-game, Average, "No"), and gone with the fix. The tutorial's first-game box and its hint panel were checked in the same run.
-
 **Tutorial text (fixed 2026-11-07).** Two faults of the tutorial's texts. The last hint (step 14, on the line in the middle of the
 panel: "That's it! ...") never showed, because the generator of the text table listed 14 texts for each hint table and the tutorial has
 15 steps. The first box ("This is your ship...") drew its four lines at 0, 0x12, 0x23 and 0x34 below the row; the exe's code (0x406400,
@@ -194,3 +186,13 @@ comparison had only hovered the vertical ones. Nine hovers around the ship (all 
 Each is described in section 6 and in IDENTICAL_PLAY.md: the new ship's cell after a sinking (the original's own draw count varies
 between runs), the gun smoke on the loaded ships of a continued game (uninitialised timers), and the treasure's cell on the bonus
 level (random, same variation).
+
+## 8. Fix candidates (bugs of the original, kept in the port; the fixes mod will fix them)
+
+**The pirate's invisible box after "No" in the Continue dialog (found 2026-11-07).** Case 3000 + 0xf of 0x421a10 starts a new game
+(0x41eef0) without putting the pirate's talk widget away; only 0x41ed70's no-saved-game branch and case 0xf (Continue) do. On Average
+or Hard (Easy goes through the demo and its button first) the board's first update fades him out, but his 200 x 200 box at (142, 10),
+still visible, takes the clicks and the hover of board columns 1 to 4, rows 1 to 5 for the whole game: no arrow and no move on those
+squares (the user's "column 4, rows 1-3"). The port keeps it. To see it: a saved game (the New Game dialog's Yes), Average, Start New
+Game, "No", then hover a square next to the ship under the box. The fix: put the pirate away as ContinueGame does (mode 0, talking
+flag off, widget hidden) before that StartGame.

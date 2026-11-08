@@ -50,7 +50,6 @@ Each row: the difference, its cause in the original, what the port does now, and
 | The map's "Click to continue" glowed | the button has no component image and shows its unlit picture, the lit one under the mouse | the same | d7d0f2a |
 | Arrows showed only above and below the ship (the user's "movement arrows don't show up properly") | 0x409840 draws the arrow of each of the eight neighbouring cells; the port drew only the vertical ones | all eight, as the original (nine hovers, shots match) | 87cbbda |
 | At game over the pirate vanished from the high-score list | 0x420430 brings the talking pirate in front of the list and does not stop him | the same | 1d82ddd |
-| After "No" in the Continue dialog (Average, Hard) the squares under the pirate's box took no clicks and showed no arrows (the user's "column 4, rows 1-3") | 0x421a10 case 3000 + 0xf never puts the pirate's invisible 200 x 200 box away; the original has the same fault | the pirate is put away as for Continue, a fix of the original's bug made at the user's request | dcc842e6 |
 | The last tutorial hint ("That's it! ...") never showed | its text is the 15th of each hint table; the port's table held 14 | all 15 | dcc842e6 |
 | The first box's text sat 17 pixels too high | 0x406400 draws its four lines at 0x12, 0x23, 0x34, 0x45 below the row | the same | dcc842e6 |
 
