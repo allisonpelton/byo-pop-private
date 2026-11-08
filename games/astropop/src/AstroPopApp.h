@@ -177,7 +177,8 @@ public:
 	void			ClosePowerDialog();                         // 0x4291c0 the box that asks for the pilot's power goes
 	void			ShowHelp();                                 // 0x40bea0 (stub)
 	void			CloseFullScreenHelp();                      // 0x428fb0 (stub)
-	void			ApplyOptions(bool theClose);                // 0x428a10 (stub)
+	void			ApplyOptions(bool theClose);                // 0x428a10 the options box's settings take effect and the box goes
+	void			ShowCredits();                              // 0x428f10 (stub)
 	void			UserSelectOk();                             // 0x430f00 the player chosen in the player list
 	void			NewUserOk();                                // 0x430500 the name typed in the new-player box
 	AstroDialog*	ShowLowMessageDialog(const std::string& theHeader, const std::string& theText);   // an OK box a little below the middle

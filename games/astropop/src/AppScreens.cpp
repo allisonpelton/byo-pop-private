@@ -5,6 +5,9 @@
 #include "AstroDialog.h"
 #include "CheckpointDialog.h"
 #include "NewUserDialog.h"
+#include "OptionsDialog.h"
+#include "Checkbox.h"
+#include "UserProfile.h"
 #include "EditWidget.h"
 #include "Particle.h"
 #include "Board.h"
@@ -262,9 +265,20 @@ void AstroPopApp::ShowQuitDialog()
 	aDialog->Resize(0x140 - aWidth / 2, 0xf0 - aHeight / 2, aWidth, aHeight);
 }
 
+// 0x40bd70: the options box, in the colour set of the game's mode (+ 2) or, over the selector, 1. A game on pauses.
 void AstroPopApp::ShowOptions(bool theFromGame)
 {
-	SDL_Log("AstroPop: ShowOptions(%d) not translated yet (0x40bd70)", theFromGame ? 1 : 0);
+	mOpenDialogs++;
+	int aSet = (mBoard == NULL) ? 1 : mBoard->mMode + 2;
+	OptionsDialog* aDialog = new OptionsDialog(mFlag6f9, aSet, theFromGame);
+	StyleDialog(aDialog);
+	aDialog->mHasAlpha = true;
+	aDialog->mHasTransparencies = true;
+	int aHeight = aDialog->GetPreferredHeight(0x1b8);
+	aDialog->Resize(100, 0xf0 - aHeight / 2, 0x1b8, aHeight);
+	if (mBoard != NULL)
+		mBoard->Pause(true, false);
+	AddDialog(0x66, aDialog);
 }
 
 void AstroPopApp::ShowContinueDialog(const std::string& thePilot, int theLevel)
@@ -308,9 +322,32 @@ void AstroPopApp::CloseFullScreenHelp()
 	APP_NOT_TRANSLATED("CloseFullScreenHelp", "0x428fb0");
 }
 
+// 0x428a10: the box's settings take effect and are saved with the player; the box goes. In a game the game goes on (theClose:
+// the box was closed with its own button, which the game notes in m1c09).
 void AstroPopApp::ApplyOptions(bool theClose)
 {
-	(void) theClose;
-	APP_NOT_TRANSLATED("ApplyOptions", "0x428a10");
+	mOpenDialogs--;
+	OptionsDialog* aDialog = (OptionsDialog*) GetDialog(0x66);
+	SwitchScreenMode(!aDialog->mFullscreenCheck->IsChecked(), aDialog->mAccelCheck->IsChecked());
+	EnableCustomCursors(aDialog->mCursorCheck->IsChecked());
+	mFlag6f9 = aDialog->mHintsCheck->IsChecked();
+	mUser->SetInt(0x13, mFlag6f9 ? 1 : 0);
+	mFlag6fa = aDialog->mColorblindCheck->IsChecked();
+	mUser->SetInt(0x72, mFlag6fa ? 1 : 0);
+	mUser->Save();
+	KillDialog(0x66);
+	if (mBoard != NULL)
+	{
+		if (theClose)
+			mBoard->m1c09 = true;
+		mBoard->Pause(false, true);
+		mWidgetManager->SetFocus(mBoard);
+	}
+}
+
+// 0x428f10: the credits (the story screen's second use)
+void AstroPopApp::ShowCredits()
+{
+	APP_NOT_TRANSLATED("ShowCredits", "0x428f10");
 }
 
