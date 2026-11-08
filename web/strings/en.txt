@@ -45,6 +45,7 @@ skin.desk.menu = Control menu: {window}
 skin.desk.m.minimize = Minimize
 skin.desk.m.maximize = Maximize
 skin.desk.m.close = Close
+skin.desk.m.size = {n}x ({w} x {h})
 # Desktop 95's keys, said once in About
 skin.desk.keys = Keys: Tab moves within a window, F6 between the windows, the icons and the task bar.
 # Desktop 95's task bar (web/skins.js): its name for a screen reader, the Pop button, the band down the Pop menu's side, and its entries
@@ -56,6 +57,8 @@ skin.pop.nogames = No games here yet
 skin.pop.listing = Back to all games
 # On a game page: the game's full screen (as the game window's maximize button)
 skin.pop.full = Full screen
+# the game window's sizes, whole multiples of the game's own in device pixels (its control menu, the Pop menu's Game size)
+skin.pop.size = Game size
 # The first entry in the list of Settings' sections beside the Pop menu's Settings: the Settings folder itself
 skin.pop.allsettings = All settings
 # A favourite game's desktop icon: its name for a screen reader ({game}: the game's title), and its menu
@@ -1175,7 +1178,7 @@ add.bin.failed = The files could not be forgotten.
 
 # The music player (web/music.js): the listing page's Music tab
 music.about_html = The music of the games you added, played from their files in this browser. Nothing is sent anywhere.
-  Played with <a href="licenses/libopenmpt.txt">libopenmpt</a>.
+  Played with <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt</a>.
 music.unavailable = The music player is not available.
 music.none = None of the games you added has music the player can play yet.
 music.reading = Reading the games' music…

@@ -502,6 +502,24 @@ EM_JS(void, sexyapp_watch_fullscreen_refusal, (int theWatch), {
 	Module.byopopFullscreenWatch = done;
 });
 
+// port: the page may hold the game's own full screen itself (the site's Desktop 95 puts the game's window in full screen as its
+// maximize button does, a whole multiple of the game's size centred on black, web/shell.html onGameFullscreen; the user,
+// 2026-11-08: "Full screen issue seems to be the difference between using the in-game full screen and pressing F11"). SDL's own
+// full screen makes the canvas the full-screen element at the screen's size, which the page's window cannot frame. 1 when the
+// page took the request (theFull: 1 to enter, 0 to leave), 0 to leave it to SDL.
+EM_JS(int, sexyapp_page_fullscreen, (int theFull), {
+	return (Module.onGameFullscreen && Module.onGameFullscreen(!!theFull)) ? 1 : 0;
+});
+
+// 1 while the page holds the game's full screen or has asked for it, 0 otherwise, -1 for a page with no full screen of its own
+EM_JS(int, sexyapp_page_fullscreen_state, (), {
+	return Module.gameFullscreenState ? (Module.gameFullscreenState() ? 1 : 0) : -1;
+});
+
+// the page took the game's last request for full screen: the game's windowed state follows the page's (UpdateAppStep), as the
+// player may leave it, or the browser refuse it, without the canvas changing size
+static bool gPageFullscreen = false;
+
 // The browser may close, reload or discard the page without giving control back, while 1.3 only
 // saves on shutdown. When the page is hidden or about to unload (SDL reports beforeunload as
 // SDL_APP_TERMINATING), PageGoingAway() writes the settings and brings the backup up to date. Event
@@ -2148,6 +2166,11 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 				mDDInterface->UpdateDisplaySize();
 			// fullscreen can also be left without the game (Esc in the browser, the window manager)
 			mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
+#ifdef __EMSCRIPTEN__
+			// SDL's window stays windowed while the page holds the full screen
+			if ((gPageFullscreen) && (sexyapp_page_fullscreen_state() == 1))
+				mIsWindowed = false;
+#endif
 			mIsPhysWindowed = mIsWindowed;
 			mWidgetManager->MarkAllDirty();
 			break;
@@ -2602,11 +2625,21 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	// port: SDL switches the existing window (desktop-resolution fullscreen) instead of recreating it
 	if (mHWnd != NULL)
 	{
-		SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 #ifdef __EMSCRIPTEN__
-		// a page that has no full screen at all refuses at once, and SDL leaves its window windowed; a later refusal is watched
-		mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
-		sexyapp_watch_fullscreen_refusal(mIsWindowed ? 0 : 1);
+		// the page's own full screen (sexyapp_page_fullscreen), or SDL's
+		if (sexyapp_page_fullscreen(mIsWindowed ? 0 : 1))
+		{
+			gPageFullscreen = !mIsWindowed;
+		}
+		else
+		{
+			SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+			// a page that has no full screen at all refuses at once, and SDL leaves its window windowed; a later refusal is watched
+			mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
+			sexyapp_watch_fullscreen_refusal(mIsWindowed ? 0 : 1);
+		}
+#else
+		SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 #endif
 		mIsPhysWindowed = mIsWindowed;
 
@@ -2956,6 +2989,17 @@ bool SexyAppBase::UpdateAppStep(bool* updated)
 			// in 1.3 the main thread kept updating while loading; don't catch up on the time spent
 			ClearUpdateBacklog();
 		}
+
+#ifdef __EMSCRIPTEN__
+		// the page's full screen, left or refused (gPageFullscreen)
+		if ((gPageFullscreen) && (sexyapp_page_fullscreen_state() != 1))
+		{
+			gPageFullscreen = false;
+			mIsWindowed = true;
+			mIsPhysWindowed = true;
+			mWidgetManager->MarkAllDirty();
+		}
+#endif
 
 		if (!ProcessEvents())
 			mUpdateAppState = UPDATESTATE_PROCESS_1;

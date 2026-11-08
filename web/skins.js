@@ -263,6 +263,14 @@ var ByopopSkin = (function () {
       var entries = [{ label: T("skin.desk.m.minimize"), fn: function () { setMin(w, true); } }];
       if (w.maximize) entries.push({ label: T("skin.desk.m.maximize"), fn: function () { w.maximize(); } });
       entries.push({ rule: true });
+      // the game's window: its whole-multiple sizes that fit (o.sizes), the one it has ticked
+      if (w.sizes) {
+        var sz = w.sizes();
+        if (sz && sz.list.length) {
+          sz.list.forEach(function (s) { entries.push({ label: s.label, checked: s.n === sz.current, fn: function () { sz.set(s.n); } }); });
+          entries.push({ rule: true });
+        }
+      }
       entries.push({ label: T("skin.desk.m.close"), key: "Alt+F4", bold: true, fn: function () { closeWin(w); } });
       popMenu(from, entries, x, y, w.el.getAttribute("data-d95-title"));
     }
@@ -335,7 +343,7 @@ var ByopopSkin = (function () {
     function add(el, o) {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
       var w = { el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
-                button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon };
+                button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
       el.setAttribute("data-d95-title", o.title);
@@ -411,6 +419,36 @@ var ByopopSkin = (function () {
         };
       }
       drag(w, handle);
+      // the game's window: a resize corner at its bottom right, which snaps to its whole-multiple sizes (o.sizes) as it is dragged
+      if (o.sizes) {
+        var grip = document.createElement("span");
+        grip.className = "d95-grip"; grip.setAttribute("aria-hidden", "true");
+        el.appendChild(grip);
+        var gs = null;
+        grip.addEventListener("pointerdown", function (ev) {
+          if (!on || ev.button !== 0) return;
+          var sz = o.sizes();
+          if (!sz || !sz.list.length) return;
+          ev.preventDefault(); ev.stopPropagation();
+          var cur = sz.list.filter(function (s) { return s.n === sz.current; })[0] || sz.list[sz.list.length - 1];
+          gs = { px: ev.clientX, py: ev.clientY, w: cur.w, h: cur.h, id: ev.pointerId, n: sz.current };
+          try { grip.setPointerCapture(ev.pointerId); } catch (e) {}
+        });
+        grip.addEventListener("pointermove", function (ev) {
+          if (!gs || ev.pointerId !== gs.id) return;
+          var sz = o.sizes();
+          if (!sz || !sz.list.length) return;
+          // the size whose width (or height, whichever the drag moved more) is nearest the corner's
+          var dx = ev.clientX - gs.px, dy = ev.clientY - gs.py;
+          var byW = Math.abs(dx) >= Math.abs(dy);
+          var want = byW ? gs.w + dx : gs.h + dy, best = null, bd = Infinity;
+          sz.list.forEach(function (s) { var d = Math.abs((byW ? s.w : s.h) - want); if (d < bd) { bd = d; best = s; } });
+          if (best && best.n !== gs.n) { gs.n = best.n; sz.set(best.n); }
+        });
+        var end = function (ev) { if (gs && ev.pointerId === gs.id) gs = null; };
+        grip.addEventListener("pointerup", end);
+        grip.addEventListener("pointercancel", end);
+      }
       el.addEventListener("pointerdown", function () { if (on) raise(w); }, true);
       var s = saved()[o.id];
       if (s && isFinite(s.x) && isFinite(s.y)) { w.x = s.x; w.y = s.y; w.placed = s.placed !== false; w.closed = !!s.closed && !!o.closable; w.min = !!s.min && !w.closed; }
@@ -667,6 +705,18 @@ var ByopopSkin = (function () {
           // the game's full screen, as its window's maximize button
           var gw = find("game");
           if (gw && gw.maximize) list.appendChild(item(T("skin.pop.full"), closeThen(gw.maximize)));
+          if (gw && gw.sizes) {
+            var sz = gw.sizes();
+            if (sz && sz.list.length) list.appendChild(item(T("skin.pop.size"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", fill: function () {
+              sub.textContent = "";
+              var now = gw.sizes();
+              now.list.forEach(function (s) {
+                var it = item(s.label, closeThen(function () { now.set(s.n); }));
+                it.setAttribute("role", "menuitemradio"); it.setAttribute("aria-checked", s.n === now.current ? "true" : "false"); it.classList.add("d95-radio");
+                sub.appendChild(it);
+              });
+            } }));
+          }
           // this game's own windows
           wins.forEach(function (w) { if (w.id !== "panel-settings" && w.id !== "about" && !/^set-/.test(w.id) && !(w.id === "chat" && w.el.hidden)) win(w.id); });
         }
@@ -863,7 +913,8 @@ var ByopopSkin = (function () {
       entries.forEach(function (en) {
         if (en.rule) { var r = document.createElement("div"); r.className = "d95-rule"; r.setAttribute("role", "separator"); m.appendChild(r); return; }
         var b = document.createElement("button");
-        b.type = "button"; b.className = "d95-item" + (en.bold ? " d95-default" : ""); b.setAttribute("role", "menuitem"); b.tabIndex = -1;
+        b.type = "button"; b.className = "d95-item" + (en.bold ? " d95-default" : ""); b.setAttribute("role", en.checked !== undefined ? "menuitemradio" : "menuitem"); b.tabIndex = -1;
+        if (en.checked !== undefined) { b.setAttribute("aria-checked", en.checked ? "true" : "false"); b.classList.add("d95-radio"); }
         var s = document.createElement("span"); s.textContent = en.label; b.appendChild(s);
         if (en.key) { var k = document.createElement("span"); k.className = "d95-key"; k.textContent = en.key; b.appendChild(k); b.setAttribute("aria-keyshortcuts", en.key); }
         if (en.disabled) b.setAttribute("aria-disabled", "true");
