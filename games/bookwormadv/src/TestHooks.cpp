@@ -29,7 +29,7 @@
 //   lose            Lex near death (the scripts' _lex_near_death: a quarter of a heart), so that the enemy's next
 //                   attack ends the battle (the battle decides a death only then)
 //   move            MOVE {json} the move the drivers' bot makes next, or MOVE null (MoveForTests): "what" (dialog, talk,
-//                   tutorial, lostturn, wait, hint, overlay, word, scramble, guess, treasure, continue, enter), "word" for a word or
+//                   tutorial, lostturn, wait, hint, overlay, gameover, word, scramble, guess, treasure, continue, enter), "word" for a word or
 //                   a guess, and "input", the real input that makes it; it changes nothing
 #include <SDL.h>
 
@@ -625,6 +625,13 @@ std::string GameApp::MoveForTests()
 	// a click above the board, where the drivers click conversations on
 	if (aBattle && (mBoard->mLevelupOverlay || mBoard->HasOverlays()) && !mBoard->IsPaused())
 		return Move("overlay", Click(400, 150));
+	// a mini-game over ("Click anywhere to continue"): a click
+	std::string anEnd;
+	if (mBoard != nullptr && mBoard->IsMiniGame() &&
+	    RunLua("if gMiniGame == nil or gMiniGame.mEndGameState == nil then return '' end "
+	           "return tostring(gMiniGame.mEndGameState)", anEnd) &&
+	    !anEnd.empty() && anEnd != "0")
+		return Move("gameover", Click(400, 150));
 	// Word Master: the guess's keys, then Submit
 	if (mBoard != nullptr && mLex != nullptr && mBoard->IsMiniGame() && mMiniGameName == "WordMaster") {
 		std::string aRows;
@@ -636,13 +643,17 @@ std::string GameApp::MoveForTests()
 			return "null";
 		std::string aGuess = aLine.substr(0, aLine.find(' ')), anInput;
 		std::istringstream aStream(aLine.substr(aGuess.size()));
+		std::vector<std::pair<int, int>> aPressed;
 		for (std::string aToken; aStream >> aToken;) {
 			int x = 0, y = 0;
 			if (sscanf(aToken.c_str(), "%d,%d", &x, &y) != 2)
 				continue;
+			// a key pressed again (a letter the guess has twice) half a second later: sooner, the key drops the press
+			bool anAgain = std::find(aPressed.begin(), aPressed.end(), std::make_pair(x, y)) != aPressed.end();
 			if (!anInput.empty())
-				anInput += ",{\"wait\":8},";
+				anInput += anAgain ? ",{\"wait\":60}," : ",{\"wait\":8},";
 			anInput += Click(x, y);
+			aPressed.push_back(std::make_pair(x, y));
 		}
 		return Move("guess", anInput, ",\"word\":" + JsonString(aGuess));
 	}
@@ -657,6 +668,33 @@ std::string GameApp::MoveForTests()
 			return "null";  // the enemy's turn
 		std::vector<Tile*> anOrder;
 		std::string aWord = BestWordForTests(std::string::npos, anOrder);
+		if (mBoard->IsMiniGame()) {
+			// a mini-game wants words it has not had yet (Letter Rip deals one word to take others from): the longest
+			// that this mini-game's bot has not offered before
+			static Board* sMiniBoard = nullptr;
+			static std::vector<std::string> sOffered;
+			if (sMiniBoard != mBoard) {
+				sMiniBoard = mBoard;
+				sOffered.clear();
+			}
+			std::vector<std::string> aLongest;
+			BestWordForTests(std::string::npos, anOrder, &aLongest, 200);
+			aWord.clear();
+			anOrder.clear();
+			for (const std::string& aCandidate : aLongest)
+				if (std::find(sOffered.begin(), sOffered.end(), aCandidate) == sOffered.end()) {
+					aWord = aCandidate;
+					break;
+				}
+			if (!aWord.empty()) {
+				TileLetters aTiles;
+				for (Tile* aTile : mBoard->mTiles)
+					if (!aTile->mSelected && aTile->CanSelect(aTile->mX + 25, aTile->mY + 25))
+						aTiles.push_back(std::make_pair(Board::GetWord(std::list<Tile*>(1, aTile)), aTile));
+				Spell(aWord, aTiles, anOrder);
+				sOffered.push_back(aWord);
+			}
+		}
 		auto anAttack = mBoard->mButtons.find(Board::BUTTON_ATTACK);
 		auto aScramble = mBoard->mButtons.find(Board::BUTTON_SCRAMBLE);
 		if (aWord.empty()) {

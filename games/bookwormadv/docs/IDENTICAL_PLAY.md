@@ -165,6 +165,11 @@ then played from the main menu until Lex fell to Cerberus 34 minutes into the ru
 The bot's own first faults turned up on the way and were fixed in it: it waited forever on Level Up's "Click to
 continue" and on a lost turn (under `-fast` thousands of updates pass between two questions), and it picked the same
 treasure on and off (the treasure room's `mSelectedTreasures` is nil; each of `mTreasures` has its own `mSelected`).
+The three mini-games, played by `move` in real time (`--realtime`: under `-fast` a mini-game's minute passes between two
+questions), each ran to its Game Over and its Hall of Fame: Letter Rip with 30 words, all it had, Link N' Spell with 104,
+and Word Master with five guesses. On the way the bot learned to offer a mini-game's words only once (Letter Rip wants new
+words from the same letters), to click its "Click anywhere to continue", and to press a Word Master key again only half a
+second after its first press, since the key drops a press that comes sooner.
 
 ## Oddities skipped
 

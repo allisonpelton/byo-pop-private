@@ -93,13 +93,16 @@ channel) each answer with one log line, `OK <command>` or `ERROR <command>: <rea
 - `move` logs `MOVE {json}`, the move the drivers' bot makes next (`GameApp::MoveForTests`), or `MOVE null` while
   there is none (the board busy, a curtain moving, a screen with nothing to do). Its `what` is, first to last: `dialog`
   (the top dialog's first button), `talk` (a conversation goes on), `tutorial` (the first battle's one tile, or
-  Attack), `wait` and `lostturn` (Lex stunned: the grid, once the lost turn has held for 30 updates), `hint` (an
+  Attack), `wait` and `lostturn` (Lex stunned: the grid, once two questions 30 updates or more apart have
+  seen it), `hint` (an
   arrow's first hot spot; one a click left standing is not offered again after 60 updates), `overlay` (Level Up's
-  "Click to continue" or a script's overlay over the board: a click above it), `guess` (Word Master),
-  `word` (the board's longest word, with `word`) or `scramble`, `treasure` (the next of Lex's treasures) and
+  "Click to continue" or a script's overlay over the board: a click above it), `gameover` (a mini-game's
+  "Click anywhere to continue"), `guess` (Word Master: its keys, a letter it has twice half a second apart), `word` (the board's longest word, with `word`; in a mini-game the
+  longest this mini-game's bot has not offered yet, since Letter Rip wants new words from the same letters) or `scramble`, `treasure` (the next of Lex's treasures) and
   `continue` in the treasure room, and `enter` on the map. `input` holds the clicks, the moves over Attack and the
   waits that make it. It changes nothing. `tools/movedriver.py` is the thin loop that plays by it natively (`state`,
-  `move`, the move's input as real events on the live channel, `-commands` with an empty `-realinput`).
+  `move`, the move's input as real events on the live channel, `-commands` with an empty `-realinput`; `--realtime` for
+  the mini-games, whose clock runs out under `-fast` between two questions).
 
 `-boardlog=<file>` (on the web, the page adds it through `Module.callMain`) makes the game append what a driver of
 real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y | header | lines` (its

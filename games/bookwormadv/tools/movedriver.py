@@ -3,10 +3,11 @@ game `move` on the live channel (-commands, with an empty -realinput file so its
 move's input steps as real events, and asks again, until the screen named is reached or the time is up. Run it under
 rundesk, with absolute paths:
 
-    build/native/rundesk.exe python games/bookwormadv/tools/movedriver.py <out dir> <until screen> <seconds> [command ...] -- <exe> [game args...]
+    build/native/rundesk.exe python games/bookwormadv/tools/movedriver.py <out dir> <until screen> <seconds> [--realtime] [command ...] -- <exe> [game args...]
 
 <until screen> is a `state` screen (menu, map, treasure, ...) to stop at once it has left it and come back, or "-" to
-play until the time is up. It also stops after two minutes with no move, or the same move 200 times on an unchanged
+play until the time is up. The game runs with -fast unless --realtime is given: a mini-game's clock runs
+out under -fast between two questions. It also stops after two minutes with no move, or the same move 200 times on an unchanged
 state (a picture of it in stuck.png or loop.png). The commands ("goto adventure") are sent first, each once its answer to the one
 before has come (OK). The out dir gets commands.txt, game.log (the game's log) and movedriver.log (each move and
 the screen after it); the last line says what ended the run.
@@ -22,14 +23,15 @@ def main():
     k = sys.argv.index('--')
     out, until, seconds = sys.argv[1], sys.argv[2], float(sys.argv[3])
     game = sys.argv[k + 1:]
-    first = sys.argv[4:k]
+    first = [a for a in sys.argv[4:k] if a != '--realtime']
+    fast = [] if '--realtime' in sys.argv[4:k] else ['-fast']
     os.makedirs(out, exist_ok=True)
     cf, log, me = (os.path.join(out, n) for n in ('commands.txt', 'game.log', 'movedriver.log'))
     for f in (cf, log):
         if os.path.exists(f):
             os.remove(f)
     open(cf + '.empty', 'w').close()
-    proc = subprocess.Popen(game + ['-commands=' + cf, '-realinput=' + cf + '.empty', '-fast'],
+    proc = subprocess.Popen(game + ['-commands=' + cf, '-realinput=' + cf + '.empty'] + fast,
                             stdout=open(log, 'w'), stderr=subprocess.STDOUT)
     pos = 0
     sent = 0
