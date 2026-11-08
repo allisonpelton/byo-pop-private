@@ -191,3 +191,38 @@ at a restart (the game reads them once, in `Init`: a chamber never changes its c
 the mod every fix is off and the game is the original. The site ships it beside the page and starts the game with it on
 (`cmake/ByopopWeb.cmake`); natively it is a folder in `mods-mummymaze`, or in a `-modsdir`. It does not split the high scores
 (a feature, no rules or tunables): the scoring is the same and only the clock is another.
+
+## The drivers that play by `move`
+
+`tools/realplay/drive.py` plays a game natively: it starts the exe under rundesk with `-commands` and `-realinput`, asks `move` for
+each step and sends it as real SDL events (`click game X Y`, `keydown` and `keyup`), and reads `state` to know when a step is taken
+and when the game is over (`--mode classic|adventure|tutorial`, `--stepinput keys|clicks`, `--fast`, `--steps`, `--at N:<lines>` for
+focus, full screen and resize in the middle of a game, `--finish`). On the web the test page's `byopop.test.playByMove` plays by the same
+`move` as DOM events. A `move`'s `input` is the ordered list of `docs/TEST_COMMANDS.md` (`{"click":[x,y]}`, `{"key":"ArrowUp"}`).
+Both stop with a message when the bot has nothing to press, when a chamber takes more than 500 moves (a loop) or when the screen
+does not change (`--maxmoves`, `--stuck`). A native run in `-fast` reads the game's clock in updates and the driver is slower than
+the game, so the game runs on while the driver thinks: the clock of such a run (the level-complete bonus, the adventure's seconds)
+is not a player's, and its scores are lower than the same moves played in the page, where `hold=1` stops the game between the
+driver's calls.
+
+## Registration and the buttons that lead out of the game (taken out 2026-11-08)
+
+The port was the registered game already (the shareware branches were never translated); what was still in it is gone now, and each
+removal leaves the baseline's logs and screenshots alone except where it is said.
+
+- The Options dialog's Register button (id 1, which showed the register message) and the button that opened the game's web page
+  (id 3, "Visit PopCap.com"). The Tutorial and High Scores buttons now share the first row and Credits takes the second, so the dialog
+  keeps its size and has no gap. This is the one visible change; the suite's three Options photographs changed with it and the
+  baseline was refrozen at that commit.
+- The title's register link (never shown in the registered game), the play counters behind it (`mDivisor`, `mPlaysShown`,
+  `mDelayed`, `mDelayProgress`, `mClicked`), the title link that quits when the demo is used up (`mQuitLink`, never set), the
+  register dialog's id, and the three `TimesPlayed` increments (a game started, a classic game continued, a slot played). The
+  framework's `TimesPlayed` registry value is no longer written by the game. Not touched: the framework's own `mIsRegistered` (always
+  true), which is the coordinator's to take out of `SexyApp`.
+- The pictures `register` and `registerrunes`, which only the registration screen used (`make_res.py` leaves them out, so the image
+  ids after them moved up by two; `NUM_IMAGES` is 163).
+- Kept because the registered game has them: the `trialcircle` picture on the title, the "Internet scores" data buffer the classic
+  link starts, the tips.
+
+Loading was already as fast as the machine allows: the loading thread runs in one go after the first frame (the framework), it loads
+the 25 sounds and the fonts without waiting, and the title polls its progress every fourth update. There is no minimum time.
