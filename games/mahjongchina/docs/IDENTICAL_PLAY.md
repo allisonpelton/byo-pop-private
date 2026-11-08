@@ -128,16 +128,18 @@ round never closed; `Board::OnCommand` ignores the shuffle once no tile is left 
 **What this pass changed in the port.** The same changes as Japan's, in the same commit (3edab79b): the shuffle at the last pair, the
 logos at the main menu's corners taking no click, `move` answering the pause box, the shared libjpeg 6b loader (the suite's
 screens at most 3 levels of a channel from the old ones, in the JPEG backgrounds; `tools/check.sh` has the new hashes) and the
-hooks of the fixes mod. The fixes mod's `modtest.py --game china` passes: the menu at update 760 with the mod against 1530
-without, the same seed dealing the same board and shuffle whatever the start time and another seed another, the clock's seconds
+hooks of the fixes mod; a later commit of the pass took the two logo screens and the black before them out of the start
+(the loading rule; `-logos` keeps them, the check suite passes it), and the launch to the menu takes 1.29 s where it took 7.7 s.
+`modtest.py --game china` passes: the menu at update 260 as the port starts against 1550 with `-logos`, the same seed dealing the same board and shuffle whatever the start time and another seed another, the clock's seconds
 equal to the updates in real time. Oddities of this pass: none skipped.
 
 ## The deviations that remain
 
 `DEVIATIONS.md` lists them. They are Japan's, with China's addresses, plus the window's background brush, which the
-port has no window class to carry and which nothing shows. Four of them can be seen. Full screen on a graphics driver
+port has no window class to carry and which nothing shows. Five of them can be seen. Full screen on a graphics driver
 set to stretch keeps the 4:3 shape. A player whose port moved keeps its progress. The two logos at the main menu's
 corners take no click, where the original opened web sites. A click on Shuffle while the last pair flies does nothing,
-where the original locked the board. The rest have no visible effect: the
+where the original locked the board. The game opens at its main menu, where the original showed two logo screens for 4 s
+(`-logos` keeps them). The rest have no visible effect: the
 device stand-ins, three leaks fixed, five bounds the original never checks, a few fields the original leaves unset,
 and the random generator kept draw for draw.
