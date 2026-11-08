@@ -1529,6 +1529,37 @@ every game has them. What wrong sizes did in testing:
 - BookWorm: `tile_fire_fx1` must be at least 57 px tall and the ember and spark images square (else a modulo by
   zero). `wordlist.txt` has no stand-in, and without `bookworm.exe` the game's texts are empty (GameText).
 
+## The performance panel
+
+A game page shows its performance panel while the site setting "Performance panel" (`perf`, the Display group) is on; it is
+off by default (`web/perf.js`). In Desktop 95 it is a window of the desktop with its own icon. It only reads, so the game
+plays the same with it on. With it off nothing of it runs: no animation frame, observer, timer or wrapped WebGL call. Its
+link in the framework's frame hook returns at once, and the hook's own cost is two clock reads a frame. Each second it shows
+the following.
+
+- **Frames:** frames per second and frame time (average and longest), from requestAnimationFrame. Also the game's own time
+  per frame: the framework's frame hook (`sexyapp_test_frame`, `Module.byopopTestFrame`) passes the time
+  `EmscriptenMainLoop` spent on the frame's updates and draw.
+- **Updates:** updates per second, and catch-up frames, those that ran more than one update. Both come from
+  `byopop_update_count` read at each frame.
+- **Main thread:** the game's share of the page's main thread (its frame time over the second), and the long tasks the
+  browser reports, those over 50 ms (count and share). Both are labelled as shares of the one thread the page runs on,
+  never as the computer's CPU use.
+- **Memory:** the wasm heap's size and the bytes malloc has handed out, and the framework's images (its MemoryImage set,
+  counting pixels and the blitters' caches) and loaded sounds (their samples), with their bytes. These come from
+  `byopop_perf_json`, a web-only, read-only framework call, made once a second while the panel is open. Also the
+  JavaScript heap where the browser gives it (`performance.memory`), and the site's storage used and quota
+  (`navigator.storage.estimate`, every 10 s).
+- **Graphics:** once the game has drawn, the WebGL context it draws with (GPUInterfaceGL's, the one `getContext` gives
+  back) has its draw, texture-upload and buffer calls counted by wrapping them while the panel is on; turning the panel
+  off puts the originals back. The panel shows draw calls per frame, uploads per second and the bytes uploaded, and the
+  renderer's name. GPU time per frame comes from a timer query only where the browser really offers
+  `EXT_disjoint_timer_query` (or its WebGL 2 form), with disjoint results dropped. A query runs from one frame's end to
+  the next, so it times that frame's GL work. A game drawing without WebGL says so. The panel never asks for a context
+  before the game has made its own, since that would make one and take the canvas from the game.
+- **Sound:** the audio context's `baseLatency` and `outputLatency`, the mixed sound queued ahead of what the context has
+  played, and how often the queue ran dry (`Module.byopopAudio`, "Sound" below).
+
 ## The player-only page
 
 For sessions that test a game in the Browser pane (the user, 2026-11-07: "For agent browser testing use, build a stripped down
@@ -1546,8 +1577,10 @@ Its parameters:
 |---|---|
 | `player=1` | the player-only page and its tools, `window.byopop.test` |
 | `assets=<name>` | the game's files from the staged `assets/<name>/` (`assets=1`: the page's own id), served by `tools/webtest/serve.py` and taken through the page's own import, which fetches only the files it picks; everything goes into a test profile of its own (the page's storage and Web Lock with "-test" after their names), apart from the player's, and the record of the player's games is left alone |
-| `fast=1` | the game on its virtual clock (`-fast`) |
-| `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready |
+| `fast=1` | the game on its virtual clock (`-fast`), on the page's own frames (below) |
+| `framems=N` | with `fast=1`, the longest a frame runs the game's steps, in ms (25 by default) |
+| `frames=browser` | with `fast=1`, the browser's frames instead of the page's own (to compare a run with them) |
+| `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready. A driver then runs once the files are in, before the game starts, and starts it itself; `?driver=move` starts it at once |
 | `silent=0` | sound on (the user's speakers: only when the user says so) |
 | `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
 | `run=<id>` | the folder of `byopop.test.shot(name)`'s files under `build/webshots/` (default "default") |
@@ -1559,10 +1592,23 @@ the staged files at `/__assets/<name>/` (`__list` lists them) and `POST /__shot`
 as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/origrun/<run>/shots --port build/webshots/<run>
 --run <id>` (`docs/SHOTDIFF.md`).
 
+**Fast runs** (2026-11-08). A hidden Browser pane sends no animation frames and runs its timers about once a second, so with
+`fast=1` the page drives the game itself: each frame the runtime asks for is a MessageChannel message, posted at once, so the
+game runs as fast as the machine allows, hidden or not. Each frame stops once the game's steps took `framems` (the framework's
+`byopop_set_frame_budget`, web only: `EmscriptenMainLoop` returns between two steps of the update state machine, which carries
+on in the next frame), so the page's own JS, the test commands and the tool calls are served between frames. Neither changes an
+update or a draw. Mummy Maze's bot, from `seed 7` and `level 1` queued in the same update, went through levels 1 and 2 by the
+same positions, mazes and scores on these frames as on the browser's (`frames=browser`), in a third of the time. Pixelus's
+driver went through the dialogs and the story to its third solved puzzle at about 700 updates a second, which is Pixelus's own
+speed with a draw every 10 updates. A run that compares states with another must reach its starting point by commands sent in
+the same update (`Promise.all` of `command()` calls), since the number of updates between two commands sent one after the other
+depends on the frames.
+
 `byopop.test` (every call that acts resolves once a frame has been drawn after it):
 
 - **ready**, a promise that resolves at the first drawn frame with `{updates, screen}`; `progress()` before then gives the status
-  line, the page's state, the frames and the updates. `start()` starts a `hold=1` page.
+  line, the page's state, the frames and the updates. `start()` starts a `hold=1` page and resolves with `ready`; `loaded`
+  resolves once the page could start it (its files are in), which is when a `hold=1` page runs its driver.
 - **errors**, an array that collects every abort, uncaught exception and rejection, every printed line that reports an error
   (Lua's among them), every message box and every failure to fetch the staged files, each `{kind, text, update, at}`. A message
   box is answered at once and never shown: an alert is dismissed, a confirm answered with `confirmAnswer` (true by default).
@@ -1591,12 +1637,14 @@ as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/o
 - **test commands** (the user, 2026-11-07, "Yes, add them"; `docs/TEST_COMMANDS.md`): `command(line, {timeout})` sends one
   command (state, goto <screen>, level <n>, unlock all, set <name> <value>, win, lose, seed <n>) through the framework's live
   channel, `byopop_test_command`, which queues it for the next update and the game's `HandleScriptCommand`, and resolves with the
-  lines printed from the call up to its answer, the last of them: `STATE {json}`, `OK <command>` or `ERROR <command>: <reason>`
+  lines printed from the call up to its answer, the last of them: `STATE {json}`, `MOVE {json}|null`, a game's own answer of
+  that shape (an upper-case word and JSON, such as Pixelus's `TARGETS {json}`), `OK <command>` or `ERROR <command>: <reason>`
   (SDL's "INFO: " taken off). A held game is stepped one update so that the command runs. `state()` is `command("state")`'s JSON.
   A build without the channel rejects at once. `botMove()` is `command("move")`'s move, or null when the bot has none;
-  `playMove(m)` sends one through real DOM input in game coordinates: its `input` list in order where it has one, else its
-  `clicks` (`{x, y, button}`), then its `drags` (`{x0, y0, x1, y1, steps}`), then its `keys` (DOM key names), and waits its
-  `updates` (1 by default).
+  `playMove(m)` sends one through real DOM input in game coordinates: its `input` steps in order (`{move:[x,y]}` a hover,
+  `{click:[x,y]}` with `button:"right"` if it is one, `{press:[x,y]}` and `{release:[x,y]}` for a drag, `{key:"B"}`,
+  `{wait:n}` updates; `docs/TEST_COMMANDS.md`, under `move`), else an older move's `clicks` (`[x, y]` or `{x, y, button}`),
+  then its `drags` (`{x0, y0, x1, y1, steps}`), then its `keys` (DOM key names), and waits its `updates` (1 by default).
 - **readings**, all copies: `watch()` a port's
   watch values where it gives them (`byopop_watch_json`), null otherwise; `mixer()` the mixer's state once the shared
   session's `platform/Audio.cpp` gives it (`byopop_mixer_json`), null until then; `screen()` the game's size.
@@ -1649,9 +1697,10 @@ opened as `...bejeweled.html?player=1&assets=1&fast=1&driver=games/bejeweled/too
 **The built-in driver `?driver=move`** plays any game by its port's own bot (the user, 2026-11-07: "the scripts that play the
 games should be developed in a way that their code can be reused for a mod that adds a bot"; `docs/TEST_COMMANDS.md`, "The bot
 behind `move`"). It loops: `state()`, then `botMove()`, then `playMove()`, so every move is real input. It stops when the
-state says `"over": true`, on `MOVE null` twice running (it waits 30 updates after the first), on an ERROR, or after `?steps=`
-moves (2000 by default). `byopop.test.result` is then `{moves, stop, state, updates, errors}`: `stop` is "over", "limit",
-"no move" or "error: <message>", and `state` the last state read. `playByMove({steps})` runs the same loop from a driver of a
+state says `"over": true`, on `MOVE null` twice running while the game is not busy (it waits 30 updates after the first), on
+an ERROR, or after `?steps=` moves (2000 by default). While the state says `busy` (or `board.busy`), as Alchemy's does while a
+board clears, `MOVE null` only means "not yet": it waits 5 updates and asks again, and stops with "busy" after 20000 of them. `byopop.test.result` is then `{moves, stop, state, updates, errors}`: `stop` is "over", "limit",
+"no move", "busy" or "error: <message>", and `state` the last state read. `playByMove({steps})` runs the same loop from a driver of a
 session's own. It needs the build's `byopop_test_command` and a port that answers `move`; the MOVE fields are agreed with the
 shared session, whose native tool plays the same moves.
 

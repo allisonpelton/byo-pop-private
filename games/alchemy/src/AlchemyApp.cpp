@@ -36,14 +36,14 @@ AlchemyApp* Sexy::gApp = NULL;
 // 0x5101f8: the image names; the file is images\<name> (the framework tries .gif, .jpg, .png and the "_" alpha masks)
 static const char* const gImageNames[NUM_IMAGES] =
 {
-	"title", "trialversion", "backdrop", "greenbar", "cursor1", "pointer2", "overhand", "typer", "dialog", "dbutton",
+	"title", "backdrop", "greenbar", "cursor1", "pointer2", "overhand", "typer", "dialog", "dbutton",
 	"waitbar", "symbols", "nullblock", "skulls", "cartoonstar", "light", "britelight", "buttonstrip", "quitgamestrip",
 	"helpstrip", "soundstrip", "scorefont", "overfont1", "next", "wizardhead", "wizmouth2", "wizmouth3", "wizmouth4",
 	"wizmouth5", "slider", "slidergem", "unchecked", "checked", "editbox", "bubbles2", "bubbles7", "wave1",
 	"tinybubble1", "forgeback2", "bubbleburst", "gems1", "gems2", "levelfont1", "bigexplosion", "smsparkle",
 	"tinysparkle", "selectorbutton", "glassbuttons", "level2", "level3", "level4", "level5", "level6", "level7",
 	"level8", "level9", "gameselector_base", "gameselector_greenon", "gameselector_redon", "gameselector_tuton",
-	"gameselector_newgameon", "hiscorebox", "hiscorebtn", "gameover", "redcircle", "helparrow"
+	"gameselector_newgameon", "gameover", "redcircle", "helparrow"
 };
 
 // 0x510300: the sound names (sounds\<name>); "finalvanish" is in the table twice
@@ -66,7 +66,6 @@ AlchemyApp::AlchemyApp()
 	mTimeTrial = false;
 	mTutorialMode = true;
 	mSelectorFlag = true;
-	mNoPopLink = false;
 	mPendingSkill = 0;
 	mSelector = NULL;
 	mTitleScreen = NULL;
@@ -450,8 +449,6 @@ void AlchemyApp::WriteToRegistry()
 
 	if (!mLastScoreName.empty())
 		RegistryWriteString("LastScoreName", mLastScoreName);
-	if (!mLastInternetScoreName.empty())
-		RegistryWriteString("LastInternetScoreName", mLastInternetScoreName);
 	RegistryWriteInteger("SkillLevel", mSkillLevel);
 	RegistryWriteInteger("TimeTrial", mTimeTrial ? 1 : 0);
 }
@@ -465,14 +462,10 @@ void AlchemyApp::ReadFromRegistry()
 	int anInt;
 	if (RegistryReadString("LastScoreName", &aString))
 		mLastScoreName = aString;
-	if (RegistryReadString("LastInternetScoreName", &aString))
-		mLastInternetScoreName = aString;
 	if (RegistryReadInteger("SkillLevel", &anInt))
 		mSkillLevel = anInt;
 	if (RegistryReadInteger("TimeTrial", &anInt))
 		mTimeTrial = anInt != 0;
-	if (RegistryReadInteger("NoPopLink", &anInt))
-		mNoPopLink = anInt != 0;
 }
 
 // 0x410bb6 slot 21: the plain dialog (black text on the parchment, gold buttons)

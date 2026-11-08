@@ -79,3 +79,38 @@ The blitter (0x437e3c) picks one of 32 routines: (format class << 3) | (mode << 
 an alpha byte before every pixel, 2 a color key (0xfefe01 in the display's format) and 3 additive. Two tables made at
 start drive the blending: 0x47ebc0[(difference << 8) | alpha] = difference * (255 - alpha) / 255 and
 0x47ebc4[b * 256 + c] = b * c / 255.
+
+## Test commands (docs/TEST_COMMANDS.md; `src/testhooks/Commands.cpp`, `Bot.cpp`)
+
+Script commands of the port (`-script`, and the live channel `-commands` natively and `byopop_test_command` on the web), each
+answered on stdout with one line: `OK <command>`, `ERROR <command>: <reason>`, `STATE {...}` or `MOVE {...}`. A command that is
+never given changes nothing, and none but `seed` touches the game's random numbers. `tools/check.sh tiptop` (the bot's games,
+and the frozen baseline) gives the same results as before them.
+
+| Command | Does |
+|---|---|
+| `state` | `STATE {"screen","mode","over","dialog","busy","paused","inactive","updates"}` (`inactive`: paused because the window lost the focus, which a driver ends by giving it back; `updates`: the game's update count, for a driver that waits n updates), and on the board screens `"level","score","bonus","blocksleft","levelComplete","gameOver"` and `"board":{"columns","rows","next":[4 kinds],"grid":[rows of characters]}`. `screen` is title, menu, options, help, credits, newgame, board, bonus, summary, highscores or gameover; `mode` regular, strategy, speed or timed. A grid character is the kind of the block at that cell (`0`-`9` the fruit, `a`-`g` the specials 10-16, `.` empty), row 0 first. `over` is true once the game over screen's Play again button is up (after the high score's name, if any). |
+| `goto <screen>` | menu, options, help, highscores, credits (the game's own screens), or a mode to start: regular, strategy, speed or **timed**, through the game's own start commands (0x20-0x23). The timed mode's button is off the screen of TipTop Deluxe (configuration), so this is the one way in. ERROR on the title screen while it loads, and while a dialog is open. |
+| `level <n>` | level n of the game in play, as the game goes on after a bonus round (`NextLevel`, then the game screen built again). ERROR with a dialog open, an animation running, in a bonus round or at the end of a level. |
+| `set <name> <value>` | `score`, `blocksleft` (the board's), `mode regular\|strategy\|speed` (the mode `move` picks on the new game screen), `botseed <n>` |
+| `win`, `lose` | the board's own flags, `mLevelComplete` or `mGameOver` (and for the timed mode `SetCrossed`), that `Board::Draw` sets itself; the level summary or the game over screen follow as in play. ERROR in a bonus round and while the game is busy. |
+| `seed <n>` | `tiptop::SRand(n)`: the C library generator (the game reseeds it from its clock when it chooses the first block, so a seed set after a game began holds only until then; the fixes mod's `seededBlocks` removes that) |
+| `unlock all` | ERROR: the game has nothing locked |
+| `move` | `MOVE {"kind","input":[{"move":[x,y]},{"click":[x,y]}],"updates"}` (the steps are docs/TEST_COMMANDS.md's ordered list; the high score's name is `{"key":"B"},{"key":"o"},{"key":"t"}` before its click): what the bot does next on this screen, in game coordinates. `kind` is start (the title's button), play, mode, dialog (the tips dialog's default button), drop (a column; `column` is the number), continue (the level summary's button), unpause (the pause image is up: a click on it; while the window is inactive it is wait), name (types "Bot" and clicks OK), or wait (no input, `updates` to wait: the game is busy). It answers for the whole game, from the title to the game over screen, and is `MOVE null` only once the game is over. The column is `-autoplay`'s choice (`BotChooseColumn`: the biggest group the block joins, else one of the emptiest columns), with dice that are a function of the update and `botseed`, so asking twice gives the same move. |
+
+## Fix candidates and the fixes mod (`mods/fixes`, `src/ModFeatures.cpp`)
+
+The port is the original; these are what the original wastes or leaves to chance, kept in the port and mended by the fixes mod
+(docs/MOD_ROADMAP.md, "The fixes mod"), one toggle each, all on by default on the site. The port loads mods (`-modsdir=<dir>`, or
+`mods-tiptop` beside the exe; `-nomods`; on the web `/ttpersist/mods`), and without the mod, or with it off, nothing differs from
+the original: `tools/check.sh tiptop` and the frozen baseline are unchanged.
+
+| Toggle | The original | What the fix changes |
+|---|---|---|
+| `fastLoading` | The title screen's loading bar loads one of the 229 entries a frame (`LoadBarProc`, 0x4233c2: an entry when more than the step, 1 ms, has passed since the last), so it fills at a steady crawl however fast they load: 2.3 s in the port, about 3.8 s in the original on a 60 Hz screen. | Eight entries a frame: under a second. Nothing but the wait changes (loading draws no random number). |
+| `seededBlocks` | The first time the field chooses a block's kind (`Field::RandomKind`, 0x40428c) it calls `srand` with the game clock again, discarding the seed of the start. A seed given at the start (`-seed`, the site's `?seed=`) therefore changes nothing, and the blocks depend on the millisecond that first block was chosen. | The second seeding is left out, so the seed of the start decides the blocks of every game. |
+| `steadyClock` | The game's two clocks are the machine's (`GetTickCount`), so the frame times, and with them the blocks' positions, the spawn delays and the draw of `rand` after each, vary from run to run: the same seed and the same moves do not play the same game twice. | The clocks run on the updates, 10 ms each (what `-fast` does), so the same seed and the same moves play the same game on every run, however fast the machine. A pause or a lost focus still stops the game clock, as in the original. |
+
+With `seededBlocks` and `steadyClock` on, three real-time runs of one bot game (`-seed=5 -autoplay=3`, 2500 updates) wrote the same
+state log; with the mod off, two such runs differed from the title screen on (the title screen's end, the first game's start, and so
+on). The meter's start value outside the timed mode (an oddity of the original, nothing reads it) still differs from run to run.

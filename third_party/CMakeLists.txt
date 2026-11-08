@@ -7,6 +7,21 @@ if(NOT MSVC)
   target_compile_options(stb PRIVATE -w)
 endif()
 
+# IJG libjpeg 6b (libjpeg/README; libjpeg/BYO-POP.md): JPEG decoding, the library the games' own exes decode their
+# .jpg images with (PopCap's ImageLib), so pixels match the originals; stb_image rounds some of them differently. Only
+# the decoder's sources, unchanged, with jmemnobs.c (no temporary files) and our jconfig.h. Platform::DecodeJPEG
+# (platform/JPEGDecoder.cpp) is its one caller. Private to the framework: its headers are not for game code.
+add_library(ijgjpeg STATIC
+  libjpeg/jcomapi.c libjpeg/jutils.c libjpeg/jerror.c libjpeg/jmemmgr.c libjpeg/jmemnobs.c
+  libjpeg/jdapimin.c libjpeg/jdapistd.c libjpeg/jdatasrc.c libjpeg/jdmaster.c libjpeg/jdinput.c libjpeg/jdmarker.c
+  libjpeg/jdhuff.c libjpeg/jdphuff.c libjpeg/jdmainct.c libjpeg/jdcoefct.c libjpeg/jdpostct.c libjpeg/jddctmgr.c
+  libjpeg/jidctint.c libjpeg/jidctfst.c libjpeg/jidctflt.c libjpeg/jidctred.c libjpeg/jdsample.c libjpeg/jdcolor.c
+  libjpeg/jquant1.c libjpeg/jquant2.c libjpeg/jdmerge.c)
+target_include_directories(ijgjpeg PUBLIC libjpeg)
+if(NOT MSVC)
+  target_compile_options(ijgjpeg PRIVATE -w)
+endif()
+
 # libxmp-lite 4.7.4 (MIT): MOD/S3M/XM/IT module playback for the game's .s3m music.
 # Use the library's own source list so platform shims (snprintf replacements etc.) are included.
 include(libxmp-lite/cmake/libxmp-sources.cmake)
