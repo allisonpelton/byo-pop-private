@@ -212,9 +212,15 @@ Every call re-reads the whole context, so what costs is context times calls, and
   translated leaves it out as it goes. It is removed, not disabled: the registered path becomes the only one, with no
   flag pinned to "registered", no hidden widget and no string or image left that only it used (a save file keeps a
   field only so the file stays the original's format). So does every button that leads out of a game, "More Games" first, its
-  neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). A performance pass (the user, 2026-11-03), then a readability pass
-  (`docs/CODE_STANDARDS.md`) and taking out the other code the ports do not need come once every game is done
-  (`docs/COORDINATION.md`). A session may speed up its own port before then, at any time, so its `-fast` test runs go
+  neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). The readability pass
+  (`docs/CODE_STANDARDS.md`) comes next, before any further decomp (the user, 2026-11-08: "Move up readability passes
+  to come before additional decomps"). One game sets the standards first and proves them in full ("Use one game to set
+  the full standards for what constitutes readable and see that they actually make sense"); every other game takes its
+  pass once the user approves them. The pass leaves no unknown or unnamed variable, field, parameter, global or
+  constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port then go one at a
+  time, each in full, readability pass included, before the next begins ("for the remaining games, I want to tackle
+  them in full one-at-a-time"). A performance pass (the user, 2026-11-03) and taking out the other code the ports do
+  not need come once every game is done (`docs/COORDINATION.md`). A session may speed up its own port before then, at any time, so its `-fast` test runs go
   faster (the user, 2026-11-08: "Sessions should be allowed to improve performance early on so they can test with
   -fast and run even faster"), under the performance pass's rules: how the port works changes, never what it does,
   proved by its frozen baseline; no threads; a cost in shared code goes to the coordinator as a spec.
