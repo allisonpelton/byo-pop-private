@@ -275,6 +275,7 @@ bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketEndLevel(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketBuyRockets(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketEffect(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketStandardCommand(RocketApp* theApp, const ScriptCommand& theCommand);
 
 // port: the test scripts' "startgame" clicks the play link as soon as the loading screen shows it (the update at which
 // the loading ends depends on the machine); it asks again at the next update until then
@@ -294,6 +295,8 @@ bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return RocketBuyRockets(this, theCommand);
 	if (theCommand.mCommand == "effect")
 		return RocketEffect(this, theCommand);
+	if (RocketStandardCommand(this, theCommand))
+		return true;
 	if (theCommand.mCommand != "startgame")
 		return SexyApp::HandleScriptCommand(theCommand);
 	if ((mLoadingScreen != NULL) && !mShutdown)
