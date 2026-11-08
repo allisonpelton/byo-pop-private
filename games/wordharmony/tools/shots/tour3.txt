@@ -1,0 +1,50 @@
+# Phase two tour 3: phase one's hs1: TSUNAMI at level 9, its game over, the name typed, the score table, then a second
+# TSUNAMI game at level 1 with a click and a right click.
+480 move 447 237
+500 click 447 237
+600 screenshot hs_levels
+680 move 330 350
+700 click 330 350
+800 screenshot hs_help
+880 move 165 415
+900 click 165 415
+1000 screenshot hs_l9_1000
+1600 screenshot hs_l9_1600
+2300 screenshot hs_l9_2300
+2600 screenshot hs_over_2600
+2770 screenshot hs_over_2770
+2780 move 430 500
+2800 click 430 500
+2900 screenshot hs_entry
+2930 move 400 366
+2950 click 400 366
+2990 screenshot hs_entry_click
+3000 key 87
+3010 key 72
+3020 key 80
+3060 screenshot hs_entry_typed
+3080 move 400 470
+3100 click 400 470
+3200 screenshot hs_table
+3370 screenshot hs_table_hover
+3380 move 400 530
+3400 click 400 530
+3600 screenshot hs_menu
+3680 move 447 237
+3700 click 447 237
+3800 screenshot hs_levels2
+3880 move 300 200
+3900 click 300 200
+4000 screenshot hs_help2
+4080 move 165 415
+4100 click 165 415
+4200 screenshot hs_game2_4200
+4300 move 520 300
+4310 screenshot hs_game2_4310
+4320 click 520 300
+4400 screenshot hs_game2_4400
+4500 rclick 600 500
+4600 screenshot hs_game2_4600
+5000 screenshot hs_game2_5000
+5350 screenshot hs_game2_5350
+5400 quit

@@ -325,6 +325,8 @@ void WordHarmonyApp::RunFrame()
 		// what the input since the last frame changed is logged under that frame, as origrun logs the original's
 		if (mStateLog != nullptr)
 			LogState();
+		if (mFrames < mBotUntil)
+			BotTick();
 		mFrames++;
 		engine::App::instance()->frame(mWidget->mGraphics);
 		mWidget->mScreenImage->BitsChanged();

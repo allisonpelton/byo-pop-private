@@ -449,7 +449,7 @@ void WordBallSystem::mouseMove(Point& p)
 }
 
 // 0x412310: in freematch the water (three layers of waves and the deep water under them) at the water level, then
-// the children, then the links of each chain (the first link on its first ball)
+// the children, then the links of each chain, one between each two of its balls
 void WordBallSystem::draw(Graphics* g)
 {
 	if (mMode == MODE_FREEMATCH)
@@ -505,6 +505,7 @@ void WordBallSystem::draw(Graphics* g)
 			{
 				std::list<int>::iterator aLink = aChain->mIndices.begin();
 				Ball* aPrevious = getBall(*aLink);
+				aLink++;
 				if (aLink != aChain->mIndices.end())
 				{
 					do

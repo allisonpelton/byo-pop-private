@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include "Bot.h"
+
 namespace wordharmony
 {
 class HostSoundSystem;
@@ -76,6 +78,18 @@ public:
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	// port: -statelog: "<frame> <name> <value>" for each value that changed in the frame
 	void LogState();
+	// port: the standard test commands (docs/TEST_COMMANDS.md, src/TestCommands.cpp)
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: the state command's JSON
+	std::string TestState();
+	// port: the botplay test command: the bot's moves fed to the widget's mouse handlers before each frame, up to frame
+	// mBotUntil (a quick run for the bot's own tests; the play-throughs send them as real input)
+	int mBotUntil = -1;
+	std::vector<BotStep> mBotSteps;
+	size_t mBotAt = 0;
+	int mBotWait = 0;
+	int mBotMoves = 0;
+	void BotTick();
 };
 
 extern WordHarmonyApp* gApp;

@@ -1,0 +1,34 @@
+# Phase two tour 2: TSUNAMI level 1 played by phase one's tsu3 (three balls released, the water rising to the top,
+# the game over), with shots: its levels screen, help, the game every few hundred updates, the game over screen.
+480 move 447 237
+500 click 447 237
+530 screenshot tsu_levels
+540 move 300 200
+545 screenshot tsu_levels_hover
+560 click 300 200
+600 screenshot tsu_help
+640 move 165 415
+650 screenshot tsu_help_hover
+660 click 165 415
+700 screenshot tsu_start
+760 screenshot tsu_760
+900 screenshot tsu_900
+1200 screenshot tsu_1200
+1600 screenshot tsu_1600
+2000 move 165 415
+2100 screenshot tsu_2100
+2700 screenshot tsu_2700
+3400 screenshot tsu_3400
+3500 move 165 415
+4200 screenshot tsu_4200
+5000 move 165 415
+5000 screenshot tsu_5000
+5800 screenshot tsu_5800
+6500 move 165 415
+6500 screenshot tsu_6500
+6760 screenshot tsu_6760
+6800 screenshot tsu_over_6800
+6900 screenshot tsu_over_6900
+7100 screenshot tsu_over_7100
+7400 screenshot tsu_over_7400
+7500 quit

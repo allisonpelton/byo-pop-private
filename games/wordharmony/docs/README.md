@@ -97,6 +97,31 @@ was imported from a zip, played a THINK game, saved it with Save/Quit, and offer
 the page. Not yet tested: a RELAX level played through, hints, recycling a word, a high score's name entry, the screen
 saver, the options' check boxes, and listening to the sound and the music (every test runs with the silent driver).
 
+### Test commands
+
+The standard test commands (`docs/TEST_COMMANDS.md`) are in `src/TestCommands.cpp`, reached only from a `-script` (or
+the player-only page's command call); a run that never gives one is unchanged. Each answers on stdout with `OK`,
+`ERROR`, `STATE {...}` or `MOVE {...}`.
+
+`state` prints `screen` (menu, levels, help, game, paused, quit, gameover, nameentry, highscores, congrats, options,
+and the like), `state` (the game's own number), `mode` (relax, think or tsunami), `level` (from 1), `score`,
+`lettersleft`, `hints`, `over` and `frame`; while a game is on also `water`, `submit` (the submit button shows),
+`held` (a ball on the mouse), `shortest`, `bonus`, `words` (RELAX's words still to make) and `balls`, each with its
+index, letter, place in screen coordinates, radius, state, whether it is fixed and whether it is in a chain.
+
+`goto options|highscores|help|relax|think|tsunami` (from the menu), `level <n> [mode]` (through the levels screen's own
+action), `unlock all`, `set score|hints|lettersleft|water <value>`, `win` (the level ends as done), `lose` (the game
+over), `seed <n>` and `move`. `botplay <updates>` lets the bot play on its own for that many updates, through the
+widget's mouse calls (a test of the bot, not real input).
+
+`move` answers from the port's bot (`src/Bot.cpp`): the help screens' PLAY GAME, the level panel's and level end's
+CONTINUE, and in a game the next drag or right click. The bot picks the word it can make with the fewest drags from
+the dictionary's own search (RELAX: the level's words), anchors it on a ball that rests, fills each place from the
+anchor outwards with the topmost ball of its letter, carried up to the top of the field, across and down so that it
+passes no ledge or chain, and carries a wrong letter off a place first. A word on a chain uses all of the chain, and
+when a chain's ball hangs past a ledge's end the whole row is moved along until every place stands on something. In
+TSUNAMI it spawns the next ball only while the water is below 0.45. `WH_BOTDEBUG=1` prints its plans on stderr.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
