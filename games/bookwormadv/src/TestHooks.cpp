@@ -16,7 +16,8 @@
 //
 // The drivers' commands (docs/TEST_COMMANDS.md): each logs "OK <command>" or "ERROR <command>: <reason>". A command
 // that waits for its screen (a curtain, the title) tries again every 10 updates, 300 times at most.
-//   state           STATE {json}: screen, mode, level (book.chapter), health, maxhealth, enemy, enemyhealth, and
+//   state           STATE {json}: screen, mode, level (book.chapter), loaded (the title: its startup load over),
+//                   health, maxhealth, enemy, enemyhealth, and
 //                   the board: its letters row by row ("." for none), "+" after a letter that can be picked
 //   goto <where>    menu (once the title has gone on to it); adventure, arena, minigames, tome, mediaplayer,
 //                   options, highscores (the main menu's items); a mini-game by its class (wordmaster, letterrip,
@@ -58,6 +59,7 @@
 #include "MinigameMenu.h"
 #include "CurtainTransition.h"
 #include "Profile.h"
+#include "TitleScreen.h"
 #include "TreasureScreen.h"
 #include "Tile.h"
 #include "WidgetManager.h"
@@ -838,6 +840,8 @@ bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
 			                   mProfile->GetInt("CurrentChapter"));
 		aJson += StrFormat(",\"curtain\":%s,\"dialogs\":%d,\"talk\":%s", aCurtainBusy ? "true" : "false",
 		                   (int)mDialogMap.size(), ShowingConversationPanel() ? "true" : "false");
+		if (aScreen == "title")  // the startup load over: the title takes its click
+			aJson += StrFormat(",\"loaded\":%s", mTitleScreen->mLoaded ? "true" : "false");
 		std::string aValue;
 		if (aBattle && RunLua("local e = gBattleEngine local p, n = e.mPlayerPtr, e.mEnemyPtr "
 		                      "return p.mHealth .. ',' .. p.mMaxHealth .. ',' .. (n and n.mHealth or '') .. ',' .. "

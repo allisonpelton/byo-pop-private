@@ -210,6 +210,10 @@ side's own pace (a few hundred pixels in a few frames).
 
 ## Deviations that remain
 
+**The PopCap logo.** The port skips the startup's PopCap logo (356 updates, before anything loads, with no click to
+leave it), by the loading rule; `-popcaplogo` keeps it, and every comparison with the original passes it (the README's
+"The PopCap logo taken out of the startup").
+
 **Waiting on the framework's 2D software path.** Sprites drawn through a transform keep their place but are sampled
 differently: the battle's enemies (the Trojan Spearman's idle, and the Trojan Warrior walking in), the battle intro's
 spear, Lex in Link n' Spell, the credits' creatures and fire bowl, and the map's rays. With `Is3D` 0 the original draws

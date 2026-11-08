@@ -117,7 +117,7 @@ if [ "$which" != orig ]; then
 	bash "$T/reset.sh" "$d/user"
 	[ -n "$SUF" ] && sed -i 's/^Is3D=dword:0/Is3D=dword:1/' "$d/user/registry.ini"
 	[ "${PILOT_SOUND:-off}" = on ] && export BYOPOP_SOUNDLOG="$(cygpath -w "$P/$N.portsound.log")"
-	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) \
+	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) -popcaplogo \
 		-script="$P/scripts/$name.port.txt" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
 	python - "$PP" "$T/$name.txt" <<'EOF'

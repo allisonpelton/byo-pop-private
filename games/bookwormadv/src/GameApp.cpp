@@ -194,6 +194,8 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 		mBoardLogForTests = theParamValue;  // port: tests with real input (TestHooks.cpp)
 	else if (theParamName == "-startloadupdates")
 		mStartLoadWanted = theParamValue.empty() ? -1 : atoi(theParamValue.c_str());
+	else if (theParamName == "-popcaplogo")
+		mPopCapLogo = true;  // port: the startup's PopCap logo as the original shows it, for comparisons (TitleScreen)
 	else
 		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
 }

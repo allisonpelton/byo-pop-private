@@ -163,6 +163,16 @@ neither masked nor accepted: the battle's enemy (the item in 7 shots, and the at
 spear, and the credits' creatures and fire bowl. Once `--3d on` works, the same screens are compared with 3D on, where the
 port's drawing should already match.
 
+### The PopCap logo taken out of the startup (2026-11-08)
+
+The original shows the PopCap logo before anything loads: a fade in, a hold of the properties' `PopCapLogoTimer` (100
+updates) and a fade out, 356 updates (3.6 s) in all, with no click or key to leave it, and only then closes the title's
+curtain and starts its loading thread. By the loading rule (`CLAUDE.md`, "Making a port", 2026-11-07) that wait of the
+original's making comes out of the port itself: `TitleScreen::Update` goes on to the curtain and the load at once, as the
+logo's end does, so a player reaches the title loaded in 1.7 s rather than 5.25 ("Performance"). The logo draws no random
+number (the suite's first chapter plays as before). `-popcaplogo` keeps it, for comparisons with the original: the pilot's
+`run.sh` and `lag.py` pass it.
+
 ### Registration code taken out (2026-11-07)
 
 The port plays as the registered original does, and the trial code that only an unregistered copy reached is gone (the
@@ -327,6 +337,57 @@ own time. To see it: origrun's `--watch "[[0x8259e4]+0x83c]+0xb0"` (the chapter 
 which no fixed number of updates gives. The test options `-chapterloadupdates=N,...` and `-startloadupdates=N` hold the
 port's loads for the counts measured in a run, so that the pilot's runs agree; normal play never uses them. Within a
 held load the loading bar (chapters) and Lex's place (startup) still move at their own pace on each side.
+
+## Fix candidates (2026-11-08)
+
+None for the fixes mod. What was checked: the port's play against the original in the identical-play pass, and the
+real-input play natively and on the web (a new player through the introduction and the tutorial, the whole adventure
+of three books by the bot to the Hall of Fame, the arena, the three mini-games, `IDENTICAL_PLAY.md`), looking for waits
+that only cost the player time and for bugs of the original that do not break play. The bugs found broke play or were
+not the original's, so they are fixed in the port itself: the mini-games' end ("Expected boolean in LuaClassRet") and the
+music lost after a boss. The loads run at the machine's speed, in 20 ms
+slices so that the loading screens keep drawing, as the loading rule asks. Nothing else came up: every
+conversation, cutscene page, Level Up and "Click to continue" answers a click at once, and the curtains between screens,
+the battle intros and the attacks are the game's own animations, which hold the player only as the game's rules do.
+This is a result of the play-throughs, not of a line-by-line reading of the export for waits, so a later find is added
+here.
+
+## Performance (2026-11-08)
+
+The original and the port measured back to back on this machine (a Core i7-12700F, Windows 11), for the user's morning
+report. No other game process ran at the start or the end of any run (`tools/gamecount.py`; `build/perf/procs_*.txt`,
+git-ignored), but other sessions' builds may have, so the performance pass re-measures on a quiet machine. Both ran
+windowed, in real time, with no sound: the original under origrun on the host with its silent stand-in and the user's own
+saved player, the port natively under rundesk with SDL's silent driver and a saved player of its own.
+
+**What was measured, and how.** `tools/profile/runperf.sh`: three rounds of the original and then the port, each run 90 s
+from launch with no input (the loading, then the title with the player's welcome), sampled every 50 ms by Bejeweled's
+`perfmin.py` (working set, private bytes, processor time, threads), the processor time over 20 to 80 s. The minute is the
+title at rest, not play: a scripted minute of play on the original would need its board read back through origrun, and
+the title's drawing (Lex, the logo, the curtains' frame) runs every frame on both sides. Loading: the port's
+`tools/profile/loadtime.py` (the `state` command's title with `"loaded":true`, asked every 20 ms, five runs), the
+original's by perfmin's thread count, where its loading thread ends.
+
+| | original (3 runs) | port (3 runs) |
+|---|---|---|
+| Peak working set | 125.7 MB (125.6 to 125.7) | 172.2 MB (172.1 to 172.5) |
+| Peak private bytes | 93.6 MB (93.5 to 93.7) | 164.7 MB (164.6 to 165.0) |
+| Private bytes at rest (20 to 80 s) | 93.5 MB | 145.0 MB |
+| Processor time, 20 to 80 s | 9.4, 7.8 and 8.6 % of one core | 3.0, 2.9 and 3.2 % of one core |
+| Processor time, whole 90 s run | 8.9, 7.7 and 8.8 s | 3.8, 3.7 and 3.7 s |
+| Launch to the title loaded | 6.35 to 6.41 s (its loading thread's end) | 1.70 s median (1.68 to 1.75, 5 runs); 5.25 s before the logo came out |
+
+**Reading it.** The port holds about 50 MB more private memory at rest than the original, and peaks 20 MB higher while it
+loads. Like Bejeweled's, it keeps every image's pixels at 4 bytes a pixel after the GPU has its texture, and its sounds as
+48 kHz float; why the original holds less was not examined. The port uses about a third of the original's processor time
+at rest, and loads to the title in a quarter of its time: the original loads only after its PopCap logo (356 updates, 3.6
+s, nothing loaded meanwhile and no click to leave it), which the port now skips (`-popcaplogo` keeps it for comparisons;
+"Deviations from the original"), and the load itself runs at the machine's speed. The memory and processor rounds ran
+before the logo came out; the logo is over long before their 20 s window.
+
+**What could not be measured.** The web build's load time: the Browser pane is hidden and its timers throttled, so a load
+there says nothing faithful about a player's browser, where the network and the wasm compile dominate. A minute of play
+(above). Full screen and the GPU's own load.
 
 ## Mods
 

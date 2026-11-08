@@ -175,6 +175,7 @@ public:
 	                             size_t theCount = 0);
 	void LogBoardForTests();
 	std::string mBoardLogForTests;
+	bool mPopCapLogo = false;  // port: -popcaplogo keeps the startup's PopCap logo (TitleScreen::Update)
 	std::string ScreenForTests();
 	std::string MoveForTests();
 	void RetryForTests(const std::string& theCommand, const std::string& theArgs);
