@@ -21,10 +21,11 @@ talks to a server are left out. User-visible text goes through `GT(0xADDR)`.
 | E3 | entities: BonusCreature, Clam, Player, Bubble, BonusText, BackgroundFish, Effect, and whatever of 0x401000-0x412330 `coverage.py --missing` still lists (GameObject / Enemy leftovers, unknown functions) | ~14 KB | done 2026-11-08 (the range 0x401000-0x412330 is covered) |
 | P1 | UserProfileMgr / UserProfile (0x4172f0-0x428000) | ~25 KB | done 2026-11-08 (UserProfile.h/.cpp, UserProfileMgr.h/.cpp) |
 | P2 | the config parser 0x42bfb0 (11.8 KB) and the lessons / gem names / words / themes loaders | ~25 KB | done 2026-11-08 (LessonManager.h/.cpp, LessonManagerConfig.cpp, WinWSAppLoad.cpp; the app's tables typed and renamed) |
-| D1 | dialogs: copy-adapt BookWorm's (Delete/Select/New user, Options, Credits, Hint, Money), the game's own (WinGame, GameOver, Difficulty, AbyssMode) | ~30 KB | |
-| W1 | small widgets and panels: StatsScreen, StatusBar, TabbedWidget, TabPanel, TutorialPanel, AbyssPanel, AdventurePanel | ~20 KB | |
-| S1 | screens: TitleScreen, MenuScreen, MapScreen, HighScoreScreen | ~25 KB | |
-| T1 | TypingTutor | ~12 KB | |
+| D1 | dialogs of the game's own: GameOverDialog (ctor 0x43adb0; Board.h assumes `mField11c`, `mRankTitle`, `mField144`), WinGameDialog, DifficultyDialog, AbyssModeDialog, KeyDialog, HintDialog, and the `(unknown)` functions among them (0x43bcc0, 0x43bf10, 0x43d050, 0x43a2d0, 0x43a3e0, 0x43ed20 ...) | ~25 KB | |
+| D2 | dialogs copy-adapted from BookWorm's (`games/bookworm/src`): SelectUserDialog, OptionsDialog, NewUserDialog, DeleteUserDialog, and the WinWSApp-attributed functions 0x43dbd0, 0x43df60, 0x43e7a0, 0x43edb0, 0x43f0f0 (the dialogs' button handlers); RegisterDialog, MoneyDialog and CreditsDialog are NOT translated (registration, shop) | ~15 KB | |
+| W1 | small widgets and panels: StatusBar (HideButtons 0x441f10 and ShowButton 0x441f80 are assumed by Board), TabbedWidget, TabPanel, TutorialPanel, AdventurePanel, AbyssPanel, StatsScreen, the XWidget and FadeButton leftovers | ~24 KB | |
+| S1 | screens: TitleScreen (AddControls 0x448f40), MenuScreen, HighScoreScreen, MapScreen (ctor 0x458d10, 8 KB) | ~22 KB | |
+| T1 | TypingTutor (ctor 0x460b30) and the leftovers `coverage.py --missing` still lists | ~15 KB | |
 | B0 | Board.h and docs/BOARD.md: the class layout and the map of its methods | header only | done 2026-11-08 (Board.h: 109 fields, 52 declarations for 53 functions; the finished files compile against it) |
 | B1-B3 | Board in three parts, as BOARD.md splits them: B1 BoardUpdate.cpp and BoardEvents.cpp (Update 0x45c140 and what runs from it, the five event loops; 20.4 KB), B2 Board.cpp and BoardDraw.cpp (constructor, Widget overrides, Draw 0x44d200 and its helpers, the HudBar class; 18.1 KB), B3 BoardWaves.cpp, BoardKeys.cpp and BoardGame.cpp (SpawnWave 0x455bf0, KeyChar 0x454e40, what WinWSApp calls; 17.4 KB) | ~56 KB | B1 done 2026-11-08 (BoardUpdate.cpp, BoardEvents.cpp); B2 done 2026-11-08 (Board.cpp, BoardDraw.cpp, HudBar.h/.cpp); B3 open |
 
