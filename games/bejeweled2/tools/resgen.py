@@ -91,7 +91,8 @@ def main():
     h += ['\t%s_ID,' % rid for rid in ids]
     h += ['\tRESOURCE_ID_MAX', '};', '',
           'bool ExtractResourcesByName(ResourceManager* theManager, const char* theName);  // 0x5d8b5d',
-          'const char* GetStringIdById(int theId);       // 0x5d3ffd', '']
+          'const char* GetStringIdById(int theId);       // 0x5d3ffd',
+          'Image* GetImageById(int theId);               // 0x5d3fca: the global of an image id (null for a font or sound id)', '']
     c = HEADER + ['#include "Res.h"', '', '#include <cstring>', '', '#include "ResourceManager.h"', '#include "Font.h"', '',
                   'using namespace Sexy;', '']
     for rid in ids:
@@ -99,6 +100,9 @@ def main():
     c += ['', 'const char* Sexy::GetStringIdById(int theId)', '{', '\tstatic const char* const aNames[RESOURCE_ID_MAX] = {']
     c += ['\t\t"%s",' % rid for rid in ids]
     c += ['\t};', '\treturn (unsigned)theId < RESOURCE_ID_MAX ? aNames[theId] : "";', '}', '']
+    c += ['Image* Sexy::GetImageById(int theId)', '{', '\tstatic Image** const aImages[RESOURCE_ID_MAX] = {']
+    c += ['\t\t%s,' % (('&' + rid) if kind[rid] == 'image' else 'nullptr') for rid in ids]
+    c += ['\t};', '\treturn (unsigned)theId < RESOURCE_ID_MAX && aImages[theId] != nullptr ? *aImages[theId] : nullptr;', '}', '']
     for g, items in groups:
         h.append('// %s' % g)
         h.append('bool Extract%sResources(ResourceManager* theManager);' % g)
