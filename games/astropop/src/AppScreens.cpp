@@ -6,6 +6,7 @@
 #include "CheckpointDialog.h"
 #include "NewUserDialog.h"
 #include "OptionsDialog.h"
+#include "HelpDialog.h"
 #include "Checkbox.h"
 #include "UserProfile.h"
 #include "EditWidget.h"
@@ -281,9 +282,12 @@ void AstroPopApp::ShowOptions(bool theFromGame)
 	AddDialog(0x66, aDialog);
 }
 
+// 0x446410 (the classic button, with a saved game): the saved game would be lost by a new one, so the box asks. Continue
+// is its first button (the hub's 0x844), New Game the second (the hub's 0x74).
 void AstroPopApp::ShowContinueDialog(const std::string& thePilot, int theLevel)
 {
-	SDL_Log("AstroPop: the CONTINUE? dialog (pilot %s, level %d) not translated yet (0x411ba0)", thePilot.c_str(), theLevel);
+	MakeDialog(1, false, 0x74, 0x177, 0xe6, 1, "CONTINUE?", StrFormat(GTC(0x564a00), thePilot.c_str(), theLevel), "Continue",
+			   "New Game", true);
 }
 
 // 0x40bc00: the box where a new player types a name, centred a little low
@@ -312,9 +316,20 @@ void AstroPopApp::ShowCheckpointDialog(int theLevel)
 // Not translated yet: each logs once so a test run shows that the button was reached
 #define APP_NOT_TRANSLATED(name, addr) 	do { static bool aLogged = false; if (!aLogged) { aLogged = true; SDL_Log("AstroPop: " name " not translated yet (" addr ")"); } } while (0)
 
+// 0x40bea0: the "how to play" box, in the colour set of the game's mode (+ 2) or, over the selector, 1. A game on pauses.
 void AstroPopApp::ShowHelp()
 {
-	APP_NOT_TRANSLATED("ShowHelp", "0x40bea0");
+	mOpenDialogs++;
+	int aSet = (mBoard == NULL) ? 1 : mBoard->mMode + 2;
+	HelpDialog* aDialog = new HelpDialog(aSet, this);
+	StyleDialog(aDialog);
+	aDialog->mHasAlpha = true;
+	aDialog->mHasTransparencies = true;
+	int aHeight = aDialog->GetPreferredHeight(0x1c2);
+	if (mBoard != NULL)
+		mBoard->Pause(true, false);
+	aDialog->Resize(0x5f, 0xf0 - aHeight / 2, 0x1c2, aHeight);
+	AddDialog(0x79, aDialog);
 }
 
 void AstroPopApp::CloseFullScreenHelp()

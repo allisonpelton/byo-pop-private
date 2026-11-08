@@ -175,7 +175,7 @@ public:
 	int				GetDialogSet();                             // 0x409080 the colour set of the boxes now: the game's mode + 2, 1 over the selector, 0 otherwise
 	void			CloseDialog(int theId);                     // 0x408d70 a box goes and the game goes on
 	void			ClosePowerDialog();                         // 0x4291c0 the box that asks for the pilot's power goes
-	void			ShowHelp();                                 // 0x40bea0 (stub)
+	void			ShowHelp();                                 // 0x40bea0 the "how to play" box
 	void			CloseFullScreenHelp();                      // 0x428fb0 (stub)
 	void			ApplyOptions(bool theClose);                // 0x428a10 the options box's settings take effect and the box goes
 	void			ShowCredits();                              // 0x428f10 (stub)
