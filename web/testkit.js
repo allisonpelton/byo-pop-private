@@ -46,10 +46,34 @@
   function reallyHidden() { return hiddenGet.call(document); }
   var rAF = window.requestAnimationFrame.bind(window), cAF = window.cancelAnimationFrame.bind(window);
   var timers = {}, nextId = 1e9;
+  var FAST = params.get("fast") === "1" && params.get("frames") !== "browser";
   // A hidden Browser pane sends no frames while document.hidden stays false, so each frame is whichever comes first, the
   // browser's own or a timer's after FALLBACK_MS (16 ms when the page is really hidden); where frames come, the browser's nearly always wins.
   var FALLBACK_MS = 20;
-  window.requestAnimationFrame = function (cb) {
+  // A fast run (?fast=1) has no use for the browser's frames: each frame is a MessageChannel message instead, posted as soon as
+  // the game asks for one, so that the game runs as fast as the machine allows, hidden or not (a hidden pane sends no frames,
+  // and its timers come about once a second). Each frame is capped at FRAME_MS of the game's steps (?framems=, framework
+  // byopop_set_frame_budget), so that the page's own JS, the test commands and the tools' calls are served between frames, as
+  // the tasks they are. Neither changes an update or a draw. ?frames=browser keeps the browser's frames (and the timer race) instead.
+  var FRAME_MS = Number(params.get("framems")) || 25;
+  var channel = FAST ? new MessageChannel() : null, fastQueue = [], fastPosted = false;
+  function runFast() {
+    fastPosted = false;
+    var q = fastQueue, now = performance.now();
+    fastQueue = [];
+    for (var i = 0; i < q.length; i++) if (timers[q[i].id]) { delete timers[q[i].id]; q[i].cb(now); }
+  }
+  function postFast() {
+    if (!fastPosted) { fastPosted = true; channel.port2.postMessage(0); }
+  }
+  if (FAST) channel.port1.onmessage = runFast;
+  window.requestAnimationFrame = FAST ? function (cb) {
+    var id = nextId++;
+    timers[id] = { fast: true };
+    fastQueue.push({ id: id, cb: cb });
+    postFast();
+    return id;
+  } : function (cb) {
     var id = nextId++, done = false;
     function run(time) {
       if (done) return;
@@ -64,7 +88,7 @@
   };
   window.cancelAnimationFrame = function (id) {
     var t = timers[id];
-    if (t) { cAF(t.raf); clearTimeout(t.timer); delete timers[id]; } else cAF(id);
+    if (t) { if (!t.fast) { cAF(t.raf); clearTimeout(t.timer); } delete timers[id]; } else cAF(id);
   };
   function call(name, args) {
     var f = M["_" + name];
@@ -99,7 +123,9 @@
   test.ready = new Promise(function (resolve) { resolveReady = resolve; });
   test.progress = function () { return { status: shell.status, state: shell.state, frames: frames, updates: updates() }; };
   // after each browser frame's updates and draw (framework/SexyAppBase.cpp, EmscriptenMainLoop)
+  var budgetSet = false;
   M.byopopTestFrame = function (drew) {
+    if (FAST && !budgetSet) { budgetSet = true; call("byopop_set_frame_budget", [FRAME_MS]); }
     if (drew) frames++;
     if (drew && frames === 1) resolveReady({ updates: updates(), screen: shell.screen });
     // the shots, read after the frame (the canvas keeps its buffer: below), so that a held game, which draws nothing, has them too
@@ -283,9 +309,9 @@
   // The standard test commands (docs/TEST_COMMANDS.md: state, goto <screen>, level <n>, unlock all, set <name> <value>, win,
   // lose, seed <n>, move), through the framework's live channel (byopop_test_command, which queues the line for the next
   // update and the -script dispatch). Resolves with the lines printed from the call up to the answer, STATE {json},
-  // MOVE {json}|null, OK <command> or ERROR <command>: <reason> (the last of them); rejects after timeout ms (default 10000), or at once where the build has no
+  // MOVE {json}|null, a game's own answer of the same shape (TARGETS {json}), OK <command> or ERROR <command>: <reason> (the last of them); rejects after timeout ms (default 10000), or at once where the build has no
   // channel. A held game is stepped one update, so that the command runs.
-  var ANSWER = /^(INFO: )?(STATE |MOVE |OK |ERROR )/;
+  var ANSWER = /^(INFO: )?([A-Z]{3,} (\{|\[|null)|OK |ERROR )/;
   test.command = function (line, opts) {
     if (typeof M._byopop_test_command !== "function") return Promise.reject(new Error("byopop.test.command: the build has no byopop_test_command"));
     var since = logSeq;
@@ -345,10 +371,10 @@
   };
   // The built-in driver ?driver=move (docs/TEST_COMMANDS.md, "The bot behind move"): plays the game by the port's own bot. Each
   // step asks for the state and the move and sends the move as real input. It stops when the state says "over", on MOVE null twice
-  // running, an ERROR, or after ?steps= moves (2000 by default). Returns { moves, stop, state, updates, errors }.
+  // running while the state is not busy (a busy game, state.busy, is waited for), an ERROR, or after ?steps= moves (2000 by default). Returns { moves, stop, state, updates, errors }.
   test.playByMove = function (opts) {
     var limit = (opts && opts.steps) || Number(params.get("steps")) || 2000;
-    var moves = 0, nulls = 0, st = null;
+    var moves = 0, nulls = 0, busy = 0, st = null;
     function step() {
       return test.state().then(function (s) {
         st = s;
@@ -356,10 +382,13 @@
         if (moves >= limit) return "limit";
         return test.botMove().then(function (m) {
           if (m === null) {
+            // a game that is busy (a board clearing, a piece falling: state.busy) has no move until it is done
+            if (s && (s.busy || (s.board && s.board.busy))) { if (++busy > 20000) return "busy"; return test.wait(5).then(step); }
             if (++nulls >= 2) return "no move";
             return test.wait(30).then(step);
           }
           nulls = 0;
+          busy = 0;
           moves++;
           return test.playMove(m).then(step);
         });
@@ -440,13 +469,17 @@
   // the start: ?hold=1 waits for byopop.test.start(), so that a test may wipe or seed the profile first; otherwise the game
   // starts as soon as it is ready. ?fast=1 runs it on its virtual clock (-fast).
   if (params.get("fast") === "1") shell.hooks.args = function () { return ["-fast"]; };
-  var startNow = params.get("hold") !== "1", canStart = false;
-  shell.hooks.ready = function () { canStart = true; if (startNow) shell.start(); };
+  // test.loaded resolves once the page could start the game (its files are in); with ?hold=1 a driver runs then, before the
+  // game starts, and starts it with t.start() (which resolves with test.ready, the first drawn frame).
+  var startNow = params.get("hold") !== "1", canStart = false, resolveLoaded;
+  test.loaded = new Promise(function (resolve) { resolveLoaded = resolve; });
+  shell.hooks.ready = function () { canStart = true; resolveLoaded(); if (startNow) shell.start(); };
   test.start = function () {
     startNow = true;
     if (canStart && shell.state === "waiting") shell.start();
     return test.ready;
   };
+  var driverAt = startNow ? test.ready : test.loaded;
 
   // ?driver=move: the built-in driver that plays by the port's bot (playByMove). ?driver=<path>: a session's driver script, games/<game>/tools/<...>.js in the repo (served by tools/webtest/serve.py at
   // /__repo/), run once the game is ready, as the body of an async function of t (byopop.test): it may await, and what it returns
@@ -455,7 +488,7 @@
   var driverPath = params.get("driver");
   test.result = undefined;
   if (driverPath === "move") {
-    test.driver = test.ready.then(function () { return test.playByMove(); });
+    test.driver = test.loaded.then(test.start).then(function () { return test.playByMove(); });
     test.driver.then(function (v) { test.result = v; }, function (e) { addError("driver", (e && e.stack) || e); test.result = { error: String(e && e.message || e) }; });
   } else if (driverPath) {
     test.driver = !/^games\/[a-z0-9]+\/tools\/[A-Za-z0-9._\/-]+\.js$/.test(driverPath) || driverPath.indexOf("..") >= 0
@@ -466,7 +499,7 @@
       }).then(function (code) {
         var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
         var run = new AsyncFunction("t", code + "\n//# sourceURL=" + location.origin + "/__repo/" + driverPath);
-        return test.ready.then(function () { return run(test); });
+        return driverAt.then(function () { return run(test); });
       });
     test.driver.then(function (v) { test.result = v; },
       function (e) { addError("driver", (e && e.stack) || e); test.result = { error: String(e && e.message || e) }; });
