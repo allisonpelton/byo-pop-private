@@ -201,3 +201,15 @@ Made as the fixes mod's first toggle (2026-11-07): `games/sevenseas/mods/fixes` 
 default; `src/ModFeatures.cpp`'s `FixEnabled`). With the mod off or removed the port keeps the original's behaviour. Test:
 `tools/fixes_pirate.txt` run twice with `-modsdir` holding the mod and not (native, under rundesk, with `-fast`): with it the arrow shows
 under the box and the click moves the ship, without it neither. Checked 2026-11-07.
+
+## 9. origrun on Seven Seas stalls at update 10 (seen 2026-11-07, not solved)
+
+Every run of the original through origrun (host under rundesk, and the Windows Sandbox), with and without the seed and
+registration patches, `--sound stub` or `nodriver`, with and without the virtual clock, with a script that starts with
+`focus regain` or none, stops with the counter `[0x4e21bc]+0x368` at 10 and the title screen's loading bar empty. The main
+thread sleeps (CPU use near zero, one thread in `Sleep`, the rest in waits), so the game is not busy and not showing a
+dialog (msgbox.log is empty). An origrun built from the commit of 2026-11-01 (6a225cbe), which ran this game in the
+identical-play pass, stalls the same way on the same copy, so the 2026-11-03 stand-in changes are not the cause. What
+changed since the pass is the machine (Windows 10.0.26300): a later OS build may have changed what FMOD 3 or the old
+DirectSound path expects. Not looked for further (about an hour spent); a way in would be a debugger's stack of the
+sleeping loader thread, or a run of another FMOD 3 original (Bonnies) to see whether it stalls too.
