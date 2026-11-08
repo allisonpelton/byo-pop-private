@@ -211,6 +211,7 @@ public:
 	std::vector<std::vector<Brick*> >	m314;// +0x314 the field: 19 rows of 10 bricks, row 0 on top
 	std::vector<CellRef>	m324;// +0x324 the cells under the pointer that are lit (HoverCell)
 	std::vector<std::vector<int> >	m334;// +0x334 the layout the field is built from: a brick type for each cell, -1 none (BuildField)
+	std::vector<std::vector<int> >	m344;// +0x344 the rows of the demo (or of the game being recorded): one kind for each column
 	Brick*	m354 = NULL;// +0x354 a brick the Board holds (ClearField deletes it)
 	AstroPopApp*	mApp = NULL;// +0x358 the application (the bricks play their sounds through it)
 	Color	m3c0;// +0x3c0 the colour of the backdrop tint (FadeBackdrop)
@@ -391,6 +392,7 @@ public:
 	int	m19b4 = 0;// +0x19b4 ?
 	int	m19b8 = 0;// +0x19b8 ?
 	int	m19bc = 0;// +0x19bc ?
+	int	m19c0 = 0;// +0x19c0 ?
 	int	m19cc = 0;// +0x19cc ?
 	int	m19d0 = 0;// +0x19d0 ?
 	int	m19d4 = 0;// +0x19d4 ?
@@ -549,7 +551,14 @@ public:
 	void			SetupWarpLayers();                              // 0x43b1b0
 	static std::string	FormatNumber(int theNumber);            // 0x43e220 with a comma after each three digits
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
-	void			Fn46e420();                                     // 0x46e420 (1356 bytes)
+	void			AddTopRow();                                    // 0x46e420
+	bool			HasMarkOfType(int theType);                     // 0x438a90
+	int				GetMarkCount(int theType);                      // 0x438af0
+	Brick*			LowestFallingBrick94(int theColumn);            // 0x437780
+	Brick*			LowestFallingBrick7c(int theColumn);            // 0x4376d0
+	bool			ColumnReachesShip(int theX);                    // 0x438c60
+	void			FillTopRow(bool theA, bool theB, bool theC, bool theD, int theE);   // 0x451720
+	void			GameOver();                                     // 0x450f80
 	void			Fn46e9b0();                                     // 0x46e9b0 (1615 bytes)
 	void			UpdateGameOver();                               // 0x45e680
 	void			CreateEndButtons();                             // 0x4593b0

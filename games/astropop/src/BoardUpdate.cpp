@@ -475,7 +475,7 @@ bool Board::SpawnControl()
 				return true;
 			}
 		}
-		Fn46e420();
+		AddTopRow();
 		m2b0[2]->SetShown(false);
 		UpdateKlaxon();
 	}

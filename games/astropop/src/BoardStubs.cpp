@@ -21,9 +21,14 @@ bool Board::Fn46a810()
 	return false;
 }
 
-void Board::Fn46e420()
+void Board::FillTopRow(bool, bool, bool, bool, int)
 {
-	NOT_TRANSLATED("Fn46e420", "0x46e420");
+	NOT_TRANSLATED("FillTopRow", "0x451720");
+}
+
+void Board::GameOver()
+{
+	NOT_TRANSLATED("GameOver", "0x450f80");
 }
 
 void Board::Fn46e9b0()

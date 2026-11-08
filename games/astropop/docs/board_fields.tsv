@@ -40,6 +40,7 @@ f8	std::vector<int>	mf8
 314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
 324	std::vector<CellRef>	m324	the cells under the pointer that are lit (HoverCell)
 334	std::vector<std::vector<int> >	m334	the layout the field is built from: a brick type for each cell, -1 none (BuildField)
+344	std::vector<std::vector<int> >	m344	the rows of the demo (or of the game being recorded): one kind for each column
 354	Brick*	m354	a brick the Board holds (ClearField deletes it)
 358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
 3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
@@ -220,6 +221,7 @@ ade	int	made	?
 19b4	int	m19b4	?
 19b8	int	m19b8	?
 19bc	int	m19bc	?
+19c0	int	m19c0	?
 19cc	int	m19cc	?
 19d0	int	m19d0	?
 19d4	int	m19d4	?
