@@ -2636,3 +2636,10 @@ the link.
 register link and the update check); they are the coordinator's. The strings and images of the original's own files stay in
 the user's game folder. The comments in `Board.cpp` and `BoardRules.cpp` about the nag's random draw say why that draw is
 absent; it was an unregistered copy's.
+
+**Loading (the user's rule of 2026-11-07, fast loading is part of every port).** The port's loading has no wait that the
+original's code put into it: `WinDMApp::LoadingThreadProc` loads the sounds and images in one go with no sleep or per-frame
+slice, the title screen reads its progress every fourth update and shows the play link on the first read after the load, and
+the registered original had no minimum time (that was the trial's nag delay, taken out above). The framework logs
+"Resource Loading Time" (about 0.6 s on the test machine, the whole load); the title and its play link follow within the
+next few updates.
