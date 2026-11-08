@@ -88,7 +88,7 @@ UPPER_CASE for constants and enum values. `Graphics* g` stays as the framework w
 `i`, `j` and `k` count, `x`, `y` and `z` are coordinates, `g` is a `Graphics*`. Any other one-letter name is fine only
 while it is used within 10 lines of where it is declared (a lambda's parameters, a three-line helper); past that it gets a
 word. The checker measures the span; `namecheck.txt` adds letters for code where they are the subject's own notation (the
-colour channels `r g b a` in pixel code, the eight working variables of SHA-256).
+working variables of SHA-256, as the standard names them).
 
 ```cpp
 // before (GameRules.cpp, 40 lines)        // after
@@ -137,8 +137,9 @@ the code; a pointer to a design doc's section stays.
 ```cpp
 // before
 // Read since stage 5: mAny (the v2 save, the variant trace line), mInvalid ... since stage 6 mUndo ...
-// after
-// Read by: mAny (the v2 save, the variant trace line), mInvalid (UpdateSwapping keeps a swap that made no set), ...
+// after: the paragraph is one sentence, and each flag says what reads it
+// ... Each flag's comment says what reads it.
+bool mInvalid = false;      // moves.allowInvalid: UpdateSwapping keeps a swap that made no set
 ```
 
 ## 9. Mods, test hooks and the headless tools
@@ -150,4 +151,44 @@ data and art, not code, and has no rules here.
 
 ## How it worked out
 
-(Written at the end of the pilot.)
+Bejeweled's pass (2026-11-08; `games/bejeweled/docs/GAME_NOTES.md` section 20 lists every change) started from a port
+that already had no decompiler names: its translation had named everything as it went. The checker's first run still
+found 624 things. Most were one-letter names (549, nearly all short-lived and harmless), and a few were real:
+offset-named fields (`mUnused218`, `mPad04`), `aDummy` and `aTemp`, and 27 functions with no address. What changed and
+why:
+
+- **Rule 1 renamed 30 functions** to the Mac's names, plus the names built on them, across the source, the tools'
+  comments and the current docs. It is the largest change of the pass and the least risky, since the compiler checks
+  every use. Two limits came up. The oracle's input scripts keep the old names in their comments, because changing an
+  input makes the oracle's cache of the frozen baselines' runs run again. Reports written before the pass
+  (`IDENTICAL_PLAY.md`, `MAC_COMPARISON.md`) also keep the names of their time. Shared docs outside the game's folder
+  (`docs/FRAMEWORK_NOTES.md`, CLAUDE.md) still use a few old names until their owner changes them.
+- **Rule 3 began as a prefix**, `mUnread...`, for every field nobody reads. It would have renamed fields that already
+  had good names (`mBackgroundChanged`) and the text labels the state codec writes. It became the rule as written: the
+  name says what the field holds and the comment says that nothing reads it. Two fields nothing depended on came out;
+  the ones the save, the state hash or the tracehash baselines read stayed, renamed.
+- **Rule 5 first counted every one-letter name** and found 549, most of them in drawing code where `r`, `p` or `t`
+  live for three lines. Measuring how far each name reaches left 139 that really were hard to follow (`Board* b` across
+  60 lines, `ByteWriter w` across 97). The span check is what the rule now says.
+- **Rule 6 found 27 functions** with no address: helpers split out of an original function, which now name it, and the
+  port's own functions, which now carry the marker. A file-level marker covers a file of the port's own.
+- **Rule 7 is not checked.** No tool tells the gem's 49 from a coincidental 49. Naming went where a value recurs (the
+  gem sheet's pitch, half a gem, the dialog rectangle, the score popup); a number used once beside a comment stays, so
+  that it can still be found in the export. The dialog buttons' 2000 and 3000 offsets stay too: they are the
+  framework's convention, and each use is commented.
+- **Rule 8 was narrowed.** The first draft would have dropped every "stage N" from the comments (268 of them). Most are
+  labels, not history: they name the code-mods design's stages, which the oracle's script folders and the design doc
+  use too. What went was the narration ("since stage 7c ... the other paths arrive in later stages") and claims that had
+  gone stale ("no TWIST or SLIDE yet").
+
+**How the work went.** The renames were scripted: exact lists with word boundaries for the Mac names, and a
+scope-aware script for the one-letter names, run by one Sonnet agent with the exact list. That script missed calls of
+a renamed helper outside the function it was working in, which the build caught; a check of every renamed scope for
+leftover uses of the old letter found none. Two practical points for the next game. A source file cannot be written
+while a build has it open (on Windows the write fails), so edits wait for the build. And a check run that fails early
+keeps running its other suites, so a second run must not start before the first one ends.
+
+**What stays open.** Rule 7 is judgement, and so is the line between a label and history in rule 8. The checker cannot
+prove that a name is good, only that none is a stand-in; a reviewer still reads the names. Bejeweled Twist takes the
+standards next (the user, 2026-11-08: "I'd want them tested on a more complex game before moving forward with them for
+EVERY game"). It has no Mac build, so its names come from use, and its 2D and 3D code will test rules 5 and 7 harder.
