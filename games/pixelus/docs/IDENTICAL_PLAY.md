@@ -100,6 +100,7 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
 | Skip the tutorial showed the intro story | 0x41cf50 finds the temple the solved count opens (the first of the nine) | `ShowStory` mode 1 does the same |
 | Island screen (30% of the picture differed) | 0x4163e0, 0x416950: a panel with the island's text and the page of the temple under the mouse (0x414750, 0x414bf0), hover glow, arrow bounce, lightning, gulls and surf at random draws of the application's generator, sea and smoke cross-fade baked into the background, a new temple comes in 1.1 s after the map opens | `IslandMap`/`IslandPanel` follow it; the island's particle bursts (Rumble, PauseBloom) and the pointer follower are not ported yet |
 | Mouse-over sound on a temple | 0x416180 plays sample 16 on entering, 0x4163e0 plays sample 10 after 50 updates on one temple with the pitch set by the temple's index | the same |
+| The completed screen came in with a plain swap, and its picture was drawn only on the wanted cells | 0x419e60 blends the screen over the board by the flight's progress, and the picture holds every cell's colour (the brown surround too) | `PuzzleCompletedScreen::Draw` buffers the screen and blends it; `MakeSolvedImage` draws every cell | bf2ec62d |
 
 The frozen baseline (build/baseline-pixelus) was refreshed on 2026-11-08: the island now draws the application's generator as the
 original does (three draws in its constructor, then the lightning, gulls and surf timers), so the state logs differ from the
@@ -108,9 +109,13 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
 
 ## Phase two findings so far (not fixed; found by those shots)
 
-- The original cross-fades between screens (help to island, board to the completed screen, temple to board); the port
-  swaps them. At the same update the original is mid-fade.
-- The completed picture's sweep: the tiles ahead of the sweep turn yellow in the original and stay stone in the port.
+- The original cross-fades between screens (help to island, temple to board); the port swaps them. At the same update the
+  original is mid-fade. The board to the completed screen is ported (the screen's picture and tablet fade in over the board
+  as the picture flies, alpha following the flight's progress); the shots in the middle of the fade still differ (the
+  alpha slope of the original is a little steeper, and its picture is stretched with a blur the port does not draw), and
+  the arrived screen differs by about 9% (the medal's size and the sign texts' places).
+- The completed picture's sweep: the tiles ahead of the sweep turn yellow in the original and stay blue in the port at the
+  same update; a difference of the sweep's timing, not of its colours.
 - The temple screen: the original's puzzle thumbnails are drawn in grey/blue/cream with a "Scroll Puzzles Down" sign; the
   port draws red crosses and a "puzzles left unsolved" line.
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
