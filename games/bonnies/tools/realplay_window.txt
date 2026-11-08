@@ -1,0 +1,54 @@
+# Bonnie's natively with posted input (tools/realplay.py), the window's part: full screen by Alt+Enter both ways at the
+# menu and in a classic game, and the game minimized and restored in play. Posted clicks reach buttons (a move, press
+# and release together), but a press held on the board is moved off it (realplay.py's click), so the board's words are
+# played in the Browser pane (tools/paneplay.js) and not here.
+wait 8000
+shot menu
+state menu
+fullscreen
+wait 3000
+shot menu_full
+state menu_full
+fullscreen
+wait 3000
+state menu_windowed
+click 180 306
+wait 3000
+type window
+wait 500
+key RETURN
+wait 3000
+click 460 280
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 8000
+shot board
+state board
+fullscreen
+wait 3000
+shot board_full
+state board_full
+minimize
+wait 3000
+state minimized
+restore
+wait 3000
+shot restored
+state restored
+fullscreen
+wait 3000
+shot board_windowed
+state board_windowed
+close
+wait 3000
+shot closing
+state closing
+quit-when-gone 20000

@@ -12,6 +12,7 @@
 #include <SDL.h>
 #include <stb_image.h>
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <deque>
 #include <memory>
@@ -854,11 +855,42 @@ BonniesWidget::~BonniesWidget()
 	delete mScreenImage;
 }
 
+#ifdef __EMSCRIPTEN__
+// port (test runs): the game's state and a word on its board, for the Browser pane's real-input player
+// (games/bonnies/tools/paneplay.js), which calls it with ccall. Read only: it changes nothing in the game.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* bonnies_test_state()
+{
+	static std::string sText;
+	sText = bonnies::testState() + bonnies::testWord();
+	return sText.c_str();
+}
+#endif
+
 void BonniesWidget::Update()
 {
 	Widget::Update();
 	if (mScreenChanged)
 		MarkDirty();
+#ifndef __EMSCRIPTEN__
+	// port (test runs): the game's state for tools/realplay.py, which plays from it with real input (Start.h), written
+	// whole to a second file and renamed, so that a reader never sees half of it (it may miss the file for a moment)
+	// (SDL_getenv answers in one buffer on Windows, which the next call overwrites)
+	static const std::string sStateFile = SDL_getenv("BONNIES_STATE") != nullptr ? SDL_getenv("BONNIES_STATE") : "";
+	static uint32_t sStateTime = 0;
+	if (!sStateFile.empty() && gHostApp->IsTestRun() && SDL_GetTicks() - sStateTime >= 100)
+	{
+		sStateTime = SDL_GetTicks();
+		std::string aTemp = sStateFile + ".new";
+		if (FILE* aFile = fopen(aTemp.c_str(), "wb"))
+		{
+			std::string aState = bonnies::testState();
+			fwrite(aState.data(), 1, aState.size(), aFile);
+			fclose(aFile);
+			std::remove(sStateFile.c_str());
+			std::rename(aTemp.c_str(), sStateFile.c_str());
+		}
+	}
+#endif
 }
 
 // The game's screen (0x00RRGGBB) as it was last presented

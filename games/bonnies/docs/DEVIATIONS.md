@@ -52,6 +52,12 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   boards repeat. A script's `focus 0` and `focus 1` take the focus away and give it back, as a click on another
   window would; while it is away in a `-fast` run, the game's wait for its next frame (0x420770), which pumps without
   sleeping, runs the framework once a pump, since that run's clock moves only with the framework.
+- **The test state.** For playing with real input only, the port reads its state out without changing it
+  (`testState` and `testWord`, `game/GameScreen.cpp`): the buttons on screen, the level, score, turns and phase, the
+  tutorial's balloon and the tiles it marks, the hint the game shows, and a word on the board found with the game's
+  dictionary (no random number drawn; the dictionary's last match is put back). Natively the host writes it to the file
+  `BONNIES_STATE` names, ten times a second and only in a test run, for `tools/realplay.py`; on the web the page has it
+  through `bonnies_test_state`, for `tools/paneplay.js`. Neither does anything until a test asks.
 
 ## Memory the original leaks
 

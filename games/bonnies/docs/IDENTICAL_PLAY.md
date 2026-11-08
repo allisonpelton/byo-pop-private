@@ -81,7 +81,7 @@ the game's side in `game/SitePlayers.cpp`): at the first menu the site's player 
 new-player box starts with the site player's name under "fill", kept to the box's characters and twenty letters, the
 players are reported to the page when they change, and the site's volumes set the options' two. Checked in the
 Browser pane: under "create" the menu welcomed the site's player at once, and under "fill" the New Player box opened
-with the name filtered as the game's own typing would ("Zoë-Q. Smith" became "ZoëQ Smith").
+with the name filtered as the game's own typing would ("ZoÃ«-Q. Smith" became "ZoÃ«Q Smith").
 
 That check and the real-input play found four more faults, all fixed:
 
@@ -102,12 +102,29 @@ the game did as it does under its script (the page starts without a fixed seed, 
 action game ended with the same score, 20). Afterwards the options' Full Screen box and the players panel's New, Accept
 and Delete were tried the same way.
 
-Three parts of the real-input play are still to do. Natively, input posted to the window under rundesk
-(`tools/realplay.py`) reaches it, since a posted close ends the game, but SDL 2.32 makes no mouse or key event of the
-posted mouse and key messages, so the native play by posted input waits for a way to inject input that SDL takes. A
-whole classic game (the story's every book) was not played; the classic mode was played through its tutorial and the
-action mode through a whole game. Full screen was not tried: on the web only the page's button makes it, from a
-player's own click, and natively it waits for the posted input above.
+**Real input natively.** Under rundesk the window is driven by posted window messages (`tools/realplay.py`). SDL 2.32
+takes a posted mouse move, but the move also makes it ask Windows to report when the mouse leaves the window, and
+Windows reports that at once, because the real cursor is somewhere else on rundesk's desktop. SDL then moves its mouse
+to the real cursor, at the client's corner. So a press posted on its own lands in the corner, and a press held over a
+few frames is dragged there. realplay.py posts each click's move, press and release back to back, as Bookworm
+Adventures' `visrun.py` does, so SDL handles all three before the leave arrives. Posted keys need no such care, but
+each key-down must come a moment before its key-up: SDL's TranslateMessage makes the character from the key-down and
+queues it behind whatever is already posted, and the host joins a character to its key-down only when nothing comes
+between them. With that, the menus, the name box, the difficulty, the story's pages and the dialogs all answer
+natively. The board does not: it follows a held press from frame to frame, so posted clicks never take a tile. The
+board's play is therefore checked in the browser, below.
+
+Natively, then, the window's own part was played with keys, buttons and the window's commands
+(`tools/realplay_window.txt`), windowed at 1600x1200 on the 200% display. Alt+Enter, posted as a keyboard sends it
+(Alt's own key-down first), switched to full screen at the menu and on the board of a classic game. The window filled
+the 3840x2160 screen with the game pillarboxed, and a second Alt+Enter brought it back to 1600x1200 both times. The
+window was minimized and restored on the board, and it came back in full screen as it left. A posted close ended the
+game. The game kept running while minimized, as a test run does, since a test run always has the focus
+(`docs/DEVIATIONS.md`, "Test runs"); the pause on a lost focus was checked in the browser.
+
+**A whole classic game in the browser.** CLASSIC_RESULT
+
+**Full screen in the browser.** FULLSCREEN_RESULT
 
 ## Oddities left alone
 

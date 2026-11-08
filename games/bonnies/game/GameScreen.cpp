@@ -25,9 +25,13 @@
 #include "Widget.h"
 #include "App.h"
 #include "Screens.h"
+#include "Start.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
+#include <vector>
 
 namespace bonnies
 {
@@ -2513,6 +2517,242 @@ int GameScreen::handleEvent(Event* theEvent)
 		}
 	}
 	return Screen::handleEvent(theEvent);
+}
+
+// port (test runs): the state tools/realplay.py plays from, one "key value..." a line, positions in 0-1 screen
+// fractions (Start.h). Read only: it draws no random number and changes nothing.
+std::string testState()
+{
+	std::string aText;
+	char aLine[256];
+	snprintf(aLine, sizeof aLine, "modal %d\n", gBonnies != nullptr ? gBonnies->mDepth : -1);
+	aText += aLine;
+	snprintf(aLine, sizeof aLine, "paused %d\n", gBonnies != nullptr ? gBonnies->mPaused : -1);
+	aText += aLine;
+	if (gBonnies != nullptr)
+	{
+		// the buttons a player could press: the top modal screen's, or every visible screen's when none is modal
+		for (Screen* aScreen = gBonnies->mHead; aScreen != nullptr; aScreen = aScreen->mNext)
+		{
+			if (gBonnies->mDepth > 0 && aScreen != gBonnies->mModal[gBonnies->mDepth])
+				continue;
+			for (Widget* aWidget = aScreen->mHead; aWidget != nullptr; aWidget = aWidget->mNext)
+			{
+				if ((aWidget->mType != 1 && aWidget->mType != 3) || aWidget->isActive() == 0)
+					continue;
+				float aX = aScreen->mX + aWidget->mX + aWidget->mWidth / 2;
+				float aY = aScreen->mY + aWidget->mY + aWidget->mHeight / 2;
+				if (aWidget->mHitX != 0.0f || aWidget->mHitY != 0.0f)
+				{
+					aX = aScreen->mX + aWidget->mX + aWidget->mHitX + aWidget->mHitWidth / 2;
+					aY = aScreen->mY + aWidget->mY + aWidget->mHitY + aWidget->mHitHeight / 2;
+				}
+				snprintf(aLine, sizeof aLine, "button %d %d %.4f %.4f %s\n", aWidget->mType, aWidget->mId, aX, aY,
+					aWidget->mText.c_str());
+				aText += aLine;
+			}
+		}
+	}
+	if (gGameScreen == nullptr || gGame == nullptr)
+		return aText;
+	snprintf(aLine, sizeof aLine, "game %d %d %d %d %d %d %d\n", gGame->mLevel, gGame->mScore, gGame->mGoal,
+		gGame->mInProgress, gGameScreen->mField58, gGameScreen->isBusy(), gGame->mFieldC60);
+	aText += aLine;
+	snprintf(aLine, sizeof aLine, "balloon %d %d %d\n", gGameScreen->mStrCC.empty() ? 0 : 1, gGameScreen->mHintSide,
+		gGameScreen->mTutorialStep);
+	aText += aLine;
+	// the tutorial's balloon text, on one line, and the tiles it marks for its word
+	std::string aBalloon = gGameScreen->mStrCC;
+	for (size_t i = 0; i < aBalloon.size(); i++)
+		if (aBalloon[i] == '\n' || aBalloon[i] == '\r')
+			aBalloon[i] = ' ';
+	aText += "says " + aBalloon + "\n";
+	aText += "marked";
+	for (int aCell = 0; aCell < 81; aCell++)
+	{
+		if ((gGame->mTileFlags[aCell] & 0x40) == 0 || gGame->mLetters[aCell] == 0)
+			continue;
+		float aX, aY;
+		gGameScreen->tilePos(aCell / 9, aCell % 9, &aX, &aY);
+		snprintf(aLine, sizeof aLine, " %c %d %d %.4f %.4f", gGame->mLetters[aCell], aCell / 9, aCell % 9, aX, aY);
+		aText += aLine;
+	}
+	aText += "\n";
+	snprintf(aLine, sizeof aLine, "hint %d %d", gGameScreen->mHintShown, gGame->mHintFound ? gGame->mHintLength : 0);
+	aText += aLine;
+	for (int i = 0; gGame->mHintFound && i < gGame->mHintLength && i < 20; i++)
+	{
+		float aX, aY;
+		gGameScreen->tilePos(gGame->mHintColumns[i], gGame->mHintRows[i], &aX, &aY);
+		snprintf(aLine, sizeof aLine, " %c %.4f %.4f", gGame->mLetters[gGame->mHintColumns[i] * 9 + gGame->mHintRows[i]],
+			aX, aY);
+		aText += aLine;
+	}
+	aText += "\n";
+	return aText;
+}
+
+// port (test runs): whether some word of the dictionary starts with thePrefix (upper case, as mWords keeps them)
+static bool testPrefix(const std::string& thePrefix)
+{
+	int aLetter = thePrefix[0] - 'A';
+	int aLow = gDictionary->mStarts[aLetter];
+	int aHigh = aLetter < 25 ? gDictionary->mStarts[aLetter + 1] : gDictionary->mCount;
+	while (aLow < aHigh)
+	{
+		int aMiddle = (aLow + aHigh) / 2;
+		if (gDictionary->mWords[aMiddle].compare(thePrefix) < 0)
+			aLow = aMiddle + 1;
+		else
+			aHigh = aMiddle;
+	}
+	return aLow < gDictionary->mCount && gDictionary->mWords[aLow].compare(0, thePrefix.size(), thePrefix) == 0;
+}
+
+// port (test runs): what a word over thePath's cells adds to the chapter's fill, in halves, as the score's tile marking
+// changes the cells (0x20 filled; 0x10 half filled in a book that takes two words a cell; a cell with 8 turns back)
+static int testFill(const std::vector<int>& thePath)
+{
+	int aFill = 0;
+	for (size_t i = 0; i < thePath.size(); i++)
+	{
+		uint32_t aFlags = gGame->mTileFlags[thePath[i]];
+		if ((aFlags & 8) != 0)
+			aFill += (aFlags & 0x20) != 0 ? -2 : 2;
+		else if ((aFlags & 0x20) == 0)
+			aFill += gGame->currentBook()->mField38 == 0 || (aFlags & 0x10) != 0 ? 2 : 1;
+	}
+	return aFill;
+}
+
+// port (test runs): how far a word over thePath brings the stars ('*') down, which leave the board only from its bottom
+// cell (Game.cpp): a row a tile taken from under a star, and 4 more for a star it takes out
+static int testStars(const std::vector<int>& thePath)
+{
+	int aGain = 0;
+	for (int aCell = 0; aCell < 81; aCell++)
+	{
+		if (gGame->mLetters[aCell] != '*')
+			continue;
+		int aColumn = aCell / 9, aRow = aCell % 9;
+		int aBelow = 0;
+		for (size_t i = 0; i < thePath.size(); i++)
+			aBelow += thePath[i] / 9 == aColumn && thePath[i] % 9 > aRow;
+		if (aBelow == 0)
+			continue;
+		int aBottom = aRow;
+		while (aBottom < 8 && gGame->currentBook()->isCell(aColumn, aBottom + 1) != 0)
+			aBottom++;
+		aGain += aBelow + (aBottom - aRow <= aBelow ? 4 : 0);
+	}
+	return aGain;
+}
+
+// port (test runs): how good a word over thePath is: what it adds to the chapter's fill (testFill), the turns it costs
+// or earns in the classic mode (Game::submit: a word under 5 letters costs one, a longer one earns its length less 4),
+// weighing more as they run out, and the stars it brings down (testStars); then the longest
+static int testValue(const std::vector<int>& thePath)
+{
+	if (thePath.size() < 3)
+		return -100000;
+	int aLength = (int)thePath.size();
+	int aTurns = aLength < 5 ? -1 : aLength - 4;
+	int aTurnWeight = gGame->mGoal <= 10 ? 40 : 12;
+	return testFill(thePath) * 8 + aTurns * aTurnWeight + testStars(thePath) * 6 + aLength;
+}
+
+static bool testTile(int theCell)
+{
+	char aLetter = gGame->mLetters[theCell];
+	return ((aLetter >= 'A' && aLetter <= 'Z') || aLetter == '?' || aLetter == '!') &&
+		(gGame->mTileFlags[theCell] & 2) == 0;
+}
+
+static void testStep(int theCell, std::string& theWord, std::string& theSpelled, std::vector<int>& thePath,
+	std::vector<int>& theBest, std::string& theBestWord, int& theVisits);
+
+// theWord: the letters so far (a wild tile as the letter it stands for), theSpelled: as the dictionary spells them
+// (Q is QU, as expandWord makes it)
+static void testSearch(int theColumn, int theRow, std::string& theWord, std::string& theSpelled,
+	std::vector<int>& thePath, std::vector<int>& theBest, std::string& theBestWord, int& theVisits)
+{
+	if (++theVisits > 300000)
+		return;
+	if (theWord.size() >= 3 && testValue(thePath) > testValue(theBest))
+	{
+		// the dictionary's answer for the letters, as the game checks a path (Game::updateWord); its match restored
+		Str aMatch = gDictionary->mMatch;
+		int aRarity = gDictionary->mMatchRarity;
+		if (gDictionary->isWord(theWord, 1) != 0)
+		{
+			theBest = thePath;
+			theBestWord = theWord;
+		}
+		gDictionary->mMatch = aMatch;
+		gDictionary->mMatchRarity = aRarity;
+	}
+	if (theWord.size() >= 10)
+		return;
+	for (int aDirection = 0; aDirection < 6; aDirection++)
+	{
+		int aColumn, aRow;
+		if (gGame->neighbour(theColumn, theRow, aDirection, &aColumn, &aRow) == 0)
+			continue;
+		int aCell = aColumn * 9 + aRow;
+		if (!testTile(aCell) || std::find(thePath.begin(), thePath.end(), aCell) != thePath.end())
+			continue;
+		testStep(aCell, theWord, theSpelled, thePath, theBest, theBestWord, theVisits);
+	}
+}
+
+// theCell added to the path, as each letter it can stand for
+static void testStep(int theCell, std::string& theWord, std::string& theSpelled, std::vector<int>& thePath,
+	std::vector<int>& theBest, std::string& theBestWord, int& theVisits)
+{
+	char aTile = gGame->mLetters[theCell];
+	char aFirst = aTile == '?' || aTile == '!' ? 'A' : aTile;
+	char aLast = aTile == '?' || aTile == '!' ? 'Z' : aTile;
+	for (char aLetter = aFirst; aLetter <= aLast; aLetter++)
+	{
+		theWord.push_back(aLetter);
+		theSpelled += aLetter == 'Q' ? "QU" : std::string(1, aLetter);
+		thePath.push_back(theCell);
+		if (testPrefix(theSpelled))
+			testSearch(theCell / 9, theCell % 9, theWord, theSpelled, thePath, theBest, theBestWord, theVisits);
+		thePath.pop_back();
+		theSpelled.resize(theSpelled.size() - (aLetter == 'Q' ? 2 : 1));
+		theWord.pop_back();
+	}
+}
+
+// port (test runs): the best word (up to 10 tiles, by testValue) on the board's letter and wild tiles that are not
+// fixed (as Game::findHint takes them), by the game's dictionary, as "word <letters> x y..." (Start.h). Read only,
+// and it draws no random number.
+std::string testWord()
+{
+	if (gGameScreen == nullptr || gGame == nullptr || gDictionary == nullptr || gDictionary->mCount == 0)
+		return "word\n";
+	std::vector<int> aBest;
+	std::string aBestWord;
+	int aVisits = 0;
+	for (int aCell = 0; aCell < 81; aCell++)
+	{
+		if (!testTile(aCell) || gGame->currentBook()->isCell(aCell / 9, aCell % 9) == 0)
+			continue;
+		std::string aWord, aSpelled;
+		std::vector<int> aPath;
+		testStep(aCell, aWord, aSpelled, aPath, aBest, aBestWord, aVisits);
+	}
+	std::string aText = "word " + aBestWord;
+	for (size_t i = 0; i < aBest.size(); i++)
+	{
+		float aX, aY;
+		char aLine[64];
+		gGameScreen->tilePos(aBest[i] / 9, aBest[i] % 9, &aX, &aY);
+		snprintf(aLine, sizeof aLine, " %.4f %.4f", aX, aY);
+		aText += aLine;
+	}
+	return aText + "\n";
 }
 
 } // namespace bonnies

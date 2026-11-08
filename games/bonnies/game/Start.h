@@ -17,6 +17,13 @@ void loadBooks();
 // BonniesApp.h: 0x401000 WinMain's game
 int bonniesMain();
 
+// port (test runs): the board, the hint the game shows, the level and the buttons on screen, as text for
+// tools/realplay.py (GameScreen.cpp); the host writes it only in a test run whose BONNIES_STATE names a file
+std::string testState();
+// port (test runs): the longest word on the board by the game's dictionary, with its tiles' places, for the
+// Browser pane's player (src/BonniesHost.cpp, bonnies_test_state; GameScreen.cpp). Read only.
+std::string testWord();
+
 #ifdef __EMSCRIPTEN__
 // port (web): the game's players for the site's player setting (src/SiteProfiles.cpp; framework/WebProfiles.h), in
 // game/SitePlayers.cpp. Names are the game's text.
