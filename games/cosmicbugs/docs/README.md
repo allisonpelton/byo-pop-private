@@ -154,7 +154,15 @@ shortcuts and the page the game asked for at exit (`gUrl`, `GameExit`'s `OpenURL
 text and menu entries for the full version only (`fv`, `fv_type` and `fv_name` are the only ones read). The title's
 fourth item, "BUY NOW" in the trial, is the full version's HELP in the original, so no button leaves a gap; its
 "MORE GAMES" item is already commented out in the game file. The title's QUIT quits. What stays is the third field of
-`cb.dat`, the trial's time, kept as `gTrialSlot` so the player's file is the original's byte for byte. The logo screens
+`cb.dat`, where the original kept the trial's time left, as `gSaveFormatField`: a four-byte placeholder for the file's
+format, written back as it was read (3600000 in a new file, as the original's registered copy writes it), so saves move between the
+port and the original. Nothing reads it: the clamp the original's loader applied to it (at least a minute left) is
+gone, so a file saved by a trial copy that had used up its time keeps that value where the original's registered copy
+would have raised it to 60000 at its next save, which no registered save holds. The other trial and registration
+leftovers checked in this pass and kept on purpose: the nag screens' levels, which the game file still holds and whose loading draws
+from the generator, with the `nag_logo` animation their menus name and the game file's `closing_nag` item type on the
+title's QUIT (kind 3, which quits); `gDemo`, the attract mode of the original that nothing ever starts (it is not a
+registration path; the readability pass may take it out); and the `fv` text and item attributes the loader skips. The logo screens
 show the text "www.retro64.com" on them; it is text, not a button, and nothing in the game follows it.
 
 ## Mods
