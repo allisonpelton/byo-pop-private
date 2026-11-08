@@ -110,9 +110,6 @@ public:
 	virtual void	WriteToRegistry() override;                              // 0x41c9f0 slot 23
 	virtual void	ReadFromRegistry() override;                             // 0x41cb60 slot 24
 	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override; // 0x41bd90 slot 25
-	virtual void	URLOpenFailed(const std::string& theURL) override;       // 0x41fe80 slot 33
-	virtual void	URLOpenSucceeded(const std::string& theURL) override;    // 0x41bf80 slot 34
-	virtual bool	OpenURL(const std::string& theURL, bool shutdownOnOpen = false) override; // 0x420140 slot 35
 	virtual void	Init() override;                                         // 0x41d9a0 slot 45
 	virtual bool	KillDialog(int theDialogId) override;                    // 0x41c1c0 slot 71
 	virtual void	ModalOpen() override;                                    // 0x41bf00 slot 73 (pauses Action only)
@@ -133,15 +130,10 @@ public:
 	void			ShowRecordScoreDialog(const SexyString& theLines); // 0x41bd00 (dialog 3)
 	void			NewGame();                                      // 0x41bfb0
 	void			StartGame();                                    // 0x41c170 (help screen first, or NewGame)
-	void			ShowRegisterDialog();                           // 0x41cd60 (registered: the "already registered" notice, dialog 16)
 	void			ConfirmContinueGame();                          // 0x420370 (dialog 5)
 	void			ConfirmQuit();                                  // 0x420560 (dialog 12)
 	void			ConfirmNewGame();                               // 0x4207e0 (dialog 0)
 	ButtonWidget*	MakeButton(int theId, const Rect& theRect, Image* theOverImage, Image* theDownImage); // 0x421470
-
-	// Not ported (registration / trial / update check; the Steam build is registered and up to date):
-	// ShowInvalidCodeDialog 0x41d090, ShowPuzzleTrialDialog 0x41d2e0, ShowPuzzleNextLevelLocked 0x41d4c0,
-	// ShowRegisterToRecordScoreDialog 0x41d6a0, ConfirmCheckForUpdates 0x420a30, DoUpdateCheck 0x420c50.
 
 	// port (web): the page can be closed or crash without the app being deleted, which is where the
 	// original saves a game in progress (see SexyAppBase::UpdateUserDataBackup)

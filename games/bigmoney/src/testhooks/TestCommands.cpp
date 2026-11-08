@@ -99,7 +99,7 @@ int gTargetSkill = -1;
 
 // The dialog that is open, or -1: the ids that can be up in a test
 const int kDialogIds[] = { DIALOG_NEW_GAME, DIALOG_OPTIONS, DIALOG_RECORD_SCORE, DIALOG_CONTINUE_GAME, DIALOG_QUIT,
-	DIALOG_HIGH_SCORES, DIALOG_CREDITS, DIALOG_INFO, DIALOG_URL_FAILED, DIALOG_OPENING_BROWSER };
+	DIALOG_HIGH_SCORES, DIALOG_CREDITS, DIALOG_INFO };
 
 int OpenDialog(WinBMApp* theApp)
 {
@@ -160,12 +160,31 @@ std::string StateJson(WinBMApp* theApp)
 	aJson += aBuf;
 	if (theApp->mTitleScreen != NULL)
 		aJson += std::string(",\"loaded\":") + (theApp->mTitleScreen->mLoadDone ? "true" : "false");
+	// where the open dialog's Yes / OK and No buttons are (screen points), for a driver that answers a question
+	int aDialogId = OpenDialog(theApp);
+	Dialog* aDialog = (aDialogId >= 0) ? theApp->GetDialog(aDialogId) : NULL;
+	if (aDialog != NULL)
+	{
+		if ((aDialog->mYesButton != NULL) && (aDialog->mYesButton->mWidth > 0))
+		{
+			snprintf(aBuf, sizeof(aBuf), ",\"yes\":[%d,%d]", aDialog->mYesButton->mX + aDialog->mYesButton->mWidth / 2,
+				aDialog->mYesButton->mY + aDialog->mYesButton->mHeight / 2);
+			aJson += aBuf;
+		}
+		if ((aDialog->mNoButton != NULL) && (aDialog->mNoButton->mWidth > 0))
+		{
+			snprintf(aBuf, sizeof(aBuf), ",\"no\":[%d,%d]", aDialog->mNoButton->mX + aDialog->mNoButton->mWidth / 2,
+				aDialog->mNoButton->mY + aDialog->mNoButton->mHeight / 2);
+			aJson += aBuf;
+		}
+	}
 	if (aBoard != NULL)
 	{
 		snprintf(aBuf, sizeof(aBuf), ",\"level\":%d,\"score\":%d,\"boardState\":\"%s\",\"bags\":%d,\"bagsNeeded\":%d,"
-			"\"paused\":%s,\"settled\":%s,\"go\":%d",
+			"\"paused\":%s,\"settled\":%s,\"go\":%d,\"colors\":%d",
 			aBoard->mLevel + 1, aBoard->mScore, BoardStateName(aBoard->mState), aBoard->mBagsBanked, aBoard->mBagsNeeded,
-			aBoard->mPauseCount > 0 ? "true" : "false", IsSettled(aBoard) ? "true" : "false", aBoard->mGoTimer);
+			aBoard->mPauseCount > 0 ? "true" : "false", IsSettled(aBoard) ? "true" : "false", aBoard->mGoTimer,
+			aBoard->mNumColors);
 		aJson += aBuf;
 		if (theApp->mGameType == GAMETYPE_STRATEGY)
 		{
@@ -326,7 +345,8 @@ void MoveCommand(WinBMApp* theApp)
 		}
 		DialogButton* aButton = (aDialog->mNoButton != NULL) ? aDialog->mNoButton : aDialog->mYesButton;
 		if ((aButton != NULL) && (aButton->mWidth > 0))
-			ReplyMove("dialog: its button", ClickOnWidget(aDialog, aButton), "", 40);
+			// a dialog's buttons are placed in screen coordinates (Dialog::Resize)
+			ReplyMove("dialog: its button", ClickOnWidget(NULL, aButton), "", 40);
 		else
 			ReplyMove("wait: a dialog without a button", "", "", 30);
 		return;

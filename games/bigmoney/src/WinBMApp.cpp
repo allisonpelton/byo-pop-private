@@ -376,13 +376,6 @@ void WinBMApp::LostFocus()
 		mBoard->Pause(true);
 }
 
-// 0x41bf80
-void WinBMApp::URLOpenSucceeded(const std::string& theURL)
-{
-	SexyApp::URLOpenSucceeded(theURL);
-	KillDialog(DIALOG_OPENING_BROWSER);
-}
-
 // 0x41bfa0
 void WinBMApp::ButtonPress(int theId)
 {
@@ -653,20 +646,6 @@ void WinBMApp::ReadFromRegistry()
 		mDontShowHelp[2] = aValue != 0;
 }
 
-// 0x41cd60 (TitleScreen, OptionsDialog's Register button, and the YES of dialogs 4 and 15)
-void WinBMApp::ShowRegisterDialog()
-{
-	// The unregistered branch (new RegisterDialog as dialog 2, Resize((mWidth - 381) / 2, 32, 381, 385)) is
-	// not ported: the Steam build is registered (partner.xml NoReg=true)
-	DoDialog(DIALOG_INFO, true, GetString("ALREADY_REGISTERED"), GetString("YOU_HAVE_ALREADY_REGISTERED_BIG_MONEY"), GetString("DIALOG_BUTTON_OK"), Dialog::BUTTONS_FOOTER);
-}
-
-// 0x41d090 ShowInvalidCodeDialog (dialog 8) is not ported: registration only
-// 0x41d2e0 ShowPuzzleTrialDialog and 0x41d4c0 ShowPuzzleNextLevelLocked (dialog 15) are not ported:
-//          Board calls them only when unregistered
-// 0x41d6a0 ShowRegisterToRecordScoreDialog (dialog 15) is not ported: HighScoreWidget calls it only when
-//          unregistered
-
 // 0x41d7d0
 bool WinBMApp::LoadAppImage(int theImageId)
 {
@@ -696,9 +675,6 @@ void WinBMApp::Init()
 	DIALOG_NO_STRING = GetString("DIALOG_BUTTON_NO");
 	DIALOG_OK_STRING = GetString("DIALOG_BUTTON_OK");
 	DIALOG_CANCEL_STRING = GetString("DIALOG_BUTTON_CANCEL");
-
-	// The RealArcade branch (GetBoolean("RealArcade"): mIsRegistered from a registry value named in
-	// BigMoney.ini) is not ported: registration only
 
 	mImages = new Image*[NUM_IMAGES];
 	for (int i = 0; i < NUM_IMAGES; i++)
@@ -974,33 +950,6 @@ void WinBMApp::LoadingThreadProc()
 	// 48 + 3 + 3 + 6 + 4 = 64 of the 72 tasks: the progress stays at 0.89 until mLoaded
 }
 
-// 0x41fe80
-void WinBMApp::URLOpenFailed(const std::string& theURL)
-{
-	SexyApp::URLOpenFailed(theURL);
-	KillDialog(DIALOG_OPENING_BROWSER);
-
-	// PLEASE_OPEN_THE_FOLLOWING_URL_IN_YOUR_BROWSER ends with a line break
-	SexyString aLines = GetString("PLEASE_OPEN_THE_FOLLOWING_URL_IN_YOUR_BROWSER") + theURL;
-	Dialog* aDialog = NewDialog(DIALOG_URL_FAILED, true, GetString("OPEN_BROWSER"), aLines, GetString("OK"), Dialog::BUTTONS_FOOTER);
-	aDialog->Resize(100, 50, 440, aDialog->GetPreferredHeight(440));
-	AddDialog(DIALOG_URL_FAILED, aDialog);
-}
-
-// 0x420140
-// port: the original keeps dialog 10 up until the browser takes the focus, and after 12 s with the window
-// still active replaces it with dialog 11 (URLOpenFailed). SDL cannot see the browser take the focus, so
-// SexyAppBase::OpenURL reports success at once and dialog 10 is killed before it is drawn.
-bool WinBMApp::OpenURL(const std::string& theURL, bool shutdownOnOpen)
-{
-	Dialog* aDialog = NewDialog(DIALOG_OPENING_BROWSER, true, "", GetString("OPENING_BROWSER"), "", Dialog::BUTTONS_NONE);
-	aDialog->mContentInsets = Insets(36, 36, 36, 36);
-	aDialog->Resize(164, 140, 312, 98);
-	AddDialog(DIALOG_OPENING_BROWSER, aDialog);
-
-	return SexyApp::OpenURL(theURL, shutdownOnOpen);
-}
-
 // 0x420370
 void WinBMApp::ConfirmContinueGame()
 {
@@ -1047,17 +996,12 @@ void WinBMApp::ConfirmNewGame()
 	ShowGameSelector();
 }
 
-// 0x420a30 ConfirmCheckForUpdates (dialog 6) and 0x420c50 DoUpdateCheck (UpdateCheckDialog 7, HTTP version
-// check, results 10007/20007) are not ported: the port never checks for updates
-
 // 0x420f10
 void WinBMApp::ButtonDepress(int theId)
 {
 	if ((theId % 10000 >= 2000) && (theId % 10000 < 3000))
 	{
-		// YES / OK / footer of dialog theId - 2000. The update check results 10007 (OpenUpdateURL) and
-		// 20007, dialog 2 (RegisterDialog: Validate and register) and dialogs 4, 6 and 15 (which opened
-		// the register / update dialogs) are not ported and fall to the default.
+		// YES / OK / footer of dialog theId - 2000
 		int aDialogId = theId - 2000;
 		switch (aDialogId)
 		{
@@ -1117,7 +1061,7 @@ void WinBMApp::ButtonDepress(int theId)
 	}
 	else if ((theId % 10000 >= 3000) && (theId % 10000 < 4000))
 	{
-		// NO / CANCEL of dialog theId - 3000 (the update dialog 10007's NO is not ported)
+		// NO / CANCEL of dialog theId - 3000
 		int aDialogId = theId - 3000;
 		if (aDialogId == DIALOG_CONTINUE_GAME)
 		{
