@@ -6,6 +6,7 @@
 #include "Compat2004.h"
 #include "SexyAppBase.h"
 #include "WidgetManager.h"
+#include "ModFeatures.h"
 
 #include <algorithm>
 #include <cmath>
@@ -126,16 +127,16 @@ void Board::Update()
 			int aChoices = (aLimit < aShore) ? 3 : 4;
 			switch (CrtRand() % aChoices)
 			{
-			case 0: mNoahSprite = (aLimit < aShore) ? 0x3a : 0x40; break;
-			case 1: mNoahSprite = (aLimit < aShore) ? 0x3c : 0x43; break;
-			case 2: mNoahSprite = (aLimit < aShore) ? 0x3e : 0x45; break;
-			case 3: mNoahSprite = 0x47; break;
+			case 0: mNoahSprite = (aLimit < aShore) ? IMAGE_NOAH_HAPPY_CLIP1 : IMAGE_NOAH_SAD_CLIP1; break;
+			case 1: mNoahSprite = (aLimit < aShore) ? IMAGE_NOAH_HAPPY_ITCH1 : IMAGE_NOAH_SAD_POINT1; break;
+			case 2: mNoahSprite = (aLimit < aShore) ? IMAGE_NOAH_HAPPY_STILL1 : IMAGE_NOAH_SAD_STILL1; break;
+			case 3: mNoahSprite = IMAGE_NOAH_SAD_WATCH1; break;
 			}
 			mNoahFrame = 0;
 		}
 		if (CrtRand() % 3 == 0)
 			mNoahFrame++;
-		int aFrames = (mNoahSprite == 0x40) ? 3 : 2;
+		int aFrames = (mNoahSprite == IMAGE_NOAH_SAD_CLIP1) ? 3 : 2;
 		mNoahFrame = abs(mNoahFrame % aFrames);
 	}
 
@@ -524,7 +525,9 @@ void Board::Update()
 
 	if (mState == BOARD_GET_READY)
 	{
-		if (AnyWaiting() && (GameTickCount() - mStartTick > 400))
+		// fix steadyClock: the 400 ms are 40 updates, not the machine's clock (which runs a frame or two either way)
+		bool aReleaseDue = ModFixOn("steadyClock") ? (mApp->mUpdateCount - mStartUpdate > 40) : (GameTickCount() - mStartTick > 400);
+		if (AnyWaiting() && aReleaseDue)
 			ReleaseWaiting();
 		if ((mWaterY < mWaterTargetY) && (anApp->mGameMode != GAMEMODE_STRATEGY))
 		{

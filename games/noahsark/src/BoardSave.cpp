@@ -190,7 +190,7 @@ std::string Board::SaveState()
 	w.Int(mAbandonCount);
 	w.Int(mNoahFrame);
 	w.Byte(mNoahWorried);
-	w.Int(mNoahSprite);
+	w.Int(mNoahSprite + 1);                 // the original numbers its images with the registration picture (id 47) in them
 	w.Int(mArkStage);
 	w.Int(mSpawnRate);
 	w.Int(mRowCount);
@@ -295,7 +295,7 @@ bool Board::LoadState(const std::string& theData)
 	mAbandonCount = r.Int();
 	mNoahFrame = r.Int();
 	mNoahWorried = r.Byte();
-	mNoahSprite = r.Int();
+	mNoahSprite = r.Int() - 1;
 	mArkStage = r.Int();
 	mSpawnRate = r.Int();
 	mRowCount = r.Int();

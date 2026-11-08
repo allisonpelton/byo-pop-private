@@ -72,7 +72,7 @@ Board::Board(NoahApp* theApp, bool theContinue)
 	mArkStage = 0;
 	mFloodSpeed = 0;
 	mNoahFrame = 0;
-	mNoahSprite = 0x3e;
+	mNoahSprite = IMAGE_NOAH_HAPPY_STILL1;
 	mFade = 0;
 	mWaterY = 0x1a2;
 	mWaterTargetY = 0x1a2;
@@ -106,6 +106,7 @@ Board::Board(NoahApp* theApp, bool theContinue)
 	mSelected = NULL;
 	mState = BOARD_GET_READY;
 	mState314 = mLastInputTick = mStartTick = mState320 = mState324 = mLastMoveTick = mState330 = 0;
+	mStartUpdate = mApp->mUpdateCount;
 	mLightning = false;
 	mRowCount = 0;
 	mSpawnRate = 0;
@@ -307,7 +308,7 @@ void Board::NewLevel()
 	mLastMoveTick = mUpdateCnt;
 	mArkStage = 0;
 	mNoahFrame = 0;
-	mNoahSprite = 0x3e;
+	mNoahSprite = IMAGE_NOAH_HAPPY_STILL1;
 	mFlag14 = false;
 	mArkLeaving = false;
 	if ((mApp->mLevel > 1) && (mApp->mGameMode != GAMEMODE_STRATEGY))
@@ -317,6 +318,7 @@ void Board::NewLevel()
 	mSetUp3ac = false;
 	mNoMoves = false;
 	mStartTick = GameTickCount();
+	mStartUpdate = mApp->mUpdateCount;
 	if ((mApp->mGameMode == GAMEMODE_STRATEGY) && (mWaterY < 0x109))
 	{
 		mNoahWorried = true;
