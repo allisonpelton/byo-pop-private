@@ -15,6 +15,10 @@ The pass found no fault in the port. It changed no game code, so the oracle's ba
 are the comparison's tools (`games/bejeweled/tools/origcmp/`) and this report; the Mac build's names are compared in
 `MAC_COMPARISON.md`.
 
+A second part, on 2026-11-08, added what CLAUDE.md asks of a finished game beyond the comparison: the standard test
+commands, a play-through with real mouse and key events only ("Real input", below), and the fixes mod ("The fixes mod").
+It changed no play of the unmodded game; "Changes the pass made" lists what it did change.
+
 ## How both sides are driven
 
 **Driving both sides alike.** The original's update counter, draw flags and input gate are given to origrun in
@@ -111,11 +115,82 @@ showed the title and dealt the first board with its instructions and hint arrows
 there is no audio device, and in the pane it is silenced on purpose; the web build plays the same game code, so the
 native comparison stands for it.
 
+## Real input
+
+Autoplay, script commands and runs under Node never pass through the input path a hand uses, so the game was also played from
+launch to the end of a game with real events only (CLAUDE.md, "Done means identical"). Code played and the session judged;
+nobody played. Both drivers are thin loops around the standard test commands (`GAME_NOTES.md` section 15): ask `state`, ask
+`move` (the port's own autoplay bot chooses a swap and answers the pointer steps that make it), send the steps as events, wait
+for the next answer. The coordinates are the original's 640x480 pixels, so the same steps work in a window of any size and in
+full screen.
+
+**Native**, `tools/realplay/drive.py`, under rundesk with the `-commands` and `-realinput` channels (SDL events pushed on the
+game's queue: pointer moves, presses and releases at game coordinates, keys, the Alt key, focus lost and gained). Its last
+run:
+
+| step | what it did | result |
+|---|---|---|
+| launch | the loading screen, the title, the play link, the first game's hint (the tutorial arrows, from board update 150), Options, Help inside it, both Done buttons | ok |
+| Normal | a whole game: 127 moves, levels 1 to 4, 191 s; the hint gone at the first scoring move; the game over, the name entry typed with key events and Enter | score 4230 |
+| Timed | a whole game in real time: 497 moves, levels 1 to 11, 847 s; Time Up, the name entry | score 52 840 |
+| focus | focus lost in a game: paused; focus regained: running again (ticks 981 and 1034) | ok |
+| full screen | Alt+Enter to full screen, 8 moves there, Alt+Enter back, 4 moves in the window | ok |
+
+A Timed game needs real time (`--realtime`): its clock is the board's update count, and a `-fast` run does thousands of
+updates in the time the channel takes to carry one move, so the clock ran out during the first moves.
+
+**Web**, `tools/web/onegame.js`, run by the player-only page (`?player=1&assets=1&silent=1&driver=...`) in the Browser pane with
+the page's DOM events: the same route. A whole Normal game (129 moves, levels 1 to 4), whole Timed games (167 and 220 moves,
+levels up to 7), the name entry typed, the "Continue old game?" question of a profile that had left a game answered No with a
+click, the focus lost and regained (the board paused and ran again), and a canvas drawn at twice its size (`&scale=2`, 40
+moves) so that the clicks land at scaled points as they do in full screen. No page error in any run. The fixes mod, which the
+page installs on by default, was on in these runs.
+
+What the real input did not find: no fault of the port. The faults it met were the drivers' own (the name entry, which comes a
+moment after the game-over screen; the "end the current game?" question that a mode button asks in a game; the screen a
+`state` names while Help lies over Options), and each is fixed in the driver or in the state command.
+
+What stays unproven:
+
+- The native channels (`-commands` with `-realinput`) and the web page's test command are not on the trunk yet, so the native
+  run above used a scratch merge of the shared branch with this one; it is repeated against this branch once they are merged.
+- Full screen on the web: the Browser pane cannot enter it (`requestFullscreen()` neither resolves nor rejects there), so the
+  scaled canvas stands in for the scaled mouse mapping; the browser's own full screen waits for the user's Chrome.
+- The windowed and full-screen runs were not compared with the original's, which the sandbox cannot run in full screen; they
+  show that the game plays and that input lands.
+
+## The fixes mod
+
+`games/bejeweled/mods/fixes` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, one toggle for each fix,
+all on by default, on by default on the site, shipped beside the page as `bejeweled-fixes/`. It shares the high scores and the
+saved game with the original (no rules change, so no variant board, no v2 save). The port without it is the original, and the
+verifier's replays never carry a fix. Two fixes (`GAME_NOTES.md` section 16 has the code and how to see each):
+
+| fix | the original | with the fix | commit |
+|---|---|---|---|
+| `selection` | When Timed mode's board falls out and refills (no move left), a gem you had selected stays selected though it is no longer on the board; your next click either loses a gem (the stale gem is put back in the old gem's place) or selects nothing | the selection is dropped at the refill and the click selects the gem you clicked | e59ace0a |
+| `resumeLook` | A saved game of level 2 or later comes back with the first level's background tint and texture until the next level-up (`LoadGame` does not set the level up) | it comes back with its own level's look | e59ace0a |
+
+`tools/fixes_test.sh` plays each fix with the mod off and on under rundesk and checks that the runs differ the way the fix says
+and in nothing else (the resumed board's redness: 24.2 in the game the save came from, 12.3 loaded with the fix off, 21.2 on).
+The mod's menu entry shows its description and both toggles with no warning (`1bbb10f3` fixed a help text that was cut).
+Memory faults belong to the port, not the mod (`GAME_NOTES.md` section 16).
+
 ## Changes the pass made
 
-None to the game. The pass added the comparison's tools in `games/bejeweled/tools/origcmp/` (`cae739f`; `statecmp.py` and
-`greedy.py` for the first phase in the commit of this report), this report and `MAC_COMPARISON.md`. The origrun configuration and the test patches are git-ignored (`tools/origrun/bejeweled.cfg`,
-`tools/origrun/patches/bejeweled.txt`).
+The first part changed no game code. It added the comparison's tools in `games/bejeweled/tools/origcmp/` (`cae739f`;
+`statecmp.py` and `greedy.py` for the first phase in the commit of this report), this report and `MAC_COMPARISON.md`. The
+origrun configuration and the test patches are git-ignored (`tools/origrun/bejeweled.cfg`, `tools/origrun/patches/bejeweled.txt`).
+
+The second part (branch `claude/bejeweled-finish-bf5c89`):
+
+- The standard test commands (`state`, `goto`, `level`, `unlock`, `set`, `win`, `lose`, `seed`, `move`), in
+  `src/testhooks/TestCommands.cpp`, reached only from `-script`, `-commands` and the web test channel, listed in
+  `GAME_NOTES.md` section 15; `move` asks the port's own autoplay bot (`e59ace0a`, `86835386`).
+- The fixes mod and the two hooks it needs in the game (`Board::DropStaleSelection`, `Board::ResumeLevelLook`, behind
+  `GameFeatures::mFixes`, off unless the mod is on) (`e59ace0a`).
+- The real-input drivers (`tools/realplay/drive.py`, `tools/web/onegame.js`) and the `state` fields they read (`86835386`).
+- Tests: `tools/commands_test.sh` and `tools/fixes_test.sh`.
 
 ## Oddities skipped
 
@@ -126,7 +201,8 @@ fall-back from full screen to a window) are the sandbox's, worked around as desc
 
 None was found in what was compared. What was not compared:
 
-- Full screen: the sandbox cannot open it, so both sides ran windowed.
+- Full screen: the sandbox cannot open it, so both sides ran windowed. The port alone was played in full screen natively
+  (Alt+Enter, moves, back; "Real input"); the original's full screen was not compared, and the web's only as a scaled canvas.
 - Registration, the nags and the update check: the Steam exe runs registered, so they never show; the port leaves them out
   (`GAME_NOTES.md`, the dialog table).
 - The "Play More Great Games!" button in Options and any other link: never clicked in a test run (CLAUDE.md).
