@@ -197,6 +197,20 @@ bool GameApp::UpdateAppStep(bool* updated)
 			mLoadingThreadCompleted = true;  // DoUpdateFrames calls LoadingThreadCompleted
 		}
 	}
+	// port (test aid): F9 logs the board's state (the script command "state") through a real key press, so that a
+	// run through the page or the window, which only sends input events, can read the board from the log
+	{
+		static bool sF9Down = false;
+		bool aF9 = mWidgetManager != nullptr && mWidgetManager->mKeyDown[KEYCODE_F9];
+		if (aF9 && !sF9Down) {
+			ScriptCommand aCommand;
+			aCommand.mUpdateCount = mUpdateCount;
+			aCommand.mCommand = "state";
+			aCommand.mLine = 0;
+			HandleScriptCommand(aCommand);
+		}
+		sF9Down = aF9;
+	}
 	return LuaApp::UpdateAppStep(updated);
 }
 
