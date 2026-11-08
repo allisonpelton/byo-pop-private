@@ -1,7 +1,7 @@
 // port: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
 // channel through HandleScriptCommand. A command that is never given changes nothing. Each answers on stdout with one
 // line: STATE {...}, OK <command> or ERROR <command>: <reason>. They act through the game's own code.
-// Implemented so far: state, goto menu|classic|survival, level, seed. The rest come with the screens and the Board.
+// Implemented: state, goto menu|classic|survival, level, seed, unlock all, set, win, lose. (move, the bot, is in BoardBot.cpp.)
 
 #include "AstroPopApp.h"
 #include "Board.h"
@@ -103,6 +103,9 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		{
 			aLine += StrFormat(",\"mode\":%d,\"level\":%d,\"score\":%d,\"stage\":%d,\"updates\":%d",
 				mBoard->mMode, mBoard->m1940, mBoard->mScore, mBoard->mField193C, mBoard->mUpdateCnt);
+			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->m1a60, mBoard->m1924,
+				mBoard->mFlag8E8 ? 1 : 0, (int) mBoard->m70.size());
+			aLine += ",\"field\":" + mBoard->DescribeField();
 		}
 		Reply(aLine + "}");
 		return true;
@@ -181,6 +184,76 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		aRand.GetState(aState, &anIndex);
 		SetRandMTState(aState, anIndex);
 		ReplyOK(theCommand);
+		return true;
+	}
+
+	if (theCommand.mCommand == "unlock")
+	{
+		if (theCommand.mArgs != "all")
+		{
+			ReplyError(theCommand, "unlock needs: all");
+			return true;
+		}
+		EnsureUser(this);
+		// the two pilots that have to be earned (the unlock flags of the profile: bits 2 and 6, with their check value)
+		int aFlags = 0x13 | 4 | 0x40;
+		mUser->SetInt(PROFILE_UNLOCK_A, aFlags);
+		mUser->SetInt(PROFILE_UNLOCK_B, aFlags + 0x193);
+		mUser->Save();
+		ReplyOK(theCommand);
+		return true;
+	}
+
+	if (theCommand.mCommand == "set")
+	{
+		if (mBoard == NULL)
+		{
+			ReplyError(theCommand, "needs a game");
+			return true;
+		}
+		std::string aName = theCommand.mArgs.substr(0, theCommand.mArgs.find(' '));
+		std::string aRest = aName.size() < theCommand.mArgs.size() ? theCommand.mArgs.substr(aName.size()) : "";
+		int aValue = 0;
+		ReadInts(aRest, &aValue, 1);
+		if (aName == "score")
+			mBoard->mScore = aValue;
+		else if (aName == "level")
+			mBoard->m1940 = aValue;
+		else if (aName == "stage")
+			mBoard->mField193C = aValue;
+		else
+		{
+			ReplyError(theCommand, "set takes score, level or stage");
+			return true;
+		}
+		ReplyOK(theCommand);
+		return true;
+	}
+
+	if (theCommand.mCommand == "win")
+	{
+		// the level is complete (a classic game); the second type of game has no win: it ends
+		if (mBoard == NULL)
+			ReplyError(theCommand, "needs a game");
+		else if (mBoard->m1a60 == 1)
+		{
+			mBoard->LevelComplete();
+			ReplyOK(theCommand);
+		}
+		else
+			ReplyError(theCommand, "win needs a classic game (lose ends the other)");
+		return true;
+	}
+
+	if (theCommand.mCommand == "lose")
+	{
+		if (mBoard == NULL)
+			ReplyError(theCommand, "needs a game");
+		else
+		{
+			mBoard->GameOver();
+			ReplyOK(theCommand);
+		}
 		return true;
 	}
 

@@ -845,7 +845,9 @@ public:
 	void			DropUnsupported(std::vector<CellRef>& theCells);   // 0x46cc20
 	bool			IsInFallingGroup94(Brick* theBrick);            // 0x438a30
 	static bool		IsInGroups(Brick* theBrick, const std::vector<std::list<Brick*> >& theGroups);   // 0x4389c0
-	bool			AnyMoveLeft(bool* theFlag);                     // 0x459bc0
+	bool			AnyMoveLeft(bool* theFlag);                     // 0x459bc0 (BoardMoves.cpp)
+	// port: for the test commands (BoardBot.cpp)
+	std::string		DescribeField();                                // the field as a JSON array of 19 strings of 10 characters
 	void			UpdateGameOver();                               // 0x45e680
 	void			CreateEndButtons();                             // 0x4593b0
 	int				WeaponLevelSum();                               // 0x432e90
