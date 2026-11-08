@@ -57,9 +57,8 @@ MTRand* Sexy::gGameRand = NULL;
 // 0x52e410
 const char* const Sexy::gImageNames[NUM_IMAGES] =
 {
-	"backdrop_title", "backdrop_title_loadmeter", "backdrop_register", "logo_title", "title_loadmeter",
-	"title_stamp_trial", "title_stamp_registered", "dialog", "dialogbutton", "button_reg_register",
-	"button_reg_cancel", "button_reg_regcode", "editbox", "cursor_pointer", "cursor_hand",
+	"backdrop_title", "backdrop_title_loadmeter", "logo_title", "title_loadmeter",
+	"dialog", "dialogbutton", "editbox", "cursor_pointer", "cursor_hand",
 	"cursor_dragging", "cursor_text", "backdrop_board", "backdrop_board_scorched", "backdrop_bonus",
 	"backdrop_menu", "backdrop_fame", "backdrop_help", "backdrop_help_box", "backdrop_ihs",
 	"backdrop_wb_speech", "backdrop_wb_thought", "backdrop_wb_text", "gameselect_action",
@@ -315,12 +314,7 @@ BookWormApp::BookWormApp()
 	for (int i = 0; i < 11; i++)
 		mUnusedHintFlags[i] = false;
 	mResumeUpdateCnt = 0;
-	mLevelReached = false;
-	mPlaysToCount = 0;
 	mPlayTicks = 0;
-	mMaxExecutions = 0;
-	mMaxPlays = 0;
-	mMaxTime = 0;
 	mGameOption = 1;
 	mUnused12e6 = true;
 	mShowHelp = true;
@@ -356,7 +350,7 @@ BookWormApp::BookWormApp()
 	mWatchSpeed = 1;
 	mWatchQuit = false;
 	mWatchSavedMode = GAMEMODE_CLASSIC;
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 4; i++)
 		mWatchSavedFlags[i] = false;
 	mWatchSavedLetterIdx = -1;
 	mWatchSavedRefillLevel = -1;
@@ -439,10 +433,6 @@ void BookWormApp::ButtonDepress(int theId)
 			((OptionsDialog*) GetDialog(DIALOG_OPTIONS))->ApplyAndClose();
 			return;
 
-		case DIALOG_REGISTER:
-			// not ported: registration (validates the name and code of the RegisterDialog, then a thank-you
-			// message); dialog 2 is never created in the registered build
-			return;
 
 		case DIALOG_CONTINUE:
 			// Continue the saved game: a new Board (through the selector), then the save is loaded and,
@@ -469,12 +459,6 @@ void BookWormApp::ButtonDepress(int theId)
 			Shutdown();
 			return;
 
-		case DIALOG_REGISTER_UPSELL:
-			KillDialog(DIALOG_REGISTER_UPSELL);
-			// fall through: ShowRegisterDialog
-		case DIALOG_TRIAL_EXPIRED:
-			ShowRegisterDialog();
-			return;
 
 		case DIALOG_SELECT_USER:
 			KillDialog(DIALOG_SELECT_USER);
@@ -576,9 +560,6 @@ void BookWormApp::ButtonDepress(int theId)
 			((OptionsDialog*) GetDialog(DIALOG_OPTIONS))->ApplyAndClose();
 			return;
 
-		case DIALOG_TRIAL_EXPIRED:
-			Shutdown();
-			return;
 
 		case DIALOG_CONTINUE:
 			// New game: the saved one is deleted
@@ -761,9 +742,6 @@ void BookWormApp::Init()
 		return;
 	}
 
-	mMaxExecutions = GetInteger("MaxExecutions", 0);
-	mMaxPlays = GetInteger("MaxPlays", 0);
-	mMaxTime = GetInteger("MaxTime", 60);
 
 	SetMusicVolume(mMusicVolume);
 
@@ -1044,19 +1022,17 @@ bool BookWormApp::OpenURL(const std::string& theURL, bool shutdownOnOpen)
 	return SexyApp::OpenURL(theURL, shutdownOnOpen);
 }
 
-// 0x410ca0 slot 33: saves a game in progress (ShutdownWidgets), then the trial counters: with MaxTime
-// (60 by default, so always in the retail build) the minutes played are added to the framework's
-// TimesPlayed, else with MaxPlays the levels reached
+// 0x410ca0 slot 33: saves a game in progress (ShutdownWidgets), then adds the minutes played to the framework's
+// TimesPlayed (the title shows its first-run text while that is 0). The original does this as the trial's
+// time count, under the property MaxTime (60 when unset, as in the retail build; with MaxTime 0 it counted
+// levels reached under MaxPlays instead): the port keeps the retail build's path only.
 void BookWormApp::Shutdown()
 {
 	if (mShutdown)
 		return;
 
 	ShutdownWidgets();
-	if (mMaxTime > 0)
-		mTimesPlayed = (int) ((unsigned int) mTimesPlayed + (unsigned int) mPlayTicks / 6000);
-	else if (mMaxPlays > 0)
-		mTimesPlayed += mPlaysToCount;
+	mTimesPlayed = (int) ((unsigned int) mTimesPlayed + (unsigned int) mPlayTicks / 6000);
 	SexyApp::Shutdown();
 }
 
@@ -1203,21 +1179,13 @@ void BookWormApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 	theSaves->push_back(aSave);
 }
 
-// port (web): the registry a Shutdown() now would leave: its trial arithmetic adds the minutes played to
-// TimesPlayed (ShutdownWidgets first counts a level reached) before SexyApp::Shutdown writes the registry
+// port (web): the registry a Shutdown() now would leave: it adds the minutes played to TimesPlayed before
+// SexyApp::Shutdown writes the registry
 void BookWormApp::WriteShutdownRegistry()
 {
 	int aTimesPlayed = mTimesPlayed;
 	if (!mShutdown)
-	{
-		int aPlaysToCount = mPlaysToCount;
-		if ((mBoard != NULL) && (mLevelReached))
-			aPlaysToCount++;
-		if (mMaxTime > 0)
-			mTimesPlayed = (int) ((unsigned int) mTimesPlayed + (unsigned int) mPlayTicks / 6000);
-		else if (mMaxPlays > 0)
-			mTimesPlayed += aPlaysToCount;
-	}
+		mTimesPlayed = (int) ((unsigned int) mTimesPlayed + (unsigned int) mPlayTicks / 6000);
 	WriteToRegistry();
 	mTimesPlayed = aTimesPlayed;
 }
@@ -1258,11 +1226,6 @@ void BookWormApp::ShutdownWidgets()
 
 	if (mBoard != NULL)
 	{
-		if (mLevelReached)
-		{
-			mPlaysToCount++;
-			mLevelReached = false;
-		}
 		if (mBoard->IsInProgress())
 			mBoard->SaveGame(mGameMode);
 		mWidgetManager->RemoveWidget(mBoard);
@@ -1394,7 +1357,6 @@ void BookWormApp::StartGame()
 		mBoard->mState = BOARD_INACTIVE; // dead in practice: dialog 5 is killed before
 	if (mGameSelector != NULL)
 		mGameSelector->StartCloseTransition();
-	mLevelReached = false;
 }
 
 // port(mod): replays (Replay.h): watches the replay thePath, a new board in its mode with the one-time hints as
@@ -1426,7 +1388,6 @@ bool BookWormApp::StartWatch(const std::string& thePath)
 		mWatchSavedFlags[1] = mFireAlertHintShown;
 		mWatchSavedFlags[2] = mGreenTileHintShown;
 		mWatchSavedFlags[3] = mScrambleHintShown;
-		mWatchSavedFlags[4] = mLevelReached;
 		mWatchSavedBonusWord = mBonusWord;
 		mWatchSavedRand = *gGameRand;
 		Board::GetGlobalState(&mWatchSavedLetterIdx, &mWatchSavedRefillLevel);
@@ -1454,7 +1415,6 @@ void BookWormApp::EndWatch()
 	mFireAlertHintShown = mWatchSavedFlags[1];
 	mGreenTileHintShown = mWatchSavedFlags[2];
 	mScrambleHintShown = mWatchSavedFlags[3];
-	mLevelReached = mWatchSavedFlags[4];
 	mBonusWord = mWatchSavedBonusWord;
 	*gGameRand = mWatchSavedRand;
 	Board::SetGlobalState(mWatchSavedLetterIdx, mWatchSavedRefillLevel);
@@ -1653,20 +1613,15 @@ void BookWormApp::ShowDeleteUserDialog(std::vector<SexyString> theNames)
 	AddDialog(DIALOG_DELETE_USER, aDialog);
 }
 
-// 0x413cb0 not ported: the RegisterDialog (registration; the registered build never reaches it: dialogs 4
-// and 17 are not created, OptionsDialog's register button is not shown)
-void BookWormApp::ShowRegisterDialog()
-{
-}
-
-// 0x413f30 ShowInvalidCodeDialog not ported (registration: dialog 9)
+// Registration is taken out: ShowRegisterDialog 0x413cb0 (the RegisterDialog), ShowInvalidCodeDialog 0x413f30
+// (dialog 9), the trial-expired dialog 4 and the upsell dialog 17
 // 0x414080 ShowAliasDialog not ported (internet high-score alias: a GetStringDialog, dialog 23)
 // 0x415a20 ConfirmInternetConnect not ported (internet high scores: dialog 6)
 // 0x415c40 AskForUpdateCheck, 0x415de0 DoUpdateCheck not ported (update check: dialogs 7 and 8)
 // 0x416090 GetGameSEHInfo not ported (crash report: the base text + mSEHInfo)
 
-// 0x4152a0: `!GetBoolean("NoInternetScores", true) && (!GetBoolean("NoIHSUpsell", true) || mIsRegistered)`,
-// false in the retail build. port: always false (internet high scores are not ported)
+// 0x4152a0: false in the retail build (the property NoInternetScores). port: always false (internet high scores
+// are not ported)
 bool BookWormApp::IsInternetScoresEnabled()
 {
 	return false;

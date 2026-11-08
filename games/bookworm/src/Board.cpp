@@ -660,7 +660,6 @@ Board::Board(BookWormApp* theApp)
 	mBurnedDown = false;
 	mState = BOARD_PLAYING;
 	mSelectMode = SELECT_NONE;
-	mPlayCounted = false;
 	mBonusWordsGiven = 0;
 	mBonusWord = "";
 	mGameStats = new StatKeeper(theApp);
@@ -1013,7 +1012,7 @@ void Board::KeyChar(SexyChar theChar)
 	}
 }
 
-// 0x403df0 slot 21: Ctrl state, and (registered builds, playing) the held letter key lights its tiles. The
+// 0x403df0 slot 21: Ctrl state, and (playing) the held letter key lights its tiles. The
 // original tests the virtual key with the CRT isalpha, which also accepts 0x61..0x7a (numpad keys, F1..F11).
 // No base call.
 void Board::KeyDown(KeyCode theKey)
@@ -1037,7 +1036,7 @@ void Board::KeyDown(KeyCode theKey)
 	if ((theKey == (KeyCode)'Z') && (mCtrlDown) && (mUndo != NULL))
 		mUndo->RequestUndo();
 
-	if ((mApp->mIsRegistered) && (mState == BOARD_PLAYING))
+	if (mState == BOARD_PLAYING)
 	{
 		// port: the CRT table lookup only for 0..255 (the original indexes it with any key code)
 		int aKey = (int)theKey;
@@ -1055,7 +1054,7 @@ void Board::KeyUp(KeyCode theKey)
 	if (theKey == KEYCODE_CONTROL)
 		mCtrlDown = false;
 
-	if ((mApp->mIsRegistered) && (mState == BOARD_PLAYING))
+	if (mState == BOARD_PLAYING)
 	{
 		int aKey = (int)theKey;
 		if ((aKey >= 0) && (aKey < 256) && (isalpha(aKey)))
@@ -1540,14 +1539,6 @@ void Board::Scramble()
 		mUndo->Push();  // port(mod): the board before the scramble
 	mModMoves++;        // port(mod): the move, for the -autoplay bot's model check
 	mModLastMove.clear();
-
-	// play counting: never in the retail build (MaxTime 60, NAMES.md D49 / L6)
-	if ((!mPlayCounted) && (mApp->mMaxTime == 0) && (mApp->mMaxPlays == 0))
-	{
-		mApp->mTimesPlayed++;
-		mApp->mUserTimesPlayed++;
-		mPlayCounted = true;
-	}
 	mApp->mScrambled = true;
 
 	std::for_each(mSelection.begin(), mSelection.end(), Piece::Deselect);
@@ -1676,7 +1667,7 @@ void Board::AwardSpecialTile(const WordScore& theWord)
 		mLexPraiseType = (int)aType;
 	}
 
-	// combinations of special tiles in the word, then the streak of rewarded words (registered builds)
+	// combinations of special tiles in the word, then the streak of rewarded words
 	bool isRewarded;
 	if (theWord.mTypeCount[TILE_SAPPHIRE] >= 2)
 	{
@@ -1705,7 +1696,7 @@ void Board::AwardSpecialTile(const WordScore& theWord)
 		isRewarded = aType != TILE_NORMAL;
 	}
 
-	if ((isRewarded) && (mApp->mIsRegistered))
+	if (isRewarded)
 		mRewardStreak++;
 	else
 		mRewardStreak = 0;
@@ -1836,179 +1827,163 @@ void Board::Submit(int x, int y)
 	if (mRecorder != NULL)
 		mRecorder->AddOp(Replay::OP_SUBMIT, { x, y, mSelectMode });
 
-	if (((int)mWord.mWord.size() < 9) || (mApp->mIsRegistered))
+	if (!mWord.mValid)
 	{
-		if (!mWord.mValid)
-		{
-			if ((mSelectMode == SELECT_SUBMIT) && (mSelection.size() != 0))
-				mApp->PlaySample(SOUND_BUZZER);
-			mSelectMode = SELECT_CLICKED;
-		}
-		else
-		{
-			if (mUndo != NULL)
-				mUndo->Push();  // port(mod): the board before the word
-			if (mSelectDefs)
-			{
-				mLex->EndPreview(true);     // port(mod): the played word's own balloon comes now
-				mSelectDefWord = "";
-			}
-			// port(mod): the word against the board's best, its tiles still there; the note goes in Lex's balloon
-			SexyString aReviewNote;
-			if (mWordReview != NULL)
-				aReviewNote = mWordReview->WordPlayed(mWord);
-			if (mPlayer == NULL)
-				WordJournal::WordPlayed(this, mWord);   // port(mod): into the player's word journal (word-journal)
-			// port(mod): a mod's word with effects (rude-words): Lex comments on it, with its definition
-			ModWordEffects aModEffects;
-			bool isModWord = ModWordGetEffects(mWord.mWord, &aModEffects);
-			SexyString aReaction = isModWord ? ModWordReaction(mWord.mWord, mModWordsPlayed) : SexyString();
-			if (aReaction.size() != 0)
-			{
-				SexyString aDefinition;
-				if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
-					aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
-				if (aReviewNote.size() != 0)
-					aDefinition = (aDefinition.size() != 0) ? aDefinition + "\n" + aReviewNote : aReviewNote;
-				mLex->SayReaction(mWord.mWord, aReaction, aDefinition,
-					(int)(aReaction.size() + aDefinition.size()) * 3 + 400);
-			}
-			else if (((mApp->mShowDefs) && (mApp->mDefinitionator != NULL)) || (aReviewNote.size() != 0))
-			{
-				SexyString aDefinition;
-				if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
-				{
-					aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
-					if (aDefinition.size() == 0)
-						aDefinition = ModWordNote(mWord.mWord);  // port(mod): which mod's list has it
-				}
-				// port(mod): the review's note under the definition, or alone
-				SexyString aNote = aReviewNote;
-				if (aDefinition.size() == 0)
-					aDefinition.swap(aNote);
-				if (aDefinition.size() != 0)
-					mLex->SayDefinition(mWord.mWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], aDefinition,
-						mApp->mFonts[FONT_MYRIADWEB10], (int)(aDefinition.size() + aNote.size()) * 3 + 400, aNote);
-			}
-			if (isModWord)
-			{
-				mModDangerPending = aModEffects.mComment;
-				// a points multiplier below 0 takes no more than the level's points so far
-				if ((mWord.mScore < 0) && (mWord.mScore < -mLevelStats->mScore))
-					mWord.mScore = -mLevelStats->mScore;
-				if (ModWordCounted(mWord.mWord))
-				{
-					mModWordsPlayed++;
-					AddModWordsAllTime(1);
-				}
-			}
-
-			if (mSubmitBlinkWords > 0)
-				mSubmitBlinkWords--;
-
-			// play counting: never in the retail build (MaxTime 60, NAMES.md D49 / L6)
-			if ((!mPlayCounted) && (mApp->mMaxTime == 0) && (mApp->mMaxPlays == 0))
-			{
-				mApp->mTimesPlayed++;
-				mApp->mUserTimesPlayed++;
-				mPlayCounted = true;
-			}
-
-			mLevelStats->AddWord(mWord);
-			mGameStats->AddWord(mWord);
-
-			// log: the word, and the tile types when it has special tiles
-			int aLength = (int)mWord.mWord.size();
-			mGameLog.WriteNumBits(0xd, 4);
-			mGameLog.WriteLong(mWord.mScore);
-			mGameLog.WriteNumBits(aLength, 4);
-			for (int i = 0; i < aLength; i++)
-				mGameLog.WriteNumBits((char)mWord.mWord[i] - 'A', 5);
-			if (mWord.mTypeCount[TILE_NORMAL] < mWord.mNumPieces)
-			{
-				mGameLog.WriteNumBits(0xc, 4);
-				for (PieceList::iterator anItr = mSelection.begin(); anItr != mSelection.end(); ++anItr)
-				{
-					if (*anItr != NULL)
-						mGameLog.WriteNumBits((*anItr)->mType, 3);
-				}
-			}
-
-			if (mWord.mTypeCount[TILE_FIRE] > 1)
-				mBurpPending = true;
-
-			// fire meter: a 3-letter word lowers it unless it used fire tiles
-			unsigned int aLengthIndex = (unsigned int)(aLength - 3);
-			unsigned int aMeterIndex = (aLengthIndex > 4) ? 5 : aLengthIndex;
-			if ((mWord.mTypeCount[TILE_FIRE] == 0) || (gFireMeterByLength[aMeterIndex] > 0.0))
-				mFireMeter = gFireMeterByLength[aMeterIndex] + mFireMeter;
-
-			if (_stricmp(mWord.mWord.c_str(), mBonusWord.c_str()) == 0)
-			{
-				unsigned int aBonusIndex = (unsigned int)mGameStats->mBonusWords;
-				int aPoints = gBonusWordPoints[(aBonusIndex > 9) ? 10 : aBonusIndex];
-				BonusWordScored(aPoints, x, y);
-				mSkipRandomFire = true;
-				mFireMeter = (double)aLength + mFireMeter;
-				mGameLog.WriteNumBits(0xb, 4);
-				mGameLog.WriteLong(aPoints);
-			}
-
-			mLastWordAlpha = 1.0;
-			mLastWord = mWord;
-
-			BurnTiles(mApp->mGameMode == GAMEMODE_CLASSIC);
-			mUpSoundIdx = 0;
-			mFireMeter = mFireMeter - 1.0;
-			mUpSoundCount = aLength;
-			mUpSoundDelay = 20;
-			if (mWord.mTypeCount[TILE_FIRE] == 0)
-				mApp->PlaySample(SOUND_WORDCOMPLETE);
-			else
-				mApp->PlaySample(SOUND_REDTILECLEARED);
-
-			// port(mod): the move, for the -autoplay bot's model check
-			mModMoves++;
-			mModLastMove.clear();
-			for (PieceList::iterator anItr = mSelection.begin(); anItr != mSelection.end(); ++anItr)
-				mModLastMove.push_back((*anItr)->mRow * BOARD_COLS + (*anItr)->mCol);
-
-			// the tiles leave the grid and fly to Lex (the FlyingPieceList owns them now)
-			RemovePieces(&mSelection);
-			FlyingPieceList* aFlyingPieces = new FlyingPieceList(mOverlay->mEffectMgr, &mSelection);
-			mOverlay->AddEffect(aFlyingPieces);
-
-			int aPrevThreshold = 0;
-			if (mLevel != 0)
-				aPrevThreshold = LevelThreshold((unsigned int)mLevel - 1);
-			int aThreshold = LevelThreshold((unsigned int)mLevel);
-			mLevelProgress = (double)mLevelStats->mScore / (double)(aThreshold - aPrevThreshold);
-			if ((mGameStats->mScore >= aThreshold) && (mState == BOARD_PLAYING))
-			{
-				mOverlay->mBalloon->Show(0);
-				mState = BOARD_LEVEL_COMPLETE;
-				mLevelUpPending = true;
-			}
-
-			// port(mod): a mod's word may set fire to some of the tiles that replace it (not as the level ends)
-			mModFireDue = 0;
-			if ((isModWord) && (mState == BOARD_PLAYING))
-				mModFireDue = aModEffects.mEveryTile ? BOARD_ROWS * BOARD_COLS : aModEffects.mFire;
-			Refill();
-			if ((!isModWord) || (aModEffects.mBonus == MODWORD_BONUS_KEEP))
-				AwardSpecialTile(mWord);
-			else if (aModEffects.mBonus == MODWORD_BONUS_REMOVE)
-				RemoveBonusTiles();
-			AddScorePopup(mWord.mScore, x, y);
-			ClearWord();
-			CheckBottomFire();
-			mSelectMode = SELECT_NONE;
-		}
+		if ((mSelectMode == SELECT_SUBMIT) && (mSelection.size() != 0))
+			mApp->PlaySample(SOUND_BUZZER);
+		mSelectMode = SELECT_CLICKED;
 	}
 	else
 	{
-		// not ported: the unregistered build's dictionary upsell dialog (dialog 17, sets mRegSource) for
-		// words of 9+ letters; the retail build is registered
+		if (mUndo != NULL)
+			mUndo->Push();  // port(mod): the board before the word
+		if (mSelectDefs)
+		{
+			mLex->EndPreview(true);     // port(mod): the played word's own balloon comes now
+			mSelectDefWord = "";
+		}
+		// port(mod): the word against the board's best, its tiles still there; the note goes in Lex's balloon
+		SexyString aReviewNote;
+		if (mWordReview != NULL)
+			aReviewNote = mWordReview->WordPlayed(mWord);
+		if (mPlayer == NULL)
+			WordJournal::WordPlayed(this, mWord);   // port(mod): into the player's word journal (word-journal)
+		// port(mod): a mod's word with effects (rude-words): Lex comments on it, with its definition
+		ModWordEffects aModEffects;
+		bool isModWord = ModWordGetEffects(mWord.mWord, &aModEffects);
+		SexyString aReaction = isModWord ? ModWordReaction(mWord.mWord, mModWordsPlayed) : SexyString();
+		if (aReaction.size() != 0)
+		{
+			SexyString aDefinition;
+			if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
+				aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+			if (aReviewNote.size() != 0)
+				aDefinition = (aDefinition.size() != 0) ? aDefinition + "\n" + aReviewNote : aReviewNote;
+			mLex->SayReaction(mWord.mWord, aReaction, aDefinition,
+				(int)(aReaction.size() + aDefinition.size()) * 3 + 400);
+		}
+		else if (((mApp->mShowDefs) && (mApp->mDefinitionator != NULL)) || (aReviewNote.size() != 0))
+		{
+			SexyString aDefinition;
+			if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
+			{
+				aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+				if (aDefinition.size() == 0)
+					aDefinition = ModWordNote(mWord.mWord);  // port(mod): which mod's list has it
+			}
+			// port(mod): the review's note under the definition, or alone
+			SexyString aNote = aReviewNote;
+			if (aDefinition.size() == 0)
+				aDefinition.swap(aNote);
+			if (aDefinition.size() != 0)
+				mLex->SayDefinition(mWord.mWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], aDefinition,
+					mApp->mFonts[FONT_MYRIADWEB10], (int)(aDefinition.size() + aNote.size()) * 3 + 400, aNote);
+		}
+		if (isModWord)
+		{
+			mModDangerPending = aModEffects.mComment;
+			// a points multiplier below 0 takes no more than the level's points so far
+			if ((mWord.mScore < 0) && (mWord.mScore < -mLevelStats->mScore))
+				mWord.mScore = -mLevelStats->mScore;
+			if (ModWordCounted(mWord.mWord))
+			{
+				mModWordsPlayed++;
+				AddModWordsAllTime(1);
+			}
+		}
+
+		if (mSubmitBlinkWords > 0)
+			mSubmitBlinkWords--;
+
+		mLevelStats->AddWord(mWord);
+		mGameStats->AddWord(mWord);
+
+		// log: the word, and the tile types when it has special tiles
+		int aLength = (int)mWord.mWord.size();
+		mGameLog.WriteNumBits(0xd, 4);
+		mGameLog.WriteLong(mWord.mScore);
+		mGameLog.WriteNumBits(aLength, 4);
+		for (int i = 0; i < aLength; i++)
+			mGameLog.WriteNumBits((char)mWord.mWord[i] - 'A', 5);
+		if (mWord.mTypeCount[TILE_NORMAL] < mWord.mNumPieces)
+		{
+			mGameLog.WriteNumBits(0xc, 4);
+			for (PieceList::iterator anItr = mSelection.begin(); anItr != mSelection.end(); ++anItr)
+			{
+				if (*anItr != NULL)
+					mGameLog.WriteNumBits((*anItr)->mType, 3);
+			}
+		}
+
+		if (mWord.mTypeCount[TILE_FIRE] > 1)
+			mBurpPending = true;
+
+		// fire meter: a 3-letter word lowers it unless it used fire tiles
+		unsigned int aLengthIndex = (unsigned int)(aLength - 3);
+		unsigned int aMeterIndex = (aLengthIndex > 4) ? 5 : aLengthIndex;
+		if ((mWord.mTypeCount[TILE_FIRE] == 0) || (gFireMeterByLength[aMeterIndex] > 0.0))
+			mFireMeter = gFireMeterByLength[aMeterIndex] + mFireMeter;
+
+		if (_stricmp(mWord.mWord.c_str(), mBonusWord.c_str()) == 0)
+		{
+			unsigned int aBonusIndex = (unsigned int)mGameStats->mBonusWords;
+			int aPoints = gBonusWordPoints[(aBonusIndex > 9) ? 10 : aBonusIndex];
+			BonusWordScored(aPoints, x, y);
+			mSkipRandomFire = true;
+			mFireMeter = (double)aLength + mFireMeter;
+			mGameLog.WriteNumBits(0xb, 4);
+			mGameLog.WriteLong(aPoints);
+		}
+
+		mLastWordAlpha = 1.0;
+		mLastWord = mWord;
+
+		BurnTiles(mApp->mGameMode == GAMEMODE_CLASSIC);
+		mUpSoundIdx = 0;
+		mFireMeter = mFireMeter - 1.0;
+		mUpSoundCount = aLength;
+		mUpSoundDelay = 20;
+		if (mWord.mTypeCount[TILE_FIRE] == 0)
+			mApp->PlaySample(SOUND_WORDCOMPLETE);
+		else
+			mApp->PlaySample(SOUND_REDTILECLEARED);
+
+		// port(mod): the move, for the -autoplay bot's model check
+		mModMoves++;
+		mModLastMove.clear();
+		for (PieceList::iterator anItr = mSelection.begin(); anItr != mSelection.end(); ++anItr)
+			mModLastMove.push_back((*anItr)->mRow * BOARD_COLS + (*anItr)->mCol);
+
+		// the tiles leave the grid and fly to Lex (the FlyingPieceList owns them now)
+		RemovePieces(&mSelection);
+		FlyingPieceList* aFlyingPieces = new FlyingPieceList(mOverlay->mEffectMgr, &mSelection);
+		mOverlay->AddEffect(aFlyingPieces);
+
+		int aPrevThreshold = 0;
+		if (mLevel != 0)
+			aPrevThreshold = LevelThreshold((unsigned int)mLevel - 1);
+		int aThreshold = LevelThreshold((unsigned int)mLevel);
+		mLevelProgress = (double)mLevelStats->mScore / (double)(aThreshold - aPrevThreshold);
+		if ((mGameStats->mScore >= aThreshold) && (mState == BOARD_PLAYING))
+		{
+			mOverlay->mBalloon->Show(0);
+			mState = BOARD_LEVEL_COMPLETE;
+			mLevelUpPending = true;
+		}
+
+		// port(mod): a mod's word may set fire to some of the tiles that replace it (not as the level ends)
+		mModFireDue = 0;
+		if ((isModWord) && (mState == BOARD_PLAYING))
+			mModFireDue = aModEffects.mEveryTile ? BOARD_ROWS * BOARD_COLS : aModEffects.mFire;
+		Refill();
+		if ((!isModWord) || (aModEffects.mBonus == MODWORD_BONUS_KEEP))
+			AwardSpecialTile(mWord);
+		else if (aModEffects.mBonus == MODWORD_BONUS_REMOVE)
+			RemoveBonusTiles();
+		AddScorePopup(mWord.mScore, x, y);
+		ClearWord();
+		CheckBottomFire();
+		mSelectMode = SELECT_NONE;
 	}
 
 	mFlameSoundPlayed = false;
@@ -2530,7 +2505,6 @@ void Board::RemoveLevelUpWidget()
 // 0x404b40: closes the level clock and shows the level / game summary (it follows the help screen's state)
 void Board::ShowSummary()
 {
-	mApp->mLevelReached = true;
 	RemoveLevelUpWidget();
 
 	int aLevelSeconds = (int)((unsigned long)mLevelSecondsBanked +
@@ -3990,7 +3964,6 @@ bool Board::LoadGame(int theMode)
 	mResumed = true;    // port(mod): a resumed game never starts a LiveSplit run
 	delete mRecorder;   // port(mod): nor is it recorded (Replay.h)
 	mRecorder = NULL;
-	mPlayCounted = false;
 
 	// the danger theme when Lex was sweating
 	MusicInterface* aMusic = mApp->mMusicInterface;
