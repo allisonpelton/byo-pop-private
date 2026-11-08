@@ -213,7 +213,7 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 
-	if (aCommand == "move" || aCommand == "nextmove")
+	if (aCommand == "move")
 	{
 		Grid::Move aMove;
 		int aHoverX, aHoverY, aX, aY;

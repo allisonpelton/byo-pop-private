@@ -173,7 +173,7 @@ def play_board():
         if b.get('busy'):
             wait_updates(3)
             continue
-        m = send('nextmove', 'MOVE ', 10)
+        m = send('move', 'MOVE ', 10)
         if m.strip().endswith('MOVE null'):
             stall += 1
             if stall > 400:
@@ -210,7 +210,7 @@ LAST = [0]
 
 
 def main():
-    send('seed 1', 'OK seed', 10)
+    send('seed 1', 'OK seed', 180)
     # the loading screen: wait for the play link, then click it
     for _ in range(2000):
         s = state()
@@ -261,8 +261,10 @@ def main():
             t = targets()['buttons']
             hot = [b for b in t if b['label'] == '' and b['id'] >= 2]
             hot.sort(key=lambda b: b['id'])
+            hot = [b for b in hot if b['id'] not in DONE] or hot
             entered = False
             for b in hot:
+                LAST[0] = b['id']
                 click(b['x'], b['y'])
                 wait_updates(10)
                 if state()['screen'] == 'temple':
@@ -278,7 +280,10 @@ def main():
             if not p:
                 p = [q for q in targets()['puzzles'] if not q['solved']]
             if not p:
-                press_button('Next', 0) or wait_updates(20)
+                # every puzzle of this temple is solved: leave it and try the next one
+                DONE.add(LAST[0])
+                press_button(None, 0)
+                wait_updates(20)
                 continue
             click(p[0]['x'], p[0]['y'])
             wait_updates(20)
