@@ -190,3 +190,64 @@ for "no name", not a mistake the port can mend without making up what the origin
 (about three seconds of shrinking and fading, then the table) and a click is ignored meanwhile, as in a board cleared (the
 pieces vanish three at a time): those are the game's animations, part of its pace, so they stay. Loading is already as fast as
 the machine: the framework runs the loading thread in one go, and the title polls it every fourth update (at most 40 ms).
+
+## 8. Performance
+
+Measured on 2026-11-08 for the user's morning report, the port and the original back to back on the machine as it was, and
+the machine was not quiet: other sessions' games ran meanwhile. Game processes running on the machine (any session's, counted
+every 5 s during each run): 6 to 9 during the port's runs (means 6.0 to 9.0) and 7 to 13 during the original's (means 7.5 to
+10.5). The performance pass measures again on a quiet machine, so read these as what a busy one gave, not as a benchmark.
+
+**How.** `games/alchemy/tools/profile/perf.py` starts the game and reads that process alone, every 100 ms: its working set, its
+private bytes (the pagefile usage, whose peak Windows keeps) and its processor time (kernel plus user); `run.sh` alternates the
+two. The port is `build/native/alchemy.exe` natively under rundesk, never `-fast`; the original is the staged copy under origrun on
+its real clock (`--clock real`; origrun puts it under rundesk itself). Both play the same scripted input: the bot's mouse game
+(strategic, game seed 11) from update 450 (title link, selector, board) to update 6450, which is 60 s of play at 100 updates a
+second, then quit (`toorig.py` turns the port's script into the original's, answering the original's first-run "Updates" question
+No). Both run on rundesk's private desktop at below-normal priority with silent sound (SDL's silent driver for the port, origrun's
+stand-in for the original), so these are the test conditions, not a player's. A run's numbers cover launch to the end of the
+minute (about 66 s); the processor time of "the minute" is that of the last 60 s of the run.
+
+**Loading** (launch to the first screen that takes input, the title with its play link; the original's launch is its process's
+creation, its play link is read from its memory, `mLoadingThreadCompleted` and the title's link-shown byte, as origrun's `--watch`
+reads it; the port's is its first state answer with `ready` true, asked every 50 ms over `-commands`):
+
+| | runs (s) | median |
+|---|---|---|
+| port, native | 1.74, 2.63, 1.77 (and 0.83, 1.15 in two test runs before) | 1.77 |
+| original under origrun, real clock | 2.62, 1.72, 2.77 (and 2.61, 0.82 in its two play runs) | 2.62 |
+| port, web (the Browser pane, `loadtime.js`: page navigation to the play link, silent) | 3.8 (cold), 4.8, 11.9, 13.1 | not stable |
+
+Both load in about 1 to 3 seconds when the machine lets them (0.8 s at the quietest moments, for either), and the spread between
+runs is larger than the difference between the two, so no gain or loss in loading can be claimed from these. The web's spread is the
+pane's browser sharing a busy machine (its own start-up took 0.9 to 9.5 s of the time).
+
+**Memory** over launch and the scripted minute (peak working set; peak private bytes):
+
+| | peak working set (MB) | peak private bytes (MB) | mean working set in the last minute (MB) |
+|---|---|---|---|
+| port, minute 1 and 2 | 66.9, 76.0 | 67.0, 69.3 | 66.0, 74.9 |
+| original, minute 1 and 2 | 73.7, 73.6 | 53.0, 52.9 | 72.2, 72.2 |
+| port, load only (3 runs) | 59.7 to 68.9 | 59.5 to 62.5 | |
+| original, load only (3 runs) | 59.3 to 69.0 | 46.1 to 48.5 | |
+
+The working sets are alike; the port holds about 14 to 16 MB more private bytes than the original, from the first screen on.
+
+**Processor time** (seconds of one core):
+
+| | whole run, launch to the end of the minute | the minute (last 60 s) |
+|---|---|---|
+| port, minute 1 and 2 | 6.06, 5.92 | 5.00, 4.92 |
+| original, minute 1 and 2 | 2.69, 2.23 | 1.89, 1.48 |
+
+The port used about three times the original's processor time over this minute (around 8% of a core against around 3%): no
+speed-up shows here, the port is the heavier of the two. This is the port as translated, at its real-time pace in a test run
+(`-script`); where the frame's time goes (the draw, the mixer, the script's own work, say) was not looked into here, and it is the
+performance pass's to find.
+
+**Not measured.** The web build's working set, private bytes and processor time cannot be read from the Browser pane (its page
+is one tab of the app's browser, with no process of its own to read), and `Module.HEAP8` is not reachable from the page: the
+JS heap at the play link was 5 to 12.5 MB, which is not a process's memory. The web's load time above is what could be timed.
+
+To repeat: `bash games/alchemy/tools/profile/run.sh` from the worktree root, after `tools/origrun/build.sh`, a port script in
+`build/perf/port-play.txt` and its original's in `build/perf/orig-play.txt` (`games/alchemy/tools/profile/perf.py` and `run.sh` say how).
