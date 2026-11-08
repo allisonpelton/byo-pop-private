@@ -11,7 +11,7 @@
 
 using namespace Sexy;
 
-extern Color gPointColors[8];
+extern Color* const gPointColors;
 
 // 0x5a7ec1: looks for rows and columns of three or more identical gems and marks them for clearing (flame and
 // hyper cubes are made here); returns whether it found any

@@ -23,7 +23,7 @@
 
 using namespace Sexy;
 
-extern Color gGemColors[8];
+extern Color* const gGemColors;
 
 // 0x595a69: the three colour bytes turned one place (the gems' own colours turn the same way)
 static void PixelsRotate(ulong* thePixels, int theCount)

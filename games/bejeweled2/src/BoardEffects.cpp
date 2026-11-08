@@ -18,23 +18,29 @@
 
 using namespace Sexy;
 
-// the colours of the gems (the original's statics at 0x6797d0..0x679a38; the tables are made at start-up)
-Color gGemColors[8];        // 0x679850: copied from gOrigGemColors by the Board's constructor
-Color gPointColors[8] =     // 0x6798d0: the colours of the score numbers
+// the colours of the gems (the original's statics at 0x6797d0..0x6799cf; the tables are made at start-up). The four tables are
+// one run of memory in the original, in this order, and the gem types past 7 (the rock, the bomb and the hyper cube) index past
+// the end of a table into the next one (a lightning of type 9 takes gGemColors[1], a score of a bomb gem takes
+// gOrigGemColors[0]); the port keeps the run as one block and the tables as views of it
+static Color gColorBlock[32] =
 {
+	// gElectColors, 0x6797d0: the colours of the lightning
+	Color(255, 255, 64), Color(200, 200, 200), Color(64, 128, 255), Color(255, 100, 100),
+	Color(255, 64, 255), Color(255, 128, 64), Color(64, 255, 64), Color(64, 64, 64),
+	// gGemColors, 0x679850: copied from gOrigGemColors by the Board's constructor (zero until then)
+	Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0),
+	Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0),
+	// gPointColors, 0x6798d0: the colours of the score numbers
 	Color(255, 255, 64), Color(255, 255, 255), Color(64, 128, 255), Color(255, 153, 153),
-	Color(255, 64, 255), Color(255, 181, 145), Color(64, 255, 64), Color(64, 64, 64)
-};
-Color gOrigGemColors[8] =   // 0x679950
-{
+	Color(255, 64, 255), Color(255, 181, 145), Color(64, 255, 64), Color(64, 64, 64),
+	// gOrigGemColors, 0x679950
 	Color(255, 255, 0), Color(255, 255, 255), Color(0, 128, 255), Color(255, 100, 100),
 	Color(255, 0, 255), Color(255, 128, 0), Color(0, 255, 0), Color(0, 0, 0)
 };
-Color gElectColors[8] =     // 0x6797d0: the colours of the lightning
-{
-	Color(255, 255, 64), Color(200, 200, 200), Color(64, 128, 255), Color(255, 100, 100),
-	Color(255, 64, 255), Color(255, 128, 64), Color(64, 255, 64), Color(64, 64, 64)
-};
+extern Color* const gElectColors = gColorBlock;
+extern Color* const gGemColors = gColorBlock + 8;
+extern Color* const gPointColors = gColorBlock + 16;
+extern Color* const gOrigGemColors = gColorBlock + 24;
 
 // what ExplodeAtHelper collects for ExplodeAt (the original's statics at 0x6710c0, 0x6712c0, 0x6753c8, 0x6795c8,
 // 0x6797cc and 0x6713c0): the gems the blast destroys and the squares it burns

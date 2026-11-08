@@ -23,8 +23,8 @@
 
 using namespace Sexy;
 
-extern Color gGemColors[8];
-extern Color gOrigGemColors[8];
+extern Color* const gGemColors;
+extern Color* const gOrigGemColors;
 
 // the tables of the whirlpool: the sine and the cosine of the 4096 steps of a full turn (0x6713c8 and 0x6755c8); the
 // constructor makes them once

@@ -38,6 +38,9 @@ Each of these has no visible effect on play unless the entry says so.
   example `mChainCount`, the swap and hint phases, the slide values), which the first game reads as zero from fresh memory and a
   later game reads as the last board's leftovers; the port always reads zero.
 - **A gem colour table copy**: `gOrigGemColors` is copied into `gGemColors` as the original's code does at start.
+- **The four colour tables are one block** (`gColorBlock` in BoardEffects.cpp): the lightning, gem, score and original gem
+  colours (0x6797d0 to 0x6799cf) are one run of memory in the original, and the gem types past 7 (rock, bomb, hyper cube) index
+  past the end of a table into the next, so the port keeps them in the same order and the lookups give the same colours.
 - **`m1728` is never set** (the original's code never does either; kept only for the offsets).
 - **EffectOverlay.** The destructor frees the text picture (`mTextImage`), which the original leaks. The constructor zeroes
   what the original leaves uninitialised (the text's alpha, scale, stretch, age and hold, the portal and face timers, the wild

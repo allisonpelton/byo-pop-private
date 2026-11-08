@@ -13,7 +13,7 @@
 
 using namespace Sexy;
 
-extern Color gElectColors[8];   // 0x6797d0 (BoardEffects.cpp): the colours of the lightning, by the colour of the gems
+extern Color* const gElectColors;   // 0x6797d0 (BoardEffects.cpp): the colours of the lightning, by the colour of the gems
 
 // 0x598525: the particles (mShards) and then the explosion frames (mEffects). thePass is set for the second drawing
 // pass, in which the swirls (kind 3) are drawn; the others are drawn in both
