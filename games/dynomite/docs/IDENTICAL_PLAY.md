@@ -142,11 +142,11 @@ so the grind never plays and the web board holds still. In a browser it plays as
 | The first main menu had no welcome sign. | `gIntroReturning` starts true in the exe. | It starts true. | 28f139c7 |
 | The dialogs' frames and buttons were cut differently at their edges. | The 2003 framework's `DrawImageBox` (0x463450) cuts the edges and the middle a third of the picture each. | `Graphics::mDrawImageBox2003`, set by the game (a shared commit, d3177375). | 28f139c7 |
 | The mouse stayed where it was when a game started. | The main menu puts the cursor on the board's launcher (`SetCursorPos`). | `FossilizedApp::WarpToBoard`; the framework does nothing for it in a test run or in a browser. | 838294ea |
-| The header of every game dialog (New Game, Exit, the save messages) was in the small font, so the dialogs were shorter. | `NewDialog` (0x418a00) gives the header the white font (+0x19d4); Ghidra's listing drops that argument. | The header is in the white font. | COMMIT |
-| The Okay and Cancel buttons of the name dialog and the save dialogs lacked their bottom shadow. | They are plain `ButtonWidget`s (0x47f3b0) drawing the button picture whole, not `DialogButton`s cutting it. | They are `ButtonWidget`s with the picture as their image. | COMMIT |
-| Stomped's end panel counted the round being played among the rounds cleared. | 0x410880 prints the round less one. | It prints the round less one. | COMMIT |
-| An empty save slot's picture was clear, showing the dialog behind it. | The dialog fills it with opaque black (0x433910). | Opaque black. | COMMIT |
-| The web build crashed when a board started without a sound device. | The three looping sounds' instances are made once when loading; without sound there are none, and every board calls through them. | A shared silent instance stands in (a deviation, below). | COMMIT |
+| The header of every game dialog (New Game, Exit, the save messages) was in the small font, so the dialogs were shorter. | `NewDialog` (0x418a00) gives the header the white font (+0x19d4); Ghidra's listing drops that argument. | The header is in the white font. | 5899db40 |
+| The Okay and Cancel buttons of the name dialog and the save dialogs lacked their bottom shadow. | They are plain `ButtonWidget`s (0x47f3b0) drawing the button picture whole, not `DialogButton`s cutting it. | They are `ButtonWidget`s with the picture as their image. | 5899db40 |
+| Stomped's end panel counted the round being played among the rounds cleared. | 0x410880 prints the round less one. | It prints the round less one. | 5899db40 |
+| An empty save slot's picture was clear, showing the dialog behind it. | The dialog fills it with opaque black (0x433910). | Opaque black. | 5899db40 |
+| The web build crashed when a board started without a sound device. | The three looping sounds' instances are made once when loading; without sound there are none, and every board calls through them. | A shared silent instance stands in (a deviation, below). | 5899db40 |
 
 ## Phase 2: what remains
 
