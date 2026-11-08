@@ -6,15 +6,19 @@
 
 Both run in real time (the port without -fast, the original on the wall clock), invisibly and silently: the port under
 rundesk, the original through tools/origrun (which puts it under rundesk itself), with only the patches the original needs
-to play as the registered game and to leave out the MIDI music (build/tt/perf/tiptop-perf.txt, written by `orig`).
+to play as the registered game and to leave out the MIDI music (build/tt/perf/tiptop-perf.txt, made by patches.sh from the
+identical-play setup's list); `orig --paced 16` also makes its main loop sleep 16 ms a pass, as the wait for a 60 Hz screen's
+vertical blank would (the hidden desktop's DirectDraw does not wait, so the unpatched original spins).
 
 Load time: from the game process's creation to the moment the title screen's load bar is full (the bar's loaded count,
 read from the process's memory every 2 ms, equals its total): the same variable in both, the original's at 0x489eb4 and
 0x489eb8, the port's found through the exe's symbols (llvm-nm) and the module's base address.
 
-The scripted minute: the click sequence of phase two's tour 2 (games/tiptop/tools/shots/tour2.txt), the same real clicks for
-both: the title's button, the menu's Play, Regular on the new game screen, the tips' button, then one click on a column every
-610 ms, 100 of them. It starts when the title accepts its first click: the port's driver clicks the moment the load bar is full;
+The scripted minute: the first clicks of phase two's tour 2 (games/tiptop/tools/shots/tour2.txt), the same real clicks for
+both: the title's button, the menu's Play, the mode's button on the new game screen (--mode, regular by default), the tips'
+button, then one click on a column every --every seconds, --count of them. A regular game piles up and ends about 33 s after its
+first click however slowly the columns are clicked; the strategy mode (--mode strategy --every 2.4 --count 25) waits for the
+player and mostly lasts the minute. It starts when the title accepts its first click: the port's driver clicks the moment the load bar is full;
 the original's script waits --orig-load seconds (the load time that `orig` measured in an earlier run, plus a margin), since a
 click that came before the bar was full is lost and a second one would land on the menu. The window measured is the 60 seconds
 from the game screen's first appearance (the screen value, 0x4887ec in the original; the driver's own state in the port).
@@ -39,6 +43,7 @@ ORIGRUN = ROOT / "build/origrun-bin/origrun.exe"
 STAGE_ROOT = "C:\\byo-og"
 STAGE_RUN = "ttperf"
 SCREEN_GAME = 6
+SCREEN_GAMEOVER = 10
 
 k32 = ctypes.WinDLL("kernel32", use_last_error=True)
 psapi = ctypes.WinDLL("psapi", use_last_error=True)
@@ -123,22 +128,33 @@ def filetime_epoch(ft):
 class Proc:
     def __init__(self, pid):
         self.pid = pid
-        self.h = k32.OpenProcess(0x1000 | 0x0400 | 0x0010, False, pid)  # limited + query + vm read
+        self.h = k32.OpenProcess(0x1000 | 0x0400 | 0x0010 | 0x0001, False, pid)  # limited + query + vm read + terminate
         if not self.h:
             raise OSError("OpenProcess %d: %d" % (pid, ctypes.get_last_error()))
         c, e, kt, ut = W.FILETIME(), W.FILETIME(), W.FILETIME(), W.FILETIME()
         k32.GetProcessTimes(self.h, ctypes.byref(c), ctypes.byref(e), ctypes.byref(kt), ctypes.byref(ut))
         self.created = filetime_epoch(c)
 
-    def base(self):
-        # the exe is the first module; right after the process starts the list can still be empty
-        for _ in range(500):
-            mods = (ctypes.c_void_p * 8)()
+    def base(self, exe_name):
+        """The load address of the module with the exe's name. Right after the process starts the list can be empty or hold
+        only the 64-bit system modules of WOW64 (not the exe), so it is read again until the exe is in it."""
+        psapi.GetModuleFileNameExW.argtypes = [W.HANDLE, ctypes.c_void_p, W.LPWSTR, W.DWORD]
+        for _ in range(1000):
+            mods = (ctypes.c_void_p * 1024)()
             need = W.DWORD()
-            if psapi.EnumProcessModulesEx(self.h, mods, ctypes.sizeof(mods), ctypes.byref(need), 3) and mods[0]:
-                return mods[0]
+            if psapi.EnumProcessModulesEx(self.h, mods, ctypes.sizeof(mods), ctypes.byref(need), 3):
+                for i in range(min(need.value // ctypes.sizeof(ctypes.c_void_p), 1024)):
+                    if not mods[i]:
+                        continue
+                    buf = ctypes.create_unicode_buffer(520)
+                    psapi.GetModuleFileNameExW(self.h, ctypes.c_void_p(mods[i]), buf, 520)
+                    if os.path.basename(buf.value).lower() == exe_name.lower():
+                        return mods[i]
             time.sleep(0.01)
-        raise OSError("no module list for %d (error %d)" % (self.pid, ctypes.get_last_error()))
+        raise OSError("%s not in the module list of %d" % (exe_name, self.pid))
+
+    def terminate(self):
+        k32.TerminateProcess(self.h, 1)
 
     def read32(self, addr):
         buf = ctypes.c_uint32()
@@ -171,6 +187,7 @@ class Sampler(threading.Thread):
         self.bar_at = None         # seconds since creation, the bar created (its total is set)
         self.loaded_at = None      # seconds since creation, the bar full
         self.game_at = None        # the game screen first seen (originals: read from memory)
+        self.over_at = None        # the game over screen first seen after it
         self.last_mem = 0.0
 
     def run(self):
@@ -183,8 +200,12 @@ class Sampler(threading.Thread):
                     self.bar_at = t
                 if a is not None and b and a == b:
                     self.loaded_at = t
-            if self.screen_addr and self.game_at is None and self.proc.read32(self.screen_addr) == SCREEN_GAME:
-                self.game_at = t
+            if self.screen_addr:
+                scr = self.proc.read32(self.screen_addr)
+                if self.game_at is None and scr == SCREEN_GAME:
+                    self.game_at = t
+                if self.game_at is not None and self.over_at is None and scr == SCREEN_GAMEOVER:
+                    self.over_at = t
             if now - self.last_mem >= 0.1:
                 self.last_mem = now
                 m = self.proc.memory()
@@ -216,20 +237,22 @@ COLUMNS = [317, 245, 389, 353, 281, 425, 353, 317, 353, 317, 317, 353, 497, 317,
            353, 425, 317, 281, 317, 425, 281]
 STEPS = [(0.0, 186, 288), (1.02, 165, 88), (2.04, 232, 185), (3.61, 500, 388)]  # the title's button, Play, Regular, the tips' button
 FIRST_COLUMN = 4.62
-COLUMN_EVERY = 0.61
-NCOLUMNS = 100
+PACE = {"every": 0.61, "count": 100}
+
+
+MODE_BUTTON = {"regular": (232, 185), "strategy": (145, 260), "speed": (240, 325)}
 
 
 def schedule():
-    sched = list(STEPS)
-    for i in range(NCOLUMNS):
-        sched.append((FIRST_COLUMN + i * COLUMN_EVERY, COLUMNS[i % len(COLUMNS)], 234))
+    sched = [(w, x, y) if (x, y) != (232, 185) else (w,) + MODE_BUTTON[PACE.get("mode", "regular")] for (w, x, y) in STEPS]
+    for i in range(PACE["count"]):
+        sched.append((FIRST_COLUMN + i * PACE["every"], COLUMNS[i % len(COLUMNS)], 234))
     return sched
 
 
 def summarize(s, label, window):
     MB = 1 << 20
-    res = {"label": label, "bar_created_s": s.bar_at, "loaded_s": s.loaded_at, "game_at_s": s.game_at}
+    res = {"label": label, "bar_created_s": s.bar_at, "loaded_s": s.loaded_at, "game_at_s": s.game_at, "over_at_s": s.over_at}
     if s.bar_at is not None and s.loaded_at is not None:
         res["bar_fill_s"] = round(s.loaded_at - s.bar_at, 3)
     samples = s.samples
@@ -272,33 +295,45 @@ def run_port(args):
     try:
         pid = wait_for_game(g.p.pid, realplay.EXE.name)
         proc = Proc(pid)
-        base = proc.base()
+        base = proc.base(realplay.EXE.name)
         s = Sampler(proc, symbol_addr(realplay.EXE, base, "gLoadBarLoaded"), symbol_addr(realplay.EXE, base, "gLoadBarCount"))
         s.start()
         # the first click of the minute goes the moment the bar is full; the title's button ignores it before that
         while s.loaded_at is None:
             time.sleep(0.002)
         t0 = time.time()
-        sched = schedule()
-        game_at = None
-        for (when, x, y) in sched:
-            delay = t0 + when - time.time()
-            if delay > 0:
-                time.sleep(delay)
-            g.send(["click game %d %d" % (x, y)])
-            if game_at is None and when >= FIRST_COLUMN:
+        events = schedule()
+        i, last_poll = 0, 0.0
+        game_at = over_at = None
+        st = {}
+        while True:
+            now = time.time()
+            if game_at is not None and (over_at is not None or now - proc.created >= game_at + args.seconds):
+                break
+            if i < len(events) and now >= t0 + events[i][0]:
+                (_, x, y) = events[i]
+                i += 1
+                if over_at is None:
+                    g.send(["click game %d %d" % (x, y)])
+                continue
+            if now - last_poll >= 1.0 and now >= t0 + 3.0:
                 st = g.state()
-                if st["screen"] == "board":
+                last_poll = time.time()
+                if game_at is None and st["screen"] == "board":
                     game_at = time.time() - proc.created
                     s.game_at = game_at
-        end_at = (game_at or 0) + args.seconds
-        while time.time() - proc.created < end_at:
-            time.sleep(0.05)
+                if game_at is not None and over_at is None and (st.get("over") or st["screen"] == "gameover"):
+                    over_at = time.time() - proc.created
+                    s.over_at = over_at
+                continue
+            if i >= len(events) and game_at is None and now > t0 + 90:
+                break
+            time.sleep(0.005)
         st = g.state()
         final = {"screen": st["screen"], "score": st.get("score"), "level": st.get("level"), "over": st.get("over")}
         s.stop_flag = True
         s.join()
-        window = (game_at, game_at + args.seconds) if game_at else None
+        window = (game_at, min(game_at + args.seconds, over_at if over_at else 1e9)) if game_at else None
         res = summarize(s, args.label, window)
         res["final_state"] = final
         res["others_before"] = mine_before
@@ -313,6 +348,14 @@ def run_orig(args):
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     patches = ROOT / "build/tt/perf/tiptop-perf.txt"
+    if args.paced:
+        # a pass of the main loop sleeps args.paced ms, as the wait for a 60 Hz screen's vertical blank would (the hidden desktop's
+        # DirectDraw does not wait for one, so the unpatched original spins); the loop's own Sleep(50) for an inactive window goes
+        paced = ROOT / ("build/tt/perf/tiptop-perf-paced%d.txt" % args.paced)
+        line = ("test TipTop.exe va:0x4128dc 0fb605f086480085c074086a32ff1520c14600 ff05f0cf48006a%02xff1520c146009090909090 "
+                "each pass sleeps %d ms, as a 60 Hz screen's vertical blank would\n" % (args.paced, args.paced))
+        paced.write_text(patches.read_text() + line)
+        patches = paced
     stage_cmd = [str(ORIGRUN), "--game", "tiptop", "--run", STAGE_RUN, "--stage-root", STAGE_ROOT, "--copy-only"]
     subprocess.run(stage_cmd, cwd=str(ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, check=True)
     for leftover in ("Preferences.dat", "savegame.dat"):
@@ -338,29 +381,42 @@ def run_orig(args):
     mine_before = other_game_processes(set())
     logf = open(out / "origrun.log", "wb")
     p = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT, cwd=str(ROOT))
+    owned = []
     try:
         pid = wait_for_game(p.pid, "TipTop.exe", 120)
         proc = Proc(pid)
+        owned.append(proc)
+        for (cpid, par, name) in processes():
+            if cpid == pid and par:
+                owned.append(Proc(par))  # the rundesk origrun started the game under
         s = Sampler(proc, 0x489eb4, 0x489eb8, 0x4887ec)
         s.start()
-        while p.poll() is None and (s.game_at is None or time.time() - proc.created < s.game_at + args.seconds):
+        while p.poll() is None and s.over_at is None and (s.game_at is None or time.time() - proc.created < s.game_at + args.seconds):
             if args.probe and s.loaded_at is not None and time.time() - proc.created > s.loaded_at + 2:
                 break
             time.sleep(0.05)
         final = {"screen": proc.read32(0x4887ec)}
         s.stop_flag = True
         s.join()
-        window = (s.game_at, s.game_at + args.seconds) if s.game_at else None
+        window = (s.game_at, min(s.game_at + args.seconds, s.over_at if s.over_at else 1e9)) if s.game_at else None
         res = summarize(s, args.label, window)
         res["final_state"] = final
         res["others_before"] = mine_before
         res["others_after"] = other_game_processes({pid, p.pid})
         return res
     finally:
-        if p.poll() is None:
-            # the script ends with quit; give it a moment, then stop only our own origrun
+        # the script's quit only asks the window to close, and the game answers with its quit question, so the game and
+        # the rundesk origrun put it under (both started by this run, found as its descendants) are ended here
+        for pr in owned:
+            pr.terminate()
+        for (cpid, cname) in descendants(p.pid):
             try:
-                p.wait(timeout=args.seconds + 60)
+                Proc(cpid).terminate()
+            except OSError:
+                pass
+        if p.poll() is None:
+            try:
+                p.wait(timeout=60)
             except subprocess.TimeoutExpired:
                 p.kill()
         logf.close()
@@ -374,10 +430,17 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--seconds", type=float, default=60)
     ap.add_argument("--modsdir", default=None)
+    ap.add_argument("--every", type=float, default=0.61, help="seconds between the clicks on a column")
+    ap.add_argument("--count", type=int, default=100, help="how many column clicks the script holds")
+    ap.add_argument("--mode", default="regular", choices=["regular", "strategy", "speed"], help="the mode the scripted minute plays")
+    ap.add_argument("--paced", type=int, default=0, help="orig: the original's main loop sleeps this many ms a pass (16 for a 60 Hz screen)")
     ap.add_argument("--probe", action="store_true", help="orig: only measure the load, play nothing")
     ap.add_argument("--orig-load", type=float, default=8.0, help="seconds the original's script waits before its first click")
     args = ap.parse_args()
+    import faulthandler
+    faulthandler.dump_traceback_later(int(args.seconds + 200), exit=True)  # a run that hangs says where, then ends
     args.label = args.label or args.kind
+    PACE["every"], PACE["count"], PACE["mode"] = args.every, args.count, args.mode
     args.out = args.out or str(ROOT / "build/tt/perf" / args.label)
     res = run_port(args) if args.kind == "port" else run_orig(args)
     Path(args.out).mkdir(parents=True, exist_ok=True)
