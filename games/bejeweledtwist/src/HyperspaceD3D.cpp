@@ -1364,7 +1364,7 @@ void Hyperspace::SetTransition3D(int theTransition)
 // The states of a normal (registered) level-up jump, transition 8, end to end:
 //   1  the jump has been asked for: mUnknown1E8 (the VizManager's speed, set by SetTransition's curves) runs; when it is
 //      done the VizManager's picture goes into +0x160, the VizManager is hidden, +0x155 and +0x156 are set and the
-//      board is enabled (+0x55 = 0) (SOUND_TRANS_SPACENOISE)                                             -> 2
+//      board takes no mouse (mMouseVisible, +0x55 = 0) (SOUND_TRANS_SPACENOISE)                          -> 2
 //   2  the camera flies off; mUnknown5D8 (the countdown the tunnel shows under 1) runs; when it is done the engines
 //      ignite (SOUND_TRANS_ENGINEIGNITION, the engine loop starts)                                           -> 3
 //   3  the jump proper on the path's clock mUnknown6B8: 100 updates from its end SOUND_TRIALLIMIT (transition 14 only),
@@ -1372,7 +1372,7 @@ void Hyperspace::SetTransition3D(int theTransition)
 //      0x23 updates from its end the new level is made (mIs3D off, NewLevel, ClearBoard, FillInBlanks) and the state
 //      is 4 (state 5 stays)                                                                                -> 4
 //   4  when 6B8 ends: the VizManager is shown again and mUnknown1E8 gets the arrival curve                  -> 5
-//   5  mUnknown1E8 crosses 0.3: the travellers retarget; when it has been triggered the board is enabled and  -> 10
+//   5  mUnknown1E8 crosses 0.3: the travellers retarget; when it has been triggered the board takes the mouse -> 10
 //   10 the jump is over (the board sees it and clears mClicked). States 6 to 9 belong to transition 14, the trial's
 //      limit (6 the dialog is up, 7 the game ends, 8 and 9 the dialog is taken off and the world flies on); a
 //      transition-8 jump never gets there. Transition 9 and 10 (the game's start) run 3 to 5 the same way.
@@ -1390,7 +1390,7 @@ void Hyperspace::Update3D()
 		ChooseViz(false);
 		mFlag155 = true;
 		mIs3D = true;
-		gApp->mBoard->mDisabled = false;  // +0x55
+		gApp->mBoard->mMouseVisible = false;  // +0x55: the board takes no mouse while space is on screen
 		mState++;
 		gApp->PlaySoundEx(SOUND_TRANS_SPACENOISE, 0, 0.0f, 2.0f, true, true);
 	}
@@ -1534,7 +1534,7 @@ void Hyperspace::Update3D()
 		if (mUnknown1E8.CheckInThreshold(0.3))  // 0x81d278
 			gApp->mBoard->RetargetTravellers();
 		if (mUnknown1E8.HasBeenTriggered()) {
-			gApp->mBoard->mDisabled = true;  // +0x55 = 1
+			gApp->mBoard->mMouseVisible = true;  // +0x55 = 1
 			mState = 10;
 		}
 	}

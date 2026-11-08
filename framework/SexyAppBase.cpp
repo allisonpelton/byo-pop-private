@@ -45,11 +45,44 @@
 #include "WebProfiles.h"
 #endif
 
+// port: the player-only page's hold on the updates (byopop_hold_updates_at, below), web only; -1 holds nothing
+#ifdef __EMSCRIPTEN__
+static int gWebHoldAt = -1;
+static bool WebUpdatesHeld(int theUpdateCount) { return (gWebHoldAt >= 0) && (theUpdateCount >= gWebHoldAt); }
+#else
+static bool WebUpdatesHeld(int) { return false; }
+#endif
+
 using namespace Sexy;
 
 SexyAppBase* Sexy::gSexyAppBase = NULL;
 
 static SDL_Cursor* gSystemCursors[SDL_NUM_SYSTEM_CURSORS];
+
+#ifdef _WIN32
+// port: a test run played with posted window messages (BYOPOP_POSTED_INPUT, set by a driver such as Twist's realplay)
+// on rundesk's private desktop, where the real cursor is never over the window. SDL answers each posted move with
+// TrackMouseEvent, and the WM_MOUSELEAVE that follows at once moves its mouse to GetCursorPos (to the top edge) and drops
+// the mouse focus, so a hover never lasts to the next update. Such a run notes where each posted mouse message puts the
+// mouse (SDL's message hook), keeps only the moves to that point and ignores the window's leave event.
+static bool gPostedInput = false;
+static int gPostedMouseX = -1;
+static int gPostedMouseY = -1;
+
+static void SDLCALL PostedInputHook(void* theUserData, void* theHWnd, unsigned int theMessage, Uint64 theWParam,
+	Sint64 theLParam)
+{
+	(void) theUserData;
+	(void) theHWnd;
+	(void) theWParam;
+	if ((theMessage >= 0x200) && (theMessage <= 0x20E) && (theMessage != 0x20A) && (theMessage != 0x20E))
+	{
+		// WM_MOUSEMOVE to WM_MBUTTONDBLCLK and the X buttons: the client point is in lParam (not for the wheels)
+		gPostedMouseX = (short) (theLParam & 0xFFFF);
+		gPostedMouseY = (short) ((theLParam >> 16) & 0xFFFF);
+	}
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 // Helpers
@@ -295,6 +328,28 @@ EM_JS(void, sexyapp_notify_exit, (int isRestart, const char* theDroppedJson), {
 EM_JS(void, sexyapp_notify_loaded, (), {
 	if (typeof Module['onGameLoaded'] === 'function')
 		Module['onGameLoaded']();
+});
+
+// port: the player-only page's test hooks (web/testkit.js; docs/WEB_PLAYER.md, "The player-only page"), web only. The page
+// reads the update count, and may hold the updates at a count: pause holds them where they are, a step of n moves the hold n
+// on. -1, the start and every run but a test that holds them, leaves the loop as it was.
+extern "C"
+{
+EMSCRIPTEN_KEEPALIVE int byopop_update_count()
+{
+	return (gSexyAppBase != NULL) ? gSexyAppBase->mUpdateCount : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE void byopop_hold_updates_at(int theUpdate)
+{
+	gWebHoldAt = theUpdate;
+}
+}
+
+// port: the player-only page's frame hook (web/testkit.js, Module.byopopTestFrame), after each browser frame's updates and
+// draw (whether it drew); no other page sets it. (The runtime's own Module.postMainLoop is compiled out of these builds.)
+EM_JS(void, sexyapp_test_frame, (int theDrew), {
+	if (Module.byopopTestFrame) Module.byopopTestFrame(theDrew != 0);
 });
 
 EM_JS(void, sexyapp_alert, (const char* theText), {
@@ -1389,6 +1444,26 @@ void SexyAppBase::UpdateFrames()
 	if (mScriptPos < mScript.size())
 		RunScript();
 
+	// port: a test run played with real input (a driver posting window messages, which a -script run ignores) asks for
+	// a picture by writing the file BYOPOP_SHOT_REQUEST names, holding the picture's path; the game takes it and deletes
+	// the file. Looked for every 10 updates once the game has loaded, and only when the variable is set.
+	// (a copy: SDL_getenv's buffer on Windows is reused by its next call)
+	static const std::string aShotRequest = SDL_getenv("BYOPOP_SHOT_REQUEST") ? SDL_getenv("BYOPOP_SHOT_REQUEST") : "";
+	if ((!aShotRequest.empty()) && (mLoaded) && ((mUpdateCount % 10) == 0))
+	{
+		if (FILE* aFile = fopen(aShotRequest.c_str(), "rb"))
+		{
+			char aPath[1024] = {};
+			size_t aLength = fread(aPath, 1, sizeof(aPath) - 1, aFile);
+			fclose(aFile);
+			while ((aLength > 0) && ((unsigned char) aPath[aLength - 1] <= 32))
+				aPath[--aLength] = 0;
+			remove(aShotRequest.c_str());
+			if (aLength > 0)
+				SaveScreenshot(aPath);
+		}
+	}
+
 	if (!mMinimized)
 	{
 		if (mWidgetManager->UpdateFrame())
@@ -1459,6 +1534,18 @@ bool SexyAppBase::DrawDirtyStuff()
 
 	if (((!hasDirtyWidgets) && (aStartTime - mLastDrawTick < 1000) && (!mCustomCursorDirty) && (mDrawCount > 0)) ||
 		((int) (aStartTime - mNextDrawTick) < 0))
+	{
+		mHasPendingDraw = false;
+		mLastDrawWasEmpty = true;
+		return false;
+	}
+
+	// port: a GPU display (3D, no SDL renderer) draws nothing while its window is minimised. No scene may begin then (the
+	// original's PreDraw fails), so every draw would fall to the software path, which reads the whole screen back for
+	// each draw and blits from images whose pixels live only on the GPU (a crash in NormalBlt). The window shows nothing
+	// and the next frame is drawn whole, so the frame is skipped.
+	if ((mDDInterface->mIs3D) && (mDDInterface->mRenderer == NULL) && (mHWnd != NULL) &&
+		((SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_MINIMIZED) != 0))
 	{
 		mHasPendingDraw = false;
 		mLastDrawWasEmpty = true;
@@ -1904,6 +1991,10 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 			break;
 
 		case SDL_WINDOWEVENT_LEAVE:
+#ifdef _WIN32
+			if (gPostedInput)
+				break;  // (PostedInputHook)
+#endif
 			// 1.3 detected this by polling the cursor in WM_TIMER
 			if (mMouseIn)
 			{
@@ -1918,6 +2009,12 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 	case SDL_MOUSEMOTION:
 	case SDL_MOUSEBUTTONDOWN:
 	case SDL_MOUSEBUTTONUP:
+#ifdef _WIN32
+		// port: a run played with posted window messages keeps only the moves that were posted (PostedInputHook)
+		if ((gPostedInput) && (theEvent.type == SDL_MOUSEMOTION) &&
+			((theEvent.motion.x != gPostedMouseX) || (theEvent.motion.y != gPostedMouseY)))
+			break;
+#endif
 		if (!mSEHOccured)
 		{
 			bool isMotion = theEvent.type == SDL_MOUSEMOTION;
@@ -2104,6 +2201,11 @@ void SexyAppBase::MakeWindow()
 		// when main() hasn't initialized SDL video already)
 		SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
 		SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+		// Full screen is a borderless window over the whole desktop at the desktop's own mode (SDL_WINDOW_FULLSCREEN_DESKTOP,
+		// below and in SwitchScreenMode), never the originals' exclusive mode change (the user, 2026-11-07: "I'd like all
+		// the native ports to have their fullscreen modes made borderless without mods"). Alt-Tab only moves the focus:
+		// the window is not minimized when it loses it, whatever SDL's default.
+		SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 #endif
 
 		if ((!SDL_WasInit(SDL_INIT_VIDEO)) && (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0))
@@ -2167,8 +2269,34 @@ void SexyAppBase::MakeWindow()
 			DoExit(1);
 		}
 
+#ifndef __EMSCRIPTEN__
+		// port: the window can't be made smaller than the game's own screen (the user, 2026-11-07: "a minimum window size
+		// match the game's native resolution"): mWidth x mHeight in the desktop's points, the units the window is sized in,
+		// which is the size the original's window has on a scaled desktop. A desktop too small for that keeps what fits.
+		{
+			int aMinWidth = mWidth;
+			int aMinHeight = mHeight;
+			SDL_Rect aUsable;
+			int aTop = 0, aLeft = 0, aBottom = 0, aRight = 0;
+			if (SDL_GetDisplayUsableBounds(aDisplay, &aUsable) == 0)
+			{
+				SDL_GetWindowBordersSize(mHWnd, &aTop, &aLeft, &aBottom, &aRight);
+				aMinWidth = std::max(1, std::min(aMinWidth, aUsable.w - aLeft - aRight));
+				aMinHeight = std::max(1, std::min(aMinHeight, aUsable.h - aTop - aBottom));
+			}
+			SDL_SetWindowMinimumSize(mHWnd, aMinWidth, aMinHeight);
+		}
+#endif
+
 		mIsPhysWindowed = mIsWindowed;
 		SDL_StartTextInput();
+#ifdef _WIN32
+		if ((!gPostedInput) && (SDL_getenv("BYOPOP_POSTED_INPUT") != NULL) && (IsTestRun()))
+		{
+			gPostedInput = true;
+			SDL_SetWindowsMessageHook(PostedInputHook, NULL);
+		}
+#endif
 #ifdef __EMSCRIPTEN__
 		// the web page's stage takes the game's own size (web/shell.html, onGameScreen: its shape and the site's pixel-perfect)
 		EM_ASM({ if (typeof Module['onGameScreen'] === 'function') Module['onGameScreen']($0, $1); }, mWidth, mHeight);
@@ -2425,7 +2553,8 @@ bool SexyAppBase::Process(bool allowSleep)
 			// port: with -drawevery an update that has not been drawn yet is drawn before the next one
 			if (((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
 			{
-				if (mUpdateFTimeAcc >= aFrameFTime)
+				// port: a test may hold the updates (byopop_hold_updates_at, web only): the frame is still drawn
+				if ((mUpdateFTimeAcc >= aFrameFTime) && (!WebUpdatesHeld(mUpdateCount)))
 				{
 					bool hadRealUpdate = DoUpdateFrames();
 					if (hadRealUpdate)
@@ -2512,6 +2641,15 @@ bool SexyAppBase::Process(bool allowSleep)
 void SexyAppBase::DoMainLoop()
 {
 #ifdef __EMSCRIPTEN__
+	// port: a hidden page gets no animation frames, so the focus loss that SDL queues when the tab is left would wait in
+	// SDL's queue until the tab is shown again, while the music and sounds play on. The game takes it at once instead, as
+	// the native port takes WM_ACTIVATEAPP: it mutes and does whatever else its LostFocus does. The focus coming back
+	// reaches it through SDL's queue as usual, at the first frame.
+	emscripten_set_visibilitychange_callback(this, false, [](int, const EmscriptenVisibilityChangeEvent* theEvent, void* theApp) -> EM_BOOL {
+		if ((theEvent != NULL) && (theEvent->hidden))
+			EmscriptenPageHidden((SexyAppBase*) theApp);
+		return false;
+	});
 	// The browser drives the loop (one EmscriptenMainLoop() per animation frame); this doesn't return.
 	emscripten_set_main_loop_arg(EmscriptenMainLoop, this, 0, 1);
 #else
@@ -2525,6 +2663,17 @@ void SexyAppBase::DoMainLoop()
 }
 
 #ifdef __EMSCRIPTEN__
+void SexyAppBase::EmscriptenPageHidden(SexyAppBase* theApp)
+{
+	// as SDL_WINDOWEVENT_FOCUS_LOST does in HandleEvent (WM_ACTIVATEAPP)
+	if ((theApp->mSEHOccured) || (theApp->mShutdown) || (!theApp->mActive))
+		return;
+	theApp->mActive = false;
+	theApp->RehupFocus();
+	if ((theApp->mIsOpeningURL) && (!theApp->mActive))
+		theApp->URLOpenSucceeded(theApp->mOpeningURL);
+}
+
 void SexyAppBase::EmscriptenMainLoop(void* theArg)
 {
 	SexyAppBase* anApp = (SexyAppBase*) theArg;
@@ -2541,6 +2690,7 @@ void SexyAppBase::EmscriptenMainLoop(void* theArg)
 		if ((anApp->mDrawCount != aDrawCount) || (anApp->mNothingDue))
 			break;
 	}
+	sexyapp_test_frame(anApp->mDrawCount != aDrawCount);
 
 	if (anApp->mShutdown)
 	{
@@ -3167,7 +3317,10 @@ void SexyAppBase::RunScript()
 		int x = 0;
 		int y = 0;
 
-		if ((aName == "click") || (aName == "rclick") || (aName == "down") || (aName == "up") || (aName == "move"))
+		// a bare "move" is the test command that asks the game's bot for its next move (docs/TEST_COMMANDS.md); "move
+		// <x> <y>" moves the mouse
+		if ((aName == "click") || (aName == "rclick") || (aName == "down") || (aName == "up") ||
+			((aName == "move") && (aCommand.mArgs.find_first_not_of(" \t") != std::string::npos)))
 		{
 			if (!(anArgs >> x >> y))
 			{
@@ -4276,6 +4429,8 @@ void SexyAppBase::Mute(bool autoMute)
 
 	SetMusicVolume(mMusicVolume);
 	SetSfxVolume(mSfxVolume);
+	// the web page's output has sound mixed ahead: dropped, so that the mute is heard at once, as natively
+	Platform::Mixer::Get().DropQueued();
 }
 
 void SexyAppBase::Unmute(bool autoMute)

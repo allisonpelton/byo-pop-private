@@ -147,3 +147,43 @@ phase one.
 ### Deviations that remain
 
 The deviations in NOTES.md's "Deviations" are unchanged. The pass added none.
+
+## Real play (2026-11-07)
+
+The user played the port in the browser and natively and listed what went wrong; most of it was 3D, which the
+comparisons above had run in 2D. This pass played the native game in 3D full screen with real input only: posted
+mouse and key messages under rundesk, by `tools/realplay/drive.py`, which reads the board from screenshots and
+chooses its twists itself. It played launch, the Classic tutorial and a Classic game to level 4 (about 370 twists,
+31,050 points, past two bomb tips, the coal and lock tips and a bomb wheel), the pause menu, the quit question and the
+way back to the main menu, the high scores' stats page and a best move's replay, minimising and restoring, and the
+options' resolution change. The browser half (hover and twist in the Classic tutorial, the resolution change) was
+played with DOM events in the Browser pane at `?silent=1`.
+
+### Changes the pass made
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| In 3D no gem could be twisted after the first level-up, and the cursor stopped following the mouse (the browser fault) | space's state 1 clears the board's +0x55 and state 5 sets it again (0x715c21); +0x55 is the widget's mMouseVisible, which the port had read as mDisabled | the same field | ae814617 |
+| The pause menu's Quit and other zooming panels vanished instead of shrinking in 3D | TwistWidget::DrawAll (0x755cd2) zooms through the renderer's transform about the screen's middle when Direct3D draws; the port zoomed only in 2D | the same | ae814617 |
+| The end of a game took the 2D path in 3D | StartEndGame (0x714883) fades space in over the board only without Direct3D | the same | ae814617 |
+| The options' resolution did nothing | 0x6a006a keeps the new art size, writes "ArtRes" at shutdown and restarts the game; the port's art size was fixed | the same, natively and on the web | ae814617 |
+| A best move's replay from the high scores showed the score meter without its top, glass and pod in 3D | the tube's constructor clears its mClip (+0x41); with Direct3D the clip rectangle is in the screen's pixels after the replay board's 0.4 scale, so a clipped tube loses whatever it draws with a rotation or a stretch | the tube does not clip (in 2D a few pixels below it change and the suite's frozen screens were taken again) | ae814617 |
+| Alt-Tab out of full-screen 3D crashed | while the window is minimised no scene may begin; every draw fell to the software path and read pixels that live only on the GPU | a GPU display skips its frames while minimised | ba4b72b0 (shared) |
+
+### Looked at and left
+
+- **The coal tip's black box.** The tip's animation (twistpam.pam, label "coal") opens and closes each loop with a
+  black curtain; a screenshot caught it shut. Over a few seconds it plays as it should.
+- **The board after quitting.** For about half a second after the quit question's Yes, the board shows faded over
+  space before the main menu comes in. Not yet compared with the original, which needs its 3D run (`docs/ORIGRUN.md`).
+- **The windowed-mode button in 2D.** In 2D full screen the board redraws the whole screen and the button in the
+  corner shows only in frames where it was redrawn after the board. Since the tube stopped clipping, three of the
+  suite's Blitz frames lose it as its Classic frames already did. To compare with the original in 2D.
+- **The black screen in full-screen Classic** was not reproduced. The likeliest causes were the crash above (a
+  minimised full-screen game) and the 3D mouse, both fixed.
+- **The Zen tutorial's background** shows natively in 3D. The browser's Zen was not played yet.
+
+### Still to play
+
+Zen and Blitz to their ends, 2D, windowed mode and a whole game in the browser, now with the test commands (NOTES.md,
+"Test commands") to reach a mode or level and real input for the moves.

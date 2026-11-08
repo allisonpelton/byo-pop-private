@@ -1,0 +1,24 @@
+# the standard test commands (docs/TEST_COMMANDS.md): run with games/sevenseas/tools/run_script.sh; the replies are on stdout
+100 state
+200 click 320 385
+700 state
+800 goto average
+1200 state
+1300 move
+1400 seed 7
+1500 level 12
+1700 state
+1800 set score 500
+1900 set lives 2
+2000 state
+2100 win
+2600 state
+2700 goto help
+2800 state
+2900 goto bogus
+3000 unlock all
+3100 lose
+3500 state
+5000 goto highscores
+5100 state
+5200 quit

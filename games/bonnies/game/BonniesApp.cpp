@@ -1047,6 +1047,11 @@ int bonniesMain()
 	gPortalConfig = new PortalConfig();
 	gPortalConfig->load();
 	gOptions = new Options();
+#ifdef __EMSCRIPTEN__
+	// port (web): a browser enters full screen only from a click, so the game starts windowed whatever Portal.cfg or the
+	// saved options say, and its option says so (docs/DEVIATIONS.md, "Full screen on the web")
+	gOptions->mFullScreen = 0;
+#endif
 	gBonnies->init(800, 600, gOptions->mFullScreen);
 	while (gQuit == 0)
 	{

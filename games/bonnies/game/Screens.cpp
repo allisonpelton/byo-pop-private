@@ -26,6 +26,9 @@
 
 #include <cmath>
 #include <cstring>
+#ifdef __EMSCRIPTEN__
+#include "Start.h"
+#endif
 
 namespace bonnies
 {
@@ -1123,6 +1126,11 @@ int NamePanel::handleEvent(Event* theEvent)
 			saveGameAs(aName);
 			gOptions->mName = aName;
 			gOptions->save();
+#ifdef __EMSCRIPTEN__
+			// port (web): the site's players (Start.h)
+			if (gSitePlayersChanged != nullptr)
+				gSitePlayersChanged();
+#endif
 		}
 	}
 	else if (aCommand != 1)
@@ -1155,6 +1163,11 @@ int askName(int theCancel)
 	aField->mColor = 0xffdcb970;
 	aField->mColor2 = 0x7f000000;
 	aField->mText = lit(0x457426);
+#ifdef __EMSCRIPTEN__
+	// port (web): the site player's name, under the site's "fill" and "create" (Start.h; src/SiteProfiles.cpp)
+	if (gSiteNameFor != nullptr)
+		aField->mText = gSiteNameFor();
+#endif
 	aField->mEditable = 1;
 	aField->mNamesOnly = 1;
 	aField->mEscapeCancels = theCancel;
@@ -1540,7 +1553,8 @@ void showGameMenu()
 // ---------------------------------------------------------------------------------------------------------------------
 // The players (the vtable 0x4587bc): the saved players, a new one, deleting one
 
-static Str gNoExtension;          // 0x47a1ec: never set (so deleting removes the name without its ".gam")
+// 0x47a1ec, a string the original never sets: its Delete removed the name without its ".gam", so no player was ever
+// deleted. The port removes the saved game, by the path playerSaveExists checks (docs/DEVIATIONS.md)
 
 // 0x4187a0: the player selected ("" none)
 Str PlayersPanel::selected()
@@ -1626,7 +1640,7 @@ int PlayersPanel::handleEvent(Event* theEvent)
 					Str aPath = lit(0x457426);
 					aPath += savedGamesDir(true);
 					aPath += aName;
-					aPath += gNoExtension;
+					aPath += exeGlobalString(0x475a54);
 					fileRemove(aPath);
 					refill();
 				}
@@ -1646,6 +1660,10 @@ int PlayersPanel::handleEvent(Event* theEvent)
 					gOptions->mName = mOriginal;
 				gOptions->save();
 			}
+#ifdef __EMSCRIPTEN__
+			if (gSitePlayersChanged != nullptr)
+				gSitePlayersChanged();
+#endif
 			gApp->endModal(0, 0);
 			return 0;
 		}
@@ -1660,6 +1678,10 @@ int PlayersPanel::handleEvent(Event* theEvent)
 		gOptions->mName = selected();
 		if (gMenuScreen != nullptr)
 			static_cast<MenuScreen*>(gMenuScreen)->refresh();
+#ifdef __EMSCRIPTEN__
+		if (gSitePlayersChanged != nullptr)
+			gSitePlayersChanged();
+#endif
 	}
 	else if (aType == 0x15 && theEvent->mA == 0x2c3)
 		goto choose;
@@ -2287,6 +2309,10 @@ int MenuScreen::handleEvent(Event* theEvent)
 				gOptions->mName = getText(0x4e6);
 				saveGameAs(gOptions->mName);
 				gOptions->save();
+#ifdef __EMSCRIPTEN__
+				if (gSitePlayersChanged != nullptr)
+					gSitePlayersChanged();
+#endif
 				if (gOptions->mName.empty())
 					return 0;
 			}
@@ -2399,6 +2425,11 @@ int MenuScreen::handleEvent(Event* theEvent)
 // 0x41af20
 void MenuScreen::init()
 {
+#ifdef __EMSCRIPTEN__
+	// port (web): the site's players at the first menu, before it shows the player (Start.h; src/SiteProfiles.cpp)
+	if (gSiteStart != nullptr)
+		gSiteStart();
+#endif
 	gMenuScreen = this;
 	Screen::init();
 	mStory = 1;

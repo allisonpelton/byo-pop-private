@@ -1,0 +1,14 @@
+# Bonnie's original: the menu's music recorded (--sound wav, with dsound_patch.txt so that FMOD mixes into DirectSound);
+# the logos are clicked through
+waitshot logo 20000
+wait 2000
+click 400 300
+wait 3000
+click 400 300
+wait 3000
+click 400 300
+wait 3000
+shot menu1
+wait 40000
+shot menu
+quit

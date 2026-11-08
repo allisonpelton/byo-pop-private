@@ -160,9 +160,17 @@ public:
 	// ?silent=1, the mixer goes on mixing, so that playback timing is as it was, and the device gets silence. It is
 	// below every game's volume, mute and options (so it changes and saves none of them), and it reaches every game
 	// that plays through the mixer, SexyAppFramework or not.
-	void SetPageMute(bool theMuted) { mPageMuted = theMuted; }
+	void SetPageMute(bool theMuted)
+	{
+		mPageMuted = theMuted;
+		if (theMuted)
+			DropQueued();
+	}
 	bool IsPageMuted() const { return mPageMuted; }
 #endif
+	// Drops the sound already mixed and waiting to be heard, so that a mute is heard at once (SexyAppBase::Mute). Only
+	// the web page's output keeps any (a few tens of milliseconds); natively this does nothing.
+	void DropQueued();
 
 	void Lock();
 	void Unlock();
@@ -180,6 +188,15 @@ private:
 	struct Song;
 	static void Callback(void* theUser, uint8_t* theStream, int theLen);
 	void Mix(float* theOut, int theFrames);
+	void MixVoice(Voice& v, float* theOut, int theFrames);
+#ifdef __EMSCRIPTEN__
+	// The web page's own output (Audio.cpp, byopop_audio_open): an AudioWorklet with a short queue that asks for each chunk.
+	bool InitPage();
+	static float* PageRender(Mixer* theMixer, int theFrames);  // mixes theFrames for the page, returns them interleaved
+	void PageLead(Voice& v);  // mixes a voice just started into the sound already queued
+	std::vector<float> mPageBuffer;
+	std::vector<float> mLeadBuffer;
+#endif
 
 	uint32_t mDevice = 0;
 	int mRate = 48000;
