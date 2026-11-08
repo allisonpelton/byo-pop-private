@@ -733,11 +733,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   }
   // The icon that the import read out of the install's exe (importIcon), for boot() to keep with the record once the files are
   // marked as there. The exe is not stored.
-  var importedIcon = "";
+  var importedIcon = null;  // {url, built} (web/gameimport.js, exeIcon)
   function iconFromImport(entries, root) {
-    importedIcon = "";
+    importedIcon = null;
     if (!PAGE.importIcon || pagePlaceholders()) return Promise.resolve();
-    return ByopopImport.exeIcon(entries, root).then(function (url) { importedIcon = url; }, function () {});
+    return ByopopImport.exeIcon(entries, root).then(function (got) { importedIcon = got; }, function () {});
   }
   // The icon scaled down to px on its longer side with the browser's best filter, at most halving at each step so a 48 or
   // 64 px icon stays clean at 16 px; null when it is no larger than px already (the icon itself is used then).
@@ -786,17 +786,20 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     if (pagePlaceholders()) return;
     try {
       var rec = ByopopGameFiles.all()[PAGE.id];
-      if (rec && rec.icon) { showIcon(rec.icon); return; }
+      // a record from before the exe's link year was kept gets it now, where the game stores its exe
+      if (rec && rec.icon && (typeof rec.built === "number" || PAGE.importIcon)) { showIcon(rec.icon); return; }
       if (importedIcon) {  // read out of the exe at the import, which the game does not store
-        var url = importedIcon;
-        importedIcon = "";
-        if (ByopopGameFiles.setIcon(PAGE.id, url)) showIcon(url);
+        var got = importedIcon;
+        importedIcon = null;
+        if (got.url && ByopopGameFiles.setIcon(PAGE.id, got.url, got.built)) showIcon(got.url);
         return;
       }
       var name = mainExe();
-      if (!name || !window.ByopopExeIcon) return;
-      ByopopExeIcon.fromBytes(Module.FS.readFile(GAME + "/" + name)).then(function (icon) {
-        if (icon && icon.dataUrl && ByopopGameFiles.setIcon(PAGE.id, icon.dataUrl)) showIcon(icon.dataUrl);
+      if (!name || !window.ByopopExeIcon) { if (rec && rec.icon) showIcon(rec.icon); return; }
+      var bytes = Module.FS.readFile(GAME + "/" + name);
+      ByopopExeIcon.fromBytes(bytes).then(function (icon) {
+        var url = (icon && icon.dataUrl) || (rec && rec.icon);
+        if (url && ByopopGameFiles.setIcon(PAGE.id, url, ByopopExeIcon.built(bytes))) showIcon(url);
       }).catch(function () {});
     } catch (e) {}
   }

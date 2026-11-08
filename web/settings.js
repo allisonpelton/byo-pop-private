@@ -713,6 +713,11 @@ var ByopopGameFiles = (function () {
     var icon = present(r) ? r.icon : "";  // the same files as before: their icon stays
     o[id] = { loaded: today() };
     if (icon) o[id].icon = icon;
+    if (present(r) && typeof r.built === "number") o[id].built = r.built;
+    // the day this copy came in, kept while it is there (the cap board's date under the crimp, web/index.html); a record from
+    // before it was kept has none
+    if (!present(r)) o[id].opened = today();
+    else if (r.opened) o[id].opened = r.opened;
     write(o);
   }
   // The player forgot the files ("Forget game files"): kept with the date, and when they were last loaded
@@ -743,12 +748,15 @@ var ByopopGameFiles = (function () {
     o[id] = r;
     write(o);
   }
-  // The icon read out of the game's exe (a PNG data URL, at most 16 KB), kept with the entry while the files are there
-  function setIcon(id, url) {
+  // The icon read out of the game's exe (a PNG data URL, at most 16 KB), kept with the entry while the files are there, and the
+  // year the exe was linked (ByopopExeIcon.built; the cap board's print, web/index.html) where it has one
+  function setIcon(id, url, built) {
     if (typeof url !== "string" || url.length > 16384 || url.indexOf("data:image/png;base64,") !== 0) return false;
     var o = all(), r = o[id];
     if (!present(r)) return false;
     r.icon = url;
+    // 0: read, and none likely
+    if (typeof built === "number") r.built = (built >= 1995 && built <= 2100) ? built : 0; else delete r.built;
     write(o);
     return true;
   }
