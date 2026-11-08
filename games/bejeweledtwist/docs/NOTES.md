@@ -450,7 +450,11 @@ Each is a change without a visible effect in play, but for the first.
   so the menu came about 8 seconds after launch however fast the files loaded. The port starts the menu as soon as
   the loading thread is done, with the bar full; the bar's smoothing still shows while files load, and the countdown of
   150 updates after it (the welcome voice, the logo's slide), which does not hold the player, stays. Visible: the menu
-  comes sooner.
+  comes sooner. Checked by the game's state every 50 updates against the port before the change, shifted by the 844
+  updates the menu now comes earlier: Blitz plays out the same at every point, Classic the same game to the same
+  48400, though around its level-ups a match lands a few updates apart, since parts of the original time themselves
+  by the app's update count since launch (CurvedVal, the level-up mandala's turns, Board's pulses). The frozen
+  baseline and check.sh's screens were refrozen with the change.
 - The arrow keys on the web (Board::KeyDown, 0x6ca439): after moving the cursor, the original moves the mouse
   pointer onto it (Board::WarpToCursor, 0x6a45da, SetCursorPos) while +0x1430 holds a piece. Natively the port does
   the same (SexyAppBase::WarpMouse, never in a test run); a web page cannot move the pointer, so in the browser it
