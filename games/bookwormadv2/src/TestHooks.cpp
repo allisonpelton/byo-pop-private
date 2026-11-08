@@ -1159,6 +1159,8 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 		mStateLogFileName = theParamValue;
 	else if (theParamName == "-reseedengine")
 		mReseedEngine = atoi(theParamValue.c_str());
+	else if (theParamName == "-popcaplogo")
+		mPopCapLogo = true;  // port: the startup's PopCap logo as the original shows it, for comparisons (TitleScreen)
 	else if (theParamName == "-startloadupdates")
 		mStartLoadWanted = theParamValue.empty() ? -1 : atoi(theParamValue.c_str());
 	else if (theParamName == "-chapterloadupdates") {

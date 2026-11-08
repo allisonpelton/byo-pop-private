@@ -134,6 +134,7 @@ public:
 	// port: test hooks -startloadupdates=N and -chapterloadupdates=a,b,c (TestHooks.cpp): the startup load completes at update N
 	// and the k-th chapter load after a updates, as the original's loading threads took in the run compared with
 	// (they take as long as the machine's work does, which no -fast run can know). Normal play never uses them.
+	bool mPopCapLogo = false;  // port: -popcaplogo keeps the startup's PopCap logo (TitleScreen::Update)
 	int mStartLoadWanted = -1;
 	bool mStartLoadPending = false;
 	std::vector<int> mChapterLoadUpdates;
