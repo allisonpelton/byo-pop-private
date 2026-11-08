@@ -81,6 +81,7 @@ public:
 
 	PixelusApp*		mApp;				// +0x68
 	MemoryImage*	mBackdrop;			// +0x94 the island as it was, or NULL
+	class TempleFade* mFade;			// +0x94 the island fading out over the screen (0x41c610), or NULL
 	DialogButton*	mBackButton;		// +0x78
 	DialogButton*	mMoreButton;		// +0x7c
 	DialogButton*	mSkipButton;		// +0x80
