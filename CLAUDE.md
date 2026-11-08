@@ -123,6 +123,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   and the `<!-- private -->` blocks of text files (`docs/PUBLISHING.md`). How to take a game's protection apart
   (offsets in a wrapper, unwrapping commands, how a launcher checks its copy) goes only inside private blocks, and
   tools that do it go into `.publishignore`.
+<!-- private -->
+- **Backups (the user, 2026-11-08):** the coordinator also keeps two, refreshed after a batch of merges: the full
+  history and every branch in the user's private repository (remote `private`), and the main checkout with its
+  git-ignored files mirrored to `E:\backups\byo-pop` (`docs/PUBLISHING.md`, "Backups").
+<!-- /private -->
 - **Game files:** never commit or redistribute game files or anything derived from them (staged assets, Ghidra
   exports, word lists and other game data, mods built from another game's files, close recreations of another game's
   art): keep them git-ignored. Docs and code comments refer to a game's texts by id and paraphrase; a few words of
@@ -205,21 +210,27 @@ Every call re-reads the whole context, so what costs is context times calls, and
   not yet translated leaves it out as it goes. So does every button that leads out of a game, "More Games" first, its
   neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). A performance pass (the user, 2026-11-03), then a readability pass
   (`docs/CODE_STANDARDS.md`) and taking out the other code the ports do not need come once every game is done
-  (`docs/COORDINATION.md`).
+  (`docs/COORDINATION.md`). A session may speed up its own port before then, at any time, so its `-fast` test runs go
+  faster (the user, 2026-11-08: "Sessions should be allowed to improve performance early on so they can test with
+  -fast and run even faster"), under the performance pass's rules: how the port works changes, never what it does,
+  proved by its frozen baseline; no threads; a cost in shared code goes to the coordinator as a spec.
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
   libraries a game itself uses and descriptions of file formats are fine.
 - **Mac versions (the user, 2026-11-01):** PopCap's own Mac builds are not references. Where the user found one, it
   sits in the main checkout's `re/<game>/mac/` (`re/peggle/<edition>/mac/` for the Peggles; git-ignored, so a worktree
-  copies the folder in) with a demangled `<name>.symbols.txt` of its function and class names. Its names and class
-  layout guide the port, but the PC exe stays the authority for behaviour, since the Mac build may be another
-  version. No symbol list goes into the repo; a few names as examples are fine. Four games decompiled before their
-  Mac version came got a report of what it showed (`games/<game>/docs/MAC_COMPARISON.md`: BookWorm, Bejeweled,
-  Alchemy, Seven Seas). Only Seven Seas' led to changes, and each was a visible difference that the screen comparison
-  finds anyway, so the others (Big Money, Mummy Maze) write none (the user, 2026-11-08: "Yes, drop them"). A session
-  still reads the Mac names where they help explain a difference, and naming and structure corrections wait for
-  the readability pass.
+  copies the folder in) with a demangled `<name>.symbols.txt` of its function and class names. A new decomp starts
+  from it (the user, 2026-11-08: symbol builds were key to decompilations before AI): before translating, it gives the
+  PC export's functions, classes, statics and globals their Mac names and argument types, takes its class boundaries
+  and virtual order, and names a step the PC build has inline after the Mac function it was; `tools/macmatch.py` pairs the two builds' functions
+  and writes the names for the export (`docs/MACMATCH.md`). The PC exe stays the
+  authority for behaviour, since the Mac build may be another version. No symbol list goes into the repo; a few names
+  as examples are fine. Four games decompiled before their Mac version came got a report of what it showed
+  (`games/<game>/docs/MAC_COMPARISON.md`: BookWorm, Bejeweled, Alchemy, Seven Seas). Only Seven Seas' led to changes,
+  and each was a visible difference that the screen comparison finds anyway, so the others (Big Money, Mummy Maze)
+  write none (the user, 2026-11-08: "Yes, drop them"). A game already translated reads the Mac names where they help
+  explain a difference, and takes their naming and structure corrections in the readability pass.
 - **Sonnet sessions** translate loops in their original shape (a test-then-increment loop does not become a for
   loop), check what a comment claims about the original before writing it, and build with AddressSanitizer at the
   first sign of a crash or memory corruption (`docs/COORDINATION.md`, "Model selection").

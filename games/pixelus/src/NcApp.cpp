@@ -38,8 +38,7 @@ NcApp::~NcApp()
 	}
 }
 
-// 0x4e36c0 slot 17: the base class's Init, then the trial bookkeeping (0x4e3350: MaxExecutions, MaxPlays and
-// MaxTime from the properties and the NoReg/NoPopLink flags; only the full version is ported)
+// 0x4e36c0 slot 17: the base class's Init (the trial bookkeeping that follows it in the original, 0x4e3350, is not ported)
 void NcApp::Init()
 {
 	SexyApp::Init();
@@ -72,6 +71,8 @@ void NcApp::LoadFonts(const char* const* theNames, int theCount)
 // 0x4e40a0: the image is stored, even when it did not load
 bool NcApp::LoadImage(int theIndex)
 {
+	if (mImageNames[theIndex][0] == 0)
+		return true;	// a picture only the register dialog of an unregistered copy used (Res.cpp): not loaded
 	SexyString aPath = SexyString("images\\") + mImageNames[theIndex];
 	mImages[theIndex] = GetImage(aPath);
 	if (mImages[theIndex] == NULL)

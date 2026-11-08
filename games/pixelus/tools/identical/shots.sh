@@ -16,7 +16,7 @@ sort -n -s -k2,2 "$D/orig-shots.txt" -o "$D/orig-shots.txt"
 R="$ROOT/build/origrun/$RUN"
 rm -rf "$R"; mkdir -p "$R"; cp -r "$OG_GAME" "$R/game"
 rm -rf "$R/game/users"; cp -r "$OG_STAGE/levels.orig/." "$R/game/levels/"
-"$ORIGRUN" --exe "$(win "$R/game/PixelusGame.exe")" --run "$RUN" --sandbox --script "$(win "$D/orig-shots.txt")" \
+"$ORIGRUN" --exe "$(win "$R/game/PixelusGame.exe")" --run "$RUN" --sandbox --sandbox-wait "${SBWAIT:-7200}" --script "$(win "$D/orig-shots.txt")" \
 	--clock virtual --cursor scripted --counter 0x543270 --update-ms 10 --seed "${SEED:-1}" \
 	--patches tools/origrun/patches/pixelus.txt --timeout "${TIMEOUT:-200}" > "$D/orig-shots.log" 2>&1
 S="$R/shots"

@@ -253,8 +253,6 @@ void LevelCompleteScreen::ButtonDepress(int theId)
 	{
 		if (mApp->mGameMode == MODE_CLASSIC)
 		{
-			if (mApp->mClassicChamber == 0 && mApp->mClassicPyramid == 0)
-				mApp->mTimesPlayed++;
 			if (mApp->mClassicChamber == 0xe)
 			{
 				mApp->mGameMode = MODE_CLASSIC_DONE;

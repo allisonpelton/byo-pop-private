@@ -42,6 +42,7 @@
 #include "Checkbox.h"
 #include "DialogButton.h"
 #include "TileMaster.h"
+#include "TestHooks.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -673,4 +674,9 @@ void PixelusApp::AutoplayUpdate()
 		s->mWait = 20;
 		return;
 	}
+}
+
+bool Sexy::TestFindCell(Board* theBoard, const Grid::Move& theMove, int* theHoverX, int* theHoverY, int* theX, int* theY)
+{
+	return FindCell(theBoard, theMove, theHoverX, theHoverY, theX, theY);
 }
