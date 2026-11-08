@@ -142,7 +142,7 @@ public:
 	int mStartFullScreen;      // +0x04
 	int mQuote;                // +0x08 (1)
 	int mDistributorLogoFirst; // +0x0c
-	Str mBuyNowURL;            // +0x10
+	// +0x10, the buy page's address: port, gone with the registration
 };
 
 extern PortalConfig* gPortalConfig;  // 0x480b08
