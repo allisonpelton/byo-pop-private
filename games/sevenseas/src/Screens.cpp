@@ -117,9 +117,7 @@ void TitleScreen::Draw(Graphics* g)
 	g->SetFont(mApp->mFonts[FONT_MT11]);
 	g->DrawImage(anImages[IMAGE_POPCAPURL], 0x206, 0x1cb);
 	g->DrawImage(anImages[IMAGE_POPCAPLOGO], 0x206, 0x16a);
-	g->SetColor(Color(0xff, 0xff, 0));
-	SexyString aLine = GT(0x004a66bc);
-	WriteCenteredLine(g, 0x16f, aLine);
+	// 0x425c00 also draws a line above the Play link that says whether the copy is registered; the port has no such line
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	SexyString aVersion = GT(0x004a66b0) + mApp->mProductVersion;
 	g->DrawString(aVersion, 0x219 - g->GetFont()->StringWidth(aVersion) / 2, 0xdd);
