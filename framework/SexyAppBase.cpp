@@ -4370,6 +4370,10 @@ void SexyAppBase::OpenModMenu()
 	MTAutoDisallowRand aDisallowRand;
 	mModMenu = new ModMenu(this);
 	mModMenu->Resize(0, 0, mWidth, mHeight);
+	// Above every deferred overlay a game uses (Bookworm Adventures' title logo at 1, its board at 10000): the widget
+	// manager draws an overlay before the first widget whose priority is above the overlay's, so at the default 0 the
+	// menu would lie under them all
+	mModMenu->mPriority = 0x7FFFFFF0;
 	mWidgetManager->AddWidget(mModMenu);
 	mWidgetManager->BringToFront(mModMenu);
 	// As AddDialog does for a modal dialog: the widgets below get no mouse or keys, and the game pauses
