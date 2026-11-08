@@ -204,6 +204,29 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		SDL_Log("STATE %s", aJson.c_str());
 		return true;
 	}
+	if (theCommand.mCommand == "goto") {
+		// goto menu|credits|highscores (docs/TEST_COMMANDS.md): through the game's own code
+		const std::string& aWhere = theCommand.mArgs;
+		if (mMainMenu == nullptr || IsCurtainMoving() || !mDialogMap.empty()) {
+			SDL_Log("ERROR goto: the game is not at its main menu (or a curtain or dialog is up)");
+		} else if (aWhere == "menu") {
+			SDL_Log("OK goto menu");
+		} else if (aWhere == "credits") {
+			StartCredits();
+			SDL_Log("OK goto credits");
+		} else if (aWhere == "highscores") {
+			ShowHallOfFame();
+			SDL_Log("OK goto highscores");
+		} else {
+			SDL_Log("ERROR goto: unknown screen '%s' (menu, credits, highscores so far)", aWhere.c_str());
+		}
+		return true;
+	}
+	if (theCommand.mCommand == "level" || theCommand.mCommand == "unlock" || theCommand.mCommand == "set" || theCommand.mCommand == "win" ||
+	    theCommand.mCommand == "lose" || theCommand.mCommand == "seed" || theCommand.mCommand == "move") {
+		SDL_Log("ERROR %s: not implemented in this port yet", theCommand.mCommand.c_str());
+		return true;
+	}
 	if (theCommand.mCommand == "widgets") {
 		for (Widget* aWidget : mWidgetManager->mWidgets)
 			SDL_Log("script: widget %s at %d,%d %dx%d visible %d disabled %d priority %d z %d%s%s",
