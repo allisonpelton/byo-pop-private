@@ -112,13 +112,11 @@ NingPo::NingPo()
 	mMovesRect.top = 0x1c2;
 	mTilesLeftRect.top = 0x1c2;
 	mClockRect.top = 0x1c2;
-	mRegistered = false;
 	mState = STATE_TITLE;
 	mUndoButton = nullptr;
 	mShuffleButton = nullptr;
 	mHintButton = nullptr;
 	mNewGameButton = nullptr;
-	mBuyButton = nullptr;
 	mNoMatchTime = 0;
 	mHintStart = 0;
 	mSpaceHeld = false;
@@ -141,7 +139,6 @@ NingPo::NingPo()
 	// port: the fields the constructor leaves to the zeroed global
 	mLastAction = 0;
 	mFade = 0.0f;
-	mTimesPlayed = 0;
 	mGameStart = 0;
 	mPenalty = 0;
 	mCheat = false;
@@ -199,8 +196,6 @@ void NingPo::releaseSprites()
 bool NingPo::init(const char* theCmdLine, const char* theResourceDir)
 {
 	// HGlobal::setResourceDir(theResourceDir)
-	mCvars.registerVariable("nm_pyrogonRegistration", "0", 0);
-	mCvars.registerVariable("nm_maxTimesPlayed", "20", 0);
 	mCvars.registerVariable("companyName", "Pyrogon", 0);
 	mCvars.registerVariable("productName", "NingPo", 0);
 	PGApp::init(theCmdLine, theResourceDir);
@@ -220,7 +215,6 @@ bool NingPo::init(const char* theCmdLine, const char* theResourceDir)
 			pg::PGLog("subsystems initialized\n");
 			int aVoice = -1;
 			mSounds.play(&aVoice, "nm_splash.ogg", 0, 0xc0, 0, false);
-			mRegistered = checkRegistration();
 			pg::PGLog("loading the assets\n");
 			bool aLoaded = loadAssets();
 			mFont = mDisplay->createFont(getSprite(SPRITE_FONT), 8, 0xc);
@@ -272,22 +266,6 @@ void NingPo::onExit()
 	// the trial asked to buy the game here (exit_np.jpg)
 }
 
-// 0x401a00
-void NingPo::openPurchasePage()
-{
-	if (mFullscreen != 0)
-		toggleFullscreen();
-	openPurchaseURL(nullptr, "Pyrogon", "NingPo");
-}
-
-// 0x405b60
-void NingPo::openPartnerSite()
-{
-	if (mFullscreen != 0)
-		toggleFullscreen();
-	openPartnerURL(nullptr, "Pyrogon", "NingPo");
-}
-
 // 0x4059e0: the original switched the display's mode in place (or restarted the devices and reloaded the
 // sprites); port: the host switches the window
 void NingPo::toggleFullscreen()
@@ -297,27 +275,17 @@ void NingPo::toggleFullscreen()
 	pg::GetHost()->SetFullscreen(mFullscreen != 0);
 }
 
-// 0x405cd0
-bool NingPo::checkRegistration()
-{
-	if (mCvars.getVariableInt("nm_pyrogonRegistration") == 1)
-		return PGApp::checkRegistration("Pyrogon", "NingPo", 0x3ea, false);
-	return PGApp::checkRegistration("Pyrogon", "NingPo", 0x3ea, true);
-}
-
-// 0x405c70: the loading screen; the trial's progress bar stopped at a quarter
+// 0x405c70: the loading screen
 bool NingPo::loadAssets()
 {
 	return PGApp::loadAssets(mSpriteTable, NUM_SPRITES, "theme_np.ogg", 0, PRELOADED_SOUNDS, "loading_np.jpg", nullptr,
-		"loading_partner_np.jpg", "progress_np.tga", 0x78, 0x150, mRegistered ? 1.0f : 0.25f, nullptr, nullptr);
+		"loading_partner_np.jpg", "progress_np.tga", 0x78, 0x150, 1.0f, nullptr, nullptr);
 }
 
 // 0x405960
 bool NingPo::startup()
 {
-	mRegistered = checkRegistration();
-	// the trial counted the games played here (the registry's InstallFlags, against nm_maxTimesPlayed)
-	return startupDialog(mTimesPlayed);
+	return startupDialog();
 }
 
 // 0x405e10
