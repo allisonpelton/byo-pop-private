@@ -394,6 +394,26 @@ EMSCRIPTEN_KEEPALIVE void byopop_set_frame_budget(double theMs)
 	gWebFrameBudget = theMs;
 }
 
+// port: the site's game speed setting (web/controls.js; docs/WEB_PLAYER.md, "Game speed"), web only: SexyAppFramework's own
+// update multiplier, which runs mFrameTime's updates theSpeed times as often in real time (Process). 1, the default, and every
+// run but a player's choice, leaves the game as it was. Held to 0.25 to 4. A game whose own host runs its loop (Bonnie's
+// Bookstore, Ning Po Mahjong) has no SexyAppBase and is not reached; nor is a timer a game reads from the wall clock itself.
+EMSCRIPTEN_KEEPALIVE void byopop_set_speed(double theSpeed)
+{
+	if (gSexyAppBase == NULL)
+		return;
+	if (!(theSpeed >= 0.25))
+		theSpeed = (theSpeed > 0) ? 0.25 : 1;
+	if (theSpeed > 4)
+		theSpeed = 4;
+	gSexyAppBase->mUpdateMultiplier = theSpeed;
+}
+
+EMSCRIPTEN_KEEPALIVE double byopop_speed()
+{
+	return (gSexyAppBase != NULL) ? gSexyAppBase->mUpdateMultiplier : 0;
+}
+
 // port: the site's performance panel (web/perf.js; docs/WEB_PLAYER.md, "The performance panel"), web only and read only: the
 // images the framework keeps (its MemoryImage set) with the bytes of their pixels and the blitters' caches, the loaded
 // sounds with the bytes of their samples, and the wasm heap's size and the bytes malloc has handed out, as one JSON line. The panel calls it about once a second while it is open; nothing
