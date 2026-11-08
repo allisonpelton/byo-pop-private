@@ -1,7 +1,8 @@
 # Word Harmony: the identical-play pass
 
 Phase one of the pass CLAUDE.md names: **plays identical**. The same input gives the same games in the original and the
-port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is not done.
+port, by the game's state, not by pictures. Phase two, **looks identical** (the screens, the sound, the focus, the web
+build and real input), follows in its own section.
 
 The original is the game carved out of the wrapper (`re/wordharmony/bin/WordHarmonyGame.exe`, image base 0x400000, no
 relocation), run only through `tools/origrun`, from a copy under a short path (`C:\byo-og\wh\game`, staged by
@@ -166,8 +167,8 @@ boxes:
 | Chain links drawn from the first ball as well (a ring inside the first ball) | 0x412310 draws a link from each ball to the one before it, starting at the second node | starts at the second node | be330a14 |
 | The hint box vanished when no hint was ready | `setHintReady(false)` fades the box to half (0x422ed3 pushes 0.5), greyed with "no hint available" | fades to 0.5 | be330a14 |
 | The game link's code | the main menu's link out of the game (a button the port never showed) | removed with its action | d8bf6a6a |
-| A splash held for two seconds | the splash stays two seconds of frames and the data loads after the first | loads at once and shows the menu (fast loading, a deviation below) | COMMIT |
-| On a machine with no sound device the music drew a random number every frame | (the port's: no voice meant the clip had ended) | on the engine's clock a sound plays its length whether or not a voice started; the web build under Node now plays tour 2 update for update as natively | COMMIT |
+| A splash held for two seconds | the splash stays two seconds of frames and the data loads after the first | loads at once and shows the menu (fast loading, a deviation below) | d41f48ec |
+| On a machine with no sound device the music drew a random number every frame | (the port's: no voice meant the clip had ended) | on the engine's clock a sound plays its length whether or not a voice started; the web build under Node now plays tour 2 update for update as natively | d41f48ec |
 
 ### Sound
 
@@ -207,7 +208,35 @@ tour update for update as the native port.
 
 ### Real input
 
-PLAYTHROUGH
+Code played these games through the real input paths, with the moves chosen by the port's own bot (the test command
+`move`), and judged them by the game's state and its own screenshots. Natively, `tools/realplay/play.py` starts the game
+under rundesk and posts window messages: a click as one burst of move, press and release, a drag as a press, a move
+every three updates and a release, and keys as WM_KEYDOWN, WM_CHAR and WM_KEYUP with the key's scan code (SDL takes the
+key from the scan code; without it the name entry got no letters). In the browser, `tools/web/onegame.js` runs in the
+player-only page (`?player=1&silent=1`) and sends the page's own DOM mouse and key events, holding the game between its
+steps.
+
+- **TSUNAMI, natively in full screen:** the menu, the levels screen, the help with PLAY GAME, 118 moves of play to the game
+  over on level 2 at 4,800, the name typed into the name entry, the score table with the name in second place, and back
+  to the menu.
+- **TSUNAMI in the browser:** the same from the menu to the game over, the name typed and the score table, back to the menu.
+- **RELAX, natively and windowed:** the options dialog's Fullscreen box cleared and the game switched to a window, the
+  levels screen, the help, then level 1 (HARMONY made, 2,800), Save/Quit with its Save Game? box, Don't Save, the game
+  over panel. The bot left WORD unmade there.
+- **RELAX in the browser:** level 1 played to its end (WORD and HARMONY, 1,800), level 2's panel, then Save/Quit.
+- **THINK, natively in full screen:** the levels screen, the help and level 1's field with 15 moves, then Save/Quit and
+  the menu.
+
+Every screen, button, drag, right-button submit, key and dialog that these games reached took its input as it should.
+What no game finished is the bot's, not the port's: on RELAX's second level the letters lie in a maze of blocks the bot
+cannot route through, and on THINK's first level it could not use a chain that had fallen over (its two balls read
+backwards), so those runs stop at the level and leave by Save/Quit; a whole RELAX or THINK game by real input waits for
+a better bot. The same runs found three faults of the drivers, all fixed: a menu click taken during the menu's fade-in
+was lost (the web driver now clicks again while the menu stays), the native keys lacked their scan codes, and a ball
+stayed on the mouse when the page lost the focus during a drag (the framework forgets a button pressed before the focus
+went); the bot now lets go of such a ball with a click, as a player's
+next click does. The bot itself learned to read a chain as it lies, to slide a ball out from under a ledge, to carry
+balls under a room's ceiling and to retry a plan once its anchor has moved (`README.md`, "Test commands").
 
 ### The fixes mod
 
