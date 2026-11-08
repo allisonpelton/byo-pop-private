@@ -230,6 +230,11 @@ public:
 	virtual MusicInterface*	CreateMusicInterface() override;                        // port: the module music interface (BASS in the original)
 	// 0x41d910 slot 33 (Shutdown) only counted the MaxTime trial minutes: not ported, SexyApp::Shutdown runs
 
+	// ---- test hooks (src/testhooks/; docs/TEST_COMMANDS.md): reached only from a test's -script / -commands lines and the
+	// -statelog option, never by a normal run ----
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;   // TestCommands.cpp: state, goto, level, ...
+	virtual bool			DoUpdateFrames() override;                              // StateLog.cpp: -statelog=<file> (SexyAppBase::DoUpdateFrames otherwise)
+
 	// ---- helpers (their original names are FUN_ addresses) ----
 	bool					ChangeMusic(int theOrder);                              // 0x414350
 	void					PauseMusic(bool thePause);                              // 0x426920 (true: pause what plays and remember it, false: resume it)
