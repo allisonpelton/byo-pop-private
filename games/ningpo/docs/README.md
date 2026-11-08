@@ -134,7 +134,9 @@ visible. The options' background has a frame for each button: Best Times and an 
 button) in the first row, the visit button in the second, Done in the third. Done now sits in the second row's frame,
 and the third row's frame, empty, is painted out with the wood beside it when the background loads
 (`PaintOutFrame` in `src/NingPoDialogs.cpp`), so the dialog shows no gap. The empty frame beside Best Times stays, as
-in the registered original. The loading screen's partner logo is a picture, not a link, and stays.
+in the registered original. The loading screen's partner logo is a picture, not a link, and stays. Ning Po has no start-up logo for the site's "Always skip start-up
+logos" (`Byopop::SiteSkipLogos`) to skip: the only screen before the title is the loading screen, which waits for
+its start button.
 
 ## Mods
 
