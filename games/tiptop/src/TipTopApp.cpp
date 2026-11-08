@@ -1,6 +1,7 @@
 // The port's host for TipTop (see TipTopApp.h).
 
 #include "TipTopApp.h"
+#include "ModFeatures.h"
 #include "Game.h"
 #include "Lowos.h"
 #include "MusicSynth.h"
@@ -25,8 +26,13 @@ AutoplayState* NewAutoplayState(unsigned int theSeed);  // testhooks/Autoplay.cp
 void DeleteAutoplayState(AutoplayState* theState);
 }
 
+// fixes mod, "steadyClock": the game's timers run on its updates (mFrameTime ms each) instead of the machine's clock
+static bool gSteadyClock = false;
+
 static uint32_t AppClock()
 {
+	if (gSteadyClock)
+		return 1000 + (uint32_t)gApp->mUpdateCount * (uint32_t)gApp->mFrameTime;
 	return gApp->GetClockTime();
 }
 
@@ -167,6 +173,7 @@ void TipTopApp::Init()
 		return;
 	// 0x411fff seeds the C library's generator with GetTickCount(); -seed=N makes a run repeatable
 	tiptop::SRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetClockTime());
+	gSteadyClock = !mFastMode && Sexy::FixOn("steadyClock");  // a -fast run is steady already
 	lowos::HostSetClock(AppClock);
 	lowos::HostSetMessageFunc(AppMessage);
 	lowos::HostSetWindowed(mIsWindowed);

@@ -8,6 +8,7 @@
 // and MouseDown (27), and ButtonPress in the listener part.
 
 #include "Compat2004.h"
+#include "DialogButton.h"
 
 namespace Sexy
 {
@@ -42,6 +43,22 @@ public:
 	virtual void	ButtonPress(int theId) override;                                // 0x41c440 (listener part)
 
 	using Dialog2004::MouseDown;
+};
+
+// 0x41c030 (with 0x41bf80 and 0x41bfb0): the game's image button, which plays a sample of its own when the mouse comes onto
+// it (+0x10c, -1 none) and when it is pressed (+0x108, -1 none; 0x431670 sets 0, the beep, for the buttons it makes)
+class SoundButton : public DialogButton
+{
+public:
+	PixelusApp*		mApp;
+	int				mClickSound;    // +0x108
+	int				mOverSound;     // +0x10c
+
+	SoundButton(PixelusApp* theApp, Image* theImage, int theId, ButtonListener* theListener);
+
+	virtual void	MouseEnter() override;                                          // 0x41bf80
+	virtual void	MouseDown(int x, int y, int theClickCount) override;            // 0x41bfb0
+	using DialogButton::MouseDown;
 };
 
 // 0x431380: cut a three-frame button strip (normal, over, down) out of the button's component image,

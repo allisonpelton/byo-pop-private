@@ -11,6 +11,12 @@
 //   -hotkeytest          the mod menu's F2 (docs/MOD_MENU_DESIGN.md 7.3): SDL key events through HandleEvent, as
 //                        real input arrives; then, natively, the window: its minimum size and Alt+Enter's borderless
 //                        full screen; prints one line per check and exits with the number that failed
+//   -realinput=<file>    the framework's real input (SexyAppBase.h, docs/REAL_INPUT.md), with tools/fwtest/realinput.txt:
+//                        its "expect ..." lines check what reached the board and the app, "report" prints the count and
+//                        shuts down; the exit code is the number that failed. The test dialog is not shown.
+//   -commands=<file>     the framework's live commands (SexyAppBase.h, docs/TEST_COMMANDS.md): the same "expect",
+//                        "killdialog" and "report" lines, appended while it runs, each answered OK or ERROR on the log
+//                        (tools/fwtest/commands.sh drives it). The test dialog is not shown.
 // Exits with 1 when the game files fail to load.
 
 #include "SexyAppBase.h"
@@ -27,6 +33,7 @@
 #include "SDLSoundManager.h"
 #include "MusicInterface.h"
 #include "ModMenu.h"
+#include "KeyCodes.h"
 #include "platform/ModManager.h"
 #include "platform/VFS.h"
 
@@ -34,6 +41,8 @@
 #include <stb_image_write.h>
 #include <cmath>
 #include <cstring>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #include "winstate.h"
@@ -65,13 +74,48 @@ public:
 	FwTestApp* mApp;
 	ButtonWidget* mDialogButton;
 	int mUpdateCnt;
-	int mKeyDowns;  // the keys and characters that reached the board (-hotkeytest)
+	int mKeyDowns;  // the keys and characters that reached the board (-hotkeytest, -realinput)
 	int mKeyUps;
 	int mKeyChars;
+	std::string mTyped;  // the characters since the last "expect typed" (-realinput)
+	int mLastChar;
+	int mMouseDowns;  // the mouse events that reached the board (-realinput), in game pixels
+	int mMouseUps;
+	int mDrags;
+	int mDownX, mDownY, mDownButton, mDownClicks;  // the last press: button 0 left, 1 right, 2 middle
+	int mUpX, mUpY;
+	int mMoveX, mMoveY;  // the last move or drag
+	int mWheel;
 
 	virtual void KeyDown(KeyCode theKey) { mKeyDowns++; Widget::KeyDown(theKey); }
 	virtual void KeyUp(KeyCode theKey) { mKeyUps++; Widget::KeyUp(theKey); }
-	virtual void KeyChar(SexyChar theChar) { mKeyChars++; Widget::KeyChar(theChar); }
+	virtual void KeyChar(SexyChar theChar)
+	{
+		mKeyChars++;
+		mTyped += (char) theChar;
+		mLastChar = (unsigned char) theChar;
+		Widget::KeyChar(theChar);
+	}
+
+	using Widget::MouseDown;
+	using Widget::MouseUp;
+	virtual void MouseMove(int x, int y) { mMoveX = x; mMoveY = y; }
+	virtual void MouseDrag(int x, int y) { mDrags++; mMoveX = x; mMoveY = y; }
+	virtual void MouseDown(int x, int y, int theBtnNum, int theClickCount)
+	{
+		mMouseDowns++;
+		mDownX = x;
+		mDownY = y;
+		mDownButton = theBtnNum;
+		mDownClicks = theClickCount;
+	}
+	virtual void MouseUp(int x, int y, int theBtnNum, int theClickCount)
+	{
+		mMouseUps++;
+		mUpX = x;
+		mUpY = y;
+	}
+	virtual void MouseWheel(int theDelta) { mWheel += theDelta; }
 
 	FwTestBoard(FwTestApp* theApp);
 	virtual ~FwTestBoard();
@@ -98,6 +142,8 @@ public:
 	std::string mScreenshotPath;
 	int mFramesSinceLoaded;
 	bool mHotkeyTest;
+	const char* mCheckName;  // starts each check's line: "hotkey" or "realinput"
+	int mChecks;
 
 	FwTestApp()
 	{
@@ -117,6 +163,8 @@ public:
 		mScreenshotFrames = 0;
 		mFramesSinceLoaded = 0;
 		mHotkeyTest = false;
+		mCheckName = "hotkey";
+		mChecks = 0;
 	}
 
 	virtual ~FwTestApp()
@@ -188,7 +236,9 @@ public:
 
 		mMusicInterface->PlayMusic(0);
 
-		ShowTestDialog();
+		// -realinput's and -commands' clicks reach the board: no modal dialog over it
+		if ((mRealInputFileName.empty()) && (mCommandsFileName.empty()))
+			ShowTestDialog();
 	}
 
 	virtual Dialog* NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
@@ -247,9 +297,110 @@ public:
 
 	void Check(const char* theWhat, bool isOk)
 	{
-		SDL_Log("hotkey: %s: %s", isOk ? "ok" : "FAILED", theWhat);
+		mChecks++;
+		SDL_Log("%s: %s: %s", mCheckName, isOk ? "ok" : "FAILED", theWhat);
 		if (!isOk)
 			gHotkeyFailures++;
+	}
+
+	// -realinput's and -commands' own lines (tools/fwtest/realinput.txt, tools/fwtest/commands.sh): "expect <what>
+	// <values>" checks the state the events left, "killdialog" closes the test dialog, "report" prints the count and
+	// shuts down. Each answers on the log as a game's test command does (docs/TEST_COMMANDS.md): OK or ERROR.
+	virtual bool HandleScriptCommand(const ScriptCommand& theCommand)
+	{
+		if (theCommand.mCommand == "killdialog")
+		{
+			KillDialog(DIALOG_TEST);
+			SDL_Log("OK killdialog");
+			return true;
+		}
+		if (theCommand.mCommand == "report")
+		{
+			SDL_Log("%s: %d checks, %d failed", mCheckName, mChecks, gHotkeyFailures);
+			SDL_Log("OK report");
+			Shutdown();
+			return true;
+		}
+		if (theCommand.mCommand != "expect")
+			return false;
+
+		mCheckName = mCommandsFileName.empty() ? "realinput" : "commands";
+		std::istringstream anArgs(theCommand.mArgs);
+		std::string aWhat;
+		anArgs >> aWhat;
+		int a = 0, b = 0, c = 0, d = 0;
+		std::string aWord;
+		bool isOk = false;
+		if (aWhat == "board")
+			isOk = mBoard != NULL;
+		else if (mBoard == NULL)
+			isOk = false;
+		else if ((aWhat == "move") && (anArgs >> a >> b))
+			isOk = (mBoard->mMoveX == a) && (mBoard->mMoveY == b);
+		else if ((aWhat == "drags") && (anArgs >> a))
+			isOk = mBoard->mDrags == a;
+		else if ((aWhat == "down") && (anArgs >> a >> b >> aWord >> d))
+		{
+			c = (aWord == "left") ? 0 : (aWord == "right") ? 1 : (aWord == "middle") ? 2 : -1;
+			isOk = (mBoard->mDownX == a) && (mBoard->mDownY == b) && (mBoard->mDownButton == c) && (mBoard->mDownClicks == d);
+		}
+		else if ((aWhat == "up") && (anArgs >> a >> b))
+			isOk = (mBoard->mUpX == a) && (mBoard->mUpY == b);
+		else if ((aWhat == "buttons") && (anArgs >> a >> b))
+			isOk = (mBoard->mMouseDowns == a) && (mBoard->mMouseUps == b);
+		else if ((aWhat == "wheel") && (anArgs >> a))
+			isOk = mBoard->mWheel == a;
+		else if ((aWhat == "keys") && (anArgs >> a >> b))
+			isOk = (mBoard->mKeyDowns == a) && (mBoard->mKeyUps == b);
+		else if (aWhat == "typed")
+		{
+			std::string aText;
+			std::getline(anArgs, aText);
+			size_t aStart = aText.find('"');
+			size_t anEnd = aText.rfind('"');
+			aText = ((aStart != std::string::npos) && (anEnd > aStart)) ? aText.substr(aStart + 1, anEnd - aStart - 1) : "";
+			isOk = mBoard->mTyped == aText;
+			if (!isOk)
+				SDL_Log("realinput: typed \"%s\"", mBoard->mTyped.c_str());
+			mBoard->mTyped.clear();
+		}
+		else if ((aWhat == "lastchar") && (anArgs >> a))
+			isOk = mBoard->mLastChar == a;
+		else if ((aWhat == "held") && (anArgs >> aWord >> a))
+		{
+			KeyCode aKey = GetKeyCodeFromName(aWord);
+			isOk = (aKey > KEYCODE_UNKNOWN) && (aKey < 0xFF) && (mWidgetManager->mKeyDown[aKey] == (a != 0));
+		}
+		else if ((aWhat == "active") && (anArgs >> a))
+			isOk = mActive == (a != 0);
+		else if ((aWhat == "mousein") && (anArgs >> a))
+			isOk = mMouseIn == (a != 0);
+		else if ((aWhat == "windowed") && (anArgs >> a))
+			isOk = mIsWindowed == (a != 0);
+		else if ((aWhat == "minimized") && (anArgs >> a))
+			isOk = mMinimized == (a != 0);
+		else if ((aWhat == "dialog") && (anArgs >> a))
+			isOk = (GetDialog(DIALOG_TEST) != NULL) == (a != 0);
+		else if ((aWhat == "modmenu") && (anArgs >> a))
+			isOk = IsModMenuOpen() == (a != 0);
+		else if ((aWhat == "windowsize") && (anArgs >> a >> b))
+		{
+			int aWidth = 0, aHeight = 0;
+			SDL_GetWindowSize(mHWnd, &aWidth, &aHeight);
+			isOk = (aWidth == a) && (aHeight == b);
+			if (!isOk)
+				SDL_Log("realinput: the window is %dx%d", aWidth, aHeight);
+		}
+		else
+			SDL_Log("realinput: line %d: unknown expect '%s'", theCommand.mLine, theCommand.mArgs.c_str());
+
+		std::string aLine = StrFormat("line %d (update %d): expect %s", theCommand.mLine, mUpdateCount, theCommand.mArgs.c_str());
+		Check(aLine.c_str(), isOk);
+		if (isOk)
+			SDL_Log("OK expect %s", theCommand.mArgs.c_str());
+		else
+			SDL_Log("ERROR expect %s: not so", theCommand.mArgs.c_str());
+		return true;
 	}
 
 	// F2 opens and closes the mod menu, only as a press without modifiers that is not a repeat, never in a run
@@ -461,6 +612,14 @@ FwTestBoard::FwTestBoard(FwTestApp* theApp)
 	mKeyDowns = 0;
 	mKeyUps = 0;
 	mKeyChars = 0;
+	mLastChar = 0;
+	mMouseDowns = 0;
+	mMouseUps = 0;
+	mDrags = 0;
+	mDownX = mDownY = mDownButton = mDownClicks = -1;
+	mUpX = mUpY = -1;
+	mMoveX = mMoveY = -1;
+	mWheel = 0;
 
 	mDialogButton = new ButtonWidget(BUTTON_DIALOG, this);
 	mDialogButton->mLabel = _S("DIALOG");

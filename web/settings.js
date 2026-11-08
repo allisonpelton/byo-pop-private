@@ -48,6 +48,7 @@ var ByopopSettings = (function () {
     // the site's skin (web/skins.js): "unset" until the player chose one on their first visit, which is not one of its values, so
     // that every choice, Plain too, is stored and the first visit's card is asked only once
     skin: { values: ["plain", "demo", "d95", "soda"], def: "unset" },
+    perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     ambient: { values: SWITCH, def: "on" }           // on: the game's light glows around it in the dark Demo Disc and Soda Fountain (web/skins.js)
   };
 
@@ -209,6 +210,7 @@ var ByopopSettings = (function () {
     { name: "skin", label: T("settings.skin.label"), options: [["plain", T("skin.plain")], ["demo", T("skin.demo")], ["d95", T("skin.d95")], ["soda", T("skin.soda")]],
       hint: T("settings.skin.hint") },
     { name: "ambient", label: T("settings.ambient.label"), hint: T("settings.ambient.hint") },
+    { name: "perf", label: T("settings.perf.label"), hint: T("settings.perf.hint") },
     { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
       hint: T("settings.fullscreen.hint") },
     { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],
@@ -713,6 +715,11 @@ var ByopopGameFiles = (function () {
     var icon = present(r) ? r.icon : "";  // the same files as before: their icon stays
     o[id] = { loaded: today() };
     if (icon) o[id].icon = icon;
+    if (present(r) && typeof r.built === "number") o[id].built = r.built;
+    // the day this copy came in, kept while it is there (the cap board's date under the crimp, web/index.html); a record from
+    // before it was kept has none
+    if (!present(r)) o[id].opened = today();
+    else if (r.opened) o[id].opened = r.opened;
     write(o);
   }
   // The player forgot the files ("Forget game files"): kept with the date, and when they were last loaded
@@ -743,12 +750,15 @@ var ByopopGameFiles = (function () {
     o[id] = r;
     write(o);
   }
-  // The icon read out of the game's exe (a PNG data URL, at most 16 KB), kept with the entry while the files are there
-  function setIcon(id, url) {
+  // The icon read out of the game's exe (a PNG data URL, at most 16 KB), kept with the entry while the files are there, and the
+  // year the exe was linked (ByopopExeIcon.built; the cap board's print, web/index.html) where it has one
+  function setIcon(id, url, built) {
     if (typeof url !== "string" || url.length > 16384 || url.indexOf("data:image/png;base64,") !== 0) return false;
     var o = all(), r = o[id];
     if (!present(r)) return false;
     r.icon = url;
+    // 0: read, and none likely
+    if (typeof built === "number") r.built = (built >= 1995 && built <= 2100) ? built : 0; else delete r.built;
     write(o);
     return true;
   }

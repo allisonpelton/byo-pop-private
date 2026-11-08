@@ -13,11 +13,35 @@
 
 using namespace Sexy;
 
+SoundButton::SoundButton(PixelusApp* theApp, Image* theImage, int theId, ButtonListener* theListener) :
+	DialogButton(theImage, theId, theListener)
+{
+	mApp = theApp;
+	mClickSound = SOUND_UI_LITTLE_BEEP_05B;
+	mOverSound = -1;
+}
+
+// 0x41bf80
+void SoundButton::MouseEnter()
+{
+	DialogButton::MouseEnter();
+	if (mOverSound >= 0)
+		mApp->PlaySample(mOverSound);
+}
+
+// 0x41bfb0
+void SoundButton::MouseDown(int x, int y, int theClickCount)
+{
+	DialogButton::MouseDown(x, y, theClickCount);
+	if (mClickSound >= 0)
+		mApp->PlaySample(mClickSound);
+}
+
 // the picture of a sheet of three frames as an image button (0x4044e0 and 0x40a7d0 with 0x431670)
 DialogButton* Sexy::MakeStripButton(PixelusApp* theApp, ButtonListener* theListener, int theId, int theImage, int theX, int theY)
 {
 	Image* anImage = theApp->mImages[theImage];
-	DialogButton* aButton = new DialogButton(anImage, theId, theListener);
+	DialogButton* aButton = new SoundButton(theApp, anImage, theId, theListener);
 	int aWidth = anImage->GetWidth() / 3;
 	int aHeight = anImage->GetHeight();
 	aButton->mNormalRect = Rect(0, 0, aWidth, aHeight);

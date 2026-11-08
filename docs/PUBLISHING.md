@@ -47,3 +47,38 @@ This builds the snapshot again and pushes it to origin's `main`. `refs/publish/m
 snapshot, which is the parent of the next one; when the tree has not changed since, there is nothing to publish.
 The commit's author is whoever git's configuration names, and its message is "byo-pop snapshot, <date>" unless
 `-m` gives another first line.
+
+<!-- private -->
+
+## Backups
+
+The snapshots hold no history, so on 2026-11-08 the user asked for backups as well ("GitHub still only shows the
+October 25 snapshot. Better fix that, as otherwise I have no backups"), and made a private repository for what cannot
+be shared. There are two, and the coordinator refreshes both after a batch of merges and after each publish.
+
+The first is the private repository `https://github.com/allisonpelton/byo-pop-private`, git's remote `private`. It
+gets the trunk's whole history and every local branch, the private blocks and the `.publishignore` paths included:
+
+```bash
+git push private --all
+```
+
+It holds only what git tracks, so no game file goes there either. GitHub refuses a branch whose newest commit names the
+user's own address rather than their noreply one (its email privacy setting). Ten old commits on the trunk do, and
+`claude/site-easy-b32d6e`, whose tip is one of them, was refused for that on 2026-11-08; its commits are in the trunk,
+so nothing is missing. A branch that a session rebased is refused as not a fast-forward: push that branch alone with
+`--force` once you have checked that the branch, not the backup, holds the newer work.
+
+The second stays on this machine: the main checkout, git-ignored files and all (staged assets, `re/`, the frozen
+baselines and the oracle cache under `build/`, `secrets/`), mirrored to `E:\backups\byo-pop` on another drive. Run it
+from PowerShell:
+
+```powershell
+robocopy C:\Users\Administrator\Documents\claude\byo-pop E:\backups\byo-pop /MIR /XJ /XD C:\Users\Administrator\Documents\claude\byo-pop\.claude\worktrees /R:1 /W:1 /NP /NFL /NDL
+```
+
+It leaves out the sessions' worktrees (their commits are in `.git`, and their ignored files are mostly copies of the
+main checkout's) and follows no junction. `/MIR` makes the copy match the checkout, so a file deleted here goes from
+the copy at the next run too: it is a mirror, not a history.
+
+<!-- /private -->
