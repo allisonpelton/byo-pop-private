@@ -44,6 +44,20 @@ void AstroPopApp::ShowMainMenu()
 	}
 }
 
+// 0x412320: the running game is taken off the screen and deleted (when it is safe), and the pointer is cleared. (The
+// original also tells its page counter, 0x48f860 "GameVolatile": PopCap's ad statistics, left out.)
+void AstroPopApp::CloseBoard()
+{
+	mWidgetManager->RemoveWidget(mBoard);
+	SafeDeleteWidget(mBoard);
+	mBoard = NULL;
+}
+
+bool AstroPopApp::IsLeftButtonDown()
+{
+	return (mWidgetManager->mDownButtons & 1) != 0;
+}
+
 // 0x4319b0: the title's button. The loader screen goes, the level descriptor and the profile come.
 // (The original also tells its page counter, 0x48f860 "Init": PopCap's ad statistics, left out. It allocates the 43
 // lists at +0x62c here, which the Board uses; they come with the Board.)
@@ -194,6 +208,11 @@ void AstroPopApp::ShowCharSelector(int theMode)
 void AstroPopApp::ShowHallOfFame()
 {
 	SDL_Log("AstroPop: ShowHallOfFame not translated yet (0x4288a0)");
+}
+
+void AstroPopApp::ShowFullScreenHelp()
+{
+	SDL_Log("AstroPop: ShowFullScreenHelp not translated yet (0x422db0)");
 }
 
 void AstroPopApp::ShowQuitDialog()

@@ -11,6 +11,7 @@
 #include "Color.h"
 #include "EventBus.h"
 #include "FrameAnim.h"
+#include "SmallObjects.h"
 #include <list>
 #include <set>
 #include <vector>
@@ -24,6 +25,7 @@ class Board;
 class Image;
 class FuelCell;
 class SpecialBrick;
+class Particle;
 
 // a cell of the field (the original keeps vectors of these: 8 bytes each)
 struct CellRef
@@ -165,20 +167,27 @@ public:
 	std::list<Brick*>	ma0;// +0xa0
 	std::vector<void*>	ma8;// +0xa8 freed by ClearField, element type not seen
 	std::vector<CellRef>	mc8;// +0xc8
+	std::vector<BlinkRec>	md8;// +0xd8 the 40 blinking pictures of the backdrop
 	std::vector<int>	mf8;// +0xf8
 	std::vector<Brick*>	m108;// +0x108 bricks (emptied by ClearField)
 	std::vector<Brick*>	mTargeted;// +0x118 the bricks that flash because the piece in hand would hit them (HighlightTargets)
 	std::set<Brick*>	m128;// +0x128 the bricks to delete (DeleteDoomedBricks)
+	std::vector<FloatText*>	m140;// +0x140 the texts that float up the screen
 	std::vector<PlanetRec>	m160;// +0x160 the planets (5 are stepped)
 	std::vector<StreakRec>	m170;// +0x170 the streaks (100)
 	std::vector<StarRec>	m190;// +0x190 the stars
 	std::vector<CellRef3>	m1a0;// +0x1a0
+	std::vector<FrameAnim*>	m1b0;// +0x1b0 the animations of the explosion at the end of a game (8)
 	std::vector<int>	m1f0;// +0x1f0 counters that count down from 2000 (set when a special brick is made)
 	std::vector<CellRef3>	m200;// +0x200 ?
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
 	std::vector<Warp*>	m230;// +0x230
 	std::vector<RampRecord>	m280;// +0x280 the speed table (UpdateRamp)
+	std::vector<Particle*>	m2a0;// +0x2a0 the falling sparks of the energy mode
+	std::vector<HintBox*>	m2b0;// +0x2b0 the hint boxes
+	std::vector<DemoStep>	m2d0;// +0x2d0 the demo's steps
 	Image*	m2f8 = NULL;// +0x2f8 the lightning image now on the screen
+	GoalChecker*	m310 = NULL;// +0x310 the check of the level's goal
 	std::vector<std::vector<Brick*> >	m314;// +0x314 the field: 19 rows of 10 bricks, row 0 on top
 	std::vector<CellRef>	m324;// +0x324 the cells under the pointer that are lit (HoverCell)
 	std::vector<std::vector<int> >	m334;// +0x334 the layout the field is built from: a brick type for each cell, -1 none (BuildField)
@@ -186,8 +195,11 @@ public:
 	AstroPopApp*	mApp = NULL;// +0x358 the application (the bricks play their sounds through it)
 	Color	m3c0;// +0x3c0 the colour of the backdrop tint (FadeBackdrop)
 	Color	m3d0;// +0x3d0 the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
+	FrameAnim	m420;// +0x420
 	FrameAnim	mSirenAnim;// +0x4a0 the siren (IMAGE_SIREN)
 	FrameAnim	mAnim5e0;// +0x5e0 ?
+	FrameAnim	mAnim620;// +0x620
+	bool	m648 = false;// +0x648
 	BoardOverlay	mOverlay;// +0x660 the widget over the field
 	Color	m6c8;// +0x6c8
 	bool	m6e0 = false;// +0x6e0 ?
@@ -204,9 +216,12 @@ public:
 	int	m7e8 = 0;// +0x7e8 ?
 	int	m7ec = 0;// +0x7ec ?
 	PulsePair	m808;// +0x808
+	bool	m8db = false;// +0x8db the game is being recorded (RecordStep)
+	bool	m8dc = false;// +0x8dc the demo plays
 	bool	m8dd = false;// +0x8dd ?
 	bool	m8de = false;// +0x8de ?
 	bool	m8e0 = false;// +0x8e0 ?
+	bool	m8e1 = false;// +0x8e1
 	bool	m8e3 = false;// +0x8e3 ?
 	bool	m8e4 = false;// +0x8e4 ?
 	bool	m8e5 = false;// +0x8e5 ?
@@ -234,6 +249,7 @@ public:
 	bool	m8fc = false;// +0x8fc ?
 	bool	m8fd = false;// +0x8fd ?
 	bool	m8fe = false;// +0x8fe ?
+	bool	m8ff = false;// +0x8ff
 	bool	m901 = false;// +0x901 ?
 	bool	m905 = false;// +0x905 ?
 	bool	m907 = false;// +0x907 ?
@@ -242,11 +258,14 @@ public:
 	bool	m90b = false;// +0x90b ?
 	bool	m90d = false;// +0x90d ?
 	bool	m90e = false;// +0x90e ?
+	bool	m90f = false;// +0x90f
 	bool	m910 = false;// +0x910
 	bool	m911 = false;// +0x911 ?
 	bool	m912 = false;// +0x912 ?
 	bool	m916 = false;// +0x916 ?
 	bool	m917 = false;// +0x917
+	bool	m918 = false;// +0x918
+	bool	m919 = false;// +0x919
 	bool	m91a = false;// +0x91a ?
 	bool	m91b = false;// +0x91b ?
 	bool	m91c = false;// +0x91c ?
@@ -257,8 +276,8 @@ public:
 	bool	m924 = false;// +0x924 ?
 	float	m928 = 0.0f;// +0x928
 	float	m92c = 0.0f;// +0x92c ?
-	int	m930 = 0;// +0x930 ?
-	int	m934 = 0;// +0x934 ?
+	float	m930 = 0.0f;// +0x930 ?
+	float	m934 = 0.0f;// +0x934 ?
 	float	m938 = 0.0f;// +0x938
 	float	m940 = 0.0f;// +0x940
 	unsigned char	m948 = 0;// +0x948
@@ -284,6 +303,8 @@ public:
 	int	m194c = 0;// +0x194c ?
 	int	m1950 = 0;// +0x1950 ?
 	int	m1954 = 0;// +0x1954 ?
+	int	m1958 = 0;// +0x1958 the pointer's x
+	int	m195c = 0;// +0x195c the pointer's y
 	int	m1960 = 0;// +0x1960 ?
 	int	m1964 = 0;// +0x1964 ?
 	int	m196c = 0;// +0x196c ?
@@ -326,6 +347,7 @@ public:
 	int	m1a68 = 0;// +0x1a68 ?
 	int	m1a7c = 0;// +0x1a7c ?
 	int	m1a80 = 0;// +0x1a80 ?
+	int	m1a84 = 0;// +0x1a84
 	int	m1a8c = 0;// +0x1a8c ?
 	int	m1a98 = 0;// +0x1a98 ?
 	int	m1a9c = 0;// +0x1a9c ?
@@ -346,16 +368,20 @@ public:
 	int	m1b1c = 0;// +0x1b1c ?
 	int	m1b24 = 0;// +0x1b24 ?
 	int	m1b2c = 0;// +0x1b2c ?
+	int	m1b30 = 0;// +0x1b30
 	int	m1b38 = 0;// +0x1b38 ?
 	int	m1b3c = 0;// +0x1b3c ?
+	int	m1b40 = 0;// +0x1b40
 	int	m1b44 = 0;// +0x1b44 ?
 	int	m1b48 = 0;// +0x1b48 ?
+	int	m1b4c = 0;// +0x1b4c
 	int	m1b54 = 0;// +0x1b54 ?
 	int	m1b5c = 0;// +0x1b5c ?
 	int	m1b60 = 0;// +0x1b60 ?
 	int	m1b64 = 0;// +0x1b64 ?
 	int	m1b68 = 0;// +0x1b68 ?
 	int	m1b70 = 0;// +0x1b70 ?
+	int	m1b78 = 0;// +0x1b78
 	int	m1b9c = 0;// +0x1b9c ?
 	int	m1ba4 = 0;// +0x1ba4 ?
 	int	m1bbc = 0;// +0x1bbc ?
@@ -371,6 +397,8 @@ public:
 	// END FIELDS
 
 	Board();
+
+	virtual void	Update() override;                              // 0x479480 slot 17
 
 	// ---- the small helpers (BoardCore.cpp)
 	void			UpdateAnimCounters();                           // 0x433500
@@ -411,6 +439,24 @@ public:
 	void			AddScore(int thePoints, bool theForce);         // 0x433b90
 	void			SaveGameState();                                // 0x43a9a0
 	void			ResetGame();                                    // 0x450250
+
+	// ---- not translated yet (BoardStubs.cpp): each logs once and does nothing; named by address until they are read
+	void			Fn475040();                                     // 0x475040 (3341 bytes)
+	void			Fn465290();                                     // 0x465290 (1444 bytes)
+	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
+	void			Fn46e420();                                     // 0x46e420 (1356 bytes)
+	void			Fn46e9b0();                                     // 0x46e9b0 (1615 bytes)
+	void			Fn45ab90();                                     // 0x45ab90 (225 bytes)
+	void			Fn45e680();                                     // 0x45e680 (664 bytes)
+	void			Fn459040(bool theFlag, int theValue);           // 0x459040 (879 bytes)
+
+	// ---- the update (BoardUpdate.cpp)
+	void			RevealBricks();                                 // part of 0x479480: the bricks of a new field appear one by one
+	void			SweepSprockets();                               // part of 0x479480
+	void			SweepTurbots();                                 // part of 0x479480
+	bool			SpawnControl();                                 // part of 0x479480: the pieces that drop and the end of the game (true: the update ends)
+	void			UpdateExplosion();                              // part of 0x479480
+	void			UpdateSparks();                                 // part of 0x479480
 
 	// ---- the cursor's targets (BoardTarget.cpp)
 	void			FlashOnce(Brick* theBrick);

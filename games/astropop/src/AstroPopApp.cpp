@@ -45,6 +45,9 @@ AstroPopApp::AstroPopApp()
 	mOldSavesDeleted = false;
 	mOldScoresDeleted = false;
 	mTimer664 = 0;
+	mGameUpdates = 0;
+	mFlag6fc = false;
+	mHelpScreen = NULL;
 	mDialogFont = NULL;
 	for (int i = 0; i < 3; i++)
 		mGradient[i] = NULL;

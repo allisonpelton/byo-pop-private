@@ -57,6 +57,7 @@ public:
 	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
 	bool						mFlag65b = false;   // +0x65b set by the Board once a game has lasted 6000 updates
 	int							mTimer664;          // +0x664 counted down by UpdateFrames
+	int							mGameUpdates;       // +0x668 counted by the Board's Update while a game runs
 	Font*						mDialogFont;        // +0x66c FONT_DIALOG_BOX, set when the loading thread ends
 	MemoryImage*				mGradient[3];       // +0x674 +0x678 +0x67c 1 x 480 white, grey and dark ramps
 	std::vector<std::string>	mUserNames;         // +0x684 the names under the registry key Users
@@ -69,6 +70,8 @@ public:
 	bool						mFlag6f9;           // +0x6f9 ValidateUser: profile setting 0x13 (1 when missing) is not 0
 	bool						mFlag6fa;           // +0x6fa ValidateUser: profile setting 0x72 is 1
 	bool						mFlag6fb;           // +0x6fb ValidateUser: profile setting 0x73 (1 when missing) is 1
+	bool						mFlag6fc;           // +0x6fc (set by the help screen; read by the Board's Update)
+	Widget*						mHelpScreen;        // +0x69c the full-screen help (ShowFullScreenHelp), NULL for none
 	int							mMusicSlot;         // +0x6d8 the slot that plays (0 or 1)
 	int							mMusicOrder;        // +0x6dc the song position (order) that plays, -1 for none
 
@@ -112,6 +115,11 @@ public:
 	void			ResetFailedUserLoad();                      // 0x4298c0 a profile that could not be read starts again
 	void			ValidateUser();                             // 0x4285d0 the profile's settings checked and copied to the flags
 	void			ShowMainMenu();                             // 0x411490
+	void			CloseBoard();                               // 0x412320 the game goes (the Board is deleted when it is safe), the selector stays
+	void			ShowFullScreenHelp();                       // 0x422db0 (stub)
+	// port: the original keeps the left button's state in the application (+0x4e1), set by its mouse dispatcher; the
+	// widget manager's record of the buttons held for a widget is the same while the Board takes the clicks
+	bool			IsLeftButtonDown();
 	void			ShowNewUserDialog();                        // 0x40bc00 (stub)
 	void			ShowMessageDialog(const std::string& theHeader, const std::string& theText); // 0x411ba0 (stub): an OK box
 	// The screens the selector opens. Not translated yet: each one logs "not translated" and does nothing.

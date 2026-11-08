@@ -6,20 +6,27 @@
 a0	std::list<Brick*>	ma0
 a8	std::vector<void*>	ma8	freed by ClearField, element type not seen
 c8	std::vector<CellRef>	mc8
+d8	std::vector<BlinkRec>	md8	the 40 blinking pictures of the backdrop
 f8	std::vector<int>	mf8
 108	std::vector<Brick*>	m108	bricks (emptied by ClearField)
 118	std::vector<Brick*>	mTargeted	the bricks that flash because the piece in hand would hit them (HighlightTargets)
 128	std::set<Brick*>	m128	the bricks to delete (DeleteDoomedBricks)
+140	std::vector<FloatText*>	m140	the texts that float up the screen
 160	std::vector<PlanetRec>	m160	the planets (5 are stepped)
 170	std::vector<StreakRec>	m170	the streaks (100)
 190	std::vector<StarRec>	m190	the stars
 1a0	std::vector<CellRef3>	m1a0
+1b0	std::vector<FrameAnim*>	m1b0	the animations of the explosion at the end of a game (8)
 1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
 200	std::vector<CellRef3>	m200	?
 220	std::vector<StageBg*>	m220	the picture of each stage
 230	std::vector<Warp*>	m230
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
+2a0	std::vector<Particle*>	m2a0	the falling sparks of the energy mode
+2b0	std::vector<HintBox*>	m2b0	the hint boxes
+2d0	std::vector<DemoStep>	m2d0	the demo's steps
 2f8	Image*	m2f8	the lightning image now on the screen
+310	GoalChecker*	m310	the check of the level's goal
 314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
 324	std::vector<CellRef>	m324	the cells under the pointer that are lit (HoverCell)
 334	std::vector<std::vector<int> >	m334	the layout the field is built from: a brick type for each cell, -1 none (BuildField)
@@ -27,8 +34,11 @@ f8	std::vector<int>	mf8
 358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
 3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
 3d0	Color	m3d0	the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
+420	FrameAnim	m420
 4a0	FrameAnim	mSirenAnim	the siren (IMAGE_SIREN)
 5e0	FrameAnim	mAnim5e0	?
+620	FrameAnim	mAnim620
+648	bool	m648
 660	BoardOverlay	mOverlay	the widget over the field
 6c8	Color	m6c8
 6e0	bool	m6e0	?
@@ -45,9 +55,12 @@ f8	std::vector<int>	mf8
 7e8	int	m7e8	?
 7ec	int	m7ec	?
 808	PulsePair	m808
+8db	bool	m8db	the game is being recorded (RecordStep)
+8dc	bool	m8dc	the demo plays
 8dd	bool	m8dd	?
 8de	bool	m8de	?
 8e0	bool	m8e0	?
+8e1	bool	m8e1
 8e3	bool	m8e3	?
 8e4	bool	m8e4	?
 8e5	bool	m8e5	?
@@ -75,6 +88,7 @@ f8	std::vector<int>	mf8
 8fc	bool	m8fc	?
 8fd	bool	m8fd	?
 8fe	bool	m8fe	?
+8ff	bool	m8ff
 901	bool	m901	?
 905	bool	m905	?
 907	bool	m907	?
@@ -83,11 +97,14 @@ f8	std::vector<int>	mf8
 90b	bool	m90b	?
 90d	bool	m90d	?
 90e	bool	m90e	?
+90f	bool	m90f
 910	bool	m910
 911	bool	m911	?
 912	bool	m912	?
 916	bool	m916	?
 917	bool	m917
+918	bool	m918
+919	bool	m919
 91a	bool	m91a	?
 91b	bool	m91b	?
 91c	bool	m91c	?
@@ -98,8 +115,8 @@ f8	std::vector<int>	mf8
 924	bool	m924	?
 928	float	m928
 92c	float	m92c	?
-930	int	m930	?
-934	int	m934	?
+930	float	m930	?
+934	float	m934	?
 938	float	m938
 940	float	m940
 948	unsigned char	m948
@@ -125,6 +142,8 @@ f8	std::vector<int>	mf8
 194c	int	m194c	?
 1950	int	m1950	?
 1954	int	m1954	?
+1958	int	m1958	the pointer's x
+195c	int	m195c	the pointer's y
 1960	int	m1960	?
 1964	int	m1964	?
 196c	int	m196c	?
@@ -167,6 +186,7 @@ f8	std::vector<int>	mf8
 1a68	int	m1a68	?
 1a7c	int	m1a7c	?
 1a80	int	m1a80	?
+1a84	int	m1a84
 1a8c	int	m1a8c	?
 1a98	int	m1a98	?
 1a9c	int	m1a9c	?
@@ -187,16 +207,20 @@ f8	std::vector<int>	mf8
 1b1c	int	m1b1c	?
 1b24	int	m1b24	?
 1b2c	int	m1b2c	?
+1b30	int	m1b30
 1b38	int	m1b38	?
 1b3c	int	m1b3c	?
+1b40	int	m1b40
 1b44	int	m1b44	?
 1b48	int	m1b48	?
+1b4c	int	m1b4c
 1b54	int	m1b54	?
 1b5c	int	m1b5c	?
 1b60	int	m1b60	?
 1b64	int	m1b64	?
 1b68	int	m1b68	?
 1b70	int	m1b70	?
+1b78	int	m1b78
 1b9c	int	m1b9c	?
 1ba4	int	m1ba4	?
 1bbc	int	m1bbc	?
