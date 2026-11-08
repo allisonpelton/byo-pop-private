@@ -156,6 +156,10 @@ public:
 	void setKnob(PGSprite* theKnob);
 };
 
+class PGDialog;
+// port: the open dialog on top, or nullptr when none is open (the test commands, src/TestCommands.cpp)
+PGDialog* TopDialog();
+
 class PGDialog
 {
 public:

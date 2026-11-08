@@ -169,3 +169,5 @@ Each game's README covers its game files, options, mods and tests.
   any game's publisher. The games' code, art, music and sounds remain their owners' property; use your own copies.
 - [SDL2](https://libsdl.org) (zlib license), [libxmp-lite](https://github.com/libxmp/libxmp) (MIT),
   [stb_image / stb_vorbis / stb_image_write](https://github.com/nothings/stb) (public domain / MIT).
+- This software is based in part on the work of the [Independent JPEG Group](https://www.ijg.org) (libjpeg 6b decodes the
+  games' JPEG images, as it does in the originals; `third_party/libjpeg/README`).

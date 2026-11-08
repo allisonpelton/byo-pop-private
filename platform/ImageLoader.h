@@ -54,8 +54,9 @@ using ImageGenerator = std::function<bool(const std::string& theGamePath, Loaded
 void SetImageGenerator(ImageGenerator theGenerator);
 
 // Decodes an image file from memory into ARGB. Returns false on failure. Registered formats
-// (RegisterImageFormat) whose detector accepts the data are tried first, then stb_image (PNG, JPEG, GIF,
-// BMP, TGA, ...). theHasAlpha is set when any pixel's alpha is not 255.
+// (RegisterImageFormat) whose detector accepts the data are tried first, then JPEGs go through IJG libjpeg 6b
+// (DecodeJPEG), then stb_image (PNG, GIF, BMP, TGA, ... and any JPEG libjpeg refuses). theHasAlpha is set when any
+// pixel's alpha is not 255.
 bool DecodeImage(const std::vector<uint8_t>& theData, int& theWidth, int& theHeight, std::vector<uint32_t>& theBits, bool* theHasAlpha);
 
 // An image format besides the ones stb_image reads. A game that needs one (JPEG 2000: Platform::
@@ -93,6 +94,28 @@ void ClearImageScaleOverrides();
 void AddImagePatch(const std::string& theTarget, const std::string& thePatchPath, int theX, int theY, int theScale, bool theReplace);
 void ClearImagePatches();
 void ApplyImagePatches(const std::string& theGamePath, LoadedImage& theImage);
+
+// ---- JPEG through IJG libjpeg 6b (platform/JPEGDecoder.cpp) ----
+// The games' own exes decode JPEGs with libjpeg 6b (PopCap's ImageLib), with its default settings; stb_image
+// rounds some pixels differently (by up to 3 levels on about 1% of them), so a port that must match the original's
+// pixels decodes JPEGs here. DecodeImage and LoadGameImage already do. Game code that decodes image data itself
+// (a host that gets bytes from a pak or a SWF) calls one of these instead of stbi_load_from_memory.
+
+// True when theData starts with a JPEG's SOI marker (FF D8 FF).
+bool IsJPEG(const uint8_t* theData, size_t theSize);
+
+// Decodes a JPEG exactly as libjpeg 6b does with its defaults. Returns false for data that is not a JPEG, that
+// libjpeg rejects (a cut-off file is not rejected: it decodes as far as it goes, as in the games) or that has
+// four components (CMYK). theComponents is 3 (RGB, rows from the top) or 1 (grey).
+bool DecodeJPEG(const uint8_t* theData, size_t theSize, int& theWidth, int& theHeight, int& theComponents,
+	std::vector<uint8_t>& thePixels);
+
+// stbi_load_from_memory with the same arguments and result (8-bit pixels from malloc, freed with stbi_image_free
+// or free; theRequired 0 keeps the file's own component count), but a JPEG that libjpeg can decode goes through
+// DecodeJPEG; every other image, and any JPEG it cannot, through stb_image. Components stb_image would convert
+// (theRequired of 1, 2 or 4 from an RGB file, or a grey file asked for RGB) are converted the same way.
+uint8_t* LoadImageFromMemory(const uint8_t* theData, int theSize, int* theWidth, int* theHeight, int* theComponents,
+	int theRequired);
 
 }
 

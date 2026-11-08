@@ -26,7 +26,7 @@ set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_op
   _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy
   _byopop_cursor_set_copy
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
-  _byopop_update_count _byopop_hold_updates_at _byopop_perf_json)
+  _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_perf_json)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
 # the player-only test page's live command (framework/SexyAppBase.cpp, docs/TEST_COMMANDS.md "Sending them")
 list(APPEND BYOPOP_WEB_EXPORTED_FUNCTIONS _byopop_test_command)
@@ -257,7 +257,7 @@ endif()
 # in web/licenses/ that the page is built from. LICENSES adds a game's own libraries (BookWorm: libopenmpt).
 # Sets <var> to the generated template in the build folder, for --shell-file. Both files are rewritten only when
 # their text changes, and CMake runs again when one of their inputs changes. byopop_web_game() calls it.
-set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libxmp-lite tremor minimp3)
+set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libjpeg libxmp-lite tremor minimp3)
 set(BYOPOP_WEB_TOOLCHAIN_LICENSES emscripten musl)
 
 function(byopop_write_if_changed path text)
@@ -1113,7 +1113,7 @@ if(EMSCRIPTEN)
   # The music player's decoder (web/music/openmpt_web.c, web/music.js; docs/WEB_PLAYER.md, "The music player"): libopenmpt on its
   # own, as openmpt.js and openmpt.wasm beside the pages, which the listing page loads when its Music tab is first opened
   add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c)
-  target_link_libraries(byopop_openmpt PRIVATE openmpt stb)
+  target_link_libraries(byopop_openmpt PRIVATE openmpt xmp_lite stb)
   set_target_properties(byopop_openmpt PROPERTIES OUTPUT_NAME openmpt SUFFIX ".js" LINKER_LANGUAGE CXX)
   target_compile_options(byopop_openmpt PRIVATE -O2)
   target_link_options(byopop_openmpt PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopOpenMPT" "-sALLOW_MEMORY_GROWTH=1"

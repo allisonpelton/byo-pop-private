@@ -29,36 +29,9 @@ using namespace Sexy;
 TitleScreen::TitleScreen(MummyApp* theApp) :
 	mApp(theApp),
 	mProgress(0.0),
-	mDelayProgress(0.0),
-	mPlayShown(false),
-	mClicked(false)
+	mPlayShown(false)
 {
-	// port: the shareware branches (plays remaining, the register link, the delay) are not ported; the screen
-	// takes the registered path (docs/GAME_NOTES.md)
-	int aGames = mApp->mTimesPlayed;
-	if (aGames < 0xb)
-		mDivisor = 10;
-	else if (aGames < 0x15)
-		mDivisor = aGames;
-	else if (aGames < 0x1f)
-		mDivisor = aGames * 2 - 0x14;
-	else
-		mDivisor = 0x50;
-	if (aGames < 2)
-		mPlaysShown = 0;
-	else if (aGames < 10)
-		mPlaysShown = aGames;
-	else
-		mPlaysShown = 2;
-	mDelayed = !((aGames < 0x1e) || mApp->mIsRegistered);
-
-	mRegisterLink = new HyperlinkWidget(0, this);
-	mRegisterLink->SetFont(mApp->mHeaderFont);
-	mRegisterLink->mColor = Color(0x93, 0xfa, 0x17);
-	mRegisterLink->SetVisible(!mApp->mIsRegistered);
-	mRegisterLink->mUnderlineSize = 0;
-	mRegisterLink->mLabel = GT(0x00495524);
-
+	// port: the registered game (no plays counted, no register link, no delay; docs/GAME_NOTES.md)
 	mPlayLink = new HyperlinkWidget(1, this);
 	mPlayLink->SetFont(mApp->mBiggestFont);
 	mPlayLink->mUnderlineSize = 0;
@@ -69,7 +42,6 @@ TitleScreen::TitleScreen(MummyApp* theApp) :
 
 TitleScreen::~TitleScreen()
 {
-	delete mRegisterLink;
 	delete mPlayLink;
 }
 
@@ -77,14 +49,12 @@ TitleScreen::~TitleScreen()
 void TitleScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
-	theWidgetManager->AddWidget(mRegisterLink);
 	theWidgetManager->AddWidget(mPlayLink);
 }
 
 void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
-	theWidgetManager->RemoveWidget(mRegisterLink);
 	theWidgetManager->RemoveWidget(mPlayLink);
 }
 
@@ -92,9 +62,7 @@ void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 void TitleScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
-	int aWidth = mRegisterLink->mFont->StringWidth(mRegisterLink->mLabel);
-	mRegisterLink->Resize((mWidth - aWidth) / 2, 0x19c, aWidth, 0x1d);
-	aWidth = mPlayLink->mFont->StringWidth(mPlayLink->mLabel);
+	int aWidth = mPlayLink->mFont->StringWidth(mPlayLink->mLabel);
 	mPlayLink->Resize((mWidth - aWidth) / 2, 0x1bb, aWidth, 0x20);
 }
 
@@ -117,26 +85,22 @@ void TitleScreen::Update()
 			MarkDirty();
 		}
 	}
-	mRegisterLink->SetVisible(!mApp->mIsRegistered);
-	if (mApp->mIsRegistered && !mPlayLink->mVisible && mPlayShown)
+	if (!mPlayLink->mVisible && mPlayShown)
 	{
 		mPlayLink->SetVisible(true);
 		MarkDirty();
 	}
-	if (mApp->mIsRegistered)
-		mDelayed = false;
 }
 
 // 0x42aaf0
 void TitleScreen::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_TITLE], 0, 0);
-	if (mApp->mIsRegistered)
-		g->DrawImage(mApp->mImages[IMAGE_TRIALCIRCLE], 0, 0x17f);
+	g->DrawImage(mApp->mImages[IMAGE_TRIALCIRCLE], 0, 0x17f);
 	int aBar = (int) (mProgress * 340.0);
 	g->DrawImage(mApp->mImages[IMAGE_TITLEBAR], 0x93, 0x183, Rect(0, 0, aBar, 0x18));
 	g->SetFont(mApp->mHeaderFont);
-	SexyString aMessage = mApp->mIsRegistered ? GT(0x00495540) : GT(0x00495558);
+	SexyString aMessage = GT(0x00495540);
 	g->SetColor(Color(0, 0, 0));
 	for (int dx = -1; dx < 1; dx++)
 		for (int dy = -1; dy < 1; dy++)
@@ -160,10 +124,8 @@ void TitleScreen::Draw(Graphics* g)
 // 0x42b330
 void TitleScreen::ButtonDepress(int theId)
 {
-	if (theId == 0)
-		mClicked = true;
-	if (!mApp->mQuitLink)
-		mApp->TitleDone();
+	(void) theId;		// the play link's
+	mApp->TitleDone();
 }
 
 void TitleScreen::ButtonPress(int theId)
@@ -388,16 +350,13 @@ void MainMenu::ButtonDepress(int theId)
 		mApp->mClassicChamber = 0;
 		mApp->mClassicPyramid = 0;
 		mApp->mScore = 0;
-		if (mApp->mIsRegistered)
-		{
-			// the data for the Internet score list start over: a byte, the registered name and code (the port has neither) and
-			// the time
-			mApp->mScoreBuffer.Clear();
-			mApp->mScoreBuffer.WriteByte(1);
-			mApp->mScoreBuffer.WriteString("");
-			mApp->mScoreBuffer.WriteString("");
-			mApp->mScoreBuffer.WriteLong((long) time(NULL));
-		}
+		// the data for the Internet score list start over: a byte, the registered name and code (the port has neither) and
+		// the time
+		mApp->mScoreBuffer.Clear();
+		mApp->mScoreBuffer.WriteByte(1);
+		mApp->mScoreBuffer.WriteString("");
+		mApp->mScoreBuffer.WriteString("");
+		mApp->mScoreBuffer.WriteLong((long) time(NULL));
 		mApp->StartClassicOrContinue();
 		return;
 	case 1:

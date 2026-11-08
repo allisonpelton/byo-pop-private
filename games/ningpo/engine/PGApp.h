@@ -189,26 +189,13 @@ public:
 		const char** theSounds, const char* theBackground, const char* theBottomLeft, const char* theBottomRight,
 		const char* theProgress, int theX, int theY, float theTotal, const char* theText, HFont* theFont);
 
-	// 0x40f890 (slot 0x14): the partner's site; 0x40f080 (slot 0x18): the purchase page. theDefault unless the
-	// archive or the registry gives another
-	void openPartnerURL(const char* theDefault, const char* theCompany, const char* theProduct);
-	void openPurchaseURL(const char* theDefault, const char* theCompany, const char* theProduct);
-
 	// 0x4105a0 PGApp::messageDialog (slot 0x40): a background with OK and, when given, Cancel; theX or theY -1
 	// centres it; with theTimeout the OK button shows only after it. 1 for OK, 2 when the window was closed, else 0
 	int messageDialog(int theX, int theY, int theTimeout, const char* theBackground, const char* theOk,
 		const char* theOkLit, const char* theCancel, const char* theCancelLit);
-	// 0x410ae0 (slot 0x3c): a background, an OK button that opens the purchase page with theUrl* and closes, and an
-	// image revealed as a progress bar over theDuration milliseconds, after which the dialog closes
-	void startupDialog(const char* theBackground, int theX, int theY, const char* theOk, const char* theOkLit,
-		int theOkX, int theOkY, const char* theImage, int theImageX, int theImageY, int theDuration,
-		const char* theUrl, const char* theCompany, const char* theProduct);
 	// 0x40fe90 (slot 0x44): pages shown one at a time, with buttons to close and to go back and forth
 	bool slideshow(int theX, int theY, const char* theClose, const char* theCloseLit, const char* theNext,
 		const char* theNextLit, const char* thePrev, const char* thePrevLit, const char** thePages, int theCount);
-
-	// 0x40edb0 (slot 0x48): the registration keys checked; port: always registered
-	bool checkRegistration(const char* theCompany, const char* theProduct, int theKey, bool theOnline);
 
 private:
 	// 0x40f530: the loading screen's sprites
@@ -222,9 +209,6 @@ private:
 	void drawLoadProgress(float theProgress, const char* theText, HFont* theFont);
 	// 0x40f4f0
 	void releaseScreenSprites();
-	// 0x40f890 and 0x40f080 differ only in the registry value
-	void openURL(const char* theDefault, const char* theCompany, const char* theProduct, const char* theValue,
-		bool thePartner);
 };
 
 // 0x4c1d3c: the app (set by its constructor)
