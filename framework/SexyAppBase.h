@@ -396,7 +396,8 @@ public:
 	//                     close                 the window's close button: SDL_WINDOWEVENT_CLOSE, then SDL_QUIT
 	//                     screenshot, screenshotfull, quit  as in -script (done at once, not pushed)
 	//                   Full screen is Alt+Enter: "keydown Left Alt", "key Return", "keyup Left Alt". Other
-	//                   commands go to the game's HandleScriptCommand, run at once.
+	//                   commands go to the game's HandleScriptCommand, run at once; so does a bare "move" (no
+	//                   point), which asks the game's bot for its next move (docs/TEST_COMMANDS.md).
 	//   -commands=<file>  live commands, for a driver that decides as it goes (docs/TEST_COMMANDS.md, "Sending
 	//                   them"): it appends lines "<command> [args]" to the file (no update count; '#' comments and
 	//                   blank lines as in -script), and the framework reads the new whole lines between updates (each
