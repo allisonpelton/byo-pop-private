@@ -753,6 +753,7 @@ try {
     }
     // a game whose files are here: its cap can be dragged into the recycle bin (web/addgames.js), which lists such games too
     badge.draggable = info.state === "yes";
+    capStudies(badge, card, info);
     card.setAttribute("data-files", info.state);
     label.textContent = ByopopStrings.t(WORDS[info.state]);
     label.className = "own own-" + info.state;
@@ -798,6 +799,46 @@ try {
   }
 
   // How much the game was played here (ByopopPlay), once it has been: "3 plays · 2 h 15 min", then "Last played 1 Nov 2026"
+  // The cap board's studies (docs/WEB_PLAYER.md, "Skins"), drawn only in a skin (web/skins.css), on the cap of a game whose
+  // files are here; all of it from what this browser already keeps (ByopopPlay, ByopopGameFiles), and hidden from assistive
+  // technology, since the card's own text says the same:
+  //   the record under the cap: plays, play time and the last day, shown when the cap flips (hover, or the card's focus)
+  //   the print of the copy: a year stamp when its exe was built in the game's first year (data-released), a ring for a later
+  //     re-release (built two years after or more), nothing between (ByopopExeIcon.built); no store is named
+  //   wear from play: a scratch at 10 hours, a dent and a tilt at 40, patina at 100 (data-wear 1 to 3)
+  //   the date under the crimp: the day this copy came in (the record's opened)
+  function capStudies(badge, card, info) {
+    Array.prototype.slice.call(badge.querySelectorAll(".cap-x")).forEach(function (e) { e.remove(); });
+    ["data-wear", "data-print"].forEach(function (a) { badge.removeAttribute(a); });
+    if (info.state !== "yes") return;
+    function add(cls, text) { var e = make("span", text || ""); e.className = "cap-x " + cls; e.setAttribute("aria-hidden", "true"); badge.appendChild(e); return e; }
+    var play = info.play, hours = play ? play.seconds / 3600 : 0;
+    var wear = hours >= 100 ? 3 : hours >= 40 ? 2 : hours >= 10 ? 1 : 0;
+    if (wear) { badge.setAttribute("data-wear", String(wear)); add("cap-wear"); }
+    var released = parseInt(card.getAttribute("data-released") || "", 10);
+    if (info.built && released) {
+      if (info.built <= released) { badge.setAttribute("data-print", "first"); add("cap-year", String(info.built)); }
+      else if (info.built >= released + 2) { badge.setAttribute("data-print", "later"); add("cap-ring"); }
+    }
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(info.opened || "");
+    if (m) {
+      var opened = info.opened;
+      // short, as a bottling date on a rim is
+      try { opened = new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(undefined, { year: "2-digit", month: "numeric", day: "numeric" }); } catch (e) {}
+      add("cap-date", opened);
+    }
+    if (play && play.plays > 0) {
+      var back = add("cap-back");
+      back.appendChild(make("b", ByopopStrings.t("index.cap.plays", {n: play.plays})));
+      back.appendChild(make("span", ByopopPlay.duration(play.seconds)));
+      var lm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(play.last || "");
+      if (lm) {
+        var last = play.last === ByopopPlay.today() ? ByopopStrings.t("index.played_today") : play.last;
+        try { if (play.last !== ByopopPlay.today()) last = new Date(+lm[1], +lm[2] - 1, +lm[3]).toLocaleDateString(undefined, { month: "short", day: "numeric" }); } catch (e) {}
+        back.appendChild(make("span", last));
+      }
+    }
+  }
   function showPlayed(card, play) {
     var line = card.querySelector(".played");
     if (!play || !(play.plays > 0 || play.seconds > 0)) { if (line) line.hidden = true; return; }
@@ -877,7 +918,8 @@ try {
           var listed = names !== null && names.indexOf(persist) >= 0;
           var info = { state: "unknown", played: false, loaded: rec && rec.loaded, forgotten: rec && rec.forgotten, saves: hasBackup(persist),
             everLoaded: ByopopGameFiles.everLoaded(rec), play: plays[id] || null,
-            icon: (rec && ByopopGameFiles.present(rec) && rec.icon) || "" };
+            icon: (rec && ByopopGameFiles.present(rec) && rec.icon) || "",
+            built: (rec && ByopopGameFiles.present(rec) && rec.built) || 0, opened: (rec && ByopopGameFiles.present(rec) && rec.opened) || "" };
           if (rec && ByopopGameFiles.present(rec) && (names === null || listed)) {
             // the record says the files are there, and the database that holds them is
             info.state = "yes";
@@ -996,6 +1038,20 @@ try {
     for (const a of document.querySelectorAll("a.tile")) a.search = "?silent=1";
   }
 } catch (e) {}
+</script>
+<script>
+// Desktop 95's windows on the listing (web/skins.js, ByopopSkin.desk): the games and the page's notes are windows of their own,
+// with their icons, kept where the player leaves them ("index" in byopop-desk); drawn only in that skin, on a wide screen
+try {
+  (function () {
+    var d = ByopopSkin.desk, head = document.querySelector(".site-header");
+    d.add(document.querySelector("main"), { id: "games", title: ByopopStrings.t("skin.desk.games"), closable: true,
+      at: function (left) { return [left, head ? head.offsetTop + head.offsetHeight + 4 : 12]; } });
+    d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true,
+      at: function (left) { var g = d.find("games"); return [left, g ? g.y + g.el.offsetHeight + 16 : 12]; } });
+    ByopopSkin.deskSync();
+  })();
+} catch (e) { console.warn("the desktop's windows could not be added", e); }
 </script>
 </body>
 </html>

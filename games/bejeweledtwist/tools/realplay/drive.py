@@ -27,6 +27,7 @@ client point scaled by the client area's size, so it also hits a full-screen win
 """
 import ctypes
 import ctypes.wintypes as wt
+import json
 import os
 import subprocess
 import sys
@@ -305,6 +306,58 @@ def main():
                 u32.PostMessageW(hwnd, WM_LBUTTONDOWN, 1, point(x, y))
                 u32.PostMessageW(hwnd, WM_LBUTTONUP, 0, point(x, y))
                 time.sleep(pause)
+        elif c == 'play':  # play <seconds> [shot every n moves]: the port's own bot chooses, this sends its input
+            # The game's -script asks "state" and then "move" at the same update, every so often; a MOVE that follows a
+            # STATE of an idle board is the twist to make now (docs/TEST_COMMANDS.md, "The bot behind move"). It ends
+            # when a STATE shows the game left (another screen, or the game over), or after <seconds>.
+            limit = float(v[0])
+            every = int(v[1]) if len(v) > 1 else 0
+            src = open(os.path.join(out, 'stdout.txt'))
+            src.seek(0, 2)
+            state, fresh, made, t0, buf, last = None, False, 0, time.time(), '', None
+            while time.time() - t0 < limit and proc.poll() is None:
+                chunk = src.read()
+                if not chunk:
+                    time.sleep(0.05)
+                    continue
+                buf += chunk
+                *done, buf = buf.split('\n')
+                for ln in done:
+                    if ln.startswith('STATE '):
+                        state = json.loads(ln[6:])
+                        last = state
+                        fresh = state.get('screen') == 'game' and not state.get('busy') and not state.get('over')
+                    elif ln.startswith('MOVE ') and fresh:
+                        fresh = False
+                        mv = json.loads(ln[5:])
+                        if mv is None:
+                            continue
+                        for step in mv['input']:
+                            if 'move' in step:
+                                x, y = step['move']
+                                move(x - 8, y - 8)  # the board takes the square under the cursor in its update
+                                time.sleep(0.25)
+                                move(x, y)
+                                time.sleep(0.25)
+                            elif 'click' in step:
+                                x, y = step['click']
+                                move(x, y)
+                                u32.PostMessageW(hwnd, WM_LBUTTONDOWN, 1, point(x, y))
+                                u32.PostMessageW(hwnd, WM_LBUTTONUP, 0, point(x, y))
+                        made += 1
+                        what = ('r%d c%d%s' % (mv['row'], mv['col'], ' bomb' if mv['bomb'] else '')
+                                if mv['kind'] == 'twist' else mv['kind'])
+                        print('  move %d %s score %s' % (made, what, state.get('score')), file=log, flush=True)
+                        if every and made % every == 0:
+                            open(req, 'w').write(os.path.abspath(os.path.join(out, 'play%03d.png' % made)))
+                if last is not None and last.get('screen') != 'game' and made:
+                    break
+                if last is not None and made and last.get('over'):
+                    break
+            summary = {k: last.get(k) for k in ('screen', 'mode', 'level', 'score', 'moves', 'timer', 'over')
+                       if last and k in last}
+            print('  play: %d moves in %.0f s, last %s' % (made, time.time() - t0, json.dumps(summary)), file=log,
+                  flush=True)
         elif c == 'ready':  # until the game is updating (it answers a shot request), at most <seconds>
             png = os.path.abspath(os.path.join(out, '_ready.png'))
             t0 = time.time()

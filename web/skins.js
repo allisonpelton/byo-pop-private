@@ -192,12 +192,13 @@ var ByopopSkin = (function () {
       try { var o = JSON.parse(window.localStorage.getItem(DESK_KEY) || "{}"); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }
       catch (e) { return {}; }
     }
-    function saved() { var o = store(); return (pageGame && o[pageGame] && typeof o[pageGame] === "object") ? o[pageGame] : {}; }
+    // a game page's layout is kept under its id, the listing's under "index"
+    function pageKey() { return pageGame || "index"; }
+    function saved() { var o = store(), k = pageKey(); return (o[k] && typeof o[k] === "object") ? o[k] : {}; }
     function save() {
-      if (!pageGame) return;
       var o = store(), mine = {};
       wins.forEach(function (w) { if (w.placed) mine[w.id] = { x: w.x, y: w.y, closed: !!w.closed }; });
-      o[pageGame] = mine;
+      o[pageKey()] = mine;
       try { window.localStorage.setItem(DESK_KEY, JSON.stringify(o)); } catch (e) {}
     }
     function dpr() { return window.devicePixelRatio || 1; }
@@ -353,9 +354,9 @@ var ByopopSkin = (function () {
              raise: function (id) { var w = find(id); if (w && on) raise(w); },
              place: function (id) { var w = find(id); if (w && on) place(w); } };
   })();
-  // a game page (one with a workspace) in Desktop 95, wide enough for windows
+  // a game page (one with a workspace) or the listing (its games' heading) in Desktop 95, wide enough for windows
   function deskWanted() {
-    return root.getAttribute("data-skin") === "d95" && !!document.getElementById("workspace") &&
+    return root.getAttribute("data-skin") === "d95" && !!(document.getElementById("workspace") || document.getElementById("games-title")) &&
       (document.documentElement.clientWidth || window.innerWidth) >= DESK_MIN;
   }
   function deskSync() { if (document.body) desk.setOn(deskWanted()); }

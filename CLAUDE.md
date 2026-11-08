@@ -21,7 +21,8 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   and a web build under Node (`node games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled.js ...`) open no
   window, play no sound and open no URL. A web build under Node still counts as a game process.
 - **Originals** run only through `tools/origrun` (`docs/ORIGRUN.md`: what it does, its status table for each game, its
-  gaps), from a copy under build/, invisibly under rundesk; an install folder is never written to or run in place.
+  gaps), from a copy under build/, invisibly under rundesk (origrun puts the game there itself: start origrun directly, never
+  wrapped in rundesk); an install folder is never written to or run in place.
   origrun is silent by default (rundesk silences only SDL): its stand-in also serves the DirectSound a copy asks COM
   for (BASS in Alchemy, Pixelus and Rocket Mania) and mutes the copy's audio sessions as it loads, so nothing reaches
   the speakers, and a run's RESULT line says `SOUND LEAK` if anything did. A copy keeps the stand-in its last run

@@ -111,10 +111,20 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Bookworm Adventures Volume 2 start after the weekly reset (2026-11-08 00:00 UTC), five at a time again. That week
   also makes each game's fixes mod (the user, 2026-11-04: "next week will have a bunch of that in addition to
   finishing phase 2 of identical play"; `docs/MOD_ROADMAP.md`, "The fixes mod").
-- **No limit, flat out, and three early ports (the user, 2026-11-07):** "No limit on concurrent sessions while getting
-  all current games to their finished state", run flat out to the 97% cap ("Flat out to the cap"). And "some of the
-  remaining decomps are simple enough to run concurrently": Typer Shark, AstroPop and Bejeweled 2 start now, beside
-  the finishing work, an exception to "no new port until all are done". The rest of the easier group waits as before.
+- **Twelve at work, flat out, and three early ports (the user, 2026-11-07):** "No limit on concurrent sessions while
+  getting all current games to their finished state", run flat out to the 97% cap ("Flat out to the cap"), until 21
+  sessions at work filled the machine and two crashed (exit 0xC0000409, with 2.6 GB of 32 GB free, 60 of 67 GB
+  committed and every core busy). Then: "Too many sessions, some crashed. Set a comfortable limit to avoid this
+  happening again." The limit is 12 sessions at work besides the coordinator, where at work means in a turn or waiting
+  on a run of its own. Each session's own process holds about 0.6 GB even while idle, and its builds, decompiles, games
+  and sandboxes come on top in bursts. Before waking one, the coordinator also checks the machine: under 6 GB free, or
+  over 80% of the commit limit, means waiting even below 12. A session past the limit waits idle with nothing running,
+  on a background wait for its own file (`until [ -f <main checkout>/build/slots/<name>.go ]; do sleep 60; done; cat`
+  the file). When a slot frees, the coordinator writes that file with any news for the session. Such a wake costs no
+  message (the app's limit of 10 since the user last typed). A crashed session comes back only into a free slot. And
+  "some of the remaining decomps are simple enough to run concurrently": Typer Shark, AstroPop and Bejeweled 2 start
+  now, beside the finishing work, an exception to "no new port until all are done". The rest of the easier group waits
+  as before.
   JPEG: IJG libjpeg, the library the games use, replaces stb_image for JPEG images ("Add IJG libjpeg"; the download of
   jpegsrc.v6b.tar.gz from ijg.org approved), so no game lists a JPEG deviation.
 - **Reports still open from the user's test notes (cleared 2026-11-04):** each goes to its game's session with its

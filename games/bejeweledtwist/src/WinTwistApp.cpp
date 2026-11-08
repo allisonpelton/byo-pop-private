@@ -962,6 +962,8 @@ void WinTwistApp::UpdateFrames()
 		mCredits = nullptr;
 	}
 	SexyApp::UpdateFrames();
+	if (mTestGotoMode != -1)
+		UpdateTestGoto();
 	// The tracked sounds: the ended ones are released, the others follow mSfxVolumeScale
 	for (size_t i = 0; i < mTrackedSounds.size(); i++) {
 		TrackedSound& aSound = mTrackedSounds[i];
