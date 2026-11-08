@@ -2,7 +2,8 @@
 // level buttons by their places, and in the game each move the port's own bot chooses (the test command "move",
 // docs/TEST_COMMANDS.md), sent as the page's mouse events: a ball pressed, carried and let go, a right click to submit.
 // ?mode= tsunami, relax or think (tsunami by default), ?seconds= the time limit (600), ?levels= how many levels before
-// it leaves the game by its own Save/Quit, Quit (0: until the game is over). The name entry gets ?name= (WHP).
+// it leaves the game by its own Save/Quit, Quit (0: until the game is over), ?level= a level to start at by the test
+// commands (the buttons otherwise). The name entry gets ?name= (WHP).
 // Opened as .../wordharmony.html?player=1&silent=1&assets=1&driver=games/wordharmony/tools/web/onegame.js
 var params = new URLSearchParams(location.search);
 var mode = params.get("mode") || "tsunami";
@@ -46,8 +47,8 @@ async function click(x, y, button) {
 async function send(m) {
   for (var st of m.input || []) {
     if (st.move) await t.move(st.move.x, st.move.y);
-    else if (st.down) await t.down(st.down.x, st.down.y);
-    else if (st.up) await t.up(st.up.x, st.up.y);
+    else if (st.press) await t.down(st.press.x, st.press.y);
+    else if (st.release) await t.up(st.release.x, st.release.y);
     else if (st.click) await t.click(st.click.x, st.click.y, st.click.button || "left");
     else if (st.wait) await adv(st.wait);
     if (held && !st.wait) await t.step(1);
@@ -58,6 +59,16 @@ async function send(m) {
 // ?botdebug=1: the bot's plans on the log (the test command botdebug)
 if (params.get("botdebug")) await command("botdebug");
 await until(function (s) { return s.screen === "menu"; }, 600000, "the main menu");
+// ?level=<n>: that level by the test commands goto and level (docs/TEST_COMMANDS.md) instead of the buttons; the
+// rest is real input
+var startLevel = Number(params.get("level") || 0);
+if (startLevel > 0) {
+  await t.wait(150);
+  await command("goto " + mode);
+  await t.wait(100);
+  await command("level " + startLevel + " " + mode);
+  last = await until(function (s) { return s.screen !== "menu"; }, 600000, "the level");
+}
 // the menu's button, again while the menu still shows (a click during the menu's fade-in is not taken)
 for (var tries = 0; last.screen === "menu" && tries < 5; tries++) {
   await t.wait(150);
