@@ -42,7 +42,7 @@ Quirks kept (for the game notes): a loaded profile's stat groups hold 70 records
 back; `WriteDataToDisk` stores `mField1ec` where `LoadDataFromDisk` reads `mField1b4`; `RegisterDefaultUserName` always
 returns false; `SaveUser` does not free the profile it replaces.
 
-## Screens, widgets, dialogs (jobs S1, W1, D1, T1)
+## Screens, widgets, dialogs (jobs S1, W1, D1, D2, T1)
 - MenuScreen(WinWSApp*) (0x4436e0); TitleScreen(WinWSApp*), `AddControls()` (0x448f40), `mPlayButton` (+0x78);
   HighScoreScreen(WinWSApp*) (its +0x58 is set to the app's mProfileMgr).
 - MapScreen(WinWSApp*) (0x458d10, sizeof 0x238; +0x228 is the chosen level `mLevel`), `OnEnter()` (0x4533b0), `ResetScroll()`
@@ -50,6 +50,10 @@ returns false; `SaveUser` does not free the profile it replaces.
   `vector<ProfilePair*> mVector1c4`, `vector<MapNode*> mVector1d4`, mField1f8, mFlag224, mFlag234.
 - StatsScreen(WinWSApp*, int) (0x45baa0), `SetUser(UserProfile*)` (0x451050); StatusBar(WinWSApp*) (0x448a40, sizeof 0x88, a
   Widget; its height comes from `mImages[IMAGE_STATUSBARX]`, id 8).
+  The Board also calls `StatusBar::HideButtons()` (0x441f10: hides its buttons and sends the widget at +0x68 to the back),
+  `ShowButton(bool)` (0x441f80) and the Widget virtual `MouseLeave()`.
+- GameOverDialog(WinWSApp*, Player*, bool theEndless, int, int, int, int theScore) (ctor 0x43adb0) with `int mField11c` (+0x11c),
+  `std::string mRankTitle` (+0x128) and `int mField144` (+0x144, set only in an endless game); a Dialog2004, added as DIALOG_GAME_OVER.
 - TypingTutor (Widget and ButtonListener; ctor 0x460b30): `ButtonDepress(int)` (the ButtonListener object is at +0x58),
   `mFlag261`, `mFlag262`.
 - Dialogs: SelectUserDialog(WinWSApp*), OptionsDialog(WinWSApp*) (its check boxes), AbyssModeDialog(WinWSApp*, UserProfile*),

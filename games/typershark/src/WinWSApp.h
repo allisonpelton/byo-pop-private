@@ -270,7 +270,7 @@ public:
 	void					ShowMessageDialog(std::string theHeader, std::string theLines, std::string theButtonText, bool theFlatten); // 0x41bd80 (dialog 500)
 	void					ShowConfirmDialog(std::string theHeader, std::string theLines, std::string theFooter, bool theFlatten,
 								std::string theYesLabel, std::string theNoLabel);   // 0x41c4f0 (dialog 500 with two buttons)
-	void					ShowHintDialog(std::string theLines, std::string theHeader); // 0x41c8c0 (dialog 0x3f3; the header is "" in the original's callers)
+	void					ShowHintDialog(std::string theLines, std::string theHeader); // 0x41c8c0 (dialog 0x3f3; the header is "" in most callers; SpawnWave's boss warnings pass "DANGER!", text 0x530eb4)
 	void					ShowLevelIntro();                                       // 0x41cc60 (the hint box of the level that starts)
 	void					ShowNoWindowedModeMessage();                            // 0x41d030 (dialog 0x30b)
 	void					ShowMenuScreen();                                       // 0x41d5c0

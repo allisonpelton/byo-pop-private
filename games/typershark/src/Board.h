@@ -268,7 +268,7 @@ public:
 	void					SpawnWave();													// 0x455bf0 fills the lists from the lesson's next wave (and builds the boss by type)
 	void					PlaceEnemies(int theFirstNew);									// 0x452050 spreads the sharks and piranhas the spawner just added over the lanes
 	void					PlaceBonusCreatures(int theFirstNew);							// 0x442540 the same for the bonus creatures
-	void					AddPiranha();													// 0x452a60 a piranha with a word, when no shark is in state 3 (KeyChar calls it)
+	void					AddPiranha();													// 0x452a60 a penalty piranha with a letter, when a piranha that is not dying (state 3) is on the screen (KeyChar calls it)
 
 	// ---- BoardKeys.cpp (job B3) ----
 	virtual void			KeyChar(SexyChar theChar) override;								// 0x454e40 slot 20

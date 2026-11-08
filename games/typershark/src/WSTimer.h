@@ -15,7 +15,7 @@ namespace Sexy
 class WSTimer : public Widget
 {
 public:
-	int						mPausedTotal;	// +0x58 subtracted from the elapsed time; nothing ever adds to it
+	int						mPausedTotal;	// +0x58 subtracted from the elapsed time; Board::SetPaused adds the pause time to six timers
 	int						mStart;			// +0x5c update count at the last Reset
 	bool					mPaused;		// +0x60 set by SetDisabled (slot 10): a paused timer reads 0
 
