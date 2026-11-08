@@ -209,7 +209,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   in this phase, as part of finishing each game, before any further decomp begins (the user, 2026-11-07: "Move up the
   removal of all registration-related code to be part of the current phase before beginning other decomps"), and with
   it what a registered copy shows, such as a "thanks for registering" line (the user, 2026-11-08); a port not yet
-  translated leaves it out as it goes. So does every button that leads out of a game, "More Games" first, its
+  translated leaves it out as it goes. It is removed, not disabled: the registered path becomes the only one, with no
+  flag pinned to "registered", no hidden widget and no string or image left that only it used (a save file keeps a
+  field only so the file stays the original's format). So does every button that leads out of a game, "More Games" first, its
   neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). A performance pass (the user, 2026-11-03), then a readability pass
   (`docs/CODE_STANDARDS.md`) and taking out the other code the ports do not need come once every game is done
   (`docs/COORDINATION.md`). A session may speed up its own port before then, at any time, so its `-fast` test runs go
