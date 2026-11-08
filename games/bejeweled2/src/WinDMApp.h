@@ -176,6 +176,9 @@ public:
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
 	bool			HandleTestCommand(const ScriptCommand& theCommand);
 	std::string		TestScreen();
+	void			TestAdvanceGoto();      // one step towards the mode that "goto <mode>" asked for (called every update)
+	int				mTestGoto;              // the mode a goto waits to start, -1 for none
+	bool			mTestUnlock;            // "unlock all" was given before there was a profile
 	using SexyApp::SwitchScreenMode;
 	using SexyApp::AddDialog;
 	using SexyApp::PlaySample;

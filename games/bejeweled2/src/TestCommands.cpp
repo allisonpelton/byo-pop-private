@@ -10,6 +10,10 @@
 #include "MainMenu.h"
 #include "TitleScreen.h"
 #include "Profile.h"
+#include "UserDialogs.h"
+#include "HelpScreen.h"
+#include "GalaxyParser.h"
+#include "PuzzleStateOverlay.h"
 #include "HighScoreWidget.h"
 #include "EffectOverlay.h"
 #include "Hyperspace.h"
@@ -101,6 +105,67 @@ std::string WinDMApp::TestScreen()
 	if (mMainMenu != NULL)
 		return "menu";
 	return "loading";
+}
+
+// the counters that open the secret modes (Profile::IsModeUnlocked)
+static void UnlockAll(Profile* theProfile)
+{
+	if (theProfile->mModeLevel[0] < 17)
+		theProfile->mModeLevel[0] = 17;
+	if (theProfile->mModeLevel[1] < 8)
+		theProfile->mModeLevel[1] = 8;
+	if (theProfile->mTotal7C < 80)
+		theProfile->mTotal7C = 80;
+	if (theProfile->mModeLevel[3] < 280)
+		theProfile->mModeLevel[3] = 280;
+}
+
+// "goto <mode>" from anywhere: every update takes the step the screen in front calls for, as a player's clicks would
+// (the title's play link, the name of a first user, the welcome and other messages, the menu's mode button)
+void WinDMApp::TestAdvanceGoto()
+{
+	if (mTitleScreen != NULL)
+	{
+		if (!mTitleScreen->mLoadingCompleted)
+			LoadingCompleted();
+		return;
+	}
+	if (!mDialogMap.empty())
+	{
+		CreateUserDialog* aUser = dynamic_cast<CreateUserDialog*>(GetDialog(DIALOG_CREATE_USER));
+		if (aUser != NULL)
+		{
+			if (aUser->GetName().empty())
+				aUser->SetName("Tester");
+			FinishCreateUserDialog(true);
+		}
+		else
+			KillDialog(mDialogMap.begin()->first);
+		return;
+	}
+	if (mBoard != NULL || mMainMenu == NULL)
+	{
+		// from a game (or its end screen): back to the menu, as the game's own menu button does
+		DoMainMenu();
+		return;
+	}
+	if (mMainMenu->mState != MainMenu::STATE_READY || mMainMenu->mWelcomeTimer > 0 || mMainMenu->mUserDialogTimer > 0 ||
+		mMainMenu->mStartTimer > 0)
+		return;
+	if (mProfile == NULL || mProfile->mName.empty())
+	{
+		DoCreateUserDialog();
+		return;
+	}
+	int aMode = mTestGoto;
+	mTestGoto = -1;
+	if (mTestUnlock)
+	{
+		UnlockAll(mProfile);
+		mTestUnlock = false;
+	}
+	mMainMenu->SelectMode(aMode);
+	mMainMenu->StartGame();
 }
 
 bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
@@ -197,20 +262,14 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "only \"unlock all\"");
 			return true;
 		}
-		if (mProfile == NULL)
+		if (mProfile == NULL || mProfile->mName.empty())
 		{
-			ReplyError(theCommand, "no profile yet");
+			// no user yet: the goto that creates one unlocks when the menu is ready
+			mTestUnlock = true;
+			ReplyOK(theCommand);
 			return true;
 		}
-		// the counters that open the secret modes (Profile::IsModeUnlocked)
-		if (mProfile->mModeLevel[0] < 17)
-			mProfile->mModeLevel[0] = 17;
-		if (mProfile->mModeLevel[1] < 8)
-			mProfile->mModeLevel[1] = 8;
-		if (mProfile->mTotal7C < 80)
-			mProfile->mTotal7C = 80;
-		if (mProfile->mModeLevel[3] < 280)
-			mProfile->mModeLevel[3] = 280;
+		UnlockAll(mProfile);
 		ReplyOK(theCommand);
 		return true;
 	}
@@ -232,6 +291,14 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		if (anArgs == "title")
 		{
 			ReplyError(theCommand, "the game has no title screen to return to");
+			return true;
+		}
+		if (aMode >= 0)
+		{
+			// a mode: taken one update at a time from whatever screen is in front (TestAdvanceGoto), so it works from
+			// launch (title, first user, welcome) as well as from the menu and from a game
+			mTestGoto = aMode;
+			ReplyOK(theCommand);
 			return true;
 		}
 		if (aScreen == "loading")
@@ -259,21 +326,9 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "a dialog does not close");
 			return true;
 		}
-		if (anArgs == "menu")
-		{
-			if (mMainMenu == NULL || mBoard != NULL)
-				DoMainMenu();
-			ReplyOK(theCommand);
-			return true;
-		}
-		// a mode: the menu's own start
-		if (mMainMenu == NULL || mBoard != NULL || mMainMenu->mState != MainMenu::STATE_READY)
-		{
-			ReplyError(theCommand, "the menu is not ready (goto menu first, then wait for state menu 1)");
-			return true;
-		}
-		mMainMenu->SelectMode(aMode);
-		mMainMenu->StartGame();
+		// menu (the modes were taken above)
+		if (mMainMenu == NULL || mBoard != NULL)
+			DoMainMenu();
 		ReplyOK(theCommand);
 		return true;
 	}
@@ -284,13 +339,136 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		// hash of the board and the score so that a game does not repeat one move forever. FindMove only looks (it puts
 		// the gems back), so asking changes nothing, draws no random number of the game's and the same question gets the
 		// same answer. While the board is busy it says to wait.
+		if (mTestGoto != -1)
+		{
+			// a goto is still on its way to the mode (title, first user, menu)
+			Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
+			return true;
+		}
+		if (!mDialogMap.empty() && aBoard != NULL && mHighScoreWidget == NULL)
+		{
+			// a message in front of the game (a one-time hint or explanation): its button, as a click. The "yes" button is
+			// the OK or Continue of these; any other dialog gets its "no" (the quit and delete questions never answer yes)
+			int anId = mDialogMap.rbegin()->first;
+			Dialog* aDialog = mDialogMap.rbegin()->second;
+			bool aYesIsOK = anId == 13 || anId == 23 || anId == 24 || anId == 25 || anId == 26 || anId == 36 || anId == 38 ||
+				anId == 39;
+			Widget* aButton = NULL;
+			Widget* aList[2] = {aYesIsOK ? aDialog->mYesButton : aDialog->mNoButton, aYesIsOK ? aDialog->mNoButton : aDialog->mYesButton};
+			for (int i = 0; i < 2 && aButton == NULL; i++)
+			{
+				if (aList[i] != NULL && aList[i]->mVisible)
+					aButton = aList[i];
+			}
+			// a dialog that slides in or out (the How To Play screen, about 100 updates each way) is waited for: the button
+			// must stand still between two questions, and the help screen must be fully shown
+			static int sLastId = -1, sLastX = 0, sLastY = 0;
+			bool aMoving = aButton == NULL;
+			if (aButton != NULL)
+			{
+				aMoving = anId != sLastId || aButton->mX != sLastX || aButton->mY != sLastY;
+				sLastId = anId;
+				sLastX = aButton->mX;
+				sLastY = aButton->mY;
+				HelpScreen* aHelp = dynamic_cast<HelpScreen*>(aDialog);
+				if (aHelp != NULL && aHelp->mState != HelpScreen::STATE_SHOWN)
+					aMoving = true;
+			}
+			if (aMoving)
+				Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
+			else
+				Reply(StrFormat("MOVE {\"kind\":\"dialog\",\"id\":%d,\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]},{\"wait\":4}]}",
+					anId, aButton->mX + aButton->mWidth / 2, aButton->mY + aButton->mHeight / 2,
+					aButton->mX + aButton->mWidth / 2, aButton->mY + aButton->mHeight / 2));
+			return true;
+		}
 		if (!aPlaying)
 		{
-			Reply("MOVE null");
+			// a game that is starting or ending (the menu fading out, the end screen) is waited for; with no game, no move
+			if (aBoard != NULL && mHighScoreWidget == NULL)
+				Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
+			else
+				Reply("MOVE null");
 			return true;
 		}
 		if (mGameMode == Board::MODE_PUZZLE || mGameMode == Board::MODE_COGNITO)
 		{
+			// the planet's intro puzzle: the tutorial names every square to click, one after another (the gem, then the
+			// place it goes to), and ends on two buttons ("Show Again" and "Continue")
+			if (aBoard->mIsPlanetIntro && aBoard->mState == Board::STATE_IDLE && aBoard->mHyperspace == NULL &&
+				aBoard->mPauseCount == 0 && aBoard->mInterfacePauseCount == 0 && aBoard->mUnpauseDelay == 0)
+			{
+				Widget* aContinue = aBoard->mTutorialButton2;
+				if (aContinue != NULL)
+				{
+					// the buttons slide in: the same place twice running
+					static int sLastContinueX = -1, sLastContinueY = -1;
+					bool aStill = aContinue->mX == sLastContinueX && aContinue->mY == sLastContinueY && aContinue->mVisible &&
+						aContinue->mWidth > 0;
+					sLastContinueX = aContinue->mX;
+					sLastContinueY = aContinue->mY;
+					int aX = aContinue->mX + aContinue->mWidth / 2, aY = aContinue->mY + aContinue->mHeight / 2;
+					if (aStill)
+						Reply(StrFormat("MOVE {\"kind\":\"tutorial\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]},{\"wait\":4}]}",
+							aX, aY, aX, aY));
+					else
+						Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
+					return true;
+				}
+				if (aBoard->mTutorialStep < (int)aBoard->mTutorialMoves.size())
+				{
+					const TutorialMove& aStep = aBoard->mTutorialMoves[aBoard->mTutorialStep];
+					int aX = ScaleNum(aBoard->GetColX(aStep.mCol) + 42, 0), aY = ScaleNum(aBoard->GetRowY(aStep.mRow) + 42, 0);
+					Reply(StrFormat("MOVE {\"kind\":\"tutorial\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]},{\"wait\":4}]}",
+						aX, aY, aX, aY));
+					return true;
+				}
+				Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
+				return true;
+			}
+			// between puzzles (the dome with its five pods): the first pod that is not solved, chosen with two clicks on it (the
+			// first shows the pod, the second loads its puzzle); with all five solved, the dome itself (it warps on to the
+			// next planet)
+			if (aBoard->mPuzzleOverlay != NULL && aBoard->mState == Board::STATE_PUZZLE_SOLVED &&
+				aBoard->mScreenState == Board::SCREEN_SHOWN && aBoard->mHyperspace == NULL && aBoard->mPendingPod == -1 &&
+				aBoard->mPauseCount == 0 && aBoard->mInterfacePauseCount == 0 && aBoard->mUnpauseDelay == 0)
+			{
+				PuzzleStateOverlay* anOverlay = aBoard->mPuzzleOverlay;
+				int aPod = -1;
+				for (int i = 0; i < 5 && aPod == -1; i++)
+				{
+					if (!anOverlay->mPods[i].mSolved)
+						aPod = i;
+				}
+				// the middle of the places that hit the pod (or the dome)
+				long aSumX = 0, aSumY = 0, aHits = 0;
+				for (int y = 0; y < 360; y += 4)
+				{
+					for (int x = 0; x < 330; x += 4)
+					{
+						bool aHit = aPod >= 0 ? anOverlay->GetPodAt(x, y) == aPod : anOverlay->MouseOverDome(x, y);
+						if (aHit)
+						{
+							aSumX += x;
+							aSumY += y;
+							aHits++;
+						}
+					}
+				}
+				if (aHits == 0)
+				{
+					Reply("MOVE null");
+					return true;
+				}
+				int aX = (int)(aSumX / aHits), aY = (int)(aSumY / aHits);
+				if (aPod >= 0)
+					Reply(StrFormat("MOVE {\"kind\":\"pod\",\"pod\":%d,\"input\":[{\"move\":[%d,%d]},{\"wait\":2},{\"click\":[%d,%d]},{\"wait\":20},"
+						"{\"click\":[%d,%d]},{\"wait\":20}]}", aPod, aX, aY, aX, aY, aX, aY));
+				else
+					Reply(StrFormat("MOVE {\"kind\":\"dome\",\"input\":[{\"move\":[%d,%d]},{\"wait\":2},{\"click\":[%d,%d]},{\"wait\":20}]}",
+						aX, aY, aX, aY));
+				return true;
+			}
 			// the puzzle modes: the bot follows the puzzle's own solution file (the moves the hint shows)
 			if (aBoard->mState != Board::STATE_IDLE || aBoard->mSelectedPiece != NULL || aBoard->mHyperspace != NULL ||
 				aBoard->mPauseCount > 0 || aBoard->mInterfacePauseCount > 0 || aBoard->mUnpauseDelay > 0 ||

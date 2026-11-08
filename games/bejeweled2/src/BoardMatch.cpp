@@ -220,11 +220,11 @@ bool Board::FindSets()
 		}
 	}
 
-	m15e74 = 0;
+	mChainCount = 0;
 	for (int i = 0; i < (int)anExplodeList.size(); i++)
 	{
 		if (i > 0)
-			m15e74++;
+			mChainCount++;
 		ExplodeAt(anExplodeList[i].first, anExplodeList[i].second);
 	}
 
@@ -544,7 +544,7 @@ void Board::UpdateLightning()
 						int aBonus = (int)(mApp->GetInteger("ElectPowerBonus", 50) * mLevelValue);
 						DoPoints(aBonus, (int)(42.0 + aPiece->mX), (int)(aPiece->mY + 42.0 - 8.0),
 							gPointColors[aPiece->mType]);
-						m15e74 = 0;
+						mChainCount = 0;
 						ExplodeAt(aCol, aRow);
 					}
 					mApp->PlaySample(SOUND_ELECTRO_EXPLODE);

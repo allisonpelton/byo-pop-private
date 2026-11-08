@@ -191,7 +191,6 @@ public:
 	double			mLevelValue;        // +0x15e28 the points of a cleared gem
 	int				mBackdropNum;       // +0x15f74
 	bool			mCheated;           // +0x165b0
-	int				mChainCount;
 	bool			mExplodeHappened;
 	int				mDoneClearingCount;
 	int				mLastExplodeSoundTick;
@@ -324,7 +323,8 @@ public:
 	int				mHintCountdown;     // +0x15e1c
 	double			m15e30, m15e38;
 	int				m15e40, m15e44, m15e48, m15e4c, m15e50, m15e54, m15e58;
-	int				m15e6c, m15e70, m15e74;
+	int				m15e6c, m15e70;
+	int				mChainCount;        // +0x15e74 the flame and bomb gems that exploded in this chain (reset by CheckMatches)
 	bool			m15e78;
 	int				m15e7c, m15e80, m15e84, m15e88, m15e8c, m15e90, m15e94, m15e98;
 	double			m15ea0;

@@ -62,13 +62,20 @@ Each of these has no visible effect on play unless the entry says so.
 The standard commands of `docs/TEST_COMMANDS.md` are in `src/TestCommands.cpp` (`WinDMApp::HandleTestCommand`, reached from
 `HandleScriptCommand`); a command that is never given changes nothing. Done: `state` (screen, dialogs and the buttons of the
 top one, menu state, mode, level, level index, score, phase, tick, busy, the board as eight strings of gem types, the selected
-gem), `goto <mode>` (the menu's own start; `goto menu` from the title clicks the play link, from a game it runs `DoMainMenu`),
-`unlock all` (the counters that open the secret modes), `seed`, `set score`, `lose` (the game's own ending), `win` and
+gem), `goto <mode>` (a latch that `WinDMApp::UpdateFrames` steps once an update through whatever screen is in front, as a
+player's clicks would: the title's play link, the first user's name ("Tester"), the welcome and other messages, the menu's
+mode button, so it works from launch, from the menu and from a game; `goto menu` from the title clicks the play link, from a
+game it runs `DoMainMenu`), `unlock all` (the counters that open the secret modes; given before a user exists it waits for
+the goto that creates one), `seed`, `set score`, `lose` (the game's own ending), `win` and
 `level <n>` (the level's goal is met, so the board's own update starts the whirlpool; in the puzzle modes `win` is
 `PuzzleCompleted`), and `move` (the first of the moves `Board::FindMove` finds, picked by a hash of the board and the score;
-the swap as two clicks in game pixels). Not yet: `move` in the puzzle modes, `set` for other keys, `goto` for the options,
-help, high scores and credits screens. `games/bejeweled2/tools/realplay/soak.py` is a first driver that plays the bot's moves
-as real input.
+the swap as two clicks in game pixels). `move` also answers for the situations around the play: while a goto is on its way, or a
+game starts or ends, it asks to wait; with a message open (a one-time hint, the How To Play screen) it answers with the click
+on the message's button, once the dialog has stopped sliding; in the puzzle modes (puzzles and Cognito) the move is the first
+valid one of the puzzle's own solution file (`FindPuzzleValidMoves`, the moves the hint shows). Not yet: `set` for other keys,
+`goto` for the options, help, high scores and credits screens. `tools/playbymove/playbymove.py` plays every mode but the puzzle
+ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/realplay/soak.py` is a first driver that plays the
+bot's moves as real input from the title on (the name typed, the dialogs clicked).
 
 ## Oddities (skipped, not chased)
 

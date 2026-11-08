@@ -69,6 +69,8 @@ WinDMApp::WinDMApp()
 	mTimedBonusMult = mTimedBonusAccel = mTimedPMBase = mTimedPMMult = 0.0;
 	mGraceSeconds = mGraceSecondsMult = mGraceSecondsMax = 0.0;
 	mWantWindowed = false;
+	mTestGoto = -1;
+	mTestUnlock = false;
 
 	mProdName = "Bejeweled2";
 	// port: the original's SexyAppBase ctor reads this from the exe's version resource (ProductVersion)
@@ -740,6 +742,8 @@ void WinDMApp::Shutdown()
 void WinDMApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	if (mTestGoto != -1)
+		TestAdvanceGoto();
 	if (mReloadPending) {
 		DoReloading(mIsWindowed, Is3DAccelerated());
 		mReloadPending = false;

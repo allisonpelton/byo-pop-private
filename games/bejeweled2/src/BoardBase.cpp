@@ -937,12 +937,12 @@ void Board::ResizeButtons()
 		if (mTutorialButton1 != NULL)
 		{
 			mTutorialButton1->Resize(mApp->ScaleNum(aSlide + 0x1c6, 0), mApp->ScaleNum(0x14a, 0), mApp->ScaleNum(400, 0),
-				mTutorialButton1->mButtonImage->mHeight);
+				mTutorialButton1->mComponentImage->mHeight);
 		}
 		if (mTutorialButton2 != NULL)
 		{
 			mTutorialButton2->Resize(mApp->ScaleNum(aSlide + 0x1c6, 0), mApp->ScaleNum(400, 0), mApp->ScaleNum(400, 0),
-				mTutorialButton1->mButtonImage->mHeight);
+				mTutorialButton1->mComponentImage->mHeight);
 		}
 	}
 }
