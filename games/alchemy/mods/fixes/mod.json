@@ -1,0 +1,13 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends bugs of the original Alchemy and leaves the game as it was: its rules, scores, sounds and pace. Each fix is a toggle; turn the whole mod off to play the original exactly as it was.",
+  "settings": [
+    { "id": "rims", "label": "Tile rims on the first column and row", "type": "bool", "default": true,
+      "help": "A lit tile has a soft rim where it borders an unlit one. The original leaves it off on the first column and row. Shows from the next board." },
+    { "id": "continuedEnding", "label": "A continued game ends in place", "type": "bool", "default": true,
+      "help": "When a saved game that you continued is lost, its pieces shrink away on their tiles. The original draws them off the board, so they vanish at once." }
+  ]
+}

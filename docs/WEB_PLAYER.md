@@ -1625,9 +1625,10 @@ as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/o
   lines printed from the call up to its answer, the last of them: `STATE {json}`, `OK <command>` or `ERROR <command>: <reason>`
   (SDL's "INFO: " taken off). A held game is stepped one update so that the command runs. `state()` is `command("state")`'s JSON.
   A build without the channel rejects at once. `botMove()` is `command("move")`'s move, or null when the bot has none;
-  `playMove(m)` sends one through real DOM input in game coordinates: its `input` list in order where it has one, else its
-  `clicks` (`{x, y, button}`), then its `drags` (`{x0, y0, x1, y1, steps}`), then its `keys` (DOM key names), and waits its
-  `updates` (1 by default).
+  `playMove(m)` sends one through real DOM input in game coordinates: its `input` steps in order (`{move:[x,y]}` a hover,
+  `{click:[x,y]}` with `button:"right"` if it is one, `{press:[x,y]}` and `{release:[x,y]}` for a drag, `{key:"B"}`,
+  `{wait:n}` updates; `docs/TEST_COMMANDS.md`, under `move`), else an older move's `clicks` (`[x, y]` or `{x, y, button}`),
+  then its `drags` (`{x0, y0, x1, y1, steps}`), then its `keys` (DOM key names), and waits its `updates` (1 by default).
 - **readings**, all copies: `watch()` a port's
   watch values where it gives them (`byopop_watch_json`), null otherwise; `mixer()` the mixer's state once the shared
   session's `platform/Audio.cpp` gives it (`byopop_mixer_json`), null until then; `screen()` the game's size.

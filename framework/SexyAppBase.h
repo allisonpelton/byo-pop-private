@@ -370,7 +370,6 @@ public:
 	//                     move <point>          SDL_MOUSEMOTION with the buttons held (none for no change of
 	//                                           point, except the first after a leave); the first move, and the
 	//                                           first after a leave, comes after the window's SDL_WINDOWEVENT_ENTER
-	//                                           (a bare "move" is the game's test command, as in -script)
 	//                     down <point> [button] [clicks]  SDL_MOUSEBUTTONDOWN, after a move to the point (clicks 1;
 	//                                           an even count is a double click)
 	//                     up <point> [button]   SDL_MOUSEBUTTONUP, after a move to the point
@@ -397,7 +396,8 @@ public:
 	//                     close                 the window's close button: SDL_WINDOWEVENT_CLOSE, then SDL_QUIT
 	//                     screenshot, screenshotfull, quit  as in -script (done at once, not pushed)
 	//                   Full screen is Alt+Enter: "keydown Left Alt", "key Return", "keyup Left Alt". Other
-	//                   commands go to the game's HandleScriptCommand, run at once.
+	//                   commands go to the game's HandleScriptCommand, run at once; so does a bare "move" (no
+	//                   point), which asks the game's bot for its next move (docs/TEST_COMMANDS.md).
 	//   -commands=<file>  live commands, for a driver that decides as it goes (docs/TEST_COMMANDS.md, "Sending
 	//                   them"): it appends lines "<command> [args]" to the file (no update count; '#' comments and
 	//                   blank lines as in -script), and the framework reads the new whole lines between updates (each
