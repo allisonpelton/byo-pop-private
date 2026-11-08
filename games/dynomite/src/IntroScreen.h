@@ -63,7 +63,7 @@ public:
 	void				LoadChosenSlot();						// 0x424d10
 };
 
-// 0x52b320: set while the menu comes back from a game (no music change)
+// 0x52b320: true until the first main menu goes (the welcome sign, no music change); IntroScreen.cpp
 extern bool gIntroReturning;
 
 }
