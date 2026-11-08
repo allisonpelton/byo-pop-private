@@ -134,6 +134,13 @@ the side panel's lives are the small icon (image 31).
   "That sort of bug shouldn't be part of a fix mod, IMO", so a bug that breaks play is fixed in the port itself. To see the original: a
   saved game (the New Game dialog's Yes), Average, Start New Game, "No", then hover a square next to the ship under the box. Natively
   checked with real window messages on 2026-11-07 (tools/realinput.py `saved`): arrow and move on those squares.
+- **A new game's first-level warning is closed at once (a soft lock of the port, fixed 2026-11-08).** The Board's constructor makes the
+  first level, whose whirlpool warning on Hard (and Average above level 10) is a dialog; the board is then put in front of it. The
+  original's StartGame (0x41eef0) ends with `ShowWarning(4)` and `KillDialog(14)`, which closes that dialog again, so the warning first
+  shows at level 2; the port left both calls out, so on a new Hard game with the warning not yet switched off the dialog sat hidden
+  behind the board and took every click for good. Found by the web whole-game driver (`move` named the dialog's button and the click
+  did nothing). `StartGame` now calls `KillDialog(DIALOG_WARNING)` at its end; the `late` autoplay run of `tools/check.sh sevenseas`
+  shifted by it (the bot no longer answers that dialog: update 1958, score 200, moves 14, where it was 1852, 140, 13).
 - **Registration and the way out of the game are left out (the user's rules, 2026-11-07).** The options dialog has neither the Register button
   nor the "more games" button (a link to the publisher's site); Help and High Scores share the row next to the footer button, each
   half of the dialog's width. The title screen has no register link, no count of plays left and no delay before the Play link for an
@@ -246,6 +253,12 @@ Script commands of the port (`-script`, later the live channel), answered on std
 | `seed <n>` | the game's random numbers (the C library generator the original used) are seeded with n |
 | `move` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"input":[{"move":[gx,gy]},{"click":[gx,gy]}]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the input (a hover and a click, in game coordinates) that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
 | `unlock all` | ERROR: the game has nothing locked |
+
+`move` also answers the screens between moves, so that a driver needs nothing else: a dialog's button, the title's Play link, the
+menu's Play, the demo's and the map's buttons, the high-score screen's, and a dig of the bonus level, as `{"kind":"ui","what":"dialog 14",
+"input":[...]}`; they come before the ship's own move. `state` adds `over` (the last life is gone), `busy` (nothing to click yet), `dialogs`
+(id, whether it sits in the widget manager, box, button) and, on the menu, `menu` (the Play and Tutorial buttons and the three wheels, in
+game coordinates; the difficulty wheel is a real click, then Play). `tools/web/hard.js` plays a whole Hard game that way.
 
 ## 10. Fix candidates (2026-11-08)
 

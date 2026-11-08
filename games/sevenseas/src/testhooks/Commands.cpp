@@ -75,6 +75,7 @@ const char* ScreenName(SevenSeasApp* theApp)
 	return "none";
 }
 
+bool CenterOf(Widget* w, int* x, int* y);
 bool GameOver(Board* b);
 bool BotCanMove(Board* b);
 bool UiClick(SevenSeasApp* theApp, std::string* theWhat, int* x, int* y);
@@ -90,6 +91,36 @@ std::string StateJson(SevenSeasApp* theApp)
 		static const char* const kModes[] = {"easy", "average", "hard"};
 		int d = theApp->mDifficulty;
 		s += std::string(",\"mode\":\"") + ((d >= 1 && d <= 3) ? kModes[d - 1] : "none") + "\"";
+	}
+	// the dialogs that are up: id, whether it sits in the widget manager, its box, and its button's middle
+	s += ",\"dialogs\":[";
+	bool aFirstDialog = true;
+	for (int anId = 0; anId < 32; anId++)
+	{
+		Dialog* aDialog = theApp->GetDialog(anId);
+		if (aDialog == NULL)
+			continue;
+		int bx = -1, by = -1;
+		CenterOf(aDialog->mYesButton, &bx, &by);
+		s += std::string(aFirstDialog ? "" : ",") + "{\"id\":" + Num(anId) + ",\"managed\":" + (aDialog->mWidgetManager != NULL ? "true" : "false") +
+			",\"visible\":" + (aDialog->mVisible ? "true" : "false") + ",\"box\":[" + Num(aDialog->mX) + "," + Num(aDialog->mY) + "," +
+			Num(aDialog->mWidth) + "," + Num(aDialog->mHeight) + "],\"button\":[" + Num(bx) + "," + Num(by) + "]}";
+		aFirstDialog = false;
+	}
+	s += "]";
+	if (theApp->mIntroWidget != NULL)
+	{
+		// the menu's buttons, in game coordinates: the play button, the tutorial button, the three difficulty wheels
+		int x, y;
+		s += ",\"menu\":{\"play\":";
+		s += CenterOf(theApp->mIntroWidget->mPlayButton, &x, &y) ? "[" + Num(x) + "," + Num(y) + "]" : "null";
+		s += ",\"tutorial\":";
+		s += CenterOf(theApp->mIntroWidget->mTutorialButton, &x, &y) ? "[" + Num(x) + "," + Num(y) + "]" : "null";
+		s += ",\"wheels\":[";
+		for (int i = 0; i < 3; i++)
+			if (CenterOf(theApp->mIntroWidget->mWheels[i], &x, &y))
+				s += std::string(i ? "," : "") + "[" + Num(x) + "," + Num(y) + "]";
+		s += "]}";
 	}
 	if (b != NULL)
 	{
@@ -367,17 +398,18 @@ bool SevenSeasApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (aName == "move")
 	{
+		// a dialog, the demo, the map and the like come first: the ship waits behind them
+		std::string aWhat;
+		int aUX, aUY;
+		if (!GameOver(mBoard) && UiClick(this, &aWhat, &aUX, &aUY))
+		{
+			Reply("MOVE {\"kind\":\"ui\",\"what\":\"" + aWhat + "\",\"input\":[{\"move\":[" + Num(aUX) + "," + Num(aUY) + "]},{\"click\":[" +
+				Num(aUX) + "," + Num(aUY) + "]}]}");
+			return true;
+		}
 		if (!BotCanMove(mBoard))
 		{
-			std::string aWhat;
-			int aUX, aUY;
-			if (!GameOver(mBoard) && UiClick(this, &aWhat, &aUX, &aUY))
-			{
-				Reply("MOVE {\"kind\":\"ui\",\"what\":\"" + aWhat + "\",\"input\":[{\"move\":[" + Num(aUX) + "," + Num(aUY) + "]},{\"click\":[" +
-					Num(aUX) + "," + Num(aUY) + "]}]}");
-			}
-			else
-				Reply("MOVE null");
+			Reply("MOVE null");
 			return true;
 		}
 		// the bot's dice start from the position, so the same position gives the same move and nothing is drawn

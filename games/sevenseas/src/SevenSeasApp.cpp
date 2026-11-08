@@ -763,6 +763,10 @@ void SevenSeasApp::StartGame()
 	mQuitButton->SetVisible(false);
 	mNewGameButton->SetVisible(true);
 	mWidgetManager->BringToFront(mTalkWidget);
+	// 0x41eef0 ends with ShowWarning(4) and KillDialog(0xe): the new board's own first-level warning (the whirlpools on Hard)
+	// is made inside the Board's constructor, before the board is put in front, so it would sit hidden behind the board and
+	// take every click; the original closes it here, and the warning first shows at level 2
+	KillDialog(DIALOG_WARNING);
 }
 
 // 0x41f300
