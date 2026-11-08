@@ -18,6 +18,7 @@
       'Games/Cosmic Bugs</span>) or a .zip of it. The art banks, <span class="mono">animations</span>, ' +
       '<span class="mono">audio</span> and <span class="mono">CosmicBugs.exe</span> (the game\'s texts are read ' +
       'from it; it is never run) are copied.',
-    modsIntro: "Cosmic Bugs keeps its pictures in its art banks, and this port does not load mods yet.",
+    modsIntro: "Cosmic Bugs keeps its pictures in its art banks, so a mod cannot replace them yet; its mods are a mod.json of settings. " +
+      "The fixes mod is on by default; turn it off to play the original as it was.",
     seeds: false
   };

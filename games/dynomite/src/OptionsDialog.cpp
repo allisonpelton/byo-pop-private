@@ -22,13 +22,9 @@ OptionsDialog::OptionsDialog(FossilizedApp* theApp) :
 	SetHeaderFont(mApp->mWhiteFont);
 	SetLinesFont(mApp->mWhiteFontSmall);
 
-	mRegisterButton = new DialogButton(theApp->mPicDbutton->mImage, 1, this);
-	mRegisterButton->SetFont(mApp->mWhiteFontSmall);
-	mRegisterButton->mLabel = mApp->GetString("REGISTER");
 	mHighScoresButton = new DialogButton(theApp->mPicDbutton->mImage, 2, this);
 	mHighScoresButton->SetFont(mApp->mWhiteFontSmall);
 	mHighScoresButton->mLabel = mApp->GetString("HIGH_SCORES");
-	mShowRegister = !mApp->GetBoolean("NOREG", false);
 
 	mMusicSlider = new Slider2004(theApp->mPicSlider->mImage, theApp->mPicThumb->mImage, 0, this);
 	mMusicSlider->SetValue(theApp->GetMusicVolume());
@@ -56,8 +52,6 @@ OptionsDialog::OptionsDialog(FossilizedApp* theApp) :
 // 0x42eca0
 OptionsDialog::~OptionsDialog()
 {
-	if (mRegisterButton != NULL)
-		delete mRegisterButton;
 	if (mHighScoresButton != NULL)
 		delete mHighScoresButton;
 	if (mMusicSlider != NULL)
@@ -91,11 +85,6 @@ void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 	Dialog::SetColor(theIdx, theColor);
 	if (theIdx == 3)
 	{
-		if (mRegisterButton != NULL)
-		{
-			mRegisterButton->SetColor(0, theColor);
-			mRegisterButton->SetColor(1, Color(0xff, 0xff, 0xff));
-		}
 		if (mHighScoresButton != NULL)
 		{
 			mHighScoresButton->SetColor(0, theColor);
@@ -108,7 +97,6 @@ void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog::AddedToManager(theWidgetManager);
-	theWidgetManager->AddWidget(mRegisterButton);
 	theWidgetManager->AddWidget(mHighScoresButton);
 	theWidgetManager->AddWidget(mMusicSlider);
 	theWidgetManager->AddWidget(mSfxSlider);
@@ -127,7 +115,6 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog::RemovedFromManager(theWidgetManager);
-	theWidgetManager->RemoveWidget(mRegisterButton);
 	theWidgetManager->RemoveWidget(mHighScoresButton);
 	theWidgetManager->RemoveWidget(mMusicSlider);
 	theWidgetManager->RemoveWidget(mSfxSlider);
@@ -147,17 +134,9 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog::Resize(theX, theY, theWidth, theHeight);
 	int aWidth = mWidth - mContentInsets.mRight - mContentInsets.mLeft;
-	int aHalf = (aWidth - 6) / 2;
-	if ((mApp->mIsRegistered == false) && (mShowRegister != false))
-	{
-		mRegisterButton->Resize(mX + mContentInsets.mLeft, mY + 0xaa, aHalf + 2, 0x20);
-		mHighScoresButton->Resize(mContentInsets.mLeft + mX + 2 + aHalf, mY + 0xaa, aHalf + 4, 0x20);
-	}
-	else
-	{
-		mRegisterButton->Resize(-1, -1, 0, 0);
-		mHighScoresButton->Resize(mContentInsets.mLeft + mX, mY + 0xaa, aWidth, 0x20);
-	}
+	// the high scores button across the dialog, as the registered copy has it (an unregistered one's register
+	// button took its left half)
+	mHighScoresButton->Resize(mContentInsets.mLeft + mX, mY + 0xaa, aWidth, 0x20);
 	int aY = mY + 0xcb;
 	mLinks.ResetIter();
 	OptionsLink* aLink = mLinks.Next();
@@ -221,11 +200,6 @@ void OptionsDialog::ButtonDepress(int theId)
 	char aURL[0x100];
 
 	Dialog2004::ButtonDepress(theId);
-	if (theId == 1)
-	{
-		mApp->ShowRegisterDialog(NULL);
-		return;
-	}
 	if (theId == 2)
 	{
 		mApp->ShowHighScores();
@@ -248,10 +222,8 @@ void OptionsDialog::ButtonDepress(int theId)
 					if (strcasecmp(aURL + 5, "CREDITS") == 0)
 						mApp->ShowCredits();
 				}
-				else
-				{
-					mApp->OpenURL(aLink->mURL, false);
-				}
+				// port: the original opens any other address in the browser; the port has no link
+				// that leads out of the game
 			}
 			aLink = mLinks.Next();
 		}

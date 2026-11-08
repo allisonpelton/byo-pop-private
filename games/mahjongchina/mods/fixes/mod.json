@@ -1,0 +1,36 @@
+{
+  "id": "fixes",
+  "name": "Mahjong Escape Ancient China Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends what the original wasted or left to chance, and changes nothing else: its look, rules, sounds and pace of play stay as they were. Each fix is a toggle; with the whole mod off the game is the original. Scores and saved games are the same as the original's.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    {
+      "id": "skipLogos",
+      "label": "Skip the logo screens",
+      "type": "bool",
+      "default": true,
+      "apply": "restart",
+      "help": "The game opens with the publisher's logo and then Jolly Bear's, two seconds each, and loads nothing meanwhile. They are over at once. Only the wait is shorter."
+    },
+    {
+      "id": "seededDeals",
+      "label": "Deals follow the seed",
+      "type": "bool",
+      "default": true,
+      "apply": "restart",
+      "help": "The original seeds each classic deal, each shuffle and the generator at many other places from the clock, so a seed given at the start (the site's ?seed=) changes nothing. With the fix a given seed makes the same series of deals and shuffles on every run. Without a seed given it changes nothing. Off: the clock seeds them."
+    },
+    {
+      "id": "steadyClock",
+      "label": "Timing from the updates",
+      "type": "bool",
+      "default": true,
+      "apply": "restart",
+      "help": "The game's timers, its frame pacing and the clock on its panel run on its own updates, 5 ms each, not on the machine's clock, so the same moves play the same game on every run, however fast the machine is. The deal's search keeps its time limit on the machine's clock."
+    }
+  ]
+}

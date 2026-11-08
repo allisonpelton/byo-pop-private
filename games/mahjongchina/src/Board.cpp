@@ -156,7 +156,7 @@ void Board::SetLayout(int theLayoutId, int theQuadPercent, uint32_t theSeed)
 	mLayoutId = theLayoutId;
 	mQuadPercent = theQuadPercent;
 	if (theSeed == 0xffffffff)
-		theSeed = jb::TickCount();
+		theSeed = jb::SeedTick();
 	mSeed = theSeed;
 }
 
@@ -275,7 +275,7 @@ void Board::Start(bool theDeal, bool theKeep, bool theNewSeed)
 	mStarted = true;
 	mIdleSince = 0;
 	if (theNewSeed)
-		mSeed = jb::TickCount();
+		mSeed = jb::SeedTick();
 	if (!theKeep)
 		mLayout.Reset(theDeal || mDealt);
 	SetFlyIn(gFlyIn);
@@ -316,7 +316,7 @@ void Board::Reshuffle()
 	mDealt = true;
 	ClearFlights();
 	ClearHints();
-	jb::CrtSrand(jb::TickCount());
+	jb::CrtSrand(jb::SeedTick());
 	mDeal.Start(&mLayout, mQuadPercent, mMove, true);
 	UpdateMoves();
 	SwapFlyOut();
@@ -450,6 +450,10 @@ bool Board::OnCommand(int theCmd)
 			return true;
 		case 0x94:
 		case 0x10c:
+			// not in the last pair's flight: the shuffle's redeal clears that flight, whose end is what
+			// closes the round, and the board would sit empty for good (a fix of the original, DEVIATIONS.md)
+			if (mLeft == 0)
+				return true;
 			Shuffle();
 			return true;
 		}

@@ -11,7 +11,7 @@
 namespace Sexy
 {
 
-class DialogButton;
+class ButtonWidget;
 class EditWidget;
 class FossilizedApp;
 class HighScores;
@@ -22,8 +22,8 @@ public:
 	FossilizedApp*		mApp;				// +0x114
 	HighScores*			mHighScores;		// +0x118
 	EditWidget*			mNameEdit;			// +0x11c
-	DialogButton*		mOkButton;			// +0x120 (100)
-	DialogButton*		mCancelButton;		// +0x124 (101)
+	ButtonWidget*		mOkButton;			// +0x120 (100) a plain button (0x47f3b0) with the dialog button's picture whole
+	ButtonWidget*		mCancelButton;		// +0x124 (101)
 
 	EnterNameDialog(FossilizedApp* theApp, HighScores* theHighScores);	// 0x413f50
 	virtual ~EnterNameDialog();											// 0x413d40

@@ -4,6 +4,7 @@
 // or <folder> --stage <escape stage 1-60>
 // (below)
 
+#include "Bot.h"
 #include "Deal.h"
 #include "Globals.h"
 #include "Host.h"
@@ -56,7 +57,6 @@ public:
 	std::string CommandLine() override { return ""; }
 	std::string FolderPath(int) override { return ""; }
 	std::string ExeFolder() override { return ""; }
-	void OpenUrl(const char*) override {}
 	int MessageBox(const char*, const char*, unsigned int) override { return 1; }
 	void Log(const char* theText) override { fprintf(stderr, "%s\n", theText); }
 	int InputFlags() override { return 0; }
@@ -300,6 +300,24 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 		aDeal.Start(&aLayout, thePercent, 0, false);
 		aLayout.UpdateFree();
 	}
+	if (getenv("BOTTEST") != nullptr)
+	{
+		// the port's bot on the dealt board: its moves, positions tried and seconds
+		for (Tile* aTile : gTiles)
+			if (aTile->mKind > 0x2a)
+				fprintf(stderr, "special kind 0x%x at %d,%d,%d free %d%s", aTile->mKind, aTile->mX, aTile->mY, aTile->mZ,
+					aTile->mFree, "; ");
+		if (getenv("BOTTEST")[0] == 'v')
+			for (Tile* aTile : gTiles)
+				fprintf(stderr, "T %d %d %d %d%s", aTile->mZ, aTile->mY, aTile->mX, aTile->mKind, "\n");
+		auto aStart = std::chrono::steady_clock::now();
+		Bot aBot;
+		long aNodes = 0;
+		int aMoves = aBot.SolveLayout(aLayout, &aNodes);
+		printf("bot: %d moves, %ld positions, %.2f s\n", aMoves, aNodes,
+			std::chrono::duration<double>(std::chrono::steady_clock::now() - aStart).count());
+		return aMoves < 0 ? 1 : 0;
+	}
 	std::vector<int> aKinds;
 	for (Tile* aTile : gTiles)
 		aKinds.push_back(aTile->mKind);
@@ -449,6 +467,33 @@ extern "C" int SDL_main(int argc, char** argv)
 		{
 			printf("layout %u: does not load\n", aKey.mId);
 			aFailed++;
+			continue;
+		}
+		if (getenv("MJ_FLOATING") != nullptr)
+		{
+			// a tile with nothing under it on the level below (Layout::IsFree looks one level up only, so a free tile can
+			// lie under a tile two levels up that no click then reaches the first one through)
+			std::vector<Tile*> anAll;
+			for (Tile* aTile = aLayout.First(); aTile != nullptr; aTile = aLayout.Next())
+				anAll.push_back(aTile);
+			int aFloating = 0;
+			for (Tile* aUpper : anAll)
+			{
+				if (aUpper->mZ < 2)
+					continue;
+				bool aSupported = false;
+				for (Tile* aLower : anAll)
+					if (aLower->mZ == aUpper->mZ - 1 && abs(aLower->mX - aUpper->mX) <= 1 && abs(aLower->mY - aUpper->mY) <= 1)
+						aSupported = true;
+				if (!aSupported)
+					aFloating++;
+			}
+			Bot aBot;
+			aLayout.UpdateFree();
+			int anUnclickable = aBot.CountUnclickable(aLayout);
+			if (aFloating != 0 || anUnclickable != 0)
+				printf("layout %u: %d of %d tiles float, %d free at the start but out of reach\n", aKey.mId, aFloating,
+					(int)anAll.size(), anUnclickable);
 			continue;
 		}
 		jb::CrtSrand(aSeed);

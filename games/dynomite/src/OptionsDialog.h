@@ -3,8 +3,8 @@
 
 // The options dialog (dialog 2; vtable 0x4fc4d8, ButtonListener 0x4fc4c8 at +0x58, SliderListener 0x4fc4c4 at +0x110,
 // CheckboxListener 0x4fc4c0 at +0x114; 0x154 bytes; constructor 0x42ee20, destructor 0x42eca0): the music and sound
-// sliders, the full screen and custom cursor checkboxes, the register button (only in an unregistered copy) beside the
-// high scores button, and the links under them, each a button: the credits, and in the original "check for updates"
+// sliders, the full screen and custom cursor checkboxes, the high scores button (an unregistered copy's register
+// button beside it is not in the port, which plays as the registered copy), and the links under them, each a button: the credits, and in the original "check for updates"
 // (unless the property DontUpdate) and the partner links (NumOptionsLinks, OptionsLinkText%d, OptionsLinkURL%d). The
 // footer is DONE (2002), which the app's ButtonDepress applies.
 // port: neither the update link nor the partner links are ported (no online features; the user's decision of
@@ -43,12 +43,9 @@ public:
 	Slider2004*			mSfxSlider;			// +0x120 id 1
 	Checkbox*			mFullscreenCheckbox;	// +0x124 id 0, checked when full screen
 	Checkbox*			mCustomCursorsCheckbox;	// +0x128 id 0
-	DialogButton*		mRegisterButton;	// +0x12c id 1
 	DialogButton*		mHighScoresButton;	// +0x130 id 2
 	PtrList<OptionsLink>	mLinks;			// +0x134
 	int					mNextLinkId;		// +0x14c (100)
-	bool				mShowRegister;		// +0x150 not the property NOREG (upper case: the retail file's NoReg is
-											// another key, so it is always set)
 
 	OptionsDialog(FossilizedApp* theApp);	// 0x42ee20
 	virtual ~OptionsDialog();				// 0x42eca0
@@ -58,8 +55,7 @@ public:
 	virtual void		SetColor(int theIdx, const Color& theColor) override;
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;		// 0x42e670
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;	// 0x42e710
-	// 0x42e7b0: the register and high scores buttons side by side (or the high scores one alone), the links under
-	// them, the sliders and the checkboxes
+	// 0x42e7b0: the high scores button, the links under it, the sliders and the checkboxes
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual void		Draw(Graphics* g) override;	// 0x42fb70: the sliders' and the checkboxes' labels
 	virtual void		SliderVal(int theId, double theVal) override;			// 0x42e970: the volumes
@@ -67,7 +63,7 @@ public:
 	// the full screen one again
 	virtual void		CheckboxChecked(int theId, bool checked) override;
 	virtual void		ButtonPress(int theId) override;		// 0x42e9e0: the click
-	// 0x42eb70: register, the high scores, and the links (GOTO:CREDITS, GOTO:UPDATES, else the address)
+	// 0x42eb70: the high scores, and the links (GOTO:CREDITS, GOTO:UPDATES, else the address)
 	virtual void		ButtonDepress(int theId) override;
 	using Dialog2004::ButtonPress;
 };

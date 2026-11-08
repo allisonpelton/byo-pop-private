@@ -72,6 +72,7 @@ public:
 	virtual ~MahjongApp();
 
 	void Init() override;
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void Shutdown() override;
 	void CloseRequestAsync() override;
 	void GotFocus() override;
@@ -80,6 +81,11 @@ public:
 	void ReadFromRegistry() override;
 	void WriteToRegistry() override;
 	using SexyAppBase::SwitchScreenMode;
+
+	// The standard test commands (TestCommands.cpp, docs/TEST_COMMANDS.md); only a test's -script, -commands or -realinput reaches them
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// The frame after a test command that waits for a screen to settle
+	void TestFrame();
 
 	// The manager's frame, when it is due; the game's end once the manager stopped
 	void RunFrame();

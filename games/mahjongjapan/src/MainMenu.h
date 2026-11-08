@@ -3,8 +3,8 @@
 
 // The main menu (0x411380..0x412110): the escape and the list as two large buttons whose captions fade in on hover
 // (0x4113b0), the options, help and quit buttons, the player's name (0x4115b0, a click opens the players), and the
-// backdrop with its two animations (0x411760). A partner's logo (<exe folder>MenuLogo) links to the registry's
-// PartnerURL when both exist.
+// backdrop with its two animations (0x411760). A partner's logo (<exe folder>MenuLogo) is drawn as a picture that goes
+// nowhere (the original links it to the registry's PartnerURL, which this install lacks).
 
 #include "Layer.h"
 #include "Object.h"

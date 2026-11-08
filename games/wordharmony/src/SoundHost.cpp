@@ -8,6 +8,13 @@
 using namespace wordharmony;
 
 bool HostSound::sGameClock = false;
+FILE* HostSound::sLog = nullptr;
+int HostSound::sLogFrame = 0;
+
+static double lengthMs(const Platform::SoundData* theData)
+{
+	return theData->mRate > 0 ? theData->mFrames * 1000.0 / theData->mRate : 0.0;
+}
 
 HostSound::HostSound(HostSoundSystem* theSystem, const std::shared_ptr<Platform::SoundData>& theData)
 	: mSystem(theSystem), mData(theData), mVoice(0), mPlaying(false), mLoop(false), mVolume(1), mPan(0), mPitch(1),
@@ -41,13 +48,19 @@ void HostSound::play()
 	mPosition = 0;
 	mStartTime = engine::getHost()->timeMs();
 	mVoice = Platform::Mixer::Get().StartVoice(mData, 0, 0, mPitch, mLoop);
-	mPlaying = mVoice != 0;
+	// on the engine's clock a sound plays its length whether or not the mixer could start a voice (a run with no audio
+	// device: the web build under Node), as the original's buffer does
+	mPlaying = mVoice != 0 || sGameClock;
 	applyGain();
+	if (sLog != nullptr)
+		std::fprintf(sLog, "%d play %.0f %s vol=%.3f\n", sLogFrame, lengthMs(mData.get()), mLoop ? "looping" : "once", mVolume);
 }
 
 // Slot 4 (0x443dd0)
 void HostSound::halt()
 {
+	if (mVoice != 0 && sLog != nullptr)
+		std::fprintf(sLog, "%d stop %.0f\n", sLogFrame, lengthMs(mData.get()));
 	if (mVoice != 0)
 		Platform::Mixer::Get().StopVoice(mVoice);
 	mVoice = 0;

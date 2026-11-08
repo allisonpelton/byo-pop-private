@@ -204,7 +204,7 @@ void Deal::Start(Layout* theLayout, int theQuadPercent, int theMove, bool theRed
 	gSolveBlank = 0;
 	gSolveQuads = 0;
 	gSolveSteps = 0;
-	gSolveStart = jb::TickCount();
+	gSolveStart = jb::RealTickCount();
 	gSolveLimit = theRedeal ? 1000 : 2000;
 	int aFree = mLayout->GetFree(gSolveFree[0], 400);
 	if (0 < aFree)
@@ -652,7 +652,7 @@ bool SolveInTime()
 	if (aCheck)
 	{
 		gSolveSteps = 0;
-		if (gSolveLimit + gSolveStart < jb::TickCount())
+		if (gSolveLimit + gSolveStart < jb::RealTickCount())
 		{
 			gSolveSteps = -1;
 			return false;

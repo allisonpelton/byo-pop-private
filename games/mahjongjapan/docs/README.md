@@ -69,6 +69,14 @@ last), the tip, the level's end and the map again. It plays the same game twice 
 other and with the frozen hashes in `check.sh` (`MJ_SHOTS`), which are the regression check for later changes. The
 script clicks no link.
 
+**The standard test commands and the real-input drivers (2026-11-08).** The port answers `state`, `goto`, `level`, `unlock all`,
+`set`, `win` and `move` (`GAME_NOTES.md`, "The standard test commands"), `move` from the port's own bot (`src/Bot.cpp`).
+`tools/realplay/drive.py` (one script for both games: `--game japan` or `--game china`) plays the game with real SDL events
+under rundesk: the menu, the help, a new player, the whole adventure to the ending, a classic game by the bot, every button
+of the board and of the in-game menu, a second classic game, the focus lost and regained, Quit; `--fullscreen` does it from
+Alt+Enter. `tools/web/realplay.js` plays the web build through the DOM's events (`?driver=`). `tools/realplay/modtest.py`
+checks the fixes mod, `perfload.py` times the launch, `syncbot.sh` copies the bot and the commands to the other game.
+
 `dealtest --solve <layout> [seed quad]` finds the pairs that win a stage. A stage after the first deals most of its
 tiles, so it takes the stage's seed and difficulty as well; stage 2 (layout 386, seed 524627644, difficulty 0) dealt
 exactly as the solver predicted. Other scripted runs reached the classic list, a classic game, the in-game menu, pause,
@@ -116,9 +124,12 @@ they had ended, which the game then paused and resumed.
 
 ## Mods
 
-None (the user's rule: no new mods unless someone requests one). `MOD_IDEAS.md` lists the ones worth making.
+The fixes mod (`mods/fixes`: `skipLogos`, `seededDeals` and `steadyClock`, on by default on the site; `GAME_NOTES.md`, "Fix
+candidates and the fixes mod"). No other mods (the user's rule: no new mods unless someone requests one); `MOD_IDEAS.md` lists
+the ones worth making.
 
 ## Changes outside the game's folder
 
 `CMakeLists.txt` (the `BUILD_MAHJONGJAPAN` option), `tools/check.sh` (the `mahjongjapan` suite) and
-`.claude/launch.json` (the `mahjongjapan-web` preview on port 18790).
+`.claude/launch.json` (the `mahjongjapan-web` preview on port 18790). `tools/check.sh` also holds the screens frozen again for the shared JPEG loader, `cmake/ByopopWeb.cmake` ships the fixes mod on the
+site, and `web/testkit.js` has the pattern fix that `move`'s null answer needed (shared commits).

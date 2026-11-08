@@ -855,8 +855,6 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		aRange = 0xb;
 	aRange = aRange * 10 + 9;
 	thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
-	while (gRegistered == 0 && (thePowerup->kind == 9 || thePowerup->kind == 8))
-		thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
 	if (gDemo != 0)
 	{
 		thePowerup->kind = 9;
