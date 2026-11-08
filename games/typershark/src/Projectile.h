@@ -32,6 +32,8 @@ public:
 	ImageFont*				mProjFont;				// +0x08 constructor: the app's Courier font (app +0x8d4); not used by this class
 	GameObject*				mHitTarget;				// +0x0c constructor argument 2: the creature a shot flying right can hit
 	GameObject*				mPlayer;				// +0x10 constructor argument 3: the player's cannon, hit when its state is 9
+	int						mDamage;				// +0x14 added for E2: not set by this constructor; the Torpedo constructor stores 10: the hit points a boss loses when this shot hits it (TorpedoBoss::HandleShot)
+	int						mSlot;					// +0x18 added for E2: not set by this constructor; the torpedo boss stores 1, 2 or 3 (the place it launched the shot from)
 
 public:
 	Projectile(WinWSApp* theApp, GameObject* theHitTarget, GameObject* thePlayer);	// 0x40acc0

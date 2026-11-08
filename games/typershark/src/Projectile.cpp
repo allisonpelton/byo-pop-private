@@ -5,7 +5,9 @@
 using namespace Sexy;
 
 // Not translated (vtordisp thunks): 0x4021d0 (deleting destructor of the GameObject part), 0x40dfe0 (Update), 0x4021e0
-// (Draw), 0x40dff0 (TypeLetter: Enemy's own, the thunk only finds the Enemy part)
+// (Draw), 0x40dff0 (TypeLetter: Enemy's own, the thunk only finds the Enemy part), 0x4021f0 (SetState, a jump to 0x4017a0
+// with the pointer adjusted), 0x401270 (resets the three vftables to the Projectile's: the first step of the destructors
+// of the classes derived from it, nothing for the port)
 
 // 0x40acc0: Enemy (0x40a3f0) first; the flags and the speed of the animation are the same for every projectile (a
 // projectile has one frame, so it is not animated)
@@ -14,6 +16,8 @@ Projectile::Projectile(WinWSApp* theApp, GameObject* theHitTarget, GameObject* t
 {
 	mPlayer = thePlayer;
 	mHitTarget = theHitTarget;
+	mDamage = 0;	// port: the original leaves +0x14 uninitialised
+	mSlot = 0;	// port: the original leaves +0x18 uninitialised
 	mProjFont = mApp->mFontCourierFinalDraft15Bold;
 	mNumFrames = 1;
 	mFrameDelay = 11;

@@ -64,6 +64,11 @@ public:
 	void					SetTarget(Enemy* theTarget) { mTarget = theTarget; }	// 0x401250
 	void					SetAttacker(Enemy* theAttacker) { mAttacker = theAttacker; }	// 0x401260
 	void					ReleaseTarget();										// 0x4022d0
+
+	// ---- added for E2 (the bosses use them) ----
+	int						PopEvent();												// 0x407070
+	bool					HasEvent(int theEvent);									// 0x403790
+	void					SetWord(const std::string& theWord);					// 0x407a30
 };
 
 }

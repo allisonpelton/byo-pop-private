@@ -107,3 +107,34 @@ void Enemy::ReleaseTarget()
 		mTarget = NULL;
 	}
 }
+
+// 0x407070: the first event of the list, removed from it; 0 when there is none
+int Enemy::PopEvent()
+{
+	int aEvent = 0;
+	if (mEvents.size() > 0)
+	{
+		aEvent = mEvents[0];
+		mEvents.erase(mEvents.begin());
+	}
+	return aEvent;
+}
+
+// 0x403790: whether the list holds the event (all of the list is read)
+bool Enemy::HasEvent(int theEvent)
+{
+	bool aFound = false;
+	for (size_t i = 0; i < mEvents.size(); i++)
+	{
+		if (mEvents[i] == theEvent)
+			aFound = true;
+	}
+	return aFound;
+}
+
+// 0x407a30: the word to type, and what it is worth (GetPoints, virtual)
+void Enemy::SetWord(const std::string& theWord)
+{
+	mWord = theWord;
+	mField54 = GetPoints();
+}
