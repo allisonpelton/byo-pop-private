@@ -1,6 +1,7 @@
 // The application object (TipTop.exe 0x4197c6-0x426fc7). See App.h.
 
 #include "App.h"
+#include "ModFeatures.h"
 #include "Board.h"
 #include "Config.h"
 #include "Game.h"
@@ -3164,6 +3165,7 @@ namespace
 lowos::Surface* gLoadBarImage = nullptr;   // 0x489ebc
 uint32_t gLoadBarLoaded = 0;               // 0x489eb4 the entries preloaded by the bar
 uint32_t gLoadBarCount = 0;                // 0x489eb8 the table's sounds, music and texts (types 4, 2 and 8)
+const uint32_t kLoadSliceMs = 10;          // port: the game-clock time one frame of the bar spends loading
 
 bool IsPreloaded(const res::Entry& theEntry)
 {
@@ -3172,8 +3174,9 @@ bool IsPreloaded(const res::Entry& theEntry)
 
 } // namespace
 
-// 0x4233c2: the splash screen's load bar: it preloads the sounds, music and texts one per step, and in the trial
-// fills more slowly (the low half of b, ms). When full it sends the high half of b and loads the game's sounds.
+// 0x4233c2: the splash screen's load bar: it preloads the sounds, music and texts (the original one per step; the port
+// at the machine's speed, see the draw below), and in the trial filled more slowly (the low half of b, ms). When full
+// it sends the high half of b and loads the game's sounds.
 // Create: a = the image.
 uint32_t LoadBarProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
 {
@@ -3218,21 +3221,30 @@ uint32_t LoadBarProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* t
 		if (InTopModal(theHandler->mLayer) == 0)
 			aSlots[2] = aTime;
 		aTime = aTime - (uint32_t)aSlots[2];
-		if ((aStep < aTime) && (gLoadBarLoaded < gLoadBarCount))
+		// port, deviation (GAME_NOTES.md, "Deviations", "Loading"): the original loads one entry a frame, and only when
+		// more than the step (aStep, 1 ms) has passed since the last, so the bar fills at a crawl however fast they
+		// load. The port loads at the machine's speed: as many entries as fit a slice of the game clock, so the bar
+		// still draws between slices; a clock that stands still (a -fast run, the game paused) loads them all at once.
+		// Like the original it waits while a dialog is over the bar. The entries load in the original's order.
+		if ((InTopModal(theHandler->mLayer) != 0) && (gLoadBarLoaded < gLoadBarCount))
 		{
-			for (; res::GameTable()[gPreloaded].mFlags != 0; gPreloaded = gPreloaded + 1)
+			uint32_t aSliceStart = GameTime();
+			do
 			{
-				const res::Entry& anEntry = res::GameTable()[gPreloaded];
-				if (IsPreloaded(anEntry))
+				for (; res::GameTable()[gPreloaded].mFlags != 0; gPreloaded = gPreloaded + 1)
 				{
-					res::Load(anEntry.mGroup, 1, anEntry.mId);
-					gLoadBarLoaded = gLoadBarLoaded + 1;
-					gPreloaded = gPreloaded + 1;
-					aTime = 0;
-					aSlots[2] = GameTime();
-					break;
+					const res::Entry& anEntry = res::GameTable()[gPreloaded];
+					if (IsPreloaded(anEntry))
+					{
+						res::Load(anEntry.mGroup, 1, anEntry.mId);
+						gLoadBarLoaded = gLoadBarLoaded + 1;
+						gPreloaded = gPreloaded + 1;
+						aTime = 0;
+						aSlots[2] = GameTime();
+						break;
+					}
 				}
-			}
+			} while ((gLoadBarLoaded < gLoadBarCount) && ((uint32_t)(GameTime() - aSliceStart) < kLoadSliceMs));
 		}
 		if (gLoadBarLoaded == gLoadBarCount)
 		{

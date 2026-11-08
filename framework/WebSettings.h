@@ -24,6 +24,14 @@ extern SiteVolumeFn gSiteVolume;
 // and Water Bugs (Screen_SetFullscreen). The SexyAppFramework games need nothing: SexyAppBase always starts the web build windowed.
 bool SiteWindowed();
 
+// The site's "Always skip tutorials" (web/settings.js; byopop_site_tutorials): a game with a switch of its own for its tutorial
+// or first-play help sets gSiteTutorials, in its web-only file, to a function that turns that switch off as its own options
+// do (an options dialog's checkbox, a player's "tutorial done" flag), and returns 1 once it has, 0 while it cannot yet (no
+// player loaded, the game not started: the page calls again). The site only ever turns the switch off, and only when the
+// setting is on: off, its default, leaves the game's own choice alone. The port is unchanged; the function is the only hook.
+typedef int (*SiteTutorialsFn)();
+extern SiteTutorialsFn gSiteTutorials;
+
 // The site's "3D acceleration" (web/settings.js; byopop_site_accel3d, set by the page before the game starts): -1 leaves it to
 // the game's own choice, 1 is 3D always, 0 never. A game with a 3D option reads it where it reads that option; 1 still
 // means 2D in a browser without WebGL2, which the game checks as it does for its own option. Read by Bejeweled Twist;

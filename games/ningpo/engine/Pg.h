@@ -91,8 +91,6 @@ public:
 	virtual bool RegistryWriteString(const std::string& theName, const std::string& theValue) = 0;
 	virtual bool RegistryReadData(const std::string& theName, std::vector<uint8_t>& theData) = 0;
 	virtual bool RegistryWriteData(const std::string& theName, const void* theData, size_t theSize) = 0;
-	// ShellExecute() of a link
-	virtual void OpenURL(const std::string& theURL) = 0;
 	// The text on the clipboard (Ctrl+V)
 	virtual std::string ClipboardText() = 0;
 	// The name of the user's account, empty when there is none (0x414168, GetUserNameA): the name entry's default

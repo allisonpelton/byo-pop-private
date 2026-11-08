@@ -1,5 +1,6 @@
 #include "OpenMPTPlayer.h"
 #include "platform/Audio.h"
+#include "platform/MusicLevels.h"
 
 #include <libopenmpt/libopenmpt.h>
 #include <libopenmpt/libopenmpt_ext.h>
@@ -37,8 +38,8 @@ public:
 			mInteractive = {};
 		mHasInteractive3 = openmpt_module_ext_get_interface(mModuleExt, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE3,
 			&mInteractive3, sizeof(mInteractive3)) != 0;
-		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_INTERPOLATIONFILTER_LENGTH, 2);
-		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_STEREOSEPARATION_PERCENT, 100);
+		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_INTERPOLATIONFILTER_LENGTH, BYOPOP_OPENMPT_INTERPOLATION);
+		openmpt_module_set_render_param(mModule, OPENMPT_MODULE_RENDER_STEREOSEPARATION_PERCENT, BYOPOP_OPENMPT_SEPARATION);
 		openmpt_module_set_repeat_count(mModule, -1);
 		mLoop = true;
 		// The channels' own volumes at the start, which BASS's VOL_CHAN scales. libopenmpt's channel volume is the

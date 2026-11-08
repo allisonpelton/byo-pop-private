@@ -14,8 +14,8 @@
 /*  11 */ "nomatch_alpha_np.tga",
 /*  12 */ "board_complete_np.jpg",
 /*  13 */ "gameover_np.jpg",
-/*  14 */ "preview_fullversiononly.tga",
-/*  15 */ "preview_fullversiononly_small.tga",
+/*  14 */ "",  // the trial's preview_fullversiononly.tga, left out
+/*  15 */ "",  // the trial's preview_fullversiononly_small.tga, left out
 /*  16 */ "preview_layout_1.jpg",
 /*  17 */ "preview_layout_2.jpg",
 /*  18 */ "preview_layout_3.jpg",
@@ -74,8 +74,8 @@
 /*  71 */ "icon_start_np.tga",
 /*  72 */ "icon_start_lit_np.tga",
 /*  73 */ "icon_clicktocontinue_lit.tga",
-/*  74 */ "icon_buy_now_np.tga",
-/*  75 */ "icon_buy_now_lit_np.tga",
+/*  74 */ "",  // the trial's icon_buy_now_np.tga, left out
+/*  75 */ "",  // the trial's icon_buy_now_lit_np.tga, left out
 /*  76 */ "icon_exit_np.tga",
 /*  77 */ "icon_exit_lit_np.tga",
 /*  78 */ "icon_showmoves_np.tga",

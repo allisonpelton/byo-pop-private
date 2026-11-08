@@ -33,80 +33,77 @@ enum ImageId
 	IMAGE_BIGMONEYLOGO = 10,        // bigmoneylogo.jpg  472x239 +mask TitleScreen
 	IMAGE_DELUXOR = 11,             // deluxor           155x150 +mask TitleScreen (HSL badge)
 	IMAGE_DOLLARSTRIP = 12,         // dollarstrip       640x20 +mask  TitleScreen
-	IMAGE_TRIALVERSION = 13,        // trialversion.jpg  124x126 +mask TitleScreen (unregistered only)
-	IMAGE_LEVELFONT = 14,           // levelfont         164x19 +mask  WinBMApp::mLevelFont strip (legacy font)
-	IMAGE_FLOATFONT = 15,           // floatfont         223x20 +mask  unused (floatfont.txt loads its own)
-	IMAGE_LEVEL = 16,               // level             51x21 +mask   Board
-	IMAGE_LEFTBAR = 17,             // leftbar.jpg       640x480 +mask Board, HelpWidget, OverlayWidget
-	IMAGE_BACKDROP = 18,            // backdrop.jpg      406x465       Board
-	IMAGE_RIGHTBAR1 = 19,           // rightbar1.jpg     56x479        Board
-	IMAGE_RIGHTBAR2 = 20,           // rightbar2.jpg     80x480 +mask  Board
-	IMAGE_COIN = 21,                // coin              400x40 +mask  Board
-	IMAGE_STACK = 22,               // stack             40x372        Board
-	IMAGE_COINS = 23,               // coins             580x145 +mask Board (29x29 cells); source of WinBMApp::mBrightCoinsImage
-	IMAGE_HORZCOINS = 24,           // horzcoins         464x145 +mask Board
-	IMAGE_BAG = 25,                 // bag               132x36 +mask  Board
-	IMAGE_EXPLOSION = 26,           // explosion         675x91        Board
-	IMAGE_DOLLAR = 27,              // dollar            1056x33 +mask Board
-	IMAGE_SPARKLE = 28,             // sparkle           280x20        Board
-	IMAGE_OLDDIALOG = 29,           // olddialog         192x192 +mask NewDialog (DoDialog dialogs), CreditsDialog
-	IMAGE_DIALOG = 30,              // dialog.jpg        192x192 +mask MoneyDialog subclasses
-	IMAGE_DIALOGLIGHT = 31,         // dialoglight       14x14         MoneyDialog lights
-	IMAGE_DIALOGGLOW = 32,          // dialogglow        22x22         MoneyDialog glow (additive)
-	IMAGE_DIALOGBUTTON = 33,        // dialogbutton      96x36         every dialog's button component image
-	IMAGE_BUTTONSTATES = 34,        // buttonstates.jpg  108x174       side buttons: rows of 29 (over 0..2, down 3..5)
-	IMAGE_SLIDERTRACK = 35,         // slidertrack       209x20        OptionsDialog
-	IMAGE_SLIDERTHUMB = 36,         // sliderthumb.png   36x31         OptionsDialog
-	IMAGE_CHECKBOXES = 37,          // checkboxes.jpg    44x23         -> WinBMApp::mCheckboxUnchecked/CheckedImage
-	IMAGE_RANKSTRIP = 38,           // rankstrip         100x2700      Board stats panel
-	IMAGE_GAMEOVER = 39,            // gameover          333x181 +mask Board
-	IMAGE_COUNTDOWN = 40,           // countdown.jpg     160x480 +mask Board
-	IMAGE_BARBAGDISPLAY = 41,       // barbagdisplay.jpg 168x43        Board
-	IMAGE_MOUTHS_UNUSED = 42,       // mouths            184x816 +mask unused (the table lists mouths twice)
-	IMAGE_LEVELUP = 43,             // levelup           300x189 +mask Board
-	IMAGE_EDITBOX = 44,             // editbox.png       96x32         RecordScoreDialog
-	IMAGE_BAGHOLDER = 45,           // bagholder         41x34 +mask   Board
-	IMAGE_GLOWBAG = 46,             // glowbag           64x64 +mask   Board
-	IMAGE_WAITBAR = 47,             // waitbar           32x16         UpdateCheckDialog (not ported)
-	IMAGE_SELECTBACK = 48,          // selectback.jpg    467x480       GameSelector, StartButton; selector tiles
-	IMAGE_GAMETYPESTEXT = 49,       // gametypestext     465x248 +mask selector tiles (3 columns, pitch 154)
-	IMAGE_ILLUSTRATIONS = 50,       // illustrations.jpg 452x128 +mask selector tiles (3 x 144, pitch 154)
-	IMAGE_SKILLSTEXT = 51,          // skillstext        467x52 +mask  skill tiles
-	IMAGE_SKILLSPRESSED = 52,       // skillspressed.jpg 467x52        skill tiles (down)
-	IMAGE_BOTTOMLINE = 53,          // bottomline.jpg    436x18 +mask  Board
-	IMAGE_COINGLOW = 54,            // coinglow          45x45 +mask   Board
-	IMAGE_MRMONEY = 55,             // mrmoney           184x136 +mask -> WinBMApp::mMrMoneyImages
-	IMAGE_MOUTHS = 56,              // mouths            184x816 +mask -> WinBMApp::mMrMoneyImages (6 frames of 136)
-	IMAGE_BILL = 57,                // bill              1920x50 +mask Board (16 frames of 120); -> WinBMApp::mBillImages
-	IMAGE_GAMEDIFFTYPE = 58,        // gamedifftype      100x135 +mask Board
-	IMAGE_STARTTEXT = 59,           // starttext         280x100 +mask StartButton
-	IMAGE_FLOATLOGO = 60,           // floatlogo         156x76 +mask  Board, HelpWidget, OverlayWidget
-	IMAGE_PAUSEBACKDROP = 61,       // pausebackdrop     489x374       Board
-	IMAGE_STARTARROWS = 62,         // startarrows       30x60 +mask   StartButton; -> WinBMApp::mStartArrowsMirrored
-	IMAGE_INSTRUCTOARROWS = 63,     // instructoarrows   50x250        Board
-	IMAGE_INSTRUCTOTEXT = 64,       // instructotext     200x450       Board
-	IMAGE_REGISTER = 65,            // register.jpg      381x385 +mask RegisterDialog (not ported)
-	IMAGE_REGISTER_OVERLAY = 66,    // register_overlay  381x385       RegisterDialog (not ported)
-	IMAGE_HELPCIRCLES = 67,         // helpcircles.jpg   104x660       HelpWidget
-	IMAGE_CLOUDS = 68,              // clouds: only _clouds.jpg 512x512 CreditsDialog
-	IMAGE_BIGARROW = 69,            // bigarrow          372x87        HelpWidget
-	IMAGE_NOMOREMOVES = 70,         // nomoremoves       333x181 +mask Board
-	NUM_IMAGES = 71
+	IMAGE_LEVELFONT = 13,           // levelfont         164x19 +mask  WinBMApp::mLevelFont strip (legacy font)
+	IMAGE_FLOATFONT = 14,           // floatfont         223x20 +mask  unused (floatfont.txt loads its own)
+	IMAGE_LEVEL = 15,               // level             51x21 +mask   Board
+	IMAGE_LEFTBAR = 16,             // leftbar.jpg       640x480 +mask Board, HelpWidget, OverlayWidget
+	IMAGE_BACKDROP = 17,            // backdrop.jpg      406x465       Board
+	IMAGE_RIGHTBAR1 = 18,           // rightbar1.jpg     56x479        Board
+	IMAGE_RIGHTBAR2 = 19,           // rightbar2.jpg     80x480 +mask  Board
+	IMAGE_COIN = 20,                // coin              400x40 +mask  Board
+	IMAGE_STACK = 21,               // stack             40x372        Board
+	IMAGE_COINS = 22,               // coins             580x145 +mask Board (29x29 cells); source of WinBMApp::mBrightCoinsImage
+	IMAGE_HORZCOINS = 23,           // horzcoins         464x145 +mask Board
+	IMAGE_BAG = 24,                 // bag               132x36 +mask  Board
+	IMAGE_EXPLOSION = 25,           // explosion         675x91        Board
+	IMAGE_DOLLAR = 26,              // dollar            1056x33 +mask Board
+	IMAGE_SPARKLE = 27,             // sparkle           280x20        Board
+	IMAGE_OLDDIALOG = 28,           // olddialog         192x192 +mask NewDialog (DoDialog dialogs), CreditsDialog
+	IMAGE_DIALOG = 29,              // dialog.jpg        192x192 +mask MoneyDialog subclasses
+	IMAGE_DIALOGLIGHT = 30,         // dialoglight       14x14         MoneyDialog lights
+	IMAGE_DIALOGGLOW = 31,          // dialogglow        22x22         MoneyDialog glow (additive)
+	IMAGE_DIALOGBUTTON = 32,        // dialogbutton      96x36         every dialog's button component image
+	IMAGE_BUTTONSTATES = 33,        // buttonstates.jpg  108x174       side buttons: rows of 29 (over 0..2, down 3..5)
+	IMAGE_SLIDERTRACK = 34,         // slidertrack       209x20        OptionsDialog
+	IMAGE_SLIDERTHUMB = 35,         // sliderthumb.png   36x31         OptionsDialog
+	IMAGE_CHECKBOXES = 36,          // checkboxes.jpg    44x23         -> WinBMApp::mCheckboxUnchecked/CheckedImage
+	IMAGE_RANKSTRIP = 37,           // rankstrip         100x2700      Board stats panel
+	IMAGE_GAMEOVER = 38,            // gameover          333x181 +mask Board
+	IMAGE_COUNTDOWN = 39,           // countdown.jpg     160x480 +mask Board
+	IMAGE_BARBAGDISPLAY = 40,       // barbagdisplay.jpg 168x43        Board
+	IMAGE_MOUTHS_UNUSED = 41,       // mouths            184x816 +mask unused (the table lists mouths twice)
+	IMAGE_LEVELUP = 42,             // levelup           300x189 +mask Board
+	IMAGE_EDITBOX = 43,             // editbox.png       96x32         RecordScoreDialog
+	IMAGE_BAGHOLDER = 44,           // bagholder         41x34 +mask   Board
+	IMAGE_GLOWBAG = 45,             // glowbag           64x64 +mask   Board
+	IMAGE_WAITBAR = 46,             // waitbar           32x16         UpdateCheckDialog (not ported)
+	IMAGE_SELECTBACK = 47,          // selectback.jpg    467x480       GameSelector, StartButton; selector tiles
+	IMAGE_GAMETYPESTEXT = 48,       // gametypestext     465x248 +mask selector tiles (3 columns, pitch 154)
+	IMAGE_ILLUSTRATIONS = 49,       // illustrations.jpg 452x128 +mask selector tiles (3 x 144, pitch 154)
+	IMAGE_SKILLSTEXT = 50,          // skillstext        467x52 +mask  skill tiles
+	IMAGE_SKILLSPRESSED = 51,       // skillspressed.jpg 467x52        skill tiles (down)
+	IMAGE_BOTTOMLINE = 52,          // bottomline.jpg    436x18 +mask  Board
+	IMAGE_COINGLOW = 53,            // coinglow          45x45 +mask   Board
+	IMAGE_MRMONEY = 54,             // mrmoney           184x136 +mask -> WinBMApp::mMrMoneyImages
+	IMAGE_MOUTHS = 55,              // mouths            184x816 +mask -> WinBMApp::mMrMoneyImages (6 frames of 136)
+	IMAGE_BILL = 56,                // bill              1920x50 +mask Board (16 frames of 120); -> WinBMApp::mBillImages
+	IMAGE_GAMEDIFFTYPE = 57,        // gamedifftype      100x135 +mask Board
+	IMAGE_STARTTEXT = 58,           // starttext         280x100 +mask StartButton
+	IMAGE_FLOATLOGO = 59,           // floatlogo         156x76 +mask  Board, HelpWidget, OverlayWidget
+	IMAGE_PAUSEBACKDROP = 60,       // pausebackdrop     489x374       Board
+	IMAGE_STARTARROWS = 61,         // startarrows       30x60 +mask   StartButton; -> WinBMApp::mStartArrowsMirrored
+	IMAGE_INSTRUCTOARROWS = 62,     // instructoarrows   50x250        Board
+	IMAGE_INSTRUCTOTEXT = 63,       // instructotext     200x450       Board
+	IMAGE_HELPCIRCLES = 64,         // helpcircles.jpg   104x660       HelpWidget
+	IMAGE_CLOUDS = 65,              // clouds: only _clouds.jpg 512x512 CreditsDialog
+	IMAGE_BIGARROW = 66,            // bigarrow          372x87        HelpWidget
+	IMAGE_NOMOREMOVES = 67,         // nomoremoves       333x181 +mask Board
+	NUM_IMAGES = 68
 };
 
-// @0x5285b8 (const char*[71])
+// @0x5285b8 (const char*[71] in the original; the trial and register images are left out)
 inline constexpr const char* gImageNames[NUM_IMAGES] =
 {
 	"cursor_pointer", "cursor_hand", "cursor_dragging", "cursor_text", "titleback", "barandlogo",
 	"goldbar", "mrmoneybags", "titlecigartip", "titleeyeglow", "bigmoneylogo", "deluxor", "dollarstrip",
-	"trialversion", "levelfont", "floatfont", "level", "leftbar", "backdrop", "rightbar1", "rightbar2",
+	"levelfont", "floatfont", "level", "leftbar", "backdrop", "rightbar1", "rightbar2",
 	"coin", "stack", "coins", "horzcoins", "bag", "explosion", "dollar", "sparkle", "olddialog", "dialog",
 	"dialoglight", "dialogglow", "dialogbutton", "buttonstates", "slidertrack", "sliderthumb",
 	"checkboxes", "rankstrip", "gameover", "countdown", "barbagdisplay", "mouths", "levelup", "editbox",
 	"bagholder", "glowbag", "waitbar", "selectback", "gametypestext", "illustrations", "skillstext",
 	"skillspressed", "bottomline", "coinglow", "mrmoney", "mouths", "bill", "gamedifftype", "starttext",
-	"floatlogo", "pausebackdrop", "startarrows", "instructoarrows", "instructotext", "register",
-	"register_overlay", "helpcircles", "clouds", "bigarrow", "nomoremoves"
+	"floatlogo", "pausebackdrop", "startarrows", "instructoarrows", "instructotext",
+	"helpcircles", "clouds", "bigarrow", "nomoremoves"
 };
 
 // Files are .ogg except piecehit, bonusdrop and explode (.au)
@@ -235,22 +232,12 @@ enum DialogId
 {
 	DIALOG_NEW_GAME = 0,                // "end the current game?" YES_NO -> ShowGameSelector
 	DIALOG_OPTIONS = 1,                 // OptionsDialog (MoneyDialog, FOOTER "Done")
-	DIALOG_REGISTER = 2,                // RegisterDialog (not ported)
 	DIALOG_RECORD_SCORE = 3,            // RecordScoreDialog (MoneyDialog, non-modal, OK_CANCEL)
-	DIALOG_UNUSED4 = 4,                 // never created; its YES ran ShowRegisterDialog
 	DIALOG_CONTINUE_GAME = 5,           // "continue your last game?" YES_NO
-	DIALOG_CHECK_UPDATES = 6,           // "check for updates?" YES_NO (not ported)
-	DIALOG_UPDATE_CHECK = 7,            // UpdateCheckDialog (not ported)
-	DIALOG_INVALID_CODE = 8,            // FOOTER (not ported)
-	DIALOG_OPENING_BROWSER = 10,        // NONE
-	DIALOG_URL_FAILED = 11,             // FOOTER
 	DIALOG_QUIT = 12,                   // YES_NO -> Shutdown
 	DIALOG_HIGH_SCORES = 13,            // HighScoreDialog (MoneyDialog)
 	DIALOG_CREDITS = 14,                // CreditsDialog
-	DIALOG_REGISTER_PROMPT = 15,        // puzzle locked / one level only / register to record (not ported)
-	DIALOG_INFO = 16,                   // FOOTER: "already registered" or "enter a name"
-	DIALOG_UPDATE_AVAILABLE = 10007,    // UpdateCheckDialog result mId+10000 (not ported)
-	DIALOG_UP_TO_DATE = 20007           // UpdateCheckDialog result mId+20000 (not ported)
+	DIALOG_INFO = 16                    // FOOTER: the "enter a name" notice
 };
 
 // Side ButtonWidgets made by WinBMApp::TitleScreenIsFinished (WinBMApp is their ButtonListener)

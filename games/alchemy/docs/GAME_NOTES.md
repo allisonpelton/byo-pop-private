@@ -23,7 +23,8 @@ has the order the analysis went in and the tools.
 | 0x414000-0x47f000 the framework (2857 functions byte-match BookWorm's) | `framework/` with `sexycompat2004` |
 
 The unregistered game's screens (0x40f314 the register dialog and its kin, 0x413bdc and 0x413e12 the nags, 0x41351d and
-0x4131ca the internet scores, 0x412139 the update check, 0x412aa0 and 0x412c68 the browser dialogs) are not ported.
+0x4131ca the internet scores, 0x412139 the update check, 0x412aa0 and 0x412c68 the browser dialogs) are not ported; section 5
+lists every function of them, with what it does in the original.
 
 ## 2. The game
 
@@ -65,8 +66,7 @@ button (`mTutWaiting`), a wrong placement gets a message, the last step's button
   strategic table's order, then the time trial's). The port reads them from the player's own `Alchemy.exe` (`GameText.h`),
   and starts a table with its own placeholders when the exe is not in the game folder or is another version;
   `DEFAULT_NAME_STRATEGIC_1..5` and `DEFAULT_NAME_TIME_TRIAL_1..5` in `properties/default.xml` replace either.
-- the registry (`registry.ini` in the port): `SkillLevel`, `TimeTrial`, `LastScoreName`, `LastInternetScoreName` (kept,
-  never shown), `NoPopLink`, and the framework's (volumes, full screen, custom cursors, times played).
+- the registry (`registry.ini` in the port): `SkillLevel`, `TimeTrial`, `LastScoreName`, and the framework's (volumes, full screen, custom cursors, times played).
 
 ## 4. Port decisions
 
@@ -92,3 +92,162 @@ The unregistered game's screens and the internet scores are left out as `README.
 second picture (0x4106bc, the "buy" overlay at y = 0x137) and the play counter belong to a copy that is not registered,
 and the "thanks for registering" line (0x4108c6, y = 0x157) to one that is registered but not unlocked; the port is both
 registered and unlocked, so none of them is drawn.
+
+**Registration and the buttons that lead out (the coordinator's rules of 2026-11-07, checked 2026-11-08).** The original exe
+*does* have the unregistered game: a play limit, delayed start-up, nags, a register dialog, an update check, the internet
+scores and the calls that open a browser. The copy this port was made from (the Collection's `Alchemy.exe`) has no copy
+protection and acts as a registered copy (the app's registered flag, +0x478, is set), so it never reaches any of them, and
+the port never translated them: the ideal case, with nothing to take out afterwards. Everything below exists in the
+original and is left out, by address (size in bytes), with what the export shows each does:
+
+| function | what it does in the original |
+|---|---|
+| 0x4103e2 (576) `TitleScreen` constructor | besides the play link, makes the REGISTER_NOW_TO_REMOVE_THIS_DELAY text, the line of an unregistered copy's wait |
+| 0x4109d8 (436) `TitleScreen::Update` | the registered branch is ported (the bar follows the loading thread). For an unregistered copy it reads the registry value `MaxPlays` (10 when missing); when the play count (+0x534) is past it, it raises the forced-registration dialog (0x41351d) at its tenth update, and otherwise holds the bar back with a timer that grows 0.01 per update (the "delay") |
+| 0x410622 (950) `TitleScreen::Draw` | the registered branch is ported. The rest draws THANKS_FOR_REGISTERING (registered, not unlocked), the "YOU HAVE %d PLAYS LEFT" counter and YOU_MUST_REGISTER |
+| 0x40d836 (1594) `OptionsDialog` constructor | the registered part is ported. The rest makes the buttons VISIT_POPCAP_FOR_MORE_GAMES (id 3), CHECK_FOR_UPDATES (id 5) and REGISTER (id 1) and the OptionsLinkText0 link; the port's dialog is shorter by their rows and its help and scores buttons stand side by side (`OptionsDialog::Resize`) |
+| 0x40e34b (232) the options dialog's link and button handler | opens `OptionsLinkURL0` (http://www.popcap.com), starts the update check (0x41222f) for id 5, and opens the register dialog (0x410fef) for id 1 |
+| 0x410fef (208) | opens the register dialog; called by 0x40e34b, 0x4109d8 and `ButtonDepress` 0x413eea |
+| 0x40f314 (716) and 0x40f5e0 (732) the register dialog | its constructor (CLICK_HERE_TO_REGISTER_ONLINE, REGISTRATION, buttons with the `hiscorebtn` picture, an edit box on `hiscorebox`) and its drawing and text (LICENSE_CODE, REGISTERED_NAME, BROWSER_WINDOW_NOTICE1-3) |
+| 0x40c092 (824) and 0x40c3ca (190) the internet-score dialog | constructor and destructor of dialog 9: an edit box for the name (the registry's `LastInternetScoreName`) with SUBMIT and CANCEL on `hiscorebtn` |
+| 0x413ab9 (291) | no caller in the export. For an unregistered copy it raises dialog 10 with REGISTER_NAG1 and REGISTER_NAG2; for a registered one it makes the internet-score dialog (0x40c092) |
+| 0x4131ca (851) internet score upload | fills the page template `scoreul.tpl` ($NAME, $DATA) into `score%d.html` and opens it in the browser; called by `ButtonDepress` (0x413eea) with 0x413846 (252), the LICENSE_ERROR1-3 dialog |
+| 0x41351d (809) forced registration | the dialog FORCE_REGISTRATION_DIALOG1-6 (and NoInternetScores) when the play limit is reached; called by 0x4109d8 |
+| 0x413a2f (138) | the high-score register nag (HIGH_SCORE_REGISTER_NAG, dialog 10, modal); called by the score check 0x40a57b, whose unregistered branch it belongs to |
+| 0x413bdc (566) | the pre-game nag (PREGAME_NAG with the play count, and PREGAME_NAG2-6 from 30, 40 and 60 plays), dialog 10; called by `Board::Update` (0x406f2a) |
+| 0x413e12 (216) | the time-trial nag (TIME_TRIAL_NAG1, TIME_TRIAL_NAG2), dialog 0xe; called by `Board::Update` (0x406f2a) |
+| 0x412139 (246) and 0x41222f (450) the update check | the question CONFIRM_UPDATE1 and 2 (called by 0x412a8a, the 22-byte override of `LoadingThreadCompleted`), and the address http://www.popcap.com/win32updatecheck.php?prod=...&referid=...&ver=... that it opens |
+| 0x412aa0 (456) and 0x412c68 (257) | the dialogs that answer an attempt to open a web page: OPEN_BROWSER_DIALOG1 and 2 with URL_OPEN_ERROR1 and 2 when it fails, and URL_OPEN_DIALOG1 (virtual slots 26 and 28 of the app; slot 27 is the empty success hook, 0x410d0e) |
+| 0x411a41 (258) and 0x411b43 (524) the registry | the ported methods; the original's also write and read `LastInternetScoreName`, `RegisterLink` (http://www.popcap.com/register.php?theGame=alchemy&referid=) and `ReferId` |
+
+The framework's own `SexyApp` has the other half (the registration code and name, `register.php`, the `DontUpdate` value
+and the update-check dialog at 0x476210); those are the shared code's, not the game's.
+
+The port's own checks, made 2026-11-08, that nothing it loads is used only by those functions: a search of `src/` and of
+the `properties` ids it reads for the strings and the registry values above finds none (the one that remained, `LastInternetScoreName`, is out now;
+`COLOR_DEPTH_ERROR` is not on the list: it is the colour-depth question of 0x413942, which the port has). Of the pictures,
+`trialversion` (the title's "buy" overlay, which was loaded and never drawn) and, by the pictures' places in the original's
+image array, `hiscorebox` and `hiscorebtn` (read only by the register dialog and the internet-score dialog) were still
+loaded; all three are gone from the image list and from `Res.h` (63 images, 9 loaded by the title's start-up, and 99 loading
+tasks where the original has 101, since the two others were among the loading thread's), and the registry values
+`NoPopLink` and `LastInternetScoreName` with their fields. No visible change comes of any of these (the suite's baseline is identical).
+The pictures `cartoonstar` and `waitbar` that nothing in the port draws are not registration: the first is the ring of
+the Board effect the first paragraph of this section calls never triggered, the second is loaded and never read by the original either.
+
+`Board::mTrialPause` and `Pause(true)` are not registration: the name "trial" is the decompilation's, and the pause it counts is
+the one that covers the board (`Board::Draw` draws the cover instead of the tiles, and the pause text when no dialog is up): any key press toggles it in every mode
+(`KeyChar`), and a dialog raises it in the time trial (`AlchemyApp::ModalOpen` passes the mode). They stay. Loading has no waits (the title screen's bar follows the loading thread, which runs
+once, with no pacing), so the rule on fast loading changes nothing here.
+
+## 6. The standard test commands
+
+The port answers the standard test commands (`docs/TEST_COMMANDS.md`) in `AlchemyApp::HandleScriptCommand`
+(`src/testhooks/Commands.cpp`). They are reachable only from a test: `-script` lines (`<update> <command>`), and the live
+channel (`-commands`, the web's `byopop.test.command`) once the framework has it. A game that is never given one is not changed:
+the suites and the frozen baseline play as before. Each command answers with one line on stdout (`OK <command>`,
+`ERROR <command>: <reason>`, `STATE {...}` or `MOVE {...}`).
+
+| Command | What it does |
+|---|---|
+| `state` | `STATE {json}`: `screen` (title, menu, game, highscores, options, help), `dialog` (name, load, hint, quit, newgame, skill, tutorial, options, alltime), `updates`, `mode` (strategic, timetrial, tutorial), `skill`, `level` (the board, from 1), `score`, `forge` (0 to 3), `over` (the game has ended), `busy` (the board cannot take a piece now), `board` (`state`, the `pieces` as `[col, row, shape, colour, stone]`, `lit` as eight strings of nine digits, `litCount`, `piece` to place, `fits`, `moves`, `forged`, `boards` cleared, `shapes`, `colors`, `paused`, `cover`, and `tutorial` with `step`, `waiting`, `count`, `button`), `ready` and `link` on the title, `active`, `windowed`, `muted`, and the places of the buttons a driver presses: `panel`, `options`, `selector`, `table`. |
+| `goto <screen>` | `menu` (the selector), `options`, `help`, `highscores` (the all-time table), `strategic` or `timetrial` with an optional skill 1 to 3, and `tutorial`, which start that game through the selector's own buttons. `title` and `credits` are errors: the game has neither to go to. |
+| `level <n>` | Board n of the game being played: n - 1 boards cleared, an empty grid (a first board has its stone), the difficulty follows. |
+| `unlock all` | `ERROR`: the game has nothing locked. |
+| `set <name> <value>` | `score`, `forge` (0 to 3) or `boards` (boards cleared; the difficulty follows). |
+| `win` | Every tile lit: the board is won through `CheckAllLit` (the bonus, the pieces vanish, the panel). |
+| `lose` | The forge overflows: the game ends through `GameOver` (the pieces shrink away, the table follows). |
+| `seed <n>` | Seeds the C library generator, which seeds the board's own generator at a game's start. |
+| `move` | `MOVE {json}`: the bot's next input, or `MOVE null` when it has none (the title still loads, the board is busy, a dialog the bot does not answer is up). Changes nothing, and draws none of the game's random numbers: the bot has a generator of its own, seeded from the position. |
+
+The bot is the one `-autoplay` has always had (`src/testhooks/Bot.cpp`, shared by both; the suites' numbers did not change):
+a cell that completes a row or a column is best, otherwise the cell with most neighbours, a tenth of the choices a random cell
+that fits, and the forge when no cell fits. `move` also answers the title's link, the wizard's question (yes), the saved game
+(yes), the name entry (three letters, then OK), the table's button, the board-cleared panel's button and the tutorial's. A MOVE's
+`input` is the ordered list of steps `docs/TEST_COMMANDS.md` describes: `{"move":[x,y]}` (the pointer goes there; the piece hangs
+0x30 pixels up and left of it and the board takes the cell from the piece at the last update, so a hover comes before a click),
+`{"wait":n}`, `{"click":[x,y]}` (`"button":"right"` for the forge) and `{"key":"b"}`. Its `kind` is place, forge, title, dialog,
+name, scores, cleared or tutorial.
+
+## 7. The fixes mod
+
+`games/alchemy/mods/fixes/mod.json` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, each setting a
+toggle for one bug of the original that the port keeps, every toggle on by default. The site serves the game with it on
+(`alchemy-fixes/` beside the page); a native build finds it when the folder is copied into the mods folder. The port without
+the mod is the original: `FixEnabled` (`src/Fixes.cpp`) is false for every toggle unless the mod is enabled, and a toggle is read
+where its fix matters, as a live value, so it needs no restart (a picture the board already holds is redrawn at the next board).
+
+| Toggle | The original | With the fix |
+|---|---|---|
+| `rims` | `Board::RedrawCell` (0x401a82) gives a lit tile a half-opaque rim where it borders an unlit one, but tests the left and top neighbours with `1 < col` and `1 < row` and the right and bottom ones with `col < 8` and `row < 7`: the first column and row get none on their inner side, while the last ones get theirs. | The tests are `0 < col` and `0 < row`: the edge between a lit tile of the second column (or row) and an unlit tile of the first has its rim, as every other edge. Only the one-pixel line at the second column's left edge and the second row's top edge differs. |
+| `continuedEnding` | `Board::LoadGame` (0x405b39) puts each piece of a continued game at its cell without the board's offset (150, 0) that every placed piece has until the next `Resize`, and the end-of-game shrink draws pieces from that position: in a game that was continued and then lost, the pieces shrink 150 pixels left of their tiles, half of them under the side panel, and the board looks emptied at once. | The pieces get the offset, and shrink away on their tiles as in a game that was not continued. |
+
+**Looked at, not made into toggles.** The port's `Board::~Board` counts a game as played when the forge is nearly full and the
+game has not ended (`mState != STATE_GAME_OVER`), but a game that is lost counts in `GameOver` and the board is in
+`STATE_ENDING` for the next second or so: leaving then counts it twice. The count only decides whether the selector still shows
+the tutorial's button (fewer than five games), and only a game left in that second is counted twice, so it is not a fix worth a
+toggle. A name entry that is accepted empty drops its score without a word (`HighScoreWidget::SetName`): that is the game's rule
+for "no name", not a mistake the port can mend without making up what the original would have shown. The game's end is slow
+(about three seconds of shrinking and fading, then the table) and a click is ignored meanwhile, as in a board cleared (the
+pieces vanish three at a time): those are the game's animations, part of its pace, so they stay. Loading is already as fast as
+the machine: the framework runs the loading thread in one go, and the title polls it every fourth update (at most 40 ms).
+
+## 8. Performance
+
+Measured on 2026-11-08 for the user's morning report, the port and the original back to back on the machine as it was, and
+the machine was not quiet: other sessions' games ran meanwhile. Game processes running on the machine (any session's, counted
+every 5 s during each run): 6 to 9 during the port's runs (means 6.0 to 9.0) and 7 to 13 during the original's (means 7.5 to
+10.5). The performance pass measures again on a quiet machine, so read these as what a busy one gave, not as a benchmark.
+
+**How.** `games/alchemy/tools/profile/perf.py` starts the game and reads that process alone, every 100 ms: its working set, its
+private bytes (the pagefile usage, whose peak Windows keeps) and its processor time (kernel plus user); `run.sh` alternates the
+two. The port is `build/native/alchemy.exe` natively under rundesk, never `-fast`; the original is the staged copy under origrun on
+its real clock (`--clock real`; origrun puts it under rundesk itself). Both play the same scripted input: the bot's mouse game
+(strategic, game seed 11) from update 450 (title link, selector, board) to update 6450, which is 60 s of play at 100 updates a
+second, then quit (`toorig.py` turns the port's script into the original's, answering the original's first-run "Updates" question
+No). Both run on rundesk's private desktop at below-normal priority with silent sound (SDL's silent driver for the port, origrun's
+stand-in for the original), so these are the test conditions, not a player's. A run's numbers cover launch to the end of the
+minute (about 66 s); the processor time of "the minute" is that of the last 60 s of the run.
+
+**Loading** (launch to the first screen that takes input, the title with its play link; the original's launch is its process's
+creation, its play link is read from its memory, `mLoadingThreadCompleted` and the title's link-shown byte, as origrun's `--watch`
+reads it; the port's is its first state answer with `ready` true, asked every 50 ms over `-commands`):
+
+| | runs (s) | median |
+|---|---|---|
+| port, native | 1.74, 2.63, 1.77 (and 0.83, 1.15 in two test runs before) | 1.77 |
+| original under origrun, real clock | 2.62, 1.72, 2.77 (and 2.61, 0.82 in its two play runs) | 2.62 |
+| port, web (the Browser pane, `loadtime.js`: page navigation to the play link, silent) | 3.8 (cold), 4.8, 11.9, 13.1 | not stable |
+
+Both load in about 1 to 3 seconds when the machine lets them (0.8 s at the quietest moments, for either), and the spread between
+runs is larger than the difference between the two, so no gain or loss in loading can be claimed from these. The web's spread is the
+pane's browser sharing a busy machine (its own start-up took 0.9 to 9.5 s of the time).
+
+**Memory** over launch and the scripted minute (peak working set; peak private bytes):
+
+| | peak working set (MB) | peak private bytes (MB) | mean working set in the last minute (MB) |
+|---|---|---|---|
+| port, minute 1 and 2 | 66.9, 76.0 | 67.0, 69.3 | 66.0, 74.9 |
+| original, minute 1 and 2 | 73.7, 73.6 | 53.0, 52.9 | 72.2, 72.2 |
+| port, load only (3 runs) | 59.7 to 68.9 | 59.5 to 62.5 | |
+| original, load only (3 runs) | 59.3 to 69.0 | 46.1 to 48.5 | |
+
+The working sets are alike; the port holds about 14 to 16 MB more private bytes than the original, from the first screen on.
+
+**Processor time** (seconds of one core):
+
+| | whole run, launch to the end of the minute | the minute (last 60 s) |
+|---|---|---|
+| port, minute 1 and 2 | 6.06, 5.92 | 5.00, 4.92 |
+| original, minute 1 and 2 | 2.69, 2.23 | 1.89, 1.48 |
+
+The port used about three times the original's processor time over this minute (around 8% of a core against around 3%): no
+speed-up shows here, the port is the heavier of the two. This is the port as translated, at its real-time pace in a test run
+(`-script`); where the frame's time goes (the draw, the mixer, the script's own work, say) was not looked into here, and it is the
+performance pass's to find.
+
+**Not measured.** The web build's working set, private bytes and processor time cannot be read from the Browser pane (its page
+is one tab of the app's browser, with no process of its own to read), and `Module.HEAP8` is not reachable from the page: the
+JS heap at the play link was 5 to 12.5 MB, which is not a process's memory. The web's load time above is what could be timed.
+
+To repeat: `bash games/alchemy/tools/profile/run.sh` from the worktree root, after `tools/origrun/build.sh`, a port script in
+`build/perf/port-play.txt` and its original's in `build/perf/orig-play.txt` (`games/alchemy/tools/profile/perf.py` and `run.sh` say how).
