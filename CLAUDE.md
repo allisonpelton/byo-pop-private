@@ -207,8 +207,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
 - **Order of the work (the user, 2026-11-01):** first every fault the user reported and anything that makes a game
   hard to test, then the identical-play pass. Registration code (trial, nag, unlock, register and buy paths) comes out
   in this phase, as part of finishing each game, before any further decomp begins (the user, 2026-11-07: "Move up the
-  removal of all registration-related code to be part of the current phase before beginning other decomps"); a port
-  not yet translated leaves it out as it goes. So does every button that leads out of a game, "More Games" first, its
+  removal of all registration-related code to be part of the current phase before beginning other decomps"), and with
+  it what a registered copy shows, such as a "thanks for registering" line (the user, 2026-11-08); a port not yet
+  translated leaves it out as it goes. So does every button that leads out of a game, "More Games" first, its
   neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). A performance pass (the user, 2026-11-03), then a readability pass
   (`docs/CODE_STANDARDS.md`) and taking out the other code the ports do not need come once every game is done
   (`docs/COORDINATION.md`). A session may speed up its own port before then, at any time, so its `-fast` test runs go
