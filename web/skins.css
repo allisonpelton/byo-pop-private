@@ -360,3 +360,8 @@ html.sk-ambient .sk-glow.on { opacity: var(--sk-amb, .75); }
 /* the listing's own desktop icons: the games (four caps' colours in a grid) and the notes (lines of text) */
 html.d95-desk .d95-icon-games > i::after { background: conic-gradient(#c8102e 0 25%, #1a64c0 0 50%, #2a9d4f 0 75%, #e6c35a 0); }
 html.d95-desk .d95-icon-about > i::after { background: repeating-linear-gradient(var(--sk-lo) 0 1px, var(--sk-well) 1px 3px); }
+/* the performance panel (web/perf.js) as a window, its heading the title bar */
+html.d95-desk .perf-panel.d95-win { border: 0; border-radius: 0; }
+html.d95-desk .perf-panel.d95-win > h2 { background: var(--sk-title); color: var(--sk-title-fg); border: 0; padding: 2px 6px; font-size: 13px; }
+html.d95-desk .d95-icon-perf > i::after { background: linear-gradient(#2a9d4f, #2a9d4f) 0 100% / 26% 40% no-repeat,
+  linear-gradient(#e6c35a, #e6c35a) 50% 100% / 26% 70% no-repeat, linear-gradient(#c8102e, #c8102e) 100% 100% / 26% 100% no-repeat; }
