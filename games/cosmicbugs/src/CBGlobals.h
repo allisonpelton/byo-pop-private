@@ -80,15 +80,13 @@ extern int gFirstWeapon;                   // 0x46003c  no orbiting weapon has b
 extern int gLevelInSet;                    // 0x46e5ec
 extern int gMouseX;                        // 0x46e5bc
 extern int gMouseY;                        // 0x46e5c0
-extern int gTrial;                         // 0x46e5c4
-extern int gTrialLeft;                     // 0x460044  ms
+extern int gTrialSlot;                     // 0x460044  cb.dat's third field (the trial's ms left in the original), kept so the file stays the original's
 extern int gLives;                         // 0x460040
 extern float gBeamSpeed;                   // 0x460038  the ship's beams' speed at the start
 extern int gDifficulty;                    // 0x46e5e0  -1, 0 or 1 (the options' cycle)
 extern int gAutoFire;                      // 0x460028  the shooter mode: 0 manual, 1 auto
 extern int gQuit;                          // 0x46e5d0
 extern int gFirstRun;                      // 0x46e5d4  cb.dat was missing
-extern char gUrl[0x200];                   // 0x46e3a8  opened when the game ends
 extern int gFrame;                         // 0x460a1c  updates
 extern HighScore gHighScores[9];           // 0x46e250
 extern List<FontEntry> gFonts;             // 0x470e4c

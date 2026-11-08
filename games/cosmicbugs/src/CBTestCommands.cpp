@@ -40,9 +40,6 @@ const char* ScreenName(int theKind)
 	case 5: return "levelselect";
 	case 6: return "levelselect2";
 	case 7: return "options";
-	case 8: return "opening_nag";
-	case 9: return "closing_nag";
-	case 10: return "expiring_nag";
 	case 0xb: return "mission_complete";
 	case 0xc: return "help";
 	case 0xd: return "instructions";
@@ -168,6 +165,8 @@ struct Plan
 	int row = 0;
 	bool across = false;
 	int gain = 0;
+	int failures = 0;  // calls in a row that found no safe line on this board
+	bool risky = false; // the plan was taken without the safety test (after 30 failures)
 };
 Plan gPlan;
 
@@ -362,8 +361,12 @@ bool Safe(Level* theLevel, const Grid& theGrid, int theCol, int theRow, bool the
 	return aSafe;
 }
 
-bool ChoosePlan(Level* theLevel, Shooter* theShip)
+// theRisky takes the line that fills the most whatever the enemies may do, after a board has offered no safe line for a
+// while (a player does not wait for ever either)
+bool ChoosePlan(Level* theLevel, Shooter* theShip, bool theRisky)
 {
+	if (gPlan.level != theLevel)
+		gPlan.failures = 0;
 	Grid aGrid;
 	ReadGrid(theLevel, aGrid);
 	std::vector<std::pair<int, int>> anEnemyCells;
@@ -401,14 +404,19 @@ bool ChoosePlan(Level* theLevel, Shooter* theShip)
 	});
 	gPlan.level = theLevel;
 	gPlan.valid = false;
+	if (!theRisky)
+		gPlan.failures = gPlan.failures + 1;
 	int aTried = 0;
 	for (const Candidate& aCandidate : aList)
 	{
-		if (aTried++ > 400)
+		if (aTried++ > 4000)
 			break;
-		if (Safe(theLevel, aGrid, aCandidate.col, aCandidate.row, aCandidate.across, aCandidate.line, aSpeed))
+		if (theRisky || Safe(theLevel, aGrid, aCandidate.col, aCandidate.row, aCandidate.across, aCandidate.line, aSpeed))
 		{
 			gPlan.valid = true;
+			gPlan.risky = theRisky;
+			if (!theRisky)
+				gPlan.failures = 0;
 			gPlan.col = aCandidate.col;
 			gPlan.row = aCandidate.row;
 			gPlan.across = aCandidate.across;
@@ -426,6 +434,16 @@ std::string Move()
 	// a won board shows its bonus texts, each clicked away in turn; the click after the last one goes on to the next board
 	if (aLevel != nullptr && aLevel->kind == 0 && aLevel->state == 3 && aLevel->gameOver == 0 && aLevel->texts.head != nullptr)
 		return "MOVE {\"kind\":\"continue\",\"input\":[{\"click\":[400,300]},{\"wait\":20}]}";
+	// the board waits while the pointer is over its panel (Level_IsPlaying): a click that started the board, on the
+	// instructions page's Play button, leaves it there, and a player moves it up into the board
+	if (aLevel != nullptr && aLevel->kind == 0 && aLevel->state == 1 && aLevel->gameOver == 0 && aLevel->totalCells != 0 &&
+		Level_IsPlaying(aLevel) == 0 && (aLevel->menus.current == nullptr || aLevel->menus.current->requesters.current == nullptr))
+	{
+		int aY = 300;
+		if (aLevel->panels.current != nullptr && (float)aY >= aLevel->panels.current->y)
+			aY = (int)aLevel->panels.current->y - 40;
+		return Fmt("MOVE {\"kind\":\"hover\",\"input\":[{\"move\":[400,%d]},{\"wait\":4}]}", aY);
+	}
 	if (aLevel == nullptr || aShip == nullptr || Busy(aLevel, aShip) || Fill(aLevel) >= aLevel->fillQuota)
 		return "MOVE null";
 	int aSx = (int)aShip->x;
@@ -439,7 +457,7 @@ std::string Move()
 				aTooClose = true;
 		});
 		if (aTooClose)
-			return "MOVE null";
+			return "MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}";
 		return Fmt("MOVE {\"kind\":\"launch\",\"input\":[{\"click\":[%d,%d]},{\"wait\":4}]}", aSx, aSy);
 	}
 	bool aPlanOk = gPlan.valid && gPlan.level == aLevel;
@@ -448,8 +466,8 @@ std::string Move()
 		Cell* aCell = &aLevel->columns[gPlan.col][gPlan.row];
 		aPlanOk = aCell->kind == 0 && aCell->unmarked != 0;
 	}
-	if (!aPlanOk && !ChoosePlan(aLevel, aShip))
-		return "MOVE null";
+	if (!aPlanOk && !ChoosePlan(aLevel, aShip, gPlan.level == aLevel && gPlan.failures >= 30))
+		return "MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}";
 	int aX = gPlan.col * 16 + 8;
 	int aY = gPlan.row * 16 + 8;
 	int aCol = aSx / 16;
@@ -461,20 +479,21 @@ std::string Move()
 		return Fmt("MOVE {\"kind\":\"turn\",\"input\":[{\"click\":[%d,%d],\"button\":\"right\"},{\"wait\":3}]}", aX, aY);
 	// the ship is in its cell, turned the right way: fire, unless an enemy sits on it (the game only buzzes)
 	if (EnemiesOnShip(aShip) != 0)
-		return "MOVE null";
+		return "MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}";
 	Grid aGrid;
 	ReadGrid(aLevel, aGrid);
 	std::vector<std::pair<int, int>> anEnemyCells;
 	List_Each(&aLevel->enemies, [&](Enemy* anEnemy) { anEnemyCells.push_back({(int)anEnemy->x / 16, (int)anEnemy->y / 16}); });
 	float aSpeed = aShip->beamSpeed > 0.0f ? aShip->beamSpeed : 0.14f;
 	Line aLine = Evaluate(aGrid, gPlan.col, gPlan.row, gPlan.across, aLevel->number, aSpeed, anEnemyCells);
-	if (aLine.gain <= 0 || !Safe(aLevel, aGrid, gPlan.col, gPlan.row, gPlan.across, aLine, aSpeed))
+	if (aLine.gain <= 0 || (!gPlan.risky && !Safe(aLevel, aGrid, gPlan.col, gPlan.row, gPlan.across, aLine, aSpeed)))
 	{
 		// the board moved on: look again
 		gPlan.valid = false;
-		return "MOVE null";
+		return "MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}";
 	}
 	gPlan.valid = false;
+	gPlan.failures = 0;
 	return Fmt("MOVE {\"kind\":\"shot\",\"col\":%d,\"row\":%d,\"across\":%s,\"gain\":%d,\"input\":[{\"click\":[%d,%d]},{\"wait\":3}]}",
 		aX / 16, aY / 16, gPlan.across ? "true" : "false", aLine.gain, aX, aY);
 }

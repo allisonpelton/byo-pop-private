@@ -26,8 +26,8 @@ files (`cp.cfg`, `cb.dat`).
 
 `CosmicBugs.exe` was linked on 2007-11-20 by MSVC 2005 (linker 8.0). It carries no copy protection wrapper (its
 sections are `.text`, `.rdata`, `.data` and `.rsrc`) and no RTTI, and it is the full version: the registered flag at
-0x460004 is set, so the trial's parts (the time limit, the boards kept for the full version) never run, though the
-port translates them. The code is 0x401000-0x457af6, the game's functions and the engine's interleaved, then the
+0x460004 is set, so the trial's parts (the time limit, the boards kept for the full version) never ran, and the port
+leaves them out (see "Registration and links"). The code is 0x401000-0x457af6, the game's functions and the engine's interleaved, then the
 MSVC runtime; BASS is the separate `bass.dll`. The port translates about 560 functions (294 of the game, 269 of the
 engine, each with its address in a comment). `docs/symbols/10_engine.jsonl` holds the names given in Ghidra.
 
@@ -99,10 +99,85 @@ Not yet tested: the player requesters (a new name, deleting a player), the level
 mode natively (F7, F8 and Alt+Enter on the real desktop), and the sound and music by ear: every test runs with the
 silent driver.
 
+## Test commands
+
+The standard commands of `docs/TEST_COMMANDS.md` live in `src/CBTestCommands.cpp`, reached only from a test: the exe's
+`-script` and live command channel (`CosmicBugsApp::HandleScriptCommand`), the web page's `byopop.test.command` and the
+headless runner's `cmd` event. A normal run never calls them, and none but `seed` draws from the game's generator. Each
+answers with `STATE {...}`, `MOVE {...}` or `null`, `OK <command>` or `ERROR <command>: <reason>`.
+
+| Command | What it does |
+|---|---|
+| `state` | The game's state as JSON: `screen` (logo, title, instructions, options, board, highscores, highscore_entry, credits, levelselect, help, change_user, mission_complete), `kind`, `mode` and `difficulty`, `shooter` (manual or auto), `score`, `lives`, `requester`, `fullscreen`, `stretched`, `updates` (the game's step count). On a board also `fill`, `quota`, `shots`, `cells`, `filled`, `playing`, `busy`, `paused`, `won`, `over`, `ship` (x, y, state, across, weapons) and `enemies` with `enemyCount`. |
+| `goto <screen>` | `title`, `options`, `help`, `instructions`, `highscores`, `credits`, `levelselect`, `changeuser`; or `game`, `manual` and `auto` to start board 1 in the shooter mode. `easy`, `normal` and `hard` set the difficulty the game file does not offer, and are for a test that wants the setting saved in the profile. |
+| `level <n>` | Starts board n of the game (from 1), with its own intro. |
+| `unlock all` | Sets the profile's reached board to the last one and saves it. |
+| `set <name> <value>` | `score`, `lives`, `reached`, `difficulty` (easy, normal, hard) or `shooter` (manual, auto). |
+| `win` / `lose` | On a board being played: fills to the quota for the board's own ending, or ends the game through `Level_GameOver`. |
+| `seed <n>` | Seeds the game's generator. |
+| `move` | The bot's next step, below. |
+
+`move` answers `MOVE {"kind": ..., "input": [...]}` when there is something to do and `MOVE null` while the game is busy
+or over. The input steps are those the drivers send as real events: `{"move": [x, y]}`, `{"click": [x, y]}` (with
+`"button": "right"` for the aim switch), `{"press": ...}`/`{"release": ...}`, `{"key": "Escape"}` and `{"wait": n}`
+(n game updates). The `kind` says why: `hover` (put the pointer on the board, since a pointer over the bottom panel stops
+the play), `aim` (move to the line's start), `turn` (the right click that switches across and down), `shot` (the
+click), `launch` (the button a title, options or instructions screen needs), `continue` (a click through a won board's
+texts), `wait` (nothing to do for 10 updates) and null. The bot searches the cells where a line fills most of the board without crossing an enemy's
+path in the time the line takes (`Safe`), and when it finds none for 30 asks in a row on a board it takes the best gain
+anyway, so a board always ends. It plays the game's own rules from the game's own state, one shot at a time, and a mod
+that adds a bot can reuse it as it is.
+
+The drivers are `games/cosmicbugs/tools/play/drive.py` (the exe under rundesk with `-commands -realinput`) and the web
+page's `?driver=move`: they send `move`'s steps as real mouse and key events and never pick a move themselves.
+
+## Registration and links
+
+The original's data section starts with `gRegistered` at 1 and the trial flag at 0, so the exe the port was made from
+already ran as the full version, and taking the trial out changes nothing a player sees (the frozen baseline proves it).
+Gone from the port: the registered, trial and trial-time globals and the trial clock on a board (the nag it brought in
+the last ten updates), its time drawn at the foot of a board, the 48-board cap of `Level_Won`, the code of the opening,
+closing and expiring nag screens (the game file's levels of those types are still loaded, as inert screens nothing goes
+to, because loading them draws from the game's generator and leaving them out would move every draw after them; the
+opening one is already commented out in the file), the menu item types `buy_now`,
+`more_games`, the opening nag's "maybe later" and the closing nag, the readers of the `website.url` and `website3.url`
+shortcuts and the page the game asked for at exit (`gUrl`, `GameExit`'s `OpenURL`), the app's `OpenURL` override, and the
+text and menu entries for the full version only (`fv`, `fv_type` and `fv_name` are the only ones read). The title's
+fourth item, "BUY NOW" in the trial, is the full version's HELP in the original, so no button leaves a gap; its
+"MORE GAMES" item is already commented out in the game file. The title's QUIT quits. What stays is the third field of
+`cb.dat`, the trial's time, kept as `gTrialSlot` so the player's file is the original's byte for byte. The logo screens
+show the text "www.retro64.com" on them; it is text, not a button, and nothing in the game follows it.
+
 ## Mods
 
-None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
-making, and the fix of the easy setting's label.
+One, `mods/fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"), with a toggle for each of two fixes, both on in the site's
+copy. The port itself stays the original: `CBFixes.h` holds the toggles, all off until `CosmicBugsApp::Init` has read
+the enabled mod's settings (`LoadFixes`), so the headless runner, the suite and the frozen baseline never see them.
+`walkerTurnMemory`: a walking bug that comes to a side way turns onto it half the time, and not again for five seconds
+(`Walker_TurnAtJunction`); the original keeps that turn's time only for turns off a horizontal way, so a bug going up
+or down could turn at every junction. The fix keeps it for both. It changes the enemies' paths and so the random draws
+after it, which is what a fix to play is. `shieldFlash`: a beam touching an enemy starts its shield flash at the
+enemy's x for its y (`Enemy_Shield`, "sic" in the code) and the next update puts it right, so a frame drawn between
+shows it in the wrong place. The fix starts it on the enemy. It changes no draw of the game's random numbers.
+
+### Fix candidates
+
+What was checked for the mod: the waits that only cost the player time, and the bugs of the original that do not break
+play. The waits: the logo screens at launch (the title is up about two seconds after the launch, loading included), the
+first run's instructions page (left by a click), a won board's fill and bonus texts (about 2.2 seconds, each text
+clicked away) and the ship coming in after a life (1.4 seconds while the enemies run, which is the game's own pace);
+none is a wait that costs the player time for nothing, so none is a fix. The bugs that are kept in the port and not in the mod, because no player sees them in this game file:
+
+- The easy difficulty's label reads "5s" for its name (`MOD_IDEAS.md`), but the game file has no difficulty item (the
+  options list video, LCD mode, sound, music and the shooter mode), so nothing shows it or sets a difficulty: the
+  setting is saved in the eleventh player's slot and stays normal.
+- The power-ups "explode the floaters" and "explode the walkers" do nothing (their enemy ranges can never hold), and
+  `Powerup_Init` never deals them.
+- The cannon's look-ahead test has a reset that can never happen (`c < 0 && cols <= c ...`), so near an edge it keeps
+  counting; whether that was meant is not clear from the code, so it is left as it is.
+
+The original's own chances are not fixes here: whether a beam an enemy touched gets a rider (the heap's chance,
+IDENTICAL_PLAY.md, "Oddities") is already one outcome in the port, so a run plays the same every time.
 
 ## Where the work was hard
 

@@ -1,0 +1,28 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends two faults of the original and changes nothing else: the walking bugs that turn off a vertical way wait between turns as they do off a horizontal one, and an enemy's shield flash starts in the right place. Turn a fix off to play the original as it was.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    {
+      "id": "walkerTurnMemory",
+      "label": "Walkers wait between turns",
+      "type": "bool",
+      "default": true,
+      "apply": "restart",
+      "help": "A walking bug that comes to a side way turns onto it half the time, but not again for five seconds. The original forgets the turn when the bug was going up or down, so those bugs could turn at every junction. Here they wait too."
+    },
+    {
+      "id": "shieldFlash",
+      "label": "Shield flash starts in place",
+      "type": "bool",
+      "default": true,
+      "apply": "restart",
+      "help": "When a beam touches an enemy its shield flashes. The original starts the flash at the enemy's x for its height, so for one update it can show in the wrong place. Here it starts on the enemy."
+    }
+  ]
+}

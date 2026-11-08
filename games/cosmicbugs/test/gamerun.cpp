@@ -164,11 +164,6 @@ public:
 		SoundLog("musicvolume", std::to_string(theVolume).c_str());
 	}
 
-	void OpenURL(const char* theUrl) override
-	{
-		std::printf("OpenURL in a test run: %s\n", theUrl);
-	}
-
 	const char* SavePath(const char* theName) override
 	{
 		mSavePath = mOut + "/" + theName;
