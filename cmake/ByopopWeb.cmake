@@ -255,7 +255,7 @@ endif()
 # in web/licenses/ that the page is built from. LICENSES adds a game's own libraries (BookWorm: libopenmpt).
 # Sets <var> to the generated template in the build folder, for --shell-file. Both files are rewritten only when
 # their text changes, and CMake runs again when one of their inputs changes. byopop_web_game() calls it.
-set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libxmp-lite tremor minimp3)
+set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libjpeg libxmp-lite tremor minimp3)
 set(BYOPOP_WEB_TOOLCHAIN_LICENSES emscripten musl)
 
 function(byopop_write_if_changed path text)
