@@ -2134,6 +2134,11 @@ void SexyAppBase::MakeWindow()
 		// when main() hasn't initialized SDL video already)
 		SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
 		SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+		// Full screen is a borderless window over the whole desktop at the desktop's own mode (SDL_WINDOW_FULLSCREEN_DESKTOP,
+		// below and in SwitchScreenMode), never the originals' exclusive mode change (the user, 2026-11-07: "I'd like all
+		// the native ports to have their fullscreen modes made borderless without mods"). Alt-Tab only moves the focus:
+		// the window is not minimized when it loses it, whatever SDL's default.
+		SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 #endif
 
 		if ((!SDL_WasInit(SDL_INIT_VIDEO)) && (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0))
@@ -2196,6 +2201,25 @@ void SexyAppBase::MakeWindow()
 			Popup(std::string("Failed to create the window: ") + SDL_GetError());
 			DoExit(1);
 		}
+
+#ifndef __EMSCRIPTEN__
+		// port: the window can't be made smaller than the game's own screen (the user, 2026-11-07: "a minimum window size
+		// match the game's native resolution"): mWidth x mHeight in the desktop's points, the units the window is sized in,
+		// which is the size the original's window has on a scaled desktop. A desktop too small for that keeps what fits.
+		{
+			int aMinWidth = mWidth;
+			int aMinHeight = mHeight;
+			SDL_Rect aUsable;
+			int aTop = 0, aLeft = 0, aBottom = 0, aRight = 0;
+			if (SDL_GetDisplayUsableBounds(aDisplay, &aUsable) == 0)
+			{
+				SDL_GetWindowBordersSize(mHWnd, &aTop, &aLeft, &aBottom, &aRight);
+				aMinWidth = std::max(1, std::min(aMinWidth, aUsable.w - aLeft - aRight));
+				aMinHeight = std::max(1, std::min(aMinHeight, aUsable.h - aTop - aBottom));
+			}
+			SDL_SetWindowMinimumSize(mHWnd, aMinWidth, aMinHeight);
+		}
+#endif
 
 		mIsPhysWindowed = mIsWindowed;
 		SDL_StartTextInput();
@@ -2543,6 +2567,15 @@ bool SexyAppBase::Process(bool allowSleep)
 void SexyAppBase::DoMainLoop()
 {
 #ifdef __EMSCRIPTEN__
+	// port: a hidden page gets no animation frames, so the focus loss that SDL queues when the tab is left would wait in
+	// SDL's queue until the tab is shown again, while the music and sounds play on. The game takes it at once instead, as
+	// the native port takes WM_ACTIVATEAPP: it mutes and does whatever else its LostFocus does. The focus coming back
+	// reaches it through SDL's queue as usual, at the first frame.
+	emscripten_set_visibilitychange_callback(this, false, [](int, const EmscriptenVisibilityChangeEvent* theEvent, void* theApp) -> EM_BOOL {
+		if ((theEvent != NULL) && (theEvent->hidden))
+			EmscriptenPageHidden((SexyAppBase*) theApp);
+		return false;
+	});
 	// The browser drives the loop (one EmscriptenMainLoop() per animation frame); this doesn't return.
 	emscripten_set_main_loop_arg(EmscriptenMainLoop, this, 0, 1);
 #else
@@ -2556,6 +2589,17 @@ void SexyAppBase::DoMainLoop()
 }
 
 #ifdef __EMSCRIPTEN__
+void SexyAppBase::EmscriptenPageHidden(SexyAppBase* theApp)
+{
+	// as SDL_WINDOWEVENT_FOCUS_LOST does in HandleEvent (WM_ACTIVATEAPP)
+	if ((theApp->mSEHOccured) || (theApp->mShutdown) || (!theApp->mActive))
+		return;
+	theApp->mActive = false;
+	theApp->RehupFocus();
+	if ((theApp->mIsOpeningURL) && (!theApp->mActive))
+		theApp->URLOpenSucceeded(theApp->mOpeningURL);
+}
+
 void SexyAppBase::EmscriptenMainLoop(void* theArg)
 {
 	SexyAppBase* anApp = (SexyAppBase*) theArg;
@@ -4308,6 +4352,8 @@ void SexyAppBase::Mute(bool autoMute)
 
 	SetMusicVolume(mMusicVolume);
 	SetSfxVolume(mSfxVolume);
+	// the web page's output has sound mixed ahead: dropped, so that the mute is heard at once, as natively
+	Platform::Mixer::Get().DropQueued();
 }
 
 void SexyAppBase::Unmute(bool autoMute)

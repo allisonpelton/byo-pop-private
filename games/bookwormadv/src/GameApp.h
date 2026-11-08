@@ -103,6 +103,9 @@ public:
 	std::string mCutSceneCallback;                 // +0x7f0
 	std::string mCutSceneCaption;                  // +0x80c
 	CurtainTransition* mCurtain = nullptr;         // +0x828
+	// port: the curtain's flipped, mirrored and mirrored-flipped copies, made by the first curtain and kept (the original
+	// made them for every curtain); freed with the app
+	Image* mCurtainCopies[3] = {nullptr, nullptr, nullptr};
 	Widget* mBookScreen = nullptr;                 // +0x82c: the stats book (StatsBook): the tome's or the media player's
 	MinigameMenu* mMiniGameMenu = nullptr;         // +0x834: the mini-games' menu (MinigameMenu), made by ShowMiniGameMenu
 	ButtonListener* mConfirmListener = nullptr;    // +0x838: a widget's ButtonListener part, in the original

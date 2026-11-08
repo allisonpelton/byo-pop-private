@@ -1298,7 +1298,10 @@ void GameApp::CurtainDone()
 	// open (or nothing to do): the scripts' function may keep the curtain; otherwise it goes
 	bool aKeep = false;
 	if (!mCurtainLuaCallback.empty()) {
-		aKeep = LuaLib::CallLua(mCurtainLuaCallback, 0).Bool();
+		// (a function that returns nothing, as the mini-games' MiniGame.DoConvPanel, keeps nothing: the original reads the
+		// result only when there is one)
+		LuaLib::LuaClassRet aRet = LuaLib::CallLua(mCurtainLuaCallback, 0);
+		aKeep = aRet.count > 0 && aRet.Bool();
 		if (mShutdown)
 			return;
 	}

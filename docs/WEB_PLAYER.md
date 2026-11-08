@@ -1621,6 +1621,38 @@ return { moves: moves, updates: t.updates(), errors: t.errors.length };
 opened as `...bejeweled.html?player=1&assets=1&fast=1&driver=games/bejeweled/tools/web/onegame.js&run=onegame`, then
 `await byopop.test.driver` in the pane.
 
+## Sound
+
+Every game's sound goes through the shared mixer (`platform/Audio.cpp`), which on the web plays through the page's own
+output rather than SDL's. The user found the sound late in TipTop, Dynomite, Big Money, Bonnie's Bookstore and BookWorm
+Adventures Volume 2 (2026-11-07), and still playing for a moment after the tab lost the focus. SDL's output was a
+ScriptProcessor of 2048 frames: each mix waited for its turn and was then held for a whole buffer, so in the Browser pane a
+sound reached the speaker 109.5 ms after the game played it (the median of 20 menu sounds in TipTop; 94 to 145 ms).
+
+The page's output is an AudioWorklet that keeps a queue of mixed sound and asks the page for the next chunk of 256 frames
+whenever the queue runs short. The page mixes the chunk at once, between the game's frames, and sends it over. The queue
+is at least 2048 frames (43 ms at 48 kHz), long enough to cover the game's slower frames; when the page answers late
+(loading, a heavy frame) it grows at once, up to 4096 frames, and shrinks again after three seconds of quick answers. A
+sound the game starts does not wait behind the queue: its first frames are mixed straight away, alone, and added into the
+sound already queued, from 640 frames (13 ms) ahead of what the context has played, and the next chunk carries on from
+there. A sound now reaches the speaker 59 ms after the game plays it (the same 20 sounds: 54 to 65 ms), of which 50 ms
+is the browser's own output latency (`baseLatency` and `outputLatency`). A page with no AudioWorklet (one served over
+plain http from another machine) falls back to a ScriptProcessor of 1024 frames that is pulled the same way, at 84.5 ms
+(76 to 97 ms).
+
+Muting drops the queued sound, so a mute is heard at once, as natively: the game's own mute (`SexyAppBase::Mute`, which
+a game calls when it loses the focus) and the page's sound button. A hidden tab gets no animation frames, so the game
+would not see its focus loss until it came back: the page mutes it when the tab is hidden
+(`SexyAppBase::EmscriptenPageHidden`). In the pane, a window blur muted TipTop on its next frame, 17 ms later, and a
+hidden tab muted it at once.
+
+For tests, the page's `Module` has the output's state in `Module.byopopAudio` (`kind` is `worklet` or `script`, `target`
+the queue's length in frames, `gaps` how often it ran dry, `late` how many frames of a sound's start came too late to
+be mixed in). `Module.audioOutput = 'script'`, set before Play, forces the ScriptProcessor. A function in
+`Module.onVoiceMixed` is called with the page's clock at the play call (`performance.now()`) when a sound's first frame
+is mixed, and `Module.audioChunkEar` then holds the time that frame reaches the speaker (from `getOutputTimestamp`): the
+difference is the delay. `?silent=1` mixes as usual and sends silence, so the timing is the same with it.
+
 ## Memory use
 
 The same game takes more memory in a browser than natively. The extra comes from:
