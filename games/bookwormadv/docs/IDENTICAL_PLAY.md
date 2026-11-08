@@ -132,10 +132,11 @@ mute bookkeeping (Board::Pause matches the original's). What the user saw is the
 game while its music plays on. The fix was checked natively with `stall`, not yet in a hidden browser tab.
 
 **Real input.** The pass played with real input in the Browser pane (`?silent=1`, requestAnimationFrame shimmed): DOM
-mouse and key events on the canvas, from a new player's name through the introduction to the first battle. Natively a
-port cannot be driven by posted mouse messages: SDL 2 takes the mouse from Windows' cursor, so a posted click arrives
-at the cursor's place outside the window. `tools/realrun.py` posts keys and minimizes and restores the window for real
-under rundesk; the native mouse pass waits for the framework's `-realinput`.
+mouse and key events on the canvas, from a new player's name through the introduction to the first battle. Natively,
+`tools/realrun.py` drives the port's window under rundesk with posted messages: clicks, keys, and a real minimize and
+restore. SDL 2 reads Windows' cursor, which sits in a corner of rundesk's desktop, so a click is posted as a burst (a
+move with the press, a move with the release) or it lands at the corner; a press held across frames (a drag) waits
+for the framework's `-realinput`.
 
 ## Oddities skipped
 
