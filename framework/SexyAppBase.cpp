@@ -1818,9 +1818,10 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 {
 	// port: a -script run takes its input only from the script, and focus changes (which pause the
 	// game) are ignored too, so the run is the same whatever happens to the window (also while a test
-	// bot drives the game, see mScriptedInput). A run played with posted input (gPostedInput) keeps its input: its driver
-	// asks the game through the script (the test commands) and plays with real messages.
-	if (((!mScript.empty()) && (!gPostedInput)) || (mScriptedInput))
+	// bot drives the game, see mScriptedInput). A -script run played with posted input (gPostedInput) keeps its mouse and
+	// keys, but not the focus changes: its driver asks the game through the script (the test commands) and plays with
+	// real messages, on a desktop where the window is never active.
+	if ((!mScript.empty()) || (mScriptedInput))
 	{
 		switch (theEvent.type)
 		{
@@ -1831,6 +1832,8 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 		case SDL_TEXTINPUT:
+			if ((gPostedInput) && (!mScriptedInput))
+				break;
 			return;
 		case SDL_WINDOWEVENT:
 			if ((theEvent.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) || (theEvent.window.event == SDL_WINDOWEVENT_FOCUS_LOST) ||
