@@ -50,6 +50,8 @@ FossilizedApp::FossilizedApp()
 	mMusicVolume = 0.5;
 	mSfxVolume = 0.85;
 	mAngles = new AngleTable();
+	// port: the 2003 framework's DrawImageBox (0x463450) for the dialogs and their buttons
+	Graphics::mDrawImageBox2003 = true;
 	// port: the 2003 framework's MTRand::SRand (0x442d90) is the 69069 seeding (compat2004)
 	SeedMTRand2004(mRand, GetTickCount());
 	mPicker.Seed(GetTickCount() >> 1);

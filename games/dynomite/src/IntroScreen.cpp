@@ -15,7 +15,9 @@
 
 using namespace Sexy;
 
-bool Sexy::gIntroReturning = false;
+// 0x52b320: true in the exe's data, so the first main menu after the title has the welcome sign and MenuTalker 1 and
+// leaves the title's music playing; the screen's destructor clears it
+bool Sexy::gIntroReturning = true;
 
 static CellButton* NewMenuButton(int theId, ButtonListener* theListener, bool noDraw)
 {
