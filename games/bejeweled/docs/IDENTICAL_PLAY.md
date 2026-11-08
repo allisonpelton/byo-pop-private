@@ -17,7 +17,8 @@ are the comparison's tools (`games/bejeweled/tools/origcmp/`) and this report; t
 
 A second part, on 2026-11-08, added what CLAUDE.md asks of a finished game beyond the comparison: the standard test
 commands, a play-through with real mouse and key events only ("Real input", below), and the fixes mod ("The fixes mod").
-It changed no play of the unmodded game; "Changes the pass made" lists what it did change.
+It changed no play of the unmodded game (its code took the registration and "more games" screens out, which the first part
+did not do); "Changes the pass made" lists what it did change.
 
 ## How both sides are driven
 
@@ -131,10 +132,10 @@ run:
 | step | what it did | result |
 |---|---|---|
 | launch | the loading screen, the title, the play link, the first game's hint (the tutorial arrows, from board update 150), Options, Help inside it, both Done buttons | ok |
-| Normal | a whole game: 127 moves, levels 1 to 4, 191 s; the hint gone at the first scoring move; the game over, the name entry typed with key events and Enter | score 4230 |
-| Timed | a whole game in real time: 497 moves, levels 1 to 11, 847 s; Time Up, the name entry | score 52 840 |
-| focus | focus lost in a game: paused; focus regained: running again (ticks 981 and 1034) | ok |
-| full screen | Alt+Enter to full screen, 8 moves there, Alt+Enter back, 4 moves in the window | ok |
+| Normal | a whole game: 31 moves, levels 1 and 2, 51 s; the hint gone at the first scoring move; the game over (the original's no-move rule), the name entry typed with key events and Enter | score 830 |
+| Timed | a whole game in real time: 897 moves, levels 1 to 16, 1356 s; Time Up, the name entry | score 144 945 |
+| focus | focus lost in a game: paused; focus regained: running again (ticks 958 and 1009) | ok |
+| full screen | Alt+Enter to full screen, 8 moves there, Alt+Enter back, 8 moves in the window | ok |
 
 A Timed game needs real time (`--realtime`): its clock is the board's update count, and a `-fast` run does thousands of
 updates in the time the channel takes to carry one move, so the clock ran out during the first moves.
@@ -152,8 +153,12 @@ moment after the game-over screen; the "end the current game?" question that a m
 
 What stays unproven:
 
-- The native channels (`-commands` with `-realinput`) and the web page's test command are not on the trunk yet, so the native
-  run above used a scratch merge of the shared branch with this one; it is repeated against this branch once they are merged.
+- A Normal game's length depends on the board (the bot has no say in what the board brings): the run above ended by the
+  original's no-move rule after 31 moves, an earlier run of the same driver played 127 moves, and the web run's early game over
+  (22 moves, not examined further) fits the same rule. The verifier and the oracle cover that rule against the original; the real input shows only that the
+  game over, the name entry and the high scores work.
+- The native table above is the run on this branch after the shared channels (`-commands`, `-realinput`, and the bare `move`
+  that reaches the bot) were merged in; the first run, on a scratch merge, played 127 and 497 moves and found nothing either.
 - Full screen on the web: the Browser pane cannot enter it (`requestFullscreen()` neither resolves nor rejects there), so the
   scaled canvas stands in for the scaled mouse mapping; the browser's own full screen waits for the user's Chrome.
 - The windowed and full-screen runs were not compared with the original's, which the sandbox cannot run in full screen; they
@@ -196,7 +201,10 @@ The second part (branch `claude/bejeweled-finish-bf5c89`):
   of the title screen, the register, update-check and browser dialogs, the browser opening, the trial circle and wait bar
   images. The one visible change is the Options dialog without the link, its Help / High Scores row 12 px lower; its
   height and Done button stay, so every script still clicks where it did. The oracle accepts a difference from the frozen
-  baselines in its four shots that show the dialog, inside the dialog's box only.
+  baselines in its four shots that show the dialog, inside the dialog's box only. The oracle with the removal in
+  (variants default, forcevariant and novariants, 2026-11-08): 443, 443 and 293 cases, no difference; its notes are the
+  Options-dialog ones and, in the default variant, one draw-count tolerance (63 against 62 draws, within the 8 wall-clock
+  seconds of the run); the frozen baselines were not refrozen.
 
 ## Oddities skipped
 
