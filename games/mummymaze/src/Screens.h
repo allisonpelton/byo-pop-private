@@ -26,13 +26,7 @@ class TitleScreen : public Widget, public ButtonListener
 public:
 	MummyApp*			mApp;                   // +0x50
 	double				mProgress;              // +0x58 the loading bar's fill, 0..1
-	double				mDelayProgress;         // +0x60
 	bool				mPlayShown;             // +0x68 the play link has appeared
-	int					mPlaysShown;            // +0x6c
-	bool				mClicked;               // +0x70
-	bool				mDelayed;               // +0x71
-	int					mDivisor;               // +0x74
-	HyperlinkWidget*	mRegisterLink;          // +0x78 id 0
 	HyperlinkWidget*	mPlayLink;              // +0x7c id 1
 
 public:

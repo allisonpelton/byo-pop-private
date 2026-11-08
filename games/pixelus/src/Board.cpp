@@ -683,7 +683,10 @@ void Board::Update()
 
 	// 150 updates after the puzzle appears (and no help screen over it) the music of the puzzles comes in
 	if (mMusicDelay == -1 && mApp->mHelpScreen == NULL)
+	{
 		mMusicDelay = 150;
+		mApp->PlaySample(SOUND_PIXELUS_START_OF_PUZZLE_V02);	// 0x409bd0: the sample comes with it, when the help screen is gone
+	}
 	if (mMusicDelay > 0 && --mMusicDelay == 0 && !mGrid->mDone)
 		StartMusic(mApp, MUSIC_CACHED_PIXELUS_IN_GAME, true);
 
