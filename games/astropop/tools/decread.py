@@ -104,6 +104,14 @@ def dwordptrs(text):
     return text
 
 
+def dwordaddrs(text):
+    """The address of a subobject, `NAME + 0xN` with an int * NAME, is scaled by 4 as well: shown as `(char*)NAME+0xBYTES`."""
+    for nm_ in {m.group(2) for m in DWPTR.finditer(text) if m.group(1) != "code" and m.group(2).startswith(("param_", "this"))}:
+        text = re.sub(chr(40) + "?<![" + chr(92) + "w.*)]" + chr(41) + re.escape(nm_) + " [+] (0x[0-9a-f]+|[0-9]+)" + chr(92) + "b",
+                      lambda m, nm_=nm_: "(char*)%s+0x%x" % (nm_, int(m.group(1), 0) * 4), text)
+    return text
+
+
 def vcalls(text):
     text = re.sub(r"\(\*\*\(code \*\*\)\(\*\*\(int \*\*\)(\w[\w.{}]*) \+ (0x[0-9a-f]+)\)\)",
                   lambda m: "%s.v[%d]" % (m.group(1), int(m.group(2), 16) // 4), text)
@@ -282,14 +290,17 @@ def render(path):
     t = dwordptrs(t)
     t = fieldsub(t)
     t = vcalls(t)
+    t = dwordaddrs(t)
     t = annotate_strings(t, addr)
     t = simplify(t)
     t = extra(t)
     t = annotate_res(t)
     # local variable declarations ("uint uVar5;", "undefined4 **ppuStack_e4;") and the stack-cookie noise
-    t = re.sub(r"^[ \t]+(?:undefined\d?|uint|int|char|bool|float|double|byte|void|string|Color|Rect|Graphics|ulonglong|longlong|"
+    # (never a statement: `return 1;` and `goto LAB_x;` look like a declaration of a variable)
+    kw = r"(?!return\b|goto\b|else\b|break\b|case\b|continue\b|delete\b|throw\b)"
+    t = re.sub(r"^[ \t]+" + kw + r"(?:undefined\d?|uint|int|char|bool|float|double|byte|void|string|Color|Rect|Graphics|ulonglong|longlong|"
                r"short|ushort|\w+ \*?)[ \t]*\**[ \t]*\w+(?:\[\w+\])?;\n", "", t, flags=re.M)
-    t = re.sub(r"^[ \t]+(?:undefined\d?|uint|int|char|bool|void|string|\w+)(?: \*+| )+\w+(?:\[\w+\])?;\n", "", t, flags=re.M)
+    t = re.sub(r"^[ \t]+" + kw + r"(?:undefined\d?|uint|int|char|bool|void|string|\w+)(?: \*+| )+\w+(?:\[\w+\])?;\n", "", t, flags=re.M)
     t = re.sub(r"\n{2,}", "\n", t)
     return t
 
