@@ -507,6 +507,18 @@ void TempleScreen::DrawThumbs(Graphics* g)
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 			}
 
+			// 0x4119e0: the next puzzle of the lesson says where to click, in three lines that pulse between white and yellow
+			if (aTutorial && anIndex == mFirstUnsolved)
+			{
+				g->SetFont(mApp->mFonts[FONT_ARIAL10BOLD]);
+				g->SetColor(Color(255, 255, (int) (sin(mTicks * 0.05) * 30.0 + 223.0)));
+				const char* aLines[3] = { "Click here", anIndex == 0 ? "for the first" : (anIndex == 8 ? "for the last" : "for the next"),
+					"tutorial puzzle" };
+				static const int aLineY[3] = { 0x26, 0x35, 0x44 };
+				for (int i = 0; i < 3; i++)
+					g->DrawString(aLines[i], aX + 0x30 - g->StringWidth(aLines[i]) / 2, aY + aLineY[i]);
+			}
+
 			// the medal, the chains of the mystery puzzle, the question mark of a tutorial puzzle that is not yet open
 			if (aThumb.mSolved && aThumb.mMedal > 0)
 			{
@@ -592,8 +604,8 @@ void TempleScreen::Draw(Graphics* g)
 	DrawThumbs(g);
 	DrawSlider(g);
 
-	// how many puzzles are left
-	if (aUser != NULL)
+	// how many puzzles are left (0x412990: not in the tutorial's cave)
+	if (aUser != NULL && !aTutorial)
 	{
 		int aLeft = (int) mThumbs.size() - aUser->CountSolved(gTemples[mTemple].mName);
 		char aBuffer[64];
