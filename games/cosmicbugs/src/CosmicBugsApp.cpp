@@ -85,15 +85,12 @@ public:
 	}
 
 	// The original's activation (its WndProc's WM_ACTIVATEAPP) is the framework's mActive, set from SDL's focus
-	// events. The web page is active while it runs (the browser stops it when hidden); a test run's window may never be,
-	// except in a -realinput run, where only the file's focus events reach mActive and so say what the window has
+	// events, on the web too (the page's window losing the focus freezes the game as the original's does; the test
+	// kit's blur and focus move it there). A test run's window may never be active, except in a -realinput run, where
+	// only the file's focus events reach mActive and so say what the window has
 	bool IsActive() override
 	{
-#ifdef __EMSCRIPTEN__
-		return true;
-#else
 		return gApp->mActive || (gApp->IsTestRun() && gApp->mRealInputFileName.empty());
-#endif
 	}
 
 	int LoadSound(const char* thePath) override
@@ -513,8 +510,9 @@ bool CosmicBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	std::vector<std::string> aReplies;
 	if (!cb::TestCommand(theCommand.mCommand, theCommand.mArgs, aReplies))
 		return SexyAppBase::HandleScriptCommand(theCommand);
+	// (on the log, like the framework's own answers: a printf reached the web page's test kit only on some page loads,
+	// the log's lines always)
 	for (const std::string& aLine : aReplies)
-		std::printf("%s\n", aLine.c_str());
-	std::fflush(stdout);
+		SDL_Log("%s", aLine.c_str());
 	return true;
 }

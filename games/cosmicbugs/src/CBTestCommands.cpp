@@ -87,6 +87,16 @@ int EnemiesOnShip(Shooter* theShip)
 	return aCount;
 }
 
+// Whether a dialog (a requester: the resume question, a name, a quit or delete confirmation) is up on any of the screen's
+// menus (the resume question is on the last one, not the current one)
+bool HasRequester(Level* theLevel)
+{
+	for (Menu* aMenu = theLevel->menus.head; aMenu != nullptr; aMenu = Node_Next(aMenu))
+		if (aMenu->requesters.current != nullptr)
+			return true;
+	return false;
+}
+
 int Fill(Level* theLevel)
 {
 	return theLevel->totalCells != 0 ? (theLevel->filledCells * 100) / theLevel->totalCells : 0;
@@ -109,7 +119,7 @@ std::string StateJson()
 	std::string s = Fmt("{\"screen\":\"%s\",\"kind\":%d,\"mode\":\"%s-%s\",\"difficulty\":\"%s\",\"shooter\":\"%s\","
 		"\"score\":%d,\"lives\":%d", aLevel != nullptr ? ScreenName(aKind) : "none", aKind, DifficultyName(),
 		ShooterName(), DifficultyName(), ShooterName(), gScore, gLives);
-	bool aRequester = aLevel != nullptr && aLevel->menus.current != nullptr && aLevel->menus.current->requesters.current != nullptr;
+	bool aRequester = aLevel != nullptr && HasRequester(aLevel);
 	s += Fmt(",\"requester\":%s,\"fullscreen\":%s,\"stretched\":%s,\"updates\":%d", aRequester ? "true" : "false",
 		r64::Screen_Fullscreen() != 0 ? "true" : "false", r64::Screen_Centered() == 0 ? "true" : "false", gFrame);
 	if (aLevel == nullptr || aKind != 0)
