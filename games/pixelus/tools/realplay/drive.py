@@ -10,6 +10,7 @@ and the boards are all played through clicks and keys.
 
 --puzzles N   stop once the profile has N solved puzzles (default 3: the tutorial temple's first three)
 --full        Alt+Enter into full screen after the first board has opened (and back at the end)
+--expert      tick the new player's expert box (no undo on glue)
 --focus       lose the focus and regain it in the middle of a board
 Results: <out dir>/drive.log (every command and answer), <out dir>/result.txt (one line: PASS/FAIL and counts), the
 shots in <out dir>/shots. The port's own log is <out dir>/out.txt.
@@ -35,6 +36,7 @@ def opt(name, default=None):
 PUZZLES = int(opt('--puzzles', 3))
 FULL = bool(opt('--full'))
 FOCUS = bool(opt('--focus'))
+EXPERT = bool(opt('--expert'))
 TIMEOUT = float(opt('--timeout', 600))
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
 EXE = opt('--exe', os.path.join(ROOT, 'build', 'native', 'pixelus.exe'))
@@ -246,7 +248,13 @@ def main():
             press_button('Play') or press_button(None, 0)
             wait_updates(10)
         elif scr == 'dialog':
-            t = targets()['buttons']
+            tg = targets()
+            t = tg['buttons']
+            if EXPERT:
+                for box in tg.get('checks', []):
+                    if box['id'] == 1 and not box['checked']:
+                        click(box['x'], box['y'])
+                        wait_updates(3)
             send('type Driver', 'OK type', 10)
             wait_updates(3)
             ok = [b for b in t if b['label'].lower() in ('ok', 'continue', 'yes')]
