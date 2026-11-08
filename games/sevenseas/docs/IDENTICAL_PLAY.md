@@ -111,7 +111,6 @@ and the press moved the press to (0, 0); and the title's first click needs the s
 
 What was played that way: title, menu, the whole tutorial (every hint, whirlpool teleport, the last hint of step 14 that the
 fixes added, "Click here to start playing!"), an Easy game with its demo, random keys (numpad, arrows, space) and clicks to
-level 2, game over, the high-score name box and a new game from it; a Hard game's first moves. A saved game and "No" on Average
+level 2, game over, the high-score name box and a new game from it; a whole Average game (level 1 complete, level 2, game over, high-score name typed, new game menu) and a whole Hard game (corner whirlpools closing and opening, game over with the pirate). A saved game and "No" on Average
 (arrow over, and a move on a click, on the squares under the pirate's box). Options' Fullscreen box on (3840 x 2160, the game centred), a click and a key moving the ship in it,
-and back to the window. Not played to the end: a whole game of Average and of Hard (their random runs were short). The web
-build's pass in the Browser pane is still to do.
+and back to the window. The web build's pass in the Browser pane is still to do.

@@ -156,10 +156,10 @@ def scn_easy(g):
     start_game(g, 'easy'); play(g, 100, 'easy'); g.shot('easy_end')
 
 def scn_average(g):
-    start_game(g, 'average'); play(g, 100, 'avg'); g.shot('avg_end')
+    start_game(g, 'average'); play(g, 420, 'avg', 3); g.shot('avg_end')
 
 def scn_hard(g):
-    start_game(g, 'hard'); play(g, 100, 'hard'); g.shot('hard_end')
+    start_game(g, 'hard'); play(g, 420, 'hard', 4); g.shot('hard_end')
 
 def scn_saved(g):
     # a saved game, Average, "No" in the Continue dialog: do the squares under the pirate's box (columns 0-3, rows 0-4) answer?
