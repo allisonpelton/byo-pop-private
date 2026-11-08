@@ -183,14 +183,54 @@ var ByopopImport = (function () {
     });
     return order.map(function (k) { return { path: k, entries: out[k] }; });
   }
-  // Sorts dropped or picked files into the games they are: {found: [{folder, entries, root, game, choices}], rejected: [folder]}.
+  // ---------- games this site does not play ----------
+  // ByopopOtherGames (other-games.js, which byopop_web_index() writes from cmake/ByopopOthers.cmake): [{id, title, markers, project,
+  // url}], the games the site recognises but does not play, each with another project that plays it (project, url) or coming soon
+  function otherList() {
+    try { return typeof ByopopOtherGames !== "undefined" && Array.isArray(ByopopOtherGames) ? ByopopOtherGames : []; } catch (e) { return []; }
+  }
+  // The games of those whose markers the files hold, as [{game, root}]
+  function otherMatches(entries) {
+    var out = [];
+    otherList().forEach(function (o) {
+      var root = findRoot({ markers: o.markers, gameDirs: [] }, entries, false);
+      if (root !== null) out.push({ game: o, root: root });
+    });
+    return out;
+  }
+  // The one game of those the files hold, or null
+  function otherGame(entries) {
+    var m = otherMatches(entries);
+    return m.length ? m[0].game : null;
+  }
+  // What the import says of one: a <span> with the game's name and either a link to the project that plays it (a new tab, as the
+  // store links) or "coming soon"
+  function otherNote(doc, o) {
+    var span = doc.createElement("span");
+    if (!o.project || !/^https:\/\/github\.com\//.test(o.url || "")) {
+      span.textContent = ByopopStrings.t("import.other.soon", {title: o.title});
+      return span;
+    }
+    span.appendChild(doc.createTextNode(ByopopStrings.t("import.other.elsewhere", {title: o.title}) + " "));
+    var a = doc.createElement("a");
+    a.setAttribute("href", o.url);
+    a.setAttribute("target", "_blank");
+    a.setAttribute("rel", "noopener noreferrer");
+    a.textContent = o.project;
+    a.setAttribute("aria-label", o.project + " " + ByopopStrings.t("site.new_tab"));
+    span.appendChild(a);
+    return span;
+  }
+
+  // Sorts dropped or picked files into the games they are: {found: [{folder, entries, root, game, choices}], rejected: [folder],
+  // others: [{folder, game}]}, others the folders that hold a game the site does not play (ByopopOtherGames, above).
   // A folder's game is the one whose markers it holds (the files say it more surely than the name). Where several games' markers
   // are there at the same place (a game and its sequel may share their files' names), the folder's name picks among them, and
   // where it cannot, game is null and choices are the games it could be, for the player to pick. A folder that holds no game but
   // holds games' folders (the "PopCap Games" folder) is looked into, three levels deep at most; a folder with no game in it is
   // rejected.
   function sort(entries) {
-    var found = [], rejected = [];
+    var found = [], rejected = [], others = [];
     function visit(group, depth) {
       var name = group.path.split("/").pop() || ByopopStrings.t("import.dropped_files");
       var matches = [];
@@ -221,10 +261,20 @@ var ByopopImport = (function () {
         deeper.forEach(function (g) { visit(g, depth + 1); });
         return;
       }
+      // none of the site's games: one it does not play is named; a folder of several of them is looked into as above
+      var other = matches.length === 0 ? otherMatches(group.entries) : [];
+      if (other.length > 0) {
+        var otherRoots = {};
+        other.forEach(function (m) { otherRoots[m.root] = true; });
+        var subs = depth < 3 && Object.keys(otherRoots).length > 1 ? groupBy(group.entries, depth + 1).filter(function (g) { return g.path !== group.path; }) : [];
+        if (subs.length > 0) { subs.forEach(function (g) { visit(g, depth + 1); }); return; }
+        others.push({ folder: name, game: other[0].game });
+        return;
+      }
       rejected.push(name);
     }
     groupBy(entries, 0).forEach(function (g) { visit(g, 0); });
-    return { found: found, rejected: rejected };
+    return { found: found, rejected: rejected, others: others };
   }
 
   // ---------- reading a drop ----------
@@ -436,6 +486,6 @@ var ByopopImport = (function () {
   }
 
   return { markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
-    games: games, add: add, sort: sort, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
+    games: games, add: add, sort: sort, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
     forgetGame: forgetGame, ordered: ordered, missingIn: missingIn, missingMarkers: missingMarkers, markerList: markerList };
 })();
