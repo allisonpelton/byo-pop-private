@@ -107,7 +107,15 @@ baseline must write the same state log, so later fixes and mods leave unmodded p
 
 ## Deviations left
 
-- The port shows no "Updates" question (update checks are not ported, on purpose) and no registration or trial dialog.
+- The port shows no "Updates" question, no registration, nag or trial dialog, no play counter and no internet-score dialog. The
+  original exe has all of them (a play limit read from the registry's `MaxPlays`, a timer that delays the title for an
+  unregistered copy, the nags before a game, at a high score and in the time trial, the register dialog, the update check and
+  the browser dialogs). The copy it was made from, the Collection's `Alchemy.exe`, is unprotected and acts as a registered copy,
+  so it never reaches any of them, and the port never translated them (the ideal case: the same play in both, and nothing to
+  take out later). The functions are listed by address, with what each does, in `GAME_NOTES.md`, section 5. The only things
+  of theirs the port had loaded were a picture the title never drew (`trialversion`), two pictures only the register and
+  internet-score dialogs read (`hiscorebox`, `hiscorebtn`) and two registry values (`NoPopLink`, `LastInternetScoreName`);
+  they were taken out on 2026-11-08 and the suite's baseline is identical without them.
 - Not compared in phase one, on purpose: the original's saved game loaded by the port (`-importsaves` covers the format), the
   options dialog's sliders and full-screen box, the help, the quit and new-game questions, a game cut off by quitting.
   Their effects are not on the game's state; phase two looks at their screens.
@@ -285,7 +293,17 @@ and answered "move needs <x> <y>", so a driver of this kind could not ask the bo
 no point to the game's `HandleScriptCommand`, as `-script`'s dispatch does (a `shared:` commit; its note is in the framework
 header's list of `-realinput` commands). Nothing else of the framework was changed.
 
-The web's full screen is still not played (it needs a user gesture). Every other item of the real-play list is covered: launch, the
+The web's full screen was tried on 2026-11-08 and could not be played in the Browser pane. The pane's computer tool clicked the
+page's Fullscreen button for real (the click is trusted and `navigator.userActivation.isActive` is true in it), and the pane
+refused the request: `stage.requestFullscreen()` rejects with "TypeError: Permissions check failed", the pane's host not granting the
+Fullscreen API at all (the page's own handler drops the rejection; the game's Options box asks the same API). So the browser's full
+screen was never entered, and what the web build does in it is not verified by a run. What the run did check is the driver:
+`tools/web/onegame.js` with `waitfull=1` shows the page's bar (the player-only page hides it), waits for `document.fullscreenElement`,
+plays, and at the end waits for it to go; a run with the property stubbed (a stand-in, not a full screen) played the whole strategic
+game (475 pieces, 37 forges, 2 boards cleared, the name and the table, 145 s, no error) and left "full screen" on the flip of the stub.
+It also answers the question to load a saved game, which a profile left by an unfinished run puts to it. The driver is ready for a
+browser that grants full screen (the user's own Chrome, or a pane that allows it): open the page with `waitfull=1`, click the
+button once, and press F11 or Esc to leave. Every other item of the real-play list is covered: launch, the
 tutorial and a whole game of each mode natively by the posted-message driver (runs 1 to 7 above) and on the page, windowed and full
 screen natively, and focus lost and regained, minimize and Alt+Enter through the live channel's real SDL events. The live runs
 play 32 to 40 pieces each, since what they add over the whole games is the window's own events.

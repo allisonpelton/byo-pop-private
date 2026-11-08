@@ -23,7 +23,8 @@ has the order the analysis went in and the tools.
 | 0x414000-0x47f000 the framework (2857 functions byte-match BookWorm's) | `framework/` with `sexycompat2004` |
 
 The unregistered game's screens (0x40f314 the register dialog and its kin, 0x413bdc and 0x413e12 the nags, 0x41351d and
-0x4131ca the internet scores, 0x412139 the update check, 0x412aa0 and 0x412c68 the browser dialogs) are not ported.
+0x4131ca the internet scores, 0x412139 the update check, 0x412aa0 and 0x412c68 the browser dialogs) are not ported; section 5
+lists every function of them, with what it does in the original.
 
 ## 2. The game
 
@@ -65,8 +66,7 @@ button (`mTutWaiting`), a wrong placement gets a message, the last step's button
   strategic table's order, then the time trial's). The port reads them from the player's own `Alchemy.exe` (`GameText.h`),
   and starts a table with its own placeholders when the exe is not in the game folder or is another version;
   `DEFAULT_NAME_STRATEGIC_1..5` and `DEFAULT_NAME_TIME_TRIAL_1..5` in `properties/default.xml` replace either.
-- the registry (`registry.ini` in the port): `SkillLevel`, `TimeTrial`, `LastScoreName`, `LastInternetScoreName` (kept,
-  never shown), `NoPopLink`, and the framework's (volumes, full screen, custom cursors, times played).
+- the registry (`registry.ini` in the port): `SkillLevel`, `TimeTrial`, `LastScoreName`, and the framework's (volumes, full screen, custom cursors, times played).
 
 ## 4. Port decisions
 
@@ -93,16 +93,46 @@ second picture (0x4106bc, the "buy" overlay at y = 0x137) and the play counter b
 and the "thanks for registering" line (0x4108c6, y = 0x157) to one that is registered but not unlocked; the port is both
 registered and unlocked, so none of them is drawn.
 
-**Registration and the buttons that lead out (the coordinator's rules of 2026-11-07, checked 2026-11-08).** The port never had
-the trial clock or counter, the nags, the register, unlock and buy dialogs and their checks, expiry, the update check, the
-internet scores, the "more games" button (id 3 of the dialogs) or any call that opens a web page or another program (no
-`OpenURL` in `src/`; the title's one link is "click here to play", which starts the game). A search of `src/` for the words
-of a registered/trial split found only two leftovers, both taken out now, and no visible change comes of either (the
-suite's baseline is identical):
-- the picture `trialversion` (`IMAGE_TRIALVERSION`, the title screen's "buy" overlay of section 5's first paragraph), which was
-  loaded and never drawn: gone from the image list and from `Res.h`, whose later ids move down by one (65 images, 9 loaded by
-  the title's start-up as before, the loading task count unchanged at 101 since the picture was among the start-up's);
-- the registry value `NoPopLink` and its field `mNoPopLink`, which only hid the "more games" link the port does not have.
+**Registration and the buttons that lead out (the coordinator's rules of 2026-11-07, checked 2026-11-08).** The original exe
+*does* have the unregistered game: a play limit, delayed start-up, nags, a register dialog, an update check, the internet
+scores and the calls that open a browser. The copy this port was made from (the Collection's `Alchemy.exe`) has no copy
+protection and acts as a registered copy (the app's registered flag, +0x478, is set), so it never reaches any of them, and
+the port never translated them: the ideal case, with nothing to take out afterwards. Everything below exists in the
+original and is left out, by address (size in bytes), with what the export shows each does:
+
+| function | what it does in the original |
+|---|---|
+| 0x4103e2 (576) `TitleScreen` constructor | besides the play link, makes the REGISTER_NOW_TO_REMOVE_THIS_DELAY text, the line of an unregistered copy's wait |
+| 0x4109d8 (436) `TitleScreen::Update` | the registered branch is ported (the bar follows the loading thread). For an unregistered copy it reads the registry value `MaxPlays` (10 when missing); when the play count (+0x534) is past it, it raises the forced-registration dialog (0x41351d) at its tenth update, and otherwise holds the bar back with a timer that grows 0.01 per update (the "delay") |
+| 0x410622 (950) `TitleScreen::Draw` | the registered branch is ported. The rest draws THANKS_FOR_REGISTERING (registered, not unlocked), the "YOU HAVE %d PLAYS LEFT" counter and YOU_MUST_REGISTER |
+| 0x40d836 (1594) `OptionsDialog` constructor | the registered part is ported. The rest makes the buttons VISIT_POPCAP_FOR_MORE_GAMES (id 3), CHECK_FOR_UPDATES (id 5) and REGISTER (id 1) and the OptionsLinkText0 link; the port's dialog is shorter by their rows and its help and scores buttons stand side by side (`OptionsDialog::Resize`) |
+| 0x40e34b (232) the options dialog's link and button handler | opens `OptionsLinkURL0` (http://www.popcap.com), starts the update check (0x41222f) for id 5, and opens the register dialog (0x410fef) for id 1 |
+| 0x410fef (208) | opens the register dialog; called by 0x40e34b, 0x4109d8 and `ButtonDepress` 0x413eea |
+| 0x40f314 (716) and 0x40f5e0 (732) the register dialog | its constructor (CLICK_HERE_TO_REGISTER_ONLINE, REGISTRATION, buttons with the `hiscorebtn` picture, an edit box on `hiscorebox`) and its drawing and text (LICENSE_CODE, REGISTERED_NAME, BROWSER_WINDOW_NOTICE1-3) |
+| 0x40c092 (824) and 0x40c3ca (190) the internet-score dialog | constructor and destructor of dialog 9: an edit box for the name (the registry's `LastInternetScoreName`) with SUBMIT and CANCEL on `hiscorebtn` |
+| 0x413ab9 (291) | no caller in the export. For an unregistered copy it raises dialog 10 with REGISTER_NAG1 and REGISTER_NAG2; for a registered one it makes the internet-score dialog (0x40c092) |
+| 0x4131ca (851) internet score upload | fills the page template `scoreul.tpl` ($NAME, $DATA) into `score%d.html` and opens it in the browser; called by `ButtonDepress` (0x413eea) with 0x413846 (252), the LICENSE_ERROR1-3 dialog |
+| 0x41351d (809) forced registration | the dialog FORCE_REGISTRATION_DIALOG1-6 (and NoInternetScores) when the play limit is reached; called by 0x4109d8 |
+| 0x413a2f (138) | the high-score register nag (HIGH_SCORE_REGISTER_NAG, dialog 10, modal); called by the score check 0x40a57b, whose unregistered branch it belongs to |
+| 0x413bdc (566) | the pre-game nag (PREGAME_NAG with the play count, and PREGAME_NAG2-6 from 30, 40 and 60 plays), dialog 10; called by `Board::Update` (0x406f2a) |
+| 0x413e12 (216) | the time-trial nag (TIME_TRIAL_NAG1, TIME_TRIAL_NAG2), dialog 0xe; called by `Board::Update` (0x406f2a) |
+| 0x412139 (246) and 0x41222f (450) the update check | the question CONFIRM_UPDATE1 and 2 (called by 0x412a8a, the 22-byte override of `LoadingThreadCompleted`), and the address http://www.popcap.com/win32updatecheck.php?prod=...&referid=...&ver=... that it opens |
+| 0x412aa0 (456) and 0x412c68 (257) | the dialogs that answer an attempt to open a web page: OPEN_BROWSER_DIALOG1 and 2 with URL_OPEN_ERROR1 and 2 when it fails, and URL_OPEN_DIALOG1 (virtual slots 26 and 28 of the app; slot 27 is the empty success hook, 0x410d0e) |
+| 0x411a41 (258) and 0x411b43 (524) the registry | the ported methods; the original's also write and read `LastInternetScoreName`, `RegisterLink` (http://www.popcap.com/register.php?theGame=alchemy&referid=) and `ReferId` |
+
+The framework's own `SexyApp` has the other half (the registration code and name, `register.php`, the `DontUpdate` value
+and the update-check dialog at 0x476210); those are the shared code's, not the game's.
+
+The port's own checks, made 2026-11-08, that nothing it loads is used only by those functions: a search of `src/` and of
+the `properties` ids it reads for the strings and the registry values above finds none (the one that remained, `LastInternetScoreName`, is out now;
+`COLOR_DEPTH_ERROR` is not on the list: it is the colour-depth question of 0x413942, which the port has). Of the pictures,
+`trialversion` (the title's "buy" overlay, which was loaded and never drawn) and, by the pictures' places in the original's
+image array, `hiscorebox` and `hiscorebtn` (read only by the register dialog and the internet-score dialog) were still
+loaded; all three are gone from the image list and from `Res.h` (63 images, 9 loaded by the title's start-up, and 99 loading
+tasks where the original has 101, since the two others were among the loading thread's), and the registry values
+`NoPopLink` and `LastInternetScoreName` with their fields. No visible change comes of any of these (the suite's baseline is identical).
+The pictures `cartoonstar` and `waitbar` that nothing in the port draws are not registration: the first is the ring of
+the Board effect the first paragraph of this section calls never triggered, the second is loaded and never read by the original either.
 
 `Board::mTrialPause` and `Pause(true)` are not registration: the name "trial" is the decompilation's, and the pause it counts is
 the one that covers the board (`Board::Draw` draws the cover instead of the tiles, and the pause text when no dialog is up): any key press toggles it in every mode
