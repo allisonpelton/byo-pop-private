@@ -177,21 +177,9 @@ void NingPo::render(const PGRect* theRect, bool theUnderDialog)
 			aSprite = getSprite(mLayout + SPRITE_PREVIEW_LAYOUT);
 			aWidth = aSprite->width();
 			BlitSpriteClamped(aSprite, (mBoardRect.right - aWidth - mBoardRect.left) / 2 + 0x7e, 0xcb, theRect);
-			if (!mRegistered && 7 < mLayout)
-			{
-				PGRect aDest = {0xf0, 0x110, 0xf0 + getSprite(SPRITE_FULL_VERSION)->width(),
-					0x110 + getSprite(SPRITE_FULL_VERSION)->height()};
-				drawFaded(theRect, &aDest, getSprite(SPRITE_FULL_VERSION), 1.0f);
-			}
 			aSprite = getSprite(mLayout + SPRITE_TITLE_LAYOUT);
 			aWidth = aSprite->width();
 			BlitSpriteClamped(aSprite, (mBoardRect.right - aWidth - mBoardRect.left) / 2 + 0x7e, 0xa0, theRect);
-			if (!mRegistered && 2 < mTileset)
-			{
-				PGRect aDest = {0x131, 0x3e, 0x131 + getSprite(SPRITE_FULL_VERSION_SMALL)->width(),
-					0x3e + getSprite(SPRITE_FULL_VERSION_SMALL)->height()};
-				drawFaded(theRect, &aDest, getSprite(SPRITE_FULL_VERSION_SMALL), 1.0f);
-			}
 		}
 		else if (mState == STATE_WON || mState == STATE_GAME_OVER)
 		{

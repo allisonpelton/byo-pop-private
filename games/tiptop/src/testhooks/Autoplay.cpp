@@ -30,6 +30,7 @@
 #include "Game.h"
 #include "Music.h"
 #include "Gui.h"
+#include "Bot.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -66,8 +67,7 @@ struct AutoplayState
 
 	int Rand(int theRange)
 	{
-		mSeed = mSeed * 1103515245u + 12345u;
-		return (int)((mSeed >> 16) % (unsigned int)theRange);
+		return BotRand(mSeed, theRange);
 	}
 };
 
@@ -112,43 +112,20 @@ void Add(AutoplayState* s, const std::string& theCommand, const std::string& the
 	}
 }
 
-// What Enter would press: a button of the top modal layer that Enter presses, or the level summary's continue item once
-// it takes input; nullptr if none
+// What Enter would press (Bot.cpp); nullptr if none
 tiptop::Handler* EnterTarget()
 {
-	uint16_t aCount = 0;
-	tiptop::Handler* aTable = tiptop::HandlerTable(&aCount);
-	for (int i = 0; i < aCount; i++)
-	{
-		tiptop::Handler* h = &aTable[i];
-		if (h->mProc == nullptr || tiptop::InTopModal(h->mLayer) == 0)
-			continue;
-		if ((h->mProc == tiptop::ButtonProc || h->mProc == tiptop::ShapedButtonProc) &&
-			(h->u.button.mCommand & 0x80000000) != 0)
-			return h;
-		if (h->mProc == tiptop::SummaryItemProc && h->u.mSlots[0] == 4 && (h->u.mSlots[3] & 4) != 0)
-			return h;
-	}
-	return nullptr;
+	return BotEnterTarget();
 }
 
 // Clicks the button of the top modal layer that sends theCommand; false if there is none
 bool ClickCommand(AutoplayState* s, uint32_t theCommand)
 {
-	uint16_t aCount = 0;
-	tiptop::Handler* aTable = tiptop::HandlerTable(&aCount);
-	for (int i = 0; i < aCount; i++)
-	{
-		tiptop::Handler* h = &aTable[i];
-		if (h->mProc != nullptr && tiptop::InTopModal(h->mLayer) != 0 &&
-			(h->mProc == tiptop::ButtonProc || h->mProc == tiptop::ShapedButtonProc) &&
-			(h->u.button.mCommand & 0x3fffffff) == theCommand)
-		{
-			Add(s, "click", StrFormat("%d %d", h->mRect.x + h->mRect.w / 2, h->mRect.y + h->mRect.h / 2));
-			return true;
-		}
-	}
-	return false;
+	tiptop::Handler* h = BotButton(theCommand);
+	if (h == nullptr)
+		return false;
+	Add(s, "click", StrFormat("%d %d", h->mRect.x + h->mRect.w / 2, h->mRect.y + h->mRect.h / 2));
+	return true;
 }
 
 // Enter, or with -autoplayui a click on what Enter would press; false if there is nothing to click yet
@@ -164,79 +141,6 @@ bool Enter(AutoplayState* s)
 		return false;
 	Add(s, "click", StrFormat("%d %d", h->mRect.x + h->mRect.w / 2, h->mRect.y + h->mRect.h / 2));
 	return true;
-}
-
-// The cells of the same kind joined to theIndex (theKind placed there), counted once each
-int GroupSize(tiptop::Field* theField, int theIndex, int theKind, std::string& theSeen)
-{
-	int aColumns = (int)theField->mColumns;
-	int aCount = (int)theField->mColumns * (int)theField->mRows;
-	if (theIndex < 0 || theIndex >= aCount || theSeen[theIndex] != 0)
-		return 0;
-	theSeen[theIndex] = 1;
-	int aSize = 1;
-	int aColumn = theIndex % aColumns;
-	const int aNeighbors[4] = {theIndex - aColumns, theIndex + aColumns, aColumn > 0 ? theIndex - 1 : -1,
-		aColumn < aColumns - 1 ? theIndex + 1 : -1};
-	for (int i = 0; i < 4; i++)
-	{
-		int aNext = aNeighbors[i];
-		if (aNext < 0 || aNext >= aCount)
-			continue;
-		tiptop::Piece* aPiece = theField->PieceAt((uint32_t)aNext);
-		if (aPiece != nullptr && aPiece->mKind == theKind)
-			aSize += GroupSize(theField, aNext, theKind, theSeen);
-	}
-	return aSize;
-}
-
-// The column to drop the next block into: the biggest group it joins, else one of the emptiest; -1 if none is free
-int ChooseColumn(AutoplayState* s, tiptop::Board* theBoard)
-{
-	tiptop::Field* aField = theBoard->mField;
-	int aColumns = (int)aField->mColumns;
-	int aRows = (int)aField->mRows;
-	int aKind = theBoard->mNextBlocks[0].mKind;
-	int aBest = -1;
-	int aBestSize = 0;
-	int aBestCount = 0;
-	int aMostRoom = -1;
-	int aRoomCount = 0;
-	int aRoomColumn = -1;
-	for (int c = 0; c < aColumns; c++)
-	{
-		if (aField->CanPlace(c) == 0)
-			continue;
-		// the block rises from the bottom row until it meets a block
-		int aRow = 0;
-		while (aRow + 1 < aRows && aField->PieceAt((uint32_t)((aRow + 1) * aColumns + c)) == nullptr)
-			aRow++;
-		std::string aSeen((size_t)(aColumns * aRows), '\0');
-		int aSize = (aKind < 10) ? GroupSize(aField, aRow * aColumns + c, aKind, aSeen) : 0;
-		if (aSize > aBestSize)
-		{
-			aBest = c;
-			aBestSize = aSize;
-			aBestCount = 1;
-		}
-		else if (aSize == aBestSize && aBest >= 0 && s->Rand(++aBestCount) == 0)
-		{
-			aBest = c;
-		}
-		if (aRow > aMostRoom)
-		{
-			aMostRoom = aRow;
-			aRoomColumn = c;
-			aRoomCount = 1;
-		}
-		else if (aRow == aMostRoom && s->Rand(++aRoomCount) == 0)
-		{
-			aRoomColumn = c;
-		}
-	}
-	if (aBestSize >= 3)
-		return aBest;
-	return aRoomColumn;
 }
 
 } // namespace
@@ -362,11 +266,11 @@ void TipTopApp::Autoplay()
 			}
 			break;
 		}
-		int aColumn = ChooseColumn(s, aBoard);
+		int aColumn = BotChooseColumn(aBoard, s->mSeed);
 		if (aColumn < 0)
 			break;
-		int x = tiptop::gConfig.mBlockgridX + aColumn * tiptop::gConfig.mBlockWidth + tiptop::gConfig.mBlockWidth / 2;
-		int y = tiptop::gConfig.mBlockgridY + tiptop::gConfig.mBlockHeight * tiptop::gConfig.mNumRows / 2;
+		int x, y;
+		BotColumnToGame(aColumn, &x, &y);
 		Add(s, "click", StrFormat("%d %d", x, y));
 		s->mMoves++;
 		s->mWait = (mAutoplayMode == 2) ? 40 : 60;

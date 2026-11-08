@@ -34,6 +34,8 @@ target_include_directories(sexyframework PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(sexyframework PRIVATE ${CMAKE_BINARY_DIR}/generated)
 target_link_libraries(sexyframework PUBLIC ${PORT_SDL} stb xmp_lite tremor minimp3)
+# IJG libjpeg 6b for JPEG images (platform/JPEGDecoder.cpp); private: its headers are not for the games
+target_link_libraries(sexyframework PRIVATE ijgjpeg)
 if(NOT MSVC)
   # The framework predates C++11 and relies on a few now-pedantic idioms.
   target_compile_options(sexyframework PRIVATE -Wno-deprecated-declarations -Wno-switch -Wno-parentheses

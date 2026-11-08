@@ -477,8 +477,6 @@ void MummyApp::ButtonDepress(int theId)
 	case 2000 + DIALOG_CONTINUE:
 		KillDialog(DIALOG_CONTINUE);
 		LoadClassic();
-		if (mScore != 0)
-			mTimesPlayed++;
 		Board::DeleteClassicSave();
 		StartBoardScreen();
 		break;

@@ -3,6 +3,7 @@
 #include "Board.h"
 #include "AlchemyApp.h"
 #include "Piece.h"
+#include "Fixes.h"
 #include "Wizard.h"
 #include "Effects.h"
 #include "SidePanel.h"
@@ -606,14 +607,17 @@ void Board::RedrawCell(int theCol, int theRow)
 		int aDY = aY;
 		int aWidth = CELL;
 		int aHeight = CELL;
-		if (theCol > 1 && !mLit[theRow][theCol - 1])
+		// the original tests the left and top neighbours from column and row 2 on, the right and bottom ones from the last
+		// column and row back: the first column and row get no rim where they border an unlit tile (fix "rims")
+		int aFirst = FixEnabled("rims") ? 0 : 1;
+		if (theCol > aFirst && !mLit[theRow][theCol - 1])
 		{
 			aDX++;
 			aWidth = 0x33;
 		}
 		if (theCol < 8 && !mLit[theRow][theCol + 1])
 			aWidth--;
-		if (theRow > 1 && !mLit[theRow - 1][theCol])
+		if (theRow > aFirst && !mLit[theRow - 1][theCol])
 		{
 			aDY++;
 			aHeight = 0x33;

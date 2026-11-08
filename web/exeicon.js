@@ -4,7 +4,9 @@
 // this browser and is never sent anywhere. No library: it reads the PE file itself.
 //
 //   ByopopExeIcon.parse(bytes)        Uint8Array of an exe -> {width, height, bpp, path, rgba | png} or null
-//   ByopopExeIcon.fromBytes(bytes)    the same, as a small PNG: Promise of {dataUrl, width, height, bpp, path} or null
+//   ByopopExeIcon.fromBytes(bytes)    the same, as a small PNG: Promise of {dataUrl, width, height, bpp, path, built} or null
+//   ByopopExeIcon.built(bytes)        the year the exe was linked (its PE header's time stamp), or 0 when it has none that
+//                                     is likely (before 1995 or after this year: a fixed or zero stamp, as some linkers write)
 //
 // The PE: "MZ", the offset of the PE header at 0x3C, the section table (to turn the resource directory's RVAs into file
 // offsets) and the resource directory, whose first level is the resource type: RT_GROUP_ICON (14) lists one group's
@@ -224,13 +226,24 @@ var ByopopExeIcon = (function () {
     }
     return null;
   }
+  // the link year: "MZ", the PE header's offset at 0x3C, "PE  ", then the COFF header's TimeDateStamp 8 bytes in
+  function built(bytes) {
+    try {
+      var d = (bytes instanceof Uint8Array) ? bytes : new Uint8Array(bytes);
+      if (d[0] !== 0x4d || d[1] !== 0x5a) return 0;
+      var pe = u32(d, 0x3c);
+      if (u32(d, pe) !== 0x4550) return 0;
+      var year = new Date(u32(d, pe + 8) * 1000).getUTCFullYear();
+      return (year >= 1995 && year <= new Date().getUTCFullYear()) ? year : 0;
+    } catch (e) { return 0; }
+  }
   function fromBytes(bytes) {
     return new Promise(function (resolve) {
       try {
         var icon = parse(bytes);
         if (!icon) { resolve(null); return; }
         function done(kept) {
-          resolve(kept ? { dataUrl: kept.dataUrl, width: kept.width, height: kept.height, bpp: icon.bpp, path: icon.path } : null);
+          resolve(kept ? { dataUrl: kept.dataUrl, width: kept.width, height: kept.height, bpp: icon.bpp, path: icon.path, built: built(bytes) } : null);
         }
         if (icon.png) {
           var url = "data:image/png;base64," + base64(icon.png);
@@ -249,6 +262,6 @@ var ByopopExeIcon = (function () {
     });
   }
 
-  return { parse: parse, fromBytes: fromBytes, MAX_URL: MAX_URL, MAX_SIDE: MAX_SIDE };
+  return { parse: parse, fromBytes: fromBytes, built: built, MAX_URL: MAX_URL, MAX_SIDE: MAX_SIDE };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = ByopopExeIcon;

@@ -146,22 +146,56 @@ bool AutoplayBot::InputBlocked()
 
 // A board position (Board::GetColX, Piece::mX) in the window: on a scaled board (stage 7) scaled about the board
 // window's corner, as BoardTrace prints its clicks; else itself
-int AutoplayBot::ScreenX(int theX)
+int AutoplayBot::ToScreenX(WinDMApp* theApp, int theX)
 {
-	Board* aBoard = mApp->mBoard;
+	Board* aBoard = theApp->mBoard;
 	return aBoard->mVariant.mScaled ? (int) floor(aBoard->mLayout.ToScreenX(theX) + 0.5) : theX;
 }
 
-int AutoplayBot::ScreenY(int theY)
+int AutoplayBot::ToScreenY(WinDMApp* theApp, int theY)
 {
-	Board* aBoard = mApp->mBoard;
+	Board* aBoard = theApp->mBoard;
 	return aBoard->mVariant.mScaled ? (int) floor(aBoard->mLayout.ToScreenY(theY) + 0.5) : theY;
 }
 
 // A click at that board position reaches the board (not a dialog or a button over it)
+bool AutoplayBot::ClickReachesBoard(WinDMApp* theApp, int theX, int theY)
+{
+	return theApp->mWidgetManager->GetWidgetAt(ToScreenX(theApp, theX), ToScreenY(theApp, theY), NULL, NULL) == theApp->mBoard;
+}
+
+int AutoplayBot::ScreenX(int theX)
+{
+	return ToScreenX(mApp, theX);
+}
+
+int AutoplayBot::ScreenY(int theY)
+{
+	return ToScreenY(mApp, theY);
+}
+
 bool AutoplayBot::OnBoard(int theX, int theY)
 {
-	return mApp->mWidgetManager->GetWidgetAt(ScreenX(theX), ScreenY(theY), NULL, NULL) == mApp->mBoard;
+	return ClickReachesBoard(mApp, theX, theY);
+}
+
+// The valid swaps whose two gems take a click (the first game's instructions cover the top rows)
+void AutoplayBot::ValidClickableMoves(WinDMApp* theApp, std::vector<int>* theMoves)
+{
+	Board* aBoard = theApp->mBoard;
+	theMoves->clear();
+	int aMove[4];
+	for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
+		theMoves->push_back(((aMove[0] * 16 + aMove[1]) * 16 + aMove[2]) * 16 + aMove[3]);
+	for (size_t i = 0; i < theMoves->size(); )
+	{
+		int aPacked = (*theMoves)[i];
+		if (ClickReachesBoard(theApp, aBoard->GetColX(aPacked >> 12) + 24, aBoard->GetRowY((aPacked >> 8) & 15) + 24) &&
+			ClickReachesBoard(theApp, aBoard->GetColX((aPacked >> 4) & 15) + 24, aBoard->GetRowY(aPacked & 15) + 24))
+			i++;
+		else
+			theMoves->erase(theMoves->begin() + i);
+	}
 }
 
 void AutoplayBot::AddTargetSteps(int theCol, int theRow, int theCol2, int theRow2, int theStyle, int theDelay)
@@ -322,9 +356,7 @@ void AutoplayBot::PlanMove()
 	}
 	else
 	{
-		int aMove[4];
-		for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
-			aMoves.push_back(((aMove[0] * 16 + aMove[1]) * 16 + aMove[2]) * 16 + aMove[3]);
+		ValidClickableMoves(mApp, &aMoves); // the list the test command "move" chooses from, too (TestCommands.cpp)
 		aKindName = "valid";
 	}
 

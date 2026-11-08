@@ -640,7 +640,7 @@ void WorldMap::Update()
 			// (the original goes on here: the hover, the marker and the twinkles, which draw random numbers)
 		}
 	}
-	if (!aEntered && mApp->mIsRegistered && !mOpened)
+	if (!aEntered && !mOpened)
 	{
 		// (the first time: what the solved pyramids have opened can be entered)
 		mOpened = true;

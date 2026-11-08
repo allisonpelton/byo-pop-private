@@ -696,6 +696,78 @@ chosen keeps these rules, each in the user's words of 2026-11-07:
   Microsoft font files. A free lookalike may be a fallback for machines without them, and only that one is listed on the
   licences page.
 
+### Skins
+
+The user chose three of the directions as selectable skins (2026-11-07: "Offer A, B, and C as selectable skins... D feels too
+generic"): A **Demo Disc**, B **Desktop 95** and C **Soda Fountain**. A and C each have a light and a dark version, the dark
+one from its own era rather than inverted colours: A's midnight gloss, C's after hours with neon (the design page's "After
+dark" section has each with its verdict). B has a light version only (the user, 2026-11-07, of the dark versions: "Only A and
+C"): in a dark theme it stays light, and its pages do not show the theme button. `web/skins.js` sets
+`<html data-skin="demo" | "d95" | "soda">` in each page's `<head>`, before the body is drawn, and `web/skins.css` holds the looks.
+**Plain**, the site's look without a skin, is the fourth choice. The skins restyle the listing page and the game pages; the
+other pages (the terms, the licences, a game's copyright page) keep the plain look.
+
+The choice is the site setting `skin` (web/settings.js, the Display group), so it is kept with the other settings, a game may
+have its own like any other setting, and Settings changes it at any time, at once. Until the player chose one it is "unset":
+the first page of the site they open shows a card with the three, and closing it without a choice keeps Plain, chosen, so the
+card is asked once. As with the terms card, it never shows on a development host (`?skins=1` shows it there) and never on the
+player-only page, which has no skin.
+
+How a skin is written: each one sets the pages' own colour variables (`--bg`, `--panel`, `--panel-2`, `--fg`, `--muted`,
+`--line`, `--accent`, `--accent-fg`, `--font-ui`, `--radius`) and its own `--sk-*` ones, once for light and once for dark in the
+pages' two dark forms (web/theme.js); the rules after them only read variables, so each is written once for both themes. In
+the dark A only the top bar and the box headings shine, its panels flat smoked glass; the dark C keeps its neon to the sign and
+the awning, with soft edges elsewhere (the verdicts).
+
+**Ambient light.** On a game page in the dark A and C the game's picture glows out around the stage, as on the design page:
+`web/skins.js` copies the game's canvas into a 16 by 12 canvas right after a frame the game drew (the framework's frame hook,
+`Module.byopopTestFrame`, while the WebGL picture is still there), at most every half second, and two such canvases,
+scaled a quarter beyond the stage, blurred far and cross-faded, sit behind it inside the stage's box (html.sk-ambient). With
+reduced motion a sample is taken every 8 seconds at most and switched without a fade. The light versions have none, since
+on a light page a glow reads as a smudge, and neither has B. The site setting "Ambient light" (`ambient`, on by default, the
+Display group) turns it off; while it is off, or in a light theme, no sample is taken.
+Period fonts are named and never shipped (Verdana for A; the 1995 desktop's sans serif, then Tahoma, for B; Cooper Black, then
+Bookman and Georgia, for C's signs).
+
+**The setup wizard.** In a skin, a game page's three cards before play, the terms, the import and Ready, are the pages of a setup
+wizard (`ByopopSkin.wizard`, called by web/shell.html): a title bar ("byo-pop Setup: <game>", in C "Bottling <game>"), the steps
+Licence, Your folder, Copying and Finish with the current one marked (the import card is Copying while its progress bar moves),
+and an art column at the left with the game's cap (on the import card its own cap, which the opener still takes off) or, in C, a
+bottle that fills with the copy and is full at Finish. The cards keep their contents, buttons and rules: the terms card is the
+licence page (the user, 2026-11-07: "Yes, as the licence page") and keeps everything in "The terms", development hosts and the
+test key included. The wizard's parts are always in the page, hidden from assistive technology (the cards read as they are)
+and drawn only in a skin, so changing the skin needs no script.
+
+**The cap board.** In a skin the listing's caps stay caps: a game whose files are here keeps its initials, with its own icon
+faint under them (the user, 2026-11-07: "Add the game's icon so it shows semi-faint under the game's initials"), the icon read
+out of the player's own exe at the import (web/exeicon.js) and never shipped or redrawn; Plain shows the icon alone, as before.
+In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
+its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps").
+The other studies are on the cap of a game whose files are here, in every skin, from what this browser already keeps
+(`capStudies` in web/index.html; drawn by web/skins.css, hidden from assistive technology since the card says the same). **The
+record under the cap**: on hover or the card's focus the cap turns over to its liner, with the plays, the play time and the
+last day played (ByopopPlay). A best score would need, for each game, where its saves keep it, and is not shown. **The print
+of the copy**: the year the copy's exe was linked (`ByopopExeIcon.built`, its PE header's time stamp, read with the icon and
+kept in the record as `built`) against the game's release year: a year stamp on the rim when it was built in the first year, a
+ring for a later re-release (two years on or more), and nothing between. No store is named. **Wear from play**: a scratch at
+10 hours, a dent and a tilt at 40, patina at 100. **The date under the crimp**: the day this copy came in (`opened` in the
+record, set when a new copy is marked and kept while it is there), short, on the rim; a record from before it was kept has
+none until the files are added again.
+
+**Desktop 95's windows.** In B a game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The controls (the
+page's bar, with the sound switch), the game, the chat and every panel (Settings, Game files, Mods and the game's own) are
+windows dragged by their title bars, or moved 8 pixels at a time with Alt and the arrows while the focus is in a title bar. A
+column of icons at the left opens each one again. The game window can be closed and reopened; a panel's icon presses the
+panel's own button on the bar. The game window is always pixel-perfect: one canvas pixel for each game pixel, or the largest
+whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Where the windows are, and whether the
+game window is closed, is kept for each game in the localStorage item `byopop-desk`. The footer lies along the bottom like a
+task bar. Each game keeps its own page, so a game's address still opens that game. The listing is its own desktop: the games
+(with their tabs) in one window and the page's notes in another, each dragged, closed and opened from its icon like a game
+page's, and kept under "index". On a screen under 760 pixels wide, or in another skin, the page is laid out as
+usual. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
+title, ...})`. The parody keeps to the rules of the skins: everything drawn here, system fonts by name, no real logos, icons
+or sounds, and no imitation system prompts.
+
 ### Light and dark
 
 The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the
@@ -1141,9 +1213,12 @@ Big Money, BookWorm, Bookworm Adventures, Bejeweled Twist (both of its modules),
 Mummy Maze; the Ogg games are Bookworm Adventures Volume 2, Noah's Ark, Pixelus, Rocket Mania and Bonnie's Bookstore (its module
 too).
 
-The decoder is libopenmpt on its own, built for the web as `openmpt.js` and `openmpt.wasm` beside the pages (target
-`byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, orders, repeat, length, render,
-and stb_vorbis's whole-file decode). It holds no game code, and the page loads it only when the tab is first opened. Its licence is
+The decoder is the games' own two module renderers, built for the web on their own as `openmpt.js` and `openmpt.wasm` beside the
+pages (target `byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, orders, repeat,
+length, render, and stb_vorbis's whole-file decode). As `Platform::Mixer` picks them, an MO3 or OXM plays through libopenmpt at the
+port's settings and every other module (S3M, IT, XM) through libxmp-lite, so that a tune sounds as it does in its game (below,
+"Music levels"); libxmp-lite's sequences are the subsongs there, and for every game's modules they are libopenmpt's, the same
+number of the same lengths. It holds no game code, and the page loads it only when the tab is first opened. Its licence is
 copied to `licenses/libopenmpt.txt`, which the tab links. An Ogg file is decoded whole by the browser (`decodeAudioData`, at the
 AudioContext's rate); a browser that cannot gets stb_vorbis from the same wasm, and music.js resamples its output. A tune's length
 in the list is read from the Ogg file's last page without decoding it. The main thread sends 4096-frame stereo chunks to an
@@ -1159,6 +1234,48 @@ tune's name, the game as the artist and the game's icon, and its play, pause, ne
 media keys and the system's media controls drive the player. At `?silent=1` the volume's GainNode reaches the speakers only through a
 second gain of 0, so they get exact zeros, and the status line ends in "(silent)". The graph has to reach the destination all the
 same: a browser never runs a worklet whose output goes nowhere, and the tune would stand still.
+
+### Music levels
+
+The user found Bonnie's Bookstore's music "way too quiet" (2026-11-07): FMOD 3 mixes an XM at a sample pre-amp of 256 and
+libopenmpt at 48, so Bonnie's now plays it at 256/48 (b1807c11). Every other game's engine was then checked the same way
+(2026-11-08), with `tools/musiclevel`: `musiclevel.exe` (32-bit, `tools/musiclevel/build.sh`) decodes a module with a copy of the
+game's own `bass.dll` or `fmod.dll` under `build/`, silently (BASS's no-sound device and a decoding channel, FMOD 3's no-sound
+output and a DSP unit after its clip-and-copy unit), and `portlevel` (a native target) renders it through `Platform::Mixer` as the
+game does; both print the RMS of the first seconds. The originals' engines are BASS 1.7 (Alchemy), 1.8 (Dynomite, Pixelus, Rocket
+Mania), 2.0 (Big Money), 2.2 (Bejeweled Twist, both Mahjongs), 2.3 (Bejeweled, BookWorm, Bookworm Adventures and its Volume 2,
+Cosmic Bugs, Water Bugs) and FMOD 3.50 to 3.74 (Mummy Maze, Atomica, Seven Seas, Noah's Ark, Bonnie's). No game sets BASS's
+amplify but the two Bookworm Adventures, so the others play at its default of 50; FMOD's at full master volume.
+
+Over the first 30 s of each module, the original's level against the port's, in dB:
+
+| Game | Engine | Modules: original minus port |
+|---|---|---|
+| Alchemy | BASS 1.7, S3M | -0.7, +0.3 |
+| Dynomite | BASS 1.8, IT | +0.7, -0.7 |
+| Big Money | BASS 2.0, IT | +1.1 |
+| Bejeweled | BASS 2.3, S3M | -0.4, +1.2, +0.6 |
+| Mummy Maze | FMOD 3.50, IT | -0.4 |
+| Seven Seas | FMOD 3.61, IT | +1.9 |
+| BookWorm | BASS 2.3, MO3 | +2.4 |
+| Cosmic Bugs | BASS 2.3, MO3 | +1.4, +1.4 |
+| Water Bugs | BASS 2.3, MO3 | -0.8 |
+| Bejeweled Twist | BASS 2.2, MO3 | +0.9, -1.6 |
+| Bookworm Adventures | BASS 2.3, MO3 | -4.5 at amplify 50, which its amplify of 100 makes up (`SetMusicAmplify`) |
+
+Atomica's first 30 s from order 0 are silent in both (its first subsong is 0.9 s long). So libxmp-lite, which plays the S3M and IT
+games, is within about 1 dB of every engine (Seven Seas 1.9), and nothing in the port changes. On MO3, libopenmpt against BASS
+2.2 and 2.3 differs from one module to the next, both ways, by up to 2.4 dB; no setting of libopenmpt's or field of the modules
+explains it, and a gain measured for each module would be a value taken from runs, so it is listed as an oddity and left. The
+site's music player was the real fault: it played every module through libopenmpt, which was 2 to 3 dB quieter than the games on
+S3M and 8 to 11 dB quieter on most IT (Seven Seas', Dynomite's and Big Money's). It now renders each module with the game's own
+renderer and settings, and measured through `openmpt.js` under Node it gives the port's level to 0.01 dB on every module above.
+
+The levels are shared code: `platform/MusicLevels.h` (C) holds the render settings (libopenmpt's two-tap interpolation and full
+separation, libxmp-lite's spline), BASS's measured amplify curve (`ByopopBassAmplifyDB`, used by `SDLMusicInterface`) and FMOD 3's
+XM pre-amp, and the music player's decoder includes it. A game whose own code plays its music at another level says so in
+`web/soundtracks.js` as `level` (`{bassAmplify: 100}` for Bookworm Adventures, `{fmod3XM: true}` for Bonnie's OXM), and the
+player applies the same gain from the header (`bm_level_bass_amplify`, `bm_level_fmod3_xm`).
 
 Not covered yet:
 
@@ -1457,37 +1574,36 @@ every game has them. What wrong sizes did in testing:
 - BookWorm: `tile_fire_fx1` must be at least 57 px tall and the ember and spark images square (else a modulo by
   zero). `wordlist.txt` has no stand-in, and without `bookworm.exe` the game's texts are empty (GameText).
 
-## Sound
+## The performance panel
 
-Every game's sound goes through the shared mixer (`platform/Audio.cpp`), which on the web plays through the page's own
-output rather than SDL's. The user found the sound late in TipTop, Dynomite, Big Money, Bonnie's Bookstore and BookWorm
-Adventures Volume 2 (2026-11-07), and still playing for a moment after the tab lost the focus. SDL's output was a
-ScriptProcessor of 2048 frames: each mix waited for its turn and was then held for a whole buffer, so in the Browser pane a
-sound reached the speaker 109.5 ms after the game played it (the median of 20 menu sounds in TipTop; 94 to 145 ms).
+A game page shows its performance panel while the site setting "Performance panel" (`perf`, the Display group) is on; it is
+off by default (`web/perf.js`). In Desktop 95 it is a window of the desktop with its own icon. It only reads, so the game
+plays the same with it on. With it off nothing of it runs: no animation frame, observer, timer or wrapped WebGL call. Its
+link in the framework's frame hook returns at once, and the hook's own cost is two clock reads a frame. Each second it shows
+the following.
 
-The page's output is an AudioWorklet that keeps a queue of mixed sound and asks the page for the next chunk of 256 frames
-whenever the queue runs short. The page mixes the chunk at once, between the game's frames, and sends it over. The queue
-is at least 2048 frames (43 ms at 48 kHz), long enough to cover the game's slower frames; when the page answers late
-(loading, a heavy frame) it grows at once, up to 4096 frames, and shrinks again after three seconds of quick answers. A
-sound the game starts does not wait behind the queue: its first frames are mixed straight away, alone, and added into the
-sound already queued, from 640 frames (13 ms) ahead of what the context has played, and the next chunk carries on from
-there. A sound now reaches the speaker 59 ms after the game plays it (the same 20 sounds: 54 to 65 ms), of which 50 ms
-is the browser's own output latency (`baseLatency` and `outputLatency`). A page with no AudioWorklet (one served over
-plain http from another machine) falls back to a ScriptProcessor of 1024 frames that is pulled the same way, at 84.5 ms
-(76 to 97 ms).
-
-Muting drops the queued sound, so a mute is heard at once, as natively: the game's own mute (`SexyAppBase::Mute`, which
-a game calls when it loses the focus) and the page's sound button. A hidden tab gets no animation frames, so the game
-would not see its focus loss until it came back: the page mutes it when the tab is hidden
-(`SexyAppBase::EmscriptenPageHidden`). In the pane, a window blur muted TipTop on its next frame, 17 ms later, and a
-hidden tab muted it at once.
-
-For tests, the page's `Module` has the output's state in `Module.byopopAudio` (`kind` is `worklet` or `script`, `target`
-the queue's length in frames, `gaps` how often it ran dry, `late` how many frames of a sound's start came too late to
-be mixed in). `Module.audioOutput = 'script'`, set before Play, forces the ScriptProcessor. A function in
-`Module.onVoiceMixed` is called with the page's clock at the play call (`performance.now()`) when a sound's first frame
-is mixed, and `Module.audioChunkEar` then holds the time that frame reaches the speaker (from `getOutputTimestamp`): the
-difference is the delay. `?silent=1` mixes as usual and sends silence, so the timing is the same with it.
+- **Frames:** frames per second and frame time (average and longest), from requestAnimationFrame. Also the game's own time
+  per frame: the framework's frame hook (`sexyapp_test_frame`, `Module.byopopTestFrame`) passes the time
+  `EmscriptenMainLoop` spent on the frame's updates and draw.
+- **Updates:** updates per second, and catch-up frames, those that ran more than one update. Both come from
+  `byopop_update_count` read at each frame.
+- **Main thread:** the game's share of the page's main thread (its frame time over the second), and the long tasks the
+  browser reports, those over 50 ms (count and share). Both are labelled as shares of the one thread the page runs on,
+  never as the computer's CPU use.
+- **Memory:** the wasm heap's size and the bytes malloc has handed out, and the framework's images (its MemoryImage set,
+  counting pixels and the blitters' caches) and loaded sounds (their samples), with their bytes. These come from
+  `byopop_perf_json`, a web-only, read-only framework call, made once a second while the panel is open. Also the
+  JavaScript heap where the browser gives it (`performance.memory`), and the site's storage used and quota
+  (`navigator.storage.estimate`, every 10 s).
+- **Graphics:** once the game has drawn, the WebGL context it draws with (GPUInterfaceGL's, the one `getContext` gives
+  back) has its draw, texture-upload and buffer calls counted by wrapping them while the panel is on; turning the panel
+  off puts the originals back. The panel shows draw calls per frame, uploads per second and the bytes uploaded, and the
+  renderer's name. GPU time per frame comes from a timer query only where the browser really offers
+  `EXT_disjoint_timer_query` (or its WebGL 2 form), with disjoint results dropped. A query runs from one frame's end to
+  the next, so it times that frame's GL work. A game drawing without WebGL says so. The panel never asks for a context
+  before the game has made its own, since that would make one and take the canvas from the game.
+- **Sound:** the audio context's `baseLatency` and `outputLatency`, the mixed sound queued ahead of what the context has
+  played, and how often the queue ran dry (`Module.byopopAudio`, "Sound" below).
 
 ## The player-only page
 
@@ -1506,8 +1622,10 @@ Its parameters:
 |---|---|
 | `player=1` | the player-only page and its tools, `window.byopop.test` |
 | `assets=<name>` | the game's files from the staged `assets/<name>/` (`assets=1`: the page's own id), served by `tools/webtest/serve.py` and taken through the page's own import, which fetches only the files it picks; everything goes into a test profile of its own (the page's storage and Web Lock with "-test" after their names), apart from the player's, and the record of the player's games is left alone |
-| `fast=1` | the game on its virtual clock (`-fast`) |
-| `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready |
+| `fast=1` | the game on its virtual clock (`-fast`), on the page's own frames (below) |
+| `framems=N` | with `fast=1`, the longest a frame runs the game's steps, in ms (25 by default) |
+| `frames=browser` | with `fast=1`, the browser's frames instead of the page's own (to compare a run with them) |
+| `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready. A driver then runs once the files are in, before the game starts, and starts it itself; `?driver=move` starts it at once |
 | `silent=0` | sound on (the user's speakers: only when the user says so) |
 | `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
 | `run=<id>` | the folder of `byopop.test.shot(name)`'s files under `build/webshots/` (default "default") |
@@ -1519,10 +1637,23 @@ the staged files at `/__assets/<name>/` (`__list` lists them) and `POST /__shot`
 as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/origrun/<run>/shots --port build/webshots/<run>
 --run <id>` (`docs/SHOTDIFF.md`).
 
+**Fast runs** (2026-11-08). A hidden Browser pane sends no animation frames and runs its timers about once a second, so with
+`fast=1` the page drives the game itself: each frame the runtime asks for is a MessageChannel message, posted at once, so the
+game runs as fast as the machine allows, hidden or not. Each frame stops once the game's steps took `framems` (the framework's
+`byopop_set_frame_budget`, web only: `EmscriptenMainLoop` returns between two steps of the update state machine, which carries
+on in the next frame), so the page's own JS, the test commands and the tool calls are served between frames. Neither changes an
+update or a draw. Mummy Maze's bot, from `seed 7` and `level 1` queued in the same update, went through levels 1 and 2 by the
+same positions, mazes and scores on these frames as on the browser's (`frames=browser`), in a third of the time. Pixelus's
+driver went through the dialogs and the story to its third solved puzzle at about 700 updates a second, which is Pixelus's own
+speed with a draw every 10 updates. A run that compares states with another must reach its starting point by commands sent in
+the same update (`Promise.all` of `command()` calls), since the number of updates between two commands sent one after the other
+depends on the frames.
+
 `byopop.test` (every call that acts resolves once a frame has been drawn after it):
 
 - **ready**, a promise that resolves at the first drawn frame with `{updates, screen}`; `progress()` before then gives the status
-  line, the page's state, the frames and the updates. `start()` starts a `hold=1` page.
+  line, the page's state, the frames and the updates. `start()` starts a `hold=1` page and resolves with `ready`; `loaded`
+  resolves once the page could start it (its files are in), which is when a `hold=1` page runs its driver.
 - **errors**, an array that collects every abort, uncaught exception and rejection, every printed line that reports an error
   (Lua's among them), every message box and every failure to fetch the staged files, each `{kind, text, update, at}`. A message
   box is answered at once and never shown: an alert is dismissed, a confirm answered with `confirmAnswer` (true by default).
@@ -1551,9 +1682,14 @@ as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/o
 - **test commands** (the user, 2026-11-07, "Yes, add them"; `docs/TEST_COMMANDS.md`): `command(line, {timeout})` sends one
   command (state, goto <screen>, level <n>, unlock all, set <name> <value>, win, lose, seed <n>) through the framework's live
   channel, `byopop_test_command`, which queues it for the next update and the game's `HandleScriptCommand`, and resolves with the
-  lines printed from the call up to its answer, the last of them: `STATE {json}`, `OK <command>` or `ERROR <command>: <reason>`
+  lines printed from the call up to its answer, the last of them: `STATE {json}`, `MOVE {json}|null`, a game's own answer of
+  that shape (an upper-case word and JSON, such as Pixelus's `TARGETS {json}`), `OK <command>` or `ERROR <command>: <reason>`
   (SDL's "INFO: " taken off). A held game is stepped one update so that the command runs. `state()` is `command("state")`'s JSON.
-  A build without the channel rejects at once.
+  A build without the channel rejects at once. `botMove()` is `command("move")`'s move, or null when the bot has none;
+  `playMove(m)` sends one through real DOM input in game coordinates: its `input` steps in order (`{move:[x,y]}` a hover,
+  `{click:[x,y]}` with `button:"right"` if it is one, `{press:[x,y]}` and `{release:[x,y]}` for a drag, `{key:"B"}`,
+  `{wait:n}` updates; `docs/TEST_COMMANDS.md`, under `move`), else an older move's `clicks` (`[x, y]` or `{x, y, button}`),
+  then its `drags` (`{x0, y0, x1, y1, steps}`), then its `keys` (DOM key names), and waits its `updates` (1 by default).
 - **readings**, all copies: `watch()` a port's
   watch values where it gives them (`byopop_watch_json`), null otherwise; `mixer()` the mixer's state once the shared
   session's `platform/Audio.cpp` gives it (`byopop_mixer_json`), null until then; `screen()` the game's size.
@@ -1602,6 +1738,48 @@ return { moves: moves, updates: t.updates(), errors: t.errors.length };
 
 opened as `...bejeweled.html?player=1&assets=1&fast=1&driver=games/bejeweled/tools/web/onegame.js&run=onegame`, then
 `await byopop.test.driver` in the pane.
+
+**The built-in driver `?driver=move`** plays any game by its port's own bot (the user, 2026-11-07: "the scripts that play the
+games should be developed in a way that their code can be reused for a mod that adds a bot"; `docs/TEST_COMMANDS.md`, "The bot
+behind `move`"). It loops: `state()`, then `botMove()`, then `playMove()`, so every move is real input. It stops when the
+state says `"over": true`, on `MOVE null` twice running while the game is not busy (it waits 30 updates after the first), on
+an ERROR, or after `?steps=` moves (2000 by default). While the state says `busy` (or `board.busy`), as Alchemy's does while a
+board clears, `MOVE null` only means "not yet": it waits 5 updates and asks again, and stops with "busy" after 20000 of them. `byopop.test.result` is then `{moves, stop, state, updates, errors}`: `stop` is "over", "limit",
+"no move", "busy" or "error: <message>", and `state` the last state read. `playByMove({steps})` runs the same loop from a driver of a
+session's own. It needs the build's `byopop_test_command` and a port that answers `move`; the MOVE fields are agreed with the
+shared session, whose native tool plays the same moves.
+
+## Sound
+
+Every game's sound goes through the shared mixer (`platform/Audio.cpp`), which on the web plays through the page's own
+output rather than SDL's. The user found the sound late in TipTop, Dynomite, Big Money, Bonnie's Bookstore and BookWorm
+Adventures Volume 2 (2026-11-07), and still playing for a moment after the tab lost the focus. SDL's output was a
+ScriptProcessor of 2048 frames: each mix waited for its turn and was then held for a whole buffer, so in the Browser pane a
+sound reached the speaker 109.5 ms after the game played it (the median of 20 menu sounds in TipTop; 94 to 145 ms).
+
+The page's output is an AudioWorklet that keeps a queue of mixed sound and asks the page for the next chunk of 256 frames
+whenever the queue runs short. The page mixes the chunk at once, between the game's frames, and sends it over. The queue
+is at least 2048 frames (43 ms at 48 kHz), long enough to cover the game's slower frames; when the page answers late
+(loading, a heavy frame) it grows at once, up to 4096 frames, and shrinks again after three seconds of quick answers. A
+sound the game starts does not wait behind the queue: its first frames are mixed straight away, alone, and added into the
+sound already queued, from 640 frames (13 ms) ahead of what the context has played, and the next chunk carries on from
+there. A sound now reaches the speaker 59 ms after the game plays it (the same 20 sounds: 54 to 65 ms), of which 50 ms
+is the browser's own output latency (`baseLatency` and `outputLatency`). A page with no AudioWorklet (one served over
+plain http from another machine) falls back to a ScriptProcessor of 1024 frames that is pulled the same way, at 84.5 ms
+(76 to 97 ms).
+
+Muting drops the queued sound, so a mute is heard at once, as natively: the game's own mute (`SexyAppBase::Mute`, which
+a game calls when it loses the focus) and the page's sound button. A hidden tab gets no animation frames, so the game
+would not see its focus loss until it came back: the page mutes it when the tab is hidden
+(`SexyAppBase::EmscriptenPageHidden`). In the pane, a window blur muted TipTop on its next frame, 17 ms later, and a
+hidden tab muted it at once.
+
+For tests, the page's `Module` has the output's state in `Module.byopopAudio` (`kind` is `worklet` or `script`, `target`
+the queue's length in frames, `gaps` how often it ran dry, `late` how many frames of a sound's start came too late to
+be mixed in). `Module.audioOutput = 'script'`, set before Play, forces the ScriptProcessor. A function in
+`Module.onVoiceMixed` is called with the page's clock at the play call (`performance.now()`) when a sound's first frame
+is mixed, and `Module.audioChunkEar` then holds the time that frame reaches the speaker (from `getOutputTimestamp`): the
+difference is the delay. `?silent=1` mixes as usual and sends silence, so the timing is the same with it.
 
 ## Memory use
 
