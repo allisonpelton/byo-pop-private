@@ -724,7 +724,14 @@ and an art column at the left with the game's cap (on the import card its own ca
 bottle that fills with the copy and is full at Finish. The cards keep their contents, buttons and rules: the terms card is the
 licence page (the user, 2026-11-07: "Yes, as the licence page") and keeps everything in "The terms", development hosts and the
 test key included. The wizard's parts are always in the page, hidden from assistive technology (the cards read as they are)
-and drawn only in a skin, so changing the skin needs no script. Still to come: the cap board and Desktop 95's windows.
+and drawn only in a skin, so changing the skin needs no script.
+
+**The cap board.** In a skin the listing's caps stay caps: a game whose files are here keeps its initials, with its own icon
+faint under them (the user, 2026-11-07: "Add the game's icon so it shows semi-faint under the game's initials"), the icon read
+out of the player's own exe at the import (web/exeicon.js) and never shipped or redrawn; Plain shows the icon alone, as before.
+In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
+its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps"). Still to come: Desktop 95's
+windows.
 
 ### Light and dark
 

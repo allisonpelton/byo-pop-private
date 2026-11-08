@@ -250,3 +250,18 @@
   :root[data-skin="soda"]:not([data-theme="light"]) .wiz-card { box-shadow: 0 0 14px rgba(255,59,92,.45); } }
 :root[data-skin="soda"][data-theme="dark"] .wiz-bottle { background: #0f1d1b; border-color: #4fa89b; box-shadow: 0 0 16px rgba(79,224,200,.35); }
 :root[data-skin="soda"][data-theme="dark"] .wiz-card { box-shadow: 0 0 14px rgba(255,59,92,.45); }
+
+/* ======================= the cap board: the listing's caps in every skin ======================= */
+/* A game whose files are here keeps its cap and initials, its own icon (read from the player's exe at the import, web/exeicon.js:
+   never shipped or redrawn) faint under them; Plain shows the icon alone (web/index.html) */
+:root[data-skin] .badge.has-icon { position: relative; isolation: isolate;
+  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0,0,0,.2) 69% 73%, transparent 74% 84%, rgba(0,0,0,.16) 85%), var(--tile);
+  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat; }
+:root[data-skin] .badge.has-icon img { position: absolute; inset: 14px; width: auto; height: auto; opacity: .6; z-index: -1; }
+:root[data-skin] .badge.has-icon .badge-initials { display: inline; text-shadow: 0 1px 2px rgba(0,0,0,.55); }
+/* C: the board has a hole for every game; a cap sits in it once the game's files are here */
+:root[data-skin="soda"] .games > li:not([data-files="yes"]) .badge {
+  -webkit-mask: none; mask: none; border-radius: 50%; width: 64px; height: 64px; margin: 4px;
+  background: radial-gradient(circle, rgba(0,0,0,.42), rgba(0,0,0,.18) 70%); box-shadow: inset 0 3px 7px rgba(0,0,0,.55);
+  color: rgba(255,255,255,.55); font-size: 15px; filter: none; }
+:root[data-skin="soda"] .games .own-yes { color: #ffd27a; }
