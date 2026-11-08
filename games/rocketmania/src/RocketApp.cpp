@@ -101,7 +101,6 @@ RocketApp::RocketApp()
 	mNoHints = false;
 	for (int i = 0; i < 8; i++)
 		mHintFlags[i] = false;
-	mIsRegistered = true;      // the Steam build plays as the registered game (properties/partner.xml: NoReg)
 }
 
 RocketApp::~RocketApp()
