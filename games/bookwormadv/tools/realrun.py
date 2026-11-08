@@ -8,7 +8,7 @@ The steps run on the wall clock, one per line ('#' starts a comment):
 
     wait S              seconds
     move X Y            WM_MOUSEMOVE at the client point
-    click X Y           a move, then the left button down and up
+    click X Y           a move, then a move with the press and a move with the release (bursts: see the code)
     key VK              a key's down and up (a virtual-key code, decimal)
     text ABC            WM_CHAR for each character
     focus lose|regain   WM_ACTIVATEAPP, WM_ACTIVATE and WM_KILLFOCUS / WM_SETFOCUS, as visrun posts them
@@ -145,8 +145,15 @@ def main():
         p.kill()
         raise SystemExit('realrun: no window')
     note('window %#x, client %dx%d' % ((hw,) + geometry(hw)[:2]))
-    # a player's window is the active one: on rundesk's desktop nothing else is, so it can be made so
-    note('foreground: %d' % u32.SetForegroundWindow(hw))
+    # a player's window is the active one: on rundesk's desktop it can be made so (Seven Seas' realinput.py)
+    k32 = ctypes.WinDLL('kernel32')
+    tid, me = u32.GetWindowThreadProcessId(hw, None), k32.GetCurrentThreadId()
+    u32.AttachThreadInput(me, tid, True)
+    u32.SetForegroundWindow(hw)
+    u32.SetActiveWindow(hw)
+    u32.SetFocus(hw)
+    u32.AttachThreadInput(me, tid, False)
+    note('foreground: %s' % (u32.GetForegroundWindow() == hw))
     for line in open(steps):
         line = line.split('#')[0].strip()
         if not line:
@@ -162,18 +169,23 @@ def main():
         if op == 'move':
             u32.PostMessageW(hw, 0x0200, 0, xy(hw, int(args[0]), int(args[1])))
         elif op == 'click':
+            # SDL 2 reads Windows' cursor, which sits in a corner of rundesk's desktop and sends moves of its own: a
+            # move posted just before the press and the release, in one burst, keeps them where they are meant
             lp = xy(hw, int(args[0]), int(args[1]))
             u32.PostMessageW(hw, 0x0200, 0, lp)
-            time.sleep(0.05)
+            time.sleep(0.12)
+            u32.PostMessageW(hw, 0x0200, 0, lp)
             u32.PostMessageW(hw, 0x0201, 1, lp)
-            time.sleep(0.05)
+            time.sleep(0.06)
+            u32.PostMessageW(hw, 0x0200, 1, lp)
             u32.PostMessageW(hw, 0x0202, 0, lp)
         elif op == 'key':
             vk = int(args[0])
-            sc = u32.MapVirtualKeyW(vk, 0)
-            u32.PostMessageW(hw, 0x0100, vk, 1 | (sc << 16))
-            time.sleep(0.05)
-            u32.PostMessageW(hw, 0x0101, vk, 1 | (sc << 16) | (1 << 30) | (1 << 31))
+            sc = u32.MapVirtualKeyW(vk, 0)   # SDL takes the key from the scan code in lParam
+            ext = 1 if vk in (0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2D, 0x2E) else 0
+            u32.PostMessageW(hw, 0x0100, vk, 1 | (sc << 16) | (ext << 24))
+            time.sleep(0.06)
+            u32.PostMessageW(hw, 0x0101, vk, 1 | (sc << 16) | (ext << 24) | 0xC0000000)
         elif op == 'text':
             for ch in ' '.join(args):
                 u32.PostMessageW(hw, 0x0102, ord(ch), 1)
