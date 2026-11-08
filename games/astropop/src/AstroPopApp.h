@@ -1,0 +1,102 @@
+#ifndef __ASTROPOP_ASTROPOPAPP_H__
+#define __ASTROPOP_ASTROPOPAPP_H__
+
+// AstroPopApp: the application class of AstroPop Deluxe (original constructor 0x427ee0, vftable 0x5629a0 with 68
+// slots like BookWorm's, scalar deleting destructor 0x42dc30 in slot 14, sizeof SexyApp 0x600 so the game's own data
+// starts at +0x600). Offsets in the comments are the original's (the port's base classes have other sizes).
+// The 2004 SexyApp keeps its trial counters at +0x514 / +0x518; registration is out of the port (the game always
+// runs as a registered copy), see docs/GAME_NOTES.md "Registration and outbound code left out".
+
+#include "Res.h"
+#include "SexyApp.h"
+#include "UserProfile.h"
+#include <string>
+#include <vector>
+
+namespace Sexy
+{
+
+class LoaderScreen;
+class MemoryImage;
+class SoundInstance;
+class Font;
+class Image;
+class Dialog;
+class MusicInterface;
+
+class AstroPopApp;
+extern AstroPopApp* gApp;   // 0x5dc220 (set by WinMain; the port: by the constructor)
+
+// Sin and cos of whole degrees, filled by the constructor (the original keeps them in .bss at 0x5a42e8 / 0x5a4888)
+extern float gSinTable[360];
+extern float gCosTable[360];
+
+class AstroPopApp : public SexyApp
+{
+public:
+	enum
+	{
+		NUM_BONUS_LEVELS = 30,                      // data\bonus<n>.xcf
+		NUM_MUSIC_SLOTS = 2,                        // music.mo3 is loaded twice: the music crossfades between two slots
+		NUM_LOOP_SOUNDS = 8                         // sounds 0x16a .. 0x171 (SOUND_CLASSIC_GAME .. SOUND_KLAXON)
+	};
+
+	std::vector<std::string>	mGoodbyeMessages;   // +0x608 the quit dialog's ten lines (constructor)
+	std::vector<SoundInstance*>	mLoopSounds;       // +0x618 eight entries, set when the loading thread ends
+	std::vector<int>			mPausedSongs;       // +0x630 music slots paused by LostFocus, resumed by GotFocus
+	LoaderScreen*				mLoaderScreen;      // +0x640 Init .. the title (the original ctor leaves it uninitialised)
+	bool						mOldSavesDeleted;   // +0x659 Init found a profile of an older version and deleted it
+	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
+	int							mTimer664;          // +0x664 counted down by UpdateFrames
+	Font*						mDialogFont;        // +0x66c FONT_DIALOG_BOX, set when the loading thread ends
+	MemoryImage*				mGradient[3];       // +0x674 +0x678 +0x67c 1 x 480 white, grey and dark ramps
+	std::vector<std::string>	mUserNames;         // +0x684 the names under the registry key Users
+	UserProfile*				mUser;              // +0x690 the current player (NULL for none)
+	SoundInstance*				mEngineLoop;        // +0x694 SOUND_ENGINE_LOOP
+	SoundInstance*				mHyperspaceLoop;    // +0x698 SOUND_HYPERSPACE_LOOP
+	MemoryImage*				mLightningImage;    // +0x6a0 IMAGE_WARP_FX_LIGHTENING, flipped copy
+	MemoryImage*				mLightningImage2;   // +0x6a4 the same, drawn as it is
+	int							mMusicSlot;         // +0x6d8 the slot that plays (0 or 1)
+	int							mMusicOrder;        // +0x6dc the song position (order) that plays, -1 for none
+
+public:
+	AstroPopApp();                                              // 0x427ee0
+	virtual ~AstroPopApp();                                     // 0x42dc30 slot 14
+
+	virtual void	ButtonPress(int theId) override;            // 0x408e90 slot 3 (plays SOUND_BUTTON_DOWN)
+	virtual void	ButtonDepress(int theId) override;          // 0x431ac0 slot 4
+	virtual void	UpdateFrames() override;                    // 0x408b20 slot 7
+	virtual void	LoadingThreadCompleted() override;          // 0x4242d0 slot 13
+	virtual void	Init() override;                            // 0x42f170 slot 16
+	virtual void	LoadingThreadProc() override;               // 0x42cda0 slot 17
+	virtual void	Shutdown() override;                        // 0x4290d0 slot 33
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override; // 0x40e060 slot 35
+	virtual void	SwitchScreenMode(bool wantWindowed) override; // 0x4090d0 slot 53
+	virtual Dialog*	DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+						const SexyString& theDialogLines, const SexyString& theDialogFooter,
+						int theButtonMode) override;            // 0x412360 slot 55
+	virtual void	GotFocus() override;                        // 0x4253e0 slot 62
+	virtual void	LostFocus() override;                       // 0x425380 slot 63
+	virtual void	SetMusicVolumeFloat(float theVolume);       // 0x408b70 slot 67 (a new virtual of the game)
+
+	// port: the 2004 SexyApp makes a BassMusicInterface itself (slot 15, 0x408e30); here an SDLMusicInterface
+	// with BASS 2.0's music gain (docs/FRAMEWORK_2004.md section 6)
+	virtual MusicInterface* CreateMusicInterface() override;
+	// port: the game's texts are read from the player's own exe (GameText.h) before anything shows text
+	virtual void	InitPropertiesHook() override;
+
+	void			PlaySong(int theOrder);                     // 0x408b90
+	void			PauseMusicForFocus(bool lost);              // 0x4252b0
+	void			SetLoopSoundsMuted(bool muted);             // 0x408db0
+	void			ListUsers();                                // 0x4254b0 mUserNames from the registry key Users
+	void			LoadHighScores();                           // 0x42a0b0 users\datahs.usr
+
+	using SexyApp::SwitchScreenMode;
+
+private:
+	bool			LoadBonusLevels();                          // 0x42c910
+};
+
+}
+
+#endif

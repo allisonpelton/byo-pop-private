@@ -192,8 +192,54 @@ def resmap():
     return _resmap
 
 
+_img = None
+
+
+def rdata_string(va):
+    """The short C string at a .rdata address (a DAT_ that is really text), else None."""
+    global _img
+    import struct
+    if _img is None:
+        d = open(os.path.join(ROOT, "re", "astropop", "bin", "AstroPopGame.exe"), "rb").read()
+        pe = struct.unpack_from("<I", d, 0x3c)[0]
+        nsec = struct.unpack_from("<H", d, pe + 6)[0]
+        opt = struct.unpack_from("<H", d, pe + 20)[0]
+        base = struct.unpack_from("<I", d, pe + 52)[0]
+        secs = []
+        for i in range(nsec):
+            o = pe + 24 + opt + i * 40
+            vs, sva, rs, ro = struct.unpack_from("<IIII", d, o + 8)
+            secs.append((sva, vs, ro, rs))
+        _img = (d, base, secs)
+    d, base, secs = _img
+    r = va - base
+    for sva, vs, ro, rs in secs:
+        if sva <= r < sva + max(vs, rs):
+            o = ro + r - sva
+            e = d.find(b"\0", o)
+            if e < 0 or e - o > 60:
+                return None
+            b = d[o:e]
+            if all(32 <= c < 127 for c in b):
+                return b.decode("latin-1")
+            return None
+    return None
+
+
+def datsub(m):
+    r = resmap().get(m.group(1))
+    if r:
+        return r
+    va = int(m.group(1), 16)
+    if 0x55d000 <= va < 0x59c000:
+        s = rdata_string(va)
+        if s is not None:
+            return 'S"%s"@%x' % (s.replace('"', "'"), va)
+    return m.group(0)
+
+
 def extra(t):
-    t = re.sub(r"\b_?DAT_([0-9a-f]{8})\b", lambda m: resmap().get(m.group(1), m.group(0)), t)
+    t = re.sub(r"\b_?DAT_([0-9a-f]{8})\b", datsub, t)
     t = re.sub(r"\bLAB_[0-9a-f]{8}\b", "LAB", t) if False else t
     t = STRLEN2.sub("", t)
     t = ASSIGN2.sub(lambda m: "%s = STR(%s);" % (m.group(1).strip(), m.group(2)), t)
