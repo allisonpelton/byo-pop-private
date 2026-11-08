@@ -159,6 +159,22 @@ no move refused, no stall), and a whole game of each from launch: the new-player
 words with their level summaries, the loss (`lose 40`, the game's own fire scan), the burn-down, the game-over summary,
 the Hall of Fame and the selector, then a second game.
 
+The same two whole games were played again in full screen: the game started full screen, as it does for a player who
+chose it before (`ScreenMode` 1 in its settings), and the driver's clicks went to the letterboxed window. Classic ran 3,846
+words and 134 level summaries, Action 3,919 words and 70 summaries, each with the loss, the game-over summary, the Hall of
+Fame and further games, and no move refused. At the end the game still wrote `ScreenMode` 1, which the framework takes from
+the window's own state, so the window never fell back to windowed.
+
+In the web build the page's own driver (`byopop.test.playByMove`, the twin of playbymove) sent the same moves as DOM events
+on the canvas, in the Browser pane with `?player=1&assets=1&silent=1&fast=1&hold=1`. Classic, from launch: the
+new-player name typed, the help screen, 354 words with 35 level summaries, the loss (`lose 40`), the game-over summary,
+the Hall of Fame, the selector and a second game up to level 28. Action, on the same profile (`set mode action`): the help
+screen, 354 words with 36 level summaries, the loss, the game-over summary, the Hall of Fame, the selector's new-game
+question and a second game up to level 27. Neither printed an error on the page (`byopop.test.errors` empty).
+The site installs the fixes mod in every page, so these runs had `scoreGlow` on; it changes only the score's glow.
+The web build's full screen is the browser's and needs a player's gesture, which a driver's events are not, so it was not
+played there (as in Alchemy's pass).
+
 ## The fixes mod
 
 `games/bookworm/mods/fixes` has one toggle, `scoreGlow`: the original draws a heated version of the score while points
@@ -216,4 +232,9 @@ and why). With the toggle on the score glows; play, sound and every other pictur
 
 - The port shows no registration, trial or update-check dialog and has no internet high scores (not ported, on purpose).
 - Not compared in phase one: the options dialog, the hint dialogs' "don't show again" box, the help screens, deleting and
-  switching players, the quit question. Their effects are not on the game's state, and phase two looks at their screens.
+  switching players, the quit question. Their effects are not on the game's state, and phase two compared their screens.
+- The "More Games" button is gone from the options and credits dialogs, with the registration code, so each is one row
+  shorter.
+- The flying word tiles are drawn the way the original's 3D mode draws them. The original's software mode samples one
+  column further and comes out two levels darker ("Phase 2: screens").
+- The web build's full screen is the browser's own, and it needs a player's click or key to start.
