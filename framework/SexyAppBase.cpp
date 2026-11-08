@@ -51,13 +51,14 @@ SexyAppBase* Sexy::gSexyAppBase = NULL;
 
 static SDL_Cursor* gSystemCursors[SDL_NUM_SYSTEM_CURSORS];
 
+// (always false where the hook does not exist)
+static bool gPostedInput = false;
 #ifdef _WIN32
 // port: a test run played with posted window messages (BYOPOP_POSTED_INPUT, set by a driver such as Twist's realplay)
 // on rundesk's private desktop, where the real cursor is never over the window. SDL answers each posted move with
 // TrackMouseEvent, and the WM_MOUSELEAVE that follows at once moves its mouse to GetCursorPos (to the top edge) and drops
 // the mouse focus, so a hover never lasts to the next update. Such a run notes where each posted mouse message puts the
 // mouse (SDL's message hook), keeps only the moves to that point and ignores the window's leave event.
-static bool gPostedInput = false;
 static int gPostedMouseX = -1;
 static int gPostedMouseY = -1;
 
@@ -1416,10 +1417,10 @@ void SexyAppBase::UpdateFrames()
 
 	// port: a test run played with real input (a driver posting window messages, which a -script run ignores) asks for
 	// a picture by writing the file BYOPOP_SHOT_REQUEST names, holding the picture's path; the game takes it and deletes
-	// the file. Looked for every 10 updates once the game has loaded, and only when the variable is set.
+	// the file. Looked for every 10 updates once the game has loaded, only in a test run and when the variable is set.
 	// (a copy: SDL_getenv's buffer on Windows is reused by its next call)
 	static const std::string aShotRequest = SDL_getenv("BYOPOP_SHOT_REQUEST") ? SDL_getenv("BYOPOP_SHOT_REQUEST") : "";
-	if ((!aShotRequest.empty()) && (mLoaded) && ((mUpdateCount % 10) == 0))
+	if ((!aShotRequest.empty()) && (mLoaded) && ((mUpdateCount % 10) == 0) && (IsTestRun()))
 	{
 		if (FILE* aFile = fopen(aShotRequest.c_str(), "rb"))
 		{
@@ -1817,8 +1818,9 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 {
 	// port: a -script run takes its input only from the script, and focus changes (which pause the
 	// game) are ignored too, so the run is the same whatever happens to the window (also while a test
-	// bot drives the game, see mScriptedInput)
-	if ((!mScript.empty()) || (mScriptedInput))
+	// bot drives the game, see mScriptedInput). A run played with posted input (gPostedInput) keeps its input: its driver
+	// asks the game through the script (the test commands) and plays with real messages.
+	if (((!mScript.empty()) && (!gPostedInput)) || (mScriptedInput))
 	{
 		switch (theEvent.type)
 		{
