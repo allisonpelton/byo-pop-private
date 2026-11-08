@@ -83,6 +83,11 @@ public:
 	virtual void			ButtonDepress(int theId) override;              // 0x435310 slot 5
 	virtual void			UpdateFrames() override;                        // 0x4e2f80: the answered quit question ends the game
 	virtual void			HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	// Test commands (testhooks/TestCommands.cpp; docs/TEST_COMMANDS.md)
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
+	std::string				TestScreen();
+	void					TestClearScreens();
+	void					TestUpdate();
 
 	// the screens (each removes the one before it)
 	void					ShowBoard(const std::string& theLevel, int thePuzzle);  // 0x432550

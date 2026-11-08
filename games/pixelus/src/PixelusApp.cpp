@@ -876,6 +876,7 @@ void PixelusApp::UpdateFrames()
 	}
 	if (mAutoplay)
 		AutoplayUpdate();
+	TestUpdate();
 }
 
 // 0x4333a0 (slot 84)
