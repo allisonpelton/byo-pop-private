@@ -132,7 +132,11 @@ void SongPlayer::Update()
 		return;
 	bool aDone = false;
 	bool aPlaying = mMusic->IsPlaying(mCurrentSong);
-	if (mQueuedAtOrder == -1 && !aPlaying) {
+	if (!aPlaying) {
+		// port: a song waited on for an order that stopped before this saw the order also ends the wait. The
+		// original's loop never stopped, so it always saw the order (the victory and treasure songs reach theirs
+		// before they end); the port's can (a browser tab hidden or minimized stops the main loop while the music
+		// plays on), and the queued song then never started: no music after a boss, until the next song
 		aDone = true;
 	} else if (aPlaying && mQueuedAtOrder != -1) {
 		int aPosition = mMusic->GetMusicPosition(mCurrentSong);

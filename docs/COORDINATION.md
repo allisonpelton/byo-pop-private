@@ -145,20 +145,22 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   when it comes) do both phases. Every game not yet reviewed gets the first phase, and their second phases start only
   once every game plays identical. "If a series of games play out the same in the original and port then the first
   phase should be considered done."
-- **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
-  through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
-  code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
+- **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on
+  down through the game list. Once all games are done, then we can do code quality/readability, and finally figure out
+  what code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
   well)." So first every fault the user reported, in every game, and anything that makes a game hard to test; then the
   identical-play pass above, game by game; once every game is done, the coverage check and a performance pass (both
-  below), then a readability pass to the project's code standards
-  (`docs/CODE_STANDARDS.md`, written and approved by the user first); last, taking out code the ports do not need, such
-  as all registration code (trial, nag and unlock paths: "It is misleading and adds unnecessary bloat"). The game's
-  regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more
-  step once every decompilation is done (the user, 2026-11-01): each game ported only from its Steam copy is compared
-  with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
-  work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer that puts a
-  native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
-<!-- private -->
+  below), then a readability pass to the project's code standards (`docs/CODE_STANDARDS.md`, written and approved by
+  the user first); last, taking out code the ports do not need, such as all registration code (trial, nag and unlock
+  paths: "It is misleading and adds unnecessary bloat"). The same step takes out every button that leads out of a
+  game, "More Games" first (the user, 2026-11-07, asked whether it might open the site's listing: "Remove the button
+  entirely, as requested in the past. Other buttons can be resized to avoid the appearance of a gap"), with the
+  buttons beside it widened or moved to close the gap. The game's regression check proves each step leaves play
+  unchanged. All of it comes before the website is ready. So does one more step once every decompilation is done (the
+  user, 2026-11-01): each game ported only from its Steam copy is compared with its version on the PopCap Game
+  Collection disc (the user's ISO in their Downloads folder), and its build must work with that version's files too.
+  Planned alongside the website (the user, 2026-11-01): an installer that puts a native port beside its Steam
+  original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`). <!-- private -->
 - **Building the web port in the browser (the user's test notes, moved here 2026-11-04):** "I'm starting to feel more
   open to trying to build the WASM version in the browser (either saving it to localStorage or to a connected Google
   Drive) to completely avoid infringement. Let's try it on the simplest possible game and see how long it takes to

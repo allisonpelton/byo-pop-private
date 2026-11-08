@@ -71,6 +71,16 @@ repository, and its work counts for Bejeweled. Port and mod work are split commi
 of the work since the one before, classified by what it did. "Other" is publishing, the website, licences, usage
 measurement and rules for the sessions. `tools/game_costs.py` computes the costs; the table is refreshed when asked.
 
+Two things differ in every native port on purpose, the user's choice for all of them, with no mod needed. Full screen is
+a borderless window over the whole monitor at the desktop's own resolution, never the originals' change of the display's
+mode ("I'd like all the native ports to have their fullscreen modes made borderless without mods", 2026-11-07): the window
+is not topmost, the cursor can leave it, and Alt-Tab only moves the focus, without minimizing the game. And the window,
+which can be resized with the game's picture scaled to it at its own shape, cannot be made smaller than the game's own
+screen ("It would be nice for the native version to have a minimum window size match the game's native resolution",
+2026-11-07), 640x480 for most games, in the desktop's scaled units as the original's window is sized on a scaled
+desktop. Both live in `framework/SexyAppBase.cpp` (`MakeWindow`, `SwitchScreenMode`), and `fwtest -hotkeytest` (the
+`unit` suite) checks them. A game's own list of deviations leaves them out.
+
 The games still to port, their order and what it takes to port each are in
 [docs/POPCAP_GAMES_SURVEY.md](docs/POPCAP_GAMES_SURVEY.md) ("The plan for the remaining games" and "The remaining
 games"), with the facts about every game surveyed; planned mods are in

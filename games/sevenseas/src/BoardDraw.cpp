@@ -683,10 +683,11 @@ void Board::Draw(Graphics* g)
 		DrawBox(CellToPixel(3) - 4, CellToPixel(2) - 5, CellToPixel(5) + 0xc, CellToPixel(2) + 10, g);
 		g->SetFont(mApp->mFonts[FONT_TUT]);
 		g->SetColor(Color(0xff, 0xff, 0));
-		WriteCenteredLine(g, CellToPixel(2), GT(0x004a2f30));
-		WriteCenteredLine(g, CellToPixel(2) + 0x12, GT(0x004a2f14));
-		WriteCenteredLine(g, CellToPixel(2) + 0x23, GT(0x004a2ef8));
-		WriteCenteredLine(g, CellToPixel(2) + 0x34, GT(0x004a2ee4));
+		// the four lines are 17 apart, the first 0x12 below the row (the decompiler dropped the first two offsets)
+		WriteCenteredLine(g, CellToPixel(2) + 0x12, GT(0x004a2f30));
+		WriteCenteredLine(g, CellToPixel(2) + 0x23, GT(0x004a2f14));
+		WriteCenteredLine(g, CellToPixel(2) + 0x34, GT(0x004a2ef8));
+		WriteCenteredLine(g, CellToPixel(2) + 0x45, GT(0x004a2ee4));
 		int aCnt = mUpdateCnt;
 		if (aCnt < 0x262)
 		{

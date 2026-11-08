@@ -1,8 +1,8 @@
 # Bonnie's Bookstore Deluxe: where the port differs from the original
 
 The port is the original game, unmodified. This list holds every place where its code does something other than what
-the game in `BonniesBookstore.exe` does, and why. None of them has an effect a player can see. Each place in the code
-names the original's address, so a grep for the address finds both sides.
+the game in `BonniesBookstore.exe` does, and why. Only the faults fixed at the end have an effect a player can see.
+Each place in the code names the original's address, so a grep for the address finds both sides.
 
 ## The host
 
@@ -21,7 +21,12 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   platform, for every game with JPEGs.
 - **Sound.** FMOD's samples and channels are the platform mixer's sounds and voices, with FMOD's 64 channels, its 0-255
   volumes and its frequencies. The music (`Sound/music.oxm`, an XM with Ogg Vorbis samples) is played by libopenmpt in
-  place of FMOD's module player.
+  place of FMOD's module player. libopenmpt mixes an XM's channels at its sample pre-amp of 48, FMOD 3 at the full 256,
+  so the host plays the song 256/48 times as loud (`loadSong`): the original's menu music, recorded through origrun on
+  2026-11-07, was 5.3 times as loud as the port's before, and is now within 1% of it, while the sounds already matched.
+- **Players' file names on the web.** The game's text is Latin-1, as the original's ANSI file names are; the browser's
+  file system takes UTF-8, so on the web a saved game's name is written and listed as UTF-8 (`FileName`, `GameText`).
+  Natively the bytes go as they are.
 - **The cursor.** SDL 1.2's 32x32 black-and-white cursors become the framework's image cursor, drawn with the same
   pixels and the same hot spot.
 - **Messages and the window menu.** The window never had a menu (its handle, 0x4809c4, is never set), and the window
@@ -33,7 +38,13 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   an empty string (0x428f70); the port returns the empty string without building the message. The game asks only for
   ids it has.
 - **Full screen on the web.** `Data/Portal.cfg` can start the game in full screen. A browser enters full screen only
-  from a click, so on the web the game's request is ignored and the page's button does it.
+  from a click, so on the web the game's request is ignored and the page's button does it. The options' Full Screen
+  box starts off there (`bonniesMain`, 0x403b80), so it says what the game does.
+- **The site's players and volumes (web only).** The site's player setting reaches the game at its first menu
+  (`MenuScreen::init`), where under "create" the site's player is made or chosen as the new-player box and the players
+  panel do it; under "fill" the new-player box starts with the site player's name, kept to the box's own characters and
+  length. The site's music and sound volumes set the options' two (`src/SiteProfiles.cpp`, `game/SitePlayers.cpp`).
+  Under the setting's default nothing changes.
 - **Test runs.** These differences only appear under rundesk or a script (`IsTestRun`), never in play. The game always
   has the input focus, as the user's window would. The desktop is reported as 1920x1080, the player's Windows name is
   empty, and message boxes take their first button without being shown. The window is never moved, minimized or
@@ -76,3 +87,11 @@ names by address, the original's calls to `rand` (0x430366) and to `randomRange`
 the port's calls to `crtRand` and `randomRange`. On 2026-11-01 all 58 sites in the 15 functions that draw matched, and
 the seed is set at the one place the original sets it (0x41f4e0, from the platform's start). `rand` itself is the
 CRT's (`crtRand`, `Str.cpp`), with its multiplier and increment.
+
+## Faults of the original that break play
+
+Fixed in the port itself (the user, 2026-11-07); the faults that only change how the game plays wait for the fixes mod.
+
+- **Deleting a player.** The players panel's Delete (0x4189b0) builds the save's path with a string the original never
+  sets (0x47a1ec) in place of ".gam", so it removes nothing and the player stays in the list. The port removes the
+  saved game by the path `playerSaveExists` (0x4023a0) checks.

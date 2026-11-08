@@ -118,6 +118,28 @@ static const std::map<std::string, std::string>& DirIndex(const std::string& the
 	return index;
 }
 
+std::string VFS::FindIndexed(const std::string& theRoot, const std::string& theRelPath)
+{
+	std::string rel = Normalize(theRelPath);
+	if (rel.empty())
+		return "";
+	std::string cur = theRoot;
+	size_t start = 0;
+	while (start < rel.size())
+	{
+		size_t end = rel.find('/', start);
+		if (end == std::string::npos)
+			end = rel.size();
+		const auto& index = DirIndex(cur);
+		auto it = index.find(Lower(rel.substr(start, end - start)));
+		if (it == index.end())
+			return "";
+		cur = cur + "/" + it->second;
+		start = end + 1;
+	}
+	return cur;
+}
+
 std::string VFS::FindCaseInsensitive(const std::string& theRoot, const std::string& theRelPath)
 {
 	std::string rel = Normalize(theRelPath);

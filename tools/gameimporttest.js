@@ -30,6 +30,13 @@ for (const target of finished) {
   const js = fs.readFileSync(path.join(root, "games", target, "web", "page.js"), "utf8");
   vm.runInContext(`ByopopImport.add(${JSON.stringify(target)}, ${JSON.stringify(titles[target] || target)}, function () {\n${js}\n  return PAGE;\n});`, ctx);
 }
+// the games the site recognises but does not play, as other-games.js holds them (cmake/ByopopOthers.cmake)
+const others = /\nset\(BYOPOP_OTHER_GAMES([^)]*)\)/.exec(fs.readFileSync(path.join(root, "cmake", "ByopopOthers.cmake"), "utf8"))[1]
+  .match(/"[^"]*"/g).map((q) => {
+    const [id, title, markers, project, url] = q.slice(1, -1).split("|");
+    return { id, title, markers: markers.split(","), project: project || "", url: url || "" };
+  });
+vm.runInContext(`var ByopopOtherGames = ${JSON.stringify(others)};`, ctx);
 const I = vm.runInContext("ByopopImport", ctx);
 const spec = (t) => I.games.filter((g) => g.target === t)[0].spec;
 
@@ -86,6 +93,36 @@ check("a folder of games with one game in it", brief(I.sort(files("PopCap Games/
   "PopCap Games/Common/readme.txt"))), { found: [["TipTop Deluxe", "tiptop", "PopCap Games/TipTop Deluxe/", ["tiptop"]]], rejected: ["Common"] });
 check("a game's own folder with the game a level down", brief(I.sort(files("Bejeweled/Game/images/gemsheet6.png"))).found[0].slice(0, 3),
   ["Bejeweled", "bejeweled", "Bejeweled/Game/"]);
+// games the site does not play: named, with another project's link or "coming soon"
+const otherBrief = (r) => ({ found: r.found.map((f) => f.game ? f.game.target : null), rejected: r.rejected, others: r.others.map((o) => [o.folder, o.game.id]) });
+check("others: the table's rows are well formed", others.every((o) => /^[a-z0-9]+$/.test(o.id) && o.title && o.markers.length >= 2 &&
+  (o.project ? /^https:\/\/github\.com\/[^/]+\/[^/]+$/.test(o.url) : !o.url)), true);
+check("others: one game's folder", otherBrief(I.sort(files("Zuma Deluxe/levels/claw/claw.dat", "Zuma Deluxe/levels/levels.xml", "Zuma Deluxe/Zuma.exe"))),
+  { found: [], rejected: [], others: [["Zuma Deluxe", "zuma"]] });
+check("others: a folder of them, with nothing else", otherBrief(I.sort(files("Steam/Zuma Deluxe/levels/claw/claw.dat", "Steam/Zuma Deluxe/levels/levels.xml",
+  "Steam/Chuzzle Deluxe/data/mindbenders.txt", "Steam/Chuzzle Deluxe/data/gamedata.cfg", "Steam/Common/x.txt"))),
+  { found: [], rejected: ["Common"], others: [["Zuma Deluxe", "zuma"], ["Chuzzle Deluxe", "chuzzle"]] });
+check("others: beside one of the site's games", otherBrief(I.sort(files("PopCap Games/TipTop Deluxe/TipTop.dat", "PopCap Games/TipTop Deluxe/TipTop.exe",
+  "PopCap Games/Plants Vs Zombies/PlantsVsZombies.exe", "PopCap Games/Plants Vs Zombies/main.pak"))),
+  { found: ["tiptop"], rejected: [], others: [["Plants Vs Zombies", "plantsvszombies"]] });
+check("others: a main.pak game told by its exe", I.otherGame(files("P/PeggleNights.exe", "P/main.pak")).id, "pegglenights");
+check("others: a pak game the site plays is not one of them", otherBrief(I.sort(files("B/BookwormAdventures.exe", "B/main.pak"))),
+  { found: ["bookwormadv"], rejected: [], others: [] });
+check("others: the exe alone is not enough", I.otherGame(files("Z/levels/levels.xml")), null);
+check("others: nothing of theirs", I.otherGame(files("Photos/a.jpg")), null);
+// what the import says: a tiny document, enough for otherNote
+const doc = {
+  createElement: (tag) => ({ tag, attrs: {}, kids: [], textContent: "", setAttribute(k, v) { this.attrs[k] = v; }, appendChild(c) { this.kids.push(c); return c; } }),
+  createTextNode: (t) => ({ text: t }),
+};
+const zuma = others.filter((o) => o.id === "zuma")[0], venice = others.filter((o) => o.id === "venice")[0];
+const note = I.otherNote(doc, zuma), link = note.kids[1];
+check("others: the link to the project", [link.tag, link.attrs.href, link.attrs.target, link.attrs.rel, link.textContent],
+  ["a", "https://github.com/alula/CircleShootApp", "_blank", "noopener noreferrer", "CircleShootApp"]);
+check("others: the link's name says it opens a tab, and starts with its text", link.attrs["aria-label"].indexOf("CircleShootApp ") === 0, true);
+check("others: the game named before the link", note.kids[0].text.indexOf("Zuma Deluxe") >= 0, true);
+check("others: coming soon has no link", [I.otherNote(doc, venice).kids.length, I.otherNote(doc, venice).textContent.indexOf("Venice") >= 0], [0, true]);
+check("others: a link that is not a GitHub project's page is not made", I.otherNote(doc, { title: "X", project: "P", url: "javascript:alert(1)" }).kids.length, 0);
 // the order the files are written in: the markers last, and for a pak marker the game's folders before them
 const rels = (list) => list.map((r) => ({ rel: r }));
 check("order: markers last", I.ordered(spec("tiptop"), rels(["TipTop.exe", "x/y.txt", "TipTop.dat"])).map((f) => f.rel),
