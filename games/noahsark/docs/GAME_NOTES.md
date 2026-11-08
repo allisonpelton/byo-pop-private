@@ -139,3 +139,65 @@ is said.
   named by the enum now, and a saved game keeps the original's numbering) and the register font with its file entry, and four texts
   of the table (the register, the order and the web page messages).
 - The drawn "popcap.com" under the title (`IMAGE_POPCAPURL`) is a picture, not a button, and stays.
+
+## 10. Performance (measured 2026-11-08, original and port back to back)
+
+`tools/profile/perf.py` takes the numbers (its docstring has the commands; adapted from Mummy Maze's). It samples the game's process
+from outside every 0.1 s (working set, private bytes, kernel plus user time) and takes the load time from the process's creation to the
+title screen's play link: the port answers `move` with the kind "title", and for the original the script reads the title's
+link-shown byte out of the copy's memory. The original ran under origrun on its real clock, from a fresh copy for each run, with the
+copy's git-ignored patch list applied: `srand` stores the run's seed (so it starts its random numbers where the port does) and the copy
+counts as registered like the port (an unregistered copy showed no play link in 40 s of watching it, so a first try measured nothing).
+The port ran natively under rundesk without `-fast`, the
+same way. No speed-ups were made to this port, so these are the port as merged. The scripted minute is the last 6000 updates of an
+action game played by the port's bot (`-autoplay`, seed 1, easy, 7500 updates in all) and replayed in the original as clicks by
+`tools/origrun_replay.py`; the port marks the minute's first update with a screenshot's file time and the original's is found from
+its update counter.
+
+**The machine was not quiet.** The runs share the machine with other sessions: 3 to 9 game processes of other sessions were running
+when a run started or ended (counted by `tools/gamecount.py`; the table says how many each time), and the whole machine was 67 to
+100 % busy, so every figure is slower and noisier than on a quiet machine. The performance pass measures again later.
+
+| First screen that takes input (the title's play link) | Original under origrun | Port native |
+|---|---|---|
+| Seconds from the process's creation, five runs | 2.42, 2.13, 2.09, 2.12, 2.05 | 0.78, 0.82, 0.92, 0.74, 0.80 |
+| Median | 2.12 s | 0.80 s |
+| Working set / private bytes at that point | 63.8 to 64.0 MB / 50.6 to 51.0 MB | 56.0 to 56.4 MB / 55.8 to 56.0 MB |
+| Processor time until then | 1.27 to 1.52 s | 0.62 to 0.86 s |
+| Other sessions' game processes, start / end | 5 to 7 / 6 to 8 | 5 to 6 / 5 to 7 |
+| Machine busy | 67 to 72 % | 70 to 85 % |
+
+The original's figure leaves out the 0.9 s origrun takes to copy and patch the folder and start the process. The web build's
+load was not measured: it depends on the host that serves it and on the browser, and the Browser pane is hidden and runs no
+animation frames (the title's link appears in a game update, which the web build runs from `requestAnimationFrame`), so a timing from
+it would measure the shim.
+
+| The scripted minute (6000 updates) | Original, run B | Original, run C | Port, run A | Port, run B |
+|---|---|---|---|---|
+| Updates per second | 99.8 | 95.6 | 102.5 | 105.1 |
+| Peak working set | 80.6 MB | 80.6 MB | 68.0 MB | 67.8 MB |
+| Peak private bytes | 67.4 MB | 67.1 MB | 67.7 MB | 67.9 MB |
+| Processor time (kernel plus user) | 18.97 s | 18.12 s | 5.00 s | 4.94 s |
+| Other sessions' game processes, start / end | 5 / 7 | 4 / 7 | 4 / 6 | 4 / 5 |
+| Machine busy | 93 % | 95 % | 88 % | 88 % |
+
+Two more runs of the original (A and D, left out of the table) did not play the game: the machine was 93 to 100 % busy and the
+original took 11.5 and 16.0 s to show its link, so the script's click at update 301 came before the title was ready and the
+rest of the script found no game to click on (a working set that stays at 63 MB and 1.1 s of processor time over the minute); they
+were kept as files and not used. The ones in the table kept to the script (5993 to 5995 of 6000 updates, the counter reaching
+7500). Over the minute the port used about a quarter of the original's processor time (5.0 and 4.9 s against 18 to 19 s) and 12 MB
+less working set, with the same private bytes.
+
+`tools/profile/perf_all.sh` runs the whole pass (the bot's click log, the original's script, the load runs and the minutes) in
+`build/nt/perf`. The numbers above are from one pass of 2026-11-08: the loads and the minutes A and B of the first run, with the
+port's minutes repeated after a path error in `perf.py` (the first try of them never started) and two more minutes of the
+original (C and D) after A did not play. The saved script is that pass put in one file; its pieces were run separately.
+
+<!-- private -->
+The patch list used for the original's copy (`tools/origrun/patches/noahsark.txt`, git-ignored) has three entries: the call to
+`time` before `srand` at file offset 0x2f40b becomes `mov eax, seed` (the same pin the identical-play passes used); the registration
+check, the virtual at 0x42b3d0 (`vf16`, `ret 8`), starts with `mov al, 1` and returns; and the access mask of the `RegOpenKeyEx` in
+the registry reader at 0x42d229 is `KEY_READ` instead of read and write: with only the first two, the registered flag at app+0x328
+stayed 0 and the title showed no link, and it became 1 once the open asked for read access only (the open for read and write
+presumably failed without elevation; not checked). With the three, the title shows its link at update 104.
+<!-- /private -->

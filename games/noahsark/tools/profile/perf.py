@@ -8,7 +8,8 @@ From the worktree root:
                                                                                                   "load" stops at the title)
 
 port-load starts the port without -fast, with the live command channel (as the real-input driver does), and asks `move`
-until it answers with the kind "title": the title screen's play link is up, the first screen that takes input. Its time
+until it answers with the kind "play" (the click on the title's play link): the title screen's link is up, the first screen
+that takes input. Its time
 counts from the creation of the process. port-minute plays a scripted action game in real time: the menu's clicks from a
 -script file and the game's moves by the port's bot (-autoplay, whose log origrun_replay.py turns into the original's script).
 orig does the same for the original under origrun (real clock, scripted cursor, a fresh copy each run), reading the same flag (the
@@ -219,7 +220,7 @@ def port_load(out, runs):
         created = creation_time(h)
         while True:
             kind, rest = g.cmd('move')
-            if kind == 'MOVE' and '"kind":"title"' in rest:
+            if kind == 'MOVE' and '"kind":"play"' in rest:
                 seen = time.time()
                 break
             time.sleep(0.002)
@@ -239,6 +240,8 @@ def port_load(out, runs):
 
 def port_minute(out, script, seed='1'):
     exe, gamedir = port_exe()
+    out = os.path.abspath(out)   # the game runs with its working directory in out
+    script = os.path.abspath(script)
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(os.path.join(out, 'user'))
     script = strip_script(script, os.path.join(out, 'script.txt'), ['screenshot'])
