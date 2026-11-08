@@ -370,6 +370,20 @@ public:
 				SDL_Log("MOVE {\"kind\":\"button\",\"input\":[{\"move\":[548,420]},{\"click\":[548,420]}]}");
 			return true;
 		}
+		// "waitdown": a test command that retries through the script (AddScriptCommand) until a mouse press reaches the
+		// board, as Bookworm Adventures' goto waits for its screen; a real press must reach the board meanwhile (HandleEvent
+		// drops real input only in a -script run or under a test bot, not while a command's retry is queued)
+		if (theCommand.mCommand == "waitdown")
+		{
+			int aDowns = (mBoard != NULL) ? mBoard->mMouseDowns : 0;
+			if (theCommand.mArgs.empty())
+				AddScriptCommand(mUpdateCount + 1, "waitdown", std::to_string(aDowns));
+			else if (aDowns <= atoi(theCommand.mArgs.c_str()))
+				AddScriptCommand(mUpdateCount + 1, "waitdown", theCommand.mArgs);
+			else
+				SDL_Log("OK waitdown");
+			return true;
+		}
 		if (theCommand.mCommand == "killdialog")
 		{
 			KillDialog(DIALOG_TEST);

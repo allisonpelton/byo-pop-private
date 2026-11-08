@@ -1981,8 +1981,11 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 	// game) are ignored too, so the run is the same whatever happens to the window (also while a test
 	// bot drives the game, see mScriptedInput). A -script run played with posted input (gPostedInput) keeps its mouse and
 	// keys, but not the focus changes: its driver asks the game through the script (the test commands) and plays with
-	// real messages, on a desktop where the window is never active.
-	if ((!mScript.empty()) || (mScriptedInput))
+	// real messages, on a desktop where the window is never active. A -script run is one with a script file (natively and in
+	// a web build under Node; the web page never passes one): a test command that retries through AddScriptCommand also puts
+	// lines in mScript, and those must not stop real input (one waiting goto on the live channel kept every real click out of
+	// Bookworm Adventures, 2026-11-08).
+	if ((!mScriptFileName.empty()) || (mScriptedInput))
 	{
 		switch (theEvent.type)
 		{

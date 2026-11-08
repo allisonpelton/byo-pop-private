@@ -9,10 +9,12 @@ LOG="$1"; CF="$2"; MODE="$3"; GAMEDIR="$4"
 rm -f "$CF" "$LOG"
 EXTRA=()
 POINT="548 420"
+EMPTY="100 100"
 if [ "$MODE" = realinput ]; then
 	: > "$CF.empty"
 	EXTRA=(-realinput="$CF.empty")
 	POINT="game 548 420"
+	EMPTY="game 100 100"
 fi
 build/native/fwtest.exe -commands="$CF" "${EXTRA[@]}" -fast -placeholders -gamedir="$GAMEDIR" > "$LOG" 2>&1 &
 PID=$!
@@ -52,6 +54,14 @@ printf 'og 0\n' >> "$CF"
 wait_for "OK expect dialog 0"
 printf 'click 10\n' >> "$CF"
 wait_for "ERROR click 10: click needs <x> <y>"
+# A test command that retries through the script (fwtest's waitdown, AddScriptCommand) until a press reaches the board:
+# a click on an empty spot of the board must reach it meanwhile. HandleEvent once dropped every real event while a
+# retry sat in mScript, so one waiting goto kept Bookworm Adventures' real clicks out (2026-11-08)
+printf 'waitdown\n' >> "$CF"
+sleep 0.5
+grep -q -F "OK waitdown" "$LOG" && fail "waitdown answered before any press"
+printf 'click %s\n' "$EMPTY" >> "$CF"
+wait_for "OK waitdown"
 printf 'report\n' >> "$CF"
 wait_for "OK report"
 wait $PID
