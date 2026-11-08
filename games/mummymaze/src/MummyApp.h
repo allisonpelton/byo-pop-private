@@ -15,6 +15,7 @@
 #include "DialogButton.h"
 #include "Buffer.h"
 #include "MTRand.h"
+#include "ModFixes.h"
 #include <list>
 #include <map>
 #include <string>
@@ -136,6 +137,8 @@ public:
 	int						mMusicSlot;         // +0x10430 which of the two music slots is playing
 	uint8_t					mLightMask[256][256]; // +0x380
 
+	FixSettings				mFixes;             // port(mods): the fixes mod's toggles, read in Init
+
 	// Test hooks (testhooks/Autoplay.cpp)
 	bool					mAutoplay;
 	int						mAutoplayGames;
@@ -168,7 +171,8 @@ public:
 	bool					LoadImage(int theImageId);
 	// the clock of the times that a game takes (the original's GetTickCount): the bot's runs count updates instead, 10 ms each,
 	// so that their scores do not depend on how fast the machine is
-	DWORD					GameTick() { return (mAutoplay || mFastMode) ? (DWORD) mUpdateCount * 10 : GetTickCount(); }
+	// (the fixes mod's gameClock does the same in a normal run: the time of a chamber is the updates it took)
+	DWORD					GameTick() { return (mAutoplay || mFastMode || mFixes.mGameClock) ? (DWORD) mUpdateCount * 10 : GetTickCount(); }
 	void					SetMusicOrder(int theOrder, bool theFade);
 	void					TitleDone();                            // 0x41e970
 	void					ShowMainMenu(int theEntry, bool theFade);   // 0x41b160

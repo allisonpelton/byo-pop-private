@@ -136,6 +136,7 @@ bool MummyApp::LoadImage(int theImageId)
 void MummyApp::Init()
 {
 	SexyApp::Init();
+	mFixes = LoadFixSettings();
 
 	// the 2002 SexyApp::Init seeds the C library generator with the tick count; -seed=N makes a run repeatable
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());

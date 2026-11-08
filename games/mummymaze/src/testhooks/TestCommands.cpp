@@ -115,6 +115,27 @@ int TopDialog(MummyApp* theApp)
 	return -1;
 }
 
+// The bot's plan for the chamber it is in (see BotMove)
+struct Plan
+{
+	Board*					mBoard;
+	int						mMaze, mFile, mMode;
+	ChaseState				mStart;			// the state the plan was made from
+	std::vector<ChaseState>	mPath;			// the states after each step of the way out
+	Plan() : mBoard(NULL), mMaze(0), mFile(0), mMode(0) {}
+} gPlan;
+
+// where a dead mummy or scorpion lies does not matter
+ChaseState NormalizeChase(ChaseState s)
+{
+	for (int i = 0; i < 2; i++)
+		if (!s.mMummyAlive[i])
+			s.mMummyX[i] = s.mMummyY[i] = 0;
+	if (!s.mScorpionAlive)
+		s.mScorpionX = s.mScorpionY = 0;
+	return s;
+}
+
 bool BoardReady(Board* b)
 {
 	if (b->mState != STATE_READY || b->mDeathTimer2 >= 0 || b->mFade2 < 1.0 || b->mShowingSolution)
@@ -184,6 +205,8 @@ std::string StateJson(MummyApp* a)
 		aJson += StrFormat(",\"dialog\":%d", TopDialog(a));
 	if (a->mGameMode == MODE_ADVENTURE || a->mGameMode == MODE_ADVENTURE_DONE)
 		aJson += StrFormat(",\"deaths\":%d,\"seconds\":%.0f", a->mDeaths, a->mTotalTime);
+	if (a->mLevelComplete != NULL)
+		aJson += StrFormat(",\"levelSeconds\":%d", a->mLevelComplete->mSeconds);
 	if (b != NULL)
 	{
 		aJson += StrFormat(",\"moves\":%d,\"timer\":%d", (int) b->mUndo.size(), ((int) (a->mElapsedBase - b->mTimeBase) + b->mUpdateCnt) / 100);
@@ -321,18 +344,44 @@ std::string BotMove(MummyApp* a)
 	if (!BoardReady(b) || (a->mGameMode != MODE_CLASSIC && a->mGameMode != MODE_ADVENTURE))
 		return Move("wait", "", 5);
 
-	// the maze: the solver's way out from where the explorer stands (the same search as Abandon Hope's, with the port's
-	// fix for the key-stone fight)
+	// the maze: the solver's way out. The plan is made once from where the explorer stands and followed while the board
+	// keeps to it (the search is a depth first one that keeps the shortest way it found, so a new search at every step
+	// could choose another way each time and walk in circles); it is made again when the board is off the plan, as the
+	// autoplay bot does (Autoplay.cpp). The search is the one of Abandon Hope, with the fixes mod's key-stone fight when
+	// that mod is on.
 	if (b->mExplorer == NULL || a->mSidePanel == NULL)
 		return Move("wait", "", 5);
-	std::vector<ChaseState> aPath;
-	if (!b->FindWay(aPath) || aPath.empty())
+	ChaseState aHave = NormalizeChase(b->GetChaseState());
+	int aIndex = -1;
+	if (gPlan.mBoard == b && gPlan.mMaze == b->mMaze && gPlan.mFile == b->mFile && gPlan.mMode == a->mGameMode)
 	{
-		// no way out from here: take the moves back, which the side panel's RESET MAZE does
-		if (b->mUndo.empty())
-			return "MOVE null";
-		return Move("reset", ClickStep(a->mSidePanel->mButtons[1]), 10);
+		if (aHave == gPlan.mStart)
+			aIndex = 0;
+		else
+			for (size_t i = 0; i < gPlan.mPath.size() && aIndex < 0; i++)
+				if (NormalizeChase(gPlan.mPath[i]) == aHave)
+					aIndex = (int) i + 1;
 	}
+	if (aIndex < 0 || aIndex >= (int) gPlan.mPath.size())
+	{
+		std::vector<ChaseState> aFound;
+		if (!b->FindWay(aFound) || aFound.empty())
+		{
+			// no way out from here: take the moves back, which the side panel's RESET MAZE does
+			gPlan.mBoard = NULL;
+			if (b->mUndo.empty())
+				return "MOVE null";
+			return Move("reset", ClickStep(a->mSidePanel->mButtons[1]), 10);
+		}
+		gPlan.mBoard = b;
+		gPlan.mMaze = b->mMaze;
+		gPlan.mFile = b->mFile;
+		gPlan.mMode = a->mGameMode;
+		gPlan.mStart = aHave;
+		gPlan.mPath = aFound;
+		aIndex = 0;
+	}
+	std::vector<ChaseState> aPath(gPlan.mPath.begin() + aIndex, gPlan.mPath.end());
 	const ChaseState& aNext = aPath[0];
 	int dx = aNext.mExplorerX - b->mExplorer->mX;
 	int dy = aNext.mExplorerY - b->mExplorer->mY;
