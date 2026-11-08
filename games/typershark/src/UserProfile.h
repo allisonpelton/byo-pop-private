@@ -136,6 +136,10 @@ public:
 	int						GetAverageWPM(int theLesson);								// 0x413d10 the lesson's total words per minute over its runs (0 when it has none)
 	int						GetAverageAdjustedWPM(int theLesson);						// 0x413d40 the same for the adjusted words per minute
 	int						GetAverageAccuracy(int theLesson);							// 0x413d70 the same for the accuracy
+	// ---- added for T1 (the typing tutor records a finished lesson; defined in TypingTutorLessons.cpp) ----
+	void					RecordTutorWPM(int theValue, int theLesson);				// 0x413bf0 records[theLesson].mField[0..3]: best, last, total, count of the raw words per minute
+	void					RecordTutorAdjustedWPM(int theValue, int theLesson);		// 0x413c50 mField[4..7]: the same for the adjusted words per minute
+	void					RecordTutorAccuracy(int theValue, int theLesson);			// 0x413cb0 mField[8..11]: the same for the accuracy
 	void					CountSharkKilled(bool theAbyss);							// 0x412610
 	void					SetField1f4(int theValue);									// 0x412640
 	void					SetField1f8(int theValue);									// 0x412650
