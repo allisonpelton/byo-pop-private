@@ -27,41 +27,78 @@ f8	std::vector<int>	mf8
 3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
 3d0	Color	m3d0	the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
 4a0	FrameAnim	mSirenAnim	the siren (IMAGE_SIREN)
+5e0	FrameAnim	mAnim5e0	?
 660	BoardOverlay	mOverlay	the widget over the field
 6c8	Color	m6c8
 6e0	bool	m6e0	?
+6e8	int	m6e8	?
+6ec	int	m6ec	?
 758	Buffer	m758	the replay recording (RecordStep)
 77c	ScrollLayer	m77c	the scenery layer
 7a8	int	m7a8	?
 7b8	int	m7b8	?
 7bc	int	m7bc	?
+7c0	int	m7c0	?
 7c4	int	m7c4	?
+7c8	int	m7c8	?
 7e8	int	m7e8	?
 7ec	int	m7ec	?
 808	PulsePair	m808
 8dd	bool	m8dd	?
+8de	bool	m8de	?
 8e0	bool	m8e0	?
+8e3	bool	m8e3	?
 8e4	bool	m8e4	?
+8e5	bool	m8e5	?
 8e6	bool	m8e6	?
+8e7	bool	m8e7	?
 8e8	bool	mFlag8E8
 8e9	bool	mFlag8E9
 8ea	bool	m8ea	the streaks are fading out
 8eb	bool	m8eb
 8ec	bool	m8ec
 8ed	bool	m8ed
+8ee	bool	m8ee	?
 8ef	bool	m8ef
+8f0	bool	m8f0	?
+8f1	bool	m8f1	?
+8f2	bool	m8f2	?
+8f3	bool	m8f3	?
 8f4	bool	m8f4
+8f5	bool	m8f5	?
+8f6	bool	m8f6	?
+8f8	bool	m8f8	?
+8f9	bool	m8f9	?
+8fa	bool	m8fa	?
+8fb	bool	m8fb	?
 8fc	bool	m8fc	?
+8fd	bool	m8fd	?
+8fe	bool	m8fe	?
 901	bool	m901	?
+905	bool	m905	?
+907	bool	m907	?
+909	bool	m909	?
 90a	bool	m90a
 90b	bool	m90b	?
+90d	bool	m90d	?
+90e	bool	m90e	?
 910	bool	m910
+911	bool	m911	?
 912	bool	m912	?
 916	bool	m916	?
 917	bool	m917
+91a	bool	m91a	?
+91b	bool	m91b	?
+91c	bool	m91c	?
+91e	bool	m91e	?
+91f	bool	m91f	?
 920	bool	m920	?
+921	bool	m921	?
+924	bool	m924	?
 928	float	m928
 92c	float	m92c	?
+930	int	m930	?
+934	int	m934	?
 938	float	m938
 940	float	m940
 948	unsigned char	m948
@@ -73,32 +110,68 @@ f8	std::vector<int>	mf8
 958	int	m958	?
 95c	int	m95c	?
 960	int	m960	?
+964	int	m964	?
 974	int	m974	?
+97c	int	m97c	?
 1924	int	m1924	?
+1928	int	m1928	?
+192c	int	m192c	?
+1934	int	m1934	?
+1938	int	m1938	?
 193c	int	mField193C	the stage: 1 + the time played / 6000
 1940	int	m1940	?
+1944	int	m1944	?
 194c	int	m194c	?
 1950	int	m1950	?
 1954	int	m1954	?
+1960	int	m1960	?
+1964	int	m1964	?
+196c	int	m196c	?
 1970	int	m1970	?
 1974	int	mScore	the score (profile setting 0x51)
 1978	int	m1978	?
+1980	int	m1980	?
+1984	int	m1984	?
+1988	int	m1988	?
 198c	int	m198c	?
 1990	int	m1990	?
+1994	int	m1994	?
 19b0	int	m19b0	?
 19b4	int	m19b4	?
 19b8	int	m19b8	?
+19bc	int	m19bc	?
 19cc	int	m19cc	?
+19d0	int	m19d0	?
+19d4	int	m19d4	?
+19d8	int	m19d8	?
+19dc	int	m19dc	?
 19f0	int	m19f0	?
 19f4	int	m19f4	?
 19f8	int	m19f8	?
 19fc	int	m19fc	?
+1a10	int	m1a10	?
 1a14	int	m1a14	?
 1a28	int	m1a28	?
+1a2c	int	m1a2c	?
+1a30	int	m1a30	?
 1a34	int	m1a34	?
 1a38	int	mMode	the game mode (profile setting 0x53); also the key of the best score
+1a3c	int	m1a3c	?
+1a40	int	m1a40	?
+1a44	int	m1a44	?
+1a48	int	m1a48	?
+1a4c	int	m1a4c	?
+1a50	int	m1a50	?
 1a60	int	m1a60	?
+1a68	int	m1a68	?
 1a7c	int	m1a7c	?
+1a80	int	m1a80	?
+1a98	int	m1a98	?
+1a9c	int	m1a9c	?
+1aa4	int	m1aa4	?
+1aa8	int	m1aa8	?
+1aac	int	m1aac	?
+1ab4	int	m1ab4	?
 1ab8	int	m1ab8	?
 1abc	int	m1abc	?
 1ac0	int	m1ac0	?
@@ -107,13 +180,24 @@ f8	std::vector<int>	mf8
 1af4	int	m1af4	?
 1afc	int	m1afc	?
 1b00	int	m1b00	?
+1b10	int	m1b10	?
+1b18	int	m1b18	?
 1b1c	int	m1b1c	?
+1b24	int	m1b24	?
 1b2c	int	m1b2c	?
 1b38	int	m1b38	?
+1b3c	int	m1b3c	?
+1b44	int	m1b44	?
 1b48	int	m1b48	?
+1b54	int	m1b54	?
+1b5c	int	m1b5c	?
+1b60	int	m1b60	?
+1b64	int	m1b64	?
+1b68	int	m1b68	?
 1b70	int	m1b70	?
 1b9c	int	m1b9c	?
 1ba4	int	m1ba4	?
+1bbc	int	m1bbc	?
 1bc0	int	m1bc0	?
 1bd8	float	m1bd8
 1bdc	float	m1bdc

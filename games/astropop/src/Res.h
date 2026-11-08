@@ -708,6 +708,7 @@ Image* GetImageById(int theId);               // 0x4092c0
 Font* GetFontById(int theId);
 int GetSoundById(int theId);
 const char* GetStringIdById(int theId);       // 0x4092e0
+Image* LoadImageById(ResourceManager* theManager, int theId);   // 0x420ea0 (loads the picture again if it was deleted)
 
 // VectorPage1
 bool ExtractVectorPage1Resources(ResourceManager* theManager);

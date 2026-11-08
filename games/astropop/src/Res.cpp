@@ -2094,6 +2094,14 @@ Font* Sexy::GetFontById(int theId) { return *(Font**)gResources[theId]; }
 int Sexy::GetSoundById(int theId) { return *(int*)gResources[theId]; }
 const char* Sexy::GetStringIdById(int theId) { return (unsigned)theId < RESOURCE_ID_MAX ? gResourceNames[theId] : ""; }
 
+// 0x420ea0: the picture of a resource id, loaded again by name if it was deleted; the id's global holds it afterwards
+Image* Sexy::LoadImageById(ResourceManager* theManager, int theId)
+{
+	Image* anImage = theManager->GetImage(GetStringIdById(theId));
+	*(Image**)gResources[theId] = anImage;
+	return *(Image**)gResources[theId];
+}
+
 bool Sexy::ExtractVectorPage1Resources(ResourceManager* theManager)
 {
 	try {

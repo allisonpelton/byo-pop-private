@@ -488,16 +488,16 @@ void Board::UpdateScenery()
 				if (aSpecial && !(aStar.mSpeed < 4.0f))
 					aStar.mSpeed = 4.0f;
 			}
-			aStar.mX = (float) ((double) aStar.mSpeed + (double) aStar.mX);
-			if (aStar.mX > 640.0)
+			aStar.mY = (float) ((double) aStar.mSpeed + (double) aStar.mY);
+			if (aStar.mY > 640.0)
 			{
 				int aLeast = 0;
 				for (size_t j = 0; j < m190.size(); j++)
 				{
-					if ((double) aLeast > (double) m190[j].mX)
-						aLeast = (int) m190[j].mX;
+					if ((double) aLeast > (double) m190[j].mY)
+						aLeast = (int) m190[j].mY;
 				}
-				aStar.mX = (float) (aLeast - 900);
+				aStar.mY = (float) (aLeast - 900);
 			}
 		}
 	}
