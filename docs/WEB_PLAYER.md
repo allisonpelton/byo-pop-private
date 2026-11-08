@@ -651,6 +651,26 @@ asked to keep the site's storage, and the cards are checked again. `tools/gameim
 the sorting under Node with every finished game's `page.js` (a page.js that fails there is a failure, and a change to one picks
 `unit-web` in `tools/check.sh`'s merge mode).
 
+### Games this site does not play
+
+The user, 2026-11-07: "Let's also add site code explicitly recognizing folders that seem to contain a game we haven't/won't
+decomp, and either direct the user to an existing decomp project for it or just say 'coming soon'". So a folder that holds none of
+the site's games but one it knows names that game, on the listing page (a line under the panel's list, "Not added: <folder>.") and
+on a game's own page (after its "Missing files" error, and when the folder is dropped on another game's tile). Where another
+project plays the game, a link to that project follows, opening a new tab as the store links do; where none does, or the game is one
+of the site's own to come, the line says it is coming soon. A folder of several such games is looked into as a folder of the site's
+own games is, each named in its own line.
+
+The table is `cmake/ByopopOthers.cmake` (`BYOPOP_OTHER_GAMES`), one row a game: its id (the target, for a game in
+`BYOPOP_WEB_UPCOMING`), its title, two marker files only it has, matched as a game's own markers are, and the project and its page,
+or neither. `byopop_web_index()` writes it to `other-games.js`, which both pages load after `web/gameimport.js`, and stops at a
+malformed row, a project whose page is not a GitHub project's, or a link for one of the site's own games to come. Its comment says
+when each project was checked and what its README says. A project is linked only when its front page and README say it plays the
+game, ship none of its files and need the player's own copy, on a trusted host; only the front page and README are read, never the
+code ("No references" in `CLAUDE.md` binds every port), and a project whose state is unclear is not linked. Every row's markers were
+checked against the user's own copies, and `tools/gameimporttest.js` sorts folders of them beside the site's games. Jungle Juice
+(above) will host other projects' decompilations; once it does, these links can point there.
+
 ### Light and dark
 
 The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the

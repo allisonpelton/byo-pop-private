@@ -364,6 +364,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
 <script src="gameimport.js"></script>
+<script src="other-games.js"></script>
 <script src="capanim.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
@@ -802,6 +803,9 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var msg = $("import-msg");
     if (root === null) {
       importMessage(ByopopStrings.t("game.import.wrong_folder", {markers: ByopopImport.missingMarkers(PAGE, entries), title: $("brand-name").textContent}), true);
+      // a game the site does not play is named, with another project's link or "coming soon" (cmake/ByopopOthers.cmake)
+      var other = ByopopImport.otherGame(entries), err = msg.querySelector(".error");
+      if (other && err) { err.appendChild(document.createTextNode(" ")); err.appendChild(ByopopImport.otherNote(document, other)); }
       return Promise.resolve(false);
     }
     return withPaks(entries, root).then(function (all) { return copyGame(all, root); });

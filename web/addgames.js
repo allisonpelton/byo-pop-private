@@ -144,7 +144,7 @@ var ByopopAddGames = (function () {
   // ---------- the panel ----------
   // live: the panel's one live region, which reads out how each folder ended (the rows' own state lines are not live, so a big
   // folder does not read "Waiting…" for every game)
-  var panel, list, rejectedEl, closeBtn, live;
+  var panel, list, rejectedEl, othersEl, closeBtn, live;
   function announce(text) { if (live) live.textContent = text; }
   function openPanel() {
     panel.hidden = false;
@@ -153,6 +153,8 @@ var ByopopAddGames = (function () {
     list.textContent = "";
     rejectedEl.textContent = "";
     rejectedEl.hidden = true;
+    othersEl.textContent = "";
+    othersEl.hidden = true;
     leftOut = [];
     if (leftOutEl) { leftOutEl.textContent = ""; leftOutEl.hidden = true; }
   }
@@ -208,11 +210,19 @@ var ByopopAddGames = (function () {
   function showSorted(sorted) {
     openPanel();
     sorted.found.forEach(row);
+    // a game the site does not play, by name: another project's link or "coming soon" (cmake/ByopopOthers.cmake)
+    (sorted.others || []).forEach(function (o) {
+      var p = make("p", "adding-other");
+      p.appendChild(document.createTextNode(ByopopStrings.t("add.other", {folder: o.folder}) + " "));
+      p.appendChild(ByopopImport.otherNote(document, o.game));
+      othersEl.appendChild(p);
+    });
+    othersEl.hidden = !othersEl.firstChild;
     if (sorted.rejected.length) {
       rejectedEl.hidden = false;
       rejectedEl.textContent = ByopopStrings.t("add.rejected", {folders: sorted.rejected.join(", ")});
     }
-    if (!sorted.found.length && !sorted.rejected.length) {
+    if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length) {
       rejectedEl.hidden = false;
       rejectedEl.textContent = ByopopStrings.t("add.nothing");
     }
@@ -265,6 +275,8 @@ var ByopopAddGames = (function () {
       if (root === null) {
         rejectedEl.hidden = false;
         rejectedEl.textContent = ByopopStrings.t("add.wrong_folder", {title: game.title, markers: ByopopImport.missingMarkers(game.spec, entries)});
+        var other = ByopopImport.otherGame(entries);
+        if (other) { rejectedEl.appendChild(document.createTextNode(" ")); rejectedEl.appendChild(ByopopImport.otherNote(document, other)); }
         return;
       }
       var top = (entries[0] && entries[0].path.split("/")[0]) || game.title;
@@ -280,6 +292,10 @@ var ByopopAddGames = (function () {
     if (!panel || !W()) return;
     list = $("adding-list");
     rejectedEl = $("adding-rejected");
+    // the games the site does not play, each in a line under the folders with no game
+    othersEl = make("div", "adding-others");
+    othersEl.hidden = true;
+    rejectedEl.parentNode.insertBefore(othersEl, rejectedEl.nextSibling);
     live = make("p", "pl-sr");
     live.setAttribute("role", "status");
     panel.appendChild(live);

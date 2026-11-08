@@ -115,7 +115,8 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
   font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
 }
 .add-games:hover, .adding button:hover { border-color: var(--accent); }
-.add-games[hidden], .adding[hidden], .adding-rejected[hidden] { display: none; }
+.add-games[hidden], .adding[hidden], .adding-rejected[hidden], .adding-others[hidden] { display: none; }
+.adding-others p { margin: 0.4em 0; }
 .adding { margin: 0 0 16px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
 .adding-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .adding-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
@@ -448,6 +449,7 @@ footer a { color: var(--accent); }
 <script src="gameimport.js"></script>
 <script src="capanim.js"></script>
 <script src="import-games.js"></script>
+<script src="other-games.js"></script>
 <script src="terms-games.js"></script>
 <script src="addgames.js"></script>
 <script>
