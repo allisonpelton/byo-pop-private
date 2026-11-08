@@ -16,17 +16,38 @@ var ByopopImport = (function () {
   function under(e, root) { return e.path.substring(0, root.length) === root; }
 
   // The folder inside the files that holds every marker (the game root, "" or ending in "/"), or null; with placeholders,
-  // failing that, the shallowest folder that holds one of the game's folders.
+  // failing that, the shallowest folder that holds one of the game's folders. A marker that is a pak (spec.paks) is there when
+  // the pak is, or when the folder holds any of the game's folders: the pak already unpacked, as a staged copy or a zip of the
+  // unpacked game has it (hasMarkers does the same for picked files).
   function findRoot(spec, entries, placeholders) {
-    var first = new RegExp("^(.*/)?" + markerPattern(spec.markers[0]) + "$", "i");
-    var others = spec.markers.slice(1).map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
-    for (var i = 0; i < entries.length; i++) {
-      var m = first.exec(entries[i].path);
-      if (!m) continue;
-      var root = m[1] || "";
+    var paks = spec.paks || [];
+    function isPak(m) { return paks.indexOf(m.toLowerCase()) >= 0; }
+    var anyDepth = spec.markers.map(function (m) { return new RegExp("^(.*/)?" + markerPattern(m) + "$", "i"); });
+    var atRoot = spec.markers.map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
+    var allPaks = spec.markers.every(isPak), tried = {};
+    function holds(root) {
       var inRoot = entries.filter(function (e) { return under(e, root); });
-      if (others.every(function (re) { return inRoot.some(function (e) { return re.test(e.path.substring(root.length)); }); }))
-        return root;
+      return spec.markers.every(function (m, k) {
+        if (inRoot.some(function (e) { return atRoot[k].test(e.path.substring(root.length)); })) return true;
+        return isPak(m) && inRoot.some(function (e) {
+          var rel = e.path.substring(root.length), j = rel.indexOf("/");
+          return j > 0 && spec.gameDirs.indexOf(rel.substring(0, j).toLowerCase()) >= 0;
+        });
+      });
+    }
+    for (var i = 0; i < entries.length; i++) {
+      var roots = [];
+      anyDepth.forEach(function (re, k) {
+        // a pak marker names a root only when every marker is one (else the other markers name it)
+        if (isPak(spec.markers[k]) && !allPaks) return;
+        var m = re.exec(entries[i].path);
+        if (m) roots.push(m[1] || "");
+      });
+      for (var r = 0; r < roots.length; r++) {
+        if (tried[roots[r]]) continue;
+        tried[roots[r]] = true;
+        if (holds(roots[r])) return roots[r];
+      }
     }
     if (!placeholders) return null;
     var best = null;
