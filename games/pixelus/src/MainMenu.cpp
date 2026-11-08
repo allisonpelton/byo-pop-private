@@ -40,6 +40,8 @@ MainMenu::MainMenu(PixelusApp* theApp)
 	DialogButton* aButtons[3] = {mPlayButton, mOptionsButton, mQuitButton};
 	for (int i = 0; i < 3; i++)
 	{
+		((SoundButton*) aButtons[i])->mOverSound = SOUND_UI_MENU_MOUSEOVER_02;	// 0x40a7d0
+		((SoundButton*) aButtons[i])->mClickSound = SOUND_UI_MENU_CLICK_01C;
 		aButtons[i]->mOverAlphaSpeed = 0.08;
 		aButtons[i]->mOverAlphaFadeInSpeed = 0.04;
 	}

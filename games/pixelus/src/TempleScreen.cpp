@@ -718,7 +718,6 @@ void TempleScreen::MouseDown(int x, int y, int theClickCount)
 		return;
 	}
 
-	mApp->PlaySample(SOUND_UI_GENERAL_CLICK_02);
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	// 0x427430: the puzzle's id comes from loading its file into a grid of its own, which makes the tiles (and draws their
 	// pictures), and is thrown away again

@@ -649,7 +649,6 @@ void PixelusApp::ShowBoard(const std::string& theLevel, int thePuzzle)
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->SetFocus(mBoard);
-	PlaySample(SOUND_PIXELUS_START_OF_PUZZLE_V02);
 }
 
 // 0x433910
