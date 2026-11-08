@@ -167,8 +167,17 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   well)." So first every fault the user reported, in every game, and anything that makes a game hard to test; then the
   identical-play pass above, game by game; once every game is done, the coverage check and a performance pass (both
   below), then a readability pass to the project's code standards (`docs/CODE_STANDARDS.md`, written and approved by
-  the user first); last, taking out code the ports do not need, such as all registration code (trial, nag and unlock
-  paths: "It is misleading and adds unnecessary bloat"). The same step takes out every button that leads out of a
+  the user first); last, taking out the other code the ports do not need. Registration code (trial, nag and unlock
+  paths: "It is misleading and adds unnecessary bloat") moved up (the user, 2026-11-07: "Move up the removal of all
+  registration-related code to be part of the current phase before beginning other decomps"). Each game takes it out
+  before its final merge, as part of being finished, and no further decomp begins until every current game has; a
+  port not yet translated (Typer Shark, AstroPop and Bejeweled 2 among them) leaves it out as it translates. The port
+  plays as the registered original does, which stays the reference for every comparison. What goes is the code only an
+  unregistered or trial copy reaches: the trial's clocks and counters, nags, the register, unlock and buy dialogs and
+  their code checks, expiry, and the strings, images and registry values only those use. A button or menu item that
+  exists only for them goes too, its neighbours closing the gap as below. Each removal is listed in the game's notes,
+  with a word on any visible change, and the frozen baseline proves play unchanged (how a protection's own checks were
+  taken apart stays in private blocks). The last step still takes out every button that leads out of a
   game, "More Games" first (the user, 2026-11-07, asked whether it might open the site's listing: "Remove the button
   entirely, as requested in the past. Other buttons can be resized to avoid the appearance of a gap"), with the
   buttons beside it widened or moved to close the gap. The game's regression check proves each step leaves play
