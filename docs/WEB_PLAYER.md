@@ -78,7 +78,9 @@ The panels:
 - **Game files** imports the game again, or forgets the copied files. Saves and mods stay. The game runs only
   once in a page and must not have its files changed under it, so once it has started, both close it first
   (as the mod menu's Restart does, saving the game in progress) and go on in a reloaded page: the import
-  card, which can go back to the Ready card.
+  card, which can go back to the Ready card. The page keeps the game's life as one state (`gameState` in the shell, the user,
+  2026-11-07: "Find any implicit state machines in the website code and make them explicit"): waiting, starting, running, closing (the page asked it to close),
+  closed and stopped (an error), with the moves between them listed in `GAME_MOVES`; the shell makes no other.
 - **Settings** is the site's settings (see "Site settings", below), the same controls as the listing page's.
 - **Sound** turns the page's sound off or on, below the game's own volume and mute options (see "Site settings").
 - **Fullscreen** puts the stage in fullscreen. **F11** does the same in every game's page, and F11 again (or Esc) leaves it (see
@@ -165,14 +167,15 @@ hot spot taken from the crop and a hash of the cropped pixels (`crop` and `pictu
 picture and makes smaller CSS cursors; sets kept before cropping are cropped once as a page of the site loads (`upgrade`), with no
 need to start each game again. Games whose sets look the same share one entry named with all their titles, "Alchemy and
 Big Money" (the user, 2026-11-04: entries that look the same are one entry, and differences nobody can see do not split
-one). Two sets look the same when their pointers and their hands do: the pixels that show are the same size, they differ nowhere
-by more than 16 of 255 in any colour drawn over white and over black, the hot spots are no more than a pixel apart, and the frames
-match (`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The dragging cursor, the circle-slash and the
+one). Two sets look the same when their pointers and their hands do: laid on each other by their hot spots (or with one moved a
+pixel), the pictures are no more than two pixels apart in size and differ nowhere by more than 40 of 255 in any colour drawn over
+white and over black, and the frames match (`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The dragging cursor, the circle-slash and the
 wait cursor are pictured but not compared: Bejeweled's dragging cursor is an open hand without the shadow, since its mask is a
 smaller image than its picture and the game, like the original, leaves a mask of another size out, and the user wants Bejeweled
 with the others ("One-line fix it is, then", 2026-11-04). The games that use PopCap's usual cursors make two entries: Atomica and
-Dynomite, whose cursors are green, and the rest (Alchemy, Bejeweled, Big Money, BookWorm, Mummy Maze, Pixelus, Rocket Mania and
-Seven Seas; BookWorm's pointer has colours up to three steps off Alchemy's). An entry pictures the set of the member that stands
+Dynomite, whose cursors are green, and the rest (Alchemy, Bejeweled, Bejeweled Twist, Big Money, BookWorm, Mummy Maze, Pixelus,
+Rocket Mania and Seven Seas; BookWorm's pointer has colours up to three steps off Alchemy's, and Bejeweled Twist keeps the same
+pointer and hand as JPEG 2000, a few pixels up to 33 off, with faint edges its GIF masks add, the user 2026-11-07). An entry pictures the set of the member that stands
 for it, the chosen one or else the first by title (Alchemy's), and the site shows the chosen game's own cursors. The sets are
 still kept one a game, choosing the entry keeps one member's id, and the entries form again from what is kept, so a set that
 changes leaves its group. The choice,
@@ -245,9 +248,10 @@ cursor, are at most 128 px: the game page draws a larger one smaller. Filling `f
 cursor class would hand the framework its frames, and `byopop_cursor_set_copy` and the game page's `takeCursorSet` would copy and
 keep them.
 
-**The footer** is the same on every game's page: one link, which opens the game's copyright page
-(`<game>-copyright.html`, next to the game) in a new tab. The markup is `web/footer.html` and its style
-`web/footer.css`.
+**The footer** is the page's last row, across its width (the user, 2026-11-07: "a true footer"): the game's copyright notice
+in one sentence, its `COPYRIGHT` up to "All rights reserved." (the trademark lines are on the page the link opens), then a
+**Full terms →** link, which opens the game's copyright page (`<game>-copyright.html`, next to the game) in a new tab. The
+markup is `web/footer.html` (the build puts the notice at `@BYOPOP_NOTICE@`) and its style `web/footer.css`.
 
 **The copyright page** is made from `web/copyright.html`. It has the game's copyright notice, a statement that
 the player is unofficial, non-commercial and comes with none of the game's files, and the license of every
@@ -647,6 +651,51 @@ asked to keep the site's storage, and the cards are checked again. `tools/gameim
 the sorting under Node with every finished game's `page.js` (a page.js that fails there is a failure, and a change to one picks
 `unit-web` in `tools/check.sh`'s merge mode).
 
+### Games this site does not play
+
+The user, 2026-11-07: "Let's also add site code explicitly recognizing folders that seem to contain a game we haven't/won't
+decomp, and either direct the user to an existing decomp project for it or just say 'coming soon'". So a folder that holds none of
+the site's games but one it knows names that game, on the listing page (a line under the panel's list, "Not added: <folder>.") and
+on a game's own page (after its "Missing files" error, and when the folder is dropped on another game's tile). Where another
+project plays the game, a link to that project follows, opening a new tab as the store links do; where none does, or the game is one
+of the site's own to come, the line says it is coming soon. A folder of several such games is looked into as a folder of the site's
+own games is, each named in its own line.
+
+The table is `cmake/ByopopOthers.cmake` (`BYOPOP_OTHER_GAMES`), one row a game: its id (the target, for a game in
+`BYOPOP_WEB_UPCOMING`), its title, two marker files only it has, matched as a game's own markers are, and the project and its page,
+or neither. `byopop_web_index()` writes it to `other-games.js`, which both pages load after `web/gameimport.js`, and stops at a
+malformed row, a project whose page is not a GitHub project's, or a link for one of the site's own games to come. Its comment says
+when each project was checked and what its README says. A project is linked only when its front page and README say it plays the
+game, ship none of its files and need the player's own copy, on a trusted host; only the front page and README are read, never the
+code ("No references" in `CLAUDE.md` binds every port), and a project whose state is unclear is not linked. Every row's markers were
+checked against the user's own copies, and `tools/gameimporttest.js` sorts folders of them beside the site's games. Jungle Juice
+(above) will host other projects' decompilations; once it does, these links can point there.
+
+### The site's look: rules for skins
+
+The user asked for original site designs that evoke the games' era and its web, with selectable skins (2026-11-07). The
+directions proposed so far, each as a listing, a game page and the import as a setup wizard, with studies for the bottle-cap
+board, are on a design page made for the user (https://claude.ai/artifact/FZy69Pz8kFCPkfZvctTA7T, private to them). Whatever is
+chosen keeps these rules, each in the user's words of 2026-11-07:
+- **The game stays the game.** "Skip in-game chat. I want the default to not feel modded relative to the version people might
+  build themselves." What happens inside the game's picture, and what its buttons do, stays as a port the player built
+  themselves would have it; the page around the game is free to change. Whether a game's "More Games" button may open the
+  listing is a question for the user, since it changes what an in-game button does.
+- **The era, not the company.** "Site isn't going to be a history of the company itself. A love letter to the history just
+  means it's acknowledging only historical parts (all the games are >15 years old by now). I want nothing to do with the EA
+  subsidiary." And: "I don't want to *just* rearrange things that exist in the game for the sake of credits." So no company
+  history, credits panels or liner notes, and nothing that ties the site to today's company.
+- **Period looks are affectionate parody.** "What I'm proposing would be better understood as affectionate parody. Think of
+  the various games that have been made with the style of Windows 95. The font is free to use and the color choices are low-bit
+  due to technological limitations. No chance it gets confused with the real operating system." A skin may look fully like a
+  1995 or 2001 desktop (bevels, title bars, wizard pages with Back, Next and Cancel), drawn in CSS or SVG. It uses no
+  Microsoft or InstallShield names, logos, icons or sounds, is named after byo-pop and the game, and never imitates a real
+  system prompt such as a security or permission dialog.
+- **The player's own fonts.** "If it's just using text elements, it could use the user's own installed font." A period skin
+  names the system fonts in CSS (`"MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Segoe UI", sans-serif`) and ships no
+  Microsoft font files. A free lookalike may be a fallback for machines without them, and only that one is listed on the
+  licences page.
+
 ### Light and dark
 
 The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the
@@ -661,6 +710,34 @@ choice is one localStorage item for the whole site, `byopop-theme`, kept only wh
 button back to the browser's theme removes it, and so does the browser changing to the chosen theme, so there is no separate
 "follow the browser" setting. With storage blocked the choice lasts for that page only. The games' own screens are not
 changed by it.
+
+### The fixes mod on the site
+
+Every game is served with its fixes mod on (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, `fixes`, each of whose settings
+is a toggle for one fix. A game's mod lives in `games/<game>/mods/fixes`, and the web build copies the folder beside the game's
+page as `<game>-fixes/`, with its `version` and its list of files written into the page (`FIXES` in `web/shell.html`, from
+`cmake/ByopopWeb.cmake`). A game in `BYOPOP_WEB_NO_MODS` gets none, since its port cannot load mods yet; it gets its fixes mod
+once it can. A game without the folder ships nothing, and its page does nothing.
+
+Once the game's files are here, the page's boot puts the mod into `/persist/mods/fixes`, the IndexedDB-synced folder the Mods
+panel adds to, before the game can start (the status line says so while the files are written). It does this after the
+panel's own boot, so a removal that waited for this start has happened by then. Like any mod new to `mods.json` it starts on,
+with every fix at its default, which is on. A note beside the saves, `site-fixes.json` in the game's user dir, remembers what
+happened: `{"installed": "<version>"}` once it was put in, `{"removed": true}` once the player removed it.
+
+- **On every start**, the page compares the version of the mod in the folder with the one shipped. When the shipped version is
+  new, it replaces the mod's files. `mods.json` (whether the mod is on, and its place in the order) and `mod-settings.json` (its
+  toggles) are left alone, so the player's choices hold.
+- **The player** turns single fixes off or on in the game's mod menu (F2), turns the whole mod off to play the original as it
+  was, or plays once without mods from the rescue, as with any mod. Removing it in the Mods panel deletes its folder; the
+  next start finds the note saying "installed" and no folder, notes it as removed, and never puts it back. If the player
+  later adds a mod into the `fixes` folder themselves, the note follows that copy again.
+
+A test build can ship a stand-in: configure with `-DBYOPOP_WEB_TEST_FIXES=<game>` (cmake's cache keeps it; set it back to
+empty afterwards) and that game, if it has no fixes mod of its own, gets `tools/webtest/fixes`, a mod with one toggle that
+changes nothing. It was tested on Bejeweled in the pane at `?silent=1`. The first start put the mod in and listed it as on.
+With the mod turned off and its toggle off, a reload kept both. A copy marked as an older version was replaced by the shipped
+one with both choices still kept. Removed with the Mods panel's Remove, it stayed out after a reload.
 
 ### Site settings
 
@@ -760,6 +837,14 @@ it is for, in `FIELDS` in `web/settings.js`):
   screen) unless it is off, and with it off nothing of the chat is built or started. It starts on because
   the chat is a part of the page rather than a change to a game, and it can be turned on and off while a game runs ("The chat",
   below).
+- `chatPlace` ("edge" or "game", default edge): **Chat position**. Beside the game the chat sits at the page's right edge, or,
+  with "Next to the game", right next to the stage, the two centred together (the user, 2026-11-07). Below the game it is the
+  same either way.
+- `pixelPerfect` ("on" or "off", default off): **Pixel-perfect**, in Display. The stage takes the game's own size instead of
+  filling the window (the user, 2026-11-07): each game pixel is n device pixels, n the device pixel ratio rounded and at least
+  1, so at 100% and 125% a 640 x 480 game takes 640 x 480 device pixels and at 150% and 200% twice that. A smaller n is taken
+  while that does not fit the window, and the usual fit when not even one device pixel each does. The game gives its size as it
+  makes its window (`SexyAppBase::MakeWindow` calls `Module.onGameScreen`); full screen is unchanged.
 
 **The starting volume.** Most of the games start with music and sound on, and the only way to avoid that used to be the speakers,
 so the setting says what volume every game starts at, 0 for silence, music and sound each. The page's mute
@@ -830,7 +915,9 @@ adds its tag, and the chat keeps no list of its own); a game the table lacks has
 width it has without it, else below it (the class `chat-below` on the root element), so the canvas and its scaling are never
 changed by the chat; `Module.onGameScreen` asks the chat to work that out again when a game changes the stage's shape; the
 "Show chat" setting above turns it on and off live; and the terms card and the "Already open" card make it inert like the rest
-of the page. Below the stage the page is taller than the window, and the player must land on the game, scrolled to the top: the
+of the page. Below the stage the chat fills the space down to the footer, at least 18rem tall (the user, 2026-11-07), and
+with "Chat position" on "Next to the game" the stage's box is only as wide as the stage (chat.js gives `--stage-px`), so the
+two centre together. Below the stage the page is taller than the window, and the player must land on the game, scrolled to the top: the
 page sets `history.scrollRestoration` to `manual` (else a reload, as Play again and a restart from the mod menu do, puts the page back
 where it was scrolled to, the chat in view), and Home, End, PageUp and PageDown typed on the canvas are cancelled for the browser, which
 would scroll the page to the chat with them (SDL cancels the arrows, Tab, Backspace, the function keys, Ctrl keys and Space, not
@@ -1015,6 +1102,62 @@ Locks cannot tell, so it backs up but does not restore. Each game's files are wr
 folder is restored whole or not at all, with a directory entry for every missing parent (IDBFS needs them) and the file's own date
 from the manifest. The page then tells what it wrote and sends a `storage` event to its own sections so that the settings and players
 show the restored values.
+
+### The music player
+
+The listing page's fourth tab, Music (`web/music.js`, the user's request of 2026-11-07), plays the music of the games the player
+added, from those games' own files in this browser. The site ships no music and sends nothing anywhere: the tab reads each game's
+database read-only (opened without a version, so a game that was never added gets no empty database) the first time the tab is
+shown, and only for the games whose record says their files are here.
+
+Which files hold a game's music is in `web/soundtracks.js`, by the game's id: path patterns in the game's folder as the import
+writes it, matched without regard to case. A module that matches gives its subsongs as tunes, and an Ogg Vorbis file is one tune.
+Subsongs shorter than two seconds are left out, since in these games they are the silences and stings between tunes (Atomica, Big
+Money, Dynomite and Mummy Maze each have one or two). Two games play their music in ways the table describes as well:
+
+- **Bonnie's Bookstore** plays its one module, `sound/music.oxm` (32 minutes as one subsong), as nine
+  tracks, each a range of its orders, from the track table in its exe (`games/bonnies/game/Music.cpp`): the game starts a track
+  at its first order and stops it once the order passes its last. The entry's `parts` lists those ranges, so the player plays
+  each from its first order until the order after its last (libopenmpt's time for an order gives its length). Its logo tune,
+  `sound/Logo.ogg`, is a tune of its own.
+- **Pixelus and Rocket Mania** join their in-game music (and Rocket Mania its menu music) from short Ogg pieces in the order a
+  playlist in the music folder gives: three header lines, then the first word of each line names a piece (Rocket Mania's
+  `AssembleMusic`, `games/rocketmania/src/AppMusic.cpp`; Pixelus's playlist has the same form). The entry's `joined` names each
+  playlist and the path of its pieces, and the player decodes the pieces and plays them one after the other, whole, as Rocket
+  Mania's original does. Pixelus's in-game tune comes out at 3:42, the playlist's own total.
+
+An entry can also list `skip` (tunes that are not tunes, as `"<file>#<n>"`) and `names` (a plain name for a tune). Tunes are named
+plainly: the file's name, and "part n" when a file holds several; Bonnie's tracks are named for where the game plays them (the
+menu, or in a game). No invented titles, and no long passages of a game's text. The module games are Alchemy, Atomica, Bejeweled,
+Big Money, BookWorm, Bookworm Adventures, Bejeweled Twist (both of its modules), Cosmic Bugs, Water Bugs, Dynomite, Seven Seas and
+Mummy Maze; the Ogg games are Bookworm Adventures Volume 2, Noah's Ark, Pixelus, Rocket Mania and Bonnie's Bookstore (its module
+too).
+
+The decoder is libopenmpt on its own, built for the web as `openmpt.js` and `openmpt.wasm` beside the pages (target
+`byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, orders, repeat, length, render,
+and stb_vorbis's whole-file decode). It holds no game code, and the page loads it only when the tab is first opened. Its licence is
+copied to `licenses/libopenmpt.txt`, which the tab links. An Ogg file is decoded whole by the browser (`decodeAudioData`, at the
+AudioContext's rate); a browser that cannot gets stb_vorbis from the same wasm, and music.js resamples its output. A tune's length
+in the list is read from the Ogg file's last page without decoding it. The main thread sends 4096-frame stereo chunks to an
+AudioWorklet (its source is a string in music.js, loaded through a Blob URL), keeping about a second queued. The worklet says when it
+has used a chunk, and when it runs dry after a tune's end, which moves on to the next tune; after the last tune the first one plays
+again. A new tune flushes the worklet's queue, and the worklet answers the flush, so the messages about the tune before are ignored.
+
+The player is in one state at a time: idle, loading, playing or paused. It has Play/Pause, Next, a "Repeat the tune" box (libopenmpt
+repeats a subsong for ever; a range of orders or decoded sound starts again at its start) and a volume slider (a GainNode). The
+repeat box and the volume are kept in `localStorage`
+(`byopop-music-loop`, `byopop-music-volume`). Each tune in the list is a button that plays it. The Media Session API gets the
+tune's name, the game as the artist and the game's icon, and its play, pause, next, previous and stop handlers, so the keyboard's
+media keys and the system's media controls drive the player. At `?silent=1` the volume's GainNode reaches the speakers only through a
+second gain of 0, so they get exact zeros, and the status line ends in "(silent)". The graph has to reach the destination all the
+same: a browser never runs a worklet whose output goes nowhere, and the tune would stand still.
+
+Not covered yet:
+
+- **TipTop** keeps MIDI music inside its .dat, which would play through TinySoundFont.
+- **Word Harmony** plays WAV files.
+- **Ning Po and the two Mahjongs** (Ancient China, Japan) keep their music packed inside other files (Ning Po's `ningpo.pyz`,
+  the Mahjongs' `Resource.dll`), which the player would have to open first.
 
 ### Importing saves from an installed game
 
@@ -1305,6 +1448,38 @@ every game has them. What wrong sizes did in testing:
   mrmoneybags' height, the bill cels and title heights from their images; the cobrand image is optional.
 - BookWorm: `tile_fire_fx1` must be at least 57 px tall and the ember and spark images square (else a modulo by
   zero). `wordlist.txt` has no stand-in, and without `bookworm.exe` the game's texts are empty (GameText).
+
+## Sound
+
+Every game's sound goes through the shared mixer (`platform/Audio.cpp`), which on the web plays through the page's own
+output rather than SDL's. The user found the sound late in TipTop, Dynomite, Big Money, Bonnie's Bookstore and BookWorm
+Adventures Volume 2 (2026-11-07), and still playing for a moment after the tab lost the focus. SDL's output was a
+ScriptProcessor of 2048 frames: each mix waited for its turn and was then held for a whole buffer, so in the Browser pane a
+sound reached the speaker 109.5 ms after the game played it (the median of 20 menu sounds in TipTop; 94 to 145 ms).
+
+The page's output is an AudioWorklet that keeps a queue of mixed sound and asks the page for the next chunk of 256 frames
+whenever the queue runs short. The page mixes the chunk at once, between the game's frames, and sends it over. The queue
+is at least 2048 frames (43 ms at 48 kHz), long enough to cover the game's slower frames; when the page answers late
+(loading, a heavy frame) it grows at once, up to 4096 frames, and shrinks again after three seconds of quick answers. A
+sound the game starts does not wait behind the queue: its first frames are mixed straight away, alone, and added into the
+sound already queued, from 640 frames (13 ms) ahead of what the context has played, and the next chunk carries on from
+there. A sound now reaches the speaker 59 ms after the game plays it (the same 20 sounds: 54 to 65 ms), of which 50 ms
+is the browser's own output latency (`baseLatency` and `outputLatency`). A page with no AudioWorklet (one served over
+plain http from another machine) falls back to a ScriptProcessor of 1024 frames that is pulled the same way, at 84.5 ms
+(76 to 97 ms).
+
+Muting drops the queued sound, so a mute is heard at once, as natively: the game's own mute (`SexyAppBase::Mute`, which
+a game calls when it loses the focus) and the page's sound button. A hidden tab gets no animation frames, so the game
+would not see its focus loss until it came back: the page mutes it when the tab is hidden
+(`SexyAppBase::EmscriptenPageHidden`). In the pane, a window blur muted TipTop on its next frame, 17 ms later, and a
+hidden tab muted it at once.
+
+For tests, the page's `Module` has the output's state in `Module.byopopAudio` (`kind` is `worklet` or `script`, `target`
+the queue's length in frames, `gaps` how often it ran dry, `late` how many frames of a sound's start came too late to
+be mixed in). `Module.audioOutput = 'script'`, set before Play, forces the ScriptProcessor. A function in
+`Module.onVoiceMixed` is called with the page's clock at the play call (`performance.now()`) when a sound's first frame
+is mixed, and `Module.audioChunkEar` then holds the time that frame reaches the speaker (from `getOutputTimestamp`): the
+difference is the delay. `?silent=1` mixes as usual and sends silence, so the timing is the same with it.
 
 ## Memory use
 

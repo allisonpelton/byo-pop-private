@@ -136,8 +136,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle a
   fix, and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that
   only costs the player time, is kept in the port and fixed in the mod (listed until then under "Fix candidates" in
-  the game's notes), and with the mod on a game plays the same on every run. Memory leaks are still fixed in the port
-  itself (`docs/MOD_ROADMAP.md`, "The fixes mod").
+  the game's notes), and with the mod on a game plays the same on every run. Memory leaks are still fixed in the
+  port itself, and so is a bug of the original that breaks play: controls that stop working, a soft lock, a crash, a
+  lost save (the user, 2026-11-07, of Seven Seas' dead squares: "That sort of bug shouldn't be part of a fix mod"),
+  listed in the game's notes with its deviations (`docs/MOD_ROADMAP.md`, "The fixes mod").
 - **Done means identical (the user, 2026-10-27):** "A game is done when it plays identically to the original in the
   browser and natively." No port is hurried to get through the list. A port's own suite matching its earlier output
   proves nothing about the original, and the hidden, silent pane never changes focus or plays music: before its final
@@ -150,13 +152,24 @@ Every call re-reads the whole context, so what costs is context times calls, and
   review page holds only what a session truly cannot judge, and the user sees it only once it holds every game. Every
   game is tested as Bejeweled is: its deviations listed in its notes, each without a visible effect; every RNG draw
   kept in its order; a frozen baseline of the port with a regression check that proves later fixes and mods leave
-  unmodded play unchanged. Every memory leak of the original is fixed: memory the original still uses after
-  "leaking" it (Bejeweled's FillBoard orphans) is freed after its last possible use. Autoplay, script commands and
-  runs under Node never pass through the real input path, so before its final merge a session also plays the game with
-  real mouse and key events only: through the page in the Browser pane (`?silent=1`, requestAnimationFrame shimmed
-  while hidden) and through the window natively under rundesk (posted input, as visrun does), from launch through the
-  tutorial and a whole game of every mode, in 2D and 3D where both exist, windowed and in full screen. Twist passed
-  every comparison and still could not twist a gem in the browser (the user, 2026-11-05).
+  unmodded play unchanged. Every memory leak of the original is fixed: memory the original still uses after "leaking"
+  it (Bejeweled's FillBoard orphans) is freed after its last possible use. Autoplay, script commands and runs under
+  Node never pass through the real input path, so before its final merge a session also plays the game with real mouse
+  and key events only: through the page in the Browser pane (`?silent=1`, requestAnimationFrame shimmed while hidden)
+  and through the window natively under rundesk (posted input, as visrun does), from launch through the tutorial and a
+  whole game of every mode, in 2D and 3D where both exist, windowed and in full screen. Twist passed every comparison
+  and still could not twist a gem in the browser (the user, 2026-11-05). Sessions never play a game themselves (the
+  user, 2026-11-07: "the sessions are not allowed to play any games themselves"; "Yes, use drivers"): code plays, a
+  driver script that reads the game's state from its log, chooses the moves (a solver or bot where the game has one)
+  and sends them as those real events, a minigame or a whole game in a call or two. The session writes the driver and
+  judges its results, and looks at a screenshot only to check what is drawn, never to pick a move. Natively, posted
+  clicks reach SDL only as one burst of move, press and release (`games/sevenseas/tools/realinput.py`); a held press
+  or drag waits for the shared tool. A driver reaches the state it needs (a level, a boss, a locked mode) with the
+  game's standard test commands instead of playing up to it (`docs/TEST_COMMANDS.md`; the user, 2026-11-07: "Yes,
+  add them"): every port has them, reachable only from a test, and lists them in its notes. The move a driver makes
+  comes from the port's own bot through the `move` command, so the driver stays a thin loop and a later bot mod reuses
+  the bot (the user, 2026-11-07: "the scripts that play the games should be developed in a way that their code can be
+  reused for a mod that adds a bot").
 - **Two phases: plays identical, then looks identical (the user, 2026-11-01).** The first phase is the game's logic:
   with the same input, a series of games plays out the same in the original and the port (the same boards and random
   draws, moves, scores, levels, timers and endings). Check it by the game's state (origrun's `--watch` values at an

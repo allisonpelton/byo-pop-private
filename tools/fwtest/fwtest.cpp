@@ -9,7 +9,8 @@
 //   -frames=N            after N frames drawn once loading has finished...
 //   -screenshot=<png>    ...save the screen (DDInterface::ReadScreen) as PNG, then shut down
 //   -hotkeytest          the mod menu's F2 (docs/MOD_MENU_DESIGN.md 7.3): SDL key events through HandleEvent, as
-//                        real input arrives; prints one line per check and exits with the number that failed
+//                        real input arrives; then, natively, the window: its minimum size and Alt+Enter's borderless
+//                        full screen; prints one line per check and exits with the number that failed
 // Exits with 1 when the game files fail to load.
 
 #include "SexyAppBase.h"
@@ -34,6 +35,8 @@
 #include <cmath>
 #include <cstring>
 #include <vector>
+
+#include "winstate.h"
 
 #ifndef FWTEST_GAMEDIR
 #define FWTEST_GAMEDIR "assets/bejeweled"
@@ -362,7 +365,47 @@ public:
 				aPlain->Release();
 		}
 
+		RunWindowTest();
 		SDL_Log("hotkey: %d failed", gHotkeyFailures);
+	}
+
+	// The window, natively (the user, 2026-11-07): it can't be made smaller than the game's screen, and Alt+Enter's full
+	// screen is a borderless window over the whole monitor at the desktop's own mode, not topmost, with the cursor free
+	void RunWindowTest()
+	{
+#if defined(_WIN32) && !defined(__EMSCRIPTEN__)
+		int aMinWidth = 0, aMinHeight = 0;
+		SDL_GetWindowMinimumSize(mHWnd, &aMinWidth, &aMinHeight);
+		Check("window: its minimum size is the game's", (aMinWidth == mWidth) && (aMinHeight == mHeight));
+		// a resize below it, as a drag of the frame asks for (DefWindowProc checks it against WM_GETMINMAXINFO)
+		FwResizeWindow(mHWnd, 100, 80);
+		int aWidth = 0, aHeight = 0;
+		SDL_GetWindowSize(mHWnd, &aWidth, &aHeight);
+		Check("window: a smaller size keeps the game's", (aWidth == mWidth) && (aHeight == mHeight));
+
+		SDL_DisplayMode aDesktop, aMode;
+		const int aDisplay = SDL_GetWindowDisplayIndex(mHWnd);
+		SDL_GetDesktopDisplayMode(aDisplay, &aDesktop);
+		SendKey(SDL_KEYDOWN, SDLK_RETURN, KMOD_LALT, 0);
+		SendKey(SDL_KEYUP, SDLK_RETURN, KMOD_LALT, 0);
+		Check("window: Alt+Enter goes full screen at the desktop's size",
+			(!mIsWindowed) && ((SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP));
+		SDL_GetCurrentDisplayMode(aDisplay, &aMode);
+		Check("window: ... without changing the display's mode",
+			(aMode.w == aDesktop.w) && (aMode.h == aDesktop.h) && (aMode.refresh_rate == aDesktop.refresh_rate));
+		FwWindowState aState;
+		const bool haveState = FwGetWindowState(mHWnd, &aState);
+		Check("window: ... borderless (no caption, no frame)", haveState && aState.mBorderless);
+		Check("window: ... and not topmost", haveState && !aState.mTopmost);
+		Check("window: ... over the whole monitor", haveState && aState.mCoversMonitor);
+		Check("window: ... with the cursor free to leave it", haveState && aState.mCursorFree);
+		Check("window: a focus loss does not minimize it", SDL_GetHintBoolean(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, SDL_TRUE) == SDL_FALSE);
+		SendKey(SDL_KEYDOWN, SDLK_RETURN, KMOD_LALT, 0);
+		SendKey(SDL_KEYUP, SDLK_RETURN, KMOD_LALT, 0);
+		SDL_GetWindowSize(mHWnd, &aWidth, &aHeight);
+		Check("window: Alt+Enter again gives the window back",
+			(mIsWindowed) && ((SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0) && (aWidth >= mWidth) && (aHeight >= mHeight));
+#endif
 	}
 
 	virtual bool DrawDirtyStuff()

@@ -78,6 +78,9 @@ public:
 
 	// Case-insensitive lookup of a relative path under a real directory. Returns the real path or "".
 	static std::string FindCaseInsensitive(const std::string& theRoot, const std::string& theRelPath);
+	// Like FindCaseInsensitive, but from the cached directory listings alone (no stat call per path part): for the many probes
+	// of an image's variants. A file made after its folder was listed is not seen until the cache is cleared.
+	static std::string FindIndexed(const std::string& theRoot, const std::string& theRelPath);
 
 	// Writable location for saves/settings ("userdata" in the original).
 	void SetUserDir(const std::string& theDir) { mUserDir = theDir; }

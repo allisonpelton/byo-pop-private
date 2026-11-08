@@ -59,6 +59,56 @@ resumed screens match the native build's exactly, whose own matched the original
 The pass also added test hooks that change nothing in play: a script's `focus 0` and `focus 1` take the window's focus
 away and give it back (277001c), and `-seed=N` seeds the game's `rand`.
 
+## The user's faults from the browser (2026-11-07)
+
+After the pass the user played the web build and reported two faults: the game did not fill in their name although
+the site's player setting asked it to, and the soundtrack seemed missing, then "way too quiet". Both were checked
+against the original, and the game was then played with real input only.
+
+**The soundtrack.** The original's menu music was recorded in Windows Sandbox with origrun's `--sound wav`. The
+sound system's start (0x41e760) tells FMOD 3 to use WinMM before Vista and lets it choose from Vista on, and FMOD's
+choice there made no DirectSound buffer for origrun to record, so a test patch (`tools/origrun/dsound_patch.txt`, used
+only for this recording) asks it for DirectSound;
+`tools/origrun/music.txt` clicks through the logos and waits at the menu. The port's music was recorded natively under
+rundesk through SDL's file-writing audio driver. Over the first 5, 10 and 20 seconds of the menu song the original was
+5.3 times as loud as the port, while the PopCap logo's sound was equally loud in both, so only the music was off.
+libopenmpt mixes an XM's channels at its sample pre-amp of 48 and FMOD 3 at the full 256, a factor of 5.33, so the
+host now plays the song at 256/48 (`loadSong`); after the change the port's menu music is within 1% of the original's.
+The music played on the web before as well, only at a fifth of its level.
+
+**The player's name.** Bonnie's had no part in the site's player setting. It has one now (`src/SiteProfiles.cpp`, with
+the game's side in `game/SitePlayers.cpp`): at the first menu the site's player is made or chosen under "create", the
+new-player box starts with the site player's name under "fill", kept to the box's characters and twenty letters, the
+players are reported to the page when they change, and the site's volumes set the options' two. Checked in the
+Browser pane: under "create" the menu welcomed the site's player at once, and under "fill" the New Player box opened
+with the name filtered as the game's own typing would ("Zoë-Q. Smith" became "ZoëQ Smith").
+
+That check and the real-input play found four more faults, all fixed:
+
+| Difference | Its cause | What the port does now |
+|---|---|---|
+| The players panel was always empty, natively and on the web, and at start the game never fell back to the first saved player | The host's listing of a folder (`listFiles`) looked the folder up with a function that finds files only | The host finds the folder by its name in any case |
+| On the web a name with an accented letter was saved under an unreadable file name and listed wrongly | The game's text is Latin-1 and the browser's file system takes UTF-8 | On the web the host writes and lists saved games' names as UTF-8 |
+| The players panel's Delete removed nothing (a fault of the original, which breaks play) | The original builds the path with a string it never sets (0x47a1ec) in place of ".gam" | The port removes the saved game; the site can delete a player the same way |
+| On the web the options' Full Screen box was ticked while the game ran in a window | `Data/Portal.cfg` starts the game in full screen, which the web build ignores (a browser enters full screen only from a click) | On the web the option starts off |
+
+**Real input.** The port's tour (`tools/tour_test.txt`) was turned into real-input steps (`tools/realplay_tour.txt`,
+every wait twice the tour's) and played in the Browser pane at `?silent=1`, with requestAnimationFrame shimmed while
+the pane was hidden, by mouse and key events sent to the page's canvas: a click is a move, then a press and a release,
+and typing is a key down, a key press and a key up per letter. From launch through the logos, a new player's typed
+name, the difficulty, the story, the tutorial's FROG and CAKE, the game's options, high scores, credits and help, the
+main menu's options, an action game with TALE played, the focus lost and regained, to the end of its time and Quit,
+the game did as it does under its script (the page starts without a fixed seed, so its boards were others, and the
+action game ended with the same score, 20). Afterwards the options' Full Screen box and the players panel's New, Accept
+and Delete were tried the same way.
+
+Three parts of the real-input play are still to do. Natively, input posted to the window under rundesk
+(`tools/realplay.py`) reaches it, since a posted close ends the game, but SDL 2.32 makes no mouse or key event of the
+posted mouse and key messages, so the native play by posted input waits for a way to inject input that SDL takes. A
+whole classic game (the story's every book) was not played; the classic mode was played through its tutorial and the
+action mode through a whole game. Full screen was not tried: on the web only the page's button makes it, from a
+player's own click, and natively it waits for the posted input above.
+
 ## Oddities left alone
 
 None so far. The tile bounces above are the one place the original reads memory it never set; the port reads 0 there

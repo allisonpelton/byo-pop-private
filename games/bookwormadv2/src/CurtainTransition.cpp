@@ -20,16 +20,26 @@ CurtainTransition::CurtainTransition(GameApp* theApp)
 	mShowLoadingBox = false;
 	mLoadingBoxShown = false;
 
-	DDImage* anImage = mApp->CopyImage(IMAGE_CURTAIN_ANIM);
-	mApp->FlipImage(anImage);
-	mFlippedImage = anImage;
-	anImage = mApp->CopyImage(IMAGE_CURTAIN_ANIM);
-	mApp->MirrorImage(anImage);
-	mMirroredImage = anImage;
-	anImage = mApp->CopyImage(IMAGE_CURTAIN_ANIM);
-	mApp->MirrorImage(anImage);
-	mApp->FlipImage(anImage);
-	mMirroredFlippedImage = anImage;
+	// port: the flipped and mirrored copies of the curtain are made once and kept. The original made them for every
+	// curtain, which cost 25 to 30 ms before the first frame and a texture upload on it (a visible hitch).
+	static DDImage* sFlipped = nullptr;
+	static DDImage* sMirrored = nullptr;
+	static DDImage* sMirroredFlipped = nullptr;
+	if (sFlipped == nullptr) {
+		DDImage* anImage = mApp->CopyImage(IMAGE_CURTAIN_ANIM);
+		mApp->FlipImage(anImage);
+		sFlipped = anImage;
+		anImage = mApp->CopyImage(IMAGE_CURTAIN_ANIM);
+		mApp->MirrorImage(anImage);
+		sMirrored = anImage;
+		anImage = mApp->CopyImage(IMAGE_CURTAIN_ANIM);
+		mApp->MirrorImage(anImage);
+		mApp->FlipImage(anImage);
+		sMirroredFlipped = anImage;
+	}
+	mFlippedImage = sFlipped;
+	mMirroredImage = sMirrored;
+	mMirroredFlippedImage = sMirroredFlipped;
 
 	mDone = false;
 	mTopMoving = false;
@@ -44,9 +54,7 @@ CurtainTransition::CurtainTransition(GameApp* theApp)
 
 CurtainTransition::~CurtainTransition()
 {
-	delete mFlippedImage;
-	delete mMirroredFlippedImage;
-	delete mMirroredImage;
+	// (the copies are kept, see the constructor)
 }
 
 void CurtainTransition::StartClosing()

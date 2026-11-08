@@ -33,6 +33,7 @@ get_filename_component(BYOPOP_WEB_FOOTER "${CMAKE_CURRENT_LIST_DIR}/../web/foote
 get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/footer.css" ABSOLUTE)
 # where each game can be bought (BYOPOP_BUY_<target>), shown under its terms
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopStores.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/ByopopOthers.cmake)
 # the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
 set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg cap.svg opener.svg)
 # web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
@@ -50,7 +51,7 @@ set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settings.js prof
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
 # game's page.js, which byopop_web_index() writes), copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js)
+set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -85,6 +86,12 @@ set(BYOPOP_WEB_UPCOMING
 # 2026-11-03: "Don't show a mods button for games with no mod support"; web/shell.html's MODS_SUPPORTED). A port that starts
 # loading mods leaves this list.
 set(BYOPOP_WEB_NO_MODS bonnies cosmicbugs mahjongchina mahjongjapan ningpo tiptop waterbugs wordharmony)
+# The fixes mod (docs/MOD_ROADMAP.md, "The fixes mod"; docs/WEB_PLAYER.md, "The fixes mod on the site"): a game's
+# games/<game>/mods/fixes is shipped beside its page as <game>-fixes/, and the page installs it on, unless the game is in
+# BYOPOP_WEB_NO_MODS. BYOPOP_WEB_TEST_FIXES names one game that has no fixes mod of its own to ship tools/webtest/fixes as
+# its fixes mod instead, for testing the install (off unless set: never in a build for the site).
+set(BYOPOP_WEB_TEST_FIXES "" CACHE STRING "A game to ship tools/webtest/fixes as its fixes mod (tests only)")
+get_filename_component(BYOPOP_WEB_TEST_FIXES_DIR "${CMAKE_CURRENT_LIST_DIR}/../tools/webtest/fixes" ABSOLUTE)
 set(BYOPOP_WEB_BADGES
   "bejeweled|BJ|#95233d" "bigmoney|BM|#1f8438" "bookworm|BW|#955c23" "noahsark|NA|#234995" "sevenseas|7S|#1e8080"
   "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
@@ -669,9 +676,40 @@ function(byopop_web_shell var target pagedir)
   else()
     string(REPLACE "@BYOPOP_MODS_SUPPORTED@" "true" page "${page}")
   endif()
+  # the game's fixes mod: its files copied to <target>-fixes/, and {version, files} for the page (null: none)
+  set(fixes_dir ${CMAKE_CURRENT_SOURCE_DIR}/mods/fixes)
+  if(NOT EXISTS ${fixes_dir}/mod.json AND BYOPOP_WEB_TEST_FIXES STREQUAL target)
+    set(fixes_dir ${BYOPOP_WEB_TEST_FIXES_DIR})
+  endif()
+  set(fixes "null")
+  file(REMOVE_RECURSE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}-fixes)
+  if(EXISTS ${fixes_dir}/mod.json AND NOT target IN_LIST BYOPOP_WEB_NO_MODS)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${fixes_dir}/mod.json)
+    file(READ ${fixes_dir}/mod.json fixes_json)
+    string(JSON fixes_version ERROR_VARIABLE fixes_error GET "${fixes_json}" version)
+    if(fixes_error)
+      set(fixes_version "")
+    endif()
+    file(GLOB_RECURSE fixes_files RELATIVE ${fixes_dir} CONFIGURE_DEPENDS ${fixes_dir}/*)
+    list(SORT fixes_files)
+    set(fixes_list "")
+    foreach(f ${fixes_files})
+      configure_file(${fixes_dir}/${f} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}-fixes/${f} COPYONLY)
+      string(APPEND fixes_list "\"${f}\",")
+    endforeach()
+    string(REGEX REPLACE ",$" "" fixes_list "${fixes_list}")
+    set(fixes "{\"version\": \"${fixes_version}\", \"files\": [${fixes_list}]}")
+  endif()
+  string(REPLACE "@BYOPOP_FIXES@" "${fixes}" page "${page}")
   file(READ ${BYOPOP_WEB_FOOTER} footer)
   file(READ ${BYOPOP_WEB_FOOTER_CSS} css)
   string(REPLACE "@BYOPOP_COPYRIGHT_PAGE@" "${copyright_page}" footer "${footer}")
+  # the footer's one-sentence notice: the game's copyright up to "All rights reserved." (its trademark lines are on the page
+  # the link opens)
+  string(REGEX REPLACE "(All rights reserved\\.).*$" "\\1" notice "${arg_COPYRIGHT}")
+  string(REPLACE "&" "&amp;" notice "${notice}")
+  string(REPLACE "<" "&lt;" notice "${notice}")
+  string(REPLACE "@BYOPOP_NOTICE@" "${notice}" footer "${footer}")
   byopop_web_fill(footer title "${arg_TITLE}")
   byopop_web_insert(page "<!-- byopop:footer -->" "${footer}")
   string(REPLACE "</head>" "<style>
@@ -978,6 +1016,8 @@ function(byopop_web_index)
   foreach(name ${BYOPOP_WEB_SHARED_JS} ${BYOPOP_WEB_INDEX_JS})
     configure_file(${BYOPOP_WEB_BRAND_DIR}/../${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
+  # the music player's licence (web/music.js links it): libopenmpt's, as openmpt.wasm is built from it
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libopenmpt.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libopenmpt.txt COPYONLY)
   byopop_web_strings_js()
   byopop_web_counter_js()
   byopop_web_terms_js()
@@ -991,6 +1031,46 @@ function(byopop_web_index)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")
+  # the games the site recognises but does not play (cmake/ByopopOthers.cmake), for the import on every page (web/gameimport.js)
+  set(other_games "")
+  set(other_separator "")
+  set(other_ids "")
+  foreach(row ${BYOPOP_OTHER_GAMES})
+    string(REPLACE "|" ";" fields "${row}")
+    list(LENGTH fields n)
+    # an empty project and url may leave fewer fields
+    while(n LESS 5)
+      list(APPEND fields "")
+      list(LENGTH fields n)
+    endwhile()
+    list(GET fields 0 other_id)
+    list(GET fields 1 other_title)
+    list(GET fields 2 other_markers)
+    list(GET fields 3 other_project)
+    list(GET fields 4 other_url)
+    if(NOT n EQUAL 5 OR NOT other_id MATCHES "^[a-z0-9]+$" OR other_title STREQUAL "" OR other_markers STREQUAL "")
+      message(FATAL_ERROR "BYOPOP_OTHER_GAMES (cmake/ByopopOthers.cmake) has the row \"${row}\", which is not <id>|<title>|<markers>|<project>|<url>")
+    endif()
+    if(other_id IN_LIST other_ids)
+      message(FATAL_ERROR "BYOPOP_OTHER_GAMES (cmake/ByopopOthers.cmake) lists ${other_id} twice")
+    endif()
+    list(APPEND other_ids ${other_id})
+    if((other_project STREQUAL "") AND NOT (other_url STREQUAL ""))
+      message(FATAL_ERROR "BYOPOP_OTHER_GAMES (cmake/ByopopOthers.cmake): ${other_id} has a url but no project")
+    endif()
+    if(NOT other_project STREQUAL "" AND NOT other_url MATCHES "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+      message(FATAL_ERROR "BYOPOP_OTHER_GAMES (cmake/ByopopOthers.cmake): ${other_id}'s project is not a GitHub project's page")
+    endif()
+    if(NOT other_project STREQUAL "" AND ";${BYOPOP_WEB_UPCOMING};" MATCHES ";${other_id}\\|")
+      message(FATAL_ERROR "BYOPOP_OTHER_GAMES (cmake/ByopopOthers.cmake): ${other_id} is one of the site's games to come, so it links no project")
+    endif()
+    string(REPLACE "," "\", \"" other_markers "${other_markers}")
+    string(REPLACE "\"" "\\\"" other_title_js "${other_title}")
+    string(APPEND other_games "${other_separator}  {\"id\": \"${other_id}\", \"title\": \"${other_title_js}\", \"markers\": [\"${other_markers}\"], "
+      "\"project\": \"${other_project}\", \"url\": \"${other_url}\"}")
+    set(other_separator ",\n")
+  endforeach()
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/other-games.js "var ByopopOtherGames = [\n${other_games}\n];\n")
   # each listed game's terms, for the agreement the listing page asks for before it adds a game's files (web/addgames.js):
   # the same text and version as the game's own terms card
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/terms-games.js "var ByopopTermsTexts = {\n${terms_games}\n};\n")
@@ -1026,6 +1106,15 @@ function(byopop_web_jungle)
   endforeach()
 endfunction()
 if(EMSCRIPTEN)
+  # The music player's decoder (web/music/openmpt_web.c, web/music.js; docs/WEB_PLAYER.md, "The music player"): libopenmpt on its
+  # own, as openmpt.js and openmpt.wasm beside the pages, which the listing page loads when its Music tab is first opened
+  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c)
+  target_link_libraries(byopop_openmpt PRIVATE openmpt stb)
+  set_target_properties(byopop_openmpt PROPERTIES OUTPUT_NAME openmpt SUFFIX ".js" LINKER_LANGUAGE CXX)
+  target_compile_options(byopop_openmpt PRIVATE -O2)
+  target_link_options(byopop_openmpt PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopOpenMPT" "-sALLOW_MEMORY_GROWTH=1"
+    "-sENVIRONMENT=web,node" "--no-entry" "-sEXPORTED_FUNCTIONS=_malloc,_free"
+    "-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32,HEAP16,HEAP32")
   # (a deferred call runs at the end of this directory, the top level, after every game's byopop_web_game())
   get_filename_component(BYOPOP_WEB_BRAND_DIR "${CMAKE_CURRENT_LIST_DIR}/../web/brand" ABSOLUTE)
   cmake_language(DEFER CALL byopop_web_index)

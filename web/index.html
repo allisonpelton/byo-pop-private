@@ -115,7 +115,8 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
   font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
 }
 .add-games:hover, .adding button:hover { border-color: var(--accent); }
-.add-games[hidden], .adding[hidden], .adding-rejected[hidden] { display: none; }
+.add-games[hidden], .adding[hidden], .adding-rejected[hidden], .adding-others[hidden] { display: none; }
+.adding-others p { margin: 0.4em 0; }
 .adding { margin: 0 0 16px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
 .adding-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .adding-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
@@ -249,12 +250,13 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .pl-current { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .pl-current input, .pl-names input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
 .pl-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
-#players button, #saves button {
+#players button, #saves button, #music button {
   font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
 }
-#players button:hover, #saves button:hover { border-color: var(--accent); }
+#players button:hover, #saves button:hover, #music button:hover { border-color: var(--accent); }
 #players button:focus-visible, #saves button:focus-visible, #players input:focus-visible, #saves input:focus-visible,
-#players summary:focus-visible, #saves summary:focus-visible, #saves select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#players summary:focus-visible, #saves summary:focus-visible, #saves select:focus-visible,
+#music button:focus-visible, #music input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #players button[disabled], #saves button[disabled] { opacity: 0.5; cursor: default; }
 #players button.pl-link { border: 0; background: none; color: var(--accent); padding: 0 2px; text-decoration: underline; font-size: inherit; }
 #players button.pl-danger, #saves button.pl-danger { border-color: #b3261e; color: #b3261e; }
@@ -294,6 +296,16 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .sv-report { margin-bottom: 8px; }
 .sv-report h3 { margin-top: 12px; }
 .pl-count { color: var(--muted); font-size: 13px; }
+/* The music player (web/music.js) */
+.mu-about, .mu-status { font-size: 13px; margin: 0 0 8px; }
+.mu-status { min-height: 1.4em; }
+.mu-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 12px; }
+.mu-bar label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+.mu-game { margin: 12px 0 4px; font-size: 14px; }
+.mu-tunes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 8px; }
+#music .mu-tune { width: 100%; display: flex; justify-content: space-between; gap: 8px; text-align: left; padding: 4px 10px; font-size: 13px; }
+#music .mu-tune[aria-current] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.mu-time { color: var(--muted); font-variant-numeric: tabular-nums; }
 /* The import from an installed game (web/saveimport.js) */
 #saves select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
 .si-help h4 { margin: 12px 0 8px; font-size: 14px; font-weight: 600; }
@@ -407,11 +419,12 @@ footer a { color: var(--accent); }
   <!-- Jungle Juice, the page for other projects' decompilations (web/jungle/index.html; the user, 2026-11-04: "the front page will
        link to it after the game tiles") -->
   <a class="jungle-link" href="jungle/"><span class="jungle-name">{{index.jungle.name}}</span> <span class="jungle-about">{{index.jungle.about}}</span></a>
-  <!-- The players, the saves and the settings, as tabs under the games (the tabs script below), each an icon of our own named by its
+  <!-- The players, the saves, the music and the settings, as tabs under the games (the tabs script below), each an icon of our own named by its
        aria-label, with the name as its tooltip (the user, 2026-11-03: "use icons rather than names") -->
   <div class="tabs" role="tablist" aria-label="{{index.tabs.label}}">
     <button type="button" role="tab" id="tab-players" aria-controls="players" aria-selected="true" aria-label="{{index.tabs.players}}" title="{{index.tabs.players}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14c2.8 0 5 2.2 5 5"/></svg></button>
     <button type="button" role="tab" id="tab-saves" aria-controls="saves" aria-selected="false" tabindex="-1" aria-label="{{index.tabs.saves}}" title="{{index.tabs.saves}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 4h12.5L20 7.5V20H4z"/><path d="M8 4v5h7V4"/><rect x="7.5" y="13" width="9" height="7"/></svg></button>
+    <button type="button" role="tab" id="tab-music" aria-controls="music" aria-selected="false" tabindex="-1" aria-label="{{index.tabs.music}}" title="{{index.tabs.music}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 18V5.5l11-2.5v12.5"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/></svg></button>
     <button type="button" role="tab" id="tab-settings" aria-controls="settings" aria-selected="false" tabindex="-1" aria-label="{{index.tabs.settings}}" title="{{index.tabs.settings}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/><circle cx="12" cy="12" r="6.5"/></svg></button>
   </div>
   <section id="players" class="tabpanel" role="tabpanel" aria-labelledby="tab-players" tabindex="0">
@@ -421,6 +434,10 @@ footer a { color: var(--accent); }
   <section id="saves" class="tabpanel" role="tabpanel" aria-labelledby="tab-saves" tabindex="0" hidden>
     <h2 class="pl-sr">{{index.saves.heading}}</h2>
     <div id="saves-body"></div>
+  </section>
+  <section id="music" class="tabpanel" role="tabpanel" aria-labelledby="tab-music" tabindex="0" hidden>
+    <h2 class="pl-sr">{{index.music.heading}}</h2>
+    <div id="music-body"></div>
   </section>
   <section id="settings" class="tabpanel" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
     <h2 class="pl-sr">{{index.settings.heading}}</h2>
@@ -440,6 +457,8 @@ footer a { color: var(--accent); }
 <script src="saveimport-table.js"></script>
 <script src="saveimport.js"></script>
 <script src="saves.js"></script>
+<script src="soundtracks.js"></script>
+<script src="music.js"></script>
 <!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
      import rules and each listed game's page.js (import-games.js, written by the build) -->
 <script>var Module = {};</script>
@@ -448,6 +467,7 @@ footer a { color: var(--accent); }
 <script src="gameimport.js"></script>
 <script src="capanim.js"></script>
 <script src="import-games.js"></script>
+<script src="other-games.js"></script>
 <script src="terms-games.js"></script>
 <script src="addgames.js"></script>
 <script>
@@ -468,6 +488,12 @@ try {
       lock: t.getAttribute("data-lock") || "", replays: t.getAttribute("data-replays") === "1" };
   }));
 } catch (e) { document.getElementById("saves-body").textContent = ByopopStrings.t("index.saves.unavailable"); }
+// The music section (web/music.js): the tunes of the games whose files are here, read when the tab is first opened
+try {
+  window.ByopopMusicPanel = ByopopMusic.init(document.getElementById("music-body"), Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
+    return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent, persist: t.getAttribute("data-persist") };
+  }));
+} catch (e) { document.getElementById("music-body").textContent = ByopopStrings.t("music.unavailable"); }
 </script>
 <script>
 // Games no longer sold (docs/WEB_PLAYER.md, "The listing page"; the user, 2026-11-03: "add an option to hide games that can no

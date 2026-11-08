@@ -54,11 +54,63 @@ const int kScreenWidth = 800;
 const int kScreenHeight = 600;
 const int kChannels = 64;  // FMOD 3 was opened with 64 (docs/ENGINE.md, Sound)
 
+// The game's text is Latin-1, as the original's ANSI file names are on Windows; the browser's file system takes UTF-8,
+// so on the web the names of players with an accented letter are written to it and listed from it as
+// UTF-8. Natively the bytes go as they are, as the original's do.
+std::string FileName(const std::string& theText)
+{
+#ifdef __EMSCRIPTEN__
+	std::string aName;
+	for (char c : theText)
+	{
+		unsigned char u = (unsigned char)c;
+		if (u < 0x80)
+			aName += c;
+		else
+		{
+			aName += (char)(0xc0 | (u >> 6));
+			aName += (char)(0x80 | (u & 0x3f));
+		}
+	}
+	return aName;
+#else
+	return theText;
+#endif
+}
+
+std::string GameText(const std::string& theName)
+{
+#ifdef __EMSCRIPTEN__
+	std::string aText;
+	for (size_t i = 0; i < theName.size(); i++)
+	{
+		unsigned char u = (unsigned char)theName[i];
+		if (u < 0x80)
+			aText += (char)u;
+		else if ((u & 0xe0) == 0xc0 && i + 1 < theName.size())
+		{
+			int aChar = ((u & 0x1f) << 6) | ((unsigned char)theName[++i] & 0x3f);
+			aText += aChar < 0x100 ? (char)aChar : '?';
+		}
+		else
+		{
+			// a character beyond Latin-1: its continuation bytes
+			while (i + 1 < theName.size() && ((unsigned char)theName[i + 1] & 0xc0) == 0x80)
+				i++;
+			aText += '?';
+		}
+	}
+	return aText;
+#else
+	return theName;
+#endif
+}
+
 // A path of the game's ("SavedGames/x.gam") in the user's folder, its folders made when theCreate
 std::string UserPath(const std::string& thePath, bool theCreate)
 {
 	const std::string& aDir = Platform::VFS::Get().GetUserDir();
-	std::string aRel = Platform::VFS::Normalize(thePath);
+	std::string aRel = Platform::VFS::Normalize(FileName(thePath));
 	std::string aFound = Platform::VFS::FindCaseInsensitive(aDir, aRel);
 	if (!aFound.empty() || !theCreate)
 		return aFound;
@@ -386,7 +438,25 @@ public:
 		std::string aRoots[2] = {Platform::VFS::Get().GetUserDir(), Platform::VFS::Get().GetBaseDir()};
 		for (const std::string& aRoot : aRoots)
 		{
-			std::string aDir = aRel.empty() ? aRoot : Platform::VFS::FindCaseInsensitive(aRoot, aRel);
+			// the folder's own name in any case (VFS::FindCaseInsensitive finds files only)
+			std::string aDir = aRoot;
+			size_t aStart = 0;
+			while (!aRel.empty() && !aDir.empty() && aStart <= aRel.size())
+			{
+				size_t anEnd = aRel.find('/', aStart);
+				if (anEnd == std::string::npos)
+					anEnd = aRel.size();
+				std::string aPart = Lower(aRel.substr(aStart, anEnd - aStart));
+				std::string aNext;
+				for (const std::string& aName : Platform::ListDirectory(aDir))
+					if (Lower(aName) == aPart && Platform::IsDirectory(aDir + "/" + aName))
+					{
+						aNext = aDir + "/" + aName;
+						break;
+					}
+				aDir = aNext;
+				aStart = anEnd + 1;
+			}
 			if (aDir.empty() || !Platform::IsDirectory(aDir))
 				continue;
 			std::vector<std::string> aFound = Platform::ListDirectory(aDir);
@@ -400,7 +470,7 @@ public:
 				if (std::find(aLower.begin(), aLower.end(), aKey) != aLower.end())
 					continue;
 				aLower.push_back(aKey);
-				aNames.push_back(aName);
+				aNames.push_back(GameText(aName));
 			}
 		}
 		return aNames;
@@ -620,6 +690,11 @@ public:
 	void* loadSong(const std::string& thePath) override
 	{
 		int aSong = Platform::Mixer::Get().LoadSong(thePath);
+		// libopenmpt mixes an XM's channels at its sample pre-amp of 48 (soundlib/Sndfile.cpp; MixLevels::Compatible,
+		// Sndmix.cpp), FMOD 3 at the full 256: the original's menu music, recorded through origrun, is 5.3 times as
+		// loud as the port's was, its sounds as loud
+		if (aSong > 0)
+			Platform::Mixer::Get().SetSongAmplify(aSong, 256.0f / 48.0f);
 		return aSong > 0 ? (void*)(intptr_t)aSong : nullptr;
 	}
 
