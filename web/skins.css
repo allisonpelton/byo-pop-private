@@ -187,3 +187,66 @@
 :root[data-skin="d95"] .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 :root[data-skin="demo"] .site-header .logo-dark, :root[data-skin="demo"] .brand .logo-dark,
 :root[data-skin="d95"] .site-header .logo-dark { display: block; }
+
+/* ======================= the setup wizard (web/skins.js, ByopopSkin.wizard): a game's cards before play ======================= */
+/* Plain draws none of it */
+.wiz-head, .wiz-art { display: none; }
+:root[data-skin] .wiz-card { position: relative; grid-template-columns: 112px minmax(0, 1fr); max-width: 620px; padding: 0 20px 20px 0; gap: 12px 18px; overflow: hidden; align-items: start; align-content: start; }
+:root[data-skin] .wiz-card > * { grid-column: 2; }
+:root[data-skin] .wiz-card > .wiz-head { display: grid; gap: 6px; grid-column: 1 / -1; margin-right: -20px; padding: 7px 12px; position: relative; z-index: 1; }
+/* the art column fills the card's height at its left, under the title bar */
+:root[data-skin] .wiz-card > .wiz-art { display: grid; justify-items: center; align-content: start; gap: 12px; position: absolute; left: 0; top: 0; bottom: 0; width: 112px; padding: 70px 0 18px; box-sizing: border-box;
+  grid-column: auto; grid-row: auto; /* an absolute grid item's containing block is its grid area: none, the card's padding box */ }
+:root[data-skin] .wiz-card > .page-cap { grid-column: 1; grid-row: 2; justify-self: center; margin-top: 18px; position: relative; z-index: 1; }
+:root[data-skin] .wiz-card:has(> .page-cap) > .wiz-art { padding-top: 150px; }
+.wiz-title { font-weight: bold; }
+.wiz-steps { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; font-size: 11.5px; }
+.wiz-steps li { padding: 1px 8px; border-radius: 999px; opacity: .75; }
+.wiz-card[data-wiz-step="0"] .wiz-steps li:nth-child(1), .wiz-card[data-wiz-step="1"] .wiz-steps li:nth-child(2),
+.wiz-card[data-wiz-step="2"] .wiz-steps li:nth-child(3), .wiz-card[data-wiz-step="3"] .wiz-steps li:nth-child(4) { opacity: 1; font-weight: bold; }
+/* the cap, as the listing draws a game's badge */
+.wiz-cap { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; color: #ffffff; font-size: 22px; font-weight: 700;
+  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0,0,0,.2) 69% 73%, transparent 74% 84%, rgba(0,0,0,.16) 85%), var(--tile);
+  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat; }
+/* C's bottle, filling with the copy (--wiz-fill, the import's progress) and full at Finish */
+.wiz-bottle { display: none; width: 52px; height: 124px; border-radius: 20px 20px 10px 10px / 36px 36px 10px 10px; border: 3px solid #7aa7a0; position: relative; overflow: hidden; background: #eef7f6; }
+.wiz-bottle i { position: absolute; left: 0; right: 0; bottom: 0; height: var(--wiz-fill, 0%); background: linear-gradient(#b5452c, #7a2210); transition: height 200ms linear; }
+.wiz-card[data-wiz-step="3"] .wiz-bottle i { height: 100%; }
+.wiz-title-bottle { display: none; }
+
+/* A: the blue setup window of the portals' installers; dark: black glass */
+:root[data-skin="demo"] .wiz-card > .wiz-head { background: linear-gradient(#3b8af2, #1953c8 45%, #1d58cf); color: #ffffff; }
+:root[data-skin="demo"] .wiz-steps li { background: rgba(255,255,255,.15); }
+:root[data-skin="demo"] .wiz-card > .wiz-art { background: linear-gradient(160deg, #2a7ddd, #8cc8ff); }
+@media (prefers-color-scheme: dark) { :root[data-skin="demo"]:not([data-theme="light"]) .wiz-card > .wiz-head { background: linear-gradient(#3a4656, #19202a 50%, #0b0f15 51%, #141b24); border-bottom: 1px solid #3fa9ff; }
+  :root[data-skin="demo"]:not([data-theme="light"]) .wiz-card > .wiz-art { background: radial-gradient(circle at 50% 30%, #1f7fd6, #0a2342 75%); } }
+:root[data-skin="demo"][data-theme="dark"] .wiz-card > .wiz-head { background: linear-gradient(#3a4656, #19202a 50%, #0b0f15 51%, #141b24); border-bottom: 1px solid #3fa9ff; }
+:root[data-skin="demo"][data-theme="dark"] .wiz-card > .wiz-art { background: radial-gradient(circle at 50% 30%, #1f7fd6, #0a2342 75%); }
+:root[data-skin="demo"] .progress { height: 14px; border-radius: 3px; border: 1px solid var(--line); background: var(--panel); padding: 1px; }
+:root[data-skin="demo"] .progress > div { background: repeating-linear-gradient(90deg, #39b54a 0 8px, transparent 8px 10px); border-radius: 0; }
+
+/* B: a window with a title bar, the wizard's picture at the left, a chunked progress bar */
+:root[data-skin="d95"] .card { background: var(--panel); border: 0; border-radius: 0; padding: 18px;
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
+:root[data-skin="d95"] .wiz-card { padding: 3px 14px 14px 3px; }
+:root[data-skin="d95"] .wiz-card > .wiz-head { background: var(--sk-title); color: var(--sk-title-fg); margin-right: -11px; padding: 3px 6px; }
+:root[data-skin="d95"] .wiz-steps { display: none; }
+:root[data-skin="d95"] .wiz-card > .wiz-art { background: linear-gradient(var(--bg), color-mix(in srgb, var(--bg) 60%, #000)); left: 11px; top: 11px; bottom: 11px; width: 96px;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
+:root[data-skin="d95"] .progress { height: 18px; border-radius: 0; padding: 3px; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk); }
+:root[data-skin="d95"] .progress > div { background: repeating-linear-gradient(90deg, var(--accent) 0 9px, transparent 9px 11px); }
+
+/* C: the bottling line, the bottle at the left */
+:root[data-skin="soda"] .wiz-card { border: 2px solid var(--accent); }
+:root[data-skin="soda"] .wiz-card > .wiz-head { background: var(--accent); color: var(--accent-fg); }
+:root[data-skin="soda"] .wiz-title-setup { display: none; }
+:root[data-skin="soda"] .wiz-title-bottle { display: inline; font: 17px var(--sk-sign); }
+:root[data-skin="soda"] .wiz-steps li { border: 1px solid currentColor; }
+:root[data-skin="soda"] .wiz-cap { display: none; }
+:root[data-skin="soda"] .wiz-bottle { display: block; }
+:root[data-skin="soda"] .wiz-card > .page-cap { margin-top: 10px; transform: scale(.7); }
+@media (prefers-color-scheme: dark) { :root[data-skin="soda"]:not([data-theme="light"]) .wiz-bottle { background: #0f1d1b; border-color: #4fa89b; box-shadow: 0 0 16px rgba(79,224,200,.35); }
+  :root[data-skin="soda"]:not([data-theme="light"]) .wiz-card { box-shadow: 0 0 14px rgba(255,59,92,.45); } }
+:root[data-skin="soda"][data-theme="dark"] .wiz-bottle { background: #0f1d1b; border-color: #4fa89b; box-shadow: 0 0 16px rgba(79,224,200,.35); }
+:root[data-skin="soda"][data-theme="dark"] .wiz-card { box-shadow: 0 0 14px rgba(255,59,92,.45); }

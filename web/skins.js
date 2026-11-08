@@ -121,9 +121,63 @@ var ByopopSkin = (function () {
     try { d.showModal(); } catch (e) { d.remove(); }
   }
 
+  // ---------- the setup wizard ----------
+  // A game page's three cards before play (the terms, the import, Ready: web/shell.html) become the pages of a setup wizard in
+  // a skin: a title bar ("byo-pop Setup: <game>", in C "Bottling <game>"), the steps Licence, Your folder, Copying and Finish
+  // with the current one marked, and an art column with the game's cap (the import card's own cap, which the opener still takes
+  // off) or C's bottle, which fills as the files are copied. The cards keep their own contents and buttons: the terms card is the
+  // licence page with every rule it has (docs/WEB_PLAYER.md, "The terms"). The parts are always in the page, and drawn only in a
+  // skin (web/skins.css), so a change of skin needs nothing here; they are hidden from assistive technology, which reads the
+  // cards as they are.
+  //   o: { game: the game's title, cards: [[element, step], ...] (step 0 to 3), bar: the import's progressbar, cap: {colour, text} }
+  var STEPS = ["skin.wiz.licence", "skin.wiz.folder", "skin.wiz.copying", "skin.wiz.finish"];
+  function wizard(o) {
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+    var heads = [];
+    o.cards.forEach(function (c) {
+      var card = c[0], step = c[1];
+      if (!card || card.querySelector(".wiz-head")) return;
+      card.classList.add("wiz-card");
+      card.setAttribute("data-wiz-step", String(step));
+      var head = el("div", "wiz-head");
+      head.setAttribute("aria-hidden", "true");
+      head.appendChild(el("span", "wiz-title wiz-title-setup", ByopopStrings.t("skin.wiz.title", { game: o.game })));
+      head.appendChild(el("span", "wiz-title wiz-title-bottle", ByopopStrings.t("skin.wiz.bottling", { game: o.game })));
+      var ol = el("ol", "wiz-steps");
+      STEPS.forEach(function (k) { ol.appendChild(el("li", "", T(k))); });
+      head.appendChild(ol);
+      card.insertBefore(head, card.firstChild);
+      var art = el("div", "wiz-art");
+      art.setAttribute("aria-hidden", "true");
+      if (!card.querySelector(".page-cap")) {
+        var cap = el("span", "wiz-cap", o.cap.text);
+        cap.style.setProperty("--tile", o.cap.colour);
+        art.appendChild(cap);
+      }
+      var bottle = el("span", "wiz-bottle");
+      bottle.appendChild(el("i"));
+      art.appendChild(bottle);
+      card.insertBefore(art, head.nextSibling);
+      heads.push(card);
+    });
+    // the import card is "Your folder" until the copy starts, then "Copying"; the bottle fills with it
+    if (o.bar && window.MutationObserver) {
+      var follow = function () {
+        var v = Number(o.bar.getAttribute("aria-valuenow")) || 0;
+        heads.forEach(function (card) {
+          card.style.setProperty("--wiz-fill", v + "%");
+          if (card.getAttribute("data-wiz-step") === "1" || card.getAttribute("data-wiz-step") === "2")
+            card.setAttribute("data-wiz-step", v > 0 ? "2" : "1");
+        });
+      };
+      new MutationObserver(follow).observe(o.bar, { attributes: true, attributeFilter: ["aria-valuenow"] });
+      follow();
+    }
+  }
+
   apply();
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(); });
   window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "skin") apply(); });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", askOnce); else askOnce();
-  return { SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply };
+  return { SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard };
 })();

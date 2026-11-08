@@ -715,8 +715,16 @@ How a skin is written: each one sets the pages' own colour variables (`--bg`, `-
 `--line`, `--accent`, `--accent-fg`, `--font-ui`, `--radius`) and its own `--sk-*` ones, once for light and once for dark in the
 pages' two dark forms (web/theme.js); the rules after them only read variables, so each is written once for both themes.
 Period fonts are named and never shipped (Verdana for A; the 1995 desktop's sans serif, then Tahoma, for B; Cooper Black, then
-Bookman and Georgia, for C's signs). Still to come: the setup wizard with the terms as its licence page, the cap board, and
-Desktop 95's windows.
+Bookman and Georgia, for C's signs).
+
+**The setup wizard.** In a skin, a game page's three cards before play, the terms, the import and Ready, are the pages of a setup
+wizard (`ByopopSkin.wizard`, called by web/shell.html): a title bar ("byo-pop Setup: <game>", in C "Bottling <game>"), the steps
+Licence, Your folder, Copying and Finish with the current one marked (the import card is Copying while its progress bar moves),
+and an art column at the left with the game's cap (on the import card its own cap, which the opener still takes off) or, in C, a
+bottle that fills with the copy and is full at Finish. The cards keep their contents, buttons and rules: the terms card is the
+licence page (the user, 2026-11-07: "Yes, as the licence page") and keeps everything in "The terms", development hosts and the
+test key included. The wizard's parts are always in the page, hidden from assistive technology (the cards read as they are)
+and drawn only in a skin, so changing the skin needs no script. Still to come: the cap board and Desktop 95's windows.
 
 ### Light and dark
 

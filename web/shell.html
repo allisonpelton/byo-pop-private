@@ -1816,6 +1816,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     document.documentElement.classList.toggle("chat-attached", setting("chatPlace") === "game");
     if (chat) chat.layout();
   }
+  // the cards before play as a setup wizard's pages, drawn only in a skin (web/skins.js, ByopopSkin.wizard)
+  try {
+    ByopopSkin.wizard({ game: $("brand-name").textContent, bar: $("import-bar"),
+      cap: { colour: $("page-cap").style.getPropertyValue("--tile"), text: $("page-cap").textContent },
+      cards: [[$("terms-card"), 0], [$("import-card"), 1], [$("start-card"), 3]] });
+  } catch (e) { console.warn("the wizard's parts could not be added", e); }
   placeChat();
   sizeStage();
   if (PAGE.init) PAGE.init();

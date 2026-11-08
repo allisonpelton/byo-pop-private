@@ -29,6 +29,12 @@ skin.pick.title = Pick a look for the site
 skin.pick.text = Each comes in a light and a dark version and changes only the page around the games.
 skin.pick.plain = No thanks, keep it plain
 skin.pick.later = You can change it any time in Settings.
+skin.wiz.title = byo-pop Setup: {game}
+skin.wiz.bottling = Bottling {game}
+skin.wiz.licence = Licence
+skin.wiz.folder = Your folder
+skin.wiz.copying = Copying
+skin.wiz.finish = Finish
 settings.skin.label = Skin
 settings.skin.hint = The site's look around the game. The game itself never changes.
 
