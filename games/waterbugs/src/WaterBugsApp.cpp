@@ -1,8 +1,10 @@
 // The port's host for Water Bugs (see WaterBugsApp.h).
 
 #include "WaterBugsApp.h"
+#include "ModFeatures.h"
 #include "WBGlobals.h"
 #include "WBLevel.h"
+#include "testhooks/TestCommands.h"
 #include "R64.h"
 #include "R64Sys.h"
 #include "DDInterface.h"
@@ -32,6 +34,9 @@ namespace
 const double kOutputVolume = 0.6;
 
 r64::PixelFormat gScreenFormat565;
+
+// fixes mod, "steadyClock": the game's clock runs on the framework's updates (mFrameTime ms each) instead of the machine's
+bool gSteadyClock = false;
 
 // The framework's side of the engine's system layer
 class WaterBugsHost : public r64::SysHost
@@ -77,7 +82,14 @@ public:
 
 	uint32_t TimeMs() override
 	{
+		if (gSteadyClock)
+			return 1000u + (uint32_t)gApp->mUpdateCount * (uint32_t)gApp->mFrameTime;
 		return gApp->GetClockTime();
+	}
+
+	bool FixOn(const char* theFix) override
+	{
+		return Sexy::FixOn(theFix);
 	}
 
 	// The original's activation (its WndProc's WM_ACTIVATEAPP) is the framework's mActive, set from SDL's focus
@@ -320,6 +332,7 @@ void WaterBugsApp::Init()
 	SexyAppBase::Init();
 	if (mShutdown)
 		return;
+	gSteadyClock = !mFastMode && Sexy::FixOn("steadyClock");	// a -fast run is steady already
 	r64::PixelFormat_Init(&gScreenFormat565, 16, 0xf800, 0x7e0, 0x1f);
 	r64::Sys_SetScreenFormat(&gScreenFormat565);
 	r64::Sys_SetHost(&gHost);
@@ -410,15 +423,22 @@ void WaterBugsApp::SetGameScreenMode(bool theFullscreen)
 	mApplyingGameMode = false;
 }
 
-// The original moves the system's pointer (0x428d70); on the web, and in a test run, only the game's moves, until
-// the real one does
+// The original moves the system's pointer (0x428d70), and the pointer's move reaches the window as a mouse move. Where the
+// port does not move it (in a test run, on the web, with the window inactive) the warp goes to the framework as that
+// move: its widget manager passes on only moves from the position it knew, and a driver's pointer (-realinput) moves
+// with it, so that a move back to the point it moved to before the warp is a move again, as it is for a hand
 void WaterBugsApp::WarpMouse(int x, int y)
 {
 	mMouseX = x;
 	mMouseY = y;
 #ifndef __EMSCRIPTEN__
+	if (mRealMouseX >= 0 && mDDInterface != nullptr)
+		mDDInterface->LogicalToWindow(x, y, &mRealMouseX, &mRealMouseY);
 	if (IsTestRun() || !mActive || mDDInterface == nullptr || mHWnd == nullptr)
+	{
+		FollowWarp(x, y);
 		return;
+	}
 	DDInterface* aDisplay = mDDInterface;
 	double aX = x;
 	double aY = y;
@@ -436,7 +456,17 @@ void WaterBugsApp::WarpMouse(int x, int y)
 		aY = aY * aWindowHeight / aDisplay->mDisplayHeight;
 	}
 	SDL_WarpMouseInWindow(mHWnd, (int)aX, (int)aY);
+#else
+	FollowWarp(x, y);
 #endif
+}
+
+void WaterBugsApp::FollowWarp(int x, int y)
+{
+	mLastMouseX = x;
+	mLastMouseY = y;
+	if (mWidgetManager != nullptr)
+		mWidgetManager->MouseMove(x, y);
 }
 
 // The window's close button: WM_DESTROY's (0x42ac80) end of the game
@@ -463,10 +493,14 @@ void WaterBugsApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 
 bool WaterBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
-	if (theCommand.mCommand != "state")
-		return SexyAppBase::HandleScriptCommand(theCommand);
-	wb::Level* aLevel = wb::gLevels.current;
-	SDL_Log("state: score %d, lives %d, board %d, filled %d of %d%%", wb::gScore, wb::gLives, wb::gLevelInSet,
-		aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
-	return true;
+	if (theCommand.mCommand == "state")
+	{
+		// (the check suite reads this line)
+		wb::Level* aLevel = wb::gLevels.current;
+		SDL_Log("state: score %d, lives %d, board %d, filled %d of %d%%", wb::gScore, wb::gLives, wb::gLevelInSet,
+			aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+	}
+	if (wb::HandleTestCommand(this, theCommand))
+		return true;
+	return SexyAppBase::HandleScriptCommand(theCommand);
 }

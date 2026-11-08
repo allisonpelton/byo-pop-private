@@ -816,7 +816,7 @@ static void AddText(Level* theLevel, const char* theString, int theX, int theY, 
 
 // The board is filled: the records, the frame's cells, the texts and the bonus, and every enemy and shooter told
 // to leave
-static void Level_Won(Level* theLevel)
+void Level_Won(Level* theLevel)
 {
 	char aText[64];
 	int aProfile = gProfile;

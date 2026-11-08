@@ -495,6 +495,7 @@ void Level_Draw(Level* theLevel);                                // 0x410c60
 void Star_Append(List<Obj>* theList);                            // 0x4110b0
 void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond); // 0x411430
 void Level_ShowStart(Level* theLevel);                           // 0x411700: the level number and quota
+void Level_Won(Level* theLevel);                                 // the board is filled (the test commands' win)
 void Level_GameOver(Level* theLevel);                            // 0x412200
 
 } // namespace wb

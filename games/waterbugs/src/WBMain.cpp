@@ -500,6 +500,33 @@ void GoToScreen()
 // An update: a screen that is left (or '.' pressed) gives way to gGoTo's, a board to the next level of the file read
 // again (the levels before it dropped). Esc leaves the main menu for good; on a board it asks whether to quit
 // (gEscape); elsewhere it goes to the main menu.
+bool LeaveScreen()
+{
+	if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
+		List_RemoveCurrent(&gLevels);
+	else
+		Level_UnlinkAll(gLevels.current);
+	GoToScreen();
+	if (gLevels.current->kind == 0)
+	{
+		for (; gLevelInSet != 0; gLevelInSet = gLevelInSet + -1)
+		{
+			if (gLevels.current != nullptr)
+				gLevels.current = gLevels.head;
+			if (gLevels.current->musicPending != 0)
+				gLevelInSet = gLevelInSet + 1;
+			List_RemoveCurrent(&gLevels);
+			if (gLevels.current != nullptr)
+				gLevels.current = gLevels.head;
+		}
+		Level_StartSong(gLevels.current, 0);
+	}
+	if (gLevels.current == nullptr)
+		return false;
+	Screen_Redraw();
+	return true;
+}
+
 void GameStep()
 {
 	gFrame = gFrame + 1;
@@ -507,31 +534,10 @@ void GameStep()
 	{
 		if (Level_Update(gLevels.current) == 0 || Key_Pressed(0xbe) != 0)
 		{
-			if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
-				List_RemoveCurrent(&gLevels);
-			else
-				Level_UnlinkAll(gLevels.current);
-			GoToScreen();
-			if (gLevels.current->kind == 0)
-			{
-				for (; gLevelInSet != 0; gLevelInSet = gLevelInSet + -1)
-				{
-					if (gLevels.current != nullptr)
-						gLevels.current = gLevels.head;
-					if (gLevels.current->musicPending != 0)
-						gLevelInSet = gLevelInSet + 1;
-					List_RemoveCurrent(&gLevels);
-					if (gLevels.current != nullptr)
-						gLevels.current = gLevels.head;
-				}
-				Level_StartSong(gLevels.current, 0);
-			}
-			if (gLevels.current == nullptr)
-				goto escape;
-			Screen_Redraw();
+			// (a screen left: the next one, or the end of the game file's levels)
+			LeaveScreen();
 		}
 	}
-escape:
 	if (Key_Pressed(0x1b) == 0)
 	{
 		gEscape = 0;

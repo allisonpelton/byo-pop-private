@@ -129,6 +129,7 @@ void GameInit();                                                 // 0x40d030
 void FreeAll();                                                  // 0x40d590
 void GoToScreen();                                               // 0x40d5e0: the screen of kind gGoTo
 void GameStep();                                                 // 0x40d890
+bool LeaveScreen();                                              // GameStep's change of screen to gGoTo's (false: no level is left)
 void GameDraw();                                                 // 0x40d070
 // The start (WBStart.cpp)
 extern char gGameFile[0x100];              // 0x4622e0  the game file read next

@@ -292,9 +292,15 @@ void MenuItem_Draw(MenuItem* theItem)
 	{
 		if (gDifficulty == -1)
 		{
-			// (the original's format for the easiest has "5s" for "%s", so the drawn text shows "5s" there)
-			AppendTo(aDrawn, "%s^%d5s", (2 - theItem->hot) * 2, Localize(GT(0x459494)));
-			strcat(aShown, Localize(GT(0x459494)));
+			// (the original's format for the easiest has "5s" for "%s", so the drawn text shows "5s" there; fixes mod,
+			// "easyLabel": the name, as for the other two)
+			if (Sys_FixOn("easyLabel"))
+				AddValue(aShown, aDrawn, theItem->hot, GT(0x459494));
+			else
+			{
+				AppendTo(aDrawn, "%s^%d5s", (2 - theItem->hot) * 2, Localize(GT(0x459494)));
+				strcat(aShown, Localize(GT(0x459494)));
+			}
 		}
 		else if (gDifficulty == 0)
 			AddValue(aShown, aDrawn, theItem->hot, GT(0x459484));
