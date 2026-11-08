@@ -203,6 +203,11 @@ Dialog* AstroPopApp::MakeDialog(int theId, bool theFlag, int theWidth, int theX,
 	return NULL;
 }
 
+void AstroPopApp::Fn412730()
+{
+	SDL_Log("AstroPop: Fn412730 not translated yet (0x412730)");
+}
+
 void AstroPopApp::StartGame(bool theContinue)
 {
 	SDL_Log("AstroPop: StartGame(%d) not translated yet (0x428c70)", theContinue ? 1 : 0);

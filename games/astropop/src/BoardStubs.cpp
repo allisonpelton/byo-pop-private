@@ -25,9 +25,9 @@ void Board::LoadLevel(bool theFlag)
 	NOT_TRANSLATED("LoadLevel", "0x4663f0");
 }
 
-bool Board::Fn46a810()
+bool Board::Fn468e70()
 {
-	NOT_TRANSLATED("Fn46a810", "0x46a810");
+	NOT_TRANSLATED("Fn468e70", "0x468e70");
 	return false;
 }
 

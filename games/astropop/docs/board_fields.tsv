@@ -15,6 +15,7 @@ f8	std::vector<int>	mf8
 128	std::set<Brick*>	m128	the bricks to delete (DeleteDoomedBricks)
 134	std::set<int>	m134	a set that GameOver empties (element type not seen yet)
 140	std::vector<FloatText*>	m140	the texts that float up the screen
+150	std::vector<WarpStar*>	m150	the 15 warp stars that fall over the warp screen (Fn46a810)
 160	std::vector<PlanetRec>	m160	the planets (5 are stepped)
 170	std::vector<StreakRec>	m170	the streaks (100)
 180	std::vector<SpawnRules>	m180	the spawn rules of the field (only the first is read)
@@ -245,10 +246,15 @@ ade	int	made	?
 19d4	int	m19d4	?
 19d8	int	m19d8	?
 19dc	int	m19dc	?
+19e0	int	m19e0	?
+19e4	int	m19e4	?
+19e8	int	m19e8	?
+19ec	int	m19ec	?
 19f0	int	m19f0	?
 19f4	int	m19f4	?
 19f8	int	m19f8	?
 19fc	int	m19fc	?
+1a0c	int	m1a0c	?
 1a10	int	m1a10	?
 1a14	int	m1a14	?
 1a18	int	m1a18	?
@@ -268,6 +274,7 @@ ade	int	made	?
 1a5c	int	m1a5c	?
 1a60	int	m1a60	?
 1a68	int	m1a68	?
+1a70	int	m1a70	?
 1a7c	int	m1a7c	?
 1a80	int	m1a80	?
 1a84	int	m1a84
@@ -302,6 +309,7 @@ ade	int	made	?
 1b08	int	m1b08	?
 1b0c	int	m1b0c	?
 1b10	int	m1b10	?
+1b14	int	m1b14	?
 1b18	int	m1b18	?
 1b1c	int	m1b1c	?
 1b24	int	m1b24	?

@@ -156,6 +156,18 @@ struct FreezeFlake
 	FrameAnim	mAnim;              // +0x10
 };
 
+// A warp star (0xa8 bytes, the vector at +0x150): a streak of light that falls over the warp screen (Fn46a810).
+// The original's object has only the vtable of its empty base class.
+struct WarpStar
+{
+	float		mX;                 // +0x4c
+	float		mY;                 // +0x50
+	float		mField5C;           // +0x5c (set to 0, never read)
+	float		mSpeed;             // +0x60 pixels per update
+	FrameAnim	mAnim;              // +0x64
+	Image*		mImage;             // +0xa4 one of the three sizes of IMAGE_WARP_FX
+};
+
 // A rate of one kind of brick for each of the three phases of a game (8 bytes)
 struct RatePair
 {
@@ -237,6 +249,7 @@ public:
 	std::set<Brick*>	m128;// +0x128 the bricks to delete (DeleteDoomedBricks)
 	std::set<int>	m134;// +0x134 a set that GameOver empties (element type not seen yet)
 	std::vector<FloatText*>	m140;// +0x140 the texts that float up the screen
+	std::vector<WarpStar*>	m150;// +0x150 the 15 warp stars that fall over the warp screen (Fn46a810)
 	std::vector<PlanetRec>	m160;// +0x160 the planets (5 are stepped)
 	std::vector<StreakRec>	m170;// +0x170 the streaks (100)
 	std::vector<SpawnRules>	m180;// +0x180 the spawn rules of the field (only the first is read)
@@ -467,10 +480,15 @@ public:
 	int	m19d4 = 0;// +0x19d4 ?
 	int	m19d8 = 0;// +0x19d8 ?
 	int	m19dc = 0;// +0x19dc ?
+	int	m19e0 = 0;// +0x19e0 ?
+	int	m19e4 = 0;// +0x19e4 ?
+	int	m19e8 = 0;// +0x19e8 ?
+	int	m19ec = 0;// +0x19ec ?
 	int	m19f0 = 0;// +0x19f0 ?
 	int	m19f4 = 0;// +0x19f4 ?
 	int	m19f8 = 0;// +0x19f8 ?
 	int	m19fc = 0;// +0x19fc ?
+	int	m1a0c = 0;// +0x1a0c ?
 	int	m1a10 = 0;// +0x1a10 ?
 	int	m1a14 = 0;// +0x1a14 ?
 	int	m1a18 = 0;// +0x1a18 ?
@@ -490,6 +508,7 @@ public:
 	int	m1a5c = 0;// +0x1a5c ?
 	int	m1a60 = 0;// +0x1a60 ?
 	int	m1a68 = 0;// +0x1a68 ?
+	int	m1a70 = 0;// +0x1a70 ?
 	int	m1a7c = 0;// +0x1a7c ?
 	int	m1a80 = 0;// +0x1a80 ?
 	int	m1a84 = 0;// +0x1a84
@@ -524,6 +543,7 @@ public:
 	int	m1b08 = 0;// +0x1b08 ?
 	int	m1b0c = 0;// +0x1b0c ?
 	int	m1b10 = 0;// +0x1b10 ?
+	int	m1b14 = 0;// +0x1b14 ?
 	int	m1b18 = 0;// +0x1b18 ?
 	int	m1b1c = 0;// +0x1b1c ?
 	int	m1b24 = 0;// +0x1b24 ?
@@ -641,6 +661,8 @@ public:
 	void			SetupWarpLayers();                              // 0x43b1b0
 	static std::string	FormatNumber(int theNumber);            // 0x43e220 with a comma after each three digits
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
+	bool			Fn468e70();                                     // 0x468e70: the upgrade screen of the level (true when one opens)
+	void			UpdateStreaks();                                // 0x439650
 	void			AddTopRow();                                    // 0x46e420
 	bool			HasMarkOfType(int theType);                     // 0x438a90
 	int				GetMarkCount(int theType);                      // 0x438af0
