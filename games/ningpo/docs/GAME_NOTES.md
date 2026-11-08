@@ -69,4 +69,7 @@ played at +0x28 and the tiles left at +0x2c. The other values in the file are th
 The trial's code is in the same exe, behind `checkRegistration` (0x40edb0): the "full version only" layouts and tile
 sets refused at a new board (0x404c90), the count of games played against a maximum (the registry's `InstallFlags`),
 the loading screen's progress bar stopped at a quarter, a buy button among the controls, a register button in the
-options and a page asking to buy at exit. The port plays as registered and leaves all of it out.
+options and a page asking to buy at exit. The loading screen also carries a thanks for registering
+(`demo_menu_thanks_np.tga`), loaded and placed but never shown. The port plays as registered and leaves all of it out,
+the thanks included (the user, 2026-11-08: a thanks for registering is part of the registration code). No text of the
+game's tables is shown only to a registered copy.
