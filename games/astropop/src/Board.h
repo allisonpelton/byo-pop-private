@@ -945,6 +945,10 @@ public:
 	void			RecolorThemeButtons();                          // 0x437910
 	void			ShowThemeButtons();                             // 0x45ab90
 	void			BeginPlay();                                    // 0x457930 the player's first move: the mode's play starts
+	void			DismissHint();                                  // 0x45a930 (stub) the OK of a hint box
+	void			CloseOverlay();                                 // 0x4347c0 (stub) the button 0xfa7
+	void			RedrawAfterDialog();                            // 0x43a890 (stub) the field is drawn again after a menu or box
+	void			TakeFocus();                                    // 0x4342f0 the Board takes the keyboard back
 	static void		SortCells(std::vector<CellRef>& theCells);     // 0x450c00
 
 	// ---- the update (BoardUpdate.cpp)

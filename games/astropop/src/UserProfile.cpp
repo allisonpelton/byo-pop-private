@@ -484,6 +484,13 @@ void UserProfile::ResetHintsShown()
 		SetInt(i, 0);
 }
 
+// 0x4244c0: every hint is on
+void UserProfile::EnableHints()
+{
+	for (int i = 0x14; i <= 0x28; i += 2)
+		SetInt(i, 1);
+}
+
 // 0x426020: puts a result (six numbers: the kind, the mode, the score, the level, the time in seconds, the weapon levels)
 // in its list: the lists of kind 1 (by score) and kind 2 (by time) hold five, the best first. A result is put in front of
 // the first one it matches or beats; it is added at the end while there is room (the list is cut to five when saved).

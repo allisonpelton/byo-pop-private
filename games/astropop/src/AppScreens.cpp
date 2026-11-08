@@ -2,6 +2,8 @@
 // screens it leads to. A stub logs "not translated" so a test run shows that a button was reached.
 
 #include "AstroPopApp.h"
+#include "AstroDialog.h"
+#include "Particle.h"
 #include "Board.h"
 #include "GameText.h"
 #include "LoaderScreen.h"
@@ -196,14 +198,6 @@ void AstroPopApp::SelectStartUser()
 		ShowMessageDialog("Error", GT(0x563470));
 }
 
-Dialog* AstroPopApp::MakeDialog(int theId, bool theFlag, int theWidth, int theX, int theY, int theButtons, const std::string& theHeader, const std::string& theText, const std::string& theYes, const std::string& theNo, bool theModal)
-{
-	(void) theFlag; (void) theWidth; (void) theX; (void) theY; (void) theButtons; (void) theHeader; (void) theText;
-	(void) theYes; (void) theNo; (void) theModal;
-	SDL_Log("AstroPop: MakeDialog(%d) not translated yet (0x411ba0)", theId);
-	return NULL;
-}
-
 void AstroPopApp::Fn412730()
 {
 	SDL_Log("AstroPop: Fn412730 not translated yet (0x412730)");
@@ -250,9 +244,19 @@ void AstroPopApp::ShowFullScreenHelp()
 	SDL_Log("AstroPop: ShowFullScreenHelp not translated yet (0x422db0)");
 }
 
+// 0x422c00: the box that asks whether to leave the game, with one of the ten goodbye lines of the constructor
 void AstroPopApp::ShowQuitDialog()
 {
-	SDL_Log("AstroPop: ShowQuitDialog not translated yet (0x422c00)");
+	StartLoopSound(-1);
+	PlaySample(SOUND_GOODBYE);
+	std::string aLines;
+	int aDraw = (int) AstroRand();
+	if (!mGoodbyeMessages.empty())
+		aLines = mGoodbyeMessages[((unsigned int) (aDraw % 500000000)) % mGoodbyeMessages.size()];
+	AstroDialog* aDialog = MakeDialog(1, false, 0x7c, -1, -1, 1, "QUIT GAME?", aLines, "Yes", "No", true);
+	int aWidth = aDialog->mWidth;
+	int aHeight = aDialog->mHeight;
+	aDialog->Resize(0x140 - aWidth / 2, 0xf0 - aHeight / 2, aWidth, aHeight);
 }
 
 void AstroPopApp::ShowUserSelect()
@@ -275,13 +279,42 @@ void AstroPopApp::ShowNewUserDialog()
 	SDL_Log("AstroPop: the new-player dialog is not translated yet (0x40bc00)");
 }
 
-void AstroPopApp::ShowMessageDialog(const std::string& theHeader, const std::string& theText)
-{
-	SDL_Log("AstroPop: message box not translated yet (0x411ba0): %s", theHeader.c_str());
-	(void) theText;
-}
-
 void AstroPopApp::ShowCheckpointDialog(int theLevel)
 {
 	SDL_Log("AstroPop: the checkpoint question (level %d) is not translated yet (0x40c3e0)", theLevel);
+}
+
+// Not translated yet: each logs once so a test run shows that the button was reached
+#define APP_NOT_TRANSLATED(name, addr) 	do { static bool aLogged = false; if (!aLogged) { aLogged = true; SDL_Log("AstroPop: " name " not translated yet (" addr ")"); } } while (0)
+
+void AstroPopApp::ShowHelp()
+{
+	APP_NOT_TRANSLATED("ShowHelp", "0x40bea0");
+}
+
+void AstroPopApp::CloseFullScreenHelp()
+{
+	APP_NOT_TRANSLATED("CloseFullScreenHelp", "0x428fb0");
+}
+
+void AstroPopApp::ApplyOptions(bool theClose)
+{
+	(void) theClose;
+	APP_NOT_TRANSLATED("ApplyOptions", "0x428a10");
+}
+
+void AstroPopApp::UserSelectOk()
+{
+	APP_NOT_TRANSLATED("UserSelectOk", "0x430f00");
+}
+
+void AstroPopApp::NewUserOk()
+{
+	APP_NOT_TRANSLATED("NewUserOk", "0x430500");
+}
+
+void AstroPopApp::DeleteUser(bool theConfirmed)
+{
+	(void) theConfirmed;
+	APP_NOT_TRANSLATED("DeleteUser", "0x431310");
 }

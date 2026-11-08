@@ -26,3 +26,18 @@ void Board::BuildStoryText()
 {
 	NOT_TRANSLATED("BuildStoryText", "0x47a940");
 }
+
+void Board::DismissHint()
+{
+	NOT_TRANSLATED("DismissHint", "0x45a930");
+}
+
+void Board::CloseOverlay()
+{
+	NOT_TRANSLATED("CloseOverlay", "0x4347c0");
+}
+
+void Board::RedrawAfterDialog()
+{
+	NOT_TRANSLATED("RedrawAfterDialog", "0x43a890");
+}

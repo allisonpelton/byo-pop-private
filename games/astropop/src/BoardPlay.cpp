@@ -344,3 +344,12 @@ void Board::BeginPlay()
 	else if (!m90b)
 		mApp->PlaySample(SOUND_CANT_CLICK);
 }
+
+// 0x4342f0: a box is gone and the Board takes the keyboard back
+void Board::TakeFocus()
+{
+	m91a = true;
+	m90f = true;
+	mApp->mWidgetManager->SetFocus(this);
+	m921 = true;
+}

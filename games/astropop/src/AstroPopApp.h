@@ -21,6 +21,7 @@ namespace Sexy
 class LoaderScreen;
 class MainMenu;
 class XcfFile;
+class AstroDialog;
 class Widget;
 class MemoryImage;
 class SoundInstance;
@@ -65,7 +66,8 @@ public:
 	EventBus					mBus;               // +0x62c the 43 lists of listeners (the original makes them when the title's button is pressed)
 	MainMenu*					mMainMenu;          // +0x644 the game selector (ShowMainMenu)
 	LoaderScreen*				mLoaderScreen;      // +0x640 Init .. the title (the original ctor leaves it uninitialised)
-	Widget*						mScreen650;         // +0x64c the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
+	Widget*						mScreen650;         // +0x650 the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
+	Widget*						mScreen654;         // +0x654 the story screen (0x428f10), removed by its button 0xfb6
 	bool						mFlag658;           // +0x658 ValidateUser: profile setting 0x11 (1 when missing) is not 0
 	bool						mOldSavesDeleted;   // +0x659 Init found a profile of an older version and deleted it
 	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
@@ -90,6 +92,7 @@ public:
 	Widget*						mHelpScreen;        // +0x69c the full-screen help (ShowFullScreenHelp), NULL for none
 	int							mMusicSlot;         // +0x6d8 the slot that plays (0 or 1)
 	int							mMusicOrder;        // +0x6dc the song position (order) that plays, -1 for none
+	int							mOpenDialogs;       // +0x6e0 the boxes made by MakeDialog and not yet closed
 	int							mSurvivalPilot;     // +0x6e4 the pilot of the other modes
 	int							mPilot6e8;          // +0x6e8 a third pilot number (-1; only LoadPilotImages(0) reads it)
 
@@ -147,10 +150,11 @@ public:
 	// widget manager's record of the buttons held for a widget is the same while the Board takes the clicks
 	bool			IsLeftButtonDown();
 	void			ShowNewUserDialog();                        // 0x40bc00 (stub)
-	void			ShowMessageDialog(const std::string& theHeader, const std::string& theText); // 0x411ba0 (stub): an OK box
+	void			ShowMessageDialog(const std::string& theHeader, const std::string& theText); // an OK box (the original makes it at each place with 0x411ba0)
 	void				Fn412730();         // 0x412730: the warp screen's OK panel (not translated yet)
 	void				ShowThemeDialog();  // 0x40c490: the dialog of the colour set, opened by the first move (not translated yet)
-	Dialog*			MakeDialog(int theId, bool theFlag, int theWidth, int theX, int theY, int theButtons, const std::string& theHeader, const std::string& theText, const std::string& theYes, const std::string& theNo, bool theModal);   // 0x411ba0 (stub)
+	AstroDialog*	MakeDialog(int theType, bool theAnimated, int theId, int theWidth, int theHeight, int theButtonMode, const std::string& theHeader, const std::string& theLines, const std::string& theYes, const std::string& theNo, bool theUnused);   // 0x411ba0 a box of a colour set (theType); theId 100 .. 124 is the dialog's id
+	Color			GetDialogInsetColor(int theSet);            // the tint of a dialog set's inset picture (0x5a4ff0 and the five after it)
 	// The screens the selector opens. Not translated yet: each one logs "not translated" and does nothing.
 	void			StartGame(bool theContinue);                // 0x428c70 (the Board)
 	void			StartClassic(bool theCheckpointed, bool theSkipTutorial);   // 0x4299b0 the pilot is chosen: the first level, or the checkpoint to go on from
@@ -166,6 +170,15 @@ public:
 	bool			AddHallOfFame(const std::string& theName, int theScore, int theSecond, int theMode, int theKind); // 0x429a40
 	void			ShowQuitDialog();                           // 0x422c00
 	void			ShowUserSelect();                           // 0x422870
+	int				GetDialogSet();                             // 0x409080 the colour set of the boxes now: the game's mode + 2, 1 over the selector, 0 otherwise
+	void			CloseDialog(int theId);                     // 0x408d70 a box goes and the game goes on
+	void			ClosePowerDialog();                         // 0x4291c0 the box that asks for the pilot's power goes
+	void			ShowHelp();                                 // 0x40bea0 (stub)
+	void			CloseFullScreenHelp();                      // 0x428fb0 (stub)
+	void			ApplyOptions(bool theClose);                // 0x428a10 (stub)
+	void			UserSelectOk();                             // 0x430f00 (stub) the player chosen in the player list
+	void			NewUserOk();                                // 0x430500 (stub) the name typed in the new-player box
+	void			DeleteUser(bool theConfirmed);              // 0x431310 (stub) asks, then deletes the player chosen
 	void			ShowOptions(bool theFromGame);              // 0x40bd70
 	void			ShowContinueDialog(const std::string& thePilot, int theLevel); // 0x411ba0 with the CONTINUE? texts
 

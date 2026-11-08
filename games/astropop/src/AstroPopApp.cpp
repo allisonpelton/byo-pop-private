@@ -41,6 +41,7 @@ AstroPopApp::AstroPopApp()
 	mFlag6fb = false;
 	mMainMenu = NULL;
 	mScreen650 = NULL;
+	mScreen654 = NULL;
 	mLoaderScreen = NULL;
 	mOldSavesDeleted = false;
 	mOldScoresDeleted = false;
@@ -48,6 +49,7 @@ AstroPopApp::AstroPopApp()
 	mGameUpdates = 0;
 	mClassicPilot = 0;
 	mSurvivalPilot = 0;
+	mOpenDialogs = 0;
 	mPilot6e8 = -1;
 	mFlag6fc = false;
 	mHelpScreen = NULL;
@@ -543,12 +545,6 @@ void AstroPopApp::PlayComboPing(int thePitch)
 		PlaySamplePitched(SOUND_COMBO_PING, thePitch);
 		mTimer664 = 0x2d;
 	}
-}
-
-void AstroPopApp::ButtonDepress(int theId)
-{
-	if (theId == 0x898)
-		OnClickToPlay();
 }
 
 // 0x42c910: the thirty bonus levels data\bonus<n>.xcf are read and their signatures checked (xcf parser: to come)
