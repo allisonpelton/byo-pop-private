@@ -43,8 +43,9 @@ uint32_t TickCount();
 // otherwise)
 uint32_t RealTickCount();
 uint32_t SeedTick();
-// fixes mod "skipLogos": the logo screens do not wait
-extern bool gSkipLogos;
+// port: the start does not wait: no logo screens (two seconds each, with nothing loaded meanwhile) and no fade out of the
+// black before the first screen; the game opens at its main menu (-logos keeps the original's start)
+extern bool gFastStart;
 
 // The module a resource comes from: the exe, or Resource.dll (the original's HMODULE; null meant the app's
 // Resource.dll, app +0x30)

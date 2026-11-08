@@ -50,13 +50,17 @@ describes each of them; this section says what differs here.
   bot solves every one of the 52 stages and every classic layout. Stage 11 of China (layout 395) was the hard one: its keys
   and locks need the keys saved for the locks that hold the goal tiles, which the bot's first tries now do, and it solves in
   38 moves. An earlier note of this pass that said the solver finds no solution for it was about the first solver.
-- **The fixes mod** (`mods/fixes`, `skipLogos`, `seededDeals` and `steadyClock`, on by default on the site) is Japan's with
-  China's own addresses; `tools/realplay/modtest.py --game china` passes all its checks (the menu at update 760 with the mod
-  and 1530 without; the same seed and another start time dealing the same classic board and shuffle; the panel's clock
+- **The fixes mod** (`mods/fixes`, `seededDeals` and `steadyClock`, on by default on the site) is Japan's with
+  China's own addresses; `tools/realplay/modtest.py --game china` passes all its checks (the menu at update 260 as the port
+  starts and 1550 with `-logos`; the same seed and another start time dealing the same classic board and shuffle; the panel's clock
   showing 2, 4 and 6 s after 400, 800 and 1200 updates). The native folder is `mods-mahjongchina` beside the exe and the
   web copy `mahjongchina-fixes`. The candidates that were checked and are none are Japan's too: the panel's `AddSeconds`
   never reaches its odd branch, and no layout of the 178 deals a free tile that cannot be clicked at the start (0
   unreachable). The soft lock after a Shuffle at the last pair is fixed in the port as in Japan (`Board::OnCommand`).
+- **The start.** Japan's (`games/mahjongjapan/docs/GAME_NOTES.md`, "The start"), at China's addresses (`re/mahjongchina/compare/addrmap.tsv`):
+  the two logo screens (2 s each) and the 0.77 s of black before them are the original's wait before the game can start, so the
+  port opens at its main menu and `-logos` keeps the original's start (`tools/check.sh` passes it). The launch to the menu
+  took 7.7 s and takes 1.29 s. The rest of the launch has no wait of the original's making, as Japan's.
 - **Registration and links.** China has no registration code either; the PopCap and SpinTop logos at the main menu's
   corners are pictures that take no click, as in Japan, and the shared libjpeg 6b loader decodes the backgrounds (the screens
   of `tools/check.sh mahjongchina` were taken again for it: at most 3 levels of a channel, in the JPEG backgrounds only).
@@ -73,7 +77,7 @@ by the solver's clicks, back to the map: 74 s), the processor time in the window
 
 | | port (3 runs) |
 |---|---|
-| Launch to the main menu, real time (`tools/realplay/perfload.py`, 5 runs) | 7.7 s median (7.6 to 7.8); with the fixes mod 3.7 s (3.65 to 4.1) |
+| Launch to the main menu, real time (`tools/realplay/perfload.py`, 5 runs) | 1.29 s median (1.23 to 1.35); with the original's start (`-logos`, 3 runs) 7.70 s (7.69 to 7.78) |
 | Peak working set | 172.3 MB median (172.1 to 180.9) |
 | Peak private bytes | 170.9 MB median (170.4 to 172.5) |
 | Processor time in the window | 5.0 s of 29.9 s: 16.7 % of one core (16.1 to 22.1 %) |
@@ -81,5 +85,5 @@ by the solver's clicks, back to the map: 74 s), the processor time in the window
 | Processes and threads | 1 process, 42 to 50 threads |
 
 The original was not measured, for Japan's reasons: its exe runs only inside Windows Sandbox under `tools/origrun`, and a run on
-the host would play its music on the speakers. Its two logos hold the menu back 4 s (0x42f650 in Japan), as in the port without
-the mod.
+the host would play its music on the speakers. Its two logos and the black before them hold the menu back about 6.5 s (0x42f650 in Japan): the
+port takes 7.7 s to the menu with `-logos` and 1.3 s without.

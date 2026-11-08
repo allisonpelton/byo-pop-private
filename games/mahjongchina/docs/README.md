@@ -96,13 +96,15 @@ under rundesk: the menu, the help, a new player, the whole adventure to the endi
 of the board and of the in-game menu, a second classic game, the focus lost and regained, Quit; `--fullscreen` does it from
 Alt+Enter. `tools/web/realplay.js` plays the web build through the DOM's events (`?driver=`). `tools/realplay/modtest.py`
 checks the fixes mod, `perfload.py` times the launch, `syncbot.sh` copies the bot and the commands to the other game.
+The game opens at its main menu; `-logos` keeps the original's two logo screens and the black before them (`GAME_NOTES.md`,
+"The start"), as `tools/check.sh` and any comparison with the original run it.
 
 The comparison found two differences the first comparison of the exes had missed: Board::Init loads its sounds in
 another order, and Board::Measure has no -5 (China's board stands 5 pixels lower). Both are fixed.
 
 ## Mods
 
-The fixes mod (`mods/fixes`: `skipLogos`, `seededDeals` and `steadyClock`, on by default on the site; `GAME_NOTES.md`, "The standard test commands, the fixes mod and the finishing pass"). No other mods (the user's rule: no new mods unless someone requests one); `MOD_IDEAS.md` lists
+The fixes mod (`mods/fixes`: `seededDeals` and `steadyClock`, on by default on the site; `GAME_NOTES.md`, "The standard test commands, the fixes mod and the finishing pass"). No other mods (the user's rule: no new mods unless someone requests one); `MOD_IDEAS.md` lists
 the ones worth making.
 
 ## Changes outside the game's folder
