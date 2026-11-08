@@ -226,8 +226,9 @@ BT_BLITZ="8ef83c337f3e 9c9ceb17343f e69ac2a54d49 cdf1d61302d0 43b0fcda6095"  # t
 BT_MENU="640866e0b565 da8353fcb954"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone):
 # the port only (its loader moved on to the original's hand-over, 2026-11-08), so not against the older baseline
 # Bejeweled 2 Deluxe: per mode, the first 12 hex digits of the sha256 of the bot's transcript (every state and move, tools/playbymove's
-# driver.txt without its screenshot line) and of its end screen, for the steps in bej2_steps: the frozen baseline
-declare -A BJ2_PLAYS=([classic]="d645dd282cee:0b21fd763248" [action]="b0fd7f27a100:950c77b82a20" [puzzle]="27f63cd9bdc5:2529e1429b25" [endless]="6430c39c792d:6c7b27839583" [twilight]="16f79f616a23:eadeb68eef44" [hyper]="c621bb4ee398:fcdbbae9607a" [cognito]="223aa7e53ba1:db4f92024a35" [finity]="d1579f7fdf24:d9680fc31501" [hidden]="e131248f891b:7afbbb32f140")
+# driver.txt without its screenshot line) and of its end screen, for the steps in BJ2_STEPS: the frozen baseline (Twilight's end screen
+# refrozen 2026-11-08 with the Hyperspace tunnel's texture wrap: that screen is in the tunnel; the transcripts did not change)
+declare -A BJ2_PLAYS=([classic]="d645dd282cee:0b21fd763248" [action]="b0fd7f27a100:950c77b82a20" [puzzle]="27f63cd9bdc5:2529e1429b25" [endless]="6430c39c792d:6c7b27839583" [twilight]="16f79f616a23:8059d707c87c" [hyper]="c621bb4ee398:fcdbbae9607a" [cognito]="223aa7e53ba1:db4f92024a35" [finity]="d1579f7fdf24:d9680fc31501" [hidden]="e131248f891b:7afbbb32f140")
 declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
 BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
