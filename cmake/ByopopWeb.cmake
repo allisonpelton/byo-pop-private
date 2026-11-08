@@ -672,6 +672,12 @@ function(byopop_web_shell var target pagedir)
   file(READ ${BYOPOP_WEB_FOOTER} footer)
   file(READ ${BYOPOP_WEB_FOOTER_CSS} css)
   string(REPLACE "@BYOPOP_COPYRIGHT_PAGE@" "${copyright_page}" footer "${footer}")
+  # the footer's one-sentence notice: the game's copyright up to "All rights reserved." (its trademark lines are on the page
+  # the link opens)
+  string(REGEX REPLACE "(All rights reserved\\.).*$" "\\1" notice "${arg_COPYRIGHT}")
+  string(REPLACE "&" "&amp;" notice "${notice}")
+  string(REPLACE "<" "&lt;" notice "${notice}")
+  string(REPLACE "@BYOPOP_NOTICE@" "${notice}" footer "${footer}")
   byopop_web_fill(footer title "${arg_TITLE}")
   byopop_web_insert(page "<!-- byopop:footer -->" "${footer}")
   string(REPLACE "</head>" "<style>
