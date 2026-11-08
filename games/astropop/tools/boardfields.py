@@ -48,9 +48,9 @@ def main():
     known = {r[2].split("[")[0] for r in rows}
     offs = {int(r[0], 16) for r in rows}
     added = []
-    for f in sorted(glob.glob(os.path.join(SRC, "Board*.cpp")) + glob.glob(os.path.join(SRC, "Board*.h"))):
+    for f in sorted(glob.glob(os.path.join(SRC, "Board*.cpp"))):
         txt = open(f, encoding="utf-8", errors="replace", newline="").read()
-        for m in re.finditer(r"\bm([0-9a-f]{2,4})\b", txt):
+        for m in re.finditer(r"(?<![\w.>])m([0-9a-f]{2,4})\b", txt):
             off = int(m.group(1), 16)
             nm = "m" + m.group(1)
             if nm in known or off in offs or off >= 0x1c0c:

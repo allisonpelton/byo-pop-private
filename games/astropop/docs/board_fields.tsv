@@ -1,9 +1,20 @@
 # offset	type	name	comment  (written by tools/boardfields.py; keep it sorted by offset)
 70	std::list<Brick*>	m70	the bricks of the falling piece (the original's list head is at +0x70, its size at +0x74)
 7c	std::list<std::list<Brick*> >	m7c	groups of falling bricks
+94	std::list<std::list<Brick*> >	m94
+a0	std::list<Brick*>	ma0
 c8	std::vector<CellRef>	mc8
+f8	std::vector<int>	mf8
+128	std::set<Brick*>	m128	the bricks to delete (DeleteDoomedBricks)
+160	std::vector<PlanetRec>	m160	the planets (5 are stepped)
+170	std::vector<StreakRec>	m170	the streaks (100)
+190	std::vector<StarRec>	m190	the stars
 1a0	std::vector<CellRef3>	m1a0
+1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
+220	std::vector<StageBg*>	m220	the picture of each stage
+230	std::vector<Warp*>	m230
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
+2f8	Image*	m2f8	the lightning image now on the screen
 314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
 358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
 3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
@@ -11,10 +22,22 @@ c8	std::vector<CellRef>	mc8
 6c8	Color	m6c8
 6e0	bool	m6e0	?
 758	Buffer	m758	the replay recording (RecordStep)
+77c	ScrollLayer	m77c	the scenery layer
 808	PulsePair	m808
 8e6	bool	m8e6	?
 8e8	bool	mFlag8E8
 8e9	bool	mFlag8E9
+8eb	bool	m8eb
+8ec	bool	m8ec
+8ed	bool	m8ed
+8ef	bool	m8ef
+8f4	bool	m8f4
+901	bool	m901	?
+90a	bool	m90a
+910	bool	m910
+917	bool	m917
+928	float	m928
+938	float	m938
 940	float	m940
 948	unsigned char	m948
 949	unsigned char	m949
@@ -26,15 +49,29 @@ c8	std::vector<CellRef>	mc8
 194c	int	m194c	?
 1950	int	m1950	?
 1954	int	m1954	?
+1974	int	m1974	?
 198c	int	m198c	?
+1990	int	m1990	?
 19b4	int	m19b4	?
+19b8	int	m19b8	?
 19cc	int	m19cc	?
+19f0	int	m19f0	?
+19f4	int	m19f4	?
+19f8	int	m19f8	?
 1a28	int	m1a28	?
+1a34	int	m1a34	?
 1a38	int	m1a38	?
+1a60	int	m1a60	?
 1ab8	int	m1ab8	?
 1ac4	int	m1ac4	?
+1b1c	int	m1b1c	?
+1b2c	int	m1b2c	?
+1bc0	int	m1bc0	?
+1bd8	float	m1bd8
+1bdc	float	m1bdc
 1be8	float	m1be8
 1bec	float	m1bec
 1bf8	float	m1bf8
 1bfc	float	m1bfc
+1c00	float	m1c00
 1c04	int	mDropTicks	updates a mutated brick waits before it drops

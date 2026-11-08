@@ -3,7 +3,11 @@
 
 #include "Board.h"
 #include "Brick.h"
+#include "BrickKinds.h"
 #include "AstroPopApp.h"
+#include "UserProfile.h"
+#include "SoundInstance.h"
+#include "Image.h"
 #include "Res.h"
 
 using namespace Sexy;
@@ -405,4 +409,341 @@ bool Board::HasCell3(int theCol, int theRow, const std::vector<CellRef3>& theCel
 			return true;
 	}
 	return false;
+}
+
+// 0x4333c0: one step of a scrolling layer of the scenery. The layer moves when the update count is a multiple of its
+// period, faster the more the stage has speed (m938 of the boost, m1c00 of the other mode). The picture it shows
+// counts down in mCur[1]; the picture that follows slides in on mNext until it fills the screen. The arithmetic is the
+// x87's, kept in double until a number is stored.
+void Board::StepScrollLayer(ScrollLayer* theLayer)
+{
+	if (mUpdateCnt % theLayer->mPeriod != 0)
+		return;
+
+	double aSpeed = 0.0;
+	if (m8eb && m938 > 0.0f)
+	{
+		aSpeed = (double) m938 * (double) 0.02f;
+		if (aSpeed > 9.0)
+			aSpeed = 9.0;
+	}
+	else if (m917)
+	{
+		aSpeed = (double) m1c00;
+		if (aSpeed > 9.0)
+			aSpeed = 9.0;
+	}
+
+	double aStep;
+	if (!m8eb && !m917)
+		aStep = (double) theLayer->mSpeed;
+	else
+		aStep = ((m8eb ? 10.0 : 13.0) - aSpeed) + (double) theLayer->mSpeed;
+
+	if (theLayer->mCur[1] > 0.0f)
+	{
+		double aRest = (double) theLayer->mCur[1] - aStep;
+		theLayer->mCur[1] = (float) aRest;
+		if (aRest <= 0.0)
+		{
+			theLayer->mCur[1] = 0.0f;
+			theLayer->mF28 = 0.0f;
+			theLayer->mNext[3] = 0.0f;
+			theLayer->mNext[1] = (float) theLayer->mImage->mHeight;
+		}
+		return;
+	}
+
+	double aHeight = (double) mHeight;
+	if (aHeight > (double) theLayer->mF24)
+	{
+		theLayer->mNext[1] = (float) ((double) theLayer->mNext[1] - aStep);
+		theLayer->mNext[3] = (float) (aStep + (double) theLayer->mNext[3]);
+		double aPlace = aStep + (double) theLayer->mF24;
+		theLayer->mF24 = (float) aPlace;
+		if (aPlace >= aHeight)
+		{
+			memcpy(theLayer->mCur, theLayer->mNext, sizeof(theLayer->mCur));
+			theLayer->mF24 = 0.0f;
+			theLayer->mNext[3] = 0.0f;
+		}
+	}
+}
+
+// 0x43a1f0: the scenery. The layer at +0x77c and the stars move in the plain game; the planets, the lightning and the
+// 100 streaks in the others (m8ed, m8ef, m8f4); the streaks always. The lightning draws from the game's random numbers.
+void Board::UpdateScenery()
+{
+	if (!m8ed && !m8ef && !m8f4)
+	{
+		StepScrollLayer(&m77c);
+
+		for (size_t i = 0; i < m190.size(); i++)
+		{
+			bool aSpecial = m917 && (m1bc0 == 1 || m1bc0 == 2);
+			StarRec& aStar = m190[i];
+			if (m8eb || aSpecial)
+			{
+				aStar.mSpeed = (float) ((double) aStar.mSpeed + (double) 0.05f);
+				if (aSpecial && !(aStar.mSpeed < 4.0f))
+					aStar.mSpeed = 4.0f;
+			}
+			aStar.mX = (float) ((double) aStar.mSpeed + (double) aStar.mX);
+			if (aStar.mX > 640.0)
+			{
+				int aLeast = 0;
+				for (size_t j = 0; j < m190.size(); j++)
+				{
+					if ((double) aLeast > (double) m190[j].mX)
+						aLeast = (int) m190[j].mX;
+				}
+				aStar.mX = (float) (aLeast - 900);
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < 5; i++)
+			StepScrollLayer(&m160[i]);
+
+		if (m19f0 == 0)
+		{
+			if (mUpdateCnt % m19f4 == 0)
+			{
+				m19f0 = 0xff;
+				m19f4 = ((int) AstroRand() % 500000000) % 200 + 100;
+				switch (((int) AstroRand() % 500000000) % 3)
+				{
+				case 0:		m2f8 = IMAGE_WARP_FX_LIGHTENING; break;
+				case 1:		m2f8 = mApp->mLightningImage; break;
+				default:	m2f8 = mApp->mLightningImage2; break;
+				}
+				m19f8 = ((int) AstroRand() % 500000000) % 0x15e + 0x32;
+				unsigned int aSoundRand = AstroRand();
+				unsigned int aColumnRand = AstroRand();
+				int aColumn = ((int) aColumnRand % 500000000) % 10;
+				int aSound = ((int) aSoundRand % 500000000) % 2;
+				mApp->PlaySampleAt(SOUND_THUNDER1 + aSound, aColumn);
+			}
+		}
+		else if (m19f0 > 0)
+		{
+			m19f0 = m19f0 - 3;
+			if (m19f0 < 0)
+				m19f0 = 0;
+			mOverlay.MarkDirty();
+		}
+	}
+
+	for (size_t i = 0; i < 100 && i < m170.size(); i++)
+	{
+		StreakRec& aStreak = m170[i];
+		aStreak.mY = (float) ((double) aStreak.mSpeed + (double) aStreak.mY);
+		double aHeight = (double) mHeight;
+		if (aHeight < (double) aStreak.mY)
+		{
+			bool aRespawn;
+			if (!m8eb && !m8ec && !m8ed && !m917)
+				aRespawn = true;
+			else
+				aRespawn = (double) (aStreak.mMargin + mHeight) <= (double) aStreak.mY;
+			if (aRespawn)
+				aStreak.mY = (float) (((int) AstroRand() % 500000000) % 0x65 - 100);
+		}
+	}
+}
+
+// 0x432f40: the state of the game goes into the player's profile (so a game that is left can be continued)
+void Board::StoreProgress()
+{
+	UserProfile* aUser = mApp->mUser;
+	aUser->SetInt(0x66, m198c);
+	aUser->SetInt(0x4f, mField193C);
+	aUser->SetInt(0x53, m1a38);
+	aUser->SetFloat(0x52, m940);
+	aUser->SetFloat(0x50, m1bd8);
+	aUser->SetInt(0x51, m1974);
+	aUser->SetInt(0x54, m19b8);
+	aUser->SetInt(0x55, m1b1c);
+	aUser->SetInt(0x63, m1b2c);
+}
+
+// 0x43b9c0: the klaxon plays while the field has no room left for the next piece
+void Board::UpdateKlaxon()
+{
+	if (!m910 && !m917 && !m8ec && !m8eb && !m8ed && !m8ef && !m8f4 && !m901)
+	{
+		SoundInstance* aKlaxon = mApp->mLoopSounds[7];
+		if (!NoRoomLeft())
+		{
+			if (aKlaxon->IsPlaying())
+				aKlaxon->Stop();
+		}
+		else
+		{
+			if (!aKlaxon->IsPlaying())
+				aKlaxon->Play(true, false);
+		}
+	}
+}
+
+// 0x43d2f0: nothing moves or waits: no falling bricks, no groups, no cells marked, no mode that runs on its own
+bool Board::IsSettled(bool theAssumeIdle)
+{
+	bool aIdle = theAssumeIdle ? true : (m1a34 == 0);
+	if (!m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 && m1a60 != 2 && aIdle &&
+		!m910 && m928 == 1.0f && m1990 == 0 && m94.empty() && m7c.empty())
+	{
+		if (CountMovingBricks(false) == 0 && m1a0.empty() && ma0.empty() && mf8.empty())
+			return true;
+	}
+	return false;
+}
+
+// 0x43d8b0: delete the bricks in the set and empty it
+void Board::DeleteDoomedBricks()
+{
+	std::vector<Brick*> aBricks(m128.begin(), m128.end());
+	for (size_t i = 0; i < aBricks.size(); i++)
+	{
+		aBricks[i]->mGone = true;
+		delete aBricks[i];
+	}
+	m128.clear();
+}
+
+// 0x4332b0: a new plain brick of a type (the column 0x19 puts its sounds in the middle)
+Brick* Board::CreateBrick(int theType)
+{
+	Brick* aBrick = new Brick(this, mBus, 0x19);
+	aBrick->SetType(theType);
+	return aBrick;
+}
+
+// 0x433320: a brick of type 0 that starts to mutate
+Brick* Board::CreateMutator()
+{
+	Brick* aBrick = CreateBrick(0);
+	aBrick->StartMutation();
+	return aBrick;
+}
+
+// 0x433340
+Brick* Board::CreateFuelCell(int theColumn, int theRow)
+{
+	FuelCell* aCell = new FuelCell(this, mBus);
+	aCell->SetPlace(theColumn, theRow);
+	aCell->SetType(8);
+	return aCell;
+}
+
+// 0x4393d0: a radial bomb (6), stone (7), steel (9) or row nuke (0xb); the bomb and the nuke start their counters
+Brick* Board::CreateSpecialBrick(int theType)
+{
+	Brick* aBrick = new SpecialBrick(this, mBus, ((theType != 6) ? 0 : -0x4b) + 0x7d);
+	aBrick->SetType(theType);
+	if (theType == 6)
+		m1f0[1] = 2000;
+	else if (theType == 0xb)
+		m1f0[2] = 2000;
+	return aBrick;
+}
+
+// 0x439480: freeze (10), column nuke (0xd) or booster (0xe)
+Brick* Board::CreatePowerBrick(int theType)
+{
+	Brick* aBrick = new PowerBrick(this, mBus, 0x4b);
+	aBrick->SetType(theType);
+	if (theType != 0xe)
+		m1f0[3 + (theType != 10 ? 1 : 0)] = 2000;
+	return aBrick;
+}
+
+// 0x43a680: the picture of the stage (or of a warp that is running) fades in and out, two values swinging like a
+// PulsePair, a third one fading the picture away
+void Board::UpdateStageBackground()
+{
+	if (!((unsigned int) mField193C < m220.size() || m90a || (!m230.empty() && m230[0]->m1c != 0)))
+		return;
+
+	StageBg* aBg;
+	if (m230.empty() || m230[0]->m1c == 0)
+		aBg = m220[m90a ? 1 : mField193C];
+	else
+		aBg = m230[0]->mBg;
+
+	if (aBg->mf0 != 0)
+		return;
+
+	aBg->m70.Update();
+	aBg->mb0.Update();
+
+	if (aBg->m10c != 0)
+	{
+		aBg->m100 += aBg->m10c;
+		if (aBg->m100 < 0)
+		{
+			aBg->m10c = 0;
+			aBg->m100 = 0;
+		}
+		if (aBg->m100 > 0xff)
+		{
+			aBg->m10c = 0;
+			aBg->m100 = 0xff;
+		}
+	}
+
+	if (aBg->m118 != 0)
+	{
+		aBg->m114 += aBg->m118;
+		if (aBg->m114 < 0)
+		{
+			aBg->m118 = 0;
+			aBg->m114 = 0;
+			aBg->mf0 = 1;
+		}
+		if (aBg->m114 > 0xff)
+		{
+			aBg->m118 = 0;
+			aBg->m114 = 0xff;
+		}
+	}
+
+	if (aBg->m5c != 0)
+	{
+		if (aBg->m110 != 0)
+		{
+			aBg->m104 += aBg->m110;
+			if (aBg->m104 < 0)
+			{
+				aBg->m110 = 0;
+				aBg->m104 = 0;
+			}
+			if (aBg->m104 > 0xff)
+			{
+				aBg->m110 = 0;
+				aBg->m104 = 0xff;
+			}
+		}
+
+		int aWait = aBg->m108;
+		if (aWait < 1)
+		{
+			if ((aBg->m100 == 0 || aBg->m100 == 0xff) && (aBg->m104 == 0 || aBg->m104 == 0xff) &&
+				aBg->m10c == 0 && aBg->m110 == 0 && aWait == 0)
+				aBg->m108 = 200;
+		}
+		else
+		{
+			aBg->m108 = aWait - 1;
+			if (aWait - 1 < 1)
+			{
+				aBg->m108 = 0;
+				aBg->m10c = ((((aBg->m100 != 0xff) ? 1 : 0) - 1) & -16) + 8;
+				aBg->m110 = ((((aBg->m104 != 0xff) ? 1 : 0) - 1) & -16) + 8;
+			}
+		}
+	}
+
+	MarkDirtyFull();
 }
