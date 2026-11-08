@@ -10,7 +10,9 @@
 //   steps=N                             stop after N moves (0: play the plan to its end)
 //   blurat=N,M                          after these moves lose the focus (byopop.test.blur), let a moment pass and regain it
 //   maxseconds=1800                     stop after so long a time
-// Returns {stop, moves, kinds, games: [{mode, skill, level, score, updates}], blurs, state, updates, errors, seconds}; stop is
+//   scale=2                             draw the canvas at twice its size (CSS), so that the DOM events land at scaled points as they do
+//                                       in full screen, which the Browser pane cannot enter (as Bejeweled's onegame.js does)
+// Returns {stop, moves, kinds, games: [{mode, skill, level, score, updates}], blurs, scale, state, updates, errors, seconds}; stop is
 // "over" (the plan was played), "steps", "no move", "timeout" or an error.
 var q = new URLSearchParams(location.search);
 var plan = (q.get("plan") || "action:1").split(",").map(function (x) {
@@ -21,6 +23,7 @@ var cap = q.has("cap") ? Number(q.get("cap")) : 12000;
 var maxSteps = Number(q.get("steps")) || 0;
 var blurAt = (q.get("blurat") || "").split(",").filter(Boolean).map(Number);
 var maxSeconds = Number(q.get("maxseconds")) || 1800;
+var scale = Number(q.get("scale") || 1);
 var t0 = Date.now();
 
 async function ok(line) {
@@ -32,6 +35,13 @@ function pickPlan(i) { return ok("set mode " + plan[i].mode).then(function () { 
 
 var result = { stop: null, moves: 0, kinds: {}, games: [], blurs: 0 };
 var n = 0, gameNo = 0, counted = false, losing = false, gameStart = null, nulls = 0;
+if (scale !== 1) {
+  var cv = document.getElementById("canvas");
+  cv.style.width = Math.round(640 * scale) + "px";
+  cv.style.height = Math.round(480 * scale) + "px";
+  await t.wait(20);
+  result.scale = { css: Math.round(cv.getBoundingClientRect().width) + "x" + Math.round(cv.getBoundingClientRect().height) };
+}
 await pickPlan(0);
 try {
   for (;;) {

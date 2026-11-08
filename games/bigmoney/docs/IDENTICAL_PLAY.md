@@ -234,6 +234,7 @@ and "play again" or the selector starts the next one.
 | Native, Strategy skill 2, with the window changed in the middle | the focus lost and regained (the board paused while lost and ran again after: `paused` true, then false), Alt+Enter to windowed and back to full screen (read back from the game's state), the game played on in each state to its game over. 0 errors |
 | Native, Puzzle skill 2, played to lose | the solver's plan for 823 updates, then the smallest group each time: a game over at level 1 (3416). 0 errors |
 | Web, `?player=1&silent=1&assets=1&fast=1&framems=2`, the page in the Browser pane | the same plan of three games in 15 s with DOM events only (`byopop.test.click` and `key`): Action to level 3, Strategy to level 3, Puzzle to level 7, each to its game over, three focus losses and regains in the middle (`byopop.test.blur` and `focus`). 0 errors. The page loaded the fixes mod (`mods: Fixes` in its log) |
+| Web, the same page with `&scale=2` (the canvas drawn at 1280 by 960) | Action skill 1 and Strategy skill 1, each to its game over (421 moves, 24400 updates in 7.5 s; Strategy to level 4, 4479 points), the name of a high score typed twice, the clicks landing at scaled points. 0 errors |
 
 The web run needs `fast=1` and a small `framems=2`: a real-time page in the hidden pane stopped answering commands after 354 s (the
 first run of the same plan, which had played 513 moves and three focus losses and was in its Strategy game; most likely the
@@ -267,7 +268,8 @@ dialog rewriting `hiscores.dat` (below Part 5's quirk 2). Each is in GAME_NOTES 
 ### Deviations that remain, and what was not compared
 
 - The web build's full screen was not driven: the Browser pane cannot take a page into full screen (the other games' passes listed
-  the same). Natively Alt+Enter was played both ways.
+  the same). In its place the canvas was drawn at twice its size (`&scale=2`, the CSS box 1280 by 960), so that the clicks land at scaled
+  points as they do in full screen; natively Alt+Enter was played both ways.
 - Windowed and full screen were each played natively; the web build only windowed, in the pane.
 - Losing the focus over an open dialog was not tried in the real-input runs either.
 - The "scripted minute" of the performance measurement uses the identical input on both sides (GAME_NOTES, Part 6, "Performance").
