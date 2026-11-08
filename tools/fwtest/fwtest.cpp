@@ -16,7 +16,8 @@
 //                        shuts down; the exit code is the number that failed. The test dialog is not shown.
 //   -commands=<file>     the framework's live commands (SexyAppBase.h, docs/TEST_COMMANDS.md): the same "expect",
 //                        "killdialog" and "report" lines, appended while it runs, each answered OK or ERROR on the log
-//                        (tools/fwtest/commands.sh drives it). The test dialog is not shown.
+//                        (tools/fwtest/commands.sh drives it). The test dialog is not shown. "state" and "move" answer
+//                        as a port's do, for tools/playbymove (its bot plays a small task through every kind of step).
 // Exits with 1 when the game files fail to load.
 
 #include "SexyAppBase.h"
@@ -25,6 +26,7 @@
 #include "ButtonWidget.h"
 #include "ButtonListener.h"
 #include "Dialog.h"
+#include "DialogButton.h"
 #include "Graphics.h"
 #include "DDImage.h"
 #include "DDInterface.h"
@@ -86,6 +88,7 @@ public:
 	int mUpX, mUpY;
 	int mMoveX, mMoveY;  // the last move or drag
 	int mWheel;
+	int mRightDowns;  // right-button presses (the move loop's bot, "move")
 
 	virtual void KeyDown(KeyCode theKey) { mKeyDowns++; Widget::KeyDown(theKey); }
 	virtual void KeyUp(KeyCode theKey) { mKeyUps++; Widget::KeyUp(theKey); }
@@ -104,6 +107,8 @@ public:
 	virtual void MouseDown(int x, int y, int theBtnNum, int theClickCount)
 	{
 		mMouseDowns++;
+		if (theBtnNum == 1)
+			mRightDowns++;
 		mDownX = x;
 		mDownY = y;
 		mDownButton = theBtnNum;
@@ -144,6 +149,7 @@ public:
 	bool mHotkeyTest;
 	const char* mCheckName;  // starts each check's line: "hotkey" or "realinput"
 	int mChecks;
+	int mDialogsClosed;  // the test dialog closed by its button ("state", "move")
 
 	FwTestApp()
 	{
@@ -165,6 +171,7 @@ public:
 		mHotkeyTest = false;
 		mCheckName = "hotkey";
 		mChecks = 0;
+		mDialogsClosed = 0;
 	}
 
 	virtual ~FwTestApp()
@@ -258,6 +265,12 @@ public:
 		aDialog->Resize(mWidth - aWidth - 16, 24, aWidth, aDialog->GetPreferredHeight(aWidth));
 	}
 
+	bool MoveTaskDone()
+	{
+		return (mBoard != NULL) && (mBoard->mTyped.find("Hi") != std::string::npos) && (mBoard->mRightDowns > 0) &&
+			(mBoard->mDrags > 0) && (mDialogsClosed >= 2) && (GetDialog(DIALOG_TEST) == NULL);
+	}
+
 	void PlaySelectSound()
 	{
 		if (mSelectSound >= 0)
@@ -269,6 +282,7 @@ public:
 		// Dialog buttons arrive as 2000 + dialog id (yes / OK / footer) and 3000 + dialog id (no / cancel)
 		if ((theId == 2000 + DIALOG_TEST) || (theId == 3000 + DIALOG_TEST))
 		{
+			mDialogsClosed++;
 			PlaySelectSound();
 			KillDialog(DIALOG_TEST);
 		}
@@ -308,6 +322,68 @@ public:
 	// shuts down. Each answers on the log as a game's test command does (docs/TEST_COMMANDS.md): OK or ERROR.
 	virtual bool HandleScriptCommand(const ScriptCommand& theCommand)
 	{
+		// the standard test commands' two for a driver (docs/TEST_COMMANDS.md), for tools/playbymove's check: "state"
+		// and the move a bot makes next towards a small task that takes every kind of step (keys, a drag with a wait,
+		// a right click, a hover and a click, twice the dialog opened and closed); "over" once it is done
+		if (theCommand.mCommand == "state")
+		{
+			std::string aTyped;
+			if (mBoard != NULL)
+			{
+				for (char c : mBoard->mTyped)
+				{
+					if ((c == '"') || (c == '\\'))
+						aTyped += '\\';
+					if ((unsigned char) c >= 32)
+						aTyped += c;
+				}
+			}
+			SDL_Log("STATE {\"screen\":\"%s\",\"typed\":\"%s\",\"rightdowns\":%d,\"drags\":%d,\"dialogs\":%d,\"over\":%s}",
+				(mBoard == NULL) ? "loading" : (GetDialog(DIALOG_TEST) != NULL) ? "dialog" : "board", aTyped.c_str(),
+				(mBoard != NULL) ? mBoard->mRightDowns : 0, (mBoard != NULL) ? mBoard->mDrags : 0, mDialogsClosed,
+				MoveTaskDone() ? "true" : "false");
+			return true;
+		}
+		if (theCommand.mCommand == "move")
+		{
+			Dialog* aDialog = GetDialog(DIALOG_TEST);
+			if (mBoard == NULL)
+				SDL_Log("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
+			else if (MoveTaskDone())
+				SDL_Log("MOVE null");
+			else if ((aDialog != NULL) && (aDialog->mYesButton != NULL))
+			{
+				// a dialog's buttons are the widget manager's own, at the screen's coordinates (Dialog::AddedToManager)
+				int aX = aDialog->mYesButton->mX + aDialog->mYesButton->mWidth / 2;
+				int aY = aDialog->mYesButton->mY + aDialog->mYesButton->mHeight / 2;
+				SDL_Log("MOVE {\"kind\":\"ok\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}],\"updates\":2}", aX, aY, aX, aY);
+			}
+			else if (mBoard->mTyped.find("Hi") == std::string::npos)
+				SDL_Log("MOVE {\"kind\":\"type\",\"input\":[{\"key\":\"H\"},{\"key\":\"i\"},{\"key\":\"Enter\"}]}");
+			// the drag before any click: every release is a drag at its point (HandleEvent moves the mouse there
+			// first, as 1.3's window procedure does)
+			else if (mBoard->mDrags == 0)
+				SDL_Log("MOVE {\"kind\":\"drag\",\"input\":[{\"press\":[100,150]},{\"move\":[130,160]},{\"wait\":2},{\"move\":[160,170]},{\"release\":[160,170]}]}");
+			else if (mBoard->mRightDowns == 0)
+				SDL_Log("MOVE {\"kind\":\"look\",\"input\":[{\"click\":[300,200],\"button\":\"right\"}]}");
+			else
+				SDL_Log("MOVE {\"kind\":\"button\",\"input\":[{\"move\":[548,420]},{\"click\":[548,420]}]}");
+			return true;
+		}
+		// "waitdown": a test command that retries through the script (AddScriptCommand) until a mouse press reaches the
+		// board, as Bookworm Adventures' goto waits for its screen; a real press must reach the board meanwhile (HandleEvent
+		// drops real input only in a -script run or under a test bot, not while a command's retry is queued)
+		if (theCommand.mCommand == "waitdown")
+		{
+			int aDowns = (mBoard != NULL) ? mBoard->mMouseDowns : 0;
+			if (theCommand.mArgs.empty())
+				AddScriptCommand(mUpdateCount + 1, "waitdown", std::to_string(aDowns));
+			else if (aDowns <= atoi(theCommand.mArgs.c_str()))
+				AddScriptCommand(mUpdateCount + 1, "waitdown", theCommand.mArgs);
+			else
+				SDL_Log("OK waitdown");
+			return true;
+		}
 		if (theCommand.mCommand == "killdialog")
 		{
 			KillDialog(DIALOG_TEST);
@@ -620,6 +696,7 @@ FwTestBoard::FwTestBoard(FwTestApp* theApp)
 	mUpX = mUpY = -1;
 	mMoveX = mMoveY = -1;
 	mWheel = 0;
+	mRightDowns = 0;
 
 	mDialogButton = new ButtonWidget(BUTTON_DIALOG, this);
 	mDialogButton->mLabel = _S("DIALOG");

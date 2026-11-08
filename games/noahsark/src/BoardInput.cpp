@@ -6,6 +6,7 @@
 #include "Compat2004.h"
 #include "SexyAppBase.h"
 #include "WidgetManager.h"
+#include "ModFeatures.h"
 
 #include <algorithm>
 #include <cmath>
@@ -260,6 +261,10 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 			}
 			mState = BOARD_PLAYING;
 			mApp->ResyncEvent('r');
+			// fix snapWater: the get-ready's own end brings the water to its level (BoardUpdate.cpp), a click that ends it
+			// did not, which left the water a pixel off for the rest of the level
+			if (ModFixOn("snapWater") && (mApp->mGameMode != GAMEMODE_STRATEGY))
+				mWaterY = mWaterTargetY;
 		}
 		ClearLinkList();
 		ClearLink();

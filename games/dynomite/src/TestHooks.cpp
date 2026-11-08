@@ -9,11 +9,40 @@
 //              that a saved game loads as it was saved
 //   combo <n>  has Inchy call out a chain of level n (1 combo ... 7 dynomite combo; 0 clears his bubble), as the
 //              board's Chain does a match later; logs "script: combo <n>" ("script: combo none" without the side bar)
+//
+// The standard test commands (docs/TEST_COMMANDS.md), each answered with one line on stdout: STATE {...}, MOVE {...},
+// OK <command> or ERROR <command>: <reason>. A command that is never given changes nothing.
+//
+//   state                 STATE {json}: screen (title, menu, game), tutorial (its step; its board is a game) or page
+//                         (the main menu's), dialog (the topmost dialog's id, 0 for none), score, and on a board: mode
+//                         (stomped, endless, fossil, timetrial), paused, busy (no move now), over (lost or won, its end
+//                         running), level (Fossil's fossil with its round, Stomped's round, Endless's whirley level)
+//                         and the board: eggs, loaded and next colours, frozen, and rows (the grid's cells, a row a
+//                         string of hex colours, '.' empty)
+//   goto <screen>         menu, options, highscores, credits, or a mode (endless, stomped, fossil, timetrial, tutorial),
+//                         started through the main menu's own pages with their present choices of skill and pack
+//   level <n>             Fossil: fossil n (1-15) from its first fragment, as the museum starts one
+//   set score <n>         the side bar's score
+//   win                   Stomped and Time Trial: every egg goes, so the board's own end follows
+//   lose                  the eggs have passed the line: Inchy sinks and the eggs run off, as in play (once the
+//                         first shot has started the game)
+//   seed <n>              the app's twister and its picker, as the original seeds them from the tick count
+//   move                  MOVE {json}: in the tutorial its continue button while it shows; else the bot's shot
+//                         (Bot.h): angle, cell, colour, group, and its input, a move to the point that aims it and a
+//                         click there, which fires
+//   unlock all            ERROR: nothing is locked in the port
 #include <SDL.h>
 #include <cstdlib>
+#include <cstdio>
 #include <cstring>
+#include <string>
+#include <vector>
 
+#include "Bot.h"
+#include "ButtonWidget.h"
 #include "CellButton.h"
+#include "compat2004/Compat2004.h"
+#include "IntroScreen.h"
 #include "Dynomite.h"
 #include "DynomiteFossil.h"
 #include "DynomitePanic.h"
@@ -22,13 +51,351 @@
 #include "EggGrid.h"
 #include "FossilizedApp.h"
 #include "InchySmall.h"
+#include "Museum.h"
 #include "Launcher.h"
 #include "Egg.h"
 #include "SideBar.h"
 #include "Steggy.h"
+#include "TitleScreen.h"
 #include "Tutorial.h"
 
 using namespace Sexy;
+
+namespace
+{
+
+void Reply(const std::string& theLine)
+{
+	printf("%s\n", theLine.c_str());
+	fflush(stdout);
+}
+
+void Ok(const std::string& theCommand)
+{
+	Reply("OK " + theCommand);
+}
+
+void Error(const std::string& theCommand, const std::string& theReason)
+{
+	Reply("ERROR " + theCommand + ": " + theReason);
+}
+
+const char* ModeName(int theGameType)
+{
+	switch (theGameType)
+	{
+	case 0:
+		return "stomped";
+	case 1:
+		return "endless";
+	case 2:
+		return "fossil";
+	case 3:
+		return "timetrial";
+	}
+	return "none";
+}
+
+int TopDialogId(FossilizedApp* theApp)
+{
+	int anId = 0;
+	for (DialogMap::iterator it = theApp->mDialogMap.begin(); it != theApp->mDialogMap.end(); ++it)
+		anId = it->first;
+	return anId;
+}
+
+// the tutorial's continue button while it shows for the step on screen
+CellButton* TutorialContinue(FossilizedApp* theApp)
+{
+	Tutorial* t = theApp->mTutor;
+	if ((t == NULL) || (t->mContinueButton->mX < 0) || (t->mStep != t->mShownStep))
+		return NULL;
+	return t->mContinueButton;
+}
+
+// the button a move presses that is not a shot: the museum's own button while the museum is open (its close, or its
+// continue after a fossil; pressed also while disabled, so a driver waits on it), or the side bar's museum button at
+// the tutorial's step 0x5d, which waits for the museum
+Widget* MoveButton(FossilizedApp* theApp)
+{
+	Dynomite* b = theApp->mBoard;
+	if ((b == NULL) || (b->mGameType != 2))
+		return NULL;
+	Museum* aMuseum = static_cast<DynomiteFossil*>(b)->mMuseum;
+	if (aMuseum != NULL)
+	{
+		ButtonWidget* aClose = aMuseum->mCloseButton;
+		return aClose->mVisible ? aClose : NULL;	// a click while it is disabled (the rex's attack) does nothing
+	}
+	if ((theApp->mTutor != NULL) && (theApp->mTutor->mStep == 0x5d) && (theApp->mSideBar != NULL))
+		return theApp->mSideBar->mButton5;
+	return NULL;
+}
+
+std::string StateJson(FossilizedApp* theApp)
+{
+	std::string s = "{\"screen\":\"";
+	Dynomite* b = theApp->mBoard;
+	if (theApp->mTitleScreen != NULL)
+		s += "title";
+	else if (b != NULL)
+		s += "game";
+	else if (theApp->mIntroScreen != NULL)
+		s += "menu";
+	else
+		s += "none";
+	s += "\"";
+	if (theApp->mTutor != NULL)
+		s += StrFormat(",\"tutorial\":%d", theApp->mTutor->mStep);
+	else if (theApp->mIntroScreen != NULL)
+		s += StrFormat(",\"page\":%d", theApp->mIntroScreen->mPage);
+	else if (theApp->mTitleScreen != NULL)
+		s += StrFormat(",\"loaded\":%s", theApp->mTitleScreen->mLoadingDone ? "true" : "false");	// its link takes a click
+	s += StrFormat(",\"dialog\":%d", TopDialogId(theApp));
+	if (theApp->mSideBar != NULL)
+		s += StrFormat(",\"score\":%d", theApp->mSideBar->mScore);
+	if (b != NULL)
+	{
+		// busy: no shot can be fired now (none loaded, one in flight, frozen, paused, or a match or the end running)
+		bool isBusy = (b->mLauncher == NULL) || (b->mLauncher->mLoaded == NULL) || b->mLauncher->mFrozen ||
+			(b->mFlyingEggs.mCount > 0) || (b->mPauseCount > 0) || b->mField244 || b->mField80 ||
+			(b->mThunderbolt != NULL) || b->mField130 || b->mField131 || b->mField132;
+		if ((TutorialContinue(theApp) != NULL) || (MoveButton(theApp) != NULL))
+			isBusy = false;	// a button to press is a move
+		// over: the game has ended; the tutorial's board loses once on purpose (step 45) and the tutorial goes on
+		bool isOver = (b->mField131 || b->mField132) && (theApp->mTutor == NULL);
+		s += StrFormat(",\"mode\":\"%s\",\"paused\":%d,\"busy\":%s,\"over\":%s", ModeName(b->mGameType),
+			b->mPauseCount, isBusy ? "true" : "false", isOver ? "true" : "false");
+		if (b->mGameType == 2)
+		{
+			DynomiteFossil* f = (DynomiteFossil*) b;
+			s += StrFormat(",\"level\":%d,\"round\":%d", f->mLevel, f->mRound);
+		}
+		else if (b->mGameType == 0)
+			s += StrFormat(",\"level\":%d", ((DynomiteStomped*) b)->mRound);
+		else if (b->mGameType == 1)
+			s += StrFormat(",\"level\":%d", ((DynomitePanic*) b)->mWhirleyLevel);
+		EggGrid* g = b->mGrid;
+		Launcher* l = b->mLauncher;
+		s += StrFormat(",\"board\":{\"eggs\":%d,\"loaded\":%d,\"next\":%d,\"frozen\":%s,\"rows\":[", g->mEggCount,
+			(l && l->mLoaded) ? l->mLoaded->mColor : -1,
+			(b->mSteggy && b->mSteggy->mNext) ? b->mSteggy->mNext->mColor : -1, (l && l->mFrozen) ? "true" : "false");
+		int aRows = (int) g->mRows;
+		for (int r = 0; (r <= aRows) && (r < 100); r++)
+		{
+			std::string aRow;
+			for (int c = 0; c < 15; c++)
+			{
+				int aColor = (int) (g->mCells[c][r].mBits & 0xff);
+				aRow += (aColor == 0) ? std::string(".") : StrFormat("%x", aColor & 0xf);
+			}
+			s += StrFormat("%s\"%s\"", (r == 0) ? "" : ",", aRow.c_str());
+		}
+		s += "]}";
+	}
+	return s + "}";
+}
+
+// to the main menu as a player gets there: the title's link, the side bar's menu button (in the tutorial, or after a
+// game's end), or its "quit the current game?" answered yes; the dialogs open go first (a dialog pauses the board)
+void ToMenu(FossilizedApp* theApp)
+{
+	std::vector<int> anIds;
+	for (DialogMap::iterator it = theApp->mDialogMap.begin(); it != theApp->mDialogMap.end(); ++it)
+		anIds.push_back(it->first);
+	for (size_t i = 0; i < anIds.size(); i++)
+		theApp->KillDialog(anIds[i]);
+	if (theApp->mTitleScreen != NULL)
+		theApp->TitleScreenDone();
+	else if (theApp->mInTutorial || ((theApp->mBoard != NULL) && theApp->mBoard->mField131))
+		theApp->MenuButton();
+	else if ((theApp->mBoard != NULL) || (theApp->mIntroScreen == NULL))
+		theApp->ShowMainMenu();
+}
+
+// the main menu's own pages, from the start page with the given choice and mode, as its OK button goes through them
+bool StartFromMenu(FossilizedApp* theApp, int theStartChoice, int theMode)
+{
+	ToMenu(theApp);
+	if (theApp->mIntroScreen == NULL)
+		return false;
+	theApp->mIntroScreen->mStartChoice = theStartChoice;
+	if (theMode != 0)
+		theApp->mGameMode = theMode;
+	theApp->mIntroScreen->mPage = 0;
+	for (int i = 0; (i < 4) && (theApp->mIntroScreen != NULL) && (theApp->mBoard == NULL) && (theApp->mTutor == NULL); i++)
+		theApp->mIntroScreen->ButtonDepress(7);
+	return (theApp->mBoard != NULL) || (theApp->mTutor != NULL);
+}
+
+bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, const std::string& theArgs)
+{
+	std::string aLine = theArgs.empty() ? theName : (theName + " " + theArgs);
+	Dynomite* b = theApp->mBoard;
+	if (theName == "state")
+	{
+		Reply("STATE " + StateJson(theApp));
+		return true;
+	}
+	if (theName == "move")
+	{
+		BotShot aShot;
+		CellButton* aContinue = TutorialContinue(theApp);
+		Widget* aButton = NULL;
+		if (aContinue != NULL)
+		{
+			int x = aContinue->mX + aContinue->mWidth / 2;
+			int y = aContinue->mY + aContinue->mHeight / 2;
+			Reply(StrFormat("MOVE {\"kind\":\"continue\",\"step\":%d,\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}",
+				theApp->mTutor->mStep, x, y, x, y));
+		}
+		else if ((aButton = MoveButton(theApp)) != NULL)
+		{
+			int x = aButton->mX + aButton->mWidth / 2;
+			int y = aButton->mY + aButton->mHeight / 2;
+			Reply(StrFormat("MOVE {\"kind\":\"button\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}",
+				x, y, x, y));
+		}
+		else if (!BotChooseShot(b, &aShot, (theApp->mTutor != NULL) && ((theApp->mTutor->mStep == 0x2b) || (theApp->mTutor->mStep == 0x2d)),
+			(theApp->mTutor != NULL) && (theApp->mTutor->mStep == 0x3e)))
+			Reply("MOVE null");
+		else
+			Reply(StrFormat("MOVE {\"kind\":\"shot\",\"angle\":%d,\"cell\":[%d,%d],\"color\":%d,\"group\":%d,"
+				"\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}", aShot.mAngle, aShot.mCol, aShot.mRow,
+				aShot.mColor, aShot.mGroup, aShot.mClickX, aShot.mClickY, aShot.mClickX, aShot.mClickY));
+		return true;
+	}
+	if (theName == "goto")
+	{
+		static const char* kModes[] = { "stomped", "endless", "fossil", "timetrial" };
+		for (int i = 0; i < 4; i++)
+		{
+			if (theArgs == kModes[i])
+			{
+				if (StartFromMenu(theApp, 0, i + 1))
+					Ok(aLine);
+				else
+					Error(aLine, "the main menu did not start it");
+				return true;
+			}
+		}
+		if (theArgs == "tutorial")
+		{
+			if (StartFromMenu(theApp, 2, 0))
+				Ok(aLine);
+			else
+				Error(aLine, "the main menu did not start it");
+		}
+		else if (theArgs == "menu")
+		{
+			ToMenu(theApp);
+			Ok(aLine);
+		}
+		else if (theArgs == "options")
+		{
+			theApp->ShowOptions();
+			Ok(aLine);
+		}
+		else if (theArgs == "highscores")
+		{
+			theApp->ShowHighScores();
+			Ok(aLine);
+		}
+		else if (theArgs == "credits")
+		{
+			theApp->ShowCredits();
+			Ok(aLine);
+		}
+		else if (theArgs == "title")
+			Error(aLine, "the title shows only at the start");
+		else
+			Error(aLine, "no such screen");
+		return true;
+	}
+	if (theName == "level")
+	{
+		int aLevel = atoi(theArgs.c_str());
+		if ((b == NULL) || (b->mGameType != 2))
+			Error(aLine, "only the Fossil Challenge has levels to start");
+		else if ((aLevel < 1) || (aLevel > 15))
+			Error(aLine, "a fossil is 1 to 15");
+		else
+		{
+			DynomiteFossil* f = (DynomiteFossil*) b;
+			f->mLevel = aLevel;
+			f->mRound = 1;
+			f->StartRound(aLevel, 1);
+			Ok(aLine);
+		}
+		return true;
+	}
+	if (theName == "unlock")
+	{
+		Error(aLine, "nothing is locked in the port");
+		return true;
+	}
+	if (theName == "set")
+	{
+		char aKey[32] = {};
+		int aValue = 0;
+		if ((sscanf(theArgs.c_str(), "%31s %d", aKey, &aValue) != 2) || (strcmp(aKey, "score") != 0))
+			Error(aLine, "only set score <n>");
+		else if (theApp->mSideBar == NULL)
+			Error(aLine, "no side bar yet");
+		else
+		{
+			theApp->mSideBar->mScore = aValue;
+			theApp->mSideBar->MarkDirty();
+			Ok(aLine);
+		}
+		return true;
+	}
+	if (theName == "lose")
+	{
+		if ((b == NULL) || b->mField131 || b->mField132)
+			Error(aLine, "no game in play");
+		else if (!b->mFieldB0)
+			Error(aLine, "the game starts with its first shot");
+		else
+		{
+			// as Dynomite::Update when the eggs have been past the line too long
+			if (b->mField130 == false)
+				theApp->mSideBar->mInchy->Sink(0);
+			b->mField130 = true;
+			b->mGrid->mBreakPastLine = true;
+			Ok(aLine);
+		}
+		return true;
+	}
+	if (theName == "win")
+	{
+		if ((b == NULL) || b->mField131 || b->mField132)
+			Error(aLine, "no game in play");
+		else if ((b->mGameType != 0) && (b->mGameType != 3))
+			Error(aLine, "Endless and the Fossil Challenge have no win to give");
+		else
+		{
+			b->mGrid->ClearDynamite();
+			for (int c = 0; c < 15; c++)
+				for (int r = 0; r < 100; r++)
+					b->mGrid->mCells[c][r].mBits = 0;
+			b->mGrid->CountRows();
+			Ok(aLine);
+		}
+		return true;
+	}
+	if (theName == "seed")
+	{
+		unsigned int aSeed = (unsigned int) strtoul(theArgs.c_str(), NULL, 10);
+		SeedMTRand2004(theApp->mRand, aSeed);
+		theApp->mPicker.Seed(aSeed >> 1);
+		Ok(aLine);
+		return true;
+	}
+	return false;
+}
+
+}
 
 bool FossilizedApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
@@ -80,6 +447,8 @@ bool FossilizedApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		SDL_Log("script: combo %s", theCommand.mArgs.c_str());
 		return true;
 	}
+	if (HandleStandardCommand(this, theCommand.mCommand, theCommand.mArgs))
+		return true;
 	return SexyAppBase::HandleScriptCommand(theCommand);
 }
 

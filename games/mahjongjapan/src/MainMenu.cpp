@@ -107,13 +107,11 @@ void MainMenu::Load()
 	{
 		jb::ImageInfo anInfo;
 		jb::gManager->GetImageInfo(0xff03, anInfo);
-		std::string anUrl = jb::gApp->RegGetString(nullptr, "PartnerURL", "", true);
-		jb::LinkButton* aLogo;
-		if (!anUrl.empty() && 0 < (int)anUrl.length())
-			aLogo = new jb::LinkButton(0xff03, anUrl.c_str());
-		else
-			aLogo = new jb::LinkButton(0xff03, nullptr);
+		// the original makes it a button that opens the registry's PartnerURL; without one (this install has none) it
+		// is disabled, and here it is a picture that goes nowhere
+		jb::Button* aLogo = new jb::Button(0xff03, 1, false);
 		Add(aLogo, 0x14, 0x244 - anInfo.mHeight);
+		aLogo->SetEnabled(false);
 	}
 	MenuButton* aButton = new MenuButton(0x8e, 0x78);
 	Add(aButton, 0xc0, 0xe2);

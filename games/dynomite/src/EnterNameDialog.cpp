@@ -1,5 +1,5 @@
 #include "EnterNameDialog.h"
-#include "DialogButton.h"
+#include "ButtonWidget.h"
 #include "EditWidget.h"
 #include "FossilizedApp.h"
 #include "Graphics.h"
@@ -45,16 +45,16 @@ EnterNameDialog::EnterNameDialog(FossilizedApp* theApp, HighScores* theHighScore
 #endif
 	mNameEdit->FocusCursor(false);
 
-	mOkButton = new DialogButton(NULL, 100, mApp);
-	mOkButton->mComponentImage = mApp->mPicDbutton->mImage;
+	mOkButton = new ButtonWidget(100, mApp);
+	mOkButton->mButtonImage = mApp->mPicDbutton->mImage;
 	mOkButton->mDoFinger = true;
 	mOkButton->mLabel = mApp->GetString("OKAY");
 	mOkButton->SetFont(mApp->mWhiteFontSmall);
 	mOkButton->SetColor(0, Color(0xff, 0xff, 0xff));
 	mOkButton->SetColor(1, Color(0xff, 0xff, 0xff));
 
-	mCancelButton = new DialogButton(NULL, 0x65, mApp);
-	mCancelButton->mComponentImage = mApp->mPicDbutton->mImage;
+	mCancelButton = new ButtonWidget(0x65, mApp);
+	mCancelButton->mButtonImage = mApp->mPicDbutton->mImage;
 	mCancelButton->mDoFinger = true;
 	mCancelButton->mLabel = mApp->GetString("DIALOG_BUTTON_CANCEL");
 	mCancelButton->SetFont(mApp->mWhiteFontSmall);

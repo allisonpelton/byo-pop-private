@@ -34,13 +34,11 @@ void SeedCrtRand()
 	CrtSrand(TimeMs());
 }
 
-// 0x41eb40: what the window's closing does (the original stops the sounds unless 0x46e5cc, which nothing sets): the
-// page asked for goes to the browser
+// 0x41eb40: what the window's closing does (the original stops the sounds unless 0x46e5cc, which nothing sets, and
+// opens the page a buy or more-games button asked for; the port has no such button)
 void GameExit()
 {
 	Sound_StopAll();
-	if (gUrl[0] != 0)
-		OpenURL(gUrl);
 }
 
 // 0x41ecd0: after the screen was opened again

@@ -8,7 +8,7 @@ file(GLOB WATERBUGS_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.
 # The host (the app and main) goes in the exe; the headless runner has a host of its own
 # (SiteProfiles.cpp, the web page's players in framework/WebProfiles.h, is for the web exe only: it needs the framework, which
 # this library does not link)
-list(FILTER WATERBUGS_SOURCES EXCLUDE REGEX "/(WaterBugsApp|main|SiteProfiles)\\.cpp$")
+list(FILTER WATERBUGS_SOURCES EXCLUDE REGEX "/(WaterBugsApp|main|SiteProfiles|ModFeatures)\\.cpp$")
 
 add_library(waterbugsengine STATIC ${WATERBUGS_ENGINE_SOURCES})
 target_include_directories(waterbugsengine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine)
@@ -26,7 +26,10 @@ if(NOT MSVC)
 endif()
 
 # The game under the framework's app host
-add_executable(waterbugs ${CMAKE_CURRENT_SOURCE_DIR}/src/WaterBugsApp.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+add_executable(waterbugs ${CMAKE_CURRENT_SOURCE_DIR}/src/WaterBugsApp.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/testhooks/TestCommands.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/ModFeatures.cpp)
+target_include_directories(waterbugs PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(waterbugs PRIVATE waterbugsgame waterbugsengine sexyframework sexycompat2004 sexyopenmpt stb)
 if(NOT MSVC)
   target_compile_options(waterbugs PRIVATE -Wall)

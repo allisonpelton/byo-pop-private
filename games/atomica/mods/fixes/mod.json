@@ -1,0 +1,13 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends faults of the original Atomica Deluxe and leaves the game as it was: its rules, scores, look, sounds and pace. With it on, a game plays out the same way on every run, whatever the speed of the machine. Each fix is a toggle; turn the whole mod off to play the original exactly as it was.",
+  "settings": [
+    { "id": "drawRandom", "label": "Pictures keep to their own random numbers", "type": "bool", "default": true,
+      "help": "The original draws the random numbers for its pictures (the monitor's static, the swirls, the sparks) from the same sequence as the atoms it deals, so how many pictures the machine draws changes which atoms come next. On: the pictures have a sequence of their own, and the same seed deals the same atoms on every run." },
+    { "id": "lipSync", "label": "Dr. Atomicus keeps to the game's updates", "type": "bool", "default": true,
+      "help": "The original moves Dr. Atomicus's mouth by the clock, so a hiccup of the machine (a window dragged, a slow disk) makes him finish speaking early, and the next thing he says starts early with it. On: his mouth takes one step an update, as it does when the machine keeps up, and what he says is timed by the game's updates alone." }
+  ]
+}

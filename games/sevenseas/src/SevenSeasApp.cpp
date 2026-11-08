@@ -74,7 +74,6 @@ SevenSeasApp::SevenSeasApp()
 	mMusicSlot = 0;
 	mTutorial = true;
 	mDifficulty = 1;
-	mGamesPlayed = 0;
 	mFlag4c4 = true;
 	mTalking = false;
 	mTalkWidget = NULL;
@@ -83,7 +82,6 @@ SevenSeasApp::SevenSeasApp()
 	mWarnGhost = true;
 	mWarnSerpent = true;
 	mWarnWhirl = true;
-	mIsRegistered = true;
 	mMenuDifficultySaved = false;
 	mAutoplay = false;
 	mAutoplayLevel = 0;
@@ -765,6 +763,10 @@ void SevenSeasApp::StartGame()
 	mQuitButton->SetVisible(false);
 	mNewGameButton->SetVisible(true);
 	mWidgetManager->BringToFront(mTalkWidget);
+	// 0x41eef0 ends with ShowWarning(4) and KillDialog(0xe): the new board's own first-level warning (the whirlpools on Hard)
+	// is made inside the Board's constructor, before the board is put in front, so it would sit hidden behind the board and
+	// take every click; the original closes it here, and the warning first shows at level 2
+	KillDialog(DIALOG_WARNING);
 }
 
 // 0x41f300

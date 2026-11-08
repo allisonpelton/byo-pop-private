@@ -521,9 +521,7 @@ int Animation_FromXml(Animation* theAnim, const XmlTag* theTag)
 		std::strcpy(theAnim->file, "panel_cosmicbugs");
 	if (std::strcmp(theAnim->name, "nag_logo") == 0)
 	{
-		std::strcpy(theAnim->file, "nag_logo_cosmicbugs");
-		if (gRegistered != 0)
-			std::strcpy(theAnim->file, "panel_cosmicbugs");
+		std::strcpy(theAnim->file, "panel_cosmicbugs");
 	}
 	theAnim->rotation = Xml_GetInt(theTag, "rotation");
 	if (Xml_GetString(theTag, "swap1") != nullptr)

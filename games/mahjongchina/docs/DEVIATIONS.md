@@ -92,3 +92,21 @@ an object (0x41ec10 (China 0x41e710)) or a stream (0x424d30 (China 0x42a500)). T
 the stage table (TXT 0x17f) for an escape stage, and with the clock for a classic game and for every reshuffle
 (0x40b0a0 (China 0x40af70)). The clock is the host's: `timeGetTime` natively and in the browser, or the framework's virtual clock under
 `-fast`. That is why a scripted run repeats exactly.
+
+## Buttons that led out of the game, a soft lock and the hooks for the fixes mod (2026-11-08)
+
+These three are Ancient Japan's, with China's addresses where the two exes' functions pair (`re/mahjongchina/compare/addrmap.tsv`);
+`games/mahjongjapan/docs/DEVIATIONS.md` describes each, and each stands at the same function here.
+
+- **The links.** The PopCap and SpinTop logos at the main menu's corners were link buttons that opened web sites. They are pictures
+  that take no click now, and nothing in the game opens a URL. This is visible, and on purpose.
+- **A soft lock.** A click on Shuffle while the last pair of a game flies cleared that flight in the redeal, so the round never
+  closed: an empty board, the clock running, no result box. `Board::OnCommand` ignores the shuffle once no tile is left.
+- **The hooks.** `Host::RealTickCount` (the deal search's time limit on the machine's clock) and `Host::SeedTick` (the three
+  deal sites' seeds) answer as the original's `TickCount` does unless the fixes mod (`mods/fixes`) asks otherwise, and
+  `gSkipLogos` ends the splash's two logos at their first update only with the mod's `skipLogos`. The engine's reseeding at
+  every object and stream (China 0x41e710 and 0x42a500) stays on the clock.
+
+The JPEGs are decoded by the shared libjpeg 6b loader (`Platform::LoadImageFromMemory`), as the original's own libjpeg
+does, where stb_image decoded them before; the frozen screens of the suite were taken again (at most 3 levels of a channel
+of difference, in the JPEG backgrounds only).

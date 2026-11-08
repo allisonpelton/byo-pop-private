@@ -262,7 +262,7 @@ struct KeyMapNode
 struct Level : Obj
 {
 	// kind +0x08: 0 a board, 1 main_menu, 2 high_score_entry, 3 high_scores, 4 credits, 5 select_level,
-	// 6 select_level2, 7 options, 8 opening_nag, 9 closing_nag, 10 expiring_nag, 0xb mission_complete, 0xc help,
+	// 6 select_level2, 7 options, 0xb mission_complete, 0xc help,
 	// 0xd help2, 0xe logo, 0x10 change_user; state +0x0c: 1 playing, 2 paused, 3 won
 	Cell* columns[50];               // +0x0b0
 	char title[0x40];                // +0x178
@@ -343,7 +343,6 @@ void Level_LoadFillImages(Level* theLevel, const XmlTag* theTag); // 0x40ff30
 void Level_DefaultFillImages(Level* theLevel);                   // 0x4100a0
 int PortalCount();                                               // 0x4101f0
 void Level_RedrawCells(Level* theLevel);                         // 0x410250
-void Level_DrawTrialTime(Level* theLevel);                       // 0x410340
 void DrawPaused();                                               // 0x410450
 int Level_IsPlaying(Level* theLevel);                            // 0x410660
 void Level_AddKey(Level* theLevel, char theKey, int theA, int theB); // 0x410c00

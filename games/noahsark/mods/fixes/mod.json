@@ -1,0 +1,18 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Fixes for the original game: each setting is one fix, on by default. They mend what the original gets wrong or makes the player wait for and leave the rest as it was. Turn a fix off, or the whole mod, for the game as it ran in 2002.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    { "id": "steadyClock", "label": "Steady level clock", "type": "bool", "default": true,
+      "help": "The original times the start of a level (the animals are let in 400 ms after it) and the time on the level-up panel by the machine's clock, so two games of the same seed part by a frame or two and a game that is paused counts the pause. This counts in the game's own updates instead: the same seed and the same clicks play the same game every time." },
+    { "id": "snapWater", "label": "Water level after an early click", "type": "bool", "default": true,
+      "help": "When the first click ends a level's get-ready, the original leaves the water a pixel off its level for the rest of the level (the get-ready's own end brings it to its level). This puts it right." },
+    { "id": "quickScores", "label": "Quick game-over screen", "type": "bool", "default": true,
+      "help": "The game-over screen fades in for two and a half seconds, and asks for your name after one and three quarters of them. With this it takes a third of the time." }
+  ]
+}

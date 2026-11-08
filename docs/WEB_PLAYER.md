@@ -963,6 +963,22 @@ Cosmic Bugs and Water Bugs call `Screen_SetFullscreen(0)` after `LoadConfig`, as
 option as it would if the player had set it, so a later "Game default" starts windowed too. "Game default" and "Full screen" call
 nothing.
 
+**A refused full screen.** A game's own switch (Alt+Enter, an Options checkbox) asks SDL, and a browser grants that request
+only while a gesture of the player's is active (a key or a click in the last few seconds) and where the page may have full
+screen (an embedding page can forbid it). Asked otherwise, SDL's window took the screen's size at once while Emscripten held the
+request for a gesture to come, so the game went on in its 640x480 canvas drawn several times too big, its clicks off (TipTop's
+Alt+Enter from a test's DOM events, 2026-11-08). `SexyAppBase::SwitchScreenMode` now asks only when the browser would take the
+request (`sexyapp_fullscreen_allowed`: full screen enabled, and `navigator.userActivation.isActive`, which is Emscripten's own
+test), and otherwise stays windowed and logs "SwitchScreenMode: the browser would refuse full screen now". A request it makes
+can still be refused later: the Browser pane takes about 15 s to refuse one that followed a real click, and refuses one without
+a gesture at once with "Permissions check failed". Emscripten has sized the canvas for the screen by then, and puts it back only
+when full screen ends, which a refusal never does. So the switch watches its request (`sexyapp_watch_fullscreen_refusal`): on
+its `fullscreenerror` it sends the page a `fullscreenchange` with no full-screen element, which Emscripten and SDL take as the
+player leaving full screen; the canvas gets its size back, SDL's window is windowed, and the framework's `mIsWindowed` follows
+at the next `SIZE_CHANGED`. Both were tried on TipTop in the pane: the game stayed drawn at its size, and the next click hit its
+button. A game that keeps its own copy of the mode keeps the copy it set (TipTop's `gFullScreen` says full screen after a
+refused switch, so its next Alt+Enter only puts the copy back), as when the player leaves full screen with Esc.
+
 The settings apply when a game starts. In a game's page, the Settings panel also applies at once what can be: the starting
 volume and custom cursors (to the running game), the wake lock and pause when hidden; "ask before leaving" is read when the
 page is left, and the Sound button acts at once. "Full screen at start", "3D acceleration" and "Player names" only apply at the next start, and
@@ -1719,6 +1735,7 @@ Its parameters:
 | `frames=browser` | with `fast=1`, the browser's frames instead of the page's own (to compare a run with them) |
 | `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready. A driver then runs once the files are in, before the game starts, and starts it itself; `?driver=move` starts it at once |
 | `silent=0` | sound on (the user's speakers: only when the user says so) |
+| `realfocus=1` | the browser's own blur and focus events reach the game, besides the kit's `blur()` and `focus()` (below) |
 | `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
 | `run=<id>` | the folder of `byopop.test.shot(name)`'s files under `build/webshots/` (default "default") |
 | `seed=N`, `placeholders=1` | as on the full page |
@@ -1766,7 +1783,11 @@ depends on the frames.
   compiled out of these builds);
   `shot(name)` also saves it through the server.
 - **focus**: `blur()` sends what a real loss of the focus sends (blur on the canvas and the window, and `document.hasFocus()`
-  false), `blur({hidden: true})` also a `visibilitychange` with `document.hidden` true, and `focus()` gives it all back.
+  false), `blur({hidden: true})` also a `visibilitychange` with `document.hidden` true, and `focus()` gives it all back. The
+  focus is the test's alone: the browser's own blur and focus events on the window, and on the canvas while the window has lost
+  the focus, stop in the kit before SDL and the page see them, and `document.hasFocus()` leaves out the window's real focus. A
+  hidden Browser pane sends a real blur, which paused TipTop's runs until their driver gave the focus back (2026-11-08); native
+  `-realinput` drops the system's focus events the same way. `?realfocus=1` lets the browser's events through.
 - **the log**: `log(since)` the game's printed lines from number `since` on (`{seq, kind, text, update}`, the last 20000 kept),
   `logNext()` the number the next line will have, and `waitLog(pattern, {since, timeout})`, which resolves with the first line
   from `since` on (by default the next one printed) that matches a RegExp or contains a string, and rejects after `timeout` ms
