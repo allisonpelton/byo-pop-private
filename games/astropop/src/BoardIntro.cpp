@@ -64,7 +64,7 @@ void Board::UpdateIntroAndTally()
 						aStreak->mColor = Color(250, 250, 0);
 				}
 				m912 = true;
-				Fn465840(-1);
+				StartBonusRound(-1);
 			}
 		}
 		else if (aPhase == 3)

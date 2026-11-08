@@ -73,7 +73,6 @@ f8	std::vector<int>	mf8
 5a0	FrameAnim	mAnim5a0	the end buttons slide in with it (SetNumFrames 0x1f)
 5e0	FrameAnim	mAnim5e0	?
 620	FrameAnim	mAnim620
-648	bool	m648
 660	BoardOverlay	mOverlay	the widget over the field
 6e4	SoundInstance*	m6e4
 6e8	int	m6e8	?
@@ -88,7 +87,7 @@ f8	std::vector<int>	mf8
 70c	int	m70c	the meter's text, distance
 710	std::string	m710	the text of the supa weapon prompt
 72c	std::string	m72c
-748	int	m748	?
+748	XcfFile*	m748	the file of the bonus round (bonus<n>.xcf)
 74c	AstroButton*	m74c	the theme button (id 0xfa2)
 750	Checkbox*	m750	the theme checkbox (id 0xfa3)
 754	int	m754	?

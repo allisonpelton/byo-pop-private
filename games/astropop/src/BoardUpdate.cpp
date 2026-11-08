@@ -586,6 +586,6 @@ void Board::UpdateSparks()
 		}
 	}
 
-	if (!m648)
+	if (!mAnim620.mStopped)
 		mAnim620.Update();
 }

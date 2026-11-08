@@ -601,7 +601,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 
 // 0x477b90 (the scalar deleting wrapper at 0x47a910). What the original does not delete: the pictures of the
 // resources, the bricks of the lists (ClearField does that), the members it clears and frees in place. The members at
-// +0x2c0 (a vector of pairs), +0x748 and +0x754 (objects) are never set by anything, so their deletes are left out.
+// +0x2c0 (a vector of pairs) and +0x754 (an object) are never set by anything, so their deletes are left out.
 Board::~Board()
 {
 	if (m6e4 != NULL)
@@ -628,6 +628,7 @@ Board::~Board()
 		delete m778;
 	}
 	delete m2e0;
+	delete m748;
 	delete m308;
 	delete m304;
 

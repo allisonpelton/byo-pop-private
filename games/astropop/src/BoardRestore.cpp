@@ -400,7 +400,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		aUser->GetInt(0x3f, &aStage);
 		if (aStage < 1)
 			aStage = -1;
-		Fn465840(aStage);
+		StartBonusRound(aStage);
 		m1b2c = 0;
 		aUser->GetInt(99, &m1b2c);
 		m1b28 = Fn433130(m1940 + 1);

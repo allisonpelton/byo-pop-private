@@ -333,7 +333,7 @@ void Board::DrawFrame(Graphics* g)
 		if (m910 || m917)
 			g->SetColorizeImages(false);
 
-		if (!m648)
+		if (!mAnim620.mStopped)
 			DrawCel(g, IMAGE_FUELCELL_DEATH, 0x217, 0x30, (mAnim620.mNumFrames == 1) ? 0 : mAnim620.mFrame);
 
 		if (aDim)

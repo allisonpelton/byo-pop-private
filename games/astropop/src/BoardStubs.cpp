@@ -9,12 +9,6 @@ using namespace Sexy;
 #define NOT_TRANSLATED(name, addr) \
 	do { static bool aLogged = false; if (!aLogged) { aLogged = true; SDL_Log("AstroPop: Board::" name " not translated yet (" addr ")"); } } while (0)
 
-void Board::Fn465840(int theStage)
-{
-	(void) theStage;
-	NOT_TRANSLATED("Fn465840", "0x465840");
-}
-
 bool Board::Fn468e70()
 {
 	NOT_TRANSLATED("Fn468e70", "0x468e70");
@@ -31,11 +25,4 @@ bool Board::AnyMoveLeft(bool* theFlag)
 void Board::BuildStoryText()
 {
 	NOT_TRANSLATED("BuildStoryText", "0x47a940");
-}
-
-void Board::UpdateSupercharge(bool theCheck, int theColour)
-{
-	(void) theCheck;
-	(void) theColour;
-	NOT_TRANSLATED("UpdateSupercharge", "0x45ac80");
 }

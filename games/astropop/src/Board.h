@@ -21,6 +21,7 @@ namespace Sexy
 {
 
 class Brick;
+class XcfFile;
 class MemoryImage;
 class AstroPopApp;
 class Board;
@@ -392,7 +393,6 @@ public:
 	FrameAnim	mAnim5a0;// +0x5a0 the end buttons slide in with it (SetNumFrames 0x1f)
 	FrameAnim	mAnim5e0;// +0x5e0 ?
 	FrameAnim	mAnim620;// +0x620
-	bool	m648 = false;// +0x648
 	BoardOverlay	mOverlay;// +0x660 the widget over the field
 	SoundInstance*	m6e4 = NULL;// +0x6e4
 	int	m6e8 = 0;// +0x6e8 ?
@@ -407,7 +407,7 @@ public:
 	int	m70c = 0;// +0x70c the meter's text, distance
 	std::string	m710;// +0x710 the text of the supa weapon prompt
 	std::string	m72c;// +0x72c
-	int	m748 = 0;// +0x748 ?
+	XcfFile*	m748 = NULL;// +0x748 the file of the bonus round (bonus<n>.xcf)
 	AstroButton*	m74c = NULL;// +0x74c the theme button (id 0xfa2)
 	Checkbox*	m750 = NULL;// +0x750 the theme checkbox (id 0xfa3)
 	int	m754 = 0;// +0x754 ?
@@ -813,7 +813,7 @@ public:
 	void			SetupWarpLayers();                              // 0x43b1b0
 	static std::string	FormatNumber(int theNumber);            // 0x43e220 with a comma after each three digits
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
-	void			Fn465840(int theStage);                         // 0x465840 (2897 bytes): -1 picks a stage
+	void			StartBonusRound(int theStage);                  // 0x465840: the field of a bonus round (-1 picks a stage)
 	int				Fn433130(int theLevel);                         // 0x433130: the upgrade screen kind of a level (0, 1, 2 or 4)
 	void			Fn4335e0();                                     // 0x4335e0: the field is waiting to be cleared (m19fc = 1000)
 	bool			Fn468e70();                                     // 0x468e70: the upgrade screen of the level (true when one opens)
@@ -874,7 +874,8 @@ public:
 	void			AdvanceChain();                                 // 0x434320 one more set in a row
 	void			CheckSparseField();                             // 0x437830
 	void			SortFallingGroups();                            // 0x46cfd0 the groups in m94 by the height of their first brick
-	void			UpdateSupercharge(bool theCheck, int theColour); // 0x45ac80 the colours that are charged (not translated yet)
+	void			UpdateSupercharge(bool theCheck, int theColour); // 0x45ac80 the colours that are charged
+	void			AnnounceText(const std::string& theText);       // 0x454730 a text in the middle of the field that floats up
 	std::vector<CellRef>	BlastNeighbours(int theCol, int theRow, Brick* theBrick);   // 0x4588d0
 	void			RemoveCells(const std::vector<CellRef>& theCells, Image* theImage);   // (inside 0x45ce40) take the bricks of the cells out together
 	void			HideCellHint(Brick* theBrick);                  // (inlined in the handlers) the cell hint goes when its brick does
