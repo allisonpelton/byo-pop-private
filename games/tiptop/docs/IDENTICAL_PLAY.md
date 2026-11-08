@@ -278,9 +278,9 @@ at the moves it is told. `play.js` does the same on the web (`?mode=`, `?pauseat
 
 The live channel and `-realinput` were on the shared session's branch, not on main, when this pass ran, so the first runs were
 made on a scratch merge of it, and main took them in before the pass ended; the last runs below are on this branch with main merged
-in. The pass needed one shared fix, in its own commit here (`shared: with -realinput a bare move reaches the game's move test
-command`): `RunRealInputCommand` took every `move` for a mouse move and refused a bare one ("move needs <x> <y>"), so a driver could
-not ask a game's bot for its move; under `-script` a bare `move` already falls through to the game, and now it does with
+in. The pass needed one shared fix, which Alchemy's pass made too and main has as `4cf35432` (this branch's own copy of it gave way to
+main's in the merge): `RunRealInputCommand` took every `move` for a mouse move and refused a bare one ("move needs <x> <y>"), so a
+driver could not ask a game's bot for its move; under `-script` a bare `move` already falls through to the game, and now it does with
 `-realinput` too.
 
 ### The tours, as real events
