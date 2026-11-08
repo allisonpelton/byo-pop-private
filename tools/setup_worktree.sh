@@ -3,7 +3,10 @@
 #   - assets/<game> for every game staged there (copies, never junctions: deleting a worktree then cannot
 #     reach the main checkout's files);
 #   - re/bookwormadv/jp2ref (the reference PNGs of jp2test in the unit suite; tools/jp2test/write_refs.sh remakes them);
-#   - build/baseline and build/baseline-stage0 (Bejeweled's frozen oracle exes) and build/oracle-cache;
+#   - build/baseline and build/baseline-stage0 (Bejeweled's frozen oracle exes), every game's frozen
+#     build/baseline-<game> (check.sh compares against them) and build/oracle-cache;
+#   - re/<game>/bin (the original exes some tools read, e.g. Mummy Maze's make_res.py) and re/<game>/mac
+#     (the Mac builds and their symbol lists a new decomp starts from, CLAUDE.md "Mac versions");
 #   - the generated, git-ignored files under games/*/mods (e.g. Bejeweled's bejeweled2-audio, which the
 #     oracle's "mods" case expects).
 # Existing files are left alone, so it is safe to run again. Prints one summary line.
@@ -16,7 +19,7 @@ TARGET=""
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--no-cache) CACHE=0; shift ;;
-		-h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+		-h|--help) sed -n '2,14p' "$0"; exit 0 ;;
 		*) TARGET="$1"; shift ;;
 	esac
 done
@@ -48,6 +51,13 @@ done
 copy_dir re/bookwormadv/jp2ref
 copy_dir build/baseline
 copy_dir build/baseline-stage0
+for b in "$MAIN"/build/baseline-*/; do
+	[ -d "$b" ] && copy_dir "build/$(basename "$b")"
+done
+for d in "$MAIN"/re/*/bin/ "$MAIN"/re/*/mac/ "$MAIN"/re/*/*/mac/; do
+	p="${d#"$MAIN"/}"
+	[ -d "$d" ] && copy_dir "${p%/}"
+done
 [ "$CACHE" = 1 ] && copy_dir build/oracle-cache
 # the site's test key (docs/WEB_PLAYER.md, "The terms"): the web build reads it, agents read it for their test URLs
 copy_dir secrets
