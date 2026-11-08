@@ -98,7 +98,6 @@ public:
 	int						mPendingSkill;          // +0xecc a skill chosen in the selector, applied when the game restarts
 	bool					mTimeTrial;             // +0xed0 time-trial mode
 	bool					mSelectorFlag;          // +0xed1 true until the first board starts
-	bool					mNoPopLink;             // +0xed2 registry "NoPopLink": hides the "more games" link
 	double					mDiff[4];               // +0x620 data\diff.txt: four difficulty constants
 	std::string				mLastScoreName;         // +0x640 registry "LastScoreName"
 	std::string				mLastInternetScoreName; // +0x65c registry "LastInternetScoreName" (kept, never shown)
@@ -155,6 +154,7 @@ public:
 	virtual void			GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
 	virtual void			ShutdownHook() override;                  // port (web): ~AlchemyApp's save (the app is never deleted)
 	virtual void			UpdateFrames() override;                  // port: runs the test hook's bot
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;  // port: the standard test commands (testhooks/Commands.cpp)
 	void					TestMouseMoveTo(int theX, int theY) { MouseMoveTo(theX, theY); }  // port: the bot's pointer, as a script's
 
 	using SexyApp::KillDialog;
