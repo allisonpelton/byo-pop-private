@@ -24,6 +24,9 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 TABLES = [("image", 0x53D768, 236, 8), ("sound", 0x53DEC8, 28, 4), ("music", 0x53DF38, 4, 4), ("font", 0x53DF48, 16, 4)]
 
 
+REGISTRATION_IMAGES = ("register",)
+
+
 class Image:
     def __init__(self, path):
         self.d = open(path, "rb").read()
@@ -94,6 +97,8 @@ def main():
         c.append("const char* const gPixelus%sNames[NUM_%sS] =" % (kind.capitalize(), prefix))
         c.append("{")
         for name, group in tables[kind]:
+            if kind == "image" and name in REGISTRATION_IMAGES:
+                name = ""   # only the register dialog of an unregistered copy uses it: its id stays, it is not loaded
             c.append("\t\"%s\"," % name.replace("\\", "\\\\"))
         c.append("};")
         c.append("")

@@ -50,7 +50,7 @@ const char* const gPixelusImageNames[NUM_IMAGES] =
 	"stickyspot_6x6",
 	"stickyedge_20x20",
 	"stickyedge_6x6",
-	"register",
+	"",
 	"gameselect",
 	"playfield",
 	"time",

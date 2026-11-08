@@ -20,7 +20,6 @@ LoadingScreen::LoadingScreen(NcApp* theApp)
 	mFade = 255.0;
 	mDelay = 100;
 	mLoadDone = false;
-	mPlayRequested = false;
 	mProgress = 0.0;
 	mProgressCap = 1.0;
 
@@ -37,16 +36,7 @@ LoadingScreen::LoadingScreen(NcApp* theApp)
 		}
 	}
 
-	mStatusFont = new ImageFont(mApp, "data\\Praitor24.txt");
 	mLinkFont = new ImageFont(mApp, "data\\Praitor36.txt");
-
-	// the register link is hidden for good in a registered game; kept so the ids and the layout stay the original's
-	mRegisterLink = new HyperlinkWidget(REGISTER_LINK_ID, this);
-	mRegisterLink->mUnderlineSize = 0;
-	mRegisterLink->SetFont(mLinkFont);
-	mRegisterLink->mColor = Color(0, 255, 0);
-	mRegisterLink->mOverColor = Color(255, 0x91, 5);
-	mRegisterLink->SetVisible(false);
 
 	mPlayLink = new HyperlinkWidget(PLAY_LINK_ID, this);
 	mPlayLink->mUnderlineSize = 0;
@@ -59,9 +49,7 @@ LoadingScreen::LoadingScreen(NcApp* theApp)
 // 0x4e6a50
 LoadingScreen::~LoadingScreen()
 {
-	delete mRegisterLink;
 	delete mPlayLink;
-	delete mStatusFont;
 	delete mLinkFont;
 	for (int i = 0; i < 3; i++)
 		delete mImages[i];
@@ -71,7 +59,6 @@ LoadingScreen::~LoadingScreen()
 void LoadingScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
-	theWidgetManager->AddWidget(mRegisterLink);
 	theWidgetManager->AddWidget(mPlayLink);
 }
 
@@ -79,7 +66,6 @@ void LoadingScreen::AddedToManager(WidgetManager* theWidgetManager)
 void LoadingScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
-	theWidgetManager->RemoveWidget(mRegisterLink);
 	theWidgetManager->RemoveWidget(mPlayLink);
 }
 
@@ -121,7 +107,7 @@ void LoadingScreen::DrawBar(Graphics* g)
 	}
 }
 
-// 0x4e6f30 (and the status line 0x4e6bf0, empty in a registered game)
+// 0x4e6f30
 void LoadingScreen::Draw(Graphics* g)
 {
 	Widget::Draw(g);
@@ -157,17 +143,15 @@ void LoadingScreen::Update()
 	}
 	else
 	{
-		if ((mUpdateCnt % 4) == 0)
+		// port: asked at every update (the original asks at every fourth: a time step the loading need not wait for)
+		mProgress = mApp->GetLoadingThreadProgress();
+		if (mProgress == 1.0 && mApp->mLoaded)
 		{
-			mProgress = mApp->GetLoadingThreadProgress();
-			if (mProgress == 1.0 && mApp->mLoaded)
-			{
-				mPlayLink->SetVisible(true);
-				mLoadDone = true;
-				mProgress = 1.0;
-			}
-			MarkDirty();
+			mPlayLink->SetVisible(true);
+			mLoadDone = true;
+			mProgress = 1.0;
 		}
+		MarkDirty();
 	}
 
 	// the play link lies over the finished bar
