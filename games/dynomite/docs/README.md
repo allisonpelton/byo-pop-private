@@ -106,12 +106,14 @@ rules.
 
 The port plays as the registered original, which stays the reference (the user, 2026-11-07). The code only an
 unregistered copy reaches is taken out: on the title screen the register link with its four changing texts, the free
-plays left, the quit link once they ran out and the loading bar slowed by the number of plays (the registered copy's
-"thanks for registering" stays); in the options dialog the register button, so the high scores button keeps the full
+plays left, the quit link once they ran out and the loading bar slowed by the number of plays; the registered copy's
+"thanks for registering" over its dark box under the loading bar (left out since 2026-11-08: "'Thanks for registering'
+should be considered part of the registration/trial code to be removed from every game", the user), with the title's
+flag for it and its read of the NoReg property; in the options dialog the register button, so the high scores button keeps the full
 width it has in a registered copy; the register and buy dialogs (14 and 20, with the buy button's dialogs 10020 and
 20020 in the app's dialog handler) and the nag each mode showed at a game's end in their place; the unregistered
 copy's refusals of the saved games and of puzzle packs other than DEFAULT.EGG on the main menu and of the side bar's
-save; and the "unregistered" picture. None of these shows in a registered copy, so nothing visible changes, and the
+save; and the "unregistered" picture. None of these but the thanks shows in a registered copy, and the
 frozen baseline checks that play is unchanged. The loading has no wait of the original's own apart from that slowed
 bar: the loader runs at the machine's speed, and the title polls it every fourth update as the original does.
 
