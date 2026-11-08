@@ -25,7 +25,8 @@ talks to a server are left out. User-visible text goes through `GT(0xADDR)`.
 | W1 | small widgets and panels: StatsScreen, StatusBar, TabbedWidget, TabPanel, TutorialPanel, AbyssPanel, AdventurePanel | ~20 KB | |
 | S1 | screens: TitleScreen, MenuScreen, MapScreen, HighScoreScreen | ~25 KB | |
 | T1 | TypingTutor | ~12 KB | |
-| B1-B3 | Board in three parts (Update 0x45c140 9.7 KB, Draw 0x44d200 11.2 KB, KeyChar 0x454e40 and the rest) | ~61 KB | |
+| B0 | Board.h and docs/BOARD.md: the class layout and the map of its methods | header only | done 2026-11-08 (Board.h: 109 fields, 52 declarations for 53 functions; the finished files compile against it) |
+| B1-B3 | Board in three parts, as BOARD.md splits them: B1 BoardUpdate.cpp and BoardEvents.cpp (Update 0x45c140 and what runs from it, the five event loops; 20.4 KB), B2 Board.cpp and BoardDraw.cpp (constructor, Widget overrides, Draw 0x44d200 and its helpers, the HudBar class; 18.1 KB), B3 BoardWaves.cpp, BoardKeys.cpp and BoardGame.cpp (SpawnWave 0x455bf0, KeyChar 0x454e40, what WinWSApp calls; 17.4 KB) | ~56 KB | |
 
 `python games/typershark/tools/coverage.py [--range LO HI] --missing` shows what the sources do not mention yet (the
 mentions are the `// 0x4xxxxx` comments before each function), by guessed class.

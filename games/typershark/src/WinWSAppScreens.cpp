@@ -142,7 +142,7 @@ void WinWSApp::ShowOptions()
 	mWidgetManager->SetFocus(mOptionsDialog);
 	if (mBoard != NULL)
 	{
-		int aMode = mBoard->mLevelConfig->mGameMode;    // +0xd68 -> +0xb8 (TODO: names from the board group)
+		int aMode = mBoard->mPlayer->mState;    // +0xd68 -> +0xb8
 		if ((aMode == 0xc) || (aMode == 7))
 		{
 			if (!mLessonManager->IsBonusLevel())    // 0x4137d0
@@ -512,7 +512,7 @@ void WinWSApp::ShowLevelIntro()
 	}
 	else
 	{
-		if (mBoard->mField1c4 != 0)     // +0x1c4 (TODO: name from the board group)
+		if (mBoard->mScore != 0)     // +0x1c4
 			return;
 
 		// the registered game's text (0x52b5e8): the progress is saved every 400 ft; the unregistered text (0x52b528)

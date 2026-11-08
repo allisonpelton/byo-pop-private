@@ -226,9 +226,9 @@ void WinWSApp::ButtonDepress(int theId)
 	case 0xcb:      // the options button of the board
 	{
 		Board* aBoard = mBoard;
-		int aMode = aBoard->mLevelConfig->mGameMode;    // +0xd68 -> +0xb8
+		int aMode = aBoard->mPlayer->mState;    // +0xd68 -> +0xb8
 		if ((aMode == 0xc) || (aMode == 7) || ((mLessonManager->IsBonusLevel()) && (aMode == 6)))
-			aBoard->mField0f94->SetVisible(false);
+			aBoard->mContinueLink->SetVisible(false);
 		ShowOptions();      // 0x414150
 		return;
 	}
@@ -352,7 +352,7 @@ void WinWSApp::ButtonDepress(int theId)
 				SaveGameProgress(true, false);  // 0x426c60
 			else
 			{
-				int aDepth = mBoard->mField1c4;
+				int aDepth = mBoard->mScore;
 				UserProfile* aUser = mUser;
 				if (aDepth > aUser->mBestDepth)
 					aUser->mBestDepth = aDepth;
@@ -560,7 +560,7 @@ void WinWSApp::ButtonDepress(int theId)
 			RestartBoard();       // 0x42ee10
 			return;
 		}
-		mAbyssDepth = mBoard->mField1c4;
+		mAbyssDepth = mBoard->mScore;
 		ResetGame(true);        // 0x42a870
 		CreateBoard();         // 0x42f3c0
 		mAbyssDepth = (mAbyssDepth / 400) * 400;
@@ -575,7 +575,7 @@ void WinWSApp::ButtonDepress(int theId)
 		std::string aText;
 		if (!mLessonManager->mAbyssMode)
 		{
-			if (mBoard->mLevelConfig->mField114 == 0)
+			if (mBoard->mPlayer->mField114 == 0)
 				aText = GT(0x0052d010);
 			else
 				aText = GT(0x0052cf98);
@@ -615,7 +615,7 @@ void WinWSApp::ButtonDepress(int theId)
 		{
 			mWidgetManager->SetFocus(mBoard);
 			Board* aBoard = mBoard;
-			int aMode = aBoard->mLevelConfig->mGameMode;
+			int aMode = aBoard->mPlayer->mState;
 			if ((aMode != 0xc) && (aMode != 7) && ((!mLessonManager->IsBonusLevel()) || (aMode != 6)))
 			{
 				aBoard->SetPaused(false);
@@ -624,7 +624,7 @@ void WinWSApp::ButtonDepress(int theId)
 			}
 			if ((mLessonManager->IsBonusLevel()) && (aMode == 6))
 				aBoard->SetPaused(false);
-			mBoard->mField0f94->SetVisible(true);
+			mBoard->mContinueLink->SetVisible(true);
 			mBoard->MarkDirty();
 			return;
 		}

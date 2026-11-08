@@ -115,7 +115,7 @@ void Player::SetState(int theState)
 		mFrameHeight = mApp->mImages[IMAGE_DIVER_BEATEN]->GetHeight();
 		mY = mHoseY;
 		mX = 21.0;
-		if (mApp->mBoard->mField0eb8 == 0)
+		if (mApp->mBoard->mBoss == NULL)
 			mApp->ChangeMusic(0);
 		return;
 	}

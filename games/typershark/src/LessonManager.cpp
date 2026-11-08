@@ -388,7 +388,7 @@ void LessonManager::NextLevel()
 		{
 			// past the last level: it plays again, faster (0.05 once the board's score is past 5400, else 0.025)
 			double aSpeedUp = 0.025;
-			if (mApp->mBoard->mField1c4 > 0x1518)    // +0x1c4 of the board: the score
+			if (mApp->mBoard->mScore > 0x1518)    // +0x1c4 of the board: the score
 				aSpeedUp = 0.05;
 
 			mLevel = (int) mLevels.size() - 1;

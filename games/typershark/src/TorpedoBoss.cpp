@@ -65,7 +65,7 @@ TorpedoBoss::TorpedoBoss(WinWSApp* theApp, GameObject* thePlayer, LessonManager*
 		double aMore = 0.0;
 		mMinWordLength = 3;
 		mMaxWordLength = 4;
-		int aScore = mApp->mBoard->mField1c4;	// +0x1c4 of the board: the score
+		int aScore = mApp->mBoard->mScore;	// +0x1c4 of the board: the score
 		if (aScore >= 13000)
 		{
 			aMore = 1.7;
@@ -495,7 +495,7 @@ void TorpedoBoss::Update()
 								if (mConfig->mAbyssMode == 0)
 									aShot->SetVelX(-(aSpeed + mShotSpeedMin));
 								else
-									aShot->SetVelX(-((double)(mApp->mBoard->mField1c4 / 1000 - 1) * 0.08 + mShotSpeedMin + aSpeed));
+									aShot->SetVelX(-((double)(mApp->mBoard->mScore / 1000 - 1) * 0.08 + mShotSpeedMin + aSpeed));
 
 								// the speed is negative, so the first comparison always holds
 								if (aShot->mVelX <= 0.3)

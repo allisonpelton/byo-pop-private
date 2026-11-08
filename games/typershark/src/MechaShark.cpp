@@ -41,7 +41,7 @@ MechaShark::MechaShark(WinWSApp* theApp, GameObject* thePlayer, LessonManager* t
 		mHitPoints = 200;
 		mMinWordLength = 4;
 		mMaxWordLength = 5;
-		int aScore = mApp->mBoard->mField1c4;	// +0x1c4 of the board: the score
+		int aScore = mApp->mBoard->mScore;	// +0x1c4 of the board: the score
 		if (aScore >= 11000)
 		{
 			mField10c = 400;

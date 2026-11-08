@@ -735,7 +735,7 @@ bool WinWSApp::ChangeMusic(int theOrder)
 
 	if ((theOrder == 0x25) || (theOrder == 0x2b))
 	{
-		if (mBoard->mLevelConfig->mGameMode == 3)   // +0xd68 -> +0xb8 (TODO: names from the board group)
+		if (mBoard->mPlayer->mState == 3)   // +0xd68 -> +0xb8
 			return true;
 	}
 

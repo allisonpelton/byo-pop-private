@@ -7,18 +7,17 @@ signatures, or changes the callers (grep the callers in `src/`) when the origina
 says so in its report. Fields named after their offset (`mField1c4`) are placeholders: a job that learns the role
 renames the field everywhere (`grep -rn mField1c4 games/typershark/src`).
 
-## Board (job B1-B3; ctor 0x4544b0)
-`Board(WinWSApp*)`, `mPaused` (bool, +0xe60, read by every creature's Draw), `LevelConfig* mLevelConfig` (+0xd68, with
-`mGameMode` +0xb8, `mField0f4`, `double mDouble0f8`, `mField110`, `mField114`), `mField1c4` (the score, +0x1c4),
-`mField0e1c`, `mField0f94` (a widget), `AppStats GetStats()` (0x440080, the 0x30-byte block by value),
-`SaveProgress(bool,bool)` (0x440580), `StartGame(const AppStats&)` (0x440130), `SetFastCPU(bool)` (0x440570),
-`SetLessonManager(LessonManager*)` (0x451cb0), `SetDepth(int)` (0x452cf0), `SetPaused(bool)` (0x442100),
-`AddBubble(int x, int y)` (0x452f30; the argument order is from the push order, unverified). The Board casts a `Shark*`
-or `Piranha*` obtained through a virtual base with `dynamic_cast` (ENTITIES.md). `WinWSApp::mBoard` is +0x634.
-`BlackShark::mWord2` and `RedShark::mWord3` are filled by the Board (`GetWord2` / `GetWord3` in its code);
-`WhitePiranha::SetWord2(std::string)`. Event codes the creatures push on `Enemy::mEvents` (the Board drains them): 1
-word finished, 2 came in, 4, 5 left the screen, 6, 7, 9, 0x13 hit the player, 0x14 hit a target, 0x15 then 5 left the screen
-(Projectile).
+## Board (jobs B1-B3; header done by job B0: Board.h and BOARD.md)
+Now `src/Board.h`, the contract for the three jobs that write the methods (BOARD.md has the map of the methods, the split
+into jobs, the unknown fields, the registration field and the event codes). The finished files compile against it. Renames
+made when the stub members became the real ones: `mLevelConfig` is `mPlayer` (a `Player*`, not a "LevelConfig"; its
+`mGameMode` is `GameObject::mState`, `mField0f4` is `Player::mScore`, `mDouble0f8` is `Player::mEmpCharge`), `mField1c4` is
+`mScore`, `mField0e1c` is `mTypeTime`, `mField0f94` is `mContinueLink` (a `HyperlinkWidget*`), `mField0eb8` is `mBoss` (an
+`Enemy*`, 0 when there is no boss). `mPaused` (bool, +0xe60) is read by every creature's Draw. `AddBubble(int x, int y)`
+(0x452f30) is confirmed x then y. The Board casts a `Shark*` or `Piranha*` obtained through a virtual base with
+`dynamic_cast` (ENTITIES.md). `WinWSApp::mBoard` is +0x634. `BlackShark::mWord2` and `RedShark::mWord3` are filled by the
+Board (`GetWord2` / `GetWord3` in its code); `WhitePiranha::SetWord2(std::string)`. The event codes the creatures push on
+`Enemy::mEvents` and what the Board does with each are in BOARD.md, part 5.
 
 ## LessonManager (job P2, done: LessonManager.h/.cpp, LessonManagerConfig.cpp, WinWSAppLoad.cpp)
 Translated; the header is the contract now. It is the original's unnamed 0xc0-byte class (ctor 0x4270e0, dtor 0x421c50) and not
@@ -69,10 +68,10 @@ returns false; `SaveUser` does not free the profile it replaces.
   point, so the phase-1 comparison of the words drawn tests it.
 
 ## From the last entity job (E3: BackgroundFish, BonusCreature, Clam, Bubble, BonusText, Player)
-- Board: `int mField0eb8` (+0xeb8; `Player::SetState(2)` compares it with 0 through `mApp->mBoard` without a null check; the
-  role is unknown), `AddBubble(x, y)` (0x452f30, confirmed x then y; the Board sets the position with SetX / SetY after
-  constructing), `AddBonusText(std::string, x, y, Font* = NULL)` (0x452fd0; a NULL font becomes
-  `app->mFontUnsteadyOversteer22`, +0x8b8; pushes onto the vector at Board +0xdb4). The Board constructs `BackgroundFish(app)`,
+- Board (now Board.h): `Enemy* mBoss` (+0xeb8, was `mField0eb8`; `Player::SetState(2)` compares it with NULL through
+  `mApp->mBoard` without a null check; it is the boss of the level), `AddBubble(x, y)` (0x452f30, confirmed x then y; the Board
+  sets the position with SetX / SetY after constructing), `AddBonusText(std::string, x, y, Font* = NULL)` (0x452fd0; a NULL font
+  becomes `app->mFontUnsteadyOversteer22`, +0x8b8; pushes onto the vector at Board +0xdb4). The Board constructs `BackgroundFish(app)`,
   `BackgroundFish(app, leader)`, `BonusCreature(app)` (then `SetState(0)`, `SetX`, `SetY`, `SetVelY(0.3)`), `Clam(app, type)`,
   `Bubble(app)`, `BonusText(text, font)`; it reads the player's `mFlag118`, `mEmpCharge`, `mEmpActive`, `mField110`, `mFlag13d`
   and calls `Player::AddScore(int)`, `SetScore(int)`, `SetFlag118(bool)`; it writes `Enemy::mField0e4` (+0xe4) in every

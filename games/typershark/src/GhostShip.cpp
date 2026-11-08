@@ -52,7 +52,7 @@ GhostShip::GhostShip(WinWSApp* theApp, GameObject* thePlayer, LessonManager* the
 		double aMore = 0.0;
 		mField10c = 250;
 		mHitPoints = 250;
-		int aScore = mApp->mBoard->mField1c4;	// +0x1c4 of the board: the score
+		int aScore = mApp->mBoard->mScore;	// +0x1c4 of the board: the score
 		if (aScore >= 18000)
 		{
 			aMore = 1.6;

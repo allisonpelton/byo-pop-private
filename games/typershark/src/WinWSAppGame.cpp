@@ -261,7 +261,7 @@ void WinWSApp::ReturnToMap()
 
 	*mStats = mBoard->GetStats();       // 0x440080 (12 dwords)
 	mField8fc += mStats->mReserved[7];              // +0x20
-	mField900 += mBoard->mField0e1c;                // +0xe1c
+	mField900 += mBoard->mTypeTime;                // +0xe1c
 	mField908 += mStats->mReserved[9];              // +0x28
 	mField90c += mStats->mReserved[8];              // +0x24
 	mField904 = mStats->mReserved[6];               // +0x1c
@@ -290,16 +290,16 @@ void WinWSApp::SaveGameProgress(bool theFlag, bool theWithDouble)
 		aLevel = 0;
 
 	mUser->mField1e0 = mField900;
-	LevelConfig* aConfig = mBoard->mLevelConfig;    // 0x412890: the board's +0xd68 (read again for each argument)
+	Player* aPlayer = mBoard->mPlayer;    // 0x412890: the board's +0xd68 (read again for each argument)
 	if (theWithDouble)
 	{
-		mUser->RecordResultWithDouble(theFlag == false, aConfig->mField110, aConfig->mField0f4, aConfig->mDouble0f8,
-			aLevel, mDifficulty, aConfig->mField114);     // 0x412520
+		mUser->RecordResultWithDouble(theFlag == false, aPlayer->mField110, aPlayer->mScore, aPlayer->mEmpCharge,
+			aLevel, mDifficulty, aPlayer->mField114);     // 0x412520
 	}
 	else
 	{
-		mUser->RecordResult(theFlag == false, aConfig->mField110, aConfig->mField0f4, aLevel, mDifficulty,
-			aConfig->mField114);                        // 0x412580
+		mUser->RecordResult(theFlag == false, aPlayer->mField110, aPlayer->mScore, aLevel, mDifficulty,
+			aPlayer->mField114);                        // 0x412580
 	}
 
 	mUser->mField1cc = mField8fc;
