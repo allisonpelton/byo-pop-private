@@ -168,6 +168,22 @@ struct WarpStar
 	Image*		mImage;             // +0xa4 one of the three sizes of IMAGE_WARP_FX
 };
 
+// A beam of the mode 2 bonus (12 bytes, the vector at +0x290)
+struct LaserRec
+{
+	float		mAngle;             // +0x00 degrees: 0, 30, 60, ... 180
+	int			mLife;              // +0x04 starts at 255, counts down by mDecay
+	int			mDecay;             // +0x08 4 to 6 per update
+};
+
+// An explosion of the bonus of mode 1 (0x4c bytes, the vector at +0x1b0): a frame counter with a place
+struct ExplosionAnim : public FrameAnim
+{
+	float		mX;                 // +0x40
+	float		mY;                 // +0x44
+	float		mStep;              // +0x48 6.283 divided by a number from 0 to 49 (the angle of the spin)
+};
+
 // A rate of one kind of brick for each of the three phases of a game (8 bytes)
 struct RatePair
 {
@@ -255,7 +271,7 @@ public:
 	std::vector<SpawnRules>	m180;// +0x180 the spawn rules of the field (only the first is read)
 	std::vector<StarRec>	m190;// +0x190 the stars
 	std::vector<CellRef3>	m1a0;// +0x1a0
-	std::vector<FrameAnim*>	m1b0;// +0x1b0 the animations of the explosion at the end of a game (8)
+	std::vector<ExplosionAnim*>	m1b0;// +0x1b0 the animations of the explosions (mode 1 bonus, and the end of a game; 8)
 	std::vector<Widget*>	m1c0;// +0x1c0 the buttons of the field (the first one is the main button)
 	std::vector<FadeRec>	m1e0;// +0x1e0 the fading panels of the end of a game
 	std::vector<int>	m1f0;// +0x1f0 counters that count down from 2000 (set when a special brick is made)
@@ -264,9 +280,10 @@ public:
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
 	std::vector<HintSpot*>	m230;// +0x230
 	std::vector<FreezeFlake>	m240;// +0x240 the snowflakes of the freeze effect
+	std::vector<DrawnText>	m260;// +0x260 the texts that scroll along the top while the bonus of state 1 runs (Fn46f010)
 	std::vector<DrawnText>	m270;// +0x270 texts drawn at a place in a font
 	std::vector<RampRecord>	m280;// +0x280 the speed table (UpdateRamp)
-	std::vector<int>	m290;// +0x290
+	std::vector<LaserRec>	m290;// +0x290 the beams of the mode 2 bonus (at most 6)
 	std::vector<Particle*>	m2a0;// +0x2a0 the falling sparks of the energy mode
 	std::vector<HintBox*>	m2b0;// +0x2b0 the hint boxes
 	std::vector<DemoStep>	m2d0;// +0x2d0 the demo's steps
@@ -287,6 +304,7 @@ public:
 	AstroPopApp*	mApp = NULL;// +0x358 the application (the bricks play their sounds through it)
 	Color	m3c0;// +0x3c0 the colour of the backdrop tint (FadeBackdrop)
 	Color	m3d0;// +0x3d0 the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
+	FrameAnim	mAnim3e0;// +0x3e0
 	int	m404 = 0;// +0x404 ?
 	FrameAnim	m420;// +0x420
 	FrameAnim	mAnim460;// +0x460
@@ -386,6 +404,7 @@ public:
 	bool	m900 = false;// +0x900
 	bool	m901 = false;// +0x901 ?
 	bool	m905 = false;// +0x905 ?
+	bool	m906 = false;// +0x906
 	bool	m907 = false;// +0x907 ?
 	bool	m908 = false;// +0x908 the result is in the hall of fame
 	bool	m909 = false;// +0x909 ?
@@ -650,7 +669,7 @@ public:
 	void			UpdateStartBanner();                           // 0x433610
 	void			PayTimeBonus();                                // 0x452a80
 	void			UpdateFreeze();                                // 0x474de0
-	void			Fn46f010();                                    // 0x46f010 (4339 bytes)
+	void			UpdateSpecialMode();                                    // 0x46f010 (4339 bytes)
 	void			Fn466e80();                                    // 0x466e80 (3168 bytes)
 	void			LoadLevel(bool theFlag);                       // 0x4663f0 (2647 bytes)
 	void			LevelComplete();                                // 0x465290
@@ -661,6 +680,7 @@ public:
 	void			SetupWarpLayers();                              // 0x43b1b0
 	static std::string	FormatNumber(int theNumber);            // 0x43e220 with a comma after each three digits
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
+	void			Fn4335e0();                                     // 0x4335e0: the field is waiting to be cleared (m19fc = 1000)
 	bool			Fn468e70();                                     // 0x468e70: the upgrade screen of the level (true when one opens)
 	void			UpdateStreaks();                                // 0x439650
 	void			AddTopRow();                                    // 0x46e420

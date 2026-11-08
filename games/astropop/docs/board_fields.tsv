@@ -21,7 +21,7 @@ f8	std::vector<int>	mf8
 180	std::vector<SpawnRules>	m180	the spawn rules of the field (only the first is read)
 190	std::vector<StarRec>	m190	the stars
 1a0	std::vector<CellRef3>	m1a0
-1b0	std::vector<FrameAnim*>	m1b0	the animations of the explosion at the end of a game (8)
+1b0	std::vector<ExplosionAnim*>	m1b0	the animations of the explosions (mode 1 bonus, and the end of a game; 8)
 1c0	std::vector<Widget*>	m1c0	the buttons of the field (the first one is the main button)
 1e0	std::vector<FadeRec>	m1e0	the fading panels of the end of a game
 1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
@@ -30,9 +30,10 @@ f8	std::vector<int>	mf8
 220	std::vector<StageBg*>	m220	the picture of each stage
 230	std::vector<HintSpot*>	m230
 240	std::vector<FreezeFlake>	m240	the snowflakes of the freeze effect
+260	std::vector<DrawnText>	m260	the texts that scroll along the top while the bonus of state 1 runs (Fn46f010)
 270	std::vector<DrawnText>	m270	texts drawn at a place in a font
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
-290	std::vector<int>	m290
+290	std::vector<LaserRec>	m290	the beams of the mode 2 bonus (at most 6)
 2a0	std::vector<Particle*>	m2a0	the falling sparks of the energy mode
 2b0	std::vector<HintBox*>	m2b0	the hint boxes
 2d0	std::vector<DemoStep>	m2d0	the demo's steps
@@ -53,6 +54,7 @@ f8	std::vector<int>	mf8
 358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
 3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
 3d0	Color	m3d0	the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
+3e0	FrameAnim	mAnim3e0
 404	int	m404	?
 420	FrameAnim	m420
 460	FrameAnim	mAnim460
@@ -152,6 +154,7 @@ f8	std::vector<int>	mf8
 900	bool	m900
 901	bool	m901	?
 905	bool	m905	?
+906	bool	m906
 907	bool	m907	?
 908	bool	m908	the result is in the hall of fame
 909	bool	m909	?

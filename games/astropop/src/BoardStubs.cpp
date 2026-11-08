@@ -9,11 +9,6 @@ using namespace Sexy;
 #define NOT_TRANSLATED(name, addr) \
 	do { static bool aLogged = false; if (!aLogged) { aLogged = true; SDL_Log("AstroPop: Board::" name " not translated yet (" addr ")"); } } while (0)
 
-void Board::Fn46f010()
-{
-	NOT_TRANSLATED("Fn46f010", "0x46f010");
-}
-
 void Board::Fn466e80()
 {
 	NOT_TRANSLATED("Fn466e80", "0x466e80");
