@@ -120,6 +120,9 @@ static void UnlockAll(Profile* theProfile)
 		theProfile->mModeLevel[3] = 280;
 }
 
+// what mTestGoto holds besides a mode (0 to 8)
+enum { TEST_GOTO_OPTIONS = -2, TEST_GOTO_HELP = -3, TEST_GOTO_HIGHSCORES = -4 };
+
 // "goto <mode>" from anywhere: every update takes the step the screen in front calls for, as a player's clicks would
 // (the title's play link, the name of a first user, the welcome and other messages, the menu's mode button)
 void WinDMApp::TestAdvanceGoto()
@@ -139,8 +142,23 @@ void WinDMApp::TestAdvanceGoto()
 				aUser->SetName("Tester");
 			FinishCreateUserDialog(true);
 		}
+		else if (mDialogMap.begin()->first == DIALOG_OPTIONS)
+			FinishOptionsDialog(true);  // its Done button
+		else if (mDialogMap.begin()->first == DIALOG_HELP)
+		{
+			// its Continue button once it has slid in; it slides out (and kills itself) on its own after that
+			HelpScreen* aHelp = static_cast<HelpScreen*>(mDialogMap.begin()->second);
+			if (aHelp->mState == HelpScreen::STATE_SHOWN)
+				FinishHelpScreen(false);
+		}
 		else
 			KillDialog(mDialogMap.begin()->first);
+		return;
+	}
+	if (mHighScoreWidget != NULL)
+	{
+		// its Back button (a press while it is already closing does nothing)
+		mHighScoreWidget->ButtonDepress(HighScoreWidget::BUTTON_BACK);
 		return;
 	}
 	if (mBoard != NULL || mMainMenu == NULL)
@@ -164,8 +182,17 @@ void WinDMApp::TestAdvanceGoto()
 		UnlockAll(mProfile);
 		mTestUnlock = false;
 	}
-	mMainMenu->SelectMode(aMode);
-	mMainMenu->StartGame();
+	if (aMode == TEST_GOTO_OPTIONS)
+		DoOptions();
+	else if (aMode == TEST_GOTO_HELP)
+		DoHelpScreen();
+	else if (aMode == TEST_GOTO_HIGHSCORES)
+		DoHighScoreWidget();
+	else
+	{
+		mMainMenu->SelectMode(aMode);
+		mMainMenu->StartGame();
+	}
 }
 
 bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
@@ -276,15 +303,21 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 
 	if (aCommand == "goto")
 	{
-		if (anArgs == "credits" || anArgs == "options" || anArgs == "help" || anArgs == "highscores")
+		if (anArgs == "credits")
 		{
-			ReplyError(theCommand, "not yet: this screen is reached by input");
+			ReplyError(theCommand, "the credits are no screen of their own: they roll after the last level of Classic");
 			return true;
 		}
 		int aMode = ModeFromName(anArgs);
-		if (anArgs != "title" && anArgs != "menu" && aMode < 0)
+		if (anArgs == "options")
+			aMode = TEST_GOTO_OPTIONS;
+		else if (anArgs == "help")
+			aMode = TEST_GOTO_HELP;
+		else if (anArgs == "highscores")
+			aMode = TEST_GOTO_HIGHSCORES;
+		if (anArgs != "title" && anArgs != "menu" && aMode == -1)
 		{
-			ReplyError(theCommand, "unknown screen (title is not reachable; menu, classic, action, puzzle, endless, "
+			ReplyError(theCommand, "unknown screen (menu, options, help, highscores, classic, action, puzzle, endless, "
 				"twilight, hyper, cognito, finity, hidden)");
 			return true;
 		}
@@ -293,10 +326,10 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "the game has no title screen to return to");
 			return true;
 		}
-		if (aMode >= 0)
+		if (aMode != -1)
 		{
-			// a mode: taken one update at a time from whatever screen is in front (TestAdvanceGoto), so it works from
-			// launch (title, first user, welcome) as well as from the menu and from a game
+			// a mode, or the options, help or high scores: taken one update at a time from whatever screen is in front
+			// (TestAdvanceGoto), so it works from launch (title, first user, welcome) as well as from the menu and from a game
 			mTestGoto = aMode;
 			ReplyOK(theCommand);
 			return true;

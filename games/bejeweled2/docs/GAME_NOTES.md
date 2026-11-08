@@ -75,8 +75,10 @@ the goto that creates one), `seed`, `set score`, `lose` (the game's own ending),
 the swap as two clicks in game pixels). `move` also answers for the situations around the play: while a goto is on its way, or a
 game starts or ends, it asks to wait; with a message open (a one-time hint, the How To Play screen) it answers with the click
 on the message's button, once the dialog has stopped sliding; in the puzzle modes (puzzles and Cognito) the move is the first
-valid one of the puzzle's own solution file (`FindPuzzleValidMoves`, the moves the hint shows). Not yet: `set` for other keys,
-`goto` for the options, help, high scores and credits screens. `tools/playbymove/playbymove.py` plays every mode but the puzzle
+valid one of the puzzle's own solution file (`FindPuzzleValidMoves`, the moves the hint shows). `goto options`, `goto help` and
+`goto highscores` take the same latch to the menu (closing whatever is open the way its own button does) and then open the
+options dialog, the How To Play screen or the high scores; the credits are no screen of their own (they roll after the last
+level of Classic) and answer an error. Not yet: `set` for other keys. `tools/playbymove/playbymove.py` plays every mode but the puzzle
 ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/realplay/soak.py` is a first driver that plays the
 bot's moves as real input from the title on (the name typed, the dialogs clicked).
 
