@@ -217,6 +217,25 @@ void GameApp::LogBoardForTests()
 		sLastScreen = aScreen;
 		sLastTalk = aTalk;
 	}
+	// the treasure room's Continue, as it shows and as it is enabled: "treasure: <n> continue x,y 1|0"
+	static std::string sLastTreasure;
+	std::string aTreasure;
+	if (aScreen == "treasure") {
+		auto anIt = mTreasureScreen->mButtons.find(TreasureScreen::BUTTON_CONTINUE);
+		if (anIt != mTreasureScreen->mButtons.end() && anIt->second != nullptr && anIt->second->mVisible) {
+			Point aPos = anIt->second->GetAbsPos();
+			aTreasure = StrFormat("continue %d,%d %d", aPos.mX + anIt->second->mWidth / 2,
+			                      aPos.mY + anIt->second->mHeight / 2, anIt->second->mDisabled ? 0 : 1);
+		}
+	}
+	if (aTreasure != sLastTreasure) {
+		sLastTreasure = aTreasure;
+		if (!aTreasure.empty())
+			if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+				fprintf(aFile, "treasure: %d %s\n", ++sCount, aTreasure.c_str());
+				fclose(aFile);
+			}
+	}
 	// Word Master: a guess that fits every row it has answered, from the word list, with the keyboard's keys to type it
 	// and Submit: "wordmaster: <n> <GUESS|-> x,y ... submit x,y". Only what the rows show: their letters and colours
 	if (mBoard != nullptr && mLex != nullptr && mBoard->IsMiniGame() && mMiniGameName == "WordMaster") {

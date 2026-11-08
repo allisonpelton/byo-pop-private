@@ -56,6 +56,7 @@
         const k = f.includes('submit') ? f.indexOf('submit') : f.indexOf('rows');
         return {kind, n, word: f[2], tiles: f.slice(3, k).map(pt), attack: f[k] === 'submit' ? pt(f[k + 1]) : null, scramble: null};
       }
+      if (kind === 'treasure') return {kind, n, cont: pt(f[3]), enabled: f[4] === '1'};
       if (kind === 'talk') return {kind, n, on: f[2] === '1'};
       if (kind === 'dialog') return {kind, n, id: +f[2], ok: pt(f[4])};
       const k = f.indexOf('attack');
@@ -105,7 +106,7 @@
     const t0 = Date.now(), end = t0 + (seconds || 600) * 1000;
     const out = {result: '', words: [], scrambles: 0, dialogs: 0, seconds: 0};
     const start = lines();
-    let used = start.reduce((m, l) => Math.max(m, l.n), 0), seen = false, nextTalk = 0;
+    let used = start.reduce((m, l) => Math.max(m, l.n), 0), seen = false, nextTalk = 0, picks = 0;
     if (start.length && ['board', 'wordmaster'].includes(start[start.length - 1].kind)) used--;  // a board already waiting
     while (Date.now() < end) {
       const all = lines(), fresh = all.filter(l => l.n > used);
@@ -133,8 +134,17 @@
         await sleep(target === 'battle' ? 2500 : 1000);
         continue;
       }
+      if (scr === 'treasure' && !seen) {
+        // the treasure room before a chapter: Lex's treasures (the left column) one at a time until Continue is enabled
+        const t = all.filter(l => l.kind === 'treasure').pop();
+        if (t && t.enabled) await click(...t.cont);
+        else if (t) { await click(188, [113, 209, 300, 402][picks++ % 4]); }
+        await sleep(1500);
+        continue;
+      }
+      if (scr !== 'treasure') picks = 0;
       if (Date.now() >= nextTalk) {
-        // a conversation goes on with a click; on the map, Enter starts the chapter
+        // a conversation goes on with a click; on the map, Enter
         await click(400, scr === 'map' && !seen ? 575 : 150);
         nextTalk = Date.now() + 3000;
       }

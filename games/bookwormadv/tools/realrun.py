@@ -17,6 +17,8 @@ The steps run on the wall clock, one per line ('#' starts a comment):
                         spelled and Attack, Scramble without one, dialogs answered, conversations clicked on, until the
                         screen leaves the battle; logs a summary. Reads the port's -boardlog=<file> (tools/driver.js is
                         the same for the web build)
+                        chapter S <text>: the window minimizes for a minute when the sound log (BYOPOP_SOUNDLOG) first
+                        shows <text> during it ("offset=40": the victory song after a boss)
     settle [S]          conversations clicked on and dialogs answered until neither has shown for 2 s
     minigame [S]        the same for the mini-game on the screen (or about to be): until it is over
     shot NAME           the window's own picture (PrintWindow) into <out dir>/NAME.png, the game's 800x600
@@ -161,6 +163,8 @@ def log_lines():
             k = f.index('submit') if 'submit' in f else f.index('rows')
             out.append({'kind': kind, 'n': n, 'word': f[2], 'tiles': [pt(t) for t in f[3:k]],
                         'attack': pt(f[k + 1]) if f[k] == 'submit' else None, 'scramble': None})
+        elif kind == 'treasure':
+            out.append({'kind': kind, 'n': n, 'cont': pt(f[3]), 'enabled': f[4] == '1'})
         elif kind == 'talk':
             out.append({'kind': kind, 'n': n, 'on': f[2] == '1'})
         elif kind == 'dialog':
@@ -227,7 +231,7 @@ def settle(hw, p, seconds, note):
     note('settle: %d clicks, %ds, on %s' % (clicks, time.time() - t0, screen()))
 
 
-def chapter(hw, p, seconds, note, target='battle'):
+def chapter(hw, p, seconds, note, target='battle', minimize_on=None):
     """One chapter's battles, as tools/driver.js's bwa.battle does on the web: from the map Enter, then each board's
     word spelled with clicks and Attack, Scramble for a board without one, a dialog's first button, a click to move a
     conversation on, until the screen is no longer the battle. Notes a summary line."""
@@ -237,8 +241,21 @@ def chapter(hw, p, seconds, note, target='battle'):
     used = max([l['n'] for l in all_lines] or [0])
     if all_lines and all_lines[-1]['kind'] in ('board', 'wordmaster'):
         used -= 1  # a board already waiting is played
-    seen, next_talk, words, scrambles, dialogs, result = False, 0, [], 0, 0, ''
+    seen, next_talk, words, scrambles, dialogs, result, picks = False, 0, [], 0, 0, '', 0
+    sound_log = os.environ.get('BYOPOP_SOUNDLOG')
+    sound_seen = len(open(sound_log).readlines()) if minimize_on and sound_log and os.path.exists(sound_log) else 0
     while time.time() < end and p.poll() is None:
+        if minimize_on and sound_log and os.path.exists(sound_log):
+            # the window minimized for a minute the moment the sound log shows minimize_on (a song starting)
+            sound = open(sound_log).readlines()
+            if any(minimize_on in l for l in sound[sound_seen:]):
+                note('minimize on %r' % minimize_on)
+                u32.ShowWindow(hw, 6)
+                time.sleep(60)
+                u32.ShowWindow(hw, 9)
+                note('restore')
+                minimize_on = None
+            sound_seen = len(sound)
         fresh = [l for l in log_lines() if l['n'] > used]
         scr = screen()
         if scr == target:
@@ -275,6 +292,19 @@ def chapter(hw, p, seconds, note, target='battle'):
                 click(hw, *board['scramble'])
             time.sleep(2.5 if target == 'battle' else 1)
             continue
+        if scr == 'treasure' and not seen:
+            # the treasure room before a chapter: Lex's treasures (the left column) one at a time until Continue is
+            # enabled
+            t = ([l for l in log_lines() if l['kind'] == 'treasure'] or [None])[-1]
+            if t and t['enabled']:
+                click(hw, *t['cont'])
+            elif t:
+                click(hw, 188, (113, 209, 300, 402)[picks % 4])
+                picks += 1
+            time.sleep(1.5)
+            continue
+        if scr != 'treasure':
+            picks = 0
         if time.time() >= next_talk:
             click(hw, 400, 575 if scr == 'map' and not seen else 150)
             next_talk = time.time() + 3
@@ -337,7 +367,8 @@ def main():
         elif op == 'settle':
             settle(hw, p, float(args[0]) if args else 60, note)
         elif op in ('chapter', 'minigame'):
-            chapter(hw, p, float(args[0]) if args else 600, note, 'battle' if op == 'chapter' else 'minigame')
+            chapter(hw, p, float(args[0]) if args else 600, note, 'battle' if op == 'chapter' else 'minigame',
+                    ' '.join(args[1:]) or None)
         elif op == 'key':
             vk = int(args[0])
             sc = u32.MapVirtualKeyW(vk, 0)   # SDL takes the key from the scan code in lParam
