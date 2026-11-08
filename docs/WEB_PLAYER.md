@@ -742,8 +742,17 @@ and drawn only in a skin, so changing the skin needs no script.
 faint under them (the user, 2026-11-07: "Add the game's icon so it shows semi-faint under the game's initials"), the icon read
 out of the player's own exe at the import (web/exeicon.js) and never shipped or redrawn; Plain shows the icon alone, as before.
 In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
-its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps"). The design's other studies (the flip record,
-prints, wear and the date on a cap) are not built.
+its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps").
+The other studies are on the cap of a game whose files are here, in every skin, from what this browser already keeps
+(`capStudies` in web/index.html; drawn by web/skins.css, hidden from assistive technology since the card says the same). **The
+record under the cap**: on hover or the card's focus the cap turns over to its liner, with the plays, the play time and the
+last day played (ByopopPlay). A best score would need, for each game, where its saves keep it, and is not shown. **The print
+of the copy**: the year the copy's exe was linked (`ByopopExeIcon.built`, its PE header's time stamp, read with the icon and
+kept in the record as `built`) against the game's release year: a year stamp on the rim when it was built in the first year, a
+ring for a later re-release (two years on or more), and nothing between. No store is named. **Wear from play**: a scratch at
+10 hours, a dent and a tilt at 40, patina at 100. **The date under the crimp**: the day this copy came in (`opened` in the
+record, set when a new copy is marked and kept while it is there), short, on the rim; a record from before it was kept has
+none until the files are added again.
 
 **Desktop 95's windows.** In B a game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The controls (the
 page's bar, with the sound switch), the game, the chat and every panel (Settings, Game files, Mods and the game's own) are
@@ -752,8 +761,9 @@ column of icons at the left opens each one again. The game window can be closed 
 panel's own button on the bar. The game window is always pixel-perfect: one canvas pixel for each game pixel, or the largest
 whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Where the windows are, and whether the
 game window is closed, is kept for each game in the localStorage item `byopop-desk`. The footer lies along the bottom like a
-task bar. Each game keeps its own page, so a game's address still opens that game; the listing is its own desktop, its
-content in one window, and does not move. On a screen under 760 pixels wide, or in another skin, the page is laid out as
+task bar. Each game keeps its own page, so a game's address still opens that game. The listing is its own desktop: the games
+(with their tabs) in one window and the page's notes in another, each dragged, closed and opened from its icon like a game
+page's, and kept under "index". On a screen under 760 pixels wide, or in another skin, the page is laid out as
 usual. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
 title, ...})`. The parody keeps to the rules of the skins: everything drawn here, system fonts by name, no real logos, icons
 or sounds, and no imitation system prompts.
