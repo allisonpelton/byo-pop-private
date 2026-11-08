@@ -174,6 +174,41 @@ static int GetControlChar(const SDL_Keysym& theKeysym)
 	return 0;
 }
 
+// port: -realinput (SexyAppBase.h). While RunRealInput pushes an event this is set, and the filter lets through only
+// those of the kinds it plays: the system's own mouse, keyboard, text and focus events never reach the game
+static bool gPushingRealInput = false;
+static bool gRealInputFilterSet = false;
+
+static bool IsPlayedInput(const SDL_Event& theEvent)
+{
+	switch (theEvent.type)
+	{
+	case SDL_MOUSEMOTION:
+	case SDL_MOUSEBUTTONDOWN:
+	case SDL_MOUSEBUTTONUP:
+	case SDL_MOUSEWHEEL:
+	case SDL_KEYDOWN:
+	case SDL_KEYUP:
+	case SDL_TEXTINPUT:
+	case SDL_TEXTEDITING:
+	case SDL_FINGERDOWN:
+	case SDL_FINGERUP:
+	case SDL_FINGERMOTION:
+		return true;
+	case SDL_WINDOWEVENT:
+		return (theEvent.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) || (theEvent.window.event == SDL_WINDOWEVENT_FOCUS_LOST) ||
+			(theEvent.window.event == SDL_WINDOWEVENT_TAKE_FOCUS) || (theEvent.window.event == SDL_WINDOWEVENT_ENTER) ||
+			(theEvent.window.event == SDL_WINDOWEVENT_LEAVE);
+	}
+	return false;
+}
+
+static int SDLCALL RealInputFilter(void* theUserData, SDL_Event* theEvent)
+{
+	(void) theUserData;
+	return ((gPushingRealInput) || (!IsPlayedInput(*theEvent))) ? 1 : 0;
+}
+
 // WM_xBUTTONDOWN / WM_xBUTTONDBLCLK click codes: 1 left, -1 right, 3 middle, 2 / -2 double-click. Like
 // Windows, every second click of a rapid series is the double-click.
 static int GetClickCode(const SDL_MouseButtonEvent& theEvent, bool isDown)
@@ -500,6 +535,13 @@ SexyAppBase::SexyAppBase()
 	mLastFastDrawUpdate = 0;
 	mScriptPos = 0;
 	mScriptedInput = false;
+	mRealInputPos = 0;
+	mRealMouseX = -1;
+	mRealMouseY = -1;
+	mRealButtons = 0;
+	mRealClicks = 1;
+	mRealMouseIn = false;
+	mRealMods = 0;
 	mModMenu = NULL;
 	mModMenuKeyDown = false;
 	mModMenuClosingKey = KEYCODE_UNKNOWN;
@@ -1388,6 +1430,8 @@ void SexyAppBase::UpdateFrames()
 
 	if (mScriptPos < mScript.size())
 		RunScript();
+	if (mRealInputPos < mRealInput.size())
+		RunRealInput();
 
 	if (!mMinimized)
 	{
@@ -2115,6 +2159,14 @@ void SexyAppBase::MakeWindow()
 		{
 			Popup(std::string("Failed to initialize the display: ") + SDL_GetError());
 			DoExit(1);
+		}
+
+		// -realinput: from here on only its own input reaches the game. SDL_SetEventFilter also empties SDL's
+		// queue, so it is set once, before the window exists.
+		if ((!mRealInputFileName.empty()) && (!gRealInputFilterSet))
+		{
+			SDL_SetEventFilter(RealInputFilter, NULL);
+			gRealInputFilterSet = true;
 		}
 
 		int aScale = 1;
@@ -3118,6 +3170,8 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 	}
 	else if (theParamName == "-script")
 		mScriptFileName = theParamValue;
+	else if (theParamName == "-realinput")
+		mRealInputFileName = theParamValue;
 	else if (theParamName == "-fast")
 		mFastMode = true;
 	else if (theParamName == "-trace")
@@ -3144,15 +3198,23 @@ DWORD SexyAppBase::GetClockTime()
 
 bool SexyAppBase::LoadScript(const std::string& theFileName)
 {
+	if (!LoadScriptFile(theFileName, "script", &mScript))
+		return false;
+	mScriptPos = 0;
+	return true;
+}
+
+// Reads a -script file (also -realinput's) into theCommands, sorted by update count; theWhat starts its messages
+bool SexyAppBase::LoadScriptFile(const std::string& theFileName, const char* theWhat, std::vector<ScriptCommand>* theCommands)
+{
 	FILE* aFile = fopen(theFileName.c_str(), "r");
 	if (aFile == NULL)
 	{
-		SDL_Log("script: cannot open %s", theFileName.c_str());
+		SDL_Log("%s: cannot open %s", theWhat, theFileName.c_str());
 		return false;
 	}
 
-	mScript.clear();
-	mScriptPos = 0;
+	theCommands->clear();
 
 	char aLine[1024];
 	int aLineNum = 0;
@@ -3181,7 +3243,7 @@ bool SexyAppBase::LoadScript(const std::string& theFileName)
 		aCommand.mLine = aLineNum;
 		if ((!(aStream >> aCommand.mUpdateCount)) || (!(aStream >> aCommand.mCommand)))
 		{
-			SDL_Log("script: %s:%d: expected \"<update count> <command> [args]\"", theFileName.c_str(), aLineNum);
+			SDL_Log("%s: %s:%d: expected \"<update count> <command> [args]\"", theWhat, theFileName.c_str(), aLineNum);
 			ok = false;
 			continue;
 		}
@@ -3189,11 +3251,11 @@ bool SexyAppBase::LoadScript(const std::string& theFileName)
 		size_t aStart = aCommand.mArgs.find_first_not_of(" \t");
 		size_t anEnd = aCommand.mArgs.find_last_not_of(" \t\r\n");
 		aCommand.mArgs = (aStart == std::string::npos) ? "" : aCommand.mArgs.substr(aStart, anEnd - aStart + 1);
-		mScript.push_back(aCommand);
+		theCommands->push_back(aCommand);
 	}
 	fclose(aFile);
 
-	std::stable_sort(mScript.begin(), mScript.end(),
+	std::stable_sort(theCommands->begin(), theCommands->end(),
 		[](const ScriptCommand& a, const ScriptCommand& b) { return a.mUpdateCount < b.mUpdateCount; });
 	return ok;
 }
@@ -3323,6 +3385,468 @@ void SexyAppBase::AddScriptCommand(int theUpdateCount, const std::string& theCom
 }
 
 //////////////////////////////////////////////////////////////////////////
+// port: -realinput (see SexyAppBase.h, docs/REAL_INPUT.md): timed SDL events pushed into SDL's own queue, so that
+// they reach the game the way a hand's events do, through SDL_PollEvent and HandleEvent
+
+// "<x> <y>" in window pixels, or "game <x> <y>" in the game's, mapped to the window as it shows the game now
+static bool ReadRealPoint(SexyAppBase* theApp, std::istringstream& theArgs, int* theX, int* theY)
+{
+	std::streampos aStart = theArgs.tellg();
+	std::string aWord;
+	bool isGame = false;
+	if ((theArgs >> aWord) && (aWord == "game"))
+		isGame = true;
+	else
+	{
+		theArgs.clear();
+		theArgs.seekg(aStart);
+	}
+
+	int x = 0;
+	int y = 0;
+	if (!(theArgs >> x >> y))
+		return false;
+	if ((isGame) && (theApp->mDDInterface != NULL))
+		theApp->mDDInterface->LogicalToWindow(x, y, &x, &y);
+	*theX = x;
+	*theY = y;
+	return true;
+}
+
+// [button]: left (also when there is none), right, middle, x1 or x2; 0 for another word
+static int ReadRealButton(std::istringstream& theArgs)
+{
+	std::string aWord;
+	if (!(theArgs >> aWord))
+		return SDL_BUTTON_LEFT;
+	if (aWord == "left")
+		return SDL_BUTTON_LEFT;
+	if (aWord == "right")
+		return SDL_BUTTON_RIGHT;
+	if (aWord == "middle")
+		return SDL_BUTTON_MIDDLE;
+	if (aWord == "x1")
+		return SDL_BUTTON_X1;
+	if (aWord == "x2")
+		return SDL_BUTTON_X2;
+	return 0;
+}
+
+// The argument without one pair of "..." around it
+static std::string UnquoteRealText(const std::string& theText)
+{
+	if ((theText.length() >= 2) && (theText[0] == '"') && (theText[theText.length() - 1] == '"'))
+		return theText.substr(1, theText.length() - 2);
+	return theText;
+}
+
+// The modifier a key is, as SDL keeps them
+static Uint16 RealKeyModifier(SDL_Keycode theKey)
+{
+	switch (theKey)
+	{
+	case SDLK_LSHIFT:	return KMOD_LSHIFT;
+	case SDLK_RSHIFT:	return KMOD_RSHIFT;
+	case SDLK_LCTRL:	return KMOD_LCTRL;
+	case SDLK_RCTRL:	return KMOD_RCTRL;
+	case SDLK_LALT:		return KMOD_LALT;
+	case SDLK_RALT:		return KMOD_RALT;
+	case SDLK_LGUI:		return KMOD_LGUI;
+	case SDLK_RGUI:		return KMOD_RGUI;
+	case SDLK_MODE:		return KMOD_MODE;
+	}
+	return KMOD_NONE;
+}
+
+static const char kRealPlainKeys[] = "`1234567890-=[]\\;',./";
+static const char kRealShiftedKeys[] = "~!@#$%^&*()_+{}|:\"<>?";
+
+// The character a key types with these modifiers on a US layout, as Windows' TranslateMessage makes WM_CHAR of it, or 0.
+// With Ctrl, Alt or the Windows key held it types none that SDL passes on as text (Enter, Tab, Backspace and Esc are
+// control characters, never text: GetControlChar types them).
+static char RealKeyText(SDL_Keycode theKey, Uint16 theMods)
+{
+	if ((theMods & (KMOD_CTRL | KMOD_ALT | KMOD_GUI)) != 0)
+		return 0;
+
+	bool isShift = (theMods & KMOD_SHIFT) != 0;
+	if ((theKey >= SDLK_a) && (theKey <= SDLK_z))
+	{
+		bool isUpper = isShift != ((theMods & KMOD_CAPS) != 0);
+		return (char) (isUpper ? (theKey - SDLK_a + 'A') : theKey);
+	}
+
+	switch (theKey)
+	{
+	case SDLK_KP_DIVIDE:	return '/';
+	case SDLK_KP_MULTIPLY:	return '*';
+	case SDLK_KP_MINUS:		return '-';
+	case SDLK_KP_PLUS:		return '+';
+	}
+	if ((theMods & KMOD_NUM) != 0)
+	{
+		if ((theKey >= SDLK_KP_1) && (theKey <= SDLK_KP_9))
+			return (char) ('1' + (theKey - SDLK_KP_1));
+		if (theKey == SDLK_KP_0)
+			return '0';
+		if (theKey == SDLK_KP_PERIOD)
+			return '.';
+	}
+
+	if ((theKey < 0x20) || (theKey > 0x7E))
+		return 0;
+	if (isShift)
+	{
+		const char* aPos = strchr(kRealPlainKeys, (char) theKey);
+		if (aPos != NULL)
+			return kRealShiftedKeys[aPos - kRealPlainKeys];
+	}
+	return (char) theKey;
+}
+
+void SexyAppBase::PushRealEvent(SDL_Event* theEvent)
+{
+	gPushingRealInput = true;
+	if (SDL_PushEvent(theEvent) < 0)
+		SDL_Log("realinput: SDL_PushEvent failed: %s", SDL_GetError());
+	gPushingRealInput = false;
+}
+
+void SexyAppBase::PushRealWindowEvent(int theWindowEvent)
+{
+	SDL_Event anEvent;
+	SDL_zero(anEvent);
+	anEvent.type = SDL_WINDOWEVENT;
+	anEvent.window.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+	anEvent.window.event = (Uint8) theWindowEvent;
+	PushRealEvent(&anEvent);
+}
+
+// A move to the point, after the window's ENTER when the mouse was not on it. No move when the point is the same,
+// as SDL drops a motion that moves nowhere.
+void SexyAppBase::PushRealMouseMove(int theX, int theY)
+{
+	if (!mRealMouseIn)
+	{
+		PushRealWindowEvent(SDL_WINDOWEVENT_ENTER);
+		mRealMouseIn = true;
+	}
+	if ((theX == mRealMouseX) && (theY == mRealMouseY))
+		return;
+
+	SDL_Event anEvent;
+	SDL_zero(anEvent);
+	anEvent.type = SDL_MOUSEMOTION;
+	anEvent.motion.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+	anEvent.motion.which = 0;
+	anEvent.motion.state = mRealButtons;
+	anEvent.motion.x = theX;
+	anEvent.motion.y = theY;
+	anEvent.motion.xrel = (mRealMouseX < 0) ? 0 : theX - mRealMouseX;
+	anEvent.motion.yrel = (mRealMouseY < 0) ? 0 : theY - mRealMouseY;
+	mRealMouseX = theX;
+	mRealMouseY = theY;
+	PushRealEvent(&anEvent);
+}
+
+// A press or release at the point (window pixels), after the move to it: SDL gives a button event the mouse's last
+// position, which Windows' WM_MOUSEMOVE before the press set
+void SexyAppBase::PushRealButton(int theButton, bool isDown, int theX, int theY, int theClicks)
+{
+	PushRealMouseMove(theX, theY);
+	if (isDown)
+	{
+		mRealButtons |= SDL_BUTTON(theButton);
+		mRealClicks = theClicks;
+	}
+	else
+		mRealButtons &= ~SDL_BUTTON(theButton);
+
+	SDL_Event anEvent;
+	SDL_zero(anEvent);
+	anEvent.type = isDown ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+	anEvent.button.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+	anEvent.button.which = 0;
+	anEvent.button.button = (Uint8) theButton;
+	anEvent.button.state = isDown ? SDL_PRESSED : SDL_RELEASED;
+	anEvent.button.clicks = (Uint8) mRealClicks;
+	anEvent.button.x = theX;
+	anEvent.button.y = theY;
+	PushRealEvent(&anEvent);
+}
+
+// A key's press or release as SDL sends it: the modifier state is updated first (and not by a repeat), so a modifier's
+// own press carries it and its release does not; a lock key toggles on its press. A press that types sends its text next.
+void SexyAppBase::PushRealKey(int theKey, bool isDown, bool isRepeat)
+{
+	SDL_Keycode aKey = (SDL_Keycode) theKey;
+	std::vector<int>::iterator anItr = std::find(mRealKeysDown.begin(), mRealKeysDown.end(), theKey);
+	if (!isRepeat)
+	{
+		Uint16 aModifier = RealKeyModifier(aKey);
+		if (isDown)
+		{
+			if (aKey == SDLK_CAPSLOCK)
+				mRealMods ^= KMOD_CAPS;
+			else if (aKey == SDLK_NUMLOCKCLEAR)
+				mRealMods ^= KMOD_NUM;
+			else if (aKey == SDLK_SCROLLLOCK)
+				mRealMods ^= KMOD_SCROLL;
+			else
+				mRealMods |= aModifier;
+			if (anItr == mRealKeysDown.end())
+				mRealKeysDown.push_back(theKey);
+		}
+		else
+		{
+			mRealMods &= ~aModifier;
+			if (anItr != mRealKeysDown.end())
+				mRealKeysDown.erase(anItr);
+		}
+	}
+
+	SDL_Event anEvent;
+	SDL_zero(anEvent);
+	anEvent.type = isDown ? SDL_KEYDOWN : SDL_KEYUP;
+	anEvent.key.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+	anEvent.key.state = isDown ? SDL_PRESSED : SDL_RELEASED;
+	anEvent.key.repeat = isRepeat ? 1 : 0;
+	anEvent.key.keysym.scancode = SDL_GetScancodeFromKey(aKey);
+	anEvent.key.keysym.sym = aKey;
+	anEvent.key.keysym.mod = mRealMods;
+	PushRealEvent(&anEvent);
+
+	if (isDown)
+	{
+		char aChar = RealKeyText(aKey, mRealMods);
+		if (aChar != 0)
+			PushRealText(std::string(1, aChar));
+	}
+}
+
+// SDL_TEXTINPUT, in pieces that fit its 32 bytes without splitting a UTF-8 character
+void SexyAppBase::PushRealText(const std::string& theText)
+{
+	size_t aPos = 0;
+	while (aPos < theText.length())
+	{
+		size_t aLen = std::min(theText.length() - aPos, (size_t) (SDL_TEXTINPUTEVENT_TEXT_SIZE - 1));
+		while ((aPos + aLen < theText.length()) && (aLen > 1) && ((((unsigned char) theText[aPos + aLen]) & 0xC0) == 0x80))
+			aLen--;
+
+		SDL_Event anEvent;
+		SDL_zero(anEvent);
+		anEvent.type = SDL_TEXTINPUT;
+		anEvent.text.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+		memcpy(anEvent.text.text, theText.data() + aPos, aLen);
+		anEvent.text.text[aLen] = 0;
+		PushRealEvent(&anEvent);
+		aPos += aLen;
+	}
+}
+
+// Pushes the events due at this update; HandleEvent gets them when the update is done, before the next one
+void SexyAppBase::RunRealInput()
+{
+	static bool sWarnedScriptedInput = false;
+	if ((mScriptedInput) && (!sWarnedScriptedInput))
+	{
+		SDL_Log("realinput: the game's own test bot is on (mScriptedInput), which drops real input");
+		sWarnedScriptedInput = true;
+	}
+
+	while ((mRealInputPos < mRealInput.size()) && (mRealInput[mRealInputPos].mUpdateCount <= mUpdateCount) && (!mShutdown))
+	{
+		// a copy: HandleScriptCommand may run game code
+		const ScriptCommand aCommand = mRealInput[mRealInputPos++];
+		const std::string& aName = aCommand.mCommand;
+		std::istringstream anArgs(aCommand.mArgs);
+		int x = 0;
+		int y = 0;
+
+		if ((aName == "move") || (aName == "down") || (aName == "up") || (aName == "click") || (aName == "dblclick"))
+		{
+			if (!ReadRealPoint(this, anArgs, &x, &y))
+			{
+				SDL_Log("realinput: line %d: %s needs <x> <y> or game <x> <y>", aCommand.mLine, aName.c_str());
+				continue;
+			}
+			if (aName == "move")
+			{
+				PushRealMouseMove(x, y);
+				continue;
+			}
+
+			int aButton = ReadRealButton(anArgs);
+			int aClicks = 1;
+			if ((aName == "down") && (!(anArgs >> aClicks)))
+				aClicks = 1;
+			if ((aButton == 0) || (aClicks < 1) || (aClicks > 255))
+			{
+				SDL_Log("realinput: line %d: '%s %s': [button] is left, right, middle, x1 or x2", aCommand.mLine, aName.c_str(), aCommand.mArgs.c_str());
+				continue;
+			}
+
+			if (aName == "down")
+				PushRealButton(aButton, true, x, y, aClicks);
+			else if (aName == "up")
+				PushRealButton(aButton, false, x, y, mRealClicks);
+			else
+			{
+				PushRealButton(aButton, true, x, y, 1);
+				PushRealButton(aButton, false, x, y, 1);
+				if (aName == "dblclick")
+				{
+					PushRealButton(aButton, true, x, y, 2);
+					PushRealButton(aButton, false, x, y, 2);
+				}
+			}
+		}
+		else if (aName == "wheel")
+		{
+			int aDeltaY = 0;
+			int aDeltaX = 0;
+			if (!(anArgs >> aDeltaY))
+			{
+				SDL_Log("realinput: line %d: wheel needs <dy> [dx]", aCommand.mLine);
+				continue;
+			}
+			anArgs >> aDeltaX;
+
+			SDL_Event anEvent;
+			SDL_zero(anEvent);
+			anEvent.type = SDL_MOUSEWHEEL;
+			anEvent.wheel.windowID = (mHWnd != NULL) ? SDL_GetWindowID(mHWnd) : 0;
+			anEvent.wheel.which = 0;
+			anEvent.wheel.x = aDeltaX;
+			anEvent.wheel.y = aDeltaY;
+			anEvent.wheel.direction = SDL_MOUSEWHEEL_NORMAL;
+			anEvent.wheel.preciseX = (float) aDeltaX;
+			anEvent.wheel.preciseY = (float) aDeltaY;
+			anEvent.wheel.mouseX = mRealMouseX;
+			anEvent.wheel.mouseY = mRealMouseY;
+			PushRealEvent(&anEvent);
+		}
+		else if ((aName == "enter") || (aName == "leave"))
+		{
+			mRealMouseIn = aName == "enter";
+			// a mouse that comes back has moved: its next move is pushed even to the point it left from
+			if (!mRealMouseIn)
+			{
+				mRealMouseX = -1;
+				mRealMouseY = -1;
+			}
+			PushRealWindowEvent(mRealMouseIn ? SDL_WINDOWEVENT_ENTER : SDL_WINDOWEVENT_LEAVE);
+		}
+		else if ((aName == "keydown") || (aName == "keyup") || (aName == "key") || (aName == "keyrepeat"))
+		{
+			SDL_Keycode aKey = SDL_GetKeyFromName(aCommand.mArgs.c_str());
+			if (aKey == SDLK_UNKNOWN)
+			{
+				SDL_Log("realinput: line %d: unknown SDL key name '%s'", aCommand.mLine, aCommand.mArgs.c_str());
+				continue;
+			}
+			if (aName == "keyrepeat")
+				PushRealKey(aKey, true, true);
+			else
+			{
+				if (aName != "keyup")
+					PushRealKey(aKey, true, false);
+				if (aName != "keydown")
+					PushRealKey(aKey, false, false);
+			}
+		}
+		else if (aName == "type")
+		{
+			std::string aText = UnquoteRealText(aCommand.mArgs);
+			for (size_t i = 0; i < aText.length(); i++)
+			{
+				char aChar = aText[i];
+				SDL_Keycode aKey = SDLK_UNKNOWN;
+				bool needsShift = false;
+				const char* aShifted = (aChar != 0) ? strchr(kRealShiftedKeys, aChar) : NULL;
+				if ((aChar >= 'A') && (aChar <= 'Z'))
+				{
+					aKey = SDLK_a + (aChar - 'A');
+					needsShift = true;
+				}
+				else if (aShifted != NULL)
+				{
+					aKey = kRealPlainKeys[aShifted - kRealShiftedKeys];
+					needsShift = true;
+				}
+				else if ((aChar >= 0x20) && (aChar <= 0x7E))
+					aKey = aChar;
+				else
+				{
+					SDL_Log("realinput: line %d: type takes printable ASCII only (text sends any)", aCommand.mLine);
+					break;
+				}
+				// with Caps Lock on a capital needs no Shift and a small letter does
+				if ((aKey >= SDLK_a) && (aKey <= SDLK_z) && ((mRealMods & KMOD_CAPS) != 0))
+					needsShift = !needsShift;
+
+				bool pressShift = (needsShift) && ((mRealMods & KMOD_SHIFT) == 0);
+				if (pressShift)
+					PushRealKey(SDLK_LSHIFT, true, false);
+				PushRealKey(aKey, true, false);
+				PushRealKey(aKey, false, false);
+				if (pressShift)
+					PushRealKey(SDLK_LSHIFT, false, false);
+			}
+		}
+		else if (aName == "text")
+			PushRealText(UnquoteRealText(aCommand.mArgs));
+		else if ((aName == "focus") && ((aCommand.mArgs == "lost") || (aCommand.mArgs == "lose") ||
+			(aCommand.mArgs == "gained") || (aCommand.mArgs == "regain")))
+		{
+			bool isLost = (aCommand.mArgs == "lost") || (aCommand.mArgs == "lose");
+			if (isLost)
+			{
+				// SDL_ResetKeyboard: every held key is released, in scancode order, before the window's FOCUS_LOST
+				std::vector<int> aKeys = mRealKeysDown;
+				std::sort(aKeys.begin(), aKeys.end(),
+					[](int a, int b) { return SDL_GetScancodeFromKey(a) < SDL_GetScancodeFromKey(b); });
+				for (size_t i = 0; i < aKeys.size(); i++)
+					PushRealKey(aKeys[i], false, false);
+			}
+			PushRealWindowEvent(isLost ? SDL_WINDOWEVENT_FOCUS_LOST : SDL_WINDOWEVENT_FOCUS_GAINED);
+		}
+		else if ((aName == "minimize") || (aName == "restore") || (aName == "maximize") || (aName == "resize"))
+		{
+			if (mHWnd == NULL)
+				continue;
+			if (aName == "minimize")
+				SDL_MinimizeWindow(mHWnd);
+			else if (aName == "restore")
+				SDL_RestoreWindow(mHWnd);
+			else if (aName == "maximize")
+				SDL_MaximizeWindow(mHWnd);
+			else if (anArgs >> x >> y)
+				SDL_SetWindowSize(mHWnd, x, y);
+			else
+				SDL_Log("realinput: line %d: resize needs <w> <h>", aCommand.mLine);
+		}
+		else if (aName == "close")
+		{
+			PushRealWindowEvent(SDL_WINDOWEVENT_CLOSE);
+			SDL_Event anEvent;
+			SDL_zero(anEvent);
+			anEvent.type = SDL_QUIT;
+			PushRealEvent(&anEvent);
+		}
+		else if ((aName == "screenshot") && (!aCommand.mArgs.empty()))
+			SaveScreenshot(aCommand.mArgs);
+		else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
+			SaveScreenshot(aCommand.mArgs, true);
+		else if (aName == "quit")
+			Shutdown();
+		else if (!HandleScriptCommand(aCommand))
+			SDL_Log("realinput: line %d: unknown command '%s %s'", aCommand.mLine, aName.c_str(), aCommand.mArgs.c_str());
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
 // port: the mod menu and restarts (docs/MOD_MENU_DESIGN.md 5, 6)
 
 void SexyAppBase::OpenModMenu()
@@ -3420,7 +3944,7 @@ void SexyAppBase::GetModMessages(std::vector<ModMessage>* theMessages)
 bool SexyAppBase::IsTestRun()
 {
 	return (SDL_getenv("BYOPOP_TEST_RUN") != NULL) || (SDL_getenv("BEJ_TEST_DESKTOP") != NULL) || (!mScriptFileName.empty()) ||
-		(mScriptedInput);
+		(mScriptedInput) || (!mRealInputFileName.empty());
 }
 
 int SexyAppBase::RequestRestart(bool isConfirmed, SexyString* theMessage)
@@ -3624,6 +4148,18 @@ void SexyAppBase::Init()
 
 	if ((!mScriptFileName.empty()) && (!LoadScript(mScriptFileName)))
 		DoExit(1);
+	// -realinput: not with -script, whose filter in HandleEvent drops every real event
+	if (!mRealInputFileName.empty())
+	{
+		if (!mScriptFileName.empty())
+		{
+			SDL_Log("realinput: -realinput does not go with -script, which drops real input");
+			DoExit(1);
+		}
+		if (!LoadScriptFile(mRealInputFileName, "realinput", &mRealInput))
+			DoExit(1);
+		mRealInputPos = 0;
+	}
 
 	srand(GetTickCount());
 

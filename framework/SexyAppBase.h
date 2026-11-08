@@ -357,6 +357,46 @@ public:
 	//                   update on any machine; the game runs slower than real time if drawing is slow
 	//   -renderscale=N  render at N times the logical size (1..4) whatever the window size, e.g. to
 	//                   check HD art with screenshotfull
+	//   -realinput=<file>  real input: timed SDL events pushed into SDL's own queue (SDL_PushEvent), so they take
+	//                   the path a hand's events take (SDL_PollEvent, HandleEvent, the window-to-game mapping, the
+	//                   widget manager, F2 and Alt+Enter); the system's own mouse, keyboard, text and focus events
+	//                   are dropped, so the run is the same whatever happens to the real ones (docs/REAL_INPUT.md).
+	//                   The file is a -script file: the events of a line are pushed when update <count> starts and
+	//                   handled after it, before the next update, as a hand's events between two updates are. Not
+	//                   with -script or a game's -autoplay, which drop real input. A point is "<x> <y>" in window
+	//                   pixels, or "game <x> <y>" in the game's, mapped as the window shows them at that moment;
+	//                   [button] is left (the default), right, middle, x1 or x2; <key> is an SDL key name (A, 7,
+	//                   Return, Escape, Space, Backspace, Tab, F2, Up, Left Shift, Left Alt, Left Ctrl, Keypad 1).
+	//                     move <point>          SDL_MOUSEMOTION with the buttons held (none for no change of
+	//                                           point, except the first after a leave); the first move, and the
+	//                                           first after a leave, comes after the window's SDL_WINDOWEVENT_ENTER
+	//                     down <point> [button] [clicks]  SDL_MOUSEBUTTONDOWN, after a move to the point (clicks 1;
+	//                                           an even count is a double click)
+	//                     up <point> [button]   SDL_MOUSEBUTTONUP, after a move to the point
+	//                     click <point> [button]     down and up
+	//                     dblclick <point> [button]  down and up, then down and up with clicks 2
+	//                     wheel <dy> [dx]       SDL_MOUSEWHEEL at the mouse (dy > 0: away from the player)
+	//                     enter, leave          the window's SDL_WINDOWEVENT_ENTER or LEAVE
+	//                     keydown|keyup <key>   SDL_KEYDOWN or SDL_KEYUP with its scancode and the modifiers held,
+	//                                           updated first as SDL does (Left Alt's own press carries KMOD_LALT);
+	//                                           a press that types (letters, digits, Space, symbols, on a US
+	//                                           layout, with Shift and Caps Lock, without Ctrl or Alt) is followed
+	//                                           by its SDL_TEXTINPUT, as Windows sends WM_CHAR after WM_KEYDOWN
+	//                     key <key>             keydown and keyup
+	//                     keyrepeat <key>       SDL_KEYDOWN with repeat set (and its text), as a held key repeats
+	//                     type <text>           each character's key pressed and released, Shift held for capitals
+	//                                           and shifted symbols (printable ASCII; "..." keeps outer spaces)
+	//                     text <text>           SDL_TEXTINPUT alone, UTF-8 (as an input method sends it)
+	//                     focus lost|gained     SDL_WINDOWEVENT_FOCUS_LOST or _GAINED (also lose|regain); a loss
+	//                                           releases the held keys first, as SDL_ResetKeyboard does
+	//                     minimize, restore, maximize  SDL_MinimizeWindow and so on: the window really changes and
+	//                                           SDL sends its own events (a hand's minimize also loses the focus:
+	//                                           write "focus lost" before it)
+	//                     resize <w> <h>        SDL_SetWindowSize: the window's client area, in screen pixels
+	//                     close                 the window's close button: SDL_WINDOWEVENT_CLOSE, then SDL_QUIT
+	//                     screenshot, screenshotfull, quit  as in -script (done at once, not pushed)
+	//                   Full screen is Alt+Enter: "keydown Left Alt", "key Return", "keyup Left Alt". Other
+	//                   commands go to the game's HandleScriptCommand, run at once.
 	enum { FAST_DRAW_INTERVAL = 10 };
 	bool mHasSeedParam;
 	bool mFastMode;
@@ -370,6 +410,17 @@ public:
 	std::vector<ScriptCommand> mScript;
 	size_t mScriptPos;         // next command to run
 	bool mScriptedInput;       // a test bot (the game's -autoplay) feeds mScript: real input is ignored as in a -script run
+	// -realinput: timed SDL events (RunRealInput), and the hand that plays them, as SDL would keep it for real input
+	std::string mRealInputFileName;
+	std::vector<ScriptCommand> mRealInput;
+	size_t mRealInputPos;      // next command to run
+	int mRealMouseX;           // the mouse in window pixels (-1 before its first move)
+	int mRealMouseY;
+	unsigned int mRealButtons; // SDL_BUTTON() mask of the buttons held
+	int mRealClicks;           // the click count of the last press (its release carries it too)
+	bool mRealMouseIn;         // the window has had SDL_WINDOWEVENT_ENTER and no LEAVE since
+	unsigned short mRealMods;  // KMOD_ state
+	std::vector<int> mRealKeysDown;  // the SDL keycodes held
 
 	// port: the mod menu (framework/ModMenu.h, docs/MOD_MENU_DESIGN.md). F2 opens and closes it; nothing of it
 	// exists until it first opens.
@@ -425,7 +476,15 @@ protected:
 
 	// Test hooks (see mScript)
 	bool LoadScript(const std::string& theFileName);
+	bool LoadScriptFile(const std::string& theFileName, const char* theWhat, std::vector<ScriptCommand>* theCommands);
 	void RunScript();
+	void RunRealInput();
+	void PushRealEvent(SDL_Event* theEvent);
+	void PushRealWindowEvent(int theWindowEvent);
+	void PushRealMouseMove(int theX, int theY);
+	void PushRealButton(int theButton, bool isDown, int theX, int theY, int theClicks);
+	void PushRealKey(int theKey, bool isDown, bool isRepeat);
+	void PushRealText(const std::string& theText);
 	// A script command the framework does not know; return true if handled (the default handles none)
 	virtual bool HandleScriptCommand(const ScriptCommand& theCommand);
 	bool SaveScreenshot(const std::string& theFileName, bool fullResolution = false);
