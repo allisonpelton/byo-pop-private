@@ -236,8 +236,8 @@ void Board::SaveGameState()
 				aUser->SetInt(0x59, -1);
 			else
 			{
-				aUser->SetInt(0x59, m200[0].mCol);
-				aUser->SetInt(0x5a, m200[0].mRow);
+				aUser->SetInt(0x59, m200[0].mType);
+				aUser->SetInt(0x5a, m200[0].mCount);
 			}
 			aUser->SetInt(0x65, m19fc);
 			return;
@@ -260,8 +260,8 @@ void Board::SaveGameState()
 			}
 			else
 			{
-				aUser->SetInt(0x59, m200[0].mCol);
-				aUser->SetInt(0x5a, m200[0].mRow);
+				aUser->SetInt(0x59, m200[0].mType);
+				aUser->SetInt(0x5a, m200[0].mCount);
 			}
 			aUser->SetInt(0x65, m19fc);
 			return;

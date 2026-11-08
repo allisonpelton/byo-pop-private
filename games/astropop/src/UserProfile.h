@@ -63,6 +63,8 @@ public:
 	void SetFloat(int theId, float theValue);           // 0x424400
 	void SetString(int theId, const std::string& theValue); // 0x4271a0
 	bool HasModeUnlocked(int theMode) const;            // 0x40e8b0 (modes 2 and 3 are bits 2 and 6 of PROFILE_UNLOCK_A)
+	bool GetRecord(unsigned int theList, unsigned int theIndex, ProfileRecord* theRecord) const;   // 0x40e340 (list 1: the one at +0x24, list 2: the one at +0x14; false when there is none)
+	int GetPilotLevel(int thePilot) const;              // 0x40e930 (how far a pilot's upgrades go, from settings 0x33 .. 0x3e)
 
 	void InitNew(const std::string& theName, int theNumber); // 0x429510 (the first settings of a new player; saves)
 	void ResetGame();                                 // 0x424540 (settings 0x4f .. 0x64: no saved game)

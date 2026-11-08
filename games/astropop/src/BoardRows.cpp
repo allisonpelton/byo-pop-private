@@ -15,7 +15,7 @@ bool Board::HasMarkOfType(int theType)
 {
 	for (unsigned int i = 0; i < m200.size(); i++)
 	{
-		if (m200[i].mCol == theType && m200[i].mRow > 0)
+		if (m200[i].mType == theType && m200[i].mCount > 0)
 			return true;
 	}
 	return false;
@@ -26,8 +26,8 @@ int Board::GetMarkCount(int theType)
 {
 	for (unsigned int i = 0; i < m200.size(); i++)
 	{
-		if (m200[i].mCol == theType)
-			return m200[i].mRow;
+		if (m200[i].mType == theType)
+			return m200[i].mCount;
 	}
 	return 0;
 }

@@ -26,7 +26,7 @@ f8	std::vector<int>	mf8
 1d0	std::vector<TipEntry>	m1d0	the pop-ups that describe the bricks (SetupHints)
 1e0	std::vector<FadeRec>	m1e0	the fading panels of the end of a game
 1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
-200	std::vector<CellRef3>	m200	?
+200	std::vector<MarkRec>	m200	the marks: a kind of brick, how many of it are to drop, and whether the mark is the one shown (the supercharged kind)
 210	std::vector<StageBg*>	m210	the hints pictures (12)
 220	std::vector<StageBg*>	m220	the picture of each stage
 230	std::vector<HintSpot*>	m230
@@ -95,6 +95,7 @@ f8	std::vector<int>	mf8
 758	Buffer	m758	the replay recording (RecordStep)
 778	LevelUpText*	m778	the level-up picture
 77c	ScrollLayer	m77c	the scenery layer
+7b4	float	m7b4	the scenery layer's x position
 7b8	int	m7b8	?
 7bc	int	m7bc	?
 7c0	int	m7c0	?

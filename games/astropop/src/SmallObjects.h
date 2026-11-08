@@ -59,6 +59,7 @@ public:
 	FloatText(const std::string& theText, Font* theFont, float theX, float theY, bool theFlag);  // 0x4107e0
 	FloatText(const std::string& theText, Font* theFont, float theX, float theTargetY, int theHold, float theSpeed);  // 0x4108e0
 	void		Update();       // 0x408890
+	void		Draw(Graphics* g);      // 0x4089a0
 };
 
 // A hint box (class of 0x68 bytes, constructor 0x456660, vtable 0x565440): lines of text in a panel that slides in
@@ -126,6 +127,7 @@ public:
 	void		SetImage(Image* theImage, bool theCopy);    // 0x40b280
 	void		SetKind(int theKind);                       // 0x426250
 	bool		Check(int theSteps);                        // 0x4264a0: runs theSteps steps; true when the wipe is over
+	void		Draw(Graphics* g, int theX, int theY);      // 0x40b5e0
 
 private:
 	bool		StepRandom(int theSteps);                   // 0x426370
@@ -165,6 +167,8 @@ public:
 
 	LevelUpText(Image* theImage, int theY);     // 0x40b600
 	void		Update();                                // 0x40b6a0
+	void		Draw(Graphics* g);                       // 0x40dab0 (at the middle of the screen, 0x182, 0xf0)
+	void		DrawAt(Graphics* g, int theX, int theY); // 0x40c8a0
 };
 
 // A spark of the sun that drifts over the end of a game (0x50 bytes, the vector at +0xe8): it moves by its speed each

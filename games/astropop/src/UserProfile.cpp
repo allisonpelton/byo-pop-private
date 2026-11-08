@@ -105,6 +105,67 @@ bool UserProfile::HasModeUnlocked(int theMode) const
 	return false;
 }
 
+// 0x40e340
+bool UserProfile::GetRecord(unsigned int theList, unsigned int theIndex, ProfileRecord* theRecord) const
+{
+	const std::vector<ProfileRecord>* aRecords = NULL;
+	if (theList == 1)
+		aRecords = &mRecordsB;
+	else if (theList == 2)
+		aRecords = &mRecordsA;
+	if (aRecords == NULL || aRecords->empty() || theIndex >= aRecords->size())
+		return false;
+	*theRecord = (*aRecords)[theIndex];
+	return true;
+}
+
+// 0x40e930: for each pilot a count from the settings 0x33 .. 0x36 (the first and the last pilot have a second count in 0x37 and
+// 0x3e) and one more from 0x3b, 0x3c, 0x3d and 0x3a; the level is the sum of those counts, each less one and not below nought
+static int CountLess1(int theCount)
+{
+	return (theCount - 1 < 0) ? 0 : theCount - 1;
+}
+
+int UserProfile::GetPilotLevel(int thePilot) const
+{
+	int aFirst = 0;                 // (the original leaves it as it was if the setting is missing)
+	int aSecond = 1;
+	int aLevel;
+	int aSetting;
+	if (thePilot == 0)
+	{
+		GetInt(0x33, &aFirst);
+		GetInt(0x37, &aSecond);
+		aLevel = CountLess1(aFirst) + CountLess1(aSecond);
+		aSetting = 0x3b;
+		aSecond = 0;
+	}
+	else if (thePilot == 1)
+	{
+		GetInt(0x34, &aFirst);
+		aLevel = CountLess1(aFirst);
+		aSetting = 0x3c;
+	}
+	else if (thePilot == 2)
+	{
+		GetInt(0x35, &aFirst);
+		aLevel = CountLess1(aFirst);
+		aSetting = 0x3d;
+	}
+	else if (thePilot == 3)
+	{
+		GetInt(0x36, &aFirst);
+		GetInt(0x3e, &aSecond);
+		aLevel = CountLess1(aFirst) + CountLess1(aSecond);
+		aSetting = 0x3a;
+		aSecond = 0;
+	}
+	else
+		return 0;      // (the original returns its this pointer)
+	GetInt(aSetting, &aSecond);
+	return aLevel + CountLess1(aSecond);
+}
+
 // 0x429510: a new player's settings (theNumber -1: the next free number), then the file is written
 void UserProfile::InitNew(const std::string& theName, int theNumber)
 {

@@ -1,6 +1,7 @@
 // The small objects the Board keeps lists of: floating texts, hint boxes, the wipe that ends a game.
 
 #include "SmallObjects.h"
+#include "AstroPopApp.h"
 #include "Font.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
@@ -562,4 +563,61 @@ bool ScreenWipe::StepRows(int theSteps)
 	anImage->BitsChanged();
 	anImage->CommitBits();
 	return mDone;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Drawing
+
+// 0x4089a0: the text in its font, in a colour that runs round the hues with the update (white if it does not change); the
+// original also works out an alpha from the life left and then sets the colour with the alpha field (+0x50) instead
+void FloatText::Draw(Graphics* g)
+{
+	if (mDone)
+		return;
+
+	g->SetFont(mFont);
+	Color aColor(0xff, 0xff, 0xff);
+	if (!mNoFade)
+		aColor = Color((int) (gApp->HSLToRGB(m10, 0xff, 0x80) & 0xffffff) | 0xff000000);
+	aColor.mAlpha = m50;
+	g->SetColor(aColor);
+	g->DrawString(mText, (int) mX, (int) ((double) mFont->GetAscent() + (double) mY));
+}
+
+// 0x40dab0
+void LevelUpText::Draw(Graphics* g)
+{
+	DrawAt(g, 0x182, 0xf0);
+}
+
+// 0x40c8a0: the picture stretched round the point (theX, theY): wider as it springs out and shorter, never below 6 pixels
+void LevelUpText::DrawAt(Graphics* g, int theX, int theY)
+{
+	if (m08 == 0)
+		return;
+
+	bool is3D = gApp->Is3DAccelerated();
+	float aWidth = (float) ((((double) m20 * 4.0 + 1.0) * (double) mImage->mWidth) * (double) m34 * (double) m28);
+	double aHeightD = ((double) mImage->mHeight - (double) mImage->mHeight * (double) m20 * (double) 1.7999999523162842) *
+		(double) m34 * (double) m28;
+	float aHeight = (float) aHeightD;
+	if (!(aHeightD > 6.0))
+		aHeight = 6.0f;
+
+	g->SetColorizeImages(true);
+	g->SetColor(Color(0xff, 0xff, 0xff, (int) (m30 * 255.0f)));
+	if (!is3D)
+		g->SetFastStretch(true);
+	Rect aSrc(0, 0, mImage->mWidth, mImage->mHeight);
+	Rect aDest(theX - (int) ((double) aWidth * 0.5), theY - (int) ((double) aHeight * 0.5), (int) aWidth, (int) aHeight);
+	g->DrawImage(mImage, aDest, aSrc);
+	if (!is3D)
+		g->SetFastStretch(false);
+	g->SetColorizeImages(false);
+}
+
+// 0x40b5e0
+void ScreenWipe::Draw(Graphics* g, int theX, int theY)
+{
+	g->DrawImage(mImage, theX, theY);
 }

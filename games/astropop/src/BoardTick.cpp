@@ -633,21 +633,21 @@ Finish:
 	{
 		for (unsigned int i = 0; i < m200.size(); )
 		{
-			if (m200[i].mRow < 1)
+			if (m200[i].mCount < 1)
 			{
 				i++;
 				continue;
 			}
-			m200[i].mRow--;
-			if (m200[i].mRow > 0)
+			m200[i].mCount--;
+			if (m200[i].mCount > 0)
 			{
-				if (m200[i].mRow < 0xff)
-					Fire(0x25, m200[i].mRow);
+				if (m200[i].mCount < 0xff)
+					Fire(0x25, m200[i].mCount);
 				i++;
 			}
 			else
 			{
-				int aKind = -m200[i].mCol;
+				int aKind = -m200[i].mType;
 				if (aKind == 0)
 					aKind = -500000000;
 				Fire(0x20, aKind);

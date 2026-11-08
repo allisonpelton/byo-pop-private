@@ -54,6 +54,7 @@ public:
 		mUseRange = false;
 	}
 
+	int GetCel() const { return (mNumFrames == 1) ? 0 : mFrame; }      // the cel the draws show (a counter of one frame shows the first)
 	void SetFrame(int theFrame) { mFrame = theFrame; }                      // 0x40b0b0
 	void SetStopped(bool theStopped) { mStopped = theStopped; }             // 0x40b0c0
 	bool ConsumeFrameChanged()                                              // 0x40b120

@@ -72,7 +72,7 @@ void Board::LevelComplete()
 		m128.insert(*anItr);
 	m70.clear();
 	m923 = true;
-	std::vector<CellRef3>().swap(m200);
+	std::vector<MarkRec>().swap(m200);
 	for (unsigned int i = 0; i < m108.size(); i++)
 	{
 		m108[i]->mGone = true;

@@ -31,6 +31,11 @@ class Particle;
 class AstroButton;
 class Checkbox;
 class SoundInstance;
+class Graphics;
+
+// 0x4b83f0 and 0x4b8430: the game's own DrawImageCel (BoardDraw.cpp)
+void DrawCel(Graphics* g, Image* theImage, int theX, int theY, int theCel);
+void DrawCelStretched(Graphics* g, Image* theImage, const Rect& theDest, int theCel);
 
 // a cell of the field (the original keeps vectors of these: 8 bytes each)
 struct CellRef
@@ -45,6 +50,15 @@ struct CellRef3
 	int		mCol;
 	int		mRow;
 	Brick*	mBrick;
+};
+
+// A mark (12 bytes, the vector at +0x200): a kind of brick and how many pieces of it are to drop; the mark with the flag is
+// the supercharged kind that the second game type announces
+struct MarkRec
+{
+	int		mType;      // +0x00
+	int		mCount;     // +0x04
+	bool	mActive;    // +0x08
 };
 
 // A row of the table that sets the speed of the game by the time played (24 bytes, the vector at +0x280)
@@ -331,7 +345,7 @@ public:
 	std::vector<TipEntry>	m1d0;// +0x1d0 the pop-ups that describe the bricks (SetupHints)
 	std::vector<FadeRec>	m1e0;// +0x1e0 the fading panels of the end of a game
 	std::vector<int>	m1f0;// +0x1f0 counters that count down from 2000 (set when a special brick is made)
-	std::vector<CellRef3>	m200;// +0x200 ?
+	std::vector<MarkRec>	m200;// +0x200 the marks: a kind of brick, how many of it are to drop, and whether the mark is the one shown (the supercharged kind)
 	std::vector<StageBg*>	m210;// +0x210 the hints pictures (12)
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
 	std::vector<HintSpot*>	m230;// +0x230
@@ -400,6 +414,7 @@ public:
 	Buffer	m758;// +0x758 the replay recording (RecordStep)
 	LevelUpText*	m778 = NULL;// +0x778 the level-up picture
 	ScrollLayer	m77c;// +0x77c the scenery layer
+	float	m7b4 = 0.0f;// +0x7b4 the scenery layer's x position
 	int	m7b8 = 0;// +0x7b8 ?
 	int	m7bc = 0;// +0x7bc ?
 	int	m7c0 = 0;// +0x7c0 ?
@@ -889,6 +904,37 @@ public:
 	void			StartByHand();                                  // (inlined three times) the player's first move: the Return key, the start button, the middle button
 	void			PickUpDone(bool theFail);                       // (the end of 0x472360) the sound of the pick up, and the checks that follow it
 	void			PopPsychic(bool theHandEmpty);                  // (inside 0x472360, twice: with the hand empty, and with a brick in it) the psychic mode takes the lit bricks out
+
+	// ---- the drawing (BoardDraw.cpp and the files named Board Draw...)
+	virtual void Draw(Graphics* g) override;                              // 0x461e50 slot 16
+	void			DrawBackdrop(Graphics* g);                      // 0x437bd0 the scenery, planets, streaks and stars
+	void			DrawBeam(Graphics* g);                          // 0x45ea50 the beam under the pointer
+	void			DrawBricks(Graphics* g, bool theGlow);          // 0x438e80
+	void			DrawBonusIntro(Graphics* g);                    // 0x443fd0
+	void			DrawStageBg(Graphics* g);                       // 0x43b5c0
+	void			AnimateBanner();                                // 0x433fa0
+	void			DrawShip(Graphics* g);                          // 0x438210
+	void			DrawHud(Graphics* g);                           // 0x440f70
+	void			DrawFrame(Graphics* g);                         // 0x444520
+	void			DrawBonusStats(Graphics* g);                    // 0x443480
+	void			DrawWarpScreen(Graphics* g);                    // 0x442c70
+	// the parts of Draw (BoardDrawLayers.cpp, BoardDrawPage.cpp), in its order
+	void			DrawDangerZone(Graphics* g);
+	void			DrawModeTexts(Graphics* g);
+	void			DrawGoalBanners(Graphics* g, int theCount);
+	void			DrawCrosshair(Graphics* g);
+	void			DrawExplosions(Graphics* g);
+	void			DrawEndSparks(Graphics* g);
+	void			DrawEndPage(Graphics* g);
+	void			DrawSnow(Graphics* g);
+	void			DrawUpgradeArm(Graphics* g);
+	void			DrawSurvivalIntro(Graphics* g);
+	void			DrawLogo(Graphics* g);
+	void			DrawSupaBrackets(Graphics* g);
+	void			DrawFreezeFx(Graphics* g);
+	void			DrawSirens(Graphics* g);
+	void			DrawSurvivalBonus(Graphics* g);
+	void			DrawTestTexts(Graphics* g);
 
 	// ---- pause and play (BoardPlay.cpp)
 	void			Pause(bool theStart, bool theFlag);             // 0x459040 a dialog opens (true) or closes (false)
