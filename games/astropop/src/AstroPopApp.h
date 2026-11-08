@@ -7,6 +7,7 @@
 // The 2004 SexyApp keeps its trial counters at +0x514 / +0x518; registration is out of the port (the game always
 // runs as a registered copy), see docs/GAME_NOTES.md "Registration and outbound code left out".
 
+#include "Color.h"
 #include "Res.h"
 #include "SexyApp.h"
 #include "UserProfile.h"
@@ -105,6 +106,9 @@ public:
 	void			PlaySampleAt(int theSound, int theColumn);  // 0x408cc0 a sample panned by the column it happens in
 	void			PauseMusicForFocus(bool lost);              // 0x4252b0
 	void			SetLoopSoundsMuted(bool muted);             // 0x408db0
+	Color			GetDialogColor(int theSet);                 // 0x409110 the colour of a dialog set (0 .. 5): the tint of its pictures
+	void			MakeDialogImages(const Color& theInsetColor, const Color& theButtonColor, MemoryImage** theInsetImage,
+						MemoryImage** theButtonImage, bool theHelp);  // 0x408f00 the dialog's inset and button pictures in two colours
 	void			ListUsers();                                // 0x4254b0 mUserNames from the registry key Users
 	void			LoadHighScores();                           // 0x42a0b0 users\datahs.usr
 

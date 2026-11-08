@@ -7,6 +7,7 @@ a0	std::list<Brick*>	ma0
 a8	std::vector<void*>	ma8	freed by ClearField, element type not seen
 c8	std::vector<CellRef>	mc8
 d8	std::vector<BlinkRec>	md8	the 40 blinking pictures of the backdrop
+e8	std::vector<SunParticle*>	me8	the sparks that drift over the end of a game
 f8	std::vector<int>	mf8
 108	std::vector<Brick*>	m108	bricks (emptied by ClearField)
 118	std::vector<Brick*>	mTargeted	the bricks that flash because the piece in hand would hit them (HighlightTargets)
@@ -18,6 +19,7 @@ f8	std::vector<int>	mf8
 1a0	std::vector<CellRef3>	m1a0
 1b0	std::vector<FrameAnim*>	m1b0	the animations of the explosion at the end of a game (8)
 1c0	std::vector<Widget*>	m1c0	the buttons of the field (the first one is the main button)
+1e0	std::vector<FadeRec>	m1e0	the fading panels of the end of a game
 1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
 200	std::vector<CellRef3>	m200	?
 220	std::vector<StageBg*>	m220	the picture of each stage
@@ -43,6 +45,7 @@ f8	std::vector<int>	mf8
 420	FrameAnim	m420
 4a0	FrameAnim	mSirenAnim	the siren (IMAGE_SIREN)
 520	FrameAnim	mAnim520
+5a0	FrameAnim	mAnim5a0	the end buttons slide in with it (SetNumFrames 0x1f)
 5e0	FrameAnim	mAnim5e0	?
 620	FrameAnim	mAnim620
 648	bool	m648
@@ -124,6 +127,7 @@ f8	std::vector<int>	mf8
 91a	bool	m91a	?
 91b	bool	m91b	?
 91c	bool	m91c	?
+91d	bool	m91d	the end buttons exist
 91e	bool	m91e	?
 91f	bool	m91f	?
 920	bool	m920	?
@@ -148,6 +152,7 @@ f8	std::vector<int>	mf8
 964	int	m964	?
 974	int	m974	?
 97c	int	m97c	?
+ade	int	made	?
 1924	int	m1924	?
 1928	int	m1928	?
 192c	int	m192c	?
@@ -156,6 +161,7 @@ f8	std::vector<int>	mf8
 193c	int	mField193C	the stage: 1 + the time played / 6000
 1940	int	m1940	?
 1944	int	m1944	?
+1948	int	m1948	the white flash of the end: alpha, counts down by 2
 194c	int	m194c	?
 1950	int	m1950	?
 1954	int	m1954	?
@@ -232,6 +238,7 @@ f8	std::vector<int>	mf8
 1b24	int	m1b24	?
 1b2c	int	m1b2c	?
 1b30	int	m1b30
+1b34	int	m1b34	counts up by 4 (mod 256) while the game ends
 1b38	int	m1b38	?
 1b3c	int	m1b3c	?
 1b40	int	m1b40

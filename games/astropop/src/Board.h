@@ -174,6 +174,7 @@ public:
 	std::vector<void*>	ma8;// +0xa8 freed by ClearField, element type not seen
 	std::vector<CellRef>	mc8;// +0xc8
 	std::vector<BlinkRec>	md8;// +0xd8 the 40 blinking pictures of the backdrop
+	std::vector<SunParticle*>	me8;// +0xe8 the sparks that drift over the end of a game
 	std::vector<int>	mf8;// +0xf8
 	std::vector<Brick*>	m108;// +0x108 bricks (emptied by ClearField)
 	std::vector<Brick*>	mTargeted;// +0x118 the bricks that flash because the piece in hand would hit them (HighlightTargets)
@@ -185,6 +186,7 @@ public:
 	std::vector<CellRef3>	m1a0;// +0x1a0
 	std::vector<FrameAnim*>	m1b0;// +0x1b0 the animations of the explosion at the end of a game (8)
 	std::vector<Widget*>	m1c0;// +0x1c0 the buttons of the field (the first one is the main button)
+	std::vector<FadeRec>	m1e0;// +0x1e0 the fading panels of the end of a game
 	std::vector<int>	m1f0;// +0x1f0 counters that count down from 2000 (set when a special brick is made)
 	std::vector<CellRef3>	m200;// +0x200 ?
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
@@ -210,6 +212,7 @@ public:
 	FrameAnim	m420;// +0x420
 	FrameAnim	mSirenAnim;// +0x4a0 the siren (IMAGE_SIREN)
 	FrameAnim	mAnim520;// +0x520
+	FrameAnim	mAnim5a0;// +0x5a0 the end buttons slide in with it (SetNumFrames 0x1f)
 	FrameAnim	mAnim5e0;// +0x5e0 ?
 	FrameAnim	mAnim620;// +0x620
 	bool	m648 = false;// +0x648
@@ -291,6 +294,7 @@ public:
 	bool	m91a = false;// +0x91a ?
 	bool	m91b = false;// +0x91b ?
 	bool	m91c = false;// +0x91c ?
+	bool	m91d = false;// +0x91d the end buttons exist
 	bool	m91e = false;// +0x91e ?
 	bool	m91f = false;// +0x91f ?
 	bool	m920 = false;// +0x920 ?
@@ -315,6 +319,7 @@ public:
 	int	m964 = 0;// +0x964 ?
 	int	m974 = 0;// +0x974 ?
 	int	m97c = 0;// +0x97c ?
+	int	made = 0;// +0xade ?
 	int	m1924 = 0;// +0x1924 ?
 	int	m1928 = 0;// +0x1928 ?
 	int	m192c = 0;// +0x192c ?
@@ -323,6 +328,7 @@ public:
 	int	mField193C = 0;// +0x193c the stage: 1 + the time played / 6000
 	int	m1940 = 0;// +0x1940 ?
 	int	m1944 = 0;// +0x1944 ?
+	int	m1948 = 0;// +0x1948 the white flash of the end: alpha, counts down by 2
 	int	m194c = 0;// +0x194c ?
 	int	m1950 = 0;// +0x1950 ?
 	int	m1954 = 0;// +0x1954 ?
@@ -399,6 +405,7 @@ public:
 	int	m1b24 = 0;// +0x1b24 ?
 	int	m1b2c = 0;// +0x1b2c ?
 	int	m1b30 = 0;// +0x1b30
+	int	m1b34 = 0;// +0x1b34 counts up by 4 (mod 256) while the game ends
 	int	m1b38 = 0;// +0x1b38 ?
 	int	m1b3c = 0;// +0x1b3c ?
 	int	m1b40 = 0;// +0x1b40
@@ -480,7 +487,8 @@ public:
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
 	void			Fn46e420();                                     // 0x46e420 (1356 bytes)
 	void			Fn46e9b0();                                     // 0x46e9b0 (1615 bytes)
-	void			Fn45e680();                                     // 0x45e680 (664 bytes)
+	void			UpdateGameOver();                               // 0x45e680
+	void			CreateEndButtons();                             // 0x4593b0
 
 	// ---- pause and play (BoardPlay.cpp)
 	void			Pause(bool theStart, bool theFlag);             // 0x459040 a dialog opens (true) or closes (false)

@@ -171,7 +171,7 @@ void Board::Update()
 		if (m1a44 < 0)
 			UpdateScenery();
 		if (mFlag8E8)
-			Fn45e680();
+			UpdateGameOver();
 
 		if (m910 && m912 && (mUpdateCnt % 2) == 0)
 			RevealBricks();

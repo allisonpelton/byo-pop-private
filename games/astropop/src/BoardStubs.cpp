@@ -34,8 +34,3 @@ void Board::Fn46e9b0()
 {
 	NOT_TRANSLATED("Fn46e9b0", "0x46e9b0");
 }
-
-void Board::Fn45e680()
-{
-	NOT_TRANSLATED("Fn45e680", "0x45e680");
-}

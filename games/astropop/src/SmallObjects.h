@@ -104,6 +104,26 @@ public:
 	bool		Check(int theValue);                // 0x4264a0
 };
 
+// A spark of the sun that drifts over the end of a game (0x50 bytes, the vector at +0xe8): it moves by its speed each
+// update while its animation runs (the animation's stopped flag at +0x38 is what the Board's update tests)
+struct SunParticle
+{
+	float		mX;             // +0x00
+	float		mY;             // +0x04
+	float		mVX;            // +0x08
+	float		mVY;            // +0x0c
+	FrameAnim	mAnim;          // +0x10
+};
+
+// A fading panel of the end of a game (12 bytes, the vector at +0x1e0): the alpha value runs up by mStep to 255 and then
+// down by 4 to nothing, one panel after the other
+struct FadeRec
+{
+	int			mValue;         // +0x00 alpha
+	int			mStep;          // +0x04
+	bool		mRising;        // +0x08
+};
+
 }
 
 #endif
