@@ -20,7 +20,7 @@ origrun puts the game under rundesk itself.
 
 Both sample the game's process every 0.1 s: working set, private bytes (and the system's own peaks of both), processor time
 (kernel + user). Each run prints one JSON line: the first screen's time, and the peaks and the processor time over the whole
-run and over the scripted stretch (the 4000 updates before the script's last update, the same moves in both: the port marks the
+run and over the scripted stretch (the 2000 updates before the script's last update, the same moves in both: the port marks the
 first of them with a screenshot's file time, the original's is found from its update counter at app+0x328), the machine's busy
 fraction during the run, and the game processes of other sessions running when it started and ended. The original's run is
 stopped from here once its counter passes the script's last update, because its `quit` does not end the game.
@@ -179,9 +179,19 @@ def mine_prefixes():
 def scenario(path):
     """The lines (update, command, arguments) and the end of an identical-play scenario (tools/identical/*.txt), as
     compare.py reads them."""
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'identical'))
-    import compare
-    return compare.read_scenario(path)
+    lines, end = [], None
+    for l in open(path):                     # compare.py's read_scenario (importing it would run its main)
+        w = l.split('#')[0].split()
+        if not w:
+            continue
+        if w[0] == 'end':
+            end = int(w[1])
+        else:
+            lines.append((int(w[0]), w[1], w[2:]))
+    # the original's board stops updating at a point that varies from run to run after about update 4500 (IDENTICAL_PLAY.md, Oddities),
+    # so the scenario is cut there: its game starts at update 2310 and the measured stretch is the 2000 updates before the cut
+    cap = int(os.environ.get('PERF_END', '4400'))
+    return [l for l in lines if l[0] <= cap], min(end, cap)
 
 
 def port_script(src, dst):
@@ -208,7 +218,7 @@ def orig_script(src, dst):
     return dst
 
 
-MINUTE = 4000  # updates of the scripted stretch: 40 s at the game's 100 updates a second
+MINUTE = 2000  # updates of the scripted stretch: 20 s at the game's 100 updates a second
 
 
 def script_span(path):
@@ -266,6 +276,7 @@ def port_load(out, runs):
 
 def port_minute(out, script):
     exe, gamedir = port_exe()
+    out = os.path.abspath(out)
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(os.path.join(out, 'user'))
     script = port_script(script, os.path.join(out, 'script.txt'))
@@ -276,7 +287,8 @@ def port_minute(out, script):
     others0 = game_processes(mine_prefixes())
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
-    p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-seed=1', '-script=' + script],
+    p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-seed=1', '-script=' + script] +
+                         (['-fast'] if os.environ.get('PERF_FAST') else []),
                          cwd=out, stdout=log, stderr=subprocess.STDOUT)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)
@@ -299,9 +311,11 @@ def port_minute(out, script):
     print(json.dumps(res))
 
 
-# The original's title screen: the pointer to it is the static at 0x4d00fc (compare.py's title_p), and its flag for the play
-# link being shown (mLinkShown) is at +0x70 of that; the update counter is at +0x328 of the app (static at 0x4cfc60)
-TITLE_PTR, PLAY_SHOWN, UPDATE_COUNT = 0x4D00FC, 0x70, 0x4CFF88
+# The original's title screen: the pointer to it is the static at 0x4d00fc (compare.py's title_p); +0x84 of it is the play link (a
+# 2003 widget: +0x10 its width, which is 0 until the screen has loaded and sets the link's label and size). The original's update
+# counter is not at app+0x328 as in later builds, so a scenario's `at` lines run on origrun's virtual clock (no timed waits, the
+# run is as long as the work); the load time is taken on the real clock with a script that only waits.
+TITLE_PTR, LINK_PTR, LINK_WIDTH = 0x4D00FC, 0x84, 0x10
 TERMINATE = 0x1
 
 
@@ -316,6 +330,8 @@ def orig_run(out, script, runs, load_only=False):
         os.makedirs(d)
         sc = orig_script(script, os.path.join(d, 'script.txt'))
         first, last = script_span(sc)
+        if load_only:      # the real clock: the game only waits (the scenario's `at` lines need a counter) and is stopped at the title
+            open(sc, 'w', newline='\n').write('wait 20000\nquit\n')
         shutil.rmtree('C:/byo-og/' + run, ignore_errors=True)
         shutil.rmtree(os.path.join(root, 'build', 'origrun', run), ignore_errors=True)
         # a fresh game: the hints and settings the original keeps in the registry (compare.py does the same)
@@ -326,7 +342,7 @@ def orig_run(out, script, runs, load_only=False):
         log = open(os.path.join(d, 'origrun.log'), 'wb')
         t_start = time.time()
         p = subprocess.Popen([origrun, '--game', 'atomica', '--run', run, '--stage-root', 'C:/byo-og', '--script', sc,
-                              '--clock', 'real', '--cursor', 'scripted', '--seed', '1', '--timeout', '400'],
+                              '--clock', 'real' if load_only else 'virtual', '--cursor', 'scripted', '--seed', '1', '--timeout', '400'],
                              stdout=log, stderr=subprocess.STDOUT)
         h = None
         created = ready = spawned = None
@@ -349,14 +365,15 @@ def orig_run(out, script, runs, load_only=False):
                 now = time.time()
                 if ready is None:
                     ptr = read32(h, TITLE_PTR)
-                    if ptr:
-                        flag = read32(h, ptr + PLAY_SHOWN)
-                        if flag is not None and (flag & 0xFF):
+                    link = read32(h, ptr + LINK_PTR) if ptr else None
+                    if link and link > 0x10000:
+                        width = read32(h, link + LINK_WIDTH)
+                        if width:
                             ready = now - created
                             ready_mem = sample(h)
                 if now >= next_sample:
                     s = sample(h)
-                    c = read32(h, UPDATE_COUNT)
+                    c = None     # no update counter is known for this build
                     if s:
                         samples.append((round(now - created, 3),) + s)
                         counters.append((round(now - created, 3), c))
@@ -376,7 +393,7 @@ def orig_run(out, script, runs, load_only=False):
         hi = next((t for t, c in counters if c is not None and c >= last), None)
         end = samples[-1][0] if samples else 0
         res = summarise(samples, lo if lo is not None else end - 60, hi)
-        if lo is not None and hi is not None:
+        if lo is not None and hi is not None and hi > lo:
             c_lo = next(c for t, c in counters if t == lo)
             c_hi = next(c for t, c in counters if t == hi)
             res['updates_in_stretch'] = c_hi - c_lo

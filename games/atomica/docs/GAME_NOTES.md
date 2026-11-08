@@ -177,3 +177,27 @@ frozen baseline, `tools/check.sh atomica`, plays the same with the mod absent).
 
 Fix candidates not made: none found in the play-through. The port has no fault of the original that breaks play (controls that stop
 working, a soft lock, a crash, a lost save) to fix in itself: see `IDENTICAL_PLAY.md`, "Real input".
+
+## 11. Performance
+
+Measured on 2026-11-08 with `games/atomica/tools/profile/perf.py` (adapted from Mummy Maze's), the port and the original back to back, on a
+machine that was running four to eight other games of other sessions (the machine's busy fraction was 0.6 to 0.9 in every run, so
+the spread is wide). The original runs as a copy under origrun; its sound stand-in is in, nothing else is changed in it.
+
+| | Original | Port |
+| --- | --- | --- |
+| To the title screen's play link (the first screen that takes input), real clock, 3 runs | 1.07 s median (0.85 to 1.46) | 1.20 s median (1.17 to 1.22) |
+| Working set / private memory at that point | 26 / 14 MB | 90 / 91 MB |
+| Processor time to that point | 0.44 s | 1.2 s |
+| Peak working set / private memory over the scenario below | 75 / 62 MB | 182 / 184 MB (175 to 188) |
+| Processor time, launch to update 4,400 of the scenario below, no waiting | 2.5 s median of 9 runs (2.1 to 5.0) | 1.7 s median of 5 runs (1.70 to 1.83) |
+
+The scenario is `tools/identical/s2.txt` cut at update 4,400 (the title screen, the menu, and the first 2,000 updates of a strategy
+game that the bot plays from update 2,310). The original runs it on origrun's virtual clock (its update counter is not
+where later builds keep it, so the real clock cannot time a scenario) and the port under `-fast` with `-script`, both without waiting, so the figure is
+the work done: the port does it in less processor time. The load time is the real clock's: the original's copy loads in a thread
+and shows its link when the thread has finished, the port loads in the main thread
+(`PumpLoading`). The port is slower to load by about 0.1 s and holds more memory. Not measured, but the likely cause of both is that it draws the 27 atom
+types' frames at every start (the original reads them from `images\cached\Atoms.WAD`, section 3) and keeps them as 32-bit pictures.
+Memory is the port's weak figure (2.4 times the original's at the peak); it waits for the performance pass, where the atoms' frames
+are the first thing to look at.
