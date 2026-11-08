@@ -79,9 +79,9 @@ def main():
             if (va in strs) or (1 <= len(t) < 200 and all(32 <= c < 127 or c in (9, 10, 13) for c in t)):
                 rows.append(va)
                 known.add(va)
-    # the hint lines of the tutorial boxes: three tables of 14 strings, 0x100 bytes apart (Board::Draw 0x406400)
+    # the hint lines of the tutorial boxes: three tables of 15 strings, one for each tutorial step 0 to 14, 0x100 bytes apart (Board::Draw 0x406400)
     for base in (0x4a0150, 0x4a1050, 0x4a1f50):
-        for k in range(14):
+        for k in range(15):
             va = base + k * 0x100
             if va in known:
                 continue
