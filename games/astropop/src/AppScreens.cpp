@@ -18,6 +18,7 @@
 #include "MainMenu.h"
 #include "XcfFile.h"
 #include "SoundInstance.h"
+#include "CreditsScreen.h"
 #include "FullScreenHelp.h"
 #include "HallOfFame.h"
 #include "ResourceManager.h"
@@ -418,9 +419,15 @@ void AstroPopApp::ApplyOptions(bool theClose)
 	}
 }
 
-// 0x428f10: the credits (the story screen's second use)
+// 0x428f10: the credits come over the options box (which goes, when no game is on) and the selector; the button of the
+// screen (0xfb6) takes them away again
 void AstroPopApp::ShowCredits()
 {
-	APP_NOT_TRANSLATED("ShowCredits", "0x428f10");
+	CloseMainMenu();
+	if (mBoard == NULL)
+		ApplyOptions(false);
+	mScreen654 = new CreditsScreen(this);
+	mScreen654->Resize(0, 0, 0x280, 0x1e0);
+	mWidgetManager->AddWidget(mScreen654);
 }
 

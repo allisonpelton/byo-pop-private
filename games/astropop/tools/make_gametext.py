@@ -23,8 +23,9 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 CODE_RANGES = ((0x401000, 0x48b000),)
 # Extra texts that no function refers to by a plain address: the tables of string pointers in the data section (the tutorial
 # sidebar texts, the helper's speech bubbles, the help pages ...) lie between these addresses
-# (the names of the high scores that the game starts with: its start-up code, 0x558040, builds them)
-EXTRA = [0x5639b4, 0x5639b8, 0x5639c0, 0x5639c4, 0x5639cc, 0x5639d4, 0x5639dc]
+# (the names of the high scores that the game starts with: its start-up code, 0x558040, builds them; two short lines of the
+# credits)
+EXTRA = [0x5639b4, 0x5639b8, 0x5639c0, 0x5639c4, 0x5639cc, 0x5639d4, 0x5639dc, 0x564c58, 0x564d98]
 POINTER_TABLES = (0x573000, 0x573000)
 # the read-only data where the strings are
 IMMEDIATE_STRINGS = (0x55d000, 0x56c000)

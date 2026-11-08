@@ -180,7 +180,7 @@ public:
 	void			ShowHelp();                                 // 0x40bea0 the "how to play" box
 	void			CloseFullScreenHelp();                      // 0x428fb0
 	void			ApplyOptions(bool theClose);                // 0x428a10 the options box's settings take effect and the box goes
-	void			ShowCredits();                              // 0x428f10 (stub)
+	void			ShowCredits();                              // 0x428f10
 	void			UserSelectOk();                             // 0x430f00 the player chosen in the player list
 	void			NewUserOk();                                // 0x430500 the name typed in the new-player box
 	AstroDialog*	ShowLowMessageDialog(const std::string& theHeader, const std::string& theText);   // an OK box a little below the middle
