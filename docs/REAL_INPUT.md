@@ -87,4 +87,8 @@ state elsewhere or treat any test run as focused, and their sessions decide whet
 | Alchemy, Atomica, Bejeweled, Big Money, BookWorm | Their `-autoplay` sets `mScriptedInput`, which drops real input | Not to be combined; drive these with the file alone |
 
 On the web, the page's own input in the Browser pane is the real path. The web build compiles `-realinput` too, but it has
-not been tried there; it could only run where `-script` does, in a web build under Node.
+not been tried there; it could only run where `-script` does, in a web build under Node. The page's test kit treats the focus as
+`-realinput` does (since 2026-11-08): the browser's own blur and focus events never reach the game on the player-only page, so a
+hidden Browser pane, which sends a real blur, no longer pauses a run until its driver calls `byopop.test.focus()`. Only the
+driver's `byopop.test.blur()` and `focus()` move the game's focus there, and `?realfocus=1` lets the browser's through again
+(`docs/WEB_PLAYER.md`, "The player-only page").

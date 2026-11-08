@@ -438,6 +438,39 @@ EM_JS(int, sexyapp_confirm, (const char* theText), {
 	return confirm(UTF8ToString(theText)) ? 1 : 0;
 });
 
+// port: a browser enters full screen only when it allows it: the page may have it (an embedding page can forbid it), and a
+// gesture of the player's is still active (a key or a click in the last few seconds). Asked otherwise, SDL's window took the
+// screen's size at once and the game was drawn for it, several times too big in its 640x480 canvas with its clicks off (TipTop's
+// Alt+Enter from a test's DOM events, 2026-11-08), while Emscripten held the request for a gesture to come. So SwitchScreenMode
+// asks only when this says the browser would take the request now; Emscripten's own test is the same user activation.
+EM_JS(int, sexyapp_fullscreen_allowed, (), {
+	if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) return 0;
+	return (!navigator.userActivation || navigator.userActivation.isActive) ? 1 : 0;
+});
+
+// port: a browser that takes the request may still refuse it, and answers later (the Browser pane refuses every one with
+// "Permissions check failed"). Emscripten sizes the canvas for the screen before it asks, and puts it back only on the
+// fullscreenchange that leaves full screen, which a refusal never sends. So while a request is out (theWatch), its refusal is
+// taken as leaving full screen at once: a fullscreenchange with no full-screen element, on which Emscripten's own restore gives
+// the canvas its size back and SDL's own handler makes its window windowed, as when the player leaves full screen;
+// SDL_WINDOWEVENT_SIZE_CHANGED then puts the framework back in its windowed geometry.
+EM_JS(void, sexyapp_watch_fullscreen_refusal, (int theWatch), {
+	if (Module.byopopFullscreenWatch) Module.byopopFullscreenWatch();
+	if (!theWatch) return;
+	var done = function () {
+		document.removeEventListener('fullscreenchange', done);
+		document.removeEventListener('fullscreenerror', refused);
+		Module.byopopFullscreenWatch = null;
+	};
+	var refused = function () {
+		done();
+		if (!document.fullscreenElement) document.dispatchEvent(new Event('fullscreenchange'));
+	};
+	document.addEventListener('fullscreenchange', done);
+	document.addEventListener('fullscreenerror', refused);
+	Module.byopopFullscreenWatch = done;
+});
+
 // The browser may close, reload or discard the page without giving control back, while 1.3 only
 // saves on shutdown. When the page is hidden or about to unload (SDL reports beforeunload as
 // SDL_APP_TERMINATING), PageGoingAway() writes the settings and brings the backup up to date. Event
@@ -2507,6 +2540,15 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	if (mForceFullscreen)
 		wantWindowed = false;
 
+#ifdef __EMSCRIPTEN__
+	// port: a browser that would refuse full screen now leaves the game windowed (sexyapp_fullscreen_allowed)
+	if ((!wantWindowed) && (mIsWindowed) && (!sexyapp_fullscreen_allowed()))
+	{
+		SDL_Log("SwitchScreenMode: the browser would refuse full screen now (no player's gesture, or none in this page): staying windowed");
+		wantWindowed = true;
+	}
+#endif
+
 	if (mIsWindowed == wantWindowed && !force)
 	{
 		Set3DAcclerated(is3d);
@@ -2522,6 +2564,11 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	if (mHWnd != NULL)
 	{
 		SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+#ifdef __EMSCRIPTEN__
+		// a page that has no full screen at all refuses at once, and SDL leaves its window windowed; a later refusal is watched
+		mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
+		sexyapp_watch_fullscreen_refusal(mIsWindowed ? 0 : 1);
+#endif
 		mIsPhysWindowed = mIsWindowed;
 
 		if (mDDInterface != NULL)

@@ -230,7 +230,20 @@
   Object.defineProperty(document, "hidden", { configurable: true, get: function () { return pretendHidden || hiddenGet.call(document); } });
   Object.defineProperty(document, "visibilityState", { configurable: true, get: function () { return pretendHidden ? "hidden" : stateGet.call(document); } });
   var hasFocus = document.hasFocus.bind(document), focusLost = false;
-  document.hasFocus = function () { return !focusLost && hasFocus(); };
+  // The focus is the test's alone, unless ?realfocus=1: the browser's own blur and focus events on the window, and on the canvas
+  // while the window has lost the focus, stop here before SDL and the page see them, and document.hasFocus() leaves out the
+  // window's real focus. A hidden Browser pane sends a real blur, which paused the game until its driver gave the focus back
+  // (TipTop, 2026-11-08); native -realinput drops the system's focus events the same way (docs/REAL_INPUT.md). blur() and
+  // focus() below send events of the page's own, which pass.
+  var realFocus = params.get("realfocus") === "1";
+  document.hasFocus = function () { return !focusLost && (!realFocus || hasFocus()); };
+  if (!realFocus) {
+    var dropRealFocus = function (e) {
+      if (e.isTrusted && ((e.target === window) || ((e.target === canvas) && !hasFocus()))) e.stopImmediatePropagation();
+    };
+    window.addEventListener("blur", dropRealFocus, true);
+    window.addEventListener("focus", dropRealFocus, true);
+  }
   test.blur = function (opts) {
     focusLost = true;
     canvas.dispatchEvent(new FocusEvent("blur"));
