@@ -155,6 +155,7 @@ public:
 	virtual void			GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
 	virtual void			ShutdownHook() override;                  // port (web): ~AlchemyApp's save (the app is never deleted)
 	virtual void			UpdateFrames() override;                  // port: runs the test hook's bot
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;  // port: the standard test commands (testhooks/Commands.cpp)
 	void					TestMouseMoveTo(int theX, int theY) { MouseMoveTo(theX, theY); }  // port: the bot's pointer, as a script's
 
 	using SexyApp::KillDialog;
