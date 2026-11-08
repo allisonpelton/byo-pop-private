@@ -294,7 +294,7 @@ bool SevenSeasApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		BotCellToGame(mBoard, aChoice.mX, aChoice.mY, &aGX, &aGY);
 		static const char* const kKinds[] = {"fire", "wait", "sail"};
 		Reply(std::string("MOVE {\"kind\":\"") + kKinds[aChoice.mKind] + "\",\"cell\":[" + Num(aChoice.mX) + "," + Num(aChoice.mY) +
-			"],\"clicks\":[[" + Num(aGX) + "," + Num(aGY) + "]]}");
+			"],\"input\":[{\"move\":[" + Num(aGX) + "," + Num(aGY) + "]},{\"click\":[" + Num(aGX) + "," + Num(aGY) + "]}]}");
 		return true;
 	}
 	return SexyApp::HandleScriptCommand(theCommand);

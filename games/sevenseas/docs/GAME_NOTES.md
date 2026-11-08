@@ -134,7 +134,14 @@ the side panel's lives are the small icon (image 31).
   "That sort of bug shouldn't be part of a fix mod, IMO", so a bug that breaks play is fixed in the port itself. To see the original: a
   saved game (the New Game dialog's Yes), Average, Start New Game, "No", then hover a square next to the ship under the box. Natively
   checked with real window messages on 2026-11-07 (tools/realinput.py `saved`): arrow and move on those squares.
-- **No Register button.** The options dialog's Register button is hidden (registration is taken out by the user's rule).
+- **Registration and the way out of the game are left out (the user's rules, 2026-11-07).** The options dialog has neither the Register button
+  nor the "more games" button (a link to the publisher's site); Help and High Scores share the row next to the footer button, each
+  half of the dialog's width. The title screen has no register link, no count of plays left and no delay before the Play link for an
+  unregistered copy (the gate on 15 games played, `mDelay`), and the app no longer counts games played (`mGamesPlayed`, which only that
+  gate read). The publisher's logo and address are pictures on the title, not buttons, and stay.
+- **Loading is fast in the port.** The framework runs the loading thread in one go (the sounds, the arrows, the animations): the
+  title's Play link takes a click 50 ms of game time after the start (-fast), and the port added no wait of its own. The title still looks
+  at the thread every fourth update, the original's own cadence, a 40 ms step at most.
 - **Options dialog's four extra buttons' label colour** is gold, and a hovered label stays gold (captured in the Windows Sandbox,
   2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
   change under the mouse either (`qh`), nor do the help screen's two labels (`hh`), although the decompilation reads colour 1
@@ -237,5 +244,5 @@ Script commands of the port (`-script`, later the live channel), answered on std
 | `win` | the level is complete now (the flag the board sets when the last pirate is gone; the game's level-complete screen follows) |
 | `lose` | the last life is lost now through `LoseLife`; the game over and the high-score screen follow as in play |
 | `seed <n>` | the game's random numbers (the C library generator the original used) are seeded with n |
-| `move` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"clicks":[[gx,gy]]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the click in game coordinates that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
+| `move` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"input":[{"move":[gx,gy]},{"click":[gx,gy]}]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the input (a hover and a click, in game coordinates) that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
 | `unlock all` | ERROR: the game has nothing locked |

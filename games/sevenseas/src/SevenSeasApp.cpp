@@ -74,7 +74,6 @@ SevenSeasApp::SevenSeasApp()
 	mMusicSlot = 0;
 	mTutorial = true;
 	mDifficulty = 1;
-	mGamesPlayed = 0;
 	mFlag4c4 = true;
 	mTalking = false;
 	mTalkWidget = NULL;
@@ -83,7 +82,6 @@ SevenSeasApp::SevenSeasApp()
 	mWarnGhost = true;
 	mWarnSerpent = true;
 	mWarnWhirl = true;
-	mIsRegistered = true;
 	mMenuDifficultySaved = false;
 	mAutoplay = false;
 	mAutoplayLevel = 0;
