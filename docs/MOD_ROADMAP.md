@@ -80,6 +80,12 @@ heap, memory never set) changes play, as it does in Twist's original, whose auto
 from one run to the next (games/bejeweledtwist/docs/IDENTICAL_PLAY.md, "Oddities"). Memory faults are not fixes for
 the mod: the port fixes every leak of the original itself, mod or no mod (CLAUDE.md, "Done means identical").
 
+Bugs that break play are not fixes for the mod either (the user, 2026-11-07, of Seven Seas' dead squares: "That sort
+of bug shouldn't be part of a fix mod, IMO"; asked which bugs, they chose "bugs that break play"). Controls that stop
+working, a soft lock, a crash or a lost save are fixed in the port itself, mod or no mod, and listed with the game's
+deviations. The fixes mod keeps the bugs that change how a game plays (its scores, timing or rules) and the waits that
+only cost time.
+
 A game's fixes mod is part of its decompilation: the game is not done until the mod is made, and the games already
 merged get theirs in the week from 2026-11-08, beside the second phases. A port that loads no mods yet (the
 `BYOPOP_WEB_NO_MODS` list in `cmake/ByopopWeb.cmake`) learns to load them first. Until a game's mod is made, a session
