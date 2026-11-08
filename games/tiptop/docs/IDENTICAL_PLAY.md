@@ -276,11 +276,12 @@ sends `goto timed`), from the title through the tips dialog, every block, the le
 text, "Bot") to the game over screen, and it can press Alt+Enter, take the focus away and give it back, and click the pause button
 at the moves it is told. `play.js` does the same on the web (`?mode=`, `?pauseat=`, `?focusat=`, `?fsat=`).
 
-The live channel and `-realinput` were on the shared session's branch, not on main, when this pass ran, so the runs were made on a
-scratch merge of it that is not part of this branch. The merge needed one shared fix, in its own commit there (`shared: with
--realinput a bare move reaches the game's move test command`): `RunRealInputCommand` took every `move` for a mouse move and refused
-a bare one ("move needs <x> <y>"), so a driver could not ask a game's bot for its move; under `-script` a bare `move` already falls
-through to the game, and now it does with `-realinput` too. The coordinator carries that over with the live channel.
+The live channel and `-realinput` were on the shared session's branch, not on main, when this pass ran, so the first runs were
+made on a scratch merge of it, and main took them in before the pass ended; the last runs below are on this branch with main merged
+in. The pass needed one shared fix, in its own commit here (`shared: with -realinput a bare move reaches the game's move test
+command`): `RunRealInputCommand` took every `move` for a mouse move and refused a bare one ("move needs <x> <y>"), so a driver could
+not ask a game's bot for its move; under `-script` a bare `move` already falls through to the game, and now it does with
+`-realinput` too.
 
 ### The tours, as real events
 
