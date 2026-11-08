@@ -30,6 +30,7 @@ Contents:
 - [Part 3: The application (WinBMApp, resources, dialogs)](#part-3-the-application-winbmapp-resources-dialogs)
 - [Part 4: Screens (title, selector, help, credits)](#part-4-screens-title-selector-help-credits)
 - [Part 5: High scores and options](#part-5-high-scores-and-options)
+- [Part 6: The port's test commands, fixes, removals and drivers](#part-6-the-ports-test-commands-fixes-removals-and-drivers)
 
 ---
 
@@ -4247,3 +4248,162 @@ std helpers in my ranges: 0x412cb0 `std::string::append(const string&, pos, n)`,
   on Done, the stale-copy overwrite when HighScoreDialog closes (commented in its dtor).
 
 ---
+
+
+---
+
+## Part 6: The port's test commands, fixes, removals and drivers
+
+### The standard test commands (`src/testhooks/TestCommands.cpp`)
+
+The commands of `docs/TEST_COMMANDS.md`, reached only from a test (`-script`, `-commands`, the web test page's `command`) through
+`WinBMApp::HandleScriptCommand`. A command that is never given changes nothing, draws no random number and moves no state. Each
+answers `STATE {...}`, `MOVE {...}` or `MOVE null`, `OK <command>` or `ERROR <command>: <reason>`. They act through the game's own
+code: the screens' own `Show` functions, `StartGame`, and the board's own `LevelComplete`, `GameOver` and `StartNextLevel`. While
+the title screen is up every command but `set mode` and `set skill` answers an error (click its play link first, which `move`
+does).
+
+| Command | Does |
+|---|---|
+| `state` | one JSON line. Always: `screen` (title, help, selector, board, none), `dialog` (the id of the open dialog, or -1), `mode` (action, strategy, puzzle), `skill` (1 to 3), `updates`, `over`. On the title `loaded`. With a dialog open `yes` and `no`: the screen points of its Yes/OK and No buttons. With a board `level` (1-based), `score`, `boardState` (playing, level done, level complete, sweep, clear fall, game over, game over scores, bomb, frozen), `bags` and `bagsNeeded`, `paused`, `settled` (every coin rests in its cell), `go` (the get-ready counter), `colors` (the colours in play), `moves` (Strategy: the moves left) and `board`: 15 strings of 14 characters, `.` empty, a hex digit for a coin's colour, `B` a money bag, `X` any other special. `over` is true once the game-over table has slid in, the name (if one is asked) is entered and "play again" is shown |
+| `goto <screen>` | `menu` or `selector` (the game selector), `options`, `help`, `highscores` (or `scores`), `credits`; `<mode> [skill]` (action, strategy, puzzle) starts that game as the selector's start button does. `title` is refused: the title is shown once, at launch |
+| `level <n>` | on a board, the board as `StartNextLevel` makes it at level n (1-based; the game's own level setup) |
+| `unlock all` | answers `OK` (nothing in Big Money is locked; the command exists so a driver need not know) |
+| `set mode action\|strategy\|puzzle`, `set skill 1..3` | what `move` picks on the selector (works from the title on) |
+| `set bot win\|lose` | `win` (the default) plays well; `lose` plays to lose so that a game ends by itself (a bot that never errs would play an Easy game for hours): Action stops clicking and lets the stack rise, Puzzle takes the largest group in place of the solver's plan, Strategy plays on until its moves run out |
+| `set score <n>`, `set moves <n>` | the board's score and Strategy's moves left (a board is needed) |
+| `win`, `lose` | `Board::LevelComplete`, or `Board::GameOver` |
+| `seed <n>` | seeds the C library generator (the one that picks the bag columns); the board's own generator is seeded by `-seed` |
+| `move` | the bot's next move as `MOVE {"kind", "input": [{"click":[x,y]}, {"key":"B"}, ...], "updates": n}`: the real input in game coordinates and in order, and the updates to wait after it; `MOVE null` with no board and nothing to press |
+
+`move` plays whatever the game shows: the title's play link once loaded, the selector's type, skill and start (from `set mode` and
+`set skill`), the help screen's link, the name of a high score (`Bot`, after clearing what is there), a dialog's No (or its only
+button), a click that resumes a paused board, "next level" and "play again", and on a board that is playing, in Puzzle the
+solver's next click (`Board::GetSolverModel`, the solver of `mods/puzzle-solver`, once the coins rest), in Action and Strategy the
+largest group (the one the autoplay bot picks as its best). It waits (`kind` starting "wait", no input) while the board is busy,
+the get-ready counter runs, or there is no group to click. Every group click lands 14 pixels inside the coin's cell. The bot has
+no dice, so a game is played the same way for the same coins.
+
+### Fix candidates
+
+What the original does that the fixes mod (below) mends, and what it left alone.
+
+- **Made: the shake offsets** (`shakeSettles`). In Action, when the stack reaches the top the board shakes under the countdown
+  (`Update`, the overflow branch; quirk 3 of section 11). The original never clears the coins' `mShakeX` and `mShakeY`, so a board that
+  survived the countdown keeps its coins displaced by the last offsets for the rest of the level (a few pixels; it does not change
+  what can be clicked). With the fix the offsets are zeroed when the overflow ends. Seen in Action skill 3 games of the autoplay bot
+  at a click pace of about 110 updates (seeds 12, 14, 15 and 16 logged it); the frozen baseline never shakes.
+- **Made: the colours of a continued game** (`continueColours`). The save does not hold `mNumColors`, so a game resumed from "continue"
+  deals its new coins with the colour count of level 0 (one fewer at skill 1) until the next level (quirk 2 of section 11). With the
+  fix `Board::LoadGame` gives it the count `SetupLevelParams` gives the saved level. Seen: a continued Action skill 1 game at level 2
+  dealt 3 colours, now 4. The random generator's index after a load is the other half of the same quirk; the save holds no `mti`
+  (the original's own format), so a continued game's coins are not the ones the saved game would have drawn. Kept, and listed below.
+- **Made: Done's double click** (`doneClicksOnce`). `OptionsDialog::ButtonPress` meant to skip the dialog's own two buttons but
+  tests ids 2000 and 3000 above the dialog's, while those buttons are 1000 and 1001, so Done plays the click here and once more in
+  `WinBMApp::ButtonPress`. The fix returns before the dialog's play. Seen: 2 click sounds, now 1.
+- **Made in the port itself: the Puzzle generator's hang** (section 6.5). The original never ends when `GenerateBoard` picks a
+  column of 13 for the first coin of a group and no candidate column is left; the port breaks out of the loop in that case, which
+  changes no run that does not hang. It is a bug that breaks play, so it is not in the mod.
+- **Kept: the stale copy in the scores dialog** (quirk 2 of Part 5, section 6). Every `HighScoreWidget` destruction rewrites
+  `hiscores.dat`, including the Scores dialog's private copy, so a score saved while the modeless name dialog was up and the
+  Scores dialog closed afterwards is overwritten by the dialog's older table; the board's own widget writes it back when the board
+  is destroyed. It needs a sequence the game does not make easy to reach, loses nothing in the end, and fixing it would change what
+  the original writes to the file: left as it is.
+
+Oddities (not fixed, not chased): the follower's column slide takes `mGrid[r + 1]` twice (quirk 4 of section 11); leftover flood
+marks make an early click in the first two seconds of a board fail (quirk 7); both Options checkboxes have the id 0 (so unticking
+either re-ticks full screen when it is forced); the high-score widget clips everything above y 252 (a typo of the original); the
+messages carry double spaces; the random generator's index is not restored by a load (above). Each one can be seen as described in
+its section.
+
+### The fixes mod (`mods/fixes`)
+
+`mod.json` with the feature `fixes` and one bool setting for each fix (`shakeSettles`, `continueColours`, `doneClicksOnce`), all on
+by default. The game reads them where it needs them (`ModFeatureBool("fixes", "<id>", false)`), so without the mod every fix is
+off and the game is the original; a toggle takes effect at its next use. The mod has features and no rules or tunables, so it does
+not split the high scores (it does not touch scoring). The site ships it beside the page as `bigmoney-fixes/` and starts the game
+with it on (`cmake/ByopopWeb.cmake`; Big Money is not in `BYOPOP_WEB_NO_MODS`); natively it is a folder in `mods-bigmoney`, or in a
+`-modsdir`. Options shows a MODS button when an installed mod has settings, which opens the mod menu over the dialog.
+
+### Registration and the buttons that lead out of the game (taken out 2026-11-08)
+
+The port was the registered Steam game already (the shareware branches were never translated, and `mBuildUnlocked` and
+`mIsRegistered` are always true in the framework); what was still in it is gone now. The frozen baseline (a whole game of
+Action, score 66646) is the same before and after, and no screen of the registered game changed.
+
+- The Options dialog's Register button (id 1) and "check for updates" button (id 3), their layouts without `DontUpdate` and
+  `mBuildUnlocked` (a row of three, a row of two) and `ShowRegisterDialog`. The dialog has only the Steam layout of the registered
+  original (Help and Credits, then Scores; with a mod that has settings, MODS and Scores share the second row). No visible change.
+- The title screen's register link (hidden when registered), the nag timer and the trial and play-count members behind it
+  (`mNagProgress`, `mShownTimesPlayed`, `mWantRegister`, `mTrialExpired`, `mNagSeconds`, `mMaxPlays`, `mCountdownTrial`), the
+  copy of the trial flag to `mTimedOut`, and the status line's THANKS_FOR_REGISTERING branch (which only ran for a locked build:
+  the line is empty, but for PLEASE_WAIT on the first run, as before). No visible change.
+- The dialogs and pictures only they used: `DIALOG_REGISTER`, `DIALOG_UNUSED4` (never created), the update, URL and
+  opening-the-browser dialogs and their ids; the images `trialversion`, `waitbar`, `register` and `register_overlay`
+  (`NUM_IMAGES` 71 to 68; every image id after them moved up, and `gImageNames` with them).
+- `WinBMApp::OpenURL`, `URLOpenFailed` and `URLOpenSucceeded` (the "opening your browser" dialog and its failure notice): the game
+  opens no address of its own. The framework's `OpenURL` stays for what the shared code needs.
+- Kept: the Scores, Help and Credits buttons, and the board's "quit game" (which leaves the game, not to a page).
+- Kept: the play count the framework keeps (`mTimesPlayed`, one for each game's first click): the title's PLEASE_WAIT line reads it
+  (it shows only while the very first launch loads), so removing it would show that line at every launch.
+
+### The driver that plays by `move`
+
+`tools/realplay/drive.py` plays a game natively with real input only: it starts the exe under rundesk with `-commands` and an empty
+`-realinput` file, asks `move` for each step and sends it as real SDL events (`click game X Y`; the name's characters as `type` and
+`key`), and reads `state` to know when a game is over. `--plan action:1,strategy:2,puzzle:1` plays that list of games, going back
+to the selector with `goto selector` when the next game is of another mode or skill and otherwise "play again"; `--at N:<lines>`
+sends focus, full screen and resize lines in the middle of a game; also `--pre`, `--steps`, and `--shots` (a screenshot of every
+new screen; the state's `windowed`, `focus` and `paused` are logged when they change). It prints one JSON line and exits 0 when the
+plan was played to its end.
+
+On the web `tools/web/playgame.js` is the same loop as a session driver of the player-only page: `?player=1&silent=1&assets=1&fast=1&framems=2&driver=games/bigmoney/tools/web/playgame.js&plan=action:1,strategy:1,puzzle:1&cap=12000&blurat=30,200,260`, then `await
+byopop.test.driver` in the pane (`blurat` loses and regains the focus after those moves; `steps`, `maxseconds`). The built-in
+`?driver=move` plays one game of whatever mode the selector's last choice was. Three whole games take 15 s with
+`fast=1&framems=2`; a real-time page in the hidden pane stopped answering after about 350 s, so a long web run uses `fast`.
+
+Natively the game runs in real time: one command takes about 16 ms (the framework's read of the file and the log's flush), which in
+`-fast` is about 350 updates, and Action's coins rise by themselves, so a driver that slow lets the board fill between two clicks
+(a whole Action game of 8 clicks in `-fast`). Real time keeps one command to under two updates.
+
+
+### Performance (measured 2026-11-08, original and port back to back)
+
+`tools/profile/perf.py` takes the numbers (its docstring has the commands): it samples the game's process from outside every 0.1 s
+(working set, private bytes, kernel plus user time) and takes the load time from the process's creation to the title's play link, which
+the port reports as the `move` kind "title: play" and, for the original, the title's `mLoadDone` byte read out of the copy's memory. The
+original ran under origrun on its real clock from a fresh copy of `orig.sh --prepare`'s, with the seed patch (it draws the port's boards),
+the port natively under rundesk without `-fast`. No speed-ups were made to this port, so these are the port as merged. The scripted
+minute is the last 6000 updates of a 9000-update Action game, skill 1, that the autoplay bot played with seed 21 (`-autoplaylog`);
+the original got the same input through `fromport.py` (its title click at update 1000), the port its own log. The port marks the minute's
+first update with a screenshot's file time, the original's is found from its update counter.
+
+**The machine was not quiet.** Other sessions' game processes were running throughout (3 to 7 at the start and end of each run) and the
+whole machine was 46 to 52 % busy (75 % during one port run), so every figure is slower and noisier than on a quiet one. The performance
+pass re-measures later.
+
+| First screen that takes input | Original under origrun | Port native | Port in the web page |
+|---|---|---|---|
+| Seconds from launch, every run | 1.77, 1.37, 1.32, 1.39, 1.38 | 0.75, 0.73, 0.73, 0.74, 0.72 | 1.15, 1.56, 1.86, 1.98, 1.88 |
+| Median | 1.38 s | 0.73 s | 1.88 s |
+
+The web column is the player-only test page in the Browser pane (`?player=1&silent=1&assets=1`, `tools/web/loadtime.js`), from the start of
+the navigation to the title's play link, with the game's files served from this machine by `tools/webtest/serve.py` (they were in after
+0.67 to 1.18 s), so a visitor on the site adds the network's time. At the title the port holds 83 MB of working set and 83 MB of private
+bytes, the original 50 to 51 MB and 37 MB; the processor time up to then is 0.67 to 0.72 s against 0.42 to 0.59 s. Loading was already
+as fast as the machine allows: the loading thread runs in one go after the first frame, and the title polls its progress every fourth
+update, so the play link appears once the files are in, with no minimum time. (The title bar's slide, which starts at update 50, is an
+animation that does not hold the player.)
+
+| The scripted minute (6000 updates) | Original A | Original B | Port A | Port B |
+|---|---|---|---|---|
+| Peak working set | 56.2 MB | 56.0 MB | 124.2 MB | 124.1 MB |
+| Peak private bytes | 42.1 MB | 41.8 MB | 124.1 MB | 124.1 MB |
+| Processor time | 7.14 s | 7.16 s | 4.03 s | 4.66 s |
+| Processor time per update | 1.19 ms | 1.19 ms | 0.67 ms | 0.78 ms |
+| Wall time (updates a second) | 60.0 s (100) | 60.1 s (100) | 59.9 s (100) | 60.9 s (98.5) |
+
+Game processes of other sessions meanwhile (start and end of the run): 7 and 4, 4 and 3 for the originals' minutes, 3 and 3, 3 and 4
+for the port's. The port starts about twice as fast as the original and uses about 40 % less processor time in play, and its memory
+is the other way round: the working set is twice the original's and its private bytes three times (124 MB against 42 MB). Why was not
+looked into; it is a figure for the performance pass.

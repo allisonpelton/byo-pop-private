@@ -13,16 +13,12 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
 - **The loop.** The game keeps its own loops. The framework runs inside the game's sleeps, so the window, the clock and
   the sound keep going exactly as long as the original's `Sleep` would have waited. On the web the sleep yields to the
   browser.
-- **Pictures.** SDL_image's PNG and JPEG decoding is stb_image's (the platform's, for every game). The PNGs come out
-  the same. The 95 JPEGs do not: SDL_image used IJG libjpeg, and stb_image's inverse DCT and upsampling round
-  differently, so about 1% of a picture's pixels are 1 to 3 levels apart (measured on 2026-11-01 against libjpeg-turbo,
-  whose default decoding is libjpeg's; every one of the 95 differs, by 2 levels at most in 6 and 3 in 89). No one can
-  see 3 levels; origcmp's comparisons stay within them. A libjpeg-exact decoder would be a change to the shared
-  platform, for every game with JPEGs.
+- **Pictures.** The PNGs are decoded by stb_image and the JPEGs by IJG libjpeg 6b (the platform's
+  `LoadImageFromMemory`), as SDL_image decodes them in the original, so both come out pixel for pixel the same.
 - **Sound.** FMOD's samples and channels are the platform mixer's sounds and voices, with FMOD's 64 channels, its 0-255
   volumes and its frequencies. The music (`Sound/music.oxm`, an XM with Ogg Vorbis samples) is played by libopenmpt in
   place of FMOD's module player. libopenmpt mixes an XM's channels at its sample pre-amp of 48, FMOD 3 at the full 256,
-  so the host plays the song 256/48 times as loud (`loadSong`): the original's menu music, recorded through origrun on
+  so the host plays the song 256/48 times as loud (`loadSong`, the shared `BYOPOP_FMOD3_XM_GAIN`): the original's menu music, recorded through origrun on
   2026-11-07, was 5.3 times as loud as the port's before, and is now within 1% of it, while the sounds already matched.
 - **Players' file names on the web.** The game's text is Latin-1, as the original's ANSI file names are; the browser's
   file system takes UTF-8, so on the web a saved game's name is written and listed as UTF-8 (`FileName`, `GameText`).
@@ -52,6 +48,73 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   boards repeat. A script's `focus 0` and `focus 1` take the focus away and give it back, as a click on another
   window would; while it is away in a `-fast` run, the game's wait for its next frame (0x420770), which pumps without
   sleeping, runs the framework once a pump, since that run's clock moves only with the framework.
+- **Real input natively.** In a `-realinput` run (`docs/REAL_INPUT.md`) the host gives the game only the focus and the
+  mouse the run's own events give (`getAppState`), reads the cursor in full screen from those events instead of the real
+  one (`getCursorPos`), and, with `-fast`, runs the framework at every pump while the game has lost the focus, as it
+  already did for a script's focus loss, so that the clock moves and the next command comes. A run without
+  `-realinput` is as before.
+- **The test state.** For playing with real input only, the port reads its state out without changing it
+  (`testState` and `testWord`, `game/GameScreen.cpp`): the buttons on screen, the level, score, turns and phase, the
+  tutorial's balloon and the tiles it marks, the hint the game shows, and a word on the board found with the game's
+  dictionary (no random number drawn; the dictionary's last match is put back). Natively the host writes it to the file
+  `BONNIES_STATE` names, ten times a second and only in a test run, for `tools/realplay.py`; on the web the page has it
+  through `bonnies_test_state`, for `tools/paneplay.js`. Neither does anything until a test asks.
+
+## Loading and the registration
+
+**Loading.** Bonnie's needs no change for fast loading (the user, 2026-11-07). The logo screen loads every resource in
+one call on its first update (`BonniesApp::loadResources`, from `LogoScreen::update`), and the flags `mLoadImages`,
+left from a loader that worked in stages, are all set on the first update, so nothing waits on them. What remains is
+the logo animation, which a click or key hurries (`gLogoSkip`) and which holds no loading back.
+
+**The registration, taken out** (the user, 2026-11-07). The port plays as the registered original does. The copy's
+registration never ran: no menu button carries its id (0x133), the check of a key took any key, and `isRegistered`
+answered no. These were taken out, with no visible change, since none of it could be reached:
+the registration panel (`RegisterPanel`, 0x4197c0 and its vtable 0x458844, with its key check 0x42a480, its
+buttons and text fields, and the flag `gRegistering`); the menu's handling of id 0x133, which opened the panel or
+said the copy was registered; `isRegistered` (0x42a4d0) and the menu's call of it, whose answer nothing used; the
+dialog's "registration reminder" layout (`gPreRegister`, bit 0 of `gameDialog`'s last argument), which no caller asks
+for; and Portal.cfg's buy page address (`BuyNowURL`), which only the panel used. Portal.cfg's reader still reads past
+that key, so the keys after it parse as before. The suite's frozen screens are unchanged.
+
+**Ways out of the game, taken out** (the user, 2026-11-07). Bonnie's has no "More Games" button. The options menu's
+handler had a case, id 0x25e, that opened the game's web site, but no button carries that id, so it was taken out with
+no visible change. The registration's web site button went with the panel, above.
+
+## Test commands
+
+The standard test commands (`docs/TEST_COMMANDS.md`) are the game's, in `game/GameScreen.cpp` (`testCommand`), and
+reach it through the host's `HandleScriptCommand`: from `-script` natively, and in the web build from the page
+through `bonnies_test_command` (`src/BonniesHost.cpp`, `Module.ccall('bonnies_test_command', 'string', ['string'],
+['state'])`), which returns the answer line; the live command channel takes them once there is one. Each answers with one line on stdout. They share their reading of the game with the test state above,
+and a command never given changes nothing (the suite's frozen screens are unchanged). The game keeps its own loops and
+the framework runs inside its sleeps, so a command only changes what the game's own code then acts on.
+
+`state` prints `STATE {...}` with `screen` (title, menu, game, help, story, credits, highscores), `modal` (the depth
+of open dialogs) and `paused`, and in a game also `mode` (classic or action), `level` (1 to 50), `score`, `phase`
+(1 in play, 2 and on the steps after a won level), `moves` (the classic mode's turns) or `timer` (the action mode's
+time bar, 0 to 1), `filled` and `fill` (the cells filled and the number the chapter needs), `board` (nine rows from the
+top, a character a column: the tile's letter, `*` a star, `?` and `!` wild tiles, lower case a two-letter tile, `.` no
+cell, a blank an empty cell), `fixed` (the cells of locked tiles, column*9+row) and `unfilled` (the cells still to fill,
+the same way).
+
+`goto title|menu|help|credits|highscores` asks for the screen as the game does (`setState`, which switches at the
+next update). The options are a dialog, not a screen, and a mode starts only through the menu's player and
+difficulty dialogs, so `goto options`, `goto classic` and `goto action` answer ERROR. `level <n>` (1 to 50, in play)
+sets the level before it and ends that one as won, so the game goes on to level n as after any won level, through its
+story page. `win` ends the level as won (`Game::levelWon`, submit's own ending, moved into a function of its own for
+this). `lose` sets the turns (classic) or the time (action) to none, and the game's update ends the game as it does
+then. `set score|moves|timer <value>` sets that key. `seed <n>` seeds `rand`, which every random number comes from.
+`unlock all` answers ERROR: nothing in Bonnie's is locked.
+
+`move` prints the move of the port's own bot, `MOVE {...}`, or `MOVE null` off the board or while a dialog is open. It
+is a balloon's own button (`kind` button, its `id`), the word a tutorial balloon names over the tiles it marks (`kind`
+tutorial), the best word the bot finds (`kind` word: up to ten tiles, by what it fills, the stars it brings down and
+the turns it gives or costs, by the game's own dictionary check, with wild tiles as any letter but Q, since a wild tile
+is one letter and Q is two), or the game's own hint when the bot has none (`kind` hint), with `word`, `cells` and
+`input`: a click off the board (which clears a path left over), a click on each tile, then Submit, in game pixels. The
+bot reads the game and changes nothing; its search is kept for a board it has searched before. Scramble, the story's
+pages and the dialogs are left to the driver (`tools/paneplay.js`, `tools/realmove.py`).
 
 ## Memory the original leaks
 

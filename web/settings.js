@@ -49,7 +49,18 @@ var ByopopSettings = (function () {
     // that every choice, Plain too, is stored and the first visit's card is asked only once
     skin: { values: ["plain", "demo", "d95", "soda"], def: "unset" },
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
-    ambient: { values: SWITCH, def: "on" }           // on: the game's light glows around it in the dark Demo Disc and Soda Fountain (web/skins.js)
+    ambient: { values: SWITCH, def: "on" },          // on: the game's light glows around it in the dark Demo Disc and Soda Fountain (web/skins.js)
+    // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
+    scanlines: { values: ["off", "light", "strong"], def: "off" },
+    colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid"], def: "none" },
+    runTimer: { values: SWITCH, def: "off" },
+    // the input settings (web/controls.js): what the page adds to the game's input
+    inputDisplay: { values: SWITCH, def: "off" },
+    touchKeys: { values: ["auto", "on", "off"], def: "auto" },
+    gamepad: { values: SWITCH, def: "on" },
+    clips: { values: SWITCH, def: "off" },           // on: a Record button on a game page's bar (web/clips.js)
+    skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
+    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], def: "1" }   // the game's update rate, times this (web/controls.js)
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -211,6 +222,20 @@ var ByopopSettings = (function () {
       hint: T("settings.skin.hint") },
     { name: "ambient", label: T("settings.ambient.label"), hint: T("settings.ambient.hint") },
     { name: "perf", label: T("settings.perf.label"), hint: T("settings.perf.hint") },
+    { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
+      hint: T("settings.scanlines.hint") },
+    { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],
+      ["sepia", T("settings.colorfilter.sepia")], ["warm", T("settings.colorfilter.warm")], ["contrast", T("settings.colorfilter.contrast")], ["vivid", T("settings.colorfilter.vivid")]],
+      hint: T("settings.colorfilter.hint") },
+    { name: "runTimer", label: T("settings.runtimer.label"), hint: T("settings.runtimer.hint") },
+    { name: "inputDisplay", label: T("settings.inputdisplay.label"), hint: T("settings.inputdisplay.hint") },
+    { name: "touchKeys", label: T("settings.touchkeys.label"), options: [["auto", T("settings.touchkeys.auto")], ["on", T("settings.on")], ["off", T("settings.off")]],
+      hint: T("settings.touchkeys.hint") },
+    { name: "gamepad", label: T("settings.gamepad.label"), hint: T("settings.gamepad.hint") },
+    { name: "clips", label: T("settings.clips.label"), hint: T("settings.clips.hint") },
+    { name: "skipTutorials", label: T("settings.skiptutorials.label"), hint: T("settings.skiptutorials.hint") },
+    { name: "speed", label: T("settings.speed.label"), options: [["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
+      ["1.25", "1¼×"], ["1.5", "1½×"], ["2", "2×"]], hint: T("settings.speed.hint") },
     { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
       hint: T("settings.fullscreen.hint") },
     { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],

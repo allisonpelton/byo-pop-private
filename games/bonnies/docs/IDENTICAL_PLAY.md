@@ -59,6 +59,13 @@ resumed screens match the native build's exactly, whose own matched the original
 The pass also added test hooks that change nothing in play: a script's `focus 0` and `focus 1` take the window's focus
 away and give it back (277001c), and `-seed=N` seeds the game's `rand`.
 
+It then added the standard test commands (`docs/TEST_COMMANDS.md`: `state`, `goto`, `level`, `unlock all`, `set`, `win`,
+`lose`, `seed`, `move`), reachable only from a test, the bot's `move` among them (1083179e, 93628761). The registration
+code came out, though none of it could be reached (the game always counted itself unregistered with no way to register:
+the register panel, the key check, the pre-registered dialog and the stored "buy now" address), and so did the options
+menu's case that opened a web page, which no widget used; `docs/DEVIATIONS.md`, "Loading and the registration", lists
+them. Loading needed no change: the game loads its resources in one call behind a logo that a click skips.
+
 ## The user's faults from the browser (2026-11-07)
 
 After the pass the user played the web build and reported two faults: the game did not fill in their name although
@@ -81,7 +88,7 @@ the game's side in `game/SitePlayers.cpp`): at the first menu the site's player 
 new-player box starts with the site player's name under "fill", kept to the box's characters and twenty letters, the
 players are reported to the page when they change, and the site's volumes set the options' two. Checked in the
 Browser pane: under "create" the menu welcomed the site's player at once, and under "fill" the New Player box opened
-with the name filtered as the game's own typing would ("Zoë-Q. Smith" became "ZoëQ Smith").
+with the name filtered as the game's own typing would ("ZoÃ«-Q. Smith" became "ZoÃ«Q Smith").
 
 That check and the real-input play found four more faults, all fixed:
 
@@ -102,12 +109,62 @@ the game did as it does under its script (the page starts without a fixed seed, 
 action game ended with the same score, 20). Afterwards the options' Full Screen box and the players panel's New, Accept
 and Delete were tried the same way.
 
-Three parts of the real-input play are still to do. Natively, input posted to the window under rundesk
-(`tools/realplay.py`) reaches it, since a posted close ends the game, but SDL 2.32 makes no mouse or key event of the
-posted mouse and key messages, so the native play by posted input waits for a way to inject input that SDL takes. A
-whole classic game (the story's every book) was not played; the classic mode was played through its tutorial and the
-action mode through a whole game. Full screen was not tried: on the web only the page's button makes it, from a
-player's own click, and natively it waits for the posted input above.
+**Real input natively.** Under rundesk the window is driven by posted window messages (`tools/realplay.py`). SDL 2.32
+takes a posted mouse move, but the move also makes it ask Windows to report when the mouse leaves the window, and
+Windows reports that at once, because the real cursor is somewhere else on rundesk's desktop. SDL then moves its mouse
+to the real cursor, at the client's corner. So a press posted on its own lands in the corner, and a press held over a
+few frames is dragged there. realplay.py posts each click's move, press and release back to back, as Bookworm
+Adventures' `visrun.py` does, so SDL handles all three before the leave arrives. Posted keys need no such care, but
+each key-down must come a moment before its key-up: SDL's TranslateMessage makes the character from the key-down and
+queues it behind whatever is already posted, and the host joins a character to its key-down only when nothing comes
+between them. With that, the menus, the name box, the difficulty, the story's pages and the dialogs all answer
+natively. The board does not: it follows a held press from frame to frame, so posted clicks never take a tile. The
+board was therefore played natively through the framework's live channel instead (below), which puts its clicks
+into SDL's own event queue.
+
+Natively, then, the window's own part was played with keys, buttons and the window's commands
+(`tools/realplay_window.txt`), windowed at 1600x1200 on the 200% display. Alt+Enter, posted as a keyboard sends it
+(Alt's own key-down first), switched to full screen at the menu and on the board of a classic game. The window filled
+the 3840x2160 screen with the game pillarboxed, and a second Alt+Enter brought it back to 1600x1200 both times. The
+window was minimized and restored on the board, and it came back in full screen as it left. A posted close ended the
+game. The game kept running while minimized, as a test run does, since a test run always has the focus
+(`docs/DEVIATIONS.md`, "Test runs"); the pause on a lost focus was checked in the browser.
+
+**A whole classic game natively.** `tools/realmove.py` plays the game through the framework's `-realinput`, fed
+live through `-commands` (`docs/REAL_INPUT.md`): every click, key and focus change goes into SDL's own event queue and
+through the game's real input path, never through `-script`. It asks the port's own bot for each move with the test
+command `move` (`game/GameScreen.cpp`, `testMove`: a tutorial balloon's button or its word, else the best word on the
+board, else the game's hint) and sends back the clicks it returns; it answers dialogs with their first button that
+neither leaves the game nor opens anything, clicks on through the story's pages, and presses Scramble when the latest
+words fill no new cell (three words with three cells or fewer left, eight otherwise) or when the game refuses the same
+word twice. On 2026-11-08 one run under rundesk, with `-fast`, went from launch through the menu's Classic Game, a
+typed name, Normal, the story and the tutorial, to the end of the story: all 50 levels, 1199 words, 83 scrambles, and
+the high scores at the end, in 36 minutes. On the first board the focus was lost and regained through the channel's
+real SDL focus events: the game paused while away and went on when it came back. After the first level Alt+Enter (Alt
+held, Return, Alt let go) switched to full screen, and levels 2 to 50 were played in it; the game saved
+`ScreenMode=1` at its exit.
+
+Two faults of the drivers' own were found on the way and fixed in the bot, not the game: a tutorial balloon's Continue
+button can sit on another screen than the board, so `move` now looks at every screen, and a wild tile could be taken
+as Q, which the game spells QU, so the bot no longer tries Q for a wild tile.
+
+**A whole classic game in the browser.** `tools/paneplay.js` plays the page in the Browser pane at `?silent=1` (with
+`tools/panetimers.js`, which keeps requestAnimationFrame and the timers going while the pane is hidden), by mouse events
+sent to the canvas, each a move, a press and a release; it takes its moves from the same `move` command, through the
+web build's `bonnies_test_command`, and scrambles by the same rule. It played the whole classic story from the new
+player's name through the tutorial to the story's last page after level 50 ("The end, for now"), at a score of
+12,581,085. It was not one unbroken session: the driver was fixed several times on the way (the scramble rule, the
+waits after a word, the board's two-letter tiles), and the machine restarted once, so the page was reloaded and the
+saved game resumed at the start of a level eight times (levels 9, 10, 15, 16, 17, 18 twice, and 24). A saved game
+resumes at the start of its level in the original as well, so every level was still played whole on the page. The last
+stretch, levels 24 to 50, was one run: 714 words and 57 scrambles.
+
+**Full screen in the browser.** Not verified. The pane's own click on the page's Fullscreen button arrives as a
+trusted click with the user activation live, and the page calls `stage.requestFullscreen()`, but the hidden pane never
+answers: the promise was still pending seconds later and `document.fullscreenElement` stayed null (Alchemy saw the
+pane reject the same call outright, Seven Seas saw the same silence). The game's own full screen was played natively
+above, and the options' Full Screen box in the browser was tried with the tour's real input; the page's full screen
+waits for a browser that grants it.
 
 ## Oddities left alone
 
@@ -118,6 +175,5 @@ rather than imitating a heap's leftovers, which no one can see.
 
 `DEVIATIONS.md` lists them all, none with an effect a player can see: the host in place of SDL 1.2, SDL_image and
 FMOD 3 (the game's own loop, with the framework running inside its sleeps; the music through libopenmpt; the cursor),
-the JPEG decoding (stb_image rounds about 1% of a picture's pixels 1 to 3 levels away from IJG libjpeg, shared by every
-game on the platform), the window menu the original never had, one copy at a time, missing texts, full screen on the
+the window menu the original never had, one copy at a time, missing texts, full screen on the
 web from the page's button, and the test runs' own behaviour.

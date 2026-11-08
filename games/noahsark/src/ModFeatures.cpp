@@ -52,6 +52,11 @@ std::string Sexy::ModFeatureText(const char* theFeature, const char* theSetting,
 	return aValue.IsString() ? aValue.AsString() : theDefault;
 }
 
+bool Sexy::ModFixOn(const char* theFix)
+{
+	return ModFeatureEnabled("fixes") && ModFeatureBool("fixes", theFix, true);
+}
+
 std::string Sexy::ScoreKeySuffix()
 {
 	const std::string& aKey = Platform::ModManager::Get().GetScoreKey();

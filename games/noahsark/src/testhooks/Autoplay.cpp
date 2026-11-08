@@ -16,6 +16,7 @@
 
 #include "NoahApp.h"
 #include "Board.h"
+#include "Bot.h"
 #include "Screens.h"
 #include "Dialogs.h"
 #include "Graphics.h"
@@ -183,11 +184,6 @@ const char* ModeName(int theMode)
 	case GAMEMODE_STAMPEDE: return "stampede";
 	}
 	return "?";
-}
-
-bool Quiet(Piece* p)
-{
-	return (p->mType < 0xd) && !p->mRemoved && !p->mFading && !p->mMoving && (p->mOffsetX == 0) && (p->mOffsetY == 0);
 }
 
 // -autoplaymenu: a click on a widget of the app (not the board), logged like the board's so that it can be replayed
@@ -370,98 +366,18 @@ void NoahApp::AutoplayUpdate()
 		return;
 	if (b->mUpdateCnt % 4 != 0)
 		return;
-	if (!b->mLink.empty())
+	if (!BotBoardSettled(b))
 		return;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
-			if (b->mGrid[x][y]->mMoving || ((b->mGrid[x][y]->mOffsetY != 0) && (b->mGrid[x][y]->mType < 0xd)) || b->mGrid[x][y]->mRemoved)
-				return;
 
-	if (mGameMode == GAMEMODE_STAMPEDE)
-	{
-		// every group of three or more, one of them at random
-		std::vector<std::pair<int, int> > aGroups;
-		for (int x = 0; x < 9; x++)
-			for (int y = 0; y < 9; y++)
-			{
-				Piece* p = b->mGrid[x][y];
-				if (!Quiet(p))
-					continue;
-				b->HighlightGroup(x, y);
-				if (b->mLink.size() >= 3)
-					aGroups.push_back(std::make_pair(x, y));
-				b->ClearLinkList();
-			}
-		if (aGroups.empty())
-			return;
-		std::pair<int, int> aPick = aGroups[s->Rand((int) aGroups.size())];
-		Click(b, aPick.first, aPick.second);   // logged, so that the original can replay it
-		s->mMoves++;
+	// the bot's move (Bot.cpp, which the test command "move" gives a driver too); its clicks are logged, so that the
+	// original can replay them
+	BotMove aMove;
+	if (!BotChooseMove(b, mGameMode, s->mSeed, aMove))
 		return;
-	}
-	if (mGameMode == GAMEMODE_PUZZLE)
-	{
-		static const int aDirs[2][2] = {{1, 0}, {0, 1}};
-		std::vector<int> aSwaps;
-		for (int x = 0; x < 9; x++)
-			for (int y = 0; y < 9; y++)
-				for (int d = 0; d < 2; d++)
-				{
-					int nx = x + aDirs[d][0], ny = y + aDirs[d][1];
-					if ((nx > 8) || (ny > 8) || !Quiet(b->mGrid[x][y]) || !Quiet(b->mGrid[nx][ny]))
-						continue;
-					std::swap(b->mGrid[x][y]->mType, b->mGrid[nx][ny]->mType);
-					bool aMatch = false;
-					for (int c = 0; c < 2; c++)
-					{
-						int cx = c ? nx : x, cy = c ? ny : y;
-						int aType = b->mGrid[cx][cy]->mType;
-						int aRun = 1;
-						for (int i = cx - 1; i >= 0 && b->mGrid[i][cy]->mType == aType; i--) aRun++;
-						for (int i = cx + 1; i < 9 && b->mGrid[i][cy]->mType == aType; i++) aRun++;
-						if (aRun >= 3) aMatch = true;
-						aRun = 1;
-						for (int i = cy - 1; i >= 0 && b->mGrid[cx][i]->mType == aType; i--) aRun++;
-						for (int i = cy + 1; i < 9 && b->mGrid[cx][i]->mType == aType; i++) aRun++;
-						if (aRun >= 3) aMatch = true;
-					}
-					std::swap(b->mGrid[x][y]->mType, b->mGrid[nx][ny]->mType);
-					if (aMatch)
-						aSwaps.push_back(((x * 9 + y) << 8) | (nx * 9 + ny));
-				}
-		if (aSwaps.empty())
-			return;
-		int aPick = aSwaps[s->Rand((int) aSwaps.size())];
-		int a = aPick >> 8, c = aPick & 0xff;
-		Click(b, a / 9, a % 9);
-		Click(b, c / 9, c % 9);
-		s->mMoves++;
-		return;
-	}
-
-	// action and strategy: a random pair that can be joined
-	std::vector<std::pair<Piece*, Piece*> > aPairs;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
-		{
-			Piece* p = b->mGrid[x][y];
-			if (!Quiet(p))
-				continue;
-			for (int x2 = x; x2 < 9; x2++)
-				for (int y2 = (x2 == x) ? y + 1 : 0; y2 < 9; y2++)
-				{
-					Piece* q = b->mGrid[x2][y2];
-					if (Quiet(q) && (q->mType == p->mType) && b->Reachable(p, q))
-						aPairs.push_back(std::make_pair(p, q));
-				}
-		}
-	if (aPairs.empty())
-		return;
-	std::pair<Piece*, Piece*> aPick = aPairs[s->Rand((int) aPairs.size())];
-	Click(b, aPick.first->mX, aPick.first->mY);
-	Click(b, aPick.second->mX, aPick.second->mY);
+	for (int i = 0; i < aMove.mCount; i++)
+		Click(b, aMove.mCellX[i], aMove.mCellY[i]);
 	s->mMoves++;
-	if (mLevel != s->mLastLevel)
+	if ((mGameMode != GAMEMODE_STAMPEDE) && (mGameMode != GAMEMODE_PUZZLE) && (mLevel != s->mLastLevel))
 	{
 		s->mLastLevel = mLevel;
 		Log(s, "level %d at update %d", mLevel, s->mTick);

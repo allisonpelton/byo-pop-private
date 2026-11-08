@@ -411,7 +411,14 @@ public:
 	//                   command answers itself (STATE {...}, OK, ERROR). The window's own input still counts, as in
 	//                   a plain run (with -realinput it is dropped). The run is a test run (IsTestRun). On the web,
 	//                   byopop_test_command(line) queues one line the same way (the player-only test page's
-	//                   byopop.test.command, docs/WEB_PLAYER.md).
+	//                   byopop.test.command, docs/WEB_PLAYER.md). The channel's own command:
+	//                     wait <n>              the lines after it wait n updates; answered "OK wait <n>" when
+	//                                           they are up (n 0: at once)
+	//   -hold           with -commands, natively: once the game has loaded, an update runs only when the driver
+	//                   lets it, so that a game under -fast does not run on while its driver decides, and the same
+	//                   lines play the same way. New lines let one update run (the one that runs them), "wait <n>"
+	//                   lets n run; held, nothing moves (-fast's clock neither) and the loop sleeps a millisecond at
+	//                   a time. tools/playbymove plays a game this way by its "move" answers.
 	enum { FAST_DRAW_INTERVAL = 10 };
 	bool mHasSeedParam;
 	bool mFastMode;
@@ -443,6 +450,10 @@ public:
 	bool mCommandsWaitLogged;      // "waiting for" the file was logged
 	int mLiveCommandCount;         // the web's commands so far (their line numbers)
 	std::vector<ScriptCommand> mLiveCommands;  // waiting for the next update
+	bool mCommandsHold;            // -hold: once loaded, an update runs only when the driver's lines let it
+	int mLiveRunUntil;             // -hold: the updates run while mUpdateCount is below it
+	int mLiveWaitUntil;            // "wait <n>": the update its answer and the lines after it wait for, -1 for none
+	std::string mLiveWaitLine;     // that wait's line, for its answer
 
 	// port: the mod menu (framework/ModMenu.h, docs/MOD_MENU_DESIGN.md). F2 opens and closes it; nothing of it
 	// exists until it first opens.
@@ -507,6 +518,7 @@ protected:
 	int RunRealInputCommand(const ScriptCommand& theCommand, std::string* theError);
 	void PollLiveCommands();
 	void RunLiveCommands();
+	bool LiveUpdatesHeld();
 	void PushRealEvent(SDL_Event* theEvent);
 	void PushRealWindowEvent(int theWindowEvent);
 	void PushRealMouseMove(int theX, int theY);

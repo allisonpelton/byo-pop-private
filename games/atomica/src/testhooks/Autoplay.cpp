@@ -17,6 +17,7 @@
 //                            ("<update> click <x> <y>", window coordinates), to replay the same game in the original
 
 #include "AtomicaApp.h"
+#include "Fixes.h"
 #include "Board.h"
 #include "Grid.h"
 #include "Dialogs.h"
@@ -46,19 +47,19 @@ void AtomicaApp::ScriptClick(int theX, int theY)
 	mWidgetManager->MouseUp(theX, theY, 1);
 }
 
+// (HandleScriptCommand, with "shot <file>" and the standard test commands, is in Commands.cpp)
+
 // "shot <file>": the next frame that is drawn goes to a PNG as it is (drawing it again would take more random numbers and step
 // the animations that move in the draw). The script line stands at the update the frame follows.
-bool AtomicaApp::HandleScriptCommand(const ScriptCommand& theCommand)
-{
-	if (theCommand.mCommand != "shot")
-		return SexyApp::HandleScriptCommand(theCommand);
-	mPendingShot = theCommand.mArgs;
-	return true;
-}
-
 bool AtomicaApp::DrawDirtyStuff()
 {
+	// fixes mod, "drawRandom": the pictures draw their random numbers from a generator of their own (Support.h, GameRand)
+	bool aSideRand = FixEnabled("drawRandom");
+	if (aSideRand)
+		mRand.BeginDrawing();
 	bool aDrawn = SexyApp::DrawDirtyStuff();
+	if (aSideRand)
+		mRand.EndDrawing();
 	if (aDrawn && !mPendingShot.empty())
 	{
 		std::vector<ulong> aBits(mWidth * mHeight);
@@ -558,4 +559,282 @@ void AtomicaApp::AutoplayUpdate()
 			return;
 		}
 	}
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The `move` command (docs/TEST_COMMANDS.md): the bot's next move as the real input that makes it. It is the bot above as
+// a function of the state: the same search (a block of four that lacks one atom of its colour, else a random atom to a
+// random reachable cell), but it clicks nothing and changes nothing in the game; the driver sends the clicks as real
+// input. Its dice are its own, seeded from the position, so the same position gives the same move and the game's
+// generator is never drawn from. A move that takes two clicks (select an atom, then its cell) is two answers: the
+// first returns the atom's click and remembers the cell, the next, with the atom selected, returns the cell's.
+//
+// The payload is {"kind":..., "input":[{"click":[x,y]}, {"key":"B"}, ...], "updates":n} (docs/TEST_COMMANDS.md, a move's
+// input steps), or {"kind":"wait","updates":n} when the game is busy (a screen loading, atoms moving, a box fading in).
+
+namespace
+{
+
+struct BotMemory
+{
+	int		mCol, mRow;			// the atom that was selected
+	int		mToCol, mToRow;		// and the cell it goes to
+	bool	mValid;
+};
+BotMemory gBotMemory = {0, 0, 0, 0, false};
+
+std::string N(int theValue)
+{
+	char aBuf[32];
+	snprintf(aBuf, sizeof(aBuf), "%d", theValue);
+	return aBuf;
+}
+
+std::string ClickStep(int theX, int theY)
+{
+	return "{\"click\":[" + N(theX) + "," + N(theY) + "]}";
+}
+
+std::string WaitJson(const char* theWhy, int theUpdates)
+{
+	return std::string("{\"kind\":\"wait\",\"why\":\"") + theWhy + "\",\"updates\":" + N(theUpdates) + "}";
+}
+
+std::string ClickMove(const char* theKind, int theX, int theY, int theUpdates)
+{
+	return std::string("{\"kind\":\"") + theKind + "\",\"input\":[" + ClickStep(theX, theY) + "],\"updates\":" + N(theUpdates) + "}";
+}
+
+int CentreX(Widget* theWidget)
+{
+	return theWidget->mX + theWidget->mWidth / 2;
+}
+
+int CentreY(Widget* theWidget)
+{
+	return theWidget->mY + theWidget->mHeight / 2;
+}
+
+// a button of a box: the middle of it in game coordinates. A box's buttons are widgets of their own that the box places in
+// game coordinates (GameDialog::Resize puts them at mX + 0x5f and so on), so the box's own position is not added.
+std::string ButtonClick(Widget* theButton)
+{
+	return ClickStep(CentreX(theButton), CentreY(theButton));
+}
+
+unsigned int PositionSeed(AtomicaApp* theApp, Grid* g)
+{
+	unsigned int aSeed = (unsigned int) theApp->mBoard->mScore * 2654435761u + (unsigned int) theApp->mBoard->mMeter.mLevel * 40503u;
+	for (int aCol = 0; aCol < Grid::COLS; aCol++)
+		for (int aRow = 0; aRow < Grid::ROWS; aRow++)
+		{
+			Atom* anAtom = g->mCells[aCol][aRow];
+			aSeed = aSeed * 31u + (anAtom == NULL ? 0u : (unsigned int) anAtom->mType + 1u);
+		}
+	return aSeed;
+}
+
+// a path to the cell exists (the path finder is the bot's own check, as Move uses it)
+bool CanReach(Grid* g, Atom* theAtom, int theToCol, int theToRow)
+{
+	bool aFound = g->mPathFinder->Find(theAtom->mCol, theAtom->mRow, theToCol, theToRow);
+	g->mPathFinder->mPath.Clear();
+	return aFound;
+}
+
+// the bot's choice, as the autoplay makes it: a block of four that lacks one atom, then a random move
+bool ChooseMove(Grid* g, unsigned int theSeed, Atom** theSource, int* theToCol, int* theToRow)
+{
+	for (int aCol = 0; aCol < Grid::COLS - 1; aCol++)
+		for (int aRow = 0; aRow < Grid::ROWS - 1; aRow++)
+			for (int aType = 0; aType < g->mNumColors; aType++)
+			{
+				int aHave = 0;
+				int aGapCol = -1;
+				int aGapRow = -1;
+				int aGaps = 0;
+				for (int aDC = 0; aDC < 2; aDC++)
+					for (int aDR = 0; aDR < 2; aDR++)
+					{
+						Atom* anAtom = Movable(g, aCol + aDC, aRow + aDR);
+						if ((anAtom != NULL) && ((anAtom->mType == aType) || (anAtom->mKind == KIND_CHROMIUM)))
+							aHave++;
+						else if (Empty(g, aCol + aDC, aRow + aDR))
+						{
+							aGaps++;
+							aGapCol = aCol + aDC;
+							aGapRow = aRow + aDR;
+						}
+					}
+				if ((aHave != 3) || (aGaps != 1))
+					continue;
+				for (int aC = 0; aC < Grid::COLS; aC++)
+					for (int aR = 0; aR < Grid::ROWS; aR++)
+					{
+						if ((aC >= aCol) && (aC <= aCol + 1) && (aR >= aRow) && (aR <= aRow + 1))
+							continue;
+						Atom* aSource = Movable(g, aC, aR);
+						if ((aSource != NULL) && (aSource->mType == aType) && (aSource->mKind == KIND_PLAIN) &&
+							CanReach(g, aSource, aGapCol, aGapRow))
+						{
+							*theSource = aSource;
+							*theToCol = aGapCol;
+							*theToRow = aGapRow;
+							return true;
+						}
+					}
+			}
+	std::vector<Atom*> aAtoms;
+	for (int aCol = 0; aCol < Grid::COLS; aCol++)
+		for (int aRow = 0; aRow < Grid::ROWS; aRow++)
+		{
+			Atom* anAtom = Movable(g, aCol, aRow);
+			if (anAtom != NULL)
+				aAtoms.push_back(anAtom);
+		}
+	unsigned int aSeed = theSeed;
+	for (int aTry = 0; (aTry < 60) && !aAtoms.empty(); aTry++)
+	{
+		aSeed = aSeed * 1103515245u + 12345u;
+		Atom* anAtom = aAtoms[(aSeed >> 16) % (unsigned int) aAtoms.size()];
+		aSeed = aSeed * 1103515245u + 12345u;
+		int aToCol = (int) ((aSeed >> 16) % (unsigned int) Grid::COLS);
+		aSeed = aSeed * 1103515245u + 12345u;
+		int aToRow = (int) ((aSeed >> 16) % (unsigned int) Grid::ROWS);
+		if (!Empty(g, aToCol, aToRow))
+			continue;
+		if (CanReach(g, anAtom, aToCol, aToRow))
+		{
+			*theSource = anAtom;
+			*theToCol = aToCol;
+			*theToRow = aToRow;
+			return true;
+		}
+	}
+	// the random tries found nothing (a crowded field): every atom against every empty cell, from a place that the position picks,
+	// so a field that has a move is never taken for one that has none
+	if (!aAtoms.empty())
+	{
+		unsigned int aFrom = (aSeed >> 16) % (unsigned int) aAtoms.size();
+		for (size_t i = 0; i < aAtoms.size(); i++)
+		{
+			Atom* anAtom = aAtoms[(aFrom + i) % aAtoms.size()];
+			for (int aToCol = 0; aToCol < Grid::COLS; aToCol++)
+				for (int aToRow = 0; aToRow < Grid::ROWS; aToRow++)
+					if (Empty(g, aToCol, aToRow) && CanReach(g, anAtom, aToCol, aToRow))
+					{
+						*theSource = anAtom;
+						*theToCol = aToCol;
+						*theToRow = aToRow;
+						return true;
+					}
+		}
+	}
+	return false;
+}
+
+}
+
+std::string AtomicaApp::BotMoveJson()
+{
+	// the dialogs the bot does not open: no answer
+	if ((mOptionsDialog != NULL) || (mQuitDialog != NULL) || (mConfirmDialog != NULL) || (mHighScoresBox != NULL))
+		return "null";
+
+	// the high score entry: the name is typed and the button pressed
+	if (mScoreDialog != NULL)
+	{
+		HighScoreDialog* aDialog = (HighScoreDialog*) mScoreDialog;
+		if (aDialog->mBoxY < 0)
+			return WaitJson("entry box sliding in", 5);
+		return std::string("{\"kind\":\"name\",\"input\":[{\"key\":\"B\"},{\"key\":\"O\"},{\"key\":\"T\"},{\"wait\":3}," ) +
+			ButtonClick(aDialog->mOk) + "],\"updates\":5}";
+	}
+
+	// the title screen: its link, once it is there
+	if (mTitleScreen != NULL)
+	{
+		if (mMenu != NULL)
+			return WaitJson("menu doors", 20);
+		HyperlinkWidget* aLink = mTitleScreen->mPlayLink;
+		if (!mLoaded || !aLink->mVisible || (aLink->mWidth <= 0))
+			return WaitJson("loading", 30);
+		return ClickMove("play", CentreX(aLink), CentreY(aLink), 20);
+	}
+
+	// the menu: the start button of the mode that is set, or "main menu" after a game
+	if (mMenu != NULL)
+	{
+		MainMenu* aMenu = (MainMenu*) mMenu;
+		if (!aMenu->PanelShown())
+			return WaitJson("menu panel", 20);
+		if (aMenu->mGameOver)
+		{
+			if (!aMenu->mEntryShown)
+				return WaitJson("scores", 20);
+			return ClickMove("main menu", CentreX(aMenu->mBtn[6]), CentreY(aMenu->mBtn[6]), 20);
+		}
+		int anId = mMode * 2 + (mExpertMode != 0 ? 1 : 0);
+		if (aMenu->mBtn[anId] == NULL)
+			return "null";
+		return ClickMove(mMode == 1 ? "start action" : "start strategy", CentreX(aMenu->mBtn[anId]), CentreY(aMenu->mBtn[anId]), 20);
+	}
+
+	if ((mBoard == NULL) || (mBoard->mGrid == NULL))
+		return WaitJson("no board", 10);
+	Board* aBoard = mBoard;
+	Grid* aGrid = aBoard->mGrid;
+	if (aGrid->mLevelOver)
+		return WaitJson("game over", 20);
+
+	// a tutorial box: the check mark of every other one, then Continue
+	if (!mHintBoxes.empty())
+	{
+		HintBox* aBox = mHintBoxes[0];
+		if (aBox->mAlpha < 0xff)
+			return WaitJson("hint box fading in", 3);
+		if ((aBox->mHint & 1) && aBox->mHasCheck)
+			return "{\"kind\":\"hint\",\"input\":[" + ButtonClick(aBox->mCheck) + ",{\"wait\":3}," +
+				ButtonClick(aBox->mContinue) + "],\"updates\":5}";
+		return ClickMove("hint", CentreX(aBox->mContinue), CentreY(aBox->mContinue), 5);
+	}
+	if (mLevelUpDialog != NULL)
+	{
+		LevelUpDialog* aDialog = (LevelUpDialog*) mLevelUpDialog;
+		if (aDialog->mBoxY < 0)
+			return WaitJson("level box sliding in", 5);
+		return ClickMove("level up", CentreX(aDialog->mContinue), CentreY(aDialog->mContinue), 5);
+	}
+	if (aBoard->mMeter.mFull)
+		return WaitJson("level made", 20);
+	if ((aBoard->mF8c > 0.0f) || (aBoard->mI16c > 4) || !aGrid->mB33c || !Quiet(aGrid) || aBoard->mBombOn || (mPauseCount > 0))
+		return WaitJson("atoms moving", 4);
+
+	// an atom is held: its cell is next
+	if (aGrid->mSelected != NULL)
+	{
+		Atom* aHeld = aGrid->mSelected;
+		if (gBotMemory.mValid && (gBotMemory.mCol == aHeld->mCol) && (gBotMemory.mRow == aHeld->mRow))
+		{
+			gBotMemory.mValid = false;
+			return ClickMove("place", aGrid->mX + gBotMemory.mToCol * Grid::CELL + Grid::CELL / 2,
+				aGrid->mY + gBotMemory.mToRow * Grid::CELL + Grid::CELL / 2, 3);
+		}
+		// not the bot's own selection: click the atom again to put it down
+		return ClickMove("put down", aGrid->mX + aHeld->mCol * Grid::CELL + Grid::CELL / 2,
+			aGrid->mY + aHeld->mRow * Grid::CELL + Grid::CELL / 2, 3);
+	}
+
+	Atom* aSource = NULL;
+	int aToCol = 0;
+	int aToRow = 0;
+	if (!ChooseMove(aGrid, PositionSeed(this, aGrid), &aSource, &aToCol, &aToRow))
+		return "null";
+	gBotMemory.mCol = aSource->mCol;
+	gBotMemory.mRow = aSource->mRow;
+	gBotMemory.mToCol = aToCol;
+	gBotMemory.mToRow = aToRow;
+	gBotMemory.mValid = true;
+	return ClickMove("select", aGrid->mX + aSource->mCol * Grid::CELL + Grid::CELL / 2,
+		aGrid->mY + aSource->mRow * Grid::CELL + Grid::CELL / 2, 3);
 }

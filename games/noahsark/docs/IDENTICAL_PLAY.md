@@ -254,5 +254,110 @@ looks for "no moves" after a move, as the port does, so no loss follows. The pan
 - Levels past the first of bot runs could not be compared (the Stampede is compared through a saved game, above): past update 10300 of an
   action game the bot's play diverges from the original even with the generator resync. Its screens are compared only by the
   shared draw code with the other modes.
-- The registration dialog was not toured (registration code comes out in a later pass); the strategy game-over panel was not reached (above).
+- The registration dialog was not toured; it is gone now (phase three). The strategy game-over panel was not reached (above).
 - Music content was compared by start and stop only.
+
+## Phase three: real input, the fixes mod and the registration code (2026-11-08)
+
+### Real play: what was played and how
+
+The test commands (`GAME_NOTES.md`, section 5) let a driver ask the port's own bot for its next move and send it as real input. Nothing
+here goes through the script path: natively `tools/realplay/drive.py` starts the exe under rundesk with `-commands` and `-realinput`, so
+each move reaches `HandleEvent`, the window-to-game mapping and the widget manager as SDL events (`move game X Y`, then `click game X Y`,
+and `type B` for the name); on the web `tools/realplay/web.js`, a driver for the player-only page, sends DOM mouse and key events to the
+canvas through `byopop.test.playMove`. The driver reads the game's `state` to know where the game is and when it is over (the high-score
+list), and it never chooses a move itself: the bot's move for the screen it is on comes back from `move`. The title's link, the menu's
+mode button, the saved-game question, the difficulty, the tutorial or mode dialog, the level-up panel, the name entry (the keys B, O, T
+and the Yes button) and the list's link back to the menu are all clicked this way. Nobody played.
+
+The bot wins every level of an easy action or strategy game, so a whole game of those two would not end by itself (an action game
+reached level 15 with three Stampede rounds in twelve minutes, and a strategy game level 19, with no error, and were stopped by hand). The
+driver therefore plays up to a level (6 in action, 5 in strategy) and sends the one test command `lose` there, which brings the water to
+the ark; the game-over screen, the name entry, the list and the way back to the menu are played by real input like everything else.
+A puzzle game ends by itself.
+
+| Where | What was played | Result |
+|---|---|---|
+| Native, real time, rundesk, plain game | a whole puzzle game: title, menu, difficulty, mode dialog, the game (82 swaps), game over, name, list, menu link (618 moves) | played to the end in 162 s (16,000 updates), no error |
+| Native, real time | a whole action game: the tutorial, levels 1 to 6 with the Stampede round at 4 (its own dialog), `lose` at level 6, game over, name, list, menu link (1075 moves) | played to the end in 269 s (26,700 updates), no error |
+| Native, real time | a whole strategy game: the tutorial, levels 1 to 5, `lose` at level 5, game over, name, list, menu link (881 moves) | played to the end in 200 s (19,600 updates), no error |
+| Native, real time | action to level 15 (Stampede rounds at 4, 8 and 12) and strategy to level 19, to see whether a long game keeps working | 12 minutes each, no error; stopped by hand |
+| Native, real time, the fixes mod on (`-modsdir`) | an action game to level 5 with the Stampede round, `lose`, the name, the list (896 moves) | played to the end in 223 s, no error; the name was asked 55 updates after the game-over screen came up, against 196 without the mod |
+| Native, real time, windowed and full screen | a puzzle game for 215 moves with `Alt+Enter` into full screen and out again, the focus lost for 200 updates and regained, and the focus lost and regained in full screen | every step checked in the game's `state`: `focus` false then true, `windowed` false in full screen and true again; a screenshot at each shows the board drawn |
+| Web, real time, the fixes mod on | a whole puzzle game from the title's link to the list and the menu (608 moves) | played to the end in 98 s (9,800 updates), no error |
+| Web, real time | a puzzle game with the focus lost (the page's blur, the document hidden) for 200 updates and regained (1594 moves) | played to the end (25,200 updates), no error; the game had its focus back at once |
+| Web, `?fast=1`, the game held between the driver's calls, on the final build | a whole action game to level 6 with the Stampede round (1885 moves), a strategy game to level 5 (1479 moves), a puzzle game (1063 moves), each with the focus lost for 200 updates (the document hidden too) and regained, `state` telling `focus` true at once | each played to the high-score list and the menu link, no error (4, 180 and 12 s; the strategy game ran on a busy machine) |
+| Web, real time | 80 cycles of focus lost (half of them with the document hidden) for 30 to 90 updates and regained, between bot moves of one puzzle game | the game had its focus back after each, no second call needed |
+
+What the runs cannot cover, and why. The bot wins every level it plays, so no run met a loss by the flood on its own; the
+loss, the name and the list are covered by the `lose` command and the phase-two scenarios, and the original's own end-of-game scenes
+are in phase two. The browser's Fullscreen API needs a call from a hand's gesture, so the full screen was played natively only; the
+page's own Fullscreen check box was not tried.
+
+Two things worth knowing about the runs. A native run in `-fast` is not usable for play: the game's water runs on while the driver
+asks for the state, and a first action game ended in 18 moves, so the native games were played in real time and the web games
+with the game held between the driver's calls (`stepped=1`, built on `byopop.test.pause` and `step`) when they ran on the virtual clock. And the
+level-up panel does not come after every level: in `Board::Update` it comes when the board is cleared or the bonus round ends, and
+a level can end in the ark's departure without it, as in the screens of the runs.
+
+### Real play found nothing to fix in the port
+
+No run found a control that stopped working, a soft lock or a crash. What failed on the way was the test harness's: the three loops of
+the Options dialog that I had left at five buttons after taking two out (a crash in the high-score test, found by the suite and fixed
+in the same pass: the loops now run over the three buttons that are left), and image ids written as numbers (see "Registration").
+One thing was seen once and could not be explained. In the first real-time web run with the document hidden for a while (a puzzle
+game, `blurAt=100`), the game showed PAUSED with the board frozen in the settle phase and the update counter running, and the bot
+waited until the driver gave up after 20,000 updates without a change; a second `byopop.test.focus()` from the page brought the game
+back at once. It did not come again: the same real-time run once more, a run with the game held between calls, a blur in the settle
+phase and 80 cycles of focus lost and regained between bot moves (half of them with the document hidden) all had the focus back after
+the first call, and the native
+runs' `expect focus true` checks all held. The machine was busy when it happened (a native play-through and a build were running). The
+driver now reads `state.focus` after each regain and says so in its result if it had to call twice. It is listed here, and left to the
+owner of the shared test kit and of the web's focus handling to look at, since the port's own focus code is the framework's.
+
+### The fixes mod
+
+`mods/fixes` holds three fixes, each a toggle, all on in the site's build and off in a plain native run (`GAME_NOTES.md`, sections 6 and
+7). `steadyClock` counts the animals' entrance (400 ms after a level starts) and the level-up panel's seconds by the game's updates
+instead of the machine's clock; `snapWater` puts the water on its level when the first click ends a level's get-ready (the original
+leaves it a pixel above it for the rest of the level, 417 against 416 on level 2); `quickScores` runs the game-over screen's fade three
+times faster, so the name is asked at update 59 of it instead of 175. Checked as follows: `tools/run_mod_tests.sh` (part of
+`check.sh noahsark`) plays the puzzle and the action bot's games with the mod on and off and compares the lines of the game, the
+level and game lines are the same; the water is one pixel nearer its level after a click with `snapWater` (414 against 415) and the same
+without a click; the game-over screen asks for the name 175 updates earlier with `quickScores` (at the sample of update 1525 against
+1700, in samples taken every 25 updates). The suite's baseline (the unmodded game) still gives the same logs and photographs, and the
+web runs above ran with the mod on (the page's status line says "1 mod active").
+
+### Registration and the buttons that lead out of the game
+
+Taken out with this pass (`GAME_NOTES.md`, section 9 lists them): the Options dialog's Register and Web (popcap.com) buttons, the
+registration message, the registered flag and the play counter, the register picture and font and their entries, four texts, and the
+dialog ids nothing uses. The only visible change is the Options dialog: Help and High Scores share the first row, Credits takes the
+second and the dialog is a row shorter. The suite has no photograph of it, so every log and every photograph is the baseline's.
+
+Taking the register picture out moved every later image id down by one, which showed two places that named an image by its number:
+Noah's idle sprites (`0x3a`, `0x3c`, `0x3e`, `0x40`, `0x43`, `0x45`, `0x47` in the idle-look code of `Board::Update`, and the level
+reset) and the sprite number a saved game holds. The first check after the change failed on five strategy photographs where Noah
+was one picture off; the code names the pictures now and a saved game keeps the original's numbering (its file is read and written
+with the number the original uses).
+
+### The trunk's baseline
+
+After the trunk's libjpeg change the frozen screens were refrozen there; this branch's baseline was copied from the trunk's and the
+suite passes against it (the logs of the three bot games are unchanged and every photograph is the trunk's).
+
+### Changes of this phase
+
+| Difference | Cause in the original | What the port does now | Commit |
+|---|---|---|---|
+| Options dialog: Register and Web buttons | registration code and a button that opens popcap.com | gone; Help and High Scores share a row, Credits takes the next, the dialog is a row shorter | b79c205f |
+| Registered flag, play counter, register dialog, picture, font, four texts | registration code | gone; the image ids after the register picture move down by one | b79c205f |
+| Noah's idle pictures one off after that move (found by the suite's strategy photographs) | the original names them by number in `Board::Update` and the level reset | named by the enum; the saved game still writes the number the original uses | b79c205f |
+| Water a pixel above its level after a click ends the get-ready | the original snaps it only when the get-ready ends by itself | mod `snapWater` | b79c205f |
+| Start of a level and level-up seconds by the machine's clock | `GetTickCount` | mod `steadyClock` counts updates | b79c205f |
+| Game-over screen waits 175 updates before it asks the name | the fade's step of 1 | mod `quickScores` (a step of 3) | b79c205f |
+| The standard test commands, the bot behind `move`, the drivers | | `testhooks/TestCommands.cpp`, `Bot.cpp`, `tools/realplay/drive.py` and `web.js`; `state` also tells the focus, the window mode and, on a board, `paused` | 8936856e, 0e6ae0d2, cf5896c9 |
+
+The original's and the port's load time, memory and processor time over a scripted minute were measured back to back (`GAME_NOTES.md`, section 10): the
+play link shows 0.8 s after the port's start against 2.1 s after the original's (medians of five runs), and over the minute the port used about
+a quarter of the original's processor time and 12 MB less working set.

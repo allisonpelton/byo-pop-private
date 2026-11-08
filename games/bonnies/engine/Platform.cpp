@@ -423,8 +423,11 @@ void PortalConfig::load()
 					mQuote = aBool;
 				else if (readConfigValue(aText, &aPos, "DistributorLogoFirst", &aValue, &aBool))
 					mDistributorLogoFirst = aBool;
+				// port: the key is still read past, so that the rest parses as before, but its value is dropped: only the
+				// registration, taken out of the port, used it
 				else if (readConfigValue(aText, &aPos, "BuyNowURL", &aValue, &aBool))
-					mBuyNowURL = aValue;
+				{
+				}
 				else
 					aPos = aPos + 1;
 			} while (aPos < aLen);
