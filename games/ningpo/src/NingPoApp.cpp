@@ -58,6 +58,14 @@ public:
 		gApp->EventRead();
 	}
 
+	// a test run logs each sound the mixer starts, at the game's event time (as origrun's watch on the original's
+	// voices, tools/sound): "SOUND <ms> <voice> <name>"
+	void SoundStarted(const char* theName, int theVoice) override
+	{
+		if (gApp->IsTestRun() && gApp->mGame != nullptr)
+			SDL_Log("SOUND %u %d %s", (uint32_t)gApp->mGame->mEventTime, theVoice, theName);
+	}
+
 	void ScreenChanged() override
 	{
 		if (gApp->mWidget != nullptr)
