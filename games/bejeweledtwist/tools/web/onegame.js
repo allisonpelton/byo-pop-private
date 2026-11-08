@@ -7,32 +7,64 @@ var params = new URLSearchParams(location.search);
 var mode = params.get("mode") || "classic";
 var limit = Number(params.get("seconds") || 300) * 1000;
 var started = Date.now();
-var made = 0, stops = 0, last = null;
+var made = 0, stops = 0, tips = 0, last = null;
+var named = false;
+// a command whose answer did not come in 10 s is asked again (twice at most)
+async function retry(fn) {
+  for (var i = 0; ; i++) {
+    try { return await fn(); } catch (e) { if (i >= 2) throw e; lost++; }
+  }
+}
+var lost = 0, refocused = 0;
+
+// with ?hold=1 the test profile is wiped first, so the run starts as a new player (the name, then the tutorial)
+// ?raf=timer: frames from a timer, for a hidden Browser pane, which gives a page no animation frames
+if (params.get("raf") === "timer")
+  window.requestAnimationFrame = function (cb) { return setTimeout(function () { cb(performance.now()); }, 16); };
+if (params.get("hold")) {
+  await t.profile.wipe();
+  await t.start();
+}
 
 // the main menu, then the mode by the menu's own buttons (goto presses Play and then the mode's button)
 for (;;) {
-  last = await t.state();
+  last = await retry(function () { return t.state(); });
   if (last.screen === "menu") break;
+  if (last.screen === "newplayer" && !named) {
+    // a new player's name, typed, then Return (the first launch with no profile)
+    await t.wait(60);
+    await t.type("twist");
+    await t.key("Enter");
+    named = true;
+  }
   if (Date.now() - started > 60000) return { error: "no main menu", state: last };
   await t.wait(50);
 }
+if (mode !== "classic") await t.command("unlock all");  // a new player has Classic only
 await t.command("goto " + mode);
 for (;;) {
-  last = await t.state();
-  if (last.screen === "game" && !last.busy) break;
+  last = await retry(function () { return t.state(); });
+  if (last.screen === "game" && last.mode === mode) break;
   if (Date.now() - started > 120000) return { error: "the game did not start", state: last };
   await t.wait(50);
 }
 await t.shot(mode + "-start");
 
 while (Date.now() - started < limit) {
-  last = await t.state();
+  last = await retry(function () { return t.state(); });
   if (last.screen !== "game" || last.over) break;
-  if (last.busy) {
+  if (!last.active) {
+    // the pane lost the focus (the user working in the app around a hidden pane): the game pauses, as it should;
+    // the page gets it back, counted
+    refocused++;
+    await t.focus();
+    continue;
+  }
+  if (last.busy && !last.wheel && !last.rank && !(last.tip && last.tip.dialog)) {
     await t.wait(20);
     continue;
   }
-  var lines = await t.command("move");
+  var lines = await retry(function () { return t.command("move"); });
   var m = JSON.parse(lines[lines.length - 1].substring(5));
   if (m === null) {
     await t.wait(20);
@@ -51,6 +83,7 @@ while (Date.now() - started < limit) {
     }
   }
   if (m.kind === "stop") stops++;
+  else if (m.kind !== "twist") tips++;  // the tutorial's, the tips' and the rank bar's clicks  // the tutorial's and the tips' clicks
   else made++;
   if (m.kind !== "stop" && made % 50 === 0) await t.shot(mode + "-" + made);
   await t.wait(10);
@@ -69,7 +102,7 @@ if (mode === "zen" && last.screen === "game" && !last.over) {
     await t.wait(150);
     await t.shot("zen-quit" + q);
   }
-  last = await t.state();
+  last = await retry(function () { return t.state(); });
 }
-return { mode: mode, twists: made, stops: stops, seconds: Math.round((Date.now() - started) / 1000), last: last,
-  errors: t.errors.length };
+return { mode: mode, twists: made, stops: stops, tips: tips, seconds: Math.round((Date.now() - started) / 1000), last: last,
+  errors: t.errors.length, retried: lost, refocused: refocused };

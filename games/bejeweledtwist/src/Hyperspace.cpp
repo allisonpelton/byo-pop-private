@@ -82,6 +82,15 @@ void Hyperspace::Update()
 		MarkDirty();
 		return;
 	}
+	// port: a jump holds still while the board holds its own part of it (UpdateGame returns at once while the board is
+	// paused, as when the window loses the focus, or the options are over it). The original's space ran on, so a pause
+	// through a level-up left the board's rows and the next level behind it: a crash (UpdateJump read space after it was
+	// gone) or a board that never filled again.
+	if (gBoard != nullptr && gBoard->mHyperspace == this &&
+		(0 < gBoard->mUnknown1570 || gApp->mOptionsDialog != nullptr)) {
+		MarkDirty();
+		return;
+	}
 	if (mState != 6) {
 		double aCool = mWarmUp - 0.0024999999441206455;
 		mWarmUp = 0.0 < aCool ? aCool : 0.0;

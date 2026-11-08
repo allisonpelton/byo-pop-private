@@ -455,6 +455,15 @@ Each is a change without a visible effect in play, but for the first.
   48400, though around its level-ups a match lands a few updates apart, since parts of the original time themselves
   by the app's update count since launch (CurvedVal, the level-up mandala's turns, Board's pulses). The frozen
   baseline and check.sh's screens were refrozen with the change.
+- A level-up through a lost focus (a crash and a soft lock of the original's logic, fixed in the port). While the
+  board is paused (the window lost the focus, or the options are over it) its UpdateGame returns at once, so its part
+  of the jump between levels (UpdateJump, 0x6d090f, and the next level's start) holds, but the original's Hyperspace
+  widget ran on. UpdateJump breaks up the row (space's update count - 120) / 12 and ends the rows only when that equals
+  the row count, so a pause through the end of the rows went past it; once space was gone the next update read its
+  null pointer. Found by the real-input driver (a focus loss at the second level-up of Classic, 3D, crashed every
+  time); a guard for that alone left the next level's board empty for good. The port's space holds still while the
+  board is paused (Hyperspace::Update), and the jump goes on where it was. Visible only as space standing still behind
+  a paused board. Not tried on the original.
 - The arrow keys on the web (Board::KeyDown, 0x6ca439): after moving the cursor, the original moves the mouse
   pointer onto it (Board::WarpToCursor, 0x6a45da, SetCursorPos) while +0x1430 holds a piece. Natively the port does
   the same (SexyAppBase::WarpMouse, never in a test run); a web page cannot move the pointer, so in the browser it
@@ -840,6 +849,14 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
   level's goal), `busy`, `over` (the game has ended), `timer` (Blitz's seconds left), `wheel` (true while the second chance's wheel is up), `board` (a string a row, a gem by its colour's letter:
   r red, w white, g green, y yellow, p purple, o orange, b blue, `.` none) and `specials` (row, column, kind: bomb
   with its count, coal, doom, flame, lightning, fruit, locked with its lock).
+- `state` also gives `updates` (the app's update count), `active` (the window has the focus) and `windowed`; the
+  screens `newplayer` (a new player's name is asked, the first launch) and `endstats` (the stats after a game); in a
+  game `tip` (a tip or the tutorial: `wait`, its Tutorial::STATE_ wait, `dialog`, whether its dialog with buttons holds
+  the board, and `forced`, the row and column of a forced twist) and `rank` (the rank bar after a level or a game).
+- `move` also answers `dialog` (the tip's or the tutorial's first button, once its dialog has glided into place),
+  `forced` (the tutorial's forced twist, at its square), `continue` (the rank bar's or the new rank's Continue, the
+  stats' Continue) and `back` (on the high scores after a game, the gate button that closes them). None of these
+  leads out of the game.
 - `move`: `MOVE {...}` with the twist -autoplay's FindMove (0x6c14fc) would choose, by the same order and the same
   preference for a bomb's line, and the click that makes it (move, then click, at the corner the turn goes about, in
   game pixels), `MOVE {"kind":"stop",...}` with the click on the second chance's "click to stop" once it can be
