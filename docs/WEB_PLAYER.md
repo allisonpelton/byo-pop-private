@@ -901,6 +901,14 @@ mute is what the player asked for first. The same goes for each game's own value
 the site's old ones; a game that was left to itself while the site's were set gets its own "off"). Settings left to the game
 leave nothing. `tools/profilestest.js` checks it.
 
+**To come: the controls panel and "Always skip tutorials".** The site never shows a game's own information elsewhere on the
+page, with one exception the user made for controls (2026-11-07: "I ruled out re-presenting information from games to display
+elsewhere on the page, but I think we should make an exception for controls"). Each game's controls will be written in its
+page data, in the site's own short words and never the game's text, and shown beside the game; the remappable keys of the
+controls setting use the same list. "Always skip tutorials", off by default, will use each game's own switch (a registry value,
+a profile flag or an option) through the site's settings hook, leaving the ports unchanged; a game with no such switch is
+listed and left as it is.
+
 ### The chat
 
 Every game's page has one chat, the same room on all of them, in the `<aside id="chat">` that `web/shell.html` puts after the stage
@@ -1480,6 +1488,120 @@ be mixed in). `Module.audioOutput = 'script'`, set before Play, forces the Scrip
 `Module.onVoiceMixed` is called with the page's clock at the play call (`performance.now()`) when a sound's first frame
 is mixed, and `Module.audioChunkEar` then holds the time that frame reaches the speaker (from `getOutputTimestamp`): the
 difference is the delay. `?silent=1` mixes as usual and sends silence, so the timing is the same with it.
+
+## The player-only page
+
+For sessions that test a game in the Browser pane (the user, 2026-11-07: "For agent browser testing use, build a stripped down
+version that loads ONLY the player", with tools "that will help sessions with testing"). It is a game's own page with
+`?player=1`, and it is there only on a development host (`ByopopTerms.devHost`: 127.0.0.1, localhost, [::1], `*.localhost`,
+`*.test`, file://): elsewhere the parameter does nothing and `web/testkit.js` is never loaded, and the kit checks the host again
+itself. The page shows the game alone at the top left, one canvas pixel for each game pixel whatever the screen's scale: no bar,
+chat, panels, terms, skins or footer. It is silent unless `?silent=0`, each frame is the browser's or a
+20 ms timer's, whichever comes first (a hidden Browser pane sends no frames, though `document.hidden` stays false), "pause when hidden" never applies, and plays are not counted. Imported files and
+saves work as on the full page, in the page's own storage, unless `?assets=` asks for the test profile.
+
+Its parameters:
+
+| Parameter | What it does |
+|---|---|
+| `player=1` | the player-only page and its tools, `window.byopop.test` |
+| `assets=<name>` | the game's files from the staged `assets/<name>/` (`assets=1`: the page's own id), served by `tools/webtest/serve.py` and taken through the page's own import, which fetches only the files it picks; everything goes into a test profile of its own (the page's storage and Web Lock with "-test" after their names), apart from the player's, and the record of the player's games is left alone |
+| `fast=1` | the game on its virtual clock (`-fast`) |
+| `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready |
+| `silent=0` | sound on (the user's speakers: only when the user says so) |
+| `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
+| `run=<id>` | the folder of `byopop.test.shot(name)`'s files under `build/webshots/` (default "default") |
+| `seed=N`, `placeholders=1` | as on the full page |
+
+`tools/webtest/serve.py` (`python tools/webtest/serve.py [--port 18780]`) serves `build/web` on the loopback address only, with
+the staged files at `/__assets/<name>/` (`__list` lists them) and `POST /__shot`, which saves a shot as
+`build/webshots/<run>/<name>.png`; it writes nothing else and refuses another Host or Origin. The shots go to `tools/shotdiff`
+as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/origrun/<run>/shots --port build/webshots/<run>
+--run <id>` (`docs/SHOTDIFF.md`).
+
+`byopop.test` (every call that acts resolves once a frame has been drawn after it):
+
+- **ready**, a promise that resolves at the first drawn frame with `{updates, screen}`; `progress()` before then gives the status
+  line, the page's state, the frames and the updates. `start()` starts a `hold=1` page.
+- **errors**, an array that collects every abort, uncaught exception and rejection, every printed line that reports an error
+  (Lua's among them), every message box and every failure to fetch the staged files, each `{kind, text, update, at}`. A message
+  box is answered at once and never shown: an alert is dismissed, a confirm answered with `confirmAnswer` (true by default).
+- **input** at game coordinates, as the DOM's own events on the canvas, which Emscripten and SDL take on a player's path:
+  `move(x, y)`, `down(x, y, button)`, `up(x, y, button)`, `click(x, y, button)` (down and up on separate frames), `drag(x0, y0,
+  x1, y1, steps)`, `wheel(x, y, dy)`, `key(name, mods)`, `keyDown`, `keyUp` and `type(text)`. Keys are named as the DOM names
+  them ("Enter", "Escape", "ArrowLeft", " ", "a", "F1"), with the keyCode and code a browser gives them.
+- **time**: `updates()` is the framework's update count; `pause()` holds the game between two updates (it is still drawn and
+  its input still arrives, but no update runs), `step(n)` runs n more and holds again, `resume()` lets it go, `wait(n)` waits for
+  n updates holding nothing, and `frame()` for the next drawn frame. The hold is `byopop_hold_updates_at` in
+  `framework/SexyAppBase.cpp`, web only: the update loop's test for a due update also asks whether the count has reached the
+  hold, and nothing else changes. Input sent while the game is held reaches its widgets at once, as a player's would, since the
+  framework hands input to them outside the updates.
+- **shots**: `shot()` resolves with a PNG data URL of the canvas, read after the next frame at the game's resolution. On this
+  page the game's WebGL context keeps its drawing buffer (`preserveDrawingBuffer`), so a held game, which draws nothing, can be
+  shot too; the pixels drawn are the same. The kit learns of each frame from the framework's main loop
+  (`Module.byopopTestFrame`, called by `EmscriptenMainLoop` with whether it drew; the runtime's own `Module.postMainLoop` is
+  compiled out of these builds);
+  `shot(name)` also saves it through the server.
+- **focus**: `blur()` sends what a real loss of the focus sends (blur on the canvas and the window, and `document.hasFocus()`
+  false), `blur({hidden: true})` also a `visibilitychange` with `document.hidden` true, and `focus()` gives it all back.
+- **the log**: `log(since)` the game's printed lines from number `since` on (`{seq, kind, text, update}`, the last 20000 kept),
+  `logNext()` the number the next line will have, and `waitLog(pattern, {since, timeout})`, which resolves with the first line
+  from `since` on (by default the next one printed) that matches a RegExp or contains a string, and rejects after `timeout` ms
+  (60000 by default, 0 for ever). `waitUpdates(n)` is `wait(n)`.
+- **test commands** (the user, 2026-11-07, "Yes, add them"; `docs/TEST_COMMANDS.md`): `command(line, {timeout})` sends one
+  command (state, goto <screen>, level <n>, unlock all, set <name> <value>, win, lose, seed <n>) through the framework's live
+  channel, `byopop_test_command`, which queues it for the next update and the game's `HandleScriptCommand`, and resolves with the
+  lines printed from the call up to its answer, the last of them: `STATE {json}`, `OK <command>` or `ERROR <command>: <reason>`
+  (SDL's "INFO: " taken off). A held game is stepped one update so that the command runs. `state()` is `command("state")`'s JSON.
+  A build without the channel rejects at once.
+- **readings**, all copies: `watch()` a port's
+  watch values where it gives them (`byopop_watch_json`), null otherwise; `mixer()` the mixer's state once the shared
+  session's `platform/Audio.cpp` gives it (`byopop_mixer_json`), null until then; `screen()` the game's size.
+- **profile** (test profile only): `wipe()` deletes its saves (the staged files stay), `seed({path: data})` writes files into
+  its user folder from a fixture save (strings, ArrayBuffers or Uint8Arrays), `list()` and `read(path)` read them; then reload
+  or `start()`.
+
+A session's test, with the server on port 18780 and the pane at
+`http://127.0.0.1:18780/bejeweled.html?player=1&assets=1&fast=1&hold=1&run=title`:
+
+```js
+var t = byopop.test;
+await t.profile.wipe();
+await t.start();                    // resolves at the first drawn frame
+await t.wait(300);                  // the logo and the loading screen
+await t.click(320, 400);            // a button, at game coordinates
+await t.pause();
+await t.shot("title");              // build/webshots/title/title.png
+t.errors.length                     // 0
+```
+
+**Drivers.** Game sessions play their real-input checks with driver scripts (the user, 2026-11-07: "Yes, use drivers"): a
+script in the page reads the game's state from its log, chooses its moves and sends them as real DOM events, so that a whole
+game costs a call or two. A driver is a file in its game's tools folder, named with `?driver=`; the page runs it once the game is
+ready as the body of an async function of `t` (`byopop.test`), so it may `await`, and what it returns becomes
+`byopop.test.result` (`{error}` if it threw; the error also goes into `errors`). `byopop.test.driver` is a promise of the same
+result, which one `javascript_tool` call can await. An example, `games/<game>/tools/web/onegame.js`, for a port that logs its
+board and its game's end (the lines here stand for whatever the port prints):
+
+```js
+// plays one game: reads the board the port logs, makes the first move it finds, until the game ends
+var moves = 0;
+await t.waitLog(/^board /, { since: 0 });          // the first board, printed when the game starts
+for (;;) {
+  var line = await Promise.race([t.waitLog(/^board |^game over/), t.wait(600).then(function () { return null; })]);
+  if (line && /^game over/.test(line.text)) break;
+  var board = t.log().filter(function (l) { return /^board /.test(l.text); }).pop().text.substring(6).split("/");
+  var m = findMove(board);                          // the driver's own rule, in this file
+  if (!m) break;
+  await t.drag(m.x0, m.y0, m.x1, m.y1, 4);
+  moves++;
+}
+await t.shot("end");
+return { moves: moves, updates: t.updates(), errors: t.errors.length };
+```
+
+opened as `...bejeweled.html?player=1&assets=1&fast=1&driver=games/bejeweled/tools/web/onegame.js&run=onegame`, then
+`await byopop.test.driver` in the pane.
 
 ## Memory use
 
