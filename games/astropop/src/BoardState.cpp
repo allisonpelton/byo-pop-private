@@ -61,10 +61,10 @@ void Board::UpdateEffects()
 	}
 	mOverlay.SetFill(m3d0.mRed, m3d0.mGreen, m3d0.mBlue, m3d0.mAlpha);
 
-	int anOld = m7a8;
-	m7a8 = anOld + 1;
+	int anOld = m77c.mPeriod;
+	m77c.mPeriod = anOld + 1;
 	if (1 < anOld)
-		m7a8 = 1;
+		m77c.mPeriod = 1;
 
 	int aNumDone = 0;
 	for (int i = 0; i < 100; i++)

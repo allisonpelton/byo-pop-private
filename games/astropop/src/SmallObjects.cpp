@@ -1,8 +1,10 @@
-// The small objects the Board keeps lists of: floating texts, hint boxes, the goal check.
+// The small objects the Board keeps lists of: floating texts, hint boxes, the wipe that ends a game.
 
 #include "SmallObjects.h"
 #include "Font.h"
 #include "Graphics.h"
+#include "MemoryImage.h"
+#include "Particle.h"
 #include <SDL.h>
 #include <math.h>
 
@@ -325,10 +327,239 @@ void HintBox::AddLine(const std::string& theLine)
 	mHeight = ComputeHeight();
 }
 
-// 0x4264a0: counts the update and runs the check the kind asks for (0x426370, 0x40b340, 0x40b430, 0x40b540)
-bool GoalChecker::Check(int theValue)
+//////////////////////////////////////////////////////////////////////////
+// ScreenWipe
+
+// 0x426230
+ScreenWipe::ScreenWipe()
+{
+	mImage = NULL;
+	mKind = 0;
+	mCounter = 0;
+	mPos = 0;
+	mRow = 0;
+	mDone = false;
+	mOwnsImage = false;
+	mGoingDown = true;
+}
+
+ScreenWipe::~ScreenWipe()
+{
+	if (mOwnsImage)
+		delete mImage;
+}
+
+// 0x40b280: the picture to wipe (a copy of it when theCopy), and the starting place of the kinds that sweep
+void ScreenWipe::SetImage(Image* theImage, bool theCopy)
+{
+	mOwnsImage = theCopy;
+	if (!theCopy)
+		mImage = theImage;
+	else
+		mImage = new MemoryImage(*static_cast<MemoryImage*>(theImage));
+
+	if (mKind == 1)
+		mPos = mImage->mWidth - 2;
+	else if (mKind == 2)
+		mPos = 1;
+	else if (mKind == 3)
+		mRow = 0;
+}
+
+// 0x426250: kind 0 lists every pixel of the picture, row by row; the others only set where they start
+void ScreenWipe::SetKind(int theKind)
+{
+	mKind = theKind;
+	if (theKind == 0)
+	{
+		if (mImage != NULL)
+		{
+			for (int aRow = 0; aRow < mImage->mHeight; aRow++)
+			{
+				for (int aCol = 0; aCol < mImage->mWidth; aCol++)
+				{
+					Point aPoint;
+					aPoint.mX = aCol;
+					aPoint.mY = aRow;
+					mPoints.push_back(aPoint);
+				}
+			}
+		}
+	}
+	else if (theKind == 1)
+	{
+		if (mImage != NULL)
+			mPos = mImage->mWidth - 2;
+	}
+	else if (theKind == 2)
+	{
+		if (mImage != NULL)
+			mPos = 1;
+	}
+	else if (theKind == 3)
+	{
+		if (mImage != NULL)
+			mRow = 0;
+	}
+}
+
+// 0x4264a0: counts the update and runs the steps of the kind
+bool ScreenWipe::Check(int theSteps)
 {
 	mCounter++;
-	SDL_Log("AstroPop: GoalChecker::Check(%d) kind %d not translated yet", theValue, mKind);
-	return false;
+	switch (mKind)
+	{
+	case 0:		return StepRandom(theSteps);
+	case 1:		return StepToLeft(theSteps);
+	case 2:		return StepToRight(theSteps);
+	case 3:		return StepRows(theSteps);
+	default:	return false;
+	}
+}
+
+// 0x426370: clears theSteps pixels picked at random from those left (the pick is swapped with the last one and dropped)
+bool ScreenWipe::StepRandom(int theSteps)
+{
+	if (mDone)
+		return true;
+
+	MemoryImage* anImage = static_cast<MemoryImage*>(mImage);
+	ulong* aBits = anImage->GetBits();
+	if (0 < theSteps)
+	{
+		int aStep = 0;
+		do
+		{
+			unsigned int aNumPoints = (unsigned int) mPoints.size();
+			if (aNumPoints == 0)
+			{
+				// (the original divides by zero here: a picture without pixels)
+				mDone = true;
+				break;
+			}
+			unsigned int anIndex = AstroRand() % aNumPoints;
+			Point aPoint = mPoints[anIndex];
+			mPoints[anIndex] = mPoints.back();
+			mPoints.back() = aPoint;
+			mPoints.pop_back();
+			if (mPoints.empty())
+				mDone = true;
+			aBits[mImage->mWidth * aPoint.mY + aPoint.mX] = 0;
+			aStep++;
+		} while (!mDone && aStep < theSteps);
+	}
+	anImage->BitsChanged();
+	anImage->CommitBits();
+	return mDone;
+}
+
+// 0x40b340: the edge moves one column to the left each step; the twelve columns at it fade from clear to opaque
+bool ScreenWipe::StepToLeft(int theSteps)
+{
+	if (mDone)
+		return true;
+
+	MemoryImage* anImage = static_cast<MemoryImage*>(mImage);
+	ulong* aBits = anImage->GetBits();
+	for (int aStep = 0; aStep < theSteps; aStep++)
+	{
+		if (mDone)
+			break;
+		ulong anAlpha = 0;
+		int k = 0;
+		do
+		{
+			int anIndex = (mPos - k) + 1;
+			if (anIndex < 0)
+				break;
+			int aLimit = (((anImage->mHeight - 1) * anImage->mWidth - k) + 1) + mPos;
+			for (; anIndex <= aLimit && anIndex > -1; anIndex += anImage->mWidth)
+				aBits[anIndex] = (aBits[anIndex] & 0xffffff) + anAlpha;
+			anAlpha += 0x15000000;
+			if (anAlpha > 0xff000000UL)
+				anAlpha = 0xff000000UL;
+			k++;
+		} while (k < 12);
+		mPos--;
+		if (mPos < -1)
+			mDone = true;
+	}
+	anImage->BitsChanged();
+	anImage->CommitBits();
+	return mDone;
+}
+
+// 0x40b430: the same from the left to the right
+bool ScreenWipe::StepToRight(int theSteps)
+{
+	if (mDone)
+		return true;
+
+	MemoryImage* anImage = static_cast<MemoryImage*>(mImage);
+	ulong* aBits = anImage->GetBits();
+	for (int aStep = 0; aStep < theSteps; aStep++)
+	{
+		if (mDone)
+			break;
+		ulong anAlpha = 0;
+		int k = 0;
+		do
+		{
+			int anIndex = (mPos - 1) + k;
+			if (anIndex >= anImage->mWidth)
+				break;
+			int aLimit = (anImage->mHeight - 1) * anImage->mWidth + (mPos - 1) + k;
+			for (; anIndex <= aLimit; anIndex += anImage->mWidth)
+				aBits[anIndex] = (aBits[anIndex] & 0xffffff) + anAlpha;
+			anAlpha += 0x15000000;
+			if (anAlpha > 0xff000000UL)
+				anAlpha = 0xff000000UL;
+			k++;
+		} while (k < 12);
+		mPos++;
+		if (anImage->mWidth < mPos)
+			mDone = true;
+	}
+	anImage->BitsChanged();
+	anImage->CommitBits();
+	return mDone;
+}
+
+// 0x40b540: clears a row, then goes down two rows at a time and, at the bottom, up two at a time. The original goes on
+// clearing within one call after it is done and writes rows outside the picture (-1 at the top; one past the bottom
+// of a picture with an odd height); the port leaves those writes out.
+bool ScreenWipe::StepRows(int theSteps)
+{
+	if (mDone)
+		return true;
+
+	MemoryImage* anImage = static_cast<MemoryImage*>(mImage);
+	ulong* aBits = anImage->GetBits();
+	for (; theSteps > 0; theSteps--)
+	{
+		if (mRow >= 0 && mRow < anImage->mHeight)
+		{
+			for (int aCol = 0; aCol < anImage->mWidth; aCol++)
+				aBits[anImage->mWidth * mRow + aCol] = 0;
+		}
+		int aRow = mRow;
+		if (!mGoingDown)
+		{
+			mRow = aRow - 2;
+			if (aRow - 2 < 0)
+				mDone = true;
+		}
+		else
+		{
+			mRow = aRow + 2;
+			if (anImage->mHeight <= aRow + 2)
+			{
+				mRow = aRow + 1;
+				mGoingDown = false;
+			}
+		}
+	}
+	anImage->BitsChanged();
+	anImage->CommitBits();
+	return mDone;
 }

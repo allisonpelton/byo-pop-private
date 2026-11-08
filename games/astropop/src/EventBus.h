@@ -85,6 +85,10 @@ public:
 		(void) theEvent; (void) theSource; (void) theArg;
 	}
 
+	// The source's trace hook (the function pointer at source+8 of the original, 0x408ab0 calls it): the bus calls it
+	// before it delivers the event to each listener. Only the Board sets one (0x4328d0).
+	virtual void	OnFiring(int theEvent) { (void) theEvent; }
+
 	void	Listen(int theEvent)                { mBus->Add(this, theEvent); }               // 0x425290
 	bool	IsListening(int theEvent) const     { return mBus->Has(const_cast<EventListener*>(this), theEvent); } // 0x40ddc0
 	void	StopListening(int theEvent)         { mBus->Remove(this, theEvent); }            // 0x40e7c0
@@ -105,6 +109,7 @@ inline void EventBus::Fire(EventListener* theSource, int theEvent, int theArg)
 	{
 		EventListener* aListener = *i;
 		++i;
+		theSource->OnFiring(theEvent);
 		aListener->OnEvent(theEvent, theSource, theArg);
 	}
 }
@@ -116,6 +121,7 @@ inline void EventBus::FireTo(EventListener* theSource, EventListener* theTarget,
 	{
 		if (*i == theTarget)
 		{
+			theSource->OnFiring(theEvent);
 			theTarget->OnEvent(theEvent, theSource, theArg);
 			return;
 		}

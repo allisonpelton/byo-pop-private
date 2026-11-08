@@ -37,7 +37,7 @@ void Board::LoadLevel(bool theFromRules)
 	}
 	else
 	{
-		std::string aFileName = StrFormat("data\level%d.xcf", mField193C);
+		std::string aFileName = StrFormat("data\\level%d.xcf", mField193C);
 		if (mField193C == -100)
 		{
 			// a level from a file (no level file of the game is named like this; the original's path is kept)
@@ -47,8 +47,8 @@ void Board::LoadLevel(bool theFromRules)
 				aFile.AddKeyName(StrFormat("Brick%d", i));
 			aFile.Parse(aFileName);
 			aFile.EnterFirstChild();
-			m197c = aFile.GetInt("\LEVEL\LevelUp");
-			m19cc = aFile.GetInt("\LEVEL\DropTime") * 100;
+			m197c = aFile.GetInt("\\LEVEL\\LevelUp");
+			m19cc = aFile.GetInt("\\LEVEL\\DropTime") * 100;
 			bool aDone = false;
 			m1930 = -1;
 			do

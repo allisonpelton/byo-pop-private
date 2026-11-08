@@ -70,26 +70,56 @@ struct ScrollLayer
 	int		mPeriod;            // +0x2c the layer steps every mPeriod updates
 	int		mI30;               // +0x30
 	float	mSpeed;             // +0x34
+
+	ScrollLayer()               // 0x436100
+	{
+		mImage = NULL;
+		for (int i = 0; i < 4; i++)
+		{
+			mCur[i] = 0;
+			mNext[i] = 0;
+		}
+		mF24 = -1234.0f;
+		mF28 = -1234.0f;
+		mSpeed = -1234.0f;
+		mPeriod = 500000000;
+		mI30 = 500000000;
+	}
 };
 
 // A planet: a scroll layer and a number (0x3c bytes)
 struct PlanetRec : public ScrollLayer
 {
 	float		mRangeStart;        // +0x38
+
+	PlanetRec() : mRangeStart(0) { }
 };
 
 // One of the 100 streaks of the backdrop (0x30 bytes, the vector at +0x170)
 struct StreakRec
 {
 	Color			mColor;             // +0x00 set at the end of a game by the kind
-	int				m10;                // +0x10
+	float			mX;                 // +0x10
 	float			mY;                 // +0x14
 	float			mSpeed;             // +0x18
 	float			mMinSpeed;          // +0x1c
 	int				mMargin;            // +0x20
 	int				mKind;              // +0x24 0, 1 or 2: the dark, middle or bright colour
 	bool			mFlag28;            // +0x28
-	unsigned char	m29[7];
+	Image*			mImage;             // +0x2c the picture of the kind (the application's 0x674, 0x678, 0x67c)
+
+	StreakRec()                         // 0x432750 (the original leaves the speeds to the constructor's loop)
+		: mColor(0, 0, 0), mX(-1.0f), mY(-1.0f), mSpeed(0), mMinSpeed(0), mMargin(1), mKind(0), mFlag28(true), mImage(NULL) { }
+};
+
+// A line of help for the pop-up that explains a brick (24 bytes, the vector at +0x1d0)
+struct TipEntry
+{
+	Image*						mImage;     // +0x00 the picture of the brick
+	int							mValue;     // +0x04 10 from the freeze bomb's entry on (the seconds it stops the rows), else 0
+	std::vector<std::string>	mLines;     // +0x08 the kind, the name and the text
+
+	TipEntry() : mImage(NULL), mValue(0) { }
 };
 
 // One of the stars (0x6c bytes, the vector at +0x190): a picture of the backdrop that drifts down the screen
@@ -103,22 +133,35 @@ struct StarRec
 	int				m60;                // +0x60
 	float			mSpeed;             // +0x64
 	int				mImageId;           // +0x68 the resource id of the picture (IMAGE_BG_OBJECT1 .. 7), -1 for none
+
+	StarRec()                           // 0x480020: the vector's fill element (the base part 0x40b1b0 zeroes it, the id is -1)
+	{
+		memset(this, 0, sizeof(*this));
+		mImageId = -1;
+	}
 };
 
-// The picture of a stage (an object of 0x120 bytes or more; the Board keeps the pictures of all stages in a vector at
-// +0x220). Placeholder: the parts the Board's update touches.
+// A panel of the hint and intro screens (an object of 0x12c bytes, constructor 0x43fab0): a title and a text in two colours,
+// the picture that goes with them, where they are shown and how they fade in. The Board keeps them in the vectors at
+// +0x210 and +0x220 and chains the panels of one screen through mNext.
 struct StageBg
 {
-	int				mRed;               // +0x00 the colour of the stage (the warp tints the theme buttons with it)
-	int				mGreen;             // +0x04
-	int				mBlue;              // +0x08
-	unsigned char	m0c[0x50];
-	Image*				m5c;                // +0x5c the picture over the stage (a hint's picture)
-	unsigned char	m60[0x10];
+	Color			mColor1;            // +0x00 the colour of the stage (the warp tints the theme buttons with it)
+	Color			mColor2;            // +0x10
+	std::string		mTitle;             // +0x20
+	std::string		mText;              // +0x3c
+	Image*			mPic;               // +0x58
+	Image*			m5c;                // +0x5c the picture over the stage (a hint's picture)
+	int				mX;                 // +0x60
+	int				mY;                 // +0x64
+	int				mX2;                // +0x68
+	int				mY2;                // +0x6c
 	FrameAnim		m70;                // +0x70
 	FrameAnim		mb0;                // +0xb0
-	unsigned char	mf0;                // +0xf0 the fade-out is over
-	unsigned char	mf1[0x0f];
+	bool			mf0;                // +0xf0 the fade-out is over
+	int				mf4;                // +0xf4 constructed 150
+	int				mf8;                // +0xf8 constructed 120
+	int				mfc;                // +0xfc constructed 400 (the panels of the tutorial set 300)
 	int				m100;               // +0x100
 	int				m104;               // +0x104
 	int				m108;               // +0x108
@@ -126,6 +169,14 @@ struct StageBg
 	int				m110;               // +0x110
 	int				m114;               // +0x114
 	int				m118;               // +0x118
+	int				m11c;               // +0x11c
+	int				m120;               // +0x120 the height of the title as written by SetupHints
+	int				m124;               // +0x124 the height of the text
+	StageBg*		mNext;              // +0x128 the next panel of the screen
+
+	StageBg()                           // 0x43fab0
+		: mPic(NULL), m5c(NULL), mX(0), mY(0), mX2(0), mY2(0), mf0(false), mf4(0x96), mf8(0x78), mfc(400),
+		  m100(0xff), m104(0), m108(0), m10c(0), m110(0), m114(0xff), m118(0), m11c(0), m120(0), m124(0), mNext(NULL) { }
 };
 
 // A tutorial hint on the screen (0x30 bytes, constructor 0x44f500; the Board keeps them in a vector at +0x230): the
@@ -188,7 +239,9 @@ struct ExplosionAnim : public FrameAnim
 struct RatePair
 {
 	float	mRate;              // +0x00 the share of a row's draws that make this kind
-	float	m4;                 // +0x04 (not read)
+	float	m4;                 // +0x04 how much the share changes by each level
+
+	RatePair() : mRate(0), m4(0) { }
 };
 
 // The rules for one kind of brick (0x18 bytes): how far apart two of them must be, and how likely each phase makes one.
@@ -198,6 +251,8 @@ struct SpawnRule
 	int					mNearSame;  // +0x00 how many columns apart two of the kind must be in a row
 	int					mNearRow;   // +0x04 how many rows apart
 	std::vector<RatePair>	mRates; // +0x08 by phase
+
+	SpawnRule() : mNearSame(0x10000), mNearRow(0x10000), mRates(3) { }     // 0x44f490
 };
 
 struct SpawnRules
@@ -273,6 +328,7 @@ public:
 	std::vector<CellRef3>	m1a0;// +0x1a0
 	std::vector<ExplosionAnim*>	m1b0;// +0x1b0 the animations of the explosions (mode 1 bonus, and the end of a game; 8)
 	std::vector<Widget*>	m1c0;// +0x1c0 the buttons of the field (the first one is the main button)
+	std::vector<TipEntry>	m1d0;// +0x1d0 the pop-ups that describe the bricks (SetupHints)
 	std::vector<FadeRec>	m1e0;// +0x1e0 the fading panels of the end of a game
 	std::vector<int>	m1f0;// +0x1f0 counters that count down from 2000 (set when a special brick is made)
 	std::vector<CellRef3>	m200;// +0x200 ?
@@ -280,6 +336,7 @@ public:
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
 	std::vector<HintSpot*>	m230;// +0x230
 	std::vector<FreezeFlake>	m240;// +0x240 the snowflakes of the freeze effect
+	std::vector<Image*>	m250;// +0x250 the 14 pictures of the mode (ids 0x196, 0x1a4, 0x1b2 or 0x1c0 on)
 	std::vector<DrawnText>	m260;// +0x260 the texts that scroll along the top while the bonus of state 1 runs (Fn46f010)
 	std::vector<DrawnText>	m270;// +0x270 texts drawn at a place in a font
 	std::vector<RampRecord>	m280;// +0x280 the speed table (UpdateRamp)
@@ -291,17 +348,22 @@ public:
 	Widget*	m2e4 = NULL;// +0x2e4
 	Widget*	m2e8 = NULL;// +0x2e8
 	Widget*	m2ec = NULL;// +0x2ec
+	Graphics*	m2f0 = NULL;// +0x2f0 draws into the picture at +0x2f4
+	Image*	m2f4 = NULL;// +0x2f4 the picture of the field that the wipe at the end of a game takes away (640 x 480)
 	Image*	m2f8 = NULL;// +0x2f8 the lightning image now on the screen
+	MemoryImage*	m2fc = NULL;// +0x2fc IMAGE_SIREN, flipped
+	MemoryImage*	m300 = NULL;// +0x300 IMAGE_SIREN_FX, flipped
 	MemoryImage*	m304 = NULL;// +0x304 the banner text (BuildBanner)
 	MemoryImage*	m308 = NULL;// +0x308 the banner's second image, 0x30 taller (BuildBanner)
 	MemoryImage*	m30c = NULL;// +0x30c the picture of the rank
-	GoalChecker*	m310 = NULL;// +0x310 the check of the level's goal
+	ScreenWipe*	m310 = NULL;// +0x310 the wipe that ends a game (over the image at +0x2f4)
 	std::vector<std::vector<Brick*> >	m314;// +0x314 the field: 19 rows of 10 bricks, row 0 on top
 	std::vector<CellRef>	m324;// +0x324 the cells under the pointer that are lit (HoverCell)
 	std::vector<std::vector<int> >	m334;// +0x334 the layout the field is built from: a brick type for each cell, -1 none (BuildField)
 	std::vector<std::vector<int> >	m344;// +0x344 the rows of the demo (or of the game being recorded): one kind for each column
 	Brick*	m354 = NULL;// +0x354 a brick the Board holds (ClearField deletes it)
 	AstroPopApp*	mApp = NULL;// +0x358 the application (the bricks play their sounds through it)
+	PointerTrail	m35c;// +0x35c the pointer's recent steps
 	Color	m3c0;// +0x3c0 the colour of the backdrop tint (FadeBackdrop)
 	Color	m3d0;// +0x3d0 the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
 	FrameAnim	mAnim3e0;// +0x3e0
@@ -310,6 +372,7 @@ public:
 	FrameAnim	mAnim460;// +0x460
 	FrameAnim	mSirenAnim;// +0x4a0 the siren (IMAGE_SIREN)
 	bool	m4c8 = false;// +0x4c8 ?
+	FrameAnim	mAnim4e0;// +0x4e0
 	FrameAnim	mAnim520;// +0x520
 	FrameAnim	mAnim560;// +0x560 ?
 	FrameAnim	mAnim5a0;// +0x5a0 the end buttons slide in with it (SetNumFrames 0x1f)
@@ -326,12 +389,15 @@ public:
 	int	m6f4 = 0;// +0x6f4
 	int	m6f8 = 0;// +0x6f8
 	int	m6fc = 0;// +0x6fc
+	std::string	m710;// +0x710 the text of the supa weapon prompt
+	std::string	m72c;// +0x72c
+	int	m748 = 0;// +0x748 ?
 	AstroButton*	m74c = NULL;// +0x74c the theme button (id 0xfa2)
 	Checkbox*	m750 = NULL;// +0x750 the theme checkbox (id 0xfa3)
+	int	m754 = 0;// +0x754 ?
 	Buffer	m758;// +0x758 the replay recording (RecordStep)
 	LevelUpText*	m778 = NULL;// +0x778 the level-up picture
 	ScrollLayer	m77c;// +0x77c the scenery layer
-	int	m7a8 = 0;// +0x7a8 ?
 	int	m7b8 = 0;// +0x7b8 ?
 	int	m7bc = 0;// +0x7bc ?
 	int	m7c0 = 0;// +0x7c0 ?
@@ -355,11 +421,14 @@ public:
 	int	m828 = 0;// +0x828 ?
 	int	m82c = 0;// +0x82c ?
 	bool	m830 = false;// +0x830
+	MemoryImage*	m834 = NULL;// +0x834 a flipped copy of the upgrade arm
+	MemoryImage*	m838 = NULL;// +0x838 a flipped copy of the upgrade head
 	FrameAnim	mAnim83c;// +0x83c
 	int	m87c = 0;// +0x87c ?
 	int	m880 = 0;// +0x880 ?
 	int	m884 = 0;// +0x884 ?
 	int	m888 = 0;// +0x888 ?
+	bool	m88c = false;// +0x88c
 	Image*	m890 = NULL;// +0x890 IMAGE_UPGRADE_ARM
 	Image*	m894 = NULL;// +0x894 IMAGE_UPGRADE_HEAD
 	FrameAnim	mAnim898;// +0x898
@@ -373,6 +442,7 @@ public:
 	bool	m8df = false;// +0x8df
 	bool	m8e0 = false;// +0x8e0 ?
 	bool	m8e1 = false;// +0x8e1
+	bool	m8e2 = false;// +0x8e2
 	bool	m8e3 = false;// +0x8e3 ?
 	bool	m8e4 = false;// +0x8e4 ?
 	bool	m8e5 = false;// +0x8e5 ?
@@ -404,6 +474,9 @@ public:
 	bool	m8ff = false;// +0x8ff
 	bool	m900 = false;// +0x900
 	bool	m901 = false;// +0x901 ?
+	bool	m902 = false;// +0x902
+	bool	m903 = false;// +0x903
+	bool	m904 = false;// +0x904
 	bool	m905 = false;// +0x905 ?
 	bool	m906 = false;// +0x906
 	bool	m907 = false;// +0x907 ?
@@ -411,6 +484,7 @@ public:
 	bool	m909 = false;// +0x909 ?
 	bool	m90a = false;// +0x90a
 	bool	m90b = false;// +0x90b ?
+	bool	m90c = false;// +0x90c
 	bool	m90d = false;// +0x90d ?
 	bool	m90e = false;// +0x90e ?
 	bool	m90f = false;// +0x90f
@@ -440,6 +514,7 @@ public:
 	float	m930 = 0.0f;// +0x930 ?
 	float	m934 = 0.0f;// +0x934 ?
 	float	m938 = 0.0f;// +0x938
+	float	m93c = 0.0f;// +0x93c
 	float	m940 = 0.0f;// +0x940
 	float	m944 = 0.0f;// +0x944 the banner time (adds 0.07 per update)
 	unsigned char	m948 = 0;// +0x948
@@ -452,10 +527,13 @@ public:
 	int	m95c = 0;// +0x95c ?
 	int	m960 = 0;// +0x960 ?
 	int	m964 = 0;// +0x964 ?
+	int	m968 = 0;// +0x968 ?
+	int	m96c = 0;// +0x96c ?
 	int	m970 = 0;// +0x970 the highest stack seen last
 	int	m974 = 0;// +0x974 ?
 	int	m978 = 0;// +0x978 ?
 	int	m97c = 0;// +0x97c ?
+	int	m980 = 0;// +0x980 ?
 	ScriptRows	m984;// +0x984 the rows of a scripted game
 	int	made = 0;// +0xade ?
 	int	m1924 = 0;// +0x1924 ?
@@ -475,6 +553,7 @@ public:
 	int	m195c = 0;// +0x195c the pointer's y
 	int	m1960 = 0;// +0x1960 ?
 	int	m1964 = 0;// +0x1964 ?
+	int	m1968 = 0;// +0x1968 ?
 	int	m196c = 0;// +0x196c ?
 	int	m1970 = 0;// +0x1970 ?
 	int	mScore = 0;// +0x1974 the score (profile setting 0x51)
@@ -497,6 +576,8 @@ public:
 	int	m19b8 = 0;// +0x19b8 ?
 	int	m19bc = 0;// +0x19bc ?
 	int	m19c0 = 0;// +0x19c0 ?
+	int	m19c4 = 0;// +0x19c4 ?
+	int	m19c8 = 0;// +0x19c8 ?
 	int	m19cc = 0;// +0x19cc ?
 	int	m19d0 = 0;// +0x19d0 ?
 	int	m19d4 = 0;// +0x19d4 ?
@@ -510,10 +591,16 @@ public:
 	int	m19f4 = 0;// +0x19f4 ?
 	int	m19f8 = 0;// +0x19f8 ?
 	int	m19fc = 0;// +0x19fc ?
+	int	m1a00 = 0;// +0x1a00 ?
+	int	m1a04 = 0;// +0x1a04 ?
+	int	m1a08 = 0;// +0x1a08 ?
 	int	m1a0c = 0;// +0x1a0c ?
 	int	m1a10 = 0;// +0x1a10 ?
 	int	m1a14 = 0;// +0x1a14 ?
 	int	m1a18 = 0;// +0x1a18 ?
+	int	m1a1c = 0;// +0x1a1c ?
+	int	m1a20 = 0;// +0x1a20 ?
+	int	m1a24 = 0;// +0x1a24 ?
 	int	m1a28 = 0;// +0x1a28 ?
 	int	m1a2c = 0;// +0x1a2c ?
 	int	m1a30 = 0;// +0x1a30 ?
@@ -531,9 +618,12 @@ public:
 	int	m1a60 = 0;// +0x1a60 ?
 	int	m1a68 = 0;// +0x1a68 ?
 	int	m1a70 = 0;// +0x1a70 ?
+	int	m1a74 = 0;// +0x1a74 ?
+	int	m1a78 = 0;// +0x1a78 ?
 	int	m1a7c = 0;// +0x1a7c ?
 	int	m1a80 = 0;// +0x1a80 ?
 	int	m1a84 = 0;// +0x1a84
+	int	m1a88 = 0;// +0x1a88 ?
 	int	m1a8c = 0;// +0x1a8c ?
 	int	m1a90 = 0;// +0x1a90 ?
 	int	m1a94 = 0;// +0x1a94 ?
@@ -543,6 +633,7 @@ public:
 	int	m1aa4 = 0;// +0x1aa4 ?
 	int	m1aa8 = 0;// +0x1aa8 ?
 	int	m1aac = 0;// +0x1aac ?
+	int	m1ab0 = 0;// +0x1ab0 ?
 	int	m1ab4 = 0;// +0x1ab4 ?
 	int	m1ab8 = 0;// +0x1ab8 ?
 	int	m1abc = 0;// +0x1abc ?
@@ -560,6 +651,7 @@ public:
 	int	m1aec = 0;// +0x1aec
 	int	m1af0 = 0;// +0x1af0 ?
 	int	m1af4 = 0;// +0x1af4 ?
+	int	m1af8 = 0;// +0x1af8 ?
 	int	m1afc = 0;// +0x1afc ?
 	int	m1b00 = 0;// +0x1b00 ?
 	int	m1b04 = 0;// +0x1b04 ?
@@ -569,6 +661,7 @@ public:
 	int	m1b14 = 0;// +0x1b14 ?
 	int	m1b18 = 0;// +0x1b18 ?
 	int	m1b1c = 0;// +0x1b1c ?
+	int	m1b20 = 0;// +0x1b20 ?
 	int	m1b24 = 0;// +0x1b24 ?
 	int	m1b28 = 0;// +0x1b28 ?
 	int	m1b2c = 0;// +0x1b2c ?
@@ -611,6 +704,7 @@ public:
 	int	m1bc0 = 0;// +0x1bc0 ?
 	int	m1bc4 = 0;// +0x1bc4 ?
 	int	m1bc8 = 0;// +0x1bc8 ?
+	int	m1bcc = 0;// +0x1bcc ?
 	int	m1bd0 = 0;// +0x1bd0 ?
 	int	m1bd4 = 0;// +0x1bd4 ?
 	float	m1bd8 = 0.0f;// +0x1bd8
@@ -619,6 +713,8 @@ public:
 	float	m1be4 = 0.0f;// +0x1be4
 	float	m1be8 = 0.0f;// +0x1be8
 	float	m1bec = 0.0f;// +0x1bec
+	float	m1bf0 = 0.0f;// +0x1bf0 how much the bonus chance changes by each level
+	float	m1bf4 = 0.0f;// +0x1bf4 how much the penalty chance changes by each level
 	float	m1bf8 = 0.0f;// +0x1bf8
 	float	m1bfc = 0.0f;// +0x1bfc
 	float	m1c00 = 0.0f;// +0x1c00
@@ -627,9 +723,22 @@ public:
 	bool	m1c09 = false;// +0x1c09
 	// END FIELDS
 
-	Board();
+	Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned int theFlags, int theLevel, bool theFlag,
+		  bool theNewGame, bool theDemo);                               // 0x480020
+	virtual ~Board();                                                   // 0x47a910
+
+	virtual void	OnFiring(int theEvent) override;                    // 0x4328d0: the hook of the Board's own events
 
 	virtual void	Update() override;                              // 0x479480 slot 17
+
+	// ---- the start (BoardCtor.cpp, BoardSetup.cpp)
+	void			SetupHints();                                   // 0x475f50
+	void			MarkHintsSeen(int theLevel);                    // 0x454410
+	void			SetupClassicRules();                            // 0x44f670
+	void			SetupLevel1Rules();                             // 0x47f3d0
+	void			AdvanceLevel(bool theSave);                     // 0x441980
+	void			LoadDemo();                                     // 0x470130
+	void			BuildStoryText();                               // 0x47a940 (not translated yet)
 
 	// ---- the small helpers (BoardCore.cpp)
 	void			UpdateAnimCounters();                           // 0x433500

@@ -27,3 +27,8 @@ bool Board::AnyMoveLeft(bool* theFlag)
 	NOT_TRANSLATED("AnyMoveLeft", "0x459bc0");
 	return true;
 }
+
+void Board::BuildStoryText()
+{
+	NOT_TRANSLATED("BuildStoryText", "0x47a940");
+}

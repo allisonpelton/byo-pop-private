@@ -60,7 +60,7 @@ bool AstroPopApp::AddHallOfFame(const std::string& theName, int theScore, int th
 			aBuffer.WriteLong(mHall[j].mMode);
 			aBuffer.WriteLong(mHall[j].mKind);
 		}
-		if (!WriteBufferToFile("users\datahs.usr", &aBuffer))
+		if (!WriteBufferToFile("users\\datahs.usr", &aBuffer))
 			Popup(GT(0x562c88));
 		return true;
 	}

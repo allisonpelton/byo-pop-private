@@ -80,6 +80,7 @@ public:
 	MemoryImage*				mLightningImage2;   // +0x6a4 the same, drawn as it is
 	XcfFile*					mDescriptor;        // +0x6a8 data\descriptor.xcf: the level settings (LoadDescriptor)
 	std::vector<HallEntry>		mHall;              // +0x6c4 the hall of fame (0x2c bytes an entry), kept in users\datahs.usr
+	int							mClassicPilot;      // +0x6d4 the pilot the player chose for the classic mode (the Board's mode)
 	bool						mFlag6f9;           // +0x6f9 ValidateUser: profile setting 0x13 (1 when missing) is not 0
 	bool						mFlag6fa;           // +0x6fa ValidateUser: profile setting 0x72 is 1
 	bool						mFlag6fb;           // +0x6fb ValidateUser: profile setting 0x73 (1 when missing) is 1
@@ -87,6 +88,7 @@ public:
 	Widget*						mHelpScreen;        // +0x69c the full-screen help (ShowFullScreenHelp), NULL for none
 	int							mMusicSlot;         // +0x6d8 the slot that plays (0 or 1)
 	int							mMusicOrder;        // +0x6dc the song position (order) that plays, -1 for none
+	int							mSurvivalPilot;     // +0x6e4 the pilot of the other modes
 
 public:
 	AstroPopApp();                                              // 0x427ee0

@@ -125,7 +125,7 @@ void Board::RecolorThemeButtons()
 	delete m750->mUncheckedImage;
 
 	StageBg* aStage = m230[0]->mBg;
-	Color aColor(aStage->mRed, aStage->mGreen, aStage->mBlue);
+	Color aColor(aStage->mColor1.mRed, aStage->mColor1.mGreen, aStage->mColor1.mBlue);
 	m74c->mDownImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_DOWN, aColor);
 	m74c->mOverImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_OVER, aColor);
 	m74c->mButtonImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_UP, aColor);

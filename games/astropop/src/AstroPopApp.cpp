@@ -46,6 +46,8 @@ AstroPopApp::AstroPopApp()
 	mOldScoresDeleted = false;
 	mTimer664 = 0;
 	mGameUpdates = 0;
+	mClassicPilot = 0;
+	mSurvivalPilot = 0;
 	mFlag6fc = false;
 	mHelpScreen = NULL;
 	mDialogFont = NULL;

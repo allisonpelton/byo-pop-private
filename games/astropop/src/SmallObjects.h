@@ -98,15 +98,40 @@ public:
 	void			AddLine(const std::string& theLine);    // 0x460a70
 };
 
-// The check of a level's goal (the Board keeps one at +0x310): the kind at +4 picks which of four checks runs. Each
-// update counts (+8).
-class GoalChecker
+// The wipe that takes a picture off the screen when a game ends (class of 0x28 bytes, constructor 0x426230; the Board
+// keeps one at +0x310, over the picture it captured into the image at +0x2f4). It makes the picture transparent bit by
+// bit, one of four ways: 0 pixels in a random order, 1 a ragged edge sweeping from the right to the left, 2 the same
+// from the left to the right, 3 rows from the top down by two and back up by two.
+class ScreenWipe
 {
 public:
-	int			mKind;          // +0x04
-	int			mCounter;       // +0x08
+	struct Point
+	{
+		int			mX;
+		int			mY;
+	};
 
-	bool		Check(int theValue);                // 0x4264a0
+	Image*				mImage;         // +0x00
+	int					mKind;          // +0x04
+	int					mCounter;       // +0x08 updates so far
+	int					mPos;           // +0x0c kinds 1 and 2: the column the edge is at
+	int					mRow;           // +0x10 kind 3: the row
+	bool				mDone;          // +0x14
+	bool				mOwnsImage;     // +0x15 the picture is a copy
+	bool				mGoingDown;     // +0x16 kind 3 (constructed true)
+	std::vector<Point>	mPoints;        // +0x18 kind 0: the pixels still to clear
+
+	ScreenWipe();                                           // 0x426230
+	~ScreenWipe();
+	void		SetImage(Image* theImage, bool theCopy);    // 0x40b280
+	void		SetKind(int theKind);                       // 0x426250
+	bool		Check(int theSteps);                        // 0x4264a0: runs theSteps steps; true when the wipe is over
+
+private:
+	bool		StepRandom(int theSteps);                   // 0x426370
+	bool		StepToLeft(int theSteps);                   // 0x40b340
+	bool		StepToRight(int theSteps);                  // 0x40b430
+	bool		StepRows(int theSteps);                     // 0x40b540
 };
 
 // A text that the Board draws at a place with a font (0x28 bytes, the vector at +0x270; drawn by Draw)
@@ -160,6 +185,39 @@ struct FadeRec
 	int			mValue;         // +0x00 alpha
 	int			mStep;          // +0x04
 	bool		mRising;        // +0x08
+};
+
+// The pointer's recent movement (class of 0x64 bytes, vtable 0x561ea4, constructor 0x40b1b0, step 0x40b230; the Board
+// keeps one at +0x35c): the last six steps in x and in y, as the Board's draw at 0x437bd0 gives it new positions.
+class PointerTrail
+{
+public:
+	float		mStepX[6];      // +0x04
+	int			mIndexX;        // +0x1c
+	int			m20;            // +0x20
+	float		mLastX;         // +0x24
+	float		mStepY[6];      // +0x28
+	int			mIndexY;        // +0x40
+	int			m44;            // +0x44
+	float		mLastY;         // +0x48
+	float		mX;             // +0x4c
+	float		mY;             // +0x50
+	float		mPrevX;         // +0x54
+	float		mPrevY;         // +0x58
+	int			m5c;            // +0x5c
+	int			m60;            // +0x60
+
+	PointerTrail()
+	{
+		for (int i = 0; i < 6; i++)
+		{
+			mStepX[i] = 0;
+			mStepY[i] = 0;
+		}
+		mIndexX = 0; m20 = 0; mLastX = 0; mIndexY = 0; m44 = 0; mLastY = 0;
+		mX = 0; mY = 0; mPrevX = 0; mPrevY = 0; m5c = 0; m60 = 0;
+	}
+	virtual ~PointerTrail() {}
 };
 
 }

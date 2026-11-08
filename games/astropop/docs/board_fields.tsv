@@ -23,6 +23,7 @@ f8	std::vector<int>	mf8
 1a0	std::vector<CellRef3>	m1a0
 1b0	std::vector<ExplosionAnim*>	m1b0	the animations of the explosions (mode 1 bonus, and the end of a game; 8)
 1c0	std::vector<Widget*>	m1c0	the buttons of the field (the first one is the main button)
+1d0	std::vector<TipEntry>	m1d0	the pop-ups that describe the bricks (SetupHints)
 1e0	std::vector<FadeRec>	m1e0	the fading panels of the end of a game
 1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
 200	std::vector<CellRef3>	m200	?
@@ -30,6 +31,7 @@ f8	std::vector<int>	mf8
 220	std::vector<StageBg*>	m220	the picture of each stage
 230	std::vector<HintSpot*>	m230
 240	std::vector<FreezeFlake>	m240	the snowflakes of the freeze effect
+250	std::vector<Image*>	m250	the 14 pictures of the mode (ids 0x196, 0x1a4, 0x1b2 or 0x1c0 on)
 260	std::vector<DrawnText>	m260	the texts that scroll along the top while the bonus of state 1 runs (Fn46f010)
 270	std::vector<DrawnText>	m270	texts drawn at a place in a font
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
@@ -41,17 +43,22 @@ f8	std::vector<int>	mf8
 2e4	Widget*	m2e4
 2e8	Widget*	m2e8
 2ec	Widget*	m2ec
+2f0	Graphics*	m2f0	draws into the picture at +0x2f4
+2f4	Image*	m2f4	the picture of the field that the wipe at the end of a game takes away (640 x 480)
 2f8	Image*	m2f8	the lightning image now on the screen
+2fc	MemoryImage*	m2fc	IMAGE_SIREN, flipped
+300	MemoryImage*	m300	IMAGE_SIREN_FX, flipped
 304	MemoryImage*	m304	the banner text (BuildBanner)
 308	MemoryImage*	m308	the banner's second image, 0x30 taller (BuildBanner)
 30c	MemoryImage*	m30c	the picture of the rank
-310	GoalChecker*	m310	the check of the level's goal
+310	ScreenWipe*	m310	the wipe that ends a game (over the image at +0x2f4)
 314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
 324	std::vector<CellRef>	m324	the cells under the pointer that are lit (HoverCell)
 334	std::vector<std::vector<int> >	m334	the layout the field is built from: a brick type for each cell, -1 none (BuildField)
 344	std::vector<std::vector<int> >	m344	the rows of the demo (or of the game being recorded): one kind for each column
 354	Brick*	m354	a brick the Board holds (ClearField deletes it)
 358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
+35c	PointerTrail	m35c	the pointer's recent steps
 3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
 3d0	Color	m3d0	the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
 3e0	FrameAnim	mAnim3e0
@@ -60,6 +67,7 @@ f8	std::vector<int>	mf8
 460	FrameAnim	mAnim460
 4a0	FrameAnim	mSirenAnim	the siren (IMAGE_SIREN)
 4c8	bool	m4c8	?
+4e0	FrameAnim	mAnim4e0
 520	FrameAnim	mAnim520
 560	FrameAnim	mAnim560	?
 5a0	FrameAnim	mAnim5a0	the end buttons slide in with it (SetNumFrames 0x1f)
@@ -76,12 +84,15 @@ f8	std::vector<int>	mf8
 6f4	int	m6f4
 6f8	int	m6f8
 6fc	int	m6fc
+710	std::string	m710	the text of the supa weapon prompt
+72c	std::string	m72c
+748	int	m748	?
 74c	AstroButton*	m74c	the theme button (id 0xfa2)
 750	Checkbox*	m750	the theme checkbox (id 0xfa3)
+754	int	m754	?
 758	Buffer	m758	the replay recording (RecordStep)
 778	LevelUpText*	m778	the level-up picture
 77c	ScrollLayer	m77c	the scenery layer
-7a8	int	m7a8	?
 7b8	int	m7b8	?
 7bc	int	m7bc	?
 7c0	int	m7c0	?
@@ -105,11 +116,14 @@ f8	std::vector<int>	mf8
 828	int	m828	?
 82c	int	m82c	?
 830	bool	m830
+834	MemoryImage*	m834	a flipped copy of the upgrade arm
+838	MemoryImage*	m838	a flipped copy of the upgrade head
 83c	FrameAnim	mAnim83c
 87c	int	m87c	?
 880	int	m880	?
 884	int	m884	?
 888	int	m888	?
+88c	bool	m88c
 890	Image*	m890	IMAGE_UPGRADE_ARM
 894	Image*	m894	IMAGE_UPGRADE_HEAD
 898	FrameAnim	mAnim898
@@ -123,6 +137,7 @@ f8	std::vector<int>	mf8
 8df	bool	m8df
 8e0	bool	m8e0	?
 8e1	bool	m8e1
+8e2	bool	m8e2
 8e3	bool	m8e3	?
 8e4	bool	m8e4	?
 8e5	bool	m8e5	?
@@ -154,6 +169,9 @@ f8	std::vector<int>	mf8
 8ff	bool	m8ff
 900	bool	m900
 901	bool	m901	?
+902	bool	m902
+903	bool	m903
+904	bool	m904
 905	bool	m905	?
 906	bool	m906
 907	bool	m907	?
@@ -161,6 +179,7 @@ f8	std::vector<int>	mf8
 909	bool	m909	?
 90a	bool	m90a
 90b	bool	m90b	?
+90c	bool	m90c
 90d	bool	m90d	?
 90e	bool	m90e	?
 90f	bool	m90f
@@ -190,6 +209,7 @@ f8	std::vector<int>	mf8
 930	float	m930	?
 934	float	m934	?
 938	float	m938
+93c	float	m93c
 940	float	m940
 944	float	m944	the banner time (adds 0.07 per update)
 948	unsigned char	m948
@@ -202,10 +222,13 @@ f8	std::vector<int>	mf8
 95c	int	m95c	?
 960	int	m960	?
 964	int	m964	?
+968	int	m968	?
+96c	int	m96c	?
 970	int	m970	the highest stack seen last
 974	int	m974	?
 978	int	m978	?
 97c	int	m97c	?
+980	int	m980	?
 984	ScriptRows	m984	the rows of a scripted game
 ade	int	made	?
 1924	int	m1924	?
@@ -225,6 +248,7 @@ ade	int	made	?
 195c	int	m195c	the pointer's y
 1960	int	m1960	?
 1964	int	m1964	?
+1968	int	m1968	?
 196c	int	m196c	?
 1970	int	m1970	?
 1974	int	mScore	the score (profile setting 0x51)
@@ -247,6 +271,8 @@ ade	int	made	?
 19b8	int	m19b8	?
 19bc	int	m19bc	?
 19c0	int	m19c0	?
+19c4	int	m19c4	?
+19c8	int	m19c8	?
 19cc	int	m19cc	?
 19d0	int	m19d0	?
 19d4	int	m19d4	?
@@ -260,10 +286,16 @@ ade	int	made	?
 19f4	int	m19f4	?
 19f8	int	m19f8	?
 19fc	int	m19fc	?
+1a00	int	m1a00	?
+1a04	int	m1a04	?
+1a08	int	m1a08	?
 1a0c	int	m1a0c	?
 1a10	int	m1a10	?
 1a14	int	m1a14	?
 1a18	int	m1a18	?
+1a1c	int	m1a1c	?
+1a20	int	m1a20	?
+1a24	int	m1a24	?
 1a28	int	m1a28	?
 1a2c	int	m1a2c	?
 1a30	int	m1a30	?
@@ -281,9 +313,12 @@ ade	int	made	?
 1a60	int	m1a60	?
 1a68	int	m1a68	?
 1a70	int	m1a70	?
+1a74	int	m1a74	?
+1a78	int	m1a78	?
 1a7c	int	m1a7c	?
 1a80	int	m1a80	?
 1a84	int	m1a84
+1a88	int	m1a88	?
 1a8c	int	m1a8c	?
 1a90	int	m1a90	?
 1a94	int	m1a94	?
@@ -293,6 +328,7 @@ ade	int	made	?
 1aa4	int	m1aa4	?
 1aa8	int	m1aa8	?
 1aac	int	m1aac	?
+1ab0	int	m1ab0	?
 1ab4	int	m1ab4	?
 1ab8	int	m1ab8	?
 1abc	int	m1abc	?
@@ -310,6 +346,7 @@ ade	int	made	?
 1aec	int	m1aec
 1af0	int	m1af0	?
 1af4	int	m1af4	?
+1af8	int	m1af8	?
 1afc	int	m1afc	?
 1b00	int	m1b00	?
 1b04	int	m1b04	?
@@ -319,6 +356,7 @@ ade	int	made	?
 1b14	int	m1b14	?
 1b18	int	m1b18	?
 1b1c	int	m1b1c	?
+1b20	int	m1b20	?
 1b24	int	m1b24	?
 1b28	int	m1b28	?
 1b2c	int	m1b2c	?
@@ -361,6 +399,7 @@ ade	int	made	?
 1bc0	int	m1bc0	?
 1bc4	int	m1bc4	?
 1bc8	int	m1bc8	?
+1bcc	int	m1bcc	?
 1bd0	int	m1bd0	?
 1bd4	int	m1bd4	?
 1bd8	float	m1bd8
@@ -369,6 +408,8 @@ ade	int	made	?
 1be4	float	m1be4
 1be8	float	m1be8
 1bec	float	m1bec
+1bf0	float	m1bf0	how much the bonus chance changes by each level
+1bf4	float	m1bf4	how much the penalty chance changes by each level
 1bf8	float	m1bf8
 1bfc	float	m1bfc
 1c00	float	m1c00
