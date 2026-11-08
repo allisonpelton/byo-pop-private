@@ -50,6 +50,7 @@ Each row: the difference, its cause in the original, what the port does now, and
 | The map's "Click to continue" glowed | the button has no component image and shows its unlit picture, the lit one under the mouse | the same | d7d0f2a |
 | Arrows showed only above and below the ship (the user's "movement arrows don't show up properly") | 0x409840 draws the arrow of each of the eight neighbouring cells; the port drew only the vertical ones | all eight, as the original (nine hovers, shots match) | 87cbbda |
 | At game over the pirate vanished from the high-score list | 0x420430 brings the talking pirate in front of the list and does not stop him | the same | 1d82ddd |
+| After "No" in the Continue dialog (Average, Hard) the squares under the pirate's box took no clicks and showed no arrows (the user's "column 4, rows 1-3") | 0x421a10 case 3000 + 0xf never puts the pirate's invisible 200 x 200 box away; the original has the same fault | the pirate is put away as for Continue: a bug of the original that the port fixes (the user, 2026-11-07: "That sort of bug shouldn't be part of a fix mod, IMO"), a deviation of the port | dcc842e6 |
 | The last tutorial hint ("That's it! ...") never showed | its text is the 15th of each hint table; the port's table held 14 | all 15 | dcc842e6 |
 | The first box's text sat 17 pixels too high | 0x406400 draws its four lines at 0x12, 0x23, 0x34, 0x45 below the row | the same | dcc842e6 |
 
@@ -99,3 +100,25 @@ at most 3 of 255). See GAME_NOTES, section 5.
 The list of high scores after the name is accepted (the click on OK in the run did not leave the dialog in either game, so
 only the typing was compared, and it matches), the demo and the tutorial's later steps, and the bonus level's win and lose
 screens, for the reason given under the oddities.
+
+## Native pass with real input (2026-11-07)
+
+`tools/realinput.py` (run under rundesk: `build/native/rundesk.exe python games/sevenseas/tools/realinput.py <scenario> <out dir>`)
+starts `sevenseas.exe` and posts only window messages to it: mouse moves and buttons, and keys with their scan codes, on the
+real clock. Two things were needed for SDL to take them. A move, press and release go in one burst, because Windows sends the
+window its own mouse messages for the real cursor (the corner of the private desktop) and one of those between a posted move
+and the press moved the press to (0, 0); and the title's first click needs the screen to have settled (about 3 s).
+
+What was played that way: title, menu, the whole tutorial (every hint, whirlpool teleport, the last hint of step 14 that the
+fixes added, "Click here to start playing!"), an Easy game with its demo, random keys (numpad, arrows, space) and clicks to
+level 2, game over, the high-score name box and a new game from it; a whole Average game (level 1 complete, level 2, game over, high-score name typed, new game menu) and a whole Hard game (corner whirlpools closing and opening, game over with the pirate). A saved game and "No" on Average
+(arrow over, and a move on a click, on the squares under the pirate's box). Options' Fullscreen box on (3840 x 2160, the game centred), a click and a key moving the ship in it,
+and back to the window. 
+
+Web build, Browser pane (`?silent=1`, requestAnimationFrame shimmed because the pane is hidden), real DOM events only (a
+`mousemove`, 60 ms, then `mousedown` and `mouseup` on the canvas; key events on the document), 2026-11-07: title, menu, the whole
+tutorial (the teleport landed on the same square as natively, step 14's last hint shown), the Easy game's demo and button, random
+keys and clicks through "Level 1 complete", level 2, game over and the high-score name box, then a new Average game, a saved game
+(Exit, New Game, Yes), Average and "No" in the Continue dialog: the arrow shows on the square under the pirate's box and the click
+moves the ship, as natively. Not done on the web: a whole Hard game, and full screen through the page (the pane's Fullscreen button
+did not enter full screen: `document.fullscreenElement` stayed null with no console error, so it is unverified there).

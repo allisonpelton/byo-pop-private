@@ -126,6 +126,14 @@ the side panel's lives are the small icon (image 31).
 - **Help buttons' pressed look (0x40d330).** The original gives each help button `mDownImage` = `CopyImage(IMAGE_DBUTTONBLACK)`; the port
   sets none and draws the black plate with the framework's flat path (`COLOR_BKG` black). `DBUTTONBLACK` is all black, so a pressed
   button shows black text, offset by 1, over all black either way. To confirm with shotdiff once captures of the original work again.
+- **The pirate's box after "No" in the Continue dialog (a bug of the original that the port fixes).** Case 3000 + 0xf of 0x421a10
+  starts a new game (0x41eef0) without putting the pirate's talk widget away, as 0x41ed70's no-saved-game branch and case 0xf (Continue)
+  do. On Average and Hard his 200 x 200 box at (142, 10), invisible once he has faded out at the first update, still takes the clicks and
+  the hover of board columns 0 to 3, rows 0 to 4 for the whole game: no arrow and no move on those squares (the user's "column 4, rows
+  1-3", counting from 1). The port puts him away (mode 0, talking flag off, widget hidden) before that StartGame. The user, 2026-11-07:
+  "That sort of bug shouldn't be part of a fix mod, IMO", so a bug that breaks play is fixed in the port itself. To see the original: a
+  saved game (the New Game dialog's Yes), Average, Start New Game, "No", then hover a square next to the ship under the box. Natively
+  checked with real window messages on 2026-11-07 (tools/realinput.py `saved`): arrow and move on those squares.
 - **No Register button.** The options dialog's Register button is hidden (registration is taken out by the user's rule).
 - **Options dialog's four extra buttons' label colour** is gold, and a hovered label stays gold (captured in the Windows Sandbox,
   2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
@@ -161,6 +169,14 @@ new game: the original's case 0xf of 0x421a10 sets its mode to 0, clears the tal
 likely cause of the reported "controls fail at random times". Found by loading the original's own savegame.dat (its format is the
 port's; the file the original writes at exit) and clicking a cell under the box.
 
+**New game from the Continue dialog (fixed 2026-11-07).** The same box took the clicks again after the Continue dialog's "No":
+case 3000 + 0xf of 0x421a10 starts a new game without putting the pirate away (only 0x41ed70's no-saved-game branch and case 0xf do),
+so on Average or Hard (Easy goes through the demo and its button first) the board's first update fades him out and his 200 x 200
+box, still visible, took the clicks and the hover of columns 1 to 4, rows 1 to 5 for the whole game: no arrow and no move on
+those squares (the user's "column 4, rows 1-3", 2026-11-07). The original has the same fault, so this is a fix of its bug that the port
+makes now at the user's request: the pirate is put away as in ContinueGame. Seen in the web build with real mouse events (a saved
+game, Average, "No"), and gone with the fix. The tutorial's first-game box and its hint panel were checked in the same run.
+
 **Tutorial text (fixed 2026-11-07).** Two faults of the tutorial's texts. The last hint (step 14, on the line in the middle of the
 panel: "That's it! ...") never showed, because the generator of the text table listed 14 texts for each hint table and the tutorial has
 15 steps. The first box ("This is your ship...") drew its four lines at 0, 0x12, 0x23 and 0x34 below the row; the exe's code (0x406400,
@@ -187,12 +203,14 @@ Each is described in section 6 and in IDENTICAL_PLAY.md: the new ship's cell aft
 between runs), the gun smoke on the loaded ships of a continued game (uninitialised timers), and the treasure's cell on the bonus
 level (random, same variation).
 
-## 8. Fix candidates (bugs of the original, kept in the port; the fixes mod will fix them)
+## 8. origrun on Seven Seas stalls at update 10 (seen 2026-11-07, not solved)
 
-**The pirate's invisible box after "No" in the Continue dialog (found 2026-11-07).** Case 3000 + 0xf of 0x421a10 starts a new game
-(0x41eef0) without putting the pirate's talk widget away; only 0x41ed70's no-saved-game branch and case 0xf (Continue) do. On Average
-or Hard (Easy goes through the demo and its button first) the board's first update fades him out, but his 200 x 200 box at (142, 10),
-still visible, takes the clicks and the hover of board columns 1 to 4, rows 1 to 5 for the whole game: no arrow and no move on those
-squares (the user's "column 4, rows 1-3"). The port keeps it. To see it: a saved game (the New Game dialog's Yes), Average, Start New
-Game, "No", then hover a square next to the ship under the box. The fix: put the pirate away as ContinueGame does (mode 0, talking
-flag off, widget hidden) before that StartGame.
+Every run of the original through origrun (host under rundesk, and the Windows Sandbox), with and without the seed and
+registration patches, `--sound stub` or `nodriver`, with and without the virtual clock, with a script that starts with
+`focus regain` or none, stops with the counter `[0x4e21bc]+0x368` at 10 and the title screen's loading bar empty. The main
+thread sleeps (CPU use near zero, one thread in `Sleep`, the rest in waits), so the game is not busy and not showing a
+dialog (msgbox.log is empty). An origrun built from the commit of 2026-11-01 (6a225cbe), which ran this game in the
+identical-play pass, stalls the same way on the same copy, so the 2026-11-03 stand-in changes are not the cause. What
+changed since the pass is the machine (Windows 10.0.26300): a later OS build may have changed what FMOD 3 or the old
+DirectSound path expects. Not looked for further (about an hour spent); a way in would be a debugger's stack of the
+sleeping loader thread, or a run of another FMOD 3 original (Bonnies) to see whether it stalls too.
