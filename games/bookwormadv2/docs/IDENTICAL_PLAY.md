@@ -103,6 +103,19 @@ The native port finds the original-case names through `filecase.txt` next to the
 without that file, so on the site `GetFilesInDirectory` lists lower-case names and the book scripts would be loaded twice,
 as before d8697ae. The web packer needs to include `filecase.txt` in the preloaded data.
 
+## Faults the user reported after phase one (2026-11-07)
+
+Found by playing, not by the comparison; each was checked against the original's decompilation, and the Word Up screen against a shot of the original (the greyed Submit plate, the Scramble and Menu buttons match).
+
+| Fault | Cause in the original | What the port does now |
+| --- | --- | --- |
+| Every mini-game ended in "Invalid Lua Result: Expected boolean in LuaClassRet" | `CurtainDone` (0x442700) reads the result of the curtain's script callback only when it returned something; the mini-games' `MiniGame.DoConvPanel` returns nothing | `GameApp::CurtainDone` keeps the curtain only when the callback returned a boolean true |
+| Word Up's Submit button drew nothing | `SetAttackDisabled` sets the button's cel rectangles from its current picture; a mini-game's is `btn_submit` with 238-wide cels, and the port used the attack button's 244 | the cel size comes from the button's own picture |
+| Word Up had no Scramble button | the Board makes it in mini-games too; the scripts of the other mini-games hide it | `Board::CreateButtons` makes it for every board |
+| Rainbow tiles never formed a word | `0x4129e0` leaves a wild tile out of the word, tries A to Z in its place until the word is in the list, and gives the tile that letter | `Board::GetWord` does the same (an earlier wild tile in the same word is left out, as there) |
+
+Two reports are not fixed here. The **curtain lag** could not be reproduced: a native run in real time under rundesk drew the curtain at 60 frames a second with a cel every 5 updates, as the original's `CurtainTransition::Update` does (hitches of 30 to 40 ms only at the start of a transition); it may depend on the display or on the web build. The **audio that quits after losing the focus following a chapter boss** was not examined; it is shared with Bookworm Adventures' session. The web sound delay is another session's.
+
 ## Remaining deviations
 
 None known in the logic that was compared. Everything above "Not covered" is untested, not known to differ.

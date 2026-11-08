@@ -171,6 +171,9 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			SDL_Log("script: state: paused %d, tiles %d, selected %d, new %d, ending %d", (int)mBoard->IsPaused(),
 			        (int)mBoard->mTiles.size(), (int)mBoard->mSelected.size(), (int)mBoard->mNewTiles.size(),
 			        (int)mBoard->mEndingChapter);
+			if (FadeButton* aBtn = mBoard->mButtons[Board::BUTTON_ATTACK])
+				SDL_Log("script: state: attack button at %d,%d %dx%d visible %d disabled %d image %p cols %d", aBtn->mX, aBtn->mY, aBtn->mWidth, aBtn->mHeight,
+				        (int)aBtn->mVisible, (int)aBtn->mDisabled, (void*)aBtn->mButtonImage, aBtn->mButtonImage != nullptr ? aBtn->mButtonImage->mNumCols : 0);
 			for (Tile* aTile : mBoard->mTiles)
 				SDL_Log("script: state: tile %c at %d,%d cell %d,%d selected %d can-select %d alpha %d moving %d falling %d",
 				        aTile->GetLetter(), aTile->mX, aTile->mY, aTile->mCol, aTile->mRow, (int)aTile->mSelected,

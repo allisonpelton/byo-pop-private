@@ -346,17 +346,42 @@ void Board::UpdateHilite(int x, int y)
 
 // ---- the word ----
 
+// The word of the tiles (0x4129e0). A wild (rainbow) tile is left out of the word while it is read: the letters before
+// and after the last wild tile are kept apart, and A to Z are tried in its place until the word is in the list; the
+// tile is then given that letter. The tiles of an earlier wild tile are left out, as the original does.
 std::string Board::GetWord(const std::list<Tile*>& theTiles)
 {
-	std::string aWord;
+	std::string aBefore, aAfter;
+	Tile* aWild = nullptr;
 	for (Tile* aTile : theTiles) {
+		if (aTile->IsWildTile()) {
+			aWild = aTile;
+			continue;
+		}
 		char c = aTile->GetLetter();
+		std::string& aPart = aWild == nullptr ? aBefore : aAfter;
 		if (c == 'Q')
-			aWord.append(GT(0x6f81ac));  // its tile is "Qu"
+			aPart.append(GT(0x6f81ac));  // its tile is "Qu"
 		else
-			aWord.append(1, c);
+			aPart.append(1, c);
 	}
-	return aWord;
+	if (aWild == nullptr)
+		return aBefore;
+
+	std::string aWord;
+	for (int aLetter = 0; aLetter < 26; aLetter++) {
+		char c = (char)('A' + aLetter);
+		aWord = aBefore + (c == 'Q' ? GT(0x6f81ac) : std::string(1, c)) + aAfter;
+		aWild->SetLetter(std::string(1, c));
+		if (aWord.size() > 2) {
+			bool aFound = false;
+			gApp->mLex->GetFlags(aWord, &aFound);
+			if (aFound)
+				return aWord;
+		}
+		aWild->SetLetter("?");
+	}
+	return aBefore + "?" + aAfter;
 }
 
 bool Board::IsValidWord(const std::string& theWord, bool theNoEgg, int* theFlags)
@@ -559,7 +584,8 @@ void Board::LayoutWord(Tile* theTile, bool theSelected)
 void Board::CreateButtons()
 {
 	LuaWidgetTplBase* aListener = static_cast<LuaWidgetTplBase*>(this);
-	if (!mIsMiniGame) {
+	// the mini-games have it too: Word Up shows it, the others' scripts hide it (SetScrambleVisible)
+	{
 		FadeButton* aButton = new FadeButton(BUTTON_SCRAMBLE, aListener);
 		aButton->mDrawnByOwner = true;
 		aButton->SetupImage(IMAGE_BUTTON_SCRAMBLE);
@@ -614,8 +640,11 @@ void Board::SetAttackDisabled(bool isDisabled, bool keepLook)
 		return;
 	bool wasImmune = mImmuneLook;
 	mImmuneLook = false;
-	int w = IMAGE_BUTTON_ATTACK->GetCelWidth();
-	int h = IMAGE_BUTTON_ATTACK->GetCelHeight();
+	// the cels of the button's picture as it is now: a mini-game's submit button has its own (238 wide), and rects of the
+	// attack button's 244 would reach past the end of it and draw nothing
+	Image* aLook = aButton->mButtonImage != nullptr ? aButton->mButtonImage : IMAGE_BUTTON_ATTACK;
+	int w = aLook->GetCelWidth();
+	int h = aLook->GetCelHeight();
 	aButton->mNormalRect = Rect(0, 0, w, h);
 	aButton->mOverRect = Rect(w, 0, w, h);
 	aButton->mDownRect = Rect(w * 2, 0, w, h);
