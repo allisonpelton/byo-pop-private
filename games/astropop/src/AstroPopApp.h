@@ -18,6 +18,7 @@ namespace Sexy
 
 class LoaderScreen;
 class MainMenu;
+class XcfFile;
 class Widget;
 class MemoryImage;
 class SoundInstance;
@@ -50,6 +51,7 @@ public:
 	MainMenu*					mMainMenu;          // +0x644 the game selector (ShowMainMenu)
 	LoaderScreen*				mLoaderScreen;      // +0x640 Init .. the title (the original ctor leaves it uninitialised)
 	Widget*						mScreen64c;         // +0x64c the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
+	bool						mFlag658;           // +0x658 ValidateUser: profile setting 0x11 (1 when missing) is not 0
 	bool						mOldSavesDeleted;   // +0x659 Init found a profile of an older version and deleted it
 	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
 	int							mTimer664;          // +0x664 counted down by UpdateFrames
@@ -61,6 +63,10 @@ public:
 	SoundInstance*				mHyperspaceLoop;    // +0x698 SOUND_HYPERSPACE_LOOP
 	MemoryImage*				mLightningImage;    // +0x6a0 IMAGE_WARP_FX_LIGHTENING, flipped copy
 	MemoryImage*				mLightningImage2;   // +0x6a4 the same, drawn as it is
+	XcfFile*					mDescriptor;        // +0x6a8 data\descriptor.xcf: the level settings (LoadDescriptor)
+	bool						mFlag6f9;           // +0x6f9 ValidateUser: profile setting 0x13 (1 when missing) is not 0
+	bool						mFlag6fa;           // +0x6fa ValidateUser: profile setting 0x72 is 1
+	bool						mFlag6fb;           // +0x6fb ValidateUser: profile setting 0x73 (1 when missing) is 1
 	int							mMusicSlot;         // +0x6d8 the slot that plays (0 or 1)
 	int							mMusicOrder;        // +0x6dc the song position (order) that plays, -1 for none
 
@@ -96,7 +102,15 @@ public:
 	void			ListUsers();                                // 0x4254b0 mUserNames from the registry key Users
 	void			LoadHighScores();                           // 0x42a0b0 users\datahs.usr
 
+	void			OnClickToPlay();                            // 0x4319b0 the title's button: the loader goes, the profile comes
+	void			LoadDescriptor();                           // 0x42c150
+	void			SelectStartUser();                          // 0x4300c0 the last player, or the first, or the new-player dialog
+	std::string		GetLastUserName();                          // 0x411880
+	void			ResetFailedUserLoad();                      // 0x4298c0 a profile that could not be read starts again
+	void			ValidateUser();                             // 0x4285d0 the profile's settings checked and copied to the flags
 	void			ShowMainMenu();                             // 0x411490
+	void			ShowNewUserDialog();                        // 0x40bc00 (stub)
+	void			ShowMessageDialog(const std::string& theHeader, const std::string& theText); // 0x411ba0 (stub): an OK box
 	// The screens the selector opens. Not translated yet: each one logs "not translated" and does nothing.
 	void			StartGame(bool theContinue);                // 0x428c70 (the Board)
 	void			ShowCharSelector(int theMode);              // 0x411660 (pilot choice)

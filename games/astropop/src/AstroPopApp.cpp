@@ -34,6 +34,11 @@ AstroPopApp::AstroPopApp()
 	mRegKey = "PopCap\\AstroPop";
 
 	mBoard = NULL;
+	mDescriptor = NULL;
+	mFlag658 = false;
+	mFlag6f9 = false;
+	mFlag6fa = false;
+	mFlag6fb = false;
 	mMainMenu = NULL;
 	mScreen64c = NULL;
 	mLoaderScreen = NULL;
@@ -500,6 +505,8 @@ void AstroPopApp::PlaySong(int theOrder)
 // 0x431ac0 slot 4: the loader's play button (id 2200) starts the game selector; the rest comes with the screens
 void AstroPopApp::ButtonDepress(int theId)
 {
+	if (theId == 0x898)
+		OnClickToPlay();
 }
 
 // 0x42c910: the thirty bonus levels data\bonus<n>.xcf are read and their signatures checked (xcf parser: to come)

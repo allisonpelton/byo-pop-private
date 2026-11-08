@@ -105,6 +105,37 @@ bool UserProfile::HasModeUnlocked(int theMode) const
 	return false;
 }
 
+// 0x429510: a new player's settings (theNumber -1: the next free number), then the file is written
+void UserProfile::InitNew(const std::string& theName, int theNumber)
+{
+	if (theNumber == -1)
+		theNumber = NextUserNumber();
+	SetString(PROFILE_NAME, theName);
+	SetInt(PROFILE_NUMBER, theNumber);
+	SetInt(0x11, 1);
+	SetInt(0x13, 1);
+	SetInt(0x73, 1);
+	SetInt(PROFILE_UNLOCK_A, 0x13);
+	SetInt(PROFILE_UNLOCK_B, 0x1a6);
+	SetString(PROFILE_VERSION, gApp->mProdName);
+	float aVersion = 0;
+	sscanf(gApp->mProductVersion.c_str(), "%f", &aVersion);
+	SetFloat(0x10, aVersion);
+	for (int i = 0; i <= 0xc; i++)
+		SetInt(i, 0);
+	for (int i = 0x33; i <= 0x37; i++)
+		SetInt(i, 1);
+	for (int i = 0x3a; i <= 0x3e; i++)
+		SetInt(i, 1);
+	for (int i = 0x2a; i <= 0x2e; i++)
+		SetInt(i, 1);
+	for (int i = 0x15; i <= 0x29; i += 2)      // 0x424440
+		SetInt(i, 0);
+	for (int i = 0x14; i <= 0x28; i += 2)      // 0x4244c0
+		SetInt(i, 1);
+	Save();
+}
+
 // 0x424540: no saved game (the original sets setting 99 twice)
 void UserProfile::ResetGame()
 {
