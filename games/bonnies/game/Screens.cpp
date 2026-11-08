@@ -678,6 +678,7 @@ int HighScoresScreen::handleEvent(Event* theEvent)
 
 static int gLogoLoaded;           // 0x4791b4: the app's resources are loaded
 static int gLogoSkip;             // 0x4791b8: a click or key hurries the logos
+bool gFixSkipLogos = false;
 static int gLogoFade = 0x96;      // 0x473e50: a logo's fade, in ms
 static int gPopCapTime = 0x5dc;   // 0x473e54: PopCap's logo shows this long
 static int gDistributorTime = 0x5dc;  // 0x473e58
@@ -955,6 +956,9 @@ void LogoScreen::update()
 		gLogoLoaded = 1;
 		gBonnies->loadResources();
 	}
+	// port (mod): the fixes mod's "skipLogos": on to the menu once the resources are in, as a finished logo goes
+	if (gFixSkipLogos && gLogoLoaded != 0)
+		mDone = 1;
 	int aWait = 0xdac;
 	if (gLogoSkip != 0)
 		aWait = 0x5dc;

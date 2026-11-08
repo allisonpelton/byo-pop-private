@@ -1,0 +1,16 @@
+{
+  "id": "fixes",
+  "name": "Bonnie's Bookstore Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends what the original wasted or left to the machine's speed, and changes nothing else: its look, rules, sounds and pace of play stay as they were. Each fix is a toggle; with the whole mod off the game is the original.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    { "id": "steadyClock", "label": "Timing from the updates", "type": "bool", "default": true, "apply": "restart",
+      "help": "The game's timers (falling tiles, the action game's clock, the level's count) run on its own updates, 10 ms each, not on the machine's clock, so the same seed and the same moves play the same game on every run, however busy the machine is." },
+    { "id": "skipLogos", "label": "Skip the logo screens", "type": "bool", "default": true, "apply": "restart",
+      "help": "The game opens at its menu as soon as it has loaded. The original shows its logos for several seconds, and a click only shortens them." }
+  ]
+}

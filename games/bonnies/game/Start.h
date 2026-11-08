@@ -16,6 +16,9 @@ void loadLetterOdds();
 void loadBooks();
 // BonniesApp.h: 0x401000 WinMain's game
 int bonniesMain();
+// port (mod): the fixes mod's "skipLogos" (games/bonnies/mods/fixes; the host sets it before bonniesMain): the logos
+// give way to the menu as soon as the game's resources are loaded
+extern bool gFixSkipLogos;
 
 // port (test runs): the board, the hint the game shows, the level and the buttons on screen, as text for
 // tools/realplay.py (GameScreen.cpp); the host writes it only in a test run whose BONNIES_STATE names a file
