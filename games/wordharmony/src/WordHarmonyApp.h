@@ -58,6 +58,7 @@ public:
 	std::string mCommandLine;  // the screen saver's arguments only (/s, /c, /p)
 	int mFrames;               // port: the engine's frames, the identical-play runs' update counter
 	uint32_t mEngineClock;     // port: -fast: the engine's milliseconds, one frame period a frame
+	bool mSteadyClock;         // port(mod): the fixes mod's steadyClock: the engine's clock as with -fast, in real time
 	FILE* mStateLog;           // port: -statelog=<file>, the values that decide play (LogState)
 	std::vector<std::pair<std::string, std::string>> mLoggedState;
 

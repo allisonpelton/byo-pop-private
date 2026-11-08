@@ -2,6 +2,7 @@
 
 #include "WordHarmonyApp.h"
 #include "Render.h"
+#include "ModFeatures.h"
 #include "SoundHost.h"
 #include "engine/App.h"
 #include "engine/Exception.h"
@@ -39,8 +40,11 @@ const int SCREEN_HEIGHT = 600;
 class WordHarmonyHost : public engine::Host
 {
 public:
-	// port: with -fast the engine has a clock of its own, which moves one frame period a frame (WordHarmonyWidget::Update)
-	uint32_t timeMs() override { return gApp->mFastMode ? gApp->mEngineClock : gApp->GetClockTime(); }
+	// port: with -fast, or the fixes mod's steadyClock, the engine has a clock of its own, which moves one frame period
+	// a frame (WordHarmonyWidget::Update)
+	uint32_t timeMs() override { return gApp->mFastMode || gApp->mSteadyClock ? gApp->mEngineClock : gApp->GetClockTime(); }
+
+	bool fixOn(const char* theFix) override { return Sexy::FixOn(theFix); }
 
 	// port: -seed=N, for the game's srand of the tick count
 	bool testSeed(unsigned int& theSeed) override
@@ -153,7 +157,7 @@ WordHarmonyWidget::WordHarmonyWidget()
 	mGraphics = new wordharmony::ScreenGraphics((uint32_t*)mScreenImage->GetBits(), SCREEN_WIDTH, SCREEN_HEIGHT);
 	mLastLoop = gApp->GetClockTime();
 	mAccumulated = 0;
-	mLastSoundTick = mLastLoop;
+	mLastSoundTick = gApp->mSteadyClock ? (DWORD)(gApp->mUpdateCount * gApp->mFrameTime) : mLastLoop;
 }
 
 WordHarmonyWidget::~WordHarmonyWidget()
@@ -171,9 +175,11 @@ void WordHarmonyWidget::Update()
 	if (!gApp->mEngineRunning)
 		return;
 	DWORD aNow = gApp->GetClockTime();
-	if ((int)(aNow - mLastSoundTick) >= 100)
+	// fixes mod, "steadyClock": the sound system's 100 ms tick (its fades) on the updates as well
+	DWORD aSoundNow = gApp->mSteadyClock ? (DWORD)(gApp->mUpdateCount * gApp->mFrameTime) : aNow;
+	if ((int)(aSoundNow - mLastSoundTick) >= 100)
 	{
-		mLastSoundTick = aNow;
+		mLastSoundTick = aSoundNow;
 		if (engine::App::getSoundSystem() != nullptr)
 			engine::App::getSoundSystem()->update(100);
 	}
@@ -186,11 +192,18 @@ void WordHarmonyWidget::Update()
 	}
 	else
 	{
-		mAccumulated += (int)(aNow - mLastLoop);
+		// fixes mod, "steadyClock": the time added up is the framework's updates (mFrameTime each, which it runs at that
+		// rate and catches up), not the machine's milliseconds, so the frames fall on the same updates as the input
+		mAccumulated += gApp->mSteadyClock ? gApp->mFrameTime : (int)(aNow - mLastLoop);
 		mLastLoop = aNow;
 		if (mAccumulated < aPeriod)
 			return;
 		mAccumulated -= aPeriod;
+		// fixes mod, "steadyClock": the original times each frame by the machine's clock (the milliseconds since the
+		// last, at most 330), so a frame that comes late moves the balls, the water and the timers further and play
+		// differs from run to run; with the fix each frame is one period on the engine's clock, as with -fast
+		if (gApp->mSteadyClock)
+			gApp->mEngineClock += aPeriod;
 	}
 	gApp->RunFrame();
 	MarkDirty();
@@ -264,6 +277,7 @@ WordHarmonyApp::WordHarmonyApp()
 	mQuitRequested = false;
 	mFrames = 0;
 	mEngineClock = 0;
+	mSteadyClock = false;
 	mStateLog = nullptr;
 }
 
@@ -298,7 +312,10 @@ void WordHarmonyApp::Init()
 	if (mShutdown)
 		return;
 	engine::setHost(&gHost);
-	wordharmony::HostSound::sGameClock = mFastMode;
+	// fixes mod, "steadyClock" (read at the start: its toggle applies on a restart): the sounds end by the engine's clock
+	// too, so the music's draws from the game's random numbers when a clip ends fall on the same frames on every run
+	mSteadyClock = !mFastMode && FixOn("steadyClock");
+	wordharmony::HostSound::sGameClock = mFastMode || mSteadyClock;
 	mWidget = new WordHarmonyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mWidget);

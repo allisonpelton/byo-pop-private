@@ -2,8 +2,9 @@
 # "<update> screenshot <name>") and writes the port's -script (shots to <outdir>/port/<name>.png; the web run's to
 # shots/<name>.png in its working directory) or origrun's script: an input at "at <update - 1>", as in phase one (origrun
 # holds the original after frame N, so an input posted there is read before frame N+1, where the port reads its line K
-# before frame K), and a shot at "at <update> shot <name>" (the original held after frame N shows what the port's
-# screenshot before frame N+1, taken at update N's line, shows; checked on the title tour). A line "<update> @port
+# before frame K), and a shot at "at <update - 1> shot <name>" too: the original held after frame N-1 shows what the
+# port's screenshot at line N shows (measured on TSUNAMI's falling balls: the port's shots at 754-766 against the
+# original's "at 760", only the port's 761 matched). A line "<update> @port
 # <command>" or "@orig" is for one side only.
 import sys
 tour, out, side = sys.argv[1:4]
@@ -30,7 +31,7 @@ for k, cmd, a in lines:
         if cmd == 'char':
             cmd = 'text'
         if cmd == 'screenshot':
-            print("at %d shot %s" % (k, a))
+            print("at %d shot %s" % (k - 1, a))
         else:
             print("at %d %s %s" % (k - 1, cmd, a))
 if side == 'orig':

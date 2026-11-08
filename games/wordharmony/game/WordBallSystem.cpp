@@ -5,6 +5,7 @@
 #include "FadeContainer.h"
 #include "Game.h"
 #include "Graphics.h"
+#include "Host.h"
 #include "Hud.h"
 #include "ImageNode.h"
 #include "Level.h"
@@ -43,6 +44,9 @@ WordBallSystem::WordBallSystem(int theMode)
 	// huge positive double, so the program's first word always counts as quick (twice the points): the same bytes here
 	uint64_t aBits = 0x756f72676b636162ULL;
 	memcpy(&mLastMatch, &aBits, 8);
+	// fixes mod, "fairFirstWord": no word came before the first, so it counts as quick only when it is quick
+	if (engine::getHost()->fixOn("fairFirstWord"))
+		mLastMatch = 0;
 	mNoPicking = false;
 	mWaveTime = 0;
 	m1F0 = false;

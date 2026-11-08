@@ -775,23 +775,8 @@ void Game::resume()
 	mBallSystem->mLayer->fade(true, SCREEN_FADE, 1.0f);
 }
 
-// 0x404320: VisitURL opened when it is a web address
-void Game::openLink()
-{
-	std::string aURL = mSettings.mVisitURL;
-	if (aURL.size() < 7)
-		return;
-	if (aURL.substr(0, 7).compare("http://") != 0)
-	{
-		std::string aStart = aURL.substr(0, 8);
-		if (aStart.compare("https://") != 0)
-		{
-			getHost()->showMessage(GT(0x480678).c_str(), GT(0x480678).c_str());
-			return;
-		}
-	}
-	getHost()->openURL(aURL);
-}
+// 0x404320 (Game::openLink, VisitURL opened when it is a web address) is left out with the game link button: no button
+// leads out of a port (CLAUDE.md, "Order of the work")
 
 // 0x4047d0
 void Game::startLevel()
@@ -1650,8 +1635,7 @@ void Game::screenAction(std::string theAction)
 		App::instance()->quit(0);
 		return;
 	}
-	if (theAction.compare("doGameLink") == 0)
-		openLink();
+	// ("doGameLink", the game link button's action, is left out with it)
 	return;
 removeScreen:
 	aScreen->setCallback(&removeWhenFaded, aScreen);
