@@ -327,9 +327,16 @@
     var p = Promise.resolve();
     steps.forEach(function (st) {
       p = p.then(function () {
-        if (st.click) return test.click(st.click.x, st.click.y, st.click.button || "left");
+        // the step forms of docs/TEST_COMMANDS.md ([x, y] points), and {x, y} points as the first drivers wrote them
+        function pt(v) { return Array.isArray(v) ? { x: v[0], y: v[1] } : v; }
+        var btn = st.button || (st.click && st.click.button) || "left", a = pt(st.click || st.move || st.press || st.release);
+        if (st.click) return test.click(a.x, a.y, btn);
+        if (st.move) return test.move(a.x, a.y);
+        if (st.press) return test.down(a.x, a.y, btn);
+        if (st.release) return test.up(a.x, a.y, btn);
         if (st.drag) return test.drag(st.drag.x0, st.drag.y0, st.drag.x1, st.drag.y1, st.drag.steps || 4);
         if (st.key) return test.key(st.key);
+        if (st.wait !== undefined) return test.wait(st.wait);
       });
     });
     return p.then(function () { return test.wait(m.updates > 0 ? m.updates : 1); });
