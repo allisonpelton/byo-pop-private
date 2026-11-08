@@ -852,8 +852,7 @@ void List_DeleteNode(Powerup* thePowerup)
 	::operator delete(thePowerup);
 }
 
-// 0x418d60: a kind by the level (the later the level, the more kinds; no water mines or sweepers in an unregistered
-// copy, only sweepers in the demo), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
+// 0x418d60: a kind by the level (the later the level, the more kinds; only sweepers in the demo), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
 // held while it is made, choose kinds 0..13 (the developers' test). The table gives kinds 0..13 (0 a faster beam; the
 // extra life is in its last six places), so nothing but the keys makes the sweepers, the water mine or the freeze (15..17).
 Powerup* Powerup_Init(Powerup* thePowerup)
@@ -866,8 +865,6 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		aRange = 0xe;
 	aRange = aRange * 10 + 9;
 	thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
-	while (gRegistered == 0 && (thePowerup->kind == 0xf || thePowerup->kind == 0x10))
-		thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
 	if (gDemo != 0)
 	{
 		thePowerup->kind = 0xf;

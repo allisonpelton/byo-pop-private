@@ -102,6 +102,24 @@ The text and dialog screens (2026-11-01): the main menu, both Help pages (Instru
 
 The web build (2026-11-01): the rebuilt page (`?silent=1`) loads its wasm and shows its start page with no console errors. With the game's install folder zipped and set on the page's zip input from script (189 files copied), the page started the game and drew the main menu and the Options screen with the same texts as the original ("Video: Fullscreen" and the rest); a click-through of further screens was not finished (an import panel of the page stayed in front), so no web screen is compared pixel by pixel; the web build runs the same game code as the native build that was compared.
 
+## Added in the finishing pass (2026-11-08)
+
+None of these shows in play with the mods off; `GAME_NOTES.md` has the detail.
+
+- **Registration and the buttons that lead out of the game are not translated.** The trial's clock, the registered flag and the
+  branches on it, the "buy now" and website buttons with the shortcut reader and the URL opened at the window's closing, the
+  host's `OpenURL`. The save file keeps the trial clock's four bytes (3600000, as the registered game leaves them) so a file of
+  the original and a file of the port stay interchangeable. The nag screens (levels 8 to 10) are parsed and never visited.
+- **The mods are loaded.** The host reads a mods folder (`FixOn`, `Sys_FixOn`) for the fixes mod: `steadyClock` (the game steps
+  10 ms for each update of the framework instead of the machine's clock) and `easyLabel` (the name of the easiest difficulty).
+  With no mod the game is the original and the baseline is unchanged.
+- **The focus pauses the game in a real-input run and on the page.** `IsActive()` followed the test run, which kept the game
+  running when the window lost the focus; it follows the window now, as the original's `WM_ACTIVATEAPP` does. A test run
+  without `-realinput` has no window events and stays active.
+- **The test hooks** (`src/testhooks/`, `level`, `goto`, `set`, `win`, `lose`, `seed`, `move`, `grid`) are reached only from a
+  test's script, command file or the page's `byopop.test.command`. A game that is never given a command never runs them. They
+  draw no random number except `seed`.
+
 ## Oddities (not chased)
 
 Pipe-end glints (2026-11-01). On about 20 of the later-level shots, the sparkles at the pipe ends differ slightly from the original's (tint and position, tens of pixels per shot; the frames around them are identical). They are not particles (no ParticleSystem_Add call falls in the window) and the cause was not found after a long look. To see them: replay one of the original runs under origrun with the run's own input counters (`docs/ORIGRUN.md`, `re` scratch scripts) and compare with `tools/shotdiff`. Matching them would need values measured from runs, so they stay as they are.
