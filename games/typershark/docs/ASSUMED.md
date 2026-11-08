@@ -52,6 +52,11 @@ returns false; `SaveUser` does not free the profile it replaces.
   Widget; its height comes from `mImages[IMAGE_STATUSBARX]`, id 8).
   The Board also calls `StatusBar::HideButtons()` (0x441f10: hides its buttons and sends the widget at +0x68 to the back),
   `ShowButton(bool)` (0x441f80) and the Widget virtual `MouseLeave()`.
+- D1 done: GameOverDialog, WinGameDialog, DifficultyDialog, AbyssModeDialog, KeyDialog (the plain message box) and HintDialog are
+  translated and their headers are the contract (AbyssModeDialog folds in the original's MoneyDialog base). WinGameDialog's
+  `mTime`, `mCharsTyped`, `mMistakes` are set by MapScreen's update (0x45ad20) from the app's +0x900, +0x90c, +0x908
+  (named `mField900`... by use only). `Player::mField114` is the 0-based level index. UserProfile +0x22c counts finished games
+  (1-2 bronze, 3-4 silver, 5+ gold medal); +0x194 is the abyss "Highest Score".
 - GameOverDialog(WinWSApp*, Player*, bool theEndless, int, int, int, int theScore) (ctor 0x43adb0) with `int mField11c` (+0x11c),
   `std::string mRankTitle` (+0x128) and `int mField144` (+0x144, set only in an endless game); a Dialog2004, added as DIALOG_GAME_OVER.
 - TypingTutor (Widget and ButtonListener; ctor 0x460b30): `ButtonDepress(int)` (the ButtonListener object is at +0x58),
