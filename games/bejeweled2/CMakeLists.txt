@@ -6,7 +6,7 @@
 file(GLOB BEJ2_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(bejeweled2 ${BEJ2_SOURCES})
 target_include_directories(bejeweled2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(bejeweled2 PRIVATE sexyframework sexyopenmpt)
+target_link_libraries(bejeweled2 PRIVATE sexyframework sexycompat2004 sexyopenmpt)
 if(NOT MSVC)
   target_compile_options(bejeweled2 PRIVATE -Wall -Wno-overloaded-virtual -Wno-unused-private-field)
 endif()

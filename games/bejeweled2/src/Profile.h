@@ -16,7 +16,7 @@ namespace Sexy
 struct PuzzleProgress
 {
 	std::vector<unsigned char> mSolved;  // +0x20 (vector<byte>) one byte per puzzle of the pack, as saved
-	short mPuzzleNum;                    // +0x2c the puzzle the player is on
+	int mPuzzleNum;                      // +0x2c the puzzle the player is on (a dword in memory, a short in profile.dat)
 	PuzzleProgress() : mPuzzleNum(0) {}
 };
 
@@ -45,6 +45,7 @@ public:
 public:
 	Profile();
 
+	std::string GetFolder() const;                      // 0x5cfad5 users/<name> in the app data folder
 	void ReadProfileList();                             // 0x5d07cd users/ folders -> mNames
 	bool LoadProfile(const std::string& theName);       // 0x5d0bd1 false (and the name leaves the roster) when the file fails
 	bool LoadProfileHelper(const std::string& theName); // 0x5d08cb

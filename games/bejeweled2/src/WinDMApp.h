@@ -172,11 +172,16 @@ public:
 	virtual void	Done3dTesting() override;                       // 0x5dbe1f
 	virtual void	PlaySample(int theSoundNum) override;           // 0x5dbe86
 	virtual void	PlaySample(int theSoundNum, int thePan) override; // 0x5dbe9a
+	// port: the standard test commands (docs/TEST_COMMANDS.md; TestCommands.cpp). HandleScriptCommand offers a command to them first
+	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
+	bool			HandleTestCommand(const ScriptCommand& theCommand);
+	std::string		TestScreen();
 	using SexyApp::SwitchScreenMode;
 	using SexyApp::AddDialog;
 	using SexyApp::PlaySample;
 
 	// the functions the original added to the vtable
+	void			DoGameOver() {}                                 // 0x5dc172 (does nothing)
 	virtual void	DoHighScoreWidget();                            // 0x5dc0c0 (slot 0x1a0)
 	virtual void	KillHighScoreWidget();                          // 0x5dc140 (slot 0x1a4)
 

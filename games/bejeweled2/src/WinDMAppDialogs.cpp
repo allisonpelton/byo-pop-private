@@ -6,6 +6,7 @@
 
 #include "Board.h"
 #include "Dialog.h"
+#include "EditWidget.h"
 #include "FancyBackdrop.h"
 #include "HelpScreen.h"
 #include "HighScoreNameDialog.h"
@@ -34,7 +35,7 @@ void WinDMApp::SetupDialog(Dialog* theDialog, int theWidth)
 	theDialog->mSpaceAfterHeader = ScaleNum(0x1c, 0);
 
 	int aCenterX;
-	if (mBoard == nullptr || mBoard->mMode1714 != 1)
+	if (mBoard == nullptr || mBoard->mScreenState != 1)
 		aCenterX = mWidth / 2;
 	else
 		aCenterX = ScaleNum(0x270, 0);
@@ -116,7 +117,7 @@ void WinDMApp::ButtonDepress(int theId)
 			return;
 		case 38:
 		case 39:
-			mBoard->mHintDialogUp = 0;
+			mBoard->mHintPiece = 0;
 			break;
 		case 40:
 			FinishHelpScreen(false);
@@ -191,7 +192,7 @@ void WinDMApp::ButtonDepress(int theId)
 				aHint = 2;
 			mProfile->DisableHint(aHint);
 		}
-		mBoard->mHintDialogUp = 0;
+		mBoard->mHintPiece = 0;
 		break;
 	}
 	case 27:
@@ -433,7 +434,7 @@ void WinDMApp::TryConfirmLoad()
 // 0x5e119e
 void WinDMApp::ConfirmNewGame()
 {
-	if (mBoard->mMode170C == 7)
+	if (mBoard->mState == 7)
 		NewGame();
 	else
 		DoDialog(DIALOG_NEW_GAME, true, GetString("NEWGAMEDIALOG1"), GetString("NEWGAMEDIALOG2"), "", 1);
@@ -451,7 +452,7 @@ void WinDMApp::ConfirmResetHighScores()
 void WinDMApp::ConfirmQuit()
 {
 	std::string aLines = GetString("CONFIRMQUIT1");
-	if (mBoard != nullptr && mBoard->IsGameInProgress())
+	if (mBoard != nullptr && mBoard->CanPlay())
 		aLines += GetString("CONFIRMQUIT2");
 	DoDialog(DIALOG_QUIT, true, "Quit?", aLines, "", 1);
 }

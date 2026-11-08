@@ -8,6 +8,7 @@
 #include "Buffer.h"
 #include "ButtonWidget.h"
 #include "CustomResourceManager.h"
+#include "EffectOverlay.h"
 #include "Dialog.h"
 #include "FancyBackdrop.h"
 #include "GalaxyParser.h"
@@ -352,7 +353,7 @@ done:
 // 0x5dcd44
 void WinDMApp::DoMainMenu()
 {
-	if (mBoard != nullptr && mBoard->IsGameInProgress()) {
+	if (mBoard != nullptr && mBoard->CanPlay()) {
 		mReloadPending = true;
 		KillBoard();
 	}
@@ -369,7 +370,7 @@ void WinDMApp::DoMainMenu()
 void WinDMApp::DoBoardShow()
 {
 	mBoard->SetVisible(true);
-	if (mGameMode != 2 && mProfile->WantsHint(3) && mBoard->mShowHelp) {
+	if (mGameMode != 2 && mProfile->WantsHint(3) && mBoard->mNoMoveYet) {
 		mBoard->HideNow();
 		DoHelpScreen();
 	} else {
@@ -525,8 +526,8 @@ void WinDMApp::DoReloading(bool wantWindowed, bool is3d)
 		if (mBoard == nullptr) {
 			mWasInGame = false;
 		} else {
-			mBoard->mShowHelp = false;
-			mWasInGame = mBoard->IsGameInProgress();
+			mBoard->mNoMoveYet = false;
+			mWasInGame = mBoard->CanPlay();
 			KillBoard();
 		}
 	}
@@ -595,10 +596,10 @@ void WinDMApp::DoneReloading()
 	} else {
 		DoNewGame();
 		if (!mBoard->LoadGame())
-			mBoard->mMessageTimer = 20;
+			mBoard->mDropDelay = 20;
 		mBoard->InitialBackdropProcessing();
-		mBoard->mFlag1764 = 0;
-		mBoard->mFlag28 = 60000;
+		mBoard->m1764 = 0;
+		mBoard->mUpdateCnt = 60000;
 	}
 	// port: the original shows the "no more plays" dialog here when the trial has run out
 }
@@ -690,7 +691,7 @@ void WinDMApp::Shutdown()
 		return;
 	// port: the original waits for the reload thread here, and adds the minutes of this run to the trial's counter
 	mReloading = false;
-	if (mBoard != nullptr && mBoard->IsGameInProgress()) {
+	if (mBoard != nullptr && mBoard->CanPlay()) {
 		mWidgetManager->RemoveWidget(mBoard);
 		delete mBoard;
 		mBoard = nullptr;
@@ -778,9 +779,9 @@ void WinDMApp::PlaySample(int theSoundNum, int thePan)
 	if (mBoard != nullptr) {
 		double aPitch;
 		bool aChange = true;
-		if (mBoard->mPitchDown)
+		if (mBoard->mIsTwilight)
 			aPitch = -2.0;
-		else if (mBoard->mPitchUp)
+		else if (mBoard->mIsHyper)
 			aPitch = (theSoundNum == SOUND_WHIRLPOOL) ? 12.0 : 1.0;
 		else
 			aChange = false;
@@ -797,7 +798,7 @@ void WinDMApp::ModalOpen()
 {
 	if (mBoard != nullptr) {
 		bool aFlag = false;
-		if (mBoard->mUserPaused) {
+		if (mBoard->mIsAction) {
 			for (const auto& aDialog : mDialogMap)
 				if (aDialog.second->mId < 0x25)
 					aFlag = true;
@@ -810,21 +811,21 @@ void WinDMApp::ModalOpen()
 void WinDMApp::ModalClose()
 {
 	if (mBoard != nullptr)
-		mBoard->Unpause(mBoard->mUserPaused);
+		mBoard->Unpause(mBoard->mIsAction);
 }
 
 // 0x5dc086
 void WinDMApp::GotFocus()
 {
 	if (mBoard != nullptr)
-		mBoard->Unpause(mBoard->mUserPaused);
+		mBoard->Unpause(mBoard->mIsAction);
 }
 
 // 0x5dc0a3
 void WinDMApp::LostFocus()
 {
 	if (mBoard != nullptr)
-		mBoard->Pause(mBoard->mUserPaused);
+		mBoard->Pause(mBoard->mIsAction);
 }
 
 // 0x5dc0c0

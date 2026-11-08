@@ -15,6 +15,7 @@
 #include "WidgetManager.h"
 #include "WinDMApp.h"
 #include "Board.h"
+#include "EffectOverlay.h"
 
 using namespace Sexy;
 
@@ -695,7 +696,7 @@ void MainMenu::Update()
 void MainMenu::Draw(Graphics* g)
 {
 	bool is3d = mApp->Is3DAccelerated();
-	if (mApp->mBoard != NULL && mApp->mBoard->CoversScreen() && !is3d)
+	if (mApp->mBoard != NULL && mApp->mBoard->mEffectOverlay->mFlagC9 && !is3d)
 		return;
 
 	int anOffset = (int)mApp->ScaleNum(mSlide.GetOutVal(), 0.0);

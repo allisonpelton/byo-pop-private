@@ -9,9 +9,5 @@
 
 using namespace Sexy;
 
-void WinDMApp::DoOptions() {}
-void WinDMApp::FinishOptionsDialog(bool theOk) {}
-void WinDMApp::DoHelpScreen() {}
-void WinDMApp::FinishHelpScreen(bool theNeverShowAgain) {}
 void WinDMApp::DoPuzzleRating() {}
 void WinDMApp::FinishPuzzleRatingDialog(bool theOk) {}

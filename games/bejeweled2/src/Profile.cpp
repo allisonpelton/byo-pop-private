@@ -22,6 +22,11 @@ static std::string ProfileFolder(const std::string& theName)
 	return GetAppDataFolder() + "users/" + theName;
 }
 
+std::string Profile::GetFolder() const
+{
+	return ProfileFolder(mName);
+}
+
 // the original compares names with _stricmp
 static bool EqualNoCase(const std::string& a, const std::string& b)
 {
