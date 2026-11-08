@@ -129,8 +129,7 @@ void UserProfile::InitNew(const std::string& theName, int theNumber)
 		SetInt(i, 1);
 	for (int i = 0x2a; i <= 0x2e; i++)
 		SetInt(i, 1);
-	for (int i = 0x15; i <= 0x29; i += 2)      // 0x424440
-		SetInt(i, 0);
+	ResetHintsShown();
 	for (int i = 0x14; i <= 0x28; i += 2)      // 0x4244c0
 		SetInt(i, 1);
 	Save();
@@ -415,4 +414,50 @@ int UserProfile::NextUserNumber()
 	aLast++;
 	gApp->RegistryWriteInteger("Users\\LastUserNum", aLast);
 	return aLast;
+}
+
+// 0x424440: the hints of the game show again
+void UserProfile::ResetHintsShown()
+{
+	for (int i = 0x15; i <= 0x29; i += 2)
+		SetInt(i, 0);
+}
+
+// 0x426020: puts a result (six numbers: the kind, the mode, the score, the level, the time in seconds, the weapon levels)
+// in its list: the lists of kind 1 (by score) and kind 2 (by time) hold five, the best first. A result is put in front of
+// the first one it matches or beats; it is added at the end while there is room (the list is cut to five when saved).
+int UserProfile::AddRecord(const ProfileRecord& theRecord)
+{
+	std::vector<ProfileRecord>* aList;
+	int aKey;
+	if (theRecord.mField[0] == 1)
+	{
+		aList = &mRecordsB;
+		aKey = 2;
+	}
+	else if (theRecord.mField[0] == 2)
+	{
+		aList = &mRecordsA;
+		aKey = 4;
+	}
+	else
+		return -1;
+
+	if (aList->empty())
+	{
+		aList->push_back(theRecord);
+		return 0;
+	}
+	for (unsigned int i = 0; i < aList->size() && i < 5; i++)
+	{
+		if ((*aList)[i].mField[aKey] <= theRecord.mField[aKey])
+		{
+			aList->insert(aList->begin() + i, theRecord);
+			return i;
+		}
+	}
+	if (aList->size() > 4)
+		return -1;
+	aList->push_back(theRecord);
+	return (int) aList->size() - 1;
 }

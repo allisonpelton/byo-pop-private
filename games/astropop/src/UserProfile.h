@@ -66,6 +66,8 @@ public:
 
 	void InitNew(const std::string& theName, int theNumber); // 0x429510 (the first settings of a new player; saves)
 	void ResetGame();                                 // 0x424540 (settings 0x4f .. 0x64: no saved game)
+	void ResetHintsShown();                           // 0x424440 (the odd settings 0x15 .. 0x29: no hint has been shown)
+	int AddRecord(const ProfileRecord& theRecord);    // 0x426020 (puts a result in its list; its place there, -1 for none)
 	void ClearScores();                              // 0x42dbd0 (20 x 10 zeroed pairs)
 	bool Load(float* theVersion, std::string* theName, bool theSkipFile); // 0x42eca0
 	bool Save();                                        // 0x4276b0 (users\data<number>.usr; false when the write fails)

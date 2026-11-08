@@ -13,6 +13,7 @@ f8	std::vector<int>	mf8
 108	std::vector<Brick*>	m108	bricks (emptied by ClearField)
 118	std::vector<Brick*>	mTargeted	the bricks that flash because the piece in hand would hit them (HighlightTargets)
 128	std::set<Brick*>	m128	the bricks to delete (DeleteDoomedBricks)
+134	std::set<int>	m134	a set that GameOver empties (element type not seen yet)
 140	std::vector<FloatText*>	m140	the texts that float up the screen
 160	std::vector<PlanetRec>	m160	the planets (5 are stepped)
 170	std::vector<StreakRec>	m170	the streaks (100)
@@ -143,6 +144,7 @@ f8	std::vector<int>	mf8
 901	bool	m901	?
 905	bool	m905	?
 907	bool	m907	?
+908	bool	m908	the result is in the hall of fame
 909	bool	m909	?
 90a	bool	m90a
 90b	bool	m90b	?
@@ -301,6 +303,7 @@ ade	int	made	?
 1b60	int	m1b60	?
 1b64	int	m1b64	?
 1b68	int	m1b68	?
+1b6c	int	m1b6c	the best level of the mode rounded down to a multiple of four, -1 none
 1b70	int	m1b70	?
 1b74	int	m1b74	?
 1b78	int	m1b78

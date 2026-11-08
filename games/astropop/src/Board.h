@@ -225,6 +225,7 @@ public:
 	std::vector<Brick*>	m108;// +0x108 bricks (emptied by ClearField)
 	std::vector<Brick*>	mTargeted;// +0x118 the bricks that flash because the piece in hand would hit them (HighlightTargets)
 	std::set<Brick*>	m128;// +0x128 the bricks to delete (DeleteDoomedBricks)
+	std::set<int>	m134;// +0x134 a set that GameOver empties (element type not seen yet)
 	std::vector<FloatText*>	m140;// +0x140 the texts that float up the screen
 	std::vector<PlanetRec>	m160;// +0x160 the planets (5 are stepped)
 	std::vector<StreakRec>	m170;// +0x170 the streaks (100)
@@ -355,6 +356,7 @@ public:
 	bool	m901 = false;// +0x901 ?
 	bool	m905 = false;// +0x905 ?
 	bool	m907 = false;// +0x907 ?
+	bool	m908 = false;// +0x908 the result is in the hall of fame
 	bool	m909 = false;// +0x909 ?
 	bool	m90a = false;// +0x90a
 	bool	m90b = false;// +0x90b ?
@@ -513,6 +515,7 @@ public:
 	int	m1b60 = 0;// +0x1b60 ?
 	int	m1b64 = 0;// +0x1b64 ?
 	int	m1b68 = 0;// +0x1b68 ?
+	int	m1b6c = 0;// +0x1b6c the best level of the mode rounded down to a multiple of four, -1 none
 	int	m1b70 = 0;// +0x1b70 ?
 	int	m1b74 = 0;// +0x1b74 ?
 	int	m1b78 = 0;// +0x1b78
@@ -618,6 +621,8 @@ public:
 	void			Fn46e9b0();                                     // 0x46e9b0 (1615 bytes)
 	void			UpdateGameOver();                               // 0x45e680
 	void			CreateEndButtons();                             // 0x4593b0
+	int				WeaponLevelSum();                               // 0x432e90
+	void			SaveFinalScore();                               // 0x43e050
 
 	// ---- pause and play (BoardPlay.cpp)
 	void			Pause(bool theStart, bool theFlag);             // 0x459040 a dialog opens (true) or closes (false)

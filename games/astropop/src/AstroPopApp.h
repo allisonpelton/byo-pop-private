@@ -36,6 +36,17 @@ extern AstroPopApp* gApp;   // 0x5dc220 (set by WinMain; the port: by the constr
 extern float gSinTable[360];
 extern float gCosTable[360];
 
+// An entry of the hall of fame (0x2c bytes): kind 1 is a result of a game by its score (the second number is the level
+// reached), kind 2 a result of a timed game by the time played in seconds (the second number)
+struct HallEntry
+{
+	std::string	mName;      // +0x00
+	int			mScore;     // +0x1c
+	int			mSecond;    // +0x20
+	int			mMode;      // +0x24
+	int			mKind;      // +0x28
+};
+
 class AstroPopApp : public SexyApp
 {
 public:
@@ -68,6 +79,7 @@ public:
 	MemoryImage*				mLightningImage;    // +0x6a0 IMAGE_WARP_FX_LIGHTENING, flipped copy
 	MemoryImage*				mLightningImage2;   // +0x6a4 the same, drawn as it is
 	XcfFile*					mDescriptor;        // +0x6a8 data\descriptor.xcf: the level settings (LoadDescriptor)
+	std::vector<HallEntry>		mHall;              // +0x6c4 the hall of fame (0x2c bytes an entry), kept in users\datahs.usr
 	bool						mFlag6f9;           // +0x6f9 ValidateUser: profile setting 0x13 (1 when missing) is not 0
 	bool						mFlag6fa;           // +0x6fa ValidateUser: profile setting 0x72 is 1
 	bool						mFlag6fb;           // +0x6fb ValidateUser: profile setting 0x73 (1 when missing) is 1
@@ -133,6 +145,7 @@ public:
 	void			StartGame(bool theContinue);                // 0x428c70 (the Board)
 	void			ShowCharSelector(int theMode);              // 0x411660 (pilot choice)
 	void			ShowHallOfFame();                           // 0x4288a0
+	bool			AddHallOfFame(const std::string& theName, int theScore, int theSecond, int theMode, int theKind); // 0x429a40
 	void			ShowQuitDialog();                           // 0x422c00
 	void			ShowUserSelect();                           // 0x422870
 	void			ShowOptions(bool theFromGame);              // 0x40bd70

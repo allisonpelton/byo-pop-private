@@ -21,11 +21,6 @@ bool Board::Fn46a810()
 	return false;
 }
 
-void Board::GameOver()
-{
-	NOT_TRANSLATED("GameOver", "0x450f80");
-}
-
 void Board::Fn46e9b0()
 {
 	NOT_TRANSLATED("Fn46e9b0", "0x46e9b0");

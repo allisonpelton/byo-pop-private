@@ -10,6 +10,7 @@
 #include "Particle.h"
 #include "WidgetManager.h"
 #include "Res.h"
+#include "UserProfile.h"
 
 using namespace Sexy;
 
@@ -139,4 +140,126 @@ void Board::CreateEndButtons()
 
 	mApp->mWidgetManager->AddWidget(aContinue);
 	mApp->mWidgetManager->AddWidget(aMenu);
+}
+
+// 0x432e90: how many upgrades of the weapons the player has taken in this mode (the levels above 1 of the settings 0x33 +
+// mode, 0x3b + mode and, for modes 0 and 3, 0x37 + mode)
+int Board::WeaponLevelSum()
+{
+	int aPower = 1;
+	int aSpeed = 1;
+	mApp->mUser->GetInt(mMode + 0x33, &aPower);
+	aPower--;
+	if (aPower < 0)
+		aPower = 0;
+	if (mMode == 0 || mMode == 3)
+	{
+		mApp->mUser->GetInt(mMode + 0x37, &aSpeed);
+		aSpeed--;
+		if (aSpeed < 0)
+			aSpeed = 0;
+		aPower += aSpeed;
+	}
+	aSpeed = 0;
+	mApp->mUser->GetInt(mMode + 0x3b, &aSpeed);
+	aSpeed--;
+	if (aSpeed < 0)
+		aSpeed = 0;
+	return aPower + aSpeed;
+}
+
+// 0x43e050: the result of a game is kept. After a game over it goes into the hall of fame and the player's best score and
+// record lists (and the saved game is dropped); when the game is left in the middle the progress is stored instead.
+void Board::SaveFinalScore()
+{
+	if (mFlag8E8)
+	{
+		std::string aName;
+		mApp->mUser->GetString(PROFILE_NAME, &aName);
+		m908 = mApp->AddHallOfFame(aName, mScore, m1940, mMode, 1);
+
+		int aBest = mScore;
+		mApp->mUser->GetInt(mMode, &aBest);
+		if (mScore > aBest)
+		{
+			mApp->mUser->SetInt(mMode, mScore);
+			mApp->mUser->SetInt(mMode + 4, m1940);
+		}
+
+		ProfileRecord aRecord;
+		aRecord.mField[0] = 1;
+		aRecord.mField[1] = mMode;
+		aRecord.mField[2] = mScore;
+		aRecord.mField[3] = m1940;
+		aRecord.mField[4] = -1;
+		aRecord.mField[5] = WeaponLevelSum();
+		m1b30 = mApp->mUser->AddRecord(aRecord);
+		mApp->mUser->ResetGame();
+	}
+	else
+		StoreProgress();
+	mApp->mUser->Save();
+}
+
+// 0x450f80: the game is over. The buttons of the field go, the result is kept (a game of the first kind: the best level
+// of the mode, rounded down to a multiple of four, is looked up for the screen and the hints are reset; a timed game:
+// the time goes into the lists, the hall of fame and the mode's best time), the field is cleared, and the screen
+// flashes white.
+void Board::GameOver()
+{
+	// (the original writes a line with the level to its trace list)
+	mApp->PlaySample(SOUND_VGAMEOVER);
+	mApp->PlaySample(SOUND_MEGA_EXPLOSION);
+	mFlag8E8 = true;
+	for (unsigned int i = 0; i < m1c0.size(); i++)
+		m1c0[i]->SetDisabled(true);
+	m2ec->SetDisabled(true);
+	for (unsigned int i = 0; i < m1c0.size(); i++)
+		m1c0[i]->SetVisible(false);
+	m2ec->SetVisible(false);
+
+	if (m1a60 == 1)
+	{
+		int aBestLevel = 0;
+		mApp->mUser->GetInt(mMode + 8, &aBestLevel);
+		if (aBestLevel < 4)
+			m1b6c = -1;
+		else
+			m1b6c = (aBestLevel / 4) * 4;
+		mApp->mUser->GetInt(0x5d, &m7c4);
+		mApp->mUser->SetInt(0x5d, 0);
+		mApp->mUser->ResetHintsShown();
+		SaveFinalScore();
+	}
+	else if (m1a60 == 2)
+	{
+		m19b8 = m19b4;
+		ProfileRecord aRecord;
+		aRecord.mField[0] = 2;
+		aRecord.mField[1] = mMode;
+		aRecord.mField[2] = mScore;
+		aRecord.mField[3] = -1;
+		aRecord.mField[4] = m19b4 / 100;
+		aRecord.mField[5] = WeaponLevelSum();
+		m1b30 = mApp->mUser->AddRecord(aRecord);
+
+		std::string aName;
+		mApp->mUser->GetString(PROFILE_NAME, &aName);
+		m908 = mApp->AddHallOfFame(aName, mScore, m19b8 / 100, mMode, 2);
+
+		int aBestTime = 0;
+		mApp->mUser->GetInt(mMode + 0x67, &aBestTime);
+		if (aBestTime < m19b8 / 100)
+		{
+			aBestTime = m19b8 / 100;
+			mApp->mUser->SetInt(mMode + 0x67, aBestTime);
+		}
+	}
+
+	mApp->PlaySong(0x27);
+	m1948 = 0xff;
+	mOverlay.SetFill(255, 255, 255, 255);
+	SetOverlayHidden(false);
+	ClearField();
+	m134.clear();
 }
