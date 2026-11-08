@@ -65,10 +65,10 @@ with the original's slot number and address.
 
 ## Jobs
 
-1. **The base model** (first): read GameObject (0x4010a0-0x401150 stubs, 0x4611b0 constructor, 0x461270, 0x4614f0...),
-   Enemy (0x4011f0, 0x403130, 0x4078b0, 0x40a5b0, ...), Shark, Piranha, Projectile and their constructors and thunks;
-   work out the layouts (offsets of every part and vbptr, the 12 GameObject virtuals, the 3 Enemy virtuals, which
-   concrete class overrides which) and write `games/typershark/docs/ENTITIES.md` (the layouts, the slot table, the naming
-   of every field you can name) plus `GameObject.h/.cpp`, `Enemy.h/.cpp`, `Shark.h/.cpp`, `Piranha.h/.cpp`,
-   `Projectile.h/.cpp`. Headers of the later jobs (`Board.h`, `WinWSApp.h`) may not exist yet: forward-declare.
-2. **The other entity classes**, a few per job, each reading `ENTITIES.md` and the headers of the first job first.
+1. **The base model** (done by the coordinator session): `ENTITIES.md`, `GameObject.h/.cpp`, `Enemy.h/.cpp`, and
+   `tools/vbase.py` (decread now writes `G.xx` / `E.xx` for the virtual-base fields; ENTITIES.md says how to read it).
+2. **The concrete classes**, a few per job (about 25 KB of original code each), each reading `ENTITIES.md`,
+   `GameObject.h` and `Enemy.h` first: first Shark and Piranha (every Shark/Piranha method, constructors, Update,
+   Draw, the thunk targets), then Projectile and the torpedoes, then the sharks' variants, bosses and the rest of
+   `entity_slots.py`. A field of Enemy or GameObject that the class uses and the header names only by offset gets its
+   name in the header (keep the offset comment); a field of the class itself goes in its own header.

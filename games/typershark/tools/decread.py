@@ -19,6 +19,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import vbase  # noqa: E402
+
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
 GH = os.path.join(ROOT, "re", "typershark", "gh")
 
@@ -215,6 +218,7 @@ def render(path):
     nm = names()
     t = re.sub(r"\bFUN_([0-9a-f]{8})\b", lambda m: nm.get(m.group(1), m.group(0)), t)
     t = re.sub(r"\n{3,}", "\n\n", t)
+    t = vbase.vbase(t)
     t = scale_ptr_arith(t)
     t = fieldsub(t)
     t = vcalls(t)
