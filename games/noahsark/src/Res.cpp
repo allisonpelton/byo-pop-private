@@ -53,7 +53,6 @@ const char* gImageNames[NUM_IMAGES] =
 	"checked",
 	"mountain",
 	"gameselector",
-	"register",
 	"noah_ascend1",
 	"noah_ascend2",
 	"noah_ascend3",

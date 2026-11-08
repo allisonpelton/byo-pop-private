@@ -8,11 +8,13 @@
 //   level <n>                     level n of the game in progress, as the level-up panel's link starts a level
 //   unlock all                    nothing in this game is locked
 //   set score <n> | set level <n> the score (and the shown score), the level counter (for the next level)
+//   set mode <mode> | set difficulty <d>   the game the bot starts from the menu (move stays bare: with arguments it is
+//                                 the framework's pointer move under -realinput)
 //   win, lose                     ends the round of an action or strategy game: the board cleared, the water at the ark
 //   seed <n>                      the C library's generator (the game's draws), and the bot's own
-//   move [<mode> [<difficulty>]]  the next input toward playing a game of the mode (asked on the menu; once given it is
-//                                 remembered), as the bot (Bot.cpp, the one -autoplay clicks) would make it:
-//                                 MOVE {"kind":...,"clicks":[{"x":,"y":}],"keys":[...],"updates":N}, "kind":"wait" when
+//   move                          the next input toward playing a game of the mode set, as the bot (Bot.cpp, the one
+//                                 -autoplay clicks) would make it:
+//                                 MOVE {"kind":...,"input":[{"move":[x,y]},{"click":[x,y]},{"key":"B"}],"updates":N}, "kind":"wait" when
 //                                 the game needs time (animals walking, a level ending), MOVE null when there is nothing
 //                                 to do (the menu with no mode asked for)
 
@@ -113,9 +115,10 @@ const char* PhaseName(int theState)
 	return "?";
 }
 
+// the input steps of a click (docs/TEST_COMMANDS.md): the pointer goes there first, as a hand's does
 std::string Click(int theX, int theY)
 {
-	return StrFormat("{\"x\":%d,\"y\":%d}", theX, theY);
+	return StrFormat("{\"move\":[%d,%d]},{\"click\":[%d,%d]}", theX, theY, theX, theY);
 }
 
 // a click in the middle of a widget (the buttons and links of the screens are top-level widgets: their rectangles are the
@@ -127,12 +130,12 @@ std::string ClickOn(Widget* theWidget)
 
 std::string MoveClicks(const char* theKind, const std::string& theClicks, int theUpdates)
 {
-	return StrFormat("MOVE {\"kind\":\"%s\",\"clicks\":[%s],\"updates\":%d}", theKind, theClicks.c_str(), theUpdates);
+	return StrFormat("MOVE {\"kind\":\"%s\",\"input\":[%s],\"updates\":%d}", theKind, theClicks.c_str(), theUpdates);
 }
 
 std::string MoveWait(int theUpdates)
 {
-	return StrFormat("MOVE {\"kind\":\"wait\",\"updates\":%d}", theUpdates);
+	return StrFormat("MOVE {\"kind\":\"wait\",\"input\":[],\"updates\":%d}", theUpdates);
 }
 
 }  // namespace
@@ -204,14 +207,14 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 	if (aCommand == "state")
 	{
 		std::string aScreen = TestScreen();
-		std::string aLine = "STATE {\"screen\":\"" + aScreen + "\"";
+		std::string aLine = StrFormat("STATE {\"update\":%d,\"screen\":\"", mUpdateCount) + aScreen + "\"";
 		bool anOver = (aScreen == "highscores");
 		if (aBoard != NULL && (aScreen == "game"))
 		{
 			aLine += StrFormat(",\"mode\":\"%s\",\"difficulty\":\"%s\",\"level\":%d,\"score\":%d,\"phase\":\"%s\",\"busy\":%s",
 				ModeName(mGameMode), DifficultyName(mDifficulty), mLevel, mGameScore, PhaseName(aBoard->mState),
 				((aBoard->mState != BOARD_PLAYING) || !BotBoardSettled(aBoard)) ? "true" : "false");
-			aLine += StrFormat(",\"water\":%d,\"ark\":%d,\"animals\":%d", aBoard->mWaterY, aBoard->mArkLevelY, aBoard->AnimalCount());
+			aLine += StrFormat(",\"water\":%d,\"waterTarget\":%d,\"ark\":%d,\"animals\":%d", aBoard->mWaterY, aBoard->mWaterTargetY, aBoard->mArkLevelY, aBoard->AnimalCount());
 			// the board: a row a string, a cell a letter (. empty, X block, Y crate, 0-9 and A-D the animals)
 			std::string aRows;
 			for (int y = 0; y < 9; y++)
@@ -326,14 +329,34 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 	if (aCommand == "set")
 	{
 		std::string aName = anArgs.substr(0, anArgs.find(' '));
-		int aValue = (aName.size() < anArgs.size()) ? atoi(anArgs.c_str() + aName.size() + 1) : 0;
-		if (aName == "score")
+		std::string aText = (aName.size() < anArgs.size()) ? anArgs.substr(aName.size() + 1) : "";
+		int aValue = atoi(aText.c_str());
+		if (aName == "mode")
+		{
+			// the game the bot starts from the menu (a bare "move" cannot say: under -realinput "move <x> <y>" is the pointer's)
+			if (ModeByName(aText) == 0)
+			{
+				ReplyError(theCommand, "mode is action, strategy or puzzle");
+				return true;
+			}
+			mTestWantMode = ModeByName(aText);
+		}
+		else if (aName == "difficulty")
+		{
+			if (DifficultyByName(aText) < 0)
+			{
+				ReplyError(theCommand, "difficulty is easy, medium or hard");
+				return true;
+			}
+			mTestWantDiff = DifficultyByName(aText);
+		}
+		else if (aName == "score")
 			mGameScore = mShownScore = aValue;
 		else if (aName == "level")
 			mLevel = aValue;
 		else
 		{
-			ReplyError(theCommand, "score or level");
+			ReplyError(theCommand, "score, level, mode or difficulty");
 			return true;
 		}
 		ReplyOK(theCommand);
@@ -373,21 +396,6 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 
 	if (aCommand == "move")
 	{
-		// "move action hard": the game to start from the menu, remembered
-		if (!anArgs.empty())
-		{
-			std::string aName = anArgs.substr(0, anArgs.find(' '));
-			std::string aRest = (aName.size() < anArgs.size()) ? anArgs.substr(aName.size() + 1) : "";
-			int aMode = ModeByName(aName);
-			int aDiff = aRest.empty() ? 0 : DifficultyByName(aRest);
-			if (aMode == 0 || aDiff < 0)
-			{
-				ReplyError(theCommand, "move [action|strategy|puzzle [easy|medium|hard]]");
-				return true;
-			}
-			mTestWantMode = aMode;
-			mTestWantDiff = aDiff;
-		}
 		std::string aScreen = TestScreen();
 		if (aScreen == "loading")
 			Reply(MoveWait(30));
@@ -425,7 +433,7 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 		{
 			RecordScoreDialog* aDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);
 			if (aDialog->mNameEdit->mString.empty())
-				Reply("MOVE {\"kind\":\"name\",\"keys\":[\"B\",\"O\",\"T\"],\"updates\":5}");
+				Reply("MOVE {\"kind\":\"name\",\"input\":[{\"key\":\"B\"},{\"key\":\"O\"},{\"key\":\"T\"}],\"updates\":5}");
 			else
 				Reply(MoveClicks("name ok", ClickOn(aDialog->mYesButton), 10));
 		}

@@ -37,7 +37,7 @@ static const char* const gFontFiles[NUM_FONTS] =
 {
 	"data\\fontbig.txt", "data\\fontmedium.txt", "data\\fontsmall.txt", "data\\colorlessfont.txt",
 	"data\\garamondfontmed.txt", "data\\garamondfontsmall.txt", "data\\garamondfonttiny.txt",
-	"data\\scorefont.txt", "data\\registerfont.txt"
+	"data\\scorefont.txt"
 };
 
 // the songs: 0 is the game's (an intro that leads into a loop), 1 the title and menu, 2 the game over
@@ -78,8 +78,6 @@ NoahApp::NoahApp()
 	mShowHints = true;
 	mShowTutorial = true;
 	mGameStartTick = 0;
-	mTimesPlayed = 0;
-	mRegistered = true;
 	mQuitButtonImage = NULL;
 	mOptionsButtonImage = NULL;
 	mQuitButton = NULL;
@@ -524,7 +522,6 @@ void NoahApp::ShowQuitDialog()
 void NoahApp::ShowNewGameDialog(int theGameMode)
 {
 	mGameMode = theGameMode;
-	mTimesPlayed++;
 	if (HasSavedGame())
 	{
 		Dialog* aDialog = DoDialog(DIALOG_NEW_GAME, true, GT(0x00495e94), GT(0x00495ea4), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
@@ -591,13 +588,6 @@ void NoahApp::ShowHighScores()
 	int aHeight = aDialog->GetPreferredHeight(300);
 	aDialog->Resize(0xf5, 0x5a, 300, aHeight);
 	AddDialog(DIALOG_HIGH_SCORES, aDialog);
-}
-
-// 0x418f70 (registered): the player has nothing to register
-void NoahApp::ShowRegisteredDialog()
-{
-	Dialog* aDialog = DoDialog(DIALOG_REGISTER, false, GT(0x00495964), GT(0x00495970), GT(0x00495998), Dialog::BUTTONS_FOOTER);
-	aDialog->Resize(0x78, 0x78, 400, 0xf0);
 }
 
 // 0x418c40 case 4 of the options dialog
