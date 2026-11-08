@@ -155,7 +155,8 @@ var ByopopImport = (function () {
   }
 
   // The icon in the install's exe, for a game that does not store its exe (importIcon): the first .exe at the root that is not
-  // an uninstaller or setup. Resolves with {url: a PNG data URL or "", built: the exe's link year or 0} (ByopopExeIcon.built).
+  // an uninstaller or setup. Resolves with {url: a PNG data URL or "", built: the exe's link year or 0 (ByopopExeIcon.built),
+  // small: the icon nearest 32 px, or ""}.
   var SKIP_EXE = /^(popuninstall|uninstall[^\/]*|unins\d*|setup[^\/]*|dxsetup|[^\/]*redist[^\/]*|[^\/]*updater[^\/]*)\.exe$/i;
   function exeIcon(entries, root) {
     if (!window.ByopopExeIcon) return Promise.resolve({ url: "", built: 0 });
@@ -167,7 +168,8 @@ var ByopopImport = (function () {
       return p.then(function (got) {
         if (got.url) return got;
         return e.read().then(function (bytes) { return ByopopExeIcon.fromBytes(bytes); })
-          .then(function (icon) { return { url: (icon && icon.dataUrl) || "", built: (icon && icon.built) || 0 }; }, function () { return got; });
+          .then(function (icon) { return { url: (icon && icon.dataUrl) || "", built: (icon && icon.built) || 0, small: (icon && icon.small) || "" }; },
+                function () { return got; });
       });
     }, Promise.resolve({ url: "", built: 0 })).catch(function () { return { url: "", built: 0 }; });
   }
@@ -474,7 +476,7 @@ var ByopopImport = (function () {
           function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} })  // the old copy is gone
           .then(function () { return icon(spec, all, root, files); })
           .then(function (got) {
-            try { ByopopGameFiles.mark(spec.id); if (got.url) ByopopGameFiles.setIcon(spec.id, got.url, got.built); } catch (e) {}
+            try { ByopopGameFiles.mark(spec.id); if (got.url) ByopopGameFiles.setIcon(spec.id, got.url, got.built, got.small); } catch (e) {}
             try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
             return files.length;
           });
@@ -503,7 +505,9 @@ var ByopopImport = (function () {
     return Promise.all(exes.map(function (f) { return f.read(); })).then(function (datas) {
       var big = null;
       datas.forEach(function (d) { if (!big || d.length > big.length) big = d; });
-      return big ? ByopopExeIcon.fromBytes(big).then(function (i) { return { url: (i && i.dataUrl) || "", built: ByopopExeIcon.built(big) }; }) : none;
+      return big ? ByopopExeIcon.fromBytes(big).then(function (i) {
+        return { url: (i && i.dataUrl) || "", built: ByopopExeIcon.built(big), small: (i && i.small) || "" };
+      }) : none;
     }).catch(function () { return none; });
   }
 
