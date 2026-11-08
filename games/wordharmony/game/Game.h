@@ -189,6 +189,8 @@ public:
 	engine::SoundBank* mSounds;             // +0x710: config\globalSounds.xml
 
 	static Game* sInstance;
+	// port: -splashhold keeps the original's two seconds of splash (updateSplash), for comparisons with it
+	static bool sSplashHold;
 
 private:
 	// 0x401090: the splash screen

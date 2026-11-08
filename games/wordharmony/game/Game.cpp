@@ -27,6 +27,7 @@
 using namespace engine;
 
 Game* Game::sInstance = nullptr;
+bool Game::sSplashHold = false;
 
 namespace
 {
@@ -1743,6 +1744,21 @@ void Game::noteWord(std::string theWord)
 // 0x408fd0
 void Game::updateSplash(UpdateInfo& theInfo)
 {
+	// port: fast loading (CLAUDE.md, "Port first, unmodified"). The original holds its splash for 2 s of frames, loads
+	// everything once 1 s is left and shows the menu when the rest has run out; the port loads at the splash's first
+	// update and shows the menu at once. -splashhold keeps the original's hold, so that a run lines up with the
+	// original's frames (the comparisons, IDENTICAL_PLAY.md).
+	if (!sSplashHold)
+	{
+		if (mMainMenu == nullptr)
+		{
+			loadData();
+			makeMenus();
+			makeGameScreen();
+		}
+		setState(1);
+		return;
+	}
 	if (mMainMenu == nullptr && mSplashTime < 1.0f)
 	{
 		loadData();

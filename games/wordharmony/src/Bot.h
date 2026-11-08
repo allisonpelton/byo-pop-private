@@ -37,6 +37,7 @@ struct BotAction
 	std::string toJson() const;
 };
 
+extern bool gBotDebug;
 BotAction BotNext(::Game* theGame);
 std::string BotMove(::Game* theGame);
 

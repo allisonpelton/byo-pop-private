@@ -152,7 +152,8 @@ bool WordHarmonyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	auto ok = [&]() { std::printf("OK %s%s%s\n", aCmd.c_str(), anArgs.empty() ? "" : " ", anArgs.c_str()); };
 	auto error = [&](const char* theWhy) { std::printf("ERROR %s: %s\n", aCmd.c_str(), theWhy); };
 	bool aKnown = aCmd == "state" || aCmd == "move" || aCmd == "goto" || aCmd == "level" || aCmd == "unlock"
-		|| aCmd == "set" || aCmd == "win" || aCmd == "lose" || aCmd == "seed" || aCmd == "botplay";
+		|| aCmd == "set" || aCmd == "win" || aCmd == "lose" || aCmd == "seed" || aCmd == "botplay"
+		|| aCmd == "botdebug";
 	if (!aKnown)
 		return SexyAppBase::HandleScriptCommand(theCommand);
 	if (aGame == nullptr || !mEngineRunning)
@@ -258,6 +259,12 @@ bool WordHarmonyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		mBotSteps.clear();
 		mBotAt = 0;
 		mBotWait = 0;
+		ok();
+	}
+	else if (aCmd == "botdebug")
+	{
+		// the bot's plans on stderr (as WH_BOTDEBUG=1), for a web run that has no environment
+		gBotDebug = anArgs != "off";
 		ok();
 	}
 	else if (aCmd == "seed")

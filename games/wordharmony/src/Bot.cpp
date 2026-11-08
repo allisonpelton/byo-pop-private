@@ -20,6 +20,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -43,7 +44,11 @@ struct BotBall
 	bool mUsable;  // a free letter ball the mouse can carry
 	bool mChained; // a free letter ball of a chain: a letter of a word, never carried (the chain would come along)
 	bool mResting;
+	bool mLiftable; // the mouse can lift it out of where it lies: no ledge above it, or a room under one to carry it in
 };
+
+bool reachable(WordBallSystem* theSystem, float x, float y, float r);
+bool roomy(WordBallSystem* theSystem, float x, float y, float r);
 
 struct Plan
 {
@@ -67,10 +72,19 @@ struct BotMemory
 	int mScore = -1;
 	Plan mPlan;
 	bool mHavePlan = false;
-	std::set<std::string> mFailed;  // "<word>@<anchor index>"
+	std::set<std::string> mFailed;  // "<word>@<anchor index>@<anchor x / 22>": tried again once the anchor has moved
+	std::map<std::string, int> mFailures;
+	int mHeldAsks = 0;              // asks in a row with a ball on the mouse // each word's failed plans: given up after eight
 };
 
 BotMemory gMemory;
+}
+
+// the bot's plans on stderr: WH_BOTDEBUG=1, or the test command "botdebug on"
+bool Sexy::gBotDebug = std::getenv("WH_BOTDEBUG") != nullptr;
+
+namespace
+{
 int gDebugBall = -1;
 float gDebugX = 0, gDebugY = 0;
 
@@ -93,7 +107,9 @@ std::vector<BotBall> readBalls(Game* theGame)
 {
 	WordBallSystem* aSystem = theGame->mBallSystem;
 	std::vector<BotBall> aBalls;
-	float aWaterTop = aSystem->mMode == MODE_FREEMATCH ? (float)((1.0 - aSystem->mWaterLevel) * 440.0) : FIELD_H + 100.0f;
+	// every ball counts, under TSUNAMI's water too: the water only dims and slows a ball (0x41b760), it can still
+	// be picked and make a word
+	float aWaterTop = FIELD_H + 100.0f;
 	for (unsigned int i = 0; i < aSystem->mCount; i++)
 	{
 		Ball* aBall = aSystem->getBall(i);
@@ -113,6 +129,7 @@ std::vector<BotBall> readBalls(Game* theGame)
 		b.mChained = aBall->mState == BALL_FREE && !aBall->mFixed && aBall->mChain != nullptr && b.y <= aWaterTop;
 		float dx = b.x - aBall->mOld.x, dy = b.y - aBall->mOld.y;
 		b.mResting = dx * dx + dy * dy < (b.mChained ? 4.0f : 0.25f);
+		b.mLiftable = reachable(aSystem, b.x, b.y, b.r) || roomy(aSystem, b.x, b.y, b.r);
 		aBalls.push_back(b);
 	}
 	return aBalls;
@@ -147,7 +164,8 @@ bool supported(WordBallSystem* theSystem, const std::vector<BotBall>& theBalls, 
 
 bool inField(float x, float y, float r)
 {
-	return x >= r + 2.0f && x <= FIELD_W - r - 2.0f && y >= r + 30.0f;
+	// a place at most 4 px into the wall: a ball let go there rests against it, still within a place's 7 px
+	return x >= r - 4.0f && x <= FIELD_W - r + 4.0f && y >= r + 30.0f;
 }
 
 // The ball in a place for a ball of radius r at (x, y) (the one nearest it), or null
@@ -184,6 +202,120 @@ bool clearOfObstacles(WordBallSystem* theSystem, float x, float y, float r)
 	return true;
 }
 
+// No block in the column above (x, y)
+bool columnClear(WordBallSystem* theSystem, float x, float y, float r)
+{
+	if (theSystem->mObstacles != nullptr)
+	{
+		for (Obstacle* anObstacle : *theSystem->mObstacles)
+		{
+			Point p = anObstacle->getOrigin();
+			Point e = anObstacle->getExtents();
+			if (std::fabs(p.x - x) < e.x + r && p.y + e.y < y)
+				return false;
+		}
+	}
+	return true;
+}
+
+// No block beside the ball's row at x (a ball resting on a ledge touches it, which is no block)
+bool rowClear(WordBallSystem* theSystem, float x, float y, float r)
+{
+	if (theSystem->mObstacles != nullptr)
+	{
+		for (Obstacle* anObstacle : *theSystem->mObstacles)
+		{
+			Point p = anObstacle->getOrigin();
+			Point e = anObstacle->getExtents();
+			if (std::fabs(p.x - x) < e.x + r - 1.0f && std::fabs(p.y - y) < e.y + r - 1.0f)
+				return false;
+		}
+	}
+	return true;
+}
+
+// The column a ball at (x, y) is lifted out through, or let down into its place through: the nearest one along its row,
+// slid to without passing a block, with no block above it; NAN when there is none (a ball under a ledge, walled in)
+float escapeX(WordBallSystem* theSystem, float x, float y, float r)
+{
+	float aBest = NAN;
+	for (int aDir = -1; aDir <= 1; aDir += 2)
+	{
+		for (float d = 0.0f; d <= FIELD_W; d += 4.0f)
+		{
+			float x2 = x + d * (float)aDir;
+			if (x2 < r || x2 > FIELD_W - r || !rowClear(theSystem, x2, y, r))
+				break;
+			if (columnClear(theSystem, x2, y, r))
+			{
+				if (std::isnan(aBest) || std::fabs(x2 - x) < std::fabs(aBest - x))
+					aBest = x2;
+				break;
+			}
+		}
+	}
+	return aBest;
+}
+
+// The bottom of the lowest block above (x, y) in its column, or -1000 when there is none
+float ceilingY(WordBallSystem* theSystem, float x, float y, float r)
+{
+	float aCeiling = -1000.0f;
+	if (theSystem->mObstacles != nullptr)
+	{
+		for (Obstacle* anObstacle : *theSystem->mObstacles)
+		{
+			Point p = anObstacle->getOrigin();
+			Point e = anObstacle->getExtents();
+			if (std::fabs(p.x - x) < e.x + r && p.y + e.y < y)
+				aCeiling = std::max(aCeiling, p.y + e.y);
+		}
+	}
+	return aCeiling;
+}
+
+// The height a ball is carried at under a ceiling (a room closed by a ledge above, as RELAX's first level has), from
+// (x0, y0) to (x1, y1): just under the lowest ceiling over the way, with no block across it; NAN when there is no way,
+// or the room is too low to carry a ball over the others
+float carryHeight(WordBallSystem* theSystem, float x0, float y0, float x1, float y1, float r)
+{
+	float aLow = std::min(y0, y1), aHeight = -1000.0f;
+	float aStep = x1 >= x0 ? 4.0f : -4.0f;
+	for (float x = x0;; x += aStep)
+	{
+		if ((aStep > 0.0f && x > x1) || (aStep < 0.0f && x < x1))
+			x = x1;
+		aHeight = std::max(aHeight, ceilingY(theSystem, x, aLow, r) + r + 2.0f);
+		if (x == x1)
+			break;
+	}
+	if (aHeight < 0.0f || aHeight > aLow - r * 1.5f)
+		return NAN;
+	for (float x = x0;; x += aStep)
+	{
+		if ((aStep > 0.0f && x > x1) || (aStep < 0.0f && x < x1))
+			x = x1;
+		if (!rowClear(theSystem, x, aHeight, r))
+			return NAN;
+		if (x == x1)
+			break;
+	}
+	return aHeight;
+}
+
+// A place a ball can be let down into from the top of the field, or a ball lifted out of: a clear column beside it
+bool reachable(WordBallSystem* theSystem, float x, float y, float r)
+{
+	return !std::isnan(escapeX(theSystem, x, y, r));
+}
+
+// A ball or place in a room under a ledge high enough to carry a ball over the others
+bool roomy(WordBallSystem* theSystem, float x, float y, float r)
+{
+	float aCeiling = ceilingY(theSystem, x, y, r);
+	return aCeiling > -1000.0f && aCeiling + r + 2.0f <= y - r * 1.5f;
+}
+
 // The ball sitting in place i of the plan, or -1
 int ballAt(const Plan& thePlan, const std::vector<BotBall>& theBalls, int i)
 {
@@ -204,7 +336,7 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 	std::string aLetters, anAllLetters;  // the free letters; and with the chains' too
 	for (const BotBall& b : theBalls)
 	{
-		if (b.mUsable)
+		if (b.mUsable && b.mLiftable)
 			aLetters += b.mLetter;
 		if (b.mUsable || b.mChained)
 			anAllLetters += b.mLetter;
@@ -220,13 +352,20 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 	{
 		for (Chain* aChain : aSystem->mChains)
 		{
-			std::string aPiece;
+			// the chain's letters as they lie, left to right (a submitted row is read by x, 0x415c20): a chain that
+			// fell over reads backwards from its indices
+			std::vector<std::pair<float, char>> aLying;
 			for (int anIndex : aChain->mIndices)
 			{
 				Ball* aBall = aSystem->getBall(anIndex);
 				if (aBall->mState == BALL_FREE || aBall->mState == BALL_STATE_4)
-					aPiece += aBall->mLetter;
+					aLying.push_back(std::make_pair(aBall->getPosition()->x, aBall->mLetter));
 			}
+			std::sort(aLying.begin(), aLying.end(),
+				[](const std::pair<float, char>& a, const std::pair<float, char>& b) { return a.first < b.first; });
+			std::string aPiece;
+			for (const auto& aBallLying : aLying)
+				aPiece += aBallLying.second;
 			if (!aPiece.empty())
 				aChains.push_back(aPiece);
 		}
@@ -239,7 +378,7 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 	}
 	// the longest words first, then in the list's order
 	std::stable_sort(aWords.begin(), aWords.end(), [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
-	static bool sDebug = std::getenv("WH_BOTDEBUG") != nullptr;
+	bool sDebug = Sexy::gBotDebug;
 	int aNoAnchor = 0, aNotFree = 0, aNotSupported = 0, aBestCost = 1000;
 	if (sDebug)
 		std::fprintf(stderr, "plan: letters %s, %d words\n", aLetters.c_str(), (int)aWords.size());
@@ -288,8 +427,8 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 				if (!letterFits(aWord[k], anAnchor.mLetter))
 					continue;
 				char aKey[64];
-				std::snprintf(aKey, sizeof(aKey), "%s@%d", aWord.c_str(), anAnchor.mIndex);
-				if (gMemory.mFailed.count(aKey) != 0)
+				std::snprintf(aKey, sizeof(aKey), "%s@%d@%d", aWord.c_str(), anAnchor.mIndex, (int)(anAnchor.x / 22.0f));
+				if (gMemory.mFailed.count(aKey) != 0 || gMemory.mFailures[aWord] >= 8)
 					continue;
 				// each place costs a drag, two when another letter sits there and must be carried off first, none when
 				// its letter is there already; a place in an obstacle, out of the field, over nothing or under a ball the
@@ -309,7 +448,8 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 						aGood = false, aNotFree++;
 					else if (anOccupant == nullptr)
 					{
-						aGood = supported(aSystem, theBalls, x, anAnchor.y, anAnchor.r);
+						aGood = supported(aSystem, theBalls, x, anAnchor.y, anAnchor.r) && (reachable(aSystem, x, anAnchor.y, anAnchor.r)
+							|| roomy(aSystem, x, anAnchor.y, anAnchor.r));
 						aCost += 1;
 						if (!aGood)
 							aNotSupported++;
@@ -323,7 +463,11 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 						&& std::fabs(anOccupant->y - anAnchor.y) < 7.0f)
 						aCost += 0;
 					else
+					{
 						aCost += 2;
+						if (!reachable(aSystem, x, anAnchor.y, anAnchor.r) && !roomy(aSystem, x, anAnchor.y, anAnchor.r))
+							aGood = false, aNotSupported++;
+					}
 				}
 				// a word on a chain whose places are not all on something (a chain's ball hanging over a ledge's end): the
 				// whole row moved along until they are, the chain's balls carried into it
@@ -336,7 +480,7 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 						{
 							float x = anAnchor.x + ((float)j - (float)k) * d + theShift;
 							if (!inField(x, anAnchor.y, anAnchor.r) || !clearOfObstacles(aSystem, x, anAnchor.y, anAnchor.r)
-								|| !supported(aSystem, theBalls, x, anAnchor.y, anAnchor.r))
+								|| !supported(aSystem, theBalls, x, anAnchor.y, anAnchor.r) || (!reachable(aSystem, x, anAnchor.y, anAnchor.r) && !roomy(aSystem, x, anAnchor.y, anAnchor.r)))
 								return false;
 						}
 						return true;
@@ -380,6 +524,14 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 		for (const BotBall& b : theBalls)
 			std::fprintf(stderr, "  ball %d %c %.1f,%.1f%s%s%s\n", b.mIndex, b.mLetter, b.x, b.y, b.mUsable ? " usable" : "",
 				b.mChained ? " chained" : "", b.mResting ? " resting" : "");
+		if (aSystem->mObstacles != nullptr)
+		{
+			for (Obstacle* anObstacle : *aSystem->mObstacles)
+			{
+				Point p = anObstacle->getOrigin(), e = anObstacle->getExtents();
+				std::fprintf(stderr, "  obstacle %.1f,%.1f extents %.1f,%.1f\n", p.x, p.y, e.x, e.y);
+			}
+		}
 		if (aBestCost < 1000)
 			std::fprintf(stderr, "  anchor %d at %d\n", thePlan.mAnchor, thePlan.mAnchorAt);
 	}
@@ -391,11 +543,13 @@ bool makePlan(Game* theGame, const std::vector<BotBall>& theBalls, Plan& thePlan
 
 void failPlan(int theWhy)
 {
-	if (std::getenv("WH_BOTDEBUG") != nullptr)
+	if (Sexy::gBotDebug)
 		std::fprintf(stderr, "fail %s: %d\n", gMemory.mPlan.mWord.c_str(), theWhy);
 	char aKey[64];
-	std::snprintf(aKey, sizeof(aKey), "%s@%d", gMemory.mPlan.mWord.c_str(), gMemory.mPlan.mAnchor);
+	std::snprintf(aKey, sizeof(aKey), "%s@%d@%d", gMemory.mPlan.mWord.c_str(), gMemory.mPlan.mAnchor,
+		(int)(gMemory.mPlan.mAnchorX / 22.0f));
 	gMemory.mFailed.insert(aKey);
+	gMemory.mFailures[gMemory.mPlan.mWord]++;
 	gMemory.mHavePlan = false;
 }
 
@@ -435,16 +589,36 @@ float riseX(const std::vector<BotBall>& theBalls, const BotBall& theBall)
 	return theBall.x;
 }
 
-BotAction dragMove(const char* theWhat, const Plan& thePlan, int theLetter, Point theFrom, Point theTo, float theTop,
-	float theUpX)
+// The column a ball is lifted in (riseX), moved along its row to a clear one when a block is above it
+float liftX(WordBallSystem* theSystem, const std::vector<BotBall>& theBalls, const BotBall& theBall)
 {
+	float x = riseX(theBalls, theBall);
+	if (columnClear(theSystem, x, theBall.y, theBall.r) && rowClear(theSystem, x, theBall.y, theBall.r))
+		return x;
+	float anEscape = escapeX(theSystem, theBall.x, theBall.y, theBall.r);
+	return std::isnan(anEscape) ? x : anEscape;
+}
+
+// The column a ball is let down in to reach its place (x, y): its own, or the nearest clear one along its row
+float downX(WordBallSystem* theSystem, float x, float y, float r)
+{
+	float anEscape = escapeX(theSystem, x, y, r);
+	return std::isnan(anEscape) ? x : anEscape;
+}
+
+BotAction dragMove(const char* theWhat, const Plan& thePlan, int theLetter, Point theFrom, Point theTo, float theTop,
+	float theUpX, float theDownX = NAN)
+{
+	if (std::isnan(theDownX))
+		theDownX = theTo.x;
 	BotAction anAction(theWhat);
 	anAction.mWord = thePlan.mWord;
 	anAction.mLetter = theLetter;
 	int x0 = (int)std::lround(theFrom.x), y0 = (int)std::lround(theFrom.y);
 	anAction.mSteps = { { BotStep::MOVE, x0, y0, 0 }, { BotStep::WAIT, 0, 0, 2 }, { BotStep::DOWN, x0, y0, 0 },
 		{ BotStep::WAIT, 0, 0, 4 } };
-	Point aWay[4] = { Point(theUpX, theFrom.y), Point(theUpX, theTop), Point(theTo.x, theTop), theTo };
+	Point aWay[5] = { Point(theUpX, theFrom.y), Point(theUpX, theTop), Point(theDownX, theTop), Point(theDownX, theTo.y),
+		theTo };
 	Point aAt = theFrom;
 	for (const Point& aNext : aWay)
 	{
@@ -465,6 +639,28 @@ BotAction dragMove(const char* theWhat, const Plan& thePlan, int theLetter, Poin
 	return anAction;
 }
 
+// A drag of a ball to (toX, toY) in the field: through the open top of the field when both ends have a way up, else
+// under the ceiling of the room they share; false when neither
+bool carryMove(const char* theWhat, const Plan& thePlan, int theLetter, WordBallSystem* theSystem,
+	const std::vector<BotBall>& theBalls, const BotBall& theBall, float toX, float toY, BotAction& theAction)
+{
+	if (reachable(theSystem, theBall.x, theBall.y, theBall.r) && reachable(theSystem, toX, toY, theBall.r))
+	{
+		theAction = dragMove(theWhat, thePlan, theLetter, toScreen(theSystem, theBall.x, theBall.y),
+			toScreen(theSystem, toX, toY), toScreen(theSystem, 0.0f, 30.0f).y,
+			toScreen(theSystem, liftX(theSystem, theBalls, theBall), 0.0f).x,
+			toScreen(theSystem, downX(theSystem, toX, toY, theBall.r), 0.0f).x);
+		return true;
+	}
+	float aHeight = carryHeight(theSystem, theBall.x, theBall.y, toX, toY, theBall.r);
+	if (std::isnan(aHeight))
+		return false;
+	theAction = dragMove(theWhat, thePlan, theLetter, toScreen(theSystem, theBall.x, theBall.y),
+		toScreen(theSystem, toX, toY), toScreen(theSystem, 0.0f, aHeight).y, toScreen(theSystem, theBall.x, 0.0f).x,
+		toScreen(theSystem, toX, 0.0f).x);
+	return true;
+}
+
 BotAction playMove(Game* theGame)
 {
 	WordBallSystem* aSystem = theGame->mBallSystem;
@@ -474,9 +670,18 @@ BotAction playMove(Game* theGame)
 		gMemory.mMode = theGame->mMode;
 		gMemory.mLevel = theGame->mLevel;
 	}
+	// a ball still on the mouse when the last drag is done: its release was lost (the window lost the focus during the
+	// drag, and the framework forgets a button pressed before), so a click lets it go, as a player's next click does
+	if (aSystem->mRope != nullptr && ++gMemory.mHeldAsks >= 2)
+	{
+		gMemory.mHeldAsks = 0;
+		Point aMouse = toScreen(aSystem, aSystem->mMouse.x, aSystem->mMouse.y);
+		return clickMove("release", (int)std::lround(aMouse.x), (int)std::lround(aMouse.y), 15);
+	}
 	if (aSystem->mRope != nullptr || aSystem->isBusy())
 		return BotAction("wait", 15);
-	static bool sDebug = std::getenv("WH_BOTDEBUG") != nullptr;
+	gMemory.mHeldAsks = 0;
+	bool sDebug = Sexy::gBotDebug;
 	if (sDebug && gDebugBall >= 0)
 	{
 		Ball* aBall = aSystem->getBall(gDebugBall);
@@ -581,9 +786,29 @@ BotAction playMove(Game* theGame)
 			float aLow = aPlan.mSlotX.front() - anAnchor->r * 2.0f, aHigh = aPlan.mSlotX.back() + anAnchor->r * 2.0f;
 			float x = aLow > FIELD_W - aHigh ? aLow / 2.0f : (aHigh + FIELD_W) / 2.0f;
 			x = std::max(anAnchor->r + 4.0f, std::min(FIELD_W - anAnchor->r - 4.0f, x));
-			BotAction aClear = dragMove("clear", aPlan, aNext, toScreen(aSystem, anOccupant->x, anOccupant->y),
-				toScreen(aSystem, x, 50.0f), toScreen(aSystem, 0.0f, 30.0f).y,
-				toScreen(aSystem, riseX(aBalls, *anOccupant), 0.0f).x);
+			BotAction aClear("clear");
+			bool aCarried;
+			if (reachable(aSystem, anOccupant->x, anOccupant->y, anOccupant->r))
+			{
+				aClear = dragMove("clear", aPlan, aNext, toScreen(aSystem, anOccupant->x, anOccupant->y),
+					toScreen(aSystem, x, 50.0f), toScreen(aSystem, 0.0f, 30.0f).y,
+					toScreen(aSystem, liftX(aSystem, aBalls, *anOccupant), 0.0f).x);
+				aCarried = true;
+			}
+			else
+			{
+				// in a room: set on top of the balls away from the word, on whichever side has room
+				aCarried = carryMove("clear", aPlan, aNext, aSystem, aBalls, *anOccupant, x, anOccupant->y, aClear);
+				float anOther = x < aPlan.mSlotX.front() ? (aHigh + FIELD_W) / 2.0f : aLow / 2.0f;
+				anOther = std::max(anAnchor->r + 4.0f, std::min(FIELD_W - anAnchor->r - 4.0f, anOther));
+				if (!aCarried)
+					aCarried = carryMove("clear", aPlan, aNext, aSystem, aBalls, *anOccupant, anOther, anOccupant->y, aClear);
+			}
+			if (!aCarried)
+			{
+				failPlan(5);
+				continue;
+			}
 			countDrag(aPlan, *anOccupant, aClear);
 			return aClear;
 		}
@@ -591,7 +816,7 @@ BotAction playMove(Game* theGame)
 		const BotBall* aBest = nullptr;
 		for (const BotBall& b : aBalls)
 		{
-			if (!b.mUsable || aPlaced.count(b.mIndex) != 0 || !letterFits(aPlan.mWord[aNext], b.mLetter))
+			if (!b.mUsable || !b.mLiftable || aPlaced.count(b.mIndex) != 0 || !letterFits(aPlan.mWord[aNext], b.mLetter))
 				continue;
 			bool aUnder = false;
 			for (float x : aPlan.mSlotX)
@@ -600,6 +825,9 @@ BotAction playMove(Game* theGame)
 					aUnder = true;
 			}
 			if (aUnder)
+				continue;
+			BotAction aWay("drag");
+			if (!carryMove("drag", aPlan, aNext, aSystem, aBalls, b, aPlan.mSlotX[aNext], aPlan.mSlotY - 2.0f, aWay))
 				continue;
 			if (aBest == nullptr || b.y < aBest->y)
 				aBest = &b;
@@ -610,9 +838,8 @@ BotAction playMove(Game* theGame)
 			continue;
 		}
 		gDebugBall = aBest->mIndex, gDebugX = aPlan.mSlotX[aNext], gDebugY = aPlan.mSlotY;
-		BotAction aDrag = dragMove("drag", aPlan, aNext, toScreen(aSystem, aBest->x, aBest->y),
-			toScreen(aSystem, aPlan.mSlotX[aNext], aPlan.mSlotY - 2.0f),
-			toScreen(aSystem, 0.0f, 30.0f).y, toScreen(aSystem, riseX(aBalls, *aBest), 0.0f).x);
+		BotAction aDrag("drag");
+		carryMove("drag", aPlan, aNext, aSystem, aBalls, *aBest, aPlan.mSlotX[aNext], aPlan.mSlotY - 2.0f, aDrag);
 		countDrag(aPlan, *aBest, aDrag);
 		return aDrag;
 	}

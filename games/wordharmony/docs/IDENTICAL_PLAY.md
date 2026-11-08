@@ -112,8 +112,133 @@ the same non-empty state log, so later fixes and mods leave unmodded play as com
 - Git Bash turns `reg`'s switches (`/f`, `/v`) into paths, so `orig.sh` runs `reg` with `MSYS2_ARG_CONV_EXCL`; before that fix
   the original's registry key was never cleared between runs.
 
+## Phase 2: looks identical
+
+Phase two compared the screens, the sounds, the focus and the web build with the original, and played the game through
+real input from launch to the end of a game. It ran on 2026-11-07 and 2026-11-08.
+
+### How the screens were compared
+
+A tour (`tools/shots/tourN.txt`) is a list of port `-script` lines with `screenshot <name>` lines among them. `make.py` turns
+it into the port's script and origrun's, the same way phase one turns its cases, and the shots of each side go through
+`tools/shotdiff`. The original runs only inside Windows Sandbox (`tools/shots/orig.sh`, `--sandbox`), the one place origrun
+takes shots, on the virtual clock with phase one's patches. It draws into a DirectDraw back buffer that PrintWindow never
+sees there, so origrun reads that buffer from memory and waits until the frame is not drawing. The port runs on `-fast`
+(`tools/shots/port.sh`), and the web build runs the same script under Node (`tools/shots/web.sh`, through Bejeweled's
+`wasmrun.js`). A shot of the original is taken at `at K-1`, as its input is: measured on TSUNAMI's falling balls, the
+port's shot at 761 matched the original's "at 760", and no other update from 754 to 766 did.
+
+The tours: tour 1 is the title, the main menu and its hovers, the high scores, the options with sound and music off and on
+again, and THINK's levels screen. Tour 2 is phase one's tsu3, a TSUNAMI game from its levels screen and help to its game
+over. Tour 3 is phase one's hs1, TSUNAMI at level 9 with its game over, the name typed and the score table, then a second
+game. Tour 4 is phase one's think1: a saved THINK game continued, a ball carried over a ledge into a word, the word sent,
+the level's end and bonus count, level 2, Save/Quit and Save Game. Tour 5 is the focus: TSUNAMI lost and given back the
+window's focus, the P key, and the H key's help over the paused game.
+
+### Results
+
+| tour | shots | native port against the original | web build against the original | web build against the native port |
+|---|---|---|---|---|
+| 1 | 21 | 19 pairs: 5 the same, 13 faint, 1 differing (see below) | as the native port, and the Fullscreen box (below) in 6 shots | 15 the same; 6 differ only in the Fullscreen box |
+| 2 | 21 | 4 the same, 17 faint | 4 the same, 17 faint | all 21 the same |
+| 3 | 21 | 9 the same, 11 faint, 1 differing (a chain link) | as the native port | all 21 the same |
+| 4 | 21 | 20 faint, 1 differing (a chain link) | as the native port | all 21 the same |
+| 5 | 11 | the same screens, other letters (see Focus) | the same as the native port | all 11 the same |
+
+Every faint pair was looked at in shotdiff's summary: they are the resampling of the scaled and rotated pictures (the
+balls' edges, the blossoms, the water's waves) by a pixel's fraction, nothing that shows at the game's size. The flagged
+boxes:
+
+- **Tour 1, the menu at update 460.** The original's counter was still at 337 when the shot was due (its load on the
+  virtual clock took longer than origrun's 30 s wait), so its shot shows the menu 120 updates early, with the falling
+  blossoms elsewhere. Every later menu shot is the same. Its title shots at 150 and 300 were refused for the same reason:
+  the original was inside its one long loading frame. They are not comparable and not a difference of the port.
+- **The web build's Fullscreen box.** The options dialog's Fullscreen box is checked in the original and the native port,
+  which start full screen, and empty in the web build, which starts inside its page. The box shows the truth on each; a web
+  deviation below.
+- **Tours 3 and 4, a chain link.** The ring between two chained balls is a sprite drawn rotated to the link's angle; the
+  original's rotation filter leaves it a little softer than ours. It is in the same place at the same angle.
+
+### What was changed
+
+| difference | its cause in the original | what the port does now | commit |
+|---|---|---|---|
+| Chain links drawn from the first ball as well (a ring inside the first ball) | 0x412310 draws a link from each ball to the one before it, starting at the second node | starts at the second node | be330a14 |
+| The hint box vanished when no hint was ready | `setHintReady(false)` fades the box to half (0x422ed3 pushes 0.5), greyed with "no hint available" | fades to 0.5 | be330a14 |
+| The game link's code | the main menu's link out of the game (a button the port never showed) | removed with its action | d8bf6a6a |
+| A splash held for two seconds | the splash stays two seconds of frames and the data loads after the first | loads at once and shows the menu (fast loading, a deviation below) | COMMIT |
+| On a machine with no sound device the music drew a random number every frame | (the port's: no voice meant the clip had ended) | on the engine's clock a sound plays its length whether or not a voice started; the web build under Node now plays tour 2 update for update as natively | COMMIT |
+
+### Sound
+
+The original's sounds were compared by origrun's DirectSound stand-in, which logs every buffer's creation (with its size
+and format), play and stop on the virtual clock (33 ms an update). The port writes the same with `-soundlog=<file>` (a test
+switch: each start and stop with its frame and the sound's length), and `tools/identical/sndcmp.py` lines the two up: each
+start of the original is matched with a start of the port of the same length at most two updates away. A sound longer than
+2 s streams through a 2 s buffer in the original and is counted as "stream" on both sides.
+
+| tour | starts in the original | matched | largest gap |
+|---|---|---|---|
+| 1 | 23 | 23 | 0.3 updates |
+| 2 | 78 | 78 | 0.7 updates |
+| 3 | 98 | 97 | 0.7 updates |
+| 4 | 55 | 55 | 0.6 updates |
+
+The one start left over in tour 3 is at update 5399, after the port's script had quit. The gaps under an update are the
+virtual clock's crawl (Oddities). Music volumes and fades were not compared beyond this: both sides start the music
+layers silent and fade them by the same code.
+
+### Focus
+
+Tour 5 takes the focus from a TSUNAMI game and gives it back: the original through origrun's posted WM_ACTIVATE,
+WM_KILLFOCUS and WM_ACTIVATEAPP, the port through the same messages in its script (`focus lose`, `focus regain`). Both
+games show GAME PAUSED with its CONTINUE button as the focus goes, stay paused when it comes back, go on with the P key,
+and show TSUNAMI's help over the game with the H key and close it with H again. The
+first run was in full screen, and there the original does something the port does not: it minimizes its window when the
+focus goes (a full-screen DirectDraw window's own behaviour), and its main loop (0x4552b0) runs no frames while the
+WM_SIZE flag says it is minimized, so the rest of the tour never came. The port's full screen is SDL's window on the
+desktop's mode, which stays on screen and pauses the game as the windowed original does. That is listed with the
+deviations. The tour was then run windowed on both sides (the setting `FullScreen` 0 in the original's registry and the
+port's `registry.ini`). There the windowed original held the virtual clock at its splash for origrun's 30 s wait and then
+ran free, so its random letters and blossoms are not the port's: every pair differs in the letter coming next, the bonus
+word and the falling blossoms, and only 4 of its 17 sound starts line up. The screens themselves (the pause panel, the
+help over it, the HUD, the hint box) are the same, and so is what each key does. The web build under Node played the same
+tour update for update as the native port.
+
+### Real input
+
+PLAYTHROUGH
+
+### The fixes mod
+
+`mods/fixes` holds two toggles, both on by default (`docs/README.md`, "Mods"). **steadyClock**: the original times each
+frame by the machine's clock, so the same moves never play the same game twice; with the fix every frame is 33 ms of the
+game's time, counted from the framework's updates, and so is the sound's tick. `tools/identical/steady.sh` plays the same
+TSUNAMI input twice in real time: with the mod the two state logs are the same (2562 lines), without it they part.
+**fairFirstWord**: the first word after starting the program always counts as quick (twice the points) in the original,
+because the time of the last word is never set; with the fix it starts at 0 (NOSY scores 400 instead of 800). Without
+mods the port still plays as the frozen baseline (`tools/check.sh wordharmony`).
+
+### Fix candidates
+
+None besides the mod's two: the original's other oddities below are the harness's or are reproduced as the original has
+them.
+
 ## Deviations left
 
+- **Fast loading.** The original shows its splash for two seconds of frames and loads its data after the first; the port
+  loads at the splash's first update and shows the menu as soon as it has loaded (CLAUDE.md, "Port first, unmodified").
+  `-splashhold` keeps the original's hold for runs compared with it (every case, tour and `tools/check.sh wordharmony`).
+- **The hint search.** The original searches for hints on a thread; the port searches at once. Phase one's test patch makes
+  the original do the same, so the comparisons agree; in real play the original's "no hint available" can show for a few
+  frames at a level's start while its thread runs.
+- **The game link** is gone with the button that the port never showed.
+- **Full screen and the focus.** The original's full screen is DirectDraw's own mode, and its window minimizes when the
+  focus goes, so its frames stop until the player comes back. The port's full screen is the framework's borderless window
+  at the desktop's mode, which stays on screen: the game pauses on the focus loss as in the windowed original, and its
+  frames go on behind the pause panel.
+- **The web build's Fullscreen box** starts empty, because a browser page starts inside the page and grants full screen
+  only after a click (`README.md`, "Status"); the native port and the original start full screen with the box checked.
 - Not compared in phase one: a hint actually shown (the cases had no points to pay for one), recycling letters, the options
   dialog, the help pages, the editor, a game cut off by quitting. The last four have no effect
   on the game's state; phase two looks at their screens; the first two are left for a case with points.

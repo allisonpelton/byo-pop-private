@@ -5,11 +5,14 @@
 //   -userdir=<dir>   writable folder for the settings and high scores (the emulated registry)
 //   -modsdir=<dir>   folder containing mods (one sub-folder per mod; the fixes mod is games/wordharmony/mods/fixes)
 //   -nomods          start without any mods
+//   -splashhold      the original's two seconds of splash before the menu (the port shows the menu once it has loaded);
+//                    for runs compared with the original
 //   /s, /c, /p       the screen saver, its settings and its preview, as Windows passes them
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "WordHarmonyApp.h"
+#include "game/Game.h"
 #include "platform/ModManager.h"
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
@@ -114,6 +117,8 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+	if (modsDir.empty())
+		modsDir = ExeDir() + "/mods-wordharmony";
 #endif
 
 #ifndef __EMSCRIPTEN__
@@ -146,6 +151,7 @@ int main(int argc, char** argv)
 	// the original
 	Platform::MakeDirs(modsDir);
 	Platform::ModManager::Get().SetModsDir(modsDir);
+	Game::sSplashHold = HasFlag(argc, argv, "splashhold");
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());

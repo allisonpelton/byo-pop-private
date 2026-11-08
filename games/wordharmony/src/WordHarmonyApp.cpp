@@ -345,6 +345,7 @@ void WordHarmonyApp::RunFrame()
 		if (mFrames < mBotUntil)
 			BotTick();
 		mFrames++;
+		wordharmony::HostSound::sLogFrame = mFrames;
 		engine::App::instance()->frame(mWidget->mGraphics);
 		mWidget->mScreenImage->BitsChanged();
 		if (mStateLog != nullptr)
@@ -362,6 +363,11 @@ void WordHarmonyApp::RunFrame()
 // port: the test hooks of the identical-play runs (games/wordharmony/docs/IDENTICAL_PLAY.md)
 void WordHarmonyApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
+	if (theParamName == "-soundlog")
+	{
+		wordharmony::HostSound::sLog = fopen(theParamValue.c_str(), "w");
+		return;
+	}
 	if (theParamName == "-statelog")
 	{
 		mStateLog = fopen(theParamValue.c_str(), "w");

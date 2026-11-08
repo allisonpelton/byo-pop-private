@@ -17,7 +17,7 @@ The steps file has one step a line ('#' starts a comment):
     shot <name>             the game's own screenshot (BYOPOP_SHOT_REQUEST) in <out dir>/<name>.png
     play <seconds> [until]  the bot's moves, until the state's screen is no longer "game" or the help, level panel
                             and loading screens the bot answers, or <seconds>; "until gameover" plays on through the
-                            level panels until the game is over
+                            level panels until the game is over, "until nextlevel" until the next level's game
     end                     closes the window and waits for the game to exit
 
 The log is <out dir>/play.log: each move with the state's score, level and water, and the last state.
@@ -105,10 +105,11 @@ def main():
         u32.PostMessageW(hwnd, up, 0, point(x, y))
 
     def key(vk):
-        u32.PostMessageW(hwnd, WM_KEYDOWN, vk, 1)
+        sc = u32.MapVirtualKeyW(vk, 0) << 16  # SDL takes the key from the scan code in lParam
+        u32.PostMessageW(hwnd, WM_KEYDOWN, vk, sc | 1)
         if 0x41 <= vk <= 0x5a:
-            u32.PostMessageW(hwnd, WM_CHAR, vk + 32, 1)
-        u32.PostMessageW(hwnd, WM_KEYUP, vk, 0xc0000001)
+            u32.PostMessageW(hwnd, WM_CHAR, vk + 32, sc | 1)
+        u32.PostMessageW(hwnd, WM_KEYUP, vk, sc | 0xc0000001)
 
     def read_lines():
         chunk = src.read()
@@ -139,7 +140,7 @@ def main():
                 time.sleep(st['wait'] * UPDATE_S)
 
     def play(limit, until):
-        t0, state, last, made, after = time.time(), None, None, 0, -1
+        t0, state, last, made, after, first = time.time(), None, None, 0, -1, None
         read_lines()  # only what the game says from now on
         while time.time() - t0 < limit and proc.poll() is None:
             lines = read_lines()
@@ -149,6 +150,8 @@ def main():
             for ln in lines:
                 if ln.startswith('STATE '):
                     state = last = json.loads(ln[6:])
+                    if first is None and last.get('screen') == 'game':
+                        first = last.get('level', 0)
                 elif ln.startswith('MOVE ') and state is not None:
                     st, state = state, None
                     if st['frame'] < after:
@@ -163,6 +166,8 @@ def main():
                     send(mv)
                     after = st['frame'] + sum(s.get('wait', 0) for s in mv.get('input', [])) + mv.get('updates', 1)
             if last is not None and last.get('over') and until != 'gameover':
+                break
+            if until == 'nextlevel' and last is not None and first is not None and last.get('level', 0) > first                     and last.get('screen') == 'game':
                 break
             if last is not None and last.get('screen') in ('gameover', 'nameentry', 'highscores', 'menu', 'congrats'):
                 if made:
