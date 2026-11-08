@@ -42,6 +42,7 @@ public:
 
 	int mArtRes = 0;                    // +0xf2c
 	float mScale = 0.0f;                // +0xf30: mArtRes / 1200, from the art's 1600x1200 to the screen
+	bool mArtResChanged = false;        // +0xf35: the options changed the art's size: "ArtRes" is written (0x762b40)
 	bool mAllowArtRes1200 = true;       // +0xf28: the largest art only when the machine can take it
 	bool mUseSexyCache = true;          // +0xf14: PopCap's image cache (SexyCache) had the pictures: no loader screen
 	bool mInitialLoadDone = false;      // +0xf8d: Init got past loading the loader screen's resources
