@@ -165,8 +165,8 @@ cell the move meant ("off track"). It never chooses a move itself, and nobody pl
 | Native | clicks on cells, `-fast` | a whole adventure: the name box, 225 chambers over 15 pyramids with the world map and 15 treasures (8958 moves), no deaths, the victory screen, then the menu link | played to the end in 21 minutes, no error |
 | Native, windowed and full screen, real time | arrow keys and Space | 120 moves over 4 chambers with `Alt+Enter` into full screen and out again, the focus lost for 200 updates and regained, the window minimised and restored, a resize to 800 x 600, a screenshot at each | no error, no step off track; the frames show the board drawn as it was before each event |
 | Web, `?player=1&silent=1&fast=1&hold=1`, fixes mod on | arrow keys | the tutorial (240 moves, handed to classic), then 200 moves of classic (124 steps, 8 chambers) | no error, no step off track |
-| Web | clicks on cells | a whole classic game: [[WEBCLASSIC]] | [[WEBCLASSICRES]] |
-| Web | clicks on cells | a whole adventure: [[WEBADV]] | [[WEBADVRES]] |
+| Web | clicks on cells | a whole classic game: 225 chambers (31112 moves), the name box and the victory screen | played to the victory screen in 15 minutes (2.7 million updates), no error |
+| Web | clicks on cells | a whole adventure: the name box, 225 chambers over 15 pyramids with the world map and the treasures (18011 moves), no deaths, the victory screen | played to the end in 3 minutes, no error |
 | Web, the page's canvas | clicks and keys | the focus lost (the page's `blur`, the document hidden) for 200 updates and regained; the canvas drawn at 0.6 and at 1.5 times its size, 20 moves each | the game kept updating while the focus was lost and played on after it came back; every click landed on its cell; no step off track |
 
 What the runs cannot cover, and why. The bot always wins its chamber, so no run met the caught screens; the original's end-of-game,
@@ -176,7 +176,7 @@ the two scaled runs cover. A key reaches the game as a press of one frame in the
 natively. In a native `-fast` run the driver is slower than the game and a key held through its answer takes a second step, so
 the long `-fast` runs use clicks, which go through `Board::MouseDown`, the same code a hand's click on the cell next to the explorer
 reaches; arrow keys were played in real time (one double step in an earlier run under heavy machine load, which a late `keyup` explains,
-and none in the last run). The scores of the native runs are lower than the page's for the same moves (170915 against about 250000 in
+and none in the last run). The scores of the native runs are lower than the page's for the same moves (170915 against 249665 in
 a classic game): the `-fast` game runs on while the driver thinks, so the level-complete bonus, which is read from the game's clock,
 runs out. It is a property of the run and not of the game.
 
@@ -184,14 +184,16 @@ Two things worth knowing about the web runs. The hidden Browser pane gives the p
 about four updates under `?fast=1`, so a whole game would take hours; a frame source that does not wait for the display
 (`requestAnimationFrame` replaced by a `MessageChannel` post in the page, before the game starts) made the same page run at several
 thousand updates a second and the whole classic game take minutes, with the same states (the game's clock is virtual there). The
-page's `playMove` also took clicks as `{x, y}` objects while `docs/TEST_COMMANDS.md` says `[x, y]`; the page now takes both and the
-`move`s of this port print the documented form (a `shared:` commit).
+`move`s of this port print the documented step form (`{"click":[x,y]}`, `{"key":"ArrowUp"}`).
+
+The two whole native games were played on the build before the last merge of the trunk; after it the suite (baseline identical), the
+tutorial, 150 moves of an adventure and both whole web games were played again.
 
 ## Real play found nothing to fix in the port
 
 No run found a control that stopped working, a soft lock, a crash or a lost save. The checks that did fail on the way were all the
-test harness's: the `-realinput` channel answered a bare `move` with its own "needs <x> <y>" error (it now reaches the game's bot, as
-it does under `-script`, a `shared:` commit), `FindWay` gave another first step each time it was asked and walked a chamber in
+test harness's: the `-realinput` channel answered a bare `move` with its own "needs <x> <y>" error (the trunk
+has the same fix now, and its `playMove` plays the documented step forms), `FindWay` gave another first step each time it was asked and walked a chamber in
 circles (the bot now keeps its plan while the board keeps to it), and `setup_worktree.sh` does not copy the game's baseline.
 
 ## The fixes mod
