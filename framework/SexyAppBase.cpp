@@ -45,6 +45,14 @@
 #include "WebProfiles.h"
 #endif
 
+// port: the player-only page's hold on the updates (byopop_hold_updates_at, below), web only; -1 holds nothing
+#ifdef __EMSCRIPTEN__
+static int gWebHoldAt = -1;
+static bool WebUpdatesHeld(int theUpdateCount) { return (gWebHoldAt >= 0) && (theUpdateCount >= gWebHoldAt); }
+#else
+static bool WebUpdatesHeld(int) { return false; }
+#endif
+
 using namespace Sexy;
 
 SexyAppBase* Sexy::gSexyAppBase = NULL;
@@ -321,6 +329,28 @@ EM_JS(void, sexyapp_notify_exit, (int isRestart, const char* theDroppedJson), {
 EM_JS(void, sexyapp_notify_loaded, (), {
 	if (typeof Module['onGameLoaded'] === 'function')
 		Module['onGameLoaded']();
+});
+
+// port: the player-only page's test hooks (web/testkit.js; docs/WEB_PLAYER.md, "The player-only page"), web only. The page
+// reads the update count, and may hold the updates at a count: pause holds them where they are, a step of n moves the hold n
+// on. -1, the start and every run but a test that holds them, leaves the loop as it was.
+extern "C"
+{
+EMSCRIPTEN_KEEPALIVE int byopop_update_count()
+{
+	return (gSexyAppBase != NULL) ? gSexyAppBase->mUpdateCount : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE void byopop_hold_updates_at(int theUpdate)
+{
+	gWebHoldAt = theUpdate;
+}
+}
+
+// port: the player-only page's frame hook (web/testkit.js, Module.byopopTestFrame), after each browser frame's updates and
+// draw (whether it drew); no other page sets it. (The runtime's own Module.postMainLoop is compiled out of these builds.)
+EM_JS(void, sexyapp_test_frame, (int theDrew), {
+	if (Module.byopopTestFrame) Module.byopopTestFrame(theDrew != 0);
 });
 
 EM_JS(void, sexyapp_alert, (const char* theText), {
@@ -2528,7 +2558,8 @@ bool SexyAppBase::Process(bool allowSleep)
 			// port: with -drawevery an update that has not been drawn yet is drawn before the next one
 			if (((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
 			{
-				if (mUpdateFTimeAcc >= aFrameFTime)
+				// port: a test may hold the updates (byopop_hold_updates_at, web only): the frame is still drawn
+				if ((mUpdateFTimeAcc >= aFrameFTime) && (!WebUpdatesHeld(mUpdateCount)))
 				{
 					bool hadRealUpdate = DoUpdateFrames();
 					if (hadRealUpdate)
@@ -2664,6 +2695,7 @@ void SexyAppBase::EmscriptenMainLoop(void* theArg)
 		if ((anApp->mDrawCount != aDrawCount) || (anApp->mNothingDue))
 			break;
 	}
+	sexyapp_test_frame(anApp->mDrawCount != aDrawCount);
 
 	if (anApp->mShutdown)
 	{

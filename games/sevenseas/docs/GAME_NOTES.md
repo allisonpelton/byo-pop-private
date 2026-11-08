@@ -203,14 +203,40 @@ Each is described in section 6 and in IDENTICAL_PLAY.md: the new ship's cell aft
 between runs), the gun smoke on the loaded ships of a continued game (uninitialised timers), and the treasure's cell on the bonus
 level (random, same variation).
 
-## 8. origrun on Seven Seas stalls at update 10 (seen 2026-11-07, not solved)
+## 8. Running the original through origrun (2026-11-07)
 
-Every run of the original through origrun (host under rundesk, and the Windows Sandbox), with and without the seed and
-registration patches, `--sound stub` or `nodriver`, with and without the virtual clock, with a script that starts with
-`focus regain` or none, stops with the counter `[0x4e21bc]+0x368` at 10 and the title screen's loading bar empty. The main
-thread sleeps (CPU use near zero, one thread in `Sleep`, the rest in waits), so the game is not busy and not showing a
-dialog (msgbox.log is empty). An origrun built from the commit of 2026-11-01 (6a225cbe), which ran this game in the
-identical-play pass, stalls the same way on the same copy, so the 2026-11-03 stand-in changes are not the cause. What
-changed since the pass is the machine (Windows 10.0.26300): a later OS build may have changed what FMOD 3 or the old
-DirectSound path expects. Not looked for further (about an hour spent); a way in would be a debugger's stack of the
-sleeping loader thread, or a run of another FMOD 3 original (Bonnies) to see whether it stalls too.
+The update counter is `[0x4e21bc]+0x378` (`mUpdateCount`, incremented by 0x430ba0 once the app is loaded), not `+0x368`, which is
+the app's frame time and stays at 10: with it every `at` waits for an update that never comes and the run looks stalled at update 10
+(the shared session found this; the main thread's sleep in the frame loop at 0x431c70 is normal). `tools/origrun/sevenseas.cfg` holds
+`counter=[0x4e21bc]+0x378`. The title takes no click until the original has finished loading, which varies from run to run (a few
+seconds to over a minute of real time): a script that clicks the title early is ignored without a word, so put the first click late
+(about update 6500 on the real clock) and look at the first shot before trusting the rest. Clicks and moves take the game's own
+coordinates (640 x 480), not the picture's.
+
+Compared with it (sandbox, real clock, 2026-11-07): the twelve tutorial hints at their steps, the hint panel's text against the
+port's native shots at the same steps, mean difference about 2 grey levels (the port's shots are resampled from 1280 x 960), and the
+text lines at the same rows, including step 9 (second line only) and step 14. The Easy demo's captions run as in the port. Not yet
+compared in the original: the board's first box after the demo's "Click Here to Start!" (the four lines at the first-box position);
+the runs that reached it did not get past the title in time.
+
+## 9. Test commands (docs/TEST_COMMANDS.md; `src/testhooks/Commands.cpp`)
+
+Script commands of the port (`-script`, later the live channel), answered on stdout with one line each (`OK <command>`,
+`ERROR <command>: <reason>`, `STATE {...}`, `MOVE {...}`). A command that is never given changes nothing; `tools/check.sh sevenseas`
+(the autoplay games and their logs) gives the same results as before them. Tried with `tools/commands_test.txt` and
+`tools/commands_test2.txt` (`tools/run_script.sh`).
+
+| Command | Does |
+|---|---|
+| `state` | `STATE {"screen","mode","level","score","lives","kills","board":{"player":[x,y],"heading","state","levelOver","ships":[[type,x,y]...],"islands":[[x,y,kind]...],"wrecks":[[x,y]...],"whirlpools":[[x,y,open]...]}}`; `screen` is title, menu, demo, board, bonus, map, options, help, highscores; `mode` is easy, average, hard or tutorial; the game keys are absent off the board |
+| `goto <screen>` | menu, options, help, highscores (after a game), or easy, average, hard, tutorial through the menu's own buttons (the game starts at the next update); title and credits answer ERROR (the game has none to go to), and so does any `goto` while the title is up |
+| `level <n>` | `NewLevel` for level n of the current game, as `-autoplaylevel` does (not in the tutorial or the demo) |
+| `set score\|lives <n>` | the board's score or lives |
+| `win` | the level is complete now (the flag the board sets when the last pirate is gone; the game's level-complete screen follows) |
+| `lose` | the last life is lost now through `LoseLife`; the game over and the high-score screen follow as in play |
+| `seed <n>` | the game's random numbers (the C library generator the original used) are seeded with n |
+| `move`, `botmove` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"clicks":[[gx,gy]]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the click in game coordinates that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
+| `unlock all` | ERROR: the game has nothing locked |
+
+`move` is also the framework's own script command (`move x y`, the mouse), which the framework takes first, so a bare `move` never
+reaches the game: `botmove` is the same command under another name until the framework hands argument-less `move` to the game.
