@@ -131,6 +131,7 @@ int SortHighScores();                                            // 0x40ce10: an
 void GameInit();                                                 // 0x40ce40
 void FreeAll();                                                  // 0x40d3a0
 void GoToScreen();                                               // 0x40d3f0: the screen of kind gGoTo
+bool ChangeScreen();                                             // GameStep's leaving of a screen for gGoTo's; false when none is left
 void GameStep();                                                 // 0x40d6a0
 void GameDraw();                                                 // 0x40ce80
 // The start (CBStart.cpp)

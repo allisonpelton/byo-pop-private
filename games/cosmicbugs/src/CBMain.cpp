@@ -485,6 +485,36 @@ void GoToScreen()
 	}
 }
 
+// What GameStep does when the current screen is left: a board (or the logo) is dropped, any other screen is
+// unlinked, gGoTo's screen becomes current, and a board has the levels before it dropped. false when no screen is
+// current afterwards (the tests' commands call this as well, CBTestCommands.cpp).
+bool ChangeScreen()
+{
+	if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
+		List_RemoveCurrent(&gLevels);
+	else
+		Level_UnlinkAll(gLevels.current);
+	GoToScreen();
+	if (gLevels.current->kind == 0)
+	{
+		for (; gLevelInSet != 0; gLevelInSet = gLevelInSet + -1)
+		{
+			if (gLevels.current != nullptr)
+				gLevels.current = gLevels.head;
+			if (gLevels.current->musicPending != 0)
+				gLevelInSet = gLevelInSet + 1;
+			List_RemoveCurrent(&gLevels);
+			if (gLevels.current != nullptr)
+				gLevels.current = gLevels.head;
+		}
+		Level_StartSong(gLevels.current, 0);
+	}
+	if (gLevels.current == nullptr)
+		return false;
+	Screen_Redraw();
+	return true;
+}
+
 // An update: the trial's time runs on a board without a menu in use; a screen that is left (or '.' pressed)
 // gives way to gGoTo's, a board to the next level of the file read again (the levels before it dropped). The
 // trial's last ten updates bring the expiring nag. Esc leaves the closing nag, and the main menu when registered,
@@ -500,28 +530,8 @@ void GameStep()
 			gTrialLeft = gTrialLeft + -1;
 		if (Level_Update(gLevels.current) == 0 || Key_Pressed(0xbe) != 0)
 		{
-			if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
-				List_RemoveCurrent(&gLevels);
-			else
-				Level_UnlinkAll(gLevels.current);
-			GoToScreen();
-			if (gLevels.current->kind == 0)
-			{
-				for (; gLevelInSet != 0; gLevelInSet = gLevelInSet + -1)
-				{
-					if (gLevels.current != nullptr)
-						gLevels.current = gLevels.head;
-					if (gLevels.current->musicPending != 0)
-						gLevelInSet = gLevelInSet + 1;
-					List_RemoveCurrent(&gLevels);
-					if (gLevels.current != nullptr)
-						gLevels.current = gLevels.head;
-				}
-				Level_StartSong(gLevels.current, 0);
-			}
-			if (gLevels.current == nullptr)
+			if (!ChangeScreen())
 				goto escape;
-			Screen_Redraw();
 		}
 		if (gLevels.current != nullptr && gLevels.current->kind == 0 && gRegistered == 0 && gTrial != 0 &&
 			gTrialLeft < 10)

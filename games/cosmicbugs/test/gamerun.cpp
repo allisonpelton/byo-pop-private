@@ -12,6 +12,8 @@
 //   <ms> focus lose|regain    the window loses or regains the focus (the host's IsActive)
 //   <ms> state                prints the score, the lives, the board in its set and the board's filled cells
 //   <ms> enemies              prints each enemy of the board: its place, tint and animation
+//   <ms> cmd <line>           a standard test command (docs/TEST_COMMANDS.md: state, goto, level, win, move ...), answers printed
+//   <ms> bot <ms>             plays by the port's own bot (the move command) for that long, or until the game is over
 //   <ms> end                  stops (the game's end runs)
 // The player's files (cp.cfg, cb.dat) are in <outdir>; a missing cp.cfg is made windowed.
 
@@ -20,6 +22,7 @@
 #include "CBGlobals.h"
 #include "CBLevel.h"
 #include "CBGame.h"
+#include "CBTestCommands.h"
 
 #include "stb_image.h"
 #include "stb_image_write.h"
@@ -213,6 +216,18 @@ bool ReadScript(const char* thePath, std::vector<Event>& theEvents)
 		int n = std::sscanf(aLine, "%d %63s %255s %63s", &aTime, aWhat, anArg1, anArg2);
 		if (n < 2)
 			continue;
+		if (std::strcmp(aWhat, "cmd") == 0)
+		{
+			// the rest of the line is the command
+			const char* aRest = std::strstr(aLine, "cmd") + 3;
+			while (*aRest == ' ' || *aRest == '\t')
+				aRest++;
+			std::string aCommand = aRest;
+			while (!aCommand.empty() && (aCommand.back() == '\n' || aCommand.back() == '\r' || aCommand.back() == ' '))
+				aCommand.pop_back();
+			theEvents.push_back({aTime, "cmd", 0, 0, aCommand});
+			continue;
+		}
 		Event e;
 		e.time = aTime;
 		e.what = aWhat;
@@ -338,6 +353,11 @@ int main(int argc, char** argv)
 	int aCount = anEnemies ? 8 : 4;
 	int aWatched[8] = {};
 	bool aKnown[8] = {};
+	// "bot": plays by the port's own move command, its input steps turned into timed events
+	bool aBotOn = false;
+	uint32_t aBotEnd = 0;
+	uint32_t aBotReady = 0;
+	int aBotMoves = 0;
 	while (aRunning)
 	{
 		while (aNext < anEvents.size() && anEvents[aNext].time <= (int)gHost.mTime)
@@ -369,11 +389,91 @@ int main(int argc, char** argv)
 					std::printf("enemy at %.1f,%.1f tint %d anim %s\n", anEnemy->x, anEnemy->y, anEnemy->tint,
 						anEnemy->anim != nullptr ? anEnemy->anim->name : "-");
 			}
+			else if (e.what == "cmd")
+			{
+				std::string aName = e.name;
+				std::string anArgs;
+				size_t aSpace = aName.find(' ');
+				if (aSpace != std::string::npos)
+				{
+					anArgs = aName.substr(aSpace + 1);
+					aName = aName.substr(0, aSpace);
+				}
+				std::vector<std::string> aReplies;
+				if (!cb::TestCommand(aName, anArgs, aReplies))
+					aReplies.push_back("ERROR " + e.name + ": unknown command");
+				for (const std::string& aLine : aReplies)
+					std::printf("%u ms: %s\n", gHost.mTime, aLine.c_str());
+			}
+			else if (e.what == "bot")
+			{
+				aBotOn = true;
+				aBotEnd = gHost.mTime + (uint32_t)e.a;
+				aBotReady = gHost.mTime;
+			}
 			else if (e.what == "end")
 				aRunning = false;
 		}
 		if (!aRunning)
 			break;
+		if (aBotOn && gHost.mTime >= aBotEnd)
+		{
+			aBotOn = false;
+			std::printf("%u ms: bot stopped by time after %d moves\n", gHost.mTime, aBotMoves);
+		}
+		else if (aBotOn && gHost.mTime >= aBotReady)
+		{
+			std::vector<std::string> aReplies;
+			cb::TestCommand("state", "", aReplies);
+			if (aReplies.back().find("\"over\":true") != std::string::npos)
+			{
+				aBotOn = false;
+				std::printf("%u ms: bot stopped, the game is over after %d moves\n", gHost.mTime, aBotMoves);
+			}
+			else
+			{
+				aReplies.clear();
+				cb::TestCommand("move", "", aReplies);
+				const std::string& aMove = aReplies.back();
+				int aTime = (int)gHost.mTime;
+				if (aMove.compare(0, 9, "MOVE null") == 0)
+					aBotReady = gHost.mTime + 100;
+				else
+				{
+					aBotMoves++;
+					size_t anAt = aMove.find("\"input\":[");
+					size_t anEnd = aMove.size();
+					while (anAt < anEnd)
+					{
+						size_t anOpen = aMove.find('{', anAt + 1);
+						if (anOpen == std::string::npos)
+							break;
+						size_t aClose = aMove.find('}', anOpen);
+						if (aClose == std::string::npos)
+							break;
+						std::string o = aMove.substr(anOpen, aClose - anOpen + 1);
+						anAt = aClose;
+						int x = 0, y = 0, n = 0;
+						size_t k;
+						if ((k = o.find("\"move\":[")) != std::string::npos && std::sscanf(o.c_str() + k + 8, "%d,%d", &x, &y) == 2)
+							anEvents.push_back({aTime, "move", x, y, ""});
+						else if ((k = o.find("\"click\":[")) != std::string::npos && std::sscanf(o.c_str() + k + 9, "%d,%d", &x, &y) == 2)
+						{
+							int aButton = o.find("\"right\"") != std::string::npos ? 2 : 1;
+							anEvents.push_back({aTime, "move", x, y, ""});
+							anEvents.push_back({aTime, "down", aButton, 0, ""});
+							anEvents.push_back({aTime + 30, "up", aButton, 0, ""});
+							aTime += 40;
+						}
+						else if ((k = o.find("\"wait\":")) != std::string::npos && std::sscanf(o.c_str() + k + 7, "%d", &n) == 1)
+							aTime += n;
+					}
+					std::stable_sort(anEvents.begin() + (long)aNext, anEvents.end(),
+						[](const Event& a, const Event& b) { return a.time < b.time; });
+					aBotReady = (uint32_t)aTime + 10;
+				}
+			}
+		}
 		if (cb::GameFrame() == 0)
 		{
 			std::printf("the game quit at %u ms\n", gHost.mTime);

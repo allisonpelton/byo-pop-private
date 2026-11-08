@@ -3,6 +3,7 @@
 #include "CosmicBugsApp.h"
 #include "CBGlobals.h"
 #include "CBLevel.h"
+#include "CBTestCommands.h"
 #include "R64.h"
 #include "R64Sys.h"
 #include "DDInterface.h"
@@ -82,13 +83,14 @@ public:
 	}
 
 	// The original's activation (its WndProc's WM_ACTIVATEAPP) is the framework's mActive, set from SDL's focus
-	// events. The web page is active while it runs (the browser stops it when hidden); a test run's window may never be
+	// events. The web page is active while it runs (the browser stops it when hidden); a test run's window may never be,
+	// except in a -realinput run, where only the file's focus events reach mActive and so say what the window has
 	bool IsActive() override
 	{
 #ifdef __EMSCRIPTEN__
 		return true;
 #else
-		return gApp->mActive || gApp->IsTestRun();
+		return gApp->mActive || (gApp->IsTestRun() && gApp->mRealInputFileName.empty());
 #endif
 	}
 
@@ -468,9 +470,11 @@ void CosmicBugsApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 		r64::Screen_SetFullscreen(wantWindowed ? 0 : 1);
 }
 
-// The script's "state", and "rdown"/"rup" [<x> <y>]: the right button pressed or let go (there, else where the
-// pointer is, which the game's own warps may have moved). The game polls its buttons once an update, so the
-// framework's rclick (pressed and let go in one update) never reaches it.
+// The script's "rdown"/"rup" [<x> <y>]: the right button pressed or let go (there, else where the pointer is, which the
+// game's own warps may have moved). The game polls its buttons once an update, so the framework's rclick (pressed and
+// let go in one update) never reaches it. The standard test commands (docs/TEST_COMMANDS.md: state, goto, level, unlock
+// all, set, win, lose, seed, move) are CBTestCommands.cpp's; each answers on the log with its own line(s). "state" also
+// prints the older one-line summary the suite reads.
 bool CosmicBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	if (theCommand.mCommand == "rdown" || theCommand.mCommand == "rup")
@@ -484,10 +488,17 @@ bool CosmicBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		r64::Sys_MouseButton(2, theCommand.mCommand == "rdown" ? 1 : 0);
 		return true;
 	}
-	if (theCommand.mCommand != "state")
+	if (theCommand.mCommand == "state")
+	{
+		cb::Level* aLevel = cb::gLevels.current;
+		SDL_Log("state: score %d, lives %d, board %d, filled %d of %d%%", cb::gScore, cb::gLives, cb::gLevelInSet,
+			aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+	}
+	std::vector<std::string> aReplies;
+	if (!cb::TestCommand(theCommand.mCommand, theCommand.mArgs, aReplies))
 		return SexyAppBase::HandleScriptCommand(theCommand);
-	cb::Level* aLevel = cb::gLevels.current;
-	SDL_Log("state: score %d, lives %d, board %d, filled %d of %d%%", cb::gScore, cb::gLives, cb::gLevelInSet,
-		aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+	for (const std::string& aLine : aReplies)
+		std::printf("%s\n", aLine.c_str());
+	std::fflush(stdout);
 	return true;
 }
