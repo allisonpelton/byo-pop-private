@@ -1,5 +1,6 @@
 #include "StoryScreen.h"
 #include "Character.h"
+#include "TempleScreen.h"
 #include "PixelusApp.h"
 #include "Temples.h"
 #include "GameDialog.h"
@@ -56,7 +57,11 @@ StoryScreen::~StoryScreen()
 {
 	delete mContinueButton;
 	for (size_t i = 0; i < mSpeeches.size(); i++)
+	{
 		delete mSpeeches[i].mCharacter;
+		delete mSpeeches[i].mPortrait;
+		delete mSpeeches[i].mFramed;
+	}
 }
 
 // 0x42db50: the script. A line ending in a colon starts a speech, the lines after it are what is said; the first
@@ -98,6 +103,18 @@ void StoryScreen::Load(const std::string& theName)
 			aSpeech.mY = aY;
 			aSpeech.mStart = aStart;
 			aSpeech.mCharacter = new Character(mApp, aSpeaker, NULL, 2);
+			// 0x42d810: the picture the speaker is drawn on, and a copy of the frame the picture is put in
+			aSpeech.mPortrait = new MemoryImage(mApp);
+			aSpeech.mPortrait->Create(0xa0, 0xa0);
+			aSpeech.mPortrait->SetImageMode(true, true);
+			Image* aFrameImage = mApp->mImages[IMAGE_STORYFRAME];
+			aSpeech.mFramed = new MemoryImage(mApp);
+			aSpeech.mFramed->Create(aFrameImage->GetWidth(), aFrameImage->GetHeight());
+			aSpeech.mFramed->SetImageMode(true, true);
+			{
+				Graphics aCopy(aSpeech.mFramed);
+				aCopy.DrawImage(aFrameImage, 0, 0);
+			}
 			mSpeeches.push_back(aSpeech);
 			aStart += SPEECH_GAP;
 			aY += SPEECH_SPACING;
@@ -155,7 +172,7 @@ void StoryScreen::DrawSpeech(Graphics* g, const Speech& theSpeech, int theOrdina
 
 	Image* aBubble = mApp->mImages[aRight ? IMAGE_BUBBLELEFT : IMAGE_BUBBLERIGHT];
 	int aBubbleX = aRight ? 15 : 125;
-	int aFrameX = aRight ? 520 : 8;
+	int aFrameX = aRight ? 514 : 10;
 	int aY = theSpeech.mY;
 
 	g->SetColorizeImages(true);
@@ -164,23 +181,24 @@ void StoryScreen::DrawSpeech(Graphics* g, const Speech& theSpeech, int theOrdina
 	g->DrawImage(aBubble, aBubbleX, aY);
 	g->SetColor(Color(255, 255, 255, anAlpha));
 
-	// the speaker in a frame
-	Image* aFrame = mApp->mImages[IMAGE_STORYFRAME];
-	int aSize = aFrame->GetWidth();
-	g->DrawImage(mApp->mImages[IMAGE_STORYFRAMEBDROP], aFrameX, aY);
+	// 0x42ccf0: the speaker in a frame. The backdrop is stretched over the 160 by 160 picture and the figure drawn on it
+	// (moved by the speaker's offset, 0x53d660), the picture is shrunk into the copy of the frame and the frame laid over it
 	{
-		MemoryImage* aHead = mApp->mHeads[theSpeech.mSpeaker][theSpeech.mCharacter->mPose];
-		if (aHead != NULL)
-		{
-			Graphics aClip(*g);
-			aClip.ClipRect(aFrameX + 3, aY + 3, aSize - 6, aSize - 6);
-			double aScale = std::min((aSize - 6.0) / aHead->GetWidth(), (aSize - 6.0) / aHead->GetHeight());
-			int aWidth = (int) (aHead->GetWidth() * aScale), aHeight = (int) (aHead->GetHeight() * aScale);
-			aClip.DrawImage(aHead, Rect(aFrameX + (aSize - aWidth) / 2, aY + (aSize - aHeight) / 2, aWidth, aHeight),
-				Rect(0, 0, aHead->GetWidth(), aHead->GetHeight()));
-		}
+		static const int OFFSETS[11][2] = { { -5, -50 }, { 0, -160 }, { -15, -180 }, { 10, -210 }, { -5, -210 }, { -40, -190 },
+			{ -15, -220 }, { -35, -190 }, { -45, -220 }, { -50, -180 }, { 15, 5 } };
+		Image* aBackdrop = mApp->mImages[IMAGE_STORYFRAMEBDROP];
+		Graphics aPicture(theSpeech.mPortrait);
+		aPicture.DrawImage(aBackdrop, Rect(0, 0, 0xa0, 0xa0), Rect(0, 0, aBackdrop->GetWidth(), aBackdrop->GetHeight()));
+		aPicture.Translate(OFFSETS[theSpeech.mSpeaker][0], OFFSETS[theSpeech.mSpeaker][1]);
+		DrawCharacter(mApp, theSpeech.mCharacter, &aPicture);
+
+		Image* aFrame = mApp->mImages[IMAGE_STORYFRAME];
+		Graphics aFramed(theSpeech.mFramed);
+		aFramed.DrawImage(theSpeech.mPortrait, Rect(1, 1, theSpeech.mFramed->GetWidth() - 2, theSpeech.mFramed->GetHeight() - 2),
+			Rect(0, 0, 0xa0, 0xa0));
+		aFramed.DrawImage(aFrame, 0, 0);
+		g->DrawImage(theSpeech.mFramed, aFrameX, aY - 3);
 	}
-	g->DrawImage(aFrame, aFrameX, aY);
 
 	// 0x42ccf0: what is said, a line at a time, each 0.5 s after the one before, in black on the bubble
 	if (anAge > 0.5)
