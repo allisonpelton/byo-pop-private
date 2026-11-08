@@ -165,7 +165,7 @@ def annotate_res(t):
 # strlen idiom with any variable names, with the pointer assignment before it
 STRLEN2 = re.compile(r"^[ \t]*(?:\w+ = (?:&?DAT_\w+|\"(?:[^\"\\\n]|\\.)*\"(?:@\w+)?);\n)?[ \t]*do \{\n[ \t]*(\w+) = (\w+);\n"
                      r"[ \t]*\2 = \1 \+ 1;\n[ \t]*\} while \(\*\1 != '\\0'\);\n", re.M)
-ASSIGN2 = re.compile(r"std::string::assign_ptr_len\s*\(\s*(?:\(string \*\))?(.+?),\s*(?:\(_String_base \*\))?(&?DAT_\w+|\"(?:[^\"\\\n]|\\.)*\"(?:@\w+)?),\s*"
+ASSIGN2 = re.compile(r"std::string::assign_ptr_len\s*\(\s*(?:\(string \*\))?([^,;]+?),\s*(?:\(_String_base \*\))?\s*(&?DAT_\w+|\"(?:[^\"\\\n]|\\.)*\"(?:@\w+)?),\s*"
                      r"\(uint\)\([^;]*?\)\);", re.S)
 UNUSED = re.compile(r"(\w+)\[(0x[0-9a-f]+|\d+)\]\.unused")
 
@@ -181,7 +181,20 @@ def unusedsub(t):
     return t
 
 
+_resmap = None
+
+
+def resmap():
+    global _resmap
+    if _resmap is None:
+        p = os.path.join(ROOT, "re", "astropop", "resmap.json")
+        _resmap = json.load(open(p)) if os.path.exists(p) else {}
+    return _resmap
+
+
 def extra(t):
+    t = re.sub(r"\b_?DAT_([0-9a-f]{8})\b", lambda m: resmap().get(m.group(1), m.group(0)), t)
+    t = re.sub(r"\bLAB_[0-9a-f]{8}\b", "LAB", t) if False else t
     t = STRLEN2.sub("", t)
     t = ASSIGN2.sub(lambda m: "%s = STR(%s);" % (m.group(1).strip(), m.group(2)), t)
     t = unusedsub(t)
