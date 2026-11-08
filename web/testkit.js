@@ -314,22 +314,31 @@
       return JSON.parse(last.substring(5));
     });
   };
-  // Plays one MOVE through real DOM input, in game coordinates: its "input" list in order where it has one, else its clicks,
-  // then its drags, then its keys; then waits its "updates" (1 by default)
+  // Plays one MOVE through real DOM input, in game coordinates: its "input" steps in order (docs/TEST_COMMANDS.md, under the
+  // move row): {move:[x,y]} (a hover), {click:[x,y], button?:"right"}, {press:[x,y]} and {release:[x,y]} (a drag, the move
+  // steps between them carry it), {key:"B"} and {wait:n} (updates). An older move without "input" lists clicks, then drags,
+  // then keys, which are read as steps in that order; a point is [x, y] or {x, y, button}. Then it waits the move's "updates"
+  // (1 by default).
+  function movePoint(v) { return Array.isArray(v) ? { x: v[0], y: v[1] } : v; }
   test.playMove = function (m) {
     var steps = [];
     if (Array.isArray(m.input)) m.input.forEach(function (i) { steps.push(i); });
     else {
-      (m.clicks || []).forEach(function (c) { steps.push({ click: c }); });
+      (m.clicks || []).forEach(function (c) { steps.push({ click: c, button: c.button }); });
       (m.drags || []).forEach(function (d) { steps.push({ drag: d }); });
       (m.keys || []).forEach(function (k) { steps.push({ key: k }); });
     }
     var p = Promise.resolve();
     steps.forEach(function (st) {
       p = p.then(function () {
-        if (st.click) return test.click(st.click.x, st.click.y, st.click.button || "left");
+        var pt, button = st.button || "left";
+        if (st.move) { pt = movePoint(st.move); return test.move(pt.x, pt.y); }
+        if (st.click) { pt = movePoint(st.click); return test.click(pt.x, pt.y, st.button || pt.button || "left"); }
+        if (st.press) { pt = movePoint(st.press); return test.down(pt.x, pt.y, button); }
+        if (st.release) { pt = movePoint(st.release); return test.up(pt.x, pt.y, button); }
         if (st.drag) return test.drag(st.drag.x0, st.drag.y0, st.drag.x1, st.drag.y1, st.drag.steps || 4);
         if (st.key) return test.key(st.key);
+        if (st.wait) return test.wait(st.wait);
       });
     });
     return p.then(function () { return test.wait(m.updates > 0 ? m.updates : 1); });

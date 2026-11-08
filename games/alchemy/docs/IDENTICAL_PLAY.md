@@ -190,3 +190,119 @@ found in the time given, and it was not seen with a mouse.
 The loading screen (its length follows the real time of the original's loading thread, so a shot of its bar cannot be lined up), the
 wizard's other messages (skull, four-way, no moves: the same dialog and text properties as the six compared), the web build's music in a
 browser, and the time trial's score table screens.
+
+## Real play (2026-11-07)
+
+Phases one and two drove the game with `-script` clicks and the bot's `-autoplay`, which never pass through the real input
+path (CLAUDE.md, "Done means identical"). This pass plays the port with real input only, from drivers: code reads the game's
+state through the standard test commands (`state` and `move`, `docs/TEST_COMMANDS.md`, `GAME_NOTES.md` section 6; the move
+comes from the bot `-autoplay` has always used, now shared in `src/testhooks/Bot.cpp`) and sends each move as the input a
+player's hand gives. No session played a game, and the suite and the frozen baseline play as before (`tools/check.sh alchemy`:
+"rerun identical; baseline identical").
+
+### Native, with posted window messages
+
+`tools/realplay/drive.py` runs under rundesk, starts the game in real time with a `-script` that asks for a `state` and a `move`
+every five updates, and posts WM_MOUSEMOVE, the mouse buttons and WM_KEYDOWN/UP to the game's window (posted input is kept under
+`-script` in a test run only). Its steps: `launch` (the title's link), `game <mode> <skill>` (the skill and mode buttons and
+Start by clicks, then every move of the bot: a hover, a wait of two updates and a click for each piece, the right button for the
+forge, the wizard's questions, the board-cleared panel, the name typed by key messages, the score table's button, until the
+selector is back), `tutorial` (the selector's picture, then all fourteen steps), `windowed` and `fullscreen` (the Fullscreen
+box of the options dialog, so the screen mode changes through the game's own UI), `focus` and `quit` (the quit question: No
+leaves the selector up, Yes makes the game leave by itself with exit code 0). The shots are the game's own screenshots on
+request, read as pictures only to check what is drawn.
+
+What was played, each run to the end of its game, the name entry, the table and the way back to the selector:
+
+| Run | Played | Result |
+| --- | --- | --- |
+| 1 | strategic, skill 2 | 117 pieces, 19 forges, 32 s |
+| 2 | time trial, skill 1; tutorial | 743 pieces, 52 forges, 229 s, 11,000 points at board 3; the tutorial in 3 s |
+| 3 | windowed (client 1280 x 960); strategic, skill 3; tutorial | 31 pieces and a lost game in 14 s; the tutorial in 7 s |
+| 4 | windowed; tutorial; time trial, skill 3; full screen (client 3840 x 2160, the game letterboxed in it); strategic, skill 1 | the tutorial in 6 s; time trial 734 pieces, 118 forges, 231 s; strategic 1200 pieces, 136 forges, 118 s, board 2 |
+| 5 | strategic, skill 1, with the window losing and regaining the focus twice | the focus lines below; the game played on to its end |
+| 6 | launch; the quit question | No keeps the selector, Yes leaves with code 0 |
+| 7 | with the fixes mod on: windowed; tutorial; strategic, skill 2; the quit question | the tutorial in 5 s; 125 pieces, 13 forges, 29 s; No, then Yes leaves with code 0 |
+
+The focus: a posted focus message gives the window neither the focus nor takes it away, so the pass sent `focus lost` and
+`focus gained` as `-script` lines (the framework's own focus path; the posted-input hook drops SDL's). The state then read
+`active` false and `muted` true with the score and the moves of the board unchanged, input held, and `active` true, `muted`
+false and play on after the second line, at update 3005 and 3405 and again at 5005 and 5105. This is what the original does too
+(phase two's tour 3 compared both). The pass with real SDL focus events is the next section ("On the trunk's live channel").
+
+One attempt of a run lost its posted click on the options dialog's DONE button on the busy machine (the game kept updating, the
+dialog stayed; eight reruns of the step did not repeat it), so the step now clicks again when the dialog is still up after eight
+seconds. Nothing else broke: every game ended through the game's own flow, the screens and shots looked as the comparisons had shown
+them, and the stderr of every run is free of errors. Real play found no bug of the original that breaks play, so the port
+changed only in its test hooks: `state` gained the Yes and No buttons of the dialog that is up (`buttons`), for the quit step.
+
+### In the browser, with DOM events
+
+`games/alchemy/tools/web/onegame.js` is the page driver (`docs/WEB_PLAYER.md`, "Drivers"): on the player-only page
+(`?player=1&assets=1&silent=1&fast=1&driver=games/alchemy/tools/web/onegame.js&mode=<mode>&skill=<n>&blur=<pieces>`), in the
+Browser pane at 640 x 480, it asks the game for `state` and `move` (`byopop.test.command`) and sends each step as the page's
+mouse and key events: the title's link, the selector's buttons, the pieces, the forge, the dialogs, the name, the table. Three
+runs, each to the selector:
+
+- **Strategic, skill 1**: 475 pieces, 37 forges, two boards cleared, 97 s; the name entry (the bot types three letters) and the
+  table. At 60 pieces the window lost the focus (`blur()`): `active` false, `muted` true, score and moves held, then `focus()`
+  gave `active` true and `muted` false and play went on.
+- **Time trial, skill 2**: 141 pieces, 29 forges, the forge full, the name and the table; the same focus test at 100 pieces
+  (the time trial's forge fills by itself, even without the focus, as in the original).
+- **The tutorial**: all fourteen steps by the bot's move, back at the selector in 5 s.
+
+None of the runs printed an error (`byopop.test.errors` empty). The web build's full screen is the browser's and needs a user
+gesture, which a driver's events are not, so it was not played. The shared live channel (`byopop_test_command`) was not yet
+on the trunk when these three runs were made: they used a throwaway merge of the shared branch (never merged here) with the
+trunk's bare `move` rule applied to its script dispatch. The next section repeats them on the trunk as it is now.
+
+### On the trunk's live channel (2026-11-08)
+
+The trunk now has the shared live channel (`-commands=<file>` natively, `byopop_test_command` on the web) and `-realinput`, so the
+three web runs were played again and the native focus pass was made, on the branch merged with the trunk (2103f01f).
+
+**The web, three runs again** (`onegame.js`, as above, the build with the fixes folder on): strategic, skill 1: 476 pieces, 37
+forges, two boards cleared, 114 s, the name entry and the table, and at 25 pieces the focus lost and regained (`active` false,
+`muted` true, score and moves held; then `active` true); time trial, skill 2: 140 pieces, 29 forges, 205 s, the name and the table,
+the same focus test at 20 pieces, the forge filling meanwhile as in the original; the tutorial: back at the selector in 29 s
+(a first load of the page stayed at "Starting..." with no frame, so it was loaded again, and that run was whole). Not one run
+printed an error (`byopop.test.errors` empty).
+
+**Natively, real SDL events** (`games/alchemy/tools/realplay/live.py`): the game runs under rundesk in real time with `-commands`
+and an empty `-realinput` file, so every `move game x y`, `click game x y [right]` and `key <key>` the driver appends is a real
+SDL event through `HandleEvent`, the window-to-game mapping and the widget manager, and the bot's moves come from the game's own
+`move`. What the posted-message driver cannot do, this does: `focus lost` and `focus gained` as SDL's own events, `minimize` and
+`restore` on the real window, and Alt+Enter as `keydown Left Alt`, `key Return`, `keyup Left Alt`. Two runs, each ended with
+the window's close button (`close`, SDL's close event and quit), which ended the game by itself with code 0:
+
+| Run | Played | Result |
+| --- | --- | --- |
+| 1 | strategic, skill 1: 20 pieces; focus lost and gained; minimize and restore; Alt+Enter to a window; 10 pieces; Alt+Enter to full screen; 10 pieces | the game started in full screen (the user directory's setting); `active` false and `muted` true for 100 updates with score 185 and moves 20 unchanged, `active` true and `muted` false after; the same across minimize and restore; `windowed` true after the first Alt+Enter, false after the second; 40 pieces in all |
+| 2 | time trial, skill 3: 12 pieces; Alt+Enter to a window; focus lost and gained and minimize and restore there; 12 pieces; Alt+Enter back to full screen; 8 pieces | the same holds of `active`, `muted`, score 560 and moves 12; the forge went on filling while the window had no focus, as in the original; 32 pieces and 9 forges in all |
+
+A bare `move` did not work on this channel when `-realinput` was on: the framework's real-input dispatch took it for a mouse move
+and answered "move needs <x> <y>", so a driver of this kind could not ask the bot. `RunRealInputCommand` now sends a `move` with
+no point to the game's `HandleScriptCommand`, as `-script`'s dispatch does (a `shared:` commit; its note is in the framework
+header's list of `-realinput` commands). Nothing else of the framework was changed.
+
+The web's full screen is still not played (it needs a user gesture). Every other item of the real-play list is covered: launch, the
+tutorial and a whole game of each mode natively by the posted-message driver (runs 1 to 7 above) and on the page, windowed and full
+screen natively, and focus lost and regained, minimize and Alt+Enter through the live channel's real SDL events. The live runs
+play 32 to 40 pieces each, since what they add over the whole games is the window's own events.
+
+## The fixes mod (2026-11-07)
+
+`mods/fixes/mod.json` holds two toggles, on by default, read through `FixEnabled` (`src/Fixes.cpp`): with the mod absent or off
+the port is the original, as the frozen baseline shows (`tools/check.sh alchemy`, run with the mod's code in the build and no
+mod: rerun identical, baseline identical). The notes had no "Fix candidates", so the candidates came from reading the game's
+code against the decompilation; `GAME_NOTES.md` section 7 lists each toggle with what the original does, and what was looked at
+and left.
+
+| Toggle | The difference | Seen |
+| --- | --- | --- |
+| `rims` | A lit tile gets its soft rim where it borders an unlit one, but the original tests the left and top neighbours from column and row 2 on (`1 < col`, 0x401a82) and the right and bottom ones to the last: the first column and row get none on their inner side. | Tour 2 (a whole strategic game, 40 shots) with the mod off and on: 12 shots differ, in 1,434 pixels, all on the line at the second column's left edge and the second row's top edge, none elsewhere. |
+| `continuedEnding` | `Board::LoadGame` (0x405b39) puts a continued game's pieces at their cells without the board's offset, and the end-of-game shrink draws from there: the pieces shrink 150 pixels left of their tiles, half under the side panel, and the board looks emptied. | A saved game continued and lost (`lose`) with the mod off and on: off, the pieces shrink displaced; on, on their tiles. The shots before the loss differ only in the rim line. |
+
+The mod loads on the web: the page of the build with the fixes folder (`alchemy-fixes/`) says "1 mod active", and the runs above
+were played with it on. Natively, run 7 above was played with the mod on (`drive.py --modsdir`), and the script command `modmenu dump` lists it with both
+toggles on, no errors or warnings, and no split of the high scores; `modmenu set fixes rims false` turns one off at once, with nothing pending.
