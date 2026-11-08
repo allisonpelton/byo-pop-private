@@ -51,7 +51,7 @@ set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settings.js prof
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
 # game's page.js, which byopop_web_index() writes), copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js)
+set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -985,6 +985,8 @@ function(byopop_web_index)
   foreach(name ${BYOPOP_WEB_SHARED_JS} ${BYOPOP_WEB_INDEX_JS})
     configure_file(${BYOPOP_WEB_BRAND_DIR}/../${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
+  # the music player's licence (web/music.js links it): libopenmpt's, as openmpt.wasm is built from it
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libopenmpt.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libopenmpt.txt COPYONLY)
   byopop_web_strings_js()
   byopop_web_counter_js()
   byopop_web_terms_js()
@@ -1073,6 +1075,15 @@ function(byopop_web_jungle)
   endforeach()
 endfunction()
 if(EMSCRIPTEN)
+  # The music player's decoder (web/music/openmpt_web.c, web/music.js; docs/WEB_PLAYER.md, "The music player"): libopenmpt on its
+  # own, as openmpt.js and openmpt.wasm beside the pages, which the listing page loads when its Music tab is first opened
+  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c)
+  target_link_libraries(byopop_openmpt PRIVATE openmpt)
+  set_target_properties(byopop_openmpt PROPERTIES OUTPUT_NAME openmpt SUFFIX ".js" LINKER_LANGUAGE CXX)
+  target_compile_options(byopop_openmpt PRIVATE -O2)
+  target_link_options(byopop_openmpt PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopOpenMPT" "-sALLOW_MEMORY_GROWTH=1"
+    "-sENVIRONMENT=web,node" "--no-entry" "-sEXPORTED_FUNCTIONS=_malloc,_free"
+    "-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32")
   # (a deferred call runs at the end of this directory, the top level, after every game's byopop_web_game())
   get_filename_component(BYOPOP_WEB_BRAND_DIR "${CMAKE_CURRENT_LIST_DIR}/../web/brand" ABSOLUTE)
   cmake_language(DEFER CALL byopop_web_index)

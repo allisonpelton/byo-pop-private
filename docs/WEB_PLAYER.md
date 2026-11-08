@@ -1075,6 +1075,46 @@ folder is restored whole or not at all, with a directory entry for every missing
 from the manifest. The page then tells what it wrote and sends a `storage` event to its own sections so that the settings and players
 show the restored values.
 
+### The music player
+
+The listing page's fourth tab, Music (`web/music.js`, the user's request of 2026-11-07), plays the music of the games the player
+added, from those games' own files in this browser. The site ships no music and sends nothing anywhere: the tab reads each game's
+database read-only (opened without a version, so a game that was never added gets no empty database) the first time the tab is
+shown, and only for the games whose record says their files are here.
+
+Which files hold a game's music is in `web/soundtracks.js`, by the game's id: path patterns in the game's folder as the import
+writes it (folders in lower case). Every file that matches is a module, and its subsongs are the game's tunes. Subsongs shorter than
+two seconds are left out, since in these games they are the silences and stings between tunes (Atomica, Big Money, Dynomite and
+Mummy Maze each have one or two). A game's entry can also list `skip` (subsongs that are not tunes, as `"<file>#<n>"`) and `names`
+(a plain name for a subsong). Tunes are named plainly: the file's name, and "part n" when a file holds several. No invented titles,
+and no long passages of a game's text. The first batch covers the module games: Alchemy, Atomica, Bejeweled, Big Money, BookWorm,
+Bookworm Adventures, Bejeweled Twist (both of its modules), Cosmic Bugs, Water Bugs, Dynomite, Seven Seas and Mummy Maze.
+
+The decoder is libopenmpt on its own, built for the web as `openmpt.js` and `openmpt.wasm` beside the pages (target
+`byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, repeat, length, render). It
+holds no game code, and the page loads it only when the tab is first opened. Its licence is copied to `licenses/libopenmpt.txt`,
+which the tab links. The main thread renders 4096-frame stereo chunks at the AudioContext's rate and posts them to an AudioWorklet
+(its source is a string in music.js, loaded through a Blob URL), keeping about a second queued. The worklet says when it has used a
+chunk, and when it runs dry after a tune's end, which moves on to the next tune; after the last tune the first one plays again.
+
+The player is in one state at a time: idle, loading, playing or paused. It has Play/Pause, Next, a "Repeat the tune" box (libopenmpt
+repeats the subsong for ever) and a volume slider (a GainNode). The repeat box and the volume are kept in `localStorage`
+(`byopop-music-loop`, `byopop-music-volume`). Each tune in the list is a button that plays it. The Media Session API gets the
+tune's name, the game as the artist and the game's icon, and its play, pause, next, previous and stop handlers, so the keyboard's
+media keys and the system's media controls drive the player. At `?silent=1` the volume's GainNode reaches the speakers only through a
+second gain of 0, so they get exact zeros, and the status line ends in "(silent)". The graph has to reach the destination all the
+same: a browser never runs a worklet whose output goes nowhere, and the tune would stand still.
+
+Not covered yet:
+
+- **Ogg games** (Bookworm Adventures Volume 2, Bonnie's Bookstore, Pixelus, Rocket Mania, Noah's Ark) are the second batch: the
+  browser decodes Vorbis (`decodeAudioData`), with stb_vorbis as the fallback, and each game's entry lists its music files. Bonnie's
+  `sound/music.oxm` is one long module, silent at its start, that needs a look of its own.
+- **TipTop** keeps MIDI music inside its .dat, which would play through TinySoundFont.
+- **Word Harmony** plays WAV files.
+- **Ning Po and the two Mahjongs** (Ancient China, Japan) keep their music packed inside other files (Ning Po's `ningpo.pyz`,
+  the Mahjongs' `Resource.dll`), which the player would have to open first.
+
 ### Importing saves from an installed game
 
 A player who has played an original game on this computer can bring its saves, high scores, players and settings into the port, in the
