@@ -116,10 +116,26 @@ the 2D comparison masks it for the same reason. Nothing in 3D mode needed a fix.
 | A hint's lines stood 19 pixels apart | ArrowHint::Draw (0x4036c0) steps them by the font's ascent, 14 (0x403953) | Steps by the ascent | e389b58 |
 | The main menu's "change player" link and the answers of the game's dialogs (the New Player dialog's Cancel, the quit dialog's) made no click | MainMenu's `ButtonPress` (0x47d540) plays SOUND_CLICK2, and GameApp's (0x44b5e0), which a dialog's yes and no reach as 2000 or 3000 plus its id, plays SOUND_CLICK1 (SOUND_CLICK2 for buttons 1 and 11) | The same | b0dfa0a |
 | The port wrote `Is3D` to the registry at every exit, so a player who never touched the setting got one, and the game no longer ran its own 3D test at the next start | The original writes it in SexyAppBase's destructor (0x53c120) only under `mUserChanged3DSetting`, which a change of the 3D mode sets | Writes `Is3D` only when the Options box changed the 3D mode this session | f51d39b |
+| Every mini-game played from the Adventure map ended the game with "Expected boolean in LuaClassRet" once it was over (the user, 2026-11-07) | At a mini-game's end its script opens the curtain with the callback `MiniGame.DoConvPanel`, which returns nothing; CurtainDone (0x44d360) reads a boolean from the callback only when it returned a result | The same (the port read one always). The menu tent's mini-games pass no callback, so only the map's crashed | f58fe80c |
+| The music could stop for good after a chapter boss when the game lost the focus (the user, 2026-11-07) | Not the original's: after a win the scripts queue the map's song for when the treasure or victory song reaches order 41 (`PlaySongWhenDone`), and the original's loop always sees that order. The port's main loop stops in a hidden or minimized browser tab while the music plays on, so the song passed the order and ended unseen, and the queued song never started | A wait whose song has stopped also plays the queued song; in normal play the song reaches its order first. Reproduced natively with the new `stall` test command (60 s during the treasure song) | b6a51d0c |
+| A short hitch at the start of every curtain (Volume 2's session found it; the user's "curtain lag") | The original makes three flipped and mirrored copies of the curtain picture for every curtain, and the first frame uploads them as new textures | The copies are made once and kept by the app (freed at its end) | 4ee9c3db |
 
 The pass also changed the test tools: the pilot's scripts, the sandbox runs, exact shot timing, `lag.py`, and the load
 holds (39aaca5, 8607ebf). Besides those, it made shared origrun changes (sandbox capture, `--watch`), each merged by the
 coordinator.
+
+The user's reports of 2026-11-07 were checked with the user's own words in mind. The crash and the hitch were found by
+reading the original. The lost music never showed in scripted runs: a `-script` run drops the window's real focus and
+minimize events, so the game's `focus`, `minimize` and `restore` script commands copy the framework's handling of them.
+Focus losses and minimizes at seven points from the boss's death to the map all brought the sound back, as did the
+mute bookkeeping (Board::Pause matches the original's). What the user saw is the browser's: a hidden tab stops the
+game while its music plays on. The fix was checked natively with `stall`, not yet in a hidden browser tab.
+
+**Real input.** The pass played with real input in the Browser pane (`?silent=1`, requestAnimationFrame shimmed): DOM
+mouse and key events on the canvas, from a new player's name through the introduction to the first battle. Natively a
+port cannot be driven by posted mouse messages: SDL 2 takes the mouse from Windows' cursor, so a posted click arrives
+at the cursor's place outside the window. `tools/realrun.py` posts keys and minimizes and restores the window for real
+under rundesk; the native mouse pass waits for the framework's `-realinput`.
 
 ## Oddities skipped
 
