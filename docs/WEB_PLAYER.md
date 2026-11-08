@@ -699,8 +699,10 @@ chosen keeps these rules, each in the user's words of 2026-11-07:
 ### Skins
 
 The user chose three of the directions as selectable skins (2026-11-07: "Offer A, B, and C as selectable skins... D feels too
-generic"): A **Demo Disc**, B **Desktop 95** and C **Soda Fountain**, each with a light and a dark version, the dark one from its
-own era rather than inverted colours (the design page's "After dark" section has each with its verdict). `web/skins.js` sets
+generic"): A **Demo Disc**, B **Desktop 95** and C **Soda Fountain**. A and C each have a light and a dark version, the dark
+one from its own era rather than inverted colours: A's midnight gloss, C's after hours with neon (the design page's "After
+dark" section has each with its verdict). B has a light version only (the user, 2026-11-07, of the dark versions: "Only A and
+C"): in a dark theme it stays light, and its pages do not show the theme button. `web/skins.js` sets
 `<html data-skin="demo" | "d95" | "soda">` in each page's `<head>`, before the body is drawn, and `web/skins.css` holds the looks.
 **Plain**, the site's look without a skin, is the fourth choice. The skins restyle the listing page and the game pages; the
 other pages (the terms, the licences, a game's copyright page) keep the plain look.
@@ -713,7 +715,17 @@ player-only page, which has no skin.
 
 How a skin is written: each one sets the pages' own colour variables (`--bg`, `--panel`, `--panel-2`, `--fg`, `--muted`,
 `--line`, `--accent`, `--accent-fg`, `--font-ui`, `--radius`) and its own `--sk-*` ones, once for light and once for dark in the
-pages' two dark forms (web/theme.js); the rules after them only read variables, so each is written once for both themes.
+pages' two dark forms (web/theme.js); the rules after them only read variables, so each is written once for both themes. In
+the dark A only the top bar and the box headings shine, its panels flat smoked glass; the dark C keeps its neon to the sign and
+the awning, with soft edges elsewhere (the verdicts).
+
+**Ambient light.** On a game page in the dark A and C the game's picture glows out around the stage, as on the design page:
+`web/skins.js` copies the game's canvas into a 16 by 12 canvas right after a frame the game drew (the framework's frame hook,
+`Module.byopopTestFrame`, while the WebGL picture is still there), at most every half second, and two such canvases,
+scaled a quarter beyond the stage, blurred far and cross-faded, sit behind it inside the stage's box (html.sk-ambient). With
+reduced motion a sample is taken every 8 seconds at most and switched without a fade. The light versions have none, since
+on a light page a glow reads as a smudge, and neither has B. The site setting "Ambient light" (`ambient`, on by default, the
+Display group) turns it off; while it is off, or in a light theme, no sample is taken.
 Period fonts are named and never shipped (Verdana for A; the 1995 desktop's sans serif, then Tahoma, for B; Cooper Black, then
 Bookman and Georgia, for C's signs).
 

@@ -41,6 +41,8 @@ skin.desk.open = Open {window}
 skin.desk.close = Close {window}
 settings.skin.label = Skin
 settings.skin.hint = The site's look around the game. The game itself never changes.
+settings.ambient.label = Ambient light
+settings.ambient.hint = In the dark Demo Disc and Soda Fountain, the game's colours glow softly around it.
 
 
 # ---- Everywhere: new-tab notice and the game pages' footer link (web/footer.html)

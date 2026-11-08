@@ -359,6 +359,89 @@ var ByopopSkin = (function () {
       (document.documentElement.clientWidth || window.innerWidth) >= DESK_MIN;
   }
   function deskSync() { if (document.body) desk.setOn(deskWanted()); }
+
+  // ---------- ambient light ----------
+  // On a game page in the dark Demo Disc and Soda Fountain (B has no dark version), the game's picture glows out around the stage:
+  // a sample of it 16 by 12 pixels, scaled a quarter beyond the stage on every side, blurred far and cross-faded between two
+  // canvases (html.sk-ambient, web/skins.css). The sample is taken from the game's canvas right after a frame the game drew (the
+  // framework's frame hook, Module.byopopTestFrame), while its WebGL picture is still there, every half second; with reduced motion
+  // every 8 seconds, without the fade. The light versions have none, and the site setting "Ambient light" turns it off. Nothing
+  // runs while it is off.
+  var ambient = (function () {
+    var glows = null, front = 0, last = -1e9, active = false, hooked = false;
+    var still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function isDark() {
+      var t = root.getAttribute("data-theme");
+      if (t === "dark") return true;
+      if (t === "light") return false;
+      return !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+    }
+    function setting() {
+      var o = readItem(), g = pageGame && o.games && o.games[pageGame];
+      if (g && (g.ambient === "on" || g.ambient === "off")) return g.ambient;
+      return o.ambient === "off" ? "off" : "on";
+    }
+    function wanted() {
+      var s = root.getAttribute("data-skin");
+      return (s === "demo" || s === "soda") && isDark() && setting() === "on" &&
+        !!document.getElementById("stage") && !!document.getElementById("canvas");
+    }
+    function position() {
+      var stage = document.getElementById("stage");
+      if (!glows || !stage) return;
+      var wrap = stage.parentNode.getBoundingClientRect(), r = stage.getBoundingClientRect();
+      var mx = r.width * 0.14, my = r.height * 0.14;
+      glows.forEach(function (c) {
+        c.style.left = (r.left - wrap.left - mx) + "px"; c.style.top = (r.top - wrap.top - my) + "px";
+        c.style.width = (r.width + 2 * mx) + "px"; c.style.height = (r.height + 2 * my) + "px";
+      });
+    }
+    function sample() {
+      var back = glows[1 - front], canvas = document.getElementById("canvas");
+      try { back.getContext("2d").drawImage(canvas, 0, 0, 16, 12); } catch (e) { return; }
+      back.classList.add("on");
+      glows[front].classList.remove("on");
+      front = 1 - front;
+    }
+    function frame(drew) {
+      if (!active || !drew) return;
+      var now = performance.now();
+      if (now - last < (still ? 8000 : 500)) return;
+      last = now;
+      sample();
+    }
+    function hook() {
+      var M = window.Module;
+      if (hooked || !M || root.classList.contains("player-only")) return;
+      hooked = true;
+      var prev = M.byopopTestFrame;
+      M.byopopTestFrame = function (drew) { if (prev) prev(drew); frame(drew); };
+    }
+    function sync() {
+      if (!document.body) return;
+      active = wanted();
+      root.classList.toggle("sk-ambient", active);
+      if (!active) return;
+      hook();
+      if (!glows) {
+        var stage = document.getElementById("stage");
+        glows = [0, 1].map(function () {
+          var c = document.createElement("canvas");
+          c.width = 16; c.height = 12; c.className = "sk-glow"; c.setAttribute("aria-hidden", "true");
+          stage.parentNode.insertBefore(c, stage);
+          return c;
+        });
+      }
+      position();
+    }
+    window.addEventListener("resize", function () { if (active) position(); });
+    try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", sync); } catch (e) {}
+    if (window.MutationObserver) new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ["data-theme", "data-skin", "class"] });
+    window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "ambient") sync(); });
+    window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) sync(); });
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", sync); else sync();
+    return { sync: sync, position: position };
+  })();
   window.addEventListener("byopop-skin", deskSync);
   window.addEventListener("resize", deskSync);
 
@@ -366,5 +449,5 @@ var ByopopSkin = (function () {
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(); });
   window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "skin") apply(); });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", askOnce); else askOnce();
-  return { SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync };
+  return { SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync, ambient: ambient };
 })();

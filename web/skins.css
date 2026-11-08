@@ -1,5 +1,5 @@
-/* The site's skins (docs/WEB_PLAYER.md, "Skins"; web/skins.js sets <html data-skin>): A Demo Disc, B Desktop 95, C Soda Fountain,
-   each light and dark. Loaded by the listing page and every game page after their own styles; Plain is those styles alone. A skin
+/* The site's skins (docs/WEB_PLAYER.md, "Skins"; web/skins.js sets <html data-skin>): A Demo Disc, B Desktop 95, C Soda Fountain;
+   A and C light and dark, B light only. Loaded by the listing page and every game page after their own styles; Plain is those styles alone. A skin
    changes the page around the game and never the game's picture. Each skin sets the pages' own colour variables (--bg, --panel,
    --panel-2, --fg, --muted, --line, --accent, --accent-fg, --font-ui, --radius) and its own --sk-* ones, light first, then dark
    the way the pages write it (web/theme.js); the rules after them read the variables, so they are written once for both. Period
@@ -72,19 +72,10 @@
   --sk-hi: #ffffff; --sk-lo: #808080; --sk-dk: #000000; --sk-mid: #dfdfdf; --sk-well: #ffffff;
   --sk-title: linear-gradient(90deg, #000080, #1084d0); --sk-title-fg: #ffffff; --sk-desk-fg: #ffffff;
 }
-@media (prefers-color-scheme: dark) { :root[data-skin="d95"]:not([data-theme="light"]) {
-  --bg: #0d3434; --panel: #474752; --panel-2: #474752; --fg: #ececf2; --muted: #c4c4cf; --line: #25252b;
-  --accent: #e0a6e3; --accent-fg: #1b0a1d; --ok: #7be3a8; --warn: #f0c36a;
-  --sk-hi: #8d8d9c; --sk-lo: #25252b; --sk-dk: #000000; --sk-mid: #6a6a76; --sk-well: #1c1c22;
-  --sk-title: linear-gradient(90deg, #3b1240, #8a3d8f); --sk-title-fg: #ffffff; --sk-desk-fg: #ececf2;
-  color-scheme: dark; } }
-:root[data-skin="d95"][data-theme="dark"] {
-  --bg: #0d3434; --panel: #474752; --panel-2: #474752; --fg: #ececf2; --muted: #c4c4cf; --line: #25252b;
-  --accent: #e0a6e3; --accent-fg: #1b0a1d; --ok: #7be3a8; --warn: #f0c36a;
-  --sk-hi: #8d8d9c; --sk-lo: #25252b; --sk-dk: #000000; --sk-mid: #6a6a76; --sk-well: #1c1c22;
-  --sk-title: linear-gradient(90deg, #3b1240, #8a3d8f); --sk-title-fg: #ffffff; --sk-desk-fg: #ececf2;
-  color-scheme: dark;
-}
+/* B has a light version only (the user, 2026-11-07: "Only A and C"): in a dark theme it stays light, and the theme button,
+   which would change nothing, is not shown */
+:root[data-skin="d95"] { color-scheme: light; }
+:root[data-skin="d95"] [data-theme-toggle] { display: none; }
 :root[data-skin="d95"] body { font-size: 13px; }
 /* the raised bevel of a window or a button, and the sunken one of a field */
 :root[data-skin="d95"] .games > li, :root[data-skin="d95"] main:not(.stage-wrap), :root[data-skin="d95"] .bar, :root[data-skin="d95"] .panel,
@@ -302,9 +293,9 @@ html.d95-desk .d95-icon-panel-mods > i::after { background: var(--accent); clip-
 :root[data-skin="soda"] .wiz-bottle { display: block; }
 :root[data-skin="soda"] .wiz-card > .page-cap { margin-top: 10px; transform: scale(.7); }
 @media (prefers-color-scheme: dark) { :root[data-skin="soda"]:not([data-theme="light"]) .wiz-bottle { background: #0f1d1b; border-color: #4fa89b; box-shadow: 0 0 16px rgba(79,224,200,.35); }
-  :root[data-skin="soda"]:not([data-theme="light"]) .wiz-card { box-shadow: 0 0 14px rgba(255,59,92,.45); } }
+  :root[data-skin="soda"]:not([data-theme="light"]) .wiz-card { box-shadow: 0 0 0 1px rgba(255,59,92,.35), 0 8px 24px rgba(0,0,0,.4); } }
 :root[data-skin="soda"][data-theme="dark"] .wiz-bottle { background: #0f1d1b; border-color: #4fa89b; box-shadow: 0 0 16px rgba(79,224,200,.35); }
-:root[data-skin="soda"][data-theme="dark"] .wiz-card { box-shadow: 0 0 14px rgba(255,59,92,.45); }
+:root[data-skin="soda"][data-theme="dark"] .wiz-card { box-shadow: 0 0 0 1px rgba(255,59,92,.35), 0 8px 24px rgba(0,0,0,.4); }
 
 /* ======================= the cap board: the listing's caps in every skin ======================= */
 /* A game whose files are here keeps its cap and initials, its own icon (read from the player's exe at the import, web/exeicon.js:
@@ -320,3 +311,14 @@ html.d95-desk .d95-icon-panel-mods > i::after { background: var(--accent); clip-
   background: radial-gradient(circle, rgba(0,0,0,.42), rgba(0,0,0,.18) 70%); box-shadow: inset 0 3px 7px rgba(0,0,0,.55);
   color: rgba(255,255,255,.55); font-size: 15px; filter: none; }
 :root[data-skin="soda"] .games .own-yes { color: #ffd27a; }
+
+/* Ambient light (web/skins.js): the dark Demo Disc and Soda Fountain only, on a game page; C's a little stronger, as a lit jukebox
+   on the counter. The glow stays inside the stage's box. */
+.sk-glow { display: none; }
+html.sk-ambient .stage-wrap { position: relative; overflow: hidden; isolation: isolate; }
+html.sk-ambient .stage-wrap > .stage { z-index: 1; }
+html.sk-ambient .sk-glow { display: block; position: absolute; z-index: 0; pointer-events: none; opacity: 0;
+  filter: blur(42px) saturate(1.5); transition: opacity 1.6s ease; }
+html.sk-ambient .sk-glow.on { opacity: var(--sk-amb, .75); }
+:root[data-skin="soda"] { --sk-amb: .85; }
+@media (prefers-reduced-motion: reduce) { html.sk-ambient .sk-glow { transition: none; } }
