@@ -103,7 +103,6 @@ void AdventureSlotsDialog::ButtonDepress(int theId)
 {
 	if (theId < 5)
 	{
-		mApp->mTimesPlayed++;
 		mApp->LoadAdventure(theId, false);
 		mApp->KillDialog(DIALOG_ADVENTURE_NEW);
 		return;

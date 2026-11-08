@@ -4,6 +4,7 @@
 #include "Board.h"
 #include "AlchemyApp.h"
 #include "Piece.h"
+#include "Fixes.h"
 #include "SidePanel.h"
 #include "WidgetManager.h"
 #include "Buffer.h"
@@ -220,8 +221,11 @@ bool Board::LoadGame()
 				aPiece->mShrink = 0;
 				aPiece->mShrinkDir = 0;
 				// 0x405b39: the original has no board offset here (a piece's position is the board's, not the screen's, until
-				// the next Resize); the end-of-game shrink of a continued game draws from it, as the original's does
-				aPiece->Resize(ColToX(aPiece->mCol), RowToY(aPiece->mRow), 0x4b, 0x4b);
+				// the next Resize); the end-of-game shrink of a continued game draws from it, as the original's does:
+				// 150 pixels left of the cells, out of the board's picture (fix "continuedEnding" gives the offset)
+				int aOffsetX = FixEnabled("continuedEnding") ? mX : 0;
+				int aOffsetY = FixEnabled("continuedEnding") ? mY : 0;
+				aPiece->Resize(ColToX(aPiece->mCol) + aOffsetX, RowToY(aPiece->mRow) + aOffsetY, 0x4b, 0x4b);
 				mGrid[aRow][aCol] = aPiece;
 			}
 			ReadBool(&aBuffer, &mLit[aRow][aCol]);

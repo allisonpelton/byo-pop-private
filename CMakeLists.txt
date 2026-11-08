@@ -90,6 +90,16 @@ elseif(BUILD_FWTEST)
   endif()
 endif()
 
+# Music level (tools/musiclevel): the port's music level, rendered offline through Platform::Mixer, against the
+# originals' engines measured by tools/musiclevel/musiclevel.c (docs/WEB_PLAYER.md, "Music levels"). Native only.
+if(NOT EMSCRIPTEN)
+  add_executable(portlevel tools/musiclevel/portlevel.cpp)
+  target_link_libraries(portlevel PRIVATE sexyopenmpt)
+  add_custom_command(TARGET portlevel POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:portlevel>
+    VERBATIM)
+endif()
+
 # Song position test (tools/songpostest): Mixer::GetSongPosition on modules rendered offline, through libxmp-lite and
 # libopenmpt. Native only; songpostest.exe <gamedir> <music path>... (tools/check.sh unit).
 if(NOT EMSCRIPTEN)
@@ -154,6 +164,31 @@ if(BUILD_MODSETTINGSTEST)
       MODSETTINGSTEST_EXAMPLE="${PROJECT_SOURCE_DIR}/games/bejeweled/mods/example-settings/mod.json")
     add_custom_command(TARGET modsettingstest POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:modsettingstest>
+      VERBATIM)
+  endif()
+endif()
+
+# JPEG test (tools/jpegtest): Platform::DecodeJPEG / LoadImageFromMemory / DecodeImage against IJG libjpeg 6b's reference
+# output (third_party/libjpeg/test) and synthetic pictures (tools/jpegtest/data). Native: jpegtest.exe. Web:
+# jpegtest.js, run with Node, since the error paths (setjmp/longjmp) only show in wasm what they do there.
+option(BUILD_JPEGTEST "Build the JPEG test" ON)
+if(BUILD_JPEGTEST)
+  add_executable(jpegtest tools/jpegtest/jpegtest.cpp)
+  target_link_libraries(jpegtest PRIVATE sexyframework)
+  if(NOT MSVC)
+    target_compile_options(jpegtest PRIVATE -Wall)
+  endif()
+  if(EMSCRIPTEN)
+    set_target_properties(jpegtest PROPERTIES SUFFIX ".js")
+    target_compile_definitions(jpegtest PRIVATE JPEGTEST_DATA="/jpegtest/data" JPEGTEST_IJG="/jpegtest/ijg")
+    target_link_options(jpegtest PRIVATE "-sENVIRONMENT=node" "-sEXIT_RUNTIME=1" "-sALLOW_MEMORY_GROWTH=1"
+      "--embed-file=${PROJECT_SOURCE_DIR}/tools/jpegtest/data@/jpegtest/data"
+      "--embed-file=${PROJECT_SOURCE_DIR}/third_party/libjpeg/test@/jpegtest/ijg")
+  else()
+    target_compile_definitions(jpegtest PRIVATE JPEGTEST_DATA="${PROJECT_SOURCE_DIR}/tools/jpegtest/data"
+      JPEGTEST_IJG="${PROJECT_SOURCE_DIR}/third_party/libjpeg/test")
+    add_custom_command(TARGET jpegtest POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:jpegtest>
       VERBATIM)
   endif()
 endif()

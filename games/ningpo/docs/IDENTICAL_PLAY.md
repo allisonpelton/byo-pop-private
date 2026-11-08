@@ -3,8 +3,10 @@
 This is the report on comparing the port with the original `Ningpo.exe`. Phase one, the game's logic, was finished on
 2026-11-03: with the same input, a series of games plays out the same in both programs, update for update. That means
 the same deals and shuffles, the same matches, hints, undos and penalties, the same clock, the same endings and the
-same best times. One change came out of it, listed below. Phase two (screens, sound, focus and the web build) has not
-started.
+same best times. One change came out of it, listed below. Phase two (screens, sound, focus and the web build) is
+under way, from 2026-11-08. The original, the native port and the web build have been compared screen by screen, and
+the port has been played through with real input in both builds. The sound comparison is still to come; it waits on
+origrun (see "Phase two" below).
 
 ## What was compared, and how
 
@@ -89,6 +91,81 @@ deviations.
 The state log (`-statelog`, and `pg::Host::EventRead` called from `HInput::getEvent`) is a test hook. It changes
 nothing in play.
 
+## Phase two: screens, focus, real input and the web build
+
+**The screen tour.** `tools/shots/tour.py` writes one list of 26 timed steps three ways. The native port gets it as a
+`-realinput` file, with real SDL input at fixed updates. The player-only page gets it as a driver,
+`tools/web/shots.js`, which holds the game at each step's update through `byopop.test.step`. The original gets it as
+an origrun script (`tools/shots/orig.sh`, inside Windows Sandbox, the only place origrun takes shots). Every run uses
+seed 7. The tour starts at the start screen and visits the title, the options and their best times, both rules
+pages, and each of the title's arrows. It then deals and tries the hint, show moves, pause and resume, and a loss and
+regain of the focus with the click that resumes. It answers the New Game question no, and the cheat then plays the
+board to its no-moves end. The tour ends with the game over, the name typed in, the best times and the title again.
+
+**The original against the port.** Of the 26 screens, 22 match the native port exactly. The other four are explained:
+
+- The options differ where the port changed them on purpose: the button to the publisher's site is gone, and Done
+  takes its row.
+- The name entry differs because, in a test run, the port suggests no name, so every machine types the same. The
+  original suggests the account it runs under, which is SYSTEM in the sandbox.
+- After the name is typed, the two programs are one pixel of the caret apart.
+- In the no-moves screen, a fading tile is a few levels apart (17 at most), an update of its fade.
+
+The web build compares the same against the original: 20 shots match, the same 2 differ, and 4 are faint.
+
+**Native against the web.** `tools/shotdiff` matches 24 of the 26 pairs exactly. The other two (the hint and show
+moves) differ by one 15-bit step in the glow of the lit tiles. The glow pulses on the game's clock, and the two `-fast`
+clocks stand a few milliseconds apart at the same update. Nothing else differs. Getting there took one fix in the web
+build, listed below. A run on the page needs a clean profile. The page's profile wipe leaves the registry
+(`registry.ini`) in IndexedDB and in the localStorage backup, so an earlier run's best times stayed in it; a run now
+deletes both first (reported to the coordinator).
+
+**Real input.** `tools/realplay/drive.py` plays the native port with real SDL input under rundesk, through the live
+channel (`-commands`, `-realinput`). It plays the tour above and then whole games on the port's own bot (`move`): two
+games windowed, and three in full screen (Alt+Enter). Each game ends in the no-moves dialog or won, then the name,
+the best times and the title. Every run ends with RESULT ok. `tools/web/tour.js` plays the same tour and two games
+on the page with DOM events alone. It passes with no error (full screen needs a real user gesture in the browser, so
+the page's run is windowed).
+
+**Focus.** A loss of the focus pauses the game in both builds, and a click on the board after it comes back resumes
+it. On the page, a press within 150 ms of the focus coming back is taken as the click that activates the page and
+never reaches the game, as SDL drops a window's activating click natively (framework/SexyAppBase.cpp). The drivers
+wait past that window before the resuming click.
+
+**Capturing the original.** In Windows Sandbox, PrintWindow gets the original's window only up to its loading
+screen; every later shot is flat. That was so on 2026-11-01 too: the case then took one shot, of the loading screen.
+The window class has no background brush (GetStockObject(5)), so a brush is not the cause. The shots are read from
+the game's memory instead (`tools/shots/orig.sh`, origrun's surface read). The display (HDisplay) is on the heap, and
+its pointer is in the static app: PGApp is at 0x475550, and mDisplay at +0x168. The 15-bit back buffer is at +0x14,
+and its pitch at +0x24.
+
+That needed two small additions to origrun, each in its own `shared:` commit:
+
+- `--surface-screen-base` reads the pointer before the offsets.
+- `mark` and `at +N` time input and shots from a point of the script. The counter is the event time on the virtual
+  clock, and that clock starts at the real time, not at 0.
+
+The gate holds each shot until no function of the display that writes the back buffer is running. It leaves out the
+flip (0x423500), which only copies the buffer to the window. Each shot is held at the port's update, counted from
+the first click.
+
+The original's sound is still to be compared. With origrun's sound stand-in, its music streamer stops the virtual
+clock once a game is dealt (below).
+
+**Changes in phase two.** JPEGs now decode through libjpeg 6b (`Platform::LoadImageFromMemory`), the library the
+original links, so they come out as its pixels did; the frozen baseline was refrozen after it, with play unchanged.
+The trial's code and the options' button to the publisher's site came out (docs/README.md,
+"Left out"); Done takes that button's row, and the frame of the emptied bottom row is painted out. The standard test
+commands came in, with `move` from the game's own move finder, and `redraw` for the page's shots. Neither changes
+play: `tools/check.sh ningpo` still matches the frozen baseline.
+
+| Difference | Cause | What the port does now | Commit |
+|---|---|---|---|
+| On the web, with `-fast`, a dialog came up hundreds of updates after the click that opened it, so the page's shots showed the screen before. | The port's web loop (`NingPoApp::RunFramework`) stepped the framework until a frame was drawn. With `-fast` nothing is ever not due, and a still screen draws nothing, so the game's code read its events only every 1000 steps. Natively the loop returns to the game once its wait is over. | The web loop also returns once the game's wait is over, and it calls the test page's frame hook, which this blocking loop never reached. | 0fdbf211 |
+
+**The fixes mod.** None of the original's bugs has turned up in either phase, so the mod has no toggle yet. Ning Po
+stays in `BYOPOP_WEB_NO_MODS` until the first fix candidate is found.
+
 ## Oddities that were not fixed, and why
 
 None in the game. Two things belong to the test harness:
@@ -115,7 +192,7 @@ final time or a best time, comes from a tick: those come from the event's own ti
 
 ## The regression check
 
-The port as of a5b98ce is frozen in `build/baseline-ningpo/` (the exe and its DLLs; `COMMIT` names the commit).
+The port as of f5b3502 (libjpeg; a5b98ce before it) is frozen in `build/baseline-ningpo/` (the exe and its DLLs; `COMMIT` names the commit).
 `tools/check.sh ningpo` plays the layouts and won39 cases in the build and in the frozen port, and it requires the
 same non-empty state log from both (commit 677cfc1), besides its earlier seed-7 game and rerun.
 

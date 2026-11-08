@@ -7,8 +7,6 @@ namespace Sexy
 const char* gImageNames[NUM_IMAGES] =
 {
 	"title",
-	"register",
-	"registerrunes",
 	"font1",
 	"headerfont",
 	"backdrop",

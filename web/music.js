@@ -184,12 +184,12 @@ var ByopopMusic = (function () {
               if (ranges) {
                 ranges.forEach(function (r, i) {
                   var t0 = M._bm_set_order(m, r[0]), t1 = r[1] + 1 < M._bm_orders(m) ? M._bm_set_order(m, r[1] + 1) : M._bm_duration(m);
-                  list.push({ kind: "module", keys: [prefix + rel], range: r, id: id + "#" + i, seconds: t1 - t0 });
+                  list.push({ kind: "module", keys: [prefix + rel], range: r, id: id + "#" + i, seconds: t1 - t0, level: entry.level });
                 });
               } else {
                 for (var i = 0, n = M._bm_subsongs(m); i < n; i++) {
                   M._bm_select(m, i);
-                  list.push({ kind: "module", keys: [prefix + rel], sub: i, id: id + "#" + i, seconds: M._bm_duration(m) });
+                  list.push({ kind: "module", keys: [prefix + rel], sub: i, id: id + "#" + i, seconds: M._bm_duration(m), level: entry.level });
                 }
               }
               M._bm_free(m);
@@ -359,7 +359,8 @@ var ByopopMusic = (function () {
     }
     // The sources a tune plays from: next(frames) gives the next stereo frames (fewer at the end of a repeat, null once it ended)
     // A module: a subsong (libopenmpt repeats it), or a range of orders, from its first order until the order after its last
-    function moduleSource(m, range) {
+    // gain: the game's own level for its modules (web/soundtracks.js's "level", platform/MusicLevels.h through the decoder)
+    function moduleSource(m, range, gain) {
       var again = false;
       if (range) { M._bm_loop(m, 1); M._bm_set_order(m, range[0]); }
       return {
@@ -372,6 +373,7 @@ var ByopopMusic = (function () {
           var out = M._malloc(frames * 8), got = M._bm_render(m, ctx.sampleRate, frames, out);
           var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
           M._free(out);
+          if (c && gain !== 1) for (var i = 0; i < c.length; i++) c[i] *= gain;
           return c;
         },
         position: function () { return M._bm_position(m); },
@@ -396,13 +398,20 @@ var ByopopMusic = (function () {
         free: function () {}
       };
     }
+    // A game's music level as a gain: {bassAmplify: n} the BASS amplify the game sets, {fmod3XM: true} FMOD 3's XM pre-amp
+    function levelGain(M, level) {
+      if (!level) return 1;
+      if (level.bassAmplify !== undefined) return M._bm_level_bass_amplify(level.bassAmplify);
+      if (level.fmod3XM) return M._bm_level_fmod3_xm();
+      return 1;
+    }
     // The source of a tune, from its files (a joined tune's pieces decoded once each, then put one after the other)
     function sourceOf(t, files) {
       if (t.kind === "module") {
         var m = files[0] ? loadModule(M, files[0]) : 0;
         if (!m) throw new Error("module");
         if (!t.range) M._bm_select(m, t.sub);
-        return Promise.resolve(moduleSource(m, t.range));
+        return Promise.resolve(moduleSource(m, t.range, levelGain(M, t.level)));
       }
       var decoded = {};
       return t.keys.reduce(function (p, key, i) {

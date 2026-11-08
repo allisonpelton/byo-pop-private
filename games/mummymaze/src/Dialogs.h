@@ -118,9 +118,7 @@ public:
 	Checkbox*			mClockCheckbox;         // +0xe0
 	Checkbox*			mAnkhCheckbox;          // +0xe4
 	DialogButton*		mTutorialButton;        // +0xe8 id 0
-	DialogButton*		mRegisterButton;        // +0xec id 1
 	DialogButton*		mScoresButton;          // +0xf0 id 2
-	DialogButton*		mWebButton;             // +0xf4 id 3
 	DialogButton*		mCreditsButton;         // +0xf8 id 4
 	MemoryImage*		mCheckedImage;          // the check box pictures (the checkboxes do not own them)
 	MemoryImage*		mUncheckedImage;

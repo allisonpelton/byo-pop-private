@@ -146,3 +146,70 @@ The baseline `build/baseline-mummymaze` was refrozen after the second and third 
   `ButtonPress`) shows one call, and the second was not found in about 25 minutes. Not chased.
 - Not compared: the unregistered build's nag and register screens, and the trap-death animation frame by frame (its first
   frames and block are drawn as in the original, found by shotdiff)
+
+# Phase three: real input, the fixes mod and the registration code (2026-11-08)
+
+## Real play: what was played and how
+
+The test commands (`GAME_NOTES.md`, "The standard test commands") let a driver ask the port's own solver for its next move and send it
+as real input. Nothing here goes through the script path: natively `tools/realplay/drive.py` starts the exe under rundesk with
+`-commands` and `-realinput`, so each move reaches `HandleEvent`, the window-to-game mapping and the widget manager as SDL events (a
+click on a cell, or an arrow key held for one update); on the web the test page's `playByMove` sends DOM mouse and key events to the
+canvas. The driver reads the game's `state` to know when a step is taken, and records a step that left the explorer anywhere but the
+cell the move meant ("off track"). It never chooses a move itself, and nobody played.
+
+| Where | Input | What was played | Result |
+|---|---|---|---|
+| Native | arrow keys, `-fast` | the tutorial from the menu link to the hand-over to classic (55 moves) | played to the end, no error |
+| Native | clicks on cells, `-fast` | a whole classic game: 225 chambers (7919 moves), the end-of-game name box (`bot`), the victory screen | played to the victory screen in 18 minutes, no error, no step off track |
+| Native | clicks on cells, `-fast` | a whole adventure: the name box, 225 chambers over 15 pyramids with the world map and 15 treasures (8958 moves), no deaths, the victory screen, then the menu link | played to the end in 21 minutes, no error |
+| Native, windowed and full screen, real time | arrow keys and Space | 120 moves over 4 chambers with `Alt+Enter` into full screen and out again, the focus lost for 200 updates and regained, the window minimised and restored, a resize to 800 x 600, a screenshot at each | no error, no step off track; the frames show the board drawn as it was before each event |
+| Web, `?player=1&silent=1&fast=1&hold=1`, fixes mod on | arrow keys | the tutorial (240 moves, handed to classic), then 200 moves of classic (124 steps, 8 chambers) | no error, no step off track |
+| Web | clicks on cells | a whole classic game: 225 chambers (31112 moves), the name box and the victory screen | played to the victory screen in 15 minutes (2.7 million updates), no error |
+| Web | clicks on cells | a whole adventure: the name box, 225 chambers over 15 pyramids with the world map and the treasures (18011 moves), no deaths, the victory screen | played to the end in 3 minutes, no error |
+| Web, the page's canvas | clicks and keys | the focus lost (the page's `blur`, the document hidden) for 200 updates and regained; the canvas drawn at 0.6 and at 1.5 times its size, 20 moves each | the game kept updating while the focus was lost and played on after it came back; every click landed on its cell; no step off track |
+
+What the runs cannot cover, and why. The bot always wins its chamber, so no run met the caught screens; the original's end-of-game,
+caught and Abandon Hope scenes are the phase-two scenario `hs1`. The browser refuses the Fullscreen API without a hand's own gesture
+(`Permissions check failed` from a script's call), so full screen was played natively only; the page draws the canvas at any size, which
+the two scaled runs cover. A key reaches the game as a press of one frame in the page and as a `keydown`, one update and a `keyup`
+natively. In a native `-fast` run the driver is slower than the game and a key held through its answer takes a second step, so
+the long `-fast` runs use clicks, which go through `Board::MouseDown`, the same code a hand's click on the cell next to the explorer
+reaches; arrow keys were played in real time (one double step in an earlier run under heavy machine load, which a late `keyup` explains,
+and none in the last run). The scores of the native runs are lower than the page's for the same moves (170915 against 249665 in
+a classic game): the `-fast` game runs on while the driver thinks, so the level-complete bonus, which is read from the game's clock,
+runs out. It is a property of the run and not of the game.
+
+Two things worth knowing about the web runs. The hidden Browser pane gives the page about 60 frames a second, and each frame runs
+about four updates under `?fast=1`, so a whole game would take hours; a frame source that does not wait for the display
+(`requestAnimationFrame` replaced by a `MessageChannel` post in the page, before the game starts) made the same page run at several
+thousand updates a second and the whole classic game take minutes, with the same states (the game's clock is virtual there). The
+`move`s of this port print the documented step form (`{"click":[x,y]}`, `{"key":"ArrowUp"}`).
+
+The two whole native games were played on the build before the last merge of the trunk; after it the suite (baseline identical), the
+tutorial, 150 moves of an adventure and both whole web games were played again.
+
+## Real play found nothing to fix in the port
+
+No run found a control that stopped working, a soft lock, a crash or a lost save. The checks that did fail on the way were all the
+test harness's: the `-realinput` channel answered a bare `move` with its own "needs <x> <y>" error (the trunk
+has the same fix now, and its `playMove` plays the documented step forms), `FindWay` gave another first step each time it was asked and walked a chamber in
+circles (the bot now keeps its plan while the board keeps to it), and `setup_worktree.sh` does not copy the game's baseline.
+
+## The fixes mod
+
+`mods/fixes` holds two fixes, each a toggle, both on in the site's build and off in a plain native run (`GAME_NOTES.md`, "Fix
+candidates" and "The fixes mod"). `gameClock` counts a chamber's time and the adventure's total by updates, as the game's own clock on
+the board does, instead of by `GetTickCount`; `solverFight` makes the search of Abandon Hope and the Ankh flip the gate in the case the
+board flips it (a fight of two mummies that ends on the key stone), which they missed. Checked as follows: the suite's baseline (the
+unmodded game) still gives the same logs and photographs, the bot's classic game gives the same log with the mod on and off (no game of
+the suite meets the fight, so `solverFight` is checked against the board's code and not by a played game), and every web run above
+had the mod on. A fix that was left out on purpose: the Ankh on the larger mazes is a mod, not a fix.
+
+## Registration and the buttons that lead out of the game
+
+Taken out with this pass (`GAME_NOTES.md` lists them): the Options dialog's Register button and its web page button, the title's
+register link and the play counters, the unused registration pictures and the register dialog's id. The only visible change is the
+Options dialog, whose Tutorial and High Scores buttons now share the first row, with Credits across the second; the suite's three
+Options photographs changed with it and the baseline was refrozen there, and every log and every other photograph is the
+baseline's.

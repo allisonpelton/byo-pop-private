@@ -45,7 +45,9 @@ Builds, 32-bit (the originals are 32-bit), with llvm-mingw's i686 target under `
   origrun writes `<exe>.manifest` beside the copy's exe, which makes the stand-in COM's DirectSound too (guarantee 3).
 
 A run on the host needs `build/native/rundesk.exe` (`cmake --build build/native --target rundesk`). A `--sandbox`
-run needs the Windows Sandbox feature and its `wsb` command (Windows 11 24H2 or later), and no rundesk.
+run needs the Windows Sandbox feature and its `wsb` command (Windows 11 24H2 or later), and no rundesk. Start
+`origrun.exe` itself directly, never under rundesk: it puts the game under rundesk on its own, and wrapped in rundesk it
+fails with "cannot start the command" (Seven Seas, 2026-11-07).
 
 ## Use
 
@@ -188,6 +190,9 @@ no click until the game has finished loading, from seconds to over a minute of r
   the same for a key, with a `keydown` at `N` and a `keyup` at `N+k`. `at` does not
   take the `hw*` commands: in the sandbox the game runs in session 0, which desktop input does not reach anyway
   (`GetCursorPos` reads 0,0 whatever `SetCursorPos` did; for a game that reads the cursor, see "The scripted cursor").
+- `mark` � reads the update counter now; `at +<N> <command...>` then waits for the counter to reach N past that value.
+  For a counter that does not start at 0, such as an event time on the virtual clock, which starts at the real time
+  (Ning Po: a `wait` to the first input, the input, `mark`, then `at +N` lines at the port's updates from there).
 - `msgbox <button> <text...>` — when a message box whose caption or text contains `<text>` appears, click the
   button labelled `<button>` (e.g. `msgbox No Trial expired`, `msgbox OK update`). Put these at the top of the
   script; they are registered before the game launches, so even a box that pops up early is answered. A box
@@ -608,6 +613,12 @@ pointer's global and `mUpdateCount` (each session supplies its own; the offset i
 3D flag below), and an offset may also be subtracted. Then `at <N> <command>` waits for the counter, suspends the window
 thread, runs the command and resumes; `burst <name> <count> update <k>` captures every `k` updates the same way.
 
+Each game's offset is its own, even between SexyAppBase games of one era: take it from the game's own update function,
+never from another game's config. Seven Seas' config once had Noah's Ark's `+0x368`, which in Seven Seas is the app's
+frame time and stays at 10, so every `at` waited for an update that never came and the run looked stopped at update 10
+(its `mUpdateCount` is `[0x4e21bc]+0x378`, 2026-11-07). A wait that times out on a counter that never moved says so in
+its log line.
+
 **Precision (measured on Noah's Ark):** `at` lands on the exact update — `at 1500/1700/1900` each fired with the
 counter reading exactly that value — because the ~1 ms poll is far finer than the ~10 ms update. The hold is kept
 as short as it can be, because the game's clock runs on while it is held, and on resume the game catches up on
@@ -677,7 +688,7 @@ leaves nothing in the window for PrintWindow. For it a held shot can read the fr
 ("surface-read (sandbox)", landed.tsv says "or-earlier (surface)"). All addresses are hex. `--surface-screen
 bitsAt,pitchAt,w,h,bpp` names two globals holding the pixel pointer and the pitch (5-6-5 at 16 bpp, 5-5-5 at 15, 8-8-8 at 32: Cosmic Bugs gets 5-5-5 in Windows Sandbox);
 `--surface <addr>` names an Image-like header instead (pixel pointer at +0, width at +4, height at +8, pitch at +0x1c,
-bpp at +0x44, then the masks, bit counts and shifts). A surface shot needs a gate, and is refused without one:
+bpp at +0x44, then the masks, bit counts and shifts). With `--surface-screen-base ptrAt`, bitsAt and pitchAt are offsets into the object whose pointer the global at ptrAt holds, read at each shot (Ning Po's display is on the heap and its static app holds the pointer). A surface shot needs a gate, and is refused without one:
 `--surface-eip lo,hi[,lo,hi...]` lists every function of the game that writes the locked screen (all it runs between
 its lock and unlock), and the shot waits (the game running) until the held thread is in none of them and has no return
 address into one anywhere in its stack (to the end of the stack's region, at most 64 KB; an unreadable page closes the gate); `--surface-gate <addr>` is an int that must read 0
@@ -1103,12 +1114,12 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 | atomica | local install | FATAL ERROR at startup, then exits | — | none | none | FMOD fails to load `sounds\capclick` (Ogg); not the stand-in or display — the Atomica session's to fix |
 | mummymaze | local install | title after a slow (~45 s) start | yes, 646×509 | none | none | window is late to appear |
 | noahsark | local install | own title screen | yes, 646×509 | none | none | update counter proven here (`[0x4d125c]+0x368`); `at` lands on the exact update |
-| sevenseas | local install | own title screen | yes, 646×509 | none | none | |
+| sevenseas | local install | own title screen | yes, 646×509 | none | none | update counter `[0x4e21bc]+0x378` (2026-11-07; `+0x368` is its frame time, so an `at` past 10 never fires); on Windows 10.0.26300 it runs as before, its main thread asleep in the frame loop between frames |
 | pixelus | local install | trial screen (not clicked through yet) | yes | has one; on needs `--dgvoodoo` (untried) | its BASS music, through COM's DirectSound, which is the stand-in since 2026-11-03 (origrun's manifest): none past the stand-in; before, the system's DirectSound past the stand-in, whose start could reach the speakers | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
 | tiptop | local install | trial, plays | yes | none | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
 | wordharmony | local install | trial (60 min), Play present | yes | none | none | |
 | bookwormadv | local install | in-game Updates dialog; in the sandbox the pilot's menus and battle (2026-11-01) | **in the sandbox** (2026-11-01), 806×629, client at (3,26); update-timed shots and bursts `printwindow-bracketed (sandbox)`, exact with `--pending-draw [0x8259e4]+0x45a --update-state [0x8259e4]+0x488 --draw-empty [0x8259e4]+0x459` | **off and on proven** (on with `--dgvoodoo`) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
-| ningpo | local install | main window | **yes** (after init); **in the sandbox too** (2026-11-01) | none | none past the stand-in (2026-11-03) | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
+| ningpo | local install | main window | **yes** (after init); **in the sandbox too** (2026-11-01) | none | none past the stand-in (2026-11-03) | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn. **Stops at 88.8 s of game time with `--sound stub --clock virtual` once a game is dealt** (2026-11-07; three runs of its mouse23 case, guard off, each at 88800 waits whatever the script had reached; the title screen alone ran 21895 s): the exe's Ogg music streamer, called by its software mixer (0x424fbd), spins in the stream read's end-of-stream branch (0x4253f7: the read gives 0, it seeks back to the loop point at stream+0x10 and reads again) holding the stream's lock, and the main thread waits on that lock in the stream's rewind (0x4253b4), so it never waits again and the clock stops. A lock longer than the buffer (8820 bytes, 100 ms) was ruled out. Not yet known: whether the wall clock does the same past 88.8 s of a dealt game (no run has dealt and lasted that long), and why the read after the seek gives nothing (read stream+0x10 and the song's length in a stalled run). Its identical-play runs use `--sound nodriver`, which has no stream |
 | waterbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode; dgVoodoo2 gives it a desktop-sized window |
 | cosmicbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | same as Water Bugs |
 | dynomite | Steam copy | **title and on** | **yes** | has one; on needs `--dgvoodoo` (untried) | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |

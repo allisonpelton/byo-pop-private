@@ -25,7 +25,6 @@ WinDMApp::WinDMApp()
 	mGemShrinkColors = 0;
 	mTitleScreen = NULL;
 	mBoard = NULL;
-	mNoPopLink = false;
 	mProdName = "Bejeweled";
 	mProductVersion = "1.87";
 	mTitle = "Bejeweled Deluxe " + mProductVersion;
@@ -190,7 +189,6 @@ void WinDMApp::UpdateFrames()
 // The other virtual functions of WinDMApp: nothing in the verifier calls them
 void WinDMApp::LoadingThreadCompleted() {}
 bool WinDMApp::DrawDirtyStuff() { return false; }
-void WinDMApp::URLOpenSucceeded(const std::string& theURL) {}
 MusicInterface* WinDMApp::CreateMusicInterface() { return NULL; }
 Dialog* WinDMApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines,
 	const SexyString& theDialogFooter, int theButtonMode) { return NULL; }
@@ -201,8 +199,6 @@ void WinDMApp::GotFocus() {}
 void WinDMApp::ButtonPress(int theId) {}
 void WinDMApp::SetMusicVolume(double theVolume) {}
 std::string WinDMApp::GetGameSEHInfo() { return ""; }
-void WinDMApp::URLOpenFailed(const std::string& theURL) {}
-bool WinDMApp::OpenURL(const std::string& theURL, bool shutdownOnOpen) { return false; }
 void WinDMApp::WriteToRegistry() {}
 void WinDMApp::ReadFromRegistry() {}
 void WinDMApp::PreDisplayHook() {}

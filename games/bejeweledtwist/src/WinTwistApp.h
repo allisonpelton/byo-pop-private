@@ -182,6 +182,8 @@ public:
 	// lose, seed
 	bool HandleTestCommand(const ScriptCommand& theCommand);
 	std::string TestScreen();
+	void UpdateTestGoto();
+	int mTestGotoMode = -1;  // port (tests): "goto <mode>" pressed Play; the mode's button is pressed once the select opens
 	// 0x76350c: -autoplay[=classic|zen|blitz], and the original's other test switches
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void PlaySample(int theSoundNum) override;  // 0x7675d8

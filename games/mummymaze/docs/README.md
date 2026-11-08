@@ -85,8 +85,8 @@ Everything in the game is ported and plays natively and in the browser: the titl
 chambers in 15 pyramids, the score, the ranks, the saved game that Continue loads, the high scores with their name box), the
 tutorial, the adventure (five saved games, the world map with its walking marker, the pyramids that open as others are
 solved, the treasures, the statistics, the last pyramid and the victory screen), the options and the tips. The original's
-online parts are not: the shareware nags and counters (the port plays as the registered game), the registration, and
-"Submit to Internet High Score List".
+online parts are not: the shareware nags and counters (the port plays as the registered game), the registration with the Options
+dialog's Register button, its button to the game's web page, and "Submit to Internet High Score List".
 
 Not done or approximate:
 - The one MP3, `sounds/pummel.mp3` (the sound of the fight between the mummies), is silent: the platform's mixer has no MP3

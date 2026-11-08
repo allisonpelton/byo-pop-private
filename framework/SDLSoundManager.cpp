@@ -409,6 +409,15 @@ int SDLSoundManager::GetFreeSoundId()
 	return -1;
 }
 
+size_t SDLSoundManager::GetSoundBytes() const
+{
+	size_t n = 0;
+	for (int i = 0; i < MAX_SOURCE_SOUNDS; i++)
+		if (mSounds[i])
+			n += mSounds[i]->Bytes();
+	return n;
+}
+
 int SDLSoundManager::GetNumSounds()
 {
 	int n = 0;
