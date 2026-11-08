@@ -35,7 +35,8 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
    own `DecompressionStream` unpacks a .zip. A game whose files are in a PopCap pak (Bookworm Adventures'
    `main.pak`, XORed with 0xF7) names it in its page's `paks`: the import unpacks it into the game's folder
    (`Module.byopop.pak.read` in `web/modpanel.js`, the format of `tools/popcap_pak.py`) and does not store the pak,
-   so the browser keeps one copy of the files, the same tree native staging gives the game.
+   so the browser keeps one copy of the files, the same tree native staging gives the game. A folder or .zip whose pak is
+   already unpacked (the staged `assets/<game>/`, or a zip of it) is taken too: there the game's folders stand for the pak.
    `tools/paktest/paktest.js` checks the reader under Node. The rules (which folder is the game's, which files are
    copied, the paks) are in `web/gameimport.js`, which the listing page uses too ("Adding games from the listing page").
 7. **Play.** Browsers allow sound only after you click or press a key, so the page waits for "Play". Then
@@ -1713,6 +1714,26 @@ from its own button), Cosmic Bugs and Water Bugs (whose first-level help follows
 (whose per-player flags the first board's generation also reads), and Ning Po and the two Mahjong Escapes (which have an idle
 hint, but no tutorial).
 
+### Always skip start-up logos
+
+**Always skip start-up logos** (`skipLogos`, off by default, and like every setting it can be set for one game only) has the
+games go straight past their start-up logos (the user, 2026-11-08: "Add a site-wide option to skip all start-up logos"). A
+player who never sets it sees every game as it is. Start-up logos are the PopCap logo, a publisher's or developer's logo and
+a "presents" splash before the loading or title screen. The loading screen's progress bar and the title screen's own
+animation are not logos. With the setting on, a game goes on from each logo as a click or key on it would take it, the
+original's own skip, so play afterwards is the same. Logos that held the player are already gone under the loading rule
+(CLAUDE.md, "Port first, unmodified"), with `-popcaplogo` and `-splashhold` keeping them for comparisons, so they need nothing.
+
+The logos come before anything the page could call once the game is running, so the page tells the game before it starts,
+as it does for "Full screen at start": `byopop_site_skiplogos(1)` before `callMain` (`framework/WebSettings.cpp`). It is
+never set on the player-only test page. A game reads `Byopop::SiteSkipLogos()` (`framework/WebSettings.h`). The call exists on
+both builds, so game code needs no `#ifdef`. Natively it is true under `-skiplogos`, which `SexyAppBase::HandleCmdLineParam`
+takes, so a session can test its wiring under rundesk. A game whose own host parses its command line (Bonnie's Bookstore,
+Ning Po Mahjong) calls `Byopop::SetSiteSkipLogos(true)` for `-skiplogos` itself.
+
+A game that does not read it is left as it is, logos and all. Games that read it so far: none yet. Each game's session adds
+its game here when it registers.
+
 ## The player-only page
 
 For sessions that test a game in the Browser pane (the user, 2026-11-07: "For agent browser testing use, build a stripped down
@@ -1787,7 +1808,12 @@ depends on the frames.
   focus is the test's alone: the browser's own blur and focus events on the window, and on the canvas while the window has lost
   the focus, stop in the kit before SDL and the page see them, and `document.hasFocus()` leaves out the window's real focus. A
   hidden Browser pane sends a real blur, which paused TipTop's runs until their driver gave the focus back (2026-11-08); native
-  `-realinput` drops the system's focus events the same way. `?realfocus=1` lets the browser's events through.
+  `-realinput` drops the system's focus events the same way. The visibility is the test's as well: the browser's own
+  `visibilitychange` stops in the kit, and `document.hidden` is true only between `blur({hidden: true})` and `focus()`. A hidden
+  page takes the game's focus away at once (`SexyAppBase::EmscriptenPageHidden`), while focus coming back waits a frame in
+  SDL's queue. So a real `visibilitychange` that came after `focus()`'s gain had been taken left Noah's Ark without the focus,
+  its updates running and the game paused, until a second `focus()` (2026-11-08). `?realfocus=1` lets the browser's events
+  through, its visibility too.
 - **the log**: `log(since)` the game's printed lines from number `since` on (`{seq, kind, text, update}`, the last 20000 kept),
   `logNext()` the number the next line will have, and `waitLog(pattern, {since, timeout})`, which resolves with the first line
   from `since` on (by default the next one printed) that matches a RegExp or contains a string, and rejects after `timeout` ms
@@ -1806,7 +1832,7 @@ depends on the frames.
 - **readings**, all copies: `watch()` a port's
   watch values where it gives them (`byopop_watch_json`), null otherwise; `mixer()` the mixer's state once the shared
   session's `platform/Audio.cpp` gives it (`byopop_mixer_json`), null until then; `screen()` the game's size.
-- **profile** (test profile only): `wipe()` deletes its saves (the staged files stay), `seed({path: data})` writes files into
+- **profile** (test profile only): `wipe()` deletes its saves and their localStorage backup (`sexy-userdata-backup:<dir>`, which the game would restore at its start; the staged files stay), `seed({path: data})` writes files into
   its user folder from a fixture save (strings, ArrayBuffers or Uint8Arrays), `list()` and `read(path)` read them; then reload
   or `start()`.
 

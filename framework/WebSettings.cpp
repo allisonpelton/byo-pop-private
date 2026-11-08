@@ -3,6 +3,9 @@
 //
 // byopop_site_windowed() tells the games the player chose "Windowed" for the site's "Full screen at start" (SiteWindowed, framework/WebSettings.h).
 //
+// byopop_site_skiplogos() tells them the site's "Always skip start-up logos" (SiteSkipLogos, framework/WebSettings.h, which
+// natively -skiplogos sets).
+//
 // byopop_site_accel3d() tells them the site's "3D acceleration" (SiteAccel3D, framework/WebSettings.h).
 //
 // byopop_mixer_gain() sets the page's starting volume for the games with no volume option of their own (Cosmic Bugs, Water Bugs), on the
@@ -21,6 +24,21 @@
 // saved), and it does what the game's options dialog does, through the same functions. A value of -1 leaves the
 // game's own option alone. A game with a sound engine of its own (TipTop, Ning Po, Word Harmony) registers the function
 // that sets its volumes (framework/WebSettings.h), which is called in place of SetMusicVolume and SetSfxVolume.
+
+#include "WebSettings.h"
+
+// "Always skip start-up logos": on both builds (framework/WebSettings.h)
+static bool sSiteSkipLogos = false;
+
+bool Byopop::SiteSkipLogos()
+{
+	return sSiteSkipLogos;
+}
+
+void Byopop::SetSiteSkipLogos(bool theSkip)
+{
+	sSiteSkipLogos = theSkip;
+}
 
 #ifdef __EMSCRIPTEN__
 #include "SexyAppBase.h"
@@ -57,6 +75,15 @@ extern "C"
 EMSCRIPTEN_KEEPALIVE void byopop_site_windowed(int theWindowed)
 {
 	sSiteWindowed = theWindowed != 0;
+}
+
+// 1 when the site's "Always skip start-up logos" is on, 0 off: called before the game starts (SiteSkipLogos). -1 only reads it.
+// Returns the value in effect, 1 or 0.
+EMSCRIPTEN_KEEPALIVE int byopop_site_skiplogos(int theSkip)
+{
+	if (theSkip >= 0)
+		Byopop::SetSiteSkipLogos(theSkip != 0);
+	return Byopop::SiteSkipLogos() ? 1 : 0;
 }
 
 // The site's "3D acceleration", called before the game starts (SiteAccel3D): -1 the game's own choice, 1 always, 0 never

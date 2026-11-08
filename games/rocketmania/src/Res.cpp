@@ -25,7 +25,6 @@ const char* gImageNames[NUM_IMAGES] =
 	"headrotate2",
 	"pipes",
 	"explosion",
-	"register",
 	"darkbutton",
 	"coinglow",
 	"lanternoff",

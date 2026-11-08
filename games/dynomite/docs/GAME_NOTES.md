@@ -237,6 +237,10 @@ tutorial (0x419040); `README.md` says what is left out. App
 slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`, 31 `Shutdown`; WidgetManager 0x47ec90 is
 `BringToBack`.
 
+**Registration removed.** Everything an unregistered copy shows, and the registered copy's "thanks for registering" on
+the title (2026-11-08), is out of the port; `README.md`, "Registration and loading", lists each piece. No other string
+the port draws is a registered copy's (no stamp, name or status line).
+
 ## 5. Fix candidates
 
 None so far (docs/MOD_ROADMAP.md, "The fixes mod"). Both phases of the identical-play pass (`IDENTICAL_PLAY.md`) found no

@@ -506,7 +506,7 @@ void Board::DrawSpare(Graphics* g, Piece* thePiece)
 // 0x41d620: a rocket's picture (the magic rocket of the strategy mode in four hues, else the plain rockets), at x, y
 void Board::DrawRocket(Graphics* g, int theIndex, int theX, int theY)
 {
-	static_assert(IMAGE_ROCKET01 == 54, "the rocket pictures follow image 53");
+	static_assert(IMAGE_ROCKET01 == 53, "the rocket pictures follow image 52");
 	if (mApp->mMode == 2)
 		g->DrawImage(mApp->mRocketHues[theIndex], theX, theY);
 	else
