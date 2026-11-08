@@ -3,7 +3,7 @@
 //
 // A twist turns a 2x2 block a quarter turn in TWIST_STEPS ticks, at MoveSet's integer cos and sin; a slide moves a
 // segment's gems k cells on in moves.slide.snapTicks ticks, wrapping inside the segment. Both run as a swap runs
-// (UpdateSwap, 0x4cd84f): at the end the move is made in the grid and ProcessMatches decides; a move without a group
+// (UpdateSwapping, 0x4cd84f): at the end the move is made in the grid and FindSets decides; a move without a group
 // goes back (with bad2), or stays with moves.allowInvalid (KeepInvalidMove). One that goes back is undone in the grid
 // at once and only its gems' positions turn back, so the grid holds the board before the move in all four states.
 
@@ -227,14 +227,14 @@ void Board::StartSlide(int theAxis, int theLine, int theStart, int theK, int the
 	MarkDirty();
 }
 
-// UpdateSwap's end (0x4cd84f) for a twist or a slide that has run: the move stands with a group, goes back, or with
+// UpdateSwapping's end (0x4cd84f) for a twist or a slide that has run: the move stands with a group, goes back, or with
 // moves.allowInvalid stays
 static void EndForwardMove(Board* theBoard, WinDMApp* theApp, int theBackState)
 {
 	CommitMove(theBoard, theBoard->mMoveInPlay);
 	theBoard->mCascadeCount = 1;
 	theBoard->mMoveMatchCount = 0;
-	if (theBoard->ProcessMatches())
+	if (theBoard->FindSets())
 	{
 		theBoard->mState = STATE_CLEARING;
 		if (theBoard->mShowTutorial)

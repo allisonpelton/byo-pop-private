@@ -50,7 +50,7 @@ enum DialogId
 	DIALOG_RECORD_SCORE = 8,
 	DIALOG_INSTRUCTIONS = 9,            // non-modal first-move hint
 	// 10 and 11 were the original's browser dialogs (taken out with its links)
-	DIALOG_FULL_INSTRUCTIONS = 12,      // also used by ShowColorDepthDialog
+	DIALOG_FULL_INSTRUCTIONS = 12,      // also used by DoColorDepthExplanation
 	DIALOG_HIGH_SCORES = 13,
 	// 14 unused, 15 was the original's register nag (taken out)
 	DIALOG_CONFIRM_LOAD = 16,
@@ -111,14 +111,13 @@ public:
 	                                            // port(variant): [Board::MAX_GEM_COLORS], mGemShrinkColors of them made
 	HighScoreWidget* mHighScoreWidget;          // +0x798 game-over screen (ShowHighScoreWidget), removed by NewGame
 	SexyString		mLastScoreName;             // +0x79c registry LastScoreName; prefills RecordScoreDialog
-	std::list<ButtonWidget*> mButtonList;       // +0x7b8 side-bar buttons made by MakeButton (pad, _Myhead +0x7bc, _Mysize +0x7c0)
+	std::list<ButtonWidget*> mButtonList;       // +0x7b8 side-bar buttons made by CreateControlButton (pad, _Myhead +0x7bc, _Mysize +0x7c0)
 	ImageFont*		mAlphaDigitsFont;           // +0x7c4 alphadigits4 (FONT_ALPHADIGITS)
 	ImageFont*		mScoreFont;                 // +0x7c8 scorefont1 (FONT_SCOREFONT); never deleted in the original
 	ImageFont*		mHeaderFont;                // +0x7cc afont1 (FONT_HEADER)
 	ImageFont*		mMainFont;                  // +0x7d0 mainfont1 (FONT_MAIN)
 	ImageFont*		mOverFont;                  // +0x7d4 overfont2 (FONT_OVERFONT)
-	Image*			mUnusedImagesA[6];          // +0x7d8 zeroed by the ctor, deleted by the dtor, otherwise unused
-	Image*			mUnusedImagesB[6];          // +0x7f0 same
+	// +0x7d8, +0x7f0 two arrays of six images, zeroed by the ctor, deleted by the dtor and never used: left out
 	ButtonWidget*	mNormalModeButton;          // +0x808 button 11; mButtonImage = IMAGE_OVER_NORMAL_SELECTED while normal mode
 	ButtonWidget*	mTimedModeButton;           // +0x80c button 12; mButtonImage = IMAGE_OVER_TIMETRIAL_SELECTED while timed mode
 	DDImage*		mTimerBarImages[NUM_TIMERBAR_IMAGES]; // +0x810 colorized timerbar: [k] hue HSL(85*k/23,255,128), [24] white
@@ -187,7 +186,7 @@ public:
 	virtual void	LoadingThreadCompleted() override;                       // 0x4d4591 slot 16 (empty; port: features.lean)
 	virtual bool	DrawDirtyStuff() override;                               // port: features.lean.frameRate
 	virtual MusicInterface* CreateMusicInterface() override;                 // 0x4d45b1 slot 18 (original takes the HWND; always BassMusicInterface, port: SDLMusicInterface)
-	void			ShowRecordScoreDialog(const SexyString& theLines); // 0x4d45e3
+	void			DoRecordScoreDialog(const SexyString& theLines); // 0x4d45e3
 	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override; // 0x4d4653 slot 25
 	virtual void	ModalOpen() override;                                    // 0x4d46fc slot 79 (same body as LostFocus)
 	virtual void	LostFocus() override;                                    // 0x4d46fc slot 82
@@ -195,28 +194,28 @@ public:
 	virtual void	GotFocus() override;                                     // 0x4d4716 slot 81
 	void			SetTimedMode(bool isTimed, bool startNewGame);  // 0x4d4730
 	void			ShowHighScoreWidget();                          // 0x4d47b1
-	void			ShowOptionsDialog();                            // 0x4d483e
+	void			DoOptions();                            // 0x4d483e
 	virtual void	ButtonPress(int theId) override;                         // 0x4d48a9 slot 1 (PlaySample(SOUND_MENUCLICK))
-	void			ShowHighScoreDialog();                          // 0x4d48b6
+	void			DoHighScoreDialog();                          // 0x4d48b6
 	virtual void	UpdateFrames() override;                                 // 0x4d4921 slot 8 (jmp SexyApp::UpdateFrames)
 	virtual void	SetMusicVolume(double theVolume) override;               // 0x4d4926 slot 60 (forwards to the base)
 	virtual bool	KillDialog(int theDialogId) override;                    // 0x4d4a0e slot 76
 	virtual std::string GetGameSEHInfo() override;                           // 0x4d4ad9 slot 40 (forwards to the base)
 	virtual void	WriteToRegistry() override;                              // 0x4d5174 slot 23
 	virtual void	ReadFromRegistry() override;                             // 0x4d51bc slot 24
-	void			ConfirmLoadGame();                              // 0x4d550d
+	void			TryConfirmLoad();                              // 0x4d550d
 	void			ConfirmNewGame();                               // 0x4d5610
 	void			ConfirmNormalMode();                            // 0x4d56ec
 	void			ConfirmTimedMode();                             // 0x4d57cd
 	void			ConfirmQuit();                                  // 0x4d58af
-	void			ShowInstructionsDialog();                       // 0x4d59cc
-	void			ShowFullInstructionsDialog();                   // 0x4d5ac1
-	void			ShowColorDepthDialog();                         // 0x4d5bef
-	bool			LoadAppImage(int theImageId);                   // 0x4d62b8
+	void			DoInstructionDialogette();                       // 0x4d59cc
+	void			DoFullInstructions();                   // 0x4d5ac1
+	void			DoColorDepthExplanation();                         // 0x4d5bef
+	bool			DoLoadImage(int theImageId);                   // 0x4d62b8
 	virtual void	PreDisplayHook() override;                               // 0x4d6399 slot 26 (does not call SexyApp::PreDisplayHook)
 	virtual void	Init() override;                                         // 0x4d649e slot 49
 	virtual void	ButtonDepress(int theId) override;                       // 0x4d6a40 slot 2
-	ButtonWidget*	MakeButton(int theId, const Rect& theRect, int theOverImageId, int theDownImageId); // 0x4d6e71
+	ButtonWidget*	CreateControlButton(int theId, const Rect& theRect, int theOverImageId, int theDownImageId); // 0x4d6e71
 	void			TitleScreenIsFinished();                        // 0x4d6f28
 	virtual void	LoadingThreadProc() override;                            // 0x4d82d2 slot 22
 

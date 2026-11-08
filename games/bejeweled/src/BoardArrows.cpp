@@ -136,7 +136,7 @@ bool Board::ArrowSettle()
 		{
 			mArrowTick = 0;
 			mState = STATE_ARROW_STEPPING;
-			mApp->PlaySample(SOUND_SELECT, GetPanForX(GetColX(mArrowSteps[0].mFromCol) + 24));
+			mApp->PlaySample(SOUND_SELECT, GetPanPosition(GetColX(mArrowSteps[0].mFromCol) + 24));
 			return true;
 		}
 	}
@@ -196,7 +196,7 @@ void Board::UpdateArrowSteps()
 				if ((anEdges & ~mRules.mArrows.mShots) == 0)
 				{
 					ClearArrow(aPiece);
-					mApp->PlaySample(SOUND_GOTSETBIG, GetPanForX((int) aPiece->mX + 24));
+					mApp->PlaySample(SOUND_GOTSETBIG, GetPanPosition((int) aPiece->mX + 24));
 				}
 				else
 					anEscape = true;
@@ -215,7 +215,7 @@ void Board::UpdateArrowSteps()
 	if (anEscape)
 	{
 		mApp->PlaySample(SOUND_BAD);
-		ShowText(mApp->GetString("ARROW_ESCAPED", _S("ARROW ESCAPED!")), 400);
+		DoBouncyText(mApp->GetString("ARROW_ESCAPED", _S("ARROW ESCAPED!")), 400);
 		GameOver(200);
 		return;
 	}
@@ -320,7 +320,7 @@ void Board::AddNewArrow()
 	Piece* aPiece = aCandidates[Rand() % (int) aCandidates.size()];
 	aPiece->mArrow = aDir + 1;
 	aPiece->mSpinFrame = 0;
-	mApp->PlaySample(SOUND_GOTSETBIG, GetPanForX((int) aPiece->mX + 24));
+	mApp->PlaySample(SOUND_GOTSETBIG, GetPanPosition((int) aPiece->mX + 24));
 	MarkDirty();
 }
 
@@ -333,14 +333,14 @@ void Board::ClearArrow(Piece* thePiece)
 	int aPoints = (int) ((double) mRules.mArrows.mBonus * mArrowsCleared * mPointMultiplier);
 	if (aPoints <= 0)
 		return;
-	ScorePopup aPopup = {(int) thePiece->mX + 24, (int) thePiece->mY + 4, 110, -1, aPoints};
+	ScorePopup aPopup = {(int) thePiece->mX + ScorePopup::OFFSET_X, (int) thePiece->mY + 4, ScorePopup::START_LIFE, -1, aPoints};
 	mScorePopups.push_back(aPopup);
 	mScore += aPoints;
 	if (mStats != NULL) mStats->OnPoints(aPoints);
 	AddMoveScore(aPoints);
 }
 
-// ProcessMatchesVariant found groups (a board with arrows always takes the match rules' path): every arrow they or a
+// FindSetsVariant found groups (a board with arrows always takes the match rules' path): every arrow they or a
 // blast took
 void Board::ClearMatchedArrows()
 {

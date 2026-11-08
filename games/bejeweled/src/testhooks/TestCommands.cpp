@@ -2,7 +2,7 @@
 // through WinDMApp::HandleScriptCommand. A command that is never given changes nothing, draws no random number and moves
 // no state. Each answers on stdout with one line: STATE {...}, MOVE {...}, OK <command> or ERROR <command>: <reason>.
 // They act through the game's own code: the title screen's play link, the side bar's mode buttons, the dialogs, the
-// board's own level end (StartBlackHole) and its own game over (GameOver). The game's notes list them
+// board's own level end (DoWhirlpool) and its own game over (GameOver). The game's notes list them
 // (GAME_NOTES.md, "Test commands").
 
 #include "WinDMApp.h"
@@ -195,11 +195,11 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		if (anArgs == "menu")
 			;  // nothing else: Bejeweled's side bar is always there
 		else if (anArgs == "options")
-			ShowOptionsDialog();
+			DoOptions();
 		else if (anArgs == "highscores")
-			ShowHighScoreDialog();
+			DoHighScoreDialog();
 		else if (anArgs == "help")
-			ShowFullInstructionsDialog();
+			DoFullInstructions();
 		else
 			SetTimedMode(anArgs == "game" ? mTimedMode : aTimed, true);  // a new game, as the mode button starts one
 		ReplyOK(theCommand);
@@ -343,9 +343,9 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				ReplyError(theCommand, "level <n>, n from 2: the game goes up to it from the level before");
 				return true;
 			}
-			aBoard->mLevel = aLevel - 2;  // the vortex's end makes it level - 1, SetupLevel sets the new level's values
+			aBoard->mLevel = aLevel - 2;  // the vortex's end makes it level - 1, SetupLevelData sets the new level's values
 		}
-		// the level's goal is met: the board's own update starts the vortex (Board::Update, StartBlackHole)
+		// the level's goal is met: the board's own update starts the vortex (Board::Update, DoWhirlpool)
 		int aGoal = aBoard->mLevelTargetScore + (int) aBoard->mTimeDrain;
 		if (aBoard->mScore < aGoal)
 			aBoard->mScore = aGoal;
@@ -356,7 +356,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 	}
 
 	// lose: the game's own ending, as when no move is left (normal) or the time is up (timed)
-	aBoard->ShowText(GetString(aBoard->mTimedMode ? "TIME_UP" : "NO_MOVES"), 400);
+	aBoard->DoBouncyText(GetString(aBoard->mTimedMode ? "TIME_UP" : "NO_MOVES"), 400);
 	aBoard->GameOver(200);
 	ReplyOK(theCommand);
 	return true;

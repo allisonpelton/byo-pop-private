@@ -299,7 +299,7 @@ public:
 			PutInt(anItr->mX);
 			PutInt(anItr->mY);
 			PutInt(anItr->mLife);
-			PutInt(anItr->mUnused);
+			PutInt(anItr->mAlwaysMinusOne);
 			PutInt(anItr->mPoints);
 		}
 	}
@@ -583,7 +583,7 @@ public:
 			if (thePiece != NULL)
 			{
 				mOrphans.push_back(thePiece);
-				// Owned like the pieces FillBoard parks, so the board frees it
+				// Owned like the pieces NewBoard parks, so the board frees it
 				mBoard->mOrphanedPieces.push_back(thePiece);
 			}
 		}
@@ -608,7 +608,7 @@ public:
 			aPopup.mX = GetInt("mScorePopups");
 			aPopup.mY = GetInt("mScorePopups");
 			aPopup.mLife = GetInt("mScorePopups");
-			aPopup.mUnused = GetInt("mScorePopups");
+			aPopup.mAlwaysMinusOne = GetInt("mScorePopups");
 			aPopup.mPoints = GetInt("mScorePopups");
 			mBoard->mScorePopups.push_back(aPopup);
 		}
@@ -684,7 +684,7 @@ template<class V> void VisitBoard(V& v, Board* b)
 	v.Int("mGameOverCountdown", b->mGameOverCountdown, FULL | LOGIC | SNAP);
 	v.Int("mLongestCascade", b->mLongestCascade, FULL | LOGIC | SNAP | V2 | UNDO);
 	v.Int("mBestMoveScore", b->mBestMoveScore, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mUnused218", b->mUnused218, FULL | LOGIC | SNAP);
+	v.Int("mClearedAtMoveStart", b->mClearedAtMoveStart, FULL | LOGIC | SNAP);
 	v.Int("mMoveScore", b->mMoveScore, FULL | LOGIC | SNAP | UNDO);
 	v.Int("mMoveScoreTimer", b->mMoveScoreTimer, FULL | LOGIC | SNAP);
 	v.Double("mMoveScoreAlpha", b->mMoveScoreAlpha, FULL | SNAP);
@@ -696,7 +696,7 @@ template<class V> void VisitBoard(V& v, Board* b)
 	v.Int("mUserPauseCount", b->mUserPauseCount, FULL | LOGIC | SNAP);
 	v.Popups(FULL | SNAP);
 	v.Bool("mStatsDisabled", b->mStatsDisabled, FULL | LOGIC | SNAP | V2);
-	v.Int("mUnused264", b->mUnused264, FULL | LOGIC | SNAP | V2);
+	v.Int("mSavedZero", b->mSavedZero, FULL | LOGIC | SNAP | V2);
 	v.Int("mLevelStartScore", b->mLevelStartScore, FULL | LOGIC | SNAP | V2);
 	v.Int("mLevelTargetScore", b->mLevelTargetScore, FULL | LOGIC | SNAP | V2);
 	v.Int("mLevelPoints", b->mLevelPoints, FULL | LOGIC | SNAP | V2);

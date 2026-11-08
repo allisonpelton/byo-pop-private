@@ -13,7 +13,7 @@
 //   GO          the board tick passes 150 (Board::Update plays SOUND_GO and shows GO or the instructions),
 //               on a board that did not resume a save (LoadGame does not restore mUpdateCnt, so a resumed
 //               board shows GO again; it is not counted) and is not a replay (Board::mPlaybackOnly, stage 3)
-//   level clear the board enters STATE_BLACK_HOLE (StartBlackHole) on an update its tick advanced
+//   level clear the board enters STATE_BLACK_HOLE (DoWhirlpool) on an update its tick advanced
 //   game over   the board enters STATE_GAME_OVER (GameOver is the only setter); the cause is New Game
 //               (mNewGamePending), else time up (from STATE_PLAYING, the only state that checks the time),
 //               else no moves (from STATE_FALLING), else other
@@ -147,15 +147,15 @@ bool CopyHostFile(const std::string& theFrom, const std::string& theTo)
 	fclose(anIn);
 	if (!isRead)
 		return false;
-	std::string aTemp = theTo + ".tmp";
-	FILE* anOut = fopen(aTemp.c_str(), "wb");
+	std::string aTempPath = theTo + ".tmp";
+	FILE* anOut = fopen(aTempPath.c_str(), "wb");
 	if (anOut == NULL)
 		return false;
 	bool isWritten = aData.empty() || (fwrite(&aData[0], 1, aData.size(), anOut) == aData.size());
 	isWritten = (fclose(anOut) == 0) && isWritten;
-	if (isWritten && (rename(aTemp.c_str(), theTo.c_str()) == 0))
+	if (isWritten && (rename(aTempPath.c_str(), theTo.c_str()) == 0))
 		return true;
-	remove(aTemp.c_str());
+	remove(aTempPath.c_str());
 	return false;
 }
 

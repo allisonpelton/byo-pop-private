@@ -502,8 +502,8 @@ std::string MirrorFillRefill(uint32_t theSeed, MirrorShape theShape)
 	std::string anError;
 	if (!RestoreMirrored(a, b, &anError))
 		return "restore: " + anError;
-	a->FillBoardVariant();
-	b->FillBoardVariant();
+	a->NewBoardVariant();
+	b->NewBoardVariant();
 	std::string aWhy = MirrorDifference(a, b, true);
 	if (!aWhy.empty())
 		return "the fill: " + aWhy;
@@ -632,8 +632,8 @@ std::string MirrorGame(uint32_t theSeed, MirrorShape theShape, int theMoves, Mir
 		}
 		const std::vector<int>& m = aList[aRand() % aList.size()];
 		int aRows = a->mRows;
-		a->StartSwap(a->mBoard[m[1]][m[0]], a->mBoard[m[3]][m[2]]);
-		b->StartSwap(b->mBoard[aRows - 1 - m[1]][m[0]], b->mBoard[aRows - 1 - m[3]][m[2]]);
+		a->SwapPieces(a->mBoard[m[1]][m[0]], a->mBoard[m[3]][m[2]]);
+		b->SwapPieces(b->mBoard[aRows - 1 - m[1]][m[0]], b->mBoard[aRows - 1 - m[3]][m[2]]);
 		aMoves++;
 	}
 	theTotals->mGames++;

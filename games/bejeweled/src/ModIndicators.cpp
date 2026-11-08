@@ -1,3 +1,5 @@
+// port: the signs that the game runs with mods (ModIndicators.h).
+
 #include "ModIndicators.h"
 
 #include "MemoryImage.h"

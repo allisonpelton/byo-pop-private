@@ -2315,7 +2315,7 @@ int GameRules::FillMinimum() const
 	}
 	std::vector<CellList> aPatterns(aPatternSet.begin(), aPatternSet.end());
 
-	// The fill orders in use (FillBoardVariant): down fills bottom-up, up top-down, alternate both ways
+	// The fill orders in use (NewBoardVariant): down fills bottom-up, up top-down, alternate both ways
 	bool anOrders[2] = {mBoard.mGravity != GRAVITY_UP, mBoard.mGravity != GRAVITY_DOWN};
 	int aMost = 0;
 	for (int aPass = 0; aPass < ShapeCount() * 2; aPass++)
@@ -2552,7 +2552,7 @@ static void SetJsonPath(JsonValue& theObject, const std::string& thePath, const 
 bool GameRules::CheckRecorded(std::string* theError) const
 {
 	std::string anError;
-	// The diff.txt values. SetupLevel: mPointMultiplier = multPerLevel * L + multBase, mLevelPoints =
+	// The diff.txt values. SetupLevelData: mPointMultiplier = multPerLevel * L + multBase, mLevelPoints =
 	// (int)((pointsPerLevel * L + pointsBase) * mPointMultiplier), and Update divides by mLevelPoints. With both
 	// bases above 0, their product at least 1 and both steps at least 0, every level L >= 0 gets at least 1 (the
 	// same doubles at L = 0, larger ones after; past the int range the conversion gives INT_MIN, never 0)
@@ -2574,7 +2574,7 @@ bool GameRules::CheckRecorded(std::string* theError) const
 		double aPerLevel = (aMode == 0) ? d.mNormalPointsPerLevel : d.mTimedPointsPerLevel;
 		double aMultBase = (aMode == 0) ? d.mNormalMultBase : d.mTimedMultBase;
 		double aMultPerLevel = (aMode == 0) ? d.mNormalMultPerLevel : d.mTimedMultPerLevel;
-		double aLevelZero = (aPerLevel * 0.0 + aBase) * (aMultPerLevel * 0.0 + aMultBase); // SetupLevel's doubles
+		double aLevelZero = (aPerLevel * 0.0 + aBase) * (aMultPerLevel * 0.0 + aMultBase); // SetupLevelData's doubles
 		if ((aBase < 1) || !(aPerLevel >= 0.0) || !(aMultBase > 0.0) || !(aMultPerLevel >= 0.0) || !(aLevelZero >= 1.0))
 			anError = std::string("diff.txt's ") + ((aMode == 0) ? "normal" : "timed") + " points and multiplier make a level of no points " +
 				"(the bases must be above 0 with a product of at least 1, the steps per level at least 0)";

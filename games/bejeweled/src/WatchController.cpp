@@ -154,7 +154,7 @@ bool WatchController::Load(std::string* theError)
 		return false;
 	}
 	// Someone else's rules: the play code divides by, indexes and loops with what they say (the 12 diff.txt
-	// values give SetupLevel's mLevelPoints, Update's divisor), so only rules the game itself makes. Canonical
+	// values give SetupLevelData's mLevelPoints, Update's divisor), so only rules the game itself makes. Canonical
 	// bytes again: one rule set has one RulesId
 	if (mRules.Canonical() != mFile.mRules)
 	{
@@ -481,7 +481,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 			b->mCursorFrame = 0;
 			b->mSelectedPiece = aPiece;
 			b->MarkDirty();
-			mApp->PlaySample(SOUND_SELECT, b->GetPanForX((int)(aPiece->mX + 24.0)));
+			mApp->PlaySample(SOUND_SELECT, b->GetPanPosition((int)(aPiece->mX + 24.0)));
 		}
 		break;
 
@@ -507,7 +507,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 				break;
 			}
 			if ((aTarget != NULL) && (aTarget != b->mSelectedPiece))
-				b->StartSwap(b->mSelectedPiece, aTarget);
+				b->SwapPieces(b->mSelectedPiece, aTarget);
 			b->mSelectedPiece = NULL;
 			b->MarkDirty();
 		}
@@ -545,7 +545,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 			isOk = false;
 			break;
 		}
-		b->DoHint();
+		b->TryShowHint();
 		break;
 
 	case Replay::OP_UNDO:

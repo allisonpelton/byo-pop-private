@@ -69,19 +69,19 @@ public:
 	GameStatsPage*	mStatsPage;
 
 public:
-	static int		GetDayNumber();                                 // 0x4ced59 tm_year*366 + tm_yday (thiscall, this unused)
-	int				GetRank(int theMode, int theScore);             // 0x4ced82 1-based place, 0 = none
+	static int		GetDayNum();                                 // 0x4ced59 tm_year*366 + tm_yday (thiscall, this unused)
+	int				GetScorePlace(int theMode, int theScore);             // 0x4ced82 1-based place, 0 = none
 	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x4cedaf slot 20
 	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x4cedd2 slot 21
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x4cedf5 slot 40
 	virtual void	ButtonDepress(int theId);                       // 0x4ceeb7 ButtonListener slot 2 (play again)
-	void			LoadHighScores();                               // 0x4ceec2
-	void			SaveHighScores();                               // 0x4cf1b4
-	static SexyString GetOrdinalSuffix(int theNum);                 // 0x4cf4a7 "st"/"nd"/"rd"/"th" (thiscall, this unused)
+	void			ReadFromFile();                               // 0x4ceec2
+	void			WriteToFile();                               // 0x4cf1b4
+	static SexyString GetOrderSuffix(int theNum);                 // 0x4cf4a7 "st"/"nd"/"rd"/"th" (thiscall, this unused)
 	virtual void	Draw(Graphics* g);                              // 0x4cf50a slot 26
 	HighScoreWidget(WinDMApp* theApp);                              // 0x4d07cd
 	virtual ~HighScoreWidget();                                     // 0x4d0dad (scalar deleting dtor 0x4d1202)
-	void			DoCheckForHighScore();                          // 0x4d0e4b body of CheckForHighScore (Update calls it directly)
+	void			ProcessScoreStuff();                          // 0x4d0e4b body of CheckForHighScore (Update calls it directly)
 	virtual void	Update();                                       // 0x4d1187 slot 22
 
 	virtual void	CheckForHighScore();                            // 0x4d11fd slot 70 (jmp 0x4d0e4b)

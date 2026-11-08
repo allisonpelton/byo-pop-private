@@ -276,7 +276,7 @@ public:
 		b->mPlaybackApplying = true;
 		Piece* aTarget = b->mBoard[theMove.mD][theMove.mC];
 		if ((aTarget != NULL) && (aTarget != b->mSelectedPiece))
-			b->StartSwap(b->mSelectedPiece, aTarget);
+			b->SwapPieces(b->mSelectedPiece, aTarget);
 		b->mSelectedPiece = NULL;
 		b->MarkDirty();
 		b->mPlaybackApplying = false;

@@ -11,7 +11,7 @@
 // (what savegame.dat stores, padding included) of every cell, every Board field in declaration order
 // (cosmetic ones too: glow, hover, banner, popups, tutorial bob, sound throttles), the global RNG state
 // (draw count and state words), and the app fields below. Same platform only (raw doubles from libm).
-// Left out: images, fonts and sounds (only whether a banner image exists), mUnusedString,
+// Left out: images, fonts and sounds (only whether a banner image exists),
 // mWhirlpoolSound, which depends on the audio device, and the LiveSplit observer's bookkeeping
 // (mBoardSerial, mResumed; stage 2b), so FULL hashes stay equal to the stage-0 baselines. Nothing the hash reads is written by Draw (the
 // banner's ColorizeText only writes image bits), so the draw schedule (-fast, -renderscale) does not
@@ -135,7 +135,7 @@ void HashPiece(StateHasher& h, Board* theBoard, Piece* thePiece, bool full)
 }
 
 // A piece pointer as its cell (row * cols + col), -1 for NULL, or rows * cols and the piece's fields for a
-// piece that is not in the grid (a stale selection that FillBoard dropped, GAME_NOTES 3.6); 8x8: 64
+// piece that is not in the grid (a stale selection that NewBoard dropped, GAME_NOTES 3.6); 8x8: 64
 void HashPieceRef(StateHasher& h, Board* theBoard, Piece* thePiece, bool full)
 {
 	if (thePiece == NULL)
@@ -224,14 +224,14 @@ void HashBoardLogic(StateHasher& h, Board* b)
 	h.Int(b->mGameOverCountdown);
 	h.Int(b->mLongestCascade);
 	h.Int(b->mBestMoveScore);
-	h.Int(b->mUnused218);
+	h.Int(b->mClearedAtMoveStart);
 	h.Int(b->mMoveScore);
 	h.Int(b->mMoveScoreTimer);
 	h.Bool(b->mNewGamePending);
 	h.Int(b->mPauseCount);
 	h.Int(b->mUserPauseCount);
 	h.Bool(b->mStatsDisabled);
-	h.Int(b->mUnused264);
+	h.Int(b->mSavedZero);
 	h.Int(b->mLevelStartScore);
 	h.Int(b->mLevelTargetScore);
 	h.Int(b->mLevelPoints);

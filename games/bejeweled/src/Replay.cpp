@@ -447,8 +447,8 @@ std::string Replay::VariantSaveChunks(const VariantSave& theSave)
 
 bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, std::string* theError)
 {
-	std::string aDummy;
-	std::string& anErr = (theError != NULL) ? *theError : aDummy;
+	std::string anIgnoredError;
+	std::string& anErr = (theError != NULL) ? *theError : anIgnoredError;
 	*theOut = VariantSave();
 	VariantSave& s = *theOut;
 	if (theSave.size() < SAVE_HEADER_FIXED)
@@ -835,7 +835,7 @@ void CheckPiece(SaveCheck& theCheck, int theCol, int theRow, int theGemColors)
 	c.Bool(At(offsetof(Piece, mDying), "mDying"));
 	c.Int(At(offsetof(Piece, mDyingFrame), "mDyingFrame"), 0, 5);    // mGemShrinkImages[][mDyingFrame]
 	c.Int(At(offsetof(Piece, mSpinFrame), "mSpinFrame"), 0, 14);
-	c.Int(At(offsetof(Piece, mSparkleCount), "mSparkleCount"), 0, 58); // DoHint's 58, down by 1
+	c.Int(At(offsetof(Piece, mSparkleCount), "mSparkleCount"), 0, 58); // TryShowHint's 58, down by 1
 	c.Int(At(offsetof(Piece, mSparkleFrame), "mSparkleFrame"), 0, 58); // sparkle cels from it (% 14, also below 0)
 	c.Real(At(offsetof(Piece, mHoleAngle), "mHoleAngle"), -1e9, 1e9);
 	c.Real(At(offsetof(Piece, mHoleAngVel), "mHoleAngVel"), -1e6, 1e6);
@@ -848,8 +848,8 @@ void CheckPiece(SaveCheck& theCheck, int theCol, int theRow, int theGemColors)
 bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError, const uint8_t* theRulesId,
 	const std::vector<BoardLayout>* theShapes, int theGemColors)
 {
-	std::string aDummy;
-	std::string& anErr = (theError != NULL) ? *theError : aDummy;
+	std::string anIgnoredError;
+	std::string& anErr = (theError != NULL) ? *theError : anIgnoredError;
 	SaveCheck c(theSave);
 	const int64_t SCORE_MAX = 1000000000;   // far over any game's, and its sums and *340 bar products stay in an int
 	const int64_t LEVEL_MAX = 100000;
@@ -897,7 +897,7 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 	else
 		c.Int("the version", 1, 1);
 	int isTimed = c.Bool("mTimedMode");
-	int32_t aLevel = c.Int("mLevel", 0, LEVEL_MAX);        // level % 4 and % 5 index SetupLevel's tables
+	int32_t aLevel = c.Int("mLevel", 0, LEVEL_MAX);        // level % 4 and % 5 index SetupLevelData's tables
 	if (c.Ok() && isVariant && (theShapes != NULL) && (aLevel % (int32_t) theShapes->size() != aVariant.mLevelShape))
 		c.mError = "a v2 save of level " + std::to_string(aLevel) + " in level shape " + std::to_string(aVariant.mLevelShape) + ", not that level's";
 	c.Int("mDisplayLevel", 1, LEVEL_MAX + 1);
@@ -927,7 +927,7 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 	c.Int("mLongestCascade", 0, 0x7fffffff);
 	c.Int("mBestMoveScore", 0, SCORE_MAX);
 	c.Bool("mStatsDisabled");
-	c.Skip(4, "mUnused264");
+	c.Skip(4, "mSavedZero");
 	int32_t aStart = c.Int("mLevelStartScore", 0, SCORE_MAX);
 	int32_t aTarget = c.Int("mLevelTargetScore", 0, 2 * SCORE_MAX);
 	if (c.Ok() && (aTarget <= aStart))             // Update divides by their difference
@@ -955,8 +955,8 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError, bool isOriginalRules,
 	const std::vector<BoardLayout>* theShapes, int theGemColors)
 {
-	std::string aDummy;
-	std::string& anErr = (theError != NULL) ? *theError : aDummy;
+	std::string anIgnoredError;
+	std::string& anErr = (theError != NULL) ? *theError : anIgnoredError;
 	bool isAbiPlayable = (theFile.mEngineAbi == (uint32_t) ENGINE_ABI) ||
 		(isOriginalRules && (theFile.mEngineAbi >= (uint32_t) FIRST_ENGINE_ABI) && (theFile.mEngineAbi < (uint32_t) ENGINE_ABI));
 	if (!isAbiPlayable)

@@ -233,7 +233,7 @@ void Board::ReadVariantChunks(const Buffer& theBuffer)
 			}
 		}
 	}
-	// the gold (stage 12): LoadGame calls no SetupLevel (and RebuildLoadedBackground keeps it through its own), so it
+	// the gold (stage 12): LoadGame calls no SetupLevelData (and RebuildLoadedBackground keeps it through its own), so it
 	// comes only from here; without GTIM the level's whole time
 	if (mVariant.mGold)
 	{

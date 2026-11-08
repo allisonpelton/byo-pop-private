@@ -196,7 +196,7 @@ void ReplayRecorder::AfterUpdate()
 		if (aWidget != NULL)
 		{
 			int aMode = mApp->mTimedMode ? 1 : 0;
-			isPinned = (mBoard->mScore > aWidget->mTodayScores[aMode]) || (aWidget->GetRank(aMode, mBoard->mScore) > 0);
+			isPinned = (mBoard->mScore > aWidget->mTodayScores[aMode]) || (aWidget->GetScorePlace(aMode, mBoard->mScore) > 0);
 		}
 		Finish(mEndReason, isPinned);
 	}

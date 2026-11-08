@@ -32,6 +32,7 @@ std::string Board::ScopedSaveGameFileName()
 	return GameConfig::ScopedFileName("userdata\\savegame.dat");
 }
 
+// part of LoadGame (0x4cca98): one saved bool, a byte that is true when not 0
 static bool ReadSaveBool(const Buffer& theBuffer)
 {
 	uchar aByte = 0;
@@ -39,6 +40,7 @@ static bool ReadSaveBool(const Buffer& theBuffer)
 	return aByte != 0;
 }
 
+// part of Draw (0x4cbc70): one frame of a hint's sparkle, drawn additively
 static void DrawSparkle(Graphics* g, Image* theSparkleImage, int theFrame, int theX, int theY)
 {
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -49,7 +51,7 @@ static void DrawSparkle(Graphics* g, Image* theSparkleImage, int theFrame, int t
 // 0x4cb5bc
 Board::Board(WinDMApp* theApp, bool timedMode)
 {
-	// port: the original leaves these uninitialised; the cells must be NULL before the first FillBoard
+	// port: the original leaves these uninitialised; the cells must be NULL before the first NewBoard
 	memset(mBoard, 0, sizeof(mBoard));
 	mSaveGameFileName = ScopedSaveGameFileName(); // port(mods): the board's own save name
 	InitVariant(theApp); // port(variant): rules snapshot, layout and variant flags (BoardVariant.cpp)
@@ -91,7 +93,7 @@ Board::Board(WinDMApp* theApp, bool timedMode)
 	mBarColor = BAR_COLOR_NORMAL;
 	mLastWarningTick = 0;
 	mMoveScore = 0;
-	mUnused218 = 0;
+	mClearedAtMoveStart = 0;
 	mMoveScoreTimer = 0;
 	mHintGlowTimer = 0;
 	mHintGlowDuration = 0;
@@ -102,7 +104,7 @@ Board::Board(WinDMApp* theApp, bool timedMode)
 	mUserPauseCount = 0;
 	mStatsDisabled = false;
 	mLevelStartScore = 0;
-	mUnused264 = 0;
+	mSavedZero = 0;
 	mSwapPiece1 = NULL;
 	mSwapPiece2 = NULL;
 	mPointsFont = mApp->mAlphaDigitsFont;
@@ -116,7 +118,7 @@ Board::Board(WinDMApp* theApp, bool timedMode)
 	mNextBackgroundImage = new DDImage(mApp->mDDInterface);
 	mNextBackgroundImage->SetImageMode(false, false);
 	mNextBackgroundImage->Create(640, 480);
-	SetupLevel();
+	SetupLevelData();
 	mLevelTargetScore = mLevelPoints;
 
 	Graphics g(mBackgroundImage);
@@ -141,11 +143,11 @@ Board::Board(WinDMApp* theApp, bool timedMode)
 
 	// Boards are generated until one has a horizontal-run move to the right in rows 4..6, columns
 	// 1..6, for the first-game tutorial arrows; the rejected boards still consume Rand()
-	if (mVariant.mNoTutorial) FillBoardWithMove(); // port(variant): a board without that move: filled until it has one (BoardShape.cpp)
+	if (mVariant.mNoTutorial) NewBoardWithMove(); // port(variant): a board without that move: filled until it has one (BoardShape.cpp)
 	else
 	do
 	{
-		FillBoard();
+		NewBoard();
 		int aMove[4];
 		for (int i = 0; FindMove(aMove, i, true, false); i++)
 		{
@@ -162,7 +164,7 @@ Board::Board(WinDMApp* theApp, bool timedMode)
 }
 
 // 0x4cb931
-void Board::UpdateBlackHole()
+void Board::UpdateWhirlpool()
 {
 	mBlackHoleLevel += 0.02;
 	if (mBlackHoleLevel > 1.0)
@@ -233,13 +235,13 @@ void Board::UpdateBlackHole()
 	if ((aMaxRadiusBefore >= 64.0) && (aMaxRadiusAfter < 64.0))
 	{
 		mLevelTextShown = true;
-		ShowText(StrFormat(mApp->GetString("LEVEL").c_str(), mLevel + 2), 400);
+		DoBouncyText(StrFormat(mApp->GetString("LEVEL").c_str(), mLevel + 2), 400);
 	}
 
 	if (aDone)
 	{
 		mLevel++;
-		SetupLevel();
+		SetupLevelData();
 		for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 		{
 			for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
@@ -435,7 +437,7 @@ void Board::Draw(Graphics* g)
 }
 
 // 0x4cca37
-bool Board::SaveGameExists()
+bool Board::HasSavedGame()
 {
 	return mApp->FileExists(GetSaveGameFileName());
 }
@@ -493,7 +495,7 @@ bool Board::LoadGame()
 	aBuffer.ReadBytes((uchar*)&mLongestCascade, 4);
 	aBuffer.ReadBytes((uchar*)&mBestMoveScore, 4);
 	mStatsDisabled = ReadSaveBool(aBuffer);
-	aBuffer.ReadBytes((uchar*)&mUnused264, 4);
+	aBuffer.ReadBytes((uchar*)&mSavedZero, 4);
 	aBuffer.ReadBytes((uchar*)&mLevelStartScore, 4);
 	aBuffer.ReadBytes((uchar*)&mLevelTargetScore, 4);
 	aBuffer.ReadBytes((uchar*)&mLevelPoints, 4);
@@ -591,7 +593,7 @@ void Board::WriteSaveGame(Buffer* theBuffer, int thePlaySeconds, int theState)
 	aBuffer.WriteBytes((const uchar*)&mLongestCascade, 4);
 	aBuffer.WriteBytes((const uchar*)&mBestMoveScore, 4);
 	aBuffer.WriteBytes((const uchar*)&mStatsDisabled, 1);
-	aBuffer.WriteBytes((const uchar*)&mUnused264, 4);
+	aBuffer.WriteBytes((const uchar*)&mSavedZero, 4);
 	aBuffer.WriteBytes((const uchar*)&mLevelStartScore, 4);
 	aBuffer.WriteBytes((const uchar*)&mLevelTargetScore, 4);
 	aBuffer.WriteBytes((const uchar*)&mLevelPoints, 4);
@@ -607,7 +609,7 @@ void Board::WriteSaveGame(Buffer* theBuffer, int thePlaySeconds, int theState)
 }
 
 // 0x4cd130
-bool Board::DeleteSaveGame()
+bool Board::DeleteSavedGame()
 {
 	DeleteSaveSidecar(); // port(variant): the sidecar goes with the save (BoardVariant.cpp)
 	return mApp->EraseFile(GetSaveGameFileName());
@@ -616,7 +618,7 @@ bool Board::DeleteSaveGame()
 // 0x4cd1ba
 Board::~Board()
 {
-	if (IsGameInProgress())
+	if (IsInProgress())
 		SaveGame();
 
 	delete mBackgroundImage;
@@ -627,7 +629,7 @@ Board::~Board()
 		mWhirlpoolSound->Release();
 	mApp->KillDialog(DIALOG_INSTRUCTIONS);
 	// An abandoned game counts as played
-	if (IsGameInProgress())
+	if (IsInProgress())
 		mApp->mTimesPlayed++;
 	if (mRecorder != NULL) mRecorder->OnBoardDestroyed(); // port(variant): the game's replay ends (finished, or kept on in the sidecar)
 
@@ -649,9 +651,9 @@ Board::~Board()
 }
 
 // 0x4cd287
-bool Board::ProcessMatches()
+bool Board::FindSets()
 {
-	if (mVariant.mMatch) return ProcessMatchesVariant(); // port(variant): the match rules (BoardMatch.cpp)
+	if (mVariant.mMatch) return FindSetsVariant(); // port(variant): the match rules (BoardMatch.cpp)
 	int aNumMatches = 0;
 	int anAvgXSum = 0;
 	int aMaxLength = 0;
@@ -712,7 +714,7 @@ bool Board::ProcessMatches()
 						aBasePoints += (aCount - 5) * gGameConfig.mLongLengthBonus;
 					int aPoints = (int)(aBasePoints * mPointMultiplier);
 
-					ScorePopup aPopup = {anAvgX + 24, anAvgY + 16, 110, -1, aPoints};
+					ScorePopup aPopup = {anAvgX + ScorePopup::OFFSET_X, anAvgY + ScorePopup::OFFSET_Y, ScorePopup::START_LIFE, -1, aPoints};
 					mScorePopups.push_back(aPopup);
 					mGemsCleared += aCount;
 					mScore += aPoints;
@@ -723,13 +725,13 @@ bool Board::ProcessMatches()
 						mHintGlowAlpha = 0.0;
 						mHintGlowTimer = 0;
 						mMoveScore = 0;
-						mUnused218 = 0;
+						mClearedAtMoveStart = 0;
 					}
 
 					int anExcellentScore = (int)(mPointMultiplier * gGameConfig.mExcellentFactor);
 					if ((mMoveScore < anExcellentScore) && (mMoveScore + aPoints >= anExcellentScore))
 					{
-						ShowText(mApp->GetString("EXCELLENT"), 200);
+						DoBouncyText(mApp->GetString("EXCELLENT"), 200);
 						mApp->PlaySample(SOUND_EXCELLENT);
 					}
 					mMoveScore += aPoints;
@@ -758,7 +760,7 @@ bool Board::ProcessMatches()
 
 	if (aNumMatches > 0)
 	{
-		int aPan = GetPanForX(anAvgXSum / aNumMatches + 24);
+		int aPan = GetPanPosition(anAvgXSum / aNumMatches + 24);
 		mIdleTicks = 0;
 		mApp->PlaySample((aMaxLength == 3) ? SOUND_GOTSET : SOUND_GOTSETBIG, aPan);
 		int aCombo = mCascadeCount - 1;
@@ -808,12 +810,12 @@ void Board::UpdateFalling()
 	if ((aLandedCount > 0) && (std::abs(mLastLandSoundTick - mUpdateCnt) >= 10))
 	{
 		mLastLandSoundTick = mUpdateCnt;
-		mApp->PlaySample(SOUND_GEMONGEM, GetPanForX(aLandedXSum / aLandedCount));
+		mApp->PlaySample(SOUND_GEMONGEM, GetPanPosition(aLandedXSum / aLandedCount));
 	}
 
 	if (aSettled)
 	{
-		if (ProcessMatches())
+		if (FindSets())
 			mState = STATE_CLEARING;
 		else if (mVariant.mArrows && ArrowSettle())
 		{
@@ -837,7 +839,7 @@ void Board::UpdateFalling()
 				mState = STATE_FALL_OUT;
 			else
 			{
-				ShowText(mApp->GetString("NO_MOVES"), 400);
+				DoBouncyText(mApp->GetString("NO_MOVES"), 400);
 				GameOver(200);
 			}
 			if (mVariant.mGravity) OnGravitySettle(); // port(variant): "alternate" flips at a settle that reaches PLAYING (BoardShape.cpp)
@@ -848,7 +850,7 @@ void Board::UpdateFalling()
 }
 
 // 0x4cd84f
-void Board::UpdateSwap()
+void Board::UpdateSwapping()
 {
 	MarkDirty();
 	mSwapAngle += 5;
@@ -870,7 +872,7 @@ void Board::UpdateSwap()
 		Piece* aDisplacedPiece = mBoard[aRow][aCol];
 		if (aDisplacedPiece != aPiece1)
 		{
-			// port: aPiece1 is a stale selection that FillBoard dropped; the original puts it back into
+			// port: aPiece1 is a stale selection that NewBoard dropped; the original puts it back into
 			// the grid and leaks the piece it overwrites. Keep each piece owned exactly once.
 			mOrphanedPieces.erase(std::remove(mOrphanedPieces.begin(), mOrphanedPieces.end(), aPiece1), mOrphanedPieces.end());
 			if (aDisplacedPiece != NULL)
@@ -880,7 +882,7 @@ void Board::UpdateSwap()
 
 		mCascadeCount = 1;
 		mMoveMatchCount = 0;
-		if (ProcessMatches())
+		if (FindSets())
 		{
 			mSwapPiece1 = NULL;
 			mSwapPiece2 = NULL;
@@ -1074,10 +1076,10 @@ void Board::Update()
 		// port(variant): not over an arrow escape that ended a resumed game already (BoardArrows.cpp; nothing else
 		// ends a game this soon)
 		if (((!mApp->mShowInstructions) || (mApp->mTimesPlayed >= 5)) && !(mVariant.mArrows && (mState == STATE_GAME_OVER)))
-			ShowText(mApp->GetString("GO"), 250);
+			DoBouncyText(mApp->GetString("GO"), 250);
 		if ((mApp->mShowInstructions) && (mApp->mTimesPlayed < 5))
 		{
-			mApp->ShowInstructionsDialog();
+			mApp->DoInstructionDialogette();
 			mShowTutorial = true;
 		}
 	}
@@ -1215,12 +1217,12 @@ void Board::Update()
 	if (mState == STATE_PLAYING)
 	{
 		if (mDisplayScore - (int)mTimeDrain - mLevelStartScore >= mLevelTargetScore - mLevelStartScore)
-			StartBlackHole();
+			DoWhirlpool();
 		// Not limited to timed mode: in normal mode hint penalties can push the score a whole level
 		// below the level start
 		if ((mState == STATE_PLAYING) && (mDisplayScore - (int)mTimeDrain - mLevelStartScore <= mLevelStartScore - mLevelTargetScore))
 		{
-			ShowText(mApp->GetString("TIME_UP"), 400);
+			DoBouncyText(mApp->GetString("TIME_UP"), 400);
 			GameOver(200);
 		}
 	}
@@ -1232,22 +1234,22 @@ void Board::Update()
 		break;
 	case STATE_SWAPPING:
 	case STATE_SWAPPING_BACK:
-		UpdateSwap();
+		UpdateSwapping();
 		break;
 	case STATE_CLEARING:
 		UpdateClearing();
 		break;
 	case STATE_GAME_OVER:
-		UpdateGameOver();
+		UpdateGameOverAnim();
 		break;
 	case STATE_BLACK_HOLE:
-		UpdateBlackHole();
+		UpdateWhirlpool();
 		break;
 	case STATE_LEVEL_WIPE:
-		UpdateLevelWipe();
+		UpdateLevelTransition();
 		break;
 	case STATE_FALL_OUT:
-		UpdateFallOut();
+		UpdateBoardDropping();
 		break;
 	case STATE_TWISTING: // port(variant): the move rules' twists and slides (BoardMoves.cpp)
 	case STATE_TWISTING_BACK:

@@ -23,7 +23,7 @@
 using namespace Sexy;
 
 // The game's float math helpers compute in double and round the result to float.
-// 0x4c9a94 (atan2f; StartBlackHole calls it through the atan2(float, float) overload at 0x4c9ad1)
+// 0x4c9a94 (atan2f; DoWhirlpool calls it through the atan2(float, float) overload at 0x4c9ad1)
 static float Atan2F(float theY, float theX)
 {
 	return (float)atan2((double)theY, (double)theX);
@@ -78,7 +78,7 @@ void Board::RequestNewGame()
 }
 
 // 0x4c9bbe
-bool Board::IsGameInProgress()
+bool Board::IsInProgress()
 {
 	if (mPlaybackOnly) return false; // port(variant): a replay's board never saves, counts or deletes anything
 	return !mIsNewGame && mState != STATE_GAME_OVER && mState != STATE_GAME_OVER_DONE;
@@ -146,9 +146,9 @@ Piece* Board::GetPieceAt(int theX, int theY)
 }
 
 // 0x4c9cf5
-bool Board::HasMatch()
+bool Board::HasSet()
 {
-	if (mVariant.mMatch) return HasMatchVariant(); // port(variant): the match rules (BoardMatch.cpp)
+	if (mVariant.mMatch) return HasSetVariant(); // port(variant): the match rules (BoardMatch.cpp)
 	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
 		int aCount = 0;
@@ -197,7 +197,7 @@ bool Board::HasMatch()
 }
 
 // 0x4c9d94
-int Board::GetPanForX(int theX)
+int Board::GetPanPosition(int theX)
 {
 	// -800 at the left edge of the board .. 800 at the right edge
 	int aLeft = GetColX(0);
@@ -292,7 +292,7 @@ void Board::MouseLeave()
 }
 
 // 0x4c9ff8
-void Board::StartSwap(Piece* thePiece1, Piece* thePiece2)
+void Board::SwapPieces(Piece* thePiece1, Piece* thePiece2)
 {
 	if (abs(thePiece1->mCol - thePiece2->mCol) + abs(thePiece1->mRow - thePiece2->mRow) != 1)
 	{
@@ -337,7 +337,7 @@ void Board::GetBoardCenter(int* theX, int* theY)
 }
 
 // 0x4ca1c8
-void Board::ShowText(const SexyString& theText, int theDuration)
+void Board::DoBouncyText(const SexyString& theText, int theDuration)
 {
 	delete mTextImage;
 	delete mTextColorImage;
@@ -440,7 +440,7 @@ void Board::ColorizeText()
 }
 
 // 0x4ca58d
-void Board::StartBlackHole()
+void Board::DoWhirlpool()
 {
 	if (mWhirlpoolSound != NULL)
 		mWhirlpoolSound->Release();
@@ -518,7 +518,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		mCursorFrame = 0;
 		mSelectedPiece = aTarget;
 		MarkDirty();
-		mApp->PlaySample(SOUND_SELECT, GetPanForX((int)(mSelectedPiece->mX + 24.0)));
+		mApp->PlaySample(SOUND_SELECT, GetPanPosition((int)(mSelectedPiece->mX + 24.0)));
 		if (mRecorder != NULL) mRecorder->OnSelect(aTarget); // port(variant): SELECT c r
 		return;
 	}
@@ -547,7 +547,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 
 	// Clicking the selected gem again just deselects it; a non-adjacent target plays bad2
 	if (aTarget != NULL && aTarget != mSelectedPiece)
-		StartSwap(mSelectedPiece, aTarget);
+		SwapPieces(mSelectedPiece, aTarget);
 	mSelectedPiece = NULL;
 	MarkDirty();
 	if (mRecorder != NULL) mRecorder->OnTarget(aTarget); // port(variant): TARGET c r (-1 -1 for none)
@@ -583,16 +583,16 @@ void Board::MouseDrag(int x, int y)
 	if (abs(aDeltaX) > abs(aDeltaY))
 	{
 		if (aDeltaX > 0 && aCol < mCols - 1 && mBoard[aRow][aCol + 1] != NULL) // port(variant): was BOARD_COLS; a hole is no neighbour
-			StartSwap(mSelectedPiece, mBoard[aRow][aCol + 1]);
+			SwapPieces(mSelectedPiece, mBoard[aRow][aCol + 1]);
 		else if (aDeltaX < 0 && aCol > 0 && mBoard[aRow][aCol - 1] != NULL) // port(variant)
-			StartSwap(mSelectedPiece, mBoard[aRow][aCol - 1]);
+			SwapPieces(mSelectedPiece, mBoard[aRow][aCol - 1]);
 	}
 	else
 	{
 		if (aDeltaY > 0 && aRow < mRows - 1 && mBoard[aRow + 1][aCol] != NULL) // port(variant): was BOARD_ROWS
-			StartSwap(mSelectedPiece, mBoard[aRow + 1][aCol]);
+			SwapPieces(mSelectedPiece, mBoard[aRow + 1][aCol]);
 		else if (aDeltaY < 0 && aRow > 0 && mBoard[aRow - 1][aCol] != NULL) // port(variant)
-			StartSwap(mSelectedPiece, mBoard[aRow - 1][aCol]);
+			SwapPieces(mSelectedPiece, mBoard[aRow - 1][aCol]);
 	}
 
 	mSelectedPiece = NULL;
@@ -703,7 +703,7 @@ void Board::UpdateClearing()
 }
 
 // 0x4cab82
-void Board::UpdateGameOver()
+void Board::UpdateGameOverAnim()
 {
 	MarkDirty();
 
@@ -769,9 +769,9 @@ void Board::UpdateGameOver()
 }
 
 // 0x4cad2f
-void Board::DoHint()
+void Board::TryShowHint()
 {
-	if (mRecorder != NULL) mRecorder->OnHint(); // port(variant): HINT (ShowHint's only call, inside its if; playback calls DoHint)
+	if (mRecorder != NULL) mRecorder->OnHint(); // port(variant): HINT (ShowHint's only call, inside its if; playback calls TryShowHint)
 	int aScoreBefore = mScore; // port(variant)
 	mScore = (int)((double)mScore - mPointMultiplier * gGameConfig.mHintPenalty);
 	if (mScore < 0)
@@ -792,7 +792,7 @@ void Board::DoHint()
 }
 
 // 0x4cae29
-void Board::SetupLevel()
+void Board::SetupLevelData()
 {
 	Graphics g(mNextBackgroundImage);
 	int aColorIdx = mLevel % 4;
@@ -845,13 +845,13 @@ void Board::SetupLevel()
 	mLevelPoints = (int)(aPoints * mPointMultiplier);
 	mTimeDrainRate = (mApp->mTimeDrainPerLevel * aLevel + mApp->mTimeDrainBase) * mPointMultiplier;
 	mTimeDrainAccel = (aLevel * mApp->mTimeDrainAccelPerLevel + mApp->mTimeDrainAccelBase) * mPointMultiplier;
-	if (mVariant.mGold) SetupLevelGold(); // port(variant): no gold yet, the level's time (BoardGold.cpp)
+	if (mVariant.mGold) SetupLevelDataGold(); // port(variant): no gold yet, the level's time (BoardGold.cpp)
 }
 
 // ---- the fixes mod (features.fixes; docs/MOD_ROADMAP.md "The fixes mod"; GAME_NOTES.md "Fix candidates") ----
 
-// fixes.resumeLook. LoadGame does not call SetupLevel, so a saved game of level 2 or later comes back with the first level's
-// background and tint until the next level-up. This draws the loaded level's look and keeps what SetupLevel also sets (the
+// port(mods): the fixes mod's resumeLook. LoadGame does not call SetupLevelData, so a saved game of level 2 or later comes back with the first level's
+// background and tint until the next level-up. This draws the loaded level's look and keeps what SetupLevelData also sets (the
 // level's values and the drain, which the save holds).
 void Board::ResumeLevelLook()
 {
@@ -862,7 +862,7 @@ void Board::ResumeLevelLook()
 		return;
 	double aTimeDrain = mTimeDrain, aMultiplier = mPointMultiplier, aRate = mTimeDrainRate, aAccel = mTimeDrainAccel;
 	int aPoints = mLevelPoints;
-	SetupLevel();
+	SetupLevelData();
 	mTimeDrain = aTimeDrain;
 	mPointMultiplier = aMultiplier;
 	mTimeDrainRate = aRate;
@@ -874,9 +874,9 @@ void Board::ResumeLevelLook()
 }
 
 // 0x4cb182
-void Board::FillBoard()
+void Board::NewBoard()
 {
-	if (mVariant.mFall) { FillBoardVariant(); return; } // port(variant): holes skipped, the gravity direction (BoardShape.cpp)
+	if (mVariant.mFall) { NewBoardVariant(); return; } // port(variant): holes skipped, the gravity direction (BoardShape.cpp)
 	mState = STATE_FALLING;
 	mIdleTicks = 0;
 
@@ -909,13 +909,13 @@ void Board::FillBoard()
 			{
 				aPiece->mColor = Rand() % gGameConfig.mGemColors;
 			}
-			while (HasMatch());
+			while (HasSet());
 		}
 	}
 }
 
 // 0x4cb284
-void Board::UpdateLevelWipe()
+void Board::UpdateLevelTransition()
 {
 	Graphics g(mBackgroundImage);
 	g.ClipRect(0, mWipeY, mWidth, 3);
@@ -946,15 +946,15 @@ void Board::UpdateLevelWipe()
 	{
 		mDisplayLevel = mLevel + 1;
 		mTimeDrainDelay = gGameConfig.mLevelDrainDelay;
-		FillBoard();
+		NewBoard();
 		// Unregistered copies with 15+ games played roll Rand() % 5 here for the register nag (not ported).
 	}
 }
 
 // 0x4cb3bf
-void Board::UpdateFallOut()
+void Board::UpdateBoardDropping()
 {
-	if (mVariant.mFall) { UpdateFallOutVariant(); return; } // port(variant): the gravity direction (BoardShape.cpp)
+	if (mVariant.mFall) { UpdateBoardDroppingVariant(); return; } // port(variant): the gravity direction (BoardShape.cpp)
 	bool allGone = true;
 	MarkDirty();
 
@@ -991,7 +991,7 @@ void Board::UpdateFallOut()
 	if (allGone)
 	{
 		mTimeDrainDelay = gGameConfig.mLevelDrainDelay;
-		FillBoard();
+		NewBoard();
 	}
 }
 
@@ -1001,5 +1001,5 @@ void Board::ShowHint()
 	if (mPlaybackOnly) return; // port(variant)
 	if (NoHintVariant()) return; // port(variant): no move to show (a noMoves "continue" board): no hint, no penalty (BoardVariant.cpp)
 	if (mState == STATE_PLAYING && mPauseCount == 0)
-		DoHint();
+		TryShowHint();
 }
