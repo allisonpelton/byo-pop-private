@@ -697,7 +697,34 @@ var ByopopSettings = (function () {
     return { refresh: refresh };
   }
 
-  return { KEY: KEY, names: Object.keys(DEFS), get: get, set: set, all: all, override: override, overrides: overrides, render: render };
+  // The player's favourite games (the user, 2026-11-08: "User should be able to save some games as their favorites"): the field
+  // "favourites" of this same item, so that the save backup and its restore carry them with the settings (web/saves.js), a list
+  // in the order they were starred of {id, title, tag, colour, page}: the game's id (a coming-soon game's "soon-" and its
+  // title's letters), and what a page needs to draw its desktop icon without the listing (page: "" for a game with no page yet).
+  // Any game can be one, with its files or not; a game hidden from the listing stays one. Each change is told to the page as the
+  // event "byopop-favourites" (and to the other pages by the storage event).
+  function favId(id) { return typeof id === "string" && /^[a-z0-9_-]{1,60}$/.test(id); }
+  function favourites() {
+    var f = readAll().favourites;
+    if (!Array.isArray(f)) return [];
+    return f.filter(function (g) { return plain(g) && favId(g.id) && typeof g.title === "string"; }).map(function (g) {
+      return { id: g.id, title: g.title.slice(0, 80), tag: typeof g.tag === "string" ? g.tag.slice(0, 4) : "",
+               colour: (typeof g.colour === "string" && /^#[0-9a-f]{3,8}$/i.test(g.colour)) ? g.colour : "",
+               page: (typeof g.page === "string" && /^[a-z0-9_-]+\.html$/i.test(g.page)) ? g.page : "" };
+    });
+  }
+  function isFavourite(id) { return favourites().some(function (g) { return g.id === id; }); }
+  function setFavourite(game, on) {
+    if (!game || !favId(game.id)) return false;
+    var o = readAll(), list = favourites().filter(function (g) { return g.id !== game.id; });
+    if (on) list.push({ id: game.id, title: String(game.title || game.id), tag: game.tag || "", colour: game.colour || "", page: game.page || "" });
+    if (list.length) o.favourites = list; else delete o.favourites;
+    var ok = write(o);
+    try { window.dispatchEvent(new CustomEvent("byopop-favourites", { detail: { id: game.id, on: !!on } })); } catch (e) {}
+    return ok;
+  }
+  return { KEY: KEY, names: Object.keys(DEFS), get: get, set: set, all: all, override: override, overrides: overrides, render: render,
+           favourites: favourites, isFavourite: isFavourite, setFavourite: setFavourite };
 })();
 
 // Which games have their files loaded in this browser, as a sign that the player owns them (docs/WEB_PLAYER.md, "The
@@ -706,7 +733,8 @@ var ByopopSettings = (function () {
 // player used "Forget game files" on the game's page. missing: when a game page found the files gone without that (the
 // browser's data was cleared, or its storage freed). The files are there when there is a loaded date and neither of the
 // others; finding them again (loading them) clears both. icon: the game's own icon, read out of its exe by
-// web/exeicon.js, as a PNG data URL of at most 16 KB; it is derived from the files, so it goes with them (when they are
+// web/exeicon.js, as a PNG data URL of at most 16 KB, and small: the same group's image nearest 32 px (at most 8 KB, "" when
+// the exe has none smaller), which the caps' face draws pixel for pixel; they are derived from the files, so it goes with them (when they are
 // forgotten or gone) and is kept only while they are there. A game page writes it, the listing page reads it, without
 // starting any game, and an entry is never removed: that a game was played here is part of what the listing says. Every
 // read and write is guarded: with storage blocked, nothing is recorded.
@@ -742,6 +770,7 @@ var ByopopGameFiles = (function () {
     var icon = present(r) ? r.icon : "";  // the same files as before: their icon stays
     o[id] = { loaded: today() };
     if (icon) o[id].icon = icon;
+    if (icon && typeof r.small === "string") o[id].small = r.small;
     if (present(r) && typeof r.built === "number") o[id].built = r.built;
     // the day this copy came in, kept while it is there (the cap board's date under the crimp, web/index.html); a record from
     // before it was kept has none
@@ -755,6 +784,7 @@ var ByopopGameFiles = (function () {
     r.forgotten = today();
     delete r.missing;
     delete r.icon;
+    delete r.small;
     o[id] = r;
     write(o);
     try { if (window.ByopopCursors) ByopopCursors.forget(id); } catch (e) {}  // its cursors came from its files too
@@ -765,6 +795,7 @@ var ByopopGameFiles = (function () {
     if (!r || r.forgotten || r.missing) return;
     r.missing = today();
     delete r.icon;
+    delete r.small;
     write(o);
   }
   // An import has started replacing the files (the old copy is gone, the new one not all there yet): noted as missing
@@ -774,16 +805,18 @@ var ByopopGameFiles = (function () {
     var o = all(), r = o[id] || {};
     r.missing = today();
     delete r.icon;
+    delete r.small;
     o[id] = r;
     write(o);
   }
   // The icon read out of the game's exe (a PNG data URL, at most 16 KB), kept with the entry while the files are there, and the
-  // year the exe was linked (ByopopExeIcon.built; the cap board's print, web/index.html) where it has one
-  function setIcon(id, url, built) {
+  // year the exe was linked (ByopopExeIcon.built; the cap board's print, web/index.html) where it has one, and the small icon
+  function setIcon(id, url, built, small) {
     if (typeof url !== "string" || url.length > 16384 || url.indexOf("data:image/png;base64,") !== 0) return false;
     var o = all(), r = o[id];
     if (!present(r)) return false;
     r.icon = url;
+    r.small = (typeof small === "string" && small.length <= 8192 && small.indexOf("data:image/png;base64,") === 0) ? small : "";
     // 0: read, and none likely
     if (typeof built === "number") r.built = (built >= 1995 && built <= 2100) ? built : 0; else delete r.built;
     write(o);
