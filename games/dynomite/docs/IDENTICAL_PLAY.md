@@ -170,8 +170,74 @@ the port's silent driver. shotdiff rates it below visible.
 
 One stick of dynamite in t2's Endless game is drawn a few pixels from the original's after the pause (Oddities).
 
+## Phase 2: played with real input
+
+Autoplay and the script commands never pass through the game's own input, so the port was also played with real mouse
+and key events only, from launch: the tutorial and a whole game of every mode, natively and in the browser. No session
+plays a game itself; the moves come from the port's own bot through the standard `move` command, which the driver
+sends as real input.
+
+**Natively** `tools/realplay/play.sh` runs the port under rundesk with Bejeweled Twist's driver, which posts the clicks
+and keys to the game's window on the real clock (the game's script only asks `state` and `move`). Each run starts from
+a fresh user folder with low high-score tables, so every game ends in the name dialog: the driver types the name,
+presses Okay and photographs the table. Every run was made windowed and again in full screen (the window filled the
+3840 by 2160 display):
+
+| run | windowed | full screen |
+|---|---|---|
+| tutorial | 128 moves in 146 s, every step to its end on the main menu | 126 moves in 156 s, the same |
+| Endless | 248 moves, whirley level 2, 9510 | 280 moves, 8140 |
+| Stomped Puzzle | 584 moves, round 15, 16230 | 446 moves, round 12, 12120 |
+| Fossil Challenge | 1027 moves, eight fossils, 70160 | 1072 moves, nine fossils, 81110 |
+| Fossil Panic | 243 moves, fossil 5, 39590 | 162 moves, fossil 3, 22480 |
+| Time Trial | 256 moves, 4:51 | 423 moves |
+
+Each game ended in its end panel, the name went into the table, and no run stalled, crashed or logged an error. The
+tutorial needed three things of `move` beyond a shot: its Continue button, the side bar's museum button at the step that
+waits for the museum (and the museum's own close and continue buttons, which every Fossil game also presses after each
+fossil), and at the step that asks for the whirley to be shot, the shot whose flight meets it. The bot's flight takes
+its probes as ghosts, so it changes nothing in the game.
+
+**In the browser** `tools/web/onegame.js` drives the player-only page (`?player=1&assets=1&fast=1&silent=1`, in the
+Browser pane, with the shared test kit's real DOM events): it clicks through the title and the main menu's pages with the
+same clicks as the native step files, then plays by `move` through the kit's `playByMove`, types the name and presses
+Okay. The page runs on the virtual clock (`fast=1`), so the bot's every move lands in step with the game and it plays
+much better than natively:
+
+| run | result |
+|---|---|
+| tutorial | 130 moves in 64 s, every step to its end on the main menu |
+| Endless | 1500 moves, whirley level 2, 38070 |
+| Stomped Puzzle | 697 moves, round 15, 16630 |
+| Fossil Challenge | 2407 moves, twelve fossils, 113360 |
+| Fossil Panic | 1000 moves of the bot, fossil 8, then 9 shots straight up to end it, 61250 |
+| Time Trial | 268 moves, 2:40 |
+
+Every game reached its end panel, the name dialog and the table, with no error logged. Panic was still being won at
+the driver's limit in a first run (3000 moves, fossil 14, 140250), so the driver ends a game the bot is still winning
+with real shots straight up. A page cannot start in full screen, and the hidden pane cannot be put there, so full
+screen was played natively only.
+
+Two things in the tutorial needed care in the page, where the bot's moves come faster than natively. At step 45 the
+tutorial has made the eggs sit past the line and waits for the board to be lost; a shot there that makes a match clears
+the rows, and the step never ends (the board is no longer past the line, and the launcher stays empty). A player could
+do the same, so the bot plays that step as it plays step 43, landing low without a match. And between messages the bot
+has no move for a while, which the kit's `playByMove` takes for the end after two asks, so the driver asks again while
+the game goes on.
+
+## The fixes mod
+
+The pass found no fix candidate: no bug of the original that changes play and no wait that only costs time (loading is
+already made fast in the port). So Dynomite has no fixes mod yet; `GAME_NOTES.md`, "Fix candidates", keeps the list.
+
 ## Oddities (skipped)
 
+- **A match at the tutorial's step 45 stalls it.** Step 45 waits for the board it has pushed past the line to be lost
+  (`Tutorial::Update`, the step's wait on the board's end). A shot fired in that wait that makes a match clears the
+  rows above the line, the launcher stays empty, and the tutorial waits for good; the side bar's buttons still leave
+  it. The port's step follows the original's code, but whether the original stalls the same way was not run. To see
+  it: in the tutorial, fire a matching shot as soon as step 45 begins. It would take a run of the original's tutorial
+  under origrun with the same shot; if it stalls too, it is a soft lock for the port to fix.
 - **The original sometimes plays a run differently.** Two of about seventy runs of the original differed from the port
   and from their own repeats. In one, en1's run that watches the eggs' colours had other colours from the first egg
   (Steggy's first was 2 where every other run had 1). In one run of sv1 the saved game's launcher+0xa68 (the last landed

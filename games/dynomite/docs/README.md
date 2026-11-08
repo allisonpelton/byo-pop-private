@@ -84,13 +84,14 @@ n of the Fossil Challenge from its first fragment. `set score <n>` sets the side
 Stomped and Time Trial, so the board's own end follows; `lose` puts the eggs past the line as in play (Inchy sinks and
 the eggs run off), once the first shot has started the game. `seed <n>` seeds the app's twister and its picker.
 `unlock all` answers with an error: nothing is locked in the port. `move` prints the bot's next move (`src/Bot.cpp`):
-in the tutorial its Continue button while it shows, else the shot that joins the most eggs of the loaded colour, found
+in the tutorial its Continue button while it shows, then the museum's own button while the museum is open (and the side bar's museum button at the tutorial's step 93, which waits for it), at the tutorial's whirley step the shot whose flight meets the whirley, and at its steps 43 and 45 the lowest shot without a match, else the shot that joins the most eggs of the loaded colour, found
 by flying every angle the mouse can give with the grid's own probes, with its `input` (a move to the point that aims it
 and a click there). The bot reads the board and changes nothing.
 
 `tools/realplay/play.sh <steps> <out>` plays the port natively with real input only, through Bejeweled Twist's driver
 (`games/bejeweledtwist/tools/realplay/drive.py`); `tools/realplay/*.txt` are its step files (the tutorial and a game of
-each mode). `tools/shots/` holds phase two's comparisons with the original: `tour.sh` (screens, with shotdiff),
+each mode). `tools/web/onegame.js` does the same in the player-only page through the shared test kit (`?driver=`,
+`?mode=` tutorial, endless, stomped, fossil, panic or timetrial). `tools/shots/` holds phase two's comparisons with the original: `tour.sh` (screens, with shotdiff),
 `sound.sh` and `soundcmp.py` (sound) and `web.sh` (the web build against the native port).
 
 ## Tools (`games/dynomite/tools`)

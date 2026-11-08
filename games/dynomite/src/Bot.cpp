@@ -98,8 +98,12 @@ int Around(EggGrid* theGrid, int theCol, int theRow)
 
 // flies an egg from (x, y) at theAngle until it lands, the grid coming down theDrop pixels an update meanwhile; false
 // when it breaks on a target or never lands
+// what the last flight's probes met on their way (8: a target such as a whirley)
+unsigned int gFlightHits = 0;
+
 bool FlyOnce(Dynomite* theBoard, int theAngle, float x, float y, float theDrop, int* theCol, int* theRow)
 {
+	gFlightHits = 0;
 	EggGrid* aGrid = theBoard->mGrid;
 	AngleTable* anAngles = theBoard->mApp->mAngles;
 	float aVX = anAngles->mDX[theAngle];
@@ -114,6 +118,7 @@ bool FlyOnce(Dynomite* theBoard, int theAngle, float x, float y, float theDrop, 
 			x = aVX + x;
 			y = y + aVY;
 			aHits |= ProbeAll(aGrid, x, y, kProbes);
+			gFlightHits |= aHits;
 			if ((aHits & 1) != 0)
 				aVX = fabsf(aVX);
 			if ((aHits & 2) != 0)
@@ -190,7 +195,7 @@ float GridDrop(Dynomite* theBoard)
 
 }
 
-bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot, bool toTheLine)
+bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot, bool toTheLine, bool toTheTarget)
 {
 	if ((theBoard == NULL) || (theBoard->mGrid == NULL) || (theBoard->mLauncher == NULL))
 		return false;
@@ -237,14 +242,25 @@ bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot, bool toTheLine)
 		float x = (float) ((double) aLauncher->mSlingX - (double) anAngles->mDX[anAngle] * 25.0);
 		float y = (float) ((double) aLauncher->mFieldAac + ((double) aLauncher->mSlingY - (double) anAngles->mDY[anAngle] * 25.0));
 		int aCol, aRow;
-		if (!Fly(theBoard, anAngle, x, y, aDrop, &aCol, &aRow))
+		int aGroup;
+		if (Fly(theBoard, anAngle, x, y, aDrop, &aCol, &aRow))
+			aGroup = (aColor == 0) ? Around(aGrid, aCol, aRow) : GroupSize(aGrid, aCol, aRow, aColor);
+		else if (toTheTarget && ((gFlightHits & 8) != 0))
+		{
+			// the flight ends on the target, where the egg breaks: no cell
+			aCol = -1;
+			aRow = -1;
+			aGroup = 0;
+		}
+		else
 			continue;
-		int aGroup = (aColor == 0) ? Around(aGrid, aCol, aRow) : GroupSize(aGrid, aCol, aRow, aColor);
 		// a match (three or more) first, the bigger the better; else the most of its colour touched; then the higher
 		// landing (it keeps the eggs from the line)
 		int aScore = aGroup * 1000 + (99 - aRow);
 		if (toTheLine)
 			aScore = (aGroup >= 3) ? 0 : (aRow * 10 + 10 - aGroup);
+		if (toTheTarget && (aRow < 0))
+			aScore = 1000000;
 		if (aScore > aBestScore)
 		{
 			aBestScore = aScore;

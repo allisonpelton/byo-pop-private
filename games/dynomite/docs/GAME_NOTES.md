@@ -236,3 +236,11 @@ their parts, the save dialog 0x433910, the name dialog 0x420fb0 and the load of 
 tutorial (0x419040); `README.md` says what is left out. App
 slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`, 31 `Shutdown`; WidgetManager 0x47ec90 is
 `BringToBack`.
+
+## 5. Fix candidates
+
+None so far (docs/MOD_ROADMAP.md, "The fixes mod"). Both phases of the identical-play pass (`IDENTICAL_PLAY.md`) found no
+bug of the original that changes play (its scores, timing or rules) and no wait that only costs the player time; the
+loading already runs at the machine's speed in the port. So the port has no fixes mod yet, and no mod loading. One
+thing could become a fix of the port itself rather than of the mod: if the original's tutorial also stalls after a
+match at step 45 (`IDENTICAL_PLAY.md`, "Oddities"), that is a soft lock.

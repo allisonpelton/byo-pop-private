@@ -39,6 +39,7 @@
 #include <vector>
 
 #include "Bot.h"
+#include "ButtonWidget.h"
 #include "CellButton.h"
 #include "compat2004/Compat2004.h"
 #include "IntroScreen.h"
@@ -50,6 +51,7 @@
 #include "EggGrid.h"
 #include "FossilizedApp.h"
 #include "InchySmall.h"
+#include "Museum.h"
 #include "Launcher.h"
 #include "Egg.h"
 #include "SideBar.h"
@@ -110,6 +112,25 @@ CellButton* TutorialContinue(FossilizedApp* theApp)
 	return t->mContinueButton;
 }
 
+// the button a move presses that is not a shot: the museum's own button while the museum is open (its close, or its
+// continue after a fossil; pressed also while disabled, so a driver waits on it), or the side bar's museum button at
+// the tutorial's step 0x5d, which waits for the museum
+Widget* MoveButton(FossilizedApp* theApp)
+{
+	Dynomite* b = theApp->mBoard;
+	if ((b == NULL) || (b->mGameType != 2))
+		return NULL;
+	Museum* aMuseum = static_cast<DynomiteFossil*>(b)->mMuseum;
+	if (aMuseum != NULL)
+	{
+		ButtonWidget* aClose = aMuseum->mCloseButton;
+		return aClose->mVisible ? aClose : NULL;	// a click while it is disabled (the rex's attack) does nothing
+	}
+	if ((theApp->mTutor != NULL) && (theApp->mTutor->mStep == 0x5d) && (theApp->mSideBar != NULL))
+		return theApp->mSideBar->mButton5;
+	return NULL;
+}
+
 std::string StateJson(FossilizedApp* theApp)
 {
 	std::string s = "{\"screen\":\"";
@@ -136,8 +157,8 @@ std::string StateJson(FossilizedApp* theApp)
 		bool isBusy = (b->mLauncher == NULL) || (b->mLauncher->mLoaded == NULL) || b->mLauncher->mFrozen ||
 			(b->mFlyingEggs.mCount > 0) || (b->mPauseCount > 0) || b->mField244 || b->mField80 ||
 			(b->mThunderbolt != NULL) || b->mField130 || b->mField131 || b->mField132;
-		if (TutorialContinue(theApp) != NULL)
-			isBusy = false;
+		if ((TutorialContinue(theApp) != NULL) || (MoveButton(theApp) != NULL))
+			isBusy = false;	// a button to press is a move
 		// over: the game has ended; the tutorial's board loses once on purpose (step 45) and the tutorial goes on
 		bool isOver = (b->mField131 || b->mField132) && (theApp->mTutor == NULL);
 		s += StrFormat(",\"mode\":\"%s\",\"paused\":%d,\"busy\":%s,\"over\":%s", ModeName(b->mGameType),
@@ -217,6 +238,7 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 	{
 		BotShot aShot;
 		CellButton* aContinue = TutorialContinue(theApp);
+		Widget* aButton = NULL;
 		if (aContinue != NULL)
 		{
 			int x = aContinue->mX + aContinue->mWidth / 2;
@@ -224,7 +246,15 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 			Reply(StrFormat("MOVE {\"kind\":\"continue\",\"step\":%d,\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}",
 				theApp->mTutor->mStep, x, y, x, y));
 		}
-		else if (!BotChooseShot(b, &aShot, (theApp->mTutor != NULL) && (theApp->mTutor->mStep == 0x2b)))
+		else if ((aButton = MoveButton(theApp)) != NULL)
+		{
+			int x = aButton->mX + aButton->mWidth / 2;
+			int y = aButton->mY + aButton->mHeight / 2;
+			Reply(StrFormat("MOVE {\"kind\":\"button\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}",
+				x, y, x, y));
+		}
+		else if (!BotChooseShot(b, &aShot, (theApp->mTutor != NULL) && ((theApp->mTutor->mStep == 0x2b) || (theApp->mTutor->mStep == 0x2d)),
+			(theApp->mTutor != NULL) && (theApp->mTutor->mStep == 0x3e)))
 			Reply("MOVE null");
 		else
 			Reply(StrFormat("MOVE {\"kind\":\"shot\",\"angle\":%d,\"cell\":[%d,%d],\"color\":%d,\"group\":%d,"
