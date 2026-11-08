@@ -20,6 +20,7 @@ namespace Sexy
 {
 
 class Brick;
+class MemoryImage;
 class AstroPopApp;
 class Board;
 class Image;
@@ -73,18 +74,21 @@ struct ScrollLayer
 // A planet: a scroll layer and a number (0x3c bytes)
 struct PlanetRec : public ScrollLayer
 {
-	int		m38;                // +0x38
+	float		mRangeStart;        // +0x38
 };
 
 // One of the 100 streaks of the backdrop (0x30 bytes, the vector at +0x170)
 struct StreakRec
 {
-	unsigned char	m00[0x14];
+	Color			mColor;             // +0x00 set at the end of a game by the kind
+	int				m10;                // +0x10
 	float			mY;                 // +0x14
 	float			mSpeed;             // +0x18
 	float			mMinSpeed;          // +0x1c
 	int				mMargin;            // +0x20
-	unsigned char	m24[0x0c];
+	int				mKind;              // +0x24 0, 1 or 2: the dark, middle or bright colour
+	bool			mFlag28;            // +0x28
+	unsigned char	m29[7];
 };
 
 // One of the stars (0x6c bytes, the vector at +0x190): a picture of the backdrop that drifts down the screen
@@ -191,6 +195,7 @@ public:
 	std::vector<CellRef3>	m200;// +0x200 ?
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
 	std::vector<Warp*>	m230;// +0x230
+	std::vector<DrawnText>	m270;// +0x270 texts drawn at a place in a font
 	std::vector<RampRecord>	m280;// +0x280 the speed table (UpdateRamp)
 	std::vector<int>	m290;// +0x290
 	std::vector<Particle*>	m2a0;// +0x2a0 the falling sparks of the energy mode
@@ -201,6 +206,7 @@ public:
 	Widget*	m2e8 = NULL;// +0x2e8
 	Widget*	m2ec = NULL;// +0x2ec
 	Image*	m2f8 = NULL;// +0x2f8 the lightning image now on the screen
+	MemoryImage*	m30c = NULL;// +0x30c the picture of the rank
 	GoalChecker*	m310 = NULL;// +0x310 the check of the level's goal
 	std::vector<std::vector<Brick*> >	m314;// +0x314 the field: 19 rows of 10 bricks, row 0 on top
 	std::vector<CellRef>	m324;// +0x324 the cells under the pointer that are lit (HoverCell)
@@ -210,6 +216,7 @@ public:
 	Color	m3c0;// +0x3c0 the colour of the backdrop tint (FadeBackdrop)
 	Color	m3d0;// +0x3d0 the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
 	FrameAnim	m420;// +0x420
+	FrameAnim	mAnim460;// +0x460
 	FrameAnim	mSirenAnim;// +0x4a0 the siren (IMAGE_SIREN)
 	FrameAnim	mAnim520;// +0x520
 	FrameAnim	mAnim5a0;// +0x5a0 the end buttons slide in with it (SetNumFrames 0x1f)
@@ -229,6 +236,7 @@ public:
 	AstroButton*	m74c = NULL;// +0x74c the theme button (id 0xfa2)
 	Checkbox*	m750 = NULL;// +0x750 the theme checkbox (id 0xfa3)
 	Buffer	m758;// +0x758 the replay recording (RecordStep)
+	LevelUpText*	m778 = NULL;// +0x778 the level-up picture
 	ScrollLayer	m77c;// +0x77c the scenery layer
 	int	m7a8 = 0;// +0x7a8 ?
 	int	m7b8 = 0;// +0x7b8 ?
@@ -236,9 +244,32 @@ public:
 	int	m7c0 = 0;// +0x7c0 ?
 	int	m7c4 = 0;// +0x7c4 ?
 	int	m7c8 = 0;// +0x7c8 ?
+	std::vector<std::string>	m7cc;// +0x7cc the lines of the level-up panel
+	int	m7dc = 0;// +0x7dc ?
+	int	m7e0 = 0;// +0x7e0 ?
+	int	m7e4 = 0;// +0x7e4 ?
 	int	m7e8 = 0;// +0x7e8 ?
 	int	m7ec = 0;// +0x7ec ?
+	int	m7f0 = 0;// +0x7f0 ?
+	int	m7f4 = 0;// +0x7f4 ?
+	int	m7f8 = 0;// +0x7f8 ?
+	int	m7fc = 0;// +0x7fc ?
+	int	m800 = 0;// +0x800 ?
+	bool	m804 = false;// +0x804
 	PulsePair	m808;// +0x808
+	int	m820 = 0;// +0x820 ?
+	int	m824 = 0;// +0x824 ?
+	int	m828 = 0;// +0x828 ?
+	int	m82c = 0;// +0x82c ?
+	bool	m830 = false;// +0x830
+	FrameAnim	mAnim83c;// +0x83c
+	int	m87c = 0;// +0x87c ?
+	int	m880 = 0;// +0x880 ?
+	int	m884 = 0;// +0x884 ?
+	int	m888 = 0;// +0x888 ?
+	Image*	m890 = NULL;// +0x890 IMAGE_UPGRADE_ARM
+	Image*	m894 = NULL;// +0x894 IMAGE_UPGRADE_HEAD
+	FrameAnim	mAnim898;// +0x898
 	bool	m8db = false;// +0x8db the game is being recorded (RecordStep)
 	bool	m8dc = false;// +0x8dc the demo plays
 	bool	m8dd = false;// +0x8dd ?
@@ -275,6 +306,7 @@ public:
 	bool	m8fd = false;// +0x8fd ?
 	bool	m8fe = false;// +0x8fe ?
 	bool	m8ff = false;// +0x8ff
+	bool	m900 = false;// +0x900
 	bool	m901 = false;// +0x901 ?
 	bool	m905 = false;// +0x905 ?
 	bool	m907 = false;// +0x907 ?
@@ -287,6 +319,8 @@ public:
 	bool	m910 = false;// +0x910
 	bool	m911 = false;// +0x911 ?
 	bool	m912 = false;// +0x912 ?
+	bool	m914 = false;// +0x914
+	bool	m915 = false;// +0x915
 	bool	m916 = false;// +0x916 ?
 	bool	m917 = false;// +0x917
 	bool	m918 = false;// +0x918
@@ -300,6 +334,7 @@ public:
 	bool	m920 = false;// +0x920 ?
 	bool	m921 = false;// +0x921 ?
 	bool	m922 = false;// +0x922
+	bool	m923 = false;// +0x923
 	bool	m924 = false;// +0x924 ?
 	float	m928 = 0.0f;// +0x928
 	float	m92c = 0.0f;// +0x92c ?
@@ -346,6 +381,12 @@ public:
 	int	m198c = 0;// +0x198c ?
 	int	m1990 = 0;// +0x1990 ?
 	int	m1994 = 0;// +0x1994 ?
+	int	m1998 = 0;// +0x1998 ?
+	int	m199c = 0;// +0x199c ?
+	int	m19a0 = 0;// +0x19a0 ?
+	int	m19a4 = 0;// +0x19a4 ?
+	int	m19a8 = 0;// +0x19a8 ?
+	int	m19ac = 0;// +0x19ac ?
 	int	m19b0 = 0;// +0x19b0 ?
 	int	m19b4 = 0;// +0x19b4 ?
 	int	m19b8 = 0;// +0x19b8 ?
@@ -361,6 +402,7 @@ public:
 	int	m19fc = 0;// +0x19fc ?
 	int	m1a10 = 0;// +0x1a10 ?
 	int	m1a14 = 0;// +0x1a14 ?
+	int	m1a18 = 0;// +0x1a18 ?
 	int	m1a28 = 0;// +0x1a28 ?
 	int	m1a2c = 0;// +0x1a2c ?
 	int	m1a30 = 0;// +0x1a30 ?
@@ -378,8 +420,10 @@ public:
 	int	m1a80 = 0;// +0x1a80 ?
 	int	m1a84 = 0;// +0x1a84
 	int	m1a8c = 0;// +0x1a8c ?
-	int	m1a98 = 0;// +0x1a98 ?
-	int	m1a9c = 0;// +0x1a9c ?
+	int	m1a90 = 0;// +0x1a90 ?
+	int	m1a94 = 0;// +0x1a94 ?
+	float	m1a98 = 0.0f;// +0x1a98
+	float	m1a9c = 0.0f;// +0x1a9c
 	int	m1aa0 = 0;// +0x1aa0
 	int	m1aa4 = 0;// +0x1aa4 ?
 	int	m1aa8 = 0;// +0x1aa8 ?
@@ -420,13 +464,27 @@ public:
 	int	m1b64 = 0;// +0x1b64 ?
 	int	m1b68 = 0;// +0x1b68 ?
 	int	m1b70 = 0;// +0x1b70 ?
+	int	m1b74 = 0;// +0x1b74 ?
 	int	m1b78 = 0;// +0x1b78
+	int	m1b7c = 0;// +0x1b7c ?
+	int	m1b88 = 0;// +0x1b88 ?
+	int	m1b8c = 0;// +0x1b8c ?
+	int	m1b94 = 0;// +0x1b94 ?
+	int	m1b98 = 0;// +0x1b98 ?
 	int	m1b9c = 0;// +0x1b9c ?
+	int	m1ba0 = 0;// +0x1ba0 ?
 	int	m1ba4 = 0;// +0x1ba4 ?
+	int	m1ba8 = 0;// +0x1ba8 ?
+	int	m1bac = 0;// +0x1bac ?
+	int	m1bb0 = 0;// +0x1bb0 ?
 	int	m1bbc = 0;// +0x1bbc ?
 	int	m1bc0 = 0;// +0x1bc0 ?
+	int	m1bc4 = 0;// +0x1bc4 ?
+	int	m1bd4 = 0;// +0x1bd4 ?
 	float	m1bd8 = 0.0f;// +0x1bd8
 	float	m1bdc = 0.0f;// +0x1bdc
+	float	m1be0 = 0.0f;// +0x1be0
+	float	m1be4 = 0.0f;// +0x1be4
 	float	m1be8 = 0.0f;// +0x1be8
 	float	m1bec = 0.0f;// +0x1bec
 	float	m1bf8 = 0.0f;// +0x1bf8
@@ -483,7 +541,13 @@ public:
 
 	// ---- not translated yet (BoardStubs.cpp): each logs once and does nothing; named by address until they are read
 	void			Fn475040();                                     // 0x475040 (3341 bytes)
-	void			Fn465290();                                     // 0x465290 (1444 bytes)
+	void			LevelComplete();                                // 0x465290
+	void			PayComboBonus();                                // 0x452d30
+	void			StartLevelUp();                                 // 0x45dd70
+	void			SetupUpgradeAnims();                           // 0x434200
+	void			ApplyWeaponLevels();                            // 0x432b50
+	void			SetupWarpLayers();                              // 0x43b1b0
+	static std::string	FormatNumber(int theNumber);            // 0x43e220 with a comma after each three digits
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
 	void			Fn46e420();                                     // 0x46e420 (1356 bytes)
 	void			Fn46e9b0();                                     // 0x46e9b0 (1615 bytes)

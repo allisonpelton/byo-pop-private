@@ -7,6 +7,53 @@
 
 using namespace Sexy;
 
+// 0x4107e0: a text at (theX, theY) in a font. The text moves up the screen unless it is given a height to move to
+// (mTargetY) and lives 250 updates; theFlag false puts it 100 pixels lower. A text that would end past the right edge of
+// the 640 pixel screen is centred instead.
+FloatText::FloatText(const std::string& theText, Font* theFont, float theX, float theY, bool theFlag)
+{
+	m40 = -1.0f;
+	mTargetY = -1.0f;
+	mSpeed = -1.0f;
+	mX = theX;
+	m18 = 0;
+	mNoFade = false;
+	m50 = 0xff;
+	m10 = 0;
+	mLife = 0xfa;
+	mHoldStart = 0;
+	mHold = 500000000;
+	mY = theY;
+	if (!theFlag)
+		mY = theY + 100.0f;
+	mText = theText;
+	mFont = theFont;
+	mDone = false;
+	mAge = 0;
+	mWidth = theFont->StringWidth(theText);
+	if (640.0f < (float) mWidth + mX)
+		mX = (float) (0x140 - mWidth / 2);
+}
+
+// 0x40b600
+LevelUpText::LevelUpText(Image* theImage, int theY)
+{
+	mImage = theImage;
+	m18 = theY + 0xbe;
+	m34 = 0.73f;
+	m08 = 1;
+	m30 = 0;
+	m20 = 1.0f;
+	m24 = 0;
+	m1c = 0;
+	m0c = 0x1e;
+	m14 = 0;
+	m10 = 100;
+	m28 = 1.0f;
+	m2c = 0.025f;
+	m04 = false;
+}
+
 // 0x408890: one update of a floating text. It rises one pixel an update (-1 in the three fields: nothing else was
 // asked for), or moves to its height at its speed, waits there for its hold time and then moves on up; it is done when
 // it is above the screen. Unless it keeps its colour it cycles its colour phase and ends when its life has run out.

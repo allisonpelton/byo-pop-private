@@ -180,7 +180,7 @@ void Board::Update()
 		SweepTurbots();
 
 		if (IsSettled(false))
-			Fn465290();
+			LevelComplete();
 		if (Fn46a810())
 			return;
 

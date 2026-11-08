@@ -14,10 +14,6 @@ void Board::Fn475040()
 	NOT_TRANSLATED("Fn475040", "0x475040");
 }
 
-void Board::Fn465290()
-{
-	NOT_TRANSLATED("Fn465290", "0x465290");
-}
 
 bool Board::Fn46a810()
 {

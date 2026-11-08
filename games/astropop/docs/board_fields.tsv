@@ -24,6 +24,7 @@ f8	std::vector<int>	mf8
 200	std::vector<CellRef3>	m200	?
 220	std::vector<StageBg*>	m220	the picture of each stage
 230	std::vector<Warp*>	m230
+270	std::vector<DrawnText>	m270	texts drawn at a place in a font
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
 290	std::vector<int>	m290
 2a0	std::vector<Particle*>	m2a0	the falling sparks of the energy mode
@@ -34,6 +35,7 @@ f8	std::vector<int>	mf8
 2e8	Widget*	m2e8
 2ec	Widget*	m2ec
 2f8	Image*	m2f8	the lightning image now on the screen
+30c	MemoryImage*	m30c	the picture of the rank
 310	GoalChecker*	m310	the check of the level's goal
 314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
 324	std::vector<CellRef>	m324	the cells under the pointer that are lit (HoverCell)
@@ -43,6 +45,7 @@ f8	std::vector<int>	mf8
 3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
 3d0	Color	m3d0	the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
 420	FrameAnim	m420
+460	FrameAnim	mAnim460
 4a0	FrameAnim	mSirenAnim	the siren (IMAGE_SIREN)
 520	FrameAnim	mAnim520
 5a0	FrameAnim	mAnim5a0	the end buttons slide in with it (SetNumFrames 0x1f)
@@ -62,6 +65,7 @@ f8	std::vector<int>	mf8
 74c	AstroButton*	m74c	the theme button (id 0xfa2)
 750	Checkbox*	m750	the theme checkbox (id 0xfa3)
 758	Buffer	m758	the replay recording (RecordStep)
+778	LevelUpText*	m778	the level-up picture
 77c	ScrollLayer	m77c	the scenery layer
 7a8	int	m7a8	?
 7b8	int	m7b8	?
@@ -69,9 +73,32 @@ f8	std::vector<int>	mf8
 7c0	int	m7c0	?
 7c4	int	m7c4	?
 7c8	int	m7c8	?
+7cc	std::vector<std::string>	m7cc	the lines of the level-up panel
+7dc	int	m7dc	?
+7e0	int	m7e0	?
+7e4	int	m7e4	?
 7e8	int	m7e8	?
 7ec	int	m7ec	?
+7f0	int	m7f0	?
+7f4	int	m7f4	?
+7f8	int	m7f8	?
+7fc	int	m7fc	?
+800	int	m800	?
+804	bool	m804
 808	PulsePair	m808
+820	int	m820	?
+824	int	m824	?
+828	int	m828	?
+82c	int	m82c	?
+830	bool	m830
+83c	FrameAnim	mAnim83c
+87c	int	m87c	?
+880	int	m880	?
+884	int	m884	?
+888	int	m888	?
+890	Image*	m890	IMAGE_UPGRADE_ARM
+894	Image*	m894	IMAGE_UPGRADE_HEAD
+898	FrameAnim	mAnim898
 8db	bool	m8db	the game is being recorded (RecordStep)
 8dc	bool	m8dc	the demo plays
 8dd	bool	m8dd	?
@@ -108,6 +135,7 @@ f8	std::vector<int>	mf8
 8fd	bool	m8fd	?
 8fe	bool	m8fe	?
 8ff	bool	m8ff
+900	bool	m900
 901	bool	m901	?
 905	bool	m905	?
 907	bool	m907	?
@@ -120,6 +148,8 @@ f8	std::vector<int>	mf8
 910	bool	m910
 911	bool	m911	?
 912	bool	m912	?
+914	bool	m914
+915	bool	m915
 916	bool	m916	?
 917	bool	m917
 918	bool	m918
@@ -133,6 +163,7 @@ f8	std::vector<int>	mf8
 920	bool	m920	?
 921	bool	m921	?
 922	bool	m922
+923	bool	m923
 924	bool	m924	?
 928	float	m928
 92c	float	m92c	?
@@ -179,6 +210,12 @@ ade	int	made	?
 198c	int	m198c	?
 1990	int	m1990	?
 1994	int	m1994	?
+1998	int	m1998	?
+199c	int	m199c	?
+19a0	int	m19a0	?
+19a4	int	m19a4	?
+19a8	int	m19a8	?
+19ac	int	m19ac	?
 19b0	int	m19b0	?
 19b4	int	m19b4	?
 19b8	int	m19b8	?
@@ -194,6 +231,7 @@ ade	int	made	?
 19fc	int	m19fc	?
 1a10	int	m1a10	?
 1a14	int	m1a14	?
+1a18	int	m1a18	?
 1a28	int	m1a28	?
 1a2c	int	m1a2c	?
 1a30	int	m1a30	?
@@ -211,8 +249,10 @@ ade	int	made	?
 1a80	int	m1a80	?
 1a84	int	m1a84
 1a8c	int	m1a8c	?
-1a98	int	m1a98	?
-1a9c	int	m1a9c	?
+1a90	int	m1a90	?
+1a94	int	m1a94	?
+1a98	float	m1a98
+1a9c	float	m1a9c
 1aa0	int	m1aa0
 1aa4	int	m1aa4	?
 1aa8	int	m1aa8	?
@@ -253,13 +293,27 @@ ade	int	made	?
 1b64	int	m1b64	?
 1b68	int	m1b68	?
 1b70	int	m1b70	?
+1b74	int	m1b74	?
 1b78	int	m1b78
+1b7c	int	m1b7c	?
+1b88	int	m1b88	?
+1b8c	int	m1b8c	?
+1b94	int	m1b94	?
+1b98	int	m1b98	?
 1b9c	int	m1b9c	?
+1ba0	int	m1ba0	?
 1ba4	int	m1ba4	?
+1ba8	int	m1ba8	?
+1bac	int	m1bac	?
+1bb0	int	m1bb0	?
 1bbc	int	m1bbc	?
 1bc0	int	m1bc0	?
+1bc4	int	m1bc4	?
+1bd4	int	m1bd4	?
 1bd8	float	m1bd8
 1bdc	float	m1bdc
+1be0	float	m1be0
+1be4	float	m1be4
 1be8	float	m1be8
 1bec	float	m1bec
 1bf8	float	m1bf8
