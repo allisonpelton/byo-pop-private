@@ -524,9 +524,6 @@ std::string StartBoard(int theNumber, bool theNewGame)
 {
 	if (gLevels.current == nullptr)
 		return "no screen is current";
-	LevelSet* aSet = SetHolding(theNumber - 1);
-	if (aSet == nullptr)
-		return "no such level";
 	bool aFromBoard = gLevels.current->kind == 0;
 	if (theNewGame || !aFromBoard || gLives <= 0)
 	{
@@ -543,6 +540,10 @@ std::string StartBoard(int theNumber, bool theNewGame)
 	}
 	gLives = aLives;
 	gScore = aScore;
+	// (the level sets are those of the file read for the title: from a board, only after the title came)
+	LevelSet* aSet = SetHolding(theNumber - 1);
+	if (aSet == nullptr)
+		return "no such level";
 	gLevelInSet = theNumber - 1;
 	gLevelSets.current = aSet;
 	gGoTo = 0;

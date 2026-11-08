@@ -335,6 +335,8 @@ static void LoadFixes()
 		cb::gFixes.shieldFlash = aShield.IsBool() && aShield.AsBool(false);
 		break;
 	}
+	SDL_Log("fixes: walkerTurnMemory %s, shieldFlash %s", cb::gFixes.walkerTurnMemory ? "on" : "off",
+		cb::gFixes.shieldFlash ? "on" : "off");
 }
 
 void CosmicBugsApp::Init()

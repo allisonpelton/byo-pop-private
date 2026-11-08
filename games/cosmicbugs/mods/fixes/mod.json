@@ -14,7 +14,7 @@
       "type": "bool",
       "default": true,
       "apply": "restart",
-      "help": "A walking bug that comes to a side way turns onto it half the time, but not again for five seconds. The original forgets the turn when the bug was going up or down, so those bugs could turn at every junction. Here they wait too."
+      "help": "A walking bug that comes to a side way turns onto it half the time, but not again for five seconds. The original forgot the wait for bugs going up or down; here they wait too."
     },
     {
       "id": "shieldFlash",
@@ -22,7 +22,7 @@
       "type": "bool",
       "default": true,
       "apply": "restart",
-      "help": "When a beam touches an enemy its shield flashes. The original starts the flash at the enemy's x for its height, so for one update it can show in the wrong place. Here it starts on the enemy."
+      "help": "When a beam touches an enemy its shield flashes. The original starts the flash at the enemy's x for its height, so it can show in the wrong place for an update. Here it starts on the enemy."
     }
   ]
 }
