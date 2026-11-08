@@ -33,6 +33,9 @@ AstroPopApp::AstroPopApp()
 	mTitle = "AstroPop Deluxe " + mProductVersion;
 	mRegKey = "PopCap\\AstroPop";
 
+	mBoard = NULL;
+	mMainMenu = NULL;
+	mScreen64c = NULL;
 	mLoaderScreen = NULL;
 	mOldSavesDeleted = false;
 	mOldScoresDeleted = false;

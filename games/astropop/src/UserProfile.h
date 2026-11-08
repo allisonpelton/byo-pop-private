@@ -64,7 +64,8 @@ public:
 	void SetString(int theId, const std::string& theValue); // 0x4271a0
 	bool HasModeUnlocked(int theMode) const;            // 0x40e8b0 (modes 2 and 3 are bits 2 and 6 of PROFILE_UNLOCK_A)
 
-	void ClearScores();                                 // 0x42dbd0 (20 x 10 zeroed pairs)
+	void ResetGame();                                   // 0x424540 (settings 0x4f .. 0x64: no saved game)
+	void ClearScores();                              // 0x42dbd0 (20 x 10 zeroed pairs)
 	bool Load(float* theVersion, std::string* theName, bool theSkipFile); // 0x42eca0
 	bool Save();                                        // 0x4276b0 (users\data<number>.usr; false when the write fails)
 	void WriteRegistry();                               // 0x425b30

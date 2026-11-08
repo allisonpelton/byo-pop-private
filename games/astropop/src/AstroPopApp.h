@@ -17,6 +17,8 @@ namespace Sexy
 {
 
 class LoaderScreen;
+class MainMenu;
+class Widget;
 class MemoryImage;
 class SoundInstance;
 class Font;
@@ -44,7 +46,10 @@ public:
 	std::vector<std::string>	mGoodbyeMessages;   // +0x608 the quit dialog's ten lines (constructor)
 	std::vector<SoundInstance*>	mLoopSounds;       // +0x618 eight entries, set when the loading thread ends
 	std::vector<int>			mPausedSongs;       // +0x630 music slots paused by LostFocus, resumed by GotFocus
+	Widget*						mBoard;             // +0x628 the running game (class Board, 0x1c0c bytes; to come), NULL for none
+	MainMenu*					mMainMenu;          // +0x644 the game selector (ShowMainMenu)
 	LoaderScreen*				mLoaderScreen;      // +0x640 Init .. the title (the original ctor leaves it uninitialised)
+	Widget*						mScreen64c;         // +0x64c the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
 	bool						mOldSavesDeleted;   // +0x659 Init found a profile of an older version and deleted it
 	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
 	int							mTimer664;          // +0x664 counted down by UpdateFrames
@@ -90,6 +95,19 @@ public:
 	void			SetLoopSoundsMuted(bool muted);             // 0x408db0
 	void			ListUsers();                                // 0x4254b0 mUserNames from the registry key Users
 	void			LoadHighScores();                           // 0x42a0b0 users\datahs.usr
+
+	void			ShowMainMenu();                             // 0x411490
+	// The screens the selector opens. Not translated yet: each one logs "not translated" and does nothing.
+	void			StartGame(bool theContinue);                // 0x428c70 (the Board)
+	void			ShowCharSelector(int theMode);              // 0x411660 (pilot choice)
+	void			ShowHallOfFame();                           // 0x4288a0
+	void			ShowQuitDialog();                           // 0x422c00
+	void			ShowUserSelect();                           // 0x422870
+	void			ShowOptions(bool theFromGame);              // 0x40bd70
+	void			ShowContinueDialog(const std::string& thePilot, int theLevel); // 0x411ba0 with the CONTINUE? texts
+
+	// port: the standard test commands (docs/TEST_COMMANDS.md), src/testhooks/TestHooks.cpp
+	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
 
 	using SexyApp::SwitchScreenMode;
 

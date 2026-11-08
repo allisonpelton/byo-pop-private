@@ -105,6 +105,27 @@ bool UserProfile::HasModeUnlocked(int theMode) const
 	return false;
 }
 
+// 0x424540: no saved game (the original sets setting 99 twice)
+void UserProfile::ResetGame()
+{
+	SetInt(0x4f, -1);
+	SetInt(0x51, -1);
+	SetInt(0x59, -1);
+	SetFloat(0x50, 0);
+	SetInt(0x53, 0);
+	SetInt(0x54, 0);
+	SetInt(0x55, 0);
+	SetInt(0x56, 0);
+	SetInt(100, 0);
+	SetInt(0x57, 0);
+	SetInt(0x58, 0);
+	for (int i = 0x5a; i <= 0x62; i++)
+		SetInt(i, 0);
+	SetInt(99, 0);
+	SetInt(99, 0);
+	SetFloat(0x52, 0);
+}
+
 // 0x42dbd0
 void UserProfile::ClearScores()
 {

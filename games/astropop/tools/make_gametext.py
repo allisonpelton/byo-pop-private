@@ -26,7 +26,7 @@ CODE_RANGES = ((0x401000, 0x48b000),)
 EXTRA = []
 POINTER_TABLES = (0x573000, 0x573000)
 # the read-only data where the strings are
-IMMEDIATE_STRINGS = (0x55d000, 0x564000)
+IMMEDIATE_STRINGS = (0x55d000, 0x565000)
 
 
 # resource ids (IMAGE_..., FONT_..., SOUND_...) are identifiers, not texts (Res.h names them)
