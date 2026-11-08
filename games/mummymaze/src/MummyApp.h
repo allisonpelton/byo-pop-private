@@ -162,6 +162,7 @@ public:
 								const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
 	virtual void			Init() override;
 	virtual void			HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;	// the standard test commands (testhooks/TestCommands.cpp)
 
 	// Helpers (WinMM.exe addresses in MummyApp.cpp)
 	bool					LoadImage(int theImageId);
