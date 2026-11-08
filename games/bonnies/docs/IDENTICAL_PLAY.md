@@ -164,7 +164,45 @@ trusted click with the user activation live, and the page calls `stage.requestFu
 answers: the promise was still pending seconds later and `document.fullscreenElement` stayed null (Alchemy saw the
 pane reject the same call outright, Seven Seas saw the same silence). The game's own full screen was played natively
 above, and the options' Full Screen box in the browser was tried with the tour's real input; the page's full screen
-waits for a browser that grants it.
+waits for a browser that grants it. The other games' stand-in, `&scale=2`, draws a SexyAppFramework game's canvas at
+twice its size; Bonnie's draws its own 800x600 frame and does not use it. Its canvas is drawn at the stage's size
+anyway. In the pane that is 904 by 678, so its clicks land at scaled points, as they
+do in full screen. With the page at `?silent=1&scale=2`, the driver (`tools/paneplay.js`) started from the page's Play,
+typed a new player's name, chose the difficulty and clicked through the story. It then played the tutorial and levels 1
+and 2 whole, plus part of level 3 (46 words, 3 scrambles), before it was stopped, with no error in the page. The fixes
+mod was on, as the page installs it.
+
+## Finishing the game (2026-11-08)
+
+**The JPEGs.** The port decodes its JPEGs with IJG libjpeg 6b, the platform's `LoadImageFromMemory`, which is the
+decoder the original's SDL_image uses. Before, stb_image put about 1% of a picture's pixels 1 to 3 levels off. The
+tour's 25 screens moved by at most 3 levels against the old baseline, and the saves and logs stayed byte for byte the
+same. The baseline was refrozen from that build (e5ccb988, f4ba1ad9), and the JPEG deviation is gone.
+
+**The fixes mod.** Bonnie's had no mods, so the port now loads them (`-modsdir`, and `/bbpersist/mods` on the web; the
+page offers them). Its fixes mod has a single toggle, `steadyClock`: the game's clock runs on the framework's updates, so
+the same seed and the same input play the same game on every run. Two real-time runs of the tour's first 7000 updates
+with the toggle on gave the same 13 screens and saves. A run without the mod ended on other high scores than the `-fast`
+run of the same script. Writing it turned up two faults of its own, a spin in the engine's `waitUntil` and a last wait
+at quit, both mended before the commit. `GAME_NOTES.md`, "Fix candidates and the fixes mod", gives what was looked for
+and why the rest are not fixes: the game's waits end on a click, all but the logos.
+
+**Always skip start-up logos.** The site's setting (natively `-skiplogos`) skips the whole logo screen: New Crayon's
+falling letters, PopCap's logo and the distributor's. The resources load on the screen's first update, and the screen
+then ends as its last logo would, with no jingle. Natively under `-fast` the menu was up by update 30. In the pane with
+the setting on, the logo screen lasted 54 ms before the menu. With the setting off the frozen baseline is identical.
+
+**The web build after libjpeg.** The web build was rebuilt and the whole tour (without its focus step) replayed under
+Node with `-fast -seed=1`. Its saves are byte for byte the native run's. With `shotdiff.json`'s masks its screens match
+too, apart from a faint strip on the cake screen (21 levels at most) and on the third help page (9 levels), and one
+pixel column on the resumed screen. The paused screen differs because it shows no pause: the step that pauses was
+left out. That is the picture the earlier web comparison gave.
+
+**Performance.** `GAME_NOTES.md`, "Performance", has the original against the port, run back to back. The menu came
+6.2 to 6.4 s after launch for the original and about 6.1 s for the port, most of it the logos. The port's loading is
+0.2 to 0.4 s, and with the logos skipped the menu is up in about 1 s. Over a minute of the tutorial being played, the
+port used more memory (87 to 89 MB private bytes against 56 to 58) and two to two and a half times the processor
+time. These numbers come from a busy machine, and the performance pass will take them again.
 
 ## Oddities left alone
 

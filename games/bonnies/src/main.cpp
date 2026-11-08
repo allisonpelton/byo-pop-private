@@ -5,11 +5,13 @@
 //                    data, never run)
 //   -userdir=<dir>   writable folder for the players' saved games and the preferences (SavedGames/)
 //   -modsdir=<dir>   the mods (the fixes mod; by default mods-bonnies beside the exe), -nomods to load none
+//   -skiplogos       the site's "Always skip start-up logos" (framework/WebSettings.h)
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "BonniesHost.h"
 #include "../engine/Exe.h"
+#include "WebSettings.h"
 #include "platform/ModManager.h"
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
@@ -208,6 +210,10 @@ int main(int argc, char** argv)
 	std::string aSeed = ArgValue(argc, argv, "seed");
 	if (!aSeed.empty())
 		bonnies::gTestSeed = strtoul(aSeed.c_str(), nullptr, 10);
+
+	// the site's "Always skip start-up logos" natively, for tests (framework/WebSettings.h)
+	if (HasFlag(argc, argv, "skiplogos"))
+		Byopop::SetSiteSkipLogos(true);
 
 	static BonniesHostApp* anApp = new BonniesHostApp();
 	anApp->SetCmdLine(argc, argv);

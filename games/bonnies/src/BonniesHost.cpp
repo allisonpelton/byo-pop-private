@@ -7,6 +7,7 @@
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
+#include "WebSettings.h"
 #include "platform/Audio.h"
 #include "platform/ImageLoader.h"
 #include "platform/MusicLevels.h"
@@ -36,6 +37,10 @@ static bool gSteadyClock = false;
 // The clock the game reads and its sleeps run to: the framework's (real time, or the updates' in a -fast run), or with
 // "steadyClock" the updates' in real time
 static uint32_t GameClock();
+// pumpEvents calls since the framework last ran: with "steadyClock" a game loop that spins on pumpEvents and the clock (the
+// engine's waitUntil when 3 ms or less are left) would wait for good, so after kSpin of them the framework runs one update
+static int gSpin = 0;
+static const int kSpin = 1000;
 
 using namespace Sexy;
 
@@ -236,6 +241,14 @@ public:
 		if ((!aSteady && (int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100) ||
 			(aSteady && (gHostApp->mScriptNoFocus || (!gHostApp->mRealInputFileName.empty() && !gHostApp->mHasFocus))))
 			gHostApp->RunFramework(0);
+		else if (gSteadyClock && ++gSpin >= kSpin)
+		{
+			// (at most half a second of real time, for a framework that does not update, paused or minimized)
+			int aCount = gHostApp->mUpdateCount;
+			uint32_t aGiveUp = SDL_GetTicks() + 500;
+			while (gHostApp->mUpdateCount == aCount && !gHostApp->mShutdown && (int)(SDL_GetTicks() - aGiveUp) < 0)
+				gHostApp->RunFramework(0);
+		}
 	}
 
 	void enableKeyRepeat(int theDelay, int theInterval) override
@@ -1106,7 +1119,7 @@ void BonniesHostApp::DoMainLoop()
 		bonnies::loadLetterOdds();
 		bonnies::loadBooks();
 		gSteadyClock = !mFastMode && bonnies::FixOn("steadyClock");
-		bonnies::gFixSkipLogos = bonnies::FixOn("skipLogos");
+		bonnies::gSkipLogos = Byopop::SiteSkipLogos();
 		mGameRunning = true;
 		bonnies::bonniesMain();
 		mGameRunning = false;
@@ -1123,7 +1136,8 @@ void BonniesHostApp::DoMainLoop()
 
 static uint32_t GameClock()
 {
-	if (gSteadyClock)
+	// (once the framework is shut down no update comes, so the game's last waits as it quits run on the machine's clock)
+	if (gSteadyClock && !gHostApp->mShutdown)
 		return 1000 + (uint32_t)gHostApp->mUpdateCount * (uint32_t)gHostApp->mFrameTime;
 	return gHostApp->GetClockTime();
 }
@@ -1159,6 +1173,7 @@ void BonniesHostApp::RunFramework(int theMs)
 		UpdateAppStep(nullptr);
 #endif
 		mLastFrameworkRun = GetClockTime();
+		gSpin = 0;
 	} while ((int)(GameClock() - anEnd) < 0);
 }
 

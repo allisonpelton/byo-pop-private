@@ -14,7 +14,9 @@ that skips a logo; nobody clicks the logos, so both wait out the same logo times
 difference between the two is the loading. The port's screen comes from the live channel's `state`, the original's from
 its memory (the application at 0x4752a0, its state at +0x200, 2 for the menu), read every few milliseconds.
 
-The scripted minute is the 60 s after the menu appeared. Each run samples the game's process every 0.1 s (working set,
+The scripted minute is the 60 s from the first board (the tutorial's first level, its words played by the tour), state 3
+in both. The original's tour clicks by the clock, so its script waits 15 s before its first click, past the slowest menu
+seen (12 s), and its minute is anchored at the board rather than at a time. Each run samples the game's process every 0.1 s (working set,
 private bytes, kernel plus user time) and prints one JSON line: the load time, the memory at the menu, the peaks and the
 processor time over the minute, the machine's busy fraction and the game processes of other sessions at the start and end.
 The run is stopped after the minute.
@@ -43,7 +45,7 @@ psapi.GetProcessMemoryInfo.argtypes = [W.HANDLE, ctypes.c_void_p, W.DWORD]
 
 QUERY_LIMITED, QUERY, VM_READ, TERMINATE = 0x1000, 0x400, 0x10, 0x1
 EPOCH_DELTA = 11644473600  # seconds from 1601 to 1970
-APP, STATE, MENU = 0x4752A0, 0x200, 2
+APP, STATE, MENU, BOARD = 0x4752A0, 0x200, 2, 3
 MINUTE = 60.0
 TOOLS = {'rundesk.exe', 'lsprobe.exe', 'origrun.exe', 'bejeweled_verify.exe', 'python.exe'}
 
@@ -143,7 +145,7 @@ def mb(x):
 
 
 def measure(h, t0, at_menu, out):
-    """Samples the process from the menu (at_menu seconds after its creation t0) through the minute after it."""
+    """Samples the process from at_menu seconds after its creation t0 (the first board) through the minute after it."""
     samples = []
     while True:
         s = sample(h)
@@ -158,7 +160,7 @@ def measure(h, t0, at_menu, out):
     m = [x for x in samples if x[0] >= at_menu]
     if len(m) < 2:
         return {'minute': None}
-    return {'menu_working_set_mb': mb(m[0][1]), 'menu_private_mb': mb(m[0][2]),
+    return {'board_working_set_mb': mb(m[0][1]), 'board_private_mb': mb(m[0][2]),
             'minute_peak_working_set_mb': mb(max(x[1] for x in m)), 'minute_peak_private_mb': mb(max(x[2] for x in m)),
             'minute_processor_s': round(m[-1][3] - m[0][3], 2), 'minute_wall_s': round(m[-1][0] - m[0][0], 1)}
 
@@ -207,9 +209,21 @@ def port(out, runs):
                     menu = time.time() - t0
                     break
             time.sleep(0.005)
-        r = {'side': 'port', 'load_s': round(menu, 2) if menu else None}
-        if menu:
-            r.update(measure(h, t0, menu, d))
+        board = None
+        while menu is not None and board is None and p.poll() is None and time.time() - t0 < 240:
+            with open(commands, 'a') as f:
+                f.write('state\n')
+            with open(log, encoding='latin-1') as f:
+                f.seek(seen)
+                text = f.read()
+            cut = text.rfind('\n') + 1
+            seen += len(text[:cut].encode('latin-1'))
+            if any(l.startswith('STATE ') and '"screen":"game"' in l for l in text[:cut].splitlines()):
+                board = time.time() - t0
+            time.sleep(0.05)
+        r = {'side': 'port', 'load_s': round(menu, 2) if menu else None, 'board_s': round(board, 2) if board else None}
+        if board:
+            r.update(measure(h, t0, board, d))
         k32.TerminateProcess(h, 0)
         p.wait(30)
         k32.CloseHandle(h)
@@ -232,7 +246,7 @@ def orig(out, template, runs):
         shutil.rmtree(folder, ignore_errors=True)
         shutil.copytree(template, os.path.join(folder, 'game'))
         script = strip(os.path.join(root, 'games', 'bonnies', 'tools', 'origrun', 'tour.txt'),
-                       os.path.join(d, 'script.txt'), ['shot'], [('waitshot logo 20000', 'wait 1500')])
+                       os.path.join(d, 'script.txt'), ['shot'], [('waitshot logo 20000', 'wait 9000')])
         o0, s0 = others(), system_times()
         with open(os.path.join(d, 'origrun.log'), 'wb') as lf:
             p = subprocess.Popen([origrun, '--exe', os.path.join(folder, 'game', 'BonniesGame.exe'), '--run', run,
@@ -252,9 +266,15 @@ def orig(out, template, runs):
                 if app and read32(h, app + STATE) == MENU:
                     menu = time.time() - t0
             time.sleep(0.004)
-        r = {'side': 'original', 'load_s': round(menu, 2) if menu else None}
-        if menu:
-            r.update(measure(h, t0, menu, d))
+        board = None
+        while menu is not None and board is None and p.poll() is None and time.time() < end + 120:
+            app = read32(h, APP)
+            if app and read32(h, app + STATE) == BOARD:
+                board = time.time() - t0
+            time.sleep(0.02)
+        r = {'side': 'original', 'load_s': round(menu, 2) if menu else None, 'board_s': round(board, 2) if board else None}
+        if board:
+            r.update(measure(h, t0, board, d))
         if h:
             k32.TerminateProcess(h, 0)
             k32.CloseHandle(h)

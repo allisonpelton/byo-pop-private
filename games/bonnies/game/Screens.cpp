@@ -678,7 +678,7 @@ int HighScoresScreen::handleEvent(Event* theEvent)
 
 static int gLogoLoaded;           // 0x4791b4: the app's resources are loaded
 static int gLogoSkip;             // 0x4791b8: a click or key hurries the logos
-bool gFixSkipLogos = false;
+bool gSkipLogos = false;
 static int gLogoFade = 0x96;      // 0x473e50: a logo's fade, in ms
 static int gPopCapTime = 0x5dc;   // 0x473e54: PopCap's logo shows this long
 static int gDistributorTime = 0x5dc;  // 0x473e58
@@ -786,6 +786,15 @@ void LogoScreen::draw()
 		fillRect(0.0f, 0.0f, 1.0f, 1.0f, 0xffffffff);
 		return;
 	}
+	// port (site): "Always skip start-up logos": white until the update has loaded, then on to the menu
+	if (gSkipLogos)
+	{
+		fillRect(0.0f, 0.0f, 1.0f, 1.0f, 0xffffffff);
+		Screen::draw();
+		if (mDone != 0)
+			gBonnies->setState(2, 1, 0);
+		return;
+	}
 	if (mEarly != 0)
 	{
 		// The distributor's logo first, when Portal.cfg asks for it
@@ -891,6 +900,19 @@ void LogoScreen::update()
 		gDistributorTime = 600;
 	}
 	Screen::update();
+	// port (site): "Always skip start-up logos" (game/Start.h): the resources load on the first update, as they would once the
+	// logo is shown, and the screen is done, as the last logo's own end leaves it (draw: setState(2)); no logo is drawn and
+	// no jingle plays. The logos draw no random numbers, and what they set is read by this screen only.
+	if (gSkipLogos)
+	{
+		if (gLogoLoaded == 0)
+		{
+			gLogoLoaded = 1;
+			gBonnies->loadResources();
+		}
+		mDone = 1;
+		return;
+	}
 	if (mEarly != 0)
 		return;
 	if (mLastUpdate == 0)
@@ -956,9 +978,6 @@ void LogoScreen::update()
 		gLogoLoaded = 1;
 		gBonnies->loadResources();
 	}
-	// port (mod): the fixes mod's "skipLogos": on to the menu once the resources are in, as a finished logo goes
-	if (gFixSkipLogos && gLogoLoaded != 0)
-		mDone = 1;
 	int aWait = 0xdac;
 	if (gLogoSkip != 0)
 		aWait = 0x5dc;
