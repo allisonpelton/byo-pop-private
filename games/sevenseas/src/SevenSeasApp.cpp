@@ -1,7 +1,6 @@
 // The application class of Seven Seas Deluxe 1.1 (WinSS.exe 0x41bc00-0x421a10). See SevenSeasApp.h and
 // docs/GAME_NOTES.md section 2.
 
-#include "ModFeatures.h"
 #include "SevenSeasApp.h"
 #include "Board.h"
 #include "Screens.h"
@@ -1074,15 +1073,6 @@ void SevenSeasApp::ButtonDepress(int theId)
 		if (theId - 3000 == DIALOG_CONTINUE)
 		{
 			KillDialog(DIALOG_CONTINUE);
-			// Fixes mod, "pirateBox": the original (0x421a10 case 3000 + 0xf) starts the game without putting the pirate
-			// away, and his 200 x 200 box, still visible after he has faded out, takes the clicks and the hover of board
-			// columns 1 to 4, rows 1 to 5 for the whole game. Put away here as in ContinueGame.
-			if (FixEnabled("pirateBox"))
-			{
-				mTalkWidget->mMode = 0;
-				mTalking = false;
-				mTalkWidget->SetVisible(false);
-			}
 			StartGame();
 		}
 		else

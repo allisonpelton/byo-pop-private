@@ -197,11 +197,6 @@ squares (the user's "column 4, rows 1-3"). The port keeps it. To see it: a saved
 Game, "No", then hover a square next to the ship under the box. The fix: put the pirate away as ContinueGame does (mode 0, talking
 flag off, widget hidden) before that StartGame.
 
-Made as the fixes mod's first toggle (2026-11-07): `games/sevenseas/mods/fixes` (`mod.json`, feature `fixes`, setting `pirateBox`, on by
-default; `src/ModFeatures.cpp`'s `FixEnabled`). With the mod off or removed the port keeps the original's behaviour. Test:
-`tools/fixes_pirate.txt` run twice with `-modsdir` holding the mod and not (native, under rundesk, with `-fast`): with it the arrow shows
-under the box and the click moves the ship, without it neither. Checked 2026-11-07.
-
 ## 9. origrun on Seven Seas stalls at update 10 (seen 2026-11-07, not solved)
 
 Every run of the original through origrun (host under rundesk, and the Windows Sandbox), with and without the seed and
