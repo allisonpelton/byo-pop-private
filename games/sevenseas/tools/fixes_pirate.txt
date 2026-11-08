@@ -1,0 +1,21 @@
+# The fixes mod's pirateBox toggle (docs/GAME_NOTES.md section 8): a saved game, Average, "No" in the Continue dialog, then the
+# ship west and a click on the square up and to the left of it (under the pirate's box). Run it with and without games/sevenseas/mods/fixes in
+# -modsdir: E_hover.png shows the arrow and F_after.png the ship moved only with the mod. Coordinates are the game's own (640 x 480).
+100 click 320 395
+2500 click 405 306
+2600 click 502 398
+3400 screenshot A_board.png
+3500 click 87 445
+3600 screenshot B_dialog.png
+3700 click 318 202
+5000 click 405 306
+5100 click 502 398
+5300 screenshot C_continue.png
+5400 click 459 254
+5900 screenshot D_newboard.png
+6000 click 362 243
+6600 move 320 201
+6700 screenshot E_hover.png
+6800 click 320 201
+7500 screenshot F_after.png
+7600 quit

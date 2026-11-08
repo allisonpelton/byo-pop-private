@@ -1,0 +1,14 @@
+{
+  "id": "fixes",
+  "name": "Seven Seas Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends faults of the original Seven Seas Deluxe and leaves the game as it was: its look, rules, sounds and pace. Each fix is a toggle. Turn the mod off to play the original as it was. High scores and the saved game are shared with the original.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    { "id": "pirateBox", "label": "Squares answer after \"No\" in the Continue dialog", "type": "bool", "default": true,
+      "help": "The original leaves the pirate's invisible box over board columns 1 to 4, rows 1 to 5 when a new game starts from the Continue dialog on Average or Hard, so those squares take no clicks and show no arrows for the whole game. On: the pirate is put away as when you Continue." }
+  ]
+}
