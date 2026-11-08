@@ -1,0 +1,18 @@
+{
+  "id": "fixes",
+  "name": "TipTop Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends what the original wasted or left to chance, and changes nothing else: its look, rules, sounds and pace of play stay as they were. Each fix is a toggle; with the whole mod off the game is the original. Scores and saved games are the same as the original's.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    { "id": "fastLoading", "label": "Load faster", "type": "bool", "default": true, "apply": "restart",
+      "help": "The title screen's loading bar loads a few of the game's files a frame instead of one, so it fills in under a second instead of a few. Only the wait is shorter." },
+    { "id": "seededBlocks", "label": "Blocks follow the seed", "type": "bool", "default": true, "apply": "restart",
+      "help": "The original seeds its random numbers a second time, from the clock, when the first block is chosen, so a seed given at the start (the site's ?seed=) changes nothing. Off: that second seeding stays." },
+    { "id": "steadyClock", "label": "Timing from the updates", "type": "bool", "default": true, "apply": "restart",
+      "help": "The game's timers run on its own updates, 10 ms each, not on the machine's clock, so the same seed and the same moves play the same game on every run, however fast the machine is." }
+  ]
+}
