@@ -179,8 +179,8 @@ public:
 	int						mField0ee4;				// +0xee4 constructor 0; Update counts it; IsHudActive tests it against 0x10
 	Image*					mImage0ee8;				// +0xee8 constructor: the app's mImages at byte offset 0x324 (index 0xc9)
 	Image*					mImage0eec;				// +0xeec constructor: the app's mImages at byte offset 0x338 (index 0xce)
-	int						mField0ef0;				// +0xef0 constructor: the first entry of the table the app keeps at +0x7cc; Update picks entries by depth
-	int						mField0ef4;				// +0xef4 constructor: the first entry of the table the app keeps at +0x7dc; Update picks entries by depth
+	Image*					mImage0ef0;				// +0xef0 constructor: the first entry of the app's mSonarSweepImages (+0x7cc); Update takes entries 1 to 4 of it in the sonar animation of diver state 7 (the table holds pictures)
+	Image*					mImage0ef4;				// +0xef4 constructor: the first entry of the app's mSonarSweep2Images (+0x7dc); Update takes entries 1 to 4 of it in the sonar animation of diver state 7
 	int						mField0ef8;				// +0xef8 constructor 255
 	bool					mFlag0efc;				// +0xefc constructor false
 	WSTimer*				mTimer0f00;				// +0xf00 starts disabled; stopped and reset when the level ends

@@ -42,6 +42,7 @@ public:
 	bool					mFlag13c;				// +0x13c constructor false; AddScore does nothing while it is set
 	bool					mFlag13d;				// +0x13d constructor false; AddScore sets it whenever the score has reached mNextLevelScore
 	int						mMode;					// +0x140 constructor: WinWSApp +0x690 (0 to 4), picks the thresholds
+	bool					mFlag144;				// +0x144 added for B1: the shark event loop sets it, the piranha event loop clears it, before SetState(3); SetState(3) reads it and does nothing
 
 public:
 	Player(WinWSApp* theApp);														// 0x461320

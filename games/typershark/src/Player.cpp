@@ -30,7 +30,8 @@ Player::Player(WinWSApp* theApp) :
 	mNextLevelScore(0),
 	mFlag13c(false),
 	mFlag13d(false),
-	mMode(0)
+	mMode(0),
+	mFlag144(false)
 {
 	mVisible = true;
 	mVelY = 1.0;
@@ -97,7 +98,7 @@ void Player::SetState(int theState)
 	}
 	if (theState == 3)
 	{
-		// the original also reads the byte at +0x144, past the last field, and does nothing with it
+		// the original also reads the byte at +0x144 (mFlag144, set by the Board's event loops) and does nothing with it
 		mFrameDelay = 4;
 		mField134 = 0;
 		mFrame = 0;

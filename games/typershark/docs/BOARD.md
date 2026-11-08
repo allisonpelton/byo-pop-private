@@ -136,8 +136,8 @@ Named after their offset in `Board.h`; the comment there says what the code does
 | +0xee4 | mField0ee4 | int | constructor 0; Update counts it; IsHudActive tests it against 0x10 |
 | +0xee8 | mImage0ee8 | Image* | constructor: the app's mImages at byte offset 0x324 (index 0xc9) |
 | +0xeec | mImage0eec | Image* | constructor: the app's mImages at byte offset 0x338 (index 0xce) |
-| +0xef0 | mField0ef0 | int | constructor: the first entry of the table the app keeps at +0x7cc; Update picks entries by depth |
-| +0xef4 | mField0ef4 | int | constructor: the first entry of the table the app keeps at +0x7dc; Update picks entries by depth |
+| +0xef0 | mImage0ef0 | Image* | constructor: the first entry of the app's mSonarSweepImages (+0x7cc); Update takes entries 1 to 4 of it in the sonar animation of diver state 7 |
+| +0xef4 | mImage0ef4 | Image* | constructor: the first entry of the app's mSonarSweep2Images (+0x7dc); Update takes entries 1 to 4 of it in the sonar animation of diver state 7 |
 | +0xef8 | mField0ef8 | int | constructor 255 |
 | +0xefc | mFlag0efc | bool | constructor false |
 | +0xf00 | mTimer0f00 | WSTimer* | starts disabled; stopped and reset when the level ends |
