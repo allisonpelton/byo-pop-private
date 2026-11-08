@@ -58,7 +58,7 @@ public:
 	int							mEasterTimer;       // +0xc8 updates since the sequence was finished
 	bool						mHovering;          // +0xcc the pointer is over one of the buttons
 	bool						mEasterPending;     // +0xcd the sequence is finished: the ships fly off when mEasterTimer reaches 50
-	Widget*						mGoScreen;          // +0xd0 the flying-ships screen (class 0x434ac0; not translated yet)
+	Widget*						mGoScreen;          // +0xd0 the screen of the flying ships (ShipsScreen) while it is up
 	bool						mInactive;          // +0xd4 constructed false
 
 public:
@@ -71,6 +71,7 @@ public:
 	virtual void	Update() override;                      // 0x4552e0
 
 	virtual void	ButtonPress(int theId) override;        // 0x434f60 (plays SOUND_BUTTON_DOWN)
+	void			CloseGoScreen();                        // 0x434f80
 	virtual void	ButtonDepress(int theId) override;      // 0x446410
 	virtual void	ButtonMouseEnter(int theId) override;   // 0x434dc0
 	virtual void	ButtonMouseLeave(int theId) override;   // 0x434ef0

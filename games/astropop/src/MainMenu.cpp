@@ -5,6 +5,7 @@
 #include "GameText.h"
 #include "Image.h"
 #include "MemoryImage.h"
+#include "ShipsScreen.h"
 #include "WidgetManager.h"
 #include "Res.h"
 #include <cstdlib>
@@ -256,10 +257,21 @@ void MainMenu::Update()
 		mEasterTimer = 0;
 		mEasterPending = false;
 		mApp->PlaySample(SOUND_SLOWDOWN);
-		// TODO(translate): the screen of ships flying off (class 0x434ac0, Draw 0x434bc0, Update 0x436270)
+		mGoScreen = new ShipsScreen(this);
+		mGoScreen->Resize(0, 0, mWidth, mHeight);
+		mApp->mWidgetManager->AddWidget(mGoScreen);
 	}
 
 	MarkDirty();
+}
+
+// 0x434f80: the screen of the ships goes and the menu has the focus again
+void MainMenu::CloseGoScreen()
+{
+	mApp->mWidgetManager->RemoveWidget(mGoScreen);
+	mApp->SafeDeleteWidget(mGoScreen);
+	mGoScreen = NULL;
+	mApp->mWidgetManager->SetFocus(this);
 }
 
 // 0x434f60
