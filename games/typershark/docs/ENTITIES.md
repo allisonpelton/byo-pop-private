@@ -92,3 +92,4 @@ override (28 distinct targets in slot 7).
   `Enemy::mEvents`.
 - **Sounds**: `mApp->PlaySample(n)` takes the `SOUND_` ids of Res.h (the Shark uses `SOUND_PLAYERDIES` (2) when it
   comes in from the left, `SOUND_SHARKDIES` (3) when shocked; the Piranha `SOUND_PIRANHADIES1`).
+- **Classes with virtual bases in the port** (E1): `BlackShark`, `StealthShark` : `virtual Shark`; `WhitePiranha`, `StealthPiranha` : `virtual Piranha`; the three combined classes (StealthBlackShark, StealthRedShark, StealthWhitePiranha) must override `SetState` (both bases do) and construct the virtual base first. A cast down from a virtual base needs `dynamic_cast`: the Board uses it for Shark / Piranha pointers.
