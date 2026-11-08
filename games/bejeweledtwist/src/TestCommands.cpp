@@ -8,8 +8,11 @@
 #include "GoodTube.h"
 #include "Mandala.h"
 #include "Menu.h"
+#include "ModeButton.h"
 #include "Piece.h"
 #include "Profile.h"
+#include "TwistButton.h"
+#include "WheelSpin.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -76,7 +79,7 @@ std::string WinTwistApp::TestScreen()
 	if (mBoard != nullptr && !mBoard->mUnknown37C4)
 		return mOptionsDialog != nullptr ? "options" : "game";
 	if (dynamic_cast<Mandala*>(mUnknownF24) != nullptr)
-		return "modeselect";
+		return GetDialog(10000) != nullptr ? "continue" : "modeselect";  // the question whether to go on with a save
 	if (mMainMenu != nullptr && mMainMenu->mParent != nullptr) {
 		switch (mMainMenu->mPanel) {
 		case Menu::PANEL_MAIN: return "menu";
@@ -90,6 +93,30 @@ std::string WinTwistApp::TestScreen()
 	return "loading";
 }
 
+// "goto <mode>" pressed Play: once the mode select is open, its button for the mode is pressed, as a player's click
+// would (a saved game of the mode then asks to be continued, as it does for a player). Anything else on the way
+// (another screen) drops the request.
+void WinTwistApp::UpdateTestGoto()
+{
+	std::string aScreen = TestScreen();
+	Mandala* aSelect = dynamic_cast<Mandala*>(mUnknownF24);
+	if (aSelect == nullptr) {
+		if (aScreen != "menu")
+			mTestGotoMode = -1;
+		return;
+	}
+	if (aSelect->mState != 1)
+		return;
+	for (size_t i = 0; i < aSelect->mButtons.size(); i++) {
+		if (aSelect->mButtons[i]->mMode == mTestGotoMode) {
+			mTestGotoMode = -1;
+			aSelect->ButtonDepress((int)i);
+			return;
+		}
+	}
+	mTestGotoMode = -1;
+}
+
 bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
@@ -100,11 +127,13 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		std::string aScreen = TestScreen();
 		std::string aLine = "STATE {\"screen\":\"" + aScreen + "\"";
 		if (aBoard != nullptr) {
-			aLine += StrFormat(",\"mode\":\"%s\",\"level\":%d,\"score\":%d,\"moves\":%d,\"progress\":[%d,%d],\"busy\":%s",
+			aLine += StrFormat(",\"mode\":\"%s\",\"level\":%d,\"score\":%d,\"moves\":%d,\"progress\":[%d,%d],\"busy\":%s,\"over\":%s",
 				ModeName(aBoard->mGameMode), aBoard->mUnknown158, aBoard->mUnknown168, aBoard->mUnknown23C,
-				aBoard->mUnknown200, aBoard->mUnknown204, aBoard->IsBusy() ? "true" : "false");
+				aBoard->mUnknown200, aBoard->mUnknown204, aBoard->IsBusy() ? "true" : "false", aBoard->mUnknown36B0 ? "true" : "false");
 			if (aBoard->mGameMode == Board::MODE_BLITZ)
 				aLine += StrFormat(",\"timer\":%d", aBoard->mUnknown3458 / 100);
+			if (gWheelSpin != nullptr)
+				aLine += ",\"wheel\":true";  // the second chance's wheel is up
 			// the board: a row a string, a gem by its colour's letter (. for none); the specials listed apart
 			std::string aRows;
 			std::string aSpecials;
@@ -184,7 +213,10 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 				ReplyError(theCommand, "the mode is locked (unlock all first)");
 				return true;
 			} else {
-				mMainMenu->StartGame(aMode);  // a new game of the mode, as the menu starts one
+				// Play, then the mode's button once the mode select is open (UpdateTestGoto): the path a player's
+				// clicks take, which sets what a game started from the menu depends on (mPlayPressed: Blitz's clock)
+				mTestGotoMode = aMode;
+				mMainMenu->ButtonDepress(0);
 			}
 		} else {
 			ReplyError(theCommand, "unknown screen");
@@ -214,6 +246,18 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		// and nothing is drawn from a generator. A turn is clockwise about the corner at (row + 1, col + 1).
 		if (aBoard == nullptr) {
 			Reply("MOVE null");
+			return true;
+		}
+		// The second chance's wheel: -autoplay stops it as soon as its button can be pressed (WheelSpin::UpdateState)
+		if (gWheelSpin != nullptr) {
+			TwistButton* aStop = gWheelSpin->mButton;
+			if (gWheelSpin->mState != 5 || aStop == nullptr || aStop->mDisabled) {
+				Reply("MOVE null");
+				return true;
+			}
+			int aX = gWheelSpin->mX + aStop->mX + aStop->mWidth / 2;
+			int aY = gWheelSpin->mY + aStop->mY + aStop->mHeight / 2;
+			Reply(StrFormat("MOVE {\"kind\":\"stop\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}", aX, aY, aX, aY));
 			return true;
 		}
 		int aRows = aBoard->mRows;

@@ -126,6 +126,14 @@ the strategy game, and the saved and continued game. It requires the same state 
 changes from run to run of the same exe), and reports "baseline identical" or "BASELINE DIFFERS". The suite's own speed game
 changed its reference result with this pass, because the bot now waits for a held press.
 
+The baseline was refrozen on 2026-11-08, at the commit that moved loading into the port (`GAME_NOTES.md`, "Deviations from the
+original"): the title screen then takes 202 updates less under `-fast`, and since the game seeds `rand` from its clock when the
+first block is chosen, every game after it is another one. `build/baseline-tiptop/` is the port at that commit (its
+`FROZEN_AT.txt`), the phase-one baseline is kept as `build/baseline-tiptop-phase1/`, and `tools/check.sh`'s expected results moved
+with it. What ties the new baseline to the phase-one one is `games/tiptop/tools/perf/equiv.sh`: with the fixes mod on, the check's
+three mouse-played cases give the old build's state logs, change for change (17517, 9778 and 32287 changes after the menu), every
+update number shifted by the same 202.
+
 ## Oddities (skipped)
 
 - **The meter's start outside the timed mode.** The regular, strategy and speed level lists never set the meter's
@@ -140,8 +148,10 @@ changed its reference result with this pass, because the bot now waits for a hel
 
 ## Deviations left
 
-None in play. The port's deviations from the original, where they exist, are in the game's notes and are outside the
-game's logic. Phase two found none on the screen or in the sound either (below).
+None in play. The port's one deviation is in the game's notes (`GAME_NOTES.md`, "Deviations from the original"): the title
+screen's loading bar loads at the machine's speed, which moves the end of the title screen and nothing else. It is outside the
+game's logic, but the frames of tour 1 taken while the bar filled (`splash_loading`, update 150) no longer match the original's.
+Phase two found no other difference on the screen or in the sound (below).
 
 ## Phase two: looks identical (2026-11-04)
 
@@ -257,3 +267,130 @@ tour moves, and the full screen check box. The music's notes themselves: the ori
 real time with 20 ms sleeps, so its notes cannot be lined up with updates; its state is compared instead. The publisher
 link on the options screen (command 0x37), which is never clicked. The Browser pane was not used: the web build was run
 under Node.
+
+## Real play: real input, windowed and full screen, and the fixes mod (2026-11-08)
+
+Autoplay, script commands and runs under Node never pass through the real input path, so before the final merge the game was
+played with real mouse and key events only, by code (the user, 2026-11-07: "the sessions are not allowed to play any games
+themselves"). The session wrote the drivers and read their result lines and the screenshots of the end states.
+
+**The tools.** `games/tiptop/tools/realplay.py` natively and `games/tiptop/tools/web/play.js` (and `tour.js`) on the web. Both loop
+on the port's own bot (the standard test commands, `GAME_NOTES.md`, "Test commands"): ask `state`, ask `move`, send the move's
+`input` steps as real events, wait its updates. Natively the port runs under rundesk with `-fast`, an empty `-realinput` file and
+`-commands=<file>` (the shared live channel, `docs/REAL_INPUT.md`): every line the driver appends is an event pushed into SDL's
+queue (a move, the press and release of a click, a key with its text, `focus lost` and `focus gained`, Alt+Enter), and the answers
+come back on the log. On the web the player-only page in the Browser pane (`?player=1&assets=1&silent=1&fast=1`) takes the same
+loop through `byopop.test`: DOM mouse and key events on the canvas, `blur()` and `focus()`. `realplay.py play <mode>` plays a whole
+game of regular, strategy, speed or timed (the timed mode has no button, so the driver reaches the menu by the bot's moves and
+sends `goto timed`), from the title through the tips dialog, every block, the level summaries and the high score's name (typed as
+text, "Bot") to the game over screen, and it can press Alt+Enter, take the focus away and give it back, and click the pause button
+at the moves it is told. `play.js` does the same on the web (`?mode=`, `?pauseat=`, `?focusat=`, `?fsat=`).
+
+The live channel and `-realinput` were on the shared session's branch, not on main, when this pass ran, so the first runs were
+made on a scratch merge of it, and main took them in before the pass ended; the last runs below are on this branch with main merged
+in. The pass needed one shared fix, which Alchemy's pass made too and main has as `4cf35432` (this branch's own copy of it gave way to
+main's in the merge): `RunRealInputCommand` took every `move` for a mouse move and refused a bare one ("move needs <x> <y>"), so a
+driver could not ask a game's bot for its move; under `-script` a bare `move` already falls through to the game, and now it does with
+`-realinput` too.
+
+### The tours, as real events
+
+Each of the six phase-two tours was played by this build twice, once by `-script` (`shots/port.sh`) and once as real events
+(`realplay.py tour N`: the same lines, points in game pixels, typed letters as text, `focus lost` and `focus gained` as window
+events), and the shots of the two runs were compared by shotdiff.
+
+| Tour | Covers | Pairs | Same, with the fixes mod on |
+|---|---|---|---|
+| 1 | splash, menu hovers, high scores and the clear question, options, the instructions' pages, credits, quit, the new game screen | 31 | 31 |
+| 2 | a regular game, its pause, the high score's name typed on the keyboard | 54 | 54 |
+| 3 | the tips, pause, the window losing and regaining the focus, options and instructions over a game, a saved game | 24 | 24 |
+| 4 | a whole strategy game, its level summary and game over | 22 | 22 |
+| 5 | a saved and continued game, a level's summary and the bonus round | 25 | 25 |
+| 6 | a speed game's first two levels | 16 | 16 |
+
+Two offsets between the two paths, neither a difference of the game. A line's events are pushed after its update and handled before
+the next, where a `-script` click runs at the start of its update, so a click lands one update later as a real event: tour 3 wants
+`--shift -1` (each click, move and key line one update earlier) or the falling block and the pause image's pulse are a frame of
+animation apart in 6 of its 24 shots. A focus event is not shifted; it lands in the same update as the script's does. The saved game
+panel prints the date, which changed at midnight between the scripted run and the first real one (7 and 8 November): a rerun on one
+day matched. Without the fixes mod the first block's kind comes from a reseeding by the game clock, so the blocks differ between any
+two runs, a script and a real-input one included: tours 2 to 6 then differ in the blocks' colors only (the next-block preview and
+the board's rows), and tour 1, which has no board, matches. That is what `seededBlocks` and `steadyClock` are for, and why this
+comparison is made with the mod on.
+
+### Whole games by real input
+
+Natively, with `-fast`, `-seed=1` and the fixes mod on unless said, and the bot's dice `botseed 7` unless said. "FS" is Alt+Enter, and
+the window's size is read back with `screenshotfull` (the window is 1280 x 960 on this 3840 x 2160 screen; full screen shows the game
+at 4 times, 2560 x 1920 of the screen); "focus" is `focus lost`, 60 updates, `focus gained`; "pause" is the pause button's click, which
+the bot's next move undoes with a click on the pause image.
+
+| Mode | Moves | Ended at | Played with |
+|---|---|---|---|
+| Regular | 368 | level 6, 41470 | FS at move 20, windowed at 100, focus at 150 |
+| Regular | 288 (+88 waits) | level 6, 32890 | `botseed 3`; FS at 10 (2560 x 1920) and back at 60 (1280 x 960), pause at 30, focus at 100 |
+| Regular, without the mod | 55 | level 1, 1300 | the original's clock and block seeding; FS at 20 (2560 x 1920) |
+| Strategy | 81 | level 2, 5900 | FS at 10, windowed at 40 (2560 x 1920, then 1280 x 960), focus at 60 |
+| Strategy | 25 (+13) | level 1, 1200 | `botseed 5`; pause at 15 |
+| Speed | 689 | level 9, 55680 | FS at 30, windowed at 80, focus at 120 |
+| Timed | 117 | level 2, 6150 | focus at 30 |
+| Timed | 139 (+31) | level 3, 14110 | pause at 15, focus at 30 |
+
+Every game ended on its game over screen with "Bot" entered in the high score list (the timed mode's own list is on its game over
+screen), and `state` agreed (`over` true). A focus loss paused the game (`paused` true) and a focus gain let it go on; the full screen
+switch changed the window and play went on with the same clicks (the game's coordinates go through the framework's window mapping, as
+a hand's do).
+
+On the web, in the Browser pane (silent, the virtual clock, the fixes mod on as on the site: the status line says "1 mod active"), with
+DOM events only:
+
+| Mode | Moves | Ended at | Played with |
+|---|---|---|---|
+| Regular | 135 | level 2, 6750 | focus at 40 |
+| Regular | 191 (+89) | level 4, 21190 | none |
+| Strategy | 72 (+32) | level 2, 7450 | pause at 20, focus at 40 |
+| Speed | 412 (+165) | level 7, 47070 | pause at 20, focus at 60 |
+| Timed | 111 (+48) | level 3, 12530 | pause at 15, focus at 30 |
+
+All five ended on their game over screens, with the high score's name typed by key events on the canvas ("Bot", capital B included)
+and no errors on the page (`byopop.test.errors` empty). The pane lost the page's focus by itself in two runs (`focusRestored` in the
+results; the pane is hidden), and the game paused as a window does; the driver gave the focus back as a player clicking into the
+window would. The tips dialog, the instructions' pages and the options screen are in the tours; tours 1 and 3 were also played on the
+web page the same way (`tools/web/tour.js`: no errors, every screen drawn).
+
+The games differ in length and score between runs and between native and web, since the bot's dice are the update count and its seed,
+and the web page's game has its own seed; the same seed and moves would play the same game (the fixes mod's point), but
+the two drivers do not hit the same update numbers, so their games diverge at once. The comparison with the original is the earlier
+phases'; this pass shows that every mode can be played from the title to its end, by the real input paths.
+
+### What the play found
+
+No play-breaking bug in the port. Four things came up, none a difference between the port and the original:
+
+- The bot's `move` had no answer for a paused game: the pause image is a modal layer, so a run whose window lost the focus by itself
+  (the web pane) or whose pause button was clicked waited on it for good. `move` now clicks the pause image for the player's pause,
+  and waits for the window's own (inactive) pause, which `state` reports as `inactive` and the driver ends by giving the focus back.
+- With `-realinput` a bare `move` was refused (the shared fix above).
+- **Full screen on the web could not be tried in the pane.** The player-only page has no Fullscreen button (a trusted F11 press did
+  nothing there), and Alt+Enter from DOM events is not a gesture the browser accepts, so it refuses. The framework had already
+  switched to its full screen geometry by then: the game stayed in its 640 x 480 canvas, drawn several times too big with the
+  bottom-right corner showing, and clicks no longer hit the columns, so a bot's game ended at once (Alt+Enter at move 10 of a web
+  run: over at move 15, level 1, 150 points). A player's real Alt+Enter or F11 is a gesture the browser accepts, so this happens only
+  where the browser refuses it (an embedded page, say). It is the shared platform's, not TipTop's: the web's SwitchScreenMode should
+  give up the geometry when the request is refused. Noted for the coordinator; not chased.
+- A focus loss on the level summary pauses it and draws the pause image over the summary's text; the summary is back once the focus
+  returns. That is the decompiled `UpdatePause` (it handles both the game and the level summary), not a deviation.
+
+### The fixes mod
+
+`games/tiptop/mods/fixes` (`mod.json`, `src/ModFeatures.cpp`): two toggles, each a behaviour of the original that leaves things to
+chance (`GAME_NOTES.md`, "Fix candidates and the fixes mod"). It had a third, `fastLoading` (the loading bar loaded 8 entries a frame
+instead of 1); the user ruled on 2026-11-07 that loading is fast in the port itself, so it moved there (`GAME_NOTES.md`,
+"Deviations from the original"), and the runs below were made before that move. `seededBlocks`: the second `srand` from the clock when the first block
+is chosen is left out, so a seed decides the blocks. `steadyClock`: the game's clocks run on the updates, so the same seed and moves
+play the same game on every run, however fast the machine. The site installs the mod with the game and has it on by default (the page's
+`modsIntro`; TipTop is off `BYOPOP_WEB_NO_MODS` in `cmake/ByopopWeb.cmake`); natively the port loads mods from `-modsdir` or
+`mods-tiptop` beside the exe. With the mod absent or its toggles off the game is the original: `tools/check.sh tiptop` (the bot's
+games, a rerun, the frozen baseline) passes unchanged on this branch. Three real-time runs with the mod on wrote one state log; two
+with it off differed from the title screen on. With it on, the six tours come out the same by script and by real input (above). The
+meter's start value outside the timed mode, an oddity of the original that nothing reads, still differs from run to run.

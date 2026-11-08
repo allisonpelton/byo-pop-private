@@ -224,9 +224,6 @@ void HighScoreWidget::DoCheckForHighScore()
 		mApp->mMrMoney->PlayAnim(3);
 	}
 
-	// port: the original takes this branch only if app->mIsRegistered; unregistered, it built the same
-	// messages from the ..._REGISTER string ids and called ShowRegisterToRecordScoreDialog. The Steam
-	// build is registered (NoReg), so only this branch is ported.
 	// The property strings already carry spaces at their ends, so some messages get double spaces.
 	std::string aRankString = StrFormat("%d", aRank);
 	std::string aMessage;

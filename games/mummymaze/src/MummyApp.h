@@ -15,6 +15,7 @@
 #include "DialogButton.h"
 #include "Buffer.h"
 #include "MTRand.h"
+#include "ModFixes.h"
 #include <list>
 #include <map>
 #include <string>
@@ -57,7 +58,6 @@ enum DialogId
 	DIALOG_QUIT = 2,
 	DIALOG_QUIT_TO_MAIN = 3,
 	DIALOG_OPTIONS = 5,
-	DIALOG_REGISTER = 6,
 	DIALOG_CREDITS = 0x12,
 	DIALOG_ADVENTURE_NEW = 0xa,
 	DIALOG_NEW_ADVENTURE_NAME = 0xb,
@@ -85,7 +85,7 @@ public:
 		NUM_LOADING_TASKS = 27   // 25 sounds and two more steps
 	};
 
-	Image**					mImages;            // +0x10380 new Image*[165], loaded by Init
+	Image**					mImages;            // +0x10380 new Image*[NUM_IMAGES], loaded by Init
 	ImageFont*				mFont1;             // +0x10384 data\font1.txt
 	ImageFont*				mScoreFont;         // +0x10388 data\scorefont.txt (made by the loading thread)
 	ImageFont*				mHeaderFont;        // +0x1038c data\headerfont.txt
@@ -115,7 +115,6 @@ public:
 	bool					mTipAnkh;           // +0x10e92 AnkhNag
 	SexyString				mLastScoreName;     // +0x104b0 registry LastScoreName
 	int						mScore;             // +0x10404 the classic game's score
-	bool					mQuitLink;          // +0x10438 the title's link quits (the demo is used up): never set
 	int						mAdvPyramid;        // +0x10410 the adventure: the pyramid (0 .. 14)
 	int						mAdvChamber;        // +0x1040c the adventure: the chamber (0 .. 14) of the pyramid
 	int						mClassicPyramid;    // +0x10428 the classic game: the pyramid, 0 .. 14 (14 is the last, a dark one)
@@ -135,6 +134,8 @@ public:
 	int						mElapsedBase;        // +0x104a8 the time already played, from a saved game
 	int						mMusicSlot;         // +0x10430 which of the two music slots is playing
 	uint8_t					mLightMask[256][256]; // +0x380
+
+	FixSettings				mFixes;             // port(mods): the fixes mod's toggles, read in Init
 
 	// Test hooks (testhooks/Autoplay.cpp)
 	bool					mAutoplay;
@@ -162,12 +163,14 @@ public:
 								const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
 	virtual void			Init() override;
 	virtual void			HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;	// the standard test commands (testhooks/TestCommands.cpp)
 
 	// Helpers (WinMM.exe addresses in MummyApp.cpp)
 	bool					LoadImage(int theImageId);
 	// the clock of the times that a game takes (the original's GetTickCount): the bot's runs count updates instead, 10 ms each,
 	// so that their scores do not depend on how fast the machine is
-	DWORD					GameTick() { return (mAutoplay || mFastMode) ? (DWORD) mUpdateCount * 10 : GetTickCount(); }
+	// (the fixes mod's gameClock does the same in a normal run: the time of a chamber is the updates it took)
+	DWORD					GameTick() { return (mAutoplay || mFastMode || mFixes.mGameClock) ? (DWORD) mUpdateCount * 10 : GetTickCount(); }
 	void					SetMusicOrder(int theOrder, bool theFade);
 	void					TitleDone();                            // 0x41e970
 	void					ShowMainMenu(int theEntry, bool theFade);   // 0x41b160

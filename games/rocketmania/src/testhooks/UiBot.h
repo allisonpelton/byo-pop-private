@@ -87,6 +87,7 @@ public:
 	UiBot(RocketApp* theApp, const UiBotParams& theParams);
 	~UiBot();
 	void			Update();
+	bool			PlanPath(Board* theBoard);   // the clicks that turn a path across the board, in mQueue
 
 private:
 	int				Next(int theRange);
@@ -95,7 +96,6 @@ private:
 	void			ClickWidget(Widget* theWidget, int theDelay = 1);
 	bool			Dialogs();
 	void			PlayBoard(Board* theBoard);
-	bool			PlanPath(Board* theBoard);
 };
 
 }

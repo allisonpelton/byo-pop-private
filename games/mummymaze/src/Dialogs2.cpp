@@ -29,13 +29,13 @@ OptionsDialog::OptionsDialog(MummyApp* theApp) :
 	SetHeaderFont(mApp->mHeaderFont);
 	SetLinesFont(mApp->mFont1);
 
+	// (the original also has a Register button, id 1, and a button that opens the game's web page, id 3: neither is here)
 	struct Spec { DialogButton** mButton; int mId; unsigned int mText; };
-	Spec aSpecs[5] =
+	Spec aSpecs[3] =
 	{
-		{&mTutorialButton, 0, 0x004950dc}, {&mRegisterButton, 1, 0x004950d0}, {&mScoresButton, 2, 0x004950c4},
-		{&mWebButton, 3, 0x004950b0}, {&mCreditsButton, 4, 0x004950a8}
+		{&mTutorialButton, 0, 0x004950dc}, {&mScoresButton, 2, 0x004950c4}, {&mCreditsButton, 4, 0x004950a8}
 	};
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		DialogButton* aButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], aSpecs[i].mId, this);
 		aButton->SetFont(mApp->mFont1);
@@ -78,9 +78,7 @@ OptionsDialog::OptionsDialog(MummyApp* theApp) :
 OptionsDialog::~OptionsDialog()
 {
 	delete mTutorialButton;
-	delete mRegisterButton;
 	delete mScoresButton;
-	delete mWebButton;
 	delete mCreditsButton;
 	delete mMusicSlider;
 	delete mSfxSlider;
@@ -97,8 +95,8 @@ OptionsDialog::~OptionsDialog()
 void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
-	Widget* aWidgets[] = {mTutorialButton, mRegisterButton, mScoresButton, mMusicSlider, mSfxSlider, mSpeedSlider,
-		mFullscreenCheckbox, mCursorsCheckbox, mClockCheckbox, mAnkhCheckbox, mWebButton, mCreditsButton};
+	Widget* aWidgets[] = {mTutorialButton, mScoresButton, mMusicSlider, mSfxSlider, mSpeedSlider,
+		mFullscreenCheckbox, mCursorsCheckbox, mClockCheckbox, mAnkhCheckbox, mCreditsButton};
 	for (size_t i = 0; i < sizeof(aWidgets) / sizeof(aWidgets[0]); i++)
 		theWidgetManager->AddWidget(aWidgets[i]);
 }
@@ -107,25 +105,23 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
-	Widget* aWidgets[] = {mTutorialButton, mRegisterButton, mScoresButton, mMusicSlider, mSfxSlider, mSpeedSlider,
-		mFullscreenCheckbox, mCursorsCheckbox, mClockCheckbox, mAnkhCheckbox, mWebButton, mCreditsButton};
+	Widget* aWidgets[] = {mTutorialButton, mScoresButton, mMusicSlider, mSfxSlider, mSpeedSlider,
+		mFullscreenCheckbox, mCursorsCheckbox, mClockCheckbox, mAnkhCheckbox, mCreditsButton};
 	for (size_t i = 0; i < sizeof(aWidgets) / sizeof(aWidgets[0]); i++)
 		theWidgetManager->RemoveWidget(aWidgets[i]);
 }
 
-// 0x426190: two rows of buttons above the footer button, then the sliders and the switches
+// 0x426190: two rows of buttons above the footer button, then the sliders and the switches (without the Register and the web
+// page buttons, the Tutorial and Scores buttons share the first row and the Credits button takes the second)
 void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
 	int aContent = (mWidth - mContentInsets.mLeft) - mContentInsets.mRight;
-	int aThird = (aContent - 0xc) / 3;
-	int aFooterY = (mYesButton != NULL) ? mYesButton->mY : mY + mHeight - 0x50;
-	mTutorialButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x54, aThird, 0x28);
-	mRegisterButton->Resize(mX + mContentInsets.mLeft + 6 + aThird, aFooterY - 0x54, aThird, 0x28);
-	mScoresButton->Resize(mX + mContentInsets.mLeft + 0xc + aThird * 2, aFooterY - 0x54, aThird, 0x28);
 	int aHalf = aContent / 2;
-	mWebButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x2a, aHalf - 3, 0x28);
-	mCreditsButton->Resize(mX + aHalf + 6 + mContentInsets.mLeft, aFooterY - 0x2a, aHalf - 3, 0x28);
+	int aFooterY = (mYesButton != NULL) ? mYesButton->mY : mY + mHeight - 0x50;
+	mTutorialButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x54, aHalf - 3, 0x28);
+	mScoresButton->Resize(mX + aHalf + 6 + mContentInsets.mLeft, aFooterY - 0x54, aHalf - 3, 0x28);
+	mCreditsButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x2a, aContent, 0x28);
 	mMusicSlider->Resize(mX + 0x98, mY + 0x44, mWidth - 0xc0, 0x20);
 	mSfxSlider->Resize(mX + 0x98, mY + 0x64, mWidth - 0xc0, 0x20);
 	mSpeedSlider->Resize(mX + 0x98, mY + 0x84, mWidth - 0xc0, 0x20);
@@ -148,8 +144,8 @@ void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 	Dialog2004::SetColor(theIdx, theColor);
 	if (theIdx == COLOR_BUTTON_TEXT)
 	{
-		DialogButton* aButtons[5] = {mTutorialButton, mRegisterButton, mScoresButton, mWebButton, mCreditsButton};
-		for (int i = 0; i < 5; i++)
+		DialogButton* aButtons[3] = {mTutorialButton, mScoresButton, mCreditsButton};
+		for (int i = 0; i < 3; i++)
 			if (aButtons[i] != NULL)
 				aButtons[i]->SetColor(0, theColor);
 	}
@@ -182,14 +178,8 @@ void OptionsDialog::ButtonDepress(int theId)
 	case 0:
 		mApp->DoMessage(DIALOG_STARTED_TUTORIAL, GT(0x00492228), GT(0x004940f8), 1, 0xa2, 0x52, 0x13c);
 		break;
-	case 1:
-		mApp->DoMessage(DIALOG_REGISTER, GT(0x004943e4), GT(0x004943f8), 3, 0xa2, 0x52, 0x13c);
-		break;
 	case 2:
 		mApp->ShowHighScoreDialog();
-		break;
-	case 3:
-		mApp->OpenURL(GT(0x00495238), false);
 		break;
 	case 4:
 		mApp->DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, 0xa2, 0x52, 0x13c);

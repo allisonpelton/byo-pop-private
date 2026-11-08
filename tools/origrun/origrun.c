@@ -805,6 +805,9 @@ static uint32_t gSurfaceAddr = 0, gSurfaceGate = 0;
 // pixel pointer and pitch in two globals (bitsAt, pitchAt: the addresses holding them); the format is 5-6-5 for 16 bpp
 // and 8-8-8 for 32.
 static uint32_t gScrBitsAt=0, gScrPitchAt=0, gScrW=0, gScrH=0, gScrBpp=0;
+// --surface-screen-base ptrAt: bitsAt and pitchAt are then offsets into the object whose pointer the global at ptrAt
+// holds, read afresh at each shot (Ning Po's display is on the heap, and its static app holds the pointer)
+static uint32_t gScrBase=0;
 static int png_write(const char* path, const unsigned char* rgb, int w, int h);
 static int rpm_buf(DWORD_PTR addr, void* out, size_t n)
 {
@@ -867,7 +870,9 @@ static int surface_grab(const char* name, struct SurfaceSnap* sn)
 	memset(sn,0,sizeof(*sn));
 	EnterCriticalSection(&gRpmLock);
 	if (gScrBitsAt) {
-		ok = rpm_buf(gScrBitsAt,&hd[0],4) && rpm_buf(gScrPitchAt,&hd[0x1c/4],4);
+		uint32_t aBase=0;
+		ok = !gScrBase || (rpm_buf(gScrBase,&aBase,4) && aBase);
+		ok = ok && rpm_buf(aBase+gScrBitsAt,&hd[0],4) && rpm_buf(aBase+gScrPitchAt,&hd[0x1c/4],4);
 		hd[1]=gScrW; hd[2]=gScrH; hd[0x44/4]=gScrBpp==15?16:gScrBpp;
 		if (gScrBpp==15) { hd[0x48/4]=0x7c00; hd[0x4c/4]=5; hd[0x50/4]=10; hd[0x58/4]=0x3e0; hd[0x5c/4]=5; hd[0x60/4]=5; hd[0x68/4]=0x1f; hd[0x6c/4]=5; hd[0x70/4]=0; }   // 5-5-5 (a DirectDraw mode Windows Sandbox's WARP gives some games)
 		else if (gScrBpp==16) { hd[0x48/4]=0xf800; hd[0x4c/4]=5; hd[0x50/4]=11; hd[0x58/4]=0x7e0; hd[0x5c/4]=6; hd[0x60/4]=5; hd[0x68/4]=0x1f; hd[0x6c/4]=5; hd[0x70/4]=0; }
@@ -1354,21 +1359,26 @@ static void write_clip_json(const char* dir, int interval_ms)
 // Wait until the game's update counter reaches target (or timeout). Returns the value last read, or -1 if the
 // counter could not be read at all. Polls at ~1 ms, so with a 100 Hz update (10 ms each) it lands within one
 // update of the target.
+static uint32_t gAtMark=0; static int gAtMarked=0;   // the script's "mark" ("at +N")
 static int wait_counter(uint32_t target, int timeout_ms)
 {
 	// On the virtual clock the game is held at its first wait at or past the update (vclock.c), however fast it runs.
+	// a counter that never moves during a whole wait is a game still loading or the wrong field (Seven Seas' config
+	// once had Noah's Ark's +0x368, its frame time, which stays at 10): the timeout says so
+	uint32_t first=0; int firstOk=read_counter(gCounterExpr,&first);
+	const char* still="; it never moved during the wait (a game still loading, or an address that is not this game's mUpdateCount)";
 	if (gClockVirtual && vc_get()) {
 		int r=vc_hold_until(VC_HOLD_UPDATE,(LONG)target,0,timeout_ms);
 		VcShared* s=vc_cur(NULL,NULL,NULL,NULL,NULL);   // stays mapped (see gVc)
 		if (r==1) return s ? (int)s->heldCounter : -1;
-		if (r==0 && !gStop && !(s && s->barrierOff)) logline("counter %u not reached within %dms on the virtual clock (last %ld); the game runs free",target,timeout_ms,s?(long)s->counter:-1L);
+		if (r==0 && !gStop && !(s && s->barrierOff)) logline("counter %u not reached within %dms on the virtual clock (last %ld); the game runs free%s",target,timeout_ms,s?(long)s->counter:-1L,(firstOk && s && s->counterOk && (uint32_t)s->counter==first)?still:"");
 		if (r==0) return s && s->counterOk ? (int)s->counter : -1;
 	}
 	int w=0; uint32_t v=0; int everRead=0;
 	while (!gStop) {
 		if (read_counter(gCounterExpr,&v)) { everRead=1; if (v>=target) return (int)v; }
 		else if (!everRead && w>=1500) { logline("counter could not be read (bad address, or the process is gone); giving up on 'at'/update timing"); return -1; }
-		if (w>=timeout_ms) { logline("counter %u not reached within %dms (last %u)",target,timeout_ms,everRead?v:0); return everRead?(int)v:-1; }
+		if (w>=timeout_ms) { logline("counter %u not reached within %dms (last %u)%s",target,timeout_ms,everRead?v:0,(firstOk && everRead && v==first)?still:""); return everRead?(int)v:-1; }
 		Sleep(1); w++;
 	}
 	return everRead?(int)v:-1;
@@ -1756,11 +1766,24 @@ static void run_script(DWORD pid, const char* scriptPath)
 			else { vc_free(); do_burst(n,c,(got>=3?atoi(kw):100),0,0); }
 			continue;
 		}
+		if (ieq(cmd,"mark")){
+			// mark: the counter's value now, which "at +N" counts from (a counter that does not start at 0, such as an
+			// event time on the virtual clock, which starts at the real time)
+			uint32_t v=0;
+			if (!gCounterExpr[0] || !read_counter(gCounterExpr,&v)) { logline("mark: the counter could not be read"); continue; }
+			gAtMark=v; gAtMarked=1;
+			logline("mark: the counter reads %lu", (unsigned long)v);
+			continue;
+		}
 		if (ieq(cmd,"at")){
 			// at <N> <command...>: when the update counter reaches N, hold the game's window thread and run the
 			// command (shot/click/key/text/move/focus/burst, or keydown/keyup and down/up for one edge). Needs an update counter (--counter or config).
+			// at +<N>: N after the counter's value at the last "mark".
 			if (!gCounterExpr[0]) { logline("at: no update counter configured (--counter or games.cfg); skipping '%s'",rest); continue; }
+			int aRel=0; while (*rest==' ') rest++; if (*rest=='+') { aRel=1; rest++; }
+			if (aRel && !gAtMarked) { logline("at: '+' needs a 'mark' before it"); continue; }
 			unsigned long N=0; int o=0; if (sscanf(rest,"%lu%n",&N,&o)!=1) { logline("at: need 'at <N> <command>'"); continue; }
+			if (aRel) N+=gAtMark;
 			const char* inner=rest+o; while(*inner==' ')inner++;
 			int v=wait_counter((uint32_t)N,30000);
 			logline("at %lu: counter reached %d -> %s", N, v, inner);
@@ -3526,6 +3549,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gInN) { fprintf(rf,"inputeip="); for (int i=0;i<gInN;i++) fprintf(rf,"%s%X",i?",":"",gInRange[i]); fprintf(rf,"\n"); }
 	if (gEipN) { fprintf(rf,"surfaceeip="); for (int i=0;i<gEipN;i++) fprintf(rf,"%s%X",i?",":"",gEipRange[i]); fprintf(rf,"\n"); }
 	if (gScrBitsAt) fprintf(rf,"surfacescreen=0x%X,0x%X,%u,%u,%u\n",gScrBitsAt,gScrPitchAt,gScrW,gScrH,gScrBpp);
+	if (gScrBase) fprintf(rf,"surfacescreenbase=0x%X\n",gScrBase);
 	if (gSurfaceAddr) fprintf(rf,"surface=0x%X\n",gSurfaceAddr);
 	if (gSurfaceGate) fprintf(rf,"surfacegate=0x%X\n",gSurfaceGate);
 	if (gStateExpr[0]) fprintf(rf,"state=%s\n",gStateExpr);
@@ -4035,6 +4059,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"inputeip")) gInN=parse_ranges(v,gInRange);
 			else if (ieq(ln,"surfaceeip")) parse_eip_ranges(v);
 			else if (ieq(ln,"surfacescreen")) sscanf(v,"%x,%x,%u,%u,%u",(int*)&gScrBitsAt,(int*)&gScrPitchAt,&gScrW,&gScrH,&gScrBpp);
+			else if (ieq(ln,"surfacescreenbase")) gScrBase=(uint32_t)strtoul(v,NULL,16);
 			else if (ieq(ln,"surface")) gSurfaceAddr=(uint32_t)strtoul(v,NULL,16);
 			else if (ieq(ln,"surfacegate")) gSurfaceGate=(uint32_t)strtoul(v,NULL,16);
 			else if (ieq(ln,"state")) lstrcpynA(gStateExpr,v,256);
@@ -4170,6 +4195,7 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--flips")&&i+1<argc) flips=argv[++i];
 		else if (ieq(argv[i],"--pending-draw")&&i+1<argc) pending=argv[++i];
 		else if (ieq(argv[i],"--surface")&&i+1<argc) gSurfaceAddr=(uint32_t)strtoul(argv[++i],NULL,16);
+		else if (ieq(argv[i],"--surface-screen-base")&&i+1<argc) gScrBase=(uint32_t)strtoul(argv[++i],NULL,16);
 		else if (ieq(argv[i],"--surface-screen")&&i+1<argc) sscanf(argv[++i],"%x,%x,%u,%u,%u",(int*)&gScrBitsAt,(int*)&gScrPitchAt,&gScrW,&gScrH,&gScrBpp);
 		else if (ieq(argv[i],"--input-eip")&&i+1<argc) gInN=parse_ranges(argv[++i],gInRange);
 		else if (ieq(argv[i],"--sample")&&i+1<argc) lstrcpynA(gSamples,argv[++i],256);

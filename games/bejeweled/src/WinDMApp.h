@@ -46,21 +46,15 @@ enum DialogId
 	DIALOG_OPTIONS = 2,
 	DIALOG_CONFIRM_NORMAL_MODE = 3,
 	DIALOG_CONFIRM_TIMED_MODE = 4,
-	DIALOG_REGISTER = 5,                // RegisterDialog (not ported)
-	DIALOG_REGISTRATION_INVALID = 6,    // ShowRegistrationInvalidDialog 0x4d5386 (not ported)
-	DIALOG_REGISTER_TO_RECORD = 7,      // ShowRegisterToRecordScoreDialog 0x4d5486 (not ported)
+	// 5 to 7 were the original's registration dialogs (taken out)
 	DIALOG_RECORD_SCORE = 8,
 	DIALOG_INSTRUCTIONS = 9,            // non-modal first-move hint
-	DIALOG_OPENING_BROWSER = 10,
-	DIALOG_URL_FAILED = 11,
+	// 10 and 11 were the original's browser dialogs (taken out with its links)
 	DIALOG_FULL_INSTRUCTIONS = 12,      // also used by ShowColorDepthDialog
 	DIALOG_HIGH_SCORES = 13,
-	// 14 unused
-	DIALOG_REGISTER_NAG = 15,           // ShowRegisterNagDialog 0x4d5cdf (not ported)
+	// 14 unused, 15 was the original's register nag (taken out)
 	DIALOG_CONFIRM_LOAD = 16,
-	DIALOG_CHECK_UPDATES = 17,          // never created; its YES ran DoUpdateCheck 0x4d68da (not ported)
-	DIALOG_UPDATE_CHECK = 18,           // UpdateCheckDialog (not ported)
-	DIALOG_ALREADY_REGISTERED = 19,
+	// 17 to 19 were the original's update-check and registration dialogs (taken out)
 	// port(variant): stage 13 (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10, 4.11, 8)
 	DIALOG_EXTRAS = 30,                 // ExtrasDialog
 	DIALOG_REPLAYS = 31,                // ReplayBrowserDialog
@@ -68,9 +62,7 @@ enum DialogId
 	DIALOG_REPLAY_END = 33,             // Watch again / Back
 	DIALOG_REPLAY_ERROR = 34,           // a replay that cannot be played
 	DIALOG_CONFIRM_SEED = 35,           // Play this seed over a game in progress
-	DIALOG_CONFIRM_DELETE = 36,         // delete a replay
-	DIALOG_UPDATE_AVAILABLE = 10018,    // UpdateCheckDialog result (mId+10000, YES_NO)
-	DIALOG_UP_TO_DATE = 20018           // UpdateCheckDialog result (mId+20000, FOOTER)
+	DIALOG_CONFIRM_DELETE = 36         // delete a replay
 };
 
 // Side-bar ButtonWidget ids (WinDMApp is their ButtonListener).
@@ -132,7 +124,6 @@ public:
 	DDImage*		mTimerBarImages[NUM_TIMERBAR_IMAGES]; // +0x810 colorized timerbar: [k] hue HSL(85*k/23,255,128), [24] white
 	bool			mTimedMode;                 // +0x874 current mode (Board ctor arg; Pause/Unpause 'user' flag on focus/modal changes)
 	bool			mShowInstructions;          // +0x875 ctor true; first scoring swap / LoadGame clear it; gates the tick-150 instructions dialog
-	bool			mNoPopLink;                 // +0x876 registry NoPopLink, read only, never used
 	bool			mIsDiamondMine;             // +0x877 property IsDiamondMine (PreDisplayHook): Diamond Mine strings
 
 	// port: the game's test hooks (the framework's -seed, -script, -fast and -trace are in SexyAppBase.h).
@@ -195,7 +186,6 @@ public:
 	void			NewGame();                                      // 0x4d4455
 	virtual void	LoadingThreadCompleted() override;                       // 0x4d4591 slot 16 (empty; port: features.lean)
 	virtual bool	DrawDirtyStuff() override;                               // port: features.lean.frameRate
-	virtual void	URLOpenSucceeded(const std::string& theURL) override;    // 0x4d4592 slot 36
 	virtual MusicInterface* CreateMusicInterface() override;                 // 0x4d45b1 slot 18 (original takes the HWND; always BassMusicInterface, port: SDLMusicInterface)
 	void			ShowRecordScoreDialog(const SexyString& theLines); // 0x4d45e3
 	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override; // 0x4d4653 slot 25
@@ -212,11 +202,8 @@ public:
 	virtual void	SetMusicVolume(double theVolume) override;               // 0x4d4926 slot 60 (forwards to the base)
 	virtual bool	KillDialog(int theDialogId) override;                    // 0x4d4a0e slot 76
 	virtual std::string GetGameSEHInfo() override;                           // 0x4d4ad9 slot 40 (forwards to the base)
-	virtual void	URLOpenFailed(const std::string& theURL) override;       // 0x4d4e97 slot 35
-	virtual bool	OpenURL(const std::string& theURL, bool shutdownOnOpen = false) override; // 0x4d5077 slot 37
 	virtual void	WriteToRegistry() override;                              // 0x4d5174 slot 23
 	virtual void	ReadFromRegistry() override;                             // 0x4d51bc slot 24
-	void			ShowRegisterDialog();                           // 0x4d5272 (registration: port shows only the 'already registered' branch)
 	void			ConfirmLoadGame();                              // 0x4d550d
 	void			ConfirmNewGame();                               // 0x4d5610
 	void			ConfirmNormalMode();                            // 0x4d56ec
@@ -286,6 +273,10 @@ public:
 	// port: test hooks (see mTraceHashFileName)
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: the standard test commands (docs/TEST_COMMANDS.md; testhooks/TestCommands.cpp): state, goto, level, unlock, set,
+	// win, lose, seed and move. HandleScriptCommand offers a command to it first
+	bool			HandleTestCommand(const ScriptCommand& theCommand);
+	std::string		TestScreen();
 
 	using SexyApp::ButtonPress;
 	using SexyApp::KillDialog;
