@@ -13,16 +13,12 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
 - **The loop.** The game keeps its own loops. The framework runs inside the game's sleeps, so the window, the clock and
   the sound keep going exactly as long as the original's `Sleep` would have waited. On the web the sleep yields to the
   browser.
-- **Pictures.** SDL_image's PNG and JPEG decoding is stb_image's (the platform's, for every game). The PNGs come out
-  the same. The 95 JPEGs do not: SDL_image used IJG libjpeg, and stb_image's inverse DCT and upsampling round
-  differently, so about 1% of a picture's pixels are 1 to 3 levels apart (measured on 2026-11-01 against libjpeg-turbo,
-  whose default decoding is libjpeg's; every one of the 95 differs, by 2 levels at most in 6 and 3 in 89). No one can
-  see 3 levels; origcmp's comparisons stay within them. A libjpeg-exact decoder would be a change to the shared
-  platform, for every game with JPEGs.
+- **Pictures.** The PNGs are decoded by stb_image and the JPEGs by IJG libjpeg 6b (the platform's
+  `LoadImageFromMemory`), as SDL_image decodes them in the original, so both come out pixel for pixel the same.
 - **Sound.** FMOD's samples and channels are the platform mixer's sounds and voices, with FMOD's 64 channels, its 0-255
   volumes and its frequencies. The music (`Sound/music.oxm`, an XM with Ogg Vorbis samples) is played by libopenmpt in
   place of FMOD's module player. libopenmpt mixes an XM's channels at its sample pre-amp of 48, FMOD 3 at the full 256,
-  so the host plays the song 256/48 times as loud (`loadSong`): the original's menu music, recorded through origrun on
+  so the host plays the song 256/48 times as loud (`loadSong`, the shared `BYOPOP_FMOD3_XM_GAIN`): the original's menu music, recorded through origrun on
   2026-11-07, was 5.3 times as loud as the port's before, and is now within 1% of it, while the sounds already matched.
 - **Players' file names on the web.** The game's text is Latin-1, as the original's ANSI file names are; the browser's
   file system takes UTF-8, so on the web a saved game's name is written and listed as UTF-8 (`FileName`, `GameText`).

@@ -7,6 +7,8 @@
 #include "MemoryImage.h"
 #include "WidgetManager.h"
 #include "platform/Audio.h"
+#include "platform/ImageLoader.h"
+#include "platform/MusicLevels.h"
 #include "platform/VFS.h"
 
 #include <SDL.h>
@@ -370,7 +372,8 @@ public:
 		if (!stbi_info_from_memory(theData.data(), (int)theData.size(), &aWidth, &aHeight, &aComponents))
 			return false;
 		int aWanted = aComponents == 4 || aComponents == 2 ? 4 : 3;
-		uint8_t* aPixels = stbi_load_from_memory(theData.data(), (int)theData.size(), &aWidth, &aHeight, &aComponents,
+		// a JPEG through libjpeg 6b, as SDL_image decodes it in the original, every other image through stb_image
+		uint8_t* aPixels = Platform::LoadImageFromMemory(theData.data(), (int)theData.size(), &aWidth, &aHeight, &aComponents,
 			aWanted);
 		if (aPixels == nullptr)
 			return false;
@@ -705,7 +708,7 @@ public:
 		// Sndmix.cpp), FMOD 3 at the full 256: the original's menu music, recorded through origrun, is 5.3 times as
 		// loud as the port's was, its sounds as loud
 		if (aSong > 0)
-			Platform::Mixer::Get().SetSongAmplify(aSong, 256.0f / 48.0f);
+			Platform::Mixer::Get().SetSongAmplify(aSong, (float)BYOPOP_FMOD3_XM_GAIN);
 		return aSong > 0 ? (void*)(intptr_t)aSong : nullptr;
 	}
 

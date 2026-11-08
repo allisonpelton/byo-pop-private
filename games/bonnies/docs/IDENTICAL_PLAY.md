@@ -175,6 +175,5 @@ rather than imitating a heap's leftovers, which no one can see.
 
 `DEVIATIONS.md` lists them all, none with an effect a player can see: the host in place of SDL 1.2, SDL_image and
 FMOD 3 (the game's own loop, with the framework running inside its sleeps; the music through libopenmpt; the cursor),
-the JPEG decoding (stb_image rounds about 1% of a picture's pixels 1 to 3 levels away from IJG libjpeg, shared by every
-game on the platform), the window menu the original never had, one copy at a time, missing texts, full screen on the
+the window menu the original never had, one copy at a time, missing texts, full screen on the
 web from the page's button, and the test runs' own behaviour.
