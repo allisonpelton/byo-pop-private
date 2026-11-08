@@ -1078,12 +1078,12 @@ if(EMSCRIPTEN)
   # The music player's decoder (web/music/openmpt_web.c, web/music.js; docs/WEB_PLAYER.md, "The music player"): libopenmpt on its
   # own, as openmpt.js and openmpt.wasm beside the pages, which the listing page loads when its Music tab is first opened
   add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c)
-  target_link_libraries(byopop_openmpt PRIVATE openmpt)
+  target_link_libraries(byopop_openmpt PRIVATE openmpt stb)
   set_target_properties(byopop_openmpt PROPERTIES OUTPUT_NAME openmpt SUFFIX ".js" LINKER_LANGUAGE CXX)
   target_compile_options(byopop_openmpt PRIVATE -O2)
   target_link_options(byopop_openmpt PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopOpenMPT" "-sALLOW_MEMORY_GROWTH=1"
     "-sENVIRONMENT=web,node" "--no-entry" "-sEXPORTED_FUNCTIONS=_malloc,_free"
-    "-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32")
+    "-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32,HEAP16,HEAP32")
   # (a deferred call runs at the end of this directory, the top level, after every game's byopop_web_game())
   get_filename_component(BYOPOP_WEB_BRAND_DIR "${CMAKE_CURRENT_LIST_DIR}/../web/brand" ABSOLUTE)
   cmake_language(DEFER CALL byopop_web_index)

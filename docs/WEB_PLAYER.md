@@ -1083,22 +1083,41 @@ database read-only (opened without a version, so a game that was never added get
 shown, and only for the games whose record says their files are here.
 
 Which files hold a game's music is in `web/soundtracks.js`, by the game's id: path patterns in the game's folder as the import
-writes it (folders in lower case). Every file that matches is a module, and its subsongs are the game's tunes. Subsongs shorter than
-two seconds are left out, since in these games they are the silences and stings between tunes (Atomica, Big Money, Dynomite and
-Mummy Maze each have one or two). A game's entry can also list `skip` (subsongs that are not tunes, as `"<file>#<n>"`) and `names`
-(a plain name for a subsong). Tunes are named plainly: the file's name, and "part n" when a file holds several. No invented titles,
-and no long passages of a game's text. The first batch covers the module games: Alchemy, Atomica, Bejeweled, Big Money, BookWorm,
-Bookworm Adventures, Bejeweled Twist (both of its modules), Cosmic Bugs, Water Bugs, Dynomite, Seven Seas and Mummy Maze.
+writes it, matched without regard to case. A module that matches gives its subsongs as tunes, and an Ogg Vorbis file is one tune.
+Subsongs shorter than two seconds are left out, since in these games they are the silences and stings between tunes (Atomica, Big
+Money, Dynomite and Mummy Maze each have one or two). Two games play their music in ways the table describes as well:
+
+- **Bonnie's Bookstore** plays its one module, `sound/music.oxm` (32 minutes as one subsong), as nine
+  tracks, each a range of its orders, from the track table in its exe (`games/bonnies/game/Music.cpp`): the game starts a track
+  at its first order and stops it once the order passes its last. The entry's `parts` lists those ranges, so the player plays
+  each from its first order until the order after its last (libopenmpt's time for an order gives its length). Its logo tune,
+  `sound/Logo.ogg`, is a tune of its own.
+- **Pixelus and Rocket Mania** join their in-game music (and Rocket Mania its menu music) from short Ogg pieces in the order a
+  playlist in the music folder gives: three header lines, then the first word of each line names a piece (Rocket Mania's
+  `AssembleMusic`, `games/rocketmania/src/AppMusic.cpp`; Pixelus's playlist has the same form). The entry's `joined` names each
+  playlist and the path of its pieces, and the player decodes the pieces and plays them one after the other, whole, as Rocket
+  Mania's original does. Pixelus's in-game tune comes out at 3:42, the playlist's own total.
+
+An entry can also list `skip` (tunes that are not tunes, as `"<file>#<n>"`) and `names` (a plain name for a tune). Tunes are named
+plainly: the file's name, and "part n" when a file holds several; Bonnie's tracks are named for where the game plays them (the
+menu, or in a game). No invented titles, and no long passages of a game's text. The module games are Alchemy, Atomica, Bejeweled,
+Big Money, BookWorm, Bookworm Adventures, Bejeweled Twist (both of its modules), Cosmic Bugs, Water Bugs, Dynomite, Seven Seas and
+Mummy Maze; the Ogg games are Bookworm Adventures Volume 2, Noah's Ark, Pixelus, Rocket Mania and Bonnie's Bookstore (its module
+too).
 
 The decoder is libopenmpt on its own, built for the web as `openmpt.js` and `openmpt.wasm` beside the pages (target
-`byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, repeat, length, render). It
-holds no game code, and the page loads it only when the tab is first opened. Its licence is copied to `licenses/libopenmpt.txt`,
-which the tab links. The main thread renders 4096-frame stereo chunks at the AudioContext's rate and posts them to an AudioWorklet
-(its source is a string in music.js, loaded through a Blob URL), keeping about a second queued. The worklet says when it has used a
-chunk, and when it runs dry after a tune's end, which moves on to the next tune; after the last tune the first one plays again.
+`byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, orders, repeat, length, render,
+and stb_vorbis's whole-file decode). It holds no game code, and the page loads it only when the tab is first opened. Its licence is
+copied to `licenses/libopenmpt.txt`, which the tab links. An Ogg file is decoded whole by the browser (`decodeAudioData`, at the
+AudioContext's rate); a browser that cannot gets stb_vorbis from the same wasm, and music.js resamples its output. A tune's length
+in the list is read from the Ogg file's last page without decoding it. The main thread sends 4096-frame stereo chunks to an
+AudioWorklet (its source is a string in music.js, loaded through a Blob URL), keeping about a second queued. The worklet says when it
+has used a chunk, and when it runs dry after a tune's end, which moves on to the next tune; after the last tune the first one plays
+again. A new tune flushes the worklet's queue, and the worklet answers the flush, so the messages about the tune before are ignored.
 
 The player is in one state at a time: idle, loading, playing or paused. It has Play/Pause, Next, a "Repeat the tune" box (libopenmpt
-repeats the subsong for ever) and a volume slider (a GainNode). The repeat box and the volume are kept in `localStorage`
+repeats a subsong for ever; a range of orders or decoded sound starts again at its start) and a volume slider (a GainNode). The
+repeat box and the volume are kept in `localStorage`
 (`byopop-music-loop`, `byopop-music-volume`). Each tune in the list is a button that plays it. The Media Session API gets the
 tune's name, the game as the artist and the game's icon, and its play, pause, next, previous and stop handlers, so the keyboard's
 media keys and the system's media controls drive the player. At `?silent=1` the volume's GainNode reaches the speakers only through a
@@ -1107,9 +1126,6 @@ same: a browser never runs a worklet whose output goes nowhere, and the tune wou
 
 Not covered yet:
 
-- **Ogg games** (Bookworm Adventures Volume 2, Bonnie's Bookstore, Pixelus, Rocket Mania, Noah's Ark) are the second batch: the
-  browser decodes Vorbis (`decodeAudioData`), with stb_vorbis as the fallback, and each game's entry lists its music files. Bonnie's
-  `sound/music.oxm` is one long module, silent at its start, that needs a look of its own.
 - **TipTop** keeps MIDI music inside its .dat, which would play through TinySoundFont.
 - **Word Harmony** plays WAV files.
 - **Ning Po and the two Mahjongs** (Ancient China, Japan) keep their music packed inside other files (Ning Po's `ningpo.pyz`,

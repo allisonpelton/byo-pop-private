@@ -1,9 +1,15 @@
 // The music of each game, for the listing page's music player (web/music.js; docs/WEB_PLAYER.md, "The music player"), by the
-// game's id. files: the module files that hold its tunes, as paths in the game's folder as the import writes them (folders in
-// lower case), where * stands for any part of a file name; each file's subsongs are its tunes, those under two seconds left out
-// (the silences and stings between tunes). Where a game's split comes out wrong, or a tune needs a name, a game's entry may add
-// skip: ["<file>#<n>", ...], subsongs that are not tunes, and names: {"<file>#<n>": "<name>"}, plain names, never invented
-// titles and never the game's own text at length. Every game's tunes were listed from the user's copies on 2026-11-07.
+// game's id. Paths are in the game's folder as the import writes it, matched without regard to case, where * stands for any part
+// of a file name.
+//   files   the files that are tunes: a module's subsongs are its tunes, an Ogg Vorbis file is one tune
+//   parts   for a module the game plays in ranges of its orders: {"<file name>": [[first order, last order], ...]}, its tunes
+//           instead of its subsongs
+//   joined  tunes the game joins from pieces by a playlist: [{playlist: "<path>", piece: "<path with {} for the playlist's word>"}]
+//   skip    ["<file name>#<n>", ...]: tunes that are not tunes (n counts from 0 in the file's subsongs or parts)
+//   names   {"<file name>#<n>" or "<playlist name>": "<name>"}: plain names, never invented titles and never the game's own text
+//           at length; without one a tune is named after its file
+// Tunes under two seconds are left out (the silences and stings between tunes). Every game's tunes were listed from the user's
+// copies on 2026-11-07.
 var ByopopSoundtracks = {
   alchemy: { files: ["music/*.s3m"] },
   atomica: { files: ["music/*.it"] },
@@ -16,5 +22,27 @@ var ByopopSoundtracks = {
   waterbugs: { files: ["audio/*.mo3"] },
   dynomite: { files: ["music/*.it"] },
   sevenseas: { files: ["music/*.it"] },
-  mummymaze: { files: ["music/*.it"] }
+  mummymaze: { files: ["music/*.it"] },
+  // the Ogg games
+  bookwormadv2: { files: ["music/*.ogg"] },
+  noahsark: { files: ["music/mainintro.ogg", "music/mainloop.ogg", "music/loading.ogg", "music/gameover.ogg"] },
+  // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
+  // the first for the menu, the rest in a game), and a logo tune
+  bonnies: {
+    files: ["sound/logo.ogg", "sound/music.oxm"],
+    parts: { music: [[1, 18], [20, 52], [54, 82], [84, 99], [101, 126], [128, 150], [152, 168], [170, 196], [198, 220]] },
+    names: { "music#0": "Menu", "music#1": "In a game, 1", "music#2": "In a game, 2", "music#3": "In a game, 3",
+      "music#4": "In a game, 4", "music#5": "In a game, 5", "music#6": "In a game, 6", "music#7": "In a game, 7",
+      "music#8": "In a game, 8" }
+  },
+  // Pixelus and Rocket Mania join their in-game (and Rocket Mania its menu) music from pieces by a playlist, as the games do
+  pixelus: {
+    files: ["music/pixelus *.ogg"],
+    joined: [{ playlist: "music/pixelus in-game playlist.txt", piece: "music/{}.ogg" }]
+  },
+  rocketmania: {
+    files: ["music/* loop *.ogg"],
+    joined: [{ playlist: "music/tubetricks menu one v02 playlist.txt", piece: "music/tubetricks menu one v02 {}.ogg" },
+      { playlist: "music/tubetricks in-game one v02 playlist.txt", piece: "music/tubetricks in-game one v02 {}.ogg" }]
+  }
 };
