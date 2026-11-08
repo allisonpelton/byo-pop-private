@@ -17,6 +17,7 @@ The steps run on the wall clock, one per line ('#' starts a comment):
                         spelled and Attack, Scramble without one, dialogs answered, conversations clicked on, until the
                         screen leaves the battle; logs a summary. Reads the port's -boardlog=<file> (tools/driver.js is
                         the same for the web build)
+    settle [S]          conversations clicked on and dialogs answered until neither has shown for 2 s
     minigame [S]        the same for the mini-game on the screen (or about to be): until it is over
     shot NAME           the window's own picture (PrintWindow) into <out dir>/NAME.png, the game's 800x600
 
@@ -156,12 +157,23 @@ def log_lines():
         kind, n = f[0].rstrip(':'), int(f[1])
         if kind == 'screen':
             out.append({'kind': kind, 'n': n, 'name': f[2]})
+        elif kind == 'wordmaster':
+            k = f.index('submit') if 'submit' in f else f.index('rows')
+            out.append({'kind': kind, 'n': n, 'word': f[2], 'tiles': [pt(t) for t in f[3:k]],
+                        'attack': pt(f[k + 1]) if f[k] == 'submit' else None, 'scramble': None})
+        elif kind == 'talk':
+            out.append({'kind': kind, 'n': n, 'on': f[2] == '1'})
         elif kind == 'dialog':
             out.append({'kind': kind, 'n': n, 'id': int(f[2]), 'ok': pt(f[4])})
         elif kind == 'board':
             k = f.index('attack')
-            out.append({'kind': kind, 'n': n, 'word': f[2], 'tiles': [pt(t) for t in f[3:k]], 'attack': pt(f[k + 1]),
-                        'scramble': pt(f[k + 3])})
+            b = {'kind': kind, 'n': n, 'word': f[2], 'tiles': [pt(t) for t in f[3:k]], 'attack': pt(f[k + 1]),
+                 'scramble': pt(f[k + 3]), 'words': [], 'letters': []}
+            if 'words' in f and f[f.index('words') + 1] != '-':
+                b['words'] = f[f.index('words') + 1].split(',')
+            if 'letters' in f and f[f.index('letters') + 1] != '-':
+                b['letters'] = [(e.split('@')[0], pt(e.split('@')[1])) for e in f[f.index('letters') + 1].split(';')]
+            out.append(b)
     return out
 
 
@@ -170,13 +182,61 @@ def screen():
     return s[-1] if s else 'none'
 
 
+def spell(word, letters):
+    """The tiles that spell word from letters [(letter(s), (x, y))], the first that fits at each place; None if none."""
+    used, order, i = set(), [], 0
+    while i < len(word):
+        for t, (l, xy) in enumerate(letters):
+            if t not in used and word.startswith(l, i):
+                used.add(t)
+                order.append(xy)
+                i += len(l)
+                break
+        else:
+            return None
+    return order
+
+
+def talking():
+    t = [l['on'] for l in log_lines() if l['kind'] == 'talk']
+    return bool(t) and t[-1]
+
+
+def settle(hw, p, seconds, note):
+    """Clicks a conversation on and answers dialogs with their first button until neither has shown for 2 s."""
+    t0 = time.time()
+    used = max([l['n'] for l in log_lines()] or [0])
+    quiet = time.time()
+    clicks = 0
+    while time.time() - t0 < seconds and p.poll() is None:
+        fresh = [l for l in log_lines() if l['n'] > used]
+        if fresh:
+            used = fresh[-1]['n']
+        dialog = ([l for l in fresh if l['kind'] == 'dialog'] or [None])[-1]
+        if dialog:
+            click(hw, *dialog['ok'])
+            clicks += 1
+            quiet = time.time()
+        elif talking():
+            click(hw, 400, 150)
+            clicks += 1
+            quiet = time.time()
+        elif time.time() - quiet > 2:
+            break
+        time.sleep(0.8)
+    note('settle: %d clicks, %ds, on %s' % (clicks, time.time() - t0, screen()))
+
+
 def chapter(hw, p, seconds, note, target='battle'):
     """One chapter's battles, as tools/driver.js's bwa.battle does on the web: from the map Enter, then each board's
     word spelled with clicks and Attack, Scramble for a board without one, a dialog's first button, a click to move a
     conversation on, until the screen is no longer the battle. Notes a summary line."""
     t0 = time.time()
     end = t0 + seconds
-    used = max([l['n'] for l in log_lines()] or [0])
+    all_lines = log_lines()
+    used = max([l['n'] for l in all_lines] or [0])
+    if all_lines and all_lines[-1]['kind'] in ('board', 'wordmaster'):
+        used -= 1  # a board already waiting is played
     seen, next_talk, words, scrambles, dialogs, result = False, 0, [], 0, 0, ''
     while time.time() < end and p.poll() is None:
         fresh = [l for l in log_lines() if l['n'] > used]
@@ -189,16 +249,22 @@ def chapter(hw, p, seconds, note, target='battle'):
         if fresh:
             used = fresh[-1]['n']
         dialog = ([l for l in fresh if l['kind'] == 'dialog'] or [None])[-1]
-        board = ([l for l in fresh if l['kind'] == 'board'] or [None])[-1]
+        board = ([l for l in fresh if l['kind'] in ('board', 'wordmaster')] or [None])[-1]
         if dialog:
             dialogs += 1
             click(hw, *dialog['ok'])
             time.sleep(1.5)
             continue
         if board and scr == target:
+            tiles = board['tiles']
+            if target == 'minigame' and board['kind'] == 'board':
+                # a mini-game wants a word it has not had yet (Letter Rip deals one word to take others from)
+                fresh_word = next((w for w in board['words'] if w not in words and spell(w, board['letters'])), None)
+                board['word'] = fresh_word or '-'
+                tiles = spell(fresh_word, board['letters']) if fresh_word else []
             if board['word'] != '-':
                 words.append(board['word'])
-                for x, y in board['tiles']:
+                for x, y in tiles:
                     click(hw, x, y)
                     time.sleep(0.3)
                 time.sleep(0.4)
@@ -207,7 +273,7 @@ def chapter(hw, p, seconds, note, target='battle'):
             elif board['scramble']:
                 scrambles += 1
                 click(hw, *board['scramble'])
-            time.sleep(2.5)
+            time.sleep(2.5 if target == 'battle' else 1)
             continue
         if time.time() >= next_talk:
             click(hw, 400, 575 if scr == 'map' and not seen else 150)
@@ -268,6 +334,8 @@ def main():
             u32.PostMessageW(hw, 0x0200, 0, xy(hw, int(args[0]), int(args[1])))
         elif op == 'click':
             click(hw, int(args[0]), int(args[1]))
+        elif op == 'settle':
+            settle(hw, p, float(args[0]) if args else 60, note)
         elif op in ('chapter', 'minigame'):
             chapter(hw, p, float(args[0]) if args else 600, note, 'battle' if op == 'chapter' else 'minigame')
         elif op == 'key':

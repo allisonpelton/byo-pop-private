@@ -67,6 +67,40 @@ the longest word the battle's grid allows (and attacks with it), `lua <chunk>` r
 for example `lua profile.Set('UnlockedArena', true)` once the main menu is up (about update 950), and `spectrum` logs
 how many cells of the media player's spectrum are lit.
 
+### The drivers' commands and the board log
+
+The test commands of `docs/TEST_COMMANDS.md` (in `src/TestHooks.cpp`, given in a `-script` until the live channel
+comes) each answer with one log line, `OK <command>` or `ERROR <command>: <reason>`. A command that waits for its screen
+(a curtain still moving, the title not yet gone on to the menu) tries again every 10 updates, 300 times at most.
+
+- `state` logs `STATE {json}` with `screen` (title, menu, map, battle, minigame, minigames, treasure, tome,
+  highscores, credits, loading), `mode` (adventure, or the mini-game's class), `level` (book.chapter, from the
+  profile), `curtain`, `dialogs` and `talk` (a conversation's panel up); in a battle `health`, `maxhealth`, `enemy`,
+  `enemyhealth`, `enemymaxhealth` (hearts, in quarters); on a board `board` (its rows of letters, `+` after one that
+  can be picked, `.` for an empty cell), `paused` and `busy`.
+- `goto menu` waits for the main menu. `goto adventure|arena|minigames|tome|mediaplayer|options|highscores` presses
+  that main menu item (`MainMenu::ActivateItem`, the menu's own action, so a locked item stays locked). `goto
+  wordmaster|letterrip|linknspell` opens the mini-games' menu if needed and presses that game's button.
+- `unlock all` sets the profile's unlocks as the end of a book does (the arena, the mini-games, the tome, and the
+  announcements of them, which Lex then makes on the main menu). The arena still asks for the first book's sixth
+  chapter.
+- `set health <n>` and `set enemy <n>` go through the scripts' own `_LexSetHealth` and `_EnemySetHealth`.
+- `win` kills the battle's enemy with the scripts' `_KillEnemy`, once the battle waits for a word (it sets the
+  scripts' `CHEATED`, as the original's cheat key did). `lose` leaves Lex a quarter of a heart (`_lex_near_death`):
+  the battle decides a death only after an enemy's attack, so the next one ends it.
+- `level` and `seed` answer with an error: the map's chapters belong to the scripts (`goto adventure`, then Enter or a
+  chapter's click), and the seed is `-seed=<n>` at the start.
+
+`-boardlog=<file>` (on the web, the page adds it through `Module.callMain`) makes the game append what a driver of
+real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y` (its
+first button), `board: <n> <WORD|-> x,y ... attack x,y scramble x,y words W1,W2,... letters L@x,y;...` (the longest word
+the tiles spell, its tiles, the buttons, the 40 longest words and the tiles that can be picked; only while the board
+is at rest and a tile can be picked) and, in Word Master, `wordmaster: <n> <GUESS> x,y ... submit x,y rows ...`, a
+guess that fits every answered row, from the game's word list. The drivers read it and click: `tools/driver.js` in the
+page with DOM events (`bwa.battle()`, `bwa.minigame()`, `bwa.settle()`, each returning a summary) and
+`tools/realrun.py` natively with posted click bursts (`chapter`, `minigame`, `settle` steps). A command or option never
+given changes nothing: the suite's runs stay the same.
+
 ## Testing
 
 `tools/check.sh bookwormadv` (about two and a half minutes) runs the PopLua compiler's dialect checks, loads every

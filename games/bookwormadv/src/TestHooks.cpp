@@ -123,8 +123,8 @@ std::string GameApp::ScreenForTests()
 {
 	return mCredits != nullptr ? "credits" : mHallOfFame != nullptr ? "highscores"
 	       : mBookScreen != nullptr ? "tome" : mMiniGameMenu != nullptr ? "minigames"
-	       : mBoard != nullptr ? (mBoard->IsMiniGame() ? "minigame" : "battle")
 	       : mTreasureScreen != nullptr && mTreasureScreen->mVisible ? "treasure"
+	       : mBoard != nullptr && mBoard->mVisible ? (mBoard->IsMiniGame() ? "minigame" : "battle")
 	       : mChapterLoadScreen != nullptr ? "loading" : mBookManager != nullptr ? "map"
 	       : mMainMenu != nullptr ? "menu" : mTitleScreen != nullptr ? "title" : "none";
 }
@@ -139,8 +139,10 @@ bool GameApp::BoardBusyForTests()
 	return aBusy;
 }
 
-// port: the longest word the board's tiles spell (at most theMax letters), with its tiles in order; empty if none
-std::string GameApp::BestWordForTests(size_t theMax, std::vector<Tile*>& theOrder)
+// port: the longest word the board's tiles spell (at most theMax letters), with its tiles in order; empty if none.
+// With theLongest, also the theCount longest words they spell, longest first
+std::string GameApp::BestWordForTests(size_t theMax, std::vector<Tile*>& theOrder, std::vector<std::string>* theLongest,
+                                      size_t theCount)
 {
 	TileLetters aTiles;
 	for (Tile* aTile : mBoard->mTiles)
@@ -151,17 +153,30 @@ std::string GameApp::BestWordForTests(size_t theMax, std::vector<Tile*>& theOrde
 	std::string aBest;
 	std::vector<Tile*> aBestOrder;
 	std::vector<Tile*> anOrder;
+	std::vector<std::string> aWords;
 	for (const std::string& aWord : mLex->mWords)
-		if (aWord.size() > aBest.size() && aWord.size() <= aMax && aWord != anEgg && Spell(aWord, aTiles, anOrder)) {
-			aBest = aWord;
-			aBestOrder = anOrder;
+		if ((theLongest != nullptr || aWord.size() > aBest.size()) && aWord.size() <= aMax && aWord != anEgg &&
+		    Spell(aWord, aTiles, anOrder)) {
+			if (aWord.size() > aBest.size()) {
+				aBest = aWord;
+				aBestOrder = anOrder;
+			}
+			if (theLongest != nullptr)
+				aWords.push_back(aWord);
 		}
+	if (theLongest != nullptr) {
+		std::stable_sort(aWords.begin(), aWords.end(),
+		                 [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
+		if (aWords.size() > theCount)
+			aWords.resize(theCount);
+		*theLongest = aWords;
+	}
 	theOrder = aBestOrder;
 	return aBest;
 }
 
 // port: with -boardlog=<file>, a run with real input writes there, each time the battle's board comes to rest with a new
-// set of tiles, the word a test driver may spell there: "board: <n> <WORD> x,y ... attack x,y scramble x,y" (tools/realrun.py's
+// set of tiles, the word a test driver may spell there: "board: <n> <WORD> x,y ... attack x,y scramble x,y words W1,W2,... letters L@x,y;..." (tools/realrun.py's
 // "word"). Only what the driver sees: its clicks go through the real input
 void GameApp::LogBoardForTests()
 {
@@ -177,23 +192,145 @@ void GameApp::LogBoardForTests()
 		if (aButton != nullptr && aDialog->mUpdateCnt > 30) {  // once it is in place and takes clicks
 			sLastDialog = aDialog;
 			if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
-				fprintf(aFile, "dialog: %d %d ok %d,%d\n", ++sCount, aDialog->mId,
-				        aDialog->mX + aButton->mX + aButton->mWidth / 2, aDialog->mY + aButton->mY + aButton->mHeight / 2);
+				Point aPos = aButton->GetAbsPos();  // (a GameDialog's buttons are not its children)
+				fprintf(aFile, "dialog: %d %d ok %d,%d\n", ++sCount, aDialog->mId, aPos.mX + aButton->mWidth / 2,
+				        aPos.mY + aButton->mHeight / 2);
 				fclose(aFile);
 			}
 		}
 	}
 	if (aDialog == nullptr)
 		sLastDialog = nullptr;
-	// the screen, when it changes: "screen: <n> <name>"
+	// the screen, when it changes: "screen: <n> <name>"; a conversation's panel, as it comes and goes: "talk: <n> 1|0"
 	static std::string sLastScreen;
+	static int sLastTalk = -1;
 	std::string aScreen = ScreenForTests();
-	if (aScreen != sLastScreen) {
-		sLastScreen = aScreen;
+	int aTalk = ShowingConversationPanel() ? 1 : 0;
+	if (aScreen != sLastScreen || aTalk != sLastTalk) {
 		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
-			fprintf(aFile, "screen: %d %s\n", ++sCount, aScreen.c_str());
+			if (aScreen != sLastScreen)
+				fprintf(aFile, "screen: %d %s\n", ++sCount, aScreen.c_str());
+			if (aTalk != sLastTalk)
+				fprintf(aFile, "talk: %d %d\n", ++sCount, aTalk);
 			fclose(aFile);
 		}
+		sLastScreen = aScreen;
+		sLastTalk = aTalk;
+	}
+	// Word Master: a guess that fits every row it has answered, from the word list, with the keyboard's keys to type it
+	// and Submit: "wordmaster: <n> <GUESS|-> x,y ... submit x,y". Only what the rows show: their letters and colours
+	if (mBoard != nullptr && mLex != nullptr && mBoard->IsMiniGame() && mMiniGameName == "WordMaster") {
+		static std::string sLastRows;
+		std::string aRows;
+		// "<line>|" then, for each row up to the current one, five "<letter><status>" (status 2 here, 1 elsewhere, 0
+		// not in the word, - not answered)
+		if (!RunLua("local g = gMiniGame if g == nil or g.mTiles == nil or g.mLine == nil then return '' end "
+		            "local out = tostring(g.mLine) "
+		            "for r = 0, g.mLine do local row = g.mTiles[r] out = out .. '|' "
+		            "for i = 0, 4 do local t = row and row[i] "
+		            "local l = t and t.mTable and t.mTable.mLetter or '.' if l == '&' then l = 'Q' end "
+		            "out = out .. l .. (t and t.mStatus and tostring(t.mStatus) or '-') end end return out",
+		            aRows) ||
+		    aRows.empty()) {
+			return;
+		}
+		if (aRows == sLastRows || BoardBusyForTests())
+			return;
+		sLastRows = aRows;
+		std::vector<std::string> aRow;
+		for (size_t aPos = aRows.find('|'); aPos != std::string::npos;) {
+			size_t aNext = aRows.find('|', aPos + 1);
+			aRow.push_back(aRows.substr(aPos + 1, aNext == std::string::npos ? std::string::npos : aNext - aPos - 1));
+			aPos = aNext;
+		}
+		// only at the start of a guess: a new row (or a new word), or the row back as it began (a guess turned down).
+		// The game fills in the letters a row starts with: the given first one and those already found
+		static std::string sStartLine, sStartRow;
+		static bool sTyped = false;
+		if (aRow.empty())
+			return;
+		std::string aLineNum = aRows.substr(0, aRows.find('|'));
+		std::string aKey = aLineNum + aRow.front().substr(0, 1);  // the line, and the word by its given letter
+		if (aKey != sStartLine) {
+			sStartLine = aKey;
+			sStartRow = aRow.back();
+			sTyped = false;
+		} else if (aRow.back() != sStartRow) {
+			sTyped = true;
+			return;
+		} else if (!sTyped) {
+			return;
+		} else {
+			sTyped = false;
+		}
+		// the colours a guess would get against theWord: right place first, then elsewhere while the word has letters left
+		auto Score = [](const std::string& theGuess, const std::string& theWord) {
+			std::string aScore(5, '0');
+			int aLeft[26] = {0};
+			for (int i = 0; i < 5; i++) {
+				if (theGuess[i] == theWord[i])
+					aScore[i] = '2';
+				else
+					aLeft[theWord[i] - 'A']++;
+			}
+			for (int i = 0; i < 5; i++)
+				if (aScore[i] != '2' && aLeft[theGuess[i] - 'A'] > 0) {
+					aScore[i] = '1';
+					aLeft[theGuess[i] - 'A']--;
+				}
+			return aScore;
+		};
+		std::string aGuess;
+		for (const std::string& aWord : mLex->mWords) {
+			if (aWord.size() != 5 || aWord.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ") != std::string::npos)
+				continue;
+			bool aFits = true;
+			for (size_t r = 0; r < aRow.size(); r++) {
+				const std::string& aCells = aRow[r];
+				if (aCells.size() != 10)
+					continue;
+				std::string aLetters, aStatus;
+				for (int i = 0; i < 5; i++) {
+					aLetters += aCells[i * 2];
+					aStatus += aCells[i * 2 + 1];
+				}
+				if (r + 1 < aRow.size()) {
+					aFits = aFits && Score(aLetters, aWord) == aStatus;
+				} else {
+					// the row being typed: the letters it already shows (the first, given) stay
+					for (int i = 0; i < 5; i++)
+						if (aLetters[i] != '.')
+							aFits = aFits && aWord[i] == aLetters[i];
+				}
+			}
+			if (aFits) {
+				aGuess = aWord;
+				break;
+			}
+		}
+		// the keys: the board's letter tiles; the row's letters already shown are not typed again
+		std::string aLine = aGuess.empty() ? "-" : aGuess;
+		const std::string& aCurrent = aRow.empty() ? std::string() : aRow.back();
+		for (size_t i = 0; i < aGuess.size(); i++) {
+			if (aCurrent.size() == 10 && aCurrent[i * 2] != '.')
+				continue;
+			for (Tile* aTile : mBoard->mTiles)
+				if (Board::GetWord(std::list<Tile*>(1, aTile)) == aGuess.substr(i, 1) ||
+				    (aGuess[i] == 'Q' && (Board::GetWord(std::list<Tile*>(1, aTile)) == "QU" ||
+				                          Board::GetWord(std::list<Tile*>(1, aTile)) == "&"))) {
+					aLine += StrFormat(" %d,%d", aTile->mX + 25, aTile->mY + 25);
+					break;
+				}
+		}
+		auto anIt = mBoard->mButtons.find(Board::BUTTON_ATTACK);
+		if (anIt != mBoard->mButtons.end() && anIt->second != nullptr)
+			aLine += StrFormat(" submit %d,%d", mBoard->mX + anIt->second->mX + anIt->second->mWidth / 2,
+			                   mBoard->mY + anIt->second->mY + anIt->second->mHeight / 2);
+		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+			fprintf(aFile, "wordmaster: %d %s rows %s\n", ++sCount, aLine.c_str(), aRows.c_str());
+			fclose(aFile);
+		}
+		return;
 	}
 	if (mBoard == nullptr || mLex == nullptr || BoardBusyForTests()) {
 		sLast.clear();
@@ -217,7 +354,8 @@ void GameApp::LogBoardForTests()
 		return;
 	sLast = aKey;
 	std::vector<Tile*> anOrder;
-	std::string aWord = BestWordForTests(std::string::npos, anOrder);
+	std::vector<std::string> aLongest;
+	std::string aWord = BestWordForTests(std::string::npos, anOrder, &aLongest, 40);
 	std::string aLine = aWord.empty() ? "-" : aWord;
 	for (Tile* aTile : anOrder)
 		aLine += StrFormat(" %d,%d", aTile->mX + 25, aTile->mY + 25);
@@ -231,6 +369,22 @@ void GameApp::LogBoardForTests()
 			                   mBoard->mX + anIt->second->mX + anIt->second->mWidth / 2,
 			                   mBoard->mY + anIt->second->mY + anIt->second->mHeight / 2);
 	}
+	// the next longest words and the letters that can be picked, for a driver that wants another word (Letter Rip)
+	aLine += " words ";
+	for (size_t i = 0; i < aLongest.size(); i++)
+		aLine += (i > 0 ? "," : "") + aLongest[i];
+	if (aLongest.empty())
+		aLine += "-";
+	aLine += " letters ";
+	bool aFirst = true;
+	for (Tile* aTile : mBoard->mTiles)
+		if (!aTile->mSelected && aTile->CanSelect(aTile->mX + 25, aTile->mY + 25)) {
+			aLine += StrFormat("%s%s@%d,%d", aFirst ? "" : ";", Board::GetWord(std::list<Tile*>(1, aTile)).c_str(),
+			                   aTile->mX + 25, aTile->mY + 25);
+			aFirst = false;
+		}
+	if (aFirst)
+		aLine += "-";
 	if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
 		fprintf(aFile, "board: %d %s\n", ++sCount, aLine.c_str());
 		fclose(aFile);

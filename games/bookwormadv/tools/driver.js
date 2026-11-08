@@ -6,10 +6,14 @@
 //                      on the game's command line (the page passes it through Module.callMain)
 //   bwa.click(x, y)    a move, then a press and a release at game pixel (x, y) (SDL puts a button at the last move)
 //   bwa.key(name)      keydown, keypress, keyup on the canvas ("Enter", "a", ...)
-//   bwa.lines()        the log's lines, parsed: {kind: "board"|"dialog"|"screen", n, ...}
+//   bwa.lines()        the log's lines, parsed: {kind: "board"|"dialog"|"screen"|"talk", n, ...}
 //   bwa.screen()       the screen the log last named (title, menu, map, battle, minigame, treasure, ...)
 //   await bwa.waitScreen(names, seconds)
 //                      until the screen is one of names (an array); clicks conversations on meanwhile
+//   await bwa.settle(seconds)
+//                      clicks a conversation on and answers dialogs until neither has shown for 2 s
+//   await bwa.minigame(seconds)
+//                      the same for a mini-game, each time with the longest word not yet used in it
 //   await bwa.battle(seconds)
 //                      one whole battle: from the map it clicks Enter, then spells each board's word (the longest the
 //                      game's own word list allows), scrambles a board without one, answers dialogs with their first
@@ -48,9 +52,17 @@
     return text.trim().split('\n').filter(Boolean).map(l => {
       const f = l.split(/\s+/), kind = f[0].replace(':', ''), n = +f[1];
       if (kind === 'screen') return {kind, n, name: f[2]};
+      if (kind === 'wordmaster') {
+        const k = f.includes('submit') ? f.indexOf('submit') : f.indexOf('rows');
+        return {kind, n, word: f[2], tiles: f.slice(3, k).map(pt), attack: f[k] === 'submit' ? pt(f[k + 1]) : null, scramble: null};
+      }
+      if (kind === 'talk') return {kind, n, on: f[2] === '1'};
       if (kind === 'dialog') return {kind, n, id: +f[2], ok: pt(f[4])};
       const k = f.indexOf('attack');
-      return {kind, n, word: f[2], tiles: f.slice(3, k).map(pt), attack: pt(f[k + 1]), scramble: pt(f[k + 3])};
+      const w = f.indexOf('words'), le = f.indexOf('letters');
+      return {kind, n, word: f[2], tiles: f.slice(3, k).map(pt), attack: pt(f[k + 1]), scramble: pt(f[k + 3]),
+        words: w > 0 && f[w + 1] !== '-' ? f[w + 1].split(',') : [],
+        letters: le > 0 && f[le + 1] !== '-' ? f[le + 1].split(';').map(e => [e.split('@')[0], pt(e.split('@')[1])]) : []};
     });
   }
   function screen() { const s = lines().filter(l => l.kind === 'screen'); return s.length ? s[s.length - 1].name : 'none'; }
@@ -62,27 +74,63 @@
     }
     return false;
   }
-  async function battle(seconds) {
+  // the tiles that spell word from letters [[letter(s), [x, y]]], the first that fits at each place; null if none
+  function spell(word, letters) {
+    const used = new Set(), order = [];
+    for (let i = 0; i < word.length;) {
+      const t = letters.findIndex(([l], j) => !used.has(j) && word.startsWith(l, i));
+      if (t < 0) return null;
+      used.add(t); order.push(letters[t][1]); i += letters[t][0].length;
+    }
+    return order;
+  }
+  function talking() { const t = lines().filter(l => l.kind === 'talk'); return t.length > 0 && t[t.length - 1].on; }
+  async function settle(seconds) {
+    const t0 = Date.now();
+    let used = lines().reduce((m, l) => Math.max(m, l.n), 0), quiet = Date.now(), clicks = 0;
+    while (Date.now() - t0 < (seconds || 60) * 1000) {
+      const fresh = lines().filter(l => l.n > used);
+      if (fresh.length) used = fresh[fresh.length - 1].n;
+      const dialog = fresh.filter(l => l.kind === 'dialog').pop();
+      if (dialog) { await click(...dialog.ok); clicks++; quiet = Date.now(); }
+      else if (talking()) { await click(400, 150); clicks++; quiet = Date.now(); }
+      else if (Date.now() - quiet > 2000) break;
+      await sleep(800);
+    }
+    return {clicks, seconds: Math.round((Date.now() - t0) / 1000), screen: screen()};
+  }
+  async function battle(seconds) { return play(seconds, 'battle'); }
+  async function minigame(seconds) { return play(seconds, 'minigame'); }
+  async function play(seconds, target) {
     const t0 = Date.now(), end = t0 + (seconds || 600) * 1000;
     const out = {result: '', words: [], scrambles: 0, dialogs: 0, seconds: 0};
-    let used = lines().reduce((m, l) => Math.max(m, l.n), 0), seen = false, nextTalk = 0;
+    const start = lines();
+    let used = start.reduce((m, l) => Math.max(m, l.n), 0), seen = false, nextTalk = 0;
+    if (start.length && ['board', 'wordmaster'].includes(start[start.length - 1].kind)) used--;  // a board already waiting
     while (Date.now() < end) {
       const all = lines(), fresh = all.filter(l => l.n > used);
       const scr = screen();
-      if (scr === 'battle') seen = true;
+      if (scr === target) seen = true;
       else if (seen && scr !== 'none') { out.result = scr; break; }
       if (fresh.length) used = fresh[fresh.length - 1].n;
       const dialog = fresh.filter(l => l.kind === 'dialog').pop();
-      const board = fresh.filter(l => l.kind === 'board').pop();
+      const board = fresh.filter(l => l.kind === 'board' || l.kind === 'wordmaster').pop();
       if (dialog) { out.dialogs++; await click(...dialog.ok); await sleep(1500); continue; }
-      if (board && scr === 'battle') {
+      if (board && scr === target) {
+        let tiles = board.tiles;
+        if (target === 'minigame' && board.kind === 'board') {
+          // a mini-game wants a word it has not had yet (Letter Rip deals one word to take others from)
+          const w = board.words.find(w => !out.words.includes(w) && spell(w, board.letters));
+          board.word = w || '-';
+          tiles = w ? spell(w, board.letters) : [];
+        }
         if (board.word !== '-') {
           out.words.push(board.word);
-          for (const [x, y] of board.tiles) { await click(x, y); await sleep(300); }
+          for (const [x, y] of tiles) { await click(x, y); await sleep(300); }
           await sleep(400);
           if (board.attack) await click(...board.attack);
         } else if (board.scramble) { out.scrambles++; await click(...board.scramble); }
-        await sleep(2500);
+        await sleep(target === 'battle' ? 2500 : 1000);
         continue;
       }
       if (Date.now() >= nextTalk) {
@@ -104,5 +152,5 @@
       Module.callMain = args => callMain(args.concat(['-boardlog=' + LOG]));
     }
   }
-  window.bwa = {setup, click, key, lines, screen, waitScreen, battle, sleep};
+  window.bwa = {setup, click, key, lines, screen, talking, settle, waitScreen, battle, minigame, spell, sleep};
 })();

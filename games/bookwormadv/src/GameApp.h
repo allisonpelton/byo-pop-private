@@ -175,7 +175,8 @@ public:
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	// port: test helpers (TestHooks.cpp): the board busy, its best word, and -boardlog's log of it
 	bool BoardBusyForTests();
-	std::string BestWordForTests(size_t theMax, std::vector<Tile*>& theOrder);
+	std::string BestWordForTests(size_t theMax, std::vector<Tile*>& theOrder, std::vector<std::string>* theLongest = nullptr,
+	                             size_t theCount = 0);
 	void LogBoardForTests();
 	std::string mBoardLogForTests;
 	std::string ScreenForTests();
