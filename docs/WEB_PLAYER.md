@@ -1583,7 +1583,10 @@ as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/o
   channel, `byopop_test_command`, which queues it for the next update and the game's `HandleScriptCommand`, and resolves with the
   lines printed from the call up to its answer, the last of them: `STATE {json}`, `OK <command>` or `ERROR <command>: <reason>`
   (SDL's "INFO: " taken off). A held game is stepped one update so that the command runs. `state()` is `command("state")`'s JSON.
-  A build without the channel rejects at once.
+  A build without the channel rejects at once. `botMove()` is `command("move")`'s move, or null when the bot has none;
+  `playMove(m)` sends one through real DOM input in game coordinates: its `input` list in order where it has one, else its
+  `clicks` (`{x, y, button}`), then its `drags` (`{x0, y0, x1, y1, steps}`), then its `keys` (DOM key names), and waits its
+  `updates` (1 by default).
 - **readings**, all copies: `watch()` a port's
   watch values where it gives them (`byopop_watch_json`), null otherwise; `mixer()` the mixer's state once the shared
   session's `platform/Audio.cpp` gives it (`byopop_mixer_json`), null until then; `screen()` the game's size.
@@ -1632,6 +1635,15 @@ return { moves: moves, updates: t.updates(), errors: t.errors.length };
 
 opened as `...bejeweled.html?player=1&assets=1&fast=1&driver=games/bejeweled/tools/web/onegame.js&run=onegame`, then
 `await byopop.test.driver` in the pane.
+
+**The built-in driver `?driver=move`** plays any game by its port's own bot (the user, 2026-11-07: "the scripts that play the
+games should be developed in a way that their code can be reused for a mod that adds a bot"; `docs/TEST_COMMANDS.md`, "The bot
+behind `move`"). It loops: `state()`, then `botMove()`, then `playMove()`, so every move is real input. It stops when the
+state says `"over": true`, on `MOVE null` twice running (it waits 30 updates after the first), on an ERROR, or after `?steps=`
+moves (2000 by default). `byopop.test.result` is then `{moves, stop, state, updates, errors}`: `stop` is "over", "limit",
+"no move" or "error: <message>", and `state` the last state read. `playByMove({steps})` runs the same loop from a driver of a
+session's own. It needs the build's `byopop_test_command` and a port that answers `move`; the MOVE fields are agreed with the
+shared session, whose native tool plays the same moves.
 
 ## Sound
 
