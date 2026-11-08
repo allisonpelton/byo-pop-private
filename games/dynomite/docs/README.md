@@ -101,6 +101,19 @@ and `make_gametext.py` writes the table of text addresses `GameTextTable.inc` fr
 `re/dynomite/` (git-ignored: Ghidra's export and the carved game image). `GAME_NOTES.md` maps the game's classes and
 rules.
 
+## Registration and loading
+
+The port plays as the registered original, which stays the reference (the user, 2026-11-07). The code only an
+unregistered copy reaches is taken out: on the title screen the register link with its four changing texts, the free
+plays left, the quit link once they ran out and the loading bar slowed by the number of plays (the registered copy's
+"thanks for registering" stays); in the options dialog the register button, so the high scores button keeps the full
+width it has in a registered copy; the register and buy dialogs (14 and 20, with the buy button's dialogs 10020 and
+20020 in the app's dialog handler) and the nag each mode showed at a game's end in their place; the unregistered
+copy's refusals of the saved games and of puzzle packs other than DEFAULT.EGG on the main menu and of the side bar's
+save; and the "unregistered" picture. None of these shows in a registered copy, so nothing visible changes, and the
+frozen baseline checks that play is unchanged. The loading has no wait of the original's own apart from that slowed
+bar: the loader runs at the machine's speed, and the title polls it every fourth update as the original does.
+
 ## Mods
 
 None. The port is the original game, unmodified and working like its exe, and adds nothing for later mods, not even hooks

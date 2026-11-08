@@ -260,7 +260,6 @@ public:
 	Pic*         mPicPointer2;                            // +0x10dc
 	Pic*         mPicOverhand;                            // +0x10e0
 	Pic*         mPicTyper;                               // +0x10e4
-	Pic*         mPicUnregistered;                        // +0x10e8
 	Pic*         mPicDialog;                              // +0x121c
 	Pic*         mPicDbutton;                             // +0x1220
 	Pic*         mPicWaitbar;                             // +0x1224
@@ -290,8 +289,6 @@ public:
 
 	void			ShowMainMenu();								// 0x4186d0
 	void			StartGame();								// 0x418810
-	void			ShowBuyDialog();							// 0x418470: dialog 21 (BUY_AND_UNLOCK_DYNOMITE)
-	void			ShowRegisterDialog(const char* theLines);	// 0x4185a0: dialog 14 (REGISTRATION)
 	void			ShowHighScoreDialog(HighScores* theHighScores);	// 0x418df0: dialog 6, the name for a high score
 	void			MenuButton();								// 0x41e770: the side bar's menu button
 	void			ShowOptions();								// 0x418ba0: dialog 2

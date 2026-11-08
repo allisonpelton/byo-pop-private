@@ -140,7 +140,6 @@ void FossilizedApp::Init()
 	mWhiteFont = new ImageFont(this, "data\\whitefont.txt");
 	mWhiteFontSmall = new ImageFont(this, "data\\whitefontsmall.txt");
 	mWhiteFont2 = new ImageFont(this, "data\\WhiteFont2.txt");
-	mPicUnregistered = new Pic(this, "images\\unregistered", true);
 	mSoundInitialized = mSoundManager->Initialized();
 	if (!mSoundInitialized)
 		SDL_Log("Sound manager could not initialize");	// a message box in the original
@@ -407,18 +406,6 @@ void FossilizedApp::StartGame()
 	mSideBar->GameStarted();
 }
 
-// 0x418470
-void FossilizedApp::ShowBuyDialog()
-{
-	// TODO: the unregistered copy's dialog 21 (0x4411d0); the port runs as a registered copy
-}
-
-// 0x4185a0
-void FossilizedApp::ShowRegisterDialog(const char* theLines)
-{
-	// TODO: the unregistered copy's dialog 14 (0x432740); the port runs as a registered copy
-}
-
 // 0x418df0
 void FossilizedApp::ShowHighScoreDialog(HighScores* theHighScores)
 {
@@ -535,24 +522,7 @@ void FossilizedApp::ButtonDepress(int theId)
 	if (aMod < 3000)
 	{
 		int aDialogId = theId - 2000;
-		if (aDialogId > 0x2724)
-		{
-			if (aDialogId == 0x4e34)
-			{
-				KillDialog(0x4e34);
-				KillDialog(0x14);
-				return;
-			}
-			KillDialog(aDialogId);
-			return;
-		}
-		if (aDialogId == 0x2724)
-		{
-			// TODO: the unregistered copy's buy dialog opens the buy page (the port runs as a registered copy)
-			KillDialog(0x2724);
-			KillDialog(0x14);
-			return;
-		}
+		// port: the unregistered copy's buy dialog (20) and its buttons (10020, 20020) are not in the port
 		switch (aDialogId)
 		{
 		case 0:
@@ -607,9 +577,6 @@ void FossilizedApp::ButtonDepress(int theId)
 		case 0xd:
 			((DynomiteFossil*)mBoard)->NextRound();
 			return;
-		case 0xe:
-			// TODO: the registration dialog's OK (the port runs as a registered copy)
-			return;
 		case 0x10:
 			KillDialog(0x10);
 			return;
@@ -627,11 +594,6 @@ void FossilizedApp::ButtonDepress(int theId)
 	if (aMod < 4000)
 	{
 		int aDialogId = theId - 3000;
-		if (aDialogId == 0x2724)
-		{
-			KillDialog(0x2724);
-			aDialogId = 0x14;
-		}
 		KillDialog(aDialogId);
 		if (mBoard != NULL)
 			mWidgetManager->SetFocus(mBoard);

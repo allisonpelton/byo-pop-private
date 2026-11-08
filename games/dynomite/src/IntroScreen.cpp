@@ -859,11 +859,6 @@ void IntroScreen::ButtonDepress(int theId)
 				mField280 = true;
 				goto back;
 			}
-			if (!mApp->mIsRegistered)
-			{
-				// port: an unregistered copy shows the register dialog (no saved games)
-				goto back;
-			}
 			mPage = 3;
 			ReadSlots();
 			break;
@@ -897,11 +892,6 @@ void IntroScreen::ButtonDepress(int theId)
 			goto back;
 		case 5:
 		{
-			if (!mApp->mIsRegistered && (strncmp(mApp->mPackFile, "DEFAULT.EGG", 12) != 0))
-			{
-				// port: an unregistered copy plays only DEFAULT.EGG (the register dialog)
-				goto back;
-			}
 			if (mApp->mGameMode == 1)
 				mApp->mPuzzleSkills = mPuzzleList->mPackSkills;
 			unsigned int aSkills = mApp->mPuzzleSkills;

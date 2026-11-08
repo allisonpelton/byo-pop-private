@@ -357,18 +357,10 @@ void DynomitePanic::Update()
 		return;
 	}
 	Dynomite::Update();
-	if ((mApp->mIsRegistered == false) && (mField134 == 1))
-	{
-		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)
-			mApp->ShowRegisterDialog(mApp->GetString("CONGRATS_HS_DYNOMITE_UNREGISTERED").c_str());
-		else
-			mApp->ShowBuyDialog();
-	}
 	if (mField134 == 0)
 	{
 		SetPaused(true);
-		if ((mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true) &&
-			(mApp->mIsRegistered == true))
+		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)
 			mApp->ShowHighScoreDialog(mHighScores);
 	}
 	if (mWhirleyLevel < 1)
