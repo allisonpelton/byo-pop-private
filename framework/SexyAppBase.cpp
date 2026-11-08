@@ -3016,6 +3016,12 @@ int SexyAppBase::InitDDInterface()
 		{
 			aWant3D = true;
 			RegistryReadBoolean("Is3D", &aWant3D);
+#ifdef __EMSCRIPTEN__
+			// the site's "3D acceleration" (always 1, never 0; -1 leaves it to the game) decides this run in place of the saved
+			// value, and writes nothing (mUserChanged3DSetting stays false); mCan3D still makes "always" 2D without WebGL2
+			if (Byopop::SiteAccel3D() >= 0)
+				aWant3D = Byopop::SiteAccel3D() != 0;
+#endif
 		}
 		if (!aWant3D)
 			mDDInterface->mIs3D = false;

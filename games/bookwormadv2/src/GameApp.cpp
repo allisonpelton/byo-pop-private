@@ -4,8 +4,6 @@
 #endif
 
 #include <SDL.h>
-#include "DDInterface.h"
-#include "WebSettings.h"
 
 #include "Board.h"
 #include "BookManager.h"
@@ -602,18 +600,6 @@ void GameApp::ButtonDepress(int theId)
 		mTitleScreenDoneQueued = false;
 		TitleScreenDone();
 	}
-}
-
-// port: on the web the site's "3D acceleration" (always or never; -1 the game's own choice, the saved "Is3D") takes the
-// place of the game's option for this run, without writing it to the registry; "always" is still 2D where the display
-// cannot (DDInterface::mCan3D)
-void GameApp::PostDDInterfaceInitHook()
-{
-	SexyAppBase::PostDDInterfaceInitHook();
-#ifdef __EMSCRIPTEN__
-	if (Byopop::SiteAccel3D() >= 0 && mDDInterface != nullptr)
-		mDDInterface->mIs3D = mDDInterface->mCan3D && Byopop::SiteAccel3D() != 0;
-#endif
 }
 
 void GameApp::StartLoading()

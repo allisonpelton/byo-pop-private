@@ -919,8 +919,8 @@ it is for, in `FIELDS` in `web/settings.js`):
   only) where it reads that option: -1 the game's own choice, 1 always, 0 never. "Always" is 3D whenever the browser can
   (WebGL2): a browser without it still gets 2D, which the game checks as it does for its own option. The games that read it
   are listed in `ACCEL3D_GAMES` (`web/settings.js`), and a game page of any other game leaves the setting out (the listing
-  page shows it, its explanation naming such a game). Bejeweled Twist and Bookworm Adventures 2 read it now (Volume 2 takes it in `PostDDInterfaceInitHook`, over the framework's flag, without
-  writing "Is3D"); Bookworm Adventures 1 and Rocket
+  page shows it, its explanation naming such a game). Bejeweled Twist and Bookworm Adventures 2 read it now (Volume 2 through the framework: `SexyAppBase::InitDDInterface` lets it decide the run's 3D flag in place of the saved
+  "Is3D" and writes nothing); Bookworm Adventures 1 and Rocket
   Mania, whose originals also have a 3D option, may read it once their passes settle their 3D modes. BookWorm will not: its
   option only switches the framework's renderer, which the port always runs on the GPU. The setting
   applies at the next start, and the panel says so.
