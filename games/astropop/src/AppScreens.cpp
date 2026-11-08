@@ -262,11 +262,6 @@ void AstroPopApp::ShowQuitDialog()
 	aDialog->Resize(0x140 - aWidth / 2, 0xf0 - aHeight / 2, aWidth, aHeight);
 }
 
-void AstroPopApp::ShowUserSelect()
-{
-	SDL_Log("AstroPop: ShowUserSelect not translated yet (0x422870)");
-}
-
 void AstroPopApp::ShowOptions(bool theFromGame)
 {
 	SDL_Log("AstroPop: ShowOptions(%d) not translated yet (0x40bd70)", theFromGame ? 1 : 0);
@@ -319,13 +314,3 @@ void AstroPopApp::ApplyOptions(bool theClose)
 	APP_NOT_TRANSLATED("ApplyOptions", "0x428a10");
 }
 
-void AstroPopApp::UserSelectOk()
-{
-	APP_NOT_TRANSLATED("UserSelectOk", "0x430f00");
-}
-
-void AstroPopApp::DeleteUser(bool theConfirmed)
-{
-	(void) theConfirmed;
-	APP_NOT_TRANSLATED("DeleteUser", "0x431310");
-}

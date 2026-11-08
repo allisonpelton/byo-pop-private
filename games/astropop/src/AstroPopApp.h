@@ -169,17 +169,19 @@ public:
 	void			ShowHallOfFame();                           // 0x4288a0
 	bool			AddHallOfFame(const std::string& theName, int theScore, int theSecond, int theMode, int theKind); // 0x429a40
 	void			ShowQuitDialog();                           // 0x422c00
-	void			ShowUserSelect();                           // 0x422870
+	void			ShowUserSelect();                           // 0x422870 the list of the players
+	void			ShowDeleteUserDialog();                     // 0x40bcc0 the list of the players to delete one from
+	void			SetLastUserName(const std::string& theName); // 0x4119e0 the registry value Users\LastUser
 	int				GetDialogSet();                             // 0x409080 the colour set of the boxes now: the game's mode + 2, 1 over the selector, 0 otherwise
 	void			CloseDialog(int theId);                     // 0x408d70 a box goes and the game goes on
 	void			ClosePowerDialog();                         // 0x4291c0 the box that asks for the pilot's power goes
 	void			ShowHelp();                                 // 0x40bea0 (stub)
 	void			CloseFullScreenHelp();                      // 0x428fb0 (stub)
 	void			ApplyOptions(bool theClose);                // 0x428a10 (stub)
-	void			UserSelectOk();                             // 0x430f00 (stub) the player chosen in the player list
+	void			UserSelectOk();                             // 0x430f00 the player chosen in the player list
 	void			NewUserOk();                                // 0x430500 the name typed in the new-player box
 	AstroDialog*	ShowLowMessageDialog(const std::string& theHeader, const std::string& theText);   // an OK box a little below the middle
-	void			DeleteUser(bool theConfirmed);              // 0x431310 (stub) asks, then deletes the player chosen
+	void			DeleteUser(bool theConfirmed);              // 0x431310 asks, then deletes the player chosen
 	void			ShowOptions(bool theFromGame);              // 0x40bd70
 	void			ShowContinueDialog(const std::string& thePilot, int theLevel); // 0x411ba0 with the CONTINUE? texts
 
