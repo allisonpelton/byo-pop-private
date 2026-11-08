@@ -93,7 +93,7 @@ while (Date.now() - t0 < seconds * 1000) {
   if (st.screen !== until) left = true;
   else if (left) { stop = 'reached ' + until; break; }
   const m = await ask(() => t.botMove());
-  if (m === null && st.paused && !st.dialogs && !st.talk && st.screen === 'battle') {
+  if (m === null && st.paused && !st.dialogs && !st.talk && (st.screen === 'battle' || st.screen === 'minigame')) {
     // the focus-loss pause ("Game Paused"): the page lost the focus (a hidden pane can), and a player brings it back
     refocus++;
     await t.focus();

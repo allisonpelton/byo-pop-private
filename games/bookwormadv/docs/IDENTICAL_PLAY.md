@@ -171,6 +171,33 @@ and Word Master with five guesses. On the way the bot learned to offer a mini-ga
 words from the same letters), to click its "Click anywhere to continue", and to press a Word Master key again only half a
 second after its first press, since the key drops a press that comes sooner.
 
+On the web the same bot played through `tools/web/moveloop.js`, the page's thin loop (`state`, `move`, the move as DOM
+mouse and key events on the canvas through the test kit's `playMove`), in the hidden Browser pane with `?silent=1` and
+`fast=1`, the game on its virtual clock on the page's own frames. A profile from the first chapter won the first book's
+first three chapters, from the map through every conversation, Level Up and lost turn to the treasure room, and the
+three mini-games each ran to their Game Over and the Hall of Fame with no error on the log: Letter Rip with 30 words,
+as natively, Link N' Spell with 116 and Word Master with five guesses, also as natively, all in seconds. A mini-game's clock counts updates,
+and on the fast clock it would run out between two questions, so Letter Rip and Link N' Spell ran with `lockstep=1`: the
+driver holds the game once the mini-game is up and steps it only through its moves' own waits. The page's own real-time
+frames were no use in the hidden pane, where the browser throttled them, at worst to one drawn frame in several seconds, so
+that a curtain once never closed in nine minutes. Full screen cannot be entered in the pane (its request stays pending), so in its
+place the canvas was drawn at twice its size (`scale=2`, 1600 by 1200 CSS pixels), where every DOM event lands at a
+scaled point as in full screen; the bot won the same three chapters to the treasure room that way. The pane's focus
+loss paused a mini-game once ("Game Paused"); the driver brings the focus back as a player's click does.
+
+The web runs found nothing wrong in the game, but they turned up three more faults of the bot and its drivers, all now
+fixed. Word Master's second press of one key (the B of TABBY) came on the fast clock within SDL's double-click time,
+which is real milliseconds: the second press counted as a double click and the key ignores those, so the guess lost a
+letter and the row no word fitted stood for good. The bot now also puts a press on the empty curtain below the keys
+between two presses of one key. A Link N' Spell Submit that did not take once left its word in the bar, the next word's letters
+piled onto it and nothing on the board could be picked; the bot now gives such a word another Submit, or its last letter
+back, once it has stood for 100 updates (`unstick`). And `unlock all` sets the flags that make Lex announce the unlocks
+when the main menu comes, so a `goto` sent straight after it left his panel open behind the next screen: the driver
+now clicks conversations and dialogs away between its first commands, as a player does. On the test kit's side the
+answer pattern had a backspace character where a word boundary was meant, so every `MOVE null` timed out (fixed on the
+trunk), and a hidden tab throttles a driver's own timers to as little as one a minute, so the driver steps a held game
+by updates alone.
+
 ## Oddities skipped
 
 **How long the loading screens stay up.** The original loads at startup and before each chapter on a thread, so its

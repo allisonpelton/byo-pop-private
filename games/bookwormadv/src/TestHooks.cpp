@@ -29,7 +29,7 @@
 //   lose            Lex near death (the scripts' _lex_near_death: a quarter of a heart), so that the enemy's next
 //                   attack ends the battle (the battle decides a death only then)
 //   move            MOVE {json} the move the drivers' bot makes next, or MOVE null (MoveForTests): "what" (dialog, talk,
-//                   tutorial, lostturn, wait, hint, overlay, gameover, word, scramble, guess, treasure, continue, enter), "word" for a word or
+//                   tutorial, lostturn, wait, hint, overlay, gameover, unstick, word, scramble, guess, treasure, continue, enter), "word" for a word or
 //                   a guess, and "input", the real input that makes it; it changes nothing
 #include <SDL.h>
 
@@ -648,10 +648,13 @@ std::string GameApp::MoveForTests()
 			int x = 0, y = 0;
 			if (sscanf(aToken.c_str(), "%d,%d", &x, &y) != 2)
 				continue;
-			// a key pressed again (a letter the guess has twice) half a second later: sooner, the key drops the press
+			// a key pressed again (a letter the guess has twice): 60 updates after the first, since the key drops a press
+			// that comes sooner, and with a press on the empty curtain below the keys between, since two presses on one spot
+			// within the double-click time (milliseconds of real time, which a fast run's updates do not take) make a double
+			// click, which the key ignores
 			bool anAgain = std::find(aPressed.begin(), aPressed.end(), std::make_pair(x, y)) != aPressed.end();
 			if (!anInput.empty())
-				anInput += anAgain ? ",{\"wait\":60}," : ",{\"wait\":8},";
+				anInput += anAgain ? ",{\"wait\":8}," + Click(30, 560) + ",{\"wait\":52}," : std::string(",{\"wait\":8},");
 			anInput += Click(x, y);
 			aPressed.push_back(std::make_pair(x, y));
 		}
@@ -659,6 +662,29 @@ std::string GameApp::MoveForTests()
 	}
 	// a board (a battle's, a mini-game's): its longest word, then Attack; Scramble when it has none
 	if (mBoard != nullptr && mBoard->mVisible && mLex != nullptr) {
+		// a word left in the bar (a Submit that did not take, so that the next word's letters piled onto it): once it
+		// has stood for 100 updates, Submit when it is a word, else its last letter given back, as a player does
+		static int sSelectedSince = -1;
+		bool aStill = !mBoard->mSelected.empty() && mDialogMap.empty() && !ShowingConversationPanel() &&
+		              !mBoard->IsPaused();
+		for (Tile* aTile : mBoard->mTiles)
+			aStill = aStill && !aTile->IsMoving() && !aTile->IsFalling();
+		if (!aStill)
+			sSelectedSince = -1;
+		else if (sSelectedSince < 0 || sSelectedSince > mUpdateCount)
+			sSelectedSince = mUpdateCount;
+		else if (mUpdateCount - sSelectedSince >= 100) {
+			sSelectedSince = mUpdateCount;
+			auto anAttack = mBoard->mButtons.find(Board::BUTTON_ATTACK);
+			if (mBoard->IsValidWord(Board::GetWord(mBoard->mSelected), true) && anAttack != mBoard->mButtons.end() &&
+			    anAttack->second != nullptr && !anAttack->second->mDisabled) {
+				Widget* aButton = anAttack->second;
+				std::string aCentre = Centre(aButton, mBoard->mX + aButton->mX, mBoard->mY + aButton->mY);
+				return Move("unstick", "{\"move\":[" + aCentre + "]},{\"wait\":20},{\"click\":[" + aCentre + "]}");
+			}
+			Tile* aLast = mBoard->mSelected.back();
+			return Move("unstick", Click(aLast->mX + 25, aLast->mY + 25));
+		}
 		if (BoardBusyForTests())
 			return "null";
 		bool aPickable = false;

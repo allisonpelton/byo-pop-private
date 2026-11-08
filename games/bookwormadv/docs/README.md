@@ -97,12 +97,17 @@ channel) each answer with one log line, `OK <command>` or `ERROR <command>: <rea
   seen it), `hint` (an
   arrow's first hot spot; one a click left standing is not offered again after 60 updates), `overlay` (Level Up's
   "Click to continue" or a script's overlay over the board: a click above it), `gameover` (a mini-game's
-  "Click anywhere to continue"), `guess` (Word Master: its keys, a letter it has twice half a second apart), `word` (the board's longest word, with `word`; in a mini-game the
+  "Click anywhere to continue"), `unstick` (a word left standing in the bar for 100 updates: Submit when it is a word, else its last letter
+  given back), `guess` (Word Master: its keys, a letter it has twice 60 updates apart with a press on the empty curtain
+  between, which the fast clock would otherwise make a double click the key ignores), `word` (the board's longest word, with `word`; in a mini-game the
   longest this mini-game's bot has not offered yet, since Letter Rip wants new words from the same letters) or `scramble`, `treasure` (the next of Lex's treasures) and
   `continue` in the treasure room, and `enter` on the map. `input` holds the clicks, the moves over Attack and the
   waits that make it. It changes nothing. `tools/movedriver.py` is the thin loop that plays by it natively (`state`,
   `move`, the move's input as real events on the live channel, `-commands` with an empty `-realinput`; `--realtime` for
-  the mini-games, whose clock runs out under `-fast` between two questions).
+  the mini-games, whose clock runs out under `-fast` between two questions). On the web `tools/web/moveloop.js` is the
+  same loop on the test page (`?player=1&fast=1&driver=games/bookwormadv/tools/web/moveloop.js`): `?first=` the commands
+  to start with (comma-separated), `?until=` the screen to stop at once it was left, `?seconds=`, `?scale=2` the canvas at
+  twice its size in place of full screen, `?lockstep=1` the game held in a mini-game and stepped only by the moves.
 
 `-boardlog=<file>` (on the web, the page adds it through `Module.callMain`) makes the game append what a driver of
 real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y | header | lines` (its
