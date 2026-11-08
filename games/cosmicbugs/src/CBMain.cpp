@@ -22,7 +22,7 @@ int gGoTo = 1;                         // 0x460034
 float gBeamSpeed = 0.14f;              // 0x460038
 int gFirstWeapon = 1;                  // 0x46003c
 int gLives = 5;                        // 0x460040
-int gTrialSlot = 3600000;              // 0x460044  cb.dat's third field
+int gSaveFormatField = 3600000;        // 0x460044  cb.dat's third field: only a placeholder for the file's format
 int gCursorShown = 1;                  // 0x460874
 int gFrame = 1;                        // 0x460a1c
 // And the zeroed (0x4623e0..)
@@ -171,7 +171,7 @@ long FileSize(const char* thePath)
 	return aSize;
 }
 
-// The current player's level, the trial's time (the file's third field: kept as the original has it, never used) and the players come last; the player's game in progress is
+// The current player's level, the file's third field (a placeholder: what the file held, written back as it was) and the players come last; the player's game in progress is
 // taken (or cleared, with no lives left) when on a board. The difficulty goes to the eleventh player's slot only
 // after the write, so the file has the one before.
 void SaveProfiles()
@@ -181,7 +181,7 @@ void SaveProfiles()
 	{
 		std::fwrite(gHighScores, 0x24, 8, aFile);
 		std::fwrite(&gProfiles[gProfile].levelReached, 4, 1, aFile);
-		std::fwrite(&gTrialSlot, 4, 1, aFile);
+		std::fwrite(&gSaveFormatField, 4, 1, aFile);
 		std::fwrite(&gAutoFire, 4, 1, aFile);
 		Profile* aProfile = &gProfiles[gProfile];
 		aProfile->autoFire = gAutoFire;
@@ -274,8 +274,7 @@ void ResetProfiles()
 	SaveProfiles();
 }
 
-// cb.dat in SaveProfiles' order, or the defaults when it is missing or not its size. The trial has at least a
-// minute left.
+// cb.dat in SaveProfiles' order, or the defaults when it is missing or not its size.
 void LoadProfiles()
 {
 	long aSize = FileSize(Sys_SavePath("cb.dat"));
@@ -293,7 +292,7 @@ void LoadProfiles()
 	{
 		std::fread(gHighScores, 0x24, 8, aFile);
 		std::fread(&gProfiles[gProfile].levelReached, 4, 1, aFile);
-		std::fread(&gTrialSlot, 4, 1, aFile);
+		std::fread(&gSaveFormatField, 4, 1, aFile);
 		std::fread(&gAutoFire, 4, 1, aFile);
 		std::fread(&gProfile, 4, 1, aFile);
 		std::fread(gProfiles, 0x44, 0xb, aFile);
@@ -303,8 +302,6 @@ void LoadProfiles()
 		gDifficulty = gProfiles[10].riderHits;
 		// (the original closes the file a second time here)
 	}
-	if (gTrialSlot < 60000)
-		gTrialSlot = 60000;
 }
 
 int SortHighScores()
