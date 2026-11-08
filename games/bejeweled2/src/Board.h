@@ -320,7 +320,6 @@ public:
 	int				m15df0;
 	float			m15e04;
 	int				m15e08;
-	int				m15e10;
 	int				m15e14, m15e18;
 	int				mHintCountdown;     // +0x15e1c
 	double			m15e30, m15e38;
@@ -342,7 +341,6 @@ public:
 	bool			m15f24;
 	int				m15f30, m15f34;
 	bool			m15f38;
-	int				m15f3c;
 	Widget*			m15f40;
 	bool			m15f50;
 	MemoryImage*	m15f60;             // the static half of the screen (a DDImage that DrawNormal2d makes)
@@ -361,6 +359,10 @@ public:
 	int				m16024, m16028, m1602c, m16030;
 
 public:
+	// port: the board's memory is zeroed first. The original's constructor leaves about sixty members unset (counters that
+	// the first game reads as zero from fresh memory), and the port does not read what happens to be there
+	static void*	operator new(size_t theSize);
+	static void		operator delete(void* thePointer);
 	Board(WinDMApp* theApp);                                        // 0x5ad581
 	virtual ~Board();                                               // 0x5ad7d1
 

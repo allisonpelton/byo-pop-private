@@ -2,6 +2,7 @@
 // ButtonDepress 0x5ad35c).
 
 #include "Board.h"
+#include <cstring>
 #include "WinDMApp.h"
 #include "Profile.h"
 #include "Res.h"
@@ -30,6 +31,18 @@ extern Color gOrigGemColors[8];
 float gSinTable[4096];
 float gCosTable[4096];
 static bool gTablesMade = false;        // DAT_006797c8
+
+void* Board::operator new(size_t theSize)
+{
+	void* aPointer = ::operator new(theSize);
+	memset(aPointer, 0, theSize);
+	return aPointer;
+}
+
+void Board::operator delete(void* thePointer)
+{
+	::operator delete(thePointer);
+}
 
 // 0x5ad581
 Board::Board(WinDMApp* theApp)

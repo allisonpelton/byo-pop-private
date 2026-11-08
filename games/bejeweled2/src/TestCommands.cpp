@@ -153,8 +153,9 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				(aMode >= 0 && aMode < 9) ? kModeNames[aMode] : "?", aMode, aBoard->mNextLevel, aBoard->mLevel,
 				aBoard->mScore, PhaseName(aBoard->mState), aBoard->mState, aBoard->mUpdateCnt, aBusy ? "true" : "false",
 				(aBoard->mPauseCount > 0 || aBoard->mInterfacePauseCount > 0) ? "true" : "false");
-			aLine += StrFormat(",\"hyperspace\":%s,\"tutorial\":%s", aBoard->mHyperspace != NULL ? "true" : "false",
-				aBoard->mIsPlanetIntro ? "true" : "false");
+			aLine += StrFormat(",\"hyperspace\":%s,\"tutorial\":%s,\"over\":%s", aBoard->mHyperspace != NULL ? "true" : "false",
+				aBoard->mIsPlanetIntro ? "true" : "false",
+				(aBoard->mState == Board::STATE_GAME_OVER_FALL || aBoard->mState == Board::STATE_7 || mHighScoreWidget != NULL) ? "true" : "false");
 			if (aBoard->mSelectedPiece != NULL)
 				aLine += StrFormat(",\"selected\":[%d,%d]", aBoard->mSelectedPiece->mCol, aBoard->mSelectedPiece->mRow);
 			// the board: a row a string, a gem by its type's character, . for none
@@ -290,7 +291,50 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		}
 		if (mGameMode == Board::MODE_PUZZLE || mGameMode == Board::MODE_COGNITO)
 		{
-			ReplyError(theCommand, "the puzzle modes have no bot move yet");
+			// the puzzle modes: the bot follows the puzzle's own solution file (the moves the hint shows)
+			if (aBoard->mState != Board::STATE_IDLE || aBoard->mSelectedPiece != NULL || aBoard->mHyperspace != NULL ||
+				aBoard->mPauseCount > 0 || aBoard->mInterfacePauseCount > 0 || aBoard->mUnpauseDelay > 0 ||
+				aBoard->mPendingPod != -1)
+			{
+				Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
+				return true;
+			}
+			unsigned int aWords[64];
+			int aWordCount = aBoard->FindPuzzleValidMoves(aWords, 64);
+			if (aWordCount == 0)
+			{
+				Reply("MOVE null");
+				return true;
+			}
+			// the first valid move; the byte is column, row and direction (left, up, right, down)
+			static const int aStep[4][2] = {{-1, 0}, {0, -1}, {1, 0}, {0, 1}};
+			unsigned char aByte = aBoard->TranslateMoveByte((unsigned char)aWords[0]);
+			int aCol1 = aByte & 7, aRow1 = aByte >> 3 & 7;
+			int aCol2 = aCol1 + aStep[aByte >> 6][0], aRow2 = aRow1 + aStep[aByte >> 6][1];
+			Piece* aFirst = aBoard->mBoard[aRow1][aCol1];
+			if (aFirst == NULL || aCol2 < 0 || aCol2 > 7 || aRow2 < 0 || aRow2 > 7)
+			{
+				Reply("MOVE null");
+				return true;
+			}
+			int aX1 = ScaleNum((int)(aFirst->mX + 42.0f), 0), aY1 = ScaleNum((int)(aFirst->mY + 42.0f), 0);
+			int aX2, aY2;
+			Piece* aSecond = aBoard->mBoard[aRow2][aCol2];
+			if (aSecond != NULL)
+			{
+				aX2 = ScaleNum((int)(aSecond->mX + 42.0f), 0);
+				aY2 = ScaleNum((int)(aSecond->mY + 42.0f), 0);
+			}
+			else
+			{
+				// an empty square: the neighbour's place, one square (84 pixels) from the first gem (the second click's
+				// vertical direction is reversed on a flipped board)
+				aX2 = aX1 + (aCol2 - aCol1) * ScaleNum(84, 0);
+				aY2 = aY1 + (aRow2 - aRow1) * ScaleNum(84, 0) * (aBoard->mFlipped ? -1 : 1);
+			}
+			Reply(StrFormat("MOVE {\"kind\":\"swap\",\"from\":[%d,%d],\"to\":[%d,%d],\"input\":[{\"move\":[%d,%d]},"
+				"{\"click\":[%d,%d]},{\"move\":[%d,%d]},{\"click\":[%d,%d]},{\"wait\":4}]}",
+				aCol1, aRow1, aCol2, aRow2, aX1, aY1, aX1, aY1, aX2, aY2, aX2, aY2));
 			return true;
 		}
 		if (aBoard->mState == Board::STATE_GAME_OVER_FALL)

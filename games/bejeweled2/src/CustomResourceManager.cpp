@@ -28,7 +28,7 @@ bool CustomResourceManager::DoLoadImage(ImageRes* theRes)
 		theRes->mPath = "images\\" + SexyStringToStringFast(theRes->mXMLAttributes[aKey]);
 	}
 
-	if (theRes->mPath == "images\!")
+	if (theRes->mPath == "images\\!")
 	{
 		// a blank image for the program to draw into
 		theRes->mImage = new DDImage(mApp->mDDInterface);

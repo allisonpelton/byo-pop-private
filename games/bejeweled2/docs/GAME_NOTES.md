@@ -34,6 +34,9 @@ Each of these has no visible effect on play unless the entry says so.
 - **Uninitialised state is zeroed**: the ranges of a `Piece` that the original never sets, a ShockWave's grow flag (set
   true, as the original's uninitialised byte happens to be), `PuzzlePod::mIndex` (0 until the overlay's constructor sets it)
   and the tunnel rings' size, and points' x and y in Hyperspace (DoUpdate sets them before they are read).
+- **The board's memory is zeroed** (`Board::operator new`). The original's constructor leaves some sixty members unset (for
+  example `mChainCount`, the swap and hint phases, the slide values), which the first game reads as zero from fresh memory and a
+  later game reads as the last board's leftovers; the port always reads zero.
 - **A gem colour table copy**: `gOrigGemColors` is copied into `gGemColors` as the original's code does at start.
 - **`m1728` is never set** (the original's code never does either; kept only for the offsets).
 - **EffectOverlay.** The destructor frees the text picture (`mTextImage`), which the original leaks. The constructor zeroes
