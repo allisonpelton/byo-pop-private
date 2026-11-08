@@ -150,6 +150,25 @@ takes. A `partner.xml` that set MaxTime to 0, MaxPlays, ShowTrialStatus or Regis
 and no longer changes the port. The options dialog's "more games" partner link was already left out (the user,
 2026-10-24) and its row closed up; the original's dialog is one row taller for it.
 
+### The standard test commands
+
+The port answers the standard test commands (`docs/TEST_COMMANDS.md`) in `BookWormApp::HandleScriptCommand`
+(`src/testhooks/Commands.cpp`), reachable only from a test: `-script` lines and the live channel (`-commands`, the
+web's `?driver=move`). A run that sends none plays as before (the suites and the frozen baseline are unchanged). Each
+answers with one line: `STATE {...}`, `MOVE {...}`, `OK <command>` or `ERROR <command>: <reason>`.
+
+| Command | What it does |
+|---|---|
+| `state` | `STATE {json}`: `screen` (title, menu, help, highscores, game, none), `dialog` (options, continue, quit, hint, credits, message, users, deleteuser, confirmdelete, newuser, leave, other; null without one), `mode` (classic, action), `player`, and in a game `level` (from 1), `score`, `timer` (Action's fire timer), `fire` (the fire meter), `bonus` (the bonus word), `board` (`state`, `busy`, `letters` and `types` as eight strings of seven, `.` where a column is short, and the `selection`), then `over` (the game-over table is up) and `busy`. |
+| `goto <screen>` | `menu`, `options`, `help`, `highscores`, `credits`, `classic` or `action` through the game's own functions. `title` is an error: the title screen does not come back. |
+| `level <n>` | Level n (1 to 42) of the game in play: the level before it with its score threshold reached, then the game's own `NextLevel`. |
+| `unlock all` | `ERROR`: the game has nothing locked. |
+| `set <name> <value>` | `score`, `timer`, `fire`, or `mode classic`/`action` (outside a game: the mode the next game starts in). |
+| `win` | The level's threshold reached and the level completed as a word would complete it (the summary follows). |
+| `lose` | The game lost as it loses one: the first unselected tile of the bottom row turns to fire (in Action the fire countdown also runs out), then the game's own fire scan (`BurnTiles(false)`) starts the shake, the burn-down, the jingle, the high scores and the game-over summary. `lose <n>` instead arms it: the next `move` after the driver has played n words answers `lose` and starts it, so a driver plays a whole game that ends. It is the one case where `move` changes anything, and only after a test armed it. |
+| `seed <n>` | The C library generator, the framework's reseed and the game's generator (`gGameRand`) from it, as a start seeds them. |
+| `move` | `MOVE {json}`: the next input of the port's word solver (`Solver::FirstHint`, the first hint the hint button would give), or `MOVE null` (loading, the board busy, an animation running). Its `what`: `play` (the title's link), `name` (the new-player dialog: "Driver" and Enter), `ok` (a hint or message dialog; the continue question is answered no), `help`, `newgame` (the selector's mode button), `word` (with `word`, `score` and `kind`: the path's tiles clicked, then Submit, or a second click on the last tile when a definition balloon covers Submit), `scramble` (Lex clicked when the board spells nothing), `summary`/`gameover` (the level summary's button), `fame` (the Hall of Fame's continue). Every click goes to a point of its widget that the widget manager reaches. |
+
 ---
 
 ## Part 1. The application (BookWormApp, Math, user profiles)

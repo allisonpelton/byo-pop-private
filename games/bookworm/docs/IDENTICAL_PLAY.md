@@ -1,7 +1,7 @@
 # BookWorm Deluxe: the identical-play pass
 
 Phase one of the pass CLAUDE.md names: **plays identical**. The same input gives the same games in the original and the
-port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is not done.
+port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) follows under "Phase 2".
 
 The original is the retail BookWorm Deluxe 1.03 (the version the port was decompiled from; the Steam copy wraps a later build
 and refuses to start outside Steam), the game carved out of its `Bookworm.exe` (`re/bookworm/bin/BookwormGame.exe`). It runs
@@ -85,6 +85,40 @@ of games, and `games/bookworm/tools/identical/` (`setup.sh`, `case.sh`, `save.sh
 bookworm`. Four bot runs with no mods (the two-game session c2, the three-game session m1, and s1's Classic game quit at
 update 3,000 and continued from its file) must write the same non-empty state log in the current port and in the baseline.
 That way later fixes and mods are shown to leave unmodded play as it was compared with the original.
+
+## Phase 2: screens
+
+The original takes shots only inside Windows Sandbox (`origrun --sandbox`), so each tour runs there on a fresh copy and a
+fresh registry, on the virtual clock with the scripted cursor; the port runs the same tour under rundesk with `-fast`.
+The tools are in `tools/shots/`: a tour is a list of `<update> <command>` lines, with `@port` or `@orig` on a line one side
+alone needs (`make.py` turns it into the port's `-script` or origrun's script). The original's loading thread runs in
+real time while its clock races, so its script waits 60 real seconds, marks, and times every later line from the mark.
+`fromlog.py` turns a bot game's log into a tour, with a shot after every tenth word, at every level summary, at each
+dialog, at the game over and at the Hall of Fame. Every click a script sends the original was checked against that run's
+own shot before it was trusted (one early menu click landed on the original's "More Games" button, which the port no
+longer has; it opened only an "Open Browser" box in the sandbox and was moved off it). `tools/shotdiff` compares the
+pictures; every box it flags was looked at and judged.
+
+| Tour | Pairs | Same | Faint | Flagged, and why |
+|---|---|---|---|---|
+| menus (title, new player, selector, help pages, Hall of Fame, options, credits, players, quit and leave questions) | 37 | 33 | 0 | 4: the options and credits dialogs, which in the original have one more row for the "More Games" button (taken out with the registration code) |
+| Classic (seed 7: 59 words, 7 levels, 3 dialogs, game over, Hall of Fame) | 17 | 2 | 9 | 6: flying word tiles (below) |
+| Action (seed 8: 112 words, 12 levels, 8 dialogs, game over, Hall of Fame) | 33 | 9 | 13 | 11: flying word tiles (below) |
+
+**Flying word tiles.** A submitted word's tiles fly to Lex shrinking, drawn by a stretched blit with fast stretch on
+(`FlyingPieceList::Draw`). The sandbox has no 3D, so the original runs in its software mode (its Hardware Acceleration box
+is unchecked there), and its software stretch (`DDImage::StretchBlt` at 0x45e200) steps its 16.16 source position before
+it reads, so the first column it draws is the source's second and the last is the next letter's first. It also comes out
+two levels darker. The port draws every frame on the GPU, as the original's 3D mode does, and samples texel centres. The
+tiles are in the same place and of the same size on both sides; only which source column lands on which pixel differs.
+The framework's software `MemoryImage::FastStretchBlt` already samples as the original's does, so a port drawn in
+software would match the sandbox. Kept: the port matches the original's 3D mode, which is what the game uses on a machine
+with a graphics card.
+
+**The web build** ran the menu and Classic tours under Node (`tools/shots/web.sh`, `webcmp.sh`) and was compared with the
+native port's shots: 33 of 37 menu shots identical, 2 faint, and 2 differing only in the options dialog's Hardware
+Acceleration box, which is unchecked under Node (no 3D there) as it is in the sandbox's original; all 17 Classic shots
+identical or faint (the flying tiles again, a level or two apart).
 
 ## Oddities (skipped)
 
