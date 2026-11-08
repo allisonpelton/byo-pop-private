@@ -13,9 +13,27 @@
 //   focus lose|regain
 //                   the window loses or regains the focus, as SDL's focus events do (a -script run ignores the real
 //                   ones); origrun's command of the same name posts the original's WM_ACTIVATEAPP
+//
+// The drivers' commands (docs/TEST_COMMANDS.md): each logs "OK <command>" or "ERROR <command>: <reason>". A command
+// that waits for its screen (a curtain, the title) tries again every 10 updates, 300 times at most.
+//   state           STATE {json}: screen, mode, level (book.chapter), health, maxhealth, enemy, enemyhealth, and
+//                   the board: its letters row by row ("." for none), "+" after a letter that can be picked
+//   goto <where>    menu (once the title has gone on to it); adventure, arena, minigames, tome, mediaplayer,
+//                   options, highscores (the main menu's items); a mini-game by its class (wordmaster, letterrip,
+//                   linknspell: the mini-games' menu's buttons, opened first from the main menu)
+//   unlock all      the arena, the mini-games and the tome, as the end of a book unlocks them (the arena still
+//                   wants the first book's sixth chapter)
+//   set health|enemy <n>
+//                   Lex's or the enemy's health (the scripts' _LexSetHealth, _EnemySetHealth)
+//   win             the battle's enemy dies (the scripts' _KillEnemy, only while the battle waits for a word)
+//   lose            Lex near death (the scripts' _lex_near_death: a quarter of a heart), so that the enemy's next
+//                   attack ends the battle (the battle decides a death only then)
 #include <SDL.h>
 
 #include <cstdio>
+#include <algorithm>
+#include <cctype>
+#include <list>
 #include <cstdlib>
 #include <string>
 #include <utility>
@@ -24,10 +42,17 @@
 #include "Board.h"
 #include "FadeButton.h"
 #include "GameApp.h"
+#include "DialogButton.h"
+#include "GameDialog.h"
 #include "GameText.h"
 #include "Lex.h"
 #include "SongPlayer.h"
 #include "LuaSupport.h"
+#include "MainMenu.h"
+#include "MinigameMenu.h"
+#include "CurtainTransition.h"
+#include "Profile.h"
+#include "TreasureScreen.h"
 #include "Tile.h"
 #include "WidgetManager.h"
 
@@ -58,7 +83,51 @@ bool Spell(const std::string& theWord, const TileLetters& theTiles, std::vector<
 	return true;
 }
 
+// runs theChunk; its first result, as Lua's tostring gives it, in theResult; false with the error in theResult
+bool RunLua(const std::string& theChunk, std::string& theResult)
+{
+	lua_State* L = LuaLib::gLuaSupport->L;
+	int aTop = lua_gettop(L);
+	bool anOk = luaL_loadbuffer(L, theChunk.data(), theChunk.size(), "=test") == 0 && lua_pcall(L, 0, 1, 0) == 0;
+	const char* aText = lua_tostring(L, -1);
+	theResult = aText != nullptr ? aText : "";
+	lua_settop(L, aTop);
+	return anOk;
+}
+
+std::string JsonString(const std::string& theText)
+{
+	std::string aJson = "\"";
+	for (char c : theText) {
+		if (c == '"' || c == '\\')
+			aJson += '\\';
+		if ((unsigned char)c >= 0x20)
+			aJson += c;
+	}
+	return aJson + "\"";
+}
+
+std::string Squash(const std::string& theText)  // lower case, letters and digits only
+{
+	std::string aSquashed;
+	for (char c : theText)
+		if (isalnum((unsigned char)c))
+			aSquashed += (char)tolower((unsigned char)c);
+	return aSquashed;
+}
+
 }  // namespace
+
+// port: the screen showing, for the test command state and the board log
+std::string GameApp::ScreenForTests()
+{
+	return mCredits != nullptr ? "credits" : mHallOfFame != nullptr ? "highscores"
+	       : mBookScreen != nullptr ? "tome" : mMiniGameMenu != nullptr ? "minigames"
+	       : mBoard != nullptr ? (mBoard->IsMiniGame() ? "minigame" : "battle")
+	       : mTreasureScreen != nullptr && mTreasureScreen->mVisible ? "treasure"
+	       : mChapterLoadScreen != nullptr ? "loading" : mBookManager != nullptr ? "map"
+	       : mMainMenu != nullptr ? "menu" : mTitleScreen != nullptr ? "title" : "none";
+}
 
 // port: is the battle's board busy (a dialog, a conversation, a pause, tiles moving, falling or already in the word)
 bool GameApp::BoardBusyForTests()
@@ -98,15 +167,52 @@ void GameApp::LogBoardForTests()
 {
 	static std::string sLast;
 	static int sCount = 0;
+	// a dialog: "dialog: <n> <id> ok x,y", its first button (yes, ok), once for each dialog shown
+	static Dialog* sLastDialog = nullptr;
+	Dialog* aDialog = mDialogMap.empty() ? nullptr : mDialogMap.rbegin()->second;
+	if (aDialog != sLastDialog && aDialog != nullptr) {
+		Widget* aButton = aDialog->mYesButton;
+		if (GameDialog* aGameDialog = dynamic_cast<GameDialog*>(aDialog))
+			aButton = aGameDialog->mButton1;
+		if (aButton != nullptr && aDialog->mUpdateCnt > 30) {  // once it is in place and takes clicks
+			sLastDialog = aDialog;
+			if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+				fprintf(aFile, "dialog: %d %d ok %d,%d\n", ++sCount, aDialog->mId,
+				        aDialog->mX + aButton->mX + aButton->mWidth / 2, aDialog->mY + aButton->mY + aButton->mHeight / 2);
+				fclose(aFile);
+			}
+		}
+	}
+	if (aDialog == nullptr)
+		sLastDialog = nullptr;
+	// the screen, when it changes: "screen: <n> <name>"
+	static std::string sLastScreen;
+	std::string aScreen = ScreenForTests();
+	if (aScreen != sLastScreen) {
+		sLastScreen = aScreen;
+		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+			fprintf(aFile, "screen: %d %s\n", ++sCount, aScreen.c_str());
+			fclose(aFile);
+		}
+	}
 	if (mBoard == nullptr || mLex == nullptr || BoardBusyForTests()) {
 		sLast.clear();
 		return;
 	}
 	// the word list is searched only when the tiles changed
+	// (and none while no tile can be picked: the enemy's turn)
 	std::string aKey;
-	for (Tile* aTile : mBoard->mTiles)
+	bool aPickable = false;
+	for (Tile* aTile : mBoard->mTiles) {
+		bool aCanSelect = aTile->CanSelect(aTile->mX + 25, aTile->mY + 25);
+		aPickable = aPickable || aCanSelect;
 		aKey += StrFormat("%s%d,%d%c;", Board::GetWord(std::list<Tile*>(1, aTile)).c_str(), aTile->mX, aTile->mY,
-		                  aTile->CanSelect(aTile->mX + 25, aTile->mY + 25) ? '+' : '-');
+		                  aCanSelect ? '+' : '-');
+	}
+	if (!aPickable) {
+		sLast.clear();
+		return;
+	}
 	if (aKey == sLast)
 		return;
 	sLast = aKey;
@@ -115,19 +221,196 @@ void GameApp::LogBoardForTests()
 	std::string aLine = aWord.empty() ? "-" : aWord;
 	for (Tile* aTile : anOrder)
 		aLine += StrFormat(" %d,%d", aTile->mX + 25, aTile->mY + 25);
-	Widget* anAttack = mBoard->mButtons[Board::BUTTON_ATTACK];
-	Widget* aScramble = mBoard->mButtons[Board::BUTTON_SCRAMBLE];
-	aLine += StrFormat(" attack %d,%d scramble %d,%d", mBoard->mX + anAttack->mX + anAttack->mWidth / 2,
-	                   mBoard->mY + anAttack->mY + anAttack->mHeight / 2, mBoard->mX + aScramble->mX + aScramble->mWidth / 2,
-	                   mBoard->mY + aScramble->mY + aScramble->mHeight / 2);
+	// a mini-game's board has no Scramble (find: the map's [] would add an empty one, which the board then draws)
+	for (int aButton : {(int)Board::BUTTON_ATTACK, (int)Board::BUTTON_SCRAMBLE}) {
+		auto anIt = mBoard->mButtons.find(aButton);
+		if (anIt == mBoard->mButtons.end() || anIt->second == nullptr)
+			aLine += aButton == Board::BUTTON_ATTACK ? " attack -" : " scramble -";
+		else
+			aLine += StrFormat(aButton == Board::BUTTON_ATTACK ? " attack %d,%d" : " scramble %d,%d",
+			                   mBoard->mX + anIt->second->mX + anIt->second->mWidth / 2,
+			                   mBoard->mY + anIt->second->mY + anIt->second->mHeight / 2);
+	}
 	if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
 		fprintf(aFile, "board: %d %s\n", ++sCount, aLine.c_str());
 		fclose(aFile);
 	}
 }
 
+// port: the drivers' commands (see the top of this file); false for any other command
+bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
+{
+	const std::string& aCommand = theCommand.mCommand;
+	if (aCommand != "state" && aCommand != "goto" && aCommand != "level" && aCommand != "unlock" &&
+	    aCommand != "set" && aCommand != "win" && aCommand != "lose" && aCommand != "seed")
+		return false;
+	// the arguments, without a "try=" a retry added
+	std::string anArgs = theCommand.mArgs;
+	int aTries = 0;
+	size_t aTryPos = anArgs.find(" try=");
+	if (aTryPos != std::string::npos) {
+		aTries = atoi(anArgs.c_str() + aTryPos + 5);
+		anArgs.erase(aTryPos);
+	}
+	std::string aFull = anArgs.empty() ? aCommand : aCommand + " " + anArgs;
+	auto Ok = [&]() { SDL_Log("OK %s", aFull.c_str()); return true; };
+	auto Error = [&](const std::string& theReason) { SDL_Log("ERROR %s: %s", aFull.c_str(), theReason.c_str()); return true; };
+	auto Later = [&](const std::string& theWhy) {
+		if (aTries >= 300)
+			return Error(theWhy);
+		AddScriptCommand(mUpdateCount + 10, aCommand, StrFormat("%s try=%d", anArgs.c_str(), aTries + 1));
+		return true;
+	};
+	bool aCurtainBusy = mCurtain != nullptr && !(mCurtain->mDone && mCurtain->mDrawn);
+	bool aBattle = mBoard != nullptr && !mBoard->IsMiniGame();
+
+	if (aCommand == "state") {
+		std::string aScreen = ScreenForTests();
+		std::string aJson = "{\"screen\":" + JsonString(aScreen);
+		if (mBoard != nullptr && !aBattle)
+			aJson += ",\"mode\":" + JsonString(mMiniGameName);
+		else if (mProfile != nullptr && mProfile->KeyExists("CurrentBook"))
+			aJson += StrFormat(",\"mode\":\"adventure\",\"level\":\"%d.%d\"", mProfile->GetInt("CurrentBook"),
+			                   mProfile->GetInt("CurrentChapter"));
+		aJson += StrFormat(",\"curtain\":%s,\"dialogs\":%d,\"talk\":%s", aCurtainBusy ? "true" : "false",
+		                   (int)mDialogMap.size(), ShowingConversationPanel() ? "true" : "false");
+		std::string aValue;
+		if (aBattle && RunLua("local e = gBattleEngine local p, n = e.mPlayerPtr, e.mEnemyPtr "
+		                      "return p.mHealth .. ',' .. p.mMaxHealth .. ',' .. (n and n.mHealth or '') .. ',' .. "
+		                      "(n and n.mMaxHealth or '') .. ',' .. (n and n.mName or '')", aValue)) {
+			double aHealth = 0, aMax = 0, anEnemy = 0, anEnemyMax = 0;  // in hearts, by quarters
+			sscanf(aValue.c_str(), "%lf,%lf,%lf,%lf", &aHealth, &aMax, &anEnemy, &anEnemyMax);
+			aJson += StrFormat(",\"health\":%g,\"maxhealth\":%g,\"enemyhealth\":%g,\"enemymaxhealth\":%g", aHealth, aMax,
+			                   anEnemy, anEnemyMax);
+			size_t aComma = aValue.rfind(',');
+			aJson += ",\"enemy\":" + JsonString(aComma == std::string::npos ? "" : aValue.substr(aComma + 1));
+		}
+		if (mBoard != nullptr) {
+			// the letters by row and column
+			int aRows = 0, aCols = 0;
+			for (Tile* aTile : mBoard->mTiles) {
+				aRows = std::max(aRows, aTile->mRow + 1);
+				aCols = std::max(aCols, aTile->mCol + 1);
+			}
+			std::vector<std::string> aCells((size_t)(aRows * aCols), ".");
+			for (Tile* aTile : mBoard->mTiles)
+				if (aTile->mRow >= 0 && aTile->mCol >= 0)
+					aCells[(size_t)(aTile->mRow * aCols + aTile->mCol)] =
+					    Board::GetWord(std::list<Tile*>(1, aTile)) +
+					    (aTile->CanSelect(aTile->mX + 25, aTile->mY + 25) ? "+" : "");
+			aJson += ",\"board\":[";
+			for (int r = 0; r < aRows; r++) {
+				std::string aRow;
+				for (int c = 0; c < aCols; c++)
+					aRow += (c > 0 ? " " : "") + aCells[(size_t)(r * aCols + c)];
+				aJson += (r > 0 ? "," : "") + JsonString(aRow);
+			}
+			aJson += StrFormat("],\"paused\":%s,\"busy\":%s", mBoard->IsPaused() ? "true" : "false",
+			                   BoardBusyForTests() ? "true" : "false");
+		}
+		SDL_Log("STATE %s}", aJson.c_str());
+		return true;
+	}
+
+	if (aCommand == "goto") {
+		std::string aWhere = Squash(anArgs);
+		static const std::pair<const char*, int> kItems[] = {
+		    {"adventure", MainMenu::ITEM_ADVENTURE}, {"arena", MainMenu::ITEM_ARENA},
+		    {"minigames", MainMenu::ITEM_MINI_GAMES}, {"tome", MainMenu::ITEM_TOME},
+		    {"mediaplayer", MainMenu::ITEM_FILM_REEL}, {"options", MainMenu::ITEM_OPTIONS},
+		    {"highscores", MainMenu::ITEM_HALL_OF_FAME}};
+		bool aMenuReady = mMainMenu != nullptr && mTitleScreen == nullptr && !aCurtainBusy && mDialogMap.empty() &&
+		                  mBookScreen == nullptr && mHallOfFame == nullptr && mMiniGameMenu == nullptr && mBoard == nullptr &&
+		                  !mMainMenu->mDisabled;
+		if (aWhere == "menu")
+			return aMenuReady ? Ok() : Later("not at the main menu");
+		for (const auto& anItem : kItems)
+			if (aWhere == anItem.first) {
+				if (!aMenuReady)
+					return Later("not at the main menu");
+				mMainMenu->ActivateItem(anItem.second);
+				return Ok();
+			}
+		// a mini-game: its button on the mini-games' menu, which the main menu opens first
+		if (mMiniGameMenu == nullptr) {
+			if (aMenuReady && aTries == 0) {
+				if (mProfile == nullptr || !mProfile->KeyExists("UnlockedMiniGames") || !mProfile->GetBool("UnlockedMiniGames"))
+					return Error("the mini-games are locked");
+				mMainMenu->ActivateItem(MainMenu::ITEM_MINI_GAMES);
+			}
+			return Later("not at the mini-games' menu");
+		}
+		if (aCurtainBusy)
+			return Later("the curtain is moving");
+		for (size_t i = 0; i < mMiniGameMenu->mMiniGames.size(); i++)
+			if (Squash(mMiniGameMenu->mMiniGames[i].mClass) == aWhere) {
+				if (i >= mMiniGameMenu->mButtons.size() || mMiniGameMenu->mButtons[i]->mDisabled)
+					return Error("its button is disabled");
+				mMiniGameMenu->ButtonDepress((int)i);
+				return Ok();
+			}
+		return Error("no such screen or mini-game");
+	}
+
+	if (aCommand == "unlock") {
+		if (Squash(anArgs) != "all")
+			return Error("only \"unlock all\"");
+		if (mProfile == nullptr)
+			return Error("no player");
+		// as BookManager's end of a book sets them (bookmanager.lua)
+		std::string anError;
+		if (!RunLua("profile.Set('UnlockedArena', true) profile.Set('NeedsArenaDialog', true) "
+		            "profile.Set('UnlockedMiniGames', true) profile.Set('NeedsMiniGamesDialog', true) "
+		            "profile.Set('UnlockedBestiary', true) "
+		            "if not profile.KeyExists('NeedsBestiaryDialog') then profile.Set('NeedsBestiaryDialog', true) end",
+		            anError))
+			return Error(anError);
+		if (mMainMenu != nullptr)
+			mMainMenu->RefreshUnlocks();
+		return Ok();
+	}
+
+	if (aCommand == "set" || aCommand == "win" || aCommand == "lose") {
+		if (!aBattle)
+			return Error("not in a battle");
+		std::string aChunk;
+		if (aCommand == "win") {
+			// the scripts' cheat does nothing unless the battle waits for a word
+			if (BoardBusyForTests())
+				return Later("the battle is busy");
+			aChunk = "if gBattleEngine.mEnemyPtr == nil or gBattleEngine.mEnemyPtr.mHealth <= 0 then return 'no enemy' end "
+			         "_KillEnemy() return ''";
+		} else if (aCommand == "lose")
+			aChunk = "_lex_near_death() return ''";  // the battle decides a death after the enemy's attack
+		else {
+			char aName[32] = "";
+			int aValue = 0;
+			if (sscanf(anArgs.c_str(), "%31s %d", aName, &aValue) != 2)
+				return Error("set health|enemy <n>");
+			std::string aKey = aName;
+			if (aKey == "health")
+				aChunk = StrFormat("_LexSetHealth(%d) return ''", aValue);
+			else if (aKey == "enemy" || aKey == "enemyhealth")
+				aChunk = StrFormat("if gBattleEngine.mEnemyPtr == nil then return 'no enemy' end _EnemySetHealth(%d) return ''",
+				                   aValue);
+			else
+				return Error("only health and enemy");
+		}
+		std::string aResult;
+		if (!RunLua(aChunk, aResult))
+			return Error(aResult);
+		return aResult.empty() ? Ok() : Error(aResult);
+	}
+
+	if (aCommand == "level")
+		return Error("not yet: the map's chapters are the scripts' (goto adventure, then click a chapter)");
+	return Error("the game's seed is -seed=<n> when it starts");  // seed
+}
+
 bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
+	if (HandleDriverCommand(theCommand))
+		return true;
 	if (theCommand.mCommand == "lua") {
 		lua_State* L = LuaLib::gLuaSupport->L;
 		if (luaL_loadbuffer(L, theCommand.mArgs.data(), theCommand.mArgs.size(), "=script") != 0 ||

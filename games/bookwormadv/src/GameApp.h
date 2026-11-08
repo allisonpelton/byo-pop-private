@@ -178,6 +178,9 @@ public:
 	std::string BestWordForTests(size_t theMax, std::vector<Tile*>& theOrder);
 	void LogBoardForTests();
 	std::string mBoardLogForTests;
+	std::string ScreenForTests();
+	bool HandleDriverCommand(const ScriptCommand& theCommand);  // state, goto, unlock, set, win, lose
+	std::string mMiniGameName;  // port: the mini-game playing (StartMiniGame), for the test command state
 	// 0x44f5c0: through the sound player, not again within 5 updates
 	void PlaySample(int theSoundNum) override;
 	// 0x44f600: the same at a pan

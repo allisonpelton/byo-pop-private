@@ -18,6 +18,7 @@ void GameApp::StartMiniGame(std::string theName, int x, int y, int theXGap, int 
                             std::string theLetters, bool theNoTilesWhilePaused)
 {
 	// 0x44b780: a mini-game's board, over everything but the curtain; theName is the mini-game's class
+	mMiniGameName = theName;  // port: for the test command state
 	mBoard = new Board(this, true);
 	mBoard->CreateLinkedObject(mBoard);
 	mBoard->Resize(0, 0, mWidth, mHeight);

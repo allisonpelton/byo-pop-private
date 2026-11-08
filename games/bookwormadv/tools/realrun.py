@@ -13,8 +13,11 @@ The steps run on the wall clock, one per line ('#' starts a comment):
     text ABC            WM_CHAR for each character
     focus lose|regain   WM_ACTIVATEAPP, WM_ACTIVATE and WM_KILLFOCUS / WM_SETFOCUS, as visrun posts them
     minimize | restore  ShowWindow: the window really minimizes (SDL's MINIMIZED and focus events), then comes back
-    fight S             battles for S seconds: spells each board's word (the port's -boardlog=<file>, which this reads) and
-                        attacks, and moves conversations on with a click at the top every 4 s
+    chapter [S]         one chapter's battles, at most S seconds (600): from the map, Enter; then each board's word
+                        spelled and Attack, Scramble without one, dialogs answered, conversations clicked on, until the
+                        screen leaves the battle; logs a summary. Reads the port's -boardlog=<file> (tools/driver.js is
+                        the same for the web build)
+    minigame [S]        the same for the mini-game on the screen (or about to be): until it is over
     shot NAME           the window's own picture (PrintWindow) into <out dir>/NAME.png, the game's 800x600
 
 Positions are the game's 800x600: in full screen they are scaled to the client area as the game is (fitted, centred).
@@ -31,7 +34,7 @@ import sys
 import threading
 import time
 
-BOARDLOG = None  # the game's -boardlog=<file>, for fight
+BOARDLOG = None  # the game's -boardlog=<file>, for chapter
 
 from PIL import Image
 
@@ -138,53 +141,80 @@ def click(hw, x, y):
     u32.PostMessageW(hw, 0x0202, 0, lp)
 
 
-def boards():
-    """The board lines the port wrote to its -boardlog file (GameApp::LogBoardForTests): (n, word, tiles, attack, scramble)."""
-    path = BOARDLOG
+def log_lines():
+    """The port's -boardlog lines (GameApp::LogBoardForTests), parsed as dicts: kind board, dialog or screen, and n."""
     out = []
-    if path and os.path.exists(path):
-        for line in open(path):
-            f = line.split()
-            if len(f) < 4 or f[0] != 'board:':
-                continue
-            pts = [tuple(int(v) for v in t.split(',')) for t in f[3:] if ',' in t]
-            out.append((int(f[1]), f[2], pts[:-2], pts[-2], pts[-1]))
+    if not BOARDLOG or not os.path.exists(BOARDLOG):
+        return out
+
+    def pt(t):
+        return tuple(int(v) for v in t.split(',')) if ',' in t else None
+    for line in open(BOARDLOG):
+        f = line.split()
+        if len(f) < 3:
+            continue
+        kind, n = f[0].rstrip(':'), int(f[1])
+        if kind == 'screen':
+            out.append({'kind': kind, 'n': n, 'name': f[2]})
+        elif kind == 'dialog':
+            out.append({'kind': kind, 'n': n, 'id': int(f[2]), 'ok': pt(f[4])})
+        elif kind == 'board':
+            k = f.index('attack')
+            out.append({'kind': kind, 'n': n, 'word': f[2], 'tiles': [pt(t) for t in f[3:k]], 'attack': pt(f[k + 1]),
+                        'scramble': pt(f[k + 3])})
     return out
 
 
-def fight(hw, p, seconds, note):
-    """Battles for the given seconds: each new board at rest gets its word spelled with clicks on its tiles and then
-    Attack, a board with no word a click on Scramble; between boards, a click every 4 s, at the top of the screen
-    (conversations) and on the map's Enter in turn."""
-    end = time.time() + seconds
-    seen = boards()
-    used = seen[-1][0] if seen else 0
-    next_talk = 0
-    talks = 0
+def screen():
+    s = [l['name'] for l in log_lines() if l['kind'] == 'screen']
+    return s[-1] if s else 'none'
+
+
+def chapter(hw, p, seconds, note, target='battle'):
+    """One chapter's battles, as tools/driver.js's bwa.battle does on the web: from the map Enter, then each board's
+    word spelled with clicks and Attack, Scramble for a board without one, a dialog's first button, a click to move a
+    conversation on, until the screen is no longer the battle. Notes a summary line."""
+    t0 = time.time()
+    end = t0 + seconds
+    used = max([l['n'] for l in log_lines()] or [0])
+    seen, next_talk, words, scrambles, dialogs, result = False, 0, [], 0, 0, ''
     while time.time() < end and p.poll() is None:
-        b = boards()
-        if b and b[-1][0] > used:
-            n, word, tiles, attack, scramble = b[-1]
-            used = n
-            if word != '-':
-                note('word %s' % word)
-                for x, y in tiles:
+        fresh = [l for l in log_lines() if l['n'] > used]
+        scr = screen()
+        if scr == target:
+            seen = True
+        elif seen and scr != 'none':
+            result = scr
+            break
+        if fresh:
+            used = fresh[-1]['n']
+        dialog = ([l for l in fresh if l['kind'] == 'dialog'] or [None])[-1]
+        board = ([l for l in fresh if l['kind'] == 'board'] or [None])[-1]
+        if dialog:
+            dialogs += 1
+            click(hw, *dialog['ok'])
+            time.sleep(1.5)
+            continue
+        if board and scr == target:
+            if board['word'] != '-':
+                words.append(board['word'])
+                for x, y in board['tiles']:
                     click(hw, x, y)
                     time.sleep(0.3)
                 time.sleep(0.4)
-                click(hw, *attack)
-                time.sleep(3)
-                continue
-            note('no word: scramble')
-            click(hw, *scramble)
-            time.sleep(3)
+                if board['attack']:
+                    click(hw, *board['attack'])
+            elif board['scramble']:
+                scrambles += 1
+                click(hw, *board['scramble'])
+            time.sleep(2.5)
             continue
         if time.time() >= next_talk:
-            # a conversation moves on with a click; the map's Enter (the battle's Attack with no word does nothing)
-            click(hw, 400, 150 if talks % 2 == 0 else 575)
-            talks += 1
-            next_talk = time.time() + 4
+            click(hw, 400, 575 if scr == 'map' and not seen else 150)
+            next_talk = time.time() + 3
         time.sleep(0.3)
+    note('%s: %s after %ds, %d words (%s), %d scrambles, %d dialogs' % (
+        'chapter' if target == 'battle' else target, result or 'timeout in ' + screen(), time.time() - t0, len(words), ' '.join(words), scrambles, dialogs))
 
 
 def main():
@@ -238,8 +268,8 @@ def main():
             u32.PostMessageW(hw, 0x0200, 0, xy(hw, int(args[0]), int(args[1])))
         elif op == 'click':
             click(hw, int(args[0]), int(args[1]))
-        elif op == 'fight':
-            fight(hw, p, float(args[0]), note)
+        elif op in ('chapter', 'minigame'):
+            chapter(hw, p, float(args[0]) if args else 600, note, 'battle' if op == 'chapter' else 'minigame')
         elif op == 'key':
             vk = int(args[0])
             sc = u32.MapVirtualKeyW(vk, 0)   # SDL takes the key from the scan code in lParam
