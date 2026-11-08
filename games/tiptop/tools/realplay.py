@@ -16,6 +16,8 @@ Code plays; a session only reads the result lines.
       --fullscreen-at N   Alt+Enter after N moves (and back at the same count again later with --windowed-at M)
       --windowed-at M
       --focus-at N        the window loses the focus after N moves and regains it 60 updates later
+      --pause-at N        the player's pause button is clicked after N moves (the bot's next move unpauses by a click on
+                          the pause image)
       --steps N           give up after N moves (default 20000)
       --seed N            the game's -seed (the game's own random numbers are reseeded by `seed` anyway)
       --botseed N         the bot's own dice (set botseed)
@@ -241,6 +243,7 @@ def play(args):
     extra = ["-modsdir=" + str(Path(args.modsdir).resolve())] if args.modsdir else []
     g = Game(out, seed=args.seed, fast=not args.real_time, extra=extra)
     moves = 0
+    waits = 0
     t0 = time.time()
     result = {"mode": mode}
     try:
@@ -260,6 +263,11 @@ def play(args):
             st = g.state()
             if st.get("over"):
                 break
+            if st.get("paused") and st.get("inactive") and not (args.focus_at is not None and moves == args.focus_at):
+                g.send(["focus gained"])
+                g.wait_updates(10)
+                result["focus_restored"] = result.get("focus_restored", 0) + 1
+                continue
             if args.fullscreen_at is not None and moves == args.fullscreen_at and not fullscreen:
                 g.alt_enter()
                 fullscreen = True
@@ -278,6 +286,14 @@ def play(args):
                 g.send(["focus gained"])
                 g.wait_updates(60)
                 g.shot("focus_gained")
+            if args.pause_at is not None and moves == args.pause_at and st["screen"] == "board" and not st.get("paused"):
+                g.send(["move game 65 350"])
+                g.send(["click game 65 350"])
+                g.wait_updates(20)
+                result["paused_by_button"] = g.state().get("paused")
+                g.shot("paused_by_button")
+                result["pause_clicks"] = result.get("pause_clicks", 0) + 1
+                moves += 1  # once
             mv = g.botmove()
             if mv is None:
                 nulls += 1
@@ -287,11 +303,17 @@ def play(args):
                 continue
             nulls = 0
             g.play(mv)
+            if mv.get("kind") == "wait":
+                waits += 1
+                if waits > 20000:
+                    result["error"] = "20000 waits: the game never took a move"
+                    break
+                continue
             moves += 1
             if moves % 100 == 0:
                 print("  %d moves: %s level %s score %s" % (moves, st["screen"], st.get("level"), st.get("score")), flush=True)
         final = g.state()
-        result.update({"moves": moves, "over": bool(final.get("over")), "screen": final["screen"],
+        result.update({"moves": moves, "waits": waits, "over": bool(final.get("over")), "screen": final["screen"],
                        "level": final.get("level"), "score": final.get("score")})
         # the high score list as the game shows it after the name was typed
         if final.get("over"):
@@ -317,6 +339,7 @@ def main():
     ap.add_argument("--fullscreen-at", type=int)
     ap.add_argument("--windowed-at", type=int)
     ap.add_argument("--focus-at", type=int)
+    ap.add_argument("--pause-at", type=int)
     ap.add_argument("--steps", type=int, default=20000)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--botseed", type=int, default=7)

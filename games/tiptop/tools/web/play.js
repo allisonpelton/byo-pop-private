@@ -7,7 +7,7 @@
 // then sends the standard test command goto timed). The loop asks `state` and `move` (t.state, t.botMove), plays the MOVE's
 // input steps as DOM events (move, click, key, wait: the steps of docs/TEST_COMMANDS.md) and waits its updates, until the game is
 // over, or ?steps=N moves (20000 by default). Options: ?fsat=N presses Alt+Enter after N moves (and again at ?windat=M), ?focusat=N
-// takes the window's focus away after N moves (blur, 60 updates, focus). ?botseed=N is the bot's own dice. It returns what
+// takes the window's focus away after N moves (blur, 60 updates, focus), ?pauseat=N clicks the pause button after N moves. ?botseed=N is the bot's own dice. It returns what
 // happened, with shots of the full screen state, the focus loss, the end and the high scores, if the page keeps them.
 var params = new URLSearchParams(location.search);
 var mode = params.get("mode") || "regular";
@@ -15,7 +15,8 @@ var limit = Number(params.get("steps")) || 20000;
 var fsAt = params.has("fsat") ? Number(params.get("fsat")) : -1;
 var windowedAt = params.has("windat") ? Number(params.get("windat")) : -1;
 var focusAt = params.has("focusat") ? Number(params.get("focusat")) : -1;
-var result = { mode: mode, moves: 0, notes: [] };
+var pauseAt = params.has("pauseat") ? Number(params.get("pauseat")) : -1;
+var result = { mode: mode, moves: 0, waits: 0, focusRestored: 0, notes: [] };
 
 async function command(line) {
   var lines = await t.command(line);
@@ -61,6 +62,14 @@ try {
   while (result.moves < limit) {
     st = await t.state();
     if (st.over) break;
+    if (st.paused && st.inactive && !(focusAt >= 0 && result.moves === focusAt)) {
+      // the page lost the focus by itself (a real blur: the pane is hidden, or another window was clicked): a player would click
+      // back into the window, so the driver gives the focus back, as byopop.test.focus() does
+      await t.focus();
+      await t.wait(10);
+      result.focusRestored++;
+      continue;
+    }
     if (fsAt >= 0 && result.moves === fsAt && !fullscreen) {
       await alt_enter();
       fullscreen = true;
@@ -81,6 +90,15 @@ try {
       await t.wait(60);
       await t.shot("focus_gained");
     }
+    if (pauseAt >= 0 && result.moves === pauseAt && st.screen === "board" && !st.paused) {
+      // the pause button, as a player clicks it; the bot's next move unpauses by a click on the pause image
+      await t.click(65, 350);
+      await t.wait(20);
+      var sp = await t.state();
+      result.notes.push("pause button at move " + result.moves + ": paused " + sp.paused);
+      await t.shot("paused_by_button");
+      result.moves++;
+    }
     var mv = await t.botMove();
     if (mv === null) {
       if (++nulls >= 2) break;
@@ -89,7 +107,9 @@ try {
     }
     nulls = 0;
     await playMove(mv);
-    result.moves++;
+    if (mv.kind === "wait") {
+      if (++result.waits > 20000) throw new Error("20000 waits: the game never took a move");
+    } else result.moves++;
   }
   var fin = await t.state();
   result.over = !!fin.over;

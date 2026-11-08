@@ -3,7 +3,8 @@
 // state. A command that is given draws no random number of the game's, except `seed`, which seeds them. Every command
 // answers with one line on stdout: OK <command>, ERROR <command>: <reason>, STATE {...} or MOVE {...}.
 //
-//   state                 STATE {json}: screen, mode, level, score, over, busy, bonus, dialog, paused, updates (the game's
+//   state                 STATE {json}: screen, mode, level, score, over, busy, bonus, dialog, paused, inactive (paused because
+//                         the window lost the focus: a driver gives it back), updates (the game's
 //                         update count, for a driver that waits n updates), blocksleft and a
 //                         board summary (columns, rows, the four next blocks, the grid)
 //   goto <screen>         menu, options, help, highscores, credits, or a mode to start: regular, strategy, speed, timed
@@ -125,6 +126,7 @@ std::string StateJson(int theUpdates)
 	s += std::string(",\"dialog\":") + (DialogOpen() ? "true" : "false");
 	s += std::string(",\"busy\":") + (tiptop::gBusy != 0 ? "true" : "false");
 	s += std::string(",\"paused\":") + (tiptop::gPauseFlags != 0 ? "true" : "false");
+	s += std::string(",\"inactive\":") + ((tiptop::gPauseFlags & 2) != 0 ? "true" : "false");
 	s += ",\"updates\":" + Num(theUpdates);
 	if (aBoardScreen)
 	{
@@ -177,6 +179,16 @@ std::string ButtonMove(const char* theKind, tiptop::Handler* h, int theUpdates)
 	return ClickMove(theKind, h->mRect.x + h->mRect.w / 2, h->mRect.y + h->mRect.h / 2, theUpdates);
 }
 
+// The move on a paused game or level summary: a click on the pause image (the player's pause, flag 1; the image is a modal
+// layer, so a dialog is open) takes it away; the window being inactive (flag 2) is the driver's to end, by giving the
+// focus back, so the bot only waits for it
+std::string PausedMove()
+{
+	if ((tiptop::gPauseFlags & 1) != 0 && DialogOpen())
+		return ClickMove("unpause", tiptop::gConfig.mBlockgridCenterX, tiptop::gConfig.mBlockgridCenterY, 20);
+	return WaitMove(10);
+}
+
 // What the bot does next, as the move's JSON, or an empty string for none. It reads the game and changes nothing.
 std::string BotMove()
 {
@@ -195,6 +207,8 @@ std::string BotMove()
 	case tiptop::SCREEN_GAME:
 	{
 		tiptop::Board* aBoard = anApp.mBoard;
+		if (tiptop::gPauseFlags != 0)
+			return PausedMove();
 		if (DialogOpen())
 		{
 			// the tips (or another dialog) over the game: its default button
@@ -217,6 +231,8 @@ std::string BotMove()
 	}
 	case tiptop::SCREEN_LEVELSUMMARY:
 	{
+		if (tiptop::gPauseFlags != 0)
+			return PausedMove();
 		tiptop::Handler* h = BotEnterTarget();
 		return h != nullptr ? ButtonMove("continue", h, 200) : WaitMove(20);
 	}
