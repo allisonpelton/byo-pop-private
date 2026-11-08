@@ -20,7 +20,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 # The game's own code (0x401000-0x4623f0)
-CODE_RANGES = ((0x401000, 0x4623f0),)
+CODE_RANGES = ((0x401000, 0x4623f0), (0x527890, 0x527cd0))   # the second: the static initializer of the default high-score names
 # Extra texts that no function refers to by a plain address: the tables of string pointers in the data section (the tutorial
 # sidebar texts, the helper's speech bubbles, the help pages ...) lie between these addresses
 EXTRA = []

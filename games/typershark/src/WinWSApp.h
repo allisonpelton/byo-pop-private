@@ -256,7 +256,7 @@ public:
 	// screens and dialogs (WinWSAppScreens.cpp)
 	void					ShowSelectUserDialog();                                 // 0x4128a0 (dialog 0x44e)
 	void					ShowAbyssModeDialog();                                  // 0x4129a0 (dialog 0x451)
-	int						GetUserField34();                                       // 0x412ae0 (a number of the current user)
+	int						GetUserBestDepth();                                     // 0x412ae0 (the current user's deepest abyss depth)
 	void					RemoveMenuScreen();                                     // 0x412af0 (the widget at +0x628)
 	void					ActivateTypingTutor();                                  // 0x412c90 (ButtonDepress(0x58) of the tutor, then its focus)
 	void					MarkMenuScreenDirty();                                  // 0x412cc0

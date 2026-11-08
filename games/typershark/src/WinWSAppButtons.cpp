@@ -108,7 +108,7 @@ void WinWSApp::ButtonDepress(int theId)
 		{
 			// 0x41da80(2): the trial limit, not ported
 			mField690 = -1;
-			mField680 = (mUser->mField34 / 400) * 400;
+			mField680 = (mUser->mBestDepth / 400) * 400;
 			if (mField680 >= 400)       // and the game is registered (this[0x470]: always, in the port)
 			{
 				ShowAbyssModeDialog();      // 0x4129a0
@@ -354,9 +354,9 @@ void WinWSApp::ButtonDepress(int theId)
 			{
 				int aDepth = mBoard->mField1c4;
 				UserProfile* aUser = mUser;
-				if (aDepth > aUser->mField34)
-					aUser->mField34 = aDepth;
-				aUser->mField10 = aDepth;
+				if (aDepth > aUser->mBestDepth)
+					aUser->mBestDepth = aDepth;
+				aUser->mLastDepth = aDepth;
 			}
 			mFlag684 = true;
 			mFlag685 = false;
@@ -509,7 +509,7 @@ void WinWSApp::ButtonDepress(int theId)
 	case 0xdac:     // the message dialog's no (id 500 + 3000)
 		KillDialog(DIALOG_MESSAGE);
 		if (mFlag670)
-			mUser->mField60 = 1;
+			mUser->mLastLesson = 1;
 		mMessageDialog = NULL;
 		mFlag685 = true;
 		mFlag684 = false;
@@ -687,7 +687,7 @@ void WinWSApp::ButtonDepress(int theId)
 
 	case 0x1005:    // NewUserDialog's cancel (id 0x44d + 3000)
 		KillDialog(DIALOG_NEW_USER);
-		if (mProfileMgr->mUserCount != 0)       // +0xc
+		if (mProfileMgr->mUsers.size() != 0)       // +0xc of the manager: the count of the list
 		{
 			if (mProfileMgr->GetCurrentUserName() != "")
 				return;

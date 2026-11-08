@@ -35,19 +35,15 @@ WinWSApp fields the config parsers fill (typed by the config job; WinWSApp.cpp l
 `mVector6f4`, `mMap720`, `mField740`, `mField680`/`mField690`/`mField6b0`. The destructor must free the lesson manager
 (+0x65c) and the tables (TODO comments in WinWSApp.cpp).
 
-## UserProfileMgr / UserProfile (job P1; mgr ctor takes WinWSApp*, profile ctor 0x421f50, sizeof 0x2c8)
-UserProfileMgr: `std::list<UserProfile*> mUsers` (+8), `mUserCount` (+0xc), `GetCurrentUserName()` (0x4150a0),
-`LoadUser(name)` (0x425f20), `LoadUserProfileFromRegistry(const std::string&)` (0x425390), `GetDefaultUserNumber()`
-(0x4262b0, written by J2), `FirstFreeUserNumber()` (0x413ff0, written by J2), `WriteUserProfileToRegistry(UserProfile*, bool,
-bool)` (0x41f1d0), `SaveUser(UserProfile*)` (0x420c60), `RegisterDefaultUserName(const std::string&)` (0x419da0).
-UserProfile: `SetName(const std::string&)` (0x416380), `GetName()` (0x415060), `SetUserNumber(int)` (0x412380),
-`SetField1e4`, `SetField1e8(int)` (0x412390), `SetField1f4` (0x412640), `SetField1f8` (0x412650), `SetSpacePauses`,
-`RecordResult(bool,int,int,int,int,int)` (0x412580), `RecordResultWithDouble(bool,int,int,double,int,int,int)`
-(0x412520), `mUserNumber` (+0x30), `mShowHints` (+0x1fd), `mGameVersion` (std::string, +0x288), `mFlag1dc`, `mField34`
-(+0x34); fields at their offsets: mField10, mField60, mField1b0/1b4/1c0/1c4/1c8/1cc/1d0/1d4/1d8/1e0/1e8, `double
-mDouble1b8`, mFlag1fc, mFlag230, `int mField234[6]`, `int mField24c[4]`, `char mField25c[0x24]`, mField280,
-`std::vector<ProfilePair*> mVector2a4` (8-byte pairs `{int mFirst, mSecond}`, malloc'd in the original), `std::vector<int>
-mVector2b4`. `MapNode {bool mFlag38 (+0x38); int mField24 (+0x24)}` (the map screen's nodes).
+## UserProfileMgr / UserProfile (job P1, done: UserProfile.h/.cpp, UserProfileMgr.h/.cpp)
+Translated; the headers are the contract now. Renames the job made in the callers: `mUserCount` is `mUsers.size()`, `mField34` is
+`mBestDepth` (registry AnnoDomini), `mField10` is `mLastDepth`, `mField60` is `mLastLesson`, `GetUserField34` is
+`GetUserBestDepth`. The manager declares `GetDefaultUserNumber` and `FirstFreeUserNumber`, which stay in WinWSAppGame.cpp.
+Placeholders left in the profile: mField0c, mField64, mField68, `StatGroup::mField0` / `mField8`, and `mField1c8` (the original
+never sets it; zeroed). The default high-score names are read through GT from the static initializer's texts (0x52d87c...).
+Quirks kept (for the game notes): a loaded profile's stat groups hold 70 records, of which only the first 35 are written
+back; `WriteDataToDisk` stores `mField1ec` where `LoadDataFromDisk` reads `mField1b4`; `RegisterDefaultUserName` always
+returns false; `SaveUser` does not free the profile it replaces.
 
 ## Screens, widgets, dialogs (jobs S1, W1, D1, T1)
 - MenuScreen(WinWSApp*) (0x4436e0); TitleScreen(WinWSApp*), `AddControls()` (0x448f40), `mPlayButton` (+0x78);

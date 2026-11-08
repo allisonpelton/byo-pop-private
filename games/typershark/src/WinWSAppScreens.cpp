@@ -62,10 +62,10 @@ void WinWSApp::ShowAbyssModeDialog()
 	AddDialog(DIALOG_ABYSS_MODE, aDialog);
 }
 
-// 0x412ae0: a number of the current user (+0x34; the profile group names it); the original does not test mUser
-int WinWSApp::GetUserField34()
+// 0x412ae0: the current user's deepest abyss depth (UserProfile::mBestDepth, +0x34); the original does not test mUser
+int WinWSApp::GetUserBestDepth()
 {
-	return mUser->mField34;
+	return mUser->mBestDepth;
 }
 
 // 0x412af0: takes the menu screen off the widget manager and deletes it later
@@ -275,7 +275,7 @@ void WinWSApp::ShowMenuScreen()
 		mBoard = NULL;
 		mStatusBar = NULL;
 
-		if (mProfileMgr->mUserCount != 0)   // +0xc of the manager (a count or a list; the profile group names it)
+		if (mProfileMgr->mUsers.size() != 0)   // +0xc of the manager: the count of the list
 		{
 			if (mProfileMgr->GetCurrentUserName() != "")
 				return;

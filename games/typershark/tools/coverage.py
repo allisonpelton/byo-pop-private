@@ -5,7 +5,7 @@
     python games/typershark/tools/coverage.py --missing    also list the functions no source mentions (address, size, name)
     python games/typershark/tools/coverage.py --range 428500 437960 --missing    only an address range
 
-A function counts as covered when its address (0x4xxxxx) appears in a comment of a file under src/ (the convention:
+A function counts as covered when its address (0x4xxxxx) appears in a comment line (a line that starts with //) of a file under src/ (the convention:
 `// 0x4012a0` before the translation of each function, thunks and tiny forwarders count when named in a comment). The
 class column is attribute.py's guess, so it is for planning only.
 """
@@ -26,8 +26,11 @@ def mentioned():
     seen = set()
     for p in glob.glob(os.path.join(SRC, "**", "*"), recursive=True):
         if os.path.isfile(p) and p.endswith((".cpp", ".h", ".inc")):
-            for m in re.finditer(r"0x(4[0-6][0-9a-f]{4})\b", open(p, encoding="utf-8", errors="replace").read()):
-                seen.add(int(m.group(1), 16))
+            for line in open(p, encoding="utf-8", errors="replace"):
+                if not line.lstrip().startswith("//"):
+                    continue  # a comment after code names the callee of a call, not a function translated here
+                for m in re.finditer(r"0x(4[0-6][0-9a-f]{4})\b", line):
+                    seen.add(int(m.group(1), 16))
     return seen
 
 
