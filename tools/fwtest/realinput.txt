@@ -1,0 +1,113 @@
+# fwtest -realinput=tools/fwtest/realinput.txt (tools/check.sh unit, with -fast and in real time): real SDL events
+# through HandleEvent, the window-to-game mapping and the widget manager to fwtest's board. "<count> <command> [args]":
+# the events of a line are pushed when update <count> starts and handled before the next one, so their effect is
+# checked ("expect", fwtest's own command, run at once) two updates later. Points are window pixels unless "game".
+
+50 expect board
+# the window at twice the game's size: window pixels are game pixels doubled
+50 resize 1280 960
+52 expect windowsize 1280 960
+52 move 200 100
+54 expect move 100 50
+54 expect mousein 1
+# a press, a drag and a release
+54 down 400 300
+56 expect down 200 150 left 1
+56 move 500 360
+58 expect move 250 180
+58 expect drags 1
+58 up 500 360
+60 expect up 250 180
+60 expect buttons 1 1
+# a right click, then a double click (its second press has clicks 2)
+60 click 300 300 right
+62 expect down 150 150 right 1
+62 dblclick 100 100
+64 expect down 50 50 left 2
+64 expect buttons 4 4
+64 wheel 1
+64 wheel -3
+66 expect wheel -2
+# a window wider than the game's shape: the game at 2x with bars of 320 pixels at the sides
+66 resize 1920 960
+68 move 720 200
+70 expect move 200 100
+70 move game 600 30
+72 expect move 600 30
+# below the game's size the window keeps the game's (its minimum size)
+72 resize 320 240
+74 expect windowsize 640 480
+# the board's button, clicked at its point in game pixels, opens the test dialog
+74 click game 548 420
+76 expect dialog 1
+76 expect buttons 4 4
+76 killdialog
+
+# keys: a press that types sends its text after it; Shift types capitals and shifted symbols
+78 key A
+80 expect keys 1 1
+80 expect typed "a"
+80 type Hi! 1
+82 expect typed "Hi! 1"
+82 keydown Left Shift
+82 key 2
+82 keyup Left Shift
+84 expect typed "@"
+# a held key repeats, and so does its character
+84 keydown B
+84 keyrepeat B
+84 keyrepeat B
+84 keyup B
+86 expect typed "bbb"
+# text alone, as an input method sends it (UTF-8; the game gets Latin-1)
+86 text "é"
+88 expect lastchar 233
+# Backspace, Enter (Ctrl+Enter a line feed) and Ctrl+A type their control character, never text
+88 key Backspace
+90 expect lastchar 8
+90 key Return
+92 expect lastchar 13
+92 keydown Left Ctrl
+92 key Return
+92 key A
+92 keyup Left Ctrl
+94 expect lastchar 1
+
+# F2 opens the mod menu and closes it: real input only
+94 key F2
+96 expect modmenu 1
+96 key F2
+98 expect modmenu 0
+
+# a focus loss releases the held keys first, as SDL does; the app is inactive until the focus comes back
+98 keydown Left Shift
+100 expect held SHIFT 1
+100 focus lost
+102 expect active 0
+102 expect held SHIFT 0
+102 focus gained
+104 expect active 1
+# the mouse leaves the window, and comes back with its next move, even to the point it left from
+104 move 300 300
+104 leave
+106 expect mousein 0
+106 move 300 300
+108 expect mousein 1
+108 expect move 300 300
+# the window minimized and restored for real; SDL sends the window's own events
+108 minimize
+110 expect minimized 1
+110 restore
+112 expect minimized 0
+# Alt+Enter: full screen and back
+112 keydown Left Alt
+112 key Return
+112 keyup Left Alt
+114 expect windowed 0
+114 move game 320 240
+116 expect move 320 240
+116 keydown Left Alt
+116 key Return
+116 keyup Left Alt
+118 expect windowed 1
+120 report

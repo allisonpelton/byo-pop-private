@@ -1,6 +1,7 @@
 // The application object (TipTop.exe 0x4197c6-0x426fc7). See App.h.
 
 #include "App.h"
+#include "ModFeatures.h"
 #include "Board.h"
 #include "Config.h"
 #include "Game.h"
@@ -3220,17 +3221,23 @@ uint32_t LoadBarProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* t
 		aTime = aTime - (uint32_t)aSlots[2];
 		if ((aStep < aTime) && (gLoadBarLoaded < gLoadBarCount))
 		{
-			for (; res::GameTable()[gPreloaded].mFlags != 0; gPreloaded = gPreloaded + 1)
+			// fixes mod, "fastLoading": the original loads one entry a frame, so the bar fills at a crawl however fast
+			// they load; with the fix, a few
+			int aPerFrame = Sexy::FixOn("fastLoading") ? 8 : 1;
+			for (int aRepeat = 0; aRepeat < aPerFrame && gLoadBarLoaded < gLoadBarCount; aRepeat++)
 			{
-				const res::Entry& anEntry = res::GameTable()[gPreloaded];
-				if (IsPreloaded(anEntry))
+				for (; res::GameTable()[gPreloaded].mFlags != 0; gPreloaded = gPreloaded + 1)
 				{
-					res::Load(anEntry.mGroup, 1, anEntry.mId);
-					gLoadBarLoaded = gLoadBarLoaded + 1;
-					gPreloaded = gPreloaded + 1;
-					aTime = 0;
-					aSlots[2] = GameTime();
-					break;
+					const res::Entry& anEntry = res::GameTable()[gPreloaded];
+					if (IsPreloaded(anEntry))
+					{
+						res::Load(anEntry.mGroup, 1, anEntry.mId);
+						gLoadBarLoaded = gLoadBarLoaded + 1;
+						gPreloaded = gPreloaded + 1;
+						aTime = 0;
+						aSlots[2] = GameTime();
+						break;
+					}
 				}
 			}
 		}

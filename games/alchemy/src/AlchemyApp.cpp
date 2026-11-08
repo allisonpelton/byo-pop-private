@@ -36,7 +36,7 @@ AlchemyApp* Sexy::gApp = NULL;
 // 0x5101f8: the image names; the file is images\<name> (the framework tries .gif, .jpg, .png and the "_" alpha masks)
 static const char* const gImageNames[NUM_IMAGES] =
 {
-	"title", "trialversion", "backdrop", "greenbar", "cursor1", "pointer2", "overhand", "typer", "dialog", "dbutton",
+	"title", "backdrop", "greenbar", "cursor1", "pointer2", "overhand", "typer", "dialog", "dbutton",
 	"waitbar", "symbols", "nullblock", "skulls", "cartoonstar", "light", "britelight", "buttonstrip", "quitgamestrip",
 	"helpstrip", "soundstrip", "scorefont", "overfont1", "next", "wizardhead", "wizmouth2", "wizmouth3", "wizmouth4",
 	"wizmouth5", "slider", "slidergem", "unchecked", "checked", "editbox", "bubbles2", "bubbles7", "wave1",
@@ -66,7 +66,6 @@ AlchemyApp::AlchemyApp()
 	mTimeTrial = false;
 	mTutorialMode = true;
 	mSelectorFlag = true;
-	mNoPopLink = false;
 	mPendingSkill = 0;
 	mSelector = NULL;
 	mTitleScreen = NULL;
@@ -471,8 +470,6 @@ void AlchemyApp::ReadFromRegistry()
 		mSkillLevel = anInt;
 	if (RegistryReadInteger("TimeTrial", &anInt))
 		mTimeTrial = anInt != 0;
-	if (RegistryReadInteger("NoPopLink", &anInt))
-		mNoPopLink = anInt != 0;
 }
 
 // 0x410bb6 slot 21: the plain dialog (black text on the parchment, gold buttons)

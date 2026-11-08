@@ -1,6 +1,7 @@
 // Test hooks: the autoplay bot (see Autoplay.h).
 
 #include "Autoplay.h"
+#include "Bot.h"
 #include "AlchemyApp.h"
 #include "Board.h"
 #include "Piece.h"
@@ -216,40 +217,13 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 		return;
 	}
 
-	Piece* aPiece = theBoard->mCurPiece;
-	std::vector<int> aCells;
-	std::vector<int> aScores;
-	int aBest = -1;
-	for (int aRow = 0; aRow < Board::ROWS; aRow++)
-		for (int aCol = 0; aCol < Board::COLS; aCol++)
-		{
-			int aReason;
-			if ((theBoard->mGrid[aRow][aCol] != NULL && !aPiece->mBomb) || !theBoard->CanPlace(aPiece, aCol, aRow, &aReason))
-				continue;
-			// a cell that completes a row or a column is best (the tutorial asks for it too); otherwise the more
-			// neighbours a cell has, the sooner a row or column fills
-			int aRowCount = 0;
-			for (int i = 0; i < Board::COLS; i++)
-				if (theBoard->mGrid[aRow][i] != NULL)
-					aRowCount++;
-			int aColCount = 0;
-			for (int i = 0; i < Board::ROWS; i++)
-				if (theBoard->mGrid[i][aCol] != NULL)
-					aColCount++;
-			int aNeighbors = (aRowCount == Board::COLS - 1 || aColCount == Board::ROWS - 1) ? 10 : 0;
-			if (aRow > 0 && theBoard->mGrid[aRow - 1][aCol] != NULL) aNeighbors++;
-			if (aRow < Board::ROWS - 1 && theBoard->mGrid[aRow + 1][aCol] != NULL) aNeighbors++;
-			if (aCol > 0 && theBoard->mGrid[aRow][aCol - 1] != NULL) aNeighbors++;
-			if (aCol < Board::COLS - 1 && theBoard->mGrid[aRow][aCol + 1] != NULL) aNeighbors++;
-			aCells.push_back(aRow * Board::COLS + aCol);
-			aScores.push_back(aNeighbors);
-			if (aNeighbors > aBest)
-				aBest = aNeighbors;
-		}
-
-	if (aCells.empty())
+	// the choice itself is shared with the `move` test command (Bot.cpp); the bot's own random numbers are drawn in the
+	// same order as before
+	BotChoice aChoice = ChooseBotMove(theBoard, &mSeed, mApp->mAutoplayUi ? mApp->mAutoplayMiss : 0);
+	if (aChoice.mKind == BotChoice::KIND_FORGE)
 	{
 		// nowhere to put it: the forge
+		Piece* aPiece = theBoard->mCurPiece;
 		mForges++;
 		Log("forge %d at update %d (piece shape %d color %d)", mForges, mTick, aPiece->mShape, aPiece->mColor);
 		if (mApp->mAutoplayUi)
@@ -259,34 +233,11 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 		mWait = 3;
 		return;
 	}
-
-	int aPick = -1;
-	if (mApp->mAutoplayUi && mApp->mAutoplayMiss > 0 && Rand(mApp->mAutoplayMiss) == 0)
-	{
-		// a cell the piece cannot go to (the game answers with a message of the wizard's)
-		std::vector<int> aBad;
-		for (int i = 0; i < Board::ROWS * Board::COLS; i++)
-			if (std::find(aCells.begin(), aCells.end(), i) == aCells.end())
-				aBad.push_back(i);
-		if (!aBad.empty())
-			aPick = aBad[Rand((int) aBad.size())];
-	}
-	if (aPick >= 0)
-		;
-	else if (Rand(10) == 0)
-		aPick = aCells[Rand((int) aCells.size())];
-	else
-	{
-		int aCount = 0;
-		for (size_t i = 0; i < aCells.size(); i++)
-			if (aScores[i] == aBest && Rand(++aCount) == 0)
-				aPick = aCells[i];
-	}
+	int aPick = aChoice.mRow * Board::COLS + aChoice.mCol;
 
 	// the piece follows the mouse (Piece::Update puts it 0x30 pixels up and left of the pointer): the pointer goes there
 	// now and the click comes with the next action, when the piece has caught up
-	mClickX = AlchemyApp::BOARD_X + Board::ColToX(aPick % Board::COLS) + 0x30;
-	mClickY = Board::RowToY(aPick / Board::COLS) + 0x30;
+	BotCellToPointer(aPick % Board::COLS, aPick / Board::COLS, &mClickX, &mClickY);
 	if (mApp->mAutoplayUi)
 		Move(mClickX, mClickY);
 	else
