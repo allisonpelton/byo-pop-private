@@ -1517,8 +1517,17 @@ void SexyAppBase::UpdateUserDataBackup(bool force)
 		aFiles.push_back(Platform::BackupFile{ UserDirRelativePath(RegistryPath()), aRegistry });
 	for (size_t i = 0; i < aSaves.size(); i++)
 	{
-		if (!UserDirRelativePath(aSaves[i].mFileName).empty())
-			aFiles.push_back(Platform::BackupFile{ UserDirRelativePath(aSaves[i].mFileName), aSaves[i].mData });
+		std::string aRelative = UserDirRelativePath(aSaves[i].mFileName);
+		if (!aRelative.empty())
+			aFiles.push_back(Platform::BackupFile{ aRelative, aSaves[i].mData });
+		else
+		{
+			// a name outside the user folder (an absolute path, say) cannot be kept: said once, so that a lost save shows in
+			// the log (Bejeweled Twist's first hook gave absolute names, 2026-11-08)
+			static std::set<std::string> sLogged;
+			if (sLogged.insert(aSaves[i].mFileName).second)
+				SDL_Log("shutdown save outside the user folder, not kept: %s", aSaves[i].mFileName.c_str());
+		}
 	}
 	Platform::BackupUserData(aFiles);
 
