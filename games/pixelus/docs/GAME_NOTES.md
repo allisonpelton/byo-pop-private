@@ -171,3 +171,22 @@ fast loading (the load thread runs in one go). The differences the passes found 
 
 **Speed-ups for tests.** None made; `-fast` plays the whole game of 210 puzzles inside `tools/check.sh pixelus`, which takes about 6.5 minutes in all.
 
+## 10. Performance (2026-11-08)
+
+Measured with `tools/profile/perf.py` and `run.sh` (the port natively under rundesk without `-fast`, the original under
+origrun on its real clock, one of ours at a time). The machine was not quiet: 3 to 5 game processes of other sessions ran
+during every run (the mean of each is in `build/perf/*/perf.json`), so every figure is a little noisy.
+
+| | Port | Original |
+| --- | --- | --- |
+| Launch to the loading screen's play link (3 runs of the port, 4 of the original) | 1.35, 1.13, 0.91 s | 3.63, 0.96, 0.81, 1.01 s (the first run is a cold start) |
+| Peak working set at load / private bytes | 100 / 93 MB | 98 to 107 / 83 to 85 MB |
+| Scripted play: peak working set / private bytes | 110 and 102 / 104 and 102 MB | 115 and 115 / 93 MB |
+| Scripted play: processor time in the last 60 s | 5.7 and 7.0 s | 11.6 and 10.4 s |
+
+The original's play runs were cut by origrun's 200 s timeout before the script ended (its real clock ran slower than the
+script's updates), so the stretch of play they measure is not the port's exactly; the port's scripts ran their 78 s to the
+end. The port uses about half the original's processor time over a minute of play, and about the same memory. The
+web build's load was not timed. The port loads in one go as the framework's loading thread does, so no loading wait
+remains; the original's own load is as fast here because its resources are few.
+

@@ -216,7 +216,7 @@ def main():
                 if kind == 'orig':
                     # the loading screen is at [0x543434] (the app's +0x684); its +0xf0 is "load done", the play link then shows
                     scr = u32(h, 0x543434)
-                    if scr and u8(h, scr + 0xf0):
+                    if scr and u8(h, scr + 0xf0) and u32(h, scr + 0xe4) == 0x3ff00000:
                         first_input = now_ft() - created
                 elif what == 'load' and t - last_state >= 0.05:
                     last_state = t
@@ -239,7 +239,7 @@ def main():
                 sent_close = True
         else:
             break
-        if t - t_wall0 > (60 if what == 'load' else 150):          # a run that never ends is stopped here, and says so
+        if t - t_wall0 > (60 if what == 'load' else 280):          # a run that never ends is stopped here, and says so
             hung = True
             if h:
                 k32.TerminateProcess(h, 1)
