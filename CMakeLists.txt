@@ -90,6 +90,16 @@ elseif(BUILD_FWTEST)
   endif()
 endif()
 
+# Music level (tools/musiclevel): the port's music level, rendered offline through Platform::Mixer, against the
+# originals' engines measured by tools/musiclevel/musiclevel.c (docs/WEB_PLAYER.md, "Music levels"). Native only.
+if(NOT EMSCRIPTEN)
+  add_executable(portlevel tools/musiclevel/portlevel.cpp)
+  target_link_libraries(portlevel PRIVATE sexyopenmpt)
+  add_custom_command(TARGET portlevel POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:portlevel>
+    VERBATIM)
+endif()
+
 # Song position test (tools/songpostest): Mixer::GetSongPosition on modules rendered offline, through libxmp-lite and
 # libopenmpt. Native only; songpostest.exe <gamedir> <music path>... (tools/check.sh unit).
 if(NOT EMSCRIPTEN)
