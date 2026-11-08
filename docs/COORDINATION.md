@@ -111,6 +111,12 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Bookworm Adventures Volume 2 start after the weekly reset (2026-11-08 00:00 UTC), five at a time again. That week
   also makes each game's fixes mod (the user, 2026-11-04: "next week will have a bunch of that in addition to
   finishing phase 2 of identical play"; `docs/MOD_ROADMAP.md`, "The fixes mod").
+- **No limit, flat out, and three early ports (the user, 2026-11-07):** "No limit on concurrent sessions while getting
+  all current games to their finished state", run flat out to the 97% cap ("Flat out to the cap"). And "some of the
+  remaining decomps are simple enough to run concurrently": Typer Shark, AstroPop and Bejeweled 2 start now, beside
+  the finishing work, an exception to "no new port until all are done". The rest of the easier group waits as before.
+  JPEG: IJG libjpeg, the library the games use, replaces stb_image for JPEG images ("Add IJG libjpeg"; the download of
+  jpegsrc.v6b.tar.gz from ijg.org approved), so no game lists a JPEG deviation.
 - **Reports still open from the user's test notes (cleared 2026-11-04):** each goes to its game's session with its
   next brief. Bookworm Adventures: "Sound effects seem to come about a second after they should." Its pass found every
   sound at the original's update natively, so check the web build, where the user plays. Its smashed tile "looks

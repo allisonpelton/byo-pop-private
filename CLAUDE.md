@@ -57,7 +57,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   needs it: LiveSplit's real-time runs, sound and focus checks, the Browser pane. Before relying on `-fast`, check that
   it leaves the run's results unchanged (a game that draws random numbers while drawing would not). Speed comes from
   not waiting, never from threads: no game's code is made multithreaded to run faster (the user, 2026-11-02).
-- Run at most 3 game processes at a time, and never add artificial CPU load. The oracle runs 3 at a time by default
+- Run at most 3 game processes at a time, and never add artificial CPU load. While the user sleeps the machine may run
+  up to 8, counted across every session (the user, 2026-11-07: "Up to 8 while I sleep"; that night until 09:00 local
+  time on 2026-11-08): count the game processes already running on the machine before starting more. The oracle runs 3 at a time by default
   (`--jobs`, at most 3): start no other game tests while it runs.
 - Only one oracle runs on the machine at a time. To wait for another, look for processes that run the oracle script
   (a command line like `bash .../compare.sh ...`) and exclude your own process tree. Never put the wait loop in the
