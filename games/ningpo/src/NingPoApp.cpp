@@ -46,7 +46,7 @@ public:
 
 	void EventRead() override
 	{
-		gApp->UpdateStateLog();
+		gApp->EventRead();
 	}
 
 	void ScreenChanged() override
@@ -83,12 +83,6 @@ public:
 	bool RegistryWriteData(const std::string& theName, const void* theData, size_t theSize) override
 	{
 		return gApp->RegistryWriteData(theName, (const uchar*)theData, (ulong)theSize);
-	}
-
-	// the framework opens nothing in a test run (it logs "OpenURL in a test run")
-	void OpenURL(const std::string& theURL) override
-	{
-		gApp->SexyAppBase::OpenURL(theURL);
 	}
 
 	std::string ClipboardText() override

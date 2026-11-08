@@ -94,6 +94,44 @@ An AddressSanitizer build (2026-10-26): `cmake -S . -B build/native-asan -G Ninj
 copy `libclang_rt.asan_dynamic-i386.dll` (llvm-mingw's `i686-w64-mingw32/bin`) next to the exe. The check's script,
 followed by the options and the rules, ran with no report.
 
+### The standard test commands
+
+`src/TestCommands.cpp` answers the commands of `docs/TEST_COMMANDS.md` from a `-script` file natively and from the
+test page's command call on the web. Commands that change the game wait in a queue and run at the game's next event
+read, through the game's own code, and only while no dialog is open (the game's dialogs run their own loops).
+
+`state` prints `screen` (title, playing, won, gameover), `dialog` (start, splash, options, rules, besttimes, nomoves,
+name, question, or null), `mode` (always mahjong), `level` and `layout` (0 to 17), `tileset`, `background`, `timer`
+and `penalty` in seconds, `moves` (the free pairs), `tiles` (left on the board), `hints`, `undos`, `shuffles`, `paused`,
+`cheat`, `over` and `updates`. `goto` takes title, mahjong (also play or game), options, rules (help) and besttimes
+(highscores); `level n` starts layout n; `set` takes layout, tileset or background on the title screen; `win` removes
+every pair but the last and matches that one, which ends the game won as a match does; `lose` ends it as running out
+of moves does, with the no-moves question; `seed n` seeds the game's generator; `unlock all` answers ERROR, since the
+port is the registered game with nothing locked. `move` gives the first free pair the game's own move finder
+(`Board::findMove`, the one behind the hint) returns, with clicks on both tiles' faces, or the click that answers the
+dialog that is open (the start button, "end game" in the no-moves question, the name "Bot" and Enter, the best times'
+OK, the continue arrow), or `MOVE null` when nothing is to be done (paused, or a dialog with no answer of its own).
+
+## Left out
+
+The port plays as the registered original does, and that copy stays the reference for every comparison. Two kinds of
+code are left out (docs/COORDINATION.md, "Order of the work on the merged games", 2026-11-07).
+
+The trial's code, which a registered copy never reaches: the registration check (`checkRegistration`, the game's and
+the engine's, and the cvars `nm_pyrogonRegistration` and `nm_maxTimesPlayed`), the count of games played, the
+"full version only" signs drawn over the last layouts and tile sets on the title, the loading bar stopped at a quarter,
+the buy button among the board's controls, the engine's startup dialog whose button opened the purchase page, and the
+four sprites only those used (14, 15, 74 and 75 in `SpriteTable.inc`, which the generator now leaves empty). None of
+it showed in a registered copy, so nothing visible changes.
+
+The link out of the game: the options' "Visit PopCap.com For More Games" button, with `openPartnerSite`,
+`openPurchasePage`, the engine's `openURL` and its partner and purchase links, and the host's `OpenURL`. This one is
+visible. The options' background has a frame for each button: Best Times and an empty one (the trial's register
+button) in the first row, the visit button in the second, Done in the third. Done now sits in the second row's frame,
+and the third row's frame, empty, is painted out with the wood beside it when the background loads
+(`PaintOutFrame` in `src/NingPoDialogs.cpp`), so the dialog shows no gap. The empty frame beside Best Times stays, as
+in the registered original. The loading screen's partner logo is a picture, not a link, and stays.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
