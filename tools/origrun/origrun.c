@@ -1359,6 +1359,7 @@ static void write_clip_json(const char* dir, int interval_ms)
 // Wait until the game's update counter reaches target (or timeout). Returns the value last read, or -1 if the
 // counter could not be read at all. Polls at ~1 ms, so with a 100 Hz update (10 ms each) it lands within one
 // update of the target.
+static uint32_t gAtMark=0; static int gAtMarked=0;   // the script's "mark" ("at +N")
 static int wait_counter(uint32_t target, int timeout_ms)
 {
 	// On the virtual clock the game is held at its first wait at or past the update (vclock.c), however fast it runs.
@@ -1765,11 +1766,24 @@ static void run_script(DWORD pid, const char* scriptPath)
 			else { vc_free(); do_burst(n,c,(got>=3?atoi(kw):100),0,0); }
 			continue;
 		}
+		if (ieq(cmd,"mark")){
+			// mark: the counter's value now, which "at +N" counts from (a counter that does not start at 0, such as an
+			// event time on the virtual clock, which starts at the real time)
+			uint32_t v=0;
+			if (!gCounterExpr[0] || !read_counter(gCounterExpr,&v)) { logline("mark: the counter could not be read"); continue; }
+			gAtMark=v; gAtMarked=1;
+			logline("mark: the counter reads %lu", (unsigned long)v);
+			continue;
+		}
 		if (ieq(cmd,"at")){
 			// at <N> <command...>: when the update counter reaches N, hold the game's window thread and run the
 			// command (shot/click/key/text/move/focus/burst, or keydown/keyup and down/up for one edge). Needs an update counter (--counter or config).
+			// at +<N>: N after the counter's value at the last "mark".
 			if (!gCounterExpr[0]) { logline("at: no update counter configured (--counter or games.cfg); skipping '%s'",rest); continue; }
+			int aRel=0; while (*rest==' ') rest++; if (*rest=='+') { aRel=1; rest++; }
+			if (aRel && !gAtMarked) { logline("at: '+' needs a 'mark' before it"); continue; }
 			unsigned long N=0; int o=0; if (sscanf(rest,"%lu%n",&N,&o)!=1) { logline("at: need 'at <N> <command>'"); continue; }
+			if (aRel) N+=gAtMark;
 			const char* inner=rest+o; while(*inner==' ')inner++;
 			int v=wait_counter((uint32_t)N,30000);
 			logline("at %lu: counter reached %d -> %s", N, v, inner);

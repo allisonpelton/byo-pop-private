@@ -190,6 +190,9 @@ no click until the game has finished loading, from seconds to over a minute of r
   the same for a key, with a `keydown` at `N` and a `keyup` at `N+k`. `at` does not
   take the `hw*` commands: in the sandbox the game runs in session 0, which desktop input does not reach anyway
   (`GetCursorPos` reads 0,0 whatever `SetCursorPos` did; for a game that reads the cursor, see "The scripted cursor").
+- `mark` — reads the update counter now; `at +<N> <command...>` then waits for the counter to reach N past that value.
+  For a counter that does not start at 0, such as an event time on the virtual clock, which starts at the real time
+  (Ning Po: a `wait` to the first input, the input, `mark`, then `at +N` lines at the port's updates from there).
 - `msgbox <button> <text...>` â€” when a message box whose caption or text contains `<text>` appears, click the
   button labelled `<button>` (e.g. `msgbox No Trial expired`, `msgbox OK update`). Put these at the top of the
   script; they are registered before the game launches, so even a box that pops up early is answered. A box
