@@ -409,7 +409,7 @@ void WinDMApp::LoadingCompleted()
 	mFancyBackdrop->SetVisible(true);
 	int aSound = SOUND_WELCOME_BACK;
 	if (mProfile->mName.empty() && !mProfile->GetAnyProfile()) {
-		mMainMenu->mTimer = 125;
+		mMainMenu->mUserDialogTimer = 125;
 		aSound = SOUND_WELCOME;
 	}
 	PlaySample(aSound);
@@ -580,7 +580,7 @@ void WinDMApp::DoneReloading()
 	if (!mWasInGame) {
 		DoMainMenu();
 		if (mProfile->mName.empty() && !mProfile->GetAnyProfile())
-			mMainMenu->mTimer = 50;
+			mMainMenu->mUserDialogTimer = 50;
 		if (!mInitialMenuCleared) {
 			mFancyBackdrop = new FancyBackdrop(this);
 			mFancyBackdrop->Resize(0, 0, mWidth, mHeight);
@@ -588,8 +588,8 @@ void WinDMApp::DoneReloading()
 			mWidgetManager->BringToBack(mFancyBackdrop);
 		} else {
 			delete mMainMenu->mBackdropImage;
-			mMainMenu->mBackdropImage = static_cast<CustomResourceManager*>(mResourceManager)->GetCachedImage(
-				StrFormat("images\\backdrops\\%s", mBackdrops[0].c_str()));
+			mMainMenu->mBackdropImage = static_cast<MemoryImage*>(static_cast<CustomResourceManager*>(mResourceManager)->GetCachedImage(
+				StrFormat("images\\backdrops\\%s", mBackdrops[0].c_str())));
 			mMainMenu->mBackdropClear = false;
 		}
 	} else {

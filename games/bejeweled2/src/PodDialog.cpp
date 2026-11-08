@@ -235,7 +235,7 @@ void PodDialogButton::Draw(Graphics* g)
 // 0x5cea31
 PodDialog::PodDialog(WinDMApp* theApp, int theId, bool isModal, const SexyString& theHeader, const SexyString& theLines,
 	const SexyString& theFooter, int theButtonMode) :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BUTTON, theId, isModal, "", theLines, theFooter, theButtonMode)
+	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BUTTON, theId, isModal, " ", theLines, theFooter, theButtonMode)
 {
 	mApp = theApp;
 	mHeaderText = theHeader;

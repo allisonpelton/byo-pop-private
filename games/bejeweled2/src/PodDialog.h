@@ -71,7 +71,7 @@ class PodDialog : public Dialog
 {
 public:
 	WinDMApp*		mApp;               // +0x150
-	SexyString		mHeaderText;        // +0x154 the header (the Dialog's own header stays empty)
+	SexyString		mHeaderText;        // +0x154 the header (the Dialog's own header is a single space: it only keeps the room for the header box)
 	MemoryImage*	mHeaderGlow;        // +0x170 the header in the glow font
 	bool			mEscaped;           // +0x174 the player closed the dialog with the Escape key (or the cancel button)
 	PodDialogButton* mCancelButton;     // +0x178

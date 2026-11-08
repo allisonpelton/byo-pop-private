@@ -63,6 +63,7 @@ enum DialogId
 	DIALOG_RESET_HIGH_SCORES = 33,
 	DIALOG_PUZZLE_PACKS = 34,
 	DIALOG_PUZZLE_RATING = 35,
+	DIALOG_WELCOME = 36,           // the message that follows a new user's first visit to the menu
 	DIALOG_MESSAGE = 37,           // the one-button messages (instructions, name conflict, profile error)
 	DIALOG_HINT_THIRD = 38,
 	DIALOG_HINT_FOURTH = 39,

@@ -10,6 +10,7 @@ namespace Sexy
 {
 
 class WinDMApp;
+class MemoryImage;
 
 class EffectOverlay
 {
@@ -33,12 +34,14 @@ public:
 	int				mMode1714;          // +0x1714
 	int				mMode170C;          // +0x170c
 	int				mHintDialogUp;      // +0x1950
+	MemoryImage*	mBackdropImage;     // +0x15f58 the picture behind the board
 
 public:
 	Board(WinDMApp* theApp) { mApp = theApp; mEffectOverlay = new EffectOverlay(); mShowHelp = false; mMessageTimer = 0;
-		mFlag1764 = mFlag28 = 0; mMode1714 = mMode170C = mHintDialogUp = 0; mPitchDown = mPitchUp = mUserPaused = false; }
+		mBackdropImage = NULL; mFlag1764 = mFlag28 = 0; mMode1714 = mMode170C = mHintDialogUp = 0; mPitchDown = mPitchUp = mUserPaused = false; }
 	virtual void	ButtonDepress(int theId) override {}
 
+	bool			CoversScreen() { return false; } // the state at +0x98 says the board draws over the whole window
 	void			ShowNow() {}
 	void			HideNow() {}
 	void			Show() {}
