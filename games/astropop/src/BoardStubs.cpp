@@ -21,12 +21,6 @@ bool Board::Fn46a810()
 	return false;
 }
 
-void Board::DropUnsupported(std::vector<CellRef>& theCells)
-{
-	(void) theCells;
-	NOT_TRANSLATED("DropUnsupported", "0x46cc20");
-}
-
 bool Board::AnyMoveLeft(bool* theFlag)
 {
 	(void) theFlag;

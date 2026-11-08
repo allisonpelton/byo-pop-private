@@ -386,3 +386,100 @@ DoneGroups:
 	for (unsigned int i = 0; i < m108.size(); i++)
 		m108[i]->Update();
 }
+
+// 0x438a30: is the brick in one of the falling groups at +0x94?
+bool Board::IsInFallingGroup94(Brick* theBrick)
+{
+	for (std::list<std::list<Brick*> >::iterator aGroup = m94.begin(); aGroup != m94.end(); ++aGroup)
+	{
+		for (std::list<Brick*>::iterator aBrick = aGroup->begin(); aBrick != aGroup->end(); ++aBrick)
+		{
+			if (*aBrick == theBrick)
+				return true;
+		}
+	}
+	return false;
+}
+
+// 0x4389c0: is the brick in one of these groups?
+bool Board::IsInGroups(Brick* theBrick, const std::vector<std::list<Brick*> >& theGroups)
+{
+	for (unsigned int i = 0; i < theGroups.size(); i++)
+	{
+		for (std::list<Brick*>::const_iterator aBrick = theGroups[i].begin(); aBrick != theGroups[i].end(); ++aBrick)
+		{
+			if (*aBrick == theBrick)
+				return true;
+		}
+	}
+	return false;
+}
+
+// 0x46cc20: the bricks that have lost their support fall. For each emptied cell (theCells, sorted first) that has an idle
+// brick above it (or is at the top, or in row 1 of a game of the second kind), the bricks below it in the column are taken
+// out of the field in groups, a gap ending a group: each gets the height it will fall to (mTargetY, from the cell on,
+// 25 apart; the top row's cell counts as row 1). The groups then go into the list of falling groups at +0x94, before the
+// first group in the same column that starts higher.
+void Board::DropUnsupported(std::vector<CellRef>& theCells)
+{
+	if (theCells.empty())
+		return;
+
+	SortCells(theCells);
+
+	std::vector<std::list<Brick*> > aGroups;
+	for (unsigned int i = 0; i < theCells.size(); i++)
+	{
+		int aCol = theCells[i].mCol;
+		int aRow = theCells[i].mRow;
+		std::list<Brick*> aList;
+
+		bool aGo = true;
+		if (aRow != 0 && !(m910 && aRow == 1))
+		{
+			Brick* anAbove = m314[aRow - 1][aCol];
+			aGo = (anAbove != NULL && anAbove->IsIdle());
+		}
+
+		if (aGo && aRow + 1 < 0x13)
+		{
+			int aY = aRow * 0x19 + 9;
+			for (int aBelow = aRow + 1; aBelow < 0x13; aBelow++)
+			{
+				Brick* aBrick = m314[aBelow][aCol];
+				if (aBrick != NULL)
+				{
+					if (aBrick->IsIdle() && !IsInFallingGroup94(aBrick) && !IsInGroups(aBrick, aGroups))
+					{
+						if (aY == 9)
+							aY += 0x19;
+						aBrick->mTargetY = (float) aY;
+						aY += 0x19;
+						aList.push_back(aBrick);
+						m314[aBelow][aCol] = NULL;
+					}
+				}
+				else if (!aList.empty())
+				{
+					aGroups.push_back(aList);
+					aList.clear();
+				}
+			}
+			if (!aList.empty())
+				aGroups.push_back(aList);
+		}
+	}
+
+	for (unsigned int i = 0; i < aGroups.size(); i++)
+	{
+		int aGroupX = (int) aGroups[i].front()->mX;
+		int aGroupY = (int) aGroups[i].front()->mY;
+		std::list<std::list<Brick*> >::iterator aPos;
+		for (aPos = m94.begin(); aPos != m94.end(); ++aPos)
+		{
+			if ((int) aPos->front()->mX == aGroupX && aGroupY > (int) aPos->front()->mY)
+				break;
+		}
+		m94.insert(aPos, aGroups[i]);
+	}
+}
