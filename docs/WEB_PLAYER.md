@@ -78,7 +78,9 @@ The panels:
 - **Game files** imports the game again, or forgets the copied files. Saves and mods stay. The game runs only
   once in a page and must not have its files changed under it, so once it has started, both close it first
   (as the mod menu's Restart does, saving the game in progress) and go on in a reloaded page: the import
-  card, which can go back to the Ready card.
+  card, which can go back to the Ready card. The page keeps the game's life as one state (`gameState` in the shell, the user,
+  2026-11-07: "Find any implicit state machines in the website code and make them explicit"): waiting, starting, running, closing (the page asked it to close),
+  closed and stopped (an error), with the moves between them listed in `GAME_MOVES`; the shell makes no other.
 - **Settings** is the site's settings (see "Site settings", below), the same controls as the listing page's.
 - **Sound** turns the page's sound off or on, below the game's own volume and mute options (see "Site settings").
 - **Fullscreen** puts the stage in fullscreen. **F11** does the same in every game's page, and F11 again (or Esc) leaves it (see
@@ -165,14 +167,15 @@ hot spot taken from the crop and a hash of the cropped pixels (`crop` and `pictu
 picture and makes smaller CSS cursors; sets kept before cropping are cropped once as a page of the site loads (`upgrade`), with no
 need to start each game again. Games whose sets look the same share one entry named with all their titles, "Alchemy and
 Big Money" (the user, 2026-11-04: entries that look the same are one entry, and differences nobody can see do not split
-one). Two sets look the same when their pointers and their hands do: the pixels that show are the same size, they differ nowhere
-by more than 16 of 255 in any colour drawn over white and over black, the hot spots are no more than a pixel apart, and the frames
-match (`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The dragging cursor, the circle-slash and the
+one). Two sets look the same when their pointers and their hands do: laid on each other by their hot spots (or with one moved a
+pixel), the pictures are no more than two pixels apart in size and differ nowhere by more than 40 of 255 in any colour drawn over
+white and over black, and the frames match (`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The dragging cursor, the circle-slash and the
 wait cursor are pictured but not compared: Bejeweled's dragging cursor is an open hand without the shadow, since its mask is a
 smaller image than its picture and the game, like the original, leaves a mask of another size out, and the user wants Bejeweled
 with the others ("One-line fix it is, then", 2026-11-04). The games that use PopCap's usual cursors make two entries: Atomica and
-Dynomite, whose cursors are green, and the rest (Alchemy, Bejeweled, Big Money, BookWorm, Mummy Maze, Pixelus, Rocket Mania and
-Seven Seas; BookWorm's pointer has colours up to three steps off Alchemy's). An entry pictures the set of the member that stands
+Dynomite, whose cursors are green, and the rest (Alchemy, Bejeweled, Bejeweled Twist, Big Money, BookWorm, Mummy Maze, Pixelus,
+Rocket Mania and Seven Seas; BookWorm's pointer has colours up to three steps off Alchemy's, and Bejeweled Twist keeps the same
+pointer and hand as JPEG 2000, a few pixels up to 33 off, with faint edges its GIF masks add, the user 2026-11-07). An entry pictures the set of the member that stands
 for it, the chosen one or else the first by title (Alchemy's), and the site shows the chosen game's own cursors. The sets are
 still kept one a game, choosing the entry keeps one member's id, and the entries form again from what is kept, so a set that
 changes leaves its group. The choice,
@@ -245,9 +248,10 @@ cursor, are at most 128 px: the game page draws a larger one smaller. Filling `f
 cursor class would hand the framework its frames, and `byopop_cursor_set_copy` and the game page's `takeCursorSet` would copy and
 keep them.
 
-**The footer** is the same on every game's page: one link, which opens the game's copyright page
-(`<game>-copyright.html`, next to the game) in a new tab. The markup is `web/footer.html` and its style
-`web/footer.css`.
+**The footer** is the page's last row, across its width (the user, 2026-11-07: "a true footer"): the game's copyright notice
+in one sentence, its `COPYRIGHT` up to "All rights reserved." (the trademark lines are on the page the link opens), then a
+**Full terms →** link, which opens the game's copyright page (`<game>-copyright.html`, next to the game) in a new tab. The
+markup is `web/footer.html` (the build puts the notice at `@BYOPOP_NOTICE@`) and its style `web/footer.css`.
 
 **The copyright page** is made from `web/copyright.html`. It has the game's copyright notice, a statement that
 the player is unofficial, non-commercial and comes with none of the game's files, and the license of every
@@ -647,6 +651,51 @@ asked to keep the site's storage, and the cards are checked again. `tools/gameim
 the sorting under Node with every finished game's `page.js` (a page.js that fails there is a failure, and a change to one picks
 `unit-web` in `tools/check.sh`'s merge mode).
 
+### Games this site does not play
+
+The user, 2026-11-07: "Let's also add site code explicitly recognizing folders that seem to contain a game we haven't/won't
+decomp, and either direct the user to an existing decomp project for it or just say 'coming soon'". So a folder that holds none of
+the site's games but one it knows names that game, on the listing page (a line under the panel's list, "Not added: <folder>.") and
+on a game's own page (after its "Missing files" error, and when the folder is dropped on another game's tile). Where another
+project plays the game, a link to that project follows, opening a new tab as the store links do; where none does, or the game is one
+of the site's own to come, the line says it is coming soon. A folder of several such games is looked into as a folder of the site's
+own games is, each named in its own line.
+
+The table is `cmake/ByopopOthers.cmake` (`BYOPOP_OTHER_GAMES`), one row a game: its id (the target, for a game in
+`BYOPOP_WEB_UPCOMING`), its title, two marker files only it has, matched as a game's own markers are, and the project and its page,
+or neither. `byopop_web_index()` writes it to `other-games.js`, which both pages load after `web/gameimport.js`, and stops at a
+malformed row, a project whose page is not a GitHub project's, or a link for one of the site's own games to come. Its comment says
+when each project was checked and what its README says. A project is linked only when its front page and README say it plays the
+game, ship none of its files and need the player's own copy, on a trusted host; only the front page and README are read, never the
+code ("No references" in `CLAUDE.md` binds every port), and a project whose state is unclear is not linked. Every row's markers were
+checked against the user's own copies, and `tools/gameimporttest.js` sorts folders of them beside the site's games. Jungle Juice
+(above) will host other projects' decompilations; once it does, these links can point there.
+
+### The site's look: rules for skins
+
+The user asked for original site designs that evoke the games' era and its web, with selectable skins (2026-11-07). The
+directions proposed so far, each as a listing, a game page and the import as a setup wizard, with studies for the bottle-cap
+board, are on a design page made for the user (https://claude.ai/artifact/FZy69Pz8kFCPkfZvctTA7T, private to them). Whatever is
+chosen keeps these rules, each in the user's words of 2026-11-07:
+- **The game stays the game.** "Skip in-game chat. I want the default to not feel modded relative to the version people might
+  build themselves." What happens inside the game's picture, and what its buttons do, stays as a port the player built
+  themselves would have it; the page around the game is free to change. Whether a game's "More Games" button may open the
+  listing is a question for the user, since it changes what an in-game button does.
+- **The era, not the company.** "Site isn't going to be a history of the company itself. A love letter to the history just
+  means it's acknowledging only historical parts (all the games are >15 years old by now). I want nothing to do with the EA
+  subsidiary." And: "I don't want to *just* rearrange things that exist in the game for the sake of credits." So no company
+  history, credits panels or liner notes, and nothing that ties the site to today's company.
+- **Period looks are affectionate parody.** "What I'm proposing would be better understood as affectionate parody. Think of
+  the various games that have been made with the style of Windows 95. The font is free to use and the color choices are low-bit
+  due to technological limitations. No chance it gets confused with the real operating system." A skin may look fully like a
+  1995 or 2001 desktop (bevels, title bars, wizard pages with Back, Next and Cancel), drawn in CSS or SVG. It uses no
+  Microsoft or InstallShield names, logos, icons or sounds, is named after byo-pop and the game, and never imitates a real
+  system prompt such as a security or permission dialog.
+- **The player's own fonts.** "If it's just using text elements, it could use the user's own installed font." A period skin
+  names the system fonts in CSS (`"MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Segoe UI", sans-serif`) and ships no
+  Microsoft font files. A free lookalike may be a fallback for machines without them, and only that one is listed on the
+  licences page.
+
 ### Light and dark
 
 The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the
@@ -760,6 +809,14 @@ it is for, in `FIELDS` in `web/settings.js`):
   screen) unless it is off, and with it off nothing of the chat is built or started. It starts on because
   the chat is a part of the page rather than a change to a game, and it can be turned on and off while a game runs ("The chat",
   below).
+- `chatPlace` ("edge" or "game", default edge): **Chat position**. Beside the game the chat sits at the page's right edge, or,
+  with "Next to the game", right next to the stage, the two centred together (the user, 2026-11-07). Below the game it is the
+  same either way.
+- `pixelPerfect` ("on" or "off", default off): **Pixel-perfect**, in Display. The stage takes the game's own size instead of
+  filling the window (the user, 2026-11-07): each game pixel is n device pixels, n the device pixel ratio rounded and at least
+  1, so at 100% and 125% a 640 x 480 game takes 640 x 480 device pixels and at 150% and 200% twice that. A smaller n is taken
+  while that does not fit the window, and the usual fit when not even one device pixel each does. The game gives its size as it
+  makes its window (`SexyAppBase::MakeWindow` calls `Module.onGameScreen`); full screen is unchanged.
 
 **The starting volume.** Most of the games start with music and sound on, and the only way to avoid that used to be the speakers,
 so the setting says what volume every game starts at, 0 for silence, music and sound each. The page's mute
@@ -830,7 +887,9 @@ adds its tag, and the chat keeps no list of its own); a game the table lacks has
 width it has without it, else below it (the class `chat-below` on the root element), so the canvas and its scaling are never
 changed by the chat; `Module.onGameScreen` asks the chat to work that out again when a game changes the stage's shape; the
 "Show chat" setting above turns it on and off live; and the terms card and the "Already open" card make it inert like the rest
-of the page. Below the stage the page is taller than the window, and the player must land on the game, scrolled to the top: the
+of the page. Below the stage the chat fills the space down to the footer, at least 18rem tall (the user, 2026-11-07), and
+with "Chat position" on "Next to the game" the stage's box is only as wide as the stage (chat.js gives `--stage-px`), so the
+two centre together. Below the stage the page is taller than the window, and the player must land on the game, scrolled to the top: the
 page sets `history.scrollRestoration` to `manual` (else a reload, as Play again and a restart from the mod menu do, puts the page back
 where it was scrolled to, the chat in view), and Home, End, PageUp and PageDown typed on the canvas are cancelled for the browser, which
 would scroll the page to the chat with them (SDL cancels the arrows, Tab, Backspace, the function keys, Ctrl keys and Space, not

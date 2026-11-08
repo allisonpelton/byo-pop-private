@@ -410,13 +410,15 @@ var ByopopCursors = (function () {
     el.appendChild(fs);
   }
   // ---------- sets that look the same ----------
-  // Two sets look the same, and share an entry, when every kind in LOOKS looks the same in both: pictures whose pixels that
-  // show are the same size and, drawn over white and over black, differ nowhere by more than LOOK_ALIKE of 255 in any colour,
-  // with hot spots no more than a pixel apart (the user, 2026-11-04: differences nobody can see do not split an entry). BookWorm's
+  // Two sets look the same, and share an entry, when every kind in LOOKS looks the same in both: pictures that, laid on each
+  // other by their hot spots (or with one moved a pixel), drawn over white and over black, differ nowhere by more than
+  // LOOK_ALIKE of 255 in any colour (the user, 2026-11-04: differences nobody can see do not split an entry). BookWorm's
   // pointer is Alchemy's with colours a step or three off. An entry pictures the set of the member that stands for it (the
   // chosen one, else the first by title), whose dragging cursor may not be every member's. The pictures are decoded once a URL; until then,
   // or when one cannot be decoded, a picture looks the same only as the same pixels (`k`) or image with the same hot spot.
-  var LOOK_ALIKE = 16;
+  // 40 of 255: Bejeweled Twist's pointer and hand are Alchemy's design kept as JPEG 2000, a few pixels up to 33 off, with
+  // faint edges (alpha up to 9) its GIF masks add or take away; Atomica's green differs by 127 to 220
+  var LOOK_ALIKE = 40;
   var seen = {}, seeing = {};  // URL: the pixels that show {width, height, data, left, top}, or null; URL: being decoded
   function lookAt(sets) {
     var urls = [], now = true, left;
@@ -440,24 +442,41 @@ var ByopopCursors = (function () {
     });
     now = false;
   }
-  function frameAlike(a, b) {
-    if (a.k && a.k === b.k && a.x === b.x && a.y === b.y) return true;
-    var pa = seen[a.url], pb = seen[b.url], da, db, i, c, bg, va, vb;
-    if (!pa || !pb) return (a.k || a.url) === (b.k || b.url) && a.x === b.x && a.y === b.y;
-    if (pa.width !== pb.width || pa.height !== pb.height) return false;
-    if (Math.abs((a.x - pa.left) - (b.x - pb.left)) > 1 || Math.abs((a.y - pa.top) - (b.y - pb.top)) > 1) return false;
-    da = pa.data; db = pb.data;
-    for (i = 0; i < da.length; i += 4) {
-      if (da[i] === db[i] && da[i + 1] === db[i + 1] && da[i + 2] === db[i + 2] && da[i + 3] === db[i + 3]) continue;
-      for (bg = 0; bg <= 255; bg += 255) {
-        for (c = 0; c < 3; c++) {
-          va = (da[i + c] * da[i + 3] + bg * (255 - da[i + 3])) / 255;
-          vb = (db[i + c] * db[i + 3] + bg * (255 - db[i + 3])) / 255;
-          if (Math.abs(va - vb) > LOOK_ALIKE) return false;
+  // A picture's pixel at (u, v) from its hot spot, as RGBA (all zero outside it)
+  function pixelAt(p, hx, hy, u, v, out) {
+    var x = u + hx - p.left, y = v + hy - p.top, i;
+    if (x < 0 || y < 0 || x >= p.width || y >= p.height) { out[0] = out[1] = out[2] = out[3] = 0; return; }
+    i = (y * p.width + x) * 4;
+    out[0] = p.data[i]; out[1] = p.data[i + 1]; out[2] = p.data[i + 2]; out[3] = p.data[i + 3];
+  }
+  // The two pictures laid on each other by their hot spots, one moved by (sx, sy): no pixel of either differs by more than
+  // LOOK_ALIKE over white or over black
+  function overlayAlike(pa, a, pb, b, sx, sy) {
+    var ax = a.x - pa.left, ay = a.y - pa.top, bx = b.x - pb.left + sx, by = b.y - pb.top + sy;
+    var u0 = Math.min(-ax, -bx), v0 = Math.min(-ay, -by), u1 = Math.max(pa.width - ax, pb.width - bx), v1 = Math.max(pa.height - ay, pb.height - by);
+    var ca = [0, 0, 0, 0], cb = [0, 0, 0, 0], u, v, c, bg;
+    for (v = v0; v < v1; v++) {
+      for (u = u0; u < u1; u++) {
+        pixelAt(pa, a.x, a.y, u, v, ca);
+        pixelAt(pb, b.x, b.y, u - sx, v - sy, cb);
+        if (ca[0] === cb[0] && ca[1] === cb[1] && ca[2] === cb[2] && ca[3] === cb[3]) continue;
+        for (bg = 0; bg <= 255; bg += 255) {
+          for (c = 0; c < 3; c++) {
+            if (Math.abs((ca[c] * ca[3] - cb[c] * cb[3] + bg * (cb[3] - ca[3])) / 255) > LOOK_ALIKE) return false;
+          }
         }
       }
     }
     return true;
+  }
+  function frameAlike(a, b) {
+    if (a.k && a.k === b.k && a.x === b.x && a.y === b.y) return true;
+    var pa = seen[a.url], pb = seen[b.url], sx, sy;
+    if (!pa || !pb) return (a.k || a.url) === (b.k || b.url) && a.x === b.x && a.y === b.y;
+    // a picture well apart in size is another picture; else the hot spots may be a pixel apart
+    if (Math.abs(pa.width - pb.width) > 2 || Math.abs(pa.height - pb.height) > 2) return false;
+    for (sy = -1; sy <= 1; sy++) for (sx = -1; sx <= 1; sx++) if (overlayAlike(pa, a, pb, b, sx, sy)) return true;
+    return false;
   }
   function kindAlike(a, b) {
     if (!a || !b) return !a && !b;

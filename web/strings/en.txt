@@ -27,7 +27,7 @@ site.new_tab = (opens in a new tab)
 # A list of names: two, and three or more ({rest} is all but the last, joined with ", ")
 site.list_two = {first} and {second}
 site.list_many = {rest} and {last}
-footer.terms = Terms, copyright and licenses
+footer.full_terms = Full terms →
 
 
 # ---- The listing page (web/index.html)
@@ -258,6 +258,10 @@ game.import.progress_text = {done} of {total} files
 # {markers} names the files that make a folder the game's install (from the game's page), {title} the game
 game.import.wrong_folder = Missing files: {markers}. Pick the {title} install folder
   itself.
+# A folder that holds a game the site recognises but does not play (cmake/ByopopOthers.cmake): elsewhere is followed by a link to
+# the project that plays it, named by the project's name
+import.other.soon = That's {title}, which this site doesn't play yet: coming soon.
+import.other.elsewhere = That's {title}, which this site doesn't play. Another project plays it with your own copy:
 game.import.copying = Copying {count} files…
 game.import.copied = Copied {count} files.
 game.import.error_missing = Partially copied. Some files are missing: {markers}.
@@ -380,6 +384,12 @@ settings.quithome.label = Quit to home
 settings.quithome.hint = Exiting a game through the in-game menu returns to the front page.
 settings.showchat.label = Show chat
 settings.showchat.hint = For now a test: the messages are made up and stay in this browser.
+settings.chatplace.label = Chat position
+settings.chatplace.edge = Page edge
+settings.chatplace.game = Next to the game
+settings.chatplace.hint = Where the chat sits when there is room beside the game.
+settings.pixelperfect.label = Pixel-perfect
+settings.pixelperfect.hint = The game at its own resolution, each pixel sharp, instead of filling the window.
 
 # In a game's panel: the choice of whose settings the controls change
 settings.scope.legend = Change the settings for
@@ -1001,6 +1011,7 @@ add.which = Which game?
 add.add = Add
 # {folders} are the dropped folders no game of this site uses, separated by commas
 add.rejected = Not added (no game this site plays): {folders}
+add.other = Not added: {folder}.
 add.nothing = Nothing was dropped that could be read. Drop the game's folder, or a .zip of it.
 add.read_failed = The files could not be read.
 add.read_failed_game = The files could not be read.
