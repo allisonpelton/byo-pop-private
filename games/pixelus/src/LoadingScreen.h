@@ -6,8 +6,8 @@
 // settings block, and the game's subclass (0x50e1e0) that only places the play link. The port keeps one class.
 // The settings block of Pixelus (0x418960): the two link/status fonts data\Praitor24.txt (status text) and
 // data\Praitor36.txt (links), the link colour (235,235,235) and its hover colour (white), the text's top 0x1ae
-// and the loading bar's top 0x1bb. The trial and registration side of the Nc screen (trial counters, the register
-// dialog, "UNPACKING SOUNDS") is for the shop version and not ported: this game is always fully registered.
+// and the loading bar's top 0x1bb. The trial and registration side of the Nc screen (the register link, the status line, trial counters) is
+// taken out: the port plays as the registered game does.
 
 #include "Widget.h"
 #include "ButtonListener.h"
@@ -25,7 +25,6 @@ class LoadingScreen : public Widget, public ButtonListener
 public:
 	enum
 	{
-		REGISTER_LINK_ID = 0,
 		PLAY_LINK_ID = 1
 	};
 
@@ -35,11 +34,8 @@ public:
 	double			mProgress;          // +0xe0
 	double			mProgressCap;       // +0xe8
 	bool			mLoadDone;          // +0xf0
-	bool			mPlayRequested;     // +0xf1 (the register link; unused here)
 	Image*			mImages[3];         // +0x108 NcFramework\images\ loadinggraphic, loadingbar, loadingbarempty
-	ImageFont*		mStatusFont;        // +0x100 Praitor24
 	ImageFont*		mLinkFont;          // +0x104 Praitor36
-	HyperlinkWidget* mRegisterLink;     // +0xf8
 	HyperlinkWidget* mPlayLink;         // +0xfc
 
 public:

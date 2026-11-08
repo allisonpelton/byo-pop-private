@@ -158,6 +158,31 @@ if(BUILD_MODSETTINGSTEST)
   endif()
 endif()
 
+# JPEG test (tools/jpegtest): Platform::DecodeJPEG / LoadImageFromMemory / DecodeImage against IJG libjpeg 6b's reference
+# output (third_party/libjpeg/test) and synthetic pictures (tools/jpegtest/data). Native: jpegtest.exe. Web:
+# jpegtest.js, run with Node, since the error paths (setjmp/longjmp) only show in wasm what they do there.
+option(BUILD_JPEGTEST "Build the JPEG test" ON)
+if(BUILD_JPEGTEST)
+  add_executable(jpegtest tools/jpegtest/jpegtest.cpp)
+  target_link_libraries(jpegtest PRIVATE sexyframework)
+  if(NOT MSVC)
+    target_compile_options(jpegtest PRIVATE -Wall)
+  endif()
+  if(EMSCRIPTEN)
+    set_target_properties(jpegtest PROPERTIES SUFFIX ".js")
+    target_compile_definitions(jpegtest PRIVATE JPEGTEST_DATA="/jpegtest/data" JPEGTEST_IJG="/jpegtest/ijg")
+    target_link_options(jpegtest PRIVATE "-sENVIRONMENT=node" "-sEXIT_RUNTIME=1" "-sALLOW_MEMORY_GROWTH=1"
+      "--embed-file=${PROJECT_SOURCE_DIR}/tools/jpegtest/data@/jpegtest/data"
+      "--embed-file=${PROJECT_SOURCE_DIR}/third_party/libjpeg/test@/jpegtest/ijg")
+  else()
+    target_compile_definitions(jpegtest PRIVATE JPEGTEST_DATA="${PROJECT_SOURCE_DIR}/tools/jpegtest/data"
+      JPEGTEST_IJG="${PROJECT_SOURCE_DIR}/third_party/libjpeg/test")
+    add_custom_command(TARGET jpegtest POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:jpegtest>
+      VERBATIM)
+  endif()
+endif()
+
 # JPEG 2000 test (tools/jp2test): decodes the .jp2 images of a folder through the image loader (platform/openjpeg)
 # and compares the pixels with reference PNGs, the decoder's own output (-write-ref, tools/jp2test/write_refs.sh);
 # the loader's mask and extension rules with .jp2 files. Native only: tools/check.sh unit runs it on

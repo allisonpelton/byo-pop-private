@@ -44,7 +44,7 @@ HelpScreen::HelpScreen(PixelusApp* theApp) :
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	mDontShowBox->SetChecked(aUser == NULL || !aUser->mFlag2D, false);
 
-	mOKButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_OK, this);
+	mOKButton = new SoundButton(mApp, mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_OK, this);
 	mOKButton->mLabel = GT(0x50b558);
 	StyleButton(mApp, mOKButton, 3);
 }
@@ -93,6 +93,11 @@ void HelpScreen::Update()
 	mDemoFrame = (mDemoFrame + 1) % 950;
 	if (mDemoFrame == 50 || mDemoFrame == 150 || mDemoFrame == 250)
 		mApp->RandNext();
+	// the demo's tile moves play the move sample; a thrown tile lands 11 updates later (0x40d320, 0x424750)
+	if (mDemoFrame == 50 || mDemoFrame == 150 || mDemoFrame == 250 || mDemoFrame == 500 || mDemoFrame == 600 || mDemoFrame == 700)
+		mApp->PlaySample(SOUND_TILE_MOVING_02D);
+	if (mDemoFrame == 61 || mDemoFrame == 161 || mDemoFrame == 261)
+		mApp->PlaySample(SOUND_TILE_TARGET_02C);
 	MarkDirty();
 }
 

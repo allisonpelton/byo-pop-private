@@ -53,7 +53,6 @@ public:
 	MainMenu*				mMainMenu;          // +0x688
 	IslandMap*				mIslandMap;         // +0x68c (0x432600)
 	PuzzleCompletedScreen*	mPuzzleCompleted;   // +0x690 (0x4326c0)
-	Widget*					mMoreGames;         // +0x694 (0x432780)
 	Widget*					mHintOverlay;       // +0x698
 	Widget*					mHintScreen;        // +0x69c (0x432820)
 	CompletionScreen*		mCompletion;        // +0x690 (0x4326c0)
@@ -83,6 +82,11 @@ public:
 	virtual void			ButtonDepress(int theId) override;              // 0x435310 slot 5
 	virtual void			UpdateFrames() override;                        // 0x4e2f80: the answered quit question ends the game
 	virtual void			HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	// Test commands (testhooks/TestCommands.cpp; docs/TEST_COMMANDS.md)
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
+	std::string				TestScreen();
+	void					TestClearScreens();
+	void					TestUpdate();
 
 	// the screens (each removes the one before it)
 	void					ShowBoard(const std::string& theLevel, int thePuzzle);  // 0x432550
@@ -100,7 +104,6 @@ public:
 	void					PlayGame();                                     // 0x432a40: the menu's play button
 	void					ShowUserSelect();                               // 0x432e40 (dialog 0x12)
 	void					ShowNewUser();                                  // 0x432ec0 (dialog 0x13)
-	void					ShowMoreGames();                                // 0x434710
 	void					ShowOptions();                                  // 0x432a10 (0x4194d0 with 0)
 	void					ShowOptionsDialog(bool theInGame);              // 0x4194d0
 	void					ShowCredits();                                  // 0x432a00 (0x402290)
