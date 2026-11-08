@@ -117,6 +117,60 @@ mod the three cases play other games than before, so `tools/check.sh`'s expected
 and the frozen baseline moved with it: `build/baseline-tiptop/` is the port at the commit of this change
 (`FROZEN_AT.txt`), the phase-one baseline kept beside it as `build/baseline-tiptop-phase1/`.
 
+## Performance (measured 2026-11-08, `tools/perf/`)
+
+The original and the port back to back on one machine, in real time, invisibly and silently (the port under rundesk, the original
+through origrun, which puts it under rundesk), by `tools/perf/perf.py` (`port` and `orig`; `gate.sh` waits for a quiet slot;
+`patches.sh` makes the original's patch list). The machine was not quiet: 4 to 8 other game processes of other sessions ran during
+each run (the run's own list is in its `result.json`), so the numbers are for comparing the two sides, and the performance pass
+re-measures on a quiet machine. The original's copy is patched only to play as the registered game, to pin its seed and to leave the
+MIDI music out (its music player runs, its device calls are skipped); the port plays its music through SDL's silent driver.
+
+**The one thing to know about the original's numbers:** it paces its frames by waiting for the screen's vertical blank, and the
+hidden desktop the tests run it on has none, so the unpatched original spins: its bar fills at about 260 frames a second and it
+uses three quarters of a core. Both are shown. The second original row has its main loop sleep 16 ms a pass (`perf.py orig
+--paced 16`), as a 60 Hz screen's blank would, which is what a player sees: 229 frames at about 55 a second.
+
+*Loading*, seconds from the game process's creation to the load bar being full (the bar's loaded count equals its total, read from the
+process's memory every 2 ms; from then on the title takes a click), and the bar's own fill, from its creation to full. Two runs each:
+
+| | Launch to bar full | The bar's fill |
+|---|---|---|
+| Original, unpaced (spinning) | 1.51, 1.80 | 0.89, 0.86 |
+| Original, a pass every 16 ms (60 Hz) | 4.82, 4.66 | 4.31, 4.20 |
+| Port before this change (one entry a frame) | 4.32, 4.16 | 3.38, 3.77 |
+| Port now | 0.63, 0.93 (0.83 in a third run) | 0.20, 0.25 |
+
+The port's fill now takes about 20 frames of 10 ms of loading; what is left of its 0.6 to 0.9 s is the process, the audio start and
+the framework's synchronous resource load before the splash (the log's "Resource Loading Time", 0.4 to 0.8 s), none of it the bar.
+
+*Memory and processor time* over the same scripted minute, the same real clicks on both sides: the title's button, Play, Strategy,
+the tips' button, then a click on a column every 2.4 s, 25 of them (blind: the strategy mode waits for the player, a regular game
+piles up and ends about 33 s after its first click however slowly it is clicked). The window starts when the board appears and
+ends 60 s later or at the game over, which came about 30 to 38 s in, in four of the seven runs that reached the board; processor time is user plus kernel, per
+second of the window.
+
+| | Window | Peak working set | Peak private bytes | Processor time |
+|---|---|---|---|---|
+| Original, unpaced (spinning) | 60 s, 60 s | 61.4, 61.3 MB | 46.8, 46.7 MB | 44.8 s, 45.3 s (0.75 of a core) |
+| Original, a pass every 16 ms | 31.6 s | 60.8 MB | 45.9 MB | 1.6 s (0.05 of a core) |
+| Port before this change | 38.3 s, 29.9 s | 82.2, 82.4 MB | 82.3, 83.0 MB | 14.5 s, 8.8 s (0.38, 0.29) |
+| Port now | 30.9 s, 60 s | 82.0, 90.4 MB | 81.9, 84.1 MB | 10.1 s, 17.3 s (0.33, 0.29) |
+
+One of the paced original's two runs (`orig16_1`) clicked the title before its bar was full, so it never reached the board: its
+load numbers stand, it has no window. Read it plainly: the loading change takes the time from launch to the first screen that takes
+input from about 4.2 to 4.7 s (what the original needs at 60 Hz, and the port needed) to under a second. The port holds about
+20 MB more than the original and uses about six times the original's processor time at 60 Hz (a third of a core against a
+twentieth), which the loading change does not touch; both are for the performance pass (the framework's frame loop and renderer,
+SDL's audio buffers and the soundfont the music player holds are the places to look).
+
+*The web build*, in the Browser pane (`tools/web/loadtime.js`): the pane was hidden (this session is open in no window), so the
+page drew about every 0.3 to 0.6 s and ran its timers slowly, and a time in milliseconds would measure the pane. Not timed. What
+does not depend on the machine is the game's own update count when the title takes its first click (`state`'s `updates`): 64 for the
+build before this change with the site's fixes mod on (its `fastLoading` loaded 8 entries a frame), 37 now, the page's start and
+the driver's latency included. The old build without the mod (one entry a frame) was not run on the web: the player page's
+"Play without mods" switch did not take there.
+
 ## Fix candidates and the fixes mod (`mods/fixes`, `src/ModFeatures.cpp`)
 
 The port is the original; these are what the original wastes or leaves to chance, kept in the port and mended by the fixes mod
