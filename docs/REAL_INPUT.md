@@ -44,7 +44,10 @@ The run is a test run (`IsTestRun()`): message boxes only log, `WarpMouse` does 
 moment the window exists the system's own mouse, keyboard, text and focus events are dropped (an `SDL_SetEventFilter`
 lets through only what the file pushes), so the run is the same whatever happens to the real mouse or the window's focus.
 It does not go with `-script` (the run stops with an error), nor with a game's `-autoplay`, which sets `mScriptedInput`
-and so drops real input (the run logs it).
+and so drops real input (the run logs it). `HandleEvent` drops real input only in those two kinds of run: a run with a
+script file, and one whose bot sets `mScriptedInput`. A game's test command that waits for its moment by queuing itself
+again through `AddScriptCommand` leaves real input alone; until 2026-11-08 any line in the script dropped it, so one
+waiting `goto` on the live channel kept every real click out of Bookworm Adventures.
 
 A driver that decides as it goes (a solver that reads the board before each move) gives `-commands=<file>` as well,
 with an empty `-realinput` file: the lines it appends to the commands file, with no update count, are played the same
@@ -87,4 +90,8 @@ state elsewhere or treat any test run as focused, and their sessions decide whet
 | Alchemy, Atomica, Bejeweled, Big Money, BookWorm | Their `-autoplay` sets `mScriptedInput`, which drops real input | Not to be combined; drive these with the file alone |
 
 On the web, the page's own input in the Browser pane is the real path. The web build compiles `-realinput` too, but it has
-not been tried there; it could only run where `-script` does, in a web build under Node.
+not been tried there; it could only run where `-script` does, in a web build under Node. The page's test kit treats the focus as
+`-realinput` does (since 2026-11-08): the browser's own blur and focus events never reach the game on the player-only page, so a
+hidden Browser pane, which sends a real blur, no longer pauses a run until its driver calls `byopop.test.focus()`. Only the
+driver's `byopop.test.blur()` and `focus()` move the game's focus there, and `?realfocus=1` lets the browser's through again
+(`docs/WEB_PLAYER.md`, "The player-only page").

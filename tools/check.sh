@@ -25,7 +25,9 @@
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and tools/fwtest/commands.sh
-#                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's)
+#                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's);
+#                and tools/playbymove on fwtest (the shared driver loop plays its small task by its "move" answers under
+#                -hold, twice, with the same transcript)
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -326,7 +328,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add jpegtest ;;
-				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|build.sh|check.sh)
+				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
@@ -624,16 +626,26 @@ suite_unit() {
 		timeout 200 bash tools/fwtest/commands.sh "$1.cm$m.log" "$OUT/commands-$m.txt" $m "$OUT/no-game-files" > "$1.cm$m" 2>&1 || st=1
 	done
 	l="commands: $(tail -1 "$1.cmscript" | sed 's/^commands //'), $(tail -1 "$1.cmrealinput" | sed 's/^commands //')"
+	# tools/playbymove: the shared driver loop plays fwtest's small task by its "move" answers, under -hold; twice, and
+	# the two transcripts must be the same line for line
+	local pm pb='playbymove fwtest: 7 moves, stop over; STATE {"screen":"board","typed":"Hi","rightdowns":1,"drags":4,"dialogs":2,"over":true}'
+	for m in 1 2; do
+		timeout 120 python tools/playbymove/playbymove.py --dir "$OUT/playbymove$m" --timeout 30 build/native/fwtest.exe \
+			-placeholders -gamedir="$OUT/no-game-files" > "$1.pm$m" 2>&1 || st=1
+	done
+	if [ "$(tail -1 "$1.pm1")" != "$pb" ]; then pm="playbymove: $(tail -1 "$1.pm1")"; st=1
+	elif ! cmp -s "$OUT/playbymove1/driver.txt" "$OUT/playbymove2/driver.txt"; then pm="playbymove: 7 moves, over, RERUN DIFFERS"; st=1
+	else pm="playbymove: 7 moves, over, rerun identical"; fi
 	# JPEG decoding through IJG libjpeg 6b (platform/JPEGDecoder.cpp): IJG's own test files against its reference output,
 	# synthetic pictures against the hashes of PopCap's copy of the library, the loader's routing; needs no game files
 	local jp
 	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || st=1
 	jp="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.jpg" >> "$1"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $k; $l; $jp"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $k; $l; $pm; $jp"
 	return $st
 }
 
