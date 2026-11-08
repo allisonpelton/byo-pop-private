@@ -214,7 +214,10 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   wasting time (TipTop's loading bar), and otherwise a mod of its own that starts off, like Bejeweled's `lean`
   with its fewer frames (`docs/MOD_ROADMAP.md`, "The fixes mod"). No game's code is made multithreaded
   (CLAUDE.md, "Uncapped, one core each"). Shared costs (the framework's drawing, the mixer, image loading) are found
-  once and fixed in the framework for every game. Each game's notes record its numbers before and after.
+  once and fixed in the framework for every game. Each game's notes record its numbers before and after. A session
+  need not wait for the pass to speed up its own port (the user, 2026-11-08: "Sessions should be allowed to improve
+  performance early on so they can test with -fast and run even faster"): a speed-up that makes its `-fast` runs
+  quicker may come at any time, under these rules, and is listed in its notes with the numbers.
 - **The site's requested work comes between Twist and the passes (the user, 2026-11-02):** "Slot in the remaining
   requested additions and changes to the site after finishing Twist and before the passes on existing decomps." Then:
   "Any site features that are easy, you can do now. Anything that requires designing an animation or SVG, or that
