@@ -120,7 +120,7 @@ dialog is one row shorter and stands that much lower, and the pieces below the g
 "Hardware Acceleration" boxes were unchecked inside the sandbox (its window was windowed, with no 3D); the port's were checked: the
 boxes show the window's state (`!mIsWindowed`, `Is3DAccelerated`), which belongs to the machine and not to the game. (3) The music
 slider stood at a different place (the original read its slider from the registry of the sandbox, the port from its own settings).
-The credits screen's text and layout were compared in o2 (below). The tour never clicks the original's "More Games".
+The credits screen (tour o2, the original's click at its own button, as the dialogs' layouts differ) has the same texts, lines and the same "DONE" button at the same place; shotdiff flags the Options dialog left behind it, which differs as above. The tour never clicks the original's "More Games".
 
 **Focus in full screen.** `play.py --full` puts the window in full screen with Alt+Enter, and in the middle of each game sends a
 focus loss and a regain: the game pauses (paused 1 after the loss) and goes on (0 after the regain), and all three games ended
