@@ -111,6 +111,9 @@ port is the registered game with nothing locked. `move` gives the first free pai
 (`Board::findMove`, the one behind the hint) returns, with clicks on both tiles' faces, or the click that answers the
 dialog that is open (the start button, "end game" in the no-moves question, the name "Bot" and Enter, the best times'
 OK, the continue arrow), or `MOVE null` when nothing is to be done (paused, or a dialog with no answer of its own).
+Ning Po adds `redraw`, which draws the game's picture at once, as the native `screenshot` command does: the test page's
+shots read the canvas, which `-fast` draws only every few updates (`tools/shots/tour.py --web`'s driver asks for it
+before each shot).
 
 ## Left out
 

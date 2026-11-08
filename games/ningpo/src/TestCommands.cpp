@@ -11,6 +11,7 @@
 #include "NingPoApp.h"
 #include "NingPo.h"
 #include "PGDialog.h"
+#include "WidgetManager.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -290,6 +291,16 @@ bool NingPoApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		// as -seed=<n>: the generator that deals and shuffles (PGApp::mRandom), not seeded again by the first event
 		aGame->mRandom.seed((uint32_t)aSeed);
 		aGame->mRandomSeeded = true;
+		ReplyOK(theCommand);
+		return true;
+	}
+
+	// the game's picture drawn now, as the native screenshot command draws it: the web page's shots read the canvas,
+	// which -fast draws only every few updates (tools/shots/tour.py's web driver asks for it before each shot)
+	if (aCommand == "redraw")
+	{
+		mWidgetManager->MarkAllDirty();
+		DrawDirtyStuff();
 		ReplyOK(theCommand);
 		return true;
 	}

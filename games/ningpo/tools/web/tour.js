@@ -11,6 +11,13 @@ var BOARD = { newgame: [47, 115], options: [50, 185], rules: [55, 220], hint: [5
 var ARROWS = { background: [[212, 97], [248, 97]], tileset: [[508, 96], [543, 96]], layout: [[270, 161], [484, 161]] };
 var BESTTIMES = [282, 289];  // in the options (OptionsDialog::setup)
 var notes = [];
+// A hidden Browser pane slows timers and frames down to a few a second; a message to itself is not slowed, so the
+// game's sleep (NingPoApp.cpp, ningpo_sleep) yields through one
+(function () {
+  var ch = new MessageChannel(), due = [];
+  ch.port1.onmessage = function () { var f = due.shift(); if (f) f(); };
+  Module.ningpoSetTimeout = function (f) { due.push(f); ch.port2.postMessage(0); };
+})();
 
 function say(text) { notes.push(text); }
 async function until(what, test, updates) {
@@ -53,6 +60,10 @@ async function focus(where) {
   await t.shot(where + "-focus-lost");
   await t.focus();
   await t.wait(10);
+  // a press within 150 ms of the focus coming back is the click that activates the page and reaches no game
+  // (framework/SexyAppBase.cpp, mActivationClickPending), as natively SDL drops a window's activating click
+  await new Promise(function (r) { setTimeout(r, 200); });
+  await t.wait(2);
   var back = await t.state();
   say("focus " + where + ": paused " + before.paused + ", lost " + lost.paused + ", regained " + back.paused);
   if (back.paused && !before.paused) {

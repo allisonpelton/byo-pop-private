@@ -17,8 +17,17 @@
 #include <emscripten.h>
 
 // The game's sleep yields to the browser (ASYNCIFY). A page that runs hidden can set Module.ningpoSetTimeout to a
-// timer of its own: a hidden tab slows setTimeout down to once a second.
-EM_ASYNC_JS(void, ningpo_sleep, (int theMs), {
+// timer of its own: a hidden tab slows setTimeout down to once a second. On the player-only page (web/testkit.js, which
+// sets Module.byopopTestFrame) the yield after a drawn frame is that page's frame, as SexyAppBase::EmscriptenMainLoop's
+// is, and the frame hook runs after it as there, since this blocking loop never reaches the framework's (a driver in a hidden pane, where
+// both are slowed down, can still set Module.ningpoSetTimeout).
+EM_ASYNC_JS(void, ningpo_sleep, (int theMs, int theDrew), {
+	if (Module['byopopTestFrame'])
+		Module['byopopTestFrame'](theDrew != 0, 0);
+	if (Module['byopopTestFrame'] && theDrew && !Module['ningpoSetTimeout']) {
+		await new Promise(function(theResolve) { requestAnimationFrame(function() { theResolve(); }); });
+		return;
+	}
 	await new Promise(function(theResolve) { (Module['ningpoSetTimeout'] || setTimeout)(theResolve, theMs); });
 });
 #endif
@@ -369,16 +378,18 @@ void NingPoApp::RunFramework(int theMs)
 		if (mExitToTop)
 			mExitToTop = false;
 #ifdef __EMSCRIPTEN__
-		// as SexyAppBase::EmscriptenMainLoop: step until a frame was drawn or nothing is due, then yield
+		// as SexyAppBase::EmscriptenMainLoop: step until a frame was drawn or nothing is due, then yield; and, as the
+		// native loop, back to the game once its wait is over (with -fast nothing is ever not due, and a still screen
+		// draws nothing, so the game would read its events only every 1000 steps)
 		int aDrawCount = mDrawCount;
 		for (int aStep = 0; aStep < 1000 && !mShutdown; aStep++)
 		{
 			UpdateAppStep(nullptr);
-			if (mDrawCount != aDrawCount || mNothingDue)
+			if (mDrawCount != aDrawCount || mNothingDue || (int)(GetClockTime() - anEnd) >= 0)
 				break;
 		}
 		UpdateUserDataBackup(false);
-		ningpo_sleep(1);
+		ningpo_sleep(1, mDrawCount != aDrawCount);
 #else
 		UpdateAppStep(nullptr);
 #endif
