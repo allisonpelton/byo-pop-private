@@ -74,6 +74,9 @@ public:
 	// 0x422400: its part of the saved game (copies of the found words)
 	void saveWords(SavedGame* theGame);
 	void save(SaveWriter& theWriter);
+	// port: the test commands' state (src/TestCommands.cpp)
+	bool isSubmitShown() const { return mSubmitShown; }
+	bool isSpawnReady() const { return mSpawnBtn != nullptr && mSpawnBtn->mEnabled && mSpawnBtn->isVisible(); }
 
 private:
 	// 0x4224b0: the last 14 words of the list into the word lines
