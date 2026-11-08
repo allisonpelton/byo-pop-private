@@ -1069,9 +1069,6 @@ void App::SetScreen(int theScreen)
 		aHandler->mPass = 1;
 		Send(aHandler, MSG_SETVALUE, MusicVolume() << 8, 0);
 		AddMenuAnimations(mLayer, &aRect, gConfig.mOptionsmenuanimations, gConfig.mOptionsmenuanimationsCount);
-		MoveRect(&aRect, gConfig.mOptionsVisitpopcapx, gConfig.mOptionsVisitpopcapy);
-		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0x5b, 0x37);
-		aHandler->mPass = 1;
 		break;
 	case SCREEN_INSTRUCTIONS:
 		gScreenFont = LoadFont(0x2d, GTC(0x0046eca8), 4, 0, 0x40);
@@ -1716,14 +1713,6 @@ void PlayAgainDialog(uint32_t theNo, uint32_t theYes)
 	PushModal(aLayer);
 }
 
-// 0x41f922 case 0x37: the original minimized a full screen window, waited 600 ms and opened theUrl with
-// ShellExecute. The framework's OpenURL hands it to the system (and opens nothing in a test run).
-void OpenBrowser(const char* theUrl)
-{
-	if (!Sexy::gSexyAppBase->OpenURL(theUrl))
-		lowos::MessageBox_(GTC(0x0046ef24), GTC(0x0046c318));
-}
-
 } // namespace
 
 // 0x426dd5: shows the pause image over the game while it is paused (and its own game buttons over it), or takes
@@ -1995,9 +1984,6 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 		break;
 	case 0x35:
 		FreeLayer(theSource->mLayer);
-		break;
-	case 0x37:
-		OpenBrowser(gConfig.mPublisherUrl);
 		break;
 	case 0x38:
 	{

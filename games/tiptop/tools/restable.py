@@ -12,14 +12,15 @@ ENTRY = 0x74
 # The images of the original's registration and trial, which the port took out (GAME_NOTES.md, "Registration out"): the
 # splash's register button and its unregistered pictures ("Trial Version" and "Unregistered"; the registered picture is the
 # "Deluxe" of the logo and stays), the options screen's register button, the "no more plays" dialog, the quit and save
-# questions with a register button, the registration dialog and the played-times font. No code of the port loads them;
-# leaving them out of the table keeps the load bar from loading them.
+# questions with a register button, the registration dialog, the played-times font and the options screen's link to the
+# publisher. No code of the port loads them; leaving them out of the table keeps the load bar from loading them.
 OMIT = {
     'BUTTONSPLASHREGISTER.JPG', 'SPLASHUNREGISTERED.JPG', 'SPLASHUNREGISTERED2.JPG',
     'SPLASHTIMESPLAYEDFONT.PCX', 'BUTTONOPTIONSREGISTER.JPG', 'NOMOREEXECUTIONS.JPG', 'BUTTONNMEQUIT.JPG',
     'BUTTONNMEREGISTER.JPG', 'EXITGAMEMENU.JPG', 'BUTTONEXITGAMEYES.JPG', 'BUTTONEXITGAMENO.JPG',
     'BUTTONEXITGAMEREGISTER.JPG', 'EXITGAMESAVEMENU.JPG', 'BUTTONEXITSAVEREGISTER.JPG', 'REGISTERBACKGROUND.JPG',
     'BUTTONREGISTEROK.JPG', 'BUTTONREGISTERCANCEL.JPG', 'BUTTONREGISTERGETCODE.JPG', 'BUTTONREGISTERPASTE.JPG',
+    'BUTTONOPTIONSVISITPOPCAP.JPG',
 }
 
 

@@ -136,8 +136,8 @@ making.
 Everything plays, the music too (since 2026-10-25, see Music). The registration
 and the trial (the count of plays, the "no more plays" dialog, the registration dialog and its code check, and since
 2026-11-08 every other branch of the registered flag, see GAME_NOTES.md, "Registration out") are left out: the port plays
-as registered, so no screen shows a register button or a word of registration. The links of the options screen open through
-the framework (never in a test run).
+as registered, so no screen shows a register button or a word of registration. The port opens no web page: the options
+screen's link to the publisher is out as well (GAME_NOTES.md, "Deviations from the original").
 
 ## Where the work was hard
 

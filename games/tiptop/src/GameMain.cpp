@@ -402,8 +402,6 @@ void GameShutdown()
 		free(gConfig.mColumnnukeEffects.mEffects);
 	if (gConfig.mColorbombEffects.mEffects != nullptr)
 		free(gConfig.mColorbombEffects.mEffects);
-	if (gConfig.mPublisherUrl != nullptr)
-		free(gConfig.mPublisherUrl);
 	SavePrefs();
 	for (int i = 0; (i < gPreloaded && res::GameTable()[i].mFlags != 0); i = i + 1)
 	{

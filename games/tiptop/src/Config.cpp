@@ -820,8 +820,6 @@ int LoadConfig(Config* theConfig)
 	ReadLong(aText, GTC(0x0046ce28), &theConfig->mInvalidcodeBgy);
 	ReadLong(aText, GTC(0x0046ce18), &theConfig->mInvalidcodeOkx);
 	ReadLong(aText, GTC(0x0046ce08), &theConfig->mInvalidcodeOky);
-	ReadLong(aText, GTC(0x0046cda8), &theConfig->mOptionsVisitpopcapx);
-	ReadLong(aText, GTC(0x0046cd90), &theConfig->mOptionsVisitpopcapy);
 	ReadLong(aText, GTC(0x0046cd84), &theConfig->mSummaryX);
 	ReadLong(aText, GTC(0x0046cd78), &theConfig->mSummaryY);
 	ReadLong(aText, GTC(0x0046cd64), &theConfig->mSummaryPlayagainx);
@@ -902,11 +900,6 @@ int LoadConfig(Config* theConfig)
 	ReadInts(aText, GTC(0x0046c64c), theConfig->mStarburstTable, 100);
 	ReadInts(aText, GTC(0x0046c63c), theConfig->mScorefontTable, 100);
 	ReadInts(aText, GTC(0x0046c62c), theConfig->mScorewordTable, 100);
-	if (theConfig->mPublisherUrl == nullptr)
-	{
-		theConfig->mPublisherUrl = (char*)Allocate(StringLength(aText, GTC(0x0046c60c)));
-		ReadString(aText, GTC(0x0046c60c), theConfig->mPublisherUrl);
-	}
 	uint32_t aCount;
 	AllocateList(aText, GTC(0x0046c5c4), &theConfig->mMainmenuanimations, &aCount);
 	theConfig->mMainmenuanimationsCount = aCount / 6;

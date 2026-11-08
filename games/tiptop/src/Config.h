@@ -173,11 +173,10 @@ struct Config
 	int32_t mOptionsVolumewidth;                // +0x1f4
 	int32_t mOptionsSoundy;                     // +0x1f8
 	int32_t mOptionsMusicy;                     // +0x1fc
-	// The members named mRegistrationUnused are the settings of the original's registration and trial, which the port took out
-	// (GAME_NOTES.md, "Registration out"). They stay as padding of the same size: Board reaches Config by offset.
-	char mRegistrationUnused200[8];  // +0x200 8 bytes: mOptionsRegisterx..mOptionsRegistery
-	int32_t mOptionsVisitpopcapx;               // +0x208
-	int32_t mOptionsVisitpopcapy;               // +0x20c
+	// The members named mRegistrationUnused are the settings of the original's registration and trial and of its links out of
+	// the game, which the port took out (GAME_NOTES.md, "Registration out"). They stay as padding of the same size: Board
+	// reaches Config by offset.
+	char mRegistrationUnused200[16];  // +0x200 16 bytes: mOptionsRegisterx..mOptionsVisitpopcapy
 	int32_t mBkghix;                            // +0x210
 	int32_t mBkghiy;                            // +0x214
 	int32_t mBkgcolyoffset;                     // +0x218
@@ -423,9 +422,7 @@ struct Config
 	int32_t mSummaryBestcomboy;                 // +0x6c8
 	int32_t mSummaryScorey;                     // +0x6cc
 	int32_t mSummaryBestmatchy;                 // +0x6d0
-	char mRegistrationUnused6d4[12];  // +0x6d4 12 bytes: mInitialWait..mRegisterUrl
-	char* mPublisherUrl;                        // +0x6e0
-	char mRegistrationUnused6e4[12];  // +0x6e4 12 bytes: mRisCompanyname..mRisHiddenfilename
+	char mRegistrationUnused6d4[28];  // +0x6d4 28 bytes: mInitialWait..mRisHiddenfilename
 	int32_t mSummaryHsnamex;                    // +0x6f0
 	int32_t mSummaryHsscorex;                   // +0x6f4
 	int32_t mSummaryHslevelx;                   // +0x6f8
