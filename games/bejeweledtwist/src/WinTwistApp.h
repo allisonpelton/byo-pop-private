@@ -178,6 +178,8 @@ public:
 	void DialogThirdButtonDepress(int theDialogId) override;  // 0x75f94f
 	// port (tests): newgame <mode>, a new game of that mode at once, as the mode menu would start it
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port (web): what Shutdown would write now, the game's save and the profile, for a page that goes away
+	void GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
 	// port: the standard test commands (TestCommands.cpp, docs/TEST_COMMANDS.md): state, goto, level, unlock, set, win,
 	// lose, seed
 	bool HandleTestCommand(const ScriptCommand& theCommand);
