@@ -49,21 +49,10 @@ Gates::Gates()
 	mBottom = new BottomGate();
 	mBottom->mClip = false;
 
-	// Without a MoreGamesURL property (the port's case) the first button shows how to play
-	SexyString aMoreGamesURL = gApp->GetString(GTS(0x7e3200), _S(""));
-	Image* aFirstImage;
-	int aFirstId;
-	SexyString aFirstTip;
-	if (aMoreGamesURL.empty()) {
-		aFirstTip = gApp->GetString(GTS(0x7e31f0), GT(0x7e31d0));
-		aFirstId = 3;
-		aFirstImage = IMAGE_MAINMENU_HELPBUTTON;
-	} else {
-		aFirstTip = gApp->GetString(GTS(0x7e31b0), GT(0x7e3174));
-		aFirstId = 2;
-		aFirstImage = IMAGE_MAINMENU_MOREGAMEBUTTON;
-	}
-	mHelpButton = gApp->MakeMenuButton(aFirstImage, IMAGE_MENU_BUTTONCOVER1, aFirstId, 0, 0, _S(""), aFirstTip);
+	// The first button shows how to play. (With a MoreGamesURL property the original made it "more games", id 2, with
+	// its own picture and tip: a button that leads out of the game, left out; it sits in that button's place.)
+	mHelpButton = gApp->MakeMenuButton(IMAGE_MAINMENU_HELPBUTTON, IMAGE_MENU_BUTTONCOVER1, 3, 0, 0, _S(""),
+		gApp->GetString(GTS(0x7e31f0), GT(0x7e31d0)));
 	mHelpButton->mButtonListener = this;
 	mProfileButton = gApp->MakeMenuButton(IMAGE_MAINMENU_PROFILEBUTTON, IMAGE_MENU_BUTTONCOVER2, 1, 0, 0, _S(""),
 		gApp->GetString(GTS(0x7e315c), GT(0x7e312c)));

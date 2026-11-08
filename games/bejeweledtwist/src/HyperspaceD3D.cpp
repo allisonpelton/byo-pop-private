@@ -1134,17 +1134,6 @@ void Hyperspace::SetWorldCurves(int theWorld)
 		mUnknown10F0.SetCurve(GTS(0x7e5a18));
 		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
 		break;
-	case 14:  // 0x71b315
-		mUnknown978.SetCurve(GTS(0x7e4df4), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e4dbc), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e4d98), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e55f4), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x80d3c8), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e55d0), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5c40), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e5c18), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e55a8), &mUnknown6B8);
-		break;
 	}
 }
 
@@ -1162,36 +1151,8 @@ void ResetJumpCurves(Hyperspace* theSpace)
 void Hyperspace::SetTransition3D(int theTransition)
 {
 	// 0x7181b3 (the caller stored mTransition, +0x150); the gD3DInterface == 0 branches are SetTransition's own
-	if (theTransition == 14) {
-		// the trial's last jump: the curves of a fresh world, and the limit dialog (+0x152c) over the space
-		mUnknown6B8.SetCurve(GTS(0x7e61fc));
-		mUnknown10F0.SetCurve(GTS(0x7e61b0));
-		mUnknown1160.SetCurve(GTS(0x7e6174), &mUnknown10F0);  // linked to +0x10f0
-		mUnknown418.SetCurve(GTS(0x7e6150));
-		mUnknown11D0.SetCurve(GTS(0x7e612c));
-		mUnknown1E8.SetCurve(GTS(0x7e6108));
-		mUnknown258.SetCurve(GTS(0x7e60e4));
-		mUnknown338.SetCurve(GTS(0x7e60bc));
-		mUnknown3A8.SetCurve(GTS(0x7e6098), &mUnknown338);  // linked to +0x338
-		mUnknown2C8.SetCurve(GTS(0x7e6068));
-		mUnknown488.SetCurve(GTS(0x7e6048));
-		mUnknown568.SetCurve(GTS(0x7e6028));
-		mUnknown5D8.SetCurve(GTS(0x7e6008));
-		mUnknown4F8.SetCurve(GTS(0x7e5fd8));
-		mUnknown648.SetCurve(GTS(0x7e5fb4));
-		mUnknown1240.SetCurve(GTS(0x7e5f90));
-		mUnknown1080.SetCurve(GTS(0x7e5f60), &mUnknown6B8);
-		mUnknown978.SetCurve(GTS(0x7e5f2c), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5f08), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5ee4), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e5ec0), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x80d3c8), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e5e94), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5e60), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e5e38), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5e10), &mUnknown6B8);
-		NotPorted("SetTransition(14)'s trial-limit dialog 0x73a458 (+0x152c): the copy is registered");
-	} else if (theTransition == 8) {
+	// (transition 14, the trial's last jump with its limit dialog, is registration code, left out)
+	if (theTransition == 8) {
 		bool aMakeCrystals = false;  // [ebp + 0xb]
 		switch ((mLevel + 1) % 20) {
 		case 0:
@@ -1367,15 +1328,13 @@ void Hyperspace::SetTransition3D(int theTransition)
 //      board takes no mouse (mMouseVisible, +0x55 = 0) (SOUND_TRANS_SPACENOISE)                          -> 2
 //   2  the camera flies off; mUnknown5D8 (the countdown the tunnel shows under 1) runs; when it is done the engines
 //      ignite (SOUND_TRANS_ENGINEIGNITION, the engine loop starts)                                           -> 3
-//   3  the jump proper on the path's clock mUnknown6B8: 100 updates from its end SOUND_TRIALLIMIT (transition 14 only),
-//      0xfa from its end the closing curves, 0x8c SOUND_TRANS_ARRIVAL, 0x3c the souls are let go (+0x158 clear), and
+//   3  the jump proper on the path's clock mUnknown6B8: 0xfa from its end the closing curves, 0x8c SOUND_TRANS_ARRIVAL, 0x3c the souls are let go (+0x158 clear), and
 //      0x23 updates from its end the new level is made (mIs3D off, NewLevel, ClearBoard, FillInBlanks) and the state
 //      is 4 (state 5 stays)                                                                                -> 4
 //   4  when 6B8 ends: the VizManager is shown again and mUnknown1E8 gets the arrival curve                  -> 5
 //   5  mUnknown1E8 crosses 0.3: the travellers retarget; when it has been triggered the board takes the mouse -> 10
-//   10 the jump is over (the board sees it and clears mClicked). States 6 to 9 belong to transition 14, the trial's
-//      limit (6 the dialog is up, 7 the game ends, 8 and 9 the dialog is taken off and the world flies on); a
-//      transition-8 jump never gets there. Transition 9 and 10 (the game's start) run 3 to 5 the same way.
+//   10 the jump is over (the board sees it and clears mClicked). (States 6 to 9 belonged to transition 14, the trial's
+//      limit, registration code left out.) Transition 9 and 10 (the game's start) run 3 to 5 the same way.
 // Every state change hangs on a curve of the SetTransition: a curve with no string (the port's GameTextTable.inc lacking
 // the address, so GTS(addr) is "") has no step (IncInVal() is false, as for a finished one) and every state runs on at
 // once; regenerate the table with games/bejeweledtwist/tools/gametext.py after adding a GTS use.
@@ -1410,10 +1369,9 @@ void Hyperspace::Update3D()
 	mUnknown10F0.IncInVal();
 	mUnknown2C8.IncInVal();
 	mUnknown338.IncInVal();
-	bool aWentTo5 = false;  // [ebp - 0x19]
 	if (1 < mState && mState < 10) {
 		mUnknown488.IncInVal();
-		if (mTransition == 8 || mTransition == 14 || mTransition == 9 || mTransition == 10) {
+		if (mTransition == 8 || mTransition == 9 || mTransition == 10) {
 			mUnknown418.IncInVal();
 			mUnknown11D0.IncInVal();
 		}
@@ -1432,42 +1390,16 @@ void Hyperspace::Update3D()
 				mSpaceSound->SetVolume(2.0);
 			}
 		}
-		if (!mUnknown4F8.IncInVal()) {
-			if (mState == 7) {
-				NotPorted("Hyperspace::Update state 7: the trial-limit dialog (+0x152c) taken off, 0x716632");
-				if (gBoard->mGameMode == 1)
-					gBoard->EndGame(false);
-				else
-					gBoard->mUnknown1FF5 = true;
-			} else if (mState == 8) {
-				NotPorted("Hyperspace::Update state 8: the trial-limit dialog (+0x152c) taken off, 0x716681");
-				mTransition = 8;
-				mState = 9;
-				mUnknown4F8.SetCurve(GTS(0x7d8630));
-			} else if (mState == 9) {
-				if (gApp->mMainMenu->mChallengeMenu != nullptr)
-					gApp->mMainMenu->mChallengeMenu->mVisible = false;
-				gApp->mVizManager->SetVisible(true);
-				mState = 5;
-				mUnknown1E8.SetCurve(GTS(0x7e496c));
-				aWentTo5 = true;
-			}
-		}
+		mUnknown4F8.IncInVal();
 	}
 	if (2 < mState && mState < 10) {
 		if (mTransition != 13 && !mUnknown6B8.IncInVal()) {
-			if (mTransition == 14) {
-				NotPorted("Hyperspace::Update: the replay pod's and trial dialog's end of a transition-14 jump, 0x716811");
-			} else {
-				if (gApp->mMainMenu->mChallengeMenu != nullptr)
-					gApp->mMainMenu->mChallengeMenu->mVisible = false;
-				gApp->mVizManager->SetVisible(true);
-				mState++;
-				mUnknown1E8.SetCurve(GTS(0x7e496c));
-			}
+			if (gApp->mMainMenu->mChallengeMenu != nullptr)
+				gApp->mMainMenu->mChallengeMenu->mVisible = false;
+			gApp->mVizManager->SetVisible(true);
+			mState++;
+			mUnknown1E8.SetCurve(GTS(0x7e496c));
 		}
-		if (mUnknown6B8.CheckUpdatesFromEndThreshold(100) && mTransition == 14)
-			gApp->PlaySample(SOUND_TRIALLIMIT);
 		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0x17c) && mFlag15B) {
 			mFlag15B = false;
 			mUnknown488.SetCurve(GTS(0x7e4948));
@@ -1484,21 +1416,13 @@ void Hyperspace::Update3D()
 		}
 		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0x8c))
 			gApp->PlaySample(SOUND_TRANS_ARRIVAL);
-		if (mState == 6 && gApp->mRegistered) {  // the copy is registered
-			NotPorted("Hyperspace::Update state 6 with the registered copy 0x716a6a (the dialog hidden, state 8)");
-			mState = 8;
-			mUnknownA58.SetCurve(GTS(0x7e4894));
-			mUnknown4F8.SetCurve(GTS(0x7df2d0));
-		}
 		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0x3c)) {
 			for (GemSoul* aSoul : gBoard->mUnknown26B0)
 				aSoul->mUnknown8F4 = false;
 			mFlag158 = false;
 		}
-		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0x23) || aWentTo5) {
-			if (mTransition == 14 && !aWentTo5) {
-				mState = 6;
-			} else {
+		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0x23)) {
+			{
 				mIs3D = false;
 				if (mState != 5)
 					mState = 4;
@@ -1892,11 +1816,6 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 	(void)g;
 	if (gApp->mVizManager->mVisible)  // 0x711b83: +0x54 of the VizManager
 		return;
-	if (mTransition == 14 && !mFlag15B) {
-		// 0x711c09: the trial-limit dialog (+0x152c) projected into space through the camera at +0x144c
-		NotPorted("Hyperspace::DrawTunnel 0x711c09 (the trial-limit dialog projected into space)");
-		return;
-	}
 	WorldGraphicsListener aListener(&mCamera139C, false);  // 0x4bd5d0, ebp-0x164
 	PrimitiveListener aPrimitiveListener(&aListener);
 	// 0x4bd4c0, 0x674035: a transform at the origin looking at (0, 0, -1) (LookAlong's rows, the third one its place

@@ -598,6 +598,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       s.style.setProperty("--aspect-w", String(w / h));
       gameScreen = { w: w, h: h };
       sizeStage();  // and the chat's layout: the chat is beside the stage only while the stage keeps its size there
+      // SDL sizes the canvas to the stage only on the window's resize event, and a stage that changed by its style alone
+      // fires none: the canvas kept SDL's first 640 x 480, and a game of another shape (Twist's 3D, 1228 x 768) took every
+      // click at the wrong height. A resize once the game's call has returned (a microtask: a hidden pane runs no timers
+      // on time) lets SDL measure the stage again.
+      Promise.resolve().then(function () { window.dispatchEvent(new Event("resize")); });
     },
     // -placeholders: a game file the game did not find got a stand-in (listed in the Game files panel)
     onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },

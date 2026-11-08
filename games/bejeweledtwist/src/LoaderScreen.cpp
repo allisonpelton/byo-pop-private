@@ -83,10 +83,12 @@ void LoaderScreen::Update()
 		double aProgress = mApp->GetLoadingThreadProgress();
 		mProgress = aProgress;
 		double aSmooth = aProgress * 0.1 + (double)mSmoothProgress * 0.9;
-		if (mUpdateCnt / 800.0 < aSmooth)
-			aSmooth = mUpdateCnt / 800.0;
+		// port: the original caps the bar at mUpdateCnt / 800 and starts the menu only once the smoothed bar reaches
+		// 0.995, so the menu waited about 8 seconds however fast the files loaded; the port loads at the machine's speed
+		// (CLAUDE.md, "Port first, unmodified"): the menu starts as soon as loading has ended, the bar then full
 		mSmoothProgress = (float)aSmooth;
-		if (aProgress == 1.0 && 0.995 <= mSmoothProgress && mApp->mLoaded) {
+		if (aProgress == 1.0 && mApp->mLoaded) {
+			mSmoothProgress = 1.0f;
 			mProgress = 1.0;
 			mCountdown = 150;
 			mLogo->Reset(true);

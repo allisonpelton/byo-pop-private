@@ -4,7 +4,7 @@
 //
 // port: both modes. Hyperspace.cpp holds the 2D paths and the shared head; with gD3DInterface set SetTransition, Update
 // and Draw go to HyperspaceD3D.cpp (the world's curves, the state machine, the camera, the ship, the draws). Not ported
-// there yet (NotPorted): the tunnel's trial-limit dialog and its fixed-function and CPU-transformed paths (DrawTunnel3D
+// there yet (NotPorted): the tunnel's fixed-function and CPU-transformed paths (DrawTunnel3D
 // 0x711b65), and the replay pod.
 #pragma once
 
@@ -88,7 +88,7 @@ public:
 	CurvedVal mUnknown1E8;       // +0x1e8: the VizManager's speed while the camera runs (SetTransition(12) sets it
 	                             // to 1; in 2D nothing else sets it, so it reads 0)
 	CurvedVal mUnknown258;       // +0x258: the board's brightness through a jump (Board 0x6a6a07)
-	int mUnknownC58 = 0;         // +0xc58: the trial's limit after transition 14 (left out)
+	// (+0xc58: the trial's limit after transition 14, registration code, left out)
 	CurvedVal mUnknown12B0;      // +0x12b0: the board's brightness while state 11 (transition 12) runs
 	CurvedVal mUnknown1570;      // +0x1570: the jump's length
 	int mWorld = 4;              // +0xc5c: the level's world (0x7181b3 picks it by level)
