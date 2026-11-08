@@ -115,6 +115,7 @@ f8	std::vector<int>	mf8
 898	FrameAnim	mAnim898
 8d8	bool	m8d8	?
 8d9	bool	m8d9	?
+8da	bool	m8da
 8db	bool	m8db	the game is being recorded (RecordStep)
 8dc	bool	m8dc	the demo plays
 8dd	bool	m8dd	?
@@ -228,6 +229,7 @@ ade	int	made	?
 1970	int	m1970	?
 1974	int	mScore	the score (profile setting 0x51)
 1978	int	m1978	?
+197c	int	m197c	?
 1980	int	m1980	?
 1984	int	m1984	?
 1988	int	m1988	?
@@ -296,6 +298,7 @@ ade	int	made	?
 1abc	int	m1abc	?
 1ac0	int	m1ac0	?
 1ac4	int	m1ac4	?
+1ac8	int	m1ac8	?
 1acc	int	m1acc	?
 1ad0	int	m1ad0
 1ad4	int	m1ad4
@@ -317,6 +320,7 @@ ade	int	made	?
 1b18	int	m1b18	?
 1b1c	int	m1b1c	?
 1b24	int	m1b24	?
+1b28	int	m1b28	?
 1b2c	int	m1b2c	?
 1b30	int	m1b30
 1b34	int	m1b34	counts up by 4 (mod 256) while the game ends

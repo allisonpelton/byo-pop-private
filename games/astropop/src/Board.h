@@ -365,6 +365,7 @@ public:
 	FrameAnim	mAnim898;// +0x898
 	bool	m8d8 = false;// +0x8d8 ?
 	bool	m8d9 = false;// +0x8d9 ?
+	bool	m8da = false;// +0x8da
 	bool	m8db = false;// +0x8db the game is being recorded (RecordStep)
 	bool	m8dc = false;// +0x8dc the demo plays
 	bool	m8dd = false;// +0x8dd ?
@@ -478,6 +479,7 @@ public:
 	int	m1970 = 0;// +0x1970 ?
 	int	mScore = 0;// +0x1974 the score (profile setting 0x51)
 	int	m1978 = 0;// +0x1978 ?
+	int	m197c = 0;// +0x197c ?
 	int	m1980 = 0;// +0x1980 ?
 	int	m1984 = 0;// +0x1984 ?
 	int	m1988 = 0;// +0x1988 ?
@@ -546,6 +548,7 @@ public:
 	int	m1abc = 0;// +0x1abc ?
 	int	m1ac0 = 0;// +0x1ac0 ?
 	int	m1ac4 = 0;// +0x1ac4 ?
+	int	m1ac8 = 0;// +0x1ac8 ?
 	int	m1acc = 0;// +0x1acc ?
 	int	m1ad0 = 0;// +0x1ad0
 	int	m1ad4 = 0;// +0x1ad4
@@ -567,6 +570,7 @@ public:
 	int	m1b18 = 0;// +0x1b18 ?
 	int	m1b1c = 0;// +0x1b1c ?
 	int	m1b24 = 0;// +0x1b24 ?
+	int	m1b28 = 0;// +0x1b28 ?
 	int	m1b2c = 0;// +0x1b2c ?
 	int	m1b30 = 0;// +0x1b30
 	int	m1b34 = 0;// +0x1b34 counts up by 4 (mod 256) while the game ends
@@ -685,6 +689,7 @@ public:
 	static std::string	FormatNumber(int theNumber);            // 0x43e220 with a comma after each three digits
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
 	void			Fn465840(int theStage);                         // 0x465840 (2897 bytes): -1 picks a stage
+	int				Fn433130(int theLevel);                         // 0x433130: the upgrade screen kind of a level (0, 1, 2 or 4)
 	void			Fn4335e0();                                     // 0x4335e0: the field is waiting to be cleared (m19fc = 1000)
 	bool			Fn468e70();                                     // 0x468e70: the upgrade screen of the level (true when one opens)
 	void			UpdateStreaks();                                // 0x439650

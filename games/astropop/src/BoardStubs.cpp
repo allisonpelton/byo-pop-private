@@ -15,10 +15,11 @@ void Board::Fn465840(int theStage)
 	NOT_TRANSLATED("Fn465840", "0x465840");
 }
 
-void Board::LoadLevel(bool theFlag)
+int Board::Fn433130(int theLevel)
 {
-	(void) theFlag;
-	NOT_TRANSLATED("LoadLevel", "0x4663f0");
+	(void) theLevel;
+	NOT_TRANSLATED("Fn433130", "0x433130");
+	return 0;
 }
 
 bool Board::Fn468e70()
