@@ -146,7 +146,7 @@ so the grind never plays and the web board holds still. In a browser it plays as
 | The Okay and Cancel buttons of the name dialog and the save dialogs lacked their bottom shadow. | They are plain `ButtonWidget`s (0x47f3b0) drawing the button picture whole, not `DialogButton`s cutting it. | They are `ButtonWidget`s with the picture as their image. | 5899db40 |
 | Stomped's end panel counted the round being played among the rounds cleared. | 0x410880 prints the round less one. | It prints the round less one. | 5899db40 |
 | An empty save slot's picture was clear, showing the dialog behind it. | The dialog fills it with opaque black (0x433910). | Opaque black. | 5899db40 |
-| The title showed "thanks for registering" over a dark box under the loading bar. | The registered copy draws it unless the property NoReg is set (0x4391a0). | Left out with the rest of the registration code (the user, 2026-11-08), with its flag and the NoReg read; the title differs from the original's there by design. | see the branch head |
+| The title showed "thanks for registering" over a dark box under the loading bar. | The registered copy draws it unless the property NoReg is set (0x4391a0). | Left out with the rest of the registration code (the user, 2026-11-08), with its flag and the NoReg read; the title differs from the original's there by design. | 593cae73 |
 | The web build crashed when a board started without a sound device. | The three looping sounds' instances are made once when loading; without sound there are none, and every board calls through them. | A shared silent instance stands in (a deviation, below). | 5899db40 |
 
 ## Phase 2: what remains
