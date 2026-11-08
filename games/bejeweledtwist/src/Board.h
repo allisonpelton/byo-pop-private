@@ -346,7 +346,7 @@ public:
 	int mUnknown1468 = 0;                   // +0x1468: only saved and loaded
 	int mUnknown146C = 0;                   // +0x146c
 	int mUnknown1470 = 0;                   // +0x1470
-	TwistWidget* mUnknown1474 = nullptr;    // +0x1474: the trial's limit dialog (0x73a458), never in a full version
+	// (+0x1474: the trial's limit dialog, registration code, left out)
 	bool mUnknown1478 = false;              // +0x1478
 	int mUnknown1488 = 0;                   // +0x1488
 	int mUnknown14DC = 0;                   // +0x14dc

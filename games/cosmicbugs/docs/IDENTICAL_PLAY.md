@@ -226,3 +226,121 @@ The web build under Node can draw rotated and scaled sprites about a pixel off; 
 of this game's tours showed one.
 
 The port's enemies start with a last zap of 0, where the original's is the heap's leftover (above).
+
+## Phase three: real play, the fixes mod and registration out (2026-11-08)
+
+The port now plays whole games through the same input a hand uses, in the exe and in the web build, with the fixes mod
+loaded and the registration and link code gone. No bug of the original that breaks play turned up (no dead control, soft
+lock, crash or lost save in any of the eight games below), so the port took no play fix in this phase; what the real
+input showed in the port and its test kit is listed under "Findings". The sessions did not play: code did. The bot behind
+the standard `move` command (`src/CBTestCommands.cpp`) chooses every shot from the game's own state, and the drivers send
+its steps as mouse and key events.
+
+### Real-input play
+
+Natively `tools/play/drive.py` runs the exe under rundesk, on a fresh user folder, with `-realinput` (SDL's own queue,
+the path of a hand: the pointer, the buttons and the keys) and the live command channel for `state` and `move`. A game
+of each configuration the player has, the shooter manual and auto (the game file offers no difficulty, so those are all of
+its modes), each in the full screen the game starts in and in a window (Alt+Enter, sent as keys): the title, Options with
+the shooter chosen and Back, Start Game, the instructions page of a first run, Play, then boards on the bot's shots until all
+lives are gone, the click that leaves the game over, the Hall of Fame with the score under the player's name, Back to Main
+Menu and the title. On the first board of each game Esc pauses and Enter resumes it, and the focus is taken from the window
+and given back: the game's updates stand still while it is away and run again after (the original's own rule, compared in
+phase two). The whole of it runs in real time, since the bot's shots follow the board as it is.
+
+The four games, with the final exe (an earlier pass with the same drivers gave 13, 13, 15 and 13 boards; the games are not
+seeded, so the scores differ from run to run):
+
+| Game | Boards | Last score | Real time |
+|---|---|---|---|
+| Manual, full screen | 13 | 33086 | 188 s |
+| Manual, window | 13 | 34632 | 195 s |
+| Auto, full screen | 13 | 41577 | 180 s |
+| Auto, window | 13 | 37967 | 182 s |
+
+Each ended on the title after the game over, the Hall of Fame and its Back button, and each froze with the focus gone
+(for example 10935 updates, then 10978 and 10978 while the window was inactive, 11489 half a second after the regain).
+
+On the web `tools/web/play.js` does the same as a page driver (`?player=1&silent=1&fast=1&hold=1&driver=...`), through
+`byopop.test`'s mouse and key events on the canvas and its `blur` and `focus`, in the Browser pane. The pane cannot enter full
+screen, so `&scale=2` stands in for it: the canvas is drawn at 1600 by 1200, and every event lands at a scaled point, as in a
+full screen. The web build's own Fullscreen button was not pressed. The four runs, each ending on the title with no error
+in the page:
+
+| Run | Boards | Last score | Moves | Updates (10 ms) |
+|---|---|---|---|---|
+| Manual, 800 by 600 | 11 | 25097 | 196 | 22150 |
+| Auto, 800 by 600 | 9 | 22915 | 132 | 16940 |
+| Manual, scaled 2 | 6 | 11436 | 139 | 14780 |
+| Auto, scaled 2 | 13 | 44141 | 227 | 26140 |
+
+Each run also pressed Esc and Enter and took the focus away and back on its first board: the game's updates stood still
+for 30 framework updates with the focus gone and ran again after it came back.
+
+### Findings
+
+**The web build never froze with its window's focus gone.** Phase two compared the native game's focus handling with the
+original's; the web build's `IsActive` answered true whatever the window did, so a hidden tab kept playing. It now follows the
+framework's `mActive` on every platform, as the original's `WM_ACTIVATEAPP` does, and the web driver checks it on every run.
+The same rule can stall a driven run: the Browser pane took the focus from the page once between two calls of the tool that
+drives it, and the game stood still, as it should, until `byopop.test.focus()`. The page driver now logs the page's own blur
+events and gives the focus back to a game that stands still (`blurs` and `regains` in its result; none in the four runs above).
+
+**The `state` command's `requester` key saw only the first menu.** The "resume your previous game?" requester sits on the
+last one, so a driver could not tell it was there. It now looks at all of them (`HasRequester`).
+
+**The test kit missed answers.** A command answered `MOVE null` was never matched, because `web/testkit.js` had a backspace
+character where its ANSWER pattern meant a word boundary, and `byopop.test.command` timed out ten seconds after every busy
+move (shared commit 5247a25c). The game's replies also went to stdout, which reached the page's log only on some loads;
+they go through `SDL_Log` now, which always does. The kit's `profile.wipe()` leaves the browser's backup of the saves
+(`sexy-userdata-backup:/cbpersist-test/userdata`), which the game restores at its start, so a driver that wants a first run
+removes it as well.
+
+**A skipped warp leaves the hand where the game does not think it is.** When the ship comes in after a lost life the game puts
+the pointer at the board's middle. A test run does not warp the pointer, so `-realinput`'s hand stays where it was, and a
+move to that same place makes no event. The native driver moves by one step beside the target first. A shared fix would
+let the framework move its hand when the game warps; that is a spec for the coordinator, not a port change.
+
+**A pointer over the bottom panel stops the play** (the original's own rule), so the bot's first step on a board is to put
+the pointer on it (`hover`).
+
+### The fixes mod
+
+`mods/fixes` has a toggle for each of its two fixes (README.md, "Mods"), loaded by the port's own start (`-modsdir`, the
+`mods-cosmicbugs` folder beside the exe natively, which starts empty, so the native runs above played the unmodded port, and
+`/cbpersist/mods` on the web, which installs the mod on by default: Cosmic Bugs is off `BYOPOP_WEB_NO_MODS`, shared commit
+90130017). The runner, the suite and the frozen baseline never load it, so unmodded play is
+what the baseline holds. Natively a scripted game over fourteen boards (seed 7, a state six times a board) gave 84 states
+without the mod and 84 different ones with it, and with both toggles turned off through the mod menu's `modmenu set` and the exe
+started again on the same folder, the 84 of the unmodded run, byte for byte. On the web the player page's status says
+"1 mod active" with the mod on by default.
+
+### Registration and links out
+
+The trial, nag and registration code is out, and with it every button that led out of the game (README.md, "Registration and
+links"): the game plays as the full version it already was, `tools/check.sh cosmicbugs` still finds every play as the frozen
+baseline, and `cb.dat` keeps the original's format. The nag screens' levels are still read from the game file as inert
+screens, since loading them draws from the generator.
+
+A second look at what the trial left (2026-11-08, at the coordinator's request) found one thing to take out: the third field of
+`cb.dat`, where the original kept the trial's time left, was still read into a global (`gTrialSlot`) and clamped to at least
+60000 as the trial's loader does. It is now `gSaveFormatField`, a placeholder for the file's format that is written back as it was
+read (3600000 in a new file), with no clamp and no reader, so saves still move between the port and the original byte for byte.
+The only saves that differ from the original's registered copy are ones a trial copy wrote with under a minute left, which the
+original's loader would have raised to 60000 on its next save; the baseline and the suite are unchanged. What else was checked
+and kept is listed in README.md, "Registration and links": the nag screens' levels (the draws of their loading), the `nag_logo`
+animation their menus name, the `closing_nag` item type of the title's QUIT, the `fv` skips, and `gDemo`, the attract mode nothing starts.
+
+### Performance
+
+The original and the port back to back: README.md, "Performance". In short, both load in about half a second; the port holds
+about 40 MB more memory (130 MB private bytes against 89) and, against the original paced as a 60 Hz screen paces it, uses about
+three times its processor time (18 per cent of a core on a board against 5), while the unpaced original spins at 75 to 96 per cent.
+
+### Oddities
+
+None new.
+
+### Deviations left
+
+As in phase two. The port's new `IsActive` makes the web build stop as the exe does when its window is not the active one.

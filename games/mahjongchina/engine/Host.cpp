@@ -20,14 +20,19 @@ uint32_t TickCount()
 	return gHost->TickCount();
 }
 
+uint32_t RealTickCount()
+{
+	return gHost->RealTickCount();
+}
+
+uint32_t SeedTick()
+{
+	return gHost->SeedTick();
+}
+
 const uint8_t* FindResourceData(Module theModule, const char* theType, int theId, uint32_t* theSize)
 {
 	return gHost->FindResource(theModule, theType, 0, theId, theSize);
-}
-
-void OpenUrl(const char* theUrl)
-{
-	gHost->OpenUrl(theUrl);
 }
 
 // 0x423590

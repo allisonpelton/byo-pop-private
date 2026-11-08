@@ -1,0 +1,16 @@
+{
+  "id": "fixes",
+  "name": "Water Bugs Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends what the original left to chance or drew wrongly, and changes nothing else: its look, rules, sounds and pace of play stay as they were. Each fix is a toggle; with the whole mod off the game is the original. Scores and saved games are the same as the original's.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    { "id": "steadyClock", "label": "Timing from the updates", "type": "bool", "default": true, "apply": "restart",
+      "help": "The game steps through the milliseconds the machine's clock says have passed since the last frame, and reads the mouse once a frame, so a frame of 9 or 11 ms instead of 10 moves the ship's aim against the bugs by a step. Here it steps 10 ms for each update of its own, so the same seed and the same moves play the same game on every run, however fast the machine is." },
+    { "id": "easyLabel", "label": "Easy difficulty named", "type": "bool", "default": true, "apply": "restart",
+      "help": "The Options screen writes the value of the easiest difficulty with a stray \"5s\" where its name belongs, because the original's format string has the text \"5s\" in place of \"%s\". Here the name is written as it is for the other two. Only the label changes." }
+  ]
+}

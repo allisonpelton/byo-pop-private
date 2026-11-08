@@ -243,11 +243,6 @@ void SideBar::ButtonDepress(int theId)
 			if (!aBoard->mField131 && !aBoard->mField130)
 			{
 				mApp->SaveGame();
-				if (!mApp->mIsRegistered)
-				{
-					// port: an unregistered copy shows the register dialog here (SAVE_GAME_DENY_SCREEN2)
-					return;
-				}
 			}
 			else
 				mApp->mSndWhirleyhit->Play();

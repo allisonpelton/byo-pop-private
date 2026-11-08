@@ -1,0 +1,47 @@
+# Phase two tour 1: the title as it loads, the main menu and its hovers, the high scores, the options (sound and music
+# off and on again; never the full screen box), and THINK's levels screen. Lines of the port's
+# -script; "screenshot <name>" is a shot (make.py adds the folder). Never click EXIT or a link.
+30 screenshot title_30
+150 screenshot title_150
+300 screenshot title_300
+460 screenshot menu
+470 move 447 237
+480 screenshot mm_hover_tsunami
+490 move 330 310
+500 screenshot mm_hover_relax
+510 move 530 395
+520 screenshot mm_hover_think
+530 move 90 550
+540 screenshot mm_hover_options
+550 move 235 550
+560 screenshot mm_hover_highscores
+570 click 235 550
+600 screenshot highscores
+700 screenshot highscores_700
+710 move 400 530
+720 screenshot hs_hover_done
+730 click 400 530
+800 screenshot menu_back
+810 move 90 550
+820 click 90 550
+940 screenshot options
+950 move 565 245
+960 screenshot opt_hover_sound
+970 click 565 245
+1000 screenshot opt_sound_off
+1010 move 540 300
+1020 click 540 300
+1050 screenshot opt_music_off
+1060 move 565 245
+1070 click 565 245
+1080 move 540 300
+1090 click 540 300
+1110 screenshot opt_restored
+1120 move 343 440
+1130 screenshot opt_hover_done
+1140 click 343 440
+1240 screenshot menu_after_options
+1250 move 530 395
+1260 click 530 395
+1380 screenshot think_levels
+1500 quit

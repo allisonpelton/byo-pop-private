@@ -226,7 +226,6 @@ bool App::Init()
 		gHardwareAccel = false;
 	else
 		gHardwareAccel = RegGetBool(nullptr, "HardwareAcceleration", true);
-	gActivateLinks = RegGetBool(nullptr, "ActivateLinks", true, true);
 	OnInit();
 	if (!mManager.Init(aFullScreen, mPeriod))
 		return false;

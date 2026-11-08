@@ -16,6 +16,7 @@
       'Games/Word Harmony</span>) or a .zip of it. Only <span class="mono">WHArchive.saf</span>, the ' +
       '<span class="mono">res</span> folder and <span class="mono">WordHarmony.exe</span> (the game\'s texts are ' +
       'read from it; it is never run) are copied.',
-    modsIntro: "Word Harmony keeps its pictures and screens inside WHArchive.saf, and this port does not load mods yet.",
+    modsIntro: "Word Harmony keeps its pictures and screens inside WHArchive.saf, so a mod cannot replace them yet; its mods are a " +
+      "mod.json of settings. The fixes mod is on by default; turn it off to play the original as it was.",
     seeds: false
   };

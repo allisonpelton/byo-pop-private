@@ -69,6 +69,7 @@ public:
 	void Present();
 	void SetGameScreenMode(bool theFullscreen);
 	void WarpMouse(int x, int y);
+	void FollowWarp(int x, int y);
 };
 
 extern WaterBugsApp* gApp;

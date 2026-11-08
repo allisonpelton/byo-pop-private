@@ -25,7 +25,9 @@
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and tools/fwtest/commands.sh
-#                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's)
+#                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's);
+#                and tools/playbymove on fwtest (the shared driver loop plays its small task by its "move" answers under
+#                -hold, twice, with the same transcript)
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -124,7 +126,7 @@
 #                Dynasty Adventure stage from a new player (the name, the map, stage 1 won with the solver's clicks, the
 #                level's end and the map again) twice with the same screens, which are the frozen baseline's (under a
 #                minute)
-#   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 6000 and a Blitz game to its
+#   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 5156 and a Blitz game to its
 #                end and the high scores, with the same screens as frozen, a Classic rerun, and
 #                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one (about a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
@@ -187,7 +189,7 @@ AL_TIMETRIAL="game 1 over at update 14641: score 15942 pieces 903 forged 87 boar
 AL_TUTORIAL="tutorial button 1 at update 231"
 SS_BEGINNER="game 2 over at update 5868: score 380 level 4 moves 20"
 SS_BONUS="game 1 over at update 2746: score 680 level 14 moves 20"
-SS_LATE="game 1 over at update 1852: score 140 level 21 moves 13"
+SS_LATE="game 1 over at update 1958: score 200 level 21 moves 14"
 PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
 PX_START="done: 25 puzzles"
 PX_FULL="done: no temple left, 210 puzzles, log 45b76e98"
@@ -210,12 +212,12 @@ WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
 WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
 MJ_DEAL="222 layouts, 0 failed"
 BB_SHOTS="99a302e2a141 fbf6b1061117 8b26c14dac8a"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
-MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
+MJ_SHOTS="d3dc711a471a a9b14c961f99 98ff52c3eea2"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline (refrozen with the libjpeg 6b loader: the old shots differ from these by at most 3 levels in a channel, in the JPEG backgrounds only)
 MJC_DEAL="178 layouts, 0 failed"
-MJC_SHOTS="4c18c17f02f2 b63352c04770 7a72965e0cee"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
+MJC_SHOTS="f2b7b7dc8d4e bd92440741aa 93e5cc9037c3"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline (refrozen with the libjpeg 6b loader: the old shots differ from these by at most 3 levels in a channel, in the JPEG backgrounds only)
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
-BT_CLASSIC="88e59f1eea61 09a91df3e98c e3c6a8be742e d74b5d48af8d"  # the first 12 hex digits of the sha256 of the Classic game's screens at 1500, 3000, 4500 and 6000: the frozen baseline
-BT_BLITZ="ab1694d03775 1f8185cf7e89 1e17f35d7b03 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 3500, 6000, 8000 (the explosion), 8450 (space, on the way to the scores) and 9000 (the high scores)
+BT_CLASSIC="88e59f1eea61 291f70580d89 dd8e6206d1bf 0bc138035904"  # the first 12 hex digits of the sha256 of the Classic game's screens at 656, 2156, 3656 and 5156: the frozen baseline
+BT_BLITZ="8ef83c337f3e 9c9ceb17343f e69ac2a54d49 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -326,7 +328,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add jpegtest ;;
-				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|build.sh|check.sh)
+				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
@@ -624,16 +626,26 @@ suite_unit() {
 		timeout 200 bash tools/fwtest/commands.sh "$1.cm$m.log" "$OUT/commands-$m.txt" $m "$OUT/no-game-files" > "$1.cm$m" 2>&1 || st=1
 	done
 	l="commands: $(tail -1 "$1.cmscript" | sed 's/^commands //'), $(tail -1 "$1.cmrealinput" | sed 's/^commands //')"
+	# tools/playbymove: the shared driver loop plays fwtest's small task by its "move" answers, under -hold; twice, and
+	# the two transcripts must be the same line for line
+	local pm pb='playbymove fwtest: 7 moves, stop over; STATE {"screen":"board","typed":"Hi","rightdowns":1,"drags":4,"dialogs":2,"over":true}'
+	for m in 1 2; do
+		timeout 120 python tools/playbymove/playbymove.py --dir "$OUT/playbymove$m" --timeout 30 build/native/fwtest.exe \
+			-placeholders -gamedir="$OUT/no-game-files" > "$1.pm$m" 2>&1 || st=1
+	done
+	if [ "$(tail -1 "$1.pm1")" != "$pb" ]; then pm="playbymove: $(tail -1 "$1.pm1")"; st=1
+	elif ! cmp -s "$OUT/playbymove1/driver.txt" "$OUT/playbymove2/driver.txt"; then pm="playbymove: 7 moves, over, RERUN DIFFERS"; st=1
+	else pm="playbymove: 7 moves, over, rerun identical"; fi
 	# JPEG decoding through IJG libjpeg 6b (platform/JPEGDecoder.cpp): IJG's own test files against its reference output,
 	# synthetic pictures against the hashes of PopCap's copy of the library, the loader's routing; needs no game files
 	local jp
 	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || st=1
 	jp="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.jpg" >> "$1"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $k; $l; $jp"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $k; $l; $pm; $jp"
 	return $st
 }
 
@@ -1448,8 +1460,10 @@ wordharmony_game() {  # <name> <think|tsunami> [exe]: a scripted game (-fast, se
 	# Save/Quit and Save Game
 	printf '%s\n' "2900 screenshot $d/shots/play.png" "2980 move 155 30" "3000 click 155 30" "3150 move 360 325" \
 		"3170 click 360 325" "3400 screenshot $d/shots/menu.png" "3420 quit" >> "$d/script.txt"
+	# -splashhold: the original's two seconds of splash (the port shows the menu once it has loaded), so that the script's
+	# updates line up with the original's and the baseline's
 	timeout 300 "${3:-$W/build/native/wordharmony.exe}" -gamedir=assets/wordharmony -userdir="$d/user" -fast -seed=1 \
-		-statelog="$d/state.txt" -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+		-splashhold -statelog="$d/state.txt" -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	rc=$?
 	[ $rc -eq 0 ] || { echo "exit status $rc"; return; }
 	# the engine's exceptions (WordHarmonyApp::EngineFailed) and any message box the test run did not show
@@ -1917,23 +1931,23 @@ twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a see
 suite_bejeweledtwist() {
 	local st=0 c b r sh bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
 	need_assets bejeweledtwist || return 1
-	c="$(twist_game classic "$exe" 1 6010 1500 3000 4500 6000)"
-	b="$(twist_game blitz "$exe" blitz 9010 3500 6000 8000 8450 9000)"
-	r="$(twist_game classic2 "$exe" 1 6010 1500 3000 4500 6000)"
+	c="$(twist_game classic "$exe" 1 5166 656 2156 3656 5156)"
+	b="$(twist_game blitz "$exe" blitz 8166 2656 5156 7156 7606 8156)"
+	r="$(twist_game classic2 "$exe" 1 5166 656 2156 3656 5156)"
 	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; } > "$1"
 	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
 	if [ -n "$c" ] && [ "$c" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-bejeweledtwist/, a copy of the port with its DLLs made when it was last
 	# checked against the original): the same games must give the same screens
 	if [ -f "$base" ]; then
-		if [ "$(twist_game base-classic "$base" 1 6010 1500 3000 4500 6000)" = "$c" ] &&
-			[ "$(twist_game base-blitz "$base" blitz 9010 3500 6000 8000 8450 9000)" = "$b" ]; then
+		if [ "$(twist_game base-classic "$base" 1 5166 656 2156 3656 5156)" = "$c" ] &&
+			[ "$(twist_game base-blitz "$base" blitz 8166 2656 5156 7156 7606 8156)" = "$b" ]; then
 			bl="; baseline identical"
 		else
 			bl="; BASELINE DIFFERS"; st=1
 		fi
 	fi
-	SUMMARY="Classic to 6000 and Blitz to its high scores, 9 screens; $r; $sh$bl"
+	SUMMARY="Classic to 5156 and Blitz to its high scores, 9 screens; $r; $sh$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ')"
 	return $st
 }

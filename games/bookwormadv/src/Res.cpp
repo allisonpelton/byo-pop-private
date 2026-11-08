@@ -245,7 +245,6 @@ int Sexy::SOUND_LIGHTNING = 0;
 int Sexy::SOUND_LOW_HEALTH = 0;
 int Sexy::SOUND_MM_ADVENTURE = 0;
 int Sexy::SOUND_MM_ARENA = 0;
-int Sexy::SOUND_MM_BUY_NOW = 0;
 int Sexy::SOUND_MM_CNG = 0;
 int Sexy::SOUND_MM_DONTLEAVE = 0;
 int Sexy::SOUND_MM_HS = 0;
@@ -523,7 +522,6 @@ bool Sexy::ExtractCommonGameResources(ResourceManager* theManager)
 		SOUND_LOW_HEALTH = aMgr.GetSoundThrow("SOUND_LOW_HEALTH");
 		SOUND_MM_ADVENTURE = aMgr.GetSoundThrow("SOUND_MM_ADVENTURE");
 		SOUND_MM_ARENA = aMgr.GetSoundThrow("SOUND_MM_ARENA");
-		SOUND_MM_BUY_NOW = aMgr.GetSoundThrow("SOUND_MM_BUY_NOW");
 		SOUND_MM_CNG = aMgr.GetSoundThrow("SOUND_MM_CNG");
 		SOUND_MM_DONTLEAVE = aMgr.GetSoundThrow("SOUND_MM_DONTLEAVE");
 		SOUND_MM_HS = aMgr.GetSoundThrow("SOUND_MM_HS");
@@ -937,158 +935,6 @@ bool Sexy::ExtractTitleAndMMResources(ResourceManager* theManager)
 	return true;
 }
 
-Image* Sexy::IMAGE_UT_ALTAR = nullptr;
-Image* Sexy::IMAGE_UT_ALTAR_GLOW1 = nullptr;
-Image* Sexy::IMAGE_UT_ALTAR_GLOW2 = nullptr;
-Image* Sexy::IMAGE_UT_ALTAR_GLOW3 = nullptr;
-Image* Sexy::IMAGE_UT_ARENA_BG = nullptr;
-Image* Sexy::IMAGE_UT_ARENA_TEXT = nullptr;
-Image* Sexy::IMAGE_UT_BUY_BUTTON = nullptr;
-Image* Sexy::IMAGE_UT_BUY_NOW = nullptr;
-Image* Sexy::IMAGE_UT_GRASS = nullptr;
-Image* Sexy::IMAGE_UT_MONSTER_BG = nullptr;
-Image* Sexy::IMAGE_UT_NECRO_BG = nullptr;
-Image* Sexy::IMAGE_UT_NO_BUTTON = nullptr;
-Image* Sexy::IMAGE_UT_TEXT_BG = nullptr;
-Image* Sexy::IMAGE_UT_TILE_CRYSTAL = nullptr;
-Image* Sexy::IMAGE_UT_TILE_CRYSTAL_GLOW = nullptr;
-Image* Sexy::IMAGE_UT_TILE_DIAMOND = nullptr;
-Image* Sexy::IMAGE_UT_TILE_DIAMOND_GLOW = nullptr;
-Image* Sexy::IMAGE_UT_TILE_GARNET = nullptr;
-Image* Sexy::IMAGE_UT_TILE_GARNET_GLOW = nullptr;
-Image* Sexy::IMAGE_UT_TILE_GLINT_CRYSTAL = nullptr;
-Image* Sexy::IMAGE_UT_TILE_GLINT_DIAMOND = nullptr;
-Image* Sexy::IMAGE_UT_TILE_GLINT_GARNET = nullptr;
-Image* Sexy::IMAGE_UT_TILE_NORMAL = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE1 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE10 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE11 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE12 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE13 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE14 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE15 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE16 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE17 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE18 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE19 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE2 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE20 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE21 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE22 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE23 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE24 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE25 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE26 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE27 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE28 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE29 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE3 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE30 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE4 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE5 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE6 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE7 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE8 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE9 = nullptr;
-Image* Sexy::IMAGE_UT_TREASURES_BG = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE_BULB = nullptr;
-Image* Sexy::IMAGE_UT_TREASURE_BULB_HL = nullptr;
-Image* Sexy::IMAGE_UT_TRIAL_EXPIRED = nullptr;
-int Sexy::SOUND_UT_ATTACK_02 = 0;
-int Sexy::SOUND_UT_BUY_NOW = 0;
-int Sexy::SOUND_UT_CHOMP = 0;
-int Sexy::SOUND_UT_GEMSPAWN = 0;
-int Sexy::SOUND_UT_LEX_ATTACK1 = 0;
-int Sexy::SOUND_UT_LEX_ATTACK4 = 0;
-int Sexy::SOUND_UT_LEX_ATTACK5 = 0;
-int Sexy::SOUND_UT_NEW_TREASURE = 0;
-int Sexy::SOUND_UT_PETRIFY = 0;
-int Sexy::SOUND_UT_SLUMP = 0;
-int Sexy::SOUND_UT_WAIL_01 = 0;
-int Sexy::SOUND_UT_WAIL_02 = 0;
-int Sexy::SOUND_UT_WAIL_03 = 0;
-
-bool Sexy::ExtractUpsellTrailerResources(ResourceManager* theManager)
-{
-	gNeedRecalcVariableToIdMap = true;
-	ResourceManager& aMgr = *theManager;
-	try {
-		IMAGE_UT_ALTAR = aMgr.GetImageThrow("IMAGE_UT_ALTAR");
-		IMAGE_UT_ALTAR_GLOW1 = aMgr.GetImageThrow("IMAGE_UT_ALTAR_GLOW1");
-		IMAGE_UT_ALTAR_GLOW2 = aMgr.GetImageThrow("IMAGE_UT_ALTAR_GLOW2");
-		IMAGE_UT_ALTAR_GLOW3 = aMgr.GetImageThrow("IMAGE_UT_ALTAR_GLOW3");
-		IMAGE_UT_ARENA_BG = aMgr.GetImageThrow("IMAGE_UT_ARENA_BG");
-		IMAGE_UT_ARENA_TEXT = aMgr.GetImageThrow("IMAGE_UT_ARENA_TEXT");
-		IMAGE_UT_BUY_BUTTON = aMgr.GetImageThrow("IMAGE_UT_BUY_BUTTON");
-		IMAGE_UT_BUY_NOW = aMgr.GetImageThrow("IMAGE_UT_BUY_NOW");
-		IMAGE_UT_GRASS = aMgr.GetImageThrow("IMAGE_UT_GRASS");
-		IMAGE_UT_MONSTER_BG = aMgr.GetImageThrow("IMAGE_UT_MONSTER_BG");
-		IMAGE_UT_NECRO_BG = aMgr.GetImageThrow("IMAGE_UT_NECRO_BG");
-		IMAGE_UT_NO_BUTTON = aMgr.GetImageThrow("IMAGE_UT_NO_BUTTON");
-		IMAGE_UT_TEXT_BG = aMgr.GetImageThrow("IMAGE_UT_TEXT_BG");
-		IMAGE_UT_TILE_CRYSTAL = aMgr.GetImageThrow("IMAGE_UT_TILE_CRYSTAL");
-		IMAGE_UT_TILE_CRYSTAL_GLOW = aMgr.GetImageThrow("IMAGE_UT_TILE_CRYSTAL_GLOW");
-		IMAGE_UT_TILE_DIAMOND = aMgr.GetImageThrow("IMAGE_UT_TILE_DIAMOND");
-		IMAGE_UT_TILE_DIAMOND_GLOW = aMgr.GetImageThrow("IMAGE_UT_TILE_DIAMOND_GLOW");
-		IMAGE_UT_TILE_GARNET = aMgr.GetImageThrow("IMAGE_UT_TILE_GARNET");
-		IMAGE_UT_TILE_GARNET_GLOW = aMgr.GetImageThrow("IMAGE_UT_TILE_GARNET_GLOW");
-		IMAGE_UT_TILE_GLINT_CRYSTAL = aMgr.GetImageThrow("IMAGE_UT_TILE_GLINT_CRYSTAL");
-		IMAGE_UT_TILE_GLINT_DIAMOND = aMgr.GetImageThrow("IMAGE_UT_TILE_GLINT_DIAMOND");
-		IMAGE_UT_TILE_GLINT_GARNET = aMgr.GetImageThrow("IMAGE_UT_TILE_GLINT_GARNET");
-		IMAGE_UT_TILE_NORMAL = aMgr.GetImageThrow("IMAGE_UT_TILE_NORMAL");
-		IMAGE_UT_TREASURE1 = aMgr.GetImageThrow("IMAGE_UT_TREASURE1");
-		IMAGE_UT_TREASURE10 = aMgr.GetImageThrow("IMAGE_UT_TREASURE10");
-		IMAGE_UT_TREASURE11 = aMgr.GetImageThrow("IMAGE_UT_TREASURE11");
-		IMAGE_UT_TREASURE12 = aMgr.GetImageThrow("IMAGE_UT_TREASURE12");
-		IMAGE_UT_TREASURE13 = aMgr.GetImageThrow("IMAGE_UT_TREASURE13");
-		IMAGE_UT_TREASURE14 = aMgr.GetImageThrow("IMAGE_UT_TREASURE14");
-		IMAGE_UT_TREASURE15 = aMgr.GetImageThrow("IMAGE_UT_TREASURE15");
-		IMAGE_UT_TREASURE16 = aMgr.GetImageThrow("IMAGE_UT_TREASURE16");
-		IMAGE_UT_TREASURE17 = aMgr.GetImageThrow("IMAGE_UT_TREASURE17");
-		IMAGE_UT_TREASURE18 = aMgr.GetImageThrow("IMAGE_UT_TREASURE18");
-		IMAGE_UT_TREASURE19 = aMgr.GetImageThrow("IMAGE_UT_TREASURE19");
-		IMAGE_UT_TREASURE2 = aMgr.GetImageThrow("IMAGE_UT_TREASURE2");
-		IMAGE_UT_TREASURE20 = aMgr.GetImageThrow("IMAGE_UT_TREASURE20");
-		IMAGE_UT_TREASURE21 = aMgr.GetImageThrow("IMAGE_UT_TREASURE21");
-		IMAGE_UT_TREASURE22 = aMgr.GetImageThrow("IMAGE_UT_TREASURE22");
-		IMAGE_UT_TREASURE23 = aMgr.GetImageThrow("IMAGE_UT_TREASURE23");
-		IMAGE_UT_TREASURE24 = aMgr.GetImageThrow("IMAGE_UT_TREASURE24");
-		IMAGE_UT_TREASURE25 = aMgr.GetImageThrow("IMAGE_UT_TREASURE25");
-		IMAGE_UT_TREASURE26 = aMgr.GetImageThrow("IMAGE_UT_TREASURE26");
-		IMAGE_UT_TREASURE27 = aMgr.GetImageThrow("IMAGE_UT_TREASURE27");
-		IMAGE_UT_TREASURE28 = aMgr.GetImageThrow("IMAGE_UT_TREASURE28");
-		IMAGE_UT_TREASURE29 = aMgr.GetImageThrow("IMAGE_UT_TREASURE29");
-		IMAGE_UT_TREASURE3 = aMgr.GetImageThrow("IMAGE_UT_TREASURE3");
-		IMAGE_UT_TREASURE30 = aMgr.GetImageThrow("IMAGE_UT_TREASURE30");
-		IMAGE_UT_TREASURE4 = aMgr.GetImageThrow("IMAGE_UT_TREASURE4");
-		IMAGE_UT_TREASURE5 = aMgr.GetImageThrow("IMAGE_UT_TREASURE5");
-		IMAGE_UT_TREASURE6 = aMgr.GetImageThrow("IMAGE_UT_TREASURE6");
-		IMAGE_UT_TREASURE7 = aMgr.GetImageThrow("IMAGE_UT_TREASURE7");
-		IMAGE_UT_TREASURE8 = aMgr.GetImageThrow("IMAGE_UT_TREASURE8");
-		IMAGE_UT_TREASURE9 = aMgr.GetImageThrow("IMAGE_UT_TREASURE9");
-		IMAGE_UT_TREASURES_BG = aMgr.GetImageThrow("IMAGE_UT_TREASURES_BG");
-		IMAGE_UT_TREASURE_BULB = aMgr.GetImageThrow("IMAGE_UT_TREASURE_BULB");
-		IMAGE_UT_TREASURE_BULB_HL = aMgr.GetImageThrow("IMAGE_UT_TREASURE_BULB_HL");
-		IMAGE_UT_TRIAL_EXPIRED = aMgr.GetImageThrow("IMAGE_UT_TRIAL_EXPIRED");
-		SOUND_UT_ATTACK_02 = aMgr.GetSoundThrow("SOUND_UT_ATTACK_02");
-		SOUND_UT_BUY_NOW = aMgr.GetSoundThrow("SOUND_UT_BUY_NOW");
-		SOUND_UT_CHOMP = aMgr.GetSoundThrow("SOUND_UT_CHOMP");
-		SOUND_UT_GEMSPAWN = aMgr.GetSoundThrow("SOUND_UT_GEMSPAWN");
-		SOUND_UT_LEX_ATTACK1 = aMgr.GetSoundThrow("SOUND_UT_LEX_ATTACK1");
-		SOUND_UT_LEX_ATTACK4 = aMgr.GetSoundThrow("SOUND_UT_LEX_ATTACK4");
-		SOUND_UT_LEX_ATTACK5 = aMgr.GetSoundThrow("SOUND_UT_LEX_ATTACK5");
-		SOUND_UT_NEW_TREASURE = aMgr.GetSoundThrow("SOUND_UT_NEW_TREASURE");
-		SOUND_UT_PETRIFY = aMgr.GetSoundThrow("SOUND_UT_PETRIFY");
-		SOUND_UT_SLUMP = aMgr.GetSoundThrow("SOUND_UT_SLUMP");
-		SOUND_UT_WAIL_01 = aMgr.GetSoundThrow("SOUND_UT_WAIL_01");
-		SOUND_UT_WAIL_02 = aMgr.GetSoundThrow("SOUND_UT_WAIL_02");
-		SOUND_UT_WAIL_03 = aMgr.GetSoundThrow("SOUND_UT_WAIL_03");
-	} catch (ResourceManagerException&) {
-		return false;
-	}
-	return true;
-}
-
 bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theName)
 {
 	if (strcmp(theName, "CommonGame") == 0)
@@ -1107,7 +953,5 @@ bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theNa
 		return ExtractStatsBookResources(theManager);
 	if (strcmp(theName, "TitleAndMM") == 0)
 		return ExtractTitleAndMMResources(theManager);
-	if (strcmp(theName, "UpsellTrailer") == 0)
-		return ExtractUpsellTrailerResources(theManager);
 	return false;
 }

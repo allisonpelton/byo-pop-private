@@ -20,6 +20,16 @@
     },
     {
       "rect": [
+        100,
+        352,
+        440,
+        30
+      ],
+      "pairs": "t*.png",
+      "label": "the line \"thanks for registering\" (0x4b2df0) that the original draws under the logo on its registered path; the port leaves it out with its other registration code (docs/GAME_NOTES.md section 3)"
+    },
+    {
+      "rect": [
         130,
         378,
         380,

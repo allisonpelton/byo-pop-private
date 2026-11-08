@@ -145,10 +145,18 @@ public:
 	int		Get(int theRange, bool theSigned = false); // 0x425f10: 0 .. theRange-1, negated half the time if signed
 	int		J() const { return mJ; }		// test hooks (testhooks/Trace.cpp): where the generator is
 	int		K() const { return mK; }
+	// The fixes mod, "drawRandom" (mods/fixes): between BeginDrawing and EndDrawing the numbers come from a second generator,
+	// so that the pictures (which draw numbers in the original) leave the game's own sequence alone. Unused without the mod.
+	void	BeginDrawing() { mDrawing = true; }
+	void	EndDrawing() { mDrawing = false; }
 private:
 	int		mJ;			// +4
 	int		mK;			// +8
 	unsigned int mState[55]; // +0xc
+	bool	mDrawing;
+	int		mDrawJ;
+	int		mDrawK;
+	unsigned int mDrawState[55];
 };
 
 // 0x429680: an image with the rectangle of it that a draw takes, made by the image manager

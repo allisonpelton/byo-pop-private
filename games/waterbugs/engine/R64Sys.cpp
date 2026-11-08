@@ -287,15 +287,14 @@ uint32_t TimeMs()
 	return gHost != nullptr ? gHost->TimeMs() : 0;
 }
 
+bool Sys_FixOn(const char* theFix)
+{
+	return gHost != nullptr && gHost->FixOn(theFix);
+}
+
 // (SleepEx; the port's frames are the host's, so nothing waits)
 void Sys_Sleep(int)
 {
-}
-
-void OpenURL(const char* theUrl)
-{
-	if (gHost != nullptr)
-		gHost->OpenURL(theUrl);
 }
 
 // (0x7081b0: the port never loses the screen, see PumpMessages)

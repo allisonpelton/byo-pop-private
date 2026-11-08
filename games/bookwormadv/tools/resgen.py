@@ -40,6 +40,9 @@ GROUPS = [(0x4aedc0, 'CommonGame'), (0x4b3090, 'Credits'), (0x4b3150, 'HallOfFam
           (0x4b4500, 'MiniGameCommon'), (0x4b4d20, 'MiniGameMenu'), (0x4b4ef0, 'StatsBook'), (0x4b5810, 'TitleAndMM'),
           (0x4b6340, 'UpsellTrailer')]
 FUNCS = [a for a, _ in GROUPS]
+# left out of Res.h and Res.cpp: what only the trial used (its upsell trailer, the main menu's "buy now"); the port
+# plays as the registered game, which never asks for them
+TRIAL_ONLY = {'UpsellTrailer', 'SOUND_MM_BUY_NOW'}
 TYPES = {'image': 'Image*', 'font': 'Font*', 'sound': 'int'}
 # the vtable slots (byte offsets) of ResourceManager the functions call
 SLOTS = {0x40: 'image', 0x44: 'sound', 0x48: 'font'}
@@ -79,8 +82,9 @@ def write_files(rows, hpath, cpath):
          '', 'bool ExtractResourcesByName(ResourceManager* theManager, const char* theName);', '']
     c = [HEADER + '#include "Res.h"', '', '#include <cstring>', '', '#include "ResourceManager.h"', '',
          'using namespace Sexy;', '', 'bool gNeedRecalcVariableToIdMap = false;  // 0x82592f']
-    for fa, group in GROUPS:
-        mine = [r for r in rows if r[0] == fa]
+    groups = [(fa, group) for fa, group in GROUPS if group not in TRIAL_ONLY]
+    for fa, group in groups:
+        mine = [r for r in rows if r[0] == fa and r[3] not in TRIAL_ONLY]
         h.append('// %s (%#x)' % (group, fa))
         h.append('bool Extract%sResources(ResourceManager* theManager);' % group)
         h += ['extern %s %s;  // %#x' % (TYPES[kind], rid, g) for _, g, kind, rid in mine]
@@ -95,7 +99,7 @@ def write_files(rows, hpath, cpath):
         c += [T + '} catch (ResourceManagerException&) {', T + T + 'return false;', T + '}', T + 'return true;', '}']
     h.append('}  // namespace Sexy')
     c += ['', 'bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theName)', '{']
-    for fa, group in GROUPS:
+    for fa, group in groups:
         c += [T + 'if (strcmp(theName, "%s") == 0)' % group, T + T + 'return Extract%sResources(theManager);' % group]
     c += [T + 'return false;', '}']
     open(hpath, 'w', newline='\n').write('\n'.join(h) + '\n')
