@@ -74,6 +74,8 @@ GameApp::~GameApp()
 	}
 	delete mSongPlayer;
 	delete mSoundPlayer;
+	for (Image* anImage : mCurtainCopies)
+		delete anImage;
 	delete mLex;
 	delete mPopAnimManager;
 	delete mProfile;
