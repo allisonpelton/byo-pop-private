@@ -527,6 +527,10 @@ bool LeaveScreen()
 	return true;
 }
 
+// port(site): the start-up logos are over once a screen that is not a logo has been up (the logos the menu can ask for later
+// are the game's, not the start-up's)
+static bool gStartupLogosOver = false;
+
 void GameStep()
 {
 	gFrame = gFrame + 1;
@@ -537,6 +541,18 @@ void GameStep()
 			// (a screen left: the next one, or the end of the game file's levels)
 			LeaveScreen();
 		}
+	}
+	// port(site): the site's "Always skip start-up logos" does what Esc on the first logo does (below): the main menu at once.
+	// It is that path and no other, so the game reaches the menu in the state the original's skip leaves it in.
+	if (gLevels.current != nullptr && gLevels.current->kind != 0xe)
+		gStartupLogosOver = true;
+	else if (gLevels.current != nullptr && !gStartupLogosOver && Sys_SkipLogos())
+	{
+		gGoTo = 1;
+		GoToScreen();
+		if (gLevels.current != nullptr)
+			Screen_Redraw();
+		return;
 	}
 	if (Key_Pressed(0x1b) == 0)
 	{

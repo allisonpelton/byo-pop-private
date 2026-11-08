@@ -116,6 +116,8 @@ None of these shows in play with the mods off; `GAME_NOTES.md` has the detail.
 - **The focus pauses the game in a real-input run and on the page.** `IsActive()` followed the test run, which kept the game
   running when the window lost the focus; it follows the window now, as the original's `WM_ACTIVATEAPP` does. A test run
   without `-realinput` has no window events and stays active.
+- **The site's "Always skip start-up logos".** With the setting on (or `-skiplogos` natively) the start-up logo is left as Esc
+  leaves it, in the first update. With it off, which is every other run, the game is the original.
 - **The test hooks** (`src/testhooks/`, `level`, `goto`, `set`, `win`, `lose`, `seed`, `move`, `grid`) are reached only from a
   test's script, command file or the page's `byopop.test.command`. A game that is never given a command never runs them. They
   draw no random number except `seed`.

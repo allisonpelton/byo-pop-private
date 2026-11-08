@@ -71,8 +71,28 @@ What the original does that the fixes mod (`mods/fixes`, below) mends, and what 
 - **Not a fix: the logos.** They last about 2.15 s together and end by themselves (`Level_Update` in `WBLevel.cpp`, which
   counts them in `gLogoCount`). They are not a wait on loading, and Esc leaves them: the update's rule for a screen that is
   not a board is to go to the main menu (read from the code, not played). The port loads at the machine's speed behind them.
+  The site's "Always skip start-up logos" skips them (below).
 - **Not a fix: the ship's appearance.** After a board starts, and after a life is lost, the ship comes in over 70 updates and
   fires nothing meanwhile. It is an animation of the game, not a wait on loading, and stays.
+
+## The site's "Always skip start-up logos"
+
+The setting (`Byopop::SiteSkipLogos()`, `framework/WebSettings.h`; on the site the page's `skipLogos`, natively `-skiplogos`)
+skips the game's one start-up logo screen, the level of kind 0xe in front of the main menu (the PopCap logo, about 2.15 s; the
+game finds no `portal*.tga` files, so `PortalCount()` is 0 and a second logo never follows it). `GameStep` in `WBMain.cpp` does
+for it exactly what Esc on the first logo does, the original's own skip: `gGoTo = 1`, `GoToScreen()`, `Screen_Redraw()`, in the
+same update that would have run the logo. The host answers through `SysHost::SkipLogos()` (`Sys_SkipLogos()` for the engine and
+game code), which `WaterBugsApp` implements over the site's call. The skip is for the start-up only: a flag
+(`gStartupLogosOver`) is set once a screen that is not a logo has been up, so the logo the menu's hidden item can ask for later
+plays as the game has it. The setting off changes nothing (`tools/check.sh waterbugs`'s frozen screens and logs are the same).
+
+The logo draws no random number (the game's generator stays where `seed` put it for the whole 2 s of the logo, and the menu's own
+animations begin to draw once the menu is up, as they do after the logo), so the skip changes no draw. Natively with
+`-skiplogos` the first `state` (update 4) reads `menu` where a run without it reads `logo` until update 215, and the menu's state is
+the same as the one reached without the setting except for the update, the frame and the generator's state (the menu's animations
+have been drawing since the menu came up). On the page, with the setting on in the site's settings (the full page, with the
+game's files imported; the player-only test page never sets it) the main menu is up 1.5 s after Play, and with it off the PopCap
+logo is.
 
 ## The fixes mod (`mods/fixes`)
 
