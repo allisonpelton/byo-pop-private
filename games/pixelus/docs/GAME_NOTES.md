@@ -166,9 +166,8 @@ game's own progress rules, not a registration limit.
 the story's speeches come one after another (2 s apart) but the Continue button is live from the first update; the
 tablet's picture takes 80 updates to fly in and its Continue button is live meanwhile; the help screen's demo loops and OK is
 live; the island's lightning, gulls and surf are animation that never holds a click; the loading wait is the port's core
-fast loading (the load thread runs in one go). Bugs found in the passes are oddities of timing or state with no effect on
-play (IDENTICAL_PLAY.md, "Oddities"), and the one that broke play, the skip-tutorial story, is fixed in the port itself
-(it is listed with the deviations). A fixes mod would have nothing to toggle.
+fast loading (the load thread runs in one go). The differences the passes found were the port's own (fixed) or oddities of timing or state with no effect on play
+(IDENTICAL_PLAY.md, "Oddities"); none is a bug of the original that breaks play or changes its rules. A fixes mod would have nothing to toggle.
 
-**Speed-ups for tests.** None made; `-fast` runs the whole game of 210 puzzles in about six minutes (`tools/check.sh pixelus`).
+**Speed-ups for tests.** None made; `-fast` plays the whole game of 210 puzzles inside `tools/check.sh pixelus`, which takes about 6.5 minutes in all.
 
