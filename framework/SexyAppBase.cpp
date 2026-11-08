@@ -22,6 +22,7 @@
 #include "SDLMusicInterface.h"
 #include "SoundInstance.h"
 #include "ModMenu.h"
+#include "WebSettings.h"
 #include "../platform/VFS.h"
 #include "../platform/ImageLoader.h"
 #include "../platform/ModManager.h"
@@ -3437,6 +3438,9 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mCommandsHold = true;
 	else if (theParamName == "-fast")
 		mFastMode = true;
+	// port: the site's "Always skip start-up logos" natively, for testing a game's wiring (framework/WebSettings.h)
+	else if (theParamName == "-skiplogos")
+		Byopop::SetSiteSkipLogos(true);
 	else if (theParamName == "-trace")
 		mTraceMode = true;
 	else if (theParamName == "-drawevery")

@@ -59,6 +59,7 @@ var ByopopSettings = (function () {
     touchKeys: { values: ["auto", "on", "off"], def: "auto" },
     gamepad: { values: SWITCH, def: "on" },
     clips: { values: SWITCH, def: "off" },           // on: a Record button on a game page's bar (web/clips.js)
+    skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
     skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
     speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], def: "1" }   // the game's update rate, times this (web/controls.js)
   };
@@ -233,6 +234,7 @@ var ByopopSettings = (function () {
       hint: T("settings.touchkeys.hint") },
     { name: "gamepad", label: T("settings.gamepad.label"), hint: T("settings.gamepad.hint") },
     { name: "clips", label: T("settings.clips.label"), hint: T("settings.clips.hint") },
+    { name: "skipLogos", label: T("settings.skiplogos.label"), start: true, hint: T("settings.skiplogos.hint") },
     { name: "skipTutorials", label: T("settings.skiptutorials.label"), hint: T("settings.skiptutorials.hint") },
     { name: "speed", label: T("settings.speed.label"), options: [["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
       ["1.25", "1¼×"], ["1.5", "1½×"], ["2", "2×"]], hint: T("settings.speed.hint") },
