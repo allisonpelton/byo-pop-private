@@ -331,6 +331,17 @@ original's loader would have raised to 60000 on its next save; the baseline and 
 and kept is listed in README.md, "Registration and links": the nag screens' levels (the draws of their loading), the `nag_logo`
 animation their menus name, the `closing_nag` item type of the title's QUIT, the `fv` skips, and `gDemo`, the attract mode nothing starts.
 
+### Start-up logos
+
+The site's "Always skip start-up logos" (2026-11-08) is read where the game's logo screens are (README.md, "Start-up logos"): with
+it on, a logo screen (level kind 0xe, the PopCap logo, once for each portal animation file, about two seconds each) goes on as Esc
+on it does, the original's own skip, to the main menu. The logos draw no random number: the headless runner's seed series
+(`CB_WATCH=1`) is identical for a natural start, for Esc at the first logo and for the skip (`CB_SKIPLOGOS=1`), the first draw
+being at update 2171, 11 and 11, so the game's draws after the logos do not move. Natively the exe with `-skiplogos` shows the title at its first
+sample (update 1001 of a `-fast` run, where it shows the logo without the flag), and in the Browser pane the web build with the setting on
+shows the title at update 411 where the same start without it is still on the logo at 311. With the setting off nothing changes
+(the baseline and the suite hold).
+
 ### Performance
 
 The original and the port back to back: README.md, "Performance". In short, both load in about half a second; the port holds

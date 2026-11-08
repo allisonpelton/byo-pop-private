@@ -62,6 +62,12 @@ public:
 		return mActive;
 	}
 
+	// CB_SKIPLOGOS=1: the site's "Always skip start-up logos", for comparing the draws with and without
+	bool SkipLogos() override
+	{
+		return std::getenv("CB_SKIPLOGOS") != nullptr;
+	}
+
 	int mSounds = 0;
 	std::string mSavePath;
 	bool m555 = std::getenv("CB_555") != nullptr;
