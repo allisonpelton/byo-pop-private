@@ -686,12 +686,17 @@ std::string GameApp::MoveForTests()
 			Point aPos = anIt->second->GetAbsPos();
 			return Move("continue", Click(aPos.mX + anIt->second->mWidth / 2, aPos.mY + anIt->second->mHeight / 2));
 		}
-		std::string aCount;
-		RunLua("local n = 0 if gTreasureScreen ~= nil and gTreasureScreen.mSelectedTreasures ~= nil then "
-		       "for _ in pairs(gTreasureScreen.mSelectedTreasures) do n = n + 1 end end return tostring(n)",
-		       aCount);
-		static const int kSlots[] = {113, 209, 300, 402};
-		return Move("treasure", Click(188, kSlots[atoi(aCount.c_str()) % 4]));
+		// the first of them not selected yet (the scripts' mTreasures, from 0, each with its place and mSelected)
+		std::string anAt;
+		RunLua("local t = gTreasureScreen and gTreasureScreen.mTreasures if t == nil then return '' end "
+		       "local i = 0 while t[i] ~= nil do local r = t[i] "
+		       "if not r.mSelected then return (r.mX + math.floor(r.mWidth / 2)) .. ',' .. (r.mY + math.floor(r.mHeight / 2)) end "
+		       "i = i + 1 end return ''",
+		       anAt);
+		int x = 0, y = 0;
+		if (sscanf(anAt.c_str(), "%d,%d", &x, &y) != 2)
+			return "null";
+		return Move("treasure", Click(x, y));
 	}
 	if (aScreen == "map")
 		return Move("enter", Click(400, 575));

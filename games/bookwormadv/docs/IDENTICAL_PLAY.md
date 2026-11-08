@@ -158,6 +158,14 @@ none in the game: a test command that waits for its screen tried again through t
 script list makes the framework drop every real event, so after one waiting `goto` no real click reached the game. On
 the live channel the retries now have their own queue; a `-script` run keeps them in the script as before.
 
+Played by `move` alone under `-fast`, a profile at the first book's fourth chapter went on through every chapter of the
+three books, the third book's end and its cutscenes to the Hall of Fame, in 17 minutes: 243 words, 26 lost turns
+ended, 81 treasures picked, 316 conversation clicks, no error on the log, and Lex never below 1.75 hearts. The arena
+then played from the main menu until Lex fell to Cerberus 34 minutes into the run, which the Hall of Fame recorded.
+The bot's own first faults turned up on the way and were fixed in it: it waited forever on Level Up's "Click to
+continue" and on a lost turn (under `-fast` thousands of updates pass between two questions), and it picked the same
+treasure on and off (the treasure room's `mSelectedTreasures` is nil; each of `mTreasures` has its own `mSelected`).
+
 ## Oddities skipped
 
 **How long the loading screens stay up.** The original loads at startup and before each chapter on a thread, so its

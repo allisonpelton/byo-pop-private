@@ -6,7 +6,8 @@ rundesk, with absolute paths:
     build/native/rundesk.exe python games/bookwormadv/tools/movedriver.py <out dir> <until screen> <seconds> [command ...] -- <exe> [game args...]
 
 <until screen> is a `state` screen (menu, map, treasure, ...) to stop at once it has left it and come back, or "-" to
-play until the time is up. The commands ("goto adventure") are sent first, each once its answer to the one
+play until the time is up. It also stops after two minutes with no move, or the same move 200 times on an unchanged
+state (a picture of it in stuck.png or loop.png). The commands ("goto adventure") are sent first, each once its answer to the one
 before has come (OK). The out dir gets commands.txt, game.log (the game's log) and movedriver.log (each move and
 the screen after it); the last line says what ended the run.
 """
@@ -67,6 +68,7 @@ def main():
     why = 'time up'
     moves = {}
     nulls_since, shot = None, False
+    last, same = None, 0
     # wait for the channel
     while not os.path.exists(log) or 'commands: waiting for' not in open(log, errors='replace').read():
         if proc.poll() is not None or time.time() - t0 > 120:
@@ -95,10 +97,21 @@ def main():
                 shot = True
                 send('screenshot ' + os.path.join(out, 'stuck.png').replace(os.sep, '/'), 'OK screenshot')
                 say('stuck: no move for 20 s; state %s' % st)
+            elif time.time() - nulls_since > 120:
+                why = 'stuck: no move for 2 minutes'
+                break
             time.sleep(0.05)
             continue
         nulls_since, shot = None, False
         m = json.loads(mv)
+        # the same move over and over on an unchanged state: it does nothing
+        key = (st, mv)
+        same = same + 1 if key == last else 0
+        last = key
+        if same >= 200:
+            send('screenshot ' + os.path.join(out, 'loop.png').replace(os.sep, '/'), 'OK screenshot')
+            why = 'looping: the same move 200 times, %s; state %s' % (mv, st)
+            break
         moves[m['what']] = moves.get(m['what'], 0) + 1
         say('%s %s %s' % (screen, m['what'], m.get('word', '')))
         for step in m['input']:
