@@ -696,6 +696,78 @@ chosen keeps these rules, each in the user's words of 2026-11-07:
   Microsoft font files. A free lookalike may be a fallback for machines without them, and only that one is listed on the
   licences page.
 
+### Skins
+
+The user chose three of the directions as selectable skins (2026-11-07: "Offer A, B, and C as selectable skins... D feels too
+generic"): A **Demo Disc**, B **Desktop 95** and C **Soda Fountain**. A and C each have a light and a dark version, the dark
+one from its own era rather than inverted colours: A's midnight gloss, C's after hours with neon (the design page's "After
+dark" section has each with its verdict). B has a light version only (the user, 2026-11-07, of the dark versions: "Only A and
+C"): in a dark theme it stays light, and its pages do not show the theme button. `web/skins.js` sets
+`<html data-skin="demo" | "d95" | "soda">` in each page's `<head>`, before the body is drawn, and `web/skins.css` holds the looks.
+**Plain**, the site's look without a skin, is the fourth choice. The skins restyle the listing page and the game pages; the
+other pages (the terms, the licences, a game's copyright page) keep the plain look.
+
+The choice is the site setting `skin` (web/settings.js, the Display group), so it is kept with the other settings, a game may
+have its own like any other setting, and Settings changes it at any time, at once. Until the player chose one it is "unset":
+the first page of the site they open shows a card with the three, and closing it without a choice keeps Plain, chosen, so the
+card is asked once. As with the terms card, it never shows on a development host (`?skins=1` shows it there) and never on the
+player-only page, which has no skin.
+
+How a skin is written: each one sets the pages' own colour variables (`--bg`, `--panel`, `--panel-2`, `--fg`, `--muted`,
+`--line`, `--accent`, `--accent-fg`, `--font-ui`, `--radius`) and its own `--sk-*` ones, once for light and once for dark in the
+pages' two dark forms (web/theme.js); the rules after them only read variables, so each is written once for both themes. In
+the dark A only the top bar and the box headings shine, its panels flat smoked glass; the dark C keeps its neon to the sign and
+the awning, with soft edges elsewhere (the verdicts).
+
+**Ambient light.** On a game page in the dark A and C the game's picture glows out around the stage, as on the design page:
+`web/skins.js` copies the game's canvas into a 16 by 12 canvas right after a frame the game drew (the framework's frame hook,
+`Module.byopopTestFrame`, while the WebGL picture is still there), at most every half second, and two such canvases,
+scaled a quarter beyond the stage, blurred far and cross-faded, sit behind it inside the stage's box (html.sk-ambient). With
+reduced motion a sample is taken every 8 seconds at most and switched without a fade. The light versions have none, since
+on a light page a glow reads as a smudge, and neither has B. The site setting "Ambient light" (`ambient`, on by default, the
+Display group) turns it off; while it is off, or in a light theme, no sample is taken.
+Period fonts are named and never shipped (Verdana for A; the 1995 desktop's sans serif, then Tahoma, for B; Cooper Black, then
+Bookman and Georgia, for C's signs).
+
+**The setup wizard.** In a skin, a game page's three cards before play, the terms, the import and Ready, are the pages of a setup
+wizard (`ByopopSkin.wizard`, called by web/shell.html): a title bar ("byo-pop Setup: <game>", in C "Bottling <game>"), the steps
+Licence, Your folder, Copying and Finish with the current one marked (the import card is Copying while its progress bar moves),
+and an art column at the left with the game's cap (on the import card its own cap, which the opener still takes off) or, in C, a
+bottle that fills with the copy and is full at Finish. The cards keep their contents, buttons and rules: the terms card is the
+licence page (the user, 2026-11-07: "Yes, as the licence page") and keeps everything in "The terms", development hosts and the
+test key included. The wizard's parts are always in the page, hidden from assistive technology (the cards read as they are)
+and drawn only in a skin, so changing the skin needs no script.
+
+**The cap board.** In a skin the listing's caps stay caps: a game whose files are here keeps its initials, with its own icon
+faint under them (the user, 2026-11-07: "Add the game's icon so it shows semi-faint under the game's initials"), the icon read
+out of the player's own exe at the import (web/exeicon.js) and never shipped or redrawn; Plain shows the icon alone, as before.
+In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
+its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps").
+The other studies are on the cap of a game whose files are here, in every skin, from what this browser already keeps
+(`capStudies` in web/index.html; drawn by web/skins.css, hidden from assistive technology since the card says the same). **The
+record under the cap**: on hover or the card's focus the cap turns over to its liner, with the plays, the play time and the
+last day played (ByopopPlay). A best score would need, for each game, where its saves keep it, and is not shown. **The print
+of the copy**: the year the copy's exe was linked (`ByopopExeIcon.built`, its PE header's time stamp, read with the icon and
+kept in the record as `built`) against the game's release year: a year stamp on the rim when it was built in the first year, a
+ring for a later re-release (two years on or more), and nothing between. No store is named. **Wear from play**: a scratch at
+10 hours, a dent and a tilt at 40, patina at 100. **The date under the crimp**: the day this copy came in (`opened` in the
+record, set when a new copy is marked and kept while it is there), short, on the rim; a record from before it was kept has
+none until the files are added again.
+
+**Desktop 95's windows.** In B a game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The controls (the
+page's bar, with the sound switch), the game, the chat and every panel (Settings, Game files, Mods and the game's own) are
+windows dragged by their title bars, or moved 8 pixels at a time with Alt and the arrows while the focus is in a title bar. A
+column of icons at the left opens each one again. The game window can be closed and reopened; a panel's icon presses the
+panel's own button on the bar. The game window is always pixel-perfect: one canvas pixel for each game pixel, or the largest
+whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Where the windows are, and whether the
+game window is closed, is kept for each game in the localStorage item `byopop-desk`. The footer lies along the bottom like a
+task bar. Each game keeps its own page, so a game's address still opens that game. The listing is its own desktop: the games
+(with their tabs) in one window and the page's notes in another, each dragged, closed and opened from its icon like a game
+page's, and kept under "index". On a screen under 760 pixels wide, or in another skin, the page is laid out as
+usual. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
+title, ...})`. The parody keeps to the rules of the skins: everything drawn here, system fonts by name, no real logos, icons
+or sounds, and no imitation system prompts.
+
 ### Light and dark
 
 The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the
@@ -900,6 +972,14 @@ become the starting volume on at those levels (50 for the one that was left to t
 mute is what the player asked for first. The same goes for each game's own values in `games` (a game's missing values fall back on
 the site's old ones; a game that was left to itself while the site's were set gets its own "off"). Settings left to the game
 leave nothing. `tools/profilestest.js` checks it.
+
+**To come: the controls panel and "Always skip tutorials".** The site never shows a game's own information elsewhere on the
+page, with one exception the user made for controls (2026-11-07: "I ruled out re-presenting information from games to display
+elsewhere on the page, but I think we should make an exception for controls"). Each game's controls will be written in its
+page data, in the site's own short words and never the game's text, and shown beside the game; the remappable keys of the
+controls setting use the same list. "Always skip tutorials", off by default, will use each game's own switch (a registry value,
+a profile flag or an option) through the site's settings hook, leaving the ports unchanged; a game with no such switch is
+listed and left as it is.
 
 ### The chat
 
@@ -1448,6 +1528,132 @@ every game has them. What wrong sizes did in testing:
   mrmoneybags' height, the bill cels and title heights from their images; the cobrand image is optional.
 - BookWorm: `tile_fire_fx1` must be at least 57 px tall and the ember and spark images square (else a modulo by
   zero). `wordlist.txt` has no stand-in, and without `bookworm.exe` the game's texts are empty (GameText).
+
+## The player-only page
+
+For sessions that test a game in the Browser pane (the user, 2026-11-07: "For agent browser testing use, build a stripped down
+version that loads ONLY the player", with tools "that will help sessions with testing"). It is a game's own page with
+`?player=1`, and it is there only on a development host (`ByopopTerms.devHost`: 127.0.0.1, localhost, [::1], `*.localhost`,
+`*.test`, file://): elsewhere the parameter does nothing and `web/testkit.js` is never loaded, and the kit checks the host again
+itself. The page shows the game alone at the top left, one canvas pixel for each game pixel whatever the screen's scale: no bar,
+chat, panels, terms, skins or footer. It is silent unless `?silent=0`, each frame is the browser's or a
+20 ms timer's, whichever comes first (a hidden Browser pane sends no frames, though `document.hidden` stays false), "pause when hidden" never applies, and plays are not counted. Imported files and
+saves work as on the full page, in the page's own storage, unless `?assets=` asks for the test profile.
+
+Its parameters:
+
+| Parameter | What it does |
+|---|---|
+| `player=1` | the player-only page and its tools, `window.byopop.test` |
+| `assets=<name>` | the game's files from the staged `assets/<name>/` (`assets=1`: the page's own id), served by `tools/webtest/serve.py` and taken through the page's own import, which fetches only the files it picks; everything goes into a test profile of its own (the page's storage and Web Lock with "-test" after their names), apart from the player's, and the record of the player's games is left alone |
+| `fast=1` | the game on its virtual clock (`-fast`) |
+| `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready |
+| `silent=0` | sound on (the user's speakers: only when the user says so) |
+| `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
+| `run=<id>` | the folder of `byopop.test.shot(name)`'s files under `build/webshots/` (default "default") |
+| `seed=N`, `placeholders=1` | as on the full page |
+
+`tools/webtest/serve.py` (`python tools/webtest/serve.py [--port 18780]`) serves `build/web` on the loopback address only, with
+the staged files at `/__assets/<name>/` (`__list` lists them) and `POST /__shot`, which saves a shot as
+`build/webshots/<run>/<name>.png`; it writes nothing else and refuses another Host or Origin. The shots go to `tools/shotdiff`
+as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/origrun/<run>/shots --port build/webshots/<run>
+--run <id>` (`docs/SHOTDIFF.md`).
+
+`byopop.test` (every call that acts resolves once a frame has been drawn after it):
+
+- **ready**, a promise that resolves at the first drawn frame with `{updates, screen}`; `progress()` before then gives the status
+  line, the page's state, the frames and the updates. `start()` starts a `hold=1` page.
+- **errors**, an array that collects every abort, uncaught exception and rejection, every printed line that reports an error
+  (Lua's among them), every message box and every failure to fetch the staged files, each `{kind, text, update, at}`. A message
+  box is answered at once and never shown: an alert is dismissed, a confirm answered with `confirmAnswer` (true by default).
+- **input** at game coordinates, as the DOM's own events on the canvas, which Emscripten and SDL take on a player's path:
+  `move(x, y)`, `down(x, y, button)`, `up(x, y, button)`, `click(x, y, button)` (down and up on separate frames), `drag(x0, y0,
+  x1, y1, steps)`, `wheel(x, y, dy)`, `key(name, mods)`, `keyDown`, `keyUp` and `type(text)`. Keys are named as the DOM names
+  them ("Enter", "Escape", "ArrowLeft", " ", "a", "F1"), with the keyCode and code a browser gives them.
+- **time**: `updates()` is the framework's update count; `pause()` holds the game between two updates (it is still drawn and
+  its input still arrives, but no update runs), `step(n)` runs n more and holds again, `resume()` lets it go, `wait(n)` waits for
+  n updates holding nothing, and `frame()` for the next drawn frame. The hold is `byopop_hold_updates_at` in
+  `framework/SexyAppBase.cpp`, web only: the update loop's test for a due update also asks whether the count has reached the
+  hold, and nothing else changes. Input sent while the game is held reaches its widgets at once, as a player's would, since the
+  framework hands input to them outside the updates.
+- **shots**: `shot()` resolves with a PNG data URL of the canvas, read after the next frame at the game's resolution. On this
+  page the game's WebGL context keeps its drawing buffer (`preserveDrawingBuffer`), so a held game, which draws nothing, can be
+  shot too; the pixels drawn are the same. The kit learns of each frame from the framework's main loop
+  (`Module.byopopTestFrame`, called by `EmscriptenMainLoop` with whether it drew; the runtime's own `Module.postMainLoop` is
+  compiled out of these builds);
+  `shot(name)` also saves it through the server.
+- **focus**: `blur()` sends what a real loss of the focus sends (blur on the canvas and the window, and `document.hasFocus()`
+  false), `blur({hidden: true})` also a `visibilitychange` with `document.hidden` true, and `focus()` gives it all back.
+- **the log**: `log(since)` the game's printed lines from number `since` on (`{seq, kind, text, update}`, the last 20000 kept),
+  `logNext()` the number the next line will have, and `waitLog(pattern, {since, timeout})`, which resolves with the first line
+  from `since` on (by default the next one printed) that matches a RegExp or contains a string, and rejects after `timeout` ms
+  (60000 by default, 0 for ever). `waitUpdates(n)` is `wait(n)`.
+- **test commands** (the user, 2026-11-07, "Yes, add them"; `docs/TEST_COMMANDS.md`): `command(line, {timeout})` sends one
+  command (state, goto <screen>, level <n>, unlock all, set <name> <value>, win, lose, seed <n>) through the framework's live
+  channel, `byopop_test_command`, which queues it for the next update and the game's `HandleScriptCommand`, and resolves with the
+  lines printed from the call up to its answer, the last of them: `STATE {json}`, `OK <command>` or `ERROR <command>: <reason>`
+  (SDL's "INFO: " taken off). A held game is stepped one update so that the command runs. `state()` is `command("state")`'s JSON.
+  A build without the channel rejects at once. `botMove()` is `command("move")`'s move, or null when the bot has none;
+  `playMove(m)` sends one through real DOM input in game coordinates: its `input` list in order where it has one, else its
+  `clicks` (`{x, y, button}`), then its `drags` (`{x0, y0, x1, y1, steps}`), then its `keys` (DOM key names), and waits its
+  `updates` (1 by default).
+- **readings**, all copies: `watch()` a port's
+  watch values where it gives them (`byopop_watch_json`), null otherwise; `mixer()` the mixer's state once the shared
+  session's `platform/Audio.cpp` gives it (`byopop_mixer_json`), null until then; `screen()` the game's size.
+- **profile** (test profile only): `wipe()` deletes its saves (the staged files stay), `seed({path: data})` writes files into
+  its user folder from a fixture save (strings, ArrayBuffers or Uint8Arrays), `list()` and `read(path)` read them; then reload
+  or `start()`.
+
+A session's test, with the server on port 18780 and the pane at
+`http://127.0.0.1:18780/bejeweled.html?player=1&assets=1&fast=1&hold=1&run=title`:
+
+```js
+var t = byopop.test;
+await t.profile.wipe();
+await t.start();                    // resolves at the first drawn frame
+await t.wait(300);                  // the logo and the loading screen
+await t.click(320, 400);            // a button, at game coordinates
+await t.pause();
+await t.shot("title");              // build/webshots/title/title.png
+t.errors.length                     // 0
+```
+
+**Drivers.** Game sessions play their real-input checks with driver scripts (the user, 2026-11-07: "Yes, use drivers"): a
+script in the page reads the game's state from its log, chooses its moves and sends them as real DOM events, so that a whole
+game costs a call or two. A driver is a file in its game's tools folder, named with `?driver=`; the page runs it once the game is
+ready as the body of an async function of `t` (`byopop.test`), so it may `await`, and what it returns becomes
+`byopop.test.result` (`{error}` if it threw; the error also goes into `errors`). `byopop.test.driver` is a promise of the same
+result, which one `javascript_tool` call can await. An example, `games/<game>/tools/web/onegame.js`, for a port that logs its
+board and its game's end (the lines here stand for whatever the port prints):
+
+```js
+// plays one game: reads the board the port logs, makes the first move it finds, until the game ends
+var moves = 0;
+await t.waitLog(/^board /, { since: 0 });          // the first board, printed when the game starts
+for (;;) {
+  var line = await Promise.race([t.waitLog(/^board |^game over/), t.wait(600).then(function () { return null; })]);
+  if (line && /^game over/.test(line.text)) break;
+  var board = t.log().filter(function (l) { return /^board /.test(l.text); }).pop().text.substring(6).split("/");
+  var m = findMove(board);                          // the driver's own rule, in this file
+  if (!m) break;
+  await t.drag(m.x0, m.y0, m.x1, m.y1, 4);
+  moves++;
+}
+await t.shot("end");
+return { moves: moves, updates: t.updates(), errors: t.errors.length };
+```
+
+opened as `...bejeweled.html?player=1&assets=1&fast=1&driver=games/bejeweled/tools/web/onegame.js&run=onegame`, then
+`await byopop.test.driver` in the pane.
+
+**The built-in driver `?driver=move`** plays any game by its port's own bot (the user, 2026-11-07: "the scripts that play the
+games should be developed in a way that their code can be reused for a mod that adds a bot"; `docs/TEST_COMMANDS.md`, "The bot
+behind `move`"). It loops: `state()`, then `botMove()`, then `playMove()`, so every move is real input. It stops when the
+state says `"over": true`, on `MOVE null` twice running (it waits 30 updates after the first), on an ERROR, or after `?steps=`
+moves (2000 by default). `byopop.test.result` is then `{moves, stop, state, updates, errors}`: `stop` is "over", "limit",
+"no move" or "error: <message>", and `state` the last state read. `playByMove({steps})` runs the same loop from a driver of a
+session's own. It needs the build's `byopop_test_command` and a port that answers `move`; the MOVE fields are agreed with the
+shared session, whose native tool plays the same moves.
 
 ## Sound
 

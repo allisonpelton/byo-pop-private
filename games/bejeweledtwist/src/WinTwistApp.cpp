@@ -486,8 +486,10 @@ void WinTwistApp::WriteToRegistry()
 	// port: LastScoreName (+0x7fc) comes with the high score's name entry
 	if (mLoaded)
 		RegistryWriteString("LastProfileName", SexyStringToString(mProfile->mName));
-	// port: HighResolution (+0x818), AlwaysUpdate (+0x81a) and ArtRes (when the options changed it, +0xf35) keep
-	// the art's size, which the port always chooses as 2D mode does; ModeSeconds0 to 3 (+0x7d4) come with the board
+	// port: HighResolution (+0x818) and AlwaysUpdate (+0x81a) are not kept; ModeSeconds0 to 3 (+0x7d4) come with the
+	// board
+	if (mArtResChanged)
+		RegistryWriteInteger("ArtRes", mArtRes);
 	RegistryWriteBoolean("CustomCursors", mCustomCursorsEnabled);
 	RegistryWriteBoolean("ShowHints", mShowHints);
 	RegistryWriteBoolean("DoViz", mDoViz);
@@ -960,6 +962,8 @@ void WinTwistApp::UpdateFrames()
 		mCredits = nullptr;
 	}
 	SexyApp::UpdateFrames();
+	if (mTestGotoMode != -1)
+		UpdateTestGoto();
 	// The tracked sounds: the ended ones are released, the others follow mSfxVolumeScale
 	for (size_t i = 0; i < mTrackedSounds.size(); i++) {
 		TrackedSound& aSound = mTrackedSounds[i];
@@ -1201,7 +1205,7 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		mAutoPlayMode = -1;
 		return true;
 	}
-	return false;
+	return HandleTestCommand(theCommand);
 }
 
 void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)

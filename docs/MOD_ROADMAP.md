@@ -63,9 +63,11 @@ each run, I mean, so no 15-update variance on Twist."
 
 So each game gets one **fixes** mod, a fourth kind, and each of its settings is a toggle for one fix. A fix mends a
 bug of the original, or stops the original wasting the player's time or the machine's, and otherwise leaves the game
-as it was: its look, rules, sounds and pace of play. TipTop's loading bar is the first candidate: it loads one of its
-229 items a frame, so it fills at a steady crawl however fast they load (2.3 seconds in the port, about 3.8 in the
-original on a 60 Hz screen, where a frame waits for the vertical blank). A mod that trades the original's look or feel
+as it was: its look, rules, sounds and pace of play. Slow loading is not one of them: it is mended in the port itself
+(the user, 2026-11-07: "Let's make faster loading a core part of the recomps instead of a mod"; CLAUDE.md, "Port
+first, unmodified"). TipTop's loading bar, the first case found, loads one of its 229 items a frame, so it fills at a
+steady crawl however fast they load (2.3 seconds in the port, about 3.8 in the original on a 60 Hz screen, where a
+frame waits for the vertical blank); its fixes mod's `fastLoading` moves into the port. A mod that trades the original's look or feel
 for speed or memory, like Bejeweled's `lean` with its lower frame rate, is not a fix: it stays a mod of its own and
 starts off as before.
 
@@ -202,7 +204,9 @@ Speedrunning and competition:
 Practice and help:
 
 10. Undo, in turn-based games (Bejeweled, BookWorm, Noah's Ark).
-11. Hints or a solver (BookWorm's word solver, Noah's Ark's move helper, Big Money's puzzle solver).
+11. Hints or a solver (BookWorm's word solver, Noah's Ark's move helper, Big Money's puzzle solver), and a bot that
+    plays the game on screen (the user, 2026-11-07), all from the bot behind the `move` test command that the test
+    drivers use (`docs/TEST_COMMANDS.md`, "The bot behind `move`").
 12. Level select: start at any level or stage, with separate scores.
 13. Game stats: the game's numbers at game over, and lifetime totals (Bejeweled's stage 17, BookWorm's word journal).
 14. Speed control: a slower or faster game clock. A site setting now, through the framework's clock, for every port
