@@ -18,6 +18,10 @@ public:
 	virtual ~Host() {}
 	// GetTickCount, timeGetTime
 	virtual uint32_t TickCount() = 0;
+	// the machine's own clock, which the deal's time limit reads whatever clock the game runs on (fixes mod "steadyClock")
+	virtual uint32_t RealTickCount() { return TickCount(); }
+	// the number that seeds the random generator: the clock, or the seed given to the run (fixes mod "seededDeals")
+	virtual uint32_t SeedTick() { return TickCount(); }
 	// FindResourceA, SizeofResource, LockResource: a type given by name ("TXT", "JPG"...) or, with a null name, by
 	// its id (RT_BITMAP 2, RT_STRING 6...)
 	virtual const uint8_t* FindResource(Module theModule, const char* theTypeName, int theTypeId, int theId,
@@ -41,8 +45,6 @@ public:
 	virtual std::string ExeFolder() = 0;
 	// GetSystemMetrics(SM_CXSCREEN, SM_CYSCREEN), or -ScreenWidth and -ScreenHeight (0x426480): the desktop's size
 	virtual void ScreenSize(int& theWidth, int& theHeight) { theWidth = 800; theHeight = 600; }  // with a separator at the end (Splash appends "SplashLogo")
-	// ShellExecuteA "open"; never in a test run
-	virtual void OpenUrl(const char* theUrl) = 0;
 	// MessageBoxA (0x4308f0, 0x430940): the answer (IDOK 1, IDYES 6, IDNO 7)
 	virtual int MessageBox(const char* theText, const char* theCaption, unsigned int theFlags) = 0;
 	virtual void Log(const char* theText) = 0;

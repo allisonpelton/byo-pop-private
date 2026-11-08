@@ -56,6 +56,12 @@ check("root at the top", I.findRoot(spec("bejeweled"), files("Bejeweled/images/G
 check("root deeper", I.findRoot(spec("tiptop"), files("a/b/TipTop.dat", "a/b/TIPTOP.EXE"), false), "a/b/");
 check("root needs every marker", I.findRoot(spec("tiptop"), files("a/TipTop.dat"), false), null);
 check("markers in one folder", I.findRoot(spec("tiptop"), files("a/TipTop.dat", "b/TipTop.exe"), false), null);
+// a pak marker: the pak, or the game's folders with it already unpacked (a staged copy, a zip of the unpacked game)
+check("root: a pak game with its pak", I.findRoot(spec("bookwormadv"), files("B/main.pak", "B/BookwormAdventures.exe"), false), "B/");
+check("root: a pak game unpacked", I.findRoot(spec("bookwormadv"), files("x/readme.txt", "B/BookwormAdventures.exe", "B/Images/a.png"), false), "B/");
+check("root: a pak game at the top, unpacked", I.findRoot(spec("bookwormadv"), files("bookwormadventures.exe", "images/a.png", "data/b.txt"), false), "");
+check("root: a pak game with neither", I.findRoot(spec("bookwormadv"), files("B/BookwormAdventures.exe", "B/readme.txt"), false), null);
+check("root: the unpacked folders beside another exe", I.findRoot(spec("bookwormadv"), files("A/BookwormAdventures.exe", "B/images/a.png"), false), null);
 // the error names only what the best folder lacks, in markerText's casing, as a list
 check("missing: the one marker a folder lacks", I.missingMarkers(spec("tiptop"), files("a/TipTop.dat", "a/readme.txt")), "TipTop.exe");
 check("missing: the folder with the most markers", I.missingMarkers(spec("bookworm"), files("x/wordlist.txt", "y/wordlist.txt", "y/music/bookworm1.mo3")), "Bookworm.exe");

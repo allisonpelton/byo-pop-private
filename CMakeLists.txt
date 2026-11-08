@@ -131,6 +131,17 @@ if(NOT EMSCRIPTEN)
   endif()
 endif()
 
+# Texture wrap test (tools/wraptest): framework/TriangleWrap, which cuts DrawTrianglesTex's triangles at whole-number u and v
+# for a game that wraps its texture (Bejeweled 2's Hyperspace tunnel), against what wrapping means. Pure, no SDL; native only,
+# wraptest.exe (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(wraptest tools/wraptest/wraptest.cpp framework/TriangleWrap.cpp)
+  target_include_directories(wraptest PRIVATE framework)
+  if((NOT MSVC) AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]86|x86)$"))
+    target_compile_options(wraptest PRIVATE -msse2 -mfpmath=sse)
+  endif()
+endif()
+
 # Sound test (tools/soundtest): sounds kept as 16-bit at their own rate, and voices that resample them as they mix,
 # against the old pipeline (stereo floats at the device rate). Native only; soundtest.exe (tools/check.sh unit).
 if(NOT EMSCRIPTEN)
@@ -346,4 +357,9 @@ endif()
 option(BUILD_BEJEWELEDTWIST "Build the Bejeweled Twist port" ON)
 if(BUILD_BEJEWELEDTWIST AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweledtwist/CMakeLists.txt)
   add_subdirectory(games/bejeweledtwist)
+endif()
+# Bejeweled 2 Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_BEJEWELED2 "Build the Bejeweled 2 Deluxe port" ON)
+if(BUILD_BEJEWELED2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled2/CMakeLists.txt)
+  add_subdirectory(games/bejeweled2)
 endif()

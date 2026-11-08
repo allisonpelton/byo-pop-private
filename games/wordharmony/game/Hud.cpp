@@ -319,7 +319,8 @@ void Hud::setHintReady(bool theReady)
 			if (aGroup != nullptr)
 			{
 				mHintText->setText(GT(0x482e70));
-				aGroup->fade(false, 0.25f, 1.0f);
+				// half way out: the box stays, greyed, with "no hint available" and the count
+				aGroup->fade(false, 0.25f, 0.5f);
 				mHintBtn->setEnabled(false);
 			}
 		}

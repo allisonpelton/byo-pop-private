@@ -3,11 +3,17 @@
 // Arguments (all optional):
 //   -gamedir=<dir>   folder containing WHArchive.saf, res/ and WordHarmony.exe (read for the game's texts, never run)
 //   -userdir=<dir>   writable folder for the settings and high scores (the emulated registry)
+//   -modsdir=<dir>   folder containing mods (one sub-folder per mod; the fixes mod is games/wordharmony/mods/fixes)
+//   -nomods          start without any mods
+//   -splashhold      the original's two seconds of splash before the menu (the port shows the menu once it has loaded);
+//                    for runs compared with the original
 //   /s, /c, /p       the screen saver, its settings and its preview, as Windows passes them
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "WordHarmonyApp.h"
+#include "game/Game.h"
+#include "platform/ModManager.h"
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -19,6 +25,19 @@
 #include <vector>
 
 using namespace Sexy;
+
+static bool HasFlag(int argc, char** argv, const char* theKey)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (!strcmp(a, theKey))
+			return true;
+	}
+	return false;
+}
 
 static std::string ArgValue(int argc, char** argv, const char* theKey)
 {
@@ -76,6 +95,7 @@ int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
+	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	// port (web): its page (web/shell.html, games/wordharmony/web/page.js) mounts its own IndexedDB-backed folder, so
@@ -84,6 +104,8 @@ int main(int argc, char** argv)
 		gameDir = "/whpersist/game";
 	if (userDir.empty())
 		userDir = "/whpersist/userdata";
+	if (modsDir.empty())
+		modsDir = "/whpersist/mods";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();
@@ -95,6 +117,8 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+	if (modsDir.empty())
+		modsDir = ExeDir() + "/mods-wordharmony";
 #endif
 
 #ifndef __EMSCRIPTEN__
@@ -123,7 +147,14 @@ int main(int argc, char** argv)
 	Platform::RestoreUserDataBackup(userDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
-	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+	// The mods (the fixes mod, games/wordharmony/docs/IDENTICAL_PLAY.md): none without a mod folder, and the game plays as
+	// the original
+	Platform::MakeDirs(modsDir);
+	Platform::ModManager::Get().SetModsDir(modsDir);
+	Game::sSplashHold = HasFlag(argc, argv, "splashhold");
+	if (!HasFlag(argc, argv, "nomods"))
+		Platform::ModManager::Get().Refresh();
+	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	static WordHarmonyApp* anApp = new WordHarmonyApp();
 	anApp->SetCmdLine(argc, argv);

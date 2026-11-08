@@ -1,0 +1,16 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends the small faults of the original and changes nothing else: the same gems, rules, scores, sounds and pace. Each fix is a toggle; turn the whole mod off to play the original as it was. Shares the original's high scores.",
+  "settings": [
+    { "id": "rewindSkips", "label": "A replay's rewind hides the board's effects", "type": "bool", "default": true,
+      "help": "When a best move's replay rewinds, the original hides the board's own drawing but still draws its floating, mirrored and smoothly turning pictures over the rewind. This hides them with the rest." }
+  ],
+  "features": {
+    "fixes": {
+      "rewindSkips": { "$setting": "rewindSkips" }
+    }
+  }
+}

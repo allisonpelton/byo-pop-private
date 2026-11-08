@@ -39,6 +39,13 @@ bool FileExists(const char* thePath);
 void RemoveFile(const char* thePath);
 // GetTickCount, timeGetTime (the host's millisecond clock)
 uint32_t TickCount();
+// the machine's own clock (the deal's time limit), and the number that seeds the generator (the clock unless a mod says
+// otherwise)
+uint32_t RealTickCount();
+uint32_t SeedTick();
+// port: the start does not wait: no logo screens (two seconds each, with nothing loaded meanwhile) and no fade out of the
+// black before the first screen; the game opens at its main menu (-logos keeps the original's start)
+extern bool gFastStart;
 
 // The module a resource comes from: the exe, or Resource.dll (the original's HMODULE; null meant the app's
 // Resource.dll, app +0x30)
@@ -75,9 +82,6 @@ std::string FormatDll(int theId, ...);
 std::string FormatTime(int theSeconds);
 // 0x4232d0: GetNumberFormatA with the locale's grouping and no decimals (the port groups by threes with ',')
 std::string FormatNumber(int theNumber);
-
-// ShellExecuteA "open" (the app provides it; it never opens a page in a test run)
-void OpenUrl(const char* theUrl);
 
 // 0x423590, 0x423570 (CString::LoadString on Resource.dll and on the exe, 0x4235b0): empty when there is none
 std::string LoadDllString(int theId);

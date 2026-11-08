@@ -129,7 +129,7 @@ MemoryImage* Sexy::MakeSolvedImage(PixelusApp* theApp, const Grid& theGrid)
 	for (int r = 0; r < theGrid.mRows; r++)
 		for (int c = 0; c < theGrid.mCols; c++)
 		{
-			if (!theGrid.mCells[r][c].mWanted)
+			if (!theGrid.mCells[r][c].mWanted && !theGrid.mHasPicture)
 				continue;
 			unsigned int aColor = theGrid.mHasPicture ? theGrid.mPicture[r][c] : 0xffcccccc;
 			g.SetColorizeImages(true);

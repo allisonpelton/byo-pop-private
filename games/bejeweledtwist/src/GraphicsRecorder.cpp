@@ -3,6 +3,7 @@
 
 #include "Graphics.h"
 #include "Image.h"
+#include "ModFeatures.h"
 #include "SexyMatrix.h"
 #include "X86Math.h"
 
@@ -252,6 +253,8 @@ void GraphicsRecorder::DrawImageTransform(Graphics* g, Image* theImage, const Tr
 {
 	// The exe repeats Graphics::DrawImageTransformHelper here, as it runs without Direct3D, so that it can record the
 	// simple cases. The cases it hands to the Graphics are drawn even while the draws are skipped (but the matrix).
+	// port(mods): the fixes mod's "rewindSkips" (NOTES.md, "The fixes mod") skips them too
+	bool aSkipAll = mSkipDraw && ModFeatureBool("fixes", "rewindSkips", false);
 	if (theTransform.mComplex) {
 		if (!mSkipDraw)
 			g->DrawImageMatrix(theImage, theTransform.GetMatrix(), theSrcRect, theX, theY);
@@ -264,9 +267,11 @@ void GraphicsRecorder::DrawImageTransform(Graphics* g, Image* theImage, const Tr
 		float aCenterY = aHalfHeight - theTransform.mTransY1;
 		float aX = theTransform.mTransX2 + theX - aCenterX + 0.5f;
 		float aY = theTransform.mTransY2 + theY - aCenterY + 0.5f;
-		if (theUseFloat)
+		if (theUseFloat) {
+			if (aSkipAll)
+				return;
 			g->DrawImageRotatedF(theImage, aX, aY, (double)theTransform.mRot, aCenterX, aCenterY, &theSrcRect);
-		else
+		} else
 			DrawImageRotated(g, theImage, Ftol(aX), Ftol(aY), (double)theTransform.mRot, Ftol(aCenterX),
 				Ftol(aCenterY), &theSrcRect);
 	} else if (theTransform.mHaveScale) {
@@ -275,6 +280,8 @@ void GraphicsRecorder::DrawImageTransform(Graphics* g, Image* theImage, const Tr
 			if (theTransform.mScaleY == 1.0f) {
 				float aY = theTransform.mTransY1 + theY + theTransform.mTransY2 - aHalfHeight + 0.5f;
 				float aX = theTransform.mTransX1 + theX + theTransform.mTransX2 - aHalfWidth + 0.5f;
+				if (aSkipAll)
+					return;
 				g->DrawImageMirror(theImage, Ftol(aX), Ftol(aY), theSrcRect, true);
 				return;
 			}
@@ -286,16 +293,19 @@ void GraphicsRecorder::DrawImageTransform(Graphics* g, Image* theImage, const Tr
 		float aY = theTransform.mTransY2 + theY - aScaledHalfHeight;
 		Rect aDestRect(Ftol(aX), Ftol(aY), Ftol((double)aScaledHalfWidth * 2.0),
 			Ftol((double)aScaledHalfHeight * 2.0));
-		if (aMirror)
-			g->DrawImageMirror(theImage, aDestRect, theSrcRect, true);
-		else
+		if (aMirror) {
+			if (!aSkipAll)
+				g->DrawImageMirror(theImage, aDestRect, theSrcRect, true);
+		} else
 			DrawImage(g, theImage, aDestRect, theSrcRect);
 	} else {
 		float aX = theTransform.mTransX1 + theX + theTransform.mTransX2 - aHalfWidth + 0.5f;
 		float aY = theTransform.mTransY1 + theY + theTransform.mTransY2 - aHalfHeight + 0.5f;
-		if (theUseFloat)
+		if (theUseFloat) {
+			if (aSkipAll)
+				return;
 			g->DrawImageF(theImage, aX, aY, theSrcRect);
-		else
+		} else
 			DrawImage(g, theImage, Ftol(aX), Ftol(aY), theSrcRect);
 	}
 }

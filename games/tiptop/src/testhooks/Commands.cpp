@@ -258,7 +258,7 @@ std::string BotMove()
 	return "";
 }
 
-// Starts a game of the mode (the game's command 0x20-0x23: its trial check, the level list, the new game and the game
+// Starts a game of the mode (the game's command 0x20-0x23: the level list, the new game and the game
 // screen)
 void StartMode(uint32_t theCommand)
 {

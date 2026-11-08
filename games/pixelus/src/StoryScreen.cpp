@@ -150,7 +150,7 @@ void StoryScreen::DrawSpeech(Graphics* g, const Speech& theSpeech, int theOrdina
 	double anAge = mTime - theSpeech.mStart;
 	if (anAge < 0)
 		return;
-	int anAlpha = (int) std::min(255.0, anAge / 0.3 * 255.0);
+	int anAlpha = (int) std::min(255.0, anAge * 512.0);
 	bool aRight = theSpeech.mSpeaker == CLAUDIUS;	// Claudius is on the right, the gods on the left
 
 	Image* aBubble = mApp->mImages[aRight ? IMAGE_BUBBLELEFT : IMAGE_BUBBLERIGHT];
@@ -159,21 +159,17 @@ void StoryScreen::DrawSpeech(Graphics* g, const Speech& theSpeech, int theOrdina
 	int aY = theSpeech.mY;
 
 	g->SetColorizeImages(true);
-	g->SetColor(Color(255, 255, 255, anAlpha));
+	// 0x42ccf0: the bubble is never more than three quarters opaque
+	g->SetColor(Color(255, 255, 255, std::min(anAlpha, 0xc0)));
 	g->DrawImage(aBubble, aBubbleX, aY);
+	g->SetColor(Color(255, 255, 255, anAlpha));
 
 	// the speaker in a frame
 	Image* aFrame = mApp->mImages[IMAGE_STORYFRAME];
 	int aSize = aFrame->GetWidth();
 	g->DrawImage(mApp->mImages[IMAGE_STORYFRAMEBDROP], aFrameX, aY);
-	if (aRight)
 	{
-		Image* aFace = mApp->mImages[IMAGE_STORY_CLAUDIUS];
-		g->DrawImage(aFace, Rect(aFrameX + 4, aY + 4, aSize - 8, aSize - 8), Rect(0, 0, aFace->GetWidth(), aFace->GetHeight()));
-	}
-	else
-	{
-		MemoryImage* aHead = mApp->mHeads[theSpeech.mSpeaker][2];
+		MemoryImage* aHead = mApp->mHeads[theSpeech.mSpeaker][theSpeech.mCharacter->mPose];
 		if (aHead != NULL)
 		{
 			Graphics aClip(*g);
@@ -186,16 +182,24 @@ void StoryScreen::DrawSpeech(Graphics* g, const Speech& theSpeech, int theOrdina
 	}
 	g->DrawImage(aFrame, aFrameX, aY);
 
-	// what is said, in the middle of the bubble's body
-	Font* aFont = mApp->mFonts[FONT_GARAMOND14];
-	g->SetFont(aFont);
-	g->SetColor(Color(0x3c, 0x28, 0x14, anAlpha));
-	int aLines = (int) theSpeech.mLines.size();
-	int aSpacing = aFont->GetLineSpacing();
-	int aTop = aY + 58 - aLines * aSpacing / 2 + aFont->GetAscent() - 4;
-	int aCenter = aBubbleX + (aRight ? 235 : 265);
-	for (int i = 0; i < aLines; i++)
-		g->DrawString(theSpeech.mLines[i], aCenter - aFont->StringWidth(theSpeech.mLines[i]) / 2, aTop + i * aSpacing);
+	// 0x42ccf0: what is said, a line at a time, each 0.5 s after the one before, in black on the bubble
+	if (anAge > 0.5)
+	{
+		Font* aFont = mApp->mFonts[FONT_DIOGENES15];
+		g->SetFont(aFont);
+		int aLines = (int) theSpeech.mLines.size();
+		int aY0 = aY + (aLines == 2 ? 0x30 : aLines == 1 ? 0x3f : 0x21);
+		int aCenter = aRight ? 0xf0 : 0x18c;
+		double aLeft = anAge;
+		for (int i = 0; i < aLines; i++)
+		{
+			aLeft -= 0.5;
+			if (aLeft <= 0)
+				break;
+			g->SetColor(Color(0, 0, 0, std::min(255, (int) (aLeft * 512.0))));
+			g->DrawString(theSpeech.mLines[i], aCenter - aFont->StringWidth(theSpeech.mLines[i]) / 2, aY0 + i * 0x1e);
+		}
+	}
 	g->SetColorizeImages(false);
 }
 

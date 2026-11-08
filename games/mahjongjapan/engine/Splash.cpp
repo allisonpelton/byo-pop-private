@@ -48,7 +48,6 @@ void Logo::Init()
 	mManager->PreloadExeImage(0x3a);
 	if (mSplashLogo)
 	{
-		gActivateLinks = false;
 		ImageInfo anInfo;
 		GetImageInfo(0xff01, anInfo);
 		mX = (800 - anInfo.mWidth) / 2;

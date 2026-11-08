@@ -897,6 +897,37 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 		mApp->SetCursor(CURSOR_POINTER);
 }
 
+// port: test hook for the test command goto. Finds a point where MouseUp takes the item (within its hit area, and no
+// earlier item that MouseUp tests first is hit there), presses it and sends MouseUp the same way a click does
+bool MainMenu::ActivateItem(int theItem)
+{
+	if (theItem < 0 || theItem >= (int)mItems.size() || mApp->mBookScreen != nullptr || mApp->IsCurtainMoving() ||
+	    mApp->GetDialogCount() != 0)
+		return false;
+	auto Hits = [this](int i, int x, int y) {
+		MenuItem* anItem = mItems[i];
+		if (anItem->mDisabled || !anItem->mVisible)
+			return false;
+		if (anItem->mPopAnim != nullptr)
+			return anItem->mPopRect.Contains(x, y);
+		return InRect(anItem->mHitRect, x, y) && anItem->HitTest(x, y);
+	};
+	for (int y = 0; y < mHeight; y += 3)
+		for (int x = 0; x < mWidth; x += 3) {
+			if (!Hits(theItem, x, y))
+				continue;
+			bool anEarlier = false;
+			for (int i = 0; i < theItem; i++)
+				anEarlier = anEarlier || Hits(i, x, y);
+			if (anEarlier)
+				continue;
+			mItems[theItem]->mPressed = true;
+			MouseUp(x, y, 1);
+			return true;
+		}
+	return false;
+}
+
 void MainMenu::AskReallyQuit()
 {
 	mApp->PlaySample(SOUND_MM_DONTLEAVE);

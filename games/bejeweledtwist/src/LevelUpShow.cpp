@@ -99,7 +99,7 @@ void LevelUpShow::Update()
 			mClicked = true;
 		}
 	}
-	if (mUpdateCnt == 200 && gApp->mRegistered && mBoard->mGameMode == Board::MODE_CLASSIC &&
+	if (mUpdateCnt == 200 && mBoard->mGameMode == Board::MODE_CLASSIC &&
 		9 < mBoard->mUnknown158) {
 		mBoard->UnlockMode(3);  // 0x6b40b5
 	}

@@ -154,11 +154,7 @@ public:
 	int						mResumeUpdateCnt;   // +0x130c mUpdateCount when the board was last resumed (Board ignores input for 15 updates after; GotFocus)
 	SexyString				mSEHInfo;           // +0x1310 appended to the crash report, never written (not ported)
 	int						mPlayTicks;         // +0x132c ++ per Board update in play (Shutdown: minutes = / 6000)
-	bool					mLevelReached;      // +0x1330 a level summary was shown this game (Board::ShowSummary)
-	int						mPlaysToCount;      // +0x1334 ++ by ShutdownWidgets when mLevelReached (trial)
-	int						mMaxExecutions;     // +0x1338 property MaxExecutions (0), unused
-	int						mMaxPlays;          // +0x133c property MaxPlays (0)
-	int						mMaxTime;           // +0x1340 property MaxTime (60, minutes)
+	// +0x1330..+0x1343 the trial's level-reached flag, play count, MaxExecutions, MaxPlays and MaxTime: taken out
 	// +0x1344 4 bytes never touched (sizeof 0x1348)
 
 	// port: the game's test hooks (the framework's -seed, -script, -fast and -trace are in SexyAppBase.h).
@@ -199,7 +195,7 @@ public:
 	int						mWatchSpeed;            // app updates per frame while watching: 1, 2, 4 or 8
 	bool					mWatchQuit;
 	int						mWatchSavedMode;        // the app's state before the watch, given back by EndWatch
-	bool					mWatchSavedFlags[5];    // the four one-time hints, mLevelReached
+	bool					mWatchSavedFlags[4];    // the four one-time hints
 	SexyString				mWatchSavedBonusWord;
 	MTRand					mWatchSavedRand;        // gGameRand
 	int						mWatchSavedLetterIdx;   // Board::GetGlobalState
@@ -237,6 +233,8 @@ public:
 	virtual void	GotFocus() override;                        // 0x419000 slot 62
 	virtual void	LostFocus() override;                       // 0x419040 slot 63
 	virtual void	TitleScreenDone();                          // 0x414ef0 slot 67 (TitleScreen::ButtonDepress)
+	// port: the standard test commands (docs/TEST_COMMANDS.md), testhooks/Commands.cpp
+	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
 
 	// port: the 2004 SexyApp makes a BassMusicInterface itself (no virtual); here an SDLMusicInterface
 	// with BASS 2.0's music gain (docs/FRAMEWORK_2004.md section 6, 4.2)
@@ -284,11 +282,10 @@ public:
 	void			ShowNewUserDialog(const SexyString& theText); // 0x4108c0 (DIALOG_NEW_USER)
 	void			ShowQuitDialog();                           // 0x415660 (DIALOG_QUIT)
 	void			ShowDeleteUserDialog(std::vector<SexyString> theNames); // 0x418590 (DIALOG_DELETE_USER)
-	void			ShowRegisterDialog();                       // 0x413cb0 not ported: does nothing (registered build)
 	bool			IsInternetScoresEnabled();                  // 0x4152a0 false (internet scores not ported)
-	// Not ported (registration / internet high scores / update check): ShowInvalidCodeDialog 0x413f30,
-	// ShowAliasDialog 0x414080, ConfirmInternetConnect 0x415a20, AskForUpdateCheck 0x415c40,
-	// DoUpdateCheck 0x415de0
+	// Taken out (registration): ShowRegisterDialog 0x413cb0, ShowInvalidCodeDialog 0x413f30. Not ported
+	// (internet high scores / update check): ShowAliasDialog 0x414080, ConfirmInternetConnect 0x415a20,
+	// AskForUpdateCheck 0x415c40, DoUpdateCheck 0x415de0
 
 	// Resources
 	bool			CheckRegistryAccess();                      // 0x414910

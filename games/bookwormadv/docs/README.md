@@ -67,6 +67,62 @@ the longest word the battle's grid allows (and attacks with it), `lua <chunk>` r
 for example `lua profile.Set('UnlockedArena', true)` once the main menu is up (about update 950), and `spectrum` logs
 how many cells of the media player's spectrum are lit.
 
+### The drivers' commands and the board log
+
+The test commands of `docs/TEST_COMMANDS.md` (in `src/TestHooks.cpp`, given in a `-script` or live on the `-commands`
+channel) each answer with one log line, `OK <command>` or `ERROR <command>: <reason>`. A command that waits for its screen
+(a curtain still moving, the title not yet gone on to the menu) tries again every 10 updates, 300 times at most.
+
+- `state` logs `STATE {json}` with `screen` (title, menu, cutscene, map, battle, minigame, minigames, treasure, tome,
+  highscores, credits, loading), `mode` (adventure, or the mini-game's class), `level` (book.chapter, from the
+  profile), `curtain`, `dialogs` and `talk` (a conversation's panel up); in a battle `health`, `maxhealth`, `enemy`,
+  `enemyhealth`, `enemymaxhealth` (hearts, in quarters); on a board `board` (its rows of letters, `+` after one that
+  can be picked, `.` for an empty cell), `paused` and `busy`.
+- `goto menu` waits for the main menu. `goto adventure|arena|minigames|tome|mediaplayer|options|highscores` presses
+  that main menu item (`MainMenu::ActivateItem`, the menu's own action, so a locked item stays locked). `goto
+  wordmaster|letterrip|linknspell` opens the mini-games' menu if needed and presses that game's button.
+- `unlock all` sets the profile's unlocks as the end of a book does (the arena, the mini-games, the tome, and the
+  announcements of them, which Lex then makes on the main menu). The arena still asks for the first book's sixth
+  chapter.
+- `set health <n>` and `set enemy <n>` go through the scripts' own `_LexSetHealth` and `_EnemySetHealth`.
+- `win` kills the battle's enemy with the scripts' `_KillEnemy`, once the battle waits for a word (it sets the
+  scripts' `CHEATED`, as the original's cheat key did). `lose` leaves Lex a quarter of a heart (`_lex_near_death`):
+  the battle decides a death only after an enemy's attack, so the next one ends it.
+- `level` and `seed` answer with an error: the map's chapters belong to the scripts (`goto adventure`, then Enter or a
+  chapter's click), and the seed is `-seed=<n>` at the start.
+- `move` logs `MOVE {json}`, the move the drivers' bot makes next (`GameApp::MoveForTests`), or `MOVE null` while
+  there is none (the board busy, a curtain moving, a screen with nothing to do). Its `what` is, first to last: `dialog`
+  (the top dialog's first button), `talk` (a conversation goes on), `tutorial` (the first battle's one tile, or
+  Attack), `wait` and `lostturn` (Lex stunned: the grid, once two questions 30 updates or more apart have
+  seen it), `hint` (an
+  arrow's first hot spot; one a click left standing is not offered again after 60 updates), `overlay` (Level Up's
+  "Click to continue" or a script's overlay over the board: a click above it), `gameover` (a mini-game's
+  "Click anywhere to continue"), `unstick` (a word left standing in the bar for 100 updates: Submit when it is a word, else its last letter
+  given back), `guess` (Word Master: its keys, a letter it has twice 60 updates apart with a press on the empty curtain
+  between, which the fast clock would otherwise make a double click the key ignores), `word` (the board's longest word, with `word`; in a mini-game the
+  longest this mini-game's bot has not offered yet, since Letter Rip wants new words from the same letters) or `scramble`, `treasure` (the next of Lex's treasures) and
+  `continue` in the treasure room, and `enter` on the map. `input` holds the clicks, the moves over Attack and the
+  waits that make it. It changes nothing. `tools/movedriver.py` is the thin loop that plays by it natively (`state`,
+  `move`, the move's input as real events on the live channel, `-commands` with an empty `-realinput`; `--realtime` for
+  the mini-games, whose clock runs out under `-fast` between two questions). On the web `tools/web/moveloop.js` is the
+  same loop on the test page (`?player=1&fast=1&driver=games/bookwormadv/tools/web/moveloop.js`): `?first=` the commands
+  to start with (comma-separated), `?until=` the screen to stop at once it was left, `?seconds=`, `?scale=2` the canvas at
+  twice its size in place of full screen, `?lockstep=1` the game held in a mini-game and stepped only by the moves.
+
+`-boardlog=<file>` (on the web, the page adds it through `Module.callMain`) makes the game append what a driver of
+real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y | header | lines` (its
+first button), `treasure: <n> continue x,y 1|0` (the treasure room's Continue, and whether it is enabled: a
+driver picks Lex's treasures from the left column until it is), `hint: <n> <id> x,y ...|-` (the tutorial's
+arrows that wait for a click on a hot spot, and each spot's centre: the drivers click the first), `tutorial: <n> <state> x,y|attack x,y` (the
+first battle's tutorial: the one tile it lets be picked, or Attack), `select: <n> LETTERS|-` (the tiles picked so far, as they change), `lostturn: <n> x,y` (Lex stunned: a click there,
+on the grid, ends the lost turn's round, once the game takes one), `board: <n> <WORD|-> x,y ... attack x,y scramble x,y words W1,W2,... letters L@x,y;...` (the longest word
+the tiles spell, its tiles, the buttons, the 40 longest words and the tiles that can be picked; only while the board
+is at rest and a tile can be picked) and, in Word Master, `wordmaster: <n> <GUESS> x,y ... submit x,y rows ...`, a
+guess that fits every answered row, from the game's word list. The drivers read it and click: `tools/driver.js` in the
+page with DOM events (`bwa.battle()`, `bwa.minigame()`, `bwa.settle()`, each returning a summary) and
+`tools/realrun.py` natively with posted click bursts (`chapter`, `minigame`, `settle` steps). A command or option never
+given changes nothing: the suite's runs stay the same.
+
 ## Testing
 
 `tools/check.sh bookwormadv` (about two and a half minutes) runs the PopLua compiler's dialect checks, loads every
@@ -106,6 +162,37 @@ the framework gets SAF's software drawing of transformed sprites when `Is3D` is 
 neither masked nor accepted: the battle's enemy (the item in 7 shots, and the attacks clip's residue), the battle intro's
 spear, and the credits' creatures and fire bowl. Once `--3d on` works, the same screens are compared with 3D on, where the
 port's drawing should already match.
+
+### The PopCap logo taken out of the startup (2026-11-08)
+
+The original shows the PopCap logo before anything loads: a fade in, a hold of the properties' `PopCapLogoTimer` (100
+updates) and a fade out, 356 updates (3.6 s) in all, with no click or key to leave it, and only then closes the title's
+curtain and starts its loading thread. By the loading rule (`CLAUDE.md`, "Making a port", 2026-11-07) that wait of the
+original's making comes out of the port itself: `TitleScreen::Update` goes on to the curtain and the load at once, as the
+logo's end does, so a player reaches the title loaded in 1.7 s rather than 5.25 ("Performance"). The logo draws no random
+number (the suite's first chapter plays as before). `-popcaplogo` keeps it, for comparisons with the original: the pilot's
+`run.sh` and `lag.py` pass it.
+
+### Registration code taken out (2026-11-07)
+
+The port plays as the registered original does, and the trial code that only an unregistered copy reached is gone (the
+user, 2026-11-07). Most of it was never ported: the trial's window, its "buy" screen and the checks of its marketing
+modes (an hour's play, the lockout after the hydra in the first book's seventh chapter) are named in `port:` notes
+where the original called them. What came out now: the two trial dialogs (`DIALOG_NEW_PROFILE`, the "new profile?"
+at the trial's end, and `DIALOG_TRIAL_COMPLETE`, its "buy the full version?") and their answers in `ButtonDepress`;
+the app's `mQueuedHydraLockout` and every test of it (the map's Back, Continue and Options, the treasure room's Back,
+the map's mouse); the scripts' `ShouldDoHydraLockout` (no script calls it), so `DoAfterHydraConvPanel` always sets the
+warp-in sound's callback; the `AppTime` registry value and `mAppTime`, which counted play time only for the trial's
+hour; and the resource globals only the trial used, the whole `UpsellTrailer` group and `SOUND_MM_BUY_NOW`
+(`tools/resgen.py` leaves them out of `Res.h` and `Res.cpp`). `QueuedHydraLockout` stays as the scripts' method,
+answering false as a registered copy does, since the map's script asks it. None of this has a visible change: the
+same scripted runs of the port built before and after (chapter 1 by the word-attack script, and book 1's first three
+chapters won by the drivers' `win` with the map, the conversations and the treasure room clicked through) give the
+same output, sound log, saved profile and screenshots, byte for byte.
+
+No button leads out of the game: neither the original's source nor its scripts have a "More Games" button, a link or
+any other call that opens a URL or a program, so the coordinator's rule of 2026-11-07 (every such button out, its
+neighbours closing the gap) has nothing to take out here.
 
 ### Faults the pilot found
 
@@ -251,6 +338,57 @@ which no fixed number of updates gives. The test options `-chapterloadupdates=N,
 port's loads for the counts measured in a run, so that the pilot's runs agree; normal play never uses them. Within a
 held load the loading bar (chapters) and Lex's place (startup) still move at their own pace on each side.
 
+## Fix candidates (2026-11-08)
+
+None for the fixes mod. What was checked: the port's play against the original in the identical-play pass, and the
+real-input play natively and on the web (a new player through the introduction and the tutorial, the whole adventure
+of three books by the bot to the Hall of Fame, the arena, the three mini-games, `IDENTICAL_PLAY.md`), looking for waits
+that only cost the player time and for bugs of the original that do not break play. The bugs found broke play or were
+not the original's, so they are fixed in the port itself: the mini-games' end ("Expected boolean in LuaClassRet") and the
+music lost after a boss. The loads run at the machine's speed, in 20 ms
+slices so that the loading screens keep drawing, as the loading rule asks. Nothing else came up: every
+conversation, cutscene page, Level Up and "Click to continue" answers a click at once, and the curtains between screens,
+the battle intros and the attacks are the game's own animations, which hold the player only as the game's rules do.
+This is a result of the play-throughs, not of a line-by-line reading of the export for waits, so a later find is added
+here.
+
+## Performance (2026-11-08)
+
+The original and the port measured back to back on this machine (a Core i7-12700F, Windows 11), for the user's morning
+report. No other game process ran at the start or the end of any run (`tools/gamecount.py`; `build/perf/procs_*.txt`,
+git-ignored), but other sessions' builds may have, so the performance pass re-measures on a quiet machine. Both ran
+windowed, in real time, with no sound: the original under origrun on the host with its silent stand-in and the user's own
+saved player, the port natively under rundesk with SDL's silent driver and a saved player of its own.
+
+**What was measured, and how.** `tools/profile/runperf.sh`: three rounds of the original and then the port, each run 90 s
+from launch with no input (the loading, then the title with the player's welcome), sampled every 50 ms by Bejeweled's
+`perfmin.py` (working set, private bytes, processor time, threads), the processor time over 20 to 80 s. The minute is the
+title at rest, not play: a scripted minute of play on the original would need its board read back through origrun, and
+the title's drawing (Lex, the logo, the curtains' frame) runs every frame on both sides. Loading: the port's
+`tools/profile/loadtime.py` (the `state` command's title with `"loaded":true`, asked every 20 ms, five runs), the
+original's by perfmin's thread count, where its loading thread ends.
+
+| | original (3 runs) | port (3 runs) |
+|---|---|---|
+| Peak working set | 125.7 MB (125.6 to 125.7) | 172.2 MB (172.1 to 172.5) |
+| Peak private bytes | 93.6 MB (93.5 to 93.7) | 164.7 MB (164.6 to 165.0) |
+| Private bytes at rest (20 to 80 s) | 93.5 MB | 145.0 MB |
+| Processor time, 20 to 80 s | 9.4, 7.8 and 8.6 % of one core | 3.0, 2.9 and 3.2 % of one core |
+| Processor time, whole 90 s run | 8.9, 7.7 and 8.8 s | 3.8, 3.7 and 3.7 s |
+| Launch to the title loaded | 6.35 to 6.41 s (its loading thread's end) | 1.70 s median (1.68 to 1.75, 5 runs); 5.25 s before the logo came out |
+
+**Reading it.** The port holds about 50 MB more private memory at rest than the original, and peaks 20 MB higher while it
+loads. Like Bejeweled's, it keeps every image's pixels at 4 bytes a pixel after the GPU has its texture, and its sounds as
+48 kHz float; why the original holds less was not examined. The port uses about a third of the original's processor time
+at rest, and loads to the title in a quarter of its time: the original loads only after its PopCap logo (356 updates, 3.6
+s, nothing loaded meanwhile and no click to leave it), which the port now skips (`-popcaplogo` keeps it for comparisons;
+"Deviations from the original"), and the load itself runs at the machine's speed. The memory and processor rounds ran
+before the logo came out; the logo is over long before their 20 s window.
+
+**What could not be measured.** The web build's load time: the Browser pane is hidden and its timers throttled, so a load
+there says nothing faithful about a player's browser, where the network and the wasm compile dominate. A minute of play
+(above). Full screen and the GPU's own load.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
@@ -263,7 +401,7 @@ natively and in the browser (where the arena was not reached, as only a script c
 profile). Tiles and letters are chosen by clicking, as in the original: no widget of the exe chooses them by typed
 letters (the board's keys are only 1 to 4, Enter and space; the scripts' KeyChar handlers are empty). The media
 player's spectrum takes its bins at the mixer's rate (48 kHz in the browser), where the original's BASS took them at
-44.1 kHz, so a tone stands a little further left. Left out: the trial and its buy screens (the port plays as bought),
+44.1 kHz, so a tone stands a little further left. Left out: the trial and its buy screens (the port plays as bought; "Registration code taken out" above),
 and the developers' tools in the exe (the DProps editor, the Lua debugger console). Notes starting `port:` in the code mark every place
 where the port differs from the original.
 

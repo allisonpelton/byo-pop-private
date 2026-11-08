@@ -11,6 +11,7 @@
 
 namespace Sexy {
 
+class AudioCapture;
 class Board;
 class D3DObject;
 class Credits;
@@ -97,9 +98,8 @@ public:
 	int mUnknown7DC = 0;                // +0x7dc: in puzzles
 	int mUnknown7E0 = 0;                // +0x7e0
 	int mUnknownC74[84] = {};           // +0xc74: cleared by a new board (0x75fc8a) unless the old one has +0x37c4
-	// +0x758 (the framework's): the copy is registered (Init 0x7653a1, from the wrapper or MarketingMode); the
-	// user's copies are full versions
-	bool mRegistered = true;
+	// (+0x758, the framework's: whether the copy is registered (Init 0x7653a1). The port plays as the registered
+	// original does, and every branch of an unregistered copy is registration code, left out.)
 	bool mUnknown759 = false;           // +0x759 (the framework's): set unless partner.xml's MarketingMode is LevelLock (Init)
 	// +0xfa0: three of them (0x2c bytes each), cleared by every new game (0x760492), saved with the game (0x6a3192)
 	struct UnknownFA0 {
@@ -178,11 +178,16 @@ public:
 	void DialogThirdButtonDepress(int theDialogId) override;  // 0x75f94f
 	// port (tests): newgame <mode>, a new game of that mode at once, as the mode menu would start it
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port (web): what Shutdown would write now, the game's save and the profile, for a page that goes away
+	void GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
 	// port: the standard test commands (TestCommands.cpp, docs/TEST_COMMANDS.md): state, goto, level, unlock, set, win,
 	// lose, seed
 	bool HandleTestCommand(const ScriptCommand& theCommand);
 	std::string TestScreen();
 	void UpdateTestGoto();
+	// port (tests): -audiocapture=<file.wav>, the game's sound and music as a WAV, 1/100 s per update (AudioCapture.h)
+	std::string mAudioCaptureFileName;
+	Sexy::AudioCapture* mAudioCapture = nullptr;
 	int mTestGotoMode = -1;  // port (tests): "goto <mode>" pressed Play; the mode's button is pressed once the select opens
 	// 0x76350c: -autoplay[=classic|zen|blitz], and the original's other test switches
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;

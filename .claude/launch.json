@@ -92,6 +92,12 @@
       "port": 18778
     },
     {
+      "name": "wordharmony-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18795"],
+      "port": 18795
+    },
+    {
       "name": "cosmicbugs-web",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18788", "--bind", "127.0.0.1", "--directory", "build/web"],
@@ -126,6 +132,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18787", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18787
+    },
+    {
+      "name": "cosmicbugs-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18796"],
+      "port": 18796
     },
     {
       "name": "webtest-player",

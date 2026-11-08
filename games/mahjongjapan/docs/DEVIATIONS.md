@@ -79,3 +79,38 @@ an object (0x41ec10) or a stream (0x424d30). The board reseeds it right before e
 the stage table (TXT 0x17f) for an escape stage, and with the clock for a classic game and for every reshuffle
 (0x40b0a0). The clock is the host's: `timeGetTime` natively and in the browser, or the framework's virtual clock under
 `-fast`. That is why a scripted run repeats exactly.
+
+## Buttons that led out of the game (2026-11-08)
+
+The PopCap and SpinTop logos at the main menu's bottom corners were link buttons (`LinkButton`, 0x425ba0, whose click is a `ShellExecuteA` "open" at 0x425cb0) that opened the companies' web sites. The port keeps the logos as pictures and the buttons
+disabled, so a click on them does nothing, and nothing in the game opens a URL (`Host::OpenURL` is gone). This is a
+change a player can see, made on purpose (the user, 2026-11-07, "Yes, now too": every button that leads out of a game
+comes out in this phase). The game has no registration, trial or buy screen to remove.
+
+## A soft lock the original has (2026-11-08)
+
+The Shuffle button is taken while a board is not over, not shuffling and not in a pause (`Board::OnCommand`, 0x40b500), and
+the last pair of a game flies for about a second before `mLeft == 0` closes the round (`Board::Update`, 0x40bd70). A
+shuffle started in that second redeals the layout through `Board::Reshuffle` (0x40b0a0), which clears the flights, so the
+flight whose end closes the round is gone: the board stays empty, the clock keeps running and the result box never opens. The
+port ignores the shuffle once no tile is left (`mLeft == 0`), the one line `OnCommand` needs, so the round closes as it
+does when the shuffle is not clicked. A player cannot see the difference except by clicking Shuffle in that second.
+
+## The game opens at its main menu (2026-11-08)
+
+The original shows two logo screens first, 2 s each (`Logo::Update`, 0x42f8c0, counts down and reads no click or key; the
+publisher's SplashLogo picture, then Jolly Bear's), after 0.77 s of black (`Manager::SwitchTo`, 0x42ae80, fades out of a
+screen when there is none), and loads nothing meanwhile. The port takes that wait out (the loading rule): the first layer is
+the main menu (`MahjongGame::CreateFirstLayer`, 0x40f540, which the original gives the splash) and `SwitchTo` has no fade-out
+when no layer is shown (`jb::gFastStart`); the menu's own fade-in stays. `-logos` keeps the original's start. A player sees it:
+the menu comes up in about a second where it took eight. `GAME_NOTES.md`, "The start", has the numbers.
+
+## Hooks for the fixes mod (2026-11-08)
+
+The fixes mod (`mods/fixes`, `GAME_NOTES.md`) needs three places where the clock is read to be asked of the host. Without
+the mod each answers as the original does, so the game plays the same: `Host::TickCount` stays the framework's clock
+(`timeGetTime`, or the virtual clock under `-fast`), `Host::RealTickCount` is the machine's clock in milliseconds (the deal
+search's time limit, checked at 0x413fa0 and started at 0x413500; under `-fast` it is `SDL_GetTicks`, because the virtual clock does not
+move while a deal searches), and `Host::SeedTick` is the clock again at the three deal sites (`Board::SetLayout` 0x40aa40,
+`Board::Start` 0x40ae60, `Board::Reshuffle` 0x40b0a0). `steadyClock` replaces the first with a clock of the updates,
+and `seededDeals` the third with a seed the page gives.

@@ -86,11 +86,67 @@ level's end. Nothing is heard either way.
 but only when the fade passes below 0; when a frame's step lands exactly on 0 the sound is skipped. That depends on
 the frame times, in the original and in the port alike, so a run may have it on one side only.
 
+## The finishing pass: real play and the fixes mod (2026-11-08)
+
+The earlier passes compared the port with the original; this one plays the port the way a player does and finishes what
+a player meets. Its driver is code, not a session at the keyboard: `tools/realplay/drive.py` reads the game's state from the
+standard test commands (`GAME_NOTES.md`, "The standard test commands"), asks `move` for the next pair of the port's own bot
+and sends the input it names as real SDL events through `-realinput`, under rundesk (a private desktop, silent, below normal
+priority). The web driver, `tools/web/realplay.js`, does the same on the page through the DOM's mouse, key, text and focus
+events. Neither chooses a move.
+
+**What was played.** Natively, windowed: the launch, the help pages, a new player's name typed, the whole of Emperor's
+Adventure from level 1 to the ending (60 levels won, 4456 pairs, at most 132 in a level and no shuffle needed, in 23.6 minutes of
+real time), the classic
+list, a classic game by the bot to its result box (72 pairs) after every button of the board and the in-game menu was tried
+before its first pair (the free-tiles option, hint, shuffle, pause, and the menu's options, tile sets, backgrounds and help),
+a second classic game ended by `win` after ten real pairs, the focus lost and regained at the menu, and Quit (exit code 0).
+Natively in full screen (Alt+Enter, the window going from 3200x2400 to 1600x1200 pixels of the private desktop and back,
+read from `screenshotfull`): the first levels of the adventure, the classic games, and Quit. On the web (the page in the Browser pane with `?player=1&silent=1&assets=1&fast=1`, the driver `tools/web/realplay.js` asking
+`move` for the bot's pair and sending its `input` steps as the DOM's mouse, key, text and focus events through the test kit's
+`playMove`): the same play in one run with no error: the
+focus lost and regained at the menu, at the first level's pause and in the classic games, the whole of Emperor's Adventure
+(60 levels won, 4441 pairs, at most 140 in a level), the classic list, a classic game by the bot to its result box (72 pairs,
+layout 437) after the board's buttons were tried before its first pair, and a second classic game ended by `win` after ten
+real pairs. The pane cannot enter full screen, so `?scale=2` (the canvas drawn at 1600x1200 CSS pixels over its 800x600)
+was played in its place: the first three levels and the two classic games, no error; the real full screen was tested
+natively only.
+
+**What it found.** One bug of the original, fixed in the port: a click on Shuffle while the last pair of a game still flies
+cleared that flight in the redeal, so the round never closed and the board sat empty (`DEVIATIONS.md`, "A soft lock the
+original has"; the driver's bot clicked Shuffle on the empty board, and a second of play showed it). In the shared code, the
+test kit's pattern for an answer never matched `MOVE null`, so `move` timed out on every dialog without a move (the pause
+box here); `web/testkit.js` has the fix, in a shared commit. And a note: on the page a press within 150 ms of the focus's
+return is the one that activates the page and is not passed on (the framework's rule, as natively), and a fast run makes
+many updates in 150 ms, so the driver lets real time pass after it regains the focus.
+
+**What this pass changed in the port.** The commit is 3edab79b on the finishing branch (the merge carries it).
+
+| Change | Cause in the original | What the port does now |
+|---|---|---|
+| Shuffle at the last pair no longer locks the board | `Board::Reshuffle` clears the flights, and the last pair's flight closes the round | `Board::OnCommand` ignores the shuffle once no tile is left |
+| The logos at the main menu's corners take no click | They were link buttons that opened web sites | Pictures only; nothing opens a URL |
+| `move` answers the pause box with a click on it | Not applicable (a test command) | The pause box has no button, so the answer is a click at its middle |
+| JPEG backgrounds decode as the original's libjpeg does | stb_image decoded them before | The shared loader, libjpeg 6b: at most 3 levels of a channel of difference in the JPEG backgrounds, so the suite's frozen screens were taken again (`tools/check.sh`) |
+| The game opens at its main menu | Two logo screens of 2 s each after 0.77 s of black, and nothing loaded meanwhile (a wait the loading rule takes out) | The first layer is the menu and the first screen has no fade-out; `-logos` keeps the original's start (the check suite passes it). The launch to the menu takes 1.3 s where it took 7.8 s (a later commit of the same pass) |
+| The fixes mod's hooks | The clock is read at two places (the deal search's limit, the deals' seeds) | `Host::RealTickCount` and `Host::SeedTick`, answering as the original without the mod |
+
+**The fixes mod** (`mods/fixes`: `seededDeals`, `steadyClock`) makes what the original leaves to chance
+(`GAME_NOTES.md`, "Fix candidates and the fixes mod") and nothing else. `tools/realplay/modtest.py` checks each with the shipped
+exe, and the start (the menu at update 280 as the port starts against 1540 with `-logos`): the same seed dealing the same board and shuffle whatever the start
+time and another seed another, the clock's seconds equal to the updates in real time. With no mods folder the game is the
+original: the suite's game makes the same 20 pairs and its rerun is identical, and its screens differ from the frozen ones only by the
+JPEG decode above (at most 3 levels of a channel, checked pixel by pixel against the main checkout's older exe). Oddities of this pass: none skipped. Candidates checked and found to be none are in the notes (`AddSeconds`,
+free tiles that cannot be clicked).
+
 ## The deviations that remain
 
-`DEVIATIONS.md` lists every place where the port's code does something other than the original, and why. Only two of
+`DEVIATIONS.md` lists every place where the port's code does something other than the original, and why. Five of
 them can be seen. Full screen on a graphics driver set to stretch keeps the 4:3 shape where the original would fill
-the screen. Players keep their progress when the port moves, where the original's would start over. The rest have no
-visible effect. The original's 3D test always passes. The vertical-blank waits do nothing. The software cursor is the
+the screen. Players keep their progress when the port moves, where the original's would start over. The two logos at
+the main menu's corners take no click, where the original opened web sites. A click on Shuffle while the last pair
+flies does nothing, where the original locked the board. The game opens at its main menu, where the original showed two
+logo screens for 4 s (`-logos` keeps them). The rest have no visible effect (the JPEG backgrounds are
+decoded by libjpeg 6b, the original's own library, which is not a deviation). The original's 3D test always passes. The vertical-blank waits do nothing. The software cursor is the
 host's. The time and number formats are fixed to an English Windows's. Three leaks are fixed. Five bounds the original
 never checks are checked. A few fields the original leaves unset start at 0. The random generator is kept draw for draw.

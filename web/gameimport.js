@@ -16,17 +16,38 @@ var ByopopImport = (function () {
   function under(e, root) { return e.path.substring(0, root.length) === root; }
 
   // The folder inside the files that holds every marker (the game root, "" or ending in "/"), or null; with placeholders,
-  // failing that, the shallowest folder that holds one of the game's folders.
+  // failing that, the shallowest folder that holds one of the game's folders. A marker that is a pak (spec.paks) is there when
+  // the pak is, or when the folder holds any of the game's folders: the pak already unpacked, as a staged copy or a zip of the
+  // unpacked game has it (hasMarkers does the same for picked files).
   function findRoot(spec, entries, placeholders) {
-    var first = new RegExp("^(.*/)?" + markerPattern(spec.markers[0]) + "$", "i");
-    var others = spec.markers.slice(1).map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
-    for (var i = 0; i < entries.length; i++) {
-      var m = first.exec(entries[i].path);
-      if (!m) continue;
-      var root = m[1] || "";
+    var paks = spec.paks || [];
+    function isPak(m) { return paks.indexOf(m.toLowerCase()) >= 0; }
+    var anyDepth = spec.markers.map(function (m) { return new RegExp("^(.*/)?" + markerPattern(m) + "$", "i"); });
+    var atRoot = spec.markers.map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
+    var allPaks = spec.markers.every(isPak), tried = {};
+    function holds(root) {
       var inRoot = entries.filter(function (e) { return under(e, root); });
-      if (others.every(function (re) { return inRoot.some(function (e) { return re.test(e.path.substring(root.length)); }); }))
-        return root;
+      return spec.markers.every(function (m, k) {
+        if (inRoot.some(function (e) { return atRoot[k].test(e.path.substring(root.length)); })) return true;
+        return isPak(m) && inRoot.some(function (e) {
+          var rel = e.path.substring(root.length), j = rel.indexOf("/");
+          return j > 0 && spec.gameDirs.indexOf(rel.substring(0, j).toLowerCase()) >= 0;
+        });
+      });
+    }
+    for (var i = 0; i < entries.length; i++) {
+      var roots = [];
+      anyDepth.forEach(function (re, k) {
+        // a pak marker names a root only when every marker is one (else the other markers name it)
+        if (isPak(spec.markers[k]) && !allPaks) return;
+        var m = re.exec(entries[i].path);
+        if (m) roots.push(m[1] || "");
+      });
+      for (var r = 0; r < roots.length; r++) {
+        if (tried[roots[r]]) continue;
+        tried[roots[r]] = true;
+        if (holds(roots[r])) return roots[r];
+      }
     }
     if (!placeholders) return null;
     var best = null;
@@ -134,7 +155,8 @@ var ByopopImport = (function () {
   }
 
   // The icon in the install's exe, for a game that does not store its exe (importIcon): the first .exe at the root that is not
-  // an uninstaller or setup. Resolves with {url: a PNG data URL or "", built: the exe's link year or 0} (ByopopExeIcon.built).
+  // an uninstaller or setup. Resolves with {url: a PNG data URL or "", built: the exe's link year or 0 (ByopopExeIcon.built),
+  // small: the icon nearest 32 px, or ""}.
   var SKIP_EXE = /^(popuninstall|uninstall[^\/]*|unins\d*|setup[^\/]*|dxsetup|[^\/]*redist[^\/]*|[^\/]*updater[^\/]*)\.exe$/i;
   function exeIcon(entries, root) {
     if (!window.ByopopExeIcon) return Promise.resolve({ url: "", built: 0 });
@@ -146,7 +168,8 @@ var ByopopImport = (function () {
       return p.then(function (got) {
         if (got.url) return got;
         return e.read().then(function (bytes) { return ByopopExeIcon.fromBytes(bytes); })
-          .then(function (icon) { return { url: (icon && icon.dataUrl) || "", built: (icon && icon.built) || 0 }; }, function () { return got; });
+          .then(function (icon) { return { url: (icon && icon.dataUrl) || "", built: (icon && icon.built) || 0, small: (icon && icon.small) || "" }; },
+                function () { return got; });
       });
     }, Promise.resolve({ url: "", built: 0 })).catch(function () { return { url: "", built: 0 }; });
   }
@@ -453,7 +476,7 @@ var ByopopImport = (function () {
           function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} })  // the old copy is gone
           .then(function () { return icon(spec, all, root, files); })
           .then(function (got) {
-            try { ByopopGameFiles.mark(spec.id); if (got.url) ByopopGameFiles.setIcon(spec.id, got.url, got.built); } catch (e) {}
+            try { ByopopGameFiles.mark(spec.id); if (got.url) ByopopGameFiles.setIcon(spec.id, got.url, got.built, got.small); } catch (e) {}
             try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
             return files.length;
           });
@@ -482,7 +505,9 @@ var ByopopImport = (function () {
     return Promise.all(exes.map(function (f) { return f.read(); })).then(function (datas) {
       var big = null;
       datas.forEach(function (d) { if (!big || d.length > big.length) big = d; });
-      return big ? ByopopExeIcon.fromBytes(big).then(function (i) { return { url: (i && i.dataUrl) || "", built: ByopopExeIcon.built(big) }; }) : none;
+      return big ? ByopopExeIcon.fromBytes(big).then(function (i) {
+        return { url: (i && i.dataUrl) || "", built: ByopopExeIcon.built(big), small: (i && i.small) || "" };
+      }) : none;
     }).catch(function () { return none; });
   }
 

@@ -210,11 +210,21 @@ bool Profile::Load(const SexyString& theName)
 
 void Profile::Save()
 {
-	if (mName.empty() || mName == GT(0x7da070))
-		return;
 	Buffer aBuffer;
-	std::string aPath = GetUserFolder(mName) + "\\profile.dat";
+	std::string aPath;
+	if (!GetSaveData(&aPath, &aBuffer))
+		return;
 	MkDir(GetFileDir(aPath, false));
+	gApp->WriteBufferToFile(aPath, &aBuffer);
+}
+
+// port (web): Save's file and its contents, for WinTwistApp::GetShutdownSaves as well
+bool Profile::GetSaveData(std::string* thePath, Buffer* theBuffer)
+{
+	if (mName.empty() || mName == GT(0x7da070))
+		return false;
+	Buffer& aBuffer = *theBuffer;
+	*thePath = GetUserFolder(mName) + "\\profile.dat";
 	aBuffer.WriteLong(kMagic);
 	aBuffer.WriteLong(kProfileVersion);
 	aBuffer.WriteLong(mUnknown74);
@@ -262,7 +272,7 @@ void Profile::Save()
 		aBuffer.WriteLong(mUnknown140[i]);
 	for (const SavedGame& aGame : mSavedGames)
 		aGame.Write(aBuffer);
-	gApp->WriteBufferToFile(aPath, &aBuffer);
+	return true;
 }
 
 bool Profile::Select(const SexyString& theName)
@@ -405,8 +415,6 @@ void Profile::SetFlag1E4(int theBit, bool on)
 
 bool Profile::IsModeUnlocked(int theMode) const
 {
-	if (!gApp->mRegistered && theMode == 3)
-		return false;
 	return (mFlags1E8 & (1u << (theMode & 31))) != 0;
 }
 

@@ -31,11 +31,10 @@ TitleScreen::TitleScreen(NoahApp* theApp) :
 	mProgress(0.0),
 	mFade(0.0),
 	mLinkShown(false),
-	mTip(0),
 	mClicked(false)
 {
-	// port: the shareware branches (plays remaining, the register link, the trial counter) are not ported; the
-	// screen always takes the registered path (docs/GAME_NOTES.md section 3)
+	// port: the lines of the shareware and registered copies (plays remaining, the register link, "thanks for
+	// registering") are not ported (docs/GAME_NOTES.md sections 3 and 9)
 	mPlayLink = new HyperlinkWidget(1, this);
 	mPlayLink->SetFont(mApp->mFonts[FONT_SMALL]);
 	mPlayLink->mColor = Color(0xf5, 0xcd, 0x0a);
@@ -86,11 +85,6 @@ void TitleScreen::Update()
 		}
 		MarkDirty();
 	}
-	if (mUpdateCnt % 300 == 0)
-	{
-		mTip++;
-		MarkDirty();
-	}
 }
 
 // 0x41fc70
@@ -102,19 +96,6 @@ void TitleScreen::Draw(Graphics* g)
 	g->DrawImage(aBar, 0x99, 0x174, Rect(0, 0, (int) (mProgress * aBar->mWidth), aBar->mHeight));
 	g->DrawImage(anImages[IMAGE_POPCAPLOGO], 0x20b, 0x16a);
 	g->DrawImage(anImages[IMAGE_POPCAPURL], 0x20b, 0x1cb);
-
-	// the line in the middle (registered: the thanks), black outline then yellow
-	SexyString aLine = GT(0x0049620c);
-	g->SetFont(mApp->mFonts[FONT_SMALL]);
-	g->SetColor(Color(0, 0, 0));
-	for (int dx = -1; dx < 2; dx++)
-		for (int dy = -1; dy < 2; dy++)
-		{
-			int aWidth = g->GetFont()->StringWidth(aLine);
-			g->DrawString(aLine, (mWidth - aWidth) / 2 + dx, dy + 0x170);
-		}
-	g->SetColor(Color(0xff, 0xff, 0));
-	g->DrawString(aLine, (mWidth - g->GetFont()->StringWidth(aLine)) / 2, 0x170);
 
 	g->SetFont(mApp->mFonts[FONT_SMALL]);
 	g->SetColor(Color(0xff, 0xff, 0xff));

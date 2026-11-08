@@ -1267,33 +1267,4 @@ void CheckBox::DrawFrame(int theFrame)
 		mFont->DrawLeft(this, mLabelX, mLabelY, mLabel.c_str(), -1, 100, 100, 0xff);
 }
 
-bool gActivateLinks = true;
-
-// 0x425ba0
-LinkButton::LinkButton(int theImage, const char* theUrl) : Button(theImage, 1, false)
-{
-	if (theImage == 0x38)
-	{
-		gManager->PreloadExeImage(0x38);
-		mUrl = LoadExeString(0x42);
-	}
-	else if (theUrl != nullptr)
-	{
-		mUrl = theUrl;
-	}
-}
-
-// 0x425cb0 (ShellExecuteA "open"; the app's hook logs it instead in a test run)
-void LinkButton::OnClick()
-{
-	OpenUrl(mUrl.c_str());
-}
-
-// 0x425cd0
-void LinkButton::OnInit()
-{
-	if (mUrl.empty() || (mImage == 0x38 && !gActivateLinks))
-		SetEnabled(false);
-}
-
 } // namespace jb

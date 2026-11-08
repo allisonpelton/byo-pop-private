@@ -14,7 +14,7 @@ TitleScreen::TitleScreen(FossilizedApp* theApp)
 	mApp = theApp;
 	mProgress = 0.0;
 	mLoadingDone = false;
-	mShowRegistration = !mApp->GetBoolean("NoReg", false);
+	// port: the registered copy's thanks (unless the property NoReg) is registration code and not in the port
 	mCobrand = NULL;
 	mCobranded = mApp->GetBoolean("Cobranded", false);
 	if (mCobranded)
@@ -71,19 +71,6 @@ void TitleScreen::Draw(Graphics* g)
 	if (mCobrand != NULL)
 		mCobrand->Draw(0, 480 - mCobrand->mHeight);
 	g->SetColor(Color(0x80, 0xff, 0x80));
-	if (mShowRegistration)
-	{
-		// the registered copy's thanks; the original prints the text through sprintf as a format with no arguments
-		SexyString aText = mApp->GetString("THANKS_FOR_REGISTERING");
-		int aWidth = mApp->mWhiteFontSmall->StringWidth(aText);
-		g->SetColor(Color(0, 0, 0, 0xaf));
-		int aHalf = aWidth / 2;
-		g->FillRect(0x13b - aHalf, 0x16e, aWidth + 10, 0x17);
-		g->SetColor(Color(0, 0, 0, 0xff));
-		g->DrawString(aText, 0x142 - aHalf, 0x17f);
-		g->SetColor(Color(0x80, 0xff, 0x80));
-		g->DrawString(aText, 0x140 - aHalf, 0x17d);
-	}
 
 	std::string aVersion = "Version " + mApp->mProductVersion;
 	if (mApp->mTinyFont != NULL)

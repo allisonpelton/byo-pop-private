@@ -344,7 +344,6 @@ void Level_LoadFillImages(Level* theLevel, const XmlTag* theTag); // 0x4100a0
 void Level_DefaultFillImages(Level* theLevel);                   // 0x410210
 int PortalCount();                                               // 0x410360
 void Level_RedrawCells(Level* theLevel);                         // 0x4103c0
-void Level_DrawTrialTime(Level* theLevel);                       // 0x4104b0
 int Level_IsPlaying(Level* theLevel);                            // 0x4105c0
 void Level_AddKey(Level* theLevel, char theKey, int theA, int theB); // 0x410b50
 void Level_FindKey(Level* theLevel, char theKey, int* theA, int* theB); // 0x410b90
@@ -496,6 +495,7 @@ void Level_Draw(Level* theLevel);                                // 0x410c60
 void Star_Append(List<Obj>* theList);                            // 0x4110b0
 void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond); // 0x411430
 void Level_ShowStart(Level* theLevel);                           // 0x411700: the level number and quota
+void Level_Won(Level* theLevel);                                 // the board is filled (the test commands' win)
 void Level_GameOver(Level* theLevel);                            // 0x412200
 
 } // namespace wb

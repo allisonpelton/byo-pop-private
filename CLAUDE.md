@@ -207,11 +207,35 @@ Every call re-reads the whole context, so what costs is context times calls, and
 - **Order of the work (the user, 2026-11-01):** first every fault the user reported and anything that makes a game
   hard to test, then the identical-play pass. Registration code (trial, nag, unlock, register and buy paths) comes out
   in this phase, as part of finishing each game, before any further decomp begins (the user, 2026-11-07: "Move up the
-  removal of all registration-related code to be part of the current phase before beginning other decomps"); a port
-  not yet translated leaves it out as it goes. So does every button that leads out of a game, "More Games" first, its
-  neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). A performance pass (the user, 2026-11-03), then a readability pass
-  (`docs/CODE_STANDARDS.md`) and taking out the other code the ports do not need come once every game is done
-  (`docs/COORDINATION.md`). A session may speed up its own port before then, at any time, so its `-fast` test runs go
+  removal of all registration-related code to be part of the current phase before beginning other decomps"), and with
+  it what a registered copy shows, such as a "thanks for registering" line (the user, 2026-11-08); a port not yet
+  translated leaves it out as it goes. It is removed, not disabled: the registered path becomes the only one, with no
+  flag pinned to "registered", no hidden widget and no string or image left that only it used (a save file keeps a
+  field only so the file stays the original's format). So does every button that leads out of a game, "More Games" first, its
+  neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). The readability pass
+  (`docs/CODE_STANDARDS.md`) comes next, before any further decomp (the user, 2026-11-08: "Move up readability passes
+  to come before additional decomps"). One game sets the standards first and proves them in full ("Use one game to set
+  the full standards for what constitutes readable and see that they actually make sense"); a second, more complex
+  game (Bejeweled Twist) then takes them before every other game does ("Rules look good to start, but I'd want them
+  tested on a more complex game before moving forward with them for EVERY game", 2026-11-08), and every other game
+  takes its pass once the user approves them after that. The pass leaves no unknown or unnamed variable, field, parameter, global or
+  constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port start after those
+  passes, each taken all the way through, readability pass included: the easier ones side by side again and the harder
+  ones from Chuzzle on one at a time after them (`docs/COORDINATION.md`, "Which games, in what order"). That morning
+  the user had put every one of them in sequence, so that wasteful token use would show sooner, and dropped it the
+  same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd allow inefficient token usage to be
+  spotted sooner, overall saving time, but now we have a much better idea of procedure".
+  **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to
+  go through every phase except modding before a game can be considered done and ready for the live site, and just
+  publish whatever games are ready by the end of December. I'm in no hurry to get games out in a less-than-stellar
+  state." A game is done, and may go on the live site, only once it has been through all of them: the user's faults,
+  both phases of identical play, registration and outbound buttons out, its fixes mod (the site serves every game with
+  it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), taking out the other
+  code it does not need, and, for a game ported from its Steam copy, the check against its PopCap Game Collection
+  version. So the coverage check and the performance pass come game by game, not after every game is done
+  (`docs/COORDINATION.md`). Modding, which waits, is the mods' own work: new mods and the changes waiting in
+  `docs/MOD_ROADMAP.md`. Whatever games are done by 2026-12-31 go on the live site then; the rest follow when done,
+  never hurried. A session may speed up its own port before its performance pass, at any time, so its `-fast` test runs go
   faster (the user, 2026-11-08: "Sessions should be allowed to improve performance early on so they can test with
   -fast and run even faster"), under the performance pass's rules: how the port works changes, never what it does,
   proved by its frozen baseline; no threads; a cost in shared code goes to the coordinator as a spec.

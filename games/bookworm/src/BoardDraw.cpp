@@ -184,9 +184,11 @@ void Board::DrawScore(Graphics* g)
 	{
 		// The heated overlay. Quirk: the glow (at most 0.5 here) is truncated to an int before the
 		// multiply, so the alpha is always 0 and the overlay never shows. Kept (it draws nothing).
+		// port(mod): the fixes mod's "scoreGlow" multiplies first, so the score glows as it rises
 		g->SetFont(mApp->mFonts[FONT_GOLDSCOREHEATED]);
 		double aGlow = (mScoreGlow < 0.5) ? mScoreGlow : 0.5;
-		g->SetColor(Color(255, 255, 255, (int)aGlow * 255));
+		int anAlpha = FixEnabled("scoreGlow") ? (int)(aGlow * 255.0) : (int)aGlow * 255;
+		g->SetColor(Color(255, 255, 255, anAlpha));
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		g->DrawString(aText, aX, 0x1f);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -635,8 +637,7 @@ void Board::DrawSelection(Graphics* g)
 			anArrowG.DrawImage(anArrowsImage, 0, 0);
 		}
 
-		// port: the registered build's limit (12 letters) is taken; the trial build's 8 (app
-		// mIsRegistered false) is not ported.
+		// The registered build's limit, 12 letters (the trial's 8 is taken out)
 		if (aLetterCount > aLimit)
 			g->DrawImage(mApp->mImages[IMAGE_TILE_X], (int)aPiece->mX, (int)aPiece->mY);
 	}

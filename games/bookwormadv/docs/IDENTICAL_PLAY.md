@@ -138,6 +138,66 @@ restore. SDL 2 reads Windows' cursor, which sits in a corner of rundesk's deskto
 move with the press, a move with the release) or it lands at the corner; a press held across frames (a drag) waits
 for the framework's `-realinput`.
 
+The real-input play of 2026-11-07 and 2026-11-08 went further. Natively, `realrun.py` played a new player from the name
+box through the introduction, the first battle's tutorial and the first three chapters, all won, and from a saved
+profile the fourth and fifth chapters, won again after the last driver fix (each in five to six minutes of real time).
+A minimize during the victory song, in full screen, brought the music back. In the Browser pane `tools/driver.js`
+played its way to the sixth chapter, across reloads of the page. Everything that went wrong was the drivers', not the port's:
+the tutorial lets one tile be picked at a time and waits on its own arrows, a dialog already up when a driver started
+was left unanswered, an arrow's line swallowed the board line after it, and a lost turn that showed for one update while
+a turn changed made a driver click a tile into the next word (the board log now names a lost turn only once it has held
+for 30 updates). A word spelled twice in a driver's list is its retry: the board went busy for a moment after it was
+logged, the first clicks landed then, the game refused the half word with its own dialog, and the driver spelled it
+again.
+
+Since 2026-11-08 the port answers the standard `move` command from its own bot (`GameApp::MoveForTests`: the dialog,
+conversation, tutorial, lost turn, arrow, overlay, word, guess, treasure or map click a driver needs next), and
+`tools/movedriver.py` is the thin loop that plays by it on the live channel natively (`state`, `move`, the move's input
+as real SDL events through `-commands` with an empty `-realinput`). Making it found one fault in the port's test hooks,
+none in the game: a test command that waits for its screen tried again through the `-script` list, and a non-empty
+script list makes the framework drop every real event, so after one waiting `goto` no real click reached the game. On
+the live channel the retries now have their own queue; a `-script` run keeps them in the script as before.
+
+Played by `move` alone under `-fast`, a profile at the first book's fourth chapter went on through every chapter of the
+three books, the third book's end and its cutscenes to the Hall of Fame, in 17 minutes: 243 words, 26 lost turns
+ended, 81 treasures picked, 316 conversation clicks, no error on the log, and Lex never below 1.75 hearts. The arena
+then played from the main menu until Lex fell to Cerberus 34 minutes into the run, which the Hall of Fame recorded.
+The bot's own first faults turned up on the way and were fixed in it: it waited forever on Level Up's "Click to
+continue" and on a lost turn (under `-fast` thousands of updates pass between two questions), and it picked the same
+treasure on and off (the treasure room's `mSelectedTreasures` is nil; each of `mTreasures` has its own `mSelected`).
+The three mini-games, played by `move` in real time (`--realtime`: under `-fast` a mini-game's minute passes between two
+questions), each ran to its Game Over and its Hall of Fame: Letter Rip with 30 words, all it had, Link N' Spell with 104,
+and Word Master with five guesses. On the way the bot learned to offer a mini-game's words only once (Letter Rip wants new
+words from the same letters), to click its "Click anywhere to continue", and to press a Word Master key again only half a
+second after its first press, since the key drops a press that comes sooner.
+
+On the web the same bot played through `tools/web/moveloop.js`, the page's thin loop (`state`, `move`, the move as DOM
+mouse and key events on the canvas through the test kit's `playMove`), in the hidden Browser pane with `?silent=1` and
+`fast=1`, the game on its virtual clock on the page's own frames. A profile from the first chapter won the first book's
+first three chapters, from the map through every conversation, Level Up and lost turn to the treasure room, and the
+three mini-games each ran to their Game Over and the Hall of Fame with no error on the log: Letter Rip with 30 words,
+as natively, Link N' Spell with 116 and Word Master with five guesses, also as natively, all in seconds. A mini-game's clock counts updates,
+and on the fast clock it would run out between two questions, so Letter Rip and Link N' Spell ran with `lockstep=1`: the
+driver holds the game once the mini-game is up and steps it only through its moves' own waits. The page's own real-time
+frames were no use in the hidden pane, where the browser throttled them, at worst to one drawn frame in several seconds, so
+that a curtain once never closed in nine minutes. Full screen cannot be entered in the pane (its request stays pending), so in its
+place the canvas was drawn at twice its size (`scale=2`, 1600 by 1200 CSS pixels), where every DOM event lands at a
+scaled point as in full screen; the bot won the same three chapters to the treasure room that way. The pane's focus
+loss paused a mini-game once ("Game Paused"); the driver brings the focus back as a player's click does.
+
+The web runs found nothing wrong in the game, but they turned up three more faults of the bot and its drivers, all now
+fixed. Word Master's second press of one key (the B of TABBY) came on the fast clock within SDL's double-click time,
+which is real milliseconds: the second press counted as a double click and the key ignores those, so the guess lost a
+letter and the row no word fitted stood for good. The bot now also puts a press on the empty curtain below the keys
+between two presses of one key. A Link N' Spell Submit that did not take once left its word in the bar, the next word's letters
+piled onto it and nothing on the board could be picked; the bot now gives such a word another Submit, or its last letter
+back, once it has stood for 100 updates (`unstick`). And `unlock all` sets the flags that make Lex announce the unlocks
+when the main menu comes, so a `goto` sent straight after it left his panel open behind the next screen: the driver
+now clicks conversations and dialogs away between its first commands, as a player does. On the test kit's side the
+answer pattern had a backspace character where a word boundary was meant, so every `MOVE null` timed out (fixed on the
+trunk), and a hidden tab throttles a driver's own timers to as little as one a minute, so the driver steps a held game
+by updates alone.
+
 ## Oddities skipped
 
 **How long the loading screens stay up.** The original loads at startup and before each chapter on a thread, so its
@@ -149,6 +209,10 @@ the original would mean loading at its thread's speed on each machine. To see it
 side's own pace (a few hundred pixels in a few frames).
 
 ## Deviations that remain
+
+**The PopCap logo.** The port skips the startup's PopCap logo (356 updates, before anything loads, with no click to
+leave it), by the loading rule; `-popcaplogo` keeps it, and every comparison with the original passes it (the README's
+"The PopCap logo taken out of the startup").
 
 **Waiting on the framework's 2D software path.** Sprites drawn through a transform keep their place but are sampled
 differently: the battle's enemies (the Trojan Spearman's idle, and the Trojan Warrior walking in), the battle intro's

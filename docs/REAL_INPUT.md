@@ -80,11 +80,12 @@ real time, through a focus loss, Alt+Enter both ways and a real minimize and res
 ## Games it cannot fully reach
 
 Every port's input comes through `HandleEvent`; no game polls SDL's events itself or overrides `HandleEvent`. A few read
-state elsewhere or treat any test run as focused, and their sessions decide whether to change that:
+state elsewhere or treat any test run as focused, and their sessions decide whether to change that (Cosmic Bugs and
+Water Bugs did on 2026-11-08: their `IsActive()` is now `mActive` except in a test run without `-realinput`, so
+a `focus lost` line pauses them as it pauses the originals):
 
 | Game | What `-realinput` cannot reach | What would fix it |
 | --- | --- | --- |
-| Cosmic Bugs, Water Bugs | Focus: `IsActive()` is `mActive \|\| IsTestRun()`, so a file's `focus lost` mutes the framework but never pauses the game | `mActive` alone in a `-realinput` run (only the file's focus events reach it there) |
 | Bonnie's Bookstore | Focus: `getAppState()` gives input and mouse focus to any test run unless its own script took it; and in full screen the cursor's position comes from `SDL_GetGlobalMouseState`, the real cursor | `mHasFocus` and `mMouseInside` in a `-realinput` run; in full screen the position the events gave. Its host joins each character to the key press just before it, so type there with `key` or `type`, not `text` alone |
 | TipTop | Nothing in its input, but its `AppMessage` shows an SDL message box unless the run is `-fast`, `-script` or scripted, so a real-time `-realinput` run that meets an error message would sit on it | `IsTestRun()`, as the Mahjongs and Ning Po check |
 | Alchemy, Atomica, Bejeweled, Big Money, BookWorm | Their `-autoplay` sets `mScriptedInput`, which drops real input | Not to be combined; drive these with the file alone |

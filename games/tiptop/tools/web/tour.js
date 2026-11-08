@@ -5,8 +5,7 @@
 //   http://127.0.0.1:18781/tiptop.html?player=1&assets=1&silent=1&fast=1&tour=1&driver=games/tiptop/tools/web/tour.js&run=tour1
 //
 // Lines: click <x> <y>, move <x> <y>, key <NAME>, char <c> (typed), focus lose|regain, screenshot <name> (t.shot), quit (the
-// end). The cursor line the port's scripts put before a click (move at K-1) is kept: the move is a DOM mouse move. A click on
-// the options screen's publisher link is never in a tour.
+// end). The cursor line the port's scripts put before a click (move at K-1) is kept: the move is a DOM mouse move.
 var params = new URLSearchParams(location.search);
 var tour = params.get("tour") || "1";
 var res = await fetch("/__repo/games/tiptop/tools/web/tours.js");

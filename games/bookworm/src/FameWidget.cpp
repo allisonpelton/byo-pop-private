@@ -512,7 +512,7 @@ void FameWidget::ButtonDepress(int theId)
 	}
 
 	case FAME_ID_INTERNET:
-		// 0x426eb4 the internet button: the register nag (dialog 17), the internet scores or the alias
+		// 0x426eb4 the internet button: the internet scores or the alias
 		// prompt, switching between the pages: internet, not ported
 		break;
 
