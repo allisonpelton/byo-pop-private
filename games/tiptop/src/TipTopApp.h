@@ -80,6 +80,8 @@ public:
 	virtual void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	// Test hooks (testhooks/Script.cpp): TipTop's -script commands, canvasshot and musicwav
 	virtual bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// testhooks/Commands.cpp: the standard test commands (docs/TEST_COMMANDS.md): state, goto, level, set, win, lose, seed, move
+	bool HandleTestCommand(const ScriptCommand& theCommand);
 	// testhooks/Canvas.cpp: canvasshot <file> saves the whole screen of a -canvas run
 	void StartCanvasShot(const std::string& theFile);
 	void SaveCanvasShot();

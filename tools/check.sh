@@ -20,7 +20,10 @@
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
 #                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
 #                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
-#                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table)
+#                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and
+#                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
+#                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and tools/fwtest/commands.sh
+#                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -600,9 +603,27 @@ suite_unit() {
 	# framework/DisplayGeometry (letterbox, render scale, window mapping, cursor) against a table from DDInterface's code
 	(cd build/native && timeout 60 ./geomtest.exe) > "$1.geo" 2>&1 || st=1
 	j="$(lastof "$1.geo" 'geometry: [0-9]+ cases, [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j"
+	# -realinput (docs/REAL_INPUT.md): real SDL events pushed into SDL's queue reach fwtest's board through HandleEvent,
+	# the window mapping and the widget manager, with -fast and in real time; a line it could not play fails it too
+	local k r
+	for r in fast real; do
+		timeout 120 "build/native/fwtest.exe" -realinput=tools/fwtest/realinput.txt $([ $r = fast ] && echo -fast) \
+			-placeholders -gamedir="$OUT/no-game-files" > "$1.ri$r" 2>&1 || st=1
+		grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.ri$r" && st=1
+	done
+	k="realinput: -fast $(lastof "$1.rifast" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), real time $(lastof "$1.rireal" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
+	# -commands (docs/TEST_COMMANDS.md, "Sending them"): lines appended to a file while fwtest runs, each answered on
+	# its log, through -script's dispatch and through -realinput's
+	local l m
+	for m in script realinput; do
+		timeout 200 bash tools/fwtest/commands.sh "$1.cm$m.log" "$OUT/commands-$m.txt" $m "$OUT/no-game-files" > "$1.cm$m" 2>&1 || st=1
+	done
+	l="commands: $(tail -1 "$1.cmscript" | sed 's/^commands //'), $(tail -1 "$1.cmrealinput" | sed 's/^commands //')"
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" >> "$1"
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $k; $l"
 	return $st
 }
 
