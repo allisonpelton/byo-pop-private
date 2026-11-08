@@ -936,6 +936,9 @@ public:
 	void			DrawSurvivalBonus(Graphics* g);
 	void			DrawTestTexts(Graphics* g);
 
+	// ---- the saved game (BoardRestore.cpp)
+	void			RestoreGame(int theScore, int theSetting54, int theSetting55, float theSetting52, float theSetting50, int theSavedLevel);   // 0x467af0
+
 	// ---- pause and play (BoardPlay.cpp)
 	void			Pause(bool theStart, bool theFlag);             // 0x459040 a dialog opens (true) or closes (false)
 	void			RecolorThemeButtons();                          // 0x437910

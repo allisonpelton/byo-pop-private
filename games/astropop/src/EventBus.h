@@ -61,6 +61,12 @@ public:
 			Remove(theListener, anEvent);
 	}
 
+	void Clear()                                                           // 0x40e7f0
+	{
+		for (int anEvent = 0; anEvent < NUM_EVENT_LISTS; anEvent++)
+			mLists[anEvent].clear();
+	}
+
 	void Fire(EventListener* theSource, int theEvent, int theArg = 0);     // 0x40cde0, 0x40d470
 
 	// An event for one listener only (0x40d820, and 0x40d9f0 for the events that carry a number): the bus looks the

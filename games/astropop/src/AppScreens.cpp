@@ -5,6 +5,7 @@
 #include "Board.h"
 #include "GameText.h"
 #include "LoaderScreen.h"
+#include "CharSelector.h"
 #include "MainMenu.h"
 #include "XcfFile.h"
 #include "SoundInstance.h"
@@ -21,11 +22,11 @@ void AstroPopApp::ShowMainMenu()
 		mEngineLoop->Stop();
 		mHyperspaceLoop->Stop();
 	}
-	if (mScreen64c != NULL)
+	if (mScreen650 != NULL)
 	{
-		mWidgetManager->RemoveWidget(mScreen64c);
-		SafeDeleteWidget(mScreen64c);
-		mScreen64c = NULL;
+		mWidgetManager->RemoveWidget(mScreen650);
+		SafeDeleteWidget(mScreen650);
+		mScreen650 = NULL;
 		// The original also tells the resource manager's page counter (0x48f860, "MoreGames") that the page is gone;
 		// that is PopCap's ad statistics and is left out.
 	}
@@ -213,14 +214,30 @@ void AstroPopApp::ShowThemeDialog()
 	SDL_Log("AstroPop: ShowThemeDialog not translated yet (0x40c490)");
 }
 
-void AstroPopApp::StartGame(bool theContinue)
-{
-	SDL_Log("AstroPop: StartGame(%d) not translated yet (0x428c70)", theContinue ? 1 : 0);
-}
-
+// 0x411660: the pilot choice screen replaces whatever is up. A running game stays under it (on the screen, but out of play).
+// (The original also tells its page counter, 0x48f8a0 with an empty name: PopCap's ad statistics, left out.)
 void AstroPopApp::ShowCharSelector(int theMode)
 {
-	SDL_Log("AstroPop: ShowCharSelector(%d) not translated yet (0x411660)", theMode);
+	PlaySong(5);
+	if (mBoard != NULL)
+	{
+		mEngineLoop->Stop();
+		mHyperspaceLoop->Stop();
+	}
+	if (mMainMenu != NULL)
+		CloseMainMenu();
+
+	mScreen650 = new CharSelector(this, theMode);
+	mScreen650->Resize(0, 0, 0x280, 0x1e0);
+	mWidgetManager->AddWidget(mScreen650);
+	mWidgetManager->SetFocus(mScreen650);
+	if (mBoard != NULL)
+	{
+		mBoard->mHasAlpha = true;
+		mBoard->mHasTransparencies = true;
+		mWidgetManager->BringToFront(mBoard);
+	}
+	StartLoopSound(6);
 }
 
 void AstroPopApp::ShowHallOfFame()
@@ -262,4 +279,9 @@ void AstroPopApp::ShowMessageDialog(const std::string& theHeader, const std::str
 {
 	SDL_Log("AstroPop: message box not translated yet (0x411ba0): %s", theHeader.c_str());
 	(void) theText;
+}
+
+void AstroPopApp::ShowCheckpointDialog(int theLevel)
+{
+	SDL_Log("AstroPop: the checkpoint question (level %d) is not translated yet (0x40c3e0)", theLevel);
 }

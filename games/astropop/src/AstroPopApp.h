@@ -8,6 +8,7 @@
 // runs as a registered copy), see docs/GAME_NOTES.md "Registration and outbound code left out".
 
 #include "Color.h"
+#include "EventBus.h"
 #include "Res.h"
 #include "SexyApp.h"
 #include "UserProfile.h"
@@ -61,9 +62,10 @@ public:
 	std::vector<SoundInstance*>	mLoopSounds;       // +0x618 eight entries, set when the loading thread ends
 	std::vector<int>			mPausedSongs;       // +0x630 music slots paused by LostFocus, resumed by GotFocus
 	Board*						mBoard;             // +0x628 the running game (class Board, 0x1c0c bytes), NULL for none
+	EventBus					mBus;               // +0x62c the 43 lists of listeners (the original makes them when the title's button is pressed)
 	MainMenu*					mMainMenu;          // +0x644 the game selector (ShowMainMenu)
 	LoaderScreen*				mLoaderScreen;      // +0x640 Init .. the title (the original ctor leaves it uninitialised)
-	Widget*						mScreen64c;         // +0x64c the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
+	Widget*						mScreen650;         // +0x64c the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
 	bool						mFlag658;           // +0x658 ValidateUser: profile setting 0x11 (1 when missing) is not 0
 	bool						mOldSavesDeleted;   // +0x659 Init found a profile of an older version and deleted it
 	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
@@ -89,6 +91,7 @@ public:
 	int							mMusicSlot;         // +0x6d8 the slot that plays (0 or 1)
 	int							mMusicOrder;        // +0x6dc the song position (order) that plays, -1 for none
 	int							mSurvivalPilot;     // +0x6e4 the pilot of the other modes
+	int							mPilot6e8;          // +0x6e8 a third pilot number (-1; only LoadPilotImages(0) reads it)
 
 public:
 	AstroPopApp();                                              // 0x427ee0
@@ -150,6 +153,14 @@ public:
 	Dialog*			MakeDialog(int theId, bool theFlag, int theWidth, int theX, int theY, int theButtons, const std::string& theHeader, const std::string& theText, const std::string& theYes, const std::string& theNo, bool theModal);   // 0x411ba0 (stub)
 	// The screens the selector opens. Not translated yet: each one logs "not translated" and does nothing.
 	void			StartGame(bool theContinue);                // 0x428c70 (the Board)
+	void			StartClassic(bool theCheckpointed, bool theSkipTutorial);   // 0x4299b0 the pilot is chosen: the first level, or the checkpoint to go on from
+	void			ShowCheckpointDialog(int theLevel);         // 0x40c3e0 (stub) asks whether to go on from the checkpoint
+	void			StartClassicGame(int theLevel, bool theFlag, bool theSkipTutorial);   // 0x428b30 a new classic game at a level
+	void			StartSurvivalGame(int thePilot);            // 0x422ae0 a new game of the second type with a pilot
+	void			StartLoopSound(int theIndex);               // 0x40e0c0 the loop sounds stop and the one given starts (-1: none)
+	void			LoadPilotImages(int theKind);               // 0x422380 the pictures of a pilot's ship (kind 1: the classic pilot, 2: the other)
+	void			CloseMainMenu();                            // 0x4113e0 the game selector goes
+	void			CloseSelectorScreen();                      // 0x4117d0 the screen over the selector goes
 	void			ShowCharSelector(int theMode);              // 0x411660 (pilot choice)
 	void			ShowHallOfFame();                           // 0x4288a0
 	bool			AddHallOfFame(const std::string& theName, int theScore, int theSecond, int theMode, int theKind); // 0x429a40

@@ -2097,7 +2097,7 @@ const char* Sexy::GetStringIdById(int theId) { return (unsigned)theId < RESOURCE
 // 0x420ea0: the picture of a resource id, loaded again by name if it was deleted; the id's global holds it afterwards
 Image* Sexy::LoadImageById(ResourceManager* theManager, int theId)
 {
-	Image* anImage = theManager->GetImage(GetStringIdById(theId));
+	Image* anImage = theManager->LoadImage(GetStringIdById(theId));   // (0x4923a0 loads the picture if it is not loaded)
 	*(Image**)gResources[theId] = anImage;
 	return *(Image**)gResources[theId];
 }
