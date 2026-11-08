@@ -215,9 +215,11 @@ coordinates (640 x 480), not the picture's.
 
 Compared with it (sandbox, real clock, 2026-11-07): the twelve tutorial hints at their steps, the hint panel's text against the
 port's native shots at the same steps, mean difference about 2 grey levels (the port's shots are resampled from 1280 x 960), and the
-text lines at the same rows, including step 9 (second line only) and step 14. The Easy demo's captions run as in the port. Not yet
-compared in the original: the board's first box after the demo's "Click Here to Start!" (the four lines at the first-box position);
-the runs that reached it did not get past the title in time.
+text lines at the same rows, including step 9 (second line only) and step 14. The Easy demo's captions run as in the port. The board's first box after the demo's "Click Here to Start!" is compared too (2026-11-07, origrun sandbox with the real clock, shot f0
+against the port's shot at the same moment): the four text lines sit at the same pixels (the text's bounding box is 193 x 62 in both,
+at the same offset as the window's border and title bar, 3 and 26), and the box's region differs only where the two runs' boards and the
+arrow's tour differ (the port's board is not seeded like the original's here). Click the demo's button once: a second click on the board
+moves the ship and takes the box away.
 
 ## 9. Test commands (docs/TEST_COMMANDS.md; `src/testhooks/Commands.cpp`)
 
