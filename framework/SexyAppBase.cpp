@@ -4020,6 +4020,11 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 	int x = 0;
 	int y = 0;
 
+	// a bare "move" is the test command that asks the game's bot for its next move (docs/TEST_COMMANDS.md), as in
+	// RunScriptCommand, so a driver on the live channel with -realinput can ask for it; "move <point>" moves the mouse
+	if ((aName == "move") && (aCommand.mArgs.find_first_not_of(" \t") == std::string::npos))
+		return HandleScriptCommand(aCommand) ? SCRIPT_GAME : SCRIPT_UNKNOWN;
+
 	if ((aName == "move") || (aName == "down") || (aName == "up") || (aName == "click") || (aName == "dblclick"))
 	{
 		if (!ReadRealPoint(this, anArgs, &x, &y))
