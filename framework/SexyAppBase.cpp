@@ -644,6 +644,9 @@ SexyAppBase::SexyAppBase()
 	mCommandsFileLine = 0;
 	mCommandsWaitLogged = false;
 	mLiveCommandCount = 0;
+	mCommandsHold = false;
+	mLiveRunUntil = 0;
+	mLiveWaitUntil = -1;
 	mModMenu = NULL;
 	mModMenuKeyDown = false;
 	mModMenuClosingKey = KEYCODE_UNKNOWN;
@@ -1537,7 +1540,7 @@ void SexyAppBase::UpdateFrames()
 	// -commands: a look at the file each update, every few with -fast, where updates come back to back
 	if ((!mCommandsFileName.empty()) && ((!mFastMode) || ((mUpdateCount % FAST_DRAW_INTERVAL) == 0)))
 		PollLiveCommands();
-	if (!mLiveCommands.empty())
+	if ((!mLiveCommands.empty()) || (mLiveWaitUntil >= 0))
 		RunLiveCommands();
 
 	// port: a test run played with real input (a driver posting window messages, which a -script run ignores) asks for
@@ -2655,14 +2658,16 @@ bool SexyAppBase::Process(bool allowSleep)
 		// the updates to make it draw 10 times per second in "game time"
 
 		bool didUpdate = false;
+		bool isHeld = false;
 
 		if (mUpdateAppState == UPDATESTATE_PROCESS_1)
 		{
 			// port: with -drawevery an update that has not been drawn yet is drawn before the next one
 			if (((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
 			{
-				// port: a test may hold the updates (byopop_hold_updates_at, web only): the frame is still drawn
-				if ((mUpdateFTimeAcc >= aFrameFTime) && (!WebUpdatesHeld(mUpdateCount)))
+				// port: a test may hold the updates (byopop_hold_updates_at on the web, -hold natively): the frame is still
+				// drawn, and -fast's clock stops at the held update's time
+				if ((mUpdateFTimeAcc >= aFrameFTime) && (!WebUpdatesHeld(mUpdateCount)) && (!(isHeld = LiveUpdatesHeld())))
 				{
 					bool hadRealUpdate = DoUpdateFrames();
 					if (hadRealUpdate)
@@ -2739,6 +2744,9 @@ bool SexyAppBase::Process(bool allowSleep)
 					}
 				}
 			}
+			// port: -hold waits for the driver's next line without spinning (no clock moves meanwhile)
+			if ((isHeld) && (allowSleep))
+				SDL_Delay(1);
 		}
 	}
 
@@ -3342,6 +3350,8 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mCommandsFileName = theParamValue;
 		SDL_LogSetOutputFunction(LiveLogOutput, NULL);
 	}
+	else if (theParamName == "-hold")
+		mCommandsHold = true;
 	else if (theParamName == "-fast")
 		mFastMode = true;
 	else if (theParamName == "-trace")
@@ -3680,11 +3690,36 @@ void SexyAppBase::PollLiveCommands()
 	mCommandsFilePos += (long long) (aLast + 1);
 }
 
+// -hold (natively, with -commands): once the game has loaded, an update runs only when the driver lets it, so a game
+// under -fast does not run on while its driver decides (and a run with the same lines plays the same way). New lines
+// let one update run them; "wait <n>" lets n run. Held, the file is looked at here, each pass of the main loop.
+bool SexyAppBase::LiveUpdatesHeld()
+{
+	if ((!mCommandsHold) || (mCommandsFileName.empty()) || (!mLoaded) || (mShutdown) || (mUpdateCount < mLiveRunUntil))
+		return false;
+	PollLiveCommands();
+	if (mLiveCommands.empty())
+		return true;
+	mLiveRunUntil = mUpdateCount + 1;
+	return false;
+}
+
 // The queued live commands, in order, each answered on the log: "OK <command>" when the framework did it,
 // "ERROR <command>: <reason>" when it could not or nobody knows the command; a game's command answers itself
 // (docs/TEST_COMMANDS.md)
 void SexyAppBase::RunLiveCommands()
 {
+	// "wait <n>" (the channel's own command, never a game's): the lines after it wait n updates, and it is answered
+	// when they are up
+	if (mLiveWaitUntil >= 0)
+	{
+		if (mUpdateCount < mLiveWaitUntil)
+			return;
+		mLiveWaitUntil = -1;
+		SDL_Log("OK %s", mLiveWaitLine.c_str());
+		fflush(stdout);
+		fflush(stderr);
+	}
 	// a copy: a command runs game code, which may queue more (they wait for the next update)
 	std::vector<ScriptCommand> aCommands;
 	aCommands.swap(mLiveCommands);
@@ -3692,6 +3727,28 @@ void SexyAppBase::RunLiveCommands()
 	{
 		const ScriptCommand& aCommand = aCommands[i];
 		std::string aLine = aCommand.mArgs.empty() ? aCommand.mCommand : (aCommand.mCommand + " " + aCommand.mArgs);
+		if (aCommand.mCommand == "wait")
+		{
+			int aCount = -1;
+			char aRest = 0;
+			if ((sscanf(aCommand.mArgs.c_str(), "%d %c", &aCount, &aRest) != 1) || (aCount < 0))
+				SDL_Log("ERROR %s: wait needs <updates>", aLine.c_str());
+			else if (aCount == 0)
+				SDL_Log("OK %s", aLine.c_str());
+			else
+			{
+				// the rest go back before any a command queued meanwhile; with -hold the updates run until then
+				mLiveWaitUntil = mUpdateCount + aCount;
+				mLiveWaitLine = aLine;
+				if (mLiveRunUntil < mLiveWaitUntil)
+					mLiveRunUntil = mLiveWaitUntil;
+				mLiveCommands.insert(mLiveCommands.begin(), aCommands.begin() + i + 1, aCommands.end());
+				return;
+			}
+			fflush(stdout);
+			fflush(stderr);
+			continue;
+		}
 		std::string anError;
 		int aResult = mRealInputFileName.empty() ? RunScriptCommand(aCommand, &anError) : RunRealInputCommand(aCommand, &anError);
 		if (aResult == SCRIPT_RAN)
@@ -4020,7 +4077,9 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 	int x = 0;
 	int y = 0;
 
-	if ((aName == "move") || (aName == "down") || (aName == "up") || (aName == "click") || (aName == "dblclick"))
+	// a bare "move" is the game's test command (its bot's next move, docs/TEST_COMMANDS.md), as in -script
+	if (((aName == "move") && (aCommand.mArgs.find_first_not_of(" \t") != std::string::npos)) || (aName == "down") ||
+		(aName == "up") || (aName == "click") || (aName == "dblclick"))
 	{
 		if (!ReadRealPoint(this, anArgs, &x, &y))
 		{

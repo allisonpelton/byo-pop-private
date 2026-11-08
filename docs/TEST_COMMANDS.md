@@ -67,9 +67,9 @@ lines (`<command> [args]`, no update count) the framework reads between updates 
 web through the exported function the player-only test page calls (`byopop.test.command(line)`, which resolves with
 the reply lines). Both go through the same dispatch as `-script`: the framework's commands first, then the game's
 `HandleScriptCommand`. The live channel is the framework's (the shared session builds it); the page's call is the
-site's (`docs/WEB_PLAYER.md`). The shared loop that plays a game by `move` is also theirs: natively a tool that runs
-the game under rundesk with `-commands` and sends each move as real input (`-realinput` lines through the same file,
-below), and on the web a driver the test page runs (`?driver=`).
+site's (`docs/WEB_PLAYER.md`). The shared loop that plays a game by `move` is also theirs: natively
+`tools/playbymove` (below), which runs the game under rundesk with `-commands` and sends each move as real input
+(`-realinput` lines through the same file), and on the web a driver the test page runs (`?driver=move`).
 
 Natively the option is `-commands=<file>`: the file may come after the game starts, a line still being written waits
 for its end of line, and the run is a test run. The framework answers its own commands on the live channel (`OK click
@@ -79,5 +79,27 @@ empty file will do) the lines take its dispatch, so the driver's moves are real 
 (`docs/REAL_INPUT.md`). `tools/fwtest/commands.sh` is a driver of that kind. On the web the exported function is
 `byopop_test_command(line)`: it returns 1 when the line is queued and 0 when it is refused (no game running, no command
 in the line, too many waiting), and the line runs inside the next update, so a page that holds the game's updates
-steps one to run it. The answers are the ordinary log lines, which SDL's log starts with `INFO: `. The full description is with
-`-script`'s in `framework/SexyAppBase.h`.
+steps one to run it. The answers are the ordinary log lines, which SDL's log starts with `INFO: `. The channel has one
+command of its own, `wait <n>`: the lines after it wait n updates, and it answers `OK wait <n>` when they are up. The
+full description is with `-script`'s in `framework/SexyAppBase.h`.
+
+## The native loop
+
+`tools/playbymove/playbymove.py [options] <game exe> [game arguments]` is the shared native loop, the twin of the page's
+`?driver=move` (`web/testkit.js`, `playByMove`). It starts the game under rundesk with `-commands`, an empty `-realinput`
+file, `-hold` and `-fast`, then asks `state` and `move`, plays the move's `input` as `-realinput` lines in game
+coordinates, waits its `updates`, and asks again, until the state says `"over": true`, a step limit (`--steps`, 2000),
+`MOVE null` twice running (30 updates apart), an `ERROR`, or the same move on the same state 50 times running.
+`--first <line>` sends a command before the loop (`goto`, `level`, `seed`, `set`), and `--shot` takes a screenshot at
+the end. Its last line is the summary (`playbymove <game>: <n> moves, stop over; STATE {...}`), its run folder
+(`build/playbymove/<game>` by default) holds the game's log and `driver.txt`, every line sent and its answer. A session's
+native driver is a call to it, with the game's own arguments.
+
+`-hold` is what makes it repeatable: once the game has loaded, an update runs only when the driver's lines let it (each
+new batch runs one, `wait <n>` runs n), so a game under `-fast` never runs on while the driver decides, the bot's move
+always fits the state it was asked on, and the same game plays the same way every run (`tools/check.sh unit` plays
+fwtest's small task twice and compares the transcripts). A move's steps go one update apart, as a hand's would, and a
+whole move is one batch: the steps with `wait 1` between them, the move's wait, and the next `state` and `move`. A key
+step `{"key":"B"}` is typed as that character (`type B`); a DOM key name (`Enter`, `Escape`, `ArrowLeft`, `" "`) becomes
+its SDL key; any other name is taken as an SDL name. Under `-realinput` a bare `move` is the game's test command, as in
+`-script`; `move <point>` moves the mouse.
