@@ -190,7 +190,7 @@ var ByopopSettings = (function () {
   var GAME_DEFAULT = T("settings.game_default");
   // The games that read "3D acceleration" (Byopop::SiteAccel3D, framework/WebSettings.h): a game page of another game does
   // not show it. Perhaps later, once their passes settle their 3D modes: Bookworm Adventures 1 and 2, Rocket Mania.
-  var ACCEL3D_GAMES = ["bejeweledtwist"];
+  var ACCEL3D_GAMES = ["bejeweledtwist", "bookwormadv2"];
   // What this browser gives the games for 3D, shown under that setting: "hardware", "software" or "none". Tested as the
   // games test it (Twist's Is3DAccelerationSupported asks a new canvas for "webgl2"), then once more with
   // failIfMajorPerformanceCaveat, which a browser refuses when its WebGL2 is drawn without the graphics card (Chrome's

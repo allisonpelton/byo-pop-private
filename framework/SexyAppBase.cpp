@@ -655,6 +655,8 @@ SexyAppBase::SexyAppBase()
 	mDrawTime = 0;
 	mScreenBltTime = 0;
 	mAlphaDisabled = false;
+	mUserChanged3DSetting = false;
+	mWant3D = true;
 	mDebugKeysEnabled = false;
 	mNoSoundNeeded = false;
 	mWantFMod = false;
@@ -662,7 +664,6 @@ SexyAppBase::SexyAppBase()
 	mSyncRefreshRate = 100;
 	mVSyncUpdates = false;
 	mWaitForVSync = false;
-	mUserChanged3DSetting = false;
 	mAutoEnable3D = false;
 	mTest3D = false;
 	mRelaxUpdateBacklogCount = 0;
@@ -1215,6 +1216,10 @@ void SexyAppBase::WriteToRegistry()
 	RegistryWriteInteger("CustomCursors", mCustomCursorsEnabled ? 1 : 0);
 	RegistryWriteInteger("InProgress", 0);
 	RegistryWriteBoolean("WaitForVSync", mWaitForVSync);
+	// port: the 3D choice, once the player has made one (the original writes it the same way); a run that never changed
+	// it leaves a saved value as it was
+	if (mUserChanged3DSetting)
+		RegistryWriteBoolean("Is3D", mWant3D);
 }
 
 bool SexyAppBase::RegistryEraseKey(const SexyString& _theKeyName)
@@ -3003,6 +3008,23 @@ int SexyAppBase::InitDDInterface()
 			aScreenImage->mIsScreen = true;
 			mDDInterface->mScreenImage = aScreenImage;
 		}
+
+		// port: the player's 3D choice: this run's (Set3DAcclerated) or the saved "Is3D" (the original reads it as its
+		// 2D mode's switch). Only 3D off changes anything: a default start, or a display without acceleration, is as it was
+		bool aWant3D = mWant3D;
+		if (!mUserChanged3DSetting)
+		{
+			aWant3D = true;
+			RegistryReadBoolean("Is3D", &aWant3D);
+#ifdef __EMSCRIPTEN__
+			// the site's "3D acceleration" (always 1, never 0; -1 leaves it to the game) decides this run in place of the saved
+			// value, and writes nothing (mUserChanged3DSetting stays false); mCan3D still makes "always" 2D without WebGL2
+			if (Byopop::SiteAccel3D() >= 0)
+				aWant3D = Byopop::SiteAccel3D() != 0;
+#endif
+		}
+		if (!aWant3D)
+			mDDInterface->mIs3D = false;
 
 		// port: DDInterface::WindowToLogical already maps window to logical coordinates, so the widget
 		// manager's mouse remapping is the identity
@@ -5467,7 +5489,19 @@ bool SexyAppBase::Is3DAccelerationRecommended()
 
 void SexyAppBase::Set3DAcclerated(bool is3D, bool reinit)
 {
-	// port: SDL's renderer is the only display path; it is accelerated whenever the system allows it
+	// port: SDL's renderer is the only display path, and it stays the GPU's whenever the system allows it. What 3D off
+	// changes is what the game and the framework's own drawing see (Is3DAccelerated, Graphics' mIs3D): the software
+	// drawing paths of PopCap's 2D mode. The choice is kept (mWant3D), written as "Is3D" and applied again each time the
+	// display is made; no re-init is needed, so reinit has nothing to do
+	if (mDDInterface == NULL)
+		return;
+	bool aIs3D = is3D && mDDInterface->mCan3D;
+	if (mDDInterface->mIs3D == aIs3D && mWant3D == is3D)
+		return;
+	mUserChanged3DSetting = true;
+	mWant3D = is3D;
+	mDDInterface->mIs3D = aIs3D;
+	mWidgetManager->MarkAllDirty();
 }
 
 SharedImageRef SexyAppBase::GetSharedImage(const std::string& theFileName, const std::string& theVariant, bool* isNew)
