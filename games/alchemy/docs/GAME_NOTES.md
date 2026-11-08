@@ -93,6 +93,21 @@ second picture (0x4106bc, the "buy" overlay at y = 0x137) and the play counter b
 and the "thanks for registering" line (0x4108c6, y = 0x157) to one that is registered but not unlocked; the port is both
 registered and unlocked, so none of them is drawn.
 
+**Registration and the buttons that lead out (the coordinator's rules of 2026-11-07, checked 2026-11-08).** The port never had
+the trial clock or counter, the nags, the register, unlock and buy dialogs and their checks, expiry, the update check, the
+internet scores, the "more games" button (id 3 of the dialogs) or any call that opens a web page or another program (no
+`OpenURL` in `src/`; the title's one link is "click here to play", which starts the game). A search of `src/` for the words
+of a registered/trial split found only two leftovers, both taken out now, and no visible change comes of either (the
+suite's baseline is identical):
+- the picture `trialversion` (`IMAGE_TRIALVERSION`, the title screen's "buy" overlay of section 5's first paragraph), which was
+  loaded and never drawn: gone from the image list and from `Res.h`, whose later ids move down by one (65 images, 9 loaded by
+  the title's start-up as before, the loading task count unchanged at 101 since the picture was among the start-up's);
+- the registry value `NoPopLink` and its field `mNoPopLink`, which only hid the "more games" link the port does not have.
+
+`Board::mTrialPause` and `Pause(true)` are not registration: "trial" there is the time trial's pause cover (the board is hidden
+while it is paused), so they stay. Loading has no waits (the title screen's bar follows the loading thread, which runs
+once, with no pacing), so the rule on fast loading changes nothing here.
+
 ## 6. The standard test commands
 
 The port answers the standard test commands (`docs/TEST_COMMANDS.md`) in `AlchemyApp::HandleScriptCommand`
