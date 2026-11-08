@@ -80,8 +80,8 @@ What the original does that the fixes mod (`mods/fixes`, below) mends, and what 
 applied at a restart (the game reads them once, at startup). `Sexy::FixOn(name)` in the host and `Sys_FixOn` in the game's code
 read them; without the mod every fix is off and the game is the original. The mod changes neither the rules, the scores nor the
 saved games. Natively the mod is a folder in `mods-waterbugs` (or in a `-modsdir`); the page ships it beside the game and starts
-it with the fixes on once the coordinator takes Water Bugs out of `BYOPOP_WEB_NO_MODS` (`cmake/ByopopWeb.cmake`) and
-`games/waterbugs/web/page.js`'s `modsIntro` stops saying that the game loads no mods.
+it with the fixes on (Water Bugs is out of `BYOPOP_WEB_NO_MODS` in `cmake/ByopopWeb.cmake`, shared commit `29f77e35`, and the
+page's `modsIntro` says so). The page's status line reads "1 mod active" and a whole game played to its end on it.
 
 `tools/realplay/determinism.sh [runs]` plays one short fixed game (the story button, then three shots at fixed updates) in real
 time N times with the mod off and N times with it on, and compares the game's state at four updates. With the mod off the five runs were three different games (the same moves, the same score of 598 and the same fill of 52 %,
