@@ -288,6 +288,11 @@ option(BUILD_TIPTOP "Build the TipTop Deluxe port" ON)
 if(BUILD_TIPTOP AND EXISTS ${PROJECT_SOURCE_DIR}/games/tiptop/CMakeLists.txt)
   add_subdirectory(games/tiptop)
 endif()
+# AstroPop Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_ASTROPOP "Build the AstroPop Deluxe port" ON)
+if(BUILD_ASTROPOP AND EXISTS ${PROJECT_SOURCE_DIR}/games/astropop/CMakeLists.txt)
+  add_subdirectory(games/astropop)
+endif()
 # Pixelus Deluxe: optional while it is new; the build skips it if its folder is missing
 option(BUILD_PIXELUS "Build the Pixelus Deluxe port" ON)
 if(BUILD_PIXELUS AND EXISTS ${PROJECT_SOURCE_DIR}/games/pixelus/CMakeLists.txt)
