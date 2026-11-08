@@ -2538,7 +2538,7 @@ unmodded play and the oracle are unchanged. Each answers on stdout with one line
 
 | Command | Answer |
 |---|---|
-| `state` | `STATE {...}`: `screen` (loading, title, game, gameover, recordscore, options, highscores, help, quit, dialog), `mode` (normal, timed), `level` (the 1-based one shown), `score`, `shown` (the rolling score), `start` and `target` (the level's score window), `bar` (the progress or time bar's width, 0 to 340), `drain` (timed: the points drained from the bar), `phase` (the board's state: falling, playing, swapping, clearing, vortex, level wipe, fall out, game over ...), `tick`, `moves`, `over` (the game is over: the board's states 5 and 6), `busy` (the board takes no move now), `paused`, `newgame`, `selected` (`[col,row]`, when a gem is selected) and `board` (8 strings, a gem by its colour's digit, `.` for none) |
+| `state` | `STATE {...}`: `screen` (loading, title, game, gameover, recordscore, quit, help, highscores, options, dialog; Help and High Scores are opened from Options and so are named before it), `windowed` (false in full screen), `mode` (normal, timed), `level` (the 1-based one shown), `score`, `shown` (the rolling score), `start` and `target` (the level's score window), `bar` (the progress or time bar's width, 0 to 340), `drain` (timed: the points drained from the bar), `phase` (the board's state: falling, playing, swapping, clearing, vortex, level wipe, fall out, game over ...), `tick`, `moves`, `over` (the game is over: the board's states 5 and 6), `busy` (the board takes no move now), `paused`, `newgame`, `tutorial` (the first game's hint and arrows are showing), `selected` (`[col,row]`, when a gem is selected) and `board` (8 strings, a gem by its colour's digit, `.` for none) |
 | `goto normal` / `timed` / `game` | a new game in that mode (`game`: the current mode) through `SetTimedMode`, as the side bar's buttons start one; from the title it first does the play link's own click (`TitleScreenIsFinished`), and a saved game then asks its continue question, which stays open (`screen` says dialog; answer it with real input) |
 | `goto options` / `highscores` / `help` | the dialog the side bar's Options button, the High Scores link or Help opens; `goto menu` closes any of them. `goto title` and `goto credits` answer an error: the game has neither to return to |
 | `unlock all` | `OK`: nothing is locked |
@@ -2580,3 +2580,26 @@ fix differs.
 - Time up in Normal mode through hint penalties (section 14, 3): reachable only by spamming hints, not seen in play.
 - The truncated `hiscores.dat` read (section 14, 6) is a memory fault and belongs to the port, not the mod.
 - The double `NewGame` at start-up: it keeps the random numbers in the original's order, so it is not touched.
+
+## 17. Real-input drivers (2026-11-08)
+
+Two drivers play the game with real input only, so that the path a hand takes (SDL's queue, `HandleEvent`, the window-to-game
+mapping, the widget manager; on the web the page's DOM events and the canvas's scaling) is the one that is tested. Both are thin
+loops around the test commands of section 15: ask `state`, ask `move` (the bot's swap), send the move's `input` steps as clicks,
+wait for the next answer. The session writes and judges them; it never plays.
+
+- **Native**, `tools/realplay/drive.py`: starts the game under rundesk with `-commands=<file>` and `-realinput=<empty file>`
+  (`docs/REAL_INPUT.md`), appends `move game x y`, `click game x y`, `key ...`, `keydown/keyup Left Alt`, `focus lost` and
+  `focus gained` lines and waits for each `OK`. Its steps: `launch` (loading screen, title, the play link, the first game's
+  hint, Options, Help and both Done buttons), `normal` and `timed` (a whole game each, then the name entry typed with real keys),
+  `focus`, `fullscreen` (Alt+Enter, moves, Alt+Enter back, moves). A Timed game needs `--realtime`: Bejeweled's clock is the
+  board's update count, a `-fast` run does thousands of updates in the time the channel takes for one move, and the clock then
+  runs out in the middle of the first moves. The coordinates are the original's 640x480 pixels, so `click game` works in a
+  window of any size and in full screen.
+- **Web**, `tools/web/onegame.js`, run by the player-only page (`?player=1&assets=1&fast=1&silent=1&driver=games/bejeweled/tools/web/onegame.js`,
+  `&mode=normal|timed`, `&focus=1` to lose and regain the focus after six moves, `&moves=N` to stop after N moves, `&scale=2`
+  for a canvas drawn at twice its size): the same route, through the page's `t.click` and `t.move` events, answering the
+  "Continue old game?" question of a profile that left a game with a click on No.
+
+What they showed, and what stayed unproven, is in `IDENTICAL_PLAY.md` ("Real input"). Clicks of these drivers never touch
+"Play More Great Games!" in the Options dialog.

@@ -78,14 +78,15 @@ std::string WinDMApp::TestScreen()
 		return "loading";
 	if (GetDialog(DIALOG_RECORD_SCORE) != NULL)
 		return "recordscore";
-	if (GetDialog(DIALOG_OPTIONS) != NULL)
-		return "options";
-	if (GetDialog(DIALOG_HIGH_SCORES) != NULL)
-		return "highscores";
-	if (GetDialog(DIALOG_FULL_INSTRUCTIONS) != NULL)
-		return "help";
+	// the dialogs opened from the Options dialog (Help, High Scores) and the quit question lie over it
 	if (GetDialog(DIALOG_QUIT) != NULL)
 		return "quit";
+	if (GetDialog(DIALOG_FULL_INSTRUCTIONS) != NULL)
+		return "help";
+	if (GetDialog(DIALOG_HIGH_SCORES) != NULL)
+		return "highscores";
+	if (GetDialog(DIALOG_OPTIONS) != NULL)
+		return "options";
 	for (DialogMap::iterator anItr = mDialogMap.begin(); anItr != mDialogMap.end(); ++anItr)
 	{
 		if (anItr->first != DIALOG_INSTRUCTIONS)  // the first game's hint is no screen of its own
@@ -109,6 +110,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 	if (aCommand == "state")
 	{
 		std::string aLine = "STATE {\"screen\":\"" + aScreen + "\"";
+		aLine += mIsWindowed ? ",\"windowed\":true" : ",\"windowed\":false";
 		if (aBoard != NULL)
 		{
 			bool anOver = aBoard->mState == STATE_GAME_OVER || aBoard->mState == STATE_GAME_OVER_DONE;
@@ -116,13 +118,13 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				aScreen != "game";
 			aLine += StrFormat(",\"mode\":\"%s\",\"level\":%d,\"score\":%d,\"shown\":%d,\"start\":%d,\"target\":%d,"
 				"\"bar\":%d,\"drain\":%d,\"phase\":\"%s\",\"tick\":%d,\"moves\":%d,\"over\":%s,\"busy\":%s,"
-				"\"paused\":%s,\"newgame\":%s",
+				"\"paused\":%s,\"newgame\":%s,\"tutorial\":%s",
 				aBoard->mTimedMode ? "timed" : "normal", aBoard->mDisplayLevel, aBoard->mScore, aBoard->mDisplayScore,
 				aBoard->mLevelStartScore, aBoard->mLevelTargetScore, aBoard->mBarWidth, (int) aBoard->mTimeDrain,
 				PhaseName(aBoard->mState), aBoard->mUpdateCnt, aBoard->mMoveCount, anOver ? "true" : "false",
 				(aBoard->mState != STATE_PLAYING || aBlocked) ? "true" : "false",
 				(aBoard->mPauseCount > 0 || aBoard->mUserPauseCount > 0) ? "true" : "false",
-				aBoard->mIsNewGame ? "true" : "false");
+				aBoard->mIsNewGame ? "true" : "false", aBoard->mShowTutorial ? "true" : "false");
 			if (aBoard->mSelectedPiece != NULL)
 				aLine += StrFormat(",\"selected\":[%d,%d]", aBoard->mSelectedPiece->mCol, aBoard->mSelectedPiece->mRow);
 			// the board: a row a string, a gem by its colour's character, . for none
