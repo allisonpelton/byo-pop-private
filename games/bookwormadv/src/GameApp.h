@@ -35,6 +35,7 @@ class MainMenu;
 class MinigameMenu;
 class PopAnimManager;
 class Profile;
+class Tile;
 class TitleScreen;
 class TooltipWidget;
 class TreasureScreen;
@@ -172,6 +173,11 @@ public:
 	void LostFocus() override;              // 0x451160: the screens stop updating
 	// port: the test scripts' "word" (TestHooks.cpp)
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: test helpers (TestHooks.cpp): the board busy, its best word, and -boardlog's log of it
+	bool BoardBusyForTests();
+	std::string BestWordForTests(size_t theMax, std::vector<Tile*>& theOrder);
+	void LogBoardForTests();
+	std::string mBoardLogForTests;
 	// 0x44f5c0: through the sound player, not again within 5 updates
 	void PlaySample(int theSoundNum) override;
 	// 0x44f600: the same at a pan

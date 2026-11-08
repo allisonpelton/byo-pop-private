@@ -190,7 +190,9 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 				mChapterLoadUpdates.push_back(atoi(theParamValue.substr(aPos, aComma - aPos).c_str()));
 			aPos = aComma + 1;
 		}
-	} else if (theParamName == "-startloadupdates")
+	} else if (theParamName == "-boardlog")
+		mBoardLogForTests = theParamValue;  // port: tests with real input (TestHooks.cpp)
+	else if (theParamName == "-startloadupdates")
 		mStartLoadWanted = theParamValue.empty() ? -1 : atoi(theParamValue.c_str());
 	else
 		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
@@ -236,6 +238,8 @@ void GameApp::UpdateFrames()
 	// (the original's music interface did this in its Update, the end of SexyAppBase::UpdateFrames)
 	if (mSongPlayer != nullptr)
 		mSongPlayer->Update();
+	if (!mBoardLogForTests.empty())
+		LogBoardForTests();
 	// port: every 100 updates the original checked the trial's limits of its marketing modes (an hour's play,
 	// or the Hydra); the port is the full game
 	if (mCountsTime) {

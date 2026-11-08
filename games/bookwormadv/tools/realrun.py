@@ -13,6 +13,8 @@ The steps run on the wall clock, one per line ('#' starts a comment):
     text ABC            WM_CHAR for each character
     focus lose|regain   WM_ACTIVATEAPP, WM_ACTIVATE and WM_KILLFOCUS / WM_SETFOCUS, as visrun posts them
     minimize | restore  ShowWindow: the window really minimizes (SDL's MINIMIZED and focus events), then comes back
+    fight S             battles for S seconds: spells each board's word (the port's -boardlog=<file>, which this reads) and
+                        attacks, and moves conversations on with a click at the top every 4 s
     shot NAME           the window's own picture (PrintWindow) into <out dir>/NAME.png, the game's 800x600
 
 Positions are the game's 800x600: in full screen they are scaled to the client area as the game is (fitted, centred).
@@ -28,6 +30,8 @@ import subprocess
 import sys
 import threading
 import time
+
+BOARDLOG = None  # the game's -boardlog=<file>, for fight
 
 from PIL import Image
 
@@ -121,12 +125,76 @@ def xy(hw, x, y):
     return (y << 16) | (x & 0xffff)
 
 
+def click(hw, x, y):
+    # SDL 2 reads Windows' cursor, which sits in a corner of rundesk's desktop and sends moves of its own: a move
+    # posted just before the press and the release, in one burst, keeps them where they are meant (Seven Seas')
+    lp = xy(hw, x, y)
+    u32.PostMessageW(hw, 0x0200, 0, lp)
+    time.sleep(0.12)
+    u32.PostMessageW(hw, 0x0200, 0, lp)
+    u32.PostMessageW(hw, 0x0201, 1, lp)
+    time.sleep(0.06)
+    u32.PostMessageW(hw, 0x0200, 1, lp)
+    u32.PostMessageW(hw, 0x0202, 0, lp)
+
+
+def boards():
+    """The board lines the port wrote to its -boardlog file (GameApp::LogBoardForTests): (n, word, tiles, attack, scramble)."""
+    path = BOARDLOG
+    out = []
+    if path and os.path.exists(path):
+        for line in open(path):
+            f = line.split()
+            if len(f) < 4 or f[0] != 'board:':
+                continue
+            pts = [tuple(int(v) for v in t.split(',')) for t in f[3:] if ',' in t]
+            out.append((int(f[1]), f[2], pts[:-2], pts[-2], pts[-1]))
+    return out
+
+
+def fight(hw, p, seconds, note):
+    """Battles for the given seconds: each new board at rest gets its word spelled with clicks on its tiles and then
+    Attack, a board with no word a click on Scramble; between boards, a click every 4 s, at the top of the screen
+    (conversations) and on the map's Enter in turn."""
+    end = time.time() + seconds
+    seen = boards()
+    used = seen[-1][0] if seen else 0
+    next_talk = 0
+    talks = 0
+    while time.time() < end and p.poll() is None:
+        b = boards()
+        if b and b[-1][0] > used:
+            n, word, tiles, attack, scramble = b[-1]
+            used = n
+            if word != '-':
+                note('word %s' % word)
+                for x, y in tiles:
+                    click(hw, x, y)
+                    time.sleep(0.3)
+                time.sleep(0.4)
+                click(hw, *attack)
+                time.sleep(3)
+                continue
+            note('no word: scramble')
+            click(hw, *scramble)
+            time.sleep(3)
+            continue
+        if time.time() >= next_talk:
+            # a conversation moves on with a click; the map's Enter (the battle's Attack with no word does nothing)
+            click(hw, 400, 150 if talks % 2 == 0 else 575)
+            talks += 1
+            next_talk = time.time() + 4
+        time.sleep(0.3)
+
+
 def main():
     if '--' not in sys.argv:
         raise SystemExit(__doc__)
     i = sys.argv.index('--')
     steps, out = sys.argv[1:i]
     cmd = sys.argv[i + 1:]
+    global BOARDLOG
+    BOARDLOG = next((a.split('=', 1)[1] for a in cmd if a.startswith('-boardlog=')), None)
     os.makedirs(out, exist_ok=True)
     log = open(os.path.join(out, 'realrun.log'), 'w')
     game_log = open(os.path.join(out, 'game.log'), 'w')
@@ -169,16 +237,9 @@ def main():
         if op == 'move':
             u32.PostMessageW(hw, 0x0200, 0, xy(hw, int(args[0]), int(args[1])))
         elif op == 'click':
-            # SDL 2 reads Windows' cursor, which sits in a corner of rundesk's desktop and sends moves of its own: a
-            # move posted just before the press and the release, in one burst, keeps them where they are meant
-            lp = xy(hw, int(args[0]), int(args[1]))
-            u32.PostMessageW(hw, 0x0200, 0, lp)
-            time.sleep(0.12)
-            u32.PostMessageW(hw, 0x0200, 0, lp)
-            u32.PostMessageW(hw, 0x0201, 1, lp)
-            time.sleep(0.06)
-            u32.PostMessageW(hw, 0x0200, 1, lp)
-            u32.PostMessageW(hw, 0x0202, 0, lp)
+            click(hw, int(args[0]), int(args[1]))
+        elif op == 'fight':
+            fight(hw, p, float(args[0]), note)
         elif op == 'key':
             vk = int(args[0])
             sc = u32.MapVirtualKeyW(vk, 0)   # SDL takes the key from the scan code in lParam
