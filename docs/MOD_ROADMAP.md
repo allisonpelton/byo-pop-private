@@ -139,11 +139,16 @@ BookWorm:
   expanding mod for Bookworm. I also want to know how many new words it would add compared to base game, base + BWA2,
   base + Collins, and all of them together." Getting the APK is a download, so it needs the user's OK first, with its
   name, source and size.
+- "Bookworm solver mod shows '(when the tiles rest)' in the pause menu." (2026-11-07)
 
 Big Money:
 
 - "Big Money: does a puzzle bot perform better if it tries to only click coin groups with an even number of coins
   (since those could be groups from the original build)? Solver should stop thinking once level is unwinnable."
+- "Big Money pickpockets mod should have a toggleable option to stop the collection of extra bags in puzzle early if
+  no more bags can be obtained, using the solver." (2026-11-07)
+- "Big Money solver should have an option to show if a move would cause a money bag to be impossible to drop. Solver
+  should also show if there is no possible sequence of moves that can cause the level to be lost." (2026-11-07)
 
 Bookworm Adventures:
 
