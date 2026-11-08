@@ -167,7 +167,7 @@ played with DOM events in the Browser pane at `?silent=1`.
 | The pause menu's Quit and other zooming panels vanished instead of shrinking in 3D | TwistWidget::DrawAll (0x755cd2) zooms through the renderer's transform about the screen's middle when Direct3D draws; the port zoomed only in 2D | the same | ae814617 |
 | The end of a game took the 2D path in 3D | StartEndGame (0x714883) fades space in over the board only without Direct3D | the same | ae814617 |
 | The options' resolution did nothing | 0x6a006a keeps the new art size, writes "ArtRes" at shutdown and restarts the game; the port's art size was fixed | the same, natively and on the web | ae814617 |
-| A best move's replay from the high scores showed the score meter without its top, glass and pod in 3D | the tube's constructor clears its mClip (+0x41); with Direct3D the clip rectangle is in the screen's pixels after the replay board's 0.4 scale, so a clipped tube loses whatever it draws with a rotation or a stretch | the tube does not clip (in 2D a few pixels below it change and the suite's frozen screens were taken again) | ae814617 |
+| A best move's replay from the high scores showed the score meter without its top, glass and pod in 3D | the tube's constructor clears its mClip (+0x41); with Direct3D the clip rectangle is in the screen's pixels after the replay board's 0.4 scale, so a clipped tube loses whatever it draws with a rotation or a stretch | the tube does not clip (in 2D a few pixels below it change and the suite's frozen screens were taken again, and the frozen baseline exe at the merge c6915782) | ae814617 |
 | Alt-Tab out of full-screen 3D crashed | while the window is minimised no scene may begin; every draw fell to the software path and read pixels that live only on the GPU | a GPU display skips its frames while minimised | ba4b72b0 (shared) |
 
 ### Looked at and left
@@ -183,7 +183,26 @@ played with DOM events in the Browser pane at `?silent=1`.
   minimised full-screen game) and the 3D mouse, both fixed.
 - **The Zen tutorial's background** shows natively in 3D. The browser's Zen was not played yet.
 
+### Played by the port's own bot
+
+Later the same day the driver stopped choosing twists itself: its `play` step reads what the game prints for the test
+commands `state` and `move` (asked by a `-script` every 80 updates) and sends each twist as posted mouse messages, the
+hover and then the click. `goto <mode>` starts the game through the menu's own Play and mode buttons. Three whole games
+were played this way, with no script click and no autoplay:
+
+- **Blitz in 3D full screen**: 87 twists and 100,875 points, until a bomb's counter reached zero with 3:08 left on the
+  clock. That ends Blitz (a counter at zero ends Blitz and challenges, where Classic spins the wheel), and the game's
+  stats page followed.
+- **Zen in 3D full screen**: to level 4 and 24,650 points with the Zen background. Then the tube's menu button, Main
+  Menu and Yes in "Save and Quit", which brought back the title screen.
+- **Classic in 2D windowed**: to level 4 and 28,750 points. Then a bomb's wheel, which `move` stops as -autoplay does,
+  landed on a skull, and the game ended at "Rank Up!".
+
+Two faults of the test path were fixed on the way: `goto <mode>` called the menu's StartGame directly, which left the
+play portal over the board and Blitz's clock stopped (mPlayPressed unset), and a `-script` run had dropped the posted
+input, then let focus changes pause the game (shared commits 10a79f05 and a3b6df9c).
+
 ### Still to play
 
-Zen and Blitz to their ends, 2D, windowed mode and a whole game in the browser, now with the test commands (NOTES.md,
-"Test commands") to reach a mode or level and real input for the moves.
+A whole game in the browser, with real DOM events from a driver on the page. It waits for the live test commands on the
+web (`byopop_test_command`, on the shared branch), since without them a page driver cannot ask the game for its move.

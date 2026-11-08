@@ -134,21 +134,21 @@ var ByopopImport = (function () {
   }
 
   // The icon in the install's exe, for a game that does not store its exe (importIcon): the first .exe at the root that is not
-  // an uninstaller or setup. Resolves with a PNG data URL, or "".
+  // an uninstaller or setup. Resolves with {url: a PNG data URL or "", built: the exe's link year or 0} (ByopopExeIcon.built).
   var SKIP_EXE = /^(popuninstall|uninstall[^\/]*|unins\d*|setup[^\/]*|dxsetup|[^\/]*redist[^\/]*|[^\/]*updater[^\/]*)\.exe$/i;
   function exeIcon(entries, root) {
-    if (!window.ByopopExeIcon) return Promise.resolve("");
+    if (!window.ByopopExeIcon) return Promise.resolve({ url: "", built: 0 });
     var exes = entries.filter(function (e) {
       var rel = under(e, root) ? e.path.substring(root.length) : "";
       return /^[^\/]+\.exe$/i.test(rel) && !SKIP_EXE.test(rel);
     }).slice(0, 4);
     return exes.reduce(function (p, e) {
-      return p.then(function (url) {
-        if (url) return url;
+      return p.then(function (got) {
+        if (got.url) return got;
         return e.read().then(function (bytes) { return ByopopExeIcon.fromBytes(bytes); })
-          .then(function (icon) { return (icon && icon.dataUrl) || ""; }, function () { return ""; });
+          .then(function (icon) { return { url: (icon && icon.dataUrl) || "", built: (icon && icon.built) || 0 }; }, function () { return got; });
       });
-    }, Promise.resolve("")).catch(function () { return ""; });
+    }, Promise.resolve({ url: "", built: 0 })).catch(function () { return { url: "", built: 0 }; });
   }
 
   // ---------- which game a folder is ----------
@@ -452,8 +452,8 @@ var ByopopImport = (function () {
         return writeGame(spec.persist, ordered(spec, files), function (n, total) { if (say) say(ByopopStrings.t("import.say.progress", {percent: Math.round(n * 100 / total)})); },
           function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} })  // the old copy is gone
           .then(function () { return icon(spec, all, root, files); })
-          .then(function (url) {
-            try { ByopopGameFiles.mark(spec.id); if (url) ByopopGameFiles.setIcon(spec.id, url); } catch (e) {}
+          .then(function (got) {
+            try { ByopopGameFiles.mark(spec.id); if (got.url) ByopopGameFiles.setIcon(spec.id, got.url, got.built); } catch (e) {}
             try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
             return files.length;
           });
@@ -476,13 +476,14 @@ var ByopopImport = (function () {
   // The game's icon for the record: from the install's exe (importIcon), or from the exe it stores (the largest of its .exe files)
   function icon(spec, all, root, files) {
     if (spec.importIcon) return exeIcon(all, root);
-    if (!window.ByopopExeIcon) return Promise.resolve("");
+    var none = { url: "", built: 0 };
+    if (!window.ByopopExeIcon) return Promise.resolve(none);
     var exes = files.filter(function (f) { return /\.exe$/i.test(f.rel) && f.rel.indexOf("/") < 0; });
     return Promise.all(exes.map(function (f) { return f.read(); })).then(function (datas) {
       var big = null;
       datas.forEach(function (d) { if (!big || d.length > big.length) big = d; });
-      return big ? ByopopExeIcon.fromBytes(big).then(function (i) { return (i && i.dataUrl) || ""; }) : "";
-    }).catch(function () { return ""; });
+      return big ? ByopopExeIcon.fromBytes(big).then(function (i) { return { url: (i && i.dataUrl) || "", built: ByopopExeIcon.built(big) }; }) : none;
+    }).catch(function () { return none; });
   }
 
   return { markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,

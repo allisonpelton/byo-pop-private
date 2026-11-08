@@ -742,8 +742,17 @@ and drawn only in a skin, so changing the skin needs no script.
 faint under them (the user, 2026-11-07: "Add the game's icon so it shows semi-faint under the game's initials"), the icon read
 out of the player's own exe at the import (web/exeicon.js) and never shipped or redrawn; Plain shows the icon alone, as before.
 In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
-its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps"). The design's other studies (the flip record,
-prints, wear and the date on a cap) are not built.
+its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps").
+The other studies are on the cap of a game whose files are here, in every skin, from what this browser already keeps
+(`capStudies` in web/index.html; drawn by web/skins.css, hidden from assistive technology since the card says the same). **The
+record under the cap**: on hover or the card's focus the cap turns over to its liner, with the plays, the play time and the
+last day played (ByopopPlay). A best score would need, for each game, where its saves keep it, and is not shown. **The print
+of the copy**: the year the copy's exe was linked (`ByopopExeIcon.built`, its PE header's time stamp, read with the icon and
+kept in the record as `built`) against the game's release year: a year stamp on the rim when it was built in the first year, a
+ring for a later re-release (two years on or more), and nothing between. No store is named. **Wear from play**: a scratch at
+10 hours, a dent and a tilt at 40, patina at 100. **The date under the crimp**: the day this copy came in (`opened` in the
+record, set when a new copy is marked and kept while it is there), short, on the rim; a record from before it was kept has
+none until the files are added again.
 
 **Desktop 95's windows.** In B a game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The controls (the
 page's bar, with the sound switch), the game, the chat and every panel (Settings, Game files, Mods and the game's own) are
@@ -752,8 +761,9 @@ column of icons at the left opens each one again. The game window can be closed 
 panel's own button on the bar. The game window is always pixel-perfect: one canvas pixel for each game pixel, or the largest
 whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Where the windows are, and whether the
 game window is closed, is kept for each game in the localStorage item `byopop-desk`. The footer lies along the bottom like a
-task bar. Each game keeps its own page, so a game's address still opens that game; the listing is its own desktop, its
-content in one window, and does not move. On a screen under 760 pixels wide, or in another skin, the page is laid out as
+task bar. Each game keeps its own page, so a game's address still opens that game. The listing is its own desktop: the games
+(with their tabs) in one window and the page's notes in another, each dragged, closed and opened from its icon like a game
+page's, and kept under "index". On a screen under 760 pixels wide, or in another skin, the page is laid out as
 usual. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
 title, ...})`. The parody keeps to the rules of the skins: everything drawn here, system fonts by name, no real logos, icons
 or sounds, and no imitation system prompts.
@@ -1518,6 +1528,37 @@ every game has them. What wrong sizes did in testing:
   mrmoneybags' height, the bill cels and title heights from their images; the cobrand image is optional.
 - BookWorm: `tile_fire_fx1` must be at least 57 px tall and the ember and spark images square (else a modulo by
   zero). `wordlist.txt` has no stand-in, and without `bookworm.exe` the game's texts are empty (GameText).
+
+## The performance panel
+
+A game page shows its performance panel while the site setting "Performance panel" (`perf`, the Display group) is on; it is
+off by default (`web/perf.js`). In Desktop 95 it is a window of the desktop with its own icon. It only reads, so the game
+plays the same with it on. With it off nothing of it runs: no animation frame, observer, timer or wrapped WebGL call. Its
+link in the framework's frame hook returns at once, and the hook's own cost is two clock reads a frame. Each second it shows
+the following.
+
+- **Frames:** frames per second and frame time (average and longest), from requestAnimationFrame. Also the game's own time
+  per frame: the framework's frame hook (`sexyapp_test_frame`, `Module.byopopTestFrame`) passes the time
+  `EmscriptenMainLoop` spent on the frame's updates and draw.
+- **Updates:** updates per second, and catch-up frames, those that ran more than one update. Both come from
+  `byopop_update_count` read at each frame.
+- **Main thread:** the game's share of the page's main thread (its frame time over the second), and the long tasks the
+  browser reports, those over 50 ms (count and share). Both are labelled as shares of the one thread the page runs on,
+  never as the computer's CPU use.
+- **Memory:** the wasm heap's size and the bytes malloc has handed out, and the framework's images (its MemoryImage set,
+  counting pixels and the blitters' caches) and loaded sounds (their samples), with their bytes. These come from
+  `byopop_perf_json`, a web-only, read-only framework call, made once a second while the panel is open. Also the
+  JavaScript heap where the browser gives it (`performance.memory`), and the site's storage used and quota
+  (`navigator.storage.estimate`, every 10 s).
+- **Graphics:** once the game has drawn, the WebGL context it draws with (GPUInterfaceGL's, the one `getContext` gives
+  back) has its draw, texture-upload and buffer calls counted by wrapping them while the panel is on; turning the panel
+  off puts the originals back. The panel shows draw calls per frame, uploads per second and the bytes uploaded, and the
+  renderer's name. GPU time per frame comes from a timer query only where the browser really offers
+  `EXT_disjoint_timer_query` (or its WebGL 2 form), with disjoint results dropped. A query runs from one frame's end to
+  the next, so it times that frame's GL work. A game drawing without WebGL says so. The panel never asks for a context
+  before the game has made its own, since that would make one and take the canvas from the game.
+- **Sound:** the audio context's `baseLatency` and `outputLatency`, the mixed sound queued ahead of what the context has
+  played, and how often the queue ran dry (`Module.byopopAudio`, "Sound" below).
 
 ## The player-only page
 
