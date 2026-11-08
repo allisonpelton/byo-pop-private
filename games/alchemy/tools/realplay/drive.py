@@ -23,6 +23,7 @@ Steps (run in order in one game process; a step ends when its goal is reached or
                           game's side, so this only shows the driver sent them; the focus pass uses -realinput)
     quit                  the side panel's quit button, then Yes
 
+Script lines: --line "<update> <command>" adds one (focus lose, focus regain at fixed updates), repeatable.
 Limits: --game-seconds N caps one game (default 420). --stop-after-pieces N ends a game early by `lose` (not real input,
 only to bound a run). Exit code 0 when every step reached its goal.
 """
@@ -52,14 +53,16 @@ class Failure(Exception):
 
 
 class Game:
-    def __init__(self, out, seed=1, updates=120000, step=5, extra=()):
+    def __init__(self, out, seed=1, updates=120000, step=5, extra=(), lines=()):
         self.out = os.path.abspath(out)
         os.makedirs(self.out, exist_ok=True)
         self.log = open(os.path.join(self.out, 'drive.log'), 'w', buffering=1)
         script = os.path.join(self.out, 'script.txt')
         with open(script, 'w') as f:
-            for n in range(0, updates, step):
-                f.write('%d state\n%d move\n' % (n, n))
+            allv = [(n, 'state') for n in range(0, updates, step)] + [(n, 'move') for n in range(0, updates, step)]
+            allv += [(int(ln.split()[0]), ln.split(None, 1)[1]) for ln in lines]   # e.g. "4000 focus lose"
+            for n, cmd in sorted(allv, key=lambda v: v[0]):
+                f.write('%d %s\n' % (n, cmd))
         self.shotreq = os.path.join(self.out, 'shot.req')
         env = dict(os.environ, BYOPOP_POSTED_INPUT='1', BYOPOP_SHOT_REQUEST=self.shotreq)
         self.stdout_path = os.path.join(self.out, 'stdout.txt')
@@ -79,6 +82,7 @@ class Game:
         self.pending_move = None
         self.sent = None          # (signature, time) of the last move sent
         self.last_places = 0
+        self.last_tut = None
         self.stats = dict(places=0, forges=0, clicks=0, dialogs=0, retries=0)
         self.say('window %r' % self.title())
 
@@ -184,7 +188,12 @@ class Game:
             for ln in lines:
                 ln = ln.rstrip('\r')
                 if ln.startswith('STATE '):
+                    prev = (self.state or {}).get('active', True)
                     self.state = json.loads(ln[6:])
+                    if self.state.get('active', True) != prev:
+                        b = self.state.get('board') or {}
+                        self.say('focus: active now', self.state.get('active'), 'at update', self.state['updates'], 'score',
+                                 self.state.get('score'), 'moves', b.get('moves'), 'paused', b.get('paused'), 'muted', self.state.get('muted'))
                     self.pending_move = None
                     fresh = self.state
                 elif ln.startswith('MOVE ') and self.state is not None:
@@ -204,6 +213,8 @@ class Game:
                           sort_keys=True)
 
     def act(self, mv):
+        if not self.state.get('active', True):
+            return          # a player cannot click a window that does not have the focus
         sig = self.signature(self.state) + mv['kind']
         now = time.time()
         if self.sent and self.sent[0] == sig and now - self.sent[1] < 1.5:
@@ -290,6 +301,10 @@ class Game:
                 if name not in seen and (b.get('state') in ('cleared', 'ending', 'gameover') or st['screen'] in ('highscores',) or st.get('dialog')):
                     seen[name] = 1
                     self.shot('%s-%s-%s-%s' % (tag, b.get('state'), st['screen'], st.get('dialog') or 'x'))
+                tut = (b.get('tutorial') or {})
+                if tut and (tut.get('step'), tut.get('waiting')) != self.last_tut:
+                    self.last_tut = (tut.get('step'), tut.get('waiting'))
+                    self.shot('%s-step%02d%s' % (tag, tut['step'], 'w' if tut.get('waiting') else ''))
                 if self.stats['places'] // 60 != self.last_places // 60:
                     self.last_places = self.stats['places']
                     self.shot('%s-play%04d' % (tag, self.stats['places']))
@@ -332,6 +347,7 @@ class Game:
 def main():
     args = sys.argv[1:]
     seed, updates, game_seconds = 1, 120000, 420
+    lines = []
     steps = []
     out = args.pop(0)
     while args:
@@ -342,12 +358,14 @@ def main():
             updates = int(args.pop(0))
         elif a == '--game-seconds':
             game_seconds = int(args.pop(0))
+        elif a == '--line':
+            lines.append(args.pop(0))
         else:
             steps.append([a])
             n = {'game': 2, 'shot': 1, 'wait': 1, 'focus': 1}.get(a, 0)
             for _ in range(n):
                 steps[-1].append(args.pop(0))
-    g = Game(out, seed=seed, updates=updates)
+    g = Game(out, seed=seed, updates=updates, lines=lines)
     code = 0
     try:
         for st in steps:
