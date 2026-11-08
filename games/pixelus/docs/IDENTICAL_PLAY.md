@@ -101,6 +101,11 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
 | Island screen (30% of the picture differed) | 0x4163e0, 0x416950: a panel with the island's text and the page of the temple under the mouse (0x414750, 0x414bf0), hover glow, arrow bounce, lightning, gulls and surf at random draws of the application's generator, sea and smoke cross-fade baked into the background, a new temple comes in 1.1 s after the map opens | `IslandMap`/`IslandPanel` follow it; the island's particle bursts (Rumble, PauseBloom) and the pointer follower are not ported yet |
 | Mouse-over sound on a temple | 0x416180 plays sample 16 on entering, 0x4163e0 plays sample 10 after 50 updates on one temple with the pitch set by the temple's index | the same |
 
+The frozen baseline (build/baseline-pixelus) was refreshed on 2026-11-08: the island now draws the application's generator as the
+original does (three draws in its constructor, then the lightning, gulls and surf timers), so the state logs differ from the
+phase-one baseline only in their `apprand` lines; the game's own state and its draws are identical (the old exe is kept as
+`pixelus.phase1.exe`).
+
 ## Phase two findings so far (not fixed; found by those shots)
 
 - The original cross-fades between screens (help to island, board to the completed screen, temple to board); the port
