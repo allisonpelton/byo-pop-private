@@ -98,6 +98,25 @@ and the frozen baseline) gives the same results as before them.
 | `unlock all` | ERROR: the game has nothing locked |
 | `move` | `MOVE {"kind","input":[{"move":[x,y]},{"click":[x,y]}],"updates"}` (the steps are docs/TEST_COMMANDS.md's ordered list; the high score's name is `{"key":"B"},{"key":"o"},{"key":"t"}` before its click): what the bot does next on this screen, in game coordinates. `kind` is start (the title's button), play, mode, dialog (the tips dialog's default button), drop (a column; `column` is the number), continue (the level summary's button), unpause (the pause image is up: a click on it; while the window is inactive it is wait), name (types "Bot" and clicks OK), or wait (no input, `updates` to wait: the game is busy). It answers for the whole game, from the title to the game over screen, and is `MOVE null` only once the game is over. The column is `-autoplay`'s choice (`BotChooseColumn`: the biggest group the block joins, else one of the emptiest columns), with dice that are a function of the update and `botseed`, so asking twice gives the same move. |
 
+## Deviations from the original
+
+The port is the original except for what is listed here, each with its reason.
+
+**Loading at the machine's speed** (`LoadBarProc`, `src/App.cpp`; the user, 2026-11-07: "Let's make faster loading a core part of
+the recomps instead of a mod"). The original's title screen loads one of its 229 sounds, music tracks and texts a frame, and only
+when more than the bar's step (1 ms) has passed since the last, so its bar fills at a crawl however fast the entries load. The port
+loads, each frame the bar is drawn, as many entries as fit 10 ms of the game clock (`kLoadSliceMs`), in the original's order, so the
+bar still draws between the slices and the window stays alive; like the original it waits while a dialog is over the bar; on a clock
+that stands still (under `-fast`, or while the game is paused) it loads them all at once. The bar and the "click here to play"
+button come sooner, and nothing else changes: loading draws no random number. The numbers are under "Performance" below.
+One consequence for the tests: the game seeds `rand` from the game clock when the first block is chosen (`seededBlocks` is the
+mod's fix for that), so a game after a title screen of another length is another game. With the blocks following the seed (the
+fixes mod on), the check's three mouse-played cases give the old build's state logs, update for update, shifted by the 202 updates
+the title takes less under `-fast` (`tools/perf/equiv.sh`, which compares the pair with `tools/perf/cmp_offset.py`). Without the
+mod the three cases play other games than before, so `tools/check.sh`'s expected results (`TT_REGULAR`, `TT_STRATEGY`, `TT_SPEED`)
+and the frozen baseline moved with it: `build/baseline-tiptop/` is the port at the commit of this change
+(`FROZEN_AT.txt`), the phase-one baseline kept beside it as `build/baseline-tiptop-phase1/`.
+
 ## Fix candidates and the fixes mod (`mods/fixes`, `src/ModFeatures.cpp`)
 
 The port is the original; these are what the original wastes or leaves to chance, kept in the port and mended by the fixes mod

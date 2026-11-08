@@ -14,7 +14,9 @@ read from the process's memory every 2 ms, equals its total): the same variable 
 
 The scripted minute: the click sequence of phase two's tour 2 (games/tiptop/tools/shots/tour2.txt), the same real clicks for
 both: the title's button, the menu's Play, Regular on the new game screen, the tips' button, then one click on a column every
-610 ms, 100 of them. It starts at the moment the title accepts its first click. The window measured is the 60 seconds
+610 ms, 100 of them. It starts when the title accepts its first click: the port's driver clicks the moment the load bar is full;
+the original's script waits --orig-load seconds (the load time that `orig` measured in an earlier run, plus a margin), since a
+click that came before the bar was full is lost and a second one would land on the menu. The window measured is the 60 seconds
 from the game screen's first appearance (the screen value, 0x4887ec in the original; the driver's own state in the port).
 Memory (peak working set, peak private bytes) and processor time (user + kernel seconds) are sampled every 100 ms over the
 whole run and over the window; the other game processes on the machine are counted at the start and the end.
@@ -166,6 +168,7 @@ class Sampler(threading.Thread):
         self.proc, self.loaded_addr, self.count_addr, self.screen_addr = proc, loaded_addr, count_addr, screen_addr
         self.stop_flag = False
         self.samples = []          # (seconds since creation, working set, private bytes, cpu seconds)
+        self.bar_at = None         # seconds since creation, the bar created (its total is set)
         self.loaded_at = None      # seconds since creation, the bar full
         self.game_at = None        # the game screen first seen (originals: read from memory)
         self.last_mem = 0.0
@@ -176,6 +179,8 @@ class Sampler(threading.Thread):
             t = now - self.proc.created
             if self.loaded_at is None:
                 a, b = self.proc.read32(self.loaded_addr), self.proc.read32(self.count_addr)
+                if b and self.bar_at is None:
+                    self.bar_at = t
                 if a is not None and b and a == b:
                     self.loaded_at = t
             if self.screen_addr and self.game_at is None and self.proc.read32(self.screen_addr) == SCREEN_GAME:
@@ -209,8 +214,8 @@ def wait_for_game(parent_pid, exe_name, timeout=60):
 # the scripted minute: the clicks of tour 2 after the tips, as columns, and its first steps (seconds after the first click)
 COLUMNS = [317, 245, 389, 353, 281, 425, 353, 317, 353, 317, 317, 353, 497, 317, 281, 461, 461, 389, 461, 245, 497, 353, 353,
            353, 425, 317, 281, 317, 425, 281]
-STEPS = [(0.0, 186, 288), (1.01, 186, 288), (2.02, 186, 288), (3.04, 165, 88), (4.06, 232, 185), (5.63, 500, 388)]
-FIRST_COLUMN = 6.64
+STEPS = [(0.0, 186, 288), (1.02, 165, 88), (2.04, 232, 185), (3.61, 500, 388)]  # the title's button, Play, Regular, the tips' button
+FIRST_COLUMN = 4.62
 COLUMN_EVERY = 0.61
 NCOLUMNS = 100
 
@@ -224,7 +229,9 @@ def schedule():
 
 def summarize(s, label, window):
     MB = 1 << 20
-    res = {"label": label, "loaded_s": s.loaded_at, "game_at_s": s.game_at}
+    res = {"label": label, "bar_created_s": s.bar_at, "loaded_s": s.loaded_at, "game_at_s": s.game_at}
+    if s.bar_at is not None and s.loaded_at is not None:
+        res["bar_fill_s"] = round(s.loaded_at - s.bar_at, 3)
     samples = s.samples
 
     def peak(lo, hi):
@@ -322,9 +329,11 @@ def run_orig(args):
             lines.append("wait %d" % w)
         lines += ["move %d %d" % (x, y), "click %d %d" % (x, y)]
     lines += ["wait %d" % int((args.seconds + 5) * 1000), "quit"]
+    if args.probe:
+        lines = ["# probe: only wait for the load", "wait 25000", "quit"]
     script.write_text("\n".join(lines) + "\n")
     cmd = [str(ORIGRUN), "--game", "tiptop", "--run", STAGE_RUN, "--stage-root", STAGE_ROOT, "--patches", str(patches), "--seed", "1",
-           "--clock", "real", "--cursor", "scripted", "--sound", "stub", "--timeout", str(int(args.orig_load + 6.64 + 61 + args.seconds + 40)),
+           "--clock", "real", "--cursor", "scripted", "--sound", "stub", "--timeout", str(int(args.orig_load + FIRST_COLUMN + 61 + args.seconds + 40)),
            "--script", str(script)]
     mine_before = other_game_processes(set())
     logf = open(out / "origrun.log", "wb")
@@ -335,6 +344,8 @@ def run_orig(args):
         s = Sampler(proc, 0x489eb4, 0x489eb8, 0x4887ec)
         s.start()
         while p.poll() is None and (s.game_at is None or time.time() - proc.created < s.game_at + args.seconds):
+            if args.probe and s.loaded_at is not None and time.time() - proc.created > s.loaded_at + 2:
+                break
             time.sleep(0.05)
         final = {"screen": proc.read32(0x4887ec)}
         s.stop_flag = True
@@ -363,6 +374,7 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--seconds", type=float, default=60)
     ap.add_argument("--modsdir", default=None)
+    ap.add_argument("--probe", action="store_true", help="orig: only measure the load, play nothing")
     ap.add_argument("--orig-load", type=float, default=8.0, help="seconds the original's script waits before its first click")
     args = ap.parse_args()
     args.label = args.label or args.kind
