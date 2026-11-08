@@ -128,8 +128,17 @@ path in the time the line takes (`Safe`), and when it finds none for 30 asks in 
 anyway, so a board always ends. It plays the game's own rules from the game's own state, one shot at a time, and a mod
 that adds a bot can reuse it as it is.
 
-The drivers are `games/cosmicbugs/tools/play/drive.py` (the exe under rundesk with `-commands -realinput`) and the web
-page's `?driver=move`: they send `move`'s steps as real mouse and key events and never pick a move themselves.
+The drivers send `move`'s steps as real mouse and key events and never pick a move themselves. Natively
+`games/cosmicbugs/tools/play/drive.py` runs the exe under rundesk with `-commands -realinput` (SDL's own queue, the
+path a hand's input takes) through a whole game of each configuration the player has (the shooter manual or auto, in the
+full screen the game starts in and in a window): the title, the options, Start Game, the instructions page, Play, the boards
+on the bot's shots to the game over, the Hall of Fame and back to the title, with Esc and Enter and a focus loss and regain on
+the first board. On the web `games/cosmicbugs/tools/web/play.js` is a page driver (`?player=1&assets=cosmicbugs&silent=1&hold=1
+&driver=games/cosmicbugs/tools/web/play.js`, with `&shooter=manual|auto`, `&scale=2` to draw the canvas at twice its size, as
+a full screen does, and `&fast=1` for a hidden pane) that does the same through `byopop.test`'s DOM events and its `blur` and
+`focus`; its result says how many boards it played and how often the focus had to be given back (`regains`, which counts
+a window that lost its focus by itself, as the pane can between two calls of the tool that drives it: the game stands still
+then, as the original's does, until the focus is back). The results are in IDENTICAL_PLAY.md, "Phase three".
 
 ## Registration and links
 
@@ -179,6 +188,53 @@ none is a wait that costs the player time for nothing, so none is a fix. The bug
 The original's own chances are not fixes here: whether a beam an enemy touched gets a rider (the heap's chance,
 IDENTICAL_PLAY.md, "Oddities") is already one outcome in the port, so a run plays the same every time.
 
+## Performance (measured 2026-11-08, `tools/perf/perf.py`)
+
+The original and the port back to back on one machine (20 logical cores), in real time, invisibly and silently, windowed
+and on a fresh save: the port under rundesk (`build/native/rundesk.exe python games/cosmicbugs/tools/perf/perf.py port`),
+the original through origrun from a copy under `build/origrun` (`perf.py orig`), unpatched (the game is the full version
+already). Each side runs the same timeline in the game's own updates (its step counter, one a millisecond, read from the
+process's memory: 0x460a1c in the original, the port's `cb::gFrame`): the load, the title idle from update 3000 to 12000
+(the logo's two seconds come first), Start Game at 13000, Play at 14500, and the first board with no input from 16000 to 46000
+(30 s). `--verify` checks that the clicks reach it (the original's current level kind watched in memory: the logo, the
+title at update 2162, the instructions page at 13000, a board at 14505; the port's `state`). The machine was not quiet: 2 to 5 other game
+processes of other sessions ran at the start and the end of each run (each `result.json` has the count), so the numbers
+compare the two sides; the performance pass measures again on a quiet machine. The web build was not timed: the Browser pane is
+hidden here and draws about every third of a second, so a time there measures the pane.
+
+**The original's numbers:** it paces its frames with `Present(1)`, which waits for the display's refresh, and the hidden
+desktop the tests run it on has none, so the unpatched original spins at 75 to 96 per cent of a core. Both are shown. The paced
+rows make its main loop sleep 16 ms a pass (`perf.py orig --paced 16`; a patch of 11 bytes at 0x41f063, where the loop timed
+its `Present` call for a value nothing reads, as a 60 Hz screen's wait would), which is what a player sees.
+
+*Loading*, seconds from the process's creation to the first update (the step counter leaves 1: the game loads everything
+before its first frame, in one go, so nothing here is sliced and no loading change was needed), and the processor time
+spent until then:
+
+| | Launch to the first update | Processor time |
+|---|---|---|
+| Original | 0.41, 0.42, 0.43, 1.03 (1.58 in the very first run after its copy was made) | 0.36 to 0.52 s |
+| Port | 0.57, 0.62, 0.86 | 0.55 to 0.78 s |
+
+The port's log says "Resource Loading Time" 0.5 s of that: the game's own start (`GameStart`: the art banks, the fonts and
+the game file, as the original's does). The two are within noise of each other (a cold file cache adds a second to
+either), so the port's loading stands as it is.
+
+*Memory and processor time*, the same timeline on both sides (the table is processor time as a share of one core, and as
+seconds in the window):
+
+| | Peak working set | Peak private bytes | Title, 9 s | First board, 30 s |
+|---|---|---|---|---|
+| Original, unpaced (spinning) | 101.0, 111.2 MB | 88.8, 92.3 MB | 95 % (8.5 s), 76 % (6.8 s) | 96 % (28.9 s), 89 % (26.8 s) |
+| Original, a pass every 16 ms (60 Hz) | 101.0, 101.0 MB | 88.4, 88.8 MB | 13.9 % (1.25 s), 10.7 % (0.97 s) | 5.6 % (1.69 s), 4.7 % (1.41 s) |
+| Port | 129.7, 129.5, 129.4 MB | 130.4, 130.1, 130.2 MB | 19.9 % (2.0 s), 23.4 % (2.1 s), 26.5 % (2.4 s) | 18.4 % (5.5 s), 18.6 % (5.6 s), 18.3 % (5.5 s) |
+
+Each window held 9000 or 30000 updates on both sides in the same time (30.0 s), so the compared work is the same. Read it
+plainly: the port loads as fast as the original and, unlike the unpatched original, does not spin; against the original at 60 Hz it
+holds about 40 MB more and uses about three times the processor time (a fifth of a core against a twentieth), which is for the
+performance pass (the framework's frame loop, the renderer's full-frame upload and the audio mixer are the places to look).
+The port's runs also have the test channel's two input files polled.
+
 ## Where the work was hard
 
 Time. The original steps the game once for every millisecond that passed, then draws once (GameFrame, 0x41ee60
@@ -204,4 +260,7 @@ the browser's full screen.
 
 `CMakeLists.txt` (the `BUILD_COSMICBUGS` option), `tools/check.sh` (the `cosmicbugs` suite) and `.claude/launch.json`
 (the `cosmicbugs-web` preview on port 18788). The web page also needs `BYOPOP_BUY_cosmicbugs` in
-`cmake/ByopopStores.cmake`, which the coordinator keeps.
+`cmake/ByopopStores.cmake`, which the coordinator keeps. The finishing pass added two shared commits: `cmake/ByopopWeb.cmake`
+takes Cosmic Bugs off `BYOPOP_WEB_NO_MODS` (so its page installs the fixes mod), and `web/testkit.js` had a backspace character
+where its ANSWER pattern meant a word boundary, so a command answered `MOVE null` was never matched and
+`byopop.test.command` timed out after every busy move.
