@@ -124,7 +124,7 @@
 #                Dynasty Adventure stage from a new player (the name, the map, stage 1 won with the solver's clicks, the
 #                level's end and the map again) twice with the same screens, which are the frozen baseline's (under a
 #                minute)
-#   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 6000 and a Blitz game to its
+#   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 5156 and a Blitz game to its
 #                end and the high scores, with the same screens as frozen, a Classic rerun, and
 #                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one (about a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
@@ -214,8 +214,8 @@ MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of 
 MJC_DEAL="178 layouts, 0 failed"
 MJC_SHOTS="4c18c17f02f2 b63352c04770 7a72965e0cee"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
-BT_CLASSIC="88e59f1eea61 09a91df3e98c e3c6a8be742e d74b5d48af8d"  # the first 12 hex digits of the sha256 of the Classic game's screens at 1500, 3000, 4500 and 6000: the frozen baseline
-BT_BLITZ="ab1694d03775 1f8185cf7e89 1e17f35d7b03 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 3500, 6000, 8000 (the explosion), 8450 (space, on the way to the scores) and 9000 (the high scores)
+BT_CLASSIC="88e59f1eea61 291f70580d89 dd8e6206d1bf 0bc138035904"  # the first 12 hex digits of the sha256 of the Classic game's screens at 656, 2156, 3656 and 5156: the frozen baseline
+BT_BLITZ="8ef83c337f3e 9c9ceb17343f e69ac2a54d49 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -1917,23 +1917,23 @@ twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a see
 suite_bejeweledtwist() {
 	local st=0 c b r sh bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
 	need_assets bejeweledtwist || return 1
-	c="$(twist_game classic "$exe" 1 6010 1500 3000 4500 6000)"
-	b="$(twist_game blitz "$exe" blitz 9010 3500 6000 8000 8450 9000)"
-	r="$(twist_game classic2 "$exe" 1 6010 1500 3000 4500 6000)"
+	c="$(twist_game classic "$exe" 1 5166 656 2156 3656 5156)"
+	b="$(twist_game blitz "$exe" blitz 8166 2656 5156 7156 7606 8156)"
+	r="$(twist_game classic2 "$exe" 1 5166 656 2156 3656 5156)"
 	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; } > "$1"
 	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
 	if [ -n "$c" ] && [ "$c" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-bejeweledtwist/, a copy of the port with its DLLs made when it was last
 	# checked against the original): the same games must give the same screens
 	if [ -f "$base" ]; then
-		if [ "$(twist_game base-classic "$base" 1 6010 1500 3000 4500 6000)" = "$c" ] &&
-			[ "$(twist_game base-blitz "$base" blitz 9010 3500 6000 8000 8450 9000)" = "$b" ]; then
+		if [ "$(twist_game base-classic "$base" 1 5166 656 2156 3656 5156)" = "$c" ] &&
+			[ "$(twist_game base-blitz "$base" blitz 8166 2656 5156 7156 7606 8156)" = "$b" ]; then
 			bl="; baseline identical"
 		else
 			bl="; BASELINE DIFFERS"; st=1
 		fi
 	fi
-	SUMMARY="Classic to 6000 and Blitz to its high scores, 9 screens; $r; $sh$bl"
+	SUMMARY="Classic to 5156 and Blitz to its high scores, 9 screens; $r; $sh$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ')"
 	return $st
 }
