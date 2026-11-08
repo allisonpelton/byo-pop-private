@@ -62,7 +62,6 @@ WinDMApp::WinDMApp()
 	mMissingSounds = 0; // port(variant)
 	mTitleScreen = NULL;
 	mBoard = NULL;
-	mNoPopLink = false;
 
 	mProdName = "Bejeweled";
 	// port: the original's SexyAppBase ctor reads this from the exe's version resource (ProductVersion)
@@ -385,13 +384,6 @@ bool WinDMApp::DrawDirtyStuff()
 	if (aDrew && mLoaded && gGameConfig.mFeatures.mLean && (gGameConfig.mFeatures.mLeanFrameRate > 0))
 		mNextDrawTick = mLastDrawTick + 1000 / gGameConfig.mFeatures.mLeanFrameRate;
 	return aDrew;
-}
-
-// 0x4d4592
-void WinDMApp::URLOpenSucceeded(const std::string& theURL)
-{
-	SexyApp::URLOpenSucceeded(theURL);
-	KillDialog(DIALOG_OPENING_BROWSER);
 }
 
 // 0x4d45b1
@@ -766,31 +758,6 @@ std::string WinDMApp::GetGameSEHInfo()
 	return SexyApp::GetGameSEHInfo();
 }
 
-// 0x4d4e97
-void WinDMApp::URLOpenFailed(const std::string& theURL)
-{
-	SexyApp::URLOpenFailed(theURL);
-	KillDialog(DIALOG_OPENING_BROWSER);
-
-	SexyString aLines = GetString("URL_OPEN_ERROR1") + theURL + GetString("URL_OPEN_ERROR2");
-	CopyToClipboard(theURL);
-
-	Dialog* aDialog = NewDialog(DIALOG_URL_FAILED, true, GetString("OPEN_BROWSER"), aLines, GetString("DIALOG_BUTTON_OK"), Dialog::BUTTONS_FOOTER);
-	aDialog->Resize(100, 50, 440, aDialog->GetPreferredHeight(440));
-	AddDialog(DIALOG_URL_FAILED, aDialog);
-}
-
-// 0x4d5077
-bool WinDMApp::OpenURL(const std::string& theURL, bool shutdownOnOpen)
-{
-	Dialog* aDialog = NewDialog(DIALOG_OPENING_BROWSER, true, "", GetString("OPENING_BROWSER"), "", Dialog::BUTTONS_NONE);
-	aDialog->mContentInsets = Insets(16, 26, 16, 16);
-	aDialog->Resize(180, 140, 280, 70);
-	AddDialog(DIALOG_OPENING_BROWSER, aDialog);
-
-	return SexyApp::OpenURL(theURL, shutdownOnOpen);
-}
-
 // 0x4d5174
 void WinDMApp::WriteToRegistry()
 {
@@ -802,20 +769,8 @@ void WinDMApp::WriteToRegistry()
 void WinDMApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
-	mRegisterLink = "http://www.popcap.com/register.php?theGame=bejeweled&referid=" + mReferId;
 	RegistryReadString("LastScoreName", &mLastScoreName);
-	RegistryReadBoolean("NoPopLink", &mNoPopLink);
 }
-
-// 0x4d5272
-void WinDMApp::ShowRegisterDialog()
-{
-	// The unregistered branch (RegisterDialog, id 5) is not ported: the port is always registered
-	Dialog* aDialog = DoDialog(DIALOG_ALREADY_REGISTERED, true, "Already Registered", "You have already registered Bejeweled!", "OK", Dialog::BUTTONS_FOOTER);
-	aDialog->Move(aDialog->mX, aDialog->mY + 24);
-}
-
-// ShowRegisterToRecordScoreDialog (0x4d5486, dialog 7) is not ported: only unregistered copies show it
 
 // 0x4d550d
 void WinDMApp::ConfirmLoadGame()
@@ -977,8 +932,6 @@ void WinDMApp::EnableCodeArt()
 	CodeArt::Enable(aSettings);
 }
 
-// DoUpdateCheck (0x4d68da, UpdateCheckDialog 18 + HTTP version check) is not ported: the port is always up to date
-
 // 0x4d6a40
 void WinDMApp::ButtonDepress(int theId)
 {
@@ -1035,9 +988,6 @@ void WinDMApp::ButtonDepress(int theId)
 			SetTimedMode(true, true);
 			break;
 
-		// DIALOG_REGISTER (Validate and register), DIALOG_REGISTER_TO_RECORD and DIALOG_REGISTER_NAG
-		// (both ShowRegisterDialog) are unregistered-only and not ported
-
 		case DIALOG_RECORD_SCORE:
 			{
 				RecordScoreDialog* aRecordDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);
@@ -1083,9 +1033,6 @@ void WinDMApp::ButtonDepress(int theId)
 					aBrowser->DeleteSelected();
 			}
 			break;
-
-		// DIALOG_CHECK_UPDATES (DoUpdateCheck) and the UpdateCheckDialog results DIALOG_UPDATE_AVAILABLE
-		// (OpenUpdateURL) / DIALOG_UP_TO_DATE are not ported
 
 		default:
 			KillDialog(aDialogId);

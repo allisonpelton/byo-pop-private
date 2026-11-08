@@ -2601,5 +2601,38 @@ wait for the next answer. The session writes and judges them; it never plays.
   for a canvas drawn at twice its size): the same route, through the page's `t.click` and `t.move` events, answering the
   "Continue old game?" question of a profile that left a game with a click on No.
 
-What they showed, and what stayed unproven, is in `IDENTICAL_PLAY.md` ("Real input"). Clicks of these drivers never touch
-"Play More Great Games!" in the Options dialog.
+What they showed, and what stayed unproven, is in `IDENTICAL_PLAY.md` ("Real input"). The Options dialog's "Play More Great
+Games!" link, which a click of these drivers never touched, is taken out of the port (section 18).
+
+## 18. Registration code and the More Games button taken out (2026-11-08)
+
+The user's rules of 2026-11-07 (CLAUDE.md, "Order of the work"; `docs/COORDINATION.md`): a game takes out the registration
+code (trial, nag, unlock, register and update-check paths) and every button that leads out of a game, "More Games" first,
+before its final merge, with its neighbours moved to close the gap. The port plays as the registered original does, which
+stays the reference. The Steam copy's `partner.xml` has `NoReg`, so none of this was reachable in play but the link.
+
+**Taken out**
+- The Options dialog's "Play More Great Games!" link (partner.xml's one `OptionsLinkText0`; it opened the PopCap site) and the
+  `OpenURL` path behind it: `WinDMApp::OpenURL`, `URLOpenFailed` and `URLOpenSucceeded`, the "opening the browser" and "could
+  not open it" dialogs (ids 10 and 11), the unused "visit PopCap" handler, the `NoPopLink` registry read.
+- The Options dialog's Register button (id 1) and check-for-updates button (id 4): the original created and added them but
+  never laid them out in the Steam build (0x0, invisible). Their handlers, `WinDMApp::ShowRegisterDialog` and its "Already
+  Registered" dialog (id 19), and the ids of the registration, update-check and nag dialogs (5 to 7, 15, 17, 18, and the
+  update results 10018 and 20018).
+- The title screen's register link (hidden while registered), its nag delay timer (`TotalTimerSec`) and the play counter that
+  only marked the screen dirty, the register link's label and layout, and the register URL (`mRegisterLink`).
+- The images `trialcircle2` and `waitbar` (the trial circle and the update-check dialog's bar): no longer loaded, and their
+  code-art drawings go too. `ImageId` is renumbered (34 images, 6 of them before the title screen).
+
+**Visible change.** Only the Options dialog: the link row is gone and the row of Help and High Scores (and Mods or Extras,
+when a mod adds one) stands 12 px lower (y 178 from the dialog's top, not 166), in the middle of the space the link left
+between it and Done. The dialog keeps the original's 290 px height and its Done button (clicks on both still land where they
+did, so the oracle's scripts need no change). Nothing else on any screen changes, no random number is drawn differently, no
+save or high score changes. The oracle (`compare.py`) lets the baseline's four shots with the dialog open (`12_options`,
+`o01_options`, `o02_high_scores`, `o03_back_to_options`) differ inside the dialog's box, nowhere else; the frozen exes keep
+the link.
+
+**Left in place.** The shared framework's `SexyApp` still has the registration members (`mIsRegistered`, `mBuildUnlocked`, the
+register link and the update check); they are the coordinator's. The strings and images of the original's own files stay in
+the user's game folder. The comments in `Board.cpp` and `BoardRules.cpp` about the nag's random draw say why that draw is
+absent; it was an unregistered copy's.

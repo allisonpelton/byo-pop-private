@@ -18,51 +18,49 @@ namespace Sexy
 
 enum ImageId
 {
-	IMAGE_TITLESCREEN = 0,              // titlescreen6       640x480 title background
-	IMAGE_TITLEGREENBAR = 1,            // titlegreenbar2     340x24 loading bar
-	IMAGE_TRIALCIRCLE = 2,              // trialcircle2       105x107 (unregistered only)
-	IMAGE_CURSOR = 3,                   // cursor1            CURSOR_POINTER
-	IMAGE_POINTER = 4,                  // pointer2           CURSOR_HAND
-	IMAGE_OVERHAND = 5,                 // overhand           CURSOR_DRAGGING
-	IMAGE_TYPER = 6,                    // typer              CURSOR_TEXT
-	IMAGE_ALPHABACK = 7,                // alphaback1         640x480 playfield frame (alpha)
-	IMAGE_GEMSHEET = 8,                 // gemsheet6          780x728: 15 frames x 52 px, 2 rows (normal, glow) per color, 104 px per color
-	IMAGE_TARGET = 9,                   // target1            6 frames x 52 px selection cursor
-	IMAGE_DIALOGBOX = 10,               // dialogbox2         Dialog component image
-	IMAGE_BOXBUTTON = 11,               // boxbutton2         DialogButton component image
-	IMAGE_WAITBAR = 12,                 // waitbar            UpdateCheckDialog progress (not ported)
-	IMAGE_OVER_NEWGAME_PUSHED = 13,     // over2-newgame-pushed1
-	IMAGE_OVER_NORMAL_PUSHED = 14,      // over3-normal-pushed1
-	IMAGE_OVER_NORMAL_SELECTED = 15,    // over7-normal-selected1
-	IMAGE_OVER_TIMETRIAL_PUSHED = 16,   // over4-timetrial-pushed1
-	IMAGE_OVER_TIMETRIAL_SELECTED = 17, // over8-timetrial-selected1
-	IMAGE_OVER_OPTIONS_PUSHED = 18,     // over5-options-pushed1
-	IMAGE_OVER_QUIT_PUSHED = 19,        // over6-quit-pushed1
-	IMAGE_TIMERBAR = 20,                // timerbar           source of WinDMApp::mTimerBarImages
-	IMAGE_ALPHADIGITS = 21,             // alphadigits4       font strip (point popups)
-	IMAGE_SPARKLE = 22,                 // sparkle            14 frames x 40 px (hint sparkles)
-	IMAGE_SCOREFONT = 23,               // scorefont1         font strip (score)
-	IMAGE_OVER_HINT = 24,               // over1-hint1        hint button glow / pushed image
-	IMAGE_SLIDER_TRACK = 25,            // slider-track
-	IMAGE_SLIDER_THUMB = 26,            // slider-thumb
-	IMAGE_CHECKBOX = 27,                // checkbox1          62x32: left half checked, right half unchecked
-	IMAGE_CHECKERTEXTURES = 28,         // checkertextures2   5 textures x 102 px (two 51x51 cells each)
-	IMAGE_OVERFONT = 29,                // overfont2          font strip (banner text)
-	IMAGE_BLACKHOLE = 30,               // blackhole          9 frames x 256 px (level-complete vortex)
-	IMAGE_HOLEMASK = 31,                // holemask           vortex overlay
-	IMAGE_ELECT = 32,                   // elect              128 px wide level-wipe strip
-	IMAGE_EDITBOX = 33,                 // editbox            96x32 3-slice edit frame
-	IMAGE_SWAPPER1 = 34,                // swapper1           tutorial swap arrows
-	IMAGE_SWAPPER2 = 35,                // swapper2           tutorial hand
-	NUM_IMAGES = 36,
-	NUM_TITLE_IMAGES = 7                // images loaded by Init before the title screen
+	IMAGE_TITLESCREEN = 0,             // titlescreen6       640x480 title background
+	IMAGE_TITLEGREENBAR = 1,           // titlegreenbar2     340x24 loading bar
+	IMAGE_CURSOR = 2,                  // cursor1            CURSOR_POINTER
+	IMAGE_POINTER = 3,                 // pointer2           CURSOR_HAND
+	IMAGE_OVERHAND = 4,                // overhand           CURSOR_DRAGGING
+	IMAGE_TYPER = 5,                   // typer              CURSOR_TEXT
+	IMAGE_ALPHABACK = 6,               // alphaback1         640x480 playfield frame (alpha)
+	IMAGE_GEMSHEET = 7,                // gemsheet6          780x728: 15 frames x 52 px, 2 rows (normal, glow) per color, 104 px per color
+	IMAGE_TARGET = 8,                  // target1            6 frames x 52 px selection cursor
+	IMAGE_DIALOGBOX = 9,               // dialogbox2         Dialog component image
+	IMAGE_BOXBUTTON = 10,              // boxbutton2         DialogButton component image
+	IMAGE_OVER_NEWGAME_PUSHED = 11,    // over2-newgame-pushed1
+	IMAGE_OVER_NORMAL_PUSHED = 12,     // over3-normal-pushed1
+	IMAGE_OVER_NORMAL_SELECTED = 13,   // over7-normal-selected1
+	IMAGE_OVER_TIMETRIAL_PUSHED = 14,  // over4-timetrial-pushed1
+	IMAGE_OVER_TIMETRIAL_SELECTED = 15,// over8-timetrial-selected1
+	IMAGE_OVER_OPTIONS_PUSHED = 16,    // over5-options-pushed1
+	IMAGE_OVER_QUIT_PUSHED = 17,       // over6-quit-pushed1
+	IMAGE_TIMERBAR = 18,               // timerbar           source of WinDMApp::mTimerBarImages
+	IMAGE_ALPHADIGITS = 19,            // alphadigits4       font strip (point popups)
+	IMAGE_SPARKLE = 20,                // sparkle            14 frames x 40 px (hint sparkles)
+	IMAGE_SCOREFONT = 21,              // scorefont1         font strip (score)
+	IMAGE_OVER_HINT = 22,              // over1-hint1        hint button glow / pushed image
+	IMAGE_SLIDER_TRACK = 23,           // slider-track
+	IMAGE_SLIDER_THUMB = 24,           // slider-thumb
+	IMAGE_CHECKBOX = 25,               // checkbox1          62x32: left half checked, right half unchecked
+	IMAGE_CHECKERTEXTURES = 26,        // checkertextures2   5 textures x 102 px (two 51x51 cells each)
+	IMAGE_OVERFONT = 27,               // overfont2          font strip (banner text)
+	IMAGE_BLACKHOLE = 28,              // blackhole          9 frames x 256 px (level-complete vortex)
+	IMAGE_HOLEMASK = 29,               // holemask           vortex overlay
+	IMAGE_ELECT = 30,                  // elect              128 px wide level-wipe strip
+	IMAGE_EDITBOX = 31,                // editbox            96x32 3-slice edit frame
+	IMAGE_SWAPPER1 = 32,               // swapper1           tutorial swap arrows
+	IMAGE_SWAPPER2 = 33,               // swapper2           tutorial hand
+	NUM_IMAGES = 34,
+	NUM_TITLE_IMAGES = 6                // images loaded by Init before the title screen
 };
 
-// @0x536250 (const char*[36])
+// @0x536250 (const char*[36]; the original's "trialcircle2" and "waitbar" are taken out)
 inline constexpr const char* gImageNames[NUM_IMAGES] =
 {
-	"titlescreen6", "titlegreenbar2", "trialcircle2", "cursor1", "pointer2", "overhand", "typer",
-	"alphaback1", "gemsheet6", "target1", "dialogbox2", "boxbutton2", "waitbar",
+	"titlescreen6", "titlegreenbar2", "cursor1", "pointer2", "overhand", "typer",
+	"alphaback1", "gemsheet6", "target1", "dialogbox2", "boxbutton2",
 	"over2-newgame-pushed1", "over3-normal-pushed1", "over7-normal-selected1",
 	"over4-timetrial-pushed1", "over8-timetrial-selected1", "over5-options-pushed1",
 	"over6-quit-pushed1", "timerbar", "alphadigits4", "sparkle", "scorefont1", "over1-hint1",

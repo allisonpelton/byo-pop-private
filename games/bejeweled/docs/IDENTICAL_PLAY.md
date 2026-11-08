@@ -191,6 +191,12 @@ The second part (branch `claude/bejeweled-finish-bf5c89`):
   `GameFeatures::mFixes`, off unless the mod is on) (`e59ace0a`).
 - The real-input drivers (`tools/realplay/drive.py`, `tools/web/onegame.js`) and the `state` fields they read (`86835386`).
 - Tests: `tools/commands_test.sh` and `tools/fixes_test.sh`.
+- The registration code and the "Play More Great Games!" button, taken out by the user's rule of 2026-11-07
+  (`GAME_NOTES.md` section 18): the Options dialog's link, Register and update buttons, the register link and nag timer
+  of the title screen, the register, update-check and browser dialogs, the browser opening, the trial circle and wait bar
+  images. The one visible change is the Options dialog without the link, its Help / High Scores row 12 px lower; its
+  height and Done button stay, so every script still clicks where it did. The oracle accepts a difference from the frozen
+  baselines in its four shots that show the dialog, inside the dialog's box only.
 
 ## Oddities skipped
 
@@ -205,7 +211,10 @@ None was found in what was compared. What was not compared:
   (Alt+Enter, moves, back; "Real input"); the original's full screen was not compared, and the web's only as a scaled canvas.
 - Registration, the nags and the update check: the Steam exe runs registered, so they never show; the port leaves them out
   (`GAME_NOTES.md`, the dialog table).
-- The "Play More Great Games!" button in Options and any other link: never clicked in a test run (CLAUDE.md).
+- The "Play More Great Games!" button in Options and any other link: never clicked in a test run (CLAUDE.md). It is taken out
+  since (the second part), so the comparison above, made with it, no longer matches the port's Options dialog in the link's
+  row and in the row of Help and High Scores; every other screen still matches. Repeating the comparison's Options shots
+  (ui1, m1) would flag exactly those two places, which is the change `GAME_NOTES.md` section 18 lists.
 - Levels after 3 in a normal game and after 4 in a timed one: origrun caps a run at 240 s (about 24 000 updates of
   Bejeweled), and no run of the original reached them. A saved game at a later level would reach them.
 - The web build's sound, for the reason given above.
