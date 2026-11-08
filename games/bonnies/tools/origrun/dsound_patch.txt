@@ -1,0 +1,1 @@
+test BonniesGame.exe va:0x41e832 75076a01 90906a02 the sound system's start (0x41e760) tells FMOD to use WinMM (1) before Vista and lets it choose from Vista on, which makes no DirectSound buffer in the sandbox: asking for DirectSound (2) always lets origrun's stand-in record FMOD's mix (for tools/origrun/music.txt only)
