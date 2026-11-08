@@ -116,6 +116,40 @@ rule), the update check (UpdateCheckDialog, InternetManager), internet high scor
 code, GetStringDialog for the alias, WaitDialog, ImagelessButton), ads, BetaSupport, crash reporting, and the
 framework's demo record/playback. The CD-protect launcher is not part of the game image.
 
+### Registration taken out (2026-11-08)
+
+The user moved the removal of all registration code into the current phase (2026-11-07), with what a registered
+copy shows, such as a "thanks for registering" line (2026-11-08), and every button that leads out of the game
+(CLAUDE.md, "Order of the work"). Every branch on registration was folded into the registered path, which is how
+the retail copy plays, and the trial, nag, register and buy paths went with the texts and images only they used.
+What came out:
+
+- **Title screen.** The register link (id 0, its green pulse and "one moment" label), the trial's nag timer and
+  shown play count, the trial expiry (the quit instead of play, dialog 4), the registered and trial stamps (behind
+  the property ShowTrialStatus, False in the retail `partner.xml`), and the "thanks for registering" status text
+  (shown only when registered but not unlocked, never in the retail build). The status line is now the welcome, or
+  on a first run while loading the unpacking of the sounds, at the registered build's place.
+- **Board and bots.** Three tests of `mIsRegistered` (the held letter key lighting its tiles, the streak of
+  rewarded words, and in Submit the words of 9 letters or more, which the trial sent to a dictionary upsell, dialog
+  17) now always take the registered branch, in `Board.cpp` and `GreedyBots.cpp`.
+- **The trial's play counting.** The properties MaxExecutions, MaxPlays and MaxTime, the levels-reached count
+  (`mLevelReached`, `mPlaysToCount`) and the Board's per-play count (`mPlayCounted`, which counted only with MaxTime
+  and MaxPlays both 0). Shutdown keeps the retail path, MaxTime's default of 60: the minutes played go to
+  TimesPlayed, which the title reads for its first-run text.
+- **Options dialog.** The register button (id 34, created but never shown in the registered build) and its
+  property RegisterLabel; the help and credits row keeps the registered build's two-button layout.
+- **Dialogs and texts.** The handlers of dialogs 2 (RegisterDialog), 4 (trial expired), 9 (invalid code) and 17
+  (upsells), `ShowRegisterDialog`, and the texts GT_TITLE_REGISTER_NOW, GT_TITLE_ONE_MOMENT,
+  GT_TITLE_THANKS_FOR_REGISTERING, GT_OPTIONS_REGISTER and the unused GT_OPTIONS_MORE_GAMES.
+- **Images.** backdrop_register, title_stamp_trial, title_stamp_registered, button_reg_register, button_reg_cancel
+  and button_reg_regcode are no longer loaded: their slots stay empty, so every image id keeps its number (Lex's
+  animation table and the effects in a saved game hold image ids as numbers).
+
+Deviations: none that shows in the retail build, since every path taken out was one the registered copy never
+takes. A `partner.xml` that set MaxTime to 0, MaxPlays, ShowTrialStatus or RegisterLabel would change the original
+and no longer changes the port. The options dialog's "more games" partner link was already left out (the user,
+2026-10-24) and its row closed up; the original's dialog is one row taller for it.
+
 ---
 
 ## Part 1. The application (BookWormApp, Math, user profiles)

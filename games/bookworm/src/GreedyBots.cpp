@@ -377,7 +377,7 @@ void BotGame::AwardSpecialTile(const WordScore& theWord)
 		isRewarded = aType != TILE_NORMAL;
 	}
 
-	if ((isRewarded) && (mApp->mIsRegistered))
+	if (isRewarded)
 		mRewardStreak++;
 	else
 		mRewardStreak = 0;

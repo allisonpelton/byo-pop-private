@@ -7,6 +7,7 @@
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "MahjongApp.h"
+#include "platform/ModManager.h"
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -31,6 +32,19 @@ static std::string ArgValue(int argc, char** argv, const char* theKey)
 			return a + n + 1;
 	}
 	return "";
+}
+
+static bool HasFlag(int argc, char** argv, const char* theKey)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (!strcmp(a, theKey))
+			return true;
+	}
+	return false;
 }
 
 // The game's data is Resource.dll's; the exe has the rest of its resources and texts, so both are in the game folder
@@ -76,6 +90,7 @@ int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
+	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	// port (web): its page (web/shell.html) mounts its own IndexedDB-backed folder, so the game's files never mix
@@ -84,6 +99,8 @@ int main(int argc, char** argv)
 		gameDir = "/mcpersist/game";
 	if (userDir.empty())
 		userDir = "/mcpersist/userdata";
+	if (modsDir.empty())
+		modsDir = "/mcpersist/mods";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();
@@ -95,6 +112,8 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+	if (modsDir.empty())
+		modsDir = ExeDir() + "/mods-mahjongchina";
 #endif
 
 #ifndef __EMSCRIPTEN__
@@ -122,7 +141,12 @@ int main(int argc, char** argv)
 	Platform::RestoreUserDataBackup(userDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
-	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+	// The mods (the fixes mod, games/mahjongchina/mods/fixes): none without a mod folder, and the game plays as the original
+	Platform::MakeDirs(modsDir);
+	Platform::ModManager::Get().SetModsDir(modsDir);
+	if (!HasFlag(argc, argv, "nomods"))
+		Platform::ModManager::Get().Refresh();
+	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	static MahjongApp* anApp = new MahjongApp();
 	anApp->SetCmdLine(argc, argv);

@@ -30,35 +30,9 @@ using namespace Sexy;
 TitleScreen::TitleScreen(SevenSeasApp* theApp) :
 	mApp(theApp),
 	mProgress(0.0),
-	mDelayProgress(0.0),
-	mPlayShown(false),
-	mRegisterClicked(false)
+	mPlayShown(false)
 {
-	// port: the shareware branches (plays remaining, the register link, the delay) are not ported; the screen
-	// takes the registered path (docs/GAME_NOTES.md section 2)
-	int aGames = mApp->mGamesPlayed;
-	if (aGames < 0xb)
-		mDivisor = 10;
-	else if (aGames < 0x15)
-		mDivisor = aGames;
-	else if (aGames < 0x33)
-		mDivisor = aGames * 2 - 0x14;
-	else
-		mDivisor = 0x50;
-	if (aGames < 2)
-		mPlaysLeft = 0;
-	else if (aGames < 10)
-		mPlaysLeft = aGames;
-	else
-		mPlaysLeft = 2;
-	mDelay = !((aGames < 0xf) || mApp->mIsRegistered);
-
-	mRegisterLink = new HyperlinkWidget(0, this);
-	mRegisterLink->SetFont(mApp->mFonts[FONT_MT11]);
-	mRegisterLink->mColor = Color(0xff, 0xff, 0);
-	mRegisterLink->SetVisible(!mApp->mIsRegistered);
-	mRegisterLink->mLabel = mDelay ? GT(0x004a6670) : GT(0x004a6694);
-
+	// port: the shareware parts (the plays left, the register link, the delay of an unregistered copy) are left out
 	mPlayLink = new HyperlinkWidget(1, this);
 	mPlayLink->SetFont(mApp->mFonts[FONT_FONT1]);
 	mPlayLink->SetVisible(false);
@@ -76,7 +50,6 @@ TitleScreen::TitleScreen(SevenSeasApp* theApp) :
 // 0x425b80
 TitleScreen::~TitleScreen()
 {
-	delete mRegisterLink;
 	delete mPlayLink;
 }
 
@@ -84,14 +57,12 @@ TitleScreen::~TitleScreen()
 void TitleScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
-	theWidgetManager->AddWidget(mRegisterLink);
 	theWidgetManager->AddWidget(mPlayLink);
 }
 
 void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
-	theWidgetManager->RemoveWidget(mRegisterLink);
 	theWidgetManager->RemoveWidget(mPlayLink);
 }
 
@@ -99,9 +70,7 @@ void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 void TitleScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
-	int aWidth = mRegisterLink->mFont->StringWidth(mRegisterLink->mLabel);
-	mRegisterLink->Resize((mWidth - aWidth) / 2, 0x1c0, aWidth, 0x10);
-	aWidth = mPlayLink->mFont->StringWidth(mPlayLink->mLabel);
+	int aWidth = mPlayLink->mFont->StringWidth(mPlayLink->mLabel);
 	mPlayLink->Resize((mWidth - aWidth) / 2, 0x177, aWidth, 0x18);
 }
 
@@ -109,22 +78,18 @@ void TitleScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 void TitleScreen::Update()
 {
 	Widget::Update();
-	if (!mDelay)
+	if ((mUpdateCnt % 4 == 0) && !mPlayShown)
 	{
-		if ((mUpdateCnt % 4 == 0) && !mPlayShown)
+		mProgress = mApp->GetLoadingThreadProgress();
+		if ((mProgress == 1.0) && mApp->mLoaded)
 		{
-			mProgress = mApp->GetLoadingThreadProgress();
-			if ((mProgress == 1.0) && mApp->mLoaded)
-			{
-				mPlayLink->SetVisible(true);
-				mProgress = 0.0;
-				mPlayShown = true;
-				mProgress = 1.0;
-			}
-			MarkDirty();
+			mPlayLink->SetVisible(true);
+			mProgress = 0.0;
+			mPlayShown = true;
+			mProgress = 1.0;
 		}
+		MarkDirty();
 	}
-	mRegisterLink->SetVisible(!mApp->mIsRegistered);
 	if (mUpdateCnt % 8 == 0)
 	{
 		for (int i = 0; i < 25; i++)
@@ -152,9 +117,7 @@ void TitleScreen::Draw(Graphics* g)
 	g->SetFont(mApp->mFonts[FONT_MT11]);
 	g->DrawImage(anImages[IMAGE_POPCAPURL], 0x206, 0x1cb);
 	g->DrawImage(anImages[IMAGE_POPCAPLOGO], 0x206, 0x16a);
-	g->SetColor(Color(0xff, 0xff, 0));
-	SexyString aLine = GT(0x004a66bc);
-	WriteCenteredLine(g, 0x16f, aLine);
+	// 0x425c00 also draws a line above the Play link that says whether the copy is registered; the port has no such line
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	SexyString aVersion = GT(0x004a66b0) + mApp->mProductVersion;
 	g->DrawString(aVersion, 0x219 - g->GetFont()->StringWidth(aVersion) / 2, 0xdd);
@@ -167,10 +130,8 @@ void TitleScreen::Draw(Graphics* g)
 // 0x426270: the play link starts the game's menus
 void TitleScreen::ButtonDepress(int theId)
 {
-	if (theId == 0)
-		mRegisterClicked = true;
-	else
-		mApp->TitleScreenDone();
+	(void) theId;
+	mApp->TitleScreenDone();
 }
 
 // ---------------------------------------------------------------------------------------------------------

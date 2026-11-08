@@ -207,7 +207,7 @@ public:
 	// +0x37d..+0x37f padding
 	DialogButton*		mSubmitButton;          // +0x380
 	int					mSubmitBlinkWords;      // +0x384 submit blinks while > 0; -1 per valid word (ctor 3)
-	bool				mPlayCounted;           // +0x388 times-played counted for this board
+	// +0x388 the trial-limited play count's flag: taken out
 	// +0x389..+0x38b padding
 	int					mLastLandSoundTick;     // +0x38c mUpdateCnt of the last piece_hit
 	int					mCols;                  // +0x390 7

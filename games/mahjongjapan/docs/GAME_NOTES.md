@@ -59,3 +59,130 @@ layout, opens the options, the tile sets, the backgrounds and the instructions, 
 
 The exe is the full game of the PopCap Game Collection. The translation found no trial code: no registration, no nag
 and no buy screen.
+
+## The standard test commands (2026-11-08)
+
+The port answers the standard commands (`docs/TEST_COMMANDS.md`) from a test's `-script`, its live channel
+(`-commands=<file>`, `byopop_test_command` on the web) or `-realinput`, through `HandleScriptCommand` in
+`src/TestCommands.cpp`. A command that is never given changes nothing: no draw of the game's random numbers and no state.
+
+| Command | What it does |
+|---|---|
+| `state` | `STATE {json}`: `screen` and `dialog` (the top layer and the dialog on it, null for none), `busy` (a transition or a flight is running), `player`, `progress` and `levels` (the adventure), `updates`, `layers`, and on a board `mode`, `level`, `layout`, `score`, `timer`, `moves` (the free pairs), `tiles` (left) and `board` (`started`, `over`, `escaping`, `blocked`, `selected`, `move`), and `buttons`, each `{cmd, x, y, w, h}` in game pixels, of the top layer. |
+| `goto <screen>` | `menu`, `options`, `help` (from the main menu), `classic [n]` (the list, or layout n at once), `escape` or `map`. Answers once the screen has settled. |
+| `level <n>` | The adventure's level n, started as the map's Continue starts it. |
+| `unlock all`, `set score` or `set progress` with a number | The adventure's progress to its last level; a score or the progress. |
+| `win` | The game's own moves, from the bot's way to the end of the game, until it ends. |
+| `move` | `MOVE {json}`: the bot's next move and the real input that makes it (below); changes nothing. |
+| `lose`, `seed <n>` | `ERROR`: a game here is never lost (a board with no pair offers the shuffle), and every deal has its seed from the game's own clock (the fixes mod's `-gameseed` is the seed). |
+
+**The bot behind `move`** (`src/Bot.cpp`, one file for both games; `tools/realplay/syncbot.sh` copies it into China's
+folder) works on a copy of the board's layout with the game's own rules for a free tile and a pair. It searches depth
+first for a series of pairs that ends the game (the two Magic Gold Tiles of an escape stage, the empty board of a classic
+game), remembers the positions that proved dead, and starts again with another order of the pairs and a larger budget
+when one try fails, up to 60 tries. The key (0x2c) takes the lock (0x2d) it opens, and the wild tiles (0x2e, 0x2f) pair as
+the game lets them; the first tries save the keys for the locks that hold a goal tile. Every one of the 60 escape stages
+and every classic layout solves, the slowest stage in about 3 s. When no pair is free the bot answers with the shuffle's
+click, and `MOVE null` while a flight runs, on a board with no tile left or when nothing can be played. A dialog is
+answered by its default button (command 1), the pause box by a click on it, the map by Continue.
+
+## Fix candidates and the fixes mod (2026-11-08)
+
+The fixes mod (`mods/fixes/mod.json`, two toggles, both on by default on the site) is the original with two things
+mended that leave the play to chance or the timing to the machine, and nothing else. With the mod off, or no mods folder, the game is the
+original; `-nomods` starts a native build without it and `-modsdir=<folder>` loads another folder.
+
+- **`seededDeals`.** The original seeds the generator from the clock at every deal (a classic game's, each shuffle's
+  redeal, and an escape stage's own number from its table). With the fix the deals and shuffles of one run draw their seeds
+  from `-gameseed=N` (the page's `?seed=N`): the same series on every run, whatever time each starts. The engine's own
+  reseeding when it makes an object or a stream (0x41ec10, 0x424d30) is not touched. Without a seed given nothing changes.
+- **`steadyClock`.** The game's timers, frame pacing and the panel's clock run on its updates (5 ms each) rather than the
+  machine's clock, so the same input plays the same game on every run, at any speed of the machine. Not under `-fast`,
+  whose virtual clock does the same. The deal's search keeps its time limit on the machine's clock.
+
+`tools/realplay/modtest.py` checks both with the shipped exe, and the start (the menu at update 280, and at 1540 with
+`-logos`): the first eight pairs of a classic deal and of its shuffle equal under one seed whatever the start time, another under another
+seed, and different without the mod; the panel's clock after 400, 800 and 1200 updates in real time showing 2, 4 and 6 s.
+
+**Fix candidates that were checked and are none.** The panel's `AddSeconds` (0x409d30) adds its seconds in milliseconds
+when the clock is not running: a shuffle before the first pair added 20 s as it should (the panel showed 24 s from 2 s,
+with the real time between), so no case reaches the odd branch. No layout of the 222 deals a free tile that cannot be
+clicked at the start (`MJ_FLOATING=1 mahjongjapan_dealtest`: no floating tile, 0 unreachable). The shuffle's cost of 20 s
+and the free-tiles option are as the original's.
+
+**Fixed in the port itself** (a bug of the original that breaks play: `docs/MOD_ROADMAP.md`, "The fixes mod"). A click on
+Shuffle while the last pair of a game is still flying (a second or so) started a shuffle whose redeal cleared that flight
+(`Board::Reshuffle`, 0x40b0a0), and the flight's end is what closes the round (the `mLeft == 0` test in
+`Board::Update`, 0x40bd70): the board stayed empty with the clock running and no result box. The port ignores the shuffle once no
+tile is left (`Board::OnCommand`, 0x40b500). The real-input driver found it, its bot clicking Shuffle on the empty board.
+It is listed in `DEVIATIONS.md`.
+
+## The start (2026-11-08)
+
+The original opens with two logo screens (`Splash`, 0x425320, holds `Logo`, 0x42f650; `Logo::Update`, 0x42f8c0, counts 2 s
+each and reads no click or key) and lets 0.77 s of black pass before the first of them (`Manager::SwitchTo`, 0x42ae80, fades
+out of the screen there is none to fade out of), with nothing loaded meanwhile. That is a wait the original put in before the
+game can start, so the loading rule takes it out of the port itself (CLAUDE.md, "Making a port"): the first layer is the main
+menu (`MahjongGame::CreateFirstLayer`, 0x40f540) and the first `SwitchTo` has no fade-out (`jb::gFastStart`). `-logos` keeps
+the original's start, for runs compared with the original: `tools/check.sh` passes it, so that its scripts keep their timing,
+and `modtest.py` and `perfload.py` take it. It is a deviation that can be seen, made on purpose (`DEVIATIONS.md`); until
+2026-11-08 it was `skipLogos` of the fixes mod. The launch to the main menu took 7.8 s and takes 1.3 s.
+
+The rest of the launch was looked at for other waits of the original's making and has none. The game sleeps only to pace its
+frames (`Manager::Frame`, 0x42bd40), a layer loads whole when it is entered (`Layer::SetManager` calls `Load`; no slices over
+frames, no minimum time), and what remains is about 1.0 s from the process's start to the menu's first frame (the exe and
+Resource.dll opened, the texts, the display, the menu's pictures and music) and the menu's fade-in, 0.8 s, which takes clicks
+while it runs (the layer being shown is active), so it is an animation that does not hold the player and stays. A `-fast` run, which never waits, takes 0.7 to 0.9 s from the launch's return to the menu's first frame on this busy
+machine (three runs; the real-time runs 0.4 to 1.4 s), so that part is loading work and not a wait; it is for the performance
+pass (`docs/COORDINATION.md`).
+
+## Registration, links and the loader (2026-11-08)
+
+The game has no registration code (above). The two buttons that lead out of the game were taken out: the PopCap and
+SpinTop logos at the main menu's bottom corners opened their web sites (`LinkButton`, `ActivateLinks`); they remain as
+pictures and no longer take a click. Nothing in the program opens a URL. The pictures are decoded by the shared libjpeg 6b
+loader (`platform/ImageLoader`), as the original's own libjpeg did (0x438000), where stb_image decoded them before; the
+frozen screens of `tools/check.sh` were taken again for that (the old and the new shots of the suite differ by at most 3
+levels of a channel, in the JPEG backgrounds only; everything else is identical pixel for pixel).
+
+## Real input (2026-11-08)
+
+`tools/realplay/drive.py` plays the game from the main menu with real SDL events, posted by the framework's `-realinput`
+channel under rundesk: the menu and its help, a new player's name typed, the adventure from its map level by level to the
+ending, the classic list and two classic games (the first by the bot to its end, with every button of the board and of the
+in-game menu tried first; the second ended by `win` after ten real pairs), the focus lost and regained, and Quit. The driver
+reads the state, asks `move` and sends the input it names; it chooses nothing. The whole adventure (60 levels) ran by real
+input in 23.6 minutes of real time and reached the ending. `--fullscreen` plays the same after Alt+Enter, the window going
+from 3200x2400 to 1600x1200 pixels of the private desktop and back (`screenshotfull`). The web driver
+`tools/web/realplay.js` plays the same through the DOM's events on the page (`?driver=`), `modtest.py` checks the three
+fixes, `perfload.py` times the launch.
+
+## Performance (2026-11-08)
+
+The port measured on this machine (a Core i7-12700F, Windows 11), windowed, in real time, from a fresh user folder, with no
+mods, under rundesk (below normal priority, SDL's silent audio), for the merge report (`build/slots/news.md`). The other
+sessions' games ran meanwhile (one or two besides the measured ones), so the numbers are for comparing and for the
+performance pass to start from. Each run is one process from its creation to its exit, sampled every 50 ms
+(`games/bejeweled/tools/profile/perfmin.py`); the input is the minute of play the suite `tools/check.sh mahjongjapan`
+sends (the menu, a new player, the adventure's first stage won by the solver's clicks, back to the map: 65 s). The
+processor figures are for the window 20 s to 50 s of the process's life, in the play.
+
+| | port (3 runs) |
+|---|---|
+| Launch to the main menu, real time (`tools/realplay/perfload.py`, 5 runs) | 1.31 s median (1.28 to 1.32); with the original's start (`-logos`, 3 runs) 7.80 s (7.76 to 7.80) |
+| Peak working set | 220.9 MB median (212.7 to 221.6) |
+| Peak private bytes | 213.2 MB median (212.3 to 214.6) |
+| Processor time in the window | 5.4 s of 29.9 s: 18 % of one core (17.9 to 21.3 %) |
+| Processor time, whole run | 11.2 s median (10.0 to 12.9) of 64.8 s |
+| Processes and threads | 1 process, 42 to 50 threads |
+
+**The original was not measured.** Mahjong Escape's original exes run only inside Windows Sandbox under `tools/origrun`
+(`docs/ORIGRUN.md`, its status table: a packed `bass.dll` never loads the silent stand-in, so a run on the host plays its
+music on the speakers, and every capture is taken in the sandbox). Working set and processor time measured from outside
+a sandbox's virtual machine would not be comparable with the port's on the host, and a host run's sound would reach the
+user's speakers while they sleep, so neither was done. Its loading is known from the code instead: the original shows
+the two logos for 2 s each (0x42f650) after 0.77 s of black, loads nothing meanwhile, and the port's launch to the menu
+with `-logos` (the original's start) is 7.8 s, of which the logos, the black and the fades between the screens make
+about 6.5 s. The port without them takes 1.3 s ("The start", above). Why the port holds this much memory
+and uses this much of a core to draw 800x600 in software was not examined; both are for the performance pass
+(`docs/COORDINATION.md`).

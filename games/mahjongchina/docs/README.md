@@ -89,15 +89,27 @@ ahead of the audio device and a music jump can be overtaken by the next.
 The web build plays the suite's level under Node (`games/bejeweled/tools/verify/wasmrun.js game`) to the same screens
 as the native build, apart from the full-screen corner button, which a run without `registry.ini` shows natively.
 
+**The standard test commands and the real-input drivers (2026-11-08).** The port answers `state`, `goto`, `level`, `unlock all`,
+`set`, `win` and `move` (`GAME_NOTES.md`, "The standard test commands, the fixes mod and the finishing pass"), the files being Ancient Japan's, copied by `syncbot.sh`, `move` from the port's own bot (`src/Bot.cpp`).
+`games/mahjongjapan/tools/realplay/drive.py` (one script for both games: `--game japan` or `--game china`) plays the game with real SDL events
+under rundesk: the menu, the help, a new player, the whole adventure to the ending, a classic game by the bot, every button
+of the board and of the in-game menu, a second classic game, the focus lost and regained, Quit; `--fullscreen` does it from
+Alt+Enter. `tools/web/realplay.js` plays the web build through the DOM's events (`?driver=`). `tools/realplay/modtest.py`
+checks the fixes mod, `perfload.py` times the launch, `syncbot.sh` copies the bot and the commands to the other game.
+The game opens at its main menu; `-logos` keeps the original's two logo screens and the black before them (`GAME_NOTES.md`,
+"The start"), as `tools/check.sh` and any comparison with the original run it.
+
 The comparison found two differences the first comparison of the exes had missed: Board::Init loads its sounds in
 another order, and Board::Measure has no -5 (China's board stands 5 pixels lower). Both are fixed.
 
 ## Mods
 
-None (the user's rule: no new mods unless someone requests one).
+The fixes mod (`mods/fixes`: `seededDeals` and `steadyClock`, on by default on the site; `GAME_NOTES.md`, "The standard test commands, the fixes mod and the finishing pass"). No other mods (the user's rule: no new mods unless someone requests one); `MOD_IDEAS.md` lists
+the ones worth making.
 
 ## Changes outside the game's folder
 
 `CMakeLists.txt` (the `BUILD_MAHJONGCHINA` option), `tools/check.sh` (the `mahjongchina` suite),
 `tools/origrun/games.tsv` (its row), `docs/ORIGRUN.md` (its status), the save import's row and `.claude/launch.json`
-(the `mahjongchina-web` preview).
+(the `mahjongchina-web` preview). `tools/check.sh` also holds the screens frozen again for the shared JPEG loader, `cmake/ByopopWeb.cmake` ships the fixes mod on the
+site, and `web/testkit.js` has the pattern fix that `move`'s null answer needed (shared commits).

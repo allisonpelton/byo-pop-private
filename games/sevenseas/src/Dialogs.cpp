@@ -82,12 +82,11 @@ OptionsDialog::OptionsDialog(SevenSeasApp* theApp) :
 	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
 
 	struct Spec { DialogButton** mButton; int mId; unsigned int mText; };
-	Spec aSpecs[4] =
+	Spec aSpecs[2] =
 	{
-		{&mHelpButton, 0, 0x004a3f64}, {&mRegisterButton, 1, 0x004a3f58}, {&mScoresButton, 2, 0x004a3f4c},
-		{&mWebButton, 3, 0x004a3f2c}
+		{&mHelpButton, 0, 0x004a3f64}, {&mScoresButton, 2, 0x004a3f4c}
 	};
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 2; i++)
 	{
 		DialogButton* aButton = new DialogButton2003(mApp->mImages[IMAGE_OPTIONSBUTTON], aSpecs[i].mId, this);
 		aButton->SetFont(mApp->mFonts[FONT_MT11]);
@@ -96,9 +95,7 @@ OptionsDialog::OptionsDialog(SevenSeasApp* theApp) :
 		aButton->SetColor(DialogButton::COLOR_LABEL, Color(0xe0, 0xb7, 0x28));
 		*aSpecs[i].mButton = aButton;
 	}
-	// port: there is nothing to register
-	mRegisterButton->SetVisible(false);
-	mRegisterButton->SetDisabled(true);
+	// port: the original's Register button and its "more games" button (a site link) are left out; the two buttons that remain share the row
 
 	mMusicSlider = new Slider(mApp->mImages[IMAGE_SLIDERTRACK], mApp->mImages[IMAGE_SLIDERTHUMB], 0, this);
 	mMusicSlider->SetValue(mApp->GetMusicVolume());
@@ -113,9 +110,7 @@ OptionsDialog::OptionsDialog(SevenSeasApp* theApp) :
 OptionsDialog::~OptionsDialog()
 {
 	delete mHelpButton;
-	delete mRegisterButton;
 	delete mScoresButton;
-	delete mWebButton;
 	delete mMusicSlider;
 	delete mSfxSlider;
 	delete mFullscreenCheckbox;
@@ -127,38 +122,33 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mHelpButton);
-	theWidgetManager->AddWidget(mRegisterButton);
 	theWidgetManager->AddWidget(mScoresButton);
 	theWidgetManager->AddWidget(mMusicSlider);
 	theWidgetManager->AddWidget(mSfxSlider);
 	theWidgetManager->AddWidget(mCursorsCheckbox);
 	theWidgetManager->AddWidget(mFullscreenCheckbox);
-	theWidgetManager->AddWidget(mWebButton);
 }
 
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mHelpButton);
-	theWidgetManager->RemoveWidget(mRegisterButton);
 	theWidgetManager->RemoveWidget(mScoresButton);
 	theWidgetManager->RemoveWidget(mMusicSlider);
 	theWidgetManager->RemoveWidget(mSfxSlider);
 	theWidgetManager->RemoveWidget(mFullscreenCheckbox);
 	theWidgetManager->RemoveWidget(mCursorsCheckbox);
-	theWidgetManager->RemoveWidget(mWebButton);
 }
 
 // 0x419150
 void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
-	int aThird = (((mWidth - mContentInsets.mLeft) - mContentInsets.mRight) - 0xc) / 3;
+	int aRow = (mWidth - mContentInsets.mLeft) - mContentInsets.mRight;
 	int aFooterY = (mYesButton != NULL) ? mYesButton->mY : mY + mHeight - 0x44;
-	mHelpButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x44, aThird - 6, 0x22);
-	mScoresButton->Resize(mContentInsets.mLeft + mX - 6 + aThird, aFooterY - 0x44, aThird + 0xf, 0x22);
-	mRegisterButton->Resize(mContentInsets.mLeft + aThird * 2 + 9 + mX, aFooterY - 0x44, aThird - 3, 0x22);
-	mWebButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x22, (mWidth - mContentInsets.mLeft) - mContentInsets.mRight, 0x22);
+	// port: the two buttons share the row that held the site button, next to the footer
+	mHelpButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x22, aRow / 2 - 3, 0x22);
+	mScoresButton->Resize(mX + mContentInsets.mLeft + aRow / 2 + 3, aFooterY - 0x22, aRow - aRow / 2 - 3, 0x22);
 	mMusicSlider->Resize(mX + 0x98, mY + 0x7b, mWidth - 0xc0, 0x20);
 	mSfxSlider->Resize(mX + 0x98, mY + 0x9b, mWidth - 0xc0, 0x20);
 	mFullscreenCheckbox->Resize(mX + 0x30, mY + 0xc1, 0x14, 0x14);
@@ -207,9 +197,6 @@ void OptionsDialog::ButtonDepress(int theId)
 		break;
 	case 2:
 		mApp->ShowHighScores();
-		break;
-	case 3:
-		mApp->OpenURL("http://www.popcap.com", false);
 		break;
 	}
 }

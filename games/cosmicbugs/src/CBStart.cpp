@@ -33,13 +33,10 @@ void SeedCrtRand()
 	CrtSrand(TimeMs());
 }
 
-// 0x41e640: what the window's closing does (the original stops the sounds unless 0x46e5cc, which nothing sets): the
-// page asked for goes to the browser
+// 0x41e640: what the window's closing does (the original stops the sounds unless 0x46e5cc, which nothing sets)
 void GameExit()
 {
 	Sound_StopAll();
-	if (gUrl[0] != 0)
-		OpenURL(gUrl);
 }
 
 // 0x41e7d0: after the screen was opened again
@@ -154,7 +151,7 @@ void DrawLoadingScreen()
 }
 
 // The levels are numbered in the file's order (a skipped one shares the next one's number); random_levels makes
-// "number" of them, twelve times as many when registered. The file's buffer stays (as the original's does).
+// "number" of them, twelve times as many (the full version's). The file's buffer stays (as the original's does).
 void LoadGameFile()
 {
 	XmlTag aTag;
@@ -179,8 +176,7 @@ void LoadGameFile()
 		{
 			if (Xml_GetInt(&aTag, "start_seed") != 0)
 				CrtSrand(Xml_GetInt(&aTag, "start_seed"));
-			int aRegistered = Xml_GetInt(&aTag, "number") * gRegistered;
-			int aCount = Xml_GetInt(&aTag, "number") + aRegistered * 0xb;
+			int aCount = Xml_GetInt(&aTag, "number") * 12;
 			if (0 < aCount)
 			{
 				do

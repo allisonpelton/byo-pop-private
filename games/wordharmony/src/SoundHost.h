@@ -8,6 +8,7 @@
 #include "engine/Sound.h"
 #include "platform/Audio.h"
 
+#include <cstdio>
 #include <map>
 #include <memory>
 #include <string>
@@ -70,6 +71,10 @@ public:
 	// port: with -fast the sounds end by the engine's clock (the original's DirectSound play cursor, which origrun's
 	// virtual clock moves), not by the mixer's, which runs on the wall clock
 	static bool sGameClock;
+	// port: -soundlog=<file> (a test run's): each start and stop, with the frame it came in and the sound's length, to
+	// line up with origrun's DirectSound log of the original (IDENTICAL_PLAY.md)
+	static FILE* sLog;
+	static int sLogFrame;
 };
 
 class HostSoundSystem : public engine::SoundSystem

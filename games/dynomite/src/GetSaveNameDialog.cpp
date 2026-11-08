@@ -1,6 +1,6 @@
 #include "GetSaveNameDialog.h"
 #include "Dynomite.h"
-#include "DialogButton.h"
+#include "ButtonWidget.h"
 #include "EditWidget.h"
 #include "FossilizedApp.h"
 #include "Graphics.h"
@@ -36,16 +36,16 @@ GetSaveNameDialog::GetSaveNameDialog(FossilizedApp* theApp) :
 	mNameEdit->mMaxChars = 0xf;
 	mNameEdit->FocusCursor(false);
 
-	mSaveButton = new DialogButton(NULL, 700, mApp);
-	mSaveButton->mComponentImage = mApp->mPicDbutton->mImage;
+	mSaveButton = new ButtonWidget(700, mApp);
+	mSaveButton->mButtonImage = mApp->mPicDbutton->mImage;
 	mSaveButton->mDoFinger = true;
 	mSaveButton->mLabel = mApp->GetString("SAVE");
 	mSaveButton->SetFont(mApp->mWhiteFontSmall);
 	mSaveButton->SetColor(0, Color(0xff, 0xff, 0xff));
 	mSaveButton->SetColor(1, Color(0xff, 0xff, 0xff));
 
-	mCancelButton = new DialogButton(NULL, 0x2bd, mApp);
-	mCancelButton->mComponentImage = mApp->mPicDbutton->mImage;
+	mCancelButton = new ButtonWidget(0x2bd, mApp);
+	mCancelButton->mButtonImage = mApp->mPicDbutton->mImage;
 	mCancelButton->mDoFinger = true;
 	mCancelButton->mLabel = mApp->GetString("DIALOG_BUTTON_CANCEL");
 	mCancelButton->SetFont(mApp->mWhiteFontSmall);

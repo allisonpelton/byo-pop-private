@@ -13,6 +13,14 @@ The steps run on the wall clock, one per line ('#' starts a comment):
     text ABC            WM_CHAR for each character
     focus lose|regain   WM_ACTIVATEAPP, WM_ACTIVATE and WM_KILLFOCUS / WM_SETFOCUS, as visrun posts them
     minimize | restore  ShowWindow: the window really minimizes (SDL's MINIMIZED and focus events), then comes back
+    chapter [S]         one chapter's battles, at most S seconds (600): from the map, Enter; then each board's word
+                        spelled and Attack, Scramble without one, dialogs answered, conversations clicked on, until the
+                        screen leaves the battle; logs a summary. Reads the port's -boardlog=<file> (tools/driver.js is
+                        the same for the web build)
+                        chapter S <text>: the window minimizes for a minute when the sound log (BYOPOP_SOUNDLOG) first
+                        shows <text> during it ("offset=40": the victory song after a boss)
+    settle [S]          conversations clicked on and dialogs answered until neither has shown for 2 s
+    minigame [S]        the same for the mini-game on the screen (or about to be): until it is over
     shot NAME           the window's own picture (PrintWindow) into <out dir>/NAME.png, the game's 800x600
 
 Positions are the game's 800x600: in full screen they are scaled to the client area as the game is (fitted, centred).
@@ -28,6 +36,9 @@ import subprocess
 import sys
 import threading
 import time
+
+BOARDLOG = None  # the game's -boardlog=<file>, for chapter
+OUT = None       # the output folder (main): a file named shotnow there asks for a screenshot (shot_now)
 
 from PIL import Image
 
@@ -121,12 +132,218 @@ def xy(hw, x, y):
     return (y << 16) | (x & 0xffff)
 
 
+def click(hw, x, y):
+    # SDL 2 reads Windows' cursor, which sits in a corner of rundesk's desktop and sends moves of its own: a move
+    # posted just before the press and the release, in one burst, keeps them where they are meant (Seven Seas')
+    lp = xy(hw, x, y)
+    u32.PostMessageW(hw, 0x0200, 0, lp)
+    time.sleep(0.12)
+    u32.PostMessageW(hw, 0x0200, 0, lp)
+    u32.PostMessageW(hw, 0x0201, 1, lp)
+    time.sleep(0.06)
+    u32.PostMessageW(hw, 0x0200, 1, lp)
+    u32.PostMessageW(hw, 0x0202, 0, lp)
+
+
+def log_lines():
+    """The port's -boardlog lines (GameApp::LogBoardForTests), parsed as dicts: kind board, dialog or screen, and n."""
+    out = []
+    if not BOARDLOG or not os.path.exists(BOARDLOG):
+        return out
+
+    def pt(t):
+        return tuple(int(v) for v in t.split(',')) if ',' in t else None
+    for line in open(BOARDLOG):
+        f = line.split()
+        if len(f) < 3:
+            continue
+        kind, n = f[0].rstrip(':'), int(f[1])
+        if kind == 'screen':
+            out.append({'kind': kind, 'n': n, 'name': f[2]})
+        elif kind == 'wordmaster':
+            k = f.index('submit') if 'submit' in f else f.index('rows')
+            out.append({'kind': kind, 'n': n, 'word': f[2], 'tiles': [pt(t) for t in f[3:k]],
+                        'attack': pt(f[k + 1]) if f[k] == 'submit' else None, 'scramble': None})
+        elif kind == 'treasure':
+            out.append({'kind': kind, 'n': n, 'cont': pt(f[3]), 'enabled': f[4] == '1'})
+        elif kind == 'talk':
+            out.append({'kind': kind, 'n': n, 'on': f[2] == '1'})
+        elif kind == 'tutorial':
+            out.append({'kind': kind, 'n': n, 'at': next((pt(t) for t in f[3:] if ',' in t), None)})
+        elif kind == 'hint':
+            out.append({'kind': kind, 'n': n, 'spots': [pt(t) for t in f[2:] if ',' in t]})
+        elif kind == 'lostturn':
+            out.append({'kind': kind, 'n': n, 'at': pt(f[2])})
+        elif kind == 'dialog':
+            out.append({'kind': kind, 'n': n, 'id': int(f[2]), 'ok': pt(f[4])})
+        elif kind == 'board':
+            k = f.index('attack')
+            b = {'kind': kind, 'n': n, 'word': f[2], 'tiles': [pt(t) for t in f[3:k]], 'attack': pt(f[k + 1]),
+                 'scramble': pt(f[k + 3]), 'words': [], 'letters': []}
+            if 'words' in f and f[f.index('words') + 1] != '-':
+                b['words'] = f[f.index('words') + 1].split(',')
+            if 'letters' in f and f[f.index('letters') + 1] != '-':
+                b['letters'] = [(e.split('@')[0], pt(e.split('@')[1])) for e in f[f.index('letters') + 1].split(';')]
+            out.append(b)
+    return out
+
+
+def screen():
+    s = [l['name'] for l in log_lines() if l['kind'] == 'screen']
+    return s[-1] if s else 'none'
+
+
+def spell(word, letters):
+    """The tiles that spell word from letters [(letter(s), (x, y))], the first that fits at each place; None if none."""
+    used, order, i = set(), [], 0
+    while i < len(word):
+        for t, (l, xy) in enumerate(letters):
+            if t not in used and word.startswith(l, i):
+                used.add(t)
+                order.append(xy)
+                i += len(l)
+                break
+        else:
+            return None
+    return order
+
+
+def talking():
+    t = [l['on'] for l in log_lines() if l['kind'] == 'talk']
+    return bool(t) and t[-1]
+
+
+def settle(hw, p, seconds, note):
+    """Clicks a conversation on and answers dialogs with their first button until neither has shown for 2 s."""
+    t0 = time.time()
+    used = max([l['n'] for l in log_lines()] or [0])
+    quiet = time.time()
+    clicks = 0
+    while time.time() - t0 < seconds and p.poll() is None:
+        fresh = [l for l in log_lines() if l['n'] > used]
+        if fresh:
+            used = fresh[-1]['n']
+        dialog = ([l for l in fresh if l['kind'] == 'dialog'] or [None])[-1]
+        if dialog:
+            click(hw, *dialog['ok'])
+            clicks += 1
+            quiet = time.time()
+        elif talking():
+            click(hw, 400, 150)
+            clicks += 1
+            quiet = time.time()
+        elif time.time() - quiet > 2:
+            break
+        time.sleep(0.8)
+    note('settle: %d clicks, %ds, on %s' % (clicks, time.time() - t0, screen()))
+
+
+def shot_now(hw):
+    """A screenshot on demand: a file named shotnow in the output folder becomes now.png there."""
+    if OUT and os.path.exists(os.path.join(OUT, 'shotnow')):
+        im = grab(hw)
+        if im is not None:
+            im.save(os.path.join(OUT, 'now.png'))
+        os.remove(os.path.join(OUT, 'shotnow'))
+
+
+def chapter(hw, p, seconds, note, target='battle', minimize_on=None):
+    """One chapter's battles, as tools/driver.js's bwa.battle does on the web: from the map Enter, then each board's
+    word spelled with clicks and Attack, Scramble for a board without one, a dialog's first button, a click to move a
+    conversation on, until the screen is no longer the battle. Notes a summary line."""
+    t0 = time.time()
+    end = t0 + seconds
+    all_lines = log_lines()
+    used = max([l['n'] for l in all_lines] or [0])
+    if all_lines and all_lines[-1]['kind'] in ('board', 'wordmaster', 'dialog', 'lostturn', 'hint', 'tutorial'):
+        used -= 1  # a board, a dialog or a lost turn already waiting is played, answered or ended
+    seen, next_talk, words, scrambles, dialogs, result, picks = False, 0, [], 0, 0, '', 0
+    sound_log = os.environ.get('BYOPOP_SOUNDLOG')
+    sound_seen = len(open(sound_log).readlines()) if minimize_on and sound_log and os.path.exists(sound_log) else 0
+    while time.time() < end and p.poll() is None:
+        shot_now(hw)
+        if minimize_on and sound_log and os.path.exists(sound_log):
+            # the window minimized for a minute the moment the sound log shows minimize_on (a song starting)
+            sound = open(sound_log).readlines()
+            if any(minimize_on in l for l in sound[sound_seen:]):
+                note('minimize on %r' % minimize_on)
+                u32.ShowWindow(hw, 6)
+                time.sleep(60)
+                u32.ShowWindow(hw, 9)
+                note('restore')
+                minimize_on = None
+            sound_seen = len(sound)
+        fresh = [l for l in log_lines() if l['n'] > used]
+        scr = screen()
+        if scr == target:
+            seen = True
+        elif seen and scr != 'none':
+            result = scr
+            break
+        if fresh:
+            used = fresh[-1]['n']
+        board = ([l for l in fresh if l['kind'] in ('board', 'wordmaster')] or [None])[-1]
+        # the first line that asks for a click: a dialog's button, the tutorial's tile or Attack, an arrow's hot spot, a
+        # lost turn's grid. The lines after it stay new for the next round (a board logged with a hint is played then)
+        act = next((l for l in fresh if l['kind'] == 'dialog' or l['kind'] == 'tutorial' and l['at'] or
+                    l['kind'] == 'hint' and l['spots'] or l['kind'] == 'lostturn' and scr == target), None)
+        if act:
+            used = act['n']
+            dialogs += act['kind'] == 'dialog'
+            click(hw, *{'dialog': act.get('ok'), 'tutorial': act.get('at'), 'lostturn': act.get('at'),
+                        'hint': (act.get('spots') or [None])[0]}[act['kind']])
+            time.sleep(1.5 if act['kind'] in ('dialog', 'lostturn') else 1)
+            continue
+        if board and scr == target:
+            tiles = board['tiles']
+            if target == 'minigame' and board['kind'] == 'board':
+                # a mini-game wants a word it has not had yet (Letter Rip deals one word to take others from)
+                fresh_word = next((w for w in board['words'] if w not in words and spell(w, board['letters'])), None)
+                board['word'] = fresh_word or '-'
+                tiles = spell(fresh_word, board['letters']) if fresh_word else []
+            if board['word'] != '-':
+                words.append(board['word'])
+                for x, y in tiles:
+                    click(hw, x, y)
+                    time.sleep(0.3)
+                time.sleep(0.4)
+                if board['attack']:
+                    click(hw, *board['attack'])
+            elif board['scramble']:
+                scrambles += 1
+                click(hw, *board['scramble'])
+            time.sleep(2.5 if target == 'battle' else 1)
+            continue
+        if scr == 'treasure' and not seen:
+            # the treasure room before a chapter: Lex's treasures (the left column) one at a time until Continue is
+            # enabled
+            t = ([l for l in log_lines() if l['kind'] == 'treasure'] or [None])[-1]
+            if t and t['enabled']:
+                click(hw, *t['cont'])
+            elif t:
+                click(hw, 188, (113, 209, 300, 402)[picks % 4])
+                picks += 1
+            time.sleep(1.5)
+            continue
+        if scr != 'treasure':
+            picks = 0
+        if time.time() >= next_talk:
+            click(hw, 400, 575 if scr == 'map' and not seen else 150)
+            next_talk = time.time() + 3
+        time.sleep(0.3)
+    note('%s: %s after %ds, %d words (%s), %d scrambles, %d dialogs' % (
+        'chapter' if target == 'battle' else target, result or 'timeout in ' + screen(), time.time() - t0, len(words), ' '.join(words), scrambles, dialogs))
+
+
 def main():
     if '--' not in sys.argv:
         raise SystemExit(__doc__)
     i = sys.argv.index('--')
     steps, out = sys.argv[1:i]
     cmd = sys.argv[i + 1:]
+    global BOARDLOG, OUT
+    OUT = out
+    BOARDLOG = next((a.split('=', 1)[1] for a in cmd if a.startswith('-boardlog=')), None)
     os.makedirs(out, exist_ok=True)
     log = open(os.path.join(out, 'realrun.log'), 'w')
     game_log = open(os.path.join(out, 'game.log'), 'w')
@@ -169,16 +386,12 @@ def main():
         if op == 'move':
             u32.PostMessageW(hw, 0x0200, 0, xy(hw, int(args[0]), int(args[1])))
         elif op == 'click':
-            # SDL 2 reads Windows' cursor, which sits in a corner of rundesk's desktop and sends moves of its own: a
-            # move posted just before the press and the release, in one burst, keeps them where they are meant
-            lp = xy(hw, int(args[0]), int(args[1]))
-            u32.PostMessageW(hw, 0x0200, 0, lp)
-            time.sleep(0.12)
-            u32.PostMessageW(hw, 0x0200, 0, lp)
-            u32.PostMessageW(hw, 0x0201, 1, lp)
-            time.sleep(0.06)
-            u32.PostMessageW(hw, 0x0200, 1, lp)
-            u32.PostMessageW(hw, 0x0202, 0, lp)
+            click(hw, int(args[0]), int(args[1]))
+        elif op == 'settle':
+            settle(hw, p, float(args[0]) if args else 60, note)
+        elif op in ('chapter', 'minigame'):
+            chapter(hw, p, float(args[0]) if args else 600, note, 'battle' if op == 'chapter' else 'minigame',
+                    ' '.join(args[1:]) or None)
         elif op == 'key':
             vk = int(args[0])
             sc = u32.MapVirtualKeyW(vk, 0)   # SDL takes the key from the scan code in lParam

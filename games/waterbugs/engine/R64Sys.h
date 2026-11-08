@@ -38,6 +38,10 @@ public:
 	virtual uint32_t TimeMs() = 0;
 	// The window is the active one (WM_ACTIVATEAPP)
 	virtual bool IsActive() { return true; }
+	// port(mod): a fix of the fixes mod is on (never in the original, nor without the mod)
+	virtual bool FixOn(const char* theFix) { return false; }
+	// port(site): the site's "Always skip start-up logos" (or -skiplogos) is on
+	virtual bool SkipLogos() { return false; }
 	// BASS's samples (a sound's id, -1 when it cannot be loaded) and its one music (BASS_MusicLoad with
 	// BASS_SAMPLE_LOOP | BASS_MUSIC_RAMP; PlayMusic(1) from the start); theVolume is BASS's music volume, 0 to 100
 	virtual int LoadSound(const char* thePath) { return -1; }
@@ -48,8 +52,6 @@ public:
 	virtual void PlayMusic(int theRestart) {}
 	virtual void PauseMusic() {}
 	virtual void SetMusicVolume(int theVolume) {}
-	// ShellExecute's "open"
-	virtual void OpenURL(const char* theUrl) {}
 	// The player's files (cp.cfg, cb.dat): where one is opened (the original's FixPath: the game's folder), and
 	// one that was written (the web build keeps it)
 	virtual const char* SavePath(const char* theName) = 0;
@@ -108,8 +110,9 @@ struct ScreenLock
 	uint8_t* bits;             // +0x10
 };
 uint32_t TimeMs();                       // 0x429350
+bool Sys_FixOn(const char* theFix);      // port(mod): a fix of the fixes mod is on
+bool Sys_SkipLogos();                    // port(site): the start-up logos are skipped, as Esc on the first one does
 void Sys_Sleep(int theMs);               // 0x428d00
-void OpenURL(const char* theUrl);        // 0x429370
 // 0x4293a0 and 0x4293b0: called after PumpMessages opened the screen again, the first with the screen's format
 void SetScreenLostCallback(void (*theCallback)(const PixelFormat*));
 void SetScreenChangeCallback(void (*theCallback)());

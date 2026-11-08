@@ -236,3 +236,44 @@ their parts, the save dialog 0x433910, the name dialog 0x420fb0 and the load of 
 tutorial (0x419040); `README.md` says what is left out. App
 slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`, 31 `Shutdown`; WidgetManager 0x47ec90 is
 `BringToBack`.
+
+**Registration removed.** Everything an unregistered copy shows, and the registered copy's "thanks for registering" on
+the title (2026-11-08), is out of the port; `README.md`, "Registration and loading", lists each piece. No other string
+the port draws is a registered copy's (no stamp, name or status line).
+
+## 5. Fix candidates
+
+None so far (docs/MOD_ROADMAP.md, "The fixes mod"). Both phases of the identical-play pass (`IDENTICAL_PLAY.md`) found no
+bug of the original that changes play (its scores, timing or rules) and no wait that only costs the player time; the
+loading already runs at the machine's speed in the port. So the port has no fixes mod yet, and no mod loading. One
+thing could become a fix of the port itself rather than of the mod: if the original's tutorial also stalls after a
+match at step 45 (`IDENTICAL_PLAY.md`, "Oddities"), that is a soft lock.
+
+## 6. Performance (measured 2026-11-08, original and port back to back)
+
+`tools/profile/perf_all.sh` runs `tools/profile/perf.py` (adapted from Noah's Ark's): five loads of each program, then
+a scripted minute twice in each, one run at a time, on the same machine while other sessions ran three to seven game
+processes (the machine was 72 to 97 percent busy), so these numbers are rough; the performance pass measures again on
+a quiet machine. The original runs under origrun on the real clock, with its hooks and the scripted cursor; the port
+runs natively without `-fast`, both under rundesk.
+
+**Loading**, from the creation of the process to the title with its loading done (the play link up, the first screen
+that takes input): the port 0.96 s (median; 0.93 to 1.08), the original 2.2 s (median; 2.09 to 2.61). At that point
+the port's working set is 76 MB with 76 MB private, the original's 75 MB with 60 MB private, each after about 0.9 s of
+processor time. The web build's load was not timed: the page's own import of the game's files comes first, and the
+pane is hidden.
+
+**The scripted minute** is the same input in both: the title's link at update 1500, Time Trial on Normal from the main
+menu, then 150 shots at random points of the board, one every 40 updates, from update 2900; the minute is the 6000
+updates from there (the original's counter reached 8864 of them before origrun quit it, so its window is 59.8 s).
+
+| | peak working set | peak private bytes | processor time in the minute |
+|---|---|---|---|
+| original, run A | 87.9 MB | 65.3 MB | 11.6 s |
+| original, run B | 88.1 MB | 65.4 MB | 13.2 s |
+| port, run A | 100.8 MB | 93.9 MB | 4.9 s |
+| port, run B | 92.0 MB | 91.8 MB | 4.6 s |
+
+The port uses well under half the original's processor time for the same minute of play, and holds about 28 MB more
+private memory; where that memory goes was not looked into, which is the performance pass's work. No speed-up of the
+port's own has been made yet.

@@ -292,12 +292,6 @@ void Sys_Sleep(int)
 {
 }
 
-void OpenURL(const char* theUrl)
-{
-	if (gHost != nullptr)
-		gHost->OpenURL(theUrl);
-}
-
 // (0x7081b0: the port never loses the screen, see PumpMessages)
 void SetScreenLostCallback(void (*)(const PixelFormat*))
 {
@@ -471,6 +465,11 @@ void Sys_Activate(int theActive)
 		Music_Resume();
 	else
 		Sound_Pause();
+}
+
+bool Sys_SkipLogos()
+{
+	return gHost != nullptr && gHost->SkipLogos();
 }
 
 int Sample_Load(const char* thePath)

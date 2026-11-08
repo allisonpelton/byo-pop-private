@@ -374,3 +374,26 @@ performance pass re-measures on a quiet one.
 The port loads more slowly than the original (its resource thread takes 1.2 s of that, in the log's "Resource Loading Time"), keeps
 about 70 MB more in private memory (the decoded pictures as 32-bit surfaces, the mixer's buffers, SDL) and uses about half of its
 processor time. The web build's load time was not timed.
+
+## Registration code removed
+
+The port plays as the registered original does (the Steam copy: `properties/partner.xml` says `NoReg`), and nothing that only an
+unregistered or trial copy reaches is in it:
+
+- the trial clock (0x42f770), the play counters and the shareware dialogs (0x414790, 0x415020, 0x4153b0), the "register to load" and
+  "register to record your score" questions (the original's texts offer to register before a name is entered; the port goes to the
+  name), the loading screen's second link ("register now") and its slower bar for an unregistered copy;
+- the line under the loading bar that thanks the player for registering (`LoadingScreen::Draw`, was `GetBoolean("NoReg")` and the
+  text at 0x4e5258): it was empty with the Steam copy's `NoReg`, now the branch and the string are gone, with no visible change;
+- `mIsRegistered` is not set by the game any more (the framework's `SexyApp` sets it true, and no code of the game reads it);
+  `DIALOG_REGISTER_TO_LOAD` and the check of it in `GameSelector::Draw` (the selector's hint text hides while a dialog is up;
+  the register dialog never exists), and the register picture (`IMAGE_REGISTER`, "register", the later image numbers move down
+  by one: the rocket pictures begin at image 53);
+- the Options dialog's register button, update check, partner links and PopCap page button (and the "More Games" row);
+- 33 entries of the game text table that only those used: the questions to register, the trial counters and their debug lines,
+  "UNREGISTERED VERSION", the trial's messages, the register prompts of the loading screen and the registration dialogs, the
+  already-registered thanks, the license-code error, `http://www.popcap.com` and the update check's address.
+
+Looked at and kept: "buy rockets" is the game's own rocket shop (coins), not a purchase; no "registered to <name>" stamp or status
+line exists in the game's texts (the strings were searched for register, trial, thank, license, order, www, http). Visible change:
+none in the registered game; the Options dialog is shorter by the "More Games" row.

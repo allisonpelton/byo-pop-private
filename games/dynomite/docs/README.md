@@ -72,6 +72,28 @@ saved game from the main menu and checks that the board loads as it was saved. T
 commands plus the game's own (`src/TestHooks.cpp`): `continue` and `step` for the tutorial, `board` (the board's mode,
 score, egg count and a hash of its cells) and `combo <n>` (Inchy's call-out of a chain).
 
+The standard test commands (`docs/TEST_COMMANDS.md`) are in `src/TestHooks.cpp`, reachable only from a test, each
+answered on stdout. `state` prints `STATE {...}` with the keys `screen` (title, menu or game; the tutorial's board is a
+game), `tutorial` (its step) or `page` (the main menu's page), `dialog` (the topmost dialog's id), `score`, and on a
+board `mode` (stomped, endless, fossil, timetrial), `paused`, `busy` (no move can be made now), `over`, `level` (the
+fossil and its `round` in the Fossil Challenge, the round in Stomped, the whirley level in Endless) and `board`: `eggs`,
+the `loaded` and `next` colours, `frozen` and `rows`, the grid's cells a row a string of hex colours with `.` for
+empty. `goto` opens `menu`, `options`, `highscores` or `credits`, or starts `endless`, `stomped`, `fossil`,
+`timetrial` or `tutorial` through the main menu's own pages (their present skill and pack). `level <n>` starts fossil
+n of the Fossil Challenge from its first fragment. `set score <n>` sets the side bar's score. `win` clears the board in
+Stomped and Time Trial, so the board's own end follows; `lose` puts the eggs past the line as in play (Inchy sinks and
+the eggs run off), once the first shot has started the game. `seed <n>` seeds the app's twister and its picker.
+`unlock all` answers with an error: nothing is locked in the port. `move` prints the bot's next move (`src/Bot.cpp`):
+in the tutorial its Continue button while it shows, then the museum's own button while the museum is open (and the side bar's museum button at the tutorial's step 93, which waits for it), at the tutorial's whirley step the shot whose flight meets the whirley, and at its steps 43 and 45 the lowest shot without a match, else the shot that joins the most eggs of the loaded colour, found
+by flying every angle the mouse can give with the grid's own probes, with its `input` (a move to the point that aims it
+and a click there). The bot reads the board and changes nothing.
+
+`tools/realplay/play.sh <steps> <out>` plays the port natively with real input only, through Bejeweled Twist's driver
+(`games/bejeweledtwist/tools/realplay/drive.py`); `tools/realplay/*.txt` are its step files (the tutorial and a game of
+each mode). `tools/web/onegame.js` does the same in the player-only page through the shared test kit (`?driver=`,
+`?mode=` tutorial, endless, stomped, fossil, panic or timetrial). `tools/shots/` holds phase two's comparisons with the original: `tour.sh` (screens, with shotdiff),
+`sound.sh` and `soundcmp.py` (sound) and `web.sh` (the web build against the native port).
+
 ## Tools (`games/dynomite/tools`)
 
 `decread.py` prints a function of the Ghidra export in a readable form, `vtscan.py` and `vtsyms.py` find and name virtual
@@ -79,6 +101,26 @@ tables, `loadtable.py` folds the loader into one line per resource and `genres.p
 and `make_gametext.py` writes the table of text addresses `GameTextTable.inc` from `gametext_vas.txt`. They read
 `re/dynomite/` (git-ignored: Ghidra's export and the carved game image). `GAME_NOTES.md` maps the game's classes and
 rules.
+
+## Registration and loading
+
+The port plays as the registered original, which stays the reference (the user, 2026-11-07). The code only an
+unregistered copy reaches is taken out: on the title screen the register link with its four changing texts, the free
+plays left, the quit link once they ran out and the loading bar slowed by the number of plays; the registered copy's
+"thanks for registering" over its dark box under the loading bar (left out since 2026-11-08: "'Thanks for registering'
+should be considered part of the registration/trial code to be removed from every game", the user), with the title's
+flag for it and its read of the NoReg property; in the options dialog the register button, so the high scores button keeps the full
+width it has in a registered copy; the register and buy dialogs (14 and 20, with the buy button's dialogs 10020 and
+20020 in the app's dialog handler) and the nag each mode showed at a game's end in their place; the unregistered
+copy's refusals of the saved games and of puzzle packs other than DEFAULT.EGG on the main menu and of the side bar's
+save; and the "unregistered" picture. None of these but the thanks shows in a registered copy, and the
+frozen baseline checks that play is unchanged. The loading has no wait of the original's own apart from that slowed
+bar: the loader runs at the machine's speed, and the title polls it every fourth update as the original does.
+
+Nothing in the port leads out of the game (the user, 2026-11-07). The options dialog's partner links and "check for
+updates" were never ported; the credits name the game's designer and its musician as links to their sites in the
+original (green, underlined, ids 0 and 1), and the port draws those two names as plain text in white like the other
+names, in line with them. That is the one visible change.
 
 ## Mods
 

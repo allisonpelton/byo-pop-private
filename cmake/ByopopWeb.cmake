@@ -25,7 +25,7 @@ endif()
 set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_open _byopop_mods_state
   _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy
   _byopop_cursor_set_copy
-  _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_tutorials _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
+  _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_tutorials _byopop_site_skiplogos _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
   _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_set_speed _byopop_speed _byopop_perf_json)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
 # the player-only test page's live command (framework/SexyAppBase.cpp, docs/TEST_COMMANDS.md "Sending them")
@@ -89,7 +89,7 @@ set(BYOPOP_WEB_UPCOMING
 # The games whose ports load no mods yet (their pages' modsIntro says so): their pages show no Mods button (the user,
 # 2026-11-03: "Don't show a mods button for games with no mod support"; web/shell.html's MODS_SUPPORTED). A port that starts
 # loading mods leaves this list.
-set(BYOPOP_WEB_NO_MODS bonnies cosmicbugs mahjongchina mahjongjapan ningpo waterbugs wordharmony)
+set(BYOPOP_WEB_NO_MODS bonnies ningpo)
 # The fixes mod (docs/MOD_ROADMAP.md, "The fixes mod"; docs/WEB_PLAYER.md, "The fixes mod on the site"): a game's
 # games/<game>/mods/fixes is shipped beside its page as <game>-fixes/, and the page installs it on, unless the game is in
 # BYOPOP_WEB_NO_MODS. BYOPOP_WEB_TEST_FIXES names one game that has no fixes mod of its own to ship tools/webtest/fixes as

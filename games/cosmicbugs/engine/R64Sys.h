@@ -38,6 +38,8 @@ public:
 	virtual uint32_t TimeMs() = 0;
 	// The window is the active one (WM_ACTIVATEAPP)
 	virtual bool IsActive() { return true; }
+	// The site's "Always skip start-up logos" is on (the port's own, not the original's; Sys_SkipLogos)
+	virtual bool SkipLogos() { return false; }
 	// BASS's samples (a sound's id, -1 when it cannot be loaded) and its one music (BASS_MusicLoad with
 	// BASS_SAMPLE_LOOP | BASS_MUSIC_RAMP; PlayMusic(1) from the start); theVolume is BASS's music volume, 0 to 100
 	virtual int LoadSound(const char* thePath) { return -1; }
@@ -48,8 +50,6 @@ public:
 	virtual void PlayMusic(int theRestart) {}
 	virtual void PauseMusic() {}
 	virtual void SetMusicVolume(int theVolume) {}
-	// ShellExecute's "open"
-	virtual void OpenURL(const char* theUrl) {}
 	// The player's files (cp.cfg, cb.dat): where one is opened (the original's FixPath: the game's folder), and
 	// one that was written (the web build keeps it)
 	virtual const char* SavePath(const char* theName) = 0;
@@ -109,7 +109,6 @@ struct ScreenLock
 };
 uint32_t TimeMs();                       // 0x428e70
 void Sys_Sleep(int theMs);               // 0x428820
-void OpenURL(const char* theUrl);        // 0x428e90
 // 0x428ec0 and 0x428ed0: called after PumpMessages opened the screen again, the first with the screen's format
 void SetScreenLostCallback(void (*theCallback)(const PixelFormat*));
 void SetScreenChangeCallback(void (*theCallback)());
@@ -129,6 +128,7 @@ void LoadConfig();
 void SaveConfig();                       // 0x429db0
 // WM_ACTIVATEAPP (and WM_SETFOCUS, WM_KILLFOCUS): the keys held are let go, the sound paused or resumed
 void Sys_Activate(int theActive);
+bool Sys_SkipLogos();                    // the port's own: the site's "Always skip start-up logos" is on
 
 // The sound (BASS): the samples by id and the one music. A sound list (0x18 bytes) keeps them by file name.
 struct SoundEntry

@@ -1,0 +1,47 @@
+# Phase two tour 4: phase one's think1: THINK from a saved game (REG=build/identical/scripts/think.reg,
+# PORTREG=build/identical/scripts/think.ini): the continue question, the help, a ball dragged over a ledge into a word,
+# the word sent, the level's end and bonus count, level 2, Save/Quit and Save Game, the menu.
+480 move 530 395
+500 click 530 395
+600 screenshot th_continue
+680 move 330 350
+690 screenshot th_continue_hover
+700 click 330 350
+800 screenshot th_help
+880 move 165 415
+900 click 165 415
+1000 screenshot th_1000
+1250 screenshot th_1250
+1260 move 564 305
+1270 down 564 305
+1300 move 564 250
+1320 screenshot th_drag_1320
+1340 move 564 140
+1400 move 500 140
+1440 move 430 140
+1450 screenshot th_drag_1450
+1480 move 360 140
+1520 move 359 172
+1560 screenshot th_drag_1560
+1600 up 359 172
+1650 screenshot th_dropped
+1700 rclick 600 500
+1720 screenshot th_sent_1720
+1800 screenshot th_1800
+1950 screenshot th_end_1950
+2100 screenshot th_end_2100
+2300 screenshot th_end_2300
+2470 screenshot th_end_2470
+2480 move 430 500
+2500 click 430 500
+2600 screenshot th_l2_2600
+2800 screenshot th_l2_2800
+2980 move 155 30
+2990 screenshot th_hover_savequit
+3000 click 155 30
+3100 screenshot th_savedialog
+3150 move 360 325
+3160 screenshot th_savedialog_hover
+3170 click 360 325
+3300 screenshot th_menu
+3400 quit

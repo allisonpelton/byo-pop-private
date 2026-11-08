@@ -841,8 +841,7 @@ void List_DeleteNode(Powerup* thePowerup)
 	::operator delete(thePowerup);
 }
 
-// A kind by the level (the later the level, the more kinds; no land mines or sweepers in an unregistered copy,
-// only sweepers in the demo), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
+// A kind by the level (the later the level, the more kinds; only sweepers in the demo, which nothing starts), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
 // held while it is made, choose kinds 0..13 (the developers' test). The table gives kinds 0..10 (0 a faster beam), so
 // only those keys make 12 and 13, and nothing makes the anchor, the explode-alls or the magnet (14..17).
 Powerup* Powerup_Init(Powerup* thePowerup)
@@ -855,8 +854,6 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		aRange = 0xb;
 	aRange = aRange * 10 + 9;
 	thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
-	while (gRegistered == 0 && (thePowerup->kind == 9 || thePowerup->kind == 8))
-		thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
 	if (gDemo != 0)
 	{
 		thePowerup->kind = 9;

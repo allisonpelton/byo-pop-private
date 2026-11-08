@@ -36,15 +36,13 @@ public:
 	virtual void		MouseMove(int x, int y) override;
 };
 
-// 0x418760: volume, full screen, custom cursors, and the way to the help, the scores and the site
+// 0x418760: volume, full screen, custom cursors, and the way to the help and the scores
 class OptionsDialog : public Dialog2004, public SliderListener, public CheckboxListener
 {
 public:
 	SevenSeasApp*		mApp;                   // +0xdc
 	DialogButton*		mHelpButton;            // +0xf0 id 0
-	DialogButton*		mRegisterButton;        // +0xf4 id 1 (hidden)
 	DialogButton*		mScoresButton;          // +0xf8 id 2
-	DialogButton*		mWebButton;             // +0xfc id 3
 	Slider*				mMusicSlider;           // +0xe0 id 0
 	Slider*				mSfxSlider;             // +0xe4 id 1
 	Checkbox*			mFullscreenCheckbox;    // +0xe8 id 0

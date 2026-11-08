@@ -99,6 +99,14 @@ once its drop is done (Rand() % 25, and for a sparkle RandSigned() then Rand() %
 Logo's shine (Rand() % 200 when it starts again), and the PlayButton's sparkles every 8th update once it is in (three
 RandSigned()).
 
+The site's "Always skip start-up logos" (`Byopop::SiteSkipLogos()`, `-skiplogos` natively; 2026-11-08) leaves out the
+PopCap logo and its trademark sign: the loader's constructor holds `mPopCapAlpha` (+0xb0) and `mTrademarkAlpha` (+0x580)
+at 0, and nothing but those two draws in DrawAll reads them. Since the port's hand-over moves the loader on to the original's ("Deviations", loading), the logo is never drawn in
+the port anyway, and the switch only makes sure of it. The loading,
+the menu's start, the Logo (the game's title, which stays) and every random draw are as before: a seeded Classic
+autoplay is the same at update 8010 with and without the switch, and with it off the frozen screens and the baseline
+are unchanged.
+
 ## Drawing helpers and effects
 
 Constants: many doubles in the exe are floats widened (0.1 is 0.10000000149011612); the port writes them as the exe
@@ -443,12 +451,53 @@ the site makes the player rather than the autoplay.
 
 ## Deviations
 
-Each is a change without a visible effect in play.
+Each is a change without a visible effect in play, but for the first.
 
+- Loading at the machine's speed (CLAUDE.md, "Port first, unmodified"). The original's loader screen (LoaderScreen::
+  Update) caps its bar at its update count over 800 and starts the main menu only once that smoothed bar reaches 0.995,
+  so the menu came about 8 seconds after launch however fast the files loaded. The port starts the menu as soon as
+  the loading thread is done, with the bar full; the bar's smoothing still shows while files load, and the countdown of
+  150 updates after it (the welcome voice, the logo's slide), which does not hold the player, stays. Visible: the menu
+  comes sooner. Checked by the game's state every 50 updates against the port before the change, shifted by the 844
+  updates the menu now comes earlier: Blitz plays out the same at every point, Classic the same game to the same
+  48400, though around its level-ups a match lands a few updates apart, since parts of the original time themselves
+  by the app's update count since launch (CurvedVal, the level-up mandala's turns, Board's pulses). The frozen
+  baseline and check.sh's screens were refrozen with the change.
+  What the loader draws follows the original's order with the wait taken out (2026-11-08, from the user's report that
+  the PopCap logo showed behind the menu and the Play button stayed invisible until clicked). The loader's own curves
+  play its opening from its construction: the PopCap logo fades in over its first 250 updates and out from 550 to
+  800, its trademark sign in and out by 400, the screen comes up from black from 300 to 600, the device slides in from
+  250 to 400, the Play button's alpha rises at 350 to 400 (the main menu's Play button follows it), and the title fades
+  in from 800. The original hands over at the loader's update 848 at the earliest (the bar's cap and smoothing;
+  origrun saw the main menu made at the app's update 846-847 on its virtual clock), when the logo is gone and the
+  button is up. The port, handing over a few updates in, had the logo still fading in behind the menu and the button's
+  alpha at 0. So at the hand-over the port moves the loader's clock on to its update 848: the start of every curve the
+  constructor set and the hand-over does not set again, and the loader's update count (the glows, the bar's scroll).
+  After that the menu, the title's fade and the loader's slide away are as in the original's; before it, the port
+  shows the original's first few updates, black. No random draw depends on them: a seeded Classic autoplay is the
+  same at update 8010 before and after, and check.sh's Classic and Blitz screens and the baseline are unchanged. The
+  suite's menu set (updates 60 and 160) freezes the menu with Play drawn; the port before this fix fails it.
+- A level-up through a lost focus (a crash and a soft lock of the original's logic, fixed in the port). While the
+  board is paused (the window lost the focus, or the options are over it) its UpdateGame returns at once, so its part
+  of the jump between levels (UpdateJump, 0x6d090f, and the next level's start) holds, but the original's Hyperspace
+  widget ran on. UpdateJump breaks up the row (space's update count - 120) / 12 and ends the rows only when that equals
+  the row count, so a pause through the end of the rows went past it; once space was gone the next update read its
+  null pointer. Found by the real-input driver (a focus loss at the second level-up of Classic, 3D, crashed every
+  time); a guard for that alone left the next level's board empty for good. The port's space holds still while the
+  board is paused (Hyperspace::Update), and the jump goes on where it was. Visible only as space standing still behind
+  a paused board. Not tried on the original.
 - The arrow keys on the web (Board::KeyDown, 0x6ca439): after moving the cursor, the original moves the mouse
   pointer onto it (Board::WarpToCursor, 0x6a45da, SetCursorPos) while +0x1430 holds a piece. Natively the port does
   the same (SexyAppBase::WarpMouse, never in a test run); a web page cannot move the pointer, so in the browser it
   stays put and the next small move of the mouse takes the cursor back under it. This one shows, on the web only.
+- The doom gem's placement (a freeze of the original, fixed in the port). NextTurnGems (0x6bde87) picks random cells
+  inside the border until one is a plain gem (no flags, colour 0 to 6, not breaking or blasted) that no cursor
+  position would match (0x6be313 to 0x6be46a: the hundred-try count is only counted down after a doom gem is placed,
+  so it never limits the search). When no inner cell qualifies (every inner gem locked or special, or every plain one
+  in some move's line) the original loops for ever and the game freezes; it can happen when a doom gem is due, level
+  13 or later in Classic or a constant-doom challenge. The gems some move would match are the same for every pick, so
+  the port learns from its first sweep whether any pick can succeed, and when none can no doom gem comes that turn.
+  Wherever one can, the picks, random draws and sweeps are the original's. Visible only where the original froze.
 - PopCap's beta dump: after loading the players, the original reads a text file at a path on PopCap's own network
   (0x761f11) into a buffer (app +0x1024) when it exists (0x764814). It never exists outside PopCap; the port leaves it
   out.
@@ -507,6 +556,50 @@ Each is a change without a visible effect in play.
   gem is still there (it is deleted when it blasts); the port checks.
 
 Challenge menu, piece 3 (partly done): the menu's Update now steps the end-of-challenge message at +0x9dc (`mAwardTelly`, an AwardTelly the board makes at 0x6b330d): at its update count 250 the rank bar's timer gains UpdateProgress(true, false) over 100, and once clicked it is removed and deleted and state 5 goes to 4 (0x6e4989). A click on a closed planet in the trial also starts the curve at +0x8a0 (0x6e54c3). Ported (0x6e4a25, 0x6e132d, 0x6dda7c, 0x6e665e): the menu's DrawAll (0x6e4a25) draws nothing at all while the sun's curve (0x85c558) is 0, unless space is bringing back the old level's picture (Hyperspace state 12 with +0x159 clear, then drawn over the menu by 0x70f836); otherwise the children and then `DrawSunAndTexts` (0x6e132d). With Direct3D off that draws, through the billboard 0x6dda7c (a PerspectiveCamera(gAspect45, gAspect, 1, 10000) on gMenuCamera projects the point; DrawImageTransformF, 0x422050, with the scale 0.00151515 / depth / the picture's width * size * 80, centred there, skipped below a depth of 0.0001; it sets the draw mode, the colour, unpacked by 0x401880 with its alpha as it is, and colorizing, and leaves them set), IMAGE_ECLIPSE_SUN at the camera's start (size 4.75, grey 255 - 255 * +0x928, alpha the sun's), IMAGE_ECLIPSE_MOON 4.1 along z from it turned about y by +0x720 * 1.5 pi (0x68fa0b, then 0x4c0c80 and 0x68b369, now `TimesMat3` and `TransformPoint` in Math3D; size 2.7, grey min(255 * +0x6b0 + 48, 255)), the additive IMAGE_ECLIPSE_RING there (2.9) while the sun is at 1, by (1 - +0x6b0) * sun * sun, the two dancing glows (IMAGE_ECLIPSE_DANCE2 and DANCE1, additive, while +0x640 is above 0: 280 * scale from the middle, from 0.3 of a turn to none and turned from half a turn to none by +0x640's input over its end), and with the menu all the way in (state 1 or 4): with no planet hovered IMAGE_CHALLENGEMODETITLE at y 516 * scale by +0x9d4 times the sun (the "CHALLENGE MODE" over the eclipse); with one hovered, "BEST: %d" (+0x19c) in FONT_DIALOG_TEXT, the description pictures +0x190 and +0x194 (the latter by +0x15c), the name picture +0x18c with its fading trail of larger copies (0.02 larger each, fainter by the fade squared, at least 0.03), and, in the trial, for a planet past the third (id above 2) or a challenge past the third, IMAGE_TRIALVERSION_CHALLENGE with its additive flash by +0x8a0. ButtonMouseEnter (0x6e665e) makes those pictures: the description (ChallengeInfo::GetText of the planet's next challenge) as two TextImages in FONT_PLANET_TEXT 0.3 of the width wide (the first with the font's layers 0x80dfb4 and 0x7dd6b0, the second with 0x80dfb4 only, OUTLINE clear in both), and the category's id (underscores as spaces, "  %d" with the stage added unless eclipsed) word-wrapped in FONT_FRUIT_AWARD, 500 * scale wide with 50 * scale line spacing, coloured from a table of 13 colours (0x6e6a8c) with a black OUTLINE, in a MemoryImage, and IMAGE_ECLIPSE_TITLE at 0.65 under an eclipsed name. The helpers: 0x41ff20 Graphics::SetDrawMode, 0x41ff40 SetColorizeImages, 0x4223e0 StringWidth (the font's slot 0x1c), 0x421180 DrawString (slot 0x28), 0x7575c2 DrawImageCentered (the whole picture), 0x422eb0 WriteWordWrapped and 0x4233d0 GetWordWrappedHeight (both with one argument more than this framework's, 0 in these calls), 0x4216f0 DrawImage stretched, 0x6e6619 Graphics' copy, 0x694387 a float to an int power, 0x6a1984 a CurvedVal as a white of its alpha. The constructor sets +0x198 to 1 (the port had 0) and the destructor (0x6e0c6c) frees the three pictures. The tip widget, an OrbitText that ChallengeButton 0x6e0aa5 makes, is ported now (see the board's flow below). Not ported: the zoom's own effects; UpdateProgress's glow. The planet ring is drawn smaller than the original's rim (about 46 px against 76 px for a settled planet at 800x600) and looks darker. A logged run showed the 600-art image (82x81), mOpen set, and the scale chain of 0x6dec2c-0x6dee33 (ring scale 2.25, Graphics scale about 1.31 when settled), so the cause is not found yet; the identical-play pass looks at it with the other scaled draws.
+
+## The fixes mod
+
+`mods/fixes` (docs/MOD_ROADMAP.md, "The fixes mod"), one toggle a fix, read through ModFeatures.h; the port loads mods
+from `-modsdir` (natively `mods-bejeweledtwist` beside the exe, on the web `/bjtpersist/mods`, where the page installs
+it on) and `-nomods` leaves them out. It changes no score, so it shares the original's high scores.
+
+- `rewindSkips`: while a best move's replay rewinds, GraphicsRecorder skips the board's own draws, but its
+  DrawImageTransform (0x70dfad) hands the float, mirrored and float-rotated pictures straight to the Graphics without
+  looking at the skip flag, so those still show over the rewind ("Oddities"). With the fix they are skipped too.
+
+Looked at and left out of the mod: an award's fruit going to a bomb or locked gem whatever its colour (AwardFruit
+looks for those first on purpose, so it reads as the design, not a fault); the coal embers' and the credits' sparks'
+counters, which the original leaves to the heap and the port already starts at 0, so the port plays the same on every
+run with or without the mod; the 15-update jumps of the original's own autoplay, which the port does not have; the
+one-move goal's icon and the fruit dance's lists, which no shipped data reaches. The doom gem's endless search is a
+freeze, so the port fixes it itself ("Deviations"). The loading wait is gone from the port too.
+
+## Registration and outbound buttons (taken out, 2026-11-08)
+
+The port plays as the registered original does (COORDINATION.md, "Order of the work on the merged games"). The
+original's +0x758 said whether the copy was registered; the port had kept it as `mRegistered`, always true, and every
+branch only an unregistered copy takes is now gone with it. None changes what a registered copy shows or plays, which
+the frozen baseline confirms.
+
+- The trial's last jump, transition 14 (BoardUpdate's level-up, 2D and 3D Hyperspace): after level 10 of Classic or 15
+  of Zen an unregistered game jumped into its limit dialog (+0x152c, 0x73a458, SOUND_TRIALLIMIT) and ended. Its curves,
+  states 6 to 9, the dialog's projection into the tunnel and the countdown at +0xc58 are gone; the board's +0x1474
+  (the same dialog's widget) and every check of it too.
+- Zen past level 13 emptied its tube's progress at each level in an unregistered copy (Board::NewLevel).
+- Blitz locked: an unregistered copy kept Blitz shut whatever the profile said (Profile::IsModeUnlocked), drew its
+  door with IMAGE_PLAYMENU_LOCKED and a text with the level to reach (Mandala), and opened it when the game was
+  registered while the mode select was up (Mandala's +0x418 copy of the flag). The level-10 unlock of Blitz
+  (LevelUpShow) and the mode select's start-up unlock (for a copy without LevelLock) no longer ask the flag.
+- The challenges' trial locks (ChallengeMenu): the red locks past the third challenge and on the fourth planet, the
+  stage-4 limit on a planet's progress, the "trial version" picture over locked planets with its flash (+0x8a0) and
+  SOUND_TRIALCLICK on a click.
+- "More Games" (Gates): with a MoreGamesURL property the first gate button was "more games" (id 2,
+  IMAGE_MAINMENU_MOREGAMEBUTTON) instead of how to play. It is always how to play now, in the same place, as the
+  port's copies have always shown it.
+- The registration widget (0x73b403, app +0x924) and its button (0x2b) were never ported.
+
+The generated resource table (Res.cpp, Res.h, from the exe's id table) still names the trial's pictures and sounds,
+since their ids are indexes into that table; no code uses them.
 
 ## The challenge's flow on the board
 
@@ -803,10 +896,22 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
   level's goal), `busy`, `over` (the game has ended), `timer` (Blitz's seconds left), `wheel` (true while the second chance's wheel is up), `board` (a string a row, a gem by its colour's letter:
   r red, w white, g green, y yellow, p purple, o orange, b blue, `.` none) and `specials` (row, column, kind: bomb
   with its count, coal, doom, flame, lightning, fruit, locked with its lock).
+- `state` also gives `updates` (the app's update count), `active` (the window has the focus) and `windowed`; the
+  screens `newplayer` (a new player's name is asked, the first launch) and `endstats` (the stats after a game); in a
+  game `tip` (a tip or the tutorial: `wait`, its Tutorial::STATE_ wait, `dialog`, whether its dialog with buttons holds
+  the board, and `forced`, the row and column of a forced twist) and `rank` (the rank bar after a level or a game).
+- `move` also answers `dialog` (the tip's or the tutorial's first button, once its dialog has glided into place),
+  `forced` (the tutorial's forced twist, at its square), `continue` (the rank bar's or the new rank's Continue, the
+  stats' Continue) and `back` (on the high scores after a game, the gate button that closes them). None of these
+  leads out of the game.
 - `move`: `MOVE {...}` with the twist -autoplay's FindMove (0x6c14fc) would choose, by the same order and the same
   preference for a bomb's line, and the click that makes it (move, then click, at the corner the turn goes about, in
   game pixels), `MOVE {"kind":"stop",...}` with the click on the second chance's "click to stop" once it can be
-  pressed (as -autoplay stops it), or `MOVE null`. It reads the gems into a grid of its own, since FindMove moves the cursor to ask.
+  pressed (as -autoplay stops it; a tip's dialog over the wheel is answered first), or `MOVE null`. A locked gem
+  cannot turn but counts in a line. Where the grid finds no turn, the board's own FindMove answer from its last settle
+  (+0x201c, +0x2020) is taken; where neither finds one, -autoplay clicks a random square (Rand), so `move` gives a square
+  that can turn instead, with `"match":false`, and draws nothing: of the squares that can turn, counted top down and left
+  to right, the one the level's twist count picks, so four turns of one square never bring the board back to where it was. It reads the gems into a grid of its own, since FindMove moves the cursor to ask.
 - `goto menu|title|options|highscores|help|credits|classic|zen|blitz`: through the gate buttons, the tube's menu
   button (options in a game), the quit question's Yes (menu from a game) and the menu's StartGame. Challenges answer
   ERROR (their menu is not wired to it), as does a locked mode.
@@ -869,21 +974,14 @@ is reported in IDENTICAL_PLAY.md.
   "Onemove" rule that counts a colour, so it is never seen. The port reads the list the same way and gives a goal past
   its end no icon. Fixing it would be reading the goal's own stat, which the original does not do.
 
-- **The doom gem's placement can hang.** NextTurnGems (0x6bde87) picks random cells inside the border until one is a
-  plain gem (no flags, colour 0 to 6, not breaking or blasted) that no cursor position would match (0x6be313 to
-  0x6be46a: the hundred-try count is only counted down after a doom gem is placed, so it never limits the search). When
-  no inner cell qualifies, for instance when every inner gem is locked or special, or every one sits in a possible
-  match, the original loops for ever and the game freezes. The port keeps the loop as it is. To see it, a board whose
-  36 inner gems all carry flags when a doom gem is due (level 13 or later in Classic, or a constant-doom challenge).
-  Fixing it would take a limit on the search, which the original does not have.
 - **The fruit dance's points can run past their lists.** PopAnimCommand (0x6c3cf5) takes each "small" or "large"
   command's points from a list on its stack (42 and 15 entries) by a count it never checks, so further commands would
   read whatever lies beside the list. fruitdance.pam sends 37 and 15, so the original stays inside them; the port gives
   no points past the end. To see it, an animation with more commands. It would take a bound the original does not have.
 - **A replay's rewind still draws a few things.** While the recorded frames play back, GraphicsRecorder skips the
   board's own draws, but its DrawImageTransform (0x70dfad) hands the float, mirrored and float-rotated cases straight
-  to the Graphics without looking at the skip flag, so those images still appear over the rewind. The port keeps it.
-  To see it, a replay's rewind while such an image is on the board. Fixing it would be a skip check the original lacks.
+  to the Graphics without looking at the skip flag, so those images still appear over the rewind. The port keeps it; the fixes mod's `rewindSkips` skips them.
+  To see it, a replay's rewind while such an image is on the board.
 - **An award's gem ignores its colour when there is a bomb or lock.** AwardFruit (0x6ba5b4) works out the next
   fruit colour (+0x218 modulo 7) and looks for a plain gem of it, but only when FindHintPiece finds no bomb or locked
   gem; otherwise the fruit goes to that gem whatever its colour, and the count still moves on. Seen on any board with a
@@ -924,6 +1022,35 @@ is reported in IDENTICAL_PLAY.md.
   opaque pixels, are all the same. The cause of the rest was not found (perhaps the wavelet's rounding or the colour
   transform); finding it would mean comparing the original decoder's coefficients with ours stage by stage. Too
   small to see.
+
+## Performance (native)
+
+Measured 2026-11-08 by `tools/profile/perf.py` (its docstring has the commands), on the i7-12700F described under
+"Performance (web)". Each figure is the median of three runs. Load time counts from the process's creation to the main
+menu's making. The memory peaks are the largest working set and private bytes sampled every 0.1 s over the whole run,
+which agree with Windows' own peaks to the 0.1 MB. The processor time is kernel plus user over the minute after
+loading, on the real clock.
+
+The original is the retail copy staged by origrun (`--copy-only`), with its CD launcher replaced by the game carved out
+of it, run through origrun on its real clock, not under rundesk; it loaded d3d9.dll, and which of its renderers it drew
+with was not checked. The port ran windowed in 2D (`-nod3d9`) under rundesk. The original crashes about 12 seconds into
+its own `-autoplay` in this copy (an access violation, not looked into), so the comparison is a minute on the main
+menu, both sides idle there; the port's minute of seeded Classic autoplay is given beside it.
+
+| Run | Load | Peak working set | Peak private bytes | Processor time in the minute |
+| --- | --- | --- | --- | --- |
+| original, main menu | 10.81 s (10.71 to 10.89) | 316.3 MB | 338.1 MB | 21.05 s (20.69 to 22.44) |
+| port, main menu | 2.71 s (2.58 to 2.82) | 212.9 MB | 205.6 MB | 3.31 s (3.30 to 3.41) |
+| port, Classic autoplay (`-autoplay=classic -seed=1234`) | 2.66 s (2.61 to 2.92) | 397.6 MB | 390.3 MB | 12.19 s (12.09 to 12.27) |
+
+No other session's game process was running at the start of any run (`tools/gamecount.py` counted 0 each time). That
+count leaves out the Browser pane: this session's web runs of the player page were playing in it while the original's
+runs and the port's menu runs went on, so those carry its load.
+
+The port reaches the menu about 8 seconds sooner, which is the loader's wait on its smoothed bar that the port took out
+(0462fe93). On the menu the port used 3.3 seconds of processor time in the minute against the original's 21; why the
+original's menu costs that much was not looked into. The port's peaks are about 185 MB higher in a game than on the
+menu; the original was not measured in a game.
 
 ## Performance (web)
 

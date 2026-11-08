@@ -17,13 +17,12 @@ namespace cb
 {
 
 // The data section's (0x460000..)
-int gRegistered = 1;                   // 0x460004
 int gAutoFire = 1;                    // 0x460028
 int gGoTo = 1;                         // 0x460034
 float gBeamSpeed = 0.14f;              // 0x460038
 int gFirstWeapon = 1;                  // 0x46003c
 int gLives = 5;                        // 0x460040
-int gTrialLeft = 3600000;              // 0x460044
+int gSaveFormatField = 3600000;        // 0x460044  cb.dat's third field: only a placeholder for the file's format
 int gCursorShown = 1;                  // 0x460874
 int gFrame = 1;                        // 0x460a1c
 // And the zeroed (0x4623e0..)
@@ -31,10 +30,8 @@ LevelRecord gLevelRecords[1000];       // 0x4623e0
 Profile gProfiles[11];                 // 0x46df60
 int gProfile = 0;                      // 0x46e24c
 HighScore gHighScores[9];              // 0x46e250
-char gUrl[0x200];                      // 0x46e3a8
 int gMouseX = 0;                       // 0x46e5bc
 int gMouseY = 0;                       // 0x46e5c0
-int gTrial = 0;                        // 0x46e5c4
 int gDemo = 0;                         // 0x46e5c8
 int gQuit = 0;                         // 0x46e5d0
 int gFirstRun = 0;                     // 0x46e5d4
@@ -174,7 +171,7 @@ long FileSize(const char* thePath)
 	return aSize;
 }
 
-// The current player's level, the trial's time and the players come last; the player's game in progress is
+// The current player's level, the file's third field (a placeholder: what the file held, written back as it was) and the players come last; the player's game in progress is
 // taken (or cleared, with no lives left) when on a board. The difficulty goes to the eleventh player's slot only
 // after the write, so the file has the one before.
 void SaveProfiles()
@@ -184,7 +181,7 @@ void SaveProfiles()
 	{
 		std::fwrite(gHighScores, 0x24, 8, aFile);
 		std::fwrite(&gProfiles[gProfile].levelReached, 4, 1, aFile);
-		std::fwrite(&gTrialLeft, 4, 1, aFile);
+		std::fwrite(&gSaveFormatField, 4, 1, aFile);
 		std::fwrite(&gAutoFire, 4, 1, aFile);
 		Profile* aProfile = &gProfiles[gProfile];
 		aProfile->autoFire = gAutoFire;
@@ -277,8 +274,7 @@ void ResetProfiles()
 	SaveProfiles();
 }
 
-// cb.dat in SaveProfiles' order, or the defaults when it is missing or not its size. The trial has at least a
-// minute left.
+// cb.dat in SaveProfiles' order, or the defaults when it is missing or not its size.
 void LoadProfiles()
 {
 	long aSize = FileSize(Sys_SavePath("cb.dat"));
@@ -296,7 +292,7 @@ void LoadProfiles()
 	{
 		std::fread(gHighScores, 0x24, 8, aFile);
 		std::fread(&gProfiles[gProfile].levelReached, 4, 1, aFile);
-		std::fread(&gTrialLeft, 4, 1, aFile);
+		std::fread(&gSaveFormatField, 4, 1, aFile);
 		std::fread(&gAutoFire, 4, 1, aFile);
 		std::fread(&gProfile, 4, 1, aFile);
 		std::fread(gProfiles, 0x44, 0xb, aFile);
@@ -306,8 +302,6 @@ void LoadProfiles()
 		gDifficulty = gProfiles[10].riderHits;
 		// (the original closes the file a second time here)
 	}
-	if (gTrialLeft < 60000)
-		gTrialLeft = 60000;
 }
 
 int SortHighScores()
@@ -324,7 +318,6 @@ void GameInit()
 #ifdef __EMSCRIPTEN__
 	SiteStart();	// the web page's players (framework/WebProfiles.h): the slots are read; what the page queued for them is applied
 #endif
-	gUrl[0] = 0;
 	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, kScreenClip);
 }
 
@@ -485,76 +478,72 @@ void GoToScreen()
 	}
 }
 
-// An update: the trial's time runs on a board without a menu in use; a screen that is left (or '.' pressed)
-// gives way to gGoTo's, a board to the next level of the file read again (the levels before it dropped). The
-// trial's last ten updates bring the expiring nag. Esc leaves the closing nag, and the main menu when registered,
-// for good; on a board it pauses (gEscape); elsewhere it goes to the main menu (the closing nag from the main menu
-// when not registered).
+// What GameStep does when the current screen is left: a board (or the logo) is dropped, any other screen is
+// unlinked, gGoTo's screen becomes current, and a board has the levels before it dropped. false when no screen is
+// current afterwards (the tests' commands call this as well, CBTestCommands.cpp).
+bool ChangeScreen()
+{
+	if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
+		List_RemoveCurrent(&gLevels);
+	else
+		Level_UnlinkAll(gLevels.current);
+	GoToScreen();
+	if (gLevels.current->kind == 0)
+	{
+		for (; gLevelInSet != 0; gLevelInSet = gLevelInSet + -1)
+		{
+			if (gLevels.current != nullptr)
+				gLevels.current = gLevels.head;
+			if (gLevels.current->musicPending != 0)
+				gLevelInSet = gLevelInSet + 1;
+			List_RemoveCurrent(&gLevels);
+			if (gLevels.current != nullptr)
+				gLevels.current = gLevels.head;
+		}
+		Level_StartSong(gLevels.current, 0);
+	}
+	if (gLevels.current == nullptr)
+		return false;
+	Screen_Redraw();
+	return true;
+}
+
+// An update: a screen that is left (or '.' pressed) gives way to gGoTo's, a board to the next level of the file read
+// again (the levels before it dropped). Esc leaves the main menu for good; on a board it pauses (gEscape); elsewhere it
+// goes to the main menu.
 void GameStep()
 {
 	gFrame = gFrame + 1;
 	if (gLevels.current != nullptr)
 	{
-		if (gLevels.current->kind == 0 && gTrial != 0 && gLevels.current->menus.current != nullptr &&
-			gLevels.current->menus.current->requesters.current == nullptr)
-			gTrialLeft = gTrialLeft + -1;
 		if (Level_Update(gLevels.current) == 0 || Key_Pressed(0xbe) != 0)
 		{
-			if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
-				List_RemoveCurrent(&gLevels);
-			else
-				Level_UnlinkAll(gLevels.current);
-			GoToScreen();
-			if (gLevels.current->kind == 0)
-			{
-				for (; gLevelInSet != 0; gLevelInSet = gLevelInSet + -1)
-				{
-					if (gLevels.current != nullptr)
-						gLevels.current = gLevels.head;
-					if (gLevels.current->musicPending != 0)
-						gLevelInSet = gLevelInSet + 1;
-					List_RemoveCurrent(&gLevels);
-					if (gLevels.current != nullptr)
-						gLevels.current = gLevels.head;
-				}
-				Level_StartSong(gLevels.current, 0);
-			}
-			if (gLevels.current == nullptr)
+			if (!ChangeScreen())
 				goto escape;
-			Screen_Redraw();
-		}
-		if (gLevels.current != nullptr && gLevels.current->kind == 0 && gRegistered == 0 && gTrial != 0 &&
-			gTrialLeft < 10)
-		{
-			gGoTo = 10;
-			GoToScreen();
-			if (gLevels.current != nullptr)
-				Screen_Redraw();
 		}
 	}
 escape:
-	if (Key_Pressed(0x1b) == 0)
+	// (port: the site's "Always skip start-up logos", which the player sets on the site or the exe takes as -skiplogos: on a
+	// logo screen (kind 0xe, the PopCap logo, again for each portal animation file) it goes on as Esc on it does, the original's
+	// own skip, to the main menu. The logos draw no random number (the seed's series is the same with Esc and without), so the
+	// game's draws afterwards are the same.)
+	bool aSkipLogo = gLevels.current != nullptr && gLevels.current->kind == 0xe && Sys_SkipLogos();
+	if (Key_Pressed(0x1b) == 0 && !aSkipLogo)
 	{
 		gEscape = 0;
 		return;
 	}
-	if ((gLevels.current != nullptr && gLevels.current->kind == 1 && gRegistered != 0) ||
-		gLevels.current->kind == 9)
+	if (gLevels.current != nullptr && gLevels.current->kind == 1)
 	{
 		gQuit = 1;
 		return;
 	}
-	if (gLevels.current->kind == 1 && gRegistered == 0)
-		gGoTo = 9;
-	else
+	if (gLevels.current->kind == 0)
 	{
-		if (gLevels.current->kind == 0)
-		{
-			gEscape = 1;
-			return;
-		}
-		gGoTo = 1;
+		gEscape = 1;
+		return;
 	}
+	gGoTo = 1;
 	GoToScreen();
 	if (gLevels.current != nullptr)
 		Screen_Redraw();

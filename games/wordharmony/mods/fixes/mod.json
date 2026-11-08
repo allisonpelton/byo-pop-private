@@ -1,0 +1,16 @@
+{
+  "id": "fixes",
+  "name": "Word Harmony Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends what the original left to chance, and changes nothing else: its look, rules, sounds and pace of play stay as they were. Each fix is a toggle; with the whole mod off the game is the original.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    { "id": "steadyClock", "label": "Timing from the frames", "type": "bool", "default": true, "apply": "restart",
+      "help": "The original times each frame by the machine's clock, so a frame that comes late moves the balls, the water and the timers further, and the music's random choices land on different frames: the same moves never play the same game twice. With the fix every frame is one thirtieth of a second of the game's time, so the same seed and the same moves play the same game on every run." },
+    { "id": "fairFirstWord", "label": "Fair first word", "type": "bool", "default": true, "apply": "restart",
+      "help": "The original never sets the time of the last word before the first one, and what that memory holds makes the first word after starting the program always count as quick, for twice the points. With the fix it counts as quick only when it is." }
+  ]
+}

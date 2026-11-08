@@ -6,6 +6,7 @@
 #include "Host.h"
 #include "MainMenu.h"
 #include "Manager.h"
+#include "ModFeatures.h"
 #include "PeResources.h"
 #include "Players.h"
 #include "Splash.h"
@@ -29,6 +30,10 @@ namespace mahjongchina
 // 0x40f540
 jb::Layer* MahjongGame::CreateFirstLayer()
 {
+	// port: the game opens at its main menu; the two logo screens (2 s each, nothing loaded meanwhile) are the original's
+	// wait before the game can start, and -logos keeps them
+	if (jb::gFastStart)
+		return new MainMenu();
 	return new jb::Splash(true);
 }
 
@@ -74,6 +79,22 @@ std::string RegName(const char* theSection, const char* theName)
 	return std::string(theSection) + "\\" + theName;
 }
 
+// The fixes mod's "steadyClock": the game's clock, its frame pacing and its timers run on the updates (mFrameTime ms each)
+// instead of the machine's clock, so the same input plays the same game on every run. "seededDeals": a seed given to
+// the run (-seed=N, the site's ?seed=N) seeds every deal and shuffle, where the original seeds them from the clock.
+static bool gSteadyClock = false;
+static bool gSeededDeals = false;
+// port: -logos keeps the original's start: the two logo screens and the black before the first one (jb::gFastStart)
+static bool gKeepLogos = false;
+static uint32_t gSeedCount = 0;
+
+static uint32_t GameClock()
+{
+	if (gSteadyClock)
+		return 1000 + (uint32_t)gApp->mUpdateCount * (uint32_t)gApp->mFrameTime;
+	return gApp->GetClockTime();
+}
+
 // The framework's side of jb::Host
 class MahjongHost : public jb::Host
 {
@@ -83,7 +104,21 @@ public:
 
 	uint32_t TickCount() override
 	{
-		return gApp->GetClockTime();
+		return GameClock();
+	}
+
+	// the deal's time limit (1 or 2 s) runs on the machine's clock even in a -fast run, whose virtual clock does not move
+	// inside a frame: a deal that finds no order would never end
+	uint32_t RealTickCount() override
+	{
+		return SDL_GetTicks();
+	}
+
+	uint32_t SeedTick() override
+	{
+		if (gSeededDeals && gApp->mHasSeedParam)
+			return (uint32_t)gApp->mRandSeed + gSeedCount++;
+		return GameClock();
 	}
 
 	const uint8_t* FindResource(jb::Module theModule, const char* theTypeName, int theTypeId, int theId,
@@ -102,7 +137,7 @@ public:
 		return (theModule == jb::Module::Dll ? mDll : mExe).LoadString((uint32_t)theId, theText);
 	}
 
-	// the machine's keys (ActivateLinks, PartnerURL) are read from the same emulated registry
+	// the registry keys are read from the same emulated registry
 	bool RegReadInt(const char* theSection, const char* theName, bool theMachine, int& theValue) override
 	{
 		return gApp->RegistryReadInteger(RegName(theSection, theName), &theValue);
@@ -166,12 +201,6 @@ public:
 		theHeight = 600;
 	}
 
-	// the framework opens nothing in a test run (it logs "OpenURL in a test run")
-	void OpenUrl(const char* theUrl) override
-	{
-		gApp->SexyAppBase::OpenURL(theUrl);
-	}
-
 	// test runs (-script, -fast, rundesk) never block on a message box; MB_YESNO's answer is IDYES
 	int MessageBox(const char* theText, const char* theCaption, unsigned int theFlags) override
 	{
@@ -223,7 +252,7 @@ public:
 	// the frame's pacing: the next frame waits until then (RunFrame)
 	void Sleep(uint32_t theMs) override
 	{
-		gApp->mNextFrame = gApp->GetClockTime() + theMs;
+		gApp->mNextFrame = GameClock() + theMs;
 	}
 
 	void SetFullScreen(bool theOn) override
@@ -410,6 +439,12 @@ void MahjongApp::Init()
 	}
 	mahjongchina::LoadGameTexts(aFolder);
 	jb::SetHost(&gHost);
+	// the two logo screens hold the player back 2 s each with nothing loaded meanwhile, so the port starts at the main menu
+	// (the loading rule, CLAUDE.md "Making a port"); -logos keeps the original's start, for runs compared with it and the suite
+	jb::gFastStart = !gKeepLogos;
+	// the fixes mod (games/mahjongchina/mods/fixes; docs/MOD_ROADMAP.md): none without a mod folder, and the game is the original
+	gSteadyClock = !mFastMode && FixOn("steadyClock");  // a -fast run is steady already
+	gSeededDeals = FixOn("seededDeals");
 
 	mWidget = new MahjongWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
@@ -429,6 +464,23 @@ void MahjongApp::Init()
 		return;
 	}
 	mGameStarted = true;
+}
+
+// -gameseed=N (the site's ?seed=N): the seed of the fixes mod's "seededDeals", as -seed=N is for a native run
+void MahjongApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-logos")
+	{
+		gKeepLogos = true;
+		return;
+	}
+	if (theParamName == "-gameseed")
+	{
+		mRandSeed = strtoul(theParamValue.c_str(), nullptr, 10);
+		mHasSeedParam = true;
+		return;
+	}
+	SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
 }
 
 void MahjongApp::Shutdown()
@@ -466,9 +518,10 @@ void MahjongApp::RunFrame()
 		Shutdown();
 		return;
 	}
-	if ((int)(GetClockTime() - mNextFrame) < 0)
+	if ((int)(GameClock() - mNextFrame) < 0)
 		return;
 	mGame->mManager.Frame();
+	TestFrame();
 }
 
 int MahjongApp::InputFlags()

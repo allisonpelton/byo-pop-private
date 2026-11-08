@@ -10,7 +10,7 @@
 // sizeof 0x188 (new in BookWormApp::ShowOptions 0x4107c0). Vtables: primary 0x500b4c (53 slots),
 // ButtonListener 0x500b2c (+0x58), SliderListener 0x500b24 (+0x120), CheckboxListener 0x500b1c (+0x124).
 // Offsets are absolute. Behaviour spec: re/bookworm/analysis/dialogs.md section 3.
-// The registered build (mBuildUnlocked) creates the register button but never adds or lays it out.
+// The register button (id 34, which the registered build created but never showed) is taken out.
 
 #include "MoneyDialog.h"
 #include "SliderListener.h"
@@ -33,7 +33,6 @@ public:
 	enum
 	{
 		HELP_BUTTON_ID = 33,
-		REGISTER_BUTTON_ID = 34,        // only added when !mBuildUnlocked (never in the registered build)
 		CREDITS_BUTTON_ID = 35,
 		// 1036: every partner link button (not ported)
 		FULLSCREEN_CHECKBOX_ID = 37,
@@ -60,7 +59,7 @@ public:
 	Checkbox*		mShowHintsCheckbox;     // +0x13c id 39, checked = app->mShowHints
 	Checkbox*		mShowDefsCheckbox;      // +0x140 id 40, checked = app->mShowDefs
 	Checkbox*		m3DCheckbox;            // +0x144 id 41, checked = app->Is3DAccelerated() (always created)
-	DialogButton*	mRegisterButton;        // +0x148 id 34, label GetString("RegisterLabel", GT_OPTIONS_REGISTER)
+	// +0x148 the register button: taken out
 	DialogButton*	mHelpButton;            // +0x14c id 33 GT_OPTIONS_HELP
 	DialogButton*	mCreditsButton;         // +0x150 id 35 GT_OPTIONS_CREDITS
 	// +0x154 std::list<DialogButton*> mLinkButtons, +0x160 std::vector<std::string> mLinkURLs: the partner

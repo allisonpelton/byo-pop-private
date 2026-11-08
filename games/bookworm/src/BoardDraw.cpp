@@ -635,8 +635,7 @@ void Board::DrawSelection(Graphics* g)
 			anArrowG.DrawImage(anArrowsImage, 0, 0);
 		}
 
-		// port: the registered build's limit (12 letters) is taken; the trial build's 8 (app
-		// mIsRegistered false) is not ported.
+		// The registered build's limit, 12 letters (the trial's 8 is taken out)
 		if (aLetterCount > aLimit)
 			g->DrawImage(mApp->mImages[IMAGE_TILE_X], (int)aPiece->mX, (int)aPiece->mY);
 	}

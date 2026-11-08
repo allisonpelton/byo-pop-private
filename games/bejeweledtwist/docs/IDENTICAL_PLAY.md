@@ -202,7 +202,85 @@ Two faults of the test path were fixed on the way: `goto <mode>` called the menu
 play portal over the board and Blitz's clock stopped (mPlayPressed unset), and a `-script` run had dropped the posted
 input, then let focus changes pause the game (shared commits 10a79f05 and a3b6df9c).
 
-### Still to play
+## Finishing (2026-11-08)
 
-A whole game in the browser, with real DOM events from a driver on the page. It waits for the live test commands on the
-web (`byopop_test_command`, on the shared branch), since without them a page driver cannot ask the game for its move.
+### Real play on the live channel
+
+The drivers moved to the live channel: the game runs with `-commands=<file>` and an empty `-realinput` file, and every
+line the driver appends is either a test command (`state`, `move`, `goto`, `unlock all`, `level`, `lose`) or a real
+event that goes through SDL's own queue (`move`/`click game x y`, keys, focus, minimise, restore, Alt+Enter, close).
+Natively that is `tools/realplay/live.py` under rundesk; on the web, `tools/web/onegame.js` in the player page
+(`?player=1&assets=...&fast=1&hold=1&driver=...`), whose clicks are the page's own mouse events. The old driver that
+posted window messages (`drive.py`) is retired. The bot chooses each twist and answers each screen through `move`
+(the tutorial's forced twists and dialogs, the tips, the wheel's stop, the rank bar, the zen jump, the stats and the
+high scores); no autoplay and no script click is involved.
+
+Natively in 3D, from a new player's first launch: the name typed in, the Classic tutorial with its three forced twists,
+then Classic through a focus loss and a minimise, two second-chance wheels, the zen jump question (answered Classic)
+and level 12, ended through the game's own ending (the `lose` command, since the bot defuses every bomb and Classic
+seldom ends by itself), its rank bar, stats and the top-ten high scores' Main Menu; then Alt+Enter into full screen,
+Blitz to its end and stats, Zen to level 5 and out by clicks on the tube's menu button, Main Menu and Yes in "Save and
+Quit", and the window closed with exit code 0. That was 491 twists.
+
+Natively in 2D (`-nod3d9`), again from a new player: the name and the Classic tutorial, then Alt+Enter so that Classic
+played in full screen through its wheel, the zen jump question and its end, its stats and high scores; Alt+Enter back to
+a window, Blitz to its end, Zen for 100 twists and out by the same three clicks at the 2D screen's points, and the window
+closed. That was 270 twists, exit code 0.
+
+### Real play on the web
+
+`tools/web/onegame.js` plays one game of a mode in the player-only page from the bot's answers, as the page's own mouse
+and key events, and reads every answer from the page's log itself (the test kit's own wait for an answer missed some in
+a hidden pane). Each run went to the main menu at its end with no error in the page:
+
+| Mode | 3D or 2D | Canvas | What it played |
+| --- | --- | --- | --- |
+| Classic, new player | 3D | 2456x1536 for 1228x768 (`scale=2`) | the name, the tutorial, two wheels, the zen jump question after `level 10`, its own end before the bot reached 300 twists, the end screens: 195 twists |
+| Zen | 3D | 1228x768 | 2153 twists, out by the tube's menu, Main Menu and Yes |
+| Blitz | 3D | 1228x768 | to its end and its screens: 75 twists |
+| Classic, new player | 2D | 800x600 | the name, the tutorial, a wheel, the zen jump question, its end: 180 twists |
+| Zen | 2D | 1600x1200 for 800x600 (`scale=2`) | 902 twists, out by the same three clicks at the 2D points |
+| Blitz | 2D | 800x600 | to its end: 109 twists |
+
+The Browser pane cannot enter full screen (its requestFullscreen() is refused), so `?scale=2` draws the canvas at twice
+the game's size instead, and every click lands at a scaled point as it would in full screen. 2D came from the site's
+"3D acceleration" set to off for Twist, 3D from its default on a browser with WebGL2.
+
+The first web runs in 3D found a fault of the page, not of the game: the bot's twists in 3D turned the square one row
+above the one it chose, and a Zen game made 1121 twists for 475 points. SDL sizes the canvas to the page's stage only
+on the window's resize event, and the stage takes the game's shape by its style alone when the game gives its size, so
+the canvas kept SDL's first 640 by 480 while the stage was 1228 by 768. Every click's height was then mapped through a
+4:3 picture letterboxed into a 16:10 one. 2D's 800 by 600 has the 640 by 480's own shape, so it was never off. A player
+in 3D on the web would have met it as well. The page now sends a resize once the game has given its size (a shared
+change to `web/shell.html`), and the canvas is 1228 by 768 from the start.
+
+### Performance
+
+NOTES.md, "Performance (native)", has the numbers: the port reaches its menu in 2.7 seconds against the original's 10.8,
+and on the menu used 3.3 seconds of processor time in a minute against the original's 21. Its peaks are 213 MB on the
+menu and 398 MB in Classic, the original's 316 MB on its menu. The original was measured only on its menu, since its own
+autoplay crashes in this copy. The web build's numbers are under "Performance (web)".
+
+### Changes this part made
+
+| Difference | Cause | The port now | Commit |
+| --- | --- | --- | --- |
+| A focus loss during a level's jump crashed the game, or left the next level's board empty for good | the board's update holds while it is paused, but the original's Hyperspace widget ran on and passed the row count that ends the jump | space holds still while the board is paused, and the jump goes on where it was (NOTES.md, "Deviations") | 64f450e5 |
+| The doom gem's placement could loop for ever and freeze the game | NextTurnGems picks random inner cells until one qualifies, with no limit | when no inner gem can take it, no doom gem comes that turn; otherwise the same picks and draws | this pass |
+| Loading took about 8 seconds whatever the machine | the loader waited for its smoothed bar | the menu comes once the files are loaded | 0462fe93 |
+| After the faster loading, the PopCap logo faded in behind the menu and the menu's Play button stayed invisible until clicked (the user's report) | the port handed over a few updates into the loader's opening, whose curves the original has played out by its hand-over at update 848 | the loader's clock moves on to update 848 at the hand-over; check.sh freezes the menu with Play drawn | this pass |
+| Registration code and the "More Games" button | the trial, nag and buy paths | taken out (NOTES.md, "Registration and outbound buttons") | fe0f06bc |
+| On the web in 3D every click landed a row too high | the page's stage changed shape by its style, which SDL never hears of | the page sends a resize once the game gives its size | this pass (shared) |
+
+The fixes mod (`mods/fixes`, NOTES.md "The fixes mod") holds one fix, `rewindSkips`: a best move's replay hides the
+board's float, mirrored and smoothly turning pictures while it rewinds, as it hides the rest. The port now loads
+mods (`-modsdir`, `-nomods`), and the web page installs the fixes mod on.
+
+The test path itself was fixed on the way: `move` counts a locked gem in a line (it had read it as a gap, so the bot
+found no twist where one existed), answers a tip's dialog over the wheel before the wheel, answers the zen jump and the
+top-ten high scores' bar, and the state's answers go through SDL_Log, which a web page reads line by line. Where no
+twist makes a line, neither the bot's grid nor the board's own FindMove (its answer from the last settle), `move` turns a
+square that changes the board without a line, the one the level's twist count picks among those that can turn, so that
+it never cycles one square through four turns; the game's own autoplay would draw a random square from the game's
+generator there.
+

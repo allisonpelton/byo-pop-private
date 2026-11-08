@@ -22,6 +22,7 @@
 #include "SDLMusicInterface.h"
 #include "SoundInstance.h"
 #include "ModMenu.h"
+#include "WebSettings.h"
 #include "../platform/VFS.h"
 #include "../platform/ImageLoader.h"
 #include "../platform/ModManager.h"
@@ -468,6 +469,39 @@ EM_JS(int, sexyapp_confirm, (const char* theText), {
 	return confirm(UTF8ToString(theText)) ? 1 : 0;
 });
 
+// port: a browser enters full screen only when it allows it: the page may have it (an embedding page can forbid it), and a
+// gesture of the player's is still active (a key or a click in the last few seconds). Asked otherwise, SDL's window took the
+// screen's size at once and the game was drawn for it, several times too big in its 640x480 canvas with its clicks off (TipTop's
+// Alt+Enter from a test's DOM events, 2026-11-08), while Emscripten held the request for a gesture to come. So SwitchScreenMode
+// asks only when this says the browser would take the request now; Emscripten's own test is the same user activation.
+EM_JS(int, sexyapp_fullscreen_allowed, (), {
+	if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) return 0;
+	return (!navigator.userActivation || navigator.userActivation.isActive) ? 1 : 0;
+});
+
+// port: a browser that takes the request may still refuse it, and answers later (the Browser pane refuses every one with
+// "Permissions check failed"). Emscripten sizes the canvas for the screen before it asks, and puts it back only on the
+// fullscreenchange that leaves full screen, which a refusal never sends. So while a request is out (theWatch), its refusal is
+// taken as leaving full screen at once: a fullscreenchange with no full-screen element, on which Emscripten's own restore gives
+// the canvas its size back and SDL's own handler makes its window windowed, as when the player leaves full screen;
+// SDL_WINDOWEVENT_SIZE_CHANGED then puts the framework back in its windowed geometry.
+EM_JS(void, sexyapp_watch_fullscreen_refusal, (int theWatch), {
+	if (Module.byopopFullscreenWatch) Module.byopopFullscreenWatch();
+	if (!theWatch) return;
+	var done = function () {
+		document.removeEventListener('fullscreenchange', done);
+		document.removeEventListener('fullscreenerror', refused);
+		Module.byopopFullscreenWatch = null;
+	};
+	var refused = function () {
+		done();
+		if (!document.fullscreenElement) document.dispatchEvent(new Event('fullscreenchange'));
+	};
+	document.addEventListener('fullscreenchange', done);
+	document.addEventListener('fullscreenerror', refused);
+	Module.byopopFullscreenWatch = done;
+});
+
 // The browser may close, reload or discard the page without giving control back, while 1.3 only
 // saves on shutdown. When the page is hidden or about to unload (SDL reports beforeunload as
 // SDL_APP_TERMINATING), PageGoingAway() writes the settings and brings the backup up to date. Event
@@ -621,6 +655,8 @@ SexyAppBase::SexyAppBase()
 	mDrawTime = 0;
 	mScreenBltTime = 0;
 	mAlphaDisabled = false;
+	mUserChanged3DSetting = false;
+	mWant3D = true;
 	mDebugKeysEnabled = false;
 	mNoSoundNeeded = false;
 	mWantFMod = false;
@@ -628,7 +664,6 @@ SexyAppBase::SexyAppBase()
 	mSyncRefreshRate = 100;
 	mVSyncUpdates = false;
 	mWaitForVSync = false;
-	mUserChanged3DSetting = false;
 	mAutoEnable3D = false;
 	mTest3D = false;
 	mRelaxUpdateBacklogCount = 0;
@@ -674,6 +709,9 @@ SexyAppBase::SexyAppBase()
 	mCommandsFileLine = 0;
 	mCommandsWaitLogged = false;
 	mLiveCommandCount = 0;
+	mCommandsHold = false;
+	mLiveRunUntil = 0;
+	mLiveWaitUntil = -1;
 	mModMenu = NULL;
 	mModMenuKeyDown = false;
 	mModMenuClosingKey = KEYCODE_UNKNOWN;
@@ -1178,6 +1216,10 @@ void SexyAppBase::WriteToRegistry()
 	RegistryWriteInteger("CustomCursors", mCustomCursorsEnabled ? 1 : 0);
 	RegistryWriteInteger("InProgress", 0);
 	RegistryWriteBoolean("WaitForVSync", mWaitForVSync);
+	// port: the 3D choice, once the player has made one (the original writes it the same way); a run that never changed
+	// it leaves a saved value as it was
+	if (mUserChanged3DSetting)
+		RegistryWriteBoolean("Is3D", mWant3D);
 }
 
 bool SexyAppBase::RegistryEraseKey(const SexyString& _theKeyName)
@@ -1567,7 +1609,7 @@ void SexyAppBase::UpdateFrames()
 	// -commands: a look at the file each update, every few with -fast, where updates come back to back
 	if ((!mCommandsFileName.empty()) && ((!mFastMode) || ((mUpdateCount % FAST_DRAW_INTERVAL) == 0)))
 		PollLiveCommands();
-	if (!mLiveCommands.empty())
+	if ((!mLiveCommands.empty()) || (mLiveWaitUntil >= 0))
 		RunLiveCommands();
 
 	// port: a test run played with real input (a driver posting window messages, which a -script run ignores) asks for
@@ -1975,8 +2017,11 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 	// game) are ignored too, so the run is the same whatever happens to the window (also while a test
 	// bot drives the game, see mScriptedInput). A -script run played with posted input (gPostedInput) keeps its mouse and
 	// keys, but not the focus changes: its driver asks the game through the script (the test commands) and plays with
-	// real messages, on a desktop where the window is never active.
-	if ((!mScript.empty()) || (mScriptedInput))
+	// real messages, on a desktop where the window is never active. A -script run is one with a script file (natively and in
+	// a web build under Node; the web page never passes one): a test command that retries through AddScriptCommand also puts
+	// lines in mScript, and those must not stop real input (one waiting goto on the live channel kept every real click out of
+	// Bookworm Adventures, 2026-11-08).
+	if ((!mScriptFileName.empty()) || (mScriptedInput))
 	{
 		switch (theEvent.type)
 		{
@@ -2534,6 +2579,15 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	if (mForceFullscreen)
 		wantWindowed = false;
 
+#ifdef __EMSCRIPTEN__
+	// port: a browser that would refuse full screen now leaves the game windowed (sexyapp_fullscreen_allowed)
+	if ((!wantWindowed) && (mIsWindowed) && (!sexyapp_fullscreen_allowed()))
+	{
+		SDL_Log("SwitchScreenMode: the browser would refuse full screen now (no player's gesture, or none in this page): staying windowed");
+		wantWindowed = true;
+	}
+#endif
+
 	if (mIsWindowed == wantWindowed && !force)
 	{
 		Set3DAcclerated(is3d);
@@ -2549,6 +2603,11 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	if (mHWnd != NULL)
 	{
 		SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+#ifdef __EMSCRIPTEN__
+		// a page that has no full screen at all refuses at once, and SDL leaves its window windowed; a later refusal is watched
+		mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
+		sexyapp_watch_fullscreen_refusal(mIsWindowed ? 0 : 1);
+#endif
 		mIsPhysWindowed = mIsWindowed;
 
 		if (mDDInterface != NULL)
@@ -2685,14 +2744,16 @@ bool SexyAppBase::Process(bool allowSleep)
 		// the updates to make it draw 10 times per second in "game time"
 
 		bool didUpdate = false;
+		bool isHeld = false;
 
 		if (mUpdateAppState == UPDATESTATE_PROCESS_1)
 		{
 			// port: with -drawevery an update that has not been drawn yet is drawn before the next one
 			if (((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
 			{
-				// port: a test may hold the updates (byopop_hold_updates_at, web only): the frame is still drawn
-				if ((mUpdateFTimeAcc >= aFrameFTime) && (!WebUpdatesHeld(mUpdateCount)))
+				// port: a test may hold the updates (byopop_hold_updates_at on the web, -hold natively): the frame is still
+				// drawn, and -fast's clock stops at the held update's time
+				if ((mUpdateFTimeAcc >= aFrameFTime) && (!WebUpdatesHeld(mUpdateCount)) && (!(isHeld = LiveUpdatesHeld())))
 				{
 					bool hadRealUpdate = DoUpdateFrames();
 					if (hadRealUpdate)
@@ -2769,6 +2830,9 @@ bool SexyAppBase::Process(bool allowSleep)
 					}
 				}
 			}
+			// port: -hold waits for the driver's next line without spinning (no clock moves meanwhile)
+			if ((isHeld) && (allowSleep))
+				SDL_Delay(1);
 		}
 	}
 
@@ -2944,6 +3008,23 @@ int SexyAppBase::InitDDInterface()
 			aScreenImage->mIsScreen = true;
 			mDDInterface->mScreenImage = aScreenImage;
 		}
+
+		// port: the player's 3D choice: this run's (Set3DAcclerated) or the saved "Is3D" (the original reads it as its
+		// 2D mode's switch). Only 3D off changes anything: a default start, or a display without acceleration, is as it was
+		bool aWant3D = mWant3D;
+		if (!mUserChanged3DSetting)
+		{
+			aWant3D = true;
+			RegistryReadBoolean("Is3D", &aWant3D);
+#ifdef __EMSCRIPTEN__
+			// the site's "3D acceleration" (always 1, never 0; -1 leaves it to the game) decides this run in place of the saved
+			// value, and writes nothing (mUserChanged3DSetting stays false); mCan3D still makes "always" 2D without WebGL2
+			if (Byopop::SiteAccel3D() >= 0)
+				aWant3D = Byopop::SiteAccel3D() != 0;
+#endif
+		}
+		if (!aWant3D)
+			mDDInterface->mIs3D = false;
 
 		// port: DDInterface::WindowToLogical already maps window to logical coordinates, so the widget
 		// manager's mouse remapping is the identity
@@ -3375,8 +3456,13 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mCommandsFileName = theParamValue;
 		SDL_LogSetOutputFunction(LiveLogOutput, NULL);
 	}
+	else if (theParamName == "-hold")
+		mCommandsHold = true;
 	else if (theParamName == "-fast")
 		mFastMode = true;
+	// port: the site's "Always skip start-up logos" natively, for testing a game's wiring (framework/WebSettings.h)
+	else if (theParamName == "-skiplogos")
+		Byopop::SetSiteSkipLogos(true);
 	else if (theParamName == "-trace")
 		mTraceMode = true;
 	else if (theParamName == "-drawevery")
@@ -3713,11 +3799,36 @@ void SexyAppBase::PollLiveCommands()
 	mCommandsFilePos += (long long) (aLast + 1);
 }
 
+// -hold (natively, with -commands): once the game has loaded, an update runs only when the driver lets it, so a game
+// under -fast does not run on while its driver decides (and a run with the same lines plays the same way). New lines
+// let one update run them; "wait <n>" lets n run. Held, the file is looked at here, each pass of the main loop.
+bool SexyAppBase::LiveUpdatesHeld()
+{
+	if ((!mCommandsHold) || (mCommandsFileName.empty()) || (!mLoaded) || (mShutdown) || (mUpdateCount < mLiveRunUntil))
+		return false;
+	PollLiveCommands();
+	if (mLiveCommands.empty())
+		return true;
+	mLiveRunUntil = mUpdateCount + 1;
+	return false;
+}
+
 // The queued live commands, in order, each answered on the log: "OK <command>" when the framework did it,
 // "ERROR <command>: <reason>" when it could not or nobody knows the command; a game's command answers itself
 // (docs/TEST_COMMANDS.md)
 void SexyAppBase::RunLiveCommands()
 {
+	// "wait <n>" (the channel's own command, never a game's): the lines after it wait n updates, and it is answered
+	// when they are up
+	if (mLiveWaitUntil >= 0)
+	{
+		if (mUpdateCount < mLiveWaitUntil)
+			return;
+		mLiveWaitUntil = -1;
+		SDL_Log("OK %s", mLiveWaitLine.c_str());
+		fflush(stdout);
+		fflush(stderr);
+	}
 	// a copy: a command runs game code, which may queue more (they wait for the next update)
 	std::vector<ScriptCommand> aCommands;
 	aCommands.swap(mLiveCommands);
@@ -3725,6 +3836,28 @@ void SexyAppBase::RunLiveCommands()
 	{
 		const ScriptCommand& aCommand = aCommands[i];
 		std::string aLine = aCommand.mArgs.empty() ? aCommand.mCommand : (aCommand.mCommand + " " + aCommand.mArgs);
+		if (aCommand.mCommand == "wait")
+		{
+			int aCount = -1;
+			char aRest = 0;
+			if ((sscanf(aCommand.mArgs.c_str(), "%d %c", &aCount, &aRest) != 1) || (aCount < 0))
+				SDL_Log("ERROR %s: wait needs <updates>", aLine.c_str());
+			else if (aCount == 0)
+				SDL_Log("OK %s", aLine.c_str());
+			else
+			{
+				// the rest go back before any a command queued meanwhile; with -hold the updates run until then
+				mLiveWaitUntil = mUpdateCount + aCount;
+				mLiveWaitLine = aLine;
+				if (mLiveRunUntil < mLiveWaitUntil)
+					mLiveRunUntil = mLiveWaitUntil;
+				mLiveCommands.insert(mLiveCommands.begin(), aCommands.begin() + i + 1, aCommands.end());
+				return;
+			}
+			fflush(stdout);
+			fflush(stderr);
+			continue;
+		}
 		std::string anError;
 		int aResult = mRealInputFileName.empty() ? RunScriptCommand(aCommand, &anError) : RunRealInputCommand(aCommand, &anError);
 		if (aResult == SCRIPT_RAN)
@@ -4259,6 +4392,10 @@ void SexyAppBase::OpenModMenu()
 	MTAutoDisallowRand aDisallowRand;
 	mModMenu = new ModMenu(this);
 	mModMenu->Resize(0, 0, mWidth, mHeight);
+	// Above every deferred overlay a game uses (Bookworm Adventures' title logo at 1, its board at 10000): the widget
+	// manager draws an overlay before the first widget whose priority is above the overlay's, so at the default 0 the
+	// menu would lie under them all
+	mModMenu->mPriority = 0x7FFFFFF0;
 	mWidgetManager->AddWidget(mModMenu);
 	mWidgetManager->BringToFront(mModMenu);
 	// As AddDialog does for a modal dialog: the widgets below get no mouse or keys, and the game pauses
@@ -5352,7 +5489,19 @@ bool SexyAppBase::Is3DAccelerationRecommended()
 
 void SexyAppBase::Set3DAcclerated(bool is3D, bool reinit)
 {
-	// port: SDL's renderer is the only display path; it is accelerated whenever the system allows it
+	// port: SDL's renderer is the only display path, and it stays the GPU's whenever the system allows it. What 3D off
+	// changes is what the game and the framework's own drawing see (Is3DAccelerated, Graphics' mIs3D): the software
+	// drawing paths of PopCap's 2D mode. The choice is kept (mWant3D), written as "Is3D" and applied again each time the
+	// display is made; no re-init is needed, so reinit has nothing to do
+	if (mDDInterface == NULL)
+		return;
+	bool aIs3D = is3D && mDDInterface->mCan3D;
+	if (mDDInterface->mIs3D == aIs3D && mWant3D == is3D)
+		return;
+	mUserChanged3DSetting = true;
+	mWant3D = is3D;
+	mDDInterface->mIs3D = aIs3D;
+	mWidgetManager->MarkAllDirty();
 }
 
 SharedImageRef SexyAppBase::GetSharedImage(const std::string& theFileName, const std::string& theVariant, bool* isNew)

@@ -40,8 +40,8 @@ of the audio device.
 in the original, and the screens matched.
 
 **The whole adventure.** The adventure was played natively to the ending in two parts. Levels 1 to 10 came from a new
-player, and levels 12 to 52 from a player at progress 11. Every level was won. The solver finds no solution for
-level 11, which has six keys and eight locks.
+player, and levels 12 to 52 from a player at progress 11. Every level was won. The solver of that pass found no
+solution for level 11, which has six keys and eight locks; the finishing pass's bot solves it (below).
 
 **The web build.** Under Node it played the suite's first level to the same screens as the native build.
 
@@ -96,12 +96,50 @@ in the page, does not. With the same settings the two builds' screens are identi
 
 **Not reached by a script.** The restart from the second button of a classic game's end dialog was not played. The
 in-game menu of a classic game has no restart, so a scripted tour cannot reach it. Level 11 was not compared with the
-original, because the solver has no solution for it.
+original in that pass, because its solver had no solution for it; the finishing pass plays it with the port's bot, and
+the comparison with the original was not repeated.
+
+## The finishing pass: real play and the fixes mod (2026-11-08)
+
+This pass is Ancient Japan's, done once for both games (`games/mahjongjapan/docs/IDENTICAL_PLAY.md`, "The finishing pass"
+describes the method and the findings; the code is the same files). A driver that is code (`tools/realplay/drive.py` of
+Ancient Japan's folder, `--game china`) reads the state from the standard test commands, asks `move` for the port's own bot's
+next pair and sends the input it names as real SDL events under rundesk; `tools/web/realplay.js` does the same on the page.
+
+**What was played.** Natively, windowed: the launch, the help pages, a new player's name typed, the whole of Dynasty
+Adventure from level 1 to the ending (52 levels won, 3055 pairs, at most 105 in a level and no shuffle needed, in 16.0 minutes
+of real time), the classic list, a classic game by the bot to its result box (72 pairs, layout 437) after every button of the
+board and the in-game menu was tried before its first pair, a second classic game ended by `win` after ten real pairs, the focus
+lost and regained, and Quit (exit code 0). In full screen (Alt+Enter, the window going from 3200x2400 to 1600x1200 pixels of the
+private desktop and back, read from `screenshotfull`): the first levels of the adventure, the classic games and Quit. On the web (the page in the Browser pane with `?player=1&silent=1&assets=1&fast=1`, `tools/web/realplay.js` asking `move` for the
+bot's pair and sending its `input` steps as the DOM's mouse, key, text and focus events through the test kit's `playMove`):
+the same play in one run with no error: the focus lost and
+regained at the menu, at the first level's pause and in the classic games, the whole of Dynasty Adventure (52 levels won,
+3057 pairs, at most 105 in a level), the classic list, a classic game by the bot to its result box (72 pairs) after the
+board's buttons were tried before its first pair, and a second classic game ended by `win` after ten real pairs. The pane
+cannot enter full screen, so `?scale=2` (the canvas drawn at 1600x1200 CSS pixels over its 800x600) was played in its
+place: the first three levels and the two classic games, no error; the real full screen was tested natively only.
+
+**What it found for China.** Level 11 (layout 395, six keys and eight locks), which the pass of 2026-11-01 skipped because its solver
+found no solution, is solved by the bot (38 moves, 17070 points) and was played by real input with the rest. The soft lock of
+Ancient Japan's pass is China's too: a click on Shuffle while the last pair flies cleared that flight in the redeal, so the
+round never closed; `Board::OnCommand` ignores the shuffle once no tile is left (`DEVIATIONS.md`).
+
+**What this pass changed in the port.** The same changes as Japan's, in the same commit (3edab79b): the shuffle at the last pair, the
+logos at the main menu's corners taking no click, `move` answering the pause box, the shared libjpeg 6b loader (the suite's
+screens at most 3 levels of a channel from the old ones, in the JPEG backgrounds; `tools/check.sh` has the new hashes) and the
+hooks of the fixes mod; a later commit of the pass took the two logo screens and the black before them out of the start
+(the loading rule; `-logos` keeps them, the check suite passes it), and the launch to the menu takes 1.29 s where it took 7.7 s.
+`modtest.py --game china` passes: the menu at update 260 as the port starts against 1550 with `-logos`, the same seed dealing the same board and shuffle whatever the start time and another seed another, the clock's seconds
+equal to the updates in real time. Oddities of this pass: none skipped.
 
 ## The deviations that remain
 
 `DEVIATIONS.md` lists them. They are Japan's, with China's addresses, plus the window's background brush, which the
-port has no window class to carry and which nothing shows. Two of them can be seen. Full screen on a graphics driver
-set to stretch keeps the 4:3 shape. A player whose port moved keeps its progress. The rest have no visible effect: the
+port has no window class to carry and which nothing shows. Five of them can be seen. Full screen on a graphics driver
+set to stretch keeps the 4:3 shape. A player whose port moved keeps its progress. The two logos at the main menu's
+corners take no click, where the original opened web sites. A click on Shuffle while the last pair flies does nothing,
+where the original locked the board. The game opens at its main menu, where the original showed two logo screens for 4 s
+(`-logos` keeps them). The rest have no visible effect: the
 device stand-ins, three leaks fixed, five bounds the original never checks, a few fields the original leaves unset,
 and the random generator kept draw for draw.

@@ -728,25 +728,20 @@ void ChallengeButton::Draw(Graphics* g)
 	}
 	float aCellLeft = aBarLeft;
 	Rect aSavedClip = g->mClipRect;
-	bool aTrial = !gApp->mRegistered;
-	bool aLockedCategory = aTrial && mId == 3;
 	double aHalfCell = (double)((float)aCellWidth * 0.5);
 	for (int aCell = 0; aCell < aCellCount; aCell++) {
 		Rect aSource(0, 0, 0, 0);
 		int aYShift = 0;
 		Image* aCellImage;
-		if (aCell != mStage - 1 || aLockedCategory || (aTrial && 3 < mStage)) {
-			if (aCell < mStage - 1 && !aLockedCategory) {
+		if (aCell != mStage - 1) {
+			if (aCell < mStage - 1) {
 				// a cell done
 				aCellImage = aGreyNumbers;
 				aSource = aGreyNumbers->GetCelRect(aCell);
 				g->SetColor(aFull);
 			} else {
-				// a cell still to come: the lock (red in a copy that is not registered, past the third challenge)
-				if (aTrial && (2 < aCell || mId == 3))
-					g->SetColor(Color(255, 0x40, 0x40, Ftol((double)aBarFade * 220.0)));
-				else
-					g->SetColor(Color(255, 255, 255, aBarAlphaInt));
+				// a cell still to come: the lock (an unregistered copy's red locks are registration code, left out)
+				g->SetColor(Color(255, 255, 255, aBarAlphaInt));
 				aCellImage = IMAGE_MOONMETER_LOCK;
 				aSource = Rect(0, 0, IMAGE_MOONMETER_LOCK->mWidth, IMAGE_MOONMETER_LOCK->mHeight);
 				if (aCell == mStage) {
@@ -778,7 +773,7 @@ void ChallengeButton::Draw(Graphics* g)
 		g->DrawImage(aGreyNumbers, aDrawX, aDrawY, aSource);
 		int aNext = mStage;
 		int aCount = gApp->mChallengeInfo->GetChallengeCount(mCategory);
-		if (aNext < aCount && (gApp->mRegistered || aNext < 3)) {
+		if (aNext < aCount) {
 			g->SetColor(Color(255, 255, 255, Ftol(mUnknown1D8.GetOutVal() * aBarAlpha)));
 			int aCel = aGlowNumbers->mNumCols - 1;
 			if (mStage < aGlowNumbers->mNumCols - 1)
@@ -1294,12 +1289,8 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 					gApp->PlaySample(SOUND_CHALLENGE_UNLOCK);
 					aButton->mBarFill.SetCurve(GTS(0x7e0558));
 					aButton->mUnknown1D8.SetCurve(GTS(0x7e04c4));
-					if (aStage < 4 || gApp->mRegistered) {
-						aButton->mUnknown248.SetCurve(GTS(0x7e045c));
-						aButton->mUnknown2B8.SetCurve(GTS(0x7e0420));
-					} else {
-						aButton->mUnknown2B8.SetCurve(GTS(0x7e0488));
-					}
+					aButton->mUnknown248.SetCurve(GTS(0x7e045c));
+					aButton->mUnknown2B8.SetCurve(GTS(0x7e0420));
 				}
 			}
 		} else {
@@ -1765,21 +1756,8 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 			aFaint = aFaint - aStep;
 		} while (0.01f < aFaint);
 	}
-	// The trial: the planets after the third and the challenges after the third are locked
-	if (!gApp->mRegistered && (aButton->mId > 2 || aButton->mStage > 3)) {
-		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-		g->SetColor(Color(255, 255, 255, Ftol((double)mHoverFade * 255.0)));
-		DrawImageScaledCentered(g, IMAGE_TRIALVERSION_CHALLENGE, (float)(mWidth / 2), (float)(mHeight / 2), ALIGN_CENTER,
-			1.0f, 1.0f);
-		// and its flash after a click on a locked one (ButtonDepress starts mUnknown8A0)
-		if (mUnknown8A0.GetOutVal() != 0.0) {
-			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-			g->SetColor(Color(255, 255, 255, Ftol(mUnknown8A0.GetOutVal() * 255.0)));  // 0x6a1984
-			DrawImageScaledCentered(g, IMAGE_TRIALVERSION_CHALLENGE, (float)(mWidth / 2), (float)(mHeight / 2),
-				ALIGN_CENTER, 1.0f, 1.0f);
-			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-		}
-	}
+	// (an unregistered copy's "trial version" picture over the locked planets and challenges, and its flash, are
+	// registration code, left out)
 }
 
 // 0x6dfe2a: the camera's zoom
@@ -1807,11 +1785,8 @@ void ChallengeMenu::ButtonDepress(int theId)
 		mStageSel = aButton->mStage;
 		if (aButton->mEclipse)
 			mStageSel++;
-		if (!gApp->mRegistered && (mStageSel > 3 || mCategory > 2)) {
-			// The trial: the curve at +0x8a0 (0x6e54c3, whose listener-relative +0x758 it is) starts, and the click sound
-			mUnknown8A0.SetCurve(GTS(0x7e0c70));
-			aSound = SOUND_TRIALCLICK;
-		} else if (!gApp->SaveExists(2, mCategory)) {
+		// (an unregistered copy's click on a locked challenge, with its flash and sound, is registration code)
+		if (!gApp->SaveExists(2, mCategory)) {
 			Start(true);
 		} else {
 			TwistDialog* aDialog = new TwistDialog(IMAGE_SIZEABLEDIALOG, IMAGE_SIZEABLEBUTTON, 0, true, GT(0x80e8a4),
