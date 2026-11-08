@@ -232,6 +232,8 @@ void GameApp::UpdateFrames()
 		mUserUpdates++;
 	}
 	mSoundPlayer->Update();
+	if (!mRetriesForTests.empty())
+		RunRetriesForTests();
 	if (!mStateLogFileName.empty())
 		LogState();
 }
