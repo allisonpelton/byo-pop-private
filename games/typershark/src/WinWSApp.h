@@ -154,7 +154,7 @@ public:
 	void*					mVector754[4];          // +0x754 (pad), begin, end, capacity (freed by 0x429780 then free())
 	void*					mVector764[4];          // +0x764 (pad), begin, end, capacity
 	// +0x774, +0x780, +0x78c: three maps the config parsers fill (TODO: types from the config job)
-	std::map<std::string, std::string> mMap774;     // +0x774 (cleared by 0x42fd10)
+	std::map<int, std::vector<std::string> > mMap774;   // +0x774 the words by length (0x430b20 reads it through 0x42f930; cleared by 0x42fd10)
 	std::map<std::string, bool> mMap780;            // +0x780
 	std::map<std::string, bool> mMap78c;            // +0x78c
 	// the left-facing and darkened copies of images that FUN_004337a0 makes (the entities read them)
@@ -278,6 +278,19 @@ public:
 	void					ShowMapScreen();                                        // 0x426440 (after loading: the title screen goes)
 	void					ShowDeleteUserDialog(const std::vector<std::string>& theNames); // 0x4267d0 (dialog 0x44f)
 	void					StartBoard();                                           // 0x431320 (a new Board for the chosen level)
+
+	// the game's start, restart and end, and the words of a game (WinWSAppGame.cpp)
+	void					ResetGame(bool theKeepGameMode);                        // 0x42a870 (ends the game, then ShowMenuScreen)
+	void					RestartBoard();                                         // 0x42ee10 (new lesson manager, board and status bar)
+	void					CreateBoard();                                          // 0x42f3c0 (new lesson manager and board for the chosen mode)
+	void					ReturnToMap();                                          // 0x429450 (a level is over: the map comes back)
+	void					SaveGameProgress(bool theFlag, bool theWithDouble);     // 0x426c60 (the totals go into the user, the profile is written)
+	void					CopyMapListsToUser();                                   // 0x426a40 (the map screen's two lists go into the user)
+	std::string				GetWordA();                                             // 0x4292b0 (the word at +0x6b4; drawn when it is empty)
+	std::string				GetWordB();                                             // 0x429110 (the word at +0x6d0; drawn when it is empty)
+	std::string				GetWord(int theMinLength, int theMaxLength);            // 0x428d80 (first letter not used yet; lists at +0x758)
+	std::string				GetThemeWord(int theMinLength, int theMaxLength, int theMinTheme, int theMaxTheme); // 0x42aad0 (lists at +0x768)
+	std::string				GetLongWord(int theMinLength, int theMaxLength);        // 0x430b20 (lists at +0x774, lengths 3 .. 0x15)
 };
 
 extern WinWSApp* gApp;
