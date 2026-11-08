@@ -157,6 +157,8 @@ public:
 	std::string				mAutoplayShots;
 	struct AutoplayState*	mAutoplayState;
 	void					AutoplayUpdate();
+	// the standard test commands (testhooks/Commands.cpp, docs/TEST_COMMANDS.md)
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
 
 	// Helpers of the module (WinSS.exe addresses in SevenSeasApp.cpp)
 	bool					LoadImage(int theImageId);

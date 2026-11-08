@@ -218,3 +218,25 @@ port's native shots at the same steps, mean difference about 2 grey levels (the 
 text lines at the same rows, including step 9 (second line only) and step 14. The Easy demo's captions run as in the port. Not yet
 compared in the original: the board's first box after the demo's "Click Here to Start!" (the four lines at the first-box position);
 the runs that reached it did not get past the title in time.
+
+## 9. Test commands (docs/TEST_COMMANDS.md; `src/testhooks/Commands.cpp`)
+
+Script commands of the port (`-script`, later the live channel), answered on stdout with one line each (`OK <command>`,
+`ERROR <command>: <reason>`, `STATE {...}`, `MOVE {...}`). A command that is never given changes nothing; `tools/check.sh sevenseas`
+(the autoplay games and their logs) gives the same results as before them. Tried with `tools/commands_test.txt` and
+`tools/commands_test2.txt` (`tools/run_script.sh`).
+
+| Command | Does |
+|---|---|
+| `state` | `STATE {"screen","mode","level","score","lives","kills","board":{"player":[x,y],"heading","state","levelOver","ships":[[type,x,y]...],"islands":[[x,y,kind]...],"wrecks":[[x,y]...],"whirlpools":[[x,y,open]...]}}`; `screen` is title, menu, demo, board, bonus, map, options, help, highscores; `mode` is easy, average, hard or tutorial; the game keys are absent off the board |
+| `goto <screen>` | menu, options, help, highscores (after a game), or easy, average, hard, tutorial through the menu's own buttons (the game starts at the next update); title and credits answer ERROR (the game has none to go to), and so does any `goto` while the title is up |
+| `level <n>` | `NewLevel` for level n of the current game, as `-autoplaylevel` does (not in the tutorial or the demo) |
+| `set score\|lives <n>` | the board's score or lives |
+| `win` | the level is complete now (the flag the board sets when the last pirate is gone; the game's level-complete screen follows) |
+| `lose` | the last life is lost now through `LoseLife`; the game over and the high-score screen follow as in play |
+| `seed <n>` | the game's random numbers (the C library generator the original used) are seeded with n |
+| `move`, `botmove` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"clicks":[[gx,gy]]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the click in game coordinates that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
+| `unlock all` | ERROR: the game has nothing locked |
+
+`move` is also the framework's own script command (`move x y`, the mouse), which the framework takes first, so a bare `move` never
+reaches the game: `botmove` is the same command under another name until the framework hands argument-less `move` to the game.

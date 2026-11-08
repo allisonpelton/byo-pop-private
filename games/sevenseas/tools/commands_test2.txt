@@ -1,0 +1,11 @@
+# lose, the game over and the high scores, and the bot's moves (botmove: the framework's own "move x y" takes the name move)
+200 click 320 385
+700 goto hard
+1200 botmove
+1300 state
+1400 lose
+2600 state
+4000 state
+4100 goto highscores
+4200 state
+4300 quit
