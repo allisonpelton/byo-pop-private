@@ -671,6 +671,31 @@ code ("No references" in `CLAUDE.md` binds every port), and a project whose stat
 checked against the user's own copies, and `tools/gameimporttest.js` sorts folders of them beside the site's games. Jungle Juice
 (above) will host other projects' decompilations; once it does, these links can point there.
 
+### The site's look: rules for skins
+
+The user asked for original site designs that evoke the games' era and its web, with selectable skins (2026-11-07). The
+directions proposed so far, each as a listing, a game page and the import as a setup wizard, with studies for the bottle-cap
+board, are on a design page made for the user (https://claude.ai/artifact/FZy69Pz8kFCPkfZvctTA7T, private to them). Whatever is
+chosen keeps these rules, each in the user's words of 2026-11-07:
+- **The game stays the game.** "Skip in-game chat. I want the default to not feel modded relative to the version people might
+  build themselves." What happens inside the game's picture, and what its buttons do, stays as a port the player built
+  themselves would have it; the page around the game is free to change. Whether a game's "More Games" button may open the
+  listing is a question for the user, since it changes what an in-game button does.
+- **The era, not the company.** "Site isn't going to be a history of the company itself. A love letter to the history just
+  means it's acknowledging only historical parts (all the games are >15 years old by now). I want nothing to do with the EA
+  subsidiary." And: "I don't want to *just* rearrange things that exist in the game for the sake of credits." So no company
+  history, credits panels or liner notes, and nothing that ties the site to today's company.
+- **Period looks are affectionate parody.** "What I'm proposing would be better understood as affectionate parody. Think of
+  the various games that have been made with the style of Windows 95. The font is free to use and the color choices are low-bit
+  due to technological limitations. No chance it gets confused with the real operating system." A skin may look fully like a
+  1995 or 2001 desktop (bevels, title bars, wizard pages with Back, Next and Cancel), drawn in CSS or SVG. It uses no
+  Microsoft or InstallShield names, logos, icons or sounds, is named after byo-pop and the game, and never imitates a real
+  system prompt such as a security or permission dialog.
+- **The player's own fonts.** "If it's just using text elements, it could use the user's own installed font." A period skin
+  names the system fonts in CSS (`"MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Segoe UI", sans-serif`) and ships no
+  Microsoft font files. A free lookalike may be a fallback for machines without them, and only that one is listed on the
+  licences page.
+
 ### Light and dark
 
 The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the
