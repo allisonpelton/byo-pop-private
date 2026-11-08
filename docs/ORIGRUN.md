@@ -142,7 +142,11 @@ sandbox and refuses to run anywhere else.
 
 One command per line; `#` starts a comment. Input is posted to the game's window (it works across the hidden
 desktop). Coordinates are in the window's client area; a click is routed to the child control under the point,
-so a dialog button is hit as well as a game that hit-tests in its own window.
+so a dialog button is hit as well as a game that hit-tests in its own window. The client area is the game's own
+size (640x480 for most), so take coordinates in it, never in a scaled screenshot's pixels. A title screen often takes
+no click until the game has finished loading, from seconds to over a minute of real time and different on every run
+(Seven Seas, 2026-11-07), and a click before that is lost without a sign: wait for the game's loaded state (a
+`--watch` value or a screenshot) before the first click.
 
 - `wait <ms>` — pause.
 - `move <x> <y>` — move the mouse.

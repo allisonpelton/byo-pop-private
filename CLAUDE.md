@@ -166,7 +166,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   clicks reach SDL only as one burst of move, press and release (`games/sevenseas/tools/realinput.py`); a held press
   or drag waits for the shared tool. A driver reaches the state it needs (a level, a boss, a locked mode) with the
   game's standard test commands instead of playing up to it (`docs/TEST_COMMANDS.md`; the user, 2026-11-07: "Yes,
-  add them"): every port has them, reachable only from a test, and lists them in its notes.
+  add them"): every port has them, reachable only from a test, and lists them in its notes. The move a driver makes
+  comes from the port's own bot through the `move` command, so the driver stays a thin loop and a later bot mod reuses
+  the bot (the user, 2026-11-07: "the scripts that play the games should be developed in a way that their code can be
+  reused for a mod that adds a bot").
 - **Two phases: plays identical, then looks identical (the user, 2026-11-01).** The first phase is the game's logic:
   with the same input, a series of games plays out the same in the original and the port (the same boards and random
   draws, moves, scores, levels, timers and endings). Check it by the game's state (origrun's `--watch` values at an
