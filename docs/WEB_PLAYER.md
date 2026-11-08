@@ -711,6 +711,34 @@ button back to the browser's theme removes it, and so does the browser changing 
 "follow the browser" setting. With storage blocked the choice lasts for that page only. The games' own screens are not
 changed by it.
 
+### The fixes mod on the site
+
+Every game is served with its fixes mod on (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, `fixes`, each of whose settings
+is a toggle for one fix. A game's mod lives in `games/<game>/mods/fixes`, and the web build copies the folder beside the game's
+page as `<game>-fixes/`, with its `version` and its list of files written into the page (`FIXES` in `web/shell.html`, from
+`cmake/ByopopWeb.cmake`). A game in `BYOPOP_WEB_NO_MODS` gets none, since its port cannot load mods yet; it gets its fixes mod
+once it can. A game without the folder ships nothing, and its page does nothing.
+
+Once the game's files are here, the page's boot puts the mod into `/persist/mods/fixes`, the IndexedDB-synced folder the Mods
+panel adds to, before the game can start (the status line says so while the files are written). It does this after the
+panel's own boot, so a removal that waited for this start has happened by then. Like any mod new to `mods.json` it starts on,
+with every fix at its default, which is on. A note beside the saves, `site-fixes.json` in the game's user dir, remembers what
+happened: `{"installed": "<version>"}` once it was put in, `{"removed": true}` once the player removed it.
+
+- **On every start**, the page compares the version of the mod in the folder with the one shipped. When the shipped version is
+  new, it replaces the mod's files. `mods.json` (whether the mod is on, and its place in the order) and `mod-settings.json` (its
+  toggles) are left alone, so the player's choices hold.
+- **The player** turns single fixes off or on in the game's mod menu (F2), turns the whole mod off to play the original as it
+  was, or plays once without mods from the rescue, as with any mod. Removing it in the Mods panel deletes its folder; the
+  next start finds the note saying "installed" and no folder, notes it as removed, and never puts it back. If the player
+  later adds a mod into the `fixes` folder themselves, the note follows that copy again.
+
+A test build can ship a stand-in: configure with `-DBYOPOP_WEB_TEST_FIXES=<game>` (cmake's cache keeps it; set it back to
+empty afterwards) and that game, if it has no fixes mod of its own, gets `tools/webtest/fixes`, a mod with one toggle that
+changes nothing. It was tested on Bejeweled in the pane at `?silent=1`. The first start put the mod in and listed it as on.
+With the mod turned off and its toggle off, a reload kept both. A copy marked as an older version was replaced by the shipped
+one with both choices still kept. Removed with the Mods panel's Remove, it stayed out after a reload.
+
 ### Site settings
 
 Site-wide overrides of the games' own options, which the player sets once and every game page applies when its game starts.

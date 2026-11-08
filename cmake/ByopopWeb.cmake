@@ -86,6 +86,12 @@ set(BYOPOP_WEB_UPCOMING
 # 2026-11-03: "Don't show a mods button for games with no mod support"; web/shell.html's MODS_SUPPORTED). A port that starts
 # loading mods leaves this list.
 set(BYOPOP_WEB_NO_MODS bonnies cosmicbugs mahjongchina mahjongjapan ningpo tiptop waterbugs wordharmony)
+# The fixes mod (docs/MOD_ROADMAP.md, "The fixes mod"; docs/WEB_PLAYER.md, "The fixes mod on the site"): a game's
+# games/<game>/mods/fixes is shipped beside its page as <game>-fixes/, and the page installs it on, unless the game is in
+# BYOPOP_WEB_NO_MODS. BYOPOP_WEB_TEST_FIXES names one game that has no fixes mod of its own to ship tools/webtest/fixes as
+# its fixes mod instead, for testing the install (off unless set: never in a build for the site).
+set(BYOPOP_WEB_TEST_FIXES "" CACHE STRING "A game to ship tools/webtest/fixes as its fixes mod (tests only)")
+get_filename_component(BYOPOP_WEB_TEST_FIXES_DIR "${CMAKE_CURRENT_LIST_DIR}/../tools/webtest/fixes" ABSOLUTE)
 set(BYOPOP_WEB_BADGES
   "bejeweled|BJ|#95233d" "bigmoney|BM|#1f8438" "bookworm|BW|#955c23" "noahsark|NA|#234995" "sevenseas|7S|#1e8080"
   "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
@@ -670,6 +676,31 @@ function(byopop_web_shell var target pagedir)
   else()
     string(REPLACE "@BYOPOP_MODS_SUPPORTED@" "true" page "${page}")
   endif()
+  # the game's fixes mod: its files copied to <target>-fixes/, and {version, files} for the page (null: none)
+  set(fixes_dir ${CMAKE_CURRENT_SOURCE_DIR}/mods/fixes)
+  if(NOT EXISTS ${fixes_dir}/mod.json AND BYOPOP_WEB_TEST_FIXES STREQUAL target)
+    set(fixes_dir ${BYOPOP_WEB_TEST_FIXES_DIR})
+  endif()
+  set(fixes "null")
+  file(REMOVE_RECURSE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}-fixes)
+  if(EXISTS ${fixes_dir}/mod.json AND NOT target IN_LIST BYOPOP_WEB_NO_MODS)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${fixes_dir}/mod.json)
+    file(READ ${fixes_dir}/mod.json fixes_json)
+    string(JSON fixes_version ERROR_VARIABLE fixes_error GET "${fixes_json}" version)
+    if(fixes_error)
+      set(fixes_version "")
+    endif()
+    file(GLOB_RECURSE fixes_files RELATIVE ${fixes_dir} CONFIGURE_DEPENDS ${fixes_dir}/*)
+    list(SORT fixes_files)
+    set(fixes_list "")
+    foreach(f ${fixes_files})
+      configure_file(${fixes_dir}/${f} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}-fixes/${f} COPYONLY)
+      string(APPEND fixes_list "\"${f}\",")
+    endforeach()
+    string(REGEX REPLACE ",$" "" fixes_list "${fixes_list}")
+    set(fixes "{\"version\": \"${fixes_version}\", \"files\": [${fixes_list}]}")
+  endif()
+  string(REPLACE "@BYOPOP_FIXES@" "${fixes}" page "${page}")
   file(READ ${BYOPOP_WEB_FOOTER} footer)
   file(READ ${BYOPOP_WEB_FOOTER_CSS} css)
   string(REPLACE "@BYOPOP_COPYRIGHT_PAGE@" "${copyright_page}" footer "${footer}")
