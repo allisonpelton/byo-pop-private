@@ -42,7 +42,7 @@ def rename(text):
                     parts = line.split()
                     if len(parts) >= 2:
                         _names[int(parts[0], 16)] = parts[1]
-    return re.sub(r'(thunk_FUN_|FUN_|DAT_|PTR_DAT_|_DAT_)([0-9a-f]{8})',
+    return re.sub(r'\b(thunk_FUN_|FUN_|DAT_|PTR_DAT_|_DAT_)([0-9a-f]{8})\b',
                   lambda m: _names.get(int(m.group(2), 16), m.group(0)), text)
 
 
