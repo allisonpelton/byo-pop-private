@@ -3558,6 +3558,7 @@ generation links: `Dialog2004`, `Slider2004`, `WriteString2004` / `WriteWordWrap
 | 18 | ButtonWidget calls ButtonDepress before MarkDirty and without a focus check (Zuma order); the base Widget sets mIsOver/mIsDown/the finger cursor | WidgetManager does it | none (no visible difference) | 3 (D7, D8) |
 | 19 | No WidgetContainer: one flat widget list in screen coordinates | widgets can have children | translate AddWidget/RemoveWidget literally as top-level widgets | 3 |
 | 20 | CursorWidget, transient widgets, UpdateCheckDialog, ResourceManager, FModMusicInterface | not needed | drop | 3, 6, 7 |
+| 21 | Direct3D texture addressing: a game sets the stage's address mode for u and v (`SetTextureStageState` 0xd and 0xe; 1 wrap, 3 clamp) round its `DrawTrianglesTex` calls (Bejeweled 2's Hyperspace tunnel wraps) | SDL's renderer and the GPU path have no address mode (clamp) | framework: `DDInterface::SetTextureAddress(u, v)` with `TEXTURE_ADDRESS_WRAP` or `_CLAMP` (the default, so no other game changes); with a wrap set, `DrawTrianglesTex` of both displays cuts the triangles at whole-number u and v (`framework/TriangleWrap.cpp`, tested by `tools/wraptest`) and draws the pieces clamped; a game calls it before and after the draws, as the original did | none |
 
 ## 9. Open questions
 

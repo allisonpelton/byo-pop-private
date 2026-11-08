@@ -131,6 +131,17 @@ if(NOT EMSCRIPTEN)
   endif()
 endif()
 
+# Texture wrap test (tools/wraptest): framework/TriangleWrap, which cuts DrawTrianglesTex's triangles at whole-number u and v
+# for a game that wraps its texture (Bejeweled 2's Hyperspace tunnel), against what wrapping means. Pure, no SDL; native only,
+# wraptest.exe (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(wraptest tools/wraptest/wraptest.cpp framework/TriangleWrap.cpp)
+  target_include_directories(wraptest PRIVATE framework)
+  if((NOT MSVC) AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]86|x86)$"))
+    target_compile_options(wraptest PRIVATE -msse2 -mfpmath=sse)
+  endif()
+endif()
+
 # Sound test (tools/soundtest): sounds kept as 16-bit at their own rate, and voices that resample them as they mix,
 # against the old pipeline (stereo floats at the device rate). Native only; soundtest.exe (tools/check.sh unit).
 if(NOT EMSCRIPTEN)

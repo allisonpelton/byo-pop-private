@@ -135,6 +135,8 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mDisplayWidth = mWidth;
 	mDisplayHeight = mHeight;
 	mPresentationRect = Rect(0, 0, mWidth, mHeight);
+	mTextureAddressU = TEXTURE_ADDRESS_CLAMP;
+	mTextureAddressV = TEXTURE_ADDRESS_CLAMP;
 	mIs3D = false;
 	mCan3D = false;
 	mIsWindowed = true;
@@ -960,10 +962,32 @@ void DDInterface::BltTransformed(Image* theImage, const Rect* theClipRect, const
 	DrawTexturedQuad(theImage, aX, aY, theSrcRect, false, theColor, theDrawMode, theClipRect, linearFilter);
 }
 
+bool DDInterface::DrawTrianglesTexWrapped(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend)
+{
+	if (mTextureAddressU == TEXTURE_ADDRESS_CLAMP && mTextureAddressV == TEXTURE_ADDRESS_CLAMP)
+		return false;
+
+	std::vector<TriVertex> aPieces;
+	SplitWrappedTriangles(theVertices, theNumTriangles, mTextureAddressU == TEXTURE_ADDRESS_WRAP, mTextureAddressV == TEXTURE_ADDRESS_WRAP, aPieces);
+	if (aPieces.empty())
+		return true;
+
+	// the pieces lie in one cell each: clamped, they draw as the repeated picture
+	int aU = mTextureAddressU, aV = mTextureAddressV;
+	mTextureAddressU = mTextureAddressV = TEXTURE_ADDRESS_CLAMP;
+	DrawTrianglesTex(theTexture, reinterpret_cast<const TriVertex (*)[3]>(&aPieces[0]), (int) (aPieces.size() / 3), theClipRect, theColor, theDrawMode, tx, ty, blend);
+	mTextureAddressU = aU;
+	mTextureAddressV = aV;
+	return true;
+}
+
 // TriVertex u/v are normalized over the whole image; a non-zero vertex colour (ARGB) replaces theColor
 // (as in D3DInterface::DrawTrianglesTex).
 void DDInterface::DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend)
 {
+	if (DrawTrianglesTexWrapped(theTexture, theVertices, theNumTriangles, theClipRect, theColor, theDrawMode, tx, ty, blend))
+		return;
+
 	MemoryImage* aSrcImage = dynamic_cast<MemoryImage*>(theTexture);
 	if ((aSrcImage == NULL) || (theNumTriangles <= 0))
 		return;
