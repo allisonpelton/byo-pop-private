@@ -113,4 +113,12 @@ What was played that way: title, menu, the whole tutorial (every hint, whirlpool
 fixes added, "Click here to start playing!"), an Easy game with its demo, random keys (numpad, arrows, space) and clicks to
 level 2, game over, the high-score name box and a new game from it; a whole Average game (level 1 complete, level 2, game over, high-score name typed, new game menu) and a whole Hard game (corner whirlpools closing and opening, game over with the pirate). A saved game and "No" on Average
 (arrow over, and a move on a click, on the squares under the pirate's box). Options' Fullscreen box on (3840 x 2160, the game centred), a click and a key moving the ship in it,
-and back to the window. The web build's pass in the Browser pane is still to do.
+and back to the window. 
+
+Web build, Browser pane (`?silent=1`, requestAnimationFrame shimmed because the pane is hidden), real DOM events only (a
+`mousemove`, 60 ms, then `mousedown` and `mouseup` on the canvas; key events on the document), 2026-11-07: title, menu, the whole
+tutorial (the teleport landed on the same square as natively, step 14's last hint shown), the Easy game's demo and button, random
+keys and clicks through "Level 1 complete", level 2, game over and the high-score name box, then a new Average game, a saved game
+(Exit, New Game, Yes), Average and "No" in the Continue dialog: the arrow shows on the square under the pirate's box and the click
+moves the ship, as natively. Not done on the web: a whole Hard game, and full screen through the page (the pane's Fullscreen button
+did not enter full screen: `document.fullscreenElement` stayed null with no console error, so it is unverified there).
