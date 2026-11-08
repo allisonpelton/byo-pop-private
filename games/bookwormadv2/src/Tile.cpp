@@ -162,6 +162,11 @@ bool Tile::IsVowel()
 	return aVowels.find(GetLetter()) != std::string::npos;
 }
 
+bool Tile::IsWildTile()
+{
+	return CallLinkedMethod("IsWildTile", 0).Bool();
+}
+
 bool Tile::IsBonus()
 {
 	return CallLinkedMethod("IsBonus", 0).Bool();

@@ -152,13 +152,21 @@ Every call re-reads the whole context, so what costs is context times calls, and
   review page holds only what a session truly cannot judge, and the user sees it only once it holds every game. Every
   game is tested as Bejeweled is: its deviations listed in its notes, each without a visible effect; every RNG draw
   kept in its order; a frozen baseline of the port with a regression check that proves later fixes and mods leave
-  unmodded play unchanged. Every memory leak of the original is fixed: memory the original still uses after
-  "leaking" it (Bejeweled's FillBoard orphans) is freed after its last possible use. Autoplay, script commands and
-  runs under Node never pass through the real input path, so before its final merge a session also plays the game with
-  real mouse and key events only: through the page in the Browser pane (`?silent=1`, requestAnimationFrame shimmed
-  while hidden) and through the window natively under rundesk (posted input, as visrun does), from launch through the
-  tutorial and a whole game of every mode, in 2D and 3D where both exist, windowed and in full screen. Twist passed
-  every comparison and still could not twist a gem in the browser (the user, 2026-11-05).
+  unmodded play unchanged. Every memory leak of the original is fixed: memory the original still uses after "leaking"
+  it (Bejeweled's FillBoard orphans) is freed after its last possible use. Autoplay, script commands and runs under
+  Node never pass through the real input path, so before its final merge a session also plays the game with real mouse
+  and key events only: through the page in the Browser pane (`?silent=1`, requestAnimationFrame shimmed while hidden)
+  and through the window natively under rundesk (posted input, as visrun does), from launch through the tutorial and a
+  whole game of every mode, in 2D and 3D where both exist, windowed and in full screen. Twist passed every comparison
+  and still could not twist a gem in the browser (the user, 2026-11-05). Sessions never play a game themselves (the
+  user, 2026-11-07: "the sessions are not allowed to play any games themselves"; "Yes, use drivers"): code plays, a
+  driver script that reads the game's state from its log, chooses the moves (a solver or bot where the game has one)
+  and sends them as those real events, a minigame or a whole game in a call or two. The session writes the driver and
+  judges its results, and looks at a screenshot only to check what is drawn, never to pick a move. Natively, posted
+  clicks reach SDL only as one burst of move, press and release (`games/sevenseas/tools/realinput.py`); a held press
+  or drag waits for the shared tool. A driver reaches the state it needs (a level, a boss, a locked mode) with the
+  game's standard test commands instead of playing up to it (`docs/TEST_COMMANDS.md`; the user, 2026-11-07: "Yes,
+  add them"): every port has them, reachable only from a test, and lists them in its notes.
 - **Two phases: plays identical, then looks identical (the user, 2026-11-01).** The first phase is the game's logic:
   with the same input, a series of games plays out the same in the original and the port (the same boards and random
   draws, moves, scores, levels, timers and endings). Check it by the game's state (origrun's `--watch` values at an

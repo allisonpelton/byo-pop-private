@@ -859,6 +859,9 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // user, 2026-11-03: "Don't show a mods button for games with no mod support"); the others show it once the game's files are
   // here ("Don't show the mods button unless files are uploaded")
   var MODS_SUPPORTED = @BYOPOP_MODS_SUPPORTED@;
+  // The game's fixes mod, shipped beside the page as <id>-fixes/ (cmake/ByopopWeb.cmake): {version, files}, or null for a game
+  // that has none, or whose port loads no mods
+  var FIXES = @BYOPOP_FIXES@;
   var termsAgreed = false;  // agreed in this page, for where localStorage fails
   function hasAgreed() {
     if (!termsAgreed) termsAgreed = ByopopTerms.agreed(PAGE.id, TERMS_VERSION);
@@ -1051,6 +1054,49 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var hotY = Math.min(h - 1, Math.max(0, Math.round(s.hotY * h / s.height)));
     setPageCursor('url("' + out.toDataURL("image/png") + '") ' + hotX + " " + hotY + ", auto");
   }
+  // The fixes mod on the site (docs/WEB_PLAYER.md, "The fixes mod on the site"; docs/MOD_ROADMAP.md, "The fixes mod"): once the
+  // game's files are here, the page puts the game's shipped fixes mod into the mods folder as "fixes", where it starts on like
+  // any mod new to mods.json. The note in the user dir (site-fixes.json, with the saves) remembers it: {"installed": version}
+  // once it was put in, {"removed": true} once the player removed it, after which it is not put in again (unless the player adds
+  // a mod into that folder themselves, which the note then follows). A new version shipped replaces its files; mods.json and
+  // mod-settings.json, where its on/off state and its toggles are kept, are not touched. Returns a promise while it writes,
+  // else null.
+  var FIXES_NOTE = USER + "/site-fixes.json", FIXES_DIR = MODS + "/fixes";
+  function installFixes() {
+    if (!MODS_SUPPORTED || !FIXES || pagePlaceholders()) return null;
+    var fs = web().fs;
+    var readJson = function (path) { try { return JSON.parse(fs.readText(path)) || {}; } catch (e) { return {}; } };
+    var note = readJson(FIXES_NOTE), present = fs.exists(FIXES_DIR + "/mod.json");
+    var onDisk = present ? String(readJson(FIXES_DIR + "/mod.json").version || "") : null;
+    var keep = function (n) { fs.writeFile(FIXES_NOTE, new TextEncoder().encode(JSON.stringify(n))); web().sync(); };
+    if (note.removed) {
+      if (present) keep({ installed: onDisk });  // the player added a fixes mod again
+      return null;
+    }
+    if (note.installed !== undefined && !present) { keep({ removed: true }); return null; }  // the player removed it
+    if (present && onDisk === FIXES.version) {
+      if (note.installed !== onDisk) keep({ installed: onDisk });
+      return null;
+    }
+    var base = PAGE.id + "-fixes/";
+    return Promise.all(FIXES.files.map(function (f) {
+      return fetch(base + f.split("/").map(encodeURIComponent).join("/")).then(function (r) {
+        if (!r.ok) throw new Error(f + ": " + r.status);
+        return r.arrayBuffer();
+      });
+    })).then(function (data) {
+      fs.rmTree(FIXES_DIR);
+      fs.rmTree(MODS_INCOMING + "/fixes");
+      FIXES.files.forEach(function (f, i) {
+        var rel = fs.safeRel(f);
+        if (rel) fs.writeFile(FIXES_DIR + "/" + rel, new Uint8Array(data[i]));
+      });
+      fs.writeFile(FIXES_NOTE, new TextEncoder().encode(JSON.stringify({ installed: FIXES.version })));
+      panel.call("byopop_mods_rescan", null, [], []);
+      panel.refresh();
+      return web().sync();
+    }).catch(function (e) { console.warn("byo-pop: the fixes mod could not be put in", e); });
+  }
   function boot() {
     holdForVolume();
     var W = web();
@@ -1081,6 +1127,16 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     }
     if (!pagePlaceholders()) { try { ByopopGameFiles.mark(PAGE.id); } catch (e) {} }
     ensureIcon();
+    // The fixes mod goes in before the game can start (it reads its mods as it starts)
+    var fixing = installFixes();
+    if (fixing) {
+      setStatus(ByopopStrings.t("game.status.fixes"));
+      fixing.then(bootReady, bootReady);
+      return;
+    }
+    bootReady();
+  }
+  function bootReady() {
     // After the game's own restart: straight back in, unless the start before did not finish (a mod may stop it)
     var autostart = session.takeAutostart(), noMods = session.takeNoMods();
     var failed = session.lastStartFailed() && panel.enabledCount() > 0;
