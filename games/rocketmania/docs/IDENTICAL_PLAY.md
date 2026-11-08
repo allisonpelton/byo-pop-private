@@ -158,7 +158,7 @@ arcade through DOM events to level 2 (score 2727, no errors). Two faults of the 
 `-realinput` reached the framework as a mouse move (fixed on main by the coordinator in 4cf35432), and the bot's constructor
 marked the input as scripted, which dropped every real click that came after a `move` (the command now keeps the flag as it was).
 
-**Registration and links.** The port has no trial clock, no nag, no register, unlock or buy dialog, and the Options dialog has none of
+**Registration and links.** (Removal of 2026-11-08, listed in GAME_NOTES.md, "Registration code removed": the loading screen's thanks-for-registering line and its string, the register picture, the register-to-load dialog's id and check, `mIsRegistered` in the game's own code, and 33 registration texts of the game's text table; no visible change.) The port has no trial clock, no nag, no register, unlock or buy dialog, and the Options dialog has none of
 the original's register, update, partner and web-page buttons; the loading bar's line under it is empty as it is in the registered
 copy. There is no "More Games" button in the port.
 
