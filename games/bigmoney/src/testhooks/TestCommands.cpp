@@ -15,6 +15,7 @@
 #include "GameSelector.h"
 #include "HelpWidget.h"
 #include "RecordScoreDialog.h"
+#include "HighScoreWidget.h"
 #include "Compat12.h"
 #include "Res.h"
 
@@ -96,6 +97,10 @@ const char* BoardStateName(int theState)
 // What the bot (the move command) is to play: -1 for the app's own settings. set mode / set skill.
 int gTargetMode = -1;
 int gTargetSkill = -1;
+// set bot lose: play to lose, so that a game ends by itself (a bot that never errs would play an Easy game for hours): Action
+// stops clicking and lets the stack rise, Puzzle takes the smallest group in place of the solver's plan (which runs the board into
+// a dead end), Strategy plays on until its moves run out
+bool gBotLoses = false;
 
 // The dialog that is open, or -1: the ids that can be up in a test
 const int kDialogIds[] = { DIALOG_NEW_GAME, DIALOG_OPTIONS, DIALOG_RECORD_SCORE, DIALOG_CONTINUE_GAME, DIALOG_QUIT,
@@ -115,7 +120,9 @@ int OpenDialog(WinBMApp* theApp)
 bool IsOver(WinBMApp* theApp)
 {
 	Board* aBoard = theApp->mBoard;
+	// the scores table asks for a name 280 of its own updates after it was added, once its slide is done
 	return (aBoard != NULL) && (aBoard->mState == STATE_GAME_OVER_SCORES) && (aBoard->mHighScoreSlide <= -146) &&
+		(aBoard->mHighScoreWidget != NULL) && (aBoard->mHighScoreWidget->mUpdateCnt > HighScoreWidget::CHECK_HIGH_SCORE_TICK) &&
 		(theApp->GetDialog(DIALOG_RECORD_SCORE) == NULL) && (aBoard->mContinueButton != NULL) &&
 		(aBoard->mContinueButton->mWidth > 0);
 }
@@ -158,6 +165,8 @@ std::string StateJson(WinBMApp* theApp)
 	snprintf(aBuf, sizeof(aBuf), "\"screen\":\"%s\",\"dialog\":%d,\"mode\":\"%s\",\"skill\":%d,\"updates\":%d",
 		Screen(theApp).c_str(), OpenDialog(theApp), ModeName(theApp->mGameType), theApp->mSkillLevel, theApp->mUpdateCount);
 	aJson += aBuf;
+	// the window: full screen or windowed, and whether the game has the focus (a test of Alt+Enter and of a focus loss)
+	aJson += std::string(",\"windowed\":") + (theApp->mIsWindowed ? "true" : "false") + ",\"focus\":" + (theApp->mHasFocus ? "true" : "false");
 	if (theApp->mTitleScreen != NULL)
 		aJson += std::string(",\"loaded\":") + (theApp->mTitleScreen->mLoadDone ? "true" : "false");
 	// where the open dialog's Yes / OK and No buttons are (screen points), for a driver that answers a question
@@ -213,8 +222,8 @@ std::string StateJson(WinBMApp* theApp)
 	return aJson;
 }
 
-// The largest clickable group (the first in row order on a tie), and a coin of it as a screen point
-bool BestGroup(Board* theBoard, int* theX, int* theY, int* theSize)
+// The largest clickable group (the first in row order on a tie; with theSmallest the smallest), and a coin of it as a screen point
+bool BestGroup(Board* theBoard, int* theX, int* theY, int* theSize, bool theSmallest = false)
 {
 	int aMark[Board::BOARD_ROWS][Board::BOARD_COLS] = {};
 	int aBestSize = 0;
@@ -247,7 +256,7 @@ bool BestGroup(Board* theBoard, int* theX, int* theY, int* theSize)
 					aStack.push_back(std::make_pair(r, c));
 				}
 			}
-			if ((aSize >= theBoard->mMinGroup) && (aSize > aBestSize))
+			if ((aSize >= theBoard->mMinGroup) && ((aBest == NULL) || (theSmallest ? (aSize < aBestSize) : (aSize > aBestSize))))
 			{
 				aBestSize = aSize;
 				aBest = aPiece;
@@ -286,15 +295,13 @@ bool SolverClick(Board* theBoard, int* theCol, int* theRow)
 	return true;
 }
 
-// MOVE {"kind":"<what>","clicks":[{"x":..,"y":..}],"keys":[..],"updates":n}: the real input that makes the move, in
-// game coordinates, and the updates to wait after it
+// MOVE {"kind":"<what>","input":[{"click":[x,y]},{"key":"B"}],"updates":n}: the real input that makes the move, in
+// game coordinates (docs/TEST_COMMANDS.md), and the updates to wait after it
 void ReplyMove(const char* theKind, const std::string& theClicks, const std::string& theKeys, int theUpdates)
 {
 	std::string aJson = std::string("MOVE {\"kind\":\"") + theKind + "\"";
-	if (!theClicks.empty())
-		aJson += ",\"clicks\":[" + theClicks + "]";
-	if (!theKeys.empty())
-		aJson += ",\"keys\":[" + theKeys + "]";
+	if ((!theClicks.empty()) || (!theKeys.empty()))
+		aJson += ",\"input\":[" + theClicks + (((!theClicks.empty()) && (!theKeys.empty())) ? "," : "") + theKeys + "]";
 	char aBuf[32];
 	snprintf(aBuf, sizeof(aBuf), ",\"updates\":%d}", theUpdates);
 	Reply(aJson + aBuf);
@@ -303,7 +310,7 @@ void ReplyMove(const char* theKind, const std::string& theClicks, const std::str
 std::string ClickAtPoint(int theX, int theY)
 {
 	char aBuf[48];
-	snprintf(aBuf, sizeof(aBuf), "{\"x\":%d,\"y\":%d}", theX, theY);
+	snprintf(aBuf, sizeof(aBuf), "{\"click\":[%d,%d]}", theX, theY);
 	return aBuf;
 }
 
@@ -338,8 +345,8 @@ void MoveCommand(WinBMApp* theApp)
 			std::string aKeys;
 			size_t aLength = (aRecord->mNameWidget != NULL) ? aRecord->mNameWidget->mString.length() : 0;
 			for (size_t i = 0; i < aLength; i++)
-				aKeys += "\"Backspace\",";
-			aKeys += "\"B\",\"o\",\"t\",\"Enter\"";
+				aKeys += "{\"key\":\"Backspace\"},";
+			aKeys += "{\"key\":\"B\"},{\"key\":\"o\"},{\"key\":\"t\"},{\"key\":\"Enter\"}";
 			ReplyMove("high score: enter the name Bot", "", aKeys, 60);
 			return;
 		}
@@ -429,14 +436,19 @@ void MoveCommand(WinBMApp* theApp)
 			return;
 		}
 		int aCol, aRow;
-		if (SolverClick(aBoard, &aCol, &aRow))
+		if ((!gBotLoses) && (SolverClick(aBoard, &aCol, &aRow)))
 		{
 			ReplyMove("puzzle: the solver's click", ClickAtPoint(Board::ColX(aCol) + 14, Board::RowY(aRow) + 14), "", 20);
 			return;
 		}
 	}
 	int aX, aY, aSize;
-	if (BestGroup(aBoard, &aX, &aY, &aSize))
+	if ((gBotLoses) && (theApp->mGameType == GAMETYPE_ACTION))
+	{
+		ReplyMove("wait: the bot lets the stack rise", "", "", 50);
+		return;
+	}
+	if (BestGroup(aBoard, &aX, &aY, &aSize, (gBotLoses) && (theApp->mGameType == GAMETYPE_PUZZLE)))
 	{
 		char aKind[32];
 		snprintf(aKind, sizeof(aKind), "group of %d", aSize);
@@ -497,7 +509,8 @@ bool WinBMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		return false;
 
 	// set mode / set skill only choose what move is to play, so they work from the title on
-	bool isBotChoice = (aCommand == "set") && ((aArg.compare(0, 5, "mode ") == 0) || (aArg.compare(0, 6, "skill ") == 0));
+	bool isBotChoice = (aCommand == "set") && ((aArg.compare(0, 5, "mode ") == 0) || (aArg.compare(0, 6, "skill ") == 0) ||
+		(aArg.compare(0, 4, "bot ") == 0));
 	if ((mTitleScreen != NULL) && (!isBotChoice))
 	{
 		ReplyError(theCommand, "the title screen is still up (click its play link first)");
@@ -553,7 +566,7 @@ bool WinBMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		size_t aSpace = aArg.find(' ');
 		if (aSpace == std::string::npos)
 		{
-			ReplyError(theCommand, "set <name> <value> (score, moves, mode, skill)");
+			ReplyError(theCommand, "set <name> <value> (score, moves, mode, skill, bot)");
 			return true;
 		}
 		std::string aName = aArg.substr(0, aSpace);
@@ -577,6 +590,15 @@ bool WinBMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			}
 			gTargetSkill = aNumber;
 		}
+		else if (aName == "bot")
+		{
+			if (aValue != "win" && aValue != "lose")
+			{
+				ReplyError(theCommand, "bot is win or lose");
+				return true;
+			}
+			gBotLoses = (aValue == "lose");
+		}
 		else if (aName == "score" || aName == "moves")
 		{
 			if (mBoard == NULL)
@@ -594,7 +616,7 @@ bool WinBMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		}
 		else
 		{
-			ReplyError(theCommand, "unknown name (score, moves, mode, skill)");
+			ReplyError(theCommand, "unknown name (score, moves, mode, skill, bot)");
 			return true;
 		}
 		ReplyOK(theCommand);

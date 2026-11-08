@@ -202,3 +202,72 @@ To repeat phase two: `orig.sh --prepare` once, build the proxy
 games/bigmoney/tools/origcmp/tours/menus.txt` and, for a game, `gametour.sh ga1 0 1 1 40000 1500` (name, mode, skill,
 seed, cap, a shot every N updates; `-autoplaygames=2` after them for two games). One sandbox runs at a time on the machine;
 origrun queues for it.
+
+
+## Real input, the fixes mod and the removals (2026-11-08)
+
+Phase one and two compared the port with the original through scripts, the bot's `AddScriptCommand` input and the web
+build under Node, none of which pass the window's real input path. This pass plays the port the way a player does, from
+launch to the end of a game of every mode, with code at the controls (the sessions never play: `tools/realplay/drive.py` natively,
+`tools/web/playgame.js` on the web), and then takes out what a registered game does not use and makes the fixes mod.
+
+### How the port is played
+
+The standard test commands (`state`, `goto`, `set`, `move`, `win`, `lose`, `level`, `seed`, `unlock all`; GAME_NOTES, Part 6) answer
+on the framework's live channel, and `move` is the port's own bot: the title's play link, the selector's type, skill and start, the
+help screen's link, a dialog's button, the name of a high score, "next level" and "play again", and on a running board the
+largest group (Puzzle: the solver's next click, `mods/puzzle-solver`). A move is a list of real input steps, which the driver
+sends as `click game X Y` and typed keys through `-realinput`, so every click and key takes the path of a hand's: SDL's queue,
+`HandleEvent`, the window-to-game mapping, the widget manager. The game runs in real time (one command takes 16 ms, and in
+`-fast` the board's rising coins would outrun the driver: 8 clicks to a lost game).
+
+A bot that never errs would play an Easy game for hours, so after a cap of updates (12000) the driver says `set bot lose`: in Action
+it stops clicking and the stack rises, in Puzzle it takes the smallest group in place of the solver's plan (a dead end), and in
+Strategy the moves run out by themselves. Each game then ends on the game-over screen, the name of a high score is typed (`Bot`),
+and "play again" or the selector starts the next one.
+
+### What was played
+
+| Run | Result |
+|---|---|
+| Native, real time, one run: Action skill 1, Strategy skill 1, Puzzle skill 1 in a row | 1262 moves in 417 s: Action to level 3 (1901 points) and its game over; Strategy to level 3 (3069) and its game over, with the name of a first place typed; Puzzle by the solver to level 7 and then to a game over at level 10 (35235). The title, the selector (with the selector's type and skill clicks), the help screen's start button, every "next level", the game-over table, the name entry and the return to the selector were all real input. 0 errors |
+| Native, Strategy skill 2, with the window changed in the middle | the focus lost and regained (the board paused while lost and ran again after: `paused` true, then false), Alt+Enter to windowed and back to full screen (read back from the game's state), the game played on in each state to its game over. 0 errors |
+| Native, Puzzle skill 2, played to lose | the solver's plan for 823 updates, then the smallest group each time: a game over at level 1 (3416). 0 errors |
+| Web, `?player=1&silent=1&assets=1&fast=1&framems=2`, the page in the Browser pane | the same plan of three games in 15 s with DOM events only (`byopop.test.click` and `key`): Action to level 3, Strategy to level 3, Puzzle to level 7, each to its game over, three focus losses and regains in the middle (`byopop.test.blur` and `focus`). 0 errors. The page loaded the fixes mod (`mods: Fixes` in its log) |
+
+The web run needs `fast=1` and a small `framems=2`: a real-time page in the hidden pane stopped answering commands after 354 s (the
+first run of the same plan, which had played 513 moves and three focus losses and was in its Strategy game; most likely the
+browser's throttling of a hidden page's timers after five minutes, the pane's limit and not the game's). With the MessageChannel frames
+capped at 2 ms the game runs 20000 updates a second and a command is answered within a few updates.
+
+Nothing in the three modes' input path failed: a play-breaking fault of the real path (a control that does not work, a soft lock, a
+crash, a lost save) was not found, so no fix of that kind was made. The one hang of the original that breaks play, the Puzzle
+generator's (section 6.5 of GAME_NOTES), was already guarded in the port.
+
+### The fixes mod and the removals
+
+The mod `mods/fixes` has three toggles, all on by default: `shakeSettles` (an Action board that survived the overflow countdown keeps its
+coins displaced; the original never clears the shake offsets), `continueColours` (a continued game deals its new coins with level 0's
+colour count) and `doneClicksOnce` (the Options dialog's Done plays its click twice). Each was found in the original's code and
+seen working in the port with the mod on (the coins back in their cells, a fourth colour, one click sound; GAME_NOTES, Part 6, "Fix
+candidates"); the frozen baseline, which plays with no mod, is the same (a whole Action game, score 66646). The site ships the mod and starts the game with it on.
+
+Registration, update-check and URL code is gone, as are the Options dialog's Register and check-for-updates buttons (never laid out
+in the registered Steam game), the title's register link and nag timer, the dialogs and pictures only they used and `OpenURL` with
+its dialogs; the game opens no address. The frozen baseline is unchanged and no screen of the registered game changed.
+
+### Oddities skipped
+
+The follower's column slide takes `mGrid[r + 1]` twice; leftover flood marks make a click in the first two seconds of a board
+fail; both Options checkboxes have id 0; the high-score widget clips above y 252; the messages carry double spaces; the random
+generator's index after a load is the constructor's, since the save has no `mti`; the Strategy games of these runs ended with
+their moves left at 0, -2 and -6 (the count can go below zero; seen, not chased); the stale copy of the scores
+dialog rewriting `hiscores.dat` (below Part 5's quirk 2). Each is in GAME_NOTES with how to see it.
+
+### Deviations that remain, and what was not compared
+
+- The web build's full screen was not driven: the Browser pane cannot take a page into full screen (the other games' passes listed
+  the same). Natively Alt+Enter was played both ways.
+- Windowed and full screen were each played natively; the web build only windowed, in the pane.
+- Losing the focus over an open dialog was not tried in the real-input runs either.
+- The "scripted minute" of the performance measurement uses the identical input on both sides (GAME_NOTES, Part 6, "Performance").
