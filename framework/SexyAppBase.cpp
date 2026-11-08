@@ -4672,6 +4672,29 @@ void SexyAppBase::Init()
 	if (!mCmdLineParsed)
 		DoParseCmdLine();
 
+	// port: a run with a test flag only on rundesk's private desktop (CLAUDE.md, "Running games in tests"; rundesk sets
+	// BYOPOP_TEST_RUN for everything it starts). Without that mark the run stops here, before its window can open on the
+	// user's screen: a test save starts full screen in some games, and Bejeweled 2's took over the user's monitor
+	// (2026-11-08). ORACLE_VISIBLE=1 is the user's own visible run (games/bejeweled/tools/oracle/compare.sh).
+#ifndef __EMSCRIPTEN__
+	{
+		bool hasTestFlag = (!mScriptFileName.empty()) || (mScriptedInput) || (!mRealInputFileName.empty()) ||
+			(!mCommandsFileName.empty()) || (mCommandsHold) || (mFastMode) || (mHasSeedParam) || (mTraceMode) || (mDrawEvery);
+		const char* aVisible = SDL_getenv("ORACLE_VISIBLE");
+		bool isMarked = (SDL_getenv("BYOPOP_TEST_RUN") != NULL) || (SDL_getenv("BEJ_TEST_DESKTOP") != NULL) ||
+			((aVisible != NULL) && (aVisible[0] != 0));
+		if (hasTestFlag && !isMarked)
+		{
+			const char* aText = "a test flag (-script, -autoplay, -realinput, -commands, -hold, -fast, -seed, -trace or "
+				"-drawevery) outside rundesk: start the game, or the script that starts it, under build/native/rundesk.exe "
+				"(CLAUDE.md, \"Running games in tests\")";
+			fprintf(stderr, "%s\n", aText);
+			SDL_Log("%s", aText);
+			DoExit(3);
+		}
+	}
+#endif
+
 	// port: -fast moves the sound effects on in DoUpdateFrames instead of in real time
 	if (mFastMode)
 		Platform::Mixer::Get().SetGameClocked(true);
