@@ -21,11 +21,6 @@ bool Board::Fn46a810()
 	return false;
 }
 
-void Board::FillTopRow(bool, bool, bool, bool, int)
-{
-	NOT_TRANSLATED("FillTopRow", "0x451720");
-}
-
 void Board::GameOver()
 {
 	NOT_TRANSLATED("GameOver", "0x450f80");

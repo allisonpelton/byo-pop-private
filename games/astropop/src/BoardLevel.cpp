@@ -407,8 +407,8 @@ void Board::StartLevelUp()
 
 	m19fc = 0;
 	mSirenAnim.SetStopped(true);
-	m1a98 = -8.2e20f;
-	m1a9c = -8.2e20f;
+	m1a98 = -500000000;
+	m1a9c = -500000000;
 	m1ab8 = 10;
 	m1ac0 = PickSpawnDelay();
 	m1abc = 700;

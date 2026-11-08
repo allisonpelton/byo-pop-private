@@ -15,6 +15,7 @@
 #include <list>
 #include <set>
 #include <vector>
+#include <string.h>
 
 namespace Sexy
 {
@@ -112,7 +113,7 @@ struct StageBg
 	int				mGreen;             // +0x04
 	int				mBlue;              // +0x08
 	unsigned char	m0c[0x50];
-	int				m5c;                // +0x5c
+	Image*				m5c;                // +0x5c the picture over the stage (a hint's picture)
 	unsigned char	m60[0x10];
 	FrameAnim		m70;                // +0x70
 	FrameAnim		mb0;                // +0xb0
@@ -127,12 +128,52 @@ struct StageBg
 	int				m118;               // +0x118
 };
 
-// A warp between stages (vector at +0x230); its first member is the picture it shows
-struct Warp
+// A tutorial hint on the screen (0x30 bytes, constructor 0x44f500; the Board keeps them in a vector at +0x230): the
+// picture of the hint, an arrow and a ring around the brick it is about, and the four rectangles around the ring that the
+// screen is darkened with.
+struct HintSpot
 {
-	StageBg*		mBg;                // +0x00
-	unsigned char	m04[0x18];
-	unsigned char	m1c;                // +0x1c active
+	StageBg*		mBg;                // +0x00 the hint's picture
+	int				mArrowX;            // +0x04
+	int				mArrowY;            // +0x08
+	int				mArrowTop;          // +0x0c
+	int				mRingX;             // +0x10
+	int				mRingY;             // +0x14
+	int				mId;                // +0x18 the hint (its flag in the profile is mId + 1)
+	bool			m1c;                // +0x1c active
+	std::vector<Rect>	mHole;          // +0x20 the darkened rectangles
+
+	HintSpot() : mBg(NULL), mArrowX(-1), mArrowY(-1), mArrowTop(-1), mRingX(-1), mRingY(-1), mId(-1), m1c(false) {}
+};
+
+// A rate of one kind of brick for each of the three phases of a game (8 bytes)
+struct RatePair
+{
+	float	mRate;              // +0x00 the share of a row's draws that make this kind
+	float	m4;                 // +0x04 (not read)
+};
+
+// The rules for one kind of brick (0x18 bytes): how far apart two of them must be, and how likely each phase makes one.
+// The rules of a field are kept in the order 7, 9, plain colour (killall), 6, 10, 0xb, 0xc, 0xd.
+struct SpawnRule
+{
+	int					mNearSame;  // +0x00 how many columns apart two of the kind must be in a row
+	int					mNearRow;   // +0x04 how many rows apart
+	std::vector<RatePair>	mRates; // +0x08 by phase
+};
+
+struct SpawnRules
+{
+	SpawnRule	mRule[8];           // 0xc0 bytes
+};
+
+// The rows of a scripted game (the demo, the tutorial): ten brick codes a row, 100 rows (at +0x984; 0: none, 1-4 plain,
+// 5 stone, 6-9 killall of a colour, 10 bomb)
+struct ScriptRows
+{
+	int		mCode[100][10];
+
+	ScriptRows() { memset(mCode, 0, sizeof(mCode)); }
 };
 
 // Two values that swing between 0 and 255 in turns (0x433850; the Board keeps one at +0x808)
@@ -176,6 +217,7 @@ public:
 	std::list<std::list<Brick*> >	m94;// +0x94
 	std::list<Brick*>	ma0;// +0xa0
 	std::vector<void*>	ma8;// +0xa8 freed by ClearField, element type not seen
+	std::vector<CellRef>	mb8;// +0xb8 the cells that CollectConnected has gathered
 	std::vector<CellRef>	mc8;// +0xc8
 	std::vector<BlinkRec>	md8;// +0xd8 the 40 blinking pictures of the backdrop
 	std::vector<SunParticle*>	me8;// +0xe8 the sparks that drift over the end of a game
@@ -186,6 +228,7 @@ public:
 	std::vector<FloatText*>	m140;// +0x140 the texts that float up the screen
 	std::vector<PlanetRec>	m160;// +0x160 the planets (5 are stepped)
 	std::vector<StreakRec>	m170;// +0x170 the streaks (100)
+	std::vector<SpawnRules>	m180;// +0x180 the spawn rules of the field (only the first is read)
 	std::vector<StarRec>	m190;// +0x190 the stars
 	std::vector<CellRef3>	m1a0;// +0x1a0
 	std::vector<FrameAnim*>	m1b0;// +0x1b0 the animations of the explosion at the end of a game (8)
@@ -193,8 +236,9 @@ public:
 	std::vector<FadeRec>	m1e0;// +0x1e0 the fading panels of the end of a game
 	std::vector<int>	m1f0;// +0x1f0 counters that count down from 2000 (set when a special brick is made)
 	std::vector<CellRef3>	m200;// +0x200 ?
+	std::vector<StageBg*>	m210;// +0x210 the hints pictures (12)
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
-	std::vector<Warp*>	m230;// +0x230
+	std::vector<HintSpot*>	m230;// +0x230
 	std::vector<DrawnText>	m270;// +0x270 texts drawn at a place in a font
 	std::vector<RampRecord>	m280;// +0x280 the speed table (UpdateRamp)
 	std::vector<int>	m290;// +0x290
@@ -353,12 +397,15 @@ public:
 	int	m95c = 0;// +0x95c ?
 	int	m960 = 0;// +0x960 ?
 	int	m964 = 0;// +0x964 ?
+	int	m970 = 0;// +0x970 the highest stack seen last
 	int	m974 = 0;// +0x974 ?
 	int	m97c = 0;// +0x97c ?
+	ScriptRows	m984;// +0x984 the rows of a scripted game
 	int	made = 0;// +0xade ?
 	int	m1924 = 0;// +0x1924 ?
 	int	m1928 = 0;// +0x1928 ?
 	int	m192c = 0;// +0x192c ?
+	int	m1930 = 0;// +0x1930 the row of m984 to play next (-1 none)
 	int	m1934 = 0;// +0x1934 ?
 	int	m1938 = 0;// +0x1938 ?
 	int	mField193C = 0;// +0x193c the stage: 1 + the time played / 6000
@@ -416,6 +463,7 @@ public:
 	int	m1a48 = 0;// +0x1a48 ?
 	int	m1a4c = 0;// +0x1a4c ?
 	int	m1a50 = 0;// +0x1a50 ?
+	int	m1a54 = 0;// +0x1a54 the size of a group of same-coloured bricks that is broken up in a new row
 	int	m1a60 = 0;// +0x1a60 ?
 	int	m1a68 = 0;// +0x1a68 ?
 	int	m1a7c = 0;// +0x1a7c ?
@@ -424,8 +472,8 @@ public:
 	int	m1a8c = 0;// +0x1a8c ?
 	int	m1a90 = 0;// +0x1a90 ?
 	int	m1a94 = 0;// +0x1a94 ?
-	float	m1a98 = 0.0f;// +0x1a98
-	float	m1a9c = 0.0f;// +0x1a9c
+	int	m1a98 = 0;// +0x1a98 a time (in updates); -500000000: none
+	int	m1a9c = 0;// +0x1a9c the same
 	int	m1aa0 = 0;// +0x1aa0
 	int	m1aa4 = 0;// +0x1aa4 ?
 	int	m1aa8 = 0;// +0x1aa8 ?
@@ -557,7 +605,15 @@ public:
 	Brick*			LowestFallingBrick94(int theColumn);            // 0x437780
 	Brick*			LowestFallingBrick7c(int theColumn);            // 0x4376d0
 	bool			ColumnReachesShip(int theX);                    // 0x438c60
-	void			FillTopRow(bool theA, bool theB, bool theC, bool theD, int theE);   // 0x451720
+	void			FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool thePowers, int theRow);   // 0x451720
+	bool			RowAllows(int theKind, int theRow, int theRefRow, int theCol, bool theAnyDistance);   // 0x439040
+	bool			CanPlaceKind(int theKind, int theRow, int theCol);  // 0x43d4c0
+	void			CollectConnected(int theKind, int theCol, int theRow, unsigned int theLimit, bool theIncludeTop, const std::vector<CellRef>* theSkip, int thePrevCol, int thePrevRow);   // 0x450a30
+	int				ColumnDepth(int theCol);                        // 0x439560
+	int				CheckStackHeight();                             // 0x43d630
+	void			CheckShipColumn();                              // 0x43d400
+	Brick*			CreateKillAll(int theColor);                    // 0x439350
+	void			ShowHint(int theKind, int theCol, int theRow, bool theFlag);   // 0x44fd60
 	void			GameOver();                                     // 0x450f80
 	void			Fn46e9b0();                                     // 0x46e9b0 (1615 bytes)
 	void			UpdateGameOver();                               // 0x45e680

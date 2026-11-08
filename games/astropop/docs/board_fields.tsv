@@ -5,6 +5,7 @@
 94	std::list<std::list<Brick*> >	m94
 a0	std::list<Brick*>	ma0
 a8	std::vector<void*>	ma8	freed by ClearField, element type not seen
+b8	std::vector<CellRef>	mb8	the cells that CollectConnected has gathered
 c8	std::vector<CellRef>	mc8
 d8	std::vector<BlinkRec>	md8	the 40 blinking pictures of the backdrop
 e8	std::vector<SunParticle*>	me8	the sparks that drift over the end of a game
@@ -15,6 +16,7 @@ f8	std::vector<int>	mf8
 140	std::vector<FloatText*>	m140	the texts that float up the screen
 160	std::vector<PlanetRec>	m160	the planets (5 are stepped)
 170	std::vector<StreakRec>	m170	the streaks (100)
+180	std::vector<SpawnRules>	m180	the spawn rules of the field (only the first is read)
 190	std::vector<StarRec>	m190	the stars
 1a0	std::vector<CellRef3>	m1a0
 1b0	std::vector<FrameAnim*>	m1b0	the animations of the explosion at the end of a game (8)
@@ -22,8 +24,9 @@ f8	std::vector<int>	mf8
 1e0	std::vector<FadeRec>	m1e0	the fading panels of the end of a game
 1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
 200	std::vector<CellRef3>	m200	?
+210	std::vector<StageBg*>	m210	the hints pictures (12)
 220	std::vector<StageBg*>	m220	the picture of each stage
-230	std::vector<Warp*>	m230
+230	std::vector<HintSpot*>	m230
 270	std::vector<DrawnText>	m270	texts drawn at a place in a font
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
 290	std::vector<int>	m290
@@ -182,12 +185,15 @@ f8	std::vector<int>	mf8
 95c	int	m95c	?
 960	int	m960	?
 964	int	m964	?
+970	int	m970	the highest stack seen last
 974	int	m974	?
 97c	int	m97c	?
+984	ScriptRows	m984	the rows of a scripted game
 ade	int	made	?
 1924	int	m1924	?
 1928	int	m1928	?
 192c	int	m192c	?
+1930	int	m1930	the row of m984 to play next (-1 none)
 1934	int	m1934	?
 1938	int	m1938	?
 193c	int	mField193C	the stage: 1 + the time played / 6000
@@ -245,6 +251,7 @@ ade	int	made	?
 1a48	int	m1a48	?
 1a4c	int	m1a4c	?
 1a50	int	m1a50	?
+1a54	int	m1a54	the size of a group of same-coloured bricks that is broken up in a new row
 1a60	int	m1a60	?
 1a68	int	m1a68	?
 1a7c	int	m1a7c	?
@@ -253,8 +260,8 @@ ade	int	made	?
 1a8c	int	m1a8c	?
 1a90	int	m1a90	?
 1a94	int	m1a94	?
-1a98	float	m1a98
-1a9c	float	m1a9c
+1a98	int	m1a98	a time (in updates); -500000000: none
+1a9c	int	m1a9c	the same
 1aa0	int	m1aa0
 1aa4	int	m1aa4	?
 1aa8	int	m1aa8	?
