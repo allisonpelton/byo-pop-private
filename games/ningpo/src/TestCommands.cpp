@@ -93,13 +93,28 @@ int TimerSeconds(NingPo* theGame)
 	return ((int)aPlayed - (int)theGame->getTime()) / 1000 + theGame->mPenalty;
 }
 
-// The middle of a tile's face, where a click picks it (Board::tileAt)
-void TileCentre(const Tile* theTile, int* theX, int* theY)
+// A point of a tile's face where a click picks that tile, as a click finds it (Board::tileAt, NingPo::onLeftClick):
+// the face's middle, or else the point nearest it, since a tile on a higher layer may cover part of a free one
+void TileCentre(Board& theBoard, Tile* theTile, int* theX, int* theY)
 {
 	PGRect aFace;
 	theTile->getFaceRect(&aFace);
 	*theX = (aFace.left + aFace.right) / 2;
 	*theY = (aFace.top + aFace.bottom) / 2;
+	int aBest = -1;
+	for (int y = aFace.top + 2; y < aFace.bottom - 2; y++)
+		for (int x = aFace.left + 2; x < aFace.right - 2; x++)
+		{
+			PGPoint aPoint = {x, y};
+			int aDistance = (x - (aFace.left + aFace.right) / 2) * (x - (aFace.left + aFace.right) / 2) +
+				(y - (aFace.top + aFace.bottom) / 2) * (y - (aFace.top + aFace.bottom) / 2);
+			if ((aBest < 0 || aDistance < aBest) && theBoard.tileAt(&aPoint, true) == theTile)
+			{
+				aBest = aDistance;
+				*theX = x;
+				*theY = y;
+			}
+		}
 }
 
 std::string ClickMove(const char* theKind, int theX, int theY)
@@ -224,6 +239,12 @@ bool NingPoApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		else if (aGame->mState == STATE_WON || aGame->mState == STATE_GAME_OVER)
 			Reply(ClickMove("continue", 270, 345));
+		else if (aGame->mPaused)
+		{
+			// a click on the board ends the pause (NingPo::onLeftClick), on the title too after a focus loss
+			const PGRect& aBoard = aGame->mBoardRect;
+			Reply(ClickMove("resume", (aBoard.left + aBoard.right) / 2, (aBoard.top + aBoard.bottom) / 2));
+		}
 		else if (aGame->mState == STATE_TITLE)
 			Reply(ClickMove("play", 340, 440));
 		else if (aGame->mState != STATE_PLAYING || aGame->mPaused)
@@ -238,8 +259,8 @@ bool NingPoApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				return true;
 			}
 			int x0, y0, x1, y1;
-			TileCentre(aTile, &x0, &y0);
-			TileCentre(anOther, &x1, &y1);
+			TileCentre(aGame->mBoard, aTile, &x0, &y0);
+			TileCentre(aGame->mBoard, anOther, &x1, &y1);
 			// a tile already selected is clicked only once more, to pick its match
 			bool aSelected = aGame->mBoard.mSelected == aTile;
 			char aLine[512];
