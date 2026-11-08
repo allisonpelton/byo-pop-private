@@ -730,8 +730,21 @@ and drawn only in a skin, so changing the skin needs no script.
 faint under them (the user, 2026-11-07: "Add the game's icon so it shows semi-faint under the game's initials"), the icon read
 out of the player's own exe at the import (web/exeicon.js) and never shipped or redrawn; Plain shows the icon alone, as before.
 In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
-its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps"). Still to come: Desktop 95's
-windows.
+its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps"). The design's other studies (the flip record,
+prints, wear and the date on a cap) are not built.
+
+**Desktop 95's windows.** In B a game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The controls (the
+page's bar, with the sound switch), the game, the chat and every panel (Settings, Game files, Mods and the game's own) are
+windows dragged by their title bars, or moved 8 pixels at a time with Alt and the arrows while the focus is in a title bar. A
+column of icons at the left opens each one again. The game window can be closed and reopened; a panel's icon presses the
+panel's own button on the bar. The game window is always pixel-perfect: one canvas pixel for each game pixel, or the largest
+whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Where the windows are, and whether the
+game window is closed, is kept for each game in the localStorage item `byopop-desk`. The footer lies along the bottom like a
+task bar. Each game keeps its own page, so a game's address still opens that game; the listing is its own desktop, its
+content in one window, and does not move. On a screen under 760 pixels wide, or in another skin, the page is laid out as
+usual. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
+title, ...})`. The parody keeps to the rules of the skins: everything drawn here, system fonts by name, no real logos, icons
+or sounds, and no imitation system prompts.
 
 ### Light and dark
 

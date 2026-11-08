@@ -175,9 +175,196 @@ var ByopopSkin = (function () {
     }
   }
 
+  // ---------- Desktop 95's desktop ----------
+  // On a game page in Desktop 95 the page is one desktop (html.d95-desk): the game, its controls (the page's bar), the chat and
+  // the panels (Settings, Game files, Mods and the game's own) are windows that are dragged by their title bars, and a column of
+  // desktop icons at the left opens each one again. Each page is its own desktop: the game pages stay separate pages, with their
+  // own addresses. Where each window is, and which are closed, is kept for each game (the item "byopop-desk", by the page's id);
+  // a panel's open or closed state stays the page's own. The game window always shows one canvas pixel for each of the game's
+  // pixels, or an exact multiple (web/shell.html, sizeStage), and its picture starts on a whole device pixel. On a screen too
+  // narrow for windows (under DESK_MIN pixels), or in another skin, the page is laid out as usual. More windows (the performance
+  // panel, the controls panel) are added with desk.add.
+  var DESK_KEY = "byopop-desk", DESK_MIN = 760;
+  function TW(k, title) { try { return ByopopStrings.t(k, { window: title }); } catch (e) { return title; } }
+  var desk = (function () {
+    var wins = [], top = 20, on = false, icons = null;
+    function store() {
+      try { var o = JSON.parse(window.localStorage.getItem(DESK_KEY) || "{}"); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }
+      catch (e) { return {}; }
+    }
+    function saved() { var o = store(); return (pageGame && o[pageGame] && typeof o[pageGame] === "object") ? o[pageGame] : {}; }
+    function save() {
+      if (!pageGame) return;
+      var o = store(), mine = {};
+      wins.forEach(function (w) { if (w.placed) mine[w.id] = { x: w.x, y: w.y, closed: !!w.closed }; });
+      o[pageGame] = mine;
+      try { window.localStorage.setItem(DESK_KEY, JSON.stringify(o)); } catch (e) {}
+    }
+    function dpr() { return window.devicePixelRatio || 1; }
+    function shown(w) { return !w.closed && !w.el.hidden && w.el.getClientRects().length > 0; }
+    // keeps a title bar on the screen, and the game's picture on whole device pixels
+    function place(w) {
+      var vw = document.documentElement.clientWidth || window.innerWidth;
+      w.x = Math.max(-(w.el.offsetWidth - 80), Math.min(vw - 80, Math.round(w.x)));
+      w.y = Math.max(0, Math.round(w.y));
+      w.el.style.left = w.x + "px";
+      w.el.style.top = w.y + "px";
+      if (w.snap && shown(w)) {
+        var r = w.snap.getBoundingClientRect(), d = dpr();
+        var dx = (Math.round(r.left * d) - r.left * d) / d, dy = (Math.round(r.top * d) - r.top * d) / d;
+        if (dx || dy) { w.el.style.left = (w.x + dx) + "px"; w.el.style.top = (w.y + dy) + "px"; }
+      }
+    }
+    function raise(w) { w.el.style.zIndex = String(++top); }
+    function setClosed(w, c) {
+      w.closed = !!c;
+      w.el.classList.toggle("d95-closed", w.closed);
+      if (w.icon) w.icon.setAttribute("aria-pressed", w.closed ? "false" : "true");
+      if (!w.closed) { raise(w); place(w); }
+      save();
+    }
+    function drag(w, handle) {
+      var start = null, moved = false;
+      handle.addEventListener("pointerdown", function (ev) {
+        if (!on || ev.button !== 0) return;
+        raise(w);
+        // a press on a control in the title bar (a close button) is that control's own
+        if (ev.target.closest("input, select, textarea, a") || (ev.target.closest("button") && ev.target.closest("button") !== handle)) return;
+        start = { px: ev.clientX, py: ev.clientY, x: w.x, y: w.y, id: ev.pointerId };
+        moved = false;
+      });
+      window.addEventListener("pointermove", function (ev) {
+        if (!start || ev.pointerId !== start.id) return;
+        var dx = ev.clientX - start.px, dy = ev.clientY - start.py;
+        if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+        if (!moved) { moved = true; try { handle.setPointerCapture(ev.pointerId); } catch (e) {} document.documentElement.classList.add("d95-dragging"); }
+        w.x = start.x + dx; w.y = start.y + dy;
+        place(w);
+      });
+      function end(ev) {
+        if (!start || ev.pointerId !== start.id) return;
+        start = null;
+        document.documentElement.classList.remove("d95-dragging");
+        if (moved) { w.placed = true; save(); }
+      }
+      window.addEventListener("pointerup", end);
+      window.addEventListener("pointercancel", end);
+      // a drag that began on a button (the chat's heading) is not also its click
+      handle.addEventListener("click", function (ev) { if (moved) { moved = false; ev.stopPropagation(); ev.preventDefault(); } }, true);
+      // the keyboard: Alt and the arrows move a window whose title bar has the focus, 8 pixels a press
+      handle.addEventListener("keydown", function (ev) {
+        if (!on || !ev.altKey) return;
+        var k = { ArrowLeft: [-8, 0], ArrowRight: [8, 0], ArrowUp: [0, -8], ArrowDown: [0, 8] }[ev.key];
+        if (!k) return;
+        ev.preventDefault();
+        w.x += k[0]; w.y += k[1]; w.placed = true;
+        place(w); save();
+      });
+    }
+    // el: the window; o: { id, title, handle (its title bar; else one is added), snap (the element on whole device pixels),
+    // closable (a close button that hides it; the desktop icon shows it again), open (what the icon does instead: a panel's own
+    // button), at: function () { return [x, y]: where it goes first } }
+    function add(el, o) {
+      if (!el || wins.some(function (w) { return w.el === el; })) return null;
+      var w = { el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: false, at: o.at, open: o.open, button: o.button };
+      el.classList.add("d95-win");
+      el.setAttribute("data-d95-title", o.title);
+      var handle = o.handle;
+      if (!handle) {
+        handle = document.createElement("div");
+        handle.className = "d95-tb";
+        var t = document.createElement("span");
+        t.textContent = o.title;
+        handle.appendChild(t);
+        if (o.closable) {
+          var x = document.createElement("button");
+          x.type = "button"; x.className = "d95-x"; x.setAttribute("aria-label", TW("skin.desk.close", o.title));
+          x.addEventListener("click", function () { setClosed(w, true); });
+          handle.appendChild(x);
+        }
+        el.insertBefore(handle, el.firstChild);
+      }
+      handle.classList.add("d95-handle");
+      drag(w, handle);
+      el.addEventListener("pointerdown", function () { if (on) raise(w); }, true);
+      var s = saved()[o.id];
+      if (s && isFinite(s.x) && isFinite(s.y)) { w.x = s.x; w.y = s.y; w.placed = true; w.closed = !!s.closed && !!o.closable; }
+      wins.push(w);
+      addIcon(w, o.title);
+      if (on) layout();
+      return w;
+    }
+    function addIcon(w, title) {
+      if (!icons) return;
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "d95-icon d95-icon-" + w.id;
+      var pic = document.createElement("i"); pic.setAttribute("aria-hidden", "true");
+      var name = document.createElement("span"); name.textContent = title;
+      b.appendChild(pic); b.appendChild(name);
+      b.setAttribute("aria-label", TW("skin.desk.open", title));
+      b.addEventListener("click", function (ev) {
+        if (w.open) { w.open(ev); raise(w); return; }
+        setClosed(w, false);
+        var f = w.el.querySelector("canvas, [tabindex]:not([tabindex='-1']), button");
+        if (f && w.id !== "game") try { f.focus(); } catch (e) {}
+      });
+      if (!w.open) b.setAttribute("aria-pressed", w.closed ? "false" : "true");
+      // a panel's icon is there while its button on the bar is (Mods: once the game's files are here)
+      if (w.button && window.MutationObserver) {
+        var follow = function () { b.hidden = w.button.hidden; };
+        new MutationObserver(follow).observe(w.button, { attributes: true, attributeFilter: ["hidden"] });
+        follow();
+      }
+      w.icon = b;
+      icons.appendChild(b);
+    }
+    // where the windows go the first time: the controls at the top, the game under them, the chat beside it, the panels at the right
+    function layout() {
+      var vw = document.documentElement.clientWidth || window.innerWidth;
+      var left = icons ? icons.offsetWidth + 24 : 16;
+      wins.forEach(function (w) {
+        if (!w.placed) {
+          var p = w.at ? w.at(left, vw) : [left, 16];
+          w.x = p[0]; w.y = p[1];
+        }
+        w.el.classList.toggle("d95-closed", w.closed);
+        place(w);
+      });
+    }
+    function find(id) { for (var i = 0; i < wins.length; i++) if (wins[i].id === id) return wins[i]; return null; }
+    function setOn(want) {
+      if (want === on) { if (on) layout(); return; }
+      on = want;
+      root.classList.toggle("d95-desk", on);
+      if (on && !icons) {
+        icons = document.createElement("nav");
+        icons.className = "d95-icons";
+        icons.setAttribute("aria-label", T("skin.desk.icons"));
+        document.body.insertBefore(icons, document.body.firstChild);
+        wins.forEach(function (w) { addIcon(w, w.el.getAttribute("data-d95-title") || w.id); });
+      }
+      // out of the desktop the page lays itself out: the windows' places go, and are put back when it comes again
+      if (!on) wins.forEach(function (w) { w.el.style.removeProperty("left"); w.el.style.removeProperty("top"); w.el.style.removeProperty("z-index"); });
+      try { window.dispatchEvent(new CustomEvent("byopop-desk", { detail: { on: on } })); } catch (e) {}
+      if (on) layout();
+    }
+    window.addEventListener("resize", function () { if (on) layout(); });
+    return { add: add, setOn: setOn, layout: layout, find: find, isOn: function () { return on; },
+             raise: function (id) { var w = find(id); if (w && on) raise(w); },
+             place: function (id) { var w = find(id); if (w && on) place(w); } };
+  })();
+  // a game page (one with a workspace) in Desktop 95, wide enough for windows
+  function deskWanted() {
+    return root.getAttribute("data-skin") === "d95" && !!document.getElementById("workspace") &&
+      (document.documentElement.clientWidth || window.innerWidth) >= DESK_MIN;
+  }
+  function deskSync() { if (document.body) desk.setOn(deskWanted()); }
+  window.addEventListener("byopop-skin", deskSync);
+  window.addEventListener("resize", deskSync);
+
   apply();
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(); });
   window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "skin") apply(); });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", askOnce); else askOnce();
-  return { SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard };
+  return { SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync };
 })();

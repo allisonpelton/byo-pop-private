@@ -35,6 +35,10 @@ skin.wiz.licence = Licence
 skin.wiz.folder = Your folder
 skin.wiz.copying = Copying
 skin.wiz.finish = Finish
+skin.desk.controls = Controls
+skin.desk.icons = Desktop
+skin.desk.open = Open {window}
+skin.desk.close = Close {window}
 settings.skin.label = Skin
 settings.skin.hint = The site's look around the game. The game itself never changes.
 

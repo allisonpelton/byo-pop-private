@@ -115,6 +115,61 @@
 :root[data-skin="d95"] .stage { border-radius: 0; }
 :root[data-skin="d95"] .bar .status { color: var(--muted); }
 
+/* The desktop of a game page (html.d95-desk, web/skins.js): every part a window placed by the script, the icons at the left, the
+   footer along the bottom. The title bars added by the script are drawn only here. */
+.d95-tb, .d95-icons { display: none; }
+html.d95-desk { overflow-x: hidden; }
+html.d95-desk body { display: block; position: relative; min-height: 100%; height: auto; padding-bottom: 40px; box-sizing: border-box; }
+html.d95-desk .workspace { display: block; }
+html.d95-desk .d95-win { position: absolute; margin: 0; z-index: 10; box-sizing: border-box; padding: 3px;
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid);
+  background: var(--panel); }
+html.d95-desk .d95-win.d95-closed { display: none !important; }
+html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title); color: var(--sk-title-fg);
+  padding: 2px 3px 2px 6px; font-weight: bold; min-height: 18px; white-space: nowrap; overflow: hidden; }
+html.d95-desk .d95-tb > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+html.d95-desk .d95-handle { cursor: default; touch-action: none; -webkit-user-select: none; user-select: none; }
+html.d95-dragging, html.d95-dragging * { -webkit-user-select: none !important; user-select: none !important; }
+/* the close button: an X drawn with two strokes */
+html.d95-desk .d95-x { width: 16px; height: 14px; padding: 0; flex: none; position: relative; color: var(--fg); }
+html.d95-desk .d95-x::before, html.d95-desk .d95-x::after { content: ""; position: absolute; left: 3px; right: 4px; top: 5px; height: 2px;
+  background: currentColor; transform: rotate(45deg); }
+html.d95-desk .d95-x::after { transform: rotate(-45deg); }
+/* the controls: the page's bar, its buttons wrapping in a window no wider than the screen */
+html.d95-desk .bar.d95-win { width: min(760px, calc(100vw - 150px)); padding: 3px 8px 8px; gap: 8px; border: 0; }
+html.d95-desk .bar.d95-win > .d95-tb { flex: 1 0 100%; margin: 0 -5px 2px; }
+/* the game: its stage exactly the size sizeStage gives it, no margin, no shadow */
+html.d95-desk .stage-wrap.d95-win { display: block; place-items: normal; width: max-content; padding: 3px; }
+html.d95-desk .stage-wrap.d95-win > .d95-tb { margin-bottom: 2px; }
+html.d95-desk .stage-wrap .stage { box-shadow: none; max-width: none; }
+/* the chat: a fixed size, whatever room the page has beside the game (chat.js's chat-below has no part here) */
+html.d95-desk .chat.d95-win { width: 300px; height: 480px; max-height: calc(100vh - 60px); }
+html.d95-desk .chat.d95-win.chat-collapsed { height: auto; }
+html.d95-desk .chat.d95-win h2 button { margin: 0; }
+/* the panels: windows at the right, as high as their contents */
+html.d95-desk .panel.d95-win { width: min(440px, calc(100vw - 32px)); bottom: auto; right: auto; max-height: calc(100vh - 80px); padding: 3px; border: 0; }
+html.d95-desk .panel.d95-win > header { margin: 0; }
+/* the footer along the bottom, as a task bar */
+html.d95-desk .byopop-footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; padding: 4px 12px; background: var(--panel);
+  box-shadow: inset 0 1px var(--sk-mid), inset 0 2px var(--sk-hi); color: var(--fg); }
+/* the desktop icons: a picture drawn here (a little window, its title bar the window's own colour) and a name under it */
+html.d95-desk .d95-icons { display: flex; flex-direction: column; gap: 6px; position: absolute; left: 8px; top: 12px; width: 84px; z-index: 1; }
+html.d95-desk .d95-icon { display: grid; justify-items: center; gap: 4px; padding: 4px 2px; background: transparent; box-shadow: none;
+  color: var(--sk-desk-fg); font-size: 12px; text-align: center; }
+html.d95-desk .d95-icon[hidden] { display: none; }
+html.d95-desk .d95-icon:hover, html.d95-desk .d95-icon:focus-visible { background: rgba(0, 0, 128, .45); }
+html.d95-desk .d95-icon[aria-pressed=true] { box-shadow: none; }
+html.d95-desk .d95-icon > i { display: block; width: 32px; height: 26px; background: var(--panel); position: relative;
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), 1px 1px 0 rgba(0, 0, 0, .4); }
+html.d95-desk .d95-icon > i::before { content: ""; position: absolute; left: 2px; right: 2px; top: 2px; height: 6px; background: var(--sk-title); }
+html.d95-desk .d95-icon > i::after { content: ""; position: absolute; left: 6px; right: 6px; top: 11px; bottom: 5px; }
+html.d95-desk .d95-icon-game > i::after { background: #000000; }
+html.d95-desk .d95-icon-controls > i::after { bottom: auto; height: 4px; box-shadow: 0 6px 0 var(--sk-lo); background: var(--sk-lo); }
+html.d95-desk .d95-icon-chat > i::after { background: var(--sk-well); border-radius: 0 0 0 0; box-shadow: inset 0 0 0 1px var(--sk-lo); }
+html.d95-desk .d95-icon-panel-settings > i::after { border-radius: 50%; border: 3px dotted var(--sk-lo); left: 10px; right: 10px; }
+html.d95-desk .d95-icon-panel-files > i::after { background: #e6c35a; clip-path: polygon(0 0, 40% 0, 50% 25%, 100% 25%, 100% 100%, 0 100%); }
+html.d95-desk .d95-icon-panel-mods > i::after { background: var(--accent); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+
 /* ======================= C · Soda Fountain: byo-pop taken at its word ======================= */
 :root[data-skin="soda"] {
   --bg: #fdf3e1; --panel: #fffaf0; --panel-2: #f7ead2; --fg: #3a1d12; --muted: #6b4a3a; --line: #e0c9a6;
