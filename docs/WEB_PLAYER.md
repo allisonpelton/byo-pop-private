@@ -78,7 +78,9 @@ The panels:
 - **Game files** imports the game again, or forgets the copied files. Saves and mods stay. The game runs only
   once in a page and must not have its files changed under it, so once it has started, both close it first
   (as the mod menu's Restart does, saving the game in progress) and go on in a reloaded page: the import
-  card, which can go back to the Ready card.
+  card, which can go back to the Ready card. The page keeps the game's life as one state (`gameState` in the shell, the user,
+  2026-11-07: "Find any implicit state machines in the website code and make them explicit"): waiting, starting, running, closing (the page asked it to close),
+  closed and stopped (an error), with the moves between them listed in `GAME_MOVES`; the shell makes no other.
 - **Settings** is the site's settings (see "Site settings", below), the same controls as the listing page's.
 - **Sound** turns the page's sound off or on, below the game's own volume and mute options (see "Site settings").
 - **Fullscreen** puts the stage in fullscreen. **F11** does the same in every game's page, and F11 again (or Esc) leaves it (see
@@ -246,9 +248,10 @@ cursor, are at most 128 px: the game page draws a larger one smaller. Filling `f
 cursor class would hand the framework its frames, and `byopop_cursor_set_copy` and the game page's `takeCursorSet` would copy and
 keep them.
 
-**The footer** is the same on every game's page: one link, which opens the game's copyright page
-(`<game>-copyright.html`, next to the game) in a new tab. The markup is `web/footer.html` and its style
-`web/footer.css`.
+**The footer** is the page's last row, across its width (the user, 2026-11-07: "a true footer"): the game's copyright notice
+in one sentence, its `COPYRIGHT` up to "All rights reserved." (the trademark lines are on the page the link opens), then a
+**Full terms →** link, which opens the game's copyright page (`<game>-copyright.html`, next to the game) in a new tab. The
+markup is `web/footer.html` (the build puts the notice at `@BYOPOP_NOTICE@`) and its style `web/footer.css`.
 
 **The copyright page** is made from `web/copyright.html`. It has the game's copyright notice, a statement that
 the player is unofficial, non-commercial and comes with none of the game's files, and the license of every
@@ -761,6 +764,14 @@ it is for, in `FIELDS` in `web/settings.js`):
   screen) unless it is off, and with it off nothing of the chat is built or started. It starts on because
   the chat is a part of the page rather than a change to a game, and it can be turned on and off while a game runs ("The chat",
   below).
+- `chatPlace` ("edge" or "game", default edge): **Chat position**. Beside the game the chat sits at the page's right edge, or,
+  with "Next to the game", right next to the stage, the two centred together (the user, 2026-11-07). Below the game it is the
+  same either way.
+- `pixelPerfect` ("on" or "off", default off): **Pixel-perfect**, in Display. The stage takes the game's own size instead of
+  filling the window (the user, 2026-11-07): each game pixel is n device pixels, n the device pixel ratio rounded and at least
+  1, so at 100% and 125% a 640 x 480 game takes 640 x 480 device pixels and at 150% and 200% twice that. A smaller n is taken
+  while that does not fit the window, and the usual fit when not even one device pixel each does. The game gives its size as it
+  makes its window (`SexyAppBase::MakeWindow` calls `Module.onGameScreen`); full screen is unchanged.
 
 **The starting volume.** Most of the games start with music and sound on, and the only way to avoid that used to be the speakers,
 so the setting says what volume every game starts at, 0 for silence, music and sound each. The page's mute
@@ -831,7 +842,9 @@ adds its tag, and the chat keeps no list of its own); a game the table lacks has
 width it has without it, else below it (the class `chat-below` on the root element), so the canvas and its scaling are never
 changed by the chat; `Module.onGameScreen` asks the chat to work that out again when a game changes the stage's shape; the
 "Show chat" setting above turns it on and off live; and the terms card and the "Already open" card make it inert like the rest
-of the page. Below the stage the page is taller than the window, and the player must land on the game, scrolled to the top: the
+of the page. Below the stage the chat fills the space down to the footer, at least 18rem tall (the user, 2026-11-07), and
+with "Chat position" on "Next to the game" the stage's box is only as wide as the stage (chat.js gives `--stage-px`), so the
+two centre together. Below the stage the page is taller than the window, and the player must land on the game, scrolled to the top: the
 page sets `history.scrollRestoration` to `manual` (else a reload, as Play again and a restart from the mod menu do, puts the page back
 where it was scrolled to, the chat in view), and Home, End, PageUp and PageDown typed on the canvas are cancelled for the browser, which
 would scroll the page to the chat with them (SDL cancels the arrows, Tab, Backspace, the function keys, Ctrl keys and Space, not

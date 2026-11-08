@@ -108,7 +108,19 @@ button[disabled] { opacity: 0.5; cursor: default; }
   position: relative; background: var(--stage); aspect-ratio: var(--aspect, 4 / 3); max-width: 100%;
   width: min(100%, calc((100vh - 90px) * var(--aspect-w, 1.3333))); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
 }
+/* Pixel-perfect (the site's setting, sizeStage below): the stage takes the width it works out, the game's own size */
+.pixel-perfect .stage:not(:fullscreen) { width: var(--pp-w); }
+/* The chat next to the game (the site's "Chat position"): the stage's box is as wide as the stage, and the two are centred
+   together; chat.js's layout gives the stage's width (--stage-px). Only while the chat is shown: it starts with the game, and
+   "Show chat" may be off */
+.chat-attached:not(.chat-below) .workspace:has(> .chat:not([hidden])) { justify-content: center; }
+.chat-attached:not(.chat-below) .workspace:has(> .chat:not([hidden])) > .stage-wrap { flex: 0 1 auto; width: calc(var(--stage-px, 640px) + 24px); }
 canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-rendering: auto; }
+/* The game is never selected or dragged as page content: a press that started a selection on the page and a drag over the
+   game (a volume slider) would select the stage with nothing to show it, and the next drag would drag that selection, the
+   game's picture with it (the user, 2026-11-07, Ning Po's volume slider). The stage's own dialogs keep text selection. */
+.stage { -webkit-user-select: none; user-select: none; -webkit-user-drag: none; -webkit-touch-callout: none; }
+.stage .overlay, .stage .overlay * { -webkit-user-select: text; user-select: text; }
 /* The game has the keyboard while the canvas has the focus. The ring is white inside the stage, over the game's picture, and the
    accent around the stage, over the page: whichever of the two the picture hides, the other shows */
 canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; }
@@ -206,12 +218,17 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
    (the wheel, touch, the keyboard and Tab still scroll). */
 .chat-below { scrollbar-width: none; }
 .chat-below::-webkit-scrollbar { display: none; }
-.chat-below .workspace { flex: none; flex-direction: column; }
+/* It fills the space from the stage down to the footer (the user, 2026-11-07), at least 18rem: the page is at least the window's
+   height, and grows (and scrolls) past it only to give the chat that much */
+.chat-below body { height: auto; min-height: 100%; }
+.chat-below .workspace { flex: 1 0 auto; flex-direction: column; }
 .chat-below .workspace > .stage-wrap { flex: none; }
 .chat-below .workspace > .chat {
-  width: auto; height: clamp(18rem, 60vh, 30rem); margin: 0 max(12px, env(safe-area-inset-right, 0px)) 12px max(12px, env(safe-area-inset-left, 0px));
+  width: auto; height: auto; flex: 1 0 18rem; margin: 0 max(12px, env(safe-area-inset-right, 0px)) 12px max(12px, env(safe-area-inset-left, 0px));
 }
-.chat-below .workspace > .chat.chat-collapsed { height: auto; }
+/* Collapsed it keeps the page's width, as when open, so the whole bar opens it again (the user, 2026-11-07: collapsed, it had
+   shrunk to its text and arrow) */
+.chat-below .workspace > .chat.chat-collapsed { flex: none; align-self: stretch; }
 /* No motion for a player who asked for none: the page has no animation of its own besides this bar's slide */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
@@ -442,13 +459,55 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   function web() { return Module.byopop; }
   var session = null;  // web().Session
   var panel = null;    // web().ModPanel
-  var started = false; // the game runs once in a page: after it closes, only a reload starts it again
-  var exited = false;  // it has closed or stopped
-  var afterExit = null;  // closeGameThen's next step, which onGameExit takes once the save is written
+  // The game's life in this page, one state at a time. It runs once in a page: after it closes, only a reload starts it again.
+  //   waiting   not started yet: the Ready card, the import, the terms card
+  //   starting  runGame is setting it up; an error before the game's main is called goes back to waiting (startGame)
+  //   running   its main has been called
+  //   closing   the page asked it to close (closeGameThen); afterExit is the next step, which onGameExit takes once the save is written
+  //   closed    it quit, by itself or as asked (onGameExit)
+  //   stopped   it stopped with an error (showStopped), which may come at any time, even before Play (the game's code would not load)
+  // setGameState makes only the moves in GAME_MOVES and warns of any other.
+  var GAME_MOVES = {
+    waiting: ["starting", "stopped"], starting: ["waiting", "running", "stopped"], running: ["closing", "closed", "stopped"],
+    closing: ["closing", "closed", "stopped"], closed: ["stopped"], stopped: ["stopped"]
+  };
+  var gameState = "waiting";
+  var afterExit = null;
+  function setGameState(next) {
+    if (GAME_MOVES[gameState].indexOf(next) < 0) { console.warn("byo-pop: the game cannot go from " + gameState + " to " + next); return false; }
+    gameState = next;
+    return true;
+  }
+  function gameEnded() { return gameState === "closed" || gameState === "stopped"; }
 
   // The site's wait cursor, if the chosen site cursor has one (web/cursors.js), while the game's script loads and compiles
   function siteBusy(on) { try { if (window.ByopopCursors) ByopopCursors.busy("game-loading", on); } catch (e) {} }
   siteBusy(true);
+
+  // The game's own screen size, as it makes its window (onGameScreen); 640 x 480, most games' size, until it says
+  var gameScreen = { w: 640, h: 480 };
+  // Pixel-perfect (the site's setting; the user, 2026-11-07: "makes the player take up exactly as much space as the game
+  // resolution"): the stage is the game's own size, each game pixel n device pixels, n the device pixel ratio rounded and at
+  // least 1 (a 100% or 125% screen: one device pixel each, so 640 x 480 is 640 x 480 or a little smaller; 150% and 200%: two),
+  // a smaller n while that does not fit the window, and the usual fit to the window when not even one device pixel each does.
+  // The chat's layout follows. Called at the start, when the game gives its size, on a resize (a zoom changes the ratio) and
+  // when the setting changes.
+  function sizeStage() {
+    var s = document.getElementById("stage"), w = 0;
+    if (!s) return;
+    if (setting("pixelPerfect") === "on") {
+      var dpr = window.devicePixelRatio || 1, n = Math.max(1, Math.round(dpr));
+      var roomW = (document.documentElement.clientWidth || window.innerWidth) - 24, roomH = window.innerHeight - 90;
+      for (; n >= 1 && !w; n--) {
+        var cw = gameScreen.w * n / dpr, ch = gameScreen.h * n / dpr;
+        if (cw <= roomW && ch <= roomH) w = cw;
+      }
+    }
+    if (w) s.style.setProperty("--pp-w", w + "px"); else s.style.removeProperty("--pp-w");
+    document.documentElement.classList.toggle("pixel-perfect", !!w);
+    if (chat) chat.layout();
+  }
+  window.addEventListener("resize", sizeStage);
 
   // The tab keeps the page's own title. SDL's web backend writes a window's title to document.title as the game makes its
   // window (the framework's mTitle, the original's own name) or changes it (Bonnie's caption), and the site names
@@ -480,12 +539,14 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // The game screen's size, which a game gives before it makes its window when it is not 640 x 480 (BookWorm's
     // mod "widescreen": 854 x 480, SidePanel::TellPage): the stage takes its shape and SDL sizes the canvas to the
     // stage. The logical size, not the canvas's, so leaving fullscreen keeps it. Other games stay 4:3.
+    // The framework also gives every game's size as it makes the game's window (SexyAppBase::MakeWindow), which pixel-perfect needs.
     onGameScreen: function (w, h) {
       if (!(w > 0 && h > 0)) return;
       var s = $("stage");
       s.style.setProperty("--aspect", w + " / " + h);
       s.style.setProperty("--aspect-w", String(w / h));
-      if (chat) chat.layout();  // the chat is beside the stage only while the stage keeps its size there
+      gameScreen = { w: w, h: h };
+      sizeStage();  // and the chat's layout: the chat is beside the stage only while the stage keeps its size there
     },
     // -placeholders: a game file the game did not find got a stand-in (listed in the Game files panel)
     onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },
@@ -494,7 +555,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // page reloads and starts the game again by itself (Session.restartPage), or the Game files panel closed the
     // game (closeGameThen), which goes on from here.
     onGameExit: function (info) {
-      exited = true;
+      setGameState("closed");
       playClock();
       releaseWake();
       try { ByopopCounter.stop(); } catch (e) {}
@@ -544,7 +605,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // The game stopped with an error (a crash, out of memory): nothing more runs in this page. A mod may be the
   // cause, so the next start can leave them out.
   function showStopped(what) {
-    exited = true;
+    setGameState("stopped");
     siteBusy(false);
     playClock();
     releaseWake();
@@ -837,19 +898,18 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // Play is safe at any moment: a press before boot() has the mods panel and the game's files (a click or key that reached the
   // button while its card was still hidden) does nothing, and an error before the game's main runs puts the Ready card back
   // instead of leaving the page started with no game.
-  var mainCalled = false;
   function startGame(isAutostart, noMods) {
-    if (started || !hasAgreed() || !panel || !session || !hasGameFiles()) return;
+    if (gameState !== "waiting" || !hasAgreed() || !panel || !session || !hasGameFiles()) return;
     try { runGame(isAutostart, noMods); }
     catch (e) {
       console.error("byo-pop: the start failed", e);
-      if (mainCalled) return;
-      started = false;
+      if (gameState !== "starting") return;
+      setGameState("waiting");
       showReady();
     }
   }
   function runGame(isAutostart, noMods) {
-    started = true;
+    setGameState("starting");
     // The site setting "full screen at start": "Full screen" is asked for first, while the click that pressed Play still counts
     // (browsers allow it only from one; the restart of the game's own menu has no click, so it does not ask). "Windowed" is
     // told to the games (byopop_site_windowed, below), whose own full screen option then starts off.
@@ -881,7 +941,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     // mods" after a crash reloads with the same flag, but with noMods, which the restart never sets: that one is a play
     if (isAutostart !== true || noMods) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
     askToKeepStorage();
-    mainCalled = true;
+    setGameState("running");
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     startChat();
     cursorTimer = setInterval(pollCursor, 100);
@@ -943,7 +1003,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     try { if (window.ByopopCursors) ByopopCursors.save(PAGE.id, $("brand-name").textContent, set); } catch (e) {}
   }
   function pollCursor() {
-    var id = 0, stop = exited;
+    var id = 0, stop = gameEnded();
     if (!stop && !cursorSetTaken) takeCursorSet();
     if (!stop) {
       try { id = Module.ccall("byopop_cursor", "number", [], []) | 0; }
@@ -997,7 +1057,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
         gameDirs: GAME_DIRS, gameFiles: GAME_FILES, intro: PAGE.modsIntro,
         isOpen: function () { return !$("panel-mods").hidden; },
         show: function () { openPanel("panel-mods"); },
-        canPlay: function () { return !started && hasAgreed() && hasGameFiles(); },
+        canPlay: function () { return gameState === "waiting" && hasAgreed() && hasGameFiles(); },
         playWithoutMods: function () { startGame(false, true); }
       });
     }
@@ -1034,7 +1094,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // it) or with ?silent=1 (the tests press Play), and not once a panel is open or the card is gone.
   function startOnOpen() {
     if (setting("autoStart") !== "on" || setting("fullscreen") === "on" || pageSilent() || !$("start-rescue").hidden) return;
-    function go() { if (!started && !$("start-overlay").hidden && !anyPanelOpen()) startGame("sound", false); }
+    function go() { if (gameState === "waiting" && !$("start-overlay").hidden && !anyPanelOpen()) startGame("sound", false); }
     try {
       if (navigator.getAutoplayPolicy) { if (navigator.getAutoplayPolicy("audiocontext") === "allowed") go(); return; }
       var AC = window.AudioContext || window.webkitAudioContext;
@@ -1201,7 +1261,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // that, the panel
   $("btn-mods").addEventListener("click", function (e) {
     if (!$("panel-mods").hidden) { closePanels(closeHow(e)); return; }
-    if (started && panel && (panel.menu(-1) >= 0)) { closePanels("quiet"); $("canvas").focus(); return; }
+    if (gameState !== "waiting" && panel && (panel.menu(-1) >= 0)) { closePanels("quiet"); $("canvas").focus(); return; }
     openPanel("panel-mods");
   });
   $("btn-files").addEventListener("click", function (e) {
@@ -1244,12 +1304,12 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   // panel's actions close it first, as the mod menu's Restart does (byopop_restart: the game in progress and the
   // settings are saved), and go on in a new page. then(info) runs once the save has reached browser storage; info
   // is Module.onGameExit's, or null when the game was not running.
-  function gameRunning() { return started && !exited; }
+  function gameRunning() { return gameState === "starting" || gameState === "running" || gameState === "closing"; }
   function closeGameThen(then) {
     if (gameRunning()) {
       var r = {};
       try { r = JSON.parse((panel && panel.call("byopop_restart", "string", ["number"], [1])) || "{}"); } catch (e) {}
-      if (r.result === "started") { afterExit = then; return; }
+      if (r.result === "started") { afterExit = then; setGameState("closing"); return; }
       if (r.result === "blocked") { ask(r.message || ByopopStrings.t("game.files.cannot_close"), null, null); return; }
       // "none": it has not finished loading, so there is nothing to save yet
     }
@@ -1272,7 +1332,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (action) action();
   });
   function importAgain() {
-    if (!started) { openPanel(null); showImport(); return; }
+    if (gameState === "waiting") { openPanel(null); showImport(); return; }
     closeGameThen(function (info) { session.reloadToImport(info); });
   }
   function forgetFiles() {
@@ -1424,6 +1484,9 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     try { if ($("canvas").matches(":focus-visible")) $("canvas-hint").classList.add("show"); } catch (e) {}
   });
   $("canvas").addEventListener("mousedown", function () { $("canvas").focus(); });
+  // nothing in the stage is dragged as page content (the style above keeps it from being selected)
+  $("stage").addEventListener("dragstart", function (e) { e.preventDefault(); });
+  $("canvas").setAttribute("draggable", "false");
   // The same rule once more, in case SDL listens on the window after all (a build that could not set its keyboard element,
   // Module.preRun): this listener was added before SDL's, so it runs first on the window, and keys typed anywhere but on the
   // canvas stop here. With SDL on the canvas it changes nothing.
@@ -1521,7 +1584,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (args.every(function (n) { return n < 0; })) { if (volume) releaseHold(); return; }
     var tries = 0;
     (function attempt() {
-      if (exited) return;
+      if (gameEnded()) return;
       var r = audioCall("byopop_site_apply", args);
       if (r === 1 || r === undefined) { if (volume) releaseHold(); return; }  // applied, or this build has no such call
       if (++tries < 600) setTimeout(attempt, 100); else if (volume) releaseHold();
@@ -1533,12 +1596,14 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   function applySettingNow(name, value) {
     if (name === "startVolume" || name === "startMusic" || name === "startSound") {
       if (gameRunning()) applySiteOptions(false, true);
-      else if (!started) { if (startVolume()) holdForVolume(); else releaseHold(); }
+      else if (gameState === "waiting") { if (startVolume()) holdForVolume(); else releaseHold(); }
     }
     else if (name === "cursors") { if (gameRunning()) applySiteOptions(true, false); }
     else if (name === "wakeLock") { if (value === "on") acquireWake(); else releaseWake(); }
     else if (name === "pauseHidden") syncPause();
     else if (name === "showChat") { if (chat) chat.setVisible(value !== "off"); }
+    else if (name === "chatPlace") placeChat();
+    else if (name === "pixelPerfect") sizeStage();
     // confirmLeave is read when the page is left
   }
 
@@ -1582,7 +1647,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (want) {
       try { Module.pauseMainLoop(); } catch (e) {}
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
-    } else if (!exited) {
+    } else if (!gameEnded()) {
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.resume(); } catch (e) {}
       try { Module.resumeMainLoop(); } catch (e) {}
     }
@@ -1643,9 +1708,21 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
       // ByopopGames is the site's table of games (chat-games.js, which cmake/ByopopWeb.cmake writes beside the pages); without
       // the file the chat draws no game tags. The messages this page sends carry this page's game, PAGE.id.
       chat = ByopopChat.mount($("chat"), { stage: $("stage"), onLeave: leaveChat, visible: setting("showChat") !== "off",
-        game: PAGE.id, games: typeof ByopopGames !== "undefined" ? ByopopGames : [] });
+        game: PAGE.id, games: typeof ByopopGames !== "undefined" ? ByopopGames : [],
+        // a game the player has (its files loaded here) shows as its own icon (web/settings.js, ByopopGameFiles)
+        iconOf: function (id) {
+          var r = typeof ByopopGameFiles !== "undefined" ? ByopopGameFiles.all()[id] : null;
+          return r && ByopopGameFiles.present(r) && r.icon ? r.icon : "";
+        } });
     } catch (e) { console.warn("the chat could not start", e); }
   }
+  // The chat's place when it is beside the game: at the page's right edge (the default) or next to the game, the two centred
+  function placeChat() {
+    document.documentElement.classList.toggle("chat-attached", setting("chatPlace") === "game");
+    if (chat) chat.layout();
+  }
+  placeChat();
+  sizeStage();
   if (PAGE.init) PAGE.init();
 })();
 </script>

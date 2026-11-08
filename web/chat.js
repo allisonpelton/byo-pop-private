@@ -130,8 +130,10 @@ var ByopopChat = (function () {
   // The games the site knows, from its table: [{ id, page, tag, title, colour }] (page a file name beside this page's, tag the
   // initials of the listing page's badge, colour its #rrggbb, which keeps white text above 4.5 to 1). `here` is the id of the
   // page's own game. An entry that is not well formed is left out, so that what the table says is safe to put on the page. get(id)
-  // is the entry or null; a name like "constructor" is not an entry.
-  function createGames(list, here) {
+  // is the entry or null; a name like "constructor" is not an entry. iconOf(id), when given, is the game's own icon for a game the
+  // player has (its files loaded in this browser: web/settings.js, ByopopGameFiles), a PNG data URL, or ""; icon(id) gives it
+  // only when it is one.
+  function createGames(list, here, iconOf) {
     var byId = Object.create(null), all = [];
     (Array.isArray(list) ? list : []).forEach(function (g) {
       if (!g || typeof g !== "object" || typeof g.id !== "string" || !GAME_ID.test(g.id) || byId[g.id]) return;
@@ -145,11 +147,17 @@ var ByopopChat = (function () {
     return {
       here: typeof here === "string" ? here : "",
       get: function (id) { return typeof id === "string" && byId[id] ? byId[id] : null; },
-      all: function () { return all.slice(); }
+      all: function () { return all.slice(); },
+      icon: function (id) {
+        if (typeof iconOf !== "function" || typeof id !== "string" || !byId[id]) return "";
+        var url = "";
+        try { url = iconOf(id); } catch (e) {}
+        return typeof url === "string" && url.length <= 16384 && /^data:image\/png;base64,[A-Za-z0-9+\/=]+$/.test(url) ? url : "";
+      }
     };
   }
   // a table made already, or a list to make one from
-  function asGames(x, here) { return x && typeof x.get === "function" && typeof x.all === "function" ? x : createGames(x, here); }
+  function asGames(x, here, iconOf) { return x && typeof x.get === "function" && typeof x.all === "function" ? x : createGames(x, here, iconOf); }
   // the table's entry for the game a message says it came from, or null: no table, no game on the message, or a game the table lacks
   function gameOf(games, m) { return games && m && typeof m.game === "string" ? games.get(m.game) : null; }
   // The game fields a source puts on a message sent from the game `id`: the id if it is one, and the table's initials and title
@@ -483,6 +491,9 @@ var ByopopChat = (function () {
     "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .bpc-game { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); } }\n" +
     ":root[data-theme=\"dark\"] .bpc-game { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }\n" +
     "@media (forced-colors: active) { .bpc-game { border: 1px solid LinkText; } }\n" +
+    ".bpc-game.bpc-game-icon { padding: 0; background: none; box-shadow: none !important; vertical-align: -3px; border-radius: 3px; }\n" +
+    ".bpc-game-icon img { display: block; width: 16px; height: 16px; }\n" +
+    ".bpc-game-icon:hover, .bpc-game-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }\n" +
     ".bpc-nick { font-weight: 700; color: hsl(var(--bpc-h, 260) 55% 25%); }\n" +
     ".bpc-me .bpc-nick { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }\n" +
     "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .bpc-nick { color: hsl(var(--bpc-h, 260) 70% 74%); } }\n" +
@@ -547,7 +558,7 @@ var ByopopChat = (function () {
     li.appendChild(doc.createTextNode(" "));
     var g = gameOf(games, m);
     if (g) {
-      li.appendChild(renderGameTag(doc, g, g.id === games.here));
+      li.appendChild(renderGameTag(doc, g, g.id === games.here, typeof games.icon === "function" ? games.icon(g.id) : ""));
       li.appendChild(doc.createTextNode(" "));
     }
     li.appendChild(nick);
@@ -557,13 +568,26 @@ var ByopopChat = (function () {
   }
   // The tag of a game, "[BW]": a link to the game's page (same tab) with the game's name on hover, in the badge's colour. Its name
   // for a screen reader is the full title and the initials (a name must hold the words the link shows). The brackets are for the eye.
-  function renderGameTag(doc, g, own) {
+  // For a game the player has, the tag is the game's own icon instead (the user, 2026-11-07): the same link and hover, named by
+  // the title alone, since it shows no words.
+  function renderGameTag(doc, g, own, icon) {
     var a = doc.createElement("a"), open = doc.createElement("span"), close = doc.createElement("span");
-    a.className = "bpc-game";
     a.setAttribute("href", g.page);
     a.setAttribute("title", g.title);
-    a.setAttribute("aria-label", g.title + " (" + g.tag + ")");
     if (own) a.setAttribute("aria-current", "page");
+    if (icon) {
+      var img = doc.createElement("img");
+      a.className = "bpc-game bpc-game-icon";
+      a.setAttribute("aria-label", g.title);
+      img.setAttribute("src", icon);
+      img.setAttribute("alt", "");
+      img.setAttribute("width", "16");
+      img.setAttribute("height", "16");
+      a.appendChild(img);
+      return a;
+    }
+    a.className = "bpc-game";
+    a.setAttribute("aria-label", g.title + " (" + g.tag + ")");
     a.style.setProperty("--bpc-c", g.colour);
     open.setAttribute("aria-hidden", "true"); open.textContent = "[";
     close.setAttribute("aria-hidden", "true"); close.textContent = "]";
@@ -602,7 +626,7 @@ var ByopopChat = (function () {
   // Returns { setVisible, layout, setCollapsed, source }.
   function mount(root, opts) {
     opts = opts || {};
-    var games = asGames(opts.games, opts.game);
+    var games = asGames(opts.games, opts.game, opts.iconOf);
     var source = opts.source || localSource({ game: opts.game, games: games });
     var toggle = root.querySelector("[data-chat-toggle]"), unreadEl = root.querySelector("[data-chat-unread]"), body = root.querySelector("[data-chat-body]");
     var st = { built: false, visible: false, collapsed: false, me: "", hasMore: true, loading: false, ids: {}, list: [], unread: 0, sending: false, canRename: false };
@@ -905,8 +929,10 @@ var ByopopChat = (function () {
       var below = false;
       if (!root.hidden) {
         var vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
-        var aw = parseFloat(window.getComputedStyle(opts.stage).getPropertyValue("--aspect-w")) || 4 / 3;
-        var stageWidth = Math.min(vw - 24, (vh - 90) * aw);
+        var style = window.getComputedStyle(opts.stage), aw = parseFloat(style.getPropertyValue("--aspect-w")) || 4 / 3;
+        // a pixel-perfect stage has its own width (web/shell.html, sizeStage)
+        var stageWidth = parseFloat(style.getPropertyValue("--pp-w")) || Math.min(vw - 24, (vh - 90) * aw);
+        document.documentElement.style.setProperty("--stage-px", stageWidth + "px");
         var room = Math.floor(vw - stageWidth - 24 - 12);  // the box's padding, and the chat's margin at its right
         below = room < CHAT_MIN;
         root.style.setProperty("--chat-w", Math.min(CHAT_MAX, Math.max(CHAT_MIN, room)) + "px");

@@ -27,7 +27,7 @@ site.new_tab = (opens in a new tab)
 # A list of names: two, and three or more ({rest} is all but the last, joined with ", ")
 site.list_two = {first} and {second}
 site.list_many = {rest} and {last}
-footer.terms = Terms, copyright and licenses
+footer.full_terms = Full terms →
 
 
 # ---- The listing page (web/index.html)
@@ -380,6 +380,12 @@ settings.quithome.label = Quit to home
 settings.quithome.hint = Exiting a game through the in-game menu returns to the front page.
 settings.showchat.label = Show chat
 settings.showchat.hint = For now a test: the messages are made up and stay in this browser.
+settings.chatplace.label = Chat position
+settings.chatplace.edge = Page edge
+settings.chatplace.game = Next to the game
+settings.chatplace.hint = Where the chat sits when there is room beside the game.
+settings.pixelperfect.label = Pixel-perfect
+settings.pixelperfect.hint = The game at its own resolution, each pixel sharp, instead of filling the window.
 
 # In a game's panel: the choice of whose settings the controls change
 settings.scope.legend = Change the settings for
