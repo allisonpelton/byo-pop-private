@@ -70,3 +70,25 @@ override (28 distinct targets in slot 7).
 - **Draw order of a creature** (Piranha 0x402360, shark 0x4024e0): `if (visible && state != 2) { RecordHistory;
   DrawImage(mImage, x, y, frame * frameWidth ...); SetFont; if the board is not paused and the state is 0 or 4: draw
   the word centred over the creature }`; sharks also draw the typed part in `mTypedColor` and the rest in `mTextColor`.
+
+## Translated so far (Shark.cpp, Piranha.cpp) and what the variants take from them
+
+- **Sizes and offsets**: Shark and Piranha are `Enemy`-derived single-chain classes in the port. Their own fields (the
+  original's own part, +0x10 .. +0x24: a counter, a period, `mSavedVelX` = -1.0 until the dash at the right edge, the
+  "entered" flag and `mFrameOffset` = frame * frame width) are in the headers with their original offsets. Enemy's
+  +0x20/+0x24 are `mTextOffsetY/X`, +0x28/+0x2c/+0x30 the shock-flash counters (`mField28`, `mField2c`, `mFlag30`).
+- **Image roles in `Enemy::mImages`**: 0 swim, 1 shock (the app's shock picture), 2 death, 3 mirrored swim (state 1), 4
+  red (the flashing hit picture of a Shark in state 6); the sharks read them from `mSharkImages[type][role]`, the piranhas
+  from `mPiranhaImages[type][role]`. A variant that sets `mImages[n]` differently overrides these in its constructor.
+- **States**: Shark 0 swim, 1 back from the left, 2 dead, 3 dying, 4 chased off, 5 shocked, 6 hit (flash red 10 times);
+  Piranha the same without 6 (ignored). Both check in Update and SetState the order the machine code has.
+- **x87 compares**: Ghidra turns the original's comparisons into odd expressions, so read the machine code. After
+  `fcomp; fnstsw ax; test ah, M; jcc skip`, with st0 the value loaded first (`fld x; fcomp c` compares x with c;
+  `fild n; fcomp x` compares n with x) and src the operand of fcomp, the code after the jump runs when:
+  `M=1, jne`: st0 >= src; `M=0x41, jne`: st0 > src; `M=0x41, jp`: st0 <= src; `M=5, jp`: st0 < src
+  (an unordered result skips in all four).
+- **What the Board must provide**: `Board::mPaused` (+0xe60, a bool: the creatures draw no words while it is set) and
+  `WinWSApp::mBoard` (+0x634). The creatures read nothing else of the Board; they talk to it only through
+  `Enemy::mEvents`.
+- **Sounds**: `mApp->PlaySample(n)` takes the `SOUND_` ids of Res.h (the Shark uses `SOUND_PLAYERDIES` (2) when it
+  comes in from the left, `SOUND_SHARKDIES` (3) when shocked; the Piranha `SOUND_PIRANHADIES1`).
