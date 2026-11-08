@@ -138,6 +138,26 @@ restore. SDL 2 reads Windows' cursor, which sits in a corner of rundesk's deskto
 move with the press, a move with the release) or it lands at the corner; a press held across frames (a drag) waits
 for the framework's `-realinput`.
 
+The real-input play of 2026-11-07 and 2026-11-08 went further. Natively, `realrun.py` played a new player from the name
+box through the introduction, the first battle's tutorial and the first three chapters, all won, and from a saved
+profile the fourth and fifth chapters, won again after the last driver fix (each in five to six minutes of real time).
+A minimize during the victory song, in full screen, brought the music back. In the Browser pane `tools/driver.js`
+played its way to the sixth chapter, across reloads of the page. Everything that went wrong was the drivers', not the port's:
+the tutorial lets one tile be picked at a time and waits on its own arrows, a dialog already up when a driver started
+was left unanswered, an arrow's line swallowed the board line after it, and a lost turn that showed for one update while
+a turn changed made a driver click a tile into the next word (the board log now names a lost turn only once it has held
+for 30 updates). A word spelled twice in a driver's list is its retry: the board went busy for a moment after it was
+logged, the first clicks landed then, the game refused the half word with its own dialog, and the driver spelled it
+again.
+
+Since 2026-11-08 the port answers the standard `move` command from its own bot (`GameApp::MoveForTests`: the dialog,
+conversation, tutorial, lost turn, arrow, overlay, word, guess, treasure or map click a driver needs next), and
+`tools/movedriver.py` is the thin loop that plays by it on the live channel natively (`state`, `move`, the move's input
+as real SDL events through `-commands` with an empty `-realinput`). Making it found one fault in the port's test hooks,
+none in the game: a test command that waits for its screen tried again through the `-script` list, and a non-empty
+script list makes the framework drop every real event, so after one waiting `goto` no real click reached the game. On
+the live channel the retries now have their own queue; a `-script` run keeps them in the script as before.
+
 ## Oddities skipped
 
 **How long the loading screens stay up.** The original loads at startup and before each chapter on a thread, so its

@@ -69,8 +69,8 @@ how many cells of the media player's spectrum are lit.
 
 ### The drivers' commands and the board log
 
-The test commands of `docs/TEST_COMMANDS.md` (in `src/TestHooks.cpp`, given in a `-script` until the live channel
-comes) each answer with one log line, `OK <command>` or `ERROR <command>: <reason>`. A command that waits for its screen
+The test commands of `docs/TEST_COMMANDS.md` (in `src/TestHooks.cpp`, given in a `-script` or live on the `-commands`
+channel) each answer with one log line, `OK <command>` or `ERROR <command>: <reason>`. A command that waits for its screen
 (a curtain still moving, the title not yet gone on to the menu) tries again every 10 updates, 300 times at most.
 
 - `state` logs `STATE {json}` with `screen` (title, menu, cutscene, map, battle, minigame, minigames, treasure, tome,
@@ -90,6 +90,16 @@ comes) each answer with one log line, `OK <command>` or `ERROR <command>: <reaso
   the battle decides a death only after an enemy's attack, so the next one ends it.
 - `level` and `seed` answer with an error: the map's chapters belong to the scripts (`goto adventure`, then Enter or a
   chapter's click), and the seed is `-seed=<n>` at the start.
+- `move` logs `MOVE {json}`, the move the drivers' bot makes next (`GameApp::MoveForTests`), or `MOVE null` while
+  there is none (the board busy, a curtain moving, a screen with nothing to do). Its `what` is, first to last: `dialog`
+  (the top dialog's first button), `talk` (a conversation goes on), `tutorial` (the first battle's one tile, or
+  Attack), `wait` and `lostturn` (Lex stunned: the grid, once the lost turn has held for 30 updates), `hint` (an
+  arrow's first hot spot; one a click left standing is not offered again after 60 updates), `overlay` (Level Up's
+  "Click to continue" or a script's overlay over the board: a click above it), `guess` (Word Master),
+  `word` (the board's longest word, with `word`) or `scramble`, `treasure` (the next of Lex's treasures) and
+  `continue` in the treasure room, and `enter` on the map. `input` holds the clicks, the moves over Attack and the
+  waits that make it. It changes nothing. `tools/movedriver.py` is the thin loop that plays by it natively (`state`,
+  `move`, the move's input as real events on the live channel, `-commands` with an empty `-realinput`).
 
 `-boardlog=<file>` (on the web, the page adds it through `Module.callMain`) makes the game append what a driver of
 real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y | header | lines` (its
@@ -161,6 +171,10 @@ answering false as a registered copy does, since the map's script asks it. None 
 same scripted runs of the port built before and after (chapter 1 by the word-attack script, and book 1's first three
 chapters won by the drivers' `win` with the map, the conversations and the treasure room clicked through) give the
 same output, sound log, saved profile and screenshots, byte for byte.
+
+No button leads out of the game: neither the original's source nor its scripts have a "More Games" button, a link or
+any other call that opens a URL or a program, so the coordinator's rule of 2026-11-07 (every such button out, its
+neighbours closing the gap) has nothing to take out here.
 
 ### Faults the pilot found
 

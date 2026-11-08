@@ -176,7 +176,13 @@ public:
 	void LogBoardForTests();
 	std::string mBoardLogForTests;
 	std::string ScreenForTests();
-	bool HandleDriverCommand(const ScriptCommand& theCommand);  // state, goto, unlock, set, win, lose
+	std::string MoveForTests();
+	void RetryForTests(const std::string& theCommand, const std::string& theArgs);
+	void RunRetriesForTests();
+	std::vector<ScriptCommand> mRetriesForTests;  // the live channel's commands waiting to try again
+	std::vector<std::string> WordMasterRowsForTests(std::string& theRows);
+	std::string WordMasterGuessForTests(const std::vector<std::string>& theRow);
+	bool HandleDriverCommand(const ScriptCommand& theCommand);  // state, goto, unlock, set, win, lose, seed, move
 	std::string mMiniGameName;  // port: the mini-game playing (StartMiniGame), for the test command state
 	// 0x44f5c0: through the sound player, not again within 5 updates
 	void PlaySample(int theSoundNum) override;

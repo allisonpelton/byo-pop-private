@@ -240,6 +240,8 @@ void GameApp::UpdateFrames()
 		mSongPlayer->Update();
 	if (!mBoardLogForTests.empty())
 		LogBoardForTests();
+	if (!mRetriesForTests.empty())
+		RunRetriesForTests();
 	// port: every 100 updates the original checked the trial's limits of its marketing modes (an hour's play,
 	// or the Hydra); the port is the full game
 	if (mCountsTime)
