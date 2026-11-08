@@ -1,7 +1,8 @@
 // The screen flow of AlchemyApp: the selector, the board, the help text, the score screens and the dialogs, and the
 // handlers of the buttons (Alchemy.exe 0x410cb9-0x412017, 0x413eea). The registration, update-check, internet-score
-// and "more games" dialogs of the original (ids 5, 6, 8, 9, 10, 0xd-0xf, 0x11 and up) belong to the wrapper's copy
-// protection and its online services: this port is a registered copy and has no online features, so they are left out.
+// and "more games" dialogs of the original (ids 5, 6, 8, 9, 10, 0xd-0xf, 0x11 and up) belong to the unregistered game
+// and its online services (GAME_NOTES.md, section 5, lists their functions): the copy this port comes from acts as registered
+// and the port has no online features, so they are not translated.
 
 #include "AlchemyApp.h"
 #include "Board.h"

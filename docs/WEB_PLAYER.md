@@ -81,6 +81,9 @@ The panels:
   card, which can go back to the Ready card. The page keeps the game's life as one state (`gameState` in the shell, the user,
   2026-11-07: "Find any implicit state machines in the website code and make them explicit"): waiting, starting, running, closing (the page asked it to close),
   closed and stopped (an error), with the moves between them listed in `GAME_MOVES`; the shell makes no other.
+- **Controls** lists the game's controls in our own words, and lets the player choose their own keys and gamepad buttons
+  for the game's keys (see "View, controls and play settings", below).
+- **Record**, there only while the site setting "Clip recording" is on, records a clip of the game (see "Clips", below).
 - **Settings** is the site's settings (see "Site settings", below), the same controls as the listing page's.
 - **Sound** turns the page's sound off or on, below the game's own volume and mute options (see "Site settings").
 - **Fullscreen** puts the stage in fullscreen. **F11** does the same in every game's page, and F11 again (or Esc) leaves it (see
@@ -1213,9 +1216,12 @@ Big Money, BookWorm, Bookworm Adventures, Bejeweled Twist (both of its modules),
 Mummy Maze; the Ogg games are Bookworm Adventures Volume 2, Noah's Ark, Pixelus, Rocket Mania and Bonnie's Bookstore (its module
 too).
 
-The decoder is libopenmpt on its own, built for the web as `openmpt.js` and `openmpt.wasm` beside the pages (target
-`byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, orders, repeat, length, render,
-and stb_vorbis's whole-file decode). It holds no game code, and the page loads it only when the tab is first opened. Its licence is
+The decoder is the games' own two module renderers, built for the web on their own as `openmpt.js` and `openmpt.wasm` beside the
+pages (target `byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, orders, repeat,
+length, render, and stb_vorbis's whole-file decode). As `Platform::Mixer` picks them, an MO3 or OXM plays through libopenmpt at the
+port's settings and every other module (S3M, IT, XM) through libxmp-lite, so that a tune sounds as it does in its game (below,
+"Music levels"); libxmp-lite's sequences are the subsongs there, and for every game's modules they are libopenmpt's, the same
+number of the same lengths. It holds no game code, and the page loads it only when the tab is first opened. Its licence is
 copied to `licenses/libopenmpt.txt`, which the tab links. An Ogg file is decoded whole by the browser (`decodeAudioData`, at the
 AudioContext's rate); a browser that cannot gets stb_vorbis from the same wasm, and music.js resamples its output. A tune's length
 in the list is read from the Ogg file's last page without decoding it. The main thread sends 4096-frame stereo chunks to an
@@ -1231,6 +1237,48 @@ tune's name, the game as the artist and the game's icon, and its play, pause, ne
 media keys and the system's media controls drive the player. At `?silent=1` the volume's GainNode reaches the speakers only through a
 second gain of 0, so they get exact zeros, and the status line ends in "(silent)". The graph has to reach the destination all the
 same: a browser never runs a worklet whose output goes nowhere, and the tune would stand still.
+
+### Music levels
+
+The user found Bonnie's Bookstore's music "way too quiet" (2026-11-07): FMOD 3 mixes an XM at a sample pre-amp of 256 and
+libopenmpt at 48, so Bonnie's now plays it at 256/48 (b1807c11). Every other game's engine was then checked the same way
+(2026-11-08), with `tools/musiclevel`: `musiclevel.exe` (32-bit, `tools/musiclevel/build.sh`) decodes a module with a copy of the
+game's own `bass.dll` or `fmod.dll` under `build/`, silently (BASS's no-sound device and a decoding channel, FMOD 3's no-sound
+output and a DSP unit after its clip-and-copy unit), and `portlevel` (a native target) renders it through `Platform::Mixer` as the
+game does; both print the RMS of the first seconds. The originals' engines are BASS 1.7 (Alchemy), 1.8 (Dynomite, Pixelus, Rocket
+Mania), 2.0 (Big Money), 2.2 (Bejeweled Twist, both Mahjongs), 2.3 (Bejeweled, BookWorm, Bookworm Adventures and its Volume 2,
+Cosmic Bugs, Water Bugs) and FMOD 3.50 to 3.74 (Mummy Maze, Atomica, Seven Seas, Noah's Ark, Bonnie's). No game sets BASS's
+amplify but the two Bookworm Adventures, so the others play at its default of 50; FMOD's at full master volume.
+
+Over the first 30 s of each module, the original's level against the port's, in dB:
+
+| Game | Engine | Modules: original minus port |
+|---|---|---|
+| Alchemy | BASS 1.7, S3M | -0.7, +0.3 |
+| Dynomite | BASS 1.8, IT | +0.7, -0.7 |
+| Big Money | BASS 2.0, IT | +1.1 |
+| Bejeweled | BASS 2.3, S3M | -0.4, +1.2, +0.6 |
+| Mummy Maze | FMOD 3.50, IT | -0.4 |
+| Seven Seas | FMOD 3.61, IT | +1.9 |
+| BookWorm | BASS 2.3, MO3 | +2.4 |
+| Cosmic Bugs | BASS 2.3, MO3 | +1.4, +1.4 |
+| Water Bugs | BASS 2.3, MO3 | -0.8 |
+| Bejeweled Twist | BASS 2.2, MO3 | +0.9, -1.6 |
+| Bookworm Adventures | BASS 2.3, MO3 | -4.5 at amplify 50, which its amplify of 100 makes up (`SetMusicAmplify`) |
+
+Atomica's first 30 s from order 0 are silent in both (its first subsong is 0.9 s long). So libxmp-lite, which plays the S3M and IT
+games, is within about 1 dB of every engine (Seven Seas 1.9), and nothing in the port changes. On MO3, libopenmpt against BASS
+2.2 and 2.3 differs from one module to the next, both ways, by up to 2.4 dB; no setting of libopenmpt's or field of the modules
+explains it, and a gain measured for each module would be a value taken from runs, so it is listed as an oddity and left. The
+site's music player was the real fault: it played every module through libopenmpt, which was 2 to 3 dB quieter than the games on
+S3M and 8 to 11 dB quieter on most IT (Seven Seas', Dynomite's and Big Money's). It now renders each module with the game's own
+renderer and settings, and measured through `openmpt.js` under Node it gives the port's level to 0.01 dB on every module above.
+
+The levels are shared code: `platform/MusicLevels.h` (C) holds the render settings (libopenmpt's two-tap interpolation and full
+separation, libxmp-lite's spline), BASS's measured amplify curve (`ByopopBassAmplifyDB`, used by `SDLMusicInterface`) and FMOD 3's
+XM pre-amp, and the music player's decoder includes it. A game whose own code plays its music at another level says so in
+`web/soundtracks.js` as `level` (`{bassAmplify: 100}` for Bookworm Adventures, `{fmod3XM: true}` for Bonnie's OXM), and the
+player applies the same gain from the header (`bm_level_bass_amplify`, `bm_level_fmod3_xm`).
 
 Not covered yet:
 
@@ -1560,6 +1608,95 @@ the following.
 - **Sound:** the audio context's `baseLatency` and `outputLatency`, the mixed sound queued ahead of what the context has
   played, and how often the queue ran dry (`Module.byopopAudio`, "Sound" below).
 
+## View, controls and play settings
+
+These are site settings ("Site settings", above), each off or at the game's own behaviour by default. Like the performance
+panel, they act on the page around the game: what is drawn over its picture, the input it is sent, and how often its
+framework runs its updates. None of them changes a port. With all of them at their defaults nothing of them runs, except a
+link in the framework's frame hook (`Module.byopopTestFrame`) that returns at once.
+
+### View settings
+
+`web/view.js` has three settings. **Scanlines** (`scanlines`: off, light, strong) lays a dark line over every second row of
+the game's own pixels. It is an overlay above the canvas, sized from the canvas's height through a ResizeObserver, so it
+follows the stage's scale and full screen. **Colour filter** (`colorFilter`: none, greyscale, sepia, warm, high contrast,
+vivid) is a CSS filter on the canvas. **Run timer** (`runTimer`) is a timer in the game's top left corner. It counts real
+time between drawn frames that come less than half a second apart, so a paused game, which draws nothing, or a hidden page
+stops it, and it starts from 0 each time the page opens.
+
+### Controls
+
+The bar's **Controls** button opens the Controls panel (`web/controls.js`). It lists the game's controls in our own short
+words, from the site's table `web/controldata.js`, which is keyed by game id like `web/soundtracks.js`. Each entry is either
+a mouse action, `{does, how}`, or one thing done by keys, `{does, keys}`, with the keys as `KeyboardEvent.code` values.
+Above each game's entry, a comment names the handlers it was read from. The table lists only keys that the game's own code
+handles: not the framework's (Alt+Enter, the mod menu's F2), not debug, cheat or mod keys, and not keys that only type into
+a name box. A game whose pause takes any key (Alchemy, Bejeweled) lists that as a mouse-style entry, since it has no one
+key to remap.
+
+The panel's entries with keys can be remapped. "Change key" waits for the next key, and that key then stands for the game's
+key on this page: a listener on the window, in the capture phase, stops the player's key before it reaches Emscripten's
+listener on the canvas, and sends the game's key in its place. The new event is a keydown or keyup, with its keypress where
+the key types a character, built as a browser builds one (key, code, keyCode, which), so the game sees only its own key.
+The game's own key still works, and a remapped key types the key it stands for. The map is kept per game in the
+localStorage item `byopop-keys` (`{game: {keys: {from: to}, pad: {button: to}}}`). Esc gives up a change, and "Reset to
+the game's keys" clears the game's map.
+
+**Gamepad** (`gamepad`, on by default) does nothing until the browser reports a connected gamepad. From then on, the frame
+hook reads the gamepad once a frame. The left stick or the d-pad moves a pointer over the game, sent as mouse moves to the
+canvas. A is the left button and B the right. X, Y, LB, RB, Back and Start press the game's key entries in the table's
+order, unless the panel gives an entry another button or none.
+
+**Touch keys** (`touchKeys`: automatic, on, off; automatic shows them where the main pointer is coarse) puts a button under
+the game for each key entry. It is pressed while the button is held. A touch on the game itself reaches it as SDL's
+touch-to-mouse events, as before.
+
+**Input display** (`inputDisplay`) shows the keys and mouse buttons held over the game, in its bottom left corner. Those
+include the stand-ins sent for remapped keys, the gamepad and the touch keys, and not the player's remapped key itself.
+
+### Game speed
+
+**Game speed** (`speed`: ½×, ¾×, normal, 1¼×, 1½×, 2×) sets SexyAppFramework's own update multiplier,
+`SexyAppBase::mUpdateMultiplier`, through the web-only `byopop_set_speed` (`framework/SexyAppBase.cpp`). `Process` then runs
+the game's `mFrameTime` updates that many times as often in real time, and its rule of at least ten draws a second scales
+with it, as in the original framework. The page sets it from the frame hook once the application exists (`byopop_speed`
+answers 0 before that). It is never set on the player-only test page (`?player=1`), whose runs keep the game's own speed.
+At normal speed the multiplier stays at 1 and nothing is called, so unmodded play is unchanged: the frozen baselines prove
+it, natively and in the web build, since the call exists only in the web build and only the setting makes it.
+
+It reaches every game whose loop is SexyAppBase's. It does not reach the games whose own host runs their loop, Bonnie's
+Bookstore (`BonniesHost.cpp`) and Ning Po Mahjong (`NingPoApp.cpp`), so the setting's hint names them. Within a game it
+reaches, a timer that the game reads from the wall clock itself (`timeGetTime`, `GetTickCount`) rather than counting
+updates keeps real time. Music and sounds play at their own speed.
+
+### Clips
+
+**Clip recording** (`clips`) puts a Record button on the bar (`web/clips.js`). The button records the canvas's own stream
+(`captureStream(60)`) and the game's sound with the browser's MediaRecorder: WebM with VP9 or VP8 and Opus where the browser
+has them, MP4 otherwise. The sound comes from connecting the game's audio output node (`Module.byopopAudio.node`,
+`platform/Audio.cpp`) to a MediaStream destination as well as to the speakers, for the clip's length only. The clip is saved
+as a file on the player's computer (`<game>-<date>-<time>.webm`) when the button is pressed again, when the page is left, or
+after ten minutes. Nothing is sent anywhere. The page's mute mutes the clip's sound too.
+
+### Always skip tutorials
+
+**Always skip tutorials** (`skipTutorials`, off by default) turns the game's own tutorial switch off each time it starts.
+This is the game's own switch, as its options would turn it off. The port registers a function for it in its web-only file
+(`Byopop::gSiteTutorials`, `framework/WebSettings.h`), as the games with their own volume engines register `gSiteVolume`.
+The page calls `byopop_site_tutorials` until the game has started and the function answers 1. A game whose switch belongs
+to a player answers 0 until one is loaded. A game with no registered function answers -1, and is left alone. The site never
+turns a switch back on: with the setting off, the game's own choice stands. The setting is not applied on the player-only
+test page.
+
+The games with a switch of their own register it in their own sessions; until a game has registered its function, it answers
+-1. Thirteen have one. Atomica, Big Money, BookWorm, Bejeweled Twist, Noah's Ark, Pixelus, Rocket Mania, TipTop, Word Harmony,
+Mummy Maze and Seven Seas have a switch in their options, a "don't show again" box, or a saved flag. Bookworm Adventures 1 and
+2 have only a player's "intro help" flag, and Bejeweled only its first-game instructions flag, so their sessions judge whether
+these count. Nine games have no switch, and the setting leaves them as they are: Alchemy and Dynomite (whose tutorial runs only
+from its own button), Cosmic Bugs and Water Bugs (whose first-level help follows the player's progress), Bonnie's Bookstore
+(whose per-player flags the first board's generation also reads), and Ning Po and the two Mahjong Escapes (which have an idle
+hint, but no tutorial).
+
 ## The player-only page
 
 For sessions that test a game in the Browser pane (the user, 2026-11-07: "For agent browser testing use, build a stripped down
@@ -1577,8 +1714,10 @@ Its parameters:
 |---|---|
 | `player=1` | the player-only page and its tools, `window.byopop.test` |
 | `assets=<name>` | the game's files from the staged `assets/<name>/` (`assets=1`: the page's own id), served by `tools/webtest/serve.py` and taken through the page's own import, which fetches only the files it picks; everything goes into a test profile of its own (the page's storage and Web Lock with "-test" after their names), apart from the player's, and the record of the player's games is left alone |
-| `fast=1` | the game on its virtual clock (`-fast`) |
-| `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready |
+| `fast=1` | the game on its virtual clock (`-fast`), on the page's own frames (below) |
+| `framems=N` | with `fast=1`, the longest a frame runs the game's steps, in ms (25 by default) |
+| `frames=browser` | with `fast=1`, the browser's frames instead of the page's own (to compare a run with them) |
+| `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready. A driver then runs once the files are in, before the game starts, and starts it itself; `?driver=move` starts it at once |
 | `silent=0` | sound on (the user's speakers: only when the user says so) |
 | `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
 | `run=<id>` | the folder of `byopop.test.shot(name)`'s files under `build/webshots/` (default "default") |
@@ -1590,10 +1729,23 @@ the staged files at `/__assets/<name>/` (`__list` lists them) and `POST /__shot`
 as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/origrun/<run>/shots --port build/webshots/<run>
 --run <id>` (`docs/SHOTDIFF.md`).
 
+**Fast runs** (2026-11-08). A hidden Browser pane sends no animation frames and runs its timers about once a second, so with
+`fast=1` the page drives the game itself: each frame the runtime asks for is a MessageChannel message, posted at once, so the
+game runs as fast as the machine allows, hidden or not. Each frame stops once the game's steps took `framems` (the framework's
+`byopop_set_frame_budget`, web only: `EmscriptenMainLoop` returns between two steps of the update state machine, which carries
+on in the next frame), so the page's own JS, the test commands and the tool calls are served between frames. Neither changes an
+update or a draw. Mummy Maze's bot, from `seed 7` and `level 1` queued in the same update, went through levels 1 and 2 by the
+same positions, mazes and scores on these frames as on the browser's (`frames=browser`), in a third of the time. Pixelus's
+driver went through the dialogs and the story to its third solved puzzle at about 700 updates a second, which is Pixelus's own
+speed with a draw every 10 updates. A run that compares states with another must reach its starting point by commands sent in
+the same update (`Promise.all` of `command()` calls), since the number of updates between two commands sent one after the other
+depends on the frames.
+
 `byopop.test` (every call that acts resolves once a frame has been drawn after it):
 
 - **ready**, a promise that resolves at the first drawn frame with `{updates, screen}`; `progress()` before then gives the status
-  line, the page's state, the frames and the updates. `start()` starts a `hold=1` page.
+  line, the page's state, the frames and the updates. `start()` starts a `hold=1` page and resolves with `ready`; `loaded`
+  resolves once the page could start it (its files are in), which is when a `hold=1` page runs its driver.
 - **errors**, an array that collects every abort, uncaught exception and rejection, every printed line that reports an error
   (Lua's among them), every message box and every failure to fetch the staged files, each `{kind, text, update, at}`. A message
   box is answered at once and never shown: an alert is dismissed, a confirm answered with `confirmAnswer` (true by default).
@@ -1622,7 +1774,8 @@ as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/o
 - **test commands** (the user, 2026-11-07, "Yes, add them"; `docs/TEST_COMMANDS.md`): `command(line, {timeout})` sends one
   command (state, goto <screen>, level <n>, unlock all, set <name> <value>, win, lose, seed <n>) through the framework's live
   channel, `byopop_test_command`, which queues it for the next update and the game's `HandleScriptCommand`, and resolves with the
-  lines printed from the call up to its answer, the last of them: `STATE {json}`, `OK <command>` or `ERROR <command>: <reason>`
+  lines printed from the call up to its answer, the last of them: `STATE {json}`, `MOVE {json}|null`, a game's own answer of
+  that shape (an upper-case word and JSON, such as Pixelus's `TARGETS {json}`), `OK <command>` or `ERROR <command>: <reason>`
   (SDL's "INFO: " taken off). A held game is stepped one update so that the command runs. `state()` is `command("state")`'s JSON.
   A build without the channel rejects at once. `botMove()` is `command("move")`'s move, or null when the bot has none;
   `playMove(m)` sends one through real DOM input in game coordinates: its `input` steps in order (`{move:[x,y]}` a hover,
@@ -1681,9 +1834,10 @@ opened as `...bejeweled.html?player=1&assets=1&fast=1&driver=games/bejeweled/too
 **The built-in driver `?driver=move`** plays any game by its port's own bot (the user, 2026-11-07: "the scripts that play the
 games should be developed in a way that their code can be reused for a mod that adds a bot"; `docs/TEST_COMMANDS.md`, "The bot
 behind `move`"). It loops: `state()`, then `botMove()`, then `playMove()`, so every move is real input. It stops when the
-state says `"over": true`, on `MOVE null` twice running (it waits 30 updates after the first), on an ERROR, or after `?steps=`
-moves (2000 by default). `byopop.test.result` is then `{moves, stop, state, updates, errors}`: `stop` is "over", "limit",
-"no move" or "error: <message>", and `state` the last state read. `playByMove({steps})` runs the same loop from a driver of a
+state says `"over": true`, on `MOVE null` twice running while the game is not busy (it waits 30 updates after the first), on
+an ERROR, or after `?steps=` moves (2000 by default). While the state says `busy` (or `board.busy`), as Alchemy's does while a
+board clears, `MOVE null` only means "not yet": it waits 5 updates and asks again, and stops with "busy" after 20000 of them. `byopop.test.result` is then `{moves, stop, state, updates, errors}`: `stop` is "over", "limit",
+"no move", "busy" or "error: <message>", and `state` the last state read. `playByMove({steps})` runs the same loop from a driver of a
 session's own. It needs the build's `byopop_test_command` and a port that answers `move`; the MOVE fields are agreed with the
 shared session, whose native tool plays the same moves.
 

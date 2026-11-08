@@ -954,3 +954,24 @@ void Board::RollScoreFast()
 		MarkDirty();
 	}
 }
+
+// ---- the fixes mod (features.fixes; docs/MOD_ROADMAP.md "The fixes mod"; GAME_NOTES.md "Fix candidates") ----
+
+// fixes.selection. The original keeps a selected gem selected when the board is refilled under it (timed mode, a board with no
+// move left: UpdateFallOut ends in FillBoard, which drops every gem of the grid, the selected one too). The next click then
+// swaps that gem, which is no longer on the board, with the gem it targets: StartSwap puts it back into the grid and loses the
+// gem that stood there. With the fix the click finds nothing selected and selects what it hits, as it does after any other
+// refill. Only input is changed (a replay records the deselect and plays back the same with the fix off).
+bool Board::DropStaleSelection()
+{
+	if (mSelectedPiece == NULL || !gGameConfig.mFeatures.mFixes || !gGameConfig.mFeatures.mFixSelection)
+		return false;
+	int aRow = mSelectedPiece->mRow;
+	int aCol = mSelectedPiece->mCol;
+	if (aRow >= 0 && aRow < MAX_ROWS && aCol >= 0 && aCol < MAX_COLS && mBoard[aRow][aCol] == mSelectedPiece)
+		return false;
+	mSelectedPiece = NULL;
+	MarkDirty();
+	if (mRecorder != NULL) mRecorder->OnDeselect();
+	return true;
+}

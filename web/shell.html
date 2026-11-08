@@ -360,6 +360,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   </div>
 </aside>
 
+<!-- Filled by web/controls.js from web/controldata.js: the game's controls, and the player's own keys and gamepad buttons for them -->
+<aside class="panel" id="panel-controls" data-button="{{game.btn.controls}}" hidden aria-labelledby="panel-controls-title" tabindex="-1">
+  <header><h2 id="panel-controls-title">{{controls.title}}</h2><button type="button" data-close>{{game.settings.close}}</button></header>
+  <div class="body" id="controls-body"></div>
+</aside>
+
 <aside class="panel" id="panel-settings" hidden aria-labelledby="panel-settings-title" tabindex="-1">
   <header><h2 id="panel-settings-title">{{game.settings.title}}</h2><button type="button" data-close>{{game.settings.close}}</button></header>
   <div class="body"><div id="settings-body"></div><div class="site-cursor-choice" id="site-cursor-body"></div></div>
@@ -377,6 +383,10 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 <script src="chat.js"></script>
 <script src="playcount.js"></script>
 <script src="perf.js"></script>
+<script src="view.js"></script>
+<script src="controldata.js"></script>
+<script src="controls.js"></script>
+<script src="clips.js"></script>
 <script>
 (function () {
   "use strict";
@@ -433,6 +443,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
   // the performance panel (web/perf.js), when the site setting is on; it waits for the page to be drawn
   try { document.addEventListener("DOMContentLoaded", function () { ByopopPerf.setGame(PAGE.id); }); } catch (e) {}
+  // the view settings (web/view.js): scanlines, a colour filter, the run timer
+  try { document.addEventListener("DOMContentLoaded", function () { ByopopView.setGame(PAGE.id); }); } catch (e) {}
+  // the game's controls (web/controls.js): the Controls panel, remapped keys, the gamepad, touch keys, the input display
+  try { document.addEventListener("DOMContentLoaded", function () { ByopopControls.setGame(PAGE.id); }); } catch (e) {}
+  // clip recording (web/clips.js), when the site setting is on: a Record button on the bar
+  try { document.addEventListener("DOMContentLoaded", function () { ByopopClips.setGame(PAGE.id); }); } catch (e) {}
   var PERSIST = PAGE.persist + (TEST_PROFILE ? "-test" : "");
   var LOCK = PAGE.lock + (TEST_PROFILE ? "-test" : "");
   var GAME = PERSIST + "/game";
@@ -994,6 +1010,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     startChat();
     cursorTimer = setInterval(pollCursor, 100);
     applySiteOptions(true, true);
+    applyTutorials();
     acquireWake();
     syncPause();
     syncCanvas();
@@ -1698,12 +1715,27 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // The Settings panel changed one: what can be applied at once is applied to the running game. Full screen at start and the
   // player names wait for the next start (the panel says so); "game" leaves the running game as it is. Before the game starts,
   // the starting volume holds the page's mute (or lets it go).
+  // "Always skip tutorials" (framework/WebSettings.cpp, byopop_site_tutorials): the game's own tutorial switch, turned off as its
+  // options would once the game can take it (a game whose switch belongs to a player takes it once one is loaded); a game that
+  // registered no switch answers -1 and is left alone. Off, the default, asks for nothing.
+  function applyTutorials() {
+    // the player-only test page's runs keep the game's own switch, as its tests expect
+    if (setting("skipTutorials") !== "on" || PLAYER_ONLY) return;
+    var tries = 0;
+    (function attempt() {
+      if (gameEnded()) return;
+      var r = audioCall("byopop_site_tutorials", []);
+      if (r === 1 || r === -1 || r === undefined) return;
+      if (++tries < 1200) setTimeout(attempt, 250);
+    })();
+  }
   function applySettingNow(name, value) {
     if (name === "startVolume" || name === "startMusic" || name === "startSound") {
       if (gameRunning()) applySiteOptions(false, true);
       else if (gameState === "waiting") { if (startVolume()) holdForVolume(); else releaseHold(); }
     }
     else if (name === "cursors") { if (gameRunning()) applySiteOptions(true, false); }
+    else if (name === "skipTutorials") { if (gameRunning()) applyTutorials(); }
     else if (name === "wakeLock") { if (value === "on") acquireWake(); else releaseWake(); }
     else if (name === "pauseHidden") syncPause();
     else if (name === "showChat") { if (chat) chat.setVisible(value !== "off"); }

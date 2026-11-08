@@ -52,6 +52,8 @@
 #ifdef __EMSCRIPTEN__
 static int gWebHoldAt = -1;
 static bool WebUpdatesHeld(int theUpdateCount) { return (gWebHoldAt >= 0) && (theUpdateCount >= gWebHoldAt); }
+// port: the player-only page's budget for one browser frame (byopop_set_frame_budget, below), web only; 0 sets none
+static double gWebFrameBudget = 0;
 #else
 static bool WebUpdatesHeld(int) { return false; }
 #endif
@@ -382,6 +384,34 @@ EMSCRIPTEN_KEEPALIVE int byopop_update_count()
 EMSCRIPTEN_KEEPALIVE void byopop_hold_updates_at(int theUpdate)
 {
 	gWebHoldAt = theUpdate;
+}
+
+// port: the player-only page's cap on one browser frame (web/testkit.js, fast runs): the frame returns to the browser once its
+// steps took theMs, between two steps of the update state machine, which carries on in the next frame as it would have in this
+// one, so that the page's own JS is served between frames. 0 (the default) sets no cap. It changes no update and no draw.
+EMSCRIPTEN_KEEPALIVE void byopop_set_frame_budget(double theMs)
+{
+	gWebFrameBudget = theMs;
+}
+
+// port: the site's game speed setting (web/controls.js; docs/WEB_PLAYER.md, "Game speed"), web only: SexyAppFramework's own
+// update multiplier, which runs mFrameTime's updates theSpeed times as often in real time (Process). 1, the default, and every
+// run but a player's choice, leaves the game as it was. Held to 0.25 to 4. A game whose own host runs its loop (Bonnie's
+// Bookstore, Ning Po Mahjong) has no SexyAppBase and is not reached; nor is a timer a game reads from the wall clock itself.
+EMSCRIPTEN_KEEPALIVE void byopop_set_speed(double theSpeed)
+{
+	if (gSexyAppBase == NULL)
+		return;
+	if (!(theSpeed >= 0.25))
+		theSpeed = (theSpeed > 0) ? 0.25 : 1;
+	if (theSpeed > 4)
+		theSpeed = 4;
+	gSexyAppBase->mUpdateMultiplier = theSpeed;
+}
+
+EMSCRIPTEN_KEEPALIVE double byopop_speed()
+{
+	return (gSexyAppBase != NULL) ? gSexyAppBase->mUpdateMultiplier : 0;
 }
 
 // port: the site's performance panel (web/perf.js; docs/WEB_PLAYER.md, "The performance panel"), web only and read only: the
@@ -2797,6 +2827,9 @@ void SexyAppBase::EmscriptenMainLoop(void* theArg)
 		anApp->UpdateAppStep(NULL);
 
 		if ((anApp->mDrawCount != aDrawCount) || (anApp->mNothingDue))
+			break;
+		// port: a test's cap on the frame (byopop_set_frame_budget)
+		if ((gWebFrameBudget > 0) && (emscripten_get_now() - aStart >= gWebFrameBudget))
 			break;
 	}
 	sexyapp_test_frame(anApp->mDrawCount != aDrawCount, emscripten_get_now() - aStart);
