@@ -206,6 +206,16 @@ void SpecialBrick::OnDie()
 	Fire(0x1a);
 }
 
+// 0x4027b0: a hit takes one off the stage; the first hit of a whole steel brick plays its sound (if asked to)
+void SpecialBrick::Crack(bool thePlaySound)
+{
+	if (mType == 9 && mStage == 2 && thePlaySound)
+		PlayBoardSound(SOUND_STEEL);
+	mStage--;
+	if (mStage > 0)
+		mDeathAnim.SetStopped(true);
+}
+
 // 0x4074c0 slot 16
 void SpecialBrick::SetType(int theType)
 {

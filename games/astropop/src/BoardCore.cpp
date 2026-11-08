@@ -638,9 +638,9 @@ Brick* Board::CreateFuelCell(int theColumn, int theRow)
 }
 
 // 0x4393d0: a radial bomb (6), stone (7), steel (9) or row nuke (0xb); the bomb and the nuke start their counters
-Brick* Board::CreateSpecialBrick(int theType)
+SpecialBrick* Board::CreateSpecialBrick(int theType)
 {
-	Brick* aBrick = new SpecialBrick(this, mBus, ((theType != 6) ? 0 : -0x4b) + 0x7d);
+	SpecialBrick* aBrick = new SpecialBrick(this, mBus, ((theType != 6) ? 0 : -0x4b) + 0x7d);
 	aBrick->SetType(theType);
 	if (theType == 6)
 		m1f0[1] = 2000;

@@ -62,6 +62,11 @@ public:
 	}
 
 	void Fire(EventListener* theSource, int theEvent, int theArg = 0);     // 0x40cde0, 0x40d470
+
+	// An event for one listener only (0x40d820, and 0x40d9f0 for the events that carry a number): the bus looks the
+	// target up in the event's list and calls its handler; a target that is not in the list gets nothing (the
+	// original would call through whatever the list's head holds).
+	void FireTo(EventListener* theSource, EventListener* theTarget, int theEvent, int theArg = 0);
 };
 
 // Anything that fires events or listens to them (original: an object whose +4 points at the bus; a listener part is
@@ -86,6 +91,10 @@ public:
 	void	StopListeningToAll()                { mBus->RemoveEverywhere(this); }            // 0x40e7e0
 	void	Fire(int theEvent)                  { mBus->Fire(this, theEvent); }              // 0x40dd40
 	void	Fire(int theEvent, int theArg)      { mBus->Fire(this, theEvent, theArg); }      // 0x40dd60
+	void	FireTo(EventListener* theTarget, int theEvent, int theArg = 0)                   // 0x40dd80, 0x40dda0
+	{
+		mBus->FireTo(this, theTarget, theEvent, theArg);
+	}
 };
 
 inline void EventBus::Fire(EventListener* theSource, int theEvent, int theArg)
@@ -97,6 +106,19 @@ inline void EventBus::Fire(EventListener* theSource, int theEvent, int theArg)
 		EventListener* aListener = *i;
 		++i;
 		aListener->OnEvent(theEvent, theSource, theArg);
+	}
+}
+
+inline void EventBus::FireTo(EventListener* theSource, EventListener* theTarget, int theEvent, int theArg)
+{
+	std::list<EventListener*>& aList = mLists[theEvent];
+	for (std::list<EventListener*>::iterator i = aList.begin(); i != aList.end(); ++i)
+	{
+		if (*i == theTarget)
+		{
+			theTarget->OnEvent(theEvent, theSource, theArg);
+			return;
+		}
 	}
 }
 

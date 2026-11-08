@@ -1,10 +1,14 @@
 # offset	type	name	comment  (written by tools/boardfields.py; keep it sorted by offset)
 70	std::list<Brick*>	m70	the bricks of the falling piece (the original's list head is at +0x70, its size at +0x74)
 7c	std::list<std::list<Brick*> >	m7c	groups of falling bricks
+88	std::list<Brick*>	m88	bricks (emptied by ClearField)
 94	std::list<std::list<Brick*> >	m94
 a0	std::list<Brick*>	ma0
+a8	std::vector<void*>	ma8	freed by ClearField, element type not seen
 c8	std::vector<CellRef>	mc8
 f8	std::vector<int>	mf8
+108	std::vector<Brick*>	m108	bricks (emptied by ClearField)
+118	std::vector<int>	m118	numbers (InM118)
 128	std::set<Brick*>	m128	the bricks to delete (DeleteDoomedBricks)
 160	std::vector<PlanetRec>	m160	the planets (5 are stepped)
 170	std::vector<StreakRec>	m170	the streaks (100)
@@ -16,6 +20,8 @@ f8	std::vector<int>	mf8
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
 2f8	Image*	m2f8	the lightning image now on the screen
 314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
+334	std::vector<std::vector<int> >	m334	the layout the field is built from: a brick type for each cell, -1 none (BuildField)
+354	Brick*	m354	a brick the Board holds (ClearField deletes it)
 358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
 3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
 660	BoardOverlay	mOverlay	the widget over the field
@@ -24,6 +30,7 @@ f8	std::vector<int>	mf8
 758	Buffer	m758	the replay recording (RecordStep)
 77c	ScrollLayer	m77c	the scenery layer
 808	PulsePair	m808
+8dd	bool	m8dd	?
 8e6	bool	m8e6	?
 8e8	bool	mFlag8E8
 8e9	bool	mFlag8E9
@@ -32,6 +39,7 @@ f8	std::vector<int>	mf8
 8ed	bool	m8ed
 8ef	bool	m8ef
 8f4	bool	m8f4
+8fc	bool	m8fc	?
 901	bool	m901	?
 90a	bool	m90a
 910	bool	m910
@@ -44,6 +52,9 @@ f8	std::vector<int>	mf8
 94c	int	m94c	?
 94d	unsigned char	m94d
 950	int	m950	?
+954	int	m954	?
+958	int	m958	?
+95c	int	m95c	?
 1924	int	m1924	?
 193c	int	mField193C	the stage: 1 + the time played / 6000
 194c	int	m194c	?

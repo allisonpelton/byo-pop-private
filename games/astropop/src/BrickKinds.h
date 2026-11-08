@@ -32,6 +32,7 @@ public:
 	int				mStage;             // +0x238 steel: 2 whole, 1 cracked (SetType, OnSettle)
 
 	SpecialBrick(Board* theBoard, EventBus* theBus, int theColumn);
+	void			Crack(bool thePlaySound);                           // 0x4027b0 steel: a whole brick cracks (its sound)
 	virtual void	OnSettle() override;                                // 0x403420
 	virtual void	OnDie() override;                                   // 0x405140
 	virtual void	StartMutatorCountdown() override;                   // 0x4063e0
