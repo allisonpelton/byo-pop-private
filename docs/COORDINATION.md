@@ -84,11 +84,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   it (4x to 8x). Chuzzle (~8-12x) itself starts the sequence, then in the survey's order Feeding Frenzy 2 (~10x),
   Peggle Deluxe (~12x) and Peggle Nights after it, Bejeweled 3 (~30x), Banana Bugs, Gyromancer, Zuma's Revenge (~35x)
   and Talismania (~12-16x after Feeding Frenzy 2), one session at a time. This moves Typer Shark, which the decision
-  of 2026-10-24 put at the end, into the easier group. Since 2026-11-08 none of them runs side by side (the user: "In-progress decomps can continue, but
-  for the remaining games, I want to tackle them in full one-at-a-time"): Typer Shark, AstroPop and Bejeweled 2 go on,
-  and after every current game's readability pass the rest start one at a time in the order above, the easier group
-  first, each taken all the way through (translation, both phases of identical play, the finishing items and its
-  readability pass) before the next begins.
+  of 2026-10-24 put at the end, into the easier group. Typer Shark, AstroPop and Bejeweled 2 go on. The rest start
+  after every current game's readability pass, the easier group side by side and the harder ones one at a time after
+  it, each taken all the way through (translation, both phases of identical play, the finishing items and its
+  readability pass). For most of 2026-11-08 none was to run side by side (the user: "In-progress decomps can continue,
+  but for the remaining games, I want to tackle them in full one-at-a-time"), so that wasteful token use would show
+  sooner; the user dropped that the same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd
+  allow inefficient token usage to be spotted sooner, overall saving time, but now we have a much better idea of
+  procedure".
 - **The passes after Twist (the user, 2026-11-03):** the passes waited until Bejeweled Twist was done, 3D mode included
   (the user, 2026-11-01), with Bejeweled Deluxe's the one exception. With Twist finished: "get going on identical play
   for more games. Start with lowest effort." So the first phase runs for every game that has had no pass, up to five
@@ -201,7 +204,8 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 - **The readability pass first (the user, 2026-11-08):** "Move up readability passes to come before additional
   decomps. In-progress decomps can continue, but for the remaining games, I want to tackle them in full
   one-at-a-time. Part of the readability pass: NO unknown/unnamed variables. Use one game to set the full standards
-  for what constitutes readable and see that they actually make sense." Bejeweled Deluxe is the pilot: the first
+  for what constitutes readable and see that they actually make sense." (The one-at-a-time part was dropped the same
+  day: "Which games, in what order".) Bejeweled Deluxe is the pilot: the first
   port, with the strongest proof that a change leaves play alone (its oracle against the original, beside its frozen
   baseline), and its Mac build's symbols for names. Its session writes `docs/CODE_STANDARDS.md` while applying it to
   the whole port, changes a rule wherever it fails in practice, and builds a checker in `tools/` that finds unnamed
