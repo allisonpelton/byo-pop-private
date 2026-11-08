@@ -1,7 +1,7 @@
 """tour.py <out dir>: the screen tour of phase two (CLAUDE.md, "Done means identical"), written twice from one list:
 <out dir>/port.txt for the port's -realinput (real SDL input, "<update> <command>", 10 ms of game time an update) and
 <out dir>/orig.txt for origrun on the virtual clock (each command after a wait of the game time since the one before,
-1 ms longer as toorig.py explains), with a shot of each screen at the same game time in both. With --web it also
+1 ms later as toorig.py explains; held there, origrun's "at" lines), with a shot of each screen at the same game time in both. With --web it also
 writes games/ningpo/tools/web/shots.js, the same steps for the player-only page (a driver, held at each step's update
 by byopop.test.step), whose shots go to build/webshots/<run>/ for the web build's comparison with the native one. Seed 7: the deal and the
 cheat's matches (Backspace q Backspace, then m) are those of check.sh's game, which ends with no pair left.
@@ -135,13 +135,24 @@ def main():
         return
     out = sys.argv[1]
     os.makedirs(os.path.join(out, 'port'), exist_ok=True)
-    port, orig, prev = [], [], 0
+    port, orig = [], []
+    first = STEPS[0][0]
     for u, *s in STEPS:
         port.append(port_line(u, s, out))
-        if u > prev:
-            orig.append('wait %d' % ((u - prev) * 10 + (1 if prev else 0)))
-        prev = u
-        orig.append(orig_line(s))
+        line = orig_line(s)
+        if u == first:
+            # the first step after a wait of its game time, as in phase one (1 ms longer, as toorig.py explains); the
+            # counter (the event time in ms on the virtual clock, which starts at the real time) is marked there
+            orig += ['wait %d' % (u * 10 + 1), line, 'mark']
+            continue
+        if line == 'quit':
+            orig.append(line)
+            continue
+        # held at the port's update counted from the first step (origrun's "at +N"), so that a shot reads the back
+        # buffer from the game's memory (orig.sh); a click's up comes one update after its down
+        if s[0] in ('click', 'done'):
+            line += ' 10'
+        orig.append('at +%d %s' % ((u - first) * 10, line))
     open(os.path.join(out, 'port.txt'), 'w', newline='\n').write('\n'.join(port) + '\n')
     open(os.path.join(out, 'orig.txt'), 'w', newline='\n').write('\n'.join(orig) + '\n')
 
