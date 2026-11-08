@@ -223,7 +223,8 @@ Every call re-reads the whole context, so what costs is context times calls, and
   copies the folder in) with a demangled `<name>.symbols.txt` of its function and class names. A new decomp starts
   from it (the user, 2026-11-08: symbol builds were key to decompilations before AI): before translating, it gives the
   PC export's functions, classes, statics and globals their Mac names and argument types, takes its class boundaries
-  and virtual order, and names a step the PC build has inline after the Mac function it was. The PC exe stays the
+  and virtual order, and names a step the PC build has inline after the Mac function it was; `tools/macmatch.py` pairs the two builds' functions
+  and writes the names for the export (`docs/MACMATCH.md`). The PC exe stays the
   authority for behaviour, since the Mac build may be another version. No symbol list goes into the repo; a few names
   as examples are fine. Four games decompiled before their Mac version came got a report of what it showed
   (`games/<game>/docs/MAC_COMPARISON.md`: BookWorm, Bejeweled, Alchemy, Seven Seas). Only Seven Seas' led to changes,
