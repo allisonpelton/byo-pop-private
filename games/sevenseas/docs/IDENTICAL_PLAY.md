@@ -99,3 +99,19 @@ at most 3 of 255). See GAME_NOTES, section 5.
 The list of high scores after the name is accepted (the click on OK in the run did not leave the dialog in either game, so
 only the typing was compared, and it matches), the demo and the tutorial's later steps, and the bonus level's win and lose
 screens, for the reason given under the oddities.
+
+## Native pass with real input (2026-11-07)
+
+`tools/realinput.py` (run under rundesk: `build/native/rundesk.exe python games/sevenseas/tools/realinput.py <scenario> <out dir>`)
+starts `sevenseas.exe` and posts only window messages to it: mouse moves and buttons, and keys with their scan codes, on the
+real clock. Two things were needed for SDL to take them. A move, press and release go in one burst, because Windows sends the
+window its own mouse messages for the real cursor (the corner of the private desktop) and one of those between a posted move
+and the press moved the press to (0, 0); and the title's first click needs the screen to have settled (about 3 s).
+
+What was played that way: title, menu, the whole tutorial (every hint, whirlpool teleport, the last hint of step 14 that the
+fixes added, "Click here to start playing!"), an Easy game with its demo, random keys (numpad, arrows, space) and clicks to
+level 2, game over, the high-score name box and a new game from it; a Hard game's first moves. A saved game and "No" on Average
+with the fixes mod off (no arrow over, and no move on a click, on the squares under the pirate's box, the original's behaviour)
+and on (arrow and move). Options' Fullscreen box on (3840 x 2160, the game centred), a click and a key moving the ship in it,
+and back to the window. Not played to the end: a whole game of Average and of Hard (their random runs were short). The web
+build's pass in the Browser pane is still to do.
