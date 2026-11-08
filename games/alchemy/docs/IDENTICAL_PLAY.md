@@ -228,7 +228,7 @@ The focus: a posted focus message gives the window neither the focus nor takes i
 `focus gained` as `-script` lines (the framework's own focus path; the posted-input hook drops SDL's). The state then read
 `active` false and `muted` true with the score and the moves of the board unchanged, input held, and `active` true, `muted`
 false and play on after the second line, at update 3005 and 3405 and again at 5005 and 5105. This is what the original does too
-(phase two's tour 3 compared both). The pass with real SDL focus events waits for `-realinput` to reach the trunk.
+(phase two's tour 3 compared both). The pass with real SDL focus events is the next section ("On the trunk's live channel").
 
 One attempt of a run lost its posted click on the options dialog's DONE button on the busy machine (the game kept updating, the
 dialog stayed; eight reruns of the step did not repeat it), so the step now clicks again when the dialog is still up after eight
@@ -253,13 +253,42 @@ runs, each to the selector:
 
 None of the runs printed an error (`byopop.test.errors` empty). The web build's full screen is the browser's and needs a user
 gesture, which a driver's events are not, so it was not played. The shared live channel (`byopop_test_command`) was not yet
-on the trunk when this was run: the three runs used a throwaway merge of the shared branch (never merged here) with the trunk's
-bare `move` rule applied to its script dispatch, and should be run again on the trunk.
+on the trunk when these three runs were made: they used a throwaway merge of the shared branch (never merged here) with the
+trunk's bare `move` rule applied to its script dispatch. The next section repeats them on the trunk as it is now.
 
-### Still to do on the trunk
+### On the trunk's live channel (2026-11-08)
 
-The native focus pass through `-realinput` (a real SDL focus loss and regain, Alt+Enter, minimising), and the three web runs
-with the live channel as the trunk has it.
+The trunk now has the shared live channel (`-commands=<file>` natively, `byopop_test_command` on the web) and `-realinput`, so the
+three web runs were played again and the native focus pass was made, on the branch merged with the trunk (2103f01f).
+
+**The web, three runs again** (`onegame.js`, as above, the build with the fixes folder on): strategic, skill 1: 476 pieces, 37
+forges, two boards cleared, 114 s, the name entry and the table, and at 25 pieces the focus lost and regained (`active` false,
+`muted` true, score and moves held; then `active` true); time trial, skill 2: 140 pieces, 29 forges, 205 s, the name and the table,
+the same focus test at 20 pieces, the forge filling meanwhile as in the original; the tutorial: back at the selector in 29 s
+(a first load of the page stayed at "Starting..." with no frame, so it was loaded again, and that run was whole). Not one run
+printed an error (`byopop.test.errors` empty).
+
+**Natively, real SDL events** (`games/alchemy/tools/realplay/live.py`): the game runs under rundesk in real time with `-commands`
+and an empty `-realinput` file, so every `move game x y`, `click game x y [right]` and `key <key>` the driver appends is a real
+SDL event through `HandleEvent`, the window-to-game mapping and the widget manager, and the bot's moves come from the game's own
+`move`. What the posted-message driver cannot do, this does: `focus lost` and `focus gained` as SDL's own events, `minimize` and
+`restore` on the real window, and Alt+Enter as `keydown Left Alt`, `key Return`, `keyup Left Alt`. Two runs, each ended with
+the window's close button (`close`, SDL's close event and quit), which ended the game by itself with code 0:
+
+| Run | Played | Result |
+| --- | --- | --- |
+| 1 | strategic, skill 1: 20 pieces; focus lost and gained; minimize and restore; Alt+Enter to a window; 10 pieces; Alt+Enter to full screen; 10 pieces | the game started in full screen (the user directory's setting); `active` false and `muted` true for 100 updates with score 185 and moves 20 unchanged, `active` true and `muted` false after; the same across minimize and restore; `windowed` true after the first Alt+Enter, false after the second; 40 pieces in all |
+| 2 | time trial, skill 3: 12 pieces; Alt+Enter to a window; focus lost and gained and minimize and restore there; 12 pieces; Alt+Enter back to full screen; 8 pieces | the same holds of `active`, `muted`, score 560 and moves 12; the forge went on filling while the window had no focus, as in the original; 32 pieces and 9 forges in all |
+
+A bare `move` did not work on this channel when `-realinput` was on: the framework's real-input dispatch took it for a mouse move
+and answered "move needs <x> <y>", so a driver of this kind could not ask the bot. `RunRealInputCommand` now sends a `move` with
+no point to the game's `HandleScriptCommand`, as `-script`'s dispatch does (a `shared:` commit; its note is in the framework
+header's list of `-realinput` commands). Nothing else of the framework was changed.
+
+The web's full screen is still not played (it needs a user gesture). Every other item of the real-play list is covered: launch, the
+tutorial and a whole game of each mode natively by the posted-message driver (runs 1 to 7 above) and on the page, windowed and full
+screen natively, and focus lost and regained, minimize and Alt+Enter through the live channel's real SDL events. The live runs
+play 32 to 40 pieces each, since what they add over the whole games is the window's own events.
 
 ## The fixes mod (2026-11-07)
 

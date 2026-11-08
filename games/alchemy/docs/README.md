@@ -74,8 +74,9 @@ the wizard's boxes, types a name and clicks through the tutorial. The game's clo
 
 The standard test commands (`state`, `goto`, `level`, `set`, `win`, `lose`, `seed`, `move`; `GAME_NOTES.md`, section 6) are in
 `src/testhooks/Commands.cpp`; `move` is the same bot. The real-input drivers are `tools/realplay/drive.py` (native, posted window
-messages under rundesk) and `tools/web/onegame.js` (the player-only page, DOM events); `IDENTICAL_PLAY.md`, "Real play", says what they
-played.
+messages under rundesk), `tools/realplay/live.py` (native, the live channel with `-realinput`: real SDL events, so focus loss, minimize
+and Alt+Enter too) and `tools/web/onegame.js` (the player-only page, DOM events); `IDENTICAL_PLAY.md`, "Real play" and "On the trunk's
+live channel", says what they played.
 
 ## Mods
 
