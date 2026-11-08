@@ -15,8 +15,8 @@ endif()
 
 # The game's translation is a library of its own, so it builds before the host app (MahjongApp.cpp, main.cpp) exists
 set(MAHJONGCHINA_HOST_SOURCES ${MAHJONGCHINA_SOURCES})
-list(FILTER MAHJONGCHINA_SOURCES EXCLUDE REGEX "/(MahjongApp|main)\\.cpp$")
-list(FILTER MAHJONGCHINA_HOST_SOURCES INCLUDE REGEX "/(MahjongApp|main)\\.cpp$")
+list(FILTER MAHJONGCHINA_SOURCES EXCLUDE REGEX "/(MahjongApp|main|TestCommands|ModFeatures)\\.cpp$")
+list(FILTER MAHJONGCHINA_HOST_SOURCES INCLUDE REGEX "/(MahjongApp|main|TestCommands|ModFeatures)\\.cpp$")
 add_library(mahjongchinagame STATIC ${MAHJONGCHINA_SOURCES})
 target_include_directories(mahjongchinagame PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(mahjongchinagame PUBLIC mahjongchinaengine)
