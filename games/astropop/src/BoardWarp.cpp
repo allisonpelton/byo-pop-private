@@ -225,7 +225,7 @@ bool Board::Fn46a810()
 				if (m1b2c == 2 || m1b2c == 4)
 				{
 					m938 = 423.0f;
-					mApp->Fn412730();
+					mApp->ShowUpgradeDialog();
 					mApp->mWidgetManager->BringToFront(&mOverlay);
 				}
 			}

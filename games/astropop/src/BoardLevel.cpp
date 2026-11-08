@@ -220,6 +220,23 @@ int Board::Fn433130(int theLevel)
 	return 0;
 }
 
+// 0x4330a0: the profile setting that the upgrade of the level counts (the row of the level's group of four in the mode's
+// table), -1 for a mode that has no table
+int Board::GetUpgradeSetting()
+{
+	if (mMode < 0 || mMode > 3)
+		return -1;
+	return kUpgrades[mMode][m1940 / 4].mSetting;
+}
+
+// 0x441850: the words of that row that name the upgrade (empty with no table)
+std::string Board::GetUpgradeText()
+{
+	if (mMode < 0 || mMode > 3 || kUpgrades[mMode][m1940 / 4].mTextVA == 0)
+		return std::string();
+	return GT(kUpgrades[mMode][m1940 / 4].mTextVA);
+}
+
 // 0x43e220: a number with a comma after each three digits (counted from the right)
 std::string Board::FormatNumber(int theNumber)
 {

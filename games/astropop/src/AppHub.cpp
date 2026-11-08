@@ -10,8 +10,10 @@
 #include "AstroPopApp.h"
 #include "AstroDialog.h"
 #include "Board.h"
+#include "Checkbox.h"
 #include "GameText.h"
 #include "MainMenu.h"
+#include "PowerDialog.h"
 #include "UserProfile.h"
 #include "WidgetManager.h"
 #include <SDL.h>
@@ -37,13 +39,16 @@ void AstroPopApp::CloseDialog(int theId)
 		mBoard->Pause(false, true);
 }
 
-// 0x4291c0: the box that asks whether to use the pilot's power goes. The answer is kept in the profile (setting 0x2a + the
-// pilot): the box's checkbox says whether it is asked again.
+// 0x4291c0: the box that explains the pilot's weapon goes (PowerDialog). Its tick box says whether it is shown again: the
+// answer is kept in the profile (setting 0x2a + the classic pilot, 1 for shown). The pictures made for the box go with it
+// (the original frees them here, the port in ~PowerDialog). The game goes on.
 void AstroPopApp::ClosePowerDialog()
 {
-	// not translated yet: the box (a dialog of 0x124 bytes) is made by the Board's power button
-	SDL_Log("AstroPop: ClosePowerDialog not translated yet (0x4291c0)");
 	mOpenDialogs--;
+	PowerDialog* aDialog = (PowerDialog*) GetDialog(0x7b);
+	bool aChecked = aDialog->mCheckbox->IsChecked();
+	mUser->SetInt(mClassicPilot + 0x2a, aChecked ? 0 : 1);
+	mUser->Save();
 	KillDialog(0x7b);
 	if (mBoard != NULL)
 	{

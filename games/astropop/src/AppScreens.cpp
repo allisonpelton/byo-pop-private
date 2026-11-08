@@ -6,6 +6,8 @@
 #include "CheckpointDialog.h"
 #include "NewUserDialog.h"
 #include "OptionsDialog.h"
+#include "PowerDialog.h"
+#include "UpgradeDialog.h"
 #include "HelpDialog.h"
 #include "Checkbox.h"
 #include "UserProfile.h"
@@ -14,6 +16,10 @@
 #include "Board.h"
 #include "GameText.h"
 #include "LoaderScreen.h"
+#include "DDImage.h"
+#include "DialogButton.h"
+#include "MemoryImage.h"
+#include "Res.h"
 #include "CharSelector.h"
 #include "MainMenu.h"
 #include "XcfFile.h"
@@ -210,14 +216,48 @@ void AstroPopApp::SelectStartUser()
 		ShowMessageDialog("Error", GT(0x563470));
 }
 
-void AstroPopApp::Fn412730()
+// 0x412730: the box of the warp screen that tells that the pilot's weapon has been upgraded (the upgrade itself is made
+// by the Board before the warp), with the name of the upgrade the level brings
+void AstroPopApp::ShowUpgradeDialog()
 {
-	SDL_Log("AstroPop: Fn412730 not translated yet (0x412730)");
+	UpgradeDialog* aDialog = new UpgradeDialog(this, mBoard->mMode, mBoard->GetUpgradeSetting(), mBoard->GetUpgradeText());
+	StyleDialog(aDialog);
+	mOpenDialogs++;
+	aDialog->mYesButton->mLabel = "OK";
+	aDialog->Resize(0xab, 0x4e, 0x1ae, 0x145);
+	AddDialog(0x76, aDialog);
 }
 
-void AstroPopApp::ShowThemeDialog()
+// 0x40c490: the box that explains the weapon of the game's pilot (PowerDialog), in the colour set of the mode (+ 2). The
+// first move of a game opens it unless the player has asked not to see it (profile setting 0x2a + the mode); the game waits
+// meanwhile. The box is 430 wide for the two pilots that have two pictures, 590 for the other two (the original asks a table
+// for these widths, its tunable numbers, where nothing overrides them).
+void AstroPopApp::ShowPowerDialog()
 {
-	SDL_Log("AstroPop: ShowThemeDialog not translated yet (0x40c490)");
+	if (mBoard == NULL)
+		return;     // port: only the Board opens the box
+	int aMode = mBoard->mMode;
+	int aSet = aMode + 2;
+	Color anInsetColor;
+	Color aButtonColor;
+	if (aSet >= 0 && aSet <= 5)
+	{
+		anInsetColor = GetDialogInsetColor(aSet);
+		aButtonColor = GetDialogColor(aSet);
+	}
+	MemoryImage* anInsetImage = NULL;
+	MemoryImage* aStripImage = NULL;
+	MakeDialogImages(anInsetColor, aButtonColor, &anInsetImage, &aStripImage, false);
+	Image* aCheckImage = CreateColorizedImage(IMAGE_TH_CHECKBOX, Color(0xff, 0xff, 0xff));
+
+	PowerDialog* aDialog = new PowerDialog(this, aMode, anInsetImage, aStripImage, aCheckImage);
+	StyleDialog(aDialog);
+	mOpenDialogs++;
+	int aWidth = (aMode == 0 || aMode == 3) ? 0x1ae : 0x24e;
+	int aHeight = aDialog->GetPreferredHeight(aWidth);
+	aDialog->Resize(0x140 - aWidth / 2, 0xf0 - aHeight / 2, aWidth, aHeight);
+	mBoard->Pause(true, false);
+	AddDialog(0x7b, aDialog);
 }
 
 // 0x411660: the pilot choice screen replaces whatever is up. A running game stays under it (on the screen, but out of play).

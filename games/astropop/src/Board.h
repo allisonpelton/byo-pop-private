@@ -815,6 +815,8 @@ public:
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
 	void			StartBonusRound(int theStage);                  // 0x465840: the field of a bonus round (-1 picks a stage)
 	int				Fn433130(int theLevel);                         // 0x433130: the upgrade screen kind of a level (0, 1, 2 or 4)
+	int				GetUpgradeSetting();                            // 0x4330a0: the profile setting that this level's upgrade counts (-1 with no table)
+	std::string		GetUpgradeText();                               // 0x441850: the words that name this level's upgrade
 	void			Fn4335e0();                                     // 0x4335e0: the field is waiting to be cleared (m19fc = 1000)
 	bool			Fn468e70();                                     // 0x468e70: the upgrade screen of the level (true when one opens)
 	void			UpdateStreaks();                                // 0x439650

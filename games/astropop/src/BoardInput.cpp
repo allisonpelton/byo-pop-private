@@ -137,7 +137,7 @@ void Board::StartByHand()
 	if (!m910 && CountMovingBricks(false) == 0 && m94.empty() && m7c.empty() && m1990 == 0)
 	{
 		if (m1c08 && !m917)
-			mApp->ShowThemeDialog();
+			mApp->ShowPowerDialog();
 		else
 			BeginPlay();
 	}

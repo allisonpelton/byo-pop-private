@@ -222,9 +222,11 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			mBoard->m1940 = aValue;
 		else if (aName == "stage")
 			mBoard->mField193C = aValue;
+		else if (aName == "charge")
+			mBoard->m1bd8 = mBoard->m1bdc;      // the weapon of the pilot is charged (the value is not read)
 		else
 		{
-			ReplyError(theCommand, "set takes score, level or stage");
+			ReplyError(theCommand, "set takes score, level, stage or charge");
 			return true;
 		}
 		ReplyOK(theCommand);

@@ -20,7 +20,25 @@ AstroDialog::AstroDialog(AstroPopApp* theApp, int theId, const std::string& theH
 	mInsetImage = NULL;
 	mButtonImage = NULL;
 	mPicture = NULL;
+	Setup(theApp, theColoured, theInsetColor, theButtonColor);
+}
 
+// 0x489e20: the same with a picture for the title and nothing written in the header, lines or footer
+AstroDialog::AstroDialog(AstroPopApp* theApp, int theId, Image* thePicture, int theImageTop, int theButtonMode, bool theColoured,
+						 const Color& theInsetColor, const Color& theButtonColor) :
+	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, theId, true, std::string(), std::string(), std::string(), theButtonMode)
+{
+	mInsetImage = NULL;
+	mButtonImage = NULL;
+	mPicture = thePicture;
+	mImageTop = theImageTop;
+	Setup(theApp, theColoured, theInsetColor, theButtonColor);
+	m110 = theImageTop;
+}
+
+// 0x483ee0
+void AstroDialog::Setup(AstroPopApp* theApp, bool theColoured, const Color& theInsetColor, const Color& theButtonColor)
+{
 	mApp = theApp;
 	mInsetColor = theInsetColor;
 	mButtonColor = theButtonColor;

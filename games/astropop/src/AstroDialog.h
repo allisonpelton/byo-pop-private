@@ -50,6 +50,9 @@ public:
 public:
 	AstroDialog(AstroPopApp* theApp, int theId, const std::string& theHeader, int theButtonMode, bool theColoured,
 				const Color& theInsetColor, const Color& theButtonColor);   // 0x489c60, setup 0x483ee0
+	// The box with a picture for its title (the upgrade box), no header text: the picture's top is theImageTop
+	AstroDialog(AstroPopApp* theApp, int theId, Image* thePicture, int theImageTop, int theButtonMode, bool theColoured,
+				const Color& theInsetColor, const Color& theButtonColor);   // 0x489e20, setup 0x483ee0
 	virtual ~AstroDialog();                                                 // 0x48a640 (body 0x48a030)
 
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x483640
@@ -64,6 +67,7 @@ public:
 	void			SetLineFont(Font* theFont, unsigned int theLine);                       // 0x4897b0
 
 private:
+	void			Setup(AstroPopApp* theApp, bool theColoured, const Color& theInsetColor, const Color& theButtonColor);   // 0x483ee0
 	int				HeaderWidth();      // the width of what stands for the title: the picture or the header text
 };
 
