@@ -657,7 +657,7 @@ void WinWSApp::CopyMapListsToUser()
 	{
 		if (aNodeIndex >= mMapScreen->mVector1d4.size())
 			break;
-		mUser->mVector2b4.push_back(mMapScreen->mVector1d4[aNodeIndex]->mField24);
+		mUser->mVector2b4.push_back(mMapScreen->mVector1d4[aNodeIndex]->mId);
 		aNodeIndex++;
 	}
 }

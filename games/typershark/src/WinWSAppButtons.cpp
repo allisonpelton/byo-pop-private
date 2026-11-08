@@ -64,7 +64,7 @@ void WinWSApp::ButtonDepress(int theId)
 {
 	switch (theId)
 	{
-	// the difficulty dialog's buttons (600 + the difficulty), then the adventure button 0x65 that continues
+	// the difficulty dialog's buttons (600 + the difficulty), then the Adventure button 0x64 and the Abyss button 0x65 that continue
 	case 600:
 	case 601:
 	case 602:
@@ -477,7 +477,7 @@ void WinWSApp::ButtonDepress(int theId)
 					{
 						MapNode* aNode = mMapScreen->mMap1a8[mUser->mVector2b4[i]];     // 0x420280
 						mMapScreen->mVector1d4.push_back(aNode);
-						mMapScreen->mVector1d4[i]->mFlag38 = true;
+						mMapScreen->mVector1d4[i]->mVisited = true;
 						i++;
 					} while (i < mUser->mVector2b4.size());
 				}

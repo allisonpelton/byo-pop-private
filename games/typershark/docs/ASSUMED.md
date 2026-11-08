@@ -50,6 +50,8 @@ returns false; `SaveUser` does not free the profile it replaces.
   XWidget::MouseDown (0x458cb0) assumes of MapScreen: `HyperlinkWidget* mContinueLink` (+0x178, the "press space bar to continue"
   link), `char mChosenLetter` (+0x235) and `void OnLevelChosen()` (0x4538e0, with its helper 0x4537b0; attribute.py files both
   under XWidget but they are MapScreen's: job S1 translates them). 0x4506a0 is MapScreen's too.
+- S2 done: MapScreen is translated (MapScreen.h/.cpp, MapScreenDraw.cpp, MapScreenUpdate.cpp; the header is the contract; `MapNode::mFlag38`
+  is `mVisited`, `mField24` is `mId`). The older list of what the callers assumed of it:
 - MapScreen(WinWSApp*) (0x458d10, sizeof 0x238; +0x228 is the chosen level `mLevel`), `OnEnter()` (0x4533b0), `ResetScroll()`
   (0x441030), `ClearNodeWidgets()` (0x443e20), `SetFinalLevel(bool)` (0x441080), `std::map<int,MapNode*> mMap1a8`,
   `vector<ProfilePair*> mVector1c4`, `vector<MapNode*> mVector1d4`, mField1f8, mFlag224, mFlag234.
