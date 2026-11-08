@@ -92,6 +92,11 @@ NoahApp::NoahApp()
 	mAutoplayGames = 1;
 	mAutoplayCap = 200000;
 	mAutoplayMenu = false;
+	mTestGotoMode = 0;
+	mTestGotoDiff = 0;
+	mTestWantMode = 0;
+	mTestWantDiff = 0;
+	mTestBotSeed = 1;
 	mAutoplayState = NULL;
 	mStateLogState = NULL;
 	mResyncState = NULL;
@@ -242,6 +247,8 @@ void NoahApp::UpdateFrames()
 		StateLogUpdate();                   // before the bot's clicks: the original handles a click inside the next update
 	if (mAutoplay)
 		AutoplayUpdate();
+	if (mTestGotoMode != 0)
+		UpdateTestGoto();
 	if (mMainSongStarted && !mMusicInterface->IsPlaying(SONG_GAME_INTRO) && !mMusicInterface->IsPlaying(SONG_GAME) &&
 		mMainSongLooping == false && !mMusicInterface->IsPlaying(SONG_MENU) && !mMusicInterface->IsPlaying(SONG_GAMEOVER))
 	{

@@ -171,6 +171,17 @@ public:
 	std::string				mStateLogCells;     // -statelogcells=x,y;x,y: cells whose type is logged at every change
 	struct StateLogState*	mStateLogState;
 	void					StateLogUpdate();
+	// Test commands (testhooks/TestCommands.cpp, docs/TEST_COMMANDS.md): state, goto, level, set, seed, win, lose, move.
+	// Reached only from a -script or the live command channel; a game that is never given one is not touched.
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
+	bool					HandleTestCommand(const ScriptCommand& theCommand);
+	std::string				TestScreen();
+	void					UpdateTestGoto();
+	int						mTestGotoMode;      // "goto <mode>": the mode whose dialogs are answered as they come up (0: none)
+	int						mTestGotoDiff;
+	int						mTestWantMode;      // "move <mode> <difficulty>": the game the bot starts from the menu (0: none)
+	int						mTestWantDiff;
+	unsigned int			mTestBotSeed;       // the bot's own generator for "move" (the seed command sets it)
 	// -resync=<file>: lines "n <level> <state>" and "r <level> <state>" (test hook): the C generator's state at the start of
 	// each level (n) and at the end of its get-ready (r) in the original, which the port takes over there to be compared past
 	// the differences of the get-ready (games/noahsark/tools/resync.py writes the file from an origrun run)
