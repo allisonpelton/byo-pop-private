@@ -231,7 +231,7 @@ int Board::PickSpawnDelay()
 	default:
 		return -1;
 	}
-	if (m1a38 != 0 && m1a38 != 3)
+	if (mMode != 0 && mMode != 3)
 		return 0xf;
 	return 0x3f;
 }
@@ -559,10 +559,10 @@ void Board::StoreProgress()
 	UserProfile* aUser = mApp->mUser;
 	aUser->SetInt(0x66, m198c);
 	aUser->SetInt(0x4f, mField193C);
-	aUser->SetInt(0x53, m1a38);
+	aUser->SetInt(0x53, mMode);
 	aUser->SetFloat(0x52, m940);
 	aUser->SetFloat(0x50, m1bd8);
-	aUser->SetInt(0x51, m1974);
+	aUser->SetInt(0x51, mScore);
 	aUser->SetInt(0x54, m19b8);
 	aUser->SetInt(0x55, m1b1c);
 	aUser->SetInt(0x63, m1b2c);

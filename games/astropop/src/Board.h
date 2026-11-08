@@ -77,7 +77,7 @@ struct StreakRec
 	unsigned char	m00[0x14];
 	float			mY;                 // +0x14
 	float			mSpeed;             // +0x18
-	unsigned char	m1c[4];
+	float			mMinSpeed;          // +0x1c
 	int				mMargin;            // +0x20
 	unsigned char	m24[0x0c];
 };
@@ -149,6 +149,8 @@ public:
 	void			SetFlag78(bool theFlag) { mFlag78 = theFlag; }                  // 0x4329c0
 };
 
+extern bool gFlag5A5100;    // 0x5a5100
+
 class Board : public Widget, public EventListener
 {
 public:
@@ -169,6 +171,7 @@ public:
 	std::vector<StarRec>	m190;// +0x190 the stars
 	std::vector<CellRef3>	m1a0;// +0x1a0
 	std::vector<int>	m1f0;// +0x1f0 counters that count down from 2000 (set when a special brick is made)
+	std::vector<CellRef3>	m200;// +0x200 ?
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
 	std::vector<Warp*>	m230;// +0x230
 	std::vector<RampRecord>	m280;// +0x280 the speed table (UpdateRamp)
@@ -178,16 +181,27 @@ public:
 	Brick*	m354 = NULL;// +0x354 a brick the Board holds (ClearField deletes it)
 	AstroPopApp*	mApp = NULL;// +0x358 the application (the bricks play their sounds through it)
 	Color	m3c0;// +0x3c0 the colour of the backdrop tint (FadeBackdrop)
+	Color	m3d0;// +0x3d0 the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
+	FrameAnim	mSirenAnim;// +0x4a0 the siren (IMAGE_SIREN)
 	BoardOverlay	mOverlay;// +0x660 the widget over the field
 	Color	m6c8;// +0x6c8
 	bool	m6e0 = false;// +0x6e0 ?
 	Buffer	m758;// +0x758 the replay recording (RecordStep)
 	ScrollLayer	m77c;// +0x77c the scenery layer
+	int	m7a8 = 0;// +0x7a8 ?
+	int	m7b8 = 0;// +0x7b8 ?
+	int	m7bc = 0;// +0x7bc ?
+	int	m7c4 = 0;// +0x7c4 ?
+	int	m7e8 = 0;// +0x7e8 ?
+	int	m7ec = 0;// +0x7ec ?
 	PulsePair	m808;// +0x808
 	bool	m8dd = false;// +0x8dd ?
+	bool	m8e0 = false;// +0x8e0 ?
+	bool	m8e4 = false;// +0x8e4 ?
 	bool	m8e6 = false;// +0x8e6 ?
 	bool	mFlag8E8 = false;// +0x8e8
 	bool	mFlag8E9 = false;// +0x8e9
+	bool	m8ea = false;// +0x8ea the streaks are fading out
 	bool	m8eb = false;// +0x8eb
 	bool	m8ec = false;// +0x8ec
 	bool	m8ed = false;// +0x8ed
@@ -196,9 +210,14 @@ public:
 	bool	m8fc = false;// +0x8fc ?
 	bool	m901 = false;// +0x901 ?
 	bool	m90a = false;// +0x90a
+	bool	m90b = false;// +0x90b ?
 	bool	m910 = false;// +0x910
+	bool	m912 = false;// +0x912 ?
+	bool	m916 = false;// +0x916 ?
 	bool	m917 = false;// +0x917
+	bool	m920 = false;// +0x920 ?
 	float	m928 = 0.0f;// +0x928
+	float	m92c = 0.0f;// +0x92c ?
 	float	m938 = 0.0f;// +0x938
 	float	m940 = 0.0f;// +0x940
 	unsigned char	m948 = 0;// +0x948
@@ -209,28 +228,48 @@ public:
 	int	m954 = 0;// +0x954 ?
 	int	m958 = 0;// +0x958 ?
 	int	m95c = 0;// +0x95c ?
+	int	m960 = 0;// +0x960 ?
+	int	m974 = 0;// +0x974 ?
 	int	m1924 = 0;// +0x1924 ?
 	int	mField193C = 0;// +0x193c the stage: 1 + the time played / 6000
+	int	m1940 = 0;// +0x1940 ?
 	int	m194c = 0;// +0x194c ?
 	int	m1950 = 0;// +0x1950 ?
 	int	m1954 = 0;// +0x1954 ?
-	int	m1974 = 0;// +0x1974 ?
+	int	m1970 = 0;// +0x1970 ?
+	int	mScore = 0;// +0x1974 the score (profile setting 0x51)
+	int	m1978 = 0;// +0x1978 ?
 	int	m198c = 0;// +0x198c ?
 	int	m1990 = 0;// +0x1990 ?
+	int	m19b0 = 0;// +0x19b0 ?
 	int	m19b4 = 0;// +0x19b4 ?
 	int	m19b8 = 0;// +0x19b8 ?
 	int	m19cc = 0;// +0x19cc ?
 	int	m19f0 = 0;// +0x19f0 ?
 	int	m19f4 = 0;// +0x19f4 ?
 	int	m19f8 = 0;// +0x19f8 ?
+	int	m19fc = 0;// +0x19fc ?
+	int	m1a14 = 0;// +0x1a14 ?
 	int	m1a28 = 0;// +0x1a28 ?
 	int	m1a34 = 0;// +0x1a34 ?
-	int	m1a38 = 0;// +0x1a38 ?
+	int	mMode = 0;// +0x1a38 the game mode (profile setting 0x53); also the key of the best score
 	int	m1a60 = 0;// +0x1a60 ?
+	int	m1a7c = 0;// +0x1a7c ?
 	int	m1ab8 = 0;// +0x1ab8 ?
+	int	m1abc = 0;// +0x1abc ?
+	int	m1ac0 = 0;// +0x1ac0 ?
 	int	m1ac4 = 0;// +0x1ac4 ?
+	int	m1af0 = 0;// +0x1af0 ?
+	int	m1af4 = 0;// +0x1af4 ?
+	int	m1afc = 0;// +0x1afc ?
+	int	m1b00 = 0;// +0x1b00 ?
 	int	m1b1c = 0;// +0x1b1c ?
 	int	m1b2c = 0;// +0x1b2c ?
+	int	m1b38 = 0;// +0x1b38 ?
+	int	m1b48 = 0;// +0x1b48 ?
+	int	m1b70 = 0;// +0x1b70 ?
+	int	m1b9c = 0;// +0x1b9c ?
+	int	m1ba4 = 0;// +0x1ba4 ?
 	int	m1bc0 = 0;// +0x1bc0 ?
 	float	m1bd8 = 0.0f;// +0x1bd8
 	float	m1bdc = 0.0f;// +0x1bdc
@@ -275,6 +314,13 @@ public:
 	bool			InM118(int theValue);                           // 0x439510
 	void			ClearField();                                   // 0x44e010
 	void			BuildField();                                   // 0x44e350
+
+	// ---- the state (BoardState.cpp)
+	void			ResetState();                                   // 0x4346c0
+	void			UpdateEffects();                                // 0x439c20
+	void			SetNextLevelScore();                            // 0x4344d0
+	void			AddScore(int thePoints, bool theForce);         // 0x433b90
+	void			SaveGameState();                                // 0x43a9a0
 };
 
 }

@@ -15,6 +15,7 @@ f8	std::vector<int>	mf8
 190	std::vector<StarRec>	m190	the stars
 1a0	std::vector<CellRef3>	m1a0
 1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
+200	std::vector<CellRef3>	m200	?
 220	std::vector<StageBg*>	m220	the picture of each stage
 230	std::vector<Warp*>	m230
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
@@ -24,16 +25,27 @@ f8	std::vector<int>	mf8
 354	Brick*	m354	a brick the Board holds (ClearField deletes it)
 358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
 3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
+3d0	Color	m3d0	the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
+4a0	FrameAnim	mSirenAnim	the siren (IMAGE_SIREN)
 660	BoardOverlay	mOverlay	the widget over the field
 6c8	Color	m6c8
 6e0	bool	m6e0	?
 758	Buffer	m758	the replay recording (RecordStep)
 77c	ScrollLayer	m77c	the scenery layer
+7a8	int	m7a8	?
+7b8	int	m7b8	?
+7bc	int	m7bc	?
+7c4	int	m7c4	?
+7e8	int	m7e8	?
+7ec	int	m7ec	?
 808	PulsePair	m808
 8dd	bool	m8dd	?
+8e0	bool	m8e0	?
+8e4	bool	m8e4	?
 8e6	bool	m8e6	?
 8e8	bool	mFlag8E8
 8e9	bool	mFlag8E9
+8ea	bool	m8ea	the streaks are fading out
 8eb	bool	m8eb
 8ec	bool	m8ec
 8ed	bool	m8ed
@@ -42,9 +54,14 @@ f8	std::vector<int>	mf8
 8fc	bool	m8fc	?
 901	bool	m901	?
 90a	bool	m90a
+90b	bool	m90b	?
 910	bool	m910
+912	bool	m912	?
+916	bool	m916	?
 917	bool	m917
+920	bool	m920	?
 928	float	m928
+92c	float	m92c	?
 938	float	m938
 940	float	m940
 948	unsigned char	m948
@@ -55,28 +72,48 @@ f8	std::vector<int>	mf8
 954	int	m954	?
 958	int	m958	?
 95c	int	m95c	?
+960	int	m960	?
+974	int	m974	?
 1924	int	m1924	?
 193c	int	mField193C	the stage: 1 + the time played / 6000
+1940	int	m1940	?
 194c	int	m194c	?
 1950	int	m1950	?
 1954	int	m1954	?
-1974	int	m1974	?
+1970	int	m1970	?
+1974	int	mScore	the score (profile setting 0x51)
+1978	int	m1978	?
 198c	int	m198c	?
 1990	int	m1990	?
+19b0	int	m19b0	?
 19b4	int	m19b4	?
 19b8	int	m19b8	?
 19cc	int	m19cc	?
 19f0	int	m19f0	?
 19f4	int	m19f4	?
 19f8	int	m19f8	?
+19fc	int	m19fc	?
+1a14	int	m1a14	?
 1a28	int	m1a28	?
 1a34	int	m1a34	?
-1a38	int	m1a38	?
+1a38	int	mMode	the game mode (profile setting 0x53); also the key of the best score
 1a60	int	m1a60	?
+1a7c	int	m1a7c	?
 1ab8	int	m1ab8	?
+1abc	int	m1abc	?
+1ac0	int	m1ac0	?
 1ac4	int	m1ac4	?
+1af0	int	m1af0	?
+1af4	int	m1af4	?
+1afc	int	m1afc	?
+1b00	int	m1b00	?
 1b1c	int	m1b1c	?
 1b2c	int	m1b2c	?
+1b38	int	m1b38	?
+1b48	int	m1b48	?
+1b70	int	m1b70	?
+1b9c	int	m1b9c	?
+1ba4	int	m1ba4	?
 1bc0	int	m1bc0	?
 1bd8	float	m1bd8
 1bdc	float	m1bdc
