@@ -46,6 +46,15 @@ def rename(text):
                   lambda m: _names.get(int(m.group(2), 16), m.group(0)), text)
 
 
+_noise = re.compile(r'^\s*(\*\((?:undefined\d?|int|byte) \*\)\(unaff_EBP \+ -4\) = [0-9a-fx]+;|FUN_005e7e34\(\);|ExceptionList = .*;|'
+                    r'(?:Sexy::ResourceManager::HadError|FUN_00429550)\(1,0\);)\s*$')
+
+
+def clean(text):
+    # drops the exception-frame bookkeeping the decompiler leaves in functions with destructors
+    return '\n'.join(l for l in text.split('\n') if not _noise.match(l))
+
+
 def body(addr):
     f = funcs().get(addr)
     if f is None:
@@ -54,7 +63,7 @@ def body(addr):
     path = os.path.join(GH, 'decomp', ns, '%s_%s.c' % (f['addr'], f['name']))
     if not os.path.exists(path):
         return '/* no decompilation at %s */\n' % path
-    return rename(open(path, encoding='utf-8', errors='replace').read())
+    return clean(rename(open(path, encoding='utf-8', errors='replace').read()))
 
 
 def main():
@@ -66,6 +75,9 @@ def main():
         for addr in sorted(funcs()):
             if lo <= addr < hi:
                 f = funcs()[addr]
+                # -r <lo> <hi> [min]: unnamed functions smaller than min bytes (default 0) are left out
+                if a[0] == '-r' and len(a) > 3 and f['name'].startswith('FUN_') and f['size'] < int(a[3]):
+                    continue
                 if a[0] == '-l':
                     print('%06x %5d %-28s callers=%d %s' % (addr, f['size'], f['full'][:28], len(f['callers']), ','.join(f['callers'][:3])))
                 else:
