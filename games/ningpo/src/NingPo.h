@@ -10,8 +10,9 @@
 // The functions are in src/NingPo.cpp (start-up, events, the flow of a game), src/NingPoDraw.cpp (the screen),
 // src/NingPoControls.cpp (the controls) and src/NingPoDialogs.cpp (the dialogs); the board is src/Board.cpp.
 //
-// The port plays as the registered game (checkRegistration is always true): the trial's parts (the registration
-// dialog, the "full version only" layouts and tile sets, the nag at exit, the count of games played) are left out.
+// The port plays as the registered game. The trial's parts (the registration check and dialog, the "full version
+// only" layouts and tile sets, the buy button and the nag at exit, the count of games played) and the links out of the
+// game (the options' visit to the partner's site, the purchase page) are left out: docs/README.md, "Left out".
 
 #include "Board.h"
 #include "PGApp.h"
@@ -60,8 +61,6 @@ enum
 	SPRITE_NOMATCH = 11,
 	SPRITE_BOARD_COMPLETE = 12,
 	SPRITE_GAME_OVER = 13,
-	SPRITE_FULL_VERSION = 14,
-	SPRITE_FULL_VERSION_SMALL = 15,
 	SPRITE_PREVIEW_LAYOUT = 16,    // + layout
 	SPRITE_TITLE_LAYOUT = 34,      // + layout
 	SPRITE_PREVIEW_TILE = 52,      // + tile set
@@ -106,15 +105,12 @@ public:
 	PGControl* mShuffleButton;        // +0x6aac
 	PGControl* mHintButton;           // +0x6ab0 "find match" while a tile is selected
 	PGControl* mNewGameButton;        // +0x6ab4 back to the title
-	PGControl* mBuyButton;            // +0x6ab8 the trial's
 	Tile* mHintTiles[4];              // +0x6abc the hint's: the selected tile and its free matches, or a pair
 	PyTime mHintStart;                // +0x6ad0 the hint shows for 0xd7b ms
 	PyTime mLastAction;               // +0x6ad8 the autohint's clock
 	bool mSpaceHeld;                  // +0x6ae0
 	PyTime mFadeStart;                // +0x6ae8 when show moves lit the free tiles (0x404250)
 	float mFade;                      // +0x6af0
-	bool mRegistered;                 // +0x6af4
-	int mTimesPlayed;                 // +0x6af8 the trial's
 	PyTime mGameStart;                // +0x6b00
 	PyTime mNoMatchTime;              // +0x6b08 the "no match" sign shows for 3000 ms
 	int mLoadedTileset;               // +0x6b10 -1 before the first
@@ -166,12 +162,9 @@ public:
 	// src/NingPo.cpp: the flow
 	void onExit();                                      // 0x401950: the window closed
 	void toggleFullscreen();                            // 0x4059e0
-	bool checkRegistration();                           // 0x405cd0
 	bool loadAssets();                                  // 0x405c70
 	bool startup();                                     // 0x405960
 	void playSound(const char* theName, int theVolume, int thePan, bool theOverlap);    // 0x405e10
-	void openPartnerSite();                             // 0x405b60
-	void openPurchasePage();                            // 0x401a00
 	void handleKey(const PGEvent* theEvent);            // 0x403e20
 	void cycleBackground(int theStep);                  // 0x403f10
 	void cycleLayout(int theStep);                      // 0x403f50
@@ -229,7 +222,7 @@ public:
 	bool askYesNo(const char* theBackground, const char* theOk, const char* theOkLit, const char* theCancel,
 		const char* theCancelLit);                      // 0x408990
 	void showBestTimes(int theLayout);                  // 0x408da0
-	bool startupDialog(int theTimesPlayed);             // 0x409e90: false when the window was closed
+	bool startupDialog();                               // 0x409e90: false when the window was closed
 	bool noMoreMoves();                                 // 0x40aa60: true ends the game
 	void showOptions();                                 // 0x40aff0
 };

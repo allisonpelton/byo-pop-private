@@ -127,18 +127,10 @@ void DynomiteTimeTrial::Update()
 	if (mPauseCount > 0)
 		return;
 	Dynomite::Update();
-	if ((mApp->mIsRegistered == false) && (mField134 == 1))
-	{
-		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)
-			mApp->ShowRegisterDialog(GTC(0x4fa068));
-		else
-			mApp->ShowBuyDialog();
-	}
 	if (mField134 == 0)
 	{
 		SetPaused(true);
-		if ((mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true) &&
-			(mApp->mIsRegistered == true))
+		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)
 			mApp->ShowHighScoreDialog(mHighScores);
 	}
 	EggGrid* aGrid = mGrid;

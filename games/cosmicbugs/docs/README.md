@@ -26,8 +26,8 @@ files (`cp.cfg`, `cb.dat`).
 
 `CosmicBugs.exe` was linked on 2007-11-20 by MSVC 2005 (linker 8.0). It carries no copy protection wrapper (its
 sections are `.text`, `.rdata`, `.data` and `.rsrc`) and no RTTI, and it is the full version: the registered flag at
-0x460004 is set, so the trial's parts (the time limit, the boards kept for the full version) never run, though the
-port translates them. The code is 0x401000-0x457af6, the game's functions and the engine's interleaved, then the
+0x460004 is set, so the trial's parts (the time limit, the boards kept for the full version) never ran, and the port
+leaves them out (see "Registration and links"). The code is 0x401000-0x457af6, the game's functions and the engine's interleaved, then the
 MSVC runtime; BASS is the separate `bass.dll`. The port translates about 560 functions (294 of the game, 269 of the
 engine, each with its address in a comment). `docs/symbols/10_engine.jsonl` holds the names given in Ghidra.
 
@@ -99,10 +99,141 @@ Not yet tested: the player requesters (a new name, deleting a player), the level
 mode natively (F7, F8 and Alt+Enter on the real desktop), and the sound and music by ear: every test runs with the
 silent driver.
 
+## Test commands
+
+The standard commands of `docs/TEST_COMMANDS.md` live in `src/CBTestCommands.cpp`, reached only from a test: the exe's
+`-script` and live command channel (`CosmicBugsApp::HandleScriptCommand`), the web page's `byopop.test.command` and the
+headless runner's `cmd` event. A normal run never calls them, and none but `seed` draws from the game's generator. Each
+answers with `STATE {...}`, `MOVE {...}` or `null`, `OK <command>` or `ERROR <command>: <reason>`.
+
+| Command | What it does |
+|---|---|
+| `state` | The game's state as JSON: `screen` (logo, title, instructions, options, board, highscores, highscore_entry, credits, levelselect, help, change_user, mission_complete), `kind`, `mode` and `difficulty`, `shooter` (manual or auto), `score`, `lives`, `requester`, `fullscreen`, `stretched`, `updates` (the game's step count). On a board also `fill`, `quota`, `shots`, `cells`, `filled`, `playing`, `busy`, `paused`, `won`, `over`, `ship` (x, y, state, across, weapons) and `enemies` with `enemyCount`. |
+| `goto <screen>` | `title`, `options`, `help`, `instructions`, `highscores`, `credits`, `levelselect`, `changeuser`; or `game`, `manual` and `auto` to start board 1 in the shooter mode. `easy`, `normal` and `hard` set the difficulty the game file does not offer, and are for a test that wants the setting saved in the profile. |
+| `level <n>` | Starts board n of the game (from 1), with its own intro. |
+| `unlock all` | Sets the profile's reached board to the last one and saves it. |
+| `set <name> <value>` | `score`, `lives`, `reached`, `difficulty` (easy, normal, hard) or `shooter` (manual, auto). |
+| `win` / `lose` | On a board being played: fills to the quota for the board's own ending, or ends the game through `Level_GameOver`. |
+| `seed <n>` | Seeds the game's generator. |
+| `move` | The bot's next step, below. |
+
+`move` answers `MOVE {"kind": ..., "input": [...]}` when there is something to do and `MOVE null` while the game is busy
+or over. The input steps are those the drivers send as real events: `{"move": [x, y]}`, `{"click": [x, y]}` (with
+`"button": "right"` for the aim switch), `{"press": ...}`/`{"release": ...}`, `{"key": "Escape"}` and `{"wait": n}`
+(n game updates). The `kind` says why: `hover` (put the pointer on the board, since a pointer over the bottom panel stops
+the play), `aim` (move to the line's start), `turn` (the right click that switches across and down), `shot` (the
+click), `launch` (the button a title, options or instructions screen needs), `continue` (a click through a won board's
+texts), `wait` (nothing to do for 10 updates) and null. The bot searches the cells where a line fills most of the board without crossing an enemy's
+path in the time the line takes (`Safe`), and when it finds none for 30 asks in a row on a board it takes the best gain
+anyway, so a board always ends. It plays the game's own rules from the game's own state, one shot at a time, and a mod
+that adds a bot can reuse it as it is.
+
+The drivers send `move`'s steps as real mouse and key events and never pick a move themselves. Natively
+`games/cosmicbugs/tools/play/drive.py` runs the exe under rundesk with `-commands -realinput` (SDL's own queue, the
+path a hand's input takes) through a whole game of each configuration the player has (the shooter manual or auto, in the
+full screen the game starts in and in a window): the title, the options, Start Game, the instructions page, Play, the boards
+on the bot's shots to the game over, the Hall of Fame and back to the title, with Esc and Enter and a focus loss and regain on
+the first board. On the web `games/cosmicbugs/tools/web/play.js` is a page driver (`?player=1&assets=cosmicbugs&silent=1&hold=1
+&driver=games/cosmicbugs/tools/web/play.js`, with `&shooter=manual|auto`, `&scale=2` to draw the canvas at twice its size, as
+a full screen does, and `&fast=1` for a hidden pane) that does the same through `byopop.test`'s DOM events and its `blur` and
+`focus`; its result says how many boards it played and how often the focus had to be given back (`regains`, which counts
+a window that lost its focus by itself, as the pane can between two calls of the tool that drives it: the game stands still
+then, as the original's does, until the focus is back). The results are in IDENTICAL_PLAY.md, "Phase three".
+
+## Registration and links
+
+The original's data section starts with `gRegistered` at 1 and the trial flag at 0, so the exe the port was made from
+already ran as the full version, and taking the trial out changes nothing a player sees (the frozen baseline proves it).
+Gone from the port: the registered, trial and trial-time globals and the trial clock on a board (the nag it brought in
+the last ten updates), its time drawn at the foot of a board, the 48-board cap of `Level_Won`, the code of the opening,
+closing and expiring nag screens (the game file's levels of those types are still loaded, as inert screens nothing goes
+to, because loading them draws from the game's generator and leaving them out would move every draw after them; the
+opening one is already commented out in the file), the menu item types `buy_now`,
+`more_games`, the opening nag's "maybe later" and the closing nag, the readers of the `website.url` and `website3.url`
+shortcuts and the page the game asked for at exit (`gUrl`, `GameExit`'s `OpenURL`), the app's `OpenURL` override, and the
+text and menu entries for the full version only (`fv`, `fv_type` and `fv_name` are the only ones read). The title's
+fourth item, "BUY NOW" in the trial, is the full version's HELP in the original, so no button leaves a gap; its
+"MORE GAMES" item is already commented out in the game file. The title's QUIT quits. What stays is the third field of
+`cb.dat`, the trial's time, kept as `gTrialSlot` so the player's file is the original's byte for byte. The logo screens
+show the text "www.retro64.com" on them; it is text, not a button, and nothing in the game follows it.
+
 ## Mods
 
-None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
-making, and the fix of the easy setting's label.
+One, `mods/fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"), with a toggle for each of two fixes, both on in the site's
+copy. The port itself stays the original: `CBFixes.h` holds the toggles, all off until `CosmicBugsApp::Init` has read
+the enabled mod's settings (`LoadFixes`), so the headless runner, the suite and the frozen baseline never see them.
+`walkerTurnMemory`: a walking bug that comes to a side way turns onto it half the time, and not again for five seconds
+(`Walker_TurnAtJunction`); the original keeps that turn's time only for turns off a horizontal way, so a bug going up
+or down could turn at every junction. The fix keeps it for both. It changes the enemies' paths and so the random draws
+after it, which is what a fix to play is. `shieldFlash`: a beam touching an enemy starts its shield flash at the
+enemy's x for its y (`Enemy_Shield`, "sic" in the code) and the next update puts it right, so a frame drawn between
+shows it in the wrong place. The fix starts it on the enemy. It changes no draw of the game's random numbers.
+
+### Fix candidates
+
+What was checked for the mod: the waits that only cost the player time, and the bugs of the original that do not break
+play. The waits: the logo screens at launch (the title is up about two seconds after the launch, loading included), the
+first run's instructions page (left by a click), a won board's fill and bonus texts (about 2.2 seconds, each text
+clicked away) and the ship coming in after a life (1.4 seconds while the enemies run, which is the game's own pace);
+none is a wait that costs the player time for nothing, so none is a fix. The bugs that are kept in the port and not in the mod, because no player sees them in this game file:
+
+- The easy difficulty's label reads "5s" for its name (`MOD_IDEAS.md`), but the game file has no difficulty item (the
+  options list video, LCD mode, sound, music and the shooter mode), so nothing shows it or sets a difficulty: the
+  setting is saved in the eleventh player's slot and stays normal.
+- The power-ups "explode the floaters" and "explode the walkers" do nothing (their enemy ranges can never hold), and
+  `Powerup_Init` never deals them.
+- The cannon's look-ahead test has a reset that can never happen (`c < 0 && cols <= c ...`), so near an edge it keeps
+  counting; whether that was meant is not clear from the code, so it is left as it is.
+
+The original's own chances are not fixes here: whether a beam an enemy touched gets a rider (the heap's chance,
+IDENTICAL_PLAY.md, "Oddities") is already one outcome in the port, so a run plays the same every time.
+
+## Performance (measured 2026-11-08, `tools/perf/perf.py`)
+
+The original and the port back to back on one machine (20 logical cores), in real time, invisibly and silently, windowed
+and on a fresh save: the port under rundesk (`build/native/rundesk.exe python games/cosmicbugs/tools/perf/perf.py port`),
+the original through origrun from a copy under `build/origrun` (`perf.py orig`), unpatched (the game is the full version
+already). Each side runs the same timeline in the game's own updates (its step counter, one a millisecond, read from the
+process's memory: 0x460a1c in the original, the port's `cb::gFrame`): the load, the title idle from update 3000 to 12000
+(the logo's two seconds come first), Start Game at 13000, Play at 14500, and the first board with no input from 16000 to 46000
+(30 s). `--verify` checks that the clicks reach it (the original's current level kind watched in memory: the logo, the
+title at update 2162, the instructions page at 13000, a board at 14505; the port's `state`). The machine was not quiet: 2 to 5 other game
+processes of other sessions ran at the start and the end of each run (each `result.json` has the count), so the numbers
+compare the two sides; the performance pass measures again on a quiet machine. The web build was not timed: the Browser pane is
+hidden here and draws about every third of a second, so a time there measures the pane.
+
+**The original's numbers:** it paces its frames with `Present(1)`, which waits for the display's refresh, and the hidden
+desktop the tests run it on has none, so the unpatched original spins at 75 to 96 per cent of a core. Both are shown. The paced
+rows make its main loop sleep 16 ms a pass (`perf.py orig --paced 16`; a patch of 11 bytes at 0x41f063, where the loop timed
+its `Present` call for a value nothing reads, as a 60 Hz screen's wait would), which is what a player sees.
+
+*Loading*, seconds from the process's creation to the first update (the step counter leaves 1: the game loads everything
+before its first frame, in one go, so nothing here is sliced and no loading change was needed), and the processor time
+spent until then:
+
+| | Launch to the first update | Processor time |
+|---|---|---|
+| Original | 0.41, 0.42, 0.43, 1.03 (1.58 in the very first run after its copy was made) | 0.36 to 0.52 s |
+| Port | 0.57, 0.62, 0.86 | 0.55 to 0.78 s |
+
+The port's log says "Resource Loading Time" 0.5 s of that: the game's own start (`GameStart`: the art banks, the fonts and
+the game file, as the original's does). The two are within noise of each other (a cold file cache adds a second to
+either), so the port's loading stands as it is.
+
+*Memory and processor time*, the same timeline on both sides (the table is processor time as a share of one core, and as
+seconds in the window):
+
+| | Peak working set | Peak private bytes | Title, 9 s | First board, 30 s |
+|---|---|---|---|---|
+| Original, unpaced (spinning) | 101.0, 111.2 MB | 88.8, 92.3 MB | 95 % (8.5 s), 76 % (6.8 s) | 96 % (28.9 s), 89 % (26.8 s) |
+| Original, a pass every 16 ms (60 Hz) | 101.0, 101.0 MB | 88.4, 88.8 MB | 13.9 % (1.25 s), 10.7 % (0.97 s) | 5.6 % (1.69 s), 4.7 % (1.41 s) |
+| Port | 129.7, 129.5, 129.4 MB | 130.4, 130.1, 130.2 MB | 19.9 % (2.0 s), 23.4 % (2.1 s), 26.5 % (2.4 s) | 18.4 % (5.5 s), 18.6 % (5.6 s), 18.3 % (5.5 s) |
+
+Each window held 9000 or 30000 updates on both sides in the same time (30.0 s), so the compared work is the same. Read it
+plainly: the port loads as fast as the original and, unlike the unpatched original, does not spin; against the original at 60 Hz it
+holds about 40 MB more and uses about three times the processor time (a fifth of a core against a twentieth), which is for the
+performance pass (the framework's frame loop, the renderer's full-frame upload and the audio mixer are the places to look).
+The port's runs also have the test channel's two input files polled.
 
 ## Where the work was hard
 
@@ -129,4 +260,7 @@ the browser's full screen.
 
 `CMakeLists.txt` (the `BUILD_COSMICBUGS` option), `tools/check.sh` (the `cosmicbugs` suite) and `.claude/launch.json`
 (the `cosmicbugs-web` preview on port 18788). The web page also needs `BYOPOP_BUY_cosmicbugs` in
-`cmake/ByopopStores.cmake`, which the coordinator keeps.
+`cmake/ByopopStores.cmake`, which the coordinator keeps. The finishing pass added two shared commits: `cmake/ByopopWeb.cmake`
+takes Cosmic Bugs off `BYOPOP_WEB_NO_MODS` (so its page installs the fixes mod), and `web/testkit.js` had a backspace character
+where its ANSWER pattern meant a word boundary, so a command answered `MOVE null` was never matched and
+`byopop.test.command` timed out after every busy move.

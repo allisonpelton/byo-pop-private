@@ -135,7 +135,7 @@ public:
 	Mat3 mCameraTarget;                       // +0x800: the camera's turn when a planet is picked (SetState 1)
 	float mZoomPos[3] = {0, 0, 0};            // +0x824: the picked planet's place (SetState 2 to 4)
 	CurvedVal mZoom;                          // +0x830: the camera flies from its start to the picked planet by it
-	CurvedVal mUnknown8A0;                    // +0x8a0
+	// (+0x8a0: the trial's flash over a locked challenge, registration code, left out)
 	CurvedVal mUnknown928;                    // +0x928: the glow colours' blend (only 0x6e32c9 sets it, which nothing calls)
 	// The camera stack: the camera places of properties/camerastack.txt (0x6e5a8d), two lines of three numbers
 	// each. The mouse drag changes the one at mCameraStackIndex; nothing else reads them.

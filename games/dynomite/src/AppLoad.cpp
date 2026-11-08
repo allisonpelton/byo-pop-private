@@ -3,9 +3,44 @@
 // the fonts, masks and fossils translated by hand. The field of each resource has the original's offset in
 // FossilizedApp.h.
 #include "FossilizedApp.h"
+#include "SoundInstance.h"
 #include "SoundManager.h"
 
 using namespace Sexy;
+
+namespace
+{
+
+// port: the three looping sounds the boards start and stop every update (the grind, the clock's tick and the footfall's
+// rumble) are instances made once while loading. Without a sound device (the "could not initialize" message, a page
+// with no Web Audio) the sound manager makes none, and every board's first update would call through a null pointer;
+// those fields get one shared instance that plays nothing instead.
+class SilentSoundInstance : public SoundInstance
+{
+public:
+	virtual void			Release() override {}
+	virtual void			SetBaseVolume(double) override {}
+	virtual void			SetBasePan(int) override {}
+	virtual void			AdjustPitch(double) override {}
+	virtual void			SetVolume(double) override {}
+	virtual void			SetPan(int) override {}
+	virtual bool			Play(bool, bool) override { return false; }
+	virtual void			Stop() override {}
+	virtual bool			IsPlaying() override { return false; }
+	virtual bool			IsReleased() override { return false; }
+	virtual double			GetVolume() override { return 0.0; }
+};
+
+SoundInstance* LoopInstance(SoundManager* theManager, unsigned int theId)
+{
+	SoundInstance* anInstance = theManager->GetSoundInstance(theId);
+	static SilentSoundInstance sSilent;
+	if (anInstance == NULL)
+		anInstance = &sSilent;
+	return anInstance;
+}
+
+}
 
 static const char* gFullCharset =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?";
@@ -620,7 +655,7 @@ void FossilizedApp::LoadGame()
 	mCompletedLoadingThreadTasks++;
 	mSndGrind = new GameSound(this, "sounds\\grind");
 	mCompletedLoadingThreadTasks++;
-	mGrindInstance = mSoundManager->GetSoundInstance(mSndGrind->mId);
+	mGrindInstance = LoopInstance(mSoundManager, mSndGrind->mId);
 	mSndXwhirleyscoming1 = new GameSound(this, "sounds\\xwhirleyscoming1");
 	mCompletedLoadingThreadTasks++;
 	mSndXwhirleyscoming2 = new GameSound(this, "sounds\\xwhirleyscoming2");
@@ -639,7 +674,7 @@ void FossilizedApp::LoadGame()
 	mCompletedLoadingThreadTasks++;
 	mSndTicktock = new GameSound(this, "sounds\\ticktock");
 	mCompletedLoadingThreadTasks++;
-	mTicktockInstance = mSoundManager->GetSoundInstance(mSndTicktock->mId);
+	mTicktockInstance = LoopInstance(mSoundManager, mSndTicktock->mId);
 	mSndSpeedup = new GameSound(this, "sounds\\speedup");
 	mCompletedLoadingThreadTasks++;
 	mSound1a50 = NULL;
@@ -669,7 +704,7 @@ void FossilizedApp::LoadGame()
 	mCompletedLoadingThreadTasks++;
 	mSndFootfallrumble = new GameSound(this, "sounds\\footfallrumble");
 	mCompletedLoadingThreadTasks++;
-	mFootfallRumbleInstance = mSoundManager->GetSoundInstance(mSndFootfallrumble->mId);
+	mFootfallRumbleInstance = LoopInstance(mSoundManager, mSndFootfallrumble->mId);
 	mSndFootfall = new GameSound(this, "sounds\\footfall");
 	mCompletedLoadingThreadTasks++;
 	mSndFossil = new GameSound(this, "sounds\\fossil");

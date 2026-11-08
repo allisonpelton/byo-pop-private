@@ -2,6 +2,7 @@
 
 #include "Atomicus.h"
 #include "AtomicaApp.h"
+#include "Fixes.h"
 #include "Graphics.h"
 #include "GameText.h"
 
@@ -143,12 +144,14 @@ void Atomicus::LipUpdate()
 		unsigned int aNow = mApp->GetClockTime();
 		float aPos = mLipPos;
 		float aFrame = mLipFrame;
+		// fixes mod, "lipSync": one step an update, whatever the clock says
+		bool aOneStep = FixEnabled("lipSync");
 		do
 		{
 			aPrevious += 100;
 			aPos += mLipStep;
 			aFrame += mLipStep;
-		} while ((int) aPrevious < (int) aNow);
+		} while (!aOneStep && ((int) aPrevious < (int) aNow));
 		mLipPos = aPos;
 		mLipFrame = aFrame;
 		if (mLipStep <= 0.0f)

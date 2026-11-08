@@ -52,7 +52,7 @@ def main():
         open(ini, "w").write(text.replace("Is3D=dword:0", "Is3D=dword:1"))
     with open(os.path.join(d, "stdout.txt"), "w") as out:
         subprocess.run([os.path.join(W, "build", "native", "rundesk.exe"), os.path.join(W, "build", "native", "bookwormadv.exe"),
-                        "-userdir=" + user, "-seed=12345", "-drawevery", "-chapterloadupdates=" + loads, "-startloadupdates=" + startload, "-script=" + os.path.join(d, "script.txt")],
+                        "-userdir=" + user, "-seed=12345", "-drawevery", "-chapterloadupdates=" + loads, "-startloadupdates=" + startload, "-popcaplogo", "-script=" + os.path.join(d, "script.txt")],
                        stdout=out, stderr=subprocess.STDOUT, timeout=280)
 
     small = last - first > 300

@@ -611,10 +611,9 @@ void Board::UpdateGame()
 			mUnknown380C = aLeft;
 			// The rank bar lets the level start once it waits (2) or goes (5)
 			RankBonusWidget* aRankBonus = static_cast<RankBonusWidget*>(mUnknown26A0);
-			if (mUnknown2208 == nullptr && mUnknown1474 == nullptr &&
+			if (mUnknown2208 == nullptr &&
 				(aRankBonus == nullptr || aRankBonus->mState == 2 || aRankBonus->mState == 5)) {
 				if (aLeft <= 0.0f) {
-					// The trial's limit (the copy is always registered) is left out
 					mApp->mVizManager->NextLook();
 					mUnknown158++;
 					NewLevel();
@@ -626,11 +625,9 @@ void Board::UpdateGame()
 					SettleTurn();
 					NextLevelMusic();
 				}
-			} else if (mUnknown1474 == nullptr) {
+			} else {
 				double aNext = (double)aLeft - (double)0.01f;
 				mUnknown380C = aNext <= 2.0 ? 2.0f : (float)aNext;
-			} else {
-				mUnknown380C = 0.01f;
 			}
 		}
 	} else {
@@ -638,7 +635,6 @@ void Board::UpdateGame()
 		mApp->SafeDeleteWidget(mUnknown26AC);
 		mUnknown26AC = nullptr;
 	}
-	// The trial's limit dialog (mUnknown1474) never comes up in a full version
 	mUnknown2898.IncInVal();
 	if (mGameMode == MODE_ZEN)
 		mUnknown8C8.IncInVal();
@@ -744,8 +740,6 @@ void Board::UpdateGame()
 		aFrom = aSlide;
 	}
 	mUnknown25A4 = true;
-	if (mUnknown1474 != nullptr)
-		mUnknown25A4 = false;
 	if (mUnknown3880.mIncRate != 0.0 && !mUnknown3880.HasBeenTriggered())
 		mUnknown25A4 = false;
 	mUnknown3921 = mUnknown3920 && mUnknown25A5 && mUnknown2208 == nullptr && mUnknown14F8 == mUnknown168;
@@ -1204,7 +1198,7 @@ void Board::UpdateGame()
 	if (aGlow < 0.0f)
 		mUnknown20CC = 0;
 	LayoutTube();
-	if (!IsBusy() && mUnknown1474 == nullptr && 0.0f < mShakeX) {
+	if (!IsBusy() && 0.0f < mShakeX) {
 		double aStep = (double)mShakeX * (double)0.1f;
 		double aMax = (double)mWidth * (double)0.015f;
 		float aLeft = mShakeX - (float)(aStep <= aMax ? aStep : aMax);
@@ -1673,7 +1667,7 @@ void Board::UpdateGame()
 	// The cell under the cursor: a tick as it moves onto another gem
 	int aRow = GetRowAt(mUnknown1C04);
 	int aCol = GetColAt(mUnknown1C00);
-	bool aTick = mUnknown1474 == nullptr && mUnknown20D0 && !mUnknown2030 && !(mGameMode == MODE_PUZZLE && mUnknown1324) &&
+	bool aTick = mUnknown20D0 && !mUnknown2030 && !(mGameMode == MODE_PUZZLE && mUnknown1324) &&
 				 !(mUnknown2584 != nullptr && mUnknown2584->mMouseVisible) && mUnknown265C != 4;
 	if (aCol != mUnknown1C10 || aRow != mUnknown1C14) {
 		if (aCol < 0) {
@@ -2226,12 +2220,9 @@ void Board::LevelComplete()
 			ShowRankBonus(mUnknown269C);
 	}
 	TakeHyperspace(nullptr);
-	// The trial's jump (14) ends the game after level 10 of classic or 15 of zen; the copy is registered
-	int aTransition = 8;
-	if (((10 <= mUnknown158 && mGameMode == MODE_CLASSIC) || (15 <= mUnknown158 && mGameMode == MODE_ZEN)) &&
-		!mApp->mRegistered)
-		aTransition = 14;
-	mHyperspace->SetTransition(aTransition);
+	// (the trial's jump, transition 14, which ends an unregistered game after level 10 of classic or 15 of zen, is
+	// registration code, left out)
+	mHyperspace->SetTransition(8);
 	mUnknown20C8 = 1.0f;
 	int aLeft = mCols * mRows;
 	Piece** aCell = mGrid;

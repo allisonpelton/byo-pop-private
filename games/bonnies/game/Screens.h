@@ -242,17 +242,6 @@ public:
 // 0x418e10: the players (the menu's button)
 void choosePlayer();
 
-// 0x4197c0's (the vtable 0x458844, 0x4c bytes): the registration
-class RegisterPanel : public OptionsPanel
-{
-public:
-	void init() override;
-	int handleEvent(Event* theEvent) override;
-};
-
-// 0x4197c0: the registration (theCancel: with a cancel button)
-void showRegister(int theCancel);
-
 // The interstitial (the vtable 0x458ad4, 0x50 bytes)
 class InterstitialScreen : public OptionsPanel
 {

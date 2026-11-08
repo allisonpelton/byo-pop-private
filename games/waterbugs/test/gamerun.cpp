@@ -118,11 +118,6 @@ public:
 		return true;
 	}
 
-	void OpenURL(const char* theUrl) override
-	{
-		std::printf("OpenURL in a test run: %s\n", theUrl);
-	}
-
 	const char* SavePath(const char* theName) override
 	{
 		mSavePath = mOut + "/" + theName;

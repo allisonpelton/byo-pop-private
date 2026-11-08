@@ -1111,6 +1111,19 @@ bool Board::LoadGame()
 	if (!ReadSaveGame(&aBuffer, true))
 		return false;
 
+	// port(mods): the fixes mod's "continueColours" (GAME_NOTES, "Fix candidates"): the save does not hold the colour
+	// count, so the original deals the resumed game's new coins with the level-0 count (one colour fewer at skill 1)
+	// until the next level; this gives it the count SetupLevelParams gives the saved level
+	if (ModFeatureBool("fixes", "continueColours", false))
+	{
+		int aLevel = mLevel;
+		if (mApp->mSkillLevel != 1)
+			aLevel += (mApp->mSkillLevel == 2) ? mTunables.mNormalLevels : mTunables.mHardLevels;
+		mNumColors = (mApp->mGameType == GAMETYPE_PUZZLE) ? mTunables.mPuzzleColors : mTunables.mColors;
+		if ((aLevel < 1) && (mTunables.mFewerColorsFirstLevel) && (mNumColors > 1))
+			mNumColors--;
+	}
+
 	// port(mods): a resumed game is not recorded (Replay.h), and never starts a LiveSplit run
 	delete mRecorder;
 	mRecorder = NULL;
@@ -2987,9 +3000,6 @@ void Board::Update()
 
 	Widget::Update();
 
-	// 0x41d2e0: at update 100 an unregistered Puzzle game shows the "one level only" dialog; not ported
-	// (the build is registered)
-
 	if (mUpdateCnt == 300)
 	{
 		mApp->mMrMoney->mTargetX = 0;
@@ -3252,6 +3262,30 @@ void Board::Update()
 		int aHidden = (int)((1.0 - mMint) * 29.0);
 		if (mMintPixels == aHidden)
 		{
+			// port(mods): the fixes mod's "shakeSettles" (GAME_NOTES, "Fix candidates"): the original never resets the
+			// shake offsets, so a board that survived the overflow countdown keeps its coins displaced
+			if ((mOverflowTicks > 0) && (ModFeatureBool("fixes", "shakeSettles", false)))
+			{
+				int aSettled = 0;
+				for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+				{
+					for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+					{
+						Piece* aPiece = mGrid[aRow][aCol];
+						if ((aPiece != NULL) && ((aPiece->mShakeX != 0) || (aPiece->mShakeY != 0)))
+						{
+							aPiece->mShakeX = 0;
+							aPiece->mShakeY = 0;
+							aSettled++;
+						}
+					}
+				}
+				if (aSettled > 0)
+				{
+					SDL_Log("fixes: shakeSettles: %d coins back in their cells (update %d)", aSettled, mUpdateCnt);
+					MarkDirty();
+				}
+			}
 			mOverflowTicks = 0;
 			mCountdownActive = false;
 		}
@@ -3711,8 +3745,6 @@ void Board::ButtonDepress(int theId)
 		return;
 	RecordInput(Replay::OP_NEXT); // port(mods)
 
-	// 0x41d4c0: an unregistered Puzzle game asks to register before the next level; not ported (the
-	// build is registered)
 	StartNextLevel();
 }
 

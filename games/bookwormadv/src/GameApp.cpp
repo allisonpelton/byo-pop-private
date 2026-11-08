@@ -190,8 +190,12 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 				mChapterLoadUpdates.push_back(atoi(theParamValue.substr(aPos, aComma - aPos).c_str()));
 			aPos = aComma + 1;
 		}
-	} else if (theParamName == "-startloadupdates")
+	} else if (theParamName == "-boardlog")
+		mBoardLogForTests = theParamValue;  // port: tests with real input (TestHooks.cpp)
+	else if (theParamName == "-startloadupdates")
 		mStartLoadWanted = theParamValue.empty() ? -1 : atoi(theParamValue.c_str());
+	else if (theParamName == "-popcaplogo")
+		mPopCapLogo = true;  // port: the startup's PopCap logo as the original shows it, for comparisons (TitleScreen)
 	else
 		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
 }
@@ -236,12 +240,14 @@ void GameApp::UpdateFrames()
 	// (the original's music interface did this in its Update, the end of SexyAppBase::UpdateFrames)
 	if (mSongPlayer != nullptr)
 		mSongPlayer->Update();
+	if (!mBoardLogForTests.empty())
+		LogBoardForTests();
+	if (!mRetriesForTests.empty())
+		RunRetriesForTests();
 	// port: every 100 updates the original checked the trial's limits of its marketing modes (an hour's play,
 	// or the Hydra); the port is the full game
-	if (mCountsTime) {
-		mAppTime++;
+	if (mCountsTime)
 		mUserUpdates++;
-	}
 	mSoundPlayer->Update();
 }
 
@@ -494,10 +500,6 @@ void GameApp::ButtonDepress(int theId)
 		case DIALOG_NO_WINDOWED:  // the options' message
 			KillDialog(DIALOG_NO_WINDOWED);
 			break;
-		case DIALOG_NEW_PROFILE:  // the trial's "new profile?": the players' dialog
-			KillDialog(DIALOG_NEW_PROFILE);
-			mMainMenu->ShowUserDialog();
-			break;
 		case DIALOG_CONTINUE_GAME:  // the arena's saved run
 			mMainMenu->ContinueArena(true);
 			KillDialog(DIALOG_CONTINUE_GAME);
@@ -509,11 +511,6 @@ void GameApp::ButtonDepress(int theId)
 			break;
 		case DIALOG_ARENA_WIN:  // its Continue (the original has no case of its own, but kills the dialog)
 			KillDialog(DIALOG_ARENA_WIN);
-			break;
-		case DIALOG_TRIAL_COMPLETE:  // "buy now"
-			// port: the original asked the trial's window (0x44fdb0) and went on to its buy screen (0x451c20); the
-			// port has no trial, so this dialog is never made
-			KillDialog(DIALOG_TRIAL_COMPLETE);
 			break;
 		default:
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
@@ -539,10 +536,6 @@ void GameApp::ButtonDepress(int theId)
 			// a new run (the original killed the dialog here and again below)
 			mProfile->ResetTimedMode();
 			StartNewGameTransition();
-		} else if (aDialogId == DIALOG_TRIAL_COMPLETE) {
-			// port: the original went back to the main menu unless the trial's window (0x44fdb0) said the game was
-			// bought; the port has none
-			StartToMenuTransition();
 		} else if (aDialogId != DIALOG_CONFIRM && aDialogId != DIALOG_OK)
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
 		KillDialog(aDialogId);
@@ -560,11 +553,11 @@ void GameApp::ButtonDepress(int theId)
 	} else {
 		switch (theId) {
 		case BookManager::BUTTON_BACK:
-			if (mBookManager != nullptr && !mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL)
+			if (mBookManager != nullptr && mBookManager->mState == BookManager::STATE_NORMAL)
 				StartToMenuTransition();
 			break;
 		case BookManager::BUTTON_CONTINUE:
-			if (!mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL &&
+			if (mBookManager->mState == BookManager::STATE_NORMAL &&
 			    mBookManager->IsContinueEnabled() && mBookManager->CallLinkedMethod("CanClickContinue", 0).Bool()) {
 				// the tutorial's arrows hear a click at the corner (the whole-screen hot spot) and go
 				if (mArrowHintManager != nullptr) {
@@ -577,12 +570,9 @@ void GameApp::ButtonDepress(int theId)
 			break;
 		case BookManager::BUTTON_OPTIONS:
 		case TreasureScreen::BUTTON_OPTIONS:
-			if (!mQueuedHydraLockout)
-				ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
+			ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
 			break;
 		case TreasureScreen::BUTTON_BACK:
-			if (mQueuedHydraLockout)
-				break;
 			if (mTimedMode)
 				StartToMenuTransition();
 			else
@@ -770,10 +760,6 @@ void GameApp::TitleScreenDone()
 		return;
 	}
 	mCountsTime = true;
-	if (!RegistryReadInteger("AppTime", &mAppTime))
-		mAppTime = 0;
-	if (mAppTime < 0)
-		mAppTime = 0;
 	if (HasPlayedGameBefore()) {
 		mTitleToMainMenu = true;
 		mWidgetManager->RemoveWidget(mTitleScreen);

@@ -25,14 +25,8 @@ class TitleScreen : public Widget, public ButtonListener
 public:
 	SevenSeasApp*		mApp;                   // +0x5c
 	double				mProgress;              // +0x60 the loading bar's fill, 0..1
-	double				mDelayProgress;         // +0x68
 	bool				mPlayShown;             // +0x70 the play link has appeared
-	int					mPlaysLeft;             // +0x74
-	bool				mRegisterClicked;       // +0x78
-	bool				mDelay;                 // +0x79
-	int					mDivisor;               // +0x7c
 	int					mSparkles[25][3];       // +0x80: x, y, frame
-	HyperlinkWidget*	mRegisterLink;          // +0x1ac id 0
 	HyperlinkWidget*	mPlayLink;              // +0x1b0 id 1
 
 public:

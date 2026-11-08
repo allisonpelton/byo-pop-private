@@ -122,3 +122,13 @@ keys and clicks through "Level 1 complete", level 2, game over and the high-scor
 (Exit, New Game, Yes), Average and "No" in the Continue dialog: the arrow shows on the square under the pirate's box and the click
 moves the ship, as natively. Not done on the web: a whole Hard game, and full screen through the page (the pane's Fullscreen button
 did not enter full screen: `document.fullscreenElement` stayed null with no console error, so it is unverified there).
+
+Web, a whole Hard game by a driver (2026-11-08): `tools/web/hard.js` in the test page (`tools/build.sh web-test`, `?player=1&assets=1&fast=1`),
+the moves taken from the port's own bot through `move` and played as the page's DOM events (the Hard wheel and Play by their
+positions in `state`'s menu, then every sail, broadside, dialog button and name box of the game): a fresh profile's Hard game from the
+title to the high-score screen (level 4, score 820), no page error. Full screen through the page was not tried (the pane cannot enter
+it), so a scaled canvas stands in for it, as Bejeweled did: the canvas drawn at 1280 x 960 by CSS (the build has no `&scale=2`), the title,
+the menu's Hard wheel and Play, and 15 more moves from the bot, no page error. The driver found one fault of the port, a soft lock that
+the earlier passes (which played with the warnings already switched off in their profiles) had missed: on a new Hard game with a fresh profile
+the first level's whirlpool warning sat hidden behind the board and took every click. The original closes it in StartGame
+(0x41eef0, `ShowWarning(4)` then `KillDialog(14)`); the port now does too (GAME_NOTES section 5).

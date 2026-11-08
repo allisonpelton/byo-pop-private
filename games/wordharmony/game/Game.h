@@ -189,6 +189,8 @@ public:
 	engine::SoundBank* mSounds;             // +0x710: config\globalSounds.xml
 
 	static Game* sInstance;
+	// port: -splashhold keeps the original's two seconds of splash (updateSplash), for comparisons with it
+	static bool sSplashHold;
 
 private:
 	// 0x401090: the splash screen
@@ -235,7 +237,6 @@ private:
 	// 0x404170: the load screen (theAtOnce: the continue line without a fade)
 	void showLoadScreen(bool theShow, bool theAtOnce);
 	// 0x404320: the main menu's game link
-	void openLink();
 	// 0x4047d0: a level's start: its introduction on the load screen
 	void startLevel();
 	// 0x4049b0: a level's end: the bonus lines

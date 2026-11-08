@@ -4,10 +4,12 @@
 //   -gamedir=<dir>   folder containing CosmicBugs.exe (read for the game's texts, never run), art.bbk, art8.bbk,
 //                    animations/ and audio/
 //   -userdir=<dir>   writable folder for cp.cfg (the settings) and cb.dat (the players and high scores)
+//   -modsdir=<dir>   the mods' folder (default: mods-cosmicbugs beside the exe); -nomods plays without any
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "CosmicBugsApp.h"
+#include "platform/ModManager.h"
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -33,6 +35,19 @@ static std::string ArgValue(int argc, char** argv, const char* theKey)
 			return a + n + 1;
 	}
 	return "";
+}
+
+static bool HasFlag(int argc, char** argv, const char* theKey)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (!strcmp(a, theKey))
+			return true;
+	}
+	return false;
 }
 
 // The game's art banks, data and sounds, and its exe for the texts
@@ -82,6 +97,7 @@ int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
+	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	// port (web): its page (web/shell.html, games/cosmicbugs/web/page.js) mounts its own IndexedDB-backed folder,
@@ -90,6 +106,8 @@ int main(int argc, char** argv)
 		gameDir = "/cbpersist/game";
 	if (userDir.empty())
 		userDir = "/cbpersist/userdata";
+	if (modsDir.empty())
+		modsDir = "/cbpersist/mods";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();
@@ -101,6 +119,8 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+	if (modsDir.empty())
+		modsDir = ExeDir() + "/mods-cosmicbugs";
 #endif
 
 #ifndef __EMSCRIPTEN__
@@ -127,9 +147,13 @@ int main(int argc, char** argv)
 	Platform::MakeDirs(userDir);
 	// Web: saves written as the page was closed may only have reached localStorage
 	Platform::RestoreUserDataBackup(userDir);
+	Platform::MakeDirs(modsDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
-	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+	Platform::ModManager::Get().SetModsDir(modsDir);
+	if (!HasFlag(argc, argv, "nomods"))
+		Platform::ModManager::Get().Refresh();
+	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	// The music is five MO3 modules (BASS in the original): libopenmpt
 	Platform::RegisterOpenMPTModules();

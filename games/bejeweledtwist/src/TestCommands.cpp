@@ -12,7 +12,16 @@
 #include "Piece.h"
 #include "Profile.h"
 #include "TwistButton.h"
+#include "TwistDialog.h"
+#include "Tutorial.h"
+#include "AwardTelly.h"
+#include "Gates.h"
+#include "MenuButtonWidget.h"
+#include "MenuPanels.h"
+#include "RankBonusWidget.h"
 #include "WheelSpin.h"
+#include "WidgetManager.h"
+#include <SDL.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -22,10 +31,14 @@ using namespace Sexy;
 
 namespace {
 
+// Answers go to SDL's log, as the framework's own "OK" and "ERROR" do (natively stderr, on the web the page's log):
+// on the web a game line on stdout once lost its end of line in the page's terminal buffer, which then held every later
+// answer back
 void Reply(const std::string& theLine)
 {
-	printf("%s\n", theLine.c_str());
+	SDL_Log("%s", theLine.c_str());
 	fflush(stdout);
+	fflush(stderr);
 }
 
 void ReplyOK(const ScriptCommand& theCommand)
@@ -72,15 +85,26 @@ const char kColorLetters[] = "rwgypob";
 }  // namespace
 
 // The screen a driver sees: a game (with its options over it), the credits, the mode select, a menu panel
+// The board's rank bar while it is up, or null
+static RankBonusWidget* TestRankBar(Board* theBoard)
+{
+	RankBonusWidget* aRank = dynamic_cast<RankBonusWidget*>(theBoard->mUnknown26A0);
+	return aRank != nullptr && aRank->mWidgetManager != nullptr ? aRank : nullptr;
+}
+
 std::string WinTwistApp::TestScreen()
 {
 	if (mCredits != nullptr)
 		return "credits";
+	if (mMainMenu != nullptr && mMainMenu->mEndStats != nullptr)
+		return "endstats";  // the stats after a game, with their Continue
 	if (mBoard != nullptr && !mBoard->mUnknown37C4)
 		return mOptionsDialog != nullptr ? "options" : "game";
 	if (dynamic_cast<Mandala*>(mUnknownF24) != nullptr)
 		return GetDialog(10000) != nullptr ? "continue" : "modeselect";  // the question whether to go on with a save
 	if (mMainMenu != nullptr && mMainMenu->mParent != nullptr) {
+		if (mMainMenu->mNewUserPanel != nullptr)
+			return "newplayer";  // the name of a new player is asked (the first launch)
 		switch (mMainMenu->mPanel) {
 		case Menu::PANEL_MAIN: return "menu";
 		case Menu::PANEL_PROFILE: return "profile";
@@ -126,6 +150,10 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 	if (aCommand == "state") {
 		std::string aScreen = TestScreen();
 		std::string aLine = "STATE {\"screen\":\"" + aScreen + "\"";
+		// the app's update count, whether the window has the focus and whether it is windowed (for drivers that
+		// check focus, minimize and Alt+Enter)
+		aLine += StrFormat(",\"updates\":%d,\"active\":%s,\"windowed\":%s", mUpdateCount, mActive ? "true" : "false",
+			mIsWindowed ? "true" : "false");
 		if (aBoard != nullptr) {
 			aLine += StrFormat(",\"mode\":\"%s\",\"level\":%d,\"score\":%d,\"moves\":%d,\"progress\":[%d,%d],\"busy\":%s,\"over\":%s",
 				ModeName(aBoard->mGameMode), aBoard->mUnknown158, aBoard->mUnknown168, aBoard->mUnknown23C,
@@ -134,6 +162,19 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 				aLine += StrFormat(",\"timer\":%d", aBoard->mUnknown3458 / 100);
 			if (gWheelSpin != nullptr)
 				aLine += ",\"wheel\":true";  // the second chance's wheel is up
+			if (TestRankBar(aBoard) != nullptr)
+				aLine += ",\"rank\":true";
+			if (dynamic_cast<Mandala*>(mUnknownF24) != nullptr && static_cast<Mandala*>(mUnknownF24)->mMode != 0)
+				aLine += ",\"zenjump\":true";  // the zen jump's mode select over the game  // the rank bar after a level or a game (and the new rank's badge)
+			// a tip or the tutorial (+0x2584): its wait (Tutorial::STATE_), whether its dialog with buttons holds
+			// the board (+0x210) and the square a forced move turns (+0x2404, +0x2400)
+			if (aBoard->mUnknown2584 != nullptr) {
+				Tutorial* aTip = aBoard->mUnknown2584;
+				aLine += StrFormat(",\"tip\":{\"wait\":%d,\"dialog\":%s", aTip->mState, aTip->mUnknown210 ? "true" : "false");
+				if (0 <= aBoard->mUnknown2400 && 0 <= aBoard->mUnknown2404)
+					aLine += StrFormat(",\"forced\":[%d,%d]", aBoard->mUnknown2404, aBoard->mUnknown2400);
+				aLine += "}";
+			}
 			// the board: a row a string, a gem by its colour's letter (. for none); the specials listed apart
 			std::string aRows;
 			std::string aSpecials;
@@ -244,12 +285,85 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		// turn that makes a line of three, one with a bomb in the line at once. FindMove moves the cursor over every
 		// cell to ask, so this reads the gems into a grid of its own and turns them there: nothing in the game moves
 		// and nothing is drawn from a generator. A turn is clockwise about the corner at (row + 1, col + 1).
+		// The end of a game, as a player clicks through it: the rank bar (the new rank's Continue when its badge is
+		// up, otherwise the bar itself once it waits), the stats' Continue, and on the high scores the gate button that
+		// opened them, which closes them and leaves the main menu. None of them leads out of the game.
+		std::string aScreen = TestScreen();
+		auto aClick = [&](Widget* theWidget, const char* theKind) {
+			Point aPos = theWidget->GetAbsPos();
+			int aX = aPos.mX + theWidget->mWidth / 2;
+			int aY = aPos.mY + theWidget->mHeight / 2;
+			Reply(StrFormat("MOVE {\"kind\":\"%s\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}", theKind, aX, aY,
+				aX, aY));
+		};
+		if (aBoard != nullptr && TestRankBar(aBoard) != nullptr) {
+			RankBonusWidget* aRank = TestRankBar(aBoard);
+			AwardTelly* aTelly = aRank->mTelly;
+			if (aTelly != nullptr && aTelly->mButton != nullptr && !aTelly->mButton->mDisabled &&
+				aTelly->mWidgetManager != nullptr) {
+				aClick(aTelly->mButton, "continue");
+			} else if (aTelly == nullptr && 1 < aRank->mState && aRank->mState < 5) {
+				int aX = aRank->mCenterX;
+				int aY = (int)aRank->mBarY + 20;
+				Reply(StrFormat("MOVE {\"kind\":\"continue\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}", aX, aY,
+					aX, aY));
+			} else {
+				Reply("MOVE null");
+			}
+			return true;
+		}
+		if (aScreen == "endstats") {
+			EndStats* aStats = mMainMenu->mEndStats;
+			if (aStats->mState == 1 && aStats->mContinueButton != nullptr && !aStats->mContinueButton->mDisabled)
+				aClick(aStats->mContinueButton, "continue");
+			else
+				Reply("MOVE null");
+			return true;
+		}
+		if (aScreen == "highscores" && aBoard == nullptr) {
+			// after a game the bar under the scores (ShowBar) holds Play Again and Main Menu: its quit button leaves for
+			// the main menu (the topmost, since the bar keeps an old pair under a new one)
+			HighScoresPanel* aScores = mMainMenu != nullptr ? mMainMenu->mHighScoresPanel : nullptr;
+			if (aScores != nullptr && aScores->mBar != nullptr && aScores->mBar->mParent != nullptr &&
+				(aScores->mBar->mWidgetFlagsMod.mRemoveFlags & WIDGETFLAGS_ALLOW_MOUSE) == 0) {
+				TwistButton* aQuit = nullptr;
+				for (Widget* aChild : aScores->mBar->mWidgets) {
+					TwistButton* aButton = dynamic_cast<TwistButton*>(aChild);
+					if (aButton != nullptr && aButton->mId == HighScoresPanel::BUTTON_QUIT)
+						aQuit = aButton;
+				}
+				if (aScores->mState == 0 && !aScores->mBarPressed && aQuit != nullptr && !aQuit->mDisabled)
+					aClick(aQuit, "back");
+				else
+					Reply("MOVE null");
+				return true;
+			}
+			if (mGates != nullptr && mGates->mScoresButton != nullptr && mGates->mButtonsOn &&
+				!mGates->mScoresButton->mDisabled)
+				aClick(mGates->mScoresButton, "back");
+			else
+				Reply("MOVE null");
+			return true;
+		}
 		if (aBoard == nullptr) {
 			Reply("MOVE null");
 			return true;
 		}
-		// The second chance's wheel: -autoplay stops it as soon as its button can be pressed (WheelSpin::UpdateState)
-		if (gWheelSpin != nullptr) {
+		// The zen jump (Board::ShowZenJump, once a player): the mode select over the game asks whether to go on or move
+		// to the other mode; the board's own mode's button goes on (Classic's over Classic, Zen's over Zen)
+		Mandala* aJump = dynamic_cast<Mandala*>(mUnknownF24);
+		if (aJump != nullptr && aJump->mMode != 0) {
+			ModeButton* aStay = aJump->mButtons.size() == 4 ? aJump->mButtons[aJump->mMode == 1 ? 0 : 3] : nullptr;
+			if (aJump->mState == 1 && aStay != nullptr && aStay->mVisible && !aStay->mDisabled)
+				aClick(aStay, "continue");
+			else
+				Reply("MOVE null");
+			return true;
+		}
+		// The second chance's wheel: -autoplay stops it as soon as its button can be pressed (WheelSpin::UpdateState).
+		// Before that its tip ("one last chance") may hold it with a dialog, whose button comes below.
+		bool aTipDialog = aBoard->mUnknown2584 != nullptr && aBoard->mUnknown2584->mUnknown210;
+		if (gWheelSpin != nullptr && !aTipDialog) {
 			TwistButton* aStop = gWheelSpin->mButton;
 			if (gWheelSpin->mState != 5 || aStop == nullptr || aStop->mDisabled) {
 				Reply("MOVE null");
@@ -260,6 +374,45 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 			Reply(StrFormat("MOVE {\"kind\":\"stop\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}", aX, aY, aX, aY));
 			return true;
 		}
+		// A tip or the tutorial: its dialog's first button once the dialog has glided into place, then nothing while
+		// it waits on its seconds or a forced move has no square yet, and a forced move's own square (the board
+		// turns no other while +0x2400 is set)
+		if (aBoard->mUnknown2584 != nullptr) {
+			Tutorial* aTip = aBoard->mUnknown2584;
+			TwistDialog* aDialog = aTip->mDialog;
+			if (aTip->mUnknown210) {
+				DialogButton* aButton = aDialog != nullptr ? aDialog->mYesButton : nullptr;
+				if (aButton == nullptr || aDialog->mClosing || (0 <= aTip->mDialogX &&
+					(aDialog->mX != aTip->mDialogX || aDialog->mY != aTip->mDialogY))) {
+					Reply("MOVE null");
+					return true;
+				}
+				int aX = aDialog->mX + aButton->mX + aButton->mWidth / 2;
+				int aY = aDialog->mY + aButton->mY + aButton->mHeight / 2;
+				Reply(StrFormat("MOVE {\"kind\":\"dialog\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}", aX, aY, aX,
+					aY));
+				return true;
+			}
+			if (aTip->mState == Tutorial::STATE_SECONDS) {
+				Reply("MOVE null");
+				return true;
+			}
+			if (0 <= aBoard->mUnknown2400 && 0 <= aBoard->mUnknown2404) {
+				if (aBoard->IsBusy()) {
+					Reply("MOVE null");
+					return true;
+				}
+				int aX = aBoard->mX + aBoard->GetColX(aBoard->mUnknown2400) + gGemWidth;
+				int aY = aBoard->mY + aBoard->GetRowY(aBoard->mUnknown2404) + gGemHeight;
+				Reply(StrFormat("MOVE {\"kind\":\"forced\",\"row\":%d,\"col\":%d,\"input\":[{\"move\":[%d,%d]},"
+					"{\"click\":[%d,%d]}]}", aBoard->mUnknown2404, aBoard->mUnknown2400, aX, aY, aX, aY));
+				return true;
+			}
+			if (aTip->mState == Tutorial::STATE_MOVE) {
+				Reply("MOVE null");
+				return true;
+			}
+		}
 		int aRows = aBoard->mRows;
 		int aCols = aBoard->mCols;
 		std::vector<int> aGrid(aRows * aCols, -1);  // a colour, or -1 for a gem that matches nothing
@@ -269,10 +422,13 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 			for (int aCol = 0; aCol < aCols; aCol++) {
 				Piece* aPiece = aBoard->GetPieceAt(aRow, aCol);
 				int i = aRow * aCols + aCol;
-				if (aPiece == nullptr || aPiece->IsFlagSet(Piece::FLAG_LOCKED)) {
+				if (aPiece == nullptr) {
 					aFixed[i] = 1;
 					continue;
 				}
+				// a locked gem cannot turn, but it still makes a line with the gems turned next to it
+				if (aPiece->IsFlagSet(Piece::FLAG_LOCKED))
+					aFixed[i] = 1;
 				if (!aPiece->IsFlagSet(Piece::FLAG_COAL) && !aPiece->IsFlagSet(Piece::FLAG_DEVIL) &&
 					0 <= aPiece->mColor && aPiece->mColor <= 6)
 					aGrid[i] = aPiece->mColor;
@@ -340,6 +496,40 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 				}
 			}
 		}
+		if (aBestRow < 0 && !aBoard->IsBusy() && 0 <= aBoard->mUnknown201C && 0 <= aBoard->mUnknown2020) {
+			// the grid found none, but the board's own FindMove (SettleTurn keeps its answer at +0x201c, +0x2020) did:
+			// its match check (MoveCursor) is the game's, so its move goes first (a web Classic board had one the grid
+			// missed)
+			aBestRow = aBoard->mUnknown201C;
+			aBestCol = aBoard->mUnknown2020;
+		}
+		bool aMatches = 0 <= aBestRow;
+		if (aBestRow < 0 && !aBoard->IsBusy()) {
+			// no turn makes a line: -autoplay then clicks a random square (Rand), which would draw from the game's own
+			// generator; the bot takes a square it can turn instead, which makes no line but changes the board: the
+			// squares counted top down and left to right, the one the board's move count picks, so that a board with
+			// no line is not turned four times about one square back to where it was
+			int aCount = 0;
+			for (int aPass = 0; aPass < 2 && aBestRow < 0; aPass++) {
+				int aIndex = 0;
+				int aPick = aPass == 0 ? 0 : aBoard->mUnknown23C % aCount;
+				for (int aRow = 0; aRow < aRows - 1 && aBestRow < 0; aRow++) {
+					for (int aCol = 0; aCol < aCols - 1 && aBestRow < 0; aCol++) {
+						int aTL = aRow * aCols + aCol;
+						if (!aFixed[aTL] && !aFixed[aTL + 1] && !aFixed[aTL + aCols] && !aFixed[aTL + aCols + 1]) {
+							if (aPass == 0)
+								aCount++;
+							else if (aIndex++ == aPick) {
+								aBestRow = aRow;
+								aBestCol = aCol;
+							}
+						}
+					}
+				}
+				if (aCount == 0)
+					break;
+			}
+		}
 		if (aBestRow < 0) {
 			Reply("MOVE null");
 			return true;
@@ -347,8 +537,9 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		// the click -autoplay makes for it: the corner the turn goes about, in the board's (and the game's) pixels
 		int aX = aBoard->mX + aBoard->GetColX(aBestCol) + gGemWidth;
 		int aY = aBoard->mY + aBoard->GetRowY(aBestRow) + gGemHeight;
-		Reply(StrFormat("MOVE {\"kind\":\"twist\",\"row\":%d,\"col\":%d,\"bomb\":%s,\"input\":[{\"move\":[%d,%d]},"
-			"{\"click\":[%d,%d]}]}", aBestRow, aBestCol, aBestBomb ? "true" : "false", aX, aY, aX, aY));
+		Reply(StrFormat("MOVE {\"kind\":\"twist\",\"row\":%d,\"col\":%d,\"bomb\":%s,\"match\":%s,\"input\":"
+			"[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}", aBestRow, aBestCol, aBestBomb ? "true" : "false",
+			aMatches ? "true" : "false", aX, aY, aX, aY));
 		return true;
 	}
 

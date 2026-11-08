@@ -48,7 +48,7 @@ public:
 	CurvedVal mDarken;           // +0x3a0: the screen goes dark before the zen jump's new game
 	int mEggCount = 0;           // +0x410: the times the mouse went over the buttons from the last to the first
 	int mEggNext = 0;            // +0x414: the button that counts next
-	bool mRegistered;            // +0x418: the app's mRegistered when it was made
+	// (+0x418: the app's registration when it was made, registration code, left out)
 	bool mEgg = false;           // +0x419: the next update starts the app's 0x75fd40
 
 	explicit Mandala(int theMode);  // 0x7243b1

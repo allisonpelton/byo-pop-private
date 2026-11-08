@@ -644,85 +644,8 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 		}
 		aFound = true;
 		mApp->SetCursor(CURSOR_HAND);
-		if (anItem->mPressed) switch (i) {
-		case ITEM_OPTIONS:
-			mFromTitle = false;
-			mApp->ShowOptionsDialog();
-			break;
-		case ITEM_QUIT:
-			AskReallyQuit();
-			break;
-		case ITEM_ADVENTURE:
-			// port: the trial's end (0x451c80, its dialog) is left out
-			if (!mAdventureAvailable) {
-				mApp->DoOkDialog(GT(0x7aebf8), GT(0x7aeb50), "", IMAGE_DIALOG_BANNER_HOWTOPLAY);
-				break;
-			}
-			mFromTitle = false;
-			if (LuaLib::CallLua("main.NeedsIntroCutscene", 0).Bool()) {
-				SetDisabled(true);
-				mApp->PlayMainMenuCutScene();
-			} else if (!mApp->mProfile->GetBool("InMiniGame") && !mApp->mProfile->GetBool("InGame")) {
-				SetDisabled(true);
-				mApp->StartNewGameTransition();
-			} else {
-				// a game in progress: the book under the menu, then the scripts' StartGame once the curtain is closed
-				SetDisabled(true);
-				mApp->InitGameScreen(false);
-				mApp->mWidgetManager->BringToFront(this);
-				lua_pushboolean(mApp->mLua->L, 1);
-				mApp->mBookManager->CallLinkedMethod("InitSavedGame", 1);
-				mApp->StartSavedGameTransition();
-			}
-			break;
-		case ITEM_ARENA:
-			// 0x47bc2e: only once the arena is unlocked and the player is in the second book or the first's sixth
-			// chapter
-			if (mApp->mProfile->KeyExists("UnlockedArena") && mApp->mProfile->GetBool("UnlockedArena")) {
-				if (mApp->mProfile->GetInt("CurrentBook") > 1 || mApp->mProfile->GetInt("CurrentChapter") >= 6) {
-					SetDisabled(true);
-					StartArena();
-				}
-				mApp->SetCursor(CURSOR_POINTER);
-			}
-			break;
-		case ITEM_HALL_OF_FAME:
-			// 0x47be8f: the menu goes dim, the whole curtain closes, and the hall of fame comes (GameApp::OpenHallOfFame)
-			SetDisabled(true);
-			mApp->DoFullCurtainTransition("");
-			mApp->mCurtainCallback = OpenHallOfFameCallback;
-			mApp->mCurtainCallbackObject = mApp;
-			mApp->SetCursor(CURSOR_POINTER);
-			break;
-		case ITEM_MINI_GAMES:
-			// 0x47b9cf: only once the mini-games are unlocked: the menu goes dim, the whole curtain closes, and the
-			// mini-games' menu comes (GameApp::ShowMiniGameMenu)
-			if (mApp->mProfile->KeyExists("UnlockedMiniGames") && mApp->mProfile->GetBool("UnlockedMiniGames")) {
-				SetDisabled(true);
-				mApp->DoFullCurtainTransition("");
-				mApp->mCurtainCallback = ShowMiniGameMenuCallback;
-				mApp->mCurtainCallbackObject = mApp;
-				mFromTitle = false;
-			}
-			mApp->SetCursor(CURSOR_POINTER);
-			break;
-		case ITEM_TOME:
-			// 0x47bd24: only once the tome is unlocked: the whole curtain closes over the menu, then the tome comes
-			// (the original wrote out what AddStatsBook does for it)
-			if (mApp->mProfile != nullptr && mApp->mProfile->KeyExists("UnlockedBestiary") &&
-			    mApp->mProfile->GetBool("UnlockedBestiary")) {
-				mApp->AddStatsBook(false, true, false);
-				CloseTooltips();
-			}
-			mApp->SetCursor(CURSOR_POINTER);
-			break;
-		case ITEM_FILM_REEL:
-			// 0x47bef8: the media player, the same way
-			mApp->AddStatsBook(false, false, true);
-			CloseTooltips();
-			mApp->SetCursor(CURSOR_POINTER);
-			break;
-		}
+		if (anItem->mPressed)
+			ActivateItem(i);
 		anItem->mFadeTarget = 128;
 		anItem->mFadeDelta = 3;
 		anItem->mPressed = false;
@@ -732,6 +655,90 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			anItem->mDisabled = true;
 	if (!aFound && mApp->GetCursor() == CURSOR_HAND)
 		mApp->SetCursor(CURSOR_POINTER);
+}
+
+// port: a pressed item's action, from the loop above (also the test commands' "goto", TestHooks.cpp)
+void MainMenu::ActivateItem(int theItem)
+{
+	switch (theItem) {
+	case ITEM_OPTIONS:
+		mFromTitle = false;
+		mApp->ShowOptionsDialog();
+		break;
+	case ITEM_QUIT:
+		AskReallyQuit();
+		break;
+	case ITEM_ADVENTURE:
+		// port: the trial's end (0x451c80, its dialog) is left out
+		if (!mAdventureAvailable) {
+			mApp->DoOkDialog(GT(0x7aebf8), GT(0x7aeb50), "", IMAGE_DIALOG_BANNER_HOWTOPLAY);
+			break;
+		}
+		mFromTitle = false;
+		if (LuaLib::CallLua("main.NeedsIntroCutscene", 0).Bool()) {
+			SetDisabled(true);
+			mApp->PlayMainMenuCutScene();
+		} else if (!mApp->mProfile->GetBool("InMiniGame") && !mApp->mProfile->GetBool("InGame")) {
+			SetDisabled(true);
+			mApp->StartNewGameTransition();
+		} else {
+			// a game in progress: the book under the menu, then the scripts' StartGame once the curtain is closed
+			SetDisabled(true);
+			mApp->InitGameScreen(false);
+			mApp->mWidgetManager->BringToFront(this);
+			lua_pushboolean(mApp->mLua->L, 1);
+			mApp->mBookManager->CallLinkedMethod("InitSavedGame", 1);
+			mApp->StartSavedGameTransition();
+		}
+		break;
+	case ITEM_ARENA:
+		// 0x47bc2e: only once the arena is unlocked and the player is in the second book or the first's sixth
+		// chapter
+		if (mApp->mProfile->KeyExists("UnlockedArena") && mApp->mProfile->GetBool("UnlockedArena")) {
+			if (mApp->mProfile->GetInt("CurrentBook") > 1 || mApp->mProfile->GetInt("CurrentChapter") >= 6) {
+				SetDisabled(true);
+				StartArena();
+			}
+			mApp->SetCursor(CURSOR_POINTER);
+		}
+		break;
+	case ITEM_HALL_OF_FAME:
+		// 0x47be8f: the menu goes dim, the whole curtain closes, and the hall of fame comes (GameApp::OpenHallOfFame)
+		SetDisabled(true);
+		mApp->DoFullCurtainTransition("");
+		mApp->mCurtainCallback = OpenHallOfFameCallback;
+		mApp->mCurtainCallbackObject = mApp;
+		mApp->SetCursor(CURSOR_POINTER);
+		break;
+	case ITEM_MINI_GAMES:
+		// 0x47b9cf: only once the mini-games are unlocked: the menu goes dim, the whole curtain closes, and the
+		// mini-games' menu comes (GameApp::ShowMiniGameMenu)
+		if (mApp->mProfile->KeyExists("UnlockedMiniGames") && mApp->mProfile->GetBool("UnlockedMiniGames")) {
+			SetDisabled(true);
+			mApp->DoFullCurtainTransition("");
+			mApp->mCurtainCallback = ShowMiniGameMenuCallback;
+			mApp->mCurtainCallbackObject = mApp;
+			mFromTitle = false;
+		}
+		mApp->SetCursor(CURSOR_POINTER);
+		break;
+	case ITEM_TOME:
+		// 0x47bd24: only once the tome is unlocked: the whole curtain closes over the menu, then the tome comes
+		// (the original wrote out what AddStatsBook does for it)
+		if (mApp->mProfile != nullptr && mApp->mProfile->KeyExists("UnlockedBestiary") &&
+		    mApp->mProfile->GetBool("UnlockedBestiary")) {
+			mApp->AddStatsBook(false, true, false);
+			CloseTooltips();
+		}
+		mApp->SetCursor(CURSOR_POINTER);
+		break;
+	case ITEM_FILM_REEL:
+		// 0x47bef8: the media player, the same way
+		mApp->AddStatsBook(false, false, true);
+		CloseTooltips();
+		mApp->SetCursor(CURSOR_POINTER);
+		break;
+	}
 }
 
 void MainMenu::AskReallyQuit()

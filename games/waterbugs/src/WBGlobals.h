@@ -80,15 +80,12 @@ extern int gFirstWeapon;                   // 0x46003c  no orbiting weapon has b
 extern int gLevelInSet;                    // 0x46e5ec
 extern int gMouseX;                        // 0x46e5bc
 extern int gMouseY;                        // 0x46e5c0
-extern int gTrial;                         // 0x46e5c4
-extern int gTrialLeft;                     // 0x460044  ms
 extern int gLives;                         // 0x460040
 extern float gBeamSpeed;                   // 0x460038  the ship's beams' speed at the start
 extern int gDifficulty;                    // 0x46e5e0  -1, 0 or 1 (the options' cycle)
 extern int gAutoFire;                      // 0x460028  the shooter mode: 0 manual, 1 auto
 extern int gQuit;                          // 0x46e5d0
 extern int gFirstRun;                      // 0x46e5d4  cb.dat was missing
-extern char gUrl[0x200];                   // 0x46e3a8  opened when the game ends
 extern int gFrame;                         // 0x460a1c  updates
 extern HighScore gHighScores[9];           // 0x46e250
 extern List<FontEntry> gFonts;             // 0x470e4c
@@ -132,6 +129,7 @@ void GameInit();                                                 // 0x40d030
 void FreeAll();                                                  // 0x40d590
 void GoToScreen();                                               // 0x40d5e0: the screen of kind gGoTo
 void GameStep();                                                 // 0x40d890
+bool LeaveScreen();                                              // GameStep's change of screen to gGoTo's (false: no level is left)
 void GameDraw();                                                 // 0x40d070
 // The start (WBStart.cpp)
 extern char gGameFile[0x100];              // 0x4622e0  the game file read next

@@ -1,6 +1,7 @@
 // The enemies (0x404fc0..0x40ab70): rollers bounce about the open cells, walkers keep to the edges; a beam an enemy
 // touches gets a beamrider that runs back along it to the ship
 
+#include "CBFixes.h"
 #include "CBLevel.h"
 #include "R64Blit.h"
 
@@ -537,8 +538,8 @@ void Enemy_Shield(Enemy* theEnemy)
 		Obj_Init(aShield);
 		theEnemy->shield = aShield;
 		aShield->x = theEnemy->x;
-		// (sic: the original's y is the enemy's x, until the next Enemy_UpdateShield)
-		theEnemy->shield->y = theEnemy->x;
+		// (sic: the original's y is the enemy's x, until the next Enemy_UpdateShield; the fixes mod's shieldFlash)
+		theEnemy->shield->y = gFixes.shieldFlash ? theEnemy->y : theEnemy->x;
 		theEnemy->shield->vx = 0.0f;
 		theEnemy->shield->vy = 0.0f;
 		theEnemy->shield->anim = Animation_Find("enemy_shield", &theEnemy->shield->frameCount,
@@ -1021,7 +1022,10 @@ void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 						theEnemy->vy = 0.0f;
 						Walker_Turn(theEnemy);
 					}
-					// (the original keeps the last turn's age only for turns off a horizontal way)
+					// (the original keeps the last turn's age only for turns off a horizontal way; the fixes mod's
+					// walkerTurnMemory keeps it for these too)
+					if (gFixes.walkerTurnMemory)
+						theEnemy->lastTurn = (int)theEnemy->age;
 				}
 			}
 		}

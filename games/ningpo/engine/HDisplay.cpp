@@ -6,6 +6,7 @@
 
 #include <cstring>
 #include <stb_image.h>
+#include "platform/ImageLoader.h"
 
 namespace pg
 {
@@ -138,12 +139,13 @@ static bool LoadTarga(const std::vector<uint8_t>& theFile, HImage& theImage)
 	return true;
 }
 
-// 0x428960 (libjpeg 6b) and 0x428590 (libpng 1.2.2): port: stb_image decodes both. The pixels are stored as
+// 0x428960 (libjpeg 6b) and 0x428590 (libpng 1.2.2): port: Platform::LoadImageFromMemory decodes both, a JPEG through
+// libjpeg 6b as the original does, so its pixels are the original's, and a PNG through stb_image. The pixels are stored as
 // 0x428070 packs them (blue, green, red, alpha in memory).
 static bool LoadStb(const std::vector<uint8_t>& theFile, HImage& theImage, bool theAlpha)
 {
 	int aWidth, aHeight, aComp;
-	stbi_uc* aPixels = stbi_load_from_memory(theFile.data(), (int)theFile.size(), &aWidth, &aHeight, &aComp,
+	stbi_uc* aPixels = Platform::LoadImageFromMemory(theFile.data(), (int)theFile.size(), &aWidth, &aHeight, &aComp,
 		theAlpha ? 4 : 3);
 	if (aPixels == nullptr)
 		return false;

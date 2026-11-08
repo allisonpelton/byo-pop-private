@@ -1,0 +1,22 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends the small faults of the original and changes nothing else: the same coins, rules, scores, sounds and pace. Each fix is a toggle; turn the whole mod off to play the original as it was. Shares the original's high scores.",
+  "settings": [
+    { "id": "shakeSettles", "label": "Coins settle after the board shakes", "type": "bool", "default": true,
+      "help": "In Action, when the stack reaches the top the board shakes under the three-two-one countdown. The original never puts the coins back: if you clear space in time, the coins that shook keep their offset for the rest of the game." },
+    { "id": "continueColours", "label": "Continued games keep their level's colours", "type": "bool", "default": true,
+      "help": "A saved game does not keep how many coin colours its level has, so the original deals the continued game with the first level's count (one colour fewer at Easy, until the next level). This gives it the saved level's count." },
+    { "id": "doneClicksOnce", "label": "Options' Done button clicks once", "type": "bool", "default": true,
+      "help": "The original plays its button click twice when you press Done in Options. This plays it once." }
+  ],
+  "features": {
+    "fixes": {
+      "shakeSettles": { "$setting": "shakeSettles" },
+      "continueColours": { "$setting": "continueColours" },
+      "doneClicksOnce": { "$setting": "doneClicksOnce" }
+    }
+  }
+}

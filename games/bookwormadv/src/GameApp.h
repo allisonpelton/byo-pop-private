@@ -35,6 +35,7 @@ class MainMenu;
 class MinigameMenu;
 class PopAnimManager;
 class Profile;
+class Tile;
 class TitleScreen;
 class TooltipWidget;
 class TreasureScreen;
@@ -55,8 +56,6 @@ public:
 		DIALOG_CONTINUE_GAME = 19,  // the arena's "continue your saved game?" (MainMenu::StartArena): yes goes on with it, no begins a new run
 		DIALOG_SKIP_MOVIE = 20,  // a click on a cut scene: skip it?
 		DIALOG_ARENA_WIN = 21,   // the arena's win (ArenaWinDialog): pausing the board mutes it only without this dialog
-		DIALOG_NEW_PROFILE = 22, // the trial's end, asked in MainMenu (0x47b470): a new profile? Its yes opens the players' dialog; the port has no trial
-		DIALOG_TRIAL_COMPLETE = 23,  // the trial's end ("buy the full version?", UpdateFrames 0x44aa50): the port has no trial
 	};
 
 	// mTransitionState: what the curtain is doing (CurtainDone goes on from it)
@@ -122,13 +121,12 @@ public:
 	int mChapterLoadTotal = 0;                     // +0x8f4: and all of them (ChapterLoadScreen's bar)
 	int mTotalBooks = 0;                           // +0x8f8, from main.LoadRequiredScripts
 	int mRegTotalBooks = 0;                        // +0x8fc, the registry's TotalBooks
-	int mAppTime = 0;                              // +0x900, the registry's AppTime, counting updates
 	int mUserUpdates = 0;                          // +0x97c, updates since the player was selected
 	bool mNukeProfile = false;                     // +0x910: the scripts' _NukeProfile once the book is up
 	bool mChapterInitQueued = false;               // +0x911: the player's ChapterInit once the curtain is open
 	bool mPlayIntro = false;                       // +0x912: the intro's: the new player's name once it is open
 	bool mLoadingChapter = false;                  // +0x913: loading a chapter's resources (0x44e040)
-	bool mCountsTime = false;                      // +0x914: UpdateFrames counts mAppTime and mUserUpdates (set when the title
+	bool mCountsTime = false;                      // +0x914: UpdateFrames counts mUserUpdates (set when the title
 	                                               // screen is done and when the window gets the focus, off when it loses it)
 	bool mTitleScreenDoneQueued = false;           // +0x915
 	bool mShowTilePips = true;                     // +0x916: CanShowTilePips' answer when the profile has no EnablePips
@@ -136,7 +134,6 @@ public:
 	bool mLoadingDone = false;                     // +0x919
 	bool mNoMusic = false;                         // +0x91a
 	bool mTitleToMainMenu = false;                 // +0x91b
-	bool mQueuedHydraLockout = false;              // +0x91d (not ported yet: the trial's)
 	bool mTimedMode = false;                       // +0x96e: playing the timed mode (its TM_ profile keys)
 	bool mMiniGameFromMenu = false;                // +0x96f: a mini-game started from the main menu's list (0x4819a0)
 	bool mQuitting = false;                        // +0x91c: leaving the game (0x451c20; 0x451920 clears it)
@@ -172,6 +169,22 @@ public:
 	void LostFocus() override;              // 0x451160: the screens stop updating
 	// port: the test scripts' "word" (TestHooks.cpp)
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: test helpers (TestHooks.cpp): the board busy, its best word, and -boardlog's log of it
+	bool BoardBusyForTests();
+	std::string BestWordForTests(size_t theMax, std::vector<Tile*>& theOrder, std::vector<std::string>* theLongest = nullptr,
+	                             size_t theCount = 0);
+	void LogBoardForTests();
+	std::string mBoardLogForTests;
+	bool mPopCapLogo = false;  // port: -popcaplogo keeps the startup's PopCap logo (TitleScreen::Update)
+	std::string ScreenForTests();
+	std::string MoveForTests();
+	void RetryForTests(const std::string& theCommand, const std::string& theArgs);
+	void RunRetriesForTests();
+	std::vector<ScriptCommand> mRetriesForTests;  // the live channel's commands waiting to try again
+	std::vector<std::string> WordMasterRowsForTests(std::string& theRows);
+	std::string WordMasterGuessForTests(const std::vector<std::string>& theRow);
+	bool HandleDriverCommand(const ScriptCommand& theCommand);  // state, goto, unlock, set, win, lose, seed, move
+	std::string mMiniGameName;  // port: the mini-game playing (StartMiniGame), for the test command state
 	// 0x44f5c0: through the sound player, not again within 5 updates
 	void PlaySample(int theSoundNum) override;
 	// 0x44f600: the same at a pan

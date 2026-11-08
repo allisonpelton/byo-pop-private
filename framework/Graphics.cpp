@@ -1011,6 +1011,8 @@ int Graphics::StringWidth(const SexyString& theString)
 	return mFont->StringWidth(theString);
 }
 
+bool Graphics::mDrawImageBox2003 = false;
+
 void Graphics::DrawImageBox(const Rect& theDest, Image* theComponentImage)
 {
 	DrawImageBox(Rect(0,0,theComponentImage->mWidth,theComponentImage->mHeight),theDest,theComponentImage);
@@ -1028,6 +1030,11 @@ void Graphics::DrawImageBox(const Rect& theSrc, const Rect &theDest, Image* theC
 	int cy = theSrc.mY;
 	int cmw = theSrc.mWidth - cw*2;
 	int cmh = theSrc.mHeight - ch*2;
+	if (mDrawImageBox2003)
+	{
+		cmw = cw;
+		cmh = ch;
+	}
 		
 	// Draw 4 corners
 	DrawImage(theComponentImage, theDest.mX, theDest.mY, Rect(cx,cy, cw, ch));
