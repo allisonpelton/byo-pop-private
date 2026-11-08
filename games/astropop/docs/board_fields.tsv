@@ -1,0 +1,40 @@
+# offset	type	name	comment  (written by tools/boardfields.py; keep it sorted by offset)
+70	std::list<Brick*>	m70	the bricks of the falling piece (the original's list head is at +0x70, its size at +0x74)
+7c	std::list<std::list<Brick*> >	m7c	groups of falling bricks
+c8	std::vector<CellRef>	mc8
+1a0	std::vector<CellRef3>	m1a0
+280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
+314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
+358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
+3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
+660	BoardOverlay	mOverlay	the widget over the field
+6c8	Color	m6c8
+6e0	bool	m6e0	?
+758	Buffer	m758	the replay recording (RecordStep)
+808	PulsePair	m808
+8e6	bool	m8e6	?
+8e8	bool	mFlag8E8
+8e9	bool	mFlag8E9
+940	float	m940
+948	unsigned char	m948
+949	unsigned char	m949
+94c	int	m94c	?
+94d	unsigned char	m94d
+950	int	m950	?
+1924	int	m1924	?
+193c	int	mField193C	the stage: 1 + the time played / 6000
+194c	int	m194c	?
+1950	int	m1950	?
+1954	int	m1954	?
+198c	int	m198c	?
+19b4	int	m19b4	?
+19cc	int	m19cc	?
+1a28	int	m1a28	?
+1a38	int	m1a38	?
+1ab8	int	m1ab8	?
+1ac4	int	m1ac4	?
+1be8	float	m1be8
+1bec	float	m1bec
+1bf8	float	m1bf8
+1bfc	float	m1bfc
+1c04	int	mDropTicks	updates a mutated brick waits before it drops

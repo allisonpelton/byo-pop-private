@@ -441,21 +441,22 @@ void Brick::SetState(int theState)
 }
 
 // 0x402e10 slot 15
-void Brick::Update()
+bool Brick::Update()
 {
 	if (!mGone)
 	{
 		mTick++;
+		bool aStepDone = false;
 		switch (mState)
 		{
 		case 0:		UpdateState0(); break;
 		case 2:		UpdateState2(); break;
 		case 1:		UpdateState1(); break;
 		case 3:		UpdateState3(); break;
-		case 6:		UpdateState6(); break;
+		case 6:		aStepDone = UpdateState6(); break;
 		case 8:		UpdateState8(); break;
 		}
-		CheckParticlesDone();
+		bool aParticlesDone = CheckParticlesDone();
 		mGlowAnim.Update();
 		UpdateRainbow();
 		UpdateFade();
@@ -464,7 +465,9 @@ void Brick::Update()
 		UpdateSparks();
 		if (mWobble)
 			UpdateWobble();
+		return aStepDone ? true : aParticlesDone;
 	}
+	return false;
 }
 
 // 0x401310 slot 2: waiting (and the bounce after a landing)
@@ -616,14 +619,16 @@ void Brick::UpdateState3()
 }
 
 // 0x401750 slot 6
-void Brick::UpdateState6()
+bool Brick::UpdateState6()
 {
 	if (mVisible)
 	{
 		Fire(8);
 		SetVisible(false);
 		SetState(7);
+		return true;
 	}
+	return false;
 }
 
 // 0x4017f0 slot 7
@@ -635,7 +640,7 @@ void Brick::UpdateState8()
 }
 
 // 0x4017a0 slot 8
-void Brick::UpdateFallOff()
+bool Brick::UpdateFallOff()
 {
 	mSpeedY = mSpeedY + 1.0f;
 	mY = mSpeedY + mY;
@@ -643,7 +648,9 @@ void Brick::UpdateFallOff()
 	{
 		Fire(0x15);
 		mGone = true;
+		return true;
 	}
+	return false;
 }
 
 // 0x403f50 slot 9: the death animation is over when every particle has played

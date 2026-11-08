@@ -55,6 +55,7 @@ public:
 	bool						mFlag658;           // +0x658 ValidateUser: profile setting 0x11 (1 when missing) is not 0
 	bool						mOldSavesDeleted;   // +0x659 Init found a profile of an older version and deleted it
 	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
+	bool						mFlag65b = false;   // +0x65b set by the Board once a game has lasted 6000 updates
 	int							mTimer664;          // +0x664 counted down by UpdateFrames
 	Font*						mDialogFont;        // +0x66c FONT_DIALOG_BOX, set when the loading thread ends
 	MemoryImage*				mGradient[3];       // +0x674 +0x678 +0x67c 1 x 480 white, grey and dark ramps

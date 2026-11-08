@@ -191,16 +191,16 @@ public:
 	virtual void	UpdateState2();                     // slot 3 0x401570
 	virtual void	UpdateState1();                     // slot 4 0x4015d0 (falling)
 	virtual void	UpdateState3();                     // slot 5 0x401700
-	virtual void	UpdateState6();                     // slot 6 0x401750
+	virtual bool	UpdateState6();                     // slot 6 0x401750
 	virtual void	UpdateState8();                     // slot 7 0x4017f0
-	virtual void	UpdateFallOff();                    // slot 8 0x4017a0
+	virtual bool	UpdateFallOff();                    // slot 8 0x4017a0
 	virtual bool	CheckParticlesDone();               // slot 9 0x403f50
 	virtual void	UpdateFade();                       // slot 10 0x401820
 	virtual void	UpdateRainbow();                    // slot 11 0x4062d0
 	virtual void	UpdateSparks();                     // slot 12 0x406e20
 	virtual void	DrawGlow(Graphics* g);              // slot 13 0x402450
 	virtual void	Draw(Graphics* g, bool theGlow);    // slot 14 0x404360
-	virtual void	Update();                           // slot 15 0x402e10
+	virtual bool	Update();                           // slot 15 0x402e10: true when the brick is done (a state-6 step or the end of the death)
 	virtual void	SetType(int theType);               // slot 16 0x403c60
 	virtual void	DrawAt(Graphics* g, bool theGlow, float theX, float theY);  // slot 17 0x4030c0
 	virtual void	StartFlash();                       // slot 18 0x401c60

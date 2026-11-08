@@ -459,7 +459,7 @@ void FuelCell::OnDie()
 }
 
 // 0x4036f0 slot 15: the tint walks round the colour wheel, then the brick updates
-void FuelCell::Update()
+bool FuelCell::Update()
 {
 	switch (mColorPhase)
 	{
@@ -512,7 +512,7 @@ void FuelCell::Update()
 		}
 		break;
 	}
-	Brick::Update();
+	return Brick::Update();
 }
 
 // 0x402b30 slot 17
@@ -703,15 +703,12 @@ void PowerBrick::UpdateState0()
 }
 
 // 0x4038c0 slot 15
-void PowerBrick::Update()
+bool PowerBrick::Update()
 {
 	if (!mActive)
-	{
-		Brick::Update();
-		return;
-	}
+		return Brick::Update();
 	if (mState == 7)
-		return;
+		return false;
 	mDeathAnim.Update();
 	mFxAnim.Update();
 	if (mDeathAnim.mStopped && mFxAnim.mStopped)
@@ -720,6 +717,7 @@ void PowerBrick::Update()
 		mActive = false;
 		Fire(0xe);
 	}
+	return true;
 }
 
 // 0x407e80 slot 16

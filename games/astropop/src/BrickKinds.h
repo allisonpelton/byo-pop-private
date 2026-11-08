@@ -52,7 +52,7 @@ public:
 	FuelCell(Board* theBoard, EventBus* theBus);
 	virtual void	OnSettle() override;                                // 0x403860
 	virtual void	OnDie() override;                                   // 0x4056e0
-	virtual void	Update() override;                                  // 0x4036f0
+	virtual bool	Update() override;                                  // 0x4036f0
 	virtual void	SetType(int theType) override;                      // 0x402a90
 	virtual void	Draw(Graphics* g, bool theGlow) override;           // 0x405340
 	virtual void	DrawAt(Graphics* g, bool theGlow, float theX, float theY) override;  // 0x402b30
@@ -81,7 +81,7 @@ public:
 	virtual void	OnDie() override;                                   // 0x408340
 	virtual void	OnEvent2A(int theArg) override;                     // 0x402d60
 	virtual void	UpdateState0() override;                            // 0x402be0
-	virtual void	Update() override;                                  // 0x4038c0
+	virtual bool	Update() override;                                  // 0x4038c0
 	virtual void	SetType(int theType) override;                      // 0x407e80
 	virtual void	Draw(Graphics* g, bool theGlow) override;           // 0x405720
 };
