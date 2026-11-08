@@ -5,6 +5,8 @@
 // DoMainMenu, the board's own GameOver). The game's notes list them (GAME_NOTES.md, "Test commands").
 
 #include "WinDMApp.h"
+#include <climits>
+#include <SDL.h>
 #include "Board.h"
 #include "Piece.h"
 #include "MainMenu.h"
@@ -121,6 +123,37 @@ static void UnlockAll(Profile* theProfile)
 		theProfile->mModeLevel[3] = 280;
 }
 
+// -trace (a test flag): the same four values that origrun's --watch reads in the original (docs/ORIGRUN.md), in the same lines
+// ("watch 1: 0 -> 10 at update 312"), so tools/origcmp pairs them value by value: 1 the board's score, 2 its level, 3 its state
+// and 4 the position in its generator's state vector, each "-" while there is no board. Logged in the update in which a value
+// differs from the last one logged, with the update count the framework keeps (+0x484 in the original).
+void WinDMApp::TraceUpdate()
+{
+	static int sLast[4] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN};  // INT_MIN: no board
+	static bool sFirst = true;
+	int aValue[4] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN};
+	if (mBoard != NULL)
+	{
+		uint32_t aState[624];
+		int anIndex = 0;
+		mBoard->mRand.GetState(aState, &anIndex);
+		aValue[0] = mBoard->mScore;
+		aValue[1] = mBoard->mLevel;
+		aValue[2] = mBoard->mState;
+		aValue[3] = anIndex;
+	}
+	for (int i = 0; i < 4; i++)
+	{
+		if (!sFirst && aValue[i] == sLast[i])
+			continue;
+		std::string anOld = sFirst ? "?" : (sLast[i] == INT_MIN ? "-" : StrFormat("%d", sLast[i]));
+		std::string aNew = aValue[i] == INT_MIN ? "-" : StrFormat("%d", aValue[i]);
+		SDL_Log("watch %d: %s -> %s at update %d", i + 1, anOld.c_str(), aNew.c_str(), mUpdateCount);
+		sLast[i] = aValue[i];
+	}
+	sFirst = false;
+}
+
 // what mTestGoto holds besides a mode (0 to 8)
 enum { TEST_GOTO_OPTIONS = -2, TEST_GOTO_HELP = -3, TEST_GOTO_HIGHSCORES = -4 };
 
@@ -219,7 +252,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 
 	if (aCommand == "state")
 	{
-		std::string aLine = "STATE {\"screen\":\"" + aScreen + "\"";
+		std::string aLine = "STATE {\"screen\":\"" + aScreen + "\"" + StrFormat(",\"updates\":%d", mUpdateCount);
 		if (mMainMenu != NULL)
 			aLine += StrFormat(",\"menu\":%d", (int)mMainMenu->mState);
 		std::string aDialogs;

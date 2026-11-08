@@ -28,8 +28,8 @@ class Driver:
                 f.write('[SOFTWARE\\Steam\\Bejeweled2]\n')
                 if windowed:
                     f.write('ScreenMode=dword:0\n')
-                if is3d is not None:
-                    f.write('Is3D=dword:%d\n' % (1 if is3d else 0))
+                if is3d is False:
+                    f.write('HighResolution=dword:0\n')  # what the original does when its 3D test finds no acceleration (640x480)
         self.cmdfile = os.path.join(out, 'commands.txt')
         self.empty = os.path.join(out, 'realinput.txt')
         open(self.cmdfile, 'w').close()
@@ -40,7 +40,10 @@ class Driver:
         self.log = open(self.logpath, 'wb')
         if os.environ.get('BYOPOP_TEST_RUN') != '1':
             args = [os.path.join(ROOT, 'build', 'native', 'rundesk.exe')] + args
-        self.proc = subprocess.Popen(args, stdout=self.log, stderr=subprocess.STDOUT)
+        env = dict(os.environ)
+        if is3d is False:
+            env['SDL_RENDER_DRIVER'] = 'software'  # no 3D: SDL's software renderer, so DDInterface::mIs3D is false
+        self.proc = subprocess.Popen(args, stdout=self.log, stderr=subprocess.STDOUT, env=env)
         self.pos = 0
         self.sent = 0
 
