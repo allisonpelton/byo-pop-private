@@ -79,3 +79,52 @@ Two harness conditions matter for reading the screens: the runner writes a windo
 original's default is full screen, so Options matches only with `fullscreen="1"`; and the runner's default frame of
 10 ms is what the frozen baseline holds, so `tools/check.sh waterbugs` and the replays differ in that setting on
 purpose. A played comparison of the web build, with its screens against the original, is not done.
+
+## Real play and the fixes mod (2026-11-08)
+
+The earlier pass compared the port with the original through scripts and the game's own state, which never pass through the
+real input path. This part plays the port with real mouse and key events only, from the launch to the end of a game, by code
+(`GAME_NOTES.md`, "The drivers"; no session played the game): the logos, the main menu, the Options screen's SHOOTER MODE and
+DIFFICULTY set by clicks, Start, the story screens, the world map and the boards, with the port's own bot choosing the shots
+(`move`), until the game ended in the high scores. The game has no tutorial of its own apart from the hints its first three boards put up when a fill ends (a line that fades in
+over 200 ms and stays 4 s, `texts` in `state`), and every game below started at the first board and played through them. Every mode was played:
+shooter auto and manual, each at difficulty 0, 1
+and -1, natively under rundesk (the window opens in full screen, the original's default) and on the page
+(`?player=1&silent=1`).
+
+**Natively, in real time** (`tools/realplay/modes.sh --realtime`; every game ended in a game over with the settings read back
+from the game as the clicks set them):
+
+| Shooter | Difficulty | Moves | Boards reached | Score |
+|---|---|---|---|---|
+| auto | 0 | 48 | 3 | 2757 |
+| auto | 1 | 67 | 5 | 6103 |
+| auto | -1 | 100 | 7 | 13368 |
+| manual | 0 | 59 | 3 | 2738 |
+| manual | 1 | 76 | 5 | 8474 |
+| manual | -1 | 68 | 5 | 6341 |
+
+The same six with `-fast` ended in a game over as well (3 to 10 boards). Two of them scored what the real-time run did, and the
+others a little more or less, since a game that depends on the machine's clock does not play twice alike (below). The
+window and the focus were changed on the way by `tools/realplay/screens.sh`, from the fourth board on: Alt+Enter at the main
+menu (the game is the plain run's, step for step), Alt+Enter twice on a board, the focus lost for 300 updates and regained,
+and a minimize and restore; each ended in a game over. A run with a change on a board is another game than the plain one, and
+the script says why: the update that sees the change and the one after it step other counts of 10 ms (a lost focus stops the
+steps, and the next frame goes on with the last frame's time), so the bugs are where the bot did not meet them.
+
+**On the page**, with the built-in `?driver=move` or `tools/web/modes.js`: the six modes to a game over each, a
+focus loss and regain on board 4 (the game's step count stood still while the page was blurred and went on after), Alt+Enter at
+the main menu (a hidden Browser pane refuses the full screen, so the game went on in its window), and one game at `?scale=2`
+(800 x 600 doubled; the stand-in for a bigger screen, as the pane cannot show a full-screen canvas). No console errors.
+
+**What the pass changed in the port.** (1) The focus: `IsActive()` returned true in a test run and on the page, so a lost
+focus never paused the game (the original pauses when it is not the active application); it now follows the window, except in
+a test run that does not send real input. (2) The `level` test command went to the wrong board (board n + 1) and, from a
+board, left the level set dangling (a heap use after free under AddressSanitizer); fixed (`d4a19d47`). (3) The test kit's answer
+pattern held a backspace character where `\b` was meant, so a `MOVE null` reply was never read as an answer and a driver waited
+ten seconds for it (shared, `2829e9fe`). The registration and outbound buttons are out (`f6c9025b`).
+
+**The fixes mod.** The original steps the game by the machine's clock, so the same moves do not play the same game twice:
+`determinism.sh` (five runs of a fixed short game with the mod off and on) found three different games in five runs with the mod off and one game in all five runs with it on (the same game as one of the three). The second fix, `easyLabel`, only
+changes the Options screen's label for the easiest difficulty. With the mod off the port is the original (the frozen baseline
+and `tools/check.sh waterbugs` are unchanged).

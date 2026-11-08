@@ -16,8 +16,9 @@ cp -r "$ROOT/games/waterbugs/mods/fixes" "$OUT/mods-on/fixes"
 cat > "$OUT/input.txt" <<'EOF'
 # update command: the main menu is up at about 270
 300 level 1
-900 down game 400 450 left
-903 up game 400 450 left
+# (the story screen of the first world is up: its button)
+900 down game 400 467 left
+903 up game 400 467 left
 1200 move game 216 120
 1260 down game 216 120 left
 1263 up game 216 120 left

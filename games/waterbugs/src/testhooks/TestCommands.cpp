@@ -5,7 +5,7 @@
 //
 //   state              the game's state as one JSON line (the keys are listed in games/waterbugs/docs/GAME_NOTES.md)
 //   goto <screen>      menu (title), options, help, help2, highscores, credits, map, changeuser, logo
-//   level <n>          the board of round n (the HUD's ROUND, from 0), through the game's own level change
+//   level <n>          board n of the game (1 is the first; 0 too), through the game's own level change
 //   unlock all         every level of the campaign counts as reached in the current profile
 //   set <name> <v>     score, lives, difficulty (-1, 0, 1), shootermode (0 manual, 1 auto), reached (levels finished)
 //   win, lose          the board ends as the game ends it when it is filled, or when the last life goes
