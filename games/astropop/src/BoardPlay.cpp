@@ -8,6 +8,7 @@
 #include "GameText.h"
 #include "Checkbox.h"
 #include "DDImage.h"
+#include "MemoryImage.h"
 #include "SoundInstance.h"
 #include "WidgetManager.h"
 #include "Image.h"
@@ -352,4 +353,97 @@ void Board::TakeFocus()
 	m90f = true;
 	mApp->mWidgetManager->SetFocus(this);
 	m921 = true;
+}
+
+// 0x45a930: the OK of a hint panel (or of the theme's own panel, m919). The hint is marked as seen in the profile; when its
+// checkbox is ticked the hint is also switched off (and the panels after it go, as they are about the same thing). The next
+// panel, if there is one, takes its place; with none the game goes on.
+void Board::DismissHint()
+{
+	if (m919)
+	{
+		m74c->SetVisible(false);
+		mApp->mUser->SetInt(mMode + 0x2a, 0);
+		mApp->mUser->Save();
+		m919 = false;
+		Pause(false, true);
+		return;
+	}
+
+	size_t i = 0;
+	while (!m230.empty() && i < m230.size())
+	{
+		if (m230[i]->m1c)
+			break;
+		i++;
+	}
+	if (!m230.empty() && i < m230.size())
+	{
+		HintSpot* aSpot = m230[i];
+		mApp->mUser->SetInt(aSpot->mId + 1, 1);
+		if (m750->mChecked)
+		{
+			mApp->mUser->SetInt(aSpot->mId, 0);
+			m750->mChecked = false;
+			while (m230.size() > 1)
+			{
+				delete m230[1];
+				m230.erase(m230.begin() + 1);
+			}
+		}
+		mApp->mUser->Save();
+		m74c->SetVisible(false);
+		m750->SetVisible(false);
+		// (the original takes the panel by its index i, which the loop above may have emptied the vector below; the panel
+		// that is up is always the first, so both are the same)
+		m230.erase(std::find(m230.begin(), m230.end(), aSpot));
+		delete aSpot;
+	}
+
+	if (!m230.empty())
+	{
+		RecolorThemeButtons();
+		m230[0]->m1c = true;
+		m74c->SetVisible(true);
+		m750->SetVisible(true);
+		mApp->mWidgetManager->BringToFront(m750);
+		mApp->mWidgetManager->BringToFront(m74c);
+		return;
+	}
+	Pause(false, true);
+}
+
+// 0x4347c0: the overlay's button (0xfa7) closes the picture over the field and the field is clear again
+void Board::CloseOverlay()
+{
+	m8d8 = true;
+	m978 = 0;
+	mApp->mWidgetManager->RemoveWidget(m2e0);
+	mApp->SafeDeleteWidget(m2e0);
+	m2e0 = NULL;
+	SetOverlayHidden(false);
+	mOverlay.SetFill(0xff, 0xff, 0xff, 0);
+}
+
+// 0x43a890: the field is drawn again after the menu or a box has been over it. The sound of the eighth loop stops; without
+// 3D the game's own picture is not needed behind the selector any more and goes; the screen is drawn into the picture of the
+// field (as opaque, that the wipe at the end of a game can take it away) and the flags that say what is on it are set.
+void Board::RedrawAfterDialog()
+{
+	SoundInstance* aLoop = mApp->mLoopSounds[7];
+	if (aLoop->IsPlaying())
+		aLoop->Stop();
+	if (!mApp->Is3DAccelerated())
+		mApp->CloseBoard();
+	m902 = false;
+	m901 = false;
+	if (mOverlay.mColor58 != mOverlay.mFill)
+		mOverlay.MarkDirty();
+	MarkDirty();
+	((MemoryImage*) m2f4)->SetImageMode(false, false);
+	mApp->mWidgetManager->DrawWidgetsTo(m2f0);
+	((MemoryImage*) m2f4)->SetImageMode(true, true);
+	m903 = false;
+	m901 = true;
+	m90f = true;
 }
