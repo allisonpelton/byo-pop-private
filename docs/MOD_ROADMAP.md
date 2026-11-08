@@ -63,9 +63,11 @@ each run, I mean, so no 15-update variance on Twist."
 
 So each game gets one **fixes** mod, a fourth kind, and each of its settings is a toggle for one fix. A fix mends a
 bug of the original, or stops the original wasting the player's time or the machine's, and otherwise leaves the game
-as it was: its look, rules, sounds and pace of play. TipTop's loading bar is the first candidate: it loads one of its
-229 items a frame, so it fills at a steady crawl however fast they load (2.3 seconds in the port, about 3.8 in the
-original on a 60 Hz screen, where a frame waits for the vertical blank). A mod that trades the original's look or feel
+as it was: its look, rules, sounds and pace of play. Slow loading is not one of them: it is mended in the port itself
+(the user, 2026-11-07: "Let's make faster loading a core part of the recomps instead of a mod"; CLAUDE.md, "Port
+first, unmodified"). TipTop's loading bar, the first case found, loads one of its 229 items a frame, so it fills at a
+steady crawl however fast they load (2.3 seconds in the port, about 3.8 in the original on a 60 Hz screen, where a
+frame waits for the vertical blank); its fixes mod's `fastLoading` moves into the port. A mod that trades the original's look or feel
 for speed or memory, like Bejeweled's `lean` with its lower frame rate, is not a fix: it stays a mod of its own and
 starts off as before.
 

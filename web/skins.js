@@ -416,7 +416,7 @@ var ByopopSkin = (function () {
       if (hooked || !M || root.classList.contains("player-only")) return;
       hooked = true;
       var prev = M.byopopTestFrame;
-      M.byopopTestFrame = function (drew) { if (prev) prev(drew); frame(drew); };
+      M.byopopTestFrame = function (drew, ms) { if (prev) prev(drew, ms); frame(drew); };
     }
     function sync() {
       if (!document.body) return;

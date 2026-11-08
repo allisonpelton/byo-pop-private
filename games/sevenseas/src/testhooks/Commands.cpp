@@ -8,7 +8,7 @@
 //   set <name> <value>    score or lives
 //   win, lose             the level is complete now; the last life is lost now (the game over follows as in play)
 //   seed <n>              the game's random numbers (the C library generator) are seeded with n
-//   move, botmove         MOVE {json}: the bot's next move (Bot.h) and the real input that makes it; changes nothing
+//   move                    MOVE {json}: the bot's next move (Bot.h) and the real input that makes it; changes nothing
 //   unlock all            ERROR: the game has nothing locked
 
 #include "SevenSeasApp.h"
@@ -280,7 +280,7 @@ bool SevenSeasApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		return true;
 	}
-	if ((aName == "move") || (aName == "botmove"))
+	if (aName == "move")
 	{
 		if (!BotCanMove(mBoard))
 		{
