@@ -1,0 +1,160 @@
+# Bonnie's with real input (tools/realplay.py): the port's tour (tools/tour_test.txt) as posted messages,
+# in real time, every wait twice the tour's; the name typed, the focus lost and regained by window messages
+wait 8000
+shot logo
+wait 16000
+shot menu
+wait 200
+click 180 306
+wait 3800
+shot name
+wait 1000
+type t
+wait 200
+type e
+wait 800
+key RETURN
+wait 5000
+shot difficulty
+wait 1000
+click 460 280
+wait 7000
+shot story
+wait 1000
+click 745 565
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 8000
+shot board
+wait 2000
+click 400 300
+wait 6000
+shot tutorial
+wait 2000
+click 575 190
+wait 400
+click 620 205
+wait 400
+click 665 230
+wait 400
+click 665 275
+wait 2800
+shot word
+wait 200
+click 450 557
+wait 9800
+shot played
+wait 4000
+click 620 250
+wait 400
+click 665 280
+wait 400
+click 710 255
+wait 400
+click 710 205
+wait 2800
+shot cake
+wait 200
+click 450 557
+wait 9800
+shot tale
+wait 2000
+click 70 548
+wait 6000
+shot gameoptions
+wait 2000
+click 335 382
+wait 6000
+shot highscores
+wait 2000
+click 400 560
+wait 8000
+click 70 548
+wait 4000
+click 465 382
+wait 6000
+shot credits
+wait 2000
+click 400 300
+wait 8000
+click 70 548
+wait 4000
+click 465 337
+wait 6000
+shot help1
+wait 2000
+click 760 565
+wait 6000
+shot help2
+wait 2000
+click 760 565
+wait 6000
+shot help3
+wait 2000
+click 760 565
+wait 6000
+click 70 548
+wait 4000
+click 335 337
+wait 6000
+shot mainmenu
+wait 2000
+click 205 415
+wait 6000
+shot options
+wait 2000
+click 397 412
+wait 6000
+click 205 360
+wait 6000
+click 458 380
+wait 6000
+click 460 280
+wait 8000
+click 745 565
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 7000
+click 745 565
+wait 8000
+shot action
+wait 2000
+click 435 255
+wait 400
+click 435 300
+wait 400
+click 435 345
+wait 400
+click 435 390
+wait 2800
+click 506 532
+wait 10000
+shot actionword
+wait 52000
+focus lose
+wait 9000
+shot paused
+wait 1000
+focus regain
+wait 6000
+shot resumed
+wait 404000
+shot timeup
+wait 4000
+click 444 414
+wait 6000
+shot endmenu
+wait 2000
+click 205 525
+wait 86000
+quit-when-gone 20000
