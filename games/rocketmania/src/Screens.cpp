@@ -110,10 +110,9 @@ void LoadingScreen::Draw(Graphics* g)
 		}
 	}
 
-	// the line under the bar: the thanks (empty with NoReg) or, on the first run, the wait for the sounds
+	// the line under the bar: on the first run, the wait for the sounds (the original's other line under it, the thanks for
+	// registering, is registration code and is not ported)
 	SexyString aLine;
-	if (!mApp->GetBoolean("NoReg", false))
-		aLine = GT(0x004e5258);
 	if (mApp->mTimesExecuted == 0 && mProgress < 1.0)
 		aLine = GT(0x004e5234);
 	if (!mPlayLink->mVisible)
@@ -286,8 +285,7 @@ void GameSelector::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_SELECTBACK], 0, mYOffset);
 
-	if ((mApp->GetDialog(DIALOG_DIFFICULTY) == NULL) && (mApp->GetDialog(DIALOG_CONTINUE) == NULL) &&
-		(mApp->GetDialog(DIALOG_REGISTER_TO_LOAD) == NULL))
+	if ((mApp->GetDialog(DIALOG_DIFFICULTY) == NULL) && (mApp->GetDialog(DIALOG_CONTINUE) == NULL))
 	{
 		// (the original lets the alpha reach 260; it is kept at 255 here)
 		int anAlpha = (mAlpha > 0xff) ? 0xff : mAlpha;

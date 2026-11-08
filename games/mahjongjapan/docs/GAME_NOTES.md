@@ -88,13 +88,10 @@ answered by its default button (command 1), the pause box by a click on it, the 
 
 ## Fix candidates and the fixes mod (2026-11-08)
 
-The fixes mod (`mods/fixes/mod.json`, three toggles, all on by default on the site) is the original with three things
-mended that cost the player or a test time, and nothing else. With the mod off, or no mods folder, the game is the
+The fixes mod (`mods/fixes/mod.json`, two toggles, both on by default on the site) is the original with two things
+mended that leave the play to chance or the timing to the machine, and nothing else. With the mod off, or no mods folder, the game is the
 original; `-nomods` starts a native build without it and `-modsdir=<folder>` loads another folder.
 
-- **`skipLogos`.** The game opens with the publisher's logo and Jolly Bear's, 2 s each, and loads nothing meanwhile
-  (the splash's `Logo::Update`, 0x42f8c0). With the fix each logo is over at its first update. Launch to the main menu
-  took 7.8 s in real time (median of 5) and takes 3.7 s with the fix; the rest is the loading and the logos' fades.
 - **`seededDeals`.** The original seeds the generator from the clock at every deal (a classic game's, each shuffle's
   redeal, and an escape stage's own number from its table). With the fix the deals and shuffles of one run draw their seeds
   from `-gameseed=N` (the page's `?seed=N`): the same series on every run, whatever time each starts. The engine's own
@@ -103,8 +100,8 @@ original; `-nomods` starts a native build without it and `-modsdir=<folder>` loa
   machine's clock, so the same input plays the same game on every run, at any speed of the machine. Not under `-fast`,
   whose virtual clock does the same. The deal's search keeps its time limit on the machine's clock.
 
-`tools/realplay/modtest.py` checks all three with the shipped exe: the menu's update count with and without the mod; the
-first eight pairs of a classic deal and of its shuffle equal under one seed whatever the start time, another under another
+`tools/realplay/modtest.py` checks both with the shipped exe, and the start (the menu at update 280, and at 1540 with
+`-logos`): the first eight pairs of a classic deal and of its shuffle equal under one seed whatever the start time, another under another
 seed, and different without the mod; the panel's clock after 400, 800 and 1200 updates in real time showing 2, 4 and 6 s.
 
 **Fix candidates that were checked and are none.** The panel's `AddSeconds` (0x409d30) adds its seconds in milliseconds
@@ -119,6 +116,25 @@ Shuffle while the last pair of a game is still flying (a second or so) started a
 `Board::Update`, 0x40bd70): the board stayed empty with the clock running and no result box. The port ignores the shuffle once no
 tile is left (`Board::OnCommand`, 0x40b500). The real-input driver found it, its bot clicking Shuffle on the empty board.
 It is listed in `DEVIATIONS.md`.
+
+## The start (2026-11-08)
+
+The original opens with two logo screens (`Splash`, 0x425320, holds `Logo`, 0x42f650; `Logo::Update`, 0x42f8c0, counts 2 s
+each and reads no click or key) and lets 0.77 s of black pass before the first of them (`Manager::SwitchTo`, 0x42ae80, fades
+out of the screen there is none to fade out of), with nothing loaded meanwhile. That is a wait the original put in before the
+game can start, so the loading rule takes it out of the port itself (CLAUDE.md, "Making a port"): the first layer is the main
+menu (`MahjongGame::CreateFirstLayer`, 0x40f540) and the first `SwitchTo` has no fade-out (`jb::gFastStart`). `-logos` keeps
+the original's start, for runs compared with the original: `tools/check.sh` passes it, so that its scripts keep their timing,
+and `modtest.py` and `perfload.py` take it. It is a deviation that can be seen, made on purpose (`DEVIATIONS.md`); until
+2026-11-08 it was `skipLogos` of the fixes mod. The launch to the main menu took 7.8 s and takes 1.3 s.
+
+The rest of the launch was looked at for other waits of the original's making and has none. The game sleeps only to pace its
+frames (`Manager::Frame`, 0x42bd40), a layer loads whole when it is entered (`Layer::SetManager` calls `Load`; no slices over
+frames, no minimum time), and what remains is about 1.0 s from the process's start to the menu's first frame (the exe and
+Resource.dll opened, the texts, the display, the menu's pictures and music) and the menu's fade-in, 0.8 s, which takes clicks
+while it runs (the layer being shown is active), so it is an animation that does not hold the player and stays. A `-fast` run, which never waits, takes 0.7 to 0.9 s from the launch's return to the menu's first frame on this busy
+machine (three runs; the real-time runs 0.4 to 1.4 s), so that part is loading work and not a wait; it is for the performance
+pass (`docs/COORDINATION.md`).
 
 ## Registration, links and the loader (2026-11-08)
 
@@ -153,7 +169,7 @@ processor figures are for the window 20 s to 50 s of the process's life, in the 
 
 | | port (3 runs) |
 |---|---|
-| Launch to the main menu, real time (`tools/realplay/perfload.py`, 5 runs) | 7.8 s median (7.8 to 8.0); with the fixes mod 3.7 s (3.7 to 3.7) |
+| Launch to the main menu, real time (`tools/realplay/perfload.py`, 5 runs) | 1.31 s median (1.28 to 1.32); with the original's start (`-logos`, 3 runs) 7.80 s (7.76 to 7.80) |
 | Peak working set | 220.9 MB median (212.7 to 221.6) |
 | Peak private bytes | 213.2 MB median (212.3 to 214.6) |
 | Processor time in the window | 5.4 s of 29.9 s: 18 % of one core (17.9 to 21.3 %) |
@@ -165,7 +181,8 @@ processor figures are for the window 20 s to 50 s of the process's life, in the 
 music on the speakers, and every capture is taken in the sandbox). Working set and processor time measured from outside
 a sandbox's virtual machine would not be comparable with the port's on the host, and a host run's sound would reach the
 user's speakers while they sleep, so neither was done. Its loading is known from the code instead: the original shows
-the two logos for 2 s each (0x42f650), loads nothing meanwhile, and the port's launch to the menu is those 4 s of logos
-plus about 3.7 s of loading and fades, 0.85 s of that before the first logo is drawn. Why the port holds this much memory
+the two logos for 2 s each (0x42f650) after 0.77 s of black, loads nothing meanwhile, and the port's launch to the menu
+with `-logos` (the original's start) is 7.8 s, of which the logos, the black and the fades between the screens make
+about 6.5 s. The port without them takes 1.3 s ("The start", above). Why the port holds this much memory
 and uses this much of a core to draw 800x600 in software was not examined; both are for the performance pass
 (`docs/COORDINATION.md`).

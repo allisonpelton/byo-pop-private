@@ -1,7 +1,6 @@
 # Phase two tour 1: the splash, the main menu and its hovers, high scores (and the clear question), options, the
 # instructions' pages, credits, the quit question and the new game screen. Lines of the port's -script; "screenshot
-# <name>" is a shot (make.py adds the folder). The options screen's publisher button (command 0x37) opens a web page:
-# never click it.
+# <name>" is a shot (make.py adds the folder).
 150 screenshot splash_loading
 240 screenshot splash
 244 move 188 293

@@ -467,6 +467,11 @@ void Sys_Activate(int theActive)
 		Sound_Pause();
 }
 
+bool Sys_SkipLogos()
+{
+	return gHost != nullptr && gHost->SkipLogos();
+}
+
 int Sample_Load(const char* thePath)
 {
 	if (gSoundReady != 0)

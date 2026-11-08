@@ -69,6 +69,7 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 {
 	mApp = theApp;
 	mPicture = thePicture;
+	mBuffer = NULL;
 	mTitle = theTitle;
 	mTime = theTime;
 	mMoves = theMoves;
@@ -211,6 +212,7 @@ PuzzleCompletedScreen::~PuzzleCompletedScreen()
 {
 	delete mContinueButton;
 	delete mPicture;
+	delete mBuffer;
 }
 
 // 0x419b60
@@ -336,7 +338,54 @@ std::string PuzzleCompletedScreen::FormatTime(int theMilliseconds, int theMode)
 }
 
 // 0x419e60
+// 0x419e60: the screen comes in over the board as the picture flies, as clear as the flight has gone far
 void PuzzleCompletedScreen::Draw(Graphics* g)
+{
+	if (mProgress >= 1.0f)
+	{
+		DrawContent(g);
+		return;
+	}
+	if (mBuffer == NULL)
+	{
+		mBuffer = new MemoryImage(mApp);
+		mBuffer->Create(mWidth, mHeight);
+		mBuffer->SetImageMode(true, true);
+	}
+	{
+		Graphics aBuffer(mBuffer);
+		aBuffer.ClearRect(0, 0, mWidth, mHeight);
+		DrawContent(&aBuffer);
+	}
+	g->SetColorizeImages(true);
+	g->SetColor(Color(255, 255, 255, (int) (mProgress * 255)));
+	g->DrawImage(mBuffer, 0, 0);
+	g->SetColorizeImages(false);
+}
+
+// the picture on its way to the tablet, and the shine over it once it is there
+void PuzzleCompletedScreen::DrawPicture(Graphics* g)
+{
+	bool aArrived = mProgress >= 1.0f;
+	int aSincePulse = mTicks - mArrivedAt;
+	if (mPicture != NULL)
+	{
+		Rect aDest((int) mX, (int) mY, mSize, mSize);
+		g->DrawImage(mPicture, aDest, Rect(0, 0, mPicture->GetWidth(), mPicture->GetHeight()));
+		if (aArrived)
+		{
+			double aShine = (sin(((aSincePulse + 0x60) % 300) * (1.0 / 299.0) * 2.0 * PI) + 1.0) * 24.0;
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 255, (int) aShine));
+			g->DrawImage(mPicture, aDest, Rect(0, 0, mPicture->GetWidth(), mPicture->GetHeight()));
+			g->SetColorizeImages(false);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		}
+	}
+}
+
+void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 {
 	const int CENTER = 320;			// the tablet's middle
 	const int LEFT_SIGN = 105;		// the signs the characters hold
@@ -490,22 +539,8 @@ void PuzzleCompletedScreen::Draw(Graphics* g)
 		}
 	}
 
-	// the picture on its way to the tablet, and the shine over it once it is there
-	if (mPicture != NULL)
-	{
-		Rect aDest((int) mX, (int) mY, mSize, mSize);
-		g->DrawImage(mPicture, aDest, Rect(0, 0, mPicture->GetWidth(), mPicture->GetHeight()));
-		if (aArrived)
-		{
-			double aShine = (sin(((aSincePulse + 0x60) % 300) * (1.0 / 299.0) * 2.0 * PI) + 1.0) * 24.0;
-			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-			g->SetColorizeImages(true);
-			g->SetColor(Color(255, 255, 255, (int) aShine));
-			g->DrawImage(mPicture, aDest, Rect(0, 0, mPicture->GetWidth(), mPicture->GetHeight()));
-			g->SetColorizeImages(false);
-			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-		}
-	}
+	if (thePicture)
+		DrawPicture(g);
 
 	// the medal for how close the solution is to the best known
 	if (!mTutorial && (mWorldRecord || mBronze || mSilver) && mMedal > 0)

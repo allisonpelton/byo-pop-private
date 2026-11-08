@@ -182,11 +182,12 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
 .sortby label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
 .sortby input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
-/* A game whose files are loaded shows its own icon in place of the initials: the badge's size, with crisp pixels
-   when it is enlarged (icons are kept at 64 px or less) */
-.badge.has-icon { background: none; box-shadow: none; -webkit-mask: none; mask: none; }
+/* A game whose files are loaded shows its own icon in place of the initials: fitted and drawn at the screen's own pixels by the
+   script (fitIcon; its width and height are set there), centred in the badge */
+.badge.has-icon { position: relative; background: none; box-shadow: none; -webkit-mask: none; mask: none; }
 .badge.has-icon .badge-initials { display: none; }
-.badge img { display: block; width: 72px; height: 72px; object-fit: contain; image-rendering: crisp-edges; image-rendering: pixelated; }
+.badge img { display: block; position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; object-fit: contain;
+  image-rendering: crisp-edges; image-rendering: pixelated; }
 /* Under the name, in words: whether the game's files are loaded in this browser ("Play now") or not ("Add your files"),
    and for a game played here before, a "?" that explains why they are not (docs/WEB_PLAYER.md, "The listing page") */
 .ownrow { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px 12px; min-height: 20px; }
@@ -746,7 +747,7 @@ try {
         badge.appendChild(initials);
         badge.classList.add("has-icon");
       }
-      if (shown.getAttribute("src") !== info.icon) shown.src = info.icon;
+      fitIcon(shown, info.icon, info.small);
     } else if (badge.classList.contains("has-icon")) {
       badge.classList.remove("has-icon");
       badge.textContent = badge.getAttribute("data-initials");
@@ -807,6 +808,75 @@ try {
   //     re-release (built two years after or more), nothing between (ByopopExeIcon.built); no store is named
   //   wear from play: a scratch at 10 hours, a dent and a tilt at 40, patina at 100 (data-wear 1 to 3)
   //   the date under the crimp: the day this copy came in (the record's opened)
+  // The game's icon on its cap, fitted (the user, 2026-11-08: "The logos overlaid on the caps need work so they fit properly and
+  // are better centered"): in a skin inside the cap's flat face, within the crimped rim, a box of FACE px; in Plain, alone, a
+  // box of PLAIN px. Of the exe's images kept (the large one and the one nearest 32 px) it takes the smallest that is at least
+  // the box's size in device pixels, else the largest; only its visible pixels count (many icons have empty space on a side),
+  // cropped to them. It is drawn at the screen's own pixels: made smaller with smoothing, or larger only a whole number of
+  // times, pixel for pixel, so that it stays crisp; its size is kept even with the box's in device pixels, so that the badge
+  // centres it on whole pixels. Drawn again when the skin or the screen's pixel ratio changes.
+  var FACE = 32, PLAIN = 64, fitted = {};
+  function loadImage(url) {
+    if (!url) return Promise.resolve(null);
+    return new Promise(function (ok) {
+      var im = new Image();
+      im.onload = function () { ok(im); };
+      im.onerror = function () { ok(null); };
+      im.src = url;
+    });
+  }
+  // the box around the pixels that are not (nearly) clear, or null for an empty image
+  function visible(im) {
+    var c = document.createElement("canvas"), w = im.naturalWidth, h = im.naturalHeight;
+    c.width = w; c.height = h;
+    var g = c.getContext("2d");
+    g.drawImage(im, 0, 0);
+    var d = g.getImageData(0, 0, w, h).data, x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    return x1 < 0 ? null : { im: im, x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  }
+  function fitIcon(img, url, small) {
+    var dpr = window.devicePixelRatio || 1, box = document.documentElement.hasAttribute("data-skin") ? FACE : PLAIN;
+    var key = url + "|" + small + "|" + box + "|" + dpr;
+    img.setAttribute("data-fit", key);
+    function put(f) {
+      if (img.getAttribute("data-fit") !== key) return;  // drawn again since
+      if (!f) { img.removeAttribute("style"); if (img.getAttribute("src") !== url) img.src = url; return; }
+      img.style.width = f.w + "px"; img.style.height = f.h + "px";
+      if (img.getAttribute("src") !== f.url) img.src = f.url;
+    }
+    if (fitted[key]) { put(fitted[key]); return; }
+    Promise.all([loadImage(url), loadImage(small)]).then(function (ims) {
+      var dev = Math.round(box * dpr), side = Math.round(72 * dpr);
+      var cands = ims.filter(Boolean).map(visible).filter(Boolean).sort(function (a, b) { return Math.max(a.w, a.h) - Math.max(b.w, b.h); });
+      if (!cands.length) { put(null); return; }
+      var pick = cands.filter(function (c) { return Math.max(c.w, c.h) >= dev; })[0] || cands[cands.length - 1];
+      var big = Math.max(pick.w, pick.h), scale = big > dev ? dev / big : Math.max(1, Math.floor(dev / big));
+      var w = Math.max(1, Math.round(pick.w * scale)), h = Math.max(1, Math.round(pick.h * scale));
+      // even with the badge's side, so that its centre is on a whole device pixel
+      var cw = w + ((side - w) % 2 ? 1 : 0), ch = h + ((side - h) % 2 ? 1 : 0);
+      var c = document.createElement("canvas");
+      c.width = cw; c.height = ch;
+      var g = c.getContext("2d");
+      g.imageSmoothingEnabled = scale < 1;
+      g.imageSmoothingQuality = "high";
+      g.drawImage(pick.im, pick.x, pick.y, pick.w, pick.h, Math.floor((cw - w) / 2), Math.floor((ch - h) / 2), w, h);
+      var f = { url: c.toDataURL("image/png"), w: cw / dpr, h: ch / dpr };
+      fitted[key] = f;
+      put(f);
+    }).catch(function () { put(null); });
+  }
+  function refit() {
+    Array.prototype.forEach.call(document.querySelectorAll(".badge.has-icon img[data-fit]"), function (img) {
+      var k = img.getAttribute("data-fit").split("|");
+      fitIcon(img, k[0], k[1]);
+    });
+  }
+  if (window.MutationObserver) new MutationObserver(refit).observe(document.documentElement, { attributes: true, attributeFilter: ["data-skin"] });
+  var lastDpr = window.devicePixelRatio || 1;
+  window.addEventListener("resize", function () { var d = window.devicePixelRatio || 1; if (d !== lastDpr) { lastDpr = d; refit(); } });
   function capStudies(badge, card, info) {
     Array.prototype.slice.call(badge.querySelectorAll(".cap-x")).forEach(function (e) { e.remove(); });
     ["data-wear", "data-print"].forEach(function (a) { badge.removeAttribute(a); });
@@ -918,7 +988,7 @@ try {
           var listed = names !== null && names.indexOf(persist) >= 0;
           var info = { state: "unknown", played: false, loaded: rec && rec.loaded, forgotten: rec && rec.forgotten, saves: hasBackup(persist),
             everLoaded: ByopopGameFiles.everLoaded(rec), play: plays[id] || null,
-            icon: (rec && ByopopGameFiles.present(rec) && rec.icon) || "",
+            icon: (rec && ByopopGameFiles.present(rec) && rec.icon) || "", small: (rec && ByopopGameFiles.present(rec) && rec.small) || "",
             built: (rec && ByopopGameFiles.present(rec) && rec.built) || 0, opened: (rec && ByopopGameFiles.present(rec) && rec.opened) || "" };
           if (rec && ByopopGameFiles.present(rec) && (names === null || listed)) {
             // the record says the files are there, and the database that holds them is
@@ -1007,12 +1077,16 @@ try {
   function toAddress(tab) {
     try { history.replaceState(null, "", location.pathname + location.search + "#" + panel(tab).id); } catch (e) {}
   }
+  // Desktop 95's desktop (web/skins.js): each tab is a window there, and a link to it opens that window
+  function onDesk(tab) {
+    try { return ByopopSkin.desk.show("tab-" + panel(tab).id); } catch (e) { return false; }
+  }
   // #players, #saves or #settings: that tab, scrolled to
   function fromHash() {
     var tab = byPanel(location.hash.slice(1));
     if (!tab) return false;
     choose(tab, false);
-    tabs[0].parentNode.scrollIntoView({ block: "start" });
+    if (!onDesk(tab)) tabs[0].parentNode.scrollIntoView({ block: "start" });
     return true;
   }
   var saved = null;
@@ -1027,7 +1101,7 @@ try {
     ev.preventDefault();
     if (location.hash !== a.getAttribute("href")) history.pushState(null, "", a.getAttribute("href"));
     choose(tab, true);
-    tabs[0].parentNode.scrollIntoView({ block: "start" });
+    if (!onDesk(tab)) tabs[0].parentNode.scrollIntoView({ block: "start" });
   });
 })();
 </script>
@@ -1040,16 +1114,77 @@ try {
 } catch (e) {}
 </script>
 <script>
-// Desktop 95's windows on the listing (web/skins.js, ByopopSkin.desk): the games and the page's notes are windows of their own,
-// with their icons, kept where the player leaves them ("index" in byopop-desk); drawn only in that skin, on a wide screen
+// Favourites (the user, 2026-11-08: "User should be able to save some games as their favorites. In other skins, with a star
+// icon"): a star button on every game's card, coming-soon games too, that puts the game in or out of the player's favourites
+// (ByopopSettings.favourites, web/settings.js). An outline while it is not one, filled while it is, drawn in each skin's
+// manner (web/skins.css); its name is "Favourite: <game>" and its state aria-pressed. In Desktop 95 a favourite also has its
+// own icon on the desktop (web/skins.js). The stars follow a change made elsewhere (a desktop icon's menu, another tab).
+(function () {
+  if (!window.ByopopSettings || !ByopopSettings.favourites) return;
+  function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
+  var STAR = '<svg class="fav-vec" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.8l2.75 5.95 6.5.75-4.85 4.42 1.33 6.42L12 17.1l-5.73 3.24 1.33-6.42L2.75 9.5l6.5-.75z"/></svg><svg class="fav-px" viewBox="0 0 11 11" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><g class="fav-fill"><rect x=\'5\' y=\'0\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'1\' width=\'1\' height=\'1\'/><rect x=\'5\' y=\'1\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'1\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'2\' width=\'1\' height=\'1\'/><rect x=\'5\' y=\'2\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'2\' width=\'1\' height=\'1\'/><rect x=\'0\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'1\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'2\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'5\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'8\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'9\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'10\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'1\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'2\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'5\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'8\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'9\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'2\' y=\'5\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'5\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'5\' width=\'1\' height=\'1\'/><rect x=\'5\' y=\'5\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'5\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'5\' width=\'1\' height=\'1\'/><rect x=\'8\' y=\'5\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'6\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'6\' width=\'1\' height=\'1\'/><rect x=\'5\' y=\'6\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'6\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'6\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'7\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'7\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'7\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'7\' width=\'1\' height=\'1\'/><rect x=\'2\' y=\'8\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'8\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'8\' width=\'1\' height=\'1\'/><rect x=\'8\' y=\'8\' width=\'1\' height=\'1\'/><rect x=\'2\' y=\'9\' width=\'1\' height=\'1\'/><rect x=\'8\' y=\'9\' width=\'1\' height=\'1\'/></g><g class="fav-edge"><rect x=\'5\' y=\'0\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'1\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'1\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'2\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'2\' width=\'1\' height=\'1\'/><rect x=\'0\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'1\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'2\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'8\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'9\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'10\' y=\'3\' width=\'1\' height=\'1\'/><rect x=\'1\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'9\' y=\'4\' width=\'1\' height=\'1\'/><rect x=\'2\' y=\'5\' width=\'1\' height=\'1\'/><rect x=\'8\' y=\'5\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'6\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'6\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'7\' width=\'1\' height=\'1\'/><rect x=\'5\' y=\'7\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'7\' width=\'1\' height=\'1\'/><rect x=\'2\' y=\'8\' width=\'1\' height=\'1\'/><rect x=\'4\' y=\'8\' width=\'1\' height=\'1\'/><rect x=\'6\' y=\'8\' width=\'1\' height=\'1\'/><rect x=\'8\' y=\'8\' width=\'1\' height=\'1\'/><rect x=\'2\' y=\'9\' width=\'1\' height=\'1\'/><rect x=\'3\' y=\'9\' width=\'1\' height=\'1\'/><rect x=\'7\' y=\'9\' width=\'1\' height=\'1\'/><rect x=\'8\' y=\'9\' width=\'1\' height=\'1\'/></g></svg>';
+  function game(li) {
+    var a = li.querySelector("[data-game]"), name = li.querySelector(".name"), badge = li.querySelector(".badge");
+    var title = li.getAttribute("data-title") || (name ? name.textContent : "");
+    var id = a ? a.getAttribute("data-game") : "soon-" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    var colour = (/--tile:\s*(#[0-9a-f]{3,8})/i.exec(li.getAttribute("style") || "") || [])[1] || "";
+    return { id: id, title: title, colour: colour, page: a ? a.getAttribute("href") : "",
+             tag: badge ? (badge.getAttribute("data-initials") || badge.textContent || "").trim().slice(0, 4) : "" };
+  }
+  var stars = [];
+  Array.prototype.forEach.call(document.querySelectorAll(".games > li"), function (li) {
+    var g = game(li);
+    if (!g.id || g.id === "soon-") return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "fav";
+    b.setAttribute("aria-label", T("index.fav.name", { game: g.title }));
+    b.innerHTML = STAR;
+    b.addEventListener("click", function () {
+      var on = b.getAttribute("aria-pressed") !== "true";
+      ByopopSettings.setFavourite(game(li), on);
+      show();
+    });
+    li.appendChild(b);
+    li.classList.add("has-fav");
+    stars.push({ b: b, id: g.id });
+  });
+  function show() {
+    var ids = ByopopSettings.favourites().map(function (f) { return f.id; });
+    stars.forEach(function (s) {
+      var on = ids.indexOf(s.id) >= 0;
+      s.b.setAttribute("aria-pressed", on ? "true" : "false");
+      s.b.title = T(on ? "index.fav.on" : "index.fav.off");
+    });
+  }
+  show();
+  window.addEventListener("byopop-favourites", show);
+  window.addEventListener("storage", function (ev) { if (!ev.key || ev.key === ByopopSettings.KEY) show(); });
+})();
+</script>
+<script>
+// Desktop 95's windows on the listing (web/skins.js, ByopopSkin.desk): the games, each of the tabs under them (Players, Saves,
+// Music, Settings) and the page's notes are windows of their own, each with its icon (the user, 2026-11-08: "There should be
+// separate windows for games, settings, and about, with icons for each"), kept where the player leaves them ("index" in
+// byopop-desk); drawn only in that skin, on a wide screen. The games' window is open at first, the notes' beside it, and the
+// tabs' windows closed until their icons (or a link to #settings and the like) open them, one cascaded over the other; each
+// tab's icon has the tab's own picture. Out of the desktop the tabs are tabs again, in their place under the games.
 try {
   (function () {
     var d = ByopopSkin.desk, head = document.querySelector(".site-header");
-    d.add(document.querySelector("main"), { id: "games", title: ByopopStrings.t("skin.desk.games"), closable: true,
-      at: function (left) { return [left, head ? head.offsetTop + head.offsetHeight + 4 : 12]; } });
-    d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true,
-      at: function (left) { var g = d.find("games"); return [left, g ? g.y + g.el.offsetHeight + 16 : 12]; } });
+    function top() { return head ? head.offsetTop + head.offsetHeight + 4 : 12; }
+    d.add(document.querySelector("main"), { id: "games", title: ByopopStrings.t("skin.desk.games"), closable: true, body: true,
+      at: function (left) { return [left, top()]; } });
+    ["settings", "players", "saves", "music"].forEach(function (id, i) {
+      var tab = document.getElementById("tab-" + id), sec = document.getElementById(id);
+      if (!tab || !sec) return;
+      d.add(sec, { id: "tab-" + id, title: tab.getAttribute("aria-label"), closable: true, closed: true, body: true, lift: true,
+        pic: tab.querySelector("svg"), at: function (left, vw) { return [Math.max(left, vw - 620) - i * 28, top() + 24 + i * 28]; } });
+    });
+    d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true, body: true,
+      at: function (left, vw) { return [Math.max(left, vw - 500), top() + 220]; } });
     ByopopSkin.deskSync();
+    // the page opened at #settings and the like: that tab's window (the tabs' script ran before these windows were added)
+    if (/^#(settings|players|saves|music)$/.test(location.hash)) d.show("tab-" + location.hash.slice(1));
   })();
 } catch (e) { console.warn("the desktop's windows could not be added", e); }
 </script>

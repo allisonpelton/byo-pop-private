@@ -56,7 +56,8 @@ public:
 	SDL_Window* mWindow;
 	SDL_Renderer* mRenderer;
 	DDImage* mScreenImage;
-	bool mIs3D;  // true when the renderer is hardware accelerated
+	bool mIs3D;  // true when the renderer is hardware accelerated and the game has not switched 3D off (SexyAppBase::Set3DAcclerated)
+	bool mCan3D;  // port: the renderer is hardware accelerated (what mIs3D is before a game switches 3D off)
 	bool mIsWindowed;
 	bool mVSync;
 	bool mPixelPerfect;  // nearest filtering for unscaled 1x blits when the screen is scaled (default true)

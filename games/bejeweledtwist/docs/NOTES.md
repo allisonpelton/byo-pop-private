@@ -99,6 +99,14 @@ once its drop is done (Rand() % 25, and for a sparkle RandSigned() then Rand() %
 Logo's shine (Rand() % 200 when it starts again), and the PlayButton's sparkles every 8th update once it is in (three
 RandSigned()).
 
+The site's "Always skip start-up logos" (`Byopop::SiteSkipLogos()`, `-skiplogos` natively; 2026-11-08) leaves out the
+PopCap logo and its trademark sign: the loader's constructor holds `mPopCapAlpha` (+0xb0) and `mTrademarkAlpha` (+0x580)
+at 0, and nothing but those two draws in DrawAll reads them. Since the port's hand-over moves the loader on to the original's ("Deviations", loading), the logo is never drawn in
+the port anyway, and the switch only makes sure of it. The loading,
+the menu's start, the Logo (the game's title, which stays) and every random draw are as before: a seeded Classic
+autoplay is the same at update 8010 with and without the switch, and with it off the frozen screens and the baseline
+are unchanged.
+
 ## Drawing helpers and effects
 
 Constants: many doubles in the exe are floats widened (0.1 is 0.10000000149011612); the port writes them as the exe
@@ -455,6 +463,20 @@ Each is a change without a visible effect in play, but for the first.
   48400, though around its level-ups a match lands a few updates apart, since parts of the original time themselves
   by the app's update count since launch (CurvedVal, the level-up mandala's turns, Board's pulses). The frozen
   baseline and check.sh's screens were refrozen with the change.
+  What the loader draws follows the original's order with the wait taken out (2026-11-08, from the user's report that
+  the PopCap logo showed behind the menu and the Play button stayed invisible until clicked). The loader's own curves
+  play its opening from its construction: the PopCap logo fades in over its first 250 updates and out from 550 to
+  800, its trademark sign in and out by 400, the screen comes up from black from 300 to 600, the device slides in from
+  250 to 400, the Play button's alpha rises at 350 to 400 (the main menu's Play button follows it), and the title fades
+  in from 800. The original hands over at the loader's update 848 at the earliest (the bar's cap and smoothing;
+  origrun saw the main menu made at the app's update 846-847 on its virtual clock), when the logo is gone and the
+  button is up. The port, handing over a few updates in, had the logo still fading in behind the menu and the button's
+  alpha at 0. So at the hand-over the port moves the loader's clock on to its update 848: the start of every curve the
+  constructor set and the hand-over does not set again, and the loader's update count (the glows, the bar's scroll).
+  After that the menu, the title's fade and the loader's slide away are as in the original's; before it, the port
+  shows the original's first few updates, black. No random draw depends on them: a seeded Classic autoplay is the
+  same at update 8010 before and after, and check.sh's Classic and Blitz screens and the baseline are unchanged. The
+  suite's menu set (updates 60 and 160) freezes the menu with Play drawn; the port before this fix fails it.
 - A level-up through a lost focus (a crash and a soft lock of the original's logic, fixed in the port). While the
   board is paused (the window lost the focus, or the options are over it) its UpdateGame returns at once, so its part
   of the jump between levels (UpdateJump, 0x6d090f, and the next level's start) holds, but the original's Hyperspace

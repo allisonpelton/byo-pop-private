@@ -4,7 +4,7 @@
 // BookWorm Deluxe's shared ids: images, fonts, sounds, songs, game modes, tile sets, dialogs.
 // The original has no ResourceManager: three hard-coded file-name tables, indexed by these ids
 // (re/bookworm/analysis/NAMES.md 4.1):
-//   gImageNames 0x52e410 (149), loaded as GetImage(GetString("ImagePath", "images\\") + name)
+//   gImageNames 0x52e410 (149; the six that only registration drew are NULL in the port), loaded as GetImage(GetString("ImagePath", "images\\") + name)
 //   gFontNames  0x52e3c0 (19),  loaded as new ImageFont(app, GetString("FontPath", "fonts\\") + name)
 //   gSoundNames 0x52e668 (47),  loaded as LoadSound(id, GetString("SoundPath", "sounds\\") + name)
 // Every id is used as mApp->mImages[IMAGE_X], mApp->mFonts[FONT_X], PlaySample(SOUND_X).
@@ -16,16 +16,16 @@ enum ImageId
 {
 	IMAGE_BACKDROP_TITLE = 0,
 	IMAGE_BACKDROP_TITLE_LOADMETER = 1,
-	IMAGE_BACKDROP_REGISTER = 2,
+	// 2: registration only, taken out (the slot stays empty, so the ids keep their numbers)
 	IMAGE_LOGO_TITLE = 3,
 	IMAGE_TITLE_LOADMETER = 4,
-	IMAGE_TITLE_STAMP_TRIAL = 5,
-	IMAGE_TITLE_STAMP_REGISTERED = 6,
+	// 5: registration only, taken out (the slot stays empty, so the ids keep their numbers)
+	// 6: registration only, taken out (the slot stays empty, so the ids keep their numbers)
 	IMAGE_DIALOG = 7,
 	IMAGE_DIALOGBUTTON = 8,
-	IMAGE_BUTTON_REG_REGISTER = 9,
-	IMAGE_BUTTON_REG_CANCEL = 10,
-	IMAGE_BUTTON_REG_REGCODE = 11,
+	// 9: registration only, taken out (the slot stays empty, so the ids keep their numbers)
+	// 10: registration only, taken out (the slot stays empty, so the ids keep their numbers)
+	// 11: registration only, taken out (the slot stays empty, so the ids keep their numbers)
 	IMAGE_EDITBOX = 12,
 	IMAGE_CURSOR_POINTER = 13,
 	IMAGE_CURSOR_HAND = 14,
@@ -301,20 +301,20 @@ enum DialogId
 {
 	DIALOG_UNUSED_0 = 0,                    // never created; 2000 -> KillDialog(0) + ShowGameSelector
 	DIALOG_OPTIONS = 1,                     // OptionsDialog (ShowOptions)
-	DIALOG_REGISTER = 2,                    // RegisterDialog (not ported)
+	// 2 the RegisterDialog: taken out (registration)
 	DIALOG_UNUSED_3 = 3,                    // never created; killed by StartGame / ShowGameSelector
-	DIALOG_TRIAL_EXPIRED = 4,               // trial expired (TitleScreen trial; not ported)
+	// 4 the trial-expired dialog: taken out
 	DIALOG_CONTINUE = 5,                    // continue the saved game? (SelectGameMode)
 	DIALOG_INTERNET_REQUIRED = 6,           // internet high scores (not ported)
 	DIALOG_ASK_UPDATE_CHECK = 7,            // update check (not ported)
 	DIALOG_UPDATE_CHECK = 8,                // UpdateCheckDialog (not ported)
-	DIALOG_INVALID_CODE = 9,                // registration (not ported)
+	// 9 the invalid registration code: taken out
 	DIALOG_OPENING_BROWSER = 11,            // wait message (OpenURL)
 	DIALOG_URL_FAILED = 12,                 // the URL to open by hand (URLOpenFailed)
 	DIALOG_QUIT = 13,                       // quit confirmation (ShowQuitDialog)
 	DIALOG_HINT = 15,                       // HintDialog (ShowHint) and the Board's can't-scramble messages
 	DIALOG_CREDITS = 16,                    // CreditsDialog
-	DIALOG_REGISTER_UPSELL = 17,            // Board and Fame registration upsells (not ported)
+	// 17 the Board's and Fame's registration upsells: taken out
 	DIALOG_MESSAGE = 18,                    // OK-only messages (new-user name checks, Options warnings)
 	DIALOG_SELECT_USER = 19,                // SelectUserDialog
 	DIALOG_DELETE_USER = 20,                // DeleteUserDialog

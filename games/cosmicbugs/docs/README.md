@@ -165,6 +165,18 @@ title's QUIT (kind 3, which quits); `gDemo`, the attract mode of the original th
 registration path; the readability pass may take it out); and the `fv` text and item attributes the loader skips. The logo screens
 show the text "www.retro64.com" on them; it is text, not a button, and nothing in the game follows it.
 
+## Start-up logos
+
+The site's "Always skip start-up logos" (`Byopop::SiteSkipLogos()`, `framework/WebSettings.h`; the exe takes `-skiplogos`)
+skips the game's logo screens: the PopCap logo, which is level kind 0xe, shown again for each of the game file's portal
+animation files and ending by itself after about two seconds each (the title is up at update 2162 of a normal start). With the
+setting on, `GameStep` goes on from a logo screen as Esc on it does, the original's own skip, straight to the main menu
+(`gGoTo = 1`), so the title is up from the first update instead of at update 2162. The host's `SkipLogos()`
+(engine/R64Sys.h; the app answers `SiteSkipLogos()`, the headless runner `CB_SKIPLOGOS=1`) is how the game code, which does not see the framework, reads
+it. The logos draw no random number, so the game's draws after them are the same with the setting on and off: the runner's seed
+series (`CB_WATCH=1`) is identical for a natural start, for Esc at the first logo and for the skip, and begins its first draw at update 2171, 11 and 11. With the setting off nothing changes
+(the baseline and the suite hold). The loading screen's bar is not a logo and is untouched; the title's own animation stays.
+
 ## Mods
 
 One, `mods/fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"), with a toggle for each of two fixes, both on in the site's

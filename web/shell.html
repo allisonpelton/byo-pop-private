@@ -92,6 +92,12 @@ body {
 .brand .mark { width: 12px; height: 12px; background: var(--accent); border-radius: 2px; }
 /* the game's own icon in place of the mark once its files are here (showIcon) */
 .brand .game-icon { width: 20px; height: 20px; flex: none; }
+/* the sound switch's icon (web/skins.css draws it in each skin): waves while it is pressed (the sound on), a cross while not */
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; padding: 4px 8px; line-height: 0; }
+.snd { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.snd-spk { fill: currentColor; fill-opacity: .18; }
+.snd-px { display: none; fill: currentColor; stroke: none; width: 16px; height: 16px; }
+.icon-btn[aria-pressed=true] .snd-off, .icon-btn[aria-pressed=false] .snd-on { display: none; }
 .bar .status { color: var(--muted); font-size: 13px; flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button, .button {
   font: inherit; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg);
@@ -252,7 +258,10 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false" hidden>{{game.btn.mods}}</button>
   <button id="btn-files" type="button" aria-controls="panel-files" aria-expanded="false">{{game.btn.files}}</button>
   <button id="btn-settings" type="button" aria-controls="panel-settings" aria-expanded="false">{{game.btn.settings}}</button>
-  <button id="btn-sound" type="button" aria-pressed="true" title="{{game.sound.title}}"><span>{{game.sound.name}}</span><span aria-hidden="true">{{game.sound.on}}</span></button>
+  <!-- the page's sound switch, an icon (the user, 2026-11-08: "On all skins, replace the Sound: on/off button with an icon"): a
+       speaker with waves while the sound is on, crossed out while it is off, each skin's own (web/skins.css); its name and
+       tooltip say which (showSound) -->
+  <button id="btn-sound" class="icon-btn" type="button" aria-pressed="true" aria-label="{{game.sound.on}}" title="{{game.sound.on}}"><svg class="snd snd-vec" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="snd-spk" d="M3.5 9.5h3.8L12 5.2v13.6L7.3 14.5H3.5z"/><g class="snd-on"><path d="M15.2 9.2a4 4 0 0 1 0 5.6"/><path d="M17.9 6.5a7.8 7.8 0 0 1 0 11"/></g><g class="snd-off"><path d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></g></svg><svg class="snd snd-px" viewBox="0 0 16 16" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><rect x='1' y='6' width='3' height='4'/><rect x='4' y='5' width='1' height='6'/><rect x='5' y='4' width='1' height='8'/><rect x='6' y='3' width='1' height='10'/><rect x='7' y='2' width='1' height='12'/><g class="snd-on"><rect x='9' y='6' width='1' height='4'/><rect x='11' y='4' width='1' height='1'/><rect x='12' y='5' width='1' height='6'/><rect x='11' y='11' width='1' height='1'/><rect x='13' y='3' width='1' height='1'/><rect x='14' y='4' width='1' height='8'/><rect x='13' y='12' width='1' height='1'/></g><g class="snd-off"><rect x='10' y='5' width='1' height='1'/><rect x='14' y='5' width='1' height='1'/><rect x='11' y='6' width='1' height='1'/><rect x='13' y='6' width='1' height='1'/><rect x='12' y='7' width='1' height='1'/><rect x='12' y='7' width='1' height='1'/><rect x='13' y='8' width='1' height='1'/><rect x='11' y='8' width='1' height='1'/><rect x='14' y='9' width='1' height='1'/><rect x='10' y='9' width='1' height='1'/></g></svg></button>
   <button id="btn-full" type="button">{{game.btn.full}}</button>
   <button id="btn-theme" type="button" data-theme-toggle aria-label="{{theme.button}}" aria-pressed="false"></button>
 </header>
@@ -550,7 +559,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
         var cw = gameScreen.w * n / dpr, ch = gameScreen.h * n / dpr;
         if (cw <= roomW && ch <= roomH) w = cw;
       }
-      // a window that does not fit is still pixel-perfect: one canvas pixel for each device pixel, and the desktop scrolls
+      // a window that does not fit is still pixel-perfect: one canvas pixel for each device pixel, and the game's window scrolls
       if (!w && desktop) w = gameScreen.w / dpr;
     }
     if (w) s.style.setProperty("--pp-w", w + "px"); else s.style.removeProperty("--pp-w");
@@ -810,12 +819,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     if (pagePlaceholders()) return;
     try {
       var rec = ByopopGameFiles.all()[PAGE.id];
-      // a record from before the exe's link year was kept gets it now, where the game stores its exe
-      if (rec && rec.icon && (typeof rec.built === "number" || PAGE.importIcon)) { showIcon(rec.icon); return; }
+      // a record from before the exe's link year, or its small icon, was kept gets them now, where the game stores its exe
+      if (rec && rec.icon && ((typeof rec.built === "number" && typeof rec.small === "string") || PAGE.importIcon)) { showIcon(rec.icon); return; }
       if (importedIcon) {  // read out of the exe at the import, which the game does not store
         var got = importedIcon;
         importedIcon = null;
-        if (got.url && ByopopGameFiles.setIcon(PAGE.id, got.url, got.built)) showIcon(got.url);
+        if (got.url && ByopopGameFiles.setIcon(PAGE.id, got.url, got.built, got.small)) showIcon(got.url);
         return;
       }
       var name = mainExe();
@@ -823,7 +832,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       var bytes = Module.FS.readFile(GAME + "/" + name);
       ByopopExeIcon.fromBytes(bytes).then(function (icon) {
         var url = (icon && icon.dataUrl) || (rec && rec.icon);
-        if (url && ByopopGameFiles.setIcon(PAGE.id, url, ByopopExeIcon.built(bytes))) showIcon(url);
+        if (url && ByopopGameFiles.setIcon(PAGE.id, url, ByopopExeIcon.built(bytes), (icon && icon.small) || "")) showIcon(url);
       }).catch(function () {});
     } catch (e) {}
   }
@@ -1002,6 +1011,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     // "3D acceleration": -1 the game's own choice, 1 always (where the browser has WebGL2: the game checks), 0 never
     var accel = setting("accel3d");
     audioCall("byopop_site_accel3d", [accel === "on" ? 1 : accel === "off" ? 0 : -1]);
+    // "Always skip start-up logos" (framework/WebSettings.h, SiteSkipLogos): read by the games where their logos are, which come
+    // before anything the page could call once the game runs. Never on the player-only test page, whose runs keep the logos
+    audioCall("byopop_site_skiplogos", [(setting("skipLogos") === "on" && !PLAYER_ONLY) ? 1 : 0]);
     setStatus(modsText + seedText + run.status + (pagePlaceholders() ? " · " + ByopopStrings.t("game.status.placeholders") : "") +
       (Module.silentAudio ? " · " + ByopopStrings.t("game.status.silent") : (isAutostart === true ? " · " + ByopopStrings.t("game.status.sound_after") : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
@@ -1656,12 +1668,17 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     try { return Module.ccall(name, "number", args.map(function () { return "number"; }), args); } catch (e) { return undefined; }
   }
   function showSound() {
-    var muted = audioCall("byopop_audio_muted", []) === 1;
-    // the button's name is "Sound" and its state is aria-pressed (pressed: the sound is on); the words after the name are for the eye
-    $("btn-sound").lastChild.textContent = ByopopStrings.t(muted ? "game.sound.off" : "game.sound.on");
-    $("btn-sound").setAttribute("aria-pressed", muted ? "false" : "true");
+    // a ?silent=1 page plays nothing whatever the button says, so it shows the sound off
+    var muted = pageSilent() || audioCall("byopop_audio_muted", []) === 1;
+    // the button is an icon (web/skins.css draws the waves or the cross by aria-pressed: pressed, the sound is on); its name and
+    // its tooltip say "Sound on" or "Sound off", the tooltip with what the button does under them
+    var b = $("btn-sound"), name = ByopopStrings.t(muted ? "game.sound.off" : "game.sound.on");
+    b.setAttribute("aria-label", name);
+    b.title = name + "\n" + ByopopStrings.t("game.sound.title");
+    b.setAttribute("aria-pressed", muted ? "false" : "true");
   }
   function setPageMuted(muted) { audioCall("byopop_audio_mute", [muted ? 1 : 0]); showSound(); }
+  showSound();  // ?silent=1: off from the start
   $("btn-sound").addEventListener("click", function (e) {
     soundTouched = true;
     setPageMuted(audioCall("byopop_audio_muted", []) !== 1);
@@ -1880,7 +1897,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
         at: function (left) { return [left, 12]; } });
       d.add($("main"), { id: "game", title: $("brand-name").textContent, snap: $("canvas"), closable: true,
         at: function (left) { var c = d.find("controls"); return [left, c ? c.y + c.el.offsetHeight + 12 : 12]; } });
-      d.add($("chat"), { id: "chat", title: $("chat-title").textContent, handle: $("chat-title"),
+      // the chat's collapser minimizes it to the task bar on the desktop (web/skins.js, minimize)
+      d.add($("chat"), { id: "chat", title: $("chat-title").textContent, handle: $("chat-title"), minimize: ".chat-chevron",
         at: function (left, vw) { var g = d.find("game"); return g ? [Math.min(g.x + g.el.offsetWidth + 12, vw - 312), g.y] : [left, 12]; } });
       PANELS.forEach(function (id) {
         var p = $(id), wid = id;

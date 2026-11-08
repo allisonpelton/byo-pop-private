@@ -215,8 +215,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). The readability pass
   (`docs/CODE_STANDARDS.md`) comes next, before any further decomp (the user, 2026-11-08: "Move up readability passes
   to come before additional decomps"). One game sets the standards first and proves them in full ("Use one game to set
-  the full standards for what constitutes readable and see that they actually make sense"); every other game takes its
-  pass once the user approves them. The pass leaves no unknown or unnamed variable, field, parameter, global or
+  the full standards for what constitutes readable and see that they actually make sense"); a second, more complex
+  game (Bejeweled Twist) then takes them before every other game does ("Rules look good to start, but I'd want them
+  tested on a more complex game before moving forward with them for EVERY game", 2026-11-08), and every other game
+  takes its pass once the user approves them after that. The pass leaves no unknown or unnamed variable, field, parameter, global or
   constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port then go one at a
   time, each in full, readability pass included, before the next begins ("for the remaining games, I want to tackle
   them in full one-at-a-time"). A performance pass (the user, 2026-11-03) and taking out the other code the ports do

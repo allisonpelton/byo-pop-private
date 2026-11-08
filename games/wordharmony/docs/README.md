@@ -122,18 +122,54 @@ over), `seed <n>` and `move`. `botplay <updates>` lets the bot play on its own f
 widget's mouse calls (a test of the bot, not real input).
 
 `move` answers from the port's bot (`src/Bot.cpp`): the help screens' PLAY GAME, the level panel's and level end's
-CONTINUE, and in a game the next drag or right click. The bot picks the word it can make with the fewest drags from
-the dictionary's own search (RELAX: the level's words), anchors it on a ball that rests, fills each place from the
-anchor outwards with the topmost ball of its letter, carried up to the top of the field, across and down so that it
-passes no ledge or chain, and carries a wrong letter off a place first. A word on a chain uses all of the chain, and
-when a chain's ball hangs past a ledge's end the whole row is moved along until every place stands on something. A chain
-is read as it lies, left to right, as the game reads a row. A ball under a ledge is slid along its row to a clear column
-before it is lifted, and a place under one is reached the same way; in a room closed by a ledge (RELAX's first level) the
-balls are carried under its ceiling instead. A plan that failed is tried again once its anchor has moved, eight times a word
-at most, and a ball left on the mouse (a release lost to a focus change) is let go with a click. In TSUNAMI it spawns the
-next ball only while the water is below 0.45. It does not find its way through a maze of blocks (RELAX's second level) or
-turn a chain that fell over round, so it can stop with no move there. `WH_BOTDEBUG=1`, or the command `botdebug` (`botdebug off`
+CONTINUE, Save/Quit's Don't Save, and in a game the next drag or right click. The bot picks the word it can make with the
+fewest drags from the dictionary's own search (RELAX: the level's words), in a row or, in RELAX, a column read from the
+top. It anchors the word on a ball that rests, a chain's ball or a letter fixed in stone, and fills each place from the
+anchor outwards with a ball of its letter that the mouse can reach. The field is a grid of 4-pixel cells, those a ball
+fits in apart from the blocks and the letters fixed in stone; a ball is carried along the shortest way through it (round
+other balls where it can) to its place, and a place over nothing comes last and is held until the word counts (RELAX
+scores a word while its balls touch). A wrong letter on a place is first carried to the top of its own part of the field.
+A word on a chain uses all of the chain, and when a chain's ball hangs past a ledge's end the whole row is moved along
+until every place stands on something; a chain is read as it lies, left to right, as the game reads a row, and when no
+word is left and a chain lies fallen over (reading backwards) its end is lifted over its other end. A plan that failed is
+tried again once its anchor has moved, eight times a word at most, and a ball left on the mouse (a release lost to a focus
+change) is let go with a click. In TSUNAMI it spawns the next ball only while the water is below 0.45. THINK never ends by
+itself, so when nothing is left to make for twelve asks the bot leaves by Save/Quit and Don't Save, which ends the game.
+It still stops on some RELAX levels whose letters lie walled in until another word breaks the stones (level 4).
+`WH_BOTDEBUG=1`, or the command `botdebug` (`botdebug off`
 ends it; for the web build, which has no environment), prints its plans on stderr.
+
+## Performance (2026-11-08)
+
+Measured as `build/slots/news.md` (2026-11-08) asks, with `tools/profile/perf.py` and `run_all.sh`, the original and the
+port back to back on this machine, every run started only once `tools/gamecount.py --limit 3` had room. The original ran
+under origrun on its real clock from a fresh copy of the staged game with phase one's patches (the update counter and the
+seed), its registry key cleared first; the port ran natively without `-fast`. Both were sampled every 0.1 s: working set,
+private bytes and processor time (kernel and user).
+
+**Loading**, from the process's creation to the main menu, the first screen that takes input. The original: 2.92, 2.86
+and 3.40 s (and 2.81, 2.57, 2.81 s in the minute's runs); that is its splash, held for two seconds of frames, and its
+loading after the splash's first frame. The port as a player gets it (no `-splashhold`): 0.74, 0.71, 0.69, 0.68 and
+0.86 s, median 0.71 s, with 93.5 MB working set and 87.7 MB private at the menu (the original: 78 and 56 MB). The web
+build was not timed: the only browser here is the hidden pane, which runs a page's frames on a shimmed timer and reads
+the game's files from the page's own store, so its time would measure the pane rather than the build.
+
+**The scripted minute**: tour 2's TSUNAMI game (`tools/shots/tour2.txt`), frames 2000 to 3800, 60 seconds of play at the
+game's 30 frames a second, in real time on both sides. The port's script counts frames, and in real time the framework
+updates every 10 ms with a frame every third or fourth update, so `perf.py` puts frame k at update ceil(3.3 k); the
+minute starts 67 s after launch on both sides.
+
+| Run | Peak working set | Peak private | Processor time | Machine busy | Other game processes |
+| --- | --- | --- | --- | --- | --- |
+| Original A | 67.3 MB | 52.6 MB | 3.41 s | 67% | 2 |
+| Port A | 161.3 MB | 155.1 MB | 13.56 s | 82% | 2, then 4 |
+| Original C | 67.3 MB | 52.6 MB | 2.23 s | 54% | 2 |
+| Port C | 153.3 MB | 154.1 MB | 10.28 s | 36% | 2, then 3 |
+
+A second pair (B) was taken too; its port run met six game processes of other sessions and a machine 99% busy (its
+frames fell to 22.8 a second), so it is left out and pair C replaces it. The original's B run: 77.8 MB, 55.5 MB, 5.05 s.
+The port needs about three to four times the original's processor time over the minute (17 to 23% of one core against
+4 to 6%) and two to three times its memory. Nothing has been done about either yet; that is the performance pass's.
 
 ## Mods
 

@@ -136,6 +136,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mDisplayHeight = mHeight;
 	mPresentationRect = Rect(0, 0, mWidth, mHeight);
 	mIs3D = false;
+	mCan3D = false;
 	mIsWindowed = true;
 	mVSync = false;
 	// Unscaled 1x blits sample texels exactly, as at 1x in 1.3. Linear filtering them at a render scale
@@ -212,6 +213,7 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	if (SDL_GetRendererInfo(mRenderer, &anInfo) == 0)
 	{
 		mIs3D = (anInfo.flags & SDL_RENDERER_ACCELERATED) != 0;
+		mCan3D = mIs3D;
 		mMaxTextureWidth = (anInfo.max_texture_width > 0) ? anInfo.max_texture_width : 16384;
 		mMaxTextureHeight = (anInfo.max_texture_height > 0) ? anInfo.max_texture_height : 16384;
 	}

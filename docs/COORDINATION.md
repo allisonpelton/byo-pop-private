@@ -205,8 +205,11 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   port, with the strongest proof that a change leaves play alone (its oracle against the original, beside its frozen
   baseline), and its Mac build's symbols for names. Its session writes `docs/CODE_STANDARDS.md` while applying it to
   the whole port, changes a rule wherever it fails in practice, and builds a checker in `tools/` that finds unnamed
-  identifiers, so every later pass proves "no unknowns" by a run instead of by eye. The user approves the standards;
-  then each finished game takes its pass in its own session, a readable port changing nothing it does (its frozen
+  identifiers, so every later pass proves "no unknowns" by a run instead of by eye. The user found the first draft
+  good to start (2026-11-08) and wants it tried on a more complex game before every game takes it: Bejeweled Twist,
+  the largest port (about twice Bejeweled's code, both 2D and 3D, and no Mac build, so its names come from use), takes
+  its pass second, once its current fixes are merged, and the standards change wherever they fail there. The user
+  approves them after that; then each finished game takes its pass in its own session, a readable port changing nothing it does (its frozen
   baseline, and the oracle for Bejeweled), and keeping each function's address so the coverage check can still pair
   it with the export. The coverage check and the performance pass stay after every game is done, as below; each
   finished game already records its performance numbers.
@@ -254,7 +257,10 @@ logo, using that inference; the managers' tab icons; the bottle-cap placeholder 
 a dragged cap. The bottle cap and opener animation comes after Twist's last merge. Ning Po Mahjong's and TipTop's high-score names
 were fixed (34e6da1, a6547b9). The chat
   is built as a test with made-up messages; its real version waits for funding. What the user asks for while testing is
-  still done when asked.
+  still done when asked. Desktop 95's pixelated text waits for a pixel font drawn for the project (the user, 2026-11-08: "Draw our own
+  later"): every Windows install still has the bitmap MS Sans Serif (`sserife.fon`), but browsers draw only TrueType and
+  OpenType, so the skin's "MS Sans Serif" comes out as the smooth Microsoft Sans Serif, and Microsoft's font itself is
+  never shipped.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays

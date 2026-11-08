@@ -39,6 +39,19 @@ skin.desk.controls = Controls
 skin.desk.icons = Desktop
 skin.desk.open = Open {window}
 skin.desk.close = Close {window}
+skin.desk.minimize = Minimize {window}
+# Desktop 95's task bar (web/skins.js): its name for a screen reader, the Pop button, the band down the Pop menu's side, and its entries
+skin.taskbar = Task bar
+skin.pop = Pop
+skin.pop.band = byo-pop
+skin.pop.games = Games
+skin.pop.nogames = No games here yet
+skin.pop.listing = Back to all games
+# A favourite game's desktop icon: its name for a screen reader ({game}: the game's title), and its menu
+skin.fav.icon = {game}, favourite
+skin.fav.open = Open
+skin.fav.remove = Remove from favourites
+skin.fav.menu = {game}
 skin.desk.games = All games
 skin.desk.about = About
 settings.skin.label = Skin
@@ -75,6 +88,8 @@ settings.clips.hint = A Record button beside the game. It records the game's pic
 clips.record = Record
 clips.stop = Stop
 clips.title = Record a clip of the game, with its sound
+settings.skiplogos.label = Always skip start-up logos
+settings.skiplogos.hint = Games go straight past their opening logos, as a click on each would. Games that don't support it show theirs.
 settings.skiptutorials.label = Always skip tutorials
 settings.skiptutorials.hint = Turns off each game's own tutorial, as its options would, every time it starts. Games without such an option still show theirs.
 settings.speed.label = Game speed
@@ -167,6 +182,10 @@ index.bin.yes = Forget files
 index.bin.no = Cancel
 
 # The tabs under the games: each is an icon, and these are its name and tooltip
+# The star on each game's card (the player's favourites); {game} is the game's title. The tooltip says what a press does.
+index.fav.name = Favourite: {game}
+index.fav.on = Remove from favourites
+index.fav.off = Add to favourites
 index.tabs.label = Players, saves, music and settings
 index.tabs.players = Players
 index.tabs.saves = Saves
@@ -309,10 +328,9 @@ game.btn.files = Game files
 game.btn.settings = Settings
 game.btn.full = Fullscreen
 game.sound.title = Mutes page, regardless of game volume
-# The Sound button reads "Sound: on" or "Sound: off"; the screen reader gets the name and aria-pressed
-game.sound.name = Sound
-game.sound.on = : on
-game.sound.off = : off
+# The sound button is an icon (a speaker); its name and tooltip are one of these, with game.sound.title under it in the tooltip
+game.sound.on = Sound on
+game.sound.off = Sound off
 game.mods.hint = Opens the in-game mod menu if the game is running; also accessed with F2.
 game.canvas_label = {title}, game
 game.canvas_hint = Keyboard captured by game. Use F6 to leave, Shift-F6 to re-enter.

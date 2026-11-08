@@ -39,6 +39,7 @@ public:
 
 	PixelusApp*		mApp;
 	DialogButton*	mContinueButton;		// +0x98
+	MemoryImage*	mBuffer;				// the screen drawn aside while it fades in over the board
 	MemoryImage*	mPicture;				// +0x9c the solved puzzle, 20 pixels a cell
 	std::string		mTitle;					// +0x110 the puzzle's title
 
@@ -79,6 +80,8 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x419bc0
 	virtual void	Update() override;											// 0x419a00
 	virtual void	Draw(Graphics* g) override;									// 0x419e60
+	void				DrawContent(Graphics* g, bool thePicture = true);
+	void				DrawPicture(Graphics* g);
 	virtual void	ButtonDepress(int theId) override;
 
 	// "1 minute and 12 seconds" (0x431df0 mode 4), "1m 12s" (mode 3)
