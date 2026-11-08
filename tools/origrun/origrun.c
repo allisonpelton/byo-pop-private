@@ -1357,18 +1357,22 @@ static void write_clip_json(const char* dir, int interval_ms)
 static int wait_counter(uint32_t target, int timeout_ms)
 {
 	// On the virtual clock the game is held at its first wait at or past the update (vclock.c), however fast it runs.
+	// a counter that never moves during a whole wait is a game still loading or the wrong field (Seven Seas' config
+	// once had Noah's Ark's +0x368, its frame time, which stays at 10): the timeout says so
+	uint32_t first=0; int firstOk=read_counter(gCounterExpr,&first);
+	const char* still="; it never moved during the wait (a game still loading, or an address that is not this game's mUpdateCount)";
 	if (gClockVirtual && vc_get()) {
 		int r=vc_hold_until(VC_HOLD_UPDATE,(LONG)target,0,timeout_ms);
 		VcShared* s=vc_cur(NULL,NULL,NULL,NULL,NULL);   // stays mapped (see gVc)
 		if (r==1) return s ? (int)s->heldCounter : -1;
-		if (r==0 && !gStop && !(s && s->barrierOff)) logline("counter %u not reached within %dms on the virtual clock (last %ld); the game runs free",target,timeout_ms,s?(long)s->counter:-1L);
+		if (r==0 && !gStop && !(s && s->barrierOff)) logline("counter %u not reached within %dms on the virtual clock (last %ld); the game runs free%s",target,timeout_ms,s?(long)s->counter:-1L,(firstOk && s && s->counterOk && (uint32_t)s->counter==first)?still:"");
 		if (r==0) return s && s->counterOk ? (int)s->counter : -1;
 	}
 	int w=0; uint32_t v=0; int everRead=0;
 	while (!gStop) {
 		if (read_counter(gCounterExpr,&v)) { everRead=1; if (v>=target) return (int)v; }
 		else if (!everRead && w>=1500) { logline("counter could not be read (bad address, or the process is gone); giving up on 'at'/update timing"); return -1; }
-		if (w>=timeout_ms) { logline("counter %u not reached within %dms (last %u)",target,timeout_ms,everRead?v:0); return everRead?(int)v:-1; }
+		if (w>=timeout_ms) { logline("counter %u not reached within %dms (last %u)%s",target,timeout_ms,everRead?v:0,(firstOk && everRead && v==first)?still:""); return everRead?(int)v:-1; }
 		Sleep(1); w++;
 	}
 	return everRead?(int)v:-1;
