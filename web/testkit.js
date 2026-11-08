@@ -324,7 +324,7 @@
   // update and the -script dispatch). Resolves with the lines printed from the call up to the answer, STATE {json},
   // MOVE {json}|null, a game's own answer of the same shape (TARGETS {json}), OK <command> or ERROR <command>: <reason> (the last of them); rejects after timeout ms (default 10000), or at once where the build has no
   // channel. A held game is stepped one update, so that the command runs.
-  var ANSWER = /^(INFO: )?([A-Z]{3,} (\{|\[|null)|OK |ERROR )/;
+  var ANSWER = /^(INFO: )?([A-Z]{3,} (\{|\[|null\b)|OK |ERROR )/;
   test.command = function (line, opts) {
     if (typeof M._byopop_test_command !== "function") return Promise.reject(new Error("byopop.test.command: the build has no byopop_test_command"));
     var since = logSeq;
