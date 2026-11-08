@@ -15,7 +15,7 @@ the Ghidra pass.
 | 0x41e240-0x42cdb0 | Jolly Bear's engine above the device: the object tree, layers, the manager, fonts, files, settings, the app, and the widgets: the slider bar 0x426910 (vtable 0x51e298), the list box 0x426ac0 (0x51e2f4) and the text edit 0x427920 (0x51e350), which gets WM_KEYDOWN at +0x3c and WM_CHAR at +0x40. |
 | 0x42cdb0-0x431a70 | Engine classes that sit on the device: the image (0x42cdb0), the font's character map (0x42efc0), the CRC32 (0x42f610), the logo screen (0x42f650), the window (0x42f990, procedure 0x42ff30), the slider bar's thumb (0x4309f0) and the crash handler (0x430b50-0x4319e0, not ported). |
 | 0x431a70-0x438000 | The device: the display (DirectDraw/Direct3D 7, the image and font caches) and the sound object (BASS). The port replaces it with the platform (see "The device boundary"). |
-| 0x438000-0x447000 | libjpeg (the "JPEGMEM" source manager) and the PNG decoder. Not ported: stb_image decodes both. |
+| 0x438000-0x447000 | libjpeg (the "JPEGMEM" source manager) and the PNG decoder. Not ported: the shared loader (`Platform::LoadImageFromMemory`, `platform/ImageLoader`) decodes the JPEGs with libjpeg 6b, as the original does, and the PNGs with stb_image. |
 | 0x447000-0x514000 | A large float-heavy library reached only through the CPU dispatch table 0x527fc8 (13 stubs at 0x42fd00-0x42fdc0, chosen by a CPUID check at 0x42fdd0/0x42fe30): software blitters in generic, MMX and SSE variants. Not ported. |
 | 0x514000-0x51c000 | More C runtime and STL. |
 

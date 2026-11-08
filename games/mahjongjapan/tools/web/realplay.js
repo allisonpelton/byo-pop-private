@@ -6,13 +6,18 @@
 //
 //   http://127.0.0.1:18780/mahjongjapan.html?player=1&assets=1&fast=1&silent=1&driver=games/mahjongjapan/tools/web/realplay.js
 //
-// ?steps=N (read from the page's address) is the number of adventure levels played (default all), ?classic=N the number
+// ?scale=2 draws the canvas at twice its size (the full screen substitute of the Browser pane, which cannot enter it).
+// ?levels=N (read from the page's address) is the number of adventure levels played (default all), ?classic=N the number
 // of classic games (default 2: the first by the bot to its end, the second ended by `win` after ten real pairs).
 // byopop.test.result is {ok, log, levels, errors}: the log lists every screen reached, with its update count.
 var params = new URLSearchParams(location.search);
 var wantLevels = params.has("levels") ? parseInt(params.get("levels"), 10) : 1000;
 var wantClassic = params.has("classic") ? parseInt(params.get("classic"), 10) : 2;
+var scale = Number(params.get("scale") || 1);   // ?scale=2: the canvas drawn at twice its size, as full screen shows it
 var out = [];
+// a press within 150 ms of the page regaining the focus is the one that activates it and is not passed on (the framework's
+// rule, SexyAppBase::HandleEvent), and a fast run makes many updates in that time: a driver lets real time pass
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 function say(text) { out.push(t.updates() + " " + text); }
 function btns(s) { var m = {}; s.buttons.forEach(function (b) { m[b.cmd] = [b.x, b.y]; }); return m; }
 async function state() { return await t.state(); }
@@ -28,8 +33,13 @@ async function until(what, test, timeoutMs) {
 async function press(s, cmd) {
   var b = btns(s)[cmd];
   if (!b) throw new Error("no button 0x" + cmd.toString(16) + " on " + s.screen + "/" + s.dialog + ": " + JSON.stringify(s.buttons));
-  await t.move(b[0], b[1]);
-  await t.click(b[0], b[1]);
+  await clickAt(b[0], b[1]);
+}
+// the pointer first, a few updates to hover, then the click: the web backend takes a click where the pointer last was
+async function clickAt(x, y) {
+  await t.move(x, y);
+  await t.wait(5);
+  await t.click(x, y);
 }
 async function toScreen(name) {
   return await until("screen " + name, function (s) { return s.screen === name && s.dialog === null && !s.busy; });
@@ -81,7 +91,7 @@ async function playBoard(tag, winAfter) {
     if (!focusDone && pairs === 5) {
       // the focus lost and regained in the middle of a game
       focusDone = true;
-      await t.blur(); await t.wait(10); await t.shot(tag + "-focus-lost"); await t.focus(); await t.wait(10);
+      await t.blur(); await t.wait(10); await t.shot(tag + "-focus-lost"); await t.focus(); await t.wait(10); await sleep(400);
       var f = await state();
       say(tag + ": focus lost and regained, screen " + f.screen + " dialog " + f.dialog);
     }
@@ -127,7 +137,7 @@ async function boardTour() {
   await press(s, 0x10a);
   await until("the pause", function (s) { return s.dialog === "pause" && !s.busy; });
   await t.shot("classic-pause");
-  await t.move(400, 300); await t.click(400, 300);
+  await clickAt(400, 300);
   await until("the pause closed", function (s) { return s.dialog === null; });
   await press(await state(), 0x109);
   await menuItem(15, "options");
@@ -145,7 +155,7 @@ async function classicGame(n, slot, winAfter) {
   var s = await toScreen("menu");
   await press(s, 0x84);
   s = await toScreen("classic list");
-  await t.move(SLOTS[slot][0], SLOTS[slot][1]); await t.click(SLOTS[slot][0], SLOTS[slot][1]);
+  await clickAt(SLOTS[slot][0], SLOTS[slot][1]);
   await t.wait(10);
   await press(await state(), 0xc4);
   s = await boardReady("classic");
@@ -164,10 +174,20 @@ async function classicGame(n, slot, winAfter) {
 
 var ok = false, levelsDone = 0;
 try {
+  if (scale !== 1) {
+    // the Browser pane cannot enter full screen (its requestFullscreen stays pending): the canvas is drawn larger instead,
+    // so that the DOM events land at scaled points, as they do in full screen
+    var cv = document.getElementById("canvas");
+    cv.style.width = Math.round(800 * scale) + "px";
+    cv.style.height = Math.round(600 * scale) + "px";
+    await t.wait(20);
+    var box = cv.getBoundingClientRect();
+    say("canvas drawn at " + Math.round(box.width) + "x" + Math.round(box.height) + " CSS pixels");
+  }
   // the launch: the menu, a focus loss and regain, the help pages
   var s = await toScreen("menu");
   await t.shot("menu");
-  await t.blur(); await t.wait(10); await t.shot("menu-focus-lost"); await t.focus(); await t.wait(10);
+  await t.blur(); await t.wait(10); await t.shot("menu-focus-lost"); await t.focus(); await t.wait(10); await sleep(400);
   say("menu: focus lost and regained, screen " + (await state()).screen);
   await press(s, 0x87);
   await until("the help", function (s) { return s.dialog === "help" && !s.busy; });
@@ -176,12 +196,17 @@ try {
   // a new player's name
   s = await toScreen("menu");
   await press(s, 0x8e);
-  await until("the name box", function (s) { return s.dialog === "newplayer" && !s.busy; });
-  await t.shot("newplayer");
-  await t.type("Bot");
-  await t.wait(5);
-  await t.key("Enter");
-  say("player Bot made");
+  // a page that has played before keeps its player (the browser's storage): then the button goes on to the map
+  s = await until("the name box or the map", function (s) { return (s.dialog === "newplayer" || s.screen === "map") && !s.busy; });
+  if (s.dialog === "newplayer") {
+    await t.shot("newplayer");
+    await t.type("Bot");
+    await t.wait(5);
+    await t.key("Enter");
+    say("player Bot made");
+  } else {
+    say("the page's player " + s.player + " goes to the map");
+  }
   // the adventure from its map
   s = await mapReady();
   await t.shot("map-start");

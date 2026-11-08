@@ -352,6 +352,12 @@ void ReplyMove()
 		Reply("MOVE null");
 		return;
 	}
+	if (aName == "pause")
+	{
+		// the pause box has no button: a click anywhere on it goes on
+		Reply("MOVE {\"kind\":\"dialog\",\"name\":\"pause\",\"input\":[" + Click(400, 300) + "]}");
+		return;
+	}
 	if (aName != "question" && aName != "game menu" && aName != "quit note" && aName != "newplayer" && aName != "players" &&
 		aName != "restart" && aName != "menu" && aName != "classic list" && aName != "splash" && aName != "ending")
 	{
