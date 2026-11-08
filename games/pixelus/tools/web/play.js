@@ -5,13 +5,14 @@
 //
 // Launch, loading link, menu, the new-user dialog, the story and help screens, the island, the temples and the boards are all
 // played by clicks and keys. It reads `state` (the screen), `targets` (what can be clicked) and `move` (the port's bot) and sends
-// the moves' input steps as DOM events. ?puzzles=N stops once the profile has N solved puzzles (12 by default), ?fsat=1 presses
+// the moves' input steps as DOM events. ?expert=1 ticks the new player's expert box, ?puzzles=N stops once the profile has N solved puzzles (12 by default), ?fsat=1 presses
 // Alt+Enter after the first board has opened (and back at the end), ?focusat=1 takes the focus away during the third move of the
 // first board and gives it back. It returns the counts, the last state and the shots it took.
 var params = new URLSearchParams(location.search);
 var PUZZLES = Number(params.get("puzzles")) || 12;
 var FULL = params.has("fsat");
 var FOCUS = params.has("focusat");
+var EXPERT = params.has("expert");
 var result = { boards: 0, moves: 0, notes: [] };
 var done = {};
 var lastTemple = 0;
@@ -93,6 +94,8 @@ async function altEnter() {
 }
 
 try {
+  // ?hold=1: the page waits for the driver, which wipes the profile (a run starts as a first run) and starts the game
+  if (params.get("hold") === "1") { await t.profile.wipe(); await t.start(); }
   var s = await t.state();
   for (var g = 0; g < 4000 && s.screen === "loading"; g++) {
     var tb = (await targets()).buttons;
@@ -113,7 +116,12 @@ try {
       (await pressButton("Play")) || (await pressButton(null, 0));
       await waitUpdates(10);
     } else if (scr === "dialog") {
-      var tb2 = (await targets()).buttons;
+      var tg2 = await targets();
+      var tb2 = tg2.buttons;
+      if (EXPERT) {
+        var boxes = (tg2.checks || []).filter(function (c) { return c.id === 1 && !c.checked; });
+        if (boxes.length) { await t.click(boxes[0].x, boxes[0].y); await waitUpdates(3); }
+      }
       await t.type("Driver");
       await waitUpdates(3);
       var ok = tb2.filter(function (x) { return ["ok", "continue", "yes"].indexOf(x.label.toLowerCase()) >= 0; });
