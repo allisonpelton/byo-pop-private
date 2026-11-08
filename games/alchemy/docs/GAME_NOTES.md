@@ -104,8 +104,9 @@ suite's baseline is identical):
   the title's start-up as before, the loading task count unchanged at 101 since the picture was among the start-up's);
 - the registry value `NoPopLink` and its field `mNoPopLink`, which only hid the "more games" link the port does not have.
 
-`Board::mTrialPause` and `Pause(true)` are not registration: "trial" there is the time trial's pause cover (the board is hidden
-while it is paused), so they stay. Loading has no waits (the title screen's bar follows the loading thread, which runs
+`Board::mTrialPause` and `Pause(true)` are not registration: the name "trial" is the decompilation's, and the pause it counts is
+the one that covers the board (`Board::Draw` draws the cover instead of the tiles, and the pause text when no dialog is up): any key press toggles it in every mode
+(`KeyChar`), and a dialog raises it in the time trial (`AlchemyApp::ModalOpen` passes the mode). They stay. Loading has no waits (the title screen's bar follows the loading thread, which runs
 once, with no pacing), so the rule on fast loading changes nothing here.
 
 ## 6. The standard test commands
