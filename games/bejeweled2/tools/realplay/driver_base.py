@@ -9,9 +9,21 @@ import time
 ANSWER = re.compile(r'^(STATE |MOVE |OK |ERROR )')
 
 
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+
 class Driver:
-    def __init__(self, exe, gamedir, userdir, out, fast, extra):
+    """Starts the game under build/native/rundesk.exe (a private desktop, silent, below-normal priority: CLAUDE.md, "Running
+    games in tests") unless the caller already runs under it (rundesk sets BYOPOP_TEST_RUN=1 for its children), so that no
+    caller can show the game on the user's screen. A new user folder starts windowed (ScreenMode 0) unless windowed=False."""
+
+    def __init__(self, exe, gamedir, userdir, out, fast, extra, windowed=True):
         self.out = out
+        registry = os.path.join(userdir, 'registry.ini')
+        if windowed and not os.path.exists(registry):
+            os.makedirs(userdir, exist_ok=True)
+            with open(registry, 'w') as f:
+                f.write('[SOFTWARE\\Steam\\Bejeweled2]\nScreenMode=dword:0\n')
         self.cmdfile = os.path.join(out, 'commands.txt')
         self.empty = os.path.join(out, 'realinput.txt')
         open(self.cmdfile, 'w').close()
@@ -20,6 +32,8 @@ class Driver:
         args = [exe, '-gamedir=' + gamedir, '-userdir=' + userdir, '-commands=' + self.cmdfile,
                 '-realinput=' + self.empty] + (['-fast'] if fast else []) + extra
         self.log = open(self.logpath, 'wb')
+        if os.environ.get('BYOPOP_TEST_RUN') != '1':
+            args = [os.path.join(ROOT, 'build', 'native', 'rundesk.exe')] + args
         self.proc = subprocess.Popen(args, stdout=self.log, stderr=subprocess.STDOUT)
         self.pos = 0
         self.sent = 0
