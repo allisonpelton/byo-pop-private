@@ -254,7 +254,10 @@ logo, using that inference; the managers' tab icons; the bottle-cap placeholder 
 a dragged cap. The bottle cap and opener animation comes after Twist's last merge. Ning Po Mahjong's and TipTop's high-score names
 were fixed (34e6da1, a6547b9). The chat
   is built as a test with made-up messages; its real version waits for funding. What the user asks for while testing is
-  still done when asked.
+  still done when asked. Desktop 95's pixelated text waits for a pixel font drawn for the project (the user, 2026-11-08: "Draw our own
+  later"): every Windows install still has the bitmap MS Sans Serif (`sserife.fon`), but browsers draw only TrueType and
+  OpenType, so the skin's "MS Sans Serif" comes out as the smooth Microsoft Sans Serif, and Microsoft's font itself is
+  never shipped.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays

@@ -35,8 +35,6 @@ void Logo::Draw()
 		mFont->DrawRight(this, 0x316, 0x253, gVersion.c_str(), 100, 100, 0xff);
 }
 
-bool gSkipLogos = false;
-
 // 0x42f7f0: the logo's images come from the exe. The SplashLogo image is centred across and a third of the way down,
 // and with it the links stay off.
 void Logo::Init()
@@ -64,9 +62,7 @@ bool Logo::Update()
 {
 	if (0 < mTime)
 	{
-		if (gSkipLogos)
-			mTime = 0;
-		else if (mTime == 0xffff)
+		if (mTime == 0xffff)
 			mTime = 2000;
 		else
 			mTime = mTime - GetDelta();
