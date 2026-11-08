@@ -48,8 +48,6 @@ public:
 	virtual void PlayMusic(int theRestart) {}
 	virtual void PauseMusic() {}
 	virtual void SetMusicVolume(int theVolume) {}
-	// ShellExecute's "open"
-	virtual void OpenURL(const char* theUrl) {}
 	// The player's files (cp.cfg, cb.dat): where one is opened (the original's FixPath: the game's folder), and
 	// one that was written (the web build keeps it)
 	virtual const char* SavePath(const char* theName) = 0;
@@ -109,7 +107,6 @@ struct ScreenLock
 };
 uint32_t TimeMs();                       // 0x428e70
 void Sys_Sleep(int theMs);               // 0x428820
-void OpenURL(const char* theUrl);        // 0x428e90
 // 0x428ec0 and 0x428ed0: called after PumpMessages opened the screen again, the first with the screen's format
 void SetScreenLostCallback(void (*theCallback)(const PixelFormat*));
 void SetScreenChangeCallback(void (*theCallback)());
