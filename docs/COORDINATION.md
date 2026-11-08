@@ -185,7 +185,8 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   user, 2026-11-01): each game ported only from its Steam copy is compared with its version on the PopCap Game
   Collection disc (the user's ISO in their Downloads folder), and its build must work with that version's files too.
   Planned alongside the website (the user, 2026-11-01): an installer that puts a native port beside its Steam
-  original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`). <!-- private -->
+  original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
+<!-- private -->
 - **Building the web port in the browser (the user's test notes, moved here 2026-11-04):** "I'm starting to feel more
   open to trying to build the WASM version in the browser (either saving it to localStorage or to a connected Google
   Drive) to completely avoid infringement. Let's try it on the simplest possible game and see how long it takes to
