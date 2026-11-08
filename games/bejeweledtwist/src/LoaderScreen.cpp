@@ -12,6 +12,7 @@
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
+#include "WebSettings.h"
 #include "X86Math.h"
 
 using namespace Sexy;
@@ -32,6 +33,14 @@ LoaderScreen::LoaderScreen(WinTwistApp* theApp) : mApp(theApp)
 
 	mPopCapAlpha.SetCurve(GTS(0x7e6b9c));
 	mTrademarkAlpha.SetCurve(GTS(0x7e6b68));
+	// port: the site's "Always skip start-up logos" (-skiplogos natively): the PopCap logo and its trademark sign stay
+	// out. With the port's loading done before the loader's first frames, they fade in only behind the main menu's
+	// arrival, until the loader leaves; the two curves feed nothing else, and the loading and the menu's start are as
+	// before
+	if (Byopop::SiteSkipLogos()) {
+		mPopCapAlpha.SetConstant(0.0);
+		mTrademarkAlpha.SetConstant(0.0);
+	}
 	mCurve120.SetCurve(GTS(0x7e6b38));
 	mLogoAlpha.SetCurve(GTS(0x7e6b10));
 	mLogo->mTrademarkAlpha.SetCurve(GTS(0x7e6ae0));
