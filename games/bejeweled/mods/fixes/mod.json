@@ -6,7 +6,7 @@
   "description": "Mends faults of the original Bejeweled Deluxe and leaves the game as it was: its look, rules, sounds and pace. Each fix is a toggle; turn the mod off to play the original as it was. High scores and the saved game are shared with the original.",
   "settings": [
     { "id": "selection", "label": "Gem selected when the board refills", "type": "bool", "default": true,
-      "help": "In Timed mode, when no move is left the board falls out and refills. The original keeps a gem you had selected, though it is no longer on the board, and your next click swaps that gem back in and loses the one that stood there. On: the selection is dropped and your click selects the gem you clicked." },
+      "help": "When the board refills (Timed, no move left) the original keeps a gem you had selected, and your next click swaps it back in and loses another. On: the selection is dropped." },
     { "id": "resumeLook", "label": "Saved game's own background", "type": "bool", "default": true,
       "help": "The original brings a saved game of level 2 or later back with the first level's background and tint until the next level-up. On: it comes back with its own level's." }
   ],
