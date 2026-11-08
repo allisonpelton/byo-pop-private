@@ -20,7 +20,7 @@ talks to a server are left out. User-visible text goes through `GT(0xADDR)`.
 | E2 | entities: Torpedo, CannonBall, SquidCannonBall, MechaTorpedo, ProjectileBoss, TorpedoBoss, GhostShip, GhostShark, MechaShark, MechaSquid | ~18 KB | done 2026-11-08 |
 | E3 | entities: BonusCreature, Clam, Player, Bubble, BonusText, BackgroundFish, Effect, and whatever of 0x401000-0x412330 `coverage.py --missing` still lists (GameObject / Enemy leftovers, unknown functions) | ~14 KB | done 2026-11-08 (the range 0x401000-0x412330 is covered) |
 | P1 | UserProfileMgr / UserProfile (0x4172f0-0x428000) | ~25 KB | done 2026-11-08 (UserProfile.h/.cpp, UserProfileMgr.h/.cpp) |
-| P2 | the config parser 0x42bfb0 (11.8 KB) and the lessons / gem names / words / themes loaders | ~25 KB | |
+| P2 | the config parser 0x42bfb0 (11.8 KB) and the lessons / gem names / words / themes loaders | ~25 KB | done 2026-11-08 (LessonManager.h/.cpp, LessonManagerConfig.cpp, WinWSAppLoad.cpp; the app's tables typed and renamed) |
 | D1 | dialogs: copy-adapt BookWorm's (Delete/Select/New user, Options, Credits, Hint, Money), the game's own (WinGame, GameOver, Difficulty, AbyssMode) | ~30 KB | |
 | W1 | small widgets and panels: StatsScreen, StatusBar, TabbedWidget, TabPanel, TutorialPanel, AbyssPanel, AdventurePanel | ~20 KB | |
 | S1 | screens: TitleScreen, MenuScreen, MapScreen, HighScoreScreen | ~25 KB | |

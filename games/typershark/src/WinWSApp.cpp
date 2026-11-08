@@ -91,20 +91,18 @@ WinWSApp::WinWSApp()
 	mDeleteUserDialog = NULL;
 	mMusicSlot = 1;
 	mMusicOrder = -1;
-	mField680 = 0;
+	mAbyssDepth = 0;
 	mFlag684 = false;
 	mFlag685 = false;
 	mOpenDialogCount = 0;
 	mFlag68c = false;
 	mFlag68d = false;
-	mField690 = 0;
-	mField6b0 = 0;
+	mDifficulty = 0;
+	mLongWordLength = 0;
 	mTreasure = 0;
 	mStats = new AppStats();    // port: the original's operator new(0x30) is not cleared
-	memset(mVector754, 0, sizeof(mVector754));
-	memset(mVector764, 0, sizeof(mVector764));
 	mTypingTutor = NULL;
-	mField740 = -1;
+	mTheme = -1;
 	mSoundInstance0 = NULL;
 	mSoundInstance1 = NULL;
 	mSoundInstance1Copy = NULL;
@@ -253,8 +251,9 @@ WinWSApp::~WinWSApp()
 		mMenuScreen = NULL;
 	}
 
+	if (mLessonManager != NULL)
+		delete mLessonManager;      // 0x421c50, then free()
 	mLessonManager = NULL;
-	// (0x65c: the original runs the dtor body 0x421c50 and frees it; TODO: the lesson group's destructor)
 
 	delete mRegisterImage;      // not ported: stays NULL
 
@@ -313,8 +312,8 @@ WinWSApp::~WinWSApp()
 		delete mStatsCloseButton;
 	}
 
-	// (0x42fd10, 0x429780: the config parsers' tables; TODO: the config group frees what it filled in mMap774,
-	// mVector754 and mVector764)
+	// (0x42fd10 erases mLongWords, 0x431510 / 0x429780 / 0x427000 destroy mWordLists, mThemes and the name lists: in the port
+	// the members' destructors do it)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -761,7 +760,7 @@ bool WinWSApp::ChangeMusic(int theOrder)
 
 	if (mLessonManager != NULL)
 	{
-		if (mLessonManager->IsTutorialActive() && (theOrder == 0x11) && (aPrevOrder == 0x2e))    // 0x4137d0 (TODO: name)
+		if (mLessonManager->IsBonusLevel() && (theOrder == 0x11) && (aPrevOrder == 0x2e))    // 0x4137d0 (TODO: name)
 		{
 			if (mMusic->IsPlaying(0))
 				return false;

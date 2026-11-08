@@ -19,7 +19,7 @@ class WSTimer;
 class ToxicShark : public Shark
 {
 public:
-	int						mScramblePeriod;		// +0x28 ctor 1000; TypeLetter sets it by the app's difficulty field mField690 (ms)
+	int						mScramblePeriod;		// +0x28 ctor 1000; TypeLetter sets it by the app's difficulty field mDifficulty (ms)
 	WSTimer*				mTimer;					// +0x2c added to the widget manager, which keeps it counting; removed and deleted by the destructor
 
 public:

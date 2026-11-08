@@ -20,20 +20,18 @@ or `Piranha*` obtained through a virtual base with `dynamic_cast` (ENTITIES.md).
 word finished, 2 came in, 4, 5 left the screen, 6, 7, 9, 0x13 hit the player, 0x14 hit a target, 0x15 then 5 left the screen
 (Projectile).
 
-## LessonManager (job P2; ctor 0x4270e0, sizeof 0xc0, dtor 0x421c50)
-`LessonManager(WinWSApp*)`, `int LoadConfig(int mode)` (0x42bfb0; ECX is the manager, returns 0 on success),
-`SetLevel(int)` (0x4309d0), `IsTutorialActive()` (0x4137d0), `bool mAbyssMode` (+0xa5), `int mLevel` (+0x8c),
-`int mField0a8` (+0xa8, getter 0x412370), `GetBossRecord(int)` (0x4139d0, returns a pointer to a record) and
-`GetBossRecordCount()` (0x413a10). The boss record's fields, named by offset: word lengths +0x1c, +0x20; fire interval
-+0x40 (double); hit points +0x48; ints at +0x4c and +0x50; bob speed +0x58 (double); shot speeds +0x60 and +0x68
-(doubles) (ProjectileBoss.cpp / TorpedoBoss.cpp use `mFireInterval`, `mHitPoints`, `mField4c`, `mField50`, `mBobSpeed`,
-`mShotSpeedMin`...).
-WinWSApp fields the config parsers fill (typed by the config job; WinWSApp.cpp lines ~104 memset them): `mVector754` and
-`mVector764` (now `void*[4]`; `GetWord` and `GetThemeWord` read element 1 and 2 as begin and end of an array of
-`std::vector<std::string>`; retype and fix the callers), `mMap774` (`std::map<int, std::vector<std::string>>`), `mMap780`
-(used words: `std::map<std::string,bool>`), `mVector730`, `mVector704`, `mMap714`, `mString6b4`, `mString6d0`,
-`mVector6f4`, `mMap720`, `mField740`, `mField680`/`mField690`/`mField6b0`. The destructor must free the lesson manager
-(+0x65c) and the tables (TODO comments in WinWSApp.cpp).
+## LessonManager (job P2, done: LessonManager.h/.cpp, LessonManagerConfig.cpp, WinWSAppLoad.cpp)
+Translated; the header is the contract now. It is the original's unnamed 0xc0-byte class (ctor 0x4270e0, dtor 0x421c50) and not
+the RTTI class Sexy::LessonManager (vftable 0x52c728, dtor body 0x427300), which is the typing tutor's lesson list and belongs to
+the TypingTutor job. Renames the job made in the callers: `IsTutorialActive` is `IsBonusLevel`, `GetBossRecord` and
+`GetBossRecordCount` are `GetEnemyRecord` and `GetEnemyRecordCount` (the records are the wave's enemies, boss waves included),
+`mField0a8` is `mEndlessCount`, and the boss record's `mField4c` / `mField50` are `mMinMissiles` / `mMaxMissiles`. The code reads
+the Board's `mField1c4` (the score) in `NextLevel` of the abyss. WinWSApp fields renamed or typed: `mField680` is `mAbyssDepth`,
+`mField690` is `mDifficulty` (-1 in an abyss game), `mField6b0` is `mLongWordLength`, `mString6b4` / `mVector6f4` / `mMap720`
+are `mShipName` / `mShipNames` / `mUsedShipNames`, `mString6d0` / `mVector704` / `mMap714` are `mGemName` / `mGemNames` /
+`mUsedGemNames`, `mVector754` / `mVector764` are `mWordLists` / `mThemes` (now `std::vector<std::vector<std::string> >`),
+`mMap774` is `mLongWords`, `mMap780` / `mMap78c` are `mUsedWords` / `mUsedLongWords`, `mVector730` / `mField740` are
+`mUsedThemes` / `mTheme`; `GetWordA` / `GetWordB` are `GetShipName` / `GetGemName`.
 
 ## UserProfileMgr / UserProfile (job P1, done: UserProfile.h/.cpp, UserProfileMgr.h/.cpp)
 Translated; the headers are the contract now. Renames the job made in the callers: `mUserCount` is `mUsers.size()`, `mField34` is

@@ -22,22 +22,7 @@
 
 using namespace Sexy;
 
-// port: mVector754 and mVector764 (void*[4]: pad, begin, end, capacity) stand for the original's two vectors of word lists
-// (16 bytes per entry in the original; the config job gives them their type). Until then begin and end are read as
-// arrays of WordList.
 typedef std::vector<std::string> WordList;
-
-static WordList* WordListsBegin(void* const theVector[4])
-{
-	return (WordList*) theVector[1];
-}
-
-static unsigned int WordListCount(void* const theVector[4])
-{
-	if (theVector[1] == NULL)
-		return 0;
-	return (unsigned int) ((WordList*) theVector[2] - (WordList*) theVector[1]);
-}
 
 // 0x42a870: ends the game in progress and goes back to the menu. theKeepGameMode keeps the chosen mode (+0x690);
 // otherwise it is set to 0.
@@ -54,19 +39,19 @@ void WinWSApp::ResetGame(bool theKeepGameMode)
 	mField900 = 0;
 	mField90c = 0;
 	if (!theKeepGameMode)
-		mField690 = 0;
+		mDifficulty = 0;
 	mField908 = 0;
-	mMap780.clear();
+	mUsedWords.clear();
 	mUsedLetters.erase(mUsedLetters.begin(), mUsedLetters.end());
-	mMap78c.clear();
-	mString6d0 = "";
-	mString6b4 = "";
+	mUsedLongWords.clear();
+	mGemName = "";
+	mShipName = "";
 	mTreasure = 0;
 	GetTreasureIndex();
-	GetWordA();         // 0x4292b0 (the result is not used)
-	GetWordB();         // 0x429110
-	std::vector<int>().swap(mVector730);        // free()
-	mField740 = -1;
+	GetShipName();         // 0x4292b0 (the result is not used)
+	GetGemName();         // 0x429110
+	std::vector<int>().swap(mUsedThemes);        // free()
+	mTheme = -1;
 	mFlag68c = false;
 	mFlag684 = false;
 	mFlag685 = false;
@@ -99,17 +84,17 @@ void WinWSApp::RestartBoard()
 	mField900 = 0;
 	mField90c = 0;
 	mField908 = 0;
-	mMap780.clear();
+	mUsedWords.clear();
 	mUsedLetters.erase(mUsedLetters.begin(), mUsedLetters.end());
-	mMap78c.clear();
-	mString6d0 = "";
-	mString6b4 = "";
+	mUsedLongWords.clear();
+	mGemName = "";
+	mShipName = "";
 	mTreasure = 0;
 	GetTreasureIndex();
-	GetWordA();         // 0x4292b0
-	GetWordB();         // 0x429110
-	std::vector<int>().swap(mVector730);        // free()
-	mField740 = -1;
+	GetShipName();         // 0x4292b0
+	GetGemName();         // 0x429110
+	std::vector<int>().swap(mUsedThemes);        // free()
+	mTheme = -1;
 	mFlag68c = false;
 	mFlag684 = false;
 	mFlag685 = false;
@@ -141,7 +126,7 @@ void WinWSApp::RestartBoard()
 	}
 
 	mLessonManager = new LessonManager(this);       // 0x4270e0 (sizeof 0xc0)
-	if (mLessonManager->LoadConfig(mField690) == 0) // 0x42bfb0
+	if (mLessonManager->LoadConfig(mDifficulty) == 0) // 0x42bfb0
 	{
 		if (!mLessonManager->mAbyssMode)    // +0xa5
 		{
@@ -158,9 +143,9 @@ void WinWSApp::RestartBoard()
 				mUser->mField24c[i] = 0;
 				i++;
 			} while (i < 4);
-			if (mField690 != mUser->mField280)
+			if (mDifficulty != mUser->mField280)
 			{
-				mUser->mField280 = mField690;
+				mUser->mField280 = mDifficulty;
 				i = 0;
 				do
 				{
@@ -215,9 +200,9 @@ void WinWSApp::CreateBoard()
 	mLessonManager = new LessonManager(this);   // 0x4270e0 (sizeof 0xc0)
 	mFlag8d8 = false;
 	GetTreasureIndex();
-	GetWordA();         // 0x4292b0
-	GetWordB();         // 0x429110
-	if (mLessonManager->LoadConfig(mField690) != 0)     // 0x42bfb0
+	GetShipName();         // 0x4292b0
+	GetGemName();         // 0x429110
+	if (mLessonManager->LoadConfig(mDifficulty) != 0)     // 0x42bfb0
 	{
 		Popup(GT(0x0052cd40));      // "There was an error loading the configuration file."
 		mLoadingFailed = true;
@@ -267,12 +252,12 @@ void WinWSApp::CreateBoard()
 // comes back
 void WinWSApp::ReturnToMap()
 {
-	mString6d0 = "";
-	mString6b4 = "";
+	mGemName = "";
+	mShipName = "";
 	mTreasure = 0;
 	GetTreasureIndex();
-	GetWordA();         // 0x4292b0
-	GetWordB();         // 0x429110
+	GetShipName();         // 0x4292b0
+	GetGemName();         // 0x429110
 
 	*mStats = mBoard->GetStats();       // 0x440080 (12 dwords)
 	mField8fc += mStats->mReserved[7];              // +0x20
@@ -300,7 +285,7 @@ void WinWSApp::SaveGameProgress(bool theFlag, bool theWithDouble)
 {
 	int aLevel = mLessonManager->mLevel;        // +0x8c
 	if (aLevel == -1)
-		aLevel = mLessonManager->mField0a8 + 0x64;      // 0x412370
+		aLevel = mLessonManager->mEndlessCount + 0x64;      // 0x412370
 	if (mLessonManager->mAbyssMode)             // +0xa5
 		aLevel = 0;
 
@@ -309,11 +294,11 @@ void WinWSApp::SaveGameProgress(bool theFlag, bool theWithDouble)
 	if (theWithDouble)
 	{
 		mUser->RecordResultWithDouble(theFlag == false, aConfig->mField110, aConfig->mField0f4, aConfig->mDouble0f8,
-			aLevel, mField690, aConfig->mField114);     // 0x412520
+			aLevel, mDifficulty, aConfig->mField114);     // 0x412520
 	}
 	else
 	{
-		mUser->RecordResult(theFlag == false, aConfig->mField110, aConfig->mField0f4, aLevel, mField690,
+		mUser->RecordResult(theFlag == false, aConfig->mField110, aConfig->mField0f4, aLevel, mDifficulty,
 			aConfig->mField114);                        // 0x412580
 	}
 
@@ -326,75 +311,75 @@ void WinWSApp::SaveGameProgress(bool theFlag, bool theWithDouble)
 		CopyMapListsToUser();       // 0x426a40
 		int aLesson = 0;
 		if (mLessonManager != NULL)
-			aLesson = mLessonManager->mField0a8 - 1;
+			aLesson = mLessonManager->mEndlessCount - 1;
 		mUser->SetField1e8(aLesson);    // 0x412390
 	}
 	mProfileMgr->WriteUserProfileToRegistry(mUser, theFlag, false);    // 0x41f1d0
 }
 
-// 0x4292b0: the first of the game's two random words: while there is none, one is drawn from the list at +0x6f8 that is not
-// in the used set (+0x720); when the set holds every word it starts again. The word is also returned. The draws use the
+// 0x4292b0: the game's ship name: while there is none, one is drawn from mShipNames that is not in the used set
+// (mUsedShipNames); when the set holds every name it starts again. The word is also returned. The draws use the
 // game's generator. (The original divides by the list's size; an empty list would fault.)
-std::string WinWSApp::GetWordA()
+std::string WinWSApp::GetShipName()
 {
 	unsigned int aCount = 0;
-	if (mString6b4 == "")
+	if (mShipName == "")
 	{
-		if (!mVector6f4.empty())
-			aCount = (unsigned int) mVector6f4.size();
+		if (!mShipNames.empty())
+			aCount = (unsigned int) mShipNames.size();
 		unsigned int aRand = gGameRand->NextNoAssert();
-		mString6b4 = mVector6f4[aRand % aCount];
-		while (mMap720[mString6b4])
+		mShipName = mShipNames[aRand % aCount];
+		while (mUsedShipNames[mShipName])
 		{
-			if (mVector6f4.empty())
+			if (mShipNames.empty())
 				aCount = 0;
 			else
-				aCount = (unsigned int) mVector6f4.size();
+				aCount = (unsigned int) mShipNames.size();
 			aRand = gGameRand->NextNoAssert();
-			mString6b4 = mVector6f4[aRand % aCount];
+			mShipName = mShipNames[aRand % aCount];
 		}
-		mMap720[mString6b4] = true;
+		mUsedShipNames[mShipName] = true;
 		unsigned int aListSize = 0;
-		if (!mVector6f4.empty())
-			aListSize = (unsigned int) mVector6f4.size();
-		if (mMap720.size() == aListSize)
-			mMap720.clear();
+		if (!mShipNames.empty())
+			aListSize = (unsigned int) mShipNames.size();
+		if (mUsedShipNames.size() == aListSize)
+			mUsedShipNames.clear();
 	}
-	return mString6b4;
+	return mShipName;
 }
 
-// 0x429110: the second random word, the same way from the list at +0x708, the used set +0x714 and the word +0x6d0
-std::string WinWSApp::GetWordB()
+// 0x429110: the game's gem name, the same way from mGemNames, the used set mUsedGemNames and the name mGemName
+std::string WinWSApp::GetGemName()
 {
 	unsigned int aCount = 0;
-	if (mString6d0 == "")
+	if (mGemName == "")
 	{
-		if (!mVector704.empty())
-			aCount = (unsigned int) mVector704.size();
+		if (!mGemNames.empty())
+			aCount = (unsigned int) mGemNames.size();
 		unsigned int aRand = gGameRand->NextNoAssert();
-		mString6d0 = mVector704[aRand % aCount];
-		while (mMap714[mString6d0])
+		mGemName = mGemNames[aRand % aCount];
+		while (mUsedGemNames[mGemName])
 		{
-			if (mVector704.empty())
+			if (mGemNames.empty())
 				aCount = 0;
 			else
-				aCount = (unsigned int) mVector704.size();
+				aCount = (unsigned int) mGemNames.size();
 			aRand = gGameRand->NextNoAssert();
-			mString6d0 = mVector704[aRand % aCount];
+			mGemName = mGemNames[aRand % aCount];
 		}
-		mMap714[mString6d0] = true;
+		mUsedGemNames[mGemName] = true;
 		unsigned int aListSize = 0;
-		if (!mVector704.empty())
-			aListSize = (unsigned int) mVector704.size();
-		if (mMap714.size() == aListSize)
-			mMap714.clear();
+		if (!mGemNames.empty())
+			aListSize = (unsigned int) mGemNames.size();
+		if (mUsedGemNames.size() == aListSize)
+			mUsedGemNames.clear();
 	}
-	return mString6d0;
+	return mGemName;
 }
 
 // 0x428d80: a random word for a falling letter game: its length is picked from theMinLength .. theMaxLength (-1: 3 and 7; the
-// longest is 7) by choosing one of the word lists at +0x758 (entry length - 3) and one of its words that is not in the used
-// set at +0x780 and whose first letter is not in mUsedLetters. The word and its letter are then taken. When the letters are
+// longest is 7) by choosing one of the word lists of mWordLists (entry length - 3) and one of its words that is not in the used
+// set mUsedWords and whose first letter is not in mUsedLetters. The word and its letter are then taken. When the letters are
 // all taken (26) the game reports an error and returns "".
 std::string WinWSApp::GetWord(int theMinLength, int theMaxLength)
 {
@@ -423,16 +408,16 @@ std::string WinWSApp::GetWord(int theMinLength, int theMaxLength)
 		do
 		{
 			aTries++;
-			WordList& aList = WordListsBegin(mVector754)[aListIndex];
+			WordList& aList = mWordLists[aListIndex];
 			unsigned int aListSize = 0;
 			if (!aList.empty())
 				aListSize = (unsigned int) aList.size();
 			aWord = aList[gGameRand->NextNoAssert() % aListSize];
 
-			WordList& aListAgain = WordListsBegin(mVector754)[aListIndex];
-			if (aListAgain.empty() || ((unsigned int) aTries >= aListAgain.size()) || ((unsigned int) aTries >= mMap780.size()))
-				mMap780.clear();
-		} while (mMap780[aWord]);
+			WordList& aListAgain = mWordLists[aListIndex];
+			if (aListAgain.empty() || ((unsigned int) aTries >= aListAgain.size()) || ((unsigned int) aTries >= mUsedWords.size()))
+				mUsedWords.clear();
+		} while (mUsedWords[aWord]);
 
 		if (mUsedLetters.size() == 0x1a)
 		{
@@ -460,15 +445,15 @@ std::string WinWSApp::GetWord(int theMinLength, int theMaxLength)
 			break;
 	}
 
-	mMap780[aWord] = true;
+	mUsedWords[aWord] = true;
 	mUsedLetters.append(1, aWord[0]);
 	return aWord;
 }
 
-// 0x42aad0 (the original's own trace calls it "getthemeword"): a random word of the current theme. The theme (+0x740) is
-// chosen once: from all the theme lists at +0x768, or from theMinTheme .. theMaxTheme, and not one of the themes used before
-// (+0x730; that list starts again when it holds every theme or the whole range). A word of the theme that is not in
-// the used set (+0x780) and whose first letter is not in mUsedLetters is taken; when the theme has no such word left the
+// 0x42aad0 (the original's own trace calls it "getthemeword"): a random word of the current theme. The theme (mTheme) is
+// chosen once: from all the theme lists of mThemes, or from theMinTheme .. theMaxTheme, and not one of the themes used before
+// (mUsedThemes; that list starts again when it holds every theme or the whole range). A word of the theme that is not in
+// the used set (mUsedWords) and whose first letter is not in mUsedLetters is taken; when the theme has no such word left the
 // word comes from GetWord (0x428d80) with the two lengths. Returns "" when all 26 letters are taken.
 std::string WinWSApp::GetThemeWord(int theMinLength, int theMaxLength, int theMinTheme, int theMaxTheme)
 {
@@ -480,23 +465,23 @@ std::string WinWSApp::GetThemeWord(int theMinLength, int theMaxLength, int theMi
 	if (mUsedLetters.size() == 0x1a)
 		return "";
 
-	if (mField740 == -1)
+	if (mTheme == -1)
 	{
 		unsigned int aUsedCount = 0;
-		if (!mVector730.empty())
-			aUsedCount = (unsigned int) mVector730.size();
+		if (!mUsedThemes.empty())
+			aUsedCount = (unsigned int) mUsedThemes.size();
 		bool aReset = false;
-		if ((mVector764[1] == NULL) || (aUsedCount >= WordListCount(mVector764)))
+		if ((mThemes.size() == 0) || (aUsedCount >= (unsigned int) mThemes.size()))
 			aReset = true;
 		else if ((theMinTheme != -1) && (theMaxTheme != -1)
-			&& !((unsigned int) mVector730.size() < (unsigned int) (theMaxTheme - theMinTheme)))
+			&& !((unsigned int) mUsedThemes.size() < (unsigned int) (theMaxTheme - theMinTheme)))
 			aReset = true;
 		if (aReset)
-			mVector730.clear();     // 0x414d20 (frees)
+			mUsedThemes.clear();     // 0x414d20 (frees)
 
 		unsigned int aTheme;
 		if ((theMinTheme == -1) && (theMaxTheme == -1))
-			aTheme = gGameRand->NextNoAssert() % WordListCount(mVector764);     // (the original divides by 0 without lists)
+			aTheme = gGameRand->NextNoAssert() % (unsigned int) mThemes.size();     // (the original divides by 0 without lists)
 		else
 		{
 			unsigned int aRange = 1;
@@ -505,12 +490,12 @@ std::string WinWSApp::GetThemeWord(int theMinLength, int theMaxLength, int theMi
 			aTheme = (gGameRand->NextNoAssert() % aRange) + theMinTheme;
 		}
 
-		if (std::find(mVector730.begin(), mVector730.end(), (int) aTheme) != mVector730.end())
+		if (std::find(mUsedThemes.begin(), mUsedThemes.end(), (int) aTheme) != mUsedThemes.end())
 		{
 			do
 			{
 				if ((theMinTheme == -1) && (theMaxTheme == -1))
-					aTheme = gGameRand->NextNoAssert() % WordListCount(mVector764);
+					aTheme = gGameRand->NextNoAssert() % (unsigned int) mThemes.size();
 				else
 				{
 					unsigned int aRange = 1;
@@ -518,12 +503,12 @@ std::string WinWSApp::GetThemeWord(int theMinLength, int theMaxLength, int theMi
 						aRange = theMaxTheme - theMinTheme;
 					aTheme = (gGameRand->NextNoAssert() % aRange) + theMinTheme;
 				}
-			} while (std::find(mVector730.begin(), mVector730.end(), (int) aTheme) != mVector730.end());
+			} while (std::find(mUsedThemes.begin(), mUsedThemes.end(), (int) aTheme) != mUsedThemes.end());
 		}
 
-		mField740 = aTheme;
-		if (std::find(mVector730.begin(), mVector730.end(), (int) aTheme) == mVector730.end())
-			mVector730.push_back(mField740);        // 0x421310
+		mTheme = aTheme;
+		if (std::find(mUsedThemes.begin(), mUsedThemes.end(), (int) aTheme) == mUsedThemes.end())
+			mUsedThemes.push_back(mTheme);        // 0x421310
 	}
 
 	// the words of the theme, to be taken out one by one as they fail
@@ -531,7 +516,7 @@ std::string WinWSApp::GetThemeWord(int theMinLength, int theMaxLength, int theMi
 	unsigned int aIndex = 0;
 	while (true)
 	{
-		WordList& aThemeList = WordListsBegin(mVector764)[mField740];
+		WordList& aThemeList = mThemes[mTheme];
 		if (aIndex >= aThemeList.size())
 			break;
 		aWords.push_back(aThemeList[aIndex]);
@@ -547,7 +532,7 @@ std::string WinWSApp::GetThemeWord(int theMinLength, int theMaxLength, int theMi
 		unsigned int aPick = gGameRand->NextNoAssert() % aWordCount;
 		aWord = aWords[aPick];
 
-		if (!mMap780[aWord])
+		if (!mUsedWords[aWord])
 		{
 			if (mUsedLetters.size() == 0x1a)
 			{
@@ -572,7 +557,7 @@ std::string WinWSApp::GetThemeWord(int theMinLength, int theMaxLength, int theMi
 			}
 			if (!aLetterTaken)
 			{
-				mMap780[aWord] = true;
+				mUsedWords[aWord] = true;
 				mUsedLetters.append(1, aWord[0]);
 				return aWord;
 			}
@@ -587,10 +572,10 @@ std::string WinWSApp::GetThemeWord(int theMinLength, int theMaxLength, int theMi
 	return GetWord(theMinLength, theMaxLength);     // 0x428d80
 }
 
-// 0x430b20: a random word of the lists at +0x774 (by word length; the lengths 3 .. 0x15), that is not in the used set at
-// +0x78c. The length is picked from theMinLength .. theMaxLength (-1: 3 and 0x15; the longest is 0x15) and is picked again
+// 0x430b20: a random word of the lists of mLongWords (by word length; the lengths 3 .. 0x15), that is not in the used set
+// mUsedLongWords. The length is picked from theMinLength .. theMaxLength (-1: 3 and 0x15; the longest is 0x15) and is picked again
 // whenever the lists of the length are used up in turn (as many tries as the list has words); the length drawn last
-// goes to +0x6b0.
+// goes to mLongWordLength.
 std::string WinWSApp::GetLongWord(int theMinLength, int theMaxLength)
 {
 	if (theMinLength == -1)
@@ -610,7 +595,7 @@ std::string WinWSApp::GetLongWord(int theMinLength, int theMaxLength)
 	while (true)
 	{
 		aListSize = 0;
-		std::vector<std::string>& aList = mMap774[aLength];     // 0x42f930
+		std::vector<std::string>& aList = mLongWords[aLength];     // 0x42f930
 		if (!aList.empty())
 			aListSize = (unsigned int) aList.size();
 		aTries++;
@@ -621,20 +606,20 @@ std::string WinWSApp::GetLongWord(int theMinLength, int theMaxLength)
 			if (aRange == 0)
 				aNewCount = 1;
 			aLength = (gGameRand->NextNoAssert() % aNewCount) + theMinLength;
-			std::vector<std::string>& aNewList = mMap774[aLength];
+			std::vector<std::string>& aNewList = mLongWords[aLength];
 			if (aNewList.empty())
 				aListSize = 0;
 			else
 				aListSize = (unsigned int) aNewList.size();
 			aTries = 0;
 		}
-		aWord = mMap774[aLength][gGameRand->NextNoAssert() % aListSize];
-		if (!mMap78c[aWord])
+		aWord = mLongWords[aLength][gGameRand->NextNoAssert() % aListSize];
+		if (!mUsedLongWords[aWord])
 			break;
 	}
 
-	mMap78c[aWord] = true;
-	mField6b0 = aLength;
+	mUsedLongWords[aWord] = true;
+	mLongWordLength = aLength;
 	return aWord;
 }
 

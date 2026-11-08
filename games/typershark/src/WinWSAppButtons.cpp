@@ -76,7 +76,7 @@ void WinWSApp::ButtonDepress(int theId)
 			mOpenDialogCount--;
 			KillDialog(DIALOG_DIFFICULTY);
 			mDialog61c = NULL;
-			mField690 = theId - 600;
+			mDifficulty = theId - 600;
 			mUser->mFlag230 = true;
 
 			int i = 0;
@@ -92,9 +92,9 @@ void WinWSApp::ButtonDepress(int theId)
 				i++;
 			} while (i < 4);
 
-			if (mField690 != mUser->mField280)
+			if (mDifficulty != mUser->mField280)
 			{
-				mUser->mField280 = mField690;
+				mUser->mField280 = mDifficulty;
 				i = 0;
 				do
 				{
@@ -107,9 +107,9 @@ void WinWSApp::ButtonDepress(int theId)
 		else
 		{
 			// 0x41da80(2): the trial limit, not ported
-			mField690 = -1;
-			mField680 = (mUser->mBestDepth / 400) * 400;
-			if (mField680 >= 400)       // and the game is registered (this[0x470]: always, in the port)
+			mDifficulty = -1;
+			mAbyssDepth = (mUser->mBestDepth / 400) * 400;
+			if (mAbyssDepth >= 400)       // and the game is registered (this[0x470]: always, in the port)
 			{
 				ShowAbyssModeDialog();      // 0x4129a0
 				return;
@@ -227,7 +227,7 @@ void WinWSApp::ButtonDepress(int theId)
 	{
 		Board* aBoard = mBoard;
 		int aMode = aBoard->mLevelConfig->mGameMode;    // +0xd68 -> +0xb8
-		if ((aMode == 0xc) || (aMode == 7) || ((mLessonManager->IsTutorialActive()) && (aMode == 6)))
+		if ((aMode == 0xc) || (aMode == 7) || ((mLessonManager->IsBonusLevel()) && (aMode == 6)))
 			aBoard->mField0f94->SetVisible(false);
 		ShowOptions();      // 0x414150
 		return;
@@ -279,13 +279,13 @@ void WinWSApp::ButtonDepress(int theId)
 	case 0x1009:    // AbyssModeDialog's no
 		KillDialog(DIALOG_ABYSS_MODE);
 		mAbyssModeDialog = NULL;
-		mField690 = 0;
+		mDifficulty = 0;
 		return;
 
 	case 0xc21:     // AbyssModeDialog's yes: the chosen depth
 	{
 		int aDepth = mAbyssModeDialog->mSelectedDepth;      // +0x130
-		mField680 = aDepth;
+		mAbyssDepth = aDepth;
 		mUser->SetField1e4((aDepth / 1000) % 4 - 1);        // 0x4126e0
 		CreateBoard();                                     // 0x42f3c0
 		if (aDepth > 0)
@@ -420,7 +420,7 @@ void WinWSApp::ButtonDepress(int theId)
 				mFlag8d8 = false;
 				mFlag68d = false;
 				mStats->mReserved[8] = 0;                       // +0x24
-				mField690 = mUser->mField1c4;
+				mDifficulty = mUser->mField1c4;
 				memcpy(&mStats->mReserved[1], &mUser->mDouble1b8, sizeof(double));     // +8
 				mStats->mReserved[9] = 0;                       // +0x28
 				mStats->mReserved[0] = mUser->mField1c8;        // +4
@@ -449,7 +449,7 @@ void WinWSApp::ButtonDepress(int theId)
 					mMapScreen->SetFinalLevel(true);
 					mMapScreen->ResetScroll();                  // 0x441030
 					mLessonManager->SetLevel(mUser->mField1c0 - 0x41);
-					mLessonManager->mField0a8 = mUser->mField1e8;
+					mLessonManager->mEndlessCount = mUser->mField1e8;
 					mLessonManager->SetLevel(-1);
 				}
 				mMapScreen->mField1f8 = mUser->mField1c8 + 1;
@@ -488,10 +488,10 @@ void WinWSApp::ButtonDepress(int theId)
 		mFlag684 = true;
 		mFlag685 = false;
 		mFlag68c = false;
-		if ((mField690 == -1) && (mRegisterDialog == NULL) && (mOptionsDialog == NULL))
+		if ((mDifficulty == -1) && (mRegisterDialog == NULL) && (mOptionsDialog == NULL))
 		{
 			CreateBoard();                     // 0x42f3c0
-			mBoard->SetDepth(mField680);        // 0x452cf0
+			mBoard->SetDepth(mAbyssDepth);        // 0x452cf0
 			return;
 		}
 		if ((mBoard != NULL) && (mBoard->mVisible) && (mRegisterDialog == NULL))
@@ -534,7 +534,7 @@ void WinWSApp::ButtonDepress(int theId)
 			AddDialog(DIALOG_DIFFICULTY, mDialog61c);
 			return;
 		}
-		if ((mField690 == -1) && (!mFlag68c))
+		if ((mDifficulty == -1) && (!mFlag68c))
 		{
 			mFlag68c = false;
 			CreateBoard();     // 0x42f3c0
@@ -555,18 +555,18 @@ void WinWSApp::ButtonDepress(int theId)
 
 	case 0x16832:   // GameOverDialog's yes (id 0x16062 + 2000)
 		KillDialog(DIALOG_GAME_OVER);
-		if (mField690 != -1)
+		if (mDifficulty != -1)
 		{
 			RestartBoard();       // 0x42ee10
 			return;
 		}
-		mField680 = mBoard->mField1c4;
+		mAbyssDepth = mBoard->mField1c4;
 		ResetGame(true);        // 0x42a870
 		CreateBoard();         // 0x42f3c0
-		mField680 = (mField680 / 400) * 400;
-		if (mField680 < 400)
+		mAbyssDepth = (mAbyssDepth / 400) * 400;
+		if (mAbyssDepth < 400)
 			return;
-		mBoard->SetDepth(mField680);    // 0x452cf0
+		mBoard->SetDepth(mAbyssDepth);    // 0x452cf0
 		return;
 
 	case 0xc9:      // end this game
@@ -616,13 +616,13 @@ void WinWSApp::ButtonDepress(int theId)
 			mWidgetManager->SetFocus(mBoard);
 			Board* aBoard = mBoard;
 			int aMode = aBoard->mLevelConfig->mGameMode;
-			if ((aMode != 0xc) && (aMode != 7) && ((!mLessonManager->IsTutorialActive()) || (aMode != 6)))
+			if ((aMode != 0xc) && (aMode != 7) && ((!mLessonManager->IsBonusLevel()) || (aMode != 6)))
 			{
 				aBoard->SetPaused(false);
 				mBoard->MarkDirty();
 				return;
 			}
-			if ((mLessonManager->IsTutorialActive()) && (aMode == 6))
+			if ((mLessonManager->IsBonusLevel()) && (aMode == 6))
 				aBoard->SetPaused(false);
 			mBoard->mField0f94->SetVisible(true);
 			mBoard->MarkDirty();

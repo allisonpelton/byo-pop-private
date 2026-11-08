@@ -43,10 +43,10 @@ ProjectileBoss::ProjectileBoss(WinWSApp* theApp, GameObject* thePlayer, LessonMa
 	mConfig = theConfig;
 	if (mConfig->mAbyssMode == 0)
 	{
-		mFireInterval = mConfig->GetBossRecord(0)->mFireInterval;
-		mField10c = mConfig->GetBossRecord(0)->mHitPoints;
+		mFireInterval = mConfig->GetEnemyRecord(0)->mFireInterval;
+		mField10c = mConfig->GetEnemyRecord(0)->mHitPoints;
 		mHitPoints = mField10c;
-		mBobVelY = mConfig->GetBossRecord(0)->mBobSpeed;
+		mBobVelY = mConfig->GetEnemyRecord(0)->mBobSpeed;
 	}
 	else
 	{

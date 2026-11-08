@@ -55,10 +55,10 @@ TorpedoBoss::TorpedoBoss(WinWSApp* theApp, GameObject* thePlayer, LessonManager*
 
 	if (mConfig->mAbyssMode == 0)
 	{
-		mField130 = mConfig->GetBossRecord(0)->mField4c;
-		mMaxShots = mConfig->GetBossRecord(0)->mField50;
-		mShotSpeedMin = mConfig->GetBossRecord(0)->mShotSpeedMin;
-		mShotSpeedMax = mConfig->GetBossRecord(0)->mShotSpeedMax;
+		mField130 = mConfig->GetEnemyRecord(0)->mMinMissiles;
+		mMaxShots = mConfig->GetEnemyRecord(0)->mMaxMissiles;
+		mShotSpeedMin = mConfig->GetEnemyRecord(0)->mShotSpeedMin;
+		mShotSpeedMax = mConfig->GetEnemyRecord(0)->mShotSpeedMax;
 	}
 	else
 	{
@@ -412,11 +412,11 @@ void TorpedoBoss::Update()
 							int aMinLength;
 							int aMaxLength;
 							if (mConfig->mAbyssMode == 0)
-								aMinLength = mConfig->GetBossRecord(mConfig->GetBossRecordCount() - 1)->mWordMinLength;
+								aMinLength = mConfig->GetEnemyRecord(mConfig->GetEnemyRecordCount() - 1)->mWordMinLength;
 							else
 								aMinLength = mMinWordLength;
 							if (mConfig->mAbyssMode == 0)
-								aMaxLength = mConfig->GetBossRecord(mConfig->GetBossRecordCount() - 1)->mWordMaxLength;
+								aMaxLength = mConfig->GetEnemyRecord(mConfig->GetEnemyRecordCount() - 1)->mWordMaxLength;
 							else
 								aMaxLength = mMaxWordLength;
 

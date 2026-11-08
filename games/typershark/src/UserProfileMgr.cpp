@@ -501,7 +501,7 @@ void UserProfileMgr::WriteUserProfileToRegistry(UserProfile* theProfile, bool th
 
 	int aNBTL = 0;
 	if (mApp->mLessonManager != NULL)
-		aNBTL = mApp->mLessonManager->mField0a8 - 1;        // 0x412370
+		aNBTL = mApp->mLessonManager->mEndlessCount - 1;        // 0x412370
 	mApp->RegistryWriteString(aPrefix + "NBTL", StrFormat("%d", aNBTL));
 
 	mApp->RegistryWriteBoolean(aPrefix + "SpacePauses", theProfile->mSpacePauses);

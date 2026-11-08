@@ -44,7 +44,7 @@ ToxicShark::~ToxicShark()
 void ToxicShark::TypeLetter()
 {
 	Enemy::TypeLetter();
-	switch (mApp->mField690)
+	switch (mApp->mDifficulty)
 	{
 	case 0:
 		mScramblePeriod = 2500;

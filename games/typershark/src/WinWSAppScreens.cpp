@@ -145,7 +145,7 @@ void WinWSApp::ShowOptions()
 		int aMode = mBoard->mLevelConfig->mGameMode;    // +0xd68 -> +0xb8 (TODO: names from the board group)
 		if ((aMode == 0xc) || (aMode == 7))
 		{
-			if (!mLessonManager->IsTutorialActive())    // 0x4137d0
+			if (!mLessonManager->IsBonusLevel())    // 0x4137d0
 				return;
 			if (aMode != 6)
 				return;
@@ -622,4 +622,4 @@ void WinWSApp::StartBoard()
 // ButtonDepress 0x431630): 0x42a870 (back to the menu: resets the game state), 0x42ee10 and 0x42f3c0 (start a game:
 // they make the lesson manager and load the configuration), 0x429450, 0x426c60, 0x429110, 0x4292b0, 0x428d80,
 // 0x42aad0, 0x430b20, 0x426a40 (copies the lesson word lists into the user), 0x4262b0 (GetDefaultUserNumber),
-// 0x413ff0, 0x4137d0 (LessonManager::IsTutorialActive).
+// 0x413ff0, 0x4137d0 (LessonManager::IsBonusLevel).

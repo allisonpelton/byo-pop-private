@@ -126,37 +126,36 @@ public:
 	DeleteUserDialog*		mDeleteUserDialog;      // +0x674 (0x4267d0)
 	int						mMusicSlot;             // +0x678 which of the two songs plays (ChangeMusic 0x414350); ctor 1
 	int						mMusicOrder;            // +0x67c the module order playing (ChangeMusic); ctor -1
-	int						mField680;              // +0x680 ctor 0; read by ButtonDepress
+	int						mAbyssDepth;            // +0x680 ctor 0; the depth an abyss game starts at (a multiple of 400; ButtonDepress, SetDepth)
 	bool					mFlag684;               // +0x684 ctor 0; read by 0x42a870 / 0x42ee10
 	bool					mFlag685;               // +0x685 ctor 0; read by 0x42a870 / 0x42ee10
 	int						mOpenDialogCount;       // +0x688 dialogs open over the board (0x414020 / 0x414150 add one, the dialogs take it off)
 	bool					mFlag68c;               // +0x68c ctor 0
 	bool					mFlag68d;               // +0x68d ctor 0
-	int						mField690;              // +0x690 ctor 0; read by 0x426c60, 0x42a870, 0x42ee10, 0x42f3c0, ButtonDepress
+	int						mDifficulty;            // +0x690 ctor 0; the difficulty button (0 easy .. 4 xtreme; 600 + id), -1 in an abyss game; LoadConfig reads it
 	std::string				mUsedLetters;           // +0x694 the letters handed out so far (0x41b4e0, 0x41d210)
-	int						mField6b0;              // +0x6b0 read by 0x430b20 (config parser)
-	std::string				mString6b4;             // +0x6b4 set by the config parsers (0x428d80, 0x4292b0); cleared in the dtor
-	std::string				mString6d0;             // +0x6d0 set by the config parsers (0x429110); cleared in the dtor
+	int						mLongWordLength;        // +0x6b0 the length GetLongWord drew last
+	std::string				mShipName;              // +0x6b4 the game's ship name (GetShipName 0x4292b0 draws it from mShipNames when it is empty)
+	std::string				mGemName;               // +0x6d0 the game's gem name (GetGemName 0x429110, from mGemNames)
 	int						mTreasure;              // +0x6ec the treasure index (10..15) of the current game, 0 = not drawn yet (0x412830)
 	AppStats*				mStats;                 // +0x6f0 (operator new(0x30))
-	std::vector<std::string> mVector6f4;            // +0x6f4 (pad), +0x6f8: filled by the config parsers (0x4292b0)
-	std::vector<std::string> mVector704;            // +0x704 (pad), +0x708: filled by the config parsers (0x429110)
-	std::map<std::string, bool> mMap714;            // +0x714 filled by the config parsers (0x429110)
-	std::map<std::string, bool> mMap720;            // +0x720 filled by the config parsers (0x4292b0)
+	std::vector<std::string> mShipNames;            // +0x6f4 (pad), +0x6f8: data\shipnames.txt, the lines of more than 3 characters (LoadShipNames 0x42b400)
+	std::vector<std::string> mGemNames;             // +0x704 (pad), +0x708: data\gemnames.txt, the same way (LoadGemNames 0x42b0c0)
+	std::map<std::string, bool> mUsedGemNames;      // +0x714 the gem names GetGemName has drawn (cleared when it holds them all)
+	std::map<std::string, bool> mUsedShipNames;     // +0x720 the ship names GetShipName has drawn
 	TypingTutor*			mTypingTutor;           // +0x72c the typing tutor (made by ButtonDepress; hidden by 0x41b9e0, taken away with the board by 0x41d5c0)
-	std::vector<int>		mVector730;             // +0x730 (pad), +0x734..+0x73c: filled by the config (0x42a870, 0x42aad0, 0x42ee10); freed with free()
-	int						mField740;              // +0x740 ctor -1; read by 0x42a870, 0x42aad0, 0x42ee10, 0x443a70
+	std::vector<int>		mUsedThemes;            // +0x730 (pad), +0x734..+0x73c: the themes GetThemeWord has used (0x42aad0); freed with free()
+	int						mTheme;                 // +0x740 ctor -1; the theme of the game (an index in mThemes; chosen by GetThemeWord, reset by 0x42a870, 0x42ee10)
 	SoundInstance*			mSoundInstance0;        // +0x744 GetSoundInstance(0) (LoadingThreadProc)
 	SoundInstance*			mSoundInstance1;        // +0x748 GetSoundInstance(1)
 	SoundInstance*			mSoundInstance1Copy;    // +0x74c the same pointer as +0x748
 	DialogButton*			mStatsCloseButton;      // +0x750 "Close" button of the stats screen (0x41b9e0)
-	// +0x754 .. +0x770: two std::vector of structs the config parsers fill (TODO: types from the config job)
-	void*					mVector754[4];          // +0x754 (pad), begin, end, capacity (freed by 0x429780 then free())
-	void*					mVector764[4];          // +0x764 (pad), begin, end, capacity
-	// +0x774, +0x780, +0x78c: three maps the config parsers fill (TODO: types from the config job)
-	std::map<int, std::vector<std::string> > mMap774;   // +0x774 the words by length (0x430b20 reads it through 0x42f930; cleared by 0x42fd10)
-	std::map<std::string, bool> mMap780;            // +0x780
-	std::map<std::string, bool> mMap78c;            // +0x78c
+	// +0x754, +0x764: vectors of word lists (16 bytes per entry in the original, as for std::vector<std::string>)
+	std::vector<std::vector<std::string> > mWordLists;  // +0x754 (pad), begin, end, capacity: data\waves.txt, five lists for the lengths 3 to 7 (LoadWaves 0x434740; GetWord 0x428d80)
+	std::vector<std::vector<std::string> > mThemes;     // +0x764: data\themes.txt, one list per #THEME, words under 8 characters (LoadThemes 0x434d60; GetThemeWord 0x42aad0)
+	std::map<int, std::vector<std::string> > mLongWords;   // +0x774 data\twords.txt: the words by length, upper case (LoadWordLists 0x430d20; GetLongWord 0x430b20)
+	std::map<std::string, bool> mUsedWords;         // +0x780 the words GetWord and GetThemeWord have drawn
+	std::map<std::string, bool> mUsedLongWords;     // +0x78c the words GetLongWord has drawn
 	// the left-facing and darkened copies of images that FUN_004337a0 makes (the entities read them)
 	Image*					mRotorTorpedoDim;       // +0x79c IMAGE_ROTOR_TORPEDO, (200,200,200), mirrored
 	Image*					mTorpedoSwimDim;        // +0x7a0 IMAGE_TORPEDO_SWIM
@@ -286,8 +285,8 @@ public:
 	void					ReturnToMap();                                          // 0x429450 (a level is over: the map comes back)
 	void					SaveGameProgress(bool theFlag, bool theWithDouble);     // 0x426c60 (the totals go into the user, the profile is written)
 	void					CopyMapListsToUser();                                   // 0x426a40 (the map screen's two lists go into the user)
-	std::string				GetWordA();                                             // 0x4292b0 (the word at +0x6b4; drawn when it is empty)
-	std::string				GetWordB();                                             // 0x429110 (the word at +0x6d0; drawn when it is empty)
+	std::string				GetShipName();                                          // 0x4292b0 (the word at +0x6b4; drawn when it is empty)
+	std::string				GetGemName();                                           // 0x429110 (the word at +0x6d0; drawn when it is empty)
 	std::string				GetWord(int theMinLength, int theMaxLength);            // 0x428d80 (first letter not used yet; lists at +0x758)
 	std::string				GetThemeWord(int theMinLength, int theMaxLength, int theMinTheme, int theMaxTheme); // 0x42aad0 (lists at +0x768)
 	std::string				GetLongWord(int theMinLength, int theMaxLength);        // 0x430b20 (lists at +0x774, lengths 3 .. 0x15)

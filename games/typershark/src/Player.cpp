@@ -42,7 +42,7 @@ Player::Player(WinWSApp* theApp) :
 	mFrameWidth = 0x32;
 	mEmpX = mX + 50.0;
 	mFrameHeight = mApp->mImages[IMAGE_DIVER_IDLE]->GetHeight();
-	mMode = mApp->mField690;
+	mMode = mApp->mDifficulty;
 	switch (mMode)
 	{
 	case 0:
