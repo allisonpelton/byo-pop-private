@@ -4,8 +4,9 @@ This is the report on comparing the port with the original `Ningpo.exe`. Phase o
 2026-11-03: with the same input, a series of games plays out the same in both programs, update for update. That means
 the same deals and shuffles, the same matches, hints, undos and penalties, the same clock, the same endings and the
 same best times. One change came out of it, listed below. Phase two (screens, sound, focus and the web build) is
-under way, from 2026-11-08: the port, natively and on the web, has been compared screen by screen and played through
-with real input. The comparison with the original's screens and sound waits on origrun (see "Phase two" below).
+under way, from 2026-11-08. The original, the native port and the web build have been compared screen by screen, and
+the port has been played through with real input in both builds. The sound comparison is still to come; it waits on
+origrun (see "Phase two" below).
 
 ## What was compared, and how
 
@@ -101,6 +102,17 @@ pages, and each of the title's arrows. It then deals and tries the hint, show mo
 regain of the focus with the click that resumes. It answers the New Game question no, and the cheat then plays the
 board to its no-moves end. The tour ends with the game over, the name typed in, the best times and the title again.
 
+**The original against the port.** Of the 26 screens, 22 match the native port exactly. The other four are explained:
+
+- The options differ where the port changed them on purpose: the button to the publisher's site is gone, and Done
+  takes its row.
+- The name entry differs because, in a test run, the port suggests no name, so every machine types the same. The
+  original suggests the account it runs under, which is SYSTEM in the sandbox.
+- After the name is typed, the two programs are one pixel of the caret apart.
+- In the no-moves screen, a fading tile is a few levels apart (17 at most), an update of its fade.
+
+The web build compares the same against the original: 20 shots match, the same 2 differ, and 4 are faint.
+
 **Native against the web.** `tools/shotdiff` matches 24 of the 26 pairs exactly. The other two (the hint and show
 moves) differ by one 15-bit step in the glow of the lit tiles. The glow pulses on the game's clock, and the two `-fast`
 clocks stand a few milliseconds apart at the same update. Nothing else differs. Getting there took one fix in the web
@@ -120,13 +132,29 @@ it. On the page, a press within 150 ms of the focus coming back is taken as the 
 never reaches the game, as SDL drops a window's activating click natively (framework/SexyAppBase.cpp). The drivers
 wait past that window before the resuming click.
 
-**The original.** It runs the tour to its end in the sandbox, but every shot comes out flat. origrun's log says
-"DirectDraw/Direct3D content not reachable by GDI", on the virtual clock and the real clock and with the sandbox's
-virtual GPU. Ning Po draws through windowed DirectDraw in session 0 there. Its screens are still to be compared once
-origrun can capture them (asked of the coordinator, 2026-11-08). So is its sound: with origrun's sound stand-in the
-original's music streamer stops the virtual clock once a game is dealt (below).
+**Capturing the original.** In Windows Sandbox, PrintWindow gets the original's window only up to its loading
+screen; every later shot is flat. That was so on 2026-11-01 too: the case then took one shot, of the loading screen.
+The window class has no background brush (GetStockObject(5)), so a brush is not the cause. The shots are read from
+the game's memory instead (`tools/shots/orig.sh`, origrun's surface read). The display (HDisplay) is on the heap, and
+its pointer is in the static app: PGApp is at 0x475550, and mDisplay at +0x168. The 15-bit back buffer is at +0x14,
+and its pitch at +0x24.
 
-**Changes in phase two.** The trial's code and the options' button to the publisher's site came out (docs/README.md,
+That needed two small additions to origrun, each in its own `shared:` commit:
+
+- `--surface-screen-base` reads the pointer before the offsets.
+- `mark` and `at +N` time input and shots from a point of the script. The counter is the event time on the virtual
+  clock, and that clock starts at the real time, not at 0.
+
+The gate holds each shot until no function of the display that writes the back buffer is running. It leaves out the
+flip (0x423500), which only copies the buffer to the window. Each shot is held at the port's update, counted from
+the first click.
+
+The original's sound is still to be compared. With origrun's sound stand-in, its music streamer stops the virtual
+clock once a game is dealt (below).
+
+**Changes in phase two.** JPEGs now decode through libjpeg 6b (`Platform::LoadImageFromMemory`), the library the
+original links, so they come out as its pixels did; the frozen baseline was refrozen after it, with play unchanged.
+The trial's code and the options' button to the publisher's site came out (docs/README.md,
 "Left out"); Done takes that button's row, and the frame of the emptied bottom row is painted out. The standard test
 commands came in, with `move` from the game's own move finder, and `redraw` for the page's shots. Neither changes
 play: `tools/check.sh ningpo` still matches the frozen baseline.
