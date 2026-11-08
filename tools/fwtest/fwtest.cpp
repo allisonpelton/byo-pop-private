@@ -14,6 +14,9 @@
 //   -realinput=<file>    the framework's real input (SexyAppBase.h, docs/REAL_INPUT.md), with tools/fwtest/realinput.txt:
 //                        its "expect ..." lines check what reached the board and the app, "report" prints the count and
 //                        shuts down; the exit code is the number that failed. The test dialog is not shown.
+//   -commands=<file>     the framework's live commands (SexyAppBase.h, docs/TEST_COMMANDS.md): the same "expect",
+//                        "killdialog" and "report" lines, appended while it runs, each answered OK or ERROR on the log
+//                        (tools/fwtest/commands.sh drives it). The test dialog is not shown.
 // Exits with 1 when the game files fail to load.
 
 #include "SexyAppBase.h"

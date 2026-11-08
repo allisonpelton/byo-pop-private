@@ -504,8 +504,6 @@ protected:
 	enum { SCRIPT_RAN, SCRIPT_GAME, SCRIPT_FAILED, SCRIPT_UNKNOWN };
 	int RunScriptCommand(const ScriptCommand& theCommand, std::string* theError);
 	int RunRealInputCommand(const ScriptCommand& theCommand, std::string* theError);
-	// a live command line, queued for the next update (false for a blank line, a comment or a full queue)
-	bool QueueLiveCommand(const std::string& theLine, int theLineNum);
 	void PollLiveCommands();
 	void RunLiveCommands();
 	void PushRealEvent(SDL_Event* theEvent);
@@ -745,6 +743,9 @@ public:
 	// Test hook: queues a command as if it were a -script line, run by RunScript after the commands
 	// already queued for that update. A test bot uses it, so its input takes exactly the script's path.
 	void AddScriptCommand(int theUpdateCount, const std::string& theCommand, const std::string& theArgs);
+	// A live command line (-commands, the web's byopop_test_command), queued for the next update: false for a blank
+	// line, a comment or a full queue
+	bool QueueLiveCommand(const std::string& theLine, int theLineNum);
 
 	// --- port: the mod menu and restarts (docs/MOD_MENU_DESIGN.md 5, 6) ---
 	// The menu is a base modal widget above everything (not a dialog: it is not in mDialogMap). It pauses the
