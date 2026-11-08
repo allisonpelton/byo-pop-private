@@ -1203,7 +1203,7 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		mAutoPlayMode = -1;
 		return true;
 	}
-	return false;
+	return HandleTestCommand(theCommand);
 }
 
 void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
