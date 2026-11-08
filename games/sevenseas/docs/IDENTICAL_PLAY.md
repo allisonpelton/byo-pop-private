@@ -50,6 +50,7 @@ Each row: the difference, its cause in the original, what the port does now, and
 | The map's "Click to continue" glowed | the button has no component image and shows its unlit picture, the lit one under the mouse | the same | d7d0f2a |
 | Arrows showed only above and below the ship (the user's "movement arrows don't show up properly") | 0x409840 draws the arrow of each of the eight neighbouring cells; the port drew only the vertical ones | all eight, as the original (nine hovers, shots match) | 87cbbda |
 | At game over the pirate vanished from the high-score list | 0x420430 brings the talking pirate in front of the list and does not stop him | the same | 1d82ddd |
+| After "No" in the Continue dialog (Average, Hard) the squares under the pirate's box took no clicks and showed no arrows (the user's "column 4, rows 1-3") | 0x421a10 case 3000 + 0xf never puts the pirate's invisible 200 x 200 box away; the original has the same fault | the pirate is put away as for Continue: a bug of the original that the port fixes (the user, 2026-11-07: "That sort of bug shouldn't be part of a fix mod, IMO"), a deviation of the port | dcc842e6 |
 | The last tutorial hint ("That's it! ...") never showed | its text is the 15th of each hint table; the port's table held 14 | all 15 | dcc842e6 |
 | The first box's text sat 17 pixels too high | 0x406400 draws its four lines at 0x12, 0x23, 0x34, 0x45 below the row | the same | dcc842e6 |
 
@@ -111,7 +112,6 @@ and the press moved the press to (0, 0); and the title's first click needs the s
 What was played that way: title, menu, the whole tutorial (every hint, whirlpool teleport, the last hint of step 14 that the
 fixes added, "Click here to start playing!"), an Easy game with its demo, random keys (numpad, arrows, space) and clicks to
 level 2, game over, the high-score name box and a new game from it; a Hard game's first moves. A saved game and "No" on Average
-with the fixes mod off (no arrow over, and no move on a click, on the squares under the pirate's box, the original's behaviour)
-and on (arrow and move). Options' Fullscreen box on (3840 x 2160, the game centred), a click and a key moving the ship in it,
+(arrow over, and a move on a click, on the squares under the pirate's box). Options' Fullscreen box on (3840 x 2160, the game centred), a click and a key moving the ship in it,
 and back to the window. Not played to the end: a whole game of Average and of Hard (their random runs were short). The web
 build's pass in the Browser pane is still to do.
