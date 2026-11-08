@@ -40,6 +40,8 @@ public:
 	virtual bool IsActive() { return true; }
 	// port(mod): a fix of the fixes mod is on (never in the original, nor without the mod)
 	virtual bool FixOn(const char* theFix) { return false; }
+	// port(site): the site's "Always skip start-up logos" (or -skiplogos) is on
+	virtual bool SkipLogos() { return false; }
 	// BASS's samples (a sound's id, -1 when it cannot be loaded) and its one music (BASS_MusicLoad with
 	// BASS_SAMPLE_LOOP | BASS_MUSIC_RAMP; PlayMusic(1) from the start); theVolume is BASS's music volume, 0 to 100
 	virtual int LoadSound(const char* thePath) { return -1; }
@@ -109,6 +111,7 @@ struct ScreenLock
 };
 uint32_t TimeMs();                       // 0x429350
 bool Sys_FixOn(const char* theFix);      // port(mod): a fix of the fixes mod is on
+bool Sys_SkipLogos();                    // port(site): the start-up logos are skipped, as Esc on the first one does
 void Sys_Sleep(int theMs);               // 0x428d00
 // 0x4293a0 and 0x4293b0: called after PumpMessages opened the screen again, the first with the screen's format
 void SetScreenLostCallback(void (*theCallback)(const PixelFormat*));

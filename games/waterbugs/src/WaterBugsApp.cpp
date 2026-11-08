@@ -15,9 +15,7 @@
 #include "SoundManager.h"
 #include "WidgetManager.h"
 #include "platform/VFS.h"
-#ifdef __EMSCRIPTEN__
 #include "WebSettings.h"
-#endif
 
 #include <SDL.h>
 #include <cstring>
@@ -90,6 +88,12 @@ public:
 	bool FixOn(const char* theFix) override
 	{
 		return Sexy::FixOn(theFix);
+	}
+
+	// the site's "Always skip start-up logos", or -skiplogos (framework/WebSettings.h)
+	bool SkipLogos() override
+	{
+		return Byopop::SiteSkipLogos();
 	}
 
 	// The original's activation (its WndProc's WM_ACTIVATEAPP) is the framework's mActive, set from SDL's focus events: the
