@@ -110,6 +110,12 @@
       "port": 18789
     },
     {
+      "name": "dynomite-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18795"],
+      "port": 18795
+    },
+    {
       "name": "dynomite-web",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18782", "--bind", "127.0.0.1", "--directory", "build/web"],
@@ -120,6 +126,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18787", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18787
+    },
+    {
+      "name": "webtest-player",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18797"],
+      "port": 18797
     },
     {
       "name": "shotreview",

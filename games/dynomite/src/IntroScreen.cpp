@@ -15,7 +15,9 @@
 
 using namespace Sexy;
 
-bool Sexy::gIntroReturning = false;
+// 0x52b320: true in the exe's data, so the first main menu after the title has the welcome sign and MenuTalker 1 and
+// leaves the title's music playing; the screen's destructor clears it
+bool Sexy::gIntroReturning = true;
 
 static CellButton* NewMenuButton(int theId, ButtonListener* theListener, bool noDraw)
 {
@@ -857,11 +859,6 @@ void IntroScreen::ButtonDepress(int theId)
 				mField280 = true;
 				goto back;
 			}
-			if (!mApp->mIsRegistered)
-			{
-				// port: an unregistered copy shows the register dialog (no saved games)
-				goto back;
-			}
 			mPage = 3;
 			ReadSlots();
 			break;
@@ -888,18 +885,13 @@ void IntroScreen::ButtonDepress(int theId)
 			mApp->StartGame();
 			mApp->mMusicInterface->PlayMusic(2, 0x29, false);
 			mField280 = true;
-			// port: the original also moves the mouse pointer to the board's middle (SetCursorPos)
+			mApp->WarpToBoard();
 			goto back;
 		case 3:
 			LoadChosenSlot();
 			goto back;
 		case 5:
 		{
-			if (!mApp->mIsRegistered && (strncmp(mApp->mPackFile, "DEFAULT.EGG", 12) != 0))
-			{
-				// port: an unregistered copy plays only DEFAULT.EGG (the register dialog)
-				goto back;
-			}
 			if (mApp->mGameMode == 1)
 				mApp->mPuzzleSkills = mPuzzleList->mPackSkills;
 			unsigned int aSkills = mApp->mPuzzleSkills;
@@ -1076,5 +1068,5 @@ void IntroScreen::LoadChosenSlot()
 	char aName[20];
 	sprintf(aName, "SLOT%d.SAV", mSlotNumbers[mChosenSlot]);
 	mApp->LoadSavedGame(aName);
-	// port: the original also moves the mouse pointer to the board's middle (SetCursorPos)
+	mApp->WarpToBoard();
 }

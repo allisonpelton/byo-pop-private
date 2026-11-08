@@ -121,7 +121,6 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 // 0x4014a0
 void Board::NewGame(bool theLoad)
 {
-	mApp->mGamesPlayed++;
 	mTutorialShown = true;
 	if ((mApp->mDifficulty != 1) || mApp->mTutorial)
 		mTutorialShown = false;

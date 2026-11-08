@@ -1,7 +1,7 @@
 #include "SaveGameDialog.h"
 #include "BinFile.h"
 #include "CellButton.h"
-#include "DialogButton.h"
+#include "ButtonWidget.h"
 #include "Dynomite.h"
 #include "FossilizedApp.h"
 #include "GameText.h"
@@ -25,9 +25,10 @@ SaveGameDialog::SaveGameDialog(FossilizedApp* theApp) :
 		mSlotCells[i] = NULL;
 	for (i = 0; i < 8; i++)
 		mSlotPics[i] = NULL;
-	// an empty slot's picture: its pixels as new left them (port: zeroed, all clear)
+	// an empty slot's picture: opaque black
 	unsigned int* aBits = new unsigned int[0xe10];
-	memset(aBits, 0, 0x3840);
+	for (i = 0; i < 0xe10; i++)
+		aBits[i] = 0xff000000;
 	// port: the original passes a fifth argument (1) that the constructor never reads
 	mEmptyPic = new Pic(mApp, aBits, 0x3c, 0x3c);
 	mEmptyCell = new Cell(mEmptyPic, 0x3c, 0x3c, 0);
@@ -38,16 +39,16 @@ SaveGameDialog::SaveGameDialog(FossilizedApp* theApp) :
 	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
 	SetColor(3, Color(0xff, 0xff, 0xff));
 
-	mSaveButton = new DialogButton(NULL, 500, mApp);
-	mSaveButton->mComponentImage = mApp->mPicDbutton->mImage;
+	mSaveButton = new ButtonWidget(500, mApp);
+	mSaveButton->mButtonImage = mApp->mPicDbutton->mImage;
 	mSaveButton->mDoFinger = true;
 	mSaveButton->mLabel = mApp->GetString("SAVE");
 	mSaveButton->SetFont(mApp->mWhiteFontSmall);
 	mSaveButton->SetColor(0, Color(0xff, 0xff, 0xff));
 	mSaveButton->SetColor(1, Color(0xff, 0xff, 0xff));
 
-	mCancelButton = new DialogButton(NULL, 0x1f5, mApp);
-	mCancelButton->mComponentImage = mApp->mPicDbutton->mImage;
+	mCancelButton = new ButtonWidget(0x1f5, mApp);
+	mCancelButton->mButtonImage = mApp->mPicDbutton->mImage;
 	mCancelButton->mDoFinger = true;
 	mCancelButton->mLabel = mApp->GetString("DIALOG_BUTTON_CANCEL");
 	mCancelButton->SetFont(mApp->mWhiteFontSmall);

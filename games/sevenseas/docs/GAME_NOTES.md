@@ -134,7 +134,21 @@ the side panel's lives are the small icon (image 31).
   "That sort of bug shouldn't be part of a fix mod, IMO", so a bug that breaks play is fixed in the port itself. To see the original: a
   saved game (the New Game dialog's Yes), Average, Start New Game, "No", then hover a square next to the ship under the box. Natively
   checked with real window messages on 2026-11-07 (tools/realinput.py `saved`): arrow and move on those squares.
-- **No Register button.** The options dialog's Register button is hidden (registration is taken out by the user's rule).
+- **A new game's first-level warning is closed at once (a soft lock of the port, fixed 2026-11-08).** The Board's constructor makes the
+  first level, whose whirlpool warning on Hard (and Average above level 10) is a dialog; the board is then put in front of it. The
+  original's StartGame (0x41eef0) ends with `ShowWarning(4)` and `KillDialog(14)`, which closes that dialog again, so the warning first
+  shows at level 2; the port left both calls out, so on a new Hard game with the warning not yet switched off the dialog sat hidden
+  behind the board and took every click for good. Found by the web whole-game driver (`move` named the dialog's button and the click
+  did nothing). `StartGame` now calls `KillDialog(DIALOG_WARNING)` at its end; the `late` autoplay run of `tools/check.sh sevenseas`
+  shifted by it (the bot no longer answers that dialog: update 1958, score 200, moves 14, where it was 1852, 140, 13).
+- **Registration and the way out of the game are left out (the user's rules, 2026-11-07).** The options dialog has neither the Register button
+  nor the "more games" button (a link to the publisher's site); Help and High Scores share the row next to the footer button, each
+  half of the dialog's width. The title screen has no register link, no count of plays left and no delay before the Play link for an
+  unregistered copy (the gate on 15 games played, `mDelay`), and the app no longer counts games played (`mGamesPlayed`, which only that
+  gate read). The publisher's logo and address are pictures on the title, not buttons, and stay.
+- **Loading is fast in the port.** The framework runs the loading thread in one go (the sounds, the arrows, the animations): the
+  title's Play link takes a click 50 ms of game time after the start (-fast), and the port added no wait of its own. The title still looks
+  at the thread every fourth update, the original's own cadence, a 40 ms step at most.
 - **Options dialog's four extra buttons' label colour** is gold, and a hovered label stays gold (captured in the Windows Sandbox,
   2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
   change under the mouse either (`qh`), nor do the help screen's two labels (`hh`), although the decompilation reads colour 1
@@ -237,5 +251,52 @@ Script commands of the port (`-script`, later the live channel), answered on std
 | `win` | the level is complete now (the flag the board sets when the last pirate is gone; the game's level-complete screen follows) |
 | `lose` | the last life is lost now through `LoseLife`; the game over and the high-score screen follow as in play |
 | `seed <n>` | the game's random numbers (the C library generator the original used) are seeded with n |
-| `move` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"clicks":[[gx,gy]]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the click in game coordinates that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
+| `move` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"input":[{"move":[gx,gy]},{"click":[gx,gy]}]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the input (a hover and a click, in game coordinates) that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
 | `unlock all` | ERROR: the game has nothing locked |
+
+`move` also answers the screens between moves, so that a driver needs nothing else: a dialog's button, the title's Play link, the
+menu's Play, the demo's and the map's buttons, the high-score screen's, and a dig of the bonus level, as `{"kind":"ui","what":"dialog 14",
+"input":[...]}`; they come before the ship's own move. `state` adds `over` (the last life is gone), `busy` (nothing to click yet), `dialogs`
+(id, whether it sits in the widget manager, box, button) and, on the menu, `menu` (the Play and Tutorial buttons and the three wheels, in
+game coordinates; the difficulty wheel is a real click, then Play). `tools/web/hard.js` plays a whole Hard game that way.
+
+## 10. Fix candidates (2026-11-08)
+
+None for the fixes mod. What was checked: the whole play of the port against the original in the identical-play pass and in the
+real-input passes (native and web, Easy, Average, Hard, the tutorial, a saved game), looking for waits that only cost the player
+time and for bugs of the original that do not break play. The bugs found broke play, so they are fixed in the port itself (the
+user's rule): the pirate's box that took the clicks of the squares under it (section 5), and the tutorial's missing last hint and
+its mis-placed first box. Nothing else came up: the title, the demo and the level-end screens answer a click at once, and the
+ships' sailing and the broadsides are the game's own animation, which holds the player only as the game's rules do. This is a
+result of the play-throughs, not of a line-by-line audit of the export for waits, so a later find is added here.
+
+## 11. Performance (2026-11-08)
+
+The original and the port, back to back on this machine (a Core i7-12700F, Windows 11), for the user's morning report. The machine
+was not quiet: other sessions' games ran meanwhile (3 to 7 game processes counted by `tools/gamecount.py` at the start and end of
+each run; `build/perf/procs_*.txt`, git-ignored), so the numbers compare the two here and now; the performance pass re-measures on a
+quiet machine. Both ran windowed, in real time, with no sound (the port under rundesk with SDL's silent driver; the original under
+origrun on the host with its silent stand-in and the seed pinned), a fresh user folder each, no mods. The input is the same on both
+sides (`tools/profile/perf_orig.txt` and `perf_port.txt`: the title at 2 s, the menu's Play at 10 s, the Easy demo's button at 24 s,
+then a broadside at the ship every 1.5 s to 88 s, quit at 90 s). One run is one process from its creation to its exit, sampled
+every 50 ms by `tools/profile/perfmin.py` (a copy of Bejeweled's sampler); the window for the processor figures is 20 to 80 s.
+
+| | original (3 runs) | port (3 runs) |
+|---|---|---|
+| Peak working set | 55.4, 65.0, 65.1 MB | 66.1, 66.2, 66.3 MB |
+| Peak private bytes | 41.5, 50.9, 51.2 MB | 65.9, 65.9, 66.0 MB |
+| Processor time in the window | 2.2, 8.7, 7.5 % of one core | 4.8, 5.0, 5.5 % of one core |
+| Processor time, whole 90 s run | 3.2, 8.3, 7.6 s | 5.1, 4.9, 5.7 s |
+| Launch to the first screen that takes input | 1 to 2 s (origrun's log has a one-second clock: the counter's first update comes in the second after the launch, 3 runs) | 1.07 s median (1.04 to 1.15, 5 runs: a click on the title's Play link every 50 ms, the first one the menu answers) |
+
+The original's first run sits apart from its other two (55 MB and 2 % against 65 MB and 8 %); its script ran the same lines at the
+same updates, and the cause was not examined (a different state of the game at that moment, as the Easy demo's timing varies, is
+the likely one), so the three are given as measured. The port holds about 15 MB more private memory than the original's
+three-run range and about the same working set; its processor use sits between the original's quiet and busy runs. Seven Seas
+loads in about a second in both: the port added no wait (the framework runs the loading thread in one go) and the original
+has none that this clock can see. The tools: `runperf.sh` (both sides), `runport.sh` (the port alone: its Popen needs absolute paths
+under rundesk), `loadtime.py` (the port's load time through the live channel).
+
+**What could not be measured.** The web build's load time: the Browser pane is hidden, its timers are throttled and
+`requestAnimationFrame` does not run, and a load in a player's browser is dominated by the network and the wasm compile. The
+original's load to better than a second (no state command; origrun's clock is in whole seconds). The GPU's own load, and full screen.
