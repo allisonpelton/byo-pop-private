@@ -166,6 +166,7 @@ f8	std::vector<int>	mf8
 910	bool	m910
 911	bool	m911	?
 912	bool	m912	?
+913	bool	m913
 914	bool	m914
 915	bool	m915
 916	bool	m916	?
@@ -189,7 +190,7 @@ f8	std::vector<int>	mf8
 934	float	m934	?
 938	float	m938
 940	float	m940
-944	int	m944	?
+944	float	m944	the banner time (adds 0.07 per update)
 948	unsigned char	m948
 949	unsigned char	m949
 94c	int	m94c	?
@@ -351,9 +352,12 @@ ade	int	made	?
 1bac	int	m1bac	?
 1bb0	int	m1bb0	?
 1bb4	int	m1bb4	?
+1bb8	int	m1bb8	?
 1bbc	int	m1bbc	?
 1bc0	int	m1bc0	?
 1bc4	int	m1bc4	?
+1bc8	int	m1bc8	?
+1bd0	int	m1bd0	?
 1bd4	int	m1bd4	?
 1bd8	float	m1bd8
 1bdc	float	m1bdc

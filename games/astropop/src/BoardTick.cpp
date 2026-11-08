@@ -547,7 +547,7 @@ void Board::UpdateStates()
 	m19b8++;
 	UpdateStageBackground();
 	UpdateSpecialMode();
-	Fn466e80();
+	UpdateIntroAndTally();
 
 	if (m1b64 == 1)
 	{

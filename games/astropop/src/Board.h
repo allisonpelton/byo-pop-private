@@ -416,6 +416,7 @@ public:
 	bool	m910 = false;// +0x910
 	bool	m911 = false;// +0x911 ?
 	bool	m912 = false;// +0x912 ?
+	bool	m913 = false;// +0x913
 	bool	m914 = false;// +0x914
 	bool	m915 = false;// +0x915
 	bool	m916 = false;// +0x916 ?
@@ -439,7 +440,7 @@ public:
 	float	m934 = 0.0f;// +0x934 ?
 	float	m938 = 0.0f;// +0x938
 	float	m940 = 0.0f;// +0x940
-	int	m944 = 0;// +0x944 ?
+	float	m944 = 0.0f;// +0x944 the banner time (adds 0.07 per update)
 	unsigned char	m948 = 0;// +0x948
 	unsigned char	m949 = 0;// +0x949
 	int	m94c = 0;// +0x94c ?
@@ -601,9 +602,12 @@ public:
 	int	m1bac = 0;// +0x1bac ?
 	int	m1bb0 = 0;// +0x1bb0 ?
 	int	m1bb4 = 0;// +0x1bb4 ?
+	int	m1bb8 = 0;// +0x1bb8 ?
 	int	m1bbc = 0;// +0x1bbc ?
 	int	m1bc0 = 0;// +0x1bc0 ?
 	int	m1bc4 = 0;// +0x1bc4 ?
+	int	m1bc8 = 0;// +0x1bc8 ?
+	int	m1bd0 = 0;// +0x1bd0 ?
 	int	m1bd4 = 0;// +0x1bd4 ?
 	float	m1bd8 = 0.0f;// +0x1bd8
 	float	m1bdc = 0.0f;// +0x1bdc
@@ -670,7 +674,7 @@ public:
 	void			PayTimeBonus();                                // 0x452a80
 	void			UpdateFreeze();                                // 0x474de0
 	void			UpdateSpecialMode();                                    // 0x46f010 (4339 bytes)
-	void			Fn466e80();                                    // 0x466e80 (3168 bytes)
+	void			UpdateIntroAndTally();                                    // 0x466e80 (3168 bytes)
 	void			LoadLevel(bool theFlag);                       // 0x4663f0 (2647 bytes)
 	void			LevelComplete();                                // 0x465290
 	void			PayComboBonus();                                // 0x452d30
@@ -680,6 +684,7 @@ public:
 	void			SetupWarpLayers();                              // 0x43b1b0
 	static std::string	FormatNumber(int theNumber);            // 0x43e220 with a comma after each three digits
 	bool			Fn46a810();                                     // 0x46a810 (3545 bytes): true ends the update
+	void			Fn465840(int theStage);                         // 0x465840 (2897 bytes): -1 picks a stage
 	void			Fn4335e0();                                     // 0x4335e0: the field is waiting to be cleared (m19fc = 1000)
 	bool			Fn468e70();                                     // 0x468e70: the upgrade screen of the level (true when one opens)
 	void			UpdateStreaks();                                // 0x439650
