@@ -18,8 +18,8 @@ talks to a server are left out. User-visible text goes through `GT(0xADDR)`.
 | J2 | ButtonDepress (0x431630, 8.5 KB) and the rest of WinWSApp that J1 left: 0x42a870 (reset, then ShowMenuScreen), 0x42ee10 and 0x42f3c0 (build the LessonManager via 0x4270e0 and 0x42bfb0, then Board, StatusBar, MapScreen), 0x429450, 0x426c60, 0x429110, 0x4292b0, 0x428d80, 0x42aad0, 0x430b20, 0x426a40, 0x4262b0 (GetDefaultUserNumber), 0x413ff0, 0x4137d0 (LessonManager::IsTutorialActive); also the declared loaders LoadWaves, LoadWordLists, LoadGemNames, LoadShipNames, LoadThemes; WinWSApp's destructor frees lesson manager and config tables | ~25 KB | done 2026-11-08 (WinWSAppButtons.cpp, WinWSAppGame.cpp) |
 | E1 | entities: the sharks' and piranhas' variants and Projectile | ~13 KB | done 2026-11-08 (11 of 14 classes; Torpedo, CannonBall, SquidCannonBall went to E2) |
 | E2 | entities: Torpedo, CannonBall, SquidCannonBall, MechaTorpedo, ProjectileBoss, TorpedoBoss, GhostShip, GhostShark, MechaShark, MechaSquid | ~18 KB | done 2026-11-08 |
-| E3 | entities: BonusCreature, Clam, Player, Bubble, BonusText, BackgroundFish, Effect, and whatever of 0x401000-0x412330 `coverage.py --missing` still lists (GameObject / Enemy leftovers, unknown functions) | ~14 KB | running 2026-11-08 |
-| P1 | UserProfileMgr / UserProfile (0x4172f0-0x428000) | ~25 KB | |
+| E3 | entities: BonusCreature, Clam, Player, Bubble, BonusText, BackgroundFish, Effect, and whatever of 0x401000-0x412330 `coverage.py --missing` still lists (GameObject / Enemy leftovers, unknown functions) | ~14 KB | done 2026-11-08 (the range 0x401000-0x412330 is covered) |
+| P1 | UserProfileMgr / UserProfile (0x4172f0-0x428000) | ~25 KB | running 2026-11-08 |
 | P2 | the config parser 0x42bfb0 (11.8 KB) and the lessons / gem names / words / themes loaders | ~25 KB | |
 | D1 | dialogs: copy-adapt BookWorm's (Delete/Select/New user, Options, Credits, Hint, Money), the game's own (WinGame, GameOver, Difficulty, AbyssMode) | ~30 KB | |
 | W1 | small widgets and panels: StatsScreen, StatusBar, TabbedWidget, TabPanel, TutorialPanel, AbyssPanel, AdventurePanel | ~20 KB | |

@@ -138,3 +138,49 @@ void Enemy::SetWord(const std::string& theWord)
 	mWord = theWord;
 	mField54 = GetPoints();
 }
+
+// 0x401230: the death animation of a dying creature (state 3) has played to its end (mFlag18 is set when it does)
+bool Enemy::IsDeathFinished()
+{
+	if (mState == 3 && mFlag18)
+		return true;
+	return false;
+}
+
+// 0x407100: removes every entry equal to the event from the list
+void Enemy::RemoveEvent(int theEvent)
+{
+	for (unsigned int i = 0; !mEvents.empty() && i < mEvents.size(); i++)
+	{
+		if (mEvents[i] == theEvent)
+		{
+			mEvents.erase(mEvents.begin() + i);
+			i--;
+		}
+	}
+}
+
+// Not translated, the rest of the entity range 0x401000-0x412330 (E3):
+// - Enemy and GameObject in their standalone layouts: 0x401160 (GameObject's deleting destructor), 0x401190 (the
+//   Enemy-level SetState, writes the state), 0x4079d0, 0x4079e0, 0x4079f0, 0x407a00, 0x407a10, 0x407a20 (vtordisp thunks
+//   of Enemy's GameObject part, slots 0, 1, 2, 3, 4, 7), 0x409cf0 (Enemy's deleting destructor), 0x40a413 (not a function:
+//   Ghidra's second entry into the middle of the Enemy constructor 0x40a3f0)
+// - deleting destructors and part destructors of the creature classes (they call the string destructor and the base
+//   destructors): 0x409ae0 (StealthPiranha), 0x409d30 (Shark), 0x409e10 (ProjectileBoss), 0x409e50 (TorpedoBoss),
+//   0x410180 (RedPiranha), 0x410f00 (WhitePiranha), 0x412230 (StealthWhitePiranha); in the same files 0x405050 is the
+//   inlined destructor of the std::string a WhitePiranha holds
+// - WSTimer (WSTimer.cpp): 0x4012c0 (the constructor the bosses use, same as the inlined one) and 0x401330 (deleting
+//   destructor)
+// - framework: 0x402000 (Color(r, g, b, a)), 0x402020 (Rect::Intersects)
+// - the standard library, instantiated for the game's types. std::string: 0x403010 (operator== with a C string),
+//   0x403200 (_Tidy), 0x4033b0 and 0x4033f0 (comparisons), 0x406450 (append of a substring), 0x407210 (substr).
+//   std::vector of 4-byte elements (Image* in Enemy::mImages, int in the events): 0x409c00 (resize), 0x406f60 (erase).
+//   std::vector of the 24-byte explosion records of TorpedoBoss: 0x402070 (size), 0x403050, 0x403090, 0x403420, 0x403450
+//   (copy, copy_backward, fill), 0x4030d0, 0x403490 (uninitialized copy and fill), 0x406420, 0x406d70, 0x409510
+//   (_Insert_n), 0x409c80, 0x409e90 (insert, push_back). std::map of the sharks' and piranhas' pictures (map<int,
+//   map<int, Image*>>, WinWSApp's ImageVariantTable): 0x4020d0, 0x402e80, 0x402ee0, 0x402f40, 0x402f50, 0x403350,
+//   0x403370, 0x406370, 0x406e50 (_Min, rotations, iterators, _Erase, _Copy), 0x4091b0 and 0x40fb00 (find or insert in
+//   the inner and the outer map), 0x40fbc0 (the outer map's operator[] that the creature constructors call), 0x409810
+//   (erase range), 0x409f20, 0x40f8a0 (copy of the maps), 0x40df40, 0x40df80 (clear). Their exception funclets:
+//   0x403285, 0x40331d, 0x406405, 0x409403, 0x40940f, 0x4096e8, 0x4096f4, 0x409f95, 0x40f926 (Catch@...), 0x4020b0 (a thunk
+//   to operator delete)

@@ -73,3 +73,19 @@ mVector2b4`. `MapNode {bool mFlag38 (+0x38); int mField24 (+0x24)}` (the map scr
 - 0x428d80 and 0x42aad0 divide by a list size that is 0 for an empty list, as the original does.
 - GetWord (0x428d80): the first letter of the chosen word is taken from the word; the decompilation is unclear on that
   point, so the phase-1 comparison of the words drawn tests it.
+
+## From the last entity job (E3: BackgroundFish, BonusCreature, Clam, Bubble, BonusText, Player)
+- Board: `int mField0eb8` (+0xeb8; `Player::SetState(2)` compares it with 0 through `mApp->mBoard` without a null check; the
+  role is unknown), `AddBubble(x, y)` (0x452f30, confirmed x then y; the Board sets the position with SetX / SetY after
+  constructing), `AddBonusText(std::string, x, y, Font* = NULL)` (0x452fd0; a NULL font becomes
+  `app->mFontUnsteadyOversteer22`, +0x8b8; pushes onto the vector at Board +0xdb4). The Board constructs `BackgroundFish(app)`,
+  `BackgroundFish(app, leader)`, `BonusCreature(app)` (then `SetState(0)`, `SetX`, `SetY`, `SetVelY(0.3)`), `Clam(app, type)`,
+  `Bubble(app)`, `BonusText(text, font)`; it reads the player's `mFlag118`, `mEmpCharge`, `mEmpActive`, `mField110`, `mFlag13d`
+  and calls `Player::AddScore(int)`, `SetScore(int)`, `SetFlag118(bool)`; it writes `Enemy::mField0e4` (+0xe4) in every
+  creature it makes (a number from its spawn record) and calls `Enemy::IsDeathFinished()` (0x401230), `RemoveEvent(int)`
+  (0x407100), `PopEvent`, `HasEvent`, `SetWord`.
+- There is no `Effect` class: the export's name is GameObject's deleting destructor (0x401160).
+- Kept from the original, to be listed in the game notes: `BackgroundFish`'s copy constructor puts the copy's x at about
+  4.29e9 (unsigned arithmetic), so the Board deletes it at its first tick and only the leader of a school shows; `Player`'s
+  constructor leaves `mHoseFrameUp`, `mHoseY` and `mAlpha` unset (the port zeroes them, the one place where behaviour could
+  differ); `Player::Update` state 1 has a dead branch.

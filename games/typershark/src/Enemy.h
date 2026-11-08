@@ -52,6 +52,7 @@ public:
 	std::string				mRemaining;				// +0xb4 the rest
 	bool					mFlagD0;				// +0xd0 not set by this constructor; the subclasses clear it
 	std::vector<int>		mEvents;				// +0xd4 event codes for the board (the creature pushes 1 when its word is finished, 2, 5, 6, 9...)
+	int						mField0e4;				// +0xe4 added for E3: not set by this constructor; the board stores a number read from its spawn record in each creature it makes
 
 public:
 	Enemy(WinWSApp* theApp);														// 0x40a3f0
@@ -69,6 +70,10 @@ public:
 	int						PopEvent();												// 0x407070
 	bool					HasEvent(int theEvent);									// 0x403790
 	void					SetWord(const std::string& theWord);					// 0x407a30
+
+	// ---- added for E3 ----
+	bool					IsDeathFinished();										// 0x401230 (the export puts it in Board): state 3 with mFlag18 set
+	void					RemoveEvent(int theEvent);								// 0x407100 (the export puts it in Board): every entry equal to the event leaves the list
 };
 
 }
