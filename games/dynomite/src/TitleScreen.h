@@ -26,7 +26,6 @@ public:
 	int					mUnused90;				// +0x90
 	Pic*				mCobrand;				// +0x9c
 	bool				mCobranded;				// +0xa0
-	bool				mShowRegistration;		// +0xa1 the registered copy's thanks (unless the property NoReg)
 
 	TitleScreen(FossilizedApp* theApp);			// 0x438b20
 	virtual ~TitleScreen();						// 0x4388d0

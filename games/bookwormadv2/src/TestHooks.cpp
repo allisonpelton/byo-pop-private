@@ -18,18 +18,38 @@
 //                   clicking the chapter map's Enter until it does; logs "script: battle: ..." at each step. A soak after it plays the battle
 //                   (wordmax 3 lets the enemy attack)
 //   pam <id>        logs where a script's animation is (playing, label, frame)
-//   state           logs the battle engine's state and the board's selected tiles
+//   statedump       logs the battle engine's state and the board's selected tiles (the F9 key in a test run)
 //   widgets         logs the widget manager's widgets: class, rectangle, visibility, priority, focus
 //   dismiss         presses Escape when a dialog is up, which the game's dialogs answer with their yes or ok; when the same
 //                   dialog is still there at the next dismiss, clicks its first button (logs "script: dismiss: <what it did>")
 //   lua <chunk>     runs the rest of the line as Lua (logs "script: lua: <error>" when it fails)
 //   spectrum        logs how many cells of the media player's spectrum are lit ("script: spectrum <n> lit")
+//
+// The drivers' commands (docs/TEST_COMMANDS.md): each answers "OK <command>", "ERROR <command>: <reason>", "STATE {json}"
+// or "MOVE {json}|null" on the log. A command that waits for its screen (a curtain, the title) tries again every 10
+// updates, 300 times at most. A command never given changes nothing.
+//   state           STATE {json}: screen, mode, level (book.chapter), loaded (the title: its startup load over),
+//                   health, maxhealth, enemy, enemyhealth, and the board: its letters row by row ("." for none), "+" after
+//                   a letter that can be picked, paused, busy; curtain, dialogs, talk
+//   goto <where>    menu (once the title has gone on to it), credits; adventure, arena, minigames, tome, options,
+//                   highscores (the main menu's items); a mini-game by its class (wordmaster, letterrip, linknspell,
+//                   wordup, mutawords, goldencoins: the mini-games' menu's buttons, opened first from the main menu)
+//   unlock all      the arena, the mini-games and the tome, as the end of a book unlocks them
+//   set health|enemy <n>   Lex's or the enemy's health (the scripts' _LexSetHealth, _EnemySetHealth)
+//   win             the battle's enemy dies (the scripts' _KillEnemy, only while the battle waits for a word)
+//   lose            Lex near death (the scripts' _lex_near_death), so that the enemy's next attack ends the battle
+//   move            MOVE {json} the move the drivers' bot makes next, or MOVE null (MoveForTests); it changes nothing
+//   level, seed     ERROR: the map's chapters are the scripts' (goto adventure); the game's seed is -seed=<n>
 #include <SDL.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten/heap.h>
 #endif
 
 #include <algorithm>
+#include <cctype>
+#include <cstdio>
+#include <list>
+#include <sstream>
 #include <cstdlib>
 #include <string>
 #include <typeinfo>
@@ -37,8 +57,11 @@
 #include <vector>
 
 #include "BattleEngine.h"
+#include "ArrowHint.h"
 #include "Board.h"
+#include "CurtainTransition.h"
 #include "Dialog.h"
+#include "DialogButton.h"
 #include "WidgetManager.h"
 #include "FadeButton.h"
 #include "GameApp.h"
@@ -47,6 +70,9 @@
 #include "Lex.h"
 #include "SongPlayer.h"
 #include "LuaSupport.h"
+#include "MainMenu.h"
+#include "MinigameMenu.h"
+#include "TitleScreen.h"
 #include "PopAnimManager.h"
 #include "Profile.h"
 #include "Tile.h"
@@ -104,6 +130,654 @@ bool IsRuby(Tile* theTile)
 
 size_t UsedVirtualMemory();  // CrashLog.cpp
 
+namespace {
+
+// runs theChunk; its first result, as Lua's tostring gives it, in theResult; false with the error in theResult
+bool RunLua(const std::string& theChunk, std::string& theResult)
+{
+	lua_State* L = LuaLib::gLuaSupport->L;
+	int aTop = lua_gettop(L);
+	bool anOk = luaL_loadbuffer(L, theChunk.data(), theChunk.size(), "=test") == 0 && lua_pcall(L, 0, 1, 0) == 0;
+	const char* aText = lua_tostring(L, -1);
+	theResult = aText != nullptr ? aText : "";
+	lua_settop(L, aTop);
+	return anOk;
+}
+
+std::string JsonString(const std::string& theText)
+{
+	std::string aJson = "\"";
+	for (char c : theText) {
+		if (c == '"' || c == '\\')
+			aJson += '\\';
+		if ((unsigned char)c >= 0x20)
+			aJson += c;
+	}
+	return aJson + "\"";
+}
+
+std::string Squash(const std::string& theText)  // lower case, letters and digits only
+{
+	std::string aSquashed;
+	for (char c : theText)
+		if (isalnum((unsigned char)c))
+			aSquashed += (char)tolower((unsigned char)c);
+	return aSquashed;
+}
+
+}  // namespace
+
+// port: the screen showing, for the test command state
+std::string GameApp::ScreenForTests()
+{
+	return mCutScene != nullptr ? "cutscene" : mCredits != nullptr ? "credits" : mHallOfFame != nullptr ? "highscores"
+	       : mBookScreen != nullptr ? "tome" : mMiniGameMenu != nullptr ? "minigames"
+	       : mTreasureScreen != nullptr && mTreasureScreen->mVisible ? "treasure"
+	       : mBoard != nullptr && mBoard->mVisible ? (mBoard->IsMiniGame() ? "minigame" : "battle")
+	       : mChapterLoadScreen != nullptr ? "loading" : mBookManager != nullptr ? "map"
+	       : mMainMenu != nullptr ? "menu" : mTitleScreen != nullptr ? "title" : "none";
+}
+
+// port: is the battle's board busy (a dialog, a conversation, a pause, tiles moving, falling or already in the word)
+bool GameApp::BoardBusyForTests()
+{
+	bool aBusy = !mDialogMap.empty() || ShowingConversationPanel() || mBoard->IsPaused() ||
+	             !mBoard->mSelected.empty() || !mBoard->mNewTiles.empty();
+	for (Tile* aTile : mBoard->mTiles)
+		aBusy = aBusy || aTile->IsMoving() || aTile->IsFalling() || aTile->mAlphaState != 1;
+	return aBusy;
+}
+
+// port: the longest word the board's tiles spell (at most theMax letters), with its tiles in order; empty if none.
+// With theLongest, also the theCount longest words they spell, longest first. (Volume 2 has no Astro Pop egg word to
+// leave out: Board::IsValidWord)
+std::string GameApp::BestWordForTests(size_t theMax, std::vector<Tile*>& theOrder, std::vector<std::string>* theLongest,
+                                      size_t theCount)
+{
+	TileLetters aTiles;
+	for (Tile* aTile : mBoard->mTiles)
+		if (!aTile->mSelected && aTile->CanSelect(aTile->mX + 25, aTile->mY + 25))
+			aTiles.push_back(std::make_pair(Board::GetWord(std::list<Tile*>(1, aTile)), aTile));
+	std::string aBest;
+	std::vector<Tile*> aBestOrder;
+	std::vector<Tile*> anOrder;
+	std::vector<std::string> aWords;
+	for (const std::pair<const std::string, int>& anEntry : mLex->mWords) {
+		const std::string& aWord = anEntry.first;
+		if ((theLongest != nullptr || aWord.size() > aBest.size()) && aWord.size() <= theMax && Spell(aWord, aTiles, anOrder)) {
+			if (aWord.size() > aBest.size()) {
+				aBest = aWord;
+				aBestOrder = anOrder;
+			}
+			if (theLongest != nullptr)
+				aWords.push_back(aWord);
+		}
+	}
+	if (theLongest != nullptr) {
+		std::stable_sort(aWords.begin(), aWords.end(),
+		                 [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
+		if (aWords.size() > theCount)
+			aWords.resize(theCount);
+		*theLongest = aWords;
+	}
+	theOrder = aBestOrder;
+	return aBest;
+}
+
+// port: Word Master's rows (theRows: "<line>|" then, for each row up to the current one, five "<letter><status>",
+// status 2 here, 1 elsewhere, 0 not in the word, - not answered; empty when there are none), each row's ten characters
+std::vector<std::string> GameApp::WordMasterRowsForTests(std::string& theRows)
+{
+	std::vector<std::string> aRow;
+	if (!RunLua("local g = gMiniGame if g == nil or g.mTiles == nil or g.mLine == nil then return '' end "
+	            "local out = tostring(g.mLine) "
+	            "for r = 0, g.mLine do local row = g.mTiles[r] out = out .. '|' "
+	            "for i = 0, 4 do local t = row and row[i] "
+	            "local l = t and t.mTable and t.mTable.mLetter or '.' if l == '&' then l = 'Q' end "
+	            "out = out .. l .. (t and t.mStatus and tostring(t.mStatus) or '-') end end return out",
+	            theRows))
+		theRows.clear();
+	for (size_t aPos = theRows.find('|'); aPos != std::string::npos;) {
+		size_t aNext = theRows.find('|', aPos + 1);
+		aRow.push_back(theRows.substr(aPos + 1, aNext == std::string::npos ? std::string::npos : aNext - aPos - 1));
+		aPos = aNext;
+	}
+	return aRow;
+}
+
+// port: Word Master's guess for the rows it shows (each "<letter><status>" five times; the last the row being typed):
+// "<GUESS|-> x,y ... submit x,y", the keys that type it and Submit
+std::string GameApp::WordMasterGuessForTests(const std::vector<std::string>& theRow)
+{
+	// the colours a guess would get against theWord: right place first, then elsewhere while the word has letters left
+	auto Score = [](const std::string& theGuess, const std::string& theWord) {
+		std::string aScore(5, '0');
+		int aLeft[26] = {0};
+		for (int i = 0; i < 5; i++) {
+			if (theGuess[i] == theWord[i])
+				aScore[i] = '2';
+			else
+				aLeft[theWord[i] - 'A']++;
+		}
+		for (int i = 0; i < 5; i++)
+			if (aScore[i] != '2' && aLeft[theGuess[i] - 'A'] > 0) {
+				aScore[i] = '1';
+				aLeft[theGuess[i] - 'A']--;
+			}
+		return aScore;
+	};
+	std::string aGuess;
+	for (const std::pair<const std::string, int>& anEntry : mLex->mWords) {
+		const std::string& aWord = anEntry.first;
+		if (aWord.size() != 5 || aWord.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ") != std::string::npos)
+			continue;
+		bool aFits = true;
+		for (size_t r = 0; r < theRow.size(); r++) {
+			const std::string& aCells = theRow[r];
+			if (aCells.size() != 10)
+				continue;
+			std::string aLetters, aStatus;
+			for (int i = 0; i < 5; i++) {
+				aLetters += aCells[i * 2];
+				aStatus += aCells[i * 2 + 1];
+			}
+			if (r + 1 < theRow.size()) {
+				aFits = aFits && Score(aLetters, aWord) == aStatus;
+			} else {
+				// the row being typed: the letters it already shows (the first, given) stay
+				for (int i = 0; i < 5; i++)
+					if (aLetters[i] != '.')
+						aFits = aFits && aWord[i] == aLetters[i];
+			}
+		}
+		if (aFits) {
+			aGuess = aWord;
+			break;
+		}
+	}
+	// the keys: the board's letter tiles; the row's letters already shown are not typed again
+	std::string aLine = aGuess.empty() ? "-" : aGuess;
+	const std::string& aCurrent = theRow.empty() ? std::string() : theRow.back();
+	for (size_t i = 0; i < aGuess.size(); i++) {
+		if (aCurrent.size() == 10 && aCurrent[i * 2] != '.')
+			continue;
+		for (Tile* aTile : mBoard->mTiles)
+			if (Board::GetWord(std::list<Tile*>(1, aTile)) == aGuess.substr(i, 1) ||
+			    (aGuess[i] == 'Q' && (Board::GetWord(std::list<Tile*>(1, aTile)) == "QU" ||
+			                          Board::GetWord(std::list<Tile*>(1, aTile)) == "&"))) {
+				aLine += StrFormat(" %d,%d", aTile->mX + 25, aTile->mY + 25);
+				break;
+			}
+	}
+	auto anIt = mBoard->mButtons.find(Board::BUTTON_ATTACK);
+	if (anIt != mBoard->mButtons.end() && anIt->second != nullptr)
+		aLine += StrFormat(" submit %d,%d", mBoard->mX + anIt->second->mX + anIt->second->mWidth / 2,
+		                   mBoard->mY + anIt->second->mY + anIt->second->mHeight / 2);
+	return aLine;
+}
+
+// port: the move the drivers' bot makes next (the standard "move" command, docs/TEST_COMMANDS.md), as JSON with its real
+// input, or "null" while there is none (the board busy, a curtain moving). A dialog's first button, a conversation, the
+// tutorial's tile or Attack, a lost turn's grid, an arrow's hot spot, then the board's longest word with Attack (or
+// Scramble), Word Master's guess, the treasure room's treasures and Continue, the map's Enter. It reads the game and
+// changes nothing
+std::string GameApp::MoveForTests()
+{
+	auto Click = [](int x, int y) { return StrFormat("{\"click\":[%d,%d]}", x, y); };
+	auto Move = [](const std::string& theWhat, const std::string& theInput, const std::string& theMore = "") {
+		return "{\"what\":\"" + theWhat + "\"" + theMore + ",\"input\":[" + theInput + "]}";
+	};
+	auto Centre = [](Widget* theWidget, int theX, int theY) {
+		return StrFormat("%d,%d", theX + theWidget->mWidth / 2, theY + theWidget->mHeight / 2);
+	};
+	if (mCurtain != nullptr && !(mCurtain->mDone && mCurtain->mDrawn))
+		return "null";
+	// a dialog's first button, once it takes clicks
+	if (!mDialogMap.empty()) {
+		Dialog* aDialog = mDialogMap.rbegin()->second;
+		Widget* aButton = aDialog->mYesButton;
+		if (GameDialog* aGameDialog = dynamic_cast<GameDialog*>(aDialog))
+			aButton = aGameDialog->mButton1;
+		if (aButton == nullptr || aDialog->mUpdateCnt <= 30)
+			return "null";
+		Point aPos = aButton->GetAbsPos();
+		return Move("dialog", Click(aPos.mX + aButton->mWidth / 2, aPos.mY + aButton->mHeight / 2),
+		            StrFormat(",\"id\":%d", aDialog->mId));
+	}
+	if (ShowingConversationPanel())
+		return Move("talk", Click(400, 150));
+	std::string aScreen = ScreenForTests();
+	bool aBattle = mBoard != nullptr && mBoard->mVisible && !mBoard->IsMiniGame();
+	// the first battle's tutorial: one tile at a time, then Attack
+	std::string aState;
+	if (aBattle &&
+	    RunLua("if IntroTutorial == nil or IntroTutorial.mDone or IntroTutorial.mState == nil then return '' end "
+	           "if IntroTutorial.mState < 0 then return '' end return tostring(IntroTutorial.mState)",
+	           aState) &&
+	    !aState.empty()) {
+		Tile* aNext = nullptr;
+		int aCount = 0;
+		for (Tile* aTile : mBoard->mTiles) {
+			if (aTile->IsMoving() || aTile->IsFalling() || aTile->mAlphaState != 1)
+				return "null";
+			if (!aTile->mSelected && aTile->CanSelect(aTile->mX + 25, aTile->mY + 25)) {
+				aNext = aTile;
+				aCount++;
+			}
+		}
+		if (aCount == 1)
+			return Move("tutorial", Click(aNext->mX + 25, aNext->mY + 25));
+		auto anAttack = mBoard->mButtons.find(Board::BUTTON_ATTACK);
+		if (aCount == 0 && !mBoard->mSelected.empty() && anAttack != mBoard->mButtons.end() && anAttack->second != nullptr)
+			return Move("tutorial", Click(mBoard->mX + anAttack->second->mX + anAttack->second->mWidth / 2,
+			                              mBoard->mY + anAttack->second->mY + anAttack->second->mHeight / 2));
+	}
+	// a lost turn (Lex stunned), once two questions 30 updates apart or more have seen it (a turn changing shows one for
+	// a moment): a click on the grid ends its round
+	static int sLostSince = -1;
+	bool aLostTurn = aBattle && gBattleEngine != nullptr && !mBoard->IsPaused() && gBattleEngine->LostTurn() &&
+	                 gBattleEngine->mState == BattleEngine::BE_IDLE &&
+	                 gBattleEngine->CallLinkedMethod("CanEndLostTurnRound", 0).Bool() &&
+	                 gBattleEngine->CallLinkedMethod("AttackerIsPlayer", 0).Bool() && !mBoard->mTiles.empty();
+	if (!aLostTurn) {
+		sLostSince = -1;
+	} else {
+		if (sLostSince < 0)
+			sLostSince = mUpdateCount;
+		if (mUpdateCount - sLostSince < 30)
+			return Move("wait", "{\"wait\":10}");
+		int aX = 0, aY = 0;
+		for (Tile* aTile : mBoard->mTiles) {
+			aX += aTile->mX + 25;
+			aY += aTile->mY + 25;
+		}
+		return Move("lostturn", Click(aX / (int)mBoard->mTiles.size(), aY / (int)mBoard->mTiles.size()));
+	}
+	// an arrow waiting for a click on its hot spot (one that a click 60 updates ago left standing is not asked again:
+	// the map's own hints wait for a chapter's click)
+	static ArrowHint* sHint = nullptr;
+	static int sHintId = -1, sHintAt = -1;
+	if (mArrowHintManager != nullptr)
+		for (ArrowHint* anArrow : mArrowHintManager->mHints)
+			if (anArrow->mActive && anArrow->mState == ArrowHint::STATE_SHOWING && !anArrow->mHotSpots.empty()) {
+				if (anArrow != sHint || anArrow->mId != sHintId) {
+					sHint = anArrow;
+					sHintId = anArrow->mId;
+					sHintAt = mUpdateCount;
+				} else if (mUpdateCount - sHintAt > 60) {
+					continue;
+				}
+				const Rect& aSpot = anArrow->mHotSpots.front();
+				return Move("hint", Click(aSpot.mX + aSpot.mWidth / 2, aSpot.mY + aSpot.mHeight / 2),
+				            StrFormat(",\"id\":%d", anArrow->mId));
+			}
+	// an overlay over the battle's board that a click takes away (Level Up's "Click to continue", the scripts' own):
+	// a click above the board, where the drivers click conversations on
+	if (aBattle && (mBoard->mLevelupOverlay || mBoard->HasOverlays()) && !mBoard->IsPaused())
+		return Move("overlay", Click(400, 150));
+	// a mini-game over ("Click anywhere to continue"): a click
+	std::string anEnd;
+	if (mBoard != nullptr && mBoard->IsMiniGame() &&
+	    RunLua("if gMiniGame == nil or gMiniGame.mEndGameState == nil then return '' end "
+	           "return tostring(gMiniGame.mEndGameState)", anEnd) &&
+	    !anEnd.empty() && anEnd != "0")
+		return Move("gameover", Click(400, 150));
+	// Word Master: the guess's keys, then Submit
+	if (mBoard != nullptr && mLex != nullptr && mBoard->IsMiniGame() && mMiniGameName == "WordMaster") {
+		std::string aRows;
+		std::vector<std::string> aRow = WordMasterRowsForTests(aRows);
+		if (aRow.empty() || BoardBusyForTests())
+			return "null";
+		std::string aLine = WordMasterGuessForTests(aRow);
+		if (aLine[0] == '-' || aLine.find(" submit ") == std::string::npos)
+			return "null";
+		std::string aGuess = aLine.substr(0, aLine.find(' ')), anInput;
+		std::istringstream aStream(aLine.substr(aGuess.size()));
+		std::vector<std::pair<int, int>> aPressed;
+		for (std::string aToken; aStream >> aToken;) {
+			int x = 0, y = 0;
+			if (sscanf(aToken.c_str(), "%d,%d", &x, &y) != 2)
+				continue;
+			// a key pressed again (a letter the guess has twice): 60 updates after the first, since the key drops a press
+			// that comes sooner, and with a press on the empty curtain below the keys between, since two presses on one spot
+			// within the double-click time (milliseconds of real time, which a fast run's updates do not take) make a double
+			// click, which the key ignores
+			bool anAgain = std::find(aPressed.begin(), aPressed.end(), std::make_pair(x, y)) != aPressed.end();
+			if (!anInput.empty())
+				anInput += anAgain ? ",{\"wait\":8}," + Click(30, 560) + ",{\"wait\":52}," : std::string(",{\"wait\":8},");
+			anInput += Click(x, y);
+			aPressed.push_back(std::make_pair(x, y));
+		}
+		return Move("guess", anInput, ",\"word\":" + JsonString(aGuess));
+	}
+	// a board (a battle's, a mini-game's): its longest word, then Attack; Scramble when it has none
+	if (mBoard != nullptr && mBoard->mVisible && mLex != nullptr) {
+		// a word left in the bar (a Submit that did not take, so that the next word's letters piled onto it): once it
+		// has stood for 100 updates, Submit when it is a word, else its last letter given back, as a player does
+		static int sSelectedSince = -1;
+		bool aStill = !mBoard->mSelected.empty() && mDialogMap.empty() && !ShowingConversationPanel() &&
+		              !mBoard->IsPaused();
+		for (Tile* aTile : mBoard->mTiles)
+			aStill = aStill && !aTile->IsMoving() && !aTile->IsFalling();
+		if (!aStill)
+			sSelectedSince = -1;
+		else if (sSelectedSince < 0 || sSelectedSince > mUpdateCount)
+			sSelectedSince = mUpdateCount;
+		else if (mUpdateCount - sSelectedSince >= 100) {
+			sSelectedSince = mUpdateCount;
+			auto anAttack = mBoard->mButtons.find(Board::BUTTON_ATTACK);
+			if (mBoard->IsValidWord(Board::GetWord(mBoard->mSelected), true) && anAttack != mBoard->mButtons.end() &&
+			    anAttack->second != nullptr && !anAttack->second->mDisabled) {
+				Widget* aButton = anAttack->second;
+				std::string aCentre = Centre(aButton, mBoard->mX + aButton->mX, mBoard->mY + aButton->mY);
+				return Move("unstick", "{\"move\":[" + aCentre + "]},{\"wait\":20},{\"click\":[" + aCentre + "]}");
+			}
+			Tile* aLast = mBoard->mSelected.back();
+			return Move("unstick", Click(aLast->mX + 25, aLast->mY + 25));
+		}
+		if (BoardBusyForTests())
+			return "null";
+		bool aPickable = false;
+		for (Tile* aTile : mBoard->mTiles)
+			aPickable = aPickable || aTile->CanSelect(aTile->mX + 25, aTile->mY + 25);
+		if (!aPickable)
+			return "null";  // the enemy's turn
+		std::vector<Tile*> anOrder;
+		std::string aWord = BestWordForTests(std::string::npos, anOrder);
+		if (mBoard->IsMiniGame()) {
+			// a mini-game wants words it has not had yet (Letter Rip deals one word to take others from): the longest
+			// that this mini-game's bot has not offered before
+			static Board* sMiniBoard = nullptr;
+			static std::vector<std::string> sOffered;
+			if (sMiniBoard != mBoard) {
+				sMiniBoard = mBoard;
+				sOffered.clear();
+			}
+			std::vector<std::string> aLongest;
+			BestWordForTests(std::string::npos, anOrder, &aLongest, 200);
+			aWord.clear();
+			anOrder.clear();
+			for (const std::string& aCandidate : aLongest)
+				if (std::find(sOffered.begin(), sOffered.end(), aCandidate) == sOffered.end()) {
+					aWord = aCandidate;
+					break;
+				}
+			if (!aWord.empty()) {
+				TileLetters aTiles;
+				for (Tile* aTile : mBoard->mTiles)
+					if (!aTile->mSelected && aTile->CanSelect(aTile->mX + 25, aTile->mY + 25))
+						aTiles.push_back(std::make_pair(Board::GetWord(std::list<Tile*>(1, aTile)), aTile));
+				Spell(aWord, aTiles, anOrder);
+				sOffered.push_back(aWord);
+			}
+		}
+		auto anAttack = mBoard->mButtons.find(Board::BUTTON_ATTACK);
+		auto aScramble = mBoard->mButtons.find(Board::BUTTON_SCRAMBLE);
+		if (aWord.empty()) {
+			if (aScramble == mBoard->mButtons.end() || aScramble->second == nullptr)
+				return "null";
+			Widget* aButton = aScramble->second;
+			std::string aCentre = Centre(aButton, mBoard->mX + aButton->mX, mBoard->mY + aButton->mY);
+			return Move("scramble", "{\"move\":[" + aCentre + "]},{\"wait\":20},{\"click\":[" + aCentre + "]}");
+		}
+		std::string anInput;
+		for (Tile* aTile : anOrder)
+			anInput += (anInput.empty() ? "" : ",{\"wait\":8},") + Click(aTile->mX + 25, aTile->mY + 25);
+		if (anAttack != mBoard->mButtons.end() && anAttack->second != nullptr) {
+			// the button lights up for a mouse that moved over it, before the click
+			Widget* aButton = anAttack->second;
+			std::string aCentre = Centre(aButton, mBoard->mX + aButton->mX, mBoard->mY + aButton->mY);
+			anInput += ",{\"wait\":8},{\"move\":[" + aCentre + "]},{\"wait\":20},{\"click\":[" + aCentre + "]}";
+		}
+		return Move("word", anInput, ",\"word\":" + JsonString(aWord));
+	}
+	// the treasure room: Continue once it is enabled, else the next treasure (the companion first, as the soak picks)
+	if (aScreen == "treasure") {
+		auto anIt = mTreasureScreen->mButtons.find(TreasureScreen::BUTTON_CONTINUE);
+		if (anIt == mTreasureScreen->mButtons.end() || anIt->second == nullptr || !anIt->second->mVisible)
+			return "null";
+		if (!anIt->second->mDisabled) {
+			Point aPos = anIt->second->GetAbsPos();
+			return Move("continue", Click(aPos.mX + anIt->second->mWidth / 2, aPos.mY + anIt->second->mHeight / 2));
+		}
+		// the first unselected treasure of the kind wanted (Volume 2's table holds each treasure's hot spot, mHX and mHY)
+		std::string anAt;
+		RunLua("local comp, cands = false, {} "
+		       "for k, v in pairs(gTreasureScreen.mTreasures) do "
+		       "if v.mSelected then if v.mIsCompanion then comp = true end else table.insert(cands, v) end end "
+		       "for i = 1, table.getn(cands) do "
+		       "if (cands[i].mIsCompanion and true or false) == (not comp) then "
+		       "return (cands[i].mHX + 10) .. ' ' .. (cands[i].mHY + 10) end end return ''",
+		       anAt);
+		int x = 0, y = 0;
+		if (sscanf(anAt.c_str(), "%d %d", &x, &y) != 2)
+			return "null";
+		return Move("treasure", Click(x, y));
+	}
+	if (aScreen == "map")
+		return Move("enter", Click(400, 575));
+	return "null";
+}
+
+// port: a test command tried again in 10 updates. In a -script run it goes into the script; on the live channel
+// (-commands, the web page's call) into a queue of its own, since a command in the script would make the framework drop
+// every real event from then on (SexyAppBase::HandleEvent)
+void GameApp::RetryForTests(const std::string& theCommand, const std::string& theArgs)
+{
+	if (!mScriptFileName.empty()) {
+		AddScriptCommand(mUpdateCount + 10, theCommand, theArgs);
+		return;
+	}
+	ScriptCommand aCommand;
+	aCommand.mUpdateCount = mUpdateCount + 10;
+	aCommand.mCommand = theCommand;
+	aCommand.mArgs = theArgs;
+	aCommand.mLine = 0;
+	mRetriesForTests.push_back(aCommand);
+}
+
+// port: the retries that are due (UpdateFrames)
+void GameApp::RunRetriesForTests()
+{
+	std::vector<ScriptCommand> aDue;
+	for (size_t i = 0; i < mRetriesForTests.size();) {
+		if (mRetriesForTests[i].mUpdateCount <= mUpdateCount) {
+			aDue.push_back(mRetriesForTests[i]);
+			mRetriesForTests.erase(mRetriesForTests.begin() + (long)i);
+		} else {
+			i++;
+		}
+	}
+	for (const ScriptCommand& aCommand : aDue)
+		HandleScriptCommand(aCommand);
+}
+
+// port: the drivers' commands (see the top of this file); false for any other command
+bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
+{
+	const std::string& aCommand = theCommand.mCommand;
+	if (aCommand != "state" && aCommand != "goto" && aCommand != "level" && aCommand != "unlock" &&
+	    aCommand != "set" && aCommand != "win" && aCommand != "lose" && aCommand != "seed" &&
+	    aCommand != "move")
+		return false;
+	// the arguments, without a "try=" a retry added
+	std::string anArgs = theCommand.mArgs;
+	int aTries = 0;
+	size_t aTryPos = anArgs.find(" try=");
+	if (aTryPos != std::string::npos) {
+		aTries = atoi(anArgs.c_str() + aTryPos + 5);
+		anArgs.erase(aTryPos);
+	}
+	std::string aFull = anArgs.empty() ? aCommand : aCommand + " " + anArgs;
+	auto Ok = [&]() { SDL_Log("OK %s", aFull.c_str()); return true; };
+	auto Error = [&](const std::string& theReason) { SDL_Log("ERROR %s: %s", aFull.c_str(), theReason.c_str()); return true; };
+	auto Later = [&](const std::string& theWhy) {
+		if (aTries >= 300)
+			return Error(theWhy);
+		RetryForTests(aCommand, StrFormat("%s try=%d", anArgs.c_str(), aTries + 1));
+		return true;
+	};
+	bool aCurtainBusy = mCurtain != nullptr && !(mCurtain->mDone && mCurtain->mDrawn);
+	bool aBattle = mBoard != nullptr && !mBoard->IsMiniGame();
+
+	if (aCommand == "state") {
+		std::string aScreen = ScreenForTests();
+		std::string aJson = "{\"screen\":" + JsonString(aScreen);
+		if (mBoard != nullptr && !aBattle)
+			aJson += ",\"mode\":" + JsonString(mMiniGameName);
+		else if (mProfile != nullptr && mProfile->KeyExists("CurrentBook"))
+			aJson += StrFormat(",\"mode\":\"%s\",\"level\":\"%d.%d\"", mTimedMode ? "arena" : "adventure",
+			                   mProfile->GetInt("CurrentBook"), mProfile->GetInt("CurrentChapter"));
+		aJson += StrFormat(",\"curtain\":%s,\"dialogs\":%d,\"talk\":%s", aCurtainBusy ? "true" : "false",
+		                   (int)mDialogMap.size(), ShowingConversationPanel() ? "true" : "false");
+		if (aScreen == "title" && mTitleScreen != nullptr)  // the startup load over: the title takes its click
+			aJson += StrFormat(",\"loaded\":%s", mTitleScreen->mLoaded ? "true" : "false");
+		std::string aValue;
+		if (aBattle && gBattleEngine != nullptr &&
+		    RunLua("local e = gBattleEngine local p, n = e.mPlayerPtr, e.mEnemyPtr "
+		           "return p.mHealth .. ',' .. p.mMaxHealth .. ',' .. (n and n.mHealth or '') .. ',' .. "
+		           "(n and n.mMaxHealth or '') .. ',' .. (n and n.mName or '')", aValue)) {
+			double aHealth = 0, aMax = 0, anEnemy = 0, anEnemyMax = 0;  // in hearts, by quarters
+			sscanf(aValue.c_str(), "%lf,%lf,%lf,%lf", &aHealth, &aMax, &anEnemy, &anEnemyMax);
+			aJson += StrFormat(",\"health\":%g,\"maxhealth\":%g,\"enemyhealth\":%g,\"enemymaxhealth\":%g", aHealth, aMax,
+			                   anEnemy, anEnemyMax);
+			size_t aComma = aValue.rfind(',');
+			aJson += ",\"enemy\":" + JsonString(aComma == std::string::npos ? "" : aValue.substr(aComma + 1));
+		}
+		if (mBoard != nullptr) {
+			// the letters by row and column
+			int aRows = 0, aCols = 0;
+			for (Tile* aTile : mBoard->mTiles) {
+				aRows = std::max(aRows, aTile->mRow + 1);
+				aCols = std::max(aCols, aTile->mCol + 1);
+			}
+			std::vector<std::string> aCells((size_t)(aRows * aCols), ".");
+			for (Tile* aTile : mBoard->mTiles)
+				if (aTile->mRow >= 0 && aTile->mCol >= 0)
+					aCells[(size_t)(aTile->mRow * aCols + aTile->mCol)] =
+					    Board::GetWord(std::list<Tile*>(1, aTile)) +
+					    (aTile->CanSelect(aTile->mX + 25, aTile->mY + 25) ? "+" : "");
+			aJson += ",\"board\":[";
+			for (int r = 0; r < aRows; r++) {
+				std::string aRow;
+				for (int c = 0; c < aCols; c++)
+					aRow += (c > 0 ? " " : "") + aCells[(size_t)(r * aCols + c)];
+				aJson += (r > 0 ? "," : "") + JsonString(aRow);
+			}
+			aJson += StrFormat("],\"paused\":%s,\"busy\":%s", mBoard->IsPaused() ? "true" : "false",
+			                   BoardBusyForTests() ? "true" : "false");
+		}
+		SDL_Log("STATE %s}", aJson.c_str());
+		return true;
+	}
+
+	if (aCommand == "move") {
+		SDL_Log("MOVE %s", MoveForTests().c_str());
+		return true;
+	}
+
+	if (aCommand == "goto") {
+		std::string aWhere = Squash(anArgs);
+		static const std::pair<const char*, int> kItems[] = {
+		    {"adventure", MainMenu::ITEM_ADVENTURE}, {"arena", MainMenu::ITEM_ARENA},
+		    {"minigames", MainMenu::ITEM_MINI_GAMES}, {"tome", MainMenu::ITEM_TOME},
+		    {"options", MainMenu::ITEM_OPTIONS}, {"highscores", MainMenu::ITEM_HALL_OF_FAME}};
+		bool aMenuReady = mMainMenu != nullptr && mTitleScreen == nullptr && !aCurtainBusy && mDialogMap.empty() &&
+		                  mBookScreen == nullptr && mHallOfFame == nullptr && mMiniGameMenu == nullptr && mBoard == nullptr &&
+		                  mCredits == nullptr && !mMainMenu->mDisabled;
+		if (aWhere == "menu")
+			return aMenuReady ? Ok() : Later("not at the main menu");
+		if (aWhere == "credits") {
+			if (!aMenuReady)
+				return Later("not at the main menu");
+			StartCredits();
+			return Ok();
+		}
+		for (const auto& anItem : kItems)
+			if (aWhere == anItem.first) {
+				if (!aMenuReady)
+					return Later("not at the main menu");
+				if (!mMainMenu->ActivateItem(anItem.second))
+					return Error("the menu's item cannot be clicked");
+				return Ok();
+			}
+		// a mini-game: its button on the mini-games' menu, which the main menu opens first
+		if (mMiniGameMenu == nullptr) {
+			if (aMenuReady && aTries == 0) {
+				if (mProfile == nullptr || !mProfile->KeyExists("UnlockedMiniGames") || !mProfile->GetBool("UnlockedMiniGames"))
+					return Error("the mini-games are locked");
+				if (!mMainMenu->ActivateItem(MainMenu::ITEM_MINI_GAMES))
+					return Error("the menu's item cannot be clicked");
+			}
+			return Later("not at the mini-games' menu");
+		}
+		if (aCurtainBusy)
+			return Later("the curtain is moving");
+		for (size_t i = 0; i < mMiniGameMenu->mMiniGames.size(); i++)
+			if (Squash(mMiniGameMenu->mMiniGames[i].mClass) == aWhere) {
+				if (i >= mMiniGameMenu->mButtons.size() || mMiniGameMenu->mButtons[i]->mDisabled)
+					return Error("its button is disabled");
+				mMiniGameMenu->ButtonDepress((int)i);
+				return Ok();
+			}
+		return Error("no such screen or mini-game");
+	}
+
+	if (aCommand == "unlock") {
+		if (Squash(anArgs) != "all")
+			return Error("only \"unlock all\"");
+		if (mProfile == nullptr)
+			return Error("no player");
+		// as BookManager's end of a book sets them (bookmanager.lua)
+		std::string anError;
+		if (!RunLua("profile.Set('UnlockedArena', true) profile.Set('NeedsArenaDialog', true) "
+		            "profile.Set('UnlockedMiniGames', true) profile.Set('NeedsMiniGamesDialog', true) "
+		            "profile.Set('UnlockedBestiary', true) "
+		            "if not profile.KeyExists('NeedsBestiaryDialog') then profile.Set('NeedsBestiaryDialog', true) end",
+		            anError))
+			return Error(anError);
+		if (mMainMenu != nullptr)
+			mMainMenu->RefreshUnlocks();
+		return Ok();
+	}
+
+	if (aCommand == "set" || aCommand == "win" || aCommand == "lose") {
+		if (!aBattle || gBattleEngine == nullptr)
+			return Error("not in a battle");
+		std::string aChunk;
+		if (aCommand == "win") {
+			// the scripts' cheat does nothing unless the battle waits for a word
+			if (BoardBusyForTests())
+				return Later("the battle is busy");
+			aChunk = "if gBattleEngine.mEnemyPtr == nil or gBattleEngine.mEnemyPtr.mHealth <= 0 then return 'no enemy' end "
+			         "_KillEnemy() return ''";
+		} else if (aCommand == "lose")
+			aChunk = "_lex_near_death() return ''";  // the battle decides a death after the enemy's attack
+		else {
+			char aName[32] = "";
+			int aValue = 0;
+			if (sscanf(anArgs.c_str(), "%31s %d", aName, &aValue) != 2)
+				return Error("set health|enemy <n>");
+			std::string aKey = aName;
+			if (aKey == "health")
+				aChunk = StrFormat("_LexSetHealth(%d) return ''", aValue);
+			else if (aKey == "enemy" || aKey == "enemyhealth")
+				aChunk = StrFormat("if gBattleEngine.mEnemyPtr == nil then return 'no enemy' end _EnemySetHealth(%d) return ''",
+				                   aValue);
+			else
+				return Error("only health and enemy");
+		}
+		std::string aResult;
+		if (!RunLua(aChunk, aResult))
+			return Error(aResult);
+		return aResult.empty() ? Ok() : Error(aResult);
+	}
+
+	if (aCommand == "level")
+		return Error("not yet: the map's chapters are the scripts' (goto adventure, then click a chapter)");
+	return Error("the game's seed is -seed=<n> when it starts");  // seed
+}
+
 static bool sSoakNoWords = false;  // the nowords command
 static int sSoakMaxWordLen = 0;    // the wordmax command: 0 is no limit
 
@@ -145,6 +819,8 @@ void GameApp::AddInput(int theUpdate, const std::string& theCommand, const std::
 
 bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
+	if (HandleDriverCommand(theCommand))
+		return true;
 	if (theCommand.mCommand == "lua") {
 		lua_State* L = LuaLib::gLuaSupport->L;
 		if (luaL_loadbuffer(L, theCommand.mArgs.data(), theCommand.mArgs.size(), "=script") != 0 ||
@@ -163,7 +839,7 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		SDL_Log("script: spectrum %d lit", aLit);
 		return true;
 	}
-	if (theCommand.mCommand == "state") {
+	if (theCommand.mCommand == "statedump") {
 		// the battle's state: the engine's, the board's flags and its selected tiles
 		SDL_Log("script: state: engine %d, board %p%s", gBattleEngine != nullptr ? gBattleEngine->mState : -9, (void*)mBoard,
 		        mBoard != nullptr && mBoard->mVisible ? " visible" : "");

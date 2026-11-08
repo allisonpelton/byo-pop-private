@@ -1101,7 +1101,9 @@ suite_bookwormadv() {
 	c="$(bookwormadv_chapter "$log")"
 	w="$(bookwormadv_screens "$log")"
 	v="$(bookwormadv_media "$log")"
-	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m; chapter 1: $c; screens: $w; media player: $v"
+	local bl="" st=0
+	bl="$(bookwormadv_baseline "$log" "$m" "$c" "$w" "$v")" || st=1
+	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m; chapter 1: $c; screens: $w; media player: $v$bl"
 	case "$d" in "dialect: "*" checks passed") ;; *) return 1 ;; esac
 	bookwormadv_all "$l" || return 1
 	bookwormadv_all "$p" || return 1
@@ -1110,7 +1112,31 @@ suite_bookwormadv() {
 	[ "$c" = "7 words, won, saved" ] || return 1
 	[ "$w" = "credits, players, mini-games, arena word ANTIBIOSIS" ] || return 1
 	[ "$v" = "spectrum lit both ways" ] || return 1
-	return 0
+	return $st
+}
+
+bookwormadv_scriptlines() {  # <run folder>: its script lines and the update it quit at; not the spectrum's count, which follows the music stream's
+	# playback in real time and so differs from run to run (the result line checks that it is lit), nor the run's seconds
+	grep -a -o -E 'script: .*|Update Count = [0-9]+' "$1/stdout.txt" | grep -v '^script: spectrum'
+}
+
+bookwormadv_baseline() {  # <log> <menu> <chapter> <screens> <media results>: prints "; baseline identical" (or "; BASELINE DIFFERS", status 1) when build/baseline-bookwormadv/ exists
+	# the frozen baseline (the port when its real-input pass was done) runs the suite's four scripts again; each must end with
+	# the same result, the same board log (every screen, dialog, conversation, board and word the game reached), the same
+	# script lines (the words played, the update it quit at) and the same saved profile (its scores, words and chapters)
+	local base="$W/build/baseline-bookwormadv/bookwormadv.exe" r=("$2" "$3" "$4" "$5") n i=0 c b bad=""
+	[ -f "$base" ] || return 0
+	for n in menu chapter screens media; do
+		c="$OUT/bookwormadv/$n"; b="$OUT/bookwormadv/base-$n"
+		[ "$("bookwormadv_$n" /dev/null "$base" "base-$n")" = "${r[$i]}" ] || bad="$bad $n:result"
+		[ -s "$c/board.txt" ] && cmp -s "$c/board.txt" "$b/board.txt" || bad="$bad $n:board"
+		cmp -s <(bookwormadv_scriptlines "$c") <(bookwormadv_scriptlines "$b") || bad="$bad $n:script"
+		diff -rq "$c/user" "$b/user" > /dev/null || bad="$bad $n:profile"
+		i=$((i + 1))
+	done
+	echo "baseline:$bad" >> "$1"
+	[ -z "$bad" ] && { echo "; baseline identical"; return 0; }
+	echo "; BASELINE DIFFERS ($bad )"; return 1
 }
 
 suite_bookwormadv2() {
@@ -1231,8 +1257,8 @@ bookwormadv_all() {  # <"loaded N of M ...">: true when all of at least one load
 	[ "$1" = loaded ] && [ "$2" = "$4" ] && [ "$2" -gt 0 ]
 }
 
-bookwormadv_menu() {  # <log>: the test profile (tests/menu) from the title to the main menu, its quit asked, Play!, Quit
-	local d="$OUT/bookwormadv/menu" u n
+bookwormadv_menu() {  # <log> [exe] [folder name]: the test profile (tests/menu) from the title to the main menu, its quit asked, Play!, Quit
+	local d="$OUT/bookwormadv/${3:-menu}" u n
 	rm -rf "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
 	# the quit sign, its dialog's Play! (it stays), the quit sign again and the dialog's Quit (it quits)
@@ -1240,15 +1266,15 @@ bookwormadv_menu() {  # <log>: the test profile (tests/menu) from the title to t
 		"1150 screenshot $d/menu.png" "1200 move 680 520" "1220 click 680 520" "1310 click 325 476" "2000 quit" > "$d/script.txt"
 	# (an absolute user folder: the game reads its profiles by GetAppDataFolder() paths)
 	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
-	timeout 120 "$W/build/native/bookwormadv.exe" -userdir="$u" -script="$d/script.txt" -fast > "$d/stdout.txt" 2>&1
+	timeout 120 "${2:-$W/build/native/bookwormadv.exe}" -userdir="$u" -boardlog="${u%/user}/board.txt" -script="$d/script.txt" -fast > "$d/stdout.txt" 2>&1
 	cat "$d/stdout.txt" >> "$1"
 	[ -f "$d/dialog.png" ] && [ -f "$d/menu.png" ] || { echo "no screenshots"; return; }
 	n="$(grep -o 'Update Count = [0-9]*' "$d/stdout.txt" | tail -n 1)"
 	echo "quit at update ${n#Update Count = }"
 }
 
-bookwormadv_chapter() {  # <log>: the test profile's first chapter, its battles won by the port's "word attack" (seed 1)
-	local d="$OUT/bookwormadv/chapter" n k t u
+bookwormadv_chapter() {  # <log> [exe] [folder name]: the test profile's first chapter, its battles won by the port's "word attack" (seed 1)
+	local d="$OUT/bookwormadv/${3:-chapter}" n k t u
 	rm -rf "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
 	# Adventure, the map's Enter, the conversations clicked through (400 150), then the longest word and the
@@ -1258,7 +1284,7 @@ bookwormadv_chapter() {  # <log>: the test profile's first chapter, its battles 
 	  for k in $(seq 0 39); do t=$((5600 + k * 500)); printf '%s\n' "$t word attack" "$((t + 400)) click 400 150"; done
 	  printf '%s\n' "25000 screenshot $d/map.png" "25600 quit"; } > "$d/script.txt"
 	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
-	timeout 180 "$W/build/native/bookwormadv.exe" -userdir="$u" -script="$d/script.txt" -fast -seed=1 \
+	timeout 180 "${2:-$W/build/native/bookwormadv.exe}" -userdir="$u" -boardlog="${u%/user}/board.txt" -script="$d/script.txt" -fast -seed=1 \
 		> "$d/stdout.txt" 2>&1
 	cat "$d/stdout.txt" >> "$1"
 	grep -q "FATAL" "$d/stdout.txt" && { echo "failed: $(grep -m 1 -A 2 FATAL "$d/stdout.txt" | tail -n 1)"; return; }
@@ -1271,8 +1297,8 @@ bookwormadv_chapter() {  # <log>: the test profile's first chapter, its battles 
 	fi
 }
 
-bookwormadv_screens() {  # <log>: the test profile through the screens off the main menu: the credits, the players, the mini-games, the arena
-	local d="$OUT/bookwormadv/screens" u n k t
+bookwormadv_screens() {  # <log> [exe] [folder name]: the test profile through the screens off the main menu: the credits, the players, the mini-games, the arena
+	local d="$OUT/bookwormadv/${3:-screens}" u n k t
 	rm -rf "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
 	# the profile unlocks the mini-games and the arena (for a player past the first book); then the options'
@@ -1289,7 +1315,7 @@ bookwormadv_screens() {  # <log>: the test profile through the screens off the m
 	  for k in $(seq 0 9); do t=$((6500 + k * 200)); printf '%s\n' "$t move 700 500" "$((t + 20)) click 700 500"; done
 	  printf '%s\n' "8700 word attack" "9300 screenshot $d/arena.png" "9400 quit"; } > "$d/script.txt"
 	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
-	timeout 180 "$W/build/native/bookwormadv.exe" -userdir="$u" -script="$d/script.txt" -fast -seed=1 \
+	timeout 180 "${2:-$W/build/native/bookwormadv.exe}" -userdir="$u" -boardlog="${u%/user}/board.txt" -script="$d/script.txt" -fast -seed=1 \
 		> "$d/stdout.txt" 2>&1
 	cat "$d/stdout.txt" >> "$1"
 	grep -q "FATAL" "$d/stdout.txt" && { echo "failed: $(grep -m 1 -A 2 FATAL "$d/stdout.txt" | tail -n 1)"; return; }
@@ -1299,8 +1325,8 @@ bookwormadv_screens() {  # <log>: the test profile through the screens off the m
 	echo "credits, players, mini-games, arena ${n#script: }"
 }
 
-bookwormadv_media() {  # <log>: the test profile's media player: a song's spectrum both ways, the mouse over the book
-	local d="$OUT/bookwormadv/media" u n a b
+bookwormadv_media() {  # <log> [exe] [folder name]: the test profile's media player: a song's spectrum both ways, the mouse over the book
+	local d="$OUT/bookwormadv/${3:-media}" u n a b
 	rm -rf "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
 	# the profile lists one song (the book's script wants the credits' theme among them); the book, opened from Lua,
@@ -1311,7 +1337,7 @@ bookwormadv_media() {  # <log>: the test profile's media player: a song's spectr
 		"1420 screenshot $d/bars.png" "1440 move 570 224" "1450 click 570 224" "1650 spectrum" \
 		"1660 screenshot $d/columns.png" "1700 quit" > "$d/script.txt"
 	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
-	timeout 120 "$W/build/native/bookwormadv.exe" -userdir="$u" -script="$d/script.txt" -fast -seed=1 \
+	timeout 120 "${2:-$W/build/native/bookwormadv.exe}" -userdir="$u" -boardlog="${u%/user}/board.txt" -script="$d/script.txt" -fast -seed=1 \
 		> "$d/stdout.txt" 2>&1
 	cat "$d/stdout.txt" >> "$1"
 	grep -q "FATAL" "$d/stdout.txt" && { echo "failed: $(grep -m 1 -A 2 FATAL "$d/stdout.txt" | tail -n 1)"; return; }
@@ -1858,7 +1884,7 @@ mahjongjapan_run() {  # <name>: a new player, escape stage 1 won with the solver
 		printf '%s\n' "$((t + 400)) click 403 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
 			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
 	} > "$d/script.txt"
-	timeout 300 "$W/build/native/mahjongjapan.exe" -gamedir=assets/mahjongjapan -userdir="$d/user" -fast -script="$d/script.txt" \
+	timeout 300 "$W/build/native/mahjongjapan.exe" -gamedir=assets/mahjongjapan -userdir="$d/user" -fast -logos -script="$d/script.txt" \
 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
 }
@@ -1894,7 +1920,7 @@ mahjongchina_run() {  # <name>: a new player, Dynasty Adventure stage 1 won with
 		printf '%s\n' "$((t + 400)) click 187 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
 			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
 	} > "$d/script.txt"
-	timeout 300 "$W/build/native/mahjongchina.exe" -gamedir=assets/mahjongchina -userdir="$d/user" -fast -script="$d/script.txt" \
+	timeout 300 "$W/build/native/mahjongchina.exe" -gamedir=assets/mahjongchina -userdir="$d/user" -fast -logos -script="$d/script.txt" \
 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
 }

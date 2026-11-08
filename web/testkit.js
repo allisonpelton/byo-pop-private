@@ -252,16 +252,23 @@
   // ---------- focus ----------
   // What a real loss of the focus sends: blur on the window and the canvas, and for a hidden tab visibilitychange with
   // document.hidden true, until focus() gives it back
-  var pretendHidden = false;
-  Object.defineProperty(document, "hidden", { configurable: true, get: function () { return pretendHidden || hiddenGet.call(document); } });
-  Object.defineProperty(document, "visibilityState", { configurable: true, get: function () { return pretendHidden ? "hidden" : stateGet.call(document); } });
+  var pretendHidden = false, realFocus = params.get("realfocus") === "1";
+  // the page's visibility, as the game and the page read it: the test's (blur({hidden}) to focus()), and with ?realfocus=1 the
+  // browser's too
+  function seenHidden() { return pretendHidden || (realFocus && hiddenGet.call(document)); }
+  Object.defineProperty(document, "hidden", { configurable: true, get: seenHidden });
+  Object.defineProperty(document, "visibilityState", { configurable: true, get: function () { return pretendHidden ? "hidden" : realFocus ? stateGet.call(document) : "visible"; } });
   var hasFocus = document.hasFocus.bind(document), focusLost = false;
   // The focus is the test's alone, unless ?realfocus=1: the browser's own blur and focus events on the window, and on the canvas
   // while the window has lost the focus, stop here before SDL and the page see them, and document.hasFocus() leaves out the
   // window's real focus. A hidden Browser pane sends a real blur, which paused the game until its driver gave the focus back
   // (TipTop, 2026-11-08); native -realinput drops the system's focus events the same way (docs/REAL_INPUT.md). blur() and
   // focus() below send events of the page's own, which pass.
-  var realFocus = params.get("realfocus") === "1";
+  // The browser's own visibilitychange stops here too, and document.hidden is the test's: a hidden page takes the game's focus
+  // away at once (SexyAppBase::EmscriptenPageHidden) while focus coming back waits in SDL's queue for a frame, so a real
+  // visibilitychange (the pane hidden or shown during a run) that came after focus()'s gain was taken left the game without
+  // the focus, its updates running and the game paused, until a second focus() (Noah's Ark, 2026-11-08). The frames of a
+  // really hidden page are still served (reallyHidden, above).
   document.hasFocus = function () { return !focusLost && (!realFocus || hasFocus()); };
   if (!realFocus) {
     var dropRealFocus = function (e) {
@@ -269,6 +276,8 @@
     };
     window.addEventListener("blur", dropRealFocus, true);
     window.addEventListener("focus", dropRealFocus, true);
+    window.addEventListener("visibilitychange", function (e) { if (e.isTrusted) e.stopImmediatePropagation(); }, true);
+    document.addEventListener("visibilitychange", function (e) { if (e.isTrusted) e.stopImmediatePropagation(); }, true);
   }
   test.blur = function (opts) {
     focusLost = true;
@@ -447,10 +456,18 @@
     });
   }
   test.profile = {
-    // the test profile's saves, all gone (the staged game files stay); only before the game starts, then reload
+    // the test profile's saves, all gone (the staged game files stay); only before the game starts, then reload. Their backup
+    // in localStorage goes too ("sexy-userdata-backup:<dir>", platform/WebPersist.cpp), which the game restores at its start:
+    // left there, a wiped profile's next start was not a first run (Cosmic Bugs' and Ning Po's drivers removed it themselves)
     wipe: function () {
       if (!shell.testProfile) return Promise.reject(new Error("byopop.test.profile: only with ?assets= (the test profile)"));
       rmTree(M.FS, shell.USER);
+      var prefix = "sexy-userdata-backup:" + shell.USER.replace(/\/userdata$/, "") + "/";
+      try {
+        var keys = [];
+        for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf(prefix) === 0) keys.push(k); }
+        keys.forEach(function (k) { localStorage.removeItem(k); });
+      } catch (e) {}
       return shell.sync();
     },
     // files written into the test profile's saves: {"<path under the user dir>": string, ArrayBuffer or Uint8Array}

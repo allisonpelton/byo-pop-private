@@ -197,6 +197,23 @@ bool GameApp::UpdateAppStep(bool* updated)
 			mLoadingThreadCompleted = true;  // DoUpdateFrames calls LoadingThreadCompleted
 		}
 	}
+	// port (test aid): F9 logs the board's state (the script command "state") through a real key press, so that a
+	// run through the page or the window, which only sends input events, can read the board from the log
+	{
+		static bool sF9Down = false;
+		// only in a test run (-script, or BYOPOP_TEST set, which the web test page sets); to go once the live test
+		// channel (-commands, byopop.test.command) lands. A port adds no key the original lacks.
+		static const bool sTestRun = !mScriptFileName.empty() || getenv("BYOPOP_TEST") != nullptr;
+		bool aF9 = sTestRun && mWidgetManager != nullptr && mWidgetManager->mKeyDown[KEYCODE_F9];
+		if (aF9 && !sF9Down) {
+			ScriptCommand aCommand;
+			aCommand.mUpdateCount = mUpdateCount;
+			aCommand.mCommand = "statedump";
+			aCommand.mLine = 0;
+			HandleScriptCommand(aCommand);
+		}
+		sF9Down = aF9;
+	}
 	return LuaApp::UpdateAppStep(updated);
 }
 
@@ -215,6 +232,8 @@ void GameApp::UpdateFrames()
 		mUserUpdates++;
 	}
 	mSoundPlayer->Update();
+	if (!mRetriesForTests.empty())
+		RunRetriesForTests();
 	if (!mStateLogFileName.empty())
 		LogState();
 }

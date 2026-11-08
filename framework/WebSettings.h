@@ -8,6 +8,20 @@
 // gSoundVolume and music table, Ning Po's two settings, Word Harmony's category volumes). Such a game's web-only file sets
 // gSiteVolume to a function that sets its own, and byopop_site_apply calls it in place of the framework's.
 
+namespace Byopop
+{
+
+// The site's "Always skip start-up logos" (web/settings.js, skipLogos; docs/WEB_PLAYER.md, "Always skip start-up logos"), on both
+// builds: true when the page set it before the game started (byopop_site_skiplogos), or natively under -skiplogos
+// (SexyAppBase::HandleCmdLineParam), so that a session can test its wiring under rundesk. A game reads it where its start-up
+// logos are (the PopCap logo, a publisher's or developer's logo, a "presents" splash; not the loading screen's bar or the
+// title screen's own animation) and goes on from each logo as a click or key on it would, the original's own skip. A game
+// whose own host parses its command line (not SexyAppBase's) calls SetSiteSkipLogos(true) on -skiplogos itself.
+bool SiteSkipLogos();
+void SetSiteSkipLogos(bool theSkip);
+
+}
+
 #ifdef __EMSCRIPTEN__
 
 namespace Byopop

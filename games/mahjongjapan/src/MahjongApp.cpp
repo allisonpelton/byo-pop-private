@@ -30,6 +30,10 @@ namespace mahjongjapan
 // 0x40f540
 jb::Layer* MahjongGame::CreateFirstLayer()
 {
+	// port: the game opens at its main menu; the two logo screens (2 s each, nothing loaded meanwhile) are the original's
+	// wait before the game can start, and -logos keeps them
+	if (jb::gFastStart)
+		return new MainMenu();
 	return new jb::Splash(true);
 }
 
@@ -80,6 +84,8 @@ std::string RegName(const char* theSection, const char* theName)
 // the run (-seed=N, the site's ?seed=N) seeds every deal and shuffle, where the original seeds them from the clock.
 static bool gSteadyClock = false;
 static bool gSeededDeals = false;
+// port: -logos keeps the original's start: the two logo screens and the black before the first one (jb::gFastStart)
+static bool gKeepLogos = false;
 static uint32_t gSeedCount = 0;
 
 static uint32_t GameClock()
@@ -432,8 +438,10 @@ void MahjongApp::Init()
 	}
 	mahjongjapan::LoadGameTexts(aFolder);
 	jb::SetHost(&gHost);
+	// the two logo screens hold the player back 2 s each with nothing loaded meanwhile, so the port starts at the main menu
+	// (the loading rule, CLAUDE.md "Making a port"); -logos keeps the original's start, for runs compared with it and the suite
+	jb::gFastStart = !gKeepLogos;
 	// the fixes mod (games/mahjongjapan/mods/fixes; docs/MOD_ROADMAP.md): none without a mod folder, and the game is the original
-	jb::gSkipLogos = FixOn("skipLogos");
 	gSteadyClock = !mFastMode && FixOn("steadyClock");  // a -fast run is steady already
 	gSeededDeals = FixOn("seededDeals");
 
@@ -460,6 +468,11 @@ void MahjongApp::Init()
 // -gameseed=N (the site's ?seed=N): the seed of the fixes mod's "seededDeals", as -seed=N is for a native run
 void MahjongApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
+	if (theParamName == "-logos")
+	{
+		gKeepLogos = true;
+		return;
+	}
 	if (theParamName == "-gameseed")
 	{
 		mRandSeed = strtoul(theParamValue.c_str(), nullptr, 10);

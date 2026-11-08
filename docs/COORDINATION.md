@@ -84,7 +84,11 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   it (4x to 8x). Chuzzle (~8-12x) itself starts the sequence, then in the survey's order Feeding Frenzy 2 (~10x),
   Peggle Deluxe (~12x) and Peggle Nights after it, Bejeweled 3 (~30x), Banana Bugs, Gyromancer, Zuma's Revenge (~35x)
   and Talismania (~12-16x after Feeding Frenzy 2), one session at a time. This moves Typer Shark, which the decision
-  of 2026-10-24 put at the end, into the easier group.
+  of 2026-10-24 put at the end, into the easier group. Since 2026-11-08 none of them runs side by side (the user: "In-progress decomps can continue, but
+  for the remaining games, I want to tackle them in full one-at-a-time"): Typer Shark, AstroPop and Bejeweled 2 go on,
+  and after every current game's readability pass the rest start one at a time in the order above, the easier group
+  first, each taken all the way through (translation, both phases of identical play, the finishing items and its
+  readability pass) before the next begins.
 - **The passes after Twist (the user, 2026-11-03):** the passes waited until Bejeweled Twist was done, 3D mode included
   (the user, 2026-11-01), with Bejeweled Deluxe's the one exception. With Twist finished: "get going on identical play
   for more games. Start with lowest effort." So the first phase runs for every game that has had no pass, up to five
@@ -165,9 +169,10 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   down through the game list. Once all games are done, then we can do code quality/readability, and finally figure out
   what code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
   well)." So first every fault the user reported, in every game, and anything that makes a game hard to test; then the
-  identical-play pass above, game by game; once every game is done, the coverage check and a performance pass (both
-  below), then a readability pass to the project's code standards (`docs/CODE_STANDARDS.md`, written and approved by
-  the user first); last, taking out the other code the ports do not need. Registration code (trial, nag and unlock
+  identical-play pass above, game by game; then a readability pass to the project's code standards
+  (`docs/CODE_STANDARDS.md`, written on one game and approved by the user first), moved up on 2026-11-08 to come
+  before any further decomp (below, "The readability pass first"); once every game is done, the coverage check and a
+  performance pass (both below); last, taking out the other code the ports do not need. Registration code (trial, nag and unlock
   paths: "It is misleading and adds unnecessary bloat") moved up (the user, 2026-11-07: "Move up the removal of all
   registration-related code to be part of the current phase before beginning other decomps"). Each game takes it out
   before its final merge, as part of being finished, and no further decomp begins until every current game has; a
@@ -193,6 +198,18 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   build in the browser and how much work it adds for each game." Not started; it belongs with the work before the
   website is ready.
 <!-- /private -->
+- **The readability pass first (the user, 2026-11-08):** "Move up readability passes to come before additional
+  decomps. In-progress decomps can continue, but for the remaining games, I want to tackle them in full
+  one-at-a-time. Part of the readability pass: NO unknown/unnamed variables. Use one game to set the full standards
+  for what constitutes readable and see that they actually make sense." Bejeweled Deluxe is the pilot: the first
+  port, with the strongest proof that a change leaves play alone (its oracle against the original, beside its frozen
+  baseline), and its Mac build's symbols for names. Its session writes `docs/CODE_STANDARDS.md` while applying it to
+  the whole port, changes a rule wherever it fails in practice, and builds a checker in `tools/` that finds unnamed
+  identifiers, so every later pass proves "no unknowns" by a run instead of by eye. The user approves the standards;
+  then each finished game takes its pass in its own session, a readable port changing nothing it does (its frozen
+  baseline, and the oracle for Bejeweled), and keeping each function's address so the coverage check can still pair
+  it with the export. The coverage check and the performance pass stay after every game is done, as below; each
+  finished game already records its performance numbers.
 - **A coverage check after the identical-play passes (the user, 2026-11-02: "Queue it").** The user asked whether
   reccmp, the matching-decompilation tool, would help. It does not fit: it scores, function by function, how closely
   code rebuilt with the original compiler reproduces the exe's instructions, and our ports are built by clang and
@@ -237,7 +254,10 @@ logo, using that inference; the managers' tab icons; the bottle-cap placeholder 
 a dragged cap. The bottle cap and opener animation comes after Twist's last merge. Ning Po Mahjong's and TipTop's high-score names
 were fixed (34e6da1, a6547b9). The chat
   is built as a test with made-up messages; its real version waits for funding. What the user asks for while testing is
-  still done when asked.
+  still done when asked. Desktop 95's pixelated text waits for a pixel font drawn for the project (the user, 2026-11-08: "Draw our own
+  later"): every Windows install still has the bitmap MS Sans Serif (`sserife.fon`), but browsers draw only TrueType and
+  OpenType, so the skin's "MS Sans Serif" comes out as the smooth Microsoft Sans Serif, and Microsoft's font itself is
+  never shipped.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays

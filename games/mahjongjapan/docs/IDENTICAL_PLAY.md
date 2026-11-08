@@ -128,11 +128,12 @@ many updates in 150 ms, so the driver lets real time pass after it regains the f
 | The logos at the main menu's corners take no click | They were link buttons that opened web sites | Pictures only; nothing opens a URL |
 | `move` answers the pause box with a click on it | Not applicable (a test command) | The pause box has no button, so the answer is a click at its middle |
 | JPEG backgrounds decode as the original's libjpeg does | stb_image decoded them before | The shared loader, libjpeg 6b: at most 3 levels of a channel of difference in the JPEG backgrounds, so the suite's frozen screens were taken again (`tools/check.sh`) |
-| The fixes mod's hooks | The clock is read at three places (the deal search's limit, the deals' seeds, the logos' timer) | `Host::RealTickCount`, `Host::SeedTick` and `gSkipLogos`, answering as the original without the mod |
+| The game opens at its main menu | Two logo screens of 2 s each after 0.77 s of black, and nothing loaded meanwhile (a wait the loading rule takes out) | The first layer is the menu and the first screen has no fade-out; `-logos` keeps the original's start (the check suite passes it). The launch to the menu takes 1.3 s where it took 7.8 s (a later commit of the same pass) |
+| The fixes mod's hooks | The clock is read at two places (the deal search's limit, the deals' seeds) | `Host::RealTickCount` and `Host::SeedTick`, answering as the original without the mod |
 
-**The fixes mod** (`mods/fixes`: `skipLogos`, `seededDeals`, `steadyClock`) makes what the original wastes or leaves to chance
+**The fixes mod** (`mods/fixes`: `seededDeals`, `steadyClock`) makes what the original leaves to chance
 (`GAME_NOTES.md`, "Fix candidates and the fixes mod") and nothing else. `tools/realplay/modtest.py` checks each with the shipped
-exe: the menu at update 710 with the mod against 1520 without, the same seed dealing the same board and shuffle whatever the start
+exe, and the start (the menu at update 280 as the port starts against 1540 with `-logos`): the same seed dealing the same board and shuffle whatever the start
 time and another seed another, the clock's seconds equal to the updates in real time. With no mods folder the game is the
 original: the suite's game makes the same 20 pairs and its rerun is identical, and its screens differ from the frozen ones only by the
 JPEG decode above (at most 3 levels of a channel, checked pixel by pixel against the main checkout's older exe). Oddities of this pass: none skipped. Candidates checked and found to be none are in the notes (`AddSeconds`,
@@ -140,11 +141,12 @@ free tiles that cannot be clicked).
 
 ## The deviations that remain
 
-`DEVIATIONS.md` lists every place where the port's code does something other than the original, and why. Four of
+`DEVIATIONS.md` lists every place where the port's code does something other than the original, and why. Five of
 them can be seen. Full screen on a graphics driver set to stretch keeps the 4:3 shape where the original would fill
 the screen. Players keep their progress when the port moves, where the original's would start over. The two logos at
 the main menu's corners take no click, where the original opened web sites. A click on Shuffle while the last pair
-flies does nothing, where the original locked the board. The rest have no visible effect (the JPEG backgrounds are
+flies does nothing, where the original locked the board. The game opens at its main menu, where the original showed two
+logo screens for 4 s (`-logos` keeps them). The rest have no visible effect (the JPEG backgrounds are
 decoded by libjpeg 6b, the original's own library, which is not a deviation). The original's 3D test always passes. The vertical-blank waits do nothing. The software cursor is the
 host's. The time and number formats are fixed to an English Windows's. Three leaks are fixed. Five bounds the original
 never checks are checked. A few fields the original leaves unset start at 0. The random generator is kept draw for draw.

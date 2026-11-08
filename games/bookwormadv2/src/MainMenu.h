@@ -143,6 +143,9 @@ public:
 
 	// V1:0x479e80: the unlocked things and the scrolls again, from the profile
 	void RefreshUnlocks();
+	// port: test hook (the test command goto): the click on an item of the menu, at a point where the click path takes
+	// it (MouseUp is the click path itself). False when the item cannot be clicked now
+	bool ActivateItem(int theItem);
 	// V1:0x479ce0: Lex's word about a thing (or his welcome, for -1 or REACTION_WELCOME), unless he is busy or a
 	// sample of his is still playing
 	void PlayReaction(int theItem);
