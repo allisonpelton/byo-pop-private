@@ -701,10 +701,6 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 		mApp->mProfile->MarkTutorialDone();
 		mUnknown37C4 = true;
 	}
-	if (mUnknown1474 != nullptr) {
-		mWidgetManager->RemoveWidget(mUnknown1474);
-		delete mUnknown1474;
-	}
 	if (mUnknown37C4) {
 		// (the exe clears its sound manager's flag (+0x300a0) that the menus' replays set, which sends new sounds
 		// through DirectSound's parametric equaliser; the port's sound manager has none)
@@ -883,10 +879,8 @@ void Board::StartGame()
 			}
 			mUnknown345C = aValue;
 			mGoodTube->SetUnknown4A8(mApp->mPlayPressed);
-		} else if (mGameMode == MODE_ZEN && 13 < mUnknown158 && !gApp->mRegistered) {
-			mUnknown200 = 0;
-			UpdateTubeProgress(true);
 		}
+		// (an unregistered copy also empties the tube from zen's level 14 on: registration code, left out)
 		if (!aLoaded)
 			mApp->mUnknownC74[mGameMode]++;
 	}

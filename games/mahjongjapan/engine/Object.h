@@ -365,25 +365,6 @@ public:
 	void DrawFrame(int theFrame);
 };
 
-// A button that opens a web page (vtable 0x51e088); image 0x38 is the exe's own, whose page is the exe's string
-// 0x42. It hides itself when it has no page, or for image 0x38 when the registry's ActivateLinks is off.
-class LinkButton : public Button
-{
-public:
-	std::string mUrl;  // +0xe4
-
-	// 0x425ba0
-	LinkButton(int theImage, const char* theUrl);
-	// 0x425c50
-	~LinkButton() override {}
-
-	void OnClick() override;  // 0x425cb0
-	void OnInit() override;   // 0x425cd0
-};
-
-// 0x527ae3: the registry's ActivateLinks (App 0x426060)
-extern bool gActivateLinks;
-
 class RadioGroup
 {
 public:

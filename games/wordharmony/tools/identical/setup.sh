@@ -13,7 +13,9 @@ mkdir -p tools/origrun/patches
 # clock crawls while the game works between two waits, and the loop's millisecond carry then gives frames of 32 to 37 ms).
 # The hints: the original searches them on a thread that reads the balls while the game moves them, with no lock, and kills
 # it with TerminateThread when a new search starts; on the virtual clock that hangs the game within a minute of TSUNAMI.
-# The copy searches at once on the main thread, as the port does.
+# The copy searches at once on the main thread, as the port does. The screen: the game draws into a DirectDraw back buffer
+# that PrintWindow never sees in Windows Sandbox, so a copy of each frame is kept for origrun's --surface-screen
+# (screencave.py; shots/orig.sh).
 cat > tools/origrun/patches/wordharmony.txt <<'P'
 seed WordHarmonyGame.exe va:0x406c14 ff1534004800 b8{seed}90 srand(timeGetTime()) in the game's init takes the run's seed
 test WordHarmonyGame.exe off:0x1f8 0ae50700 00f00700 .text's VirtualSize covers its file tail (the counter's code)
@@ -24,4 +26,5 @@ test WordHarmonyGame.exe va:0x454316 8bf82bc250 e907b20200 the frame's elapsed t
 test WordHarmonyGame.exe va:0x419560 7518 eb18 startHints never finds a hint thread running
 test WordHarmonyGame.exe va:0x4195ac 8d442408506a006a0068e09141006a006a00ff1528004800 6a00e82dfcffff31c0909090909090909090909090909090 startHints runs the hint search (0x4191e0) at once instead of on a thread; the handle is 0
 P
+python "$TOOLS/screencave.py" >> tools/origrun/patches/wordharmony.txt
 echo "staged in $OG_GAME"

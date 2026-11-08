@@ -274,13 +274,13 @@ OptionsDialog::OptionsDialog(NoahApp* theApp) :
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
 
+	// (the original's Register and Web buttons, ids 1 and 3, are gone; the others keep their ids)
 	struct Spec { DialogButton** mButton; int mId; unsigned int mText; };
-	Spec aSpecs[5] =
+	Spec aSpecs[3] =
 	{
-		{&mHelpButton, 0, 0x00495fd0}, {&mRegisterButton, 1, 0x00495fc4}, {&mScoresButton, 2, 0x00495fb8},
-		{&mWebButton, 3, 0x00495fa4}, {&mCreditsButton, 4, 0x00495f9c}
+		{&mHelpButton, 0, 0x00495fd0}, {&mScoresButton, 2, 0x00495fb8}, {&mCreditsButton, 4, 0x00495f9c}
 	};
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		DialogButton* aButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], aSpecs[i].mId, this);
 		aButton->SetFont(mApp->mFonts[FONT_GARAMOND_SMALL]);
@@ -315,9 +315,7 @@ OptionsDialog::OptionsDialog(NoahApp* theApp) :
 OptionsDialog::~OptionsDialog()
 {
 	delete mHelpButton;
-	delete mRegisterButton;
 	delete mScoresButton;
-	delete mWebButton;
 	delete mCreditsButton;
 	delete mMusicSlider;
 	delete mSfxSlider;
@@ -328,8 +326,8 @@ OptionsDialog::~OptionsDialog()
 void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
-	DialogButton* aButtons[5] = {mHelpButton, mRegisterButton, mScoresButton, mWebButton, mCreditsButton};
-	for (int i = 0; i < 5; i++)
+	DialogButton* aButtons[3] = {mHelpButton, mScoresButton, mCreditsButton};
+	for (int i = 0; i < 3; i++)
 		theWidgetManager->AddWidget(aButtons[i]);
 	theWidgetManager->AddWidget(mMusicSlider);
 	theWidgetManager->AddWidget(mSfxSlider);
@@ -340,8 +338,8 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
-	DialogButton* aButtons[5] = {mHelpButton, mRegisterButton, mScoresButton, mWebButton, mCreditsButton};
-	for (int i = 0; i < 5; i++)
+	DialogButton* aButtons[3] = {mHelpButton, mScoresButton, mCreditsButton};
+	for (int i = 0; i < 3; i++)
 		theWidgetManager->RemoveWidget(aButtons[i]);
 	theWidgetManager->RemoveWidget(mMusicSlider);
 	theWidgetManager->RemoveWidget(mSfxSlider);
@@ -356,11 +354,10 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aContent = (mWidth - mContentInsets.mRight) - mContentInsets.mLeft;
 	int aHalf = (aContent - 6) / 2;
 	int aFooterY = (mYesButton != NULL) ? mYesButton->mY : mY + mHeight - 0x50;
-	mWebButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x7e, aContent, 0x24);
+	// Help and Scores side by side, Credits across: the rows of Register and Web are gone, the dialog is that much shorter
 	mHelpButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x54, aHalf, 0x24);
-	mRegisterButton->Resize(mX + mContentInsets.mLeft + 6 + aHalf, aFooterY - 0x54, aHalf, 0x24);
-	mScoresButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x2a, aHalf, 0x24);
-	mCreditsButton->Resize(mX + mContentInsets.mLeft + 6 + aHalf, aFooterY - 0x2a, aHalf, 0x24);
+	mScoresButton->Resize(mX + mContentInsets.mLeft + 6 + aHalf, aFooterY - 0x54, aHalf, 0x24);
+	mCreditsButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x2a, aContent, 0x24);
 	mMusicSlider->Resize(mX + 0x98, mY + 0x4e, mWidth - 0xc0, 0x20);
 	mSfxSlider->Resize(mX + 0x98, mY + 0x6e, mWidth - 0xc0, 0x20);
 	mFullscreenCheckbox->Resize(mX + 0x30, mY + 0x94, 0x24, 0x25);
@@ -370,7 +367,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
-	return 0x1b6;                                       // 0x4209f0
+	return 0x18c;                                       // 0x4209f0 gives 0x1b6; less the row of the Web button
 }
 
 void OptionsDialog::SetColor(int theIdx, const Color& theColor)
@@ -378,8 +375,8 @@ void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 	Dialog2004::SetColor(theIdx, theColor);
 	if (theIdx == COLOR_BUTTON_TEXT)
 	{
-		DialogButton* aButtons[5] = {mHelpButton, mRegisterButton, mScoresButton, mWebButton, mCreditsButton};
-		for (int i = 0; i < 5; i++)
+		DialogButton* aButtons[3] = {mHelpButton, mScoresButton, mCreditsButton};
+		for (int i = 0; i < 3; i++)
 			if (aButtons[i] != NULL)
 				aButtons[i]->SetColor(0, theColor);
 	}
@@ -413,14 +410,8 @@ void OptionsDialog::ButtonDepress(int theId)
 	case 0:
 		mApp->ShowModeIntroDialog(mApp->mGameMode);
 		break;
-	case 1:
-		mApp->ShowRegisteredDialog();
-		break;
 	case 2:
 		mApp->ShowHighScores();
-		break;
-	case 3:
-		mApp->OpenURL("http://www.popcap.com", false);
 		break;
 	case 4:
 		mApp->ShowCredits();

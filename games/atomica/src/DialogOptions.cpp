@@ -58,7 +58,9 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	GameDialog::Resize(theX, theY, theWidth, theHeight);
 	mDone->Resize(mX + 0x91, mY + 0x15f, 0x73, 0x19);
-	mHighScores->Resize(mX + 0xcf, mY + 0x125, 0x76, 0x19);
+	// the original's two buttons that open web pages (register, more games) are out; one stood left of this button (0x422ac0), the other in a
+	// row of its own under it: this button now fills its row, as wide as both columns
+	mHighScores->Resize(mX + 0x55, mY + 0x125, 0xf0, 0x19);
 	mCredits->Resize(mX + 0x55, mY + 0x108, 0x76, 0x19);
 	mResetHints->Resize(mX + 0xcf, mY + 0x108, 0x76, 0x19);
 	mMusic->Resize(mX + 0x84, mY + 0xbe, 0xe1, 0xd);

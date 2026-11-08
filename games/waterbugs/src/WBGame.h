@@ -346,7 +346,6 @@ extern Bank gArt8Bank;           // 0x473168
 extern List<Animation> gAnims;   // 0x46f35c
 extern Palette gGreyPalette;     // 0x460058: r = g = b = index (its packed colours stay 0)
 extern int gGreyPaletteUnset;    // 0x460860
-extern int gRegistered;          // 0x460004 (1 in the player's copy): nag_logo shows panel_waterbugs
 extern Dirty gDirty;             // 0x472a7c
 extern const int kScreenClip[4]; // 0x460010: {0, 0, 799, 599}
 

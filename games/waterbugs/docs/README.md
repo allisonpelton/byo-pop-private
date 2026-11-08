@@ -106,15 +106,21 @@ Not yet tested: the options, the Hall of Fame and the credits, the player reques
 the later levels' tables (levels 4 on, whose enemy kinds and tints come from `Level_EnemyCounts`), the power-ups of
 every kind, the game's end with a new high score, and switching the screen mode natively.
 
+The finishing pass (2026-11-08) added the standard test commands and the bot behind `move` (`src/testhooks/`), and drivers
+that play a whole game of each of the six modes (shooter mode auto or manual, difficulty 0, 1 and -1) by real input, natively
+under rundesk (windowed and full screen, with the focus lost and regained, minimized and restored) and in the page
+(`tools/realplay/`, `tools/web/`); `GAME_NOTES.md` lists them with the test commands and the performance numbers.
+
 ## Deviations
 
 `DEVIATIONS.md` lists where the port is not a line-for-line translation of the exe, and why none shows.
 
 ## Mods
 
-None: the port is the original game, unmodified, and adds nothing for later mods. The mod phase waits until every
-PopCap game works in the browser; `MOD_IDEAS.md` maps the 29 standard mods of `docs/MOD_ROADMAP.md` onto the game and
-says why any is skipped.
+One: `mods/fixes`, the fixes mod (`steadyClock`, which steps the game from the updates and not the machine's clock, and
+`easyLabel`, which mends the Options screen's "5s"), on by default on the site and off in the port itself, where the game is the
+original. `GAME_NOTES.md` describes it and the fix candidates it left alone. No other mod is made; `MOD_IDEAS.md` maps the 29
+standard mods of `docs/MOD_ROADMAP.md` onto the game and says why any is skipped.
 
 ## Changes outside the Water Bugs folders
 

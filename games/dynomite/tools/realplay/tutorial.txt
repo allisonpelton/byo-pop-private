@@ -1,0 +1,15 @@
+# The tutorial from launch: the title's link, Tutorial on the main menu, Next, then the bot plays it (its continue
+# button and its shots) until the tutorial ends, and the window closes.
+ready 60
+shot title
+click 320 450
+wait 4
+shot menu
+click 486 355
+wait 1
+click 488 432
+wait 3
+shot start
+play 2400 25
+shot end
+end

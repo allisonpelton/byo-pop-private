@@ -83,4 +83,47 @@ done
 grep -q "^game 1 over at update 2612: score 250 level 1 moves 22" "$OUT/tide400.txt"; check "tide 400: the flood ends the first game at update 2612" $?
 grep -q "^level 4 done at update 16763: score 6421 mode stampede" "$OUT/tide0.txt"; check "tide 0: no flood, level 4 done at update 16763" $?
 
+# ---- fixes (every fix a toggle, on by default)
+mods_folder "$OUT/mods_none"
+mods_folder "$OUT/mods_fx" fixes
+for fix in snapWater quickScores; do
+	mods_folder "$OUT/mods_no_$fix" fixes
+	sed -i "/\"id\": \"$fix\"/ s/\"default\": true/\"default\": false/" "$OUT/mods_no_$fix/fixes/mod.json"
+done
+# with every fix on a bot game plays the lines of the original (the bot never ends a get-ready by a click)
+for v in none fx; do
+	for m in puzzle action; do
+		timeout 150 "$EXE" -userdir="$OUT/user_f${v}_$m" -modsdir="$OUT/mods_$v" -fast -seed=1 -autoplay=1 -autoplaymode=$m \
+			-autoplaycap=7000 -autoplaylog="$OUT/fx_${v}_$m.txt" > "$OUT/fx_${v}_$m.log" 2>&1
+	done
+done
+# (the lines of the game: its levels and its end; the game-over screen ends sooner, so the bot's last lines come sooner)
+for m in puzzle action; do
+	grep -E '^(level|game) ' "$OUT/fx_none_$m.txt" > "$OUT/fx_none_$m.game"; grep -E '^(level|game) ' "$OUT/fx_fx_$m.txt" > "$OUT/fx_fx_$m.game"
+	cmp -s "$OUT/fx_none_$m.game" "$OUT/fx_fx_$m.game" && [ -s "$OUT/fx_fx_$m.game" ]; check "fixes on: the $m bot's game is the original's" $?
+done
+# snapWater: level 2 (the water rises from 0 to its level by steps of 3 and overshoots by one); clicks end the get-ready
+{
+	echo "$START"
+	echo "1000 level 2"
+	for u in $(seq 1210 10 1290); do echo "$u click 400 240"; done
+	echo "1300 state"
+	echo "1301 quit"
+} > "$OUT/water.txt"
+for v in fx no_snapWater; do
+	timeout 120 "$EXE" -userdir="$OUT/user_w$v" -modsdir="$OUT/mods_$v" -fast -seed=5 -script="$OUT/water.txt" > "$OUT/water_$v.log" 2>&1
+done
+on="$(sed -n 's/.*"update":1300,.*"phase":"playing".*"water":\([0-9]*\),.*/\1/p' "$OUT/water_fx.log")"
+off="$(sed -n 's/.*"update":1300,.*"phase":"playing".*"water":\([0-9]*\),.*/\1/p' "$OUT/water_no_snapWater.log")"
+[ -n "$on" ] && [ -n "$off" ] && [ $((off - on)) -eq 1 ]; check "snapWater: a click that ends the get-ready leaves the water on its level (water $on, the original's $off)" $?
+# quickScores: a lost game (the water brought to the ark at update 1000); the first update the game-over screen asks for
+# the name or lists the scores
+{ echo "$START"; echo "1000 lose"; for u in $(seq 1025 25 2600); do echo "$u state"; done; echo "2601 quit"; } > "$OUT/over.txt"
+for v in fx no_quickScores; do
+	timeout 120 "$EXE" -userdir="$OUT/user_o$v" -modsdir="$OUT/mods_$v" -fast -seed=5 -script="$OUT/over.txt" > "$OUT/over_$v.log" 2>&1
+done
+first() { grep -E '"screen":"(entername|highscores)"' "$1" | head -1 | sed -n 's/.*"update":\([0-9]*\),.*/\1/p'; }
+on="$(first "$OUT/over_fx.log")"; off="$(first "$OUT/over_no_quickScores.log")"
+[ -n "$on" ] && [ -n "$off" ] && [ $((off - on)) -ge 75 ]; check "quickScores: the game-over screen asks for the name at update $on, the original's at $off" $?
+
 exit $FAILED

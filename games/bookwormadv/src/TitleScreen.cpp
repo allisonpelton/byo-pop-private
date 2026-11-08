@@ -129,6 +129,16 @@ void TitleScreen::Update()
 	}
 
 	if (mState == STATE_POPCAP_LOGO) {
+		// port: the logo is a wait of the original's making before the game can load (356 updates: a fade in, a hold of
+		// PopCapLogoTimer and a fade out, nothing loaded meanwhile, no click to leave it), so the port goes on to the
+		// curtain and the load at once, as the logo's end does; -popcaplogo keeps it for comparisons with the original
+		if (!mApp->mPopCapLogo) {
+			mPopCapLogoAlpha = 0;
+			mFadeColor = Color::Black;
+			mState = STATE_CURTAIN;
+			StartCurtain();
+			return;
+		}
 		if (mFadeSpeed > 0) {
 			mPopCapLogoAlpha += mFadeSpeed;
 			if (mPopCapLogoAlpha < 255)

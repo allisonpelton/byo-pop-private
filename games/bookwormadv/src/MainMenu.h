@@ -135,6 +135,7 @@ public:
 
 	// 0x479e80: the unlocked things and the scrolls again, from the profile
 	void RefreshUnlocks();
+	void ActivateItem(int theItem);  // port: a pressed item's action (MainMenu.cpp)
 	// 0x479ce0: Lex's word about a thing (or his welcome, for -1 or REACTION_WELCOME), unless he is busy or a
 	// sample of his is still playing
 	void PlayReaction(int theItem);

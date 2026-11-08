@@ -44,7 +44,10 @@ The run is a test run (`IsTestRun()`): message boxes only log, `WarpMouse` does 
 moment the window exists the system's own mouse, keyboard, text and focus events are dropped (an `SDL_SetEventFilter`
 lets through only what the file pushes), so the run is the same whatever happens to the real mouse or the window's focus.
 It does not go with `-script` (the run stops with an error), nor with a game's `-autoplay`, which sets `mScriptedInput`
-and so drops real input (the run logs it).
+and so drops real input (the run logs it). `HandleEvent` drops real input only in those two kinds of run: a run with a
+script file, and one whose bot sets `mScriptedInput`. A game's test command that waits for its moment by queuing itself
+again through `AddScriptCommand` leaves real input alone; until 2026-11-08 any line in the script dropped it, so one
+waiting `goto` on the live channel kept every real click out of Bookworm Adventures.
 
 A driver that decides as it goes (a solver that reads the board before each move) gives `-commands=<file>` as well,
 with an empty `-realinput` file: the lines it appends to the commands file, with no update count, are played the same
@@ -77,14 +80,19 @@ real time, through a focus loss, Alt+Enter both ways and a real minimize and res
 ## Games it cannot fully reach
 
 Every port's input comes through `HandleEvent`; no game polls SDL's events itself or overrides `HandleEvent`. A few read
-state elsewhere or treat any test run as focused, and their sessions decide whether to change that:
+state elsewhere or treat any test run as focused, and their sessions decide whether to change that (Cosmic Bugs and
+Water Bugs did on 2026-11-08: their `IsActive()` is now `mActive` except in a test run without `-realinput`, so
+a `focus lost` line pauses them as it pauses the originals):
 
 | Game | What `-realinput` cannot reach | What would fix it |
 | --- | --- | --- |
-| Cosmic Bugs, Water Bugs | Focus: `IsActive()` is `mActive \|\| IsTestRun()`, so a file's `focus lost` mutes the framework but never pauses the game | `mActive` alone in a `-realinput` run (only the file's focus events reach it there) |
 | Bonnie's Bookstore | Focus: `getAppState()` gives input and mouse focus to any test run unless its own script took it; and in full screen the cursor's position comes from `SDL_GetGlobalMouseState`, the real cursor | `mHasFocus` and `mMouseInside` in a `-realinput` run; in full screen the position the events gave. Its host joins each character to the key press just before it, so type there with `key` or `type`, not `text` alone |
 | TipTop | Nothing in its input, but its `AppMessage` shows an SDL message box unless the run is `-fast`, `-script` or scripted, so a real-time `-realinput` run that meets an error message would sit on it | `IsTestRun()`, as the Mahjongs and Ning Po check |
 | Alchemy, Atomica, Bejeweled, Big Money, BookWorm | Their `-autoplay` sets `mScriptedInput`, which drops real input | Not to be combined; drive these with the file alone |
 
 On the web, the page's own input in the Browser pane is the real path. The web build compiles `-realinput` too, but it has
-not been tried there; it could only run where `-script` does, in a web build under Node.
+not been tried there; it could only run where `-script` does, in a web build under Node. The page's test kit treats the focus as
+`-realinput` does (since 2026-11-08): the browser's own blur and focus events never reach the game on the player-only page, so a
+hidden Browser pane, which sends a real blur, no longer pauses a run until its driver calls `byopop.test.focus()`. Only the
+driver's `byopop.test.blur()` and `focus()` move the game's focus there, and `?realfocus=1` lets the browser's through again
+(`docs/WEB_PLAYER.md`, "The player-only page").

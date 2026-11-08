@@ -82,6 +82,15 @@ void Hyperspace::Update()
 		MarkDirty();
 		return;
 	}
+	// port: a jump holds still while the board holds its own part of it (UpdateGame returns at once while the board is
+	// paused, as when the window loses the focus, or the options are over it). The original's space ran on, so a pause
+	// through a level-up left the board's rows and the next level behind it: a crash (UpdateJump read space after it was
+	// gone) or a board that never filled again.
+	if (gBoard != nullptr && gBoard->mHyperspace == this &&
+		(0 < gBoard->mUnknown1570 || gApp->mOptionsDialog != nullptr)) {
+		MarkDirty();
+		return;
+	}
 	if (mState != 6) {
 		double aCool = mWarmUp - 0.0024999999441206455;
 		mWarmUp = 0.0 < aCool ? aCool : 0.0;
@@ -95,7 +104,6 @@ void Hyperspace::Update()
 	} else if (mState == 11 && gBoard != nullptr) {
 		gBoard->SetUnknown3924((float)mUnknown12B0.GetOutVal());
 	}
-	// The trial's limit dialog (+0x152c) is left out: the copy is registered
 	if (mFlag15E || (!mWidgets.empty() && mTransition != 9 && mTransition != 10)) {
 		mFlag15C = true;
 		MarkDirty();
@@ -110,35 +118,19 @@ void Hyperspace::Update()
 		return;
 	}
 	// The 2D jumps (gD3DInterface clear)
-	if (mTransition == 8 || mTransition == 14) {
+	// (transition 14, the trial's last jump, its limit dialog and its souls fading in state 7, is registration code,
+	// left out)
+	if (mTransition == 8) {
 		if (!mUnknown1570.IncInVal()) {
 			if (mFlag15B) {
 				// Halfway: the jump's second half
 				mFlag15B = false;
-				if (mTransition == 14) {
-					mState = 6;
-					mUnknownC58 = 150;
-				} else {
-					mUnknown1570.SetCurve(GTS(0x7e49ec));
-					mUnknown258.SetCurve(GTS(0x7e49bc));
-					gBoard->mUnknown3880.SetCurve(GTS(0x7e498c));
-				}
-			} else if (mState != 6 && mState != 7) {
+				mUnknown1570.SetCurve(GTS(0x7e49ec));
+				mUnknown258.SetCurve(GTS(0x7e49bc));
+				gBoard->mUnknown3880.SetCurve(GTS(0x7e498c));
+			} else {
 				gApp->mVizManager->SetVisible(true);
 				mState = 10;
-			}
-		}
-		if (0 < mUnknownC58 && --mUnknownC58 == 0) {
-			// The trial's limit (SOUND_TRIALLIMIT and its dialog, 0x73a458) after transition 14: left out, the copy
-			// is registered
-		}
-		if (mState == 7) {
-			// The souls fade out
-			for (GemSoul* aSoul : gBoard->mUnknown26B0) {
-				double aBright = (double)aSoul->mUnknown684 - 0.029999999329447746;
-				if (!(0.0 < aBright || 0.0 == aBright))
-					aBright = 0.0;
-				aSoul->mUnknown684 = (float)aBright;
 			}
 		}
 		mUnknown258.IncInVal();
@@ -267,7 +259,7 @@ void Hyperspace::Draw(Graphics* g)
 		DrawImageScaledCentered(g, IMAGE_STATIC_SPACE, (float)(gApp->mWidth / 2), (float)(gApp->mHeight / 2), 3, 1.0f,
 			1.0f);
 	}
-	if (mTransition == 8 || mTransition == 14 || mTransition == 9 || mTransition == 10)
+	if (mTransition == 8 || mTransition == 9 || mTransition == 10)
 		DrawTunnel(g);
 	if (mFlash.GetOutVal() == 0.0)
 		return;
@@ -342,7 +334,7 @@ void Hyperspace::SetTransition(int theTransition)
 		return;
 	}
 	// The 2D jumps only: the port has no Direct3D, whose jumps also set up the level's world and the camera
-	if (theTransition == 14 || theTransition == 8) {
+	if (theTransition == 8) {
 		// The old level's picture stays for the jump; the VizManager takes the next level's
 		Viz2D* aViz = static_cast<Viz2D*>(gApp->mVizManager->mViz);
 		// (the original deletes the old picture first; the port deletes only the one it made)

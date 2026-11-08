@@ -12,7 +12,7 @@ using namespace Sexy;
 // ---------------------------------------------------------------------------------------------------------
 // Rand
 
-GameRand::GameRand() : mJ(0), mK(0x1f)
+GameRand::GameRand() : mJ(0), mK(0x1f), mDrawing(false), mDrawJ(0), mDrawK(0x1f)
 {
 	Seed(1);
 }
@@ -26,11 +26,30 @@ void GameRand::Seed(unsigned int theSeed)
 	mState[1] = 1;
 	for (int i = 0; i < 0x35; i++)
 		mState[i + 2] = (mState[i] + mState[i + 1]) & 0x3fffffff;
+	// the drawing generator (the fixes mod) starts from the seed in the same way, from another point of the sequence
+	mDrawState[0] = (theSeed ^ 0x2545f491u) & 0x3fffffff;
+	mDrawJ = 0;
+	mDrawK = 0x1f;
+	mDrawState[1] = 1;
+	for (int i = 0; i < 0x35; i++)
+		mDrawState[i + 2] = (mDrawState[i] + mDrawState[i + 1]) & 0x3fffffff;
 }
 
 // 0x425e80
 int GameRand::Next()
 {
+	if (mDrawing)
+	{
+		unsigned int aDrawn = (mDrawState[mDrawK] + mDrawState[mDrawJ]) & 0x3fffffff;
+		mDrawState[mDrawJ] = aDrawn;
+		mDrawJ++;
+		if (mDrawJ == 0x37)
+			mDrawJ = 0;
+		mDrawK++;
+		if (mDrawK == 0x37)
+			mDrawK = 0;
+		return (int) aDrawn >> 6;
+	}
 	unsigned int aValue = (mState[mK] + mState[mJ]) & 0x3fffffff;
 	mState[mJ] = aValue;
 	mJ++;

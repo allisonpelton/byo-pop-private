@@ -64,7 +64,7 @@ bool HasPlayedGameBefore(GameApp* app) { return app->HasPlayedGameBefore(); }
 void ClearUpdateBacklog(GameApp* app) { app->ClearUpdateBacklog(false); }  // 0x442eb0
 // 0x442ec0: the original's two vsync flags; the port's display has neither
 bool SmoothScrolling(GameApp* app) { return false; }
-// 0x429cc0 (+0x91d): the trial's lockout does not exist in the port yet
+// 0x429cc0 (+0x91d): the trial's lockout after the hydra; the port plays as the registered game, never locked out
 bool QueuedHydraLockout(GameApp* app) { return false; }
 bool ShowingStatsBook(GameApp* app) { return app->mBookScreen != nullptr; }  // 0x416380
 void AddStatsBook(GameApp* app, bool theFromGame, bool theBestiary, bool theMediaPlayer)  // 0x444150
@@ -254,16 +254,12 @@ int DrawBonusText(GameApp* app, lua_State* L)
 	return 0;
 }
 
-// 0x451c80: whether the trial's lockout follows the hydra's conversation (a distribution of the trial, not
-// registered, past the first book's seventh chapter). port: the port plays as registered, so never
-bool ShouldDoHydraLockout(GameApp* app) { return false; }
-// 0x451e30: the conversation panel comes up again, and the warp-in sound plays once it is off (the lockout's
-// callback 0x451eb0 instead, in the trial)
+// 0x451e30: the conversation panel comes up again, and the warp-in sound plays once it is off (port: the trial's
+// lockout and its callback 0x451eb0 are left out)
 void DoAfterHydraConvPanel(GameApp* app)
 {
 	app->mConversationPanel->Activate(true);
-	if (!ShouldDoHydraLockout(app))
-		app->mConversationPanel->mInactiveCallback = "Book.PlayWarpInSound";
+	app->mConversationPanel->mInactiveCallback = "Book.PlayWarpInSound";
 }
 
 // 0x44c390: a message box with the title "ERROR"
@@ -466,7 +462,6 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::RemoveAllBonusText>("RemoveAllBonusText")
 		.Raw<&::DrawBonusText>("DrawBonusText")
 		.Raw<&::WriteStat>("WriteStat")
-		.Function<&::ShouldDoHydraLockout>("ShouldDoHydraLockout")
 		.Function<&::DoAfterHydraConvPanel>("DoAfterHydraConvPanel")
 		.Function<&::DoErrorDialog>("DoErrorDialog")
 		.Function<&::DoYesNoDialog>("DoYesNoDialog")
