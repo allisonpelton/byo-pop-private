@@ -376,6 +376,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
 <script src="playcount.js"></script>
+<script src="perf.js"></script>
 <script>
 (function () {
   "use strict";
@@ -430,6 +431,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   }
   // the game's own skin, where its settings give it one (web/skins.js); none on the player-only page
   try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
+  // the performance panel (web/perf.js), when the site setting is on; it waits for the page to be drawn
+  try { document.addEventListener("DOMContentLoaded", function () { ByopopPerf.setGame(PAGE.id); }); } catch (e) {}
   var PERSIST = PAGE.persist + (TEST_PROFILE ? "-test" : "");
   var LOCK = PAGE.lock + (TEST_PROFILE ? "-test" : "");
   var GAME = PERSIST + "/game";
