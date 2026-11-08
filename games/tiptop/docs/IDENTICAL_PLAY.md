@@ -151,7 +151,11 @@ update number shifted by the same 202.
 None in play. The port's one deviation is in the game's notes (`GAME_NOTES.md`, "Deviations from the original"): the title
 screen's loading bar loads at the machine's speed, which moves the end of the title screen and nothing else. It is outside the
 game's logic, but the frames of tour 1 taken while the bar filled (`splash_loading`, update 150) no longer match the original's.
-Phase two found no other difference on the screen or in the sound (below).
+The registration and the trial are out of the port as well (`GAME_NOTES.md`, "Registration out"); that changes no frame of tour 1
+and nothing in play. And the options screen has no "Visit PopCap.com for More Games" button (a link out of the game, taken out by
+the user's rule of 2026-11-07): its frames (tour 1 `options`, `options_tips_toggled`, `options_tips_back`, tour 3 `game_options`)
+differ from the original's in that button's box and nowhere else. Phase two found no other difference on the screen or in the
+sound (below).
 
 ## Phase two: looks identical (2026-11-04)
 
@@ -204,6 +208,23 @@ command, used to find the click points), `-soundlog` (every sound loaded, starte
 and a getter for the music's pause count. The tools are in `games/tiptop/tools/shots/`; the original's new patches are
 written by `tools/identical/setup.sh`. Nothing changed unmodded play, so the frozen baseline stands, and
 `tools/check.sh tiptop` reports it identical.
+
+Three changes to the port came after this phase, each listed with the difference, its cause in the original, what the port does now
+and the commit:
+
+| Difference | Cause in the original | The port now | Commit |
+|---|---|---|---|
+| The title screen takes 202 updates less to load under `-fast` and about 4 s less in real time | The load bar loads one of its 229 entries a frame, and only when more than a millisecond has passed since the last | Loads as many entries a frame as fit 10 ms of the game clock, in the original's order, all at once on a clock that stands still (`GAME_NOTES.md`, "Deviations from the original") | dc7eb4fb |
+| None to see or play: the trial and registration code is out of the port, and the splash draws what it drew | `gRegistered` (0x48870a) branches at eight places; the unregistered path drew the register buttons and pictures ("Trial Version", "Unregistered"), a count of trial plays and the "no more plays" dialog, and the registered path the word "Deluxe" of the logo | The flag and every branch are folded into the registered path and what only the trial used is out: its buttons, dialogs, count, configuration and nineteen images (`GAME_NOTES.md`, "Registration out"). The "Deluxe" stays: it is the title's own lettering, not a thank-you | 80026ab1 |
+| The options screen has no "Visit PopCap.com for More Games" button: its box differs in four frames (tour 1 `options`, `options_tips_toggled`, `options_tips_back`; tour 3 `game_options`) | Command 0x37 opens the publisher's page (`PUBLISHER_URL`) | The button, the command, the address, its position settings and its image are out, and the port opens no web page (`GAME_NOTES.md`, "Deviations from the original"; the user's rule of 2026-11-07 on buttons that lead out of a game); the pattern runs on where it was and nothing else moves | f68e2729 |
+
+None of the three touches the game's logic. The first moved the end of the title screen, and since the game seeds `rand` from its
+clock when the first block is chosen, the frozen baseline was refrozen with it (below). The second moved no state, no random draw
+and no time: the check's three mouse-played cases give the baseline's state logs, update for update (`tools/check.sh tiptop`,
+"baseline identical"), and the 31 frames of tour 1 are byte for byte those of the baseline's port. The third changes what the
+options screen draws, and nothing else: with it the check still says "baseline identical", and of the 55 frames of tours 1 and 3
+(the tours that show the options screen) exactly the four named differ from the baseline's, all in the box (407, 313 to 584, 396),
+the button's.
 
 ### Oddities and masks
 
@@ -264,8 +285,8 @@ scaled sprites, so the web build's known 1 px offset on those does not arise. Th
 
 The hidden timed mode, whose button lies off the screen (as in phase one). The sound and music volume sliders, which no
 tour moves, and the full screen check box. The music's notes themselves: the original's player is a thread that runs on
-real time with 20 ms sleeps, so its notes cannot be lined up with updates; its state is compared instead. The publisher
-link on the options screen (command 0x37), which is never clicked. The Browser pane was not used: the web build was run
+real time with 20 ms sleeps, so its notes cannot be lined up with updates; its state is compared instead. (The
+publisher link on the options screen, which was never clicked, is out of the port now.) The Browser pane was not used: the web build was run
 under Node.
 
 ## Real play: real input, windowed and full screen, and the fixes mod (2026-11-08)

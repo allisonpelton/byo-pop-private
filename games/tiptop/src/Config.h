@@ -173,10 +173,10 @@ struct Config
 	int32_t mOptionsVolumewidth;                // +0x1f4
 	int32_t mOptionsSoundy;                     // +0x1f8
 	int32_t mOptionsMusicy;                     // +0x1fc
-	int32_t mOptionsRegisterx;                  // +0x200
-	int32_t mOptionsRegistery;                  // +0x204
-	int32_t mOptionsVisitpopcapx;               // +0x208
-	int32_t mOptionsVisitpopcapy;               // +0x20c
+	// The members named mRegistrationUnused are the settings of the original's registration and trial and of its links out of
+	// the game, which the port took out (GAME_NOTES.md, "Registration out"). They stay as padding of the same size: Board
+	// reaches Config by offset.
+	char mRegistrationUnused200[16];  // +0x200 16 bytes: mOptionsRegisterx..mOptionsVisitpopcapy
 	int32_t mBkghix;                            // +0x210
 	int32_t mBkghiy;                            // +0x214
 	int32_t mBkgcolyoffset;                     // +0x218
@@ -247,22 +247,7 @@ struct Config
 	int32_t mAreyousureOky;                     // +0x31c
 	int32_t mAreyousureCancelx;                 // +0x320
 	int32_t mAreyousureCancely;                 // +0x324
-	int32_t mAreyousureregX;                    // +0x328
-	int32_t mAreyousureregY;                    // +0x32c
-	int32_t mAreyousureregOkx;                  // +0x330
-	int32_t mAreyousureregOky;                  // +0x334
-	int32_t mAreyousureregCancelx;              // +0x338
-	int32_t mAreyousureregCancely;              // +0x33c
-	int32_t mAreyousureregRegisterx;            // +0x340
-	int32_t mAreyousureregRegistery;            // +0x344
-	int32_t mAreyousureregsaveX;                // +0x348
-	int32_t mAreyousureregsaveY;                // +0x34c
-	int32_t mAreyousureregsaveOkx;              // +0x350
-	int32_t mAreyousureregsaveOky;              // +0x354
-	int32_t mAreyousureregsaveCancelx;          // +0x358
-	int32_t mAreyousureregsaveCancely;          // +0x35c
-	int32_t mAreyousureregsaveRegisterx;        // +0x360
-	int32_t mAreyousureregsaveRegistery;        // +0x364
+	char mRegistrationUnused328[64];  // +0x328 64 bytes: mAreyousureregX..mAreyousureregsaveRegistery
 	int32_t mSavegameX;                         // +0x368
 	int32_t mSavegameY;                         // +0x36c
 	int32_t mSavegameOkx;                       // +0x370
@@ -408,36 +393,13 @@ struct Config
 	int32_t mScoremessageDistance;              // +0x5f8
 	int32_t mSplashLoadbarx;                    // +0x5fc
 	int32_t mSplashLoadbary;                    // +0x600
-	int32_t mSplashRegisterx;                   // +0x604
-	int32_t mSplashRegistery;                   // +0x608
+	char mRegistrationUnused604[8];  // +0x604 8 bytes: mSplashRegisterx..mSplashRegistery
 	int32_t mSplashPlayx;                       // +0x60c
 	int32_t mSplashPlayy;                       // +0x610
-	int32_t mSplashTimesplayedx;                // +0x614
-	int32_t mSplashTimesplayedy;                // +0x618
-	int32_t mSplashUnregisteredx;               // +0x61c
-	int32_t mSplashUnregisteredy;               // +0x620
-	int32_t mSplashUnregistered2x;              // +0x624
-	int32_t mSplashUnregistered2y;              // +0x628
+	char mRegistrationUnused614[24];  // +0x614 24 bytes: mSplashTimesplayedx..mSplashUnregistered2y
 	int32_t mSplashRegisteredx;                 // +0x62c
 	int32_t mSplashRegisteredy;                 // +0x630
-	int32_t mSplashExecutionsleftx;             // +0x634
-	int32_t mSplashExecutionslefty;             // +0x638
-	int32_t mRegisterBackgroundx;               // +0x63c
-	int32_t mRegisterBackgroundy;               // +0x640
-	int32_t mRegisterCodex;                     // +0x644
-	int32_t mRegisterCodey;                     // +0x648
-	int32_t mRegisterCodewidth;                 // +0x64c
-	int32_t mRegisterNamex;                     // +0x650
-	int32_t mRegisterNamey;                     // +0x654
-	int32_t mRegisterNamewidth;                 // +0x658
-	int32_t mRegisterOkx;                       // +0x65c
-	int32_t mRegisterOky;                       // +0x660
-	int32_t mRegisterCancelx;                   // +0x664
-	int32_t mRegisterCancely;                   // +0x668
-	int32_t mRegisterGetcodex;                  // +0x66c
-	int32_t mRegisterGetcodey;                  // +0x670
-	int32_t mRegisterPastex;                    // +0x674
-	int32_t mRegisterPastey;                    // +0x678
+	char mRegistrationUnused634[72];  // +0x634 72 bytes: mSplashExecutionsleftx..mRegisterPastey
 	int32_t mValidcodeBgx;                      // +0x67c
 	int32_t mValidcodeBgy;                      // +0x680
 	int32_t mValidcodeOkx;                      // +0x684
@@ -460,24 +422,13 @@ struct Config
 	int32_t mSummaryBestcomboy;                 // +0x6c8
 	int32_t mSummaryScorey;                     // +0x6cc
 	int32_t mSummaryBestmatchy;                 // +0x6d0
-	int32_t mInitialWait;                       // +0x6d4
-	int32_t mAdditionalWait;                    // +0x6d8
-	char* mRegisterUrl;                         // +0x6dc
-	char* mPublisherUrl;                        // +0x6e0
-	char* mRisCompanyname;                      // +0x6e4 the registry key's company
-	char* mRisProductname;                      // +0x6e8 the registry key's product
-	char* mRisHiddenfilename;                   // +0x6ec the run-count file in the Windows folder
+	char mRegistrationUnused6d4[28];  // +0x6d4 28 bytes: mInitialWait..mRisHiddenfilename
 	int32_t mSummaryHsnamex;                    // +0x6f0
 	int32_t mSummaryHsscorex;                   // +0x6f4
 	int32_t mSummaryHslevelx;                   // +0x6f8
 	int32_t mSummaryHsy;                        // +0x6fc
 	int32_t mSummaryHsskipy;                    // +0x700
-	int32_t mSplashNomoreexecutionsx;           // +0x704
-	int32_t mSplashNomoreexecutionsy;           // +0x708
-	int32_t mSplashNmequitx;                    // +0x70c
-	int32_t mSplashNmequity;                    // +0x710
-	int32_t mSplashNmeregisterx;                // +0x714
-	int32_t mSplashNmeregistery;                // +0x718
+	char mRegistrationUnused704[24];  // +0x704 24 bytes: mSplashNomoreexecutionsx..mSplashNmeregistery
 	int32_t mScoretable[100];                   // +0x71c
 	int32_t mBlreducetable[100];                // +0x8ac
 	int32_t mFlashDivisor;                      // +0xa3c
@@ -534,9 +485,7 @@ struct Config
 	int32_t mFloaterdeterminationTimed;         // +0x120c
 	int32_t mFloaterdeterminationSpeed;         // +0x1210
 	int32_t mFloaterdeterminationStrategy;      // +0x1214
-	int32_t mExecutionlimit;                    // +0x1218
-	char mExecutionlimitmode;                   // +0x121c
-	char mExecutionlimitAllowcontinue;          // +0x121d
+	char mRegistrationUnused1218[6];  // +0x1218 6 bytes: mExecutionlimit..mExecutionlimitAllowcontinue
 	int32_t mLevelsummaryStartevent;            // +0x1220
 	int32_t mLevelsummaryEndevent;              // +0x1224
 	int32_t mLevelsummaryEntertime;             // +0x1228
@@ -553,7 +502,7 @@ struct Config
 	int32_t mBkgcolCycletime;                   // +0x1294
 	int32_t mBkgcolResolutiontime;              // +0x1298
 	int32_t mBkgcolAddbrightness;               // +0x129c
-	char mDisableUnregistered;                  // +0x12a0
+	char mRegistrationUnused12a0[1];  // +0x12a0 1 bytes: mDisableUnregistered
 };
 
 static_assert(sizeof(Config) == 0x12a4, "Config has the original's layout");
