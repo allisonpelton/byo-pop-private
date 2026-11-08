@@ -111,6 +111,22 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Bookworm Adventures Volume 2 start after the weekly reset (2026-11-08 00:00 UTC), five at a time again. That week
   also makes each game's fixes mod (the user, 2026-11-04: "next week will have a bunch of that in addition to
   finishing phase 2 of identical play"; `docs/MOD_ROADMAP.md`, "The fixes mod").
+- **Twelve at work, flat out, and three early ports (the user, 2026-11-07):** "No limit on concurrent sessions while
+  getting all current games to their finished state", run flat out to the 97% cap ("Flat out to the cap"), until 21
+  sessions at work filled the machine and two crashed (exit 0xC0000409, with 2.6 GB of 32 GB free, 60 of 67 GB
+  committed and every core busy). Then: "Too many sessions, some crashed. Set a comfortable limit to avoid this
+  happening again." The limit is 12 sessions at work besides the coordinator, where at work means in a turn or waiting
+  on a run of its own. Each session's own process holds about 0.6 GB even while idle, and its builds, decompiles, games
+  and sandboxes come on top in bursts. Before waking one, the coordinator also checks the machine: under 6 GB free, or
+  over 80% of the commit limit, means waiting even below 12. A session past the limit waits idle with nothing running,
+  on a background wait for its own file (`until [ -f <main checkout>/build/slots/<name>.go ]; do sleep 60; done; cat`
+  the file). When a slot frees, the coordinator writes that file with any news for the session. Such a wake costs no
+  message (the app's limit of 10 since the user last typed). A crashed session comes back only into a free slot. And
+  "some of the remaining decomps are simple enough to run concurrently": Typer Shark, AstroPop and Bejeweled 2 start
+  now, beside the finishing work, an exception to "no new port until all are done". The rest of the easier group waits
+  as before.
+  JPEG: IJG libjpeg, the library the games use, replaces stb_image for JPEG images ("Add IJG libjpeg"; the download of
+  jpegsrc.v6b.tar.gz from ijg.org approved), so no game lists a JPEG deviation.
 - **Reports still open from the user's test notes (cleared 2026-11-04):** each goes to its game's session with its
   next brief. Bookworm Adventures: "Sound effects seem to come about a second after they should." Its pass found every
   sound at the original's update natively, so check the web build, where the user plays. Its smashed tile "looks
@@ -123,26 +139,53 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Natively it showed a black or blank screen with ScreenMode=1 (full screen) in its registry.ini, though it ran about
   3 minutes and closed cleanly; a run under rundesk with a fresh user folder started fine (GL ES 3.0, GPUDisplay).
   Twist's session fixes both at the start of the week from 2026-11-08, before its fixes mod.
+- **The user's test notes of 2026-11-07, routed the same day:** each session has the user's words in its brief and
+  writes in its notes whatever it cannot fix. Bejeweled Twist: in the browser the cursor does not follow the mouse and
+  no gem can be twisted in Classic's tutorial, the resolution cannot be changed, quitting from the pause menu makes
+  the menu vanish instead of shrinking, the board reappears on quit, and the best-move replay lacks parts of the score
+  meter; natively Classic shows a black screen (full screen), Zen's background is missing, and the patch on the user's
+  Steam original misaligns the cursor and pillarboxes the window. Seven Seas: clicks fail on some squares (column 4,
+  rows 1 to 3), and the tutorial text is in the wrong place. Bookworm Adventures and Volume 2: every minigame ends in
+  a Lua error ("Expected boolean in LuaClassRet") with no restart, and the sound stops after a focus loss just after a
+  chapter boss. Volume 2 also lags while the curtains move, lacks Word Up's submit button natively, and its rainbow
+  tiles never form a word. Bonnie's Bookstore: the site's player name is not filled in, and the music is missing or
+  far too quiet. Shared, in a session of its own: late sound in every web build, a minimum native window size of the
+  game's resolution, and borderless full screen in every native port by default. The site: Twist's cursors listed
+  apart from the others, Ning Po's volume slider dragging the window, chat with game icons that can sit right of the
+  game, keep its collapser's size and fill the space below the game, a true footer with a one-sentence copyright
+  notice, a pixel-perfect option, explicit state machines, and, last, ideas for original selectable skins in the
+  spirit of PopCap and the web around 2010.
 - **Plays identical first, for every game (the user, 2026-11-01):** identical play is two phases, "plays identical"
   and "looks identical" (CLAUDE.md). "Current games can still do both, but for remaining ones to review get all of them
   playing identical first." So the passes running on 2026-11-01 (Bejeweled, Bonnie's, Bookworm Adventures, and Twist's
   when it comes) do both phases. Every game not yet reviewed gets the first phase, and their second phases start only
   once every game plays identical. "If a series of games play out the same in the original and port then the first
   phase should be considered done."
-- **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
-  through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
-  code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
+- **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on
+  down through the game list. Once all games are done, then we can do code quality/readability, and finally figure out
+  what code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
   well)." So first every fault the user reported, in every game, and anything that makes a game hard to test; then the
   identical-play pass above, game by game; once every game is done, the coverage check and a performance pass (both
-  below), then a readability pass to the project's code standards
-  (`docs/CODE_STANDARDS.md`, written and approved by the user first); last, taking out code the ports do not need, such
-  as all registration code (trial, nag and unlock paths: "It is misleading and adds unnecessary bloat"). The game's
-  regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more
-  step once every decompilation is done (the user, 2026-11-01): each game ported only from its Steam copy is compared
-  with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
-  work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer that puts a
-  native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
-<!-- private -->
+  below), then a readability pass to the project's code standards (`docs/CODE_STANDARDS.md`, written and approved by
+  the user first); last, taking out the other code the ports do not need. Registration code (trial, nag and unlock
+  paths: "It is misleading and adds unnecessary bloat") moved up (the user, 2026-11-07: "Move up the removal of all
+  registration-related code to be part of the current phase before beginning other decomps"). Each game takes it out
+  before its final merge, as part of being finished, and no further decomp begins until every current game has; a
+  port not yet translated (Typer Shark, AstroPop and Bejeweled 2 among them) leaves it out as it translates. The port
+  plays as the registered original does, which stays the reference for every comparison. What goes is the code only an
+  unregistered or trial copy reaches: the trial's clocks and counters, nags, the register, unlock and buy dialogs and
+  their code checks, expiry, and the strings, images and registry values only those use. A button or menu item that
+  exists only for them goes too, its neighbours closing the gap as below. Each removal is listed in the game's notes,
+  with a word on any visible change, and the frozen baseline proves play unchanged (how a protection's own checks were
+  taken apart stays in private blocks). The last step still takes out every button that leads out of a
+  game, "More Games" first (the user, 2026-11-07, asked whether it might open the site's listing: "Remove the button
+  entirely, as requested in the past. Other buttons can be resized to avoid the appearance of a gap"), with the
+  buttons beside it widened or moved to close the gap. The game's regression check proves each step leaves play
+  unchanged. All of it comes before the website is ready. So does one more step once every decompilation is done (the
+  user, 2026-11-01): each game ported only from its Steam copy is compared with its version on the PopCap Game
+  Collection disc (the user's ISO in their Downloads folder), and its build must work with that version's files too.
+  Planned alongside the website (the user, 2026-11-01): an installer that puts a native port beside its Steam
+  original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`). <!-- private -->
 - **Building the web port in the browser (the user's test notes, moved here 2026-11-04):** "I'm starting to feel more
   open to trying to build the WASM version in the browser (either saving it to localStorage or to a connected Google
   Drive) to completely avoid infringement. Let's try it on the simplest possible game and see how long it takes to

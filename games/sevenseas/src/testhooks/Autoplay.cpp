@@ -13,6 +13,7 @@
 //   -autoplayshots=<prefix>  screenshots at each game over
 
 #include "SevenSeasApp.h"
+#include "Bot.h"
 #include "Board.h"
 #include "Screens.h"
 #include "Demo.h"
@@ -287,6 +288,24 @@ void SevenSeasApp::AutoplayUpdate()
 		return;
 	// the hint boxes of the beginner's game do not hold the bot up: it plays anyway
 
+	// the bot's choice (Bot.h): a broadside when a ship could be hit, else a move to a safe cell
+	BotChoice aChoice = ChooseBotMove(b, s->mSeed);
+	ClickCell(b, aChoice.mX, aChoice.mY);
+	if (aChoice.mKind != BotChoice::STAY)
+		s->mMoves++;
+	s->mWait = 4;
+}
+
+// the bot's choice of a move
+BotChoice Sexy::ChooseBotMove(Board* b, unsigned int& theSeed)
+{
+	AutoplayState aDice;
+	aDice.mSeed = theSeed;
+	BotChoice aResult;
+	aResult.mKind = BotChoice::STAY;
+	aResult.mX = b->mPlayerX;
+	aResult.mY = b->mPlayerY;
+
 	// the ships that could be shot from here: any enemy on the two broadside lines (within three cells)
 	int aTargets = 0;
 	for (std::list<Ship*>::iterator anItr = b->mShips.begin(); anItr != b->mShips.end(); ++anItr)
@@ -294,12 +313,11 @@ void SevenSeasApp::AutoplayUpdate()
 		if (b->CanFireAt(b->mPlayerX, b->mPlayerY, b->mHeading, (*anItr)->mX, (*anItr)->mY, 3))
 			aTargets++;
 	}
-	if ((aTargets > 0) && (s->Rand(4) != 0))
+	if ((aTargets > 0) && (aDice.Rand(4) != 0))
 	{
-		ClickCell(b, b->mPlayerX, b->mPlayerY);
-		s->mMoves++;
-		s->mWait = 4;
-		return;
+		aResult.mKind = BotChoice::FIRE;
+		theSeed = aDice.mSeed;
+		return aResult;
 	}
 	// a move to a free cell next to the ship: not within reach of an enemy (which sails one cell toward the ship),
 	// and from where a broadside would hit one; else the cell farthest from them
@@ -329,9 +347,8 @@ void SevenSeasApp::AutoplayUpdate()
 		}
 	if (aCands.empty())
 	{
-		ClickCell(b, b->mPlayerX, b->mPlayerY);
-		s->mWait = 4;
-		return;
+		theSeed = aDice.mSeed;
+		return aResult;
 	}
 	int aBestScore = -1000000;
 	std::vector<int> aBestIdx;
@@ -346,8 +363,17 @@ void SevenSeasApp::AutoplayUpdate()
 		if (aScore == aBestScore)
 			aBestIdx.push_back((int) i);
 	}
-	const Cand& aPick = aCands[aBestIdx[s->Rand((int) aBestIdx.size())]];
-	ClickCell(b, aPick.mX, aPick.mY);
-	s->mMoves++;
-	s->mWait = 4;
+	const Cand& aPick = aCands[aBestIdx[aDice.Rand((int) aBestIdx.size())]];
+	aResult.mKind = BotChoice::SAIL;
+	aResult.mX = aPick.mX;
+	aResult.mY = aPick.mY;
+	theSeed = aDice.mSeed;
+	return aResult;
+}
+
+// the click on a cell's middle: the board's own coordinates (the rows start 12 down) and the board's place in the window
+void Sexy::BotCellToGame(Board* b, int theCellX, int theCellY, int* theGameX, int* theGameY)
+{
+	*theGameX = b->mX + Board::CellToPixel(theCellX) + 21;
+	*theGameY = b->mY + Board::CellToPixel(theCellY) + 21 + 12;
 }

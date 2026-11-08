@@ -258,6 +258,13 @@ function entryNames(p) {
   p.C.save("bigmoney", "Big Money", set([200, 20, 30], pic(54, 20, 99)));
   // BookWorm's pointer: Alchemy's, its colours up to three steps off
   p.C.save("bookworm", "BookWorm", set([197, 20, 30], pic(37, 1, 77)));
+  // Bejeweled Twist's: Alchemy's design kept as JPEG 2000, a few pixels up to 33 off, and a faint edge (alpha 9) from its masks
+  const twist = (w, ox, colour) => {
+    const c = canvas(w, w, ox, ox, colour), at = (x, y) => ((ox + y) * w + ox + x) * 4;
+    c.data[at(2, 4)] += 33; c.data.set([90, 90, 90, 9], at(3, 1)); c.data.set([0, 0, 0, 9], at(7, 6));
+    return p.C.picture(c, ox, ox);
+  };
+  p.C.save("bejeweledtwist", "Bejeweled Twist", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { pointer: twist(54, 9, 200), hand: twist(58, 11, 20) }));
   p.C.save("near", "Hot Spot A Pixel Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 1) }));
   // Atomica's are green
   p.C.save("p", "Pointer Differs", set([90, 20, 30], pic(37, 1, 77)));
@@ -266,9 +273,10 @@ function entryNames(p) {
   p.C.save("bejeweled", "Bejeweled", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { drag: pic(54, 9, 30, 0, true) }));
   p.C.save("bare", "Hand Without Shadow", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 0, true) }));
   p.C.save("hot", "Hot Spot Three Pixels Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 3) }));
-  check("sets that differ only in their text or dragging cursor, by colours a few steps off or by a hot spot a pixel away share " +
+  check("sets that differ only in their text or dragging cursor, by colours a few steps off, by compression's few pixels and " +
+    "faint edges or by a hot spot a pixel away share " +
     "an entry; another colour, a missing shadow or a hot spot further away in the pointer or hand keeps a set apart", entryNames(p),
-    ["Default", "Alchemy, Bejeweled, Big Money, BookWorm and Hot Spot A Pixel Off", "Hand Differs",
+    ["Default", "Alchemy, Bejeweled, Bejeweled Twist, Big Money, BookWorm and Hot Spot A Pixel Off", "Hand Differs",
       "Hand Without Shadow", "Hot Spot Three Pixels Off", "Pointer Differs"]);
   const dragPic = () => { const el = node("div"); p.C.render(el);
     return el.children[0].children[1].children[1].children[1].children.find((i) => i.attrs["data-kind"] === "drag").src; };

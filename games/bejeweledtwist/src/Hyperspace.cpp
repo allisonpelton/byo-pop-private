@@ -214,8 +214,8 @@ void Hyperspace::StartEndGame()
 	mTransition = 13;
 	mState = 12;
 	mUnknown12B0.SetCurve(GTS(0x7d8610));
-	if (gApp->mBoard->mGameMode != Board::MODE_CHALLENGE) {
-		// 2D (the port has no Direct3D)
+	if (gD3DInterface == nullptr && gApp->mBoard->mGameMode != Board::MODE_CHALLENGE) {
+		// 2D, not a challenge: space fades in over the board
 		mUnknown258.SetConstant(1.0);
 		mZOrder = gApp->mBoard->mZOrder;
 		mWidgetManager->PutInfront(this, gApp->mBoard);
@@ -224,7 +224,7 @@ void Hyperspace::StartEndGame()
 		mHasAlpha = true;
 		mFlag155 = false;
 	} else {
-		// A challenge (or Direct3D): the VizManager and the board are drawn into the old level's picture, which the
+		// Direct3D, or a challenge: the VizManager and the board are drawn into the old level's picture, which the
 		// challenge menu draws over itself while space comes back (0x714960)
 		MakeOldPicture();
 		Graphics aG(mUnknown160);
@@ -238,7 +238,7 @@ void Hyperspace::StartEndGame()
 		mFlag155 = true;
 		mLevel = 0;
 		gApp->mVizManager->SetVisible(false);
-		mFlag159 = false;  // whether gD3DInterface (0xe13bc0) is set; the port has none
+		mFlag159 = gD3DInterface != nullptr;
 	}
 }
 

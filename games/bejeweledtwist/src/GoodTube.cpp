@@ -211,6 +211,9 @@ GoodTube::GoodTube(Board* theBoard)
 		aBubble->mPhase = (float)((double)(Rand() % 100) * 0.001);
 		mBubbles.push_back(aBubble);  // 0x707ad5
 	}
+	// The tube does not clip its drawing to itself (+0x41). With Direct3D the clip rectangle stands in the screen's
+	// pixels after the board's transform, so a clipped tube lost its top, glass and pod under a menu replay's 0.4 scale.
+	mClip = false;
 	mLevelText = new TextImage(FONT_INGAME, GTS(0x7e4018), 0, 0, -1, 0, nullptr);  // 0x74e701 ("LEVEL"; nothing draws it)
 	mRankBadge = new RankBadge(this);
 	mUnknown240 = Ftol((double)gApp->mScale * 200.0);

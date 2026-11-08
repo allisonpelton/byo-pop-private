@@ -1902,8 +1902,11 @@ void OptionsPanel::ApplySettings(bool theResolution)
 			mApp->RegistryEraseValue(_S("Is3D"));
 			mApp->mFullscreenBits = 32;
 			mApp->RegistryWriteInteger("FullscreenBits", mApp->mFullscreenBits);
-			// The original, when its display has no 3D device's details (0x4a7930), asks for the art's size again
-			// at the next start (0xe13ba4, +0xf35): the port's art size is always 600
+			// The original, when its display has no 3D device (0x4a7930: so in 2D mode), writes the art's size,
+			// which 2D mode made 600, and asks to confirm 3D at the restart (0xe13ba4, not ported: the port's restart
+			// is a new start)
+			if (!mApp->Is3DAccelerated())
+				mApp->mArtResChanged = true;
 		}
 		// The original's restart (+0x81b, then Shutdown): natively the exe starts again, on the web the page
 		// reloads, so its canvas is new and takes the WebGL2 context 3D mode asks for
@@ -1916,9 +1919,13 @@ void OptionsPanel::ApplySettings(bool theResolution)
 	else
 		anArtRes = mResCheckboxes[1]->IsChecked() ? 768 : 1200;
 	if (theResolution && anArtRes != mApp->mArtRes) {
-		// port: the original keeps the art's size and restarts the game; the port's art is always 600, which only
-		// 3D could change
-		NotPorted("OptionsPanel restarting for the resolution (0x6a006a)");
+		// 0x6a006a: the new size is kept (written at shutdown, +0xf35), the window goes back to its default place, and
+		// the game restarts
+		mApp->mArtRes = anArtRes;
+		mApp->mPreferredX = -1;
+		mApp->mPreferredY = -1;
+		mApp->mArtResChanged = true;
+		mApp->RequestRestart(true, nullptr);
 	}
 }
 

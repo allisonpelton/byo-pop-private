@@ -126,6 +126,14 @@ the side panel's lives are the small icon (image 31).
 - **Help buttons' pressed look (0x40d330).** The original gives each help button `mDownImage` = `CopyImage(IMAGE_DBUTTONBLACK)`; the port
   sets none and draws the black plate with the framework's flat path (`COLOR_BKG` black). `DBUTTONBLACK` is all black, so a pressed
   button shows black text, offset by 1, over all black either way. To confirm with shotdiff once captures of the original work again.
+- **The pirate's box after "No" in the Continue dialog (a bug of the original that the port fixes).** Case 3000 + 0xf of 0x421a10
+  starts a new game (0x41eef0) without putting the pirate's talk widget away, as 0x41ed70's no-saved-game branch and case 0xf (Continue)
+  do. On Average and Hard his 200 x 200 box at (142, 10), invisible once he has faded out at the first update, still takes the clicks and
+  the hover of board columns 0 to 3, rows 0 to 4 for the whole game: no arrow and no move on those squares (the user's "column 4, rows
+  1-3", counting from 1). The port puts him away (mode 0, talking flag off, widget hidden) before that StartGame. The user, 2026-11-07:
+  "That sort of bug shouldn't be part of a fix mod, IMO", so a bug that breaks play is fixed in the port itself. To see the original: a
+  saved game (the New Game dialog's Yes), Average, Start New Game, "No", then hover a square next to the ship under the box. Natively
+  checked with real window messages on 2026-11-07 (tools/realinput.py `saved`): arrow and move on those squares.
 - **No Register button.** The options dialog's Register button is hidden (registration is taken out by the user's rule).
 - **Options dialog's four extra buttons' label colour** is gold, and a hovered label stays gold (captured in the Windows Sandbox,
   2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
@@ -161,6 +169,19 @@ new game: the original's case 0xf of 0x421a10 sets its mode to 0, clears the tal
 likely cause of the reported "controls fail at random times". Found by loading the original's own savegame.dat (its format is the
 port's; the file the original writes at exit) and clicking a cell under the box.
 
+**New game from the Continue dialog (fixed 2026-11-07).** The same box took the clicks again after the Continue dialog's "No":
+case 3000 + 0xf of 0x421a10 starts a new game without putting the pirate away (only 0x41ed70's no-saved-game branch and case 0xf do),
+so on Average or Hard (Easy goes through the demo and its button first) the board's first update fades him out and his 200 x 200
+box, still visible, took the clicks and the hover of columns 1 to 4, rows 1 to 5 for the whole game: no arrow and no move on
+those squares (the user's "column 4, rows 1-3", 2026-11-07). The original has the same fault, so this is a fix of its bug that the port
+makes now at the user's request: the pirate is put away as in ContinueGame. Seen in the web build with real mouse events (a saved
+game, Average, "No"), and gone with the fix. The tutorial's first-game box and its hint panel were checked in the same run.
+
+**Tutorial text (fixed 2026-11-07).** Two faults of the tutorial's texts. The last hint (step 14, on the line in the middle of the
+panel: "That's it! ...") never showed, because the generator of the text table listed 14 texts for each hint table and the tutorial has
+15 steps. The first box ("This is your ship...") drew its four lines at 0, 0x12, 0x23 and 0x34 below the row; the exe's code (0x406400,
+read from the bytes, the decompiler dropped the first two offsets) puts them at 0x12, 0x23, 0x34 and 0x45, 17 pixels lower, inside the box.
+
 **Continue: gun smoke on the loaded ships (not emulated).** The original's saved-game loader fills a ship's position, heading and
 type but not its nine gun-smoke timers (`mTrail`), which keep what the heap had there. In the sandbox the two ships showed
 cannon blasts in the diagonal cells (lower left, upper right) 60 updates after the board came up, and one of them again at
@@ -181,3 +202,41 @@ comparison had only hovered the vertical ones. Nine hovers around the ship (all 
 Each is described in section 6 and in IDENTICAL_PLAY.md: the new ship's cell after a sinking (the original's own draw count varies
 between runs), the gun smoke on the loaded ships of a continued game (uninitialised timers), and the treasure's cell on the bonus
 level (random, same variation).
+
+## 8. Running the original through origrun (2026-11-07)
+
+The update counter is `[0x4e21bc]+0x378` (`mUpdateCount`, incremented by 0x430ba0 once the app is loaded), not `+0x368`, which is
+the app's frame time and stays at 10: with it every `at` waits for an update that never comes and the run looks stalled at update 10
+(the shared session found this; the main thread's sleep in the frame loop at 0x431c70 is normal). `tools/origrun/sevenseas.cfg` holds
+`counter=[0x4e21bc]+0x378`. The title takes no click until the original has finished loading, which varies from run to run (a few
+seconds to over a minute of real time): a script that clicks the title early is ignored without a word, so put the first click late
+(about update 6500 on the real clock) and look at the first shot before trusting the rest. Clicks and moves take the game's own
+coordinates (640 x 480), not the picture's.
+
+Compared with it (sandbox, real clock, 2026-11-07): the twelve tutorial hints at their steps, the hint panel's text against the
+port's native shots at the same steps, mean difference about 2 grey levels (the port's shots are resampled from 1280 x 960), and the
+text lines at the same rows, including step 9 (second line only) and step 14. The Easy demo's captions run as in the port. Not yet
+compared in the original: the board's first box after the demo's "Click Here to Start!" (the four lines at the first-box position);
+the runs that reached it did not get past the title in time.
+
+## 9. Test commands (docs/TEST_COMMANDS.md; `src/testhooks/Commands.cpp`)
+
+Script commands of the port (`-script`, later the live channel), answered on stdout with one line each (`OK <command>`,
+`ERROR <command>: <reason>`, `STATE {...}`, `MOVE {...}`). A command that is never given changes nothing; `tools/check.sh sevenseas`
+(the autoplay games and their logs) gives the same results as before them. Tried with `tools/commands_test.txt` and
+`tools/commands_test2.txt` (`tools/run_script.sh`).
+
+| Command | Does |
+|---|---|
+| `state` | `STATE {"screen","mode","level","score","lives","kills","board":{"player":[x,y],"heading","state","levelOver","ships":[[type,x,y]...],"islands":[[x,y,kind]...],"wrecks":[[x,y]...],"whirlpools":[[x,y,open]...]}}`; `screen` is title, menu, demo, board, bonus, map, options, help, highscores; `mode` is easy, average, hard or tutorial; the game keys are absent off the board |
+| `goto <screen>` | menu, options, help, highscores (after a game), or easy, average, hard, tutorial through the menu's own buttons (the game starts at the next update); title and credits answer ERROR (the game has none to go to), and so does any `goto` while the title is up |
+| `level <n>` | `NewLevel` for level n of the current game, as `-autoplaylevel` does (not in the tutorial or the demo) |
+| `set score\|lives <n>` | the board's score or lives |
+| `win` | the level is complete now (the flag the board sets when the last pirate is gone; the game's level-complete screen follows) |
+| `lose` | the last life is lost now through `LoseLife`; the game over and the high-score screen follow as in play |
+| `seed <n>` | the game's random numbers (the C library generator the original used) are seeded with n |
+| `move`, `botmove` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"clicks":[[gx,gy]]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the click in game coordinates that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
+| `unlock all` | ERROR: the game has nothing locked |
+
+`move` is also the framework's own script command (`move x y`, the mouse), which the framework takes first, so a bare `move` never
+reaches the game: `botmove` is the same command under another name until the framework hands argument-less `move` to the game.

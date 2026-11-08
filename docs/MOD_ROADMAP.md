@@ -63,9 +63,11 @@ each run, I mean, so no 15-update variance on Twist."
 
 So each game gets one **fixes** mod, a fourth kind, and each of its settings is a toggle for one fix. A fix mends a
 bug of the original, or stops the original wasting the player's time or the machine's, and otherwise leaves the game
-as it was: its look, rules, sounds and pace of play. TipTop's loading bar is the first candidate: it loads one of its
-229 items a frame, so it fills at a steady crawl however fast they load (2.3 seconds in the port, about 3.8 in the
-original on a 60 Hz screen, where a frame waits for the vertical blank). A mod that trades the original's look or feel
+as it was: its look, rules, sounds and pace of play. Slow loading is not one of them: it is mended in the port itself
+(the user, 2026-11-07: "Let's make faster loading a core part of the recomps instead of a mod"; CLAUDE.md, "Port
+first, unmodified"). TipTop's loading bar, the first case found, loads one of its 229 items a frame, so it fills at a
+steady crawl however fast they load (2.3 seconds in the port, about 3.8 in the original on a 60 Hz screen, where a
+frame waits for the vertical blank); its fixes mod's `fastLoading` moves into the port. A mod that trades the original's look or feel
 for speed or memory, like Bejeweled's `lean` with its lower frame rate, is not a fix: it stays a mod of its own and
 starts off as before.
 
@@ -79,6 +81,12 @@ series of games, update for update. Nothing from outside the game's own updates 
 heap, memory never set) changes play, as it does in Twist's original, whose autoplay moves 15 updates early or late
 from one run to the next (games/bejeweledtwist/docs/IDENTICAL_PLAY.md, "Oddities"). Memory faults are not fixes for
 the mod: the port fixes every leak of the original itself, mod or no mod (CLAUDE.md, "Done means identical").
+
+Bugs that break play are not fixes for the mod either (the user, 2026-11-07, of Seven Seas' dead squares: "That sort
+of bug shouldn't be part of a fix mod, IMO"; asked which bugs, they chose "bugs that break play"). Controls that stop
+working, a soft lock, a crash or a lost save are fixed in the port itself, mod or no mod, and listed with the game's
+deviations. The fixes mod keeps the bugs that change how a game plays (its scores, timing or rules) and the waits that
+only cost time.
 
 A game's fixes mod is part of its decompilation: the game is not done until the mod is made, and the games already
 merged get theirs in the week from 2026-11-08, beside the second phases. A port that loads no mods yet (the
@@ -166,7 +174,13 @@ PopCap game works in the browser, CLAUDE.md "Order of work") its session goes th
 the game, and says in the game's README why it skipped any. Games that already have mods (Bejeweled, Big Money, BookWorm,
 Noah's Ark) make none of these until the user says every decomp runs in the browser to their satisfaction (2026-10-26).
 Each is a feature mod (or an example mod for a single
-setting), under the mod rules in CLAUDE.md. Where a game already has one, it is named in brackets.
+Setting), under the mod rules in CLAUDE.md. Where a game already has one, it is named in brackets.
+
+**Moved to the site (the user, 2026-11-07: "Yes, move them").** Parts of items 8, 14, 15, 17 and 27 work the same in
+every game, from the input the page passes on, the canvas it draws on or the framework's clock, so they become site
+settings that the site session builds, off by default (the default must not feel modded, `docs/WEB_PLAYER.md`). Only
+the parts that need a game's own code stay mods here; each item says which. The site also records clips of play, for
+every game.
 
 The user's first six:
 
@@ -183,22 +197,29 @@ Speedrunning and competition:
 
 7. Replay checker: a saved replay replayed without a window to confirm its score, so scores can be shared as files
    without online features.
-8. Timer and input display on screen, for speedruns in the browser, where LiveSplit cannot read the game.
+8. Timer and input display on screen, for speedruns in the browser, where LiveSplit cannot read the game. The input
+   display and a run timer are site settings now; splits at the game's own milestones stay a mod.
 9. Daily board: the same seed for everyone on a date, with its own high scores (BookWorm, Noah's Ark).
 
 Practice and help:
 
 10. Undo, in turn-based games (Bejeweled, BookWorm, Noah's Ark).
-11. Hints or a solver (BookWorm's word solver, Noah's Ark's move helper, Big Money's puzzle solver).
+11. Hints or a solver (BookWorm's word solver, Noah's Ark's move helper, Big Money's puzzle solver), and a bot that
+    plays the game on screen (the user, 2026-11-07), all from the bot behind the `move` test command that the test
+    drivers use (`docs/TEST_COMMANDS.md`, "The bot behind `move`").
 12. Level select: start at any level or stage, with separate scores.
 13. Game stats: the game's numbers at game over, and lifetime totals (Bejeweled's stage 17, BookWorm's word journal).
-14. Speed control: a slower or faster game clock.
+14. Speed control: a slower or faster game clock. A site setting now, through the framework's clock, for every port
+    that uses it.
 
 Accessibility:
 
-15. Colour-blind help: symbols or other palettes for anything the game tells apart only by colour.
+15. Colour-blind help: symbols or other palettes for anything the game tells apart only by colour. Palettes are a site
+    filter over the canvas now; symbols stay a mod.
 16. Reduced motion: screen shake, flashes and heavy particle bursts turned off.
-17. Other controls: keyboard-only or gamepad play for mouse games, touch for phone browsers, remappable keys.
+17. Other controls: keyboard-only or gamepad play for mouse games, touch for phone browsers, remappable keys. Site
+    settings now, translated by the page before the game sees the input; a mod only where a game needs controls of its
+    own.
 18. Larger text and a high-contrast interface.
 
 Rules and content:
@@ -217,10 +238,12 @@ Rules and content:
 
 Presentation:
 
-27. Pixel-perfect scaling and an optional scanline filter, for the 640x480 games.
+27. Pixel-perfect scaling and an optional scanline filter, for the 640x480 games. Both are site settings:
+    pixel-perfect since 3bd48ae1, the scanline filter to come.
 28. Smooth frames on high-refresh screens: frames drawn between updates without changing the update clock, so replays
     stay exact.
-29. Jukebox: the player chooses the music, or the game's other tracks play on other levels.
+29. Jukebox: the player chooses the music, or the game's other tracks play on other levels. The site's soundtrack
+    player covers listening outside the game; this mod is what the game plays during play.
 
 ## Nintendo 3DS port (after Bejeweled works fully with mods)
 

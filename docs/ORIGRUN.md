@@ -45,7 +45,9 @@ Builds, 32-bit (the originals are 32-bit), with llvm-mingw's i686 target under `
   origrun writes `<exe>.manifest` beside the copy's exe, which makes the stand-in COM's DirectSound too (guarantee 3).
 
 A run on the host needs `build/native/rundesk.exe` (`cmake --build build/native --target rundesk`). A `--sandbox`
-run needs the Windows Sandbox feature and its `wsb` command (Windows 11 24H2 or later), and no rundesk.
+run needs the Windows Sandbox feature and its `wsb` command (Windows 11 24H2 or later), and no rundesk. Start
+`origrun.exe` itself directly, never under rundesk: it puts the game under rundesk on its own, and wrapped in rundesk it
+fails with "cannot start the command" (Seven Seas, 2026-11-07).
 
 ## Use
 
@@ -142,7 +144,11 @@ sandbox and refuses to run anywhere else.
 
 One command per line; `#` starts a comment. Input is posted to the game's window (it works across the hidden
 desktop). Coordinates are in the window's client area; a click is routed to the child control under the point,
-so a dialog button is hit as well as a game that hit-tests in its own window.
+so a dialog button is hit as well as a game that hit-tests in its own window. The client area is the game's own
+size (640x480 for most), so take coordinates in it, never in a scaled screenshot's pixels. A title screen often takes
+no click until the game has finished loading, from seconds to over a minute of real time and different on every run
+(Seven Seas, 2026-11-07), and a click before that is lost without a sign: wait for the game's loaded state (a
+`--watch` value or a screenshot) before the first click.
 
 - `wait <ms>` — pause.
 - `move <x> <y>` — move the mouse.
