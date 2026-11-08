@@ -77,6 +77,35 @@ hold the vectors of every kind of object, so most of the code is Board methods.
   +0x640 loader screen, +0x644 MainMenu, +0x64c the screen over the selector, +0x658 / +0x6f9 / +0x6fa / +0x6fb flags set from
   the profile by ValidateUser 0x4285d0, +0x684 the player names, +0x690 the current profile, +0x6a8 the descriptor.
 
+## 4b. The game's event bus (the key to the Board's structure)
+
+The app owns 43 lists (+0x62c, 12 bytes each: an STL list head and its size; made by 0x4319b0). Every game object and the
+Board hold a pointer to them (Board +0x5c / +0x68, objects +4 / +0x10). A list is an event channel: `FUN_00425290(listener, id)`
+registers the listener at the end of list `id` (0x424270), `FUN_0040ddc0` asks whether it is registered (0x40d7e0),
+`FUN_0040e7c0` removes it (0x40dfa0), `FUN_0040e7e0` removes it from every list (0x40e000), and `FUN_0040dd40(source, id)`
+fires the event (0x40cde0): for each listener of list `id`, in registration order, it calls the listener's virtual method
+for that event with the source as the argument (and first the optional trace hook at source+8, which is never set).
+Registered pointers are the **second subobject** (+0xc) of an object: its vtable (0x55d500, 69 slots) holds the handlers.
+Event id -> handler slot of the listener's vtable (events 10, 0x16..0x19, 0x1d and 0x1f..0x2a are never fired through
+0x40cde0; the lists 0x16..0x19 and 0x25 are walked by the Board itself):
+
+| event | slot | event | slot | event | slot | event | slot |
+|---|---|---|---|---|---|---|---|
+| 0 | 1 | 9 | 6 | 0x10 | 15 | 0x1b | 19 |
+| 1 | 2 | 0xb | 12 | 0x11 | 17 | 0x1c | 18 |
+| 2 | 3 | 0xc | 7 | 0x12 | 21 | 0x1e | 16 |
+| 3 | 4 | 0xd | 20 | 0x13 | 22 | 0x1a | 29 |
+| 4 | 5 | 0xe | 14 | 0x14 | 23 | | |
+| 5 | 8 | 0xf | 13 | 0x15 | 24 | | |
+| 6 | 9 | | | | | | |
+| 7 | 10 | | | | | | |
+| 8 | 11 | | | | | | |
+
+The playfield object class (sizeof 0x234 / 0x23c / 0x254, vtables 0x55d500 .. 0x55d860: 0x55d860 has a second copy of the
+table, 143 slots) is two subobjects: +0 a state-machine part (vtable 0x55d5a8: slot 1 SetState(int), 5/6/7 per-state
+updates ...) and +0xc the listener part. Methods reached through the +0xc vtable get `this` = object+0xc, so their field
+offsets are relative to it (add 0xc for the object's own offsets).
+
 ## 5. Left out of the port (registration, links, statistics)
 
 - The "More Games" button (id 0xfad, button index 4 of the selector). Its panel is part of the selector's background
