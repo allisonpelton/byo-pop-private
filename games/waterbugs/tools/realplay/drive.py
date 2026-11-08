@@ -98,7 +98,7 @@ class Game:
                 if 'script:' in l and 'unknown command' in l:
                     self.errors.append(l)
             if self.proc.poll() is not None:
-                raise RuntimeError('the game ended while waiting for the answer to "%s"' % line)
+                raise RuntimeError('the game ended (exit %s) while waiting for the answer to "%s"' % (self.proc.returncode, line))
             time.sleep(0.002)
         raise RuntimeError('no answer to "%s" within %d s' % (line, timeout))
 

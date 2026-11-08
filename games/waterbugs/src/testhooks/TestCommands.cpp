@@ -790,18 +790,20 @@ bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 	}
 	if (aName == "level")
 	{
-		int n = std::atoi(theCommand.mArgs.c_str());
-		LevelSet* aSet = n >= 0 ? SetOfLevel(n) : nullptr;
+		// board n of the game (0 is the first as well); the story screen that comes before a world's first board comes first.
+		// The game's own count of levels left behind is one less (Start after n boards played goes to board n + 1).
+		int n = std::max(std::atoi(theCommand.mArgs.c_str()), 1);
 		if (aLevel == nullptr)
 			ReplyError(theCommand, "the game has no screen yet");
-		else if (aSet == nullptr)
+		else if (SetOfLevel(n) == nullptr)
 			ReplyError(theCommand, "no such level");
 		else
 		{
 			bool aFromBoard = aLevel->kind == 0;
 			if (aFromBoard)
 			{
-				// back to the main menu first, as Esc's quit does, so that the boards are read afresh
+				// back to the main menu first, as Esc's quit does, so that the boards are read afresh (that reads the game
+				// file again, which makes the level sets new: the set is found after it)
 				gGoTo = 1;
 				LeaveScreen();
 			}
@@ -810,8 +812,8 @@ bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 				gLives = 6;
 				gScore = 0;
 			}
-			gLevelSets.current = aSet;
-			gLevelInSet = n;
+			gLevelSets.current = SetOfLevel(n);
+			gLevelInSet = n - 1;
 			gGoTo = 0;
 			gPlayed = true;
 			if (!LeaveScreen())
