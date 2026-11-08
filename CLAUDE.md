@@ -21,7 +21,8 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   and a web build under Node (`node games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled.js ...`) open no
   window, play no sound and open no URL. A web build under Node still counts as a game process.
 - **Originals** run only through `tools/origrun` (`docs/ORIGRUN.md`: what it does, its status table for each game, its
-  gaps), from a copy under build/, invisibly under rundesk; an install folder is never written to or run in place.
+  gaps), from a copy under build/, invisibly under rundesk (origrun puts the game there itself: start origrun directly, never
+  wrapped in rundesk); an install folder is never written to or run in place.
   origrun is silent by default (rundesk silences only SDL): its stand-in also serves the DirectSound a copy asks COM
   for (BASS in Alchemy, Pixelus and Rocket Mania) and mutes the copy's audio sessions as it loads, so nothing reaches
   the speakers, and a run's RESULT line says `SOUND LEAK` if anything did. A copy keeps the stand-in its last run
@@ -138,7 +139,12 @@ Every call re-reads the whole context, so what costs is context times calls, and
   original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle a
   fix, and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that
   only costs the player time, is kept in the port and fixed in the mod (listed until then under "Fix candidates" in
-  the game's notes), and with the mod on a game plays the same on every run. Memory leaks are still fixed in the
+  the game's notes), and with the mod on a game plays the same on every run. Loading is the exception, made fast in
+  the port itself (the user, 2026-11-07: "Let's make faster loading a core part of the recomps instead of a mod"): a
+  port loads at the machine's speed, with no wait the original's code put into loading (a few files a frame, a time
+  step, a minimum time before the game can start), as the framework already runs a SexyAppFramework game's loading
+  thread in one go; slices of a frame's time only where the window must keep drawing meanwhile. It is listed with the
+  deviations, and an animation that does not hold the player stays. Memory leaks are still fixed in the
   port itself, and so is a bug of the original that breaks play: controls that stop working, a soft lock, a crash, a
   lost save (the user, 2026-11-07, of Seven Seas' dead squares: "That sort of bug shouldn't be part of a fix mod"),
   listed in the game's notes with its deviations (`docs/MOD_ROADMAP.md`, "The fixes mod").
@@ -193,9 +199,13 @@ Every call re-reads the whole context, so what costs is context times calls, and
   original, what the port does now, and the commit. It lists every oddity skipped and why, how to see each one, and the
   deviations that remain. Write it in prose, with a table for the list of changes if that reads better.
 - **Order of the work (the user, 2026-11-01):** first every fault the user reported and anything that makes a game
-  hard to test, then the identical-play pass. A performance pass (the user, 2026-11-03), then a readability pass
-  (`docs/CODE_STANDARDS.md`) and taking out code the ports do not need (registration and the like) come once every game
-  is done (`docs/COORDINATION.md`).
+  hard to test, then the identical-play pass. Registration code (trial, nag, unlock, register and buy paths) comes out
+  in this phase, as part of finishing each game, before any further decomp begins (the user, 2026-11-07: "Move up the
+  removal of all registration-related code to be part of the current phase before beginning other decomps"); a port
+  not yet translated leaves it out as it goes. So does every button that leads out of a game, "More Games" first, its
+  neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). A performance pass (the user, 2026-11-03), then a readability pass
+  (`docs/CODE_STANDARDS.md`) and taking out the other code the ports do not need come once every game is done
+  (`docs/COORDINATION.md`).
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
