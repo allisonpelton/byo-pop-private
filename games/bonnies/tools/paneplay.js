@@ -152,14 +152,15 @@ window.panePlay = async function (text, onShot) {
         tiles = st.hint[0] && st.hint[1].length >= 3 ? st.hint[1] : null;
         if (!tiles) { await s(500); continue; }
       } else if (tiles && spelled !== lastWord) refused = 0;
-      // the last few cells left and the latest words fill none of them: Scramble, as a player would
+      // the latest words fill none of the cells left: Scramble, as a player would
       const fs = phase === 1 && !balloon ? fillState() : null;
       if (fs) {
         // the best count so far on this level (a level's toggling cells take the count down as well as up)
         if (lvl !== fillLevel) { fillLevel = lvl; filled = -1; }
         if (fs[0] > filled) { filled = fs[0]; idle = 0; }
         const scramble = st.buttons.find(b => b.id === 0xcb);
-        if (fs[1] - filled <= 3 && idle >= 3 && scramble) {
+        // (three words without a new cell when three or fewer are left, eight when more are)
+        if (idle >= (fs[1] - filled <= 3 ? 3 : 8) && scramble) {
           log('scramble: ' + (fs[1] - fs[0]) + ' cells left, none filled in ' + idle + ' words');
           await click(scramble.x, scramble.y);
           idle = 0;
