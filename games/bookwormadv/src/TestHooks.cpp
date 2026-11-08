@@ -382,7 +382,7 @@ void GameApp::LogBoardForTests()
 	if (mBoard != nullptr && mBoard->mVisible && !mBoard->IsMiniGame() && mDialogMap.empty() &&
 	    !ShowingConversationPanel() &&
 	    RunLua("if IntroTutorial == nil or IntroTutorial.mDone or IntroTutorial.mState == nil then return '' end "
-	           "return tostring(IntroTutorial.mState)",
+	           "if IntroTutorial.mState < 0 then return '' end return tostring(IntroTutorial.mState)",
 	           aTutorialState) &&
 	    !aTutorialState.empty()) {
 		bool aMoving = false;
@@ -415,15 +415,28 @@ void GameApp::LogBoardForTests()
 			}
 		sLastTutorial = aTutorial;
 	}
+	// the tiles picked so far, as they change: "select: <n> <LETTERS|->"
+	static std::string sLastSelect;
+	std::string aSelect;
+	if (mBoard != nullptr && mBoard->mVisible)
+		aSelect = mBoard->mSelected.empty() ? std::string("-") : Board::GetWord(mBoard->mSelected);
+	if (aSelect != sLastSelect) {
+		if (!aSelect.empty())
+			if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+				fprintf(aFile, "select: %d %s\n", ++sCount, aSelect.c_str());
+				fclose(aFile);
+			}
+		sLastSelect = aSelect;
+	}
 	// a lost turn (Lex stunned): a click on the grid ends its round once the game takes one (Board::MouseDown's test):
 	// "lostturn: <n> x,y", once a round
-	static bool sLostTurn = false;
+	static int sLostTurnFor = 0;  // updates the lost turn has lasted: it is logged once it holds (a turn changing shows it for a moment)
 	bool aLostTurn = mBoard != nullptr && mBoard->mVisible && !mBoard->IsMiniGame() && gBattleEngine != nullptr &&
 	                 mDialogMap.empty() && !mBoard->IsPaused() && gBattleEngine->LostTurn() &&
 	                 gBattleEngine->mState == BattleEngine::BE_IDLE &&
 	                 gBattleEngine->CallLinkedMethod("CanEndLostTurnRound", 0).Bool() &&
 	                 gBattleEngine->CallLinkedMethod("AttackerIsPlayer", 0).Bool();
-	if (aLostTurn && !sLostTurn && !mBoard->mTiles.empty()) {
+	if (aLostTurn && sLostTurnFor == 30 && !mBoard->mTiles.empty()) {
 		int aX = 0, aY = 0;
 		for (Tile* aTile : mBoard->mTiles) {
 			aX += aTile->mX + 25;
@@ -435,7 +448,7 @@ void GameApp::LogBoardForTests()
 			fclose(aFile);
 		}
 	}
-	sLostTurn = aLostTurn;
+	sLostTurnFor = aLostTurn ? sLostTurnFor + 1 : 0;
 	if (mBoard == nullptr || mLex == nullptr || BoardBusyForTests()) {
 		sLast.clear();
 		return;

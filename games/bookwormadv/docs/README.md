@@ -96,7 +96,7 @@ real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n>
 first button), `treasure: <n> continue x,y 1|0` (the treasure room's Continue, and whether it is enabled: a
 driver picks Lex's treasures from the left column until it is), `hint: <n> <id> x,y ...|-` (the tutorial's
 arrows that wait for a click on a hot spot, and each spot's centre: the drivers click the first), `tutorial: <n> <state> x,y|attack x,y` (the
-first battle's tutorial: the one tile it lets be picked, or Attack), `lostturn: <n> x,y` (Lex stunned: a click there,
+first battle's tutorial: the one tile it lets be picked, or Attack), `select: <n> LETTERS|-` (the tiles picked so far, as they change), `lostturn: <n> x,y` (Lex stunned: a click there,
 on the grid, ends the lost turn's round, once the game takes one), `board: <n> <WORD|-> x,y ... attack x,y scramble x,y words W1,W2,... letters L@x,y;...` (the longest word
 the tiles spell, its tiles, the buttons, the 40 longest words and the tiles that can be picked; only while the board
 is at rest and a tile can be picked) and, in Word Master, `wordmaster: <n> <GUESS> x,y ... submit x,y rows ...`, a
