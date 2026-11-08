@@ -307,3 +307,8 @@ option(BUILD_BEJEWELEDTWIST "Build the Bejeweled Twist port" ON)
 if(BUILD_BEJEWELEDTWIST AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweledtwist/CMakeLists.txt)
   add_subdirectory(games/bejeweledtwist)
 endif()
+# Bejeweled 2 Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_BEJEWELED2 "Build the Bejeweled 2 Deluxe port" ON)
+if(BUILD_BEJEWELED2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled2/CMakeLists.txt)
+  add_subdirectory(games/bejeweled2)
+endif()
