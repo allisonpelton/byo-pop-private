@@ -303,6 +303,9 @@ public:
 	void			ShowSaveNameDialog();						// 0x418f40: dialog 8, the saved game's name
 	void			StartTutorial();							// 0x419040
 	void			LoadSavedGame(const char* theFile);			// 0x418fd0
+	// the pointer to the window's middle plus (0x5e, 0x96), near the sling, as the main menu does when a game starts
+	// or a saved game loads (GetWindowRect and SetCursorPos; WarpMouse does nothing in a test run)
+	void			WarpToBoard();
 	void			TitleScreenDone();							// 0x419250: the play link
 	void			PumpLoading();								// port: the loading runs in the main thread
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;	// port: TestHooks.cpp

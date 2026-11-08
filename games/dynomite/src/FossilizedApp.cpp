@@ -187,6 +187,18 @@ void FossilizedApp::TitleScreenDone()
 	ShowMainMenu();
 }
 
+// the window's rectangle has its frame, so in a window its middle lies above the game's by half the title bar
+void FossilizedApp::WarpToBoard()
+{
+	int aTop = 0;
+	int aLeft = 0;
+	int aBottom = 0;
+	int aRight = 0;
+	if ((mHWnd != NULL) && mIsWindowed)
+		SDL_GetWindowBordersSize(mHWnd, &aTop, &aLeft, &aBottom, &aRight);
+	WarpMouse(mWidth / 2 + 0x5e + (aRight - aLeft) / 2, mHeight / 2 + 0x96 + (aBottom - aTop) / 2);
+}
+
 // 0x4186d0
 void FossilizedApp::ShowMainMenu()
 {

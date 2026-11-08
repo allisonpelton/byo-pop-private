@@ -96,8 +96,9 @@ int Around(EggGrid* theGrid, int theCol, int theRow)
 	return aCount;
 }
 
-// flies an egg from (x, y) at theAngle until it lands; false when it breaks on a target or never lands
-bool Fly(Dynomite* theBoard, int theAngle, float x, float y, int* theCol, int* theRow)
+// flies an egg from (x, y) at theAngle until it lands, the grid coming down theDrop pixels an update meanwhile; false
+// when it breaks on a target or never lands
+bool FlyOnce(Dynomite* theBoard, int theAngle, float x, float y, float theDrop, int* theCol, int* theRow)
 {
 	EggGrid* aGrid = theBoard->mGrid;
 	AngleTable* anAngles = theBoard->mApp->mAngles;
@@ -105,6 +106,8 @@ bool Fly(Dynomite* theBoard, int theAngle, float x, float y, int* theCol, int* t
 	float aVY = anAngles->mDY[theAngle];
 	for (int anUpdate = 0; anUpdate < 400; anUpdate++)
 	{
+		if (anUpdate > 0)
+			aGrid->mCeiling += theDrop;
 		unsigned int aHits = 0;
 		for (int i = 0; i < 10; i++)
 		{
@@ -153,6 +156,38 @@ bool Fly(Dynomite* theBoard, int theAngle, float x, float y, int* theCol, int* t
 	return false;
 }
 
+bool Fly(Dynomite* theBoard, int theAngle, float x, float y, float theDrop, int* theCol, int* theRow)
+{
+	// the ceiling is moved only while the flight is worked out, and put back
+	float aCeiling = theBoard->mGrid->mCeiling;
+	bool aLanded = FlyOnce(theBoard, theAngle, x, y, theDrop, theCol, theRow);
+	theBoard->mGrid->mCeiling = aCeiling;
+	return aLanded;
+}
+
+// how far the grid comes down an update, as seen between this call and the last within two seconds (a push of new rows
+// or a kick is left out)
+float GridDrop(Dynomite* theBoard)
+{
+	static Dynomite* aLastBoard = NULL;
+	static float aLastCeiling = 0.0f;
+	static int aLastUpdate = -1;
+	static float aDrop = 0.0f;
+	int anUpdate = theBoard->mApp->mUpdateCount;
+	float aCeiling = theBoard->mGrid->mCeiling;
+	if ((aLastBoard == theBoard) && (anUpdate > aLastUpdate) && (anUpdate - aLastUpdate <= 200))
+	{
+		float aSeen = (aCeiling - aLastCeiling) / (float) (anUpdate - aLastUpdate);
+		aDrop = ((aSeen >= 0.0f) && (aSeen <= 3.0f)) ? aSeen : 0.0f;
+	}
+	else if (aLastBoard != theBoard)
+		aDrop = 0.0f;
+	aLastBoard = theBoard;
+	aLastCeiling = aCeiling;
+	aLastUpdate = anUpdate;
+	return aDrop;
+}
+
 }
 
 bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot)
@@ -167,6 +202,7 @@ bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot)
 	AngleTable* anAngles = theBoard->mApp->mAngles;
 	EggGrid* aGrid = theBoard->mGrid;
 	int aColor = aLauncher->mLoaded->mColor;
+	float aDrop = GridDrop(theBoard);
 	// each angle the mouse can give (Aim: the point is held at least 10 pixels above the sling), with the first point
 	// of the board found for it
 	bool aHave[360] = {};
@@ -201,7 +237,7 @@ bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot)
 		float x = (float) ((double) aLauncher->mSlingX - (double) anAngles->mDX[anAngle] * 25.0);
 		float y = (float) ((double) aLauncher->mFieldAac + ((double) aLauncher->mSlingY - (double) anAngles->mDY[anAngle] * 25.0));
 		int aCol, aRow;
-		if (!Fly(theBoard, anAngle, x, y, &aCol, &aRow))
+		if (!Fly(theBoard, anAngle, x, y, aDrop, &aCol, &aRow))
 			continue;
 		int aGroup = (aColor == 0) ? Around(aGrid, aCol, aRow) : GroupSize(aGrid, aCol, aRow, aColor);
 		// a match (three or more) first, the bigger the better; else the most of its colour touched; then the higher

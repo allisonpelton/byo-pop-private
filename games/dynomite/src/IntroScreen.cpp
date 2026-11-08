@@ -890,7 +890,7 @@ void IntroScreen::ButtonDepress(int theId)
 			mApp->StartGame();
 			mApp->mMusicInterface->PlayMusic(2, 0x29, false);
 			mField280 = true;
-			// port: the original also moves the mouse pointer to the board's middle (SetCursorPos)
+			mApp->WarpToBoard();
 			goto back;
 		case 3:
 			LoadChosenSlot();
@@ -1078,5 +1078,5 @@ void IntroScreen::LoadChosenSlot()
 	char aName[20];
 	sprintf(aName, "SLOT%d.SAV", mSlotNumbers[mChosenSlot]);
 	mApp->LoadSavedGame(aName);
-	// port: the original also moves the mouse pointer to the board's middle (SetCursorPos)
+	mApp->WarpToBoard();
 }

@@ -3,9 +3,10 @@
 
 // port: the bot behind the `move` test command (docs/TEST_COMMANDS.md); the original has none. It reads the board and
 // never changes it: every angle the mouse can give the launcher is flown with the grid's ghost probes (as
-// FlyingEgg::Update moves an egg, ten steps an update, bouncing off the walls), landed as FlyingEgg::Land lands one,
-// and scored by the group of the egg's colour it would join (EggGrid::Match's rule). The best shot is the angle and a
-// point of the board the mouse can click to fire it.
+// FlyingEgg::Update moves an egg, ten steps an update, bouncing off the walls) against the grid coming down as fast as
+// it did since the last call, landed as FlyingEgg::Land lands one, and scored by the group of the egg's colour it
+// would join (EggGrid::Match's rule). The best shot is the angle and a point of the board the mouse can click to fire
+// it.
 
 namespace Sexy
 {

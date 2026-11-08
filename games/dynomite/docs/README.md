@@ -72,6 +72,27 @@ saved game from the main menu and checks that the board loads as it was saved. T
 commands plus the game's own (`src/TestHooks.cpp`): `continue` and `step` for the tutorial, `board` (the board's mode,
 score, egg count and a hash of its cells) and `combo <n>` (Inchy's call-out of a chain).
 
+The standard test commands (`docs/TEST_COMMANDS.md`) are in `src/TestHooks.cpp`, reachable only from a test, each
+answered on stdout. `state` prints `STATE {...}` with the keys `screen` (title, menu or game; the tutorial's board is a
+game), `tutorial` (its step) or `page` (the main menu's page), `dialog` (the topmost dialog's id), `score`, and on a
+board `mode` (stomped, endless, fossil, timetrial), `paused`, `busy` (no move can be made now), `over`, `level` (the
+fossil and its `round` in the Fossil Challenge, the round in Stomped, the whirley level in Endless) and `board`: `eggs`,
+the `loaded` and `next` colours, `frozen` and `rows`, the grid's cells a row a string of hex colours with `.` for
+empty. `goto` opens `menu`, `options`, `highscores` or `credits`, or starts `endless`, `stomped`, `fossil`,
+`timetrial` or `tutorial` through the main menu's own pages (their present skill and pack). `level <n>` starts fossil
+n of the Fossil Challenge from its first fragment. `set score <n>` sets the side bar's score. `win` clears the board in
+Stomped and Time Trial, so the board's own end follows; `lose` puts the eggs past the line as in play (Inchy sinks and
+the eggs run off), once the first shot has started the game. `seed <n>` seeds the app's twister and its picker.
+`unlock all` answers with an error: nothing is locked in the port. `move` prints the bot's next move (`src/Bot.cpp`):
+in the tutorial its Continue button while it shows, else the shot that joins the most eggs of the loaded colour, found
+by flying every angle the mouse can give with the grid's own probes, with its `input` (a move to the point that aims it
+and a click there). The bot reads the board and changes nothing.
+
+`tools/realplay/play.sh <steps> <out>` plays the port natively with real input only, through Bejeweled Twist's driver
+(`games/bejeweledtwist/tools/realplay/drive.py`); `tools/realplay/*.txt` are its step files (the tutorial and a game of
+each mode). `tools/shots/` holds phase two's comparisons with the original: `tour.sh` (screens, with shotdiff),
+`sound.sh` and `soundcmp.py` (sound) and `web.sh` (the web build against the native port).
+
 ## Tools (`games/dynomite/tools`)
 
 `decread.py` prints a function of the Ghidra export in a readable form, `vtscan.py` and `vtsyms.py` find and name virtual

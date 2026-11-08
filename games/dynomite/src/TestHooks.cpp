@@ -13,25 +13,30 @@
 // The standard test commands (docs/TEST_COMMANDS.md), each answered with one line on stdout: STATE {...}, MOVE {...},
 // OK <command> or ERROR <command>: <reason>. A command that is never given changes nothing.
 //
-//   state                 STATE {json}: screen (title, menu, board, tutorial), page (the main menu's), dialog (the
-//                         topmost dialog's id, 0 for none), score, and on a board: mode (stomped, endless, fossil,
-//                         timetrial), paused, over (lost or won, its end running), level (Fossil's fossil with its
-//                         round, Stomped's round, Endless's whirley level) and the board: eggs, loaded and next
-//                         colours, frozen, and rows (the grid's cells, a row a string of hex colours, '.' empty)
+//   state                 STATE {json}: screen (title, menu, game), tutorial (its step; its board is a game) or page
+//                         (the main menu's), dialog (the topmost dialog's id, 0 for none), score, and on a board: mode
+//                         (stomped, endless, fossil, timetrial), paused, busy (no move now), over (lost or won, its end
+//                         running), level (Fossil's fossil with its round, Stomped's round, Endless's whirley level)
+//                         and the board: eggs, loaded and next colours, frozen, and rows (the grid's cells, a row a
+//                         string of hex colours, '.' empty)
 //   goto <screen>         menu, options, highscores, credits, or a mode (endless, stomped, fossil, timetrial, tutorial),
 //                         started through the main menu's own pages with their present choices of skill and pack
 //   level <n>             Fossil: fossil n (1-15) from its first fragment, as the museum starts one
 //   set score <n>         the side bar's score
 //   win                   Stomped and Time Trial: every egg goes, so the board's own end follows
-//   lose                  the eggs have passed the line: Inchy sinks and the eggs run off, as in play
+//   lose                  the eggs have passed the line: Inchy sinks and the eggs run off, as in play (once the
+//                         first shot has started the game)
 //   seed <n>              the app's twister and its picker, as the original seeds them from the tick count
-//   move                  MOVE {json}: the bot's shot (Bot.h): angle, cell, colour, group and the click that fires it
+//   move                  MOVE {json}: in the tutorial its continue button while it shows; else the bot's shot
+//                         (Bot.h): angle, cell, colour, group, and its input, a move to the point that aims it and a
+//                         click there, which fires
 //   unlock all            ERROR: nothing is locked in the port
 #include <SDL.h>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include "Bot.h"
 #include "CellButton.h"
@@ -96,30 +101,45 @@ int TopDialogId(FossilizedApp* theApp)
 	return anId;
 }
 
+// the tutorial's continue button while it shows for the step on screen
+CellButton* TutorialContinue(FossilizedApp* theApp)
+{
+	Tutorial* t = theApp->mTutor;
+	if ((t == NULL) || (t->mContinueButton->mX < 0) || (t->mStep != t->mShownStep))
+		return NULL;
+	return t->mContinueButton;
+}
+
 std::string StateJson(FossilizedApp* theApp)
 {
 	std::string s = "{\"screen\":\"";
 	Dynomite* b = theApp->mBoard;
 	if (theApp->mTitleScreen != NULL)
 		s += "title";
-	else if (theApp->mTutor != NULL)
-		s += "tutorial";
 	else if (b != NULL)
-		s += "board";
+		s += "game";
 	else if (theApp->mIntroScreen != NULL)
 		s += "menu";
 	else
 		s += "none";
 	s += "\"";
-	if (theApp->mIntroScreen != NULL)
+	if (theApp->mTutor != NULL)
+		s += StrFormat(",\"tutorial\":%d", theApp->mTutor->mStep);
+	else if (theApp->mIntroScreen != NULL)
 		s += StrFormat(",\"page\":%d", theApp->mIntroScreen->mPage);
 	s += StrFormat(",\"dialog\":%d", TopDialogId(theApp));
 	if (theApp->mSideBar != NULL)
 		s += StrFormat(",\"score\":%d", theApp->mSideBar->mScore);
 	if (b != NULL)
 	{
-		s += StrFormat(",\"mode\":\"%s\",\"paused\":%d,\"over\":%s", ModeName(b->mGameType), b->mPauseCount,
-			(b->mField131 || b->mField132) ? "true" : "false");
+		// busy: no shot can be fired now (none loaded, one in flight, frozen, paused, or a match or the end running)
+		bool isBusy = (b->mLauncher == NULL) || (b->mLauncher->mLoaded == NULL) || b->mLauncher->mFrozen ||
+			(b->mFlyingEggs.mCount > 0) || (b->mPauseCount > 0) || b->mField244 || b->mField80 ||
+			(b->mThunderbolt != NULL) || b->mField130 || b->mField131 || b->mField132;
+		if (TutorialContinue(theApp) != NULL)
+			isBusy = false;
+		s += StrFormat(",\"mode\":\"%s\",\"paused\":%d,\"busy\":%s,\"over\":%s", ModeName(b->mGameType),
+			b->mPauseCount, isBusy ? "true" : "false", (b->mField131 || b->mField132) ? "true" : "false");
 		if (b->mGameType == 2)
 		{
 			DynomiteFossil* f = (DynomiteFossil*) b;
@@ -150,13 +170,27 @@ std::string StateJson(FossilizedApp* theApp)
 	return s + "}";
 }
 
+// to the main menu as a player gets there: the title's link, the side bar's menu button (in the tutorial, or after a
+// game's end), or its "quit the current game?" answered yes; the dialogs open go first (a dialog pauses the board)
+void ToMenu(FossilizedApp* theApp)
+{
+	std::vector<int> anIds;
+	for (DialogMap::iterator it = theApp->mDialogMap.begin(); it != theApp->mDialogMap.end(); ++it)
+		anIds.push_back(it->first);
+	for (size_t i = 0; i < anIds.size(); i++)
+		theApp->KillDialog(anIds[i]);
+	if (theApp->mTitleScreen != NULL)
+		theApp->TitleScreenDone();
+	else if (theApp->mInTutorial || ((theApp->mBoard != NULL) && theApp->mBoard->mField131))
+		theApp->MenuButton();
+	else if ((theApp->mBoard != NULL) || (theApp->mIntroScreen == NULL))
+		theApp->ShowMainMenu();
+}
+
 // the main menu's own pages, from the start page with the given choice and mode, as its OK button goes through them
 bool StartFromMenu(FossilizedApp* theApp, int theStartChoice, int theMode)
 {
-	if (theApp->mTitleScreen != NULL)
-		theApp->TitleScreenDone();
-	else if (theApp->mIntroScreen == NULL)
-		theApp->ShowMainMenu();
+	ToMenu(theApp);
 	if (theApp->mIntroScreen == NULL)
 		return false;
 	theApp->mIntroScreen->mStartChoice = theStartChoice;
@@ -180,12 +214,20 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 	if (theName == "move")
 	{
 		BotShot aShot;
-		if (!BotChooseShot(b, &aShot))
+		CellButton* aContinue = TutorialContinue(theApp);
+		if (aContinue != NULL)
+		{
+			int x = aContinue->mX + aContinue->mWidth / 2;
+			int y = aContinue->mY + aContinue->mHeight / 2;
+			Reply(StrFormat("MOVE {\"kind\":\"continue\",\"step\":%d,\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}",
+				theApp->mTutor->mStep, x, y, x, y));
+		}
+		else if (!BotChooseShot(b, &aShot))
 			Reply("MOVE null");
 		else
 			Reply(StrFormat("MOVE {\"kind\":\"shot\",\"angle\":%d,\"cell\":[%d,%d],\"color\":%d,\"group\":%d,"
-				"\"clicks\":[[%d,%d]]}", aShot.mAngle, aShot.mCol, aShot.mRow, aShot.mColor, aShot.mGroup,
-				aShot.mClickX, aShot.mClickY));
+				"\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}", aShot.mAngle, aShot.mCol, aShot.mRow,
+				aShot.mColor, aShot.mGroup, aShot.mClickX, aShot.mClickY, aShot.mClickX, aShot.mClickY));
 		return true;
 	}
 	if (theName == "goto")
@@ -211,10 +253,7 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 		}
 		else if (theArgs == "menu")
 		{
-			if (theApp->mTitleScreen != NULL)
-				theApp->TitleScreenDone();
-			else if (theApp->mIntroScreen == NULL)
-				theApp->ShowMainMenu();
+			ToMenu(theApp);
 			Ok(aLine);
 		}
 		else if (theArgs == "options")
@@ -280,6 +319,8 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 	{
 		if ((b == NULL) || b->mField131 || b->mField132)
 			Error(aLine, "no game in play");
+		else if (!b->mFieldB0)
+			Error(aLine, "the game starts with its first shot");
 		else
 		{
 			// as Dynomite::Update when the eggs have been past the line too long
