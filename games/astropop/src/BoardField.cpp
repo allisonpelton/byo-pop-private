@@ -35,12 +35,12 @@ bool Board::FirstPieceIsType(int theType)
 	return aBrick->mType == theType;
 }
 
-// 0x439510: is the number in the vector at +0x118?
-bool Board::InM118(int theValue)
+// 0x439510: does the brick flash already?
+bool Board::IsTargeted(Brick* theBrick)
 {
-	for (unsigned int i = 0; i < m118.size(); i++)
+	for (unsigned int i = 0; i < mTargeted.size(); i++)
 	{
-		if (m118[i] == theValue)
+		if (mTargeted[i] == theBrick)
 			return true;
 	}
 	return false;
@@ -93,7 +93,7 @@ void Board::ClearField()
 		m128.insert(m108[i]);
 	m108.clear();
 
-	m118.clear();
+	mTargeted.clear();
 
 	if (m354 != NULL)
 		m128.insert(m354);

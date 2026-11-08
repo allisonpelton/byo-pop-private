@@ -8,7 +8,7 @@ a8	std::vector<void*>	ma8	freed by ClearField, element type not seen
 c8	std::vector<CellRef>	mc8
 f8	std::vector<int>	mf8
 108	std::vector<Brick*>	m108	bricks (emptied by ClearField)
-118	std::vector<int>	m118	numbers (InM118)
+118	std::vector<Brick*>	mTargeted	the bricks that flash because the piece in hand would hit them (HighlightTargets)
 128	std::set<Brick*>	m128	the bricks to delete (DeleteDoomedBricks)
 160	std::vector<PlanetRec>	m160	the planets (5 are stepped)
 170	std::vector<StreakRec>	m170	the streaks (100)
@@ -21,6 +21,7 @@ f8	std::vector<int>	mf8
 280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
 2f8	Image*	m2f8	the lightning image now on the screen
 314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
+324	std::vector<CellRef>	m324	the cells under the pointer that are lit (HoverCell)
 334	std::vector<std::vector<int> >	m334	the layout the field is built from: a brick type for each cell, -1 none (BuildField)
 354	Brick*	m354	a brick the Board holds (ClearField deletes it)
 358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
@@ -166,6 +167,7 @@ f8	std::vector<int>	mf8
 1a68	int	m1a68	?
 1a7c	int	m1a7c	?
 1a80	int	m1a80	?
+1a8c	int	m1a8c	?
 1a98	int	m1a98	?
 1a9c	int	m1a9c	?
 1aa4	int	m1aa4	?

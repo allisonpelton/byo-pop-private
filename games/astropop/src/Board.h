@@ -167,7 +167,7 @@ public:
 	std::vector<CellRef>	mc8;// +0xc8
 	std::vector<int>	mf8;// +0xf8
 	std::vector<Brick*>	m108;// +0x108 bricks (emptied by ClearField)
-	std::vector<int>	m118;// +0x118 numbers (InM118)
+	std::vector<Brick*>	mTargeted;// +0x118 the bricks that flash because the piece in hand would hit them (HighlightTargets)
 	std::set<Brick*>	m128;// +0x128 the bricks to delete (DeleteDoomedBricks)
 	std::vector<PlanetRec>	m160;// +0x160 the planets (5 are stepped)
 	std::vector<StreakRec>	m170;// +0x170 the streaks (100)
@@ -180,6 +180,7 @@ public:
 	std::vector<RampRecord>	m280;// +0x280 the speed table (UpdateRamp)
 	Image*	m2f8 = NULL;// +0x2f8 the lightning image now on the screen
 	std::vector<std::vector<Brick*> >	m314;// +0x314 the field: 19 rows of 10 bricks, row 0 on top
+	std::vector<CellRef>	m324;// +0x324 the cells under the pointer that are lit (HoverCell)
 	std::vector<std::vector<int> >	m334;// +0x334 the layout the field is built from: a brick type for each cell, -1 none (BuildField)
 	Brick*	m354 = NULL;// +0x354 a brick the Board holds (ClearField deletes it)
 	AstroPopApp*	mApp = NULL;// +0x358 the application (the bricks play their sounds through it)
@@ -325,6 +326,7 @@ public:
 	int	m1a68 = 0;// +0x1a68 ?
 	int	m1a7c = 0;// +0x1a7c ?
 	int	m1a80 = 0;// +0x1a80 ?
+	int	m1a8c = 0;// +0x1a8c ?
 	int	m1a98 = 0;// +0x1a98 ?
 	int	m1a9c = 0;// +0x1a9c ?
 	int	m1aa4 = 0;// +0x1aa4 ?
@@ -398,7 +400,7 @@ public:
 	// ---- the field (BoardField.cpp)
 	static bool		TypesMatch(Brick* theBrick, int theType);       // 0x433030
 	bool			FirstPieceIsType(int theType);                  // 0x436b30
-	bool			InM118(int theValue);                           // 0x439510
+	bool			IsTargeted(Brick* theBrick);                    // 0x439510
 	void			ClearField();                                   // 0x44e010
 	void			BuildField();                                   // 0x44e350
 
@@ -409,6 +411,11 @@ public:
 	void			AddScore(int thePoints, bool theForce);         // 0x433b90
 	void			SaveGameState();                                // 0x43a9a0
 	void			ResetGame();                                    // 0x450250
+
+	// ---- the cursor's targets (BoardTarget.cpp)
+	void			FlashOnce(Brick* theBrick);
+	void			HighlightTargets();                             // 0x452750
+	void			HoverCell(int theCol, unsigned int theRow, bool theForce);   // 0x453630
 };
 
 }
