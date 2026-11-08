@@ -71,7 +71,6 @@ MummyApp::MummyApp()
 	mTipAnkh = true;
 	mMusicSlot = 0;
 	mScore = 0;
-	mQuitLink = false;
 	mAdvChamber = mAdvPyramid = 0;
 	mClassicPyramid = mClassicChamber = 0;
 	mRestoring = false;
@@ -82,7 +81,6 @@ MummyApp::MummyApp()
 	mTotalTime = 0.0;
 	mDeaths = 0;
 	mChamberDone = false;
-	mIsRegistered = true;
 	memset(mLightMask, 0, sizeof(mLightMask));
 	// 0x419bb0: the high half is drawn first (the C library's generator is seeded later, in Init)
 	int aHigh = CrtRand();

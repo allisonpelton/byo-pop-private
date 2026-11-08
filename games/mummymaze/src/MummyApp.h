@@ -58,7 +58,6 @@ enum DialogId
 	DIALOG_QUIT = 2,
 	DIALOG_QUIT_TO_MAIN = 3,
 	DIALOG_OPTIONS = 5,
-	DIALOG_REGISTER = 6,
 	DIALOG_CREDITS = 0x12,
 	DIALOG_ADVENTURE_NEW = 0xa,
 	DIALOG_NEW_ADVENTURE_NAME = 0xb,
@@ -86,7 +85,7 @@ public:
 		NUM_LOADING_TASKS = 27   // 25 sounds and two more steps
 	};
 
-	Image**					mImages;            // +0x10380 new Image*[165], loaded by Init
+	Image**					mImages;            // +0x10380 new Image*[NUM_IMAGES], loaded by Init
 	ImageFont*				mFont1;             // +0x10384 data\font1.txt
 	ImageFont*				mScoreFont;         // +0x10388 data\scorefont.txt (made by the loading thread)
 	ImageFont*				mHeaderFont;        // +0x1038c data\headerfont.txt
@@ -116,7 +115,6 @@ public:
 	bool					mTipAnkh;           // +0x10e92 AnkhNag
 	SexyString				mLastScoreName;     // +0x104b0 registry LastScoreName
 	int						mScore;             // +0x10404 the classic game's score
-	bool					mQuitLink;          // +0x10438 the title's link quits (the demo is used up): never set
 	int						mAdvPyramid;        // +0x10410 the adventure: the pyramid (0 .. 14)
 	int						mAdvChamber;        // +0x1040c the adventure: the chamber (0 .. 14) of the pyramid
 	int						mClassicPyramid;    // +0x10428 the classic game: the pyramid, 0 .. 14 (14 is the last, a dark one)
