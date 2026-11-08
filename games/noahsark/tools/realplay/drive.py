@@ -19,6 +19,9 @@ then on rundesk's private desktop and nothing shows or sounds).
                      full screen is "keydown Left Alt;key Return;keyup Left Alt"
     --pre cmd;cmd    lines sent before the first move
     --steps N        stop after N moves (0: play until the state says over)
+    --lose-level N   the bot wins every level of an easy game, so a whole game of the action and strategy modes would not end: once
+                     the game is on level N (and playing) the one test command `lose` brings the water to the ark, and the end
+                     of the game (the game-over screen, the name entry and the list) is played by real input as any other
     --fast           the game's -fast (updates run back to back); without it the game runs in real time
     --trace          one line a move on stderr
     --finish         after "over", one more move (the click on the list's link back to the menu)
@@ -175,6 +178,7 @@ def play(a):
         if a.pre:
             run_lines(g, a.pre, a, shots)
         nulls = 0
+        lost = False
         last_sig = None
         last_change = 0
         moves = 0
@@ -193,6 +197,12 @@ def play(a):
             if a.steps and moves >= a.steps:
                 result['stop'] = 'steps'
                 break
+            if (a.lose_level and not lost and s['screen'] == 'game' and s.get('phase') == 'playing'
+                    and s.get('mode') in ('action', 'strategy') and (s.get('level') or 0) >= a.lose_level):
+                kind, rest = g.cmd('lose')
+                lost = True
+                result['lose'] = '%s at update %d, level %s' % (kind, s['update'], s.get('level'))
+                continue
             sig = json.dumps({k: v for k, v in s.items() if k not in ('update', 'water')}, sort_keys=True)
             if sig != last_sig:
                 last_sig, last_change = sig, s['update']
@@ -253,6 +263,7 @@ if __name__ == '__main__':
     p.add_argument('--fast', action='store_true')
     p.add_argument('--steps', type=int, default=0)
     p.add_argument('--stuck', type=int, default=20000)
+    p.add_argument('--lose-level', type=int, default=0)
     p.add_argument('--at', action='append', default=[])
     p.add_argument('--pre', default='')
     p.add_argument('--finish', action='store_true')
