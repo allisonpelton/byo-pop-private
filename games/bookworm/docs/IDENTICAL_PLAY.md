@@ -120,6 +120,51 @@ native port's shots: 33 of 37 menu shots identical, 2 faint, and 2 differing onl
 Acceleration box, which is unchecked under Node (no 3D there) as it is in the sandbox's original; all 17 Classic shots
 identical or faint (the flying tiles again, a level or two apart).
 
+## Phase 2: sound
+
+The original's samples go through DirectSound, which origrun's stand-in serves and records (`--sound wav`: each play is
+a duplicate of a loaded buffer, logged with its virtual time, volume and pan); its music goes through BASS, whose calls a
+logging `bass.dll` records (Big Money's `tools/bassproxy`, built into `build/bassproxy-bw`). Both runs are on the host
+(`tools/shots/sound_orig.sh`), since origrun records sound only there; every run's RESULT line says no sound reached the
+speakers. The port writes its own log (`BYOPOP_SOUNDLOG`, `sound_port.sh`). `soundcmp.py` names each play by its
+buffer's size and compares them in order; `musiccmp.py` compares each song's volume over time, which is what can be
+heard of the music (the original sets the volume on every update of a fade, so repeated values are dropped).
+
+| Tour | Sample plays | Music |
+|---|---|---|
+| Classic (seed 7) | 1,166 on each side, all the same sample, volume and pan on the same update | 603 volume changes the same, on the same update, to the game over |
+| Action (seed 8) | 2,409 on each side, all the same, on the same update | 603 volume changes the same, on the same update, to the game over |
+
+From the game over on, the original's music differs: under the game-over jingle the mode's own song fades back in from
+silence, and fades out with the jingle when the Hall of Fame closes; in the port it stays stopped. It is listed under
+"Oddities".
+
+## Phase 2: focus
+
+Two tours (`focusc.txt`, `focusa.txt`) play to the tenth word of the Classic and Action tours, then take the focus away
+for 50 updates (origrun's `focus lose`, the port's script `focus lose`), take shots while it is away, give it back and
+shoot again. Both sides pause the same way: the board's tiles turn blank, Action shows its "Game Paused" panel, the clock
+stands, and play goes on from the same update once the focus is back. These tours compared pictures; the sound while
+the focus is away (the original's `LostFocus` pauses the music, and the framework mutes an inactive window) was not
+recorded on them. All twelve focus shots are identical or faint; the other
+boxes flagged on those tours are the flying tiles above. One run of the original reached the first Action summary late,
+the run-to-run fidget of Lex under "Oddities"; run again, it matched.
+
+## Phase 2: real input
+
+The port's own driver plays through the real input path: `tools/playbymove` sends each move the port's word solver
+proposes (the test command `move`) as posted mouse clicks and key presses to the window under rundesk, reading the game's
+state from its log. Natively it played, by real input only: Classic and Action each for 4,000 moves (levels 55 and 62,
+no move refused, no stall), and a whole game of each from launch: the new-player dialog (typed), the help screen, 40
+words with their level summaries, the loss (`lose 40`, the game's own fire scan), the burn-down, the game-over summary,
+the Hall of Fame and the selector, then a second game.
+
+## The fixes mod
+
+`games/bookworm/mods/fixes` has one toggle, `scoreGlow`: the original draws a heated version of the score while points
+are added, but truncates its alpha to 0, so it never shows (GAME_NOTES, "The fixes mod", with the candidates left out
+and why). With the toggle on the score glows; play, sound and every other picture stay as they were.
+
 ## Oddities (skipped)
 
 - **The praise flag starts as the heap left it.** The original's Board constructor never sets `mLexPraisePending` (+0x358), so
@@ -156,6 +201,16 @@ identical or faint (the flying tiles again, a level or two apart).
   `TimesPlayed` and the version-check time into HKCU with HKLM's values, so some helper still reads the machine key. The players,
   the settings that matter and the tables come from HKCU, as the new-player dialog and the tables showed. Nothing the comparison
   watches depends on those counters.
+
+- **The mode's song comes back under the game-over jingle in the original.** At the game over the original stops the
+  danger song and the mode's song and starts the jingle, but on every update after it `IsPlaying(danger)` still answers
+  true (BASS's `ChannelIsActive` returns 1 for the stopped song, on 547 calls out of 547 after it first played), so the
+  board keeps calling FadeOut(danger) and FadeIn(mode song), and the mode's song plays again, rising from silence.
+  The recording runs BASS on its "no sound" device (the logging `bass.dll` gives BASS_Init device 0; with the real
+  device BASS_Init fails under origrun's DirectSound stand-in and the game plays no music at all), and whether a stopped
+  song stays "active" on a real device is not known, so this may be the recording's own effect. How to see it:
+  `musiccmp.py classic`, from change 604. What it would take: a run with BASS on a real sound device and its output
+  recorded, which origrun cannot do yet.
 
 ## Deviations left
 

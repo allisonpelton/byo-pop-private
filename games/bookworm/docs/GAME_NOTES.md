@@ -169,6 +169,22 @@ answers with one line: `STATE {...}`, `MOVE {...}`, `OK <command>` or `ERROR <co
 | `seed <n>` | The C library generator, the framework's reseed and the game's generator (`gGameRand`) from it, as a start seeds them. |
 | `move` | `MOVE {json}`: the next input of the port's word solver (`Solver::FirstHint`, the first hint the hint button would give), or `MOVE null` (loading, the board busy, an animation running). Its `what`: `play` (the title's link), `name` (the new-player dialog: "Driver" and Enter), `ok` (a hint or message dialog; the continue question is answered no), `help`, `newgame` (the selector's mode button), `word` (with `word`, `score` and `kind`: the path's tiles clicked, then Submit, or a second click on the last tile when a definition balloon covers Submit), `scramble` (Lex clicked when the board spells nothing), `summary`/`gameover` (the level summary's button), `fame` (the Hall of Fame's continue). Every click goes to a point of its widget that the widget manager reaches. |
 
+
+### The fixes mod
+
+`mods/fixes/mod.json` (`docs/MOD_ROADMAP.md`, "The fixes mod"): one toggle per bug of the original that the port
+keeps, each on by default, read through `FixEnabled` (`ModFeatures.h`). It changes no play: with it on, a game plays
+as it does without it, update for update.
+
+| Toggle | The original's bug | With the toggle on |
+|---|---|---|
+| `scoreGlow` | `Board::DrawScore` 0x405580 truncates the glow (0 to 0.5) to an int before multiplying it by 255, so the heated score (`FONT_GOLDSCOREHEATED`, a font loaded for nothing else) is drawn with alpha 0 and never shows. | The glow is multiplied first: the score turns pale gold while points are added and fades back. |
+
+Fix candidates looked at and left out: the high-score tie that sets `mNewHighScore` for a pruned entry (nothing the
+player sees reads the flag); the music FadeIn skipped while the song fades out (a player cannot reach it, Part 1
+section 4); the endless loop on an odd count of Best-word strings in the registry (Part 1 section 9.2) and
+`Ember::Load`'s fwrite, which can read a saved game out of step (Part 3's load bug): a hang and a broken save, so the
+port itself mends them, as CLAUDE.md asks of bugs that break play.
 ---
 
 ## Part 1. The application (BookWormApp, Math, user profiles)
@@ -791,7 +807,8 @@ the base already did; BookWormApp::Init calls it after SexyApp::Init made the in
 
 Quirk: a FadeIn guarded by `!IsPlaying(n)` is skipped while a previous FadeOut(n, stop) of the same song is
 still running (it still counts as playing), so the song finishes fading out and stays silent (menu -> game
-within 0.5 s). Translate literally.
+within 0.5 s). Translate literally. A player cannot reach it (measured 2026-11-08): leaving a game fades its song
+out in 49 updates, and the selector takes no click until it has slid in, about 70 updates later.
 
 ### 5. Screen flow and app functions
 
