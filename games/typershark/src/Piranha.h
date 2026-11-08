@@ -33,9 +33,9 @@ public:
 	virtual ~Piranha();																// deleting destructor 0x409930
 
 	virtual bool			IsSwimming();											// own slot 0, 0x401770: state 0 and visible
-	virtual void			Update();												// slot 1, 0x40a6a0
-	virtual void			Draw(Graphics* g);										// slot 2, 0x402360
-	virtual void			SetState(int theState);									// slot 7, 0x404950
+	virtual void			Update() override;												// slot 1, 0x40a6a0
+	virtual void			Draw(Graphics* g) override;										// slot 2, 0x402360
+	virtual void			SetState(int theState) override;									// slot 7, 0x404950
 };
 
 }

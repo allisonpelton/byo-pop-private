@@ -9,6 +9,9 @@
 
 using namespace Sexy;
 
+// Not translated (vtordisp thunks and the part destructor): 0x401730 (own-part destructor), 0x4021b0, 0x4021c0, 0x402200, 0x403110,
+// 0x406580, 0x40e040 (jump to the virtual functions below or to GameObject's)
+
 // 0x40fca0: GameObject (0x4611b0) and Enemy (0x40a3f0) first
 Piranha::Piranha(WinWSApp* theApp, int theType) :
 	Enemy(theApp),
@@ -133,7 +136,7 @@ void Piranha::Update()
 		{
 			if (!mPlayedSound)
 			{
-				mApp->PlaySample(2);
+				mApp->PlaySample(SOUND_PLAYERDIES);
 				mPlayedSound = true;
 			}
 			if (!(mX < 20.0))
