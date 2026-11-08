@@ -174,3 +174,55 @@ The options box's "Register" and "More games" buttons (shareware links, left out
 above, and the shimmer of the title logo when the original's load order differs. The frozen baseline was refrozen at the end of
 phase two: the only difference from the first freeze is five more names in the state trace (the cursor, the hold counters, the
 glow); the traces of `s2.txt` and `g5.txt` without those names are equal to the old baseline's, byte for byte.
+
+# Phase three: real input, the fixes mod and the registration leftovers
+
+## Real input
+
+The autoplay, the script commands and a run under Node never pass through the real input path, so this phase plays the game
+only through it, by drivers (the session writes them and reads their results; it plays nothing). The port answers the standard
+test commands (`GAME_NOTES.md` section 9) and its own bot answers `move` (`testhooks/Autoplay.cpp`, `BotMoveJson`): the next click,
+key or wait that a hand would make on the screen that is up. A driver asks `state` and `move` and sends what comes back as
+mouse and key events: natively `games/atomica/tools/realplay/drive.py` (`click game X Y`, `key B`, through SDL's event queue, the
+window-to-game mapping and the widget manager, under rundesk, `-realinput`), in the page `games/atomica/tools/web/onegame.js`
+(DOM events on the canvas, the player-only page, `?driver=`, silent, the pane's animation frames shimmed while it was hidden).
+One run is a whole game from the title screen: the play link, the menu's start button of the mode, the tutorial boxes (the check
+mark of the odd ones, then Continue), every atom picked up and put down, the level box's Continue, the name of the high score entry
+(B, O, T and its button) and "main menu" after the game.
+
+| Run | Games (all played to the game over page) | Result |
+| --- | --- | --- |
+| native `-fast`, windowed | strategy, strategy-expert, action, action-expert in one run | all four over, no error; focus lost and regained at move 20 (300 updates), Alt+Enter on and off at moves 30 and 45 |
+| native `-fast`, full screen from the second move | strategy (154 moves, level 2, 1,520 points), strategy-expert (225 moves, 3,040) | both over; `state` says `windowed:false` throughout |
+| native real time, full screen | action (301 moves, 1,200), action-expert (301 moves, 1,920) | both over to the field filling up; the driver stops moving at move 300 and the game runs on to its own end |
+| native real time, windowed | action (301 moves), action-expert (300 moves), and a 25-minute action game with no end in sight | over; the long game ran 5,211 moves up to level 50 with no error |
+| web, silent, `?fast=1` | strategy (95 moves), strategy-expert (138 moves, focus lost at move 30 and regained) | both over, no error in the page |
+| web, silent, real time | action (301 moves), action-expert (300 moves), focus lost at move 40 and regained in each | both over, no error in the page |
+
+Findings. The bot and the driver had faults of their own, which the first runs showed: the bot added the level box's position to
+a button that the box already places in game coordinates, so it clicked beside Continue for ever (the first run stood in the
+level box for 20,000 updates; the button is clicked at its own place now), and it took a crowded field for a field with no move
+when its random tries failed, which it now checks atom by atom. The original and the port showed no fault that breaks play: the
+controls kept working through the focus loss and in full screen, no box locked, and the high scores were saved. One
+behaviour looks like a missing entry box and is not: a score is asked for its name only when it earns a place in its mode's table of five or is
+the best of the day (`ScoreTable::Qualifies`, from 0x41e440), so the action-expert game that scored 320 after the action game's
+1,200 in one run got none. Under `-fast` the game runs between two commands of the driver, so an action game (which has its own
+clock) is played much worse than in real time (it ended in 17 to 23 moves); the action games above are real-time runs.
+
+Not covered: the web build in full screen (the browser refuses it to a script, as it needs the player's own click), and
+sound and music in play (the runs are silent by rule; both were compared in phase two).
+
+## The fixes mod
+
+`mods/fixes` holds the two faults of the original that make a game depend on the machine, each a toggle that is on by default
+(`GAME_NOTES.md` section 10): the pictures' random numbers are taken from a second generator (`drawRandom`), and Dr. Atomicus's mouth steps once
+an update (`lipSync`). `tools/fixes_check.sh` shows the first: the bot's strategy game under `-fast` with a picture every few
+updates and with a picture every update has two different state traces without the mod (from line 125) and the same
+57,624 lines with it. With the mod off, or absent, the port is the original and the frozen baseline (`tools/check.sh atomica`)
+is unchanged.
+
+## Registration and the buttons that lead out
+
+The options box's "Register" and "More games" buttons, and the title screen's links, were left out in phase two; the "High scores"
+button now takes the width of the three rows that stood there. The title screen's line "thanks for registering", which the original's registered
+path draws under the logo, is left out too (its box is masked in `shotdiff.json`). The port has no free plays, no order dialogs and no web page to open.

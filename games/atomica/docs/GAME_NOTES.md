@@ -50,7 +50,7 @@ as named arrays. The loading (0x406f90) draws the explosion's three sizes, the 2
 fonts and 50 sounds; progress is the count of its steps (0x60a). The original caches the atoms' frames in
 `images\cached\Atoms.WAD`; the port draws them at every start (1.6 s).
 
-Registered game: the port has no free-play counter or order dialogs (the title shows "thanks for registering").
+Registered game: the port has no free-play counter or order dialogs, and the title screen does not draw the line "thanks for registering" that the registered path of the original puts under the logo (removed with the other registration code at the final merge; the picture's box is masked in `shotdiff.json`).
 
 ## 4. The Grid and its rules
 
@@ -127,3 +127,53 @@ sight below the screen (a tenth more each step, `mSndSwoop` when it is under 480
 menu's destructor; the game's is song 0. The box's "return" button plays its click on press and closes the box on release.
 The widget's `mHasTransparencies` is `mDoor != 0`: while the doors are shut the menu hides what is under it.
 (The original's `HighScoresBox::Update` goes on to write the widget's flag after it has deleted the widget; the port returns.)
+
+## 9. Standard test commands
+
+`testhooks/Commands.cpp` answers the standard commands of `docs/TEST_COMMANDS.md`, reachable only from a test (`-script`,
+`-commands`, the web test page's `command`); a command that is never given changes nothing. Each answers with one line:
+`OK <line>`, `ERROR <line>: <reason>`, `STATE {json}` or `MOVE {json}`.
+
+| Command | Does |
+| --- | --- |
+| `state` | `STATE` with `screen` (title, menu, starting, gameover, board, hint, levelup, highscore-entry, options, quit, confirm, highscores), `mode` (strategy or action), `expert`, `update`, `paused`, `windowed`, `over`, and in a game `level`, `score`, `molecules`, `atoms`, `combo`, `meter`, `meterMax`, `levelOver`, `held`, `hints`; on the page after a game `level`, `score` and `molecules` of the game that ended. `over` is true when that page is up with its panel and the entry box (if the score earned one) is done |
+| `goto menu` | from the title screen (once loaded) or the page after a game ("main menu") |
+| `goto strategy`, `strategy-expert`, `action`, `action-expert` | the menu's four start buttons, from the main page of the menu |
+| `goto options`, `goto highscores` | the boxes, from the menu or a game |
+| `goto title`, `help`, `credits` | `ERROR`: the title comes once; the credits are in the options box and the help is the hint boxes |
+| `level <1..41>` | the level box's Continue: the meter, the colours and the field start over at that level |
+| `unlock all` | `ERROR`: nothing is locked, every mode is open from the start |
+| `set score <n>`, `set mode <strategy\|action>`, `set expert <0\|1>` | the board's score; what the menu's `move` clicks (mode and expert cannot change in a game) |
+| `win` | the meter is filled now; the level box follows as in play |
+| `lose` | the field is full now; the game over follows as in play |
+| `seed <n>` | seeds the game's generator and the C library's |
+| `move` | `MOVE {"kind":..,"input":[..],"updates":n}` or `MOVE null` |
+
+`move` is the port's own bot (`testhooks/Autoplay.cpp`, `BotMoveJson`), the same that `-autoplay` runs, so a later bot mod
+reuses it. It reads the screen like a hand: the title screen's link, the menu's start button of the mode that `set` chose,
+the hint boxes (the check mark of the odd ones, then Continue), a held atom (placed where the bot chose), an atom to pick up,
+the level box's Continue, the name of the high score entry (B, O, T and its button), and "main menu" after a game; it waits
+while the game is busy (a box sliding in, the doors, the meter filling, a game over). A move is clicks (`{"click":[x,y]}` in
+game coordinates), keys and waits; the choice of cell is the bot's (a block of 2 x 2 that lacks one atom, else a seeded
+random cell), and it changes nothing in the game. `games/atomica/tools/realplay/drive.py` (native) and
+`games/atomica/tools/web/onegame.js` (the player-only page) send those moves as real mouse and key events.
+
+## 10. The fixes mod and the fix candidates
+
+`mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, on by default on the
+site, off when a test must play as the original does (`-nomods`). The port reads a toggle with `FixEnabled("<id>")`
+(`Fixes.h`, the mod manager's live value), so the original's behaviour stays in the code as it was and each fix is one branch.
+
+| Toggle | The fault in the original | What the fix does |
+| --- | --- | --- |
+| `drawRandom` | Every picture that moves at random (the monitor's static, the swirls' sparks, the glow of a molecule) draws its numbers from the one generator that deals the atoms (`GameRand`). How many frames the machine draws between two updates therefore changes which atoms come next: a game of the same seed plays out differently at 60 and at 100 frames a second, under `-fast` (a picture every few updates) and in real time. | `AtomicaApp::DrawDirtyStuff` brackets the frame with `GameRand::BeginDrawing/EndDrawing`: the pictures draw from a second generator, seeded together with the first, and the game's sequence is left to the updates. |
+| `lipSync` | Dr. Atomicus's mouth steps by the clock (`Atomicus::LipUpdate` reads `GetClockTime`, and each whole 100 ms that the clock is ahead of the last step makes it take another step at once). A hiccup of the machine (a window dragged, a slow disk, the focus lost for a moment) makes a clip end early, and the next message, which waits for the end of the one before (`mTalking`), starts early with it: what happens at which update then depends on the machine. | One step for each update, whatever the clock says. |
+
+`tools/fixes_check.sh` shows the first on the bot's strategy game under `-fast` (`-seed=1`, 12,000 updates), once drawing a picture every few updates and once
+every update, without the mod and with it: without it the two state traces differ at line 125, with it they are the same
+57,624 lines. The second is not shown by it: the clock does not lag under `-fast`, so the extra steps never happen there, and a lag cannot be made to
+happen from a test (the code is one loop run once; the check shows only that the toggle changes nothing when the clock keeps up). With every toggle off the port is the original (the
+frozen baseline, `tools/check.sh atomica`, plays the same with the mod absent).
+
+Fix candidates not made: none found in the play-through. The port has no fault of the original that breaks play (controls that stop
+working, a soft lock, a crash, a lost save) to fix in itself: see `IDENTICAL_PLAY.md`, "Real input".
