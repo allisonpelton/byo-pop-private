@@ -173,6 +173,45 @@ void GodFigure::Draw(Graphics* g)
 		g->SetColorizeImages(false);
 }
 
+// 0x41c610: the island as it was, over the temple screen and fading out (0x41c700: three of 255 each update); its widget
+// goes at the end of the screen's children, so it covers the buttons as well. It does not take the mouse
+namespace Sexy
+{
+
+class TempleFade : public Widget
+{
+public:
+	MemoryImage*	mImage;		// +0x5c, the screen's
+	int				mAlpha;		// +0x64
+
+	TempleFade(MemoryImage* theImage) : mImage(theImage), mAlpha(0xff) { mMouseVisible = false; }
+
+	virtual void Update() override
+	{
+		Widget::Update();
+		if (mAlpha > 0)
+		{
+			mAlpha -= 3;
+			if (mAlpha < 1)
+				mAlpha = 0;
+			MarkDirty();
+		}
+	}
+
+	virtual void Draw(Graphics* g) override
+	{
+		if (mAlpha > 0 && mImage != NULL)
+		{
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 255, mAlpha));
+			g->DrawImage(mImage, 0, 0);
+			g->SetColorizeImages(false);
+		}
+	}
+};
+
+}
+
 // 0x413ce0
 TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop)
 {
@@ -183,6 +222,7 @@ TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop)
 	mFirstUnsolved = -1;
 	mTicks = 0;
 	mTextAlpha = 0;
+	mFade = theBackdrop != NULL ? new TempleFade(theBackdrop) : NULL;
 	mDragging = false;
 	mDragOffset = 0;
 	mPanel = NULL;
@@ -252,6 +292,7 @@ TempleScreen::~TempleScreen()
 	delete mSkipButton;
 	delete mGod;
 	delete mPanel;
+	delete mFade;
 	delete mBackdrop;
 }
 
@@ -261,6 +302,11 @@ void TempleScreen::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mBackButton);
 	theWidgetManager->AddWidget(mMoreButton);
 	theWidgetManager->AddWidget(mSkipButton);
+	if (mFade != NULL)
+	{
+		mFade->Resize(0, 0, mWidth, mHeight);
+		theWidgetManager->AddWidget(mFade);
+	}
 	StartMusic(mApp, MUSIC_PIXELUS_TEMPLE_SCREEN_LOOP_V01, true);
 }
 
@@ -270,6 +316,8 @@ void TempleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mBackButton);
 	theWidgetManager->RemoveWidget(mMoreButton);
 	theWidgetManager->RemoveWidget(mSkipButton);
+	if (mFade != NULL)
+		theWidgetManager->RemoveWidget(mFade);
 }
 
 // 0x4138d0 and 0x413420: the pictures of every puzzle of the temple
@@ -499,14 +547,6 @@ void TempleScreen::Draw(Graphics* g)
 	bool aTutorial = mTemple == 0;
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 
-	// the screen comes in over the island it was opened from
-	int anAlpha = std::min(255, mTicks * 255 / 30);
-	if (mBackdrop != NULL && anAlpha < 255)
-	{
-		g->DrawImage(mBackdrop, 0, 0);
-		g->SetColorizeImages(true);
-		g->SetColor(Color(255, 255, 255, anAlpha));
-	}
 	if (aTutorial)
 		g->DrawImage(mApp->mImages[IMAGE_TUTORIALTEMPLE], 0, 0);
 	else
@@ -678,7 +718,6 @@ void TempleScreen::MouseDown(int x, int y, int theClickCount)
 		return;
 	}
 
-	mApp->PlaySample(SOUND_UI_GENERAL_CLICK_02);
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	// 0x427430: the puzzle's id comes from loading its file into a grid of its own, which makes the tiles (and draws their
 	// pictures), and is thrown away again

@@ -130,8 +130,12 @@ void Board::SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath
 			StepMummy(s, 0);
 		if (s.mMummyAlive[1])
 			StepMummy(s, 1);
+		bool aMummyFight = false;
 		if (s.mMummyX[0] == s.mMummyX[1] && s.mMummyY[0] == s.mMummyY[1] && s.mMummyAlive[0] && s.mMummyAlive[1])
+		{
 			s.mMummyAlive[1] = false;
+			aMummyFight = true;
+		}
 		if (s.mMummyX[0] == s.mScorpionX && s.mMummyY[0] == s.mScorpionY && s.mMummyAlive[0])
 		{
 			if (s.mScorpionX == mKeyX && s.mScorpionY == mKeyY)
@@ -148,6 +152,16 @@ void Board::SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath
 			return;
 		if (s.mExplorerX == s.mMummyX[1] && s.mExplorerY == s.mMummyY[1] && s.mMummyAlive[1])
 			return;
+		// port(mods, the fixes mod's solverFight): the board flips the gate when a fight on the key stone ends (Mummy::OnArrived), whether
+		// or not the winner moved this turn and whether or not the key was used earlier in it; the original's search flips it only
+		// for a mummy that moved and the key not used yet. The first kind it has right (the code below), the rest are added here.
+		if (mApp->mFixes.mSolverFight && aMummyFight && s.mMummyAlive[0] && s.mMummyX[0] == mKeyX && s.mMummyY[0] == mKeyY &&
+			!(!aUsedKey && (s.mMummyX[0] != theFrom.mMummyX[0] || s.mMummyY[0] != theFrom.mMummyY[0])))
+		{
+			s.mGateClosed = !s.mGateClosed;
+			aUsedKey = true;
+			continue;
+		}
 		if (!aUsedKey)
 		{
 			if (s.mMummyX[0] == mKeyX && s.mMummyY[0] == mKeyY && s.mMummyAlive[0] &&

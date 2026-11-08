@@ -45,7 +45,7 @@ StoryScreen::StoryScreen(PixelusApp* theApp, bool theFromMenu, int theFrom, int 
 	if (theMode == 3)
 		mAfter = AFTER_ENDING;
 
-	mContinueButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_CONTINUE, this);
+	mContinueButton = new SoundButton(mApp, mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_CONTINUE, this);
 	mContinueButton->mLabel = GT(0x50c9a0);
 	StyleButton(mApp, mContinueButton, 3);
 

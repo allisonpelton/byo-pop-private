@@ -190,6 +190,9 @@ no click until the game has finished loading, from seconds to over a minute of r
   the same for a key, with a `keydown` at `N` and a `keyup` at `N+k`. `at` does not
   take the `hw*` commands: in the sandbox the game runs in session 0, which desktop input does not reach anyway
   (`GetCursorPos` reads 0,0 whatever `SetCursorPos` did; for a game that reads the cursor, see "The scripted cursor").
+- `mark` — reads the update counter now; `at +<N> <command...>` then waits for the counter to reach N past that value.
+  For a counter that does not start at 0, such as an event time on the virtual clock, which starts at the real time
+  (Ning Po: a `wait` to the first input, the input, `mark`, then `at +N` lines at the port's updates from there).
 - `msgbox <button> <text...>` â€” when a message box whose caption or text contains `<text>` appears, click the
   button labelled `<button>` (e.g. `msgbox No Trial expired`, `msgbox OK update`). Put these at the top of the
   script; they are registered before the game launches, so even a box that pops up early is answered. A box
@@ -685,7 +688,7 @@ leaves nothing in the window for PrintWindow. For it a held shot can read the fr
 ("surface-read (sandbox)", landed.tsv says "or-earlier (surface)"). All addresses are hex. `--surface-screen
 bitsAt,pitchAt,w,h,bpp` names two globals holding the pixel pointer and the pitch (5-6-5 at 16 bpp, 5-5-5 at 15, 8-8-8 at 32: Cosmic Bugs gets 5-5-5 in Windows Sandbox);
 `--surface <addr>` names an Image-like header instead (pixel pointer at +0, width at +4, height at +8, pitch at +0x1c,
-bpp at +0x44, then the masks, bit counts and shifts). A surface shot needs a gate, and is refused without one:
+bpp at +0x44, then the masks, bit counts and shifts). With `--surface-screen-base ptrAt`, bitsAt and pitchAt are offsets into the object whose pointer the global at ptrAt holds, read at each shot (Ning Po's display is on the heap and its static app holds the pointer). A surface shot needs a gate, and is refused without one:
 `--surface-eip lo,hi[,lo,hi...]` lists every function of the game that writes the locked screen (all it runs between
 its lock and unlock), and the shot waits (the game running) until the held thread is in none of them and has no return
 address into one anywhere in its stack (to the end of the stack's region, at most 64 KB; an unreadable page closes the gate); `--surface-gate <addr>` is an int that must read 0
