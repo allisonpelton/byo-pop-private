@@ -2000,6 +2000,8 @@ suite_bejeweledtwist() {
 	b="$(twist_game blitz "$exe" blitz 8166 2656 5156 7156 7606 8156)"
 	r="$(twist_game classic2 "$exe" 1 5166 656 2156 3656 5156)"
 	m="$(twist_game menu "$exe" 1 170 60 160)"
+	local dec="sounds decode as Tremor's"
+	"$W/build/native/bjt_sounddecode.exe" --compare "$W"/assets/bejeweledtwist/sounds/*.ogg > "$1.decode" 2>&1 || { dec="SOUNDS DECODE DIFFERENTLY"; st=1; }
 	sv="$(twist_save "$exe")"
 	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; echo "save: $sv"; } > "$1"
 	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
@@ -2015,7 +2017,7 @@ suite_bejeweledtwist() {
 		fi
 	fi
 	if [ "$sv" = ok ]; then sv="a page's save as a quit's, resumed"; else sv="SAVE DIFFERS ($sv)"; st=1; fi
-	SUMMARY="the start's menu, Classic to 5156 and Blitz to its high scores, 11 screens; $r; $sh$bl; $sv"
+	SUMMARY="the start's menu, Classic to 5156 and Blitz to its high scores, 11 screens; $r; $sh$bl; $sv; $dec"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU')"
 	return $st
 }
