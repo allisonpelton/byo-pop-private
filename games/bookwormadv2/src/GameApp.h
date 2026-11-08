@@ -290,6 +290,7 @@ public:
 	// port: SexyAppBase::StartLoadingThread (the title screen's call), loading in steps between the frames, so
 	// that the title screen goes on while the resources load, natively and in the browser (no threads)
 	void StartLoading();
+	void PostDDInterfaceInitHook() override;  // port: the site's 3D acceleration setting (web only)
 
 	// The title screen's Lex has walked off (V1:0x448d70)
 	void TitleScreenDone();
