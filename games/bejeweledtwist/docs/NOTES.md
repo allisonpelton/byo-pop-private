@@ -958,6 +958,36 @@ is reported in IDENTICAL_PLAY.md.
   nothing, the tutorial's click-now arrows among it. Additive matrix and triangle draws still go through SDL, since
   1.3's SWTri has no additive triangles (Twist's has, 0x60d250's flag 0x80). It costs about 2 ms a frame.
 
+## Sound
+
+The user found the sound effects distorted (2026-11-08). Measured, not judged by ear: the port's mix, captured with
+`-audiocapture=<file.wav>` (WinTwistApp: after each update the mixer renders that update's 1/100 s of 48 kHz stereo
+with the mixer locked, so a `-fast` run captures exactly what the game played), was compared with a re-creation of the
+same mix by tools/sfxmix.py, which takes the sound log of the same run (BYOPOP_SOUNDLOG) and plays each effect from the
+game's file decoded by ffmpeg, at DirectSound's gain and pan for its hundredths of a dB, its whole-Hz pitch and linear
+resampling, clamped at full scale. A seeded Classic autoplay of 30 s with the music at 0 (`-seed=1234 -autoplay=1`)
+differed from its re-creation by -40.6 dB, almost all of it in one effect, gem_hit, the sound of every match: its
+capture was a dull thud at a fifth of its level.
+
+tools/sounddecode (`bjt_sounddecode`) decodes files with the port's own loader (Platform::Mixer::LoadSoundData) or,
+with `--tremor`, with Tremor. Against ffmpeg, 144 of the 147 sounds agree within -96 dB; gem_hit, lightbar_blink and
+bomb_explode do not (-0.3, -0.0 and -5.5 dB), and Tremor decodes those three within -60 dB. They are the only three
+from the oldest encoder ("Xiphophorus libVorbis I 20010813") and the only ones whose residues are of type 0, which
+stb_vorbis decodes wrongly: its residue_decode passes a length of n - offset - k to codebook_decode_step for type 0,
+where offset is the partition's bin in the whole spectrum, so every partition after the first decodes to nothing and
+only the lowest 32 bins of a long block (about 700 Hz) are heard. With n - k there, all 147 agree with ffmpeg within
+-96 dB, and the capture of the same run differs from its re-creation by -58.4 dB. The fix is in the shared
+third_party/stb/stb_vorbis.c (and libopenmpt's copy has the same line); the same files' kind is in Bookworm's 18 voice
+lines, two of Noah's Ark's sounds and one of Rocket Mania's. `bjt_sounddecode --compare <files>` decodes each file
+both ways and fails on one where the port's decode and Tremor's differ by more than -40 dB of its level and 1% of full
+scale at a sample.
+
+Nothing else differed: the rates (44.1 and 22.05 kHz, resampled to 48 kHz), the mono and stereo files, the volumes in
+hundredths of a dB, the pans and the semitone pitches all match the re-creation. The mix does reach full scale: in the
+same 30 s about 200 samples clamp, where the voice lines (0.85 of full scale at their gain) fall on matches and
+combos. That is the plain sum DirectSound's mixer makes too, not the distortion; it was not measured in the original,
+whose buffers origrun's stand-in logs only by their calls.
+
 ## Oddities
 
 - **The credits' sparks start their turn from the heap.** The Effect constructor (0x6f4a05) does not set +0x9c,

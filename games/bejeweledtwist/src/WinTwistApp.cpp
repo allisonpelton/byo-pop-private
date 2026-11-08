@@ -67,6 +67,7 @@ EM_JS(int, bjt_webgl2_support, (), {
 #include "Widget.h"
 #include "WidgetManager.h"
 #include "X86Math.h"
+#include "AudioCapture.h"
 
 #include <SDL.h>
 
@@ -159,6 +160,7 @@ WinTwistApp::WinTwistApp()
 
 WinTwistApp::~WinTwistApp()
 {
+	delete mAudioCapture;   // port (tests): -audiocapture
 	if (mLoaderScreen != nullptr) {
 		mWidgetManager->RemoveWidget(mLoaderScreen);
 		delete mLoaderScreen;
@@ -401,6 +403,8 @@ void WinTwistApp::CreateMainMenu()
 
 void WinTwistApp::Shutdown()
 {
+	if (mAudioCapture != nullptr)
+		mAudioCapture->Finish();   // port (tests): the mixer's lock released before the audio device closes
 	if (mShutdown)
 		return;
 	// port: the original first ends a background thread (+0x8e0) and adds the session's minutes to the time played
@@ -962,6 +966,11 @@ void WinTwistApp::UpdateFrames()
 		mCredits = nullptr;
 	}
 	SexyApp::UpdateFrames();
+	// port (tests): -audiocapture
+	if (!mAudioCaptureFileName.empty() && mAudioCapture == nullptr)
+		mAudioCapture = new AudioCapture(mAudioCaptureFileName);
+	if (mAudioCapture != nullptr)
+		mAudioCapture->Update();
 	if (mTestGotoMode != -1)
 		UpdateTestGoto();
 	// The tracked sounds: the ended ones are released, the others follow mSfxVolumeScale
@@ -1214,6 +1223,10 @@ void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std:
 	if (theParamName == "-3d") {
 		mUse3D = true;
 		mUse3DSwitch = 1;
+		return;
+	}
+	if (theParamName == "-audiocapture") {
+		mAudioCaptureFileName = theParamValue;
 		return;
 	}
 	if (theParamName == "-nod3d9" || theParamName == "-noacceleration") {

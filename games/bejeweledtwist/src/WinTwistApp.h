@@ -11,6 +11,7 @@
 
 namespace Sexy {
 
+class AudioCapture;
 class Board;
 class D3DObject;
 class Credits;
@@ -182,6 +183,9 @@ public:
 	bool HandleTestCommand(const ScriptCommand& theCommand);
 	std::string TestScreen();
 	void UpdateTestGoto();
+	// port (tests): -audiocapture=<file.wav>, the game's sound and music as a WAV, 1/100 s per update (AudioCapture.h)
+	std::string mAudioCaptureFileName;
+	Sexy::AudioCapture* mAudioCapture = nullptr;
 	int mTestGotoMode = -1;  // port (tests): "goto <mode>" pressed Play; the mode's button is pressed once the select opens
 	// 0x76350c: -autoplay[=classic|zen|blitz], and the original's other test switches
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
