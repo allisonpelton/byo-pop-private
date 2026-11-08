@@ -2,6 +2,7 @@
 // themselves out one letter at a time, and the rank with its picture comes up last.
 
 #include "Board.h"
+#include "GameText.h"
 #include "AstroPopApp.h"
 #include "Font.h"
 #include "Graphics.h"
@@ -99,13 +100,13 @@ void Board::DrawHud(Graphics* g)
 	{
 		// a new rank: its name flashes red with the frame of the animation
 		g->SetColor(Color(0xff, 0, 0, ((mAnim5e0.mNumFrames == 1) ? 0 : mAnim5e0.mFrame) * 4));
-		std::string aText = "PROMOTION!";
+		std::string aText = GT(0x00564518);
 		Rect aRect(0x1d5, g->GetFont()->GetHeight() + 0x87, 0x79, 0x88);
 		WriteWordWrapped(g, aRect, aText, -1, 0);
 	}
 	else
 	{
-		std::string aText = "^FFFF00^" + aRank;
+		std::string aText = GT(0x00564524) + aRank;
 		Rect aRect(0x1c7, g->GetFont()->GetHeight() + 0x87, 0x96, 0x88);
 		WriteWordWrapped(g, aRect, aText, -1, 0);
 	}

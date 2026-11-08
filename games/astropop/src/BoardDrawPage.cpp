@@ -2,6 +2,7 @@
 // the mode, each with its pilot and a gauge, and under them the totals of the game that has ended.
 
 #include "Board.h"
+#include "GameText.h"
 #include "AstroPopApp.h"
 #include "Font.h"
 #include "FrameAnim.h"
@@ -15,10 +16,10 @@ using namespace Sexy;
 
 // a time in minutes and seconds with one of two formats: the first has a nought in front of the seconds and is used when they
 // are under ten
-static std::string MinutesSeconds(const char* theFormatWithNought, const char* theFormat, int theSeconds)
+static std::string MinutesSeconds(const std::string& theFormatWithNought, const std::string& theFormat, int theSeconds)
 {
 	int aRest = theSeconds % 60;
-	return StrFormat((aRest < 10) ? theFormatWithNought : theFormat, theSeconds / 60, aRest);
+	return StrFormat((aRest < 10) ? theFormatWithNought.c_str() : theFormat.c_str(), theSeconds / 60, aRest);
 }
 
 // the page itself
@@ -107,37 +108,37 @@ void Board::DrawEndPage(Graphics* g)
 
 	if (m1a60 == 1)
 	{
-		WriteString(g, "^FFBB00^Level Reached:", 0xe8, aLineY, -1, -1, true, 0, -1);
-		WriteString(g, StrFormat("^FFFF00^%d", m1940), 0x21f, aLineY, -1, 1, true, 0, -1);
+		WriteString(g, GT(0x00565d24), 0xe8, aLineY, -1, -1, true, 0, -1);
+		WriteString(g, StrFormat(GTC(0x00565d18), m1940), 0x21f, aLineY, -1, 1, true, 0, -1);
 	}
 	else
 	{
 		aLineY = aHeaderFont->GetAscent() + 0x10d;
-		WriteString(g, "^FFBB00^Game Time:", 0xe8, aLineY, -1, -1, true, 0, -1);
-		WriteString(g, MinutesSeconds("^FFFF00^%d:0%d", "^FFFF00^%d:%d", m19b8 / 100), 0x21f, aLineY, -1, 1, true, 0, -1);
+		WriteString(g, GT(0x00565d04), 0xe8, aLineY, -1, -1, true, 0, -1);
+		WriteString(g, MinutesSeconds(GT(0x00565cf4), GT(0x00565ce4), m19b8 / 100), 0x21f, aLineY, -1, 1, true, 0, -1);
 	}
 
 	aLineY += aFont->GetAscent() * 2;
-	WriteString(g, "^FFBB00^Total Points Obtained:", 0xe8, aLineY, -1, -1, true, 0, -1);
-	WriteString(g, StrFormat("^FFFF00^%s", CommaSeperate(mScore).c_str()), 0x21f, aLineY, -1, 1, true, 0, -1);
+	WriteString(g, GT(0x00565cc4), 0xe8, aLineY, -1, -1, true, 0, -1);
+	WriteString(g, StrFormat(GTC(0x00565cb8), CommaSeperate(mScore).c_str()), 0x21f, aLineY, -1, 1, true, 0, -1);
 
 	aLineY += aFont->GetAscent() * 2;
-	WriteString(g, "^FFBB00^Biggest Combo:", 0xe8, aLineY, -1, -1, true, 0, -1);
-	WriteString(g, StrFormat("^FFFF00^%d", m7c4), 0x21f, aLineY, -1, 1, true, 0, -1);
+	WriteString(g, GT(0x00565ca0), 0xe8, aLineY, -1, -1, true, 0, -1);
+	WriteString(g, StrFormat(GTC(0x00565d18), m7c4), 0x21f, aLineY, -1, 1, true, 0, -1);
 
 	aLineY += aFont->GetAscent() * 2;
 	if (m1a60 == 1)
 	{
-		WriteString(g, "^FFBB00^Total Game Time:", 0xe8, aLineY, -1, -1, true, 0, -1);
-		WriteString(g, MinutesSeconds("^FFFF00^%d:0%d", "^FFFF00^%d:%d", m19b8 / 100), 0x21f, aLineY, -1, 1, true, 0, -1);
+		WriteString(g, GT(0x00565c84), 0xe8, aLineY, -1, -1, true, 0, -1);
+		WriteString(g, MinutesSeconds(GT(0x00565cf4), GT(0x00565ce4), m19b8 / 100), 0x21f, aLineY, -1, 1, true, 0, -1);
 		aLineY += aFont->GetAscent();
 
 		// the classic game goes on from its last checkpoint (the ones at levels four, eight and so on)
 		Rect aRect(0xb0, aLineY + 0x18, 0x1a4, 100);
 		if (m1b6c < 4)
-			WriteWordWrapped(g, aRect, "^FFFF00^Press \"Continue\" to restart.", -1, 0);
+			WriteWordWrapped(g, aRect, GT(0x00565c3c), -1, 0);
 		else
-			WriteWordWrapped(g, aRect, StrFormat("^FFFF00^Continue from level %d?", m1b6c + 1), -1, 0);
+			WriteWordWrapped(g, aRect, StrFormat(GTC(0x00565c64), m1b6c + 1), -1, 0);
 	}
 	else
 	{
@@ -146,8 +147,8 @@ void Board::DrawEndPage(Graphics* g)
 		Rect aRect(0xb0, aLineY + 0x1e, 0x1a4, 100);
 		if (!aUser->HasModeUnlocked(2) || !aUser->HasModeUnlocked(3) || aUser->GetPilotLevel(0) < 8 ||
 			aUser->GetPilotLevel(1) < 8 || aUser->GetPilotLevel(2) < 8 || aUser->GetPilotLevel(3) < 8)
-			WriteWordWrapped(g, aRect, "^FFFF00^Play classic mode to unlock all pilots and upgrade your SUPA Weapon!", -1, 0);
+			WriteWordWrapped(g, aRect, GT(0x00565bc0), -1, 0);
 		else
-			WriteWordWrapped(g, aRect, "^FFFF00^Play again to beat your high score!", -1, 0);
+			WriteWordWrapped(g, aRect, GT(0x00565c10), -1, 0);
 	}
 }

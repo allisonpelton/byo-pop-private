@@ -98,14 +98,14 @@ OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) 
 	mHintsCheck->mChecked = theHints;
 	mColorblindCheck->mChecked = gApp->mFlag6fa;
 
-	mHintsResetButton = MakeButton(9, "Reset Hints");
+	mHintsResetButton = MakeButton(9, GTC(0x0056b08c));
 	mCreditsButton = MakeButton(0xb, "Credits");
 
 	mLeaveButton = new DialogButton(aButtonImage, 0xfa8, this);
 	SetButtonRects(mLeaveButton);
-	mLeaveButton->mLabel = "Main Menu";
+	mLeaveButton->mLabel = GT(0x0056b0b4);
 	if (gApp->mBoard != NULL && gApp->mBoard->m1a60 == 0)
-		mLeaveButton->mLabel = "Quit Mission";
+		mLeaveButton->mLabel = GT(0x0056b0a4);
 	mLeaveButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xff, 0xff, 0));
 	mLeaveButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0xff, 0xff, 0xff));
 	mLeaveButton->SetFont(GetFontById(0xb1));
@@ -113,7 +113,7 @@ OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) 
 	mHelpButton = MakeButton(10, "Help");
 
 	if (theFromGame)
-		mYesButton->mLabel = "Resume Game";
+		mYesButton->mLabel = GT(0x0056b078);
 	SetButtonRects(mYesButton);
 	if (mNoButton != NULL)
 	{
@@ -250,11 +250,11 @@ void OptionsDialog::Draw(Graphics* g)
 	g->SetColor(mColors[COLOR_LINES]);
 	int aLeft = mContentInsets.mLeft + mBackgroundInsets.mLeft;
 	g->DrawString("Music", aLeft, ((mMusicSlider->mHeight + mMusicSlider->mY) - mY) - aFont->GetHeight());
-	g->DrawString("Sound Fx", aLeft, ((mSoundSlider->mHeight + mSoundSlider->mY) - mY) - aFont->GetHeight());
+	g->DrawString(GT(0x0056b148), aLeft, ((mSoundSlider->mHeight + mSoundSlider->mY) - mY) - aFont->GetHeight());
 	DrawCheckLabel(g, "Fullscreen", mFullscreenCheck);
-	DrawCheckLabel(g, "Custom Cursors", mCursorCheck);
-	DrawCheckLabel(g, "Hardware Acceleration", mAccelCheck);
-	DrawCheckLabel(g, "Allow Hints", mHintsCheck);
+	DrawCheckLabel(g, GT(0x0056b12c), mCursorCheck);
+	DrawCheckLabel(g, GT(0x0056b114), mAccelCheck);
+	DrawCheckLabel(g, GT(0x0056b108), mHintsCheck);
 	DrawCheckLabel(g, GT(0x56b0e0), mColorblindCheck);
 }
 
@@ -285,7 +285,7 @@ void OptionsDialog::CheckboxChecked(int theId, bool theChecked)
 		if (!gApp->Is3DAccelerationSupported())
 		{
 			mAccelCheck->SetChecked(false, false);
-			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x69, 400, -1, 3, "Not Supported", GT(0x56b280), "OK", std::string(), true);
+			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x69, 400, -1, 3, GT(0x0056b270), GT(0x56b280), "OK", std::string(), true);
 			return;
 		}
 		if (!gApp->Is3DAccelerationRecommended())

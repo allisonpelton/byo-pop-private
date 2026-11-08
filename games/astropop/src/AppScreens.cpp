@@ -19,6 +19,7 @@
 #include "XcfFile.h"
 #include "SoundInstance.h"
 #include "FullScreenHelp.h"
+#include "HallOfFame.h"
 #include "ResourceManager.h"
 #include "Checkbox.h"
 #include "WidgetManager.h"
@@ -244,9 +245,35 @@ void AstroPopApp::ShowCharSelector(int theMode)
 	StartLoopSound(6);
 }
 
+// 0x4288a0: the pictures of the hall of fame are loaded and the screen comes over the selector. (The original reads the
+// clock, 0x4ce790, which the load of the pictures made it lose.)
 void AstroPopApp::ShowHallOfFame()
 {
-	SDL_Log("AstroPop: ShowHallOfFame not translated yet (0x4288a0)");
+	mResourceManager->StartLoadResources("HighScores");
+	while (mResourceManager->LoadNextResource())
+	{
+	}
+	if (!mResourceManager->HadError() && ExtractHighScoresResources(mResourceManager))
+	{
+		mHallScreen = new HallOfFame(this);
+		mHallScreen->Resize(0, 0, 0x280, 0x1e0);
+		mWidgetManager->AddWidget(mHallScreen);
+		mWidgetManager->SetFocus(mHallScreen);
+		return;
+	}
+
+	ShowResourceError(false);
+	mLoadingFailed = true;
+	Shutdown();
+}
+
+// 0x411a90: the hall of fame goes (its pictures stay loaded). (The original also tells its page counter, 0x48f860
+// "HighScores" and 0x48f8a0 with an empty name: PopCap's ad statistics, left out.)
+void AstroPopApp::CloseHallOfFame()
+{
+	mWidgetManager->RemoveWidget(mHallScreen);
+	SafeDeleteWidget(mHallScreen);
+	mHallScreen = NULL;
 }
 
 // 0x422db0: a game opens with the picture of how to play (once the player has not turned it off): the selector goes, the
@@ -283,7 +310,7 @@ void AstroPopApp::ShowQuitDialog()
 	int aDraw = (int) AstroRand();
 	if (!mGoodbyeMessages.empty())
 		aLines = mGoodbyeMessages[((unsigned int) (aDraw % 500000000)) % mGoodbyeMessages.size()];
-	AstroDialog* aDialog = MakeDialog(1, false, 0x7c, -1, -1, 1, "QUIT GAME?", aLines, "Yes", "No", true);
+	AstroDialog* aDialog = MakeDialog(1, false, 0x7c, -1, -1, 1, GT(0x005622b8), aLines, "Yes", "No", true);
 	int aWidth = aDialog->mWidth;
 	int aHeight = aDialog->mHeight;
 	aDialog->Resize(0x140 - aWidth / 2, 0xf0 - aHeight / 2, aWidth, aHeight);
@@ -309,8 +336,8 @@ void AstroPopApp::ShowOptions(bool theFromGame)
 // is its first button (the hub's 0x844), New Game the second (the hub's 0x74).
 void AstroPopApp::ShowContinueDialog(const std::string& thePilot, int theLevel)
 {
-	MakeDialog(1, false, 0x74, 0x177, 0xe6, 1, "CONTINUE?", StrFormat(GTC(0x564a00), thePilot.c_str(), theLevel), "Continue",
-			   "New Game", true);
+	MakeDialog(1, false, 0x74, 0x177, 0xe6, 1, GT(0x005649f0), StrFormat(GTC(0x564a00), thePilot.c_str(), theLevel), "Continue",
+			   GT(0x00564b3c), true);
 }
 
 // 0x40bc00: the box where a new player types a name, centred a little low

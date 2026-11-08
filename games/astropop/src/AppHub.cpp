@@ -57,7 +57,7 @@ static void AskToEndGame(AstroPopApp* theApp)
 {
 	Board* aBoard = theApp->mBoard;
 	int aType = (aBoard != NULL) ? aBoard->m1a60 : 0;
-	std::string aHeader = "END GAME?";
+	std::string aHeader = GT(0x005638a4);
 	std::string aLines;
 	if (aType == 1)
 	{
@@ -70,7 +70,7 @@ static void AskToEndGame(AstroPopApp* theApp)
 	else
 	{
 		aLines = GT(0x563870);
-		aHeader = "END MISSION?";
+		aHeader = GT(0x00563860);
 	}
 	theApp->MakeDialog(theApp->GetDialogSet(), false, 0x6a, -1, -1, 1, aHeader, aLines, "Yes", "No", true);
 }
@@ -260,7 +260,7 @@ void AstroPopApp::ButtonDepress(int theId)
 		case 0x6f:
 			if (aRaw == 0x6b && mUserNames.empty())
 			{
-				ShowLowMessageDialog("INVALID NAME", GT(0x563964));
+				ShowLowMessageDialog(GT(0x00563954), GT(0x563964));
 				return;
 			}
 			mOpenDialogs--;

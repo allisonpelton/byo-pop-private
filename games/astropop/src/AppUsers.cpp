@@ -116,7 +116,7 @@ void AstroPopApp::NewUserOk()
 		return;
 	}
 
-	ShowLowMessageDialog("Invalid Name", GT(0x5635f8));
+	ShowLowMessageDialog(GT(0x005635e8), GT(0x5635f8));
 }
 
 // 0x4119e0: the player of the next session
@@ -238,7 +238,7 @@ void AstroPopApp::DeleteUser(bool theConfirmed)
 {
 	if (!theConfirmed)
 	{
-		MakeDialog(1, false, 0x6f, -1, -1, 1, "Delete User?", GT(0x5637e0), "Yes", "No", true);
+		MakeDialog(1, false, 0x6f, -1, -1, 1, GT(0x005637d0), GT(0x5637e0), "Yes", "No", true);
 		return;
 	}
 

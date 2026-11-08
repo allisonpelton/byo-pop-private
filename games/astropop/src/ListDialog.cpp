@@ -234,7 +234,7 @@ void ListDialog::SelectByName(const std::string& theName)
 
 // 0x486b00: the choice of the player. The two buttons under the list are the box's own (their ids are 0xfb0 and 0xfb1).
 UserSelectDialog::UserSelectDialog(AstroPopApp* theApp) :
-	ListDialog(theApp, 0x6d, "Who Are You?", std::string())
+	ListDialog(theApp, 0x6d, GT(0x0056b390), std::string())
 {
 	mNewButton = new DialogButton(mYesButton->mComponentImage, 0xfb0, this);
 	mNewButton->mLabel = "NEW";
@@ -315,7 +315,7 @@ void UserSelectDialog::ButtonDepress(int theId)
 
 // 0x486f20: the list is as high as seven lines of its font under the line of text
 DeleteUserDialog::DeleteUserDialog(AstroPopApp* theApp) :
-	ListDialog(theApp, 0x6e, "Delete Who?", GT(0x56b3b0))
+	ListDialog(theApp, 0x6e, GT(0x0056b3a0), GT(0x56b3b0))
 {
 	m11c = mList->mFont->GetHeight() * 7;
 }

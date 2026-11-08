@@ -145,7 +145,7 @@ void AstroPopApp::StartGame(bool theContinue)
 		// (the original also drops a saved classic game of a copy that is not registered; the port's game is the whole game)
 		if ((aPilot == 2 || aPilot == 3) && !mUser->HasModeUnlocked(aPilot))
 		{
-			ShowMessageDialog("ERROR", "Your saved game is corrupted. You may not continue this game.");
+			ShowMessageDialog("ERROR", GT(0x00562c48));
 			mUser->SetInt(0x4f, -1);
 			mUser->SetInt(0x51, -1);
 			mUser->Save();

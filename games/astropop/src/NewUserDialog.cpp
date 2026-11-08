@@ -1,6 +1,7 @@
 // NewUserDialog: the name entry box (see NewUserDialog.h).
 
 #include "NewUserDialog.h"
+#include "GameText.h"
 #include "AstroPopApp.h"
 #include "DialogButton.h"
 #include "EditWidget.h"
@@ -13,7 +14,7 @@ using namespace Sexy;
 
 // 0x484d80: the box is of the colour set of the selector (1). The field takes up to 24 letters and 305 pixels.
 NewUserDialog::NewUserDialog() :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x6b, true, "New User", "Enter your name: \n", std::string(), 2)
+	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x6b, true, GT(0x005649d4), GT(0x0056b064), std::string(), 2)
 {
 	mEdit = new EditWidget(0, this);
 	mEdit->SetFont(GetFontById(0xb0), GetFontById(0x120));

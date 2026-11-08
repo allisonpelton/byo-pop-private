@@ -946,6 +946,7 @@ public:
 
 	// ---- pause and play (BoardPlay.cpp)
 	void			Pause(bool theStart, bool theFlag);             // 0x459040 a dialog opens (true) or closes (false)
+	bool			HasWarpState() const;                           // 0x408ad0 a warp or a level change is going on (the engine loop is off then)
 	void			RecolorThemeButtons();                          // 0x437910
 	void			ShowThemeButtons();                             // 0x45ab90
 	void			BeginPlay();                                    // 0x457930 the player's first move: the mode's play starts

@@ -4,6 +4,7 @@
 // a new one; each change says so in a text that floats on the field (0x454730).
 
 #include "Board.h"
+#include "GameText.h"
 #include "Brick.h"
 #include "BrickKinds.h"
 #include "Font.h"
@@ -112,7 +113,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 				if (aText.empty())
 					aText = ColourName(m200[i].mType, false);
 				else
-					aText += " and " + ColourName(m200[i].mType, false);
+					aText += GT(0x00565560) + ColourName(m200[i].mType, false);
 			}
 
 			if (m200[0].mType == m200[1].mType)
@@ -125,7 +126,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 			}
 
 			Fire(0x25, 0xff);
-			aText += " bricks supercharged!";
+			aText += GT(0x00565548);
 			aText = Capitals(aText);
 			if (!m910 || !aNoColourBrick)
 				AnnounceText(aText);
@@ -163,7 +164,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 			if (!aPickNew)
 			{
 				if ((!m910 || !aNoColourBrick) && m200[0].mType != anOld)
-					AnnounceText(ColourName(m200[0].mType, true) + " BRICKS SUPERCHARGED!");
+					AnnounceText(ColourName(m200[0].mType, true) + GT(0x00565530));
 				return;
 			}
 		}
@@ -178,7 +179,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 			if (aText.empty())
 				aText = ColourName(m200[i].mType, true);
 			else
-				aText += " AND " + ColourName(m200[i].mType, true);
+				aText += GT(0x00565528) + ColourName(m200[i].mType, true);
 		}
 
 		Fire(0x25, 0xff);
@@ -187,7 +188,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 			if (m200[i].mActive)
 			{
 				if (!m910 || !aNoColourBrick)
-					AnnounceText(aText + " BRICKS SUPERCHARGED!");
+					AnnounceText(aText + GT(0x00565530));
 				return;
 			}
 		}
@@ -291,9 +292,9 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 		if (aText.empty())
 			aText = ColourName(m200[i].mType, false);
 		else
-			aText += " and " + ColourName(m200[i].mType, false);
+			aText += GT(0x00565560) + ColourName(m200[i].mType, false);
 	}
-	aText += " bricks supercharged!";
+	aText += GT(0x00565548);
 	aText = Capitals(aText);
 	if (!m910 || !aNoColourBrick)
 		AnnounceText(aText);

@@ -2,6 +2,7 @@
 // fast gate (the warp to a later one), each with its planet, its title and what the mission is for.
 
 #include "Board.h"
+#include "GameText.h"
 #include "AstroPopApp.h"
 #include "Font.h"
 #include "Graphics.h"
@@ -12,10 +13,10 @@
 using namespace Sexy;
 
 // the texts under the gates are in the colour codes of WriteWordWrapped
-static const char* kClickForNext = "^FFFF00^Click for next mission^FFFFFF^";
-static const char* kForBonusRound = "^FFFF00^Complete this mission for a bonus round^FFFFFF^";
-static const char* kForUpgrade = "^FFFF00^Complete this mission to earn an upgrade^FFFFFF^";
-static const char* kForPilot = "^FFFF00^Complete this mission to unlock a new pilot^FFFFFF^";
+#define kClickForNext GTC(0x005646f0)
+#define kForBonusRound GTC(0x005646b8)
+#define kForUpgrade GTC(0x0056467c)
+#define kForPilot GTC(0x00564640)
 
 // 0x442c70
 void Board::DrawWarpScreen(Graphics* g)
@@ -119,9 +120,9 @@ void Board::DrawWarpScreen(Graphics* g)
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	Font* aFont = GetFontById((m1a08 > 0) ? FONT_DIALOG_BOX_BTN_ID : FONT_HIGH_SCORE_ID);
 	g->SetFont(aFont);
-	std::string aTitle = StrFormat("Level %d", m1940 + 1);
+	std::string aTitle = StrFormat(GTC(0x00564634), m1940 + 1);
 	if (aKind == 2)
-		aTitle += ": Checkpoint";
+		aTitle += GT(0x00564624);
 	int aTitleY = 0xfa - g->GetFont()->mHeight;
 	g->DrawString(aTitle, (IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - aFont->StringWidth(aTitle) / 2) + m1a70, aTitleY);
 
@@ -133,7 +134,7 @@ void Board::DrawWarpScreen(Graphics* g)
 
 	if (m1a08 > 0)
 	{
-		std::string aFastTitle = StrFormat("Warp To %d: Checkpoint", m1a08 / 2 + 1);
+		std::string aFastTitle = StrFormat(GTC(0x0056460c), m1a08 / 2 + 1);
 		int aFastTitleY = 0xfa - g->GetFont()->mHeight;
 		g->DrawString(aFastTitle,
 			(IMAGE_FAST_WARP_GATE->GetCelWidth() / 2 + m1a74) - aFont->StringWidth(aFastTitle) / 2, aFastTitleY);

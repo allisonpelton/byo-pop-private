@@ -66,3 +66,87 @@ bool AstroPopApp::AddHallOfFame(const std::string& theName, int theScore, int th
 	}
 	return false;
 }
+
+// 0x42a0b0: the hall of fame starts with ten results (0x558040 makes them: five of the classic game, with the level
+// reached, then five of the survival game, with the seconds played; the last number is the pilot). The file of the
+// hall, users\datahs.usr, replaces them one by one as far as it goes. A file of an older version is deleted first.
+void AstroPopApp::LoadHighScores()
+{
+	static const struct
+	{
+		unsigned int	mName;      // the text of the name
+		int				mScore;
+		int				mSecond;
+		int				mMode;
+		int				mKind;
+	} kDefaults[10] = {
+		{0x5639dc, 100000, 10, 2, 1},
+		{0x5639d4, 90000, 9, 1, 1},
+		{0x5639cc, 80000, 8, 2, 1},
+		{0x5639c4, 70000, 7, 3, 1},
+		{0x5639c0, 60000, 6, 0, 1},
+		{0x5639dc, 50000, 300, 1, 2},
+		{0x5639d4, 40000, 240, 2, 2},
+		{0x5639c0, 30000, 180, 3, 2},
+		{0x5639b8, 20000, 120, 0, 2},
+		{0x5639b4, 10000, 60, 1, 2}
+	};
+	for (int i = 0; i < 10; i++)
+	{
+		HallEntry anEntry;
+		anEntry.mName = GT(kDefaults[i].mName);
+		anEntry.mScore = kDefaults[i].mScore;
+		anEntry.mSecond = kDefaults[i].mSecond;
+		anEntry.mMode = kDefaults[i].mMode;
+		anEntry.mKind = kDefaults[i].mKind;
+		mHall.push_back(anEntry);
+	}
+
+	if (mOldScoresDeleted)
+		EraseFile("users\datahs.usr");
+
+	Buffer aBuffer;
+	if (!ReadBufferFromFile("users\datahs.usr", &aBuffer, false))
+		return;
+
+	// the name of the product and its version come first
+	aBuffer.ReadString();
+	aBuffer.ReadString();
+	size_t anIndex = 0;
+	while (!aBuffer.AtEnd())
+	{
+		std::string aName = aBuffer.ReadString();
+		bool aShort = aBuffer.AtEnd();
+		int aScore = 0, aSecond = 0, aMode = 0, aKind = 0;
+		if (!aShort)
+		{
+			aScore = aBuffer.ReadLong();
+			aShort = aBuffer.AtEnd();
+		}
+		if (!aShort)
+		{
+			aSecond = aBuffer.ReadLong();
+			aShort = aBuffer.AtEnd();
+		}
+		if (!aShort)
+		{
+			aMode = aBuffer.ReadLong();
+			aShort = aBuffer.AtEnd();
+		}
+		if (aShort)
+		{
+			Popup(GT(0x562cd8));
+			return;
+		}
+		aKind = aBuffer.ReadLong();
+
+		mHall[anIndex].mName = aName;
+		mHall[anIndex].mScore = aScore;
+		mHall[anIndex].mSecond = aSecond;
+		mHall[anIndex].mMode = aMode;
+		mHall[anIndex].mKind = aKind;
+		anIndex++;
+		if (anIndex >= mHall.size())
+			return;
+	}
+}

@@ -2,6 +2,7 @@
 // under the field, the gauge and the button of the supa weapon, and the score.
 
 #include "Board.h"
+#include "GameText.h"
 #include "AstroPopApp.h"
 #include "Font.h"
 #include "Graphics.h"
@@ -100,7 +101,7 @@ void Board::DrawFrame(Graphics* g)
 			g->SetFont(GetFontById(FONT_DIALOG_BOX_ID));
 			int aShade = aDim ? 0xff - m1b3c : 0xff;
 			g->SetColor(Color(aShade, aShade, aShade));
-			g->DrawString(StrFormat("Level %d", m1940), m1a80 + 0x36, 0xbb);
+			g->DrawString(StrFormat(GTC(0x00564634), m1940), m1a80 + 0x36, 0xbb);
 		}
 		if (m1a60 == 2)
 		{
@@ -136,7 +137,7 @@ void Board::DrawFrame(Graphics* g)
 					g->SetColor(Color(0xff, 0xff, 0xff, 0xff));
 					g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
 					int aSeconds = (int) (m1bd8 / m1be0 * 0.01f + 1.0f);
-					WriteString(g, StrFormat("^FFFF00^SUPA Weapon time remaining: ^FFFFFF^%d", aSeconds), 0xa6, 0x14, 0x1b8, 0,
+					WriteString(g, StrFormat(GTC(0x00564884), aSeconds), 0xa6, 0x14, 0x1b8, 0,
 						true, 0, -1);
 				}
 			}
@@ -221,7 +222,7 @@ void Board::DrawFrame(Graphics* g)
 			g->SetColor(Color(0xff, 0xff, 0, aAlpha));
 			Font* aFont = GetFontById(FONT_DIALOG_BOX_BTN_ID);
 			g->SetFont(aFont);
-			std::string aLabel = "Bonus round time remaining: ";
+			std::string aLabel = GT(0x00564864);
 			g->DrawString(aLabel, 0xf0, 0x14);
 			g->SetColor(Color(0xff, 0xff, 0xff));
 			int aSeconds = (m1b70 < 0) ? 0x3c : m1b70 / 100;

@@ -14,7 +14,7 @@ using namespace Sexy;
 // 0x488760. The box has no buttons; its inset picture is made in the colours of the game's set (the button picture the
 // maker also gives is not needed and goes at once).
 CheckpointDialog::CheckpointDialog(int theColourSet, AstroPopApp* theApp) :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x78, true, "New Game", std::string(), std::string(), 0)
+	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x78, true, GT(0x00564b3c), std::string(), std::string(), 0)
 {
 	mApp = theApp;
 	m114 = 0;
@@ -87,7 +87,7 @@ void CheckpointDialog::Draw(Graphics* g)
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	Font* aFont = GetFontById(0xb1);
 	g->SetFont(aFont);
-	std::string aText = "Level 1";
+	std::string aText = GT(0x0056b630);
 	int aTextY = IMAGE_SLOW_WARP_GATE->mHeight + aGateY;
 	g->DrawString(aText, (aGateWidth / 2 - aFont->StringWidth(aText) / 2) + 10, aTextY);
 
@@ -97,7 +97,7 @@ void CheckpointDialog::Draw(Graphics* g)
 	int aPlanetY2 = (IMAGE_FAST_WARP_GATE->mHeight / 2 - IMAGE_WARP_PLANETS->mHeight / 2) + aGateY;
 	g->DrawImage(IMAGE_WARP_PLANETS, (IMAGE_FAST_WARP_GATE->GetCelWidth() / 2 - aPlanetWidth / 2) + aSecondX, aPlanetY2, aSource2);
 
-	aText = StrFormat("Level %d", mLevel);
+	aText = StrFormat(GTC(0x00564634), mLevel);
 	g->SetFont(aFont);
 	g->DrawString(aText, (aGateWidth / 2 - aFont->StringWidth(aText) / 2) + aSecondX, aTextY);
 }

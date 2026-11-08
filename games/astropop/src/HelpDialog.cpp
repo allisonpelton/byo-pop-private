@@ -15,7 +15,7 @@ using namespace Sexy;
 // 0x48ab10: the box is of the colour set it is given (the game's mode + 2, or 1 from the selector). The lines of the first
 // page are those of the game that is on: none (from the selector: all the rules), the classic game (m1a60 is 1) or the other.
 HelpDialog::HelpDialog(int theColourSet, AstroPopApp* theApp) :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x79, true, "HOW TO PLAY", std::string(), std::string(), 1)
+	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x79, true, GT(0x0056b554), std::string(), std::string(), 1)
 {
 	mApp = theApp;
 	m134 = 0;
@@ -177,17 +177,17 @@ void HelpDialog::ButtonDepress(int theId)
 
 	if (mPage == 0)
 	{
-		mDialogHeader = "BRICK PIECES";
+		mDialogHeader = GT(0x0056b544);
 		mPage = 1;
 	}
 	else if (mPage == 1)
 	{
-		mDialogHeader = "BRICK PIECES";
+		mDialogHeader = GT(0x0056b544);
 		mPage = 2;
 	}
 	else if (mPage == 2)
 	{
 		mPage = 0;
-		mDialogHeader = "HOW TO PLAY";
+		mDialogHeader = GT(0x0056b554);
 	}
 }

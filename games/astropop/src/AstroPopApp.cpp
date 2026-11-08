@@ -1,7 +1,10 @@
 #include "AstroPopApp.h"
 #include "Compat2004.h"
 #include "GameText.h"
+#include "Board.h"
+#include "HallOfFame.h"
 #include "LoaderScreen.h"
+#include "MainMenu.h"
 #include "SDLMusicInterface.h"
 #include "ResourceManager.h"
 #include <SDL.h>
@@ -40,6 +43,7 @@ AstroPopApp::AstroPopApp()
 	mFlag6fa = false;
 	mFlag6fb = false;
 	mMainMenu = NULL;
+	mHallScreen = NULL;
 	mScreen650 = NULL;
 	mScreen654 = NULL;
 	mLoaderScreen = NULL;
@@ -240,11 +244,11 @@ void AstroPopApp::Init()
 			RegistryEraseKey(StrFormat("Users\\%s", aName.c_str()));
 			int aNumber = -1;
 			if (!mUser->GetInt(PROFILE_NUMBER, &aNumber))
-				Popup("Error deleting registry key from old version");
+				Popup(GT(0x00563380));
 			if (aNumber != -1)
 			{
 				if (!EraseFile(StrFormat("users\\data%d.usr", aNumber)))
-					Popup("Error deleting file from disk from old version");
+					Popup(GT(0x00563350));
 			}
 			delete mUser;
 			mUser = NULL;
@@ -311,7 +315,7 @@ void AstroPopApp::LoadingThreadProc()
 	if (aFont == NULL)
 	{
 		mLoadingFailed = true;
-		Popup("Unable to load FONT_COMBO");
+		Popup(GT(0x00563100));
 		return;
 	}
 	{
@@ -327,7 +331,7 @@ void AstroPopApp::LoadingThreadProc()
 	if (aFont == NULL)
 	{
 		mLoadingFailed = true;
-		Popup("Unable to load FONT_LARGE_COMBO");
+		Popup(GT(0x005630cc));
 		return;
 	}
 	{
@@ -417,18 +421,41 @@ void AstroPopApp::Shutdown()
 		mUser->Save();
 }
 
-// 0x4253e0 slot 62 (the part that is not about the board yet)
+// 0x4253e0 slot 62: the game goes on, the music and the loops come back. A screen of the selector or the hall of fame
+// goes on too. The loops of the engine and of the hyperspace play again where a game is in the state that has them.
 void AstroPopApp::GotFocus()
 {
-	PauseMusicForFocus(false);
-	SetLoopSoundsMuted(false);
+	if (mBoard != NULL)
+	{
+		mBoard->Pause(false, true);
+		PauseMusicForFocus(false);
+	}
+	else
+	{
+		PauseMusicForFocus(false);
+		SetLoopSoundsMuted(false);
+		if (mHallScreen != NULL)
+			((HallOfFame*) mHallScreen)->mInactive = false;
+		else if (mMainMenu != NULL)
+			mMainMenu->mInactive = false;
+	}
+	if (mEngineLoop != NULL && mBoard != NULL && !mBoard->HasWarpState() && mBoard->m1924 <= 0)
+		mEngineLoop->Play(true, false);
+	if (mHyperspaceLoop != NULL && mBoard != NULL && mBoard->HasWarpState() && mBoard->m1924 <= 0)
+		mHyperspaceLoop->Play(true, false);
 }
 
-// 0x425380 slot 63
+// 0x425380 slot 63: the music and the loops stop, a game pauses, the selector and the hall of fame stand still
 void AstroPopApp::LostFocus()
 {
 	PauseMusicForFocus(true);
 	SetLoopSoundsMuted(true);
+	if (mBoard != NULL)
+		mBoard->Pause(true, true);
+	else if (mHallScreen != NULL)
+		((HallOfFame*) mHallScreen)->mInactive = true;
+	else if (mMainMenu != NULL)
+		mMainMenu->mInactive = true;
 }
 
 // 0x4252b0: lost focus pauses the music slots that play; regained focus resumes them
@@ -554,7 +581,3 @@ bool AstroPopApp::LoadBonusLevels()
 	return true;
 }
 
-// 0x42a0b0: the high-score file users\datahs.usr (to come)
-void AstroPopApp::LoadHighScores()
-{
-}

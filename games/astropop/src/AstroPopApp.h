@@ -65,6 +65,7 @@ public:
 	Board*						mBoard;             // +0x628 the running game (class Board, 0x1c0c bytes), NULL for none
 	EventBus					mBus;               // +0x62c the 43 lists of listeners (the original makes them when the title's button is pressed)
 	MainMenu*					mMainMenu;          // +0x644 the game selector (ShowMainMenu)
+	Widget*						mHallScreen;        // +0x648 the hall of fame (ShowHallOfFame), NULL for none
 	LoaderScreen*				mLoaderScreen;      // +0x640 Init .. the title (the original ctor leaves it uninitialised)
 	Widget*						mScreen650;         // +0x650 the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
 	Widget*						mScreen654;         // +0x654 the story screen (0x428f10), removed by its button 0xfb6
@@ -167,6 +168,7 @@ public:
 	void			CloseSelectorScreen();                      // 0x4117d0 the screen over the selector goes
 	void			ShowCharSelector(int theMode);              // 0x411660 (pilot choice)
 	void			ShowHallOfFame();                           // 0x4288a0
+	void			CloseHallOfFame();                          // 0x411a90
 	bool			AddHallOfFame(const std::string& theName, int theScore, int theSecond, int theMode, int theKind); // 0x429a40
 	void			ShowQuitDialog();                           // 0x422c00
 	void			ShowUserSelect();                           // 0x422870 the list of the players

@@ -31,6 +31,15 @@ void Board::SortCells(std::vector<CellRef>& theCells)
 	std::sort(theCells.begin(), theCells.end(), CellBefore);
 }
 
+// 0x408ad0: one of the states in which the ship is not in play, the way the streaks and the warp are (the loops of the engine
+// and of the hyperspace go by it)
+bool Board::HasWarpState() const
+{
+	if ((!m8eb || m8ec) && !m8ed && !m8ef && !m8f4)
+		return false;
+	return true;
+}
+
 // 0x459040: the Board is paused while a dialog is open. Pause(true) starts a pause (unless the pause dialog, id 100, is
 // open already); Pause(false) ends it when that dialog is gone. The count of pauses is m1924; only the first pause
 // stops the sounds and hides the buttons and only the last resumes them.

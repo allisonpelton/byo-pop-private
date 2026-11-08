@@ -4,6 +4,7 @@
 // (setting 0x5b or 0x58 above nothing) comes back at the warp screen instead.
 
 #include "Board.h"
+#include "GameText.h"
 #include "AstroPopApp.h"
 #include "Brick.h"
 #include "BrickKinds.h"
@@ -131,7 +132,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				m1b74 = 0;
 				m1b7c = 0;
 				m1b78 = 200;
-				std::string aBanner = "Try to pop ALL the bricks!";
+				std::string aBanner = GT(0x005647cc);
 				m1bd0 = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
 				m8fc = true;
 				m922 = false;
@@ -299,13 +300,13 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 
 			// the panel of what the player has got so far
 			std::vector<std::string>().swap(m7cc);
-			m7cc.push_back("Points obtained: " + FormatNumber(m7bc));
-			m7cc.push_back(StrFormat("Biggest combo: %d", m7c4));
+			m7cc.push_back(GT(0x00565728) + FormatNumber(m7bc));
+			m7cc.push_back(StrFormat(GTC(0x00565714), m7c4));
 			int aSeconds = (m19b4 / 100) % 0x3c;
 			if (aSeconds < 10)
-				m7cc.push_back(StrFormat("Time to complete: %d:0%d", m19b4 / 6000, aSeconds));
+				m7cc.push_back(StrFormat(GTC(0x005656f8), m19b4 / 6000, aSeconds));
 			else
-				m7cc.push_back(StrFormat("Time to complete: %d:%2d", m19b4 / 6000, aSeconds));
+				m7cc.push_back(StrFormat(GTC(0x005656dc), m19b4 / 6000, aSeconds));
 			std::string aRankName = mApp->GetRankName(mScore, &m1bd4);
 			if (m30c != NULL)
 				delete m30c;
@@ -314,13 +315,13 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			{
 				mScore = m7bc + m7b8 + m1978 + aBonus;
 				m1970 = mScore;
-				m7cc.push_back(StrFormat("Bonus Points: %s", FormatNumber(mScore).c_str()));
+				m7cc.push_back(StrFormat(GTC(0x005660ac), FormatNumber(mScore).c_str()));
 			}
 			int aToNext = mApp->PointsToNextRank(mScore);
 			if (aToNext == -1)
-				m7cc.push_back("Highest rank achieved!");
+				m7cc.push_back(GT(0x0056569c));
 			else
-				m7cc.push_back(StrFormat("Next rank at: %s", FormatNumber(aToNext + mScore).c_str()));
+				m7cc.push_back(StrFormat(GTC(0x005656b4), FormatNumber(aToNext + mScore).c_str()));
 			m8f0 = true;
 			m7dc = 5;
 			m800 = 0x19;
@@ -371,7 +372,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		SetNextLevelScore();
 		m1b70 = -1;
 		m918 = false;
-		std::string aBanner = "Try to pop ALL the bricks!";
+		std::string aBanner = GT(0x005647cc);
 		m1bd0 = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
 		m8fc = true;
 		m922 = false;

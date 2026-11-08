@@ -5,6 +5,7 @@
 // before they are cut to a whole pixel, as _ftol does.
 
 #include "Board.h"
+#include "GameText.h"
 #include "AstroPopApp.h"
 #include "Brick.h"
 #include "Font.h"
@@ -201,13 +202,13 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 		g->SetFont(aFont);
 		std::string aText;
 		if (mMode == 2 || mMode == 1)
-			aText = "AUTO-TARGETING BRICKS FOR DESTRUCTION";
+			aText = GT(0x00565dd8);
 		else if (mMode == 3)
-			aText = "CLICK ON INDIVIDUAL BRICKS TO DESTROY!";
+			aText = GT(0x00565e28);
 		else if (mMode == 0)
-			aText = "CLICK TO FIRE YOUR LASER AT THE BRICKS!";
+			aText = GT(0x00565e00);
 		if (mMode == 2 && mc8.empty())
-			aText = "PREPARING TO FREEZE TIME";
+			aText = GT(0x00565dbc);
 		g->DrawString(aText, 0x182 - aFont->StringWidth(aText) / 2, 0xf5);
 	}
 
@@ -235,7 +236,7 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 			g->SetColor(Color(0xff, 0xff, 0xff, aPulseAlpha));
 			Font* aSmall = GetFontById(FONT_DIALOG_BOX_BTN_ID);
 			g->SetFont(aSmall);
-			std::string aBricks = StrFormat("POP %d BRICKS TO PASS!", m1a18);
+			std::string aBricks = StrFormat(GTC(0x00565d84), m1a18);
 			g->DrawString(aBricks, 0x182 - aSmall->StringWidth(aBricks) / 2, 0x159);
 
 			// a level that makes a new starting point: every fourth, once it is further than the best one so far
@@ -246,12 +247,12 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 				Font* aBig = GetFontById(FONT_HIGH_SCORE_ID);
 				g->SetColor(Color(0xff, 0xff, 0, aTextAlpha));
 				g->SetFont(aBig);
-				WriteString(g, "CHECKPOINT LEVEL", 0xa6, g->GetFont()->GetAscent() + 0xf5, 0x1b8, 0, true, 0, -1);
+				WriteString(g, GT(0x00565d70), 0xa6, g->GetFont()->GetAscent() + 0xf5, 0x1b8, 0, true, 0, -1);
 				g->SetColor(Color(0xff, 0xff, 0xff, aTextAlpha));
 				g->SetFont(aSmall);
-				WriteString(g, "COMPLETE MISSION TO ESTABLISH", 0xa6, aBig->GetHeight() + aBig->GetAscent() + 0xf5, 0x1b8, 0,
+				WriteString(g, GT(0x00565d50), 0xa6, aBig->GetHeight() + aBig->GetAscent() + 0xf5, 0x1b8, 0,
 					true, 0, -1);
-				WriteString(g, "NEW STARTING POINT", 0xa6, aBig->GetHeight() + aBig->GetAscent() + aSmall->GetHeight() + 0xf5,
+				WriteString(g, GT(0x00565d3c), 0xa6, aBig->GetHeight() + aBig->GetAscent() + aSmall->GetHeight() + 0xf5,
 					0x1b8, 0, true, 0, -1);
 			}
 		}
@@ -264,11 +265,11 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 		g->SetColor(Color(0xff, 0xff, 0xff, aPulse + 0x96));
 		Font* aFont = GetFontById(FONT_DIALOG_BOX_BTN_ID);
 		g->SetFont(aFont);
-		std::string aText = "CONTINUING FROM LAST CHECKPOINT";
+		std::string aText = GT(0x00565d9c);
 		g->DrawString(aText, 0x182 - aFont->StringWidth(aText) / 2, 0x159);
 		if (m1a60 == 1)
 		{
-			std::string aBricks = StrFormat("POP %d BRICKS TO PASS!", m1a18);
+			std::string aBricks = StrFormat(GTC(0x00565d84), m1a18);
 			g->SetColor(Color(0, 0, 0, 0x80));
 			g->FillRect(Rect(0, 0x15e, mWidth, 0x14));
 			g->SetColor(Color(0xff, 0xff, 0xff, aPulse + 0x96));
@@ -436,11 +437,11 @@ void Board::DrawSurvivalIntro(Graphics* g)
 	g->FillRect(Rect(0, 0xbe, mWidth, 0xb9));
 	g->SetColor(Color(0xff, 0xff, 0, anAlpha));
 	g->SetFont(GetFontById(FONT_HIGH_SCORE_ID));
-	WriteString(g, "SURVIVAL MODE:", 0xa6, 0xdd, 0x1b8, 0, true, 0, -1);
+	WriteString(g, GT(0x00565ba4), 0xa6, 0xdd, 0x1b8, 0, true, 0, -1);
 	g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
 	g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
-	WriteString(g, "DIFFICULTY WILL INCREASE RAPIDLY.", 0xa6, 0xf1, 0x1b8, 0, true, 0, -1);
-	WriteString(g, "POP 'TIL YOU DROP!", 0xa6, 0x105, 0x1b8, 0, true, 0, -1);
+	WriteString(g, GT(0x00565b80), 0xa6, 0xf1, 0x1b8, 0, true, 0, -1);
+	WriteString(g, GT(0x00565b6c), 0xa6, 0x105, 0x1b8, 0, true, 0, -1);
 	g->SetColor(Color(0xff, 0xff, 0, anAlpha));
 	g->SetFont(GetFontById(FONT_HIGH_SCORE_ID));
 
@@ -449,14 +450,14 @@ void Board::DrawSurvivalIntro(Graphics* g)
 		aBest.mField[i] = -1;
 	if (!mApp->mUser->GetRecord(2, 0, &aBest))
 	{
-		WriteString(g, "LIFE EXPECTANCY:", 0xa6, 0x144, 0x1b8, 0, true, 0, -1);
+		WriteString(g, GT(0x00565b58), 0xa6, 0x144, 0x1b8, 0, true, 0, -1);
 		g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
 		g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
-		WriteString(g, "Less than five minutes!", 0xa6, 0x15b, 0x1b8, 0, true, 0, -1);
+		WriteString(g, GT(0x00565b40), 0xa6, 0x15b, 0x1b8, 0, true, 0, -1);
 	}
 	else
 	{
-		WriteString(g, "YOUR BEST TIME:", 0xa6, 0x144, 0x1b8, 0, true, 0, -1);
+		WriteString(g, GT(0x00565b30), 0xa6, 0x144, 0x1b8, 0, true, 0, -1);
 		g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
 		g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
 		int aSeconds = aBest.mField[4] % 60;
@@ -549,15 +550,15 @@ void Board::DrawSupaBrackets(Graphics* g)
 	if (3 < m1ad4)
 	{
 		g->SetColor(Color(0xff, 0xff, 0, m1ae4));
-		std::string aName = "Plasma Cannon";
+		std::string aName = GT(0x00565b1c);
 		if (mMode == 1)
-			aName = "Fusion Warhead";
+			aName = GT(0x00565b0c);
 		else if (mMode == 2)
-			aName = "Neutron Pulse";
+			aName = GT(0x00565afc);
 		else if (mMode == 3)
-			aName = "Psychic Blast";
+			aName = GT(0x00565aec);
 		if (m910)
-			aName = "Get Ready!";
+			aName = GT(0x00565ae0);
 		Font* aFont = GetFontById(FONT_NEURO30_ID);
 		g->SetFont(aFont);
 		g->DrawString(aName, ((IMAGE_SUPA_BRACKET_RIGHT->mWidth + 0x1cd) / 2 - aFont->StringWidth(aName) / 2) + 0x80,
@@ -627,24 +628,24 @@ void Board::DrawSurvivalBonus(Graphics* g)
 	switch (aKind)
 	{
 	case 0:
-		aColor = "RED";
+		aColor = GT(0x00565adc);
 		break;
 	case 1:
-		aColor = "GREEN";
+		aColor = GT(0x00565ad4);
 		break;
 	case 2:
-		aColor = "BLUE";
+		aColor = GT(0x00565acc);
 		break;
 	case 3:
-		aColor = "YELLOW";
+		aColor = GT(0x00565ac4);
 		break;
 	case 4:
-		aColor = "PURPLE";
+		aColor = GT(0x00565abc);
 		break;
 	default:
 		break;
 	}
-	WriteString(g, StrFormat("BONUS! %s BRICKS SUPERCHARGED!", aColor.c_str()), 0xa6, 0x14, 0x1b8, 0, true, 0, -1);
+	WriteString(g, StrFormat(GTC(0x00565a9c), aColor.c_str()), 0xa6, 0x14, 0x1b8, 0, true, 0, -1);
 }
 
 // the red box of a recording, and the flashing name of the demo
@@ -652,7 +653,7 @@ void Board::DrawTestTexts(Graphics* g)
 {
 	if (m8db && mUpdateCnt % 0x28 < 0x14)
 	{
-		std::string aText = "Recording";
+		std::string aText = GT(0x00565a90);
 		g->SetFont(GetFontById(FONT_DIALOG_BOX_ID));
 		g->SetColor(Color(0, 0, 0));
 		g->FillRect(500, 400, g->GetFont()->StringWidth(aText) + 4, g->GetFont()->GetHeight() + 4);
@@ -667,7 +668,7 @@ void Board::DrawTestTexts(Graphics* g)
 			aPhase = 0x7f - aPhase;
 		g->SetColor(Color(0xff, 0xff, 0, aPhase * 4));
 		g->SetFont(GetFontById(FONT_HIGH_SCORE_ID));
-		std::string aText = "DEMO MODE";
+		std::string aText = GT(0x00565a84);
 		g->DrawString(aText, 0x182 - g->GetFont()->StringWidth(aText) / 2, g->GetFont()->GetHeight() + 0x123);
 	}
 }
