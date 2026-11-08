@@ -23,7 +23,6 @@ namespace tiptop
 lowos::Sound* gSounds[0x2e];
 uint16_t gSoundVolume = 0;
 int gPreloaded = 0;
-char gRegistered = 0;
 char gQuit = 0;
 char gSkipMouseDown = 0;
 char gFullScreen = 0;
@@ -31,7 +30,6 @@ volatile char gPaused[3];
 char gClockResync = 0;
 char gPrefByte = 1;
 volatile char gClockLock = 0;
-uint32_t gRunCount = 0;
 uint32_t gGameMode = 0;
 char gBonusRound = 0;
 char gBusy = 0;
@@ -318,9 +316,6 @@ bool GameInit()
 		exit(0);
 	}
 	lowos::InitLock(&gClockLock);
-	// mDisableUnregistered 0 made the original read the registration from the registry; the port plays as registered
-	gRegistered = 1;
-	gRunCount = 0;
 	if (!InitApp())
 	{
 		lowos::ScreenScope(2);
@@ -407,16 +402,8 @@ void GameShutdown()
 		free(gConfig.mColumnnukeEffects.mEffects);
 	if (gConfig.mColorbombEffects.mEffects != nullptr)
 		free(gConfig.mColorbombEffects.mEffects);
-	if (gConfig.mRegisterUrl != nullptr)
-		free(gConfig.mRegisterUrl);
 	if (gConfig.mPublisherUrl != nullptr)
 		free(gConfig.mPublisherUrl);
-	if (gConfig.mRisCompanyname != nullptr)
-		free(gConfig.mRisCompanyname);
-	if (gConfig.mRisProductname != nullptr)
-		free(gConfig.mRisProductname);
-	if (gConfig.mRisHiddenfilename != nullptr)
-		free(gConfig.mRisHiddenfilename);
 	SavePrefs();
 	for (int i = 0; (i < gPreloaded && res::GameTable()[i].mFlags != 0); i = i + 1)
 	{

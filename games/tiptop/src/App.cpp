@@ -863,9 +863,7 @@ namespace
 {
 
 char gMusicStarted = 0;         // 0x489c18 the main menu has started the music once
-char gTrialText[0x50];          // 0x489b58
-char gPlayedText[0x24];         // 0x489ba8
-char gSavedCombo[0x14];         // 0x489bcc the saved game's summary on the new game screen
+char gSavedCombo[0x14];        // 0x489bcc the saved game's summary on the new game screen
 char gSavedScore[0xc];          // 0x489be0
 char gSavedLevel[0xc];          // 0x489bec
 char gSavedMode[0xc];           // 0x489bf8
@@ -938,17 +936,12 @@ void App::SetScreen(int theScreen)
 	switch (mScreen)
 	{
 	case SCREEN_SPLASH:
-		mSplashButtons[0] = nullptr;
-		mSplashButtons[1] = nullptr;
-		mSplashButtons[2] = nullptr;
-		mSplashButtons[3] = nullptr;
 		FreeAllLayers();
 		break;
 	case SCREEN_MAINMENU:
 		FreeAllLayers();
 		break;
 	case SCREEN_OPTIONS:
-		mSplashButtons[0] = nullptr;
 		FreeLayer(mLayer);
 		mFullScreenBox = nullptr;
 		FreeAllLayers();
@@ -1014,44 +1007,14 @@ void App::SetScreen(int theScreen)
 		mLayer = NewScreenLayer(&aRect);
 		aHandler = NewHandler(ImageProc, mLayer, &aRect, 0x30, 0);
 		MoveRect(&aRect, gConfig.mSplashLoadbarx, gConfig.mSplashLoadbary);
-		aHandler = NewHandler(LoadBarProc, mLayer, &aRect, 0x4c,
-			(~-(uint32_t)(gRegistered != 0) & (gConfig.mInitialWait + gRunCount * gConfig.mAdditionalWait)) | 0x2e0000);
+		aHandler = NewHandler(LoadBarProc, mLayer, &aRect, 0x4c, 0x2e0000);
 		aHandler->mPass = 1;
-		if (gRegistered == 0)
-		{
-			MoveRect(&aRect, gConfig.mSplashRegisterx, gConfig.mSplashRegistery);
-			mSplashButtons[3] = NewHandler(ButtonProc, mLayer, &aRect, 0x4d, 0x30);
-			mSplashButtons[3]->mPass = 1;
-			MoveRect(&aRect, gConfig.mSplashUnregisteredx, gConfig.mSplashUnregisteredy);
-			mSplashButtons[0] = NewHandler(ImageProc, mLayer, &aRect, 0x55, 0);
-			mSplashButtons[0]->mPass = 1;
-			MoveRect(&aRect, gConfig.mSplashUnregistered2x, gConfig.mSplashUnregistered2y);
-			mSplashButtons[1] = NewHandler(ImageProc, mLayer, &aRect, 0x65, 0);
-			mSplashButtons[1]->mPass = 1;
-		}
-		else
-		{
-			MoveRect(&aRect, gConfig.mSplashRegisteredx, gConfig.mSplashRegisteredy);
-			aHandler = NewHandler(ImageProc, mLayer, &aRect, 0x66, 0);
-			aHandler->mPass = 1;
-		}
-		MoveRect(&aRect, gConfig.mSplashTimesplayedx, gConfig.mSplashTimesplayedy);
-		snprintf(gPlayedText, sizeof(gPlayedText), GTC(0x0046ee98), (long)gRunCount,
-			gRunCount == 1 ? GTC(0x0046c399) : GTC(0x0046eeb4));
-		aHandler = NewHandler(LabelProc, mLayer, &aRect, (uintptr_t)gPlayedText, 0xc0000056);
+		// the word "Deluxe" of the title's logo: the original drew it for a registered copy, and "Trial Version" and
+		// "Unregistered" in its place for the trial
+		MoveRect(&aRect, gConfig.mSplashRegisteredx, gConfig.mSplashRegisteredy);
+		aHandler = NewHandler(ImageProc, mLayer, &aRect, 0x66, 0);
+		aHandler->mPass = 1;
 		Play(gSounds[0x0], 1);
-		if ((gConfig.mExecutionlimit != 0) && (gRegistered == 0))
-		{
-			MoveRect(&aRect, gConfig.mSplashExecutionsleftx, gConfig.mSplashExecutionslefty);
-			uint32_t aLeft = (gConfig.mExecutionlimit > gRunCount) ? gConfig.mExecutionlimit - gRunCount : 0;
-			snprintf(gTrialText, sizeof(gTrialText), GTC(0x0046ee78), (long)aLeft,
-				aLeft == 1 ? GTC(0x0046c399) : GTC(0x0046eeb4), aLeft != 1 ? GTC(0x0046c399) : GTC(0x0046eeb4));
-			mSplashButtons[2] = NewHandler(LabelProc, mLayer, &aRect, (uintptr_t)gTrialText, 0xc0000056);
-			mSplashButtons[2]->mPass = 1;
-			// 0x426fc7 shows the dialog when no play is left; the count was saved by 0x411d0a and 0x411f7a
-			if ((TrialCheck() == 0) && (gConfig.mExecutionlimitmode != 0))
-				gRunCount = gRunCount + 1;
-		}
 		break;
 	}
 	case SCREEN_MAINMENU:
@@ -1106,12 +1069,6 @@ void App::SetScreen(int theScreen)
 		aHandler->mPass = 1;
 		Send(aHandler, MSG_SETVALUE, MusicVolume() << 8, 0);
 		AddMenuAnimations(mLayer, &aRect, gConfig.mOptionsmenuanimations, gConfig.mOptionsmenuanimationsCount);
-		if (gRegistered == 0)
-		{
-			MoveRect(&aRect, gConfig.mOptionsRegisterx, gConfig.mOptionsRegistery);
-			mSplashButtons[0] = NewHandler(ButtonProc, mLayer, &aRect, 0x5a, 0x30);
-			mSplashButtons[0]->mPass = 1;
-		}
 		MoveRect(&aRect, gConfig.mOptionsVisitpopcapx, gConfig.mOptionsVisitpopcapy);
 		aHandler = NewHandler(ButtonProc, mLayer, &aRect, 0x5b, 0x37);
 		aHandler->mPass = 1;
@@ -1739,54 +1696,6 @@ void DeleteGameDialog(uint32_t theCommand)
 	}
 }
 
-// 0x42614c: "are you sure?" with a register button in the trial, else 0x425d56
-void AreYouSureRegDialog(uint32_t theCommand)
-{
-	if (gModal == 0)
-	{
-		if (gRegistered == 0)
-		{
-			GuiRect aRect;
-			Layer* aLayer = NewConfirmDialog(&aRect, gConfig.mAreyousureregX, gConfig.mAreyousureregY, 0x70, 0x6d,
-				gConfig.mAreyousureregOkx, gConfig.mAreyousureregOky, theCommand, 0x6e, gConfig.mAreyousureregCancelx,
-				gConfig.mAreyousureregCancely);
-			aRect.x = (int16_t)gConfig.mAreyousureregRegisterx + (int16_t)gConfig.mAreyousureregX;
-			aRect.y = (int16_t)gConfig.mAreyousureregRegistery + (int16_t)gConfig.mAreyousureregY;
-			Handler* aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x6f, 0xc000002f);
-			aHandler->mPass = 5;
-			PushDialog(aLayer, &aRect);
-		}
-		else
-		{
-			AreYouSureDialog(theCommand);
-		}
-	}
-}
-
-// 0x4262fa: "save the game?" with a register button in the trial, else 0x425ea8
-void SaveGameRegDialog(uint32_t theCommand)
-{
-	if (gModal == 0)
-	{
-		if (gRegistered == 0)
-		{
-			GuiRect aRect;
-			Layer* aLayer = NewConfirmDialog(&aRect, gConfig.mAreyousureregsaveX, gConfig.mAreyousureregsaveY, 0x7b,
-				0x6d, gConfig.mAreyousureregsaveOkx, gConfig.mAreyousureregsaveOky, theCommand, 0x6e,
-				gConfig.mAreyousureregsaveCancelx, gConfig.mAreyousureregsaveCancely);
-			aRect.x = (int16_t)gConfig.mAreyousureregsaveRegisterx + (int16_t)gConfig.mAreyousureregsaveX;
-			aRect.y = (int16_t)gConfig.mAreyousureregsaveRegistery + (int16_t)gConfig.mAreyousureregsaveY;
-			Handler* aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x7e, 0xc000002f);
-			aHandler->mPass = 5;
-			PushDialog(aLayer, &aRect);
-		}
-		else
-		{
-			SaveGameDialog(theCommand);
-		}
-	}
-}
-
 // 0x4264a8: "play again?" (yes sends theYes, no theNo; Enter presses no)
 void PlayAgainDialog(uint32_t theNo, uint32_t theYes)
 {
@@ -1807,20 +1716,12 @@ void PlayAgainDialog(uint32_t theNo, uint32_t theYes)
 	PushModal(aLayer);
 }
 
-// 0x41f922 cases 0x36 and 0x37: the original minimized a full screen window, waited 600 ms and opened theUrl with
+// 0x41f922 case 0x37: the original minimized a full screen window, waited 600 ms and opened theUrl with
 // ShellExecute. The framework's OpenURL hands it to the system (and opens nothing in a test run).
 void OpenBrowser(const char* theUrl)
 {
 	if (!Sexy::gSexyAppBase->OpenURL(theUrl))
 		lowos::MessageBox_(GTC(0x0046ef24), GTC(0x0046c318));
-}
-
-// 0x41f922 cases 0x20-0x23 and 0x2d: a play of the trial is counted when a game starts (the original also kept the
-// count, which the port does not)
-void CountPlay()
-{
-	if (gConfig.mExecutionlimitmode == 0)
-		gRunCount = gRunCount + 1;
 }
 
 } // namespace
@@ -1861,39 +1762,6 @@ void App::UpdatePause()
 			Send(gApp.mGameButtons[3], MSG_SETVALUE, 0, 0);
 		}
 	}
-}
-
-// 0x426fc7: in the trial, when no play is left: the "no more plays" dialog (quit or register). 1 if it is shown.
-char App::TrialCheck()
-{
-	if ((gConfig.mExecutionlimit == 0) || (gRegistered != 0))
-		return 0;
-	uint32_t aLeft;
-	if (gRunCount < (uint32_t)gConfig.mExecutionlimit)
-		aLeft = gConfig.mExecutionlimit - gRunCount;
-	else
-		aLeft = 0;
-	if (aLeft == 0)
-	{
-		GuiRect aRect = {0, 0, 0x280, 0x1e0};
-		Layer* aLayer = NewLayer(0x280, 0x1e0, &aRect);
-		aRect.x = (int16_t)gConfig.mSplashNomoreexecutionsx;
-		aRect.y = (int16_t)gConfig.mSplashNomoreexecutionsy;
-		Handler* aHandler = NewHandler(ImageProc, aLayer, &aRect, 0x6a, 0);
-		aHandler->mPass = 1;
-		aRect.x = (int16_t)gConfig.mSplashNmequitx + (int16_t)gConfig.mSplashNomoreexecutionsx;
-		aRect.y = (int16_t)gConfig.mSplashNmequity + (int16_t)gConfig.mSplashNomoreexecutionsy;
-		aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x6b, 0x19);
-		aHandler->mPass = 1;
-		aRect.x = (int16_t)gConfig.mSplashNmeregisterx + (int16_t)gConfig.mSplashNomoreexecutionsx;
-		aRect.y = (int16_t)gConfig.mSplashNmeregistery + (int16_t)gConfig.mSplashNomoreexecutionsy;
-		aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x6c, 0x30);
-		aHandler->mPass = 1;
-		PushModal(aLayer);
-		gApp.mDialog = aLayer;
-		return 1;
-	}
-	return 0;
 }
 
 // 0x41f922: what the buttons, check boxes, sliders and animations do (theCommand without its key flags)
@@ -2004,16 +1872,9 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 	case 0x18:
 		// quit: save the game first?
 		if (gApp.CanSave() == 0)
-		{
-			if (gApp.mDialog == nullptr)
-				AreYouSureRegDialog(0x19);
-			else
-				AreYouSureDialog(0x19);
-		}
+			AreYouSureDialog(0x19);
 		else
-		{
-			SaveGameRegDialog(0x19);
-		}
+			SaveGameDialog(0x19);
 		break;
 	case 0x19:
 		gApp.SaveGame();
@@ -2045,58 +1906,36 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 		gApp.SetScreen(gApp.mPrevScreen);
 		break;
 	case 0x20:
-		if (gApp.TrialCheck() == 0)
-		{
-			CountPlay();
-			gLevelList = gLevels[0];
-			gLevelListCount = gLevelCount[0];
-			gGameMode = 0;
-			gApp.NewGame();
-			gApp.SetScreen(SCREEN_GAME);
-		}
+		gLevelList = gLevels[0];
+		gLevelListCount = gLevelCount[0];
+		gGameMode = 0;
+		gApp.NewGame();
+		gApp.SetScreen(SCREEN_GAME);
 		break;
 	case 0x21:
-		if (gApp.TrialCheck() == 0)
-		{
-			CountPlay();
-			gLevelList = gLevels[1];
-			gLevelListCount = gLevelCount[1];
-			gGameMode = 2;
-			gApp.NewGame();
-			gApp.SetScreen(SCREEN_GAME);
-		}
+		gLevelList = gLevels[1];
+		gLevelListCount = gLevelCount[1];
+		gGameMode = 2;
+		gApp.NewGame();
+		gApp.SetScreen(SCREEN_GAME);
 		break;
 	case 0x22:
-		if (gApp.TrialCheck() == 0)
-		{
-			CountPlay();
-			gLevelList = gLevels[2];
-			gLevelListCount = gLevelCount[2];
-			gGameMode = 1;
-			gApp.NewGame();
-			gApp.SetScreen(SCREEN_GAME);
-		}
+		gLevelList = gLevels[2];
+		gLevelListCount = gLevelCount[2];
+		gGameMode = 1;
+		gApp.NewGame();
+		gApp.SetScreen(SCREEN_GAME);
 		break;
 	case 0x23:
-		if (gApp.TrialCheck() == 0)
-		{
-			CountPlay();
-			gLevelList = gLevels[3];
-			gLevelListCount = gLevelCount[3];
-			gGameMode = 3;
-			gApp.NewGame();
-			gApp.SetScreen(SCREEN_GAME);
-		}
+		gLevelList = gLevels[3];
+		gLevelListCount = gLevelCount[3];
+		gGameMode = 3;
+		gApp.NewGame();
+		gApp.SetScreen(SCREEN_GAME);
 		break;
 	case 0x24:
 	{
 		// continue the saved game (then it is deleted)
-		if (gConfig.mExecutionlimitAllowcontinue == 0)
-		{
-			if (gApp.TrialCheck() != 0)
-				return 0;
-			CountPlay();
-		}
 		uint32_t aScreen = gApp.LoadGame();
 		if (aScreen == 0)
 		{
@@ -2140,12 +1979,8 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 		break;
 	case 0x2d:
 		// play again, in the same mode
-		if (gApp.TrialCheck() == 0)
-		{
-			CountPlay();
-			gApp.NewGame();
-			gApp.SetScreen(SCREEN_GAME);
-		}
+		gApp.NewGame();
+		gApp.SetScreen(SCREEN_GAME);
 		break;
 	case 0x2e:
 	{
@@ -2155,21 +1990,11 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 		aHandler->mPass = 1;
 		break;
 	}
-	case 0x2f:
-		FreeLayer(theSource->mLayer);
-		// fall through
-	case 0x30:
-		// 0x30-0x33: the registration dialog and its code check, which the port leaves out: it plays as registered,
-		// so nothing opens the dialog
-		break;
 	case 0x34:
 		FreeLayer(theSource->mLayer);
 		break;
 	case 0x35:
 		FreeLayer(theSource->mLayer);
-		break;
-	case 0x36:
-		OpenBrowser(gConfig.mRegisterUrl);
 		break;
 	case 0x37:
 		OpenBrowser(gConfig.mPublisherUrl);
@@ -3175,8 +3000,7 @@ bool IsPreloaded(const res::Entry& theEntry)
 } // namespace
 
 // 0x4233c2: the splash screen's load bar: it preloads the sounds, music and texts (the original one per step; the port
-// at the machine's speed, see the draw below), and in the trial filled more slowly (the low half of b, ms). When full
-// it sends the high half of b and loads the game's sounds.
+// at the machine's speed, see the draw below). When full it sends the high half of b and loads the game's sounds.
 // Create: a = the image.
 uint32_t LoadBarProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
 {
@@ -3205,13 +3029,9 @@ uint32_t LoadBarProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* t
 	}
 	else if (aMsg == MSG_DRAW)
 	{
-		uint32_t aTotal;
-		if (gRegistered == 0)
-			aTotal = aSlots[1] & 0xffff;
-		else
-			aTotal = 0;
-		aTotal = aTotal + gLoadBarCount;
-		uint32_t aStep = aTotal / gLoadBarCount;
+		// the bar is gLoadBarCount steps of 1 ms wide (the original's trial added a wait here: the low half of b)
+		uint32_t aTotal = gLoadBarCount;
+		uint32_t aStep = 1;
 		if (aSlots[2] == 0)
 			aSlots[2] = GameTime();
 		uint32_t aTime = GameTime();

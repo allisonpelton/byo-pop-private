@@ -75,8 +75,6 @@ struct App
 	Font* mTextFont;                      // +0xfc image 0x67
 	Handler* mCounted[4];                 // +0x100 handlers that clear themselves here when freed (CounterProc)
 	Handler* mGameButtons[4];             // +0x110 instructions, options, end game, pause
-	Handler* mSplashButtons[4];           // +0x120
-	Layer* mDialog;                       // +0x130 the trial's "no more plays" dialog (0x426fc7)
 	uint32_t m134;                        // +0x134
 	uint32_t m138;                        // +0x138
 	char m13c;                            // +0x13c
@@ -109,7 +107,6 @@ struct App
 	uint32_t LoadGame();                  // 0x41f499
 	Board* GetBoard();                    // 0x420e97
 	static void UpdatePause();            // 0x426dd5
-	char TrialCheck();                    // 0x426fc7
 	void DrawBar(uint32_t theValue, uint32_t theMax);  // 0x4265a6
 
 	// What the board calls

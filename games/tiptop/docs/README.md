@@ -134,8 +134,9 @@ making.
 ## Status (2026-10-25)
 
 Everything plays, the music too (since 2026-10-25, see Music). The registration
-and the trial (the count of plays, the "no more plays" dialog, the registration dialog and its code check) are left
-out: the port plays as registered, so no dialog shows a register button. The links of the options screen open through
+and the trial (the count of plays, the "no more plays" dialog, the registration dialog and its code check, and since
+2026-11-08 every other branch of the registered flag, see GAME_NOTES.md, "Registration out") are left out: the port plays
+as registered, so no screen shows a register button or a word of registration. The links of the options screen open through
 the framework (never in a test run).
 
 ## Where the work was hard

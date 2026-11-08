@@ -151,7 +151,8 @@ update number shifted by the same 202.
 None in play. The port's one deviation is in the game's notes (`GAME_NOTES.md`, "Deviations from the original"): the title
 screen's loading bar loads at the machine's speed, which moves the end of the title screen and nothing else. It is outside the
 game's logic, but the frames of tour 1 taken while the bar filled (`splash_loading`, update 150) no longer match the original's.
-Phase two found no other difference on the screen or in the sound (below).
+The registration and the trial are out of the port as well (`GAME_NOTES.md`, "Registration out"); that changes no frame of tour 1
+and nothing in play. Phase two found no other difference on the screen or in the sound (below).
 
 ## Phase two: looks identical (2026-11-04)
 
@@ -204,6 +205,20 @@ command, used to find the click points), `-soundlog` (every sound loaded, starte
 and a getter for the music's pause count. The tools are in `games/tiptop/tools/shots/`; the original's new patches are
 written by `tools/identical/setup.sh`. Nothing changed unmodded play, so the frozen baseline stands, and
 `tools/check.sh tiptop` reports it identical.
+
+Two changes to the port came after this phase, each listed with the difference, its cause in the original, what the port does now
+and the commit:
+
+| Difference | Cause in the original | The port now | Commit |
+|---|---|---|---|
+| The title screen takes 202 updates less to load under `-fast` and about 4 s less in real time | The load bar loads one of its 229 entries a frame, and only when more than a millisecond has passed since the last | Loads as many entries a frame as fit 10 ms of the game clock, in the original's order, all at once on a clock that stands still (`GAME_NOTES.md`, "Deviations from the original") | dc7eb4fb |
+| None to see or play: the trial and registration code is out of the port, and the splash draws what it drew | `gRegistered` (0x48870a) branches at eight places; the unregistered path drew the register buttons and pictures ("Trial Version", "Unregistered"), a count of trial plays and the "no more plays" dialog, and the registered path the word "Deluxe" of the logo | The flag and every branch are folded into the registered path and what only the trial used is out: its buttons, dialogs, count, configuration and nineteen images (`GAME_NOTES.md`, "Registration out"). The "Deluxe" stays: it is the title's own lettering, not a thank-you | "TipTop: registration out" (the commit after 2cf0e308 on this branch) |
+
+Neither change touches the game's logic. The first moved the end of the title screen, and since the game seeds `rand` from its clock
+when the first block is chosen, the frozen baseline was refrozen with it (below). The second moved no state, no random draw and no
+time: the check's three mouse-played cases give the baseline's state logs, update for update (`tools/check.sh tiptop`, "baseline
+identical"), and the 31 frames of tour 1, which include the splash, the options screen and the quit question, are byte for byte
+those of the baseline's port (the baseline is the port before this change).
 
 ### Oddities and masks
 
