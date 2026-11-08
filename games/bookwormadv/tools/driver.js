@@ -32,6 +32,12 @@
     canvas().dispatchEvent(new MouseEvent(type, {clientX: cx, clientY: cy, button: 0, buttons, bubbles: true, cancelable: true, view: window}));
   }
   async function click(x, y) {
+    // a point outside the viewport is not clicked (the pane's size changes under a run): scroll it into view first
+    const [cx, cy] = at(x, y);
+    if (cy < 0 || cy >= innerHeight || cx < 0 || cx >= innerWidth) {
+      scrollBy(cx < 0 || cx >= innerWidth ? cx - innerWidth / 2 : 0, cy - innerHeight / 2);
+      await sleep(100);
+    }
     mouse('mousemove', x, y, 0); await sleep(60);
     mouse('mousedown', x, y, 1); await sleep(60);
     mouse('mouseup', x, y, 0); await sleep(60);
@@ -58,6 +64,9 @@
       }
       if (kind === 'treasure') return {kind, n, cont: pt(f[3]), enabled: f[4] === '1'};
       if (kind === 'talk') return {kind, n, on: f[2] === '1'};
+      if (kind === 'tutorial') return {kind, n, at: pt(f.slice(3).find(t => t.includes(',')))};
+      if (kind === 'hint') return {kind, n, spots: f.slice(2).filter(t => t.includes(',')).map(pt)};
+      if (kind === 'lostturn') return {kind, n, at: pt(f[2])};
       if (kind === 'dialog') return {kind, n, id: +f[2], ok: pt(f[4])};
       const k = f.indexOf('attack');
       const w = f.indexOf('words'), le = f.indexOf('letters');
@@ -107,7 +116,7 @@
     const out = {result: '', words: [], scrambles: 0, dialogs: 0, seconds: 0};
     const start = lines();
     let used = start.reduce((m, l) => Math.max(m, l.n), 0), seen = false, nextTalk = 0, picks = 0;
-    if (start.length && ['board', 'wordmaster'].includes(start[start.length - 1].kind)) used--;  // a board already waiting
+    if (start.length && ['board', 'wordmaster', 'dialog', 'lostturn', 'hint', 'tutorial'].includes(start[start.length - 1].kind)) used--;  // already waiting
     while (Date.now() < end) {
       const all = lines(), fresh = all.filter(l => l.n > used);
       const scr = screen();
@@ -117,6 +126,12 @@
       const dialog = fresh.filter(l => l.kind === 'dialog').pop();
       const board = fresh.filter(l => l.kind === 'board' || l.kind === 'wordmaster').pop();
       if (dialog) { out.dialogs++; await click(...dialog.ok); await sleep(1500); continue; }
+      const tut = fresh.filter(l => l.kind === 'tutorial').pop();
+      if (tut) { await click(...tut.at); await sleep(1000); continue; }  // the tutorial's one pickable tile, or Attack
+      const hint = fresh.filter(l => l.kind === 'hint').pop();
+      if (hint && hint.spots.length) { await click(...hint.spots[0]); await sleep(1000); continue; }  // the tutorial's arrow
+      const lost = fresh.filter(l => l.kind === 'lostturn').pop();
+      if (lost && scr === target) { await click(...lost.at); await sleep(1500); continue; }  // Lex stunned: a click ends the round
       if (board && scr === target) {
         let tiles = board.tiles;
         if (target === 'minigame' && board.kind === 'board') {
@@ -157,10 +172,14 @@
   function setup() {
     window.requestAnimationFrame = cb => setTimeout(() => cb(performance.now()), 16);
     if (!Module.__bwaArgs) {
+      // the runtime may set callMain after this (once its script has loaded): whatever it sets is wrapped
       Module.__bwaArgs = true;
-      const callMain = Module.callMain;
-      Module.callMain = args => callMain(args.concat(['-boardlog=' + LOG]));
+      let callMain = Module.callMain;
+      Object.defineProperty(Module, 'callMain', {configurable: true, set(f) { callMain = f; },
+        get() { return callMain && (args => callMain((args || []).concat(['-boardlog=' + LOG]))); }});
     }
+    // a main loop that already asked for a frame in a hidden pane never gets it: restart it on the shim
+    try { Module.pauseMainLoop(); Module.resumeMainLoop(); } catch (e) { }
   }
   window.bwa = {setup, click, key, lines, screen, talking, settle, waitScreen, battle, minigame, spell, sleep};
 })();

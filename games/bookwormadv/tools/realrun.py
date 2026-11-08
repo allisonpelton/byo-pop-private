@@ -167,6 +167,12 @@ def log_lines():
             out.append({'kind': kind, 'n': n, 'cont': pt(f[3]), 'enabled': f[4] == '1'})
         elif kind == 'talk':
             out.append({'kind': kind, 'n': n, 'on': f[2] == '1'})
+        elif kind == 'tutorial':
+            out.append({'kind': kind, 'n': n, 'at': next(pt(t) for t in f[3:] if ',' in t)})
+        elif kind == 'hint':
+            out.append({'kind': kind, 'n': n, 'spots': [pt(t) for t in f[2:] if ',' in t]})
+        elif kind == 'lostturn':
+            out.append({'kind': kind, 'n': n, 'at': pt(f[2])})
         elif kind == 'dialog':
             out.append({'kind': kind, 'n': n, 'id': int(f[2]), 'ok': pt(f[4])})
         elif kind == 'board':
@@ -239,8 +245,8 @@ def chapter(hw, p, seconds, note, target='battle', minimize_on=None):
     end = t0 + seconds
     all_lines = log_lines()
     used = max([l['n'] for l in all_lines] or [0])
-    if all_lines and all_lines[-1]['kind'] in ('board', 'wordmaster'):
-        used -= 1  # a board already waiting is played
+    if all_lines and all_lines[-1]['kind'] in ('board', 'wordmaster', 'dialog', 'lostturn', 'hint', 'tutorial'):
+        used -= 1  # a board, a dialog or a lost turn already waiting is played, answered or ended
     seen, next_talk, words, scrambles, dialogs, result, picks = False, 0, [], 0, 0, '', 0
     sound_log = os.environ.get('BYOPOP_SOUNDLOG')
     sound_seen = len(open(sound_log).readlines()) if minimize_on and sound_log and os.path.exists(sound_log) else 0
@@ -270,6 +276,24 @@ def chapter(hw, p, seconds, note, target='battle', minimize_on=None):
         if dialog:
             dialogs += 1
             click(hw, *dialog['ok'])
+            time.sleep(1.5)
+            continue
+        tut = ([l for l in fresh if l['kind'] == 'tutorial'] or [None])[-1]
+        if tut:
+            # the first battle's tutorial: the one tile it lets be picked, or Attack
+            click(hw, *tut['at'])
+            time.sleep(1)
+            continue
+        hint = ([l for l in fresh if l['kind'] == 'hint'] or [None])[-1]
+        if hint and hint['spots']:
+            # the tutorial's arrow waits for a click on its hot spot (the next tile, Attack)
+            click(hw, *hint['spots'][0])
+            time.sleep(1)
+            continue
+        lost = ([l for l in fresh if l['kind'] == 'lostturn'] or [None])[-1]
+        if lost and scr == target:
+            # Lex stunned: a click on the grid ends the lost turn's round
+            click(hw, *lost['at'])
             time.sleep(1.5)
             continue
         if board and scr == target:

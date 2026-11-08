@@ -39,6 +39,8 @@
 #include <utility>
 #include <vector>
 
+#include "ArrowHint.h"
+#include "BattleEngine.h"
 #include "Board.h"
 #include "FadeButton.h"
 #include "GameApp.h"
@@ -121,7 +123,7 @@ std::string Squash(const std::string& theText)  // lower case, letters and digit
 // port: the screen showing, for the test command state and the board log
 std::string GameApp::ScreenForTests()
 {
-	return mCredits != nullptr ? "credits" : mHallOfFame != nullptr ? "highscores"
+	return mCutScene != nullptr ? "cutscene" : mCredits != nullptr ? "credits" : mHallOfFame != nullptr ? "highscores"
 	       : mBookScreen != nullptr ? "tome" : mMiniGameMenu != nullptr ? "minigames"
 	       : mTreasureScreen != nullptr && mTreasureScreen->mVisible ? "treasure"
 	       : mBoard != nullptr && mBoard->mVisible ? (mBoard->IsMiniGame() ? "minigame" : "battle")
@@ -235,6 +237,24 @@ void GameApp::LogBoardForTests()
 				fprintf(aFile, "treasure: %d %s\n", ++sCount, aTreasure.c_str());
 				fclose(aFile);
 			}
+	}
+	// the tutorial's arrows that wait for a click on a hot spot (a tile, a button): "hint: <n> <id> x,y ..." (each hot
+	// spot's centre), "hint: <n> -" once none is up
+	static std::string sLastHint;
+	std::string aHint;
+	if (mArrowHintManager != nullptr)
+		for (ArrowHint* anArrow : mArrowHintManager->mHints)
+			if (anArrow->mActive && !anArrow->mHotSpots.empty()) {
+				aHint += StrFormat(" %d", anArrow->mId);
+				for (const Rect& aSpot : anArrow->mHotSpots)
+					aHint += StrFormat(" %d,%d", aSpot.mX + aSpot.mWidth / 2, aSpot.mY + aSpot.mHeight / 2);
+			}
+	if (aHint != sLastHint) {
+		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+			fprintf(aFile, "hint: %d%s\n", ++sCount, aHint.empty() ? " -" : aHint.c_str());
+			fclose(aFile);
+		}
+		sLastHint = aHint;
 	}
 	// Word Master: a guess that fits every row it has answered, from the word list, with the keyboard's keys to type it
 	// and Submit: "wordmaster: <n> <GUESS|-> x,y ... submit x,y". Only what the rows show: their letters and colours
@@ -351,6 +371,65 @@ void GameApp::LogBoardForTests()
 		}
 		return;
 	}
+	// the first battle's tutorial (the scripts' IntroTutorial) lets one tile be picked at a time, then Attack: "tutorial:
+	// <n> <its state> x,y" (that tile) or "tutorial: <n> <its state> attack x,y"
+	static std::string sLastTutorial;
+	std::string aTutorial, aTutorialState;
+	if (mBoard != nullptr && mBoard->mVisible && !mBoard->IsMiniGame() && mDialogMap.empty() &&
+	    !ShowingConversationPanel() &&
+	    RunLua("if IntroTutorial == nil or IntroTutorial.mDone or IntroTutorial.mState == nil then return '' end "
+	           "return tostring(IntroTutorial.mState)",
+	           aTutorialState) &&
+	    !aTutorialState.empty()) {
+		bool aMoving = false;
+		Tile* aNext = nullptr;
+		int aCount = 0;
+		for (Tile* aTile : mBoard->mTiles) {
+			aMoving = aMoving || aTile->IsMoving() || aTile->IsFalling() || aTile->mAlphaState != 1;
+			if (!aTile->mSelected && aTile->CanSelect(aTile->mX + 25, aTile->mY + 25)) {
+				aNext = aTile;
+				aCount++;
+			}
+		}
+		auto anAttack = mBoard->mButtons.find(Board::BUTTON_ATTACK);
+		if (!aMoving && aCount == 1)
+			aTutorial = StrFormat("%s %d,%d %d", aTutorialState.c_str(), aNext->mX + 25, aNext->mY + 25,
+			                      (int)mBoard->mSelected.size());
+		else if (!aMoving && aCount == 0 && !mBoard->mSelected.empty() && anAttack != mBoard->mButtons.end() &&
+		         anAttack->second != nullptr)
+			aTutorial = StrFormat("%s attack %d,%d", aTutorialState.c_str(),
+			                      mBoard->mX + anAttack->second->mX + anAttack->second->mWidth / 2,
+			                      mBoard->mY + anAttack->second->mY + anAttack->second->mHeight / 2);
+	}
+	if (aTutorial != sLastTutorial) {
+		if (!aTutorial.empty())
+			if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+				fprintf(aFile, "tutorial: %d %s\n", ++sCount, aTutorial.c_str());
+				fclose(aFile);
+			}
+		sLastTutorial = aTutorial;
+	}
+	// a lost turn (Lex stunned): a click on the grid ends its round once the game takes one (Board::MouseDown's test):
+	// "lostturn: <n> x,y", once a round
+	static bool sLostTurn = false;
+	bool aLostTurn = mBoard != nullptr && mBoard->mVisible && !mBoard->IsMiniGame() && gBattleEngine != nullptr &&
+	                 mDialogMap.empty() && !mBoard->IsPaused() && gBattleEngine->LostTurn() &&
+	                 gBattleEngine->mState == BattleEngine::BE_IDLE &&
+	                 gBattleEngine->CallLinkedMethod("CanEndLostTurnRound", 0).Bool() &&
+	                 gBattleEngine->CallLinkedMethod("AttackerIsPlayer", 0).Bool();
+	if (aLostTurn && !sLostTurn && !mBoard->mTiles.empty()) {
+		int aX = 0, aY = 0;
+		for (Tile* aTile : mBoard->mTiles) {
+			aX += aTile->mX + 25;
+			aY += aTile->mY + 25;
+		}
+		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+			fprintf(aFile, "lostturn: %d %d,%d\n", ++sCount, aX / (int)mBoard->mTiles.size(),
+			        aY / (int)mBoard->mTiles.size());
+			fclose(aFile);
+		}
+	}
+	sLostTurn = aLostTurn;
 	if (mBoard == nullptr || mLex == nullptr || BoardBusyForTests()) {
 		sLast.clear();
 		return;

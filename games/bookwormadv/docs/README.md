@@ -73,7 +73,7 @@ The test commands of `docs/TEST_COMMANDS.md` (in `src/TestHooks.cpp`, given in a
 comes) each answer with one log line, `OK <command>` or `ERROR <command>: <reason>`. A command that waits for its screen
 (a curtain still moving, the title not yet gone on to the menu) tries again every 10 updates, 300 times at most.
 
-- `state` logs `STATE {json}` with `screen` (title, menu, map, battle, minigame, minigames, treasure, tome,
+- `state` logs `STATE {json}` with `screen` (title, menu, cutscene, map, battle, minigame, minigames, treasure, tome,
   highscores, credits, loading), `mode` (adventure, or the mini-game's class), `level` (book.chapter, from the
   profile), `curtain`, `dialogs` and `talk` (a conversation's panel up); in a battle `health`, `maxhealth`, `enemy`,
   `enemyhealth`, `enemymaxhealth` (hearts, in quarters); on a board `board` (its rows of letters, `+` after one that
@@ -94,7 +94,10 @@ comes) each answer with one log line, `OK <command>` or `ERROR <command>: <reaso
 `-boardlog=<file>` (on the web, the page adds it through `Module.callMain`) makes the game append what a driver of
 real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y` (its
 first button), `treasure: <n> continue x,y 1|0` (the treasure room's Continue, and whether it is enabled: a
-driver picks Lex's treasures from the left column until it is), `board: <n> <WORD|-> x,y ... attack x,y scramble x,y words W1,W2,... letters L@x,y;...` (the longest word
+driver picks Lex's treasures from the left column until it is), `hint: <n> <id> x,y ...|-` (the tutorial's
+arrows that wait for a click on a hot spot, and each spot's centre: the drivers click the first), `tutorial: <n> <state> x,y|attack x,y` (the
+first battle's tutorial: the one tile it lets be picked, or Attack), `lostturn: <n> x,y` (Lex stunned: a click there,
+on the grid, ends the lost turn's round, once the game takes one), `board: <n> <WORD|-> x,y ... attack x,y scramble x,y words W1,W2,... letters L@x,y;...` (the longest word
 the tiles spell, its tiles, the buttons, the 40 longest words and the tiles that can be picked; only while the board
 is at rest and a tile can be picked) and, in Word Master, `wordmaster: <n> <GUESS> x,y ... submit x,y rows ...`, a
 guess that fits every answered row, from the game's word list. The drivers read it and click: `tools/driver.js` in the
