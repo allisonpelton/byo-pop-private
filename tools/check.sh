@@ -128,8 +128,9 @@
 #                minute)
 #   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 5156 and a Blitz game to its
 #                end and the high scores, with the same screens as frozen, a Classic rerun, and
-#                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one; a Classic game left twice, its
-#                save for a page that goes away the same as a quit's, and resumed (about a minute and a half)
+#                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one; the 3D Classic game's first
+#                level-up take-off as frozen; a Classic game left twice, its save for a page that goes away the same as
+#                a quit's, and resumed (about two minutes)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
 # Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist; all = every suite, builds first.
@@ -219,6 +220,7 @@ MJC_SHOTS="f2b7b7dc8d4e bd92440741aa 93e5cc9037c3"  # the first 12 hex digits of
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 BT_CLASSIC="88e59f1eea61 291f70580d89 dd8e6206d1bf 0bc138035904"  # the first 12 hex digits of the sha256 of the Classic game's screens at 656, 2156, 3656 and 5156: the frozen baseline
 BT_BLITZ="8ef83c337f3e 9c9ceb17343f e69ac2a54d49 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
+BT_TAKEOFF="47403df7d011 ad4911ad47f5 8897f35d0a74 663d148b1243 0248d7e39673"  # the 3D Classic game's level-up take-off at 2780, 2900, 2940, 2980 and 3020: the tube becoming the ship and the old board's cube leaving to the right and away (checked against the original on the user's desktop, 2026-11-08)
 BT_MENU="640866e0b565 da8353fcb954"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone):
 # the port only (its loader moved on to the original's hand-over, 2026-11-08), so not against the older baseline
 
@@ -1945,14 +1947,14 @@ suite_mahjongchina() {
 	return $st
 }
 
-twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game (-nod3d9: 3D is the default); prints its screens' hashes
+twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game (-nod3d9: 3D is the default; TWIST_MODE=-3d for 3D); prints its screens' hashes
 	local d="$OUT/bejeweledtwist/$1" exe="$2" mode="$3" last="$4" n
 	shift 4
 	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
 	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/user/registry.ini"
 	{ for n in "$@"; do echo "$n screenshot $d/shots/$n.png"; done; echo "$last quit"; } > "$d/script.txt"
 	# autoplay clicks only the board and the mode select, never a link
-	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" -nod3d9 -fast -seed=1234 -autoplay="$mode" \
+	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" "${TWIST_MODE:--nod3d9}" -fast -seed=1234 -autoplay="$mode" \
 		-script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	for n in "$@"; do sha256sum "$d/shots/$n.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -
 }
@@ -1979,15 +1981,16 @@ twist_save() {  # <exe>: a seeded Classic game left at level 3, mid-twist (1777)
 }
 
 suite_bejeweledtwist() {
-	local st=0 c b r sh sv bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
+	local st=0 c b r m t sh sv bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
 	need_assets bejeweledtwist || return 1
 	c="$(twist_game classic "$exe" 1 5166 656 2156 3656 5156)"
 	b="$(twist_game blitz "$exe" blitz 8166 2656 5156 7156 7606 8156)"
 	r="$(twist_game classic2 "$exe" 1 5166 656 2156 3656 5156)"
 	m="$(twist_game menu "$exe" 1 170 60 160)"
+	t="$(TWIST_MODE=-3d twist_game takeoff "$exe" 1 3021 2780 2900 2940 2980 3020)"
 	sv="$(twist_save "$exe")"
-	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; echo "save: $sv"; } > "$1"
-	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
+	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; echo "3D take-off: $t"; echo "save: $sv"; } > "$1"
+	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ] && [ "$t" = "$BT_TAKEOFF" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
 	if [ -n "$c" ] && [ "$c" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-bejeweledtwist/, a copy of the port with its DLLs made when it was last
 	# checked against the original): the same games must give the same screens
@@ -2000,8 +2003,8 @@ suite_bejeweledtwist() {
 		fi
 	fi
 	if [ "$sv" = ok ]; then sv="a page's save as a quit's, resumed"; else sv="SAVE DIFFERS ($sv)"; st=1; fi
-	SUMMARY="the start's menu, Classic to 5156 and Blitz to its high scores, 11 screens; $r; $sh$bl; $sv"
-	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU')"
+	SUMMARY="the start's menu, Classic to 5156, Blitz to its high scores and the 3D level-up's take-off, 16 screens; $r; $sh$bl; $sv"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU', 3D take-off '$BT_TAKEOFF')"
 	return $st
 }
 
