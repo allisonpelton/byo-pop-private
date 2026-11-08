@@ -1,0 +1,31 @@
+#ifndef __DYNOMITE_BOT_H__
+#define __DYNOMITE_BOT_H__
+
+// port: the bot behind the `move` test command (docs/TEST_COMMANDS.md); the original has none. It reads the board and
+// never changes it: every angle the mouse can give the launcher is flown with the grid's ghost probes (as
+// FlyingEgg::Update moves an egg, ten steps an update, bouncing off the walls), landed as FlyingEgg::Land lands one,
+// and scored by the group of the egg's colour it would join (EggGrid::Match's rule). The best shot is the angle and a
+// point of the board the mouse can click to fire it.
+
+namespace Sexy
+{
+
+class Dynomite;
+
+struct BotShot
+{
+	int					mAngle;				// the launcher's angle, degrees from up
+	int					mCol;				// the cell the egg lands in
+	int					mRow;
+	int					mColor;				// the loaded egg's colour (0 a bomb)
+	int					mGroup;				// the eggs of its colour it joins, itself counted (a bomb: the eggs around it)
+	int					mClickX;			// a point of the screen the mouse moves to and clicks to fire it
+	int					mClickY;
+};
+
+// false when there is no shot (no board, no loaded egg, the launcher frozen, the game over or paused)
+bool BotChooseShot(Dynomite* theBoard, BotShot* theShot);
+
+}
+
+#endif
