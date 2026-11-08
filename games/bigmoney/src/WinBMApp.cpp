@@ -1349,6 +1349,12 @@ void WinBMApp::ShutdownHook()
 }
 
 // port: test hooks (see WinBMApp.h). The original does not override UpdateFrames.
+// port: the standard test commands (testhooks/TestCommands.cpp)
+bool WinBMApp::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	return HandleTestCommand(theCommand);
+}
+
 void WinBMApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();

@@ -207,6 +207,10 @@ public:
 	int				mAutoplayLookHeight;
 	int				mAutoplayLookBag;
 	AutoplayBot*	mAutoplayBot;
+	// port: the standard test commands (testhooks/TestCommands.cpp, docs/TEST_COMMANDS.md): state, goto, level,
+	// unlock all, set, win, lose, seed and move. Reached only from -script or the live command channel.
+	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
+	bool			HandleTestCommand(const ScriptCommand& theCommand);
 	virtual void	UpdateFrames() override;
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 
