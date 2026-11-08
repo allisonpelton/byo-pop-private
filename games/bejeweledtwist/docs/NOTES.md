@@ -99,6 +99,14 @@ once its drop is done (Rand() % 25, and for a sparkle RandSigned() then Rand() %
 Logo's shine (Rand() % 200 when it starts again), and the PlayButton's sparkles every 8th update once it is in (three
 RandSigned()).
 
+The site's "Always skip start-up logos" (`Byopop::SiteSkipLogos()`, `-skiplogos` natively; 2026-11-08) leaves out the
+PopCap logo and its trademark sign: the loader's constructor holds `mPopCapAlpha` (+0xb0) and `mTrademarkAlpha` (+0x580)
+at 0, and nothing but those two draws in DrawAll reads them. In the port, whose loading is over before the loader's first frames, the device and bar show from the start and the logo
+fades in only behind the main menu's arrival (from about update 50 until the loader leaves at about 154). The loading,
+the menu's start, the Logo (the game's title, which stays) and every random draw are as before: a seeded Classic
+autoplay is the same at update 8010 with and without the switch, and with it off the frozen screens and the baseline
+are unchanged.
+
 ## Drawing helpers and effects
 
 Constants: many doubles in the exe are floats widened (0.1 is 0.10000000149011612); the port writes them as the exe

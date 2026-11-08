@@ -292,6 +292,11 @@ bool Sys_FixOn(const char* theFix)
 	return gHost != nullptr && gHost->FixOn(theFix);
 }
 
+bool Sys_SkipLogos()
+{
+	return gHost != nullptr && gHost->SkipLogos();
+}
+
 // (SleepEx; the port's frames are the host's, so nothing waits)
 void Sys_Sleep(int)
 {

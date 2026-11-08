@@ -4,7 +4,10 @@
 // this browser and is never sent anywhere. No library: it reads the PE file itself.
 //
 //   ByopopExeIcon.parse(bytes)        Uint8Array of an exe -> {width, height, bpp, path, rgba | png} or null
-//   ByopopExeIcon.fromBytes(bytes)    the same, as a small PNG: Promise of {dataUrl, width, height, bpp, path, built} or null
+//   ByopopExeIcon.parse(bytes, 32)    the same group's image nearest 32 px (the caps' face, web/index.html), or null
+//   ByopopExeIcon.fromBytes(bytes)    the same, as a small PNG: Promise of {dataUrl, width, height, bpp, path, built, small}
+//                                     or null; small: the image nearest 32 px as a PNG data URL (at most 8 KB), or "" when
+//                                     the exe has none smaller than the kept one
 //   ByopopExeIcon.built(bytes)        the year the exe was linked (its PE header's time stamp), or 0 when it has none that
 //                                     is likely (before 1995 or after this year: a fixed or zero stamp, as some linkers write)
 //
@@ -21,7 +24,7 @@
 // a smaller one with crisp pixels) and its data URL at most 16 KB (a larger one is made smaller until it fits).
 var ByopopExeIcon = (function () {
   "use strict";
-  var MAX_SIDE = 64, MAX_URL = 16384;
+  var MAX_SIDE = 64, MAX_URL = 16384, MAX_SMALL = 8192;
   var RT_ICON = 3, RT_GROUP_ICON = 14;
 
   function u16(d, o) { if (o < 0 || o + 2 > d.length) throw new RangeError("read"); return d[o] | (d[o + 1] << 8); }
@@ -163,20 +166,23 @@ var ByopopExeIcon = (function () {
 
   // Which of a group's images to try first: a 32-bit one at the size nearest 48 to 64 px (the larger when two are as near);
   // without a 32-bit one, the largest. The rest follow, so that an image that cannot be decoded is passed over.
-  function order(images) {
-    function away(size) { return size < 48 ? 48 - size : size > 64 ? size - 64 : 0; }
+  // near (32: the small one for the caps' face): the size nearest it, a 32-bit one first, whatever the depth after that
+  function order(images, near) {
+    var lo = near || 48, hi = near || 64;
+    function away(size) { return size < lo ? lo - size : size > hi ? size - hi : 0; }
     var has32 = images.some(function (im) { return im.bits === 32; });
     return images.slice().sort(function (a, b) {
       if (has32) {
         if ((a.bits === 32) !== (b.bits === 32)) return a.bits === 32 ? -1 : 1;
         if (a.bits === 32 && away(a.size) !== away(b.size)) return away(a.size) - away(b.size);
       }
+      if (near && away(a.size) !== away(b.size)) return away(a.size) - away(b.size);
       return (b.size - a.size) || (b.bits - a.bits);
     });
   }
 
   // The first icon of the exe that can be decoded: {width, height, bpp, path, rgba | png}, or null
-  function parse(bytes) {
+  function parse(bytes, near) {
     try {
       var d = (bytes instanceof Uint8Array) ? bytes : new Uint8Array(bytes);
       var res = openResources(d);
@@ -190,7 +196,7 @@ var ByopopExeIcon = (function () {
           var at = 6 + i * 14;
           images.push({ size: Math.max(dir[at] || 256, dir[at + 1] || 256), bits: u16(dir, at + 6), id: u16(dir, at + 12) });
         }
-        var ranked = order(images);
+        var ranked = order(images, near);
         for (var r = 0; r < ranked.length; r++) {
           var entry = null;
           for (var k = 0; k < icons.length; k++) if (icons[k].id === ranked[r].id) { entry = icons[k]; break; }
@@ -237,13 +243,30 @@ var ByopopExeIcon = (function () {
       return (year >= 1995 && year <= new Date().getUTCFullYear()) ? year : 0;
     } catch (e) { return 0; }
   }
+  // the image nearest 32 px as it is (no scaling: the caps draw it pixel for pixel), when it is smaller than the kept one
+  function small(bytes, than) {
+    try {
+      var s = parse(bytes, 32);
+      if (!s || Math.max(s.width, s.height) >= than || Math.max(s.width, s.height) > 40) return "";
+      var url;
+      if (s.png) url = "data:image/png;base64," + base64(s.png);
+      else {
+        var c = document.createElement("canvas");
+        c.width = s.width; c.height = s.height;
+        c.getContext("2d").putImageData(new ImageData(s.rgba, s.width, s.height), 0, 0);
+        url = c.toDataURL("image/png");
+      }
+      return url.length <= MAX_SMALL ? url : "";
+    } catch (e) { return ""; }
+  }
   function fromBytes(bytes) {
     return new Promise(function (resolve) {
       try {
         var icon = parse(bytes);
         if (!icon) { resolve(null); return; }
         function done(kept) {
-          resolve(kept ? { dataUrl: kept.dataUrl, width: kept.width, height: kept.height, bpp: icon.bpp, path: icon.path, built: built(bytes) } : null);
+          resolve(kept ? { dataUrl: kept.dataUrl, width: kept.width, height: kept.height, bpp: icon.bpp, path: icon.path, built: built(bytes),
+                           small: small(bytes, Math.max(kept.width, kept.height)) } : null);
         }
         if (icon.png) {
           var url = "data:image/png;base64," + base64(icon.png);
@@ -262,6 +285,6 @@ var ByopopExeIcon = (function () {
     });
   }
 
-  return { parse: parse, fromBytes: fromBytes, built: built, MAX_URL: MAX_URL, MAX_SIDE: MAX_SIDE };
+  return { parse: parse, fromBytes: fromBytes, built: built, MAX_URL: MAX_URL, MAX_SIDE: MAX_SIDE, MAX_SMALL: MAX_SMALL };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = ByopopExeIcon;

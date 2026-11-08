@@ -32,8 +32,8 @@ struct BotAction
 	int mLetter = -1;
 	std::vector<BotStep> mSteps;
 	int mUpdates = 1;
-	// the MOVE line's JSON ("null" for no move): "input" steps of {"click":{x,y[,button]}}, {"down":{x,y}},
-	// {"move":{x,y}}, {"up":{x,y}} and {"wait":updates}, then "updates"
+	// the MOVE line's JSON ("null" for no move): "input" steps of {"click":{x,y[,button]}}, {"press":{x,y}},
+	// {"move":{x,y}}, {"release":{x,y}} and {"wait":updates}, then "updates"
 	std::string toJson() const;
 };
 

@@ -117,6 +117,60 @@ mod the three cases play other games than before, so `tools/check.sh`'s expected
 and the frozen baseline moved with it: `build/baseline-tiptop/` is the port at the commit of this change
 (`FROZEN_AT.txt`), the phase-one baseline kept beside it as `build/baseline-tiptop-phase1/`.
 
+**No "Visit PopCap.com for More Games" button on the options screen** (the user, 2026-11-07, "Yes, now too": every button that
+leads out of a game comes out of the ports). The original's options screen has an oval button between the TipTop logo and the
+Resume button that opens the publisher's page (command 0x37, the configuration's `PUBLISHER_URL`). The port drew it and opened the
+page through the framework; now the button, the command, the address and the two settings of its position, `OpenBrowser` (the
+helper that opened the page) and the button's image (0x5b, `BUTTONOPTIONSVISITPOPCAP.JPG`, left out of the resource table with
+the registration's) are gone, so the port opens no web page at all. Nothing needed moving or widening: the button floated on the
+screen's pattern with no row beside it, so without it the pattern runs on, and the Resume button keeps its place. The frames that
+show the options screen differ from the original's only in the button's box (407, 313 to 584, 396): in tour 1 `options`,
+`options_tips_toggled` and `options_tips_back`, in tour 3 `game_options`; every other frame of every tour is as before.
+
+## Registration out (2026-11-08)
+
+The original is the trial of a game that is sold: it asks `gRegistered` (0x48870a, set from a registry value and a file in the
+Windows folder unless the configuration's `DISABLE_UNREGISTERED` byte says otherwise) at eight places, and everything behind a
+zero is a trial. The port always played as registered and left out the registration dialog from the first translation; this
+pass takes out what was left, so that no branch of the registration remains. The flag is gone, every branch is folded into its
+registered path, and what only the other path used went with it:
+
+- **The splash** (`App::SetScreen`, `SCREEN_SPLASH`): the register button (image 0x4d, command 0x30), the two unregistered
+  pictures ("Unregistered" and "Trial Version", 0x55 and 0x65), the "N more trial plays remain" line and the "You have played
+  N times!" line (the trial's count of plays; the original's splash shows no text of it, and the port never kept the count),
+  with their positions in the configuration and the call to the "no more plays" check. The picture that the registered path
+  drew (image 0x66, at `SPLASH_REGISTERED`) stays: the user's rule (2026-11-08, "'Thanks for registering' should be considered
+  part of the registration/trial code to be removed from every game") is about a thank-you, and this picture thanks no one. It
+  is the word "Deluxe" of the title's logo, which the trial replaced by "Trial Version"; without it the title would read "TipTop"
+  and not the game's name. The title is now the picture, the logo's word, the load bar, and (once it is full) the play button.
+- **The load bar** (`LoadBarProc`): the trial added a wait to the bar (the configuration's `INITIAL_WAIT` and `ADDITIONAL_WAIT`
+  times the count of plays); folded, the bar is as many steps wide as there are entries to load.
+- **The options screen:** the register button (image 0x5a, command 0x30).
+- **The quit and save questions:** `AreYouSureRegDialog` and `SaveGameRegDialog` (the questions with a register button, images
+  0x70, 0x7b and the buttons 0x6d, 0x6e, 0x6f, 0x7e) were the ones the original asked of an unregistered player; the port asked
+  the plain ones (`AreYouSureDialog`, `SaveGameDialog`) and now calls them directly.
+- **The "no more plays" check:** `App::TrialCheck` and its dialog (images 0x6a, 0x6b, 0x6c), its five callers (the four game
+  modes, play again and continue) and the count of plays (`CountPlay`, `gRunCount`, `App::mDialog`).
+- **Commands** 0x2f and 0x30 (the registration dialog's cancel and register) and 0x36 (open the registration page): nothing sends
+  them. Command 0x37, the options screen's link to the publisher, went the same day under its own rule (see "Deviations").
+- **The configuration** (`Config`): the splash's and options screen's register positions, the unregistered and registered
+  pictures', the executions-left and played-times lines', the "no more executions" dialog's, the two register questions', the
+  registration dialog's (sixteen members the port never used), the three execution-limit settings, `DISABLE_UNREGISTERED`, the
+  registration page's address, the registry key and file names of the run count (`RIS_*`) and, with the link out, the publisher's
+address and the options screen button's position. Their reads are gone. Board
+  reaches `Config` by offset, so each run of removed members stays as a block of padding of the same size
+  (`mRegistrationUnused<offset>` in `Config.h`) and `sizeof(Config)` is still the original's.
+- **The images:** twenty entries left the resource table (`engine/ResTable.inc`; `tools/restable.py` has the list, `OMIT`): the
+  ones named above, the registration dialog's background and its four buttons, the played-times font and the options screen's
+  link. The load bar loads 209 entries where it loaded 229, so the title comes a little sooner still.
+
+Looked for and not found: a "registered to <name>" stamp, a thank-you, a registered status line or a nag. The exe's strings (the port carries
+none: `GameTextTable.inc` lists addresses) name the registration only in the configuration keys above, the dialogs' file names and
+the two trial lines (the format of "N more trial plays remain" and the played-times line, 0x46ee78 and 0x46ee98); the data file's
+texts (credits, the sixteen instruction pages, tips and bonus settings) say nothing of it. `lowos::BlitRegistered` is the blitter
+of a registered surface and has nothing to do with it. No random number, clock read or state of the game depended on any of this,
+so the frozen baseline's state logs are unchanged (`tools/check.sh tiptop` reports the baseline identical).
+
 ## Performance (measured 2026-11-08, `tools/perf/`)
 
 The original and the port back to back on one machine, in real time, invisibly and silently (the port under rundesk, the original
