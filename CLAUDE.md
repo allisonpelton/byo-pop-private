@@ -139,7 +139,12 @@ Every call re-reads the whole context, so what costs is context times calls, and
   original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle a
   fix, and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that
   only costs the player time, is kept in the port and fixed in the mod (listed until then under "Fix candidates" in
-  the game's notes), and with the mod on a game plays the same on every run. Memory leaks are still fixed in the
+  the game's notes), and with the mod on a game plays the same on every run. Loading is the exception, made fast in
+  the port itself (the user, 2026-11-07: "Let's make faster loading a core part of the recomps instead of a mod"): a
+  port loads at the machine's speed, with no wait the original's code put into loading (a few files a frame, a time
+  step, a minimum time before the game can start), as the framework already runs a SexyAppFramework game's loading
+  thread in one go; slices of a frame's time only where the window must keep drawing meanwhile. It is listed with the
+  deviations, and an animation that does not hold the player stays. Memory leaks are still fixed in the
   port itself, and so is a bug of the original that breaks play: controls that stop working, a soft lock, a crash, a
   lost save (the user, 2026-11-07, of Seven Seas' dead squares: "That sort of bug shouldn't be part of a fix mod"),
   listed in the game's notes with its deviations (`docs/MOD_ROADMAP.md`, "The fixes mod").
