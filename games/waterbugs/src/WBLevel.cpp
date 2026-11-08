@@ -454,30 +454,6 @@ void Level_RedrawCells(Level* theLevel)
 		Panel_Draw(theLevel->panels.current, 1);
 }
 
-static Font* ScreenFont(const char* theName)
-{
-	Font* aFont = Font_Find(theName);
-	Font_SetEscapes(aFont, 1);
-	Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.fmt, gBackBuffer.w, gBackBuffer.h);
-	Font_SetPalette(aFont, nullptr);
-	aFont->alpha = 0xff;
-	return aFont;
-}
-
-void Level_DrawTrialTime(Level* theLevel)
-{
-	char aText[32];
-	int aRect[4];
-	if (gRegistered == 0 && theLevel->kind == 0 && gTrial != 0)
-	{
-		std::sprintf(aText, GT(0x458e3c), gTrialLeft / 60000, (gTrialLeft / 1000) % 0x3c);
-		Font* aFont = ScreenFont("micro_font");
-		aFont->align = 0;
-		Font_Printf(aFont, aRect, 4, 0x1fe, aText);
-		Dirty_AddClippedShown(&gDirty, 4, 0x1fe, Font_StringWidth(aFont, aText), 8, kScreenClip);
-	}
-}
-
 int Level_IsPlaying(Level* theLevel)
 {
 	if ((theLevel->kind != 0 || (theLevel->menus.current != nullptr && theLevel->menus.current->requesters.current != nullptr) ||
@@ -771,7 +747,8 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 		}
 		else if (std::strcmp(aName, "text") == 0)
 		{
-			if (Xml_GetInt(theTag, "fv") == 0 || gRegistered == 0)
+			// (a text marked fv is the trial's: the registered game leaves it out)
+			if (Xml_GetInt(theTag, "fv") == 0)
 			{
 				Text_Append(&theLevel->texts);
 				if (Text_FromXml(theLevel->texts.current, p, theTag) == 0)
@@ -859,14 +836,7 @@ static void Level_Won(Level* theLevel)
 	int n = theLevel->number;
 	if (*aReached < n)
 	{
-		bool aTrial = gRegistered == 0;
 		*aReached = n;
-		if (aTrial)
-		{
-			if (0x30 < n)
-				n = 0x30;
-			*aReached = n;
-		}
 	}
 	SaveProfiles();
 	theLevel->state = 3;
@@ -1126,7 +1096,6 @@ void Level_Draw(Level* theLevel)
 	List_Each(&theLevel->texts, [](Text* aText) { Text_Draw(aText); });
 	List_Each(&theLevel->pointers, [](Obj* aPointer) { Pointer_Draw(aPointer); });
 	DrawList_Flush();
-	Level_DrawTrialTime(theLevel);
 	// (while it is paused the original calls 0x401410, which is empty: Cosmic Bugs' texts are gone)
 }
 

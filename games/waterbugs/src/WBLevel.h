@@ -344,7 +344,6 @@ void Level_LoadFillImages(Level* theLevel, const XmlTag* theTag); // 0x4100a0
 void Level_DefaultFillImages(Level* theLevel);                   // 0x410210
 int PortalCount();                                               // 0x410360
 void Level_RedrawCells(Level* theLevel);                         // 0x4103c0
-void Level_DrawTrialTime(Level* theLevel);                       // 0x4104b0
 int Level_IsPlaying(Level* theLevel);                            // 0x4105c0
 void Level_AddKey(Level* theLevel, char theKey, int theA, int theB); // 0x410b50
 void Level_FindKey(Level* theLevel, char theKey, int* theA, int* theB); // 0x410b90

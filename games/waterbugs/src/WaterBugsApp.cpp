@@ -150,12 +150,6 @@ public:
 			gApp->mMusicInterface->SetVolume(kOutputVolume * theVolume / 100.0);
 	}
 
-	// the framework opens nothing in a test run (it logs "OpenURL in a test run")
-	void OpenURL(const char* theUrl) override
-	{
-		gApp->SexyAppBase::OpenURL(theUrl);
-	}
-
 	const char* SavePath(const char* theName) override
 	{
 		static std::string sPaths[4];

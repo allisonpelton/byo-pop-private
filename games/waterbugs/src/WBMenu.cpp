@@ -42,28 +42,6 @@ void AddValue(char* theShown, char* theDrawn, int theHot, const char* theValue)
 	strcat(theShown, Localize(theValue));
 }
 
-// fopen and two fscanf("%s") into gUrl, as cases 0 and 6 of MenuItem_Update read a shortcut: its second word (or
-// its first if there is one only), without the "URL=" in front
-bool ReadShortcut(const char* thePath)
-{
-	std::vector<uint8_t> aData;
-	if (!Sys_ReadFile(thePath, aData))
-		return false;
-	aData.push_back(0);
-	const char* p = (const char*)aData.data();
-	for (int i = 0; i < 2; i++)
-	{
-		char aWord[0x200];
-		int aLength = 0;
-		if (sscanf(p, "%511s%n", aWord, &aLength) != 1)
-			break;
-		strcpy(gUrl, aWord);
-		p += aLength;
-	}
-	memmove(gUrl, gUrl + 4, strlen(gUrl + 4) + 1);
-	return true;
-}
-
 // 0x415cb0: a requester at the front of the list, made current
 void Requester_Push(List<Menu>* theList)
 {
@@ -126,7 +104,8 @@ void MenuItem_FromXml(MenuItem* theItem, const char* p, const XmlTag* theTag)
 	// (the original leaves the type unset when there is none)
 	char aType[0x20] = "";
 	Obj_FromXml(theItem, p, theTag);
-	if (Xml_GetString(theTag, "fv_type") == nullptr || gRegistered == 0)
+	// (the registered game takes the types and names marked fv)
+	if (Xml_GetString(theTag, "fv_type") == nullptr)
 	{
 		if (Xml_GetString(theTag, "type") != nullptr)
 			strcpy(aType, Xml_GetString(theTag, "type"));
@@ -180,7 +159,7 @@ void MenuItem_FromXml(MenuItem* theItem, const char* p, const XmlTag* theTag)
 	else if (strcmp(aType, "next_level") == 0)
 		theItem->kind = 8;
 	else if (strcmp(aType, "closing_nag") == 0)
-		theItem->kind = gRegistered != 0 ? 3 : 0x17;
+		theItem->kind = 3;
 	else if (strcmp(aType, "hs_stuff") == 0)
 		theItem->kind = 10;
 	else if (strcmp(aType, "select_world") == 0)
@@ -201,7 +180,7 @@ void MenuItem_FromXml(MenuItem* theItem, const char* p, const XmlTag* theTag)
 	theItem->heightAdder = Xml_GetInt(theTag, "height_adder");
 	theItem->box = Xml_GetInt(theTag, "box");
 	theItem->boxSize = Xml_GetInt(theTag, "box_size");
-	if (Xml_GetString(theTag, "fv_name") == nullptr || gRegistered == 0)
+	if (Xml_GetString(theTag, "fv_name") == nullptr)
 		strcpy(theItem->name, Localize(Xml_GetString(theTag, "name")));
 	else
 		strcpy(theItem->name, Localize(Xml_GetString(theTag, "fv_name")));
@@ -527,14 +506,6 @@ int MenuItem_Update(MenuItem* theItem)
 			int aProfile = gProfile;
 			switch (theItem->kind)
 			{
-			case 0:
-				// buy now: the shortcut's page once the game has closed
-				if (gDemo == 0 && ReadShortcut("website3.url"))
-				{
-					// (and the original prints the minutes of trial left, "&t=%d", into a buffer it never uses)
-					gQuit = 1;
-				}
-				break;
 			case 1:
 				gGoTo = 0;
 				aResult = 0;
@@ -558,7 +529,6 @@ int MenuItem_Update(MenuItem* theItem)
 				if (gDemo == 0)
 				{
 					aResult = 0;
-					gUrl[0] = 0;
 					gQuit = 1;
 				}
 				break;
@@ -569,10 +539,6 @@ int MenuItem_Update(MenuItem* theItem)
 			case 5:
 				aResult = 0;
 				gGoTo = 0xd;
-				break;
-			case 6:
-				if (gDemo == 0 && ReadShortcut("website.url"))
-					gQuit = 1;
 				break;
 			case 7:
 				aResult = 0;
@@ -661,11 +627,6 @@ int MenuItem_Update(MenuItem* theItem)
 			case 0x16:
 				aResult = 0;
 				gGoTo = 0xe;
-				break;
-			case 0x17:
-				SaveProfiles();
-				aResult = 0;
-				gGoTo = 9;
 				break;
 			case 0x18:
 			{
