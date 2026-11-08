@@ -503,6 +503,19 @@ void AstroPopApp::PlaySong(int theOrder)
 }
 
 // 0x431ac0 slot 4: the loader's play button (id 2200) starts the game selector; the rest comes with the screens
+// 0x408cc0: a sample panned by the column of the playfield it happens in (the middle ones are not panned)
+void AstroPopApp::PlaySampleAt(int theSound, int theColumn)
+{
+	if (mSoundManager == NULL)
+		return;
+	float aPan = 0.0f;
+	if (theColumn > 5)
+		aPan = (float) theColumn * 0.1f;
+	else if (theColumn < 5)
+		aPan = (float) theColumn * 0.1f * 0.2f - 1.0f;
+	PlaySample(theSound, (int) (aPan * 2000.0f));
+}
+
 void AstroPopApp::ButtonDepress(int theId)
 {
 	if (theId == 0x898)

@@ -26,6 +26,7 @@ class Font;
 class Image;
 class Dialog;
 class MusicInterface;
+class Board;
 
 class AstroPopApp;
 extern AstroPopApp* gApp;   // 0x5dc220 (set by WinMain; the port: by the constructor)
@@ -47,7 +48,7 @@ public:
 	std::vector<std::string>	mGoodbyeMessages;   // +0x608 the quit dialog's ten lines (constructor)
 	std::vector<SoundInstance*>	mLoopSounds;       // +0x618 eight entries, set when the loading thread ends
 	std::vector<int>			mPausedSongs;       // +0x630 music slots paused by LostFocus, resumed by GotFocus
-	Widget*						mBoard;             // +0x628 the running game (class Board, 0x1c0c bytes; to come), NULL for none
+	Board*						mBoard;             // +0x628 the running game (class Board, 0x1c0c bytes), NULL for none
 	MainMenu*					mMainMenu;          // +0x644 the game selector (ShowMainMenu)
 	LoaderScreen*				mLoaderScreen;      // +0x640 Init .. the title (the original ctor leaves it uninitialised)
 	Widget*						mScreen64c;         // +0x64c the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
@@ -97,6 +98,7 @@ public:
 	virtual void	InitPropertiesHook() override;
 
 	void			PlaySong(int theOrder);                     // 0x408b90
+	void			PlaySampleAt(int theSound, int theColumn);  // 0x408cc0 a sample panned by the column it happens in
 	void			PauseMusicForFocus(bool lost);              // 0x4252b0
 	void			SetLoopSoundsMuted(bool muted);             // 0x408db0
 	void			ListUsers();                                // 0x4254b0 mUserNames from the registry key Users

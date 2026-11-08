@@ -2,6 +2,7 @@
 // screens it leads to. A stub logs "not translated" so a test run shows that a button was reached.
 
 #include "AstroPopApp.h"
+#include "Board.h"
 #include "GameText.h"
 #include "LoaderScreen.h"
 #include "MainMenu.h"
