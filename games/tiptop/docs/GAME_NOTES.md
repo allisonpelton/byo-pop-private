@@ -103,11 +103,11 @@ and the frozen baseline) gives the same results as before them.
 The port is the original; these are what the original wastes or leaves to chance, kept in the port and mended by the fixes mod
 (docs/MOD_ROADMAP.md, "The fixes mod"), one toggle each, all on by default on the site. The port loads mods (`-modsdir=<dir>`, or
 `mods-tiptop` beside the exe; `-nomods`; on the web `/ttpersist/mods`), and without the mod, or with it off, nothing differs from
-the original: `tools/check.sh tiptop` and the frozen baseline are unchanged.
+the original: `tools/check.sh tiptop` and the frozen baseline are unchanged. Slow loading is not among the fixes: it is made
+fast in the port itself (the user, 2026-11-07), see "Deviations from the original" above.
 
 | Toggle | The original | What the fix changes |
 |---|---|---|
-| `fastLoading` | The title screen's loading bar loads one of the 229 entries a frame (`LoadBarProc`, 0x4233c2: an entry when more than the step, 1 ms, has passed since the last), so it fills at a steady crawl however fast they load: 2.3 s in the port, about 3.8 s in the original on a 60 Hz screen. | Eight entries a frame: under a second. Nothing but the wait changes (loading draws no random number). |
 | `seededBlocks` | The first time the field chooses a block's kind (`Field::RandomKind`, 0x40428c) it calls `srand` with the game clock again, discarding the seed of the start. A seed given at the start (`-seed`, the site's `?seed=`) therefore changes nothing, and the blocks depend on the millisecond that first block was chosen. | The second seeding is left out, so the seed of the start decides the blocks of every game. |
 | `steadyClock` | The game's two clocks are the machine's (`GetTickCount`), so the frame times, and with them the blocks' positions, the spawn delays and the draw of `rand` after each, vary from run to run: the same seed and the same moves do not play the same game twice. | The clocks run on the updates, 10 ms each (what `-fast` does), so the same seed and the same moves play the same game on every run, however fast the machine. A pause or a lost focus still stops the game clock, as in the original. |
 
