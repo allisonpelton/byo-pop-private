@@ -20,7 +20,6 @@ struct Handler;
 extern lowos::Sound* gSounds[0x2e];     // 0x488364.. the sounds of group 2, by id (scattered in the original)
 extern uint16_t gSoundVolume;           // 0x488708
 extern int gPreloaded;                  // 0x48870c the entries of the resource table loaded so far (the load bar)
-extern char gRegistered;                // 0x48870a (the port plays as registered)
 extern char gQuit;                      // 0x488705
 extern char gSkipMouseDown;             // 0x4886fd the click that activated the window is not a click in the game
 extern char gFullScreen;                // 0x4886ec
@@ -28,7 +27,6 @@ extern volatile char gPaused[3];        // 0x4886f0 the game clock is stopped wh
 extern char gClockResync;               // 0x4886f3
 extern char gPrefByte;                  // 0x477058 a byte of Preferences.dat (default 1)
 extern volatile char gClockLock;        // 0x488499
-extern uint32_t gRunCount;              // 0x488380 the trial's count of plays (the registry, not kept by the port)
 extern uint8_t**& gParticleState;       // 0x4887a0 = gApp.mParticleImages: one image per configured particle (0x419991)
 extern uint32_t gGameMode;              // 0x488700 0 normal, 1 time trial, 2 relax?, 3 (the level list of each)
 extern char gBonusRound;                // 0x488704

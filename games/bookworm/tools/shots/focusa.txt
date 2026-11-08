@@ -1,0 +1,116 @@
+# focus in Action: action.txt to its tenth word, the window losing and regaining the focus in play (the fire timer holds)
+20 click 305 385
+70 text Autoplay Bot
+70 key RETURN
+132 click 432 182
+210 click 322 451
+352 down 325 394
+355 move 355 398
+358 move 366 408
+362 move 377 353
+365 up 374 354
+514 screenshot dialog1-bonustile
+514 click 419 258
+515 click 479 180
+522 click 544 166
+535 click 534 196
+543 click 617 181
+549 click 608 125
+560 click 616 71
+581 click 118 108
+633 rclick 494 186
+669 down 475 60
+673 move 485 121
+677 move 444 157
+680 move 440 89
+682 move 363 133
+686 move 316 151
+692 move 389 179
+693 up 386 170
+769 click 321 216
+773 click 364 229
+780 click 363 194
+801 click 155 108
+885 down 362 367
+887 move 390 341
+891 move 430 312
+893 move 423 277
+894 move 464 294
+897 move 491 308
+899 move 541 279
+901 move 541 250
+904 move 536 204
+905 move 540 168
+911 move 546 151
+917 move 476 124
+919 move 440 101
+924 move 444 107
+930 move 380 113
+931 up 363 121
+1317 screenshot action-levelup1
+1381 click 340 428
+1423 down 319 429
+1425 move 317 395
+1427 move 316 382
+1431 move 363 357
+1433 move 378 407
+1434 move 417 390
+1440 move 419 371
+1443 move 456 367
+1446 move 477 348
+1451 move 501 294
+1452 up 480 310
+1568 down 420 213
+1570 move 484 251
+1572 move 467 252
+1575 move 440 254
+1576 move 398 237
+1579 move 388 234
+1581 move 388 202
+1584 move 389 176
+1589 move 382 139
+1595 move 369 75
+1598 up 379 65
+1712 click 558 208
+1724 click 614 236
+1730 click 559 273
+1734 click 503 305
+1747 click 445 318
+1752 click 426 278
+1782 rclick 538 206
+1803 down 433 215
+1807 move 491 190
+1813 move 495 130
+1816 move 466 112
+1822 move 424 83
+1827 move 431 45
+1832 move 493 72
+1833 move 516 53
+1838 move 555 36
+1839 up 560 44
+2213 screenshot action-levelup2
+2255 click 315 420
+2301 click 332 334
+2305 click 312 373
+2310 click 372 365
+2315 click 371 282
+2328 click 445 281
+2342 click 69 109
+2441 click 559 314
+2456 click 550 369
+2465 click 602 343
+2476 click 60 113
+2541 down 361 138
+2543 move 344 139
+2545 move 329 147
+2547 move 247 186
+2549 up 263 168
+2550 screenshot action-word10
+2570 focus lose
+2575 screenshot fa-lost
+2600 screenshot fa-lost-later
+2610 focus regain
+2615 screenshot fa-back
+2630 screenshot fa-back-later
+2700 screenshot fa-after
+2750 quit

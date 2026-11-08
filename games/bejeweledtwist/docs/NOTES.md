@@ -99,6 +99,14 @@ once its drop is done (Rand() % 25, and for a sparkle RandSigned() then Rand() %
 Logo's shine (Rand() % 200 when it starts again), and the PlayButton's sparkles every 8th update once it is in (three
 RandSigned()).
 
+The site's "Always skip start-up logos" (`Byopop::SiteSkipLogos()`, `-skiplogos` natively; 2026-11-08) leaves out the
+PopCap logo and its trademark sign: the loader's constructor holds `mPopCapAlpha` (+0xb0) and `mTrademarkAlpha` (+0x580)
+at 0, and nothing but those two draws in DrawAll reads them. Since the port's hand-over moves the loader on to the original's ("Deviations", loading), the logo is never drawn in
+the port anyway, and the switch only makes sure of it. The loading,
+the menu's start, the Logo (the game's title, which stays) and every random draw are as before: a seeded Classic
+autoplay is the same at update 8010 with and without the switch, and with it off the frozen screens and the baseline
+are unchanged.
+
 ## Drawing helpers and effects
 
 Constants: many doubles in the exe are floats widened (0.1 is 0.10000000149011612); the port writes them as the exe
@@ -455,6 +463,20 @@ Each is a change without a visible effect in play, but for the first.
   48400, though around its level-ups a match lands a few updates apart, since parts of the original time themselves
   by the app's update count since launch (CurvedVal, the level-up mandala's turns, Board's pulses). The frozen
   baseline and check.sh's screens were refrozen with the change.
+  What the loader draws follows the original's order with the wait taken out (2026-11-08, from the user's report that
+  the PopCap logo showed behind the menu and the Play button stayed invisible until clicked). The loader's own curves
+  play its opening from its construction: the PopCap logo fades in over its first 250 updates and out from 550 to
+  800, its trademark sign in and out by 400, the screen comes up from black from 300 to 600, the device slides in from
+  250 to 400, the Play button's alpha rises at 350 to 400 (the main menu's Play button follows it), and the title fades
+  in from 800. The original hands over at the loader's update 848 at the earliest (the bar's cap and smoothing;
+  origrun saw the main menu made at the app's update 846-847 on its virtual clock), when the logo is gone and the
+  button is up. The port, handing over a few updates in, had the logo still fading in behind the menu and the button's
+  alpha at 0. So at the hand-over the port moves the loader's clock on to its update 848: the start of every curve the
+  constructor set and the hand-over does not set again, and the loader's update count (the glows, the bar's scroll).
+  After that the menu, the title's fade and the loader's slide away are as in the original's; before it, the port
+  shows the original's first few updates, black. No random draw depends on them: a seeded Classic autoplay is the
+  same at update 8010 before and after, and check.sh's Classic and Blitz screens and the baseline are unchanged. The
+  suite's menu set (updates 60 and 160) freezes the menu with Play drawn; the port before this fix fails it.
 - A level-up through a lost focus (a crash and a soft lock of the original's logic, fixed in the port). While the
   board is paused (the window lost the focus, or the options are over it) its UpdateGame returns at once, so its part
   of the jump between levels (UpdateJump, 0x6d090f, and the next level's start) holds, but the original's Hyperspace
@@ -900,6 +922,39 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
 - `win`: the level's goal is met (Classic, Zen), or Blitz's clock runs out. `lose`: EndGame, or Blitz's clock runs
   out. Both answer ERROR while the board is busy and in a challenge.
 - `seed`: ERROR, as the game draws from several generators; `-seed=<n>` seeds them at the start.
+- Twist's own, beside the standard set: `shutdownsaves <dir>` writes what a page going away would keep (GetShutdownSaves,
+  below under "Saving on the way out") into `<dir>`, each file by its name, and answers `SHUTDOWNSAVES <names>`, so a test
+  compares it with what a quit writes.
+
+## Saving on the way out
+
+The original saves a game in progress only when its board goes: Shutdown removes a board that CanSaveOnQuit allows (not
+in a challenge, nor in states 6 and 7) and Board::RemovedFromManager writes `savegame_<mode>.dat` (not for a timed game,
+nor at level 0), then the profile is saved. A game left in a replay is saved as it was before the replay (+0x23b4), and
+one left in the middle of a twist, or with +0x25a5 clear (the board not at rest: +0x21da, set by a match and cleared by
+Refill (0x6c755e), keeps it clear after most twists), as it was before its last twist (mSaveBuffer, LoadGame of it, then
+SaveGame with the replays). So a Classic or Zen game quit natively goes on, at its next start, from the board before its
+last twist, with that twist's score kept: the original's code does the same (each write of +0x21da and +0x25a5 checked
+against the export), but its own autoplay crashes in origrun's copy, so its quit's file was not read.
+
+A web page never shuts down: it is reloaded, left for another page, closed, or discarded. The page keeps a backup of the
+user files as a shutdown would leave them (SexyAppBase::UpdateUserDataBackup, at most every 2 s while a game changes and
+at once when the page goes), and asks the game for the files its shutdown writes through GetShutdownSaves. Twist had no
+answer, so no game was ever kept on the web (the user, 2026-11-08: two levels played, then another game opened, and the
+game was gone). WinTwistApp::GetShutdownSaves now gives the save Board::GetQuitSave makes and the profile as
+Profile::GetSaveData builds it, with their names relative to the user directory: on the web GetAppDataFolder() is the
+user directory's absolute path, and the backup leaves out a name outside it. GetQuitSave takes the destructor's branches
+without touching the board: where the destructor would load a save first, Board::ResaveAsLoaded copies that save's bytes
+by SaveGame's layout (Board::mSaveRanges keeps where SaveGame put each save in mSaveBuffer and +0x23b4) and gives what
+LoadGame and SaveGame change on the way: the score in stat 0x49 (SetScore), the level time (+0x230) and the three values
+kept as ten-thousandths (+0x1454, +0x1458, +0x220) read into floats and written again, and the replays in place of the
+flag. check.sh's Twist suite leaves a seeded Classic game mid-twist and at rest, compares the `shutdownsaves` files with
+what the quit writes, byte for byte, and resumes the second; in Zen they were compared the same way, and in Blitz
+neither writes a save. In the Browser pane the game resumed with the same board, score and progress after a reload,
+after another game's page and after the tab was closed. Desktop 95's close only hides the game's window.
+
+The mode select's own new game over a save matches the original's (Mandala::StartMode, 0x72313d): Classic and Blitz ask
+whether to go on; a new game counts the given-up one as played and deletes its save; Zen goes on without asking.
 
 ## Comparing the looks (phase two)
 
@@ -935,6 +990,36 @@ is reported in IDENTICAL_PLAY.md.
   the constructor registers SWTri's drawers as the original's does (0x766ce7 calls 0x50f7e0); without them SWTri drew
   nothing, the tutorial's click-now arrows among it. Additive matrix and triangle draws still go through SDL, since
   1.3's SWTri has no additive triangles (Twist's has, 0x60d250's flag 0x80). It costs about 2 ms a frame.
+
+## Sound
+
+The user found the sound effects distorted (2026-11-08). Measured, not judged by ear: the port's mix, captured with
+`-audiocapture=<file.wav>` (WinTwistApp: after each update the mixer renders that update's 1/100 s of 48 kHz stereo
+with the mixer locked, so a `-fast` run captures exactly what the game played), was compared with a re-creation of the
+same mix by tools/sfxmix.py, which takes the sound log of the same run (BYOPOP_SOUNDLOG) and plays each effect from the
+game's file decoded by ffmpeg, at DirectSound's gain and pan for its hundredths of a dB, its whole-Hz pitch and linear
+resampling, clamped at full scale. A seeded Classic autoplay of 30 s with the music at 0 (`-seed=1234 -autoplay=1`)
+differed from its re-creation by -40.6 dB, almost all of it in one effect, gem_hit, the sound of every match: its
+capture was a dull thud at a fifth of its level.
+
+tools/sounddecode (`bjt_sounddecode`) decodes files with the port's own loader (Platform::Mixer::LoadSoundData) or,
+with `--tremor`, with Tremor. Against ffmpeg, 144 of the 147 sounds agree within -96 dB; gem_hit, lightbar_blink and
+bomb_explode do not (-0.3, -0.0 and -5.5 dB), and Tremor decodes those three within -60 dB. They are the only three
+from the oldest encoder ("Xiphophorus libVorbis I 20010813") and the only ones whose residues are of type 0, which
+stb_vorbis decodes wrongly: its residue_decode passes a length of n - offset - k to codebook_decode_step for type 0,
+where offset is the partition's bin in the whole spectrum, so every partition after the first decodes to nothing and
+only the lowest 32 bins of a long block (about 700 Hz) are heard. With n - k there, all 147 agree with ffmpeg within
+-96 dB, and the capture of the same run differs from its re-creation by -58.4 dB. The fix is in the shared
+third_party/stb/stb_vorbis.c (and libopenmpt's copy has the same line); the same files' kind is in Bookworm's 18 voice
+lines, two of Noah's Ark's sounds and one of Rocket Mania's. `bjt_sounddecode --compare <files>` decodes each file
+both ways and fails on one where the port's decode and Tremor's differ by more than -40 dB of its level and 1% of full
+scale at a sample.
+
+Nothing else differed: the rates (44.1 and 22.05 kHz, resampled to 48 kHz), the mono and stereo files, the volumes in
+hundredths of a dB, the pans and the semitone pitches all match the re-creation. The mix does reach full scale: in the
+same 30 s about 200 samples clamp, where the voice lines (0.85 of full scale at their gain) fall on matches and
+combos. That is the plain sum DirectSound's mixer makes too, not the distortion; it was not measured in the original,
+whose buffers origrun's stand-in logs only by their calls.
 
 ## Oddities
 

@@ -12,6 +12,7 @@
 #include "TwistUtil.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
+#include "WebSettings.h"
 #include "X86Math.h"
 
 using namespace Sexy;
@@ -32,6 +33,14 @@ LoaderScreen::LoaderScreen(WinTwistApp* theApp) : mApp(theApp)
 
 	mPopCapAlpha.SetCurve(GTS(0x7e6b9c));
 	mTrademarkAlpha.SetCurve(GTS(0x7e6b68));
+	// port: the site's "Always skip start-up logos" (-skiplogos natively): the PopCap logo and its trademark sign stay
+	// out. With the port's loading done before the loader's first frames, they fade in only behind the main menu's
+	// arrival, until the loader leaves; the two curves feed nothing else, and the loading and the menu's start are as
+	// before
+	if (Byopop::SiteSkipLogos()) {
+		mPopCapAlpha.SetConstant(0.0);
+		mTrademarkAlpha.SetConstant(0.0);
+	}
 	mCurve120.SetCurve(GTS(0x7e6b38));
 	mLogoAlpha.SetCurve(GTS(0x7e6b10));
 	mLogo->mTrademarkAlpha.SetCurve(GTS(0x7e6ae0));
@@ -88,6 +97,23 @@ void LoaderScreen::Update()
 		// (CLAUDE.md, "Port first, unmodified"): the menu starts as soon as loading has ended, the bar then full
 		mSmoothProgress = (float)aSmooth;
 		if (aProgress == 1.0 && mApp->mLoaded) {
+			// port: with the files loaded the original hands over here at the loader's update 848 at the earliest (the
+			// bar's cap and smoothing above; origrun saw the main menu made at the app's update 846-847), by when its
+			// opening has played: the PopCap logo in and out again, the fade from black, the device in, the Play button's
+			// alpha up. The port gets here a few updates in, so the loader's own clock is moved on to that update: the
+			// curves the constructor set that the hand-over does not set again, and the update count the glows and the
+			// bar's scroll follow. The menu, the title fading in and everything after are then as in the original, with
+			// nothing of the logo behind the menu and the menu's Play button drawn from the start. No random draw
+			// depends on them
+			const int aHandOver = 848;
+			if (mUpdateCnt < aHandOver) {
+				int aShift = aHandOver - mUpdateCnt;
+				CurvedVal* aCurves[] = {&mPopCapAlpha, &mTrademarkAlpha, &mCurve120, &mLogoAlpha, &mFadeIn, &mButtonAlpha,
+					&mArcAlpha};
+				for (CurvedVal* aCurve : aCurves)
+					aCurve->mInitAppUpdateCount -= aShift;
+				mUpdateCnt += aShift;
+			}
 			mSmoothProgress = 1.0f;
 			mProgress = 1.0;
 			mCountdown = 150;

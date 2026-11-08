@@ -16,9 +16,7 @@
 #include "WidgetManager.h"
 #include "platform/ModManager.h"
 #include "platform/VFS.h"
-#ifdef __EMSCRIPTEN__
 #include "WebSettings.h"
-#endif
 
 #include <SDL.h>
 #include <cstdio>
@@ -91,6 +89,13 @@ public:
 	bool IsActive() override
 	{
 		return gApp->mActive || (gApp->IsTestRun() && gApp->mRealInputFileName.empty());
+	}
+
+	// The site's "Always skip start-up logos" (framework/WebSettings.h: the page sets it before the game starts, the exe takes
+	// -skiplogos), which the logo screens read (GameStep)
+	bool SkipLogos() override
+	{
+		return Byopop::SiteSkipLogos();
 	}
 
 	int LoadSound(const char* thePath) override

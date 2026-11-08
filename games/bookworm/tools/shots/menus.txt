@@ -1,0 +1,79 @@
+# The menus: the title once loaded, the new-player dialog, the selector and its hovers, the Hall of Fame, the player
+# list, the quit question, the help screen, the board, the options and credits, leaving a game and the continue dialog.
+400 screenshot title
+405 move 386 384
+415 screenshot title_hover
+420 click 386 384
+470 screenshot newuser
+475 text Tester
+480 screenshot newuser_typed
+485 key RETURN
+560 screenshot selector
+565 move 485 89
+575 screenshot sel_classic
+580 move 465 184
+590 screenshot sel_action
+595 move 500 279
+605 screenshot sel_hall
+610 move 477 389
+620 screenshot sel_quit
+625 click 500 279
+700 screenshot fame
+705 move 314 444
+715 screenshot fame_hover
+720 click 314 444
+800 screenshot selector2
+805 move 110 212
+815 screenshot notyou_hover
+820 click 110 212
+860 screenshot users
+870 move 284 160
+880 screenshot users_cancel_hover
+885 click 284 160
+950 screenshot users_closed
+955 click 477 389
+1010 screenshot quitq
+1050 click 537 287
+1100 screenshot quitq_closed
+1105 click 485 89
+1200 screenshot help
+1201 click 116 294
+1240 screenshot help_bonus
+1241 click 116 312
+1280 screenshot help_reward
+1281 click 116 330
+1320 screenshot help_scoring
+1321 click 116 348
+1360 screenshot help_action
+1361 click 116 366
+1400 screenshot help_fame
+1405 move 314 444
+1215 screenshot help_hover
+1420 click 314 444
+1520 screenshot board
+1525 move 111 196
+1535 screenshot board_options_hover
+1540 click 111 196
+1640 screenshot options
+1645 @port click 520 312
+1645 @orig click 520 298
+1740 screenshot credits
+1900 screenshot credits_later
+1905 click 360 386
+1960 screenshot credits_closed
+# the original's dialog is one row taller (its "more games" partner link, left out of the port): its return
+# button is lower, and the port's spot is that link, which must never be clicked
+1965 @port click 436 348
+1965 @orig click 436 370
+2060 screenshot options_closed
+2065 move 111 461
+2075 screenshot leave_hover
+2080 click 111 461
+2160 screenshot leaveq
+2165 click 365 307
+2300 screenshot selector3
+2305 click 485 89
+2400 screenshot continueq
+2405 click 506 316
+2550 screenshot newgame
+2600 quit

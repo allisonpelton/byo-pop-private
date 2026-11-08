@@ -130,6 +130,11 @@ function check(label, ok, detail) { if (!ok) { console.log("synthetic " + label 
   check("32-bit before a larger 24-bit", r && r.bpp === 32 && r.width === 16, JSON.stringify(r && [r.width, r.bpp]));
   r = ByopopExeIcon.parse(exe([{ w: 32, h: 32, bits: 4, data: dib(32, 32, 4, 16, () => 0, () => false) }, d24(64)]));
   check("no 32-bit: the largest", r && r.width === 64 && r.path.indexOf("dib24") === 0, JSON.stringify(r && [r.width, r.path]));
+  // the small one for the caps' face (parse(bytes, 32)): the 32-bit image nearest 32 px, else the nearest of any depth
+  r = ByopopExeIcon.parse(exe([d32(16), d32(32), d32(48)]), 32);
+  check("near 32", r && r.width === 32 && r.bpp === 32, JSON.stringify(r && [r.width, r.bpp]));
+  r = ByopopExeIcon.parse(exe([d24(16), d24(32), d24(64)]), 32);
+  check("near 32, no 32-bit", r && r.width === 32, JSON.stringify(r && [r.width, r.bpp]));
   // a 32-bit image whose alpha was never filled in takes it from the mask
   r = ByopopExeIcon.parse(exe([{ w: 16, h: 16, bits: 32, data: dib(16, 16, 32, 0, () => [5, 6, 7, 0], (x) => x < 8) }]));
   check("32-bit, mask", r && r.path === "dib32 (mask)" && r.rgba[3] === 0 && r.rgba[8 * 4 + 3] === 255, JSON.stringify(r && r.path));

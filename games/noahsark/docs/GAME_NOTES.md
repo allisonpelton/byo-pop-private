@@ -138,6 +138,13 @@ is said.
   other dialog ids nothing uses, the register picture (`IMAGE_REGISTER`, so every later image id moves down by one: Noah's sprites are
   named by the enum now, and a saved game keeps the original's numbering) and the register font with its file entry, and four texts
   of the table (the register, the order and the web page messages).
+- What a registered copy shows (the user, 2026-11-08: "Thanks for registering" is part of the registration code): the title's line in the
+  middle, drawn in black with a yellow face at y 0x170, and with it the title's tip counter (`mTip`, which only picked among the
+  shareware copy's lines) and its redraw every 300 updates; and the registration texts the table still held without a use: the invalid
+  registration message, the puzzle mode's register question, "Click Here to Register Now!", the thanks, and the plays-remaining and
+  register-to-unlock lines of the shareware title (nine entries of `GameTextTable.inc`). Nothing else in the table, the images or the
+  data shows a registered copy: there is no stamp, no "registered to" line and no status line (the original's other registered
+  branches are the puzzle game's limit of 6000 updates and the high-score dialog's offer to register, neither of them ported). The title's frozen screens change here: the line is gone from the middle of the title.
 - The drawn "popcap.com" under the title (`IMAGE_POPCAPURL`) is a picture, not a button, and stays.
 
 ## 10. Performance (measured 2026-11-08, original and port back to back)

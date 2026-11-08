@@ -151,7 +151,7 @@ The settings are `cp.cfg` in the save folder (LoadConfig 0x42a340, SaveConfig 0x
 `fullscreen`, `desktopResolution` (the centred mode), `wave` and `music`, defaulting to the full screen, stretched,
 with sound and music. The players, their progress and the high scores are `cb.dat` (0xbf9c bytes; LoadProfiles in
 the port's CBMain.cpp has the order): the eight high scores of 0x24 bytes come first, then the current player's
-level reached, the trial's time left and the shooter mode.
+level reached, a placeholder field (the original's trial time, now only kept for the format) and the shooter mode.
 
 ## Sound and music
 

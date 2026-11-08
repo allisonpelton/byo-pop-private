@@ -95,7 +95,7 @@ all three modes (action with its stampede bonus levels, strategy, puzzle), the l
 high-score entry, with save and Continue. The bot plays action to level 15 (where its cap stops it), strategy to level 9 and puzzle
 to its game over, and none of those runs shows an AddressSanitizer report. Not done: a close comparison against the
 original's play on screen (nothing could be run to compare with), and the registration screen: the port plays as the
-registered game (the title shows "Thanks for registering") and has no trial limit or order dialog.
+registered game and has no trial limit, order dialog or registered-copy line on the title (the "thanks for registering" line was taken out on 2026-11-08, `GAME_NOTES.md` section 9).
 
 Milestones (2026-10-25, this machine's clock): the session started about 06:28; Ghidra's import and export were done at
 06:31; the title screen, the menu and the text reader were committed at 07:25; the whole game with its bot and the check suite

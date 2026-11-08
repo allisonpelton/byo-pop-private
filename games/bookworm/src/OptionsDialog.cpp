@@ -13,7 +13,7 @@
 
 using namespace Sexy;
 
-// 0x52f5c0: label (221,152,83), hilite (255,255,0): register, help, credits, the links and the footer
+// 0x52f5c0: label (221,152,83), hilite (255,255,0): help, credits, the links and the footer
 // button (the creator's SetColor(3, black) then turns the labels black)
 static int gOptionsButtonColors[2][3] =
 {
@@ -108,12 +108,10 @@ void OptionsDialog::ApplyAndClose()
 // 0x42ee20 (slot 7)
 void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 {
-	// The button text colour also goes to the register, help and credits buttons (and the links, not ported)
+	// The button text colour also goes to the help and credits buttons (and the links, not ported)
 	Dialog2004::SetColor(theIdx, theColor);
 	if (theIdx == COLOR_BUTTON_TEXT)
 	{
-		if (mRegisterButton != NULL)
-			mRegisterButton->SetColor(DialogButton::COLOR_LABEL, theColor);
 		if (mHelpButton != NULL)
 			mHelpButton->SetColor(DialogButton::COLOR_LABEL, theColor);
 		if (mCreditsButton != NULL)
@@ -135,8 +133,6 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 	if (m3DCheckbox != NULL)
 		theWidgetManager->AddWidget(m3DCheckbox);
 	theWidgetManager->AddWidget(mCreditsButton);
-	if (!mApp2->mBuildUnlocked)     // the original reads gSexyAppBase (the same app)
-		theWidgetManager->AddWidget(mRegisterButton);
 }
 
 // 0x42efa0 (slot 2)
@@ -153,8 +149,6 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 	if (m3DCheckbox != NULL)
 		theWidgetManager->RemoveWidget(m3DCheckbox);
 	theWidgetManager->RemoveWidget(mCreditsButton);
-	if (!mApp2->mBuildUnlocked)
-		theWidgetManager->RemoveWidget(mRegisterButton);
 }
 
 // 0x42f090 (slot 13; also every slide frame). Screen coordinates (2004 widgets are all top-level).
@@ -166,26 +160,13 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aLabelWidth = mYesButton->mFont->StringWidth(mYesButton->mLabel);
 	mYesButton->Resize((mWidth - (aLabelWidth + 40)) / 2 + mX, mHeight - 60 + mY, aLabelWidth + 40, 32);
 
-	// The help / register / credits row 36 px above it. The original stacks the partner links (not ported)
-	// upwards from there first, one row each, and puts this row above them.
+	// The help and credits row 36 px above it (the pair is 3 px wider than the content area). The original
+	// stacks the partner links (the retail build's "more games" button; not ported, as it leads out of the
+	// game) upwards from there first, one row each, and puts this row above them.
 	int aRowY = mYesButton->mY - ROW_PITCH;
-	if (!mApp2->mBuildUnlocked)
-	{
-		int aButtonWidth = (mWidth - mContentInsets.mRight - mContentInsets.mLeft - 6) / 3;
-		if (mHelpButton != NULL)
-			mHelpButton->Resize(mX + mContentInsets.mLeft, aRowY, aButtonWidth, 32);
-		if (mRegisterButton != NULL)
-			mRegisterButton->Resize(mContentInsets.mLeft + mX + 3 + aButtonWidth, aRowY, aButtonWidth, 32);
-		if (mCreditsButton != NULL)
-			mCreditsButton->Resize(mContentInsets.mLeft + 6 + aButtonWidth * 2 + mX, aRowY, aButtonWidth, 32);
-	}
-	else
-	{
-		// The registered build: help and credits only (the pair is 3 px wider than the content area)
-		int aButtonWidth = (mWidth - mContentInsets.mRight - mContentInsets.mLeft - 3) / 2;
-		mHelpButton->Resize(mX + mContentInsets.mLeft, aRowY, aButtonWidth, 32);
-		mCreditsButton->Resize(mContentInsets.mLeft + mX + 6 + aButtonWidth, aRowY, aButtonWidth, 32);
-	}
+	int aButtonWidth = (mWidth - mContentInsets.mRight - mContentInsets.mLeft - 3) / 2;
+	mHelpButton->Resize(mX + mContentInsets.mLeft, aRowY, aButtonWidth, 32);
+	mCreditsButton->Resize(mContentInsets.mLeft + mX + 6 + aButtonWidth, aRowY, aButtonWidth, 32);
 
 	if (mMusicSlider != NULL)
 		mMusicSlider->Resize(mX + 152, mY + 68, mWidth - 192, 36);
@@ -293,12 +274,6 @@ void OptionsDialog::ButtonDepress(int theId)
 
 	if (theId == HELP_BUTTON_ID)
 		mApp2->ShowHelp();         // applies and closes this dialog, then opens the help screen
-	else if (theId == REGISTER_BUTTON_ID)
-	{
-		// Unreachable in the registered build (the button is never added)
-		mApp2->mRegSource = "options";
-		mApp2->ShowRegisterDialog();
-	}
 	else if (theId == CREDITS_BUTTON_ID)
 		mApp2->ShowCredits();      // CreditsDialog on top of this one
 }
@@ -307,7 +282,6 @@ void OptionsDialog::ButtonDepress(int theId)
 // (RemovedFromManager removed every control).
 OptionsDialog::~OptionsDialog()
 {
-	delete mRegisterButton;
 	delete mCreditsButton;
 	delete mMusicSlider;
 	delete mSfxSlider;
@@ -333,7 +307,6 @@ OptionsDialog::OptionsDialog(BookWormApp* theApp) :
 	mShowHintsCheckbox(NULL),
 	mShowDefsCheckbox(NULL),
 	m3DCheckbox(NULL),
-	mRegisterButton(NULL),
 	mHelpButton(NULL),
 	mCreditsButton(NULL),
 	mSlideOffset(0),
@@ -347,11 +320,6 @@ OptionsDialog::OptionsDialog(BookWormApp* theApp) :
 	Font* aButtonFont = mApp2->mFonts[FONT_VERDANA12BOLD];
 	SetButtonFont(aButtonFont);
 
-	// Created in every build; only added and laid out when !mBuildUnlocked
-	mRegisterButton = new DialogButton(theApp->mImages[IMAGE_DIALOGBUTTON_PLAIN], REGISTER_BUTTON_ID, this);
-	mRegisterButton->SetFont(aButtonFont);
-	mRegisterButton->mLabel = mApp2->GetString("RegisterLabel", GameText(GT_OPTIONS_REGISTER));
-	mRegisterButton->SetColors(gOptionsButtonColors, 2);
 
 	mHelpButton = new DialogButton(theApp->mImages[IMAGE_DIALOGBUTTON_PLAIN], HELP_BUTTON_ID, this);
 	mHelpButton->SetFont(aButtonFont);

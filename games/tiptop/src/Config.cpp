@@ -611,22 +611,6 @@ int LoadConfig(Config* theConfig)
 	ReadLong(aText, GTC(0x0046e280), &theConfig->mAreyousureOky);
 	ReadLong(aText, GTC(0x0046e26c), &theConfig->mAreyousureCancelx);
 	ReadLong(aText, GTC(0x0046e258), &theConfig->mAreyousureCancely);
-	ReadLong(aText, GTC(0x0046e248), &theConfig->mAreyousureregX);
-	ReadLong(aText, GTC(0x0046e238), &theConfig->mAreyousureregY);
-	ReadLong(aText, GTC(0x0046e224), &theConfig->mAreyousureregOkx);
-	ReadLong(aText, GTC(0x0046e210), &theConfig->mAreyousureregOky);
-	ReadLong(aText, GTC(0x0046e1f8), &theConfig->mAreyousureregCancelx);
-	ReadLong(aText, GTC(0x0046e1e0), &theConfig->mAreyousureregCancely);
-	ReadLong(aText, GTC(0x0046e1c8), &theConfig->mAreyousureregRegisterx);
-	ReadLong(aText, GTC(0x0046e1b0), &theConfig->mAreyousureregRegistery);
-	ReadLong(aText, GTC(0x0046e19c), &theConfig->mAreyousureregsaveX);
-	ReadLong(aText, GTC(0x0046e188), &theConfig->mAreyousureregsaveY);
-	ReadLong(aText, GTC(0x0046e170), &theConfig->mAreyousureregsaveOkx);
-	ReadLong(aText, GTC(0x0046e158), &theConfig->mAreyousureregsaveOky);
-	ReadLong(aText, GTC(0x0046e13c), &theConfig->mAreyousureregsaveCancelx);
-	ReadLong(aText, GTC(0x0046e120), &theConfig->mAreyousureregsaveCancely);
-	ReadLong(aText, GTC(0x0046e104), &theConfig->mAreyousureregsaveRegisterx);
-	ReadLong(aText, GTC(0x0046e0e8), &theConfig->mAreyousureregsaveRegistery);
 	ReadLong(aText, GTC(0x0046e0dc), &theConfig->mSavegameX);
 	ReadLong(aText, GTC(0x0046e0d0), &theConfig->mSavegameY);
 	ReadLong(aText, GTC(0x0046e0c0), &theConfig->mSavegameOkx);
@@ -824,36 +808,10 @@ int LoadConfig(Config* theConfig)
 	ReadLong(aText, GTC(0x0046d0f8), &theConfig->mScoreRemovedbyspecial);
 	ReadLong(aText, GTC(0x0046d0e8), &theConfig->mSplashLoadbarx);
 	ReadLong(aText, GTC(0x0046d0d8), &theConfig->mSplashLoadbary);
-	ReadLong(aText, GTC(0x0046d0c4), &theConfig->mSplashRegisterx);
-	ReadLong(aText, GTC(0x0046d0b0), &theConfig->mSplashRegistery);
 	ReadLong(aText, GTC(0x0046d0a0), &theConfig->mSplashPlayx);
 	ReadLong(aText, GTC(0x0046d090), &theConfig->mSplashPlayy);
-	ReadLong(aText, GTC(0x0046d078), &theConfig->mSplashUnregisteredx);
-	ReadLong(aText, GTC(0x0046d060), &theConfig->mSplashUnregisteredy);
-	ReadLong(aText, GTC(0x0046d048), &theConfig->mSplashUnregistered2x);
-	ReadLong(aText, GTC(0x0046d030), &theConfig->mSplashUnregistered2y);
 	ReadLong(aText, GTC(0x0046d01c), &theConfig->mSplashRegisteredx);
 	ReadLong(aText, GTC(0x0046d008), &theConfig->mSplashRegisteredy);
-	ReadLong(aText, GTC(0x0046cff4), &theConfig->mSplashTimesplayedx);
-	ReadLong(aText, GTC(0x0046cfe0), &theConfig->mSplashTimesplayedy);
-	ReadLong(aText, GTC(0x0046cfc8), &theConfig->mSplashExecutionsleftx);
-	ReadLong(aText, GTC(0x0046cfb0), &theConfig->mSplashExecutionslefty);
-	ReadLong(aText, GTC(0x0046cf98), &theConfig->mRegisterBackgroundx);
-	ReadLong(aText, GTC(0x0046cf80), &theConfig->mRegisterBackgroundy);
-	ReadLong(aText, GTC(0x0046cf70), &theConfig->mRegisterNamex);
-	ReadLong(aText, GTC(0x0046cf60), &theConfig->mRegisterNamey);
-	ReadLong(aText, GTC(0x0046cf4c), &theConfig->mRegisterNamewidth);
-	ReadLong(aText, GTC(0x0046cf3c), &theConfig->mRegisterCodex);
-	ReadLong(aText, GTC(0x0046cf2c), &theConfig->mRegisterCodey);
-	ReadLong(aText, GTC(0x0046cf18), &theConfig->mRegisterCodewidth);
-	ReadLong(aText, GTC(0x0046cf08), &theConfig->mRegisterOkx);
-	ReadLong(aText, GTC(0x0046cef8), &theConfig->mRegisterOky);
-	ReadLong(aText, GTC(0x0046cee4), &theConfig->mRegisterCancelx);
-	ReadLong(aText, GTC(0x0046ced0), &theConfig->mRegisterCancely);
-	ReadLong(aText, GTC(0x0046cebc), &theConfig->mRegisterGetcodex);
-	ReadLong(aText, GTC(0x0046cea8), &theConfig->mRegisterGetcodey);
-	ReadLong(aText, GTC(0x0046ce98), &theConfig->mRegisterPastex);
-	ReadLong(aText, GTC(0x0046ce88), &theConfig->mRegisterPastey);
 	ReadLong(aText, GTC(0x0046ce78), &theConfig->mValidcodeBgx);
 	ReadLong(aText, GTC(0x0046ce68), &theConfig->mValidcodeBgy);
 	ReadLong(aText, GTC(0x0046ce58), &theConfig->mValidcodeOkx);
@@ -862,12 +820,6 @@ int LoadConfig(Config* theConfig)
 	ReadLong(aText, GTC(0x0046ce28), &theConfig->mInvalidcodeBgy);
 	ReadLong(aText, GTC(0x0046ce18), &theConfig->mInvalidcodeOkx);
 	ReadLong(aText, GTC(0x0046ce08), &theConfig->mInvalidcodeOky);
-	ReadLong(aText, GTC(0x0046cdf8), &theConfig->mInitialWait);
-	ReadLong(aText, GTC(0x0046cde8), &theConfig->mAdditionalWait);
-	ReadLong(aText, GTC(0x0046cdd4), &theConfig->mOptionsRegisterx);
-	ReadLong(aText, GTC(0x0046cdc0), &theConfig->mOptionsRegistery);
-	ReadLong(aText, GTC(0x0046cda8), &theConfig->mOptionsVisitpopcapx);
-	ReadLong(aText, GTC(0x0046cd90), &theConfig->mOptionsVisitpopcapy);
 	ReadLong(aText, GTC(0x0046cd84), &theConfig->mSummaryX);
 	ReadLong(aText, GTC(0x0046cd78), &theConfig->mSummaryY);
 	ReadLong(aText, GTC(0x0046cd64), &theConfig->mSummaryPlayagainx);
@@ -926,15 +878,6 @@ int LoadConfig(Config* theConfig)
 	ReadLong(aText, GTC(0x0046c91c), &theConfig->mFloaterdeterminationTimed);
 	ReadLong(aText, GTC(0x0046c900), &theConfig->mFloaterdeterminationSpeed);
 	ReadLong(aText, GTC(0x0046c8e0), &theConfig->mFloaterdeterminationStrategy);
-	ReadLong(aText, GTC(0x0046c8d0), &theConfig->mExecutionlimit);
-	ReadBool(aText, GTC(0x0046c8bc), &theConfig->mExecutionlimitmode);
-	ReadBool(aText, GTC(0x0046c89c), &theConfig->mExecutionlimitAllowcontinue);
-	ReadLong(aText, GTC(0x0046c880), &theConfig->mSplashNomoreexecutionsx);
-	ReadLong(aText, GTC(0x0046c864), &theConfig->mSplashNomoreexecutionsy);
-	ReadLong(aText, GTC(0x0046c854), &theConfig->mSplashNmequitx);
-	ReadLong(aText, GTC(0x0046c844), &theConfig->mSplashNmequity);
-	ReadLong(aText, GTC(0x0046c830), &theConfig->mSplashNmeregisterx);
-	ReadLong(aText, GTC(0x0046c81c), &theConfig->mSplashNmeregistery);
 	ReadLong(aText, GTC(0x0046c804), &theConfig->mLevelsummaryStartevent);
 	ReadLong(aText, GTC(0x0046c7ec), &theConfig->mLevelsummaryEndevent);
 	ReadLong(aText, GTC(0x0046c7d4), &theConfig->mLevelsummaryEntertime);
@@ -953,27 +896,10 @@ int LoadConfig(Config* theConfig)
 	ReadLong(aText, GTC(0x0046c6b0), &theConfig->mBkgcolAddbrightness);
 	ReadLong(aText, GTC(0x0046c69c), &theConfig->mBkgcolCycletime);
 	ReadLong(aText, GTC(0x0046c684), &theConfig->mBkgcolResolutiontime);
-	ReadBool(aText, GTC(0x0046c66c), &theConfig->mDisableUnregistered);
 	ReadInts(aText, GTC(0x0046c65c), theConfig->mComboanimTable, 100);
 	ReadInts(aText, GTC(0x0046c64c), theConfig->mStarburstTable, 100);
 	ReadInts(aText, GTC(0x0046c63c), theConfig->mScorefontTable, 100);
 	ReadInts(aText, GTC(0x0046c62c), theConfig->mScorewordTable, 100);
-	if (theConfig->mRegisterUrl == nullptr)
-	{
-		theConfig->mRegisterUrl = (char*)Allocate(StringLength(aText, GTC(0x0046c61c)));
-		ReadString(aText, GTC(0x0046c61c), theConfig->mRegisterUrl);
-	}
-	if (theConfig->mPublisherUrl == nullptr)
-	{
-		theConfig->mPublisherUrl = (char*)Allocate(StringLength(aText, GTC(0x0046c60c)));
-		ReadString(aText, GTC(0x0046c60c), theConfig->mPublisherUrl);
-	}
-	theConfig->mRisCompanyname = (char*)Allocate(StringLength(aText, GTC(0x0046c5fc)));
-	ReadString(aText, GTC(0x0046c5fc), theConfig->mRisCompanyname);
-	theConfig->mRisProductname = (char*)Allocate(StringLength(aText, GTC(0x0046c5ec)));
-	ReadString(aText, GTC(0x0046c5ec), theConfig->mRisProductname);
-	theConfig->mRisHiddenfilename = (char*)Allocate(StringLength(aText, GTC(0x0046c5d8)));
-	ReadString(aText, GTC(0x0046c5d8), theConfig->mRisHiddenfilename);
 	uint32_t aCount;
 	AllocateList(aText, GTC(0x0046c5c4), &theConfig->mMainmenuanimations, &aCount);
 	theConfig->mMainmenuanimationsCount = aCount / 6;

@@ -3,7 +3,8 @@ with real input and the test commands (docs/TEST_COMMANDS.md). One script for bo
 
     build/native/rundesk.exe python games/mahjongjapan/tools/realplay/modtest.py <out dir> --game japan|china
 
-skipLogos     updates from launch to the main menu, with the mod and without (-nomods)
+logos         updates from launch to the main menu, as the port starts (the logo screens skipped) and with -logos (the
+              original's two seconds each); not a mod, the loading rule of the port
 seededDeals   the first moves of a classic deal and of its shuffle: the same under one seed whatever the start time,
               another under another seed; without the mod the clock seeds them, so a start delayed by some updates deals
               another board even under the same seed
@@ -24,11 +25,12 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..',
 class Run:
     """One launch of the game with its own user folder; `mods` is the fixes mod's parent folder or None for -nomods"""
 
-    def __init__(self, out, which, tag, mods, seed=None, fast=True):
+    def __init__(self, out, which, tag, mods, seed=None, fast=True, flags=()):
         exe, gamedir = drive.GAMES[which]
         extra = ['-modsdir=' + os.path.join(ROOT, 'games', 'mahjong' + which, 'mods')] if mods else ['-nomods']
         if seed is not None:
             extra.append('-gameseed=%d' % seed)
+        extra.extend(flags)
         self.g = Game(os.path.join(out, tag), os.path.join(ROOT, exe), os.path.join(ROOT, gamedir), fast, extra)
 
     def to_menu(self):
@@ -103,18 +105,18 @@ def main():
         results.append(ok)
         print('%s %s: %s' % ('PASS' if ok else 'FAIL', name, detail), flush=True)
 
-    # skipLogos
-    r = Run(out, which, 'logos-on', True)
+    # the logos: skipped by the port itself, with the mod or without
+    r = Run(out, which, 'logos-skipped', False)
     try:
         on = r.to_menu()
     finally:
         r.close()
-    r = Run(out, which, 'logos-off', False)
+    r = Run(out, which, 'logos-kept', False, flags=['-logos'])
     try:
         off = r.to_menu()
     finally:
         r.close()
-    check('skipLogos', 700 <= off - on, 'the menu at update %d with the mod, %d without it (the two logos take 4 s, 800 updates)' % (on, off))
+    check('logos', 700 <= off - on, 'the menu at update %d as the port starts, %d with -logos (the two logos take 4 s, 800 updates)' % (on, off))
 
     # seededDeals
     a1 = deal_prints(out, which, 'seed7-a', True, 7, 0)

@@ -145,7 +145,14 @@ the side panel's lives are the small icon (image 31).
   nor the "more games" button (a link to the publisher's site); Help and High Scores share the row next to the footer button, each
   half of the dialog's width. The title screen has no register link, no count of plays left and no delay before the Play link for an
   unregistered copy (the gate on 15 games played, `mDelay`), and the app no longer counts games played (`mGamesPlayed`, which only that
-  gate read). The publisher's logo and address are pictures on the title, not buttons, and stay.
+  gate read). The title's registered-copy line (the thanks for registering, drawn by 0x425c00 above the Play link) is gone too (the user,
+  2026-11-08, "Seven Seas still says Thanks for registering"): its draw call is removed and so is every text of the shareware and
+  registration code from the text table (`GameTextTable.inc`, 46 entries: the register dialog and its prompts, the register-to-record
+  texts of the high-score dialog, the Internet-score texts, the site and "more games" texts, the title's registered and unregistered
+  lines, the plays-left and nag texts), by the generator's `EXCLUDE` list (`tools/make_gametext.py`). The Play link and the loading bar
+  stay where they were, the line's place is empty. Against the original's title (same crop, 3 and 26 pixels in) the screen differs only
+  in the line's box and the sparkles. The publisher's logo and its address picture (`IMAGE_POPCAPLOGO`, `IMAGE_POPCAPURL`) are art on
+  the title, not buttons or links, and stay; no other image or data file of the game holds registration text.
 - **Loading is fast in the port.** The framework runs the loading thread in one go (the sounds, the arrows, the animations): the
   title's Play link takes a click 50 ms of game time after the start (-fast), and the port added no wait of its own. The title still looks
   at the thread every fourth update, the original's own cadence, a 40 ms step at most.
