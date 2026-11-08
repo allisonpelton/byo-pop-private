@@ -235,8 +235,5 @@ Script commands of the port (`-script`, later the live channel), answered on std
 | `win` | the level is complete now (the flag the board sets when the last pirate is gone; the game's level-complete screen follows) |
 | `lose` | the last life is lost now through `LoseLife`; the game over and the high-score screen follow as in play |
 | `seed <n>` | the game's random numbers (the C library generator the original used) are seeded with n |
-| `move`, `botmove` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"clicks":[[gx,gy]]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the click in game coordinates that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
+| `move` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"clicks":[[gx,gy]]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the click in game coordinates that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
 | `unlock all` | ERROR: the game has nothing locked |
-
-`move` is also the framework's own script command (`move x y`, the mouse), which the framework takes first, so a bare `move` never
-reaches the game: `botmove` is the same command under another name until the framework hands argument-less `move` to the game.
