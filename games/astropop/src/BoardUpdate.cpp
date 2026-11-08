@@ -164,7 +164,7 @@ void Board::Update()
 			}
 		}
 
-		Fn475040();
+		UpdateStates();
 		if (!gFlag5A5100 && m1a60 != 2 && !mFlag8E8 && m1940 > 1)
 			SaveGameState();
 		ShowThemeButtons();

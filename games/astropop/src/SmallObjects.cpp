@@ -4,6 +4,7 @@
 #include "Font.h"
 #include "Graphics.h"
 #include <SDL.h>
+#include <math.h>
 
 using namespace Sexy;
 
@@ -65,16 +66,70 @@ LevelUpText::LevelUpText(Image* theImage, int theY)
 	m18 = theY + 0xbe;
 	m34 = 0.73f;
 	m08 = 1;
-	m30 = 0;
+	m30 = 0.0f;
 	m20 = 1.0f;
-	m24 = 0;
-	m1c = 0;
+	m24 = 0.0f;
+	m1c = 0.0f;
 	m0c = 0x1e;
 	m14 = 0;
 	m10 = 100;
 	m28 = 1.0f;
 	m2c = 0.025f;
 	m04 = false;
+}
+
+// 0x40b6a0: one update of the picture that announces a level (or a minute): its position and size ease towards the middle
+// of the screen, hold there and ease away; it is over when it has faded out or shrunk to nothing.
+void LevelUpText::Update()
+{
+	if (m08 == 0)
+		return;
+
+	if (m1c < 1.0f)
+		m1c = (float) ((double) m1c + (double) 0.04f);
+
+	double aPull = (double) 0.975f - (double) m1c * (double) 0.12f;
+	double aSpring = (double) m1c * (double) 0.01f + (double) 0.002f;
+	double aVel = aPull * ((-(double) m20) * aSpring + (double) m24);
+	m24 = (float) aVel;
+	double aPos = aVel + (double) m20;
+	m20 = (float) aPos;
+	if (fabs(aPos) < 0.0010000000474974513 && fabs((double) m24) < 9.999999747378752e-05)
+	{
+		m20 = 0.0f;
+		m24 = 0.0f;
+	}
+
+	if (m0c > 0)
+		m0c--;
+	else
+	{
+		m10--;
+		m14--;
+		double aForce;
+		if (m14 > 0)
+			aForce = ((double) 1.2f - (double) m28) * (double) 0.0015f;
+		else if (m10 > 0)
+			aForce = ((double) 1.75f - (double) m28) * (double) 0.0015f;
+		else
+			aForce = (-(double) m28) * (double) 0.002f;
+		m2c = (float) (aForce + (double) m2c);
+		m28 = (float) ((double) m28 + (double) m2c);
+	}
+
+	if (m18 > 0)
+	{
+		double aFade = (double) m30 + (double) 0.02f;
+		m18--;
+		m30 = (float) aFade;
+		if (aFade > 1.0)
+			m30 = 1.0f;
+	}
+	else
+		m30 = (float) ((double) m30 - (double) 0.03f);
+
+	if (m30 < 0.0f || m28 <= 0.0f)
+		m08 = 0;
 }
 
 // 0x408890: one update of a floating text. It rises one pixel an update (-1 in the three fields: nothing else was

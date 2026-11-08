@@ -129,16 +129,17 @@ public:
 	int			m10;            // +0x10
 	int			m14;            // +0x14
 	int			m18;            // +0x18
-	int			m1c;            // +0x1c
+	float		m1c;            // +0x1c
 	float		m20;            // +0x20
-	int			m24;            // +0x24
+	float		m24;            // +0x24
 	float		m28;            // +0x28
 	float		m2c;            // +0x2c
-	int			m30;            // +0x30
+	float		m30;            // +0x30
 	float		m34;            // +0x34
 	Image*		mImage;         // +0x38
 
 	LevelUpText(Image* theImage, int theY);     // 0x40b600
+	void		Update();                                // 0x40b6a0
 };
 
 // A spark of the sun that drifts over the end of a game (0x50 bytes, the vector at +0xe8): it moves by its speed each

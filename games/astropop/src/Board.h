@@ -146,6 +146,16 @@ struct HintSpot
 	HintSpot() : mBg(NULL), mArrowX(-1), mArrowY(-1), mArrowTop(-1), mRingX(-1), mRingY(-1), mId(-1), m1c(false) {}
 };
 
+// A snowflake of the freeze effect (0x50 bytes, the vector at +0x240): it drifts along the top of the screen.
+struct FreezeFlake
+{
+	float		mX;                 // +0x00
+	float		mY;                 // +0x04
+	float		mVelX;              // +0x08
+	float		mVelY;              // +0x0c (not used)
+	FrameAnim	mAnim;              // +0x10
+};
+
 // A rate of one kind of brick for each of the three phases of a game (8 bytes)
 struct RatePair
 {
@@ -240,6 +250,7 @@ public:
 	std::vector<StageBg*>	m210;// +0x210 the hints pictures (12)
 	std::vector<StageBg*>	m220;// +0x220 the picture of each stage
 	std::vector<HintSpot*>	m230;// +0x230
+	std::vector<FreezeFlake>	m240;// +0x240 the snowflakes of the freeze effect
 	std::vector<DrawnText>	m270;// +0x270 texts drawn at a place in a font
 	std::vector<RampRecord>	m280;// +0x280 the speed table (UpdateRamp)
 	std::vector<int>	m290;// +0x290
@@ -263,10 +274,13 @@ public:
 	AstroPopApp*	mApp = NULL;// +0x358 the application (the bricks play their sounds through it)
 	Color	m3c0;// +0x3c0 the colour of the backdrop tint (FadeBackdrop)
 	Color	m3d0;// +0x3d0 the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
+	int	m404 = 0;// +0x404 ?
 	FrameAnim	m420;// +0x420
 	FrameAnim	mAnim460;// +0x460
 	FrameAnim	mSirenAnim;// +0x4a0 the siren (IMAGE_SIREN)
+	bool	m4c8 = false;// +0x4c8 ?
 	FrameAnim	mAnim520;// +0x520
+	FrameAnim	mAnim560;// +0x560 ?
 	FrameAnim	mAnim5a0;// +0x5a0 the end buttons slide in with it (SetNumFrames 0x1f)
 	FrameAnim	mAnim5e0;// +0x5e0 ?
 	FrameAnim	mAnim620;// +0x620
@@ -318,6 +332,8 @@ public:
 	Image*	m890 = NULL;// +0x890 IMAGE_UPGRADE_ARM
 	Image*	m894 = NULL;// +0x894 IMAGE_UPGRADE_HEAD
 	FrameAnim	mAnim898;// +0x898
+	bool	m8d8 = false;// +0x8d8 ?
+	bool	m8d9 = false;// +0x8d9 ?
 	bool	m8db = false;// +0x8db the game is being recorded (RecordStep)
 	bool	m8dc = false;// +0x8dc the demo plays
 	bool	m8dd = false;// +0x8dd ?
@@ -404,6 +420,7 @@ public:
 	int	m964 = 0;// +0x964 ?
 	int	m970 = 0;// +0x970 the highest stack seen last
 	int	m974 = 0;// +0x974 ?
+	int	m978 = 0;// +0x978 ?
 	int	m97c = 0;// +0x97c ?
 	ScriptRows	m984;// +0x984 the rows of a scripted game
 	int	made = 0;// +0xade ?
@@ -469,6 +486,8 @@ public:
 	int	m1a4c = 0;// +0x1a4c ?
 	int	m1a50 = 0;// +0x1a50 ?
 	int	m1a54 = 0;// +0x1a54 the size of a group of same-coloured bricks that is broken up in a new row
+	int	m1a58 = 0;// +0x1a58 ?
+	int	m1a5c = 0;// +0x1a5c ?
 	int	m1a60 = 0;// +0x1a60 ?
 	int	m1a68 = 0;// +0x1a68 ?
 	int	m1a7c = 0;// +0x1a7c ?
@@ -488,16 +507,22 @@ public:
 	int	m1abc = 0;// +0x1abc ?
 	int	m1ac0 = 0;// +0x1ac0 ?
 	int	m1ac4 = 0;// +0x1ac4 ?
+	int	m1acc = 0;// +0x1acc ?
 	int	m1ad0 = 0;// +0x1ad0
 	int	m1ad4 = 0;// +0x1ad4
 	int	m1ad8 = 0;// +0x1ad8
 	int	m1adc = 0;// +0x1adc
 	int	m1ae0 = 0;// +0x1ae0
+	int	m1ae4 = 0;// +0x1ae4 ?
+	int	m1ae8 = 0;// +0x1ae8 ?
 	int	m1aec = 0;// +0x1aec
 	int	m1af0 = 0;// +0x1af0 ?
 	int	m1af4 = 0;// +0x1af4 ?
 	int	m1afc = 0;// +0x1afc ?
 	int	m1b00 = 0;// +0x1b00 ?
+	int	m1b04 = 0;// +0x1b04 ?
+	int	m1b08 = 0;// +0x1b08 ?
+	int	m1b0c = 0;// +0x1b0c ?
 	int	m1b10 = 0;// +0x1b10 ?
 	int	m1b18 = 0;// +0x1b18 ?
 	int	m1b1c = 0;// +0x1b1c ?
@@ -600,7 +625,14 @@ public:
 	void			ResetGame();                                    // 0x450250
 
 	// ---- not translated yet (BoardStubs.cpp): each logs once and does nothing; named by address until they are read
-	void			Fn475040();                                     // 0x475040 (3341 bytes)
+	void			UpdateStates();                                 // 0x475040
+	void			UpdateAlertFlash();                            // 0x433920
+	void			UpdateStartBanner();                           // 0x433610
+	void			PayTimeBonus();                                // 0x452a80
+	void			UpdateFreeze();                                // 0x474de0
+	void			Fn46f010();                                    // 0x46f010 (4339 bytes)
+	void			Fn466e80();                                    // 0x466e80 (3168 bytes)
+	void			LoadLevel(bool theFlag);                       // 0x4663f0 (2647 bytes)
 	void			LevelComplete();                                // 0x465290
 	void			PayComboBonus();                                // 0x452d30
 	void			StartLevelUp();                                 // 0x45dd70

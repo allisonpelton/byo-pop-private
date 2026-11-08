@@ -141,6 +141,7 @@ public:
 	bool			IsLeftButtonDown();
 	void			ShowNewUserDialog();                        // 0x40bc00 (stub)
 	void			ShowMessageDialog(const std::string& theHeader, const std::string& theText); // 0x411ba0 (stub): an OK box
+	Dialog*			MakeDialog(int theId, bool theFlag, int theWidth, int theX, int theY, int theButtons, const std::string& theHeader, const std::string& theText, const std::string& theYes, const std::string& theNo, bool theModal);   // 0x411ba0 (stub)
 	// The screens the selector opens. Not translated yet: each one logs "not translated" and does nothing.
 	void			StartGame(bool theContinue);                // 0x428c70 (the Board)
 	void			ShowCharSelector(int theMode);              // 0x411660 (pilot choice)

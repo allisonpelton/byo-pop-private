@@ -195,6 +195,14 @@ void AstroPopApp::SelectStartUser()
 		ShowMessageDialog("Error", GT(0x563470));
 }
 
+Dialog* AstroPopApp::MakeDialog(int theId, bool theFlag, int theWidth, int theX, int theY, int theButtons, const std::string& theHeader, const std::string& theText, const std::string& theYes, const std::string& theNo, bool theModal)
+{
+	(void) theFlag; (void) theWidth; (void) theX; (void) theY; (void) theButtons; (void) theHeader; (void) theText;
+	(void) theYes; (void) theNo; (void) theModal;
+	SDL_Log("AstroPop: MakeDialog(%d) not translated yet (0x411ba0)", theId);
+	return NULL;
+}
+
 void AstroPopApp::StartGame(bool theContinue)
 {
 	SDL_Log("AstroPop: StartGame(%d) not translated yet (0x428c70)", theContinue ? 1 : 0);
