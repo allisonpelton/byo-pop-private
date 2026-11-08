@@ -18,6 +18,9 @@
 #include "MainMenu.h"
 #include "XcfFile.h"
 #include "SoundInstance.h"
+#include "FullScreenHelp.h"
+#include "ResourceManager.h"
+#include "Checkbox.h"
 #include "WidgetManager.h"
 #include <SDL.h>
 
@@ -246,9 +249,29 @@ void AstroPopApp::ShowHallOfFame()
 	SDL_Log("AstroPop: ShowHallOfFame not translated yet (0x4288a0)");
 }
 
+// 0x422db0: a game opens with the picture of how to play (once the player has not turned it off): the selector goes, the
+// pictures of it are loaded and the game waits (Pause) while it is up. (The original also tells its page counter, 0x48f8a0:
+// PopCap's ad statistics, left out, and reads the clock, 0x4ce790, which the load of the pictures made it lose.)
 void AstroPopApp::ShowFullScreenHelp()
 {
-	SDL_Log("AstroPop: ShowFullScreenHelp not translated yet (0x422db0)");
+	CloseMainMenu();
+	mResourceManager->StartLoadResources("FullScreenHelp");
+	while (mResourceManager->LoadNextResource())
+	{
+	}
+	if (!mResourceManager->HadError() && ExtractFullScreenHelpResources(mResourceManager))
+	{
+		if (mBoard != NULL)
+			mBoard->Pause(true, false);
+		mHelpScreen = new FullScreenHelp(this);
+		mHelpScreen->Resize(0, 0, 0x280, 0x1e0);
+		mWidgetManager->AddWidget(mHelpScreen);
+		return;
+	}
+
+	ShowResourceError(false);
+	mLoadingFailed = true;
+	Shutdown();
 }
 
 // 0x422c00: the box that asks whether to leave the game, with one of the ten goodbye lines of the constructor
@@ -334,7 +357,15 @@ void AstroPopApp::ShowHelp()
 
 void AstroPopApp::CloseFullScreenHelp()
 {
-	APP_NOT_TRANSLATED("CloseFullScreenHelp", "0x428fb0");
+	FullScreenHelp* aHelp = (FullScreenHelp*) mHelpScreen;
+	mFlag6fb = !aHelp->mNoMoreCheck->IsChecked();
+	mWidgetManager->RemoveWidget(mHelpScreen);
+	SafeDeleteWidget(mHelpScreen);
+	mHelpScreen = NULL;
+	mUser->SetInt(0x73, mFlag6fb ? 1 : 0);
+	mUser->Save();
+	if (mBoard != NULL)
+		mBoard->Pause(false, false);
 }
 
 // 0x428a10: the box's settings take effect and are saved with the player; the box goes. In a game the game goes on (theClose:

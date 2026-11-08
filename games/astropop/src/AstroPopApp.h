@@ -145,7 +145,7 @@ public:
 	void			ValidateUser();                             // 0x4285d0 the profile's settings checked and copied to the flags
 	void			ShowMainMenu();                             // 0x411490
 	void			CloseBoard();                               // 0x412320 the game goes (the Board is deleted when it is safe), the selector stays
-	void			ShowFullScreenHelp();                       // 0x422db0 (stub)
+	void			ShowFullScreenHelp();                       // 0x422db0
 	// port: the original keeps the left button's state in the application (+0x4e1), set by its mouse dispatcher; the
 	// widget manager's record of the buttons held for a widget is the same while the Board takes the clicks
 	bool			IsLeftButtonDown();
@@ -176,7 +176,7 @@ public:
 	void			CloseDialog(int theId);                     // 0x408d70 a box goes and the game goes on
 	void			ClosePowerDialog();                         // 0x4291c0 the box that asks for the pilot's power goes
 	void			ShowHelp();                                 // 0x40bea0 the "how to play" box
-	void			CloseFullScreenHelp();                      // 0x428fb0 (stub)
+	void			CloseFullScreenHelp();                      // 0x428fb0
 	void			ApplyOptions(bool theClose);                // 0x428a10 the options box's settings take effect and the box goes
 	void			ShowCredits();                              // 0x428f10 (stub)
 	void			UserSelectOk();                             // 0x430f00 the player chosen in the player list

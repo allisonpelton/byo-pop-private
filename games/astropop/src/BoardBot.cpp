@@ -5,8 +5,10 @@
 
 #include "Board.h"
 #include "AstroButton.h"
+#include "AstroPopApp.h"
 #include "Brick.h"
 #include "Compat2004.h"
+#include "FullScreenHelp.h"
 
 #include <cstdio>
 #include <string>
@@ -141,7 +143,7 @@ std::string ClickStep(int theCol, bool theRight)
 
 std::string WaitMove()
 {
-	return "{\"kind\":\"wait\"," + Steps("{\"wait\":10}") + "}";
+	return "{\"kind\":\"wait\",\"updates\":10,\"input\":[]}";
 }
 
 }
@@ -169,6 +171,14 @@ std::string Board::BotMove()
 {
 	if (mFlag8E8)
 		return "null";
+
+	// the picture of how to play that a game opens with is closed with its button
+	if (mApp->mHelpScreen != NULL)
+	{
+		AstroButton* aButton = ((FullScreenHelp*) mApp->mHelpScreen)->mContinueButton;
+		return "{\"kind\":\"help\",\"updates\":10," +
+			   Steps(StrFormat("{\"click\":[%d,%d]}", aButton->mX + aButton->mWidth / 2, aButton->mY + aButton->mHeight / 2)) + "}";
+	}
 
 	// a hint that waits to be read is put away with its button
 	if (m74c != NULL && m74c->mVisible && (m919 || (!m230.empty() && m230[0]->m1c)))
@@ -295,7 +305,7 @@ std::string Board::BotMove()
 	if (!aHolding)
 		aSteps = MoveStep(aBestPick) + "," + ClickStep(aBestPick, false) + ",{\"wait\":6},";
 	aSteps += MoveStep(aBestDrop) + "," + ClickStep(aBestDrop, true);
-	return StrFormat("{\"kind\":\"shoot\",\"pick\":%d,\"drop\":%d,\"bricks\":%d,\"colour\":%d,\"group\":%d,",
+	return StrFormat("{\"kind\":\"shoot\",\"pick\":%d,\"drop\":%d,\"bricks\":%d,\"colour\":%d,\"group\":%d,\"updates\":20,",
 					 aHolding ? -1 : aBestPick, aBestDrop, aBestCount, aBestKind, aBestGroup) +
 		   Steps(aSteps) + "}";
 }
