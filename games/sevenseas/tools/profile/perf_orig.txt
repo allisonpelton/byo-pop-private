@@ -1,0 +1,47 @@
+at 1 move 320 385
+at 200 click 320 385 1
+at 1000 click 507 397 1
+at 2300 move 390 440
+at 2400 click 390 440 1
+at 3000 click 404 243 1
+at 3150 click 404 243 1
+at 3300 click 404 243 1
+at 3450 click 404 243 1
+at 3600 click 404 243 1
+at 3750 click 404 243 1
+at 3900 click 404 243 1
+at 4050 click 404 243 1
+at 4200 click 404 243 1
+at 4350 click 404 243 1
+at 4500 click 404 243 1
+at 4650 click 404 243 1
+at 4800 click 404 243 1
+at 4950 click 404 243 1
+at 5100 click 404 243 1
+at 5250 click 404 243 1
+at 5400 click 404 243 1
+at 5550 click 404 243 1
+at 5700 click 404 243 1
+at 5850 click 404 243 1
+at 6000 click 404 243 1
+at 6150 click 404 243 1
+at 6300 click 404 243 1
+at 6450 click 404 243 1
+at 6600 click 404 243 1
+at 6750 click 404 243 1
+at 6900 click 404 243 1
+at 7050 click 404 243 1
+at 7200 click 404 243 1
+at 7350 click 404 243 1
+at 7500 click 404 243 1
+at 7650 click 404 243 1
+at 7800 click 404 243 1
+at 7950 click 404 243 1
+at 8100 click 404 243 1
+at 8250 click 404 243 1
+at 8400 click 404 243 1
+at 8550 click 404 243 1
+at 8700 click 404 243 1
+at 8850 click 404 243 1
+at 9000 move 1 1
+quit

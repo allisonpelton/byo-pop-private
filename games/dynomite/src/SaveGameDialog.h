@@ -13,7 +13,7 @@ namespace Sexy
 
 class Cell;
 class CellButton;
-class DialogButton;
+class ButtonWidget;
 class FossilizedApp;
 class Pic;
 
@@ -21,8 +21,8 @@ class SaveGameDialog : public Dialog2004, public EditListener
 {
 public:
 	FossilizedApp*		mApp;				// +0x114
-	DialogButton*		mSaveButton;		// +0x118 (500)
-	DialogButton*		mCancelButton;		// +0x11c (501)
+	ButtonWidget*		mSaveButton;		// +0x118 (500)
+	ButtonWidget*		mCancelButton;		// +0x11c (501)
 	CellButton*			mSlotButtons[8];	// +0x120 (600 + the slot)
 	Pic*				mSlotPics[8];		// +0x140 the saved games' pictures
 	Cell*				mSlotCells[8];		// +0x160

@@ -5,6 +5,7 @@
 #include "Display.h"
 #include "Host.h"
 
+#include "platform/ImageLoader.h"
 #include "stb_image.h"
 
 #include <cstring>
@@ -159,12 +160,12 @@ bool Image::DecodeBmp(const uint8_t* theData)
 }
 
 // 0x42d160: to 24 bits, B G R, the rows bottom-up. The original decodes with the exe's libjpeg (0x438000..,
-// islow); stb_image's decoder may differ from it by one in a channel (docs/DEVIATIONS.md).
+// islow); libjpeg 6b, as the original does (Platform::LoadImageFromMemory).
 bool Image::DecodeJpeg(const uint8_t* theData, uint32_t theSize)
 {
 	mBitCount = 0x18;
 	int aWidth, aHeight, aComp;
-	uint8_t* aRgb = stbi_load_from_memory(theData, (int)theSize, &aWidth, &aHeight, &aComp, 3);
+	uint8_t* aRgb = Platform::LoadImageFromMemory(theData, (int)theSize, &aWidth, &aHeight, &aComp, 3);
 	if (aRgb == nullptr)
 		return false;
 	mHeight = aHeight;
@@ -304,7 +305,7 @@ bool Image::DecodePng(const uint8_t* theData, uint32_t theSize)
 	if (theSize > 0x19 && theData[0x18] == 8 && theData[0x19] == 6)
 		mBitCount = 0x20;
 	int aBytes = mBitCount / 8;
-	uint8_t* aRgb = stbi_load_from_memory(theData, (int)theSize, &aWidth, &aHeight, &aComp, aBytes);
+	uint8_t* aRgb = Platform::LoadImageFromMemory(theData, (int)theSize, &aWidth, &aHeight, &aComp, aBytes);
 	if (aRgb == nullptr)
 		return false;
 	AllocBits();

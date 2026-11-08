@@ -12,7 +12,7 @@
 namespace Sexy
 {
 
-class DialogButton;
+class ButtonWidget;
 class EditWidget;
 class FossilizedApp;
 
@@ -21,8 +21,8 @@ class GetSaveNameDialog : public Dialog2004, public EditListener
 public:
 	FossilizedApp*		mApp;				// +0x114
 	EditWidget*			mNameEdit;			// +0x118
-	DialogButton*		mSaveButton;		// +0x11c (700)
-	DialogButton*		mCancelButton;		// +0x120 (701)
+	ButtonWidget*		mSaveButton;		// +0x11c (700)
+	ButtonWidget*		mCancelButton;		// +0x120 (701)
 
 	GetSaveNameDialog(FossilizedApp* theApp);	// 0x420fb0
 	virtual ~GetSaveNameDialog();				// 0x420dc0

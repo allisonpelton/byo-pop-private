@@ -115,7 +115,6 @@ public:
 	int						mMusicSlot;         // +0x4c8 which of the two music slots is playing
 	bool					mTutorial;          // +0x494 the tutorial game is on
 	int						mDifficulty;        // +0x498 1 beginner, 2 normal, 3 expert
-	int						mGamesPlayed;       // +0x3cc
 	bool					mFlag4c4;           // +0x4c4 the pirate's welcome (the heading and the spoken line at the first menu) until a game starts
 	bool					mTalking;           // +0x4f0 the pirate is talking
 	TalkWidget*				mTalkWidget;        // +0x4ec the pirate head at the left

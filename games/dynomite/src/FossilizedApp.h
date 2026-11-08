@@ -260,7 +260,6 @@ public:
 	Pic*         mPicPointer2;                            // +0x10dc
 	Pic*         mPicOverhand;                            // +0x10e0
 	Pic*         mPicTyper;                               // +0x10e4
-	Pic*         mPicUnregistered;                        // +0x10e8
 	Pic*         mPicDialog;                              // +0x121c
 	Pic*         mPicDbutton;                             // +0x1220
 	Pic*         mPicWaitbar;                             // +0x1224
@@ -290,8 +289,6 @@ public:
 
 	void			ShowMainMenu();								// 0x4186d0
 	void			StartGame();								// 0x418810
-	void			ShowBuyDialog();							// 0x418470: dialog 21 (BUY_AND_UNLOCK_DYNOMITE)
-	void			ShowRegisterDialog(const char* theLines);	// 0x4185a0: dialog 14 (REGISTRATION)
 	void			ShowHighScoreDialog(HighScores* theHighScores);	// 0x418df0: dialog 6, the name for a high score
 	void			MenuButton();								// 0x41e770: the side bar's menu button
 	void			ShowOptions();								// 0x418ba0: dialog 2
@@ -303,6 +300,9 @@ public:
 	void			ShowSaveNameDialog();						// 0x418f40: dialog 8, the saved game's name
 	void			StartTutorial();							// 0x419040
 	void			LoadSavedGame(const char* theFile);			// 0x418fd0
+	// the pointer to the window's middle plus (0x5e, 0x96), near the sling, as the main menu does when a game starts
+	// or a saved game loads (GetWindowRect and SetCursorPos; WarpMouse does nothing in a test run)
+	void			WarpToBoard();
 	void			TitleScreenDone();							// 0x419250: the play link
 	void			PumpLoading();								// port: the loading runs in the main thread
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;	// port: TestHooks.cpp

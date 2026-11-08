@@ -5,6 +5,7 @@
 #include "FadeContainer.h"
 #include "Game.h"
 #include "Graphics.h"
+#include "Host.h"
 #include "Hud.h"
 #include "ImageNode.h"
 #include "Level.h"
@@ -43,6 +44,9 @@ WordBallSystem::WordBallSystem(int theMode)
 	// huge positive double, so the program's first word always counts as quick (twice the points): the same bytes here
 	uint64_t aBits = 0x756f72676b636162ULL;
 	memcpy(&mLastMatch, &aBits, 8);
+	// fixes mod, "fairFirstWord": no word came before the first, so it counts as quick only when it is quick
+	if (engine::getHost()->fixOn("fairFirstWord"))
+		mLastMatch = 0;
 	mNoPicking = false;
 	mWaveTime = 0;
 	m1F0 = false;
@@ -449,7 +453,7 @@ void WordBallSystem::mouseMove(Point& p)
 }
 
 // 0x412310: in freematch the water (three layers of waves and the deep water under them) at the water level, then
-// the children, then the links of each chain (the first link on its first ball)
+// the children, then the links of each chain, one between each two of its balls
 void WordBallSystem::draw(Graphics* g)
 {
 	if (mMode == MODE_FREEMATCH)
@@ -505,6 +509,7 @@ void WordBallSystem::draw(Graphics* g)
 			{
 				std::list<int>::iterator aLink = aChain->mIndices.begin();
 				Ball* aPrevious = getBall(*aLink);
+				aLink++;
 				if (aLink != aChain->mIndices.end())
 				{
 					do

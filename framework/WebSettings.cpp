@@ -12,6 +12,9 @@
 // (Platform::Mixer::SetPageMute): below every game's own volume, mute and options, so they change and save none of
 // them, and they reach every game that plays through the mixer, the SexyAppFramework ones and the engine ones alike.
 //
+// byopop_site_tutorials() turns the game's own tutorial switch off, for the site's "Always skip tutorials", through the function
+// the game registers (gSiteTutorials, framework/WebSettings.h).
+//
 // byopop_site_apply() sets the game's own options that a site setting names: custom cursors, and the music and sound
 // volumes. It is the page's one call for them, repeated until the game is up (it returns 0 until the app has
 // finished SexyAppBase::Init, which has read the game's saved options, so the setting wins over what the game
@@ -30,6 +33,8 @@ using namespace Sexy;
 
 // A game with a volume engine of its own sets this (framework/WebSettings.h)
 Byopop::SiteVolumeFn Byopop::gSiteVolume = NULL;
+// A game with a tutorial switch of its own sets this (framework/WebSettings.h)
+Byopop::SiteTutorialsFn Byopop::gSiteTutorials = NULL;
 
 static bool sSiteWindowed = false;
 
@@ -82,6 +87,18 @@ EMSCRIPTEN_KEEPALIVE void byopop_audio_mute(int theMuted)
 EMSCRIPTEN_KEEPALIVE int byopop_audio_muted()
 {
 	return Platform::Mixer::Get().IsPageMuted() ? 1 : 0;
+}
+
+// Turns the game's own tutorial switch off (gSiteTutorials). Returns 1 once it is off, 0 when the game cannot take it yet (call
+// again later), -1 when the game has registered no switch.
+EMSCRIPTEN_KEEPALIVE int byopop_site_tutorials()
+{
+	if (Byopop::gSiteTutorials == NULL)
+		return -1;
+	SexyAppBase* anApp = gSexyAppBase;
+	if ((anApp != NULL) && ((!anApp->mInitialized) || (anApp->mShutdown)))
+		return 0;
+	return Byopop::gSiteTutorials() ? 1 : 0;
 }
 
 // theCursors: -1 leaves the game's option, 0 turns custom cursors off, 1 on (SexyAppBase::EnableCustomCursors).
