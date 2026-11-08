@@ -94,6 +94,7 @@ public:
 	int						mState;             // +0x310 BoardState
 	int						mState314;          // +0x314
 	int						mStartTick;         // +0x31c GetTickCount() when the level began (the animals start to fall 400 ms later)
+	int						mStartUpdate;       // port(mod fixes, steadyClock): the app's update count when the level began
 	int						mLastInputTick;     // +0x318 mUpdateCnt of the last mouse press or drag
 	int						mState31cUnused;
 	int						mState320;          // +0x320
@@ -114,7 +115,7 @@ public:
 	int						mFloodSpeed;        // +0x358 difficulty + level: the flood's pace
 	bool					mNoahWorried;       // +0x35c
 	int						mNoahFrame;         // +0x360
-	int						mNoahSprite;        // +0x364 first of Noah's images in use (IMAGE_NOAH_HAPPY_STILL1 = 62)
+	int						mNoahSprite;        // +0x364 first of Noah's images in use (IMAGE_NOAH_HAPPY_STILL1)
 	int						mFade;              // +0x368
 	int						mWaterY;            // +0x36c the water's surface (starts at 0x1a2)
 	int						mWaterTargetY;      // +0x370

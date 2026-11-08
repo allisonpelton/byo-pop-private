@@ -92,9 +92,7 @@ public:
 	Checkbox*			mFullscreenCheckbox;    // +0xd8 id 0
 	Checkbox*			mHintsCheckbox;         // +0xdc id 1
 	DialogButton*		mHelpButton;            // +0xe0 id 0
-	DialogButton*		mRegisterButton;        // +0xe4 id 1
 	DialogButton*		mScoresButton;          // +0xe8 id 2
-	DialogButton*		mWebButton;             // +0xec id 3
 	DialogButton*		mCreditsButton;         // +0xf0 id 4
 
 public:

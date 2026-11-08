@@ -126,6 +126,14 @@ the strategy game, and the saved and continued game. It requires the same state 
 changes from run to run of the same exe), and reports "baseline identical" or "BASELINE DIFFERS". The suite's own speed game
 changed its reference result with this pass, because the bot now waits for a held press.
 
+The baseline was refrozen on 2026-11-08, at the commit that moved loading into the port (`GAME_NOTES.md`, "Deviations from the
+original"): the title screen then takes 202 updates less under `-fast`, and since the game seeds `rand` from its clock when the
+first block is chosen, every game after it is another one. `build/baseline-tiptop/` is the port at that commit (its
+`FROZEN_AT.txt`), the phase-one baseline is kept as `build/baseline-tiptop-phase1/`, and `tools/check.sh`'s expected results moved
+with it. What ties the new baseline to the phase-one one is `games/tiptop/tools/perf/equiv.sh`: with the fixes mod on, the check's
+three mouse-played cases give the old build's state logs, change for change (17517, 9778 and 32287 changes after the menu), every
+update number shifted by the same 202.
+
 ## Oddities (skipped)
 
 - **The meter's start outside the timed mode.** The regular, strategy and speed level lists never set the meter's
@@ -140,8 +148,10 @@ changed its reference result with this pass, because the bot now waits for a hel
 
 ## Deviations left
 
-None in play. The port's deviations from the original, where they exist, are in the game's notes and are outside the
-game's logic. Phase two found none on the screen or in the sound either (below).
+None in play. The port's one deviation is in the game's notes (`GAME_NOTES.md`, "Deviations from the original"): the title
+screen's loading bar loads at the machine's speed, which moves the end of the title screen and nothing else. It is outside the
+game's logic, but the frames of tour 1 taken while the bar filled (`splash_loading`, update 150) no longer match the original's.
+Phase two found no other difference on the screen or in the sound (below).
 
 ## Phase two: looks identical (2026-11-04)
 
@@ -373,9 +383,10 @@ No play-breaking bug in the port. Four things came up, none a difference between
 
 ### The fixes mod
 
-`games/tiptop/mods/fixes` (`mod.json`, `src/ModFeatures.cpp`): three toggles, each a behaviour of the original that wastes time or
-leaves things to chance (`GAME_NOTES.md`, "Fix candidates and the fixes mod"). `fastLoading`: the title screen's loading bar loads 8
-entries a frame instead of 1, under a second instead of 2.3 s. `seededBlocks`: the second `srand` from the clock when the first block
+`games/tiptop/mods/fixes` (`mod.json`, `src/ModFeatures.cpp`): two toggles, each a behaviour of the original that leaves things to
+chance (`GAME_NOTES.md`, "Fix candidates and the fixes mod"). It had a third, `fastLoading` (the loading bar loaded 8 entries a frame
+instead of 1); the user ruled on 2026-11-07 that loading is fast in the port itself, so it moved there (`GAME_NOTES.md`,
+"Deviations from the original"), and the runs below were made before that move. `seededBlocks`: the second `srand` from the clock when the first block
 is chosen is left out, so a seed decides the blocks. `steadyClock`: the game's clocks run on the updates, so the same seed and moves
 play the same game on every run, however fast the machine. The site installs the mod with the game and has it on by default (the page's
 `modsIntro`; TipTop is off `BYOPOP_WEB_NO_MODS` in `cmake/ByopopWeb.cmake`); natively the port loads mods from `-modsdir` or

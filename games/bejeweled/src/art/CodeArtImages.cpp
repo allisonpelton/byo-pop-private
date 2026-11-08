@@ -375,19 +375,6 @@ void DrawTimerBar(Canvas& c)
 	Capsule(c, 0, 0, 342, 25, Rgba(0.84f, 0.84f, 0.84f), Rgba(0.3f, 0.3f, 0.3f, 0.85f));
 }
 
-void DrawTrialCircle(Canvas& c)
-{
-	const Palette& p = P();
-	Ring(c, 52.5, 53.5, 40, 50, p);
-	c.Fill(Path().Ellipse(52.5, 53.5, 40.5, 40.5), Radial(Vec2(45, 44), 52, 52, {{0, p.mPanel}, {1, p.mPanelDark}}));
-	LabelStyle aLabel;
-	aLabel.mText = Caps(14, 1.8);
-	aLabel.mTop = Lighter(p.mGlow, 0.4);
-	aLabel.mBottom = p.mGlow;
-	aLabel.mOutline = 1.2;
-	Label(c, Text("CODEART_TRIAL", "TRIAL"), 52.5, 60.5, aLabel);
-}
-
 void DrawArrowCursor(Canvas& c)
 {
 	// the tip is the image's centre: the game draws custom cursors centred on the mouse
@@ -506,11 +493,6 @@ void DrawBoxButton(Canvas& c)
 		return Rgba(0, 0, 0, 0);
 	});
 	c.Fill(EdgeOf(aFace, 1.0), Darker(p.mPanelDark, 0.4).WithAlpha(0.8f));
-}
-
-void DrawWaitBar(Canvas& c)
-{
-	Capsule(c, 0, 0, 32, 16, P().mBar, Darker(P().mBar, 0.6));
 }
 
 void DrawHintGlow(Canvas& c)
@@ -757,7 +739,6 @@ void DrawQuitDown(Canvas& c) { DrawSideButtonImage(c, kQuit, BUTTON_DOWN); }
 const ImageSpec kImages[] = {
 	{"titlescreen6", 640, 480, 4, DrawTitleScreen},
 	{"titlegreenbar2", 340, 24, 4, DrawLoadingBar},
-	{"trialcircle2", 105, 107, 4, DrawTrialCircle},
 	{"cursor1", 54, 54, 4, DrawArrowCursor},
 	{"pointer2", 58, 58, 4, DrawHandCursor},
 	{"overhand", 54, 54, 4, DrawGrabCursor},
@@ -766,7 +747,6 @@ const ImageSpec kImages[] = {
 	{"target1", 312, 52, 4, DrawTarget},
 	{"dialogbox2", 96, 96, 4, DrawDialogBox},
 	{"boxbutton2", 96, 32, 4, DrawBoxButton},
-	{"waitbar", 32, 16, 4, DrawWaitBar},
 	{"over2-newgame-pushed1", 156, 41, 4, DrawNewGameDown},
 	{"over3-normal-pushed1", 78, 31, 4, DrawNormalDown},
 	{"over7-normal-selected1", 78, 31, 4, DrawNormalLit},

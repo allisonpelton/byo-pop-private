@@ -98,16 +98,89 @@ and the frozen baseline) gives the same results as before them.
 | `unlock all` | ERROR: the game has nothing locked |
 | `move` | `MOVE {"kind","input":[{"move":[x,y]},{"click":[x,y]}],"updates"}` (the steps are docs/TEST_COMMANDS.md's ordered list; the high score's name is `{"key":"B"},{"key":"o"},{"key":"t"}` before its click): what the bot does next on this screen, in game coordinates. `kind` is start (the title's button), play, mode, dialog (the tips dialog's default button), drop (a column; `column` is the number), continue (the level summary's button), unpause (the pause image is up: a click on it; while the window is inactive it is wait), name (types "Bot" and clicks OK), or wait (no input, `updates` to wait: the game is busy). It answers for the whole game, from the title to the game over screen, and is `MOVE null` only once the game is over. The column is `-autoplay`'s choice (`BotChooseColumn`: the biggest group the block joins, else one of the emptiest columns), with dice that are a function of the update and `botseed`, so asking twice gives the same move. |
 
+## Deviations from the original
+
+The port is the original except for what is listed here, each with its reason.
+
+**Loading at the machine's speed** (`LoadBarProc`, `src/App.cpp`; the user, 2026-11-07: "Let's make faster loading a core part of
+the recomps instead of a mod"). The original's title screen loads one of its 229 sounds, music tracks and texts a frame, and only
+when more than the bar's step (1 ms) has passed since the last, so its bar fills at a crawl however fast the entries load. The port
+loads, each frame the bar is drawn, as many entries as fit 10 ms of the game clock (`kLoadSliceMs`), in the original's order, so the
+bar still draws between the slices and the window stays alive; like the original it waits while a dialog is over the bar; on a clock
+that stands still (under `-fast`, or while the game is paused) it loads them all at once. The bar and the "click here to play"
+button come sooner, and nothing else changes: loading draws no random number. The numbers are under "Performance" below.
+One consequence for the tests: the game seeds `rand` from the game clock when the first block is chosen (`seededBlocks` is the
+mod's fix for that), so a game after a title screen of another length is another game. With the blocks following the seed (the
+fixes mod on), the check's three mouse-played cases give the old build's state logs, update for update, shifted by the 202 updates
+the title takes less under `-fast` (`tools/perf/equiv.sh`, which compares the pair with `tools/perf/cmp_offset.py`). Without the
+mod the three cases play other games than before, so `tools/check.sh`'s expected results (`TT_REGULAR`, `TT_STRATEGY`, `TT_SPEED`)
+and the frozen baseline moved with it: `build/baseline-tiptop/` is the port at the commit of this change
+(`FROZEN_AT.txt`), the phase-one baseline kept beside it as `build/baseline-tiptop-phase1/`.
+
+## Performance (measured 2026-11-08, `tools/perf/`)
+
+The original and the port back to back on one machine, in real time, invisibly and silently (the port under rundesk, the original
+through origrun, which puts it under rundesk), by `tools/perf/perf.py` (`port` and `orig`; `gate.sh` waits for a quiet slot;
+`patches.sh` makes the original's patch list). The machine was not quiet: 4 to 8 other game processes of other sessions ran during
+each run (the run's own list is in its `result.json`), so the numbers are for comparing the two sides, and the performance pass
+re-measures on a quiet machine. The original's copy is patched only to play as the registered game, to pin its seed and to leave the
+MIDI music out (its music player runs, its device calls are skipped); the port plays its music through SDL's silent driver.
+
+**The one thing to know about the original's numbers:** it paces its frames by waiting for the screen's vertical blank, and the
+hidden desktop the tests run it on has none, so the unpatched original spins: its bar fills at about 260 frames a second and it
+uses three quarters of a core. Both are shown. The second original row has its main loop sleep 16 ms a pass (`perf.py orig
+--paced 16`), as a 60 Hz screen's blank would, which is what a player sees: 229 frames at about 55 a second.
+
+*Loading*, seconds from the game process's creation to the load bar being full (the bar's loaded count equals its total, read from the
+process's memory every 2 ms; from then on the title takes a click), and the bar's own fill, from its creation to full. Two runs each:
+
+| | Launch to bar full | The bar's fill |
+|---|---|---|
+| Original, unpaced (spinning) | 1.51, 1.80 | 0.89, 0.86 |
+| Original, a pass every 16 ms (60 Hz) | 4.82, 4.66 | 4.31, 4.20 |
+| Port before this change (one entry a frame) | 4.32, 4.16 | 3.38, 3.77 |
+| Port now | 0.63, 0.93 (0.83 in a third run) | 0.20, 0.25 |
+
+The port's fill now takes about 20 frames of 10 ms of loading; what is left of its 0.6 to 0.9 s is the process, the audio start and
+the framework's synchronous resource load before the splash (the log's "Resource Loading Time", 0.4 to 0.8 s), none of it the bar.
+
+*Memory and processor time* over the same scripted minute, the same real clicks on both sides: the title's button, Play, Strategy,
+the tips' button, then a click on a column every 2.4 s, 25 of them (blind: the strategy mode waits for the player, a regular game
+piles up and ends about 33 s after its first click however slowly it is clicked). The window starts when the board appears and
+ends 60 s later or at the game over, which came about 30 to 38 s in, in four of the seven runs that reached the board; processor time is user plus kernel, per
+second of the window.
+
+| | Window | Peak working set | Peak private bytes | Processor time |
+|---|---|---|---|---|
+| Original, unpaced (spinning) | 60 s, 60 s | 61.4, 61.3 MB | 46.8, 46.7 MB | 44.8 s, 45.3 s (0.75 of a core) |
+| Original, a pass every 16 ms | 31.6 s | 60.8 MB | 45.9 MB | 1.6 s (0.05 of a core) |
+| Port before this change | 38.3 s, 29.9 s | 82.2, 82.4 MB | 82.3, 83.0 MB | 14.5 s, 8.8 s (0.38, 0.29) |
+| Port now | 30.9 s, 60 s | 82.0, 90.4 MB | 81.9, 84.1 MB | 10.1 s, 17.3 s (0.33, 0.29) |
+
+One of the paced original's two runs (`orig16_1`) clicked the title before its bar was full, so it never reached the board: its
+load numbers stand, it has no window. Read it plainly: the loading change takes the time from launch to the first screen that takes
+input from about 4.2 to 4.7 s (what the original needs at 60 Hz, and the port needed) to under a second. The port holds about
+20 MB more than the original and uses about six times the original's processor time at 60 Hz (a third of a core against a
+twentieth), which the loading change does not touch; both are for the performance pass (the framework's frame loop and renderer,
+SDL's audio buffers and the soundfont the music player holds are the places to look).
+
+*The web build*, in the Browser pane (`tools/web/loadtime.js`): the pane was hidden (this session is open in no window), so the
+page drew about every 0.3 to 0.6 s and ran its timers slowly, and a time in milliseconds would measure the pane. Not timed. What
+does not depend on the machine is the game's own update count when the title takes its first click (`state`'s `updates`): 64 for the
+build before this change with the site's fixes mod on (its `fastLoading` loaded 8 entries a frame), 37 now, the page's start and
+the driver's latency included. The old build without the mod (one entry a frame) was not run on the web: the player page's
+"Play without mods" switch did not take there.
+
 ## Fix candidates and the fixes mod (`mods/fixes`, `src/ModFeatures.cpp`)
 
 The port is the original; these are what the original wastes or leaves to chance, kept in the port and mended by the fixes mod
 (docs/MOD_ROADMAP.md, "The fixes mod"), one toggle each, all on by default on the site. The port loads mods (`-modsdir=<dir>`, or
 `mods-tiptop` beside the exe; `-nomods`; on the web `/ttpersist/mods`), and without the mod, or with it off, nothing differs from
-the original: `tools/check.sh tiptop` and the frozen baseline are unchanged.
+the original: `tools/check.sh tiptop` and the frozen baseline are unchanged. Slow loading is not among the fixes: it is made
+fast in the port itself (the user, 2026-11-07), see "Deviations from the original" above.
 
 | Toggle | The original | What the fix changes |
 |---|---|---|
-| `fastLoading` | The title screen's loading bar loads one of the 229 entries a frame (`LoadBarProc`, 0x4233c2: an entry when more than the step, 1 ms, has passed since the last), so it fills at a steady crawl however fast they load: 2.3 s in the port, about 3.8 s in the original on a 60 Hz screen. | Eight entries a frame: under a second. Nothing but the wait changes (loading draws no random number). |
 | `seededBlocks` | The first time the field chooses a block's kind (`Field::RandomKind`, 0x40428c) it calls `srand` with the game clock again, discarding the seed of the start. A seed given at the start (`-seed`, the site's `?seed=`) therefore changes nothing, and the blocks depend on the millisecond that first block was chosen. | The second seeding is left out, so the seed of the start decides the blocks of every game. |
 | `steadyClock` | The game's two clocks are the machine's (`GetTickCount`), so the frame times, and with them the blocks' positions, the spawn delays and the draw of `rand` after each, vary from run to run: the same seed and the same moves do not play the same game twice. | The clocks run on the updates, 10 ms each (what `-fast` does), so the same seed and the same moves play the same game on every run, however fast the machine. A pause or a lost focus still stops the game clock, as in the original. |
 

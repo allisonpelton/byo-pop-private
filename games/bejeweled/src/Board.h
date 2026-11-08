@@ -424,6 +424,9 @@ public:
 	static bool		IsUndoKey(SexyChar theChar);                    // z, u, Backspace
 	bool			UndoKeysActive() const;                         // the undo keys undo (KeyChar) rather than pause
 	bool			RequestUndo();                                  // the keys and the red orb: UNDO recorded, then Undo; refused: bad2
+	// The fixes mod (features.fixes; docs/MOD_ROADMAP.md "The fixes mod", GAME_NOTES.md "Fix candidates"; BoardVariant.cpp)
+	bool			DropStaleSelection();                           // fixes.selection: a selected gem no longer on the board is deselected (true: it was)
+	void			ResumeLevelLook();                              // fixes.resumeLook: a loaded game's own level background and tint
 	void			Undo();                                         // the newest snapshot back (playback applies UNDO with it)
 	// The v2 save of a variant board (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2; BoardSave.cpp)
 	void			GetVariantSave(Replay::VariantSave* theSave);  // the header and chunk values of the board as it is
