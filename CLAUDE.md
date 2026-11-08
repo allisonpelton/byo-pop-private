@@ -202,7 +202,8 @@ Every call re-reads the whole context, so what costs is context times calls, and
   hard to test, then the identical-play pass. Registration code (trial, nag, unlock, register and buy paths) comes out
   in this phase, as part of finishing each game, before any further decomp begins (the user, 2026-11-07: "Move up the
   removal of all registration-related code to be part of the current phase before beginning other decomps"); a port
-  not yet translated leaves it out as it goes. A performance pass (the user, 2026-11-03), then a readability pass
+  not yet translated leaves it out as it goes. So does every button that leads out of a game, "More Games" first, its
+  neighbours widened or moved to close the gap ("Yes, now too", 2026-11-07). A performance pass (the user, 2026-11-03), then a readability pass
   (`docs/CODE_STANDARDS.md`) and taking out the other code the ports do not need come once every game is done
   (`docs/COORDINATION.md`).
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod

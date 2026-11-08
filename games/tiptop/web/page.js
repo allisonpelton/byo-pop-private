@@ -14,6 +14,7 @@
     importHtml: 'Choose the game\'s install folder (for the retail version: <span class="mono">Program Files/PopCap ' +
       'Games/TipTop Deluxe</span>) or a .zip of it. Only <span class="mono">TipTop.dat</span> and ' +
       '<span class="mono">TipTop.exe</span> (the game\'s texts are read from it; it is never run) are copied.',
-    modsIntro: "TipTop keeps its pictures, sounds and music inside TipTop.dat, and this port does not load mods yet.",
+    modsIntro: "TipTop keeps its pictures, sounds and music inside TipTop.dat, so a mod cannot replace them yet; its mods are a mod.json " +
+      "of settings. The fixes mod is on by default; turn it off to play the original as it was.",
     seeds: false
   };
