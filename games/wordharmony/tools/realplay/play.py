@@ -123,13 +123,13 @@ def main():
         for st in mv.get('input', []):
             if 'move' in st:
                 move(st['move']['x'], st['move']['y'])
-            elif 'down' in st:
-                move(st['down']['x'], st['down']['y'])
-                u32.PostMessageW(hwnd, WM_LBUTTONDOWN, 1, point(st['down']['x'], st['down']['y']))
+            elif 'press' in st:
+                move(st['press']['x'], st['press']['y'])
+                u32.PostMessageW(hwnd, WM_LBUTTONDOWN, 1, point(st['press']['x'], st['press']['y']))
                 held[0] = 1
-            elif 'up' in st:
-                move(st['up']['x'], st['up']['y'])
-                u32.PostMessageW(hwnd, WM_LBUTTONUP, 0, point(st['up']['x'], st['up']['y']))
+            elif 'release' in st:
+                move(st['release']['x'], st['release']['y'])
+                u32.PostMessageW(hwnd, WM_LBUTTONUP, 0, point(st['release']['x'], st['release']['y']))
                 held[0] = 0
             elif 'click' in st:
                 c = st['click']

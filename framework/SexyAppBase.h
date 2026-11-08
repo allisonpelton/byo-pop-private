@@ -190,6 +190,7 @@ public:
 	bool mTabletPC;
 	DDInterface* mDDInterface;
 	bool mAlphaDisabled;
+	bool mWant3D;  // port: the 3D choice Set3DAcclerated recorded (mUserChanged3DSetting), applied again whenever the display is made
 	MusicInterface* mMusicInterface;
 	bool mReadFromRegistry;
 	std::string mRegisterLink;

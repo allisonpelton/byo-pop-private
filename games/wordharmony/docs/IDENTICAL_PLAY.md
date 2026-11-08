@@ -230,8 +230,8 @@ steps.
 Every screen, button, drag, right-button submit, key and dialog that these games reached took its input as it should.
 What no game finished is the bot's, not the port's: on RELAX's second level the letters lie in a maze of blocks the bot
 cannot route through, and on THINK's first level it could not use a chain that had fallen over (its two balls read
-backwards), so those runs stop at the level and leave by Save/Quit; a whole RELAX or THINK game by real input waits for
-a better bot. The same runs found three faults of the drivers, all fixed: a menu click taken during the menu's fade-in
+backwards), so those runs stop at the level and leave by Save/Quit; the whole RELAX and THINK games came in the
+finishing pass, below, once the bot could find its way. The same runs found three faults of the drivers, all fixed: a menu click taken during the menu's fade-in
 was lost (the web driver now clicks again while the menu stays), the native keys lacked their scan codes, and a ball
 stayed on the mouse when the page lost the focus during a drag (the framework forgets a button pressed before the focus
 went); the bot now lets go of such a ball with a click, as a player's
@@ -250,8 +250,52 @@ mods the port still plays as the frozen baseline (`tools/check.sh wordharmony`).
 
 ### Fix candidates
 
-None besides the mod's two: the original's other oddities below are the harness's or are reproduced as the original has
-them.
+None besides the mod's two. What was checked: every difference and oddity the two phases found (the virtual clock's crawl
+and the hint thread are the harness's, the uninitialized last match is reproduced as the original has it, the frame clock
+and the first word's bonus are the mod's two toggles); the waits a player meets (the splash and the loading are the port's
+own, at the machine's speed; the screens' fades, the level end's bonus count and the water's rise are animations that the
+game's own timing runs, as in the original); and the whole games of the finishing pass, which met no soft lock, stuck
+control or lost save. A RELAX level whose letters lie walled in until a word breaks the stones around them is the level's
+design, not a fault.
+
+## The finishing pass (2026-11-08)
+
+### Whole RELAX and THINK games by real input
+
+The bot (`src/Bot.cpp`, `README.md`, "Test commands") learned what these games needed. It finds its way through the field
+on a grid of 4-pixel cells, those a ball fits in apart from the blocks and the letters fixed in stone, with the shortest
+way round other balls, so a ball is carried through RELAX's mazes. It uses the letters fixed in stone where they lie,
+makes a RELAX word down a column as well as along a row, and fills a place over nothing last, holding the ball there
+until the word counts. When no word is left in THINK and a chain lies fallen over, it lifts the chain's end over its
+other end so that it reads forwards again. THINK never ends by itself (the next level comes only once a level's letters
+are used), so with nothing left to make the bot leaves by Save/Quit and Don't Save, which ends the game with its game
+over panel. The drivers reach a level with the test commands `goto` and `level` (`docs/TEST_COMMANDS.md`), and every
+move after that is real input: natively through the shared loop `tools/playbymove` (`-realinput`, `-hold`, `-fast`),
+in the browser through `tools/web/onegame.js` (`?level=`) in the player-only page with `?silent=1`, the pane hidden and its
+animation frames shimmed.
+
+| Game | Natively (playbymove) | In the browser (onegame.js) |
+| --- | --- | --- |
+| RELAX, level 100 (the last) | 8 moves: JAG, MEW, SMART and ZEN through a maze of blocks and stones, the level's end, the game over at 1,700 | 9 moves to the game over at 1,400, the name entry, the score table, the menu |
+| RELAX from level 1 | 40 moves: levels 1 to 3 cleared (the maze of level 2 and the HORIZONTAL and VERTICAL crossing of level 3), level 4 to 9,500; the bot stops there, where the letters lie walled in by stones | |
+| THINK from level 1 | 42 moves: levels 1 and 2 cleared (one chain flipped), level 3 to 4,400, Save/Quit, Don't Save, the game over | 35 moves: level 1 cleared, level 2 to 2,000, Save/Quit, Don't Save, the game over, the name entry, the score table, the menu; one focus loss on the way, paused and taken up again with P |
+
+The browser's games are other games than the native ones (the page has no seed), and the native loop stops at the game
+over (`"over": true`); the name entry and score table by real input natively are phase two's TSUNAMI run above. The
+runs found three faults of the bot's, all fixed: the bot counted a drag by the game's frames while a move's waits count
+the framework's updates, so in real time (a frame every three or four updates) a lift that never took was asked for
+again and again on THINK's second level; it took letters fixed in stone for letters it could carry; and the shared
+loop's step names are `press` and `release`, which the bot's `move` now writes (it wrote `down` and `up`; `play.py` and
+`onegame.js` read the new names).
+
+### Registration and outbound buttons
+
+None left: the port has no registration, trial or buy code, and `openURL` (the engine's link) has no caller since the
+game link went with its button.
+
+### Performance
+
+`README.md`, "Performance": the numbers, how they were taken and how many game processes ran.
 
 ## Deviations left
 

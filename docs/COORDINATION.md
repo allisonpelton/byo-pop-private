@@ -205,8 +205,11 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   port, with the strongest proof that a change leaves play alone (its oracle against the original, beside its frozen
   baseline), and its Mac build's symbols for names. Its session writes `docs/CODE_STANDARDS.md` while applying it to
   the whole port, changes a rule wherever it fails in practice, and builds a checker in `tools/` that finds unnamed
-  identifiers, so every later pass proves "no unknowns" by a run instead of by eye. The user approves the standards;
-  then each finished game takes its pass in its own session, a readable port changing nothing it does (its frozen
+  identifiers, so every later pass proves "no unknowns" by a run instead of by eye. The user found the first draft
+  good to start (2026-11-08) and wants it tried on a more complex game before every game takes it: Bejeweled Twist,
+  the largest port (about twice Bejeweled's code, both 2D and 3D, and no Mac build, so its names come from use), takes
+  its pass second, once its current fixes are merged, and the standards change wherever they fail there. The user
+  approves them after that; then each finished game takes its pass in its own session, a readable port changing nothing it does (its frozen
   baseline, and the oracle for Bejeweled), and keeping each function's address so the coverage check can still pair
   it with the export. The coverage check and the performance pass stay after every game is done, as below; each
   finished game already records its performance numbers.
