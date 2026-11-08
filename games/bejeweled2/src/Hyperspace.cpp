@@ -31,12 +31,12 @@ static inline float Sinf(float theAngle)
 
 // The original sets the texture addressing of Direct3D's stage 0 round the tunnel's triangles (SetTextureStageState with
 // 0xd and 0xe: u and v; 1 is wrap, 3 clamp): wrap, so that the picture repeats where a point's coordinate goes past 1,
-// and clamp for a v below 0. The framework's triangle drawing has no such control (the picture is clamped).
-// TODO(coordinator): DDInterface::DrawTrianglesTex needs an address mode for u and v.
-static void SetTextureAddress(int theU, int theV)
+// and clamp for a v below 0. The framework's display takes the same two settings (DDInterface::SetTextureAddress); it cuts
+// the triangles at whole-number u and v and draws the pieces clamped (framework/TriangleWrap.h).
+static void SetTextureAddress(WinDMApp* theApp, int theU, int theV)
 {
-	(void)theU;
-	(void)theV;
+	theApp->mDDInterface->SetTextureAddress(theU == 1 ? TEXTURE_ADDRESS_WRAP : TEXTURE_ADDRESS_CLAMP,
+		theV == 1 ? TEXTURE_ADDRESS_WRAP : TEXTURE_ADDRESS_CLAMP);
 }
 
 // 0x5c72d1
@@ -503,7 +503,7 @@ void Hyperspace::Draw3dPortal(Graphics* g)
 	// (the original makes Direct3D ready to draw here: 0x448670; the framework does that itself)
 	if (mReady)
 	{
-		SetTextureAddress(3, 3);
+		SetTextureAddress(mApp, 3, 3);
 		int aAlpha = FTol((double)mProgress * 300.0);
 		if (aAlpha > 255)
 			aAlpha = 255;
@@ -617,7 +617,7 @@ void Hyperspace::Draw3dPortal(Graphics* g)
 						aVerts[2].v = (float)((double)aVerts[2].v + 1.0);
 						aVerts[3].v = (float)(1.0 + (double)aVerts[3].v);
 					}
-					SetTextureAddress(1, 0.0f <= aVerts[0].v ? 1 : 3);
+					SetTextureAddress(mApp, 1, 0.0f <= aVerts[0].v ? 1 : 3);
 					Image* aTexture = IMAGE_HYPERSPACE_INITIAL;
 					if (mReady)
 						aTexture = aLayer == 0 ? IMAGE_HYPERSPACE : IMAGE_WARP_LINES;
@@ -631,7 +631,7 @@ void Hyperspace::Draw3dPortal(Graphics* g)
 			}
 		}
 	}
-	SetTextureAddress(3, 3);
+	SetTextureAddress(mApp, 3, 3);
 	if (0.0f < mFade)
 	{
 		int aFadeAlpha = FTol((double)mFade * 255.0);

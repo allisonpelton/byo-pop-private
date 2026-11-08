@@ -55,10 +55,12 @@ Each of these has no visible effect on play unless the entry says so.
   `mPuzzleBoard`, uninitialised in the original's constructor, are zeroed. The setup that the original runs on its worker
   thread runs in line (`mSettingUp` is never seen set), and the `Sleep` calls and the wait for the worker in Draw and in the
   destructor are left out.
-- **Hyperspace's 3D tunnel needs texture addressing.** The original sets Direct3D's WRAP (u and v past 1) and CLAMP (v below
-  0) mode for the tunnel's triangles; the framework's `DDInterface::DrawTrianglesTex` has no such control, so the picture is
-  clamped. A spec for the framework follows once the port runs (`SetTextureAddress` in Hyperspace.cpp marks the place).
-  This is a visible difference until then.
+- **Hyperspace's 3D tunnel wraps its texture by cutting triangles.** The original sets Direct3D's WRAP (u and v past 1) and CLAMP
+  (v below 0) mode for the tunnel's triangles. The framework's display takes the same two settings now
+  (`DDInterface::SetTextureAddress`, `SetTextureAddress` in Hyperspace.cpp), and with a wrap set draws each triangle as the
+  pieces that its whole-number u and v cut it into, each moved into 0..1 (`framework/TriangleWrap.cpp`). A pixel at the edge
+  of a piece filters with the picture's own edge, where Direct3D's wrap filters with the opposite edge: at most one pixel of
+  a seam, not yet compared with the original's.
 
 ## Test commands
 

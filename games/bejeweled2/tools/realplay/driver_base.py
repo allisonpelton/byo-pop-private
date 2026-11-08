@@ -9,7 +9,7 @@ import time
 ANSWER = re.compile(r'^(STATE |MOVE |OK |ERROR )')
 
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 
 class Driver:
