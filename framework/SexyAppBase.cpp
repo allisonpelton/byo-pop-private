@@ -2193,6 +2193,10 @@ void SexyAppBase::MakeWindow()
 
 		mIsPhysWindowed = mIsWindowed;
 		SDL_StartTextInput();
+#ifdef __EMSCRIPTEN__
+		// the web page's stage takes the game's own size (web/shell.html, onGameScreen: its shape and the site's pixel-perfect)
+		EM_ASM({ if (typeof Module['onGameScreen'] === 'function') Module['onGameScreen']($0, $1); }, mWidth, mHeight);
+#endif
 	}
 
 	if (mDDInterface == NULL)

@@ -365,8 +365,12 @@ var ByopopSaves = (function () {
   function init(root, games) {
     var ids = games.map(function (g) { return g.id; }), byId = {};
     games.forEach(function (g) { byId[g.id] = g; });
-    var plan = null;      // a zip read for a restore, waiting for the player's yes
+    // A restore goes idle -> reading the zip (busy) -> asking (plan, the zip read, waiting for the player's yes, with the question
+    // shown) -> restoring (busy) -> idle; No, Esc or a new pick goes back to idle (endPlan). busy also holds while a backup is
+    // made, and the import (web/saveimport.js) sets it through setBusy, so only one of them runs at a time.
+    var plan = null;
     var busy = false;
+    function endPlan() { plan = null; confirmBox.hidden = true; }
     var errorControls = [];   // the controls that an error is read with (the import's, web/saveimport.js, join them)
     root.textContent = "";
     root.appendChild(make("p", "pl-about", ByopopStrings.t("saves.about")));
@@ -523,7 +527,7 @@ var ByopopSaves = (function () {
     function readBackup(file) {
       if (busy) return;
       setBusy(true);
-      plan = null; confirmBox.hidden = true; report.textContent = "";
+      endPlan(); report.textContent = "";
       say(ByopopStrings.t("saves.restore.reading", {name: file.name}));
       file.arrayBuffer().then(function (buf) {
         var entries = readZip(new Uint8Array(buf)), sorted = classify(entries, ids);
@@ -630,13 +634,13 @@ var ByopopSaves = (function () {
       var no = make("button", "", ByopopStrings.t("saves.confirm.no"));
       no.type = "button";
       yes.addEventListener("click", function () { doRestore(); });
-      no.addEventListener("click", function () { plan = null; confirmBox.hidden = true; say(ByopopStrings.t("saves.restore.nothing")); backupButton.focus(); });
+      no.addEventListener("click", function () { endPlan(); say(ByopopStrings.t("saves.restore.nothing")); backupButton.focus(); });
       act.appendChild(yes); act.appendChild(no);
       confirmBox.appendChild(act);
       yes.focus();
     }
     confirmBox.addEventListener("keydown", function (ev) {
-      if (ev.key === "Escape" && !busy) { plan = null; confirmBox.hidden = true; say(ByopopStrings.t("saves.restore.nothing")); backupButton.focus(); }
+      if (ev.key === "Escape" && !busy) { endPlan(); say(ByopopStrings.t("saves.restore.nothing")); backupButton.focus(); }
     });
     function doRestore() {
       if (busy || !plan) return;
@@ -667,7 +671,7 @@ var ByopopSaves = (function () {
           });
         });
       }).then(function (wrote) {
-        plan = null; confirmBox.hidden = true;
+        endPlan();
         report.textContent = "";
         report.appendChild(make("h3", "", ByopopStrings.t("saves.restored.title")));
         var ul = make("ul", "sv-list");

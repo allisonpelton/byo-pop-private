@@ -42,6 +42,8 @@ var ByopopSettings = (function () {
     quitHome: { values: SWITCH, def: "off" },       // on: a game that quits goes back to the listing page, not its "Thanks for playing"
     autoStart: { values: SWITCH, def: "on" },       // on: a game starts when its page opens, if the browser allows sound
     showChat: { values: SWITCH, def: "on" },        // off: the chat beside the game is not drawn (web/chat.js)
+    chatPlace: { values: ["edge", "game"], def: "edge" },  // game: the chat beside the game, the two centred; edge: at the page's right edge
+    pixelPerfect: { values: SWITCH, def: "off" },   // on: the game takes its own size, one game pixel a whole number of device pixels
     profile: { values: ["game", "fill", "create"], def: "game" }  // fill: names start with the site's player; create: and the player is made and chosen
   };
 
@@ -206,6 +208,8 @@ var ByopopSettings = (function () {
       hint: T("settings.cursors.hint") },
     { name: "accel3d", label: T("settings.accel3d.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.accel3d.on")], ["off", T("settings.accel3d.off")]], start: true,
       games: ACCEL3D_GAMES, hint: T("settings.accel3d.hint"), help: T("settings.accel3d.help") },
+    { name: "pixelPerfect", label: T("settings.pixelperfect.label"),
+      hint: T("settings.pixelperfect.hint") },
     { group: T("settings.group.page") },
     { name: "autoStart", label: T("settings.autostart.label"),
       hint: T("settings.autostart.hint") },
@@ -218,7 +222,9 @@ var ByopopSettings = (function () {
     { name: "quitHome", label: T("settings.quithome.label"),
       hint: T("settings.quithome.hint") },
     { name: "showChat", label: T("settings.showchat.label"),
-      hint: T("settings.showchat.hint") }
+      hint: T("settings.showchat.hint") },
+    { name: "chatPlace", label: T("settings.chatplace.label"), options: [["edge", T("settings.chatplace.edge")], ["game", T("settings.chatplace.game")]],
+      hint: T("settings.chatplace.hint") }
   ];
   var STYLE =
     ".bps { display: grid; gap: 8px; }\n" +
@@ -294,34 +300,37 @@ var ByopopSettings = (function () {
   // explanation is also the description of the control it belongs to. It shows while the pointer is over the button or the
   // text, while the button has the focus, and after a click (a second click closes it, and so does Esc or a click elsewhere,
   // which a touch screen needs). A pointer that moves from the button to the text has a moment to get there.
+  // What a click or Esc chose is one state, mode: "auto" (shown while the pointer is over it or the button has the focus),
+  // "pinned" (a click: shown until a second click, Esc or a click elsewhere) or "dismissed" (closed by that second click or Esc:
+  // hidden until the pointer comes back or the focus does). over and focused are where the pointer and the focus are.
   function wireHelp(button, pop, around) {
-    var pinned = false, over = false, focused = false, dismissed = false, timer = 0;
+    var mode = "auto", over = false, focused = false, timer = 0;
     function sync() {
-      var shown = !dismissed && (pinned || over || focused);
+      var shown = mode === "pinned" || (mode === "auto" && (over || focused));
       pop.hidden = !shown;
       button.setAttribute("aria-expanded", shown ? "true" : "false");
     }
     function touch(ev) { return !!ev && (ev.pointerType === "touch"); }
-    function enter(ev) { if (touch(ev)) return; clearTimeout(timer); over = true; dismissed = false; sync(); }
+    function enter(ev) { if (touch(ev)) return; clearTimeout(timer); over = true; if (mode === "dismissed") mode = "auto"; sync(); }
     function leave(ev) { if (touch(ev)) return; clearTimeout(timer); timer = setTimeout(function () { over = false; sync(); }, 250); }
     var enterName = window.PointerEvent ? "pointerenter" : "mouseenter", leaveName = window.PointerEvent ? "pointerleave" : "mouseleave";
     [button, pop].forEach(function (e) { e.addEventListener(enterName, enter); e.addEventListener(leaveName, leave); });
-    button.addEventListener("focus", function () { focused = true; dismissed = false; sync(); });
+    button.addEventListener("focus", function () { focused = true; if (mode === "dismissed") mode = "auto"; sync(); });
     button.addEventListener("blur", function () { focused = false; sync(); });
     button.addEventListener("click", function () {
-      if (pinned) { pinned = false; dismissed = true; } else { pinned = true; dismissed = false; }
+      mode = mode === "pinned" ? "dismissed" : "pinned";
       sync();
     });
     // Esc closes it from the button or from inside the text, and says it took the key (a panel around it stays open)
     around.addEventListener("keydown", function (ev) {
       if (ev.key !== "Escape" || pop.hidden) return;
-      pinned = false; dismissed = true; sync();
+      mode = "dismissed"; sync();
       ev.preventDefault();
       if (pop.contains(document.activeElement)) button.focus();
     });
     document.addEventListener("click", function (ev) {
-      if (!pinned || button.contains(ev.target) || pop.contains(ev.target)) return;
-      pinned = false; sync();
+      if (mode !== "pinned" || button.contains(ev.target) || pop.contains(ev.target)) return;
+      mode = "auto"; sync();
     });
     sync();
   }

@@ -136,8 +136,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   original (`docs/MOD_ROADMAP.md`, "Kinds of mod"). The site will serve each game with its fixes mod on, one toggle a
   fix, and a game is done only once that mod is made (the user, 2026-11-04): a bug of the original, or a wait that
   only costs the player time, is kept in the port and fixed in the mod (listed until then under "Fix candidates" in
-  the game's notes), and with the mod on a game plays the same on every run. Memory leaks are still fixed in the port
-  itself (`docs/MOD_ROADMAP.md`, "The fixes mod").
+  the game's notes), and with the mod on a game plays the same on every run. Memory leaks are still fixed in the
+  port itself, and so is a bug of the original that breaks play: controls that stop working, a soft lock, a crash, a
+  lost save (the user, 2026-11-07, of Seven Seas' dead squares: "That sort of bug shouldn't be part of a fix mod"),
+  listed in the game's notes with its deviations (`docs/MOD_ROADMAP.md`, "The fixes mod").
 - **Done means identical (the user, 2026-10-27):** "A game is done when it plays identically to the original in the
   browser and natively." No port is hurried to get through the list. A port's own suite matching its earlier output
   proves nothing about the original, and the hidden, silent pane never changes focus or plays music: before its final

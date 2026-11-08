@@ -567,12 +567,29 @@ function contrast(a, b) {
     // the source of the file: no way to write markup, no way to reach the network
     const src = fs.readFileSync(path.join(__dirname, "..", "web", "chat.js"), "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "").replace(/\s\/\/\s.*$/, "")).join("\n");
-    for (const bad of ["innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "createContextualFragment", "DOMParser", "srcdoc", "eval(", "new Function", "createElement(\"img\")", "make(\"a\"", "make(\"img\"", "location", "window.open", "\"target\"", "\"rel\""]) {
+    for (const bad of ["innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "createContextualFragment", "DOMParser", "srcdoc", "eval(", "new Function", "make(\"a\"", "make(\"img\"", "location", "window.open", "\"target\"", "\"rel\""]) {
       check("chat.js never uses " + bad, src.indexOf(bad) < 0);
     }
     const times = (needle) => src.split(needle).length - 1;
     check("the one link is made in one place, with the table's page as its address", times("createElement(\"a\")") === 1 && times("setAttribute(\"href\"") === 1 && src.indexOf("setAttribute(\"href\", g.page)") >= 0);
-    check("nothing else is made into an address or a script source", times("href") === 1 && times(".src") === 0 && times("setAttribute(\"src\"") === 0);
+    check("nothing else is made into an address or a script source", times("href") === 1 && times(".src") === 0 && times("setAttribute(\"src\"") === 1);
+    check("the one picture is the game tag's icon, from games.icon, which takes only a PNG data URL", times("createElement(\"img\")") === 1 &&
+      src.indexOf("setAttribute(\"src\", icon)") >= 0 && src.indexOf("/^data:image\\/png;base64,[A-Za-z0-9+\\/=]+$/.test(url)") >= 0);
+    {
+      // a game the player has: its own icon in place of the initials (the user, 2026-11-07)
+      const PNG = "data:image/png;base64,iVBORw0KGgo=";
+      const owned = C.createGames(TABLE, "bookworm", (id) => ({ sevenseas: PNG, noahsark: "javascript:alert(1)", bookworm: "http://x/i.png" })[id] || "");
+      const a = linkOf(C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "sevenseas" }, "bob", owned));
+      const img = a.children[0];
+      check("a game the player has shows its icon, a link to its page with its title on hover",
+        /bpc-game-icon/.test(a.className) && a.attrs.href === "sevenseas.html" && a.attrs.title === "Seven Seas" && img.tag === "img" && img.attrs.src === PNG && a.children.length === 1, a.attrs);
+      check("the icon is decorative and the link is named by the title", img.attrs.alt === "" && a.attrs["aria-label"] === "Seven Seas" && a.textContent === "");
+      const other = linkOf(C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "noahsark" }, "bob", owned));
+      check("an icon that is not a PNG data URL is not used: the initials are", other.textContent === "[NA]" && !/bpc-game-icon/.test(other.className));
+      const web = linkOf(C.renderRow(doc, { id: "i", t: t0, user: "alice", text: "hi", game: "bookworm" }, "bob", owned));
+      check("nor one from the web", web.textContent === "[BW]" && web.attrs["aria-current"] === "page");
+      check("a game the player lacks keeps its initials", owned.icon("oldgame") === "" && C.createGames(TABLE, "bookworm").icon("sevenseas") === "");
+    }
     check("the tag's text is white, on the badge's colour", /\.bpc-game \{[^}]*background: var\(--bpc-c[^}]*color: #fff;/.test(src));
     for (const net of ["fetch(", "XMLHttpRequest", "WebSocket", "EventSource", "sendBeacon", "new Image", "importScripts", "navigator.", "location.", "indexedDB", "caches."]) {
       check("chat.js makes no network request: no " + net, src.indexOf(net) < 0);
