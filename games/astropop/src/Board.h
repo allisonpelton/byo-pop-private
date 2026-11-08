@@ -848,6 +848,8 @@ public:
 	bool			AnyMoveLeft(bool* theFlag);                     // 0x459bc0 (BoardMoves.cpp)
 	// port: for the test commands (BoardBot.cpp)
 	std::string		DescribeField();                                // the field as a JSON array of 19 strings of 10 characters
+	bool			BotBusy();                                      // the game takes no input now (bricks fly, a screen or a box is up)
+	std::string		BotMove();                                      // the move the bot makes next as JSON, or "null" (BoardBot.cpp)
 	void			UpdateGameOver();                               // 0x45e680
 	void			CreateEndButtons();                             // 0x4593b0
 	int				WeaponLevelSum();                               // 0x432e90

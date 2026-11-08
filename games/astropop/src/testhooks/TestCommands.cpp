@@ -1,7 +1,7 @@
 // port: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
 // channel through HandleScriptCommand. A command that is never given changes nothing. Each answers on stdout with one
 // line: STATE {...}, OK <command> or ERROR <command>: <reason>. They act through the game's own code.
-// Implemented: state, goto menu|classic|survival, level, seed, unlock all, set, win, lose. (move, the bot, is in BoardBot.cpp.)
+// Implemented: state, goto menu|classic|survival, level, seed, unlock all, set, win, lose, move (the bot is in BoardBot.cpp).
 
 #include "AstroPopApp.h"
 #include "Board.h"
@@ -105,6 +105,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				mBoard->mMode, mBoard->m1940, mBoard->mScore, mBoard->mField193C, mBoard->mUpdateCnt);
 			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->m1a60, mBoard->m1924,
 				mBoard->mFlag8E8 ? 1 : 0, (int) mBoard->m70.size());
+			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusy() ? 1 : 0);
 			aLine += ",\"field\":" + mBoard->DescribeField();
 		}
 		Reply(aLine + "}");
@@ -254,6 +255,14 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			mBoard->GameOver();
 			ReplyOK(theCommand);
 		}
+		return true;
+	}
+
+	if (theCommand.mCommand == "move")
+	{
+		// the bot's next move (BoardBot.cpp); changes nothing
+		std::string aMove = (mBoard != NULL) ? mBoard->BotMove() : "null";
+		Reply(aMove == "null" ? "MOVE null" : "MOVE " + aMove);
 		return true;
 	}
 
