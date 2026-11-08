@@ -805,6 +805,9 @@ static uint32_t gSurfaceAddr = 0, gSurfaceGate = 0;
 // pixel pointer and pitch in two globals (bitsAt, pitchAt: the addresses holding them); the format is 5-6-5 for 16 bpp
 // and 8-8-8 for 32.
 static uint32_t gScrBitsAt=0, gScrPitchAt=0, gScrW=0, gScrH=0, gScrBpp=0;
+// --surface-screen-base ptrAt: bitsAt and pitchAt are then offsets into the object whose pointer the global at ptrAt
+// holds, read afresh at each shot (Ning Po's display is on the heap, and its static app holds the pointer)
+static uint32_t gScrBase=0;
 static int png_write(const char* path, const unsigned char* rgb, int w, int h);
 static int rpm_buf(DWORD_PTR addr, void* out, size_t n)
 {
@@ -867,7 +870,9 @@ static int surface_grab(const char* name, struct SurfaceSnap* sn)
 	memset(sn,0,sizeof(*sn));
 	EnterCriticalSection(&gRpmLock);
 	if (gScrBitsAt) {
-		ok = rpm_buf(gScrBitsAt,&hd[0],4) && rpm_buf(gScrPitchAt,&hd[0x1c/4],4);
+		uint32_t aBase=0;
+		ok = !gScrBase || (rpm_buf(gScrBase,&aBase,4) && aBase);
+		ok = ok && rpm_buf(aBase+gScrBitsAt,&hd[0],4) && rpm_buf(aBase+gScrPitchAt,&hd[0x1c/4],4);
 		hd[1]=gScrW; hd[2]=gScrH; hd[0x44/4]=gScrBpp==15?16:gScrBpp;
 		if (gScrBpp==15) { hd[0x48/4]=0x7c00; hd[0x4c/4]=5; hd[0x50/4]=10; hd[0x58/4]=0x3e0; hd[0x5c/4]=5; hd[0x60/4]=5; hd[0x68/4]=0x1f; hd[0x6c/4]=5; hd[0x70/4]=0; }   // 5-5-5 (a DirectDraw mode Windows Sandbox's WARP gives some games)
 		else if (gScrBpp==16) { hd[0x48/4]=0xf800; hd[0x4c/4]=5; hd[0x50/4]=11; hd[0x58/4]=0x7e0; hd[0x5c/4]=6; hd[0x60/4]=5; hd[0x68/4]=0x1f; hd[0x6c/4]=5; hd[0x70/4]=0; }
@@ -3530,6 +3535,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gInN) { fprintf(rf,"inputeip="); for (int i=0;i<gInN;i++) fprintf(rf,"%s%X",i?",":"",gInRange[i]); fprintf(rf,"\n"); }
 	if (gEipN) { fprintf(rf,"surfaceeip="); for (int i=0;i<gEipN;i++) fprintf(rf,"%s%X",i?",":"",gEipRange[i]); fprintf(rf,"\n"); }
 	if (gScrBitsAt) fprintf(rf,"surfacescreen=0x%X,0x%X,%u,%u,%u\n",gScrBitsAt,gScrPitchAt,gScrW,gScrH,gScrBpp);
+	if (gScrBase) fprintf(rf,"surfacescreenbase=0x%X\n",gScrBase);
 	if (gSurfaceAddr) fprintf(rf,"surface=0x%X\n",gSurfaceAddr);
 	if (gSurfaceGate) fprintf(rf,"surfacegate=0x%X\n",gSurfaceGate);
 	if (gStateExpr[0]) fprintf(rf,"state=%s\n",gStateExpr);
@@ -4039,6 +4045,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"inputeip")) gInN=parse_ranges(v,gInRange);
 			else if (ieq(ln,"surfaceeip")) parse_eip_ranges(v);
 			else if (ieq(ln,"surfacescreen")) sscanf(v,"%x,%x,%u,%u,%u",(int*)&gScrBitsAt,(int*)&gScrPitchAt,&gScrW,&gScrH,&gScrBpp);
+			else if (ieq(ln,"surfacescreenbase")) gScrBase=(uint32_t)strtoul(v,NULL,16);
 			else if (ieq(ln,"surface")) gSurfaceAddr=(uint32_t)strtoul(v,NULL,16);
 			else if (ieq(ln,"surfacegate")) gSurfaceGate=(uint32_t)strtoul(v,NULL,16);
 			else if (ieq(ln,"state")) lstrcpynA(gStateExpr,v,256);
@@ -4174,6 +4181,7 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--flips")&&i+1<argc) flips=argv[++i];
 		else if (ieq(argv[i],"--pending-draw")&&i+1<argc) pending=argv[++i];
 		else if (ieq(argv[i],"--surface")&&i+1<argc) gSurfaceAddr=(uint32_t)strtoul(argv[++i],NULL,16);
+		else if (ieq(argv[i],"--surface-screen-base")&&i+1<argc) gScrBase=(uint32_t)strtoul(argv[++i],NULL,16);
 		else if (ieq(argv[i],"--surface-screen")&&i+1<argc) sscanf(argv[++i],"%x,%x,%u,%u,%u",(int*)&gScrBitsAt,(int*)&gScrPitchAt,&gScrW,&gScrH,&gScrBpp);
 		else if (ieq(argv[i],"--input-eip")&&i+1<argc) gInN=parse_ranges(argv[++i],gInRange);
 		else if (ieq(argv[i],"--sample")&&i+1<argc) lstrcpynA(gSamples,argv[++i],256);
