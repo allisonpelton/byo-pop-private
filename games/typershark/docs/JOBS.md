@@ -1,0 +1,36 @@
+# Translation jobs for the Sonnet agents (one at a time) and their status
+
+Every job's prompt is: "Translate job <id> of games/typershark/docs/JOBS.md. Read docs/TRANSLATE_BRIEF.md first (and
+docs/ENTITIES_BRIEF.md and docs/ENTITIES.md for the entity jobs), then WinWSApp.h and the headers it names. Write each
+file as soon as its functions are done (an agent that writes nothing for an hour loses all of it), run the brief's
+syntax check on every .cpp, and report: the files, what you assumed, what you left (function, reason)." The agent
+stops after about 25 KB of original code; a job whose report lists leftovers gets a follow-up job.
+
+Scope rules for all jobs (CLAUDE.md, news.md of 2026-11-07 / 08): registration code (trial, nag, unlock, register and
+buy paths, RegisterDialog, MaxPlays...) is not translated; neither is any button or link that leads out of the game
+(More Games, Buy, the web site buttons): leave the neighbours' layout as the original has it and list what was left
+out and where in the file's header comment, so the later removal of the gap is easy. Update checks and anything that
+talks to a server are left out. User-visible text goes through `GT(0xADDR)`.
+
+| id | what | original code | status |
+| --- | --- | --- | --- |
+| J1 | WinWSApp core: ctor/dtor, init, loading thread, the app's helpers, lessons (0x41ad70-0x428500 and 0x42b..-0x437960) | ~54 KB | running 2026-11-08 05:15 (files WinWSApp.h/.cpp, WinWSAppScreens.cpp) |
+| J2 | ButtonDepress (0x431630, 8.5 KB) and the rest of WinWSApp that J1 left (see its report) | ~25 KB | after J1 |
+| E1 | entities: Shark, Piranha, Projectile and their variants (RedShark, BlackShark, StealthShark, ToxicShark, RedPiranha, WhitePiranha, StealthPiranha, ...), Torpedo | ~25 KB | after J1 |
+| E2 | entities: the bosses (ProjectileBoss, TorpedoBoss, GhostShip, GhostShark, MechaShark, MechaSquid, MechaTorpedo), CannonBall, SquidCannonBall, BonusCreature, Clam, Player, Bubble, BonusText, BackgroundFish | ~25 KB | after E1 |
+| P1 | UserProfileMgr / UserProfile (0x4172f0-0x428000) | ~25 KB | |
+| P2 | the config parser 0x42bfb0 (11.8 KB) and the lessons / gem names / words / themes loaders | ~25 KB | |
+| D1 | dialogs: copy-adapt BookWorm's (Delete/Select/New user, Options, Credits, Hint, Money), the game's own (WinGame, GameOver, Difficulty, AbyssMode) | ~30 KB | |
+| W1 | small widgets and panels: StatsScreen, StatusBar, TabbedWidget, TabPanel, TutorialPanel, AbyssPanel, AdventurePanel | ~20 KB | |
+| S1 | screens: TitleScreen, MenuScreen, MapScreen, HighScoreScreen | ~25 KB | |
+| T1 | TypingTutor | ~12 KB | |
+| B1-B3 | Board in three parts (Update 0x45c140 9.7 KB, Draw 0x44d200 11.2 KB, KeyChar 0x454e40 and the rest) | ~61 KB | |
+
+`python games/typershark/tools/coverage.py [--range LO HI] --missing` shows what the sources do not mention yet (the
+mentions are the `// 0x4xxxxx` comments before each function), by guessed class.
+
+## How the coordinator checks a job's result
+
+Syntax-check the files, read the headers, spot-check the three or four most complex functions against `decread`
+(or the machine code where decread is wrong: x87 comparisons, virtual-base accesses), grep for `TODO` and for
+invented names that the original does not have, and fix what is wrong before the next job. Commit after each job.
