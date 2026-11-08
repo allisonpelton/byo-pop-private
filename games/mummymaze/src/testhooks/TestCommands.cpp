@@ -73,7 +73,7 @@ std::string ClickStep(Widget* theWidget)
 {
 	int aX, aY;
 	Centre(theWidget, aX, aY);
-	return StrFormat("{\"click\":{\"x\":%d,\"y\":%d}}", aX, aY);
+	return StrFormat("{\"click\":[%d,%d]}", aX, aY);
 }
 
 // A move: kind, what the real input is as an ordered list, and the updates to wait afterwards
@@ -101,7 +101,7 @@ const char* KeyName(int theKey)
 std::string StepInputFor(Board* b, int theKey, int theCellX, int theCellY)
 {
 	if (StepInput == "clicks")
-		return StrFormat("{\"click\":{\"x\":%d,\"y\":%d}}", b->mX + 10 + b->PixelX(theCellX) + b->mCellSize / 2,
+		return StrFormat("{\"click\":[%d,%d]}", b->mX + 10 + b->PixelX(theCellX) + b->mCellSize / 2,
 			b->mY + b->PixelY(theCellY) + b->mCellSize / 2);
 	return StrFormat("{\"key\":\"%s\"}", KeyName(theKey));
 }

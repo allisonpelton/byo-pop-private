@@ -135,8 +135,11 @@ def sdl_key(k):
 
 def send_input(g, step, a):
     if 'click' in step:
-        c = step['click']
-        g.cmd('click game %d %d' % (c['x'], c['y']))
+        c = step['click']      # [x, y] (docs/TEST_COMMANDS.md); {"x", "y"} was the form before it
+        x, y = (c['x'], c['y']) if isinstance(c, dict) else c
+        g.cmd('click game %d %d' % (x, y))
+    elif 'wait' in step:
+        g.wait_updates(int(step['wait']))
     elif 'key' in step:
         k = sdl_key(step['key'])
         if len(k) == 1:
