@@ -330,8 +330,16 @@ class Game:
         self.wait_state(lambda s: s.get('dialog') == 'options', 10, 'the options dialog')
         self.press(lambda s: s['options']['fullscreen'], 'fullscreen box')
         self.shot('options-%s' % ('windowed' if windowed else 'fullscreen'))
-        self.press(lambda s: s['options']['done'], 'done')
-        self.wait_state(lambda s: s['screen'] == 'menu' and s['windowed'] == windowed, 20, 'the screen mode to change')
+        for attempt in range(3):
+            self.press(lambda s: s['options']['done'], 'done')
+            try:
+                self.wait_state(lambda s: s['screen'] == 'menu' and s['windowed'] == windowed, 8, 'the screen mode to change')
+                break
+            except Failure:
+                # a posted click can be lost on a busy machine (seen once in ten runs: the game kept updating, the dialog stayed)
+                if attempt == 2 or self.state.get('dialog') != 'options':
+                    raise
+                self.say('the click on done was lost; again')
         time.sleep(1.0)
         self.say('screen mode now', 'windowed' if windowed else 'fullscreen', 'client %dx%d' % self.client())
         self.shot('menu-%s' % ('windowed' if windowed else 'fullscreen'))

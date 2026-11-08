@@ -222,6 +222,7 @@ What was played, each run to the end of its game, the name entry, the table and 
 | 4 | windowed; tutorial; time trial, skill 3; full screen (client 3840 x 2160, the game letterboxed in it); strategic, skill 1 | the tutorial in 6 s; time trial 734 pieces, 118 forges, 231 s; strategic 1200 pieces, 136 forges, 118 s, board 2 |
 | 5 | strategic, skill 1, with the window losing and regaining the focus twice | the focus lines below; the game played on to its end |
 | 6 | launch; the quit question | No keeps the selector, Yes leaves with code 0 |
+| 7 | with the fixes mod on: windowed; tutorial; strategic, skill 2; the quit question | the tutorial in 5 s; 125 pieces, 13 forges, 29 s; No, then Yes leaves with code 0 |
 
 The focus: a posted focus message gives the window neither the focus nor takes it away, so the pass sent `focus lost` and
 `focus gained` as `-script` lines (the framework's own focus path; the posted-input hook drops SDL's). The state then read
@@ -229,7 +230,9 @@ The focus: a posted focus message gives the window neither the focus nor takes i
 false and play on after the second line, at update 3005 and 3405 and again at 5005 and 5105. This is what the original does too
 (phase two's tour 3 compared both). The pass with real SDL focus events waits for `-realinput` to reach the trunk.
 
-Nothing in it broke: every game ended through the game's own flow, the screens and shots looked as the comparisons had shown
+One attempt of a run lost its posted click on the options dialog's DONE button on the busy machine (the game kept updating, the
+dialog stayed; eight reruns of the step did not repeat it), so the step now clicks again when the dialog is still up after eight
+seconds. Nothing else broke: every game ended through the game's own flow, the screens and shots looked as the comparisons had shown
 them, and the stderr of every run is free of errors. Real play found no bug of the original that breaks play, so the port
 changed only in its test hooks: `state` gained the Yes and No buttons of the dialog that is up (`buttons`), for the quit step.
 
@@ -272,4 +275,5 @@ and left.
 | `continuedEnding` | `Board::LoadGame` (0x405b39) puts a continued game's pieces at their cells without the board's offset, and the end-of-game shrink draws from there: the pieces shrink 150 pixels left of their tiles, half under the side panel, and the board looks emptied. | A saved game continued and lost (`lose`) with the mod off and on: off, the pieces shrink displaced; on, on their tiles. The shots before the loss differ only in the rim line. |
 
 The mod loads on the web: the page of the build with the fixes folder (`alchemy-fixes/`) says "1 mod active", and the runs above
-were played with it on. A native real-play run with the mod on is listed in the log below when it was made.
+were played with it on. Natively, run 7 above was played with the mod on (`drive.py --modsdir`), and the script command `modmenu dump` lists it with both
+toggles on, no errors or warnings, and no split of the high scores; `modmenu set fixes rims false` turns one off at once, with nothing pending.

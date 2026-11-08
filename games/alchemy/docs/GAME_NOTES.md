@@ -111,7 +111,7 @@ the suites and the frozen baseline play as before. Each command answers with one
 | `win` | Every tile lit: the board is won through `CheckAllLit` (the bonus, the pieces vanish, the panel). |
 | `lose` | The forge overflows: the game ends through `GameOver` (the pieces shrink away, the table follows). |
 | `seed <n>` | Seeds the C library generator, which seeds the board's own generator at a game's start. |
-| `move`, `botmove` | `MOVE {json}`: the bot's next input, or `MOVE null` when it has none (the title still loads, the board is busy, a dialog the bot does not answer is up). Changes nothing, and draws none of the game's random numbers: the bot has a generator of its own, seeded from the position. |
+| `move` | `MOVE {json}`: the bot's next input, or `MOVE null` when it has none (the title still loads, the board is busy, a dialog the bot does not answer is up). Changes nothing, and draws none of the game's random numbers: the bot has a generator of its own, seeded from the position. |
 
 The bot is the one `-autoplay` has always had (`src/testhooks/Bot.cpp`, shared by both; the suites' numbers did not change):
 a cell that completes a row or a column is best, otherwise the cell with most neighbours, a tenth of the choices a random cell

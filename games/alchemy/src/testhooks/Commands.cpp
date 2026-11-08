@@ -12,7 +12,7 @@
 //   win                   every tile lit: the board is won through CheckAllLit (the bonus, the pieces vanish, the panel)
 //   lose                  the forge overflows: the game's end through GameOver
 //   seed <n>              the C library generator (the game's pieces come from the board's, seeded at a game's start from it)
-//   move, botmove         MOVE {json}: the bot's next input (Bot.cpp), what it is and the real input that makes it; MOVE null
+//   move                  MOVE {json}: the bot's next input (Bot.cpp), what it is and the real input that makes it; MOVE null
 //                         when there is none; changes nothing and draws no random number of the game's
 //
 // The `input` list of a MOVE is in game coordinates, in order: {"move":[x,y]} the pointer goes there (the piece hangs
@@ -550,7 +550,7 @@ bool AlchemyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		return true;
 	}
-	if (aName == "move" || aName == "botmove")
+	if (aName == "move")
 	{
 		std::string aMove = MoveJson(this);
 		Reply(aMove == "null" ? "MOVE null" : "MOVE " + aMove);
