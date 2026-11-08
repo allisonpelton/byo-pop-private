@@ -153,3 +153,22 @@ writes the table of text addresses, `tools/make_res.py` the resource tables, `to
 from the address comments in `src/`. The tests are in README.md (Testing): the grid replay (211 solutions), the menu tour, the
 bot's first 25 puzzles twice and its whole game of 210 puzzles; a game's whole bot run is the same natively and in the web build
 under Node.
+
+## 9. What the port leaves out, fix candidates, speed-ups
+
+**Registration and outbound buttons.** The original has a "More Games" button on the main menu between Options and Quit (its
+click opens the publisher's page; the screen it names is `IMAGE_MOREGAMESSCREEN`, resource only) and a register dialog
+(`ShowRegisterDialog`, 0x435580, reached from the shop path only). The port builds neither: the menu has Play, Options and
+Quit, Quit moved up into the gap, and no code opens a URL or a register dialog. The temple unlock counts (`mUnlock`) are the
+game's own progress rules, not a registration limit.
+
+**Fix candidates: none.** Checked for bugs of the original that change play and waits that only cost the player time:
+the story's speeches come one after another (2 s apart) but the Continue button is live from the first update; the
+tablet's picture takes 80 updates to fly in and its Continue button is live meanwhile; the help screen's demo loops and OK is
+live; the island's lightning, gulls and surf are animation that never holds a click; the loading wait is the port's core
+fast loading (the load thread runs in one go). Bugs found in the passes are oddities of timing or state with no effect on
+play (IDENTICAL_PLAY.md, "Oddities"), and the one that broke play, the skip-tutorial story, is fixed in the port itself
+(it is listed with the deviations). A fixes mod would have nothing to toggle.
+
+**Speed-ups for tests.** None made; `-fast` runs the whole game of 210 puzzles in about six minutes (`tools/check.sh pixelus`).
+
