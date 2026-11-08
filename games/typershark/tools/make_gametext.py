@@ -24,7 +24,7 @@ CODE_RANGES = ((0x401000, 0x4623f0), (0x527890, 0x527cd0))   # the second: the s
 # Extra texts that no function refers to by a plain address: the tables of string pointers in the data section (the tutorial
 # sidebar texts, the helper's speech bubbles, the help pages ...) lie between these addresses
 EXTRA = []
-POINTER_TABLES = ((0x55f000, 0x55f4f0), (0x55f970, 0x55f988))
+POINTER_TABLES = ((0x55f000, 0x55f4f0), (0x55f970, 0x55f988), (0x560078, 0x560128))
 # the read-only data where the strings are
 IMMEDIATE_STRINGS = (0x529000, 0x55f000)
 
@@ -85,6 +85,16 @@ def main():
             v = struct.unpack_from("<I", d, o)[0]
             if v in known:
                 rows.add(v)
+                continue
+            # Ghidra leaves some short texts ("Chum") undefined: take a printable text the table points to
+            if IMMEDIATE_STRINGS[0] <= v < IMMEDIATE_STRINGS[1]:
+                try:
+                    so = va_to_off(d, v)
+                except ValueError:
+                    continue
+                t = d[so:d.find(b"\0", so)]
+                if len(t) >= 2 and all(c in b"\r\n\t" or 0x20 <= c < 0x7f for c in t):
+                    rows.add(v)
     # strings Ghidra did not define as strings (it merges or skips some): an address the code pushes or loads
     lo, hi = IMMEDIATE_STRINGS
     for a, b in CODE_RANGES:

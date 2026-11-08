@@ -39,6 +39,14 @@ class WinWSApp;
 class WSTimer;
 struct EnemyRecord;			// LessonManager.h
 
+// ---- added for B2 ----
+// 0x41d350 (a free function; Board::Draw and TypingTutor::Draw call it; BoardDraw.cpp defines it): draws theText1 and then
+// theText2 one character at a time from (theX, theY), each in its own font and colour, a character starting where the
+// previous one's StringWidth ended. A NULL theFont1 means theFont2. When theCenter is set, theX is moved so that both
+// strings together (measured with theFont1) are centred in theWidth. The original takes the strings and colours by value.
+void DrawTwoColorString(Graphics* g, int theX, int theY, const std::string& theText1, const Color& theColor1, Font* theFont1,
+	const std::string& theText2, const Color& theColor2, Font* theFont2, int theWidth, bool theCenter);
+
 class Board : public Widget
 {
 public:
@@ -67,8 +75,7 @@ public:
 	// 0x20 bytes: one of the two background strips (the sea behind the board); Draw moves and draws them.
 	struct BgLayer
 	{
-		int					mField00;				// +0x00 constructor 0
-		int					mField04;				// +0x04 constructor 0
+		double				mX;						// +0x00 constructor 0; Draw draws the picture at this x
 		double				mY;						// +0x08 constructor: the height of the strip's picture times its index (0, then 1)
 		int					mUnused10[4];			// +0x10 constructor 0, never used
 	};
@@ -108,8 +115,8 @@ public:
 	Smoother				mSmoothers[2];			// +0x68 one for each BgLayer (0x50 bytes each, to +0x108)
 	FrameSmoother			mFrameSmoother;			// +0x108 for the RatingPopup's mY (0x48 bytes, to +0x150)
 	int						mMaxUnregAbyssDepth;	// +0x150 REGISTRATION: registry value "MaxUnregAbyssDepth", default 600; Update stops an unregistered abyss game at this depth (left out of the port)
-	int						mField154;				// +0x154 ++ every other tick (constructor 0)
-	int						mField158;				// +0x158 ++ every fourth tick (constructor 0)
+	int						mWavePhase1;				// +0x154 ++ every other tick (constructor 0)
+	int						mWavePhase2;				// +0x158 ++ every fourth tick (constructor 0)
 	double					mWaveAmp;				// +0x160 the strength of the waves (4.0 to 5.0, moves by 0.004 every other tick; 440330 and 441ac0 use it twice over)
 	bool					mWaveGrowing;			// +0x168 the direction mWaveAmp moves in (constructor true)
 	GameOverDialog*			mGameOverDialog;		// +0x16c made by PlayerEaten when the last life is gone
@@ -206,7 +213,7 @@ public:
 	Image*					mTreasureImage;			// +0xf7c ShowTreasure picks one of the app's mImages at byte offset 0x310 + 4 * (0..3), indexes 0xc4 to 0xc7; Draw draws it
 	bool					mFlag0f80;				// +0xf80 constructor true; AddPiranha clears it; the event loops and Update set it again
 	int						mField0f84;				// +0xf84 constructor: the +8 field of the app's mImages at byte offset 0x7c (index 0x1f)
-	int						mField0f88;				// +0xf88 constructor: the +8 field of the app's mImages at byte offset 0x5c (index 0x17); IsBelowSurface compares mDivePos with it
+	int						mSurfaceHeight;				// +0xf88 constructor: the +8 field of the app's mImages at byte offset 0x5c (index 0x17); IsBelowSurface compares mDivePos with it
 	int						mOceanDepth;			// +0xf8c SetLessonManager: the <OceanDepth> of the lesson (-1 in an endless game)
 	int						mFloorY;				// +0xf90 constructor: the app's +0x64 minus the +8 field of mImages[8] (the status bar picture): the bottom of the play field; the lanes of creatures are counted up from it
 	HyperlinkWidget*		mContinueLink;			// +0xf94 (role guessed) a link widget (id 300, listener the app) that AddedToManager makes and adds; SetVisible and SetDisabled forward to it while the diver is in state 7; WinWSApp hides it while the options dialog is up in the diver states 6, 7 and 0xc; ShowTreasure brings it to the front
@@ -227,11 +234,11 @@ public:
 
 	// ---- BoardDraw.cpp (job B2): Draw and what only Draw calls ----
 	virtual void			Draw(Graphics* g) override;										// 0x44d200 slot 16
-	void					BuildWaterImage();												// 0x440330 (role guessed) the wave effect when the board cannot draw wavy pictures
+	void					BuildWaterImage(Graphics* g);									// 0x440330 (role guessed) the wave effect when the board cannot draw wavy pictures (the original takes the Graphics and ignores it)
 	void					DrawWavyImage(Graphics* g, Image* theImage, int theX, int theY);	// 0x441ac0 draws a picture row by row, shifted along mSinTable
 	int						GetNextGoal();													// 0x440010 the next score goal above the diver's score (multiples of 150000, then fixed steps)
 	std::string				GetRankTitle();													// 0x446950 the title for the score ("Sea Titan", "Leviathan"...)
-	int						GetLevelBonus();												// 0x43fca0 (role guessed) (difficulty + 1) * min(lives + 1, 12) * 1000, at most 60000
+	int						GetLevelBonus();												// 0x43fca0 (difficulty + 1) * the diver's mField114 + 1 (11 once mField114 is 12 or more) * 1000, at most 60000
 	int						GetBossBonus();													// 0x43fce0 (role guessed) 10000, 30000, 50000, 70000 for the difficulties 0 to 3, 100000 otherwise
 	int						GetFinishBonus();												// 0x440290 (role guessed) the end-of-level bonus from mField0e8c and the lives, at most 100000
 	int						GetStreakBonus();												// 0x4423f0 points for a bonus round by difficulty and mField0f30
@@ -239,7 +246,7 @@ public:
 
 	// ---- BoardUpdate.cpp (job B1): Update and its helpers ----
 	virtual void			Update() override;												// 0x45c140 slot 17
-	bool					IsBelowSurface();												// 0x43fd30 mDivePos has passed mField0f88, the diver is hurt-free and in state 0
+	bool					IsBelowSurface();												// 0x43fd30 mDivePos has passed mSurfaceHeight, the diver is hurt-free and in state 0
 	void					ShowRating();													// 0x43fd90 starts the rating popup for a group of words (the percent is worked out inside)
 	void					GetSpotOffset(int* theX, int* theY, int theIndex);				// 0x4408d0 (role guessed) one of four offset pairs by index; two tables, for app level 11 and the others
 	void					UpdateDangerMusic(Enemy* theEnemy, bool theFlag);				// 0x440b90 switches the music to track 0x25 / 0x2b when the creature gets near the diver

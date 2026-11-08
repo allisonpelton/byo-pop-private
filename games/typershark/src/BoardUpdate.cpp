@@ -52,7 +52,7 @@ bool Board::IsBelowSurface()
 {
 	if (mLessonManager->LastWaveIsBoss() && mPlayer->mFlag118 == false && mPlayer->mState == 0)
 	{
-		if ((double)mField0f88 < mDivePos)
+		if ((double)mSurfaceHeight < mDivePos)
 		{
 			if (!mLessonManager->IsEndless())
 				return true;
@@ -553,9 +553,9 @@ void Board::Update()
 				mWaveAmp = 4.0;
 			}
 		}
-		mField154 = mField154 + 1;
+		mWavePhase1 = mWavePhase1 + 1;
 		if (mUpdateCnt % 4 == 0)
-			mField158 = mField158 + 1;
+			mWavePhase2 = mWavePhase2 + 1;
 	}
 
 	if (mPlayer->mState == 7)
@@ -1190,7 +1190,7 @@ void Board::Update()
 		if (!mFlag0ebc && mPlayer->mState == 0
 			&& ((double)mHeight <= mField0e10 || mOceanDepth == -1)
 			&& mBoss == NULL
-			&& ((double)(mField0f88 >> 1) < mDivePos || !mApp->mUser->mFlag1dc))
+			&& ((double)(mSurfaceHeight >> 1) < mDivePos || !mApp->mUser->mFlag1dc))
 			SpawnWave();
 		if (mFlag0f80 && !mFlag0ebc && mPlayer->mState == 0 && !mPlayer->mFlag118 && mBoss == NULL
 			&& mLessonManager->LastWaveIsBoss() && CountActiveLists() == 0)

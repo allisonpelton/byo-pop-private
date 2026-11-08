@@ -80,12 +80,12 @@ The split follows the callers: a function only Update calls goes with Update. Ea
 `Board.h` and adds nothing to the header without telling the coordinator (a renamed field is renamed in every file:
 `grep -rn mFieldXXX games/typershark/src`).
 
-**B1** (20.4 KB). Update and everything that runs from it each tick: the creature lists' event loops, the losing of a life, the treasure.
+**B1 (done 2026-11-08)** (20.4 KB). Update and everything that runs from it each tick: the creature lists' event loops, the losing of a life, the treasure.
 
 - `BoardEvents.cpp` (6115 bytes): HandleSharkEvents 0x457480, HandlePiranhaEvents 0x457ad0, HandleClamEvents 0x458030, HandleBonusCreatureEvents 0x4582c0, HandleBossEvents 0x4586b0.
 - `BoardUpdate.cpp` (14311 bytes): IsBelowSurface 0x43fd30, ShowRating 0x43fd90, ResetPiranhaSpeed 0x4402f0, GetSpotOffset 0x4408d0, UpdateDangerMusic 0x440b90, CountActiveLists 0x441bb0, ShowTreasure 0x442760, AvoidWordOverlap 0x446110, PickClamWord 0x446720, PlayerEaten 0x44fe30, Update 0x45c140.
 
-**B2** (18.1 KB). The constructor, the destructor and the Widget overrides, and Draw with the bonus and title helpers that only it calls.
+**B2 (done 2026-11-08)** (18.1 KB). The constructor, the destructor and the Widget overrides, and Draw with the bonus and title helpers that only it calls.
 
 - `Board.cpp` (5064 bytes): RemovedFromManager 0x43fbf0, SetVisible 0x4401b0, SetDisabled 0x440250, IsHudActive 0x440b70, MouseMove 0x440c20, IsEmpTimerPaused 0x440cb0, KeyDown 0x442520, AddedToManager 0x445eb0, ~Board (body) 0x451700, Board(WinWSApp*) 0x4544b0, ~Board (deleting destructor) 0x454e10.
 - `BoardDraw.cpp` (13064 bytes): GetLevelBonus 0x43fca0, GetBossBonus 0x43fce0, GetTypingSpeed 0x43ff90, GetNextGoal 0x440010, GetFinishBonus 0x440290, BuildWaterImage 0x440330, DrawWavyImage 0x441ac0, GetStreakBonus 0x4423f0, GetRankTitle 0x446950, Draw 0x44d200.
