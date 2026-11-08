@@ -2,7 +2,10 @@
 #define __CREDITSDIALOG_H__
 
 // The options dialog's credits (dialog 22; vtable 0x4fc3e8, ButtonListener 0x4fc3d4 at +0x58; 0x11c bytes;
-// constructor 0x42fed0, destructor 0x42ea10): the roles and names; two of the names are links to their sites.
+// constructor 0x42fed0, destructor 0x42ea10): the roles and names. In the original two of the names (the game
+// design's and the music's) are links to their sites (HyperlinkWidgets at +0x114 and +0x118, ids 0 and 1, opened by
+// ButtonDepress 0x430b90); the port leads out of the game nowhere (the user, 2026-11-07), so they are plain names in
+// white like the others.
 
 #include "Compat2004.h"
 
@@ -11,26 +14,19 @@ namespace Sexy
 
 class FossilizedApp;
 class Graphics;
-class HyperlinkWidget;
-class WidgetManager;
 
 class CreditsDialog : public Dialog2004
 {
 public:
 	FossilizedApp*		mApp;				// +0x110
-	HyperlinkWidget*	mDesignLink;		// +0x114 id 0, the game design's
-	HyperlinkWidget*	mMusicLink;			// +0x118 id 1, the music's
 
 	CreditsDialog(FossilizedApp* theApp);	// 0x42fed0
 	virtual ~CreditsDialog();				// 0x42ea10
 
 	virtual int			GetPreferredHeight(int theWidth) override;	// 0x42eaa0: 350
-	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;		// 0x42eab0
-	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;	// 0x4410b0
-	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x42eae0
 	// 0x4302b0: each role right-aligned to x 175 in pale yellow, its names in white from x 185
+	// (port: the two linked names too)
 	virtual void		Draw(Graphics* g) override;
-	virtual void		ButtonDepress(int theId) override;			// 0x430b90: the links' sites
 };
 
 }

@@ -50,6 +50,8 @@ FossilizedApp::FossilizedApp()
 	mMusicVolume = 0.5;
 	mSfxVolume = 0.85;
 	mAngles = new AngleTable();
+	// port: the 2003 framework's DrawImageBox (0x463450) for the dialogs and their buttons
+	Graphics::mDrawImageBox2003 = true;
 	// port: the 2003 framework's MTRand::SRand (0x442d90) is the 69069 seeding (compat2004)
 	SeedMTRand2004(mRand, GetTickCount());
 	mPicker.Seed(GetTickCount() >> 1);
@@ -138,7 +140,6 @@ void FossilizedApp::Init()
 	mWhiteFont = new ImageFont(this, "data\\whitefont.txt");
 	mWhiteFontSmall = new ImageFont(this, "data\\whitefontsmall.txt");
 	mWhiteFont2 = new ImageFont(this, "data\\WhiteFont2.txt");
-	mPicUnregistered = new Pic(this, "images\\unregistered", true);
 	mSoundInitialized = mSoundManager->Initialized();
 	if (!mSoundInitialized)
 		SDL_Log("Sound manager could not initialize");	// a message box in the original
@@ -185,6 +186,21 @@ void FossilizedApp::TitleScreenDone()
 	ShowMainMenu();
 }
 
+// the window's rectangle has its frame, so in a window its middle lies above the game's by half the title bar
+void FossilizedApp::WarpToBoard()
+{
+	int aTop = 0;
+	int aLeft = 0;
+	int aBottom = 0;
+	int aRight = 0;
+#ifndef __EMSCRIPTEN__
+	// port: a page has no window frame, and the browser cannot move the mouse (WarpMouse does nothing there)
+	if ((mHWnd != NULL) && mIsWindowed)
+		SDL_GetWindowBordersSize(mHWnd, &aTop, &aLeft, &aBottom, &aRight);
+#endif
+	WarpMouse(mWidth / 2 + 0x5e + (aRight - aLeft) / 2, mHeight / 2 + 0x96 + (aBottom - aTop) / 2);
+}
+
 // 0x4186d0
 void FossilizedApp::ShowMainMenu()
 {
@@ -209,14 +225,15 @@ void FossilizedApp::ShowMainMenu()
 	mSideBar->mInchy->Sink(0);
 }
 
-// 0x418a00 (slot 18): the game's dialog, in the white small font on its dialog pictures
+// 0x418a00 (slot 18): the game's dialog on its dialog pictures, the header in the white font and the rest in the small
+// one (the header's font is +0x19d4, an argument Ghidra's listing drops)
 Dialog* FossilizedApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
 {
 	Dialog* aDialog = new Dialog2004(mPicDialog->mImage, mPicDbutton->mImage, theDialogId, isModal, theDialogHeader,
 		theDialogLines, theDialogFooter, theButtonMode);
 	aDialog->SetButtonFont(mWhiteFontSmall);
-	aDialog->SetHeaderFont(mWhiteFontSmall);
+	aDialog->SetHeaderFont(mWhiteFont);
 	aDialog->SetLinesFont(mWhiteFontSmall);
 	aDialog->SetColor(1, Color(0xff, 0xff, 0xff));
 	aDialog->SetColor(3, Color(0xff, 0xff, 0xff));
@@ -393,18 +410,6 @@ void FossilizedApp::StartGame()
 	mSideBar->GameStarted();
 }
 
-// 0x418470
-void FossilizedApp::ShowBuyDialog()
-{
-	// TODO: the unregistered copy's dialog 21 (0x4411d0); the port runs as a registered copy
-}
-
-// 0x4185a0
-void FossilizedApp::ShowRegisterDialog(const char* theLines)
-{
-	// TODO: the unregistered copy's dialog 14 (0x432740); the port runs as a registered copy
-}
-
 // 0x418df0
 void FossilizedApp::ShowHighScoreDialog(HighScores* theHighScores)
 {
@@ -521,24 +526,7 @@ void FossilizedApp::ButtonDepress(int theId)
 	if (aMod < 3000)
 	{
 		int aDialogId = theId - 2000;
-		if (aDialogId > 0x2724)
-		{
-			if (aDialogId == 0x4e34)
-			{
-				KillDialog(0x4e34);
-				KillDialog(0x14);
-				return;
-			}
-			KillDialog(aDialogId);
-			return;
-		}
-		if (aDialogId == 0x2724)
-		{
-			// TODO: the unregistered copy's buy dialog opens the buy page (the port runs as a registered copy)
-			KillDialog(0x2724);
-			KillDialog(0x14);
-			return;
-		}
+		// port: the unregistered copy's buy dialog (20) and its buttons (10020, 20020) are not in the port
 		switch (aDialogId)
 		{
 		case 0:
@@ -593,9 +581,6 @@ void FossilizedApp::ButtonDepress(int theId)
 		case 0xd:
 			((DynomiteFossil*)mBoard)->NextRound();
 			return;
-		case 0xe:
-			// TODO: the registration dialog's OK (the port runs as a registered copy)
-			return;
 		case 0x10:
 			KillDialog(0x10);
 			return;
@@ -613,11 +598,6 @@ void FossilizedApp::ButtonDepress(int theId)
 	if (aMod < 4000)
 	{
 		int aDialogId = theId - 3000;
-		if (aDialogId == 0x2724)
-		{
-			KillDialog(0x2724);
-			aDialogId = 0x14;
-		}
 		KillDialog(aDialogId);
 		if (mBoard != NULL)
 			mWidgetManager->SetFocus(mBoard);

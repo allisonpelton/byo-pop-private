@@ -167,6 +167,11 @@ public:
 	int						StringWidth(const SexyString& theString);
 	void					DrawImageBox(const Rect& theDest, Image* theComponentImage);
 	void					DrawImageBox(const Rect& theSrc, const Rect& theDest, Image* theComponentImage);
+	// The 2003 framework's DrawImageBox (Dynomite 0x463450): the edges and the middle are cut as wide and tall as the
+	// corners (a third of the picture) and the right and bottom pieces start at two thirds, where the later one takes
+	// them from the last third; the two differ when the picture's size is not a multiple of 3. Off unless a game of
+	// that framework turns it on.
+	static bool				mDrawImageBox2003;
 
 	int						WriteString(const SexyString& theString, int theX, int theY, int theWidth = -1, int theJustification = 0, bool drawString = true, int theOffset = 0, int theLength = -1, int theOldColor = -1);
 	int						WriteWordWrapped(const Rect& theRect, const SexyString& theLine, int theLineSpacing = -1, int theJustification = -1, int *theMaxWidth = NULL, int theMaxChars = -1, int* theLastWidth = NULL);

@@ -6,8 +6,12 @@
 #   shots:<n>:<gap>          n shots at random points of the board (never the side bar), one every gap updates
 #   wait:<n>                 n updates
 #   click:<x>:<y>            a move and a click 10 updates later, then 50 updates
+#   click@port:<x>:<y>       the same for the port only (the line ends "# port", which toorig.py leaves out); with
+#   click@orig:<x>:<y>       @orig, for the original only (a whole-line comment "# orig <line>", which only toorig.py
+#                            reads); a pair of them takes the time of one click (where a button sits elsewhere)
 #   text:<chars>             typed a character every 5 updates, then 25 updates
 #   key:<vk>                 a key, then 30 updates
+#   focus:<lose|regain>      the window loses or regains the focus, then 50 updates
 #   save:<name>              the side bar's save button, the first slot, Save, the name, Save and the saved dialog's OK
 #                            (SLOT0.SAV; the game goes back to the main menu)
 #   cont                     from the main menu: Continue Game, the first saved game and Let's Play
@@ -29,9 +33,14 @@ def add(cmd, gap):
     u += gap
 
 
-def click(x, y, gap=60):
-    add("move %d %d" % (x, y), 10)
-    add("click %d %d" % (x, y), gap)
+def click(x, y, gap=60, side=None):
+    if side == 'orig':
+        L.append("# orig %d move %d %d" % (u, x, y))
+        L.append("# orig %d click %d %d" % (u + 10, x, y))
+        return
+    tail = " # port" if side == 'port' else ""
+    add("move %d %d%s" % (x, y, tail), 10)
+    add("click %d %d%s" % (x, y, tail), gap)
 
 
 MODES = {'endless': 160, 'stomped': 230, 'fossil': 295, 'timetrial': 360}
@@ -57,6 +66,8 @@ for part in sys.argv[4:]:
         u += int(f[1])
     elif f[0] == 'click':
         click(int(f[1]), int(f[2]))
+    elif f[0] in ('click@port', 'click@orig'):
+        click(int(f[1]), int(f[2]), side=f[0][6:])
     elif f[0] == 'text':
         for c in f[1]:
             add("char %s" % c, 5)
@@ -75,6 +86,8 @@ for part in sys.argv[4:]:
         click(488, 432)
         click(379, 175)
         click(488, 432, 300)
+    elif f[0] == 'focus':
+        add("focus %s" % f[1], 50)
     elif f[0] == 'key':
         add("key %s" % f[1], 30)
     elif f[0] == 'shot':

@@ -1109,18 +1109,10 @@ void DynomiteFossil::Update()
 		if (mTextAlpha < 0)
 			mTextAlpha = 0;
 	}
-	if ((mApp->mIsRegistered == false) && (mField134 == 1))
-	{
-		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)
-			mApp->ShowRegisterDialog(mApp->GetString("CONGRATS_YOU_GOT_A_HIGH_SCORE__2").c_str());
-		else
-			mApp->ShowBuyDialog();
-	}
 	if (mField134 == 0)
 	{
 		SetPaused(true);
-		if ((mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true) &&
-			(mApp->mIsRegistered == true))
+		if (mHighScores->IsHighScore(mApp->mSideBar->mScore, (int) mStartTicks) == true)
 			mApp->ShowHighScoreDialog(mHighScores);
 	}
 	if (mKroney->Update() == true)

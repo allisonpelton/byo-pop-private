@@ -1,0 +1,24 @@
+# A game of Endless from launch: the title's link, New Game, Endless, Next,
+# then the bot plays the game to its end; the high-score name is typed and the dialog closed, and the window closes.
+ready 60
+click 320 450
+wait 4
+click 486 213
+wait 1
+click 465 160
+wait 1
+click 488 432
+wait 3
+shot start
+play 1500 40
+wait 8
+shot over
+key b
+key o
+key t
+wait 1
+shot name
+click 352 369
+wait 4
+shot table
+end
