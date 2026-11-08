@@ -178,18 +178,8 @@ void TitleScreen::Draw(Graphics* g)
 	g->SetColor(Color(0, 255, 0, 255));
 	g->DrawString(aVersion, 0x21c - aWidth, 0x87);
 
-	// registered: "thanks for registering" in green over a dark box
-	{
-		std::string aLine = GT(0x004b2df0);
-		g->SetColor(Color(0x80, 0xff, 0x80));
-		int aLineWidth = mApp->mAtomicFont->StringWidth(aLine);
-		g->SetColor(Color(0, 0, 0, 0xaf));
-		g->FillRect(0x13b - aLineWidth / 2, 0x164, aLineWidth + 10, 0x17);
-		g->SetColor(Color(0, 0, 0, 255));
-		g->DrawString(aLine, 0x142 - aLineWidth / 2, 0x177);
-		g->SetColor(Color(0x80, 0xff, 0x80));
-		g->DrawString(aLine, 0x140 - aLineWidth / 2, 0x175);
-	}
+	// port: the original draws "thanks for registering" here (0x4b2df0, a green line over a dark box under the logo) on its registered
+	// path; a game with nothing to register has no use for it, so it is left out (docs/GAME_NOTES.md section 3)
 
 	// the bar
 	mBar->DrawPartial(g, 0x9a, 0x17f, (float) mProgress, 1, 0);
