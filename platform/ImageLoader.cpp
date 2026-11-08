@@ -133,6 +133,26 @@ bool DecodeImage(const std::vector<uint8_t>& theData, int& theWidth, int& theHei
 			return true;
 	}
 
+	// JPEGs through libjpeg 6b, as the games' own exes decode them (platform/JPEGDecoder.cpp); a file it refuses
+	// (CMYK, say) is left to stb_image below
+	int jw = 0, jh = 0, jcomp = 0;
+	std::vector<uint8_t> jpx;
+	if (IsJPEG(theData.data(), theData.size()) && DecodeJPEG(theData.data(), theData.size(), jw, jh, jcomp, jpx))
+	{
+		theWidth = jw;
+		theHeight = jh;
+		theBits.resize((size_t)jw * jh);
+		for (size_t i = 0; i < theBits.size(); i++)
+		{
+			const uint8_t* p = &jpx[i * jcomp];
+			const uint32_t r = p[0], g = (jcomp == 3) ? p[1] : p[0], b = (jcomp == 3) ? p[2] : p[0];
+			theBits[i] = 0xFF000000u | (r << 16) | (g << 8) | b;
+		}
+		if (theHasAlpha)
+			*theHasAlpha = false;
+		return true;
+	}
+
 	std::vector<uint8_t> reordered;
 	const std::vector<uint8_t>& data = MoveIHDRFirst(theData, reordered) ? reordered : theData;
 
