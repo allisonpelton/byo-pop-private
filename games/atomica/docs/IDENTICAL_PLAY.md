@@ -198,6 +198,7 @@ mark of the odd ones, then Continue), every atom picked up and put down, the lev
 | native real time, windowed | action (301 moves), action-expert (300 moves), and a 25-minute action game with no end in sight | over; the long game ran 5,211 moves up to level 50 with no error |
 | web, silent, `?fast=1` | strategy (95 moves), strategy-expert (138 moves, focus lost at move 30 and regained) | both over, no error in the page |
 | web, silent, real time | action (301 moves), action-expert (300 moves), focus lost at move 40 and regained in each | both over, no error in the page |
+| web, silent, `&scale=2` (the canvas drawn at 1280 by 960) | strategy (167 moves, focus lost at move 25 and regained), action-expert (300 moves, real time) | both over, no error in the page |
 
 Findings. The bot and the driver had faults of their own, which the first runs showed: the bot added the level box's position to
 a button that the box already places in game coordinates, so it clicked beside Continue for ever (the first run stood in the
@@ -209,8 +210,9 @@ the best of the day (`ScoreTable::Qualifies`, from 0x41e440), so the action-expe
 1,200 in one run got none. Under `-fast` the game runs between two commands of the driver, so an action game (which has its own
 clock) is played much worse than in real time (it ended in 17 to 23 moves); the action games above are real-time runs.
 
-Not covered: the web build in full screen (the browser refuses it to a script, as it needs the player's own click), and
-sound and music in play (the runs are silent by rule; both were compared in phase two).
+Not covered: the web build in full screen (the browser refuses it to a script, as it needs the player's own click, and the pane cannot
+enter it; the runs with `&scale=2` put the clicks at scaled points in its place), and sound and music in play (the runs are silent by
+rule; both were compared in phase two).
 
 ## The fixes mod
 

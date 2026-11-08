@@ -175,8 +175,16 @@ every update, without the mod and with it: without it the two state traces diffe
 happen from a test (the code is one loop run once; the check shows only that the toggle changes nothing when the clock keeps up). With every toggle off the port is the original (the
 frozen baseline, `tools/check.sh atomica`, plays the same with the mod absent).
 
-Fix candidates not made: none found in the play-through. The port has no fault of the original that breaks play (controls that stop
-working, a soft lock, a crash, a lost save) to fix in itself: see `IDENTICAL_PLAY.md`, "Real input".
+What was checked for more fixes, and left as it is. *Bugs of the original that break play* (controls that stop working, a soft lock, a
+crash, a lost save): none in the real-input play-through of every mode (`IDENTICAL_PLAY.md`, "Phase three"); the port already frees what the
+original leaks and returns where the original's `HighScoresBox::Update` writes after deleting itself (section 8). *Waits that only cost the
+player time*: the loading is the port's own (it loads at the machine's speed, section 11); the menu's doors and panel (75 updates after the doors slam, then
+the panel's fall) and the 100 updates before a high score entry are animations that the next screen follows and cost under two seconds; the hint boxes fade in
+and wait for their button. The one real wait is the level made in a strategy game: from the meter filling to the level box 550 updates pass
+(`Board::Update`, `mOverTick == 0x226`, 5.5 s at 100 updates a second), in which Dr. Atomicus speaks (tick 10) and the atoms fly away (tick 200),
+and the player can do nothing. It is the original's level-complete scene, not dead time, so it is kept and not made a toggle; if the
+scene should be shorter, the toggle would move `ShowLevelUp` up to the tick at which the atoms have gone (the state trace would then
+differ from the original's after each level). Nothing else was found.
 
 ## 11. Performance
 

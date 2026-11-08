@@ -6,6 +6,8 @@
 // Parameters of the page: games= a list of strategy, strategy-expert, action, action-expert (default strategy); seconds= the most to
 // play in one game (900); blur= the number of moves at which the window loses the focus for 300 updates and gets it back (0: never);
 // shots= every that many moves a shot is saved (0: only at the end of each game).
+// scale=2 draws the canvas at twice its size (CSS), so that the DOM events land at scaled points as they do in full screen, which the
+// Browser pane cannot enter.
 // idle= after that many moves in a game only wait on the board, so the game ends by itself (action games the bot keeps going for good).
 // Opened as .../atomica.html?player=1&assets=1&fast=1&silent=1&driver=games/atomica/tools/web/onegame.js&run=web-atomica
 // (a fresh profile for the tutorial: ?hold=1 is not needed, the page's test profile starts empty).
@@ -15,6 +17,7 @@ var limit = Number(params.get("seconds") || 900) * 1000;
 var blurAt = Number(params.get("blur") || 0);
 var shotEvery = Number(params.get("shots") || 0);
 var idleAfter = Number(params.get("idle") || 0);
+var scale = Number(params.get("scale") || 1);
 var started = Date.now();
 var result = { games: [], notes: [] };
 
@@ -97,6 +100,13 @@ async function playOne(game) {
 
 try {
   await t.ready;
+  if (scale !== 1) {
+    var cv = document.getElementById("canvas");
+    cv.style.width = Math.round(640 * scale) + "px";
+    cv.style.height = Math.round(480 * scale) + "px";
+    await t.wait(20);
+    result.scale = Math.round(cv.getBoundingClientRect().width) + "x" + Math.round(cv.getBoundingClientRect().height);
+  }
   for (var i = 0; i < games.length; i++) {
     var r = await playOne(games[i]);
     result.games.push(r);
