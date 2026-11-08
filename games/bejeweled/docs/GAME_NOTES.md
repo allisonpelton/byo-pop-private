@@ -2643,3 +2643,54 @@ slice, the title screen reads its progress every fourth update and shows the pla
 the registered original had no minimum time (that was the trial's nag delay, taken out above). The framework logs
 "Resource Loading Time" (about 0.6 s on the test machine, the whole load); the title and its play link follow within the
 next few updates.
+
+## 19. Performance (2026-11-08)
+
+The original and the port measured back to back on the same machine (a Core i7-12700F, 12 cores, Windows 11, a GTX 1080),
+for the user's morning report (`build/slots/news.md`, 2026-11-08). The machine was not quiet: other sessions' games ran
+meanwhile (0 to 3 game processes besides the one measured, noted per run below), so the numbers are for comparing the two
+here and now; the performance pass re-measures later on a quiet machine. Both games ran windowed, in real time, with no sound
+(the port under rundesk, SDL's silent driver; the original under origrun on the host with its silent stand-in), from a fresh
+user folder and with no mods.
+
+**What was measured, and how.** One run is one process from its creation to its exit, sampled every 50 ms by
+`tools/profile/perfmin.py` (working set, private bytes, processor time, threads), the same way for both. The input is the
+same on both sides (`tools/profile/perfscript.py`): the title screen for 15 s, a click on Play, then 40 swaps of neighbouring
+gems 1.5 s apart (17 s to 75.5 s), quit at 90 s. The two games deal different boards (the original's seed is its clock's, and
+the seed patch of the identical-play runs is not used here), so a swap makes a match in some games and not in others; what
+the runs share is the input, the 60 seconds of playing and the drawing of the board. The processor figures are for the
+window from 20 s to 80 s of the process's life, which lies inside the playing in both (the Play click comes at 15 s).
+
+| | original (3 runs) | port (3 runs) |
+|---|---|---|
+| Peak working set | 48.3 MB (48.2 to 48.4) | 53.0 MB (52.8 to 61.3) |
+| Peak private bytes | 34.0 MB (33.8 to 34.1) | 52.7 MB (52.4 to 54.5) |
+| Processor time in the window | 4.7, 5.5 and 7.8 % of one core | 6.2, 6.5 and 11.0 % of one core |
+| Processor time, whole 90 s run | 4.1, 4.2 and 6.6 s | 4.9, 5.0 and 9.0 s |
+| Launch to the first response to Play (click probe, 5 and 7 runs) | 1.06 s median (0.95 to 1.64) | 0.88 s median (0.75 to 0.96) |
+| Launch to the title's play link (the state command, 5 runs) | not measurable (no such command) | 0.66 s median (0.59 to 0.73) |
+
+The slowest run of each game (7.8 % and 11.0 %, the first round) had up to three other game processes running; the other
+two rounds had one or two. The port's second round is its memory outlier (61.3 MB working set, 54.5 MB private bytes); its
+other two runs and all three of the original's sit within 0.4 MB of their medians. The counts of other game processes at the
+start and end of each run are in `build/perf/*/procs.txt` and `build/perf/rounds.txt` (git-ignored).
+
+**Reading it.** The port holds about 18 MB more private memory than the original. `PROFILE.md` (sections 2 and 6) has the
+port's side: every image's pixels kept at 4 bytes a pixel after the GPU has its texture, and the sounds as 48 kHz stereo
+float. Why the original holds less (probably images and sounds kept in fewer bytes) was not examined. The original's working
+set stands 14 MB above its private bytes (DLL pages and mapped files), the port's is level with them, so the two working sets
+differ by only 5 MB. The port's processor time is about 20 % higher than the original's in the two quieter rounds (6.2
+against 5.5 % and 6.5 against 4.7 % of one core), and both are a few per cent of one core. Loading is a little faster in the
+port by the same probe (section 18: it loads the sounds and images in one go).
+
+**What could not be measured.** (1) The web build's load time: the Browser pane is hidden, its timers are throttled and
+`requestAnimationFrame` does not run, and a load in the user's browser is dominated by the network and the wasm compile,
+which a hidden pane does not show faithfully. (2) The original's loading to the second: it has no state command, so its
+figure is the click probe's (a click on Play every 100 ms from the start; the first one the game answers), which is good to
+about 0.15 s and includes building the board; the port's click probe, with the same spacing, is the comparable figure
+(0.88 s), and its own state command gives the lower bound (0.66 s). (3) Full screen and the GPU's own load were not measured.
+
+The tools: `tools/profile/perfmin.py` (the sampler; `--attach` for the original, which origrun starts), `perfscript.py` (the
+input for both), `loadtime.py` (the port's loading time through the live channel). The original ran from a copy of the
+Steam install with the real exe carved out of the wrapper (`tools/extract_game_exe.py`, in `C:\byo-og\bej-perf\game`),
+under `build/origrun-bin/origrun.exe` with `--sound stub` and no virtual clock.
