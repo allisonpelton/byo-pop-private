@@ -17,7 +17,7 @@ elif [ -f "$R/game/bass_real.dll" ]; then
 	mv -f "$R/game/bass_real.dll" "$R/game/bass.dll"
 fi
 rm -f "$R/logs/sound.log" "$R"/game/Players/hiscores.dat "$R"/game/Players/save?.dat
-"$RUNDESK" "$(win "$ORIGRUN")" --exe "$(win "$PWD/$R/game/RocketManiaGame.exe")" --run "rmsd-$N" --script "$(win "$PWD/$D/orig_host.txt")" \
+"$(win "$ORIGRUN")" --exe "$(win "$PWD/$R/game/RocketManiaGame.exe")" --run "rmsd-$N" --script "$(win "$PWD/$D/orig_host.txt")" \
 	--clock ${CLOCK:-virtual} --cursor scripted --counter $COUNTER --update-ms 10 --seed ${GS:-1} --patches tools/origrun/patches/rocketmania.txt --sound wav --timeout "$T" > "$D/orig_sound_run.log" 2>&1
 cp "$R/logs/sound.log" "$D/orig_sound.log" 2>/dev/null; cp "$R/game/basslog.txt" "$D/orig_bass.log" 2>/dev/null
 grep -E "RESULT|SOUND LEAK" "$D/orig_sound_run.log" | tail -3; wc -l "$D/orig_sound.log"

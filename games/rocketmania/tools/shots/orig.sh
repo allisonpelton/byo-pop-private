@@ -12,7 +12,7 @@ if [ ! -f "$R/game/RocketManiaGame.exe" ]; then
 fi
 python games/rocketmania/tools/shots/make.py games/rocketmania/tools/shots/$N.txt "$D" orig > "$D/orig.txt"
 rm -rf "$R/shots"; rm -f "$R"/game/Players/hiscores.dat "$R"/game/Players/save?.dat
-"$RUNDESK" "$(win "$ORIGRUN")" --exe "$(win "$PWD/$R/game/RocketManiaGame.exe")" --run "rmsb-$N" --script "$(win "$PWD/$D/orig.txt")" --sandbox \
+"$(win "$ORIGRUN")" --exe "$(win "$PWD/$R/game/RocketManiaGame.exe")" --run "rmsb-$N" --script "$(win "$PWD/$D/orig.txt")" --sandbox \
 	--clock virtual --cursor scripted --counter $COUNTER --update-ms 10 --seed ${GS:-1} --patches tools/origrun/patches/rocketmania.txt \
 	--timeout "$T" "$@" > "$D/orig.log" 2>&1
 rm -rf "$D/orig"; mkdir -p "$D/orig"; cp "$R"/shots/*.png "$D/orig/" 2>/dev/null
