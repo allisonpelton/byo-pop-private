@@ -142,7 +142,8 @@ What came out:
   (upsells), `ShowRegisterDialog`, and the texts GT_TITLE_REGISTER_NOW, GT_TITLE_ONE_MOMENT,
   GT_TITLE_THANKS_FOR_REGISTERING, GT_OPTIONS_REGISTER and the unused GT_OPTIONS_MORE_GAMES.
 - **Images.** backdrop_register, title_stamp_trial, title_stamp_registered, button_reg_register, button_reg_cancel
-  and button_reg_regcode are no longer loaded; the image ids after them moved down (143 images, 11 loaded by Init).
+  and button_reg_regcode are no longer loaded: their slots stay empty, so every image id keeps its number (Lex's
+  animation table and the effects in a saved game hold image ids as numbers).
 
 Deviations: none that shows in the retail build, since every path taken out was one the registered copy never
 takes. A `partner.xml` that set MaxTime to 0, MaxPlays, ShowTrialStatus or RegisterLabel would change the original
