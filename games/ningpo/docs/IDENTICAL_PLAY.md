@@ -164,7 +164,7 @@ final time or a best time, comes from a tick: those come from the event's own ti
 
 ## The regression check
 
-The port as of a5b98ce is frozen in `build/baseline-ningpo/` (the exe and its DLLs; `COMMIT` names the commit).
+The port as of f5b3502 (libjpeg; a5b98ce before it) is frozen in `build/baseline-ningpo/` (the exe and its DLLs; `COMMIT` names the commit).
 `tools/check.sh ningpo` plays the layouts and won39 cases in the build and in the frozen port, and it requires the
 same non-empty state log from both (commit 677cfc1), besides its earlier seed-7 game and rerun.
 
