@@ -208,6 +208,11 @@ void AstroPopApp::Fn412730()
 	SDL_Log("AstroPop: Fn412730 not translated yet (0x412730)");
 }
 
+void AstroPopApp::ShowThemeDialog()
+{
+	SDL_Log("AstroPop: ShowThemeDialog not translated yet (0x40c490)");
+}
+
 void AstroPopApp::StartGame(bool theContinue)
 {
 	SDL_Log("AstroPop: StartGame(%d) not translated yet (0x428c70)", theContinue ? 1 : 0);

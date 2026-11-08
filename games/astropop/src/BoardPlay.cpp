@@ -54,7 +54,7 @@ void Board::Pause(bool theStart, bool theFlag)
 					mApp->SetLoopSoundsMuted(false);
 				mApp->PauseMusicForFocus(false);
 				m1928 = 0;
-				if (!m6e0)
+				if (!mOverlay.mFlag80)
 					SetOverlayHidden(true);
 				if (!mFlag8E8)
 				{

@@ -141,18 +141,18 @@ void Board::SetOverlayHidden(bool theHide)
 	{
 		mOverlay.SetVisible(false);
 		mOverlay.SetDisabled(true);
-		m6e0 = false;
-		mOverlay.SetFill(m6c8.mRed, m6c8.mGreen, m6c8.mBlue, 0);
+		mOverlay.mFlag80 = false;
+		mOverlay.SetFill(mOverlay.mFill.mRed, mOverlay.mFill.mGreen, mOverlay.mFill.mBlue, 0);
 		return;
 	}
 
 	mOverlay.SetVisible(true);
 	mOverlay.SetDisabled(false);
 	if (m1924 < 1)
-		m6e0 = true;
+		mOverlay.mFlag80 = true;
 }
 
-// 0x434570: the replay recording. The input state (m948, with its second byte m94d) is written when it changes, with
+// 0x434570: the replay recording. The input state (m948, with its second byte (m94c >> 8)) is written when it changes, with
 // the number of updates it lasted (a run of 255s and a remainder).
 void Board::RecordStep(bool theForce)
 {
@@ -190,7 +190,7 @@ void Board::RecordStep(bool theForce)
 	if (aState == 2 || aState == 1)
 	{
 		m758.WriteByte(aState);
-		aState = m94d;
+		aState = (uchar) (m94c >> 8);
 		m758.WriteByte((uchar) (m94c & 7));
 	}
 	else if (aState == 0)

@@ -380,8 +380,6 @@ public:
 	FrameAnim	mAnim620;// +0x620
 	bool	m648 = false;// +0x648
 	BoardOverlay	mOverlay;// +0x660 the widget over the field
-	Color	m6c8;// +0x6c8
-	bool	m6e0 = false;// +0x6e0 ?
 	SoundInstance*	m6e4 = NULL;// +0x6e4
 	int	m6e8 = 0;// +0x6e8 ?
 	int	m6ec = 0;// +0x6ec ?
@@ -524,7 +522,6 @@ public:
 	unsigned char	m948 = 0;// +0x948
 	unsigned char	m949 = 0;// +0x949
 	int	m94c = 0;// +0x94c ?
-	unsigned char	m94d = 0;// +0x94d
 	int	m950 = 0;// +0x950 ?
 	int	m954 = 0;// +0x954 ?
 	int	m958 = 0;// +0x958 ?
@@ -868,6 +865,30 @@ public:
 	void			HideCellHint(Brick* theBrick);                  // (inlined in the handlers) the cell hint goes when its brick does
 	static int		CellColumn(float theX) { return ((int) theX - 0xa6) / 0x2c; }
 	static int		CellRow(float theY) { int aY = (int) theY; return aY < 0x22 ? 0 : (aY - 0x22) / 0x19 + 1; }
+
+	// ---- the input (BoardInput.cpp)
+	virtual void	AddedToManager(WidgetManager* theManager) override;         // 0x459820 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theManager) override;     // 0x43a5d0 slot 2
+	virtual void	KeyChar(SexyChar theChar) override;                         // 0x45c850 slot 20
+	virtual void	KeyDown(KeyCode theKey) override;                           // 0x473870 slot 21
+	virtual void	MouseMove(int x, int y) override;                           // 0x461010 slot 25
+	virtual void	MouseDown(int x, int y, int theBtnNum, int theClickCount) override;  // 0x458170 slot 26 (the middle button)
+	virtual void	MouseDown(int x, int y, int theClickCount) override;        // 0x478cd0 slot 27
+	virtual void	MouseUp(int x, int y, int theClickCount) override;          // 0x432dc0 slot 29
+	virtual void	MouseDrag(int x, int y) override;                           // 0x432b20 slot 31
+	using Widget::MouseDown;
+	using Widget::MouseUp;
+
+	void			PickUp();                                       // 0x472360 the down key, the left button: take bricks from the stack, or use a tool
+	void			FirePiece();                                    // 0x4732d0 the up key, the right button: shoot the bricks in hand up the column
+	bool			CatchFrom7c(bool* theOk);                       // 0x44d8b0 catch the bricks of the fired groups that fly past the pointer
+	bool			CatchFrom94(bool* theOk);                       // 0x44dc30 the same for the groups that fall in the column
+	CellRef			LowestEmptiedCell(int theCol);                  // 0x437640 the lowest cell of the column emptied this update, (-1, -1) for none
+	bool			MatchesHand(Brick* theBrick);                   // 0x4361c0 does the brick match the brick in hand
+	void			MakeHand(int theType, float theX);              // (inlined three times) the brick in hand is born
+	void			StartByHand();                                  // (inlined three times) the player's first move: the Return key, the start button, the middle button
+	void			PickUpDone(bool theFail);                       // (the end of 0x472360) the sound of the pick up, and the checks that follow it
+	void			PopPsychic(bool theHandEmpty);                  // (inside 0x472360, twice: with the hand empty, and with a brick in it) the psychic mode takes the lit bricks out
 
 	// ---- pause and play (BoardPlay.cpp)
 	void			Pause(bool theStart, bool theFlag);             // 0x459040 a dialog opens (true) or closes (false)

@@ -146,6 +146,7 @@ public:
 	void			ShowNewUserDialog();                        // 0x40bc00 (stub)
 	void			ShowMessageDialog(const std::string& theHeader, const std::string& theText); // 0x411ba0 (stub): an OK box
 	void				Fn412730();         // 0x412730: the warp screen's OK panel (not translated yet)
+	void				ShowThemeDialog();  // 0x40c490: the dialog of the colour set, opened by the first move (not translated yet)
 	Dialog*			MakeDialog(int theId, bool theFlag, int theWidth, int theX, int theY, int theButtons, const std::string& theHeader, const std::string& theText, const std::string& theYes, const std::string& theNo, bool theModal);   // 0x411ba0 (stub)
 	// The screens the selector opens. Not translated yet: each one logs "not translated" and does nothing.
 	void			StartGame(bool theContinue);                // 0x428c70 (the Board)

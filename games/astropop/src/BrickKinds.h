@@ -77,6 +77,7 @@ public:
 	int				mBoosterTick;       // +0x248 updates to the next whoosh
 
 	PowerBrick(Board* theBoard, EventBus* theBus, int theColumn);
+	void			Activate();                                         // 0x402d20 the column nuke is fired
 	virtual void	OnSpawn() override;                                 // 0x4039c0
 	virtual void	OnSettle() override;                                // 0x403930
 	virtual void	OnDie() override;                                   // 0x408340

@@ -75,8 +75,6 @@ f8	std::vector<int>	mf8
 620	FrameAnim	mAnim620
 648	bool	m648
 660	BoardOverlay	mOverlay	the widget over the field
-6c8	Color	m6c8
-6e0	bool	m6e0	?
 6e4	SoundInstance*	m6e4
 6e8	int	m6e8	?
 6ec	int	m6ec	?
@@ -219,7 +217,6 @@ f8	std::vector<int>	mf8
 948	unsigned char	m948
 949	unsigned char	m949
 94c	int	m94c	?
-94d	unsigned char	m94d
 950	int	m950	?
 954	int	m954	?
 958	int	m958	?

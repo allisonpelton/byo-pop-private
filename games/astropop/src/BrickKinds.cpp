@@ -648,6 +648,16 @@ PowerBrick::PowerBrick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mBoosterTick = 100;
 }
 
+// 0x402d20: the column nuke is fired: the brick comes back into view and its death effect plays
+void PowerBrick::Activate()
+{
+	mActive = true;
+	mFxAnim.SetStopped(false);
+	SetVisible(true);
+	mHidden = false;
+	SetState(3);
+}
+
 // 0x4039c0 (listener) event 0
 void PowerBrick::OnSpawn()
 {
