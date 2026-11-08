@@ -42,6 +42,8 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
+#include <emscripten/heap.h>
+#include <malloc.h>
 #include "WebProfiles.h"
 #endif
 
@@ -319,12 +321,51 @@ EMSCRIPTEN_KEEPALIVE void byopop_hold_updates_at(int theUpdate)
 {
 	gWebHoldAt = theUpdate;
 }
+
+// port: the site's performance panel (web/perf.js; docs/WEB_PLAYER.md, "The performance panel"), web only and read only: the
+// images the framework keeps (its MemoryImage set) with the bytes of their pixels and the blitters' caches, the loaded
+// sounds with the bytes of their samples, and the wasm heap's size and the bytes malloc has handed out, as one JSON line. The panel calls it about once a second while it is open; nothing
+// else does.
+EMSCRIPTEN_KEEPALIVE const char* byopop_perf_json()
+{
+	static std::string aJson;
+	if (gSexyAppBase == NULL)
+		return "null";
+	size_t anImageBytes = 0;
+	for (MemoryImage* anImage : gSexyAppBase->mMemoryImageSet)
+	{
+		size_t aPixels = (size_t) std::max(anImage->mWidth, 0) * (size_t) std::max(anImage->mHeight, 0);
+		if (anImage->mBits != NULL) anImageBytes += aPixels * sizeof(ulong);
+		if (anImage->mColorTable != NULL) anImageBytes += 256 * sizeof(ulong);
+		if (anImage->mColorIndices != NULL) anImageBytes += aPixels;
+		if (anImage->mNativeAlphaData != NULL) anImageBytes += aPixels * sizeof(ulong);
+		if (anImage->mRLAlphaData != NULL) anImageBytes += aPixels;
+		if (anImage->mRLAdditiveData != NULL) anImageBytes += aPixels;
+		anImageBytes += anImage->mHDBits.capacity() * sizeof(uint32_t);
+	}
+	int aSounds = 0;
+	size_t aSoundBytes = 0;
+	SDLSoundManager* aSoundManager = dynamic_cast<SDLSoundManager*>(gSexyAppBase->mSoundManager);
+	if (aSoundManager != NULL)
+	{
+		aSounds = aSoundManager->GetNumSounds();
+		aSoundBytes = aSoundManager->GetSoundBytes();
+	}
+	struct mallinfo anInfo = mallinfo();
+	char aBuf[320];
+	snprintf(aBuf, sizeof(aBuf), "{\"updates\":%d,\"images\":%d,\"imageBytes\":%zu,\"sounds\":%d,\"soundBytes\":%zu,\"heap\":%zu,\"heapUsed\":%zu}",
+		gSexyAppBase->mUpdateCount, (int) gSexyAppBase->mMemoryImageSet.size(), anImageBytes, aSounds, aSoundBytes,
+		(size_t) emscripten_get_heap_size(), (size_t) anInfo.uordblks);
+	aJson = aBuf;
+	return aJson.c_str();
+}
 }
 
 // port: the player-only page's frame hook (web/testkit.js, Module.byopopTestFrame), after each browser frame's updates and
 // draw (whether it drew); no other page sets it. (The runtime's own Module.postMainLoop is compiled out of these builds.)
-EM_JS(void, sexyapp_test_frame, (int theDrew), {
-	if (Module.byopopTestFrame) Module.byopopTestFrame(theDrew != 0);
+// It also gets the time the frame's updates and draw took (ms), which the performance panel shows (web/perf.js).
+EM_JS(void, sexyapp_test_frame, (int theDrew, double theMs), {
+	if (Module.byopopTestFrame) Module.byopopTestFrame(theDrew != 0, theMs);
 });
 
 EM_JS(void, sexyapp_alert, (const char* theText), {
@@ -2607,6 +2648,7 @@ void SexyAppBase::EmscriptenMainLoop(void* theArg)
 	// One browser frame: step until every due update ran and a frame was drawn, or until nothing is due
 	// before the next animation frame (where 1.3 would have slept).
 	int aDrawCount = anApp->mDrawCount;
+	double aStart = emscripten_get_now();
 	for (int aStep = 0; (aStep < 1000) && (!anApp->mShutdown); aStep++)
 	{
 		if (anApp->mExitToTop)
@@ -2616,7 +2658,7 @@ void SexyAppBase::EmscriptenMainLoop(void* theArg)
 		if ((anApp->mDrawCount != aDrawCount) || (anApp->mNothingDue))
 			break;
 	}
-	sexyapp_test_frame(anApp->mDrawCount != aDrawCount);
+	sexyapp_test_frame(anApp->mDrawCount != aDrawCount, emscripten_get_now() - aStart);
 
 	if (anApp->mShutdown)
 	{
