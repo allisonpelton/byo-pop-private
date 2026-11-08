@@ -643,55 +643,6 @@ bool PGApp::loadAssets(PGSpriteEntry* theTable, int theCount, const char* theMus
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Links
-
-void PGApp::openURL(const char* theDefault, const char* theCompany, const char* theProduct, const char* theValue,
-	bool thePartner)
-{
-	char anURL[0x400];
-	HStrncpy(anURL, theDefault, 0x400);
-	// the archive's config.txt may name both (Ning Po's has none)
-	std::vector<uint8_t> aConfig;
-	if (mFileSystem != nullptr && mFileSystem->readFile("config.txt", aConfig))
-	{
-		std::string aText(aConfig.begin(), aConfig.end());
-		char aPurchase[0x400] = {};
-		char aPartner[0x400] = {};
-		sscanf(aText.c_str(), "purchaseURL=%1023s\r\npartnerURL=%1023s\r\n", aPurchase, aPartner);
-		HStrncpy(anURL, thePartner ? aPartner : aPurchase, 0x400);
-	}
-	HRegistry* aRegistry = GetRegistry();
-	if (aRegistry->open(theCompany, theProduct))
-	{
-		char aBuf[0x400];
-		if (aRegistry->readString(theValue, aBuf, 0x400))
-			HStrncpy(anURL, aBuf, 0x400);
-		aRegistry->close();
-	}
-	// 0x41410c: ShellExecute
-	GetHost()->OpenURL(anURL);
-}
-
-void PGApp::openPartnerURL(const char* theDefault, const char* theCompany, const char* theProduct)
-{
-	openURL(theDefault, theCompany, theProduct, "partnerURL", true);
-}
-
-void PGApp::openPurchaseURL(const char* theDefault, const char* theCompany, const char* theProduct)
-{
-	openURL(theDefault, theCompany, theProduct, "purchaseURL", false);
-}
-
-bool PGApp::checkRegistration(const char* theCompany, const char* theProduct, int theKey, bool theOnline)
-{
-	(void)theCompany;
-	(void)theProduct;
-	(void)theKey;
-	(void)theOnline;
-	return true;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // The framework's dialogs
 
 namespace
@@ -727,51 +678,6 @@ public:
 		mCancelSprite.release();
 		mOkLit.release();
 		removeAll();
-	}
-};
-
-// vtable 0x4632e0
-class StartupDialog : public PGDialog
-{
-public:
-	const char* mUrl;        // +0x44
-	const char* mCompany;    // +0x48
-	const char* mProduct;    // +0x4c
-	PGApp* mOwner;           // +0x50
-	PyTime mStart;           // +0x58
-	int mDuration;           // +0x60
-	PGDialogImage mImage;    // +0x64
-	PGDialogButton mOk;      // +0x1a0
-	PGSprite mBackground;    // +0x2e4
-	PGSprite mImageSprite;   // +0x338
-	PGSprite mOkSprite;      // +0x38c
-	PGSprite mOkLit;         // +0x3e0
-
-	// 0x410eb0
-	bool onItemClicked(PGDialogItem* theItem) override
-	{
-		mOwner->openPurchaseURL(mUrl, mCompany, mProduct);
-		return true;
-	}
-	// 0x410ed0: the image fills over the duration; then the dialog ends
-	bool onTimeout() override
-	{
-		if (mStart == 0)
-			mStart = mOwner->mEventTime;
-		PyTime aNow = mOwner->mEventTime;
-		if (PyTimeSub(aNow, mStart) <= mDuration)
-		{
-			mImage.setProgress((float)PyTimeSub(aNow, mStart) / (float)(mDuration - 1));
-			return false;
-		}
-		return true;
-	}
-	// 0x410410
-	bool handleEvent(const PGEvent* theEvent) override
-	{
-		if (theEvent->mType != EV_QUIT)
-			return PGDialog::handleEvent(theEvent);
-		return true;
 	}
 };
 
@@ -881,58 +787,6 @@ int PGApp::messageDialog(int theX, int theY, int theTimeout, const char* theBack
 	aDialog.releaseAll();
 	invalidateAll();
 	return aResult;
-}
-
-void PGApp::startupDialog(const char* theBackground, int theX, int theY, const char* theOk, const char* theOkLit,
-	int theOkX, int theOkY, const char* theImage, int theImageX, int theImageY, int theDuration,
-	const char* theUrl, const char* theCompany, const char* theProduct)
-{
-	StartupDialog aDialog;
-	HFileSystem* aFileSystem = mFileSystem;
-	aDialog.mStart = 0;
-	HDisplay* aDisplay = mDisplay;
-	aDialog.mUrl = theUrl;
-	aDialog.mCompany = theCompany;
-	aDialog.mProduct = theProduct;
-	aDialog.mDuration = theDuration;
-	aDialog.mOwner = this;
-	aDialog.mBackground.load(aDisplay, aFileSystem, theBackground);
-	if (theX == -1)
-		theX = (aDisplay->mWidth - aDialog.mBackground.width()) / 2;
-	if (theY == -1)
-		theY = (aDisplay->mHeight - aDialog.mBackground.height()) / 2;
-	PGPoint anAt = {theX, theY};
-	aDialog.setPosition(&anAt);
-	aDialog.setBackground(&aDialog.mBackground);
-	aDialog.mOkSprite.load(aDisplay, aFileSystem, theOk);
-	PGSprite* aLit = &aDialog.mOkSprite;
-	if (theOkLit != nullptr)
-	{
-		aDialog.mOkLit.load(aDisplay, aFileSystem, theOkLit);
-		aLit = &aDialog.mOkLit;
-	}
-	aDialog.mOk.setSprites(&aDialog.mOkSprite, aLit, nullptr);
-	if (theOkX == -1)
-		theOkX = (aDialog.mBackground.width() - aDialog.mOkSprite.width()) / 2;
-	if (theOkY == -1)
-		theOkY = aDialog.mBackground.height() - (aDialog.mOkSprite.height() * 3) / 2;
-	anAt = {theOkX, theOkY};
-	aDialog.mOk.setPosition(&anAt);
-	aDialog.addItem(&aDialog.mOk);
-	if (theImage != nullptr)
-	{
-		aDialog.mImageSprite.load(aDisplay, aFileSystem, theImage);
-		anAt = {theImageX, theImageY};
-		aDialog.mImage.setPosition(&anAt);
-		aDialog.mImage.setSprite(&aDialog.mImageSprite);
-		aDialog.addItem(&aDialog.mImage);
-	}
-	aDialog.doModal(this, mDisplay, &mInput, theDuration != 0 ? 0x10 : 0, 0);
-	aDialog.mOkSprite.release();
-	aDialog.mOkLit.release();
-	aDialog.mImageSprite.release();
-	aDialog.mBackground.release();
-	aDialog.removeAll();
 }
 
 bool PGApp::slideshow(int theX, int theY, const char* theClose, const char* theCloseLit, const char* theNext,

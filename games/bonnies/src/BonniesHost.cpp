@@ -7,11 +7,14 @@
 #include "MemoryImage.h"
 #include "WidgetManager.h"
 #include "platform/Audio.h"
+#include "platform/ImageLoader.h"
+#include "platform/MusicLevels.h"
 #include "platform/VFS.h"
 
 #include <SDL.h>
 #include <stb_image.h>
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <deque>
 #include <memory>
@@ -173,13 +176,14 @@ public:
 		return gHostApp->GetClockTime();
 	}
 
-	// a test run (hidden, on rundesk's desktop) has the focus, as the user's window would, until a script's "focus 0"
+	// a test run (hidden, on rundesk's desktop) has the focus, as the user's window would, until a script's "focus 0";
+	// a -realinput run has only the focus and the mouse its file's events give (docs/REAL_INPUT.md)
 	unsigned char getAppState() override
 	{
 		unsigned char aState = 0;
 		if (!gHostApp->mMinimized)
 			aState |= bonnies::SDL_APPACTIVE;
-		bool aTestFocus = gHostApp->IsTestRun() && !gHostApp->mScriptNoFocus;
+		bool aTestFocus = gHostApp->IsTestRun() && !gHostApp->mScriptNoFocus && gHostApp->mRealInputFileName.empty();
 		if ((gHostApp->mHasFocus && !gHostApp->mScriptNoFocus) || aTestFocus)
 			aState |= bonnies::SDL_APPINPUTFOCUS;
 		if ((gHostApp->mMouseInside && !gHostApp->mScriptNoFocus) || aTestFocus)
@@ -211,11 +215,13 @@ public:
 	}
 
 	// The framework runs while the game is busy (loading) too, so the window stays responsive. Unfocused, the game waits 2 ms a frame in a loop of pumps (0x420770) that never sleeps; a -fast run's clock moves
-	// only when the framework runs, so while a script has taken the focus away a pump runs it once
+	// only when the framework runs, so while a script, or a -realinput run's own focus loss, has taken the focus away a
+	// pump runs it once
 	void pumpEvents() override
 	{
 		if ((int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100 ||
-			(gHostApp->mFastMode && gHostApp->mScriptNoFocus))
+			(gHostApp->mFastMode && (gHostApp->mScriptNoFocus ||
+			(!gHostApp->mRealInputFileName.empty() && !gHostApp->mHasFocus))))
 			gHostApp->RunFramework(0);
 	}
 
@@ -316,6 +322,13 @@ public:
 	bool getCursorPos(int* theX, int* theY) override
 	{
 #ifndef __EMSCRIPTEN__
+		// a -realinput run's mouse is where its events left it, not the real cursor (docs/REAL_INPUT.md)
+		if (!gHostApp->mRealInputFileName.empty())
+		{
+			*theX = mMouseX;
+			*theY = mMouseY;
+			return true;
+		}
 		SDL_GetGlobalMouseState(theX, theY);
 		return true;
 #else
@@ -359,7 +372,8 @@ public:
 		if (!stbi_info_from_memory(theData.data(), (int)theData.size(), &aWidth, &aHeight, &aComponents))
 			return false;
 		int aWanted = aComponents == 4 || aComponents == 2 ? 4 : 3;
-		uint8_t* aPixels = stbi_load_from_memory(theData.data(), (int)theData.size(), &aWidth, &aHeight, &aComponents,
+		// a JPEG through libjpeg 6b, as SDL_image decodes it in the original, every other image through stb_image
+		uint8_t* aPixels = Platform::LoadImageFromMemory(theData.data(), (int)theData.size(), &aWidth, &aHeight, &aComponents,
 			aWanted);
 		if (aPixels == nullptr)
 			return false;
@@ -694,7 +708,7 @@ public:
 		// Sndmix.cpp), FMOD 3 at the full 256: the original's menu music, recorded through origrun, is 5.3 times as
 		// loud as the port's was, its sounds as loud
 		if (aSong > 0)
-			Platform::Mixer::Get().SetSongAmplify(aSong, 256.0f / 48.0f);
+			Platform::Mixer::Get().SetSongAmplify(aSong, (float)BYOPOP_FMOD3_XM_GAIN);
 		return aSong > 0 ? (void*)(intptr_t)aSong : nullptr;
 	}
 
@@ -854,11 +868,55 @@ BonniesWidget::~BonniesWidget()
 	delete mScreenImage;
 }
 
+#ifdef __EMSCRIPTEN__
+// port (test runs): the game's state and a word on its board, for the Browser pane's real-input player
+// (games/bonnies/tools/paneplay.js), which calls it with ccall. Read only: it changes nothing in the game.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* bonnies_test_state()
+{
+	static std::string sText;
+	sText = bonnies::testState() + bonnies::testWord();
+	return sText.c_str();
+}
+
+// port (the web build's tests): a test command (docs/TEST_COMMANDS.md) from the page, as -script gives one natively;
+// its answer line, which the page logs. Only a test calls it.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* bonnies_test_command(const char* theLine)
+{
+	static std::string sText;
+	std::string aLine = theLine;
+	size_t aSpace = aLine.find(' ');
+	sText = bonnies::testCommand(aLine.substr(0, aSpace), aSpace == std::string::npos ? "" : aLine.substr(aSpace + 1));
+	if (sText.empty())
+		sText = "ERROR " + aLine + ": no such command";
+	return sText.c_str();
+}
+#endif
+
 void BonniesWidget::Update()
 {
 	Widget::Update();
 	if (mScreenChanged)
 		MarkDirty();
+#ifndef __EMSCRIPTEN__
+	// port (test runs): the game's state for tools/realplay.py, which plays from it with real input (Start.h), written
+	// whole to a second file and renamed, so that a reader never sees half of it (it may miss the file for a moment)
+	// (SDL_getenv answers in one buffer on Windows, which the next call overwrites)
+	static const std::string sStateFile = SDL_getenv("BONNIES_STATE") != nullptr ? SDL_getenv("BONNIES_STATE") : "";
+	static uint32_t sStateTime = 0;
+	if (!sStateFile.empty() && gHostApp->IsTestRun() && SDL_GetTicks() - sStateTime >= 100)
+	{
+		sStateTime = SDL_GetTicks();
+		std::string aTemp = sStateFile + ".new";
+		if (FILE* aFile = fopen(aTemp.c_str(), "wb"))
+		{
+			std::string aState = bonnies::testState();
+			fwrite(aState.data(), 1, aState.size(), aFile);
+			fclose(aFile);
+			std::remove(sStateFile.c_str());
+			std::rename(aTemp.c_str(), sStateFile.c_str());
+		}
+	}
+#endif
 }
 
 // The game's screen (0x00RRGGBB) as it was last presented
@@ -1112,11 +1170,19 @@ void BonniesHostApp::LostFocus()
 }
 
 // A script's "focus 0" and "focus 1" (a test hook): the window loses the focus and gets it back, as when the player
-// clicks another window and then the game's
+// clicks another window and then the game's. The standard test commands (docs/TEST_COMMANDS.md) are the game's
+// (bonnies::testCommand), answered with one line on stdout.
 bool BonniesHostApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	if (theCommand.mCommand != "focus")
-		return false;
+	{
+		std::string aReply = bonnies::testCommand(theCommand.mCommand, theCommand.mArgs);
+		if (aReply.empty())
+			return false;
+		printf("%s\n", aReply.c_str());
+		fflush(stdout);
+		return true;
+	}
 	mScriptNoFocus = theCommand.mArgs == "0";
 	if (mScriptNoFocus)
 		LostFocus();

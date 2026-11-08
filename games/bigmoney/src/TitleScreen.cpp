@@ -24,38 +24,9 @@ static ulong BoostLuminosity(ulong theHSL, int theLum)
 TitleScreen::TitleScreen(WinBMApp* theApp)
 {
 	mApp = theApp;
-	mCountdownTrial = true;
-
-	// 0x41b163..0x41b293: mMaxPlays from mVariation ("CntDn30"/"CntUp30" 30, "CntDn10"/"CntUp10" 10, else
-	// GetInteger("MaxPlays", 10)) not ported: it only feeds the trial expiry and the unregistered texts.
-	mMaxPlays = 0;
 
 	mLoadProgress = 0.0;
-	mNagProgress = 0.0;
 	mLoadDone = false;
-	mWantRegister = false;
-	mTrialExpired = false;
-
-	if (mApp->mTimesPlayed > 10)
-		mNagSeconds = mApp->mTimesPlayed + 5;
-	else
-		mNagSeconds = 10;
-	if (mApp->GetBoolean("RealArcade", false))
-		mNagSeconds = 0;
-
-	// Drops back to 2 from 10 plays on (original quirk; the number is only shown unregistered).
-	if (mApp->mTimesPlayed < 2)
-		mShownTimesPlayed = 0;
-	else if (mApp->mTimesPlayed < 10)
-		mShownTimesPlayed = mApp->mTimesPlayed;
-	else
-		mShownTimesPlayed = 2;
-
-	mRegisterLink = new HyperlinkWidget(REGISTER_LINK_ID, this);
-	mRegisterLink->mUnderlineSize = 0;
-	mRegisterLink->SetFont(mApp->mFont3OutlineUnderlined);
-	mRegisterLink->mColor = Color(32, 255, 32);
-	mRegisterLink->SetVisible(!mApp->mIsRegistered);
 
 	mPlayLink = new HyperlinkWidget(PLAY_LINK_ID, this);
 	mPlayLink->mUnderlineSize = 0;
@@ -113,7 +84,6 @@ TitleScreen::TitleScreen(WinBMApp* theApp)
 // 0x419630
 TitleScreen::~TitleScreen()
 {
-	delete mRegisterLink;
 	delete mPlayLink;
 	delete[] mDeluxeHSL;
 	delete[] mDeluxeWork;
@@ -124,7 +94,6 @@ TitleScreen::~TitleScreen()
 void TitleScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
-	theWidgetManager->AddWidget(mRegisterLink);
 	theWidgetManager->AddWidget(mPlayLink);
 }
 
@@ -132,7 +101,6 @@ void TitleScreen::AddedToManager(WidgetManager* theWidgetManager)
 void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
-	theWidgetManager->RemoveWidget(mRegisterLink);
 	theWidgetManager->RemoveWidget(mPlayLink);
 }
 
@@ -145,18 +113,13 @@ void TitleScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 // 0x419730
 void TitleScreen::ButtonDepress(int theId)
 {
-	if (theId == REGISTER_LINK_ID)
-		mWantRegister = true;
-	else
-		mApp->TitleScreenIsFinished(); // trial expired (unregistered only): the quit link calls mApp->Shutdown() instead
+	mApp->TitleScreenIsFinished();
 }
 
 // 0x41a810
 void TitleScreen::Update()
 {
 	Widget::Update();
-
-	bool aRealArcade = mApp->GetBoolean("RealArcade", false);
 
 	if (mUpdateCnt % 8 == 0)
 	{
@@ -216,38 +179,15 @@ void TitleScreen::Update()
 		else
 			mBarDY = 0;
 
-		// The register link (hidden when registered) rides up with the bar.
-		int aWidth = mRegisterLink->mFont->StringWidth(mRegisterLink->mLabel) + 4;
-		mRegisterLink->Resize(308 - aWidth / 2, mBarDY + 374, aWidth, 26);
 		MarkDirty();
 	}
-
-	// 0x41ab41: trial expiry (!RealArcade && mTimesPlayed >= mMaxPlays && !mIsRegistered -> mTrialExpired,
-	// mWantRegister) not ported: never true when registered.
-	// 0x41aef2: the expired branch (CLICK_HERE_TO_QUIT play link at update 1000, CLICK_HERE_TO_REGISTER_NOW)
-	// not ported for the same reason.
 
 	mPlayLink->mLabel = mApp->GetString("CLICK_HERE_TO_PLAY");
 	int aPlayWidth = mPlayLink->mFont->StringWidth(mPlayLink->mLabel) + 8;
 	mPlayLink->Resize(308 - aPlayWidth / 2, 435, aPlayWidth, 32);
 
-	mRegisterLink->mLabel = mApp->GetString(aRealArcade ? "CLICK_HERE_TO_REGISTER_NOW" : "REGISTER_NOW_TO_UNLOCK_THIS_GAME");
-
-	// The nag timer still runs; it only limits the bar when unregistered. mNagSeconds 0 gives +inf.
-	mNagProgress = 0.01 / (double)mNagSeconds + mNagProgress;
-	if (mNagProgress > 1.0)
-		mNagProgress = 1.0;
-
-	int aShownCount = (int)((double)mApp->mTimesPlayed * mNagProgress);
-	if (aShownCount <= mApp->mTimesPlayed && aShownCount > mShownTimesPlayed)
-	{
-		mShownTimesPlayed = aShownCount;
-		MarkDirty();
-	}
-
 	if (!mLoadDone && mUpdateCnt % 4 == 0)
 	{
-		// Unregistered, the bar shows min(progress, mNagProgress) instead (not ported).
 		mLoadProgress = mApp->GetLoadingThreadProgress();
 		if (mLoadProgress == 1.0 && mApp->mLoaded)
 		{
@@ -258,12 +198,6 @@ void TitleScreen::Update()
 		MarkDirty();
 	}
 
-	mRegisterLink->SetVisible(!mApp->mIsRegistered);
-
-	// 0x41b0d7: if (mLoaded && mWantRegister) { ShowRegisterDialog(); mWantRegister = false; } not ported
-	// (registration; the register link is never visible when registered).
-
-	mApp->mTimedOut = mTrialExpired;
 }
 
 // 0x419950
@@ -313,7 +247,6 @@ void TitleScreen::Draw(Graphics* g)
 
 	if (mApp->mCobrandImage != NULL)
 		g->DrawImage(mApp->mCobrandImage, 8, mHeight + mBarDY - mApp->mCobrandImage->GetHeight());
-	// 0x419dd1: else, unregistered only, IMAGE_TRIALVERSION at (0, mHeight + mBarDY - its height): not ported.
 
 	Image* aGoldBar = anImages[IMAGE_GOLDBAR];
 	if (mLoadProgress >= 1.0)
@@ -361,13 +294,9 @@ void TitleScreen::Draw(Graphics* g)
 		g->DrawImage(mDeluxeImage, 478, 18);
 	}
 
-	// Status line. Registered path only: THANKS_FOR_REGISTERING unless the build is unlocked (empty on
-	// Steam). 0x41a072: the unregistered texts at y 370 (plays remaining, registration required,
-	// UNREGISTERED_VERSION, YOU_HAVE_PLAYED_X_TIMES_WITHOUT_REGISTERING) are not ported.
+	// Status line: empty, but for PLEASE_WAIT on the first run
 	g->SetFont(mApp->mFont3Outline);
 	SexyString aText;
-	if (!mApp->mBuildUnlocked)
-		aText = mApp->GetString("THANKS_FOR_REGISTERING");
 	int aTextY = 397;
 
 	if (mApp->mTimesPlayed == 0 && mLoadProgress < 1.0)

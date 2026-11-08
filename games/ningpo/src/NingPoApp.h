@@ -11,6 +11,7 @@
 #include "Widget.h"
 
 #include <cstdio>
+#include <functional>
 #include <string>
 
 namespace ningpo
@@ -57,6 +58,8 @@ public:
 	std::string mStateLogFileName;
 	FILE* mStateLog;
 	int mStateLogValues[32];
+	// a test command's action, run at the game's next read of its events (src/TestCommands.cpp)
+	std::function<void()> mTestAction;
 
 	NingPoApp();
 	virtual ~NingPoApp();
@@ -68,6 +71,8 @@ public:
 	void LostFocus() override;
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	// the standard test commands (docs/TEST_COMMANDS.md; src/TestCommands.cpp)
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	using SexyAppBase::SwitchScreenMode;
 
 	// The event the window procedure would have posted, with the modifier keys held
@@ -80,6 +85,8 @@ public:
 	// -statelog: the values that changed since the last call, each time the game reads its event queue (origrun reads
 	// the original's watches at its waits and clock reads, which come at the same points of its loop)
 	void UpdateStateLog();
+	// pg::Host::EventRead: the state log, then a test command's action (src/TestCommands.cpp)
+	void EventRead();
 };
 
 extern NingPoApp* gApp;

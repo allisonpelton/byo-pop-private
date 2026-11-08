@@ -379,8 +379,11 @@ struct GameFeatures
 	bool							mLean = false;          // less memory and processor time (4.21)
 	bool							mLeanImages = true;     // images at 1 byte a pixel where they allow it, the title's freed after it
 	int								mLeanFrameRate = 0;     // at most this many frames a second; 0: every frame the original draws
+	bool							mFixes = false;         // the fixes mod: one toggle for each fix of the original (docs/MOD_ROADMAP.md, "The fixes mod")
+	bool							mFixSelection = true;   // fixes.selection: a gem selected before the board was refilled is no longer swapped in
+	bool							mFixResumeLook = true;  // fixes.resumeLook: a saved game comes back with its own level's background and tint
 
-	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt || mGameStats || mLean; }
+	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt || mGameStats || mLean || mFixes; }
 	std::string						Text() const;           // "seeds(entry, perGame), replays(keep 20), livesplit" or "none"
 };
 
