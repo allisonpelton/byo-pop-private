@@ -71,7 +71,7 @@ enum WinWSDialogId
 	DIALOG_MESSAGE = 0x1f4,             // the plain message dialogs (0x41bd80, 0x41c4f0)
 	DIALOG_DIFFICULTY = 0x309,          // DifficultyDialog (0x43f0f0)
 	DIALOG_OPTIONS = 0x30a,             // OptionsDialog (0x43bf10), made by ShowOptions (0x414150)
-	DIALOG_REGISTER_30C = 0x30c,        // not ported (RegisterDialog)
+	DIALOG_CREDITS = 0x30c,             // the credits box of the Options dialog's Credits button (0x43cd90); its OK button (0xadc) kills it
 	DIALOG_NEW_USER = 0x44d,            // NewUserDialog (0x43bcc0), made by ShowNewUserDialog (0x414270)
 	DIALOG_SELECT_USER = 0x44e,         // SelectUserDialog "WHO ARE YOU?" (0x43edb0), made by 0x4128a0
 	DIALOG_DELETE_USER = 0x44f,         // DeleteUserDialog "DELETE WHO?" (0x43dcb0), made by 0x4267d0

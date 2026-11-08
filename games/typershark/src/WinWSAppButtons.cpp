@@ -6,8 +6,8 @@
 //  - 0x11b3, 0x159b: buttons of the update dialog 0x9e3 (0x41b230 starts the update check dialogs); 0x38c4, 0x3cac,
 //    0x5fd4: buttons of the update dialogs 0x30f4 and 0x9e4 (0x38c4 also asks InternetManager::GetUpdateURL and opens it).
 //  - 0x190 (the Register button), 0x11b5 and 0x159d (yes and no of the trial-limit dialog 0x9e5, 0x41c1c0), 0xa28 and
-//    0xe10 (yes and no of the register dialog 600, 0x414020), 0xadc (register dialog 0x30c): they open or close the
-//    register dialogs, which the port does not have.
+//    0xe10 (yes and no of the register dialog 600, 0x414020): they open or close the register dialogs, which the port
+//    does not have. (0xadc is no register button: it is the OK button of the credits dialog 0x30c, translated below.)
 //  - 0x41da80 (the trial-limit test, "You have played for more than %d minutes. Please register ...") in the cases of
 //    0x64, 0x65, 0x66, 0x67 and 0x6a: it is false for a registered game. 0x41d870 (the play counter of a trial) in 0x9c4.
 //    0xc9: the text of the unregistered game ("In the registered version, your progress is saved every %d feet").
@@ -589,6 +589,10 @@ void WinWSApp::ButtonDepress(int theId)
 		return;
 	}
 
+	case 0xadc:     // the OK button of the credits dialog (id 0x30c + 2000)
+		KillDialog(DIALOG_CREDITS);
+		return;
+
 	case 0xada:     // the options dialog (id 0x30a + 2000) and its other buttons
 	case 0x30a:
 	case 0x30b:
@@ -596,17 +600,17 @@ void WinWSApp::ButtonDepress(int theId)
 	case 0x30d:
 	case 0x30e:
 	{
-		bool aWindowed = !mOptionsDialog->mField140->IsChecked();       // +0x140: the full screen check box
-		bool a3D = mOptionsDialog->mField150->IsChecked();              // +0x150: the 3D acceleration check box
+		bool aWindowed = !mOptionsDialog->mFullScreenCheckbox->IsChecked();     // +0x140: the full screen check box
+		bool a3D = mOptionsDialog->m3DCheckbox->IsChecked();                    // +0x150: the 3D acceleration check box
 		mOpenDialogCount = 0;
 		mRegisterDialog = NULL;
 		if ((aWindowed) && (mForceFullscreen))      // this[0x307]
 			ShowNoWindowedModeMessage();            // 0x41d030
 		else
 			SwitchScreenMode(aWindowed, a3D);       // slot 52
-		mFastCPU = mOptionsDialog->mField144->IsChecked();
-		EnableCustomCursors(mOptionsDialog->mField14c->IsChecked());
-		mUser->SetSpacePauses(mOptionsDialog->mField148->IsChecked());  // 0x416ed0
+		mFastCPU = mOptionsDialog->mEffectsCheckbox->IsChecked();               // +0x144
+		EnableCustomCursors(mOptionsDialog->mCursorsCheckbox->IsChecked());     // +0x14c
+		mUser->SetSpacePauses(mOptionsDialog->mSpacePausesCheckbox->IsChecked());   // +0x148; 0x416ed0
 		if (mBoard != NULL)
 			mBoard->SetFastCPU(mFastCPU);           // 0x440570
 		KillDialog(DIALOG_OPTIONS);
