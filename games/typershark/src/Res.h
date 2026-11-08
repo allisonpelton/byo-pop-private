@@ -306,18 +306,19 @@ enum SoundId
 
 enum TreasureNameId
 {
-	TREASURE_EMERALD = 0,
-	TREASURE_GEM = 1,
-	TREASURE_CRYSTAL = 2,
-	TREASURE_RUBY = 3,
-	TREASURE_DIAMOND = 4,
-	TREASURE_SAPPHIRE = 5,
+	TREASURE_NAME0 = 0,
+	TREASURE_NAME1 = 1,
+	TREASURE_NAME2 = 2,
+	TREASURE_NAME3 = 3,
+	TREASURE_NAME4 = 4,
+	TREASURE_NAME5 = 5,
 	NUM_TREASURE_NAMES = 6
 };
 
 extern const char* const gImageNames[NUM_IMAGES];
 extern const char* const gSoundNames[NUM_SOUNDS];
-extern const char* const gTreasureNames[NUM_TREASURE_NAMES];
+// the treasure names are game text: the address of each in the game image, for GT() (GameText.h)
+extern const unsigned int gTreasureNameAddrs[NUM_TREASURE_NAMES];
 
 }
 

@@ -300,14 +300,14 @@ const char* const gSoundNames[NUM_SOUNDS] =
 	"bad",
 };
 
-const char* const gTreasureNames[NUM_TREASURE_NAMES] =
+const unsigned int gTreasureNameAddrs[NUM_TREASURE_NAMES] =
 {
-	"Emerald",
-	"Gem",
-	"Crystal",
-	"Ruby",
-	"Diamond",
-	"Sapphire",
+	0x0052a198,
+	0x0052a194,
+	0x0052a18c,
+	0x0052a184,
+	0x0052a17c,
+	0x0052a170,
 };
 
 }
