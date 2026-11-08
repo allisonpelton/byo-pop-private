@@ -63,41 +63,41 @@ const char* const	gCauseNames[4] = {"no moves", "time up", "New Game", "other"};
 // One write: seq odd, the fields, seq even (LiveSplitBlock.h)
 void Publish(int theUpdate)
 {
-	volatile LiveSplitBlockV1& b = gLiveSplitBlock;
-	const LiveSplitBlockV1& s = sShadow;
-	uint32_t aSeq = b.seq + 1;
-	b.seq = aSeq;
+	volatile LiveSplitBlockV1& aLiveBlock = gLiveSplitBlock;
+	const LiveSplitBlockV1& aShadow = sShadow;
+	uint32_t aSeq = aLiveBlock.seq + 1;
+	aLiveBlock.seq = aSeq;
 	std::atomic_thread_fence(std::memory_order_release);
-	b.self = s.self;
-	b.active = s.active;
-	b.updates = s.updates;
-	b.flags = s.flags;
-	b.boardSerial = s.boardSerial;
-	b.goCount = s.goCount;
-	b.goSerial = s.goSerial;
-	b.levelClears = s.levelClears;
-	b.levelClearSerial = s.levelClearSerial;
-	b.gameOvers = s.gameOvers;
-	b.gameOverSerial = s.gameOverSerial;
-	b.deathsNoMoves = s.deathsNoMoves;
-	b.deathsTimeUp = s.deathsTimeUp;
-	b.deathsNewGame = s.deathsNewGame;
-	b.deathsOther = s.deathsOther;
-	b.tick = s.tick;
-	b.state = s.state;
-	b.level = s.level;
-	b.displayLevel = s.displayLevel;
-	b.displayScore = s.displayScore;
-	b.score = s.score;
-	b.boardLevelClears = s.boardLevelClears;
-	b.goTick = s.goTick;
-	b.displayScoreMax = s.displayScoreMax;
+	aLiveBlock.self = aShadow.self;
+	aLiveBlock.active = aShadow.active;
+	aLiveBlock.updates = aShadow.updates;
+	aLiveBlock.flags = aShadow.flags;
+	aLiveBlock.boardSerial = aShadow.boardSerial;
+	aLiveBlock.goCount = aShadow.goCount;
+	aLiveBlock.goSerial = aShadow.goSerial;
+	aLiveBlock.levelClears = aShadow.levelClears;
+	aLiveBlock.levelClearSerial = aShadow.levelClearSerial;
+	aLiveBlock.gameOvers = aShadow.gameOvers;
+	aLiveBlock.gameOverSerial = aShadow.gameOverSerial;
+	aLiveBlock.deathsNoMoves = aShadow.deathsNoMoves;
+	aLiveBlock.deathsTimeUp = aShadow.deathsTimeUp;
+	aLiveBlock.deathsNewGame = aShadow.deathsNewGame;
+	aLiveBlock.deathsOther = aShadow.deathsOther;
+	aLiveBlock.tick = aShadow.tick;
+	aLiveBlock.state = aShadow.state;
+	aLiveBlock.level = aShadow.level;
+	aLiveBlock.displayLevel = aShadow.displayLevel;
+	aLiveBlock.displayScore = aShadow.displayScore;
+	aLiveBlock.score = aShadow.score;
+	aLiveBlock.boardLevelClears = aShadow.boardLevelClears;
+	aLiveBlock.goTick = aShadow.goTick;
+	aLiveBlock.displayScoreMax = aShadow.displayScoreMax;
 	for (int i = 0; i < 32; i++)
-		b.rulesId[i] = s.rulesId[i];
-	b.qpc = s.qpc;
-	b.qpcFrequency = s.qpcFrequency;
+		aLiveBlock.rulesId[i] = aShadow.rulesId[i];
+	aLiveBlock.qpc = aShadow.qpc;
+	aLiveBlock.qpcFrequency = aShadow.qpcFrequency;
 	std::atomic_thread_fence(std::memory_order_release);
-	b.seq = aSeq + 1;
+	aLiveBlock.seq = aSeq + 1;
 	sShadow.seq = aSeq + 1;
 
 	if (!sLogFileName.empty())
@@ -213,19 +213,19 @@ void CopyTemplates()
 // The fields of "no board" (boardSerial 0): before the first board, and after the last one
 void ClearBoardFields()
 {
-	LiveSplitBlockV1& s = sShadow;
-	s.boardSerial = 0;
-	s.boardLevelClears = 0;
-	s.goTick = -1;
-	s.displayScoreMax = 0;
-	memset(s.rulesId, 0, sizeof(s.rulesId));
-	s.flags = 0;
-	s.tick = 0;
-	s.state = -1;
-	s.level = 0;
-	s.displayLevel = 0;
-	s.displayScore = 0;
-	s.score = 0;
+	LiveSplitBlockV1& aShadow = sShadow;
+	aShadow.boardSerial = 0;
+	aShadow.boardLevelClears = 0;
+	aShadow.goTick = -1;
+	aShadow.displayScoreMax = 0;
+	memset(aShadow.rulesId, 0, sizeof(aShadow.rulesId));
+	aShadow.flags = 0;
+	aShadow.tick = 0;
+	aShadow.state = -1;
+	aShadow.level = 0;
+	aShadow.displayLevel = 0;
+	aShadow.displayScore = 0;
+	aShadow.score = 0;
 }
 
 void Activate()
@@ -253,16 +253,16 @@ void LiveSplitObserver::SetLogFile(const std::string& theFileName)
 
 void LiveSplitObserver::AfterUpdate(WinDMApp* theApp)
 {
-	LiveSplitBlockV1& s = sShadow;
+	LiveSplitBlockV1& aShadow = sShadow;
 	if (!gGameConfig.mFeatures.mLiveSplit)
 	{
 		// NewGame's gGameConfig.Load() found the feature off: the script then asks for the mod
 		if (sActive)
 		{
 			sActive = false;
-			s.active = 0;
-			s.updates++;
-			s.qpc = SDL_GetPerformanceCounter();
+			aShadow.active = 0;
+			aShadow.updates++;
+			aShadow.qpc = SDL_GetPerformanceCounter();
 			Publish(theApp->mUpdateCount);
 			SDL_Log("livesplit: off");
 		}
@@ -275,16 +275,16 @@ void LiveSplitObserver::AfterUpdate(WinDMApp* theApp)
 
 	Board* aBoard = theApp->mBoard;
 	uint32_t aSerial = (aBoard != NULL) ? aBoard->mBoardSerial : 0;
-	bool isNewBoard = isActivation || (aSerial != s.boardSerial);
+	bool isNewBoard = isActivation || (aSerial != aShadow.boardSerial);
 	if (isNewBoard)
 	{
-		s.boardSerial = aSerial;
-		s.boardLevelClears = 0;
-		s.goTick = -1;
-		s.displayScoreMax = 0;
-		memset(s.rulesId, 0, sizeof(s.rulesId));
+		aShadow.boardSerial = aSerial;
+		aShadow.boardLevelClears = 0;
+		aShadow.goTick = -1;
+		aShadow.displayScoreMax = 0;
+		memset(aShadow.rulesId, 0, sizeof(aShadow.rulesId));
 		if (aBoard != NULL)
-			aBoard->mRules.RulesId(s.rulesId);
+			aBoard->mRules.RulesId(aShadow.rulesId);
 		sGameOver = false;
 	}
 
@@ -308,18 +308,18 @@ void LiveSplitObserver::AfterUpdate(WinDMApp* theApp)
 					SDL_Log("livesplit: board %u resumed a saved game: GO at tick %d not counted", (unsigned) aSerial, aTick);
 				else if (!isReplay)
 				{
-					s.goCount++;
-					s.goSerial = aSerial;
-					s.goTick = aTick;
+					aShadow.goCount++;
+					aShadow.goSerial = aSerial;
+					aShadow.goTick = aTick;
 					SDL_Log("livesplit: board %u GO at tick %d (%s)", (unsigned) aSerial, aTick, aBoard->mTimedMode ? "Timetrial" : "Normal");
 				}
 			}
 			if ((aState == STATE_BLACK_HOLE) && (sPrevState != STATE_BLACK_HOLE) && (aTick != sPrevTick))
 			{
-				s.levelClears++;
-				s.levelClearSerial = aSerial;
-				s.boardLevelClears++;
-				SDL_Log("livesplit: board %u level clear %d (level %d) at tick %d", (unsigned) aSerial, (int) s.boardLevelClears,
+				aShadow.levelClears++;
+				aShadow.levelClearSerial = aSerial;
+				aShadow.boardLevelClears++;
+				SDL_Log("livesplit: board %u level clear %d (level %d) at tick %d", (unsigned) aSerial, (int) aShadow.boardLevelClears,
 					aBoard->mDisplayLevel, aTick);
 			}
 			if ((aState == STATE_GAME_OVER) && (sPrevState != STATE_GAME_OVER))
@@ -328,25 +328,25 @@ void LiveSplitObserver::AfterUpdate(WinDMApp* theApp)
 				if (aBoard->mNewGamePending)
 				{
 					aCause = 2;
-					s.deathsNewGame++;
+					aShadow.deathsNewGame++;
 				}
 				else if (sPrevState == STATE_PLAYING)
 				{
 					aCause = 1;
-					s.deathsTimeUp++;
+					aShadow.deathsTimeUp++;
 				}
 				else if (sPrevState == STATE_FALLING)
 				{
 					aCause = 0;
-					s.deathsNoMoves++;
+					aShadow.deathsNoMoves++;
 				}
 				else
 				{
 					aCause = 3;
-					s.deathsOther++;
+					aShadow.deathsOther++;
 				}
-				s.gameOvers++;
-				s.gameOverSerial = aSerial;
+				aShadow.gameOvers++;
+				aShadow.gameOverSerial = aSerial;
 				isOverNow = true;
 				SDL_Log("livesplit: board %u game over (%s) at tick %d", (unsigned) aSerial, gCauseNames[aCause], aTick);
 			}
@@ -355,7 +355,7 @@ void LiveSplitObserver::AfterUpdate(WinDMApp* theApp)
 		// The HUD score can roll back down (a hint), so the splitter reads the high-water mark; frozen after
 		// the game-over update, although the HUD may still roll during the shake
 		if (!sGameOver)
-			s.displayScoreMax = std::max(s.displayScoreMax, (int32_t) aBoard->mDisplayScore);
+			aShadow.displayScoreMax = std::max(aShadow.displayScoreMax, (int32_t) aBoard->mDisplayScore);
 		if (isOverNow)
 			sGameOver = true;
 
@@ -376,21 +376,21 @@ void LiveSplitObserver::AfterUpdate(WinDMApp* theApp)
 			aFlags |= LIVESPLIT_FLAG_GAME_OVER;
 		if ((aBoard->mPauseCount > 0) || (aBoard->mUserPauseCount > 0))
 			aFlags |= LIVESPLIT_FLAG_PAUSED;
-		s.flags = aFlags;
-		s.tick = aTick;
-		s.state = aState;
-		s.level = aBoard->mLevel;
-		s.displayLevel = aBoard->mDisplayLevel;
-		s.displayScore = aBoard->mDisplayScore;
-		s.score = aBoard->mScore;
+		aShadow.flags = aFlags;
+		aShadow.tick = aTick;
+		aShadow.state = aState;
+		aShadow.level = aBoard->mLevel;
+		aShadow.displayLevel = aBoard->mDisplayLevel;
+		aShadow.displayScore = aBoard->mDisplayScore;
+		aShadow.score = aBoard->mScore;
 
 		sPrevTick = aTick;
 		sPrevState = aState;
 		sPrevResumed = aBoard->mResumed;
 	}
 
-	s.updates++;
-	s.qpc = SDL_GetPerformanceCounter();
+	aShadow.updates++;
+	aShadow.qpc = SDL_GetPerformanceCounter();
 	Publish(theApp->mUpdateCount);
 }
 

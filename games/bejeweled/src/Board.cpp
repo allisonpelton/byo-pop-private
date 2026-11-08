@@ -194,8 +194,8 @@ void Board::UpdateWhirlpool()
 			if (aPiece == NULL)
 				continue;
 
-			aPiece->mX = cos(aPiece->mHoleAngle) * aPiece->mHoleRadius + aCenterX - 24.0;
-			aPiece->mY = sin(aPiece->mHoleAngle) * aPiece->mHoleRadius + aCenterY - 24.0;
+			aPiece->mX = cos(aPiece->mHoleAngle) * aPiece->mHoleRadius + aCenterX - GEM_HALF;
+			aPiece->mY = sin(aPiece->mHoleAngle) * aPiece->mHoleRadius + aCenterY - GEM_HALF;
 			if (aPiece->mHoleRadius >= aMaxRadiusBefore)
 				aMaxRadiusBefore = aPiece->mHoleRadius;
 
@@ -293,13 +293,13 @@ void Board::Draw(Graphics* g)
 				if (aPiece == NULL)
 					continue;
 
-				int aSrcX = aPiece->mSpinFrame * 52 + 2;
-				int aSrcY = aPiece->mColor * 104;
+				int aSrcX = aPiece->mSpinFrame * GEMSHEET_PITCH + 2;
+				int aSrcY = aPiece->mColor * GEMSHEET_COLOR_HEIGHT;
 				if ((aPiece->mGlowing) && (aPiece->mSpinFrame == 0) && (!aPiece->mDying))
 				{
 					Image* aGemSheet = mApp->mImages[IMAGE_GEMSHEET];
 					DDImage* aGlowImage = mApp->CreateCrossfadeImage(aGemSheet, Rect(aSrcX, aSrcY, GEM_SIZE, GEM_SIZE),
-						aGemSheet, Rect(aPiece->mGlowFrame * 52 + aSrcX, aSrcY + 52, GEM_SIZE, GEM_SIZE), aPiece->mGlowAlpha);
+						aGemSheet, Rect(aPiece->mGlowFrame * GEMSHEET_PITCH + aSrcX, aSrcY + GEMSHEET_PITCH, GEM_SIZE, GEM_SIZE), aPiece->mGlowAlpha);
 					aBoardG.DrawImage(aGlowImage, (int)aPiece->mX, (int)aPiece->mY);
 					delete aGlowImage;
 				}
@@ -337,7 +337,7 @@ void Board::Draw(Graphics* g)
 				{
 					int aModFrame = (aPiece->mSparkleFrame - 24) % 14;
 					if (aModFrame >= 0)
-						DrawSparkle(g, aSparkleImage, aModFrame, (int)(aPiece->mX + 24.0), (int)(aPiece->mY + 6.0));
+						DrawSparkle(g, aSparkleImage, aModFrame, (int)(aPiece->mX + GEM_HALF), (int)(aPiece->mY + 6.0));
 				}
 			}
 		}
@@ -346,7 +346,7 @@ void Board::Draw(Graphics* g)
 		for (int i = 0; i < 3; i++)
 		{
 			if (aCursorPieces[i] != NULL)
-				g->DrawImage(mApp->mImages[IMAGE_TARGET], (int)(aCursorPieces[i]->mX - 2.0), (int)(aCursorPieces[i]->mY - 2.0), Rect((mCursorFrame % 6) * 52, 0, 52, 52));
+				g->DrawImage(mApp->mImages[IMAGE_TARGET], (int)(aCursorPieces[i]->mX - 2.0), (int)(aCursorPieces[i]->mY - 2.0), Rect((mCursorFrame % 6) * CURSOR_FRAME_SIZE, 0, CURSOR_FRAME_SIZE, CURSOR_FRAME_SIZE));
 		}
 
 		g->SetColor(Color::White);
@@ -760,7 +760,7 @@ bool Board::FindSets()
 
 	if (aNumMatches > 0)
 	{
-		int aPan = GetPanPosition(anAvgXSum / aNumMatches + 24);
+		int aPan = GetPanPosition(anAvgXSum / aNumMatches + GEM_HALF);
 		mIdleTicks = 0;
 		mApp->PlaySample((aMaxLength == 3) ? SOUND_GOTSET : SOUND_GOTSETBIG, aPan);
 		int aCombo = mCascadeCount - 1;
@@ -798,7 +798,7 @@ void Board::UpdateFalling()
 				if (aPiece->mY >= aRestY)
 				{
 					aLandedCount++;
-					aLandedXSum = (int)(aPiece->mX + 24.0 + aLandedXSum);
+					aLandedXSum = (int)(aPiece->mX + GEM_HALF + aLandedXSum);
 					aPiece->mY = aRestY;
 				}
 				// A gem that just landed keeps this velocity for one tick

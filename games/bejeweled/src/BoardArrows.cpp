@@ -156,35 +156,35 @@ void Board::UpdateArrowSteps()
 {
 	MarkDirty();
 	mArrowTick++;
-	double t = (double) mArrowTick / ARROW_STEP_TICKS;
-	t = t * t * (3.0 - 2.0 * t);
-	for (const ArrowStep& s : mArrowSteps)
+	double aStepProgress = (double) mArrowTick / ARROW_STEP_TICKS;
+	aStepProgress = aStepProgress * aStepProgress * (3.0 - 2.0 * aStepProgress);
+	for (const ArrowStep& aStep : mArrowSteps)
 	{
-		double aFromX = GetColX(s.mFromCol), aFromY = GetRowY(s.mFromRow);
-		double aToX = GetColX(s.mToCol), aToY = GetRowY(s.mToRow);
-		bool isEscape = (s.mToCol < 0) || (s.mToCol >= mCols) || (s.mToRow < 0) || (s.mToRow >= mRows);
+		double aFromX = GetColX(aStep.mFromCol), aFromY = GetRowY(aStep.mFromRow);
+		double aToX = GetColX(aStep.mToCol), aToY = GetRowY(aStep.mToRow);
+		bool isEscape = (aStep.mToCol < 0) || (aStep.mToCol >= mCols) || (aStep.mToRow < 0) || (aStep.mToRow >= mRows);
 		if (isEscape)
 		{
-			Piece* anArrow = mBoard[s.mFromRow][s.mFromCol];
-			anArrow->mX = aFromX + (aToX - aFromX) * t;
-			anArrow->mY = aFromY + (aToY - aFromY) * t;
+			Piece* anArrow = mBoard[aStep.mFromRow][aStep.mFromCol];
+			anArrow->mX = aFromX + (aToX - aFromX) * aStepProgress;
+			anArrow->mY = aFromY + (aToY - aFromY) * aStepProgress;
 			continue;
 		}
-		Piece* anArrow = mBoard[s.mToRow][s.mToCol];
-		Piece* aGem = mBoard[s.mFromRow][s.mFromCol];
-		anArrow->mX = aFromX + (aToX - aFromX) * t;
-		anArrow->mY = aFromY + (aToY - aFromY) * t;
-		aGem->mX = aToX + (aFromX - aToX) * t;
-		aGem->mY = aToY + (aFromY - aToY) * t;
+		Piece* anArrow = mBoard[aStep.mToRow][aStep.mToCol];
+		Piece* aGem = mBoard[aStep.mFromRow][aStep.mFromCol];
+		anArrow->mX = aFromX + (aToX - aFromX) * aStepProgress;
+		anArrow->mY = aFromY + (aToY - aFromY) * aStepProgress;
+		aGem->mX = aToX + (aFromX - aToX) * aStepProgress;
+		aGem->mY = aToY + (aFromY - aToY) * aStepProgress;
 	}
 	if (mArrowTick < ARROW_STEP_TICKS)
 		return;
 
 	bool anEscape = false;
-	for (const ArrowStep& s : mArrowSteps)
+	for (const ArrowStep& aStep : mArrowSteps)
 	{
-		bool isEscape = (s.mToCol < 0) || (s.mToCol >= mCols) || (s.mToRow < 0) || (s.mToRow >= mRows);
-		int aCols[2] = {s.mFromCol, s.mToCol}, aRows[2] = {s.mFromRow, s.mToRow};
+		bool isEscape = (aStep.mToCol < 0) || (aStep.mToCol >= mCols) || (aStep.mToRow < 0) || (aStep.mToRow >= mRows);
+		int aCols[2] = {aStep.mFromCol, aStep.mToCol}, aRows[2] = {aStep.mFromRow, aStep.mToRow};
 		for (int i = 0; i < (isEscape ? 1 : 2); i++)
 		{
 			Piece* aPiece = mBoard[aRows[i]][aCols[i]];
@@ -192,7 +192,7 @@ void Board::UpdateArrowSteps()
 			{
 				// gone over the edge: a shot when every edge it crossed is one of arrows.shots, which scores the arrow's
 				// bonus and leaves a cell to refill; otherwise an escape, and the game is over
-				int anEdges = ArrowExitEdges(s);
+				int anEdges = ArrowExitEdges(aStep);
 				if ((anEdges & ~mRules.mArrows.mShots) == 0)
 				{
 					ClearArrow(aPiece);

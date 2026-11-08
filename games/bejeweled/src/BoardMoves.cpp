@@ -515,7 +515,7 @@ void Board::DrawMovesUnder(Graphics* g)
 		if (aPiece == NULL)
 			continue;
 		int aPos = isSliding ? (int)((isRow ? aPiece->mX - anOriginX : aPiece->mY - anOriginY)) : Wrap(i * CELL_SIZE + mDragOffset, aSpan);
-		Rect aSrc(aPiece->mSpinFrame * 52 + 2, aPiece->mColor * 104, GEM_SIZE, GEM_SIZE);
+		Rect aSrc(aPiece->mSpinFrame * GEMSHEET_PITCH + 2, aPiece->mColor * GEMSHEET_COLOR_HEIGHT, GEM_SIZE, GEM_SIZE);
 		for (int aCopy = 0; aCopy < 2; aCopy++)
 		{
 			int anAt = aPos - aCopy * aSpan;
@@ -545,7 +545,7 @@ void Board::DrawMovesOver(Graphics* g)
 	else if ((mState != STATE_PLAYING) || (mDragAxis >= 0) || (mMouseX < 0) ||
 		!TwistAt(mMouseX, mMouseY, (mRules.mMoves.mTypes & GameRules::MOVE_SWAP) != 0, &aCol, &aRow))
 		return;
-	int aFrame = (mCursorFrame % 6) * 52;
+	int aFrame = (mCursorFrame % 6) * CURSOR_FRAME_SIZE;
 	int aX = GetColX(aCol) - 2;
 	int aY = GetRowY(aRow) - 2;
 	Image* aCursor = mApp->mImages[IMAGE_TARGET];

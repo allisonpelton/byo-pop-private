@@ -98,7 +98,7 @@ void Board::ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups)
 		if (!isSounded[aBlast.mKind])
 		{
 			isSounded[aBlast.mKind] = true;
-			PlaySpecialSound(aBlast.mKind, GetPanPosition(GetColX(aBlast.mCell.first) + 24));
+			PlaySpecialSound(aBlast.mKind, GetPanPosition(GetColX(aBlast.mCell.first) + GEM_HALF));
 		}
 	}
 	if (!aCreations.empty() || !aBlasts.empty())

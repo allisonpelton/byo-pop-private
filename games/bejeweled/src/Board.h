@@ -120,6 +120,10 @@ public:
 		BOARD_ROWS = 8,
 		NUM_GEM_COLORS = 7,
 		GEM_SIZE = 49,              // gem hit box / sprite size (double 49.0 @0x506560)
+		GEM_HALF = 24,              // from a gem's top-left corner to its centre (GEM_SIZE / 2)
+		GEMSHEET_PITCH = 52,        // the step from one frame of the gem sheet to the next, across and down
+		GEMSHEET_COLOR_HEIGHT = 104, // a colour's two rows in the gem sheet: the spin, then the glow (+GEMSHEET_PITCH)
+		CURSOR_FRAME_SIZE = 52,     // a frame of the target cursor (IMAGE_TARGET), 6 frames across
 		CELL_SIZE = 51,             // grid pitch
 		BOARD_X = 203,              // GetColX(0)
 		BOARD_Y = 16,               // GetRowY(0)

@@ -236,52 +236,52 @@ public:
 	// SELECT, an update, TARGET (Apply's): the board starts the swap
 	void StartMove(const Move& theMove)
 	{
-		Board* b = mBoard;
+		Board* aBoard = mBoard;
 		Add(Replay::OP_SELECT, theMove.mCol1, theMove.mRow1);
-		b->mPlaybackApplying = true;
-		b->mCursorFrame = 0;
-		b->mSelectedPiece = b->mBoard[theMove.mRow1][theMove.mCol1];
-		b->MarkDirty();
-		b->mPlaybackApplying = false;
+		aBoard->mPlaybackApplying = true;
+		aBoard->mCursorFrame = 0;
+		aBoard->mSelectedPiece = aBoard->mBoard[theMove.mRow1][theMove.mCol1];
+		aBoard->MarkDirty();
+		aBoard->mPlaybackApplying = false;
 		Update();
-		if (b->mState != STATE_PLAYING)
+		if (aBoard->mState != STATE_PLAYING)
 		{
 			mLostTargets++;
 			return;
 		}
 		Add(Replay::OP_TARGET, theMove.mCol2, theMove.mRow2);
-		b->mPlaybackApplying = true;
-		Piece* aTarget = b->mBoard[theMove.mRow2][theMove.mCol2];
-		if ((aTarget != NULL) && (aTarget != b->mSelectedPiece))
-			b->SwapPieces(b->mSelectedPiece, aTarget);
-		b->mSelectedPiece = NULL;
-		b->MarkDirty();
-		b->mPlaybackApplying = false;
+		aBoard->mPlaybackApplying = true;
+		Piece* aTarget = aBoard->mBoard[theMove.mRow2][theMove.mCol2];
+		if ((aTarget != NULL) && (aTarget != aBoard->mSelectedPiece))
+			aBoard->SwapPieces(aBoard->mSelectedPiece, aTarget);
+		aBoard->mSelectedPiece = NULL;
+		aBoard->MarkDirty();
+		aBoard->mPlaybackApplying = false;
 	}
 
 	// Updates to the swap's first settle
 	Outcome RunMove()
 	{
 		Outcome anOutcome;
-		Board* b = mBoard;
-		anOutcome.mLevel = b->mDisplayLevel;
+		Board* aBoard = mBoard;
+		anOutcome.mLevel = aBoard->mDisplayLevel;
 		for (int aTick = 1; aTick <= SETTLE_CAP; aTick++)
 		{
 			Update();
-			if (IsSettled(b->mState))
+			if (IsSettled(aBoard->mState))
 			{
-				anOutcome.mState = b->mState;
+				anOutcome.mState = aBoard->mState;
 				break;
 			}
 		}
-		anOutcome.mPoints = b->mMoveScore;
-		anOutcome.mRounds = b->mCascadeCount - 1;
-		anOutcome.mRuns = b->mMoveMatchCount;
-		anOutcome.mBeaten = (b->mScore >= b->mLevelTargetScore) || (b->mState == STATE_BLACK_HOLE);
+		anOutcome.mPoints = aBoard->mMoveScore;
+		anOutcome.mRounds = aBoard->mCascadeCount - 1;
+		anOutcome.mRuns = aBoard->mMoveMatchCount;
+		anOutcome.mBeaten = (aBoard->mScore >= aBoard->mLevelTargetScore) || (aBoard->mState == STATE_BLACK_HOLE);
 		int aMove[4];
-		while ((b->mState == STATE_PLAYING) && b->FindMove(aMove, anOutcome.mMovesLeft, true, true))
+		while ((aBoard->mState == STATE_PLAYING) && aBoard->FindMove(aMove, anOutcome.mMovesLeft, true, true))
 			anOutcome.mMovesLeft++;
-		if (b->mState == STATE_BLACK_HOLE)
+		if (aBoard->mState == STATE_BLACK_HOLE)
 			anOutcome.mMovesLeft = SAFE_MOVES; // a new level's board
 		return anOutcome;
 	}
@@ -428,19 +428,19 @@ public:
 	// mOutOfBudget set.
 	bool Survives(int theDepth, int theMinMoves)
 	{
-		Board* b = mScratch.mBoard;
-		if ((b->mState == STATE_GAME_OVER) || (b->mState == STATE_GAME_OVER_DONE))
+		Board* aBoard = mScratch.mBoard;
+		if ((aBoard->mState == STATE_GAME_OVER) || (aBoard->mState == STATE_GAME_OVER_DONE))
 			return false;
 		// The board to count is the next level's after a beaten one; a board in play has the same moves after the wait
-		bool isBeaten = (b->mState == STATE_BLACK_HOLE) || (b->mScore >= b->mLevelTargetScore);
+		bool isBeaten = (aBoard->mState == STATE_BLACK_HOLE) || (aBoard->mScore >= aBoard->mLevelTargetScore);
 		if ((isBeaten || (theDepth > 0)) && !mScratch.ReadyToMove(mWait))
 			return false;
-		std::vector<Move> aMoves = UniqueMoves(b);
+		std::vector<Move> aMoves = UniqueMoves(aBoard);
 		if ((int) aMoves.size() < theMinMoves)
 			return false;
 		if (theDepth == 0)
 			return true;
-		std::string aSnapshot = StateCodec::Encode(b, StateCodec::PROFILE_SNAPSHOT);
+		std::string aSnapshot = StateCodec::Encode(aBoard, StateCodec::PROFILE_SNAPSHOT);
 		for (size_t i = 0; i < aMoves.size(); i++)
 		{
 			if (mBudget <= 0)
@@ -828,36 +828,36 @@ int Play(uint32_t theFirst, uint32_t theLast, Policy thePolicy, int theWait, int
 				isOver = true;
 				break;
 			}
-			Board* b = aGame.mMain.mBoard;
-			if (b->mDisplayLevel > theLevelCap)
+			Board* aBoard = aGame.mMain.mBoard;
+			if (aBoard->mDisplayLevel > theLevelCap)
 				break;
 			for (const Trial& t : aGame.mHere)
 			{
-				const Outcome& o = t.mOutcome;
-				aRounds[std::min(63, std::max(0, o.mRounds))]++;
+				const Outcome& anOutcome = t.mOutcome;
+				aRounds[std::min(63, std::max(0, anOutcome.mRounds))]++;
 				Record aRecord;
 				aRecord.mSeed = aSeed;
 				aRecord.mAt = aGame.mMoves;
 				aRecord.mMove = t.mMove;
-				aRecord.mOutcome = o;
-				aRecord.mScoreBefore = b->mScore;
-				if ((o.mRounds > aMostRounds.mOutcome.mRounds) || ((o.mRounds == aMostRounds.mOutcome.mRounds) &&
-					(o.mPoints > aMostRounds.mOutcome.mPoints)))
+				aRecord.mOutcome = anOutcome;
+				aRecord.mScoreBefore = aBoard->mScore;
+				if ((anOutcome.mRounds > aMostRounds.mOutcome.mRounds) || ((anOutcome.mRounds == aMostRounds.mOutcome.mRounds) &&
+					(anOutcome.mPoints > aMostRounds.mOutcome.mPoints)))
 				{
 					aMostRounds = aRecord;
 					printf("most rounds: %s\n", RecordText(aRecord).c_str());
 					fflush(stdout);
 				}
-				if (o.mPoints > aMostPoints.mOutcome.mPoints)
+				if (anOutcome.mPoints > aMostPoints.mOutcome.mPoints)
 				{
 					aMostPoints = aRecord;
 					printf("most points: %s\n", RecordText(aRecord).c_str());
 					fflush(stdout);
 				}
-				if ((o.mLevel <= 15) && (o.mPoints > aMostPoints15.mOutcome.mPoints))
+				if ((anOutcome.mLevel <= 15) && (anOutcome.mPoints > aMostPoints15.mOutcome.mPoints))
 				{
 					aMostPoints15 = aRecord;
-					if (o.mPoints >= 10000)
+					if (anOutcome.mPoints >= 10000)
 					{
 						printf("most points to level 15: %s\n", RecordText(aRecord).c_str());
 						fflush(stdout);
@@ -873,7 +873,7 @@ int Play(uint32_t theFirst, uint32_t theLast, Policy thePolicy, int theWait, int
 			aGame.Play(aGame.mHere[aChoice].mMove);
 			if ((gProgress > 0) && (aGame.mMoves % gProgress == 0))
 			{
-				printf("seed %u: move %d, level %d, score %d\n", (unsigned) aSeed, aGame.mMoves, b->mDisplayLevel, b->mScore);
+				printf("seed %u: move %d, level %d, score %d\n", (unsigned) aSeed, aGame.mMoves, aBoard->mDisplayLevel, aBoard->mScore);
 				fflush(stdout);
 			}
 		}

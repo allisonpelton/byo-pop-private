@@ -37,6 +37,14 @@ class AudioCapture;
 class WatchController;
 class ReplayOverlay;
 
+// The rectangle most of the game's dialogs take (its height is the dialog's preferred height for this width)
+enum
+{
+	DIALOG_X = 234,
+	DIALOG_Y = 50,
+	DIALOG_WIDTH = 348
+};
+
 // Dialog ids (SexyAppBase dialog map). YES/OK/footer presses arrive in ButtonDepress as 2000+id,
 // NO/CANCEL as 3000+id.
 enum DialogId

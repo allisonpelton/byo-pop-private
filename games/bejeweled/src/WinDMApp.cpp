@@ -334,14 +334,14 @@ void WinDMApp::MakeGemShrinkImages(int theColor)
 	for (int aFrame = 0; aFrame < NUM_SHRINK_FRAMES; aFrame++)
 	{
 		MemoryImage* anImage = new MemoryImage(this);
-		anImage->Create(49, 49);
+		anImage->Create(Board::GEM_SIZE, Board::GEM_SIZE);
 
 		// Odd sizes 43, 35, 29, 21, 15, 7 (with 53-bit doubles), centred in the 49x49 cell
-		int aSize = (int) ((1.0 - (aFrame + 1) / 7.0) * 49.0) | 1;
-		int anOffset = (49 - aSize) / 2;
+		int aSize = (int) ((1.0 - (aFrame + 1) / 7.0) * Board::GEM_SIZE) | 1;
+		int anOffset = (Board::GEM_SIZE - aSize) / 2;
 
 		Graphics g(anImage);
-		g.DrawImage(mImages[IMAGE_GEMSHEET], Rect(anOffset, anOffset, aSize, aSize), Rect(2, theColor * 104, 49, 49));
+		g.DrawImage(mImages[IMAGE_GEMSHEET], Rect(anOffset, anOffset, aSize, aSize), Rect(2, theColor * Board::GEMSHEET_COLOR_HEIGHT, Board::GEM_SIZE, Board::GEM_SIZE));
 		mGemShrinkImages[theColor][aFrame] = anImage;
 	}
 	mGemShrinkColors = std::max(mGemShrinkColors, theColor + 1);
@@ -471,7 +471,7 @@ void WinDMApp::ShowHighScoreWidget()
 void WinDMApp::DoOptions()
 {
 	OptionsDialog* aDialog = new OptionsDialog(this);
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 	AddDialog(DIALOG_OPTIONS, aDialog);
 }
 
@@ -770,7 +770,7 @@ void WinDMApp::TryConfirmLoad()
 	if (mBoard->HasSavedGame())
 	{
 		Dialog* aDialog = DoDialog(DIALOG_CONFIRM_LOAD, true, GetString("CONFIRM_LOAD_DIALOG1"), GetString("CONFIRM_LOAD_DIALOG2"), "", Dialog::BUTTONS_YES_NO);
-		aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+		aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 	}
 }
 
@@ -1102,7 +1102,7 @@ void WinDMApp::WatchReplay(const std::string& thePath, bool theFromDialogs)
 		Dialog* aDialog = DoDialog(DIALOG_CONFIRM_WATCH, true, GetString("REPLAY_CONFIRM_WATCH1", _S("WATCH REPLAY")),
 			GetString("REPLAY_CONFIRM_WATCH2", _S("Leave this game to watch the replay? Your game is saved, and offered again when you are done watching.")),
 			"", Dialog::BUTTONS_YES_NO);
-		aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+		aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 		return;
 	}
 	StartWatch(aPath);
@@ -1138,7 +1138,7 @@ void WinDMApp::StartWatch(const std::string& thePath)
 		aWhy = aWhy.substr(aColon + 15);
 	Dialog* aDialog = DoDialog(DIALOG_REPLAY_ERROR, true, GetString("REPLAY_ERROR1", _S("REPLAY")),
 		GetString("REPLAY_ERROR2", _S("This replay cannot be played here: ")) + aWhy, GetString("DIALOG_BUTTON_OK", _S("OK")), Dialog::BUTTONS_FOOTER);
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 }
 
 // port(variant): back to the player's game from a watched replay
@@ -1187,7 +1187,7 @@ void WinDMApp::OnWatchEnded()
 	Dialog* aDialog = DoDialog(DIALOG_REPLAY_END, true, GetString("REPLAY_END", _S("REPLAY END")), aLines, "", Dialog::BUTTONS_YES_NO);
 	aDialog->mYesButton->mLabel = GetString("REPLAY_WATCH_AGAIN", _S("Watch again"));
 	aDialog->mNoButton->mLabel = GetString("REPLAY_BACK", _S("Back"));
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 	if (hasStats)
 	{
 		mReplayStatsLink = new HyperlinkWidget(BUTTON_REPLAY_STATS, this);
@@ -1243,7 +1243,7 @@ bool WinDMApp::HasExtras()
 void WinDMApp::ShowExtrasDialog()
 {
 	ExtrasDialog* aDialog = new ExtrasDialog(this);
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 	AddDialog(DIALOG_EXTRAS, aDialog);
 }
 
@@ -1277,7 +1277,7 @@ void WinDMApp::PlaySeed(uint32_t theSeed)
 		Dialog* aDialog = DoDialog(DIALOG_CONFIRM_SEED, true, GetString("CONFIRM_SEED1", _S("PLAY SEED")),
 			GetString("CONFIRM_SEED2", _S("Abandon this game and start a new one on seed ")) + StrFormat(_S("%u?"), (unsigned) theSeed), "",
 			Dialog::BUTTONS_YES_NO);
-		aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+		aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 		return;
 	}
 	StartSeedGame(theSeed);
@@ -1301,7 +1301,7 @@ void WinDMApp::ConfirmDeleteReplay()
 {
 	Dialog* aDialog = DoDialog(DIALOG_CONFIRM_DELETE, true, GetString("REPLAY_DELETE1", _S("DELETE REPLAY")),
 		GetString("REPLAY_DELETE2", _S("Delete this replay? It cannot be brought back.")), "", Dialog::BUTTONS_YES_NO);
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 }
 
 // 0x4d6e71

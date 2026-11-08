@@ -30,73 +30,73 @@ using namespace Sexy;
 
 void Board::GetVariantSave(Replay::VariantSave* theSave)
 {
-	Replay::VariantSave& s = *theSave;
-	s = Replay::VariantSave();
-	mRules.RulesId(s.mRulesId);
-	s.mCols = mCols;
-	s.mRows = mRows;
-	s.mLevelShape = mLevelShape;
+	Replay::VariantSave& aSave = *theSave;
+	aSave = Replay::VariantSave();
+	mRules.RulesId(aSave.mRulesId);
+	aSave.mCols = mCols;
+	aSave.mRows = mRows;
+	aSave.mLevelShape = mLevelShape;
 	for (int aRow = 0; aRow < mRows; aRow++)
 	{
 		for (int aCol = 0; aCol < mCols; aCol++)
-			s.mPlayable.push_back(mLayout.IsPlayable(aCol, aRow));
+			aSave.mPlayable.push_back(mLayout.IsPlayable(aCol, aRow));
 	}
-	GetRngState(&s.mRng);
-	s.mMoves = mMoveCount;
-	s.mInvalidMoves = mInvalidMoves;
-	s.mUndosUsed = mUndosUsed;
+	GetRngState(&aSave.mRng);
+	aSave.mMoves = mMoveCount;
+	aSave.mInvalidMoves = mInvalidMoves;
+	aSave.mUndosUsed = mUndosUsed;
 	// GRAV (stage 7c) when the rules set a gravity rule, as in StateCodec
-	s.mHasGravity = mRules.HasGravityRule();
-	s.mGravityFlips = mGravityFlips;
-	s.mGravityNoFlip = mGravityNoFlip;
+	aSave.mHasGravity = mRules.HasGravityRule();
+	aSave.mGravityFlips = mGravityFlips;
+	aSave.mGravityNoFlip = mGravityNoFlip;
 	// DIRT (stage 7b) when the rules have dirt, as in StateCodec
-	s.mHasDirt = mDirtRules;
-	s.mDiagonalLeftFirst = mDiagonalLeftFirst;
-	if (s.mHasDirt)
+	aSave.mHasDirt = mDirtRules;
+	aSave.mDiagonalLeftFirst = mDiagonalLeftFirst;
+	if (aSave.mHasDirt)
 	{
 		for (int aRow = 0; aRow < mRows; aRow++)
 		{
 			for (int aCol = 0; aCol < mCols; aCol++)
-				s.mDirtLayers.push_back(mLayout.IsDirt(aCol, aRow) ? mLayout.mDirt[aRow][aCol] : 0);
+				aSave.mDirtLayers.push_back(mLayout.IsDirt(aCol, aRow) ? mLayout.mDirt[aRow][aCol] : 0);
 		}
 	}
 	// KIND (stage 11) when the rules have specials: each gem's kind
-	s.mHasKinds = mVariant.mSpecials;
-	if (s.mHasKinds)
+	aSave.mHasKinds = mVariant.mSpecials;
+	if (aSave.mHasKinds)
 	{
 		for (int aRow = 0; aRow < mRows; aRow++)
 		{
 			for (int aCol = 0; aCol < mCols; aCol++)
-				s.mKinds.push_back((mBoard[aRow][aCol] != NULL) ? (uint8_t) mBoard[aRow][aCol]->mKind : 0);
+				aSave.mKinds.push_back((mBoard[aRow][aCol] != NULL) ? (uint8_t) mBoard[aRow][aCol]->mKind : 0);
 		}
 	}
 	// GOLD and GTIM (stage 12) when the rules have gold: the gold cells, the level's time
-	s.mHasGold = mVariant.mGold;
-	s.mHasGoldTime = mVariant.mGold;
-	if (s.mHasGold)
+	aSave.mHasGold = mVariant.mGold;
+	aSave.mHasGoldTime = mVariant.mGold;
+	if (aSave.mHasGold)
 	{
 		for (int aRow = 0; aRow < mRows; aRow++)
 		{
 			for (int aCol = 0; aCol < mCols; aCol++)
-				s.mGold.push_back(mGold[aRow][aCol]);
+				aSave.mGold.push_back(mGold[aRow][aCol]);
 		}
-		s.mGoldTicksLeft = mGoldTicksLeft;
-		s.mGoldTickLimit = mGoldTickLimit;
+		aSave.mGoldTicksLeft = mGoldTicksLeft;
+		aSave.mGoldTickLimit = mGoldTickLimit;
 	}
 	// ARRW (stage 18) when the rules have arrows. A save in STATE_ARROW_STEPPING holds the steps done (WriteSaveGame's
 	// STATE_FALLING); an escape traded nothing, so it holds the settle before it, the step due again
-	s.mHasArrows = mVariant.mArrows;
-	if (s.mHasArrows)
+	aSave.mHasArrows = mVariant.mArrows;
+	if (aSave.mHasArrows)
 	{
 		for (int aRow = 0; aRow < mRows; aRow++)
 		{
 			for (int aCol = 0; aCol < mCols; aCol++)
-				s.mArrows.push_back((mBoard[aRow][aCol] != NULL) ? (uint8_t) mBoard[aRow][aCol]->mArrow : 0);
+				aSave.mArrows.push_back((mBoard[aRow][aCol] != NULL) ? (uint8_t) mBoard[aRow][aCol]->mArrow : 0);
 		}
 		bool isEscaping = (mState == STATE_ARROW_STEPPING) && IsArrowEscaping();
-		s.mArrowMoves = mArrowMoves - (isEscaping ? 1 : 0);
-		s.mArrowsCleared = mArrowsCleared;
-		s.mArrowStepDue = mArrowStepDue || isEscaping;
+		aSave.mArrowMoves = mArrowMoves - (isEscaping ? 1 : 0);
+		aSave.mArrowsCleared = mArrowsCleared;
+		aSave.mArrowStepDue = mArrowStepDue || isEscaping;
 	}
 }
 

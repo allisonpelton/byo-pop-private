@@ -2694,3 +2694,46 @@ The tools: `tools/profile/perfmin.py` (the sampler; `--attach` for the original,
 input for both), `loadtime.py` (the port's loading time through the live channel). The original ran from a copy of the
 Steam install with the real exe carved out of the wrapper (`tools/extract_game_exe.py`, in `C:\byo-og\bej-perf\game`),
 under `build/origrun-bin/origrun.exe` with `--sound stub` and no virtual clock.
+
+## 20. The readability pass (2026-11-08)
+
+Bejeweled was the pilot of the readability pass: the rules are `docs/CODE_STANDARDS.md`, written while applying them here,
+and `tools/namecheck.py games/bejeweled` checks the ones a tool can check (no findings; the exceptions, each with its reason,
+are in `games/bejeweled/namecheck.txt`). Nothing the port does changed: the frozen baselines and the whole oracle say so.
+
+**Names from the Mac build.** The functions `MAC_COMPARISON.md` lists under "Names that differ" now carry the Mac's names,
+with the names built on them: `HasMatch` is `HasSet`, `ProcessMatches` `FindSets`, `StartSwap` `SwapPieces`, `UpdateSwap`
+`UpdateSwapping`, `ShowText` `DoBouncyText`, `StartBlackHole` `DoWhirlpool`, `UpdateBlackHole` `UpdateWhirlpool`,
+`UpdateGameOver` `UpdateGameOverAnim`, `UpdateLevelWipe` `UpdateLevelTransition`, `UpdateFallOut` `UpdateBoardDropping`,
+`DoHint` `TryShowHint`, `SetupLevel` `SetupLevelData`, `FillBoard` `NewBoard`, `GetPanForX` `GetPanPosition`,
+`IsGameInProgress` `IsInProgress`, `SaveGameExists` `HasSavedGame`, `DeleteSaveGame` `DeleteSavedGame`; in WinDMApp
+`ShowOptionsDialog` `DoOptions`, `ShowHighScoreDialog` `DoHighScoreDialog`, `ShowRecordScoreDialog` `DoRecordScoreDialog`,
+`ShowInstructionsDialog` `DoInstructionDialogette`, `ShowFullInstructionsDialog` `DoFullInstructions`,
+`ShowColorDepthDialog` `DoColorDepthExplanation` (the Mac spells it "Explination"), `ConfirmLoadGame` `TryConfirmLoad`,
+`LoadAppImage` `DoLoadImage`, `MakeButton` `CreateControlButton`; in HighScoreWidget `GetRank` `GetScorePlace`,
+`GetDayNumber` `GetDayNum`, `GetOrdinalSuffix` `GetOrderSuffix`, `LoadHighScores` `ReadFromFile`, `SaveHighScores`
+`WriteToFile` and `DoCheckForHighScore` `ProcessScoreStuff`. The variant versions follow (`FindSetsVariant`,
+`NewBoardVariant`, `NewBoardWithMove`, ...). The oracle's input scripts keep the old names in their comments, so that its
+cache of the baselines' runs stays valid; earlier reports (`IDENTICAL_PLAY.md`, `MAC_COMPARISON.md`) keep the names of their
+time.
+
+**Fields.** Board's `mUnused218` is `mClearedAtMoveStart` (zeroed by the ctor and a move's first scored run, never read),
+`mUnused264` is `mSavedZero` (0 throughout, saved and loaded), `ScorePopup::mUnused` is `mAlwaysMinusOne`, and Piece's padding
+is named for the field it aligns (`mPadBeforeX`, `mPadBeforeVelY`, `mPadBeforeGlowAlpha`, `mPadBeforeDyingFrame`). Two
+fields nothing depends on are left out: Board's SexyString at +0x2c8, which the original constructs and destroys and never
+uses, and WinDMApp's two arrays of six images at +0x7d8 and +0x7f0, zeroed, deleted and never used. The state codec's
+field names follow the new names (they label its rows in reports; its bytes are unchanged).
+
+**Numbers.** The score popup's offsets and life (`ScorePopup::OFFSET_X`, `OFFSET_Y`, `START_LIFE`), half a gem
+(`Board::GEM_HALF`), the gem sheet's frame pitch and colour rows (`GEMSHEET_PITCH`, `GEMSHEET_COLOR_HEIGHT`), the target
+cursor's frame (`CURSOR_FRAME_SIZE`) and the rectangle most dialogs take (`DIALOG_X`, `DIALOG_Y`, `DIALOG_WIDTH`) are named.
+
+**One-letter names.** 135 one-letter variables used far from their declaration got words (`ByteWriter w` is `aWriter`,
+`Board* b` `aBoard`, ...); in the code-drawn art, the helpers `B()` and `P()` are `MakeRgb()` and `GetPalette()`.
+SHA-256's working variables keep the standard's letters.
+
+**Addresses and comments.** Every function names its address, the original function it is part of (`ReadSaveBool` is part
+of `LoadGame`, 0x4cca98; the high-score record helpers of `ReadFromFile` and `WriteToFile`), or a port marker; `main.cpp`,
+`ModIndicators.cpp` and `testhooks/MemReport.cpp` carry the marker in their first comment. Comments that told the code-mod
+stages as a story (`BoardVariant.cpp`'s header, `VariantFlags`, the build warnings in `GameConfigMods.cpp`) or had gone
+stale ("no TWIST or SLIDE yet", "nothing reads them yet in stage 1") describe the code as it is.

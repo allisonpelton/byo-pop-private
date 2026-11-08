@@ -411,19 +411,19 @@ void Board::ColorizeText()
 	// same rainbow on the HD pixels; the sine and the hue follow the position in 1x units
 	if (mTextImage->HasMirrorableHDBits())
 	{
-		int s = mTextImage->mHDScale;
-		int aHDWidth = aWidth * s;
-		int aHDSrcHeight = aSrcHeight * s;
-		int aHDDestHeight = aDestHeight * s;
+		int aScale = mTextImage->mHDScale;
+		int aHDWidth = aWidth * aScale;
+		int aHDSrcHeight = aSrcHeight * aScale;
+		int aHDDestHeight = aDestHeight * aScale;
 		const uint32_t* aHDSrc = &mTextImage->mHDBits[0];
 		std::vector<uint32_t> aHDDest((size_t) aHDWidth * aHDDestHeight, 0);
 		std::vector<uint32_t> aHDPalette(aHDDestHeight);
 		for (int i = 0; i < aHDDestHeight; i++)
-			aHDPalette[i] = (uint32_t) mApp->HSLToRGB(((i * 4) / s) % 256, 255, 148);
+			aHDPalette[i] = (uint32_t) mApp->HSLToRGB(((i * 4) / aScale) % 256, 255, 148);
 
 		for (int aX = 0; aX < aHDWidth; aX++)
 		{
-			int anOffset = (int)((sin((aX / (double) s) * 0.024 + mTextPhase) + 1.0) * 24.0 * s);
+			int anOffset = (int)((sin((aX / (double) aScale) * 0.024 + mTextPhase) + 1.0) * 24.0 * aScale);
 			for (int aY = 0; aY < aHDSrcHeight; aY++)
 			{
 				uint32_t aSrc = aHDSrc[(size_t) aY * aHDWidth + aX];
@@ -435,7 +435,7 @@ void Board::ColorizeText()
 					((((aSrc >> 8) & 0xFF0000) * aFade) & 0xFF000000);
 			}
 		}
-		mTextColorImage->SetHDBits(&aHDDest[0], aHDWidth, aHDDestHeight, s);
+		mTextColorImage->SetHDBits(&aHDDest[0], aHDWidth, aHDDestHeight, aScale);
 	}
 }
 
