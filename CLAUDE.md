@@ -123,6 +123,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   and the `<!-- private -->` blocks of text files (`docs/PUBLISHING.md`). How to take a game's protection apart
   (offsets in a wrapper, unwrapping commands, how a launcher checks its copy) goes only inside private blocks, and
   tools that do it go into `.publishignore`.
+<!-- private -->
+- **Backups (the user, 2026-11-08):** the coordinator also keeps two, refreshed after a batch of merges: the full
+  history and every branch in the user's private repository (remote `private`), and the main checkout with its
+  git-ignored files mirrored to `E:\backups\byo-pop` (`docs/PUBLISHING.md`, "Backups").
+<!-- /private -->
 - **Game files:** never commit or redistribute game files or anything derived from them (staged assets, Ghidra
   exports, word lists and other game data, mods built from another game's files, close recreations of another game's
   art): keep them git-ignored. Docs and code comments refer to a game's texts by id and paraphrase; a few words of
