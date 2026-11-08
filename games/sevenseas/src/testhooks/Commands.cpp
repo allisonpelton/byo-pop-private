@@ -19,6 +19,7 @@
 #include "Dialogs.h"
 #include "Compat2004.h"
 #include "WidgetManager.h"
+#include "Dialog.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -74,6 +75,10 @@ const char* ScreenName(SevenSeasApp* theApp)
 	return "none";
 }
 
+bool GameOver(Board* b);
+bool BotCanMove(Board* b);
+bool UiClick(SevenSeasApp* theApp, std::string* theWhat, int* x, int* y);
+
 std::string StateJson(SevenSeasApp* theApp)
 {
 	Board* b = theApp->mBoard;
@@ -88,6 +93,11 @@ std::string StateJson(SevenSeasApp* theApp)
 	}
 	if (b != NULL)
 	{
+		s += std::string(",\"over\":") + (GameOver(b) ? "true" : "false");
+		// busy: nothing to click yet (a ship sails, a level ends), the game goes on by itself
+		std::string aWhat;
+		int aUX, aUY;
+		s += std::string(",\"busy\":") + ((!GameOver(b) && !BotCanMove(b) && !UiClick(theApp, &aWhat, &aUX, &aUY)) ? "true" : "false");
 		s += ",\"level\":" + Num(b->mLevel) + ",\"score\":" + Num(b->mScore) + ",\"lives\":" + Num(b->mLives) +
 			",\"kills\":" + Num(b->mKillsTotal);
 		s += ",\"board\":{\"player\":[" + Num(b->mPlayerX) + "," + Num(b->mPlayerY) + "],\"heading\":" + Num(b->mHeading) +
@@ -129,6 +139,81 @@ bool BotCanMove(Board* b)
 {
 	return (b != NULL) && !b->mBonus && ((b->mState == STATE_IDLE) || (b->mState == STATE_BLINK)) && !b->mLevelOver &&
 		(b->mPlayerX >= 0);
+}
+
+// the middle of a widget, in game coordinates (every widget of the game sits in the one widget manager)
+bool CenterOf(Widget* w, int* x, int* y)
+{
+	if (w == NULL || !w->mVisible || w->mDisabled || w->mWidth <= 0)
+		return false;
+	*x = w->mX + w->mWidth / 2;
+	*y = w->mY + w->mHeight / 2;
+	return true;
+}
+
+// the click that carries the game on when no ship waits for a move: the title's Play link, a dialog's button, the
+// menu's Play, the demo's and the map's buttons, and the bonus level's digging (what AutoplayUpdate does by calls)
+bool UiClick(SevenSeasApp* theApp, std::string* theWhat, int* x, int* y)
+{
+	if (theApp->mTitleScreen != NULL)
+	{
+		*theWhat = "title";
+		return theApp->mTitleScreen->mPlayShown && CenterOf(theApp->mTitleScreen->mPlayLink, x, y);
+	}
+	for (int anId = 0; anId < 32; anId++)
+	{
+		Dialog* aDialog = theApp->GetDialog(anId);
+		if (aDialog != NULL)
+		{
+			*theWhat = "dialog " + Num(anId);
+			return CenterOf(aDialog->mYesButton, x, y) || CenterOf(aDialog->mNoButton, x, y);
+		}
+	}
+	if (theApp->mMapWidget != NULL)
+	{
+		*theWhat = "map";
+		return CenterOf(((MapWidget*) theApp->mMapWidget)->mNextButton, x, y);
+	}
+	if (theApp->mDemoWidget != NULL)
+	{
+		*theWhat = "demo";
+		return CenterOf(theApp->mDemoWidget->mButton, x, y);
+	}
+	if (theApp->mIntroWidget != NULL)
+	{
+		*theWhat = "menu";
+		return !theApp->mIntroWidget->mStarting && CenterOf(theApp->mIntroWidget->mPlayButton, x, y);
+	}
+	if (theApp->mHighScoreWidget != NULL)
+	{
+		*theWhat = "highscores";
+		return CenterOf(theApp->mHighScoreWidget->mNewGameButton, x, y);
+	}
+	Board* b = theApp->mBoard;
+	if (b != NULL && b->mBonus && b->mState != STATE_LEVEL_END && !b->mLevelOver)
+	{
+		*theWhat = "bonus";
+		if (b->mBonusState != 0)
+		{
+			*x = b->mX + Board::CellToPixel(5);
+			*y = b->mY + Board::CellToPixel(5) + 12;
+		}
+		else
+		{
+			// a square of the bonus screen that changes with every ask, so that a dug square is not asked for again
+			unsigned int aDice = (unsigned int) (theApp->mUpdateCount * 2654435761u + b->mScore);
+			*x = b->mX + Board::CellToPixel(1 + (aDice >> 8) % 9) + 5 + 21;
+			*y = b->mY + Board::CellToPixel(1 + (aDice >> 16) % 9) + 0x12 + 21;
+		}
+		return true;
+	}
+	return false;
+}
+
+// the game is over: the last life is gone
+bool GameOver(Board* b)
+{
+	return b != NULL && b->mLives < 1;
 }
 
 }
@@ -284,7 +369,15 @@ bool SevenSeasApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		if (!BotCanMove(mBoard))
 		{
-			Reply("MOVE null");
+			std::string aWhat;
+			int aUX, aUY;
+			if (!GameOver(mBoard) && UiClick(this, &aWhat, &aUX, &aUY))
+			{
+				Reply("MOVE {\"kind\":\"ui\",\"what\":\"" + aWhat + "\",\"input\":[{\"move\":[" + Num(aUX) + "," + Num(aUY) + "]},{\"click\":[" +
+					Num(aUX) + "," + Num(aUY) + "]}]}");
+			}
+			else
+				Reply("MOVE null");
 			return true;
 		}
 		// the bot's dice start from the position, so the same position gives the same move and nothing is drawn

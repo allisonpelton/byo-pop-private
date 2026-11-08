@@ -246,3 +246,44 @@ Script commands of the port (`-script`, later the live channel), answered on std
 | `seed <n>` | the game's random numbers (the C library generator the original used) are seeded with n |
 | `move` | `MOVE {"kind":"fire"\|"wait"\|"sail","cell":[x,y],"input":[{"move":[gx,gy]},{"click":[gx,gy]}]}`, the autoplay bot's next move (the bot's choice is `ChooseBotMove` in `testhooks/Bot.h`, shared with `-autoplay`) and the input (a hover and a click, in game coordinates) that makes it, or `MOVE null` when no ship waits for a click or on the bonus screen; it draws no random number of the game's and changes nothing |
 | `unlock all` | ERROR: the game has nothing locked |
+
+## 10. Fix candidates (2026-11-08)
+
+None for the fixes mod. What was checked: the whole play of the port against the original in the identical-play pass and in the
+real-input passes (native and web, Easy, Average, Hard, the tutorial, a saved game), looking for waits that only cost the player
+time and for bugs of the original that do not break play. The bugs found broke play, so they are fixed in the port itself (the
+user's rule): the pirate's box that took the clicks of the squares under it (section 5), and the tutorial's missing last hint and
+its mis-placed first box. Nothing else came up: the title, the demo and the level-end screens answer a click at once, and the
+ships' sailing and the broadsides are the game's own animation, which holds the player only as the game's rules do. This is a
+result of the play-throughs, not of a line-by-line audit of the export for waits, so a later find is added here.
+
+## 11. Performance (2026-11-08)
+
+The original and the port, back to back on this machine (a Core i7-12700F, Windows 11), for the user's morning report. The machine
+was not quiet: other sessions' games ran meanwhile (3 to 7 game processes counted by `tools/gamecount.py` at the start and end of
+each run; `build/perf/procs_*.txt`, git-ignored), so the numbers compare the two here and now; the performance pass re-measures on a
+quiet machine. Both ran windowed, in real time, with no sound (the port under rundesk with SDL's silent driver; the original under
+origrun on the host with its silent stand-in and the seed pinned), a fresh user folder each, no mods. The input is the same on both
+sides (`tools/profile/perf_orig.txt` and `perf_port.txt`: the title at 2 s, the menu's Play at 10 s, the Easy demo's button at 24 s,
+then a broadside at the ship every 1.5 s to 88 s, quit at 90 s). One run is one process from its creation to its exit, sampled
+every 50 ms by `tools/profile/perfmin.py` (a copy of Bejeweled's sampler); the window for the processor figures is 20 to 80 s.
+
+| | original (3 runs) | port (3 runs) |
+|---|---|---|
+| Peak working set | 55.4, 65.0, 65.1 MB | 66.1, 66.2, 66.3 MB |
+| Peak private bytes | 41.5, 50.9, 51.2 MB | 65.9, 65.9, 66.0 MB |
+| Processor time in the window | 2.2, 8.7, 7.5 % of one core | 4.8, 5.0, 5.5 % of one core |
+| Processor time, whole 90 s run | 3.2, 8.3, 7.6 s | 5.1, 4.9, 5.7 s |
+| Launch to the first screen that takes input | 1 to 2 s (origrun's log has a one-second clock: the counter's first update comes in the second after the launch, 3 runs) | 1.07 s median (1.04 to 1.15, 5 runs: a click on the title's Play link every 50 ms, the first one the menu answers) |
+
+The original's first run sits apart from its other two (55 MB and 2 % against 65 MB and 8 %); its script ran the same lines at the
+same updates, and the cause was not examined (a different state of the game at that moment, as the Easy demo's timing varies, is
+the likely one), so the three are given as measured. The port holds about 15 MB more private memory than the original's
+three-run range and about the same working set; its processor use sits between the original's quiet and busy runs. Seven Seas
+loads in about a second in both: the port added no wait (the framework runs the loading thread in one go) and the original
+has none that this clock can see. The tools: `runperf.sh` (both sides), `runport.sh` (the port alone: its Popen needs absolute paths
+under rundesk), `loadtime.py` (the port's load time through the live channel).
+
+**What could not be measured.** The web build's load time: the Browser pane is hidden, its timers are throttled and
+`requestAnimationFrame` does not run, and a load in a player's browser is dominated by the network and the wasm compile. The
+original's load to better than a second (no state command; origrun's clock is in whole seconds). The GPU's own load, and full screen.
