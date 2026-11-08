@@ -1002,6 +1002,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     // "3D acceleration": -1 the game's own choice, 1 always (where the browser has WebGL2: the game checks), 0 never
     var accel = setting("accel3d");
     audioCall("byopop_site_accel3d", [accel === "on" ? 1 : accel === "off" ? 0 : -1]);
+    // "Always skip start-up logos" (framework/WebSettings.h, SiteSkipLogos): read by the games where their logos are, which come
+    // before anything the page could call once the game runs. Never on the player-only test page, whose runs keep the logos
+    audioCall("byopop_site_skiplogos", [(setting("skipLogos") === "on" && !PLAYER_ONLY) ? 1 : 0]);
     setStatus(modsText + seedText + run.status + (pagePlaceholders() ? " · " + ByopopStrings.t("game.status.placeholders") : "") +
       (Module.silentAudio ? " · " + ByopopStrings.t("game.status.silent") : (isAutostart === true ? " · " + ByopopStrings.t("game.status.sound_after") : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)

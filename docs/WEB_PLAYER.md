@@ -1714,6 +1714,26 @@ from its own button), Cosmic Bugs and Water Bugs (whose first-level help follows
 (whose per-player flags the first board's generation also reads), and Ning Po and the two Mahjong Escapes (which have an idle
 hint, but no tutorial).
 
+### Always skip start-up logos
+
+**Always skip start-up logos** (`skipLogos`, off by default, and like every setting it can be set for one game only) has the
+games go straight past their start-up logos (the user, 2026-11-08: "Add a site-wide option to skip all start-up logos"). A
+player who never sets it sees every game as it is. Start-up logos are the PopCap logo, a publisher's or developer's logo and
+a "presents" splash before the loading or title screen. The loading screen's progress bar and the title screen's own
+animation are not logos. With the setting on, a game goes on from each logo as a click or key on it would take it, the
+original's own skip, so play afterwards is the same. Logos that held the player are already gone under the loading rule
+(CLAUDE.md, "Port first, unmodified"), with `-popcaplogo` and `-splashhold` keeping them for comparisons, so they need nothing.
+
+The logos come before anything the page could call once the game is running, so the page tells the game before it starts,
+as it does for "Full screen at start": `byopop_site_skiplogos(1)` before `callMain` (`framework/WebSettings.cpp`). It is
+never set on the player-only test page. A game reads `Byopop::SiteSkipLogos()` (`framework/WebSettings.h`). The call exists on
+both builds, so game code needs no `#ifdef`. Natively it is true under `-skiplogos`, which `SexyAppBase::HandleCmdLineParam`
+takes, so a session can test its wiring under rundesk. A game whose own host parses its command line (Bonnie's Bookstore,
+Ning Po Mahjong) calls `Byopop::SetSiteSkipLogos(true)` for `-skiplogos` itself.
+
+A game that does not read it is left as it is, logos and all. Games that read it so far: none yet. Each game's session adds
+its game here when it registers.
+
 ## The player-only page
 
 For sessions that test a game in the Browser pane (the user, 2026-11-07: "For agent browser testing use, build a stripped down
