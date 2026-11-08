@@ -110,12 +110,14 @@ try {
     if (blurAt > 0 && !blurred && stats.places >= blurAt) {
       // the window loses the focus: the game must hold still, then play on when it comes back
       blurred = true;
-      var before = JSON.stringify([last.score, b.moves, last.forge]);
+      var before = JSON.stringify([last.score, b.moves]);
       await t.blur();
       await t.wait(60);
       var during = await t.state();
-      var held = JSON.stringify([during.score, (during.board || {}).moves, during.forge]) === before;
-      note("blur: active " + during.active + " muted " + during.muted + " paused " + (during.board || {}).paused + " held " + held);
+      var held = JSON.stringify([during.score, (during.board || {}).moves]) === before;
+      // the time trial's forge fills by itself, so its level is only reported
+      note("blur: active " + during.active + " muted " + during.muted + " paused " + (during.board || {}).paused + " score and moves held " + held +
+        " forge " + last.forge + " -> " + during.forge);
       await t.shot("blur");
       await t.focus();
       await t.wait(30);

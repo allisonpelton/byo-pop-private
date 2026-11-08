@@ -97,7 +97,8 @@ std::string Pt(Widget* theWidget)
 	return "[" + Num(aX) + "," + Num(aY) + "]";
 }
 
-const char* DialogName(AlchemyApp* theApp)
+// the game's dialog that is up (the first found, in the order of the table) and its name for `state`
+Dialog* TopDialog(AlchemyApp* theApp, const char** theName)
 {
 	static const struct { int mId; const char* mName; } kDialogs[] =
 	{
@@ -106,9 +107,23 @@ const char* DialogName(AlchemyApp* theApp)
 		{DIALOG_HIGH_SCORES, "alltime"}, {DIALOG_COLOR_DEPTH, "colordepth"}
 	};
 	for (size_t i = 0; i < sizeof(kDialogs) / sizeof(kDialogs[0]); i++)
-		if (theApp->GetDialog(kDialogs[i].mId) != NULL)
-			return kDialogs[i].mName;
+	{
+		Dialog* aDialog = theApp->GetDialog(kDialogs[i].mId);
+		if (aDialog != NULL)
+		{
+			if (theName != NULL)
+				*theName = kDialogs[i].mName;
+			return aDialog;
+		}
+	}
 	return NULL;
+}
+
+const char* DialogName(AlchemyApp* theApp)
+{
+	const char* aName = NULL;
+	TopDialog(theApp, &aName);
+	return aName;
 }
 
 const char* ScreenName(AlchemyApp* theApp)
@@ -203,6 +218,20 @@ std::string StateJson(AlchemyApp* theApp)
 	std::string s = std::string("{\"screen\":\"") + ScreenName(theApp) + "\"";
 	if (const char* aDialog = DialogName(theApp))
 		s += std::string(",\"dialog\":\"") + aDialog + "\"";
+	if (Dialog* aTop = TopDialog(theApp, NULL))
+	{
+		// the buttons of that dialog, for a driver that clicks them
+		s += ",\"buttons\":{";
+		bool aFirst = true;
+		if (aTop->mYesButton != NULL)
+		{
+			s += "\"yes\":" + Pt(aTop->mYesButton);
+			aFirst = false;
+		}
+		if (aTop->mNoButton != NULL)
+			s += std::string(aFirst ? "" : ",") + "\"no\":" + Pt(aTop->mNoButton);
+		s += "}";
+	}
 	s += ",\"updates\":" + Num(theApp->mUpdateCount);
 	s += std::string(",\"mode\":\"") + ModeName(theApp) + "\"";
 	s += ",\"skill\":" + Num(theApp->mSkillLevel);

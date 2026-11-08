@@ -23,6 +23,7 @@ Steps (run in order in one game process; a step ends when its goal is reached or
                           game's side, so this only shows the driver sent them; the focus pass uses -realinput)
     quit                  the side panel's quit button, then Yes
 
+--modsdir <dir> starts the game with that mods folder (the fixes mod: one folder named fixes inside it).
 Script lines: --line "<update> <command>" adds one (focus lose, focus regain at fixed updates), repeatable.
 Limits: --game-seconds N caps one game (default 420). --stop-after-pieces N ends a game early by `lose` (not real input,
 only to bound a run). Exit code 0 when every step reached its goal.
@@ -340,14 +341,30 @@ class Game:
         self.press(lambda s: s['panel']['quit'], 'quit')
         self.wait_state(lambda s: s.get('dialog') == 'quit', 10, 'the quit question')
         self.shot('quit')
-        # Yes is the dialog's first button; its place is not in the state, so it is the bot-less default of the dialog
-        self.wait_state(lambda s: True, 1, 'a state')
+        # the question's No first: the game goes on at the selector
+        self.press(lambda s: s['buttons']['no'], 'No')
+        self.wait_state(lambda s: s.get('dialog') != 'quit', 10, 'the quit question to close')
+        self.say('No closed the quit question; the selector is', 'up' if self.state['screen'] == 'menu' else 'GONE')
+        if self.state['screen'] != 'menu':
+            raise Failure('the selector did not stay after No')
+        # then Yes: the game leaves by itself
+        self.press(lambda s: s['panel']['quit'], 'quit again')
+        self.wait_state(lambda s: s.get('dialog') == 'quit', 10, 'the quit question again')
+        self.press(lambda s: s['buttons']['yes'], 'Yes')
+        t0 = time.time()
+        while self.p.poll() is None and time.time() - t0 < 20:
+            self.pump()
+            time.sleep(0.05)
+        if self.p.poll() is None:
+            raise Failure('the game did not exit after Yes')
+        self.say('the game left by itself after Yes, exit code', self.p.returncode)
 
 
 def main():
     args = sys.argv[1:]
     seed, updates, game_seconds = 1, 120000, 420
     lines = []
+    extra = []
     steps = []
     out = args.pop(0)
     while args:
@@ -360,12 +377,14 @@ def main():
             game_seconds = int(args.pop(0))
         elif a == '--line':
             lines.append(args.pop(0))
+        elif a == '--modsdir':
+            extra.append('-modsdir=' + os.path.abspath(args.pop(0)))
         else:
             steps.append([a])
             n = {'game': 2, 'shot': 1, 'wait': 1, 'focus': 1}.get(a, 0)
             for _ in range(n):
                 steps[-1].append(args.pop(0))
-    g = Game(out, seed=seed, updates=updates, lines=lines)
+    g = Game(out, seed=seed, updates=updates, lines=lines, extra=extra)
     code = 0
     try:
         for st in steps:
