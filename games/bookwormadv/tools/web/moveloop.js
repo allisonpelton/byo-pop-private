@@ -10,6 +10,7 @@ const seconds = Number(params.get('seconds')) || 600;
 const first = (params.get('first') || '').split(',').map(s => s.trim()).filter(Boolean);
 const t0 = Date.now();
 const moves = {};
+const firstFailed = [];
 let stop = 'time up', left = false, nullsSince = null, last = null, same = 0, st = null;
 // ?name=: a new profile's name, typed into the new player's dialog that a fresh profile opens on the title
 if (params.get('name')) {
@@ -18,8 +19,9 @@ if (params.get('name')) {
   await t.key('Enter');
 }
 for (const c of first) {
-  const lines = await t.command(c, {timeout: 60000});
-  if (!/^OK /.test(lines[lines.length - 1])) return {stop: 'first: ' + lines[lines.length - 1], moves};
+  // (one that fails is skipped: a profile in a chapter starts in it, with no menu to go to)
+  const lines = await t.command(c, {timeout: 60000}).catch(e => [String(e)]);
+  if (!/^OK /.test(lines[lines.length - 1])) firstFailed.push(lines[lines.length - 1]);
 }
 while (Date.now() - t0 < seconds * 1000) {
   st = await t.state();
@@ -41,4 +43,6 @@ while (Date.now() - t0 < seconds * 1000) {
   await t.playMove(m);
   await t.wait(10);
 }
-return {stop, moves, state: st, seconds: Math.round((Date.now() - t0) / 1000), errors: t.errors.length};
+// a picture of the end, build/webshots/<?run=>/end.png: a wait outside the page can watch for it
+await t.shot('end').catch(() => null);
+return {stop, firstFailed, moves, state: st, seconds: Math.round((Date.now() - t0) / 1000), errors: t.errors.length};
