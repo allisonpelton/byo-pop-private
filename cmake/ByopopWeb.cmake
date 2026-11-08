@@ -89,7 +89,7 @@ set(BYOPOP_WEB_UPCOMING
 # The games whose ports load no mods yet (their pages' modsIntro says so): their pages show no Mods button (the user,
 # 2026-11-03: "Don't show a mods button for games with no mod support"; web/shell.html's MODS_SUPPORTED). A port that starts
 # loading mods leaves this list.
-set(BYOPOP_WEB_NO_MODS bonnies cosmicbugs mahjongchina mahjongjapan ningpo waterbugs wordharmony)
+set(BYOPOP_WEB_NO_MODS bonnies mahjongchina mahjongjapan ningpo waterbugs wordharmony)
 # The fixes mod (docs/MOD_ROADMAP.md, "The fixes mod"; docs/WEB_PLAYER.md, "The fixes mod on the site"): a game's
 # games/<game>/mods/fixes is shipped beside its page as <game>-fixes/, and the page installs it on, unless the game is in
 # BYOPOP_WEB_NO_MODS. BYOPOP_WEB_TEST_FIXES names one game that has no fixes mod of its own to ship tools/webtest/fixes as
