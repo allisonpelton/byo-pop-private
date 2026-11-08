@@ -1,0 +1,7 @@
+40000 click 320 451
+40100 click 71 364
+40150 click 404 295
+40154 screenshot s40154
+40300 screenshot s40300
+40500 screenshot s40500
+40700 screenshot s40700

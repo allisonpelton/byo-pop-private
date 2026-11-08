@@ -332,3 +332,45 @@ Still to do: the deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line
 (cmake/ByopopStores.cmake has an uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the
 autoplay (tools/build.sh has no asan option yet). The trial clock (0x42f770) and the shareware dialogs (0x414790, 0x415020, 0x4153b0) are left out on purpose: the Steam copy
 is registered.
+
+## Fix candidates
+
+None. Checked for the fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"):
+
+- **Faults that change play.** None was found that the port keeps: the faults phase one met (a wrong rotation table entry, a launcher
+  numbered by the column, the night timer running in the strategy mode, a click on a score text) were fixed in the port because the
+  original's own code does not have them (`IDENTICAL_PLAY.md`, the table of changes).
+- **Waits that only cost the player time.** The loading is the one (done in the port, below). The hint dialogs, the level-up and
+  game-over screens wait for a click and the head's welcome and the fuse's animations do not hold a click, so there is nothing a
+  player waits for without being able to act.
+- **Run-to-run variance with the same input.** Play follows the board's generator, which is seeded from the game's seed and draws
+  its numbers in the same order whatever the machine's speed. The only generator that follows how often the screen is drawn is
+  the C library's (`CrtRand`), which the drawing alone reads (the board's shake, the lanterns' jitter, the sparks' frames). A
+  fix that seeded it from the update count was tried and left out: 99 shots of a whole tour (a game of each mode) were the same with
+  and without it, played with `-fast -drawevery` and in real time, so there is no difference for it to mend that the tools can show.
+
+## Loading
+
+The port loads in one go and shows the play link the update the game has loaded. The original's loading screen looks at the loading
+thread's progress every fourth update (`LoadingScreen::Update`, 0x4111b0); for a registered copy the bar then follows the thread's
+progress directly, so the original has no minimum time of its own. The port's loading is not faster than the original's (see
+"Performance").
+
+## Performance
+
+Measured 2026-11-08 with `games/rocketmania/tools/profile/perf.py`: the original under origrun (real clock, scripted cursor, on its
+private desktop) and the port under rundesk, without `-fast`, back to back on the same machine, the same scripted 55 seconds
+(link, Arcade, Medium, a game of the bot's clicks; `build/ph2/perf/*.txt`). Seven other games' processes were running on the
+machine meanwhile (Bonnie's, BookWorm, Dynomite, Ning Po, Pixelus, TipTop, origrun), so the numbers are for a busy machine; the
+performance pass re-measures on a quiet one.
+
+| | Original | Port |
+|---|---|---|
+| Launch to the play link (s) | 2.4, 1.1, 0.9 (the first run was cold) | 1.8, 2.0, 1.8 (3.5 and 2.8 on cold runs) |
+| Peak working set (MB) | 85 | 138 |
+| Peak private bytes (MB) | 62 | 132 |
+| Processor time over the minute | 8.6 to 9.3 s of 53 s (16 to 17%) | 4.6 to 5.7 s of 57 s (8 to 10%) |
+
+The port loads more slowly than the original (its resource thread takes 1.2 s of that, in the log's "Resource Loading Time"), keeps
+about 70 MB more in private memory (the decoded pictures as 32-bit surfaces, the mixer's buffers, SDL) and uses about half of its
+processor time. The web build's load time was not timed.

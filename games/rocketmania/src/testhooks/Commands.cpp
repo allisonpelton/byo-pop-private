@@ -103,6 +103,8 @@ void State(RocketApp* theApp)
 	aJson += std::string("\"screen\":\"") + aScreen + "\"";
 	if (aDialog >= 0)
 		aJson += ",\"dialog\":" + Num(aDialog);
+	if (theApp->mLoadingScreen != NULL)
+		aJson += std::string(",\"link\":") + (theApp->mLoadingScreen->mLinkShown ? "true" : "false");
 	Board* aBoard = theApp->mBoard;
 	if (aBoard != NULL)
 	{
