@@ -145,7 +145,8 @@ try:
             board_updates += 1
             if not focus_done and board_updates > 60:
                 focus_done = True
-                ok('focus lost'); time.sleep(0.2); ok('focus gained')
+                ok('focus lost'); time.sleep(0.3); a = state().get('paused'); ok('focus gained'); time.sleep(0.3); b = state().get('paused')
+                results.append('focus: paused %s after the loss, %s after the regain' % (a, b))
         if was_board and not lost and time.time() - board_t0 > args.play and 'dialog' not in s:
             lost = True
             ok('lose')
