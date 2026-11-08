@@ -798,14 +798,15 @@ once it is on the trunk) through `HandleScriptCommand` after Twist's own `newgam
 answers on stdout with one line. A run that gives none is unchanged (the suite's frozen screens prove it).
 
 - `state`: `STATE {...}` with `screen` (`loading`, `menu`, `profile`, `highscores`, `options`, `help`, `credits`,
-  `modeselect`, `game`; `options` also over a game) and, in a game, `mode`, `level` (+0x158; 0 is the first game's
+  `modeselect`, `continue` (the mode select asks whether to go on with a saved game), `game`; `options` also over a game) and, in a game, `mode`, `level` (+0x158; 0 is the first game's
   tutorial level), `score` (+0x168), `moves` (+0x23c, the twists in the level), `progress` (+0x200 of +0x204, the
-  level's goal), `busy`, `timer` (Blitz's seconds left), `board` (a string a row, a gem by its colour's letter:
+  level's goal), `busy`, `over` (the game has ended), `timer` (Blitz's seconds left), `wheel` (true while the second chance's wheel is up), `board` (a string a row, a gem by its colour's letter:
   r red, w white, g green, y yellow, p purple, o orange, b blue, `.` none) and `specials` (row, column, kind: bomb
   with its count, coal, doom, flame, lightning, fruit, locked with its lock).
 - `move`: `MOVE {...}` with the twist -autoplay's FindMove (0x6c14fc) would choose, by the same order and the same
   preference for a bomb's line, and the click that makes it (move, then click, at the corner the turn goes about, in
-  game pixels), or `MOVE null`. It reads the gems into a grid of its own, since FindMove moves the cursor to ask.
+  game pixels), `MOVE {"kind":"stop",...}` with the click on the second chance's "click to stop" once it can be
+  pressed (as -autoplay stops it), or `MOVE null`. It reads the gems into a grid of its own, since FindMove moves the cursor to ask.
 - `goto menu|title|options|highscores|help|credits|classic|zen|blitz`: through the gate buttons, the tube's menu
   button (options in a game), the quit question's Yes (menu from a game) and the menu's StartGame. Challenges answer
   ERROR (their menu is not wired to it), as does a locked mode.

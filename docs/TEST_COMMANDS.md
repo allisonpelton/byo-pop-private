@@ -34,7 +34,13 @@ test hooks of their own keep them and add these names beside them, sharing the c
 | `set <name> <value>` | sets one of the `state` keys (`score 90000`, `enemy 1`, `timer 5`) |
 | `win`, `lose` | ends the current level or game now, as a win or a loss, through the game's own ending |
 | `seed <n>` | seeds the game's random numbers, where the game draws them from one generator |
-| `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and the real input that makes it (`clicks`, `drags`, `keys` in game coordinates), or `MOVE null` when there is none; it changes nothing |
+| `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and `input`, the real input that makes it, as an ordered list of steps in game coordinates (below); or `MOVE null` when there is none; it changes nothing |
+
+A move's `input` steps, played in order (Twist's and Alchemy's drivers set the form, 2026-11-07): `{"move":[x,y]}` moves
+the pointer there (a hover: a piece that hangs from the pointer needs one before its click), `{"click":[x,y]}` clicks
+there, with `"button":"right"` for the right button, `{"press":[x,y]}` and `{"release":[x,y]}` hold and let go for a
+drag (the `move` steps between them carry it), `{"key":"B"}` presses and releases a key, and `{"wait":n}` waits n
+updates. A port that printed `clicks` or `drags` lists earlier moves over to `input`.
 
 ## The bot behind `move`
 

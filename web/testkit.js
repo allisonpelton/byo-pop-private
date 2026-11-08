@@ -281,9 +281,9 @@
   };
   test.screen = function () { return shell.screen; };
   // The standard test commands (docs/TEST_COMMANDS.md: state, goto <screen>, level <n>, unlock all, set <name> <value>, win,
-  // lose, seed <n>), through the framework's live channel (byopop_test_command, which queues the line for the next update and
-  // the -script dispatch). Resolves with the lines printed from the call up to the answer, STATE {json}, OK <command> or
-  // MOVE {json} | null, ERROR <command>: <reason> (the last of them); rejects after timeout ms (default 10000), or at once where the build has no
+  // lose, seed <n>, move), through the framework's live channel (byopop_test_command, which queues the line for the next
+  // update and the -script dispatch). Resolves with the lines printed from the call up to the answer, STATE {json},
+  // MOVE {json}|null, OK <command> or ERROR <command>: <reason> (the last of them); rejects after timeout ms (default 10000), or at once where the build has no
   // channel. A held game is stepped one update, so that the command runs.
   var ANSWER = /^(INFO: )?(STATE |MOVE |OK |ERROR )/;
   test.command = function (line, opts) {
