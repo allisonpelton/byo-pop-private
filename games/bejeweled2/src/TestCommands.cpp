@@ -12,6 +12,7 @@
 #include "Profile.h"
 #include "UserDialogs.h"
 #include "HelpScreen.h"
+#include "HyperlinkWidget.h"
 #include "GalaxyParser.h"
 #include "PuzzleStateOverlay.h"
 #include "HighScoreWidget.h"
@@ -195,6 +196,15 @@ void WinDMApp::TestAdvanceGoto()
 	}
 }
 
+// "name":[x,y]: the middle of a visible widget, in game pixels (what a driver clicks)
+static void AddWidgetPos(std::string& theList, const char* theName, Widget* theWidget)
+{
+	if (theWidget == NULL || !theWidget->mVisible)
+		return;
+	theList += StrFormat("%s\"%s\":[%d,%d]", theList.empty() ? "" : ",", theName, theWidget->mX + theWidget->mWidth / 2,
+		theWidget->mY + theWidget->mHeight / 2);
+}
+
 bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
@@ -231,6 +241,50 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 					aList[i]->mX + aList[i]->mWidth / 2, aList[i]->mY + aList[i]->mHeight / 2);
 			}
 			aLine += ",\"buttons\":{" + aButtons + "}";
+		}
+		// the widgets of the screen in front that a click reaches (not those of a dialog: "buttons" above): the title's play
+		// link, the menu's buttons, the board's buttons
+		if (mDialogMap.empty())
+		{
+			std::string aWidgets;
+			if (mTitleScreen != NULL)
+				AddWidgetPos(aWidgets, "play", mTitleScreen->mPlayLink);
+			else if (aScreen == "highscores" && mHighScoreWidget != NULL)
+			{
+				// back to the menu (or the game), and play again (or reset the scores when it was opened from the menu)
+				AddWidgetPos(aWidgets, "back", mHighScoreWidget->mBackButton);
+				AddWidgetPos(aWidgets, "again", mHighScoreWidget->mActionButton);
+			}
+			else if (aBoard != NULL && aScreen == "game")
+			{
+				AddWidgetPos(aWidgets, "menu", aBoard->mMenuButton);
+				AddWidgetPos(aWidgets, "hint", aBoard->mHintButton);
+				AddWidgetPos(aWidgets, "third", aBoard->mThirdButton);
+				AddWidgetPos(aWidgets, "tutorial1", aBoard->mTutorialButton1);
+				AddWidgetPos(aWidgets, "tutorial2", aBoard->mTutorialButton2);
+				AddWidgetPos(aWidgets, "playagain", aBoard->mPlayAgainButton);
+				AddWidgetPos(aWidgets, "mainmenu", aBoard->mMainMenuButton);
+			}
+			else if (aScreen == "menu" && mMainMenu != NULL)
+			{
+				AddWidgetPos(aWidgets, "classic", mMainMenu->mClassicButton);
+				AddWidgetPos(aWidgets, "action", mMainMenu->mActionButton);
+				AddWidgetPos(aWidgets, "puzzle", mMainMenu->mPuzzleButton);
+				AddWidgetPos(aWidgets, "endless", mMainMenu->mEndlessButton);
+				AddWidgetPos(aWidgets, "secret", mMainMenu->mSecretButton);
+				AddWidgetPos(aWidgets, "options", mMainMenu->mOptionsButton);
+				AddWidgetPos(aWidgets, "scores", mMainMenu->mScoresButton);
+				AddWidgetPos(aWidgets, "quit", mMainMenu->mQuitButton);
+				AddWidgetPos(aWidgets, "user", mMainMenu->mUserLink);
+			}
+			if (!aWidgets.empty())
+				aLine += ",\"widgets\":{" + aWidgets + "}";
+			// whether the menu's secret button is on (a mode button then starts its secret mode)
+			if (aScreen == "menu" && mMainMenu != NULL && mMainMenu->mSecretButton != NULL)
+				aLine += mMainMenu->mSecretButton->mSelected ? ",\"secret\":true" : ",\"secret\":false";
+			// whether the menu has a player yet (the new player's dialog opens a while after the menu)
+			if (aScreen == "menu")
+				aLine += (mProfile != NULL && !mProfile->mName.empty()) ? ",\"user\":true" : ",\"user\":false";
 		}
 		aLine += mIsWindowed ? ",\"windowed\":true" : ",\"windowed\":false";
 		aLine += mHasFocus ? ",\"focus\":true" : ",\"focus\":false";
@@ -297,6 +351,12 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		UnlockAll(mProfile);
+		// the menu shows the secret button (and the secret modes' pictures) as it does after a change of profile
+		if (mMainMenu != NULL)
+		{
+			mMainMenu->SyncProfile();
+			mMainMenu->ResizeComponents();
+		}
 		ReplyOK(theCommand);
 		return true;
 	}

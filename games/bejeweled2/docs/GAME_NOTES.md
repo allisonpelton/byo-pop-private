@@ -80,9 +80,11 @@ on the message's button, once the dialog has stopped sliding; in the puzzle mode
 valid one of the puzzle's own solution file (`FindPuzzleValidMoves`, the moves the hint shows). `goto options`, `goto help` and
 `goto highscores` take the same latch to the menu (closing whatever is open the way its own button does) and then open the
 options dialog, the How To Play screen or the high scores; the credits are no screen of their own (they roll after the last
-level of Classic) and answer an error. Not yet: `set` for other keys. `tools/playbymove/playbymove.py` plays every mode but the puzzle
-ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/realplay/soak.py` is a first driver that plays the
-bot's moves as real input from the title on (the name typed, the dialogs clicked).
+level of Classic) and answer an error. `state` also carries what a driver clicks: `widgets` (the middle of the title's play link,
+the menu's mode buttons and secret button, the high scores' back button, in game pixels; `[0,0]` before the menu has laid them out),
+`secret` (whether the menu's secret button is toggled on) and `user` (whether a player exists; `unlock all` with one also lays the
+menu out again, so the secret button shows). Not yet: `set` for other keys. `tools/playbymove/playbymove.py` plays every mode but the puzzle
+ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/realplay/full.py` is the real-input driver (its header says how it runs; `soak.py` is its first version).
 
 ## Oddities (skipped, not chased)
 

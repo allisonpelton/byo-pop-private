@@ -17,20 +17,26 @@ class Driver:
     games in tests") unless the caller already runs under it (rundesk sets BYOPOP_TEST_RUN=1 for its children), so that no
     caller can show the game on the user's screen. A new user folder starts windowed (ScreenMode 0) unless windowed=False."""
 
-    def __init__(self, exe, gamedir, userdir, out, fast, extra, windowed=True):
+    def __init__(self, exe, gamedir, userdir, out, fast, extra, windowed=True, is3d=None, hold=False):
+        exe, gamedir, userdir, out = (os.path.abspath(p) if p else p for p in (exe, gamedir, userdir, out))  # rundesk starts the exe by an absolute path
         self.out = out
+        self.hold = hold  # -hold: an update runs only as the driver's lines let it (a wait N runs N), so the game's clock is the driver's
         registry = os.path.join(userdir, 'registry.ini')
-        if windowed and not os.path.exists(registry):
+        if not os.path.exists(registry):
             os.makedirs(userdir, exist_ok=True)
             with open(registry, 'w') as f:
-                f.write('[SOFTWARE\\Steam\\Bejeweled2]\nScreenMode=dword:0\n')
+                f.write('[SOFTWARE\\Steam\\Bejeweled2]\n')
+                if windowed:
+                    f.write('ScreenMode=dword:0\n')
+                if is3d is not None:
+                    f.write('Is3D=dword:%d\n' % (1 if is3d else 0))
         self.cmdfile = os.path.join(out, 'commands.txt')
         self.empty = os.path.join(out, 'realinput.txt')
         open(self.cmdfile, 'w').close()
         open(self.empty, 'w').close()
         self.logpath = os.path.join(out, 'game.log')
         args = [exe, '-gamedir=' + gamedir, '-userdir=' + userdir, '-commands=' + self.cmdfile,
-                '-realinput=' + self.empty] + (['-fast'] if fast else []) + extra
+                '-realinput=' + self.empty] + (['-fast'] if fast else []) + (['-hold'] if hold else []) + extra
         self.log = open(self.logpath, 'wb')
         if os.environ.get('BYOPOP_TEST_RUN') != '1':
             args = [os.path.join(ROOT, 'build', 'native', 'rundesk.exe')] + args
@@ -109,6 +115,9 @@ class Driver:
 
     def wait_updates(self, n, timeout=30):
         """Waits until the board has made n more updates (the board's tick), or the screen is no longer the game."""
+        if self.hold:
+            self.ok('wait %d' % n)
+            return self.state()
         s = self.state()
         if 'tick' not in s:
             time.sleep(0.05)
@@ -119,6 +128,13 @@ class Driver:
             time.sleep(0.01)
             s = self.state()
         return s
+
+    def idle(self, seconds=0.02):
+        """A short pause: real time, or with -hold a few updates of the game's own clock."""
+        if self.hold:
+            self.ok('wait 2')
+        else:
+            time.sleep(seconds)
 
     def wait_screen(self, screens, timeout=60):
         deadline = time.time() + timeout
