@@ -1435,8 +1435,10 @@ wordharmony_game() {  # <name> <think|tsunami> [exe]: a scripted game (-fast, se
 	# Save/Quit and Save Game
 	printf '%s\n' "2900 screenshot $d/shots/play.png" "2980 move 155 30" "3000 click 155 30" "3150 move 360 325" \
 		"3170 click 360 325" "3400 screenshot $d/shots/menu.png" "3420 quit" >> "$d/script.txt"
+	# -splashhold: the original's two seconds of splash (the port shows the menu once it has loaded), so that the script's
+	# updates line up with the original's and the baseline's
 	timeout 300 "${3:-$W/build/native/wordharmony.exe}" -gamedir=assets/wordharmony -userdir="$d/user" -fast -seed=1 \
-		-statelog="$d/state.txt" -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+		-splashhold -statelog="$d/state.txt" -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	rc=$?
 	[ $rc -eq 0 ] || { echo "exit status $rc"; return; }
 	# the engine's exceptions (WordHarmonyApp::EngineFailed) and any message box the test run did not show
