@@ -143,6 +143,32 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
 - The puzzle currently being played (`his<n>` holds its moves) was only compared after the puzzle's end, not
   continued across programs in mid-puzzle.
 
+## Phase two: real-input play, registration, and where it ends (2026-11-08)
+
+**Real input, natively and on the web.** `games/pixelus/tools/realplay/drive.py` plays the game under rundesk with posted
+mouse and key events only, from the launch (the loading screen's link, the main menu, the new-player dialog, the story, the
+help screen, the island, the temples and the boards) through the tutorial's nine puzzles and a whole temple (Flora, 12
+puzzles), choosing every move with the port's own bot (`move`) and reading the state from the log. The runs, all with 21
+puzzles solved in the profile: normal mode, with the focus taken away and given back in the middle of a board (r10, 4352 s);
+expert mode (r14); full screen by Alt+Enter after the first board, in both modes, over the tutorial's first five puzzles
+(r12, r13). One expert run in full screen (r11) stopped at its fourth puzzle's completed screen when the game did not answer
+a command for 10 s; the same run again passed, and nothing in the log of the first shows a fault, so it is listed here as a
+stall of a busy machine, not explained. `games/pixelus/tools/web/play.js` plays the same on the web with DOM events (a hidden
+Browser pane, `?fast=1`, `?scale=2`; the pane cannot enter full screen, so `?scale=2` is tested in its place and Alt+Enter is
+not tested there): normal mode with the focus lost and regained on every board (21 solved, 0 errors) and expert mode (21
+solved, 0 errors). The game has two modes, normal and expert (the new-player dialog's box); it has no 3D.
+
+**Registration and outbound buttons** are not in the port: the menu's More Games button and the register dialog are left
+out (GAME_NOTES.md, section 9). No fixes mod is made: "Fix candidates: none" there, with what was checked.
+
+**Phase two is not complete.** The compared screens still differ where listed above: the cross-fades between the help
+screen, the island, the temple and the board; the temple screen's thumbnails; the help screen's two live grids (the demo on
+the left, the puzzle on the right); the islands' particle bursts and pointer follower; the tutorial's helper bubbles and
+glowing cells; the credits roll; the speeches' portraits (the original renders a 160 by 160 figure at the speaker's offsets);
+the tablet's particles. None changes a draw of the game's random numbers or a screen's state. The completed screen's fade is
+ported (picture and tablet over the board by the flight's progress); mid-fade shots differ by an alpha slope and the picture's
+blur.
+
 ## Notes for the repository
 
 `tools/identical/setup.sh` copies `re/pixelus/bin/PixelusGame.exe` (the game made by `tools/extract_game_exe.py` from the
