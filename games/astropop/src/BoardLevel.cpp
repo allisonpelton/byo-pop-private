@@ -194,6 +194,32 @@ static const UpgradeRec kUpgrades[4][9] =
 	}
 };
 
+// 0x433130: what the upgrade screen of the next level offers (the argument is the level that is about to begin). 3: the
+// level opens a mode (level 8 of mode 0 unlocks mode 3, level 16 of mode 1 unlocks mode 2) that is still locked;
+// 4 or 2: every fourth level, while the profile's count of the upgrade is at its step (4 with the mode to unlock); 1: the
+// levels before a multiple of four, unless the screen shown now was kind 1; else 0.
+int Board::Fn433130(int theLevel)
+{
+	int aUnlock = 0;
+	if ((mMode == 0 && theLevel == 8 && !mApp->mUser->HasModeUnlocked(3)) ||
+		(mMode == 1 && theLevel == 0x10 && !mApp->mUser->HasModeUnlocked(2)))
+		aUnlock = 3;
+
+	if (theLevel % 4 == 0 && theLevel >= 0 && theLevel <= 0x20)
+	{
+		const UpgradeRec& aRow = kUpgrades[(mMode >= 0 && mMode <= 2) ? mMode : 3][theLevel / 4];
+		int aCount = 0;
+		mApp->mUser->GetInt(aRow.mSetting, &aCount);
+		if (aCount <= aRow.mValue)
+			return aUnlock == 3 ? 4 : 2;
+	}
+	if (aUnlock == 3)
+		return 3;
+	if ((theLevel - 3) % 4 == 0 || theLevel == 3)
+		return m1b2c == 1 ? 0 : 1;
+	return 0;
+}
+
 // 0x43e220: a number with a comma after each three digits (counted from the right)
 std::string Board::FormatNumber(int theNumber)
 {
