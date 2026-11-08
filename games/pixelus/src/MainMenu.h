@@ -26,7 +26,6 @@ public:
 	enum
 	{
 		ID_PLAY = 5,
-		ID_MORE_GAMES = 2,
 		ID_OPTIONS = 3,
 		ID_QUIT = 4,
 		ID_USER_LINK = 0x65,
@@ -37,7 +36,6 @@ public:
 
 	PixelusApp*			mApp;				// +0x80
 	DialogButton*		mPlayButton;		// +0x5c
-	DialogButton*		mMoreGamesButton;	// +0x64
 	DialogButton*		mOptionsButton;		// +0x68
 	DialogButton*		mQuitButton;		// +0x6c
 	HyperlinkWidget*	mUserLink;			// +0x160 "( IF THIS IS NOT YOU, CLICK HERE )"

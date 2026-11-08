@@ -360,7 +360,8 @@ public:
 	}
 };
 
-// vtable 0x462eb8 (0xf08 bytes): the options. The trial had a button to register here (options_register_np.tga).
+// vtable 0x462eb8 (0xf08 bytes): the options. The trial had a button to register here, and every copy one to visit the
+// partner's site, between Best Times and Done (both left out: docs/README.md, "Left out").
 class OptionsDialog : public PGDialog
 {
 public:
@@ -374,9 +375,6 @@ public:
 	PGDialogButton mFullscreen;  // +0x518
 	PGDialogButton mAutohint;    // +0x65c
 	PGDialogButton mBestTimes;   // +0x7a0
-	PGDialogButton mVisit;       // +0xa28 the partner's site
-	PGSprite mVisitSprite;       // +0xb6c
-	PGSprite mVisitLit;          // +0xbc0
 	PGSprite mBestTimesLit;      // +0xc14
 	PGSprite mBestTimesSprite;   // +0xc68
 	PGSprite mTab;               // +0xcbc the sliders' knob
@@ -391,13 +389,42 @@ public:
 };
 
 // 0x40b3d0
+// port: paints out the options' empty bottom frame (x 61 to 462, y 393 to 436 in options_np.jpg) with the wood beside
+// it. Its grooved edges and their shadows, 12 pixels across, take the 12 pixels just outside them: the left and right
+// edges first, then the top and bottom across the whole width, so the corners take wood too.
+static void PaintOutFrame(pg::HImage& theImage)
+{
+	const int aBytes = theImage.bytesPerPixel();
+	if (theImage.mWidth < 480 || theImage.mHeight < 460 || aBytes != 4)
+		return;
+	uint8_t* aBits = theImage.mBits.data();
+	const int aPitch = theImage.pitch();
+	auto aColumns = [&](int theX, int theCount, int theFrom)
+	{
+		for (int y = 390; y < 444; y++)
+			memcpy(aBits + y * aPitch + theX * aBytes, aBits + y * aPitch + theFrom * aBytes, theCount * aBytes);
+	};
+	auto aRows = [&](int theY, int theCount, int theFrom)
+	{
+		for (int i = 0; i < theCount; i++)
+			memcpy(aBits + (theY + i) * aPitch + 55 * aBytes, aBits + (theFrom + i) * aPitch + 55 * aBytes,
+				(466 - 55) * aBytes);
+	};
+	aColumns(55, 12, 43);
+	aColumns(456, 10, 466);
+	aRows(390, 12, 378);
+	aRows(433, 11, 444);
+}
+
 void OptionsDialog::setup(pg::HDisplay* theDisplay, const pg::HFileSystem* theFileSystem, NingPo* theSettings)
 {
 	mSettings = theSettings;
 	mTab.load(theDisplay, theFileSystem, "options_slider_tab_np.tga");
 	mDone.load(theDisplay, theFileSystem, "options_done_np.tga");
 	mDoneLit.load(theDisplay, theFileSystem, "options_done_lit_np.tga");
-	PGPoint aPos = {0x3f, 0x18c};
+	// port: in the third row, where the visit to the partner's site was (left out: docs/README.md, "Left out"); the
+	// original's Done was at (0x3f, 0x18c), in the fourth
+	PGPoint aPos = {0x3f, 0x14e};
 	mOk.setPosition(&aPos);
 	mOk.setSprites(&mDone, &mDoneLit, nullptr);
 	mBestTimesSprite.load(theDisplay, theFileSystem, "options_besttimes_np.tga");
@@ -405,16 +432,18 @@ void OptionsDialog::setup(pg::HDisplay* theDisplay, const pg::HFileSystem* theFi
 	aPos = {0x3f, 0x10d};
 	mBestTimes.setPosition(&aPos);
 	mBestTimes.setSprites(&mBestTimesSprite, &mBestTimesLit, nullptr);
-	mVisitSprite.load(theDisplay, theFileSystem, "options_visit_np.tga");
-	mVisitLit.load(theDisplay, theFileSystem, "options_visit_lit_np.tga");
-	aPos = {0x3f, 0x14e};
-	mVisit.setPosition(&aPos);
-	mVisit.setSprites(&mVisitSprite, &mVisitLit, nullptr);
 	mOn.load(theDisplay, theFileSystem, "options_on_np.tga");
 	mOnLit.load(theDisplay, theFileSystem, "options_on_lit_np.tga");
 	mOff.load(theDisplay, theFileSystem, "options_off_np.tga");
 	mOffLit.load(theDisplay, theFileSystem, "options_off_lit_np.tga");
-	mBackgroundSprite.load(theDisplay, theFileSystem, "options_np.jpg");
+	// port: the background has a frame for each button; the fourth row's, empty now that Done is in the third, is
+	// painted out (PaintOutFrame)
+	pg::HImage aBackground;
+	if (pg::LoadImage(theFileSystem, "options_np.jpg", aBackground))
+	{
+		PaintOutFrame(aBackground);
+		mBackgroundSprite.create(theDisplay, aBackground);
+	}
 	setBackground(&mBackgroundSprite);
 
 	aPos = {0xfa, 0x77};
@@ -448,7 +477,6 @@ void OptionsDialog::setup(pg::HDisplay* theDisplay, const pg::HFileSystem* theFi
 	addItem(&mSound);
 	addItem(&mMusic);
 	addItem(&mFullscreen);
-	addItem(&mVisit);
 	addItem(&mAutohint);
 	addItem(&mOk);
 }
@@ -461,8 +489,6 @@ void OptionsDialog::releaseSprites()
 	mOffLit.release();
 	mBestTimesSprite.release();
 	mBestTimesLit.release();
-	mVisitSprite.release();
-	mVisitLit.release();
 	mDone.release();
 	mDoneLit.release();
 	mTab.release();
@@ -488,8 +514,6 @@ bool OptionsDialog::onItemClicked(PGDialogItem* theItem)
 	}
 	if (theItem == &mBestTimes)
 		anApp->showBestTimes(anApp->mLayout);
-	if (theItem == &mVisit)
-		return true;
 	if (theItem == &mAutohint)
 	{
 		mSettings->mAutohint = mSettings->mAutohint == 0;
@@ -621,9 +645,8 @@ void NingPo::showBestTimes(int theLayout)
 	delete aDialog;
 }
 
-// 0x409e90: the loading screen; false when the window was closed. The trial counted theTimesPlayed against
-// nm_maxTimesPlayed here and asked for the registration again after it.
-bool NingPo::startupDialog(int theTimesPlayed)
+// 0x409e90: the loading screen; false when the window was closed
+bool NingPo::startupDialog()
 {
 	StartupDialog aDialog;
 	beginPause();
@@ -690,25 +713,14 @@ bool NingPo::noMoreMoves()
 	return aClicked == &anEndGameItem;
 }
 
-// 0x40aff0: the options; a visit to the partner's site leaves the full screen, after which the dialog's sprites
-// are loaded again
+// 0x40aff0: the options; a change of the full-screen box takes effect once they close
 void NingPo::showOptions()
 {
 	OptionsDialog aDialog;
 	beginPause();
 	int aWasFullscreen = mFullscreen;
 	aDialog.setup(mDisplay, mFileSystem, this);
-	while (aDialog.doModal(this, mDisplay, &mInput, 0, 0) == &aDialog.mVisit)
-	{
-		openPartnerSite();
-		if (aWasFullscreen != 0)
-		{
-			aDialog.releaseSprites();
-			aDialog.removeAll();
-			aDialog.setup(mDisplay, mFileSystem, this);
-			aWasFullscreen = 0;
-		}
-	}
+	aDialog.doModal(this, mDisplay, &mInput, 0, 0);
 	aDialog.releaseSprites();
 	aDialog.removeAll();
 	if (aWasFullscreen != mFullscreen)

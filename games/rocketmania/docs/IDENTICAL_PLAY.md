@@ -91,9 +91,88 @@ written by `tools/identical/setup.sh`, git-ignored). `setup.sh` carves the exe f
 - **origrun's watch keeps 4000 changes**: a value that changes every update (the global generator's index) is compared only for
   the first 4000 updates of a run; its first word and the board's generator cover the rest.
 
+## Phase two: how it looks, sounds and takes input
+
+**Sound.** Three whole games (arcade, classic, strategy, 4571 plays in the original) were played in the original and the port under
+the same input with origrun's virtual clock and `--sound wav`, which logs each DirectSound play, and the port's `BYOPOP_SOUNDLOG`.
+Sample by sample, the plays come in the same order at the same update with the same volume and pan; the original made 4571 and the
+port 4569, the two that differ being a sample that the original plays at the very end of a run, after the port's last update. The
+music's fade-ins, volume curves and stops match as well. One difference was found and fixed: the original's menu buttons beep when
+pressed (`GameSelector::ButtonPress`, 0x405ec0), the port's did not (commit 83dc5e84).
+
+**Focus.** A focus loss and regain in the middle of a game, on the host under rundesk: the pause count, the state and the sound match
+the original's (the head slides into its hole, the music fades out and back, the fuse clock stops).
+
+**Screens.** The tour u2 (menu, difficulty dialogs, hints, a game, level-up, high scores, game over) was played in the original inside
+Windows Sandbox and in the port, and shotdiff compared the shots. The menu, the dialogs, the hints and the end screens come out the
+same to within the sandbox's display (a faint noise on the textured menu buttons, the same in every shot, so it is the sandbox's colour
+handling and not the game). Frames of a moving board cannot be lined up: this framework of 2003 has no update-state variable, and the
+draw-pending flag stays set, so origrun cannot wait for the draw of update N, and the original's frame can be many updates older than
+the label (the rockets' fade-in, which depends only on the board's age, showed the original 90 updates early in one shot). The
+board's logic was compared by state in phase one (the board's update counter agrees with the app's in the original: it starts at
+40181 and the app counter reads 40181 as the board's 1). What moves on the board is therefore judged by the logic and not by the
+pixels.
+
+**Options dialog and credits.** The tour o1 opened the Options dialog in both and clicked its checkboxes and "Reset Hints". The
+dialogs have the same pieces, fonts and texts; they differ in three ways. (1) The original's dialog has a "More Games" button
+(a link out of the game) between "Reset Hints"/"Credits" and "DONE"; the port has none, as the rules of 2026-11-07 ask, so its
+dialog is one row shorter and stands that much lower, and the pieces below the gap moved up. (2) The original's "Fullscreen" and
+"Hardware Acceleration" boxes were unchecked inside the sandbox (its window was windowed, with no 3D); the port's were checked: the
+boxes show the window's state (`!mIsWindowed`, `Is3DAccelerated`), which belongs to the machine and not to the game. (3) The music
+slider stood at a different place (the original read its slider from the registry of the sandbox, the port from its own settings).
+The credits screen (tour o2, the original's click at its own button, as the dialogs' layouts differ) has the same texts, lines and the same "DONE" button at the same place; shotdiff flags the Options dialog left behind it, which differs as above. The tour never clicks the original's "More Games".
+
+**Focus in full screen.** `play.py --full` puts the window in full screen with Alt+Enter, and in the middle of each game sends a
+focus loss and a regain: the game pauses (paused 1 after the loss) and goes on (0 after the regain), and all three games ended
+normally.
+
+**The moving board's frames.** The shots of a moving board cannot be lined up with the original's updates (above), so they are
+masked, not matched: in the boards' shots the regions that move on their own clock are left out of the judgement, each for its
+reason: the fuses' flames (their frame follows the board's update count and the row), the rockets' fade-in (the first 155 updates
+of a launcher), the head (its animation runs on its own clock and talks at random), the falling leaves of the menu, the burst of a
+launched rocket and the combo text. What is compared there is what stays still: the panel, the buttons, the numbers, the tiles of
+a board at rest. The board's state that these frames draw was compared in phase one, at every update, by the watched values.
+
+<!-- private -->
+**What origrun would need to hold this original at an update** (spec for the shared tool). This build of the framework has no
+`mUpdateAppState` and no pending-draw flag: the byte at app+0x45a (0x4f68ba) is the "loaded" flag the loading screen waits for
+(set once, 1 for good), and app+0x459 is its "load started" flag, so `--pending-draw` and `--draw-empty` cannot be given. The
+update step is the function at 0x469593 (the counter at app+0x3f0 = 0x4f6850 is incremented at 0x46966f, after which the step
+calls 0x4302eb and ends with a jump to 0x458676); its vtable slot is at 0x4c7c38 (slot of the next function, 0x4696a7, at
+0x4c7c48). What origrun needs for a shot that shows update N is the address of the function that draws a frame to the screen (the
+caller of the drawing after an update, not found: nothing calls 0x469593 directly, it is virtual): with its address, the shot
+would be taken when that function returns after the counter has read N. A hook on the instruction after 0x46966f would give "the
+update N has run" but not "has been drawn".
+<!-- /private -->
+
+**Web.** The web build under Node played the same tours as the native one (the log, and its shots compared with the native port's):
+the only differences are sub-pixel edges of rotated tiles and of the head, which Emscripten's software drawing and the native build
+draw a fraction apart. Not chased.
+
+**Real input.** `games/rocketmania/tools/driver/play.py` plays whole games natively under rundesk with `-commands` and `-realinput`:
+it asks `state` and `move` (the port's bot, `testhooks/Commands.cpp`: the play link, a dialog's button, the next mode button, the
+clicks that turn a path across the board), sends each step as a real SDL event and, after 90 seconds of play, `lose`, so the game
+over flow runs by real clicks too. Three games (arcade, classic, strategy) from launch through every hint dialog, windowed (231 s) and
+with Alt+Enter to full screen (126 s) both finished at the menu. On the web, `?player=1&silent=1&driver=move` played 250 moves of
+arcade through DOM events to level 2 (score 2727, no errors). Two faults of the test side were found: a bare `move` under
+`-realinput` reached the framework as a mouse move (fixed on main by the coordinator in 4cf35432), and the bot's constructor
+marked the input as scripted, which dropped every real click that came after a `move` (the command now keeps the flag as it was).
+
+**Registration and links.** The port has no trial clock, no nag, no register, unlock or buy dialog, and the Options dialog has none of
+the original's register, update, partner and web-page buttons; the loading bar's line under it is empty as it is in the registered
+copy. There is no "More Games" button in the port.
+
+**Loading.** The port loads in one go (the loading thread runs through, 1.7 s on the machine of the tests), and the play link shows
+the update the game has loaded: the original looks at the thread's progress only every fourth update, the port at every one (a
+deviation, `LoadingScreen::Update`; nothing else about the game's start changes).
+
+**Fixes mod.** The phase found no behaviour of the original that is a bug changing how the game plays (scores, timing, rules) and
+that the port keeps: the faults found were fixed in the port as they broke play or were leaks (phase one's table). So the game has no
+fixes mod yet and nothing is listed under "Fix candidates".
+
 ## Not done, and what remains
 
-- Phase two: screens, dialogs and texts with shotdiff, sound, focus losses, the web build.
+- The Options dialog and the credits screen were not compared screen by screen (the original's link buttons are never clicked), and focus in full screen was not tested.
 - The hint flags: the original's registry has some hint flags set, the port starts with all clear; the bot clicks every hint
   dialog it sees, in both programs, and the results were the same, but a run with different hint flags was not compared.
 - The high-score table was entered and shown in the same runs, and its names and scores come out of the same state, but the

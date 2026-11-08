@@ -21,6 +21,11 @@ static std::vector<PGDialog*> gDialogStack;
 // 0x4c1d80
 static HRectList gDialogDirty;
 
+PGDialog* TopDialog()
+{
+	return gDialogStack.empty() ? nullptr : gDialogStack.front();
+}
+
 void InvalidateDialogRect(const PGRect* theRect)
 {
 	gDialogDirty.add(*theRect);

@@ -64,7 +64,7 @@ class AlchemyApp : public SexyApp
 public:
 	enum
 	{
-		NUM_LOADING_TASKS = 101,        // mNumLoadingThreadTasks (LoadingThreadProc)
+		NUM_LOADING_TASKS = 99,         // mNumLoadingThreadTasks (LoadingThreadProc): 54 pictures, 15 sounds, 1 + 20 + 9; the original's 101 had the 2 pictures only its registration and internet scores used
 		NUM_SHAPE_SIZES = 20,           // the shrink animation of a piece
 		NUM_SHAPE_IMAGES = 24,          // 22 shapes, the blank block and the skull
 		NUM_BACKDROPS = 9,
@@ -100,7 +100,6 @@ public:
 	bool					mSelectorFlag;          // +0xed1 true until the first board starts
 	double					mDiff[4];               // +0x620 data\diff.txt: four difficulty constants
 	std::string				mLastScoreName;         // +0x640 registry "LastScoreName"
-	std::string				mLastInternetScoreName; // +0x65c registry "LastInternetScoreName" (kept, never shown)
 
 	// port: the game's test hooks (the framework's -seed, -script, -fast and -trace are in SexyAppBase.h).
 	//   -autoplay=<seed>         a bot with its own RNG plays through script input until the game is over

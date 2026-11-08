@@ -43,6 +43,15 @@ public:
 	// After each update (WinDMApp::UpdateFrames): looks at the game, queues input for the next update
 	void Update();
 
+	// The valid swaps of the board whose two gems take a click, packed 4 bits a coordinate as PlanMove packs them (col, row,
+	// col2, row2), in FindMove's order; the one place both -autoplay's valid moves and the test command "move"
+	// (TestCommands.cpp) choose from. Reads the game, changes nothing and draws no random number
+	static void ValidClickableMoves(WinDMApp* theApp, std::vector<int>* theMoves);
+	// A board position (Board::GetColX, Piece::mX) in the window, and whether a click there reaches the board itself
+	static int ToScreenX(WinDMApp* theApp, int theX);
+	static int ToScreenY(WinDMApp* theApp, int theY);
+	static bool ClickReachesBoard(WinDMApp* theApp, int theX, int theY);
+
 private:
 	enum StepKind
 	{

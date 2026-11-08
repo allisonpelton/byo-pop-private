@@ -9,6 +9,6 @@ if [ -z "$KEEP_SAVE" ]; then
 	rm -f "$OG_GAME"/Players/hiscores.dat "$OG_GAME"/Players/save?.dat
 fi
 W=""; for e in "$@"; do W="$W --watch $e"; done
-"$RUNDESK" "$(win "$ORIGRUN")" --exe "$(win "$OG_GAME/RocketManiaGame.exe")" --run "$(basename "$OG_STAGE")" --stage-root "$(dirname "$OG_STAGE")" \
+"$(win "$ORIGRUN")" --exe "$(win "$OG_GAME/RocketManiaGame.exe")" --run "$(basename "$OG_STAGE")" --stage-root "$(dirname "$OG_STAGE")" \
 	--script "$(win "$S")" --clock virtual --cursor scripted --counter $COUNTER --update-ms 10 --seed "$SEED" \
 	--patches tools/origrun/patches/rocketmania.txt --timeout "$T" $W

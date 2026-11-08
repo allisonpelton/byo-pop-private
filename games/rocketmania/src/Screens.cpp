@@ -66,7 +66,9 @@ void LoadingScreen::Update()
 	int aWidth = mPlayLink->mFont->StringWidth(mPlayLink->mLabel);
 	mPlayLink->Resize(0x140 - (aWidth + 8) / 2, 0x1b6, aWidth + 8, 0x1a);
 
-	if (!mLinkShown && mUpdateCnt % 4 == 0)
+	// port: the original looks at the loading thread's progress every fourth update; the port looks at every one, so that
+	// the play link shows the update the game has loaded (fast loading, a deviation listed in GAME_NOTES.md)
+	if (!mLinkShown)
 	{
 		mProgress = mApp->GetLoadingThreadProgress();
 		if (mProgress == 1.0 && mApp->mLoaded)
@@ -296,6 +298,13 @@ void GameSelector::Draw(Graphics* g)
 	}
 
 	mEffects->Draw(g, false);       // 0x41abb0: the leaves
+}
+
+// 0x405ec0: every button of the selector beeps when it is pressed
+void GameSelector::ButtonPress(int theId)
+{
+	(void) theId;
+	mApp->ButtonPress(0);
 }
 
 // 0x406220
