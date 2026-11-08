@@ -201,7 +201,10 @@ bool GameApp::UpdateAppStep(bool* updated)
 	// run through the page or the window, which only sends input events, can read the board from the log
 	{
 		static bool sF9Down = false;
-		bool aF9 = mWidgetManager != nullptr && mWidgetManager->mKeyDown[KEYCODE_F9];
+		// only in a test run (-script, or BYOPOP_TEST set, which the web test page sets); to go once the live test
+		// channel (-commands, byopop.test.command) lands. A port adds no key the original lacks.
+		static const bool sTestRun = !mScriptFileName.empty() || getenv("BYOPOP_TEST") != nullptr;
+		bool aF9 = sTestRun && mWidgetManager != nullptr && mWidgetManager->mKeyDown[KEYCODE_F9];
 		if (aF9 && !sF9Down) {
 			ScriptCommand aCommand;
 			aCommand.mUpdateCount = mUpdateCount;
