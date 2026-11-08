@@ -6,6 +6,7 @@
 #include "Res.h"
 #include "WidgetManager.h"
 #include "WinTwistApp.h"
+#include "TwistD3D.h"
 #include "X86Math.h"
 
 #include <cmath>
@@ -105,8 +106,20 @@ void TwistWidget::DrawAll(ModalFlags* theFlags, Graphics* g)
 {
 	if (mFlushOverlays)
 		mWidgetManager->FlushDeferredOverlayWidgets(0x7fffffff);
-	// The original zooms 3D through the renderer's transform (gD3DInterface); the port is 2D only for now
-	bool aScaled = mZooming && !gApp->Is3DAccelerated() && mZoomIn2D;
+	// With Direct3D the zoom is the renderer's transform, about the middle of the screen; in 2D only a widget that asks
+	// for it (mZoomIn2D) is scaled, about its own middle
+	bool aTransformed = mZooming && gD3DInterface != nullptr;
+	if (aTransformed) {
+		SexyTransform2D aTransform;
+		aTransform.LoadIdentity();  // 0x44f860
+		aTransform.Translate((float)-(gApp->mWidth / 2), (float)-(gApp->mHeight / 2));  // 0x44f8a0
+		float aScaleY = (float)mZoom.GetOutVal();
+		float aScaleX = (float)mZoom.GetOutVal();
+		aTransform.Scale(aScaleX, aScaleY);  // 0x44f990
+		aTransform.Translate((float)(gApp->mWidth / 2), (float)(gApp->mHeight / 2));
+		gD3DInterface->PushTransform(aTransform, true);  // slot 0x14
+	}
+	bool aScaled = mZooming && gD3DInterface == nullptr && mZoomIn2D;
 	if (aScaled) {
 		g->PushState();
 		double aScaleY = mZoom.GetOutVal();
@@ -114,6 +127,8 @@ void TwistWidget::DrawAll(ModalFlags* theFlags, Graphics* g)
 		g->SetScale(aScaleX, (float)aScaleY, (float)(mWidth / 2), (float)(mHeight / 2));
 	}
 	Widget::DrawAll(theFlags, g);
+	if (aTransformed)
+		gD3DInterface->PopTransform();  // slot 0x18
 	if (aScaled)
 		g->PopState();
 }

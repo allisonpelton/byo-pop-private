@@ -42,6 +42,7 @@ public:
 
 	int mArtRes = 0;                    // +0xf2c
 	float mScale = 0.0f;                // +0xf30: mArtRes / 1200, from the art's 1600x1200 to the screen
+	bool mArtResChanged = false;        // +0xf35: the options changed the art's size: "ArtRes" is written (0x762b40)
 	bool mAllowArtRes1200 = true;       // +0xf28: the largest art only when the machine can take it
 	bool mUseSexyCache = true;          // +0xf14: PopCap's image cache (SexyCache) had the pictures: no loader screen
 	bool mInitialLoadDone = false;      // +0xf8d: Init got past loading the loader screen's resources
@@ -177,6 +178,10 @@ public:
 	void DialogThirdButtonDepress(int theDialogId) override;  // 0x75f94f
 	// port (tests): newgame <mode>, a new game of that mode at once, as the mode menu would start it
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: the standard test commands (TestCommands.cpp, docs/TEST_COMMANDS.md): state, goto, level, unlock, set, win,
+	// lose, seed
+	bool HandleTestCommand(const ScriptCommand& theCommand);
+	std::string TestScreen();
 	// 0x76350c: -autoplay[=classic|zen|blitz], and the original's other test switches
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void PlaySample(int theSoundNum) override;  // 0x7675d8

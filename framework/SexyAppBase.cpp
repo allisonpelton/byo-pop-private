@@ -59,6 +59,31 @@ SexyAppBase* Sexy::gSexyAppBase = NULL;
 
 static SDL_Cursor* gSystemCursors[SDL_NUM_SYSTEM_CURSORS];
 
+#ifdef _WIN32
+// port: a test run played with posted window messages (BYOPOP_POSTED_INPUT, set by a driver such as Twist's realplay)
+// on rundesk's private desktop, where the real cursor is never over the window. SDL answers each posted move with
+// TrackMouseEvent, and the WM_MOUSELEAVE that follows at once moves its mouse to GetCursorPos (to the top edge) and drops
+// the mouse focus, so a hover never lasts to the next update. Such a run notes where each posted mouse message puts the
+// mouse (SDL's message hook), keeps only the moves to that point and ignores the window's leave event.
+static bool gPostedInput = false;
+static int gPostedMouseX = -1;
+static int gPostedMouseY = -1;
+
+static void SDLCALL PostedInputHook(void* theUserData, void* theHWnd, unsigned int theMessage, Uint64 theWParam,
+	Sint64 theLParam)
+{
+	(void) theUserData;
+	(void) theHWnd;
+	(void) theWParam;
+	if ((theMessage >= 0x200) && (theMessage <= 0x20E) && (theMessage != 0x20A) && (theMessage != 0x20E))
+	{
+		// WM_MOUSEMOVE to WM_MBUTTONDBLCLK and the X buttons: the client point is in lParam (not for the wheels)
+		gPostedMouseX = (short) (theLParam & 0xFFFF);
+		gPostedMouseY = (short) ((theLParam >> 16) & 0xFFFF);
+	}
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 // Helpers
 
@@ -1419,6 +1444,26 @@ void SexyAppBase::UpdateFrames()
 	if (mScriptPos < mScript.size())
 		RunScript();
 
+	// port: a test run played with real input (a driver posting window messages, which a -script run ignores) asks for
+	// a picture by writing the file BYOPOP_SHOT_REQUEST names, holding the picture's path; the game takes it and deletes
+	// the file. Looked for every 10 updates once the game has loaded, and only when the variable is set.
+	// (a copy: SDL_getenv's buffer on Windows is reused by its next call)
+	static const std::string aShotRequest = SDL_getenv("BYOPOP_SHOT_REQUEST") ? SDL_getenv("BYOPOP_SHOT_REQUEST") : "";
+	if ((!aShotRequest.empty()) && (mLoaded) && ((mUpdateCount % 10) == 0))
+	{
+		if (FILE* aFile = fopen(aShotRequest.c_str(), "rb"))
+		{
+			char aPath[1024] = {};
+			size_t aLength = fread(aPath, 1, sizeof(aPath) - 1, aFile);
+			fclose(aFile);
+			while ((aLength > 0) && ((unsigned char) aPath[aLength - 1] <= 32))
+				aPath[--aLength] = 0;
+			remove(aShotRequest.c_str());
+			if (aLength > 0)
+				SaveScreenshot(aPath);
+		}
+	}
+
 	if (!mMinimized)
 	{
 		if (mWidgetManager->UpdateFrame())
@@ -1489,6 +1534,18 @@ bool SexyAppBase::DrawDirtyStuff()
 
 	if (((!hasDirtyWidgets) && (aStartTime - mLastDrawTick < 1000) && (!mCustomCursorDirty) && (mDrawCount > 0)) ||
 		((int) (aStartTime - mNextDrawTick) < 0))
+	{
+		mHasPendingDraw = false;
+		mLastDrawWasEmpty = true;
+		return false;
+	}
+
+	// port: a GPU display (3D, no SDL renderer) draws nothing while its window is minimised. No scene may begin then (the
+	// original's PreDraw fails), so every draw would fall to the software path, which reads the whole screen back for
+	// each draw and blits from images whose pixels live only on the GPU (a crash in NormalBlt). The window shows nothing
+	// and the next frame is drawn whole, so the frame is skipped.
+	if ((mDDInterface->mIs3D) && (mDDInterface->mRenderer == NULL) && (mHWnd != NULL) &&
+		((SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_MINIMIZED) != 0))
 	{
 		mHasPendingDraw = false;
 		mLastDrawWasEmpty = true;
@@ -1934,6 +1991,10 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 			break;
 
 		case SDL_WINDOWEVENT_LEAVE:
+#ifdef _WIN32
+			if (gPostedInput)
+				break;  // (PostedInputHook)
+#endif
 			// 1.3 detected this by polling the cursor in WM_TIMER
 			if (mMouseIn)
 			{
@@ -1948,6 +2009,12 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 	case SDL_MOUSEMOTION:
 	case SDL_MOUSEBUTTONDOWN:
 	case SDL_MOUSEBUTTONUP:
+#ifdef _WIN32
+		// port: a run played with posted window messages keeps only the moves that were posted (PostedInputHook)
+		if ((gPostedInput) && (theEvent.type == SDL_MOUSEMOTION) &&
+			((theEvent.motion.x != gPostedMouseX) || (theEvent.motion.y != gPostedMouseY)))
+			break;
+#endif
 		if (!mSEHOccured)
 		{
 			bool isMotion = theEvent.type == SDL_MOUSEMOTION;
@@ -2223,6 +2290,13 @@ void SexyAppBase::MakeWindow()
 
 		mIsPhysWindowed = mIsWindowed;
 		SDL_StartTextInput();
+#ifdef _WIN32
+		if ((!gPostedInput) && (SDL_getenv("BYOPOP_POSTED_INPUT") != NULL) && (IsTestRun()))
+		{
+			gPostedInput = true;
+			SDL_SetWindowsMessageHook(PostedInputHook, NULL);
+		}
+#endif
 #ifdef __EMSCRIPTEN__
 		// the web page's stage takes the game's own size (web/shell.html, onGameScreen: its shape and the site's pixel-perfect)
 		EM_ASM({ if (typeof Module['onGameScreen'] === 'function') Module['onGameScreen']($0, $1); }, mWidth, mHeight);
@@ -3243,7 +3317,10 @@ void SexyAppBase::RunScript()
 		int x = 0;
 		int y = 0;
 
-		if ((aName == "click") || (aName == "rclick") || (aName == "down") || (aName == "up") || (aName == "move"))
+		// a bare "move" is the test command that asks the game's bot for its next move (docs/TEST_COMMANDS.md); "move
+		// <x> <y>" moves the mouse
+		if ((aName == "click") || (aName == "rclick") || (aName == "down") || (aName == "up") ||
+			((aName == "move") && (aCommand.mArgs.find_first_not_of(" \t") != std::string::npos)))
 		{
 			if (!(anArgs >> x >> y))
 			{
