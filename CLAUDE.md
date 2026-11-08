@@ -212,14 +212,16 @@ Every call re-reads the whole context, so what costs is context times calls, and
   libraries a game itself uses and descriptions of file formats are fine.
 - **Mac versions (the user, 2026-11-01):** PopCap's own Mac builds are not references. Where the user found one, it
   sits in the main checkout's `re/<game>/mac/` (`re/peggle/<edition>/mac/` for the Peggles; git-ignored, so a worktree
-  copies the folder in) with a demangled `<name>.symbols.txt` of its function and class names. Its names and class
-  layout guide the port, but the PC exe stays the authority for behaviour, since the Mac build may be another
-  version. No symbol list goes into the repo; a few names as examples are fine. Four games decompiled before their
-  Mac version came got a report of what it showed (`games/<game>/docs/MAC_COMPARISON.md`: BookWorm, Bejeweled,
-  Alchemy, Seven Seas). Only Seven Seas' led to changes, and each was a visible difference that the screen comparison
-  finds anyway, so the others (Big Money, Mummy Maze) write none (the user, 2026-11-08: "Yes, drop them"). A session
-  still reads the Mac names where they help explain a difference, and naming and structure corrections wait for
-  the readability pass.
+  copies the folder in) with a demangled `<name>.symbols.txt` of its function and class names. A new decomp starts
+  from it (the user, 2026-11-08: symbol builds were key to decompilations before AI): before translating, it gives the
+  PC export's functions, classes, statics and globals their Mac names and argument types, takes its class boundaries
+  and virtual order, and names a step the PC build has inline after the Mac function it was. The PC exe stays the
+  authority for behaviour, since the Mac build may be another version. No symbol list goes into the repo; a few names
+  as examples are fine. Four games decompiled before their Mac version came got a report of what it showed
+  (`games/<game>/docs/MAC_COMPARISON.md`: BookWorm, Bejeweled, Alchemy, Seven Seas). Only Seven Seas' led to changes,
+  and each was a visible difference that the screen comparison finds anyway, so the others (Big Money, Mummy Maze)
+  write none (the user, 2026-11-08: "Yes, drop them"). A game already translated reads the Mac names where they help
+  explain a difference, and takes their naming and structure corrections in the readability pass.
 - **Sonnet sessions** translate loops in their original shape (a test-then-increment loop does not become a for
   loop), check what a comment claims about the original before writing it, and build with AddressSanitizer at the
   first sign of a crash or memory corruption (`docs/COORDINATION.md`, "Model selection").
