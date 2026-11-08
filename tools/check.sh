@@ -129,9 +129,12 @@
 #   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 5156 and a Blitz game to its
 #                end and the high scores, with the same screens as frozen, a Classic rerun, and
 #                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one (about a minute)
+#   astropop     AstroPop's bot through tools/playbymove (real input, -hold): a classic game from level 1, one from level 4 and a
+#                survival game, 120 moves each, and a rerun of the first with the same transcript, and
+#                build/baseline-astropop/astropop.exe's when there is one (about a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist astropop; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -190,6 +193,9 @@ AL_TUTORIAL="tutorial button 1 at update 231"
 SS_BEGINNER="game 2 over at update 5868: score 380 level 4 moves 20"
 SS_BONUS="game 1 over at update 2746: score 680 level 14 moves 20"
 SS_LATE="game 1 over at update 1958: score 200 level 21 moves 14"
+AP_CLASSIC='playbymove astropop: 120 moves, stop limit; STATE {"screen":"game","user":"Test","mode":0,"level":1,"score":22860,"stage":1,"updates":2221,"type":1,"paused":0,"over":0,"hand":0,"busy":1}'
+AP_LATER='playbymove astropop: 94 moves, stop no move; STATE {"screen":"game","user":"Test","mode":0,"level":4,"score":17580,"stage":6,"updates":2173,"type":1,"paused":0,"over":0,"hand":0,"busy":0}'
+AP_SURVIVAL='playbymove astropop: 120 moves, stop limit; STATE {"screen":"game","user":"Test","mode":2,"level":1,"score":83380,"stage":1,"updates":2383,"type":2,"paused":0,"over":0,"hand":0,"busy":1}'
 PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
 PX_START="done: 25 puzzles"
 PX_FULL="done: no temple left, 210 puzzles, log 45b76e98"
@@ -228,7 +234,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist astropop)
 ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
@@ -242,7 +248,7 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [oracle]=1080)
+	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [astropop]=60 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -1978,6 +1984,42 @@ suite_bejeweledtwist() {
 	fi
 	SUMMARY="the start's menu, Classic to 5156 and Blitz to its high scores, 11 screens; $r; $sh$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU')"
+	return $st
+}
+
+astropop_game() {  # <name> <steps> <command>...: the bot plays through tools/playbymove (real input, -hold, -fast); prints its summary line
+	local d="$OUT/astropop/$1" exe="${AP_EXE:-$W/build/native/astropop.exe}" n="$2" a=() c
+	shift 2
+	rm -rf "$d"; mkdir -p "$d"
+	for c in "$@"; do a+=(--first "$c"); done
+	timeout 600 python tools/playbymove/playbymove.py --dir "$d" --steps "$n" --timeout 120 "${a[@]}" "$exe" -seed=1 \
+		-userdir="$d/user" > "$d/out.txt" 2>&1
+	tail -n 1 "$d/out.txt" | tr -d '\r' | sed 's/,"field":\[[^]]*\]//'
+}
+
+suite_astropop() {
+	local st=0 a b c r bl="" base="$W/build/baseline-astropop/astropop.exe"
+	need_assets astropop || return 1
+	a="$(astropop_game classic 120 'goto classic 1')"; b="$(astropop_game later 120 'goto classic 4')"
+	c="$(astropop_game survival 120 'goto survival 2')"; r="$(astropop_game classic2 120 'goto classic 1')"
+	{ echo "classic: $a"; echo "later level: $b"; echo "survival: $c"; echo "classic rerun: $r"; } > "$1"
+	[ "$a" = "$AP_CLASSIC" ] || st=1
+	[ "$b" = "$AP_LATER" ] || st=1
+	[ "$c" = "$AP_SURVIVAL" ] || st=1
+	if [ -n "$a" ] && [ "$a" = "$r" ] && cmp -s "$OUT/astropop/classic/driver.txt" "$OUT/astropop/classic2/driver.txt"; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-astropop/astropop.exe, a copy of the port made when it was last checked against
+	# the original): the same games must play the same, move for move
+	if [ -f "$base" ]; then
+		AP_EXE="$base" astropop_game base-classic 120 'goto classic 1' > /dev/null
+		AP_EXE="$base" astropop_game base-later 120 'goto classic 4' > /dev/null
+		AP_EXE="$base" astropop_game base-survival 120 'goto survival 2' > /dev/null
+		bl="; baseline identical"
+		for k in classic later survival; do
+			cmp -s "$OUT/astropop/$k/driver.txt" "$OUT/astropop/base-$k/driver.txt" || { bl="; BASELINE DIFFERS ($k)"; st=1; }
+		done
+	fi
+	SUMMARY="classic ${a#playbymove astropop: }; later level ${b#playbymove astropop: }; survival ${c#playbymove astropop: }; $r$bl"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$AP_CLASSIC', later '$AP_LATER', survival '$AP_SURVIVAL')"
 	return $st
 }
 
