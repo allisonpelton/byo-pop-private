@@ -92,6 +92,15 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
   frames before, during and after a puzzle's end (shotdiff of the original run in the Sandbox against the port at the
   same updates, runs s2 to s4); no box lies in the sidebar.
 
+## Phase two, changes so far (2026-11-08)
+
+| Difference | Cause in the original | Port now |
+| --- | --- | --- |
+| Sounds of buttons, start of a puzzle, the help demo's tiles | 0x4170d0 plays nothing on a press; the buttons play their own over and click samples; the demo plays the tile sounds at fixed demo frames | the same (`soundcmp.py` compares the port's sound log with the original's) |
+| Skip the tutorial showed the intro story | 0x41cf50 finds the temple the solved count opens (the first of the nine) | `ShowStory` mode 1 does the same |
+| Island screen (30% of the picture differed) | 0x4163e0, 0x416950: a panel with the island's text and the page of the temple under the mouse (0x414750, 0x414bf0), hover glow, arrow bounce, lightning, gulls and surf at random draws of the application's generator, sea and smoke cross-fade baked into the background, a new temple comes in 1.1 s after the map opens | `IslandMap`/`IslandPanel` follow it; the island's particle bursts (Rumble, PauseBloom) and the pointer follower are not ported yet |
+| Mouse-over sound on a temple | 0x416180 plays sample 16 on entering, 0x4163e0 plays sample 10 after 50 updates on one temple with the pitch set by the temple's index | the same |
+
 ## Phase two findings so far (not fixed; found by those shots)
 
 - The original cross-fades between screens (help to island, board to the completed screen, temple to board); the port

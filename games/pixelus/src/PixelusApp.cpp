@@ -589,6 +589,20 @@ void PixelusApp::ShowStory(bool theFromMenu, int theMode, int theTo)
 	case 0:
 		aFrom = aTo = 0;
 		break;
+	case 1:
+		// 0x41cf50: the temple that the solved count opens, the first of the nine (theTo is only the caller's guess)
+		aTo = theTo;
+		{
+			UserProfile* aUser = mUserDirectory->GetCurrent();
+			int aOutside = aUser != NULL ? aUser->CountSolved() - aUser->CountSolved(gTemples[0].mName) : 0;
+			for (int i = 1; i < 10; i++)
+				if (aOutside == gTemples[i].mUnlock)		// 0x433530
+				{
+					aTo = i;
+					break;
+				}
+		}
+		break;
 	case 2:
 		aTo = aFrom;
 		break;

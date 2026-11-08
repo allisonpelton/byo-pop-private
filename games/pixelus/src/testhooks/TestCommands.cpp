@@ -22,6 +22,7 @@
 #include "ProgressManager.h"
 #include "UserDirectory.h"
 #include "WidgetManager.h"
+#include "ButtonWidget.h"
 #include "Common.h"
 #include "Compat2004.h"
 
@@ -138,6 +139,24 @@ void PixelusApp::TestUpdate()
 		mBoard->DoThrow();
 }
 
+// the click targets of the screen, for a driver that plays with real input: every enabled button in the tree, and the
+// puzzles in view on the temple screen (centres in game pixels)
+static void CollectTargets(WidgetContainer* theContainer, int theX, int theY, std::string& theOut)
+{
+	for (WidgetList::iterator anItr = theContainer->mWidgets.begin(); anItr != theContainer->mWidgets.end(); ++anItr)
+	{
+		Widget* aWidget = *anItr;
+		if (!aWidget->mVisible)
+			continue;
+		int aX = theX + aWidget->mX, aY = theY + aWidget->mY;
+		ButtonWidget* aButton = dynamic_cast<ButtonWidget*>(aWidget);
+		if (aButton != NULL && !aButton->mDisabled && aWidget->mWidth > 0)
+			theOut += StrFormat("%s{\"id\":%d,\"label\":\"%s\",\"x\":%d,\"y\":%d}", theOut.empty() ? "" : ",", aButton->mId,
+				aButton->mLabel.c_str(), aX + aWidget->mWidth / 2, aY + aWidget->mHeight / 2);
+		CollectTargets(aWidget, aX, aY, theOut);
+	}
+}
+
 bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
@@ -172,7 +191,29 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 
-	if (aCommand == "move")
+	if (aCommand == "targets")
+	{
+		std::string aButtons, aThumbs;
+		CollectTargets(mWidgetManager, 0, 0, aButtons);
+		if (mTempleScreen != NULL)
+			for (int aRow = 0; aRow < TempleScreen::ROWS; aRow++)
+				for (int aCol = 0; aCol < TempleScreen::COLUMNS; aCol++)
+				{
+					int anIndex = mTempleScreen->mFirst + aRow * TempleScreen::COLUMNS + aCol;
+					if (anIndex >= (int) mTempleScreen->mThumbs.size())
+						continue;
+					const TempleScreen::Thumb& aThumb = mTempleScreen->mThumbs[anIndex];
+					aThumbs += StrFormat("%s{\"index\":%d,\"solved\":%s,\"mystery\":%s,\"x\":%d,\"y\":%d}", aThumbs.empty() ? "" : ",",
+						anIndex, aThumb.mSolved ? "true" : "false", aThumb.mMystery ? "true" : "false",
+						TempleScreen::LEFT + TempleScreen::PITCH * aCol + TempleScreen::CELL / 2,
+						TempleScreen::TOP + TempleScreen::PITCH * aRow + TempleScreen::CELL / 2);
+				}
+		Reply(StrFormat("TARGETS {\"screen\":\"%s\",\"buttons\":[%s],\"puzzles\":[%s]}", TestScreen().c_str(), aButtons.c_str(),
+			aThumbs.c_str()));
+		return true;
+	}
+
+	if (aCommand == "move" || aCommand == "nextmove")
 	{
 		Grid::Move aMove;
 		int aHoverX, aHoverY, aX, aY;
