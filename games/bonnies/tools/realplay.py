@@ -246,6 +246,8 @@ def play(seconds, click, key, shoot, proc, state_path, log):
                 log('the tutorial asks for %s' % ''.join(m[0] for m in path))
         if phase == 1 and c60 == 0 and shown and len(tiles) >= 3:
             log('word %s at level %d (score %d of %d)' % (''.join(t[0] for t in tiles), lvl, score, goal))
+            click(20, 300)  # off the board first, as a player clears a path left over (Game::pick)
+            time.sleep(0.1)
             for t in tiles:
                 click(t[1], t[2])
                 time.sleep(0.1)

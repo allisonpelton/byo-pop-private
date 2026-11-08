@@ -23,6 +23,9 @@ std::string testState();
 // port (test runs): the longest word on the board by the game's dictionary, with its tiles' places, for the
 // Browser pane's player (src/BonniesHost.cpp, bonnies_test_state; GameScreen.cpp). Read only.
 std::string testWord();
+// port (test runs): the standard test commands (docs/TEST_COMMANDS.md: state, goto, level, win, lose, set, unlock,
+// seed; GameScreen.cpp), each answered with its reply line, or "" for a command that is not one of them
+std::string testCommand(const std::string& theCommand, const std::string& theArgs);
 
 #ifdef __EMSCRIPTEN__
 // port (web): the game's players for the site's player setting (src/SiteProfiles.cpp; framework/WebProfiles.h), in

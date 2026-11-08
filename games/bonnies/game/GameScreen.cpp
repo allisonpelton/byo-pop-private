@@ -30,7 +30,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace bonnies
@@ -2649,14 +2651,15 @@ static int testStars(const std::vector<int>& thePath)
 }
 
 // port (test runs): how good a word over thePath is: what it adds to the chapter's fill (testFill), the turns it costs
-// or earns in the classic mode (Game::submit: a word under 5 letters costs one, a longer one earns its length less 4),
+// or earns in the classic mode (Game::submit: a word under 6 letters costs one, a longer one earns its length less 5),
 // weighing more as they run out, and the stars it brings down (testStars); then the longest
 static int testValue(const std::vector<int>& thePath)
 {
 	if (thePath.size() < 3)
 		return -100000;
 	int aLength = (int)thePath.size();
-	int aTurns = aLength < 5 ? -1 : aLength - 4;
+	int aShortest = (gGame->mFieldC5C != 0) + 5;
+	int aTurns = aLength < aShortest ? -1 : aLength - aShortest + 1;
 	int aTurnWeight = gGame->mGoal <= 10 ? 40 : 12;
 	return testFill(thePath) * 8 + aTurns * aTurnWeight + testStars(thePath) * 6 + aLength;
 }
@@ -2664,7 +2667,9 @@ static int testValue(const std::vector<int>& thePath)
 static bool testTile(int theCell)
 {
 	char aLetter = gGame->mLetters[theCell];
-	return ((aLetter >= 'A' && aLetter <= 'Z') || aLetter == '?' || aLetter == '!') &&
+	// the letters, the wild tiles, and the two-letter tiles (their codes as Game.cpp's isDouble lists them)
+	return ((aLetter >= 'A' && aLetter <= 'Z') || aLetter == '?' || aLetter == '!' ||
+		(aLetter != 0 && std::string("aceilrst").find(aLetter) != std::string::npos)) &&
 		(gGame->mTileFlags[theCell] & 2) == 0;
 }
 
@@ -2672,7 +2677,7 @@ static void testStep(int theCell, std::string& theWord, std::string& theSpelled,
 	std::vector<int>& theBest, std::string& theBestWord, int& theVisits);
 
 // theWord: the letters so far (a wild tile as the letter it stands for), theSpelled: as the dictionary spells them
-// (Q is QU, as expandWord makes it)
+// (Q is QU and a two-letter tile its two letters, as expandWord makes them)
 static void testSearch(int theColumn, int theRow, std::string& theWord, std::string& theSpelled,
 	std::vector<int>& thePath, std::vector<int>& theBest, std::string& theBestWord, int& theVisits)
 {
@@ -2715,12 +2720,13 @@ static void testStep(int theCell, std::string& theWord, std::string& theSpelled,
 	for (char aLetter = aFirst; aLetter <= aLast; aLetter++)
 	{
 		theWord.push_back(aLetter);
-		theSpelled += aLetter == 'Q' ? "QU" : std::string(1, aLetter);
+		size_t aSize = theSpelled.size();
+		theSpelled += expandWord(Str(1, aLetter), 0);
 		thePath.push_back(theCell);
 		if (testPrefix(theSpelled))
 			testSearch(theCell / 9, theCell % 9, theWord, theSpelled, thePath, theBest, theBestWord, theVisits);
 		thePath.pop_back();
-		theSpelled.resize(theSpelled.size() - (aLetter == 'Q' ? 2 : 1));
+		theSpelled.resize(aSize);
 		theWord.pop_back();
 	}
 }
@@ -2732,16 +2738,34 @@ std::string testWord()
 {
 	if (gGameScreen == nullptr || gGame == nullptr || gDictionary == nullptr || gDictionary->mCount == 0)
 		return "word\n";
+	// the answer for a board already searched (a driver asks many times while the board stands still)
+	static std::string sKey, sAnswer;
+	std::string aKey(gGame->mLetters, gGame->mLetters + 81);
+	aKey.append((const char*)gGame->mTileFlags, sizeof gGame->mTileFlags);
+	aKey += std::to_string(gGame->mGoal) + " " + std::to_string(gGame->mLevel);
+	if (aKey == sKey)
+		return sAnswer;
+	sKey = aKey;
 	std::vector<int> aBest;
 	std::string aBestWord;
 	int aVisits = 0;
-	for (int aCell = 0; aCell < 81; aCell++)
+	// the cells still to fill first, so that the search's budget goes first to the words that fill them
+	std::vector<int> aStarts;
+	for (int aPass = 0; aPass < 2; aPass++)
 	{
-		if (!testTile(aCell) || gGame->currentBook()->isCell(aCell / 9, aCell % 9) == 0)
-			continue;
+		for (int aCell = 0; aCell < 81; aCell++)
+		{
+			if (!testTile(aCell) || gGame->currentBook()->isCell(aCell / 9, aCell % 9) == 0)
+				continue;
+			if ((testFill(std::vector<int>(1, aCell)) > 0) == (aPass == 0))
+				aStarts.push_back(aCell);
+		}
+	}
+	for (size_t i = 0; i < aStarts.size(); i++)
+	{
 		std::string aWord, aSpelled;
 		std::vector<int> aPath;
-		testStep(aCell, aWord, aSpelled, aPath, aBest, aBestWord, aVisits);
+		testStep(aStarts[i], aWord, aSpelled, aPath, aBest, aBestWord, aVisits);
 	}
 	std::string aText = "word " + aBestWord;
 	for (size_t i = 0; i < aBest.size(); i++)
@@ -2752,7 +2776,163 @@ std::string testWord()
 		snprintf(aLine, sizeof aLine, " %.4f %.4f", aX, aY);
 		aText += aLine;
 	}
-	return aText + "\n";
+	sAnswer = aText + "\n";
+	return sAnswer;
+}
+
+// port (test runs): the standard test commands (docs/TEST_COMMANDS.md), for -script and the live command channel
+// (Start.h). The game keeps its own loops and the framework runs inside its sleeps, so a command only changes state the
+// game's own code then acts on: a screen is asked for as the game asks (setState's later switch), and a level ends
+// through the game's own checks or its own ending (Game::levelWon). A command never given changes nothing.
+static const char* const kScreens[8] = {"none", "title", "menu", "game", "help", "story", "credits", "highscores"};
+
+static std::string testJsonState()
+{
+	std::string aText = "{";
+	char aLine[256];
+	int aState = gBonnies != nullptr ? gBonnies->mState : 0;
+	snprintf(aLine, sizeof aLine, "\"screen\":\"%s\",\"modal\":%d,\"paused\":%d", aState >= 0 && aState < 8 ?
+		kScreens[aState] : "none", gBonnies != nullptr ? gBonnies->mDepth : 0, gBonnies != nullptr ? gBonnies->mPaused : 0);
+	aText += aLine;
+	if (aState == 3 && gGameScreen != nullptr && gGame != nullptr)
+	{
+		bool aClassic = gGame->mFieldC5C != 0;
+		snprintf(aLine, sizeof aLine, ",\"mode\":\"%s\",\"level\":%d,\"score\":%d,\"phase\":%d", aClassic ? "classic" :
+			"action", gGame->mLevel, gGame->mScore, gGameScreen->mField58);
+		aText += aLine;
+		if (aClassic)
+			snprintf(aLine, sizeof aLine, ",\"moves\":%d", gGame->mGoal);
+		else
+			snprintf(aLine, sizeof aLine, ",\"timer\":%.3f", gGame->mFieldC94);
+		aText += aLine;
+		snprintf(aLine, sizeof aLine, ",\"filled\":%d,\"fill\":%d", gGame->countFlag20(), gGame->currentBook()->mFillCount);
+		aText += aLine;
+		// the board by rows from the top, a character a column: the tile's letter ('*' a star, '?' and '!' wild,
+		// lower case a two-letter tile), '.' no cell, ' ' an empty cell; "fixed" the cells of locked tiles, as column*9+row
+		aText += ",\"board\":[";
+		std::string aFixed;
+		for (int aRow = 0; aRow < 9; aRow++)
+		{
+			std::string aLineText;
+			for (int aColumn = 0; aColumn < 9; aColumn++)
+			{
+				int aCell = aColumn * 9 + aRow;
+				char aLetter = gGame->mLetters[aCell];
+				if (gGame->currentBook()->isCell(aColumn, aRow) == 0)
+					aLineText += '.';
+				else
+					aLineText += aLetter == 0 ? ' ' : (aLetter == '"' || aLetter == '\\') ? '?' : aLetter;
+				if ((gGame->mTileFlags[aCell] & 2) != 0)
+					aFixed += (aFixed.empty() ? "" : ",") + std::to_string(aCell);
+			}
+			aText += (aRow == 0 ? "\"" : ",\"") + aLineText + "\"";
+		}
+		aText += "],\"fixed\":[" + aFixed + "]";
+		// the cells still to fill (no flag 0x20), as column*9+row
+		std::string aOpen;
+		for (int aCell = 0; aCell < 81; aCell++)
+		{
+			if (gGame->currentBook()->isCell(aCell / 9, aCell % 9) != 0 && (gGame->mTileFlags[aCell] & 0x20) == 0)
+				aOpen += (aOpen.empty() ? "" : ",") + std::to_string(aCell);
+		}
+		aText += ",\"unfilled\":[" + aOpen + "]";
+	}
+	return aText + "}";
+}
+
+static bool testInPlay()
+{
+	return gBonnies != nullptr && gBonnies->mState == 3 && gGameScreen != nullptr && gGame != nullptr &&
+		gGameScreen->mField58 == 1 && !gBonnies->inModal();
+}
+
+std::string testCommand(const std::string& theCommand, const std::string& theArgs)
+{
+	std::string aLine = theArgs.empty() ? theCommand : theCommand + " " + theArgs;
+	if (theCommand == "state")
+		return "STATE " + testJsonState();
+	if (theCommand == "goto")
+	{
+		for (int i = 1; i < 8; i++)
+		{
+			if (theArgs != kScreens[i] || i == 3 || i == 5)
+				continue;
+			if (gBonnies == nullptr || gBonnies->inModal())
+				return "ERROR " + aLine + ": a dialog is open";
+			gBonnies->setState(i, 1, 0);
+			return "OK " + aLine;
+		}
+		if (theArgs == "options")
+			return "ERROR " + aLine + ": the options are a dialog the menu and the game open, not a screen";
+		if (theArgs == "classic" || theArgs == "action")
+			return "ERROR " + aLine + ": a mode starts from the menu's buttons, through its player and difficulty "
+				"dialogs; use goto menu, then the buttons";
+		return "ERROR " + aLine + ": no such screen (title, menu, help, credits, highscores)";
+	}
+	if (theCommand == "level")
+	{
+		int aLevel = atoi(theArgs.c_str());
+		if (aLevel < 1 || aLevel > 50)
+			return "ERROR " + aLine + ": levels are 1 to 50";
+		if (!testInPlay())
+			return "ERROR " + aLine + ": no level in play";
+		// the level before it won, so that the game goes on to it as after any won level (its story page, its board)
+		gGame->mLevel = aLevel - 1;
+		gGame->levelWon();
+		return "OK " + aLine;
+	}
+	if (theCommand == "win")
+	{
+		if (!testInPlay())
+			return "ERROR " + aLine + ": no level in play";
+		gGame->levelWon();
+		return "OK " + aLine;
+	}
+	if (theCommand == "lose")
+	{
+		if (!testInPlay())
+			return "ERROR " + aLine + ": no level in play";
+		// out of turns or of time: Game::update ends the game as it does then
+		if (gGame->mFieldC5C != 0)
+			gGame->mGoal = 0;
+		else
+			gGame->mFieldC94 = 0.0f;
+		return "OK " + aLine;
+	}
+	if (theCommand == "set")
+	{
+		size_t aSpace = theArgs.find(' ');
+		std::string aName = theArgs.substr(0, aSpace);
+		std::string aValue = aSpace == std::string::npos ? "" : theArgs.substr(aSpace + 1);
+		if (aValue.empty())
+			return "ERROR " + aLine + ": set <name> <value>";
+		if (gBonnies == nullptr || gBonnies->mState != 3 || gGame == nullptr)
+			return "ERROR " + aLine + ": no game in play";
+		if (aName == "score")
+		{
+			gGame->mScore = atoi(aValue.c_str());
+			gGame->mShownScore = gGame->mScore;
+		}
+		else if (aName == "moves" && gGame->mFieldC5C != 0)
+			gGame->mGoal = atoi(aValue.c_str());
+		else if (aName == "timer" && gGame->mFieldC5C == 0)
+			gGame->mFieldC94 = (float)atof(aValue.c_str());
+		else
+			return "ERROR " + aLine + ": the keys are score, and moves in the classic mode or timer (0 to 1) in the action "
+				"mode";
+		return "OK " + aLine;
+	}
+	if (theCommand == "unlock")
+		return "ERROR " + aLine + ": nothing is locked in Bonnie's (every mode and chapter is open from the start)";
+	if (theCommand == "seed")
+	{
+		if (theArgs.empty())
+			return "ERROR " + aLine + ": seed <n>";
+		// the game draws every random number from rand (randomRange, 0x41f500)
+		seedRandom(strtoul(theArgs.c_str(), nullptr, 10));
+		return "OK " + aLine;
+	}
+	return "";
 }
 
 } // namespace bonnies

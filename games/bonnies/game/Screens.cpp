@@ -1796,203 +1796,6 @@ void choosePlayer()
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// The registration (the vtable 0x458844): a name and a key; every key is taken
-
-[[maybe_unused]] static int gRegistering;  // 0x47a200: while the dialog is open (nothing reads it)
-
-// 0x42a480: whether theKey registers theName (any does)
-static int checkKey(Str theName, Str theKey)
-{
-	return 1;
-}
-
-// 0x419340
-void RegisterPanel::init()
-{
-	Screen::init();
-	mDrawsPanel = 0;
-	mImage = gResources->getImage(Str(lit(0x458818)));
-}
-
-// 0x4193a0
-int RegisterPanel::handleEvent(Event* theEvent)
-{
-	int anId;
-	switch (theEvent->mType)
-	{
-	case 0xd:
-		anId = theEvent->mA;
-		if (anId == 0x3e9)
-			break;
-		if (anId == 0x3ea)
-		{
-			gApp->endModal(0, 0);
-			return 0;
-		}
-		if (anId == 0x3eb)
-		{
-			// The web site ("dynamic": the portal's buy page; never, the address being another)
-			if (isFullScreen() != 0)
-				iconify();
-			if (strncmp(lit(0x458824), lit(0x45883c), 0x16) == 0)
-			{
-				if (gPortalConfig != nullptr && !gPortalConfig->mBuyNowURL.empty())
-				{
-					openURL(gPortalConfig->mBuyNowURL);
-					return 0;
-				}
-			}
-			else
-				openURL(Str(lit(0x458824)));
-			return 0;
-		}
-		return Screen::handleEvent(theEvent);
-	default:
-		return Screen::handleEvent(theEvent);
-	case 0x10:
-		// Enter in the name goes to the key; in the key, registers
-		if (theEvent->mA == 0x3ec)
-		{
-			static_cast<TextField*>(findWidget(0x3ed))->beginEdit();
-			return 0;
-		}
-		if (theEvent->mA != 0x3ed)
-			return 0;
-		break;
-	case 0x11:
-		return 0;
-	case 0x12:
-		if (theEvent->mA == 0x3ec)
-			anId = 0x3ed;
-		else
-		{
-			if (theEvent->mA != 0x3ed)
-				return 0;
-			anId = 0x3ec;
-		}
-		static_cast<TextField*>(findWidget(anId))->beginEdit();
-		return 0;
-	case 0x13:
-		if (theEvent->mA == 0x3ec)
-			anId = 0x3ed;
-		else
-		{
-			if (theEvent->mA != 0x3ed)
-				return 0;
-			anId = 0x3ec;
-		}
-		static_cast<TextField*>(findWidget(anId))->mEditing = 0;
-		return 0;
-	}
-	Str aName = findWidget(0x3ec)->mText;
-	Str aKey = findWidget(0x3ed)->mText;
-	if (checkKey(aName, aKey) == 0)
-	{
-		messageDialog(1, Str(getText(0x5dd)), Str(), Str(), Str(), Str(), 0, 0, 0, 0, 0);
-		return 0;
-	}
-	messageDialog(1, Str(getText(0x5dc)), Str(), Str(), Str(), Str(), 0, 0, 0, 0, 0);
-	gApp->endModal(1, 0);
-	return 0;
-}
-
-// A button of the registration
-static Button* registerButton(Screen* theScreen, float theX, float theY, float theW, float theH)
-{
-	Button* aButton = new Button();
-	aButton->init();
-	theScreen->addWidget(aButton);
-	aButton->mX = theX;
-	aButton->mY = theY;
-	aButton->mWidth = theW;
-	aButton->mHeight = theH;
-	aButton->mColor = 0xff151515;
-	aButton->mColor2 = 0xff96540b;
-	aButton->mTextFlags = 0;
-	aButton->mFlags = 0xc0;
-	aButton->setFont(exeFont(0x47a3dc));
-	return aButton;
-}
-
-// One of the registration's text fields
-static TextField* registerField(Screen* theScreen, float theY, int theCancel, int theMaxLength, int theId)
-{
-	TextField* aField = new TextField();
-	aField->init();
-	theScreen->addWidget(aField);
-	aField->mX = 0.23250000f;
-	aField->mY = theY;
-	aField->mWidth = 0.28625f;
-	aField->mHeight = 0.046666667f;
-	aField->mColor = 0xff484848;
-	aField->mText = lit(0x457426);
-	aField->mEditable = 1;
-	aField->mEscapeCancels = theCancel;
-	aField->mTabEnds = theCancel;
-	aField->mMaxLength = theMaxLength;
-	aField->mTextFlags = 0x108;
-	aField->mId = theId;
-	aField->setFont(exeFont(0x47a5d4));
-	return aField;
-}
-
-// 0x4197c0: the registration (theCancel: with a cancel button)
-void showRegister(int theCancel)
-{
-	gRegistering = 1;
-	RegisterPanel* aPanel = new RegisterPanel();
-	aPanel->init();
-	aPanel->mX = 0.2175f;
-	aPanel->mY = 0.108f;
-	aPanel->mWidth = 0.565f;
-	aPanel->mHeight = 0.76f;
-	aPanel->mColor = 0xff153661;
-	aPanel->mDraggable = 1;
-	// The web site
-	Button* aSite = registerButton(aPanel, 0.22374999f, 0.37666667f, 0.31f, 0.083333336f);
-	aSite->mId = 0x3eb;
-	aSite->setSound(0, Str(lit(0x45872c)));
-	aSite->setSound(1, Str(lit(0x45871c)));
-	aSite->setUpImage(Str(lit(0x45886c)), 0);
-	aSite->setFocusImage(Str(lit(0x45886c)), 1);
-	aSite->setDownImage(Str(lit(0x45886c)), 2);
-	TextField* aName = registerField(aPanel, 0.47333333f, theCancel, 0x118, 0x3ec);
-	aName->beginEdit();
-	registerField(aPanel, 0.57333332f, theCancel, 0x20, 0x3ed);
-	Button* anOK = registerButton(aPanel, (float)((double)(theCancel != 0 ? 0xae : 0xea) * 0.00125f), 0.60500002f,
-		0.175f, 0.13333334f);
-	anOK->mHitX = 0.029999999f;
-	anOK->mHitY = 0.036666665f;
-	anOK->mHitWidth = 0.115f;
-	anOK->mHitHeight = 0.065f;
-	anOK->mText = lit(0x458818);
-	anOK->mId = 0x3e9;
-	anOK->setSound(0, Str(lit(0x45872c)));
-	anOK->setSound(1, Str(lit(0x45871c)));
-	int aFrame = -(int)(theCancel != 0) & 3;
-	anOK->setUpImage(Str(lit(0x458860)), aFrame + 6);
-	anOK->setFocusImage(Str(lit(0x458860)), aFrame + 7);
-	anOK->setDownImage(Str(lit(0x458860)), aFrame + 8);
-	if (theCancel != 0)
-	{
-		Button* aCancel = registerButton(aPanel, 0.36750001f, 0.60500002f, 0.175f, 0.13333334f);
-		aCancel->mHitX = 0.029999999f;
-		aCancel->mHitY = 0.036666665f;
-		aCancel->mHitWidth = 0.115f;
-		aCancel->mHitHeight = 0.065f;
-		aCancel->mText = getText(0x5e4);
-		aCancel->mKeys[0] = 0x1b;
-		aCancel->mId = 0x3ea;
-		aCancel->setUpImage(Str(lit(0x458860)), 3);
-		aCancel->setFocusImage(Str(lit(0x458860)), 4);
-		aCancel->setDownImage(Str(lit(0x458860)), 5);
-	}
-	gApp->runModal(1, aPanel);
-	gRegistering = 0;
-}
-
-
-// ---------------------------------------------------------------------------------------------------------------------
 // The menu (state 2): the bookstore with its animations, the five buttons and the player's
 
 static int gNameTwoLines;         // 0x47a614: the player's name takes two lines
@@ -2012,12 +1815,6 @@ static int gChoosingLevel;        // 0x47aa58: the dialog shows the level choose
 static int gLevelMax = 1;         // 0x473e60: the last level that may be chosen
 static int gLevelChosen = 1;      // 0x473e64
 static int gStoryEnd;             // 0x47ae74: the story is the one after the last book
-
-// 0x42a4d0: whether the game is registered (never)
-static int isRegistered()
-{
-	return 0;
-}
 
 // 0x419d40
 void MenuScreen::refresh()
@@ -2412,12 +2209,6 @@ int MenuScreen::handleEvent(Event* theEvent)
 			refresh();
 		}
 		return 0;
-	case 0x133:
-		if (isRegistered() == 0)
-			showRegister(0);
-		else
-			messageDialog(1, Str(getText(0x4e7)), Str(), Str(), Str(), Str(), 0, 0, 0, 0, 0);
-		return 0;
 	}
 	return Screen::handleEvent(theEvent);
 }
@@ -2464,7 +2255,6 @@ void MenuScreen::init()
 		gMatteName = lit(0x457426);
 		aBook++;
 	} while (i < 5);
-	isRegistered();
 	float aY[5] = {0.46166667f, 0.55333334f, 0.64499998f, 0.73666668f, 0.82833332f};
 	i = 0;
 	do
@@ -2610,7 +2400,6 @@ void MenuScreen::update()
 // of a new game
 
 static int gLevelCount = 0x32;    // 0x473e5c: the levels the chooser has
-static int gPreRegister;          // 0x47aa5c: the dialog is the registration's reminder
 
 // 0x41b6f0: the chosen level's book and chapter, and the first button only for a level the player has reached
 void GameDialog::showLevel()
@@ -2736,10 +2525,8 @@ void GameDialog::init()
 {
 	Screen::init();
 	mDrawsPanel = 0;
-	mNotepad = gResources->getImage(Str(lit(gPreRegister == 0 ? 0x45897c : 0x458988)));
-	mBonnie = nullptr;
-	if (gPreRegister == 0)
-		mBonnie = gResources->getImage(Str(lit(0x458970)));
+	mNotepad = gResources->getImage(Str(lit(0x45897c)));
+	mBonnie = gResources->getImage(Str(lit(0x458970)));
 	mThumbs = nullptr;
 	mThumbsFrame = nullptr;
 	if (gChoosingLevel != 0)
@@ -2793,7 +2580,8 @@ void GameDialog::init()
 }
 
 // 0x41bf10: theText and up to four buttons (each with its key; a lone button takes Esc and Enter); with bit 0 of
-// theFlags2 the registration's reminder. When theBlocking, the button pressed (1-4).
+// theFlags2 the registration's reminder (port: taken out with the registration; no caller asks for it). When
+// theBlocking, the button pressed (1-4).
 int gameDialog(int theBlocking, Str theText, Str theButton1, Str theButton2, Str theButton3, Str theButton4,
 	int theKey1, int theKey2, int theKey3, int theKey4, int theFlags2)
 {
@@ -2804,27 +2592,14 @@ int gameDialog(int theBlocking, Str theText, Str theButton1, Str theButton2, Str
 		aCount = 3;
 	else if (!theButton1.empty())
 		aCount = 1;
-	gPreRegister = 0;
-	if ((theFlags2 & 1) != 0)
-		gPreRegister = 1;
 	GameDialog* aDialog = new GameDialog();
 	aDialog->init();
 	aDialog->mX = 0.3675f;
 	aDialog->mY = 0.16049998998641968f;
 	aDialog->mWidth = 0.38999999f;
 	aDialog->mHeight = 0.64333332f;
-	if (gPreRegister != 0)
-	{
-		aDialog->mWidth = 0.39375001f;
-		aDialog->mHeight = 0.37666667f;
-	}
 	aDialog->mColor = 0xff153661;
 	aDialog->mDraggable = 1;
-	if (gPreRegister != 0)
-	{
-		aDialog->mX = 0.30500001f;
-		aDialog->mY = 0.24383333f;
-	}
 	TextField* aLabel = new TextField();
 	aLabel->init();
 	aDialog->addWidget(aLabel);
@@ -2885,8 +2660,6 @@ int gameDialog(int theBlocking, Str theText, Str theButton1, Str theButton2, Str
 		aButton->mText = aText;
 		aButton->mX = aX;
 		aButton->mY = aY;
-		if (gPreRegister != 0)
-			aButton->mY = (float)(aY - (double)0.23666666f);
 		aButton->mWidth = 0.175f;
 		aButton->mHeight = 0.13333334f;
 		aButton->mHitX = 0.029999999f;

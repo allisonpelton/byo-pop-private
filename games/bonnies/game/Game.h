@@ -120,6 +120,8 @@ public:
 	int wordScore();
 	// 0x40b8d0: the path's word spelled
 	void submit();
+	// port: submit's ending of a won level (the test command "win" calls it too)
+	void levelWon();
 	// 0x40aa30: the falling tiles, the clock and the end of the game
 	void update();
 

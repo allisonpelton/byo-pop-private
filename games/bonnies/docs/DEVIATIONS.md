@@ -59,6 +59,48 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   `BONNIES_STATE` names, ten times a second and only in a test run, for `tools/realplay.py`; on the web the page has it
   through `bonnies_test_state`, for `tools/paneplay.js`. Neither does anything until a test asks.
 
+## Loading and the registration
+
+**Loading.** Bonnie's needs no change for fast loading (the user, 2026-11-07). The logo screen loads every resource in
+one call on its first update (`BonniesApp::loadResources`, from `LogoScreen::update`), and the flags `mLoadImages`,
+left from a loader that worked in stages, are all set on the first update, so nothing waits on them. What remains is
+the logo animation, which a click or key hurries (`gLogoSkip`) and which holds no loading back.
+
+**The registration, taken out** (the user, 2026-11-07). The port plays as the registered original does. The copy's
+registration never ran: no menu button carries its id (0x133), the check of a key took any key, and `isRegistered`
+answered no. These were taken out, with no visible change, since none of it could be reached:
+the registration panel (`RegisterPanel`, 0x4197c0 and its vtable 0x458844, with its key check 0x42a480, its
+buttons and text fields, and the flag `gRegistering`); the menu's handling of id 0x133, which opened the panel or
+said the copy was registered; `isRegistered` (0x42a4d0) and the menu's call of it, whose answer nothing used; the
+dialog's "registration reminder" layout (`gPreRegister`, bit 0 of `gameDialog`'s last argument), which no caller asks
+for; and Portal.cfg's buy page address (`BuyNowURL`), which only the panel used. Portal.cfg's reader still reads past
+that key, so the keys after it parse as before. The suite's frozen screens are unchanged.
+
+## Test commands
+
+The standard test commands (`docs/TEST_COMMANDS.md`) are the game's, in `game/GameScreen.cpp` (`testCommand`), and
+reach it through the host's `HandleScriptCommand`: from `-script` natively, and in the web build from the page
+through `bonnies_test_command` (`src/BonniesHost.cpp`, `Module.ccall('bonnies_test_command', 'string', ['string'],
+['state'])`), which returns the answer line; the live command channel takes them once there is one. Each answers with one line on stdout. They share their reading of the game with the test state above,
+and a command never given changes nothing (the suite's frozen screens are unchanged). The game keeps its own loops and
+the framework runs inside its sleeps, so a command only changes what the game's own code then acts on.
+
+`state` prints `STATE {...}` with `screen` (title, menu, game, help, story, credits, highscores), `modal` (the depth
+of open dialogs) and `paused`, and in a game also `mode` (classic or action), `level` (1 to 50), `score`, `phase`
+(1 in play, 2 and on the steps after a won level), `moves` (the classic mode's turns) or `timer` (the action mode's
+time bar, 0 to 1), `filled` and `fill` (the cells filled and the number the chapter needs), `board` (nine rows from the
+top, a character a column: the tile's letter, `*` a star, `?` and `!` wild tiles, lower case a two-letter tile, `.` no
+cell, a blank an empty cell) and `fixed` (the cells of locked tiles, column*9+row).
+
+`goto title|menu|help|credits|highscores` asks for the screen as the game does (`setState`, which switches at the
+next update). The options are a dialog, not a screen, and a mode starts only through the menu's player and
+difficulty dialogs, so `goto options`, `goto classic` and `goto action` answer ERROR. `level <n>` (1 to 50, in play)
+sets the level before it and ends that one as won, so the game goes on to level n as after any won level, through its
+story page. `win` ends the level as won (`Game::levelWon`, submit's own ending, moved into a function of its own for
+this). `lose` sets the turns (classic) or the time (action) to none, and the game's update ends the game as it does
+then. `set score|moves|timer <value>` sets that key. `seed <n>` seeds `rand`, which every random number comes from.
+`unlock all` answers ERROR: nothing in Bonnie's is locked.
+
 ## Memory the original leaks
 
 The translation keeps the original's ownership: the same objects are made and freed at the same places. A leak tracker

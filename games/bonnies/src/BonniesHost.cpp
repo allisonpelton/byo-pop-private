@@ -864,6 +864,19 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* bonnies_test_state()
 	sText = bonnies::testState() + bonnies::testWord();
 	return sText.c_str();
 }
+
+// port (the web build's tests): a test command (docs/TEST_COMMANDS.md) from the page, as -script gives one natively;
+// its answer line, which the page logs. Only a test calls it.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* bonnies_test_command(const char* theLine)
+{
+	static std::string sText;
+	std::string aLine = theLine;
+	size_t aSpace = aLine.find(' ');
+	sText = bonnies::testCommand(aLine.substr(0, aSpace), aSpace == std::string::npos ? "" : aLine.substr(aSpace + 1));
+	if (sText.empty())
+		sText = "ERROR " + aLine + ": no such command";
+	return sText.c_str();
+}
 #endif
 
 void BonniesWidget::Update()
@@ -1144,11 +1157,19 @@ void BonniesHostApp::LostFocus()
 }
 
 // A script's "focus 0" and "focus 1" (a test hook): the window loses the focus and gets it back, as when the player
-// clicks another window and then the game's
+// clicks another window and then the game's. The standard test commands (docs/TEST_COMMANDS.md) are the game's
+// (bonnies::testCommand), answered with one line on stdout.
 bool BonniesHostApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	if (theCommand.mCommand != "focus")
-		return false;
+	{
+		std::string aReply = bonnies::testCommand(theCommand.mCommand, theCommand.mArgs);
+		if (aReply.empty())
+			return false;
+		printf("%s\n", aReply.c_str());
+		fflush(stdout);
+		return true;
+	}
 	mScriptNoFocus = theCommand.mArgs == "0";
 	if (mScriptNoFocus)
 		LostFocus();

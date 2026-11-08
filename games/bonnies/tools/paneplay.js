@@ -90,7 +90,13 @@ window.panePlay = async function (text, onShot) {
 
   const play = async seconds => {
     const end = performance.now() + seconds * 1000;
-    let last = '', still = performance.now(), level = 0, words = 0, seen = false;
+    let last = '', still = performance.now(), level = 0, words = 0, seen = false, lastWord = '', lastGame = '', refused = 0;
+    // the level's filled cells (the test command "state"), and the words since that number last rose
+    let filled = -1, idle = 0, fillLevel = 0;
+    const fillState = () => {
+      try { const j = JSON.parse(Module.ccall('bonnies_test_command', 'string', ['string'], ['state']).slice(6)); return [j.filled, j.fill]; }
+      catch (e) { return null; }
+    };
     while (performance.now() < end) {
       const st = state();
       const g = st.game;
@@ -135,18 +141,56 @@ window.panePlay = async function (text, onShot) {
           if (path) { tiles = path; log('the tutorial asks for ' + path.map(m => m.ch).join('')); }
           // a balloon that marks no tiles leaves the word to the player (TALE: "Now find the word...")
           else if (!st.marked.length && st.word.length >= 3) tiles = st.word;
+          else if (!st.marked.length && st.hint[0] && st.hint[1].length >= 3) tiles = st.hint[1];
         } else if (st.word.length >= 3) tiles = st.word;
         // the game's own hint, when it shows one and the finder has nothing (a word of other tiles than plain letters)
         else if (st.hint[0] && st.hint[1].length >= 3) tiles = st.hint[1];
       }
+      // the same word refused twice with nothing changed: the game's own hint, when it shows one
+      const spelled = tiles ? tiles.map(t => t.ch).join('') : '';
+      if (tiles && spelled === lastWord && JSON.stringify(g) === lastGame && ++refused >= 2) {
+        tiles = st.hint[0] && st.hint[1].length >= 3 ? st.hint[1] : null;
+        if (!tiles) { await s(500); continue; }
+      } else if (tiles && spelled !== lastWord) refused = 0;
+      // the last few cells left and the latest words fill none of them: Scramble, as a player would
+      const fs = phase === 1 && !balloon ? fillState() : null;
+      if (fs) {
+        // the best count so far on this level (a level's toggling cells take the count down as well as up)
+        if (lvl !== fillLevel) { fillLevel = lvl; filled = -1; }
+        if (fs[0] > filled) { filled = fs[0]; idle = 0; }
+        const scramble = st.buttons.find(b => b.id === 0xcb);
+        if (fs[1] - filled <= 3 && idle >= 3 && scramble) {
+          log('scramble: ' + (fs[1] - fs[0]) + ' cells left, none filled in ' + idle + ' words');
+          await click(scramble.x, scramble.y);
+          idle = 0;
+          still = performance.now();
+          await s(1500);
+          continue;
+        }
+      }
       if (tiles) {
+        idle++;
+        lastWord = spelled; lastGame = JSON.stringify(g);
         log('word ' + tiles.map(t => t.ch).join('') + ' at level ' + lvl + ' (score ' + score + ' of ' + goal + ')');
+        // a click off the board first, as a player clears a path left over (Game::pick off the board)
+        await click(20, 300); await s(100);
         for (const t of tiles) { await click(t.x, t.y); await s(60); }
         const submit = st.buttons.find(b => b.id === 0xca);
         await click(submit ? submit.x : 450, submit ? submit.y : 557);
         words++;
+        // the next move waits for the game to take this one (its score, turns or phase change), up to 8 s
+        const before = JSON.stringify(g);
+        // (read through the test command "state", which runs no word search, where the command is there)
+        const quick = () => { try { const j = JSON.parse(Module.ccall('bonnies_test_command', 'string', ['string'], ['state']).slice(6)); return [j.level, j.score, j.moves, j.phase, j.modal, j.board + '']; } catch (e) { return null; } };
+        const q0 = quick();
+        if (q0) for (let w = 0; w < 40 && JSON.stringify(quick().slice(0, 5)) === JSON.stringify(q0.slice(0, 5)); w++) await s(200);
+        else for (let w = 0; w < 40 && JSON.stringify(state().game) === before; w++) await s(200);
+        // and for the board to settle (the tiles fall after the score), so that the next word's clicks find their
+        // tiles where the finder saw them: the same board twice 400 ms apart, up to 6 s
+        await s(600);
+        const board = () => { const q = quick(); return q ? q[5] : ''; };
+        for (let w = 0, b = board(); w < 15; w++) { await s(400); const n = board(); if (n === b) break; b = n; }
         still = performance.now();
-        await s(1200);
         continue;
       }
       // a page between levels waits for a click on the story's next arrow; on the board a click would take a tile, so

@@ -2763,18 +2763,7 @@ void Game::submit()
 	} while (aCell < 0x51);
 	gGameScreen->updateHint();
 	if (currentBook()->mFillCount <= countFlag20())
-	{
-		// The level is won
-		gGameScreen->findWidget(0xc9)->mFlags |= 8;
-		gGameScreen->findWidget(0xca)->mFlags |= 8;
-		gGameScreen->findWidget(0xcb)->mFlags |= 8;
-		gSound->play(lit(0x457c98), 1.0f, 1, 0, 1.0f);
-		gGameScreen->flash(300, 0x4f3cff00);
-		sparkleBoard();
-		gGameScreen->mField58 = 2;
-		gGameScreen->mField5C = ticks();
-		gGameScreen->mField60 = ticks() + 0x44c;
-	}
+		levelWon();
 	int aSound;
 	if (aLetters < 4)
 		aSound = 3;
@@ -2793,6 +2782,20 @@ void Game::submit()
 
 namespace bonnies
 {
+
+// Part of 0x40a9d0 (submit): the level is won. port: a function of its own, which the test command "win" calls too
+void Game::levelWon()
+{
+	gGameScreen->findWidget(0xc9)->mFlags |= 8;
+	gGameScreen->findWidget(0xca)->mFlags |= 8;
+	gGameScreen->findWidget(0xcb)->mFlags |= 8;
+	gSound->play(lit(0x457c98), 1.0f, 1, 0, 1.0f);
+	gGameScreen->flash(300, 0x4f3cff00);
+	sparkleBoard();
+	gGameScreen->mField58 = 2;
+	gGameScreen->mField5C = ticks();
+	gGameScreen->mField60 = ticks() + 0x44c;
+}
 
 // 0x40e540
 Record::Record()
