@@ -113,6 +113,38 @@ board's logic was compared by state in phase one (the board's update counter agr
 40181 and the app counter reads 40181 as the board's 1). What moves on the board is therefore judged by the logic and not by the
 pixels.
 
+**Options dialog and credits.** The tour o1 opened the Options dialog in both and clicked its checkboxes and "Reset Hints". The
+dialogs have the same pieces, fonts and texts; they differ in three ways. (1) The original's dialog has a "More Games" button
+(a link out of the game) between "Reset Hints"/"Credits" and "DONE"; the port has none, as the rules of 2026-11-07 ask, so its
+dialog is one row shorter and stands that much lower, and the pieces below the gap moved up. (2) The original's "Fullscreen" and
+"Hardware Acceleration" boxes were unchecked inside the sandbox (its window was windowed, with no 3D); the port's were checked: the
+boxes show the window's state (`!mIsWindowed`, `Is3DAccelerated`), which belongs to the machine and not to the game. (3) The music
+slider stood at a different place (the original read its slider from the registry of the sandbox, the port from its own settings).
+The credits screen's text and layout were compared in o2 (below). The tour never clicks the original's "More Games".
+
+**Focus in full screen.** `play.py --full` puts the window in full screen with Alt+Enter, and in the middle of each game sends a
+focus loss and a regain: the game pauses (paused 1 after the loss) and goes on (0 after the regain), and all three games ended
+normally.
+
+**The moving board's frames.** The shots of a moving board cannot be lined up with the original's updates (above), so they are
+masked, not matched: in the boards' shots the regions that move on their own clock are left out of the judgement, each for its
+reason: the fuses' flames (their frame follows the board's update count and the row), the rockets' fade-in (the first 155 updates
+of a launcher), the head (its animation runs on its own clock and talks at random), the falling leaves of the menu, the burst of a
+launched rocket and the combo text. What is compared there is what stays still: the panel, the buttons, the numbers, the tiles of
+a board at rest. The board's state that these frames draw was compared in phase one, at every update, by the watched values.
+
+<!-- private -->
+**What origrun would need to hold this original at an update** (spec for the shared tool). This build of the framework has no
+`mUpdateAppState` and no pending-draw flag: the byte at app+0x45a (0x4f68ba) is the "loaded" flag the loading screen waits for
+(set once, 1 for good), and app+0x459 is its "load started" flag, so `--pending-draw` and `--draw-empty` cannot be given. The
+update step is the function at 0x469593 (the counter at app+0x3f0 = 0x4f6850 is incremented at 0x46966f, after which the step
+calls 0x4302eb and ends with a jump to 0x458676); its vtable slot is at 0x4c7c38 (slot of the next function, 0x4696a7, at
+0x4c7c48). What origrun needs for a shot that shows update N is the address of the function that draws a frame to the screen (the
+caller of the drawing after an update, not found: nothing calls 0x469593 directly, it is virtual): with its address, the shot
+would be taken when that function returns after the counter has read N. A hook on the instruction after 0x46966f would give "the
+update N has run" but not "has been drawn".
+<!-- /private -->
+
 **Web.** The web build under Node played the same tours as the native one (the log, and its shots compared with the native port's):
 the only differences are sub-pixel edges of rotated tiles and of the head, which Emscripten's software drawing and the native build
 draw a fraction apart. Not chased.
