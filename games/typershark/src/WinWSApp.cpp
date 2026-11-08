@@ -402,7 +402,7 @@ void WinWSApp::Init()
 
 	mTitleScreen = new TitleScreen(this);
 	mTitleScreen->Resize(0, 0, mWidth, mHeight);
-	mTitleScreen->AddControls();    // 0x448f40 (TODO: name from the screens group)
+	mTitleScreen->AddControls();    // TitleScreen::AddControls 0x448f40
 	mWidgetManager->AddWidget(mTitleScreen);
 
 	// the game generator: one draw of the framework's generator, seeded the 2004 way
@@ -663,7 +663,7 @@ void WinWSApp::LostFocus()
 	SexyApp::LostFocus();
 	PauseMusic(true);
 	if (mBoard != NULL)
-		mBoard->SetPaused(true);    // 0x442100 (TODO: name from the board group)
+		mBoard->SetPaused(true);    // Board::SetPaused 0x442100
 }
 
 // 0x426a10 slot 62
@@ -760,7 +760,7 @@ bool WinWSApp::ChangeMusic(int theOrder)
 
 	if (mLessonManager != NULL)
 	{
-		if (mLessonManager->IsBonusLevel() && (theOrder == 0x11) && (aPrevOrder == 0x2e))    // 0x4137d0 (TODO: name)
+		if (mLessonManager->IsBonusLevel() && (theOrder == 0x11) && (aPrevOrder == 0x2e))    // LessonManager::IsBonusLevel 0x4137d0
 		{
 			if (mMusic->IsPlaying(0))
 				return false;

@@ -568,7 +568,7 @@ void WinWSApp::ShowMapScreen()
 	}
 }
 
-// 0x431320: starts a game: the map screen steps aside and a new board comes (TODO: names of the board methods)
+// 0x431320: starts a game: the map screen steps aside and a new board comes
 void WinWSApp::StartBoard()
 {
 	mFlag8d8 = false;

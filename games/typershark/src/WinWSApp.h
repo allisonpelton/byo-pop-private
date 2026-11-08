@@ -113,7 +113,7 @@ public:
 	DialogButton*			mHighScoreCloseButton;  // +0x644 "Close This Screen" (0x41bbd0)
 	std::vector<int>		mPausedMusic;           // +0x648 (pad), +0x64c..+0x654 the songs LostFocus paused (0x426920)
 	MusicInterface*			mMusic;                 // +0x658 the app's own module music interface (a second one besides SexyAppBase::mMusicInterface)
-	LessonManager*			mLessonManager;         // +0x65c TODO: name from the lesson groups (0x4137d0 asks it something; dtor 0x421c50)
+	LessonManager*			mLessonManager;         // +0x65c the lesson manager (0x4137d0 asks it IsBonusLevel; dtor 0x421c50)
 	bool					mFlag660;               // +0x660 ctor 0; read by 0x40c630 / 0x40cba0
 	// +0x664 / +0x668: the letters the random-letter generator (0x41b4e0) has handed out
 	int						mUsedUpperCount;        // +0x664 how many of them are A..Z
