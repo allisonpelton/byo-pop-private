@@ -92,14 +92,16 @@ public:
 		return Sexy::FixOn(theFix);
 	}
 
-	// The original's activation (its WndProc's WM_ACTIVATEAPP) is the framework's mActive, set from SDL's focus
-	// events. The web page is active while it runs (the browser stops it when hidden); a test run's window may never be
+	// The original's activation (its WndProc's WM_ACTIVATEAPP) is the framework's mActive, set from SDL's focus events: the
+	// game stops while the window is not the active one, natively and on the web (where the page's canvas losing the focus
+	// is the same). A test run's window may never be active, except in a -realinput run, where the file's focus lines are the
+	// only focus events there are (docs/REAL_INPUT.md)
 	bool IsActive() override
 	{
 #ifdef __EMSCRIPTEN__
-		return true;
+		return gApp->mActive;
 #else
-		return gApp->mActive || gApp->IsTestRun();
+		return gApp->mActive || (gApp->IsTestRun() && gApp->mRealInputFileName.empty());
 #endif
 	}
 

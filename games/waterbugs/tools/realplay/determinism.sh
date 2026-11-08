@@ -42,6 +42,8 @@ for mode in off on; do
 import hashlib, json, sys
 states = []
 for line in open(sys.argv[1], encoding='utf-8', errors='replace'):
+    if line.startswith('INFO: '):
+        line = line[6:]
     if line.startswith('STATE '):
         s = json.loads(line[6:])
         s.pop('frame', None)

@@ -1,7 +1,7 @@
 // Test hooks: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
 // channel (-commands, byopop_test_command) through HandleScriptCommand. A command that is never given changes nothing:
 // no random number is drawn and no state moves (the bot behind `move` reads the game and draws none). Each answers on
-// stdout with one line: STATE {...}, MOVE {...} or MOVE null, OK <command> or ERROR <command>: <reason>.
+// the log with one line: STATE {...}, MOVE {...} or MOVE null, OK <command> or ERROR <command>: <reason>.
 //
 //   state              the game's state as one JSON line (the keys are listed in games/waterbugs/docs/GAME_NOTES.md)
 //   goto <screen>      menu (title), options, help, help2, highscores, credits, map, changeuser, logo
@@ -27,6 +27,8 @@
 #include <string>
 #include <vector>
 
+#include <SDL.h>
+
 using namespace Sexy;
 
 namespace wb
@@ -47,8 +49,7 @@ std::string Fmt(const char* theFormat, ...)
 
 void Reply(const std::string& theLine)
 {
-	std::printf("%s\n", theLine.c_str());
-	std::fflush(stdout);
+	SDL_Log("%s", theLine.c_str());
 }
 
 std::string CommandText(const ScriptCommand& theCommand)
@@ -119,11 +120,22 @@ struct ItemRef
 	bool requester;
 };
 
+// the menu a requester is up on (the main menu's "resume your previous game?" is on its last menu, the others' on the current one)
+Menu* RequesterMenu(Level* theLevel)
+{
+	if (theLevel->menus.current != nullptr && theLevel->menus.current->requesters.current != nullptr)
+		return theLevel->menus.current;
+	for (Menu* aMenu = theLevel->menus.head; aMenu != nullptr; aMenu = Node_Next(aMenu))
+		if (aMenu->requesters.current != nullptr)
+			return aMenu;
+	return nullptr;
+}
+
 std::vector<ItemRef> ActiveItems(Level* theLevel)
 {
 	std::vector<ItemRef> aResult;
-	Menu* aTop = theLevel->menus.current;
-	if (aTop != nullptr && aTop->requesters.current != nullptr)
+	Menu* aTop = RequesterMenu(theLevel);
+	if (aTop != nullptr)
 	{
 		Menu* aRequester = aTop->requesters.current;
 		for (MenuItem* anItem = aRequester->items.head; anItem != nullptr; anItem = Node_Next(anItem))
@@ -138,7 +150,7 @@ std::vector<ItemRef> ActiveItems(Level* theLevel)
 
 bool HasRequester(Level* theLevel)
 {
-	return theLevel->menus.current != nullptr && theLevel->menus.current->requesters.current != nullptr;
+	return RequesterMenu(theLevel) != nullptr;
 }
 
 // the point inside an item's hit box that MenuItem_Update tests: its animation's image about (x, y), else its text
@@ -668,7 +680,7 @@ std::string MenuMove(Level* theLevel, bool& theBusy)
 		return "";
 	}
 	if (HasRequester(theLevel))
-		return ClickItem("dialog", anItems[0].item);
+		return ClickItem("dialog", anItems.back().item);	// the last button: not the yes of "resume your previous game?"
 	const ItemRef* r = nullptr;
 	switch (theLevel->kind)
 	{
