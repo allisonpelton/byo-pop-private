@@ -195,8 +195,12 @@ void GameApp::LogBoardForTests()
 			sLastDialog = aDialog;
 			if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
 				Point aPos = aButton->GetAbsPos();  // (a GameDialog's buttons are not its children)
-				fprintf(aFile, "dialog: %d %d ok %d,%d\n", ++sCount, aDialog->mId, aPos.mX + aButton->mWidth / 2,
-				        aPos.mY + aButton->mHeight / 2);
+				// then its header and lines, on one line, for a reader of the log
+				std::string aText = aDialog->mDialogHeader + " | " + aDialog->mDialogLines;
+				std::replace(aText.begin(), aText.end(), '\n', ' ');
+				std::replace(aText.begin(), aText.end(), '\r', ' ');
+				fprintf(aFile, "dialog: %d %d ok %d,%d | %s\n", ++sCount, aDialog->mId, aPos.mX + aButton->mWidth / 2,
+				        aPos.mY + aButton->mHeight / 2, aText.c_str());
 				fclose(aFile);
 			}
 		}
@@ -400,6 +404,8 @@ void GameApp::LogBoardForTests()
 			aTutorial = StrFormat("%s attack %d,%d", aTutorialState.c_str(),
 			                      mBoard->mX + anAttack->second->mX + anAttack->second->mWidth / 2,
 			                      mBoard->mY + anAttack->second->mY + anAttack->second->mHeight / 2);
+		else if (!aMoving)
+			aTutorial = aTutorialState + " -";  // nothing to click on the board: the state alone
 	}
 	if (aTutorial != sLastTutorial) {
 		if (!aTutorial.empty())

@@ -92,7 +92,7 @@ comes) each answer with one log line, `OK <command>` or `ERROR <command>: <reaso
   chapter's click), and the seed is `-seed=<n>` at the start.
 
 `-boardlog=<file>` (on the web, the page adds it through `Module.callMain`) makes the game append what a driver of
-real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y` (its
+real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y | header | lines` (its
 first button), `treasure: <n> continue x,y 1|0` (the treasure room's Continue, and whether it is enabled: a
 driver picks Lex's treasures from the left column until it is), `hint: <n> <id> x,y ...|-` (the tutorial's
 arrows that wait for a click on a hot spot, and each spot's centre: the drivers click the first), `tutorial: <n> <state> x,y|attack x,y` (the
@@ -144,6 +144,23 @@ the framework gets SAF's software drawing of transformed sprites when `Is3D` is 
 neither masked nor accepted: the battle's enemy (the item in 7 shots, and the attacks clip's residue), the battle intro's
 spear, and the credits' creatures and fire bowl. Once `--3d on` works, the same screens are compared with 3D on, where the
 port's drawing should already match.
+
+### Registration code taken out (2026-11-07)
+
+The port plays as the registered original does, and the trial code that only an unregistered copy reached is gone (the
+user, 2026-11-07). Most of it was never ported: the trial's window, its "buy" screen and the checks of its marketing
+modes (an hour's play, the lockout after the hydra in the first book's seventh chapter) are named in `port:` notes
+where the original called them. What came out now: the two trial dialogs (`DIALOG_NEW_PROFILE`, the "new profile?"
+at the trial's end, and `DIALOG_TRIAL_COMPLETE`, its "buy the full version?") and their answers in `ButtonDepress`;
+the app's `mQueuedHydraLockout` and every test of it (the map's Back, Continue and Options, the treasure room's Back,
+the map's mouse); the scripts' `ShouldDoHydraLockout` (no script calls it), so `DoAfterHydraConvPanel` always sets the
+warp-in sound's callback; the `AppTime` registry value and `mAppTime`, which counted play time only for the trial's
+hour; and the resource globals only the trial used, the whole `UpsellTrailer` group and `SOUND_MM_BUY_NOW`
+(`tools/resgen.py` leaves them out of `Res.h` and `Res.cpp`). `QueuedHydraLockout` stays as the scripts' method,
+answering false as a registered copy does, since the map's script asks it. None of this has a visible change: the
+same scripted runs of the port built before and after (chapter 1 by the word-attack script, and book 1's first three
+chapters won by the drivers' `win` with the map, the conversations and the treasure room clicked through) give the
+same output, sound log, saved profile and screenshots, byte for byte.
 
 ### Faults the pilot found
 
@@ -301,7 +318,7 @@ natively and in the browser (where the arena was not reached, as only a script c
 profile). Tiles and letters are chosen by clicking, as in the original: no widget of the exe chooses them by typed
 letters (the board's keys are only 1 to 4, Enter and space; the scripts' KeyChar handlers are empty). The media
 player's spectrum takes its bins at the mixer's rate (48 kHz in the browser), where the original's BASS took them at
-44.1 kHz, so a tone stands a little further left. Left out: the trial and its buy screens (the port plays as bought),
+44.1 kHz, so a tone stands a little further left. Left out: the trial and its buy screens (the port plays as bought; "Registration code taken out" above),
 and the developers' tools in the exe (the DProps editor, the Lua debugger console). Notes starting `port:` in the code mark every place
 where the port differs from the original.
 

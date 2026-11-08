@@ -123,15 +123,18 @@
       if (scr === target) seen = true;
       else if (seen && scr !== 'none') { out.result = scr; break; }
       if (fresh.length) used = fresh[fresh.length - 1].n;
-      const dialog = fresh.filter(l => l.kind === 'dialog').pop();
       const board = fresh.filter(l => l.kind === 'board' || l.kind === 'wordmaster').pop();
-      if (dialog) { out.dialogs++; await click(...dialog.ok); await sleep(1500); continue; }
-      const tut = fresh.filter(l => l.kind === 'tutorial').pop();
-      if (tut) { await click(...tut.at); await sleep(1000); continue; }  // the tutorial's one pickable tile, or Attack
-      const hint = fresh.filter(l => l.kind === 'hint').pop();
-      if (hint && hint.spots.length) { await click(...hint.spots[0]); await sleep(1000); continue; }  // the tutorial's arrow
-      const lost = fresh.filter(l => l.kind === 'lostturn').pop();
-      if (lost && scr === target) { await click(...lost.at); await sleep(1500); continue; }  // Lex stunned: a click ends the round
+      // the first line that asks for a click: a dialog's button, the tutorial's tile or Attack, an arrow's hot spot, a
+      // lost turn's grid (Lex stunned). The lines after it stay new for the next round
+      const act = fresh.find(l => l.kind === 'dialog' || l.kind === 'tutorial' && l.at || l.kind === 'hint' && l.spots.length ||
+        l.kind === 'lostturn' && scr === target);
+      if (act) {
+        used = act.n;
+        if (act.kind === 'dialog') out.dialogs++;
+        await click(...(act.kind === 'dialog' ? act.ok : act.kind === 'hint' ? act.spots[0] : act.at));
+        await sleep(act.kind === 'dialog' || act.kind === 'lostturn' ? 1500 : 1000);
+        continue;
+      }
       if (board && scr === target) {
         let tiles = board.tiles;
         if (target === 'minigame' && board.kind === 'board') {

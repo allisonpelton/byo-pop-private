@@ -38,6 +38,7 @@ import threading
 import time
 
 BOARDLOG = None  # the game's -boardlog=<file>, for chapter
+OUT = None       # the output folder (main): a file named shotnow there asks for a screenshot (shot_now)
 
 from PIL import Image
 
@@ -168,7 +169,7 @@ def log_lines():
         elif kind == 'talk':
             out.append({'kind': kind, 'n': n, 'on': f[2] == '1'})
         elif kind == 'tutorial':
-            out.append({'kind': kind, 'n': n, 'at': next(pt(t) for t in f[3:] if ',' in t)})
+            out.append({'kind': kind, 'n': n, 'at': next((pt(t) for t in f[3:] if ',' in t), None)})
         elif kind == 'hint':
             out.append({'kind': kind, 'n': n, 'spots': [pt(t) for t in f[2:] if ',' in t]})
         elif kind == 'lostturn':
@@ -222,79 +223,17 @@ def settle(hw, p, seconds, note):
         fresh = [l for l in log_lines() if l['n'] > used]
         if fresh:
             used = fresh[-1]['n']
-        dialog = ([l for l in fresh if l['kind'] == 'dialog'] or [None])[-1]
-        if dialog:
-            click(hw, *dialog['ok'])
-            clicks += 1
-            quiet = time.time()
-        elif talking():
-            click(hw, 400, 150)
-            clicks += 1
-            quiet = time.time()
-        elif time.time() - quiet > 2:
-            break
-        time.sleep(0.8)
-    note('settle: %d clicks, %ds, on %s' % (clicks, time.time() - t0, screen()))
-
-
-def chapter(hw, p, seconds, note, target='battle', minimize_on=None):
-    """One chapter's battles, as tools/driver.js's bwa.battle does on the web: from the map Enter, then each board's
-    word spelled with clicks and Attack, Scramble for a board without one, a dialog's first button, a click to move a
-    conversation on, until the screen is no longer the battle. Notes a summary line."""
-    t0 = time.time()
-    end = t0 + seconds
-    all_lines = log_lines()
-    used = max([l['n'] for l in all_lines] or [0])
-    if all_lines and all_lines[-1]['kind'] in ('board', 'wordmaster', 'dialog', 'lostturn', 'hint', 'tutorial'):
-        used -= 1  # a board, a dialog or a lost turn already waiting is played, answered or ended
-    seen, next_talk, words, scrambles, dialogs, result, picks = False, 0, [], 0, 0, '', 0
-    sound_log = os.environ.get('BYOPOP_SOUNDLOG')
-    sound_seen = len(open(sound_log).readlines()) if minimize_on and sound_log and os.path.exists(sound_log) else 0
-    while time.time() < end and p.poll() is None:
-        if minimize_on and sound_log and os.path.exists(sound_log):
-            # the window minimized for a minute the moment the sound log shows minimize_on (a song starting)
-            sound = open(sound_log).readlines()
-            if any(minimize_on in l for l in sound[sound_seen:]):
-                note('minimize on %r' % minimize_on)
-                u32.ShowWindow(hw, 6)
-                time.sleep(60)
-                u32.ShowWindow(hw, 9)
-                note('restore')
-                minimize_on = None
-            sound_seen = len(sound)
-        fresh = [l for l in log_lines() if l['n'] > used]
-        scr = screen()
-        if scr == target:
-            seen = True
-        elif seen and scr != 'none':
-            result = scr
-            break
-        if fresh:
-            used = fresh[-1]['n']
-        dialog = ([l for l in fresh if l['kind'] == 'dialog'] or [None])[-1]
         board = ([l for l in fresh if l['kind'] in ('board', 'wordmaster')] or [None])[-1]
-        if dialog:
-            dialogs += 1
-            click(hw, *dialog['ok'])
-            time.sleep(1.5)
-            continue
-        tut = ([l for l in fresh if l['kind'] == 'tutorial'] or [None])[-1]
-        if tut:
-            # the first battle's tutorial: the one tile it lets be picked, or Attack
-            click(hw, *tut['at'])
-            time.sleep(1)
-            continue
-        hint = ([l for l in fresh if l['kind'] == 'hint'] or [None])[-1]
-        if hint and hint['spots']:
-            # the tutorial's arrow waits for a click on its hot spot (the next tile, Attack)
-            click(hw, *hint['spots'][0])
-            time.sleep(1)
-            continue
-        lost = ([l for l in fresh if l['kind'] == 'lostturn'] or [None])[-1]
-        if lost and scr == target:
-            # Lex stunned: a click on the grid ends the lost turn's round
-            click(hw, *lost['at'])
-            time.sleep(1.5)
+        # the first line that asks for a click: a dialog's button, the tutorial's tile or Attack, an arrow's hot spot, a
+        # lost turn's grid. The lines after it stay new for the next round (a board logged with a hint is played then)
+        act = next((l for l in fresh if l['kind'] == 'dialog' or l['kind'] == 'tutorial' and l['at'] or
+                    l['kind'] == 'hint' and l['spots'] or l['kind'] == 'lostturn' and scr == target), None)
+        if act:
+            used = act['n']
+            dialogs += act['kind'] == 'dialog'
+            click(hw, *{'dialog': act.get('ok'), 'tutorial': act.get('at'), 'lostturn': act.get('at'),
+                        'hint': (act.get('spots') or [None])[0]}[act['kind']])
+            time.sleep(1.5 if act['kind'] in ('dialog', 'lostturn') else 1)
             continue
         if board and scr == target:
             tiles = board['tiles']
@@ -343,7 +282,8 @@ def main():
     i = sys.argv.index('--')
     steps, out = sys.argv[1:i]
     cmd = sys.argv[i + 1:]
-    global BOARDLOG
+    global BOARDLOG, OUT
+    OUT = out
     BOARDLOG = next((a.split('=', 1)[1] for a in cmd if a.startswith('-boardlog=')), None)
     os.makedirs(out, exist_ok=True)
     log = open(os.path.join(out, 'realrun.log'), 'w')
