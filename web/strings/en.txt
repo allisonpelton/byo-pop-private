@@ -39,6 +39,8 @@ skin.desk.controls = Controls
 skin.desk.icons = Desktop
 skin.desk.open = Open {window}
 skin.desk.close = Close {window}
+skin.desk.games = All games
+skin.desk.about = About
 settings.skin.label = Skin
 settings.skin.hint = The site's look around the game. The game itself never changes.
 settings.ambient.label = Ambient light
@@ -110,6 +112,7 @@ index.tile.label_year = {name}, {year}, {state}
 # How much a game was played here: {n} plays, {time} like "2 h 15 min"
 index.played = {n} play · {time} | {n} plays · {time}
 index.played_last = Last played {date}
+index.cap.plays = {n} play | {n} plays
 # every player's counts under a game's name, from the site's play counter: "2 playing now · 1234 plays"
 index.counts.plays = {n} play | {n} plays
 index.counts.live = {n} playing now
