@@ -15,13 +15,15 @@
 #                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, our
 #                decoder's own earlier output, which tools/jp2test/write_refs.sh writes; the loader's
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images;
+#                jpegtest (JPEG: Platform::DecodeJPEG and the loader's routing against IJG libjpeg 6b's reference output
+#                for its own test files, third_party/libjpeg/test, and synthetic pictures; needs no game files);
 #                songpostest on Bejeweled's, BookWorm's and Bejeweled Twist's modules, with the MO3s' tempo and
 #                channel volumes (skipped without their assets); spectrumtest
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
 #                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
 #                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table)
-#   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
+#   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
 #                save backup's zip, paths and merge, web/saves.js), saveimporttest (the import of saves from an installed game:
@@ -154,7 +156,7 @@
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
 #   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
 #                  (tools/*.js, paktest): unit-web. fwtest, geomtest, jp2test, songpostest, soundtest, spectrumtest, build.sh,
-#                  check.sh, rundesk: build unit. modsettingstest and fixtures: build unit, build-web:modsettingstest and
+#                  check.sh, rundesk: build unit. modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
 #                  unit-web. Anything else under tools/, and any file not named here: build
 #   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
 #                  With --inert (the review found every shared change off unless a game opts in, or reached only from the
@@ -318,6 +320,9 @@ classify() {  # <path>: chooses the suites a changed file needs
 				modsettingstest/*|fixtures/*)  # also built for the web, where unit-web runs it under Node
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add modsettingstest ;;
+				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
+					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
+					note build-web "$AREA" "$p"; web_add jpegtest ;;
 				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|build.sh|check.sh)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
@@ -379,7 +384,7 @@ web_est() {  # <target,target...>: sets EST_S to a rough time for building only 
 		case "$t" in
 			sexy*) libs=1 ;;
 			bejeweled|bejeweledtwist|bookwormadv|bookwormadv2) EST_S=$((EST_S + 120)) ;;
-			rulestest|bejeweled_verify|modsettingstest) EST_S=$((EST_S + 20)) ;;
+			rulestest|bejeweled_verify|modsettingstest|jpegtest) EST_S=$((EST_S + 20)) ;;
 			*) EST_S=$((EST_S + 45)) ;;
 		esac
 	done
@@ -543,7 +548,7 @@ suite_build-web() {  # <log> [<target>,<target>...]: the whole web build, or onl
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d e f g h i j
+	local st=0 a b c d e f g h i j k
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -600,9 +605,13 @@ suite_unit() {
 	# framework/DisplayGeometry (letterbox, render scale, window mapping, cursor) against a table from DDInterface's code
 	(cd build/native && timeout 60 ./geomtest.exe) > "$1.geo" 2>&1 || st=1
 	j="$(lastof "$1.geo" 'geometry: [0-9]+ cases, [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j"
+	# JPEG decoding through IJG libjpeg 6b (platform/JPEGDecoder.cpp): IJG's own test files against its reference output,
+	# synthetic pictures against the hashes of PopCap's copy of the library, the loader's routing; needs no game files
+	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || st=1
+	k="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $k"
 	return $st
 }
 
@@ -655,12 +664,15 @@ suite_unit-web() {
 	local m
 	"$NODE" tools/termstest.js > "$1.tt" 2>&1 || st=1
 	m="$(lastof "$1.tt" 'termstest:')"
-	local n
+	local n o
 	"$NODE" tools/cursorstest.js > "$1.cur" 2>&1 || st=1
 	n="$(lastof "$1.cur" 'cursorstest:')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n"
+	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
+	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
+	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n; $o"
 	return $st
 }
 
