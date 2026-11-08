@@ -134,6 +134,16 @@ bool Solver::BoardAtRest(Board* theBoard)
 
 // Letters, tile types, the level (the points depend on it), the settings and the bonus word; for "fewerFire" the
 // fire meter and the skip
+bool Solver::FirstHint(Board* theBoard, SolverWord* theHint)
+{
+	Solver aSolver(theBoard);
+	aSolver.Solve();
+	if (aSolver.mHints.empty())
+		return false;
+	*theHint = aSolver.mHints[0];
+	return true;
+}
+
 std::string Solver::BoardSignature() const
 {
 	std::string aSig;

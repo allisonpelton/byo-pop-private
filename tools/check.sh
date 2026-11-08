@@ -129,12 +129,13 @@
 #                minute)
 #   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 5156 and a Blitz game to its
 #                end and the high scores, with the same screens as frozen, a Classic rerun, and
-#                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one (about a minute)
+#                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one; a Classic game left twice, its
+#                save for a page that goes away the same as a quit's, and resumed (about a minute and a half)
 #   bejeweled2   Bejeweled 2 Deluxe played by the port's own bot (tools/playbymove, -hold, seeded, a new player with every
 #                mode unlocked) in each of its nine modes: the transcript of every state and move, and the end screen, must be
 #                the frozen ones; an Action rerun is identical, and so are the games played by
 #                build/baseline-bejeweled2/bejeweled2.exe when there is one (two minutes, four with the baseline)
-#   oracle      Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
+#   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
 # Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2; all = every suite, builds first.
 #
@@ -1971,14 +1972,38 @@ twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a see
 	for n in "$@"; do sha256sum "$d/shots/$n.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -
 }
 
+twist_save() {  # <exe>: a seeded Classic game left at level 3, mid-twist (1777) and at rest (2611): what a page that goes away keeps
+	# (the test command shutdownsaves, GetShutdownSaves) must be what a quit writes, and the next start goes on with the game
+	# (-userdir absolute: Twist's own names begin with the app data folder, which a relative -userdir puts inside itself)
+	local d="$OUT/bejeweledtwist/save" exe="$1" n f r=""
+	rm -rf "$d"
+	for n in 1777 2611; do
+		mkdir -p "$d/$n/user" "$d/$n/kept"
+		printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/$n/user/registry.ini"
+		printf '1200 level 3\n%d shutdownsaves %s\n%d quit\n' $n "$d/$n/kept" $n > "$d/$n/script.txt"
+		timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$W/$d/$n/user" -nod3d9 -fast -seed=1234 -autoplay=1 -script="$d/$n/script.txt" > "$d/$n/stdout.txt" 2>&1
+		for f in savegame_classic.dat profile.dat; do
+			cmp -s "$d/$n/kept/$f" "$d/$n/user/users/TWISTBOT/$f" || r="$r $n:$f"
+		done
+	done
+	# the game left at rest goes on from the board before its last twist, as the original's quit saves it
+	printf '300 loadgame 1\n900 state\n901 quit\n' > "$d/resume.txt"
+	timeout 120 "$exe" -gamedir=assets/bejeweledtwist -userdir="$W/$d/2611/user" -nod3d9 -fast -seed=1234 -script="$d/resume.txt" > "$d/resume.txt.out" 2>&1
+	grep -q '"screen":"game".*"mode":"classic","level":3,"score":2800,"moves":3,"progress":\[714,3300\]' "$d/resume.txt.out" || r="$r resume"
+	echo "${r:-ok}"
+}
+
 suite_bejeweledtwist() {
-	local st=0 c b r sh bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
+	local st=0 c b r sh sv bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
 	need_assets bejeweledtwist || return 1
 	c="$(twist_game classic "$exe" 1 5166 656 2156 3656 5156)"
 	b="$(twist_game blitz "$exe" blitz 8166 2656 5156 7156 7606 8156)"
 	r="$(twist_game classic2 "$exe" 1 5166 656 2156 3656 5156)"
 	m="$(twist_game menu "$exe" 1 170 60 160)"
-	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; } > "$1"
+	local dec="sounds decode as Tremor's"
+	"$W/build/native/bjt_sounddecode.exe" --compare "$W"/assets/bejeweledtwist/sounds/*.ogg > "$1.decode" 2>&1 || { dec="SOUNDS DECODE DIFFERENTLY"; st=1; }
+	sv="$(twist_save "$exe")"
+	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; echo "save: $sv"; } > "$1"
 	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
 	if [ -n "$c" ] && [ "$c" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-bejeweledtwist/, a copy of the port with its DLLs made when it was last
@@ -1991,7 +2016,8 @@ suite_bejeweledtwist() {
 			bl="; BASELINE DIFFERS"; st=1
 		fi
 	fi
-	SUMMARY="the start's menu, Classic to 5156 and Blitz to its high scores, 11 screens; $r; $sh$bl"
+	if [ "$sv" = ok ]; then sv="a page's save as a quit's, resumed"; else sv="SAVE DIFFERS ($sv)"; st=1; fi
+	SUMMARY="the start's menu, Classic to 5156 and Blitz to its high scores, 11 screens; $r; $sh$bl; $sv; $dec"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU')"
 	return $st
 }

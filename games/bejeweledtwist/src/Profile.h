@@ -84,6 +84,7 @@ public:
 	void SaveUsers();                               // 0x733f07
 	bool Load(const SexyString& theName);           // 0x735001: makes theName the current player
 	void Save();                                    // 0x734087: the current player's profile.dat
+	bool GetSaveData(std::string* thePath, Buffer* theBuffer);  // port (web): what Save writes, and where
 	bool Select(const SexyString& theName);         // 0x7354f8: saves the current player, then loads theName
 	bool SelectAny();                               // 0x7359c0: the first player that loads
 	// 0x73561d: a new player of that name (or, if the name is taken, the game's "same name" dialog)

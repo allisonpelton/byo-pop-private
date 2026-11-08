@@ -221,8 +221,17 @@ Every call re-reads the whole context, so what costs is context times calls, and
   takes its pass once the user approves them after that. The pass leaves no unknown or unnamed variable, field, parameter, global or
   constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port then go one at a
   time, each in full, readability pass included, before the next begins ("for the remaining games, I want to tackle
-  them in full one-at-a-time"). A performance pass (the user, 2026-11-03) and taking out the other code the ports do
-  not need come once every game is done (`docs/COORDINATION.md`). A session may speed up its own port before then, at any time, so its `-fast` test runs go
+  them in full one-at-a-time"). **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to
+  go through every phase except modding before a game can be considered done and ready for the live site, and just
+  publish whatever games are ready by the end of December. I'm in no hurry to get games out in a less-than-stellar
+  state." A game is done, and may go on the live site, only once it has been through all of them: the user's faults,
+  both phases of identical play, registration and outbound buttons out, its fixes mod (the site serves every game with
+  it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), taking out the other
+  code it does not need, and, for a game ported from its Steam copy, the check against its PopCap Game Collection
+  version. So the coverage check and the performance pass come game by game, not after every game is done
+  (`docs/COORDINATION.md`). Modding, which waits, is the mods' own work: new mods and the changes waiting in
+  `docs/MOD_ROADMAP.md`. Whatever games are done by 2026-12-31 go on the live site then; the rest follow when done,
+  never hurried. A session may speed up its own port before its performance pass, at any time, so its `-fast` test runs go
   faster (the user, 2026-11-08: "Sessions should be allowed to improve performance early on so they can test with
   -fast and run even faster"), under the performance pass's rules: how the port works changes, never what it does,
   proved by its frozen baseline; no threads; a cost in shared code goes to the coordinator as a spec.
