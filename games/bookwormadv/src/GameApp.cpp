@@ -1242,10 +1242,12 @@ void GameApp::CurtainDone()
 		break;
 	}
 
-	// open (or nothing to do): the scripts' function may keep the curtain; otherwise it goes
+	// open (or nothing to do): the scripts' function may keep the curtain; otherwise it goes. A function that returns
+	// nothing (the mini-games' ends) keeps nothing: 0x44d360 asks for a boolean only when there is a result
 	bool aKeep = false;
 	if (!mCurtainLuaCallback.empty()) {
-		aKeep = LuaLib::CallLua(mCurtainLuaCallback, 0).Bool();
+		LuaLib::LuaClassRet aRet = LuaLib::CallLua(mCurtainLuaCallback, 0);
+		aKeep = aRet.count > 0 && aRet.Bool();
 		if (mShutdown)
 			return;
 	}
