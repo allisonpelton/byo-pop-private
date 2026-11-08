@@ -92,3 +92,55 @@ The unregistered game's screens and the internet scores are left out as `README.
 second picture (0x4106bc, the "buy" overlay at y = 0x137) and the play counter belong to a copy that is not registered,
 and the "thanks for registering" line (0x4108c6, y = 0x157) to one that is registered but not unlocked; the port is both
 registered and unlocked, so none of them is drawn.
+
+## 6. The standard test commands
+
+The port answers the standard test commands (`docs/TEST_COMMANDS.md`) in `AlchemyApp::HandleScriptCommand`
+(`src/testhooks/Commands.cpp`). They are reachable only from a test: `-script` lines (`<update> <command>`), and the live
+channel (`-commands`, the web's `byopop.test.command`) once the framework has it. A game that is never given one is not changed:
+the suites and the frozen baseline play as before. Each command answers with one line on stdout (`OK <command>`,
+`ERROR <command>: <reason>`, `STATE {...}` or `MOVE {...}`).
+
+| Command | What it does |
+|---|---|
+| `state` | `STATE {json}`: `screen` (title, menu, game, highscores, options, help), `dialog` (name, load, hint, quit, newgame, skill, tutorial, options, alltime), `updates`, `mode` (strategic, timetrial, tutorial), `skill`, `level` (the board, from 1), `score`, `forge` (0 to 3), `over` (the game has ended), `busy` (the board cannot take a piece now), `board` (`state`, the `pieces` as `[col, row, shape, colour, stone]`, `lit` as eight strings of nine digits, `litCount`, `piece` to place, `fits`, `moves`, `forged`, `boards` cleared, `shapes`, `colors`, `paused`, `cover`, and `tutorial` with `step`, `waiting`, `count`, `button`), `ready` and `link` on the title, `active`, `windowed`, `muted`, and the places of the buttons a driver presses: `panel`, `options`, `selector`, `table`. |
+| `goto <screen>` | `menu` (the selector), `options`, `help`, `highscores` (the all-time table), `strategic` or `timetrial` with an optional skill 1 to 3, and `tutorial`, which start that game through the selector's own buttons. `title` and `credits` are errors: the game has neither to go to. |
+| `level <n>` | Board n of the game being played: n - 1 boards cleared, an empty grid (a first board has its stone), the difficulty follows. |
+| `unlock all` | `ERROR`: the game has nothing locked. |
+| `set <name> <value>` | `score`, `forge` (0 to 3) or `boards` (boards cleared; the difficulty follows). |
+| `win` | Every tile lit: the board is won through `CheckAllLit` (the bonus, the pieces vanish, the panel). |
+| `lose` | The forge overflows: the game ends through `GameOver` (the pieces shrink away, the table follows). |
+| `seed <n>` | Seeds the C library generator, which seeds the board's own generator at a game's start. |
+| `move`, `botmove` | `MOVE {json}`: the bot's next input, or `MOVE null` when it has none (the title still loads, the board is busy, a dialog the bot does not answer is up). Changes nothing, and draws none of the game's random numbers: the bot has a generator of its own, seeded from the position. |
+
+The bot is the one `-autoplay` has always had (`src/testhooks/Bot.cpp`, shared by both; the suites' numbers did not change):
+a cell that completes a row or a column is best, otherwise the cell with most neighbours, a tenth of the choices a random cell
+that fits, and the forge when no cell fits. `move` also answers the title's link, the wizard's question (yes), the saved game
+(yes), the name entry (three letters, then OK), the table's button, the board-cleared panel's button and the tutorial's. A MOVE's
+`input` is the ordered list of steps `docs/TEST_COMMANDS.md` describes: `{"move":[x,y]}` (the pointer goes there; the piece hangs
+0x30 pixels up and left of it and the board takes the cell from the piece at the last update, so a hover comes before a click),
+`{"wait":n}`, `{"click":[x,y]}` (`"button":"right"` for the forge) and `{"key":"b"}`. Its `kind` is place, forge, title, dialog,
+name, scores, cleared or tutorial.
+
+## 7. The fixes mod
+
+`games/alchemy/mods/fixes/mod.json` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, each setting a
+toggle for one bug of the original that the port keeps, every toggle on by default. The site serves the game with it on
+(`alchemy-fixes/` beside the page); a native build finds it when the folder is copied into the mods folder. The port without
+the mod is the original: `FixEnabled` (`src/Fixes.cpp`) is false for every toggle unless the mod is enabled, and a toggle is read
+where its fix matters, as a live value, so it needs no restart (a picture the board already holds is redrawn at the next board).
+
+| Toggle | The original | With the fix |
+|---|---|---|
+| `rims` | `Board::RedrawCell` (0x401a82) gives a lit tile a half-opaque rim where it borders an unlit one, but tests the left and top neighbours with `1 < col` and `1 < row` and the right and bottom ones with `col < 8` and `row < 7`: the first column and row get none on their inner side, while the last ones get theirs. | The tests are `0 < col` and `0 < row`: the edge between a lit tile of the second column (or row) and an unlit tile of the first has its rim, as every other edge. Only the one-pixel line at the second column's left edge and the second row's top edge differs. |
+| `continuedEnding` | `Board::LoadGame` (0x405b39) puts each piece of a continued game at its cell without the board's offset (150, 0) that every placed piece has until the next `Resize`, and the end-of-game shrink draws pieces from that position: in a game that was continued and then lost, the pieces shrink 150 pixels left of their tiles, half of them under the side panel, and the board looks emptied at once. | The pieces get the offset, and shrink away on their tiles as in a game that was not continued. |
+
+**Looked at, not made into toggles.** The port's `Board::~Board` counts a game as played when the forge is nearly full and the
+game has not ended (`mState != STATE_GAME_OVER`), but a game that is lost counts in `GameOver` and the board is in
+`STATE_ENDING` for the next second or so: leaving then counts it twice. The count only decides whether the selector still shows
+the tutorial's button (fewer than five games), and only a game left in that second is counted twice, so it is not a fix worth a
+toggle. A name entry that is accepted empty drops its score without a word (`HighScoreWidget::SetName`): that is the game's rule
+for "no name", not a mistake the port can mend without making up what the original would have shown. The game's end is slow
+(about three seconds of shrinking and fading, then the table) and a click is ignored meanwhile, as in a board cleared (the
+pieces vanish three at a time): those are the game's animations, part of its pace, so they stay. Loading is already as fast as
+the machine: the framework runs the loading thread in one go, and the title polls it every fourth update (at most 40 ms).
