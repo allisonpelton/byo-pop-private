@@ -208,7 +208,7 @@ bool GameApp::UpdateAppStep(bool* updated)
 		if (aF9 && !sF9Down) {
 			ScriptCommand aCommand;
 			aCommand.mUpdateCount = mUpdateCount;
-			aCommand.mCommand = "state";
+			aCommand.mCommand = "statedump";
 			aCommand.mLine = 0;
 			HandleScriptCommand(aCommand);
 		}

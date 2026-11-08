@@ -163,7 +163,7 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		SDL_Log("script: spectrum %d lit", aLit);
 		return true;
 	}
-	if (theCommand.mCommand == "state") {
+	if (theCommand.mCommand == "statedump") {
 		// the battle's state: the engine's, the board's flags and its selected tiles
 		SDL_Log("script: state: engine %d, board %p%s", gBattleEngine != nullptr ? gBattleEngine->mState : -9, (void*)mBoard,
 		        mBoard != nullptr && mBoard->mVisible ? " visible" : "");
@@ -184,6 +184,24 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				        aTile->mY, aTile->mCol, aTile->mRow, aTile->mAlphaState, (int)aTile->mMoving, (int)aTile->mFalling,
 				        aTile->mFallDistance);
 		}
+		return true;
+	}
+	if (theCommand.mCommand == "state") {
+		// the standard line (docs/TEST_COMMANDS.md), as far as it goes: what a driver reads from the battle board
+		std::string aJson = StrFormat("{\"screen\":\"%s\",\"engine\":%d", mBoard != nullptr && mBoard->mVisible ? "battle" : mMainMenu != nullptr ? "menu" : "other",
+		                              gBattleEngine != nullptr ? gBattleEngine->mState : -9);
+		if (mBoard != nullptr && mBoard->mVisible) {
+			aJson += StrFormat(",\"paused\":%d,\"selected\":%d,\"board\":[", (int)mBoard->IsPaused(), (int)mBoard->mSelected.size());
+			bool aFirst = true;
+			for (Tile* aTile : mBoard->mTiles) {
+				aJson += StrFormat("%s{\"l\":\"%c\",\"x\":%d,\"y\":%d,\"ok\":%d}", aFirst ? "" : ",", aTile->GetLetter(), aTile->mX + 25,
+				                   aTile->mY + 25, (int)aTile->CanSelect(aTile->mX + 25, aTile->mY + 25));
+				aFirst = false;
+			}
+			aJson += "]";
+		}
+		aJson += "}";
+		SDL_Log("STATE %s", aJson.c_str());
 		return true;
 	}
 	if (theCommand.mCommand == "widgets") {
