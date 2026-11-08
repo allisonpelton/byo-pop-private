@@ -7,6 +7,16 @@ var params = new URLSearchParams(location.search);
 var mode = params.get("mode") || "endless";
 var cap = Number(params.get("steps")) || 3000;	// the bot's moves at most, before the shots straight up
 var started = Date.now();
+// scale=2 draws the canvas at twice its size (CSS), so that the DOM events land at scaled points as they do in full screen,
+// which a page cannot enter from a script and the hidden pane cannot show
+var scale = Number(params.get("scale") || 1), drawn = null;
+if (scale !== 1) {
+  var cv = document.getElementById("canvas");
+  cv.style.width = Math.round(640 * scale) + "px";
+  cv.style.height = Math.round(480 * scale) + "px";
+  await t.wait(20);
+  drawn = Math.round(cv.getBoundingClientRect().width) + "x" + Math.round(cv.getBoundingClientRect().height);
+}
 // the menu's clicks after the title for each, as the native step files make them
 var routes = {
   tutorial: [[486, 355], [488, 432]],
@@ -50,10 +60,13 @@ await t.shot(mode + "-start");
 
 // playByMove stops on two empty moves running; the bot has none for a while between the tutorial's messages (one fading
 // in, the board's pause) and in a game while a blast, a power-up or a fossil's fall runs, so it is asked again while
-// the game goes on, until twenty asks in a row bring no move
+// the game goes on, until twenty asks in a row bring no move. An answer that did not come within the kit's ten seconds
+// (an "error: ...waitLog" stop; once in a fast run after the trunk's MessageChannel frames, 2026-11-08, the same command
+// answering at once when asked again) is asked again the same way
 var play = await t.playByMove({ steps: cap });
-var total = play.moves, idle = 0;
-while (play.stop === "no move" && idle < 20 && Date.now() - started < 1800000) {
+var total = play.moves, idle = 0, timeouts = 0;
+var again = function (p) { return p.stop === "no move" || (/waitLog/.test(p.stop) && ++timeouts <= 5); };
+while (again(play) && idle < 20 && Date.now() - started < 1800000) {
   last = await t.state();
   if (last.screen !== "game" || last.over) break;
   await t.wait(60);
@@ -62,6 +75,7 @@ while (play.stop === "no move" && idle < 20 && Date.now() - started < 1800000) {
   idle = (play.moves > 0) ? 0 : idle + 1;
 }
 play.moves = total;
+play.timeouts = timeouts;
 // a game the bot is still winning at the limit is ended by real shots straight up, every forty updates, until the eggs
 // pass the line
 var ended = 0;
@@ -94,5 +108,5 @@ if (mode !== "tutorial" && play.stop === "over") {
   }
 }
 last = await t.state();
-return { mode: mode, moves: play.moves, ended: ended, stop: play.stop, named: named, last: last,
+return { mode: mode, scale: drawn, moves: play.moves, ended: ended, stop: play.stop, timeouts: play.timeouts, named: named, last: last,
   seconds: Math.round((Date.now() - started) / 1000), updates: t.updates(), errors: t.errors.length };

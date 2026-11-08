@@ -56,6 +56,7 @@
 #include "Egg.h"
 #include "SideBar.h"
 #include "Steggy.h"
+#include "TitleScreen.h"
 #include "Tutorial.h"
 
 using namespace Sexy;
@@ -148,6 +149,8 @@ std::string StateJson(FossilizedApp* theApp)
 		s += StrFormat(",\"tutorial\":%d", theApp->mTutor->mStep);
 	else if (theApp->mIntroScreen != NULL)
 		s += StrFormat(",\"page\":%d", theApp->mIntroScreen->mPage);
+	else if (theApp->mTitleScreen != NULL)
+		s += StrFormat(",\"loaded\":%s", theApp->mTitleScreen->mLoadingDone ? "true" : "false");	// its link takes a click
 	s += StrFormat(",\"dialog\":%d", TopDialogId(theApp));
 	if (theApp->mSideBar != NULL)
 		s += StrFormat(",\"score\":%d", theApp->mSideBar->mScore);

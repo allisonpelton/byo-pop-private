@@ -216,7 +216,11 @@ much better than natively:
 Every game reached its end panel, the name dialog and the table, with no error logged. Panic was still being won at
 the driver's limit in a first run (3000 moves, fossil 14, 140250), so the driver ends a game the bot is still winning
 with real shots straight up. A page cannot start in full screen, and the hidden pane cannot be put there, so full
-screen was played natively only.
+screen was played natively, and on the web `?scale=2` stood in for it: the canvas drawn at 1280×960, so that every DOM
+event lands at a scaled point and is scaled back as in full screen. After the trunk's merge (its MessageChannel frames)
+the tutorial at scale 2 played its 132 moves to the main menu and Time Trial its 281 moves to the table, both with no
+error logged. In that tutorial five of the bot's answers did not come within the kit's ten seconds, and the same `move`
+answered at once when asked again, so the driver asks again after such a timeout too.
 
 Two things in the tutorial needed care in the page, where the bot's moves come faster than natively. At step 45 the
 tutorial has made the eggs sit past the line and waits for the board to be lost; a shot there that makes a match clears
