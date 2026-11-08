@@ -1,0 +1,11 @@
+{
+  "id": "fixes",
+  "name": "Test Fixes",
+  "version": "1.0",
+  "author": "byo-pop tests",
+  "description": "A stand-in fixes mod for testing how the site installs a game's fixes mod (cmake's BYOPOP_WEB_TEST_FIXES; docs/WEB_PLAYER.md, \"The fixes mod on the site\"). Its one toggle changes nothing.",
+  "settings": [
+    { "id": "testFix", "label": "Test fix", "type": "bool", "default": true,
+      "help": "Changes nothing: it is here to be turned off and on." }
+  ]
+}
