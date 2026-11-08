@@ -3,7 +3,8 @@
 // state. A command that is given draws no random number of the game's, except `seed`, which seeds them. Every command
 // answers with one line on stdout: OK <command>, ERROR <command>: <reason>, STATE {...} or MOVE {...}.
 //
-//   state                 STATE {json}: screen, mode, level, score, over, busy, bonus, dialog, paused, blocksleft and a
+//   state                 STATE {json}: screen, mode, level, score, over, busy, bonus, dialog, paused, updates (the game's
+//                         update count, for a driver that waits n updates), blocksleft and a
 //                         board summary (columns, rows, the four next blocks, the grid)
 //   goto <screen>         menu, options, help, highscores, credits, or a mode to start: regular, strategy, speed, timed
 //                         (the timed mode's button is off the screen of TipTop Deluxe, so this is the one way in)
@@ -113,7 +114,7 @@ char KindChar(int theKind)
 	return '.';
 }
 
-std::string StateJson()
+std::string StateJson(int theUpdates)
 {
 	tiptop::App& anApp = tiptop::gApp;
 	tiptop::Board* b = anApp.mBoard;
@@ -124,6 +125,7 @@ std::string StateJson()
 	s += std::string(",\"dialog\":") + (DialogOpen() ? "true" : "false");
 	s += std::string(",\"busy\":") + (tiptop::gBusy != 0 ? "true" : "false");
 	s += std::string(",\"paused\":") + (tiptop::gPauseFlags != 0 ? "true" : "false");
+	s += ",\"updates\":" + Num(theUpdates);
 	if (aBoardScreen)
 	{
 		s += ",\"level\":" + Num(b->mState.mLevel) + ",\"score\":" + Num(b->GetScore());
@@ -262,7 +264,7 @@ bool TipTopApp::HandleTestCommand(const ScriptCommand& theCommand)
 
 	if (aName == "state")
 	{
-		Reply("STATE " + StateJson());
+		Reply("STATE " + StateJson(mUpdateCount));
 		return true;
 	}
 	if (aName == "move")
