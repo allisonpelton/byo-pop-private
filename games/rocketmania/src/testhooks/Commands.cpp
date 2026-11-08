@@ -7,12 +7,13 @@
 //   goto <screen>         menu, options, highscores, credits, or a mode (arcade, classic, strategy) with its difficulty 1 to 3
 //   level <n>             starts level n of the current game (a game of the last mode if there is none), as the game's own
 //                         NextLevel does
-//   set <name> <value>    score, level, moves (the strategy mode's), coins
+//   set <name> <value>    score, level, moves (the strategy mode's), coins; difficulty (1 to 3, for the dialog a move answers)
 //   win, lose             the level ends now (the head rides in on its rocket, the level-up screen follows); the game ends
 //                         now, as the night running out, the top line filling or the moves running out do
 //   seed <n>              the game's global generator is seeded with n (the board's generator comes from it at the next game)
-//   move                  MOVE {json}: the bot's next move (UiBot's path planner: the clicks that turn a path of tiles from
-//                         the left edge to the right one) and the real input that makes it; changes nothing
+//   move                  MOVE {json}: the bot's next move and the real input that makes it; changes nothing. On the board: the
+//                         clicks that turn a path of tiles from the left edge to the right one (UiBot's planner); in the menu
+//                         the next mode button, and the play link or the button of the dialog that is up elsewhere
 //   unlock all            ERROR: the game has nothing locked
 
 #include "RocketApp.h"
@@ -133,37 +134,142 @@ void State(RocketApp* theApp)
 	Reply("STATE " + aJson);
 }
 
-// the bot's next move: the clicks that turn a path across the board, each a few updates after the one before
+std::string ClickStep(Widget* theWidget)
+{
+	return "{\"click\":[" + Num(theWidget->mX + theWidget->mWidth / 2) + "," + Num(theWidget->mY + theWidget->mHeight / 2) + "]}";
+}
+
+int sDifficulty = 2;    // the difficulty a move picks in the difficulty dialog (set difficulty <n>)
+int sNextMode = 0;      // the mode a move picks next in the menu
+
+// what the player does next away from the board: the play link, the dialog that is up (the choices the bot makes), the
+// next mode button of the menu. Empty when there is nothing to do yet.
+bool ScreenMove(RocketApp* theApp, std::string& theWhat, std::string& theInput)
+{
+	static bool sNameTyped = false;
+	if (theApp->mLoadingScreen != NULL)
+	{
+		if (!theApp->mLoadingScreen->mLinkShown)
+			return false;
+		theWhat = "the play link";
+		theInput = "[" + ClickStep(theApp->mLoadingScreen->mPlayLink) + "]";
+		return true;
+	}
+	if (theApp->GetDialogCount() > 0)
+	{
+		static const int sOrder[] = { DIALOG_RECORD_SCORE, DIALOG_LEVEL_UP, DIALOG_HIGH_SCORES, DIALOG_HINT, DIALOG_CONTINUE,
+			DIALOG_DIFFICULTY, DIALOG_GAME_OVER, DIALOG_QUIT };
+		int aFound = -1;
+		for (size_t i = 0; i < sizeof(sOrder) / sizeof(sOrder[0]) && aFound < 0; i++)
+			if (theApp->GetDialog(sOrder[i]) != NULL)
+				aFound = sOrder[i];
+		Widget* aTarget = NULL;
+		Dialog* aDialog = aFound < 0 ? NULL : theApp->GetDialog(aFound);
+		switch (aFound)
+		{
+		case DIALOG_RECORD_SCORE:
+			if (!sNameTyped)
+			{
+				sNameTyped = true;
+				theWhat = "the name for a high score";
+				theInput = "[{\"key\":\"B\"},{\"key\":\"O\"},{\"key\":\"T\"},{\"key\":\"Return\"},{\"wait\":30}]";
+				return true;
+			}
+			aTarget = aDialog->mYesButton;
+			break;
+		case DIALOG_LEVEL_UP:
+		{
+			HyperlinkWidget* aLink = ((LevelUpDialog*) aDialog)->mButton;
+			if (aLink != NULL && aLink->mVisible && !aLink->mDisabled)
+				aTarget = aLink;
+			break;
+		}
+		case DIALOG_HIGH_SCORES:
+		{
+			HyperlinkWidget* aLink = ((HighScoreDisplayDialog*) aDialog)->mMenuButton;
+			if (aLink != NULL && aLink->mVisible && !aLink->mDisabled)
+				aTarget = aLink;
+			break;
+		}
+		case DIALOG_HINT:
+			aTarget = ((HintDialog*) aDialog)->mPlayButton;
+			break;
+		case DIALOG_CONTINUE:
+			aTarget = ((ContinueDialog*) aDialog)->mNewButton;
+			break;
+		case DIALOG_DIFFICULTY:
+			aTarget = ((DifficultyDialog*) aDialog)->mButtons[sDifficulty - 1];
+			break;
+		case DIALOG_GAME_OVER:
+		case DIALOG_QUIT:
+			aTarget = aDialog->mNoButton;
+			break;
+		default:
+			// some other dialog: its yes button
+			if (!theApp->mDialogMap.empty())
+				aTarget = theApp->mDialogMap.begin()->second->mYesButton;
+			break;
+		}
+		if (aTarget == NULL)
+			return false;
+		theWhat = "a dialog's button";
+		theInput = "[" + ClickStep(aTarget) + "]";
+		return true;
+	}
+	sNameTyped = false;
+	if (theApp->mBoard == NULL && theApp->mGameSelector != NULL)
+	{
+		theWhat = "a game mode of the menu";
+		theInput = "[" + ClickStep(theApp->mGameSelector->mModeButtons[sNextMode]) + "]";
+		sNextMode = (sNextMode + 1) % 3;
+		return true;
+	}
+	return false;
+}
+
+// the bot's next move: away from the board what ScreenMove says; on it the clicks that turn a path of tiles across it, each a
+// few updates after the one before
 void Move(RocketApp* theApp)
 {
+	std::string aWhat, anInput;
 	Board* aBoard = theApp->mBoard;
-	if (aBoard == NULL || aBoard->mState != 0 || aBoard->m2e8 || aBoard->m350 != 0)
+	if (ScreenMove(theApp, aWhat, anInput))
+	{
+		Reply("MOVE {\"what\":\"" + aWhat + "\",\"input\":" + anInput + "}");
+		return;
+	}
+	if (aBoard == NULL || theApp->GetDialogCount() > 0 || aBoard->mState != 0 || aBoard->m2e8 || aBoard->m350 != 0)
 	{
 		Reply("MOVE null");
 		return;
 	}
 	static UiBot* sBot = NULL;
 	if (sBot == NULL)
+	{
+		// the bot's constructor marks the input as scripted, which a driver's real input must not meet
+		bool aScripted = theApp->mScriptedInput;
 		sBot = new UiBot(theApp, UiBotParams());
+		theApp->mScriptedInput = aScripted;
+	}
 	if (!sBot->PlanPath(aBoard))
 	{
 		Reply("MOVE null");
 		return;
 	}
-	std::string aInput = "[";
+	anInput = "[";
 	for (size_t i = 0; i < sBot->mQueue.size(); i++)
 	{
 		const UiBot::Click& aClick = sBot->mQueue[i];
 		if (i > 0)
-			aInput += ",{\"wait\":3},";
-		aInput += "{\"click\":[" + Num(aClick.mX) + "," + Num(aClick.mY) + "]";
+			anInput += ",{\"wait\":3},";
+		anInput += "{\"click\":[" + Num(aClick.mX) + "," + Num(aClick.mY) + "]";
 		if (aClick.mButton < 0)
-			aInput += ",\"button\":\"right\"";
-		aInput += "}";
+			anInput += ",\"button\":\"right\"";
+		anInput += "}";
 	}
-	aInput += "]";
+	anInput += "]";
 	sBot->mQueue.clear();
-	Reply("MOVE {\"what\":\"turn a path of tiles from the left edge to the right\",\"input\":" + aInput + "}");
+	Reply("MOVE {\"what\":\"turn a path of tiles from the left edge to the right\",\"input\":" + anInput + "}");
 }
 
 }
@@ -259,6 +365,11 @@ bool RocketStandardCommand(RocketApp* theApp, const ScriptCommand& theCommand)
 		Board* aBoard = theApp->mBoard;
 		if (sscanf(aArgs.c_str(), "%31s %d", aKey, &aValue) < 2)
 			Error("set", "set needs a name and a number (score, level, moves, coins)");
+		else if (std::string(aKey) == "difficulty" && aValue >= 1 && aValue <= 3)
+		{
+			sDifficulty = aValue;
+			Ok("set");
+		}
 		else if (aBoard == NULL)
 			Error("set", "there is no game");
 		else
