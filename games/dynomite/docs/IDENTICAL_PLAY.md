@@ -1,7 +1,8 @@
 # Dynomite Deluxe: the identical-play pass
 
 Phase one of the pass CLAUDE.md names: **plays identical**. The same input gives the same games in the original and the
-port, judged by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is not done.
+port, judged by the game's state, not by pictures. Phase two, **looks identical**, compares the screens, the sound, the
+focus and the web build; its sections follow phase one's.
 
 The original is the game carved out of `Dynomite.exe` (`re/dynomite/bin/DynomiteGame.exe`, image base 0x400000). It runs only
 through `tools/origrun`, from a copy under a short path (`C:\byo-og\dyn\game`, made by `games/dynomite/tools/identical/setup.sh`),
@@ -99,6 +100,76 @@ is checked by `tools/check.sh dynomite`: three of the cases above (en1 without i
 in both the current port and the baseline with `-statelog` must write the same non-empty state log, so later fixes and
 mods leave unmodded play as compared with the original.
 
+## Phase 2: how it was compared
+
+Seven tours (`games/dynomite/tools/shots/tours.txt`, run by `tour.sh`) play the same input in the port and in the
+original and take a screenshot at the same update in both. The original runs in Windows Sandbox (`origrun --sandbox`),
+where its DirectDraw window can be captured while nothing shows on the user's desktop; its shots carry the window's frame,
+which shotdiff cuts away. shotdiff (`docs/SHOTDIFF.md`) compared every pair with no tolerance for a difference I had not
+judged, and I looked at the crop of every box it flagged. The tours are:
+
+| tour | seed | what it shows |
+|---|---|---|
+| t1 | 2 | the title, the main menu and each of its pages (tutorial, continue, the modes, back), the options dialog, the high scores, the credits, the options' third page, the exit question and staying |
+| t2 | 2 | Endless: the board, eight shots, pause and resume, the focus lost and regained, the side bar's New Game question, a new game played to its end, the name dialog and the table |
+| t3 | 4 | Stomped Puzzle: the pack pages, forty shots to the end, the name typed, the table, Play Again |
+| t4 | 6 | Fossil Challenge, Strategic: forty shots to the end, the name dialog and the table |
+| t5 | 8 | Fossil Challenge, Panic: the same |
+| t6 | 10 | Time Trial, Normal: thirty shots, the focus lost for two seconds and regained, pause and resume, thirty more |
+| t7 | 12 | Endless: twenty shots, the side bar's save (the slots, the name, saved), Continue Game from the main menu, ten shots |
+
+**Sound.** `sound.sh` plays each tour again with the original's sound logged by origrun's stand-in (`--sound wav`, and
+Big Money's BASS proxy for the music) and the port's by `BYOPOP_SOUNDLOG`, and `soundcmp.py` lines up the two: every
+sample played (named by its length, rate and channels), its update, volume and pan, and every music call (play, stop,
+pause, resume, volume). t1, t2, t4, t5 and t6 are identical. In t3 one sample is named by its length only, because the
+original streams that buffer (the footfall), at the same updates; its last music volume of 0 is the port quitting. t7 is
+identical up to the continued game, where the shots differ (below).
+
+**Focus.** t2 and t6 take the focus away and give it back (origrun's `focus` and the port's script); the board pauses and
+resumes in both, the screens match, and the sound logs are the same (neither program calls the music while the focus is
+away).
+
+**The web build.** `web.sh` plays each tour's script in the web build under Node and compares its shots with the native
+port's, with no difference allowed. t1, t2, t6 and t7 match, but for the options' Full Screen box (the native runs start
+full screen, a page cannot). In t3, t4 and t5 the board of Stomped and the Fossil Challenge shows a one-pixel difference
+over its whole background: those modes shake the board while the grind sound plays, and under Node there is no Web Audio,
+so the grind never plays and the web board holds still. In a browser it plays as natively.
+
+## Phase 2: what was changed
+
+| difference | cause in the original | what the port does now | commit |
+|---|---|---|---|
+| The first main menu had no welcome sign. | `gIntroReturning` starts true in the exe. | It starts true. | 28f139c7 |
+| The dialogs' frames and buttons were cut differently at their edges. | The 2003 framework's `DrawImageBox` (0x463450) cuts the edges and the middle a third of the picture each. | `Graphics::mDrawImageBox2003`, set by the game (a shared commit, d3177375). | 28f139c7 |
+| The mouse stayed where it was when a game started. | The main menu puts the cursor on the board's launcher (`SetCursorPos`). | `FossilizedApp::WarpToBoard`; the framework does nothing for it in a test run or in a browser. | 838294ea |
+| The header of every game dialog (New Game, Exit, the save messages) was in the small font, so the dialogs were shorter. | `NewDialog` (0x418a00) gives the header the white font (+0x19d4); Ghidra's listing drops that argument. | The header is in the white font. | COMMIT |
+| The Okay and Cancel buttons of the name dialog and the save dialogs lacked their bottom shadow. | They are plain `ButtonWidget`s (0x47f3b0) drawing the button picture whole, not `DialogButton`s cutting it. | They are `ButtonWidget`s with the picture as their image. | COMMIT |
+| Stomped's end panel counted the round being played among the rounds cleared. | 0x410880 prints the round less one. | It prints the round less one. | COMMIT |
+| An empty save slot's picture was clear, showing the dialog behind it. | The dialog fills it with opaque black (0x433910). | Opaque black. | COMMIT |
+| The web build crashed when a board started without a sound device. | The three looping sounds' instances are made once when loading; without sound there are none, and every board calls through them. | A shared silent instance stands in (a deviation, below). | COMMIT |
+
+## Phase 2: what remains
+
+In t1 the options dialog is shorter in the port: the original has a "More Games" link above Done, which the port leaves
+out (no button leads out of the game), and the credits' two names are plain text where the original has links. The
+credits' edges differ only where the taller options dialog shows behind them. The options' Full Screen box is ticked in
+the port and clear in the original: both read the same registry value, but origrun runs the original in a window and the
+port's test runs start in full screen.
+
+t7's continued game differs from the original's from its first egg: `Dynomite::Load` (0x405590) seeds the egg picker with
+the tick count the save wrote, so a continued game's colours depend on the moment of saving, in the original as in the
+port. The two programs saved at different clock values, so their continued games differ; phase one's sv cases, which
+load one file in both, play the same. Native and web runs of the port differ there for the same reason.
+
+The name box's caret in t5's name dialog is on in one shot and off in the other: the caret blinks on the edit box's own
+count from when it got the focus. The same dialog matches in t3 and t4. It is masked in t5's over shot.
+
+Natively the board of Stomped and the Fossil Challenge differs faintly in some shots (t3's s2) by the same one-pixel
+shake as in the web build: whether the grind sound counts as playing differs between the original's sound stand-in and
+the port's silent driver. shotdiff rates it below visible.
+
+One stick of dynamite in t2's Endless game is drawn a few pixels from the original's after the pause (Oddities).
+
 ## Oddities (skipped)
 
 - **The original sometimes plays a run differently.** Two of about seventy runs of the original differed from the port
@@ -123,8 +194,18 @@ mods leave unmodded play as compared with the original.
   both programs set the flag and zero the count (`EggGrid::Update`), and from then on they blink alike. The warning is drawn
   only while the eggs are past the line, so nothing on screen differs. The port starts the count at 0, so its flag toggles
   unseen before then. To see it: watch `[[0x531ee4]+0x8c]+0x468c` and `+0x4688`.
+- **One stick of dynamite in t2 is drawn a few pixels off.** In t2's Endless game, after the pause, one stick near the
+  top (about x 378, y 30) and its fuse's spark sit about four pixels lower against their eggs in the port than in the
+  original; every other stick and egg matches, and the game plays the same. The stick's picture and slide come from the
+  app's twister when it is made, and the twister's index follows the same course in both programs through the pause
+  (watched at 0x531490), so the cause is not a draw of random numbers. It was not found within the hour. To see it: t2's
+  resumed, e2 and e3 shots (`tour.sh t2 port orig cmp`). It would take watching the grid's list of sticks (+0x466c) in
+  the original.
 
 ## Deviations left
 
-None found in play. Phase two (screens with shotdiff, sound, focus, the web build) is not done; the IntroScreen's
-`SetCursorPos` (`SexyAppBase::WarpMouse`) waits for it.
+None in play. The port leaves out what only an unregistered copy shows and the credits' two links to web sites, and it
+has no wait of its own in loading (`README.md`, "Registration and loading"); none of these shows in a registered copy
+but the credits' two names, which are plain text. Without a sound device the three looping sounds get a silent stand-in
+where the original would call through a null pointer. In a browser the main menu cannot move the mouse onto the
+launcher, and a page cannot start in full screen.

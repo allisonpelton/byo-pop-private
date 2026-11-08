@@ -138,8 +138,10 @@ std::string StateJson(FossilizedApp* theApp)
 			(b->mThunderbolt != NULL) || b->mField130 || b->mField131 || b->mField132;
 		if (TutorialContinue(theApp) != NULL)
 			isBusy = false;
+		// over: the game has ended; the tutorial's board loses once on purpose (step 45) and the tutorial goes on
+		bool isOver = (b->mField131 || b->mField132) && (theApp->mTutor == NULL);
 		s += StrFormat(",\"mode\":\"%s\",\"paused\":%d,\"busy\":%s,\"over\":%s", ModeName(b->mGameType),
-			b->mPauseCount, isBusy ? "true" : "false", (b->mField131 || b->mField132) ? "true" : "false");
+			b->mPauseCount, isBusy ? "true" : "false", isOver ? "true" : "false");
 		if (b->mGameType == 2)
 		{
 			DynomiteFossil* f = (DynomiteFossil*) b;
@@ -222,7 +224,7 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 			Reply(StrFormat("MOVE {\"kind\":\"continue\",\"step\":%d,\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}",
 				theApp->mTutor->mStep, x, y, x, y));
 		}
-		else if (!BotChooseShot(b, &aShot))
+		else if (!BotChooseShot(b, &aShot, (theApp->mTutor != NULL) && (theApp->mTutor->mStep == 0x2b)))
 			Reply("MOVE null");
 		else
 			Reply(StrFormat("MOVE {\"kind\":\"shot\",\"angle\":%d,\"cell\":[%d,%d],\"color\":%d,\"group\":%d,"

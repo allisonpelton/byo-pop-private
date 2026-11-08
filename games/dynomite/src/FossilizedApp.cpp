@@ -193,8 +193,11 @@ void FossilizedApp::WarpToBoard()
 	int aLeft = 0;
 	int aBottom = 0;
 	int aRight = 0;
+#ifndef __EMSCRIPTEN__
+	// port: a page has no window frame, and the browser cannot move the mouse (WarpMouse does nothing there)
 	if ((mHWnd != NULL) && mIsWindowed)
 		SDL_GetWindowBordersSize(mHWnd, &aTop, &aLeft, &aBottom, &aRight);
+#endif
 	WarpMouse(mWidth / 2 + 0x5e + (aRight - aLeft) / 2, mHeight / 2 + 0x96 + (aBottom - aTop) / 2);
 }
 
@@ -222,14 +225,15 @@ void FossilizedApp::ShowMainMenu()
 	mSideBar->mInchy->Sink(0);
 }
 
-// 0x418a00 (slot 18): the game's dialog, in the white small font on its dialog pictures
+// 0x418a00 (slot 18): the game's dialog on its dialog pictures, the header in the white font and the rest in the small
+// one (the header's font is +0x19d4, an argument Ghidra's listing drops)
 Dialog* FossilizedApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
 {
 	Dialog* aDialog = new Dialog2004(mPicDialog->mImage, mPicDbutton->mImage, theDialogId, isModal, theDialogHeader,
 		theDialogLines, theDialogFooter, theButtonMode);
 	aDialog->SetButtonFont(mWhiteFontSmall);
-	aDialog->SetHeaderFont(mWhiteFontSmall);
+	aDialog->SetHeaderFont(mWhiteFont);
 	aDialog->SetLinesFont(mWhiteFontSmall);
 	aDialog->SetColor(1, Color(0xff, 0xff, 0xff));
 	aDialog->SetColor(3, Color(0xff, 0xff, 0xff));

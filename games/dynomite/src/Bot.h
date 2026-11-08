@@ -24,8 +24,10 @@ struct BotShot
 	int					mClickY;
 };
 
-// false when there is no shot (no board, no loaded egg, the launcher frozen, the game over or paused)
-bool BotChooseShot(Dynomite* theBoard, BotShot* theShot);
+// false when there is no shot (no board, no loaded egg, the launcher frozen, the game over or paused). With
+// toTheLine the shot that lands lowest without a match is chosen instead (the tutorial's step that asks for the eggs
+// to cross the line).
+bool BotChooseShot(Dynomite* theBoard, BotShot* theShot, bool toTheLine = false);
 
 }
 

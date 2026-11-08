@@ -4,12 +4,12 @@
 # there) posts the mouse and keys to the game's own window on rundesk's private desktop, on the real clock, and its
 # "play" step sends the input of each MOVE the port's own bot gives (docs/TEST_COMMANDS.md). The game's -script only
 # asks "state" and "move" every 100 updates (once a second: the driver takes about half a second a move, and more often it falls behind on stale moves); it gives no input. The user folder is a fresh one with the settings
-# identical/port.sh writes (ScreenMode 1, windowed; FULL=1 makes it full screen) and mkhs.py's low tables, so every
+# identical/port.sh writes (ScreenMode 0, windowed; FULL=1 sets 1, full screen) and mkhs.py's low tables, so every
 # game ends in the name dialog. The driver's log is <out dir>/drive.log, the game's output stdout.txt.
 source "$(dirname "$0")/../identical/common.sh"
 STEPS=$1; OUT=$2; shift 2
 rm -rf "$OUT"; mkdir -p "$OUT/user"
-MODE=1; [ -n "$FULL" ] && MODE=0
+MODE=0; [ -n "$FULL" ] && MODE=1
 printf '%s\n' '[SOFTWARE\PopCap\Dynomite]' CustomCursors=dword:0 InProgress=dword:0 MusicVolume=dword:50 Muted=dword:0 \
 	PreferredX=dword:-1 PreferredY=dword:-1 ScreenMode=dword:$MODE SfxVolume=dword:85 TimesExecuted=dword:5 \
 	TimesPlayed=dword:0 WaitForVSync=dword:0 > "$OUT/user/registry.ini"

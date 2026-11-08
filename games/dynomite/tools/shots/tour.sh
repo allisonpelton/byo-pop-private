@@ -39,7 +39,7 @@ orig)
 	python $TOOLS/toorig.py "$D/script.txt" -1 shots > "$D/orig.txt"
 	"$RUNDESK" "$(win "$ORIGRUN")" --exe "$(win "$PWD/$RD/game/DynomiteGame.exe")" --run "$RUN" --script "$(win "$PWD/$D/orig.txt")" \
 		--sandbox --reg "$(win "$PWD/$TOOLS/settings.reg")" --clock virtual --cursor scripted --counter 0x530960 --update-ms 10 \
-		--seed $SEED --patches tools/origrun/patches/dynomite.txt --timeout $((LAST / 1000 + 120)) ${ORIG_ARGS} > "$D/orig.log" 2>&1
+		--seed $SEED --patches tools/origrun/patches/dynomite.txt --timeout $((LAST / 1000 + 900)) ${ORIG_ARGS} > "$D/orig.log" 2>&1
 	rm -rf "$D/orig"; mkdir -p "$D/orig"; cp "$RD"/shots/*.png "$D/orig/" 2>/dev/null
 	grep -E "RESULT|SOUND LEAK" "$D/orig.log" | tail -3; ls "$D/orig" | wc -l ;;
 cmp)

@@ -114,6 +114,11 @@ save; and the "unregistered" picture. None of these shows in a registered copy, 
 frozen baseline checks that play is unchanged. The loading has no wait of the original's own apart from that slowed
 bar: the loader runs at the machine's speed, and the title polls it every fourth update as the original does.
 
+Nothing in the port leads out of the game (the user, 2026-11-07). The options dialog's partner links and "check for
+updates" were never ported; the credits name the game's designer and its musician as links to their sites in the
+original (green, underlined, ids 0 and 1), and the port draws those two names as plain text in white like the other
+names, in line with them. That is the one visible change.
+
 ## Mods
 
 None. The port is the original game, unmodified and working like its exe, and adds nothing for later mods, not even hooks

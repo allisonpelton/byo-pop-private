@@ -626,7 +626,7 @@ void DynomiteStomped::DrawGameOver(Graphics* g)
 	sprintf(aScore, "%d", mApp->mSideBar->mScore);
 	int aScoreWidth = g->GetFont()->StringWidth(aScore);
 	char aRounds[16];
-	sprintf(aRounds, "%d", mRound);
+	sprintf(aRounds, "%d", mRound - 1);	// the rounds cleared: the one being played does not count
 	int aRoundsWidth = g->GetFont()->StringWidth(aRounds);
 	char aBabies[16];
 	sprintf(aBabies, "%d", mBabies);

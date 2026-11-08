@@ -10,6 +10,6 @@ wait 1
 click 488 432
 wait 3
 shot start
-play 900 25
+play 2400 25
 shot end
 end

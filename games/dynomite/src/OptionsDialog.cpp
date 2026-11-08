@@ -222,10 +222,8 @@ void OptionsDialog::ButtonDepress(int theId)
 					if (strcasecmp(aURL + 5, "CREDITS") == 0)
 						mApp->ShowCredits();
 				}
-				else
-				{
-					mApp->OpenURL(aLink->mURL, false);
-				}
+				// port: the original opens any other address in the browser; the port has no link
+				// that leads out of the game
 			}
 			aLink = mLinks.Next();
 		}

@@ -190,7 +190,7 @@ float GridDrop(Dynomite* theBoard)
 
 }
 
-bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot)
+bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot, bool toTheLine)
 {
 	if ((theBoard == NULL) || (theBoard->mGrid == NULL) || (theBoard->mLauncher == NULL))
 		return false;
@@ -243,6 +243,8 @@ bool Sexy::BotChooseShot(Dynomite* theBoard, BotShot* theShot)
 		// a match (three or more) first, the bigger the better; else the most of its colour touched; then the higher
 		// landing (it keeps the eggs from the line)
 		int aScore = aGroup * 1000 + (99 - aRow);
+		if (toTheLine)
+			aScore = (aGroup >= 3) ? 0 : (aRow * 10 + 10 - aGroup);
 		if (aScore > aBestScore)
 		{
 			aBestScore = aScore;
