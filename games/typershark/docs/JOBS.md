@@ -14,8 +14,8 @@ talks to a server are left out. User-visible text goes through `GT(0xADDR)`.
 
 | id | what | original code | status |
 | --- | --- | --- | --- |
-| J1 | WinWSApp core: ctor/dtor, init, loading thread, the app's helpers, lessons (0x41ad70-0x428500 and 0x42b..-0x437960) | ~54 KB | running 2026-11-08 05:15 (files WinWSApp.h/.cpp, WinWSAppScreens.cpp) |
-| J2 | ButtonDepress (0x431630, 8.5 KB) and the rest of WinWSApp that J1 left (see its report) | ~25 KB | after J1 |
+| J1 | WinWSApp core: ctor/dtor, init, loading thread, the app's helpers, lessons (0x41ad70-0x428500 and 0x42b..-0x437960) | ~54 KB | done 2026-11-08 (WinWSApp.h/.cpp, WinWSAppScreens.cpp; leftovers listed under J2) |
+| J2 | ButtonDepress (0x431630, 8.5 KB) and the rest of WinWSApp that J1 left: 0x42a870 (reset, then ShowMenuScreen), 0x42ee10 and 0x42f3c0 (build the LessonManager via 0x4270e0 and 0x42bfb0, then Board, StatusBar, MapScreen), 0x429450, 0x426c60, 0x429110, 0x4292b0, 0x428d80, 0x42aad0, 0x430b20, 0x426a40, 0x4262b0 (GetDefaultUserNumber), 0x413ff0, 0x4137d0 (LessonManager::IsTutorialActive); also the declared loaders LoadWaves, LoadWordLists, LoadGemNames, LoadShipNames, LoadThemes; WinWSApp's destructor frees lesson manager and config tables | ~25 KB | after J1 |
 | E1 | entities: Shark, Piranha, Projectile and their variants (RedShark, BlackShark, StealthShark, ToxicShark, RedPiranha, WhitePiranha, StealthPiranha, ...), Torpedo | ~25 KB | after J1 |
 | E2 | entities: the bosses (ProjectileBoss, TorpedoBoss, GhostShip, GhostShark, MechaShark, MechaSquid, MechaTorpedo), CannonBall, SquidCannonBall, BonusCreature, Clam, Player, Bubble, BonusText, BackgroundFish | ~25 KB | after E1 |
 | P1 | UserProfileMgr / UserProfile (0x4172f0-0x428000) | ~25 KB | |

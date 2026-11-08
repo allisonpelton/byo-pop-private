@@ -5,10 +5,13 @@
 #include "WinWSApp.h"
 #include "GameText.h"
 #include "Board.h"
+#include "TitleScreen.h"
 #include "MenuScreen.h"
 #include "MapScreen.h"
 #include "HighScoreScreen.h"
 #include "StatsScreen.h"
+#include "TypingTutor.h"
+#include "StatusBar.h"
 #include "UserProfileMgr.h"
 #include "UserProfile.h"
 #include "LessonManager.h"
@@ -59,7 +62,7 @@ void WinWSApp::ShowAbyssModeDialog()
 	AddDialog(DIALOG_ABYSS_MODE, aDialog);
 }
 
-// 0x412ae0: a number of the current user (+0x34; TODO: name from the profile group)
+// 0x412ae0: a number of the current user (+0x34; the profile group names it); the original does not test mUser
 int WinWSApp::GetUserField34()
 {
 	return mUser->mField34;
@@ -76,15 +79,15 @@ void WinWSApp::RemoveMenuScreen()
 	}
 }
 
-// 0x412c90: TODO: calls slot 4 (SetVisible?) with 0x58 on the object embedded at +0x58 of the widget at +0x72c, then
-// the widget manager gets the focus of the widget at +0x72c (the board's typing widget?)
-void WinWSApp::FocusWidget72c()
+// 0x412c90: the typing tutor's own ButtonListener (the object at +0x58, slot 4 = ButtonDepress) gets button 0x58, then the
+// tutor takes the focus. The original does not test mTypingTutor.
+void WinWSApp::ActivateTypingTutor()
 {
-	// TODO: 0x412ca0 call [vtable + 0x10](0x58) on (mWidget72c + 0x58)
-	mWidgetManager->SetFocus(mWidget72c);
+	mTypingTutor->ButtonDepress(0x58);
+	mWidgetManager->SetFocus(mTypingTutor);
 }
 
-// 0x412cc0
+// 0x412cc0: slot 46 (MarkDirty)
 void WinWSApp::MarkMenuScreenDirty()
 {
 	if (mMenuScreen != NULL)
@@ -99,10 +102,10 @@ void WinWSApp::BringStatsCloseButtonToFront()
 }
 
 // 0x412d00
-void WinWSApp::FocusBoardWidget()
+void WinWSApp::FocusTypingTutor()
 {
-	if (mWidget72c != NULL)
-		mWidgetManager->SetFocus(mWidget72c);
+	if (mTypingTutor != NULL)
+		mWidgetManager->SetFocus(mTypingTutor);
 }
 
 // 0x412d50: the current user's hints setting
@@ -112,12 +115,17 @@ void WinWSApp::SetUserHints(bool theHints)
 		mUser->mShowHints = theHints;       // +0x1fd
 }
 
-// 0x412d70: hints show only when the user and the game allow them
+// 0x412d70: hints show when no user is chosen, or when the user has them on and the game allows them
 bool WinWSApp::HintsEnabled()
 {
 	if (mUser == NULL)
-		return false;
-	return mUser->mShowHints && mHintsAllowed;
+		return true;
+	if (mUser->mShowHints)      // +0x1fd
+	{
+		if (mHintsAllowed)
+			return true;
+	}
+	return false;
 }
 
 // 0x414020: the register dialog (id 600; "Register" / trial nag) is not ported. The original also pauses the board
@@ -163,8 +171,8 @@ void WinWSApp::ShowNewUserDialog(const std::string& theText)
 void WinWSApp::ShowStatsScreen(int theWhich)
 {
 	RemoveMenuScreen();
-	if (mWidget72c != NULL)
-		mWidget72c->SetVisible(false);
+	if (mTypingTutor != NULL)
+		mTypingTutor->SetVisible(false);
 
 	mStatsScreen = new StatsScreen(this, theWhich);     // 0x45baa0
 	mStatsScreen->SetUser(mUser);                       // 0x451050
@@ -237,7 +245,7 @@ void WinWSApp::ShowMenuScreen()
 {
 	if (mMenuScreen == NULL)
 	{
-		mAbyssModeDialog = NULL;        // [0x188] +0x620 in the original (the register dialog)
+		mRegisterDialog = NULL;         // +0x620 (the register dialog is not ported; the original clears it here)
 		mOpenDialogCount = 0;
 
 		mMenuScreen = new MenuScreen(this);     // 0x4436e0
@@ -246,35 +254,35 @@ void WinWSApp::ShowMenuScreen()
 		mMenuScreen->mHasAlpha = true;
 		mWidgetManager->AddWidget(mMenuScreen);
 		mMenuScreen->SetVisible(true);
-		mMenuScreen->MarkDirty();           // slot 45 (+0xb4)
+		mMenuScreen->MarkDirtyFull();       // slot 45
 
-		if (GetDialog(0) != NULL)           // slot 56 (GetDialog with the id lost; TODO: check the id)
-			KillDialog(0);                  // slot 58
+		if (GetDialog(DIALOG_OPTIONS) != NULL)
+			KillDialog(DIALOG_OPTIONS);
 
 		if (mBoard != NULL)
 		{
-			mWidgetManager->RemoveWidget(mWidget8dc);
+			mWidgetManager->RemoveWidget(mStatusBar);
 			mWidgetManager->RemoveWidget(mBoard);
-			SafeDeleteWidget(mWidget8dc);
+			SafeDeleteWidget(mStatusBar);
 			SafeDeleteWidget(mBoard);
 		}
-		if (mWidget72c != NULL)
+		if (mTypingTutor != NULL)
 		{
-			mWidgetManager->RemoveWidget(mWidget72c);
-			SafeDeleteWidget(mWidget72c);
+			mWidgetManager->RemoveWidget(mTypingTutor);
+			SafeDeleteWidget(mTypingTutor);
 		}
-		mWidget72c = NULL;
+		mTypingTutor = NULL;
 		mBoard = NULL;
-		mWidget8dc = NULL;
+		mStatusBar = NULL;
 
-		if (mProfileMgr->mUserCount != 0)   // +0xc of the manager
+		if (mProfileMgr->mUserCount != 0)   // +0xc of the manager (a count or a list; the profile group names it)
 		{
 			if (mProfileMgr->GetCurrentUserName() != "")
 				return;
 		}
-		if (GetDialog(0) == NULL)           // (id lost; TODO: check the id)
+		if (GetDialog(DIALOG_NEW_USER) == NULL)
 		{
-			// "Enter your name.\n(Example: \"Andrea\" or \"Andrea Weinstein\")\n"
+			// the prompt for a first name (with an example)
 			ShowNewUserDialog(GT(0x0052c2d4));
 		}
 	}
@@ -292,9 +300,9 @@ void WinWSApp::ShowDeleteUserDialog(const std::vector<std::string>& theNames)
 	AddDialog(DIALOG_DELETE_USER, mDeleteUserDialog);
 }
 
-// 0x41bd80: the message dialog (dialog 500, a KeyDialog with one button). theFlatten turns the line breaks of theLines
+// 0x41bd80: the message dialog (dialog 500, a KeyDialog with one button; the stack arguments are by value). theFlatten turns the line breaks of theLines
 // into spaces (the dialog wraps the text; the height still counts the breaks). The dialog is made 10 pixels wider
-// than the dialog image and centred. Escape, Return-less: Escape and Space close it.
+// than the dialog image and centred. Escape and Space press its button.
 void WinWSApp::ShowMessageDialog(std::string theHeader, std::string theLines, std::string theButtonText, bool theFlatten)
 {
 	mOpenDialogCount++;
@@ -325,9 +333,9 @@ void WinWSApp::ShowMessageDialog(std::string theHeader, std::string theLines, st
 		theHeader, theLines, theButtonText, Dialog::BUTTONS_FOOTER);    // 0x43ec30
 	mMessageDialog = aDialog;
 	aDialog->mCloseOnKey = true;        // +0x134
-	aDialog->SetEscapeKey(0x1b);        // 0x43a3e0 (TODO: name from the dialog group)
-	aDialog->AddKey(0x1b);              // 0x43ed20
-	aDialog->AddKey(0x20);
+	aDialog->RemoveCancelKey(0x1b);     // 0x43a3e0 (takes the key out of the list at +0x110, which the constructor starts with 0x1b)
+	aDialog->AddOkKey(0x1b);            // 0x43ed20 (adds to the list at +0x120)
+	aDialog->AddOkKey(0x20);
 	aDialog->SetHeaderFont(mFontRockwell13Bold);
 	aDialog->SetButtonFont(mFontRockwell13);
 	aDialog->SetLinesFont(mFontRockwell13);
@@ -407,33 +415,50 @@ void WinWSApp::ShowConfirmDialog(std::string theHeader, std::string theLines, st
 	mWidgetManager->SetFocus(aDialog);
 }
 
-// 0x41c8c0: the hint box (HintDialog, dialog 0x3f3, footer "Click here or press space"); only when hints are on
-// (mHintsAllowed). TODO: the original's arguments are lost in the decompile (two strings: a header and the text) and
-// the size is computed from the line count; check against the disassembly before relying on the layout.
-void WinWSApp::ShowHintDialog(std::string theHeader, std::string theLines)
+// 0x41c8c0: the hint box (HintDialog, dialog 0x3f3) with the footer "Click here or press space", centred under the
+// level: the strings are passed by value; only when hints are allowed (mHintsAllowed; the callers test HintsEnabled)
+void WinWSApp::ShowHintDialog(std::string theLines, std::string theHeader)
 {
 	if (!mHintsAllowed)
 		return;
 
 	mOpenDialogCount++;
-	mDialog624 = new HintDialog(this, 0x3f3, theLines, GT(0x0052b504));     // 0x439ef0 (TODO: argument list)
-	mDialog624->SetHeaderFont(mFontRockwell13Bold);
-	mDialog624->SetButtonFont(mFontRockwell13);
-	mDialog624->SetLinesFont(mFontRockwell13);
-	mDialog624->mSpaceAfterHeader = 0x19;
-	mDialog624->mContentInsets = Insets(0x28, 0x14, 0x28, 0x28);
-	// +0x120 = 5 (a field of the hint dialog)
-	mDialog624->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(0, 0, 0));
-	mDialog624->SetColor(Dialog::COLOR_HEADER, Color(0, 0, 0));
-	mDialog624->SetColor(Dialog::COLOR_LINES, Color(0, 0, 0));
-	mDialog624->SetColor(Dialog::COLOR_FOOTER, Color(0, 0, 0));
-	mDialog624->mYesButton->mHasAlpha = true;
-	// TODO: Resize (0x41cb7a-0x41cbc0): centred, width of mImages[IMAGE_DIALOG], height from the line count and the font
+	mHintDialog = new HintDialog(this, 0x3f3, theHeader, theLines, GT(0x0052b504),
+		mImages[IMAGE_DIALOG], mImages[IMAGE_DBUTTON], mImages[IMAGE_CHECKED]);     // 0x439ef0
+	mHintDialog->SetHeaderFont(mFontRockwell13Bold);
+	mHintDialog->SetButtonFont(mFontRockwell13);
+	mHintDialog->SetLinesFont(mFontRockwell13);
+	mHintDialog->mSpaceAfterHeader = 0x19;
+	mHintDialog->mContentInsets = Insets(0x28, 0x14, 0x28, 0x28);
+	mHintDialog->mField120 = 5;         // +0x120 (the hint dialog's own field; the dialog group names it)
+	mHintDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(0, 0, 0));
+	mHintDialog->SetColor(Dialog::COLOR_HEADER, Color(0, 0, 0));
+	mHintDialog->SetColor(Dialog::COLOR_LINES, Color(0, 0, 0));
+	mHintDialog->SetColor(Dialog::COLOR_FOOTER, Color(0, 0, 0));
+	mHintDialog->mYesButton->mHasAlpha = true;
+
+	Image* aDialogImage = mImages[IMAGE_DIALOG];
+	int aDialogHeight = aDialogImage->GetHeight();
+	int aWidth = aDialogImage->GetWidth();
+
+	int aLineBreaks = 0;
+	size_t i = 0;
+	while (i < theLines.size())
+	{
+		if (theLines[i] == '\n')
+			aLineBreaks++;
+		i++;
+	}
+
+	int aFontHeight = mFontRockwell13->GetHeight();
+	int aHeight = mImages[IMAGE_CHECKED]->GetHeight() + aDialogHeight / 2 + aFontHeight * aLineBreaks + 0x23;
+	int aCenterY = mHeight / 2;
+	mHintDialog->Resize(mWidth / 2 - aWidth / 2, aCenterY - aHeight / 2, aWidth, aHeight);
+
 	if (mBoard != NULL)
 		mBoard->SetPaused(true);        // 0x442100
-	AddDialog(0x3f3, mDialog624);
-	mWidgetManager->SetFocus(mDialog624);
-	(void) theHeader;
+	AddDialog(0x3f3, mHintDialog);
+	mWidgetManager->SetFocus(mHintDialog);
 }
 
 // 0x41cc60: the introduction of the level that is starting (a hint box with the level's text); abyss mode has its own
@@ -495,7 +520,7 @@ void WinWSApp::ShowLevelIntro()
 		aText = StrFormat(GTC(0x0052b5e8), 400);
 	}
 
-	ShowHintDialog(GT(0x0052b520), aText);
+	ShowHintDialog(aText, GT(0x0052b520));
 }
 
 // 0x426440: after loading: the title screen goes, the menu and the (hidden) map screen come, and the saved data of the
@@ -508,24 +533,26 @@ void WinWSApp::ShowMapScreen()
 
 	ShowMenuScreen();
 
-	mScreen62c = new MapScreen(this);       // 0x458d10
-	mScreen62c->SetVisible(false);
-	mScreen62c->SetDisabled(true);
-	mScreen62c->Resize(0, 0, mWidth, mHeight);
-	mWidgetManager->AddWidget(mScreen62c);
+	mMapScreen = new MapScreen(this);       // 0x458d10
+	mMapScreen->SetVisible(false);
+	mMapScreen->SetDisabled(true);
+	mMapScreen->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mMapScreen);
 
 	if (mUser == NULL)
 	{
 		std::string aName = mProfileMgr->GetCurrentUserName();      // 0x4150a0
 		if (aName != "")
 		{
-			// "Your saved data was either not found or is corrupted. A new one will be created."
-			ShowMessageDialog(GT(0x0052c6c8), GT(0x0052c6d0), GT(0x0052b4d0), false);
+			// the saved data of the chosen user is missing or damaged: a new, empty profile of that name is made
+			ShowMessageDialog(GT(0x0052c6c8), GT(0x0052c6d0), GT(0x0052b4d0), true);
 
-			// TODO: 0x4265b9-0x4266f0: the user-profile part, a new UserProfile (0x421f50) for aName is made and saved
-			// again (0x416380 name, 0x4262b0 GetDefaultUserNumber -> 0x412380, 0x41f1d0 save, 0x420c60, 0x415060,
-			// 0x419da0); the profile group writes it as UserProfileMgr::RecreateUser(aName) and this calls it
-			mUser = mProfileMgr->RecreateUser(aName);
+			mUser = new UserProfile(this);                                  // 0x421f50 (sizeof 0x2c8)
+			mUser->SetName(mProfileMgr->GetCurrentUserName());              // 0x416380
+			mUser->SetUserNumber(mProfileMgr->GetDefaultUserNumber());      // 0x412380, 0x4262b0
+			mProfileMgr->WriteUserProfileToRegistry(mUser, false, false);   // 0x41f1d0
+			mProfileMgr->SaveUser(mUser);                                   // 0x420c60
+			mProfileMgr->RegisterDefaultUserName(mUser->GetName());         // 0x419da0, 0x415060
 			return;
 		}
 	}
@@ -534,8 +561,8 @@ void WinWSApp::ShowMapScreen()
 	{
 		if (atof(mUser->mGameVersion.c_str()) < 0.48)       // +0x28c: the version that wrote the file
 		{
-			// "Your saved data was from an older version of this game and is not compatible. A new file will be created."
-			ShowMessageDialog(GT(0x0052c6c8), GT(0x0052c658), "OK", false);
+			// the saved data is from an older version and cannot be used; a new file is made
+			ShowMessageDialog(GT(0x0052c6c8), GT(0x0052c658), GT(0x0052b4d0), true);
 			mUser->mGameVersion = mProductVersion;
 		}
 	}
@@ -545,8 +572,8 @@ void WinWSApp::ShowMapScreen()
 void WinWSApp::StartBoard()
 {
 	mFlag8d8 = false;
-	mScreen62c->SetVisible(false);
-	mScreen62c->SetDisabled(true);
+	mMapScreen->SetVisible(false);
+	mMapScreen->SetDisabled(true);
 
 	mWidgetManager->RemoveWidget(mBoard);
 	if (mBoard != NULL)
@@ -554,17 +581,17 @@ void WinWSApp::StartBoard()
 
 	mBoard = new Board(this);                   // 0x4544b0 (0xf98 bytes)
 	mBoard->SetFastCPU(mFastCPU);               // 0x440570
-	int aLevel = mScreen62c->mLevel;            // +0x228
+	int aLevel = mMapScreen->mLevel;            // +0x228
 	if (aLevel < 0x24)
 	{
 		mLessonManager->SetLevel(aLevel);       // 0x4309d0
-		if (mScreen62c->mLevel == 0x23)
-			mScreen62c->SetFinalLevel(true);    // 0x441080
+		if (mMapScreen->mLevel == 0x23)
+			mMapScreen->SetFinalLevel(true);    // 0x441080
 	}
 	else
 		mLessonManager->SetLevel(mLessonManager->mLevel);   // +0x8c
 
-	aLevel = mScreen62c->mLevel;
+	aLevel = mMapScreen->mLevel;
 	if ((aLevel == 2) || ((aLevel > 5) && (aLevel < 8)))
 	{
 		// 0x41d870 not ported: the trial limit (register prompt) of levels 2, 6 and 7
@@ -574,14 +601,14 @@ void WinWSApp::StartBoard()
 	mBoard->SetLessonManager(mLessonManager);   // 0x451cb0
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mStats->mReserved[0]++;                     // +4: the number of games started
-	mStats->mReserved[5] = mField904;           // +0x1c
+	mStats->mReserved[6] = mField904;           // +0x1c
 	mBoard->StartGame(*mStats);                 // 0x440130 (the 0x30-byte block by value)
 	mWidgetManager->AddWidget(mBoard);
 	mBoard->SetVisible(true);
 	mBoard->SetDisabled(false);
-	mWidget8dc->SetVisible(true);
-	mWidget8dc->SetDisabled(false);
-	mWidgetManager->BringToFront(mWidget8dc);
+	mStatusBar->SetVisible(true);
+	mStatusBar->SetDisabled(false);
+	mWidgetManager->BringToFront(mStatusBar);
 	mWidgetManager->SetFocus(mBoard);
 }
 
@@ -591,6 +618,8 @@ void WinWSApp::StartBoard()
 // 0x41d870, 0x41d9d0, 0x41da80: the trial limits (MaxPlays, MaxTime) and their prompts
 // 0x414020: the register dialog (id 600)
 
-// TODO (not read yet): 0x426c60, 0x429450, 0x42a870, 0x42aad0, 0x42ee10, 0x42f3c0 (they use the user profile, the
-// lessons and the app fields +0x8fc..+0x90c), 0x428d80, 0x429110, 0x4292b0, 0x430b20 (config parsing helpers),
-// 0x426a40 (copies the lesson word lists into the user), 0x4262b0 (UserProfileMgr::GetDefaultUserNumber)
+// Not translated here (user profile, lesson and configuration code of the other jobs; most are called only from
+// ButtonDepress 0x431630): 0x42a870 (back to the menu: resets the game state), 0x42ee10 and 0x42f3c0 (start a game:
+// they make the lesson manager and load the configuration), 0x429450, 0x426c60, 0x429110, 0x4292b0, 0x428d80,
+// 0x42aad0, 0x430b20, 0x426a40 (copies the lesson word lists into the user), 0x4262b0 (GetDefaultUserNumber),
+// 0x413ff0, 0x4137d0 (LessonManager::IsTutorialActive).

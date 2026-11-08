@@ -33,8 +33,8 @@ public:
 	bool					mFlag1b;				// +0x1b ctor 1
 	bool					mFlag1c;				// +0x1c ctor 1
 	bool					mFlag1d;				// +0x1d ctor 1
-	int						mField20;				// +0x20 not set by this constructor; the subclass constructors do (Shark 0, Piranha 6)
-	int						mField24;				// +0x24 likewise (Shark 0xb, Piranha 0)
+	int						mTextOffsetY;				// +0x20 y offset of the word from the picture; the subclass constructors set it (Shark 0, Piranha 6)
+	int						mTextOffsetX;				// +0x24 x offset of the word (Shark 0xb, Piranha 0)
 	int						mField28;				// +0x28 not set by this constructor
 	int						mField2c;				// +0x2c not set by this constructor; Piranha::Update counts it down
 	bool					mFlag30;				// +0x30 not set by this constructor; Piranha::Update reads it

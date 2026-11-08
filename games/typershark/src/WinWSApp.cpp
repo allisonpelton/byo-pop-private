@@ -12,6 +12,9 @@
 #include "MenuScreen.h"
 #include "HighScoreScreen.h"
 #include "StatsScreen.h"
+#include "MapScreen.h"
+#include "TypingTutor.h"
+#include "StatusBar.h"
 #include "UserProfileMgr.h"
 #include "UserProfile.h"
 #include "LessonManager.h"
@@ -66,9 +69,9 @@ WinWSApp::WinWSApp()
 	mMessageDialog = NULL;
 	mDialog61c = NULL;
 	mRegisterDialog = NULL;
-	mDialog624 = NULL;
+	mHintDialog = NULL;
 	mMenuScreen = NULL;
-	mScreen62c = NULL;
+	mMapScreen = NULL;
 	mAbyssModeDialog = NULL;
 	mBoard = NULL;
 	mHighScoreScreen = NULL;
@@ -100,7 +103,7 @@ WinWSApp::WinWSApp()
 	mStats = new AppStats();    // port: the original's operator new(0x30) is not cleared
 	memset(mVector754, 0, sizeof(mVector754));
 	memset(mVector764, 0, sizeof(mVector764));
-	mWidget72c = NULL;
+	mTypingTutor = NULL;
 	mField740 = -1;
 	mSoundInstance0 = NULL;
 	mSoundInstance1 = NULL;
@@ -138,12 +141,12 @@ WinWSApp::WinWSApp()
 
 	mFlag8d8 = false;
 	mFlag8d9 = false;
-	mWidget8dc = NULL;
+	mStatusBar = NULL;
 	mSoundInstance38 = NULL;
 	mProfileMgr = NULL;
 	mUser = NULL;
 	mFastCPU = false;
-	mFlag8ed = true;
+	mHintsAllowed = true;
 	mImages = NULL;
 	mRegisterImage = NULL;
 	mFlag8f8 = true;
@@ -178,18 +181,18 @@ WinWSApp::~WinWSApp()
 		mBoard = NULL;
 	}
 
-	if (mScreen62c != NULL)
+	if (mMapScreen != NULL)
 	{
-		mWidgetManager->RemoveWidget(mScreen62c);
-		delete mScreen62c;
-		mScreen62c = NULL;
+		mWidgetManager->RemoveWidget(mMapScreen);
+		delete mMapScreen;
+		mMapScreen = NULL;
 	}
 
 	SetCursor(CURSOR_POINTER);
 
-	if (mWidget72c != NULL)
-		mWidgetManager->RemoveWidget(mWidget72c);
-	delete mWidget72c;
+	if (mTypingTutor != NULL)
+		mWidgetManager->RemoveWidget(mTypingTutor);
+	delete mTypingTutor;
 
 	for (size_t i = 0; i < mSonarSweepImages.size(); i++)
 		delete mSonarSweepImages[i];

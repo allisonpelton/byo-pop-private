@@ -44,6 +44,13 @@ class StatsScreen;
 class UserProfileMgr;   // the original calls it UserManager (0x427440 ctor, 0x41f090 dtor); users\user.idx
 class UserProfile;      // one player (users\user%d.dat)
 class LessonManager;
+class TypingTutor;       // the widget at +0x72c (ctor 0x460b30, vftable 0x531544): a ButtonListener at +0x58
+class StatusBar;         // the widget at +0x8dc (ctor 0x448a40, sizeof 0x88)
+class KeyDialog;         // the plain message dialog (ctor 0x43ec30)
+class HintDialog;        // the hint box (ctor 0x439ef0)
+class OptionsDialog;     // ctor 0x43bf10
+class AbyssModeDialog;   // ctor 0x43e7a0
+class DeleteUserDialog;  // ctor 0x43dcb0
 
 // the one generator all game draws go through (the original's DAT_00565384, made in Init)
 extern MTRand* gGameRand;
@@ -92,13 +99,13 @@ public:
 	};
 
 	// ---- data from +0x618 ----
-	Dialog*					mMessageDialog;         // +0x618 the plain message dialog (id 500) of 0x41bd80 / 0x41c4f0
+	KeyDialog*				mMessageDialog;         // +0x618 the plain message dialog (id 500) of 0x41bd80 / 0x41c4f0
 	Dialog*					mDialog61c;             // +0x61c set and cleared by ButtonDepress (0x431630)
 	Dialog*					mRegisterDialog;        // +0x620 not ported (0x414020 makes it)
-	Dialog*					mDialog624;             // +0x624 read by 0x41c8c0 and ButtonDepress
+	HintDialog*				mHintDialog;            // +0x624 the hint box (id 0x3f3) of 0x41c8c0; ButtonDepress reads it
 	MenuScreen*				mMenuScreen;            // +0x628 (0x41d5c0)
-	Widget*					mScreen62c;             // +0x62c the screen of the map / adventure (0x426440, 0x42a870, 0x42ee10): a widget removed in the dtor
-	Dialog*					mAbyssModeDialog;       // +0x630 "CONTINUE?" (0x4129a0)
+	MapScreen*				mMapScreen;             // +0x62c the map of the levels (ctor 0x458d10, sizeof 0x238; 0x426440 makes it hidden, its +0x228 is the chosen level)
+	AbyssModeDialog*		mAbyssModeDialog;       // +0x630 "CONTINUE?" (0x4129a0)
 	Board*					mBoard;                 // +0x634 the game board; every game screen reads it
 	HighScoreScreen*		mHighScoreScreen;       // +0x638 (0x41bbd0)
 	StatsScreen*			mStatsScreen;           // +0x63c (0x41b9e0)
@@ -116,7 +123,7 @@ public:
 	bool					mFlag671;               // +0x671 ctor 0
 	bool					mShouldCheckForUpdate;  // +0x672 LoadingThreadProc (0x435560): the update check; not ported, stays false
 	bool					mFlag673;               // +0x673 trial flag (0x41d9d0, 0x41da80; not ported)
-	Dialog*					mDeleteUserDialog;      // +0x674 (0x4267d0)
+	DeleteUserDialog*		mDeleteUserDialog;      // +0x674 (0x4267d0)
 	int						mMusicSlot;             // +0x678 which of the two songs plays (ChangeMusic 0x414350); ctor 1
 	int						mMusicOrder;            // +0x67c the module order playing (ChangeMusic); ctor -1
 	int						mField680;              // +0x680 ctor 0; read by ButtonDepress
@@ -136,7 +143,7 @@ public:
 	std::vector<std::string> mVector704;            // +0x704 (pad), +0x708: filled by the config parsers (0x429110)
 	std::map<std::string, bool> mMap714;            // +0x714 filled by the config parsers (0x429110)
 	std::map<std::string, bool> mMap720;            // +0x720 filled by the config parsers (0x4292b0)
-	Widget*					mWidget72c;             // +0x72c a widget over the board (0x412c90 sets the focus on its +0x58 child; hidden by 0x41b9e0)
+	TypingTutor*			mTypingTutor;           // +0x72c the typing tutor (made by ButtonDepress; hidden by 0x41b9e0, taken away with the board by 0x41d5c0)
 	std::vector<int>		mVector730;             // +0x730 (pad), +0x734..+0x73c: filled by the config (0x42a870, 0x42aad0, 0x42ee10); freed with free()
 	int						mField740;              // +0x740 ctor -1; read by 0x42a870, 0x42aad0, 0x42ee10, 0x443a70
 	SoundInstance*			mSoundInstance0;        // +0x744 GetSoundInstance(0) (LoadingThreadProc)
@@ -162,7 +169,7 @@ public:
 	std::vector<Image*>		mSonarSweepImages;      // +0x7c8 (pad), +0x7cc: IMAGE_SONAR_SWEEP_0..4 mirrored and flipped
 	std::vector<Image*>		mSonarSweep2Images;     // +0x7d8 (pad), +0x7dc: IMAGE_SONAR_SWEEP2_0..4 mirrored and flipped
 	TitleScreen*			mTitleScreen;           // +0x7e8 the loading screen (the title screen made by Init)
-	Dialog*					mOptionsDialog;         // +0x7ec (0x414150)
+	OptionsDialog*			mOptionsDialog;         // +0x7ec (0x414150)
 	// +0x7f0 .. +0x89f: not used by any translated code
 
 	// fonts (Init and LoadingThreadProc load them in this order: 0x8bc, 0x8c0, then 0x8a0 ...)
@@ -183,12 +190,12 @@ public:
 
 	bool					mFlag8d8;               // +0x8d8 ctor 0; 0x414020 clears it; read by 0x42f3c0, 0x431320, ButtonDepress
 	bool					mFlag8d9;               // +0x8d9 ctor 0
-	Widget*					mWidget8dc;             // +0x8dc a widget shown with the board (removed with it by 0x41d5c0)
+	StatusBar*				mStatusBar;             // +0x8dc the status bar shown with the board (made by 0x42f2a0; removed with the board by 0x41d5c0)
 	SoundInstance*			mSoundInstance38;       // +0x8e0 GetSoundInstance(0x26)
 	UserProfileMgr*			mProfileMgr;            // +0x8e4 (Init; deleted by 0x41f090 then free)
 	UserProfile*			mUser;                  // +0x8e8 the current user (0x425f20), 0 when nobody is chosen
 	bool					mFastCPU;               // +0x8ec LoadingThreadProc: PerfTimer::GetCPUSpeed() >= 695 (MHz); effects are cut down on slow machines
-	bool					mFlag8ed;               // +0x8ed ctor 1; read by 0x412d70 / 0x41c8c0 / 0x43d6b0
+	bool					mHintsAllowed;          // +0x8ed ctor 1; read by 0x412d70 / 0x41c8c0 / 0x43d6b0 (the hint boxes may show)
 	Image**					mImages;                // +0x8f0 one per ImageId (operator new(0x3e0) = 248 pointers)
 	Image*					mRegisterImage;         // +0x8f4 images\register: not ported (stays NULL)
 	bool					mFlag8f8;               // +0x8f8 ctor 1; Init clears it when the current user has a flag (+0x1dc) set
@@ -241,23 +248,36 @@ public:
 
 	// the data-file loaders of LoadingThreadProc (written by the config / word-list jobs; each returns false when the file is bad)
 	bool					LoadWaves();                                            // 0x434740 data\waves.txt
-	bool					LoadWordLists();                                        // 0x430d20 data	words.txt
+	bool					LoadWordLists();                                        // 0x430d20 the word lists (string 0x52d478)
 	bool					LoadGemNames();                                         // 0x42b0c0 data\gemnames.txt
 	bool					LoadShipNames();                                        // 0x42b400 data\shipnames.txt
-	bool					LoadThemes();                                           // 0x434d60 data	hemes.txt
+	bool					LoadThemes();                                           // 0x434d60 the themes (string 0x52d448)
 
 	// screens and dialogs (WinWSAppScreens.cpp)
 	void					ShowSelectUserDialog();                                 // 0x4128a0 (dialog 0x44e)
 	void					ShowAbyssModeDialog();                                  // 0x4129a0 (dialog 0x451)
+	int						GetUserField34();                                       // 0x412ae0 (a number of the current user)
 	void					RemoveMenuScreen();                                     // 0x412af0 (the widget at +0x628)
-	void					FocusWidget72c();                                       // 0x412c90
-	bool					CanShowHelp();                                          // 0x412d70 (TODO: meaning)
+	void					ActivateTypingTutor();                                  // 0x412c90 (ButtonDepress(0x58) of the tutor, then its focus)
+	void					MarkMenuScreenDirty();                                  // 0x412cc0
+	void					BringStatsCloseButtonToFront();                         // 0x412ce0
+	void					FocusTypingTutor();                                     // 0x412d00
+	void					SetUserHints(bool theHints);                            // 0x412d50 (the current user's hints setting)
+	bool					HintsEnabled();                                         // 0x412d70 (a user is chosen, has hints on, and the game allows them)
 	void					ShowOptions();                                          // 0x414150 (dialog 0x30a)
 	void					ShowNewUserDialog(const std::string& theText);          // 0x414270 (dialog 0x44d)
 	void					ShowStatsScreen(int theWhich);                          // 0x41b9e0
 	void					ShowHighScoreScreen();                                  // 0x41bbd0
+	void					ShowMessageDialog(std::string theHeader, std::string theLines, std::string theButtonText, bool theFlatten); // 0x41bd80 (dialog 500)
+	void					ShowConfirmDialog(std::string theHeader, std::string theLines, std::string theFooter, bool theFlatten,
+								std::string theYesLabel, std::string theNoLabel);   // 0x41c4f0 (dialog 500 with two buttons)
+	void					ShowHintDialog(std::string theLines, std::string theHeader); // 0x41c8c0 (dialog 0x3f3; the header is "" in the original's callers)
+	void					ShowLevelIntro();                                       // 0x41cc60 (the hint box of the level that starts)
+	void					ShowNoWindowedModeMessage();                            // 0x41d030 (dialog 0x30b)
 	void					ShowMenuScreen();                                       // 0x41d5c0
+	void					ShowMapScreen();                                        // 0x426440 (after loading: the title screen goes)
 	void					ShowDeleteUserDialog(const std::vector<std::string>& theNames); // 0x4267d0 (dialog 0x44f)
+	void					StartBoard();                                           // 0x431320 (a new Board for the chosen level)
 };
 
 extern WinWSApp* gApp;
