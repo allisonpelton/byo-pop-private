@@ -15,8 +15,9 @@ the game is (`screen`) and when it is over (the high-score list). Run it under r
 then on rundesk's private desktop and nothing shows or sounds).
 
     --at N:cmd;cmd   after N moves send these lines to the game (any live command or realinput line), e.g.
-                     "--at 40:focus lost;wait 200;focus gained" ("wait N" waits N updates; "shot name" takes a screenshot);
-                     full screen is "keydown Left Alt;key Return;keyup Left Alt"
+                     "--at 40:focus lost;wait 200;focus gained" ("wait N" waits N updates; "shot name" takes a screenshot;
+                     "expect <key> <json>" fails the run unless the game's state has that value, as "expect focus true");
+                     full screen is "keydown Left Alt;key Return;keyup Left Alt;wait 60;expect windowed false"
     --pre cmd;cmd    lines sent before the first move
     --steps N        stop after N moves (0: play until the state says over)
     --lose-level N   the bot wins every level of an easy game, so a whole game of the action and strategy modes would not end: once
@@ -155,6 +156,12 @@ def run_lines(g, text, a, shots):
     for line in [x.strip() for x in text.split(';') if x.strip()]:
         if line.startswith('wait '):
             g.wait_updates(int(line.split()[1]))
+        elif line.startswith('expect '):
+            # "expect windowed false": the game's state must say so (full screen, the focus: the keys of `state`)
+            _, key, want = line.split()
+            have = g.state().get(key)
+            if json.dumps(have) != want:
+                raise RuntimeError('expected %s %s, the game says %s' % (key, want, json.dumps(have)))
         elif line.startswith('shot '):
             name = os.path.join(a.out, line.split()[1] + '.png')
             g.cmd('screenshot ' + name)

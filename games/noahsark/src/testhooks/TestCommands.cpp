@@ -215,6 +215,7 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 				ModeName(mGameMode), DifficultyName(mDifficulty), mLevel, mGameScore, PhaseName(aBoard->mState),
 				((aBoard->mState != BOARD_PLAYING) || !BotBoardSettled(aBoard)) ? "true" : "false");
 			aLine += StrFormat(",\"water\":%d,\"waterTarget\":%d,\"ark\":%d,\"animals\":%d", aBoard->mWaterY, aBoard->mWaterTargetY, aBoard->mArkLevelY, aBoard->AnimalCount());
+			aLine += StrFormat(",\"paused\":%s", aBoard->mPaused ? "true" : "false");           // a dialog has paused the board
 			// the board: a row a string, a cell a letter (. empty, X block, Y crate, 0-9 and A-D the animals)
 			std::string aRows;
 			for (int y = 0; y < 9; y++)
@@ -232,7 +233,8 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 		}
 		else if (mGameScore > 0 || (mHighScoreWidget != NULL))
 			aLine += StrFormat(",\"mode\":\"%s\",\"level\":%d,\"score\":%d", ModeName(mGameMode), mLevel, mGameScore);
-		aLine += StrFormat(",\"over\":%s}", anOver ? "true" : "false");
+		// the window's focus (a lost focus draws PAUSED and stops the board) and the window mode, on every screen
+		aLine += StrFormat(",\"focus\":%s,\"windowed\":%s,\"over\":%s}", mHasFocus ? "true" : "false", mIsWindowed ? "true" : "false", anOver ? "true" : "false");
 		Reply(aLine);
 		return true;
 	}
