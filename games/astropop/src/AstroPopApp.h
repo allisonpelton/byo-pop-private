@@ -177,7 +177,8 @@ public:
 	void			CloseFullScreenHelp();                      // 0x428fb0 (stub)
 	void			ApplyOptions(bool theClose);                // 0x428a10 (stub)
 	void			UserSelectOk();                             // 0x430f00 (stub) the player chosen in the player list
-	void			NewUserOk();                                // 0x430500 (stub) the name typed in the new-player box
+	void			NewUserOk();                                // 0x430500 the name typed in the new-player box
+	AstroDialog*	ShowLowMessageDialog(const std::string& theHeader, const std::string& theText);   // an OK box a little below the middle
 	void			DeleteUser(bool theConfirmed);              // 0x431310 (stub) asks, then deletes the player chosen
 	void			ShowOptions(bool theFromGame);              // 0x40bd70
 	void			ShowContinueDialog(const std::string& thePilot, int theLevel); // 0x411ba0 with the CONTINUE? texts

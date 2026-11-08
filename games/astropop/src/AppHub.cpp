@@ -260,10 +260,7 @@ void AstroPopApp::ButtonDepress(int theId)
 		case 0x6f:
 			if (aRaw == 0x6b && mUserNames.empty())
 			{
-				AstroDialog* aDialog = MakeDialog(1, false, 0x6c, -1, -1, 3, "INVALID NAME", GT(0x563964), "OK", "", true);
-				int aWidth = aDialog->mWidth;
-				int aHeight = aDialog->mHeight;
-				aDialog->Resize(0x140 - aWidth / 2, 0x11d - aHeight / 2, aWidth, aHeight);
+				ShowLowMessageDialog("INVALID NAME", GT(0x563964));
 				return;
 			}
 			mOpenDialogs--;

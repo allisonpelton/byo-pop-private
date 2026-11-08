@@ -3,6 +3,9 @@
 
 #include "AstroPopApp.h"
 #include "AstroDialog.h"
+#include "CheckpointDialog.h"
+#include "NewUserDialog.h"
+#include "EditWidget.h"
 #include "Particle.h"
 #include "Board.h"
 #include "GameText.h"
@@ -274,14 +277,27 @@ void AstroPopApp::ShowContinueDialog(const std::string& thePilot, int theLevel)
 	SDL_Log("AstroPop: the CONTINUE? dialog (pilot %s, level %d) not translated yet (0x411ba0)", thePilot.c_str(), theLevel);
 }
 
+// 0x40bc00: the box where a new player types a name, centred a little low
 void AstroPopApp::ShowNewUserDialog()
 {
-	SDL_Log("AstroPop: the new-player dialog is not translated yet (0x40bc00)");
+	mOpenDialogs++;
+	NewUserDialog* aDialog = new NewUserDialog();
+	StyleDialog(aDialog);
+	int aHeight = aDialog->GetPreferredHeight(0x15e);
+	aDialog->Resize(0x91, 0x118 - aHeight / 2, 0x15e, aHeight);
+	AddDialog(0x6b, aDialog);
+	mWidgetManager->SetFocus(aDialog->mEdit);
 }
 
+// 0x40c3e0: the starting point box for a player who has passed a checkpoint (the colour set of the pilot of the mode)
 void AstroPopApp::ShowCheckpointDialog(int theLevel)
 {
-	SDL_Log("AstroPop: the checkpoint question (level %d) is not translated yet (0x40c3e0)", theLevel);
+	CheckpointDialog* aDialog = new CheckpointDialog(mClassicPilot + 2, this);
+	aDialog->mLevel = theLevel;
+	StyleDialog(aDialog);
+	mOpenDialogs++;
+	aDialog->Resize(0x91, 0x58, 0x15e, 0x131);
+	AddDialog(0x78, aDialog);
 }
 
 // Not translated yet: each logs once so a test run shows that the button was reached
@@ -306,11 +322,6 @@ void AstroPopApp::ApplyOptions(bool theClose)
 void AstroPopApp::UserSelectOk()
 {
 	APP_NOT_TRANSLATED("UserSelectOk", "0x430f00");
-}
-
-void AstroPopApp::NewUserOk()
-{
-	APP_NOT_TRANSLATED("NewUserOk", "0x430500");
 }
 
 void AstroPopApp::DeleteUser(bool theConfirmed)
