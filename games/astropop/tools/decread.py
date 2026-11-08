@@ -84,6 +84,26 @@ def fieldsub(text):
     return text
 
 
+DWPTR = re.compile(r"\b(int|uint|undefined4|float|long|ulong|code)\s*\*\s*(\w+)\s*[;,)=]")
+
+
+def dwordptrs(text):
+    """Ghidra scales pointer arithmetic on int * variables: `NAME[0x252]` and `*(char *)(NAME + 0x8d)` are byte
+    offsets 0x948 and 0x234. Both are rewritten to the byte-offset form `NAME.948` (suffix {f}, {c} for the type)."""
+    names_ = {m.group(2): m.group(1) for m in DWPTR.finditer(text) if m.group(1) != "code"}
+    for nm_, ty in names_.items():
+        def idx(m, ty=ty):
+            suf = "{f}" if ty == "float" else ""
+            return "%s.%x%s" % (m.group(1), int(m.group(2), 0) * 4, suf)
+        text = re.sub(r"\b(" + re.escape(nm_) + r")\[(0x[0-9a-f]+|\d+)\]", idx, text)
+        def acc(m):
+            t_ = m.group(1).strip()
+            suf = SUFFIX.get(t_, "")
+            return "%s.%x%s" % (m.group(2), int(m.group(3), 0) * 4, "{" + suf + "}" if suf else "")
+        text = re.sub(r"\*\((" + TYPE + r") \*+\)\((" + re.escape(nm_) + r") \+ (0x[0-9a-f]+|\d+)\)", acc, text)
+    return text
+
+
 def vcalls(text):
     text = re.sub(r"\(\*\*\(code \*\*\)\(\*\*\(int \*\*\)(\w[\w.{}]*) \+ (0x[0-9a-f]+)\)\)",
                   lambda m: "%s.v[%d]" % (m.group(1), int(m.group(2), 16) // 4), text)
@@ -259,6 +279,7 @@ def render(path):
     nm = names()
     t = re.sub(r"\bFUN_([0-9a-f]{8})\b", lambda m: nm.get(m.group(1), m.group(0)), t)
     t = re.sub(r"\n{3,}", "\n\n", t)
+    t = dwordptrs(t)
     t = fieldsub(t)
     t = vcalls(t)
     t = annotate_strings(t, addr)
