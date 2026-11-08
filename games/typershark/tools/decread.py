@@ -186,6 +186,26 @@ def strip_seh(t):
     return "\n".join(out)
 
 
+ELEMSIZE = {"undefined4": 4, "int": 4, "uint": 4, "float": 4, "long": 4, "ulong": 4, "undefined2": 2, "short": 2,
+            "ushort": 2, "undefined8": 8, "double": 8, "longlong": 8, "ulonglong": 8}
+
+
+def scale_ptr_arith(t):
+    """Ghidra writes `*(char *)(param_1 + 0x17)` for an `int *param_1` and means byte offset 0x5c (C pointer
+    arithmetic scales by the element size). Rewrite those to `*(char *)((int)param_1 + 0x5c)` first, or the
+    field conversion below would read them as offset 0x17. Class-typed pointers (`this`) count bytes."""
+    size = {}
+    for m in re.finditer(r"\b(undefined\d|int|uint|float|long|ulong|short|ushort|double|longlong|ulonglong) (\*+)\s*(\w+)\b", t):
+        n = 4 if len(m.group(2)) > 1 else ELEMSIZE.get(m.group(1), 1)
+        size[m.group(3)] = n
+    def sub(m):
+        n = size.get(m.group(2), 1)
+        if n == 1:
+            return m.group(0)
+        return "*(%s *)((int)%s + 0x%x)" % (m.group(1), m.group(2), int(m.group(3), 16) * n)
+    return re.sub(r"\*\((" + TYPE + r") \*+\)\((\w+) \+ (0x[0-9a-f]+)\)", sub, t)
+
+
 def render(path):
     addr = os.path.basename(path)[:8]
     t = open(path, encoding="utf-8", errors="replace").read()
@@ -195,6 +215,7 @@ def render(path):
     nm = names()
     t = re.sub(r"\bFUN_([0-9a-f]{8})\b", lambda m: nm.get(m.group(1), m.group(0)), t)
     t = re.sub(r"\n{3,}", "\n\n", t)
+    t = scale_ptr_arith(t)
     t = fieldsub(t)
     t = vcalls(t)
     t = annotate_strings(t, addr)

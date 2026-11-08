@@ -22,6 +22,18 @@ in the game image: a translation names it `GT(0x0052d870)`). The raw export is `
 (unnamed functions are under `_global`); `re/typershark/gh/functions.jsonl` has, for each function, `addr`, `name`, `ns`
 (class), `size`, `callers`, `callees` and `strings`; `re/typershark/gh/vtables.jsonl` the vftables and their slots.
 
+When the decompile reads oddly (an empty `if`, a branch that lost its jump, a value that is "returned" by accident, a
+loop that looks wrong), read the machine code of that function, which is exact:
+
+```bash
+E:/retools/llvm-mingw-20261006-ucrt-x86_64/bin/llvm-objdump.exe -d -M intel --start-address=0x440d60 \
+  --stop-address=0x440e70 re/typershark/bin/TyperSharkGame.exe
+```
+
+A `*(T *)(p + 0xN)` in the raw export where `p` is an `int *` or `undefined4 *` means byte offset N x 4 (C pointer
+arithmetic); `decread` already rewrites those (so `.5c{c}` is byte offset 0x5c), but an `a[0x17]` index stays an
+index (offset = index x 4).
+
 Classes are mostly laid out in link order, so a class's non-virtual methods (unnamed `FUN_` functions) sit between its
 virtual ones; the address map of the game code (0x401000-0x4623f0):
 
