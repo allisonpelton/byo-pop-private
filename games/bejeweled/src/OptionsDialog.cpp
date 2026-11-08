@@ -43,7 +43,7 @@ void OptionsDialog::ButtonPress(int theId)
 // 0x4d1424
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
-	return (int) mLinkButtons.size() * LINK_BUTTON_PITCH + BASE_PREFERRED_HEIGHT;
+	return PREFERRED_HEIGHT;
 }
 
 // 0x4d143a
@@ -51,15 +51,11 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mHelpButton);
-	theWidgetManager->AddWidget(mRegisterButton);
 	theWidgetManager->AddWidget(mHighScoresButton);
 	theWidgetManager->AddWidget(mMusicVolumeSlider);
 	theWidgetManager->AddWidget(mSfxVolumeSlider);
 	theWidgetManager->AddWidget(mCustomCursorsCheckbox);
 	theWidgetManager->AddWidget(mFullscreenCheckbox);
-	theWidgetManager->AddWidget(mCheckUpdatesButton);
-	for (int i = 0; i < (int) mLinkButtons.size(); i++)
-		theWidgetManager->AddWidget(mLinkButtons[i]);
 	if (mModsButton != NULL) // port(mods)
 		theWidgetManager->AddWidget(mModsButton);
 	if (mExtrasButton != NULL) // port(variant)
@@ -71,15 +67,11 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mHelpButton);
-	theWidgetManager->RemoveWidget(mRegisterButton);
 	theWidgetManager->RemoveWidget(mHighScoresButton);
 	theWidgetManager->RemoveWidget(mMusicVolumeSlider);
 	theWidgetManager->RemoveWidget(mSfxVolumeSlider);
 	theWidgetManager->RemoveWidget(mFullscreenCheckbox);
 	theWidgetManager->RemoveWidget(mCustomCursorsCheckbox);
-	theWidgetManager->RemoveWidget(mCheckUpdatesButton);
-	for (int i = 0; i < (int) mLinkButtons.size(); i++)
-		theWidgetManager->RemoveWidget(mLinkButtons[i]);
 	if (mModsButton != NULL) // port(mods)
 		theWidgetManager->RemoveWidget(mModsButton);
 	if (mExtrasButton != NULL) // port(variant)
@@ -91,43 +83,35 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog::Resize(theX, theY, theWidth, theHeight);
 
-	// port: the build is always unlocked, so the register button is never laid out (0x0, invisible);
-	// a locked build gave help, register and high scores (mWidth-60)/3 px each
+	// The row of Help and High Scores sits in the middle of the space that the original's "more games" link left
+	// between it and the Done button (the link is taken out): 12 px lower than the original's row, which stood above
+	// the link
 	int aButtonWidth = (mWidth - 54) / 2;
-	mHelpButton->Resize(mX + 24, mY + 166, aButtonWidth, 32);
-	mHighScoresButton->Resize(mX + 30 + aButtonWidth, mY + 166, aButtonWidth, 32);
+	mHelpButton->Resize(mX + 24, mY + ROW_Y, aButtonWidth, 32);
+	mHighScoresButton->Resize(mX + 30 + aButtonWidth, mY + ROW_Y, aButtonWidth, 32);
 	DialogButton* aSlotButton = (mExtrasButton != NULL) ? mExtrasButton : mModsButton;
 	if (aSlotButton != NULL)
 	{
-		// port(mods): Mods (port(variant): or Extras) in the register slot of the locked build's three-button row
+		// port(mods): Mods (port(variant): or Extras) as a third button in the row
 		aButtonWidth = (mWidth - 60) / 3;
-		mHelpButton->Resize(mX + 24, mY + 166, aButtonWidth, 32);
-		aSlotButton->Resize(mX + 30 + aButtonWidth, mY + 166, aButtonWidth, 32);
-		mHighScoresButton->Resize(mX + 36 + 2 * aButtonWidth, mY + 166, aButtonWidth, 32);
+		mHelpButton->Resize(mX + 24, mY + ROW_Y, aButtonWidth, 32);
+		aSlotButton->Resize(mX + 30 + aButtonWidth, mY + ROW_Y, aButtonWidth, 32);
+		mHighScoresButton->Resize(mX + 36 + 2 * aButtonWidth, mY + ROW_Y, aButtonWidth, 32);
 	}
-
-	// The links stack up from just above the Done button
-	for (int i = 0; i < (int) mLinkButtons.size(); i++)
-		mLinkButtons[i]->Resize(mX + 24, (i - (int) mLinkButtons.size()) * LINK_BUTTON_PITCH + mYesButton->mY, mWidth - 48, 32);
 
 	mMusicVolumeSlider->Resize(mX + 136, mY + 60, mWidth - 160, 32);
 	mSfxVolumeSlider->Resize(mX + 136, mY + 92, mWidth - 160, 32);
 	mFullscreenCheckbox->Resize(mX + 32, mY + 124, 32, 32);
 	mCustomCursorsCheckbox->Resize(mX + 146, mY + 124, 32, 32);
-	// mCheckUpdatesButton is never laid out either
 }
 
 // 0x4d18f6
 OptionsDialog::~OptionsDialog()
 {
 	delete mHelpButton;
-	delete mRegisterButton;
 	delete mHighScoresButton;
 	delete mMusicVolumeSlider;
 	delete mSfxVolumeSlider;
-	for (int i = 0; i < (int) mLinkButtons.size(); i++)
-		delete mLinkButtons[i];
-	delete mCheckUpdatesButton;
 	delete mFullscreenCheckbox;
 	delete mCustomCursorsCheckbox;
 	delete mCheckboxCheckedImage;
@@ -157,21 +141,14 @@ void OptionsDialog::ButtonDepress(int theId)
 	// Done (footer) reaches WinDMApp::ButtonDepress(2002), which applies the checkboxes
 	Dialog::ButtonDepress(theId);
 
-	if ((theId >= LINK_BUTTON_ID_BASE) && (theId < LINK_BUTTON_ID_BASE + 100))
-		mApp->OpenURL(mApp->GetString(StrFormat("OptionsLinkURL%d", theId - LINK_BUTTON_ID_BASE), _S("http://www.popcap.com")), false);
-	else if (theId == HELP_BUTTON_ID)
+	if (theId == HELP_BUTTON_ID)
 		mApp->ShowFullInstructionsDialog();
-	else if (theId == REGISTER_BUTTON_ID)
-		mApp->ShowRegisterDialog();
 	else if (theId == HIGH_SCORES_BUTTON_ID)
 		mApp->ShowHighScoreDialog();
-	else if (theId == VISIT_POPCAP_BUTTON_ID)
-		mApp->OpenURL("http://www.popcap.com", false);
 	else if (theId == MODS_BUTTON_ID)
 		mApp->OpenModMenu(); // port(mods): over this dialog, which stays open
 	else if (theId == EXTRAS_BUTTON_ID)
 		mApp->ShowExtrasDialog(); // port(variant): over this dialog, which stays open
-	// port: CHECK_UPDATES_BUTTON_ID called DoUpdateCheck(); update checks are not ported (the button is never laid out)
 }
 
 // 0x4d1fda
@@ -190,10 +167,6 @@ OptionsDialog::OptionsDialog(WinDMApp* theApp) :
 	mHelpButton = new DialogButton(mApp->mImages[IMAGE_BOXBUTTON], HELP_BUTTON_ID, this);
 	mHelpButton->SetFont(mApp->mMainFont);
 	mHelpButton->mLabel = mApp->GetString("OPTIONSDLG_HELP");
-
-	mRegisterButton = new DialogButton(mApp->mImages[IMAGE_BOXBUTTON], REGISTER_BUTTON_ID, this);
-	mRegisterButton->SetFont(mApp->mMainFont);
-	mRegisterButton->mLabel = mApp->GetString("OPTIONSDLG_REGISTER");
 
 	mHighScoresButton = new DialogButton(mApp->mImages[IMAGE_BOXBUTTON], HIGH_SCORES_BUTTON_ID, this);
 	mHighScoresButton->SetFont(mApp->mMainFont);
@@ -220,19 +193,6 @@ OptionsDialog::OptionsDialog(WinDMApp* theApp) :
 			break;
 		}
 	}
-
-	// partner.xml: one link, "Play More Great Games!"
-	for (int i = 0; i < mApp->GetInteger("NumOptionsLinks", 1); i++)
-	{
-		DialogButton* aLinkButton = new DialogButton(mApp->mImages[IMAGE_BOXBUTTON], LINK_BUTTON_ID_BASE + i, this);
-		aLinkButton->SetFont(mApp->mMainFont);
-		aLinkButton->mLabel = mApp->GetString(StrFormat("OptionsLinkText%d", i), _S("Visit PopCap.com For More Games"));
-		mLinkButtons.push_back(aLinkButton);
-	}
-
-	mCheckUpdatesButton = new DialogButton(mApp->mImages[IMAGE_BOXBUTTON], CHECK_UPDATES_BUTTON_ID, this);
-	mCheckUpdatesButton->SetFont(mApp->mMainFont);
-	mCheckUpdatesButton->mLabel = mApp->GetString("OPTIONSDLG_CHECK_FOR_UPDATES");
 
 	mMusicVolumeSlider = new Slider(mApp->mImages[IMAGE_SLIDER_TRACK], mApp->mImages[IMAGE_SLIDER_THUMB], MUSIC_SLIDER_ID, this);
 	mMusicVolumeSlider->SetValue(mApp->GetMusicVolume());

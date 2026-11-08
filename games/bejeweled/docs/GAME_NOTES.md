@@ -2526,3 +2526,171 @@ edge as the farthest such gem; the straight directions keep their draws, so the 
 11. **OptionsDialog base order.** The analyst places SliderListener at +0x150 and CheckboxListener at +0x154; FRAMEWORK_NOTES lists them in the other order. Layout-only; it does not affect the port.
 12. **Dialog 17.** "Check for updates" is handled but never created (dead code); its strings exist only in default.xml.
 13. **Pre-Vista AppData.** GetAppDataFolder() returns "" there, so saves go to the working directory. The port always uses its user dir.
+
+---
+
+## 15. Test commands (2026-11-07)
+
+The standard test commands of `docs/TEST_COMMANDS.md`, in `src/testhooks/TestCommands.cpp`, offered first by
+`WinDMApp::HandleScriptCommand`; the existing `save <file>`, `gemsheet <file>` and `memreport <file>` stay beside them. They are
+reachable only from a test (`-script`, `-commands`, the web page's `byopop.test.command`); a normal run never gives one, so
+unmodded play and the oracle are unchanged. Each answers on stdout with one line.
+
+| Command | Answer |
+|---|---|
+| `state` | `STATE {...}`: `screen` (loading, title, game, gameover, recordscore, quit, help, highscores, options, dialog; Help and High Scores are opened from Options and so are named before it), `windowed` (false in full screen), `mode` (normal, timed), `level` (the 1-based one shown), `score`, `shown` (the rolling score), `start` and `target` (the level's score window), `bar` (the progress or time bar's width, 0 to 340), `drain` (timed: the points drained from the bar), `phase` (the board's state: falling, playing, swapping, clearing, vortex, level wipe, fall out, game over ...), `tick`, `moves`, `over` (the game is over: the board's states 5 and 6), `busy` (the board takes no move now), `paused`, `newgame`, `tutorial` (the first game's hint and arrows are showing), `selected` (`[col,row]`, when a gem is selected) and `board` (8 strings, a gem by its colour's digit, `.` for none) |
+| `goto normal` / `timed` / `game` | a new game in that mode (`game`: the current mode) through `SetTimedMode`, as the side bar's buttons start one; from the title it first does the play link's own click (`TitleScreenIsFinished`), and a saved game then asks its continue question, which stays open (`screen` says dialog; answer it with real input) |
+| `goto options` / `highscores` / `help` | the dialog the side bar's Options button, the High Scores link or Help opens; `goto menu` closes any of them. `goto title` and `goto credits` answer an error: the game has neither to return to |
+| `unlock all` | `OK`: nothing is locked |
+| `level <n>` | n from 2: the level's score is reached at once (`win`) with the level set so that the vortex ends at level n, the game's own level-up |
+| `win` | the board's score is set to the level's goal, so that its own update starts the vortex and the next level |
+| `lose` | the game's own ending: the "no more moves" banner (normal) or "time up" (timed) and `GameOver(200)` |
+| `set score <n>` | the score and the shown score; a score past the goal ends the level at once, as play would |
+| `set drain <n>` | timed only: the points drained from the bar (there are no seconds in Bejeweled's clock); a big number ends the game |
+| `seed <n>` | `SRand(n)`, the same as `-seed=<n>` |
+| `move` | `MOVE {"kind":"swap","from":[c,r],"to":[c,r],"input":[{"move":[x,y]},{"click":[x,y]},{"move":[x,y]},{"click":[x,y]},{"wait":4}]}`: a valid swap and the pointer and two clicks that make it, in game pixels (the steps of `docs/TEST_COMMANDS.md`). The choice is one of the valid swaps whose gems take a click (`AutoplayBot::ValidClickableMoves`, the list `-autoplay`'s valid moves choose from), picked by a hash of the board and the score: nothing is drawn from the game's random numbers, nothing changes, and the same board gets the same move. While the board is busy (falling, swapping, clearing, the vortex, a pause or a gem still selected) it answers `{"kind":"wait","input":[{"wait":10}]}`, so a driver that only plays what it is given waits; `MOVE null` when the game is over, no game is on or no move is left. On a board whose rules twist or slide (a code mod) it answers an error: the bot there is `-autoplay`'s |
+
+`games/bejeweled/tools/commands_test.sh` runs `commands_test.txt` as a script under rundesk and checks the answers.
+
+## 16. Fix candidates and the fixes mod (2026-11-07)
+
+`games/bejeweled/mods/fixes` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): the feature `features.fixes`
+(`GameFeatures::mFixes`) with one setting for each fix, all on by default, on the site by default and off when the player turns
+the mod off. It shares the high scores and the saved game with the original (no rules change, so no variant board and no v2
+save). The port without the mod is the original, and a replay never carries a fix: the verifier and the watch play with the
+features of the default configuration. `tools/fixes_test.sh` plays each fix with the mod off and on and checks that only the
+fix differs.
+
+**Made**
+- `selection`: a gem selected when Timed mode's board falls out and refills (no move left) stays selected in the original
+  though it is no longer on the board (`FillBoard` drops the grid and keeps the pointer). The next click targets it:
+  `MouseDown` with a stale selection runs `StartSwap(stale, clicked)`, which plays the "bad" sound and clears the selection when
+  the gems are far apart, so the click selects nothing, and when they are next to each other (by the stale gem's old column
+  and row) puts the stale gem back into the grid and loses the gem there. With the fix `Board::DropStaleSelection` (called in
+  `MouseDown` and `MouseDrag`) drops a selection that is no longer in the grid, records a deselect, and the click selects what
+  it hits. To see it: a Timed game whose board has one move left (`tools/origcmp/nomoves.py --one`), select a gem as the board
+  falls out, click another after the refill.
+- `resumeLook`: `LoadGame` does not call `SetupLevel` (section 3.14), so a saved game of level 2 or later comes back with the
+  first level's background tint and texture until the next level-up. With the fix `Board::ResumeLevelLook` runs `SetupLevel`
+  after the load, keeps the level's values and the drain that the save holds, and draws the loaded level's look. A save taken
+  in the middle of the level wipe, and a board with code-mod rules, keep the original's.
+
+**Looked at and not made**
+- `FindMove`'s NULL test of the fixed cell (section 14, 2): harmless on a full board.
+- Time up in Normal mode through hint penalties (section 14, 3): reachable only by spamming hints, not seen in play.
+- The truncated `hiscores.dat` read (section 14, 6) is a memory fault and belongs to the port, not the mod.
+- The double `NewGame` at start-up: it keeps the random numbers in the original's order, so it is not touched.
+
+## 17. Real-input drivers (2026-11-08)
+
+Two drivers play the game with real input only, so that the path a hand takes (SDL's queue, `HandleEvent`, the window-to-game
+mapping, the widget manager; on the web the page's DOM events and the canvas's scaling) is the one that is tested. Both are thin
+loops around the test commands of section 15: ask `state`, ask `move` (the bot's swap), send the move's `input` steps as clicks,
+wait for the next answer. The session writes and judges them; it never plays.
+
+- **Native**, `tools/realplay/drive.py`: starts the game under rundesk with `-commands=<file>` and `-realinput=<empty file>`
+  (`docs/REAL_INPUT.md`), appends `move game x y`, `click game x y`, `key ...`, `keydown/keyup Left Alt`, `focus lost` and
+  `focus gained` lines and waits for each `OK`. Its steps: `launch` (loading screen, title, the play link, the first game's
+  hint, Options, Help and both Done buttons), `normal` and `timed` (a whole game each, then the name entry typed with real keys),
+  `focus`, `fullscreen` (Alt+Enter, moves, Alt+Enter back, moves). A Timed game needs `--realtime`: Bejeweled's clock is the
+  board's update count, a `-fast` run does thousands of updates in the time the channel takes for one move, and the clock then
+  runs out in the middle of the first moves. The coordinates are the original's 640x480 pixels, so `click game` works in a
+  window of any size and in full screen.
+- **Web**, `tools/web/onegame.js`, run by the player-only page (`?player=1&assets=1&fast=1&silent=1&driver=games/bejeweled/tools/web/onegame.js`,
+  `&mode=normal|timed`, `&focus=1` to lose and regain the focus after six moves, `&moves=N` to stop after N moves, `&scale=2`
+  for a canvas drawn at twice its size): the same route, through the page's `t.click` and `t.move` events, answering the
+  "Continue old game?" question of a profile that left a game with a click on No.
+
+What they showed, and what stayed unproven, is in `IDENTICAL_PLAY.md` ("Real input"). The Options dialog's "Play More Great
+Games!" link, which a click of these drivers never touched, is taken out of the port (section 18).
+
+## 18. Registration code and the More Games button taken out (2026-11-08)
+
+The user's rules of 2026-11-07 (CLAUDE.md, "Order of the work"; `docs/COORDINATION.md`): a game takes out the registration
+code (trial, nag, unlock, register and update-check paths) and every button that leads out of a game, "More Games" first,
+before its final merge, with its neighbours moved to close the gap. The port plays as the registered original does, which
+stays the reference. The Steam copy's `partner.xml` has `NoReg`, so none of this was reachable in play but the link.
+
+**Taken out**
+- The Options dialog's "Play More Great Games!" link (partner.xml's one `OptionsLinkText0`; it opened the PopCap site) and the
+  `OpenURL` path behind it: `WinDMApp::OpenURL`, `URLOpenFailed` and `URLOpenSucceeded`, the "opening the browser" and "could
+  not open it" dialogs (ids 10 and 11), the unused "visit PopCap" handler, the `NoPopLink` registry read.
+- The Options dialog's Register button (id 1) and check-for-updates button (id 4): the original created and added them but
+  never laid them out in the Steam build (0x0, invisible). Their handlers, `WinDMApp::ShowRegisterDialog` and its "Already
+  Registered" dialog (id 19), and the ids of the registration, update-check and nag dialogs (5 to 7, 15, 17, 18, and the
+  update results 10018 and 20018).
+- The title screen's register link (hidden while registered), its nag delay timer (`TotalTimerSec`) and the play counter that
+  only marked the screen dirty, the register link's label and layout, and the register URL (`mRegisterLink`).
+- The images `trialcircle2` and `waitbar` (the trial circle and the update-check dialog's bar): no longer loaded, and their
+  code-art drawings go too. `ImageId` is renumbered (34 images, 6 of them before the title screen).
+
+**Visible change.** Only the Options dialog: the link row is gone and the row of Help and High Scores (and Mods or Extras,
+when a mod adds one) stands 12 px lower (y 178 from the dialog's top, not 166), in the middle of the space the link left
+between it and Done. The dialog keeps the original's 290 px height and its Done button (clicks on both still land where they
+did, so the oracle's scripts need no change). Nothing else on any screen changes, no random number is drawn differently, no
+save or high score changes. The oracle (`compare.py`) lets the baseline's four shots with the dialog open (`12_options`,
+`o01_options`, `o02_high_scores`, `o03_back_to_options`) differ inside the dialog's box, nowhere else; the frozen exes keep
+the link.
+
+**Left in place.** The shared framework's `SexyApp` still has the registration members (`mIsRegistered`, `mBuildUnlocked`, the
+register link and the update check); they are the coordinator's. The strings and images of the original's own files stay in
+the user's game folder. The comments in `Board.cpp` and `BoardRules.cpp` about the nag's random draw say why that draw is
+absent; it was an unregistered copy's.
+
+**Loading (the user's rule of 2026-11-07, fast loading is part of every port).** The port's loading has no wait that the
+original's code put into it: `WinDMApp::LoadingThreadProc` loads the sounds and images in one go with no sleep or per-frame
+slice, the title screen reads its progress every fourth update and shows the play link on the first read after the load, and
+the registered original had no minimum time (that was the trial's nag delay, taken out above). The framework logs
+"Resource Loading Time" (about 0.6 s on the test machine, the whole load); the title and its play link follow within the
+next few updates.
+
+## 19. Performance (2026-11-08)
+
+The original and the port measured back to back on the same machine (a Core i7-12700F, 12 cores, Windows 11, a GTX 1080),
+for the user's morning report (`build/slots/news.md`, 2026-11-08). The machine was not quiet: other sessions' games ran
+meanwhile (0 to 3 game processes besides the one measured, noted per run below), so the numbers are for comparing the two
+here and now; the performance pass re-measures later on a quiet machine. Both games ran windowed, in real time, with no sound
+(the port under rundesk, SDL's silent driver; the original under origrun on the host with its silent stand-in), from a fresh
+user folder and with no mods.
+
+**What was measured, and how.** One run is one process from its creation to its exit, sampled every 50 ms by
+`tools/profile/perfmin.py` (working set, private bytes, processor time, threads), the same way for both. The input is the
+same on both sides (`tools/profile/perfscript.py`): the title screen for 15 s, a click on Play, then 40 swaps of neighbouring
+gems 1.5 s apart (17 s to 75.5 s), quit at 90 s. The two games deal different boards (the original's seed is its clock's, and
+the seed patch of the identical-play runs is not used here), so a swap makes a match in some games and not in others; what
+the runs share is the input, the 60 seconds of playing and the drawing of the board. The processor figures are for the
+window from 20 s to 80 s of the process's life, which lies inside the playing in both (the Play click comes at 15 s).
+
+| | original (3 runs) | port (3 runs) |
+|---|---|---|
+| Peak working set | 48.3 MB (48.2 to 48.4) | 53.0 MB (52.8 to 61.3) |
+| Peak private bytes | 34.0 MB (33.8 to 34.1) | 52.7 MB (52.4 to 54.5) |
+| Processor time in the window | 4.7, 5.5 and 7.8 % of one core | 6.2, 6.5 and 11.0 % of one core |
+| Processor time, whole 90 s run | 4.1, 4.2 and 6.6 s | 4.9, 5.0 and 9.0 s |
+| Launch to the first response to Play (click probe, 5 and 7 runs) | 1.06 s median (0.95 to 1.64) | 0.88 s median (0.75 to 0.96) |
+| Launch to the title's play link (the state command, 5 runs) | not measurable (no such command) | 0.66 s median (0.59 to 0.73) |
+
+The slowest run of each game (7.8 % and 11.0 %, the first round) had up to three other game processes running; the other
+two rounds had one or two. The port's second round is its memory outlier (61.3 MB working set, 54.5 MB private bytes); its
+other two runs and all three of the original's sit within 0.4 MB of their medians. The counts of other game processes at the
+start and end of each run are in `build/perf/*/procs.txt` and `build/perf/rounds.txt` (git-ignored).
+
+**Reading it.** The port holds about 18 MB more private memory than the original. `PROFILE.md` (sections 2 and 6) has the
+port's side: every image's pixels kept at 4 bytes a pixel after the GPU has its texture, and the sounds as 48 kHz stereo
+float. Why the original holds less (probably images and sounds kept in fewer bytes) was not examined. The original's working
+set stands 14 MB above its private bytes (DLL pages and mapped files), the port's is level with them, so the two working sets
+differ by only 5 MB. The port's processor time is about 20 % higher than the original's in the two quieter rounds (6.2
+against 5.5 % and 6.5 against 4.7 % of one core), and both are a few per cent of one core. Loading is a little faster in the
+port by the same probe (section 18: it loads the sounds and images in one go).
+
+**What could not be measured.** (1) The web build's load time: the Browser pane is hidden, its timers are throttled and
+`requestAnimationFrame` does not run, and a load in the user's browser is dominated by the network and the wasm compile,
+which a hidden pane does not show faithfully. (2) The original's loading to the second: it has no state command, so its
+figure is the click probe's (a click on Play every 100 ms from the start; the first one the game answers), which is good to
+about 0.15 s and includes building the board; the port's click probe, with the same spacing, is the comparable figure
+(0.88 s), and its own state command gives the lower bound (0.66 s). (3) Full screen and the GPU's own load were not measured.
+
+The tools: `tools/profile/perfmin.py` (the sampler; `--attach` for the original, which origrun starts), `perfscript.py` (the
+input for both), `loadtime.py` (the port's loading time through the live channel). The original ran from a copy of the
+Steam install with the real exe carved out of the wrapper (`tools/extract_game_exe.py`, in `C:\byo-og\bej-perf\game`),
+under `build/origrun-bin/origrun.exe` with `--sound stub` and no virtual clock.

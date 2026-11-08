@@ -507,6 +507,7 @@ bool Board::LoadGame()
 	mLevelTextShown = ReadSaveBool(aBuffer);
 
 	mApp->mShowInstructions = false;
+	ResumeLevelLook(); // port(mods): fixes.resumeLook
 	GameLoadedVariant(aBuffer); // port(variant): the RNG the v2 save or the sidecar kept, and the LOAD event (BoardVariant.cpp)
 	return true;
 }

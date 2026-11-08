@@ -1,0 +1,48 @@
+# The standard test commands (docs/TEST_COMMANDS.md) on Bejeweled: run with games/bejeweled/tools/commands_test.sh, which
+# runs this script under rundesk and checks the answers.
+5 state
+6 unlock all
+7 seed 5
+8 goto nowhere
+9 goto title
+10 move
+11 win
+12 goto normal
+13 level 3
+14 move
+400 state
+401 move
+402 move
+403 level 1
+404 level 3
+1000 state
+1001 move
+1002 win
+1500 state
+1501 move
+1600 set score 10
+1601 state
+1610 goto timed
+2000 state
+2001 move
+2002 set score 700
+2003 set drain 12
+2004 set bar 3
+2005 state
+2500 state
+2501 goto options
+2510 state
+2520 goto highscores
+2530 state
+2540 goto help
+2550 state
+2560 goto menu
+2570 state
+3200 state
+3201 lose
+3202 lose
+3900 state
+3901 move
+3902 goto normal
+3903 state
+3904 quit

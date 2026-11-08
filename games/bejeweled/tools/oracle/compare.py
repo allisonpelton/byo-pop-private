@@ -520,6 +520,23 @@ def compare_png(a, b):
     return "%d pixels differ in (%d,%d)-(%d,%d)" % (count, x0, y0, x1, y1)
 
 
+# The options dialog (WinDMApp::ShowOptionsDialog: x 234, y 50, 348 x 290): the port took the original's "more games" link
+# out (the user's rule of 2026-11-07, GAME_NOTES.md section 18) and moved the row of Help and High Scores 12 px down, while
+# the frozen baseline exes still have the link. The shots that show the dialog may therefore differ from the baselines',
+# inside that box and nowhere else.
+OPTIONS_BOX = (234, 50, 234 + 348 - 1, 50 + 290 - 1)
+OPTIONS_SHOTS = ("12_options.png", "o01_options.png", "o02_high_scores.png", "o03_back_to_options.png")
+
+
+def inside_options_box(diff):
+    """True if compare_png's description says that every differing pixel lies inside the options dialog's box."""
+    m = re.match(r"\d+ pixels differ in \((\d+),(\d+)\)-\((\d+),(\d+)\)$", diff or "")
+    if not m:
+        return False
+    x0, y0, x1, y1 = (int(g) for g in m.groups())
+    return OPTIONS_BOX[0] <= x0 and OPTIONS_BOX[1] <= y0 and x1 <= OPTIONS_BOX[2] and y1 <= OPTIONS_BOX[3]
+
+
 # ---------------------------------------------------------------------------------------------------
 # hiscores.dat day fields
 
@@ -1448,11 +1465,11 @@ def compare_streams(r, a, b, label):
     return count
 
 
-def compare_tree(r, a, b, label, keep, shift=0):
+def compare_tree(r, a, b, label, keep, shift=0, options_box=False):
     """The file trees under a and b (paths for which keep() is true): the same list, then every file.
     Finished replays are matched and compared without their wall-clock date (normal_path, compare_bjr).
-    shift: compare_hiscores' (a baseline run from compare.sh's cache). Returns {top-level entry: number of
-    files compared}."""
+    shift: compare_hiscores' (a baseline run from compare.sh's cache). options_box: a baseline's shots of the
+    options dialog may differ inside its box (OPTIONS_BOX). Returns {top-level entry: number of files compared}."""
     ma = {normal_path(p): p for p in list_tree(a, keep)}
     mb = {normal_path(p): p for p in list_tree(b, keep)}
     fa, fb = sorted(ma), sorted(mb)
@@ -1469,6 +1486,10 @@ def compare_tree(r, a, b, label, keep, shift=0):
         pa, pb = os.path.join(a, ma[name]), os.path.join(b, mb[name])
         if name.lower().endswith(".png"):
             diff = compare_png(pa, pb)
+            if diff and options_box and os.path.basename(name) in OPTIONS_SHOTS and inside_options_box(diff):
+                r.note("%s%s: differs from the baseline's only inside the options dialog (%s): the link taken out"
+                       % (label, name, diff))
+                diff = None
         elif name.lower().endswith(".bjr"):
             diff = compare_bjr(read_bytes(pa), read_bytes(pb))
         else:
@@ -1501,7 +1522,7 @@ def compare_case(r, side, a, b, hook_outputs):
     compare_exit(r, a, b, label)
     lines = compare_streams(r, a, b, label)
     # a run from compare.sh's cache made days ago has hiscores days that many days behind
-    counts = compare_tree(r, a, b, label, tree_filter(hook_outputs), day_shift(a) - day_shift(b))
+    counts = compare_tree(r, a, b, label, tree_filter(hook_outputs), day_shift(a) - day_shift(b), options_box=True)
     summary = ["%d stdout lines" % lines, "%d user files" % counts.get("user", 0),
                "%d screenshots" % counts.get("shots", 0)]
     if cached_info(a) is not None:
