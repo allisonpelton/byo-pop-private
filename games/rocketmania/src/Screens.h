@@ -77,6 +77,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
+	virtual void		ButtonPress(int theId) override;
 	virtual void		ButtonDepress(int theId) override;
 
 	void				ShowDifficultyDialog();     // 0x405fb0

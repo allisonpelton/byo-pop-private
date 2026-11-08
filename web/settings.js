@@ -48,6 +48,7 @@ var ByopopSettings = (function () {
     // the site's skin (web/skins.js): "unset" until the player chose one on their first visit, which is not one of its values, so
     // that every choice, Plain too, is stored and the first visit's card is asked only once
     skin: { values: ["plain", "demo", "d95", "soda"], def: "unset" },
+    perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     ambient: { values: SWITCH, def: "on" }           // on: the game's light glows around it in the dark Demo Disc and Soda Fountain (web/skins.js)
   };
 
@@ -209,6 +210,7 @@ var ByopopSettings = (function () {
     { name: "skin", label: T("settings.skin.label"), options: [["plain", T("skin.plain")], ["demo", T("skin.demo")], ["d95", T("skin.d95")], ["soda", T("skin.soda")]],
       hint: T("settings.skin.hint") },
     { name: "ambient", label: T("settings.ambient.label"), hint: T("settings.ambient.hint") },
+    { name: "perf", label: T("settings.perf.label"), hint: T("settings.perf.hint") },
     { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
       hint: T("settings.fullscreen.hint") },
     { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],

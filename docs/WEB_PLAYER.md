@@ -1529,6 +1529,37 @@ every game has them. What wrong sizes did in testing:
 - BookWorm: `tile_fire_fx1` must be at least 57 px tall and the ember and spark images square (else a modulo by
   zero). `wordlist.txt` has no stand-in, and without `bookworm.exe` the game's texts are empty (GameText).
 
+## The performance panel
+
+A game page shows its performance panel while the site setting "Performance panel" (`perf`, the Display group) is on; it is
+off by default (`web/perf.js`). In Desktop 95 it is a window of the desktop with its own icon. It only reads, so the game
+plays the same with it on. With it off nothing of it runs: no animation frame, observer, timer or wrapped WebGL call. Its
+link in the framework's frame hook returns at once, and the hook's own cost is two clock reads a frame. Each second it shows
+the following.
+
+- **Frames:** frames per second and frame time (average and longest), from requestAnimationFrame. Also the game's own time
+  per frame: the framework's frame hook (`sexyapp_test_frame`, `Module.byopopTestFrame`) passes the time
+  `EmscriptenMainLoop` spent on the frame's updates and draw.
+- **Updates:** updates per second, and catch-up frames, those that ran more than one update. Both come from
+  `byopop_update_count` read at each frame.
+- **Main thread:** the game's share of the page's main thread (its frame time over the second), and the long tasks the
+  browser reports, those over 50 ms (count and share). Both are labelled as shares of the one thread the page runs on,
+  never as the computer's CPU use.
+- **Memory:** the wasm heap's size and the bytes malloc has handed out, and the framework's images (its MemoryImage set,
+  counting pixels and the blitters' caches) and loaded sounds (their samples), with their bytes. These come from
+  `byopop_perf_json`, a web-only, read-only framework call, made once a second while the panel is open. Also the
+  JavaScript heap where the browser gives it (`performance.memory`), and the site's storage used and quota
+  (`navigator.storage.estimate`, every 10 s).
+- **Graphics:** once the game has drawn, the WebGL context it draws with (GPUInterfaceGL's, the one `getContext` gives
+  back) has its draw, texture-upload and buffer calls counted by wrapping them while the panel is on; turning the panel
+  off puts the originals back. The panel shows draw calls per frame, uploads per second and the bytes uploaded, and the
+  renderer's name. GPU time per frame comes from a timer query only where the browser really offers
+  `EXT_disjoint_timer_query` (or its WebGL 2 form), with disjoint results dropped. A query runs from one frame's end to
+  the next, so it times that frame's GL work. A game drawing without WebGL says so. The panel never asks for a context
+  before the game has made its own, since that would make one and take the canvas from the game.
+- **Sound:** the audio context's `baseLatency` and `outputLatency`, the mixed sound queued ahead of what the context has
+  played, and how often the queue ran dry (`Module.byopopAudio`, "Sound" below).
+
 ## The player-only page
 
 For sessions that test a game in the Browser pane (the user, 2026-11-07: "For agent browser testing use, build a stripped down
@@ -1594,9 +1625,10 @@ as the port's side: `python tools/shotdiff/shotdiff.py --game <g> --orig build/o
   lines printed from the call up to its answer, the last of them: `STATE {json}`, `OK <command>` or `ERROR <command>: <reason>`
   (SDL's "INFO: " taken off). A held game is stepped one update so that the command runs. `state()` is `command("state")`'s JSON.
   A build without the channel rejects at once. `botMove()` is `command("move")`'s move, or null when the bot has none;
-  `playMove(m)` sends one through real DOM input in game coordinates: its `input` list in order where it has one, else its
-  `clicks` (`{x, y, button}`), then its `drags` (`{x0, y0, x1, y1, steps}`), then its `keys` (DOM key names), and waits its
-  `updates` (1 by default).
+  `playMove(m)` sends one through real DOM input in game coordinates: its `input` steps in order (`{move:[x,y]}` a hover,
+  `{click:[x,y]}` with `button:"right"` if it is one, `{press:[x,y]}` and `{release:[x,y]}` for a drag, `{key:"B"}`,
+  `{wait:n}` updates; `docs/TEST_COMMANDS.md`, under `move`), else an older move's `clicks` (`[x, y]` or `{x, y, button}`),
+  then its `drags` (`{x0, y0, x1, y1, steps}`), then its `keys` (DOM key names), and waits its `updates` (1 by default).
 - **readings**, all copies: `watch()` a port's
   watch values where it gives them (`byopop_watch_json`), null otherwise; `mixer()` the mixer's state once the shared
   session's `platform/Audio.cpp` gives it (`byopop_mixer_json`), null until then; `screen()` the game's size.

@@ -56,7 +56,6 @@ PixelusApp::PixelusApp()
 	mMainMenu = NULL;
 	mIslandMap = NULL;
 	mPuzzleCompleted = NULL;
-	mMoreGames = NULL;
 	mHintOverlay = NULL;
 	mHintScreen = NULL;
 	mCompletion = NULL;
@@ -360,13 +359,6 @@ void PixelusApp::ShowQuitDialog()
 	CenterDialog(aDialog);
 }
 
-// 0x434710: the original opens the link its configuration names ("MoreGamesLink") or, when there is none, a screen of
-// advertisements for other games of the publisher that comes from the network. The port has no online features and no
-// advertising: the button does nothing.
-void PixelusApp::ShowMoreGames()
-{
-}
-
 // 0x432a10
 void PixelusApp::ShowOptions()
 {
@@ -597,6 +589,20 @@ void PixelusApp::ShowStory(bool theFromMenu, int theMode, int theTo)
 	case 0:
 		aFrom = aTo = 0;
 		break;
+	case 1:
+		// 0x41cf50: the temple that the solved count opens, the first of the nine (theTo is only the caller's guess)
+		aTo = theTo;
+		{
+			UserProfile* aUser = mUserDirectory->GetCurrent();
+			int aOutside = aUser != NULL ? aUser->CountSolved() - aUser->CountSolved(gTemples[0].mName) : 0;
+			for (int i = 1; i < 10; i++)
+				if (aOutside == gTemples[i].mUnlock)		// 0x433530
+				{
+					aTo = i;
+					break;
+				}
+		}
+		break;
 	case 2:
 		aTo = aFrom;
 		break;
@@ -657,7 +663,6 @@ void PixelusApp::ShowBoard(const std::string& theLevel, int thePuzzle)
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->SetFocus(mBoard);
-	PlaySample(SOUND_PIXELUS_START_OF_PUZZLE_V02);
 }
 
 // 0x433910
@@ -876,6 +881,7 @@ void PixelusApp::UpdateFrames()
 	}
 	if (mAutoplay)
 		AutoplayUpdate();
+	TestUpdate();
 }
 
 // 0x4333a0 (slot 84)

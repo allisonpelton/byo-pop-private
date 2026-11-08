@@ -72,9 +72,17 @@ fills, otherwise next to the most runes, with a tenth of random cells; it forges
 the wizard's boxes, types a name and clicks through the tutorial. The game's clock is the framework's `GameTickCount`
 (the virtual clock under `-fast`), so a rerun is identical down to the statistics' game time.
 
+The standard test commands (`state`, `goto`, `level`, `set`, `win`, `lose`, `seed`, `move`; `GAME_NOTES.md`, section 6) are in
+`src/testhooks/Commands.cpp`; `move` is the same bot. The real-input drivers are `tools/realplay/drive.py` (native, posted window
+messages under rundesk), `tools/realplay/live.py` (native, the live channel with `-realinput`: real SDL events, so focus loss, minimize
+and Alt+Enter too) and `tools/web/onegame.js` (the player-only page, DOM events); `IDENTICAL_PLAY.md`, "Real play" and "On the trunk's
+live channel", says what they played.
+
 ## Mods
 
-None yet (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth making.
+The game's fixes mod, `mods/fixes` (`GAME_NOTES.md`, section 7): two toggles, on by default on the site, for the bugs of the original that
+the port keeps (a missing tile rim on the first column and row, and the end of a continued game drawn off the board). The port
+without the mod is the original. No other mods until the user asks for one (`MOD_IDEAS.md` lists the ones worth making).
 
 ## Status (2026-10-26)
 

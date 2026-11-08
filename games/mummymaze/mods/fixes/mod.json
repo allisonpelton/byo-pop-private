@@ -1,0 +1,28 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends two faults of the original and changes nothing else: the time of a chamber is counted in the game's own updates instead of the machine's clock, and the Ankh and Abandon Hope know what a fight between the mummies on the key stone does to the gate. Turn a fix off to play the original as it was.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    {
+      "id": "gameClock",
+      "label": "Chamber time counts game updates",
+      "type": "bool",
+      "default": true,
+      "apply": "restart",
+      "help": "The original times a chamber by the machine's clock, so a slow moment or a pause costs bonus points. Here the time is the game's own updates, as the clock on the board counts it."
+    },
+    {
+      "id": "solverFight",
+      "label": "Ankh knows the key-stone fight",
+      "type": "bool",
+      "default": true,
+      "apply": "restart",
+      "help": "When one mummy beats the other on the key stone the gate flips, which the original's search leaves out, so the Ankh or Abandon Hope could be a turn wrong. Here the search counts it."
+    }
+  ]
+}
