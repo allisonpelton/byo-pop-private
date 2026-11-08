@@ -3285,7 +3285,10 @@ void SexyAppBase::RunScript()
 		int x = 0;
 		int y = 0;
 
-		if ((aName == "click") || (aName == "rclick") || (aName == "down") || (aName == "up") || (aName == "move"))
+		// a bare "move" is the test command that asks the game's bot for its next move (docs/TEST_COMMANDS.md); "move
+		// <x> <y>" moves the mouse
+		if ((aName == "click") || (aName == "rclick") || (aName == "down") || (aName == "up") ||
+			((aName == "move") && (aCommand.mArgs.find_first_not_of(" \t") != std::string::npos)))
 		{
 			if (!(anArgs >> x >> y))
 			{
