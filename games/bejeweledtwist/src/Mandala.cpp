@@ -86,7 +86,7 @@ Mandala::Mandala(int theMode)
 		gModeEntries[3] = {gApp->GetString(GTS(0x7e79e8), GT(0x7e7960)), 4, IMAGE_PLAYMENU_ZENBUTTON_ID,
 			IMAGE_PLAYMENU_ZENBUB_ID, IMAGE_PLAYMENU_LVLTAGZEN_ID};
 	}
-	if (gApp->mRegistered && !gApp->mUnknown759)
+	if (!gApp->mUnknown759)
 		gApp->mProfile->UnlockMode(3);
 	mOver = -1;
 	mTextBright = 0;
@@ -156,7 +156,7 @@ Mandala::Mandala(int theMode)
 		ModeButton* aButton = mButtons[i];
 		AddWidget(aButton);
 		int aMode = aButton->mMode;
-		if ((aMode == 3 && !gApp->mRegistered) || !gApp->mProfile->IsModeUnlocked(aMode))
+		if (!gApp->mProfile->IsModeUnlocked(aMode))
 			aButton->SetDoorOpen(false, true);
 		else if ((gApp->mProfile->mUnknown218 & (1u << (aMode & 31))) != 0)
 			aButton->SetDoorOpen(true, true);  // opened before: open at once
@@ -207,7 +207,6 @@ Mandala::Mandala(int theMode)
 	Layout();
 	mEggCount = 0;
 	mEggNext = 0;
-	mRegistered = gApp->mRegistered;
 }
 
 Mandala::~Mandala()
@@ -285,13 +284,6 @@ void Mandala::Update()
 		return;
 	}
 	TwistWidget::Update();
-	if (mRegistered != gApp->mRegistered && !gApp->mUnknown759 && mMode == 0) {
-		// the game was registered while the mode select was up: blitz opens
-		gApp->mProfile->UnlockMode(3);
-		mButtons[2]->SetDoorOpen(true, false);
-		gApp->mProfile->mUnknown218 |= 8;
-		mButtons[2]->mDoFinger = true;
-	}
 
 	if (0.0f < mGlow && mPortal == 0) {
 		// sparks round the classic portal
@@ -377,7 +369,7 @@ void Mandala::Update()
 						int aMode = aButton->mMode;
 						aButton->mHidden = false;
 						aButton->mMouseVisible = true;
-						bool isOpen = !((aMode == 3 && !gApp->mRegistered) || !gApp->mProfile->IsModeUnlocked(aMode));
+						bool isOpen = gApp->mProfile->IsModeUnlocked(aMode);
 						if (-1 < aMode && aButton->mDoorState == 0 && isOpen) {
 							aButton->SetDoorOpen(true, false);
 							anyOpened = true;
@@ -569,11 +561,7 @@ void Mandala::DrawOverlay(Graphics* g)
 			break;
 		}
 		case 2:
-			if (!gApp->mRegistered) {
-				g->SetColor(Color(255, 255, 255, Ftol((double)mFade * 255.0 * (double)mGlow)));
-				DrawImageScaledCentered(g, IMAGE_PLAYMENU_LOCKED, (float)(mWidth / 2), (float)(mHeight / 2),
-					ALIGN_CENTER, 1.0f, 1.0f);
-			} else {
+			{
 				// the blitz portal turns and the clock's hands go round
 				g->SetColor(Color(255, 255, 255, Ftol((double)mFade * 255.0 * (double)mGlow)));
 				int aY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(IMAGE_PLAYMENU_BLITZPORTAL_ID));
@@ -732,9 +720,7 @@ void Mandala::ButtonMouseEnter(int theId)
 		aText = gApp->GetString(GTS(0x7e73b0), GT(0x7e7320));
 	} else {
 		ModeButton* aButton = mButtons[theId];
-		if (aButton->mMode == 3 && !gApp->mRegistered) {
-			aText = StrFormat(gApp->GetString(GTS(0x7e72c0), GT(0x7e7200)).c_str(), 10);
-		} else if (gApp->mProfile->IsModeUnlocked(aButton->mMode)) {
+		if (gApp->mProfile->IsModeUnlocked(aButton->mMode)) {
 			aText = aButton->mDescription;
 		} else {
 			if (aButton->mMode == 2)

@@ -443,8 +443,14 @@ the site makes the player rather than the autoplay.
 
 ## Deviations
 
-Each is a change without a visible effect in play.
+Each is a change without a visible effect in play, but for the first.
 
+- Loading at the machine's speed (CLAUDE.md, "Port first, unmodified"). The original's loader screen (LoaderScreen::
+  Update) caps its bar at its update count over 800 and starts the main menu only once that smoothed bar reaches 0.995,
+  so the menu came about 8 seconds after launch however fast the files loaded. The port starts the menu as soon as
+  the loading thread is done, with the bar full; the bar's smoothing still shows while files load, and the countdown of
+  150 updates after it (the welcome voice, the logo's slide), which does not hold the player, stays. Visible: the menu
+  comes sooner.
 - The arrow keys on the web (Board::KeyDown, 0x6ca439): after moving the cursor, the original moves the mouse
   pointer onto it (Board::WarpToCursor, 0x6a45da, SetCursorPos) while +0x1430 holds a piece. Natively the port does
   the same (SexyAppBase::WarpMouse, never in a test run); a web page cannot move the pointer, so in the browser it
@@ -507,6 +513,33 @@ Each is a change without a visible effect in play.
   gem is still there (it is deleted when it blasts); the port checks.
 
 Challenge menu, piece 3 (partly done): the menu's Update now steps the end-of-challenge message at +0x9dc (`mAwardTelly`, an AwardTelly the board makes at 0x6b330d): at its update count 250 the rank bar's timer gains UpdateProgress(true, false) over 100, and once clicked it is removed and deleted and state 5 goes to 4 (0x6e4989). A click on a closed planet in the trial also starts the curve at +0x8a0 (0x6e54c3). Ported (0x6e4a25, 0x6e132d, 0x6dda7c, 0x6e665e): the menu's DrawAll (0x6e4a25) draws nothing at all while the sun's curve (0x85c558) is 0, unless space is bringing back the old level's picture (Hyperspace state 12 with +0x159 clear, then drawn over the menu by 0x70f836); otherwise the children and then `DrawSunAndTexts` (0x6e132d). With Direct3D off that draws, through the billboard 0x6dda7c (a PerspectiveCamera(gAspect45, gAspect, 1, 10000) on gMenuCamera projects the point; DrawImageTransformF, 0x422050, with the scale 0.00151515 / depth / the picture's width * size * 80, centred there, skipped below a depth of 0.0001; it sets the draw mode, the colour, unpacked by 0x401880 with its alpha as it is, and colorizing, and leaves them set), IMAGE_ECLIPSE_SUN at the camera's start (size 4.75, grey 255 - 255 * +0x928, alpha the sun's), IMAGE_ECLIPSE_MOON 4.1 along z from it turned about y by +0x720 * 1.5 pi (0x68fa0b, then 0x4c0c80 and 0x68b369, now `TimesMat3` and `TransformPoint` in Math3D; size 2.7, grey min(255 * +0x6b0 + 48, 255)), the additive IMAGE_ECLIPSE_RING there (2.9) while the sun is at 1, by (1 - +0x6b0) * sun * sun, the two dancing glows (IMAGE_ECLIPSE_DANCE2 and DANCE1, additive, while +0x640 is above 0: 280 * scale from the middle, from 0.3 of a turn to none and turned from half a turn to none by +0x640's input over its end), and with the menu all the way in (state 1 or 4): with no planet hovered IMAGE_CHALLENGEMODETITLE at y 516 * scale by +0x9d4 times the sun (the "CHALLENGE MODE" over the eclipse); with one hovered, "BEST: %d" (+0x19c) in FONT_DIALOG_TEXT, the description pictures +0x190 and +0x194 (the latter by +0x15c), the name picture +0x18c with its fading trail of larger copies (0.02 larger each, fainter by the fade squared, at least 0.03), and, in the trial, for a planet past the third (id above 2) or a challenge past the third, IMAGE_TRIALVERSION_CHALLENGE with its additive flash by +0x8a0. ButtonMouseEnter (0x6e665e) makes those pictures: the description (ChallengeInfo::GetText of the planet's next challenge) as two TextImages in FONT_PLANET_TEXT 0.3 of the width wide (the first with the font's layers 0x80dfb4 and 0x7dd6b0, the second with 0x80dfb4 only, OUTLINE clear in both), and the category's id (underscores as spaces, "  %d" with the stage added unless eclipsed) word-wrapped in FONT_FRUIT_AWARD, 500 * scale wide with 50 * scale line spacing, coloured from a table of 13 colours (0x6e6a8c) with a black OUTLINE, in a MemoryImage, and IMAGE_ECLIPSE_TITLE at 0.65 under an eclipsed name. The helpers: 0x41ff20 Graphics::SetDrawMode, 0x41ff40 SetColorizeImages, 0x4223e0 StringWidth (the font's slot 0x1c), 0x421180 DrawString (slot 0x28), 0x7575c2 DrawImageCentered (the whole picture), 0x422eb0 WriteWordWrapped and 0x4233d0 GetWordWrappedHeight (both with one argument more than this framework's, 0 in these calls), 0x4216f0 DrawImage stretched, 0x6e6619 Graphics' copy, 0x694387 a float to an int power, 0x6a1984 a CurvedVal as a white of its alpha. The constructor sets +0x198 to 1 (the port had 0) and the destructor (0x6e0c6c) frees the three pictures. The tip widget, an OrbitText that ChallengeButton 0x6e0aa5 makes, is ported now (see the board's flow below). Not ported: the zoom's own effects; UpdateProgress's glow. The planet ring is drawn smaller than the original's rim (about 46 px against 76 px for a settled planet at 800x600) and looks darker. A logged run showed the 600-art image (82x81), mOpen set, and the scale chain of 0x6dec2c-0x6dee33 (ring scale 2.25, Graphics scale about 1.31 when settled), so the cause is not found yet; the identical-play pass looks at it with the other scaled draws.
+
+## Registration and outbound buttons (taken out, 2026-11-08)
+
+The port plays as the registered original does (COORDINATION.md, "Order of the work on the merged games"). The
+original's +0x758 said whether the copy was registered; the port had kept it as `mRegistered`, always true, and every
+branch only an unregistered copy takes is now gone with it. None changes what a registered copy shows or plays, which
+the frozen baseline confirms.
+
+- The trial's last jump, transition 14 (BoardUpdate's level-up, 2D and 3D Hyperspace): after level 10 of Classic or 15
+  of Zen an unregistered game jumped into its limit dialog (+0x152c, 0x73a458, SOUND_TRIALLIMIT) and ended. Its curves,
+  states 6 to 9, the dialog's projection into the tunnel and the countdown at +0xc58 are gone; the board's +0x1474
+  (the same dialog's widget) and every check of it too.
+- Zen past level 13 emptied its tube's progress at each level in an unregistered copy (Board::NewLevel).
+- Blitz locked: an unregistered copy kept Blitz shut whatever the profile said (Profile::IsModeUnlocked), drew its
+  door with IMAGE_PLAYMENU_LOCKED and a text with the level to reach (Mandala), and opened it when the game was
+  registered while the mode select was up (Mandala's +0x418 copy of the flag). The level-10 unlock of Blitz
+  (LevelUpShow) and the mode select's start-up unlock (for a copy without LevelLock) no longer ask the flag.
+- The challenges' trial locks (ChallengeMenu): the red locks past the third challenge and on the fourth planet, the
+  stage-4 limit on a planet's progress, the "trial version" picture over locked planets with its flash (+0x8a0) and
+  SOUND_TRIALCLICK on a click.
+- "More Games" (Gates): with a MoreGamesURL property the first gate button was "more games" (id 2,
+  IMAGE_MAINMENU_MOREGAMEBUTTON) instead of how to play. It is always how to play now, in the same place, as the
+  port's copies have always shown it.
+- The registration widget (0x73b403, app +0x924) and its button (0x2b) were never ported.
+
+The generated resource table (Res.cpp, Res.h, from the exe's id table) still names the trial's pictures and sounds,
+since their ids are indexes into that table; no code uses them.
 
 ## The challenge's flow on the board
 

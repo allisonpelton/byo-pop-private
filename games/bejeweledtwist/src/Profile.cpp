@@ -405,8 +405,6 @@ void Profile::SetFlag1E4(int theBit, bool on)
 
 bool Profile::IsModeUnlocked(int theMode) const
 {
-	if (!gApp->mRegistered && theMode == 3)
-		return false;
 	return (mFlags1E8 & (1u << (theMode & 31))) != 0;
 }
 

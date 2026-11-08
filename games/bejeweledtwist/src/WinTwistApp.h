@@ -97,9 +97,8 @@ public:
 	int mUnknown7DC = 0;                // +0x7dc: in puzzles
 	int mUnknown7E0 = 0;                // +0x7e0
 	int mUnknownC74[84] = {};           // +0xc74: cleared by a new board (0x75fc8a) unless the old one has +0x37c4
-	// +0x758 (the framework's): the copy is registered (Init 0x7653a1, from the wrapper or MarketingMode); the
-	// user's copies are full versions
-	bool mRegistered = true;
+	// (+0x758, the framework's: whether the copy is registered (Init 0x7653a1). The port plays as the registered
+	// original does, and every branch of an unregistered copy is registration code, left out.)
 	bool mUnknown759 = false;           // +0x759 (the framework's): set unless partner.xml's MarketingMode is LevelLock (Init)
 	// +0xfa0: three of them (0x2c bytes each), cleared by every new game (0x760492), saved with the game (0x6a3192)
 	struct UnknownFA0 {
