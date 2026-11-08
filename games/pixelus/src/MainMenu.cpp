@@ -32,13 +32,13 @@ MainMenu::MainMenu(PixelusApp* theApp)
 	mFaceTarget = -1;
 	mFaceAlpha = 0;
 
-	// 0x40a7d0: the four image buttons; the positions are those of 0x40a3b0
+	// 0x40a7d0: the image buttons; the positions are those of 0x40a3b0. The "More Games" button between Options and Quit is
+	// taken out and Quit has moved up into its place
 	mPlayButton = MakeStripButton(mApp, this, ID_PLAY, IMAGE_GAMESELECTORBUTTON_PLAY, 0x176, 0x40);
 	mOptionsButton = MakeStripButton(mApp, this, ID_OPTIONS, IMAGE_GAMESELECTORBUTTON_OPTIONS, 0x1b3, 0xea);
-	mMoreGamesButton = MakeStripButton(mApp, this, ID_MORE_GAMES, IMAGE_GAMESELECTORBUTTON_MOREGAMES, 0x194, 0x154);
 	mQuitButton = MakeStripButton(mApp, this, ID_QUIT, IMAGE_GAMESELECTORBUTTON_QUIT, 0x194, 399);
-	DialogButton* aButtons[4] = {mPlayButton, mOptionsButton, mMoreGamesButton, mQuitButton};
-	for (int i = 0; i < 4; i++)
+	DialogButton* aButtons[3] = {mPlayButton, mOptionsButton, mQuitButton};
+	for (int i = 0; i < 3; i++)
 	{
 		aButtons[i]->mOverAlphaSpeed = 0.08;
 		aButtons[i]->mOverAlphaFadeInSpeed = 0.04;
@@ -72,7 +72,6 @@ MainMenu::~MainMenu()
 {
 	delete mPlayButton;
 	delete mOptionsButton;
-	delete mMoreGamesButton;
 	delete mQuitButton;
 	delete mUserLink;
 }
@@ -82,7 +81,6 @@ void MainMenu::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mPlayButton);
-	theWidgetManager->AddWidget(mMoreGamesButton);
 	theWidgetManager->AddWidget(mOptionsButton);
 	theWidgetManager->AddWidget(mQuitButton);
 	theWidgetManager->AddWidget(mUserLink);
@@ -94,7 +92,6 @@ void MainMenu::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mPlayButton);
-	theWidgetManager->RemoveWidget(mMoreGamesButton);
 	theWidgetManager->RemoveWidget(mOptionsButton);
 	theWidgetManager->RemoveWidget(mQuitButton);
 	theWidgetManager->RemoveWidget(mUserLink);
@@ -117,9 +114,6 @@ void MainMenu::ButtonDepress(int theId)
 		break;
 	case ID_PLAY:
 		mApp->PlayGame();
-		break;
-	case ID_MORE_GAMES:
-		mApp->ShowMoreGames();
 		break;
 	case ID_OPTIONS:
 		mApp->ShowOptions();
@@ -145,8 +139,6 @@ void MainMenu::UpdateTooltip()
 	const std::string* aText = NULL;
 	if (mPlayButton->mIsOver)
 		aText = &GT(0x50c838);
-	else if (mMoreGamesButton->mIsOver)
-		aText = &GT(0x50c7f0);
 	else if (mOptionsButton->mIsOver)
 		aText = &GT(0x50c81c);
 	else if (mQuitButton->mIsOver)
@@ -172,7 +164,7 @@ void MainMenu::Update()
 	mFaceTarget = -1;
 	if (mQuitButton->mIsOver)
 		mFaceTarget = IMAGE_FROWN;
-	else if (mMoreGamesButton->mIsOver || mOptionsButton->mIsOver || mPlayButton->mIsOver)
+	else if (mOptionsButton->mIsOver || mPlayButton->mIsOver)
 		mFaceTarget = IMAGE_SMILE;
 
 	if (mFaceTarget != mFaceCurrent)

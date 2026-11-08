@@ -168,7 +168,7 @@ const char* const gPixelusImageNames[NUM_IMAGES] =
 	"puzzlecursor",
 	"puzzlelight",
 	"gameselectorbutton_play",
-	"gameselectorbutton_moregames",
+	"",
 	"gameselectorbutton_options",
 	"gameselectorbutton_quit",
 	"lockpuzzle",

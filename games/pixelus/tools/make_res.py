@@ -24,7 +24,7 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 TABLES = [("image", 0x53D768, 236, 8), ("sound", 0x53DEC8, 28, 4), ("music", 0x53DF38, 4, 4), ("font", 0x53DF48, 16, 4)]
 
 
-REGISTRATION_IMAGES = ("register",)
+REGISTRATION_IMAGES = ("register", "gameselectorbutton_moregames")
 
 
 class Image:

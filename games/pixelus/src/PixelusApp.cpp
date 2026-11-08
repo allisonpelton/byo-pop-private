@@ -56,7 +56,6 @@ PixelusApp::PixelusApp()
 	mMainMenu = NULL;
 	mIslandMap = NULL;
 	mPuzzleCompleted = NULL;
-	mMoreGames = NULL;
 	mHintOverlay = NULL;
 	mHintScreen = NULL;
 	mCompletion = NULL;
@@ -358,13 +357,6 @@ void PixelusApp::ShowQuitDialog()
 {
 	Dialog* aDialog = DoDialog(4, true, GT(0x5281c0), GT(0x5281c8), "", Dialog::BUTTONS_YES_NO);
 	CenterDialog(aDialog);
-}
-
-// 0x434710: the original opens the link its configuration names ("MoreGamesLink") or, when there is none, a screen of
-// advertisements for other games of the publisher that comes from the network. The port has no online features and no
-// advertising: the button does nothing.
-void PixelusApp::ShowMoreGames()
-{
 }
 
 // 0x432a10
