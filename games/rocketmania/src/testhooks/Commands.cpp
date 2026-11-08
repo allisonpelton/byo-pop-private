@@ -238,9 +238,15 @@ void Move(RocketApp* theApp)
 		Reply("MOVE {\"what\":\"" + aWhat + "\",\"input\":" + anInput + "}");
 		return;
 	}
-	if (aBoard == NULL || theApp->GetDialogCount() > 0 || aBoard->mState != 0 || aBoard->m2e8 || aBoard->m350 != 0)
+	if (aBoard == NULL)
 	{
 		Reply("MOVE null");
+		return;
+	}
+	if (theApp->GetDialogCount() > 0 || aBoard->mState != 0 || aBoard->m2e8 || aBoard->m350 != 0)
+	{
+		// the board is busy (filling, an animation, paused): the move is to wait a while
+		Reply("MOVE {\"what\":\"wait for the board\",\"input\":[{\"wait\":20}]}");
 		return;
 	}
 	static UiBot* sBot = NULL;
@@ -253,7 +259,8 @@ void Move(RocketApp* theApp)
 	}
 	if (!sBot->PlanPath(aBoard))
 	{
-		Reply("MOVE null");
+		// no path across yet (the tiles are still coming in): wait a while
+		Reply("MOVE {\"what\":\"wait for a path\",\"input\":[{\"wait\":20}]}");
 		return;
 	}
 	anInput = "[";
