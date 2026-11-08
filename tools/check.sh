@@ -1169,7 +1169,7 @@ suite_bookwormadv2() {
 bookwormadv2_state_game() {  # <name> <exe> <script> [user dir to copy]: a replayed input; its state log is <name>/state.txt
 	local d="$W/$OUT/bookwormadv2/$1"; rm -rf "$d"; mkdir -p "$d"
 	if [ -n "${4:-}" ]; then cp -r "$4" "$d/user"; else mkdir -p "$d/user"; fi
-	timeout 300 "$2" -gamedir="$W/assets/bookwormadv2" -userdir="$d/user" -fast -seed=1 -reseedengine=1 -startloadupdates=742 -chapterloadupdates=2990 		-script="$3" -statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	timeout 300 "$2" -gamedir="$W/assets/bookwormadv2" -userdir="$d/user" -fast -popcaplogo -seed=1 -reseedengine=1 -startloadupdates=742 -chapterloadupdates=2990 		-script="$3" -statelog="$d/state.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 }
 
 bookwormadv2_baseline() {  # prints "; baseline identical" (or "; BASELINE DIFFERS", status 1) when build/baseline-bookwormadv2/ exists
@@ -1200,7 +1200,7 @@ bookwormadv2_smoke() {  # <log>: a new player (an empty user folder) through the
 		"6000 click 476 435" "6400 screenshot $d/word.png" "6600 click 400 568" "8500 screenshot $d/attack.png" \
 		'8600 lua print("SMOKE", gBoard:IsNoun("PLAY"), gBoard:IsVerb("PLAY"), gBoard:IsAdjective("PLAY"), gBoard:IsAdjective("RED"))' \
 		"11000 quit"; } > "$d/newuser.txt"
-	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/newuser.txt" -fast > "$d/newuser.out" 2>&1
+	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/newuser.txt" -fast -popcaplogo > "$d/newuser.out" 2>&1
 	t=$?
 	cat "$d/newuser.out" >> "$1"
 	[ $t -eq 0 ] || { echo "new player: exit $t"; return; }
@@ -1218,7 +1218,7 @@ bookwormadv2_smoke() {  # <log>: a new player (an empty user folder) through the
 	  printf '%s\n' "4000 click 250 330" "5500 click 400 330" "5700 click 300 170" "5800 click 300 170" "6100 click 400 575" \
 		"8000 click 712 505" "8001 click 712 505" "8300 click 405 313" "11000 screenshot $d/menu.png" "11200 click 120 405" \
 		"13500 screenshot $d/minigames.png" "13600 quit"; } > "$d/menus.txt"
-	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/menus.txt" -fast > "$d/menus.out" 2>&1
+	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/menus.txt" -fast -popcaplogo > "$d/menus.out" 2>&1
 	t=$?
 	cat "$d/menus.out" >> "$1"
 	[ $t -eq 0 ] || { echo "main menu: exit $t"; return; }
@@ -1232,7 +1232,7 @@ bookwormadv2_smoke() {  # <log>: a new player (an empty user folder) through the
 	{ grep -vE ' (quit|screenshot)( |$)' "$d/menus.txt"
 	  printf '%s\n' '12500 lua main.StartMinigameFromMainMenu("GoldenCoins")' "15500 click 400 293" "16000 soak 19000" \
 		"19010 quit"; } > "$d/minigame.txt"
-	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/minigame.txt" -fast > "$d/minigame.out" 2>&1
+	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/minigame.txt" -fast -popcaplogo > "$d/minigame.out" 2>&1
 	t=$?
 	cat "$d/minigame.out" >> "$1"
 	[ $t -eq 0 ] || { echo "mini-game: exit $t"; return; }
