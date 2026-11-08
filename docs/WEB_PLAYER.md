@@ -711,6 +711,34 @@ button back to the browser's theme removes it, and so does the browser changing 
 "follow the browser" setting. With storage blocked the choice lasts for that page only. The games' own screens are not
 changed by it.
 
+### The fixes mod on the site
+
+Every game is served with its fixes mod on (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, `fixes`, each of whose settings
+is a toggle for one fix. A game's mod lives in `games/<game>/mods/fixes`, and the web build copies the folder beside the game's
+page as `<game>-fixes/`, with its `version` and its list of files written into the page (`FIXES` in `web/shell.html`, from
+`cmake/ByopopWeb.cmake`). A game in `BYOPOP_WEB_NO_MODS` gets none, since its port cannot load mods yet; it gets its fixes mod
+once it can. A game without the folder ships nothing, and its page does nothing.
+
+Once the game's files are here, the page's boot puts the mod into `/persist/mods/fixes`, the IndexedDB-synced folder the Mods
+panel adds to, before the game can start (the status line says so while the files are written). It does this after the
+panel's own boot, so a removal that waited for this start has happened by then. Like any mod new to `mods.json` it starts on,
+with every fix at its default, which is on. A note beside the saves, `site-fixes.json` in the game's user dir, remembers what
+happened: `{"installed": "<version>"}` once it was put in, `{"removed": true}` once the player removed it.
+
+- **On every start**, the page compares the version of the mod in the folder with the one shipped. When the shipped version is
+  new, it replaces the mod's files. `mods.json` (whether the mod is on, and its place in the order) and `mod-settings.json` (its
+  toggles) are left alone, so the player's choices hold.
+- **The player** turns single fixes off or on in the game's mod menu (F2), turns the whole mod off to play the original as it
+  was, or plays once without mods from the rescue, as with any mod. Removing it in the Mods panel deletes its folder; the
+  next start finds the note saying "installed" and no folder, notes it as removed, and never puts it back. If the player
+  later adds a mod into the `fixes` folder themselves, the note follows that copy again.
+
+A test build can ship a stand-in: configure with `-DBYOPOP_WEB_TEST_FIXES=<game>` (cmake's cache keeps it; set it back to
+empty afterwards) and that game, if it has no fixes mod of its own, gets `tools/webtest/fixes`, a mod with one toggle that
+changes nothing. It was tested on Bejeweled in the pane at `?silent=1`. The first start put the mod in and listed it as on.
+With the mod turned off and its toggle off, a reload kept both. A copy marked as an older version was replaced by the shipped
+one with both choices still kept. Removed with the Mods panel's Remove, it stayed out after a reload.
+
 ### Site settings
 
 Site-wide overrides of the games' own options, which the player sets once and every game page applies when its game starts.
@@ -1075,6 +1103,62 @@ folder is restored whole or not at all, with a directory entry for every missing
 from the manifest. The page then tells what it wrote and sends a `storage` event to its own sections so that the settings and players
 show the restored values.
 
+### The music player
+
+The listing page's fourth tab, Music (`web/music.js`, the user's request of 2026-11-07), plays the music of the games the player
+added, from those games' own files in this browser. The site ships no music and sends nothing anywhere: the tab reads each game's
+database read-only (opened without a version, so a game that was never added gets no empty database) the first time the tab is
+shown, and only for the games whose record says their files are here.
+
+Which files hold a game's music is in `web/soundtracks.js`, by the game's id: path patterns in the game's folder as the import
+writes it, matched without regard to case. A module that matches gives its subsongs as tunes, and an Ogg Vorbis file is one tune.
+Subsongs shorter than two seconds are left out, since in these games they are the silences and stings between tunes (Atomica, Big
+Money, Dynomite and Mummy Maze each have one or two). Two games play their music in ways the table describes as well:
+
+- **Bonnie's Bookstore** plays its one module, `sound/music.oxm` (32 minutes as one subsong), as nine
+  tracks, each a range of its orders, from the track table in its exe (`games/bonnies/game/Music.cpp`): the game starts a track
+  at its first order and stops it once the order passes its last. The entry's `parts` lists those ranges, so the player plays
+  each from its first order until the order after its last (libopenmpt's time for an order gives its length). Its logo tune,
+  `sound/Logo.ogg`, is a tune of its own.
+- **Pixelus and Rocket Mania** join their in-game music (and Rocket Mania its menu music) from short Ogg pieces in the order a
+  playlist in the music folder gives: three header lines, then the first word of each line names a piece (Rocket Mania's
+  `AssembleMusic`, `games/rocketmania/src/AppMusic.cpp`; Pixelus's playlist has the same form). The entry's `joined` names each
+  playlist and the path of its pieces, and the player decodes the pieces and plays them one after the other, whole, as Rocket
+  Mania's original does. Pixelus's in-game tune comes out at 3:42, the playlist's own total.
+
+An entry can also list `skip` (tunes that are not tunes, as `"<file>#<n>"`) and `names` (a plain name for a tune). Tunes are named
+plainly: the file's name, and "part n" when a file holds several; Bonnie's tracks are named for where the game plays them (the
+menu, or in a game). No invented titles, and no long passages of a game's text. The module games are Alchemy, Atomica, Bejeweled,
+Big Money, BookWorm, Bookworm Adventures, Bejeweled Twist (both of its modules), Cosmic Bugs, Water Bugs, Dynomite, Seven Seas and
+Mummy Maze; the Ogg games are Bookworm Adventures Volume 2, Noah's Ark, Pixelus, Rocket Mania and Bonnie's Bookstore (its module
+too).
+
+The decoder is libopenmpt on its own, built for the web as `openmpt.js` and `openmpt.wasm` beside the pages (target
+`byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, orders, repeat, length, render,
+and stb_vorbis's whole-file decode). It holds no game code, and the page loads it only when the tab is first opened. Its licence is
+copied to `licenses/libopenmpt.txt`, which the tab links. An Ogg file is decoded whole by the browser (`decodeAudioData`, at the
+AudioContext's rate); a browser that cannot gets stb_vorbis from the same wasm, and music.js resamples its output. A tune's length
+in the list is read from the Ogg file's last page without decoding it. The main thread sends 4096-frame stereo chunks to an
+AudioWorklet (its source is a string in music.js, loaded through a Blob URL), keeping about a second queued. The worklet says when it
+has used a chunk, and when it runs dry after a tune's end, which moves on to the next tune; after the last tune the first one plays
+again. A new tune flushes the worklet's queue, and the worklet answers the flush, so the messages about the tune before are ignored.
+
+The player is in one state at a time: idle, loading, playing or paused. It has Play/Pause, Next, a "Repeat the tune" box (libopenmpt
+repeats a subsong for ever; a range of orders or decoded sound starts again at its start) and a volume slider (a GainNode). The
+repeat box and the volume are kept in `localStorage`
+(`byopop-music-loop`, `byopop-music-volume`). Each tune in the list is a button that plays it. The Media Session API gets the
+tune's name, the game as the artist and the game's icon, and its play, pause, next, previous and stop handlers, so the keyboard's
+media keys and the system's media controls drive the player. At `?silent=1` the volume's GainNode reaches the speakers only through a
+second gain of 0, so they get exact zeros, and the status line ends in "(silent)". The graph has to reach the destination all the
+same: a browser never runs a worklet whose output goes nowhere, and the tune would stand still.
+
+Not covered yet:
+
+- **TipTop** keeps MIDI music inside its .dat, which would play through TinySoundFont.
+- **Word Harmony** plays WAV files.
+- **Ning Po and the two Mahjongs** (Ancient China, Japan) keep their music packed inside other files (Ning Po's `ningpo.pyz`,
+  the Mahjongs' `Resource.dll`), which the player would have to open first.
+
 ### Importing saves from an installed game
 
 A player who has played an original game on this computer can bring its saves, high scores, players and settings into the port, in the
@@ -1364,6 +1448,38 @@ every game has them. What wrong sizes did in testing:
   mrmoneybags' height, the bill cels and title heights from their images; the cobrand image is optional.
 - BookWorm: `tile_fire_fx1` must be at least 57 px tall and the ember and spark images square (else a modulo by
   zero). `wordlist.txt` has no stand-in, and without `bookworm.exe` the game's texts are empty (GameText).
+
+## Sound
+
+Every game's sound goes through the shared mixer (`platform/Audio.cpp`), which on the web plays through the page's own
+output rather than SDL's. The user found the sound late in TipTop, Dynomite, Big Money, Bonnie's Bookstore and BookWorm
+Adventures Volume 2 (2026-11-07), and still playing for a moment after the tab lost the focus. SDL's output was a
+ScriptProcessor of 2048 frames: each mix waited for its turn and was then held for a whole buffer, so in the Browser pane a
+sound reached the speaker 109.5 ms after the game played it (the median of 20 menu sounds in TipTop; 94 to 145 ms).
+
+The page's output is an AudioWorklet that keeps a queue of mixed sound and asks the page for the next chunk of 256 frames
+whenever the queue runs short. The page mixes the chunk at once, between the game's frames, and sends it over. The queue
+is at least 2048 frames (43 ms at 48 kHz), long enough to cover the game's slower frames; when the page answers late
+(loading, a heavy frame) it grows at once, up to 4096 frames, and shrinks again after three seconds of quick answers. A
+sound the game starts does not wait behind the queue: its first frames are mixed straight away, alone, and added into the
+sound already queued, from 640 frames (13 ms) ahead of what the context has played, and the next chunk carries on from
+there. A sound now reaches the speaker 59 ms after the game plays it (the same 20 sounds: 54 to 65 ms), of which 50 ms
+is the browser's own output latency (`baseLatency` and `outputLatency`). A page with no AudioWorklet (one served over
+plain http from another machine) falls back to a ScriptProcessor of 1024 frames that is pulled the same way, at 84.5 ms
+(76 to 97 ms).
+
+Muting drops the queued sound, so a mute is heard at once, as natively: the game's own mute (`SexyAppBase::Mute`, which
+a game calls when it loses the focus) and the page's sound button. A hidden tab gets no animation frames, so the game
+would not see its focus loss until it came back: the page mutes it when the tab is hidden
+(`SexyAppBase::EmscriptenPageHidden`). In the pane, a window blur muted TipTop on its next frame, 17 ms later, and a
+hidden tab muted it at once.
+
+For tests, the page's `Module` has the output's state in `Module.byopopAudio` (`kind` is `worklet` or `script`, `target`
+the queue's length in frames, `gaps` how often it ran dry, `late` how many frames of a sound's start came too late to
+be mixed in). `Module.audioOutput = 'script'`, set before Play, forces the ScriptProcessor. A function in
+`Module.onVoiceMixed` is called with the page's clock at the play call (`performance.now()`) when a sound's first frame
+is mixed, and `Module.audioChunkEar` then holds the time that frame reaches the speaker (from `getOutputTimestamp`): the
+difference is the delay. `?silent=1` mixes as usual and sends silence, so the timing is the same with it.
 
 ## Memory use
 

@@ -184,10 +184,10 @@ static std::string FindVariant(const std::string& theRoot, const std::string& th
 {
 	std::string base = theDir.empty() ? theStem : theDir + "/" + theStem;
 	if (!theExt.empty())
-		return VFS::FindCaseInsensitive(theRoot, base + theExt);
+		return VFS::FindIndexed(theRoot, base + theExt);
 	for (const std::string& e : ImageExtensions())
 	{
-		std::string p = VFS::FindCaseInsensitive(theRoot, base + e);
+		std::string p = VFS::FindIndexed(theRoot, base + e);
 		if (!p.empty())
 			return p;
 	}

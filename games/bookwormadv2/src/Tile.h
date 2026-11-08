@@ -60,6 +60,7 @@ public:
 	bool IsVowel();                      // V1:0x499160
 	bool IsHilited() { return mHilited; }   // V1:0x416410
 	bool IsSelected() { return mSelected; } // V1:0x416420
+	bool IsWildTile();                   // the Lua object's IsWildTile (a rainbow tile)
 	bool IsBonus();                      // V1:0x499210: the Lua object's IsBonus
 	void Hilite(bool theHilite);         // 0x484e00
 	void Select(bool theSelect);         // V1:0x499290

@@ -7,6 +7,9 @@
 //                   the word) it tries again every 10 updates, and gives up after 200 tries ("busy").
 //   lua <chunk>     runs the rest of the line as Lua (logs "script: lua: <error>" when it fails)
 //   spectrum        logs how many cells of the media player's spectrum are lit ("script: spectrum <n> lit")
+//   stall <ms>      the game's thread waits while the sound plays on (a browser tab that is hidden stops the main loop)
+//   minimize, restore
+//                   the window minimizes or comes back, as SDL's MINIMIZED and RESTORED events do
 //   focus lose|regain
 //                   the window loses or regains the focus, as SDL's focus events do (a -script run ignores the real
 //                   ones); origrun's command of the same name posts the original's WM_ACTIVATEAPP
@@ -81,6 +84,30 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		RehupFocus();
 		if (mActive && !mIsWindowed)
 			mWidgetManager->MarkAllDirty();
+		return true;
+	}
+	if (theCommand.mCommand == "stall") {
+		// the game's thread waits while the sound goes on, as a browser tab that is hidden stops the main loop
+		SDL_Delay((Uint32)atoi(theCommand.mArgs.c_str()));
+		return true;
+	}
+	if (theCommand.mCommand == "minimize" || theCommand.mCommand == "restore") {
+		// as the framework takes SDL's MINIMIZED and RESTORED (WM_SIZE), which a -script run drops: the widgets stop
+		// updating while minimized, and the sound has one more mute
+		bool aMinimized = theCommand.mCommand == "minimize";
+		mPhysMinimized = aMinimized;
+		if (aMinimized != mMinimized) {
+			mMinimized = aMinimized;
+			if (mMuteOnLostFocus) {
+				if (mMinimized)
+					Mute(true);
+				else
+					Unmute(true);
+			}
+			if (!mMinimized)
+				mWidgetManager->MarkAllDirty();
+		}
+		RehupFocus();
 		return true;
 	}
 	if (theCommand.mCommand != "word")

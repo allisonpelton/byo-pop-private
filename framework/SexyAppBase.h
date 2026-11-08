@@ -444,6 +444,8 @@ protected:
 
 #ifdef __EMSCRIPTEN__
 	static void EmscriptenMainLoop(void* theArg);
+	// the page went out of sight (another tab, the browser minimized): the focus is lost at once (SexyAppBase.cpp, DoMainLoop)
+	static void EmscriptenPageHidden(SexyAppBase* theApp);
 #endif
 
 public:

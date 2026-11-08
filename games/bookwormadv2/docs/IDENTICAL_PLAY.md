@@ -103,6 +103,27 @@ The native port finds the original-case names through `filecase.txt` next to the
 without that file, so on the site `GetFilesInDirectory` lists lower-case names and the book scripts would be loaded twice,
 as before d8697ae. The web packer needs to include `filecase.txt` in the preloaded data.
 
+## Faults the user reported after phase one (2026-11-07)
+
+Found by playing, not by the comparison; each was checked against the original's decompilation, and the Word Up screen against a shot of the original (the greyed Submit plate, the Scramble and Menu buttons match).
+
+| Fault | Cause in the original | What the port does now |
+| --- | --- | --- |
+| Every mini-game ended in "Invalid Lua Result: Expected boolean in LuaClassRet" | `CurtainDone` (0x442700) reads the result of the curtain's script callback only when it returned something; the mini-games' `MiniGame.DoConvPanel` returns nothing | `GameApp::CurtainDone` keeps the curtain only when the callback returned a boolean true |
+| Word Up's Submit button drew nothing | `SetAttackDisabled` sets the button's cel rectangles from its current picture; a mini-game's is `btn_submit` with 238-wide cels, and the port used the attack button's 244 | the cel size comes from the button's own picture |
+| Word Up had no Scramble button | the Board makes it in mini-games too; the scripts of the other mini-games hide it | `Board::CreateButtons` makes it for every board |
+| Rainbow tiles never formed a word | `0x4129e0` leaves a wild tile out of the word, tries A to Z in its place until the word is in the list, and gives the tile that letter | `Board::GetWord` does the same (an earlier wild tile in the same word is left out, as there) |
+
+The **curtain lag** is a hitch at the start of every transition, not a slow cel rate: a native real-time run drew the curtain at 60 frames a second, but the constructor of `CurtainTransition` (made anew for each curtain, as in the original) copied and flipped or mirrored the curtain picture three times, 24 to 30 ms, and the first frame uploaded three new textures, another 22 to 32 ms; on slower machines and in the web build it costs more. The port now makes the three copies once and keeps them (not compared against the original's frame times; the original's own code does the same work, so it probably stalls too, but a hitch that breaks nothing is fixed here anyway). Web frame times were not measured. The **music that stops after a chapter boss** is a bug of the original that breaks play (found by Bookworm Adventures' session, which reproduced it with a stalled game loop): after the boss the scripts play the treasure song and queue the map song for a given order of it; `SongPlayer::Update` starts the queued song only while the treasure song is at that order, so when the loop does not run while the song plays (a hidden or minimized browser tab stops the frames, the music goes on) the song passes the order and ends unseen, and nothing plays until the next song. The port starts the queued song as soon as the song has stopped, whatever order it waited for (not run to the user's exact case: a hidden-tab run was not made here). The web sound delay is another session's.
+
+## Performance items (for the performance pass)
+
+- **The first Board's `main.LoadResources` stalls the web build for about 1.5 s** (smaller stalls of 190 to 290 ms around it). `Board.cpp` calls the script `main.LoadResources`, which makes about 35 `LoadPAMFile` calls (the tile and effect animations: `tilefx_*`, `fx_*`, `potion_*`, `grid_*`), hundreds of JPEG and GIF-mask decodes, in one call, once per Board. The original makes the same call on its main thread, so a one-time stall before the first battle is its behaviour too; the port's is longer because decoding is slower in wasm. Possible fix: decode the PAMs' images ahead of the call, on the title screen's time-sliced load (hold them in the shared-image cache), which needs the list of the PAMs the scripts name. Natively the call took 5 s before the shared image-lookup fix (8a73a4fe) and well under a second after it. To go with the JPEG decoder question.
+
+## Played with real input (before the final merge)
+
+Web build, 2026-11-07, in the Browser pane at `?silent=1` with requestAnimationFrame shimmed: the page's script sent a mouse move, a pause, then a press and release on the canvas for every click (no game hooks). Played so far: the launch, the intro cut scene (Skip), the prologue's conversation clicks, the tutorial battle's word P-L-A-Y and the Attack button (the enemy took the hit, the board refilled); then, from a profile with the mini-games unlocked, the main menu, the Mini Games menu and **Word Up from its welcome to its Game Over screen** (six words clicked and submitted, Submit and Scramble drawn as in the original, score 28,000, Hall of Fame entry made), and **Mutant Words** up to the end of its timer (Game Over screen, Hall of Fame). No console error in any of it. **Not played yet:** Golden Coins, Link n' Spell, Letter Rip, Word Master, the later chapters and a boss, timed mode, the native pass (keys and burst-posted clicks) and full screen natively. The page's own full screen cannot be tested by an agent (requestFullscreen needs a real user gesture, which dispatched events are not); it is left for the user.
+
 ## Remaining deviations
 
 None known in the logic that was compared. Everything above "Not covered" is untested, not known to differ.

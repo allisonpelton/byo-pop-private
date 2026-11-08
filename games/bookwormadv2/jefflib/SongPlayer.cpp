@@ -132,7 +132,10 @@ void SongPlayer::Update()
 		return;
 	bool aDone = false;
 	bool aPlaying = mMusic->IsPlaying(mCurrentSong);
-	if (mQueuedAtOrder == -1 && !aPlaying) {
+	// port: a song that ended while the game's loop did not run (a hidden browser tab stops the frames while the music goes on)
+	// passed its order unseen; the original left the queued song waiting for good then, and there was no music until the
+	// next PlaySong. A stopped song now starts the queued one whatever order it waited for.
+	if (!aPlaying) {
 		aDone = true;
 	} else if (aPlaying && mQueuedAtOrder != -1) {
 		int aPosition = mMusic->GetMusicPosition(mCurrentSong);
