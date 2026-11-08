@@ -205,7 +205,10 @@ fall-back from full screen to a window) are the sandbox's, worked around as desc
 
 ## Deviations that remain
 
-None was found in what was compared. What was not compared:
+None was found in what was compared. Loading (the user's rule of 2026-11-07, fast loading is part of every port) is not a
+deviation: the registered original's loading had no wait to take out (the bar showed the thread's real progress; the
+nag's delay clamp was the trial's and is taken out with it), and the port loads at the machine's speed
+(`GAME_NOTES.md` section 18). What was not compared:
 
 - Full screen: the sandbox cannot open it, so both sides ran windowed. The port alone was played in full screen natively
   (Alt+Enter, moves, back; "Real input"); the original's full screen was not compared, and the web's only as a scaled canvas.
