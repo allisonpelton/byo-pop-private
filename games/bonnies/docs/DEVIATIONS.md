@@ -52,6 +52,11 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   boards repeat. A script's `focus 0` and `focus 1` take the focus away and give it back, as a click on another
   window would; while it is away in a `-fast` run, the game's wait for its next frame (0x420770), which pumps without
   sleeping, runs the framework once a pump, since that run's clock moves only with the framework.
+- **Real input natively.** In a `-realinput` run (`docs/REAL_INPUT.md`) the host gives the game only the focus and the
+  mouse the run's own events give (`getAppState`), reads the cursor in full screen from those events instead of the real
+  one (`getCursorPos`), and, with `-fast`, runs the framework at every pump while the game has lost the focus, as it
+  already did for a script's focus loss, so that the clock moves and the next command comes. A run without
+  `-realinput` is as before.
 - **The test state.** For playing with real input only, the port reads its state out without changing it
   (`testState` and `testWord`, `game/GameScreen.cpp`): the buttons on screen, the level, score, turns and phase, the
   tutorial's balloon and the tiles it marks, the hint the game shows, and a word on the board found with the game's
@@ -76,6 +81,10 @@ dialog's "registration reminder" layout (`gPreRegister`, bit 0 of `gameDialog`'s
 for; and Portal.cfg's buy page address (`BuyNowURL`), which only the panel used. Portal.cfg's reader still reads past
 that key, so the keys after it parse as before. The suite's frozen screens are unchanged.
 
+**Ways out of the game, taken out** (the user, 2026-11-07). Bonnie's has no "More Games" button. The options menu's
+handler had a case, id 0x25e, that opened the game's web site, but no button carries that id, so it was taken out with
+no visible change. The registration's web site button went with the panel, above.
+
 ## Test commands
 
 The standard test commands (`docs/TEST_COMMANDS.md`) are the game's, in `game/GameScreen.cpp` (`testCommand`), and
@@ -90,7 +99,8 @@ of open dialogs) and `paused`, and in a game also `mode` (classic or action), `l
 (1 in play, 2 and on the steps after a won level), `moves` (the classic mode's turns) or `timer` (the action mode's
 time bar, 0 to 1), `filled` and `fill` (the cells filled and the number the chapter needs), `board` (nine rows from the
 top, a character a column: the tile's letter, `*` a star, `?` and `!` wild tiles, lower case a two-letter tile, `.` no
-cell, a blank an empty cell) and `fixed` (the cells of locked tiles, column*9+row).
+cell, a blank an empty cell), `fixed` (the cells of locked tiles, column*9+row) and `unfilled` (the cells still to fill,
+the same way).
 
 `goto title|menu|help|credits|highscores` asks for the screen as the game does (`setState`, which switches at the
 next update). The options are a dialog, not a screen, and a mode starts only through the menu's player and
@@ -100,6 +110,15 @@ story page. `win` ends the level as won (`Game::levelWon`, submit's own ending, 
 this). `lose` sets the turns (classic) or the time (action) to none, and the game's update ends the game as it does
 then. `set score|moves|timer <value>` sets that key. `seed <n>` seeds `rand`, which every random number comes from.
 `unlock all` answers ERROR: nothing in Bonnie's is locked.
+
+`move` prints the move of the port's own bot, `MOVE {...}`, or `MOVE null` off the board or while a dialog is open. It
+is a balloon's own button (`kind` button, its `id`), the word a tutorial balloon names over the tiles it marks (`kind`
+tutorial), the best word the bot finds (`kind` word: up to ten tiles, by what it fills, the stars it brings down and
+the turns it gives or costs, by the game's own dictionary check, with wild tiles as any letter but Q, since a wild tile
+is one letter and Q is two), or the game's own hint when the bot has none (`kind` hint), with `word`, `cells` and
+`input`: a click off the board (which clears a path left over), a click on each tile, then Submit, in game pixels. The
+bot reads the game and changes nothing; its search is kept for a board it has searched before. Scramble, the story's
+pages and the dialogs are left to the driver (`tools/paneplay.js`, `tools/realmove.py`).
 
 ## Memory the original leaks
 

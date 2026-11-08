@@ -2719,6 +2719,9 @@ static void testStep(int theCell, std::string& theWord, std::string& theSpelled,
 	char aLast = aTile == '?' || aTile == '!' ? 'Z' : aTile;
 	for (char aLetter = aFirst; aLetter <= aLast; aLetter++)
 	{
+		// a wild tile is one letter in the game's check (Dictionary::isWord), so never the Q tile's QU
+		if (aLetter == 'Q' && aFirst != aLast)
+			continue;
 		theWord.push_back(aLetter);
 		size_t aSize = theSpelled.size();
 		theSpelled += expandWord(Str(1, aLetter), 0);
@@ -2731,20 +2734,23 @@ static void testStep(int theCell, std::string& theWord, std::string& theSpelled,
 	}
 }
 
-// port (test runs): the best word (up to 10 tiles, by testValue) on the board's letter and wild tiles that are not
-// fixed (as Game::findHint takes them), by the game's dictionary, as "word <letters> x y..." (Start.h). Read only,
-// and it draws no random number.
-std::string testWord()
+// port (test runs): the bot's best word (up to 10 tiles, by testValue) on the board's letter and wild tiles that are not
+// fixed (as Game::findHint takes them), by the game's dictionary: its cells into thePath and its letters into theWord
+// (a wild tile as the letter it stands for). Read only, and it draws no random number. A board already searched gives
+// the answer it gave before, since a driver asks many times while the board stands still.
+static void testBest(std::vector<int>& thePath, std::string& theWord)
 {
-	if (gGameScreen == nullptr || gGame == nullptr || gDictionary == nullptr || gDictionary->mCount == 0)
-		return "word\n";
-	// the answer for a board already searched (a driver asks many times while the board stands still)
-	static std::string sKey, sAnswer;
+	static std::string sKey, sWord;
+	static std::vector<int> sPath;
 	std::string aKey(gGame->mLetters, gGame->mLetters + 81);
 	aKey.append((const char*)gGame->mTileFlags, sizeof gGame->mTileFlags);
 	aKey += std::to_string(gGame->mGoal) + " " + std::to_string(gGame->mLevel);
 	if (aKey == sKey)
-		return sAnswer;
+	{
+		thePath = sPath;
+		theWord = sWord;
+		return;
+	}
 	sKey = aKey;
 	std::vector<int> aBest;
 	std::string aBestWord;
@@ -2767,6 +2773,20 @@ std::string testWord()
 		std::vector<int> aPath;
 		testStep(aStarts[i], aWord, aSpelled, aPath, aBest, aBestWord, aVisits);
 	}
+	sPath = aBest;
+	sWord = aBestWord;
+	thePath = aBest;
+	theWord = aBestWord;
+}
+
+// port (test runs): the bot's best word as "word <letters> x y..." (Start.h)
+std::string testWord()
+{
+	if (gGameScreen == nullptr || gGame == nullptr || gDictionary == nullptr || gDictionary->mCount == 0)
+		return "word\n";
+	std::vector<int> aBest;
+	std::string aBestWord;
+	testBest(aBest, aBestWord);
 	std::string aText = "word " + aBestWord;
 	for (size_t i = 0; i < aBest.size(); i++)
 	{
@@ -2776,8 +2796,151 @@ std::string testWord()
 		snprintf(aLine, sizeof aLine, " %.4f %.4f", aX, aY);
 		aText += aLine;
 	}
-	sAnswer = aText + "\n";
-	return sAnswer;
+	return aText + "\n";
+}
+
+// port (test runs): whether two cells touch (Game::neighbour's six directions)
+static bool testTouch(int theCell, int theOther)
+{
+	for (int aDirection = 0; aDirection < 6; aDirection++)
+	{
+		int aColumn, aRow;
+		if (gGame->neighbour(theCell / 9, theCell % 9, aDirection, &aColumn, &aRow) != 0 && aColumn * 9 + aRow == theOther)
+			return true;
+	}
+	return false;
+}
+
+// port (test runs): a path over theMarked's cells (the tiles a tutorial balloon marks) that spells theWord
+static bool testMarkedPath(const std::string& theWord, const std::vector<int>& theMarked, std::vector<int>& thePath)
+{
+	if (thePath.size() == theWord.size())
+		return true;
+	for (size_t i = 0; i < theMarked.size(); i++)
+	{
+		int aCell = theMarked[i];
+		if (std::find(thePath.begin(), thePath.end(), aCell) != thePath.end() ||
+			gGame->mLetters[aCell] != theWord[thePath.size()])
+			continue;
+		if (!thePath.empty() && !testTouch(thePath.back(), aCell))
+			continue;
+		thePath.push_back(aCell);
+		if (testMarkedPath(theWord, theMarked, thePath))
+			return true;
+		thePath.pop_back();
+	}
+	return false;
+}
+
+// port (test runs): a widget's centre in game coordinates (800x600), its hit box's where it has one
+static void testCentre(Screen* theScreen, Widget* theWidget, int* theX, int* theY)
+{
+	float aX = theScreen->mX + theWidget->mX + theWidget->mWidth / 2;
+	float aY = theScreen->mY + theWidget->mY + theWidget->mHeight / 2;
+	if (theWidget->mHitX != 0.0f || theWidget->mHitY != 0.0f)
+	{
+		aX = theScreen->mX + theWidget->mX + theWidget->mHitX + theWidget->mHitWidth / 2;
+		aY = theScreen->mY + theWidget->mY + theWidget->mHitY + theWidget->mHitHeight / 2;
+	}
+	*theX = (int)(aX * 800.0f + 0.5f);
+	*theY = (int)(aY * 600.0f + 0.5f);
+}
+
+// port (test runs): the bot's next move on the board, for the test command "move" (docs/TEST_COMMANDS.md), as a player
+// makes it: a tutorial balloon's own button (Continue); the word a balloon names over the tiles it marks; else the best
+// word (testBest), or the game's own hint when the bot has none. Its input clicks off the board first (Game::pick clears
+// a path left over), then each tile, then Submit. Read only.
+static std::string testMove()
+{
+	if (gBonnies == nullptr || gBonnies->mState != 3 || gGameScreen == nullptr || gGame == nullptr ||
+		gDictionary == nullptr || gDictionary->mCount == 0 || gBonnies->inModal() || gGameScreen->mField58 != 1 ||
+		gGame->mFieldC60 != 0)
+		return "MOVE null";
+	char aLine[96];
+	// a balloon's own button (Continue, on the balloon's screen): any active button of a visible screen but the board's
+	// Menu, Submit and Scramble
+	for (Screen* aScreen = gBonnies->mHead; aScreen != nullptr; aScreen = aScreen->mNext)
+	{
+		for (Widget* aWidget = aScreen->mHead; aWidget != nullptr; aWidget = aWidget->mNext)
+		{
+			if ((aWidget->mType != 1 && aWidget->mType != 3) || aWidget->isActive() == 0 || aWidget->mId == 0xc9 ||
+				aWidget->mId == 0xca || aWidget->mId == 0xcb)
+				continue;
+			int aX, aY;
+			testCentre(aScreen, aWidget, &aX, &aY);
+			snprintf(aLine, sizeof aLine, "MOVE {\"kind\":\"button\",\"id\":%d,\"input\":[{\"click\":[%d,%d]}]}",
+				aWidget->mId, aX, aY);
+			return aLine;
+		}
+	}
+	std::vector<int> aMarked;
+	for (int aCell = 0; aCell < 81; aCell++)
+	{
+		if ((gGame->mTileFlags[aCell] & 0x40) != 0 && gGame->mLetters[aCell] != 0)
+			aMarked.push_back(aCell);
+	}
+	std::vector<int> aPath;
+	std::string aWord;
+	const char* aKind = "word";
+	if (!gGameScreen->mStrCC.empty() && !aMarked.empty())
+	{
+		// the balloon's word: its first word of three or more capitals
+		const std::string& aText = gGameScreen->mStrCC;
+		std::string aToken;
+		for (size_t i = 0; i <= aText.size() && aWord.empty(); i++)
+		{
+			char aChar = i < aText.size() ? aText[i] : ' ';
+			if ((aChar >= 'A' && aChar <= 'Z') || (aChar >= 'a' && aChar <= 'z'))
+			{
+				aToken += aChar;
+				continue;
+			}
+			bool aCapitals = aToken.size() >= 3;
+			for (size_t j = 0; j < aToken.size(); j++)
+				aCapitals = aCapitals && aToken[j] >= 'A' && aToken[j] <= 'Z';
+			if (aCapitals)
+				aWord = aToken;
+			aToken.clear();
+		}
+		if (!aWord.empty() && !testMarkedPath(aWord, aMarked, aPath))
+			aPath.clear();
+		aKind = "tutorial";
+	}
+	else
+		testBest(aPath, aWord);
+	if (aPath.size() < 3 && (gGameScreen->mStrCC.empty() || aMarked.empty()) && gGameScreen->mHintShown != 0 &&
+		gGame->mHintFound != 0 && gGame->mHintLength >= 3)
+	{
+		aPath.clear();
+		aWord.clear();
+		for (int i = 0; i < gGame->mHintLength && i < 20; i++)
+		{
+			int aCell = gGame->mHintColumns[i] * 9 + gGame->mHintRows[i];
+			aPath.push_back(aCell);
+			aWord += gGame->mLetters[aCell];
+		}
+		aKind = "hint";
+	}
+	if (aPath.size() < 3)
+		return "MOVE null";
+	std::string aMove = std::string("MOVE {\"kind\":\"") + aKind + "\",\"word\":\"" + aWord + "\",\"cells\":[";
+	std::string anInput = "{\"click\":[20,300]}";
+	for (size_t i = 0; i < aPath.size(); i++)
+	{
+		float aX, aY;
+		gGameScreen->tilePos(aPath[i] / 9, aPath[i] % 9, &aX, &aY);
+		snprintf(aLine, sizeof aLine, ",{\"click\":[%d,%d]}", (int)(aX * 800.0f + 0.5f), (int)(aY * 600.0f + 0.5f));
+		anInput += aLine;
+		aMove += (i == 0 ? "" : ",") + std::to_string(aPath[i]);
+	}
+	Widget* aSubmit = gGameScreen->findWidget(0xca);
+	if (aSubmit == nullptr)
+		return "MOVE null";
+	int aX, aY;
+	testCentre(gGameScreen, aSubmit, &aX, &aY);
+	snprintf(aLine, sizeof aLine, ",{\"click\":[%d,%d]}", aX, aY);
+	anInput += aLine;
+	return aMove + "],\"input\":[" + anInput + "]}";
 }
 
 // port (test runs): the standard test commands (docs/TEST_COMMANDS.md), for -script and the live command channel
@@ -2851,6 +3014,8 @@ std::string testCommand(const std::string& theCommand, const std::string& theArg
 	std::string aLine = theArgs.empty() ? theCommand : theCommand + " " + theArgs;
 	if (theCommand == "state")
 		return "STATE " + testJsonState();
+	if (theCommand == "move")
+		return testMove();
 	if (theCommand == "goto")
 	{
 		for (int i = 1; i < 8; i++)

@@ -5,10 +5,11 @@
 //     panePlayLog                   what the run did, a line each, for reading while it runs
 // Steps: wait, move, click, type, key, focus, shot, as realplay.py has them, and
 //     play <s>   plays the classic game on screen for up to s seconds: answers dialogs with their first button that
-//                neither leaves the game nor opens anything, clicks on through the story's pages, spells the word the
-//                tutorial's balloon asks for, and otherwise the longest word on the board by the game's own
-//                dictionary, then Submit. The board, the buttons and the word come from the page's test export
-//                (bonnies_test_state, src/BonniesHost.cpp), which only reads the game.
+//                neither leaves the game nor opens anything, clicks on through the story's pages, plays the move of
+//                the port's own bot (the test command "move": the tutorial's word, the best word or the game's hint)
+//                and scrambles when its words stop filling cells. The buttons come from the page's test export
+//                (bonnies_test_state) and the commands from bonnies_test_command (src/BonniesHost.cpp), which
+//                answers at once; both only read the game.
 window.panePlayLog = [];
 window.panePlay = async function (text, onShot) {
   const s = ms => new Promise(z => setTimeout(z, ms));
@@ -17,7 +18,10 @@ window.panePlay = async function (text, onShot) {
   const log = line => window.panePlayLog.push(((performance.now() - t0) / 1000).toFixed(1) + ' ' + line);
   const at = (x, y) => {
     const r = c.getBoundingClientRect();
-    return { clientX: r.left + x * r.width / 800, clientY: r.top + y * r.height / 600, bubbles: true, button: 0 };
+    const cx = r.left + (x + 0.5) * r.width / 800, cy = r.top + (y + 0.5) * r.height / 600;
+    // as web/testkit.js sends them: a page's own events carry their window, can be cancelled and count one click
+    return { clientX: cx, clientY: cy, screenX: cx, screenY: cy, bubbles: true, cancelable: true, view: window, detail: 1,
+      button: 0 };
   };
   const mouse = (t, x, y, b) => c.dispatchEvent(new MouseEvent(t, Object.assign(at(x, y), { buttons: b || 0 })));
   const click = async (x, y) => {
@@ -63,28 +67,6 @@ window.panePlay = async function (text, onShot) {
         for (let i = 0; i < a[1].length; i++) st.word.push({ ch: a[1][i], x: a[2 + 2 * i] * 800, y: a[3 + 2 * i] * 600 });
     }
     return st;
-  };
-  // odd columns sit half a cell lower (game/Game.h)
-  const touch = (a, b) => {
-    if (a.col === b.col) return Math.abs(a.row - b.row) === 1;
-    if (Math.abs(a.col - b.col) !== 1) return false;
-    const low = a.col % 2 ? a.row : b.row, high = a.col % 2 ? b.row : a.row;
-    return low === high || low === high - 1;
-  };
-  const tutorialPath = (says, marked) => {
-    const w = says.split(/\s+/).map(x => x.replace(/[^A-Za-z]/g, '')).find(x => x.length >= 3 && x === x.toUpperCase());
-    if (!w || !marked.length) return null;
-    const walk = path => {
-      if (path.length === w.length) return path;
-      for (const m of marked) {
-        if (path.includes(m) || m.ch !== w[path.length]) continue;
-        if (path.length && !touch(path[path.length - 1], m)) continue;
-        const f = walk(path.concat([m]));
-        if (f) return f;
-      }
-      return null;
-    };
-    return walk([]);
   };
   const shoot = async name => { if (onShot) await onShot(name); };
 
@@ -134,17 +116,16 @@ window.panePlay = async function (text, onShot) {
         continue;
       }
       const balloon = st.balloon && st.balloon[0];
+      // the port's bot (the test command "move"): the word a tutorial balloon names, the best word, or the game's own
+      // hint; its input is a click off the board, the tiles, then Submit
       let tiles = null;
       if (phase === 1 && c60 === 0) {
-        if (balloon) {
-          const path = tutorialPath(st.says, st.marked);
-          if (path) { tiles = path; log('the tutorial asks for ' + path.map(m => m.ch).join('')); }
-          // a balloon that marks no tiles leaves the word to the player (TALE: "Now find the word...")
-          else if (!st.marked.length && st.word.length >= 3) tiles = st.word;
-          else if (!st.marked.length && st.hint[0] && st.hint[1].length >= 3) tiles = st.hint[1];
-        } else if (st.word.length >= 3) tiles = st.word;
-        // the game's own hint, when it shows one and the finder has nothing (a word of other tiles than plain letters)
-        else if (st.hint[0] && st.hint[1].length >= 3) tiles = st.hint[1];
+        let m = null;
+        try { m = JSON.parse(Module.ccall('bonnies_test_command', 'string', ['string'], ['move']).slice(5)); } catch (e) { m = null; }
+        if (m && m.kind !== 'button' && m.input.length >= 5) {
+          tiles = m.input.slice(1, -1).map((step, i) => ({ ch: m.word[i] || '?', x: step.click[0], y: step.click[1] }));
+          if (m.kind !== 'word') log('the ' + m.kind + ' gives ' + m.word);
+        }
       }
       // the same word refused twice with nothing changed: the game's own hint, when it shows one
       const spelled = tiles ? tiles.map(t => t.ch).join('') : '';

@@ -174,13 +174,14 @@ public:
 		return gHostApp->GetClockTime();
 	}
 
-	// a test run (hidden, on rundesk's desktop) has the focus, as the user's window would, until a script's "focus 0"
+	// a test run (hidden, on rundesk's desktop) has the focus, as the user's window would, until a script's "focus 0";
+	// a -realinput run has only the focus and the mouse its file's events give (docs/REAL_INPUT.md)
 	unsigned char getAppState() override
 	{
 		unsigned char aState = 0;
 		if (!gHostApp->mMinimized)
 			aState |= bonnies::SDL_APPACTIVE;
-		bool aTestFocus = gHostApp->IsTestRun() && !gHostApp->mScriptNoFocus;
+		bool aTestFocus = gHostApp->IsTestRun() && !gHostApp->mScriptNoFocus && gHostApp->mRealInputFileName.empty();
 		if ((gHostApp->mHasFocus && !gHostApp->mScriptNoFocus) || aTestFocus)
 			aState |= bonnies::SDL_APPINPUTFOCUS;
 		if ((gHostApp->mMouseInside && !gHostApp->mScriptNoFocus) || aTestFocus)
@@ -212,11 +213,13 @@ public:
 	}
 
 	// The framework runs while the game is busy (loading) too, so the window stays responsive. Unfocused, the game waits 2 ms a frame in a loop of pumps (0x420770) that never sleeps; a -fast run's clock moves
-	// only when the framework runs, so while a script has taken the focus away a pump runs it once
+	// only when the framework runs, so while a script, or a -realinput run's own focus loss, has taken the focus away a
+	// pump runs it once
 	void pumpEvents() override
 	{
 		if ((int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100 ||
-			(gHostApp->mFastMode && gHostApp->mScriptNoFocus))
+			(gHostApp->mFastMode && (gHostApp->mScriptNoFocus ||
+			(!gHostApp->mRealInputFileName.empty() && !gHostApp->mHasFocus))))
 			gHostApp->RunFramework(0);
 	}
 
@@ -317,6 +320,13 @@ public:
 	bool getCursorPos(int* theX, int* theY) override
 	{
 #ifndef __EMSCRIPTEN__
+		// a -realinput run's mouse is where its events left it, not the real cursor (docs/REAL_INPUT.md)
+		if (!gHostApp->mRealInputFileName.empty())
+		{
+			*theX = mMouseX;
+			*theY = mMouseY;
+			return true;
+		}
 		SDL_GetGlobalMouseState(theX, theY);
 		return true;
 #else

@@ -1529,9 +1529,8 @@ int OptionsMenu::handleEvent(Event* theEvent)
 	case 0x25d:
 		gApp->endModal(0, 0);
 		return 0;
-	case 0x25e:
-		openURL(Str(lit(0x4753d8)));
-		return 0;
+	// port: the original's 0x25e opened the game's web site; no button has the id, and the port takes out every way out
+	// of a game (docs/DEVIATIONS.md, "Loading and the registration")
 	default:
 		return Screen::handleEvent(theEvent);
 	}
