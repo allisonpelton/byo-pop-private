@@ -352,6 +352,7 @@ suite passes against it (the logs of the three bot games are unchanged and every
 |---|---|---|---|
 | Options dialog: Register and Web buttons | registration code and a button that opens popcap.com | gone; Help and High Scores share a row, Credits takes the next, the dialog is a row shorter | b79c205f |
 | Registered flag, play counter, register dialog, picture, font, four texts | registration code | gone; the image ids after the register picture move down by one | b79c205f |
+| The title's "Thanks for registering" line (black outline, yellow face, y 0x170) and the title's tip counter, with nine registration texts the table held unused | what a registered copy shows (the user, 2026-11-08: part of the registration code) | gone; nothing else sat beside it, so there is no gap to close; the title's frozen screens lose the line | (this commit) |
 | Noah's idle pictures one off after that move (found by the suite's strategy photographs) | the original names them by number in `Board::Update` and the level reset | named by the enum; the saved game still writes the number the original uses | b79c205f |
 | Water a pixel above its level after a click ends the get-ready | the original snaps it only when the get-ready ends by itself | mod `snapWater` | b79c205f |
 | Start of a level and level-up seconds by the machine's clock | `GetTickCount` | mod `steadyClock` counts updates | b79c205f |
