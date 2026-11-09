@@ -337,6 +337,8 @@ index.tile.name_year = {title}, {year}
 index.soon = Coming soon
 # {label} is the game's title, and its year when it has one
 index.soon_label = {label}, coming soon
+# the tooltip of the icon on a coming-soon card whose port opens on this development computer only (web/localsoon.js)
+index.soon_local = This computer only
 # Links to the stores that sell a game, on its card. {store} is a store's name; {title} the game's.
 # A store whose name ends in "app" (the EA app) takes "the".
 store.buy_on = Buy on {store}

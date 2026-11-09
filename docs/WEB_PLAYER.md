@@ -685,6 +685,23 @@ desktop outside a game's window, opens it with them, and it goes straight on to 
 on a game's card keeps the single-game import above. Closing it after Finish leaves it empty for the next time.
 `tools/setuptest.js` (in `unit-web`) checks the order of the pages for the games found and Finish's rows and counts.
 
+### Coming soon games on a development host
+
+The user, 2026-11-09, asked "Make built ports' Coming soon tiles open their game on the local site?": "Yes, locally". A game in
+`BYOPOP_WEB_UPCOMING` whose page this build made (its `byopop_web_game()` was configured and its `BUILD_<TARGET>` is on) gets
+marks on its Coming soon tile in the generated listing (`data-local-page`, `data-local-game`, `data-local-persist`,
+`data-local-lock`). On a development host (127.0.0.1, localhost, [::1], *.localhost, *.test or a file:// page, `ByopopTerms.devHost`)
+`web/localsoon.js` turns such a tile into the link a finished game's tile is, before anything reads the tiles, so the listing (a
+double-click, Enter or Space), the Library, a favourite's desktop icon and the Pop menu's Games (once its files are here) open the
+game in its window like any other. The card keeps its Coming soon look and its "Coming soon", with this computer's icon beside it
+(tooltip "This computer only"). A game with no page in the build keeps its plain Coming soon tile, and on any other host the marks
+are ignored. `?localsoon=0` keeps every one shut on a development host too. `tools/localsoontest.js` (in `unit-web`) checks the
+hosts, the marks and that a deployed host or a forced-false devHost leaves all of them shut.
+
+The site has no deploy step yet: build/web holds the pages, scripts and wasm of every port this build made, the ones still to come
+too (`<target>.html`, `.js`, `.wasm`, `-copyright.html`), so whatever copies the site to a public host must leave those out, or the
+site's build must turn their `BUILD_<TARGET>` off.
+
 ### Games this site does not play
 
 The user, 2026-11-07: "Let's also add site code explicitly recognizing folders that seem to contain a game we haven't/won't
