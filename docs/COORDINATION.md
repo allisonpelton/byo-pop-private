@@ -299,9 +299,10 @@ were fixed (34e6da1, a6547b9). The chat
   still done when asked. Desktop 95's pixelated text waits for a pixel font drawn for the project (the user, 2026-11-08: "Draw our own
   later"): every Windows install still has the bitmap MS Sans Serif (`sserife.fon`), but browsers draw only TrueType and
   OpenType, so the skin's "MS Sans Serif" comes out as the smooth Microsoft Sans Serif, and Microsoft's font itself is
-  never shipped. New site work is built and checked in Desktop 95 only, and the other skins only have to keep working (the
-  user, 2026-11-09: "I've basically completely lost interest in the skins that aren't Windows 95. Don't need to remove
-  the other ones yet"). An XP look, and perhaps Vista's, waits until the site works as the user wants it (the user,
+  never shipped. Desktop 95 is the site's only look (the user, 2026-11-09: "I've basically completely lost interest in
+  the skins that aren't Windows 95", and later that day: "drop the alt skins, including the plain one"): Demo Disc, Soda
+  Fountain, Plain, the skin choice and the dark theme are taken out, and new site work is built and checked in Desktop 95
+  alone. An XP look, and perhaps Vista's, waits until the site works as the user wants it (the user,
   2026-11-09: "it would be once all the site functionality is exactly as I want it"): each a second style of the same
   desktop, as XP's own Display settings offered the XP style or the Classic one for the same windows. The desktop's
   behaviour is first parted from the 95 look (the code tests for "d95" where it means the desktop), then each style
