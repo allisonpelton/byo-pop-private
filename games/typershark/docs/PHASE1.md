@@ -139,8 +139,12 @@ state and letters typed, in list order.
    375, the word WEAK with 0, 2, 3, 3 letters typed, all equal to the port's log; at 153201 the string is empty, the index has
    gone round (214 and counting: the search is running) and the update counter never reaches 153202 (the run, started 40000
    updates later because of the load flake, shows the same update for its last three minutes until the time limit). The port is the same loop. No
-   person types 1882 end-of-level words in one game (the whole adventure is 34 levels), so nothing was changed. If it should be,
-   the fix is small (empty the set of used words when it holds every word of the range) and belongs in the fixes mod.
+   person types 1882 end-of-level words in one game (the whole adventure is 34 levels), so nothing was changed in this pass.
+   **Decided later (the coordinator, 2026-11-09): fixed in the port itself**, since a game that hangs for good is a bug that breaks
+   play (CLAUDE.md, "Making a port"): `GetLongWord` empties the set of used words when it holds every word of the lengths that can be
+   drawn (WinWSAppGame.cpp), draws no number for it and changes nothing while an unused word is left. Checked with the same
+   adventure played on by the port's bot: the state log is byte-identical to the unfixed port's for the first 153195 updates,
+   and the game goes on through update 153201 (level 34), the win, level 35 and the endless levels to 175000.
 2. **The typing tutor holds uninitialised numbers until a lesson ends.** The words per minute (raw and adjusted) and the accuracy
    (+0x8c, +0x90, +0x9c) are written when the lesson ends; until then the original reads whatever its allocation held, and the port
    holds 0. The comparer leaves those three out until the lesson's state is 2 (finished). Nothing shows them before the end.
@@ -173,8 +177,7 @@ state and letters typed, in list order.
 
 ## Undecidable here
 
-Nothing found that needs the user's decision. The only open question is whether the freeze of oddity 1 (both programs, 1882
-end-of-level words in one game) should be fixed in the fixes mod.
+Nothing found that needs the user's decision (oddity 1, the freeze after 1882 end-of-level words, is fixed in the port, see there).
 
 ## Comparer faults found on the way (not game differences)
 

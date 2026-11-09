@@ -27,6 +27,8 @@ from tsp import *            # noqa: E402,F401
 from peekparse import parse, dbl   # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', '..', '..'))
+# the port's exe: TSEXE=<absolute path> runs another build (the frozen baseline), so that the sources can be rebuilt meanwhile
+PORT_EXE = os.environ.get('TSEXE') or os.path.join(ROOT, 'build', 'native', 'typershark.exe')
 OUT = os.path.join(ROOT, 'build', 'ts-p1')
 
 # ---- the class layouts from RTTI: primary vptr -> (name, GameObject part offset, Enemy part offset) ----
@@ -188,7 +190,7 @@ def run_port(script_text, tag, seed, userfix=None, extra_args=()):
         subprocess.call(['cp', '-r', os.path.join(OUT, 'fixtures', userfix), ud])
     open(sp, 'w', newline='\n').write(script_text)
     gamecount_wait()
-    exe = os.path.join(ROOT, 'build', 'native', 'typershark.exe')
+    exe = PORT_EXE
     subprocess.call([os.path.join(ROOT, 'build', 'native', 'rundesk.exe'), exe, '-fast', f'-seed={seed}', f'-userdir={ud}',
                      f'-script={sp}', f'-statelog={sl}'] + list(extra_args), stdout=open(os.path.join(OUT, tag + '.port.out'), 'w'),
                     stderr=subprocess.STDOUT)
@@ -206,7 +208,7 @@ def record_typist(steps, tag, seed, opts, hi, userfix=None):
         subprocess.call(['cp', '-r', os.path.join(OUT, 'fixtures', userfix), ud])
     open(sp, 'w', newline='\n').write(port_script(steps, [f'{hi + 5} quit']))
     gamecount_wait()
-    subprocess.call([os.path.join(ROOT, 'build', 'native', 'rundesk.exe'), os.path.join(ROOT, 'build', 'native', 'typershark.exe'),
+    subprocess.call([os.path.join(ROOT, 'build', 'native', 'rundesk.exe'), PORT_EXE,
                      '-fast', f'-seed={seed}', f'-userdir={ud}', f'-script={sp}', f'-typist={rec};{opts}', f'-statelog={os.path.join(OUT, tag + ".rec.sl")}'],
                     stdout=open(os.path.join(OUT, tag + '.rec.out'), 'w'), stderr=subprocess.STDOUT)
     out = list(steps)

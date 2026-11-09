@@ -587,6 +587,35 @@ std::string WinWSApp::GetLongWord(int theMinLength, int theMaxLength)
 	unsigned int aCount = 1;
 	if (aRange != 0)
 		aCount = aRange;
+
+	// Not in the original: once every word of the lengths that can be drawn (theMinLength up to theMaxLength - 1, or just
+	// theMinLength) has been used, the original's loop below never ends (the game hangs; a game of about 1880 end-of-level words
+	// on Easy gets there). The used set is emptied then and the words are used again. Draws no random number, and changes
+	// nothing while an unused word is left (phase 1 of the identical-play pass found the hang, docs/PHASE1.md, oddity 1).
+	{
+		bool anUnusedWord = false;
+		bool aWordsInRange = false;
+		int aLastLength = (aRange != 0) ? (theMaxLength - 1) : theMinLength;
+		for (int aLen = theMinLength; (aLen <= aLastLength) && !anUnusedWord; aLen++)
+		{
+			std::map<int, std::vector<std::string> >::const_iterator aListItr = mLongWords.find(aLen);
+			if (aListItr == mLongWords.end())
+				continue;
+			for (size_t i = 0; i < aListItr->second.size(); i++)
+			{
+				aWordsInRange = true;
+				std::map<std::string, bool>::const_iterator aUsedItr = mUsedLongWords.find(aListItr->second[i]);
+				if ((aUsedItr == mUsedLongWords.end()) || !aUsedItr->second)
+				{
+					anUnusedWord = true;
+					break;
+				}
+			}
+		}
+		if (aWordsInRange && !anUnusedWord)
+			mUsedLongWords.clear();
+	}
+
 	int aLength = (gGameRand->NextNoAssert() % aCount) + theMinLength;
 
 	std::string aWord;
