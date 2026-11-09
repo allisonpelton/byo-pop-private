@@ -264,7 +264,10 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   performance early on so they can test with -fast and run even faster"): a speed-up that makes its `-fast` runs
   quicker may come at any time, under these rules, and is listed in its notes with the numbers.
   Shared costs found so far, waiting to be fixed once for every game: SDL_RenderPresent takes 69% of Alchemy's main
-  thread, a driver cost per presented frame under every renderer (Alchemy, 2026-11-09); SexyApp::Init's window and
+  thread, a driver cost per presented frame under every renderer (Alchemy, 2026-11-09). Its frames almost never repeat
+  (4 of 2,406 identical), so only a frame cap would cut it, and that is a visible change, a mod; the one shared fix
+  proposed is uploading only a redrawn MemoryImage's changed rectangle (SDL_UpdateTexture, 7% of the main thread;
+  games/alchemy/docs/GAME_NOTES.md section 8). SexyApp::Init's window and
   graphics device take 250–310 ms of Noah's Ark's 0.6 s start (Noah's Ark, 2026-11-09). Creating the device on
   another thread is ruled out (no threads); showing the window before the device is made only moves the wait.
 - **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to go through every phase
