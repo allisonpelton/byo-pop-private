@@ -82,6 +82,8 @@ public:
 	virtual void Sleep(int theMs) = 0;
 	// port: a test hook, called as the game reads its event queue, before the event read becomes the current one
 	virtual void EventRead() {}
+	// port: a test hook, a sound the mixer started (theVoice of the 8, or -1 when none was free)
+	virtual void SoundStarted(const char* theName, int theVoice) { (void)theName; (void)theVoice; }
 	// The display flipped: the screen holds a new frame
 	virtual void ScreenChanged() = 0;
 	// A file of the game's folder (ningpo.pyz)

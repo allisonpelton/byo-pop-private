@@ -221,10 +221,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   takes its pass once the user approves them after that. The pass leaves no unknown or unnamed variable, field, parameter, global or
   constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port start after those
   passes, each taken all the way through, readability pass included: the easier ones side by side again and the harder
-  ones from Chuzzle on one at a time after them (`docs/COORDINATION.md`, "Which games, in what order"). That morning
+  ones from Chuzzle on two at a time after them (`docs/COORDINATION.md`, "Which games, in what order"). That morning
   the user had put every one of them in sequence, so that wasteful token use would show sooner, and dropped it the
   same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd allow inefficient token usage to be
-  spotted sooner, overall saving time, but now we have a much better idea of procedure".
+  spotted sooner, overall saving time, but now we have a much better idea of procedure"; of the harder ones: "When
+  we get to it, see if running two-by-two causes issues. If not, continue with two".
   **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to
   go through every phase except modding before a game can be considered done and ready for the live site, and just
   publish whatever games are ready by the end of December. I'm in no hurry to get games out in a less-than-stellar
