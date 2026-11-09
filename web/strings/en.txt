@@ -39,6 +39,16 @@ skin.desk.icons = Desktop
 skin.desk.open = Open {window}
 skin.desk.close = Close {window}
 skin.desk.minimize = Minimize {window}
+# Desktop 95 in one page (web/deskapps.js): a game window's menu, its Close, the message box when too many games are open, a text
+# that could not be read
+skin.apps.game_menu = Game
+skin.apps.terms = Terms, copyright and licenses
+skin.apps.close = Close
+skin.apps.ok = OK
+skin.apps.limit_title = Too many games
+skin.apps.limit = {n} games are open. Close one first.
+skin.apps.limit_one = A game is open. Close it first.
+skin.apps.unreadable = This file could not be read.
 # the title bar's "?" of a Settings section's window (Windows 95's What's This?)
 skin.desk.whatsthis = What’s This? ({window})
 skin.desk.maximize = Maximize {window}
@@ -611,8 +621,8 @@ size.mb = {value} MB
 
 # ---- Saves: backup and restore (web/saves.js)
 
-saves.about = Stored in this browser only.
-saves.kept = The browser may clear them when the drive is low: back them up.
+saves.about = Stored in: this browser
+saves.kept = The browser may clear the saves when the drive is low.
 saves.list.title = In the browser
 # One game in the list: {title} then this, where {parts} is its save files and replays, {backup} the next string or nothing
 saves.list.rest = : {parts}{backup}.

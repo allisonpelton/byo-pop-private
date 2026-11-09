@@ -17,6 +17,14 @@ var ByopopSkin = (function () {
   var ALL = SKINS.concat(["plain"]);
   var root = document.documentElement;
   var pageGame = null;  // a game page's id (setGame): its own value wins over the site-wide one
+  // Desktop 95 in one page (docs/WEB_PLAYER.md, "Desktop 95 in one page"): a page of ours inside one of the desktop's windows
+  // (web/deskapps.js) is loaded with ?embed=1. It draws no desktop of its own (no task bar, no icons), hands its links to the
+  // desktop, and tells it when it is clicked or focused. SITE is the site's folder, where the listing is.
+  var Q = new URLSearchParams(location.search);
+  var EMBED = Q.get("embed") === "1" && window.parent !== window;
+  if (EMBED) root.classList.add("d95-embed");
+  var SITE = (function () { try { return new URL(".", document.currentScript.src).href; } catch (e) { return null; } })();
+  function parentApps() { try { return EMBED && window.parent.ByopopApps ? window.parent.ByopopApps : null; } catch (e) { return null; } }
 
   function readItem() {
     try {
@@ -55,6 +63,22 @@ var ByopopSkin = (function () {
   }
   function setGame(id) { pageGame = id || null; apply(); }
 
+  // Any page of ours opened in its own tab with Desktop 95 chosen goes to the desktop with that page's window open (a link
+  // someone shared, a reload, a bookmark): the listing, with ?open= naming the page, which puts the page's address back
+  // (web/deskapps.js). Not the player-only page (?player=1, no skin), nor a page in one of the desktop's windows; ?desk=0 keeps
+  // the page as it is.
+  function onePage() {
+    if (EMBED || !SITE || window.top !== window || Q.get("player") === "1" || Q.get("desk") === "0" || chosen() !== "d95") return false;
+    var here = location.href.split("#")[0];
+    if (here.indexOf(SITE) !== 0) return false;
+    var rel = here.slice(SITE.length), path = rel.split("?")[0];
+    if (path === "" || path === "index.html") return false;
+    root.classList.add("d95-leaving");
+    location.replace(SITE + "?open=" + encodeURIComponent(rel + location.hash) + (Q.get("silent") === "1" ? "&silent=1" : ""));
+    return true;
+  }
+  var LEAVING = onePage();
+
   // ---------- the card on the first visit ----------
   function T(k) { try { return ByopopStrings.t(k); } catch (e) { return k; } }
   function Tv(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
@@ -85,7 +109,7 @@ var ByopopSkin = (function () {
   var CARDS = [["demo", "skin.demo", "skin.demo.about"], ["d95", "skin.d95", "skin.d95.about"], ["soda", "skin.soda", "skin.soda.about"]];
   function askOnce() {
     if ((chosen() !== null && new URLSearchParams(location.search).get("skins") !== "1") || typeof HTMLDialogElement === "undefined") return;
-    if (root.classList.contains("player-only")) return;
+    if (root.classList.contains("player-only") || EMBED || LEAVING) return;
     // on every host, development hosts too (the user, 2026-11-08: "I'd still like the skin selector to be the first thing that
     // pops up when you load the site for the first time"); never under ?silent=1 (every test run carries it) or ?skins=0, and
     // ?skins=1 asks even when a skin was chosen. It is modal, so it comes first: the page under it (the terms card, the setup
@@ -208,8 +232,9 @@ var ByopopSkin = (function () {
       try { var o = JSON.parse(window.localStorage.getItem(DESK_KEY) || "{}"); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }
       catch (e) { return {}; }
     }
-    // a game page's layout is kept under its id, the listing's under "index"
-    function pageKey() { return pageGame || "index"; }
+    // a game page's layout is kept under its id, the listing's under "index", a page in one of the one page's windows apart
+    // ("embed:" and its id: there its game's window fills the frame)
+    function pageKey() { return (EMBED ? "embed:" : "") + (pageGame || "index"); }
     function saved() { var o = store(), k = pageKey(); return (o[k] && typeof o[k] === "object") ? o[k] : {}; }
     function save() {
       var o = store(), mine = {};
@@ -433,7 +458,7 @@ var ByopopSkin = (function () {
     // click on the title bar does nothing: the chat's collapser) }
     function add(el, o) {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
-      var w = { el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
+      var w = { focusIn: o.focusIn || null, el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
                 button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
@@ -962,7 +987,7 @@ var ByopopSkin = (function () {
         }
         if (want) taskList();
       }
-      return { el: bar, turn: turn, tasks: taskList };
+      return { el: bar, turn: turn, tasks: taskList, close: function () { close(false); } };
     }
     // ---- favourites' icons (the user, 2026-11-08: "on Windows 95, a desktop icon specifically for that game") ----
     // Each favourite game (ByopopSettings.favourites, web/settings.js) has an icon after the windows' in the column: its own icon
@@ -992,7 +1017,7 @@ var ByopopSkin = (function () {
         else { pic.className = "d95-fav-cap"; pic.style.setProperty("--tile", g.colour || "#808080"); var t = document.createElement("span"); t.textContent = g.tag; pic.appendChild(t); }
         var name = document.createElement("span"); name.textContent = g.title;
         b.appendChild(pic); b.appendChild(name);
-        function go() { if (g.page) location.href = g.page; }
+        function go() { openPage(g.page); }
         b.addEventListener("dblclick", go);
         b.addEventListener("click", function (ev) { if (ev.detail === 0) go(); });
         b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); openFavMenu(b, g, ev.clientX, ev.clientY); });
@@ -1002,6 +1027,12 @@ var ByopopSkin = (function () {
         icons.appendChild(b);
       });
     }
+    // a game's page: its window on the one page (web/deskapps.js), else the page itself
+    function openPage(page) {
+      if (!page) return;
+      try { if (window.ByopopApps && ByopopApps.open(new URL(page, SITE || location.href).href, "push")) return; } catch (e) {}
+      location.href = page;
+    }
     function T2(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
     function closeFavMenu(back) {
       if (!favMenu) return;
@@ -1010,7 +1041,7 @@ var ByopopSkin = (function () {
       if (back && m.from && m.from.parentNode) m.from.focus();
     }
     function openFavMenu(from, g, x, y) {
-      popMenu(from, [{ label: T2("skin.fav.open"), bold: true, disabled: !g.page, fn: function () { if (g.page) location.href = g.page; } },
+      popMenu(from, [{ label: T2("skin.fav.open"), bold: true, disabled: !g.page, fn: function () { openPage(g.page); } },
                      { label: T2("skin.fav.remove"), fn: function () {
                        try { ByopopSettings.setFavourite(g, false); } catch (e) {}
                        // its icon is gone: the focus on the column's first icon
@@ -1116,9 +1147,11 @@ var ByopopSkin = (function () {
       if (active) active.el.classList.remove("d95-active");
       active = w;
       if (w) { w.el.classList.add("d95-active"); if (String(w.el.style.zIndex) !== String(top)) raise(w); }
+      try { window.dispatchEvent(new CustomEvent("byopop-desk-active", { detail: { id: w ? w.id : null } })); } catch (e) {}
     }
     function focusPane(pane, back) {
       var w = winOf(pane);
+      if (w && w.focusIn) { activate(w); w.focusIn(back); return; }
       if (w) {
         activate(w);
         // the game's window: the game itself while it runs
@@ -1146,6 +1179,12 @@ var ByopopSkin = (function () {
         if (!list.length) return;
         ev.preventDefault(); ev.stopImmediatePropagation();
         var i = list.indexOf(paneOf(a));
+        var P = parentApps();
+        if (P && i >= 0 && (ev.shiftKey ? i === 0 : i === list.length - 1)) {
+          ev.preventDefault(); ev.stopImmediatePropagation();
+          try { P.f6(window, ev.shiftKey); } catch (e) {}
+          return;
+        }
         var next = list[i < 0 ? (ev.shiftKey ? list.length - 1 : 0) : (i + (ev.shiftKey ? list.length - 1 : 1)) % list.length];
         focusPane(next, false);
         return;
@@ -1193,10 +1232,10 @@ var ByopopSkin = (function () {
       if (want === on) { if (on) { layout(); if (!active) activate(frontmost()); } return; }
       on = want;
       root.classList.toggle("d95-desk", on);
-      if (on && !taskbar) taskbar = makeTaskbar();
+      if (on && !taskbar && !EMBED) taskbar = makeTaskbar();
       if (taskbar) taskbar.turn(on);
       if (on) wins.forEach(function (w) { if (w.unfold) w.unfold(); });
-      if (on && !icons) {
+      if (on && !icons && !EMBED) {
         icons = document.createElement("nav");
         icons.className = "d95-icons";
         icons.setAttribute("aria-label", T("skin.desk.icons"));
@@ -1221,7 +1260,33 @@ var ByopopSkin = (function () {
       activate(on ? frontmost() : null);
     }
     window.addEventListener("resize", function () { if (on) layout(); });
-    return { add: add, setOn: setOn, layout: layout, find: find, isOn: function () { return on; },
+    // a window of another page taken off the desktop (web/deskapps.js)
+    function remove(id) {
+      var w = find(id);
+      if (!w) return;
+      if (active === w) activate(null);
+      wins.splice(wins.indexOf(w), 1);
+      if (w.el.parentNode) w.el.parentNode.removeChild(w.el);
+      tasks();
+      if (on) activate(frontmost());
+    }
+    return { add: add, setOn: setOn, layout: layout, find: find, isOn: function () { return on; }, remove: remove,
+             active: function () { return active ? active.id : null; },
+             activate: function (id) { var w = find(id); if (w && on && active !== w) activate(w); },
+             // the focus into this page from the desktop it is in (F6): its first pane, or its last going back
+             enter: function (back) { var p = panes(); if (p.length) focusPane(back ? p[p.length - 1] : p[0], back); },
+             // F6 from a window's page, past its own panes: the desktop's pane after (or before) that window
+             f6From: function (id, back) {
+               var w = find(id), list = panes();
+               if (!w || !list.length) return;
+               var i = list.indexOf(w.el);
+               focusPane(list[(i + (back ? list.length - 1 : 1) + list.length) % list.length], back);
+             },
+             // a window as the Pop menu opens it
+             openWin: function (id) { var w = find(id); if (!w || !on) return; if (w.min) setMin(w, false); if (w.open) { w.open(); raise(w); } else show(w); },
+             list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
+             menu: function (from, entries, x, y, label) { popMenu(from, entries, x, y, label); },
+             closeMenus: function () { if (taskbar) taskbar.close(); closeFavMenu(false); },
              raise: function (id) { var w = find(id); if (w && on) raise(w); },
              show: function (id) { var w = find(id); if (w && on) show(w); return !!(w && on); },
              minimize: function (id) { var w = find(id); if (w && on) setMin(w, true); },
@@ -1230,10 +1295,14 @@ var ByopopSkin = (function () {
   })();
   // a game page (one with a workspace) or the listing (its games' heading) in Desktop 95, wide enough for windows
   function deskWanted() {
-    return root.getAttribute("data-skin") === "d95" && !!(document.getElementById("workspace") || document.getElementById("games-title")) &&
-      (document.documentElement.clientWidth || window.innerWidth) >= DESK_MIN;
+    var listing = !!document.getElementById("games-title");
+    return root.getAttribute("data-skin") === "d95" && !!(document.getElementById("workspace") || listing) &&
+      (EMBED || listing || (document.documentElement.clientWidth || window.innerWidth) >= DESK_MIN);
   }
-  function deskSync() { if (document.body) desk.setOn(deskWanted()); }
+  function deskSync() {
+    root.classList.toggle("d95-narrow", !EMBED && (document.documentElement.clientWidth || window.innerWidth) < DESK_MIN);
+    if (document.body) desk.setOn(deskWanted());
+  }
 
   // ---------- Windows 95 games only ----------
   // Desktop 95's setting "Windows 95 games only" (the user, 2026-11-08: an "immersion" toggle that "will only list the games that
@@ -1374,6 +1443,17 @@ var ByopopSkin = (function () {
     if (t.tagName === "IMG" || (t.closest(".stage") && !t.closest(".overlay"))) ev.preventDefault();
   }
   document.addEventListener("dragstart", noDrag, true);
+  if (EMBED) {
+    document.addEventListener("click", function (ev) {
+      var a = ev.target && ev.target.closest && ev.target.closest("a[href]"), P = parentApps();
+      if (!a || !P || ev.defaultPrevented || ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;
+      if ((a.getAttribute("href") || "").charAt(0) === "#" || a.hasAttribute("download")) return;
+      if (P.open(a.href, "push")) ev.preventDefault();
+    });
+    ["pointerdown", "focusin"].forEach(function (n) {
+      document.addEventListener(n, function () { var P = parentApps(); if (P) try { P.activated(window); } catch (e) {} }, true);
+    });
+  }
   document.addEventListener("selectstart", function (ev) { var t = ev.target; if (t && t.nodeType !== 1) t = t.parentNode; if (t && t.closest && t.closest(".stage") && !t.closest(".overlay")) ev.preventDefault(); }, true);
-  return { SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync, ambient: ambient };
+  return { EMBED: EMBED, SITE: SITE, SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync, ambient: ambient };
 })();
