@@ -3,7 +3,7 @@
 # Japan, or GAME=mahjongchina for Ancient China. The play is the one tools/check.sh sends (perfscript.py turns its script into
 # the port's and the original's input); perfmin.py samples the game's process every 50 ms: working set, private bytes,
 # processor time and threads, with the numbers of the window 20 s to 50 s of its life (the play).
-#   build/native/rundesk.exe bash games/mahjongjapan/tools/profile/perfrun.sh port 3     the native port, real time
+#   build/native/rundesk.exe bash games/mahjongjapan/tools/profile/perfrun.sh port 3     the native port, real time (EXEDIR=<folder> for another build)
 #   bash games/mahjongjapan/tools/profile/perfrun.sh orig 3                              the original, through origrun (which
 #                                                                                         puts it on rundesk's desktop itself:
 #                                                                                         never wrapped in rundesk)
@@ -28,7 +28,7 @@ if [ "$KIND" = port ]; then
 	for i in $(seq 1 "$RUNS"); do
 		waitroom
 		d="$OUT/port$i"; rm -rf "$d"; mkdir -p "$d/user"
-		python -I "$PROF/perfmin.py" "$d/perf.json" "$WIN" -- "$ROOT/build/native/$GAME.exe" -gamedir="$ROOT/assets/$GAME" \
+		python -I "$PROF/perfmin.py" "$d/perf.json" "$WIN" -- "${EXEDIR:-$ROOT/build/native}/$GAME.exe" -gamedir="$ROOT/assets/$GAME" \
 			-userdir="$ROOT/$d/user" -logos -script="$ROOT/$OUT/port-script.txt" | tail -n 1 | cut -c1-400
 	done
 else

@@ -44,6 +44,11 @@
 #include <typeinfo>
 #include <vector>
 
+#ifdef _WIN32
+extern "C" __declspec(dllimport) int __stdcall K32GetProcessMemoryInfo(void* theProcess, void* theCounters, unsigned long theSize);
+extern "C" __declspec(dllimport) void* __stdcall GetCurrentProcess(void);
+#endif
+
 using namespace Sexy;
 using namespace mahjongjapan;
 
@@ -141,6 +146,25 @@ void WriteMemReport(const std::string& thePath)
 					anEntry.second->mData->Bytes());
 			}
 	fprintf(aFile, "sounds: %zu, %.2f MB\n", aCount, aSamples / 1048576.0);
+#ifdef _WIN32
+	struct ProcessCounters
+	{
+		unsigned long mSize, mPageFaults;
+		size_t mPeakWorkingSet, mWorkingSet, mQuotaPeakPaged, mQuotaPaged, mQuotaPeakNonPaged, mQuotaNonPaged, mPagefile,
+			mPeakPagefile, mPrivate;
+	} aCounters = {};
+	aCounters.mSize = sizeof(aCounters);
+	if (K32GetProcessMemoryInfo(GetCurrentProcess(), &aCounters, sizeof(aCounters)))
+		fprintf(aFile, "process: working set %.1f MB, private %.1f MB\n", aCounters.mWorkingSet / 1048576.0,
+			aCounters.mPrivate / 1048576.0);
+#endif
+	if (aSound != nullptr)
+	{
+		fprintf(aFile, "music loaded:");
+		for (const auto& anEntry : aSound->mMusics)
+			fprintf(aFile, " %d", anEntry.first);
+		fprintf(aFile, "\n");
+	}
 	fclose(aFile);
 }
 
