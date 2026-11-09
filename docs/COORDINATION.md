@@ -233,7 +233,12 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   recorded 1739 of the exe's 5900 functions and 60 of its 152 game functions, and found one the port has no counterpart
   for; one short run proves the tool, not the method, so Ning Po takes the first whole check (every run its comparisons
   make and short runs for what they miss, each gap judged, the cost noted), and the other games take theirs after it, at
-  their place in each game's order (below).
+  their place in each game's order (below). Ning Po's found no missing logic: of 272 functions reached with no
+  counterpart, 32 were the tool's (fixed), 54 had their addresses placed and 185 became `none` lines, in about 15
+  minutes of machine time (`docs/COVERAGE.md`, "A game's whole check"). The same evening (2026-11-08) Noah's Ark, Mummy
+  Maze, Bonnie's, the two Mahjong Escapes, Alchemy, Atomica, Big Money and Water Bugs took theirs; Cosmic Bugs, TipTop,
+  Pixelus, BookWorm, Word Harmony, Rocket Mania, Dynomite, Seven Seas and the two Bookworm Adventures follow as slots
+  free, and Bejeweled and Twist take theirs after their readability passes.
 - **A performance pass before the readability pass (the user, 2026-11-03):** "Slot in performance passes for the games
   before readability passes. There's got to be a few things to speed up in most games." It comes after the coverage
   check. First each original and its native port are measured over the same scripted play, on a quiet machine (no
