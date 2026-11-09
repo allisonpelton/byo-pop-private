@@ -298,6 +298,9 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-tracker { height: 100%; overflow: hidden; }
 .mu-spectrum[hidden], .mu-tracker[hidden] { display: none; }
 .mu-tracker-at { font-size: 10px; line-height: 12px; opacity: .7; white-space: pre; }
+/* the game the views follow (web/music.js, "Following a game"): a tag over the view's top right corner */
+.mu-follow { position: absolute; top: 0; right: 0; max-width: 50%; padding: 0 3px; font-size: 10px; line-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #c9b8ff; color: #0b0a10; }
+.mu-follow[hidden] { display: none; }
 .mu-tracker-rows { margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; }
 .mu-tracker { display: flex; flex-direction: column; }
 .mu-tracker-rows { flex: 1 1 auto; min-height: 0; }

@@ -1582,6 +1582,33 @@ chosen on a narrow screen). Until 2026-11-09 they were read only when the panel'
 happened only if the Music tab had last been chosen in another skin, so on a fresh profile the window stayed at 0:00 with no
 tunes.
 
+**Following a game.** While a game window is in front and its game plays music, Music's views show that music live (the user,
+2026-11-09: "Would it be possible to make the tracker/spectral analyzer sync with what's playing in the active game?"). The
+tracker shows the game's module, its pattern scrolling with the game, with the order, pattern and row in its top line, and the
+spectrum the game's own sound output. A tag over the view's top right corner names the game, its tooltip the module's own title
+where it has one. The game in front is the game window last made active, while it is open and not minimized (web/deskapps.js
+`frontFrame`); a game window brought forward makes it the followed one. When no game window is open, or the one in front plays
+no music, the views show Music's own tune as before. Music's own playback is not started, stopped or changed by any of this:
+the two can play at once, and the views then show the game's.
+
+The game's side is a site hook in the platform layer, as the player-name and settings hooks are: no game's code changes, and
+native builds do not compile it. `Platform::Mixer` answers four calls the page makes with `Module.ccall` (platform/Audio.cpp,
+linked through `-sEXPORTED_FUNCTIONS`): `byopop_music_song()`, the song the game plays (the loudest playing one, 0 for none);
+`byopop_music_view(song)`, as JSON where it is (its kind, `module` or `stream`, and for a module its pattern, row, the pattern's
+rows, its channels, its order and its title); `byopop_music_row(song, pattern, row)`, a row's cells separated by `|`; and
+`byopop_music_used(song)`, the channels that play a note anywhere. A libxmp-lite module (S3M, IT, XM, MOD) is read from its
+`xmp_module`, a libopenmpt one (MO3, OXM) through `ModulePlayer`'s web-only `GetView`, `GetRowText`, `GetUsedChannels` and
+`GetTitle` (platform/openmpt/OpenMPTPlayer.cpp). The cells are written as Music's own decoder writes them (libxmp-lite's in
+platform/ModuleText.h, which both use), so the tracker draws a game's rows as it draws its own, with the same rules for the
+channels shown. A stream (Ogg, MP3, WAV) or a player that cannot tell (TipTop's MIDI synthesizer) gives the spectrum only.
+
+The page asks only while the Music window is on the screen, once an animation frame, and reads a pattern's rows once each. The
+spectrum is an `AnalyserNode` in the game's own `AudioContext`, connected as one more output of the game's last node (the
+worklet or script processor of "Sound", which goes on to the speakers as before), so what is heard does not change; it is
+disconnected when the game leaves the front, stops its music, or the Music window closes or is minimized. A game started with
+`?silent=1`, or muted by its page, sends silence to its speakers, and so its spectrum is flat: the tracker still follows.
+`ByopopMusicPanel.following()` tells a test the game followed, its view and whether its output is tapped.
+
 **The Sounds window** (web/sounds.js, its table of the games' sounds in web/soundboards.js; the user asked for a soundboard
 demo for BookWorm, 2026-11-09) sits on the listing's desktop after Music, closed at first: the games' drop-down, Stop, the
 speaker and the volume, and the sounds as push buttons in group boxes. It reads the games' files with Music's read-only reader
