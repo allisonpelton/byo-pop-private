@@ -4,7 +4,7 @@
 // port(variant): headless shim of framework/Widget.h and WidgetContainer.h for the verifier
 // (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9). Not part of the original game. Only what Board and the replay
 // player use: the board tick mUpdateCnt, incremented exactly as WidgetContainer::Update does (Board::Update
-// calls Widget::Update after its pause checks), the geometry Resize sets (UpdateLevelWipe reads mHeight), the
+// calls Widget::Update after its pause checks), the geometry Resize sets (UpdateLevelTransition reads mHeight), the
 // widget flags, and the virtual input handlers Board overrides, with the framework's dispatch between the
 // MouseDown/MouseUp overloads. Nothing is drawn and no widget manager runs them.
 

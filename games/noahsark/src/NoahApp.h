@@ -153,6 +153,7 @@ public:
 	int						mAutoplayDiff;
 	int						mAutoplayGames;
 	int						mAutoplayCap;
+	int						mAutoplayStop;
 	bool					mAutoplayMenu;
 	std::string				mAutoplayLog;
 	std::string				mAutoplayShots;

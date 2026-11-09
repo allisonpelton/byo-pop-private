@@ -37,11 +37,6 @@ WinDMApp::WinDMApp()
 	mMainFont = new ImageFont();
 	mOverFont = new ImageFont();
 	mHighScoreWidget = NULL;
-	for (int i = 0; i < 6; i++)
-	{
-		mUnusedImagesA[i] = NULL;
-		mUnusedImagesB[i] = NULL;
-	}
 	for (int i = 0; i < NUM_TIMERBAR_IMAGES; i++)
 		mTimerBarImages[i] = NULL;
 	mCustomCursorsEnabled = false;
@@ -104,12 +99,12 @@ WinDMApp::~WinDMApp()
 	delete mWidgetManager;
 }
 
-// As the game's (0x4d43f9): a game in progress is saved (a playback board has none: Board::IsGameInProgress)
+// As the game's (0x4d43f9): a game in progress is saved (a playback board has none: Board::IsInProgress)
 void WinDMApp::Shutdown()
 {
 	if (!mShutdown)
 	{
-		if ((mBoard != NULL) && (mBoard->IsGameInProgress()))
+		if ((mBoard != NULL) && (mBoard->IsInProgress()))
 		{
 			mBoard->SaveGame();
 			mWidgetManager->RemoveWidget(mBoard);
@@ -157,11 +152,11 @@ bool WinDMApp::KillDialog(int theDialogId)
 	return false;
 }
 
-void WinDMApp::ShowInstructionsDialog()
+void WinDMApp::DoInstructionDialogette()
 {
 }
 
-void WinDMApp::ConfirmLoadGame()
+void WinDMApp::TryConfirmLoad()
 {
 }
 

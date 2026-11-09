@@ -337,7 +337,7 @@ public:
 	// makes, exactly what MergeRules makes of a mod.json that says them (every field in the range the mod path
 	// takes and normalised as it normalises, every check of Validate passed, so the canonical bytes come out
 	// alike), with a finite tunable in every double, and 12 diff.txt values every level of the original
-	// SetupLevel plays with: finite, points and multiplier bases above 0 whose product is at least 1, per-level
+	// SetupLevelData plays with: finite, points and multiplier bases above 0 whose product is at least 1, per-level
 	// steps not below 0, so mLevelPoints, Board::Update's divisor, is at least 1 on every level (or past the int
 	// range). False with a message. (The game's own diff.txt is read as the original reads it.)
 	bool							CheckRecorded(std::string* theError) const;

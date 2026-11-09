@@ -9,6 +9,11 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 RUN="$1"; SCRIPT="$2"; SEED="$3"; shift 3
 rm -rf "C:/byo-og/$RUN"   # a fresh copy: the original keeps a saved game in its own folder, which changes the menus
 mkdir -p "$ROOT/build/origrun/$RUN"
+# SAVE=<savegame.dat> starts the original from a saved game (the menu's Continue): the copy is staged, the file put in its data folder, and that copy run
+if [ -n "${SAVE:-}" ]; then
+	"$ROOT/build/origrun-bin/origrun.exe" --game noahsark --run "$RUN" --stage-root C:/byo-og --copy-only > "$ROOT/build/origrun/$RUN/stage.log" 2>&1
+	mkdir -p "C:/byo-og/$RUN/game/data" && cp "$SAVE" "C:/byo-og/$RUN/game/data/savegame.dat"
+fi
 # WATCHES="<expr>|<expr>|..." replaces the four default watches (state, score, level, mode): up to four values,
 # e.g. board cells "[[[0x4d125c]+0x408]+0x5c+4*36]+0x18" (the type of the piece at x*9+y)
 WATCHES="${WATCHES:-[[0x4d125c]+0x408]+0x310|[0x4d125c]+0x474|[0x4d125c]+0x43c|[0x4d125c]+0x444}"

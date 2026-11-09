@@ -25,7 +25,7 @@
 #               Replay.h's (checked as "engine")
 #   fuzz        RULEs with extreme diff.txt values the check takes (craft_replays.py synthetic: points and
 #               multipliers to 1e300, the int range's end, drains to +-1e300 and the smallest double, so
-#               SetupLevel's (int) casts and the drain leave the int range), played in three passes (to the first
+#               SetupLevelData's (int) casts and the drain leave the int range), played in three passes (to the first
 #               settle, a CHECK there, then on to END): native and wasm print the same lines, LOGIC hashes included
 #   difftest    the plain and the -forcevariant board on seeds 1..n, both modes, native and wasm: every game
 #               equal, and each game's line (its length, end state, score and last LOGIC hash) the same on

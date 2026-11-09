@@ -2896,7 +2896,23 @@ static int coverage_import(const char* exe)
 	}
 	int room = hdrEnd<=nt->OptionalHeader.SizeOfHeaders && hdrEnd<=firstRaw && hdrEnd<=len;
 	for (unsigned char* q=(unsigned char*)&sec[ns]; room && q<b+hdrEnd; q++) if (*q) room=0;
+	int moved=0;
+	if (!room && hdrEnd<=nt->OptionalHeader.SizeOfHeaders && hdrEnd<=firstRaw && hdrEnd<=len) {
+		// The bytes after the section table are taken (Mahjong Escape keeps its copyright text there): move the NT headers
+		// and the section table up over the DOS stub, which the loader never reads, by one section header or a little more.
+		DWORD old=(DWORD)dos->e_lfanew, tableEnd=(DWORD)((unsigned char*)&sec[ns]-b);
+		DWORD nw=(old-(DWORD)sizeof(IMAGE_SECTION_HEADER))&~7u;
+		if (old>=sizeof(IMAGE_DOS_HEADER)+sizeof(IMAGE_SECTION_HEADER) && nw>=sizeof(IMAGE_DOS_HEADER)) {
+			memmove(b+nw,b+old,tableEnd-old);
+			memset(b+nw+(tableEnd-old),0,old-nw);   // the old table's last bytes, now the new section header's room
+			dos->e_lfanew=(LONG)nw;
+			nt=(IMAGE_NT_HEADERS32*)(b+nw); sec=IMAGE_FIRST_SECTION(nt);
+			hdrEnd=(DWORD)((unsigned char*)&sec[ns+1]-b);
+			room=1; moved=1;
+		}
+	}
 	if (!room) { logline("--coverage: no room in %s for another section header; not changed", exe); free(b); return 0; }
+	if (moved) logline("--coverage: the bytes after %s's section table are in use, so its headers move up over the DOS stub", exe);
 
 	static const char kFunc[]="DirectSoundCreate", kDll[]="dsound.dll";
 	DWORD fa=nt->OptionalHeader.FileAlignment, sa=nt->OptionalHeader.SectionAlignment;

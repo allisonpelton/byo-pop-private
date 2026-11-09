@@ -105,7 +105,7 @@ void Specials::Blasts(const std::vector<MatchFinder::Group>& theGroups, const Bo
 	const std::vector<Creation>& theCreations, Grid* theGrid, std::vector<Blast>* theBlasts)
 {
 	theBlasts->clear();
-	Grid& b = *theGrid;
+	Grid& aGrid = *theGrid;
 	bool isQueued[MatchFinder::MAX_ROWS][MatchFinder::MAX_COLS] = {};
 	bool isCreated[MatchFinder::MAX_ROWS][MatchFinder::MAX_COLS] = {};
 	for (const Creation& c : theCreations)
@@ -115,7 +115,7 @@ void Specials::Blasts(const std::vector<MatchFinder::Group>& theGroups, const Bo
 	{
 		int c = theCell.first;
 		int r = theCell.second;
-		if (b.mGem[r][c] && (b.mKind[r][c] != KIND_NONE) && b.mDying[r][c] && !isCreated[r][c] && !isQueued[r][c])
+		if (aGrid.mGem[r][c] && (aGrid.mKind[r][c] != KIND_NONE) && aGrid.mDying[r][c] && !isCreated[r][c] && !isQueued[r][c])
 		{
 			isQueued[r][c] = true;
 			aQueue.push_back(theCell);
@@ -133,22 +133,22 @@ void Specials::Blasts(const std::vector<MatchFinder::Group>& theGroups, const Bo
 		aQueue.pop_front();
 		int aCol = aBlast.mCell.first;
 		int aRow = aBlast.mCell.second;
-		aBlast.mKind = b.mKind[aRow][aCol];
+		aBlast.mKind = aGrid.mKind[aRow][aCol];
 		int aRadius = theRules.mFlame.mRadius;
-		for (int r = 0; r < b.mRows; r++)
+		for (int aRowIndex = 0; aRowIndex < aGrid.mRows; aRowIndex++)
 		{
-			for (int c = 0; c < b.mCols; c++)
+			for (int aColIndex = 0; aColIndex < aGrid.mCols; aColIndex++)
 			{
-				bool isReached = (aBlast.mKind == KIND_FLAME) ? ((abs(c - aCol) <= aRadius) && (abs(r - aRow) <= aRadius)) : ((c == aCol) || (r == aRow));
-				if (!isReached || !(theLayout.IsPlayable(c, r) || theLayout.IsDirt(c, r)))
+				bool isReached = (aBlast.mKind == KIND_FLAME) ? ((abs(aColIndex - aCol) <= aRadius) && (abs(aRowIndex - aRow) <= aRadius)) : ((aColIndex == aCol) || (aRowIndex == aRow));
+				if (!isReached || !(theLayout.IsPlayable(aColIndex, aRowIndex) || theLayout.IsDirt(aColIndex, aRowIndex)))
 					continue;
-				aBlast.mArea.push_back(Cell(c, r));
-				if (!b.mGem[r][c] || b.mDying[r][c] || isCreated[r][c])
+				aBlast.mArea.push_back(Cell(aColIndex, aRowIndex));
+				if (!aGrid.mGem[aRowIndex][aColIndex] || aGrid.mDying[aRowIndex][aColIndex] || isCreated[aRowIndex][aColIndex])
 					continue;
-				b.mDying[r][c] = true;
-				aBlast.mDestroyed.push_back(Cell(c, r));
+				aGrid.mDying[aRowIndex][aColIndex] = true;
+				aBlast.mDestroyed.push_back(Cell(aColIndex, aRowIndex));
 				if (theRules.mChain)
-					aPush(Cell(c, r));
+					aPush(Cell(aColIndex, aRowIndex));
 			}
 		}
 		theBlasts->push_back(aBlast);

@@ -109,7 +109,12 @@ original and is left out, by address (size in bytes), with what the export shows
 | 0x40e34b (232) the options dialog's link and button handler | opens `OptionsLinkURL0` (http://www.popcap.com), starts the update check (0x41222f) for id 5, and opens the register dialog (0x410fef) for id 1 |
 | 0x410fef (208) | opens the register dialog; called by 0x40e34b, 0x4109d8 and `ButtonDepress` 0x413eea |
 | 0x40f314 (716) and 0x40f5e0 (732) the register dialog | its constructor (CLICK_HERE_TO_REGISTER_ONLINE, REGISTRATION, buttons with the `hiscorebtn` picture, an edit box on `hiscorebox`) and its drawing and text (LICENSE_CODE, REGISTERED_NAME, BROWSER_WINDOW_NOTICE1-3) |
-| 0x40c092 (824) and 0x40c3ca (190) the internet-score dialog | constructor and destructor of dialog 9: an edit box for the name (the registry's `LastInternetScoreName`) with SUBMIT and CANCEL on `hiscorebtn` |
+| 0x40c092 (824) the internet-score dialog | constructor of dialog 9: an edit box for the name (the registry's `LastInternetScoreName`) with SUBMIT and CANCEL on `hiscorebtn`. Its destructor is not in the export under a name of its own; the function after it, 0x40c3ca, is the selector's destructor body (called by 0x40c7fb), which the port has |
+| 0x40bed1 (116), 0x40bf45 (71), 0x40bfc6 (134), 0x40c076 (28) the internet-score dialog | its destructor (deletes the edit box and the two buttons), `AddedToManager` (adds them, focus on the edit box), `Resize` (places the edit box, SUBMIT and CANCEL) and scalar deleting destructor |
+| 0x40efbd (141), 0x40f1bf (28), 0x40f1db (313) the register dialog | its destructor and scalar deleting destructor, and the drawing of a box from the `hiscorebox` picture (a left end, a run of middle pieces, a right end) that 0x40f5e0 calls |
+| 0x4061e5 (36) `Board::RegisterRefused` (the Mac's name) | for an unregistered copy (the app's flag +0x478), a time trial board (+0xaed) with a board cleared (+0xe0c) ends the game (`GameOver`, 0x403f5c); `ButtonDepress` (0x413eea) calls it when the player answers No to dialog 5 or to the time-trial nag (dialog 0xe) |
+| 0x409f8e (62) `HighScoreWidget::Registered` (the Mac's name) | sets +0x218 to 1000 and greys the internet-score SUBMIT button (+0x68, which the port does not have) |
+| 0x4111e1 (25), 0x411444 (23), 0x411485 (61) | the stream helpers (`istream` get-line, a string's pointer plus an offset, `istream::get` under `ios::lock`) that the internet score upload, 0x4131ca, uses to read its page template |
 | 0x413ab9 (291) | no caller in the export. For an unregistered copy it raises dialog 10 with REGISTER_NAG1 and REGISTER_NAG2; for a registered one it makes the internet-score dialog (0x40c092) |
 | 0x4131ca (851) internet score upload | fills the page template `scoreul.tpl` ($NAME, $DATA) into `score%d.html` and opens it in the browser; called by `ButtonDepress` (0x413eea) with 0x413846 (252), the LICENSE_ERROR1-3 dialog |
 | 0x41351d (809) forced registration | the dialog FORCE_REGISTRATION_DIALOG1-6 (and NoInternetScores) when the play limit is reached; called by 0x4109d8 |
@@ -195,8 +200,8 @@ the machine: the framework runs the loading thread in one go, and the title poll
 
 Measured on 2026-11-08 for the user's morning report, the port and the original back to back on the machine as it was, and
 the machine was not quiet: other sessions' games ran meanwhile. Game processes running on the machine (any session's, counted
-every 5 s during each run): 6 to 9 during the port's runs (means 6.0 to 9.0) and 7 to 13 during the original's (means 7.5 to
-10.5). The performance pass measures again on a quiet machine, so read these as what a busy one gave, not as a benchmark.
+every 5 s during each run): 6 to 9 during the port's runs (means 6.0 to 9.0) and 7 to 13 during the original's load runs (means
+7.5 to 10.5), and 4 to 8 during the original's two play runs that were measured again (means 5.4 and 6.3). The performance pass measures again on a quiet machine, so read these as what a busy one gave, not as a benchmark.
 
 **How.** `games/alchemy/tools/profile/perf.py` starts the game and reads that process alone, every 100 ms: its working set, its
 private bytes (the pagefile usage, whose peak Windows keeps) and its processor time (kernel plus user); `run.sh` alternates the
@@ -204,7 +209,10 @@ two. The port is `build/native/alchemy.exe` natively under rundesk, never `-fast
 its real clock (`--clock real`; origrun puts it under rundesk itself). Both play the same scripted input: the bot's mouse game
 (strategic, game seed 11) from update 450 (title link, selector, board) to update 6450, which is 60 s of play at 100 updates a
 second, then quit (`toorig.py` turns the port's script into the original's, answering the original's first-run "Updates" question
-No). Both run on rundesk's private desktop at below-normal priority with silent sound (SDL's silent driver for the port, origrun's
+No). The original's two play runs were measured a second time, later the same day, with the run's RNG seed pinned
+(`tools/origrun/patches/alchemy.txt`, written by `tools/identical/setup.sh`): the first pair ran without it, so the copy seeded
+its random numbers from the clock, its game was not the port's, and the same input played another game; the numbers below for
+the original's minute are the second pair. Loading does not depend on the seed. Both run on rundesk's private desktop at below-normal priority with silent sound (SDL's silent driver for the port, origrun's
 stand-in for the original), so these are the test conditions, not a player's. A run's numbers cover launch to the end of the
 minute (about 66 s); the processor time of "the minute" is that of the last 60 s of the run.
 
@@ -227,20 +235,22 @@ pane's browser sharing a busy machine (its own start-up took 0.9 to 9.5 s of the
 | | peak working set (MB) | peak private bytes (MB) | mean working set in the last minute (MB) |
 |---|---|---|---|
 | port, minute 1 and 2 | 66.9, 76.0 | 67.0, 69.3 | 66.0, 74.9 |
-| original, minute 1 and 2 | 73.7, 73.6 | 53.0, 52.9 | 72.2, 72.2 |
+| original, minute 1 and 2 | 64.3, 64.3 | 50.9, 51.0 | 62.9, 62.8 |
 | port, load only (3 runs) | 59.7 to 68.9 | 59.5 to 62.5 | |
 | original, load only (3 runs) | 59.3 to 69.0 | 46.1 to 48.5 | |
 
-The working sets are alike; the port holds about 14 to 16 MB more private bytes than the original, from the first screen on.
+The working sets are alike (the original's 64 MB, the port's 67 to 76); the port holds about 16 to 18 MB more private bytes than
+the original in play (67 to 69 against 51) and about 14 to 16 MB more at the title.
 
 **Processor time** (seconds of one core):
 
 | | whole run, launch to the end of the minute | the minute (last 60 s) |
 |---|---|---|
 | port, minute 1 and 2 | 6.06, 5.92 | 5.00, 4.92 |
-| original, minute 1 and 2 | 2.69, 2.23 | 1.89, 1.48 |
+| original, minute 1 and 2 | 1.64, 1.44 | 1.20, 0.99 |
 
-The port used about three times the original's processor time over this minute (around 8% of a core against around 3%): no
+The port used about five times the original's processor time over this minute (around 8% of a core against around 2%; the first
+pair of the original's runs, unseeded, read 2.69 and 2.23 s and an earlier version of this section said three times): no
 speed-up shows here, the port is the heavier of the two. This is the port as translated, at its real-time pace in a test run
 (`-script`); where the frame's time goes (the draw, the mixer, the script's own work, say) was not looked into here, and it is the
 performance pass's to find.
@@ -251,3 +261,92 @@ JS heap at the play link was 5 to 12.5 MB, which is not a process's memory. The 
 
 To repeat: `bash games/alchemy/tools/profile/run.sh` from the worktree root, after `tools/origrun/build.sh`, a port script in
 `build/perf/port-play.txt` and its original's in `build/perf/orig-play.txt` (`games/alchemy/tools/profile/perf.py` and `run.sh` say how).
+
+## 9. Coverage check (2026-11-08)
+
+The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, in 21 runs on
+the host (the staged copy under `C:/byo-og/alch`, the virtual clock, no sound device, the seed pinned; the hits are in
+`build/coverage/alchemy/hits/`, the scripts in `games/alchemy/tools/coverage/`):
+
+- The seven screen tours of phase two (`tools/shots/tour1.txt` to `tour7.txt`, turned into host scripts by `make.py ... host`
+  and run by `tools/coverage/all.sh`): the title, selector, options, help, high scores and quit question (1); a strategic game to
+  its game over, the name entry and the table (2); a time trial game with wizard messages, hints and two losses of the focus (3);
+  the forge bubbles at the end of game 2 (4); the tutorial step by step (5); a saved game continued, with the side panel's
+  buttons and the new game question (6); the wizard's messages (7). Each ended with the game exiting.
+- One minute of a bot game on the real clock with the silent sound stand-in (`build/perf/orig-play.txt`, seed 11, 100 updates a
+  second), so that the music and the mixing run. It reached nothing in the game's code that the tours had not.
+- Thirteen short runs (`tools/coverage/extras.sh`) for what the tours miss. Three start from the saved game: the forge gauge
+  clicked, the hint, options and help opened in a game, the tutorial question answered no and then yes, the new game question
+  answered no and then yes, and the quit question answered no and then yes. Ten close the window in each state: the title, the
+  selector, the options dialog, the help, the high scores, the quit question, a game in progress, the game over, the name entry and
+  the table. The original answers the close of its window with no question and ends at once, in every one of them.
+
+`games/alchemy/coverage.txt` sets the game's own code as 0x401000-0x414a7d (the rest of the exe is the framework from 0x414c30,
+byte-matched to BookWorm's, the C runtime and the libraries). `tools/coverage.py` counts 257 functions there (it leaves out the
+library names), and the runs reached 217 of them.
+
+**Counts, by `tools/coverage.py report`, at the first complete set of runs and at the end:**
+
+| | at first (the tours and the real-clock minute) | at the end (all 21 runs, after the sorting) |
+|---|---:|---:|
+| game functions reached | 213 of 257 | 217 of 257 |
+| reached in the original, no counterpart in the port | 81 | 0 |
+| defined in the port, never reached | 2 | 1 |
+| neither reached nor defined | 28 | 0 |
+| `none` lines in `coverage.txt` (functions they cover) | 16 (16) | 86 (119) |
+
+**Reached in the original with no counterpart: 81 at first, 83 once the extra runs added two, 0 at the end.** No game logic was
+missing. Five got their address in a comment above the port function that holds them (comment edits only; `tools/check.sh
+alchemy` still matches the frozen baseline): the help widget's destructor proper (0x4089a6), the title screen's destructor body
+(0x41022c), `Rect::Inflate` and the rectangle copy that the name entry's box is made with (0x40ecd8, 0x40eb64: the port does the
+arithmetic inline) and the original's `WinMain` (0x410b8c, above `main`). The other 78 are `none` lines, each with its reason: the
+library code the compiler instantiated in the game's functions (`std::string`, `std::vector<std::pair<int,int>>`,
+`std::vector<std::string>`, `std::list`, `ios::lock` and `ios::unlock`), the scalar deleting destructors of ported classes, the
+trivial destructors of the classes the port leaves implicit (`Piece`, `Wizard`, `SidePanel`, `EffectsWidget`), the
+`ButtonListener` stub, the `Rect` constructor and an empty stub. The vectors of pairs are not wizard messages, as a first reading
+guessed: they are the list of cells left that `Board::Update` (0x406f2a) builds in the won state, which the port's `aLeft` does.
+
+**Defined in the port, never reached: 2 at first, 1 at the end.** `SidePanel::MouseDown` (0x40f8d3, the forge gauge is a button) and
+`AlchemyApp::ConfirmTutorial` (0x411f27, the question that the help screen's tutorial link raises while a game is on) needed
+clicks the tours never made; the extra runs made them. Finding the right place to click took a probe of the port's `state`
+command, which gives the positions of a dialog's buttons: the quit question with a game in progress is taller than without one,
+so its buttons are at y 284 instead of 204. Tours 6 and 7 click at y 204 and missed it, which went unnoticed because the port's
+script ends with `quit` anyway; the tours were left as they are, and the extra runs click the right place. In a game the button
+at (32, 421) is the hint button; the help screen is reached through the options dialog (a link at (318, 237)).
+The one left is `DoColorDepthExplination` (0x413942; in the port, the `DoDialog` call inside `OptionsDialog::CheckboxChecked`,
+0x40d7c2). The export has no function at 0x40d7c2, so the report lists no caller for it. The question appears when a check box is
+cleared while the app's `mForceFullscreen` (+0x30f) is set, which the framework does on a desktop without enough colours. The
+host's desktop has them, so no run reached it. The port's version was read again against the export and matches: dialog 8, the
+strings COLOR_DEPTH_ERROR1 to 3 as header, text and footer, the footer button mode, then the full-screen box checked again. A
+run that patches the flag was not made, because the original's options dialog is taller than the port's and the position of its
+check boxes was not found without a screenshot (the host takes none).
+
+**Neither reached nor defined: 28 at first, 26 once the extra runs reached two library helpers, 0 at the end.** Thirteen are
+exception funclets and library branches no play takes: the `Catch` handlers of `std::string::_Grow_alloc`, of the vector inserts
+and of the string vector copy, the branches of `_Insert_n` that an append never takes, an `operator delete` thunk, and the app's
+scalar deleting destructor, which the original never calls since its app is a global object. Twelve belong to the left-out
+features and are rows of section 5 now: `Board::RegisterRefused` (0x4061e5), `HighScoreWidget::Registered` (0x409f8e), the
+internet-score dialog's destructor, `AddedToManager`, `Resize` and deleting destructor, the register dialog's destructor and
+drawing, and the three stream helpers of the score upload. The last is 0x413942 above. The 25 others are `none` lines, and none
+of them is game logic the runs should have reached.
+
+**Differences found, none with a visible effect.** The original's `Board` constructor copies the string table `gRankNames` into a
+global vector (0x516080, through `vector<string>::operator=` at 0x407dc4); the port asks the app for the table where it needs the
+names (`ComputeRank`). `Board` has an `std::ostringstream` member at +0xa84, built in 0x407ebe and destroyed through 0x401001, and
+a `vector<pair<int,int>>` at +0xe50, that nothing uses. The port has neither.
+
+**Candidates for taking out unneeded code.** The colour-depth question and the flag that raises it (the body of
+`OptionsDialog::CheckboxChecked`, `DIALOG_COLOR_DEPTH`, `mForceFullscreen` and the three strings): the port's display always has
+the colours, and nothing in a port sets the flag. Nothing was removed.
+
+**Open items.** The colour-depth question has no run that reaches it (above). Nothing else.
+
+**What it cost.** The 21 runs took about 45 minutes of one game process at a time, most of it waiting for room: other sessions'
+games kept the machine at three to six processes. Two things went wrong on the way and were redone. The first set of runs of the
+original had no seed pin (the worktree lacked the git-ignored `tools/origrun/patches/alchemy.txt`, which `tools/identical/setup.sh`
+writes), so the scripted input played another game and reached no game over. Then a second copy of `all.sh`, started by mistake,
+ran at the same time in the same run folder and spoiled the next set. Both were stopped by process id and the runs repeated. The
+seed also changed the original's side of the Performance numbers (section 8, corrected). One Sonnet agent sorted the 109 functions
+of the two lists in 15 minutes and 278,000 tokens; this session read its table, spot-checked its verdicts against the export
+(0x407dc4, 0x413942, 0x4061e5, 0x409f8e, 0x40c3ca and more), corrected one of its own earlier `none` lines (0x40c3ca is the
+selector's destructor body, not the internet-score dialog's) and ran the report again with the agent's lines.

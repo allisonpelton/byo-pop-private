@@ -1,5 +1,5 @@
 // port(variant): flame and lightning gems on a board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8, stage 11). Not
-// part of the original game. ProcessMatchesVariant scores the groups MatchFinder found and marks their gems dying;
+// part of the original game. FindSetsVariant scores the groups MatchFinder found and marks their gems dying;
 // ResolveSpecials then keeps one gem of each group a special's createdBy names alive as that special and sets off
 // the specials the groups took (Specials.h decides which cells; this file scores and draws them). Everything
 // resolves within the tick, so UpdateClearing shrinks the blasts' gems with the groups'. A blast is one scoring
@@ -98,7 +98,7 @@ void Board::ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups)
 		if (!isSounded[aBlast.mKind])
 		{
 			isSounded[aBlast.mKind] = true;
-			PlaySpecialSound(aBlast.mKind, GetPanForX(GetColX(aBlast.mCell.first) + 24));
+			PlaySpecialSound(aBlast.mKind, GetPanPosition(GetColX(aBlast.mCell.first) + GEM_HALF));
 		}
 	}
 	if (!aCreations.empty() || !aBlasts.empty())
@@ -121,7 +121,8 @@ void Board::ScoreBlast(const Specials::Blast& theBlast)
 	int aPoints = (int)((double) aRule.mPoints * aCount * mPointMultiplier);
 	if (aCount > 0)
 	{
-		ScorePopup aPopup = {GetColX(theBlast.mCell.first) + 24, GetRowY(theBlast.mCell.second) + 16, 110, -1, aPoints};
+		ScorePopup aPopup = {GetColX(theBlast.mCell.first) + ScorePopup::OFFSET_X, GetRowY(theBlast.mCell.second) + ScorePopup::OFFSET_Y,
+			ScorePopup::START_LIFE, -1, aPoints};
 		mScorePopups.push_back(aPopup);
 		mGemsCleared += aCount;
 		mScore += aPoints;

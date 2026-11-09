@@ -10,6 +10,7 @@ none 004d5272 WinDMApp::ShowRegisterDialog: registration code
 none 004d5386 WinDMApp::ShowRegistrationInvalidDialog: registration code
 none 004d5486 WinDMApp::ShowRegisterToRecordScoreDialog: registration code
 none 004d5cdf WinDMApp::ShowRegisterNagDialog: registration code (not ported, WinDMApp.cpp says)
+none 004d4118 TitleScreen::Resize: Widget::Resize, then the register link's place (RegisterLinkY); the link is registration code, removed (GAME_NOTES.md section 18), so Widget::Resize is all that is left
 none 004d68da WinDMApp::DoUpdateCheck: the online update check, which leads out of the game
 none 004d4592 WinDMApp::URLOpenSucceeded: opening a web page, which leads out of the game
 none 004d4e97 WinDMApp::URLOpenFailed: opening a web page, which leads out of the game

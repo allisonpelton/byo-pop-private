@@ -5,11 +5,11 @@ original game. Reads and writes .bjr files with games/bejeweled/tools/bjr.py.
 
   craft_replays.py copy <replay.bjr> <out.bjr> <kind>
       a copy of a real replay that no player may start: cut (half of it), abi (another engine's), rlid (an RLID
-      that is not RULE's SHA-256), diffzero (RULE's normal points base and per-level step 0: SetupLevel's
+      that is not RULE's SHA-256), diffzero (RULE's normal points base and per-level step 0: SetupLevelData's
       mLevelPoints, Board::Update's divisor, 0), diffnan (RULE's normal multiplier base NaN); the last two with
       the RLID of their RULE, so only the RULE check refuses them
   craft_replays.py level <save.dat> <out.dat> <level>
-      a v1 save with mLevel set (a vortex save at level 10000: SetupLevel's values leave the int range)
+      a v1 save with mLevel set (a vortex save at level 10000: SetupLevelData's values leave the int range)
   craft_replays.py synthetic <dir>
       small well-formed replays (seed 1, no move, END tick 400; this build's engine, bjr.ENGINE_ABI) with RULEs and
       contents to refuse, into <dir>: rule-*.bjr (diff.txt values a level cannot play with, a field out of range, a
@@ -133,7 +133,7 @@ def synthetic(out_dir):
     files["limits-one-tick"] = minimal(events=[(5, "DESELECT", [])] * (bjr.MAX_EVENTS_PER_TICK + 1))
     files["limits-save-early"] = minimal(events=[(5, "SAVE", [1, 0]), (6, "HOVER", [1, 1])])
     files["limits-saves"] = minimal(events=[(5, "SAVE", [1, i]) for i in range(5)])
-    # Extreme diff.txt values the check takes: SetupLevel's products far past the int range, inf drain rates
+    # Extreme diff.txt values the check takes: SetupLevelData's products far past the int range, inf drain rates
     rnd = random.Random(4)
     for i in range(12):
         values = [rnd.choice([1, 500, 2147483647]), rnd.choice([0.0, 150.0, 1e300]), rnd.choice([1.0, 1e10, 1e300]),

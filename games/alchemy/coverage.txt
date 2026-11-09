@@ -1,0 +1,99 @@
+# tools/coverage.py's settings for Alchemy Deluxe (docs/COVERAGE.md).
+export re/alchemy/gh/functions.jsonl
+src games/alchemy/src
+# The game's own code (GAME_NOTES.md, section 1): the board at 0x401000, the screens, dialogs and the app class up to the wizard's
+# box at 0x414a7d. The rest of the exe is the framework from 0x414c30 (byte-matched to BookWorm's, ported once for every game), the
+# C runtime and the libraries.
+game 00401000-00414a7d
+# The unregistered game, the internet scores and the browser dialogs, which the port leaves out (GAME_NOTES.md, section 5, lists
+# each function with what it does; the Collection's exe acts as registered and never reaches them).
+none 0040f314 RegisterDialog constructor: registration code, not ported
+none 0040f5e0 RegisterDialog drawing and text: registration code, not ported
+none 00410fef opens the register dialog: registration code, not ported
+none 0040c092 internet-score dialog constructor (dialog 9: SUBMIT and CANCEL): internet scores are not ported
+none 00413ab9 register nag or internet-score dialog: registration code and internet scores, not ported
+none 004131ca internet score upload: internet scores are not ported
+none 00413846 LICENSE_ERROR dialog: registration code, not ported
+none 0041351d forced-registration dialog: registration code, not ported
+none 00413a2f high-score register nag: registration code, not ported
+none 00413bdc pre-game nag: registration code, not ported
+none 00413e12 time-trial nag: registration code, not ported
+none 00412139 update question: the update check is not ported
+none 0041222f update check: the update check is not ported
+none 00412a8a LoadingThreadCompleted override that starts the update check: not ported
+none 00412aa0 browser-open dialogs (OPEN_BROWSER_DIALOG, URL_OPEN_ERROR): no outbound links in the port
+none 00412c68 URL_OPEN_DIALOG: no outbound links in the port
+# Found by the coverage check of 2026-11-08 (GAME_NOTES.md, "Coverage check"): library code the compiler instantiated in the game's
+# functions (std::string, std::vector, std::list, ios locks), the destructors and scalar deleting destructors it made for ported
+# classes, and the Catch and Unwind funclets Ghidra split off them. The port uses the standard library too, and its members destroy themselves.
+none 00401000 empty function (a single ret) that the framework's unwind tables and vtables call: nothing to port
+none 00401001 ios base destructor of the std::ostringstream member that Board constructs and never uses: the port has no such member
+none 004010b2 std::string::find helper (a memchr call): C++ library code the compiler instantiated
+none 00401870 ButtonListener base class stub (forwards one button call to the next virtual): the framework's ButtonListener has it
+none 004018f8 Sexy::Rect constructor (four stores): the framework's Rect, not game code
+none 00401918-00401962 std::vector size and capacity getters (vector<pair<int,int>> and vector<string>): C++ library code
+none 00401985 std::string::_Inside (is a pointer inside the string): C++ library code
+none 004019ba std::pair<int,int> copy for vector fills: C++ library code
+none 00402024 std::copy of a range of pair<int,int>: C++ library code
+none 0040207a-00402082 std::string destructor (8 bytes, _Tidy) and std::string::find(const char*): C++ library code
+none 004020a3 std::list head node allocation (Board's spark list): C++ library code
+none 0040211a std::string::_Grow_alloc tail the compiler split off: C++ library code
+none 00402179 std::list node allocation (Board's spark list): C++ library code
+none 004021f5-00402217 std::fill and std::copy of pair<int,int> ranges: C++ library code
+none 0040223d std::string scalar deleting destructor: compiler-made
+none 004023b0-004023cd std::fill and std::copy wrappers for vector<pair<int,int>>: C++ library code
+none 004024b8 std::list constructor (Board's spark list): C++ library code
+none 0040255f std::string::resize(n, c): C++ library code
+none 00402583 std::vector destructor body (free and zero the three pointers): C++ library code
+none 004025a2 std::fill_n of pair<int,int>: C++ library code
+none 00402672-004026cd std::string constructors and copies (substring, copy) and the strings' range destroy: C++ library code
+none 004028cb-00402a00 std::string assign and substr, vector<string> range destroy and range copy: C++ library code
+none 00402a28 Board scalar deleting destructor (the destructor proper is 0x4026fa): compiler-made
+none 004053e0 std::list insert (push_back of Board's sparks): C++ library code
+none 0040540f std::vector<pair<int,int>> constructor with a size (Board::Update's cell list and an unused Board member): C++ library code
+none 004054b4 std::vector<string> clear (destroy the strings, free the block): C++ library code
+none 004054e1 std::vector<pair<int,int>>::_Insert_n (the growing path of Board::Update's push_back): C++ library code
+none 0040570e-00405728 std::vector<string> range copy and uninitialized copy: C++ library code
+none 00406286 std::vector<pair<int,int>>::insert at the end, reached when push_back finds the block full: C++ library code
+none 004062c8 std::vector<string> uninitialized copy wrapper: C++ library code
+none 00406ee4 std::vector<pair<int,int>>::push_back (Board::Update's list of the cells left): C++ library code
+none 00407dc4 std::vector<string>::operator= (the Board constructor's copy of the rank names into a global; the port reads the names where ComputeRank needs them): C++ library code
+none 004083c1-00408424 std::list erase, head node allocations and node allocation (sparks, popups, sparkles): C++ library code
+none 0040857b std::list constructor (EffectsWidget's sparkle list): C++ library code
+none 004085e5-00408601 EffectsWidget deleting destructor and destructor (they only clear the two std::list members, which the port's members do themselves): compiler-made
+none 004088da-00408909 std::list insert (push_back of score popups and sparkles): C++ library code
+none 004096ac scalar deleting destructor of the all-time dialog (the destructor proper is 0x40965a): compiler-made
+none 00409fcc-0040a0f1 std::string append (substring, chars, C string): C++ library code
+none 0040beb5 scalar deleting destructor of the high score widget (the destructor proper is 0x40be02): compiler-made
+none 0040d81a scalar deleting destructor of the options dialog (the destructor proper is 0x40d528): compiler-made
+none 0040e4b7 Piece destructor (only the base Widget's work; the port's implicit destructor does it): compiler-made
+none 0040e757 Piece scalar deleting destructor: compiler-made
+none 0040eb83 scalar deleting destructor of the name entry dialog (the destructor proper is 0x40ea5d): compiler-made
+none 0040f91c-0040f974 std::list erase of a range, node allocation and constructor (side panel bubbles): C++ library code
+none 0040f9f6-0040fa12 SidePanel destructor and scalar deleting destructor (they only clear the std::list of bubbles, which the port's member does itself): compiler-made
+none 0040fe7e std::list insert (push_back of a side panel bubble): C++ library code
+none 00410376 scalar deleting destructor of the title screen (the destructor proper is 0x41022c): compiler-made
+none 0041145b-00411470 ios::lock and ios::unlock (the stream locks of the MSVC C++ runtime): library code
+none 004114c2-004114da std::list head node and node allocation (the app's lists of button images and buttons): C++ library code
+none 00411556-00411569 std::list constructor and destructor (the app's and Board's lists): C++ library code
+none 00411879 operator+(const char*, const std::string&): C++ library code
+none 004143b4 std::list insert (push_back of the app's button lists): C++ library code
+none 004148c3 Wizard destructor (only the base Widget's work; the port's implicit destructor does it): compiler-made
+none 00414a61 Wizard scalar deleting destructor: compiler-made
+# The same check, the code no run reached: funclets, and the registration and internet-score code the port leaves out (section 5).
+none 00401978 operator delete thunk: C++ library code, no game path
+none 00401ffa vector<pair<int,int>> insert branch (copy_backward): C++ library code, no game path
+none 004020f3-00402165 Catch funclets of std::string::_Grow_alloc: compiler-made
+none 004021a5-004021c7 vector<pair<int,int>> insert branch (fill, copy_backward wrapper): C++ library code, no game path
+none 0040265f std::string::resize(n): C++ library code
+none 0040266d std::vector destructor body, called by Unwind funclets only: compiler-made
+none 004054a0 strings' range destroy wrapper, called by Catch funclets only: compiler-made
+none 0040560c-00405615 Catch funclets of std::vector::_Insert_n: compiler-made
+none 00405760 Catch funclet of the vector<string> uninitialized copy: compiler-made
+none 004061e5 Board::RegisterRefused (unregistered copy, time trial): registration code, not ported
+none 00409f8e HighScoreWidget::Registered (greys the internet-score button): registration code, not ported
+none 0040bed1-0040c076 internet-score dialog: destructor, AddedToManager, Resize and deleting destructor: internet scores are not ported
+none 0040efbd-0040f1db register dialog: destructor, deleting destructor and box drawing: registration code, not ported
+none 004111e1 stream helper of the internet score upload (0x4131ca): internet scores are not ported
+none 00411444-00411485 string offset and istream::get helpers of the internet score upload (0x4131ca): internet scores are not ported
+none 00411a25 scalar deleting destructor of the app, which the original never deletes: compiler-made

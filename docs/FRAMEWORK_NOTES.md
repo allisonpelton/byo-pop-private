@@ -157,7 +157,7 @@ VERIFIER SUMMARY (assignment vt-app). I re-derived every medium/low entry and ev
 
 Fixes:
 - 0x464720 renamed Sexy::MTRand::NextNoAssert. Sexy::Rand (0x469260) jumps to 0x464710 (MTRand::Next), which jumps to 0x464720.
-- 0x4d550d ConfirmLoadGame has no 'start new game' else-branch. It shows dialog 16 only if userdata\savegame.dat exists.
+- 0x4d550d TryConfirmLoad has no 'start new game' else-branch. It shows dialog 16 only if userdata\savegame.dat exists.
 - 0x4d47b1 ShowHighScoreWidget: WidgetManager +0x30 is BringToBack, not a focus or bring-to-front call.
 - EnableCustomCursors writes 0x500, not 0x508.
 - Property-map offsets corrected (see LAYOUT).
@@ -324,7 +324,7 @@ ODDITIES (behavior the port should reproduce):
 - WinDMApp::LoadingThreadCompleted is an empty 'ret' stub (0x4d4591, ICF-shared with CRT).
 - ModalOpen and LostFocus share one body (Board pause with mTimedMode); ModalClose and GotFocus share another (unpause).
 - WinDMApp::PreDisplayHook skips SexyApp::PreDisplayHook, so the beta check never runs.
-- TitleScreenIsFinished calls SetTimedMode(false,true), which already runs NewGame, then calls NewGame again, then ConfirmLoadGame.
+- TitleScreenIsFinished calls SetTimedMode(false,true), which already runs NewGame, then calls NewGame again, then TryConfirmLoad.
 - 'Yes' on new-game dialog 0 does not call NewGame directly. It calls Board 0x4c9bab (end-game animation plus flag 0x240), and the Board's game-over code later calls NewGame, or ShowHighScoreWidget if the flag is clear.
 - A successful registration sets mUserName (0x6c0), mRegCode (0x6f8) and mIsRegistered (0x714); SexyApp::WriteToRegistry then copies mUserName into mRegUserName.
 - SetMasterVolume writes mSfxVolume and does not null-check mSoundManager (same as 1.3/pcf).
@@ -1161,10 +1161,10 @@ CORRECTIONS (verified against llvm-objdump disassembly of re/bejeweled/bin/Bejew
 2. REFUTED: 0x4d89a9 is not _Getcoll. It is _Getcvt: it returns {lc_handle[LC_CTYPE], lc_codepage}. Its callers are num_get, num_put and numpunct::_Init, which store _Cvt at facet+8/+0xc; it is not called from collate. Ghidra's FLIRT label is wrong. The STL code at 0x4d6000-0x4d87bc is the num_get<char, istreambuf_iterator> instantiation (ctor, _Getloctxt, use_facet, Getcat, 11 do_get overloads); there is no collate.
 3. REFUTED: the Board-ctor move offsets. The ctor stores the move at +0x1b8 (x1), +0x1bc (y1) and +0x1c0 (x2), not +0x130/+0x134/+0x138. Full Board-ctor generation loop (0x4cb7f4-0x4cb8c1):
    - Before the first fill, +0x1b8, +0x1bc and +0x1c0 are set to -1.
-   - Each attempt: FillBoard(); then for idx = 0, 1, 2, ...: FindMove(&m, idx, horiz=1, vert=0) (0x4c9dda, out = {x1, y1, x2, y2}), until it returns false.
+   - Each attempt: NewBoard(); then for idx = 0, 1, 2, ...: FindMove(&m, idx, horiz=1, vert=0) (0x4c9dda, out = {x1, y1, x2, y2}), until it returns false.
    - Acceptance: the first m with x2 == x1+1 (a swap to the right), 4 <= y1 <= 6 and 1 <= x1 < 7.
-   - If none qualifies (+0x1b8 is still -1), FillBoard runs again. Rejected boards consume RNG.
-   - FillBoard calls from states 8 and 9 do not apply this filter.
+   - If none qualifies (+0x1b8 is still -1), NewBoard runs again. Rejected boards consume RNG.
+   - NewBoard calls from states 8 and 9 do not apply this filter.
 4. CLARIFIED: the framework's gMTRand draws do not interleave with gameplay.
    - 0x48bdb0 (`Rand()&1`) and its callee 0x466540 (`Rand()%n`) are SexyApp::PreTerminate, vtable slot [21] (mapping by 1.3 declaration order, medium confidence). They run only at shutdown.
    - During play, the 11 game sites are the only consumers of gMTRand.
@@ -1194,7 +1194,7 @@ Signed modulo: `and eax,0x80000007; jns; dec; or; inc` is only the signed-% fix-
 
 The 11 game draw sites (all verified):
 
-FillBoard, FUN_004cb182:
+NewBoard, FUN_004cb182:
 - Callers: Board ctor 0x4cb860, state 8 at 0x4cb377, state 9 at 0x4cb46b.
 - Setup: sets +0x194=0 and +0x1e8=0, then zeroes all 64 grid pointers without deleting the pieces they point to.
 - Fill order: row 7 down to 0; within each row, col 0 to 7. For each cell:
@@ -1204,8 +1204,8 @@ FillBoard, FUN_004cb182:
   4. base = (row < 7) ? (int)grid[row+1][col]->y : 0.
   5. p->y(+0x10) = double(base - Rand()%240 - 65). This is draw 1 (0x4cb225).
   6. grid[row][col] = p.
-  7. do { p->color(+0) = Rand()%7; } while (HasMatch()). These are draws 2..n (0x4cb245).
-- HasMatch (0x4c9cf5) scans rows, then columns, for 3 equal colors in a row. An empty cell sets the remembered color to -1, which effectively resets the run.
+  7. do { p->color(+0) = Rand()%7; } while (HasSet()). These are draws 2..n (0x4cb245).
+- HasSet (0x4c9cf5) scans rows, then columns, for 3 equal colors in a row. An empty cell sets the remembered color to -1, which effectively resets the run.
 
 Cascade refill, FUN_004ca9ed (board state 4):
 - Dying pieces (flag +0x4c): on ticks where tick(+0x28)%3==0, frame(+0x50)++. At 6 the piece is deleted, and +0x1a4 is cleared if it pointed to that piece. Refill waits until a tick on which no dying piece was seen.
@@ -1234,7 +1234,7 @@ Level wipe, FUN_004cb284 (state 8):
 - +0x2f8 += 3 each tick. When it exceeds +0x3c:
   1. +0x90 = +0x8c + 1.
   2. +0x304 = 200.
-  3. FillBoard() runs.
+  3. NewBoard() runs.
   4. Then, only if app+0x714 == 0 and app+0x718 >= 15 (short-circuit, so the draw is conditional): if Rand()%5 == 0, call app 0x4d5cdf.
 
 Fall-out, FUN_004cb3bf (state 9):
@@ -1242,7 +1242,7 @@ Fall-out, FUN_004cb3bf (state 9):
 - Rows 7 down to 0:
   - A resting piece (vel == 0) with flag set: vel = 1.0, flag cleared. Its y does not move this frame.
   - A moving piece: y += vel, then vel += 0.18.
-- When every piece has y >= height + 32: +0x304 = 200 and FillBoard() runs.
+- When every piece has y >= height + 32: +0x304 = 200 and NewBoard() runs.
 
 HighScoreWidget ctor (0x4d0952): r = Rand()%9. Values 0..7 select HSWIDGET_TIP0..7 through a jump table; 8 selects HSWIDGET_TIP_DEFAULT.
 
