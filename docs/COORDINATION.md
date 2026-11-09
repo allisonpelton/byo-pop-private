@@ -225,11 +225,15 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   code rebuilt with the original compiler reproduces the exe's instructions, and our ports are built by clang and
   Emscripten on a portable framework, with SDL in place of DirectX and the leaks fixed, so its scores would be noise.
   What it would catch that our comparisons miss is a slip in code no comparison run reaches: options, rare branches,
-  error paths. So each game gets a coverage check once it plays identical:
-  which of the original's functions its comparison runs reach (origrun would record it), and for each function in our
-  Ghidra export, whether the port has its counterpart, named by its address (today the ports name few: Bejeweled 154
-  distinct addresses, Twist 204). A function the runs never reach is read against the export or given a run that
-  reaches it. The coordinator builds the tool in `tools/` and tries it on one game first.
+  error paths. So each game gets a coverage check once it plays identical: which of the original's functions its
+  comparison runs reach (origrun would record it), and for each function in our Ghidra export, whether the port has its
+  counterpart, named by its address (today the ports name few: Bejeweled 154 distinct addresses, Twist 204). A function
+  the runs never reach is read against the export or given a run that reaches it. The tool came on 2026-11-08
+  (`docs/COVERAGE.md`: origrun's `--coverage` and `tools/coverage.py`). Its pilot, a minute of Bejeweled's original,
+  recorded 1739 of the exe's 5900 functions and 60 of its 152 game functions, and found one the port has no counterpart
+  for; one short run proves the tool, not the method, so Ning Po takes the first whole check (every run its comparisons
+  make and short runs for what they miss, each gap judged, the cost noted), and the other games take theirs after it, at
+  their place in each game's order (below).
 - **A performance pass before the readability pass (the user, 2026-11-03):** "Slot in performance passes for the games
   before readability passes. There's got to be a few things to speed up in most games." It comes after the coverage
   check. First each original and its native port are measured over the same scripted play, on a quiet machine (no
