@@ -1445,8 +1445,14 @@ hears them, each with a peak that falls back (a Web Audio AnalyserNode, put betw
 spectrum is shown, so the bars are the tune's own whatever the volume, and still move at `?silent=1`). **Tracker**, for a module's
 tune: a terse header in tracker style ("ORD 07  PAT 06  ROW 16/64") and the five rows around the one heard, each channel's cell
 as libopenmpt writes it (`openmpt_module_format_pattern_row_channel`) or, for libxmp-lite's modules, its note, instrument, volume
-and effect (the effect as libxmp-lite's own type, in hex). An Ogg tune has no patterns, so with the tracker chosen it shows the
-spectrum. While the tracker is shown and the player is on the screen, the decoder renders in slices of 512 frames and notes its
+and effect (the effect as libxmp-lite's own type, in hex). Only the channels that play a note somewhere in the module are shown
+(`bm_used`, read once a tune; the user, 2026-11-08: "the window isn't wide enough for all the tracker instruments"), each cell
+whole: the full cell while every such channel fits with it, otherwise a tracker's narrow view of note and instrument, and as
+many whole columns as the view's width holds, measured in the rows' own font. When some still do not fit, the header adds
+"CH 1-12/37" and a scroll bar drawn by the player sits under the rows (Windows 95's in Desktop 95, a thin one in the display's
+colours elsewhere; the browser's own bar draws no arrows in Chrome): its arrows move a channel, its track a page, its thumb
+drags, Left and Right on the display do the same, and it follows nothing on its own. The player is as wide as its window or
+panel, so widening it shows more channels. An Ogg tune has no patterns, so with the tracker chosen it shows the spectrum. While the tracker is shown and the player is on the screen, the decoder renders in slices of 512 frames and notes its
 pattern and row before each, so the view shows the row of the slice being heard; otherwise it renders as before and is never
 asked, so a closed view or window costs nothing. A frame's look at the clock and the views runs only while a tune plays (and
 while the spectrum's bars fall back after it). In Desktop 95 the display is black with green figures in a sunken edge (the

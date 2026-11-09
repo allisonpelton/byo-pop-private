@@ -315,7 +315,16 @@ var ByopopMusic = (function () {
     var tracker = make("div", "mu-tracker");
     tracker.setAttribute("aria-hidden", "true");
     var trackerAt = make("div", "mu-tracker-at"), trackerRows = make("pre", "mu-tracker-rows");
-    tracker.appendChild(trackerAt); tracker.appendChild(trackerRows);
+    // a scroll bar under the rows when the channels do not all fit, drawn here (arrows, a track and its thumb; the browser's own
+    // bar draws no arrows in every skin): it moves the view by whole channels and follows nothing on its own. A click on it is the
+    // bar's, not the display's (which would go to the next view); the keyboard's way is Left and Right on the display.
+    var trackerScroll = make("div", "mu-hbar"), hbLeft = make("span", "mu-hb-left"), hbTrack = make("span", "mu-hb-track"),
+        hbThumb = make("span", "mu-hb-thumb"), hbRight = make("span", "mu-hb-right");
+    trackerScroll.setAttribute("aria-hidden", "true");
+    trackerScroll.hidden = true;
+    hbTrack.appendChild(hbThumb);
+    [hbLeft, hbTrack, hbRight].forEach(function (e) { trackerScroll.appendChild(e); });
+    tracker.appendChild(trackerAt); tracker.appendChild(trackerRows); tracker.appendChild(trackerScroll);
     visEl.appendChild(spectrum); visEl.appendChild(tracker);
     lcd.appendChild(visEl);
     player.appendChild(lcd);
@@ -519,6 +528,13 @@ var ByopopMusic = (function () {
         position: function () { return M._bm_position(m) - start; },
         seek: function (s) { M._bm_seek(m, ctx.sampleRate, start + s); },
         rowText: function (pattern, row) { return M.UTF8ToString(M._bm_row_text(m, pattern, row)); },
+        // the channels that play a note anywhere in the module, by number
+        used: function () {
+          var buf = M._malloc(256), n = Math.min(256, M._bm_used(m, buf, 256)), list = [];
+          for (var c = 0; c < n; c++) if (M.HEAPU8[buf + c]) list.push(c);
+          M._free(buf);
+          return list;
+        },
         free: function () { M._bm_free(m); }
       };
     }
@@ -602,7 +618,7 @@ var ByopopMusic = (function () {
     function unload() {
       if (source) { source.free(); source = null; }
       flush();
-      rowCache = {};
+      rowCache = {}; usedChannels = null; firstChannel = 0;
     }
     function play(i) {
       var t = tunes[i];
@@ -678,6 +694,21 @@ var ByopopMusic = (function () {
     }
     // The tracker view: the rows around the one heard, the cells from the decoder (each row read once a tune)
     var rowCache = {}, shownRow = "";
+    // the channels shown: only those with a note somewhere (read once a tune), as many whole columns as the view's width holds,
+    // from firstChannel (the scroll bar's); each cell whole, or not shown
+    var usedChannels = null, firstChannel = 0, shownChannels = 0, totalChannels = 0, measure = null;
+    // a character's width in the rows' own font, measured where the rows are drawn (a canvas's font can resolve to another face)
+    function charWidth() {
+      if (!measure) { measure = make("span", "", "0000000000"); measure.style.cssText = "position:absolute;visibility:hidden;white-space:pre"; }
+      trackerRows.appendChild(measure);
+      var w = measure.getBoundingClientRect().width / 10;
+      trackerRows.removeChild(measure);
+      return w || 6;
+    }
+    // a cell in the narrow view: its note and instrument, the first six characters of the decoder's cell ("C-5 01"; libopenmpt
+    // writes the volume straight after the instrument, so the cell's spaces do not divide it)
+    function narrow(cell) { return cell.slice(0, 6); }
+    function pad(text, n) { while (text.length < n) text += " "; return text.slice(0, n); }
     function rowOf(pattern, row) {
       var k = pattern + ":" + row;
       if (!(k in rowCache)) rowCache[k] = source.rowText(pattern, row);
@@ -690,16 +721,36 @@ var ByopopMusic = (function () {
       var h = heard(), mark = null;
       if (h && h.head.marks) h.head.marks.forEach(function (m) { if (m[0] <= h.into) mark = m; });
       if (!mark) return;
-      var key = mark[1] + ":" + mark[2];
+      var cells = rowOf(mark[1], mark[2]).split("|");
+      if (!usedChannels) usedChannels = source.used ? source.used() : [];
+      var used = usedChannels.filter(function (c) { return c < cells.length; });
+      if (!used.length) used = cells.map(function (x, c) { return c; });
+      // the full cell (note, instrument, volume, effect) when every channel fits with it, else note and instrument
+      var full = 0, small = 0;
+      cells.forEach(function (c) { full = Math.max(full, c.length); small = Math.max(small, narrow(c).length); });
+      var cw = charWidth(), room = Math.floor((trackerRows.clientWidth - 8) / cw), lead = String(mark[3] - 1).length + 1;
+      function fits(width) { return Math.max(0, Math.floor((room - lead + 1) / (width + 1))); }
+      var wide = fits(full) >= used.length, width = wide ? full : small, shown = Math.max(1, Math.min(used.length, fits(width)));
+      firstChannel = Math.max(0, Math.min(firstChannel, used.length - shown));
+      shownChannels = shown; totalChannels = used.length;
+      var key = [mark[1], mark[2], firstChannel, shown, width, room].join(":");
       if (key === shownRow) return;
       shownRow = key;
-      trackerAt.textContent = T("music.tracker_at", { order: two(mark[5]), pattern: two(mark[1]), row: two(mark[2]), rows: two(mark[3]) });
+      var at = T("music.tracker_at", { order: two(mark[5]), pattern: two(mark[1]), row: two(mark[2]), rows: two(mark[3]) });
+      if (shown < used.length) at += "  " + T("music.tracker_ch", { first: firstChannel + 1, last: firstChannel + shown, count: used.length });
+      trackerAt.textContent = at;
+      var showing = used.slice(firstChannel, firstChannel + shown);
       trackerRows.textContent = "";
       for (var r = mark[2] - TRACKER_ROWS; r <= mark[2] + TRACKER_ROWS; r++) {
         var line = make("span", r === mark[2] ? "mu-row mu-row-now" : "mu-row");
-        line.textContent = r >= 0 && r < mark[3] ? rowNumber(r, mark[3]) + " " + rowOf(mark[1], r).split("|").join(" │ ") : " ";
+        if (r >= 0 && r < mark[3]) {
+          var row = rowOf(mark[1], r).split("|");
+          line.textContent = rowNumber(r, mark[3]) + " " + showing.map(function (c) { return pad(wide ? (row[c] || "") : narrow(row[c] || ""), width); }).join("│");
+        } else line.textContent = " ";
         trackerRows.appendChild(line);
       }
+      trackerScroll.hidden = shown >= used.length;
+      placeThumb();
     }
     // The spectrum: BARS bars over 40 Hz to 16 kHz spaced as the ear hears them, each with a peak that falls back
     var bins = null, peaks = [], levels = [];
@@ -785,7 +836,51 @@ var ByopopMusic = (function () {
       applyVis();
       tick();
     }
-    visEl.addEventListener("click", nextVis);
+    visEl.addEventListener("click", function (ev) { if (!trackerScroll.contains(ev.target)) nextVis(); });
+    // the bar: the thumb's size is the share of the channels shown, its place the first one's
+    function placeThumb() {
+      if (trackerScroll.hidden) return;
+      var room = hbTrack.clientWidth, size = Math.max(8, Math.round(room * shownChannels / totalChannels));
+      hbThumb.style.width = size + "px";
+      hbThumb.style.left = Math.round((room - size) * firstChannel / Math.max(1, totalChannels - shownChannels)) + "px";
+    }
+    function scrollTo(first) {
+      first = Math.max(0, Math.min(first, totalChannels - shownChannels));
+      if (first !== firstChannel) { firstChannel = first; shownRow = ""; drawTracker(); }
+    }
+    // an arrow moves a channel, and again and again while it is held; the track a page of channels toward the click; the thumb
+    // drags
+    var repeat = 0;
+    function stopRepeat() { clearTimeout(repeat); repeat = 0; [hbLeft, hbRight, hbTrack].forEach(function (e) { e.classList.remove("mu-down"); }); }
+    [[hbLeft, -1], [hbRight, 1]].forEach(function (a) {
+      a[0].addEventListener("pointerdown", function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        a[0].classList.add("mu-down");
+        (function step(wait) { scrollTo(firstChannel + a[1]); repeat = setTimeout(function () { step(80); }, wait); })(400);
+      });
+    });
+    hbTrack.addEventListener("pointerdown", function (ev) {
+      if (ev.target === hbThumb) return;
+      ev.preventDefault(); ev.stopPropagation();
+      var toward = ev.clientX < hbThumb.getBoundingClientRect().left ? -1 : 1;
+      scrollTo(firstChannel + toward * Math.max(1, shownChannels - 1));
+    });
+    hbThumb.addEventListener("pointerdown", function (ev) {
+      ev.preventDefault(); ev.stopPropagation();
+      var startX = ev.clientX, startFirst = firstChannel, room = hbTrack.clientWidth - hbThumb.offsetWidth;
+      try { hbThumb.setPointerCapture(ev.pointerId); } catch (e) {}
+      function move(e) { if (room > 0) scrollTo(startFirst + Math.round((e.clientX - startX) / room * (totalChannels - shownChannels))); }
+      function up() { hbThumb.removeEventListener("pointermove", move); hbThumb.removeEventListener("pointerup", up); hbThumb.removeEventListener("pointercancel", up); }
+      hbThumb.addEventListener("pointermove", move); hbThumb.addEventListener("pointerup", up); hbThumb.addEventListener("pointercancel", up);
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (n) { trackerScroll.addEventListener(n, stopRepeat); });
+    // Left and Right on the display move the tracker by a channel, as the bar's arrows do
+    visEl.addEventListener("keydown", function (ev) {
+      if (tracker.hidden || trackerScroll.hidden || (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight")) return;
+      ev.preventDefault();
+      scrollTo(firstChannel + (ev.key === "ArrowLeft" ? -1 : 1));
+    });
+    if (window.ResizeObserver) new ResizeObserver(function () { if (!tracker.hidden) { shownRow = ""; drawTracker(); } }).observe(visEl);
     visEl.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); nextVis(); } });
 
     applyVis();
