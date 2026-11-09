@@ -296,6 +296,14 @@ html.d95-desk .d95-win[style*="height"]:not(.stage-wrap) { min-height: 0; }
 /* Music's first size, about a 1995 media player's with its list scrolling inside (the user, 2026-11-08: "Music window is too
    tall. I can barely see it all in 4k"); never taller than the room above the task bar (web/skins.js, place) */
 html.d95-desk .d95-win[data-d95-id="tab-music"] { height: 420px; }
+/* the music player's views in 1995's colours: black screens in a sunken edge, the spectrum's bars green with yellow peaks, the
+   tracker's rows grey with the one heard in the selection's navy */
+:root[data-skin="d95"] .mu-spectrum, :root[data-skin="d95"] .mu-tracker-rows { background: #000; border-radius: 0;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .mu-spectrum { --mu-bar: #00ff00; --mu-peak: #ffff00; }
+:root[data-skin="d95"] .mu-tracker-rows { color: #c0c0c0; padding: 4px 6px; }
+:root[data-skin="d95"] .mu-row-now { background: #000080; color: #fff; }
+:root[data-skin="d95"] #music .mu-btn { width: 28px; height: 24px; }
 html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title); color: var(--sk-title-fg);
   padding: 2px 3px 2px 6px; font-weight: bold; min-height: 18px; white-space: nowrap; overflow: hidden; }
 html.d95-desk .d95-tb > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
