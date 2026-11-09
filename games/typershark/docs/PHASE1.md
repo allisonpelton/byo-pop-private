@@ -195,3 +195,121 @@ end-of-level words in one game) should be fixed in the fixes mod.
    original's copy already has the file. With both from the same `users` folder: equal.
 3. Typed play (bot, a letter every 6 updates) level 1, seed 1, 4092..6200: equal. A letter every 4 updates, 4092..12000, seeds 1, 2,
    3: equal (about 7900 updates each: waves, kills, scores, EMP charge, timers incl. the hint pause).
+
+# Round 2 (job P1b)
+
+Job P1b took the open items of round 1 in order of value. Same method; what is new is below, the results follow in the table
+and the lists after it.
+
+## Tools added in round 2 (games/typershark/tools/phase1/)
+
+- **The map route.** The adventure's map is a graph of the 36 sites (site n is level n, `MapScreen.cpp` has the links); the bot of round 1
+  took the first chest at every fork, so it sailed 0, 1, 2, 3, 8, 14, 19, 25, 30, 34 and never met a bonus (treasure) level: sites 5,
+  18, 20 and 22 are dead-end branches (a `<BonusLevel>` in the cfg's levels 6, 19, 21 and 23). `-typist=...;want=a+b+c` makes the bot take, at a
+  fork, the chest of the first site in the list that is on offer (`sc_bonus.py` WANT 4+5 sails 0, 1, 2, 3, 4, 5; `sc_route.py` takes `WANT=`,
+  `DIFF=`, `WIN=yes|no`).
+- **Streak words.** The end-of-level streak game uses up one of the 1882 words of the lists per word typed (round-1 oddity 1), so a route of
+  a dozen levels would freeze the game in both programs; `streak=N` makes the bot type at most N streak words a level.
+- **Clams.** `clams=mixed` plays the memory game of a bonus level by a fixed pseudo-random pattern (a pearl, an empty clam, a letter that
+  is on no clam, a clam in any state), where the bot of H1 plays it ideally. `wait=N` leaves the diver N updates in the state after a
+  won level before the space bar. `tutorerr=N` makes every Nth key of the typing tutor a wrong one (a space, Return, q, z, !),
+  `win=yes|no` and `over=yes|no` click a button of the end-of-adventure and the game-over dialogs. `burst=B` (with `typo=N`) makes the
+  last B letters of every N wrong: B wrong letters in a row, which a penalty piranha needs (see "The penalty piranha").
+- **The state compared.** The statelog and the comparer read, besides the round-1 fields, the pairs of clams found (`pairs`, Board
+  +0xd70), the open clam's index (`open`, +0xd6c), the end-of-level countdown (`f38`, +0xf38, a double) and the difficulty
+  (`diff`, app +0x690); a clam's last field packs its kind, frame, opened flag, pulse direction and tick (Clam +0xe8, +0xf0/+0xf1,
+  GameObject +0xd8/+0xe8). The comparer reads up to 24 clams (a bonus level has 22; round 1 read 14, which showed as a count difference
+  at the first clam).
+- **Ranges.** `--ranges lo:hi:step,...` (or a scenario's `WINDOW`) reads the original at a fine step around the updates where the lesson
+  is at chosen levels and at a coarse step elsewhere. `TSBASE=12000` starts the menu flow later, which keeps the original's loading
+  thread (it runs on the wall clock) from losing the first clicks on a busy machine.
+- **End state.** `runorig.sh` keeps the registry key (`reg export`) and the users folder of an original run beside its log;
+  `endcmp.py <tag>` compares them with the port's `registry.ini` and `users` folder of the same scenario (values and bytes).
+
+## Scenarios and results (round 2)
+
+`TSBASE=12000` (or 40000) starts the menu flow later than round 1's 4000; every update number below is the base-4000 number plus that
+shift. "fine" means every update, "coarse" the stated step. All runs pin the seed in both programs, start from the same `users` folder and
+compare the state of every update read (the fields of round 1 plus the ones of the tools section).
+
+| scenario | what it plays | range, step | result |
+|---|---|---|---|
+| bon1_s1 (`sc_bonus.py`) | Easy, seed 1, the bot sails 0, 1, 2, 3, 4, 5 (`want=4+5`): five levels with their bosses and a treasure level: 22 clams (4 pearls), the diver on the floor, the bot opens the pearls in pairs, 100000 and 200000 for the two pairs, the treasure, space, back to the map | 12092..101992, fine 75735..77429 (the clams: 76833..77130), coarse 25 | equal |
+| idle_s1 | Easy, nobody types after the hint: three lives are lost, the game-over dialog | 12092..24000, 1 | equal; end state: see the save/score item below |
+| tutE12_s1 | the typing tutor, lesson 12 (11 presses of Next), a wrong key every 7th key (a space, Return, q, z, ! in turn): errors, the penalty, the lesson's end | 12072..20000, 1 | equal |
+| hardpir_s1 (`sc_route.py`, `DIFF=2`) | Hard, seed 1, every 5th letter a wrong one, mixed clams (`clams=mixed`): sites 0, 1, 2, 3, 4 (seven piranha waves in site 4), the treasure level 5 with duds, wrong letters and blocked clams, then on to site 19 | 12092..89992, fine 74568..76838, coarse 25 | equal. No red piranha came up: see "The penalty piranha" below |
+| hardpir6_s1 (`DIFF=2`, `WANT=6+9`) | Hard, seed 1, every 5th letter wrong: sites 0, 1, 6 (three piranha waves among the waves of site 6, many typos, no two in a row), 9 | 12092..70000, 7 | equal; no penalty piranha (see "The penalty piranha" below) |
+| expertpir6c_s1 (`DIFF=3`, `WANT=6+9`) | Expert, seed 1, every 3rd letter wrong (a single wrong letter makes a penalty piranha here): sites 0, 1, 6, 9; the penalty piranhas (RedPiranha: 19586 updates with at least one, up to 17 on the screen, the speed growing from the sixth), the typo counter `e94` and the lesson's current wave type `cwt` compared too | 12092..70000, 7 | equal. The `users` folders at the end are equal byte for byte |
+| hardpir6d_s1 (`DIFF=2`, `WANT=6+9`) | Hard, seed 1, `typo=5;burst=2` (two wrong letters in a row: Hard's `NumForPenalty` is 2): sites 0, 1, 6, 9; penalty piranhas (21042 updates with at least one, up to 10 on the screen), `e94` and `cwt` compared | 12092..70000, 7 | equal. The `users` folders at the end are equal byte for byte |
+| tutE15_s1 | the typing tutor, lesson 15 (14 presses of Next: lines that start or end with a space), every 5th key a wrong one (a space, Return, q, z, ! in turn) | 12072..19000, 1 | equal (state, task, errors, clean keys, seconds, words per minute, accuracy). End state: one token of `user0.dat` differs, the uninitialised field of oddity 1 |
+| rt1_s1 (`sc_route.py`, `WANT=6+9+21+26+27+32+33+34+35`) | Easy, seed 1, the whole adventure by a route of its own: sites 0, 1, 6, 9, 21, 26, 27, 32, 33, 34, 35 (every boss: TorpedoBoss, MechaShark with MechaTorpedo, MechaSquid with SquidCannonBall, GhostShip with CannonBall; GhostShark, StealthWhitePiranha, StealthRedShark and the rest of the later levels), the final level 35 won at about 187600, the "CONGRATULATIONS!" dialog answered with the button that keeps going (`win=no`), the endless levels (level -1) begin | 40092..200000 (menu flow at 40000), 7; fine 187400..187900 | equal. The `users` folders of the two programs at the end are equal byte for byte (`endcmp.py`) |
+
+## The penalty piranha (RedPiranha), what it takes
+
+`Board::AddPiranha` (0x452a60) is called by a typo (KeyChar 0x454e40) when the lesson's current wave type (`LessonManager+0x9c`, the type of
+the wave that was just spawned: `NextWave` 0x41eb40 copies it before it draws the following wave) is 1 (piranhas), the typos counted
+since the last kill (`Board+0xe94`, cleared by every shark or piranha kill: `ResetPiranhaSpeed` 0x4402f0, BoardEvents) reach the level's
+`NumForPenalty`, and a piranha that is not dying (state 3) is on the screen (the typo with nothing locked on also wants the diver in
+state 9, 0 or 4). `NumForPenalty` is 32765 (never) in the first two levels of Normal, Hard, Expert and X-Treme and in the first 17 of Easy
+(then 3 on Normal, 2 on Hard, 1 on Expert and X-Treme, 3 on Easy's 18th), so a penalty piranha needs `NumForPenalty` wrong letters *in a
+row*, without a kill between them, in a piranha wave of level 3 or later: a single wrong letter on Expert and X-Treme, two in a row on
+Hard, three on Normal. The bot's `typo=N` makes every Nth letter wrong, which never makes two in a row: `burst=B` makes the last B letters of
+every N wrong. Piranha waves are in site 4 (level 5, one wave) and site 6 (level 7: waves 2, 3, 4), two links from the start (0, 1, 6).
+`hardpir_s1` and `hardpir6_s1` (Hard, `typo=5`) therefore never made one; `expertpir6_s1` (Expert, `typo=3`) and `hardpir6b_s1`
+(Hard, `typo=5;burst=2`) do. The state log now holds `e94` and `cwt` (the typo counter and the current wave type), compared with the original's.
+
+## Round 2: differences found
+
+No difference of the game's logic between the original and the port has been found in round 2 (every scenario above that finished is
+equal in every field read). The differences the comparer first reported were its own limits (the list below), and the one byte of
+difference in an end state is the original's uninitialised memory (the first oddity below).
+
+Comparer faults found on the way (not game differences):
+1. A bonus level holds 22 clams; the comparer read at most 14 creatures of a list and then 24 (clams). Now 24.
+2. An Expert piranha wave holds up to 39 piranhas (a penalty piranha is added to the wave besides); the comparer read at most 24 per
+   list and showed "creature count: orig 24 port 25". The shark and piranha lists are now read to 40. `expertpir6_s1` and
+   `hardpir6b_s1` carry that fault in their verdicts; `expertpir6c_s1` and `hardpir6d_s1` are the same scenarios read to 40.
+3. A pass of the original sometimes reports "the original never had a board at a peek (late loading)": a menu click lost while the
+   original loads on a busy machine (the loading thread runs on the wall clock). The comparer runs the pass again (up to three
+   times); `TSBASE=12000` or 40000 (the menu flow starts later) makes it rare.
+
+## Round 2: oddities (not chased)
+
+1. **The original writes an uninitialised field into a new profile's file.** `UserProfile+0x1c8` (the level of a saved adventure game,
+   `mField1c8`; the port zeroes it, the constructors of 0x421f50 and 0x4222d0 never store it) is written by `WriteDataToDisk` as is. In a
+   profile that only ran the typing tutor (`tutE12_s1`) the original's `user0.dat` holds the heap's leftover there ("137381704") and
+   the port's holds 0: 8518 against 8510 bytes, the 9-character number against "0" (in `tutE15_s1` it is -2139062144, the heap's
+   0x80808080 fill, 8520 against 8510 bytes; in both runs this one number is the only token of the file that differs). The field is read back only together with a saved
+   game level (`mField1c0` between 1 and 35), which is set in the same call that stores `mField1c8`, so nothing plays differently.
+   In the files of all the games (`idle_s1`, `bon1_s1`, `hardpir_s1`, `rt1_s1`) the fields were equal, because the profile had been
+   saved by a game by then. It would take the allocator's leftovers to match, so it stays.
+2. **The original under origrun cannot keep any registry value.** Its `RegistryWrite` (0x4b1be0) opens and creates its key under
+   `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap\TyperShark` (0x80000002); origrun is not elevated, and the patch list answers the key checks
+   (`CheckRegistryAccess` 0x41ac70, `RegistryGetSubKeys` 0x4bc235) as if all were fine. So no registry value of the original (the
+   settings, the current user, the per-user values such as LastLesson or SeenTutorial) survives, nor is any visible to `reg export`, and
+   the original's start always meets an empty registry, while the port's emulated registry (`registry.ini`) keeps them. The scenarios
+   start both from an empty registry, so none of this shows in a state; but it means the registry values the port writes (90 after a
+   long game) cannot be compared with the original's here, and a "quit and restart, then continue" run cannot start the original from
+   a profile (it does not find the user). See the spec for origrun in the report.
+
+## Round 2: open items (not compared)
+
+Compared in round 2 and equal: the treasure level (clams: pearls, duds, pairs, the 100000 and 200000 bonuses, the treasure, the way back), the
+whole adventure to the final boss, the end of the adventure with the endless levels, Hard and Expert from level 1 to 10 with
+penalty piranhas on Expert, an idle game to the game-over dialog, the tutor with wrong keys, and the files of the users folder byte for byte
+at the end of each. What did not get run, with the reason where it matters:
+- **Seeds 2 and 3 of everything new.** Only seed 1 of the round-2 scenarios finished within the time (the machine had no room for a
+  third game process for long stretches). The jobs are written and in `build/ts-p1/q6.txt` (the tools take `queue.sh <file>`): `expertpir6c_s2/s3`,
+  `bon2m_s2/s3`, `hardpir6b_s2/s3`, `bon1_s2/s3`, `adv_s2/s3` (a long adventure, seeds 2 and 3, to update 150000), each one line of the scenario's
+  options.
+- **Not finished before the report:** `bon2m_s1` (mixed clam play: duds, wrong letters,
+  blocked clams, reopening), `bonwait_s1` (the diver waits 1200 updates in the state after each won level: the "+1 score every 27 updates"
+  of H1, `mDivePos` growing by 8 feet in BoardUpdate, looked at in the code only), `tutE15_s1`, `tutE17_s1`, `tutE2_s1` (the tutor, lessons 15, 17 and 2 with
+  wrong keys: line starts and ends with a space), `rt1y_s1` (the end of the adventure answered with "return home" instead of
+  "keep going": the end state of the profile, the high score, the next state).
+- **X-Treme and Normal.** Not run (the same code as Hard and Expert with other cfg numbers: NumForPenalty 3 on Normal).
+- **A saved adventure and "CONTINUE?" ("quit and restart")** cannot be compared with the original under origrun (oddity 2: its registry does
+  not persist, so a restart does not find the user). A run inside one session (finish a level, go back to the menu with the pause
+  dialog, press Adventure) needs the pause dialog's button positions and was not tried.
+- **The registry values** the port writes (90 after a long game: the settings, the current user, the per-user values) are not compared (oddity 2).
+- **Hint dialogs, pause, Options values, user switch, delete user, a fresh profile without `SeenTutorial`** (item 7): not run.

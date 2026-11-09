@@ -67,8 +67,8 @@ def u32(v):
 
 # list slots on the Board: name -> (begin offset, end offset, max elements read)
 # a list is (name, address of its begin pointer, address of its end pointer or None for a single slot, most elements read)
-LISTS = [('sharks', board(0xd78), board(0xd7c), 24), ('piranhas', board(0xd88), board(0xd8c), 24),
-         ('clams', board(0xd98), board(0xd9c), 14), ('bonus', board(0xdc8), board(0xdcc), 24),
+LISTS = [('sharks', board(0xd78), board(0xd7c), 40), ('piranhas', board(0xd88), board(0xd8c), 40),
+         ('clams', board(0xd98), board(0xd9c), 24), ('bonus', board(0xdc8), board(0xdcc), 24),
          ('boss', board(0xeb8), None, 1),
          ('shots', ind(board(0xeb8), 0xec), ind(board(0xeb8), 0xf0), 12)]
 
@@ -114,7 +114,8 @@ def scalar_exprs():
             ind(board(0xd34), 0x58), ind(board(0xd34), 0x60), board(0xe60), app(0x624), board(0xdf8),
             board(0xde8), board(0xdec), board(0xdf0), board(0xdf4), board(0xd48), board(0xd4c), player(0xb8),
             player(0xf8), player(0xfc), board(0xe00), board(0xeb8), board(0xd78), board(0xd7c), board(0xd88), board(0xd8c),
-            board(0xd98), board(0xd9c), board(0xdc8), board(0xdcc), '[0x565384]+0x9c0', board(0x16c), ind(app(0x65c), 0x8c)]
+            board(0xd98), board(0xd9c), board(0xdc8), board(0xdcc), '[0x565384]+0x9c0', board(0x16c), ind(app(0x65c), 0x8c),
+            board(0xd6c), board(0xd70), board(0xf38), board(0xf3c), app(0x690), board(0xe94), ind(app(0x65c), 0x9c)]
 
 
 def creature_exprs(lst, i, g, e):
@@ -123,6 +124,10 @@ def creature_exprs(lst, i, g, e):
     for off in (g + 0x98, g + 0x9c, g + 0xa0, g + 0xa4, g + 0xb8, e + 0x38, e + 0x3c, e + 0x40, e + 0x44, e + 0x48, e + 0x58,
                g + 0xe4):
         ex.append(ind(slot, off))
+    if lst[0] == 'clams':
+        # P1b: the Clam's own fields (kind +0xe8, opened and pulse flags +0xf0/+0xf1 of the Enemy part) and the GameObject's frame and tick
+        for off in (e + 0xe8, e + 0xf0, g + 0xd8, g + 0xe8):
+            ex.append(ind(slot, off))
     return ex
 
 
@@ -240,7 +245,7 @@ def run_orig_checked(script_text, tag, seed, fixture, tries=3):
 
 def orig_state(steps, lo, hi, step, tag, seed, fixture):
     """two passes; returns {update: dict}"""
-    ups = list(range(lo, hi + 1, step))
+    ups = lo if isinstance(lo, list) else list(range(lo, hi + 1, step))
     # pass 1
     p1 = list(steps) + [(u, 'peek', pass1_exprs()) for u in ups]
     d1 = run_orig_checked(orig_script(p1), tag + '.p1', seed, fixture)
@@ -310,7 +315,7 @@ def render_tutor(u, r):
 
 
 def orig_state_tutor(steps, lo, hi, step, tag, seed, fixture):
-    ups = list(range(lo, hi + 1, step))
+    ups = lo if isinstance(lo, list) else list(range(lo, hi + 1, step))
     p = list(steps) + [(u, 'peek', tutor_exprs()) for u in ups]
     d = {}
     for attempt in range(3):
@@ -351,6 +356,16 @@ def render_orig(u, r, per, r1):
     h['rng'] = s32(r.get('[0x565384]+0x9c0'))
     h['lvl'] = s32(r.get(ind(app(0x65c), 0x8c)))
     h['gameover'] = None if r.get(board(0x16c)) is None else (1 if r.get(board(0x16c)) else 0)
+    h['diff'] = s32(r.get(app(0x690)))
+    h['e94'] = s32(r.get(board(0xe94)))           # the typos counted towards a penalty piranha
+    h['cwt'] = s32(r.get(ind(app(0x65c), 0x9c)))     # the lesson's current wave type
+    h['pairs'] = s32(r.get(board(0xd70)))
+    h['f38'] = double_at(r, board(0xf38), board(0xf3c))
+    h['open'] = -1
+    if r.get(board(0xd6c)) and per:
+        for i in range(len(per.get('clams', []))):
+            if u32(r.get(slots_of(LISTS[2], i))) == u32(r.get(board(0xd6c))):
+                h['open'] = i
     cre = []
     if per:
         for lst in LISTS:
@@ -367,7 +382,13 @@ def render_orig(u, r, per, r1):
                 size = s32(v[10])
                 raw = b''.join(struct.pack('<I', (w or 0) & 0xffffffff) for w in v[6:10])
                 word = raw[:size].decode('latin1') if size is not None and 0 <= size <= 15 else '?'
-                cre.append((short, word, x, y, state, s32(v[11])))
+                typed = s32(v[11])
+                if lst[0] == 'clams' and len(v) >= 17:
+                    ctype, cflags, cframe, ctick = s32(v[13]), v[14], s32(v[15]), s32(v[16])
+                    if None not in (ctype, cflags, cframe, ctick):
+                        typed = (ctype * 100000 + cframe * 1000 + (100 if cflags & 0xff else 0) + (10 if (cflags >> 8) & 0xff else 0)
+                                 + ctick % 4)
+                cre.append((short, word, x, y, state, typed))
     return h, cre
 
 
@@ -416,7 +437,7 @@ def compare(o, p, keys, tol=1e-6):
 TUTOR_KEYS = ['tut', 'tles', 'tst', 'ttask', 'terr', 'tclean', 'tcorr', 'trwpm', 'tawpm', 'tsec', 'tacc', 'texp', 'tleft', 'tfirst',
               'tcre', 'tpause', 'rng']
 KEYS = ['bupd', 'score', 'bscore', 'lives', 'time', 'tcnt', 'tstart', 'tpaused', 'paused', 'hint', 'typed', 'ty', 'dive',
-        'dstate', 'emp', 'rng', 'lvl']
+        'dstate', 'emp', 'rng', 'lvl', 'pairs', 'f38', 'open', 'diff', 'e94', 'cwt']
 
 
 def main():
@@ -426,6 +447,7 @@ def main():
     ap.add_argument('--lo', type=int)
     ap.add_argument('--hi', type=int)
     ap.add_argument('--step', type=int, default=1)
+    ap.add_argument('--ranges', help='lo:hi:step[,lo:hi:step...] instead of --lo/--hi/--step (a fine window and coarse ones around it)')
     ap.add_argument('--tag')
     ap.add_argument('--max', type=int, default=12, help='differing updates to print')
     ap.add_argument('--keys', default=','.join(KEYS))
@@ -447,15 +469,45 @@ def main():
         if a.rec_only:
             subprocess.call([sys.executable, os.path.join(HERE, 'summ.py'), os.path.join(OUT, tag + '.rec.sl')])
             return
+    ranges = a.ranges or os.environ.get('RANGES')
+    win = getattr(sc, 'WINDOW', None)
+    if win and not ranges and getattr(sc, 'TYPIST', None) is not None:
+        # P1b: a fine window (step 1) around the updates where the lesson level is one of win['lvl'], found in the port's own log of
+        # the recorded run, and a coarse step (win['coarse']) over lo..hi
+        levels = set(win['lvl'])
+        first = last = None
+        for line in open(os.path.join(OUT, tag + '.rec.sl'), errors='replace'):
+            m = re.match(r'u=(\d+) lvl=(-?\d+) ', line)
+            if m and int(m.group(2)) in levels:
+                last = int(m.group(1))
+                if first is None:
+                    first = last
+        parts = []
+        if first is not None:
+            parts.append(f"{max(lo, first - win.get('pad', 200))}:{min(hi, last + win.get('pad', 200))}:1")
+            print(f'{tag}: fine window {parts[0]} (levels {sorted(levels)})', flush=True)
+        else:
+            print(f'{tag}: levels {sorted(levels)} never played in the recorded run', flush=True)
+        if win.get('coarse'):
+            parts.append(f"{lo}:{hi}:{win['coarse']}")
+        ranges = ','.join(parts) if parts else None
+    updates = None
+    if ranges:
+        ups = set()
+        for part in ranges.split(','):
+            r_lo, r_hi, r_st = (int(x) for x in part.split(':'))
+            ups.update(range(r_lo, r_hi + 1, r_st))
+        updates = sorted(ups)
+        lo, hi = updates[0], updates[-1]
     cache = os.path.join(OUT, tag + '.orig.json')
     if a.skip_orig and os.path.exists(cache):
         raw = json.load(open(cache))
         orig = {int(u): (h, [tuple(c) for c in cr]) for u, (h, cr) in raw.items()}
     else:
         if getattr(sc, 'TUTOR', False):
-            orig = orig_state_tutor(steps, lo, hi, a.step, tag, a.seed, fixture)
+            orig = orig_state_tutor(steps, updates or lo, hi, a.step, tag, a.seed, fixture)
         else:
-            orig = orig_state(steps, lo, hi, a.step, tag, a.seed, fixture)
+            orig = orig_state(steps, updates or lo, hi, a.step, tag, a.seed, fixture)
         json.dump({str(u): v for u, v in orig.items()}, open(cache, 'w'))
     sl = run_port(port_script(steps, [f'{hi + 5} quit'] + list(getattr(sc, 'PORT_EXTRA', []))), tag, a.seed,
                   getattr(sc, 'PORT_USERFIX', 'port-clean'), getattr(sc, 'PORT_ARGS', []))

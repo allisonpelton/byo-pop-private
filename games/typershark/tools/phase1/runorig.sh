@@ -9,3 +9,6 @@ GAME="$ROOT/build/origrun/typershark/game"
 rm -rf "$GAME/users"; cp -r "$ROOT/build/ts-p1/fixtures/$FIX" "$GAME/users"
 reg delete "HKCU\Software\PopCap\TyperShark" //f > /dev/null 2>&1
 "$ROOT/games/typershark/tools/run_original.sh" "$SCRIPT" "$LOG" "$SEED" "$LIMIT"
+# keep the state the run ended with (P1b: saving, scores and the profile as state): the copy's users folder and the registry key
+rm -rf "$LOG.users"; cp -r "$GAME/users" "$LOG.users" 2>/dev/null
+reg export "HKCU\Software\PopCap\TyperShark" "$LOG.reg" //y > /dev/null 2>&1
