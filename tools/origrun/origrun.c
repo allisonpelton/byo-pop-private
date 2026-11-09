@@ -1598,6 +1598,22 @@ static void exec_at(const char* inner)
 	if (ieq(cmd,"burst")){ char n[256]="burst"; int c=10,k=1; char kw[16]=""; int iv=100;
 		if (sscanf(rest,"%255s %d %15s %d",n,&c,kw,&iv)>=2) { if (ieq(kw,"update")) do_burst(n,c,0,1,iv>0?iv:1); else do_burst(n,c,iv>0?iv:atoi(kw),0,0); }
 		return; }
+	if (ieq(cmd,"peek")){   // at <N> peek <expr> [<expr>...]: what each expression (the --watch grammar) reads now, as signed ints, in one
+		// log line "peek u=<counter> <expr>=<value> ..." ("-" where it cannot be read). On the virtual clock the game stands at the update
+		// the "at" waited for, so the values belong to that update: a state log of the original to set beside a port's
+		char line[1024]; int n=0; uint32_t c=0; int hc=gCounterExpr[0] && read_counter(gCounterExpr,&c);
+		n+=wsprintfA(line+n,"peek u=%d",hc?(int)c:-1);
+		const char* p=rest;
+		while (*p && n<(int)sizeof(line)-100) {
+			while (*p==' ') p++;
+			if (!*p) break;
+			char e[128]; int l=0; while (*p && *p!=' ' && l<127) e[l++]=*p++;
+			e[l]=0;
+			uint32_t v=0;
+			if (read_counter(e,&v)) n+=wsprintfA(line+n," %s=%d",e,(int)v); else n+=wsprintfA(line+n," %s=-",e);
+		}
+		logline("%s",line);
+		return; }
 	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",inner); return; }
 	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
 	if (th && gInN) rpm_follow_window(hw);   // the gate reads the stack (on the virtual clock no counter read has opened the process yet)

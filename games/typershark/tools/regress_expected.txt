@@ -1,0 +1,14 @@
+# tools/regress.py: sha256 (first 32 hex) of each game's state log, from build/native/typershark.exe; see regress.py
+menu-s1 4ebc90eb4097687c476e9e99edade0cd
+levels1-3-s1 4b3974b61753c4efac9f4d0012536ae4
+levels1-3-s2 070e36ec7706163c23e0444506262435
+typos-s1 bd5c9f5aa2f696243bca1bfb533f44b0
+idle-s1 73a9e0633430bfdf678df12b6a8ad4da
+abyss-s1 5053da60a3419d93d63f87d20e4029bd
+abyss-s2 ee35e411ede1261a33848c9dd20e1496
+tutor-lesson1-s1 faa96060e0b7bd7d0a40068a1780b756
+tutor-lesson15-s1 070d4a8572fd135f583676136098537a
+bonus-s1 42f643a50e466d852aa746cd0b07d8ef
+hard-clams-s1 69a91a9ee0e2dc51856d8b34611a4180
+expert-piranhas-s1 123451766858faea525ffa616c9c74ca
+adventure-route-s1 0f1290d1fe8a834786259bdcb8022dd5

@@ -188,6 +188,18 @@ var ByopopControlData = {
     { does: "Move with the mouse", how: "Click a square next to your ship" }
   ],
 
+  // src/BoardKeys.cpp Board::KeyChar (letters, Return, Space), src/MapScreen.cpp MapScreen::KeyChar (letters, Space),
+  // src/HintDialog.cpp HintDialog::KeyChar (Return, Space, Escape)
+  typershark: [
+    { does: "Kill a creature", how: "Type the letters of its word" },
+    { does: "Use the Shark Zapper when it is charged", keys: ["Enter"] },
+    { does: "Pause or resume (when the player's space bar setting is on)", keys: ["Space"] },
+    { does: "Go back to the map at the end of a level", keys: ["Space"] },
+    { does: "Choose a level on the map", how: "Click its chest, or type its letter" },
+    { does: "Start the level chosen on the map", keys: ["Space"] },
+    { does: "Go on from a hint box", keys: ["Enter", "Space", "Escape"] }
+  ],
+
   // src/App.cpp ColumnCursorProc MSG_KEY (arrows, numpad 4 and 6, Space), MSG_MOUSEDOWN
   tiptop: [
     { does: "Move along the columns", how: "Move the mouse" },

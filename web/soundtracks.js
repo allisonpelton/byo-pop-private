@@ -31,6 +31,8 @@ var ByopopSoundtracks = {
   waterbugs: { files: ["audio/*.mo3"] },
   dynomite: { files: ["music/*.it"] },
   sevenseas: { files: ["music/*.it"] },
+  // Typer Shark's one module (wordshar.mo3) holds every tune, which the game starts at an order of it (ChangeMusic); its subsongs stand for them
+  typershark: { files: ["music/*.mo3"] },
   mummymaze: { files: ["music/*.it"] },
   // the Ogg games
   bookwormadv2: { files: ["music/*.ogg"] },
