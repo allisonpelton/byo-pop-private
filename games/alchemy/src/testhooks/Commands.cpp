@@ -104,7 +104,7 @@ Dialog* TopDialog(AlchemyApp* theApp, const char** theName)
 	static const struct { int mId; const char* mName; } kDialogs[] =
 	{
 		{DIALOG_NAME_ENTRY, "name"}, {DIALOG_LOAD_GAME, "load"}, {DIALOG_HINT, "hint"}, {DIALOG_QUIT, "quit"},
-		{DIALOG_NEW_GAME, "newgame"}, {DIALOG_SKILL, "skill"}, {DIALOG_TUTORIAL, "tutorial"}, {DIALOG_OPTIONS, "options"},
+		{DIALOG_NEW_GAME, "newgame"}, {DIALOG_TUTORIAL, "tutorial"}, {DIALOG_OPTIONS, "options"},
 		{DIALOG_HIGH_SCORES, "alltime"}
 	};
 	for (size_t i = 0; i < sizeof(kDialogs) / sizeof(kDialogs[0]); i++)

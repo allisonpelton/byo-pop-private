@@ -36,7 +36,6 @@ class StateLog;
 enum DialogId
 {
 	DIALOG_NEW_GAME = 0,        // CONFIRM_NEW1/2: yes shows the selector
-	DIALOG_SKILL = 1,           // the selector's skill change with a game in progress: yes starts a game at the pending skill
 	DIALOG_QUIT = 2,            // CONFIRM_QUIT1/2
 	DIALOG_HINT = 3,            // the wizard's hints (BUTTONS_FOOTER)
 	DIALOG_OPTIONS = 4,         // OptionsDialog
@@ -50,7 +49,7 @@ enum DialogId
 enum ButtonId
 {
 	BUTTON_NEW_GAME = 10,       // 0x411e2a
-	BUTTON_TUTORIAL = 11,       // 0x411f27 (the selector's tutorial; the side panel has no button for it)
+	// 11 is the selector's tutorial button in the original (0x411f27); the side panel has none
 	BUTTON_OPTIONS = 12,        // 0x410f28
 	BUTTON_FORGE = 13,          // 0x4061d6 (board: use the forge)
 	BUTTON_QUIT = 14,           // 0x412017
@@ -63,7 +62,7 @@ class AlchemyApp : public SexyApp
 public:
 	enum
 	{
-		NUM_LOADING_TASKS = 99,         // mNumLoadingThreadTasks (LoadingThreadProc): 54 pictures, 15 sounds, 1 + 20 + 9; the original's 101 had the 2 pictures only its registration and internet scores used
+		NUM_LOADING_TASKS = 95,         // mNumLoadingThreadTasks (LoadingThreadProc): 50 pictures, 15 sounds, 1 + 20 + 9; the original's 101 also loaded 6 pictures that nothing draws or only its registration and internet scores used
 		NUM_SHAPE_SIZES = 20,           // the shrink animation of a piece
 		NUM_SHAPE_IMAGES = 24,          // 22 shapes, the blank block and the skull
 		NUM_BACKDROPS = 9,
@@ -94,7 +93,6 @@ public:
 	HighScoreWidget*		mHighScores;            // +0xec0 the high-score screen over the board or NULL
 	bool					mTutorialMode;          // +0xec4 the next board is the tutorial
 	int						mSkillLevel;            // +0xec8 1 (beginner) .. 3
-	int						mPendingSkill;          // +0xecc a skill chosen in the selector, applied when the game restarts
 	bool					mTimeTrial;             // +0xed0 time-trial mode
 	bool					mSelectorFlag;          // +0xed1 true until the first board starts
 	double					mDiff[4];               // +0x620 data\diff.txt: four difficulty constants
@@ -177,7 +175,6 @@ public:
 	void					ConfirmTutorial();                        // 0x411f27
 	void					ConfirmQuit();                            // 0x412017
 	void					ConfirmLoad();                            // 0x411d4f
-	void					RemoveWidgetAndDelete(Widget* theWidget);
 
 	void					AutoplayShot(const std::string& theFileName) { SaveScreenshot(theFileName); } // port: the bot's screenshots
 	bool					HasSavedGame();                           // 0x4010fc: savegame.dat opens

@@ -37,11 +37,11 @@ AlchemyApp* Sexy::gApp = NULL;
 static const char* const gImageNames[NUM_IMAGES] =
 {
 	"title", "backdrop", "greenbar", "cursor1", "pointer2", "overhand", "typer", "dialog", "dbutton",
-	"waitbar", "symbols", "nullblock", "skulls", "cartoonstar", "light", "britelight", "buttonstrip", "quitgamestrip",
+	"symbols", "nullblock", "skulls", "light", "britelight", "buttonstrip", "quitgamestrip",
 	"helpstrip", "soundstrip", "scorefont", "overfont1", "next", "wizardhead", "wizmouth2", "wizmouth3", "wizmouth4",
-	"wizmouth5", "slider", "slidergem", "unchecked", "checked", "editbox", "bubbles2", "bubbles7", "wave1",
+	"wizmouth5", "slider", "slidergem", "unchecked", "checked", "editbox", "bubbles2", "wave1",
 	"tinybubble1", "forgeback2", "bubbleburst", "gems1", "gems2", "levelfont1", "bigexplosion", "smsparkle",
-	"tinysparkle", "selectorbutton", "glassbuttons", "level2", "level3", "level4", "level5", "level6", "level7",
+	"tinysparkle", "glassbuttons", "level2", "level3", "level4", "level5", "level6", "level7",
 	"level8", "level9", "gameselector_base", "gameselector_greenon", "gameselector_redon", "gameselector_tuton",
 	"gameselector_newgameon", "gameover", "redcircle", "helparrow"
 };
@@ -66,7 +66,6 @@ AlchemyApp::AlchemyApp()
 	mTimeTrial = false;
 	mTutorialMode = true;
 	mSelectorFlag = true;
-	mPendingSkill = 0;
 	mSelector = NULL;
 	mTitleScreen = NULL;
 	mBoard = NULL;
