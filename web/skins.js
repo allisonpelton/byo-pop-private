@@ -840,10 +840,10 @@ var ByopopSkin = (function () {
         }
         if (listing) {
           win("library");
-          settings("tab-settings"); win("tab-players"); win("tab-saves"); win("tab-music");
+          settings("tab-settings"); win("tab-players"); win("tab-saves"); win("tab-music"); win("sounds");
         } else {
           settings("panel-settings");
-          [["players", "index.tabs.players"], ["saves", "index.tabs.saves"], ["music", "index.tabs.music"]].forEach(function (m) {
+          [["players", "index.tabs.players"], ["saves", "index.tabs.saves"], ["music", "index.tabs.music"], ["sounds", "sounds.title"]].forEach(function (m) {
             list.appendChild(item(T(m[1]), null, { href: "./#" + m[0] }));
           });
           list.appendChild(rule());

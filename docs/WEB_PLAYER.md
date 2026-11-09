@@ -1532,6 +1532,24 @@ media keys and the system's media controls drive the player. At `?silent=1` the 
 second gain of 0, so they get exact zeros (the display shows nothing of it). The graph has to reach the destination all the
 same: a browser never runs a worklet whose output goes nowhere, and the tune would stand still.
 
+### The soundboard
+
+A demo for BookWorm (the user, 2026-11-09: a soundboard with the games' sounds, readable names or quotes, to decide whether every
+game gets one): Desktop 95's Sounds window, on the listing's desktop beside Music, with its own icon and an entry in the Pop menu
+(`web/sounds.js`; the other skins do not have it). It plays the sound effects of the games the player added, from those games'
+own files in this browser, read with the music player's read-only reader, so the site ships no sound and sends nothing anywhere.
+Which files a game has, in which group box, under what name and when the game plays each is in `web/soundboards.js`, by the
+game's id; a game with no entry there, or none of whose files are here, is not listed. Names are plain and our own: a voice line
+is the word or two said, in quotes, as its file name gives it, and a sound the game never plays says so. The when-lines come
+from the port's own calls of each sound, never from the game's text. The window is a row of tools (a drop-down of the games once
+two are listed, Stop, which silences everything playing, and Music's speaker and volume, kept as `byopop-sounds-mute` and
+`byopop-sounds-volume`), the buttons in their group boxes, the only part that scrolls and reflows as the window is resized, and a
+status bar with the count. A button plays on a click, Enter or Space and starts again when pressed while it plays; different
+sounds overlap. Each file is decoded once, on its first play (the browser's own decoder, stb_vorbis from `openmpt.wasm` for an
+Ogg file the browser refuses, and a reader of our own for a Sun `.au` file such as BookWorm's `blank.au`), and the decoded sounds
+and the audio context go when the window closes. The grid is one tab stop whose arrows walk it across the group boxes, each box
+is a named group, and at `?silent=1` a final gain of 0 keeps the speakers silent, as in the music player.
+
 ### Music levels
 
 The user found Bonnie's Bookstore's music "way too quiet" (2026-11-07): FMOD 3 mixes an XM at a sample pre-amp of 256 and
