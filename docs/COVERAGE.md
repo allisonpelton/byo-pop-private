@@ -76,7 +76,7 @@ code. Then three lists:
 - **Defined in the port, never reached in these runs.** No comparison has tested these. Give each a run that reaches it
   (a feature the runs missed), or read the port's function again against the export. One that no play of the original
   can reach is a candidate for taking out; that is the game session's call, and code that only some input reaches (an
-  error path, a rare dialog) stays.
+  error path, a rare dialog) stays. A function with a `none` line is not listed here, only with those left out.
 - **Never reached and not defined in the port.** Dead code of the original, or code only input the runs never gave
   reaches. Nothing to do unless a run should have reached it.
 

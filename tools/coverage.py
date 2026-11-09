@@ -284,7 +284,7 @@ def report(game, hit_paths, out):
     reached = [a for a in game_fns if a in hits]
     with_def = [a for a in game_fns if has_def(a)]
     gaps = [a for a in reached if not has_def(a) and a not in left_out]
-    unreached_defs = [a for a in with_def if a not in hits]
+    unreached_defs = [a for a in with_def if a not in hits and a not in left_out]
     neither = [a for a in game_fns if a not in hits and not has_def(a) and a not in left_out]
 
     w = out.write
