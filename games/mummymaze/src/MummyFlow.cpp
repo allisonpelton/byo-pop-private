@@ -424,11 +424,6 @@ void MummyApp::ButtonDepress(int theId)
 		KillDialog(DIALOG_TIP);
 		break;
 	}
-	case 2000 + DIALOG_RESET_TIPS:
-		// 0x7ec: the tips come back
-		KillDialog(DIALOG_RESET_TIPS);
-		mTipTwoMummies = mTipGate = mTipTrap = mTipRed = mTipScorpion = mTipDark = mTipAnkh = true;
-		break;
 	case 2000 + DIALOG_NEW_ADVENTURE_NAME:
 	{
 		// 0x4201e0 case 0x7db: the name of a new adventure: not empty and with no comma (0x41ffb0; the message says letters
