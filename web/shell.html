@@ -166,6 +166,8 @@ canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; 
    does the import card, which the Steam steps for a Mac or Linux make taller) */
 #terms-overlay, #import-overlay { overflow: auto; place-items: safe center; }
 .card.terms-card { max-width: 600px; }
+.terms-agreebar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.terms-agreebar .agree { flex: 1 1 16em; margin: 0; }
 .terms {
   max-height: 15em; overflow: auto; display: grid; gap: 10px; padding: 12px 14px; font-size: 13px;
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
@@ -285,12 +287,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     <div class="overlay" id="terms-overlay" hidden>
       <div class="card terms-card" id="terms-card" role="dialog" aria-modal="true" aria-labelledby="terms-title" tabindex="-1">
         <h2 id="terms-title">{{game.terms.title}}</h2>
+        <!-- the agreement first, the full text (unchanged) scrolling below it -->
+        <div class="terms-agreebar"><label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> {{game.terms.agree}}</label>
+        <button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button></div>
         <div class="terms" tabindex="0" role="region" aria-label="{{game.terms.region}}">
 <!-- byopop:terms -->
         </div>
 <!-- byopop:buy -->
-        <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> {{game.terms.agree}}</label>
-        <div class="row"><button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button></div>
       </div>
     </div>
 
@@ -315,9 +318,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     </div>
 
     <div class="overlay" id="start-overlay" hidden>
-      <div class="card" id="start-card" role="dialog" aria-labelledby="start-title" aria-describedby="start-desc" tabindex="-1">
+      <div class="card" id="start-card" role="dialog" aria-labelledby="start-title" tabindex="-1">
         <h2 id="start-title">{{game.start.title}}</h2>
-        <p id="start-desc">{{game.start.desc}}</p>
         <p id="start-rescue" hidden>{{game.start.rescue}}</p>
         <div class="row"><button class="primary" id="btn-start" type="button">{{game.start.play}}</button>
           <button id="btn-start-nomods" type="button" hidden>{{game.start.nomods}}</button></div>

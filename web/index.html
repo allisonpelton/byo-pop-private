@@ -445,9 +445,9 @@ footer a { color: var(--accent); }
        checkbox and Continue as the game's own terms card, and the same agreement kept -->
   <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
     <h2 id="terms-title">{{index.terms.heading}}</h2>
-    <div class="terms" id="terms-text" tabindex="0" role="region" aria-label="{{game.terms.region}}"></div>
     <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> <span id="terms-agree-text">{{index.terms.agree}}</span></label>
     <div class="terms-row"><button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button><button type="button" id="btn-terms-skip">{{index.terms.skip}}</button></div>
+    <div class="terms" id="terms-text" tabindex="0" role="region" aria-label="{{game.terms.region}}"></div>
   </dialog>
   <section class="adding" id="bin-panel" aria-labelledby="bin-title" hidden>
     <div class="adding-head">
