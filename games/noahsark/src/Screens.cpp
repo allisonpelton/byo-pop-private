@@ -91,7 +91,7 @@ void TitleScreen::Update()
 // 0x41fc70
 void TitleScreen::Draw(Graphics* g)
 {
-	Image** anImages = mApp->mImages;
+	ImageTable& anImages = mApp->mImages;
 	g->DrawImage(anImages[IMAGE_TITLE], 0, 0);
 	Image* aBar = anImages[IMAGE_TITLEBAR];
 	g->DrawImage(aBar, 0x99, 0x174, Rect(0, 0, (int) (mProgress * aBar->mWidth), aBar->mHeight));
@@ -371,7 +371,7 @@ void NextLevelWidget::Draw(Graphics* g)
 	mBackground = new MemoryImage(mApp);
 	mBackground->Create(mWidth, mHeight);
 	Graphics ig(mBackground);
-	Image** anImages = mApp->mImages;
+	ImageTable& anImages = mApp->mImages;
 	ig.DrawImage(anImages[IMAGE_FRAME], 0, 0);
 	DrawImageBox2003(&ig, Rect(0, 0, 0x1d8, 0x1d7), anImages[IMAGE_DIALOG]);
 

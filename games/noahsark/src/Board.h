@@ -238,7 +238,6 @@ public:
 	void					GameOver();                     // 0x407480
 	void					HighlightGroup(int theX, int theY); // 0x4070d0
 	void					FloodGroup(int theX, int theY); // 0x407160
-	void					RefillPuzzle();                 // 0x4061d0
 	bool					MarkRuns(bool theAnimate);      // 0x402260
 	void					PushRow();                      // 0x403a90
 	void					AddFish(int theCount, bool theAtSides); // 0x408df0

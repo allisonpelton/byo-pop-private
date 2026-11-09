@@ -33,6 +33,24 @@ class Dialog;
 class ButtonWidget;
 class Widget;
 class MusicInterface;
+class NoahApp;
+
+// The game's pictures by id (IMAGE_X in Res.h). mApp->mImages[IMAGE_X] decodes a picture the first time it is asked for; the original
+// decodes all 82 at start (0x417450 for each id), which is most of the load and of the memory at the title, and a picture that
+// nothing asks for in a run is never decoded or held. A picture that is not there is told at its first use (a popup and the end of
+// the game), as the original tells it at start.
+class ImageTable
+{
+public:
+	explicit ImageTable(NoahApp* theApp);
+	Image*					operator[](int theId) { return mImages[theId] != NULL ? mImages[theId] : Load(theId); }
+
+private:
+	Image*					Load(int theId);
+
+	NoahApp*				mApp;
+	Image*					mImages[NUM_IMAGES];
+};
 
 enum FontId
 {
@@ -92,7 +110,7 @@ public:
 		NUM_LOADING_TASKS = 34   // one per sound
 	};
 
-	Image**					mImages;            // +0x3e0 new Image*[82] (NUM_IMAGES), loaded by Init (GetImage)
+	ImageTable				mImages;            // +0x3e0 new Image*[82] (NUM_IMAGES), see ImageTable
 	ImageFont*				mFonts[NUM_FONTS];  // +0x3e4 .. +0x404
 	Board*					mBoard;             // +0x408 the game in progress (StartGame)
 	NextLevelWidget*		mNextLevelWidget;   // +0x40c shown between levels
@@ -116,6 +134,7 @@ public:
 	bool					mShowTutorial;      // +0x491 registry ShowTutorial
 	DWORD					mGameStartTick;     // +0x494
 	SexyString				mLastScoreName;     // +0x498 registry LastScoreName
+	bool					mSoundTried[NUM_SOUNDS];   // port: the sound's file has been asked for (see LoadSoundOnce)
 	bool					mMainSongStarted;
 	bool					mMainSongLooping;
 
@@ -135,6 +154,8 @@ public:
 	virtual void			ButtonPress(int theId) override;
 	virtual void			ButtonDepress(int theId) override;
 	virtual void			UpdateFrames() override;
+	virtual void			PlaySample(int theSoundNum) override;
+	virtual void			PlaySample(int theSoundNum, int thePan) override;
 	virtual void			LoadingThreadProc() override;
 	virtual void			LoadingThreadCompleted() override;
 	virtual void			WriteToRegistry() override;
@@ -184,7 +205,8 @@ public:
 	bool					ResyncHold();
 
 	// Helpers of the module (WinNoah.exe addresses in NoahApp.cpp)
-	bool					LoadImage(int theImageId);
+	Image*					LoadImage(int theImageId);   // 0x417450: NULL (and the game ends) when the picture is not there
+	void					LoadSoundOnce(int theSoundNum);
 	ButtonWidget*			AddButton(int theId, const Rect& theRect, Image* theImage, Image* theDownImage);
 	DialogButton*			AddDialogButton(int theId, const Rect& theRect, Image* theImage);
 	void					TitleScreenDone();
