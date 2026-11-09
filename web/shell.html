@@ -131,13 +131,12 @@ canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-
    accent around the stage, over the page: whichever of the two the picture hides, the other shows */
 canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; }
 .stage:has(> canvas:focus-visible) { box-shadow: 0 0 0 4px var(--accent), 0 10px 40px rgba(0, 0, 0, 0.35); }
-/* How to leave it: read out with the canvas (aria-describedby), and shown while the keyboard has put the focus there
-   (page script: until the first key goes to the game) */
-.canvas-hint {
-  position: absolute; left: 8px; bottom: 8px; z-index: 2; margin: 0; padding: 3px 10px; border-radius: 6px; font-size: 12.5px; max-width: calc(100% - 16px);
-  background: rgba(0, 0, 0, 0.82); color: #ffffff; pointer-events: none;
-}
-.canvas-hint:not(.show) { width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* How to leave it: read out with the canvas (aria-describedby; the paragraph is never seen), and shown in the bar, never over the
+   game (the user, 2026-11-08), while the keyboard has put the focus there (page script: until the first key goes to the game).
+   Desktop 95 shows nothing: its keys are F6 everywhere, and About says so */
+.canvas-hint { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.bar .key-hint { color: var(--muted); font-size: 12.5px; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .key-hint:not(.show), html.d95-desk .bar .key-hint { display: none; }
 /* The game's own cursor on the whole page but its canvas, which draws that cursor itself (pollCursor, below): set while
    the game shows a custom cursor, so that this rule wins over the buttons' pointer */
 :root.game-cursor, :root.game-cursor :not(canvas) { cursor: var(--game-cursor) !important; }
@@ -241,7 +240,14 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 }
 /* The player-only page (?player=1 on a development host): the game alone, at the top left, one canvas pixel for each game pixel */
 html.player-only .bar, html.player-only .chat, html.player-only .panel, html.player-only .skip,
-html.player-only .canvas-hint, html.player-only footer { display: none !important; }
+html.player-only .key-hint, html.player-only footer { display: none !important; }
+/* From the start until the game has made its window and drawn in it (game-loading, the page script's gameWindowLoading) the stage
+   is not shown, so a game of another size never shows a black 640 x 480 first (the user, 2026-11-08: "While a game loads with a
+   non-standard window size, it shows the standard window size as black. Hide the window until the game is actually loaded"),
+   and the page shows the wait cursor that lets the page be used meanwhile (Desktop 95: the game's window and its 1995 hourglass,
+   web/skins.css; its task bar button is there at once) */
+html.game-loading:not(.d95-desk) .stage { visibility: hidden; }
+html.game-loading, html.game-loading * { cursor: progress !important; }
 html.player-only .stage-wrap { place-items: start; padding: 0; }
 html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 /* byopop:game-css */
@@ -252,8 +258,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 <body>
 <a class="skip" id="skip-game" href="#canvas">{{game.skip}}</a>
 <header class="bar">
-  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="{{game.logo_alt}}" width="72" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="72" height="22"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
+  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="{{game.logo_alt}}" width="72" height="22" draggable="false"><img class="logo-dark" src="logo-dark.svg" alt="" width="72" height="22" draggable="false"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" draggable="false" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
   <span class="status" id="status" role="status">{{game.status.starting}}</span>
+  <span class="key-hint" id="key-hint" aria-hidden="true">{{game.canvas_hint}}</span>
   <!-- shown once the game's files are here, and never for a game whose port loads no mods (boot(), MODS_SUPPORTED) -->
   <button id="btn-mods" type="button" aria-controls="panel-mods" aria-expanded="false" hidden>{{game.btn.mods}}</button>
   <button id="btn-files" type="button" aria-controls="panel-files" aria-expanded="false">{{game.btn.files}}</button>
@@ -382,6 +389,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 
 <!-- byopop:footer -->
 
+<script src="settingsicons.js"></script>
 <script src="settings.js"></script>
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
@@ -511,6 +519,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function web() { return Module.byopop; }
   var session = null;  // web().Session
   var panel = null;    // web().ModPanel
+  var runMods = 0;     // the mods the game started with (Desktop 95's game window shows them in its title)
   // The game's life in this page, one state at a time. It runs once in a page: after it closes, only a reload starts it again.
   //   waiting   not started yet: the Ready card, the import, the terms card
   //   starting  runGame is setting it up; an error before the game's main is called goes back to waiting (startGame)
@@ -535,6 +544,28 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // The site's wait cursor, if the chosen site cursor has one (web/cursors.js), while the game's script loads and compiles
   function siteBusy(on) { try { if (window.ByopopCursors) ByopopCursors.busy("game-loading", on); } catch (e) {} }
   siteBusy(true);
+  // The game's window is hidden from the start until the game has made it (onGameScreen, SexyAppBase::MakeWindow, which every
+  // game's framework calls) and drawn into it (two animation frames on, or half a second where a hidden page has none), or the
+  // game has ended or stopped; never longer than 20 seconds (the CSS above)
+  var loadingTimer = 0;
+  function gameWindowLoading(on) {
+    var was = document.documentElement.classList.contains("game-loading");
+    clearTimeout(loadingTimer);
+    loadingTimer = on ? setTimeout(function () { gameWindowLoading(false); }, 20000) : 0;
+    document.documentElement.classList.toggle("game-loading", !!on);
+    try { if (window.ByopopCursors) ByopopCursors.busy("game-window", !!on); } catch (e) {}
+    // a hidden canvas takes no focus: once it is shown, the game gets the focus the start gave it, unless the player has put it
+    // somewhere since
+    var a = document.activeElement;
+    if (was && !on && gameRunning() && (!a || a === document.body || a === document.documentElement || (a.closest && a.closest("#stage")))) focusGame();
+  }
+  function gameWindowDrawn() {
+    if (!document.documentElement.classList.contains("game-loading")) return;
+    var done = false;
+    function show() { if (!done) { done = true; gameWindowLoading(false); } }
+    requestAnimationFrame(function () { requestAnimationFrame(show); });
+    setTimeout(show, 500);
+  }
 
   // The game's own screen size, as it makes its window (onGameScreen); 640 x 480, most games' size, until it says
   var gameScreen = { w: 640, h: 480 };
@@ -544,6 +575,48 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // a smaller n while that does not fit the window, and the usual fit to the window when not even one device pixel each does.
   // The chat's layout follows. Called at the start, when the game gives its size, on a resize (a zoom changes the ratio) and
   // when the setting changes.
+  // Desktop 95's game window at a whole multiple of the game's size in device pixels (the user, 2026-11-08: "95 skin needs a way
+  // to size up the game window by an integer multiple. Big Money is very hard to see on my 4K monitor"): the multiples whose
+  // window fits on the desktop (deskScales), chosen from the window's control menu, the Pop menu or its resize corner, and kept
+  // for each game (localStorage byopop-d95-scale: {game: n}). With none chosen, or the chosen one no longer fitting, the
+  // largest that fits beside the icons, as before.
+  var SCALE_KEY = "byopop-d95-scale";
+  function chosenScale() {
+    try { var o = JSON.parse(localStorage.getItem(SCALE_KEY) || "{}"); var n = o && o[PAGE.id]; return n >= 1 ? Math.floor(n) : 0; } catch (e) { return 0; }
+  }
+  function chooseScale(n) {
+    try {
+      var o = JSON.parse(localStorage.getItem(SCALE_KEY) || "{}");
+      if (!o || typeof o !== "object") o = {};
+      o[PAGE.id] = n;
+      localStorage.setItem(SCALE_KEY, JSON.stringify(o));
+    } catch (e) {}
+    sizeStage();
+    // SDL sizes the canvas's pixels only on the window's resize event (as onGameScreen): without one the game stayed 640 x 480
+    // pixels stretched to the new size until the page was reloaded
+    Promise.resolve().then(function () { window.dispatchEvent(new Event("resize")); });
+  }
+  // the multiples that fit: the game window's frame, title bar and status bar around the stage, on the desktop above the task bar
+  function deskScales() {
+    var dpr = window.devicePixelRatio || 1, out = [];
+    var win = $("main"), st = $("stage");
+    var chromeW = 12, chromeH = 50;
+    if (win && st && st.offsetWidth) { chromeW = win.offsetWidth - st.offsetWidth; chromeH = win.offsetHeight - st.offsetHeight; }
+    var bar = document.querySelector(".d95-taskbar");
+    var roomW = (document.documentElement.clientWidth || window.innerWidth) - chromeW;
+    var roomH = window.innerHeight - (bar ? bar.offsetHeight : 28) - chromeH;
+    for (var n = 1; n <= 16; n++) {
+      var cw = gameScreen.w * n / dpr, ch = gameScreen.h * n / dpr;
+      if (n > 1 && (cw > roomW || ch > roomH)) break;
+      out.push({ n: n, w: cw, h: ch, label: ByopopStrings.t("skin.desk.m.size", { n: n, w: gameScreen.w * n, h: gameScreen.h * n }) });
+    }
+    return out;
+  }
+  function deskSizes() {
+    var list = deskScales(), dpr = window.devicePixelRatio || 1, st = $("stage");
+    var cur = st ? Math.round(st.getBoundingClientRect().width * dpr / gameScreen.w) : 0;
+    return { list: list, current: cur, set: chooseScale };
+  }
   function sizeStage() {
     var s = document.getElementById("stage"), w = 0;
     if (!s) return;
@@ -555,6 +628,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       var roomW = (document.documentElement.clientWidth || window.innerWidth) - 24, roomH = window.innerHeight - 90;
       // Desktop 95's game window (web/skins.js): the icons at the left, the controls above it, its own title bar
       if (desktop) { roomW -= 120; roomH -= 60; }
+      // a multiple chosen for this game, while its window still fits
+      var pick = desktop ? chosenScale() : 0;
+      if (pick && deskScales().some(function (x) { return x.n === pick; })) w = gameScreen.w * pick / dpr;
       for (; n >= 1 && !w; n--) {
         var cw = gameScreen.w * n / dpr, ch = gameScreen.h * n / dpr;
         if (cw <= roomW && ch <= roomH) w = cw;
@@ -612,7 +688,19 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       // click at the wrong height. A resize once the game's call has returned (a microtask: a hidden pane runs no timers
       // on time) lets SDL measure the stage again.
       Promise.resolve().then(function () { window.dispatchEvent(new Event("resize")); });
+      gameWindowDrawn();
     },
+    // The game's own full screen (its options' Full screen), which the framework offers the page first (SexyAppBase.cpp,
+    // sexyapp_page_fullscreen): in Desktop 95 it is the game window's maximize, the game alone at a whole multiple of its
+    // size (fitFullscreen); elsewhere SDL's own, the canvas at the screen's size. gameFullscreenState tells the framework
+    // whether the page still holds it, as the player leaves it with Esc and a browser may refuse it.
+    onGameFullscreen: function (full) {
+      if (!deskOn()) return false;
+      if (full) { if (document.fullscreenElement !== $("stage")) goFullscreen(); }
+      else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+      return true;
+    },
+    gameFullscreenState: function () { return document.fullscreenElement === $("stage") || stageFsAsked; },
     // -placeholders: a game file the game did not find got a stand-in (listed in the Game files panel)
     onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },
     // Called by the game after it quits (the tab can't close itself): silence it, wait for the save
@@ -620,6 +708,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     // page reloads and starts the game again by itself (Session.restartPage), or the Game files panel closed the
     // game (closeGameThen), which goes on from here.
     onGameExit: function (info) {
+      gameWindowLoading(false);
       setGameState("closed");
       playClock();
       releaseWake();
@@ -670,6 +759,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // The game stopped with an error (a crash, out of memory): nothing more runs in this page. A mod may be the
   // cause, so the next start can leave them out.
   function showStopped(what) {
+    gameWindowLoading(false);
     setGameState("stopped");
     siteBusy(false);
     playClock();
@@ -999,6 +1089,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     var seed = pageSeed();
     var seedText = (seed > 0) ? " · " + ByopopStrings.t("game.status.seed", {seed: seed}) : (seed < 0) ? " · " + ByopopStrings.t("game.status.seed_ignored") : "";
     var modsText = noMods ? ByopopStrings.t("game.status.mods_off") : enabled ? ByopopStrings.t("game.status.mods_active", {n: enabled}) : ByopopStrings.t("game.status.mods_none");
+    runMods = noMods ? 0 : enabled;
     var run = {
       args: ["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat(PAGE.replays ? ["-replaydir=" + REPLAYS] : [])
         .concat((seed > 0) ? ["-gameseed=" + seed] : []),
@@ -1023,6 +1114,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     if ((isAutostart !== true || noMods) && !PLAYER_ONLY) { try { ByopopPlay.started(PAGE.id); } catch (e) {} }
     askToKeepStorage();
     setGameState("running");
+    gameWindowLoading(true);
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     startChat();
     cursorTimer = setInterval(pollCursor, 100);
@@ -1343,6 +1435,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       if (b && !(id === "panel-mods" && gameRunning())) b.setAttribute("aria-expanded", $(id).hidden ? "false" : "true");
     });
   }
+  // In Desktop 95's desktop the panels are windows of their own: several may be open beside the game, a click on the game leaves
+  // them open, and each one's Close (Esc, F2 in it) closes only it
+  function deskOn() { return !!(window.ByopopSkin && ByopopSkin.desk.isOn()); }
   function openPanel(id) {
     // The panels are outside the stage: in fullscreen (the game's own "Add or remove mods") they could not be
     // seen, yet would take the keys and the next click
@@ -1352,7 +1447,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       var a = document.activeElement;
       panelOpener = (a && a !== document.body && a !== document.documentElement && !(a.closest && a.closest(".panel"))) ? a : null;
     }
-    PANELS.forEach(function (p) { $(p).hidden = p !== id; });
+    if (id && deskOn()) $(id).hidden = false;
+    else PANELS.forEach(function (p) { $(p).hidden = p !== id; });
     if ((id === "panel-mods") && panel) panel.shown();
     syncPanelButtons();
     if (id) $(id).focus();
@@ -1360,7 +1456,22 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function anyPanelOpen() { return PANELS.some(function (p) { return !$(p).hidden; }); }
   // how: where the focus goes. "pointer" (the default): to the game, so that its keys work again; "keyboard": back to the
   // control that opened the panel (the game when that was it); "quiet": nowhere, the caller moves it
-  function closePanels(how) {
+  // only: in Desktop 95's desktop, the one panel to close (the others stay open)
+  function closePanels(how, only) {
+    if (only && deskOn()) {
+      if ($(only).hidden) return;
+      var had = $(only).contains(document.activeElement);
+      $(only).hidden = true;
+      syncPanelButtons();
+      var back = panelOpener;
+      if (!anyPanelOpen()) panelOpener = null;
+      // the focus was in it: back to what opened it, else the game
+      if (had && how !== "quiet") {
+        if (back && back.isConnected && !back.disabled && back.getClientRects().length && back !== $("canvas")) back.focus();
+        else focusGame();
+      }
+      return;
+    }
     var wasOpen = anyPanelOpen(), opener = panelOpener;
     panelOpener = null;
     openPanel(null);
@@ -1374,7 +1485,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // a click made with the keyboard (Enter, Space) has detail 0; the mouse and touch have 1 or more
   function closeHow(e) { return (e && e.detail === 0) ? "keyboard" : "pointer"; }
   function togglePanel(id, e) {
-    if (!$(id).hidden) closePanels(closeHow(e)); else openPanel(id);
+    if (!$(id).hidden) closePanels(closeHow(e), id); else openPanel(id);
   }
   // While a panel is open the game gets no clicks: a press on the stage closes the panel instead (the release and
   // click that follow it are dropped too). A press released outside the stage leaves no click to end that: the
@@ -1382,7 +1493,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   var swallowUntilClick = false;
   ["mousedown", "touchstart"].forEach(function (t) {
     $("stage").addEventListener(t, function (e) {
-      if (!anyPanelOpen()) { swallowUntilClick = false; return; }
+      if (!anyPanelOpen() || deskOn()) { swallowUntilClick = false; return; }
       e.stopPropagation(); e.preventDefault();
       swallowUntilClick = true;
       closePanels("pointer");
@@ -1395,16 +1506,16 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       if (t !== "mouseup") swallowUntilClick = false;
     }, { capture: true, passive: false });
   });
-  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", function (e) { closePanels(closeHow(e)); }); });
+  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", function (e) { var p = b.closest(".panel"); closePanels(closeHow(e), p && p.id); }); });
   // Mods: while the game runs, its own mod menu (where its "Add or remove mods" opens this panel); before
   // that, the panel
   $("btn-mods").addEventListener("click", function (e) {
-    if (!$("panel-mods").hidden) { closePanels(closeHow(e)); return; }
+    if (!$("panel-mods").hidden) { closePanels(closeHow(e), "panel-mods"); return; }
     if (gameState !== "waiting" && panel && (panel.menu(-1) >= 0)) { closePanels("quiet"); $("canvas").focus(); return; }
     openPanel("panel-mods");
   });
   $("btn-files").addEventListener("click", function (e) {
-    if (!$("panel-files").hidden) { closePanels(closeHow(e)); return; }
+    if (!$("panel-files").hidden) { closePanels(closeHow(e), "panel-files"); return; }
     var fs = web().fs, n = 0;
     GAME_DIRS.forEach(function (d) { n += fs.listDir(GAME + "/" + d).length; });
     n += fs.listDir(GAME).filter(function (f) { return GAME_FILES.indexOf(f.toLowerCase()) >= 0; }).length;
@@ -1420,18 +1531,77 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     var p = ByopopProfiles.current();
     return p ? ByopopStrings.t("game.settings.player", {name: p.name}) : ByopopStrings.t("game.settings.no_player");
   }
-  $("btn-settings").addEventListener("click", function (e) {
-    if (!$("panel-settings").hidden) { closePanels(closeHow(e)); return; }
+  // drawn once, in its sections (web/settings.js): the site's mouse pointer is part of Input; on Desktop 95's desktop each
+  // section's icon opens the section's own window (added with the desktop's windows, below)
+  function ensureSettings() {
     try {
       if (settingsView) settingsView.refresh();
       else settingsView = ByopopSettings.render($("settings-body"), { live: true, onChange: applySettingNow,
-        gameId: PAGE.id, gameName: $("brand-name").textContent, playerNote: playerNote });
+        gameId: PAGE.id, gameName: $("brand-name").textContent, playerNote: playerNote,
+        extra: { input: $("site-cursor-body") },
+        openSection: function (id) { if (window.ByopopSkin && ByopopSkin.desk.show("set-" + id)) return; settingsView.select(id, true); } });
       if (!siteCursorShown) { siteCursorShown = true; ByopopCursors.render($("site-cursor-body")); }
     } catch (e) {
       $("settings-body").textContent = ByopopStrings.t("game.settings.unavailable");
     }
+  }
+  $("btn-settings").addEventListener("click", function (e) {
+    if (!$("panel-settings").hidden) { closePanels(closeHow(e), "panel-settings"); return; }
+    ensureSettings();
     openPanel("panel-settings");
   });
+  // ---------- Desktop 95's game window (web/skins.js, ByopopSkin.desk) ----------
+  // Its title: the game's name, and the mods that run (or will at the next start) in the 1995 manner of "App - Document"
+  function modsRunning() {
+    if (!panel || !MODS_SUPPORTED) return 0;
+    if (gameRunning()) return runMods;
+    try { return panel.enabledCount(); } catch (e) { return 0; }
+  }
+  function deskTitle() {
+    if (!window.ByopopSkin || !ByopopSkin.desk.isOn()) return;
+    var n = modsRunning(), name = $("brand-name").textContent;
+    ByopopSkin.desk.setTitle("game", n ? name + " - " + ByopopStrings.t("game.title.mods", { n: n }) : name);
+  }
+  // The parts of the bar that go elsewhere on the desktop, and back without it: the status line in the game window's status
+  // bar, the theme button in Settings' Appearance (a placeholder marks where each was)
+  var statusHome = null, themeHome = null, statusBar = null, themeRow = null;
+  function deskParts() {
+    var on = !!(window.ByopopSkin && ByopopSkin.desk.isOn());
+    var st = $("status"), th = $("btn-theme");
+    if (!statusHome) { statusHome = document.createComment("status line"); st.parentNode.insertBefore(statusHome, st); }
+    if (!themeHome) { themeHome = document.createComment("theme button"); th.parentNode.insertBefore(themeHome, th); }
+    if (!statusBar) {
+      statusBar = document.createElement("div");
+      statusBar.className = "d95-statusbar";
+      $("main").appendChild(statusBar);
+    }
+    if (on) {
+      if (st.parentNode !== statusBar) statusBar.appendChild(st);
+      var look = settingsView && settingsView.sections && settingsView.sections.filter(function (r) { return r.id === "look"; })[0];
+      if (look) {
+        if (!themeRow) {
+          themeRow = document.createElement("div");
+          themeRow.className = "bps-row d95-theme-row";
+          var l = document.createElement("span"); l.className = "d95-theme-label"; l.textContent = ByopopStrings.t("game.theme.label");
+          themeRow.appendChild(l);
+        }
+        var body = look.el.querySelector(".d95-body") || look.el;
+        if (themeRow.parentNode !== body) body.appendChild(themeRow);
+        if (th.parentNode !== themeRow) themeRow.appendChild(th);
+      }
+    } else {
+      if (statusHome.parentNode && st.parentNode !== statusHome.parentNode) statusHome.parentNode.insertBefore(st, statusHome.nextSibling);
+      if (themeHome.parentNode && th.parentNode !== themeHome.parentNode) themeHome.parentNode.insertBefore(th, themeHome.nextSibling);
+      if (themeRow && themeRow.parentNode) themeRow.parentNode.removeChild(themeRow);
+    }
+    deskTitle();
+  }
+  // the game window's Close: the game closes as it does for the panels' actions (its saves written), then the listing,
+  // where All games opens (sessionStorage "byopop-desk-open", web/index.html)
+  function closeProgram() {
+    try { sessionStorage.setItem("byopop-desk-open", "games"); } catch (e) {}
+    closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); });
+  }
   function showMissingFiles() {
     $("files-missing").hidden = !missingFiles.length;
     $("files-missing-summary").textContent = ByopopStrings.t("game.files.missing", {n: missingFiles.length});
@@ -1488,24 +1658,53 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   $("btn-forget").addEventListener("click", function () {
     ask(ByopopStrings.t(gameRunning() ? "game.files.forget_ask_running" : "game.files.forget_ask"), ByopopStrings.t("game.files.remove"), forgetFiles);
   });
+  // a request for the stage's full screen not yet answered (gameFullscreenState)
+  var stageFsAsked = false;
   function goFullscreen() {
     var el = $("stage");
     // the panels are outside the stage: one left open would stay behind it, as for the game's own full screen (openPanel)
     closePanels("quiet");
-    try { if (el.requestFullscreen) el.requestFullscreen().catch(function () {}); } catch (e) {}
+    var answered = function () { stageFsAsked = false; };
+    try { if (el.requestFullscreen) { stageFsAsked = true; el.requestFullscreen().then(answered, answered); } } catch (e) { stageFsAsked = false; }
     // The keys go to the game again, while it runs: before a start and after an exit the canvas is out of the tab order and
     // hidden, and the focus stays where it is (the Ready card's Play, an exit card)
     if (gameRunning()) $("canvas").focus();
   }
   $("btn-full").addEventListener("click", goFullscreen);
+  // Desktop 95's full screen (its maximize button, its control menu's and the Pop menu's Full screen, the game's own): the game
+  // alone, at the largest whole multiple of its size in device pixels that fits the screen, or as large as fits at its own shape
+  // when not even one does, centred on black (--fs-w and --fs-h for the canvas, web/skins.css); the desktop as it was on the way
+  // back, as the windows keep their places
+  function fitFullscreen() {
+    var s = $("stage");
+    if (!deskOn() || document.fullscreenElement !== s) { s.style.removeProperty("--fs-w"); s.style.removeProperty("--fs-h"); return; }
+    var dpr = window.devicePixelRatio || 1, aw = window.innerWidth, ah = window.innerHeight, w = 0, h = 0;
+    for (var n = 16; n >= 1 && !w; n--) {
+      if (gameScreen.w * n / dpr <= aw && gameScreen.h * n / dpr <= ah) { w = gameScreen.w * n / dpr; h = gameScreen.h * n / dpr; }
+    }
+    if (!w) { var k = Math.min(aw / gameScreen.w, ah / gameScreen.h); w = Math.floor(gameScreen.w * k); h = Math.floor(gameScreen.h * k); }
+    s.style.setProperty("--fs-w", w + "px");
+    s.style.setProperty("--fs-h", h + "px");
+  }
+  document.addEventListener("fullscreenchange", function () {
+    fitFullscreen();
+    // SDL sizes the canvas on the window's resize: the new box first, then the resize that makes it measure it (as onGameScreen)
+    Promise.resolve().then(function () { window.dispatchEvent(new Event("resize")); });
+  });
+  window.addEventListener("resize", function () { if (document.fullscreenElement === $("stage")) fitFullscreen(); });
   // F11 is the Fullscreen button, and F11 again (or Esc, the browser's own) leaves full screen (the user, 2026-11-02: "F11
   // should make all games go full screen in the browser"). The browser's F11 would put the whole page in full screen, so it is
   // stopped, but only when the page can do it itself. This listener is the first to see the key (the document, capturing), so
   // the game never gets it: TipTop's own F11 (App::HandleKeys) would ask SDL for full screen outside a click, which the browser
   // refuses. Its Options checkbox still uses the game's own path.
+  // In Desktop 95's desktop F11 is the browser's own (the user, 2026-11-08: "Full screen issue seems to be the difference between
+  // using the in-game full screen and pressing F11"): the whole desktop fills the screen, and the game's window stays a window;
+  // the game still never gets the key. Its full screen is the window's maximize button. While the stage is in full screen F11
+  // leaves it, as everywhere.
   function onFullscreenKey(e) {
     if (e.key !== "F11" || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
     if (!document.fullscreenEnabled || !$("stage").requestFullscreen) return;
+    if (deskOn() && !document.fullscreenElement) { e.stopImmediatePropagation(); return; }
     e.preventDefault();
     e.stopImmediatePropagation();
     if (e.type !== "keydown" || e.repeat) return;
@@ -1607,7 +1806,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       }
       if (PAGE_SCROLL_KEYS.indexOf(e.key) >= 0 && !e.altKey && !e.metaKey) e.preventDefault();  // the game still gets the key
       heldKeys[e.code] = { key: e.key, code: e.code, keyCode: e.keyCode, location: e.location };
-      $("canvas-hint").classList.remove("show");
+      $("key-hint").classList.remove("show");
     } else {
       delete heldKeys[e.code];
     }
@@ -1616,11 +1815,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   $("stage").addEventListener("keyup", onGameKey, true);
   $("canvas").addEventListener("blur", function () {
     releaseKeys();
-    $("canvas-hint").classList.remove("show");
+    $("key-hint").classList.remove("show");
   });
   $("canvas").addEventListener("focus", function () {
     // shown while the keyboard has put the focus there (the ring is :focus-visible); a click needs no hint
-    try { if ($("canvas").matches(":focus-visible")) $("canvas-hint").classList.add("show"); } catch (e) {}
+    try { if ($("canvas").matches(":focus-visible")) $("key-hint").classList.add("show"); } catch (e) {}
   });
   $("canvas").addEventListener("mousedown", function () { $("canvas").focus(); });
   // nothing in the stage is dragged as page content (the style above keeps it from being selected)
@@ -1639,11 +1838,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     var t = e.target;
     if (t === $("canvas") || e.defaultPrevented) return;
     var inPanel = !!(t.closest && t.closest(".panel"));
-    if (e.key === "Escape" && anyPanelOpen()) { e.preventDefault(); closePanels("keyboard"); return; }
+    // (in Desktop 95's desktop Esc closes the panel window it is typed in, and leaves the others)
+    if (e.key === "Escape" && anyPanelOpen() && !(deskOn() && !inPanel)) { e.preventDefault(); closePanels("keyboard", inPanel ? t.closest(".panel").id : null); return; }
     // Esc on the import card is its Cancel, when the card has one (game files are stored already)
     if (e.key === "Escape" && !$("import-overlay").hidden && !$("btn-import-cancel").hidden && !importing) { e.preventDefault(); $("btn-import-cancel").click(); return; }
     if (e.key === "F2" && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
-      if (inPanel) { e.preventDefault(); closePanels("pointer"); return; }
+      if (inPanel) { e.preventDefault(); closePanels("pointer", t.closest(".panel").id); return; }
       if (gameRunning() && (t === document.body || t === document.documentElement || (t.closest && t.closest(".bar")))) {
         e.preventDefault();
         $("canvas").focus();
@@ -1893,24 +2093,43 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   if (!PLAYER_ONLY) try {
     (function () {
       var d = ByopopSkin.desk;
-      d.add(document.querySelector("header.bar"), { id: "controls", title: ByopopStrings.t("skin.desk.controls"),
-        at: function (left) { return [left, 12]; } });
-      d.add($("main"), { id: "game", title: $("brand-name").textContent, snap: $("canvas"), closable: true,
-        at: function (left) { var c = d.find("controls"); return [left, c ? c.y + c.el.offsetHeight + 12 : 12]; } });
+      // The page's bar is no window of its own on the desktop (the user, 2026-11-08: "Pull out the items from the controls
+      // window to be their own windows as appropriate ... That tools window probably doesn't need to exist at all"): the game's
+      // name and its mods are its window's title ("Bejeweled - 2 mods"), the status line its status bar, the bar's panels
+      // (Mods, Game files, Settings, ...) windows of their own with their icons, the sound switch in the tray, full screen the
+      // window's maximize button (and its control menu's and the Pop menu's entry), the theme in Settings' Appearance. The
+      // window's Close closes the program (the user, 2026-11-08: "Closing the game window ought to go back to the home
+      // page/bring back All games"): the game's own close with its saves, as the page's other ways out, then the listing with
+      // All games open.
+      var gameName = $("brand-name").textContent;
+      var sysIcon = document.createElement("i");
+      sysIcon.className = "d95-sys-cap"; sysIcon.setAttribute("aria-hidden", "true");
+      d.add($("main"), { id: "game", title: gameName, snap: $("canvas"), closable: true, menu: true, menuIcon: sysIcon,
+        maximize: goFullscreen, onClose: closeProgram, sizes: deskSizes, at: function (left) { return [left, 12]; } });
       // the chat's collapser minimizes it to the task bar on the desktop (web/skins.js, minimize)
-      d.add($("chat"), { id: "chat", title: $("chat-title").textContent, handle: $("chat-title"), minimize: ".chat-chevron",
+      d.add($("chat"), { id: "chat", title: $("chat-title").textContent, handle: $("chat-title"), minimize: ".chat-chevron", scroll: ".bpc-log",
         at: function (left, vw) { var g = d.find("game"); return g ? [Math.min(g.x + g.el.offsetWidth + 12, vw - 312), g.y] : [left, 12]; } });
       PANELS.forEach(function (id) {
         var p = $(id), wid = id;
-        d.add(p, { id: wid, title: PANEL_BUTTONS[id] ? PANEL_BUTTONS[id].textContent : p.querySelector("h2").textContent, handle: p.querySelector("header"), button: PANEL_BUTTONS[id],
+        d.add(p, { id: wid, title: PANEL_BUTTONS[id] ? PANEL_BUTTONS[id].textContent : p.querySelector("h2").textContent, handle: p.querySelector("header"), scroll: ".body", button: PANEL_BUTTONS[id],
           // the bar's own button, which fills the panel as it opens it (Settings)
           open: function () { if (p.hidden) { if (PANEL_BUTTONS[id]) PANEL_BUTTONS[id].click(); else openPanel(id); } }, at: function (left, vw) { return [Math.max(left, vw - 470), 60]; } });
         // a panel that opens comes to the front, where it was left
         if (window.MutationObserver) new MutationObserver(function () { if (!p.hidden) { d.raise(wid); d.place(wid); } })
           .observe(p, { attributes: true, attributeFilter: ["hidden"] });
       });
+      // Settings' sections, each a window of its own opened from the Settings folder's icons or the Pop menu (with no icon of
+      // its own on the desktop); the settings are drawn now, so that their windows are there
+      ensureSettings();
+      if (settingsView && settingsView.sections) settingsView.sections.forEach(function (r, i) {
+        d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true,
+          at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, 90 + (i % 5) * 24]; } });
+      });
       window.addEventListener("byopop-desk", sizeStage);
+      window.addEventListener("byopop-desk", deskParts);
       ByopopSkin.deskSync();
+      deskParts();
+      setInterval(deskTitle, 1000);
     })();
   } catch (e) { console.warn("the desktop's windows could not be added", e); }
   placeChat();

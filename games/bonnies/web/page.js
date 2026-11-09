@@ -16,6 +16,7 @@
       'Games/Bonnie\'s Bookstore Deluxe</span>) or a .zip of it. The <span class="mono">Data</span>, ' +
       '<span class="mono">Graphics</span> and <span class="mono">Sound</span> folders and ' +
       '<span class="mono">BonniesBookstore.exe</span> (the game\'s tables are read from it; it is never run) are copied.',
-    modsIntro: "This port does not load mods yet.",
+    modsIntro: "Its mods are a mod.json of settings: a mod cannot replace the game's pictures or sounds yet. The fixes mod " +
+      "is on by default; turn it off to play the original as it was.",
     seeds: false
   };

@@ -4,6 +4,7 @@
 // own functions, the profile's records, the board's own throw and pull. The moves come from the best known solutions
 // (levels/maxedscores.txt, the same moves -autoplay plays), so a bot mod can reuse them.
 
+#include "Checkbox.h"
 #include "PixelusApp.h"
 #include "Board.h"
 #include "Grid.h"
@@ -157,6 +158,23 @@ static void CollectTargets(WidgetContainer* theContainer, int theX, int theY, st
 	}
 }
 
+// the check boxes in view (the new player's expert box, the help screen's), for a driver that clicks them
+static void CollectChecks(WidgetContainer* theContainer, int theX, int theY, std::string& theOut)
+{
+	for (WidgetList::iterator anItr = theContainer->mWidgets.begin(); anItr != theContainer->mWidgets.end(); ++anItr)
+	{
+		Widget* aWidget = *anItr;
+		if (!aWidget->mVisible)
+			continue;
+		int aX = theX + aWidget->mX, aY = theY + aWidget->mY;
+		Checkbox* aBox = dynamic_cast<Checkbox*>(aWidget);
+		if (aBox != NULL)
+			theOut += StrFormat("%s{\"id\":%d,\"checked\":%s,\"x\":%d,\"y\":%d}", theOut.empty() ? "" : ",", aBox->mId,
+				aBox->mChecked ? "true" : "false", aX + aWidget->mWidth / 2, aY + aWidget->mHeight / 2);
+		CollectChecks(aWidget, aX, aY, theOut);
+	}
+}
+
 bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
@@ -169,6 +187,8 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (aCommand == "state")
 	{
 		std::string aLine = StrFormat("STATE {\"screen\":\"%s\"", TestScreen().c_str());
+		if (mLoadingScreen != NULL && mLoadingScreen->mLoadDone)
+			aLine += ",\"ready\":true";
 		if (aUser != NULL)
 			aLine += StrFormat(",\"player\":\"%s\",\"solved\":%d,\"expert\":%s", aUser->mName.c_str(), aUser->CountSolved(),
 				aUser->mFlag38 ? "true" : "false");
@@ -193,8 +213,9 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 	if (aCommand == "targets")
 	{
-		std::string aButtons, aThumbs;
+		std::string aButtons, aThumbs, aChecks;
 		CollectTargets(mWidgetManager, 0, 0, aButtons);
+		CollectChecks(mWidgetManager, 0, 0, aChecks);
 		if (mTempleScreen != NULL)
 			for (int aRow = 0; aRow < TempleScreen::ROWS; aRow++)
 				for (int aCol = 0; aCol < TempleScreen::COLUMNS; aCol++)
@@ -208,8 +229,8 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 						TempleScreen::LEFT + TempleScreen::PITCH * aCol + TempleScreen::CELL / 2,
 						TempleScreen::TOP + TempleScreen::PITCH * aRow + TempleScreen::CELL / 2);
 				}
-		Reply(StrFormat("TARGETS {\"screen\":\"%s\",\"buttons\":[%s],\"puzzles\":[%s]}", TestScreen().c_str(), aButtons.c_str(),
-			aThumbs.c_str()));
+		Reply(StrFormat("TARGETS {\"screen\":\"%s\",\"buttons\":[%s],\"puzzles\":[%s],\"checks\":[%s]}", TestScreen().c_str(), aButtons.c_str(),
+			aThumbs.c_str(), aChecks.c_str()));
 		return true;
 	}
 

@@ -4,11 +4,15 @@
 //   -gamedir=<dir>   folder containing BonniesBookstore.exe and Data/Bonnie.pak (the exe is read for the game's
 //                    data, never run)
 //   -userdir=<dir>   writable folder for the players' saved games and the preferences (SavedGames/)
+//   -modsdir=<dir>   the mods (the fixes mod; by default mods-bonnies beside the exe), -nomods to load none
+//   -skiplogos       the site's "Always skip start-up logos" (framework/WebSettings.h)
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "BonniesHost.h"
 #include "../engine/Exe.h"
+#include "WebSettings.h"
+#include "platform/ModManager.h"
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -40,6 +44,19 @@ static std::string ArgValue(int argc, char** argv, const char* theKey)
 			return a + n + 1;
 	}
 	return "";
+}
+
+static bool HasFlag(int argc, char** argv, const char* theKey)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (!strcmp(a, theKey))
+			return true;
+	}
+	return false;
 }
 
 static bool LooksLikeGameDir(const std::string& theDir)
@@ -120,6 +137,7 @@ int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
+	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	// port (web): its page (web/shell.html, games/bonnies/web/page.js) mounts its own IndexedDB-backed folder, so
@@ -128,6 +146,8 @@ int main(int argc, char** argv)
 		gameDir = "/bbpersist/game";
 	if (userDir.empty())
 		userDir = "/bbpersist/userdata";
+	if (modsDir.empty())
+		modsDir = "/bbpersist/mods";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();
@@ -139,6 +159,8 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+	if (modsDir.empty())
+		modsDir = ExeDir() + "/mods-bonnies";
 #endif
 
 #ifndef __EMSCRIPTEN__
@@ -166,7 +188,13 @@ int main(int argc, char** argv)
 	Platform::RestoreUserDataBackup(userDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
-	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+	// The mods (the fixes mod, games/bonnies/docs/GAME_NOTES.md): none without a mod folder, and the game plays as the
+	// original
+	Platform::MakeDirs(modsDir);
+	Platform::ModManager::Get().SetModsDir(modsDir);
+	if (!HasFlag(argc, argv, "nomods"))
+		Platform::ModManager::Get().Refresh();
+	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	if (!LoadGameExe())
 	{
@@ -182,6 +210,10 @@ int main(int argc, char** argv)
 	std::string aSeed = ArgValue(argc, argv, "seed");
 	if (!aSeed.empty())
 		bonnies::gTestSeed = strtoul(aSeed.c_str(), nullptr, 10);
+
+	// the site's "Always skip start-up logos" natively, for tests (framework/WebSettings.h)
+	if (HasFlag(argc, argv, "skiplogos"))
+		Byopop::SetSiteSkipLogos(true);
 
 	static BonniesHostApp* anApp = new BonniesHostApp();
 	anApp->SetCmdLine(argc, argv);

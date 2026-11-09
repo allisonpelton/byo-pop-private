@@ -502,6 +502,24 @@ EM_JS(void, sexyapp_watch_fullscreen_refusal, (int theWatch), {
 	Module.byopopFullscreenWatch = done;
 });
 
+// port: the page may hold the game's own full screen itself (the site's Desktop 95 puts the game's window in full screen as its
+// maximize button does, a whole multiple of the game's size centred on black, web/shell.html onGameFullscreen; the user,
+// 2026-11-08: "Full screen issue seems to be the difference between using the in-game full screen and pressing F11"). SDL's own
+// full screen makes the canvas the full-screen element at the screen's size, which the page's window cannot frame. 1 when the
+// page took the request (theFull: 1 to enter, 0 to leave), 0 to leave it to SDL.
+EM_JS(int, sexyapp_page_fullscreen, (int theFull), {
+	return (Module.onGameFullscreen && Module.onGameFullscreen(!!theFull)) ? 1 : 0;
+});
+
+// 1 while the page holds the game's full screen or has asked for it, 0 otherwise, -1 for a page with no full screen of its own
+EM_JS(int, sexyapp_page_fullscreen_state, (), {
+	return Module.gameFullscreenState ? (Module.gameFullscreenState() ? 1 : 0) : -1;
+});
+
+// the page took the game's last request for full screen: the game's windowed state follows the page's (UpdateAppStep), as the
+// player may leave it, or the browser refuse it, without the canvas changing size
+static bool gPageFullscreen = false;
+
 // The browser may close, reload or discard the page without giving control back, while 1.3 only
 // saves on shutdown. When the page is hidden or about to unload (SDL reports beforeunload as
 // SDL_APP_TERMINATING), PageGoingAway() writes the settings and brings the backup up to date. Event
@@ -655,6 +673,8 @@ SexyAppBase::SexyAppBase()
 	mDrawTime = 0;
 	mScreenBltTime = 0;
 	mAlphaDisabled = false;
+	mUserChanged3DSetting = false;
+	mWant3D = true;
 	mDebugKeysEnabled = false;
 	mNoSoundNeeded = false;
 	mWantFMod = false;
@@ -662,7 +682,6 @@ SexyAppBase::SexyAppBase()
 	mSyncRefreshRate = 100;
 	mVSyncUpdates = false;
 	mWaitForVSync = false;
-	mUserChanged3DSetting = false;
 	mAutoEnable3D = false;
 	mTest3D = false;
 	mRelaxUpdateBacklogCount = 0;
@@ -1215,6 +1234,10 @@ void SexyAppBase::WriteToRegistry()
 	RegistryWriteInteger("CustomCursors", mCustomCursorsEnabled ? 1 : 0);
 	RegistryWriteInteger("InProgress", 0);
 	RegistryWriteBoolean("WaitForVSync", mWaitForVSync);
+	// port: the 3D choice, once the player has made one (the original writes it the same way); a run that never changed
+	// it leaves a saved value as it was
+	if (mUserChanged3DSetting)
+		RegistryWriteBoolean("Is3D", mWant3D);
 }
 
 bool SexyAppBase::RegistryEraseKey(const SexyString& _theKeyName)
@@ -1512,8 +1535,17 @@ void SexyAppBase::UpdateUserDataBackup(bool force)
 		aFiles.push_back(Platform::BackupFile{ UserDirRelativePath(RegistryPath()), aRegistry });
 	for (size_t i = 0; i < aSaves.size(); i++)
 	{
-		if (!UserDirRelativePath(aSaves[i].mFileName).empty())
-			aFiles.push_back(Platform::BackupFile{ UserDirRelativePath(aSaves[i].mFileName), aSaves[i].mData });
+		std::string aRelative = UserDirRelativePath(aSaves[i].mFileName);
+		if (!aRelative.empty())
+			aFiles.push_back(Platform::BackupFile{ aRelative, aSaves[i].mData });
+		else
+		{
+			// a name outside the user folder (an absolute path, say) cannot be kept: said once, so that a lost save shows in
+			// the log (Bejeweled Twist's first hook gave absolute names, 2026-11-08)
+			static std::set<std::string> sLogged;
+			if (sLogged.insert(aSaves[i].mFileName).second)
+				SDL_Log("shutdown save outside the user folder, not kept: %s", aSaves[i].mFileName.c_str());
+		}
 	}
 	Platform::BackupUserData(aFiles);
 
@@ -2143,6 +2175,11 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 				mDDInterface->UpdateDisplaySize();
 			// fullscreen can also be left without the game (Esc in the browser, the window manager)
 			mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
+#ifdef __EMSCRIPTEN__
+			// SDL's window stays windowed while the page holds the full screen
+			if ((gPageFullscreen) && (sexyapp_page_fullscreen_state() == 1))
+				mIsWindowed = false;
+#endif
 			mIsPhysWindowed = mIsWindowed;
 			mWidgetManager->MarkAllDirty();
 			break;
@@ -2597,11 +2634,21 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	// port: SDL switches the existing window (desktop-resolution fullscreen) instead of recreating it
 	if (mHWnd != NULL)
 	{
-		SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 #ifdef __EMSCRIPTEN__
-		// a page that has no full screen at all refuses at once, and SDL leaves its window windowed; a later refusal is watched
-		mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
-		sexyapp_watch_fullscreen_refusal(mIsWindowed ? 0 : 1);
+		// the page's own full screen (sexyapp_page_fullscreen), or SDL's
+		if (sexyapp_page_fullscreen(mIsWindowed ? 0 : 1))
+		{
+			gPageFullscreen = !mIsWindowed;
+		}
+		else
+		{
+			SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+			// a page that has no full screen at all refuses at once, and SDL leaves its window windowed; a later refusal is watched
+			mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
+			sexyapp_watch_fullscreen_refusal(mIsWindowed ? 0 : 1);
+		}
+#else
+		SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 #endif
 		mIsPhysWindowed = mIsWindowed;
 
@@ -2952,6 +2999,17 @@ bool SexyAppBase::UpdateAppStep(bool* updated)
 			ClearUpdateBacklog();
 		}
 
+#ifdef __EMSCRIPTEN__
+		// the page's full screen, left or refused (gPageFullscreen)
+		if ((gPageFullscreen) && (sexyapp_page_fullscreen_state() != 1))
+		{
+			gPageFullscreen = false;
+			mIsWindowed = true;
+			mIsPhysWindowed = true;
+			mWidgetManager->MarkAllDirty();
+		}
+#endif
+
 		if (!ProcessEvents())
 			mUpdateAppState = UPDATESTATE_PROCESS_1;
 	}
@@ -3003,6 +3061,23 @@ int SexyAppBase::InitDDInterface()
 			aScreenImage->mIsScreen = true;
 			mDDInterface->mScreenImage = aScreenImage;
 		}
+
+		// port: the player's 3D choice: this run's (Set3DAcclerated) or the saved "Is3D" (the original reads it as its
+		// 2D mode's switch). Only 3D off changes anything: a default start, or a display without acceleration, is as it was
+		bool aWant3D = mWant3D;
+		if (!mUserChanged3DSetting)
+		{
+			aWant3D = true;
+			RegistryReadBoolean("Is3D", &aWant3D);
+#ifdef __EMSCRIPTEN__
+			// the site's "3D acceleration" (always 1, never 0; -1 leaves it to the game) decides this run in place of the saved
+			// value, and writes nothing (mUserChanged3DSetting stays false); mCan3D still makes "always" 2D without WebGL2
+			if (Byopop::SiteAccel3D() >= 0)
+				aWant3D = Byopop::SiteAccel3D() != 0;
+#endif
+		}
+		if (!aWant3D)
+			mDDInterface->mIs3D = false;
 
 		// port: DDInterface::WindowToLogical already maps window to logical coordinates, so the widget
 		// manager's mouse remapping is the identity
@@ -4370,6 +4445,10 @@ void SexyAppBase::OpenModMenu()
 	MTAutoDisallowRand aDisallowRand;
 	mModMenu = new ModMenu(this);
 	mModMenu->Resize(0, 0, mWidth, mHeight);
+	// Above every deferred overlay a game uses (Bookworm Adventures' title logo at 1, its board at 10000): the widget
+	// manager draws an overlay before the first widget whose priority is above the overlay's, so at the default 0 the
+	// menu would lie under them all
+	mModMenu->mPriority = 0x7FFFFFF0;
 	mWidgetManager->AddWidget(mModMenu);
 	mWidgetManager->BringToFront(mModMenu);
 	// As AddDialog does for a modal dialog: the widgets below get no mouse or keys, and the game pauses
@@ -4645,6 +4724,29 @@ void SexyAppBase::Init()
 
 	if (!mCmdLineParsed)
 		DoParseCmdLine();
+
+	// port: a run with a test flag only on rundesk's private desktop (CLAUDE.md, "Running games in tests"; rundesk sets
+	// BYOPOP_TEST_RUN for everything it starts). Without that mark the run stops here, before its window can open on the
+	// user's screen: a test save starts full screen in some games, and Bejeweled 2's took over the user's monitor
+	// (2026-11-08). ORACLE_VISIBLE=1 is the user's own visible run (games/bejeweled/tools/oracle/compare.sh).
+#ifndef __EMSCRIPTEN__
+	{
+		bool hasTestFlag = (!mScriptFileName.empty()) || (mScriptedInput) || (!mRealInputFileName.empty()) ||
+			(!mCommandsFileName.empty()) || (mCommandsHold) || (mFastMode) || (mHasSeedParam) || (mTraceMode) || (mDrawEvery);
+		const char* aVisible = SDL_getenv("ORACLE_VISIBLE");
+		bool isMarked = (SDL_getenv("BYOPOP_TEST_RUN") != NULL) || (SDL_getenv("BEJ_TEST_DESKTOP") != NULL) ||
+			((aVisible != NULL) && (aVisible[0] != 0));
+		if (hasTestFlag && !isMarked)
+		{
+			const char* aText = "a test flag (-script, -autoplay, -realinput, -commands, -hold, -fast, -seed, -trace or "
+				"-drawevery) outside rundesk: start the game, or the script that starts it, under build/native/rundesk.exe "
+				"(CLAUDE.md, \"Running games in tests\")";
+			fprintf(stderr, "%s\n", aText);
+			SDL_Log("%s", aText);
+			DoExit(3);
+		}
+	}
+#endif
 
 	// port: -fast moves the sound effects on in DoUpdateFrames instead of in real time
 	if (mFastMode)
@@ -5463,7 +5565,19 @@ bool SexyAppBase::Is3DAccelerationRecommended()
 
 void SexyAppBase::Set3DAcclerated(bool is3D, bool reinit)
 {
-	// port: SDL's renderer is the only display path; it is accelerated whenever the system allows it
+	// port: SDL's renderer is the only display path, and it stays the GPU's whenever the system allows it. What 3D off
+	// changes is what the game and the framework's own drawing see (Is3DAccelerated, Graphics' mIs3D): the software
+	// drawing paths of PopCap's 2D mode. The choice is kept (mWant3D), written as "Is3D" and applied again each time the
+	// display is made; no re-init is needed, so reinit has nothing to do
+	if (mDDInterface == NULL)
+		return;
+	bool aIs3D = is3D && mDDInterface->mCan3D;
+	if (mDDInterface->mIs3D == aIs3D && mWant3D == is3D)
+		return;
+	mUserChanged3DSetting = true;
+	mWant3D = is3D;
+	mDDInterface->mIs3D = aIs3D;
+	mWidgetManager->MarkAllDirty();
 }
 
 SharedImageRef SexyAppBase::GetSharedImage(const std::string& theFileName, const std::string& theVariant, bool* isNew)

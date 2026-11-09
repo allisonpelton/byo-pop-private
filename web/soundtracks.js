@@ -15,8 +15,13 @@
 // copies on 2026-11-07.
 var ByopopSoundtracks = {
   alchemy: { files: ["music/*.s3m"] },
+  // AstroPop's one module holds every tune, which the game starts at an order of it (PlaySong); its subsongs stand for them
+  astropop: { files: ["music/*.mo3"] },
   atomica: { files: ["music/*.it"] },
   bejeweled: { files: ["music/*.s3m"] },
+  // one module, BeyondNetwork.mo3: the game plays it from a starting order for each screen (properties/music.xml), so its
+  // subsongs are the tunes
+  bejeweled2: { files: ["music/*.mo3"] },
   bejeweledtwist: { files: ["music/*.mo3"] },
   bigmoney: { files: ["music/*.it"] },
   bookworm: { files: ["music/*.mo3"] },

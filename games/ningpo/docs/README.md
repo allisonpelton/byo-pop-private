@@ -123,7 +123,8 @@ code are left out (docs/COORDINATION.md, "Order of the work on the merged games"
 The trial's code, which a registered copy never reaches: the registration check (`checkRegistration`, the game's and
 the engine's, and the cvars `nm_pyrogonRegistration` and `nm_maxTimesPlayed`), the count of games played, the
 "full version only" signs drawn over the last layouts and tile sets on the title, the loading bar stopped at a quarter,
-the buy button among the board's controls, the engine's startup dialog whose button opened the purchase page, and the
+the buy button among the board's controls, the engine's startup dialog whose button opened the purchase page, the
+loading screen's hidden thanks for registering, and the
 four sprites only those used (14, 15, 74 and 75 in `SpriteTable.inc`, which the generator now leaves empty). None of
 it showed in a registered copy, so nothing visible changes.
 
@@ -133,7 +134,9 @@ visible. The options' background has a frame for each button: Best Times and an 
 button) in the first row, the visit button in the second, Done in the third. Done now sits in the second row's frame,
 and the third row's frame, empty, is painted out with the wood beside it when the background loads
 (`PaintOutFrame` in `src/NingPoDialogs.cpp`), so the dialog shows no gap. The empty frame beside Best Times stays, as
-in the registered original. The loading screen's partner logo is a picture, not a link, and stays.
+in the registered original. The loading screen's partner logo is a picture, not a link, and stays. Ning Po has no start-up logo for the site's "Always skip start-up
+logos" (`Byopop::SiteSkipLogos`) to skip: the only screen before the title is the loading screen, which waits for
+its start button.
 
 ## Mods
 

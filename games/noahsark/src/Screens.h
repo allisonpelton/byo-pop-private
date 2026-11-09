@@ -28,7 +28,6 @@ public:
 	double				mProgress;              // +0x58 the loading bar's fill, 0..1
 	double				mFade;                  // +0x60
 	bool				mLinkShown;             // +0x68 the play link has appeared
-	int					mTip;                   // +0x7c which of the three lines is shown (changes every 300 ticks)
 	HyperlinkWidget*	mPlayLink;              // +0x84 id 1, "click here to play"
 	bool				mClicked;               // +0x70-ish: the link was clicked before loading had finished
 

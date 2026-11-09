@@ -135,7 +135,10 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mDisplayWidth = mWidth;
 	mDisplayHeight = mHeight;
 	mPresentationRect = Rect(0, 0, mWidth, mHeight);
+	mTextureAddressU = TEXTURE_ADDRESS_CLAMP;
+	mTextureAddressV = TEXTURE_ADDRESS_CLAMP;
 	mIs3D = false;
+	mCan3D = false;
 	mIsWindowed = true;
 	mVSync = false;
 	// Unscaled 1x blits sample texels exactly, as at 1x in 1.3. Linear filtering them at a render scale
@@ -212,6 +215,7 @@ int DDInterface::Init(SDL_Window* theWindow, bool vsync)
 	if (SDL_GetRendererInfo(mRenderer, &anInfo) == 0)
 	{
 		mIs3D = (anInfo.flags & SDL_RENDERER_ACCELERATED) != 0;
+		mCan3D = mIs3D;
 		mMaxTextureWidth = (anInfo.max_texture_width > 0) ? anInfo.max_texture_width : 16384;
 		mMaxTextureHeight = (anInfo.max_texture_height > 0) ? anInfo.max_texture_height : 16384;
 	}
@@ -958,10 +962,32 @@ void DDInterface::BltTransformed(Image* theImage, const Rect* theClipRect, const
 	DrawTexturedQuad(theImage, aX, aY, theSrcRect, false, theColor, theDrawMode, theClipRect, linearFilter);
 }
 
+bool DDInterface::DrawTrianglesTexWrapped(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend)
+{
+	if (mTextureAddressU == TEXTURE_ADDRESS_CLAMP && mTextureAddressV == TEXTURE_ADDRESS_CLAMP)
+		return false;
+
+	std::vector<TriVertex> aPieces;
+	SplitWrappedTriangles(theVertices, theNumTriangles, mTextureAddressU == TEXTURE_ADDRESS_WRAP, mTextureAddressV == TEXTURE_ADDRESS_WRAP, aPieces);
+	if (aPieces.empty())
+		return true;
+
+	// the pieces lie in one cell each: clamped, they draw as the repeated picture
+	int aU = mTextureAddressU, aV = mTextureAddressV;
+	mTextureAddressU = mTextureAddressV = TEXTURE_ADDRESS_CLAMP;
+	DrawTrianglesTex(theTexture, reinterpret_cast<const TriVertex (*)[3]>(&aPieces[0]), (int) (aPieces.size() / 3), theClipRect, theColor, theDrawMode, tx, ty, blend);
+	mTextureAddressU = aU;
+	mTextureAddressV = aV;
+	return true;
+}
+
 // TriVertex u/v are normalized over the whole image; a non-zero vertex colour (ARGB) replaces theColor
 // (as in D3DInterface::DrawTrianglesTex).
 void DDInterface::DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend)
 {
+	if (DrawTrianglesTexWrapped(theTexture, theVertices, theNumTriangles, theClipRect, theColor, theDrawMode, tx, ty, blend))
+		return;
+
 	MemoryImage* aSrcImage = dynamic_cast<MemoryImage*>(theTexture);
 	if ((aSrcImage == NULL) || (theNumTriangles <= 0))
 		return;

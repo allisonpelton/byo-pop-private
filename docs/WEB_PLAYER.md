@@ -255,7 +255,11 @@ keep them.
 **The footer** is the page's last row, across its width (the user, 2026-11-07: "a true footer"): the game's copyright notice
 in one sentence, its `COPYRIGHT` up to "All rights reserved." (the trademark lines are on the page the link opens), then a
 **Full terms →** link, which opens the game's copyright page (`<game>-copyright.html`, next to the game) in a new tab. The
-markup is `web/footer.html` (the build puts the notice at `@BYOPOP_NOTICE@`) and its style `web/footer.css`.
+markup is `web/footer.html` (the build puts the notice at `@BYOPOP_NOTICE@`) and its style `web/footer.css`. Every link to the site's own
+licence texts (`licenses/`), terms and copyright pages, in every skin, opens a new tab with `target="_blank"` and
+`rel="noopener"` (the user, 2026-11-08: "libopenmpt in the music pane doesn't open in a new tab"), so a game or the music
+never stops for one; tools/linkstest.js (in check.sh's unit-web) fails on any that does not, in the pages, the scripts, the
+site's text and the built pages.
 
 **The copyright page** is made from `web/copyright.html`. It has the game's copyright notice, a statement that
 the player is unofficial, non-commercial and comes with none of the game's files, and the license of every
@@ -711,11 +715,14 @@ C"): in a dark theme it stays light, and its pages do not show the theme button.
 **Plain**, the site's look without a skin, is the fourth choice. The skins restyle the listing page and the game pages; the
 other pages (the terms, the licences, a game's copyright page) keep the plain look.
 
-The choice is the site setting `skin` (web/settings.js, the Display group), so it is kept with the other settings, a game may
+The choice is the site setting `skin` (web/settings.js, the Appearance section), so it is kept with the other settings, a game may
 have its own like any other setting, and Settings changes it at any time, at once. Until the player chose one it is "unset":
 the first page of the site they open shows a card with the three, and closing it without a choice keeps Plain, chosen, so the
-card is asked once. As with the terms card, it never shows on a development host (`?skins=1` shows it there) and never on the
-player-only page, which has no skin.
+card is asked once. It shows on every host, development hosts included (the user, 2026-11-08: "I'd still like the skin selector
+to be the first thing that pops up when you load the site for the first time"), on whatever page is opened first, and before
+anything else there: it is a modal dialog, so the terms card, the setup wizard and Desktop 95's windows wait under it. It never
+shows under `?silent=1` (which every test run carries) or `?skins=0`, nor on the player-only page, which has no skin;
+`?skins=1` shows it even after a choice.
 
 How a skin is written: each one sets the pages' own colour variables (`--bg`, `--panel`, `--panel-2`, `--fg`, `--muted`,
 `--line`, `--accent`, `--accent-fg`, `--font-ui`, `--radius`) and its own `--sk-*` ones, once for light and once for dark in the
@@ -729,7 +736,7 @@ the awning, with soft edges elsewhere (the verdicts).
 scaled a quarter beyond the stage, blurred far and cross-faded, sit behind it inside the stage's box (html.sk-ambient). With
 reduced motion a sample is taken every 8 seconds at most and switched without a fade. The light versions have none, since
 on a light page a glow reads as a smudge, and neither has B. The site setting "Ambient light" (`ambient`, on by default, the
-Display group) turns it off; while it is off, or in a light theme, no sample is taken.
+Appearance section) turns it off; while it is off, or in a light theme, no sample is taken.
 Period fonts are named and never shipped (Verdana for A; the 1995 desktop's sans serif, then Tahoma, for B; Cooper Black, then
 Bookman and Georgia, for C's signs).
 
@@ -751,6 +758,11 @@ Plain a 64 px box. The record keeps two of the exe's images, the one nearest 48 
 (`small`, "" when the exe has none smaller); of these the page takes the smallest that is at least the box's size in device
 pixels, else the largest, crops it to its visible pixels (many icons have empty space on one side) and draws it at the
 screen's own pixels: smaller with smoothing, larger only a whole number of times, pixel for pixel, centred on whole pixels.
+Desktop 95 has no caps (the user, 2026-11-08: "The animated bottle caps clash with the Windows 95 skin. I'd prefer bare initials
+for missing games, and the plain favicon otherwise."): a game whose files are here shows its exe's icon plainly, at full strength
+in the same 32 px box, and any other its initials on a plain white square icon with a black edge and a grey shadow, in the
+16-colour palette; no cap, no studies, no flip on hover, and the opener's animation does not run (web/capanim.js,
+`canAnimate`), so an added game's icon changes at once.
 A record from before `small` was kept gets it the next time the game's page opens, where the game stores its exe.
 In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
 its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps").
@@ -765,19 +777,54 @@ ring for a later re-release (two years on or more), and nothing between. No stor
 record, set when a new copy is marked and kept while it is there), short, on the rim; a record from before it was kept has
 none until the files are added again.
 
-**Desktop 95's windows.** In B a game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The controls (the
-page's bar), the game, the chat and every panel (Settings, Game files, Mods and the game's own) are
+**Desktop 95's windows.** In B a game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The game, the
+chat and every panel (Settings, Game files, Mods and the game's own) are
 windows dragged by their title bars, or moved 8 pixels at a time with Alt and the arrows while the focus is in a title bar. A
-column of icons at the left opens each one again. The game window can be closed and reopened; a panel's icon presses the
-panel's own button on the bar. The game window is always pixel-perfect: one canvas pixel for each game pixel, or the largest
-whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Where the windows are, and whether the
+column of icons at the left opens each one again; a panel's icon presses the panel's own button on the page's bar. The bar
+itself is no window there (the user, 2026-11-08: "That tools window probably doesn't need to exist at all"): the game's name is
+its window's title, with the mods that run in the 1995 manner of "App - Document" ("Bejeweled - 2 mods", just "Bejeweled" with
+none: the count the status line gives at the start, or while the game is closed the mods that are on); the status line is the
+game window's status bar, in a sunken panel along its bottom; the panels are their own windows, as many open at once as wanted, each closed by its own Close (or Esc in it), and
+a click on the game leaves them open (elsewhere one panel shows at a time and a click on the game closes it); the sound switch is in the
+tray; full screen is the game window's maximize button, an entry of its control menu (its title bar's icon, or Alt+Space:
+Minimize, Maximize, Close) and of the Pop menu; and the theme button is in Settings' Appearance. The game window's Close (its
+button, its control menu's Close, and Alt+F4 where the browser lets the page have it) closes the program (the user,
+2026-11-08: "Closing the game window ought to go back to the home page/bring back All games"): the game closes as it does for
+the panels' actions, its saves written (closeGameThen), the page's play time is kept as on any way out, and the listing opens
+with All games open and in front (sessionStorage `byopop-desk-open`); no question is asked beyond the page's own. Minimizing
+it keeps the game running on the task bar. The game window is always pixel-perfect: one canvas pixel for each game pixel, or the largest
+whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Its size is the player's too (the user,
+2026-11-08: "95 skin needs a way to size up the game window by an integer multiple. Big Money is very hard to see on my 4K
+monitor"): its control menu lists the whole multiples of the game's size in device pixels whose window fits on the desktop
+("2x (1280 x 960)"), the chosen one dotted, and so does the Pop menu's Game size; its resize corner, at the bottom right of
+its status bar, snaps to them as it is dragged. The choice is kept for each game (localStorage `byopop-d95-scale`), and a
+choice that no longer fits (a smaller window, a game of another size) gives way to the largest that fits beside the icons.
+While the game starts its window is not shown, its task bar button already there and the 1995 hourglass over the page (the user,
+2026-11-08: "While a game loads with a non-standard window size, it shows the standard window size as black. Hide the window
+until the game is actually loaded"): from the start until the game has made its window (onGameScreen, which every game's
+framework calls from MakeWindow) and two frames have been drawn in it, half a second where a hidden page draws none, or the game
+has ended or stopped, and never longer than 20 seconds. In the other skins the stage is hidden the same way, with the
+`progress` cursor. The game gets the focus once it is shown, unless the player has put it elsewhere meanwhile.
+**Full screen in Desktop 95.** The game window's maximize button, its control menu's Maximize, the Pop menu's Full screen and
+the game's own Full screen option put the game alone in full screen (the framework offers the game's request to the page first,
+`sexyapp_page_fullscreen` in framework/SexyAppBase.cpp, and the page takes it in Desktop 95 as its maximize: SDL's own full screen
+would make the canvas the full-screen element at the screen's size; the game's option follows the page as the player leaves): the largest whole multiple of its size in device pixels that fits the screen, or, when not even
+one does, as large as fits at its own shape, centred on black (web/shell.html, `fitFullscreen`; web/skins.css). F11 is the
+browser's own there (the user, 2026-11-08: "Full screen issue seems to be the difference between using the in-game full screen
+and pressing F11"): the whole desktop fills the screen and the game's window stays a window; the game still never gets the key.
+Leaving full screen puts every window back where it was, as their places are kept in pixels. Where the windows are, and whether the
 game window is closed, is kept for each game in the localStorage item `byopop-desk`. Each game keeps its own page, so a game's
 address still opens that game. The listing is its own desktop: the games in one window, each of the tabs under them (Settings,
 Players, Saves, Music) in a window of its own, and the page's notes in another, each dragged, closed and opened from its icon
 like a game page's, and kept under "index"; the games' window and the notes are open at first, the tabs' windows closed until
 their icons or a link to #settings and the like open them. The desktop never scrolls (the user, 2026-11-08: "The whole window
 shouldn't be scrollable"): every window is at most the size of the browser's window above the task bar and scrolls its own
-contents, and it is moved to fit on the screen when it opens and when the browser's window changes size.
+contents, and it is moved to fit on the screen when it opens and when the browser's window changes size. Every window has
+the 1995 frame (the user, 2026-11-08: "This border needs to be fixed"): a 2-pixel bevel as the window's own edge, 2 pixels of
+the grey face, the title bar 18 pixels high across the whole inner width, 2 more pixels of face, then the client area; where
+the window scrolls its contents (the listing's windows, About) a thin sunken edge marks the client area and its scroll bar
+stands inside it. The rule sits above the skin's own rules for the same elements off the desktop, which had put a padded box
+between the frame and the title bar.
 
 **The task bar.** Along the desktop's bottom edge (the user, 2026-11-08: "Add a task bar to the bottom with a start menu,
 replacing "Start" with "Pop""): the Pop button at the left, with the site's cap beside the word, then a button for each open
@@ -813,6 +860,27 @@ Chromium and Safari scroll bars with grey arrows, a raised thumb and the dithere
 skin's grey). The pictures are SVG of our own, drawn pixel by pixel in web/skins.css. Nothing in the skin has rounded corners
 but the round things (an option button, a game's cap). A drop-down's list is the browser's own. The controls' keys, focus
 order and names are the pages' own.
+
+**The keyboard in Desktop 95** (the user, 2026-11-08: "Very unclear how Tab is behaving on that skin"). Before this, Tab went
+through the desktop's icons and then through every control of every window in the page's order (on the listing, the 150-odd
+links and stars of All games before About and the task bar), whatever window was in front, and a window it reached did not come
+forward. Now the desktop is in panes, each open window, the icons and the task bar: Tab and Shift+Tab go round the controls of
+the pane with the focus, in reading order, and never leave it, as in a dialog of the time; closed and minimized windows are out
+of it. F6 and Shift+F6 go to the next pane or the one before (the browser keeps Alt+Tab, Ctrl+Esc and the Windows key), back to
+the control that last had the focus there. A window that takes the focus, by a key or a click, comes to the front and its title
+bar is the active one; the others' are grey. In the icons and on the task bar the arrows move between the items. In the game's
+window the canvas, once it has the focus (a click, or F6 to the game's window while it runs), gets every key, Tab too, since
+some games use it; F6 leaves it. Every focused control is marked: the dotted rectangle inside a button and around a check box's
+or option button's label, a tab, a link or a list's item; an icon's name in navy with the dotted rectangle; a menu's entry in
+its navy bar. About says it in one line: Tab within a window, F6 between windows.
+
+**What is selected and dragged.** In every skin the game's canvas and its stage start no text selection and no drag (the user,
+2026-11-08: "A lot of elements on Windows 95 need to be made unselectable so that I'm not dragging around the canvas contents as
+if it were an image"), and the page's own images (caps, icons, logos) are not picked up; a card over the stage keeps its text,
+and the game's own drags, its focus, touch and right click are its pointer events, which this leaves alone. In Desktop 95 the
+chrome takes no selection, as in 1995 (one rule on the page, web/skins.css): title bars, frames, icons, the task bar, menus,
+buttons, tabs, labels and status bars, so a double click on a title bar or an icon selects nothing; what is there to be read or
+copied keeps it: text fields, the chat's messages, the notes and About, the terms, the settings' explanations.
 
 On a screen under 760 pixels wide, or in another skin, the page is laid out as usual, with its footer. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
 title, ...})`. The parody keeps to the rules of the skins: everything drawn here, system fonts by name, no real logos, icons
@@ -867,7 +935,17 @@ Site-wide overrides of the games' own options, which the player sets once and ev
 **Game default** leaves an option to the game, and it is what every setting starts as, so a player who never opens the settings
 sees every game as it is. They are edited in two places that draw the same controls from one file, `web/settings.js` (copied
 next to the pages and loaded by the listing page and by every game page): the **Settings** tab of the listing page, and the **Settings** panel of a game's page (the bar's Settings button, a side panel like Mods and
-Game files, whose heading is still "Settings: site-wide overrides", though it also offers "This game only"). Both begin with "For every game. Game default leaves a game as it is." The listing
+Game files, whose heading is still "Settings: site-wide overrides", though it also offers "This game only").
+
+The settings are in sections (the user, 2026-11-08: "Settings should be split into sections with icons so the window isn't so
+massive"), each a handful under a plain name: Player names, Sound, Appearance, On screen, Input (with the site's mouse
+pointer), Starting, Game, Page and Chat options. A row of tabs with each section's icon and name shows one at a time (the arrows,
+Home and End move between them). In Desktop 95's desktop the Settings window is a folder of their 32-pixel icons, chosen and
+opened as the desktop's icons are (a double click, Enter or Space), and each section opens as its own small window, with its
+icon and name on its title bar and only its settings; they apply as they change, as everywhere, so there is no OK or Apply. The
+Pop menu's Settings has the sections beside it, and on the listing `#settings` opens the folder and `#settings-<section>` (`players`,
+`sound`, `look`, `overlays`, `input`, `start`, `game`, `page`, `chat`) a section. The icons are our own, drawn in the 1995 manner
+in the 16-colour palette at 32 and 16 pixels by tools/settingsicons.py, which writes web/settingsicons.js. Both begin with "For every game. Game default leaves a game as it is." The listing
 page's tab is site-wide. The panel starts with a choice, **All games
 (site-wide)** or **This game only**: "All games" edits the same stored values as the listing page; "This game only" edits values
 that only this game has (below), and every control then starts with "Same as all games (<the value it follows>)", for example
@@ -919,7 +997,8 @@ it is for, in `FIELDS` in `web/settings.js`):
   only) where it reads that option: -1 the game's own choice, 1 always, 0 never. "Always" is 3D whenever the browser can
   (WebGL2): a browser without it still gets 2D, which the game checks as it does for its own option. The games that read it
   are listed in `ACCEL3D_GAMES` (`web/settings.js`), and a game page of any other game leaves the setting out (the listing
-  page shows it, its explanation naming such a game). Bejeweled Twist reads it now; Bookworm Adventures 1 and 2 and Rocket
+  page shows it, its explanation naming such a game). Bejeweled Twist and Bookworm Adventures 2 read it now (Volume 2 through the framework: `SexyAppBase::InitDDInterface` lets it decide the run's 3D flag in place of the saved
+  "Is3D" and writes nothing); Bookworm Adventures 1 and Rocket
   Mania, whose originals also have a 3D option, may read it once their passes settle their 3D modes. BookWorm will not: its
   option only switches the framework's renderer, which the port always runs on the GPU. The setting
   applies at the next start, and the panel says so.
@@ -1505,13 +1584,14 @@ TipTop moves its focus with Tab and Shift+Tab. No game uses **F6**, which in bro
 regions, so F6 takes the focus from the canvas to the next control on the page (the chat, the footer link, or the open panel) and Shift+F6 to the one
 before it (the Fullscreen button), as Tab and Shift+Tab would; the game never sees either key. The chat does the same: F6 typed in it moves the focus
 on, to the control after the chat, and Shift+F6 to the one before it, and nothing typed in it reaches the game, which takes keys only from its canvas. The canvas is named "<game>, game" (`role="application"`,
-so that a screen reader passes its keys on) and described by "The game now has your keyboard. To leave it, press F6 (or Shift+F6 to go back).",
-which is also shown on the stage while the keyboard has put the focus there, until the first key goes to the game. Keys held when the focus leaves
+so that a screen reader passes its keys on) and described by "Keyboard captured by game. Use F6 to leave, Shift-F6 to re-enter." (`game.canvas_hint`),
+which is also shown, in small muted type at the end of the bar and never over the game (2026-11-08), while the keyboard has put the focus there, until the first key goes to the game;
+Desktop 95's desktop never shows it, as F6 leaves every window there and its About says so. Keys held when the focus leaves
 the canvas are let go in the game (a keyup is sent for each), as SDL only does that when the whole window loses the focus. F2 is the game's key to
 open its mod menu: typed on the bar, or with nothing focused, it is passed on to the canvas, and typed in a panel it closes the panel, as before.
 
 **F11** is the Fullscreen button, wherever the focus is (the user, 2026-11-02: F11 "should make all games go full screen in the
-browser"), and F11 again leaves full screen, as Esc does. The page stops the browser's own F11, which would put the whole page in full screen,
+browser"), and F11 again leaves full screen, as Esc does; in Desktop 95's desktop it is the browser's own instead (above). The page stops the browser's own F11, which would put the whole page in full screen,
 only when it can put the stage there itself (`document.fullscreenEnabled`); then a listener on the document, which sees the key before the
 canvas, keeps it from the game. Of the games only TipTop has an F11 of its own (`App::HandleKeys`, its windowed and full screen switch); in the
 browser it would ask SDL for full screen outside a click, which browsers refuse, so the page's is the one that works. TipTop's Options checkbox
@@ -1644,7 +1724,7 @@ every game has them. What wrong sizes did in testing:
 
 ## The performance panel
 
-A game page shows its performance panel while the site setting "Performance panel" (`perf`, the Display group) is on; it is
+A game page shows its performance panel while the site setting "Performance panel" (`perf`, the On screen section) is on; it is
 off by default (`web/perf.js`). In Desktop 95 it is a window of the desktop with its own icon. It only reads, so the game
 plays the same with it on. With it off nothing of it runs: no animation frame, observer, timer or wrapped WebGL call. Its
 link in the framework's frame hook returns at once, and the hook's own cost is two clock reads a frame. Each second it shows

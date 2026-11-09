@@ -39,6 +39,8 @@ var ByopopCapAnim = (function () {
     try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
   }
   function canAnimate() {
+    // Desktop 95 has no caps to pop (web/skins.css): its icons change at once
+    if (document.documentElement.getAttribute("data-skin") === "d95") return false;
     return !document.hidden && typeof Element !== "undefined" && typeof Element.prototype.animate === "function";
   }
   // an animation's end, or the time it should take and a little more (a page hidden partway has no frames to finish it)
@@ -60,6 +62,7 @@ var ByopopCapAnim = (function () {
   }
   function opener(l, width) {
     var img = document.createElement("img");
+    img.draggable = false;
     img.className = "bpa-opener";
     img.src = OPENER;
     img.alt = "";

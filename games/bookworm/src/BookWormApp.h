@@ -233,6 +233,8 @@ public:
 	virtual void	GotFocus() override;                        // 0x419000 slot 62
 	virtual void	LostFocus() override;                       // 0x419040 slot 63
 	virtual void	TitleScreenDone();                          // 0x414ef0 slot 67 (TitleScreen::ButtonDepress)
+	// port: the standard test commands (docs/TEST_COMMANDS.md), testhooks/Commands.cpp
+	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
 
 	// port: the 2004 SexyApp makes a BassMusicInterface itself (no virtual); here an SDLMusicInterface
 	// with BASS 2.0's music gain (docs/FRAMEWORK_2004.md section 6, 4.2)

@@ -978,6 +978,19 @@ public:
 	void RemovePieceId(int theId);               // 0x6b677b
 	bool IsSparkBlocked() { return mSparkBlock > 0; }  // 0x6a62d0
 	// 0x6a4065: not a challenge, nor at the game's end (+0x160 6 and 7), nor with +0x1390
+	// port (web): the save RemovedFromManager would write if the board went now (into theSave, with the mode whose file
+	// it is), without changing the board; false where it would write none. A page that goes away never removes it.
+	bool GetQuitSave(Buffer* theSave, int* theMode);
+	// port (web): where SaveGame put each save without the replays in mSaveBuffer and mUnknown23B4, in bytes, so that
+	// GetQuitSave can give what LoadGame of one followed by SaveGame with the replays writes
+	struct SaveRange {
+		const Buffer* mBuffer;
+		int mStart;
+		int mEnd;
+	};
+	std::vector<SaveRange> mSaveRanges;
+	void ResaveAsLoaded(const uchar* theSave, Buffer* theOut);
+	void WriteReplays(Buffer* theBuffer);  // SaveGame's flag and the app's three replays
 	bool CanSaveOnQuit() { return !mUnknown1390 && mUnknown160 != 6 && mUnknown160 != 7 && mGameMode != MODE_CHALLENGE; }
 	// 0x6a32ca
 	bool IsBusy() { return 0.0f < mUnknown2108 || 0 < mUnknown20DC || 0.0f < mUnknown380C; }

@@ -4,6 +4,7 @@
 // command "move", docs/TEST_COMMANDS.md), the first with every board button (hint, show moves, pause and resume, a
 // focus loss, undo, shuffle, New Game answered no), each to its end, the name, the best times and back to the title.
 // Opened as .../ningpo.html?player=1&silent=1&assets=1&fast=1&hold=1&driver=games/ningpo/tools/web/tour.js&run=tour
+// (served by tools/webtest/serve.py), with &scale=2 in place of full screen
 var params = new URLSearchParams(location.search);
 var games = Number(params.get("games") || 2);
 var BOARD = { newgame: [47, 115], options: [50, 185], rules: [55, 220], hint: [50, 265], showmoves: [50, 300],
@@ -148,7 +149,25 @@ async function playGame(n, buttons, win) {
   return until("the title", function (x) { return x.screen === "title" && x.dialog === null; });
 }
 
+// ?hold=1: the driver starts the game, from a fresh profile (the best times of an earlier run are in its backup too)
+await t.profile.wipe();
+Object.keys(localStorage).filter(function (k) { return k.indexOf("/nppersist-test/") >= 0; })
+  .forEach(function (k) { localStorage.removeItem(k); });
+var loadFrom = performance.now();
+await t.start();
 await until("the start screen", dialog("start"), 20000);
+say("the start screen " + Math.round(performance.now() - loadFrom) + " ms after t.start()");
+// ?scale=2 draws the canvas at twice its size (CSS), so that the page's events land at scaled points as they do in full
+// screen, which the Browser pane cannot enter
+var scale = Number(params.get("scale") || 1);
+if (scale !== 1) {
+  var cv = document.getElementById("canvas");
+  cv.style.width = Math.round(640 * scale) + "px";
+  cv.style.height = Math.round(480 * scale) + "px";
+  await t.wait(20);
+  var box = cv.getBoundingClientRect();
+  say("scale " + scale + ": the canvas drawn at " + Math.round(box.width) + "x" + Math.round(box.height));
+}
 await t.shot("start");
 await bot(["start"]);
 var s = await until("the title", function (x) { return x.screen === "title" && x.dialog === null; });

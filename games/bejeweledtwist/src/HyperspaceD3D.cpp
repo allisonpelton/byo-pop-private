@@ -1951,11 +1951,13 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 				aCube.mRot.RotateY(aSpin);  // 0x68fa0b
 				aCube.mRot.RotateZ((float)((double)aSpin * -0.18000000715255737));  // 0x673fd0; 0x7e43d8
 				if (aFlag15B) {
+					// the old level's cube leaves to the right, down and away from the camera; the three products are
+					// pushed z first (0x712808 to 0x712849), so 2.1 is x and -2.7 is z
 					double aPathA = mUnknown5D8.GetOutVal();
 					double aPathB = mUnknown5D8.GetOutVal();
-					float aMoveY = (float)(aPathA * -2.700000047683716);  // 0x7e43d0
-					float aMoveX = (float)(aPathB * -1.2999999523162842);  // 0x7d7ea8
-					float aMoveZ = (float)(mUnknown5D8.GetOutVal() * 2.0999999046325684);  // 0x7e32a8
+					float aMoveZ = (float)(aPathA * -2.700000047683716);  // 0x7e43d0
+					float aMoveY = (float)(aPathB * -1.2999999523162842);  // 0x7d7ea8
+					float aMoveX = (float)(mUnknown5D8.GetOutVal() * 2.0999999046325684);  // 0x7e32a8
 					Translate(aCube, aMoveX, aMoveY, aMoveZ);  // 0x6dd0e2
 				}
 				aCube = Compose(aCube, aLook);  // 0x68fa70
