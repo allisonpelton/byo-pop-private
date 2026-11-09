@@ -10,6 +10,11 @@ var STEPS = [[150, "click", 320, 425], [300, "shot", "title"], [350, "click", 50
   ch.port1.onmessage = function () { var f = due.shift(); if (f) f(); };
   Module.ningpoSetTimeout = function (f) { due.push(f); ch.port2.postMessage(0); };
 })();
+// ?hold=1: the driver starts the game, from a fresh profile
+await t.profile.wipe();
+Object.keys(localStorage).filter(function (k) { return k.indexOf("/nppersist-test/") >= 0; })
+  .forEach(function (k) { localStorage.removeItem(k); });
+await t.start();
 // the native run's -seed=7, through the test command that does the same (README.md, "The standard test commands")
 await t.command("seed 7");
 var shots = [];

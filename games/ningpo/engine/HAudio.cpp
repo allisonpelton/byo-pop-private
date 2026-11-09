@@ -216,7 +216,13 @@ bool PGSoundManager::play(int* theVoiceOut, const char* theName, int theLoops, u
 	if (!theOverlap && isPlaying(theName))
 		return false;
 	if (aData)
-		mMixer->play(theVoiceOut, aData, theVolume, thePan, theLoops);
+	{
+		int aVoice = -1;
+		mMixer->play(&aVoice, aData, theVolume, thePan, theLoops);
+		if (theVoiceOut != nullptr && aVoice >= 0)
+			*theVoiceOut = aVoice;
+		GetHost()->SoundStarted(theName, aVoice);
+	}
 	return true;
 }
 
