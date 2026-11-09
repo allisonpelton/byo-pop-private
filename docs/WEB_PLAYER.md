@@ -823,8 +823,8 @@ chat and every panel (Settings, Game files, Mods and the game's own) are
 windows dragged by their title bars, or moved 8 pixels at a time with Alt and the arrows while the focus is in a title bar. A
 column of icons at the left opens each one again; a panel's icon presses the panel's own button on the page's bar. The bar
 itself is no window there (the user, 2026-11-08: "That tools window probably doesn't need to exist at all"): the game's name is
-its window's title, with the mods that run in the 1995 manner of "App - Document" ("Bejeweled - 2 mods", just "Bejeweled" with
-none: the count the status line gives at the start, or while the game is closed the mods that are on); the status line is the
+its window's title, alone, as a 1995 program's title is its name (the coordinator, 2026-11-08; the mods that run are counted in
+the status bar, and the task bar's buttons take the name too); the status line is the
 game window's status bar, in a sunken panel along its bottom; the panels are their own windows, as many open at once as wanted, each closed by its own Close (or Esc in it), and
 a click on the game leaves them open (elsewhere one panel shows at a time and a click on the game closes it); the sound switch is in the
 tray; full screen is the game window's maximize button, an entry of its control menu (its title bar's icon, or Alt+Space:
@@ -894,7 +894,7 @@ chosen, shows the desktop with that page's window open (skins.js goes to `?open=
 loads that page itself; the other skins are unchanged.
 
 Up to three games run at once, each in its own window (the frames are separate pages, so each game has its own module, its
-own saves and its own chat, play time and mod count in its title); a fourth brings up a Windows 95 message box naming the
+own saves and its own chat, play time and the mods it runs in its status bar); a fourth brings up a Windows 95 message box naming the
 limit. The window in front has the focus, given to its game when it comes to the front by its title bar, its task bar button
 or the Pop menu, and the other games lose it exactly as a page does: their frames get the window blur the framework listens
 for (`EmscriptenFocusCallback`), so each does what it does when its page loses the focus; a minimized
@@ -1438,7 +1438,8 @@ Properties (a sheet of the game's values: name, status, release date, plays, pla
 card's buy links, which open a tab. The grid is one tab stop, its selected row's first cell: the arrows, Home and End, Page
 Up and Down move the selection, and typing the first letters of a name goes to it; Tab moves between the Play button, the
 Filter box, the column headers and the grid, and F6 between the desktop's windows. It is a real grid (`role="grid"`, rows
-with `aria-selected`, column headers). Everything comes from the listing's own cards (their files check, favourite and buy
+with `aria-selected`, each named by its game's cell, a row header, and column headers with `aria-sort`).
+Everything comes from the listing's own cards (their files check, favourite and buy
 links) and from ByopopPlay, so the two windows always agree; the rows are read again when the window comes to the front and
 when a card changes. Its icon stands beside All games', and the Pop menu has it beside Games. The setting "Games open in"
 (Look, Desktop 95 only; All games by default) chooses the window that the first entry of the Pop menu's Games and a closed

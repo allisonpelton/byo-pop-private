@@ -191,6 +191,10 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 /* Under the name, in words: whether the game's files are loaded in this browser ("Play now") or not ("Add your files"),
    and for a game played here before, a "?" that explains why they are not (docs/WEB_PLAYER.md, "The listing page") */
 .ownrow { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px 12px; min-height: 20px; }
+/* a game's label ("Play now", "Add your files") is the last line of its link, so a click on it opens the game; the row under the
+   link holds only the "?" beside it, when there is one */
+.tile > .own { margin-top: -4px; }
+a.tile + .ownrow:not(:has(.why)) { min-height: 0; }
 .own { font-size: 12px; color: var(--muted); }
 .own:empty { display: none; }
 .own-yes { color: var(--accent); font-weight: 600; }

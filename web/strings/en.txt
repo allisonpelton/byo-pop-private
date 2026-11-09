@@ -298,8 +298,8 @@ index.footer.about = byo-pop is an unofficial, non-commercial project, not affil
 index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Money, Alchemy and Dynomite! are
   registered trademarks of Electronic Arts Inc. in the United States.
 index.footer.music_html = The Music player plays the music from the game files you added, in this browser, with
-  <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden"> (opens in a new tab)</span></a> and
-  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden"> (opens in a new tab)</span></a>.
+  <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
+  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)
@@ -411,7 +411,6 @@ game.status.closing = Closing the game…
 game.status.restarting = Restarting…
 game.status.closed = Game closed
 # Desktop 95's game window's title after the game's name ("Bejeweled - 2 mods"): the mods that run
-game.title.mods = {n} mod | {n} mods
 # Desktop 95: the theme button's line in Settings' Appearance
 game.theme.label = Light or dark page
 game.status.mods_off = Mods off for this run
