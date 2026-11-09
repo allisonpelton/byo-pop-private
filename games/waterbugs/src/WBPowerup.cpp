@@ -143,6 +143,7 @@ void Powerup_Invincibubble()
 }
 
 // 0x418a90: a new weapon at the tail, made current
+// 0x40ad50 (a weapon's constructor, which only calls Obj_Init, is inlined here)
 void Weapon_Append(List<Weapon>* theList)
 {
 	Weapon* aWeapon = (Weapon*)::operator new(sizeof(Weapon));
