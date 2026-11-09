@@ -34,7 +34,7 @@ public:
 	int			mCurrent[25];	// +0x18 the shape being asked for (a column of the shape after the other)
 	const BonusPattern*	mPattern;	// +0xc4
 	int			mTimer;			// +0xc8
-	int			mElement;		// +0xcc
+	int			mElement;		// +0xcc the index of mPattern in the table of patterns (a saved game holds the index)
 	bool		mDone;			// +0xd0
 	bool		mBlinkOn;		// +0xd1
 	int			mBlink;			// +0xd4

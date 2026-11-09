@@ -26,7 +26,8 @@ set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_op
   _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy
   _byopop_cursor_set_copy
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_tutorials _byopop_site_skiplogos _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
-  _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_set_speed _byopop_speed _byopop_perf_json)
+  _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_set_speed _byopop_speed _byopop_perf_json
+  _byopop_music_song _byopop_music_view _byopop_music_row _byopop_music_used)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
 # the player-only test page's live command (framework/SexyAppBase.cpp, docs/TEST_COMMANDS.md "Sending them")
 list(APPEND BYOPOP_WEB_EXPORTED_FUNCTIONS _byopop_test_command)
@@ -57,7 +58,7 @@ set(BYOPOP_WEB_SHARED_JS logo.js cursors.js settingsicons.js settings.js profile
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
 # game's page.js, which byopop_web_index() writes), and Desktop 95's soundboard (web/sounds.js, with its table web/soundboards.js),
 # copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js sounds.js soundboards.js deskapps.js library.js)
+set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js deskapps.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -1092,8 +1093,19 @@ function(byopop_web_index)
       endif()
       byopop_web_string(soon_aria index.soon_label label "${soon_label}")
       byopop_web_string(soon_text index.soon)
+      # a port still in progress whose page this build made (its byopop_web_game() was configured, its BUILD_<TARGET> on): the
+      # marks of the link a finished game's tile has, which web/localsoon.js honours on a development host only (the user,
+      # 2026-11-09: "Make built ports' Coming soon tiles open their game on the local site?" "Yes, locally")
+      set(local_attr "")
+      get_property(soon_has_page GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target} SET)
+      if(soon_has_page)
+        get_property(soon_id GLOBAL PROPERTY BYOPOP_WEB_id_${target})
+        get_property(soon_persist GLOBAL PROPERTY BYOPOP_WEB_persist_${target})
+        get_property(soon_lock GLOBAL PROPERTY BYOPOP_WEB_lock_${target})
+        set(local_attr " data-local-page=\"${target}.html\" data-local-game=\"${soon_id}\" data-local-persist=\"${soon_persist}\" data-local-lock=\"${soon_lock}\"")
+      endif()
       string(CONCAT tile "    <li class=\"game soon\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\" data-win95=\"${win95}\"${unsold_attr}>"
-        "<div class=\"tile\" role=\"group\" aria-label=\"${soon_aria}\">"
+        "<div class=\"tile\" role=\"group\" aria-label=\"${soon_aria}\"${local_attr}>"
         "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
         "<span class=\"name\">${title}</span>${year_html}</div><div class=\"ownrow\"><span class=\"own own-soon\" aria-hidden=\"true\">${soon_text}</span></div>${buy_html}</li>")
       list(APPEND tiles "${tile}")

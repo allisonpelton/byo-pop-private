@@ -25,6 +25,7 @@ const Color kBoltColors[8] = {Color(255, 32, 32), Color(255, 255, 255), Color(0,
 
 }  // namespace
 
+// 0x71f003
 ElectroBolt::ElectroBolt(int theX1, int theY1, int theX2, int theY2, const Color& theColor, float theDuration,
 	bool theStar)
 {
@@ -192,10 +193,11 @@ void ElectroBolt::Draw(Graphics* g)
 		gD3DInterface->SetSamplerState(0, 2, 3);
 }
 
+// 0x71f10e
 ElectroStrike::ElectroStrike(Piece* thePiece)
 {
 	mColor = thePiece->mColor;
-	mPointsId = thePiece->mUnknown2EC;
+	mPointsId = thePiece->mMatchSerial;
 	mIds.push_back(thePiece->mId);
 	if (thePiece->IsFlagSet(Piece::FLAG_POWER)) {
 		mNovaScale.SetCurve(GTS(0x7e6750));
@@ -208,10 +210,10 @@ ElectroStrike::ElectroStrike(Piece* thePiece)
 	}
 	mPieceId = thePiece->mId;
 	mX = gBoard->GetColX(thePiece->mCol) + gGemWidth / 2;
-	mY = gBoard->GetRowY(thePiece->mUnknown30) + gGemHeight / 2;
+	mY = gBoard->GetRowY(thePiece->mBurstRow) + gGemHeight / 2;
 	thePiece->mGlow = 0.9f;
-	thePiece->mUnknown38 = true;
-	thePiece->mUnknown51D = true;
+	thePiece->mHasPulsingLight = true;
+	thePiece->mHasBroken = true;
 	mTimer = 0;
 	mStep = 0;
 	mFade = 1.0f;
@@ -239,6 +241,7 @@ ElectroStrike::ElectroStrike(Piece* thePiece)
 	}
 }
 
+// 0x71eb9e
 ElectroStrike::~ElectroStrike()
 {
 	for (size_t i = 0; i < mBolts.size(); i++) {
@@ -256,10 +259,10 @@ void ElectroStrike::Update()
 		gApp->PlaySoundEx(SOUND_BOMB_EXPLODE, 0, -2.0f, 0.0f, true, true);
 	for (int i = 0; i < (int)mBolts.size(); i++)
 		mBolts[i]->Update();
-	float aLeft = (float)((double)mUnknown210 - 0.009999999776482582);
+	float aLeft = (float)((double)mLinger - 0.009999999776482582);
 	if (aLeft < 0.0f)
 		aLeft = 0;
-	mUnknown210 = aLeft;
+	mLinger = aLeft;
 }
 
 void ElectroStrike::Draw(Graphics* g)

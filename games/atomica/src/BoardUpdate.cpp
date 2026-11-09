@@ -13,7 +13,7 @@
 
 using namespace Sexy;
 
-// 0x433080
+// 0x433080 / 0x41ffd0 / 0x425c30
 void Board::Update()
 {
 	if (mApp->mB3eac)

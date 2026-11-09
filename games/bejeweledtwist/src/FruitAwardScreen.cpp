@@ -16,9 +16,9 @@ FruitAwardScreen::FruitAwardScreen(Board* theBoard)
 {
 	mBoard = theBoard;
 	mFXManager = new EffectsManager();
-	mImage16C = nullptr;
+	mDropImage = nullptr;
 	mDim = 0;
-	mUnknown154 = 0;
+	mOverlayAlpha = 0;
 	// The fruits leave from the tube's top (a fruit dance moves them to its bottom, AwardFruit)
 	GoodTube* aTube = mBoard->mGoodTube;
 	mFromX = Ftol((double)aTube->mWidth * 0.5 + (double)aTube->mX);
@@ -52,15 +52,15 @@ void FruitAwardScreen::SetPiece(int thePieceId)
 void FruitAwardScreen::Init(int theColor)
 {
 	mDim = 0;
-	mUnknown1A8 = 0;
-	mUnknown17C = 0;
-	mUnknown170 = 0;
+	mSwayStart = 0;
+	mArtShift = 0;
+	mTubeShift = 0;
 	mState = 4;
-	mUnknown1AC = 10.0f;
+	mSwaySize = 10.0f;
 	mColor = theColor;
-	mUnknown1B0 = 1.0f;
-	mUnknown14C = 0.1f;
-	mUnknown150 = 0.015f;
+	mSwayScale = 1.0f;
+	mDimStep = 0.1f;
+	mProgressStep = 0.015f;
 	mFromScale = 1.25f;
 	mToScale = 0.5f;
 	mProgress = 0;
@@ -91,12 +91,12 @@ void FruitAwardScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 void FruitAwardScreen::Update()
 {
 	TwistWidget::Update();
-	// mImage16C's offset at the art's size (mImage16C is never set; the port reads no offset for an image the
+	// mDropImage's offset at the art's size (mDropImage is never set; the port reads no offset for an image the
 	// resources do not know)
 	float anArtScale = (float)((double)gApp->mArtRes / 1200.0);
-	ResourceId anId = GetIdByImage(mImage16C);
+	ResourceId anId = GetIdByImage(mDropImage);
 	int anOffset = (unsigned)anId < RESOURCE_ID_MAX ? GetImageOffsetY(anId) : 0;
-	mUnknown178 = Ftol((double)anOffset * (double)anArtScale);
+	mImageOffset = Ftol((double)anOffset * (double)anArtScale);
 	for (int i = 0; i < 2; i++)
 		mCycles[i].Update();
 	if (mState == 4) {
@@ -141,9 +141,9 @@ void FruitAwardScreen::Draw(Graphics* g)
 	g->SetColor(Color(255, 255, 255, 0x60));
 	g->SetColor(Color::White);
 	// (the original works out a sine of the update count here and drops it)
-	if (0.0f < mUnknown154) {
+	if (0.0f < mOverlayAlpha) {
 		Color aColor = gGemColors[mColor];
-		aColor.mAlpha = Ftol((double)mUnknown154 * 200.0 * (double)mDim);
+		aColor.mAlpha = Ftol((double)mOverlayAlpha * 200.0 * (double)mDim);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		g->SetColor(aColor);
 		g->SetColor(Color::White);

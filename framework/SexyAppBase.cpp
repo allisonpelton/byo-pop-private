@@ -3707,6 +3707,14 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 	}
 	else if (aName == "quit")
 		Shutdown();
+	else if ((aName == "pointer") && (mWidgetManager != NULL))
+	{
+		// the mouse as the widgets last saw it, in game pixels, answered on the log: a test reads where its input landed
+		// (tools/web/pagecheck.js, a click after the page's canvas changed size)
+		SDL_Log("POINTER {\"x\":%d,\"y\":%d,\"in\":%s}", mWidgetManager->mLastMouseX, mWidgetManager->mLastMouseY,
+			mWidgetManager->mMouseIn ? "true" : "false");
+		return SCRIPT_GAME;
+	}
 	else if (HandleScriptCommand(aCommand))
 		return SCRIPT_GAME;
 	else
@@ -4427,6 +4435,14 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		SaveScreenshot(aCommand.mArgs, true);
 	else if (aName == "quit")
 		Shutdown();
+	else if ((aName == "pointer") && (mWidgetManager != NULL))
+	{
+		// the mouse as the widgets last saw it, in game pixels, answered on the log: a test reads where its input landed
+		// (tools/web/pagecheck.js, a click after the page's canvas changed size)
+		SDL_Log("POINTER {\"x\":%d,\"y\":%d,\"in\":%s}", mWidgetManager->mLastMouseX, mWidgetManager->mLastMouseY,
+			mWidgetManager->mMouseIn ? "true" : "false");
+		return SCRIPT_GAME;
+	}
 	else if (HandleScriptCommand(aCommand))
 		return SCRIPT_GAME;
 	else

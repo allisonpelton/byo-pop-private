@@ -118,7 +118,7 @@ bool PathFinder::Recurse(int theCol, int theRow, int theTargetCol, int theTarget
 	return aFound;
 }
 
-// 0x4249d0
+// 0x4249d0 / 0x424680 / 0x424690
 bool PathFinder::Search(int theCol1, int theRow1, int theCol2, int theRow2, int theWantRoute, int theMaxWays, int theBuf[])
 {
 	for (int aCol = 0; aCol < 9; aCol++)

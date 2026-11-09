@@ -306,6 +306,9 @@ void Brick::OnDie()
 			SetState(3);
 			return;
 		}
+		// any other brick that is not a mutated one is hit without the "popped" event (0x1a)
+		SetState(3);
+		return;
 	}
 	Fire(0x1a);
 	SetState(3);
@@ -581,7 +584,7 @@ void Brick::UpdateState1()
 	if (!(mY < mTargetY) || mFlag17C)
 	{
 		mY = mY - mSpeedY;
-		if (!mVisible && mY < 423.0f)
+		if (!mVisible && mY <= 423.0f)
 			SetVisible(true);
 		if (mFlag188 && mSupport != NULL)
 		{
@@ -589,7 +592,7 @@ void Brick::UpdateState1()
 			if (mY < aMin)
 				mY = aMin;
 		}
-		if (mY < mTargetY)
+		if (mY <= mTargetY)
 		{
 			if (mSupport == NULL || !mFlag188)
 				mY = mTargetY;
@@ -606,12 +609,13 @@ void Brick::UpdateState1()
 	}
 }
 
-// 0x401700 slot 5
+// 0x401700 slot 5: dying: the death strip and the effect strip (a column nuke's beam, a row nuke's blast) both have to have
+// played before the brick is gone
 void Brick::UpdateState3()
 {
-	mGlowAnim.Update();
 	mDeathAnim.Update();
-	if (mDeathAnim.mStopped && mDeathAnim.mDone)
+	mFxAnim.Update();
+	if (mDeathAnim.mStopped && mFxAnim.mStopped)
 	{
 		SetState(4);
 		Fire(6);
@@ -710,7 +714,8 @@ void Brick::UpdateRainbow()
 		if (mRainbowTimer < 1)
 		{
 			mRainbowTimer = 5;
-			// (the original shifts the list down by one slot first: a no-op for what is drawn)
+			// 0x405f70: the colour that was shown goes out of the list; when none is left the brick is a plain one again
+			mRainbowImages.erase(mRainbowImages.begin() + mRainbowIndex);
 			if (!mRainbowImages.empty())
 				mRainbowIndex = (int) (((int) AstroRand() % 500000000) % (unsigned int) mRainbowImages.size());
 			else
@@ -844,7 +849,7 @@ void Brick::SetTargetY(int theY)
 			Listen(0x25);
 	}
 	Listen(2);
-	if (mY < mTargetY)
+	if (mY <= mTargetY)
 		Listen(0);
 	mFlag17C = true;
 }
@@ -885,7 +890,7 @@ void Brick::StartWobble()
 void Brick::UpdateWobble()
 {
 	mOffsetY = mOffsetY + mWobbleSpeed;
-	if (mOffsetY < -5.0f)
+	if (mOffsetY <= -5.0f)
 	{
 		mOffsetY = -5.0f;
 		mWobbleSpeed = -mWobbleSpeed;
@@ -962,7 +967,7 @@ void Brick::StopFade()
 void Brick::UpdateMutation()
 {
 	bool aMoved = mState != 0;
-	bool aHigh = mY < 9.0f;
+	bool aHigh = mY <= 9.0f;
 	if (mMutated != 1 || aHigh || aMoved || mFlag18B)
 	{
 		if (mMutated == 0 && !aHigh && !aMoved && !mFlag18B && (++mMutateTimer > 299))

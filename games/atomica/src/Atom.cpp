@@ -15,18 +15,58 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 using namespace Sexy;
 
-// the 360 entries of the original's sine and minus cosine tables (app+0x3260 and +0x3800)
+// 0x421a90: the 360 entries of the original's sine and minus cosine tables (app+0x3260 and +0x3800). The original builds
+// them in the app's constructor from its own float pi, 0x40490fda (one step under the float nearest to pi), as
+// sin(pi * angle * 0.005555555555555556) rounded to a float, so entries differ from the true values in the last bit or two
+// (sin 30 is 0.49999997, minus cosine 90 is -3.8e-8, not 0): the game's positions follow them. The C runtime's default
+// 53-bit precision makes the x87 sums the same as double ones.
+namespace
+{
+	struct TrigTables
+	{
+		float	mSin[360];
+		float	mNegCos[360];
+
+		// 0x421a90
+		TrigTables()
+		{
+			unsigned int aPiBits = 0x40490fda;
+			float aPi;
+			memcpy(&aPi, &aPiBits, sizeof(aPi));
+			for (int i = 0; i < 360; i++)
+			{
+				double aArg = (double) aPi * (double) i * 0.005555555555555556;
+				mSin[i] = (float) sin(aArg);
+				mNegCos[i] = (float) -cos(aArg);
+			}
+		}
+	};
+
+	const TrigTables& Trig()
+	{
+		static const TrigTables aTables;
+		return aTables;
+	}
+
+	int WrapAngle(int theAngle)	// the original indexes the table with the angle as it is; the callers keep it in 0 to 359
+	{
+		theAngle %= 360;
+		return (theAngle < 0) ? theAngle + 360 : theAngle;
+	}
+}
+
 float Sexy::SinDeg(int theAngle)
 {
-	return (float) sin((double) theAngle * 3.14159265358979323846 / 180.0);
+	return Trig().mSin[WrapAngle(theAngle)];
 }
 
 float Sexy::NegCosDeg(int theAngle)
 {
-	return (float) -cos((double) theAngle * 3.14159265358979323846 / 180.0);
+	return Trig().mNegCos[WrapAngle(theAngle)];
 }
 
 // 0x421b00
@@ -266,7 +306,7 @@ void Atom::RemoveFromCell()
 	}
 }
 
-// 0x401230
+// 0x401230 / 0x425c30
 void Atom::SetPath(PtrList<int>* thePath)
 {
 	mGrid->mCells[mCol][mRow] = NULL;

@@ -94,12 +94,14 @@ Grid::Grid(AtomicaApp* theApp) :
 	mApp->mMusicInterface->PlayMusic(0, mApp->mMode == 0 ? 0xc : 0x2c, false);
 }
 
-// 0x40c340
+// 0x40c340 (with 0x405fa0, the pause count's decrement: it stops at 0)
 Grid::~Grid()
 {
 	if (mPausedByKey)
 	{
 		mApp->mPauseCount--;
+		if (mApp->mPauseCount < 0)		// 0x405fa0: the count stops at 0
+			mApp->mPauseCount = 0;
 		mPausedByKey = false;
 	}
 	if (mApp->mGeiger1Instance != NULL && mApp->mGeiger1Instance->IsPlaying())
@@ -226,7 +228,7 @@ void Grid::FlushStats()
 	mStat38c = 0;
 }
 
-// 0x40c880
+// 0x40c880 (with 0x405fa0, as in the destructor above)
 void Grid::KeyDown(KeyCode theKey)
 {
 	if (theKey == KEYCODE_SPACE)
@@ -235,6 +237,8 @@ void Grid::KeyDown(KeyCode theKey)
 		{
 			mPausedByKey = false;
 			mApp->mPauseCount--;
+			if (mApp->mPauseCount < 0)		// 0x405fa0: the count stops at 0
+				mApp->mPauseCount = 0;
 			return;
 		}
 		mPausedByKey = true;
@@ -429,7 +433,7 @@ void Grid::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 // ---------------------------------------------------------------------------------------------------------
 // Update
 
-// 0x412cd0
+// 0x412cd0 / 0x40c230 / 0x40c240
 void Grid::Update()
 {
 	if (!mApp->mHasFocus || mApp->mMinimized || (mApp->mPauseCount > 0) || (mApp->mBoard == NULL))
@@ -789,6 +793,7 @@ void Grid::Draw(Graphics* g)
 	(void) g;
 }
 
+// 0x425ce0: the loop over the bonds sets the group's cursor (aGroup->mCursor = i + 1)
 void Grid::DrawField(Graphics* g)
 {
 	bool aToggle = true;

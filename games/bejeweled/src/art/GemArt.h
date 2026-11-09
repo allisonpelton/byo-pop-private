@@ -26,7 +26,6 @@ enum GemStyle
 };
 
 GemStyle GemStyleFromName(const std::string& theName);   // "cel" (also anything unknown), "glossy", "su"
-int GemModelCount(GemStyle theStyle);                     // colours with a model of their own: 12, 12, 11
 
 // The sheet of theColors colours (rows 2 * theColors, at most 12) at theScale: straight ARGB, (780 x 104 * theColors) *
 // theScale. The su style's twelfth colour is the cel style's.

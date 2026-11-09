@@ -32,9 +32,9 @@ public:
 	int mMouseX = 0;                // +0x158 (nothing reads it)
 	int mMouseY = 0;                // +0x15c
 	bool mPaused = false;           // +0x160: the board was paused by AddedToManager
-	float mUnknown164 = 0;          // +0x164: rises to 1 (nothing reads it)
-	int mUnknown168 = 0;            // +0x168
-	bool mUnknown16C = false;       // +0x16c
+	float mIntroProgress = 0;       // +0x164: rises to 1 (nothing reads it)
+	int mSpinCount = 0;             // +0x168: 0, never read
+	bool mHasSpun = false;          // +0x16c: false, never read
 	int mState = 0;                 // +0x170: see UpdateState
 	float mAngle = 0;               // +0x174: the wheel's turn
 	float mSpeed = 0;               // +0x178: added to mAngle each update
@@ -42,65 +42,65 @@ public:
 	float mBrake = 0;               // +0x180: how hard it slows, set by the simulation
 	float mCoast = 0;               // +0x184: how long it keeps its speed after the press
 	float mSavedAngle = 0;          // +0x188: the angle the simulation starts from
-	float mUnknown18C = 0;          // +0x18c: a random turn (nothing reads it)
+	float mRandomTurn = 0;          // +0x18c: a random turn (nothing reads it)
 	int mCounter = 0;               // +0x190: counts updates in several states
-	std::string mUnknown194;        // +0x194
+	std::string mResultText;        // +0x194: an empty string, never read
 	EffectsManager* mFXManager;     // +0x1b0: the sparkles and sparks
-	float mUnknown1B4 = 0;          // +0x1b4: the skulls' share before this spin (nothing reads it)
-	float mUnknown1B8 = 0;          // +0x1b8: and after it
+	float mSkullShareBefore = 0;    // +0x1b4: the skulls' share before this spin (nothing reads it)
+	float mSkullShareAfter = 0;     // +0x1b8: and after it (nothing reads it)
 	Piece* mPiece;                  // +0x1bc: the bomb
 	float mGemScale = 1.0f;         // +0x1c0: the bomb's wobble after a win
 	int mCenterX = 0;               // +0x1c4
 	int mCenterY = 0;               // +0x1c8
-	float mUnknown1CC = 0;          // +0x1cc
-	float mUnknown1D0 = 1.0f;       // +0x1d0: the darkness round the hole, out of 255/200
+	float mDimAmount = 0;           // +0x1cc: 0, never read
+	float mHoleDarkness = 1.0f;     // +0x1d0: the darkness round the hole, out of 255/200
 	bool mSimulating = false;       // +0x1d4: ButtonDepress runs the spin ahead
 	float mPanX = 0;                // +0x1d8: the board's shift that brings the bomb to the middle
 	float mPanY = 0;                // +0x1dc
 	CurvedVal mZoomIn;              // +0x1e0: the board's zoom on the bomb, and out again
 	float mArms = 0;                // +0x250: the arms close round the wheel
-	float mUnknown254 = 0;          // +0x254
-	float mUnknown258 = 2.0f;       // +0x258: falls to 1 before the skulls are added
-	float mUnknown25C = 0;          // +0x25c
+	float mSkullRise = 0;           // +0x254: rises to 1 by 0.02 an update while a skull is added, falls back after
+	float mSkullGrow = 2.0f;        // +0x258: falls to 1 before the skulls are added
+	float mSkullFade = 0;           // +0x25c: rises to 1 by 0.02 an update with mSkullRise's rise, falls with it
 	MTRand mRand;                   // +0x260: the simulation's brakes
 	SoundInstance* mSiren;          // +0xc24
-	SoundInstance* mUnknownC28 = nullptr;  // +0xc28: never set
+	SoundInstance* mSecondSiren = nullptr;  // +0xc28: never set
 	int mSlots[8];                  // +0xc2c: -1 a skull, -2 the slot picked, else a gem colour
 	bool mSkullAdded[8];            // +0xc4c: the skull this spin added (drawn with mSkullAdd)
-	bool mUnknownC54[8];            // +0xc54
-	float mUnknownC5C[8];           // +0xc5c: falls to 0
-	float mUnknownC7C[8];           // +0xc7c
+	bool mSlotLit[8];               // +0xc54: eight flags, true at the start, never read
+	float mSlotFlash[8];            // +0xc5c: falls to 0 by 0.04 an update (nothing raises it)
+	float mSlotScale[8];            // +0xc7c: eight scales, 1 at the start, never read
 	Color mSlotColors[8];           // +0xc9c
 	Image* mLeftArm;                // +0xd1c
 	Image* mRightArm;               // +0xd20
-	int mUnknownD24 = 0;            // +0xd24: the arms' places (the 3D draw's)
-	int mUnknownD28 = 0;            // +0xd28
-	int mUnknownD2C;                // +0xd2c
-	int mUnknownD30;                // +0xd30
+	int mLeftArmEdge = 0;           // +0xd24: the left arm's edge (the 3D draw's)
+	int mRightArmEdge = 0;          // +0xd28: the right arm's edge (the 3D draw's)
+	int mLeftArmX;                  // +0xd2c: the left arm's x
+	int mRightArmX;                 // +0xd30: the right arm's x
 	int mOppositeSlot = 0;          // +0xd34
 	int mPickedSlot = 0;            // +0xd38: the slot under the pointer when it stopped
 	float mGemGap = 0;              // +0xd3c: the bomb's two halves apart after a win
 	float mWobble = 0;              // +0xd40
 	float mWobbleAngle = 0;         // +0xd44
 	int mResult = 0;                // +0xd48: 9 won, 13 lost
-	float mUnknownD4C = 0;          // +0xd4c
-	float mUnknownD50 = 0;          // +0xd50
-	float mUnknownD58 = 4.0f;       // +0xd58
-	float mUnknownD5C = 0;          // +0xd5c
-	float mUnknownD60 = 0;          // +0xd60
-	bool mUnknownD64 = false;       // +0xd64
-	float mUnknownD68 = 1.0f;       // +0xd68: a slow pulse while it spins
+	float mSkullStartAngle = 0;     // +0xd4c: where the new skull starts, a quarter turn less than mSkullAngle
+	float mSkullAngle = 0;          // +0xd50: where the new skull lands on the wheel
+	float mArmSpeed = 4.0f;         // +0xd58: 4, never read
+	float mLossFlash = 0;           // +0xd5c: set to 1 when the pick loses, never read
+	float mLossGlow = 0;            // +0xd60: set to 1 when the pick loses, never read
+	bool mHasStopped = false;       // +0xd64: set once the wheel has stopped
+	float mSpinPulse = 1.0f;        // +0xd68: a slow pulse while it spins
 	int mSkulls = 0;                // +0xd6c: the skulls on the wheel
-	float mUnknownD70 = 1.0f;       // +0xd70
-	float mUnknownD74 = 0;          // +0xd74
-	float mUnknownD78 = 1.0f;       // +0xd78
+	float mHoleScale = 1.0f;        // +0xd70: 1, never read
+	float mAlertRise = 0;           // +0xd74: rises to 1 by 0.02 an update, falls with the others
+	float mAlertFade = 1.0f;        // +0xd78: 1 at the start, set to the fall of the others
 	float mTickDelay = 0;           // +0xd7c: until the next timpani tick as it slows
 	int mTicks = 0;                 // +0xd80
 	CurvedVal mArrive;              // +0xd88: the arms and the wheel come in (1) and go (the others link to it)
-	CurvedVal mUnknownDF8;          // +0xdf8: the button's and the bottom arm's drop
-	CurvedVal mUnknownE68;          // +0xe68
+	CurvedVal mButtonDrop;          // +0xdf8: the button's and the bottom arm's drop
+	CurvedVal mArmDrop;             // +0xe68: never read
 	CurvedVal mGlow;                // +0xed8: the bomb's glow (its +0x29c), the sparks after a loss
-	CurvedVal mUnknownF48;          // +0xf48
+	CurvedVal mPointerSwing;        // +0xf48: never read
 	CurvedVal mUnfold;              // +0xfb8: the slots fan out to their places
 	CurvedVal mWheelAlpha;          // +0x1028
 	CurvedVal mAlert;               // +0x1098: the alert ring's colour

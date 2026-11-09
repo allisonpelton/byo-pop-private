@@ -101,7 +101,7 @@ FluffyStars::FluffyStars(WinTwistApp* theApp) : Visualizer(theApp)
 	mCount = 0x32;
 	for (int i = 0; i < 50; i++)
 		mStars[i] = nullptr;
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 	mFlags4 |= 2;       // drawn at half size
 }
 
@@ -428,7 +428,7 @@ SpaceThreads::SpaceThreads(WinTwistApp* theApp) : Visualizer(theApp)
 	mTriCount = 0;
 	mThread = LoadVizImage(IMAGE_SPACE_THREAD_ID);
 	mBackground = LoadVizImage(IMAGE_SPACETHREADS_BG_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 }
 
 SpaceThreads::~SpaceThreads()
@@ -517,37 +517,37 @@ void SpaceThreads::Update()
 
 void SpaceThreads::AddQuad(const Color& theColor, int theThread, int thePoint)
 {
-	const Point& P = mPoints[theThread][thePoint];
-	const Point& Q = mPoints[theThread][(thePoint + 1) % 0x2d];
+	const Point& aPoint = mPoints[theThread][thePoint];
+	const Point& aNextPoint = mPoints[theThread][(thePoint + 1) % 0x2d];
 	float aWidth = (float)mApp->mWidth;
 	float aHeight = (float)mApp->mHeight;
-	float aGap = (float)((double)P.mC - (double)Q.mC);
-	if (!((double)std::fabs(aGap) <= 0.800000011920929 && -2.0f <= P.mC))
+	float aGap = (float)((double)aPoint.mC - (double)aNextPoint.mC);
+	if (!((double)std::fabs(aGap) <= 0.800000011920929 && -2.0f <= aPoint.mC))
 		return;
 	uint32_t aColor = PackColor(theColor);
-	float aWeight = (float)(((double)P.mC + 1.0) * (1.0 - (double)P.mC) * 0.800000011920929);
+	float aWeight = (float)(((double)aPoint.mC + 1.0) * (1.0 - (double)aPoint.mC) * 0.800000011920929);
 	if (aWeight < 0.0f)
 		aWeight = 0.0f;
 	// the point's two sides, A - E w, B + D w and A + E w, B - D w, in perspective by its depth
-	float aTX = (float)((double)P.mA - (double)P.mE * (double)aWeight);
-	float aSideD = (float)((double)P.mD * (double)aWeight);
-	float aTY = (float)((double)P.mB + (double)aSideD);
-	double aDepth = (double)P.mC + 3.700000047683716;
-	float aV1X = (float)((((double)P.mE * (double)aWeight + (double)P.mA) / aDepth + 1.0) * (double)aWidth * 0.5);
-	float aV1Y = (float)((double)aHeight * (((double)P.mB - (double)aSideD) / aDepth + 1.0) * 0.5);
-	float aDepth2 = (float)((double)P.mC + 3.7);
+	float aTX = (float)((double)aPoint.mA - (double)aPoint.mE * (double)aWeight);
+	float aSideD = (float)((double)aPoint.mD * (double)aWeight);
+	float aTY = (float)((double)aPoint.mB + (double)aSideD);
+	double aDepth = (double)aPoint.mC + 3.700000047683716;
+	float aV1X = (float)((((double)aPoint.mE * (double)aWeight + (double)aPoint.mA) / aDepth + 1.0) * (double)aWidth * 0.5);
+	float aV1Y = (float)((double)aHeight * (((double)aPoint.mB - (double)aSideD) / aDepth + 1.0) * 0.5);
+	float aDepth2 = (float)((double)aPoint.mC + 3.7);
 	float aV2X = (float)((double)aWidth * ((double)aTX / (double)aDepth2 + 1.0) * 0.5);
 	float aV2Y = (float)((double)aHeight * ((double)aTY / (double)aDepth2 + 1.0) * 0.5);
 	// the next point
-	float aWeight2 = (float)(((double)Q.mC + 1.0) * (1.0 - (double)Q.mC) * 0.8);
+	float aWeight2 = (float)(((double)aNextPoint.mC + 1.0) * (1.0 - (double)aNextPoint.mC) * 0.8);
 	if (aWeight2 < 0.0f)
 		aWeight2 = 0.0f;
-	float aQX = (float)((double)Q.mA - (double)Q.mE * (double)aWeight2);
-	float aSideD2 = (float)((double)Q.mD * (double)aWeight2);
-	float aQY = (float)((double)Q.mB + (double)aSideD2);
-	float aDepth3 = (float)((double)Q.mC + 3.7);
-	float aV3X = (float)((((double)Q.mE * (double)aWeight2 + (double)Q.mA) / (double)aDepth3 + 1.0) * (double)aWidth * 0.5);
-	float aV3Y = (float)((double)aHeight * (((double)Q.mB - (double)aSideD2) / (double)aDepth3 + 1.0) * 0.5);
+	float aQX = (float)((double)aNextPoint.mA - (double)aNextPoint.mE * (double)aWeight2);
+	float aSideD2 = (float)((double)aNextPoint.mD * (double)aWeight2);
+	float aQY = (float)((double)aNextPoint.mB + (double)aSideD2);
+	float aDepth3 = (float)((double)aNextPoint.mC + 3.7);
+	float aV3X = (float)((((double)aNextPoint.mE * (double)aWeight2 + (double)aNextPoint.mA) / (double)aDepth3 + 1.0) * (double)aWidth * 0.5);
+	float aV3Y = (float)((double)aHeight * (((double)aNextPoint.mB - (double)aSideD2) / (double)aDepth3 + 1.0) * 0.5);
 	float aV0X = (float)((double)aWidth * ((double)aQX / (double)aDepth3 + 1.0) * 0.5);
 	float aV0Y = (float)((double)aHeight * ((double)aQY / (double)aDepth3 + 1.0) * 0.5);
 	TriVertex aV0(aV0X, aV0Y, 1.0f, 0.5f, aColor);
@@ -640,10 +640,10 @@ VizWarpBars::VizWarpBars(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mCount = 0;
 	// the flag 14 of the profile (0x733897): set once the tutorial has been taken
-	mTutorial = !mApp->mProfile->GetFlag1E4(0xe);
+	mTutorial = !mApp->mProfile->HasSeenTip(0xe);
 	mBlur = LoadVizImage(IMAGE_COREWARP_BLUR_ID);
 	mBackground = LoadVizImage(mTutorial ? IMAGE_VIRTUTORIAL_ID : IMAGE_COREWARP_BG_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 }
 
 VizWarpBars::~VizWarpBars()
@@ -751,9 +751,9 @@ static float KaleidoFactor(WinTwistApp* theApp, float theA, float theB)
 	float aResult = theA;
 	if (theApp != nullptr && theApp->mBoard != nullptr && theApp->mBoard->mGameMode == Board::MODE_BLITZ) {
 		Board* aBoard = theApp->mBoard;
-		int aState = aBoard->mUnknown160;
+		int aState = aBoard->mPlayState;
 		if (aState == 0) {
-			float aProgress = (float)((double)(float)(aBoard->mUnknown3458 - 100) / 29900.0);
+			float aProgress = (float)((double)(float)(aBoard->mBlitzStartTime - 100) / 29900.0);
 			float aLimited = aProgress;
 			if (1.0f <= aProgress)
 				aLimited = 1.0f;

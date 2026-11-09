@@ -270,6 +270,9 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   games/alchemy/docs/GAME_NOTES.md section 8). SexyApp::Init's window and
   graphics device take 250–310 ms of Noah's Ark's 0.6 s start (Noah's Ark, 2026-11-09). Creating the device on
   another thread is ruled out (no threads); showing the window before the device is made only moves the wait.
+  Bejeweled's profiles agree (2026-11-09): a -fast game spends 85-90% of its cycles presenting, in the driver and
+  making the device, imagehlp's 5% among them (wintrust loads it for the driver's signature check when the device is
+  made); the framework also keeps every image's pixels after upload, 19 MB of Bejeweled's 55 MB (the original: 36 MB).
 - **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to go through every phase
   except modding before a game can be considered done and ready for the live site, and just publish whatever games are
   ready by the end of December. I'm in no hurry to get games out in a less-than-stellar state." A game is done only once

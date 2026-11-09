@@ -198,9 +198,9 @@ void Board::Update()
 
 		if (m930 < m934)
 		{
-			double aNew = (double) m934 - (double) 0.2f;
-			m934 = (float) aNew;
-			if (aNew < (double) m930)
+			float aNew = m934 - 0.2f;
+			m934 = aNew;
+			if (aNew < m930)
 				m934 = m930;
 		}
 
@@ -413,8 +413,8 @@ bool Board::SpawnControl()
 		aTime = m19cc;
 	else
 	{
-		double aStage = (mField193C > 5) ? 0.0 : 8.0 - (double) mField193C;
-		aTime = (int) ((double) (m19cc - m19d0) + (aStage + aStage + (double) 20.0f) * (double) m930);
+		float aStage = (mField193C > 5) ? 0.0f : (float) (8 - mField193C);
+		aTime = (int) ((float) (m19cc - m19d0) + (aStage + aStage + 20.0f) * m930);
 	}
 
 	int aPhase = m1a34;
@@ -558,7 +558,7 @@ void Board::UpdateSparks()
 		{
 			do
 			{
-				float aSpeed = (float) ((double) (((int) AstroRand() % 500000000) % 300) * (double) 0.001f + (double) 0.1f);
+				float aSpeed = (float) (((int) AstroRand() % 500000000) % 300) * 0.001f + 0.1f;
 				Particle* aParticle = new Particle(0.0f, 0.0f, 0.0f, 0, aSpeed, (float) mHeight, gSinTable, gCosTable);
 				aParticle->mLife = 0x32;
 

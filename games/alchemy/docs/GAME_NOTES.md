@@ -130,19 +130,29 @@ and the update-check dialog at 0x476210); those are the shared code's, not the g
 
 The port's own checks, made 2026-11-08, that nothing it loads is used only by those functions: a search of `src/` and of
 the `properties` ids it reads for the strings and the registry values above finds none (the one that remained, `LastInternetScoreName`, is out now;
-`COLOR_DEPTH_ERROR` is not on the list: it is the colour-depth question of 0x413942, which the port has). Of the pictures,
+`COLOR_DEPTH_ERROR` is not on the list: it is the colour-depth question of 0x413942, which is out too since 2026-11-09, below). Of the pictures,
 `trialversion` (the title's "buy" overlay, which was loaded and never drawn) and, by the pictures' places in the original's
 image array, `hiscorebox` and `hiscorebtn` (read only by the register dialog and the internet-score dialog) were still
 loaded; all three are gone from the image list and from `Res.h` (63 images, 9 loaded by the title's start-up, and 99 loading
-tasks where the original has 101, since the two others were among the loading thread's), and the registry values
+tasks where the original has 101, since the two others were among the loading thread's; 59 and 95 since section 10), and the registry values
 `NoPopLink` and `LastInternetScoreName` with their fields. No visible change comes of any of these (the suite's baseline is identical).
 The pictures `cartoonstar` and `waitbar` that nothing in the port draws are not registration: the first is the ring of
-the Board effect the first paragraph of this section calls never triggered, the second is loaded and never read by the original either.
+the Board effect the first paragraph of this section calls never triggered, the second is loaded and never read by the original either
+(both are out too since 2026-11-09, section 10).
 
 `Board::mTrialPause` and `Pause(true)` are not registration: the name "trial" is the decompilation's, and the pause it counts is
 the one that covers the board (`Board::Draw` draws the cover instead of the tiles, and the pause text when no dialog is up): any key press toggles it in every mode
 (`KeyChar`), and a dialog raises it in the time trial (`AlchemyApp::ModalOpen` passes the mode). They stay. Loading has no waits (the title screen's bar follows the loading thread, which runs
 once, with no pacing), so the rule on fast loading changes nothing here.
+
+**The colour-depth question (taken out 2026-11-09).** `DoColorDepthExplination` (0x413942) is a dialog (id 8, the strings
+COLOR_DEPTH_ERROR1 to 3 as header, text and footer, a footer button) that the options dialog's check box handler (0x40d7c2)
+raises when a check box is cleared while the app's `mForceFullscreen` (+0x30f) is set, and after it the full-screen box is
+checked again. That flag is the framework's, which sets it only to false: it was meant for a desktop without enough colours, and
+nothing in a port raises it, so the question could not come up. It is out of the port: `OptionsDialog::CheckboxChecked`, the
+`DIALOG_COLOR_DEPTH` id and its name in the `state` command are gone, and the dialog stays the listener of its two boxes only
+because a `Checkbox` takes one. The three strings are in the game's own `properties` file, which is not ours to edit; the port no
+longer reads them. `mForceFullscreen` is `SexyAppBase`'s, shared with the other games, and stays.
 
 ## 6. The standard test commands
 
@@ -154,7 +164,7 @@ the suites and the frozen baseline play as before. Each command answers with one
 
 | Command | What it does |
 |---|---|
-| `state` | `STATE {json}`: `screen` (title, menu, game, highscores, options, help), `dialog` (name, load, hint, quit, newgame, skill, tutorial, options, alltime), `updates`, `mode` (strategic, timetrial, tutorial), `skill`, `level` (the board, from 1), `score`, `forge` (0 to 3), `over` (the game has ended), `busy` (the board cannot take a piece now), `board` (`state`, the `pieces` as `[col, row, shape, colour, stone]`, `lit` as eight strings of nine digits, `litCount`, `piece` to place, `fits`, `moves`, `forged`, `boards` cleared, `shapes`, `colors`, `paused`, `cover`, and `tutorial` with `step`, `waiting`, `count`, `button`), `ready` and `link` on the title, `active`, `windowed`, `muted`, and the places of the buttons a driver presses: `panel`, `options`, `selector`, `table`. |
+| `state` | `STATE {json}`: `screen` (title, menu, game, highscores, options, help), `dialog` (name, load, hint, quit, newgame, tutorial, options, alltime), `updates`, `mode` (strategic, timetrial, tutorial), `skill`, `level` (the board, from 1), `score`, `forge` (0 to 3), `over` (the game has ended), `busy` (the board cannot take a piece now), `board` (`state`, the `pieces` as `[col, row, shape, colour, stone]`, `lit` as eight strings of nine digits, `litCount`, `piece` to place, `fits`, `moves`, `forged`, `boards` cleared, `shapes`, `colors`, `paused`, `cover`, and `tutorial` with `step`, `waiting`, `count`, `button`), `ready` and `link` on the title, `active`, `windowed`, `muted`, and the places of the buttons a driver presses: `panel`, `options`, `selector`, `table`. |
 | `goto <screen>` | `menu` (the selector), `options`, `help`, `highscores` (the all-time table), `strategic` or `timetrial` with an optional skill 1 to 3, and `tutorial`, which start that game through the selector's own buttons. `title` and `credits` are errors: the game has neither to go to. |
 | `level <n>` | Board n of the game being played: n - 1 boards cleared, an empty grid (a first board has its stone), the difficulty follows. |
 | `unlock all` | `ERROR`: the game has nothing locked. |
@@ -378,8 +388,8 @@ command, which gives the positions of a dialog's buttons: the quit question with
 so its buttons are at y 284 instead of 204. Tours 6 and 7 click at y 204 and missed it, which went unnoticed because the port's
 script ends with `quit` anyway; the tours were left as they are, and the extra runs click the right place. In a game the button
 at (32, 421) is the hint button; the help screen is reached through the options dialog (a link at (318, 237)).
-The one left is `DoColorDepthExplination` (0x413942; in the port, the `DoDialog` call inside `OptionsDialog::CheckboxChecked`,
-0x40d7c2). The export has no function at 0x40d7c2, so the report lists no caller for it. The question appears when a check box is
+The one left was `DoColorDepthExplination` (0x413942; in the port, the `DoDialog` call inside `OptionsDialog::CheckboxChecked`,
+0x40d7c2), which is out of the port now (section 5). The export has no function at 0x40d7c2, so the report lists no caller for it. The question appears when a check box is
 cleared while the app's `mForceFullscreen` (+0x30f) is set, which the framework does on a desktop without enough colours. The
 host's desktop has them, so no run reached it. The port's version was read again against the export and matches: dialog 8, the
 strings COLOR_DEPTH_ERROR1 to 3 as header, text and footer, the footer button mode, then the full-screen box checked again. A
@@ -400,11 +410,12 @@ global vector (0x516080, through `vector<string>::operator=` at 0x407dc4); the p
 names (`ComputeRank`). `Board` has an `std::ostringstream` member at +0xa84, built in 0x407ebe and destroyed through 0x401001, and
 a `vector<pair<int,int>>` at +0xe50, that nothing uses. The port has neither.
 
-**Candidates for taking out unneeded code.** The colour-depth question and the flag that raises it (the body of
-`OptionsDialog::CheckboxChecked`, `DIALOG_COLOR_DEPTH`, `mForceFullscreen` and the three strings): the port's display always has
-the colours, and nothing in a port sets the flag. Nothing was removed.
+**Unneeded code taken out (2026-11-09).** The colour-depth question and the handler that raised it (the body of
+`OptionsDialog::CheckboxChecked`, `DIALOG_COLOR_DEPTH` and its `state` name): the port's display always has the colours, and
+nothing in a port sets the flag (section 5). The frozen baseline stays identical. `mForceFullscreen` and the three strings are
+not the game's to remove (the framework's field; the game's own `properties` file).
 
-**Open items.** The colour-depth question has no run that reaches it (above). Nothing else.
+**Open items.** None.
 
 **What it cost.** The 21 runs took about 45 minutes of one game process at a time, most of it waiting for room: other sessions'
 games kept the machine at three to six processes. Two things went wrong on the way and were redone. The first set of runs of the
@@ -415,3 +426,64 @@ seed also changed the original's side of the Performance numbers (section 8, cor
 of the two lists in 15 minutes and 278,000 tokens; this session read its table, spot-checked its verdicts against the export
 (0x407dc4, 0x413942, 0x4061e5, 0x409f8e, 0x40c3ca and more), corrected one of its own earlier `none` lines (0x40c3ca is the
 selector's destructor body, not the internet-score dialog's) and ran the report again with the agent's lines.
+
+## 10. Code the port does not need (2026-11-09)
+
+The last finishing item (`docs/COORDINATION.md`: "figure out what code does not need to be present in the decomps"). Registration
+and the buttons that lead out were already out (section 5), and so was the colour-depth question (section 9). This survey looked
+for what no path of the shipped game reaches or needs, by six scans of the game's `src/` (the test hooks, which tests need, apart):
+
+1. **Functions.** The 25 object files of the native build, every defined function against every relocation in all of them
+   (`llvm-nm --defined-only`, `llvm-objdump -r`): 40 had no reference. The constructors and destructors among them are the
+   aliased forms of the complete-object and base-object versions; every other name was searched in the source, and all but one
+   are called, inlined by the compiler. The one with no caller is in the table.
+2. **Compiler warnings.** Every source compiled with `-Wall -Wextra -Wunused -Wunused-member-function -Wunused-private-field
+   -Wunused-template -Wunused-macros -Wunreachable-code`: nothing in the game's files (the two deprecation warnings are the
+   framework's `Rect.h` and `Insets.h`).
+3. **Fields.** Every member `m...` of the game's headers by whether any code reads it: all are read (the autoplay options by the
+   test hooks only), except the one below.
+4. **Constants.** Every enumerator, `#define` and `const` by use: the ones below.
+5. **Pictures and sounds.** Every id of `Res.h` by use in the port (all 15 sounds are named by code the game runs), and each unused picture against
+   the original: the original keeps its pictures in an array of 66 at the app's +0x6b0, its slot is the port's index plus one, and
+   a search of the decompilation of 0x401000-0x414a7d for each slot's offset (`4 * slot`, direct and with an index added)
+   finds who draws it.
+6. **Windows leftovers, switched-off code, comments.** `_WIN32` appears once (the search for the retail install folder, which
+   a Windows player of the unpacked game needs), no `#if 0`, no commented-out code, no `TODO`.
+
+| What | Why it is not needed | Verdict |
+|---|---|---|
+| `AlchemyApp::RemoveWidgetAndDelete` (0x410ee0) | no caller: the original's four callers (0x408a5c, 0x41123e, 0x411367, 0x4115dd) are in the screens, whose four `SafeDeleteWidget` sites the port has with `RemoveWidget` written out beside them | removed |
+| `DIALOG_SKILL` (dialog 1), its yes branch in `ButtonDepress` (the original's at 0x413fa4) and the field `mPendingSkill` (+0xecc), with the name `skill` of the `state` command | nothing opens dialog 1: the original never writes +0xecc (its only access is the read at 0x413fb0) and its exe never refers to the strings CONFIRM_SKILL_CHANGE1 and 2 (they are in the game's `properties` file), so a skill change in the selector never asks | removed |
+| `BUTTON_TUTORIAL` (id 11) | an enumerator no code names (the selector's tutorial button is not a side-panel button) | removed; a comment keeps the id |
+| pictures `waitbar`, `bubbles7`, `selectorbutton` | loaded by the loading thread; neither the port nor the original's code refers to their slots (the original loads them and never draws them; Bejeweled's notes record the same for its `waitbar`) | removed from the list and `Res.h` |
+| picture `cartoonstar` | only the board's ring of eight pieces (0x40505b), the effect of section 5 that no code triggers | removed |
+
+The four pictures leave 59 images and 95 loading tasks (63 and 99 before; the original has 101). The only effect a player could see
+is that the title's loading bar has 95 steps instead of 99, and the port loads in one go.
+
+**Looked at and kept.** `Board::mScriptPos` (+0xa80, saved and never used) is in the save file's format. `Board::mTutWaiting` is
+written by the game and read only by the test commands, which need the tutorial's state. `OptionsDialog` stays the listener of its
+two check boxes, since a `Checkbox` takes one (its handler is the framework's empty one). The registry values `SkillLevel`,
+`TimeTrial` and `LastScoreName` and `mRegKey` are the original's settings. `GameText` reading the
+default score names from `Alchemy.exe` is how the table gets them. `Fixes.cpp` and `SiteProfiles.cpp` are the fixes mod and the site's
+hooks. The overrides of `SexyAppBase`'s hooks (`ShutdownHook`, `GetShutdownSaves`, `CreateMusicInterface`, `NewDialog`, `ModalOpen`,
+`ModalClose`, `LoadingThreadProc`, `EditWidgetText`, `SliderVal`) are called by the framework. Strings in the game's `properties`
+file that nothing in the port reads (CONFIRM_SKILL_CHANGE1 and 2, COLOR_DEPTH_ERROR1 to 3, CONFIRM_UPDATE1 and 2 and the
+registration texts) are the game's data, not ours to edit.
+
+**Doubtful, for the user.**
+- *The test hooks in the shipped game.* `src/testhooks/` (about 1,550 lines: the test commands, `-autoplay`, the bot, `memreport`) is
+  compiled into the one executable that players get, reachable only from a test (`docs/TEST_COMMANDS.md`). Taking it out of the
+  shipped build would need a build switch that the tests then turn on; nothing in the game depends on it.
+- *Shared code.* `mForceFullscreen` and the registration members of `SexyApp` are the framework's (section 5); whether the
+  framework still needs them is the coordinator's, as a spec.
+
+**Proof.** `tools/check.sh build alchemy` after the removals: the build passes and the suite's baseline is identical (strategic 12206,
+time trial 14641, the tutorial, the saved game, the rerun). The suite plays the game's logic, so the pictures were checked as well,
+with a control: the source changes were put aside as a patch, the game built as it was before them, and the screen tours 1, 2, 5 and 7
+(`tools/shots`: the title, selector, options, help, high scores and quit question; a strategic game to its table; the tutorial;
+the wizard's messages; same script, same seed, `-fast`) run on it, then the patch applied, the game built and the tours run again.
+All 106 screenshots are byte for byte the same (17, 40, 35 and 14). A script also reads `Res.h` and the name table in
+`AlchemyApp.cpp` before and after and finds every id still at the same file name, in the same order (63 against 63, 59 against 59),
+and the only arithmetic on ids (`IMAGE_LEVEL2 + n`, 43 to 50, and `IMAGE_WIZARDHEAD + n`, 21 to 25) stays inside runs that no
+removal cuts.

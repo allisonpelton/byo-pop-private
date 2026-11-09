@@ -40,7 +40,7 @@ GravityField::GravityField(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mCount = 0;
 	mSpiral = LoadVizImage(IMAGE_GRAVITY_SPIRALTEXTURE_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 	mFlags4 &= ~1;
 	mEdge = LoadVizImage(IMAGE_GRAVITY_EDGETEXTURE_ID);
 }
@@ -68,6 +68,7 @@ void GravityField::Update()
 	mCount++;
 }
 
+// port: one vertex of GravityField's mesh, whose fields the original sets in place
 static GravityField::Vertex MakeGravityVertex(float theX, float theY, float theZ, unsigned int theColor, float theU, float theV)
 {
 	GravityField::Vertex aVertex;
@@ -380,7 +381,7 @@ struct BuckyMesh {
 
 	// 0x68ca63: the corners smooth (each its position made unit as the normal), pale and with the texture coordinates of
 	// a triangle drawn in the middle of the texture; the same icosahedron and cutting as the shards' (0x68cbfb, 0x68cfd9)
-	void AddMoleculeTriangle(const MeshVertex& a, const MeshVertex& b, const MeshVertex& c)
+	void AddMoleculeTriangle(const MeshVertex& theFirst, const MeshVertex& theSecond, const MeshVertex& theThird)
 	{
 		static float sUV[6];
 		static bool sMade = false;
@@ -395,7 +396,7 @@ struct BuckyMesh {
 			for (int i = 0; i < 6; i++)
 				sUV[i] = (float)((double)sUV[i] + 0.001953125);
 		}
-		const MeshVertex* aCorners[3] = {&a, &b, &c};
+		const MeshVertex* aCorners[3] = {&theFirst, &theSecond, &theThird};
 		for (int i = 0; i < 3; i++) {
 			MeshVertex aVertex = *aCorners[i];
 			Vec3 aNormal = NormalizedX87(Vec3{aVertex.x, aVertex.y, aVertex.z});  // 0x4c0840
@@ -716,9 +717,9 @@ static float BlitzFactor(WinTwistApp* theApp, float theA, float theB)
 	float aResult = theA;
 	if (theApp != nullptr && theApp->mBoard != nullptr && theApp->mBoard->mGameMode == Board::MODE_BLITZ) {
 		Board* aBoard = theApp->mBoard;
-		int aState = aBoard->mUnknown160;
+		int aState = aBoard->mPlayState;
 		if (aState == 0) {
-			float aProgress = (float)((double)(float)(aBoard->mUnknown3458 - 100) / 29900.0);
+			float aProgress = (float)((double)(float)(aBoard->mBlitzStartTime - 100) / 29900.0);
 			float aLimited = aProgress;
 			if (1.0f <= aProgress)
 				aLimited = 1.0f;

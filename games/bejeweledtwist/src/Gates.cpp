@@ -41,9 +41,9 @@ Gates::Gates()
 	mMouseVisible = false;
 	mSpeed = 0;
 	mHasAlpha = true;
-	mUnknown394 = 0;
+	mRestFraction = 0;
 	mFlash = 0;
-	mUnknown390 = 0;
+	mOpenCount = 0;
 	mTop = new TopGate();
 	mTop->mClip = false;
 	mBottom = new BottomGate();
@@ -407,5 +407,5 @@ void Gates::SetOpen(bool theOpen, bool theNow)
 	// theNow: the original also tells the menu (0x699bbc, empty)
 done:
 	if (mOffset == 0.0f)
-		mUnknown394 = 0.85f;
+		mRestFraction = 0.85f;
 }

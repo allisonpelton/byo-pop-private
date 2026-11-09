@@ -88,7 +88,7 @@ const char kColorLetters[] = "rwgypob";
 // The board's rank bar while it is up, or null
 static RankBonusWidget* TestRankBar(Board* theBoard)
 {
-	RankBonusWidget* aRank = dynamic_cast<RankBonusWidget*>(theBoard->mUnknown26A0);
+	RankBonusWidget* aRank = dynamic_cast<RankBonusWidget*>(theBoard->mRankBonusWidget);
 	return aRank != nullptr && aRank->mWidgetManager != nullptr ? aRank : nullptr;
 }
 
@@ -98,9 +98,9 @@ std::string WinTwistApp::TestScreen()
 		return "credits";
 	if (mMainMenu != nullptr && mMainMenu->mEndStats != nullptr)
 		return "endstats";  // the stats after a game, with their Continue
-	if (mBoard != nullptr && !mBoard->mUnknown37C4)
+	if (mBoard != nullptr && !mBoard->mIsReplay)
 		return mOptionsDialog != nullptr ? "options" : "game";
-	if (dynamic_cast<Mandala*>(mUnknownF24) != nullptr)
+	if (dynamic_cast<Mandala*>(mMandalaWidget) != nullptr)
 		return GetDialog(10000) != nullptr ? "continue" : "modeselect";  // the question whether to go on with a save
 	if (mMainMenu != nullptr && mMainMenu->mParent != nullptr) {
 		if (mMainMenu->mNewUserPanel != nullptr)
@@ -123,7 +123,7 @@ std::string WinTwistApp::TestScreen()
 void WinTwistApp::UpdateTestGoto()
 {
 	std::string aScreen = TestScreen();
-	Mandala* aSelect = dynamic_cast<Mandala*>(mUnknownF24);
+	Mandala* aSelect = dynamic_cast<Mandala*>(mMandalaWidget);
 	if (aSelect == nullptr) {
 		if (aScreen != "menu")
 			mTestGotoMode = -1;
@@ -145,7 +145,7 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
 	const std::string& anArgs = theCommand.mArgs;
-	Board* aBoard = (mBoard != nullptr && !mBoard->mUnknown37C4) ? mBoard : nullptr;
+	Board* aBoard = (mBoard != nullptr && !mBoard->mIsReplay) ? mBoard : nullptr;
 
 	if (aCommand == "state") {
 		std::string aScreen = TestScreen();
@@ -156,23 +156,23 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 			mIsWindowed ? "true" : "false");
 		if (aBoard != nullptr) {
 			aLine += StrFormat(",\"mode\":\"%s\",\"level\":%d,\"score\":%d,\"moves\":%d,\"progress\":[%d,%d],\"busy\":%s,\"over\":%s",
-				ModeName(aBoard->mGameMode), aBoard->mUnknown158, aBoard->mUnknown168, aBoard->mUnknown23C,
-				aBoard->mUnknown200, aBoard->mUnknown204, aBoard->IsBusy() ? "true" : "false", aBoard->mUnknown36B0 ? "true" : "false");
+				ModeName(aBoard->mGameMode), aBoard->mLevel, aBoard->mScore, aBoard->mTwistsMade,
+				aBoard->mLevelProgress, aBoard->mLevelProgressGoal, aBoard->IsBusy() ? "true" : "false", aBoard->mGameOver ? "true" : "false");
 			if (aBoard->mGameMode == Board::MODE_BLITZ)
-				aLine += StrFormat(",\"timer\":%d", aBoard->mUnknown3458 / 100);
+				aLine += StrFormat(",\"timer\":%d", aBoard->mBlitzStartTime / 100);
 			if (gWheelSpin != nullptr)
 				aLine += ",\"wheel\":true";  // the second chance's wheel is up
 			if (TestRankBar(aBoard) != nullptr)
 				aLine += ",\"rank\":true";
-			if (dynamic_cast<Mandala*>(mUnknownF24) != nullptr && static_cast<Mandala*>(mUnknownF24)->mMode != 0)
+			if (dynamic_cast<Mandala*>(mMandalaWidget) != nullptr && static_cast<Mandala*>(mMandalaWidget)->mMode != 0)
 				aLine += ",\"zenjump\":true";  // the zen jump's mode select over the game  // the rank bar after a level or a game (and the new rank's badge)
 			// a tip or the tutorial (+0x2584): its wait (Tutorial::STATE_), whether its dialog with buttons holds
 			// the board (+0x210) and the square a forced move turns (+0x2404, +0x2400)
-			if (aBoard->mUnknown2584 != nullptr) {
-				Tutorial* aTip = aBoard->mUnknown2584;
-				aLine += StrFormat(",\"tip\":{\"wait\":%d,\"dialog\":%s", aTip->mState, aTip->mUnknown210 ? "true" : "false");
-				if (0 <= aBoard->mUnknown2400 && 0 <= aBoard->mUnknown2404)
-					aLine += StrFormat(",\"forced\":[%d,%d]", aBoard->mUnknown2404, aBoard->mUnknown2400);
+			if (aBoard->mTutorial != nullptr) {
+				Tutorial* aTip = aBoard->mTutorial;
+				aLine += StrFormat(",\"tip\":{\"wait\":%d,\"dialog\":%s", aTip->mState, aTip->mWaitsForPlayer ? "true" : "false");
+				if (0 <= aBoard->mTipCol && 0 <= aBoard->mTipRow)
+					aLine += StrFormat(",\"forced\":[%d,%d]", aBoard->mTipRow, aBoard->mTipCol);
 				aLine += "}";
 			}
 			// the board: a row a string, a gem by its colour's letter (. for none); the specials listed apart
@@ -351,7 +351,7 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		}
 		// The zen jump (Board::ShowZenJump, once a player): the mode select over the game asks whether to go on or move
 		// to the other mode; the board's own mode's button goes on (Classic's over Classic, Zen's over Zen)
-		Mandala* aJump = dynamic_cast<Mandala*>(mUnknownF24);
+		Mandala* aJump = dynamic_cast<Mandala*>(mMandalaWidget);
 		if (aJump != nullptr && aJump->mMode != 0) {
 			ModeButton* aStay = aJump->mButtons.size() == 4 ? aJump->mButtons[aJump->mMode == 1 ? 0 : 3] : nullptr;
 			if (aJump->mState == 1 && aStay != nullptr && aStay->mVisible && !aStay->mDisabled)
@@ -362,7 +362,7 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		}
 		// The second chance's wheel: -autoplay stops it as soon as its button can be pressed (WheelSpin::UpdateState).
 		// Before that its tip ("one last chance") may hold it with a dialog, whose button comes below.
-		bool aTipDialog = aBoard->mUnknown2584 != nullptr && aBoard->mUnknown2584->mUnknown210;
+		bool aTipDialog = aBoard->mTutorial != nullptr && aBoard->mTutorial->mWaitsForPlayer;
 		if (gWheelSpin != nullptr && !aTipDialog) {
 			TwistButton* aStop = gWheelSpin->mButton;
 			if (gWheelSpin->mState != 5 || aStop == nullptr || aStop->mDisabled) {
@@ -377,10 +377,10 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		// A tip or the tutorial: its dialog's first button once the dialog has glided into place, then nothing while
 		// it waits on its seconds or a forced move has no square yet, and a forced move's own square (the board
 		// turns no other while +0x2400 is set)
-		if (aBoard->mUnknown2584 != nullptr) {
-			Tutorial* aTip = aBoard->mUnknown2584;
+		if (aBoard->mTutorial != nullptr) {
+			Tutorial* aTip = aBoard->mTutorial;
 			TwistDialog* aDialog = aTip->mDialog;
-			if (aTip->mUnknown210) {
+			if (aTip->mWaitsForPlayer) {
 				DialogButton* aButton = aDialog != nullptr ? aDialog->mYesButton : nullptr;
 				if (aButton == nullptr || aDialog->mClosing || (0 <= aTip->mDialogX &&
 					(aDialog->mX != aTip->mDialogX || aDialog->mY != aTip->mDialogY))) {
@@ -397,15 +397,15 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 				Reply("MOVE null");
 				return true;
 			}
-			if (0 <= aBoard->mUnknown2400 && 0 <= aBoard->mUnknown2404) {
+			if (0 <= aBoard->mTipCol && 0 <= aBoard->mTipRow) {
 				if (aBoard->IsBusy()) {
 					Reply("MOVE null");
 					return true;
 				}
-				int aX = aBoard->mX + aBoard->GetColX(aBoard->mUnknown2400) + gGemWidth;
-				int aY = aBoard->mY + aBoard->GetRowY(aBoard->mUnknown2404) + gGemHeight;
+				int aX = aBoard->mX + aBoard->GetColX(aBoard->mTipCol) + gGemWidth;
+				int aY = aBoard->mY + aBoard->GetRowY(aBoard->mTipRow) + gGemHeight;
 				Reply(StrFormat("MOVE {\"kind\":\"forced\",\"row\":%d,\"col\":%d,\"input\":[{\"move\":[%d,%d]},"
-					"{\"click\":[%d,%d]}]}", aBoard->mUnknown2404, aBoard->mUnknown2400, aX, aY, aX, aY));
+					"{\"click\":[%d,%d]}]}", aBoard->mTipRow, aBoard->mTipCol, aX, aY, aX, aY));
 				return true;
 			}
 			if (aTip->mState == Tutorial::STATE_MOVE) {
@@ -496,12 +496,12 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 				}
 			}
 		}
-		if (aBestRow < 0 && !aBoard->IsBusy() && 0 <= aBoard->mUnknown201C && 0 <= aBoard->mUnknown2020) {
+		if (aBestRow < 0 && !aBoard->IsBusy() && 0 <= aBoard->mBestMoveRow && 0 <= aBoard->mBestMoveCol) {
 			// the grid found none, but the board's own FindMove (SettleTurn keeps its answer at +0x201c, +0x2020) did:
 			// its match check (MoveCursor) is the game's, so its move goes first (a web Classic board had one the grid
 			// missed)
-			aBestRow = aBoard->mUnknown201C;
-			aBestCol = aBoard->mUnknown2020;
+			aBestRow = aBoard->mBestMoveRow;
+			aBestCol = aBoard->mBestMoveCol;
 		}
 		bool aMatches = 0 <= aBestRow;
 		if (aBestRow < 0 && !aBoard->IsBusy()) {
@@ -512,7 +512,7 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 			int aCount = 0;
 			for (int aPass = 0; aPass < 2 && aBestRow < 0; aPass++) {
 				int aIndex = 0;
-				int aPick = aPass == 0 ? 0 : aBoard->mUnknown23C % aCount;
+				int aPick = aPass == 0 ? 0 : aBoard->mTwistsMade % aCount;
 				for (int aRow = 0; aRow < aRows - 1 && aBestRow < 0; aRow++) {
 					for (int aCol = 0; aCol < aCols - 1 && aBestRow < 0; aCol++) {
 						int aTL = aRow * aCols + aCol;
@@ -589,10 +589,10 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		if (aName == "score") {
 			aBoard->SetScore(aValue, true);
 		} else if (aName == "timer" && aBoard->mGameMode == Board::MODE_BLITZ) {
-			aBoard->mUnknown3458 = aValue * 100;  // in hundredths of a second
-			aBoard->mGoodTube->SetTime(aBoard->mUnknown3458, true);
+			aBoard->mBlitzStartTime = aValue * 100;  // in hundredths of a second
+			aBoard->mGoodTube->SetTime(aBoard->mBlitzStartTime, true);
 		} else if (aName == "progress" && aLevels) {
-			aBoard->mUnknown200 = aValue;
+			aBoard->mLevelProgress = aValue;
 		} else {
 			ReplyError(theCommand, "can set score, progress (classic, zen) and timer (blitz)");
 			return true;
@@ -605,7 +605,7 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		ReplyError(theCommand, "not in a challenge");
 		return true;
 	}
-	if (aBoard->IsBusy() || aBoard->mUnknown36B0) {
+	if (aBoard->IsBusy() || aBoard->mGameOver) {
 		ReplyError(theCommand, "the board is busy (a move, a level's end or the game's end)");
 		return true;
 	}
@@ -616,7 +616,7 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 				ReplyError(theCommand, "blitz has no levels");
 				return true;
 			}
-			aBoard->mUnknown3458 = 0;  // the clock runs out: blitz ends its own way
+			aBoard->mBlitzStartTime = 0;  // the clock runs out: blitz ends its own way
 		} else {
 			if (aCommand == "level") {
 				int aLevel = std::atoi(anArgs.c_str());
@@ -624,10 +624,10 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 					ReplyError(theCommand, "level <n>, n from 2: the game goes up to it from the level before");
 					return true;
 				}
-				aBoard->mUnknown158 = aLevel - 1;
+				aBoard->mLevel = aLevel - 1;
 			}
 			// the level's goal is met: the board's own update ends the level and starts the next (CheckLevelDone)
-			aBoard->mUnknown200 = aBoard->mUnknown204;
+			aBoard->mLevelProgress = aBoard->mLevelProgressGoal;
 			aBoard->CheckLevelDone();
 		}
 		ReplyOK(theCommand);
@@ -636,7 +636,7 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 
 	// lose: blitz's clock runs out; the other modes end as when no move is left
 	if (aBoard->mGameMode == Board::MODE_BLITZ)
-		aBoard->mUnknown3458 = 0;
+		aBoard->mBlitzStartTime = 0;
 	else
 		aBoard->EndGame(false);
 	ReplyOK(theCommand);

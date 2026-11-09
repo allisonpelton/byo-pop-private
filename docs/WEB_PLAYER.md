@@ -616,6 +616,10 @@ There are three ways in, all in `web/addgames.js`:
 - **"Add games".** The button beside "Sort by" opens a folder picker (one folder: a game's, or the folder that holds many, such
   as "PopCap Games"), sorted the same way. It is the way in for the keyboard and for browsers without drag and drop.
 
+On the listing's desktop the logo, "Add games", Add Games in the Pop menu and a drop anywhere on the desktop outside a game's
+window all go to the Setup window instead (below), which sorts and copies through this same queue; a drop on a game's card stays
+that card's. The panel described here is what a screen without the desktop uses.
+
 Sorting (`ByopopImport.sort` in `web/gameimport.js`) goes by the files first and the name second, as the files say more surely
 which game a folder is than its name does. A folder is a game's when it holds every one of the game's markers (the files its page
 looks for); a folder that holds several games in different places (the "PopCap Games" folder) is looked into, three levels deep
@@ -652,6 +656,51 @@ record of its files is kept as the game page keeps it after an import (`ByopopGa
 asked to keep the site's storage, and the cards are checked again. `tools/gameimporttest.js` (in `unit-web`) checks the rules and
 the sorting under Node with every finished game's `page.js` (a page.js that fails there is a failure, and a change to one picks
 `unit-web` in `tools/check.sh`'s merge mode).
+
+### The Setup window
+
+The user, 2026-11-09: "I did still like the fake installer skin idea though, so add an installer window where files can be
+dropped in bulk." `web/setup.js` is a window of the listing's desktop, "byo-pop Setup", a wizard over `web/addgames.js`'s
+sorting and copying: it adds no rule of its own for what a game is or what is copied. The art column at its left is byo-pop's
+mark over a box going into a grey case, drawn in CSS; the window parodies an installer without naming or drawing any real one
+(no vendor's name, logo, icon or sound, and nothing that looks like a system prompt), and its text is only where the player acts.
+
+Its pages, with Back, Next and Cancel under them:
+
+- **Your games**: a drop target for game folders, .zip files or a folder of many games, and Browse (the same folder picker, or
+  .zip files where no folder can be picked). Each folder found is a row with its game's tile badge, its name and "Ready", "Already
+  here" or "Not a supported game"; where the name cannot tell two games apart the row asks which, and Next waits for it.
+- **Licence: <game>**: one page for each game found that is not here yet and whose terms are not agreed, in the order found,
+  showing that game's terms card (`ByopopTerms`) with its checkbox; Next agrees, "Don't add this game" skips the game. Each game
+  has its own terms, so these come after the games are known, and a game agreed to before (or any game on a development host,
+  where the terms skip themselves; `?terms=1` shows them) has no page.
+- **Copying**: an overall bar and a row per game with its state, the games copied one at a time by addgames.js's queue. Cancel
+  here lets the game being copied finish and drops the ones not begun.
+- **Finish**: a row per folder: Installed, Already here, Not a supported game, Skipped, or "Error <code>" with its reason in the
+  tooltip (1: the drop could not be read; 2: the files could not be copied, such as a game whose page is open). One live line
+  reads "Installed N of M".
+
+Add Games in the Pop menu and the Add games button open it at Your games. A drop of folders or .zip files on the logo, or on the
+desktop outside a game's window, opens it with them, and it goes straight on to Copying when no game needs a choice or a licence. A drop
+on a game's card keeps the single-game import above. Closing it after Finish leaves it empty for the next time.
+`tools/setuptest.js` (in `unit-web`) checks the order of the pages for the games found and Finish's rows and counts.
+
+### Coming soon games on a development host
+
+The user, 2026-11-09, asked "Make built ports' Coming soon tiles open their game on the local site?": "Yes, locally". A game in
+`BYOPOP_WEB_UPCOMING` whose page this build made (its `byopop_web_game()` was configured and its `BUILD_<TARGET>` is on) gets
+marks on its Coming soon tile in the generated listing (`data-local-page`, `data-local-game`, `data-local-persist`,
+`data-local-lock`). On a development host (127.0.0.1, localhost, [::1], *.localhost, *.test or a file:// page, `ByopopTerms.devHost`)
+`web/localsoon.js` turns such a tile into the link a finished game's tile is, before anything reads the tiles, so the listing (a
+double-click, Enter or Space), the Library, a favourite's desktop icon and the Pop menu's Games (once its files are here) open the
+game in its window like any other. The card keeps its Coming soon look and its "Coming soon", with this computer's icon beside it
+(tooltip "This computer only"). A game with no page in the build keeps its plain Coming soon tile, and on any other host the marks
+are ignored. `?localsoon=0` keeps every one shut on a development host too. `tools/localsoontest.js` (in `unit-web`) checks the
+hosts, the marks and that a deployed host or a forced-false devHost leaves all of them shut.
+
+The site has no deploy step yet: build/web holds the pages, scripts and wasm of every port this build made, the ones still to come
+too (`<target>.html`, `.js`, `.wasm`, `-copyright.html`), so whatever copies the site to a public host must leave those out, or the
+site's build must turn their `BUILD_<TARGET>` off.
 
 ### Games this site does not play
 
@@ -1582,6 +1631,33 @@ chosen on a narrow screen). Until 2026-11-09 they were read only when the panel'
 happened only if the Music tab had last been chosen in another skin, so on a fresh profile the window stayed at 0:00 with no
 tunes.
 
+**Following a game.** While a game window is in front and its game plays music, Music's views show that music live (the user,
+2026-11-09: "Would it be possible to make the tracker/spectral analyzer sync with what's playing in the active game?"). The
+tracker shows the game's module, its pattern scrolling with the game, with the order, pattern and row in its top line, and the
+spectrum the game's own sound output. A tag over the view's top right corner names the game, its tooltip the module's own title
+where it has one. The game in front is the game window last made active, while it is open and not minimized (web/deskapps.js
+`frontFrame`); a game window brought forward makes it the followed one. When no game window is open, or the one in front plays
+no music, the views show Music's own tune as before. Music's own playback is not started, stopped or changed by any of this:
+the two can play at once, and the views then show the game's.
+
+The game's side is a site hook in the platform layer, as the player-name and settings hooks are: no game's code changes, and
+native builds do not compile it. `Platform::Mixer` answers four calls the page makes with `Module.ccall` (platform/Audio.cpp,
+linked through `-sEXPORTED_FUNCTIONS`): `byopop_music_song()`, the song the game plays (the loudest playing one, 0 for none);
+`byopop_music_view(song)`, as JSON where it is (its kind, `module` or `stream`, and for a module its pattern, row, the pattern's
+rows, its channels, its order and its title); `byopop_music_row(song, pattern, row)`, a row's cells separated by `|`; and
+`byopop_music_used(song)`, the channels that play a note anywhere. A libxmp-lite module (S3M, IT, XM, MOD) is read from its
+`xmp_module`, a libopenmpt one (MO3, OXM) through `ModulePlayer`'s web-only `GetView`, `GetRowText`, `GetUsedChannels` and
+`GetTitle` (platform/openmpt/OpenMPTPlayer.cpp). The cells are written as Music's own decoder writes them (libxmp-lite's in
+platform/ModuleText.h, which both use), so the tracker draws a game's rows as it draws its own, with the same rules for the
+channels shown. A stream (Ogg, MP3, WAV) or a player that cannot tell (TipTop's MIDI synthesizer) gives the spectrum only.
+
+The page asks only while the Music window is on the screen, once an animation frame, and reads a pattern's rows once each. The
+spectrum is an `AnalyserNode` in the game's own `AudioContext`, connected as one more output of the game's last node (the
+worklet or script processor of "Sound", which goes on to the speakers as before), so what is heard does not change; it is
+disconnected when the game leaves the front, stops its music, or the Music window closes or is minimized. A game started with
+`?silent=1`, or muted by its page, sends silence to its speakers, and so its spectrum is flat: the tracker still follows.
+`ByopopMusicPanel.following()` tells a test the game followed, its view and whether its output is tapped.
+
 **The Sounds window** (web/sounds.js, its table of the games' sounds in web/soundboards.js; the user asked for a soundboard
 demo for BookWorm, 2026-11-09) sits on the listing's desktop after Music, closed at first: the games' drop-down, Stop, the
 speaker and the volume, and the sounds as push buttons in group boxes. It reads the games' files with Music's read-only reader
@@ -2118,7 +2194,7 @@ Its parameters:
 | `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready. A driver then runs once the files are in, before the game starts, and starts it itself; `?driver=move` starts it at once |
 | `silent=0` | sound on (the user's speakers: only when the user says so) |
 | `realfocus=1` | the browser's own blur and focus events reach the game, besides the kit's `blur()` and `focus()` (below) |
-| `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
+| `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo, or a shared one, `tools/web/<name>.js` (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
 | `run=<id>` | the folder of `byopop.test.shot(name)`'s files under `build/webshots/` (default "default") |
 | `seed=N`, `placeholders=1` | as on the full page |
 
@@ -2151,7 +2227,10 @@ depends on the frames.
 - **input** at game coordinates, as the DOM's own events on the canvas, which Emscripten and SDL take on a player's path:
   `move(x, y)`, `down(x, y, button)`, `up(x, y, button)`, `click(x, y, button)` (down and up on separate frames), `drag(x0, y0,
   x1, y1, steps)`, `wheel(x, y, dy)`, `key(name, mods)`, `keyDown`, `keyUp` and `type(text)`. Keys are named as the DOM names
-  them ("Enter", "Escape", "ArrowLeft", " ", "a", "F1"), with the keyCode and code a browser gives them.
+  them ("Enter", "Escape", "ArrowLeft", " ", "a", "F1"), with the keyCode and code a browser gives them. `keyCheck(name,
+  mods, element)` sends a press at once (down, its keypress where it types a character, up) to the canvas or the element given
+  and resolves with which of them the page cancelled, `{key, down, press, up}` (`press` null without one): the browser acts on
+  a key only when the page did not cancel it.
 - **time**: `updates()` is the framework's update count; `pause()` holds the game between two updates (it is still drawn and
   its input still arrives, but no update runs), `step(n)` runs n more and holds again, `resume()` lets it go, `wait(n)` waits for
   n updates holding nothing, and `frame()` for the next drawn frame. The hold is `byopop_hold_updates_at` in
@@ -2248,6 +2327,58 @@ board clears, `MOVE null` only means "not yet": it waits 5 updates and asks agai
 "no move", "busy" or "error: <message>", and `state` the last state read. `playByMove({steps})` runs the same loop from a driver of a
 session's own. It needs the build's `byopop_test_command` and a port that answers `move`; the MOVE fields are agreed with the
 shared session, whose native tool plays the same moves.
+
+**Shared drivers.** A driver in `tools/web/` serves every game: `?driver=tools/web/<name>.js` runs it bare, and a game's own
+driver runs it with that game's table by `return await t.run("tools/web/<name>.js", {...})`, the table arriving as `args`.
+
+### The page check
+
+`tools/web/pagecheck.js` checks how a game's page behaves as a browser page, which no comparison with the original reaches
+(the user, 2026-11-09: "Most of the described tests sound like things that could be automated at least somewhat"; what is
+left to a player is the browser itself, Firefox first). Every game takes it in its real-input pass, through a table of its
+own in `games/<game>/tools/web/pagecheck.js` (Bejeweled's and Alchemy's were the first), opened as
+
+    <game>.html?player=1&assets=1&hold=1&fast=1&silent=1&driver=games/<game>/tools/web/pagecheck.js&run=pagecheck
+
+with `tools/webtest/serve.py` serving it (the launch configuration `pagecheck-webtest`, port 18780). It wipes the test
+profile, starts the game, sends the table's `start` commands once the first screen is up and waits for play, then runs its
+checks and reloads the page, as a player's F5 would. So it ends in two halves: `await byopop.test.driver` resolves with
+`{reloading: true}` from the first, and once the page is back, the same call resolves with the result, `{pass, fail, info,
+results}`, each line `{check, result, detail}` with `result` "pass", "FAIL" or "info". The checks:
+
+- **Focus.** The page is hidden and shown again mid-play (`blur({hidden: true})`, 200 updates, `focus()`, 200 more), and
+  the state keys that changed while it was hidden, and after, must be the ones the native build changes when its window
+  loses and regains the focus. `tools/web/pagecheck_native.py` gives that answer with the same start (`--first` for each
+  start command, `--title-move` for `titleMove`, which plays the bot's move while a title refuses `goto`) and prints the
+  line for the table's `focus` field. Bejeweled pauses
+  (`paused` and its `tick` change while hidden, its time bar does not); Alchemy goes inactive and mutes.
+- **Keys.** With the game focused, the page must cancel Tab, Backspace, Space, the arrows, Page Up and Down, Home and End,
+  and the table's `keys`, so that the browser moves no focus and scrolls nothing, and `'` and `/`, which open Firefox's quick
+  find when the page lets their keypress through. Which browser keys it takes while the game has the focus (F5, F11, F12,
+  F7, Alt, Ctrl+R, Ctrl+F, Ctrl+L) is a line of information. And nothing typed into a text field outside the game is
+  cancelled: SDL listens on the canvas alone (`SDL_EMSCRIPTEN_KEYBOARD_ELEMENT`), and this proves it.
+- **Resize.** The canvas is drawn at 1.5, 0.75, 2 and 1 times its size, as a resized window or full screen draws it, and
+  the mouse moved to the table's `point`; the framework's `pointer` command (`docs/TEST_COMMANDS.md`) must answer that same
+  game pixel, give or take one.
+- **Pages.** The same game opened again in an iframe, as in a second tab, must wait for the first (the shell's Web Lock,
+  "one copy at a time") and run no update, and the first must still answer. The first game is held meanwhile, since a
+  second page can take a minute to load in a hidden pane and a timed game would run out.
+- **Reload.** The bot first makes the table's `moves`, so that a game is in progress. Every save file the test profile
+  held before the reload must come back with the same bytes, read before the game starts and again once it has; a file
+  may change when the page's backup restores the version a quit would have written (the registry,
+  `platform/WebPersist.cpp`), or when the table's `reloadChanges` names it. And every save the backup holds once the
+  page has gone, the game in progress among them, must be in the profile once the game has started (Bejeweled's and
+  Alchemy's `savegame.dat`). `afterReload` adds a check of the game's own.
+
+The run needs `hold=1` and `assets=`, and stops with an error without them. Errors caught on the page are a line of each
+half. A run takes about three minutes in a hidden pane, most of it loading the game's files twice; read
+`byopop.test.result` between calls rather than awaiting the driver across the reload.
+
+Its first runs (2026-11-09), Bejeweled in timed mode and Alchemy's strategic game, passed every line. The information line
+was the same for both: while the game has the focus, the page cancels F5, F11, F12, F7, Ctrl+R, Ctrl+F and Ctrl+L (SDL
+cancels the function and Ctrl keys, as the shell's note on `PAGE_SCROLL_KEYS` says) and leaves Alt alone. So F5 and
+Ctrl+R reload nothing while the game has the focus, until the player clicks outside it or presses F6; whether a browser
+still keeps F11 or F12 for itself is the browser's choice, which only a player's own browser shows.
 
 ## Sound
 

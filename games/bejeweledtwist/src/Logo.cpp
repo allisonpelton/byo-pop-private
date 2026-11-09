@@ -91,25 +91,25 @@ void Logo::Update()
 				anEffect->mMaxScale = 1.0f;
 				mFXManager->AddEffect(anEffect);
 			}
-			if (mFade16C < 1.0f) {
-				float aFade = (float)(mFade16C + 0.009999999776482582);
+			if (mSettleFade < 1.0f) {
+				float aFade = (float)(mSettleFade + 0.009999999776482582);
 				if (1.0f < aFade)
 					aFade = 1.0f;
-				mFade16C = aFade;
+				mSettleFade = aFade;
 			}
-			if (mFade168 < 1.0f) {
-				float aFade = (float)(mFade168 + 0.009999999776482582);
-				mFade168 = aFade;
+			if (mFlashRise < 1.0f) {
+				float aFade = (float)(mFlashRise + 0.009999999776482582);
+				mFlashRise = aFade;
 				if (aFade >= 1.0f) {
-					mFade168 = 1.0f;
-					mFade170 = 1.0f;
+					mFlashRise = 1.0f;
+					mFlashFall = 1.0f;
 				}
 			}
-			if (0.0f < mFade170) {
-				float aFade = (float)(mFade170 - 0.009999999776482582);
+			if (0.0f < mFlashFall) {
+				float aFade = (float)(mFlashFall - 0.009999999776482582);
 				if (aFade < 0.0f)
 					aFade = 0;
-				mFade170 = aFade;
+				mFlashFall = aFade;
 			}
 		}
 	}

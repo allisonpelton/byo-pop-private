@@ -343,6 +343,8 @@ public:
 	//                     focus lose|regain    the window loses or regains the focus, as its focus
 	//                                          event does (mute, LostFocus/GotFocus), like origrun's
 	//                     quit                 Shutdown()
+	//                     pointer              answers POINTER {"x","y","in"}: the mouse as the widgets
+	//                                          last saw it, in game pixels (tools/web/pagecheck.js)
 	//                     modmenu <what> ...   the mod menu (framework/ModMenu.h; a mod id with spaces in
 	//                                          "..."): open, close, page <mod> | list, enable <mod> 0|1,
 	//                                          move <mod> -1|1, set <mod> <setting> <JSON value>, reset <mod>,
@@ -395,7 +397,7 @@ public:
 	//                                           write "focus lost" before it)
 	//                     resize <w> <h>        SDL_SetWindowSize: the window's client area, in screen pixels
 	//                     close                 the window's close button: SDL_WINDOWEVENT_CLOSE, then SDL_QUIT
-	//                     screenshot, screenshotfull, quit  as in -script (done at once, not pushed)
+	//                     screenshot, screenshotfull, quit, pointer  as in -script (done at once, not pushed)
 	//                   Full screen is Alt+Enter: "keydown Left Alt", "key Return", "keyup Left Alt". Other
 	//                   commands go to the game's HandleScriptCommand, run at once; so does a bare "move" (no
 	//                   point), which asks the game's bot for its next move (docs/TEST_COMMANDS.md).

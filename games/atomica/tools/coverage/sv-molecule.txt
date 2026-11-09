@@ -1,0 +1,27 @@
+# save: molecule
+# A saved game at level 4 with the meter a half under its top and three atoms of one kind round a cell (mksave.py), continued in the
+# original: the bomb's hint, an atom picked up and carried over the field (the route's arrows are drawn as the mouse goes), the molecule
+# that fills the meter, the level box, the bonus level's start (level 5, a radiation round) and its hint, the space key's pause and its
+# resume, and the quit box.
+1500 move 320 445
+1510 click 320 445
+2300 move 316 310
+2310 click 316 310
+2600 click 495 312
+2700 move 540 365
+2710 click 540 365
+2720 move 500 365
+2730 move 440 315
+2740 move 400 275
+2750 move 390 265
+2760 click 390 265
+3500 move 382 354
+3510 click 382 354
+4400 click 480 357
+5000 key 32
+5100 key 32
+5200 move 72 464
+5210 click 72 464
+5300 move 386 283
+5310 click 386 283
+end 5500

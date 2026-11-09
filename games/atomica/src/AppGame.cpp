@@ -153,7 +153,7 @@ void AtomicaApp::DeleteSavedGame()
 	WriteBufferToFile("SAVEGAME.DAT", &aBuffer);
 }
 
-// 0x406060: the saved game goes on (the menu closes itself when its doors are open)
+// 0x406060 / 0x406020: the saved game goes on (the menu closes itself when its doors are open)
 void AtomicaApp::ResumeGame()
 {
 	Buffer aBuffer;

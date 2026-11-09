@@ -40,7 +40,7 @@ namespace
 	}
 }
 
-// 0x4198e0
+// 0x4198e0 / 0x419760
 MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	mApp(theApp),
 	mDoor(0x12f),
@@ -57,9 +57,9 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	mRank(0),
 	mEntryShown(false)
 {
-	Sprite* aDoors = mApp->mSprites->Load("menudoors");
-	mDoorLeft = mApp->mSprites->SubSprite(aDoors, 0, 0, 0x12f, 0x1e0);
-	mDoorRight = mApp->mSprites->SubSprite(aDoors, 0x12f, 0, 0x151, 0x1e0);
+	mDoorSheet = mApp->mSprites->Load("menudoors");
+	mDoorLeft = mApp->mSprites->SubSprite(mDoorSheet, 0, 0, 0x12f, 0x1e0);
+	mDoorRight = mApp->mSprites->SubSprite(mDoorSheet, 0x12f, 0, 0x151, 0x1e0);
 	mPanel = mApp->mSprites->Load("menupanel");
 	mApp->mB3eac = false;
 	mPanelY = mPanel->mHeight + 10;
@@ -110,8 +110,18 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	ShowPage(mGameOver);
 }
 
+// 0x4190b0
 MainMenu::~MainMenu()
 {
+	// 0x4190b0 / 0x41e690: the sheet, the doors and the panel are freed (the original's four frees; the sprite manager is gone when the
+	// app's destructor deletes a menu that is still up)
+	if (mApp->mSprites != NULL)
+	{
+		mApp->mSprites->Free(mDoorSheet);
+		mApp->mSprites->Free(mDoorLeft);
+		mApp->mSprites->Free(mDoorRight);
+		mApp->mSprites->Free(mPanel);
+	}
 	mApp->mMusicInterface->StopMusic(1);
 	mButtons.Reset();
 	Widget* aButton = mButtons.Next();
@@ -582,9 +592,9 @@ HighScoresBox::HighScoresBox(AtomicaApp* theApp) :
 	mClosing(false),
 	mSpin(0)
 {
-	Sprite* aDoors = mApp->mSprites->Load("menudoors");
-	mDoorLeft = mApp->mSprites->SubSprite(aDoors, 0, 0, 0x12f, 0x1e0);
-	mDoorRight = mApp->mSprites->SubSprite(aDoors, 0x12f, 0, 0x151, 0x1e0);
+	mDoorSheet = mApp->mSprites->Load("menudoors");
+	mDoorLeft = mApp->mSprites->SubSprite(mDoorSheet, 0, 0, 0x12f, 0x1e0);
+	mDoorRight = mApp->mSprites->SubSprite(mDoorSheet, 0x12f, 0, 0x151, 0x1e0);
 	mPanel = mApp->mSprites->Load("menupanel");
 	mPanelY = mPanel->mHeight + 10;
 	mHasTransparencies = true;
@@ -594,12 +604,23 @@ HighScoresBox::HighScoresBox(AtomicaApp* theApp) :
 	mReturn->Resize(0xd9, 0x17c, 0xce, 0x25);
 }
 
+// 0x41e690
 HighScoresBox::~HighScoresBox()
 {
+	// 0x4190b0 / 0x41e690: the sheet, the doors and the panel are freed (the original's four frees; the sprite manager is gone when the
+	// app's destructor deletes a menu that is still up)
+	if (mApp->mSprites != NULL)
+	{
+		mApp->mSprites->Free(mDoorSheet);
+		mApp->mSprites->Free(mDoorLeft);
+		mApp->mSprites->Free(mDoorRight);
+		mApp->mSprites->Free(mPanel);
+	}
 	mApp->mHighScoresBox = NULL;
 	mApp->SafeDeleteWidget(mReturn);
 }
 
+// 0x41e960
 void HighScoresBox::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
@@ -607,6 +628,7 @@ void HighScoresBox::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddBaseModal(this);
 }
 
+// 0x41e9a0
 void HighScoresBox::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);

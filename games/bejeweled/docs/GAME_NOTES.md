@@ -2695,6 +2695,59 @@ input for both), `loadtime.py` (the port's loading time through the live channel
 Steam install with the real exe carved out of the wrapper (`tools/extract_game_exe.py`, in `C:\byo-og\bej-perf\game`),
 under `build/origrun-bin/origrun.exe` with `--sound stub` and no virtual clock.
 
+### The performance pass (2026-11-09)
+
+**Measured again, in pairs.** `tools/profile/pairs.sh` runs the original and then the port over the same minute of play
+as above (`perfscript.py`), each sampled by `perfmin.py`, one game process at a time. The original runs under an origrun
+rebuilt after 12eda33b: its stand-in now answers `GetLastInputInfo`, so a SexyAppFramework original no longer stops
+drawing once the machine has been idle about ten minutes (`docs/ORIGRUN.md`, "The last-input hook"), which may have made
+the figures of 2026-11-08 read low. While a run goes, the machine's game processes are counted once a second. The script
+waited 1 h 46 min for the machine to have none, then ran 8 pairs between 04:46 and 05:12. Other sessions' games came back
+during the first six pairs, so only pairs 7 and 8 saw no other game process:
+
+| Pair | Other game processes (original, port) | Original: processor in the window, whole run | Port: processor in the window, whole run | Private bytes, original / port | Working set, original / port |
+|---|---|---|---|---|---|
+| 1 | 2, 2 | 4.70 %, 4.19 s | 3.90 %, 3.42 s | 36.3 / 54.7 MB | 57.9 / 61.6 MB |
+| 2 | 2, 2 | 4.03 %, 3.38 s | 4.43 %, 3.45 s | 35.9 / 55.1 MB | 57.5 / 61.9 MB |
+| 3 | 1, 2 | 4.70 %, 4.13 s | 5.72 %, 4.67 s | 35.7 / 54.8 MB | 57.3 / 61.8 MB |
+| 4 | 1, 1 | 3.48 %, 2.97 s | 4.61 %, 4.08 s | 35.7 / 54.4 MB | 57.2 / 61.4 MB |
+| 5 | 1, 0 | 4.12 %, 3.72 s | 2.61 %, 3.45 s | 35.9 / 53.8 MB | 57.6 / 61.7 MB |
+| 6 | 0, 1 | 4.88 %, 3.97 s | 3.08 %, 3.19 s | 35.7 / 54.9 MB | 57.1 / 61.8 MB |
+| **7** | **0, 0** | **4.95 %, 4.17 s** | **4.10 %, 3.48 s** | **35.9 / 55.4 MB** | **57.6 / 62.2 MB** |
+| **8** | **0, 0** | **4.31 %, 3.52 s** | **4.03 %, 3.67 s** | **35.9 / 54.7 MB** | **57.5 / 61.7 MB** |
+
+The processor figures are the percentage of one core in the window from 20 s to 80 s, and the seconds over the whole run.
+
+In the two quiet pairs the port uses a little less processor time than the original, 4.1 and 4.0 % of one core against 5.0
+and 4.3 %. The medians of all eight pairs agree: 4.1 % against 4.5 %, and 3.5 s against 3.8 s a run. On 2026-11-08 the
+port had seemed about 20 % above the original. That was within the noise of a busy machine, or the original's idle stop.
+The original's memory reads higher than on 2026-11-08 (36 MB private, 57.5 MB working set, against 34 and 48). It draws
+for the whole minute now, and in pair 8 it chose Direct3D's software renderer (D3D10Warp). The port holds about 19 MB more
+private memory, as before.
+
+**Where the port's time goes.** `cpuprof.py` was run on the port with `-fast`, because a test run is where its speed
+counts. For an autoplay game to its end on seed 7 (2.2 s, 10,637 updates, 1,064 draws), 85 to 90 % of the cycles are
+outside the game: system calls (ntdll, 53 %), the NVIDIA driver (21 %), win32u (10 %), and imagehlp (5 %), which wintrust
+loads for the driver's signature check when the device is made. The exe has 5 %, spread thin: the textures' upload
+(`DDInterface::PrepareTexture`, 1.3 %), the Ogg decoder (about 1 %), `MemoryImage::NormalBlt` (0.6 %), the GIF decoder and
+the crossfade image. A run that loads and quits at the title (0.39 s of it after loading, which takes 351 ms by the game's
+own log) is 94 % system and driver, and 6 % the exe's decoders (Vorbis, JPEG, PNG, the module player), none above 1 %.
+`cpuprof.py` now lists the modules every 200 samples instead of every 2,000, so a run of under a second still names them.
+
+**What the pass changed: nothing in the game.** Every cost the profile shows is one of two kinds:
+
+- The two shared costs in `docs/COORDINATION.md`, to be fixed once for every game: presenting a frame, and creating the
+  window and the device, along with the driver's signature check that comes with it.
+- The framework's own work, spread thin: decoding images and sounds, uploading textures.
+
+No function of Bejeweled's own code is above 0.3 % of a run, so there was nothing in the game to speed up. The
+frozen baseline and the oracle need no new run, since no source changed. The memory gap is the framework's: every
+image's pixels kept after the GPU has its texture (`PROFILE.md` section 5, "Pixels after upload", which the coordinator
+left for now).
+
+**Not measured.** As on 2026-11-08: the web build in a browser, since the Browser pane is hidden and throttled; full screen;
+and the GPU's own load. The samples and logs are in `build/perf/pass/` (git-ignored).
+
 ## 20. The readability pass (2026-11-08)
 
 Bejeweled was the pilot of the readability pass: the rules are `docs/CODE_STANDARDS.md`, written while applying them here,
@@ -2828,3 +2881,34 @@ for `TitleScreen::Resize` came in with the readability pass's merge.
 **Not covered.** Alt+Enter and the Options dialog's full-screen box were not run. On the host they would change the
 display mode of the user's machine. The port's full screen is its own (the host switches the window, a listed
 deviation). The realplay driver's `fullscreen` step tests it on the port.
+
+## 22. Code the port does not need (2026-11-09)
+
+The last step before a game is done (`docs/COORDINATION.md`): taking out code the port does not need, beyond the
+registration code and the buttons that lead out of the game, which went in section 18. The coverage check (section 21)
+found no candidate in the translated game: every port function of the game code ran in the original, except two error
+paths that stay. So this step looked for port code that nothing calls. Every definition under `src/` was set against
+every use of its name in the game, the framework and the platform. That left only the code-drawn art's library (`art/`,
+the `codeArt` mod's own code, which no play of the unmodded game reaches): eleven functions written for it and never
+called.
+
+- `Raster`: `Path::QuadTo`, `Path::CubicTo`, `Mask::Inner`, `Mask::Union`, `Mask::Scale`, `Canvas::AlphaMask`,
+  `Canvas::MultiplyAlpha`, and `Mask::Distance`, which only `Inner` used.
+- `VectorFont`: `HasGlyph` and `CharInk`.
+- `GemArt`: `GemModelCount`.
+- `CodeArt`: `Disable` (the mod is never switched off while the game runs).
+
+Every source file is built, since the build takes each folder's files by pattern, and no other header declares a function
+nothing calls.
+
+**Kept on purpose.** The fields the original sets and never reads stay: Board's `mClearedAtMoveStart` and
+`mLevelTextShown`, and ScorePopup's `mAlwaysMinusOne`. So do the ones it saves but never sets, such as `mSavedZero`. The save
+file and the state codec carry them, and so does the trace hash the oracle compares against the frozen baselines, so
+taking them out would change the oracle's output, not the game. Each is named for what it holds (`docs/CODE_STANDARDS.md`,
+rule 3). The colour-depth dialog and `GetGameSEHInfo` stay as error paths (section 21). Piece's paddings stay with the
+layout the save keeps.
+
+**Proof.** Nothing the game runs changed. The native and web builds pass, and so do the unit suite (rulestest, mod
+settings, real input, commands and the rest) and verify (54 checks). The code-drawn art, the only code touched, dumps
+byte for byte as main's exe does at scales 1, 2 and 4 (`-dumpcodeart`, 41, 77 and 77 files). The oracle needs no run: no
+code it reaches changed.

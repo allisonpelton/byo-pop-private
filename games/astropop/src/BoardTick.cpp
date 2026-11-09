@@ -226,42 +226,42 @@ void Board::PayTimeBonus()
 	if (aTime <= 0xc8 && m1a30 == 0 && m1a50 >= 3)
 	{
 		m1a30 = 1;
-		aBonus = (int) ((double) m940 * (double) 1000.0f);
+		aBonus = (int) (m940 * 1000.0f);
 		if (aBonus > 10000)
 			aBonus = 10000;
 	}
 	else if (aTime <= 0x12c && m1a30 <= 1 && m1a50 >= 4)
 	{
 		m1a30 = 2;
-		aBonus = (int) ((double) m940 * (double) 2000.0f);
+		aBonus = (int) (m940 * 2000.0f);
 		if (aBonus > 15000)
 			aBonus = 15000;
 	}
 	else if (aTime <= 0x190 && m1a30 <= 2 && m1a50 >= 5)
 	{
 		m1a30 = 3;
-		aBonus = (int) ((double) m940 * (double) 3000.0f);
+		aBonus = (int) (m940 * 3000.0f);
 		if (aBonus > 20000)
 			aBonus = 20000;
 	}
 	else if (aTime <= 0x1f4 && m1a30 <= 3 && m1a50 >= 6)
 	{
 		m1a30 = 4;
-		aBonus = (int) ((double) m940 * (double) 4000.0f);
+		aBonus = (int) (m940 * 4000.0f);
 		if (aBonus > 22000)
 			aBonus = 22000;
 	}
 	else if (aTime <= 0x258 && m1a30 <= 4 && m1a50 >= 7)
 	{
 		m1a30 = 5;
-		aBonus = (int) ((double) m940 * (double) 5000.0f);
+		aBonus = (int) (m940 * 5000.0f);
 		if (aBonus > 25000)
 			aBonus = 25000;
 	}
 	else if (aTime <= 0x2bc && m1a30 <= 5 && m1a50 >= 8)
 	{
 		m1a30 = 6;
-		aBonus = (int) ((double) m940 * (double) 6000.0f);
+		aBonus = (int) (m940 * 6000.0f);
 		if (aBonus > 30000)
 			aBonus = 30000;
 	}
@@ -438,7 +438,7 @@ void Board::UpdateStates()
 						if (m1abc < 1)
 						{
 							m1abc = 0;
-							aPace = m4c8 ? 4 : 8;
+							aPace = mSirenAnim.mStopped ? 4 : 8;
 						}
 					}
 					m1ab8 = aPace;

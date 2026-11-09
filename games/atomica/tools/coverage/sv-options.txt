@@ -1,0 +1,36 @@
+# save: molecule
+# The options box in a game, with its two sliders dragged (the slider's value comes to the box, 0x422d00), a click on the sound slider's bar,
+# the check boxes but the full screen one (which would change the machine's display mode) and "done".
+1500 move 320 445
+1510 click 320 445
+2300 move 316 310
+2310 click 316 310
+2600 click 495 312
+2700 move 73 266
+2710 click 73 266
+2800 move 490 175
+2810 down 490 175
+2820 move 450 175
+2830 move 400 175
+2840 up 400 175
+2900 move 420 195
+2910 down 420 195
+2920 move 460 195
+2930 move 500 195
+2940 up 500 195
+3000 click 350 175
+3100 move 400 220
+3110 click 400 220
+3200 move 255 245
+3210 click 255 245
+3300 move 400 245
+3310 click 400 245
+3400 move 400 220
+3410 click 400 220
+3500 move 255 245
+3510 click 255 245
+3600 move 400 245
+3610 click 400 245
+3700 move 382 363
+3710 click 382 363
+end 3900

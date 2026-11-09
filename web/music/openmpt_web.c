@@ -11,6 +11,7 @@
 #include <emscripten.h>
 #include "libopenmpt/libopenmpt.h"
 #include <xmp.h>
+#include "../../platform/ModuleText.h"
 #include "../../platform/MusicLevels.h"
 #define STB_VORBIS_HEADER_ONLY
 #include "stb_vorbis.c"
@@ -195,21 +196,6 @@ EMSCRIPTEN_KEEPALIVE int bm_used(bm_module* b, unsigned char* out, int max) {
    the note, instrument, volume and effect as a tracker shows them, the effect as libxmp-lite's own type in hex). The text lives
    until the next call. */
 static char row_text[64 * 24 + 1];
-static void xmp_cell(const struct xmp_event* e, char* s) {
-  static const char* names[12] = { "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-" };
-  char note[4] = "...", ins[3] = "..", vol[4] = "...", fx[5] = "....";
-  if (e->note == XMP_KEY_OFF) strcpy(note, "===");
-  else if (e->note == XMP_KEY_CUT) strcpy(note, "^^^");
-  else if (e->note == XMP_KEY_FADE) strcpy(note, "~~~");
-  else if (e->note > 0 && e->note <= 120) { int n = e->note - 1; note[0] = names[n % 12][0]; note[1] = names[n % 12][1]; note[2] = (char)('0' + n / 12); }
-  if (e->ins) { ins[0] = "0123456789ABCDEF"[(e->ins >> 4) & 15]; ins[1] = "0123456789ABCDEF"[e->ins & 15]; }
-  if (e->vol) { int v = e->vol - 1; vol[0] = 'v'; vol[1] = (char)('0' + (v / 10) % 10); vol[2] = (char)('0' + v % 10); }
-  if (e->fxt || e->fxp) {
-    static const char hex[] = "0123456789ABCDEF";
-    fx[0] = hex[(e->fxt >> 4) & 15]; fx[1] = hex[e->fxt & 15]; fx[2] = hex[(e->fxp >> 4) & 15]; fx[3] = hex[e->fxp & 15];
-  }
-  sprintf(s, "%s %s %s %s", note, ins, vol, fx);
-}
 EMSCRIPTEN_KEEPALIVE const char* bm_row_text(bm_module* b, int pattern, int row) {
   size_t at = 0;
   row_text[0] = 0;
@@ -233,7 +219,7 @@ EMSCRIPTEN_KEEPALIVE const char* bm_row_text(bm_module* b, int pattern, int row)
     char cell[24];
     const struct xmp_track* t = mod->xxt[mod->xxp[pattern]->index[c]];
     static const struct xmp_event none;
-    xmp_cell(t && row < t->rows ? &t->event[row] : &none, cell);
+    byopop_xmp_cell(t && row < t->rows ? &t->event[row] : &none, cell);
     size_t n = strlen(cell);
     if (at + n + 2 >= sizeof row_text) break;
     if (c) row_text[at++] = '|';

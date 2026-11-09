@@ -742,6 +742,8 @@ void WinDMApp::Shutdown()
 void WinDMApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	if (mTraceMode)
+		TraceUpdate();
 	if (mTestGoto != -1)
 		TestAdvanceGoto();
 	if (mReloadPending) {

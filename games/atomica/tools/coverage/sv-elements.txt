@@ -1,0 +1,28 @@
+# save: elements
+# A saved game at level 4 with one element atom of each kind in the field (mksave.py), continued in the original: the three boxes that come
+# up (the bonus molecules', the bomb's, then the ether's wind hint), the double click that sets each element's effect off (ether, water, earth,
+# air, fire: the ghost, freeze, bolts, whirlwinds and shock wave; the hints of the others, the bomb's second one and the fire hint, are
+# dismissed where the port's run of this scenario showed them), and the bomb.
+1500 move 320 445
+1510 click 320 445
+2300 move 316 310
+2310 click 316 310
+2620 click 500 312
+2700 click 305 127
+2800 click 495 312
+2940 move 390 65
+2950 dclick 390 65
+3050 click 495 457
+3200 move 590 65
+3210 dclick 590 65
+3500 click 566 366
+3650 move 190 415
+3660 dclick 190 415
+3900 move 590 415
+3910 dclick 590 415
+4050 click 466 126
+4150 move 190 65
+4160 dclick 190 65
+4400 move 390 450
+4410 click 390 450
+end 4800

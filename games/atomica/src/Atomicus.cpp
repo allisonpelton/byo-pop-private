@@ -8,7 +8,7 @@
 
 using namespace Sexy;
 
-// 0x40b200
+// 0x40b200 / 0x421c40
 Atomicus::Atomicus(AtomicaApp* theApp) :
 	mApp(theApp),
 	mMuted(false),
@@ -206,7 +206,7 @@ void Atomicus::Blink()
 	}
 }
 
-// 0x40b5a0
+// 0x40b5a0 / 0x40b1e0
 void Atomicus::Say(int theMessage)
 {
 	if (mMuted)
