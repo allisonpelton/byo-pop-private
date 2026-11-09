@@ -161,8 +161,10 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   since a game's window can be slow to appear while it tries to phone home).
 - `key <vk>` — a virtual-key press (decimal or `0x..`).
 - `text <chars...>` — type the rest of the line.
-- `down x y` / `up x y` (`rdown` / `rup` for the right button), `keydown <vk>` / `keyup <vk>`, `dclick x y` — one
-  edge of a button or key, or a double click (down, up, `WM_LBUTTONDBLCLK`, up), posted now. They are the same as at an
+- `char <code>` — one `WM_CHAR` of that code (decimal or `0x..`), for a control character a script line cannot hold
+  (Ctrl+Z, 0x1a, ends a script file, which is read in text mode).
+- `down x y` / `up x y` (`rdown` / `rup` for the right button), `keydown <vk>` / `keyup <vk>`, `dclick x y` (`rdclick`
+  for the right button) — one edge of a button or key, or a double click (down, up, `WM_LBUTTONDBLCLK`, up), posted now. They are the same as at an
   `at` line (below) and are for a game with no update counter (Mahjong Escape): a `wait` between the edges makes a held
   press, and moves in between make a drag. A held key changes no key state the game reads with `GetKeyState` or
   `GetAsyncKeyState` (Ctrl+C as `keydown 17`, `key 67`, `keyup 17` works only in a game that reads its messages).

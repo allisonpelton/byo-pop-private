@@ -1552,12 +1552,17 @@ static int post_edge(HWND hw, const char* cmd, const char* rest)
 		else { gButtonsHeld&=~bit; PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,gButtonsHeld,lp); }
 		return 1;
 	}
-	if (ieq(cmd,"dclick")){   // a double click of the left button, the messages Windows sends a window whose class asks for double clicks
-		int x,y; if(sscanf(rest,"%d %d",&x,&y)!=2) return 1;
+	if (ieq(cmd,"dclick")||ieq(cmd,"rdclick")){   // a double click (rdclick: of the right button), the messages Windows sends a window whose class asks for double clicks
+		int r=cmd[0]=='r'||cmd[0]=='R', x,y; if(sscanf(rest,"%d %d",&x,&y)!=2) return 1;
+		WPARAM bit=r?MK_RBUTTON:MK_LBUTTON; UINT dn=r?WM_RBUTTONDOWN:WM_LBUTTONDOWN, up=r?WM_RBUTTONUP:WM_LBUTTONUP, dbl=r?WM_RBUTTONDBLCLK:WM_LBUTTONDBLCLK;
 		POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y); cursor_note(hw,x,y);
 		PostMessageA(t,WM_MOUSEMOVE,gButtonsHeld,lp);
-		PostMessageA(t,WM_LBUTTONDOWN,gButtonsHeld|MK_LBUTTON,lp); PostMessageA(t,WM_LBUTTONUP,gButtonsHeld,lp);
-		PostMessageA(t,WM_LBUTTONDBLCLK,gButtonsHeld|MK_LBUTTON,lp); PostMessageA(t,WM_LBUTTONUP,gButtonsHeld,lp);
+		PostMessageA(t,dn,gButtonsHeld|bit,lp); PostMessageA(t,up,gButtonsHeld,lp);
+		PostMessageA(t,dbl,gButtonsHeld|bit,lp); PostMessageA(t,up,gButtonsHeld,lp);
+		return 1;
+	}
+	if (ieq(cmd,"char")){   // one WM_CHAR of the code given (decimal or 0x..), for a control character a script line cannot hold: Ctrl+Z is 0x1a, which ends a file read in text mode (Mahjong Escape, 2026-11-09)
+		int c; if (sscanf(rest,"%i",&c)==1) PostMessageA(hw,WM_CHAR,(WPARAM)(c&0xFF),1);
 		return 1;
 	}
 	return 0;
