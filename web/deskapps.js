@@ -99,6 +99,7 @@ var ByopopApps = (function () {
     document.body.appendChild(d);
     function done() { try { d.close(); } catch (e) {} if (d.parentNode) d.parentNode.removeChild(d); }
     ok.addEventListener("click", done);
+    d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(); } });
     d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(); });
     d.showModal();
     ok.focus();

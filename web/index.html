@@ -541,6 +541,7 @@ footer a { color: var(--accent); }
 <script src="other-games.js"></script>
 <script src="terms-games.js"></script>
 <script src="addgames.js"></script>
+<script src="library.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
 // (its sections: a row of tabs; in Desktop 95 the folder's icons each open the section's own window, below. The site's
@@ -1257,6 +1258,8 @@ try {
     function top() { return head ? head.offsetTop + head.offsetHeight + 4 : 12; }
     d.add(document.querySelector("main"), { id: "games", title: ByopopStrings.t("skin.desk.games"), closable: true, body: true,
       at: function (left) { return [left, top()]; } });
+    // the Library (web/library.js): the games as a grid, closed at first, its icon beside All games'
+    if (window.ByopopLibrary) ByopopLibrary.attach(d, function (left, vw) { return [Math.max(left, Math.min(left + 60, vw - 640)), top() + 40]; });
     ["settings", "players", "saves", "music"].forEach(function (id, i) {
       var tab = document.getElementById("tab-" + id), sec = document.getElementById(id);
       if (!tab || !sec) return;
@@ -1276,7 +1279,7 @@ try {
     // a game's window closed on its page: All games open and in front (web/shell.html, closeProgram)
     var want = null;
     try { want = sessionStorage.getItem("byopop-desk-open"); sessionStorage.removeItem("byopop-desk-open"); } catch (e) {}
-    if (want === "games") d.show("games");
+    if (want === "games") d.show(ByopopSkin.gamesWindow ? ByopopSkin.gamesWindow() : "games");
     var sec = /^#settings-([a-z]+)$/.exec(location.hash);
     if (sec && d.find("set-" + sec[1])) { d.show("tab-settings"); d.show("set-" + sec[1]); }
   })();

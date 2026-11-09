@@ -792,6 +792,12 @@ var ByopopSkin = (function () {
       }
       function fillSub() {
         sub.textContent = "";
+        // the games' window the setting "Games open in" names (All games or the Library, web/library.js): on the listing, first
+        var gw = document.getElementById("games-title") && find(gamesWindow());
+        if (gw) {
+          sub.appendChild(item(gw.el.getAttribute("data-d95-title") || gw.id, closeThen(function () { if (gw.min) setMin(gw, false); show(gw); })));
+          sub.appendChild(rule());
+        }
         var games = playable();
         if (!games.length) { var none = item(T("skin.pop.nogames"), null); none.setAttribute("aria-disabled", "true"); sub.appendChild(none); }
         var shown = games.filter(function (g) { return !win95Hides(g.id); });
@@ -833,6 +839,7 @@ var ByopopSkin = (function () {
           } }));
         }
         if (listing) {
+          win("library");
           settings("tab-settings"); win("tab-players"); win("tab-saves"); win("tab-music");
         } else {
           settings("panel-settings");
@@ -1316,6 +1323,8 @@ var ByopopSkin = (function () {
     var a = document.querySelector('a.tile[data-game="' + String(id).replace(/[^A-Za-z0-9_-]/g, "") + '"]'), li = a && a.closest("li");
     return (li && li.getAttribute("data-win95")) || "unknown";
   }
+  // which window the games' entries open (the setting "Games open in", Desktop 95 only): All games or the Library
+  function gamesWindow() { return readItem().gamesOpen === "library" ? "library" : "games"; }
   function win95On() { return root.getAttribute("data-skin") === "d95" && readItem().win95Only === "on"; }
   function win95Hides(id) { return win95On() && win95Of(id) !== "yes"; }
   function win95Sync() {
@@ -1455,5 +1464,5 @@ var ByopopSkin = (function () {
     });
   }
   document.addEventListener("selectstart", function (ev) { var t = ev.target; if (t && t.nodeType !== 1) t = t.parentNode; if (t && t.closest && t.closest(".stage") && !t.closest(".overlay")) ev.preventDefault(); }, true);
-  return { EMBED: EMBED, SITE: SITE, SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync, ambient: ambient };
+  return { gamesWindow: gamesWindow, EMBED: EMBED, SITE: SITE, SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync, ambient: ambient };
 })();

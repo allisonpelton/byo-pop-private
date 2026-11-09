@@ -901,3 +901,63 @@ html.d95-desk .d95-sys-doc { display: block; width: 12px; height: 14px; margin: 
   box-shadow: inset 0 0 0 1px #000000; clip-path: polygon(0 0, 70% 0, 100% 28%, 100% 100%, 0 100%); }
 html.d95-desk .d95-sys-doc::after { content: ""; position: absolute; left: 3px; right: 3px; top: 6px; height: 5px;
   background: repeating-linear-gradient(#000080 0 1px, transparent 1px 2px); }
+
+/* ---------- The Library (web/library.js): Desktop 95's grid of the games, in a 2004 game client's look of our own ----------
+   Olive and khaki, flat panels edged by 1-pixel bevels, small Tahoma, an amber-olive selection, square buttons and its own
+   title bar. It exists only on the listing's desktop. */
+#library { display: none; }
+html.d95-desk #library.lib-win:not(.d95-closed):not(.d95-min) { display: flex; }
+html.d95-desk .lib-win {
+  --lib-bg: #4c5844; --lib-panel: #3e4637; --lib-fg: #d8ded3; --lib-dim: #a0a890; --lib-hi: #8c9a7e; --lib-lo: #1f251b;
+  --lib-sel: #958831; --lib-sel-fg: #ffffff; --lib-head: #5a6a50; --lib-title: #6a7a52;
+  flex-direction: column; width: 640px; height: 430px; min-width: 300px; overflow: hidden;
+  color: var(--lib-fg); font: 11px/1.35 Tahoma, Verdana, "Segoe UI", sans-serif; }
+html.d95-desk .lib-win.d95-win:not(#\#) { background: var(--lib-bg); padding: 2px; border: 1px solid; border-image: none;
+  border-color: var(--lib-hi) var(--lib-lo) var(--lib-lo) var(--lib-hi); box-shadow: none; }
+html.d95-desk .lib-win.d95-win:not(#\#) > .d95-tb { background: var(--lib-title); color: #f4f2dc; height: 20px; font-weight: bold;
+  border-bottom: 1px solid var(--lib-lo); margin: 0 0 4px; }
+html.d95-desk .lib-win.d95-active:not(#\#) > .d95-tb { background: linear-gradient(var(--lib-title), #586843); }
+html.d95-desk .lib-win:not(.d95-active):not(#\#) > .d95-tb { color: var(--lib-dim); background: var(--lib-head); }
+/* its buttons: square, flat, a 1-pixel bevel */
+html.d95-desk .lib-win .d95-tb button:not(#\#), html.d95-desk .lib-win .lib-btn:not(#\#), html.d95-desk .lib-win .lib-hb:not(#\#) {
+  background: var(--lib-bg); color: var(--lib-fg); border: 1px solid; border-color: var(--lib-hi) var(--lib-lo) var(--lib-lo) var(--lib-hi);
+  border-radius: 0; box-shadow: none; font: inherit; }
+html.d95-desk .lib-win .d95-tb .d95-x:not(#\#) { color: var(--lib-fg); }
+html.d95-desk .lib-win .d95-tb .d95-mn:not(#\#)::after { background: var(--lib-fg); }
+html.d95-desk .lib-win .lib-btn:not(#\#):active:not(:disabled), html.d95-desk .lib-win .lib-hb:not(#\#):active { border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); }
+html.d95-desk .lib-win .lib-btn:disabled { color: var(--lib-dim); }
+html.d95-desk .lib-win button:focus-visible, html.d95-desk .lib-win input:focus-visible, html.d95-desk .lib-win td:focus-visible { outline: 1px dotted var(--lib-fg); outline-offset: -2px; }
+.lib-bar { display: flex; align-items: center; gap: 6px; padding: 2px 4px 6px; flex: none; }
+.lib-btn { min-width: 64px; height: 21px; padding: 0 10px; font-weight: bold; }
+.lib-flabel { margin-left: auto; color: var(--lib-dim); }
+.lib-filter { width: 160px; height: 19px; box-sizing: border-box; padding: 1px 4px; font: inherit; color: var(--lib-fg); background: var(--lib-panel);
+  border: 1px solid; border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); border-radius: 0; }
+.lib-area { flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--lib-panel); margin: 0 4px;
+  border: 1px solid; border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); scrollbar-color: var(--lib-hi) var(--lib-panel); }
+.lib-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.lib-grid th { position: sticky; top: 0; z-index: 1; padding: 0; text-align: left; font-weight: normal; background: var(--lib-bg); }
+.lib-hb { display: block; width: 100%; height: 18px; padding: 0 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.lib-h[aria-sort=ascending] .lib-hb::after { content: " \25B4"; color: var(--lib-sel); }
+.lib-h[aria-sort=descending] .lib-hb::after { content: " \25BE"; color: var(--lib-sel); }
+.lib-c-name { width: auto; }
+.lib-c-status { width: 120px; }
+.lib-c-time, .lib-c-last { width: 84px; }
+.lib-c-year { width: 46px; }
+.lib-grid td { padding: 1px 6px; height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.lib-name { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.lib-name > span { overflow: hidden; text-overflow: ellipsis; }
+.lib-row[aria-selected=true] > td { background: var(--lib-sel); color: var(--lib-sel-fg); }
+.lib-row.lib-s-soon > td:not(:first-child), .lib-row.lib-s-unsold > td:not(:first-child) { color: var(--lib-dim); }
+.lib-row[aria-selected=true].lib-s-soon > td, .lib-row[aria-selected=true].lib-s-unsold > td { color: var(--lib-sel-fg); }
+.lib-icon { flex: none; width: 16px; height: 16px; display: grid; place-items: center; overflow: hidden; }
+.lib-icon img { width: 16px; height: 16px; image-rendering: pixelated; }
+.lib-icon-cap { background: var(--tile, #808080); color: #ffffff; font: bold 7px/1 Verdana, sans-serif; letter-spacing: -0.5px; }
+.lib-status { flex: none; display: flex; padding: 3px 6px 1px; color: var(--lib-dim); }
+/* Properties: a property sheet of values */
+.lib-props-list { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 14px; }
+.lib-props-list dt { color: #404040; }
+.lib-props-list dd { margin: 0; }
+.lib-props-row { display: flex; justify-content: flex-end; padding: 0 12px 10px; }
+.lib-props-row button { min-width: 72px; }
+/* narrow: the window maximized, as every window there; Last played and Year give way */
+html.d95-narrow .lib-c-last, html.d95-narrow .lib-c-year { display: none; }
