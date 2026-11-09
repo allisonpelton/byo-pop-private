@@ -174,7 +174,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   and key events only: through the page in the Browser pane (`?silent=1`, requestAnimationFrame shimmed while hidden)
   and through the window natively under rundesk (posted input, as visrun does), from launch through the tutorial and a
   whole game of every mode, in 2D and 3D where both exist, windowed and in full screen. Twist passed every comparison
-  and still could not twist a gem in the browser (the user, 2026-11-05). Sessions never play a game themselves (the
+  and still could not twist a gem in the browser (the user, 2026-11-05). The page itself takes the shared page check,
+  `tools/web/pagecheck.js` with a table of the game's own (focus against the native build, the keys the page keeps from
+  the browser, the pointer at other sizes, a second copy, a reload mid-game; `docs/WEB_PLAYER.md`, "The page check").
+  Sessions never play a game themselves (the
   user, 2026-11-07: "the sessions are not allowed to play any games themselves"; "Yes, use drivers"): code plays, a
   driver script that reads the game's state from its log, chooses the moves (a solver or bot where the game has one)
   and sends them as those real events, a minigame or a whole game in a call or two. The session writes the driver and
