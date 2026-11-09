@@ -772,6 +772,8 @@ var ByopopSkin = (function () {
           } }));
         }
         if (listing) {
+          // the Setup window (web/setup.js), for adding games
+          win("setup", T("setup.pop"));
           win("library");
           settings("tab-settings"); win("tab-music"); win("sounds"); win("chat");
         } else {
@@ -1259,6 +1261,8 @@ var ByopopSkin = (function () {
              },
              // a window as the Pop menu opens it
              openWin: function (id) { var w = find(id); if (!w || !on) return; if (w.min) setMin(w, false); if (w.open) { w.open(); raise(w); } else show(w); },
+             // a window closed as its Close button closes it (its onClose, or closed and its afterClose)
+             close: function (id) { var w = find(id); if (w && !w.closed) closeWin(w); },
              list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
              menu: function (from, entries, x, y, label, opts) { popMenu(from, entries, x, y, label, opts); },
              closeMenus: closeAllMenus,

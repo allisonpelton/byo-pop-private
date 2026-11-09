@@ -270,6 +270,27 @@ var ByopopAddGames = (function () {
     });
   }
 
+  // The files chosen in a file input (folders, or .zip files where a folder cannot be picked) as the entries a drop gives: each .zip
+  // as a folder named after it, as when it is dropped. Null when nothing was chosen.
+  function fromInput(fileList) {
+    var chosen = Array.prototype.slice.call(fileList || []);
+    var zips = chosen.filter(function (f) { return /\.zip$/i.test(f.name) && !f.webkitRelativePath; });
+    var files = W().zip.fromInput(chosen.filter(function (f) { return zips.indexOf(f) < 0; }));
+    if (!files.length && !zips.length) return null;
+    return zips.reduce(function (p, z) {
+      return p.then(function (out) {
+        return W().zip.fromFile(z).then(function (inner) {
+          var base = z.name.replace(/\.zip$/i, "");
+          return out.concat(inner.map(function (e) { return { path: base + "/" + e.path, read: e.read }; }));
+        });
+      });
+    }, Promise.resolve(files));
+  }
+  // The Setup window (web/setup.js) takes the folders added from the button, the logo and the desktop while the desktop is on;
+  // a drop on a game's card stays that game's (onCardDrop), and on a screen with no desktop the panel above does all of it
+  function setup() { try { return window.ByopopSetup && ByopopSetup.ready() ? ByopopSetup : null; } catch (e) { return null; } }
+  function fromDropOrSetup(promise) { var s = setup(); if (s) s.openWith(promise); else fromFiles(promise); }
+
   function init() {
     panel = $("adding");
     if (!panel || !W()) return;
@@ -285,36 +306,35 @@ var ByopopAddGames = (function () {
     closeBtn = $("adding-close");
     closeBtn.addEventListener("click", function () { panel.hidden = true; if (!running) clearPanel(); $("add-games").focus(); });
     $("add-games").hidden = false;
-    $("add-games").addEventListener("click", function () { $("add-games-pick").click(); });
+    $("add-games").addEventListener("click", function () { var s = setup(); if (s) s.open(); else $("add-games-pick").click(); });
     // Where a folder cannot be picked (phones: a touch screen and no mouse), "Add games" picks files, .zip files of game folders
     var pick = $("add-games-pick");
     try { if (window.matchMedia("(pointer: coarse) and (not (any-pointer: fine))").matches) { pick.removeAttribute("webkitdirectory"); pick.accept = ".zip,application/zip"; } }
     catch (e) {}
     pick.addEventListener("change", function (ev) {
-      var chosen = Array.prototype.slice.call(ev.target.files || []);
-      var zips = chosen.filter(function (f) { return /\.zip$/i.test(f.name) && !f.webkitRelativePath; });
-      var files = W().zip.fromInput(chosen.filter(function (f) { return zips.indexOf(f) < 0; }));
+      var read = fromInput(ev.target.files);
       ev.target.value = "";
-      if (!files.length && !zips.length) return;
-      // each .zip as a folder named after it, as when it is dropped
-      fromFiles(zips.reduce(function (p, z) {
-        return p.then(function (out) {
-          return W().zip.fromFile(z).then(function (inner) {
-            var base = z.name.replace(/\.zip$/i, "");
-            return out.concat(inner.map(function (e) { return { path: base + "/" + e.path, read: e.read }; }));
-          });
-        });
-      }, Promise.resolve(files)));
+      if (read) fromFiles(read);
     });
     Array.prototype.forEach.call(document.querySelectorAll("a.tile[data-game]"), function (a) {
       var game = byId[a.getAttribute("data-game")];
       if (game) dropTarget(a.parentNode, function (p) { onCardDrop(game, p); });
     });
     var logo = $("logo-drop");
-    if (logo) dropTarget(logo, fromFiles);
-    // a drop anywhere else does nothing, rather than the browser opening the file in place of the page
-    document.addEventListener("dragover", function (ev) { if (ByopopImport.hasFiles(ev.dataTransfer)) ev.preventDefault(); });
-    document.addEventListener("drop", function (ev) { if (ByopopImport.hasFiles(ev.dataTransfer)) ev.preventDefault(); });
+    if (logo) dropTarget(logo, fromDropOrSetup);
+    // a drop anywhere else on the desktop opens the Setup window with it (a game's window is a page of its own, which takes its
+    // own drops); with no desktop it does nothing, rather than the browser opening the file in place of the page
+    document.addEventListener("dragover", function (ev) {
+      if (!ByopopImport.hasFiles(ev.dataTransfer)) return;
+      ev.preventDefault();
+      if (setup()) ev.dataTransfer.dropEffect = "copy";
+    });
+    document.addEventListener("drop", function (ev) {
+      if (!ByopopImport.hasFiles(ev.dataTransfer)) return;
+      ev.preventDefault();
+      var s = setup();
+      if (s) s.openWith(ByopopImport.fromDrop(ev.dataTransfer, W().zip));
+    });
     initBin();
   }
 
@@ -406,5 +426,13 @@ var ByopopAddGames = (function () {
       if (g) show(g);
     });
   }
-  return { init: init, fromFiles: fromFiles, onCardDrop: onCardDrop };
+  // for the Setup window (web/setup.js): the same queue (each game's terms, then its files, one game at a time), the same reading
+  // of a file input's choice, and the cancelling of its jobs not yet begun
+  function cancel(pred) {
+    var kept = [];
+    queue.forEach(function (job) { if (pred(job)) { if (job.cancelled) job.cancelled(); } else kept.push(job); });
+    queue = kept;
+  }
+  return { init: init, fromFiles: fromFiles, onCardDrop: onCardDrop, enqueue: enqueue, fromInput: fromInput, cancel: cancel,
+    W: W, byTarget: function (t) { return byTarget[t] || null; } };
 })();

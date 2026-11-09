@@ -526,6 +526,8 @@ footer a { color: var(--accent); }
 <script src="other-games.js"></script>
 <script src="terms-games.js"></script>
 <script src="addgames.js"></script>
+<!-- the Setup window: Desktop 95's wizard for adding many games at once, a new face on addgames.js's import -->
+<script src="setup.js"></script>
 <script src="library.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
@@ -1223,6 +1225,8 @@ try {
     });
     // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
     if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
+    // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
+    if (window.ByopopSetup) ByopopSetup.attach(d, function (left, vw) { return [Math.max(left, Math.round((vw - 560) / 2)), top() + 40]; });
     // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>
     if (siteSettingsView) siteSettingsView.sections.forEach(function (r, i) {
       d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,

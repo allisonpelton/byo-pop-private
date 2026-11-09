@@ -616,6 +616,10 @@ There are three ways in, all in `web/addgames.js`:
 - **"Add games".** The button beside "Sort by" opens a folder picker (one folder: a game's, or the folder that holds many, such
   as "PopCap Games"), sorted the same way. It is the way in for the keyboard and for browsers without drag and drop.
 
+On the listing's desktop the logo, "Add games", Add Games in the Pop menu and a drop anywhere on the desktop outside a game's
+window all go to the Setup window instead (below), which sorts and copies through this same queue; a drop on a game's card stays
+that card's. The panel described here is what a screen without the desktop uses.
+
 Sorting (`ByopopImport.sort` in `web/gameimport.js`) goes by the files first and the name second, as the files say more surely
 which game a folder is than its name does. A folder is a game's when it holds every one of the game's markers (the files its page
 looks for); a folder that holds several games in different places (the "PopCap Games" folder) is looked into, three levels deep
@@ -652,6 +656,34 @@ record of its files is kept as the game page keeps it after an import (`ByopopGa
 asked to keep the site's storage, and the cards are checked again. `tools/gameimporttest.js` (in `unit-web`) checks the rules and
 the sorting under Node with every finished game's `page.js` (a page.js that fails there is a failure, and a change to one picks
 `unit-web` in `tools/check.sh`'s merge mode).
+
+### The Setup window
+
+The user, 2026-11-09: "I did still like the fake installer skin idea though, so add an installer window where files can be
+dropped in bulk." `web/setup.js` is a window of the listing's desktop, "byo-pop Setup", a wizard over `web/addgames.js`'s
+sorting and copying: it adds no rule of its own for what a game is or what is copied. The art column at its left is byo-pop's
+mark over a box going into a grey case, drawn in CSS; the window parodies an installer without naming or drawing any real one
+(no vendor's name, logo, icon or sound, and nothing that looks like a system prompt), and its text is only where the player acts.
+
+Its pages, with Back, Next and Cancel under them:
+
+- **Your games**: a drop target for game folders, .zip files or a folder of many games, and Browse (the same folder picker, or
+  .zip files where no folder can be picked). Each folder found is a row with its game's tile badge, its name and "Ready", "Already
+  here" or "Not a supported game"; where the name cannot tell two games apart the row asks which, and Next waits for it.
+- **Licence: <game>**: one page for each game found that is not here yet and whose terms are not agreed, in the order found,
+  showing that game's terms card (`ByopopTerms`) with its checkbox; Next agrees, "Don't add this game" skips the game. Each game
+  has its own terms, so these come after the games are known, and a game agreed to before (or any game on a development host,
+  where the terms skip themselves; `?terms=1` shows them) has no page.
+- **Copying**: an overall bar and a row per game with its state, the games copied one at a time by addgames.js's queue. Cancel
+  here lets the game being copied finish and drops the ones not begun.
+- **Finish**: a row per folder: Installed, Already here, Not a supported game, Skipped, or "Error <code>" with its reason in the
+  tooltip (1: the drop could not be read; 2: the files could not be copied, such as a game whose page is open). One live line
+  reads "Installed N of M".
+
+Add Games in the Pop menu and the Add games button open it at Your games. A drop of folders or .zip files on the logo, or on the
+desktop outside a game's window, opens it with them, and it goes straight on to Copying when no game needs a choice or a licence. A drop
+on a game's card keeps the single-game import above. Closing it after Finish leaves it empty for the next time.
+`tools/setuptest.js` (in `unit-web`) checks the order of the pages for the games found and Finish's rows and counts.
 
 ### Games this site does not play
 
