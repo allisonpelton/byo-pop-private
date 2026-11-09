@@ -44,6 +44,7 @@ T* Node_Prev(T* theNode)
 
 // 0x41c130 and the like
 template <class T>
+// 0x41c130
 void List_Init(List<T>* theList)
 {
 	theList->current = nullptr;
@@ -53,6 +54,7 @@ void List_Init(List<T>* theList)
 
 // 0x420ff0 and the like: a new node at the tail, made current
 template <class T>
+// 0x410810 (the level's key map is one of its instances)
 T* List_Append(List<T>* theList, T* theNode)
 {
 	if (theList->current == nullptr)
@@ -89,6 +91,9 @@ void List_DeleteNode(T* theNode)
 // 0x4010a0 and the like: deletes the current node; the one after it (else before it) becomes current. False when
 // the list is empty.
 template <class T>
+// 0x401000, 0x4010a0, 0x4011a0, 0x401220, 0x411030, 0x411150 and 0x412540 are instances of it: for nodes freed without a
+// destructor (gLevelSets and others), gAnims, gLevels, gFonts, the level's power-ups, the nodes that end in the Obj destructor
+// 0x419c00, and its shooters
 bool List_RemoveCurrent(List<T>* theList)
 {
 	T* aNode = theList->current;
@@ -133,6 +138,7 @@ bool List_RemoveCurrent(List<T>* theList)
 
 // 0x40b260: List_RemoveCurrent for nodes the list does not own (the particle pools): unlinks without deleting
 template <class T>
+// 0x40b260
 bool List_Unlink(List<T>* theList)
 {
 	T* aNode = theList->current;
@@ -199,6 +205,7 @@ T* List_InsertBefore(List<T>* theList, T* theNode)
 
 // 0x4109b0: the next node made current; at the end the head is, and the result is false
 template <class T>
+// 0x4109b0
 bool List_Next(List<T>* theList)
 {
 	T* aNode = theList->current;
@@ -216,6 +223,7 @@ bool List_Next(List<T>* theList)
 
 // 0x4107e0: the number of nodes (the walk leaves the head current)
 template <class T>
+// 0x4107e0
 int List_Count(List<T>* theList)
 {
 	T* aHead = theList->head;
@@ -337,7 +345,8 @@ void SwapColours(Image* theImage, const char* theSwap);                    // 0x
 double CircleOverlap(float x1, float y1, float r1, float x2, float y2, float r2); // 0x420c60
 int BoxOverlap(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2); // 0x420cb0
 void RotateImage(Image* theImage, int theAngle);                           // 0x420da0
-// 0x429240: the original appends to log.txt
+// 0x429240: the original sends the text to the debugger (OutputDebugStringA); its log.txt append is another function, which
+// only a C runtime function calls. The port keeps neither
 void Log(const char* theFormat, ...);
 
 // Globals

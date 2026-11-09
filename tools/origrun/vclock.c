@@ -48,6 +48,7 @@
 
 static int        gOn;              // the virtual clock is on
 static int        gCursorOn;        // the scripted cursor is on (cursor.c)
+static int        gKeysOn;          // the scripted keys are on (cursor.c)
 static int        gMsgboxOn;        // the message-box hook is on (msgbox.c)
 static VcShared*  gSh;
 static HANDLE     gMap, gHeldEv, gRelEv, gHostProc;
@@ -453,6 +454,9 @@ BOOL WINAPI cursor_GetCursorPos(LPPOINT p);   // cursor.c
 int  cursor_open(void);
 void cursor_installed(void);
 void cursor_stats(LONG* reads, LONG* real);
+SHORT WINAPI keys_GetKeyState(int vk);   // cursor.c
+void keys_installed(void);
+void keys_stats(LONG* reads, LONG* real);
 int WINAPI mbx_MessageBoxA(HWND, LPCSTR, LPCSTR, UINT);   // msgbox.c
 int WINAPI mbx_MessageBoxW(HWND, LPCWSTR, LPCWSTR, UINT);
 int WINAPI mbx_MessageBoxExA(HWND, LPCSTR, LPCSTR, UINT, WORD);
@@ -467,10 +471,10 @@ void msgbox_installed(void);
 void msgbox_patched(void);
 void msgbox_stats(LONG* boxes, LONG* beeps);
 
-// Each hook belongs to the virtual clock (H_CLOCK), the scripted cursor (H_CURSOR) or the message-box hook (H_MSGBOX);
-// only the ones that are on are patched.
-enum { H_CLOCK, H_CURSOR, H_MSGBOX };
-static const char* const kGrpName[] = { "the virtual clock", "the scripted cursor", "the message-box hook" };
+// Each hook belongs to the virtual clock (H_CLOCK), the scripted cursor (H_CURSOR), the message-box hook (H_MSGBOX) or the
+// scripted keys (H_KEYS); only the ones that are on are patched.
+enum { H_CLOCK, H_CURSOR, H_MSGBOX, H_KEYS, H_GROUPS };
+static const char* const kGrpName[] = { "the virtual clock", "the scripted cursor", "the message-box hook", "the scripted keys" };
 typedef struct { const char* dll; const char* name; void* hook; int grp; void* real; LONG patched; } HookDef;
 static HookDef gHooks[] = {
 	{ "winmm.dll",    "timeGetTime",                    (void*)H_timeGetTime,                    H_CLOCK },
@@ -492,6 +496,7 @@ static HookDef gHooks[] = {
 	{ "user32.dll",   "MsgWaitForMultipleObjects",      (void*)H_MsgWaitForMultipleObjects,      H_CLOCK },
 	{ "user32.dll",   "MsgWaitForMultipleObjectsEx",    (void*)H_MsgWaitForMultipleObjectsEx,    H_CLOCK },
 	{ "user32.dll",   "GetCursorPos",                   (void*)cursor_GetCursorPos,              H_CURSOR },
+	{ "user32.dll",   "GetKeyState",                    (void*)keys_GetKeyState,                 H_KEYS },
 	{ "user32.dll",   "MessageBoxA",                    (void*)mbx_MessageBoxA,                  H_MSGBOX },
 	{ "user32.dll",   "MessageBoxW",                    (void*)mbx_MessageBoxW,                  H_MSGBOX },
 	{ "user32.dll",   "MessageBoxExA",                  (void*)mbx_MessageBoxExA,                H_MSGBOX },
@@ -503,7 +508,7 @@ static HookDef gHooks[] = {
 	{ "user32.dll",   "MessageBeep",                    (void*)mbx_MessageBeep,                  H_MSGBOX },
 };
 #define NHOOK ((int)(sizeof(gHooks) / sizeof(gHooks[0])))
-static int hook_on(int k) { int g = gHooks[k].grp; return g == H_CLOCK ? gOn : g == H_CURSOR ? gCursorOn : gMsgboxOn; }
+static int hook_on(int k) { int g = gHooks[k].grp; return g == H_CLOCK ? gOn : g == H_CURSOR ? gCursorOn : g == H_KEYS ? gKeysOn : gMsgboxOn; }
 
 // The functions a game may import that the clock cannot stand in for; logged when a module imports them.
 static const char* const kUncovered[] = { "timeSetEvent", "SetTimer", "CreateWaitableTimerA", "CreateWaitableTimerW",
@@ -592,8 +597,8 @@ static void patch_new_modules(void)
 		if (seen || !module_is_games(mods[i], leaf, MAX_PATH)) continue;
 		if (gPatchedN < 64) gPatched[gPatchedN++] = mods[i];
 		int n = patch_module(mods[i], leaf);
-		char grps[128] = ""; int on[3] = { gOn, gCursorOn, gMsgboxOn };
-		for (int g = 0; g < 3; g++) if (on[g]) { if (grps[0]) lstrcatA(grps, ", "); lstrcatA(grps, kGrpName[g]); }
+		char grps[160] = ""; int on[H_GROUPS] = { gOn, gCursorOn, gMsgboxOn, gKeysOn };
+		for (int g = 0; g < H_GROUPS; g++) if (on[g]) { if (grps[0]) lstrcatA(grps, ", "); lstrcatA(grps, kGrpName[g]); }
 		clog("%s: %d import%s on %s", leaf, n, n == 1 ? "" : "s", grps);
 	}
 }
@@ -713,22 +718,23 @@ static int clock_install(const char* exe)
 }
 
 // Called from the stand-in's DllMain on process attach: the virtual clock (ORIGRUN_CLOCK=virtual), the scripted cursor
-// (ORIGRUN_CURSOR=scripted) and the message-box hook (ORIGRUN_MSGBOX=hook), any of them. Nothing here loads a DLL that
+// (ORIGRUN_CURSOR=scripted), the scripted keys (ORIGRUN_KEYS=scripted) and the message-box hook (ORIGRUN_MSGBOX=hook), any of them. Nothing here loads a DLL that
 // is not loaded already (winmm and user32 are the stand-in's own imports), so it is safe under the loader lock.
 void vclock_install(HMODULE self)
 {
-	char mode[32] = "", cur[32] = "", mbx[32] = "";
+	char mode[32] = "", cur[32] = "", mbx[32] = "", kys[32] = "";
 	GetEnvironmentVariableA("ORIGRUN_CLOCK", mode, sizeof(mode));
 	GetEnvironmentVariableA("ORIGRUN_CURSOR", cur, sizeof(cur));
 	GetEnvironmentVariableA("ORIGRUN_MSGBOX", mbx, sizeof(mbx));
-	int clock = !lstrcmpiA(mode, "virtual"), cursor = !lstrcmpiA(cur, "scripted"), msgbox = !lstrcmpiA(mbx, "hook");
-	if (!clock && !cursor && !msgbox) return;
+	GetEnvironmentVariableA("ORIGRUN_KEYS", kys, sizeof(kys));
+	int clock = !lstrcmpiA(mode, "virtual"), cursor = !lstrcmpiA(cur, "scripted"), msgbox = !lstrcmpiA(mbx, "hook"), keys = !lstrcmpiA(kys, "scripted");
+	if (!clock && !cursor && !msgbox && !keys) return;
 	gSelf = self;
 	char dir[MAX_PATH] = "", path[MAX_PATH];
 	DWORD dn = GetEnvironmentVariableA("ORIGRUN_DIR", dir, sizeof(dir));
 	if (dn && dn < sizeof(dir)) {   // the clock's log; cursor.log when the cursor is on without it; else msgbox.log
 		wsprintfA(path, "%s\\logs", dir); CreateDirectoryA(path, NULL);
-		wsprintfA(path, "%s\\logs\\%s.log", dir, clock ? "clock" : cursor ? "cursor" : "msgbox"); gClog = fopen(path, "a");
+		wsprintfA(path, "%s\\logs\\%s.log", dir, clock ? "clock" : cursor || keys ? "cursor" : "msgbox"); gClog = fopen(path, "a");
 	}
 	DWORD pid = GetCurrentProcessId();
 	char exe[MAX_PATH]; GetModuleFileNameA(NULL, exe, MAX_PATH);
@@ -740,16 +746,20 @@ void vclock_install(HMODULE self)
 		clog("pid %lu: the stand-in could not be pinned (err %lu): no virtual clock, no scripted cursor, no message-box hook", pid, GetLastError());
 		return;
 	}
-	if (cursor) {
-		if (cursor_open()) { gCursorOn = 1; clog("pid %lu %s: scripted cursor installed: GetCursorPos returns origrun's last posted mouse position", pid, exe); }
-		else clog("pid %lu: no block from origrun, or another version (err %lu): no scripted cursor", pid, GetLastError());
+	if (cursor || keys) {   // one block for both (cursor.h)
+		if (cursor_open()) {
+			gCursorOn = cursor; gKeysOn = keys;
+			if (cursor) clog("pid %lu %s: scripted cursor installed: GetCursorPos returns origrun's last posted mouse position", pid, exe);
+			if (keys) clog("pid %lu %s: scripted keys installed: GetKeyState returns the key and button state origrun's posted edges left", pid, exe);
+		}
+		else clog("pid %lu: no block from origrun, or another version (err %lu): no scripted cursor or keys", pid, GetLastError());
 	}
 	if (msgbox) {
 		if (msgbox_open()) { gMsgboxOn = 1; clog("pid %lu %s: message-box hook installed: MessageBox* answers with no window, MessageBeep with no sound", pid, exe); }
 		else clog("pid %lu: no message-box block from origrun, or another version (err %lu): boxes are shown", pid, GetLastError());
 	}
 	int clockOk = clock && clock_install(exe);
-	if (!clockOk && !gCursorOn && !gMsgboxOn) return;
+	if (!clockOk && !gCursorOn && !gMsgboxOn && !gKeysOn) return;
 
 	for (int k = 0; k < NHOOK; k++) {
 		HMODULE m = GetModuleHandleA(gHooks[k].dll);
@@ -760,6 +770,7 @@ void vclock_install(HMODULE self)
 	patch_new_modules();
 	InterlockedExchange(&gScanBusy, 0);
 	if (gCursorOn) cursor_installed();
+	if (gKeysOn) keys_installed();
 	if (gMsgboxOn) msgbox_installed();
 	if (gOn) {
 		VcShared* s = gSh;
@@ -773,7 +784,12 @@ void vclock_install(HMODULE self)
 // Called on process detach: the totals.
 void vclock_detach(void)
 {
-	if (!gOn && !gCursorOn && !gMsgboxOn) return;
+	if (!gOn && !gCursorOn && !gMsgboxOn && !gKeysOn) return;
+	if (gKeysOn) {
+		LONG reads, real; keys_stats(&reads, &real);
+		clog("pid %lu exits: GetKeyState answered %ld time%s with origrun's key state, %ld passed to Windows (before origrun's first key or button edge)",
+			GetCurrentProcessId(), (long)reads, reads == 1 ? "" : "s", (long)real);
+	}
 	if (gCursorOn) {
 		LONG reads, real; cursor_stats(&reads, &real);
 		clog("pid %lu exits: GetCursorPos answered %ld time%s with origrun's mouse position, %ld passed to Windows (before origrun's first mouse input)",

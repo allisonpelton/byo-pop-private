@@ -39,10 +39,61 @@ skin.desk.icons = Desktop
 skin.desk.open = Open {window}
 skin.desk.close = Close {window}
 skin.desk.minimize = Minimize {window}
+# Desktop 95 in one page (web/deskapps.js): a game window's menu, its Close, the message box when too many games are open, a text
+# that could not be read
+library.title = Library
+library.play = Play
+library.filter = Filter
+library.col.name = Name
+library.col.status = Status
+library.col.time = Play time
+library.col.last = Last played
+library.col.year = Year
+library.status.ready = Ready
+library.status.files = Needs your files
+library.status.soon = Coming soon
+library.status.unsold = No longer sold
+library.count = {n} game | {n} games
+library.sorted = Sorted by {col}, {dir}
+library.asc = ascending
+library.desc = descending
+library.menu.play = Play
+library.menu.files = Add files
+library.menu.fav_add = Add to favourites
+library.menu.fav_remove = Remove from favourites
+library.menu.props = Properties
+library.props.title = {game} Properties
+library.props.released = Released
+library.props.plays = Plays
+library.props.win95 = Windows 95
+library.props.yes = Yes
+library.props.no = No
+library.ok = OK
+settings.gamesopen.label = Games open in
+settings.gamesopen.hint = In Desktop 95, the window that the Pop menu's Games and a closed game open.
+skin.apps.game_menu = Game
+skin.apps.terms = Terms, copyright and licenses
+skin.apps.close = Close
+skin.apps.ok = OK
+skin.apps.limit_title = Too many games
+skin.apps.limit = {n} games are open. Close one first.
+skin.apps.limit_one = A game is open. Close it first.
+skin.apps.unreadable = This file could not be read.
+skin.apps.view_menu = View
+skin.apps.options_menu = Options
+skin.apps.help_menu = Help
+skin.apps.about = About {game}
+skin.apps.empty = (Empty)
+skin.apps.fit = Fit window
+skin.apps.scale = {n}x
+skin.apps.scan_off = No scanlines
+skin.apps.scan_light = Light scanlines
+skin.apps.scan_strong = Strong scanlines
+skin.apps.filter_none = No colour filter
 # the title bar's "?" of a Settings section's window (Windows 95's What's This?)
 skin.desk.whatsthis = What’s This? ({window})
 skin.desk.maximize = Maximize {window}
-# A window's control menu (its title bar's icon, or Alt+Space): the button's name, then its entries
+# A window's control menu (its title bar's icon): the button's name, then its entries
 skin.desk.menu = Control menu: {window}
 skin.desk.m.minimize = Minimize
 skin.desk.m.maximize = Maximize
@@ -206,13 +257,9 @@ index.bin.no = Cancel
 index.fav.name = Favourite: {game}
 index.fav.on = Remove from favourites
 index.fav.off = Add to favourites
-index.tabs.label = Players, saves, music and settings
-index.tabs.players = Players
-index.tabs.saves = Saves
+index.tabs.label = Settings and music
 index.tabs.music = Music
 index.tabs.settings = Settings
-index.players.heading = Players
-index.saves.heading = Saves
 index.music.heading = Music
 index.settings.heading = Settings
 index.players.unavailable = The players are not available.
@@ -258,8 +305,8 @@ index.footer.about = byo-pop is an unofficial, non-commercial project, not affil
 index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Money, Alchemy and Dynomite! are
   registered trademarks of Electronic Arts Inc. in the United States.
 index.footer.music_html = The Music player plays the music from the game files you added, in this browser, with
-  <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden"> (opens in a new tab)</span></a> and
-  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden"> (opens in a new tab)</span></a>.
+  <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
+  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)
@@ -371,7 +418,6 @@ game.status.closing = Closing the game…
 game.status.restarting = Restarting…
 game.status.closed = Game closed
 # Desktop 95's game window's title after the game's name ("Bejeweled - 2 mods"): the mods that run
-game.title.mods = {n} mod | {n} mods
 # Desktop 95: the theme button's line in Settings' Appearance
 game.theme.label = Light or dark page
 game.status.mods_off = Mods off for this run
@@ -491,7 +537,8 @@ settings.about_live = Site-wide settings. {default} to use per-game settings.
 # The settings' sections: the name of their row of tabs (and of Desktop 95's folder of their icons), each section's name, and
 # the name of a section's icon in the folder ({name}: the section's)
 settings.sections = Sections
-settings.section.players = Player names
+settings.section.players = Players
+settings.section.saves = Saves
 settings.section.sound = Sound
 settings.section.look = Appearance
 settings.section.overlays = On screen
@@ -611,8 +658,8 @@ size.mb = {value} MB
 
 # ---- Saves: backup and restore (web/saves.js)
 
-saves.about = Stored in this browser only.
-saves.kept = The browser may clear them when the drive is low: back them up.
+saves.about = Stored in: this browser
+saves.kept = The browser may clear the saves when the drive is low.
 saves.list.title = In the browser
 # One game in the list: {title} then this, where {parts} is its save files and replays, {backup} the next string or nothing
 saves.list.rest = : {parts}{backup}.
@@ -939,7 +986,6 @@ players.flags = — {flags}
 # What the Player names setting is across the games. {n} games, or all of them; {verb} for a setting this page does not know
 players.mode.games = Player names: each game’s own.
 players.mode.note = Player names: {parts}.
-players.mode.link = Player names in Settings
 players.mode.game_all = all {n} games asks as the original does | all {n} games ask as the original does
 players.mode.game_some = {n} game asks as the original does | {n} games ask as the original does
 players.mode.fill_all = all {n} games fills in the name | all {n} games fill in the name
@@ -1195,6 +1241,25 @@ music.lcd_none = No music
 music.lcd_error = Error
 music.loop = Repeat
 music.volume = Volume
+# The splitter under the Music player (a separator): its name, as a tooltip and for screen readers, and its value, the rows the
+# display shows
+music.split = Display height
+music.split_rows = {n} rows
 music.tune_part = {file}, part {n}
 music.duration = {min}:{sec}
 music.album = Games on this site
+
+# The soundboard (web/sounds.js): Desktop 95's Sounds window; the buttons' names are in web/soundboards.js
+sounds.title = Sounds
+sounds.game = Game
+sounds.stop = Stop
+sounds.mute = Mute
+sounds.volume = Volume
+sounds.count = {n} sound | {n} sounds
+sounds.st_reading = Reading…
+sounds.reading = Reading the games' sounds…
+sounds.st_none = No sounds
+sounds.none = None of the games you added has sounds the board can play yet.
+sounds.st_error = Error
+sounds.failed = The sounds could not be read.
+sounds.bad_file = This file could not be played.

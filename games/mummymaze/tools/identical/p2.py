@@ -48,7 +48,7 @@ def make(scn, name, outdir):
             x, y = a.split()
             port.append((u, '%s %s %s' % (c, x, y)))
             orig.append((u + OFFSET - 1, 'move %s %s' % (x, y)))
-            orig.append((u + OFFSET, c))
+            orig.append((u + OFFSET, '%s %s %s' % (c, x, y)))   # with the point: a bare down or up posts at (0, 0)
         elif c == 'key':
             port.append((u, 'keydown %s' % a))
             port.append((u + 1, 'keyup %s' % a))

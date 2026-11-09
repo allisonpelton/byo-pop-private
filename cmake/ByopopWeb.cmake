@@ -55,8 +55,9 @@ set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settingsicons.js
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
-# game's page.js, which byopop_web_index() writes), copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js)
+# game's page.js, which byopop_web_index() writes), and Desktop 95's soundboard (web/sounds.js, with its table web/soundboards.js),
+# copied next to index.html only
+set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js sounds.js soundboards.js deskapps.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -1058,7 +1059,10 @@ function(byopop_web_index)
           byopop_web_string(buy_text store.buy_on store "${store}")
           byopop_web_string(buy_label store.buy_label store "${store}" title "${title}")
         endif()
-        string(APPEND buy_html "<a href=\"${url}\" rel=\"noopener\" aria-label=\"${buy_label}\">${buy_text}</a>")
+        # every store link opens in a new tab, as a plain link a popup blocker leaves alone (the user, 2026-11-09: "The buy links
+        # should always open in a new tab"), and its name says so
+        byopop_web_string(buy_new_tab site.new_tab)
+        string(APPEND buy_html "<a href=\"${url}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"${buy_label} ${buy_new_tab}\">${buy_text}</a>")
       endwhile()
       if(NOT buy_html STREQUAL "" AND soon)
         set(buy_html "<div class=\"buyrow\">${buy_html}</div>")
@@ -1099,7 +1103,7 @@ function(byopop_web_index)
     string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\" data-win95=\"${win95}\"${unsold_attr}>"
       "<a class=\"tile\" href=\"${target}.html\" data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}${label_attr}>"
       "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
-      "<span class=\"name\">${title}</span>${year_html}</a><div class=\"ownrow\"><span class=\"own\" aria-hidden=\"true\"></span></div>${buy_html}</li>")
+      "<span class=\"name\">${title}</span>${year_html}<span class=\"own\" aria-hidden=\"true\"></span></a><div class=\"ownrow\"></div>${buy_html}</li>")
     list(APPEND tiles "${tile}")
     math(EXPR count "${count} + 1")
   endforeach()

@@ -50,6 +50,7 @@ var ByopopSettings = (function () {
     skin: { values: ["plain", "demo", "d95", "soda"], def: "unset" },
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     ambient: { values: SWITCH, def: "on" },
+    gamesOpen: { values: ["games", "library"], def: "games" },  // Desktop 95: the window the games' entries open (web/skins.js)
     win95Only: { values: SWITCH, def: "off" },       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)          // on: the game's light glows around it in the dark Demo Disc and Soda Fountain (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
@@ -215,9 +216,13 @@ var ByopopSettings = (function () {
   // isn't so massive"): each section a handful of settings under a plain name, shown one at a time behind a row of icon
   // tabs, and in Desktop 95 each its own small window opened from the Settings folder's icons (web/skins.js).
   var FIELDS = [
+    // Players and Saves (the user, 2026-11-09: "Fold players and saves into the settings menu"): on the listing page the players'
+    // list and the saves' backup are put into these sections (opts.extra); a section left empty, as Saves on a game's page, is
+    // not shown
     { section: "players" },
     { name: "profile", label: T("settings.profile.label"), options: [["game", GAME_DEFAULT], ["fill", T("settings.profile.fill")], ["create", T("settings.profile.create")]], start: true,
       hint: T("settings.profile.hint") },
+    { section: "saves" },
     { section: "sound" },
     { name: "startVolume", kind: "volume", label: T("settings.startvolume.label"),
       hint: T("settings.startvolume.hint"),
@@ -227,6 +232,8 @@ var ByopopSettings = (function () {
       hint: T("settings.skin.hint") },
     { name: "ambient", label: T("settings.ambient.label"), hint: T("settings.ambient.hint") },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
+    { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
+      hint: T("settings.gamesopen.hint") },
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
       hint: T("settings.scanlines.hint") },
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],
@@ -805,7 +812,7 @@ var ByopopSettings = (function () {
         note.appendChild(make("span", "bps-note-text"));
         note.appendChild(document.createTextNode(" "));
         var link = make("a", "", T("settings.manage_players"));
-        link.href = "./#players";
+        link.href = "./#settings-players";
         link.target = "_blank";
         link.rel = "noopener";
         link.appendChild(make("span", "bps-sr", " " + T("site.new_tab")));
@@ -818,7 +825,14 @@ var ByopopSettings = (function () {
     container.appendChild(err);
     // a part of the page's own put into a section (the site's mouse pointer, web/cursors.js, into Input)
     if (opts.extra) Object.keys(opts.extra).forEach(function (id) { if (sectionOf[id] && opts.extra[id]) sectionOf[id].el.appendChild(opts.extra[id]); });
-    select(opts.section && sectionOf[opts.section] ? opts.section : SECTIONS[0], false);
+    sections = sections.filter(function (r) {
+      if (r.el.children.length > 1) return true;
+      tabs.removeChild(r.tab); folder.removeChild(r.icon);
+      if (r.el.parentNode) r.el.parentNode.removeChild(r.el);
+      delete sectionOf[r.id];
+      return false;
+    });
+    select(opts.section && sectionOf[opts.section] ? opts.section : sections[0].id, false);
     // how many settings this game has a value of its own for (the starting volume is one)
     function ownCount() {
       return overrides(gameId).filter(function (n) { return n !== "startMusic" && n !== "startSound"; }).length;

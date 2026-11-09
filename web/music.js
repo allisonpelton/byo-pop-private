@@ -272,7 +272,10 @@ var ByopopMusic = (function () {
   var VIS_KEY = "byopop-music-vis", MUTE_KEY = "byopop-music-mute";
   var VIS = ["spectrum", "tracker", "off"];  // what the display's lower half shows; a click on it goes to the next
   var SLICE = 512;           // frames between two looks at the decoder's row while the tracker view is shown
-  var TRACKER_ROWS = 2;      // rows shown above and below the one playing (five fill the view)
+  // The display's height, in the tracker's rows (the user, 2026-11-09: "increase how many rows show in the tracker"): five at
+  // least, the one heard in the middle; the spectrum takes the same height. The splitter under the player sets it, and it is
+  // kept for this browser (localStorage, ROWS_KEY).
+  var ROWS_MIN = 5, ROWS_MAX = 64, ROWS_KEY = "byopop-music-rows", ROW_PX = 12;
   var BARS = 24;             // the spectrum's bars
 
   function init(root, games) {
@@ -366,6 +369,86 @@ var ByopopMusic = (function () {
     vol.title = T("music.volume");
     row.appendChild(vol);
     player.appendChild(row);
+
+    // The splitter between the player and the playlist: dragging it gives the display whole rows more or fewer, as do the arrow
+    // keys on it (Page Up and Down five at a time, Home and End the least and the most). No words: its cursor, and its name as
+    // a tooltip and for screen readers, with the rows as its value.
+    var rows = ROWS_MIN;
+    try { rows = Math.max(ROWS_MIN, Math.min(ROWS_MAX, parseInt(localStorage.getItem(ROWS_KEY), 10) || ROWS_MIN)); } catch (e) {}
+    var split = make("div", "mu-split");
+    split.tabIndex = 0;
+    split.setAttribute("role", "separator");
+    split.setAttribute("aria-orientation", "horizontal");
+    split.setAttribute("aria-valuemin", String(ROWS_MIN));
+    split.setAttribute("aria-valuemax", String(ROWS_MAX));
+    split.setAttribute("aria-label", T("music.split"));
+    split.title = T("music.split");
+    root.appendChild(split);
+    // Only the playlist scrolls (the user, 2026-11-09: "only the list of songs should scroll within the music menu, so that the
+    // tracker/spectral analyzer and controls are always visible"): in a window of its own (Desktop 95) the list takes the height
+    // the player leaves, and keeps at least LIST_ROWS of its rows, so the display grows only as far as that leaves them
+    var LIST_ROWS = 3;
+    function listBox() { var p = list.parentNode; return p && p.classList && p.classList.contains("d95-client") ? p : list; }
+    // (the window's classes stay on the tab's panel in the other skins, where they do nothing: the desktop is what counts)
+    function inWindow() {
+      return document.documentElement.classList.contains("d95-desk") && !!(root.closest && root.closest(".d95-win")) && root.getClientRects().length > 0;
+    }
+    function listLeast() {
+      var t = list.querySelector(".mu-tune"), h = t && t.offsetHeight ? t.offsetHeight : 16;
+      return LIST_ROWS * h + 6;
+    }
+    // the least height of the window that keeps the player, the splitter and LIST_ROWS rows (web/skins.js resizable)
+    function windowLeast() {
+      var win = root.closest && root.closest(".d95-win");
+      if (!win || !inWindow()) return 0;
+      return win.offsetHeight - listBox().clientHeight + listLeast();
+    }
+    function setRows(n, keep) {
+      n = Math.max(ROWS_MIN, Math.min(ROWS_MAX, Math.round(n)));
+      if (inWindow()) {
+        // as many as leave the list its rows in the window as it is
+        root.style.setProperty("--mu-rows", String(n));
+        while (n > ROWS_MIN && listBox().clientHeight < listLeast()) { n--; root.style.setProperty("--mu-rows", String(n)); }
+      } else if (root.getClientRects().length) {
+        // a tab of the page (the other skins): the player and LIST_ROWS rows fit the browser's window, and the list is at most
+        // what the player leaves of it (--mu-player-h, web/index.html), so the player stays in view while the list scrolls
+        root.style.setProperty("--mu-rows", String(n));
+        while (n > ROWS_MIN && player.offsetHeight + split.offsetHeight + listLeast() + 40 > window.innerHeight) { n--; root.style.setProperty("--mu-rows", String(n)); }
+        root.style.setProperty("--mu-player-h", (player.offsetHeight + split.offsetHeight) + "px");
+      }
+      var changed = n !== rows;
+      rows = n;
+      root.style.setProperty("--mu-rows", String(rows));
+      split.setAttribute("aria-valuenow", String(rows));
+      split.setAttribute("aria-valuetext", T("music.split_rows", { n: rows }));
+      if (changed) { shownRow = ""; drawTracker(); drawSpectrum(); }
+      if (keep) { asked = rows; try { localStorage.setItem(ROWS_KEY, String(rows)); } catch (e) {} }
+    }
+    var splitDrag = null;
+    split.addEventListener("pointerdown", function (ev) {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      splitDrag = { y: ev.clientY, rows: rows, id: ev.pointerId };
+      try { split.setPointerCapture(ev.pointerId); } catch (e) {}
+      split.focus();
+    });
+    split.addEventListener("pointermove", function (ev) {
+      if (!splitDrag || ev.pointerId !== splitDrag.id) return;
+      setRows(splitDrag.rows + Math.round((ev.clientY - splitDrag.y) / ROW_PX), false);
+    });
+    function endSplit(ev) {
+      if (!splitDrag || ev.pointerId !== splitDrag.id) return;
+      splitDrag = null;
+      setRows(rows, true);
+    }
+    split.addEventListener("pointerup", endSplit);
+    split.addEventListener("pointercancel", endSplit);
+    split.addEventListener("keydown", function (ev) {
+      var to = { ArrowDown: rows + 1, ArrowUp: rows - 1, PageDown: rows + 5, PageUp: rows - 5, Home: ROWS_MIN, End: ROWS_MAX }[ev.key];
+      if (to === undefined || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      ev.preventDefault();
+      setRows(to, true);
+    });
 
     var list = make("div", "mu-list");
     root.appendChild(list);
@@ -741,7 +824,8 @@ var ByopopMusic = (function () {
       trackerAt.textContent = at;
       var showing = used.slice(firstChannel, firstChannel + shown);
       trackerRows.textContent = "";
-      for (var r = mark[2] - TRACKER_ROWS; r <= mark[2] + TRACKER_ROWS; r++) {
+      var above = Math.floor((rows - 1) / 2);
+      for (var r = mark[2] - above; r < mark[2] - above + rows; r++) {
         var line = make("span", r === mark[2] ? "mu-row mu-row-now" : "mu-row");
         if (r >= 0 && r < mark[3]) {
           var row = rowOf(mark[1], r).split("|");
@@ -836,6 +920,11 @@ var ByopopMusic = (function () {
       applyVis();
       tick();
     }
+    setRows(rows, false);
+    // the room changes with the browser's window and the Music window: the rows asked for, as far as they fit again
+    var asked = rows;
+    window.addEventListener("resize", function () { if (!splitDrag) setRows(asked, false); });
+    if (window.ResizeObserver) try { new ResizeObserver(function () { if (!splitDrag) setRows(asked, false); }).observe(root); } catch (e) {}
     visEl.addEventListener("click", function (ev) { if (!trackerScroll.contains(ev.target)) nextVis(); });
     // the bar: the thumb's size is the share of the channels shown, its place the first one's
     function placeThumb() {
@@ -936,15 +1025,26 @@ var ByopopMusic = (function () {
         setState("idle");
       }, function () { scanned = false; say(T("music.lcd_error"), T("music.failed")); });
     }
-    // the tab's panel shown: read the games' music then (the panel is hidden until its tab is chosen)
+    // the player shown: read the games' music then. The tab's panel is hidden until its tab is chosen; Desktop 95's Music
+    // window shows the player while the panel keeps its hidden attribute, so the player's own box counts too (the user,
+    // 2026-11-09: "Music seems to have vanished in my browser")
     var panel = root.closest("[role=tabpanel]") || root;
-    if (!panel.hidden) scan();
-    else new MutationObserver(function (records, obs) { if (!panel.hidden) { obs.disconnect(); scan(); } }).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+    if (!panel.hidden || root.getClientRects().length > 0) scan();
+    else {
+      new MutationObserver(function (records, obs) { if (!panel.hidden) { obs.disconnect(); scan(); } }).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+      if (window.ResizeObserver) {
+        var seen = new ResizeObserver(function () { if (root.getClientRects().length > 0) { seen.disconnect(); scan(); } });
+        seen.observe(root);
+      }
+    }
     // for tests: the state, the tunes, and how far the decoder has rendered the tune (it moves only as the worklet plays)
     return { state: function () { return state; }, tunes: function () { return tunes.slice(); },
       position: function () { return source ? source.position() : 0; }, elapsed: function () { return elapsed(); },
-      seek: function (s) { seekTo(s); }, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden }; } };
+      seek: function (s) { seekTo(s); }, minHeight: windowLeast, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden, rows: rows }; } };
   }
 
-  return { init: init, patternRe: patternRe };
+  // (the Sounds window, web/sounds.js, reads the games' files with the same read-only reader, draws its Stop and speaker with the
+  // same pictures, and falls back on the same stb_vorbis decoder)
+  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg,
+    files: { open: openExisting, list: gameFiles, read: readFile } };
 })();

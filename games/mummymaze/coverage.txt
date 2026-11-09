@@ -108,3 +108,5 @@ none 00421050 a std::map helper: erase(first, last), clearing the whole map when
 none 00427ff0 compiler-made deleting destructor: calls the destructor (0x428010), then operator delete when bit 0 of the argument is set
 none 0042bae0 compiler-made deleting destructor: calls the destructor (0x42bb00), then operator delete when bit 0 of the argument is set
 none 00412d70 an override that only calls the base class's function of its slot (Dialog's vf15, with its argument) and does nothing else; the port's class inherits it
+none 0041fab0 the "No Windowed Mode" message that 0x426b20 shows (its line above): the port has no flag that forces fullscreen, so no play reaches it, and it has neither
+none 0041cdf0 the question of a "Reset Tips" button that the options dialog never places (0x426b70 asks it for an id no widget has): no play reaches it; the port has neither the button nor the answer (its case was taken out 2026-11-09)
