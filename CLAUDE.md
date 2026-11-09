@@ -26,8 +26,8 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   origrun is silent by default (rundesk silences only SDL): its stand-in also serves the DirectSound a copy asks COM
   for (BASS in Alchemy, Pixelus and Rocket Mania) and mutes the copy's audio sessions as it loads, so nothing reaches
   the speakers, and a run's RESULT line says `SOUND LEAK` if anything did. A copy keeps the stand-in its last run
-  placed, so a worktree merges the trunk (2026-11-09 or later: without it a SexyAppFramework original stops drawing
-  once the machine has been idle about ten minutes) and rebuilds origrun before running originals. The user allows
+  placed, so a worktree merges the trunk (2026-11-09 or later, for the stand-in's last-input hook, a
+  precaution against a SexyAppFramework original's idle check) and rebuilds origrun before running originals. The user allows
   sound and changed saves ("You are welcome to run the originals with sound on and mess with my save data", 2026-10-31; the saves they care about are backed
   up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
   entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. origrun

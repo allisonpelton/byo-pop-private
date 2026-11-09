@@ -133,7 +133,9 @@ Options:
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
-  and other random content match the port it is compared with.
+  and other random content match the port it is compared with. A seed that no applied patch carries stops the run
+  (exit 2): with `--exe` and no `--patches`, or a list without `{seed}`, nothing would pin it, and the copy would
+  draw its own random content (Alchemy's profile runs, 2026-11-09). With `--no-patches` it is only a warning.
 - `--3d on|off` — the game's own Hardware Acceleration setting for this run, and a check, read from the game's
   memory, that it really ran in that mode; a run that ends up in the other mode fails with exit code 3 (see
   "Hardware acceleration (3D mode)"). With `--exe` alone, origrun takes the key and flag from the games.tsv row
@@ -987,12 +989,12 @@ let go on one after, as a real player's are: `at 500 keydown 16`, `at 501 key 9`
 A SexyAppFramework original asks Windows once a second whether a screensaver is set and how long its timeout is
 (`SystemParametersInfo`), and when the machine's last keyboard or mouse input was (`GetLastInputInfo`, which counts input
 anywhere on the machine). Once that input is older than the timeout it sets a flag, and its `DrawDirtyStuff` then draws
-nothing until input comes again (Alchemy, 2026-11-09: the routine at 0x462a60 sets the byte 0x54d7ec that 0x46cb46
-tests). rundesk's private desktop makes no difference. So every original run made while the user was away from the
-machine for about ten minutes (overnight runs included) drew a frame now and then instead of on every update: its
-screenshots showed a stale frame, and its CPU and draw counts read low (Alchemy's "the port uses five times the
-original's CPU" came from that). On the virtual clock it was worse: the copy's GetTickCount starts at Windows' and runs
-ahead of it, so a run past ten virtual minutes stopped drawing even while the user typed. Fifteen originals' exes import
+nothing until input comes again. rundesk's private desktop would make no difference. No run has yet been seen to set
+the flag: Alchemy's runs of 2026-11-09 found it clear throughout, and the low CPU those runs had first blamed on it came
+from original runs whose seed was never pinned (`--exe` without `--patches`, which origrun now refuses). The hook is a
+precaution: without it, a run made while the user is away from the machine (overnight runs included), or one on the
+virtual clock past ten virtual minutes (the copy's GetTickCount starts at Windows' and runs ahead of it), could draw a
+frame now and then instead of on every update, with stale screenshots and low CPU and draw counts. Fifteen originals' exes import
 `GetLastInputInfo` (Alchemy, AstroPop, Banana Bugs, Bejeweled 1, 2, 3 and Twist, Big Money, Bookworm Adventures, Hammer
 Heads, Heavy Weapon, Typer Shark, Venice, Zuma's Revenge); any other game that reads it gets the same answer.
 
@@ -1003,9 +1005,8 @@ the copy's own clock (the virtual one when it is on, read without moving it). Th
 function at the start of user32's `GetLastInputInfo`, in the copy's process only; its import is patched as well. A call
 with no structure or a wrong `cbSize` fails with `ERROR_INVALID_PARAMETER`. The stand-in's log has each process's count
 of calls answered. A copy that
-never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not hooked, and its
-draws still stop while the machine is idle: run those while the user is at the machine, or patch the copy's jump as
-Alchemy's notes describe.
+never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not hooked, so its
+draws could stop while the machine is idle: run those while the user is at the machine.
 
 ## Message boxes and beeps (hooked)
 

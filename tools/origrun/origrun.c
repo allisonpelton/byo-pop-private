@@ -668,6 +668,7 @@ static void restore_unpatched(void)
 
 // Load, check and apply the patch list. Returns 1 on success (or when there is nothing to do), 0 when the list
 // was refused -- the caller then stops the run, so a wrong list can never be run.
+static int gSeedPatches=0;   // applied entries that carry {seed}: a --seed that none uses pins nothing
 static int apply_patches(const char* listPath, int haveSeed, uint32_t seed)
 {
 	if (!file_exists(listPath)) { logline("no patch list (%s): the copy runs unpatched", listPath); return 1; }
@@ -722,6 +723,7 @@ static int apply_patches(const char* listPath, int haveSeed, uint32_t seed)
 		SetFilePointer(h,q->off,NULL,FILE_BEGIN); DWORD wrote=0; WriteFile(h,q->rep,q->n,&wrote,NULL); CloseHandle(h);
 		char want[600],have[600]; hexstr(q->exp,q->n,have,sizeof(have)); hexstr(q->rep,q->n,want,sizeof(want));
 		logline("patched %s@%s: %s -> %s  (%s: %s)",q->file,q->where,have,want,q->kind,q->reason[0]?q->reason:"(no reason given)");
+		if (q->usesSeed) gSeedPatches++;
 	}
 	logline("applied %d patch(es) to the copy", np);
 	return 1;
@@ -4631,7 +4633,17 @@ int main(int argc, char** argv)
 		}
 		else if (game) wsprintfA(listPath,"%s\\tools\\origrun\\patches\\%s.txt",repo,game);
 		if (listPath[0] && !apply_patches(listPath, haveSeed, seed)) return 2;
-	} else logline("--no-patches: the copy runs unpatched");
+		// The seed reaches the game only through a patch that carries {seed}. With --exe and no --patches (or a
+		// list without such an entry) a --seed would pin nothing, and the run would draw its own random content.
+		if (haveSeed && !gSeedPatches) {
+			if (listPath[0]) logline("--seed %u: no entry of the patch list %s carries {seed}, so nothing would pin it -- run stops", seed, listPath);
+			else logline("--seed %u: no patch list applies (--exe without --game or --patches), so nothing would pin it -- run stops", seed);
+			return 2;
+		}
+	} else {
+		logline("--no-patches: the copy runs unpatched");
+		if (haveSeed) logline("WARNING: --seed %u is not pinned, since only a patch list carries it", seed);
+	}
 
 	// The DirectDraw/Direct3D 7 wrapper: a previous run's never carries over. --dgvoodoo <dir> places it ("env" reads
 	// the folder from ORIGRUN_DGVOODOO), and --3d on places it from ORIGRUN_DGVOODOO when that is set, since 3D cannot
