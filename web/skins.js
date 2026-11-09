@@ -1017,7 +1017,7 @@ var ByopopSkin = (function () {
         else { pic.className = "d95-fav-cap"; pic.style.setProperty("--tile", g.colour || "#808080"); var t = document.createElement("span"); t.textContent = g.tag; pic.appendChild(t); }
         var name = document.createElement("span"); name.textContent = g.title;
         b.appendChild(pic); b.appendChild(name);
-        function go() { if (g.page) location.href = g.page; }
+        function go() { openPage(g.page); }
         b.addEventListener("dblclick", go);
         b.addEventListener("click", function (ev) { if (ev.detail === 0) go(); });
         b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); openFavMenu(b, g, ev.clientX, ev.clientY); });
@@ -1027,6 +1027,12 @@ var ByopopSkin = (function () {
         icons.appendChild(b);
       });
     }
+    // a game's page: its window on the one page (web/deskapps.js), else the page itself
+    function openPage(page) {
+      if (!page) return;
+      try { if (window.ByopopApps && ByopopApps.open(new URL(page, SITE || location.href).href, "push")) return; } catch (e) {}
+      location.href = page;
+    }
     function T2(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
     function closeFavMenu(back) {
       if (!favMenu) return;
@@ -1035,7 +1041,7 @@ var ByopopSkin = (function () {
       if (back && m.from && m.from.parentNode) m.from.focus();
     }
     function openFavMenu(from, g, x, y) {
-      popMenu(from, [{ label: T2("skin.fav.open"), bold: true, disabled: !g.page, fn: function () { if (g.page) location.href = g.page; } },
+      popMenu(from, [{ label: T2("skin.fav.open"), bold: true, disabled: !g.page, fn: function () { openPage(g.page); } },
                      { label: T2("skin.fav.remove"), fn: function () {
                        try { ByopopSettings.setFavourite(g, false); } catch (e) {}
                        // its icon is gone: the focus on the column's first icon

@@ -26,7 +26,7 @@ var ByopopApps = (function () {
   function relOf(href) {
     if (!SITE) return null;
     var u;
-    try { u = new URL(href, location.href); } catch (e) { return null; }
+    try { u = new URL(href, SITE); } catch (e) { return null; }
     if (u.href.indexOf(SITE) !== 0) return null;
     u.searchParams.delete("embed"); u.searchParams.delete("silent"); u.hash = "";
     return u.href.slice(SITE.length);
@@ -58,6 +58,9 @@ var ByopopApps = (function () {
   // the address a window has in the bar: its own, with ?silent=1 kept (a reload of a test run stays silent)
   function addressOf(key) {
     if (!key) return SITE + (SILENT ? "?silent=1" : "");
+    // a page in a folder (a licence text): the listing's address naming it, as the page's own address would move the
+    // document's base, and every relative link and later load of the listing with it
+    if (pathOf(key).indexOf("/") >= 0) return SITE + "?open=" + encodeURIComponent(key) + (SILENT ? "&silent=1" : "");
     var u = new URL(key, SITE);
     if (SILENT) u.searchParams.set("silent", "1");
     return u.href;
@@ -284,9 +287,9 @@ var ByopopApps = (function () {
   window.addEventListener("byopop-skin", function (ev) {
     if (!ev.detail || ev.detail.skin === "d95") return;
     var key = relOf(location.href), kind = key && kindOf(key);
-    // a licence text is a tab of its own in the other skins: the listing, where its link is
-    if (kind && kind !== "index" && kind !== "txt") { location.reload(); return; }
-    if (kind === "txt") { try { history.replaceState(null, "", addressOf(null)); } catch (e) {} }
+    if (kind && kind !== "index") { location.reload(); return; }
+    // a licence text (?open=, addressOf) is a tab of its own in the other skins: the listing, where its link is
+    if (Q.get("open") !== null || /[?&]open=/.test(location.search)) { try { history.replaceState(null, "", addressOf(null)); } catch (e) {} }
     // staying on the listing: the windows' pages close as their Close closes them (a game's saves first)
     apps.slice().forEach(closeApp);
   });
