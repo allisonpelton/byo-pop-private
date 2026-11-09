@@ -433,11 +433,11 @@ void Board::MouseUp(int x, int y, int theClickCount)
 }
 
 // 0x40f710: dragging: in action and strategy a link from the picked animal to another of its kind, in puzzle the picked animal
-// onto a neighbour (the two trade places)
+// onto a neighbour (the two trade places). The two statements that note the mouse position are the original's 0x40f3a0.
 void Board::MouseDrag(int x, int y)
 {
 	Widget::MouseDrag(x, y);
-	mMouseX = x;                                    // 0x40f3a0
+	mMouseX = x;
 	mMouseY = y;
 	if ((mState != BOARD_PLAYING) && (mApp->mGameMode == GAMEMODE_PUZZLE))
 		return;
