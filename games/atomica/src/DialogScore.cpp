@@ -60,10 +60,14 @@ void HighScoreDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mManager->SetFocus(mEdit);
 }
 
+// 0x41ca50: every update the two buttons and then the name line come to the front of the manager's widgets, then the box's own
+// update; the spin and the tick go on
 void HighScoreDialog::Update()
 {
+	mManager->BringToFront(mOk);
+	mManager->BringToFront(mSkip);
+	mManager->BringToFront(mEdit);
 	GameDialog::Update();
-	// 0x41ca50
 	mSpin += 0.05f;
 	if (mSpin >= 256.0f)
 		mSpin -= 256.0f;

@@ -20,6 +20,9 @@
 // those levels (50 for the one that was left to the game), and the old fields are removed, in the item and in each game's own
 // values.
 //
+// The fields of the skins the site had until 2026-11-09 ("skin" and "ambient": the user kept Desktop 95 alone) are dropped from
+// the item and from each game's own values when it is read, so a stored choice of another skin simply opens Desktop 95.
+//
 // Every setting can also be set for one game: the field "games" of the same item holds an object from a game's id to
 // the settings of that game ({"games": {"bejeweled": {"fullscreen": "off"}}}). A game's own value wins over the site-wide one, and
 // a game without one has the site-wide value: get(name, gameId) is the value the game uses. The listing page's Settings
@@ -45,13 +48,10 @@ var ByopopSettings = (function () {
     chatPlace: { values: ["edge", "game"], def: "edge" },  // game: the chat beside the game, the two centred; edge: at the page's right edge
     pixelPerfect: { values: SWITCH, def: "off" },   // on: the game takes its own size, one game pixel a whole number of device pixels
     profile: { values: ["game", "fill", "create"], def: "game" },  // fill: names start with the site's player; create: and the player is made and chosen
-    // the site's skin (web/skins.js): "unset" until the player chose one on their first visit, which is not one of its values, so
-    // that every choice, Plain too, is stored and the first visit's card is asked only once
-    skin: { values: ["plain", "demo", "d95", "soda"], def: "unset" },
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
-    ambient: { values: SWITCH, def: "on" },
     gamesOpen: { values: ["games", "library"], def: "games" },  // Desktop 95: the window the games' entries open (web/skins.js)
-    win95Only: { values: SWITCH, def: "off" },       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)          // on: the game's light glows around it in the dark Demo Disc and Soda Fountain (web/skins.js)
+    win95Only: { values: SWITCH, def: "off" },
+    gameSize: { values: ["one", "fit"], def: "one" },  // Desktop 95: a game window's size with none chosen in its View menu (web/shell.html)       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
     colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid"], def: "none" },
@@ -79,10 +79,18 @@ var ByopopSettings = (function () {
   // site-wide object's old values, which a game's own object falls back on for what it lacks. Returns true when it changed o.
   var OLD_KEYS = ["mute", "musicVolume", "sfxVolume"];
   function hasOld(o) { return plain(o) && OLD_KEYS.some(function (k) { return has(o, k); }); }
+  var GONE_KEYS = ["skin", "ambient"];
+  function dropGone(t) {
+    var any = false;
+    if (plain(t)) GONE_KEYS.forEach(function (k) { if (has(t, k)) { delete t[k]; any = true; } });
+    return any;
+  }
   function migrate(o) {
     var games = plain(o.games) ? o.games : {};
+    var gone = dropGone(o);
+    Object.keys(games).forEach(function (id) { if (dropGone(games[id])) gone = true; });
     var ids = Object.keys(games).filter(function (id) { return hasOld(games[id]); });
-    if (!hasOld(o) && !ids.length) return false;
+    if (!hasOld(o) && !ids.length) return gone;
     var base = { mute: o.mute, music: o.musicVolume, sfx: o.sfxVolume };
     function convert(t, isGame) {
       var mute = has(t, "mute") ? t.mute : base.mute;
@@ -228,12 +236,11 @@ var ByopopSettings = (function () {
       hint: T("settings.startvolume.hint"),
       help: T("settings.startvolume.help") },
     { section: "look" },
-    { name: "skin", label: T("settings.skin.label"), options: [["plain", T("skin.plain")], ["demo", T("skin.demo")], ["d95", T("skin.d95")], ["soda", T("skin.soda")]],
-      hint: T("settings.skin.hint") },
-    { name: "ambient", label: T("settings.ambient.label"), hint: T("settings.ambient.hint") },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
     { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
       hint: T("settings.gamesopen.hint") },
+    { name: "gameSize", label: T("settings.gamesize.label"), options: [["one", T("settings.gamesize.one")], ["fit", T("settings.gamesize.fit")]],
+      hint: T("settings.gamesize.hint") },
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
       hint: T("settings.scanlines.hint") },
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],
@@ -336,8 +343,6 @@ var ByopopSettings = (function () {
     ".bps-msg.bps-error { color: #b3261e; }\n" +
     ".bps-msg.bps-error:empty { display: none; }\n" +
     ".bps-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }\n" +
-    "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .bps-msg.bps-error { color: #ff8a80; } }\n" +
-    ":root[data-theme=\"dark\"] .bps-msg.bps-error { color: #ff8a80; }\n" +
     "@media (max-width: 520px) { .bps-row { grid-template-columns: minmax(0, 1fr); } .bps-ctl, .bps-vol .bps-ctl { grid-column: 1; grid-row: auto; justify-content: flex-start; } }\n";
   var idCount = 0;
 

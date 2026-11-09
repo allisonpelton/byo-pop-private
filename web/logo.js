@@ -1,7 +1,6 @@
-// The site's logo drawn inline (docs/WEB_PLAYER.md, "The site's logo and icons"). Each page's markup has the logo as two
-// images, logo.svg for the light theme and logo-dark.svg for the dark one; once the page is read this puts logo.svg's own
-// drawing in their place, so that it follows the theme by itself (its "byo" is drawn in --bp-logo-ink) and so that its
-// opener, the hyphen, can move: on mouseover (or the focus of its link) the opener nudges toward "pop" and levers twice, as
+// The site's logo drawn inline (docs/WEB_PLAYER.md, "The site's logo and icons"). Each page's markup has the logo as an
+// image, logo.svg; once the page is read this puts its own drawing in its place (its "byo" drawn in --bp-logo-ink), so that
+// its opener, the hyphen, can move: on mouseover (or the focus of its link) the opener nudges toward "pop" and levers twice, as
 // if to open the cap, which stays on (the user, 2026-11-03: "animate the logo so on mouseover the bottle opener moves as if
 // to open the cap (without actually opening it)"). A player who asked for less motion sees it stay still. Where logo.svg
 // cannot be read, the images stay.
@@ -9,8 +8,6 @@
   "use strict";
   var STYLE =
     ":root { --bp-logo-ink: #12304A; }\n" +
-    "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) { --bp-logo-ink: #FFFFFF; } }\n" +
-    ":root[data-theme=\"dark\"] { --bp-logo-ink: #FFFFFF; }\n" +
     ".bp-logo { display: block; max-width: 100%; height: auto; overflow: visible; }\n" +
     // the opener turns about its head, the end toward "pop"
     ".bp-logo .bp-lever { transform-box: fill-box; transform-origin: 100% 50%; }\n" +
@@ -35,8 +32,7 @@
     svg.setAttribute("focusable", "false");
     var ink = svg.querySelector(".bp-ink");
     if (ink) ink.style.stroke = "var(--bp-logo-ink)";
-    var parent = img.parentNode, dark = parent.querySelector("img.logo-dark");
-    if (dark) parent.removeChild(dark);
+    var parent = img.parentNode;
     parent.replaceChild(svg, img);
     // once per mouseover: a lever that is still moving finishes first
     function lever() { svg.classList.add("lever"); }

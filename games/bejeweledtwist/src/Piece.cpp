@@ -53,14 +53,14 @@ Piece::Piece()
 	gApp->mBoard->AddPieceId(mId, this);
 	for (int i = 0; i < 4; i++)
 		mHaloAngles[i] = (float)(Rand() % 629) * 0.01f;
-	mUnknown4E8 = RandSigned() * 2.0f;
+	mEmberWait = RandSigned() * 2.0f;
 	mColorCycle.mColors.clear();
 	mColorCycle.mColors.push_back(Color(255, 0, 0));
 	mColorCycle.mColors.push_back(Color(255, 0, 255));
 	mColorCycle.mColors.push_back(Color(255, 255, 255));
 	mColorCycle.mColors.push_back(Color(255, 0, 255));
 	// 2, or 8 with Direct3D (Is3DAccelerated 0x4a7900)
-	mUnknown4F8 = (gApp->Is3DAccelerated() ? 6 : 0) + 2;
+	mDrawDetail = (gApp->Is3DAccelerated() ? 6 : 0) + 2;
 }
 
 Piece::~Piece()
@@ -68,7 +68,7 @@ Piece::~Piece()
 	gBoard->RemovePieceId(mId);
 	delete mCountImage;
 	delete mCountImage2;
-	if (mUnknown528 != nullptr)  // never reached: +0x528 is only written 0 (0x72c1fa, 0x72c67b) or copied (0x6bc62e)
+	if (mHelper != nullptr)  // never reached: +0x528 is only written 0 (0x72c1fa, 0x72c67b) or copied (0x6bc62e)
 		NotPorted("Piece +0x528's object (deleted through its slot 1)");
 }
 
@@ -80,22 +80,22 @@ void Piece::SetFlag(int theFlag, bool on)
 	} else {
 		mFlags |= aBit;
 		if (theFlag == FLAG_ELECTRO || theFlag == FLAG_POWER) {
-			mUnknown3A4[0] = 0;
-			mUnknown3A4[1] = 0;
+			mFadeSlots[0] = 0;
+			mFadeSlots[1] = 0;
 		}
 	}
 }
 
 void Piece::ClearSpecial()
 {
-	mUnknownD0 = 0;
-	mUnknown29C = 0;
+	mCounterFlash = 0;
+	mAura = 0;
 	mFlags = 0;
 	mBombCount = 0;
 	mCanMove = true;
 	if (mColor < 0)
 		mColor = mOrigColor;
-	mUnknown4FC = 0;
+	mLockState = 0;
 }
 
 bool Piece::CanMove() const
@@ -105,14 +105,14 @@ bool Piece::CanMove() const
 
 void Piece::SetColor(int theColor)
 {
-	mUnknown3A4[1] = -1;
-	mUnknown3A4[0] = -1;
+	mFadeSlots[1] = -1;
+	mFadeSlots[0] = -1;
 	mColor = theColor;
 }
 
 bool Piece::IsSpecial()
 {
-	return IsFlagSet(FLAG_POWER) || IsFlagSet(FLAG_ELECTRO) || IsFlagSet(FLAG_7) || IsFlagSet(FLAG_6) ||
+	return IsFlagSet(FLAG_POWER) || IsFlagSet(FLAG_ELECTRO) || IsFlagSet(FLAG_ANGEL) || IsFlagSet(FLAG_ICE) ||
 		IsFlagSet(FLAG_FRUIT);
 }
 
@@ -145,9 +145,9 @@ Effect* Piece::AddSpark(bool theBig, float theSpeed, float theAngle)
 		anEffect->mDScale = 0.05f;
 		anEffect->mScale = 1.5f;
 		anEffect->mMaxScale = 1.5f;
-		anEffect->mUnknown9C = 0.25f;
-		anEffect->mUnknownA0 = -0.01f;
-		anEffect->mUnknownA4 = 0.95f;
+		anEffect->mBlend = 0.25f;
+		anEffect->mRateFrom = -0.01f;
+		anEffect->mRateTo = 0.95f;
 		anEffect->mColor = (Rand() % 2 == 0) ? Color(0, 0, 0) : Color(255, 0, 0);
 		anAngle = RandSigned() * 0.3f + theAngle;
 		aSpeed *= 4.0f;
@@ -185,9 +185,9 @@ void Piece::AddShards(float theSpeed, bool theSecondManager)
 	anEffect->mScale = (float)((double)theSpeed * 0.5);
 	anEffect->mGravity = 0;
 	anEffect->mDAlpha = -0.005f;
-	anEffect->mUnknown9C = 0;
-	anEffect->mUnknownA0 = RandSigned();
-	anEffect->mUnknownA4 = RandSigned();
+	anEffect->mBlend = 0;
+	anEffect->mRateFrom = RandSigned();
+	anEffect->mRateTo = RandSigned();
 	aManager->AddEffect(anEffect);
 }
 
@@ -253,15 +253,15 @@ void Piece::Load(Buffer* theBuffer)
 	} while (aBit != 0);
 	mBombCount = theBuffer->ReadShort();
 	mLockCount = theBuffer->ReadShort();
-	mUnknown51D = theBuffer->ReadByte() != 0;
-	mUnknown4FC = theBuffer->ReadShort();
-	mUnknown2E0 = theBuffer->ReadByte() != 0;
+	mHasBroken = theBuffer->ReadByte() != 0;
+	mLockState = theBuffer->ReadShort();
+	mFirstDropDone = theBuffer->ReadByte() != 0;
 	mCanMove = theBuffer->ReadByte() != 0;
 	gApp->mBoard->AddPieceId(mId, this);
-	mUnknown116 = theBuffer->ReadByte() != 0;
+	mFruitCounted = theBuffer->ReadByte() != 0;
 	mBreaking = theBuffer->ReadByte() != 0;
-	mUnknownD0 = (float)theBuffer->ReadShort();
-	mUnknownD4 = (float)theBuffer->ReadShort();
+	mCounterFlash = (float)theBuffer->ReadShort();
+	mCounterSparks = (float)theBuffer->ReadShort();
 }
 
 void Piece::Save(Buffer* theBuffer)
@@ -271,25 +271,25 @@ void Piece::Save(Buffer* theBuffer)
 	theBuffer->WriteLong((long)mFlags);
 	theBuffer->WriteShort((short)mBombCount);
 	theBuffer->WriteShort((short)mLockCount);
-	theBuffer->WriteByte(mUnknown51D);
-	theBuffer->WriteShort((short)mUnknown4FC);
-	theBuffer->WriteByte(mUnknown2E0);
+	theBuffer->WriteByte(mHasBroken);
+	theBuffer->WriteShort((short)mLockState);
+	theBuffer->WriteByte(mFirstDropDone);
 	theBuffer->WriteByte(mCanMove);
-	theBuffer->WriteByte(mUnknown116);
+	theBuffer->WriteByte(mFruitCounted);
 	theBuffer->WriteByte(mBreaking);
-	theBuffer->WriteShort((short)Ftol(mUnknownD0));
-	theBuffer->WriteShort((short)Ftol(mUnknownD4));
+	theBuffer->WriteShort((short)Ftol(mCounterFlash));
+	theBuffer->WriteShort((short)Ftol(mCounterSparks));
 }
 
 void Piece::MakeElectro(float theDelay)
 {
 	if (theDelay == 0.0f) {
-		bool wasSet = IsFlagSet(FLAG_1);
+		bool wasSet = IsFlagSet(FLAG_DROPPER);
 		ClearSpecial();
 		SetFlag(FLAG_ELECTRO, true);
 		if (wasSet)
-			SetFlag(FLAG_1, true);
-		if (gBoard->mUnknown25A4 && mX != 0.0f) {
+			SetFlag(FLAG_DROPPER, true);
+		if (gBoard->mHintsReady && mX != 0.0f) {
 			int i = 10;
 			do {
 				Effect* anEffect = gBoard->mFXManager->AllocEffect(17);
@@ -298,10 +298,10 @@ void Piece::MakeElectro(float theDelay)
 				gBoard->mFXManager->AddEffect(anEffect);
 				i--;
 			} while (i != 0);
-			if (!gBoard->mUnknown37F8)
+			if (!gBoard->mQuietFill)
 				gBoard->PlayPieceSound(this, SOUND_ELECTROGEM_CREATED, 0, 0, 1);
 		}
-		if (!gBoard->mUnknown37F8)
+		if (!gBoard->mQuietFill)
 			mJustMade = 2;
 	} else {
 		mPendingKind = 1 << FLAG_ELECTRO;
@@ -309,34 +309,36 @@ void Piece::MakeElectro(float theDelay)
 		mPendingDY = 0;
 		mPendingDX = 0;
 	}
-	mUnknown4FC = 0;
+	mLockState = 0;
 }
 
-void Piece::Make7(float theDelay)
+// part of Piece::Update (0x72c67b): the gem becomes an angel gem
+void Piece::MakeAngel(float theDelay)
 {
 	if (theDelay == 0.0f) {
 		ClearSpecial();
-		SetFlag(FLAG_7, true);
+		SetFlag(FLAG_ANGEL, true);
 		mJustMade = 2;
 	} else {
-		mPendingKind = 1 << FLAG_7;
+		mPendingKind = 1 << FLAG_ANGEL;
 		mPendingTime = theDelay;
 		mPendingDY = 0;
 		mPendingDX = 0;
 	}
-	mUnknown4FC = 0;
+	mLockState = 0;
 }
 
+// part of Board::MakePowerGem (0x6a5019) and Piece::Update (0x72c67b): the gem becomes a power gem
 void Piece::MakePower(float theDelay)
 {
 	if (theDelay == 0.0f) {
-		bool wasSet = IsFlagSet(FLAG_1);
+		bool wasSet = IsFlagSet(FLAG_DROPPER);
 		ClearSpecial();
 		SetFlag(FLAG_POWER, true);
 		if (wasSet)
-			SetFlag(FLAG_1, true);
+			SetFlag(FLAG_DROPPER, true);
 		mColor = mColor % 7;
-		if (!gBoard->mUnknown37F8) {
+		if (!gBoard->mQuietFill) {
 			gBoard->PlayPieceSound(this, SOUND_POWERGEM_CREATED, 0, 0, 1);
 			mJustMade = 2;
 		}
@@ -346,28 +348,30 @@ void Piece::MakePower(float theDelay)
 		mPendingDY = 0;
 		mPendingDX = 0;
 	}
-	mUnknown4FC = 0;
+	mLockState = 0;
 }
 
-void Piece::Make6(float theDelay)
+// part of Board::MakeIceGem (0x6a4f72) and Piece::Update (0x72c67b): the gem becomes an ice gem
+void Piece::MakeIce(float theDelay)
 {
 	if (theDelay == 0.0f) {
-		bool wasSet = IsFlagSet(FLAG_1);
+		bool wasSet = IsFlagSet(FLAG_DROPPER);
 		ClearSpecial();
-		SetFlag(FLAG_6, true);
+		SetFlag(FLAG_ICE, true);
 		if (wasSet)
-			SetFlag(FLAG_1, true);
+			SetFlag(FLAG_DROPPER, true);
 		mJustMade = 2;
 	} else {
-		mPendingKind = 1 << FLAG_6;
+		mPendingKind = 1 << FLAG_ICE;
 		mPendingTime = theDelay;
 		mPendingDY = 0;
 		mPendingDX = 0;
 	}
-	mUnknown4FC = 0;
+	mLockState = 0;
 }
 
 // One step of a corner's colour towards its target (Draw)
+// part of Piece::Draw (0x729b41): one step of a corner's colour towards its target
 static void StepColor(int* theValue, int theGoal)
 {
 	int aValue = *theValue;
@@ -389,7 +393,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 	if (!((float)-gGemHeight < mY))
 		return;
 	Board* aBoard = gApp->mBoard;
-	float aBoardAlpha = aBoard->mUnknown3924 * aBoard->mPieceAlpha;
+	float aBoardAlpha = aBoard->mBoardFade * aBoard->mPieceAlpha;
 	int aSrcX = 0;
 	int aSrcY = 0;
 	float anAlpha;
@@ -406,7 +410,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 		anAlpha = 1.0f;
 	}
 	mAlpha = anAlpha;
-	if (!theForce && mUnknown14 == 0.0f) {
+	if (!theForce && mTurnAmount == 0.0f) {
 		if (!mDimmed)
 			DrawBack(g);
 		return;
@@ -415,9 +419,9 @@ void Piece::Draw(Graphics* g, bool theForce)
 		return;
 
 	bool isDevil = IsFlagSet(FLAG_DEVIL);
-	if (!isDevil && mBreaking && mUnknown110 == 0 && mColor < 7 && !IsFlagSet(FLAG_COAL)) {
+	if (!isDevil && mBreaking && mBreakDelay == 0 && mColor < 7 && !IsFlagSet(FLAG_COAL)) {
 		// A gem breaking up: it shrinks through the gems drawn ahead and fades
-		if (!IsFlagSet(FLAG_1) && !IsFlagSet(FLAG_COAL) && mBreakFrame < 7) {
+		if (!IsFlagSet(FLAG_DROPPER) && !IsFlagSet(FLAG_COAL) && mBreakFrame < 7) {
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColorizeImages(true);
 			g->SetColor(Color(255, 255, 255, 255 - (mBreakFrame * 255) / 7));
@@ -441,7 +445,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 		if (mDimmed)
 			aColor = Color(128, 128, 128);
 		bool isCoal = IsFlagSet(FLAG_COAL);
-		if (!IsFlagSet(FLAG_1)) {
+		if (!IsFlagSet(FLAG_DROPPER)) {
 			Image* anImage;
 			if (isCoal) {
 				aColor = Color::White;
@@ -457,7 +461,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 					aWidth = (float)IMAGE_COAL_BREAK->GetCelWidth();
 					aHeight = (float)IMAGE_COAL_BREAK->GetCelHeight();
 				} else {
-					anImage = gBoard->mUnknown1BF2 ? IMAGE_SNACKERS : IMAGE_COAL;
+					anImage = gBoard->mCoalAsSnackers ? IMAGE_SNACKERS : IMAGE_COAL;
 				}
 			} else if (isDevil) {
 				anImage = IMAGE_DEVILGEM;
@@ -491,7 +495,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 				// (otherwise IMAGE_BOMBGEMS stays, at half size)
 				float aBombScale = 0;
 				if (gD3DInterface != nullptr)
-					aBombScale = (float)((double)aBoard->mUnknown268C * 0.5);
+					aBombScale = (float)((double)aBoard->mBoardZoom * 0.5);
 				if (gD3DInterface == nullptr || (double)aBombScale <= 0.501) {
 					anImage = gApp->mBombImages[mColor];
 					aWidth = (float)anImage->mWidth;
@@ -507,8 +511,8 @@ void Piece::Draw(Graphics* g, bool theForce)
 					aHeight = (float)anImage->GetCelHeight();
 					aWidth = (float)anImage->GetCelWidth();
 					aSrcX = Ftol((double)mColor * aWidth);
-					if (mScale288 < 1.0f) {
-						aScale = (float)(2.0 - mScale288);
+					if (mBirthScale < 1.0f) {
+						aScale = (float)(2.0 - mBirthScale);
 						aScale = aScale * aScale;
 					}
 				} else {
@@ -516,7 +520,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 					// With Direct3D (gD3DInterface) the board's +0x268c times it
 					float aDrawnScale = aScale;
 					if (gD3DInterface != nullptr)
-						aDrawnScale = aBoard->mUnknown268C * aScale;
+						aDrawnScale = aBoard->mBoardZoom * aScale;
 					if (!(0.501f < aDrawnScale)) {
 						// The gem drawn ahead at the cell's size, its cell cut from the middle of the image
 						aWidth = (float)gGemWidth;
@@ -533,13 +537,13 @@ void Piece::Draw(Graphics* g, bool theForce)
 				}
 			}
 
-			if (anImage != nullptr && -1.0f < mUnknown14) {
+			if (anImage != nullptr && -1.0f < mTurnAmount) {
 				bool isFruit = IsFlagSet(FLAG_FRUIT);
-				while (aScale <= 3.0f || 1.0f <= mScale288) {
+				while (aScale <= 3.0f || 1.0f <= mBirthScale) {
 					aX = mOffsetX + aX;
 					aY = mOffsetY + aY;
 					// A fruit growing in is drawn shrinking from larger
-					if (mScale288 < 1.0f && isFruit) {
+					if (mBirthScale < 1.0f && isFruit) {
 						aScale = (float)(aScale * 0.8500000238418579);
 						if (aScale < 1.05f)
 							aScale = 1.0f;
@@ -565,7 +569,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 						g->SetColor(aColor);
 						int aDrawWidth = Ftol(aScale * aWidth) & ~1;
 						int aDrawHeight = Ftol(aScale * aHeight) & ~1;
-						if (0.0f < gBoard->mUnknown23EC && aDrawWidth > gGemWidth) {
+						if (0.0f < gBoard->mMatchFlash && aDrawWidth > gGemWidth) {
 							// A gem grown over its neighbours: drawn once additively at half alpha, then again clipped
 							// away from each neighbour that is grown too, and wrapped once up and once left
 							Graphics aClipG(*g);
@@ -643,14 +647,14 @@ void Piece::Draw(Graphics* g, bool theForce)
 							gGraphicsRecorder->DrawImageCel(g, IMAGE_GEM_GLOWS, aDrawX, aDrawY, mColor);
 						}
 					}
-					if (!isFruit || mScale288 == 1.0f || aScale == 1.0f)
+					if (!isFruit || mBirthScale == 1.0f || aScale == 1.0f)
 						break;
 				}
 			}
 		}
 
 		// The colours of the gem's four corners fade 12 a draw towards their targets
-		if (!IsFlagSet(FLAG_7)) {
+		if (!IsFlagSet(FLAG_ANGEL)) {
 			for (int i = 0; i < 4; i++) {
 				StepColor(&mFadeColors[i].mRed, mFadeTargets[i].mRed);
 				StepColor(&mFadeColors[i].mGreen, mFadeTargets[i].mGreen);
@@ -660,15 +664,15 @@ void Piece::Draw(Graphics* g, bool theForce)
 		}
 	}
 
-	if ((!mBreaking || 0 < mUnknown110) && mUnknown14 == 0.0f)
+	if ((!mBreaking || 0 < mBreakDelay) && mTurnAmount == 0.0f)
 		DrawFront(g);
 
 	// A bomb's (or a devil gem's) counter, turning while +0xd0 is outside 5 to 15
 	if ((IsFlagSet(FLAG_BOMB) || (IsFlagSet(FLAG_DEVIL) && !mBreaking)) &&
-		(mUnknownD0 < 5.0f || 15.0 < mUnknownD0) && mCountImage != nullptr) {
-		float anAngle = (float)(mUnknownD0 * kTwoPi / 20.0);
+		(mCounterFlash < 5.0f || 15.0 < mCounterFlash) && mCountImage != nullptr) {
+		float anAngle = (float)(mCounterFlash * kTwoPi / 20.0);
 		bool isDevilCount = IsFlagSet(FLAG_DEVIL);
-		float aSize = (float)((mCurve1A0.GetOutVal() + 1.0) * (mDrawScale * 0.5));
+		float aSize = (float)((mCountSizeCurve.GetOutVal() + 1.0) * (mDrawScale * 0.5));
 		int aWidth = Ftol(mCountImage->mWidth * aSize);
 		if (!isDevilCount)
 			aWidth = Ftol(cosf(anAngle) * aWidth);
@@ -679,7 +683,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 			Ftol(gApp->mScale * 0.0) * mDrawScale);
 		int aY = Ftol((double)mOffsetY + mY + mShakeY + (gGemHeight / 2) - aHeight * 0.44999998807907104);
 		int anAlpha255 = Ftol(mAlpha * 255.0);
-		g->SetColor(Color(255, 255, 255, Ftol(255.0 * gBoard->mUnknown21B0)));
+		g->SetColor(Color(255, 255, 255, Ftol(255.0 * gBoard->mBlueFlash)));
 		float aSin = sinf(anAngle);
 		aX = Ftol(gGemWidth * aSin * 0.5 + aX);
 		if (isDevil)
@@ -717,7 +721,7 @@ void Piece::DrawBack(Graphics* g)
 		gGraphicsRecorder->DrawImage(g, aPuzzle, aDestRect, aSrcRect);
 		if (mCol == aCol && mRow == aRow) {
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-			g->SetColor(Color(255, 255, 255, Ftol(gBoard->mUnknown2038 * 128.0)));
+			g->SetColor(Color(255, 255, 255, Ftol(gBoard->mTwistGlow * 128.0)));
 			int aWidth = gGemWidth;
 			int aHeight = gGemHeight;
 			int aY = Ftol(mY);
@@ -767,7 +771,7 @@ void Piece::DrawBack(Graphics* g)
 				aScale, aScale);
 		}
 	}
-	if (!IsFlagSet(FLAG_1) && !IsFlagSet(FLAG_7) && IsFlagSet(FLAG_DEVIL)) {
+	if (!IsFlagSet(FLAG_DROPPER) && !IsFlagSet(FLAG_ANGEL) && IsFlagSet(FLAG_DEVIL)) {
 		int anAlpha = Ftol((double)mAlpha * mDevilGlow * 255.0);
 		Image* aGlow = IMAGE_DEVILGEM_GLOW;
 		g->SetColorizeImages(true);
@@ -861,13 +865,13 @@ void Piece::DrawFront(Graphics* g)
 {
 	Board* aBoard = gApp->mBoard;
 	float aPieceAlpha = aBoard->mPieceAlpha;
-	if ((!mBreaking || 0 < mUnknown110) && !mBlasted) {
+	if ((!mBreaking || 0 < mBreakDelay) && !mBlasted) {
 		// The board's shine sweeping over the gems
-		if (0.0f < aBoard->mShineAmount && mColor <= 6 && !mBreaking && mUnknownD0 == 0.0f && !mDimmed &&
+		if (0.0f < aBoard->mShineAmount && mColor <= 6 && !mBreaking && mCounterFlash == 0.0f && !mDimmed &&
 			!IsFlagSet(FLAG_COAL) && !IsFlagSet(FLAG_DEVIL) && !IsFlagSet(FLAG_FRUIT)) {
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColorizeImages(true);
-			// port: the original leaves the image unset when FLAG_1 is set; the port draws nothing then
+			// port: the original leaves the image unset when FLAG_DROPPER is set; the port draws nothing then
 			Image* aShineImage = nullptr;
 			int aShine = 0;
 			do {
@@ -876,13 +880,13 @@ void Piece::DrawFront(Graphics* g)
 				float anAmount = 0.0f;
 				if (gD3DInterface == nullptr) {
 					for (int i = 0; i < 8; i++)
-						anAmount = (float)(mUnknown50[i] * 0.10000000149011612 + anAmount);
-					anAmount = (float)(mUnknown70 * 0.5 + anAmount);
+						anAmount = (float)(mShineSlots[i] * 0.10000000149011612 + anAmount);
+					anAmount = (float)(mShineGlow * 0.5 + anAmount);
 					if (anAmount < 0.05)
 						anAmount = 0.0f;
 					aShine = 8;
 				} else {
-					anAmount = aShine < 8 ? mUnknown50[aShine] : mUnknown70;
+					anAmount = aShine < 8 ? mShineSlots[aShine] : mShineGlow;
 				}
 				if (0.01 < anAmount) {
 					if (1.0 < anAmount)
@@ -899,7 +903,7 @@ void Piece::DrawFront(Graphics* g)
 					if (gBoard->mGameMode == Board::MODE_PUZZLE) {
 						aShineImage = nullptr;
 					} else {
-						if (!IsFlagSet(FLAG_1))
+						if (!IsFlagSet(FLAG_DROPPER))
 							aShineImage = gBoard->mShineImage;
 						if (aShineImage != nullptr) {
 							Rect aSrcRect = aShineImage->GetCelRect(aShine, mColor);
@@ -915,11 +919,11 @@ void Piece::DrawFront(Graphics* g)
 			} while (aShine < 9);
 		}
 
-		if (IsFlagSet(FLAG_BOMB) && mBombCount <= 8 && !gBoard->GetUnknown23F5()) {
+		if (IsFlagSet(FLAG_BOMB) && mBombCount <= 8 && !gBoard->IsTipShowing()) {
 			// A bomb about to go off is drawn later, over the board (its +0x14bc)
 			gBoard->mBombList.push_back(this);
 		} else {
-			if (mUnknown4FC < 1) {
+			if (mLockState < 1) {
 				// A gem lock: its face, bolts and chains over the gem, and the padlock, shaking while +0x508 runs
 				if (IsFlagSet(FLAG_LOCKED) && !mBreaking && !mBlasted) {
 					float anArtScale = (float)(gApp->mArtRes / 1200.0);
@@ -974,7 +978,7 @@ void Piece::DrawFront(Graphics* g)
 					float aRot = (float)(aTurn * 0.01 * kTwoPi);
 					if (aLockScale < 1.0f)
 						aLockScale = 1.0f;
-					if (IsFlagSet(FLAG_12)) {
+					if (IsFlagSet(FLAG_DOOM)) {
 						float aDevilScale = (float)((2.5 - aLockScale) * 0.81);
 						if (aDevilScale < 0.0f)
 							aDevilScale = 0.0f;
@@ -988,15 +992,15 @@ void Piece::DrawFront(Graphics* g)
 					g->PopState();
 				}
 			} else {
-				// A lock that is opening (+0x4fc 1) or shut: the padlock, or a doom lock for FLAG_12
+				// A lock that is opening (+0x4fc 1) or shut: the padlock, or a doom lock for FLAG_DOOM
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 				g->SetColorizeImages(true);
 				Image* aLockImage;
 				float aY;
 				float aCos;
 				float aX;
-				if (!IsFlagSet(FLAG_12)) {
-					if (mUnknown4FC != 1) {
+				if (!IsFlagSet(FLAG_DOOM)) {
+					if (mLockState != 1) {
 						float aTurn = (float)(mLockTick * 0.07999999821186066);
 						g->SetColor(Color(120, 120, 120, Ftol(mAlpha * 180.0)));
 						aCos = cosf(aTurn);
@@ -1015,7 +1019,7 @@ void Piece::DrawFront(Graphics* g)
 						aY = (float)((float)(gApp->mScale * 8.0) * aSin + (gGemHeight / 2 + (double)mY));
 						DrawImageCentered(g, IMAGE_GEMLOCK_LOCK, aX, aY, (double)(float)(aCos * 0.8), aPop, aPop);
 					}
-				} else if (mUnknown4FC == 1) {
+				} else if (mLockState == 1) {
 					float aPop = (float)(sinf((float)(mLockFlash * 3.1415927410125732)) * 0.75 + 1.0);
 					float aTurn = (float)(mLockTick * 0.05999999865889549);
 					g->SetColor(Color(200, 200, 200, Ftol(mAlpha * 255.0)));
@@ -1053,7 +1057,7 @@ void Piece::DrawFront(Graphics* g)
 
 		// An electro gem: its outline, brighter the more arcs it has, and its arcs, each a chain of segments from
 		// one point of its outline to another (or to the piece +0x14 names), drawn twice: the arc and its core
-		if (!IsFlagSet(FLAG_1) && IsFlagSet(FLAG_ELECTRO) && mUnknown535) {
+		if (!IsFlagSet(FLAG_DROPPER) && IsFlagSet(FLAG_ELECTRO) && mIsLive) {
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColorizeImages(true);
 			double anOutline = (double)(unsigned int)mArcs.size() * 6.0 + 64.0;
@@ -1179,7 +1183,7 @@ void Piece::DrawFront(Graphics* g)
 
 	// The shockwave of the gem's colour, shrinking from four times its size as +0x2e4 falls (half that without
 	// Direct3D, gD3DInterface null)
-	if ((gBoard->mGameMode != Board::MODE_PUZZLE || !gBoard->mUnknown1324) && 0.0f < mDevilGlow &&
+	if ((gBoard->mGameMode != Board::MODE_PUZZLE || !gBoard->mPuzzleSolved) && 0.0f < mDevilGlow &&
 		!IsFlagSet(FLAG_DEVIL)) {
 		g->SetColorizeImages(true);
 		Image* aWave = GetImageById(IMAGE_GEM_SHOCKWAVE_0_ID + mColor);
@@ -1204,20 +1208,20 @@ void Piece::DrawFront(Graphics* g)
 
 	// Coal glowing as it smokes (+0x2f8): two of its cels added over it; the smoke itself is drawn only with
 	// Direct3D (a fan of triangles over 32 of +0x3e8's values for each cel)
-	if (IsFlagSet(FLAG_COAL) && !mBreaking && !gBoard->mUnknown1BF2 && mUnknown535) {
+	if (IsFlagSet(FLAG_COAL) && !mBreaking && !gBoard->mCoalAsSnackers && mIsLive) {
 		int aCoalHalfWidth = IMAGE_COAL->GetCelWidth() / 2;
 		int aCenterX = Ftol((double)(float)(gGemWidth / 2) + (double)mX);
 		int aCenterY = Ftol((double)(float)(gGemHeight / 2) + (double)mY);
 		float aCelCount = (float)(IMAGE_COAL->mNumCols * IMAGE_COAL->mNumRows);
 		float aHalfWidth = (float)aCoalHalfWidth;
 		float aCelUnit = 1.0f / aCelCount;
-		float* anEmber = mUnknown3E8;  // 32 of its values for each cel
+		float* anEmber = mEmbers;  // 32 of its values for each cel
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		float aGlow = 1.0f;
-		if (mUnknown2F8 <= 0.0f)
+		if (mCoalBurn <= 0.0f)
 			aGlow = 0.0f;
-		else if (mUnknown2F8 <= 1.0f)
-			aGlow = mUnknown2F8;
+		else if (mCoalBurn <= 1.0f)
+			aGlow = mCoalBurn;
 		int aCel = 0;
 		do {
 			if (aGlow != 0.0f) {
@@ -1284,6 +1288,7 @@ void Piece::DrawFront(Graphics* g)
 }
 
 // The purple sparkles of a doom gem or a devil gem's smoke, in three layers (Piece::Update)
+// part of Piece::Update (0x72c67b): a purple sparkle of a doom gem or a devil gem's smoke
 static void SetPurpleSparkle(Effect* theEffect, int theLayer, int theDarkest, float theScale)
 {
 	Rand();
@@ -1398,7 +1403,7 @@ void Piece::UpdatePowerSparks()
 }
 
 // Part of Piece::Update (0x72dbd9-0x72df41): a devil gem breathes three puffs of purple smoke to one side, and while
-// its counter shows (mUnknownD4) sparks rise from it
+// its counter shows (mCounterSparks) sparks rise from it
 void Piece::UpdateDevilSmoke()
 {
 	float aScale = (float)((double)std::fabs(RandSigned()) * 0.10000000149011612 + 1.5);
@@ -1432,9 +1437,9 @@ void Piece::UpdateDevilSmoke()
 		anEffect->mGravity = (float)((double)gApp->mScale * -0.005);
 		aManager->AddEffect(anEffect);
 	}
-	if (mUnknownD4 != 0.0f) {
+	if (mCounterSparks != 0.0f) {
 		int aCountX, aCountY;
-		GetCounterPos(&aCountX, &aCountY, mUnknownD0);
+		GetCounterPos(&aCountX, &aCountY, mCounterFlash);
 		float aSparkY = (float)aCountY;
 		float aSparkX = (float)aCountX;
 		for (int i = 40; i != 0; i--) {
@@ -1464,9 +1469,9 @@ void Piece::UpdateDevilSmoke()
 void Piece::Update()
 {
 	mUpdateCnt++;
-	mCurve1A0.IncInVal();
+	mCountSizeCurve.IncInVal();
 	mCountPulse.IncInVal();
-	// port: the original drops mUnknown528 here once its slot 9 says it is done; it never sets it
+	// port: the original drops mHelper here once its slot 9 says it is done; it never sets it
 
 	if (0.0f < mLockFlash) {
 		float aFlash = (float)((double)mLockFlash - 0.027);
@@ -1478,9 +1483,9 @@ void Piece::Update()
 	if (mLockShake != 0) {
 		int aShake = ++mLockShake;
 		if (aShake < 13 || 25 < aShake)
-			mUnknown29C = 0.0f;
+			mAura = 0.0f;
 		else
-			mUnknown29C = 0.5f;
+			mAura = 0.5f;
 		if (aShake == 32)
 			mLockShake = 0;
 	}
@@ -1542,16 +1547,16 @@ void Piece::Update()
 					MakeElectro(0.0f);
 					SetFlag(FLAG_POWER, true);
 				} else if (aKind == 0x40) {
-					Make6(0.0f);
+					MakeIce(0.0f);
 				} else if (aKind == 0x80) {
-					Make7(0.0f);
+					MakeAngel(0.0f);
 				}
 				mPendingKind = 0;
 			} else {
 				mPendingKind = 0;
 				mPendingDY = 0.0f;
 				mPendingDX = 0.0f;
-				mUnknown536 = false;
+				mIsCounted = false;
 				gBoard->BreakPiece(this);
 			}
 		}
@@ -1568,14 +1573,14 @@ void Piece::Update()
 			mShakeY = 0.0f;
 	}
 	if (0.0f < mGlow) {
-		float aGlow = mUnknown29C <= mGlow ? mGlow : mUnknown29C;
-		mUnknown29C = aGlow <= 1.0f ? aGlow : 1.0f;
+		float aGlow = mAura <= mGlow ? mGlow : mAura;
+		mAura = aGlow <= 1.0f ? aGlow : 1.0f;
 	}
-	if (0.0f < mUnknown298) {
-		float aTime = (float)((double)mUnknown298 - 0.01);
-		mUnknown298 = aTime;
+	if (0.0f < mAuraTime) {
+		float aTime = (float)((double)mAuraTime - 0.01);
+		mAuraTime = aTime;
 		if (aTime <= 0.0f)
-			mUnknown29C = 0.0f;
+			mAura = 0.0f;
 	}
 
 	if (!IsFlagSet(FLAG_LOCKED)) {
@@ -1584,32 +1589,32 @@ void Piece::Update()
 				// Coal smoulders: its 64 embers (two rows of 32) brighten and go out, lighting the coal as they
 				// burn, quicker while the mouse is over it or the board points at it
 				bool aHot = false;
-				float aMouseX = (float)gBoard->mUnknown15B4;
+				float aMouseX = (float)gBoard->mBoardMouseX;
 				if (mX <= aMouseX && aMouseX < (float)gGemWidth + mX) {
-					float aMouseY = (float)gBoard->mUnknown15B8;
+					float aMouseY = (float)gBoard->mBoardMouseY;
 					if (mY <= aMouseY && aMouseY < (float)gGemHeight + mY)
 						aHot = true;
 				}
-				if (gBoard->mUnknown2584 != nullptr && gBoard->GetPointedPieceId() == mId)
+				if (gBoard->mTutorial != nullptr && gBoard->GetPointedPieceId() == mId)
 					aHot = true;
 				unsigned int aPeriod = aHot ? 1 : 20;
-				float* anEmber = mUnknown3E8;
+				float* anEmber = mEmbers;
 				for (int aRow = 0;;) {
 					for (int i = 32; i != 0; i--) {
 						if (0.0f < *anEmber) {
 							float aValue = (float)((double)*anEmber + 0.01);
 							*anEmber = aValue;
 							if (aValue < 1.0f) {
-								double aCoal = (double)mUnknown2F8 + 0.019999999552965164;
-								mUnknown2F8 = (float)(aCoal <= 1.0 ? aCoal : 1.0);
+								double aCoal = (double)mCoalBurn + 0.019999999552965164;
+								mCoalBurn = (float)(aCoal <= 1.0 ? aCoal : 1.0);
 							} else {
 								*anEmber = 0.0f;
 							}
 						}
 						anEmber++;
 					}
-					if (0.0f < mUnknown4E8 && (unsigned int)mUpdateCnt % aPeriod == 0) {
-						float* aNew = &mUnknown3E8[Rand() % 32 + aRow];
+					if (0.0f < mEmberWait && (unsigned int)mUpdateCnt % aPeriod == 0) {
+						float* aNew = &mEmbers[Rand() % 32 + aRow];
 						if (*aNew == 0.0f)
 							*aNew = 0.01f;
 					}
@@ -1617,49 +1622,49 @@ void Piece::Update()
 					if (aRow > 63)
 						break;
 				}
-				if (mUnknown4E8 <= 0.0f) {
-					float aTime = (float)((double)mUnknown124 - 0.01);
-					mUnknown124 = aTime;
+				if (mEmberWait <= 0.0f) {
+					float aTime = (float)((double)mCoalTimer - 0.01);
+					mCoalTimer = aTime;
 					if (aTime > 0.0f) {
 						double aCoal;
 						if (1.0 <= aTime) {
-							aCoal = (double)mUnknown2F8 - 0.02500000037252903;
+							aCoal = (double)mCoalBurn - 0.02500000037252903;
 							if (aCoal < 0.0)
 								aCoal = 0.0;
 						} else {
 							aCoal = 1.0 - aTime;
 						}
-						mUnknown2F8 = (float)aCoal;
+						mCoalBurn = (float)aCoal;
 					} else {
-						mUnknown124 = 0.0f;
-						mUnknown4E8 = (float)((double)std::fabs(RandSigned()) + 1.0);
+						mCoalTimer = 0.0f;
+						mEmberWait = (float)((double)std::fabs(RandSigned()) + 1.0);
 					}
 				} else {
-					float aTime = (float)((double)mUnknown4E8 - 0.01);
+					float aTime = (float)((double)mEmberWait - 0.01);
 					if (aTime < 0.0f)
 						aTime = 0.0f;
-					mUnknown4E8 = aTime;
+					mEmberWait = aTime;
 					if (aTime <= 0.0f)
-						mUnknown124 = (float)((double)std::fabs((float)((double)RandSigned() * 4.0)) + 5.0);
+						mCoalTimer = (float)((double)std::fabs((float)((double)RandSigned() * 4.0)) + 5.0);
 				}
 				if (aHot)
-					mUnknown4E8 = 0.1f;
+					mEmberWait = 0.1f;
 			}
-		} else if (mUnknown2FC <= mUnknown2F8) {
+		} else if (mCoalBurnTarget <= mCoalBurn) {
 			// A power gem's glow swings between 0 and 1, turning at a random point above or below the middle
-			double aGlow = (double)mUnknown2F8 - 0.03;
+			double aGlow = (double)mCoalBurn - 0.03;
 			if (aGlow < 0.0)
 				aGlow = 0.0;
-			mUnknown2F8 = (float)aGlow;
-			if (mUnknown2F8 <= mUnknown2FC)
-				mUnknown2FC = (float)((double)std::fabs((float)((double)RandSigned() * 0.5)) + 0.5);
+			mCoalBurn = (float)aGlow;
+			if (mCoalBurn <= mCoalBurnTarget)
+				mCoalBurnTarget = (float)((double)std::fabs((float)((double)RandSigned() * 0.5)) + 0.5);
 		} else {
-			double aGlow = 0.03 + (double)mUnknown2F8;
+			double aGlow = 0.03 + (double)mCoalBurn;
 			if (1.0 < aGlow)
 				aGlow = 1.0;
-			mUnknown2F8 = (float)aGlow;
-			if (mUnknown2FC < mUnknown2F8)
-				mUnknown2FC = (float)((double)std::fabs((float)((double)RandSigned() * 0.5)) + 0.5);
+			mCoalBurn = (float)aGlow;
+			if (mCoalBurnTarget < mCoalBurn)
+				mCoalBurnTarget = (float)((double)std::fabs((float)((double)RandSigned() * 0.5)) + 0.5);
 		}
 	} else {
 		// A gem lock counts to 100 after it is made; from 50 its glow fades, and at 50 a doom lock becomes a devil
@@ -1668,14 +1673,14 @@ void Piece::Update()
 		if (aCount < 100) {
 			mLockCount = ++aCount;
 			if (49 < aCount) {
-				float aLeft = (float)(100.0 - (double)mUnknown29C);
+				float aLeft = (float)(100.0 - (double)mAura);
 				double aGlow = (double)aLeft / 100.0 * 0.5;
 				if (1.0 < aGlow)
 					aGlow = 1.0;
-				mUnknown29C = (float)aGlow;
+				mAura = (float)aGlow;
 				if (aCount == 50) {
 					gApp->PlaySample(SOUND_GEM_LOCK_END);
-					if (IsFlagSet(FLAG_12)) {
+					if (IsFlagSet(FLAG_DOOM)) {
 						ClearSpecial();
 						SetFlag(FLAG_DEVIL, true);
 						mCanMove = false;
@@ -1683,14 +1688,14 @@ void Piece::Update()
 						if (0 < gBoard->mDevil.GetValue())
 							aBombCount = gBoard->mDevil.GetValue();
 						mBombCount = aBombCount;
-						mScale288 = 0.01f;
+						mBirthScale = 0.01f;
 						gApp->PlaySample(SOUND_DOOMGEM_COUNTDOWN);
 						MakeCountImage();
 						mCountPulse.SetCurve(GTS(0x7e9a70));
 						mJustMade = 2;
 					}
 				} else if (aCount == 100) {
-					mUnknown29C = 0.0f;
+					mAura = 0.0f;
 				}
 			}
 		}
@@ -1707,7 +1712,7 @@ void Piece::Update()
 		}
 	}
 
-	if (IsFlagSet(FLAG_12) && mUnknown535) {
+	if (IsFlagSet(FLAG_DOOM) && mIsLive) {
 		// A doom gem gives off three purple sparkles from its outline
 		for (int i = 0; i < 3; i++) {
 			float aScale = (float)((double)std::fabs(RandSigned()) * 0.10000000149011612 + 1.2999999523162842);
@@ -1736,9 +1741,9 @@ void Piece::Update()
 		}
 	}
 
-	if ((!IsFlagSet(FLAG_POWER) && !IsFlagSet(FLAG_ELECTRO) && !IsFlagSet(FLAG_FRUIT) && !IsFlagSet(FLAG_6) &&
-		!IsFlagSet(FLAG_DEVIL)) || mDrawScale != 1.0f || !mUnknown535) {
-		if (IsFlagSet(FLAG_7) && !gBoard->IsBusy() && mUnknown535) {
+	if ((!IsFlagSet(FLAG_POWER) && !IsFlagSet(FLAG_ELECTRO) && !IsFlagSet(FLAG_FRUIT) && !IsFlagSet(FLAG_ICE) &&
+		!IsFlagSet(FLAG_DEVIL)) || mDrawScale != 1.0f || !mIsLive) {
+		if (IsFlagSet(FLAG_ANGEL) && !gBoard->IsBusy() && mIsLive) {
 			// Bubbles rise from the gem, and its four sparkles (mFadeColors) come and go
 			if (gBoard->mUpdateCnt % 12 == 0) {
 				EffectsManager* aManager = gApp->mBoard->mFXManager;
@@ -1763,7 +1768,7 @@ void Piece::Update()
 					if (mFadeColors[i].mAlpha == 0 && mFadeTargets[i].mAlpha == 0) {
 						mFadeColors[i] = Color(255, 255, 255, 0);
 						mFadeTargets[i] = Color(255, 255, 255, 255);
-						mUnknown304[i] = (float)((double)RandSigned() * 3.1415927410125732);
+						mFadeAngles[i] = (float)((double)RandSigned() * 3.1415927410125732);
 						break;
 					}
 				}
@@ -1788,16 +1793,16 @@ void Piece::Update()
 		}
 	} else {
 		if (gBoard->mUpdateCnt % 33 == 0) {
-			mUnknown11C++;
-			if (mUnknown11C == 16)
-				mUnknown11C = 0;
-			else if (mUnknown11C == 1 || mUnknown11C == 4)
+			mFruitGlowStep++;
+			if (mFruitGlowStep == 16)
+				mFruitGlowStep = 0;
+			else if (mFruitGlowStep == 1 || mFruitGlowStep == 4)
 				mFruitGlow = 1.0f;
 		}
-		float aTime = (float)((double)mUnknown124 - 0.01);
-		mUnknown124 = aTime;
+		float aTime = (float)((double)mCoalTimer - 0.01);
+		mCoalTimer = aTime;
 		if (aTime <= 0.0f) {
-			mUnknown124 = (float)((double)std::fabs((float)((double)RandSigned() * 0.10000000149011612)) +
+			mCoalTimer = (float)((double)std::fabs((float)((double)RandSigned() * 0.10000000149011612)) +
 				0.019999999552965164);
 			if (IsFlagSet(FLAG_POWER)) {
 				UpdatePowerSparks();
@@ -1815,7 +1820,7 @@ void Piece::Update()
 				anEffect->mDY = aSpeed * gApp->mScale;
 				anEffect->mScale = 0.1f;
 				gApp->mBoard->mFXManager->AddEffect(anEffect);
-			} else if (IsFlagSet(FLAG_6)) {
+			} else if (IsFlagSet(FLAG_ICE)) {
 				for (int i = 5; i != 0; i--)
 					AddShards(1.0f, true);
 				if ((gBoard->mUpdateCnt & 3) == 0) {
@@ -1836,20 +1841,20 @@ void Piece::Update()
 					gApp->mBoard->mFXManager->AddEffect(anEffect);
 				}
 			} else if (IsFlagSet(FLAG_DEVIL)) {
-				mUnknown124 = 0.0f;
+				mCoalTimer = 0.0f;
 				if (!gBoard->IsSparkBlocked())
 					UpdateDevilSmoke();
 			}
 		}
 	}
 
-	if (mUnknownE8 <= 0.0f) {
-		if (0.0f <= mUnknownE4) {
+	if (mRingDelay <= 0.0f) {
+		if (0.0f <= mRingAngle) {
 			// A ring of sparks (effect 17) goes round the gem one and a half times
-			float aTurn = (float)((double)kTwoPi * 0.02 + (double)mUnknownE4);
-			mUnknownE4 = aTurn;
+			float aTurn = (float)((double)kTwoPi * 0.02 + (double)mRingAngle);
+			mRingAngle = aTurn;
 			if (9.424778f <= aTurn) {
-				mUnknownE4 = -1.0f;
+				mRingAngle = -1.0f;
 			} else {
 				Effect* anEffect = gApp->mBoard->mFXManager->AllocEffect(17);
 				float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
@@ -1868,10 +1873,10 @@ void Piece::Update()
 			}
 		}
 	} else {
-		float aTime = (float)((double)mUnknownE8 - 0.01);
-		mUnknownE8 = aTime;
+		float aTime = (float)((double)mRingDelay - 0.01);
+		mRingDelay = aTime;
 		if (aTime <= 0.0f)
-			mUnknownE4 = 0.0f;
+			mRingAngle = 0.0f;
 	}
 	if (0.0f < mFruitGlow) {
 		float aGlow = (float)((double)mFruitGlow - 0.01);
@@ -1879,33 +1884,33 @@ void Piece::Update()
 		if (aGlow <= 0.0f)
 			mFruitGlow = 0.0f;
 	}
-	if (0.0f < mUnknownFC) {
-		float aValue = (float)((double)mUnknownFC - 0.005);
+	if (0.0f < mFlashLevel) {
+		float aValue = (float)((double)mFlashLevel - 0.005);
 		if (aValue < 0.0f)
 			aValue = 0.0f;
-		mUnknownFC = aValue;
+		mFlashLevel = aValue;
 	}
 
-	if (mScale288 < 1.0f) {
+	if (mBirthScale < 1.0f) {
 		// A gem that is made or broken grows to its size; a devil gem being made rumbles and throws up flames
-		bool aKept = IsFlagSet(FLAG_1);
+		bool aKept = IsFlagSet(FLAG_DROPPER);
 		if (!mBreaking) {
 			if (aKept || mPendingKind == 0)
-				mScale288 = (float)((double)mScale288 + 0.02);
+				mBirthScale = (float)((double)mBirthScale + 0.02);
 		} else if (aKept) {
 			if ((gBoard->mUpdateCnt & 5) == 0) {
-				mUnknown88 = 1000;
-				mUnknown29C = (float)((double)mScale288 * mScale288 * mScale288);
+				mBusyTime = 1000;
+				mAura = (float)((double)mBirthScale * mBirthScale * mBirthScale);
 			}
-			mScale288 = (float)((double)mScale288 + 0.05);
+			mBirthScale = (float)((double)mBirthScale + 0.05);
 		} else if (IsFlagSet(FLAG_DEVIL)) {
-			mUnknown88 = 1000;
+			mBusyTime = 1000;
 			if ((gBoard->mUpdateCnt & 5) == 0) {
-				mUnknown29C = (float)((double)mScale288 * mScale288 * mScale288);
-				mUnknown2A0 = (float)((double)RandSigned() * 3.1415927410125732);
-				mUnknown118 = Ftol((double)mScale288 * 8.0);
+				mAura = (float)((double)mBirthScale * mBirthScale * mBirthScale);
+				mAuraAngle = (float)((double)RandSigned() * 3.1415927410125732);
+				mFlameLevel = Ftol((double)mBirthScale * 8.0);
 			}
-			if (gBoard->mUpdateCnt % 2 == 0 && mUnknown535 && 2 <= mUnknown118) {
+			if (gBoard->mUpdateCnt % 2 == 0 && mIsLive && 2 <= mFlameLevel) {
 				Effect* anEffect = gBoard->mFXManager->AllocEffect(24);
 				anEffect->mScale = 0.4f;
 				float aRise = std::fabs(RandSigned());
@@ -1920,21 +1925,21 @@ void Piece::Update()
 				anEffect->mColor = Color(255, Rand() % 255, 0);
 				gBoard->mFXManager->AddEffect(anEffect);
 			}
-			float aScale = (float)((double)mScale288 + 0.005);
-			mScale288 = aScale;
+			float aScale = (float)((double)mBirthScale + 0.005);
+			mBirthScale = aScale;
 			if (1.0f <= aScale) {
-				mScale288 = 1.0f;
+				mBirthScale = 1.0f;
 				mBlasted = true;
 			}
 		} else {
-			mScale288 = (float)((double)mScale288 + 0.01);
+			mBirthScale = (float)((double)mBirthScale + 0.01);
 		}
-		if (1.0f <= mScale288) {
-			mScale288 = 1.0f;
+		if (1.0f <= mBirthScale) {
+			mBirthScale = 1.0f;
 			if (aKept && mBreaking) {
 				mJustMade = 0;
 				mDevilGlow = 0.0f;
-				mUnknown88 = 0;
+				mBusyTime = 0;
 				mBlasted = true;
 			}
 		}
@@ -1946,44 +1951,44 @@ void Piece::Update()
 		// a bomb's sparks flying more often
 		if (mCountImage == nullptr)
 			MakeCountImage();
-		if (mUnknownD0 == 0.0f) {
+		if (mCounterFlash == 0.0f) {
 			mHaloAngles[0] = (float)((double)kTwoPi / 800.0 + (double)mHaloAngles[0]);
 			mHaloAngles[1] = (float)((double)mHaloAngles[1] - (double)kTwoPi / 1000.0);
-			if (mBombCount < 9 && !gBoard->GetUnknown23F5() && mUnknown2F6) {
+			if (mBombCount < 9 && !gBoard->IsTipShowing() && mIsDrawn) {
 				int aDanger = 8 - mBombCount;
 				if (aDanger < 1)
 					aDanger = 1;
 				float aDangerF = (float)aDanger;
 				if (mBombCount < 3) {
-					float aTime = (float)((double)mUnknown4E8 - 0.01);
-					mUnknown4E8 = aTime;
+					float aTime = (float)((double)mEmberWait - 0.01);
+					mEmberWait = aTime;
 					if (aTime <= 0.0f) {
-						mUnknown4E8 = 0.0f;
-						// port: the original also tells mUnknown528 here, which it never sets
-						if (mUnknown4EC < 0) {
-							mUnknown4EC = Rand() % 4;
+						mEmberWait = 0.0f;
+						// port: the original also tells mHelper here, which it never sets
+						if (mBombTickSide < 0) {
+							mBombTickSide = Rand() % 4;
 							double aWait = 0.5;
 							if (0.5 <= (double)std::fabs(RandSigned()) * 0.30000001192092896 * (double)aDangerF)
 								aWait = (double)std::fabs(RandSigned()) * 0.30000001192092896 * (double)aDangerF;
-							mUnknown4E8 = (float)aWait;
+							mEmberWait = (float)aWait;
 						} else {
-							mUnknown4EC = -1;
+							mBombTickSide = -1;
 							float aRand = std::fabs(RandSigned());
 							float aWait = 0.5f;
 							if (0.5f <= (aRand + aRand) * (float)mBombCount) {
 								aRand = std::fabs(RandSigned());
 								aWait = (aRand + aRand) * (float)mBombCount;
 							}
-							mUnknown4E8 = aWait;
+							mEmberWait = aWait;
 						}
 					}
 				}
-				mUnknown108 -= 2;
+				mBombPhase -= 2;
 				if (mBombCount < 3)
-					mUnknown108 -= 1;
-				if (mUnknown108 < 0)
-					mUnknown108 = 255;
-				mUnknown29C = (float)((double)aDangerF * 0.15);
+					mBombPhase -= 1;
+				if (mBombPhase < 0)
+					mBombPhase = 255;
+				mAura = (float)((double)aDangerF * 0.15);
 				if (!aDevil) {
 					int aQuarter = Rand() % 4;
 					int aPeriod = 2;
@@ -1991,14 +1996,14 @@ void Piece::Update()
 						aPeriod = mBombCount;
 					int aSparks = 0;
 					if (1 < mBombCount) {
-						int aSpeed = gBoard->mUnknown1F78;
+						int aSpeed = gBoard->mBombGemCount;
 						if (aSpeed < 3)
 							aSpeed = 3;
 						aPeriod = (aSpeed * aPeriod) / 3;
 					}
 					if (aPeriod < 20 && gBoard->mUpdateCnt % aPeriod == 0)
 						aSparks = 1;
-					if (!gBoard->IsBusy() && !mBreaking && !gBoard->GetUnknown23F5() && aSparks != 0) {
+					if (!gBoard->IsBusy() && !mBreaking && !gBoard->IsTipShowing() && aSparks != 0) {
 						float anAngle = (float)((double)aQuarter * 3.1415927410125732 * 0.5 + 0.7853981633974483);
 						do {
 							aSparks--;
@@ -2007,51 +2012,51 @@ void Piece::Update()
 					}
 				}
 			} else {
-				mUnknown108 = 0;
+				mBombPhase = 0;
 				if (mLockShake == 0)
-					mUnknown29C = 0.0f;
+					mAura = 0.0f;
 			}
 		}
 	}
 
-	if (mUnknownEC && !mBreaking) {
-		if (mUnknownF4 == 0) {
-			if (mUnknownF0 < 1.0f) {
-				float aValue = (float)((double)mUnknownF0 + 0.05);
-				mUnknownF0 = aValue;
+	if (mHasSparkle && !mBreaking) {
+		if (mSparkleDelay == 0) {
+			if (mSparkleAlpha < 1.0f) {
+				float aValue = (float)((double)mSparkleAlpha + 0.05);
+				mSparkleAlpha = aValue;
 				if (1.0f <= aValue)
-					mUnknownF0 = 1.0f;
+					mSparkleAlpha = 1.0f;
 			}
 		} else {
-			mUnknownF4--;
+			mSparkleDelay--;
 		}
 	}
 
-	if (IsFlagSet(FLAG_ELECTRO) && !mBreaking && !mBlasted && mUnknown535)
+	if (IsFlagSet(FLAG_ELECTRO) && !mBreaking && !mBlasted && mIsLive)
 		UpdateElectro();
 
-	if (mUnknownD4 == 0.0f) {
-		if (mUnknownB1) {
-			mUnknownB8 = mUnknownB8 - 0.012;
-			if (mUnknownB8 < 0.0)
-				mUnknownB1 = false;
+	if (mCounterSparks == 0.0f) {
+		if (mIsShining) {
+			mShineFade = mShineFade - 0.012;
+			if (mShineFade < 0.0)
+				mIsShining = false;
 		}
-		if ((IsFlagSet(FLAG_ELECTRO) || IsFlagSet(FLAG_POWER)) && mUnknown535) {
-			mUnknownB8 = mUnknownB8 + 0.045;
-			if (1.0 < mUnknownB8)
-				mUnknownB8 = 1.0;
+		if ((IsFlagSet(FLAG_ELECTRO) || IsFlagSet(FLAG_POWER)) && mIsLive) {
+			mShineFade = mShineFade + 0.045;
+			if (1.0 < mShineFade)
+				mShineFade = 1.0;
 		}
-		if (mUnknownB1) {
-			float aValue = (float)((double)mUnknownC0 + 0.0625);
-			mUnknownC0 = aValue;
+		if (mIsShining) {
+			float aValue = (float)((double)mShinePos + 0.0625);
+			mShinePos = aValue;
 			if (10.0f <= aValue)
-				mUnknownC0 = (float)((double)aValue - 10.0);
+				mShinePos = (float)((double)aValue - 10.0);
 		}
-		if (mBreaking && mUnknown110 == 0 && !IsFlagSet(FLAG_1) && !IsFlagSet(FLAG_DEVIL)) {
+		if (mBreaking && mBreakDelay == 0 && !IsFlagSet(FLAG_DROPPER) && !IsFlagSet(FLAG_DEVIL)) {
 			if (IsFlagSet(FLAG_COAL)) {
 				// Coal burns up: it glows brighter frame by frame until it is gone
 				mBreakFrame++;
-				mUnknown29C = (float)((double)mBreakFrame * 0.02 + 0.2);
+				mAura = (float)((double)mBreakFrame * 0.02 + 0.2);
 				int aBurnt = mBreakFrame - 30;
 				if (aBurnt <= 0)
 					aBurnt = 0;
@@ -2059,8 +2064,8 @@ void Piece::Update()
 					mBlasted = true;
 			} else if (mGlow == 0.0f) {
 				// A gem breaks up through its frames, scattering dust over its shape (effect 12) and a shard (23)
-				mUnknownCC++;
-				if (mUnknownCC % 3 == 0) {
+				mBreakTick++;
+				if (mBreakTick % 3 == 0) {
 					mBreakFrame++;
 					if (6 < mBreakFrame)
 						mBlasted = true;
@@ -2081,43 +2086,43 @@ void Piece::Update()
 			}
 		}
 	} else {
-		// The counter turns over (mUnknownD0 runs to 20 at mUnknownD4 an update); between 5 and 10 it ticks down
-		float aTurn = mUnknownD4 + mUnknownD0;
-		mUnknownD0 = aTurn;
+		// The counter turns over (mCounterFlash runs to 20 at mCounterSparks an update); between 5 and 10 it ticks down
+		float aTurn = mCounterSparks + mCounterFlash;
+		mCounterFlash = aTurn;
 		if (0.0f <= aTurn) {
 			if (20.0f <= aTurn) {
-				mUnknownD0 = 0.0f;
-				mUnknownD4 = 0.0f;
+				mCounterFlash = 0.0f;
+				mCounterSparks = 0.0f;
 			}
 		} else {
-			mUnknownD0 = (float)((double)aTurn + 20.0);
+			mCounterFlash = (float)((double)aTurn + 20.0);
 		}
-		if ((IsFlagSet(FLAG_BOMB) || IsFlagSet(FLAG_DEVIL)) && mUnknownD4 != 0.0f && 5.0f < mUnknownD0 &&
-			mUnknownD0 <= 10.0f) {
+		if ((IsFlagSet(FLAG_BOMB) || IsFlagSet(FLAG_DEVIL)) && mCounterSparks != 0.0f && 5.0f < mCounterFlash &&
+			mCounterFlash <= 10.0f) {
 			if (IsFlagSet(FLAG_DEVIL))
 				gApp->PlaySample(SOUND_DOOMGEM_COUNTDOWN);
 			mBombCount--;
 			MakeCountImage();
-			mUnknownD0 = 16.0f;
+			mCounterFlash = 16.0f;
 			if (mBombCount == 0 && !mBreaking && !mBlasted) {
-				mUnknownD4 = 0.0f;
+				mCounterSparks = 0.0f;
 				mOrigColor = mColor;
-				mUnknownD0 = 0.0f;
+				mCounterFlash = 0.0f;
 			}
 		}
 	}
 
-	if (0 < mUnknown110 && gBoard->mUnknown149C.size() == 0)
-		mUnknown110--;
-	if (mUnknown29C <= 0.0f) {
+	if (0 < mBreakDelay && gBoard->mElectroStrikes.size() == 0)
+		mBreakDelay--;
+	if (mAura <= 0.0f) {
 		mOffsetY = 0.0f;
 		mOffsetX = 0.0f;
 	} else {
-		// The gem shakes by mUnknown29C
+		// The gem shakes by mAura
 		float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
-		mUnknown2A0 = anAngle;
-		mOffsetX = (float)((double)mUnknown29C * (double)std::cos(anAngle) * (double)gGemWidth / 20.0);
-		mOffsetY = (float)((double)mUnknown29C * (double)std::sin(mUnknown2A0) * (double)gGemHeight / 20.0);
+		mAuraAngle = anAngle;
+		mOffsetX = (float)((double)mAura * (double)std::cos(anAngle) * (double)gGemWidth / 20.0);
+		mOffsetY = (float)((double)mAura * (double)std::sin(mAuraAngle) * (double)gGemHeight / 20.0);
 	}
 }
 
@@ -2505,19 +2510,19 @@ void Piece::Blast()
 		return;
 	gApp->PlaySample(SOUND_PREBLAST);
 	mBlasted = true;
-	if (!gApp->mProfile->GetFlag1E4(0x10)) {
+	if (!gApp->mProfile->HasSeenTip(0x10)) {
 		// the first power gem's tip
-		gApp->mBoard->mUnknown3904 = true;
-		gApp->mProfile->SetFlag1E4(0x10, true);
+		gApp->mBoard->mReplayPodDue = true;
+		gApp->mProfile->SetTipSeen(0x10, true);
 	}
-	gApp->mBoard->mUnknown1660.push_back(new BlastShockwave(this, 1, 1));  // 0x6bc3cd
+	gApp->mBoard->mShockwaves.push_back(new BlastShockwave(this, 1, 1));  // 0x6bc3cd
 	gApp->mBoard->LiftAround(this, 1.0f);
 	// Unless the board is +0x37c4's, a heat wave here, of the strength +0x1c5c plus 1 (no Direct3D test: 2D mode
 	// adds it too, and only ages it)
-	if (!gApp->mBoard->mUnknown37C4)
+	if (!gApp->mBoard->mIsReplay)
 		gApp->mBoard->mFXManager->AddHeatWave((float)(gGemWidth / 2) + mX, (float)(gGemHeight / 2) + mY,
-			(float)(gApp->mBoard->mUnknown1C5C + 1));
+			(float)(gApp->mBoard->mBlastChainCount + 1));
 	gApp->mBoard->PlayPieceSound(this, SOUND_GEM_SHATTERS, 0, 0, true);
 	gApp->mBoard->AddPoints(Ftol((double)(gGemWidth / 2) + (double)mX),
-		Ftol((double)(gGemHeight / 2) + (double)mY), 50, gGemColors[mColor], mUnknown2EC, true, true, false, true);
+		Ftol((double)(gGemHeight / 2) + (double)mY), 50, gGemColors[mColor], mMatchSerial, true, true, false, true);
 }

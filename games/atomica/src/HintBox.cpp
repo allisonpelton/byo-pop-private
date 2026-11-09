@@ -243,7 +243,7 @@ HintBox::HintBox(AtomicaApp* theApp, Grid* theGrid, int theHint) :
 	mApp->mWidgetManager->AddWidget(this);
 }
 
-// 0x42a0b0: the game goes on; a ticked check box keeps the hint away in the games to come
+// 0x42a0b0 / 0x432c00: the game goes on; a ticked check box keeps the hint away in the games to come
 HintBox::~HintBox()
 {
 	for (size_t i = 0; i < mApp->mHintBoxes.size(); i++)

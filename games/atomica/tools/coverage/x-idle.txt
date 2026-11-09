@@ -1,0 +1,11 @@
+# coverage run: the idle game of identical/s5.txt, 1200 updates later: the original reads its play count from a file in the Windows directory (139 now), and its title is ready only after about update 1340, so s5's click at 310 is lost
+1500 move 320 445
+1510 click 320 445
+1900 move 316 104
+1910 click 316 104
+2364 click 300 192
+2371 click 240 315
+2375 click 390 265
+2476 click 246 318
+2480 click 495 317
+end 7400

@@ -1,0 +1,9 @@
+# tools/namecheck.py's exceptions for Bejeweled Twist (docs/CODE_STANDARDS.md). One rule a line, each with its reason.
+
+allow ghidra undefined -- JavaScript's undefined, in WinTwistApp.cpp's EM_JS probe of the page's WebGL
+short-ok BSpline.cpp t -- a curve's parameter, t in the spline's own notation beside x(t) and y(t)
+short-ok CurvedVal.cpp t -- a curve's parameter, t in the curve's own notation as it runs from 0 to 1
+allow offset anAlpha255 -- an alpha on the 0 to 255 scale, beside the 0 to 1 alpha it is made from
+allow offset aGlowAlpha255 -- the glow's alpha on the 0 to 255 scale
+allow offset theAllow1200 -- the 1200-pixel art size, the "ArtRes" value it allows
+allow offset mAllowArtRes1200 -- the 1200-pixel art size, the "ArtRes" value it allows

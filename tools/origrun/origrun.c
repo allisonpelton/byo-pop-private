@@ -668,6 +668,7 @@ static void restore_unpatched(void)
 
 // Load, check and apply the patch list. Returns 1 on success (or when there is nothing to do), 0 when the list
 // was refused -- the caller then stops the run, so a wrong list can never be run.
+static int gSeedPatches=0;   // applied entries that carry {seed}: a --seed that none uses pins nothing
 static int apply_patches(const char* listPath, int haveSeed, uint32_t seed)
 {
 	if (!file_exists(listPath)) { logline("no patch list (%s): the copy runs unpatched", listPath); return 1; }
@@ -722,6 +723,7 @@ static int apply_patches(const char* listPath, int haveSeed, uint32_t seed)
 		SetFilePointer(h,q->off,NULL,FILE_BEGIN); DWORD wrote=0; WriteFile(h,q->rep,q->n,&wrote,NULL); CloseHandle(h);
 		char want[600],have[600]; hexstr(q->exp,q->n,have,sizeof(have)); hexstr(q->rep,q->n,want,sizeof(want));
 		logline("patched %s@%s: %s -> %s  (%s: %s)",q->file,q->where,have,want,q->kind,q->reason[0]?q->reason:"(no reason given)");
+		if (q->usesSeed) gSeedPatches++;
 	}
 	logline("applied %d patch(es) to the copy", np);
 	return 1;
@@ -1595,6 +1597,22 @@ static void exec_at(const char* inner)
 	if (ieq(cmd,"shot")){ char n[256]="shot"; sscanf(rest,"%255s",n); capture_held(n); if (gLastHeldMs>0) logline("at shot %s: the game was held %.2f ms", n, gLastHeldMs); return; }
 	if (ieq(cmd,"burst")){ char n[256]="burst"; int c=10,k=1; char kw[16]=""; int iv=100;
 		if (sscanf(rest,"%255s %d %15s %d",n,&c,kw,&iv)>=2) { if (ieq(kw,"update")) do_burst(n,c,0,1,iv>0?iv:1); else do_burst(n,c,iv>0?iv:atoi(kw),0,0); }
+		return; }
+	if (ieq(cmd,"peek")){   // at <N> peek <expr> [<expr>...]: what each expression (the --watch grammar) reads now, as signed ints, in one
+		// log line "peek u=<counter> <expr>=<value> ..." ("-" where it cannot be read). On the virtual clock the game stands at the update
+		// the "at" waited for, so the values belong to that update: a state log of the original to set beside a port's
+		char line[1024]; int n=0; uint32_t c=0; int hc=gCounterExpr[0] && read_counter(gCounterExpr,&c);
+		n+=wsprintfA(line+n,"peek u=%d",hc?(int)c:-1);
+		const char* p=rest;
+		while (*p && n<(int)sizeof(line)-100) {
+			while (*p==' ') p++;
+			if (!*p) break;
+			char e[128]; int l=0; while (*p && *p!=' ' && l<127) e[l++]=*p++;
+			e[l]=0;
+			uint32_t v=0;
+			if (read_counter(e,&v)) n+=wsprintfA(line+n," %s=%d",e,(int)v); else n+=wsprintfA(line+n," %s=-",e);
+		}
+		logline("%s",line);
 		return; }
 	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",inner); return; }
 	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
@@ -3328,11 +3346,16 @@ static void stop_sandbox(const char* why)
 	gSandboxId[0]=0;
 }
 static BOOL WINAPI sandbox_ctrl(DWORD type){ stop_sandbox("origrun was interrupted"); return FALSE; }
-// The GUIDs wsb printed after the last "---- wsb <header>" line in gWsbLog: how many, and the last one in id.
+// The GUIDs wsb printed after the last "---- wsb <header>" line in gWsbLog: how many, and the last one in id. The log
+// keeps every run's wsb output, so only its last 64 KB are read: the newest header is there (reading the first 64 KB
+// found an old run's header once the log passed that size, AstroPop 2026-11-09).
 static int wsb_guids(const char* header, char* id, int cap)
 {
-	FILE* f=fopen(gWsbLog,"r"); if (!f) return 0;
-	static char text[65536]; size_t n=fread(text,1,sizeof(text)-1,f); fclose(f); text[n]=0;
+	FILE* f=fopen(gWsbLog,"rb"); if (!f) return 0;
+	static char text[65536];
+	long size=(fseek(f,0,SEEK_END)==0) ? ftell(f) : -1;
+	if (size>(long)(sizeof(text)-1)) fseek(f,size-(long)(sizeof(text)-1),SEEK_SET); else fseek(f,0,SEEK_SET);
+	size_t n=fread(text,1,sizeof(text)-1,f); fclose(f); text[n]=0;
 	char hd[64]; wsprintfA(hd,"---- wsb %s",header);
 	char* q=NULL; for (char* h=text; (h=strstr(h,hd))!=NULL; h++) q=h;
 	if (!q) return 0;
@@ -4162,8 +4185,11 @@ static void msgbox_create(void)
 static void clock_env(void)
 {
 	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
-		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID",NULL};
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
+	// Always: the stand-in's GetLastInputInfo says the last input is now, so an original that stops drawing once the
+	// machine is idle for the screensaver's timeout keeps drawing (docs/ORIGRUN.md, "The last-input hook")
+	SetEnvironmentVariableA("ORIGRUN_LASTINPUT","now");
 	if (gMsgboxHook==0) logline("--msgbox show: message boxes are shown as before; the dialog watch answers them once they are on screen, after their sound");
 	if (!gClockVirtual && !gCursorScripted && !gKeysScripted && gMsgboxHook<=0) return;
 	wsprintfA(gClockId,"%lu-%lu",GetCurrentProcessId(),GetTickCount());
@@ -4628,7 +4654,17 @@ int main(int argc, char** argv)
 		}
 		else if (game) wsprintfA(listPath,"%s\\tools\\origrun\\patches\\%s.txt",repo,game);
 		if (listPath[0] && !apply_patches(listPath, haveSeed, seed)) return 2;
-	} else logline("--no-patches: the copy runs unpatched");
+		// The seed reaches the game only through a patch that carries {seed}. With --exe and no --patches (or a
+		// list without such an entry) a --seed would pin nothing, and the run would draw its own random content.
+		if (haveSeed && !gSeedPatches) {
+			if (listPath[0]) logline("--seed %u: no entry of the patch list %s carries {seed}, so nothing would pin it -- run stops", seed, listPath);
+			else logline("--seed %u: no patch list applies (--exe without --game or --patches), so nothing would pin it -- run stops", seed);
+			return 2;
+		}
+	} else {
+		logline("--no-patches: the copy runs unpatched");
+		if (haveSeed) logline("WARNING: --seed %u is not pinned, since only a patch list carries it", seed);
+	}
 
 	// The DirectDraw/Direct3D 7 wrapper: a previous run's never carries over. --dgvoodoo <dir> places it ("env" reads
 	// the folder from ORIGRUN_DGVOODOO), and --3d on places it from ORIGRUN_DGVOODOO when that is set, since 3D cannot

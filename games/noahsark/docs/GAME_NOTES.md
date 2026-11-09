@@ -56,7 +56,7 @@ Work notes while the translation is written (see Board.h for the final field nam
 - A pair is removed by a path of empty cells (`Reachable`, breadth-first; `SearchPath`, depth-first with a cost bound,
   gives the trail that is drawn). The pieces walk along the trail toward each other and are taken in within 5 pixels;
   removed pieces then fly to the ark (speed 5.3). Combos lower the water. Strategy mode has gravity and pushes a new row
-  in (`PushRow`); puzzle mode is match-3 (`MarkRuns`, `RefillPuzzle`); the stampede bonus removes groups of three or
+  in (`PushRow`); puzzle mode is match-3 (`MarkRuns`); the stampede bonus removes groups of three or
   more while the columns close in on the middle.
 - Drawing Noah (`Board::Draw`): two flags choose his picture, the board's `mNoahWorried` (+0x35c) and `mArkLeaving`
   (+0xe15). Normal play uses his idle sprites (first image 62 plus a frame); once worried, his climbing frames
@@ -209,6 +209,86 @@ stayed 0 and the title showed no link, and it became 1 once the open asked for r
 presumably failed without elevation; not checked). With the three, the title shows its link at update 104.
 <!-- /private -->
 
+### The performance pass (2026-11-09)
+
+**What the profile showed.** `tools/profile/prof.sh` runs Bejeweled's sampling profiler (`cpuprof.py`: every thread's instruction
+pointer about once a millisecond, weighted by cycles) on the port under rundesk. During play the game's own code is a small part of
+the processor time: in a real-time minute the exe is about 2 %, the rest is the operating system's and the graphics driver's work
+(ntdll 87 %, nvwgf2um 5 %), which the game's code cannot make cheaper. At start-up it was different: before the title screen the
+port decoded all 82 pictures (72 ms) and all 34 sounds (about 100 ms) whether the game used them or not, which was also
+18 MB of memory at the title. The rest of the 0.8 s is the framework's start-up (`SexyApp::Init`: the window and the
+graphics device, 250 to 310 ms) and the process's own start, which are shared code (see the spec below).
+
+**What changed: pictures and sounds are loaded at their first use** (the way Mummy Maze's port does it, commit b5d51336). `NoahApp`'s
+`mImages` is an `ImageTable`: indexing it gives the picture, decoded on the first request, and the loading bar still counts the
+sounds as before (`LoadingThreadProc` adds their number to the bar's completed tasks at once). `NoahApp::PlaySample` loads
+the sound on its first play (`LoadSoundOnce`); the mixer decodes outside its lock and registers the sound inside it
+(`Platform::Mixer::LoadSoundData`), so a first play in the middle of a game is safe. Which pictures and sounds are used, and in what
+order, is the game's, so every draw, every random number and every screen is the same as before.
+
+**Deviations of this change** (each listed because the original loads all of them first): a picture that is missing or bad is told at
+its first use instead of at start (the same popup, the game ends, and a blank 1x1 picture stands in for that one frame), and a sound
+that is missing stays silent instead of being told at start; the first use of a picture or sound costs its decode in that frame,
+once. Nothing shows in the game's files as shipped.
+
+**Proof that play is unchanged.** `tools/check.sh noahsark` passes with the frozen baseline identical (the bot's action, strategy and
+puzzle games end on the same updates with the same scores, the rerun is identical and the baseline is identical). Besides
+that, the same action game with `BYOPOP_SOUNDLOG` set played the same sounds on the same updates before and after (417 plays;
+`tools/soundcmp.py` lines up the two logs and takes the new `load` lines out), and the autoplay log and the state log of the
+bot's game are byte for byte the same.
+
+**Numbers, native, before and after.** The first measurements (section 10 above) were taken with other sessions' games running, and a
+before-block and an after-block taken minutes apart were not comparable, so these are twelve pairs run in turn (before, after,
+before, ...; `tools/profile/loadpairs.sh`) with other sessions' games running (the machine busy 33 to 100 %, median 45 % before and 41 % after). "Before" is the port as
+merged at 6d7b2b79, "after" this pass's build; `PORT_EXE` makes `perf.py` run another exe.
+
+| First screen that takes input (the title's play link), 12 pairs | Before | After |
+|---|---|---|
+| Seconds from the process's creation, median | 0.99 | 0.60 |
+| Fastest run | 0.62 | 0.46 |
+| Pairs in which the after run was faster | | 11 of 12 (median difference -0.37 s) |
+| Private bytes at the title, median | 56.0 MB | 38.2 MB |
+| Processor time until the title, median | 0.62 s | 0.44 s |
+
+Four runs of the 24 took 3.9 to 50 s because another session's heavy run was on the machine at that moment (the before runs of
+pairs 1, 2 and 4 and the after run of pair 12); they stay in the medians. The medians of the eight pairs in which both runs were under 3 s are
+0.93 s before and 0.54 s after. The original's 2.12 s in the table above was measured in another hour and is not compared to
+these directly; both of the port's figures stay below it.
+
+The scripted minute (the table above, 6000 updates of the bot's game on the real clock), run twice before and twice after: updates
+per second 105.2 and 105.2 before, 104.3 and 103.8 after (the clock paces them, so this is the same); processor time in the minute
+8.8 and 7.3 s before, 7.95 and 7.95 s after (the machine was busier than at the first measurement, which gave 5 s, and the
+spread is the machine's, not a difference of the change); peak private bytes in the minute 70.8 and 69.1 MB before, 63.0 and
+66.1 MB after (the pictures and sounds the minute never reaches stay undecoded). An uncapped run of the whole bot game (`-fast`,
+7401 updates, five pairs, the framework's own "Seconds" figure) took a median of 1.57 s before and 1.34 s after, inside the
+spread of the runs (1.28 to 1.75 s before, 1.10 to 1.77 s after).
+
+**Numbers, web build under Node.** The Browser pane is hidden and runs no animation frames, so the web build was timed as in the
+other ports: `tools/profile/webpairs.sh` plays a whole autoplay action game with `-fast` under `wasmrun.js game` (Node's WebAssembly,
+no canvas, no audio device), the earlier sources' wasm and this pass's in turn, three times each. The framework's own "Resource
+Loading Time" line (the app's creation to the sounds done, in the web build's file system) was 415, 287 and 256 ms before and
+84, 126 and 67 ms after (medians 287 and 84 ms). It is Node's load, not a browser's: a browser also fetches and decodes the
+files, which the lazy loading moves to the first use, so the wait before the title shortens by at least this much. The three
+games are identical in their autoplay logs (the same updates, the same scores: level 4 done at update 17369, score 6074), before and
+after. The wall time of a whole game, 17.4, 21.0 and 37.7 s before and 19.9, 60.9 and 32.0 s after, says nothing about the change:
+the machine's other runs moved it by a factor of three between runs, and the same work is done in both.
+
+**Spec for the coordinator (shared code, not done here).** About 0.3 s of the port's 0.6 s start is `SexyApp::Init`: creating the window
+and the graphics device (250 to 310 ms in the profile). A start that shows the window at once and creates the device after it, or
+in the background while the game builds its tables, would take part of that from every game; it changes what the framework does at
+start and is the coordinator's.
+
+**Tools of the pass** (all in `tools/profile/`): `prof.sh <name> <seconds> <script>` (the sampling profile of the port under rundesk,
+waiting for room), `perfpass.sh` (the pairs of the minute and the load, before and after), `loadpairs.sh [pairs]` (the interleaved load
+pairs), `webpairs.sh <before dir> <pairs>` (the web build's pairs under Node) and `perf.py`'s `PORT_EXE`.
+
+**Code taken out** (the second part of the pass, after the coverage check's candidates): `Board::RefillPuzzle` (0x4061d0) and
+the puzzle branch of `Board::EnsureMoves`, which the new level code never reaches (it calls `EnsureMoves` only for modes other than
+puzzle and Stampede); the comment in `EnsureMoves` says so. The suite passes with the baseline identical. The rest of the port's
+functions were all reached by the original's runs (section 11), apart from `AbandonPair` and `TriggerNoMoves`, which a board with no
+pair left reaches and which were read again against the export; the fields named `Unused` stay because the original's objects and
+save files keep them.
+
 ## 11. Coverage check (2026-11-08)
 
 The coverage check of `docs/COVERAGE.md`, the second game's whole one after Ning Po's. origrun's `--coverage` recorded which of the
@@ -295,10 +375,11 @@ define 142 of them; the last one, from all 15, has them reach 221 and the port d
 - **`Board::AbandonPair` (0x4067e0) and `Board::TriggerNoMoves` (0x4074c0):** reached only by a board with no pair left, which none of
   the 15 runs came to. Both were read again line by line against the export and match, including the points taken, the water's move and
   the sample played.
-- **Candidate for taking out unneeded code: `Board::RefillPuzzle` (0x4061d0) and the puzzle branch of `Board::EnsureMoves`
-  (BoardLevel.cpp, near line 445).** The original's only caller of `EnsureMoves` is the new level code, which calls it only for modes
-  other than puzzle (4) and Stampede (5), so the branch that calls `RefillPuzzle` never runs in either. The port has the same guard.
-  Not removed now. (The read also found that the port moves a falling animal up by swapping two pointers where the original makes a
+- **Taken out (2026-11-09, the performance pass's second part): `Board::RefillPuzzle` (0x4061d0) and the puzzle branch of
+  `Board::EnsureMoves`.** The original's only caller of `EnsureMoves` is the new level code, which calls it only for modes
+  other than puzzle (4) and Stampede (5), so the branch that calls `RefillPuzzle` never runs in either. The port had the same guard;
+  the function and the branch are gone, with a comment where the branch was, and the suite passes with the baseline identical.
+  (The read also found that the port moves a falling animal up by swapping two pointers where the original makes a
   new piece and deletes the old one, and sets `mY` of both cells, which the original does not: it cannot matter while the code is
   unreached.)
 

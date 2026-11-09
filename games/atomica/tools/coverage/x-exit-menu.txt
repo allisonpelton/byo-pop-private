@@ -1,0 +1,6 @@
+# coverage run: quit from the main menu with its exit button (the menu's button 5, centre 320 394), after the title screen's click
+1500 move 320 445
+1510 click 320 445
+2300 move 320 394
+2320 click 320 394
+end 2700

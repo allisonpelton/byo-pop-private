@@ -8,13 +8,18 @@
 
 #include "Graphics.h"
 #include "Image.h"
+#include "MTRand.h"
 
 namespace Sexy
 {
 
-inline unsigned int AstroRand()         // Sexy::MTRand::NextNoAssert(DAT_005a4e28) as an unsigned number
+// The game's own generator (the object that DAT_005a4e28 points to): not Rand()'s. The application makes it as its Init is done
+// (AstroPopApp::Init), seeding it with the next number of Rand()'s generator, as the original's start-up does (0x429280).
+extern MTRand	gGameRand;
+
+inline unsigned int AstroRand()         // Sexy::MTRand::NextNoAssert(DAT_005a4e28)
 {
-	return (unsigned int) Rand();
+	return (unsigned int) gGameRand.NextNoAssert();
 }
 
 class Particle

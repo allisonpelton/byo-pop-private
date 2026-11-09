@@ -12,6 +12,7 @@ using namespace Sexy;
 // ---------------------------------------------------------------------------------------------------------
 // Rand
 
+// 0x425ec0: the original seeds with the tick count here; the port seeds in AtomicaApp::Init, which also takes -seed
 GameRand::GameRand() : mJ(0), mK(0x1f), mDrawing(false), mDrawJ(0), mDrawK(0x1f)
 {
 	Seed(1);
@@ -83,6 +84,7 @@ int GameRand::Get(int theRange, bool theSigned)
 // ---------------------------------------------------------------------------------------------------------
 // Sprite
 
+// 0x4295e0
 Sprite::~Sprite()
 {
 	if (mOwnsImage)
@@ -115,7 +117,7 @@ void Sprite::Draw(Graphics* g, int theX, int theY)
 		g->DrawImage(mImage, theX, theY, mSrc);
 }
 
-// 0x4014f0
+// 0x4014f0 / 0x401530
 void Sprite::DrawCentered(Graphics* g, int theX, int theY)
 {
 	if (mImage != NULL)
@@ -194,7 +196,7 @@ Sprite* SpriteMgr::Wrap(Image* theImage)
 	return aSprite;
 }
 
-// 0x429970
+// 0x429970 (and 0x429910, the add to the manager's list that each of the sprite makers does: mSprites.push_back)
 Sprite* SpriteMgr::SubSprite(Sprite* theSheet, int theX, int theY, int theWidth, int theHeight)
 {
 	Sprite* aSprite = new Sprite();

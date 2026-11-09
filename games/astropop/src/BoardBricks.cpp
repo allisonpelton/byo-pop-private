@@ -162,7 +162,7 @@ void Board::BuildBanner(const std::string& theText, int theTime, Font* theFont)
 // steps of 50) is paid with a text that moves to the middle of the screen.
 void Board::ClearBonus()
 {
-	int aBonus = (int) ((double) m940 * (double) 10000.0f);
+	int aBonus = (int) (m940 * 10000.0f);
 	if (aBonus > 100000)
 		aBonus = 100000;
 	mApp->PlaySample(SOUND_PERFECT);
@@ -208,7 +208,7 @@ void Board::StartClearCount()
 	}
 	m1b94 += (int) m70.size();
 
-	int aStep = (int) ((double) m960 * (double) 0.05f);
+	int aStep = (int) ((float) m960 * 0.05f);
 	m1b9c = m1b94 * aStep;
 	if (m1b9c > m960)
 		m1b9c = m960;
@@ -279,7 +279,7 @@ void Board::UpdateBricks()
 				if (m19fc > 0x3c)
 					m19fc = 0x3c;
 				else
-					m19d8 = (int) ((double) m19cc + (double) m930 * (double) 20.0f);
+					m19d8 = (int) ((float) m19cc + m930 * 20.0f);
 			}
 		}
 

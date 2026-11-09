@@ -7,9 +7,12 @@
 //     keys. Only the active window's game has the focus, so the others get the focus loss they get when a page loses it.
 //   - another page of ours (a game's copyright and licences, the terms): its page in a frame, scrolling with the skin's bars.
 //   - a licence text (licenses/*.txt): the text itself in the window.
-// Links to other sites still open a tab. The address follows the active window (pushState for a window the player opens,
-// replaceState as the active one changes), Back and Forward close or reopen windows without leaving the page, and any of
-// those addresses opened on its own comes back here with its window open (web/skins.js, onePage). Other skins keep their pages.
+// Links to other sites still open a tab. The address is always the site's root (the user, 2026-11-09: "What we're developing
+// now is a SPA, and the url bar should never need to show any path other than root"), with only the test parameters the page
+// was opened with (?silent=1, ?assets=): the windows open live in history.state, a new entry (pushState) for a window the
+// player opens and the same entry (replaceState) as the active one changes or a window closes, so Back and Forward close or
+// reopen windows without leaving the page and a reload opens them again. An old address of one of the pages, opened on its
+// own, comes here as ?open=<page> (web/skins.js, onePage), which opens its window and goes back to the root.
 var ByopopApps = (function () {
   "use strict";
   var SKIN = window.ByopopSkin, desk = SKIN && SKIN.desk, SITE = SKIN && SKIN.SITE;
@@ -55,15 +58,11 @@ var ByopopApps = (function () {
     if (SILENT) u.searchParams.set("silent", "1");
     return u.href;
   }
-  // the address a window has in the bar: its own, with ?silent=1 kept (a reload of a test run stays silent)
-  function addressOf(key) {
-    if (!key) return SITE + (SILENT ? "?silent=1" : "");
-    // a page in a folder (a licence text): the listing's address naming it, as the page's own address would move the
-    // document's base, and every relative link and later load of the listing with it
-    if (pathOf(key).indexOf("/") >= 0) return SITE + "?open=" + encodeURIComponent(key) + (SILENT ? "&silent=1" : "");
-    var u = new URL(key, SITE);
-    if (SILENT) u.searchParams.set("silent", "1");
-    return u.href;
+  // the address in the bar, whatever window is open: the site's root, with the test parameters kept (a reload of a test run
+  // stays silent)
+  function rootAddress() {
+    var t = SKIN && SKIN.testQuery ? SKIN.testQuery() : (SILENT ? "silent=1" : "");
+    return SITE + (t ? "?" + t : "");
   }
   function byKey(key) { for (var i = 0; i < apps.length; i++) if (apps[i].key === key) return apps[i]; return null; }
   function byId(id) { for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i]; return null; }
@@ -78,7 +77,7 @@ var ByopopApps = (function () {
   function write(push) {
     if (restoring) return;
     var st = state();
-    try { history[push ? "pushState" : "replaceState"](st, "", addressOf(st.active)); } catch (e) {}
+    try { history[push ? "pushState" : "replaceState"](st, "", rootAddress()); } catch (e) {}
   }
 
   // ---- a Windows 95 message box (the fourth game) ----
@@ -114,6 +113,7 @@ var ByopopApps = (function () {
     var el = document.createElement("section");
     el.className = "d95-app d95-app-" + kind;
     var title = g ? g.title : pathOf(key).split("/").filter(Boolean).pop() || key;
+    app.title = title;
     // a game's menu bar, as a Windows 95 program's (the user, 2026-11-09: "don't hide everything under "Game""): Game, View,
     // Options and Help (barMenus), each with its access key, the first letter underlined (Alt and the letter, menuKey)
     if (kind === "game") {
@@ -161,6 +161,10 @@ var ByopopApps = (function () {
     desk.add(el, { id: id, title: title, closable: true, menu: true, menuIcon: icon, noIcon: true,
       onClose: function () { closeApp(app); },
       maximize: kind === "game" ? function () { maximize(app); } : null,
+      // a game's window is never dragged smaller than its game (the user, 2026-11-09: "Don't allow a window to be dragged smaller
+      // than the game inside it"): the game at the multiple it is drawn at (1x with Fit window), its status bar and the frame
+      minWidth: kind === "game" ? function () { return least(app).w; } : null,
+      minHeight: kind === "game" ? function () { return least(app).h; } : null,
       at: function (left) { return [left + 40 + (n % 6) * 26, 20 + (n % 6) * 26]; },
       scroll: kind === "txt" ? app.text : null,
       focusIn: function (back) { focusApp(app, back); } });
@@ -168,6 +172,13 @@ var ByopopApps = (function () {
     return app;
   }
   function inner(app) { try { return app.frame && app.frame.contentWindow; } catch (e) { return null; } }
+  // the smallest a game's window may be: what its page needs (web/shell.html ByopopEmbed.least) and the window's own frame
+  function least(app) {
+    var w = inner(app), need = null;
+    try { need = w && w.ByopopEmbed && w.ByopopEmbed.least(); } catch (e) {}
+    if (!need || !app.frame) return { w: 0, h: 0 };
+    return { w: Math.ceil(need.w + app.el.offsetWidth - app.frame.clientWidth), h: Math.ceil(need.h + app.el.offsetHeight - app.frame.clientHeight) };
+  }
   // The menus: Game (what acts on the game: its files, its controls, Close), View (its scales, full screen, the view options
   // and the chat), Options (mods, the game's settings) and Help (the terms, copyright and licences; About). The page in the
   // window gives its own parts (ByopopEmbed.menus, web/shell.html); the desktop adds what is its own.
@@ -310,10 +321,14 @@ var ByopopApps = (function () {
   }
   // the size a game wants (its screen at one pixel for each of the device's, and its window's frame and status bar): the window
   // takes it the first time, as far as the desktop has room
-  // (force: the player chose a scale, which sizes the window again even to a size it had before)
-  function fit(win, w, h, force) {
+  // (force: size the window again even to a size it had before; chosen: the player chose the scale, which restores a
+  // maximized window first)
+  function fit(win, w, h, force, chosen) {
     var a = byWin(win);
-    if (!a || narrow() || a.el.classList.contains("d95-maxed") || (!force && a.fitted && a.fitted[0] === w && a.fitted[1] === h)) return;
+    if (!a || narrow()) return;
+    // a size the player chose restores a maximized window first (its place comes back), as Windows did
+    if (chosen && a.el.classList.contains("d95-maxed")) maximize(a);
+    if (a.el.classList.contains("d95-maxed") || (!force && a.fitted && a.fitted[0] === w && a.fitted[1] === h)) return;
     a.fitted = [w, h];
     var inner = a.frame || a.el.querySelector(".d95-app-client");
     var cw = a.el.offsetWidth - inner.clientWidth, ch = a.el.offsetHeight - inner.clientHeight;
@@ -358,25 +373,24 @@ var ByopopApps = (function () {
     if ((a.getAttribute("href") || "").charAt(0) === "#" || a.hasAttribute("download")) return;
     if (open(a.href, "push")) ev.preventDefault();
   });
-  // leaving Desktop 95 on another page's address: that page, as the other skins have it
-  window.addEventListener("byopop-skin", function (ev) {
-    if (!ev.detail || ev.detail.skin === "d95") return;
-    var key = relOf(location.href), kind = key && kindOf(key);
-    if (kind && kind !== "index") { location.reload(); return; }
-    // a licence text (?open=, addressOf) is a tab of its own in the other skins: the listing, where its link is
-    if (Q.get("open") !== null || /[?&]open=/.test(location.search)) { try { history.replaceState(null, "", addressOf(null)); } catch (e) {} }
-    // staying on the listing: the windows' pages close as their Close closes them (a game's saves first)
-    apps.slice().forEach(closeApp);
-  });
-  // the first state, and the page this address named (?open=, from web/skins.js onePage)
+  // the first state: the windows a reload finds in history.state, open again, and the page an old address named (?open=, from
+  // web/skins.js onePage); then the root's address
   function start() {
-    var want = Q.get("open");
-    // the desktop is not here after all (another skin chosen meanwhile): the page itself
-    if (!on()) { if (want !== null && relOf(new URL(want, SITE).href) !== null) location.replace(new URL(want, SITE).href); return; }
+    var want = Q.get("open"), st = history.state;
+    if (!on()) return;
+    if (st && st.d95 && st.open && st.open.length) {
+      restoring = true;
+      try {
+        st.open.forEach(function (k) { if (!byKey(k)) open(SITE + k, "none"); });
+        var act = st.active && byKey(st.active);
+        if (act) desk.openWin(act.id);
+      } finally { restoring = false; }
+    }
     if (want !== null) {
-      try { history.replaceState(state(), "", addressOf(null)); } catch (e) {}
-      if (!open(SITE + want, "replace")) location.replace(new URL(want, SITE).href);
-    } else write(false);
+      try { history.replaceState(state(), "", rootAddress()); } catch (e) {}
+      open(SITE + want, "replace");
+    }
+    write(false);
   }
   if (document.readyState === "complete") setTimeout(start, 0); else window.addEventListener("load", function () { setTimeout(start, 0); });
 
@@ -387,7 +401,17 @@ var ByopopApps = (function () {
     for (var i = apps.length - 1; i >= 0; i--) if (apps[i].kind === "game") return apps[i].game;
     return "";
   }
-  return { open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame,
+  // the game window in front, for the Music window's views (web/music.js, "Following a game"): the game window last made active,
+  // while it is open and not minimized; its page and its game's title, or null
+  function frontFrame() {
+    var a = lastGame && apps.indexOf(lastGame) >= 0 ? lastGame : null;
+    if (!a || !a.el || a.el.classList.contains("d95-min") || a.el.classList.contains("d95-closed")) return null;
+    var w = inner(a);
+    return w ? { win: w, title: a.title || "" } : null;
+  }
+  return { open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
-    count: function () { return apps.length; } };
+    count: function () { return apps.length; },
+    // the address back to the root (a link to #settings and the like, web/index.html)
+    settle: function () { if (on()) write(false); } };
 })();

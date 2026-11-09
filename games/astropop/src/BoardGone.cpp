@@ -53,7 +53,7 @@ void Board::OnBrickGone(Brick* theBrick)
 {
 	if (!m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0)
 	{
-		int aPoints = (int) ((long double) theBrick->mColumn * (long double) m940);
+		int aPoints = (int) ((float) theBrick->mColumn * m940);
 		aPoints = aPoints - aPoints % 10;
 		m19dc += aPoints;
 		m196c += aPoints;
@@ -305,7 +305,7 @@ void Board::OnBrickGone(Brick* theBrick)
 			if (m19fc > 0x3c && !AnyMoveLeft(NULL))
 			{
 				if (m19fc < 0x3d)
-					m19d8 = (int) ((long double) m19cc + (long double) m930 * 20.0L);
+					m19d8 = (int) ((float) m19cc + m930 * 20.0f);
 				else
 					m19fc = 0x3c;
 			}

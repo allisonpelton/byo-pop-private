@@ -87,35 +87,35 @@ void BSpline::CalculateSplinePrv(const std::vector<float>& thePoints, std::vecto
 	if (aCount < 2)
 		return;
 	int aSegs = aCount - 1;
-	Equations e(aSegs * 4, aSegs * 4 + 1);
+	Equations anEquations(aSegs * 4, aSegs * 4 + 1);
 	int aRow = 0;
-	e.At(aRow, 2) = 1.0f;
+	anEquations.At(aRow, 2) = 1.0f;
 	aRow++;
-	int c = 2;
-	for (int i = 0; i < aSegs; i++, c += 4) {
-		e.At(aRow, c + 1) = 1.0f;
-		e.SetRhs(aRow, thePoints[i]);
+	int aColumn = 2;
+	for (int i = 0; i < aSegs; i++, aColumn += 4) {
+		anEquations.At(aRow, aColumn + 1) = 1.0f;
+		anEquations.SetRhs(aRow, thePoints[i]);
 		aRow++;
-		e.At(aRow, c - 2) = 1.0f;
-		e.At(aRow, c - 1) = 1.0f;
-		e.At(aRow, c) = 1.0f;
-		e.SetRhs(aRow, thePoints[i + 1] - thePoints[i]);
+		anEquations.At(aRow, aColumn - 2) = 1.0f;
+		anEquations.At(aRow, aColumn - 1) = 1.0f;
+		anEquations.At(aRow, aColumn) = 1.0f;
+		anEquations.SetRhs(aRow, thePoints[i + 1] - thePoints[i]);
 		aRow++;
-		e.At(aRow, c - 2) = 3.0f;
-		e.At(aRow, c - 1) = 2.0f;
-		e.At(aRow, c) = 1.0f;
+		anEquations.At(aRow, aColumn - 2) = 3.0f;
+		anEquations.At(aRow, aColumn - 1) = 2.0f;
+		anEquations.At(aRow, aColumn) = 1.0f;
 		if (i < aCount - 2)
-			e.At(aRow, c + 4) = -1.0f;
+			anEquations.At(aRow, aColumn + 4) = -1.0f;
 		aRow++;
 		if (i < aCount - 2) {
-			e.At(aRow, c - 2) = 6.0f;
-			e.At(aRow, c - 1) = 2.0f;
-			e.At(aRow, c + 3) = -2.0f;
+			anEquations.At(aRow, aColumn - 2) = 6.0f;
+			anEquations.At(aRow, aColumn - 1) = 2.0f;
+			anEquations.At(aRow, aColumn + 3) = -2.0f;
 			aRow++;
 		}
 	}
-	e.Solve();
-	theCoef = e.mSolution;
+	anEquations.Solve();
+	theCoef = anEquations.mSolution;
 }
 
 void BSpline::CalculateSplinePrvLinear(const std::vector<float>& thePoints, std::vector<float>& theCoef)

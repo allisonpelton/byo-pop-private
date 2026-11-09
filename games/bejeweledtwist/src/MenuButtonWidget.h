@@ -12,7 +12,6 @@ class WinTwistApp;
 
 class MenuButtonWidget : public TwistButton {
 public:
-	SexyString mString160;          // +0x160: (not yet seen in use)
 	SexyString mToolTip;            // +0x17c: what the menu says about the button
 	WinTwistApp* mApp;              // +0x19c
 	bool mShowCount = false;        // +0x1a0: mCount is drawn under the label

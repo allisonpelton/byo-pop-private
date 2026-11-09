@@ -71,7 +71,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mBoxHints->Resize(mX + 0xd2, mY + 0xeb, 0x14, 0x14);
 }
 
-// 0x4234a0
+// 0x4234a0 / 0x422e70
 void OptionsDialog::Update()
 {
 	GameDialog::Update();
@@ -92,7 +92,7 @@ void OptionsDialog::Update()
 	}
 }
 
-// 0x424430 (the buttons) and 0x422c70 (the check boxes)
+// 0x424430 / 0x424453 (the buttons; the original's ids 1 and 4, "more games" and "register", are left out) and 0x422c70 (the check boxes)
 void OptionsDialog::ButtonDepress(int theId)
 {
 	if ((theId == 6) || (theId == 7) || (theId == 8) || (theId == 10))

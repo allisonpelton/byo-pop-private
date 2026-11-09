@@ -11,7 +11,7 @@
 
 using namespace Sexy;
 
-// 0x417b90
+// 0x417b90 / 0x405f90
 QuitDialog::QuitDialog(AtomicaApp* theApp) :
 	GameDialog(theApp, false),
 	mQuitAfter(false)

@@ -274,16 +274,14 @@ var ByopopPlayers = (function () {
       var modes = {}, n = 0;
       games.forEach(function (g) { var m = modeOf(g.id); modes[m] = (modes[m] || 0) + 1; n++; });
       var parts = Object.keys(modes);
-      modeNote.textContent = "";
-      if (parts.length === 1 && parts[0] === "game") {
-        modeNote.appendChild(document.createTextNode(ByopopStrings.t("players.mode.games")));
-      } else {
-        modeNote.appendChild(document.createTextNode(ByopopStrings.t("players.mode.note", {parts: parts.map(function (m) {
-          // a mode this page does not know is named as it is
-          var known = m === "game" || m === "fill" || m === "create";
-          return ByopopStrings.t("players.mode." + (known ? m : "other") + (modes[m] === n ? "_all" : "_some"), {n: modes[m], verb: m});
-        }).join(", ")})));
-      }
+      // as values (the user's rule: values, not sentences), and only while the games differ: one value for every game is the
+      // setting's own, just above
+      var NAMES = { game: "settings.game_default", fill: "settings.profile.fill", create: "settings.profile.create" };
+      modeNote.hidden = parts.length < 2;
+      modeNote.textContent = parts.length < 2 ? "" : ByopopStrings.t("players.mode.note", {parts: parts.map(function (m) {
+        // a mode this page does not know is named as it is
+        return ByopopStrings.t("players.mode.part", {mode: NAMES[m] ? ByopopStrings.t(NAMES[m]) : m, n: modes[m]});
+      }).join(", ")});
       // (the setting itself is just above, in the same Players section of Settings: no link to it)
     }
 

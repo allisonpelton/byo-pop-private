@@ -378,7 +378,7 @@ void Board::DrawBanner(Graphics* g, const SexyString& theText)
 void Board::Draw(Graphics* g)
 {
 	NoahApp* anApp = mApp;
-	Image** anImages = anApp->mImages;
+	ImageTable& anImages = anApp->mImages;
 
 	// the sky (rain, or the lightning flash)
 	Image* aSky = mLightning ? anImages[IMAGE_LIGHTNING] : anImages[IMAGE_RAIN1 + (mBackdropTick & 1)];

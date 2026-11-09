@@ -491,16 +491,12 @@ var ByopopChat = (function () {
     ".bpc-game { display: inline-block; text-indent: 0; padding: 0 5px; border-radius: 4px; background: var(--bpc-c, #6b3fd1); color: #fff;\n" +
     "  font-size: 11.5px; font-weight: 700; line-height: 1.4; text-decoration: none; vertical-align: 1px; }\n" +
     ".bpc-game:hover { text-decoration: underline; }\n" +
-    "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .bpc-game { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); } }\n" +
-    ":root[data-theme=\"dark\"] .bpc-game { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }\n" +
     "@media (forced-colors: active) { .bpc-game { border: 1px solid LinkText; } }\n" +
     ".bpc-game.bpc-game-icon { padding: 0; background: none; box-shadow: none !important; vertical-align: -3px; border-radius: 3px; }\n" +
     ".bpc-game-icon img { display: block; width: 16px; height: 16px; }\n" +
     ".bpc-game-icon:hover, .bpc-game-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }\n" +
     ".bpc-nick { font-weight: 700; color: hsl(var(--bpc-h, 260) 55% 25%); }\n" +
     ".bpc-me .bpc-nick { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }\n" +
-    "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .bpc-nick { color: hsl(var(--bpc-h, 260) 70% 74%); } }\n" +
-    ":root[data-theme=\"dark\"] .bpc-nick { color: hsl(var(--bpc-h, 260) 70% 74%); }\n" +
     ".bpc-day { display: flex; align-items: center; gap: 8px; text-indent: 0; padding: 10px 0 4px 0; color: var(--muted); font-size: 12px; }\n" +
     ".bpc-day::before, .bpc-day::after { content: \"\"; flex: 1; border-top: 1px solid var(--line); }\n" +
     ".bpc-start, .bpc-older { display: block; margin: 0 auto 6px; font-size: 12px; color: var(--muted); text-align: center; }\n" +
@@ -523,10 +519,8 @@ var ByopopChat = (function () {
     ".bpc-nameform .bpc-hint, .bpc-nameform .bpc-nameerr { grid-column: 1 / -1; }\n" +
     ".bpc-nameerr { margin: 0; font-size: 12.5px; color: #b3261e; }\n" +
     ".bpc-nameerr:empty { display: none; }\n" +
-    "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .bpc-nameerr { color: #ff8a80; } }\n" +
-    ":root[data-theme=\"dark\"] .bpc-nameerr { color: #ff8a80; }\n" +
-    ".bpc-signin[aria-disabled=true] { opacity: 0.6; cursor: not-allowed; }\n" +
-    ".bpc-signin[aria-disabled=true]:hover { border-color: var(--line); }\n";
+    // the test chat's tag (values, not sentences: the sentence is its tooltip)
+    ".bpc-tag { display: inline-block; padding: 0 4px; border: 1px solid currentColor; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-decoration: none; cursor: help; }\n";
 
   function make(tag, className, text) {
     var e = document.createElement(tag);
@@ -799,6 +793,7 @@ var ByopopChat = (function () {
       jump.hidden = true;
 
       var foot = make("div", "bpc-foot");
+      // a test chat says so with a tag, its sentence the tag's tooltip (the user's rule: values, not sentences)
       note = make("p", "bpc-note");
       var form = make("form", "bpc-form");
       form.noValidate = true;
@@ -855,14 +850,13 @@ var ByopopChat = (function () {
       cancelBtn.type = "button";
       nameForm.appendChild(nameLabel); nameForm.appendChild(nameInput); nameForm.appendChild(saveBtn); nameForm.appendChild(cancelBtn);
       nameForm.appendChild(nameHint); nameForm.appendChild(nameErr);
+      // signing in is not there yet: the button is disabled, and its tooltip says why
       var signin = make("button", "bpc-signin", ByopopStrings.t("chat.signin"));
       signin.type = "button";
-      signin.setAttribute("aria-disabled", "true");
-      signin.setAttribute("aria-describedby", id + "-signin-note");
-      var signinNote = make("span", "bpc-hint", ByopopStrings.t("chat.signin_note"));
-      signinNote.id = id + "-signin-note";
+      signin.disabled = true;
+      signin.title = ByopopStrings.t("chat.signin_note");
       var signRow = make("div", "bpc-who");
-      signRow.appendChild(signin); signRow.appendChild(signinNote);
+      signRow.appendChild(signin);
 
       foot.appendChild(form); foot.appendChild(hint); foot.appendChild(countEl); foot.appendChild(statusEl);
       statusEl.setAttribute("aria-atomic", "true");
@@ -883,7 +877,6 @@ var ByopopChat = (function () {
       nameForm.addEventListener("submit", saveName);
       nameInput.addEventListener("input", function () { nameInput.removeAttribute("aria-invalid"); nameErr.textContent = ""; });
       nameInput.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); nameFormOpen(false); } });
-      signin.addEventListener("click", function () { say(ByopopStrings.t("chat.signin_said")); });
 
       say(ByopopStrings.t("chat.connecting"));
       // (a message of this viewer's own that comes in while a send is under way is that send's)
@@ -893,7 +886,12 @@ var ByopopChat = (function () {
         st.me = info.user && info.user.name || "";
         st.canRename = !!info.canRename;
         showMe();
-        note.textContent = info.note || "";
+        note.textContent = "";
+        if (info.note) {
+          var tag = make("abbr", "bpc-tag", ByopopStrings.t("chat.test"));
+          tag.title = info.note;
+          note.appendChild(tag);
+        }
         changeBtn.hidden = !st.canRename;
         signRow.hidden = !!(info.user && info.user.signedIn);
         return source.history(LIMITS.page, null);

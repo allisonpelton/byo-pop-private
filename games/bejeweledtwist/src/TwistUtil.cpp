@@ -26,6 +26,7 @@ void Sexy::NotPorted(const char* theWhat)
 float Sexy::gSinTable[4096];
 float Sexy::gCosTable[4096];
 
+// part of the WinTwistApp constructor (0x766ce7): the sine and cosine tables, made once
 void Sexy::MakeTrigTables()
 {
 	static bool sMade = false;  // 0xe0b691

@@ -41,7 +41,7 @@ LoaderScreen::LoaderScreen(WinTwistApp* theApp) : mApp(theApp)
 		mPopCapAlpha.SetConstant(0.0);
 		mTrademarkAlpha.SetConstant(0.0);
 	}
-	mCurve120.SetCurve(GTS(0x7e6b38));
+	mSetOnlyCurve.SetCurve(GTS(0x7e6b38));
 	mLogoAlpha.SetCurve(GTS(0x7e6b10));
 	mLogo->mTrademarkAlpha.SetCurve(GTS(0x7e6ae0));
 	mLoadingAlpha.SetCurve(GTS(0x7e6ab4));
@@ -85,8 +85,8 @@ void LoaderScreen::Update()
 	Widget::Update();
 	if (mLogo != nullptr)
 		mLogo->mAlpha = (float)mLogoAlpha.GetOutVal();
-	if (mApp->mFlag784)
-		mApp->mFlag764 = true;
+	if (mApp->mLoaderGo)
+		mApp->mLoaderGoSeen = true;
 
 	if (!mDone && mUpdateCnt % 4 == 0) {
 		double aProgress = mApp->GetLoadingThreadProgress();
@@ -108,7 +108,7 @@ void LoaderScreen::Update()
 			const int aHandOver = 848;
 			if (mUpdateCnt < aHandOver) {
 				int aShift = aHandOver - mUpdateCnt;
-				CurvedVal* aCurves[] = {&mPopCapAlpha, &mTrademarkAlpha, &mCurve120, &mLogoAlpha, &mFadeIn, &mButtonAlpha,
+				CurvedVal* aCurves[] = {&mPopCapAlpha, &mTrademarkAlpha, &mSetOnlyCurve, &mLogoAlpha, &mFadeIn, &mButtonAlpha,
 					&mArcAlpha};
 				for (CurvedVal* aCurve : aCurves)
 					aCurve->mInitAppUpdateCount -= aShift;

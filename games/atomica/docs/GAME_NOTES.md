@@ -209,3 +209,110 @@ and shows its link when the thread has finished, the port loads in the main thre
 types' frames at every start (the original reads them from `images\cached\Atoms.WAD`, section 3) and keeps them as 32-bit pictures.
 Memory is the port's weak figure (2.4 times the original's at the peak); it waits for the performance pass, where the atoms' frames
 are the first thing to look at.
+
+## 12. Coverage check (2026-11-09)
+
+The whole coverage check of Atomica (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's functions ran, in 31
+runs on the host (`games/atomica/tools/coverage/`: `cov.py` is one run, `run.sh` waits for room and starts it, the hits are in
+`build/coverage/atomica/hits/`, git-ignored). `games/atomica/coverage.txt` sets the game's own code as one range, 0x401000-0x435ff0
+(453 functions); the rest of the exe is the C runtime and FMOD. Every run ended with the game exiting normally, and none of them made a
+sound (origrun's RESULT line of each said so).
+
+| Runs | Count | Reached of 453 (running total) |
+| --- | ---: | ---: |
+| The identical-play scenarios (`tools/identical`: s1, s2, a1, sv, g4, g5, p2-title, p2-start, p2-start2, p2-dialogs, p2-focus, p2-hs, p2-d1, p2-g5, c1), virtual clock | 15 | 321 |
+| The expert modes, recorded from the port's bot (`record.sh`, `-autoplayexpert`): `x-expert-strategy`, `x-expert-action` | 2 | 321 |
+| Short runs: the menu's exit button (`x-exit-menu`), closing the window from the title (`x-quit-title`), a long idle (`x-idle`) | 3 | 322 |
+| Real clock, for the sound code (focus lost and regained, a strategy game, an action game) | 3 | 322 |
+| Crafted saved games (`sv-*.txt`, below) | 8 | 409 |
+
+The first twenty-three runs left 104 functions reached with no definition in the port and 69 defined but never reached; every other
+way of playing the bot reaches (a game ends at level 1 or 2) misses the element atoms, the bonus molecules' later shapes, the level
+box, the bomb's second hint, the action mode's meter hits and the magnet levels, so the last eight runs start from saved games with
+those in them. `mksave.py` writes each from a SAVEGAME.DAT that the port saved (`save-base.txt`: the port plays to level 4 and quits
+with a save, under `make-saves.sh`) by putting in the atoms, the meter and the bomb's charge the run needs: the save's format is the
+port's own and the original's (the identical-play pass compares the two games' saved files, `tools/identical/savecmp.py`), so the original's Continue button loads it. A scenario carries a line
+`# save: <kind>`, and `cov.py` puts the file into the staged copy as its SAVEGAME.DAT. Each was designed in the port first
+(`portdbg.sh`: the scenario through `-realinput`, which has the double click that `-script` lacks, with screenshots to see where the
+clicks land), then run in the original. `make-saves.sh` rebuilds them from nothing; the files it writes are not byte for byte the ones
+the original's runs used (the base game's own random atom types, which the recipes replace, and the pulse and tint phases differ;
+no choice of the port's `-seed` and `-drawevery` reproduced the old base, the cause was not looked for), but each scenario plays out
+the same in the port with either set: the state traces of sv-elements, sv-elements-action, sv-molecule, sv-bonus, sv-over and
+sv-magnet agree on every name but the cursor, the meter's tick and countdown and the play time.
+
+| Scenario | Save | What it reaches |
+| --- | --- | --- |
+| `sv-elements` | one element atom of each kind on the field, the bomb charged | the hint boxes that come up (the bonus molecules', the bomb's, the wind's), each element's double click (ghost, freeze, bolts, whirlwinds, shock wave) and the bomb |
+| `sv-elements-quit` | the same, quit at once | the quit box's "save and quit" with element atoms on the field: their own part of a saved game |
+| `sv-elements-action` | the same, in the action mode | `Meter::Hit` (0x4058a0) from the shock wave and the bolts |
+| `sv-molecule` | three atoms of a type round a cell, the meter just short of full | the bomb's hint, an atom carried over the field (the route's arrows), a molecule that fills the meter, the level box, the radiation round of level 5 and its hint, the space key's pause, the quit box |
+| `sv-options` | the same | the options box in a game: both sliders dragged, a click on the sound bar, the check boxes but full screen (which would change the machine's display mode), done |
+| `sv-bonus` | the first bonus shape missing one atom | the bonus molecule, its effect and the element atom it makes |
+| `sv-over` | a score above the table and a field full but for two cells | a move that lets the round come, a second move that fills the field, the game over, the name entry (a name typed, save), the end page and its main menu button |
+| `sv-magnet` | an arrow set as levels 17, 33 and 38 set it | `Magnetise` (0x412a80), every sixth update |
+
+**Loading is slower under `--coverage`.** The original loads in a thread and the scenario counts updates, so the update at which the
+title's link answers a click depends on the load; with coverage on, a run missed the click at update 1510 and sat on the title for the
+whole scenario. `cov.py` watches the title screen's pointer (0x4d00fc, deleted 47 updates after the click) and runs the whole scenario
+again 3000 updates later (up to four times). The origrun files (`tools/origrun/atomica.cfg`, `patches/atomica.txt`) are git-ignored and
+belong to each worktree; `setup_worktree.sh` does not copy them (copies are in the coordinator's notes folder, `atomica-origrun/`).
+
+**Reached in the original with no definition in the port: 104 after the first twenty-three runs, 130 after all of them, 0 at the end.**
+`tools/coverage.py` lists them; each was either put in a comment of the function that holds it, or left out on purpose.
+
+- **Placed: 44.** The address went into the comment above the function that translates it inline or in another shape (effects'
+  constructors and destructors, the dialogs' and widgets' handlers, the bonus effect's). Comment edits only, checked by a diff of
+  the sources with the comments taken out; one agent did 41, this session the other three (0x415c90, 0x415d20, 0x416f00).
+- **Left out on purpose: 86, as `none` lines in `games/atomica/coverage.txt`, each with its reason, and every one of them reached by
+  the runs.** 34 scalar deleting destructors (the compiler makes them), 18 of MSVC 7.0's `std::string` helpers (the port uses
+  `std::string`), 18 destructors that only set a vtable and call the GameObj destructor (the port's classes have none or inherit
+  it), and 16 others: the WinMain glue (0x405ad0, 0x406220), the framework's stubs (ButtonListener, Graphics, an empty virtual),
+  `PtrList`'s destructor (a `std::vector` frees itself), the bonus patterns' destructors (the port's are a static table), the
+  `Palletize` calls of the loader (0x429670), the cell-to-pixel wrapper (0x4014a0), the compiler's vector constructor iterator
+  (0x4191a0), the high score table's constructor and the app pointer only its entry box used, and `SpriteMgr`'s stored Graphics
+  pointer, which nothing reads.
+- **Slips found by reading the functions that had no counterpart again** (each a difference the identical-play pass could not have
+  seen, since the bot's games never reach it):
+  - `HighScoreDialog::Update` (0x41ca50): the original brings the two buttons and the name line to the front of the manager's widgets
+    on every update; the port did not. Fixed (DialogScore.cpp).
+  - The sine and cosine tables (0x421a90): the original makes two 360-entry float tables once, from a float pi (0x40490fda), and the
+    effects index them; the port took `sin` of a double at each call, which differs in the last bit for some angles. The port now
+    makes the same tables (Atom.cpp), checked against the original's memory entry by entry for eight angles.
+  - A saved game's bonus molecule (`BonusMolecules`, +0xcc): the original saves the index of the shape asked for in its table of
+    thirty; the port saved the element the shape makes, which several shapes share, so a loaded game could ask for another shape.
+    It saves and loads the index now.
+  - The main menu and the high score box load a sheet and cut sprites from it, and the original frees them in the destructors
+    (0x4190b0, 0x41e690); the port never did, a leak of each showing of the menu. Freed now (Menu.cpp), the app's sprite manager
+    cleared after its delete.
+  - The pause count (0x405fa0) stops at 0 when it is decremented; the port's could go below it. Clamped (Grid.cpp).
+
+  After all of these and the comment edits, `tools/check.sh atomica` passes with "baseline identical": the strategy and action
+  games' state still matches the frozen baseline, so the fixes leave play unchanged.
+
+**Defined in the port, never reached: 69 after the first twenty-three runs, 8 at the end.** The crafted saved games reached the rest,
+among them each element atom's effect, `Meter::Hit` (0x4058a0), `Magnetise` (0x412a80), the bonus molecules' effect and the level
+box. The eight left are candidates for taking out unneeded code (not removed now, and not read again against the export, since
+nothing in the original reaches them):
+
+- **`ConfirmDialog`** (0x421f90 the constructor, 0x4220b0 the destructor, 0x422100 `Resize`, 0x422170 `ButtonDepress`, 0x4221d0
+  `Draw`), `AtomicaApp::ShowConfirm` (0x405c40) and `AtomicaApp::EndGame` (0x405cb0), with the case of `Board::ButtonDepress` that
+  calls them (Board.cpp:669, the button with id 3) and the app's `mConfirmDialog`. The board creates no button with that id, so
+  the "give up" question can never come up.
+- **The sorted `PtrList::Add`** (0x425a10), with `mKey`, `mSortMode` and `KeyFunc` in Support.h. Nothing in the port gives a list a sort
+  key (the port translates all the game code that the runs reached), and no run reached the original's sorted add.
+
+**Never reached and not defined in the port: 36.** The registration screen and the code around it (0x425f70-0x427a60, 14 functions:
+the "REGISTER ATOMICA" dialog, the "click here to get your registration code" button, the link to the register page) and 0x422de0,
+which opens it from the options box; this code is out of the port with the rest of the registration code. Six are destructors (with
+their scalar deleting versions) of objects the runs never delete, and fifteen are runtime glue (exception handlers of the string
+helpers, a jump stub, deleting destructors of classes whose objects the game keeps to the exit).
+
+**Open.** The candidates above. The crafted-save runs measure coverage only: the port's own states in those scenarios were not
+compared with the original's (`compare.py --savefile` takes a saved game, four watched values to a run), so the element atoms,
+the bonus molecules, the magnet and the game-over code are compared with the original only by being read against the export; those
+comparisons are the next test of them. Nothing shared is needed.
+
+**What it cost.** The 31 runs took a few minutes of machine time each, one game process at a time (some runs waited for room, since
+other sessions' games kept the machine at its limit of three, and some ran again after a missed title click). One Sonnet agent placed
+41 functions and wrote the first 64 reasons; this session read the export for the rest, found the slips, built the run tools and the
+crafted saves, and checked the agent's work. Its tokens are in `tools/game_costs.py`'s figures for this session.

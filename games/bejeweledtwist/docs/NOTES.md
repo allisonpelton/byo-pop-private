@@ -337,7 +337,7 @@ score while the board has a challenge (+0x2630). The score's row (0x7028b7) move
 whose best ever is shown (+0x768, set by Board::SetChallenge from Profile +0x204), and the text is faded by the tip
 (1 - +0x244). By the tube's kind and the challenge's flags (tested in this order):
 - kind 3 (a "Moves" rule alone): the moves left (string 0x7e40dc through the app's GetString, or 0x7e40ec for one),
-  word-wrapped in FONT_SCORE, 50 below the row with a Points rule, 80 above it without; SetUnknown158(3) sets +0x580
+  word-wrapped in FONT_SCORE, 50 below the row with a Points rule, 80 above it without; SetTubeKind(3) sets +0x580
   to 1 (0x702b87);
 - a pattern: 0x6db0ec fills the tube's four lists (+0x56c the stats, +0x53c their values, +0x55c the comparisons,
   +0x54c the goals; the only code that fills them). A night-mode pattern shows the count's title, the count's ticker
@@ -391,7 +391,7 @@ selector under the mouse included.
 
 ## The challenges' data and goal (Challenge.cpp)
 
-The app owns the challenge list (WinTwistApp+0xf5c, `ChallengeInfo`, 0x18 bytes, built right after Ranks): the categories read from properties\challenges.xml by 0x6dcff3. A category (0x74 bytes) holds its id, the layer pictures, additive, the visualizer name, bkg2d, its challenges, the nightmode "special" challenge and a colour. A challenge (0xe4 bytes) holds its texts, the rules (stat, operator, value; operators are only "=", ">=", "<=" and "<"), a flags word (+0x80: count, time, moves, points, onboard, time limit, onemove, pattern, constantcounters, nightmode, nocount, nocascades, constantdoom, quitonfail, badgem), the time and move goals, its category and number, the pattern (colour letters of RWGYVOB) and its progress, the config file and the best and low scores. The parser takes a rules string by removing spaces and quotes and reading comma-separated name/operator/value fields, the keywords case-insensitively; Time is given in minutes and kept in seconds. The board's active challenge is at Board+0x2630 and is null outside Challenge mode, so Classic, Zen and Blitz never reach this code. `ChallengeInfo::Check` (0x6db273) compares each rule's stat (the app's whole-game array, the board's one-move array or its on-board array, by flags) against its goal and returns 0 not met, 1 met, 2 failed; `GetText` (0x6db73e) builds the description with the numbers and a 0-1 fraction; `GetPercentDone` (0x6d8d19) feeds the Mandala. Board::CheckGoal's challenge branch, UpdateChallengeTube (0x6af390), the pattern counter in GoodTube::UpdateTick, FillInBlanks' re-deal while the goal is already met and CountDownCounters' stop read this object. The menu, and the board's start, end, restart, timer and counter flow, are not ported yet. Deviations: a rule with an unknown stat name is skipped, and a category or challenge that fails to parse is freed, not leaked; errors go to the log, not to a message box. The port reads the Moves total through `mUnknownC74[0x21]`, which is the same memory as the original's +0xcf8; LevelValue::GetCount reads it there too.
+The app owns the challenge list (WinTwistApp+0xf5c, `ChallengeInfo`, 0x18 bytes, built right after Ranks): the categories read from properties\challenges.xml by 0x6dcff3. A category (0x74 bytes) holds its id, the layer pictures, additive, the visualizer name, bkg2d, its challenges, the nightmode "special" challenge and a colour. A challenge (0xe4 bytes) holds its texts, the rules (stat, operator, value; operators are only "=", ">=", "<=" and "<"), a flags word (+0x80: count, time, moves, points, onboard, time limit, onemove, pattern, constantcounters, nightmode, nocount, nocascades, constantdoom, quitonfail, badgem), the time and move goals, its category and number, the pattern (colour letters of RWGYVOB) and its progress, the config file and the best and low scores. The parser takes a rules string by removing spaces and quotes and reading comma-separated name/operator/value fields, the keywords case-insensitively; Time is given in minutes and kept in seconds. The board's active challenge is at Board+0x2630 and is null outside Challenge mode, so Classic, Zen and Blitz never reach this code. `ChallengeInfo::Check` (0x6db273) compares each rule's stat (the app's whole-game array, the board's one-move array or its on-board array, by flags) against its goal and returns 0 not met, 1 met, 2 failed; `GetText` (0x6db73e) builds the description with the numbers and a 0-1 fraction; `GetPercentDone` (0x6d8d19) feeds the Mandala. Board::CheckGoal's challenge branch, UpdateChallengeTube (0x6af390), the pattern counter in GoodTube::UpdateTick, FillInBlanks' re-deal while the goal is already met and CountDownCounters' stop read this object. The menu, and the board's start, end, restart, timer and counter flow, are not ported yet. Deviations: a rule with an unknown stat name is skipped, and a category or challenge that fails to parse is freed, not leaked; errors go to the log, not to a message box. The port reads the Moves total through `mStats[0x21]`, which is the same memory as the original's +0xcf8; LevelValue::GetCount reads it there too.
 
 ## The challenge menu (ChallengeMenu.cpp)
 
@@ -450,6 +450,15 @@ levels per channel; before that its main menu shows the site's player name and i
 the site makes the player rather than the autoplay.
 
 The level-up's take-off in 3D was compared with the original on 2026-11-08, after the user found it wrong. The original ran once more on the user's visible desktop through visrun, for this comparison only (the user's answer, relayed by the coordinator on 2026-11-08: "Yes, run it"), for about a minute and a quarter: a patched copy under build/ with origrun's sound stand-in taken out and the cursor-test patch undone, its window kept on top for the run, shots by PrintWindow of its own window only, no input at all beyond the game's own `-autoplay`, and the game's registry key and users folders backed up and put back. It shot the seeded autoplay game's first level-up from update 2700 (every 13 updates or so, as fast as PrintWindow could take a 3D window) and logged the hyperspace's state. The original plays the same game as the port, its first level ending 843 to 852 updates later, the 844 the port's menu comes sooner ("Deviations", loading), so the two were lined up by the jump: the original's states changed at 3590 to 3661 (1 to 2), 3902 to 3979 (2 to 3), 4324 to 4430 (3 to 4) and 4430 to 4514 (4 to 5), the port's at 2767, 3097, 3563 and 3597, each within the original's bounds 845 to 852 updates later. During the take-off (state 2, while +0x15b is set) the old level's picture leaves on a glass cube, its outer pass an additive rainbow case, carried by +0x5d8 times 2.1 to the right, -1.3 down and -2.7 away from the camera (0x7127f1 to 0x712849, whose three products are pushed z first). The port had them as x -1.3, y -2.7 and z 2.1, so the cube came towards the camera and passed through it, and its rainbow case filled the screen as white slabs. Fixed, the take-off, the flight and the landing match the original's frames; the tube's white flash at the start and the end of the jump is the original's too. check.sh's Twist suite freezes the 3D take-off at 2780, 2900, 2940, 2980 and 3020 (the same hashes on every run; the build before the fix gives other hashes for all five). In 2D the same day the original ran seeded in the sandbox (origrun, shots every 5 updates from 2900 to 4500) and was compared by shotdiff with the port's shots 843 updates earlier, the offset at which every frame of the take-off, the jump and the new board's drop matched the port's best (`takeoff2d`): what remains is a frame's lead or lag in a slide here and there, and the gem souls, which swirl on paths of their own, since their CurvedVal is timed by the app's update count since launch, which the loading deviation shifts; the game itself, its boards and the meter's take-off and landing, is the same.
+
+The picture froze for the user on the web (2026-11-09: a flame gem set off in Classic with a bomb on the board and a
+tip up; the sound and the menu went on, and nothing more was drawn but the bombs' haze). The cause was in the shared
+GPU2D: the device begins a scene by itself when VizManager::Draw sets the target and clears the depth before the
+frame's first draw, and GPU2D's state cache caught up with that scene only at its next PreDraw. VizManager turns depth
+writing on for its FillRect of the board's rectangle in that gap, the catch-up put "off" back in the cache while the
+device kept it on, and turning it off was then skipped as no change: the depth test stayed on, against a depth buffer
+nothing cleared, for every later draw of the frame and of each frame after. The native build has the same device and cache. The caches now catch up before they are read (GPU2D::FollowScene). `gem <row> <col> flame` and live.py's
+`flame` step set flame gems off with a real twist to show it.
 
 ## Deviations
 
@@ -603,6 +612,55 @@ the frozen baseline confirms.
 The generated resource table (Res.cpp, Res.h, from the exe's id table) still names the trial's pictures and sounds,
 since their ids are indexes into that table; no code uses them.
 
+## The readability pass (2026-11-08)
+
+The second game to take `docs/CODE_STANDARDS.md`, after Bejeweled's pilot; that doc's "How it worked out on Twist" says
+what the pass changed in the rules and what it cost. Here is what it changed in the port. Nothing it does changed: the
+frozen baseline proves it (below), and `python tools/namecheck.py games/bejeweledtwist` finds nothing, with the
+exceptions and their reasons in `games/bejeweledtwist/namecheck.txt`.
+
+**Names.** The port had kept most fields by the original's offset (`mUnknown2120`). Every one now says what it holds,
+named from its uses here and in the export, since Twist has no Mac build: Board's `mUnknown2120` is `mUnturnableCells`,
+the app's `mUnknownFA0` is `mBestMoves`. Each declaration keeps its offset at the start of its comment (`// +0x2120`), so
+the port still reads beside the export. Names that carried an offset after a word went the same way (`Profile::mFlags1E4`
+is `mTipsSeen`, `Piece::mScale288` is `mBirthScale`, `Rand85B970` is `BoardRand`), and so did the methods named for the
+field they set (`SetUnknown3924` is `SetBoardFade`). Piece's numbered flags are named: `FLAG_DROPPER` (1), `FLAG_FIXED`
+(5, which nothing sets), `FLAG_ICE` (6), `FLAG_ANGEL` (7), `FLAG_TUTORIAL_MARK` (11, which nothing reads) and
+`FLAG_DOOM` (12), and the calls that passed a bare number use them; `Make6` and `Make7` are `MakeIce` and `MakeAngel`.
+The one-letter names that lived long (rule 5) are spelled out, except a curve's `t` in BSpline.cpp and CurvedVal.cpp.
+
+**Addresses.** Every translated function names its address, on its declaration in the header as before or above its
+definition; 44 that had none now name it, or the original function they were split out of (`FinishMatches`, part of
+`FindMatches` at 0x6cd468), or carry the `port:` marker. The resource extractors' addresses come from `tools/resgen.py`,
+and TwistD3D's interface slots name the exe's function beside the slot.
+
+**What came out.** Nothing that the port reads or that a save or the random draws depend on:
+
+- 54 of Board's fields that the port never reads or writes (the original uses a few of them, only in its puzzle mode,
+  which the port leaves out; the left-out puzzle code's comment names the one it needs, +0x2034), and the five lines that
+  only wrote some of them;
+- the two globals the board's constructor clears and nothing reads (0x85a9d0 and 0x85aef0);
+- members the port never touched: Profile's map at +0x2c and string at +0x38, Piece's vector at +0x214 with its record
+  type, the loader's curve at +0x5f0, the menu button's string at +0x160, and the dialog listener's empty slot 2, which
+  nothing calls;
+- a parameter of `Board::EndJump`, `FlyingText`'s constructor and `Points`' constructor that the original never reads
+  (the declarations say that the original's call passes it).
+
+Profile's saved fields stay, named for what they hold (`mSavedBools`, `mSavedBits`, `mSavedLongs`), since the save
+file's layout needs them; so do the rainbow glyphs' third and fourth random draws (`mThirdDraw`, `mFourthDraw`), which
+nothing reads but which keep the draws in order.
+
+**Comments** that named an old field now name the new one, and the class comments that said fields were still named by
+offset are gone.
+
+**The proof.** The 1026 table renames left the object code of all 81 units the same instruction for instruction
+(llvm-objdump before and after). Everything after them, the hand renames and the removals that change layouts, rests on
+check.sh's Twist suite (2026-11-09, with the flame-gem fix merged): the start's menu, a seeded Classic game to update
+5156, a Blitz game to its high scores and the 3D level-up's take-off, 16 screens, all as frozen; a rerun identical; the
+frozen baseline exe's run identical; a page's save the same as a quit's, and resumed. namecheck finds nothing (13 uses
+allowed with their reasons in namecheck.txt); the native and web builds are clean but for a warning that was there
+before the pass.
+
 ## The challenge's flow on the board
 
 A challenge game now runs to its end, as the original does with 3D off.
@@ -671,7 +729,7 @@ challenge's music and redraws the tube. With track 305 playing, its channels are
 - runs NewLevel and ClearBoard, and fills with +0x20dc at 2;
 - calls the VizManager's slot 7.
 
-**Music.** `PlayChallengeMusic` (0x6b66d2) runs from StartUnknown34F0 in a challenge and from the restart. An untimed
+**Music.** `PlayChallengeMusic` (0x6b66d2) runs from StartGo in a challenge and from the restart. An untimed
 challenge fades to track 306, or to 305 with a Moves goal (then `UpdateTurnBasedMusic`). A timed one stops the music
 and plays track 300 at once, or 308 for a 180-second limit.
 
@@ -695,7 +753,7 @@ StartTwist runs it after every twist in every mode (0x6c7225). Its steps:
   (`PreLockPiece` 0x6ace4d: +0x504 to 0, +0x4fc to 2, SOUND_GEM_PRELOCK). In a constant-counters challenge it is a gem
   next to the bomb or devil gem with the lowest count (the directions table 0x84e978). Because each direction is taken
   out of the list before the loop steps on, only directions 0, 2, 4 and 6 are tried. Otherwise the gem comes from a
-  random place: an even Rand85B970 picks any cell, an odd one a cell inside the border, and the first that can is taken.
+  random place: an even BoardRand picks any cell, an odd one a cell inside the border, and the first that can is taken.
 - Then a doom gem (flag 12) may appear. That needs no doom gem on the board, mDevil's count at 0 or more, an idle board
   and a mode other than Zen. It still does not appear if the level's matches are under three times its moves
   (+0x2234 [0x39] / [0x21]), or if |RandUnit (0x6a3477)| * (tube progress * 1.2)^4 is under 0.05. A constant-doom
@@ -705,7 +763,7 @@ StartTwist runs it after every twist in every mode (0x6c7225). Its steps:
 
 Classic's config has lock gems from level 4 and devil gems from level 13. The port ran this only in a challenge at
 first; it now runs it in every mode, as the original does, so Classic and Blitz get their lock gems and doom gems (and
-their Rand85B970 draws) where the original has them. Blitz's and Zen's configs have neither (first level -1), so there
+their BoardRand draws) where the original has them. Blitz's and Zen's configs have neither (first level -1), so there
 NextTurnGems draws nothing and changes nothing.
 
 **Gem locks and doom gems breaking.** A locked gem in a match, or one a fruit's wave reaches on its third ring
@@ -774,7 +832,7 @@ SettleTurn and CheckSettled then call `Board::AwardFruit` (0x6ba5b4) with -1, -1
 past 151 (at most 14) go on top of the steps of the levels below the board's (GetLevelSteps), through SetLevelSteps.
 AwardFruit's colour is the count of fruits awarded (+0x218) modulo 7. Its gem is FindHintPiece's (the bomb with the
 lowest counter or a locked gem, whatever its colour), else the first plain gem of that colour from a cell picked by
-Rand85B970 round the grid, else up to 100 cells picked at random (Rand85B970, the column first), any plain gem; after
+BoardRand round the grid, else up to 100 cells picked at random (BoardRand, the column first), any plain gem; after
 100 misses there is no fruit. The tutorial's `awardfruit a,b` names the cell (a - 1, b - 1). The award is a
 FruitAwardScreen (0x228 bytes, vtable 0x7e24c4) queued in the board's dialog queue (+0x23dc); the tube stops taking the
 mouse. When it comes up it plays SOUND_TROPHY_AWARDED and over 1 / 0.015 updates leaves a trail of IMAGE_FRUITS cels
@@ -788,7 +846,7 @@ broken). Otherwise it counts stat 0x45, plays SOUND_GEM_FRUIT_DESTROYED,
 counts +0x22c and sets +0x24c when the board has no lock or bomb (neither is read), starts the blast (+0x248 at
 0.0001), notes the fruit's colour, cell and id (+0x420, +0x250, +0x254, +0x258), sets the four curves +0x260, +0x2d0,
 +0x340, +0x3b0 (0x7dd2f8, 0x7dd2dc, 0x7dd2b0, 0x7dd28c) and moves +0x265c from 0 to 2, or 1 while the tube's +0x3b0 is
-set (an already started challenge sets +0x2664 to -1 instead). `UpdateUnknown248` (0x6c4466) runs the blast: +0x248
+set (an already started challenge sets +0x2664 to -1 instead). `UpdateFruitBlast` (0x6c4466) runs the blast: +0x248
 grows by 0.002 an update; at 0.5 the fruit's own 500 points pop up. Up to 0.85, four rings spread from the fruit's cell
 (ring i at 2.8 * blast - 0.15 * i - 0.5 on +0x260, the last one slower), and each cell a ring crosses (within 0.3 of a
 cell of its radius, 4.4 * +0x260) is touched: gems of the fruit's colour light up (+0x29c) and on the last ring break
@@ -849,9 +907,9 @@ behind it.
 **Never reached, left as NotPorted.** These paths exist in the exe but no game reaches them, each for the reason given
 in its comment: the puzzle mode (5) with its panel, board, fill, sparkles and tube widget (no menu starts mode 5: the
 mode select's buttons are modes 1 to 4 and the main menu's Play takes the last game's mode); the board's state 2
-(nothing sets +0x160 to 2); the "ice gem" (FLAG_6, from a challenge's square match, which needs the profile's bit 6 from
+(nothing sets +0x160 to 2); the "ice gem" (FLAG_ICE, from a challenge's square match, which needs the profile's bit 6 from
 a tutorial line "unlock icegem" that tutorial.txt lacks and "IceGemsAllowed", false in config.xml); the "angel gem"
-(FLAG_7, set only by Make7, whose callers need it already); the droppers (+0x21e4, made only for FLAG_1 gems, a flag
+(FLAG_ANGEL, set only by MakeAngel, whose callers need it already); the droppers (+0x21e4, made only for FLAG_DROPPER gems, a flag
 set only by the droppers' own update); FlyingText's kind 1 (both makers are given kind 0); the tutorial's title
 (+0x1f4, +0x1f8 only ever 0); the board's image +0x15dc, the objects at +0x1488 and the pieces' +0x528 (only ever 0);
 +0x284's growth (only ever 0 or copied); 0x6c425f (+0x23d8 set only by 0x6bb145, which nothing calls); 0x74db1b
@@ -926,7 +984,9 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
 - `seed`: ERROR, as the game draws from several generators; `-seed=<n>` seeds them at the start.
 - Twist's own, beside the standard set: `shutdownsaves <dir>` writes what a page going away would keep (GetShutdownSaves,
   below under "Saving on the way out") into `<dir>`, each file by its name, and answers `SHUTDOWNSAVES <names>`, so a test
-  compares it with what a quit writes.
+  compares it with what a quit writes. `gem <row> <col> flame` makes the gem there a flame gem at once (the piece's own
+  MakePower, as a match of four does, without the board's stats; ERROR with no gem there or a busy board), so a driver
+  sets flame gems off with a real twist (realplay/live.py's `flame` step).
 
 ## Saving on the way out
 

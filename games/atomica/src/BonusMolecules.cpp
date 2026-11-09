@@ -44,6 +44,7 @@ public:
 	int					mElement;	// +0x40 the type of the element atom
 	std::vector<Piece>	mPieces;	// +0x24
 
+	// 0x415d20: waits for the shape's atoms; the swoosh plays
 	BonusEffect(AtomicaApp* theApp) :
 		Effect(theApp),
 		mCenterX(0),
@@ -55,6 +56,7 @@ public:
 		mApp->mSndWhoosh->Play();
 	}
 
+	// 0x415c90: the atoms still held are freed
 	virtual ~BonusEffect()
 	{
 		for (size_t i = 0; i < mPieces.size(); i++)
@@ -210,7 +212,8 @@ public:
 // ---------------------------------------------------------------------------------------------------------
 // BonusMolecules
 
-// 0x414830
+// 0x414830 / 0x415ae0 (the thirty pattern objects the original makes are the table above; 0x415c50 starts their numbering at 0, which the
+// table's order gives)
 BonusMolecules::BonusMolecules(AtomicaApp* theApp) :
 	mApp(theApp),
 	mRound(0),
@@ -258,7 +261,7 @@ void BonusMolecules::Revalidate()
 		mRound = 0;
 }
 
-// 0x415420: the shape to ask for next: the upgrade shapes first, if the field has the atoms they need
+// 0x415420 / 0x414640: the shape to ask for next: the upgrade shapes first, if the field has the atoms they need
 void BonusMolecules::PickPattern()
 {
 	for (int i = 0; i < 25; i++)
@@ -272,7 +275,7 @@ void BonusMolecules::PickPattern()
 		for (int aCol = 0; aCol < 5; aCol++)
 			for (int aRow = 0; aRow < 5; aRow++)
 				mCurrent[aCol * 5 + aRow] = mPattern->mCells[aRow * 5 + aCol];
-		mElement = mPattern->mElement;
+		mElement = (int) (mPattern - sPatterns);
 		return;
 	}
 	for (int aTier = 2; aTier >= 0; aTier--)
@@ -288,7 +291,7 @@ void BonusMolecules::PickPattern()
 				for (int aCol = 0; aCol < 5; aCol++)
 					for (int aRow = 0; aRow < 5; aRow++)
 						mCurrent[aCol * 5 + aRow] = aPattern->mCells[aRow * 5 + aCol];
-				mElement = aPattern->mElement;
+				mElement = (int) (aPattern - sPatterns);
 				return;
 			}
 			aStart++;
@@ -439,7 +442,8 @@ void BonusMolecules::Save(FILE* f)
 	fwrite(&aHasShape, 1, 1, f);
 }
 
-// 0x414750: the shape asked for is found again by the element it makes
+// 0x414750: the shape asked for is found again by its index (0 to 29, the order the original makes the thirty patterns in, which
+// is the order of the table; the file holds the index, as the original's does: 0x415aa0 numbers them, 0x414640 copies it)
 void BonusMolecules::Load(FILE* f)
 {
 	fread(&mX, 4, 1, f);
@@ -458,7 +462,7 @@ void BonusMolecules::Load(FILE* f)
 	bool aFound = false;
 	for (int i = 0; (i < 3) && !aFound; i++)
 		for (size_t j = 0; (j < mLists[i].size()) && !aFound; j++)
-			if (mLists[i][j]->mElement == mElement)
+			if ((int) (mLists[i][j] - sPatterns) == mElement)
 			{
 				mPattern = mLists[i][j];
 				aFound = true;

@@ -2695,6 +2695,59 @@ input for both), `loadtime.py` (the port's loading time through the live channel
 Steam install with the real exe carved out of the wrapper (`tools/extract_game_exe.py`, in `C:\byo-og\bej-perf\game`),
 under `build/origrun-bin/origrun.exe` with `--sound stub` and no virtual clock.
 
+### The performance pass (2026-11-09)
+
+**Measured again, in pairs.** `tools/profile/pairs.sh` runs the original and then the port over the same minute of play
+as above (`perfscript.py`), each sampled by `perfmin.py`, one game process at a time. The original runs under an origrun
+rebuilt after 12eda33b: its stand-in now answers `GetLastInputInfo`, so a SexyAppFramework original no longer stops
+drawing once the machine has been idle about ten minutes (`docs/ORIGRUN.md`, "The last-input hook"), which may have made
+the figures of 2026-11-08 read low. While a run goes, the machine's game processes are counted once a second. The script
+waited 1 h 46 min for the machine to have none, then ran 8 pairs between 04:46 and 05:12. Other sessions' games came back
+during the first six pairs, so only pairs 7 and 8 saw no other game process:
+
+| Pair | Other game processes (original, port) | Original: processor in the window, whole run | Port: processor in the window, whole run | Private bytes, original / port | Working set, original / port |
+|---|---|---|---|---|---|
+| 1 | 2, 2 | 4.70 %, 4.19 s | 3.90 %, 3.42 s | 36.3 / 54.7 MB | 57.9 / 61.6 MB |
+| 2 | 2, 2 | 4.03 %, 3.38 s | 4.43 %, 3.45 s | 35.9 / 55.1 MB | 57.5 / 61.9 MB |
+| 3 | 1, 2 | 4.70 %, 4.13 s | 5.72 %, 4.67 s | 35.7 / 54.8 MB | 57.3 / 61.8 MB |
+| 4 | 1, 1 | 3.48 %, 2.97 s | 4.61 %, 4.08 s | 35.7 / 54.4 MB | 57.2 / 61.4 MB |
+| 5 | 1, 0 | 4.12 %, 3.72 s | 2.61 %, 3.45 s | 35.9 / 53.8 MB | 57.6 / 61.7 MB |
+| 6 | 0, 1 | 4.88 %, 3.97 s | 3.08 %, 3.19 s | 35.7 / 54.9 MB | 57.1 / 61.8 MB |
+| **7** | **0, 0** | **4.95 %, 4.17 s** | **4.10 %, 3.48 s** | **35.9 / 55.4 MB** | **57.6 / 62.2 MB** |
+| **8** | **0, 0** | **4.31 %, 3.52 s** | **4.03 %, 3.67 s** | **35.9 / 54.7 MB** | **57.5 / 61.7 MB** |
+
+The processor figures are the percentage of one core in the window from 20 s to 80 s, and the seconds over the whole run.
+
+In the two quiet pairs the port uses a little less processor time than the original, 4.1 and 4.0 % of one core against 5.0
+and 4.3 %. The medians of all eight pairs agree: 4.1 % against 4.5 %, and 3.5 s against 3.8 s a run. On 2026-11-08 the
+port had seemed about 20 % above the original. That was within the noise of a busy machine, or the original's idle stop.
+The original's memory reads higher than on 2026-11-08 (36 MB private, 57.5 MB working set, against 34 and 48). It draws
+for the whole minute now, and in pair 8 it chose Direct3D's software renderer (D3D10Warp). The port holds about 19 MB more
+private memory, as before.
+
+**Where the port's time goes.** `cpuprof.py` was run on the port with `-fast`, because a test run is where its speed
+counts. For an autoplay game to its end on seed 7 (2.2 s, 10,637 updates, 1,064 draws), 85 to 90 % of the cycles are
+outside the game: system calls (ntdll, 53 %), the NVIDIA driver (21 %), win32u (10 %), and imagehlp (5 %), which wintrust
+loads for the driver's signature check when the device is made. The exe has 5 %, spread thin: the textures' upload
+(`DDInterface::PrepareTexture`, 1.3 %), the Ogg decoder (about 1 %), `MemoryImage::NormalBlt` (0.6 %), the GIF decoder and
+the crossfade image. A run that loads and quits at the title (0.39 s of it after loading, which takes 351 ms by the game's
+own log) is 94 % system and driver, and 6 % the exe's decoders (Vorbis, JPEG, PNG, the module player), none above 1 %.
+`cpuprof.py` now lists the modules every 200 samples instead of every 2,000, so a run of under a second still names them.
+
+**What the pass changed: nothing in the game.** Every cost the profile shows is one of two kinds:
+
+- The two shared costs in `docs/COORDINATION.md`, to be fixed once for every game: presenting a frame, and creating the
+  window and the device, along with the driver's signature check that comes with it.
+- The framework's own work, spread thin: decoding images and sounds, uploading textures.
+
+No function of Bejeweled's own code is above 0.3 % of a run, so there was nothing in the game to speed up. The
+frozen baseline and the oracle need no new run, since no source changed. The memory gap is the framework's: every
+image's pixels kept after the GPU has its texture (`PROFILE.md` section 5, "Pixels after upload", which the coordinator
+left for now).
+
+**Not measured.** As on 2026-11-08: the web build in a browser, since the Browser pane is hidden and throttled; full screen;
+and the GPU's own load. The samples and logs are in `build/perf/pass/` (git-ignored).
+
 ## 20. The readability pass (2026-11-08)
 
 Bejeweled was the pilot of the readability pass: the rules are `docs/CODE_STANDARDS.md`, written while applying them here,
@@ -2741,3 +2794,121 @@ of `LoadGame`, 0x4cca98; the high-score record helpers of `ReadFromFile` and `Wr
 `ModIndicators.cpp` and `testhooks/MemReport.cpp` carry the marker in their first comment. Comments that told the code-mod
 stages as a story (`BoardVariant.cpp`'s header, `VariantFlags`, the build warnings in `GameConfigMods.cpp`) or had gone
 stale ("no TWIST or SLIDE yet", "nothing reads them yet in stage 1") describe the code as it is.
+
+## 21. Coverage check (2026-11-09)
+
+The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, and
+`tools/coverage.py report` put them beside the port's sources. Bejeweled's comparisons run in Windows Sandbox, where
+`--coverage` does not work yet, so the runs were taken on the host, where origrun posts input and takes no shot. The
+scripts come from `tools/coverage/scripts.py`, with every position taken from the port's layout, and `tools/coverage/run.sh`
+runs one. The hits are in `build/coverage/bejeweled/hits/`. The copy is the prepared one (the exe carved out of
+`WinBej.exe`), on the virtual clock with the silent stand-in.
+
+The runs:
+
+- **play**: a fresh Normal game. The first move's hint, the Hint button three times, 340 random swaps (sets, cascades,
+  level-ups, a game over), the focus lost and regained, New Game answered No and then Yes, and the window closed during
+  play.
+- **dialogs**: the focus lost and regained on the title. Options with both sliders, the custom cursors box twice, Help
+  and its Done, High Scores and its Done, and Options' Done. Then Timed, Normal with its question, the Quit button
+  answered No, and the window closed with Options open.
+- **timed**: a Timed game left until its time ran out. The name entry typed and Enter, play again, and the window closed.
+- **nomoves** (three runs), **nomoves_hi** (two) and **fallout** (three): a saved game with one move left
+  (`origcmp/nomoves.py --one`), loaded through the question, and the move made. Whether the refill leaves a move is the
+  original's RNG, which is not pinned on the host, so each was run more than once. Those runs gave "no more moves", the
+  game over, the name entry and the high-score screen, with the window closed there. With a score that places on the
+  all-time table, they gave the record dialog's "Nth place" text. In Timed mode they gave the board falling out and in.
+- **levelup**: a saved game whose score has reached the level's target. The level-up (the wipe and the black hole),
+  then play, and the Quit button answered Yes.
+- **declined**: a saved game whose load question is answered No, then Quit and Yes.
+- **title_quit**: the window closed on the title.
+- **extra**: a key typed on the board during play.
+- **timedconfirm**: Timed clicked over a loaded game in progress, with its question answered Yes.
+- **realclock**: on the real clock with the silent stand-in, so the sound code runs. The title, play and swaps.
+
+Every run ended with the game exiting normally. The runs took about 11 minutes of machine time, one game process at a
+time. The user's saved game (`C:\ProgramData\Steam\Bejeweled\userdata\savegame.dat`) was backed up first and put back
+afterwards, byte for byte.
+
+**Two things the runs had to get around.**
+
+- The virtual clock does not see the title's loading thread wait on the disk. In two runs the whole script ran before
+  the "click here to play" link existed, and the game only reached its title. So origrun's counter is the int at
+  0x53ba60, whose top byte is the app's loaded flag (0x53b570 + 0x4f3, which `TitleScreen::Update` 0x4d3c6a reads). Each
+  script's first line is `at 16777216 ...`, which waits for that flag.
+- The original checks for "no more moves" only when the board settles after a move, so a saved board with no move just
+  sits. The saves need exactly one move left.
+
+One run failed at its start, with the original's "Failed to initialize DirectDraw" (`DDERR_NOEXCLUSIVEMODE`) answered by
+the stand-in, and passed when run again. `tools/origrun/bejeweled.cfg` and the seed patch, which the identical-play runs
+used, are no longer on this machine: they lived only in a worktree since removed. Coverage needs neither, because run.sh
+gives the counter itself. **To rebuild before the next Sandbox comparison:** both, from what `IDENTICAL_PLAY.md`
+records (the app static 0x53b570, its update count 0x53b9f4, the input gate's ranges in `UpdateAppStep` 0x44c900 and
+`Process` 0x44c340, and the seed patch at 0x44e9a1), placed in the main checkout's `tools/origrun`, still git-ignored, so
+the E: backup copies them.
+
+`games/bejeweled/coverage.txt` sets the game code as one range, 0x4c9a94-0x4d82d2, with 152 functions. 24 of them are
+left out on purpose:
+
+- RegisterDialog and the other registration code;
+- the URL functions;
+- the update check;
+- `WinMain`;
+- three empty listener defaults and `TRect::Inflate`, which the framework's headers have;
+- `TitleScreen::Resize`: the original's version is `Widget::Resize` followed by the register
+  link's place, and the link is taken out (section 18).
+
+**Reached in the original with no counterpart in the port: none, from the first report on.** The readability pass had
+already put an address or port marker above every function (section 20).
+
+**Defined in the port, never reached: 24 in the first report, 2 at the end.** The first set of runs reached the
+dialogs, play and the level-up, but not the hint, the game over, the high scores or the record dialog. Of the runs
+that reached those, two had lost the race with the loading thread and one was the save with no move. The reruns and four
+short runs reached all but two:
+
+- `WinDMApp::GetGameSEHInfo` (0x4d4ad9) runs only in the framework's crash report. It forwards to `SexyApp`'s, as the
+  export does.
+- `WinDMApp::DoColorDepthExplanation` (0x4d5bef, `ShowColorDepthDialog` in the export) runs only when the display
+  forces full screen and the box is unchecked, which a modern desktop never does. The export shows dialog 12, modal,
+  with the same header, lines and OK footer as the port.
+
+Both are code that only an error or a rare machine reaches, so they stay. **No candidates for taking out**: every
+other port function in the game code ran in the original. **Never reached and not defined in the port: none.**
+
+**No change to the game.** The check changed no source file. It added the tools in `tools/coverage/`; the `none` line
+for `TitleScreen::Resize` came in with the readability pass's merge.
+
+**Not covered.** Alt+Enter and the Options dialog's full-screen box were not run. On the host they would change the
+display mode of the user's machine. The port's full screen is its own (the host switches the window, a listed
+deviation). The realplay driver's `fullscreen` step tests it on the port.
+
+## 22. Code the port does not need (2026-11-09)
+
+The last step before a game is done (`docs/COORDINATION.md`): taking out code the port does not need, beyond the
+registration code and the buttons that lead out of the game, which went in section 18. The coverage check (section 21)
+found no candidate in the translated game: every port function of the game code ran in the original, except two error
+paths that stay. So this step looked for port code that nothing calls. Every definition under `src/` was set against
+every use of its name in the game, the framework and the platform. That left only the code-drawn art's library (`art/`,
+the `codeArt` mod's own code, which no play of the unmodded game reaches): eleven functions written for it and never
+called.
+
+- `Raster`: `Path::QuadTo`, `Path::CubicTo`, `Mask::Inner`, `Mask::Union`, `Mask::Scale`, `Canvas::AlphaMask`,
+  `Canvas::MultiplyAlpha`, and `Mask::Distance`, which only `Inner` used.
+- `VectorFont`: `HasGlyph` and `CharInk`.
+- `GemArt`: `GemModelCount`.
+- `CodeArt`: `Disable` (the mod is never switched off while the game runs).
+
+Every source file is built, since the build takes each folder's files by pattern, and no other header declares a function
+nothing calls.
+
+**Kept on purpose.** The fields the original sets and never reads stay: Board's `mClearedAtMoveStart` and
+`mLevelTextShown`, and ScorePopup's `mAlwaysMinusOne`. So do the ones it saves but never sets, such as `mSavedZero`. The save
+file and the state codec carry them, and so does the trace hash the oracle compares against the frozen baselines, so
+taking them out would change the oracle's output, not the game. Each is named for what it holds (`docs/CODE_STANDARDS.md`,
+rule 3). The colour-depth dialog and `GetGameSEHInfo` stay as error paths (section 21). Piece's paddings stay with the
+layout the save keeps.
+
+**Proof.** Nothing the game runs changed. The native and web builds pass, and so do the unit suite (rulestest, mod
+settings, real input, commands and the rest) and verify (54 checks). The code-drawn art, the only code touched, dumps
+byte for byte as main's exe does at scales 1, 2 and 4 (`-dumpcodeart`, 41, 77 and 77 files). The oracle needs no run: no
+code it reaches changed.

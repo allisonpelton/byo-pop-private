@@ -25,6 +25,8 @@ Steps, run in order in one game process (a failed goal ends the run with code 1)
     minimize                "focus lost", minimize, 100 updates, restore, "focus gained"
     altenter                Alt+Enter: the screen mode changes (windowed <-> full screen)
     shot <name>             the game's own screenshot into <out dir>/<name>.png
+    flame <name>            the bot's next twist with its four gems made flame gems first (the test command `gem`), so
+                            the twist sets them off; shots <name>-0 to <name>-6 follow the blast
     close                   the window's close button; the game must exit by itself with code 0
 Exit code 0 when every step reached its goal.
 """
@@ -237,6 +239,31 @@ class Live:
             self.sleep_updates(20)
         raise Failure('the board was not free for "%s" within 120 s' % line)
 
+    def s_flame(self, name):
+        """The four gems of the bot's next twist that makes a match become flame gems (the test command `gem`), the twist is made by real
+        clicks, and shots follow the blast: <name>-0 just after, then every 25 updates to <name>-6."""
+        t0 = time.time()
+        while time.time() - t0 < 120:
+            st = self.get_state()
+            mv = self.get_move() if st['screen'] == 'game' and not st.get('busy') else None
+            if mv is not None and mv['kind'] == 'twist' and mv.get('match'):
+                break
+            if mv is not None:
+                self.act(mv)
+            self.sleep_updates(20)
+        else:
+            raise Failure('no twist to set flame gems on within 120 s')
+        for dr in (0, 1):
+            for dc in (0, 1):
+                self.do('gem %d %d flame' % (mv['row'] + dr, mv['col'] + dc))
+        self.sleep_updates(10)
+        self.act(mv)
+        for k in range(7):
+            self.shot('%s-%d' % (name, k))
+            self.sleep_updates(25)
+        st = self.get_state()
+        self.say('after the flames:', json.dumps(st)[:300])
+
     def s_finish(self):
         st = self.play(None)
         self.say('game over:', json.dumps(st)[:400])
@@ -435,6 +462,9 @@ def main():
                 g.s_altenter()
             elif s == 'shot':
                 g.shot(steps[i])
+                i += 1
+            elif s == 'flame':
+                g.s_flame(steps[i])
                 i += 1
             elif s == 'close':
                 g.s_close()

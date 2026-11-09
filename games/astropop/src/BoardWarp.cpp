@@ -353,11 +353,11 @@ bool Board::Fn46a810()
 	else
 	{
 		// the flight through the warp: the screen darkens and shakes until the end of the tunnel
-		// (x87, 53 bits: the step is not rounded to a float before it is used)
-		double aStep = (m938 < 0.0f) ? 0.0 : (double) m938 * (double) 0.001f;
-		double aNew = (1.5 - aStep) + (double) m938;
-		m938 = (float) aNew;
-		if (aNew > 423.0)
+		// (x87 at 24 bits: every result is rounded to a float, see GAME_NOTES section 4)
+		float aStep = (m938 < 0.0f) ? 0.0f : m938 * 0.001f;
+		float aNew = (1.5f - aStep) + m938;
+		m938 = aNew;
+		if (aNew > 423.0f)
 			m938 = 423.0f;
 		m199c = ((int) AstroRand() % 500000000) % 4 - 2;
 		if (m3d0.mAlpha > 0)

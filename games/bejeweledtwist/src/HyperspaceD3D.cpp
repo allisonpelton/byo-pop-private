@@ -372,11 +372,11 @@ public:
 // "shader_sidebar_engine_p"): the engine mesh is always drawn by it, with or without pixel shaders
 class SidebarEngineShader : public FixedFunctionShader {
 public:
-	float mUnknown0C[6] = {0, 0, 0, 0, 0, 0};  // +0x0c: the two lights' directions (0x7100b2's, which this class does not use)
-	float mUnknown24 = 0;                      // +0x24
-	float mUnknown28 = 0;                      // +0x28
-	float mUnknown2C = 0;                      // +0x2c
-	float mGlow = 0;                           // +0x30: how bright the engine burns
+	float mLightDirections[6] = {0, 0, 0, 0, 0, 0};  // +0x0c: the two lights' directions (0x7100b2's, which this class does not use)
+	float mLightIntensity = 0;                     // +0x24: the lights' strength
+	float mGlowFirstPart = 0;                      // +0x28: the glow's first part (the shader's constant 0, its second float)
+	float mGlowSecondPart = 0;                     // +0x2c: and its second part (the third float)
+	float mGlow = 0;                               // +0x30: how bright the engine burns
 
 	// 0x70eef8
 	bool Apply(int theLevel) override
@@ -470,16 +470,16 @@ public:
 			// the shader's fields as the original sets them (0x7131a4 on: its lights at +0x0c to +0x24, the glow's two
 			// parts, and the glow)
 			SidebarEngineShader* anEngine = static_cast<SidebarEngineShader*>(mShader);
-			anEngine->mUnknown0C[0] = 0.0f;
-			anEngine->mUnknown0C[1] = aDirection[0];
-			anEngine->mUnknown0C[2] = aDirection[1];
-			anEngine->mUnknown0C[3] = aSecond[0];
-			anEngine->mUnknown0C[4] = aSecond[1];
-			anEngine->mUnknown0C[5] = aSecond[2];
-			anEngine->mUnknown24 = aIntensity;
-			anEngine->mUnknown28 = mConstants0[1];
-			anEngine->mUnknown2C = mConstants0[2];
-			anEngine->mGlow = (float)mHyperspace->mUnknown1160.GetOutVal();
+			anEngine->mLightDirections[0] = 0.0f;
+			anEngine->mLightDirections[1] = aDirection[0];
+			anEngine->mLightDirections[2] = aDirection[1];
+			anEngine->mLightDirections[3] = aSecond[0];
+			anEngine->mLightDirections[4] = aSecond[1];
+			anEngine->mLightDirections[5] = aSecond[2];
+			anEngine->mLightIntensity = aIntensity;
+			anEngine->mGlowFirstPart = mConstants0[1];
+			anEngine->mGlowSecondPart = mConstants0[2];
+			anEngine->mGlow = (float)mHyperspace->mEngineGlow.GetOutVal();
 			if (anEngine->UsesLights()) {
 				gD3DInterface->SetRenderState(GPURS_LIGHTING, 1);
 				NotPorted("SetLights of the fixed-function sidebar classes 0x7100b2 (only a class with lights calls it)");
@@ -516,14 +516,14 @@ public:
 
 void Hyperspace::Draw3D(Graphics* g)
 {
-	if (((mFlag155 && !gApp->mVizManager->mVisible) || mState == 0) || mTransition == 9 || mTransition == 10) {
-		float aFovA = (float)(mUnknownF28.GetOutVal() * 4.0 * mWarmUp + 75.0);
-		float aFovB = (float)(mUnknownF98.GetOutVal() * 4.0 * mWarmUp + 75.0);
-		float aFovC = (float)(mUnknown1008.GetOutVal() * 4.0 * mWarmUp + 75.0);
+	if (((mDrawsOwnBackground && !gApp->mVizManager->mVisible) || mState == 0) || mTransition == 9 || mTransition == 10) {
+		float aFovA = (float)(mFirstBackdropFov.GetOutVal() * 4.0 * mWarmUp + 75.0);
+		float aFovB = (float)(mSecondBackdropFov.GetOutVal() * 4.0 * mWarmUp + 75.0);
+		float aFovC = (float)(mThirdBackdropFov.GetOutVal() * 4.0 * mWarmUp + 75.0);
 		double anAspect = (double)mWidth / (double)mHeight;
 		// the three backdrops, each through the camera at +0x13f4 with its own field of view
-		mCamera13F4.SetFov((float)(anAspect * (double)aFovB), (float)anAspect, 1.0f, 10000.0f);
-		WorldGraphicsListener aListener(&mCamera13F4, true);
+		mBackdropCamera.SetFov((float)(anAspect * (double)aFovB), (float)anAspect, 1.0f, 10000.0f);
+		WorldGraphicsListener aListener(&mBackdropCamera, true);
 		aListener.SetCulling(false);
 		aListener.SetDepth(false, false);
 		aListener.Apply();
@@ -538,17 +538,17 @@ void Hyperspace::Draw3D(Graphics* g)
 		gD3DInterface->SetRenderState(GPURS_DESTBLEND, 6);
 		gD3DInterface->DrawObject(gApp->mOuterSpaceObject, aMatrix, Color::White, false);
 		aListener.Remove();
-		mCamera13F4.SetFov((float)(anAspect * (double)aFovA), (float)anAspect, 1.0f, 10000.0f);
+		mBackdropCamera.SetFov((float)(anAspect * (double)aFovA), (float)anAspect, 1.0f, 10000.0f);
 		aListener.Apply();
 		gD3DInterface->SetRenderState(GPURS_DESTBLEND, 2);
 		gD3DInterface->DrawObject(gApp->mSpaceObject, aMatrix, Color::White, false);
 		aListener.Remove();
-		mCamera13F4.SetFov((float)(anAspect * (double)aFovC), (float)anAspect, 1.0f, 10000.0f);
+		mBackdropCamera.SetFov((float)(anAspect * (double)aFovC), (float)anAspect, 1.0f, 10000.0f);
 		aListener.Apply();
 		gD3DInterface->DrawObject(gApp->mStarsObject, aMatrix, Color::White, false);
 		gD3DInterface->SetRenderState(GPURS_DESTBLEND, 6);
 		aListener.Remove();
-		mCamera13F4.SetFov((float)(anAspect * 60.0), (float)anAspect, 1.0f, 10000.0f);
+		mBackdropCamera.SetFov((float)(anAspect * 60.0), (float)anAspect, 1.0f, 10000.0f);
 		if (mIs3D) {
 			DrawCrystals();
 			if (mWorld == 0)
@@ -557,17 +557,17 @@ void Hyperspace::Draw3D(Graphics* g)
 				DrawPlanet(gApp->mPlanetObjects[mPlanetObject]);
 		}
 		if (((mState != 0 && mState != 5) && (mTransition != 0xb && (mState != 0xc && mState != 0xb))) &&
-			(mUnknown5D8.GetOutVal() < 1.0 || 2 < mState))
+			(mTunnelCountdown.GetOutVal() < 1.0 || 2 < mState))
 			DrawTunnel(g);
-		if (mIs3D && !mFlag157) {
+		if (mIs3D && !mIsNewGameJump) {
 			Draw3DSidebar();
 			DrawCone();
 			DrawParticles();
 		}
-		if (mFlag158)
+		if (mDrawsTravellers)
 			DrawTravellers(g);
 	}
-	if ((mState == 0xc || mState == 0xb) && mFlag159)
+	if ((mState == 0xc || mState == 0xb) && mDrawsFinalFade)
 		DrawOldPicture(g);
 	if (mFlash.GetOutVal() == 0.0)
 		return;
@@ -585,7 +585,7 @@ void Hyperspace::DrawCrystals()
 	if (mCrystals.empty())
 		return;
 	gD3DInterface->SetPixelShader(nullptr);
-	WorldGraphicsListener aListener(&mCamera139C, !mIs3D);
+	WorldGraphicsListener aListener(&mWorldCamera, !mIs3D);
 	aListener.SetCulling(true);
 	aListener.SetDepth(true, true);
 	aListener.SetLighting(true);
@@ -630,7 +630,7 @@ void Hyperspace::DrawSaucer()
 	gD3DInterface->SetVertexShader(nullptr);
 	D3DObjectListener* anOldListener = gApp->mSaucerObject->mListener;
 	gApp->mSaucerObject->mListener = &aSaucerListener;
-	WorldGraphicsListener aListener(&mCamera139C, !mIs3D);
+	WorldGraphicsListener aListener(&mWorldCamera, !mIs3D);
 	aListener.SetCulling(true);
 	aListener.SetDepth(true, true);
 	aListener.SetLighting(true);
@@ -670,7 +670,7 @@ void Hyperspace::DrawPlanet(D3DObject* thePlanet)
 	aPlanetListener.mHyperspace = this;
 	D3DObjectListener* anOldListener = thePlanet->mListener;
 	thePlanet->mListener = &aPlanetListener;
-	WorldGraphicsListener aListener(&mCamera139C, !mIs3D);
+	WorldGraphicsListener aListener(&mWorldCamera, !mIs3D);
 	aListener.SetCulling(true);
 	aListener.SetDepth(true, true);
 	aListener.SetLighting(true);
@@ -711,8 +711,8 @@ void Hyperspace::DrawPlanet(D3DObject* thePlanet)
 				aTransform = mRingCrystals[i].mTransform;
 				aTransform.mRot.RotateX(0.30000001192092896f);
 				aTransform.mRot.RotateY(0.10000000149011612f);
-				Mat3 aTurn = mRingCrystals[i].mUnknown40;
-				aTurn = aTurn * mRingCrystals[i].mUnknown64;
+				Mat3 aTurn = mRingCrystals[i].mOwnTurn;
+				aTurn = aTurn * mRingCrystals[i].mPlanetTurn;
 				Transform3D aSpin = TransformOfMat3(aTurn);
 				aTransform = Compose(aTransform, aSpin);
 				Translate(aTransform, 0.0f, 0.0f, -25.0f);
@@ -746,18 +746,18 @@ void Hyperspace::MakeCrystals()
 		float anAngle = Rand(6.2831854820251465f);
 		aCrystal.mType = Rand(7);
 		int aSign = Rand(1) * 2 - 1;
-		aCrystal.mUnknown40 = (float)(((double)Rand(0.019999999552965164f) + 0.009999999776482582) * (double)aSign);
+		aCrystal.mSpinX = (float)(((double)Rand(0.019999999552965164f) + 0.009999999776482582) * (double)aSign);
 		aSign = Rand(1) * 2 - 1;
-		aCrystal.mUnknown44 = (float)(((double)Rand(0.019999999552965164f) + 0.009999999776482582) * (double)aSign);
+		aCrystal.mSpinY = (float)(((double)Rand(0.019999999552965164f) + 0.009999999776482582) * (double)aSign);
 		ScaleBy(aCrystal.mTransform, 0.20000000298023224f, 0.20000000298023224f, 0.20000000298023224f);
 		aCrystal.mTransform.mRot.RotateX(Rand(6.2831854820251465f));
 		aCrystal.mTransform.mRot.RotateY(Rand(6.2831854820251465f));
 		aCrystal.mTransform.mRot.RotateZ(Rand(6.2831854820251465f));
 		float aSine = (float)std::sin((double)anAngle);
 		float aCosine = (float)std::cos((double)anAngle);
-		float aZ = (float)mUnknownA58.GetOutVal((double)aT);
-		float aY = (float)((double)aSine * (double)aDistance + mUnknown9E8.GetOutVal((double)aT));
-		float aX = (float)((double)aCosine * (double)aDistance + mUnknown978.GetOutVal((double)aT));
+		float aZ = (float)mOrbitZ.GetOutVal((double)aT);
+		float aY = (float)((double)aSine * (double)aDistance + mOrbitY.GetOutVal((double)aT));
+		float aX = (float)((double)aCosine * (double)aDistance + mOrbitX.GetOutVal((double)aT));
 		Translate(aCrystal.mTransform, aX, aY, aZ);
 		mCrystals.push_back(aCrystal);
 		aT = (float)((double)aT + 0.15000000596046448);
@@ -773,10 +773,10 @@ void Hyperspace::MakeRingCrystals(int theCount)
 			RingCrystal aCrystal;
 			aCrystal.mType = Rand(7);
 			int aSign = Rand(2) * 2 - 1;
-			aCrystal.mUnknown88.x = (float)(((double)Rand(0.019999999552965164f) + 0.009999999776482582) * (double)aSign);
+			aCrystal.mSpin.x = (float)(((double)Rand(0.019999999552965164f) + 0.009999999776482582) * (double)aSign);
 			aSign = Rand(2) * 2 - 1;
-			aCrystal.mUnknown88.y = (float)(((double)Rand(0.019999999552965164f) + 0.009999999776482582) * (double)aSign);
-			aCrystal.mUnknown88.z = (float)((double)Rand(0.019999999552965164f) + 0.009999999776482582);
+			aCrystal.mSpin.y = (float)(((double)Rand(0.019999999552965164f) + 0.009999999776482582) * (double)aSign);
+			aCrystal.mSpin.z = (float)((double)Rand(0.019999999552965164f) + 0.009999999776482582);
 			float aSize = (float)((double)Rand(0.10000000149011612f) + 0.10000000149011612);
 			ScaleBy(aCrystal.mTransform, aSize, aSize, aSize);
 			Translate(aCrystal.mTransform, 0.0f, 0.0f, (float)aRing + (float)aRing + 3.5f);
@@ -811,42 +811,42 @@ void Hyperspace::Draw3DSidebar()
 			aSidebarListener.mFixedFunction = false;
 	}
 	aSidebarListener.mTubeTexture = GPUMatrix::Identity();
-	aSidebarListener.mTubeTexture.m[2][0] = (float)(mUnknown6B8.GetOutVal() * 0.5);
+	aSidebarListener.mTubeTexture.m[2][0] = (float)(mJumpClock.GetOutVal() * 0.5);
 	float aConstants[4];
-	aConstants[0] = (float)mUnknown2C8.GetOutVal();
-	aConstants[1] = (float)mUnknown338.GetOutVal();
-	double aValue = mUnknown338.GetOutVal() + (1.0 - mUnknown3A8.GetOutVal());
+	aConstants[0] = (float)mSidebarGlance.GetOutVal();
+	aConstants[1] = (float)mTubeBlendBase.GetOutVal();
+	double aValue = mTubeBlendBase.GetOutVal() + (1.0 - mTubeAlpha.GetOutVal());
 	aConstants[2] = (float)(aValue > 0.0 ? (aValue < 1.0 ? aValue : 1.0) : 0.0);
 	aConstants[3] = (float)((double)(mUpdateCnt % 0x15e) / 350.0);
 	std::memcpy(aSidebarListener.mConstants0, aConstants, 0x10);
-	Transform3D aSidebarCamera = mCamera144C.mTransform;
+	Transform3D aSidebarCamera = mSidebarCamera.mTransform;
 	float aShift[3];
-	aShift[0] = aSidebarCamera.mPos.x - mUnknown14C0.mPos.x;
-	aShift[1] = aSidebarCamera.mPos.y - mUnknown14C0.mPos.y;
-	aShift[2] = aSidebarCamera.mPos.z - mUnknown14C0.mPos.z;
+	aShift[0] = aSidebarCamera.mPos.x - mShipPlace.mPos.x;
+	aShift[1] = aSidebarCamera.mPos.y - mShipPlace.mPos.y;
+	aShift[2] = aSidebarCamera.mPos.z - mShipPlace.mPos.z;
 	float aSidebarShift[3] = {-aShift[0], aShift[1], aShift[2]};
 	std::memcpy(aSidebarListener.mConstants1, aSidebarShift, 0xc);
 	D3DObjectListener* anOldListener = gApp->mSidebarObject->mListener;
 	gApp->mSidebarObject->mListener = &aSidebarListener;
 	double anAspect = (double)mWidth / (double)mHeight;
-	float aFov = (float)((double)(float)mUnknown2C8.GetOutVal() * 45.0 + 15.0);
+	float aFov = (float)((double)(float)mSidebarGlance.GetOutVal() * 45.0 + 15.0);
 	float aFovTimesAspect = (float)((double)aFov * (double)(float)anAspect);
-	float aNear = (float)((double)(float)mUnknown2C8.GetOutVal() * -0.7999999970197678 + 1.0);
-	float aFar = (float)((double)(float)mUnknown2C8.GetOutVal() * -1500.0 + 2000.0);
-	float aCenterY = (float)mUnknown2C8.GetOutVal();
+	float aNear = (float)((double)(float)mSidebarGlance.GetOutVal() * -0.7999999970197678 + 1.0);
+	float aFar = (float)((double)(float)mSidebarGlance.GetOutVal() * -1500.0 + 2000.0);
+	float aCenterY = (float)mSidebarGlance.GetOutVal();
 	aCenterY = (float)(0.008999999612569809 + -0.008999999612569809 * (double)aCenterY);
-	mCamera144C.SetFrustum(aFovTimesAspect, (float)anAspect, 0.0f, aCenterY, aNear, aFar);
+	mSidebarCamera.SetFrustum(aFovTimesAspect, (float)anAspect, 0.0f, aCenterY, aNear, aFar);
 	Transform3D aTransform;
-	float aBack = (float)(((1.0 - mUnknown2C8.GetOutVal()) / (double)aFov) * 73.5);
-	float aGrow = (float)mUnknown2C8.GetOutVal();
-	float aZ = (float)((double)mUnknown1390[2] + (double)aBack);
-	float aX = (float)((double)(float)(0.017000000923871994 * (double)aGrow - 0.017000000923871994) + (double)mUnknown1390[0]);
-	Translate(aTransform, aX, mUnknown1390[1], aZ);
-	aTransform.mRot.RotateZ((float)mUnknownE48.GetOutVal());
-	aTransform.mRot.RotateY((float)mUnknownEB8.GetOutVal());
-	aTransform.mRot.RotateX((float)mUnknownDD8.GetOutVal());
-	mCamera144C.mTransform = aTransform;
-	OffCenterListener aListener(&mCamera144C, !mIs3D);
+	float aBack = (float)(((1.0 - mSidebarGlance.GetOutVal()) / (double)aFov) * 73.5);
+	float aGrow = (float)mSidebarGlance.GetOutVal();
+	float aZ = (float)((double)mWorldCameraPos[2] + (double)aBack);
+	float aX = (float)((double)(float)(0.017000000923871994 * (double)aGrow - 0.017000000923871994) + (double)mWorldCameraPos[0]);
+	Translate(aTransform, aX, mWorldCameraPos[1], aZ);
+	aTransform.mRot.RotateZ((float)mSidebarTurnZ.GetOutVal());
+	aTransform.mRot.RotateY((float)mSidebarTurnY.GetOutVal());
+	aTransform.mRot.RotateX((float)mSidebarTurnX.GetOutVal());
+	mSidebarCamera.mTransform = aTransform;
+	OffCenterListener aListener(&mSidebarCamera, !mIs3D);
 	aListener.SetCulling(true);
 	aListener.SetDepth(true, true);
 	aListener.SetLighting(true);
@@ -856,10 +856,10 @@ void Hyperspace::Draw3DSidebar()
 	gD3DInterface->SetDirectionalLight(0, aDirection, aColors);
 	gD3DInterface->LightEnable(0, true);
 	aListener.Apply();
-	Transform3D aPlace = mUnknown14C0;
+	Transform3D aPlace = mShipPlace;
 	Mat3 aTurn;
 	Vec3 anAxis{0.0f, 1.0f, 0.0f};
-	float aGlance = (float)mUnknown2C8.GetOutVal();
+	float aGlance = (float)mSidebarGlance.GetOutVal();
 	aGlance = (float)(8.0 + -8.0 * (double)aGlance);
 	RotateAbout(aTurn, (float)((double)aGlance * 3.1415927410125732 / 180.0), anAxis);
 	aPlace.mRot = aPlace.mRot * aTurn;
@@ -874,11 +874,11 @@ void Hyperspace::Draw3DSidebar()
 void Hyperspace::DrawCone()
 {
 	// 0x71019e
-	OffCenterListener aListener(&mCamera144C, !mIs3D);
+	OffCenterListener aListener(&mSidebarCamera, !mIs3D);
 	aListener.SetCulling(false);
 	aListener.SetDepth(true, false);
 	aListener.Apply();
-	int anAlpha = Ftol(mUnknown1080.GetOutVal() * 255.0);
+	int anAlpha = Ftol(mConeAlpha.GetOutVal() * 255.0);
 	Color aColor(0, 0, 0, anAlpha);
 	gD3DInterface->SetRenderState(GPURS_LIGHTING, 0);
 	gD3DInterface->SetRenderState(GPURS_TEXTUREFACTOR, aColor.ToInt());
@@ -891,10 +891,10 @@ void Hyperspace::DrawCone()
 	aTexture.m[2][0] = (float)((double)(mUpdateCnt % 0x28) / 40.0);
 	gD3DInterface->SetTextureStageState(0, 0x18, 2);
 	gD3DInterface->SetTransform(GPUTS_TEXTURE0, aTexture);
-	Transform3D aPlace = mUnknown14C0;
+	Transform3D aPlace = mShipPlace;
 	Mat3 aTurn;
 	Vec3 anAxis{0.0f, 1.0f, 0.0f};
-	float aGlance = (float)mUnknown2C8.GetOutVal();
+	float aGlance = (float)mSidebarGlance.GetOutVal();
 	aGlance = (float)(8.0 + -8.0 * (double)aGlance);
 	RotateAbout(aTurn, (float)((double)aGlance * 3.1415927410125732 / 180.0), anAxis);
 	aPlace.mRot = aPlace.mRot * aTurn;
@@ -917,19 +917,19 @@ void Hyperspace::DrawTravellers(Graphics* g)
 	if (gBoard == nullptr)
 		return;
 	unsigned int i = 0;
-	if (!gBoard->mUnknown26B0.empty()) {
+	if (!gBoard->mLevelSouls.empty()) {
 		do {
-			GemSoul* aSoul = gBoard->mUnknown26B0[i];
-			Vec3 aScreen = mCamera144C.ProjectWorld(Vec3{aSoul->mUnknown7BC[0], aSoul->mUnknown7BC[1], aSoul->mUnknown7BC[2]});
+			GemSoul* aSoul = gBoard->mLevelSouls[i];
+			Vec3 aScreen = mSidebarCamera.ProjectWorld(Vec3{aSoul->mSpacePos[0], aSoul->mSpacePos[1], aSoul->mSpacePos[2]});
 			float aSize = (float)(0.0018 / (double)aScreen.z);
-			double aX = aSoul->mUnknown748.GetOutVal();
-			double aX2 = aSoul->mUnknown748.GetOutVal();
+			double aX = aSoul->mSpaceFade.GetOutVal();
+			double aX2 = aSoul->mSpaceFade.GetOutVal();
 			float aPlaceX = (float)((double)mWidth * (double)aScreen.x * aX2 + (double)aSoul->mDrawX * (1.0 - aX));
-			double aY = aSoul->mUnknown748.GetOutVal();
-			double aY2 = aSoul->mUnknown748.GetOutVal();
+			double aY = aSoul->mSpaceFade.GetOutVal();
+			double aY2 = aSoul->mSpaceFade.GetOutVal();
 			float aPlaceY = (float)((double)mHeight * (double)aScreen.y * aY2 + (double)aSoul->mDrawY * (1.0 - aY));
-			double aScale1 = aSoul->mUnknown748.GetOutVal();
-			double aScale2 = aSoul->mUnknown748.GetOutVal();
+			double aScale1 = aSoul->mSpaceFade.GetOutVal();
+			double aScale2 = aSoul->mSpaceFade.GetOutVal();
 			aSize = (float)((double)aSize * aScale2 + (1.0 - aScale1));
 			SexyTransform2D aMatrix;
 			aMatrix.LoadIdentity();
@@ -942,7 +942,7 @@ void Hyperspace::DrawTravellers(Graphics* g)
 				gD3DInterface->PopTransform();
 			}
 			i++;
-		} while (i < gBoard->mUnknown26B0.size());
+		} while (i < gBoard->mLevelSouls.size());
 	}
 }
 
@@ -951,188 +951,188 @@ void Hyperspace::DrawTravellers(Graphics* g)
 
 
 // 0x718d8e: the curves each world sets (the jump table at 0x71c153, one block of SetCurve calls per world; GTS takes the
-// address of the exe's curve string; the path curves follow the jump's clock, mUnknown6B8)
+// address of the exe's curve string; the path curves follow the jump's clock, mJumpClock)
 void Hyperspace::SetWorldCurves(int theWorld)
 {
 	switch (theWorld) {
 	case 0:  // 0x718d95
 		gSaucerCameo = (gSaucerCameo + 1) % 5;  // gApp+0xf98 (0x718da2): the picture the saucer's "Image" mesh wears
-		mUnknownB08.SetCurve(GTS(0x7e5d58), &mUnknown6B8);
-		mUnknownB78.SetCurve(GTS(0x7e5d2c), &mUnknown6B8);
-		mUnknownBE8.SetCurve(GTS(0x7e5d04), &mUnknown6B8);
-		mUnknown978.SetCurve(GTS(0x7e5cd0), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5c98), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5c74), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e5ec0), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x80d3c8), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e5e94), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5c40), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e5c18), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5bec), &mUnknown6B8);
+		mSaucerPathX.SetCurve(GTS(0x7e5d58), &mJumpClock);
+		mSaucerPathY.SetCurve(GTS(0x7e5d2c), &mJumpClock);
+		mSaucerPathZ.SetCurve(GTS(0x7e5d04), &mJumpClock);
+		mOrbitX.SetCurve(GTS(0x7e5cd0), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5c98), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5c74), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e5ec0), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x80d3c8), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e5e94), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e5c40), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e5c18), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e5bec), &mJumpClock);
 		break;
 	case 1:  // 0x7190ad
-		mUnknown978.SetCurve(GTS(0x7e5bc0), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5b94), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5b70), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e5b44), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e5b18), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e5af0), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5ac0), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e5c18), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5a94), &mUnknown6B8);
-		mUnknown6B8.SetCurve(GTS(0x7e5a64));
-		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
+		mOrbitX.SetCurve(GTS(0x7e5bc0), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5b94), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5b70), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e5b44), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e5b18), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e5af0), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e5ac0), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e5c18), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e5a94), &mJumpClock);
+		mJumpClock.SetCurve(GTS(0x7e5a64));
+		mEngineFire.SetCurve(GTS(0x7e5a18));
+		mEngineGlow.SetCurve(GTS(0x7e59d8), &mEngineFire);  // linked to +0x10f0
 		break;
 	case 2:  // 0x7193a7
-		mUnknown978.SetCurve(GTS(0x7e59b0), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5b94), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5b70), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e5990), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e5964), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e5934), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5910), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e58e0), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e58b0), &mUnknown6B8);
-		mUnknown6B8.SetCurve(GTS(0x7e5a64));
-		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
+		mOrbitX.SetCurve(GTS(0x7e59b0), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5b94), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5b70), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e5990), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e5964), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e5934), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e5910), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e58e0), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e58b0), &mJumpClock);
+		mJumpClock.SetCurve(GTS(0x7e5a64));
+		mEngineFire.SetCurve(GTS(0x7e5a18));
+		mEngineGlow.SetCurve(GTS(0x7e59d8), &mEngineFire);  // linked to +0x10f0
 		break;
 	case 3:  // 0x7196a1
-		mUnknown978.SetCurve(GTS(0x7e588c), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5854), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5b70), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e5990), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e5834), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e580c), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e57e4), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e57b8), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5790), &mUnknown6B8);
-		mUnknown6B8.SetCurve(GTS(0x7e5a64));
-		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
+		mOrbitX.SetCurve(GTS(0x7e588c), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5854), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5b70), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e5990), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e5834), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e580c), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e57e4), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e57b8), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e5790), &mJumpClock);
+		mJumpClock.SetCurve(GTS(0x7e5a64));
+		mEngineFire.SetCurve(GTS(0x7e5a18));
+		mEngineGlow.SetCurve(GTS(0x7e59d8), &mEngineFire);  // linked to +0x10f0
 		break;
 	case 4:  // 0x71999b
-		mUnknown978.SetCurve(GTS(0x7e5cd0), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5c98), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5c74), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e5ec0), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x80d3c8), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e5e94), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5c40), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e5c18), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5bec), &mUnknown6B8);
+		mOrbitX.SetCurve(GTS(0x7e5cd0), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5c98), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5c74), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e5ec0), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x80d3c8), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e5e94), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e5c40), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e5c18), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e5bec), &mJumpClock);
 		break;
 	case 5:  // 0x719bde
-		mUnknown978.SetCurve(GTS(0x7e5768), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5b94), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5b70), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e5748), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e5724), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e56f8), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e56d8), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e56b0), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5684), &mUnknown6B8);
-		mUnknown6B8.SetCurve(GTS(0x7e5a64));
-		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
+		mOrbitX.SetCurve(GTS(0x7e5768), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5b94), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5b70), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e5748), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e5724), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e56f8), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e56d8), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e56b0), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e5684), &mJumpClock);
+		mJumpClock.SetCurve(GTS(0x7e5a64));
+		mEngineFire.SetCurve(GTS(0x7e5a18));
+		mEngineGlow.SetCurve(GTS(0x7e59d8), &mEngineFire);  // linked to +0x10f0
 		break;
 	case 6:  // 0x719ed8
-		mUnknown978.SetCurve(GTS(0x7e5654), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5614), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5c74), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e55f4), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x80d3c8), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e55d0), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5c40), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e5c18), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e55a8), &mUnknown6B8);
+		mOrbitX.SetCurve(GTS(0x7e5654), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5614), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5c74), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e55f4), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x80d3c8), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e55d0), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e5c40), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e5c18), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e55a8), &mJumpClock);
 		break;
 	case 7:  // 0x71a11b
-		mUnknown978.SetCurve(GTS(0x7e557c), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5b94), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5b70), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e5554), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e552c), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e5500), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e54d8), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e54b0), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5478), &mUnknown6B8);
-		mUnknown6B8.SetCurve(GTS(0x7e5a64));
-		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
+		mOrbitX.SetCurve(GTS(0x7e557c), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5b94), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5b70), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e5554), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e552c), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e5500), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e54d8), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e54b0), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e5478), &mJumpClock);
+		mJumpClock.SetCurve(GTS(0x7e5a64));
+		mEngineFire.SetCurve(GTS(0x7e5a18));
+		mEngineGlow.SetCurve(GTS(0x7e59d8), &mEngineFire);  // linked to +0x10f0
 		break;
 	case 8:  // 0x71a415
-		mUnknown978.SetCurve(GTS(0x7e544c), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5414), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5c74), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e56d8), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e5834), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e53ec), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e53c4), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e53a4), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5370), &mUnknown6B8);
+		mOrbitX.SetCurve(GTS(0x7e544c), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5414), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5c74), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e56d8), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e5834), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e53ec), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e53c4), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e53a4), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e5370), &mJumpClock);
 		break;
 	case 9:  // 0x71a658
-		mUnknown978.SetCurve(GTS(0x7e5350), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5310), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5c74), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e52e0), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e5834), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e52b8), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5290), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e53a4), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e526c), &mUnknown6B8);
+		mOrbitX.SetCurve(GTS(0x7e5350), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5310), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5c74), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e52e0), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e5834), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e52b8), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e5290), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e53a4), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e526c), &mJumpClock);
 		break;
 	case 10:  // 0x71a89b
-		mUnknown978.SetCurve(GTS(0x7e5240), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5208), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5c74), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e51e4), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e51c0), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e5190), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5168), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e5140), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5834), &mUnknown6B8);
+		mOrbitX.SetCurve(GTS(0x7e5240), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5208), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5c74), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e51e4), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e51c0), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e5190), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e5168), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e5140), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e5834), &mJumpClock);
 		break;
 	case 11:  // 0x71aade
-		mUnknown978.SetCurve(GTS(0x7e5118), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5208), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5c74), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e50f0), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e50c8), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e50a4), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e5834), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e5834), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e5080), &mUnknown6B8);
+		mOrbitX.SetCurve(GTS(0x7e5118), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5208), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5c74), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e50f0), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e50c8), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e50a4), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e5834), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e5834), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e5080), &mJumpClock);
 		break;
 	case 12:  // 0x71ad21
-		mUnknown978.SetCurve(GTS(0x7e5044), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5000), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5b70), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e4fc8), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e5834), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e4fa0), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e4f6c), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e53a4), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e4f30), &mUnknown6B8);
-		mUnknown6B8.SetCurve(GTS(0x7e5a64));
-		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
+		mOrbitX.SetCurve(GTS(0x7e5044), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5000), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5b70), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e4fc8), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e5834), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e4fa0), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e4f6c), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e53a4), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e4f30), &mJumpClock);
+		mJumpClock.SetCurve(GTS(0x7e5a64));
+		mEngineFire.SetCurve(GTS(0x7e5a18));
+		mEngineGlow.SetCurve(GTS(0x7e59d8), &mEngineFire);  // linked to +0x10f0
 		break;
 	case 13:  // 0x71b01b
-		mUnknown978.SetCurve(GTS(0x7e4f08), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e5b94), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5b70), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e4ee0), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x7e4eb8), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e4e84), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e4e58), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e53a4), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e4e24), &mUnknown6B8);
-		mUnknown6B8.SetCurve(GTS(0x7e5a64));
-		mUnknown10F0.SetCurve(GTS(0x7e5a18));
-		mUnknown1160.SetCurve(GTS(0x7e59d8), &mUnknown10F0);  // linked to +0x10f0
+		mOrbitX.SetCurve(GTS(0x7e4f08), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e5b94), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5b70), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e4ee0), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x7e4eb8), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e4e84), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e4e58), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e53a4), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e4e24), &mJumpClock);
+		mJumpClock.SetCurve(GTS(0x7e5a64));
+		mEngineFire.SetCurve(GTS(0x7e5a18));
+		mEngineGlow.SetCurve(GTS(0x7e59d8), &mEngineFire);  // linked to +0x10f0
 		break;
 	}
 }
@@ -1140,12 +1140,12 @@ void Hyperspace::SetWorldCurves(int theWorld)
 // 0x70e83c: five curves to 1 and the board's brightness to 0, as a jump into the camera's path begins
 void ResetJumpCurves(Hyperspace* theSpace)
 {
-	theSpace->mUnknown418.SetConstant(1.0);
-	theSpace->mUnknown568.SetConstant(1.0);
-	theSpace->mUnknown2C8.SetConstant(1.0);
-	theSpace->mUnknown648.SetConstant(1.0);
-	theSpace->mUnknown11D0.SetConstant(1.0);
-	theSpace->mUnknown258.SetConstant(0.0);
+	theSpace->mSidebarBehind.SetConstant(1.0);
+	theSpace->mCrystalGrow.SetConstant(1.0);
+	theSpace->mSidebarGlance.SetConstant(1.0);
+	theSpace->mCameraSlerp.SetConstant(1.0);
+	theSpace->mSidebarShake.SetConstant(1.0);
+	theSpace->mBoardBrightness.SetConstant(0.0);
 }
 
 void Hyperspace::SetTransition3D(int theTransition)
@@ -1213,28 +1213,28 @@ void Hyperspace::SetTransition3D(int theTransition)
 			mWorld = 2;
 			break;
 		}
-		mUnknown6B8.SetCurve(GTS(0x7e61fc));
-		mUnknown10F0.SetCurve(GTS(0x7e61b0));
-		mUnknown1160.SetCurve(GTS(0x7e6174), &mUnknown10F0);  // linked to +0x10f0
-		mUnknown418.SetCurve(GTS(0x7e6150));
-		mUnknown11D0.SetCurve(GTS(0x7e612c));
-		mUnknown1E8.SetCurve(GTS(0x7e6108));
-		mUnknown258.SetCurve(GTS(0x7e60e4));
-		mUnknown338.SetCurve(GTS(0x7e60bc));
-		mUnknown3A8.SetCurve(GTS(0x7e6098), &mUnknown338);  // linked to +0x338
-		mUnknown2C8.SetCurve(GTS(0x7e6068));
-		mUnknown488.SetCurve(GTS(0x7e6048));
-		mUnknown568.SetCurve(GTS(0x7e6028));
-		mUnknown5D8.SetCurve(GTS(0x7e6008));
-		mUnknown4F8.SetCurve(GTS(0x7e5fd8));
-		mUnknown648.SetCurve(GTS(0x7e5fb4));
-		mUnknown1240.SetCurve(GTS(0x7e5f90));
-		mUnknown1080.SetCurve(GTS(0x7e5f60), &mUnknown6B8);
+		mJumpClock.SetCurve(GTS(0x7e61fc));
+		mEngineFire.SetCurve(GTS(0x7e61b0));
+		mEngineGlow.SetCurve(GTS(0x7e6174), &mEngineFire);  // linked to +0x10f0
+		mSidebarBehind.SetCurve(GTS(0x7e6150));
+		mSidebarShake.SetCurve(GTS(0x7e612c));
+		mVizSpeed.SetCurve(GTS(0x7e6108));
+		mBoardBrightness.SetCurve(GTS(0x7e60e4));
+		mTubeBlendBase.SetCurve(GTS(0x7e60bc));
+		mTubeAlpha.SetCurve(GTS(0x7e6098), &mTubeBlendBase);  // linked to +0x338
+		mSidebarGlance.SetCurve(GTS(0x7e6068));
+		mCrystalSpin.SetCurve(GTS(0x7e6048));
+		mCrystalGrow.SetCurve(GTS(0x7e6028));
+		mTunnelCountdown.SetCurve(GTS(0x7e6008));
+		mCrystalSize.SetCurve(GTS(0x7e5fd8));
+		mCameraSlerp.SetCurve(GTS(0x7e5fb4));
+		mSidebarSlide.SetCurve(GTS(0x7e5f90));
+		mConeAlpha.SetCurve(GTS(0x7e5f60), &mJumpClock);
 		SetWorldCurves(mWorld);
 		if (aMakeCrystals)
 			MakeCrystals();
 	} else if (theTransition == 9) {
-		mFlag155 = true;
+		mDrawsOwnBackground = true;
 		ChooseViz(true);
 		mState = 3;
 		gApp->PlaySoundEx(SOUND_TRANS_SPACENOISE, 0, 0.0f, 2.0f, true, true);
@@ -1245,73 +1245,73 @@ void Hyperspace::SetTransition3D(int theTransition)
 			mSpaceSound->SetVolume(2.0);
 		}
 		// the camera path's first point, taken while the curves still hold the last world's
-		double aZ = mUnknownD68.GetOutVal();
-		double aY = mUnknownCF8.GetOutVal();
-		float aX = (float)mUnknownC88.GetOutVal();
-		mUnknown153C = Vec3{aX, (float)aY, (float)aZ};
+		double aZ = mCameraPathZ.GetOutVal();
+		double aY = mCameraPathY.GetOutVal();
+		float aX = (float)mCameraPathX.GetOutVal();
+		mCameraPathStart = Vec3{aX, (float)aY, (float)aZ};
 		ResetJumpCurves(this);
 		mIs3D = true;
-		mUnknown488.SetCurve(GTS(0x7e4d74));
-		mUnknown4F8.SetCurve(GTS(0x7e4924));
-		mUnknown10F0.SetCurve(GTS(0x7e4d48));
-		mUnknown1160.SetCurve(GTS(0x7e4d20), &mUnknown10F0);  // linked to +0x10f0
-		mUnknown6B8.SetCurve(GTS(0x7e4cf4));
-		mUnknown978.SetCurve(GTS(0x7e4cc8), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e4c94), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e4c6c), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e56d8), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x80d3c8), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e4c40), &mUnknown6B8);
-		mUnknownEB8.SetCurve(GTS(0x7e4c1c), &mUnknown6B8);
-		mUnknownE48.SetCurve(GTS(0x7e53a4), &mUnknown6B8);
-		mUnknownDD8.SetCurve(GTS(0x7e4be8), &mUnknown6B8);
-		mUnknown1080.SetCurve(GTS(0x7e4bb4), &mUnknown6B8);
-		mFlag15B = false;
+		mCrystalSpin.SetCurve(GTS(0x7e4d74));
+		mCrystalSize.SetCurve(GTS(0x7e4924));
+		mEngineFire.SetCurve(GTS(0x7e4d48));
+		mEngineGlow.SetCurve(GTS(0x7e4d20), &mEngineFire);  // linked to +0x10f0
+		mJumpClock.SetCurve(GTS(0x7e4cf4));
+		mOrbitX.SetCurve(GTS(0x7e4cc8), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e4c94), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e4c6c), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e56d8), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x80d3c8), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e4c40), &mJumpClock);
+		mSidebarTurnY.SetCurve(GTS(0x7e4c1c), &mJumpClock);
+		mSidebarTurnZ.SetCurve(GTS(0x7e53a4), &mJumpClock);
+		mSidebarTurnX.SetCurve(GTS(0x7e4be8), &mJumpClock);
+		mConeAlpha.SetCurve(GTS(0x7e4bb4), &mJumpClock);
+		mFirstHalfPending = false;
 	} else if (theTransition == 10) {
-		mFlag155 = true;
+		mDrawsOwnBackground = true;
 		ChooseViz(true);
 		mState = 3;
 		gApp->PlaySoundEx(SOUND_TRANS_SPACENOISE, 0, 0.0f, 2.0f, true, true);
 		ResetJumpCurves(this);
 		mIs3D = false;
-		mUnknown488.SetCurve(GTS(0x7e4b08));
-		mUnknown4F8.SetCurve(GTS(0x7e4924));
-		mUnknown10F0.SetConstant(0.0);
-		mUnknown1160.SetConstant(0.0);
-		mUnknown6B8.SetCurve(GTS(0x7e4cf4));
-		mUnknown978.SetCurve(GTS(0x7e4ae0), &mUnknown6B8);
-		mUnknown9E8.SetCurve(GTS(0x7e4aac), &mUnknown6B8);
-		mUnknownA58.SetCurve(GTS(0x7e5c74), &mUnknown6B8);
-		mUnknownC88.SetCurve(GTS(0x7e56d8), &mUnknown6B8);
-		mUnknownCF8.SetCurve(GTS(0x80d3c8), &mUnknown6B8);
-		mUnknownD68.SetCurve(GTS(0x7e4c40), &mUnknown6B8);
-		mUnknownDD8.SetConstant(0.0);
-		mUnknownE48.SetConstant(0.0);
-		mUnknownEB8.SetConstant(0.0);
-		mFlag15B = false;
+		mCrystalSpin.SetCurve(GTS(0x7e4b08));
+		mCrystalSize.SetCurve(GTS(0x7e4924));
+		mEngineFire.SetConstant(0.0);
+		mEngineGlow.SetConstant(0.0);
+		mJumpClock.SetCurve(GTS(0x7e4cf4));
+		mOrbitX.SetCurve(GTS(0x7e4ae0), &mJumpClock);
+		mOrbitY.SetCurve(GTS(0x7e4aac), &mJumpClock);
+		mOrbitZ.SetCurve(GTS(0x7e5c74), &mJumpClock);
+		mCameraPathX.SetCurve(GTS(0x7e56d8), &mJumpClock);
+		mCameraPathY.SetCurve(GTS(0x80d3c8), &mJumpClock);
+		mCameraPathZ.SetCurve(GTS(0x7e4c40), &mJumpClock);
+		mSidebarTurnX.SetConstant(0.0);
+		mSidebarTurnZ.SetConstant(0.0);
+		mSidebarTurnY.SetConstant(0.0);
+		mFirstHalfPending = false;
 	} else if (theTransition == 12) {
-		mUnknown258.SetConstant(1.0);
-		mUnknown1E8.SetConstant(1.0);
-		mUnknown2C8.SetConstant(0.0);
-		mUnknown338.SetConstant(0.0);
-		mUnknown3A8.SetConstant(0.0);
-		mUnknownDD8.SetConstant(0.0);
-		mUnknownE48.SetConstant(0.0);
-		mUnknownEB8.SetConstant(0.0);
-		mUnknownC88.SetConstant(0.0);
-		mUnknownCF8.SetConstant(0.0);
-		mUnknownD68.SetConstant(0.0);
+		mBoardBrightness.SetConstant(1.0);
+		mVizSpeed.SetConstant(1.0);
+		mSidebarGlance.SetConstant(0.0);
+		mTubeBlendBase.SetConstant(0.0);
+		mTubeAlpha.SetConstant(0.0);
+		mSidebarTurnX.SetConstant(0.0);
+		mSidebarTurnZ.SetConstant(0.0);
+		mSidebarTurnY.SetConstant(0.0);
+		mCameraPathX.SetConstant(0.0);
+		mCameraPathY.SetConstant(0.0);
+		mCameraPathZ.SetConstant(0.0);
 		mIs3D = false;
 		ChooseViz(true);
 		mTransition = 12;
 		mState = 11;
-		mFlag159 = true;
+		mDrawsFinalFade = true;
 		mLevel = 0;
-		mUnknown12B0.SetCurve(GTS(0x7e4a7c));
+		mBoardBrightnessFinal.SetCurve(GTS(0x7e4a7c));
 		mFlash.SetCurve(GTS(0x7e4a48));
-		mUnknown12B0.SetCurve(GTS(0x7e4a1c));
-		gBoard->SetUnknown3924(0.0f);
-		mFlag155 = true;
+		mBoardBrightnessFinal.SetCurve(GTS(0x7e4a1c));
+		gBoard->SetBoardFade(0.0f);
+		mDrawsOwnBackground = true;
 		gApp->mBoard->SetVisible(false);
 		gApp->mVizManager->SetVisible(false);
 	}
@@ -1323,16 +1323,16 @@ void Hyperspace::SetTransition3D(int theTransition)
 // Update (0x715c21) with gD3DInterface set
 
 // The states of a normal (registered) level-up jump, transition 8, end to end:
-//   1  the jump has been asked for: mUnknown1E8 (the VizManager's speed, set by SetTransition's curves) runs; when it is
+//   1  the jump has been asked for: mVizSpeed (the VizManager's speed, set by SetTransition's curves) runs; when it is
 //      done the VizManager's picture goes into +0x160, the VizManager is hidden, +0x155 and +0x156 are set and the
 //      board takes no mouse (mMouseVisible, +0x55 = 0) (SOUND_TRANS_SPACENOISE)                          -> 2
-//   2  the camera flies off; mUnknown5D8 (the countdown the tunnel shows under 1) runs; when it is done the engines
+//   2  the camera flies off; mTunnelCountdown (the countdown the tunnel shows under 1) runs; when it is done the engines
 //      ignite (SOUND_TRANS_ENGINEIGNITION, the engine loop starts)                                           -> 3
-//   3  the jump proper on the path's clock mUnknown6B8: 0xfa from its end the closing curves, 0x8c SOUND_TRANS_ARRIVAL, 0x3c the souls are let go (+0x158 clear), and
+//   3  the jump proper on the path's clock mJumpClock: 0xfa from its end the closing curves, 0x8c SOUND_TRANS_ARRIVAL, 0x3c the souls are let go (+0x158 clear), and
 //      0x23 updates from its end the new level is made (mIs3D off, NewLevel, ClearBoard, FillInBlanks) and the state
 //      is 4 (state 5 stays)                                                                                -> 4
-//   4  when 6B8 ends: the VizManager is shown again and mUnknown1E8 gets the arrival curve                  -> 5
-//   5  mUnknown1E8 crosses 0.3: the travellers retarget; when it has been triggered the board takes the mouse -> 10
+//   4  when 6B8 ends: the VizManager is shown again and mVizSpeed gets the arrival curve                  -> 5
+//   5  mVizSpeed crosses 0.3: the travellers retarget; when it has been triggered the board takes the mouse -> 10
 //   10 the jump is over (the board sees it and clears mClicked). (States 6 to 9 belonged to transition 14, the trial's
 //      limit, registration code left out.) Transition 9 and 10 (the game's start) run 3 to 5 the same way.
 // Every state change hangs on a curve of the SetTransition: a curve with no string (the port's GameTextTable.inc lacking
@@ -1341,47 +1341,47 @@ void Hyperspace::SetTransition3D(int theTransition)
 void Hyperspace::Update3D()
 {
 	// 0x716336 and on: the common code of every transition, which the 2D chain (0x715d68) leaves to them only in 3D
-	if (!mUnknown1E8.IncInVal() && mState == 1) {
+	if (!mVizSpeed.IncInVal() && mState == 1) {
 		// the jump's first step is over: the VizManager's picture goes into +0x160 and space takes the screen
-		Graphics aG(mUnknown160);
+		Graphics aG(mOldPicture);
 		gApp->mVizManager->Draw(&aG);
 		gApp->mVizManager->SetVisible(false);
 		ChooseViz(false);
-		mFlag155 = true;
+		mDrawsOwnBackground = true;
 		mIs3D = true;
 		gApp->mBoard->mMouseVisible = false;  // +0x55: the board takes no mouse while space is on screen
 		mState++;
 		gApp->PlaySoundEx(SOUND_TRANS_SPACENOISE, 0, 0.0f, 2.0f, true, true);
 	}
-	gApp->mVizManager->mSpeed = mUnknown1E8.GetOutVal();
+	gApp->mVizManager->mSpeed = mVizSpeed.GetOutVal();
 	// the VizManager's rectangle for its draw hook, +0x1bc to +0x1c8: all of the screen
 	gApp->mVizManager->mClipRect[0] = -1;
 	gApp->mVizManager->mClipRect[1] = -1;
 	gApp->mVizManager->mClipRect[2] = 1;
 	gApp->mVizManager->mClipRect[3] = 1;
-	if (gApp->mBoard != nullptr && !gApp->mBoard->mUnknown37C4) {
-		mUnknown258.IncInVal();
-		gApp->mBoard->SetUnknown3924((float)mUnknown258.GetOutVal());
+	if (gApp->mBoard != nullptr && !gApp->mBoard->mIsReplay) {
+		mBoardBrightness.IncInVal();
+		gApp->mBoard->SetBoardFade((float)mBoardBrightness.GetOutVal());
 		if (mTransition == 11)
-			gApp->mBoard->ApplyUnknown3924();
+			gApp->mBoard->ApplyBoardFade();
 	}
-	mUnknown900.IncInVal();
-	mUnknown10F0.IncInVal();
-	mUnknown2C8.IncInVal();
-	mUnknown338.IncInVal();
+	mCrystalStep.IncInVal();
+	mEngineFire.IncInVal();
+	mSidebarGlance.IncInVal();
+	mTubeBlendBase.IncInVal();
 	if (1 < mState && mState < 10) {
-		mUnknown488.IncInVal();
+		mCrystalSpin.IncInVal();
 		if (mTransition == 8 || mTransition == 9 || mTransition == 10) {
-			mUnknown418.IncInVal();
-			mUnknown11D0.IncInVal();
+			mSidebarBehind.IncInVal();
+			mSidebarShake.IncInVal();
 		}
-		mUnknown568.IncInVal();
-		mUnknown648.IncInVal();
-		mUnknown1240.IncInVal();
-		mUnknown178.IncInVal();
-		if (mUnknown5D8.CheckUpdatesFromEndThreshold(0x7d))
+		mCrystalGrow.IncInVal();
+		mCameraSlerp.IncInVal();
+		mSidebarSlide.IncInVal();
+		mSidebarAside.IncInVal();
+		if (mTunnelCountdown.CheckUpdatesFromEndThreshold(0x7d))
 			gApp->PlaySample(SOUND_TRANS_PREIGNITION);
-		if (!mUnknown5D8.IncInVal() && mState == 2) {
+		if (!mTunnelCountdown.IncInVal() && mState == 2) {
 			mState = 3;
 			gApp->PlaySample(SOUND_TRANS_ENGINEIGNITION);
 			mSpaceSound = gApp->mSoundManager->GetSoundInstance(SOUND_TRANS_ENGINELOOP1);  // 0x75fa0b
@@ -1390,51 +1390,51 @@ void Hyperspace::Update3D()
 				mSpaceSound->SetVolume(2.0);
 			}
 		}
-		mUnknown4F8.IncInVal();
+		mCrystalSize.IncInVal();
 	}
 	if (2 < mState && mState < 10) {
-		if (mTransition != 13 && !mUnknown6B8.IncInVal()) {
+		if (mTransition != 13 && !mJumpClock.IncInVal()) {
 			if (gApp->mMainMenu->mChallengeMenu != nullptr)
 				gApp->mMainMenu->mChallengeMenu->mVisible = false;
 			gApp->mVizManager->SetVisible(true);
 			mState++;
-			mUnknown1E8.SetCurve(GTS(0x7e496c));
+			mVizSpeed.SetCurve(GTS(0x7e496c));
 		}
-		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0x17c) && mFlag15B) {
-			mFlag15B = false;
-			mUnknown488.SetCurve(GTS(0x7e4948));
-			mUnknown4F8.SetCurve(GTS(0x7e4924));
+		if (mJumpClock.CheckUpdatesFromEndThreshold(0x17c) && mFirstHalfPending) {
+			mFirstHalfPending = false;
+			mCrystalSpin.SetCurve(GTS(0x7e4948));
+			mCrystalSize.SetCurve(GTS(0x7e4924));
 			gApp->mVizManager->TakePendingViz();  // 0x7581e5
-			Graphics aG(mUnknown160);
+			Graphics aG(mOldPicture);
 			gApp->mVizManager->Draw(&aG);
 		}
-		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0xfa) && mTransition != 11) {
-			mUnknown648.SetCurve(GTS(0x7e48fc));
-			mUnknown568.SetCurve(GTS(0x7e48dc));
-			mUnknown11D0.SetCurve(GTS(0x7e48bc));
-			mUnknown418.SetCurve(GTS(0x7e48bc));
+		if (mJumpClock.CheckUpdatesFromEndThreshold(0xfa) && mTransition != 11) {
+			mCameraSlerp.SetCurve(GTS(0x7e48fc));
+			mCrystalGrow.SetCurve(GTS(0x7e48dc));
+			mSidebarShake.SetCurve(GTS(0x7e48bc));
+			mSidebarBehind.SetCurve(GTS(0x7e48bc));
 		}
-		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0x8c))
+		if (mJumpClock.CheckUpdatesFromEndThreshold(0x8c))
 			gApp->PlaySample(SOUND_TRANS_ARRIVAL);
-		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0x3c)) {
-			for (GemSoul* aSoul : gBoard->mUnknown26B0)
-				aSoul->mUnknown8F4 = false;
-			mFlag158 = false;
+		if (mJumpClock.CheckUpdatesFromEndThreshold(0x3c)) {
+			for (GemSoul* aSoul : gBoard->mLevelSouls)
+				aSoul->mIsVisible = false;
+			mDrawsTravellers = false;
 		}
-		if (mUnknown6B8.CheckUpdatesFromEndThreshold(0x23)) {
+		if (mJumpClock.CheckUpdatesFromEndThreshold(0x23)) {
 			{
 				mIs3D = false;
 				if (mState != 5)
 					mState = 4;
-				mUnknown258.SetCurve(GTS(0x7e4874));
+				mBoardBrightness.SetCurve(GTS(0x7e4874));
 				if (mTransition == 11) {
-					mUnknown338.SetCurve(GTS(0x7e4840));
-					mUnknown3A8.SetCurve(GTS(0x7e481c), &mUnknown338);  // linked to +0x338
-					mUnknown2C8.SetCurve(GTS(0x7e47e8));
+					mTubeBlendBase.SetCurve(GTS(0x7e4840));
+					mTubeAlpha.SetCurve(GTS(0x7e481c), &mTubeBlendBase);  // linked to +0x338
+					mSidebarGlance.SetCurve(GTS(0x7e47e8));
 				} else {
-					mUnknown338.SetCurve(GTS(0x7e47b4));
-					mUnknown3A8.SetCurve(GTS(0x7e478c), &mUnknown338);  // linked to +0x338
-					mUnknown2C8.SetCurve(GTS(0x7e4758));
+					mTubeBlendBase.SetCurve(GTS(0x7e47b4));
+					mTubeAlpha.SetCurve(GTS(0x7e478c), &mTubeBlendBase);  // linked to +0x338
+					mSidebarGlance.SetCurve(GTS(0x7e4758));
 				}
 				if (mTransition != 10 && mTransition != 11) {
 					gApp->mBoard->NewLevel();
@@ -1455,9 +1455,9 @@ void Hyperspace::Update3D()
 		}
 	}
 	if (mState == 5) {
-		if (mUnknown1E8.CheckInThreshold(0.3))  // 0x81d278
+		if (mVizSpeed.CheckInThreshold(0.3))  // 0x81d278
 			gApp->mBoard->RetargetTravellers();
-		if (mUnknown1E8.HasBeenTriggered()) {
+		if (mVizSpeed.HasBeenTriggered()) {
 			gApp->mBoard->mMouseVisible = true;  // +0x55 = 1
 			mState = 10;
 		}
@@ -1533,8 +1533,8 @@ void Hyperspace::UpdateWorld3D()
 	if (!mCrystals.empty()) {
 		do {
 			Mat3 aRot = mCrystals[i].mTransform.mRot;
-			aRot.RotateX(mCrystals[i].mUnknown40);
-			aRot.RotateY(mCrystals[i].mUnknown44);
+			aRot.RotateX(mCrystals[i].mSpinX);
+			aRot.RotateY(mCrystals[i].mSpinY);
 			mCrystals[i].mTransform.mRot = aRot;
 			i++;
 		} while (i < mCrystals.size());
@@ -1544,12 +1544,12 @@ void Hyperspace::UpdateWorld3D()
 		do {
 			RingCrystal& aCrystal = mRingCrystals[i];
 			Mat3 aRot = aCrystal.mTransform.mRot;
-			aRot.RotateX(aCrystal.mUnknown88.x);
-			aRot.RotateY(aCrystal.mUnknown88.y);
+			aRot.RotateX(aCrystal.mSpin.x);
+			aRot.RotateY(aCrystal.mSpin.y);
 			aCrystal.mTransform.mRot = aRot;
-			Mat3 aSpin = aCrystal.mUnknown40;
-			aSpin.RotateY(aCrystal.mUnknown88.z);
-			aCrystal.mUnknown40 = aSpin;
+			Mat3 aSpin = aCrystal.mOwnTurn;
+			aSpin.RotateY(aCrystal.mSpin.z);
+			aCrystal.mOwnTurn = aSpin;
 			i++;
 		} while (i < mRingCrystals.size());
 	}
@@ -1559,39 +1559,39 @@ void Hyperspace::UpdateWorld3D()
 	Transform3D aLook;
 	LookAlong(aLook.mRot, Vec3{0.0f, 0.0f, 1.0f}, Vec3{0.0f, 1.0f, 0.0f});
 	GPUMatrix aLookMatrix = WorldMatrixOf(aLook);
-	float aBehind = (float)(mUnknown418.GetOutVal() * 0.5 + 2.7300000190734863);
+	float aBehind = (float)(mSidebarBehind.GetOutVal() * 0.5 + 2.7300000190734863);
 	Vec3 anOffset = Mat4TransformPoint(aLookMatrix, Vec3{0.0f, 0.0f, aBehind});
-	float aNext = (float)(mUnknown6B8.GetInVal() + mUnknown6B8.mIncRate);
+	float aNext = (float)(mJumpClock.GetInVal() + mJumpClock.mIncRate);
 	Vec3 aTo;
-	aTo.x = (float)mUnknownC88.GetOutVal((double)aNext);
-	aTo.y = (float)mUnknownCF8.GetOutVal((double)aNext);
-	aTo.z = (float)mUnknownD68.GetOutVal((double)aNext);
-	double aPathZ = mUnknownD68.GetOutVal();
-	double aPathY = mUnknownCF8.GetOutVal();
+	aTo.x = (float)mCameraPathX.GetOutVal((double)aNext);
+	aTo.y = (float)mCameraPathY.GetOutVal((double)aNext);
+	aTo.z = (float)mCameraPathZ.GetOutVal((double)aNext);
+	double aPathZ = mCameraPathZ.GetOutVal();
+	double aPathY = mCameraPathY.GetOutVal();
 	Vec3 aFrom;
-	aFrom.x = (float)mUnknownC88.GetOutVal();
+	aFrom.x = (float)mCameraPathX.GetOutVal();
 	aFrom.y = (float)aPathY;
 	aFrom.z = (float)aPathZ;
-	mUnknown11D0.GetOutVal();  // (0x7170e2: read, and not used)
+	mSidebarShake.GetOutVal();  // (0x7170e2: read, and not used)
 	Vec3 aPlace;
 	aPlace.x = aFrom.x + anOffset.x;
 	aPlace.y = aFrom.y + anOffset.y;
 	aPlace.z = aFrom.z + anOffset.z;
-	mUnknown1390[0] = mUnknown153C.x + aPlace.x;
-	mUnknown1390[1] = mUnknown153C.y + aPlace.y;
-	mUnknown1390[2] = mUnknown153C.z + aPlace.z;
+	mWorldCameraPos[0] = mCameraPathStart.x + aPlace.x;
+	mWorldCameraPos[1] = mCameraPathStart.y + aPlace.y;
+	mWorldCameraPos[2] = mCameraPathStart.z + aPlace.z;
 	float anAspect = (float)((double)mWidth / (double)mHeight);
 	float aFovTimesAspect = (float)((double)anAspect * 60.0);  // 0x7d7d60
-	mCamera139C.SetFov(aFovTimesAspect, anAspect, 0.20000000298023224f, 500.0f);
+	mWorldCamera.SetFov(aFovTimesAspect, anAspect, 0.20000000298023224f, 500.0f);
 	Transform3D aCamera;
-	Translate(aCamera, mUnknown1390[0], mUnknown1390[1], mUnknown1390[2]);
-	aCamera.mRot.RotateZ((float)mUnknownE48.GetOutVal());
-	aCamera.mRot.RotateY((float)mUnknownEB8.GetOutVal());
-	aCamera.mRot.RotateX((float)mUnknownDD8.GetOutVal());
-	mCamera139C.mTransform = aCamera;
-	mCamera13F4.SetFov(aFovTimesAspect, anAspect, 1.0f, 10000.0f);
-	aCamera.mRot = aCamera.mRot * mUnknown1548;  // 0x70ff99
-	mCamera13F4.mTransform = aCamera;
+	Translate(aCamera, mWorldCameraPos[0], mWorldCameraPos[1], mWorldCameraPos[2]);
+	aCamera.mRot.RotateZ((float)mSidebarTurnZ.GetOutVal());
+	aCamera.mRot.RotateY((float)mSidebarTurnY.GetOutVal());
+	aCamera.mRot.RotateX((float)mSidebarTurnX.GetOutVal());
+	mWorldCamera.mTransform = aCamera;
+	mBackdropCamera.SetFov(aFovTimesAspect, anAspect, 1.0f, 10000.0f);
+	aCamera.mRot = aCamera.mRot * mCameraTurn;  // 0x70ff99
+	mBackdropCamera.mTransform = aCamera;
 	(void)aTo;
 }
 
@@ -1600,72 +1600,72 @@ void Hyperspace::PlaceShip()
 	// 0x715480: the ship (the sidebar's place, +0x14c0) on the camera path's curves 978, 9e8 and a58, slid by 1240
 	// and 178, turned along the path
 	Transform3D aShip;
-	float aZ = (float)mUnknownA58.GetOutVal();  // the three reads come z, y, x
-	float aY = (float)mUnknown9E8.GetOutVal();
-	float aX = (float)mUnknown978.GetOutVal();
-	Vec3 aFrom{mUnknown153C.x + aX, mUnknown153C.y + aY, mUnknown153C.z + aZ};
-	float aNext = (float)(mUnknown6B8.GetInVal() + mUnknown6B8.mIncRate);
-	float aNextX = (float)mUnknown978.GetOutVal((double)aNext);
-	float aNextY = (float)mUnknown9E8.GetOutVal((double)aNext);
-	float aNextZ = (float)mUnknownA58.GetOutVal((double)aNext);
-	Vec3 aTo{mUnknown153C.x + aNextX, mUnknown153C.y + aNextY, mUnknown153C.z + aNextZ};
-	mUnknown1520 = Vec3{aTo.x - aFrom.x, aTo.y - aFrom.y, aTo.z - aFrom.z};
-	Vec3 aHeading = NormalizedV(mUnknown1520);
+	float aZ = (float)mOrbitZ.GetOutVal();  // the three reads come z, y, x
+	float aY = (float)mOrbitY.GetOutVal();
+	float aX = (float)mOrbitX.GetOutVal();
+	Vec3 aFrom{mCameraPathStart.x + aX, mCameraPathStart.y + aY, mCameraPathStart.z + aZ};
+	float aNext = (float)(mJumpClock.GetInVal() + mJumpClock.mIncRate);
+	float aNextX = (float)mOrbitX.GetOutVal((double)aNext);
+	float aNextY = (float)mOrbitY.GetOutVal((double)aNext);
+	float aNextZ = (float)mOrbitZ.GetOutVal((double)aNext);
+	Vec3 aTo{mCameraPathStart.x + aNextX, mCameraPathStart.y + aNextY, mCameraPathStart.z + aNextZ};
+	mShipHeading = Vec3{aTo.x - aFrom.x, aTo.y - aFrom.y, aTo.z - aFrom.z};
+	Vec3 aHeading = NormalizedV(mShipHeading);
 	Vec3 aBack{-aHeading.x, -aHeading.y, -aHeading.z};
 	Widget* aTube = gApp->mBoard->mGoodTube;  // +0x2194
 	float anAside = (float)(((double)(float)aTube->mWidth * 0.525 + (double)(float)aTube->mX - (double)(float)(mWidth / 2)) /
 		(double)(gApp->mScale * 694.4375f));
 	Mat3 aTurn;
-	aTurn.RotateZ((float)((double)mUnknown1520.x * -15.0));
+	aTurn.RotateZ((float)((double)mShipHeading.x * -15.0));
 	LookAlong(aTurn, aBack, Vec3{0.0f, 1.0f, 0.0f});
-	mUnknown14FC = aTurn;
+	mShipTurn = aTurn;
 	aShip.mRot = aTurn;
 	Transform3D aNear;
 	ScaleBy(aNear, 0.052799999713897705f, 0.052799999713897705f, 0.052799999713897705f);
 	aNear.mRot.RotateX(-1.5707963705062866f);
 	aNear.mRot.RotateY(3.1415927410125732f);
-	float aSlide = (float)mUnknown1240.GetOutVal();
-	float aSlide2 = (float)mUnknown1240.GetOutVal();
-	float aSlide3 = (float)mUnknown1240.GetOutVal();
+	float aSlide = (float)mSidebarSlide.GetOutVal();
+	float aSlide2 = (float)mSidebarSlide.GetOutVal();
+	float aSlide3 = (float)mSidebarSlide.GetOutVal();
 	float aNearY = (float)(0.035000000149011612 - (double)aSlide2 * 0.30000001192092896);
 	float aNearZ = (float)(1.2000000476837158 - (double)aSlide * 0.10000000149011612);
-	float aNearX = (float)(((1.0049999952316284 - (double)aSlide3) + mUnknown178.GetOutVal() * 3.0) * (double)anAside);
+	float aNearX = (float)(((1.0049999952316284 - (double)aSlide3) + mSidebarAside.GetOutVal() * 3.0) * (double)anAside);
 	Translate(aNear, aNearX, aNearY, aNearZ);
 	Translate(aNear, aFrom.x, aFrom.y, aFrom.z);
 	Transform3D aFar;
 	ScaleBy(aFar, 0.053500000387430191f, 0.053500000387430191f, 0.053500000387430191f);
 	aFar.mRot.RotateY(3.1415927410125732f);
-	float aFarSlide = (float)mUnknown1240.GetOutVal();
-	float aFarSlide2 = (float)mUnknown1240.GetOutVal();
-	double aFarSlide3 = mUnknown1240.GetOutVal();
+	float aFarSlide = (float)mSidebarSlide.GetOutVal();
+	float aFarSlide2 = (float)mSidebarSlide.GetOutVal();
+	double aFarSlide3 = mSidebarSlide.GetOutVal();
 	float aFarY = (float)(0.052999999374151230 - (double)aFarSlide2 * 0.30000001192092896);
 	float aFarZ = (float)(1.2000000476837158 - (double)aFarSlide * 0.10000000149011612);
-	float aFarX = (float)(((1.0 - aFarSlide3) + mUnknown178.GetOutVal() * 3.0) * (double)anAside);
+	float aFarX = (float)(((1.0 - aFarSlide3) + mSidebarAside.GetOutVal() * 3.0) * (double)anAside);
 	Translate(aFar, aFarX, aFarY, aFarZ);
 	aFar = Compose(aFar, aShip);
 	Translate(aFar, aFrom.x, aFrom.y, aFrom.z);
-	mUnknown14C0 = aNear;
-	mUnknown14C0.mRot = SlerpMat3(mUnknown14C0.mRot, aFar.mRot, (float)mUnknown648.GetOutVal(), false);
+	mShipPlace = aNear;
+	mShipPlace.mRot = SlerpMat3(mShipPlace.mRot, aFar.mRot, (float)mCameraSlerp.GetOutVal(), false);
 }
 
 void Hyperspace::PlaceSaucer()
 {
 	// 0x7158f8: the saucer (+0xac8) on its own path (b08, b78 and be8), turned along it like the ship
 	Transform3D aShip;
-	float aZ = (float)mUnknownBE8.GetOutVal();
-	float aY = (float)mUnknownB78.GetOutVal();
-	float aX = (float)mUnknownB08.GetOutVal();
+	float aZ = (float)mSaucerPathZ.GetOutVal();
+	float aY = (float)mSaucerPathY.GetOutVal();
+	float aX = (float)mSaucerPathX.GetOutVal();
 	Vec3 aFrom{aX, aY, aZ};
-	float aNext = (float)(mUnknown6B8.GetInVal() + mUnknown6B8.mIncRate);
-	Vec3 aTo{(float)mUnknownB08.GetOutVal((double)aNext), (float)mUnknownB78.GetOutVal((double)aNext),
-		(float)mUnknownBE8.GetOutVal((double)aNext)};
+	float aNext = (float)(mJumpClock.GetInVal() + mJumpClock.mIncRate);
+	Vec3 aTo{(float)mSaucerPathX.GetOutVal((double)aNext), (float)mSaucerPathY.GetOutVal((double)aNext),
+		(float)mSaucerPathZ.GetOutVal((double)aNext)};
 	Vec3 aDelta{aTo.x - aFrom.x, aTo.y - aFrom.y, aTo.z - aFrom.z};
 	Vec3 aHeading = NormalizedV(aDelta);
 	Vec3 aBack{-aHeading.x, -aHeading.y, -aHeading.z};
 	Mat3 aTurn;
 	aTurn.RotateZ((float)((double)aDelta.x * -15.0));
 	LookAlong(aTurn, aBack, Vec3{0.0f, 1.0f, 0.0f});
-	mUnknown14FC = aTurn;
+	mShipTurn = aTurn;
 	aShip.mRot = aTurn;
 	Transform3D aPlace;
 	ScaleBy(aPlace, 0.053500000387430191f, 0.053500000387430191f, 0.053500000387430191f);
@@ -1676,7 +1676,7 @@ void Hyperspace::PlaceSaucer()
 	aSpin = Compose(aSpin, aShip);
 	Translate(aSpin, aFrom.x, aFrom.y, aFrom.z);
 	mSaucer = aPlace;
-	mSaucer.mRot = SlerpMat3(mSaucer.mRot, aSpin.mRot, (float)mUnknown648.GetOutVal(), false);
+	mSaucer.mRot = SlerpMat3(mSaucer.mRot, aSpin.mRot, (float)mCameraSlerp.GetOutVal(), false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1716,7 +1716,7 @@ void Hyperspace::DrawParticles()
 {
 	// 0x71378b: the thrust's puffs as quads turned with the ship (type 0), and the trails as two strips between a trail
 	// particle and the engine's last one (type 1), through the sidebar's camera (+0x144c)
-	OffCenterListener aListener(&mCamera144C, false);
+	OffCenterListener aListener(&mSidebarCamera, false);
 	aListener.SetCulling(false);
 	aListener.SetDepth(true, false);
 	PrimitiveListener aPrimitiveListener(&aListener);
@@ -1730,7 +1730,7 @@ void Hyperspace::DrawParticles()
 		float aSize = aParticle.mSize;
 		Transform3D aPlace;
 		aPlace.mRot.RotateZ(aParticle.mAngle);
-		Transform3D aShip = TransformOfMat3(mUnknown14FC);
+		Transform3D aShip = TransformOfMat3(mShipTurn);
 		aPlace = Compose(aPlace, aShip);
 		Translate(aPlace, aParticle.mPos.x, aParticle.mPos.y, aParticle.mPos.z);
 		if (aParticle.mType == 1) {
@@ -1784,11 +1784,11 @@ struct CubeVertex {
 	unsigned int mDiffuse;   // +0x18
 	unsigned int mSpecular;  // +0x1c: 0
 	float u, v;              // +0x20
-	float mUnknown28[3];     // +0x28: 0
+	float mSecondTexCoord[3];     // +0x28: a second set of texture coordinates, always 0
 };
 
 // 0x70f22c
-CubeVertex MakeCubeVertex(float x, float y, float z, float nx, float ny, float nz, float u, float v, unsigned int theColor)
+CubeVertex MakeCubeVertex(float x, float y, float z, float nx, float ny, float nz, float theU, float theV, unsigned int theColor)
 {
 	CubeVertex aVertex;
 	aVertex.x = x;
@@ -1799,11 +1799,11 @@ CubeVertex MakeCubeVertex(float x, float y, float z, float nx, float ny, float n
 	aVertex.nx = nx;
 	aVertex.ny = ny;
 	aVertex.nz = nz;
-	aVertex.u = u;
-	aVertex.v = v;
-	aVertex.mUnknown28[2] = 0.0f;
-	aVertex.mUnknown28[1] = 0.0f;
-	aVertex.mUnknown28[0] = 0.0f;
+	aVertex.u = theU;
+	aVertex.v = theV;
+	aVertex.mSecondTexCoord[2] = 0.0f;
+	aVertex.mSecondTexCoord[1] = 0.0f;
+	aVertex.mSecondTexCoord[0] = 0.0f;
 	return aVertex;
 }
 
@@ -1816,7 +1816,7 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 	(void)g;
 	if (gApp->mVizManager->mVisible)  // 0x711b83: +0x54 of the VizManager
 		return;
-	WorldGraphicsListener aListener(&mCamera139C, false);  // 0x4bd5d0, ebp-0x164
+	WorldGraphicsListener aListener(&mWorldCamera, false);  // 0x4bd5d0, ebp-0x164
 	PrimitiveListener aPrimitiveListener(&aListener);
 	// 0x4bd4c0, 0x674035: a transform at the origin looking at (0, 0, -1) (LookAlong's rows, the third one its place
 	// minus the point, +z); its matrix (0x4c1940) is not used
@@ -1824,17 +1824,17 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 	LookAlong(aLook.mRot, Vec3{0.0f, 0.0f, 1.0f}, Vec3{0.0f, 1.0f, 0.0f});
 	int aPass = 0;  // ebp-0x28
 	do {
-		double aRatioA = mUnknown568.GetOutVal();  // ebp-0x4c
-		double aRatioB = mUnknown568.GetOutVal();  // ebp-0x30
-		double aSize = mUnknown4F8.GetOutVal();
+		double aRatioA = mCrystalGrow.GetOutVal();  // ebp-0x4c
+		double aRatioB = mCrystalGrow.GetOutVal();  // ebp-0x30
+		double aSize = mCrystalSize.GetOutVal();
 		float aHalfWidth = (float)((((double)mWidth / (double)mHeight) * (1.0 - aRatioA) + aRatioB) * aSize);  // ebp-0x14
-		float aHalfHeight = (float)mUnknown4F8.GetOutVal();      // ebp+8
-		float aHalfDepth = (float)mUnknown4F8.GetOutVal();       // ebp-0x20
-		bool aFlag15B = mFlag15B;                                // ebp-0x32
-		float anAlpha = (float)(mUnknown4F8.GetOutVal() * 2.0);  // ebp-0x10
+		float aHalfHeight = (float)mCrystalSize.GetOutVal();      // ebp+8
+		float aHalfDepth = (float)mCrystalSize.GetOutVal();       // ebp-0x20
+		bool aFirstHalfPending = mFirstHalfPending;                                // ebp-0x32
+		float anAlpha = (float)(mCrystalSize.GetOutVal() * 2.0);  // ebp-0x10
 		if (aPass == 1) {
-			double aGrow = mUnknown4F8.GetOutVal();
-			anAlpha = (float)(mUnknown568.GetOutVal() * aGrow);
+			double aGrow = mCrystalSize.GetOutVal();
+			anAlpha = (float)(mCrystalGrow.GetOutVal() * aGrow);
 		}
 		if (!(anAlpha <= 1.0))
 			anAlpha = 1.0f;
@@ -1878,23 +1878,23 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 		float aPlaceX;  // ebp-0x58
 		float aPlaceY;  // ebp-0x54
 		float aPlaceZ;  // ebp-0x50
-		if (aFlag15B) {
+		if (aFirstHalfPending) {
 			aPlaceX = 0.0f;
 			aPlaceY = 0.0f;
 			aPlaceZ = 0.0f;
 		} else {
-			float aStep = (float)mUnknown900.GetOutVal();
-			float aDirectionX = (float)mUnknown8E8[0];  // ebp-0x2c
-			float aDirectionY = (float)mUnknown8E8[1];  // ebp-0x1c
-			float aDirectionZ = (float)mUnknown8E8[2];  // ebp-0x44
+			float aStep = (float)mCrystalStep.GetOutVal();
+			float aDirectionX = (float)mCrystalDirection[0];  // ebp-0x2c
+			float aDirectionY = (float)mCrystalDirection[1];  // ebp-0x1c
+			float aDirectionZ = (float)mCrystalDirection[2];  // ebp-0x44
 			aDirectionX = aStep * aDirectionX;
 			aDirectionY = aStep * aDirectionY;
 			aDirectionZ = aStep * aDirectionZ;
-			aPlaceX = aDirectionX + mUnknown153C.x;
-			aPlaceY = mUnknown153C.y + aDirectionY;
-			aPlaceZ = mUnknown153C.z + aDirectionZ;
+			aPlaceX = aDirectionX + mCameraPathStart.x;
+			aPlaceY = mCameraPathStart.y + aDirectionY;
+			aPlaceZ = mCameraPathStart.z + aDirectionZ;
 		}
-		float aSpin = (float)(mUnknown488.GetOutVal() * 5.0);  // ebp-0x44; 0x81d220
+		float aSpin = (float)(mCrystalSpin.GetOutVal() * 5.0);  // ebp-0x44; 0x81d220
 		int aFace = 0;  // ebp-0x24
 		do {
 			// the card's abilities: caps bit 4 is vs_2_0, bit 2 ps_2_0 (the port's device has both)
@@ -1907,9 +1907,9 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 			float aFaceAlpha = 1.0f;  // ebp-0x10: how much of the face shows
 			bool aSkipFace = false;
 			if (aPass == 0) {
-				mUnknown878.SetInVal(mUnknown488.GetOutVal());
+				mSingleFaceAlpha.SetInVal(mCrystalSpin.GetOutVal());
 				if (aFace == 1) {
-					aFaceAlpha = (float)mUnknown878.GetOutVal();
+					aFaceAlpha = (float)mSingleFaceAlpha.GetOutVal();
 					if (0.0f == aFaceAlpha)
 						aSkipFace = true;
 				}
@@ -1922,13 +1922,13 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 						gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_CUBE_P]);
 					else
 						NotPorted("CubeFixedFunctionShader 0x70f279 as the listener's inner (a card without ps_2_0)");
-					gD3DInterface->SetTexture(0, mUnknown160);
+					gD3DInterface->SetTexture(0, mOldPicture);
 				}
 			} else {
-				mUnknown798.SetInVal(mUnknown488.GetOutVal());
-				mUnknown808.SetInVal(mUnknown488.GetOutVal());
+				mFirstFaceAlpha.SetInVal(mCrystalSpin.GetOutVal());
+				mSecondFaceAlpha.SetInVal(mCrystalSpin.GetOutVal());
 				if (aFace == 0 || aFace == 1) {
-					aFaceAlpha = (float)(aFace == 0 ? mUnknown798.GetOutVal() : mUnknown808.GetOutVal());
+					aFaceAlpha = (float)(aFace == 0 ? mFirstFaceAlpha.GetOutVal() : mSecondFaceAlpha.GetOutVal());
 					if (0.0f == aFaceAlpha)
 						aSkipFace = true;
 				}
@@ -1950,14 +1950,14 @@ void Hyperspace::DrawTunnel3D(Graphics* g)
 				Transform3D aCube;
 				aCube.mRot.RotateY(aSpin);  // 0x68fa0b
 				aCube.mRot.RotateZ((float)((double)aSpin * -0.18000000715255737));  // 0x673fd0; 0x7e43d8
-				if (aFlag15B) {
+				if (aFirstHalfPending) {
 					// the old level's cube leaves to the right, down and away from the camera; the three products are
 					// pushed z first (0x712808 to 0x712849), so 2.1 is x and -2.7 is z
-					double aPathA = mUnknown5D8.GetOutVal();
-					double aPathB = mUnknown5D8.GetOutVal();
+					double aPathA = mTunnelCountdown.GetOutVal();
+					double aPathB = mTunnelCountdown.GetOutVal();
 					float aMoveZ = (float)(aPathA * -2.700000047683716);  // 0x7e43d0
 					float aMoveY = (float)(aPathB * -1.2999999523162842);  // 0x7d7ea8
-					float aMoveX = (float)(mUnknown5D8.GetOutVal() * 2.0999999046325684);  // 0x7e32a8
+					float aMoveX = (float)(mTunnelCountdown.GetOutVal() * 2.0999999046325684);  // 0x7e32a8
 					Translate(aCube, aMoveX, aMoveY, aMoveZ);  // 0x6dd0e2
 				}
 				aCube = Compose(aCube, aLook);  // 0x68fa70
@@ -2057,18 +2057,18 @@ void Hyperspace::UpdateThrust()
 		const float* aBase = kPlace[anEngine];
 		const float* aWay = kWay[anEngine];
 		Vec3 aTenth{(float)((double)aWay[0] * 0.1), (float)((double)aWay[1] * 0.1), (float)((double)aWay[2] * 0.1)};
-		Vec3 aNoDrift{(float)(mUnknown1520.x * 0.0f), (float)(mUnknown1520.y * 0.0f), (float)(mUnknown1520.z * 0.0f)};
+		Vec3 aNoDrift{(float)(mShipHeading.x * 0.0f), (float)(mShipHeading.y * 0.0f), (float)(mShipHeading.z * 0.0f)};
 		// the glow, just behind the engine
 		ThrustParticle aGlow;
 		Vec3 aFront{(float)((double)aBase[0] + (double)aWay[0] * 0.5), (float)((double)aBase[1] + (double)aWay[1] * 0.5),
 			(float)((double)aBase[2] + (double)aWay[2] * 0.5)};
-		aGlow.mPos = TransformPoint(mUnknown14C0, aFront);
-		Vec3 aTurned = VecTimesMat3(aTenth, mUnknown14C0.mRot);
+		aGlow.mPos = TransformPoint(mShipPlace, aFront);
+		Vec3 aTurned = VecTimesMat3(aTenth, mShipPlace.mRot);
 		aGlow.mType = 0;
 		aGlow.mDir = aTurned;
 		aGlow.mVel = aNoDrift;
 		aGlow.mDamp = 0.80000001192092896f;
-		aGlow.mAlpha = (float)mUnknown1160.GetOutVal();
+		aGlow.mAlpha = (float)mEngineGlow.GetOutVal();
 		aGlow.mAlphaRate = -1.0f;
 		aGlow.mEngine = anEngine;
 		aGlow.mSize = 0.06f;
@@ -2092,13 +2092,13 @@ void Hyperspace::UpdateThrust()
 		ThrustParticle aTrail;
 		Vec3 aNear{(float)((double)aBase[0] + (double)aWay[0] * 0.1), (float)((double)aBase[1] + (double)aWay[1] * 0.1),
 			(float)((double)aBase[2] + (double)aWay[2] * 0.1)};
-		aTrail.mPos = TransformPoint(mUnknown14C0, aNear);
-		float aReach = (float)mUnknown10F0.GetOutVal();
-		aTrail.mDir = VecTimesMat3(Vec3{aWay[0] * aReach, aWay[1] * aReach, aWay[2] * aReach}, mUnknown14C0.mRot);
+		aTrail.mPos = TransformPoint(mShipPlace, aNear);
+		float aReach = (float)mEngineFire.GetOutVal();
+		aTrail.mDir = VecTimesMat3(Vec3{aWay[0] * aReach, aWay[1] * aReach, aWay[2] * aReach}, mShipPlace.mRot);
 		aTrail.mType = 1;
 		aTrail.mVel = aNoDrift;
 		aTrail.mDamp = 0.80000001192092896f;
-		aTrail.mAlpha = (float)mUnknown1160.GetOutVal();
+		aTrail.mAlpha = (float)mEngineGlow.GetOutVal();
 		aTrail.mAlphaRate = -0.05f;
 		aTrail.mEngine = anEngine;
 		aTrail.mSize = 0.03f;
@@ -2123,15 +2123,15 @@ void Hyperspace::UpdateThrust()
 				aWhere.x = (float)((double)aBase[0] + (double)(anAlong * aWay[0]) * 0.1) + aSpread.x;
 				aWhere.y = (float)((double)aBase[1] + (double)(aWay[1] * anAlong) * 0.1) + aSpread.y;
 				aWhere.z = (float)((double)aBase[2] + (double)(anAlong * aWay[2]) * 0.1) + aSpread.z;
-				aPuffParticle.mPos = TransformPoint(mUnknown14C0, aWhere);
-				float aPuffReach = (float)mUnknown10F0.GetOutVal();
+				aPuffParticle.mPos = TransformPoint(mShipPlace, aWhere);
+				float aPuffReach = (float)mEngineFire.GetOutVal();
 				aPuffParticle.mDir = VecTimesMat3(Vec3{aWay[0] * aPuffReach, aPuffReach * aWay[1], aWay[2] * aPuffReach},
-					mUnknown14C0.mRot);
+					mShipPlace.mRot);
 				aPuffParticle.mType = 0;
-				aPuffParticle.mVel = Vec3{(float)((double)mUnknown1520.x * 0.9), (float)((double)mUnknown1520.y * 0.9),
-					(float)((double)mUnknown1520.z * 0.9)};
+				aPuffParticle.mVel = Vec3{(float)((double)mShipHeading.x * 0.9), (float)((double)mShipHeading.y * 0.9),
+					(float)((double)mShipHeading.z * 0.9)};
 				aPuffParticle.mDamp = 0.80000001192092896f;
-				aPuffParticle.mAlpha = (float)(mUnknown1160.GetOutVal() * 1.2000000476837158);
+				aPuffParticle.mAlpha = (float)(mEngineGlow.GetOutVal() * 1.2000000476837158);
 				aPuffParticle.mAlphaRate = (float)((double)RandSigned() * 0.0099999997764825821 - 0.05000000074505806);
 				aPuffParticle.mSize = 0.012f;
 				aPuffParticle.mSizeRate = (float)((double)RandSigned() * 0.00030000001424923539 - 0.0010000000474974513);

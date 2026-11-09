@@ -240,6 +240,7 @@ Shatter::Shatter(AtomicaApp* theApp, Sprite* theSprite, int theX, int theY) :
 	}
 }
 
+// 0x416f00: the pieces still flying are freed
 Shatter::~Shatter()
 {
 	mPieces.Reset();
@@ -301,6 +302,7 @@ FloatyText::FloatyText(AtomicaApp* theApp, int theX, int theY, const char* theTe
 	mHalfWidth = mFont->StringWidth(mText) / 2;
 }
 
+// 0x429da0
 FloatyText::~FloatyText()
 {
 	free(mText);

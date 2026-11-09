@@ -63,8 +63,6 @@ public:
 
 	Path& MoveTo(double x, double y);
 	Path& LineTo(double x, double y);
-	Path& QuadTo(double cx, double cy, double x, double y);
-	Path& CubicTo(double c1x, double c1y, double c2x, double c2y, double x, double y);
 	// An elliptic arc about (cx, cy) from angle a0 to a1 (degrees, counter-clockwise on screen: y grows down, so
 	// 90 is up), continuing the current contour
 	Path& ArcTo(double cx, double cy, double rx, double ry, double a0, double a1);
@@ -99,18 +97,12 @@ public:
 	Mask& Fill(const Path& thePath);                                          // union
 	Mask& Stroke(const std::vector<Vec2>& theLine, double theWidth, bool isClosed);  // round joins and caps, union
 	Mask& StrokePath(const Path& thePath, double theWidth);                   // every contour, open
-	Mask& Union(const Mask& o);
 	Mask& Intersect(const Mask& o);
 	Mask& Subtract(const Mask& o);
 	Mask& Invert();
-	Mask& Scale(float theFactor);
 	Mask& Blur(double theRadius);                                             // logical px, three box passes
 	Mask& Shift(double theDX, double theDY);                                  // whole pixels at the scale
 	Mask Grown(double theRadius) const;                                        // the shape grown (negative: shrunk), logical px
-	// Signed distance to the edge in logical px: negative inside
-	std::vector<float> Distance() const;
-	// Coverage scaled from an inside distance band: 1 at depth >= theWidth, 0 outside (a bevel ramp)
-	Mask Inner(double theWidth) const;
 };
 
 enum Blend
@@ -140,8 +132,6 @@ public:
 	Canvas& Draw(const Canvas& theOther, int theX, int theY, float theOpacity = 1, Blend theBlend = BLEND_NORMAL);
 	// A drop shadow / glow: the mask, blurred and shifted, in one colour
 	Canvas& Shadow(const Mask& theMask, double theDX, double theDY, double theBlur, const Rgba& theColor, Blend theBlend = BLEND_NORMAL);
-	Mask AlphaMask() const;
-	void MultiplyAlpha(const Mask& theMask);
 
 	// Straight ARGB (0xAARRGGBB) at the canvas's scale, and its box-filtered 1x copy
 	void ToArgb(std::vector<uint32_t>& theOut) const;

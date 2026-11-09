@@ -19,12 +19,12 @@ public:
 	Logo* mLogo;                     // +0x90
 	WinTwistApp* mApp;               // +0x94
 	double mProgress = 0;            // +0x98: the loading thread's progress
-	double mUnknownA0 = 0;           // +0xa0
+	double mLoadStartTime = 0;       // +0xa0: a double, never set, never read
 	bool mDone = false;              // +0xa8: loaded, handing over to the main menu
 	bool mPlayClicked = false;       // +0xa9
 	float mSmoothProgress = 0;       // +0xac: what the bar shows
 	CurvedVal mPopCapAlpha;          // +0xb0: the PopCap logo
-	CurvedVal mCurve120;             // +0x120: set, never read
+	CurvedVal mSetOnlyCurve;         // +0x120: set from curve 0x7e6b38 and moved on at the hand-over; never read
 	CurvedVal mLogoAlpha;            // +0x190: the title's opacity
 	CurvedVal mLoadingAlpha;         // +0x200: the "loading" text
 	CurvedVal mFadeIn;               // +0x270: from black
@@ -35,7 +35,6 @@ public:
 	CurvedVal mBarGlow;              // +0x4a0: the four glow bars, one after another
 	CurvedVal mArcGlow;              // +0x510: the glow arc again, after the bars
 	CurvedVal mTrademarkAlpha;       // +0x580
-	CurvedVal mCurve5F0;             // +0x5f0: never set
 	bool mFinished = false;          // +0x660: the app removes the screen
 	int mCountdown = 0;              // +0x664: the updates from loaded to mFinished
 

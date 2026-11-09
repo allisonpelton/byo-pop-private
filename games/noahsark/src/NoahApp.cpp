@@ -44,7 +44,8 @@ static const char* const gFontFiles[NUM_FONTS] =
 enum { SONG_GAME = 0, SONG_MENU = 1, SONG_GAMEOVER = 2, SONG_GAME_INTRO = 3 };
 
 // 0x4166d0
-NoahApp::NoahApp()
+NoahApp::NoahApp() :
+	mImages(this)
 {
 	gApp = this;
 	mProdName = "NoahsArk";
@@ -54,7 +55,8 @@ NoahApp::NoahApp()
 	mWidth = GAME_WIDTH;
 	mHeight = GAME_HEIGHT;
 
-	mImages = NULL;
+	for (int i = 0; i < NUM_SOUNDS; i++)
+		mSoundTried[i] = false;
 	for (int i = 0; i < NUM_FONTS; i++)
 		mFonts[i] = NULL;
 	mBoard = NULL;
@@ -119,22 +121,45 @@ NoahApp::~NoahApp()
 	delete mHighScoreWidget;
 	delete mQuitButtonImage;
 	delete mOptionsButtonImage;
-	if (mImages != NULL)
-		delete[] mImages;
+}
+
+ImageTable::ImageTable(NoahApp* theApp) :
+	mApp(theApp)
+{
+	for (int i = 0; i < NUM_IMAGES; i++)
+		mImages[i] = NULL;
+}
+
+Image* ImageTable::Load(int theId)
+{
+	Image* anImage = mApp->LoadImage(theId);
+	if (anImage == NULL)
+	{
+		// port: a picture that is not there is told at its first use, not at start; a blank one stands in while the game ends
+		static MemoryImage* aBlank = NULL;
+		if (aBlank == NULL)
+		{
+			aBlank = new MemoryImage();
+			aBlank->Create(1, 1);
+		}
+		return aBlank;
+	}
+	mImages[theId] = anImage;
+	return anImage;
 }
 
 // 0x417450: images\<name>
-bool NoahApp::LoadImage(int theImageId)
+Image* NoahApp::LoadImage(int theImageId)
 {
 	std::string aPath = std::string("images\\") + gImageNames[theImageId];
-	mImages[theImageId] = GetImage(aPath);
-	if (mImages[theImageId] == NULL)
+	Image* anImage = GetImage(aPath);
+	if (anImage == NULL)
 	{
 		Popup("Failed to load " + aPath);
 		mLoadingFailed = true;
-		return false;
+		Shutdown();
 	}
-	return true;
+	return anImage;
 }
 
 // 0x417970
@@ -146,17 +171,8 @@ void NoahApp::Init()
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
 	LoadGameTexts();
 
-	mImages = new Image*[NUM_IMAGES];
-	for (int i = 0; i < NUM_IMAGES; i++)
-		mImages[i] = NULL;
-	for (int i = 0; i < NUM_IMAGES; i++)
-	{
-		if (!LoadImage(i))
-		{
-			Shutdown();
-			return;
-		}
-	}
+	// the original decodes every picture here; mImages decodes each when it is first asked for (a picture that is not there is
+	// told then: a popup and the end of the game)
 	for (int i = 0; i < NUM_FONTS; i++)
 		mFonts[i] = new ImageFont(this, gFontFiles[i]);
 
@@ -175,20 +191,33 @@ void NoahApp::Init()
 	mMusicInterface->FadeIn(SONG_MENU, -1, 0.002, false);
 }
 
-// 0x417720: the sounds (the loading bar counts them)
+// port: a sound is decoded when it is first played; the original decodes all 34 in its loading thread (0x417720), a fifth of the
+// load. One that is not there stays silent (the original says "Failed to load sounds\<name>" at start and ends).
+void NoahApp::LoadSoundOnce(int theSoundNum)
+{
+	if (theSoundNum < 0 || theSoundNum >= NUM_SOUNDS || mSoundTried[theSoundNum] || mSoundManager == NULL)
+		return;
+	mSoundTried[theSoundNum] = true;
+	mSoundManager->LoadSound(theSoundNum, std::string("sounds\\") + gSoundNames[theSoundNum]);
+}
+
+void NoahApp::PlaySample(int theSoundNum)
+{
+	LoadSoundOnce(theSoundNum);
+	SexyApp::PlaySample(theSoundNum);
+}
+
+void NoahApp::PlaySample(int theSoundNum, int thePan)
+{
+	LoadSoundOnce(theSoundNum);
+	SexyApp::PlaySample(theSoundNum, thePan);
+}
+
+// 0x417720: the sounds (the loading bar counts them: their files are decoded at their first play, see LoadSoundOnce)
 void NoahApp::LoadingThreadProc()
 {
 	mNumLoadingThreadTasks = NUM_SOUNDS + 1;
-	for (int i = 0; i < NUM_SOUNDS; i++)
-	{
-		if (!mSoundManager->LoadSound(i, std::string("sounds\\") + gSoundNames[i]))
-		{
-			Popup(std::string("Failed to load sounds\\") + gSoundNames[i]);
-			mLoadingFailed = true;
-			return;
-		}
-		mCompletedLoadingThreadTasks++;
-	}
+	mCompletedLoadingThreadTasks += NUM_SOUNDS;
 	mCompletedLoadingThreadTasks++;
 }
 

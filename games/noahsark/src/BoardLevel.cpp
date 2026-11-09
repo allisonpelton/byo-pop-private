@@ -439,19 +439,11 @@ int Board::CountEmpty()
 	return aCount;
 }
 
-// 0x401f10: make sure the board has a move (the hint and shuffle machinery)
+// 0x401f10: make sure the board has a move (the hint and shuffle machinery). Its only caller (NewLevel) leaves out the puzzle mode and
+// the Stampede, so the original's puzzle branch (clear the runs and let the animals fall again, 0x4061d0) never runs and is not
+// translated.
 void Board::EnsureMoves()
 {
-	if (mApp->mGameMode == GAMEMODE_PUZZLE)
-	{
-		if (MarkRuns(false))
-		{
-			do
-				RefillPuzzle();
-			while (MarkRuns(false));
-		}
-		return;
-	}
 	RebuildClones();
 	while (AllClonesGone() == false)
 	{

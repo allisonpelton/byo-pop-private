@@ -35,8 +35,9 @@ public:
 	float mGrowSlow = 0.0025f;       // +0x1ec
 	bool mSaid = false;              // +0x1f0: its voice is the app's one voice
 
-	// 0x6fd22c: theX, theY below 0 take the window's middle, a delay of 0 or less none
-	FlyingText(int theKind, Image* theImage, int theX, int theY, float theUnused, int theSoundId, float theDelay);
+	// 0x6fd22c: theX, theY below 0 take the window's middle, a delay of 0 or less none. The original's
+	// also takes a float between theY and theSoundId (1.0 from its one caller) and never reads it: left out
+	FlyingText(int theKind, Image* theImage, int theX, int theY, int theSoundId, float theDelay);
 	// 0x6fd358: theText in theFont (kind 0), growing from the start; theX, theY of -1000 take the window's middle
 	FlyingText(Font* theFont, const SexyString& theText, int theX, int theY);
 	~FlyingText() override;          // 0x6fccb4

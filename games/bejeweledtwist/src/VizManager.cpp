@@ -111,6 +111,7 @@ void Visualizer::DrawImage(Graphics* g, Image* theImage)
 	}
 }
 
+// part of Viz2D's constructor (0x759a72) and SetImageFromIndex (0x759c67): the backdrop's image
 static int BackdropId(int theBackdrop)
 {
 	if (theBackdrop == -1)
@@ -157,8 +158,8 @@ void Viz2D::Draw(Graphics* g)
 
 void Viz2D::NewLevel()
 {
-	mApp->mVizManager->mBackdrop = mApp->mBoard->mUnknown158;
-	mNextImageId = mApp->mBoard->mUnknown158 % 47 + IMAGE_ZENDROP1_ID;
+	mApp->mVizManager->mBackdrop = mApp->mBoard->mLevel;
+	mNextImageId = mApp->mBoard->mLevel % 47 + IMAGE_ZENDROP1_ID;
 	if (mImageId == mNextImageId)
 		return;
 	mNextImage = LoadVizImage(mNextImageId);
@@ -241,25 +242,25 @@ void VizManager::SetVizLater(int theIndex)
 {
 	delete mViz;
 	mViz = nullptr;
-	if (mUnknown18C != theIndex) {
+	if (mPendingIndex != theIndex) {
 		// port: the original's thread (+0x188) makes the visualizer now and TakePendingViz takes it; here
 		// TakePendingViz makes it at the point it is taken, so the constructors' and Init's random draws happen there
-		mUnknown18C = theIndex;
+		mPendingIndex = theIndex;
 	}
 }
 
 void VizManager::TakePendingViz()
 {
-	if (mUnknown18C == -1)
+	if (mPendingIndex == -1)
 		return;
 	delete mViz;
-	mViz = MakeViz(mUnknown18C);
+	mViz = MakeViz(mPendingIndex);
 	mClipRect[0] = -1;
 	mClipRect[1] = -1;
 	mClipRect[2] = 1;
 	mClipRect[3] = 1;
 	mViz->Init();
-	mUnknown18C = -1;
+	mPendingIndex = -1;
 }
 
 void VizManager::SetVizForMode(int theMode, unsigned int theKey, bool theNow, bool theLater)
@@ -288,7 +289,7 @@ void VizManager::SetVizForMode(int theMode, unsigned int theKey, bool theNow, bo
 			aList.push_back(i);
 	}
 	int anIndex = aList[theKey % (unsigned int)aList.size()];
-	mUnknown190 = anIndex;
+	mChosenIndex = anIndex;
 	if (!m2D) {
 		if (!theLater)
 			SetViz(anIndex, theNow);
@@ -299,9 +300,9 @@ void VizManager::SetVizForMode(int theMode, unsigned int theKey, bool theNow, bo
 
 void VizManager::SetVizByName(const char* theName, bool theNow)
 {
-	mUnknown190 = FindViz(theName);
+	mChosenIndex = FindViz(theName);
 	if (!m2D)
-		SetViz(mUnknown190, theNow);
+		SetViz(mChosenIndex, theNow);
 }
 
 void VizManager::SetBackdrop(int theBackdrop, bool theNow)
@@ -340,13 +341,13 @@ void VizManager::Slot7()
 
 void VizManager::Update()
 {
-	if (mViz == nullptr && mUnknown18C != -1)
+	if (mViz == nullptr && mPendingIndex != -1)
 		return;
 	// 2D or 3D follows the options' visualizers box and Direct3D (in a 2D run gD3DInterface is null, so m2D stays true)
 	bool aNow2D = !mApp->mDoViz || gD3DInterface == nullptr;
 	if (aNow2D != m2D) {
 		if (mViz != nullptr)
-			SetViz(aNow2D ? FindViz("Viz2D") : mUnknown190, true);
+			SetViz(aNow2D ? FindViz("Viz2D") : mChosenIndex, true);
 		m2D = aNow2D;
 	}
 	if (mViz == nullptr) {
@@ -358,7 +359,7 @@ void VizManager::Update()
 	MarkDirty();
 	if (mPaused || !(mVisible || gBoard == nullptr || gBoard->mHyperspace != nullptr))
 		return;
-	mUpdateCnt148++;
+	mRunUpdateCnt++;
 	if (mViz != nullptr) {
 		mUpdateFrac += mSpeed;
 		while (mUpdateFrac >= 1.0) {
@@ -453,8 +454,8 @@ void VizManager::Draw(Graphics* g)
 		Board* aBoard = mApp->mBoard;
 		// A board that moves, fades or jumps is drawn over the whole picture; a still one only around it
 		// (the rectangles at +0x1bc and +0x1cc are for Direct3D's render target)
-		if (aBoard == nullptr || aBoard->mShakeX != 0.0f || aBoard->mShakeY != 0.0f || aBoard->mUnknown268C != 1.0f ||
-			aBoard->mUnknown3924 != 1.0f || aBoard->mHyperspace != nullptr) {
+		if (aBoard == nullptr || aBoard->mShakeX != 0.0f || aBoard->mShakeY != 0.0f || aBoard->mBoardZoom != 1.0f ||
+			aBoard->mBoardFade != 1.0f || aBoard->mHyperspace != nullptr) {
 			mViz->mFlags8 &= ~1;
 			mViz->mFlagsC |= 1;
 			mBoardRect[0] = 0;

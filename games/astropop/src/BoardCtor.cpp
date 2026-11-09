@@ -368,7 +368,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		{
 			aStreak.mColor = Color(0x50, 0x50, 0x50);
 			int aRand = ((int) AstroRand() % 500000000) % 10;
-			float aSpeed = (float) ((double) aRand * (double) 0.01f + (double) 0.25f);
+			float aSpeed = (float) aRand * 0.01f + 0.25f;
 			aStreak.mMinSpeed = aSpeed;
 			aStreak.mSpeed = aSpeed;
 			aStreak.mImage = mApp->mGradient[0];
@@ -377,7 +377,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		{
 			aStreak.mColor = Color(0x96, 0x96, 0x96);
 			int aRand = ((int) AstroRand() % 500000000) % 10;
-			float aSpeed = (float) ((double) aRand * (double) 0.01f + (double) 0.5f);
+			float aSpeed = (float) aRand * 0.01f + 0.5f;
 			aStreak.mMinSpeed = aSpeed;
 			aStreak.mSpeed = aSpeed;
 			aStreak.mImage = mApp->mGradient[1];
@@ -386,7 +386,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		{
 			aStreak.mColor = Color(0xfa, 0xfa, 0xfa);
 			int aRand = ((int) AstroRand() % 500000000) % 10;
-			float aSpeed = (float) ((double) aRand * (double) 0.01f + (double) 1.0f);
+			float aSpeed = (float) aRand * 0.01f + 1.0f;
 			aStreak.mMinSpeed = aSpeed;
 			aStreak.mSpeed = aSpeed;
 			aStreak.mImage = mApp->mGradient[2];

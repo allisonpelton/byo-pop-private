@@ -9,6 +9,7 @@
 #include "Brick.h"
 #include "Compat2004.h"
 #include "FullScreenHelp.h"
+#include "StoryScreen.h"
 
 #include <cstdio>
 #include <string>
@@ -150,19 +151,26 @@ std::string WaitMove()
 
 // The game takes no input now: bricks are in the air, a row comes, a stage is counted, a box or the pause is up (the
 // conditions that the pointer and the buttons of the field turn away themselves)
-bool Board::BotBusy()
+int Board::BotBusyReason()
 {
 	if (m8dc && !m8dd)
-		return true;
+		return 1;
 	if (m901 || m8ec || m916 || m8f4 || m8ea)
-		return true;
+		return 2;
 	if (m8eb && !m8ef)
-		return true;
+		return 3;
 	if (!m8eb && !m8ed && !m8ef && m7ec + m7e8 > 0)
-		return true;
+		return 4;
 	if (m1924 != 0 || mFlag8E9 || m1990 > 0)
-		return true;
-	return CountMovingBricks(false) > 0 || !m7c.empty() || !m94.empty();
+		return 5;
+	if (CountMovingBricks(false) > 0)
+		return 6;
+	return (!m7c.empty() || !m94.empty()) ? 7 : 0;
+}
+
+bool Board::BotBusy()
+{
+	return BotBusyReason() != 0;
 }
 
 // The move the bot makes next: a text (JSON) with what it is and `input`, the real input that makes it. "null" when there is
@@ -184,6 +192,28 @@ std::string Board::BotMove()
 	if (m74c != NULL && m74c->mVisible && (m919 || (!m230.empty() && m230[0]->m1c)))
 		return "{\"kind\":\"hint\"," +
 			   Steps(StrFormat("{\"click\":[%d,%d]}", m74c->mX + m74c->mWidth / 2, m74c->mY + m74c->mHeight / 2)) + "}";
+
+	// the tutorial's demo plays by itself; the link it shows (to start a game) ends it
+	if (m8dc && m2e0 != NULL && m2e0->mVisible)
+		return "{\"kind\":\"demo\",\"updates\":10," +
+			   Steps(StrFormat("{\"click\":[%d,%d]}", m2e0->mX + m2e0->mWidth / 2, m2e0->mY + m2e0->mHeight / 2)) + "}";
+
+	// the story that comes before a level: a click brings all of it in, then its button takes it away
+	if (m754 != NULL)
+	{
+		AstroButton* aStoryButton = m754->mButton;
+		if (aStoryButton == NULL)
+			return WaitMove();
+		if (!aStoryButton->mVisible)
+			return "{\"kind\":\"story\",\"updates\":10," + Steps("{\"click\":[320,200]}") + "}";
+		return "{\"kind\":\"story\",\"updates\":10," +
+			   Steps(StrFormat("{\"click\":[%d,%d]}", aStoryButton->mX + aStoryButton->mWidth / 2, aStoryButton->mY + aStoryButton->mHeight / 2)) + "}";
+	}
+
+	// the warp screen between two levels waits for a click on its first panel (the next level) once the screen is up
+	if (m8ef && m1a60 == 1 && m7e8 >= 0 && !m8f4)
+		return "{\"kind\":\"gate\",\"updates\":10," +
+			   Steps(StrFormat("{\"click\":[%d,%d]}", m1a70 + 0x3c, 0xe1 + 0x14)) + "}";
 
 	if (BotBusy())
 		return WaitMove();

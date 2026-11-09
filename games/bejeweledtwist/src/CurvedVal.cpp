@@ -71,19 +71,19 @@ struct HermiteSpline {
 	static void Segment(const CurvePoint& p0, const CurvePoint& p1, float* theCoef)  // 0x6e9611
 	{
 		float z[4] = {p0.mX, p0.mX, p1.mX, p1.mX};
-		float r[4][4] = {};
-		r[0][0] = p0.mY;
-		r[1][0] = p0.mY;
-		r[1][1] = p0.mSlope;
-		r[2][0] = p1.mY;
-		r[2][1] = (float)(((double)r[2][0] - r[1][0]) / ((double)z[2] - z[1]));
-		r[3][0] = p1.mY;
-		r[3][1] = p1.mSlope;
-		r[2][2] = (float)(((double)r[2][1] - r[1][1]) / ((double)z[2] - z[0]));
-		r[3][2] = (float)(((double)r[3][1] - r[2][1]) / ((double)z[3] - z[1]));
-		r[3][3] = (float)(((double)r[3][2] - r[2][2]) / ((double)z[3] - z[0]));
+		float aDifferences[4][4] = {};
+		aDifferences[0][0] = p0.mY;
+		aDifferences[1][0] = p0.mY;
+		aDifferences[1][1] = p0.mSlope;
+		aDifferences[2][0] = p1.mY;
+		aDifferences[2][1] = (float)(((double)aDifferences[2][0] - aDifferences[1][0]) / ((double)z[2] - z[1]));
+		aDifferences[3][0] = p1.mY;
+		aDifferences[3][1] = p1.mSlope;
+		aDifferences[2][2] = (float)(((double)aDifferences[2][1] - aDifferences[1][1]) / ((double)z[2] - z[0]));
+		aDifferences[3][2] = (float)(((double)aDifferences[3][1] - aDifferences[2][1]) / ((double)z[3] - z[1]));
+		aDifferences[3][3] = (float)(((double)aDifferences[3][2] - aDifferences[2][2]) / ((double)z[3] - z[0]));
 		for (int k = 0; k < 4; k++)
-			theCoef[k] = r[k][k];
+			theCoef[k] = aDifferences[k][k];
 	}
 
 	bool Build()  // 0x6ebc5b
@@ -400,7 +400,7 @@ bool CurvedVal::CheckClamping()
 double CurvedVal::GetOutVal(double theInVal)
 {
 	double aRange = mInMax - mInMin;
-	double v;
+	double aValue;
 	switch (mRamp) {
 	case RAMP_NONE:
 	case RAMP_LINEAR:
@@ -413,7 +413,7 @@ double CurvedVal::GetOutVal(double theInVal)
 		}
 		if (mInMax == mInMin)
 			return mOutMin;
-		v = (theInVal - mInMin) / aRange;
+		aValue = (theInVal - mInMin) / aRange;
 		break;
 	case RAMP_SLOW_TO_FAST: {
 		double a = (theInVal - mInMin) / aRange * 3.14159 * 0.5;
@@ -421,21 +421,21 @@ double CurvedVal::GetOutVal(double theInVal)
 			a = a + a;
 		if (1.570795 < a)
 			a = 3.14159 - a;
-		v = 1.0 - std::cos(a);
+		aValue = 1.0 - std::cos(a);
 		break;
 	}
 	case RAMP_FAST_TO_SLOW: {
 		double a = (theInVal - mInMin) / aRange * 3.14159 * 0.5;
 		if (mMode == MODE_PING_PONG)
 			a = a + a;
-		v = std::sin(a);
+		aValue = std::sin(a);
 		break;
 	}
 	case RAMP_SLOW_FAST_SLOW: {
 		double a = (theInVal - mInMin) / aRange * 3.14159;
 		if (mMode == MODE_PING_PONG)
 			a = a + a;
-		v = (1.0 - std::cos(a)) * 0.5;
+		aValue = (1.0 - std::cos(a)) * 0.5;
 		break;
 	}
 	case RAMP_FAST_SLOW_FAST: {
@@ -445,9 +445,9 @@ double CurvedVal::GetOutVal(double theInVal)
 		if (3.14159 < a)
 			a = 6.28318 - a;
 		if (1.570795 <= a)
-			v = (2.0 - std::sin(a)) * 0.5;
+			aValue = (2.0 - std::sin(a)) * 0.5;
 		else
-			v = std::sin(a) * 0.5;
+			aValue = std::sin(a) * 0.5;
 		break;
 	}
 	case RAMP_CURVEDATA: {
@@ -477,40 +477,40 @@ double CurvedVal::GetOutVal(double theInVal)
 		if (anIdx == CURVE_TABLE_SIZE - 1)
 			return (mOutMax - mOutMin) * aTable[CURVE_TABLE_SIZE - 1] + mOutMin;
 		float f = (float)((double)t * 8191.0 - anIdx);
-		v = (double)aTable[anIdx + 1] * f + (1.0 - f) * aTable[anIdx];
+		aValue = (double)aTable[anIdx + 1] * f + (1.0 - f) * aTable[anIdx];
 		break;
 	}
 	default:
 		return mOutMin;
 	}
-	return (mOutMax - mOutMin) * v + mOutMin;
+	return (mOutMax - mOutMin) * aValue + mOutMin;
 }
 
 double CurvedVal::GetInVal()
 {
-	double v = mInVal;
+	double aValue = mInVal;
 	if (mLinkedVal == nullptr) {
 		if (mAutoInc) {
 			if (gSexyAppBase)
-				v = X87(X87((double)(gSexyAppBase->mUpdateCount - mInitAppUpdateCount) * mIncRate) + mInMin);
+				aValue = X87(X87((double)(gSexyAppBase->mUpdateCount - mInitAppUpdateCount) * mIncRate) + mInMin);
 			if (mMode == MODE_REPEAT || mMode == MODE_PING_PONG)
-				v = std::fmod(v - mInMin, mInMax - mInMin) + mInMin;
-			else if (mInMax <= v)
-				v = mInMax;
+				aValue = std::fmod(aValue - mInMin, mInMax - mInMin) + mInMin;
+			else if (mInMax <= aValue)
+				aValue = mInMax;
 		}
 	} else if (!mLinkedVal->mOutputSync) {
-		v = mLinkedVal->GetInVal();
+		aValue = mLinkedVal->GetInVal();
 	} else {
-		v = mLinkedVal->GetOutVal();
+		aValue = mLinkedVal->GetOutVal();
 	}
 	if (mMode == MODE_PING_PONG) {
-		double f = (float)((v - mInMin) / (mInMax - mInMin));
+		double f = (float)((aValue - mInMin) / (mInMax - mInMin));
 		if (f <= 0.5)
-			v = (f + f) * (mInMax - mInMin) + mInMin;
+			aValue = (f + f) * (mInMax - mInMin) + mInMin;
 		else
-			v = (mInMax - mInMin) * ((1.0 - f) + (1.0 - f)) + mInMin;
+			aValue = (mInMax - mInMin) * ((1.0 - f) + (1.0 - f)) + mInMin;
 	}
-	return v;
+	return aValue;
 }
 
 double CurvedVal::GetOutVal()

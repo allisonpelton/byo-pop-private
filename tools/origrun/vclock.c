@@ -49,6 +49,8 @@
 static int        gOn;              // the virtual clock is on
 static int        gCursorOn;        // the scripted cursor is on (cursor.c)
 static int        gKeysOn;          // the scripted keys are on (cursor.c)
+static int        gLastInputOn;     // the last-input hook is on (H_GetLastInputInfo)
+static LONG       gLastInputReads;  // this process's GetLastInputInfo calls answered
 static int        gMsgboxOn;        // the message-box hook is on (msgbox.c)
 static VcShared*  gSh;
 static HANDLE     gMap, gHeldEv, gRelEv, gHostProc;
@@ -448,6 +450,37 @@ static DWORD WINAPI H_MsgWaitForMultipleObjects(DWORD n, const HANDLE* hs, BOOL 
 static DWORD WINAPI H_MsgWaitForMultipleObjectsEx(DWORD n, const HANDLE* hs, DWORD ms, DWORD mask, DWORD flags)
 { WaitCall c = { W_MWFMOEX }; c.n = n; c.hs = hs; c.mask = mask; c.flags = flags; return vwait(&c, ms, VC_AT_MSGWAIT, RA); }
 
+// GetLastInputInfo: the copy's last input is now, on its own clock (the virtual one when that is on). A SexyAppFramework
+// original asks it once a second, with the screensaver's timeout, and draws nothing while the machine has had no
+// keyboard or mouse input for that long, rundesk's private desktop or not (Alchemy, 2026-11-09: 0x462a60 sets the flag
+// DrawDirtyStuff tests); on the virtual clock its time runs ahead of Windows', so a long run stopped drawing even while
+// the user typed. The user allowed this hook on 2026-11-09 ("Yes, hook it"). It reads the clock without moving it (no
+// vc_read: it is not a poll of the time). The framework finds the function with GetProcAddress (it is not in Windows 95's
+// user32), so an import patch never reaches it: lastinput_detour puts a jump to this one at the start of user32's own
+// GetLastInputInfo, in the copy's process only, and this one never calls Windows'.
+static BOOL WINAPI H_GetLastInputInfo(PLASTINPUTINFO p)
+{
+	hooks_rescan();
+	if (!p || p->cbSize != sizeof(LASTINPUTINFO)) { SetLastError(ERROR_INVALID_PARAMETER); return FALSE; }
+	p->dwTime = gOn ? gGtc0 + (DWORD)(vget() / VC_UNITS_PER_MS) : GetTickCount();
+	InterlockedIncrement(&gLastInputReads);
+	return TRUE;
+}
+// The jump: five bytes at the start of user32!GetLastInputInfo, written once at install. Every caller in the process then
+// reaches H_GetLastInputInfo, the ones that found the function with GetProcAddress too.
+static int lastinput_detour(void)
+{
+	HMODULE u = GetModuleHandleA("user32.dll");
+	BYTE* f = u ? (BYTE*)GetProcAddress(u, "GetLastInputInfo") : NULL;
+	DWORD old;
+	if (!f || !VirtualProtect(f, 5, PAGE_EXECUTE_READWRITE, &old)) return 0;
+	LONG rel = (LONG)((BYTE*)(void*)H_GetLastInputInfo - (f + 5));
+	f[0] = 0xE9; memcpy(f + 1, &rel, 4);
+	VirtualProtect(f, 5, old, &old);
+	FlushInstructionCache(GetCurrentProcess(), f, 5);
+	return 1;
+}
+
 // ---------------------------------------------------------------------------------------------- import patching
 
 BOOL WINAPI cursor_GetCursorPos(LPPOINT p);   // cursor.c
@@ -471,10 +504,10 @@ void msgbox_installed(void);
 void msgbox_patched(void);
 void msgbox_stats(LONG* boxes, LONG* beeps);
 
-// Each hook belongs to the virtual clock (H_CLOCK), the scripted cursor (H_CURSOR), the message-box hook (H_MSGBOX) or the
-// scripted keys (H_KEYS); only the ones that are on are patched.
-enum { H_CLOCK, H_CURSOR, H_MSGBOX, H_KEYS, H_GROUPS };
-static const char* const kGrpName[] = { "the virtual clock", "the scripted cursor", "the message-box hook", "the scripted keys" };
+// Each hook belongs to the virtual clock (H_CLOCK), the scripted cursor (H_CURSOR), the message-box hook (H_MSGBOX), the
+// scripted keys (H_KEYS) or the last-input hook (H_LASTINPUT); only the ones that are on are patched.
+enum { H_CLOCK, H_CURSOR, H_MSGBOX, H_KEYS, H_LASTINPUT, H_GROUPS };
+static const char* const kGrpName[] = { "the virtual clock", "the scripted cursor", "the message-box hook", "the scripted keys", "the last-input hook" };
 typedef struct { const char* dll; const char* name; void* hook; int grp; void* real; LONG patched; } HookDef;
 static HookDef gHooks[] = {
 	{ "winmm.dll",    "timeGetTime",                    (void*)H_timeGetTime,                    H_CLOCK },
@@ -497,6 +530,7 @@ static HookDef gHooks[] = {
 	{ "user32.dll",   "MsgWaitForMultipleObjectsEx",    (void*)H_MsgWaitForMultipleObjectsEx,    H_CLOCK },
 	{ "user32.dll",   "GetCursorPos",                   (void*)cursor_GetCursorPos,              H_CURSOR },
 	{ "user32.dll",   "GetKeyState",                    (void*)keys_GetKeyState,                 H_KEYS },
+	{ "user32.dll",   "GetLastInputInfo",               (void*)H_GetLastInputInfo,               H_LASTINPUT },
 	{ "user32.dll",   "MessageBoxA",                    (void*)mbx_MessageBoxA,                  H_MSGBOX },
 	{ "user32.dll",   "MessageBoxW",                    (void*)mbx_MessageBoxW,                  H_MSGBOX },
 	{ "user32.dll",   "MessageBoxExA",                  (void*)mbx_MessageBoxExA,                H_MSGBOX },
@@ -508,7 +542,7 @@ static HookDef gHooks[] = {
 	{ "user32.dll",   "MessageBeep",                    (void*)mbx_MessageBeep,                  H_MSGBOX },
 };
 #define NHOOK ((int)(sizeof(gHooks) / sizeof(gHooks[0])))
-static int hook_on(int k) { int g = gHooks[k].grp; return g == H_CLOCK ? gOn : g == H_CURSOR ? gCursorOn : g == H_KEYS ? gKeysOn : gMsgboxOn; }
+static int hook_on(int k) { int g = gHooks[k].grp; return g == H_CLOCK ? gOn : g == H_CURSOR ? gCursorOn : g == H_KEYS ? gKeysOn : g == H_LASTINPUT ? gLastInputOn : gMsgboxOn; }
 
 // The functions a game may import that the clock cannot stand in for; logged when a module imports them.
 static const char* const kUncovered[] = { "timeSetEvent", "SetTimer", "CreateWaitableTimerA", "CreateWaitableTimerW",
@@ -597,7 +631,7 @@ static void patch_new_modules(void)
 		if (seen || !module_is_games(mods[i], leaf, MAX_PATH)) continue;
 		if (gPatchedN < 64) gPatched[gPatchedN++] = mods[i];
 		int n = patch_module(mods[i], leaf);
-		char grps[160] = ""; int on[H_GROUPS] = { gOn, gCursorOn, gMsgboxOn, gKeysOn };
+		char grps[160] = ""; int on[H_GROUPS] = { gOn, gCursorOn, gMsgboxOn, gKeysOn, gLastInputOn };
 		for (int g = 0; g < H_GROUPS; g++) if (on[g]) { if (grps[0]) lstrcatA(grps, ", "); lstrcatA(grps, kGrpName[g]); }
 		clog("%s: %d import%s on %s", leaf, n, n == 1 ? "" : "s", grps);
 	}
@@ -718,17 +752,19 @@ static int clock_install(const char* exe)
 }
 
 // Called from the stand-in's DllMain on process attach: the virtual clock (ORIGRUN_CLOCK=virtual), the scripted cursor
-// (ORIGRUN_CURSOR=scripted), the scripted keys (ORIGRUN_KEYS=scripted) and the message-box hook (ORIGRUN_MSGBOX=hook), any of them. Nothing here loads a DLL that
+// (ORIGRUN_CURSOR=scripted), the scripted keys (ORIGRUN_KEYS=scripted), the message-box hook (ORIGRUN_MSGBOX=hook) and the
+// last-input hook (ORIGRUN_LASTINPUT=now), any of them. Nothing here loads a DLL that
 // is not loaded already (winmm and user32 are the stand-in's own imports), so it is safe under the loader lock.
 void vclock_install(HMODULE self)
 {
-	char mode[32] = "", cur[32] = "", mbx[32] = "", kys[32] = "";
+	char mode[32] = "", cur[32] = "", mbx[32] = "", kys[32] = "", lin[32] = "";
 	GetEnvironmentVariableA("ORIGRUN_CLOCK", mode, sizeof(mode));
 	GetEnvironmentVariableA("ORIGRUN_CURSOR", cur, sizeof(cur));
 	GetEnvironmentVariableA("ORIGRUN_MSGBOX", mbx, sizeof(mbx));
 	GetEnvironmentVariableA("ORIGRUN_KEYS", kys, sizeof(kys));
-	int clock = !lstrcmpiA(mode, "virtual"), cursor = !lstrcmpiA(cur, "scripted"), msgbox = !lstrcmpiA(mbx, "hook"), keys = !lstrcmpiA(kys, "scripted");
-	if (!clock && !cursor && !msgbox && !keys) return;
+	GetEnvironmentVariableA("ORIGRUN_LASTINPUT", lin, sizeof(lin));
+	int clock = !lstrcmpiA(mode, "virtual"), cursor = !lstrcmpiA(cur, "scripted"), msgbox = !lstrcmpiA(mbx, "hook"), keys = !lstrcmpiA(kys, "scripted"), lastin = !lstrcmpiA(lin, "now");
+	if (!clock && !cursor && !msgbox && !keys && !lastin) return;
 	gSelf = self;
 	char dir[MAX_PATH] = "", path[MAX_PATH];
 	DWORD dn = GetEnvironmentVariableA("ORIGRUN_DIR", dir, sizeof(dir));
@@ -758,8 +794,12 @@ void vclock_install(HMODULE self)
 		if (msgbox_open()) { gMsgboxOn = 1; clog("pid %lu %s: message-box hook installed: MessageBox* answers with no window, MessageBeep with no sound", pid, exe); }
 		else clog("pid %lu: no message-box block from origrun, or another version (err %lu): boxes are shown", pid, GetLastError());
 	}
+	if (lastin) {
+		if (lastinput_detour()) { gLastInputOn = 1; clog("pid %lu %s: last-input hook installed: GetLastInputInfo says the last input is now", pid, exe); }
+		else clog("pid %lu: GetLastInputInfo could not be reached (err %lu): no last-input hook", pid, GetLastError());
+	}
 	int clockOk = clock && clock_install(exe);
-	if (!clockOk && !gCursorOn && !gMsgboxOn && !gKeysOn) return;
+	if (!clockOk && !gCursorOn && !gMsgboxOn && !gKeysOn && !gLastInputOn) return;
 
 	for (int k = 0; k < NHOOK; k++) {
 		HMODULE m = GetModuleHandleA(gHooks[k].dll);
@@ -784,7 +824,9 @@ void vclock_install(HMODULE self)
 // Called on process detach: the totals.
 void vclock_detach(void)
 {
-	if (!gOn && !gCursorOn && !gMsgboxOn && !gKeysOn) return;
+	if (!gOn && !gCursorOn && !gMsgboxOn && !gKeysOn && !gLastInputOn) return;
+	if (gLastInputOn)
+		clog("pid %lu exits: GetLastInputInfo answered %ld time%s with the last input now", GetCurrentProcessId(), (long)gLastInputReads, gLastInputReads == 1 ? "" : "s");
 	if (gKeysOn) {
 		LONG reads, real; keys_stats(&reads, &real);
 		clog("pid %lu exits: GetKeyState answered %ld time%s with origrun's key state, %ld passed to Windows (before origrun's first key or button edge)",

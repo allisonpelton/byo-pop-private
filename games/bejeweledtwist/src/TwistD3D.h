@@ -192,39 +192,39 @@ public:
 	void MakeShaders();
 
 	unsigned long GetCaps(int theWhich);                                            // 0x04 (0x61eec0)
-	void PushTransform(const SexyMatrix3& theTransform, bool theConcatenate);       // 0x14
-	void PopTransform();                                                            // 0x18
+	void PushTransform(const SexyMatrix3& theTransform, bool theConcatenate);       // 0x14 (0x61ecf0)
+	void PopTransform();                                                            // 0x18 (0x61ed90)
 	bool LoadObject(D3DObject* theObject);                                          // 0x38 (0x61fd00)
 	bool PrepareImage(Image* theImage);                                             // 0x44 (0x61e7d0)
-	void FillRect(const Rect& theRect, const Color& theColor, int theDrawMode);     // 0x68
+	void FillRect(const Rect& theRect, const Color& theColor, int theDrawMode);     // 0x68 (0x620ee0)
 	void DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles,
-		const Color& theColor, int theDrawMode, float theTX, float theTY, bool theBlend);  // 0x74
+		const Color& theColor, int theDrawMode, float theTX, float theTY, bool theBlend);  // 0x74 (0x622140)
 	void DrawTrianglesTexStrip(Image* theTexture, const TriVertex theVertices[], int theNumTriangles,
-		const Color& theColor, int theDrawMode, float theTX, float theTY, bool theBlend);  // 0x78
+		const Color& theColor, int theDrawMode, float theTX, float theTY, bool theBlend);  // 0x78 (0x6221d0)
 	// 0x7c (0x6222f0): user vertices of theFVF; pre-transformed ones move by (tx, ty) and the 2D transform, and take the
 	// draw's colour where their own is 0; theBlend is the linear filter
 	void DrawPrimitiveEx(unsigned long theFVF, GPUPrimitiveType theType, const void* theVertices, int thePrimitiveCount,
 		const Color& theColor, int theDrawMode, float theTX, float theTY, bool theBlend,
 		D3DDrawPrimitiveListener* theListener);
-	bool SetRenderTarget(Image* theImage);                                          // 0x98
+	bool SetRenderTarget(Image* theImage);                                          // 0x98 (0x621990)
 	void Clear(int theRed, int theGreen, int theBlue, int theAlpha);                // 0x9c (0x621a30)
 	// 0xa0 (0x621ae0): the screen's picture so far goes to *theImage (made, screen-sized and a render target, when
 	// null) and drawing to the screen goes on in a cleared buffer; *theSwapped (the original's saved surface) is then
 	// set and stays set, and every later call swaps the two buffers again without clearing. Returns *theImage.
 	Image* SwapScreen(DDImage** theImage, bool* theSwapped);
-	void SetTextureStageState(int theStage, int theType, unsigned long theValue);   // 0xbc
-	void SetRenderState(int theState, unsigned long theValue);                      // 0xc0
-	void SetSamplerState(int theStage, int theType, unsigned long theValue);        // 0xc4
+	void SetTextureStageState(int theStage, int theType, unsigned long theValue);   // 0xbc (0x6229f0)
+	void SetRenderState(int theState, unsigned long theValue);                      // 0xc0 (0x622a60)
+	void SetSamplerState(int theStage, int theType, unsigned long theValue);        // 0xc4 (0x622ad0)
 	void SetTextureLinearFilter(int theStage, bool theLinear);                      // 0xc8 (0x622b70)
 	void SetTextureWrap(int theStage, bool theWrap);                                // 0xcc (0x622c10)
-	void SetTexture(int theStage, Image* theImage);                                 // 0xd4
+	void SetTexture(int theStage, Image* theImage);                                 // 0xd4 (0x622cc0)
 	void SetPixelShader(TwistShader* theShader);                                    // 0xd8 (0x622dd0)
 	void SetVertexShader(TwistShader* theShader);                                   // 0xdc (0x622ea0)
-	void SetTransform(int theType, const GPUMatrix& theMatrix);                     // 0xe0
-	void LightEnable(int theIndex, bool theEnable);                                 // 0xe4
+	void SetTransform(int theType, const GPUMatrix& theMatrix);                     // 0xe0 (0x622f70)
+	void LightEnable(int theIndex, bool theEnable);                                 // 0xe4 (0x622fd0)
 	void SetPointLight(int theIndex, const Vec3& thePosition, const D3DLightColors& theColors, float theRange,
 		const Vec3& theAttenuation);                                                // 0xe8 (0x622ff0)
-	void SetDirectionalLight(int theIndex, const Vec3& theDirection, const D3DLightColors& theColors);  // 0xec
+	void SetDirectionalLight(int theIndex, const Vec3& theDirection, const D3DLightColors& theColors);  // 0xec (0x623100)
 	void SetMaterial(const Color& theDiffuse, const Color& theSpecular, const Color& theAmbient,
 		const Color& theEmissive, float thePower);                                  // 0xf0 (0x623220)
 	// 0x108 (0x623a20): a float constant, set only when theShader is the bound pixel or vertex shader
@@ -232,12 +232,12 @@ public:
 	// 0x10c (0x6242f0): theObject's meshes under theWorld; with the2DStates the object brings its own z, culling,
 	// lighting and texture states and puts 2D's back after
 	void DrawObject(D3DObject* theObject, const GPUMatrix& theWorld, const Color& theColor, bool the2DStates);
-	void SetDepthTestMode(int theMode);                                             // 0x114
+	void SetDepthTestMode(int theMode);                                             // 0x114 (0x624be0)
 	// this+0x10: the draw hook the 2D draws call (the original stores a function there; VizManager::Draw stores 0x758253)
 	void SetDrawHook(GPU2DDrawHook theHook, void* theContext) { m2D->SetDrawHook(theHook, theContext); }
-	void SetDepthWriteMode(int theMode);                                            // 0x118
-	void SetAlphaRef(int theRef);                                                   // 0x11c
-	void SetDepthZ(float theWriteZ, float theOtherZ);                               // 0x120
+	void SetDepthWriteMode(int theMode);                                            // 0x118 (0x624c10)
+	void SetAlphaRef(int theRef);                                                   // 0x11c (0x624c40)
+	void SetDepthZ(float theWriteZ, float theOtherZ);                               // 0x120 (0x624c70)
 	void ClearDepth();                                                              // 0x124 (0x624cd0)
 
 	// The pool of render targets (the original's list at 0x4f6830; port: kept here). 0x4f6630: theHold lets go of what

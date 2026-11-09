@@ -30,8 +30,8 @@ void Board::OnEvent(int theEvent, EventListener* theSource, int theArg)
 	case 0xd:	OnColumnNuke(aBrick); break;
 	case 0xe:	OnPowerBrickDone(aBrick); break;
 	case 0xf:	OnMutatorSpread(aBrick); break;
-	case 0x10:	m1a04++; break;                         // 0x433cc0
-	case 0x11:	m1a04--; break;                         // 0x433cd0
+	case 0x10:	m1a68++; break;                         // 0x433cc0 (INC [ECX+0x1a04]: ECX is the listener part, Board+0x64)
+	case 0x11:	m1a68--; break;                         // 0x433cd0
 	case 0x12:	OnHyperBrick(aBrick); break;
 	case 0x13:	OnBoosterEnd(aBrick); break;
 	case 0x1a:	OnBrickPopped(aBrick); break;
@@ -622,7 +622,7 @@ void Board::OnHyperBrick(Brick* theBrick)
 	if (!m910)
 	{
 		int aMax = m1a18;
-		m1a14 += (int) ((double) aMax * (double) 0.15f);
+		m1a14 += (int) ((float) aMax * 0.15f);
 		if (aMax < m1a14)
 			m1a14 = aMax;
 		mAnim4e0.Reset();

@@ -1,0 +1,9 @@
+# save: magnet
+# A saved game at level 4 whose field has a magnet's arrow (mksave.py sets Grid::mArrowX, which levels 17, 33 and 38 set when they start) and a dozen atoms:
+# every sixth update Magnetise slides each atom a cell towards the arrow until they all stand against the right-hand side.
+# Continued from the main menu (Continue), nothing else is done in the game.
+1500 move 320 445
+1510 click 320 445
+2300 move 316 310
+2310 click 316 310
+end 3300

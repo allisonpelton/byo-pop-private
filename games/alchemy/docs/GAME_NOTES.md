@@ -130,19 +130,29 @@ and the update-check dialog at 0x476210); those are the shared code's, not the g
 
 The port's own checks, made 2026-11-08, that nothing it loads is used only by those functions: a search of `src/` and of
 the `properties` ids it reads for the strings and the registry values above finds none (the one that remained, `LastInternetScoreName`, is out now;
-`COLOR_DEPTH_ERROR` is not on the list: it is the colour-depth question of 0x413942, which the port has). Of the pictures,
+`COLOR_DEPTH_ERROR` is not on the list: it is the colour-depth question of 0x413942, which is out too since 2026-11-09, below). Of the pictures,
 `trialversion` (the title's "buy" overlay, which was loaded and never drawn) and, by the pictures' places in the original's
 image array, `hiscorebox` and `hiscorebtn` (read only by the register dialog and the internet-score dialog) were still
 loaded; all three are gone from the image list and from `Res.h` (63 images, 9 loaded by the title's start-up, and 99 loading
-tasks where the original has 101, since the two others were among the loading thread's), and the registry values
+tasks where the original has 101, since the two others were among the loading thread's; 59 and 95 since section 10), and the registry values
 `NoPopLink` and `LastInternetScoreName` with their fields. No visible change comes of any of these (the suite's baseline is identical).
 The pictures `cartoonstar` and `waitbar` that nothing in the port draws are not registration: the first is the ring of
-the Board effect the first paragraph of this section calls never triggered, the second is loaded and never read by the original either.
+the Board effect the first paragraph of this section calls never triggered, the second is loaded and never read by the original either
+(both are out too since 2026-11-09, section 10).
 
 `Board::mTrialPause` and `Pause(true)` are not registration: the name "trial" is the decompilation's, and the pause it counts is
 the one that covers the board (`Board::Draw` draws the cover instead of the tiles, and the pause text when no dialog is up): any key press toggles it in every mode
 (`KeyChar`), and a dialog raises it in the time trial (`AlchemyApp::ModalOpen` passes the mode). They stay. Loading has no waits (the title screen's bar follows the loading thread, which runs
 once, with no pacing), so the rule on fast loading changes nothing here.
+
+**The colour-depth question (taken out 2026-11-09).** `DoColorDepthExplination` (0x413942) is a dialog (id 8, the strings
+COLOR_DEPTH_ERROR1 to 3 as header, text and footer, a footer button) that the options dialog's check box handler (0x40d7c2)
+raises when a check box is cleared while the app's `mForceFullscreen` (+0x30f) is set, and after it the full-screen box is
+checked again. That flag is the framework's, which sets it only to false: it was meant for a desktop without enough colours, and
+nothing in a port raises it, so the question could not come up. It is out of the port: `OptionsDialog::CheckboxChecked`, the
+`DIALOG_COLOR_DEPTH` id and its name in the `state` command are gone, and the dialog stays the listener of its two boxes only
+because a `Checkbox` takes one. The three strings are in the game's own `properties` file, which is not ours to edit; the port no
+longer reads them. `mForceFullscreen` is `SexyAppBase`'s, shared with the other games, and stays.
 
 ## 6. The standard test commands
 
@@ -154,7 +164,7 @@ the suites and the frozen baseline play as before. Each command answers with one
 
 | Command | What it does |
 |---|---|
-| `state` | `STATE {json}`: `screen` (title, menu, game, highscores, options, help), `dialog` (name, load, hint, quit, newgame, skill, tutorial, options, alltime), `updates`, `mode` (strategic, timetrial, tutorial), `skill`, `level` (the board, from 1), `score`, `forge` (0 to 3), `over` (the game has ended), `busy` (the board cannot take a piece now), `board` (`state`, the `pieces` as `[col, row, shape, colour, stone]`, `lit` as eight strings of nine digits, `litCount`, `piece` to place, `fits`, `moves`, `forged`, `boards` cleared, `shapes`, `colors`, `paused`, `cover`, and `tutorial` with `step`, `waiting`, `count`, `button`), `ready` and `link` on the title, `active`, `windowed`, `muted`, and the places of the buttons a driver presses: `panel`, `options`, `selector`, `table`. |
+| `state` | `STATE {json}`: `screen` (title, menu, game, highscores, options, help), `dialog` (name, load, hint, quit, newgame, tutorial, options, alltime), `updates`, `mode` (strategic, timetrial, tutorial), `skill`, `level` (the board, from 1), `score`, `forge` (0 to 3), `over` (the game has ended), `busy` (the board cannot take a piece now), `board` (`state`, the `pieces` as `[col, row, shape, colour, stone]`, `lit` as eight strings of nine digits, `litCount`, `piece` to place, `fits`, `moves`, `forged`, `boards` cleared, `shapes`, `colors`, `paused`, `cover`, and `tutorial` with `step`, `waiting`, `count`, `button`), `ready` and `link` on the title, `active`, `windowed`, `muted`, and the places of the buttons a driver presses: `panel`, `options`, `selector`, `table`. |
 | `goto <screen>` | `menu` (the selector), `options`, `help`, `highscores` (the all-time table), `strategic` or `timetrial` with an optional skill 1 to 3, and `tutorial`, which start that game through the selector's own buttons. `title` and `credits` are errors: the game has neither to go to. |
 | `level <n>` | Board n of the game being played: n - 1 boards cleared, an empty grid (a first board has its stone), the difficulty follows. |
 | `unlock all` | `ERROR`: the game has nothing locked. |
@@ -198,23 +208,44 @@ the machine: the framework runs the loading thread in one go, and the title poll
 
 ## 8. Performance
 
-Measured on 2026-11-08 for the user's morning report, the port and the original back to back on the machine as it was, and
-the machine was not quiet: other sessions' games ran meanwhile. Game processes running on the machine (any session's, counted
-every 5 s during each run): 6 to 9 during the port's runs (means 6.0 to 9.0) and 7 to 13 during the original's load runs (means
-7.5 to 10.5), and 4 to 8 during the original's two play runs that were measured again (means 5.4 and 6.3). The performance pass measures again on a quiet machine, so read these as what a busy one gave, not as a benchmark.
+Two passes of numbers, 2026-11-08 and 2026-11-09, the port and the original back to back on the machine as it was (other
+sessions' games ran meanwhile, so the processor times move by a few seconds from run to run, see below).
+
+**The first pass's processor figure was wrong, and the performance pass found why (2026-11-09).** The first measurement put the
+original at 1.4 to 1.6 s of processor time for the scripted minute and the port at about 6 s, and this section said the port used
+"about five times" the original's. The fault was in the original's runs, not in either game: `perf.py` started origrun with
+`--exe ... --run alch --seed 11` and no `--patches`; origrun takes its default patch list
+(`tools/origrun/patches/alchemy.txt`) by the game's name, which `--game alchemy` gives and `--exe` does not, so it applied no patch and `--seed 11` pinned nothing
+(the run's log says "RNG seed to pin: 11" all the same). The original dealt its own boards, the bot's script (moves chosen for the
+port's seed-11 boards, played as mouse clicks) met no move on most of them, and the copy sat drawing now and then: 549 to 565
+draws in 6,451 updates (its draw counter, the app's +0x4bc) instead of on nearly every update. The same script with the list given
+(`--patches tools/origrun/patches/alchemy.txt`, whose one line pins the seed) draws 5,950 to 5,970 times in the same 6,451 updates
+and costs the processor what the port costs (the table below); `perf.py` now always gives the list, and refuses to run without it.
+
+An earlier version of this section gave another cause, which I measured and then found not to explain these numbers: the original
+has a screensaver-idle draw stop (a byte at 0x54d7ec, tested in `DrawDirtyStuff` at 0x46cb46, set by a once-a-second routine at
+0x462a60 that asks `SystemParametersInfo` for the screensaver and its timeout and `GetLastInputInfo` for the machine's last input).
+The code is there, but in every run I watched the byte read 0, and so did the routine's screensaver flag (0x51260c), while its
+timeout (0x512608) stayed at its start value. With the seed pinned, the same 1,480-update script draws 991 times with the list
+alone, 1,019 times with the jump at 0x46cb4d (`0f 85 eb 01 00 00`) turned into six `nop`s by a `test` line of the list, and 1,019
+times with a `test` line that writes the same bytes back; without the list (seed unpinned) 192 and 190. So the earlier result, that
+the nop raised the draws fivefold, compared a pinned run with an unpinned one. Whether that routine stops the draws on a machine
+idle for ten minutes was not tested here: origrun's stand-in now answers `GetLastInputInfo` with the present moment in every run
+(`docs/ORIGRUN.md`, "The last-input hook"), which keeps it from setting the flag whatever the machine does.
 
 **How.** `games/alchemy/tools/profile/perf.py` starts the game and reads that process alone, every 100 ms: its working set, its
 private bytes (the pagefile usage, whose peak Windows keeps) and its processor time (kernel plus user); `run.sh` alternates the
-two. The port is `build/native/alchemy.exe` natively under rundesk, never `-fast`; the original is the staged copy under origrun on
-its real clock (`--clock real`; origrun puts it under rundesk itself). Both play the same scripted input: the bot's mouse game
-(strategic, game seed 11) from update 450 (title link, selector, board) to update 6450, which is 60 s of play at 100 updates a
-second, then quit (`toorig.py` turns the port's script into the original's, answering the original's first-run "Updates" question
-No). The original's two play runs were measured a second time, later the same day, with the run's RNG seed pinned
-(`tools/origrun/patches/alchemy.txt`, written by `tools/identical/setup.sh`): the first pair ran without it, so the copy seeded
-its random numbers from the clock, its game was not the port's, and the same input played another game; the numbers below for
-the original's minute are the second pair. Loading does not depend on the seed. Both run on rundesk's private desktop at below-normal priority with silent sound (SDL's silent driver for the port, origrun's
-stand-in for the original), so these are the test conditions, not a player's. A run's numbers cover launch to the end of the
-minute (about 66 s); the processor time of "the minute" is that of the last 60 s of the run.
+two, `exp.sh <name> VAR=VALUE...` runs the port's minute once with a changed environment (`PERF_PORT_ARGS` adds game arguments,
+`PERF_ORIG_PATCHES` names another patch list for the original), `drivers.sh` repeats it per SDL render driver, and `cpuprof.py` samples the
+threads' instruction pointers weighted by the cycles each used (with the stack of a sample that is outside the exe, to name the
+call that made it). The port is `build/native/alchemy.exe` natively under rundesk, never `-fast`; the original is the staged copy
+under origrun on its real clock (`--clock real`; origrun puts it under rundesk itself). Both play the same scripted input: the
+bot's mouse game (strategic, game seed 11) from update 450 (title link, selector, board) to update 6450, which is 60 s of play at
+100 updates a second, then quit (`toorig.py` turns the port's script into the original's, answering the original's first-run
+"Updates" question No); the original's RNG seed is pinned (`tools/origrun/patches/alchemy.txt`, written by
+`tools/identical/setup.sh`). Both run on rundesk's private desktop at below-normal priority with silent sound, so these are the
+test conditions, not a player's. A run's numbers cover launch to the end of the minute (about 66 s); the processor time of "the
+minute" is that of the last 60 s of the run. Game processes on the machine (any session's) were 4 to 9 during these runs.
 
 **Loading** (launch to the first screen that takes input, the title with its play link; the original's launch is its process's
 creation, its play link is read from its memory, `mLoadingThreadCompleted` and the title's link-shown byte, as origrun's `--watch`
@@ -222,11 +253,11 @@ reads it; the port's is its first state answer with `ready` true, asked every 50
 
 | | runs (s) | median |
 |---|---|---|
-| port, native | 1.74, 2.63, 1.77 (and 0.83, 1.15 in two test runs before) | 1.77 |
-| original under origrun, real clock | 2.62, 1.72, 2.77 (and 2.61, 0.82 in its two play runs) | 2.62 |
+| port, native | 1.74, 2.63, 1.77 (and 0.83, 1.15 in two test runs before) | 1.74 |
+| original under origrun, real clock | 2.62, 1.72, 2.77 (and 2.61, 0.82 in its two play runs; 1.45, 0.66, 1.80 in the three runs of 2026-11-09) | 1.76 |
 | port, web (the Browser pane, `loadtime.js`: page navigation to the play link, silent) | 3.8 (cold), 4.8, 11.9, 13.1 | not stable |
 
-Both load in about 1 to 3 seconds when the machine lets them (0.8 s at the quietest moments, for either), and the spread between
+Both load in about 1 to 3 seconds when the machine lets them (0.7 s at the quietest moments, for either), and the spread between
 runs is larger than the difference between the two, so no gain or loss in loading can be claimed from these. The web's spread is the
 pane's browser sharing a busy machine (its own start-up took 0.9 to 9.5 s of the time).
 
@@ -234,33 +265,77 @@ pane's browser sharing a busy machine (its own start-up took 0.9 to 9.5 s of the
 
 | | peak working set (MB) | peak private bytes (MB) | mean working set in the last minute (MB) |
 |---|---|---|---|
-| port, minute 1 and 2 | 66.9, 76.0 | 67.0, 69.3 | 66.0, 74.9 |
-| original, minute 1 and 2 | 64.3, 64.3 | 50.9, 51.0 | 62.9, 62.8 |
+| port, 5 runs | 66.9 to 76.0 | 66.9 to 69.3 | 65.8 to 74.9 |
+| original, 7 runs (2 with the seed unpinned, 5 pinned) | 64.3 to 77.3 | 50.9 to 56.3 | 62.8 to 74.0 |
 | port, load only (3 runs) | 59.7 to 68.9 | 59.5 to 62.5 | |
 | original, load only (3 runs) | 59.3 to 69.0 | 46.1 to 48.5 | |
 
-The working sets are alike (the original's 64 MB, the port's 67 to 76); the port holds about 16 to 18 MB more private bytes than
-the original in play (67 to 69 against 51) and about 14 to 16 MB more at the title.
+The working sets are alike (about 65 MB in the quiet runs of both); the port holds about 12 to 15 MB more private bytes than the
+original in play (67 to 69 against 51 to 56) and about 14 to 16 MB more at the title. The port's own report (the `memreport
+<file>` script command, `src/testhooks/MemReport.cpp`, as Bejeweled has it; run by `tools/profile/memrun.sh`) at the title, in the
+middle of the minute and at its end: 556, 577 and 577 images holding 22.6, 23.6 and 23.6 MB of pixels (4 bytes a pixel, kept after
+the upload since a texture cannot be read back) and 0, 0.9 and 1.2 MB of alpha caches; 1.3, 5.4 and 6.4 MB of textures (an
+estimate, held by the driver); 15 sounds of 2.1 MB; the process heap 30.7, 34.2 and 35.6 MB in 17,600 to 23,900 blocks. The
+biggest images are the title and the backdrop (1.2 MB each); 17 images of 468 x 416 (0.78 MB each: the level pictures
+and the layers the board makes for its light and effects) hold 12.6 MB, about half of the pixels. The original holds the same pictures; what it holds in private
+bytes besides them was not measured, and the framework's part of the difference (the pixels kept after the upload, the mixer's
+buffers, Direct3D's and the driver's allocations) belongs to the framework's notes of the same kind (Bejeweled's `PROFILE.md`).
 
-**Processor time** (seconds of one core):
+**Processor time** (seconds of one core, launch to the end of the minute, and the last 60 s of it):
 
-| | whole run, launch to the end of the minute | the minute (last 60 s) |
-|---|---|---|
-| port, minute 1 and 2 | 6.06, 5.92 | 5.00, 4.92 |
-| original, minute 1 and 2 | 1.64, 1.44 | 1.20, 0.99 |
+| | whole run | the minute | draws in the run |
+|---|---|---|---|
+| original as first measured, the seed unpinned (2 runs) | 1.64, 1.44 | 1.20, 0.99 | 549, 565 |
+| original, seed pinned, the jump at 0x46cb4d nopped out, before the hook (3 runs) | 8.25, 5.45, 5.05 | 7.59, 4.63, 4.59 | 5407, 3427, 5862 |
+| original, seed pinned, nothing nopped, the hook on (2 runs) | 6.97, 4.61 | 6.36, 4.22 | 5972, 5952 |
+| port (5 runs; the first two are the first pass's) | 6.06, 5.92, 6.25, 5.22, 5.56 | 5.00, 4.92, 5.31, 4.58, 5.00 | 3,290 to 3,610 |
 
-The port used about five times the original's processor time over this minute (around 8% of a core against around 2%; the first
-pair of the original's runs, unseeded, read 2.69 and 2.23 s and an earlier version of this section said three times): no
-speed-up shows here, the port is the heavier of the two. This is the port as translated, at its real-time pace in a test run
-(`-script`); where the frame's time goes (the draw, the mixer, the script's own work, say) was not looked into here, and it is the
-performance pass's to find.
+Over the same minute with both drawing, the original used 4.2 to 7.6 s and the port 4.6 to 5.3 s: the port is not the heavier
+of the two, and no speed-up is to be had by comparison. The spread inside a column (5.2 to 6.3 s for the port in the quiet runs,
+and 8.3 to 8.7 s in two more runs, made while the machine was busier) is the machine's load: the cost is the driver's spinning
+and waiting, which grows when other processes compete. Read the table as "about 5 to 6 s, around 8% of a core", for either.
+
+**Where the port's time goes (the profile).** The game's own code is under 3% of the process's processor time. The main thread
+uses about 80% of the cycles and a graphics driver thread about 15%, and nearly all of both is in `ntdll.dll`, which for a 32-bit
+process under 64-bit Windows is system calls and waits. Timers around the framework's SDL calls on the main thread (15.8 G cycles
+in a 75 s run) put it down to the call: **`SDL_RenderPresent` took 69% of the main thread's cycles** (10.9 G, about 3.0 M cycles
+or 0.8 ms for each of 3,578 frames), texture uploads 7% (1.13 G: `SDL_UpdateTexture` for the images the game redraws, 2,350 of
+them in the run, 53,000 pixels each on average, 0.65 a frame), `SDL_RenderGeometry` 0.8% (0.13 G for 108,000 quads: 30 a frame,
+110 at most, in 14 texture changes a frame), and the frame's other calls (`BeginFrame`, the display size, `PrepareTexture`
+apart from the uploads) under 1%. The stack of a sample is no way to find this: a sample in the driver's frames seemed to be
+inside `DrawTexturedQuad` for 57% of the time, because the driver's frames are kilobytes deep and the words in them are stale
+return addresses of earlier calls; the cycle timers are the measurement.
+
+What changes the cost, tried on the same minute: the SDL render driver (direct3d11, direct3d and opengl) 6.2 to 6.8 s, none
+better; the software renderer 74.8 s and a run that could not keep its pace (twelve times the GPU's, since the whole screen is
+blended by the processor); `SDL_RENDER_VSYNC=0` 12.1 s (the present, without the display's refresh to wait for, costs more
+processor time); `SDL_RENDER_BATCHING=0` 11.5 s (every call flushed); `-renderscale=1` and `=2` (the default follows the window and the display) 8.3 and 8.7 s,
+no saving. So the cost is a driver cost per presented frame, and the number of frames is
+the lever.
+
+**Do frames draw nothing new?** No. The framework draws when a top-level widget is dirty or a second has passed, and 3,602 of
+4,062 draw decisions found one: `EffectsWidget::Update` (0x40844f, ported line for line) calls `MarkDirty` on every third update
+for each sparkle and score popup alive (49,800 calls in the minute), the board, the side panel
+and the pieces follow it, and the original does the same, which is why it too draws on nearly every update (5,950 of 6,451 in the pinned runs). Of
+2,406 frames read back and compared with the one before, 4 were identical (0.2%), 28 changed under 1% of the pixels, 732 under 5%,
+1,596 under 25% and 45 more; the changed pixels averaged 368,000 a frame, 13% of their bounding box (2.79 M pixels on average), so the changes are
+spread over the screen. So dropping frames that show nothing new saves 0.2%, and a partial present
+needs several rectangles.
+
+**What was changed.** In the game, nothing but the `memreport` test command and the tools: the port is at the floor of what
+the framework's present path allows, its processor time is the original's when the original draws, and a change that drew fewer
+frames would be visible (a frame cap is the `lean` mod's setting in Bejeweled, `docs/MOD_ROADMAP.md`). The shared costs
+(the present, the uploads of whole images that changed in part) went to the coordinator as a spec (2026-11-09). The frozen
+baseline stays identical (`tools/check.sh alchemy`).
 
 **Not measured.** The web build's working set, private bytes and processor time cannot be read from the Browser pane (its page
 is one tab of the app's browser, with no process of its own to read), and `Module.HEAP8` is not reachable from the page: the
 JS heap at the play link was 5 to 12.5 MB, which is not a process's memory. The web's load time above is what could be timed.
 
 To repeat: `bash games/alchemy/tools/profile/run.sh` from the worktree root, after `tools/origrun/build.sh`, a port script in
-`build/perf/port-play.txt` and its original's in `build/perf/orig-play.txt` (`games/alchemy/tools/profile/perf.py` and `run.sh` say how).
+`build/perf/port-play.txt` and its original's in `build/perf/orig-play.txt` (`games/alchemy/tools/profile/perf.py`, `run.sh` and
+`exp.sh` say how); the original runs with `tools/origrun/patches/alchemy.txt` (the seed line; `perf.py` gives it, `PERF_ORIG_PATCHES` names
+another list). A run of the original without a list is not seed pinned: look for "applied 1 patch(es)" in its `origrun.log`.
 
 ## 9. Coverage check (2026-11-08)
 
@@ -313,8 +388,8 @@ command, which gives the positions of a dialog's buttons: the quit question with
 so its buttons are at y 284 instead of 204. Tours 6 and 7 click at y 204 and missed it, which went unnoticed because the port's
 script ends with `quit` anyway; the tours were left as they are, and the extra runs click the right place. In a game the button
 at (32, 421) is the hint button; the help screen is reached through the options dialog (a link at (318, 237)).
-The one left is `DoColorDepthExplination` (0x413942; in the port, the `DoDialog` call inside `OptionsDialog::CheckboxChecked`,
-0x40d7c2). The export has no function at 0x40d7c2, so the report lists no caller for it. The question appears when a check box is
+The one left was `DoColorDepthExplination` (0x413942; in the port, the `DoDialog` call inside `OptionsDialog::CheckboxChecked`,
+0x40d7c2), which is out of the port now (section 5). The export has no function at 0x40d7c2, so the report lists no caller for it. The question appears when a check box is
 cleared while the app's `mForceFullscreen` (+0x30f) is set, which the framework does on a desktop without enough colours. The
 host's desktop has them, so no run reached it. The port's version was read again against the export and matches: dialog 8, the
 strings COLOR_DEPTH_ERROR1 to 3 as header, text and footer, the footer button mode, then the full-screen box checked again. A
@@ -335,11 +410,12 @@ global vector (0x516080, through `vector<string>::operator=` at 0x407dc4); the p
 names (`ComputeRank`). `Board` has an `std::ostringstream` member at +0xa84, built in 0x407ebe and destroyed through 0x401001, and
 a `vector<pair<int,int>>` at +0xe50, that nothing uses. The port has neither.
 
-**Candidates for taking out unneeded code.** The colour-depth question and the flag that raises it (the body of
-`OptionsDialog::CheckboxChecked`, `DIALOG_COLOR_DEPTH`, `mForceFullscreen` and the three strings): the port's display always has
-the colours, and nothing in a port sets the flag. Nothing was removed.
+**Unneeded code taken out (2026-11-09).** The colour-depth question and the handler that raised it (the body of
+`OptionsDialog::CheckboxChecked`, `DIALOG_COLOR_DEPTH` and its `state` name): the port's display always has the colours, and
+nothing in a port sets the flag (section 5). The frozen baseline stays identical. `mForceFullscreen` and the three strings are
+not the game's to remove (the framework's field; the game's own `properties` file).
 
-**Open items.** The colour-depth question has no run that reaches it (above). Nothing else.
+**Open items.** None.
 
 **What it cost.** The 21 runs took about 45 minutes of one game process at a time, most of it waiting for room: other sessions'
 games kept the machine at three to six processes. Two things went wrong on the way and were redone. The first set of runs of the
@@ -350,3 +426,64 @@ seed also changed the original's side of the Performance numbers (section 8, cor
 of the two lists in 15 minutes and 278,000 tokens; this session read its table, spot-checked its verdicts against the export
 (0x407dc4, 0x413942, 0x4061e5, 0x409f8e, 0x40c3ca and more), corrected one of its own earlier `none` lines (0x40c3ca is the
 selector's destructor body, not the internet-score dialog's) and ran the report again with the agent's lines.
+
+## 10. Code the port does not need (2026-11-09)
+
+The last finishing item (`docs/COORDINATION.md`: "figure out what code does not need to be present in the decomps"). Registration
+and the buttons that lead out were already out (section 5), and so was the colour-depth question (section 9). This survey looked
+for what no path of the shipped game reaches or needs, by six scans of the game's `src/` (the test hooks, which tests need, apart):
+
+1. **Functions.** The 25 object files of the native build, every defined function against every relocation in all of them
+   (`llvm-nm --defined-only`, `llvm-objdump -r`): 40 had no reference. The constructors and destructors among them are the
+   aliased forms of the complete-object and base-object versions; every other name was searched in the source, and all but one
+   are called, inlined by the compiler. The one with no caller is in the table.
+2. **Compiler warnings.** Every source compiled with `-Wall -Wextra -Wunused -Wunused-member-function -Wunused-private-field
+   -Wunused-template -Wunused-macros -Wunreachable-code`: nothing in the game's files (the two deprecation warnings are the
+   framework's `Rect.h` and `Insets.h`).
+3. **Fields.** Every member `m...` of the game's headers by whether any code reads it: all are read (the autoplay options by the
+   test hooks only), except the one below.
+4. **Constants.** Every enumerator, `#define` and `const` by use: the ones below.
+5. **Pictures and sounds.** Every id of `Res.h` by use in the port (all 15 sounds are named by code the game runs), and each unused picture against
+   the original: the original keeps its pictures in an array of 66 at the app's +0x6b0, its slot is the port's index plus one, and
+   a search of the decompilation of 0x401000-0x414a7d for each slot's offset (`4 * slot`, direct and with an index added)
+   finds who draws it.
+6. **Windows leftovers, switched-off code, comments.** `_WIN32` appears once (the search for the retail install folder, which
+   a Windows player of the unpacked game needs), no `#if 0`, no commented-out code, no `TODO`.
+
+| What | Why it is not needed | Verdict |
+|---|---|---|
+| `AlchemyApp::RemoveWidgetAndDelete` (0x410ee0) | no caller: the original's four callers (0x408a5c, 0x41123e, 0x411367, 0x4115dd) are in the screens, whose four `SafeDeleteWidget` sites the port has with `RemoveWidget` written out beside them | removed |
+| `DIALOG_SKILL` (dialog 1), its yes branch in `ButtonDepress` (the original's at 0x413fa4) and the field `mPendingSkill` (+0xecc), with the name `skill` of the `state` command | nothing opens dialog 1: the original never writes +0xecc (its only access is the read at 0x413fb0) and its exe never refers to the strings CONFIRM_SKILL_CHANGE1 and 2 (they are in the game's `properties` file), so a skill change in the selector never asks | removed |
+| `BUTTON_TUTORIAL` (id 11) | an enumerator no code names (the selector's tutorial button is not a side-panel button) | removed; a comment keeps the id |
+| pictures `waitbar`, `bubbles7`, `selectorbutton` | loaded by the loading thread; neither the port nor the original's code refers to their slots (the original loads them and never draws them; Bejeweled's notes record the same for its `waitbar`) | removed from the list and `Res.h` |
+| picture `cartoonstar` | only the board's ring of eight pieces (0x40505b), the effect of section 5 that no code triggers | removed |
+
+The four pictures leave 59 images and 95 loading tasks (63 and 99 before; the original has 101). The only effect a player could see
+is that the title's loading bar has 95 steps instead of 99, and the port loads in one go.
+
+**Looked at and kept.** `Board::mScriptPos` (+0xa80, saved and never used) is in the save file's format. `Board::mTutWaiting` is
+written by the game and read only by the test commands, which need the tutorial's state. `OptionsDialog` stays the listener of its
+two check boxes, since a `Checkbox` takes one (its handler is the framework's empty one). The registry values `SkillLevel`,
+`TimeTrial` and `LastScoreName` and `mRegKey` are the original's settings. `GameText` reading the
+default score names from `Alchemy.exe` is how the table gets them. `Fixes.cpp` and `SiteProfiles.cpp` are the fixes mod and the site's
+hooks. The overrides of `SexyAppBase`'s hooks (`ShutdownHook`, `GetShutdownSaves`, `CreateMusicInterface`, `NewDialog`, `ModalOpen`,
+`ModalClose`, `LoadingThreadProc`, `EditWidgetText`, `SliderVal`) are called by the framework. Strings in the game's `properties`
+file that nothing in the port reads (CONFIRM_SKILL_CHANGE1 and 2, COLOR_DEPTH_ERROR1 to 3, CONFIRM_UPDATE1 and 2 and the
+registration texts) are the game's data, not ours to edit.
+
+**Doubtful, for the user.**
+- *The test hooks in the shipped game.* `src/testhooks/` (about 1,550 lines: the test commands, `-autoplay`, the bot, `memreport`) is
+  compiled into the one executable that players get, reachable only from a test (`docs/TEST_COMMANDS.md`). Taking it out of the
+  shipped build would need a build switch that the tests then turn on; nothing in the game depends on it.
+- *Shared code.* `mForceFullscreen` and the registration members of `SexyApp` are the framework's (section 5); whether the
+  framework still needs them is the coordinator's, as a spec.
+
+**Proof.** `tools/check.sh build alchemy` after the removals: the build passes and the suite's baseline is identical (strategic 12206,
+time trial 14641, the tutorial, the saved game, the rerun). The suite plays the game's logic, so the pictures were checked as well,
+with a control: the source changes were put aside as a patch, the game built as it was before them, and the screen tours 1, 2, 5 and 7
+(`tools/shots`: the title, selector, options, help, high scores and quit question; a strategic game to its table; the tutorial;
+the wizard's messages; same script, same seed, `-fast`) run on it, then the patch applied, the game built and the tours run again.
+All 106 screenshots are byte for byte the same (17, 40, 35 and 14). A script also reads `Res.h` and the name table in
+`AlchemyApp.cpp` before and after and finds every id still at the same file name, in the same order (63 against 63, 59 against 59),
+and the only arithmetic on ids (`IMAGE_LEVEL2 + n`, 43 to 50, and `IMAGE_WIZARDHEAD + n`, 21 to 25) stays inside runs that no
+removal cuts.

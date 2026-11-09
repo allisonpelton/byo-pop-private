@@ -12,6 +12,9 @@
 #define STB_VORBIS_HEADER_ONLY
 #include <stb_vorbis.c>
 #include <minimp3.h>
+#ifdef __EMSCRIPTEN__
+#include "ModuleText.h"
+#endif
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -1535,4 +1538,195 @@ void Mixer::Mix(float* theOut, int theFrames)
 		theOut[i] = std::max(-1.0f, std::min(1.0f, theOut[i]));
 }
 
+#ifdef __EMSCRIPTEN__
+// ---- the site's Music window following the game (docs/WEB_PLAYER.md, "Following a game") ----
+// The page asks each animation frame while its Music window is on the screen and this game's window is the one in front; nothing
+// here runs otherwise, and nothing changes what the game plays or hears: the views read the players' positions and patterns.
+
+int Mixer::WebFollowedSong()
+{
+	int aBest = 0;
+	float aLoudest = -1.0f;
+	Lock();
+	for (int i = 0; i < (int)mSongs.size(); i++)
+	{
+		const Song* s = mSongs[i].get();
+		if (!s || !s->mPlaying || s->mPaused)
+			continue;
+		if (s->mGain > aLoudest)
+		{
+			aLoudest = s->mGain;
+			aBest = i + 1;
+		}
+	}
+	Unlock();
+	return aBest;
 }
+
+std::string Mixer::WebSongView(int theSong)
+{
+	std::string aJson;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mPlaying)
+	{
+		int v[5] = {0, 0, 0, 0, 0};
+		std::string aTitle;
+		bool aModule = false;
+		if (s->mCtx)
+		{
+			xmp_frame_info anInfo;
+			xmp_get_frame_info(s->mCtx, &anInfo);
+			xmp_module_info aModuleInfo;
+			xmp_get_module_info(s->mCtx, &aModuleInfo);
+			v[0] = anInfo.pattern;
+			v[1] = anInfo.row;
+			v[2] = anInfo.num_rows;
+			v[3] = aModuleInfo.mod->chn;
+			v[4] = anInfo.pos;
+			aTitle = aModuleInfo.mod->name;
+			aModule = true;
+		}
+		else if (s->mModule && s->mModule->GetView(v))
+		{
+			aTitle = s->mModule->GetTitle();
+			aModule = true;
+		}
+		char aBuf[160];
+		if (aModule)
+		{
+			// the title as a JSON string: its quotes, backslashes and control characters escaped
+			std::string aQuoted;
+			for (unsigned char c : aTitle)
+			{
+				if (c == '"' || c == '\\')
+				{
+					aQuoted += '\\';
+					aQuoted += (char)c;
+				}
+				else if (c < 0x20)
+					aQuoted += ' ';
+				else
+					aQuoted += (char)c;
+			}
+			snprintf(aBuf, sizeof(aBuf), "{\"song\":%d,\"kind\":\"module\",\"pattern\":%d,\"row\":%d,\"rows\":%d,\"channels\":%d,\"order\":%d,\"title\":\"",
+				theSong, v[0], v[1], v[2], v[3], v[4]);
+			aJson = aBuf + aQuoted + "\"}";
+		}
+		else
+		{
+			snprintf(aBuf, sizeof(aBuf), "{\"song\":%d,\"kind\":\"stream\"}", theSong);
+			aJson = aBuf;
+		}
+	}
+	Unlock();
+	return aJson;
+}
+
+std::string Mixer::WebSongRow(int theSong, int thePattern, int theRow)
+{
+	std::string aText;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mCtx)
+	{
+		xmp_module_info aModuleInfo;
+		xmp_get_module_info(s->mCtx, &aModuleInfo);
+		const xmp_module* aMod = aModuleInfo.mod;
+		if (thePattern >= 0 && thePattern < aMod->pat && aMod->xxp[thePattern])
+			for (int c = 0; c < aMod->chn; c++)
+			{
+				static const xmp_event kNone = {};
+				const xmp_track* t = aMod->xxt[aMod->xxp[thePattern]->index[c]];
+				char aCell[24];
+				byopop_xmp_cell(t && theRow >= 0 && theRow < t->rows ? &t->event[theRow] : &kNone, aCell);
+				if (c)
+					aText += '|';
+				aText += aCell;
+			}
+	}
+	else if (s && s->mModule)
+		aText = s->mModule->GetRowText(thePattern, theRow);
+	Unlock();
+	return aText;
+}
+
+std::string Mixer::WebSongUsed(int theSong)
+{
+	unsigned char aUsed[256] = {};
+	int aChannels = 0;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mCtx)
+	{
+		xmp_module_info aModuleInfo;
+		xmp_get_module_info(s->mCtx, &aModuleInfo);
+		const xmp_module* aMod = aModuleInfo.mod;
+		aChannels = aMod->chn;
+		for (int p = 0; p < aMod->pat; p++)
+		{
+			if (!aMod->xxp[p])
+				continue;
+			for (int c = 0; c < aMod->chn && c < 256; c++)
+			{
+				const xmp_track* t = aMod->xxt[aMod->xxp[p]->index[c]];
+				if (aUsed[c] || !t)
+					continue;
+				for (int r = 0; r < t->rows; r++)
+					if (t->event[r].note >= 1 && t->event[r].note <= 120)
+					{
+						aUsed[c] = 1;
+						break;
+					}
+			}
+		}
+	}
+	else if (s && s->mModule)
+		aChannels = s->mModule->GetUsedChannels(aUsed, 256);
+	Unlock();
+	// the channels that play a note, by number, separated by commas
+	std::string aList;
+	for (int c = 0; c < aChannels && c < 256; c++)
+		if (aUsed[c])
+		{
+			if (!aList.empty())
+				aList += ',';
+			aList += std::to_string(c);
+		}
+	return aList;
+}
+#endif
+
+}
+
+#ifdef __EMSCRIPTEN__
+// The page's calls (Module.ccall; web/music.js, "Following a game"), linked through -sEXPORTED_FUNCTIONS
+// (cmake/ByopopWeb.cmake). A returned string stays valid until the next call.
+static std::string gMusicResult;
+extern "C"
+{
+// The song the Music window follows: its handle, 0 when the game plays none.
+EMSCRIPTEN_KEEPALIVE int byopop_music_song()
+{
+	return Platform::Mixer::Get().WebFollowedSong();
+}
+// Where that song is, as JSON ("" for a song not playing).
+EMSCRIPTEN_KEEPALIVE const char* byopop_music_view(int theSong)
+{
+	gMusicResult = Platform::Mixer::Get().WebSongView(theSong);
+	return gMusicResult.c_str();
+}
+// A row of one of its patterns, the cells separated by '|'.
+EMSCRIPTEN_KEEPALIVE const char* byopop_music_row(int theSong, int thePattern, int theRow)
+{
+	gMusicResult = Platform::Mixer::Get().WebSongRow(theSong, thePattern, theRow);
+	return gMusicResult.c_str();
+}
+// The channels that play a note anywhere in it, by number, separated by commas.
+EMSCRIPTEN_KEEPALIVE const char* byopop_music_used(int theSong)
+{
+	gMusicResult = Platform::Mixer::Get().WebSongUsed(theSong);
+	return gMusicResult.c_str();
+}
+}
+#endif

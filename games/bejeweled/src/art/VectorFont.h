@@ -25,11 +25,8 @@ struct TextStyle
 	double Unit() const { return mCap / 10.0; }
 };
 
-bool HasGlyph(int theChar);
 double CharAdvance(int theChar, const TextStyle& theStyle);           // logical px
 double TextWidth(const std::string& theText, const TextStyle& theStyle);
-// The glyph's ink box relative to its pen position and the baseline (logical px; y down)
-void CharInk(int theChar, const TextStyle& theStyle, double* theX0, double* theY0, double* theX1, double* theY1);
 // Strokes the text into the mask, its baseline at y and its pen starting at x; returns the pen's end
 double DrawText(Mask& theMask, const std::string& theText, double x, double y, const TextStyle& theStyle);
 void DrawChar(Mask& theMask, int theChar, double x, double y, const TextStyle& theStyle);

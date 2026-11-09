@@ -45,6 +45,9 @@ No name stands in for one. That rules out:
 - a decompiler's names: `local_1c`, `param_2`, `iVar3`, `uStack_8`, `DAT_00506560`, `FUN_004cb182`, `field_0x1c`;
 - names that say they are unknown: `mUnknown`, `mUnk`, `unk_10`;
 - a generic word with a number or an offset where the name should be: `mUnused218`, `mPad04`, `mValue2`, `aInt3`, `aDummy`;
+- a word with its offset or address where the rest of the name should be: `mScale288`, `mFlags1E4`, `mCamera144C`,
+  `Rand85B970`, `Record1C` (the check is `offset`; a number that means something, such as the 1200-pixel art size or
+  an alpha on the 0 to 255 scale, goes into `namecheck.txt` with that reason);
 - a comment that puts "unknown" in place of a name: `// +0x218 purpose unknown`.
 
 A number that carries meaning is fine: `mSwapPiece1` and `mSwapPiece2` are the swap's first and second gem, `mX0, mY0, mX1,
@@ -74,6 +77,12 @@ int     mPadBeforeX;            // +0x04 padding before mX (raw garbage in origi
 // +0x2c8 a SexyString the original constructs and destroys and never uses: left out
 ```
 
+A field the port never touches, which the original uses only in code the port leaves out (Twist's puzzle mode, behind
+`NotPorted`), comes out too; the comment at the left-out code names its offset. A parameter the original's function
+never reads comes out of the port's signature, and the declaration's comment says that the original's call passes
+it. A value that is drawn from a random generator and never read stays, named for the draw (`mThirdDraw`), since
+removing it would change the draws' order.
+
 Padding is named for the field it aligns. A field that only ever holds one value is named for that value
 (`ScorePopup::mAlwaysMinusOne`).
 
@@ -101,7 +110,9 @@ w.U8(FORMAT_VERSION);                      aWriter.U8(FORMAT_VERSION);
 The comment directly above a function definition carries the original's address (`// 0x4cd287`), or the port's marker
 (`port:` or `port(variant):`) saying that the original has no such function. A helper the port split out of an original
 function names that function and its address. A file whose first comment carries the marker holds only the port's own
-functions and needs no marker on each.
+functions and needs no marker on each. An address on the function's declaration in its class (on its line or in the
+comment block above it) counts as well, as it does for the coverage check: a port that keeps its addresses in the headers
+(Bejeweled Twist) need not copy each one to the definition.
 
 ```cpp
 // before
@@ -195,3 +206,46 @@ the game's web build: build it (`tools/check.sh build-web:<game>`) before the or
 prove that a name is good, only that none is a stand-in; a reviewer still reads the names. Bejeweled Twist takes the
 standards next (the user, 2026-11-08: "I'd want them tested on a more complex game before moving forward with them for
 EVERY game"). It has no Mac build, so its names come from use, and its 2D and 3D code will test rules 5 and 7 harder.
+
+## How it worked out on Twist
+
+Bejeweled Twist's pass (2026-11-08; `games/bejeweledtwist/docs/NOTES.md`, "The readability pass") was the standards'
+second test, on a port two and a half times Bejeweled's size (65,000 lines), with 2D and 3D code and no Mac build. Where
+Bejeweled had named everything as it was translated, Twist had kept the original's offsets for most fields: the
+checker's first run found 8481 things, 7355 of them `mUnknown<offset>` names. What changed and why:
+
+- **Rule 6 now accepts an address on the declaration.** Twist keeps each function's address on its declaration in the
+  header, not above the definition; the coverage check already read it there. The checker did not, and reported 1003
+  functions with no address. It now reads the headers too, which left 71: helpers split out of an original function
+  (which now name it), the port's own functions (now marked) and eight resource extractors, whose addresses the resource
+  generator now writes.
+- **Rule 2 gained the `offset` check.** The checker caught `mUnknown218` and `mPad04` but not a real word followed by an
+  offset: `mScale288`, `mFlags1E4`, `mCamera144C`, `Rand85B970`. About fifty such names (and four numbered flags,
+  `Piece::FLAG_12` among them, which no check reads) were left after the checker reached 0, found only by a search for
+  digits in names. The check now finds them; a number that means something stays with a reason in `namecheck.txt` (Twist
+  allows four: an alpha on the 0 to 255 scale, the 1200-pixel art size). Run on every port, it finds such names in
+  fifteen of them, from 3 to 123 each, and in Bejeweled only `Sha256`, the algorithm's name, which wants an `allow`
+  line. Two-digit decimal tails (`mBools80`, `aCount38`) still pass, since they cannot be told from counts and angles
+  (`aCos36`).
+- **Rule 3 says what may come out.** 54 of Board's fields were neither read nor written by the port; the original uses a
+  few of them, but only in code the port leaves out. They came out, as did a parameter in three functions that the
+  original itself never reads. Two values drawn from the random generator and never read stayed, named for the draw,
+  since taking them out would shift every draw after them.
+
+**How the work went.** More than a thousand fields were renamed. Naming them took most of the work: Sonnet agents read
+each class's uses and the export and wrote a table of names with a comment for each declaration, and the session checked
+the table for weak names (a rule-3 prefix such as `mUnused...` came back once and was refused). Applying the table by
+text would have been unsafe with so many classes sharing `mUnknown1C` and the like, so a script renamed by the compiler
+instead: it renamed a batch of declarations, compiled every unit with `-fsyntax-only -fno-spell-checking`, and replaced
+the old name exactly where clang reported it missing, round after round until the batch compiled clean. Batches held no
+old name twice, and a base class's member went before a derived class's member of the same name, or the derived class's
+uses would have fallen through to the base's. A failed batch restored every file, after one resumed run had misplaced
+names across classes. The proof of a rename is the object code: every one of the 81 units compiled to the same
+instructions before and after the 1026 table renames. Methods, globals, parameters and locals (about 60) were renamed by
+hand after that, and the removals changed layouts, so those rest on the frozen baseline instead. Twist has no Mac build,
+so every name comes from use and from the export; the comments carry each field's offset, so the export can still be
+read beside the port.
+
+**What it cost.** The renaming itself was cheap once the compiler drove it; the cost was the naming, an agent's read of
+each large class, and the second look at the checker's blind spot. The standards held: no rule had to give way to keep
+play identical, and each change above makes a rule say what the first game had not needed it to say.

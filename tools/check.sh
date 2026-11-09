@@ -45,7 +45,10 @@
 #                the site's cursor, which of a game's cursors it keeps, its rules for each context, busy() and animated
 #                cursors) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
 #                opens in a new tab) and musictest (tools/musictest.js: the music player's decoder, its tracker view's rows and
-#                its seek, on a module the test makes and a staged MO3 when there is one). The build folder is build/web;
+#                its seek, on a module the test makes and a staged MO3 when there is one) and setuptest (tools/setuptest.js:
+#                the Setup window's pages for the games found and Finish's summary, web/setup.js) and localsoontest
+#                (tools/localsoontest.js: the coming-soon tiles of built ports open on a development host only, web/localsoon.js).
+#                The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
 #                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
@@ -203,9 +206,9 @@ AL_TUTORIAL="tutorial button 1 at update 231"
 SS_BEGINNER="game 2 over at update 5868: score 380 level 4 moves 20"
 SS_BONUS="game 1 over at update 2746: score 680 level 14 moves 20"
 SS_LATE="game 1 over at update 1958: score 200 level 21 moves 14"
-AP_CLASSIC='playbymove astropop: 71 moves, stop no move; STATE {"screen":"game","user":"Test","mode":0,"level":1,"score":11040,"stage":1,"updates":1317,"type":1,"paused":0,"over":0,"hand":0,"busy":0}'
-AP_LATER='playbymove astropop: 94 moves, stop no move; STATE {"screen":"game","user":"Test","mode":0,"level":4,"score":17580,"stage":6,"updates":2155,"type":1,"paused":0,"over":0,"hand":0,"busy":0}'
-AP_SURVIVAL='playbymove astropop: 120 moves, stop limit; STATE {"screen":"game","user":"Test","mode":2,"level":1,"score":43720,"stage":1,"updates":2329,"type":2,"paused":0,"over":0,"hand":0,"busy":0}'
+AP_CLASSIC='playbymove astropop: 120 moves, stop limit; STATE {"screen":"game","user":"Test","appupdates":2277,"mode":0,"level":1,"score":10940,"stage":1,"updates":2275,"type":1,"paused":0,"over":0,"hand":0,"busy":0}'
+AP_LATER='playbymove astropop: 120 moves, stop limit; STATE {"screen":"game","user":"Test","appupdates":2659,"mode":0,"level":4,"score":48390,"stage":6,"updates":2657,"type":1,"paused":0,"over":0,"hand":0,"busy":0}'
+AP_SURVIVAL='playbymove astropop: 120 moves, stop limit; STATE {"screen":"game","user":"Test","appupdates":2961,"mode":2,"level":1,"score":37020,"stage":1,"updates":2959,"type":2,"paused":0,"over":0,"hand":0,"busy":0}'
 PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
 PX_START="done: 25 puzzles"
 PX_FULL="done: no temple left, 210 puzzles, log 45b76e98"
@@ -239,8 +242,12 @@ BT_MENU="640866e0b565 da8353fcb954"  # the start's screens at 60 (the loader han
 # the port only (its loader moved on to the original's hand-over, 2026-11-08), so not against the older baseline
 # Bejeweled 2 Deluxe: per mode, the first 12 hex digits of the sha256 of the bot's transcript (every state and move, tools/playbymove's
 # driver.txt without its screenshot line) and of its end screen, for the steps in BJ2_STEPS: the frozen baseline (Twilight's end screen
-# refrozen 2026-11-08 with the Hyperspace tunnel's texture wrap: that screen is in the tunnel; the transcripts did not change)
-declare -A BJ2_PLAYS=([classic]="d645dd282cee:0b21fd763248" [action]="b0fd7f27a100:950c77b82a20" [puzzle]="27f63cd9bdc5:2529e1429b25" [endless]="6430c39c792d:6c7b27839583" [twilight]="16f79f616a23:8059d707c87c" [hyper]="c621bb4ee398:fcdbbae9607a" [cognito]="223aa7e53ba1:db4f92024a35" [finity]="d1579f7fdf24:d9680fc31501" [hidden]="e131248f891b:7afbbb32f140")
+# refrozen 2026-11-08 with the Hyperspace tunnel's texture wrap: that screen is in the tunnel; the transcripts did not change;
+# refrozen 2026-11-09: `state` gained keys (updates, is3d, flames), which changes every transcript, and ExplodeAt's accumulators and the
+# shock wave now test >= 1.0 as the original does, which moved the draws of the global generator after a flame burst: the states of
+# action, puzzle, endless, twilight, cognito and hidden are those of the old baseline, classic differs from level 3 on, hyper from level 4
+# and finity from level 3, all three identical to the original now, games/bejeweled2/docs/IDENTICAL_PLAY.md)
+declare -A BJ2_PLAYS=([classic]="db5f86896a6a:c7b95271c2bd" [action]="8c4464b2a214:950c77b82a20" [puzzle]="3eb1e831c2a2:e1f8b6960a69" [endless]="2baed41a71fa:6c7b27839583" [twilight]="fa068aa268d7:8059d707c87c" [hyper]="76f290fad630:7c808bde4f7b" [cognito]="423e83b40efb:db4f92024a35" [finity]="c46056c77bc5:2a61e9e4c56f" [hidden]="bbed92c6cb71:7afbbb32f140")
 declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
 BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
@@ -738,12 +745,20 @@ suite_unit-web() {
 	local r
 	"$NODE" tools/musictest.js "$web/openmpt.js" assets > "$1.mu" 2>&1 || st=1
 	r="$(lastof "$1.mu" 'musictest:')"
+	# the Setup window's logic: its pages and Finish's summary (tools/setuptest.js)
+	local u
+	"$NODE" tools/setuptest.js > "$1.su" 2>&1 || st=1
+	u="$(lastof "$1.su" 'setuptest:')"
+	# the coming-soon tiles of ports this build made: opened on a development host only (tools/localsoontest.js)
+	local v
+	"$NODE" tools/localsoontest.js > "$1.ls" 2>&1 || st=1
+	v="$(lastof "$1.ls" 'localsoontest:')"
 	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
 	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.jpg" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $o"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $u; $v; $o"
 	return $st
 }
 

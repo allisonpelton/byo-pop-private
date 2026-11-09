@@ -114,13 +114,13 @@ Ticker::Ticker()
 	mTarget = 0;
 	mFade = 0;
 	mTimer = 0;
-	mUnknown6C = FONT_TOOLTIP;
-	mUnknown68 = FONT_TOOLTIP;
+	mSmallLabelFont = FONT_TOOLTIP;
+	mLabelFont = FONT_TOOLTIP;
 	mFont = FONT_SCORE;
 	mGlowFont = FONT_SCOREGLOW;
 	mSmallFont = FONT_SCORE_SMALL;
 	mSmallGlowFont = FONT_SCOREGLOW_SMALL;
-	mUnknown80 = false;
+	mUseSmallFont = false;
 	UpdateText();
 }
 
@@ -168,7 +168,7 @@ void Ticker::Draw(Graphics* g, int theX, int theY, bool theCentre, float theAlph
 	Font* aFont = mFont;
 	Font* aGlowFont = mGlowFont;
 	int aWidth = aFont->StringWidth(mText);
-	if (1999999 < mValue || mUnknown80) {
+	if (1999999 < mValue || mUseSmallFont) {
 		aFont = mSmallFont;
 		aGlowFont = mSmallGlowFont;
 		aWidth = aFont->StringWidth(mText);
@@ -193,21 +193,21 @@ void Ticker::Draw(Graphics* g, int theX, int theY, bool theCentre, float theAlph
 GoodTube::GoodTube(Board* theBoard)
 {
 	mBoard = theBoard;
-	mUnknown308 = 1.0f;
-	mUnknown30C = 0;
+	mBaseStep = 1.0f;
+	mAddedSum = 0;
 	mName = "GOODTUBE";
-	mUnknown2C8 = (float)Ftol((double)gApp->mScale * 0.0);
-	mUnknown160 = 1;
-	mUnknown4A8 = true;
+	mTopFall = (float)Ftol((double)gApp->mScale * 0.0);
+	mChallengeStyle = 1;
+	mShowTenths = true;
 	mColorCycle.mColors.clear();
 	mColorCycle.mPos = 0;
 	mColorCycle.mColors.push_back(Color::White);
 	UpdateImages();
-	SetUnknown14D(false);
+	SetLevelSoundOn(false);
 	SetShown(false);
 	for (int i = 16; i != 0; i--) {
 		Bubble* aBubble = new Bubble();
-		aBubble->mUnknown0 = 0;
+		aBubble->mPhaseStep = 0;
 		aBubble->mPhase = (float)((double)(Rand() % 100) * 0.001);
 		mBubbles.push_back(aBubble);  // 0x707ad5
 	}
@@ -216,7 +216,7 @@ GoodTube::GoodTube(Board* theBoard)
 	mClip = false;
 	mLevelText = new TextImage(FONT_INGAME, GTS(0x7e4018), 0, 0, -1, 0, nullptr);  // 0x74e701 ("LEVEL"; nothing draws it)
 	mRankBadge = new RankBadge(this);
-	mUnknown240 = Ftol((double)gApp->mScale * 200.0);
+	mTipWidth = Ftol((double)gApp->mScale * 200.0);
 	mMenuButton = new TwistButton(0, IMAGE_INGAMEUI_MENUBUTTON, this);
 	mMenuButton->mName = "MENU_BUTTON";
 	if (IMAGE_INGAMEUI_MENUBUTTON != nullptr) {
@@ -226,16 +226,16 @@ GoodTube::GoodTube(Board* theBoard)
 	}
 	mMenuButton->mColors[0] = Color(255, 255, 255);
 	mFXManager = new EffectsManager();
-	mUnknown2E0 = std::fabs((float)RandSigned());
-	mUnknown338.SetCurve(GTS(0x7e3e80));  // 0x704d9c
+	mRandomPhase = std::fabs((float)RandSigned());
+	mBonusSwap.SetCurve(GTS(0x7e3e80));  // 0x704d9c
 }
 
 RankBadge::RankBadge(GoodTube* theTube)
 {
 	// 0x701efb
-	mUnknown154 = 0;
+	mClickToggle = 0;
 	mOver = false;
-	mUnknown150 = 0;
+	mClickTimer = 0;
 	mClip = false;
 	mTube = theTube;
 }
@@ -260,8 +260,8 @@ void RankBadge::Draw(Graphics* g)
 static bool BadgeIgnoresMouse()
 {
 	Board* aBoard = gBoard;
-	return aBoard != nullptr && (aBoard->IsBusy() || aBoard->mUnknown37C4 || aBoard->mUnknown160 != 0 ||
-		aBoard->mUnknown1570 != 0);
+	return aBoard != nullptr && (aBoard->IsBusy() || aBoard->mIsReplay || aBoard->mPlayState != 0 ||
+		aBoard->mPauseCount != 0);
 }
 
 void RankBadge::MouseEnter()
@@ -269,8 +269,8 @@ void RankBadge::MouseEnter()
 	// 0x701fbb
 	if (BadgeIgnoresMouse())
 		return;
-	mUnknown154 = 0;
-	mUnknown150 = 0;
+	mClickToggle = 0;
+	mClickTimer = 0;
 	mOver = true;
 }
 
@@ -285,10 +285,10 @@ void RankBadge::MouseDown(int x, int y, int theClickCount)
 	// 0x70200f
 	if (BadgeIgnoresMouse())
 		return;
-	mUnknown154++;
-	mUnknown150 = 0;
-	if (1 < mUnknown154)
-		mUnknown154 = 0;
+	mClickToggle++;
+	mClickTimer = 0;
+	if (1 < mClickToggle)
+		mClickToggle = 0;
 }
 
 GoodTube::~GoodTube()
@@ -314,11 +314,11 @@ void GoodTube::SetShown(bool theShown)
 	}
 }
 
-void GoodTube::SetUnknown158(int theValue)
+void GoodTube::SetTubeKind(int theValue)
 {
-	mUnknown158 = theValue;
+	mTubeKind = theValue;
 	if (theValue == 3)
-		mUnknown580.SetConstant(1.0);  // the best's fade (+0x580) full at once
+		mBestFade.SetConstant(1.0);  // the best's fade (+0x580) full at once
 }
 
 void GoodTube::SetChallenge(bool on)
@@ -329,29 +329,29 @@ void GoodTube::SetChallenge(bool on)
 
 void GoodTube::SetTime(int theTime, bool theAtOnce)
 {
-	mUnknown4B4 = theTime;
-	if (mUnknown4BC == 0)
-		mUnknown4BC = theTime;
+	mTimeLimit = theTime;
+	if (mTimeFull == 0)
+		mTimeFull = theTime;
 	if (theAtOnce) {
-		mUnknown4B8 = theTime;
+		mTimeShown = theTime;
 		UpdateFill(theAtOnce);
 	}
 }
 
-void GoodTube::StartUnknown4AC(bool theFour, bool theUnknown4A9)
+void GoodTube::StartTimer(bool theFull, bool theDrawTime)
 {
-	if (mUnknown4AC < 1) {
-		mUnknown4B0 = 0;
-		mUnknown4C0 = 0;
-		mUnknown4AC = 1;
-		mUnknown400.SetCurve(GTS(0x7e3fe0));
-		if (theFour)
-			mUnknown400.mInVal = mUnknown400.mInMax;
-		mUnknown400.mIncRate = 0;
+	if (mTimeKind < 1) {
+		mTimePulseStep = 0;
+		mTimePulse = 0;
+		mTimeKind = 1;
+		mBlitzTimer.SetCurve(GTS(0x7e3fe0));
+		if (theFull)
+			mBlitzTimer.mInVal = mBlitzTimer.mInMax;
+		mBlitzTimer.mIncRate = 0;
 	}
-	if (theFour)
-		mUnknown4AC = 4;
-	mUnknown4A9 = theUnknown4A9;
+	if (theFull)
+		mTimeKind = 4;
+	mDrawTime = theDrawTime;
 }
 
 void GoodTube::SetColor(const Color& theColor, bool theAtOnce)
@@ -370,10 +370,10 @@ void GoodTube::SetColor(const Color& theColor, bool theAtOnce)
 // stays for theSpeed (or 1) of the 0.01 steps of +0x248 (see Update)
 void GoodTube::SetTip(const SexyString& theText, const Color& theColor, float theSpeed, int theMaxWidth)
 {
-	mUnknown24C[0] = theColor.mRed;
-	mUnknown24C[1] = theColor.mGreen;
-	mUnknown24C[2] = theColor.mBlue;
-	mUnknown24C[3] = theColor.mAlpha;
+	mTipColor[0] = theColor.mRed;
+	mTipColor[1] = theColor.mGreen;
+	mTipColor[2] = theColor.mBlue;
+	mTipColor[3] = theColor.mAlpha;
 	Font* aFont = FONT_TOOLTIP;
 	SexyString aText = theText;
 	if (theMaxWidth < aFont->StringWidth(aText)) {
@@ -416,8 +416,8 @@ void GoodTube::SetTip(const SexyString& theText, const Color& theColor, float th
 		}
 	}
 	mTip = aText;
-	mUnknown244 = 1.0f;
-	mUnknown248 = 0.0f < theSpeed ? theSpeed : 1.0f;
+	mTipFade = 1.0f;
+	mTipTime = 0.0f < theSpeed ? theSpeed : 1.0f;
 }
 
 void GoodTube::UpdateImages()
@@ -428,24 +428,24 @@ void GoodTube::UpdateImages()
 	mFillImage = IMAGE_INGAMEUI_TUBE_FILL_GOLD;
 	mFillImage2 = IMAGE_INGAMEUI_TUBE_FILL_GOLD;
 	if (mGlassImage == nullptr)
-		mUnknown16C = 0;
+		mGlassHeight = 0;
 	else
-		mUnknown16C = GetBottomTop() - GetGlassTop();
-	float aTop = (float)(GetGlassTop() + mUnknown16C);
-	mUnknown198 = aTop;
-	mUnknown194 = aTop;
+		mGlassHeight = GetBottomTop() - GetGlassTop();
+	float aTop = (float)(GetGlassTop() + mGlassHeight);
+	mFillTopGoal = aTop;
+	mFillTopShown = aTop;
 }
 
 int GoodTube::GetTubeHeight()
 {
-	if (mUnknown16C == 0)
+	if (mGlassHeight == 0)
 		return 0;
 	return Ftol((double)(mGlassImage->mHeight + mBottomImage->mHeight + mTopImage->mHeight) * 0.9300000071525574);
 }
 
 int GoodTube::GetTubeWidth()
 {
-	if (mUnknown16C == 0)
+	if (mGlassHeight == 0)
 		return 0;
 	int aWidth = IMAGE_INGAMEUI_TOP_LIGHTGLOW->mWidth;
 	if (IMAGE_INGAMEUI_TOP_LIGHTGLOW->mWidth <= IMAGE_INGAMEUI_BOT_LIGHTGLOW->mWidth)
@@ -463,7 +463,7 @@ int GoodTube::GetBottomTop()
 {
 	float aScale = (float)((double)gApp->mArtRes / 1200.0);
 	int aTop = Ftol((double)GetImageOffsetY(GetIdByImage(mBottomImage)) * (double)aScale);
-	return Ftol((double)aTop + (double)mUnknown2D0);
+	return Ftol((double)aTop + (double)mTopBounce);
 }
 
 void GoodTube::SetProgress(float theProgress, bool theAtOnce)
@@ -476,13 +476,13 @@ void GoodTube::SetProgress(float theProgress, bool theAtOnce)
 
 void GoodTube::UpdateFill(bool theAtOnce)
 {
-	if (mUnknown15C == 1) {
+	if (mIsBlitzTube == 1) {
 		// Blitz: the time left
 		float aProgress;
-		if (mUnknown4BC == 0)
+		if (mTimeFull == 0)
 			aProgress = 0.0f;
 		else
-			aProgress = (float)mUnknown4B8 / (float)mUnknown4BC;
+			aProgress = (float)mTimeShown / (float)mTimeFull;
 		mProgress = aProgress;
 	}
 	int aMargin = Ftol((double)gApp->mScale * 35.0);
@@ -490,42 +490,42 @@ void GoodTube::UpdateFill(bool theAtOnce)
 	int aBottom = Ftol((double)gApp->mScale * 5.0) + GetBottomTop();
 	mFillBottom = aBottom;
 	int aHeight = Ftol((double)(aBottom - mFillTop) * (double)mProgress);
-	if (0 < mUnknown300)
+	if (0 < mBreakState)
 		aHeight = 0;
 	float aTop = (float)(aBottom - aHeight);
-	mUnknown198 = aTop;
+	mFillTopGoal = aTop;
 	if (mBoard->mHyperspace == nullptr && !theAtOnce)
-		mUnknown194 = (float)(((double)aTop - (double)mUnknown194) / 30.0 + (double)mUnknown194);
+		mFillTopShown = (float)(((double)aTop - (double)mFillTopShown) / 30.0 + (double)mFillTopShown);
 	else
-		mUnknown194 = aTop;
+		mFillTopShown = aTop;
 }
 
 void GoodTube::SetLevelSteps(int theSteps)
 {
-	if (mUnknown274 < theSteps) {
-		int aFlash = mUnknown1D8 + 30;
+	if (mChainSteps < theSteps) {
+		int aFlash = mFlashBrightness + 30;
 		int aMax = 200;
 		if (aFlash < 200)
 			aMax = aFlash;
-		mUnknown1D8 = aMax;
-		mUnknown1E0 = 0.5f;
+		mFlashBrightness = aMax;
+		mFlashLevel = 0.5f;
 	}
-	if (theSteps < mUnknown274) {
+	if (theSteps < mChainSteps) {
 		MarkLevelChange();
-		mUnknown29C = mUnknown29C * 0.5f;
+		mLevelFlash = mLevelFlash * 0.5f;
 	}
-	mUnknown274 = theSteps;
+	mChainSteps = theSteps;
 }
 
 void GoodTube::SetLevelShown(int theLevel)
 {
-	if (!mUnknown14D)
+	if (!mLevelSoundOn)
 		return;
 	if (10 < theLevel)
 		theLevel = 10;
-	if (theLevel != mUnknown27C) {
+	if (theLevel != mShownLevel) {
 		float aSteps;
-		if (mUnknown27C < theLevel) {
+		if (mShownLevel < theLevel) {
 			if (!mBoard->IsBusy()) {
 				int aSound = 3;
 				if (theLevel < 4)
@@ -533,29 +533,29 @@ void GoodTube::SetLevelShown(int theLevel)
 				// SOUND_MULTIPLIER_UP2_1 is resource 0x397 (0x397 + the level, at most 3)
 				gApp->PlaySample(GetSoundById(SOUND_MULTIPLIER_UP2_1_ID + aSound));
 			}
-			mUnknown29C = 1.0f;
-			gBoard->mUnknown20B8 = 1.0f;
-			int aFlash = mUnknown1D8 + 64;
+			mLevelFlash = 1.0f;
+			gBoard->mRingBurst = 1.0f;
+			int aFlash = mFlashBrightness + 64;
 			int aMax = 255;
 			if (aFlash < 255)
 				aMax = aFlash;
-			mUnknown1D8 = aMax;
-			mUnknown1E0 = 0.5f;
+			mFlashBrightness = aMax;
+			mFlashLevel = 0.5f;
 			aSteps = 0.0f;
 		} else {
 			if (!mBoard->IsBusy())
 				gApp->PlaySample(SOUND_MULTIPLIER_DOWN);
 			aSteps = (float)Board::GetLevelSteps(theLevel);
 		}
-		mUnknown278 = aSteps;
+		mShownSteps = aSteps;
 	}
-	mUnknown27C = theLevel;
-	mUnknown280 = theLevel;
+	mShownLevel = theLevel;
+	mLevelCel = theLevel;
 }
 
 void GoodTube::GetStepPoint(int* thePoint, int theStep, bool theCentre)
 {
-	int aLevel = mUnknown27C;
+	int aLevel = mShownLevel;
 	int aSteps = Board::GetLevelSteps(aLevel);
 	int aStep = theStep % aSteps;
 	int aLast = Board::GetLevelSteps(aLevel) - 1;
@@ -575,28 +575,28 @@ void GoodTube::GetStepPoint(int* thePoint, int theStep, bool theCentre)
 
 void GoodTube::ResetBonus()
 {
-	mUnknown3B0 = 0;
-	for (unsigned int i = 0; i < mUnknown3D0.size(); i++) {
-		mUnknown3D0[i] = 0;
-		mUnknown3E0[i] = 0;
+	mBonusState = 0;
+	for (unsigned int i = 0; i < mBonusGlowTop.size(); i++) {
+		mBonusGlowTop[i] = 0;
+		mBonusGlowBottom[i] = 0;
 	}
-	mUnknown3B4 = 0;
-	mUnknown3F0 = 1.0f;
-	mUnknown3B8 = 0;
-	mUnknown3C4 = 0;
+	mBonusTimer = 0;
+	mBonusGlowFade = 1.0f;
+	mBonusIntro = 0;
+	mBonusFade = 0;
 }
 
 void GoodTube::AddedToManager(WidgetManager* theWidgetManager)
 {
 	// 0x703582 (the base class' is not called)
-	if (mUnknown16C != 0) {
+	if (mGlassHeight != 0) {
 		mWidth = GetTubeWidth();
 		mHeight = GetTubeHeight();
 	}
 	AddWidget(mMenuButton);
 	AddWidget(mRankBadge);
 	SetShown(mShown);
-	SetUnknown14D(mUnknown14D);
+	SetLevelSoundOn(mLevelSoundOn);
 }
 
 void GoodTube::RemovedFromManager(WidgetManager* theWidgetManager)
@@ -626,11 +626,11 @@ void GoodTube::ButtonDepress(int theId)
 	if (aBoard != nullptr) {
 		if (aBoard->IsBusy())
 			return;
-		if (aBoard->mUnknown37C4)
+		if (aBoard->mIsReplay)
 			return;
-		if (aBoard->mUnknown160 != 0)
+		if (aBoard->mPlayState != 0)
 			return;
-		if (aBoard->mUnknown1570 != 0)
+		if (aBoard->mPauseCount != 0)
 			return;
 	}
 	gApp->PlaySoundEx(SOUND_BUTTONPRESS2, 0, 5.0f, 0.0f, true, true);
@@ -644,12 +644,12 @@ void GoodTube::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	// 0x70318f
 	Widget::Resize(theX, theY, theWidth, theHeight);
-	if (mUnknown16C != 0) {
+	if (mGlassHeight != 0) {
 		int anArtRes = gApp->mArtRes;
-		mUnknown2A0 = theX;
-		mUnknown168 = Ftol((double)gApp->mScale * (double)GetImageOffsetX(IMAGE_INGAMEUI_TUBE_GLASS_ID));
-		mUnknown16C = mGlassImage->mHeight;
-		mUnknown164 = GetGlassTop() + mUnknown16C;
+		mLastX = theX;
+		mGlassX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(IMAGE_INGAMEUI_TUBE_GLASS_ID));
+		mGlassHeight = mGlassImage->mHeight;
+		mGlassBottom = GetGlassTop() + mGlassHeight;
 		if (mMenuButton != nullptr) {
 			int anId = GetIdByImage(mMenuButton->mButtonImage);
 			int aCelWidth = mMenuButton->mButtonImage->GetCelWidth();
@@ -672,19 +672,19 @@ void GoodTube::Resize(int theX, int theY, int theWidth, int theHeight)
 void GoodTube::DrawOverlay(Graphics* g)
 {
 	// 0x7049e5: with Direct3D, while the board's scale is not 1, the board's matrix is pushed here and popped at the end
-	if (mBoard->mUnknown268C != 1.0f && gD3DInterface != nullptr)
+	if (mBoard->mBoardZoom != 1.0f && gD3DInterface != nullptr)
 		gD3DInterface->PushTransform(mBoard->mTransform, true);  // slot 0x14
-	if (mUnknown3B0 != 0 && mUnknown3B0 != 4)
+	if (mBonusState != 0 && mBonusState != 4)
 		DrawBonus(g);
 	mFXManager->Draw(g);
-	if (mUnknown5F0.GetOutVal() != 0.0 && !gBoard->mUnknown37C4) {
-		float anAlpha = (float)mUnknown5F0.GetOutVal();
+	if (mBonusGlowCurve.GetOutVal() != 0.0 && !gBoard->mIsReplay) {
+		float anAlpha = (float)mBonusGlowCurve.GetOutVal();
 		if (mBoard->mHyperspace != nullptr && gD3DInterface != nullptr) {
 			// With Direct3D, during the jump's transitions 8 and 12 the alpha is multiplied by that transition's curve
 			if (mBoard->mHyperspace->mTransition == 8)
-				anAlpha = (float)(mBoard->mHyperspace->mUnknown3A8.GetOutVal() * (double)anAlpha);
+				anAlpha = (float)(mBoard->mHyperspace->mTubeAlpha.GetOutVal() * (double)anAlpha);
 			else if (mBoard->mHyperspace->mTransition == 12)
-				anAlpha = (float)(mBoard->mHyperspace->mUnknown12B0.GetOutVal() * (double)anAlpha);
+				anAlpha = (float)(mBoard->mHyperspace->mBoardBrightnessFinal.GetOutVal() * (double)anAlpha);
 		}
 		g->SetColorizeImages(true);
 		g->SetDrawMode(0);
@@ -692,7 +692,7 @@ void GoodTube::DrawOverlay(Graphics* g)
 		g->DrawImage(IMAGE_MEGAFRUIT_BRACKET, Ftol((double)gApp->mScale * 72.0),
 			Ftol((double)gApp->mScale * 842.0));
 	}
-	if (mBoard->mUnknown268C != 1.0f && gD3DInterface != nullptr)
+	if (mBoard->mBoardZoom != 1.0f && gD3DInterface != nullptr)
 		gD3DInterface->PopTransform();  // slot 0x18
 }
 
@@ -714,7 +714,7 @@ int GoodTube::GetTopY()
 {
 	// 0x702873
 	int anY = Ftol((double)GetImageOffsetY(GetIdByImage(mTopImage)) * (double)gApp->mScale);
-	return Ftol((double)anY + (double)mUnknown2C8);
+	return Ftol((double)anY + (double)mTopFall);
 }
 
 int GoodTube::GetScoreY()
@@ -729,43 +729,43 @@ int GoodTube::GetScoreY()
 void GoodTube::StartBonus()
 {
 	// 0x703642
-	if (mUnknown3B0 == 0) {
+	if (mBonusState == 0) {
 		ResetBonus();
-		mUnknown3B8 = 1.0f;
-		mUnknown3B4 = 1.0f;
-		mUnknown3F4 = false;
-		mUnknown3A8 = 0;
-		mUnknown3C0 = 0;
-		mUnknown338.SetInVal(0.0);
-		mUnknown3B0 = 1;
-		mUnknown3BC = gBoard->mUnknown2658;
+		mBonusIntro = 1.0f;
+		mBonusTimer = 1.0f;
+		mBonusListSet = false;
+		mBonusShownCount = 0;
+		mBonusStep = 0;
+		mBonusSwap.SetInVal(0.0);
+		mBonusState = 1;
+		mBonusNumber = gBoard->mBonusPoints;
 		int aSteps = 0;
-		for (int aLevel = 1; aLevel <= mBoard->mUnknown21D0; aLevel++)
+		for (int aLevel = 1; aLevel <= mBoard->mStepLevel; aLevel++)
 			aSteps += Board::GetLevelSteps(aLevel);
-		mUnknown3FC = (aSteps - mBoard->mUnknown818) - 1;
+		mBonusStepsLeft = (aSteps - mBoard->mChainLinks) - 1;
 	}
 }
 
 void GoodTube::Update()
 {
-	// 0x702736: the update ticks as often as mUnknown308 says
+	// 0x702736: the update ticks as often as mBaseStep says
 	mMenuButton->mMouseVisible = true;
 	if (mBoard != nullptr) {
 		if (mBoard->mHyperspace != nullptr && gD3DInterface != nullptr &&
-			mBoard->mHyperspace->mUnknown3A8.GetOutVal() < 0.5) {
+			mBoard->mHyperspace->mTubeAlpha.GetOutVal() < 0.5) {
 			// With Direct3D the menu button's mouse is off while the jump's curve is under 0.5
 			mMenuButton->mMouseVisible = false;
 		}
 		Board* aBoard = mBoard;
 		if (aBoard->IsBusy())
 			return;
-		if (0 < aBoard->mUnknown1570)
+		if (0 < aBoard->mPauseCount)
 			return;
 	}
-	float aSum = (float)((double)mUnknown308 + (double)mUnknown30C);
-	mUnknown30C = aSum;
-	while (1.0f <= mUnknown30C) {
-		mUnknown30C = (float)((double)mUnknown30C - 1.0);
+	float aSum = (float)((double)mBaseStep + (double)mAddedSum);
+	mAddedSum = aSum;
+	while (1.0f <= mAddedSum) {
+		mAddedSum = (float)((double)mAddedSum - 1.0);
 		UpdateTick();
 	}
 }
@@ -776,31 +776,31 @@ void GoodTube::UpdateTick()
 	float anArtScale = (float)((double)gApp->mArtRes / 1200.0);
 	mUpdateCnt++;
 	mColorCycle.Update();
-	mTicker660.mTarget = gBoard->mUnknown2638;
-	mTicker6E4.mTarget = gBoard->mUnknown2634;
-	if (mUnknown150 <= gBoard->mUnknown2634)
-		mUnknown150 = gBoard->mUnknown2634;
-	mTicker660.Update();
-	mTicker6E4.Update();
+	mCountTicker.mTarget = gBoard->mChallengeCount;
+	mBestTicker.mTarget = gBoard->mChallengeBest;
+	if (mBestSoFar <= gBoard->mChallengeBest)
+		mBestSoFar = gBoard->mChallengeBest;
+	mCountTicker.Update();
+	mBestTicker.Update();
 
 	// The bonus challenge's bar: 1 the colours light up one by one, 2 they wait for the player, 4 they fade away
 	Board* aBoard = gBoard;
-	int aState = mUnknown3B0;
+	int aState = mBonusState;
 	if (aState != 0) {
 		if (aState == 1) {
 			int aCount = (int)aBoard->mBonusColors.size();
 			if (aCount != 0) {
-				mUnknown3B4 = (float)((double)mUnknown3B4 - 0.0035000001080334187);
-				if (mUnknown3B4 < 0.0f) {
-					mUnknown3B0 = 2;
-					mUnknown3B4 = 1.0f;
+				mBonusTimer = (float)((double)mBonusTimer - 0.0035000001080334187);
+				if (mBonusTimer < 0.0f) {
+					mBonusState = 2;
+					mBonusTimer = 1.0f;
 				}
 				int aLight;
-				if (mUnknown3B4 <= 0.25f) {
+				if (mBonusTimer <= 0.25f) {
 					aLight = -1;
 					sBonusLight = -1;
 				} else {
-					aLight = Ftol(((1.0 - (double)mUnknown3B4) * (double)aCount) * 4.0);
+					aLight = Ftol(((1.0 - (double)mBonusTimer) * (double)aCount) * 4.0);
 					aLight = aLight % aCount;
 				}
 				if (aLight != sBonusLight)
@@ -810,76 +810,76 @@ void GoodTube::UpdateTick()
 					do {
 						float aGlow;
 						if (i == sBonusLight) {
-							aGlow = (float)((double)mUnknown3E0[i] + 0.05000000074505806);
+							aGlow = (float)((double)mBonusGlowBottom[i] + 0.05000000074505806);
 						} else {
 							aGlow = 0.0f;
-							if (0.0 < (double)mUnknown3E0[i] - 0.019999999552965164)
-								aGlow = (float)((double)mUnknown3E0[i] - 0.019999999552965164);
+							if (0.0 < (double)mBonusGlowBottom[i] - 0.019999999552965164)
+								aGlow = (float)((double)mBonusGlowBottom[i] - 0.019999999552965164);
 						}
 						i++;
-						mUnknown3E0[i - 1] = aGlow;
+						mBonusGlowBottom[i - 1] = aGlow;
 					} while (i < aCount);
 				}
 			}
 		} else if (aState == 2) {
 			int aCount = (int)aBoard->mBonusColors.size();
 			if (aCount != 0) {
-				float aLastProgress = mUnknown3B4;
-				if (0.5f < mUnknown3B4 ||
-					(aBoard->mUnknown2584 == nullptr && aBoard->mUnknown25A4 && aBoard->mUnknown2208 == nullptr))
-					mUnknown3B4 = (float)((double)mUnknown3B4 - 0.004999999888241291);
-				float aFade = (float)((double)mUnknown3C4 + 0.019999999552965164);
+				float aLastProgress = mBonusTimer;
+				if (0.5f < mBonusTimer ||
+					(aBoard->mTutorial == nullptr && aBoard->mHintsReady && aBoard->mShownDialog == nullptr))
+					mBonusTimer = (float)((double)mBonusTimer - 0.004999999888241291);
+				float aFade = (float)((double)mBonusFade + 0.019999999552965164);
 				if (1.0f < aFade)
 					aFade = 1.0f;
-				mUnknown3C4 = aFade;
-				if (mUnknown3B4 < 0.800000011920929) {
-					float aLeft = (float)((double)mUnknown3F0 - 0.009999999776482582);
+				mBonusFade = aFade;
+				if (mBonusTimer < 0.800000011920929) {
+					float aLeft = (float)((double)mBonusGlowFade - 0.009999999776482582);
 					if (aLeft < 0.0f)
 						aLeft = 0.0f;
-					mUnknown3F0 = aLeft;
+					mBonusGlowFade = aLeft;
 					for (int i = 0; i < aCount; i++) {
 						float aValue = 0.0f;
-						if (0.0 < (double)mUnknown3D0[i] - 0.05000000074505806)
-							aValue = (float)((double)mUnknown3D0[i] - 0.05000000074505806);
-						mUnknown3D0[i] = aValue;
+						if (0.0 < (double)mBonusGlowTop[i] - 0.05000000074505806)
+							aValue = (float)((double)mBonusGlowTop[i] - 0.05000000074505806);
+						mBonusGlowTop[i] = aValue;
 					}
 				}
-				if (mUnknown3B4 < 0.800000011920929 && 0.800000011920929 <= aLastProgress)
-					mUnknown3F8 = 8.0f;
-				if (mUnknown3B4 < 0.30000001192092896f && 0.30000001192092896f <= aLastProgress) {
+				if (mBonusTimer < 0.800000011920929 && 0.800000011920929 <= aLastProgress)
+					mBonusSparkTimer = 8.0f;
+				if (mBonusTimer < 0.30000001192092896f && 0.30000001192092896f <= aLastProgress) {
 					Piece* aHint = aBoard->FindHintPiece();
 					if (aHint == nullptr) {
-						mUnknown3F8 = (float)((double)mUnknown3F8 + 4.0);
+						mBonusSparkTimer = (float)((double)mBonusSparkTimer + 4.0);
 					} else {
 						// 0x74b94e: a FruitShockwave at the hint's gem, with the tube's middle for its target, then 0x6bc3cd adds it
 						// to the board's waves
-						aBoard->mUnknown1660.push_back(new FruitShockwave(aHint, 1, Ftol((double)mWidth * 0.5 + (double)mX),
+						aBoard->mShockwaves.push_back(new FruitShockwave(aHint, 1, Ftol((double)mWidth * 0.5 + (double)mX),
 							Ftol((double)mHeight * 0.8500000238418579 + (double)mY), 200));
 					}
 				}
-				if (mUnknown3B4 <= 0.0f) {
-					mUnknown3B0 = 4;
-					mUnknown3B4 = 1.0f;
+				if (mBonusTimer <= 0.0f) {
+					mBonusState = 4;
+					mBonusTimer = 1.0f;
 				}
 			}
 		} else if (aState == 4) {
-			if (mUnknown330 <= 0.0f) {
-				mUnknown3B4 = (float)((double)mUnknown3B4 - 0.009999999776482582);
-				if (mUnknown3B4 <= 0.0f) {
-					mUnknown338.SetInVal(0.0);
-					mUnknown3C4 = 0;
-					mUnknown3B0 = 0;
+			if (mBonusShown <= 0.0f) {
+				mBonusTimer = (float)((double)mBonusTimer - 0.009999999776482582);
+				if (mBonusTimer <= 0.0f) {
+					mBonusSwap.SetInVal(0.0);
+					mBonusFade = 0;
+					mBonusState = 0;
 					mBoard->StartBonusChallenge(-1);
 				}
 			} else {
-				float aShown = (float)((double)mUnknown330 - 0.029999999329447746);
-				mUnknown330 = aShown;
+				float aShown = (float)((double)mBonusShown - 0.029999999329447746);
+				mBonusShown = aShown;
 				if (!(0.0f < aShown)) {
-					mUnknown330 = 0;
-					mUnknown334 = 1.0f;
-					mUnknown3F0 = 1.0f;
+					mBonusShown = 0;
+					mBonusFlash = 1.0f;
+					mBonusGlowFade = 1.0f;
 				}
-				mUnknown3B4 = 1.5f;
+				mBonusTimer = 1.5f;
 			}
 		}
 	}
@@ -887,83 +887,83 @@ void GoodTube::UpdateTick()
 	if (mChallenge && aBoard->mChallenge != 0 && (aBoard->mChallenge->mFlags & Challenge::FLAG_PATTERN)) {
 		// 0x70ae48: the pattern's count shown walks to the matches so far, the curve restarting at each step down
 		int aProgress = aBoard->mChallenge->mProgress;
-		if (mUnknown538 != aProgress) {
-			if (0.0 <= mUnknown4C8.mIncRate || mUnknown4C8.HasBeenTriggered()) {
-				if (mUnknown538 > aProgress)
-					mUnknown538--;
-				mUnknown4C8.SetCurve("b+1,1.5,0.033333,1,####    n~###     3####");
+		if (mGoalShown != aProgress) {
+			if (0.0 <= mGoalMove.mIncRate || mGoalMove.HasBeenTriggered()) {
+				if (mGoalShown > aProgress)
+					mGoalShown--;
+				mGoalMove.SetCurve("b+1,1.5,0.033333,1,####    n~###     3####");
 			}
 		}
-		if (!mUnknown4C8.HasBeenTriggered() && !mUnknown4C8.IncInVal() && mUnknown538 < aProgress)
-			mUnknown538++;
+		if (!mGoalMove.HasBeenTriggered() && !mGoalMove.IncInVal() && mGoalShown < aProgress)
+			mGoalShown++;
 	}
 
-	if (mUnknown2A0 != mX)
-		mUnknown2A0 = mX;
-	if (0.0f < mUnknown29C) {
-		float aValue = (float)((double)mUnknown29C - 0.009999999776482582);
+	if (mLastX != mX)
+		mLastX = mX;
+	if (0.0f < mLevelFlash) {
+		float aValue = (float)((double)mLevelFlash - 0.009999999776482582);
 		if (aValue < 0.0f)
 			aValue = 0.0f;
-		mUnknown29C = aValue;
+		mLevelFlash = aValue;
 	}
-	if (mUnknown294 <= mUnknown290) {
-		if (mUnknown294 < mUnknown290) {
-			float aValue = (float)((double)mUnknown294 + 0.009999999776482582);
+	if (mEaseValue <= mEaseGoal) {
+		if (mEaseValue < mEaseGoal) {
+			float aValue = (float)((double)mEaseValue + 0.009999999776482582);
 			if (1.0f < aValue)
 				aValue = 1.0f;
-			mUnknown294 = aValue;
+			mEaseValue = aValue;
 		}
 	} else {
-		float aValue = (float)((double)mUnknown294 - 0.009999999776482582);
+		float aValue = (float)((double)mEaseValue - 0.009999999776482582);
 		if (aValue < 0.0f)
 			aValue = 0.0f;
-		mUnknown294 = aValue;
+		mEaseValue = aValue;
 	}
 	mFXManager->Update();
-	if (mUnknown1E0 <= 0.0f) {
-		mUnknown1D8 -= 2;
-		if (mUnknown1D8 < 0)
-			mUnknown1D8 = 0;
+	if (mFlashLevel <= 0.0f) {
+		mFlashBrightness -= 2;
+		if (mFlashBrightness < 0)
+			mFlashBrightness = 0;
 	} else {
-		float aValue = (float)((double)mUnknown1E0 - 0.009999999776482582);
+		float aValue = (float)((double)mFlashLevel - 0.009999999776482582);
 		if (aValue < 0.0f)
 			aValue = 0.0f;
-		mUnknown1E0 = aValue;
+		mFlashLevel = aValue;
 	}
-	if (mUnknown1D8 < 1) {
-		mUnknown1DC = 0;
+	if (mFlashBrightness < 1) {
+		mGlowAlpha = 0;
 	} else {
-		float aWave = (float)((double)mUnknown1E0 * 3.141590118408203);
+		float aWave = (float)((double)mFlashLevel * 3.141590118408203);
 		float aSin = (float)std::sin((double)aWave);
 		float aScale = (float)((double)aSin + (double)aSin + 1.0);
 		aScale = std::fabs(aScale);
-		int aFlash = mUnknown1D8;
-		int aGlow = aFlash - Ftol((double)aFlash * (double)mUnknown1E0 * -0.5 * (double)aScale);
-		mUnknown1DC = aGlow;
+		int aFlash = mFlashBrightness;
+		int aGlow = aFlash - Ftol((double)aFlash * (double)mFlashLevel * -0.5 * (double)aScale);
+		mGlowAlpha = aGlow;
 		if (aGlow < 0x100) {
 			if (aGlow < 0)
 				aGlow = 0;
 		} else {
 			aGlow = 0xff;
 		}
-		mUnknown1DC = aGlow;
+		mGlowAlpha = aGlow;
 	}
 	mFillTop = GetGlassTop() + 0x14;
 	mFillBottom = GetBottomTop();
 	// port: the two text popups at +0x1cc and +0x1d0 are updated here (a popup that is done goes); nothing in the exe
 	// makes them
 
-	if (0.0f < mUnknown1C4) {
-		float aValue = (float)((double)mUnknown1C4 - 0.00800000037997961);
+	if (0.0f < mLightFade) {
+		float aValue = (float)((double)mLightFade - 0.00800000037997961);
 		if (aValue < 0.0f)
 			aValue = 0.0f;
-		mUnknown1C4 = aValue;
+		mLightFade = aValue;
 	}
-	if (0.0f < mUnknown1C8) {
-		float aValue = (float)((double)mUnknown1C8 - 0.009999999776482582);
+	if (0.0f < mLevelChangeFlash) {
+		float aValue = (float)((double)mLevelChangeFlash - 0.009999999776482582);
 		if (aValue < 0.0f)
 			aValue = 0.0f;
-		mUnknown1C8 = aValue;
+		mLevelChangeFlash = aValue;
 	}
 
 	// The specks rise in the tube
@@ -971,85 +971,85 @@ void GoodTube::UpdateTick()
 	if (mSpecks.size() != 0) {
 		int aMargin = Ftol((double)anArtScale * 23.0);
 		do {
-			Speck* s = mSpecks[aSpeck];
+			Speck* aSpeckPtr = mSpecks[aSpeck];
 			float aWaveT = (float)((double)mUpdateCnt * 0.009999999776482582 + (double)(int)aSpeck);
 			float aWaveSin = (float)std::sin((double)aWaveT);
-			float aDX = (float)((double)aWaveSin * 0.009999999776482582 + (double)s->mDX);
-			s->mDX = aDX;
-			s->mX = (float)((double)s->mX + (double)aDX);
-			s->mY = (float)((double)s->mDY + (double)s->mY);
-			s->mDY = (float)((double)s->mDDY + (double)s->mDY);
-			int aMiddle = mGlassImage->mWidth / 2 - 3 + mUnknown168;
+			float aDX = (float)((double)aWaveSin * 0.009999999776482582 + (double)aSpeckPtr->mDX);
+			aSpeckPtr->mDX = aDX;
+			aSpeckPtr->mX = (float)((double)aSpeckPtr->mX + (double)aDX);
+			aSpeckPtr->mY = (float)((double)aSpeckPtr->mDY + (double)aSpeckPtr->mY);
+			aSpeckPtr->mDY = (float)((double)aSpeckPtr->mDDY + (double)aSpeckPtr->mDY);
+			int aMiddle = mGlassImage->mWidth / 2 - 3 + mGlassX;
 			float aLow = (float)(aMiddle - aMargin);
-			if (aLow <= s->mX) {
+			if (aLow <= aSpeckPtr->mX) {
 				float aHigh = (float)(aMiddle + aMargin);
-				if (aHigh < s->mX) {
-					s->mX = aHigh;
-					s->mDX = (float)((double)std::fabs(aDX) * -0.5);
+				if (aHigh < aSpeckPtr->mX) {
+					aSpeckPtr->mX = aHigh;
+					aSpeckPtr->mDX = (float)((double)std::fabs(aDX) * -0.5);
 				}
 			} else {
-				s->mX = aLow;
-				s->mDX = (float)((double)std::fabs(aDX) * 0.5);
+				aSpeckPtr->mX = aLow;
+				aSpeckPtr->mDX = (float)((double)std::fabs(aDX) * 0.5);
 			}
-			if (s->mY < mUnknown194) {
-				s->mAlpha = (float)((double)s->mDAlpha + (double)s->mAlpha);
-				s->mDDY = 0.019999999552965164f;
+			if (aSpeckPtr->mY < mFillTopShown) {
+				aSpeckPtr->mAlpha = (float)((double)aSpeckPtr->mDAlpha + (double)aSpeckPtr->mAlpha);
+				aSpeckPtr->mDDY = 0.019999999552965164f;
 			}
-			if (s->mAlpha <= 0.0f || (mUnknown194 <= s->mY && 0.0f < s->mDDY)) {
+			if (aSpeckPtr->mAlpha <= 0.0f || (mFillTopShown <= aSpeckPtr->mY && 0.0f < aSpeckPtr->mDDY)) {
 				mSpecks[aSpeck] = mSpecks[mSpecks.size() - 1];
 				if (mSpecks.size() != 0)
 					mSpecks.pop_back();
 				aSpeck--;
-				delete s;
+				delete aSpeckPtr;
 			}
 			aSpeck++;
 		} while (aSpeck < mSpecks.size());
 	}
-	mUnknown18C = (float)((double)6.2831854820251465 / 200.0 + (double)mUnknown18C);
-	if (6.2831854820251465 < (double)mUnknown18C)
-		mUnknown18C = (float)((double)mUnknown18C - 6.2831854820251465);
+	mTurnSlow = (float)((double)6.2831854820251465 / 200.0 + (double)mTurnSlow);
+	if (6.2831854820251465 < (double)mTurnSlow)
+		mTurnSlow = (float)((double)mTurnSlow - 6.2831854820251465);
 	{
-		float aTurn = (float)((double)6.2831854820251465 / 400.0 + (double)mUnknown190);
-		mUnknown190 = aTurn;
+		float aTurn = (float)((double)6.2831854820251465 / 400.0 + (double)mTurnSlower);
+		mTurnSlower = aTurn;
 		if (6.2831854820251465 < (double)aTurn)
-			mUnknown190 = (float)((double)aTurn - 6.2831854820251465);
+			mTurnSlower = (float)((double)aTurn - 6.2831854820251465);
 	}
 
-	int aMode = mUnknown4AC;
+	int aMode = mTimeKind;
 	if (aMode < 1 || 2 < aMode) {
-		float aValue = (float)((double)mUnknown4A4 - 0.029999999329447746);
+		float aValue = (float)((double)mBlitzPulse - 0.029999999329447746);
 		if (aValue < 0.0f)
 			aValue = 0.0f;
-		mUnknown4A4 = aValue;
+		mBlitzPulse = aValue;
 	} else {
-		float aValue = (float)((double)mUnknown4A4 + 0.05000000074505806);
+		float aValue = (float)((double)mBlitzPulse + 0.05000000074505806);
 		if (1.0f < aValue)
 			aValue = 1.0f;
-		mUnknown4A4 = aValue;
+		mBlitzPulse = aValue;
 	}
 	if (0 < aMode && mBoard->mHyperspace == nullptr) {
-		float aValue = (float)((double)mUnknown4C0 + 0.019999999552965164);
+		float aValue = (float)((double)mTimePulse + 0.019999999552965164);
 		if (1.0f < aValue)
 			aValue = 1.0f;
-		mUnknown4C0 = aValue;
+		mTimePulse = aValue;
 	}
 	if (aBoard->mGameMode == Board::MODE_BLITZ) {
 		if (aMode == 1) {
-			aBoard->mUnknown37F4 = 0.5f;
-			if (1.0f <= mUnknown4C0)
-				mUnknown4AC++;
+			aBoard->mSettleWait = 0.5f;
+			if (1.0f <= mTimePulse)
+				mTimeKind++;
 		} else if (aMode == 2) {
-			aBoard->mUnknown37F4 = 0.5f;
+			aBoard->mSettleWait = 0.5f;
 			if (mUpdateCnt % 5 == 0) {
-				int aMax = mUnknown4B4;
-				mUnknown4B8 += 1000;
-				int aTime = mUnknown4B8;
+				int aMax = mTimeLimit;
+				mTimeShown += 1000;
+				int aTime = mTimeShown;
 				if (aMax <= aTime) {
-					mUnknown400.mIncRate = 0.019999999552965164;
-					mUnknown4B8 = aMax;
-					mUnknown400.SetInVal(mUnknown400.mInMin);
+					mBlitzTimer.mIncRate = 0.019999999552965164;
+					mTimeShown = aMax;
+					mBlitzTimer.SetInVal(mBlitzTimer.mInMin);
 					gApp->PlaySample(SOUND_TALLY_ZOOMIN);
-					mUnknown4AC++;
+					mTimeKind++;
 				} else {
 					float aRatio = (float)((double)aTime / (double)aMax);
 					float aPitch = (float)((double)aRatio * 5.0);
@@ -1057,20 +1057,20 @@ void GoodTube::UpdateTick()
 				}
 			}
 		} else if (aMode == 3) {
-			aBoard->mUnknown37F4 = 0.5f;
-			if (!mUnknown400.IncInVal())
-				mUnknown4AC++;
+			aBoard->mSettleWait = 0.5f;
+			if (!mBlitzTimer.IncInVal())
+				mTimeKind++;
 		}
 	}
 	UpdateFill(false);
-	int aSteps = Board::GetLevelSteps(mUnknown27C);
-	int aLit = mUnknown274 + 1;
+	int aSteps = Board::GetLevelSteps(mShownLevel);
+	int aLit = mChainSteps + 1;
 	if (aSteps < aLit)
 		aLit = aSteps;
-	mUnknown25C = aLit;
+	mLightsLit = aLit;
 	if (0 < aSteps) {
 		int aLight = aSteps;
-		float* aFlash = mUnknown1E4;
+		float* aFlash = mLightFlash;
 		do {
 			float aValue = (float)((double)*aFlash - 0.009999999776482582);
 			if ((double)*aFlash - 0.009999999776482582 < 0.0)
@@ -1080,95 +1080,95 @@ void GoodTube::UpdateTick()
 			aLight--;
 		} while (aLight != 0);
 	}
-	int aLastLit = mUnknown260;
-	int aNowLit = mUnknown25C;
+	int aLastLit = mLightsLitBefore;
+	int aNowLit = mLightsLit;
 	if (aLastLit != aNowLit) {
 		int aRow = (aNowLit - 1 + ((aNowLit - 1) >> 31 & 3)) >> 2;
-		if (aRow != mUnknown264)
-			mUnknown264 = aRow;
+		if (aRow != mLastLightRow)
+			mLastLightRow = aRow;
 		if (aLastLit < aNowLit) {
-			float* aFlash = &mUnknown1E4[aLastLit];
+			float* aFlash = &mLightFlash[aLastLit];
 			do {
 				aLastLit++;
 				*aFlash = 1.0f;
 				aFlash++;
-			} while (aLastLit < mUnknown25C);
+			} while (aLastLit < mLightsLit);
 		}
 	}
 
-	if (mProgress != 0.0f && 0 < mWidth + mX && (mUnknown1B0 = mUnknown1B0 - 1, mUnknown1B0 < 1)) {
-		mUnknown1B0 = Rand() % 20 + 5;
-		if ((double)GetGlassTop() < (double)mUnknown194) {
-			Speck* s = new Speck();
+	if (mProgress != 0.0f && 0 < mWidth + mX && (mSpeckWait = mSpeckWait - 1, mSpeckWait < 1)) {
+		mSpeckWait = Rand() % 20 + 5;
+		if ((double)GetGlassTop() < (double)mFillTopShown) {
+			Speck* aSpeck = new Speck();
 			int aWidth = mGlassImage->mWidth;
 			int aRand = Rand();
-			s->mX = (float)(aRand % (aWidth / 2 - 15) + ((aWidth + (aWidth >> 31 & 3)) >> 2) + mUnknown168);
-			s->mY = (float)GetBottomTop();
-			s->mDY = (float)-((double)(Rand() % 10) / 10.0 + 0.5);
-			s->mAlpha = 1.0f;
-			double aTopY = (double)s->mY;
-			s->mImage = IMAGE_SPARKLET;
+			aSpeck->mX = (float)(aRand % (aWidth / 2 - 15) + ((aWidth + (aWidth >> 31 & 3)) >> 2) + mGlassX);
+			aSpeck->mY = (float)GetBottomTop();
+			aSpeck->mDY = (float)-((double)(Rand() % 10) / 10.0 + 0.5);
+			aSpeck->mAlpha = 1.0f;
+			double aTopY = (double)aSpeck->mY;
+			aSpeck->mImage = IMAGE_SPARKLET;
 			if ((double)(GetGlassTop() + 0x50) <= aTopY)
-				s->mDAlpha = -0.01f;
+				aSpeck->mDAlpha = -0.01f;
 			else
-				s->mDAlpha = (float)-(((aTopY - (double)GetGlassTop()) * 0.019999999552965164) / 80.0 + 0.019999999552965164);
-			s->mDDY = -0.001f;
-			s->mScale = (float)((double)std::fabs(RandSigned()) * 0.25 + 0.75);
+				aSpeck->mDAlpha = (float)-(((aTopY - (double)GetGlassTop()) * 0.019999999552965164) / 80.0 + 0.019999999552965164);
+			aSpeck->mDDY = -0.001f;
+			aSpeck->mScale = (float)((double)std::fabs(RandSigned()) * 0.25 + 0.75);
 			if ((Rand() & 1) == 0) {
-				s->mScale = (float)((double)s->mScale * 0.5);
-				s->mImage = IMAGE_SPARKLET;
+				aSpeck->mScale = (float)((double)aSpeck->mScale * 0.5);
+				aSpeck->mImage = IMAGE_SPARKLET;
 			} else {
-				s->mImage = IMAGE_INGAMEUI_TUBE_FILL_PARTICLE;
+				aSpeck->mImage = IMAGE_INGAMEUI_TUBE_FILL_PARTICLE;
 			}
-			mSpecks.push_back(s);  // 0x707b2a
+			mSpecks.push_back(aSpeck);  // 0x707b2a
 		}
 	}
 	for (unsigned int i = 0; i < mBubbles.size(); i++) {
 		Bubble* aBubble = mBubbles[i];
-		float aPhase = (float)((double)aBubble->mPhase + (double)aBubble->mUnknown0);
-		aBubble->mUnknown0 = aPhase;
+		float aPhase = (float)((double)aBubble->mPhase + (double)aBubble->mPhaseStep);
+		aBubble->mPhaseStep = aPhase;
 		if (6.2831854820251465 < (double)aPhase)
-			aBubble->mUnknown0 = (float)((double)aPhase - 6.2831854820251465);
+			aBubble->mPhaseStep = (float)((double)aPhase - 6.2831854820251465);
 	}
-	if (0.0f < mUnknown248) {
-		mUnknown248 = (float)((double)mUnknown248 - 0.009999999776482582);
-		float aValue = (float)((double)mUnknown244 + 0.03999999910593033);
+	if (0.0f < mTipTime) {
+		mTipTime = (float)((double)mTipTime - 0.009999999776482582);
+		float aValue = (float)((double)mTipFade + 0.03999999910593033);
 		if (1.0f < aValue)
 			aValue = 1.0f;
-		mUnknown244 = aValue;
+		mTipFade = aValue;
 	} else {
-		float aValue = (float)((double)mUnknown244 - 0.03999999910593033);
+		float aValue = (float)((double)mTipFade - 0.03999999910593033);
 		if (aValue < 0.0f)
 			aValue = 0.0f;
-		mUnknown244 = aValue;
+		mTipFade = aValue;
 	}
 
 	// The light the chain is on eases to the chain's steps
-	float aGap = (float)mUnknown274 - mUnknown278;
-	float aMore = (float)((double)Board::GetLevelSteps(mUnknown27C) * 0.09375 + 0.25);
+	float aGap = (float)mChainSteps - mShownSteps;
+	float aMore = (float)((double)Board::GetLevelSteps(mShownLevel) * 0.09375 + 0.25);
 	if (!(std::fabs(aGap) <= 0.004999999888241291f)) {
 		float aNext;
-		if ((float)mUnknown274 < mUnknown278) {
+		if ((float)mChainSteps < mShownSteps) {
 			double aDrop = ((double)aGap * 0.009999999776482582 - 0.029999999329447746) * (double)aMore;
 			if (aDrop <= (double)aGap * 0.9900000095367432)
 				aDrop = (double)aGap * 0.9900000095367432;
-			aNext = (float)(aDrop + (double)mUnknown278);
-		} else if (mUnknown278 < (float)mUnknown274) {
+			aNext = (float)(aDrop + (double)mShownSteps);
+		} else if (mShownSteps < (float)mChainSteps) {
 			double aRise = (double)aGap * 0.05000000074505806 + 0.05000000074505806;
 			if ((double)aGap * 0.9900000095367432 <= aRise)
 				aRise = (double)aGap * 0.9900000095367432;
-			aNext = (float)(aRise + (double)mUnknown278);
+			aNext = (float)(aRise + (double)mShownSteps);
 		} else {
-			aNext = mUnknown278;
+			aNext = mShownSteps;
 		}
-		mUnknown278 = aNext;
+		mShownSteps = aNext;
 	} else {
-		mUnknown278 = (float)mUnknown274;
+		mShownSteps = (float)mChainSteps;
 	}
-	float aShownSteps = (float)Board::GetLevelSteps(mUnknown27C);
-	if (aShownSteps < mUnknown278 && mUnknown14D && 0.0 < (double)mUnknown278 - (double)aShownSteps) {
+	float aShownSteps = (float)Board::GetLevelSteps(mShownLevel);
+	if (aShownSteps < mShownSteps && mLevelSoundOn && 0.0 < (double)mShownSteps - (double)aShownSteps) {
 		int aLightId = 0;
-		int aHue0 = Board::GetLevelSteps(mUnknown27C) * 0x28;
+		int aHue0 = Board::GetLevelSteps(mShownLevel) * 0x28;
 		do {
 			int aPointA[2];
 			int aPointB[2];
@@ -1176,39 +1176,39 @@ void GoodTube::UpdateTick()
 			int aLightX = aPointA[0];
 			GetStepPoint(aPointB, aLightId, false);
 			int aLightY = aPointB[1];
-			Image* aLightImage = GetImageById(sFirstLight[mUnknown27C] + aLightId);
+			Image* aLightImage = GetImageById(sFirstLight[mShownLevel] + aLightId);
 			float aRX = (float)(Rand() % aLightImage->mWidth);
 			float aRY = (float)(Rand() % aLightImage->mHeight);
 			unsigned int aPixel = GetPixelAt(aLightImage, Ftol((double)aRX), Ftol((double)aRY));
 			if (aPixel > 0x80000000u) {
-				Effect* e = mFXManager->AllocEffect(0);
-				e->mIsAdditive = true;
-				e->mX = (float)((double)aLightX + (double)aRX);
-				e->mImage = IMAGE_GEM_FRUIT_SPARK;
-				e->mY = (float)((double)aLightY + (double)aRY);
-				e->mDX = 0;
-				e->mDY = 0;
-				e->mGravity = 0;
-				e->mAngle = 0;
-				e->mDAngle = 0;
-				e->mAlpha = 1.0f;
-				e->mDAlpha = -0.05f;
+				Effect* anEffect = mFXManager->AllocEffect(0);
+				anEffect->mIsAdditive = true;
+				anEffect->mX = (float)((double)aLightX + (double)aRX);
+				anEffect->mImage = IMAGE_GEM_FRUIT_SPARK;
+				anEffect->mY = (float)((double)aLightY + (double)aRY);
+				anEffect->mDX = 0;
+				anEffect->mDY = 0;
+				anEffect->mGravity = 0;
+				anEffect->mAngle = 0;
+				anEffect->mDAngle = 0;
+				anEffect->mAlpha = 1.0f;
+				anEffect->mDAlpha = -0.05f;
 				int aHue = (Rand() % 120 - Ftol((double)mUpdateCnt * -1.5)) + aHue0;
 				aHue = aHue % 256;
-				e->mColor = Color((int)HSLToColor(aHue, 0x80, 0x40));
-				e->mScale = 0.2f;
-				e->mDScale = -0.0003f;
-				mFXManager->AddEffect(e);
+				anEffect->mColor = Color((int)HSLToColor(aHue, 0x80, 0x40));
+				anEffect->mScale = 0.2f;
+				anEffect->mDScale = -0.0003f;
+				mFXManager->AddEffect(anEffect);
 			}
 			aLightId++;
 			aHue0 -= 0x28;
-		} while ((double)aLightId < (double)mUnknown278 - (double)aShownSteps);
+		} while ((double)aLightId < (double)mShownSteps - (double)aShownSteps);
 	}
-	if (0.0f < mUnknown2A4) {
+	if (0.0f < mSparkBurst) {
 		// Sparks burst from the rank badge's middle (0x702078, 0x70208a)
 		int aBadgeX = mRankBadge->mWidth / 2 + mRankBadge->mX;
 		int aBadgeY = mRankBadge->mHeight / 2 + mRankBadge->mY;
-		mUnknown2A4 = (float)((double)mUnknown2A4 - 0.009999999776482582);
+		mSparkBurst = (float)((double)mSparkBurst - 0.009999999776482582);
 		float aCentreX = (float)aBadgeX;
 		float aCentreY = (float)aBadgeY;
 		int aRounds = 3;
@@ -1218,116 +1218,116 @@ void GoodTube::UpdateTick()
 			float aSpeed = (float)((double)std::fabs(aSpread) + 2.0);
 			int i = 0;
 			do {
-				Effect* e = mFXManager->AllocEffect(0);
-				e->mImage = IMAGE_SPARKLET;
-				e->mX = (float)((double)(float)std::sin(anAngle) * 80.0 * (double)gApp->mScale + (double)aCentreX);
-				e->mY = (float)((40.0 - (double)(float)std::cos(anAngle) * 30.0) * (double)gApp->mScale + (double)aCentreY);
-				e->mDX = (float)std::sin(anAngle) * aSpeed;
-				e->mDY = (float)((double)(float)std::cos(anAngle) * -1.0 * (double)aSpeed);
-				e->mAlpha = 1.0f;
-				e->mDAlpha = -0.02f;
-				e->mScale = (float)((double)RandSigned() + 4.0);
-				e->mColor = Color(255, 200, 16);
-				e->mIsAdditive = true;
+				Effect* anEffect = mFXManager->AllocEffect(0);
+				anEffect->mImage = IMAGE_SPARKLET;
+				anEffect->mX = (float)((double)(float)std::sin(anAngle) * 80.0 * (double)gApp->mScale + (double)aCentreX);
+				anEffect->mY = (float)((40.0 - (double)(float)std::cos(anAngle) * 30.0) * (double)gApp->mScale + (double)aCentreY);
+				anEffect->mDX = (float)std::sin(anAngle) * aSpeed;
+				anEffect->mDY = (float)((double)(float)std::cos(anAngle) * -1.0 * (double)aSpeed);
+				anEffect->mAlpha = 1.0f;
+				anEffect->mDAlpha = -0.02f;
+				anEffect->mScale = (float)((double)RandSigned() + 4.0);
+				anEffect->mColor = Color(255, 200, 16);
+				anEffect->mIsAdditive = true;
 				if (i == 1) {
-					e->mScale = (float)((double)e->mScale * 0.25);
-					e->mColor = Color::White;
-					e->mIsAdditive = true;
+					anEffect->mScale = (float)((double)anEffect->mScale * 0.25);
+					anEffect->mColor = Color::White;
+					anEffect->mIsAdditive = true;
 				}
-				mFXManager->AddEffect(e);
+				mFXManager->AddEffect(anEffect);
 				i++;
 			} while (i < 2);
 			aRounds--;
 		} while (aRounds != 0);
 	}
-	mUnknown260 = mUnknown25C;
+	mLightsLitBefore = mLightsLit;
 
-	// The glass breaks (mUnknown300 is 1 then)
-	if (mUnknown300 == 1) {
-		if ((int)mUnknown2F0.size() < 2 && mUnknown2B8 < 1.0f) {
-			double aFall = ((double)mUnknown2B8 * 0.0 + (double)mUnknown2B8) + 0.009999999776482582;
+	// The glass breaks (mBreakState is 1 then)
+	if (mBreakState == 1) {
+		if ((int)mShardRows.size() < 2 && mGlassGone < 1.0f) {
+			double aFall = ((double)mGlassGone * 0.0 + (double)mGlassGone) + 0.009999999776482582;
 			if (1.0 < aFall)
 				aFall = 1.0;
-			mUnknown2B8 = (float)aFall;
+			mGlassGone = (float)aFall;
 		}
-		if (1.0f <= mUnknown2B8) {
+		if (1.0f <= mGlassGone) {
 			float aFloor = (float)((double)anArtScale * 420.0);
-			bool aBefore = mUnknown2C8 <= aFloor;
-			mUnknown2C8 = (float)((double)anArtScale * (double)mUnknown2CC + (double)mUnknown2C8);
-			float aSpeed = (float)((double)mUnknown2CC + 0.07500000298023224);
-			mUnknown2CC = aSpeed;
-			if (aFloor < mUnknown2C8) {
+			bool aBefore = mTopFall <= aFloor;
+			mTopFall = (float)((double)anArtScale * (double)mTopFallSpeed + (double)mTopFall);
+			float aSpeed = (float)((double)mTopFallSpeed + 0.07500000298023224);
+			mTopFallSpeed = aSpeed;
+			if (aFloor < mTopFall) {
 				if (aBefore) {
-					mUnknown2CC = (float)((double)aSpeed * 0.4000000059604645);
+					mTopFallSpeed = (float)((double)aSpeed * 0.4000000059604645);
 					gApp->PlaySample(SOUND_BOMB_EXPLODE);
 				}
-				mUnknown2D0 = mUnknown2C8 - aFloor;
-				mUnknown2B0 = mUnknown2B4 + mUnknown2B0;
+				mTopBounce = mTopFall - aFloor;
+				mTopSkew = mTopSkewStep + mTopSkew;
 			}
-			mUnknown2C0 = mUnknown2C4 + mUnknown2C0;
+			mTopTurn = mTopTurnSpeed + mTopTurn;
 			int aTopY = GetTopY();
 			int aShardY = Ftol((double)mTopImage->mHeight * 0.949999988079071 + (double)aTopY);
 			if (gBoard->mHeight < aTopY) {
-				mUnknown300 = 2;
-			} else if (mUpdateCnt % 10 == 0 && mUnknown2D8 < 1.0f) {
+				mBreakState = 2;
+			} else if (mUpdateCnt % 10 == 0 && mShardShare < 1.0f) {
 				double aShare = (double)(aShardY - GetGlassTop()) / (double)mGlassImage->mHeight - 0.10000000149011612;
 				if (1.0 < aShare)
 					aShare = 1.0;
 				float aShareF = (float)aShare;
-				mUnknown2D8 = aShareF;
+				mShardShare = aShareF;
 				if (!(0.0f <= aShareF))
-					mUnknown2D8 = 0;
+					mShardShare = 0;
 				float aShardBase = (float)aShardY;
 				for (int aShard = 10; aShard != 0; aShard--) {
-					Effect* e = gBoard->mFXManager->AllocEffect(0);
-					e->mDX = (float)((double)RandSigned() * 6.0);
-					e->mAngle = (float)((double)RandSigned() * 3.1415927410125732);
-					e->mDAngle = (float)((double)RandSigned() * 3.1415927410125732 * 0.019999999552965164);
-					e->mX = (float)((double)(mWidth / 2 + mX) + (double)e->mDX * 10.0);
-					e->mY = (float)((double)std::fabs(RandSigned()) * 10.0 + (double)aShardBase);
-					e->mIsAdditive = false;
-					e->mDY = (float)((double)RandSigned() * 0.4000000059604645 + (double)mUnknown2CC * 0.5);
-					e->mAlpha = 1.0f;
-					e->mDAlpha = -0.01f;
-					e->mGravity = 0.03f;
-					e->mImage = IMAGE_GLASS_SHARD1;
+					Effect* anEffect = gBoard->mFXManager->AllocEffect(0);
+					anEffect->mDX = (float)((double)RandSigned() * 6.0);
+					anEffect->mAngle = (float)((double)RandSigned() * 3.1415927410125732);
+					anEffect->mDAngle = (float)((double)RandSigned() * 3.1415927410125732 * 0.019999999552965164);
+					anEffect->mX = (float)((double)(mWidth / 2 + mX) + (double)anEffect->mDX * 10.0);
+					anEffect->mY = (float)((double)std::fabs(RandSigned()) * 10.0 + (double)aShardBase);
+					anEffect->mIsAdditive = false;
+					anEffect->mDY = (float)((double)RandSigned() * 0.4000000059604645 + (double)mTopFallSpeed * 0.5);
+					anEffect->mAlpha = 1.0f;
+					anEffect->mDAlpha = -0.01f;
+					anEffect->mGravity = 0.03f;
+					anEffect->mImage = IMAGE_GLASS_SHARD1;
 					float aGrow = (float)((double)RandSigned() * 0.004000000189989805);
-					e->mDScale = aGrow;
+					anEffect->mDScale = aGrow;
 					float aScale = (float)((double)aGrow * 10.0 + 1.0);
-					e->mScale = aScale;
+					anEffect->mScale = aScale;
 					double aShade = (double)aScale * 128.0;
 					if (255.0 < aShade)
 						aShade = 255.0;
 					int aGrey = Ftol(aShade);
-					e->mColor = Color(aGrey, aGrey, aGrey);
-					gBoard->mFXManager->AddEffect(e);
+					anEffect->mColor = Color(aGrey, aGrey, aGrey);
+					gBoard->mFXManager->AddEffect(anEffect);
 				}
 				for (int aDust = 0; aDust < 10; aDust++) {
-					Effect* e = gBoard->mFXManager->AllocEffect(0x1a);
+					Effect* anEffect = gBoard->mFXManager->AllocEffect(0x1a);
 					float aBoost = (float)((double)RandSigned() + 2.0);
 					float aSpread = std::fabs((float)RandSigned());
-					e->mType = 0;
+					anEffect->mType = 0;
 					float aPush = (float)(((double)aSpread * 0.05000000074505806 + 0.25) * (double)aBoost);
 					double aFlight = (double)aBoost * 0.10000000149011612;
 					if (1.0 < aFlight)
 						aFlight = 1.0;
-					e->mAlpha = (float)aFlight;
-					e->mDAlpha = -0.01f;
-					e->mDScale = 0.05f;
-					e->mScale = 1.5f;
-					e->mMaxScale = 1.5f;
-					e->mUnknown9C = 0.25f;
-					e->mUnknownA0 = -0.01f;
-					e->mUnknownA4 = 0.95f;
+					anEffect->mAlpha = (float)aFlight;
+					anEffect->mDAlpha = -0.01f;
+					anEffect->mDScale = 0.05f;
+					anEffect->mScale = 1.5f;
+					anEffect->mMaxScale = 1.5f;
+					anEffect->mBlend = 0.25f;
+					anEffect->mRateFrom = -0.01f;
+					anEffect->mRateTo = 0.95f;
 					aPush = (float)((double)aPush * 15.0);
 					float anAngle = (aDust & 1) == 0 ? -0.31415927f : 3.4557521f;
 					float aCos = (float)std::cos((double)anAngle);
-					e->mDX = (float)((double)aCos * (double)aPush);
+					anEffect->mDX = (float)((double)aCos * (double)aPush);
 					float aSin = (float)std::sin((double)anAngle);
-					e->mDY = (float)((double)aSin * (double)aPush);
-					e->mX = (float)((double)(mWidth / 2 + mX) + (double)e->mDX * 10.0);
-					e->mY = (float)((double)std::fabs((float)RandSigned()) * 10.0 + (double)aShardBase);
-					gBoard->mFXManager->AddEffect(e);
+					anEffect->mDY = (float)((double)aSin * (double)aPush);
+					anEffect->mX = (float)((double)(mWidth / 2 + mX) + (double)anEffect->mDX * 10.0);
+					anEffect->mY = (float)((double)std::fabs((float)RandSigned()) * 10.0 + (double)aShardBase);
+					gBoard->mFXManager->AddEffect(anEffect);
 				}
 			}
 		}
@@ -1335,92 +1335,92 @@ void GoodTube::UpdateTick()
 
 	// The fill's glow and the bonus challenge's bar
 	int aBonusCount = (int)aBoard->mBonusColors.size();
-	int aPhase = mBoard->mUnknown265C;
+	int aPhase = mBoard->mBonusStage;
 	float aShown;
 	bool aShownSet = true;
 	if (aPhase == 2 || aPhase == 5) {
-		aShown = (float)((double)mUnknown330 - 0.02500000037252903);
-	} else if (aPhase == 4 && mBoard->mUnknown267C != nullptr && 0x64 < mBoard->mUnknown267C->mUpdateCnt) {
-		aShown = (float)((double)mUnknown330 - 0.009999999776482582);
+		aShown = (float)((double)mBonusShown - 0.02500000037252903);
+	} else if (aPhase == 4 && mBoard->mFruitDance != nullptr && 0x64 < mBoard->mFruitDance->mUpdateCnt) {
+		aShown = (float)((double)mBonusShown - 0.009999999776482582);
 	} else {
 		aShownSet = false;
 		aShown = 0;
 		if (aBoard->mGameMode == Board::MODE_CHALLENGE) {
-			if (mUnknown330 < 1.0f) {
-				float aValue = (float)((double)mUnknown330 + 0.029999999329447746);
-				mUnknown330 = aValue;
+			if (mBonusShown < 1.0f) {
+				float aValue = (float)((double)mBonusShown + 0.029999999329447746);
+				mBonusShown = aValue;
 				if (1.0f < aValue)
-					mUnknown330 = 1.0f;
+					mBonusShown = 1.0f;
 			}
-			if (mUnknown580.GetOutVal() == 0.0 && mUnknown580.mIncRate == 0.0) {
-				if (aBoard->mUnknown2638 < aBoard->mUnknown2634)
-					mUnknown580.SetCurve(GTS(0x7d8630));
+			if (mBestFade.GetOutVal() == 0.0 && mBestFade.mIncRate == 0.0) {
+				if (aBoard->mChallengeCount < aBoard->mChallengeBest)
+					mBestFade.SetCurve(GTS(0x7d8630));
 			} else {
-				mUnknown580.IncInVal();
+				mBestFade.IncInVal();
 			}
-			mUnknown700 = (float)mUnknown580.GetOutVal();
-		} else if (aBonusCount != 0 && mUnknown3B0 == 0) {
-			if (!mUnknown3F4) {
-				mUnknown3F4 = true;
-				mUnknown3D0.resize(mUnknown3D0.size() <= (unsigned int)aBonusCount ? (unsigned int)aBonusCount
-																					: mUnknown3D0.size());
+			mBestFadeOut = (float)mBestFade.GetOutVal();
+		} else if (aBonusCount != 0 && mBonusState == 0) {
+			if (!mBonusListSet) {
+				mBonusListSet = true;
+				mBonusGlowTop.resize(mBonusGlowTop.size() <= (unsigned int)aBonusCount ? (unsigned int)aBonusCount
+																					: mBonusGlowTop.size());
 				for (unsigned int i = 0; i < (unsigned int)aBonusCount; i++)
-					mUnknown3D0[i] = 1.0f;
+					mBonusGlowTop[i] = 1.0f;
 			}
-			float aValue = (float)((double)mUnknown330 + 0.029999999329447746);
-			mUnknown330 = aValue;
+			float aValue = (float)((double)mBonusShown + 0.029999999329447746);
+			mBonusShown = aValue;
 			if (1.0f < aValue)
-				mUnknown330 = 1.0f;
-			if (mUnknown3AC == aBoard->mUnknown2660) {
-				if (mUnknown3A8 == mUnknown3AC) {
-					float aSpin = (float)(6.2831854820251465 * 0.003000000026077032 + (double)mUnknown3CC);
-					mUnknown3CC = aSpin;
+				mBonusShown = 1.0f;
+			if (mBonusTarget == aBoard->mBonusMatched) {
+				if (mBonusShownCount == mBonusTarget) {
+					float aSpin = (float)(6.2831854820251465 * 0.003000000026077032 + (double)mBonusSpin);
+					mBonusSpin = aSpin;
 					if (6.2831854820251465 <= (double)aSpin)
-						mUnknown3CC = (float)((double)aSpin - 6.2831854820251465);
-				} else if (!mUnknown338.IncInVal()) {
-					mUnknown3A8 = mUnknown3AC;
-					mUnknown338.SetInVal(0.0);
-					mUnknown338.SetCurve(GTS(0x7e3e80));  // 0x704d9c
+						mBonusSpin = (float)((double)aSpin - 6.2831854820251465);
+				} else if (!mBonusSwap.IncInVal()) {
+					mBonusShownCount = mBonusTarget;
+					mBonusSwap.SetInVal(0.0);
+					mBonusSwap.SetCurve(GTS(0x7e3e80));  // 0x704d9c
 				}
 			} else {
-				mUnknown3CC = 0;
-				mUnknown3AC = aBoard->mUnknown2660;
-				mUnknown338.SetInVal(0.0);
+				mBonusSpin = 0;
+				mBonusTarget = aBoard->mBonusMatched;
+				mBonusSwap.SetInVal(0.0);
 			}
 			for (unsigned int i = 0; i < (unsigned int)aBonusCount; i++) {
-				float aValue2;
-				if (i < (unsigned int)mUnknown3A8) {
-					aValue2 = 0.5f;
-					if (0.5 <= (double)mUnknown3D0[i] - 0.009999999776482582)
-						aValue2 = (float)((double)mUnknown3D0[i] - 0.009999999776482582);
+				float aGlow;
+				if (i < (unsigned int)mBonusShownCount) {
+					aGlow = 0.5f;
+					if (0.5 <= (double)mBonusGlowTop[i] - 0.009999999776482582)
+						aGlow = (float)((double)mBonusGlowTop[i] - 0.009999999776482582);
 				} else {
-					aValue2 = 1.0f;
-					if ((double)mUnknown3D0[i] + 0.019999999552965164 <= 1.0)
-						aValue2 = (float)((double)mUnknown3D0[i] + 0.019999999552965164);
+					aGlow = 1.0f;
+					if ((double)mBonusGlowTop[i] + 0.019999999552965164 <= 1.0)
+						aGlow = (float)((double)mBonusGlowTop[i] + 0.019999999552965164);
 				}
-				mUnknown3D0[i] = aValue2;
+				mBonusGlowTop[i] = aGlow;
 			}
 		}
 	}
 	if (aShownSet) {
 		if (aShown < 0.0f)
 			aShown = 0.0f;
-		mUnknown330 = aShown;
+		mBonusShown = aShown;
 	}
-	if (mUnknown334 != 0.0f) {
-		float aValue = (float)((double)mUnknown334 - 0.019999999552965164);
+	if (mBonusFlash != 0.0f) {
+		float aValue = (float)((double)mBonusFlash - 0.019999999552965164);
 		if (aValue < 0.0f)
 			aValue = 0.0f;
-		mUnknown334 = aValue;
+		mBonusFlash = aValue;
 	}
-	if (0.0f < mUnknown3F8) {
-		int aWas = Ftol((double)mUnknown3F8);
-		float aLeft = (float)((double)mUnknown3F8 - 0.10000000149011612);
-		mUnknown3F8 = aLeft;
+	if (0.0f < mBonusSparkTimer) {
+		int aWas = Ftol((double)mBonusSparkTimer);
+		float aLeft = (float)((double)mBonusSparkTimer - 0.10000000149011612);
+		mBonusSparkTimer = aLeft;
 		int aNow = Ftol((double)aLeft);
 		if (-1 < aNow && aNow != aWas) {
-			int aSteps = mUnknown274;
-			int aTravellers = (int)mBoard->mUnknown2170.size();
+			int aSteps = mChainSteps;
+			int aTravellers = (int)mBoard->mSmokeTravellers.size();
 			int aPoint[2];
 			GetStepPoint(aPoint, aSteps + aTravellers, true);
 			Color aColor(255, 255, 0);
@@ -1430,38 +1430,38 @@ void GoodTube::UpdateTick()
 				mX + aPoint[0], mY + aPoint[1], 0, true);
 			aSmoke->mHurry = 0.4f;
 			aSmoke->mBurst = true;
-			mBoard->mUnknown2170.push_back(aSmoke);  // 0x6b9ccc
+			mBoard->mSmokeTravellers.push_back(aSmoke);  // 0x6b9ccc
 		}
 	}
-	if (mUnknown5F0.GetOutVal() > 0.0 && mBoard->mUnknown268C == 1.0f && mBoard->mUnknown267C == nullptr) {
+	if (mBonusGlowCurve.GetOutVal() > 0.0 && mBoard->mBoardZoom == 1.0f && mBoard->mFruitDance == nullptr) {
 		// 3 sparks a frame round the bottom's middle, each at one of 512 angles and that angle's radius (the table at
 		// 0x7e3390, 512 floats of game data), flying outwards
 		float aMidX = (float)Ftol((double)mWidth * 0.5249999761581421);
 		float aMidY = (float)Ftol((double)mBottomImage->mHeight * 0.36000001430511475 + (double)GetBottomTop());
 		int aSpark = 3;
 		do {
-			Effect* e = mFXManager->AllocEffect(0);
+			Effect* anEffect = mFXManager->AllocEffect(0);
 			int aStep = Rand() % 512;
 			float anAngle = (float)((double)aStep * 0.001953125 * (double)6.2831855f);
 			int aRadiusBits = GameInt(GTB(0x7e3390, 2048) + aStep * 4);
 			float aRadiusF;
 			std::memcpy(&aRadiusF, &aRadiusBits, sizeof(aRadiusF));
 			float aRadius = aRadiusF * gApp->mScale;
-			e->mImage = IMAGE_GEM_FRUIT_SPARK;
-			e->mIsAdditive = true;
-			e->mX = (float)((double)(float)std::cos(anAngle) * (double)aRadius + (double)aMidX);
-			e->mY = (float)((double)(float)std::sin(anAngle) * (double)aRadius + (double)aMidY);
+			anEffect->mImage = IMAGE_GEM_FRUIT_SPARK;
+			anEffect->mIsAdditive = true;
+			anEffect->mX = (float)((double)(float)std::cos(anAngle) * (double)aRadius + (double)aMidX);
+			anEffect->mY = (float)((double)(float)std::sin(anAngle) * (double)aRadius + (double)aMidY);
 			float aCos = (float)std::cos(anAngle);
-			e->mDX = (float)((double)gApp->mScale * 1.100000023841858) * aCos;
+			anEffect->mDX = (float)((double)gApp->mScale * 1.100000023841858) * aCos;
 			float aSin = (float)std::sin(anAngle);
-			e->mDY = (float)((double)gApp->mScale * 1.100000023841858) * aSin;
-			e->mAlpha = (float)mUnknown5F0.GetOutVal();
-			e->mScale = 0.5f;
-			e->mGravity = 0;
-			e->mDScale = -0.01f;
-			e->mDAlpha = -0.01f;
-			e->mDAngle = (float)((double)RandSigned() * 0.019999999552965164 + 0.05000000074505806);
-			mFXManager->AddEffect(e);
+			anEffect->mDY = (float)((double)gApp->mScale * 1.100000023841858) * aSin;
+			anEffect->mAlpha = (float)mBonusGlowCurve.GetOutVal();
+			anEffect->mScale = 0.5f;
+			anEffect->mGravity = 0;
+			anEffect->mDScale = -0.01f;
+			anEffect->mDAlpha = -0.01f;
+			anEffect->mDAngle = (float)((double)RandSigned() * 0.019999999552965164 + 0.05000000074505806);
+			mFXManager->AddEffect(anEffect);
 			aSpark--;
 		} while (aSpark != 0);
 	}
@@ -1481,7 +1481,7 @@ void GoodTube::Draw(Graphics* g)
 void GoodTube::DrawAll(ModalFlags* theFlags, Graphics* g)
 {
 	// 0x70623f
-	if (mUnknown16C == 0)
+	if (mGlassHeight == 0)
 		return;
 	// With Direct3D the board's jump curves pick the shader that fades the tube (the whiteout, or its fixed-function
 	// class on a card without pixel shaders, local_11 in the original) and set its parameters
@@ -1490,10 +1490,10 @@ void GoodTube::DrawAll(ModalFlags* theFlags, Graphics* g)
 		aFixedFunction = (gD3DInterface->GetCaps(0) & 2) == 0;
 	Hyperspace* aSpace = mBoard->mHyperspace;
 	if (aSpace != nullptr && gD3DInterface != nullptr) {
-		if (0.0 < aSpace->mUnknown2C8.GetOutVal() && !aSpace->mIs3D)
+		if (0.0 < aSpace->mSidebarGlance.GetOutVal() && !aSpace->mIs3D)
 			aSpace->Draw3DSidebar();  // 0x711529
-		if (aSpace->mUnknown338.GetOutVal() != 0.0 || aSpace->mUnknown2C8.GetOutVal() != 0.0) {
-			if (aSpace->mUnknown3A8.GetOutVal() == 0.0) {
+		if (aSpace->mTubeBlendBase.GetOutVal() != 0.0 || aSpace->mSidebarGlance.GetOutVal() != 0.0) {
+			if (aSpace->mTubeAlpha.GetOutVal() == 0.0) {
 				gD3DInterface->SetPixelShader(nullptr);  // slot 0xd8: the tube is hidden altogether
 				return;
 			}
@@ -1503,8 +1503,8 @@ void GoodTube::DrawAll(ModalFlags* theFlags, Graphics* g)
 			} else {
 				gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_WHITEOUT_FINAL]);  // slot 0xd8, 0x85e0d8
 				float aParams[4];
-				aParams[0] = (float)aSpace->mUnknown338.GetOutVal();
-				aParams[1] = (float)aSpace->mUnknown3A8.GetOutVal();
+				aParams[0] = (float)aSpace->mTubeBlendBase.GetOutVal();
+				aParams[1] = (float)aSpace->mTubeAlpha.GetOutVal();
 				aParams[2] = 0;
 				aParams[3] = 0;
 				gD3DInterface->SetShaderConstant(gTwistShaders[TWISTSHADER_WHITEOUT_FINAL], 0, aParams);  // slot 0x108
@@ -1521,34 +1521,34 @@ void GoodTube::DrawAll(ModalFlags* theFlags, Graphics* g)
 	int anArtScale = Ftol((double)gApp->mScale * 10.0);
 	int aTimeX = Ftol((double)mWidth * 0.5 + (double)anArtScale);
 	int aTimeOffsetY = Ftol((double)gApp->mScale * -20.0);
-	int aTimeY = Ftol((double)mUnknown194) - aTimeOffsetY;
+	int aTimeY = Ftol((double)mFillTopShown) - aTimeOffsetY;
 	if (gD3DInterface == nullptr)
 		aTimeY++;  // (the original adds 1 unless Direct3D draws)
 	int aCenterX, aCenterY;
 	mBoard->GetCenter(&aCenterX, &aCenterY);
 	int aToX = aCenterX - mX;
 	int aToY = aCenterY - mY;
-	int aX = Ftol((double)(aToX - aTimeX) * mUnknown400.GetOutVal() + (double)aTimeX);
-	int anY = Ftol((double)(aToY - aTimeY) * mUnknown400.GetOutVal() + (double)aTimeY);
-	double aGrowth = mUnknown400.GetOutVal();
+	int aX = Ftol((double)(aToX - aTimeX) * mBlitzTimer.GetOutVal() + (double)aTimeX);
+	int anY = Ftol((double)(aToY - aTimeY) * mBlitzTimer.GetOutVal() + (double)aTimeY);
+	double aGrowth = mBlitzTimer.GetOutVal();
 	float aScale = (float)(aGrowth + aGrowth + 0.15000000596046448);
-	int aTenths = mUnknown4B8 / 100;
-	if (0.0f < mUnknown4A4) {
-		g->SetColor(Color(0, 0, 0, Ftol((double)mUnknown4A4 * 100.0)));
+	int aTenths = mTimeShown / 100;
+	if (0.0f < mBlitzPulse) {
+		g->SetColor(Color(0, 0, 0, Ftol((double)mBlitzPulse * 100.0)));
 		g->FillRect(-mX, -mY, gApp->mWidth, gApp->mHeight);
 		g->SetColor(Color::White);
 	}
-	if (mUnknown4AC == 0)
+	if (mTimeKind == 0)
 		return;
-	if (!(0.0f < mUnknown4C0))
+	if (!(0.0f < mTimePulse))
 		return;
 	Color aColorA;
 	Color aColorB;
-	if (aTenths < 10 && mUnknown4A8) {
+	if (aTenths < 10 && mShowTenths) {
 		float aWave = (float)std::sin((double)(float)((double)(mUpdateCnt % 75) * 3.1415927410125732 / 75.0));
 		aColorA = Color(Ftol((double)aWave * 255.0), 0x20, 0x20);
 		aColorB = Color(Ftol((1.0 - (double)aWave) * 255.0), 0x20, 0x20);
-	} else if (mUnknown4AC < 4) {
+	} else if (mTimeKind < 4) {
 		ColorCycle aCycle;
 		aCycle.SetPosition((float)((double)(mUpdateCnt % 100) / 100.0));
 		aColorA = aCycle.mColor;
@@ -1557,14 +1557,14 @@ void GoodTube::DrawAll(ModalFlags* theFlags, Graphics* g)
 		aColorA = Color::Black;
 		aColorB = Color::White;
 	}
-	aColorA.mAlpha = Ftol((double)mUnknown4C0 * 255.0);
-	DrawTime(g, mUnknown4B8, aX, anY, aColorA, aColorB, aScale, mUnknown4A9);
+	aColorA.mAlpha = Ftol((double)mTimePulse * 255.0);
+	DrawTime(g, mTimeShown, aX, anY, aColorA, aColorB, aScale, mDrawTime);
 }
 
 void GoodTube::DrawTime(Graphics* g, int theTime, int theX, int theY, const Color& theColor, const Color& theColorTop,
 	float theScale, bool theHundredths)
 {
-	// 0x704dde: blitz's clock in FONT_COUNTER, a character at a time, mUnknown4C0 opaque
+	// 0x704dde: blitz's clock in FONT_COUNTER, a character at a time, mTimePulse opaque
 	Font* aFont = FONT_COUNTER;
 	g->SetFont(aFont);
 	// the font's top layer is drawn in theColorTop, the others in theColor
@@ -1596,7 +1596,7 @@ void GoodTube::DrawTime(Graphics* g, int theTime, int theX, int theY, const Colo
 	unsigned int aLength = (unsigned int)aText.length();
 	int aStartX = theX - (int)(aLength * aCharWidth) / 2;
 	int aDrawX = aStartX;
-	g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown4C0 * 255.0)));
+	g->SetColor(Color(255, 255, 255, Ftol((double)mTimePulse * 255.0)));
 	// The scale about the clock, as a matrix for the device with Direct3D (0x44f860 on)
 	SexyTransform2D aClockMatrix;
 	aClockMatrix.Translate((float)-(mX + theX), (float)-(mY + theY));
@@ -1650,16 +1650,16 @@ void GoodTube::DrawGlow(Graphics* g)
 	int aX = GetBottomX();
 	int anY = GetBottomTop();
 	g->SetColorizeImages(true);
-	Color aGlowColor(255, 255, 255, mUnknown1DC);
+	Color aGlowColor(255, 255, 255, mGlowAlpha);
 	g->SetDrawMode(0);
-	if (mUnknown300 < 1) {
+	if (mBreakState < 1) {
 		g->SetColor(Color(255, 255, 255));
 		g->DrawImage(mBottomImage, aX, anY);
 		g->SetFont(FONT_SCORE);
-		if ((mUnknown3B0 == 0 || mUnknown3B0 == 4) && 0.0f < mUnknown330)
+		if ((mBonusState == 0 || mBonusState == 4) && 0.0f < mBonusShown)
 			DrawBonus(g);
 		g->SetColor(Color::White);
-		if (mUnknown330 < 1.0f) {
+		if (mBonusShown < 1.0f) {
 			int aDoorX = Ftol((double)mWidth * 0.5199999809265137);
 			int aDoorY = GetBottomTop();
 			aDoorY = Ftol((double)mBottomImage->mHeight * 0.36500000953674316 + (double)aDoorY);
@@ -1669,13 +1669,13 @@ void GoodTube::DrawGlow(Graphics* g)
 				// over the bottom half's picture
 				unsigned long aCaps = gD3DInterface->GetCaps(0);
 				Image* aDoorTop = IMAGE_DOORS_BONUS_TOP;
-				if ((aCaps & 2) != 0 && gApp->mBoard->mHyperspace == nullptr && 0.0f < mUnknown330) {
+				if ((aCaps & 2) != 0 && gApp->mBoard->mHyperspace == nullptr && 0.0f < mBonusShown) {
 					gD3DInterface->SetTexture(1, IMAGE_DOORS_BONUS_BOTTOM);  // slot 0xd4
 					gD3DInterface->SetTextureWrap(0, false);                 // slot 0xcc
 					gD3DInterface->SetTextureWrap(1, false);
 					gD3DInterface->SetPixelShader(gTwistShaders[TWISTSHADER_BUTTONCOVER]);  // slot 0xd8, 0x85dbd8
 					float aParams[4];
-					aParams[0] = (float)((double)mUnknown330 * 0.8500000238418579);
+					aParams[0] = (float)((double)mBonusShown * 0.8500000238418579);
 					aParams[1] = 0.0f;
 					aParams[2] = 0.0f;
 					aParams[3] = 0.0f;
@@ -1687,15 +1687,15 @@ void GoodTube::DrawGlow(Graphics* g)
 					aShaderDoor = true;
 				}
 			}
-			int aFrame = Ftol((double)mUnknown330 * 10.0);
+			int aFrame = Ftol((double)mBonusShown * 10.0);
 			Image* aDoor = IMAGE_INGAMEUI_TWISTDOORANIM;
 			if (!aShaderDoor && aFrame < 10) {
 				int aDoorTop = aDoorY - aDoor->GetCelHeight() / 2;
 				g->DrawImageCel(aDoor, aDoorX - aDoor->GetCelWidth() / 2, aDoorTop, aFrame);
 				Image* aDoorGlow = IMAGE_INGAMEUI_TWISTDOORGLOW;
-				if (mUnknown334 != 0.0f) {
+				if (mBonusFlash != 0.0f) {
 					g->SetDrawMode(1);
-					g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown334 * 255.0)));
+					g->SetColor(Color(255, 255, 255, Ftol((double)mBonusFlash * 255.0)));
 					int aGlowTop = aDoorY - aDoorGlow->GetCelHeight() / 2;
 					g->DrawImage(aDoorGlow, aDoorX - aDoorGlow->GetCelWidth() / 2, aGlowTop);
 					g->SetDrawMode(0);
@@ -1708,7 +1708,7 @@ void GoodTube::DrawGlow(Graphics* g)
 	g->SetDrawMode(1);
 	g->SetColor(aGlowColor);
 	Image* aBottomGlow = IMAGE_INGAMEUI_BOT_LIGHTGLOW;
-	g->SetColor(Color(255, 255, 255, Ftol((1.0 - (double)mUnknown2AC) * (double)mUnknown1DC)));
+	g->SetColor(Color(255, 255, 255, Ftol((1.0 - (double)mGlowCut) * (double)mGlowAlpha)));
 	int aGlowY = Ftol((double)GetImageOffsetY(GetIdByImage(aBottomGlow)) * (double)anArtScale);
 	int aGlowX = Ftol((double)GetImageOffsetX(GetIdByImage(aBottomGlow)) * (double)anArtScale);
 	g->DrawImage(aBottomGlow, aGlowX, aGlowY);
@@ -1742,25 +1742,25 @@ void GoodTube::DrawBonus(Graphics* g)
 	} else if (0 < mLevel) {
 		unsigned int aCount = (unsigned int)gBoard->mBonusColors.size();
 		int aHeaderBottom;
-		if (mBoard->mUnknown265C < 3) {
+		if (mBoard->mBonusStage < 3) {
 			Image* aHeader = IMAGE_INGAMEUI_BONUS_HEADER;
-			g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown3F0 * 255.0)));
+			g->SetColor(Color(255, 255, 255, Ftol((double)mBonusGlowFade * 255.0)));
 			int aHeaderY = Ftol((double)mBottomImage->mHeight * 0.20499999821186066 + (double)GetBottomTop());
 			g->DrawImage(aHeader, aCenterX - aHeader->mWidth / 2, aHeaderY);
 			aHeaderBottom = Ftol(0.0);
 		} else {
 			g->PushState();
-			g->SetColor(Color(255, 255, 255, Ftol(mUnknown5F0.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+			g->SetColor(Color(255, 255, 255, Ftol(mBonusGlowCurve.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
 			g->ClipRect(Ftol((double)gApp->mScale * 78.0), Ftol((double)gApp->mScale * 902.0),
 				Ftol((double)gApp->mScale * 500.0), Ftol((double)gApp->mScale * 104.0));
 			Transform aTransform;
 			aTransform.RotateRad((float)((double)mUpdateCnt * -0.009999999776482582));
-			if (mBoard->mUnknown268C == 1.0f)
+			if (mBoard->mBoardZoom == 1.0f)
 				g->DrawImageTransform(IMAGE_MEGAFRUIT_RAINBOW, aTransform, (float)aCenterX, (float)aBaseY);
 			g->PopState();
 			aHeaderBottom = Ftol((float)((double)gApp->mScale + (double)gApp->mScale));
 		}
-		if (0.0f < mUnknown3F0 && aCount != 0) {
+		if (0.0f < mBonusGlowFade && aCount != 0) {
 			Image* aBar = IMAGE_INGAMEUI_BONUS_HILIGHTBAR;
 			int aBarY = Ftol((double)mBottomImage->mHeight * 0.38999998569488525 + (double)GetBottomTop()
 				+ (double)aHeaderBottom);
@@ -1771,11 +1771,11 @@ void GoodTube::DrawBonus(Graphics* g)
 			int aTotalWidth = Ftol(aProductD * 0.8999999761581421);
 			unsigned int aCellWidth = (unsigned int)aTotalWidth / aCount;
 			int aStartX = aCenterX - aTotalWidth / 2;
-			bool aAnimating = mUnknown3B0 == 1;
+			bool aAnimating = mBonusState == 1;
 			if (aAnimating) {
 				// (the exe works out a sine of the curve's output here and drops it)
-				mUnknown338.GetOutVal();
-				mUnknown338.GetOutVal();
+				mBonusSwap.GetOutVal();
+				mBonusSwap.GetOutVal();
 			}
 			unsigned int i = 0;
 			if (aCount != 0) {
@@ -1785,33 +1785,33 @@ void GoodTube::DrawBonus(Graphics* g)
 				do {
 					int aColor = gBoard->mBonusColors[i];
 					int aLight = aColor * 2;
-					if (i < (unsigned int)gBoard->mUnknown2660)
+					if (i < (unsigned int)gBoard->mBonusMatched)
 						aLight++;
 					Image* aLightImage = GetImageById(sBonusLightIds[aLight]);
 					if (aAnimating)
-						(void)mUnknown3D0[i];
-					Color aLightColor(255, 255, 255, Ftol((double)mUnknown3D0[i] * 255.0));
+						(void)mBonusGlowTop[i];
+					Color aLightColor(255, 255, 255, Ftol((double)mBonusGlowTop[i] * 255.0));
 					if (aAnimating) {
 						int aAlpha = 0x80;
 						if (aAlpha <= aLightColor.mAlpha)
 							aAlpha = aLightColor.mAlpha;
-						aLightColor.mAlpha = Ftol((double)aAlpha * (double)mUnknown3F0);
+						aLightColor.mAlpha = Ftol((double)aAlpha * (double)mBonusGlowFade);
 					}
 					g->SetColor(aLightColor);
 					DrawImageScaledCentered(g, aLightImage, (float)aX, aRowYF, 3, 1.0f, 1.0f);
-					if (i == (unsigned int)gBoard->mUnknown2660) {
+					if (i == (unsigned int)gBoard->mBonusMatched) {
 						// the light the chain has reached glows
 						g->SetDrawMode(1);
 						Color aSavedColor = g->GetColor();
-						float aWave = (float)std::sin((double)mUnknown3CC);
+						float aWave = (float)std::sin((double)mBonusSpin);
 						double aGlow;
 						if (0.0 <= (double)aWave) {
-							aGlow = (double)(float)std::sin((double)mUnknown3CC);
+							aGlow = (double)(float)std::sin((double)mBonusSpin);
 						} else {
 							aGlow = 0.0;
 						}
 						float aGlowF = (float)aGlow;
-						g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown3F0 * 127.5 * (double)aGlowF)));
+						g->SetColor(Color(255, 255, 255, Ftol((double)mBonusGlowFade * 127.5 * (double)aGlowF)));
 						DrawImageScaledCentered(g, aLightImage, (float)aX, (float)aBaseY, 3, 1.0f, 1.0f);
 						g->SetColor(aSavedColor);
 						g->SetDrawMode(0);
@@ -1832,11 +1832,11 @@ void GoodTube::DrawBonus(Graphics* g)
 					do {
 						int aColor = gBoard->mBonusColors[i];
 						Image* aLightImage = GetImageById(sBonusLightIds[aColor * 2]);
-						double aSpread = ((double)mUnknown3E0[i] * (1.0 - (double)mUnknown3C4)) * 4.0;
+						double aSpread = ((double)mBonusGlowBottom[i] * (1.0 - (double)mBonusFade)) * 4.0;
 						if (!(aSpread < 1.0))
 							aSpread = 1.0;
 						g->SetColor(Color(255, 255, 255, Ftol(aSpread * 255.0)));
-						float aGrow = (float)(((double)mUnknown3E0[i] * (double)aRingScale) * 0.800000011920929 + 1.0);
+						float aGrow = (float)(((double)mBonusGlowBottom[i] * (double)aRingScale) * 0.800000011920929 + 1.0);
 						double aDelta = (double)aGrow - 1.0;
 						float anImageX = (float)(aDelta * (double)anOffset + (double)aX);
 						float anImageY = (float)(aDelta * 20.0 + (double)aRowYF);
@@ -1848,32 +1848,32 @@ void GoodTube::DrawBonus(Graphics* g)
 				}
 				aRing++;
 			} while (aRing < 3);
-			if (mUnknown3B0 == 0 && mUnknown3AC < 4) {
-				bool aMoving = mUnknown3A8 != mUnknown3AC;
-				int aMarkX = (int)aCellWidth / 2 + mUnknown3A8 * (int)aCellWidth + aStartX;
+			if (mBonusState == 0 && mBonusTarget < 4) {
+				bool aMoving = mBonusShownCount != mBonusTarget;
+				int aMarkX = (int)aCellWidth / 2 + mBonusShownCount * (int)aCellWidth + aStartX;
 				if (aMoving) {
-					aMarkX = Ftol(mUnknown338.GetOutVal() * (double)(mUnknown3AC - mUnknown3A8) * (double)(int)aCellWidth
+					aMarkX = Ftol(mBonusSwap.GetOutVal() * (double)(mBonusTarget - mBonusShownCount) * (double)(int)aCellWidth
 						+ (double)aMarkX);
 				}
-				g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown3F0 * 255.0)));
+				g->SetColor(Color(255, 255, 255, Ftol((double)mBonusGlowFade * 255.0)));
 				DrawImageScaledCentered(g, aBar, (float)aMarkX, (float)aBarY, 3, 1.0f, 1.0f);
 			}
 		}
-		if (mUnknown3B0 != 2) {
-			if (mUnknown3B0 == 3) {
+		if (mBonusState != 2) {
+			if (mBonusState == 3) {
 				// the bonus won: "+N" in green rising out of the score font, then its glow
-				double aAlpha = (double)mUnknown3B4 * 255.0;
+				double aAlpha = (double)mBonusTimer * 255.0;
 				if (255.0 < aAlpha)
 					aAlpha = 255.0;
 				Color aTextColor(0x20, 0xff, 0x20, Ftol(aAlpha));
 				g->SetColor(aTextColor);
-				SexyString aText = StrFormat(GTC(0x7e3ce8), mUnknown3BC);
+				SexyString aText = StrFormat(GTC(0x7e3ce8), mBonusNumber);
 				g->SetFont(FONT_SCORE);
 				int aTextY = Ftol((double)gApp->mScale * 0.0) + aBaseY;
 				double aHalf = (double)mWidth * 0.5;
 				int aTextX = Ftol(aHalf - (double)(g->StringWidth(aText) / 2));
 				g->DrawString(aText, aTextX, aTextY);
-				float aFade = (float)((double)mUnknown3B4 - 1.0);
+				float aFade = (float)((double)mBonusTimer - 1.0);
 				if (0.0 < (double)aFade) {
 					double aGlowAlpha = (double)aFade * 255.0;
 					if (aGlowAlpha <= 255.0 && aGlowAlpha < 0.0)
@@ -1890,12 +1890,12 @@ void GoodTube::DrawBonus(Graphics* g)
 				}
 				return;
 			}
-			if (mUnknown3B0 != 4)
+			if (mBonusState != 4)
 				return;
 		}
 		// the challenge done (2) or its time out (4)
 		Image* aDone = IMAGE_INGAMEUI_CHALLENGECOMPLETE;
-		g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown3C4 * 255.0)));
+		g->SetColor(Color(255, 255, 255, Ftol((double)mBonusFade * 255.0)));
 		int aDoneY = aBaseY - Ftol((double)gApp->mScale * 10.0);
 		DrawImageScaledCentered(g, aDone, (float)aCenterX, (float)aDoneY, 3, 1.0f, 1.0f);
 	}
@@ -1946,13 +1946,13 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 	int aInnerGlowX = mGlassImage->mWidth / 2 + aTubeX;
 	int aNegScale = Ftol((double)aScale * -1.0);
 	float aRingX = (float)((double)GetImageOffsetX(IMAGE_INGAMEUI_RING_BACK_ID) * (double)aScale + (double)aNegScale);
-	float aFillTop = mUnknown194;
+	float aFillTop = mFillTopShown;
 	if (gBoard->mGameMode == 3)
 		aFillTop = (float)Ftol((double)aFillTop);
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255));
 	bool aLit;
-	if (mUnknown300 < 1 || (double)mUnknown2C8 + (double)aScale * 370.0 < (double)aFillTop)
+	if (mBreakState < 1 || (double)mTopFall + (double)aScale * 370.0 < (double)aFillTop)
 		aLit = false;
 	else
 		aLit = true;
@@ -1967,7 +1967,7 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 			g->DrawImageF(IMAGE_INGAMEUI_RING_INNERGLOW, anInnerGlowF, anInnerGlowY);
 			int aFillX = aTubeX - Ftol((double)gApp->mScale * 45.0);
 			int aFillBottom = Ftol((double)aScale * 3.0 + (double)GetBottomTop());
-			int aFillY = Ftol((double)aScale * 25.0 + (double)mUnknown194);
+			int aFillY = Ftol((double)aScale * 25.0 + (double)mFillTopShown);
 			// 0x85d6bc and 0x85d6cc: the fill's colour at the start and at the end of +0x294
 			static const Color sFillStart(255, 255, 255, 255);
 			static const Color sFillEnd(0x80, 0x10, 0x10, 255);
@@ -1975,19 +1975,19 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 			if (gBoard->mGameMode == 3) {
 				aFill = mColorCycle.mColor;
 			} else {
-				double aValue = (double)(sFillEnd.mRed - sFillStart.mRed) * (double)mUnknown294 + (double)sFillStart.mRed;
+				double aValue = (double)(sFillEnd.mRed - sFillStart.mRed) * (double)mEaseValue + (double)sFillStart.mRed;
 				if (255.0 < aValue)
 					aValue = 255.0;
 				aFill.mRed = Ftol(aValue);
-				aValue = (double)(sFillEnd.mGreen - sFillStart.mGreen) * (double)mUnknown294 + (double)sFillStart.mGreen;
+				aValue = (double)(sFillEnd.mGreen - sFillStart.mGreen) * (double)mEaseValue + (double)sFillStart.mGreen;
 				if (255.0 < aValue)
 					aValue = 255.0;
 				aFill.mGreen = Ftol(aValue);
-				aValue = (double)(sFillEnd.mBlue - sFillStart.mBlue) * (double)mUnknown294 + (double)sFillStart.mBlue;
+				aValue = (double)(sFillEnd.mBlue - sFillStart.mBlue) * (double)mEaseValue + (double)sFillStart.mBlue;
 				if (255.0 < aValue)
 					aValue = 255.0;
 				aFill.mBlue = Ftol(aValue);
-				aValue = (double)(sFillEnd.mAlpha - sFillStart.mAlpha) * (double)mUnknown294 + (double)sFillStart.mAlpha;
+				aValue = (double)(sFillEnd.mAlpha - sFillStart.mAlpha) * (double)mEaseValue + (double)sFillStart.mAlpha;
 				if (255.0 < aValue)
 					aValue = 255.0;
 				aFill.mAlpha = Ftol(aValue);
@@ -2076,8 +2076,8 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 			g->SetColorizeImages(true);
 			g->SetDrawMode(0);
 			int aGlassTop = GetGlassTop();
-			int aGlassHeight = mUnknown16C;
-			g->SetColor(Color(255, 255, 255, Ftol((1.0 - (double)mUnknown2B8) * 255.0)));
+			int aGlassHeight = mGlassHeight;
+			g->SetColor(Color(255, 255, 255, Ftol((1.0 - (double)mGlassGone) * 255.0)));
 			Rect aGlassSrc(0, 0, mGlassImage->mWidth, aGlassHeight);
 			Rect aGlassDest(aTubeX, aGlassTop, mGlassImage->mWidth, aGlassHeight);
 			g->DrawImage(mGlassImage, aGlassDest, aGlassSrc);
@@ -2087,7 +2087,7 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 			if (mSpecks.size() != 0) {
 				do {
 					Speck* aSpeck = mSpecks[i];
-					aFill.mAlpha = Ftol((double)aSpeck->mAlpha * 255.0 * (1.0 - (double)mUnknown294));
+					aFill.mAlpha = Ftol((double)aSpeck->mAlpha * 255.0 * (1.0 - (double)mEaseValue));
 					g->SetColor(aFill);
 					// port: the original's Graphics::Is3D (a Direct3D destination); the port's 2D screen also answers true, so
 					// 2D mode is told by gD3DInterface
@@ -2104,7 +2104,7 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 						else if (1.25f < aStretch)
 							aStretch = 1.25f;
 						float aSize = (float)(0.75 * (double)aStretch);
-						float aSpeckScale = (float)((double)aSpeck->mScale * (1.0 - (double)mUnknown294) * (double)aSize);
+						float aSpeckScale = (float)((double)aSpeck->mScale * (1.0 - (double)mEaseValue) * (double)aSize);
 						int aSpeckHeight = Ftol((double)IMAGE_INGAMEUI_TUBE_FILL_PARTICLE->mHeight * (double)aSpeckScale);
 						int aSpeckWidth = Ftol((double)IMAGE_INGAMEUI_TUBE_FILL_PARTICLE->mWidth * (double)aSpeckScale);
 						g->DrawImage(aSpeck->mImage, Ftol(aSpeck->mX), Ftol(aSpeck->mY), aSpeckWidth, aSpeckHeight);
@@ -2113,7 +2113,7 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 				} while (i < mSpecks.size());
 			}
 		}
-	} else if (mUnknown300 < 1 || (double)mUnknown2C8 + (double)aScale * 370.0 < (double)aFillTop) {
+	} else if (mBreakState < 1 || (double)mTopFall + (double)aScale * 370.0 < (double)aFillTop) {
 		g->SetDrawMode(0);
 		g->SetColor(Color::White);
 		Image* aBottomGlow = IMAGE_INGAMEUI_TUBE_BOTTOM_INNERGLOW;
@@ -2129,7 +2129,7 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 		else
 			g->DrawImageF(aRing, aRingX, aRingYF);
 		Image* aLevel = IMAGE_INGAMEUI_LEVEL;
-		if ((mUnknown4AC != 0 || 0 < mLevel) && (gBoard->mGameMode != 2 || mUnknown4AC != 0)) {
+		if ((mTimeKind != 0 || 0 < mLevel) && (gBoard->mGameMode != 2 || mTimeKind != 0)) {
 			float aRingMidX = (float)((double)aRing->mWidth * 0.5 + (double)aRingX);
 			double aRingDrop = (double)aRing->mHeight * 0.2800000011920929;
 			float aLevelY = (float)(aRingDrop + (double)Ftol((double)aFillTop));
@@ -2144,7 +2144,7 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 			if (gD3DInterface != nullptr)
 				aTimerY = (float)((double)aRing->mHeight * 0.800000011920929 + (double)aRingYF);
 			Image* aTimer = IMAGE_INGAMEUI_RING_FRONT_TIMER;
-			if (mUnknown4AC == 0) {
+			if (mTimeKind == 0) {
 				// with Direct3D the number's fraction of a pixel in y goes through a matrix
 				SexyTransform2D aFractionMatrix;  // 0x44f860
 				aFractionMatrix.Translate(0.0f, (float)((double)aTimerY - (double)Ftol((double)aTimerY)));  // 0x44f8a0
@@ -2172,20 +2172,20 @@ void GoodTube::DrawFill(Graphics* g, bool theFront)
 	}
 	g->SetDrawMode(1);
 	if (mBoard->mGameMode != 3 && 0 < mLevel) {
-		g->SetColor(Color(255, 255, 255, mUnknown1DC));
+		g->SetColor(Color(255, 255, 255, mGlowAlpha));
 		g->DrawImageF(IMAGE_INGAMEUI_RING_OUTERGLOW, aRingX, (float)((double)aFillTop - (double)aScale * 6.0));
 	}
 	// (the text popups: 0x707103 and 0x707215, which make them, are never called, so these stay null)
-	if (mUnknown1CC != nullptr)
+	if (mLevelPopup != nullptr)
 		NotPorted("GoodTube::DrawFill: the text popup at +0x1cc (0x707103)");
-	if (mUnknown1D0 != nullptr)
+	if (mScorePopup != nullptr)
 		NotPorted("GoodTube::DrawFill: the text popup at +0x1d0 (0x707215)");
 }
 
 void GoodTube::DrawLight(Graphics* g, int theLight, float theAlpha)
 {
 	// 0x70675e
-	int aLastLight = Board::GetLevelSteps(mUnknown27C) - 1;
+	int aLastLight = Board::GetLevelSteps(mShownLevel) - 1;
 	if (aLastLight < theLight)
 		theLight = aLastLight;
 	if (gD3DInterface != nullptr) {
@@ -2197,8 +2197,8 @@ void GoodTube::DrawLight(Graphics* g, int theLight, float theAlpha)
 		anEdgeA.SetCurve(GTS(0x7e3fc4));
 		CurvedVal anEdgeB;
 		anEdgeB.SetCurve(GTS(0x7e3fa8));
-		int aSteps = Board::GetLevelSteps(mUnknown27C);
-		int anImageId = sFirstLight[mUnknown27C] + theLight;
+		int aSteps = Board::GetLevelSteps(mShownLevel);
+		int anImageId = sFirstLight[mShownLevel] + theLight;
 		Image* aLightImage = GetImageById(anImageId);
 		float aStartA = 0.0f;  // where on the arc this light's edge A, and edge B, start
 		float aStartB = 0.0f;
@@ -2276,7 +2276,7 @@ void GoodTube::DrawLight(Graphics* g, int theLight, float theAlpha)
 		} while (aLength <= 1.0f);
 		return;
 	}
-	int anId = sFirstLight[mUnknown27C] + theLight;
+	int anId = sFirstLight[mShownLevel] + theLight;
 	Image* aLightImage = GetImageById(anId);
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, Ftol((double)theAlpha * 255.0)));
@@ -2288,21 +2288,21 @@ void GoodTube::DrawLight(Graphics* g, int theLight, float theAlpha)
 void GoodTube::DrawBody(Graphics* g)
 {
 	// 0x7081c9: the top, the lit lights, the score under it (or the challenge's), the tip and the multiplier's bulbs
-	bool aIsChallengeTube = mUnknown158 == 4;
+	bool aIsChallengeTube = mTubeKind == 4;
 	float anArtScale = (float)((double)gApp->mArtRes / 1200.0);
 	int aTopX = GetTopX();
 	int aTopY = GetTopY();
 	g->SetDrawMode(0);
 	g->SetColor(Color::White);
-	g->DrawImageRotated(mTopImage, aTopX, aTopY, (double)mUnknown2C0, nullptr);
+	g->DrawImageRotated(mTopImage, aTopX, aTopY, (double)mTopTurn, nullptr);
 	g->SetColorizeImages(true);
 	bool aIsChallengeMode = gBoard->mGameMode == 2;
-	if (0 < mUnknown300)
+	if (0 < mBreakState)
 		return;
-	int aLevelIndex = mUnknown27C - 1;
-	if (mUnknown14D && !aIsChallengeMode) {
+	int aLevelIndex = mShownLevel - 1;
+	if (mLevelSoundOn && !aIsChallengeMode) {
 		// the slots of the lights, then the lights lit so far
-		int aLitLights = Ftol((double)(float)std::floor((double)mUnknown278));
+		int aLitLights = Ftol((double)(float)std::floor((double)mShownSteps));
 		Image* aSlots[11] = {IMAGE_INGAMEUI_ARC_4_SLOT, IMAGE_INGAMEUI_ARC_8_SLOT, IMAGE_INGAMEUI_ARC_12_SLOT,
 			IMAGE_INGAMEUI_ARC_16_SLOT, IMAGE_INGAMEUI_ARC_16_SLOT, IMAGE_INGAMEUI_ARC_16_SLOT,
 			IMAGE_INGAMEUI_ARC_16_SLOT, IMAGE_INGAMEUI_ARC_16_SLOT, IMAGE_INGAMEUI_ARC_16_SLOT,
@@ -2314,15 +2314,15 @@ void GoodTube::DrawBody(Graphics* g)
 		int aSlotY = Ftol((double)GetTopY() + aSlotDropScaled);
 		int aSlotX = Ftol((double)GetImageOffsetX(aSlotId) * (double)anArtScale);
 		g->DrawImage(aSlot, aSlotX, aSlotY);
-		int aFirstLight = sFirstLight[mUnknown27C];
-		int aLightCount = Board::GetLevelSteps(mUnknown27C);
+		int aFirstLight = sFirstLight[mShownLevel];
+		int aLightCount = Board::GetLevelSteps(mShownLevel);
 		if (aLightCount < aLitLights)
 			aLitLights = aLightCount;
 		int i = 0;
 		if (0 < aLitLights) {
 			float aCountF = (float)aLightCount;
 			int aHueBase = aLightCount * 15;
-			float* aFlash = mUnknown1E4;
+			float* aFlash = mLightFlash;
 			do {
 				int aPointA[2];
 				int aPointB[2];
@@ -2334,7 +2334,7 @@ void GoodTube::DrawBody(Graphics* g)
 				g->SetDrawMode(0);
 				g->SetColor(Color::White);
 				// the brightness the light has reached, from 0.78 of white
-				double aBright = 1.0 - ((double)mUnknown278 - (double)aCountF) * 0.25;
+				double aBright = 1.0 - ((double)mShownSteps - (double)aCountF) * 0.25;
 				if ((0.7799999713897705 <= aBright && 1.0 < aBright) || aBright < 0.7799999713897705) {
 					if (aBright < 0.7799999713897705)
 						aBright = 0.7799999713897705;
@@ -2344,15 +2344,15 @@ void GoodTube::DrawBody(Graphics* g)
 				float aBrightF = (float)aBright;
 				int aGrey = Ftol((double)aBrightF * 255.0);
 				g->SetColor(Color(aGrey, aGrey, aGrey, 255));
-				float aReached = (float)((double)mUnknown278 - (double)(float)i);
+				float aReached = (float)((double)mShownSteps - (double)(float)i);
 				if (aReached < 0.99) {
 					DrawLight(g, i, aReached);
 				} else {
-					float aBeyond = (float)(((double)mUnknown278 - (double)aCountF) - (double)(float)i);
+					float aBeyond = (float)(((double)mShownSteps - (double)aCountF) - (double)(float)i);
 					if (0.0 < aBeyond) {
 						// a light beyond the level's last: the hue goes round with the time
 						aLightImage = GetImageById(i + 0xdb);
-						float aSpeed = gBoard->mUnknown214 ? 10.0f : 1.5f;
+						float aSpeed = gBoard->mFruitDue ? 10.0f : 1.5f;
 						int aHueTime = Ftol((double)mUpdateCnt * (double)aSpeed);
 						unsigned int aHue = (unsigned int)(aHueTime + aHueBase) & 0x800000ffu;
 						if ((int)aHue < 0)
@@ -2372,28 +2372,28 @@ void GoodTube::DrawBody(Graphics* g)
 			} while (i < aLitLights);
 		}
 		g->SetColorizeImages(true);
-		if (0.0f < mUnknown29C) {
+		if (0.0f < mLevelFlash) {
 			GetTopY();
 			Image* anArcGlow = IMAGE_INGAMEUI_ARC_GLOW;
 			int anArcGlowId = GetIdByImage(anArcGlow);
 			g->SetDrawMode(1);
-			g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown29C * 255.0)));
+			g->SetColor(Color(255, 255, 255, Ftol((double)mLevelFlash * 255.0)));
 			int anArcGlowY = Ftol((double)GetImageOffsetY(anArcGlowId) * (double)anArtScale);
 			int anArcGlowX = Ftol((double)GetImageOffsetX(anArcGlowId) * (double)anArtScale);
 			g->DrawImage(anArcGlow, anArcGlowX, anArcGlowY);
 			g->SetDrawMode(0);
 		}
 	}
-	float aTipFade = (float)(1.0 - (double)mUnknown244);
+	float aTipFade = (float)(1.0 - (double)mTipFade);
 	if (gBoard->mChallenge != 0) {
 		DrawChallenge(g, aTipFade);
-	} else if (mUnknown158 == 0) {
+	} else if (mTubeKind == 0) {
 		// the score under the top
-		SexyString aScoreText = CommaSeperate((int)mBoard->mUnknown14F8);
+		SexyString aScoreText = CommaSeperate((int)mBoard->mShownScore);
 		Font* aGlowFont = FONT_SCOREGLOW;
 		Font* aScoreFont = FONT_SCORE;
 		int aScoreWidth = aScoreFont->StringWidth(aScoreText);
-		if (1999999 < (unsigned int)mBoard->mUnknown14F8) {
+		if (1999999 < (unsigned int)mBoard->mShownScore) {
 			aGlowFont = FONT_SCOREGLOW_SMALL;
 			aScoreFont = FONT_SCORE_SMALL;
 			aScoreWidth = aScoreFont->StringWidth(aScoreText);
@@ -2404,13 +2404,13 @@ void GoodTube::DrawBody(Graphics* g)
 		int aScoreDrop = Ftol((double)gApp->mScale * 5.0);
 		Font* aCurFont2 = g->GetFont();
 		int aScoreY = GetScoreY() + (aCurFont->GetHeight() - aCurFont2->mAscentPadding) / 2 + aScoreDrop;
-		if (!mUnknown14D)
+		if (!mLevelSoundOn)
 			aScoreY = Ftol((double)aScoreY - (double)anArtScale * 0.0);
 		g->SetColor(Color(255, 255, 255, Ftol((double)aTipFade * 255.0)));
 		g->DrawString(aScoreText, aScoreX, aScoreY);
-		if (0.0f < mBoard->mUnknown20F0) {
+		if (0.0f < mBoard->mScoreRollGlow) {
 			g->SetColorizeImages(true);
-			double aGlowAlpha = (double)aTipFade * (double)mBoard->mUnknown20F0 * 255.0;
+			double aGlowAlpha = (double)aTipFade * (double)mBoard->mScoreRollGlow * 255.0;
 			if (255.0 < aGlowAlpha)
 				aGlowAlpha = 255.0;
 			g->SetColor(Color(255, 255, 255, Ftol(aGlowAlpha)));
@@ -2419,22 +2419,22 @@ void GoodTube::DrawBody(Graphics* g)
 			g->DrawString(aScoreText, aScoreX, aScoreY);
 		}
 	}
-	if (mUnknown158 != 4 && !mTip.empty() && 0.0f < mUnknown244) {
-		Color aTipColor(mUnknown24C[0], mUnknown24C[1], mUnknown24C[2], mUnknown24C[3]);
-		aTipColor.mAlpha = Ftol((double)mUnknown244 * 255.0);
+	if (mTubeKind != 4 && !mTip.empty() && 0.0f < mTipFade) {
+		Color aTipColor(mTipColor[0], mTipColor[1], mTipColor[2], mTipColor[3]);
+		aTipColor.mAlpha = Ftol((double)mTipFade * 255.0);
 		g->SetFont(FONT_TOOLTIP);
-		int aTipHeight = g->GetWordWrappedHeight(mUnknown240, mTip, -1, nullptr);
+		int aTipHeight = g->GetWordWrappedHeight(mTipWidth, mTip, -1, nullptr);
 		int aTipMid = mTopImage->mHeight / 2 + aTopY;
 		int aTipY = Ftol(((double)anArtScale * 5.0 + (double)aTipMid) - (double)aTipHeight * 0.375);
 		if (gBoard->mGameMode == 2)
 			aTipY += Ftol((double)gApp->mScale * -40.0);
 		g->SetColor(aTipColor);
-		int aTipX = mWidth / 2 - mUnknown240 / 2;
-		Rect aTipRect(Ftol((double)aTipX + (double)anArtScale * 8.0), aTipY, mUnknown240, aTipHeight);
+		int aTipX = mWidth / 2 - mTipWidth / 2;
+		Rect aTipRect(Ftol((double)aTipX + (double)anArtScale * 8.0), aTipY, mTipWidth, aTipHeight);
 		g->WriteWordWrapped(aTipRect, mTip, -1, 0, nullptr, -1, nullptr);
 		g->SetColor(Color::White);
 	}
-	if (!aIsChallengeMode && mUnknown14D) {
+	if (!aIsChallengeMode && mLevelSoundOn) {
 		// the multiplier's bulbs, and the glow of the one that has just lit
 		g->SetDrawMode(1);
 		Image* aBulbs = GetImageById(IMAGE_INGAMEUI_MULTIBULBS_ID);
@@ -2445,14 +2445,14 @@ void GoodTube::DrawBody(Graphics* g)
 		int aBulbY = Ftol((double)GetTopY() + aBulbOffsetScaled);
 		g->SetDrawMode(0);
 		g->SetColor(Color(255, 255, 255));
-		int aCel = mUnknown280 - 1;
+		int aCel = mLevelCel - 1;
 		if (9 < aCel)
 			aCel = 9;
 		g->DrawImageCel(aBulbs, aBulbX, aBulbY, aCel);
 		g->SetDrawMode(1);
-		if (0.0f < gBoard->mUnknown20B8) {
-			float aGrow = (float)((1.0 - (double)gBoard->mUnknown20B8) * 3.0 + 1.0);
-			g->SetColor(Color(255, 255, 255, Ftol((double)gBoard->mUnknown20B8 * 255.0)));
+		if (0.0f < gBoard->mRingBurst) {
+			float aGrow = (float)((1.0 - (double)gBoard->mRingBurst) * 3.0 + 1.0);
+			g->SetColor(Color(255, 255, 255, Ftol((double)gBoard->mRingBurst * 255.0)));
 			Image* aBulbGlow = IMAGE_INGAMEUI_MULTIBULB_GLOW;
 			for (; 1.0f <= aGrow; aGrow = (float)((double)aGrow - 1.0)) {
 				int aGlowWidth = Ftol((double)aBulbGlow->mWidth * (double)aGrow);
@@ -2464,7 +2464,7 @@ void GoodTube::DrawBody(Graphics* g)
 			}
 		}
 	}
-	if (aIsChallengeTube && mUnknown2C0 == 0.0f) {
+	if (aIsChallengeTube && mTopTurn == 0.0f) {
 		// the doors of the challenge's tube
 		g->DrawImage(IMAGE_DOORS_CHALLENGE_TOP, aTopX - Ftol((double)gApp->mScale * -8.0),
 			aTopY - Ftol((double)gApp->mScale * -45.0));
@@ -2473,7 +2473,7 @@ void GoodTube::DrawBody(Graphics* g)
 	}
 	g->SetDrawMode(1);
 	Image* aTopGlow = IMAGE_INGAMEUI_TOP_LIGHTGLOW;
-	g->SetColor(Color(255, 255, 255, mUnknown1DC));
+	g->SetColor(Color(255, 255, 255, mGlowAlpha));
 	int aTopGlowY = Ftol((double)GetImageOffsetY(GetIdByImage(aTopGlow)) * (double)anArtScale);
 	int aTopGlowX = Ftol((double)GetImageOffsetX(GetIdByImage(aTopGlow)) * (double)anArtScale);
 	g->DrawImage(aTopGlow, aTopGlowX, aTopGlowY);
@@ -2517,17 +2517,17 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 	bool aPoints = (aFlags & Challenge::FLAG_POINTS) != 0;
 	bool aNightMode = (aFlags & Challenge::FLAG_NIGHTMODE) != 0;
 	// the night mode's best ever shows under it once the player has one (Board::SetChallenge sets +0x768)
-	bool aShowBestEver = aNightMode && mUnknown768;
+	bool aShowBestEver = aNightMode && mShowBestEver;
 	int aScoreY = GetScoreY();
 	if (aShowBestEver)
 		aScoreY += Ftol((double)gApp->mScale * -55.0);
 	int anAlpha = Ftol((double)theTipFade * 255.0);
 	g->SetColor(Color(255, 255, 255, anAlpha));
-	if (mUnknown158 == 3) {
+	if (mTubeKind == 3) {
 		// the moves left, word-wrapped in FONT_SCORE
 		int aTop = Ftol((double)gApp->mScale * (aPoints ? 50.0 : -80.0)) + aScoreY;
 		SexyString aText;
-		int aMovesLeft = aChallenge->mMoveGoal - gApp->mUnknownC74[0x21];
+		int aMovesLeft = aChallenge->mMoveGoal - gApp->mStats[0x21];
 		if (aMovesLeft == 1)
 			aText = GT(0x7e40ec);
 		else
@@ -2540,29 +2540,29 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 			aRectHeight);
 		g->WriteWordWrapped(aRect, aText, -1, 0, nullptr, -1, nullptr);
 	} else if ((aFlags & Challenge::FLAG_PATTERN) != 0) {
-		GetGoalLists(aChallenge, mUnknown56C, mUnknown53C, mUnknown55C, mUnknown54C);
+		GetGoalLists(aChallenge, mRuleGoals, mRuleValues, mRuleComparisons, mRuleStats);
 		if (aNightMode) {
 			// the count's title and the count, and the best under them while +0x580 shows it
-			int aCount = gBoard->mUnknown2638;
+			int aCount = gBoard->mChallengeCount;
 			SexyString aTitle = aChallenge->mCountTitle;
 			SexyString aCountText = StrFormat(GTC(0x80da2c), aCount);  // (made and not drawn)
 			int aMidX = Ftol((double)mWidth * 0.5249999761581421);
 			int aY = aScoreY - Ftol((double)gApp->mScale * -30.0);
-			double aBestShown = mUnknown580.GetOutVal();
+			double aBestShown = mBestFade.GetOutVal();
 			int aRise = Ftol((double)gApp->mScale * 0.0);
 			aY = Ftol(aBestShown * (double)aRise + (double)aY);
 			g->SetFont(FONT_TOOLTIP);
 			int aTitleY = aY - Ftol((double)gApp->mScale * 40.0);
 			g->DrawString(aTitle, aMidX - g->StringWidth(aTitle) / 2, aTitleY);
-			mTicker660.Draw(g, aMidX, aY, true, theTipFade);
-			if (mUnknown580.GetOutVal() != 0.0) {
-				g->SetColor(Color(255, 255, 255, Ftol(mUnknown580.GetOutVal() * 255.0 * (double)theTipFade)));
+			mCountTicker.Draw(g, aMidX, aY, true, theTipFade);
+			if (mBestFade.GetOutVal() != 0.0) {
+				g->SetColor(Color(255, 255, 255, Ftol(mBestFade.GetOutVal() * 255.0 * (double)theTipFade)));
 				SexyString aBest = GT(0x7e40a8);
 				g->SetFont(FONT_TOOLTIP);
 				int aBestY = Ftol((double)gApp->mScale * 65.0) + aScoreY;
 				g->DrawString(aBest, aMidX - g->StringWidth(aBest) / 2, aBestY);
-				float aBestAlpha = (float)(mUnknown580.GetOutVal() * (double)theTipFade);
-				mTicker6E4.Draw(g, aMidX, aScoreY - Ftol((double)gApp->mScale * -95.0), true, aBestAlpha);
+				float aBestAlpha = (float)(mBestFade.GetOutVal() * (double)theTipFade);
+				mBestTicker.Draw(g, aMidX, aScoreY - Ftol((double)gApp->mScale * -95.0), true, aBestAlpha);
 				g->SetColor(Color(255, 255, 255, anAlpha));
 			}
 		} else {
@@ -2589,13 +2589,13 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 				double aStep = (double)aGemWidth + (double)aGap;
 				do {
 					int anIndex = aChallenge->mPattern[i] * 2;
-					if (i < mUnknown538)
+					if (i < mGoalShown)
 						anIndex++;
 					Image* aGem = GetImageById(GetPatternGemId(anIndex));
 					if (aGem != nullptr) {
 						float aSize = aScale;
-						if (i == mUnknown538 && mUnknown4C8.mIncRate != 0.0 && !mUnknown4C8.HasBeenTriggered())
-							aSize = (float)(mUnknown4C8.GetOutVal() * (double)aScale);
+						if (i == mGoalShown && mGoalMove.mIncRate != 0.0 && !mGoalMove.HasBeenTriggered())
+							aSize = (float)(mGoalMove.GetOutVal() * (double)aScale);
 						DrawImageScaledCentered(g, aGem, (float)((double)aGemWidth * 0.5 + (double)aX), (float)aY,
 							aSize, aSize);
 					}
@@ -2610,14 +2610,14 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 		int anIconSize = Ftol((double)gApp->mScale * 54.0);
 		float anIconSizeF = (float)anIconSize;
 		int aGap = Ftol((double)anIconSizeF * 0.4000000059604645);
-		GetGoalLists(aChallenge, mUnknown56C, mUnknown53C, mUnknown55C, mUnknown54C);
+		GetGoalLists(aChallenge, mRuleGoals, mRuleValues, mRuleComparisons, mRuleStats);
 		int aMaxHeight = Ftol((double)gApp->mScale * 150.0);
 		std::vector<int> aCels;
 		std::vector<int> aValues;
 		unsigned int i = 0;
-		if (mUnknown56C.size() != 0) {
+		if (mRuleGoals.size() != 0) {
 			do {
-				int aStat = mUnknown56C[i];
+				int aStat = mRuleGoals[i];
 				int aCel = -1;
 				if (aStat < 0x4b || 0x51 < aStat) {
 					if (aStat == 0x14)
@@ -2629,14 +2629,14 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 					else if (aStat == 0x4a)
 						aCel = 10;
 				} else {
-					aCel = mUnknown56C[i] - 0x4b;
+					aCel = mRuleGoals[i] - 0x4b;
 				}
 				if (aCel != -1) {
-					aValues.push_back(mUnknown53C[i]);
+					aValues.push_back(mRuleValues[i]);
 					aCels.push_back(aCel);
 				}
 				i++;
-			} while (i < mUnknown56C.size());
+			} while (i < mRuleGoals.size());
 		}
 		int aCount = (int)aCels.size();
 		float aScale = 1.0f;
@@ -2687,8 +2687,8 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 						// port: the original takes the colour from the tube's list (+0x56c, what the last pattern or
 						// on-board display left there), not from this goal; no shipped challenge gets here (no
 						// "Onemove" rule counts a colour). An index past that list leaves the goal without an icon
-						if (i < mUnknown56C.size())
-							aCel = mUnknown56C[i] - 0x4b;
+						if (i < mRuleGoals.size())
+							aCel = mRuleGoals[i] - 0x4b;
 					}
 				} else if (aStat == 0x40) {
 					aCel = 7;
@@ -2715,7 +2715,7 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 		int aStep = aSpacing + aLineHeight;
 		bool aSingle = aCels.size() == 1;
 		if (aSingle) {
-			double aBestShown = mUnknown580.GetOutVal();
+			double aBestShown = mBestFade.GetOutVal();
 			aY = Ftol((double)aY - aBestShown * (double)Ftol((double)gApp->mScale * 10.0));
 		}
 		for (unsigned int i = 0; aCels.size() != 0 && i < aCels.size(); i++) {
@@ -2729,7 +2729,7 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 				int aTitleY = aY + aLineHeight + Ftol((double)gApp->mScale * 0.0);
 				g->DrawString(aTitle, aMidX - g->StringWidth(aTitle) / 2, aTitleY);
 				aY += aStep - Ftol((double)gApp->mScale * -20.0);
-				mTicker660.Draw(g, aMidX, aY, true, theTipFade);
+				mCountTicker.Draw(g, aMidX, aY, true, theTipFade);
 			} else {
 				int aDrop = Ftol((double)gApp->mScale * -8.0);
 				g->DrawImageCel(IMAGE_CHALLENGEICONS, Ftol((double)mWidth * 0.30000001192092896), aY + aDrop,
@@ -2748,20 +2748,20 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 				aY += aStep;
 			}
 		}
-		if (aSingle && mUnknown580.GetOutVal() != 0.0) {
-			g->SetColor(Color(255, 255, 255, Ftol(mUnknown580.GetOutVal() * 255.0 * (double)theTipFade)));
+		if (aSingle && mBestFade.GetOutVal() != 0.0) {
+			g->SetColor(Color(255, 255, 255, Ftol(mBestFade.GetOutVal() * 255.0 * (double)theTipFade)));
 			SexyString aBest = GT(0x7e40a8);
 			g->SetFont(FONT_TOOLTIP);
 			int aBestY = Ftol((double)gApp->mScale * 55.0) + aScoreY;
 			g->DrawString(aBest, aMidX - g->StringWidth(aBest) / 2, aBestY);
-			float aBestAlpha = (float)(mUnknown580.GetOutVal() * (double)theTipFade);
-			mTicker6E4.Draw(g, aMidX, aScoreY - Ftol((double)gApp->mScale * -90.0), true, aBestAlpha);
+			float aBestAlpha = (float)(mBestFade.GetOutVal() * (double)theTipFade);
+			mBestTicker.Draw(g, aMidX, aScoreY - Ftol((double)gApp->mScale * -90.0), true, aBestAlpha);
 			g->SetColor(Color(255, 255, 255, anAlpha));
 		}
 	} else {
 		// the count's title and the count (unless "nocount"), then the moves (left), or the best while +0x580 shows
 		// it
-		int aCount = gBoard->mUnknown2638;
+		int aCount = gBoard->mChallengeCount;
 		if ((aChallenge->mFlags & Challenge::FLAG_PATTERN) != 0)
 			aCount = aChallenge->mProgress;
 		bool aNoCount = (aChallenge->mFlags & Challenge::FLAG_NOCOUNT) != 0;
@@ -2774,12 +2774,12 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 		int aMidX = Ftol((double)mWidth * 0.5249999761581421);
 		int aY = aScoreY - Ftol((double)gApp->mScale * -35.0);
 		if (!aNoCount) {
-			double aBestShown = mUnknown580.GetOutVal();
+			double aBestShown = mBestFade.GetOutVal();
 			aY = Ftol((double)aY - aBestShown * (double)Ftol((double)gApp->mScale * 10.0));
 			g->SetFont(FONT_TOOLTIP);
 			int aTitleY = aY - Ftol((double)gApp->mScale * 42.0);
 			g->DrawString(aTitle, aMidX - g->StringWidth(aTitle) / 2, aTitleY);
-			mTicker660.Draw(g, aMidX, aY, true, theTipFade);
+			mCountTicker.Draw(g, aMidX, aY, true, theTipFade);
 			aY = aScoreY - Ftol((double)gApp->mScale * -80.0);
 		}
 		if ((aChallenge->mFlags & Challenge::FLAG_MOVES) != 0) {
@@ -2788,9 +2788,9 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 			g->SetFont(FONT_TOOLTIP);
 			int aMoves = aChallenge->mMoveGoal;
 			if (aMoves != 0)
-				aMoves -= gApp->mUnknownC74[0x21];
+				aMoves -= gApp->mStats[0x21];
 			else
-				aMoves = gApp->mUnknownC74[0x21];
+				aMoves = gApp->mStats[0x21];
 			if (aMoves < 0)
 				aMoves = 0;
 			aCountText = StrFormat(GTC(0x80da2c), aMoves);
@@ -2802,14 +2802,14 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 			}
 			int aMovesY = aY + Ftol((double)gApp->mScale * 15.0);
 			g->DrawString(aCountText, aMidX - g->StringWidth(aCountText) / 2, aMovesY);
-		} else if (mUnknown580.GetOutVal() != 0.0) {
-			g->SetColor(Color(255, 255, 255, Ftol(mUnknown580.GetOutVal() * 255.0 * (double)theTipFade)));
+		} else if (mBestFade.GetOutVal() != 0.0) {
+			g->SetColor(Color(255, 255, 255, Ftol(mBestFade.GetOutVal() * 255.0 * (double)theTipFade)));
 			aTitle = GT(0x7e40a8);
 			g->SetFont(FONT_TOOLTIP);
 			int aBestY = aY - Ftol((double)gApp->mScale * 20.0);
 			g->DrawString(aTitle, aMidX - g->StringWidth(aTitle) / 2, aBestY);
-			float aBestAlpha = (float)(mUnknown580.GetOutVal() * (double)theTipFade);
-			mTicker6E4.Draw(g, aMidX, aY - Ftol((double)gApp->mScale * -10.0), true, aBestAlpha);
+			float aBestAlpha = (float)(mBestFade.GetOutVal() * (double)theTipFade);
+			mBestTicker.Draw(g, aMidX, aY - Ftol((double)gApp->mScale * -10.0), true, aBestAlpha);
 			g->SetColor(Color(255, 255, 255, anAlpha));
 		}
 	}
@@ -2823,7 +2823,7 @@ void GoodTube::DrawChallenge(Graphics* g, float theTipFade)
 		g->SetFont(FONT_TOOLTIP);
 		int aTitleY = aBestY - Ftol((double)gApp->mScale * 35.0);
 		g->DrawString(aText, aMidX - g->StringWidth(aText) / 2, aTitleY);
-		aText = StrFormat(GTC(0x80da2c), mUnknown150);
+		aText = StrFormat(GTC(0x80da2c), mBestSoFar);
 		int aValueY = aBestY - Ftol((double)gApp->mScale * 10.0);
 		g->DrawString(aText, aMidX - g->StringWidth(aText) / 2, aValueY);
 	}
