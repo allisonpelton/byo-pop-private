@@ -298,34 +298,49 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .sv-report { margin-bottom: 8px; }
 .sv-report h3 { margin-top: 12px; }
 .pl-count { color: var(--muted); font-size: 13px; }
-/* The music player (web/music.js) */
-.mu-about, .mu-status { font-size: 13px; margin: 0 0 8px; }
-.mu-status { min-height: 1.4em; }
-.mu-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 12px; }
-.mu-bar label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
-.mu-game { margin: 12px 0 4px; font-size: 14px; }
-.mu-tunes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 8px; }
-#music .mu-tune { width: 100%; display: flex; justify-content: space-between; gap: 8px; text-align: left; padding: 4px 10px; font-size: 13px; }
-#music .mu-tune[aria-current] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-.mu-time { color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
-/* a tune's name on one line, cut with an ellipsis (its title has it whole) */
-#music .mu-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* the transport: previous, play or pause, stop, next, then the seek bar between the time played and the tune's length */
-.mu-deck { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
-#music .mu-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 30px; padding: 0; flex: none; }
-.mu-seek { flex: 1 1 220px; display: flex; align-items: center; gap: 8px; min-width: 0; margin-left: 6px; }
-.mu-seek input { flex: 1; min-width: 60px; margin: 0; }
-.mu-clock { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); min-width: 3.2em; }
-.mu-total { text-align: right; }
-/* the views: the spectrum's bars (--mu-bar, their peaks --mu-peak) and the tracker's rows, the one heard marked */
-.mu-spectrum { display: block; width: 100%; height: 56px; margin: 0 0 8px; background: #0b0a10; border-radius: 6px; --mu-bar: #a383ff; --mu-peak: #ece8f6; }
-.mu-tracker { margin: 0 0 8px; }
+/* The music player (web/music.js): one display, a seek bar and one row of controls, then the playlist; small and tight, as
+   players of the time were (docs/WEB_PLAYER.md, "Values, not sentences") */
+.mu-player { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin: 0 0 8px; max-width: 520px; }
+.mu-lcd { min-width: 0; overflow: hidden; background: #0b0a10; color: #c9b8ff; border: 1px solid var(--line); border-radius: 3px; padding: 4px 6px 5px; font: 12px/1.25 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.mu-lcd-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mu-lcd-state { display: inline-flex; flex: none; }
+.mu-lcd-state svg { width: 9px; height: 9px; }
+.mu-blink { animation: mu-blink 1s steps(1) infinite; }
+@keyframes mu-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .mu-blink { animation: none; opacity: .6; } }
+.mu-lcd-time { flex: none; font-size: 20px; font-weight: 700; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+.mu-lcd-names { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.mu-lcd-tune, .mu-lcd-game { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-lcd-tune { min-height: 1.25em; }
+.mu-lcd-game { font-size: 10px; opacity: .7; min-height: 1.25em; }
+.mu-lcd-total { flex: none; align-self: flex-start; font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
+.mu-vis { position: relative; height: 72px; margin-top: 3px; cursor: pointer; }
+.mu-vis:focus-visible { outline: 1px dotted currentColor; outline-offset: 1px; }
+.mu-spectrum { display: block; width: 100%; height: 100%; --mu-bar: #a383ff; --mu-peak: #ece8f6; }
+.mu-tracker { height: 100%; overflow: hidden; }
 .mu-spectrum[hidden], .mu-tracker[hidden] { display: none; }
-.mu-tracker-at { font-size: 12px; color: var(--muted); margin: 0 0 2px; font-variant-numeric: tabular-nums; }
-.mu-tracker-rows { margin: 0; padding: 4px 6px; font: 11px/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace; background: #0b0a10; color: #b9b4cc;
-  white-space: pre; overflow-x: auto; border-radius: 6px; }
+.mu-tracker-at { font-size: 10px; line-height: 12px; opacity: .7; white-space: pre; }
+.mu-tracker-rows { margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; }
 .mu-row { display: block; }
 .mu-row-now { background: #6b3fd1; color: #fff; }
+.mu-seekbar { width: 100%; margin: 0; }
+.mu-controls { display: flex; align-items: center; gap: 2px; }
+#music .mu-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 24px; min-height: 0; padding: 0; flex: none; border-radius: 3px; }
+#music .mu-btn[aria-pressed="true"] { color: var(--accent); }
+.mu-gap { width: 8px; flex: none; }
+.mu-vol { width: 90px; margin: 0 0 0 2px; }
+/* the playlist: a line a tune, its number, name and length, the one playing marked */
+.mu-list { font-size: 12px; max-width: 520px; }
+.mu-game { margin: 6px 0 1px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.mu-tunes { list-style: none; margin: 0; padding: 0; }
+#music .mu-tune { width: 100%; display: flex; align-items: baseline; gap: 6px; min-height: 0; padding: 1px 4px; font-size: 12px; text-align: left;
+  color: inherit; background: none; border: 0; border-radius: 0; box-shadow: none; }
+#music .mu-tune:hover { background: rgba(127, 127, 127, .15); }
+#music .mu-tune[aria-current] { background: var(--accent); color: #fff; }
+.mu-num { flex: none; width: 2em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+#music .mu-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+#music .mu-tune[aria-current] .mu-num, #music .mu-tune[aria-current] .mu-time { color: inherit; }
 /* The import from an installed game (web/saveimport.js) */
 #saves select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
 .si-help h4 { margin: 12px 0 8px; font-size: 14px; font-weight: 600; }
@@ -470,6 +485,7 @@ footer a { color: var(--accent); }
 <footer>
   <p>{{index.footer.about}}</p>
   <p>{{index.footer.trademarks}}</p>
+  <p>{{index.footer.music_html}}</p>
   <p>{{index.footer.credit_html}}</p>
 </footer>
 <script src="settingsicons.js"></script>

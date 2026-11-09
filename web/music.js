@@ -247,13 +247,17 @@ var ByopopMusic = (function () {
     "}\n" +
     "registerProcessor('byopop-music-out', ByopopMusicOut);\n";
 
-  // The controls' pictures, drawn here (no icon font, no image): previous, play, pause, stop, next, in a 16 x 16 box
+  // The controls' pictures, our own drawing in a 16 x 16 box (no icon font, no image): the transport, repeat (two arrows in a
+  // loop) and the speaker, with its waves or muted
   var GLYPHS = {
     previous: "M3 3h2v10H3zM13 3v10L6 8z",
     play: "M4 2v12l10-6z",
     pause: "M3 3h4v10H3zM9 3h4v10H9z",
     stop: "M3 3h10v10H3z",
-    next: "M11 3h2v10h-2zM3 3v10l7-5z"
+    next: "M11 3h2v10h-2zM3 3v10l7-5z",
+    repeat: "M3 7V5h8V3l3 3-3 3V7H5v1H3zM13 9v2H5v2l-3-3 3-3v2h6V9h2z",
+    speaker: "M2 6h3l4-3v10l-4-3H2zM11 5.5c1.2 1.2 1.2 3.8 0 5l-.8-.7c.8-.8.8-2.8 0-3.6zM12.8 3.8c2.2 2.2 2.2 6.2 0 8.4l-.8-.7c1.8-1.8 1.8-5.2 0-7z",
+    muted: "M2 6h3l4-3v10l-4-3H2zM10.5 5.8l.7-.7 1.8 1.8 1.8-1.8.7.7-1.8 1.8 1.8 1.8-.7.7-1.8-1.8-1.8 1.8-.7-.7 1.8-1.8z"
   };
   function glyph(name) {
     var ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg"), p = document.createElementNS(ns, "path");
@@ -265,10 +269,11 @@ var ByopopMusic = (function () {
     svg.appendChild(p);
     return svg;
   }
-  var TRACKER_KEY = "byopop-music-tracker", SPECTRUM_KEY = "byopop-music-spectrum";
+  var VIS_KEY = "byopop-music-vis", MUTE_KEY = "byopop-music-mute";
+  var VIS = ["spectrum", "tracker", "off"];  // what the display's lower half shows; a click on it goes to the next
   var SLICE = 512;           // frames between two looks at the decoder's row while the tracker view is shown
-  var TRACKER_ROWS = 4;      // rows shown above and below the one playing
-  var BARS = 28;             // the spectrum's bars
+  var TRACKER_ROWS = 2;      // rows shown above and below the one playing (five fill the view)
+  var BARS = 24;             // the spectrum's bars
 
   function init(root, games) {
     var M = null, ctx = null, node = null, gain = null, analyser = null;
@@ -277,81 +282,81 @@ var ByopopMusic = (function () {
     // the decoder was in its patterns every SLICE frames; shifted as the worklet uses a chunk up, at the context's time then
     var heads = [], shiftedAt = 0;
     var state = "idle";  // idle | loading | playing | paused
-    var scanned = false, loop = false, volume = 80, trackerOn = false, spectrumOn = false;
-    try { loop = localStorage.getItem(LOOP_KEY) === "1"; } catch (e) {}
+    var scanned = false, loop = false, volume = 80, muted = false, vis = "spectrum", trackerOn = false, spectrumOn = false;
+    try { loop = localStorage.getItem(LOOP_KEY) === "1"; muted = localStorage.getItem(MUTE_KEY) === "1"; } catch (e) {}
     try { var v = parseInt(localStorage.getItem(VOLUME_KEY), 10); if (v >= 0 && v <= 100) volume = v; } catch (e) {}
-    try { trackerOn = localStorage.getItem(TRACKER_KEY) === "1"; spectrumOn = localStorage.getItem(SPECTRUM_KEY) === "1"; } catch (e) {}
+    try { var kept = localStorage.getItem(VIS_KEY); if (VIS.indexOf(kept) >= 0) vis = kept; } catch (e) {}
 
     root.textContent = "";
     root.classList.add("mu");
-    var about = make("p", "mu-about");
-    about.innerHTML = ByopopStrings.html("music.about_html");
-    root.appendChild(about);
-    var status = make("p", "mu-status");
-    status.setAttribute("role", "status");
-    root.appendChild(status);
+    var player = make("div", "mu-player");
+    root.appendChild(player);
 
-    // the transport: previous, play or pause, stop, next; the seek bar between the time played and the tune's length
-    var deck = make("div", "mu-deck");
-    function control(name, label) {
-      var b = make("button", "mu-btn mu-" + name);
+    // The display, as players of the time had one: the state, the time heard and the tune's length, the tune's name with its game's
+    // below, and the view (spectrum, tracker or nothing), which a click turns to the next. Values only, no sentences: what the
+    // player is doing is in the names' tooltip, and for screen readers in the names, a live region.
+    var lcd = make("div", "mu-lcd");
+    var top = make("div", "mu-lcd-top");
+    var stateGlyph = make("span", "mu-lcd-state");
+    stateGlyph.appendChild(glyph("stop"));
+    var timeEl = make("span", "mu-lcd-time", "0:00");
+    var names = make("span", "mu-lcd-names");
+    names.setAttribute("role", "status");
+    var tuneEl = make("span", "mu-lcd-tune", ""), gameEl = make("span", "mu-lcd-game", "");
+    names.appendChild(tuneEl); names.appendChild(gameEl);
+    var totalEl = make("span", "mu-lcd-total", "0:00");
+    [stateGlyph, timeEl, names, totalEl].forEach(function (e) { top.appendChild(e); });
+    lcd.appendChild(top);
+    var visEl = make("div", "mu-vis");
+    visEl.tabIndex = 0;
+    visEl.setAttribute("role", "button");
+    var spectrum = make("canvas", "mu-spectrum");
+    spectrum.setAttribute("aria-hidden", "true");
+    var tracker = make("div", "mu-tracker");
+    tracker.setAttribute("aria-hidden", "true");
+    var trackerAt = make("div", "mu-tracker-at"), trackerRows = make("pre", "mu-tracker-rows");
+    tracker.appendChild(trackerAt); tracker.appendChild(trackerRows);
+    visEl.appendChild(spectrum); visEl.appendChild(tracker);
+    lcd.appendChild(visEl);
+    player.appendChild(lcd);
+
+    var seek = make("input", "mu-seekbar");
+    seek.type = "range";
+    seek.id = "music-seek";
+    seek.min = "0"; seek.max = "1"; seek.step = "0.1"; seek.value = "0";
+    seek.setAttribute("aria-label", T("music.seek"));
+    seek.title = T("music.seek");
+    player.appendChild(seek);
+
+    // One row of controls: the transport, repeat, and the speaker (a click mutes) with the volume
+    var row = make("div", "mu-controls");
+    function control(name, label, cls) {
+      var b = make("button", "mu-btn mu-" + (cls || name));
       b.type = "button";
       b.appendChild(glyph(name));
       b.setAttribute("aria-label", label);
       b.title = label;
-      deck.appendChild(b);
+      row.appendChild(b);
       return b;
     }
     var prevBtn = control("previous", T("music.previous"));
     var playBtn = control("play", T("music.play"));
     var stopBtn = control("stop", T("music.stop"));
     var nextBtn = control("next", T("music.next"));
-    var seekRow = make("div", "mu-seek");
-    var elapsedEl = make("span", "mu-clock mu-elapsed", "0:00"), totalEl = make("span", "mu-clock mu-total", "0:00");
-    var seek = make("input");
-    seek.type = "range";
-    seek.id = "music-seek";
-    seek.min = "0"; seek.max = "1"; seek.step = "0.1"; seek.value = "0";
-    seek.setAttribute("aria-label", T("music.seek"));
-    seekRow.appendChild(elapsedEl); seekRow.appendChild(seek); seekRow.appendChild(totalEl);
-    deck.appendChild(seekRow);
-    root.appendChild(deck);
-
-    var bar = make("div", "mu-bar");
-    function checkbox(cls, id, checked, label) {
-      var l = make("label", cls), box = make("input");
-      box.type = "checkbox"; box.id = id; box.checked = checked;
-      l.appendChild(box);
-      l.appendChild(document.createTextNode(" " + label));
-      bar.appendChild(l);
-      return box;
-    }
-    var loopBox = checkbox("mu-loop", "music-loop", loop, T("music.loop"));
-    var volLabel = make("label", "mu-volume"), vol = make("input");
+    row.appendChild(make("span", "mu-gap"));
+    var loopBtn = control("repeat", T("music.loop"), "loop");
+    loopBtn.setAttribute("aria-pressed", String(loop));
+    row.appendChild(make("span", "mu-gap"));
+    var muteBtn = control(muted ? "muted" : "speaker", T("music.mute"), "mute");
+    muteBtn.setAttribute("aria-pressed", String(muted));
+    var vol = make("input", "mu-vol");
     vol.type = "range";
     vol.id = "music-volume";
     vol.min = "0"; vol.max = "100"; vol.step = "1"; vol.value = String(volume);
-    volLabel.appendChild(document.createTextNode(T("music.volume") + " "));
-    volLabel.appendChild(vol);
-    bar.appendChild(volLabel);
-    var trackerBox = checkbox("mu-show", "music-tracker", trackerOn, T("music.tracker"));
-    var spectrumBox = checkbox("mu-show", "music-spectrum", spectrumOn, T("music.spectrum"));
-    root.appendChild(bar);
-
-    // the views: the spectrum, and the patterns of a module's tune (an Ogg tune has none)
-    var spectrum = make("canvas", "mu-spectrum");
-    spectrum.setAttribute("role", "img");
-    spectrum.setAttribute("aria-label", T("music.spectrum_label"));
-    spectrum.hidden = !spectrumOn;
-    root.appendChild(spectrum);
-    var tracker = make("div", "mu-tracker");
-    tracker.setAttribute("aria-label", T("music.tracker_label"));
-    tracker.setAttribute("role", "group");
-    var trackerAt = make("p", "mu-tracker-at"), trackerRows = make("pre", "mu-tracker-rows");
-    trackerRows.setAttribute("aria-hidden", "true");
-    tracker.appendChild(trackerAt); tracker.appendChild(trackerRows);
-    tracker.hidden = true;
-    root.appendChild(tracker);
+    vol.setAttribute("aria-label", T("music.volume"));
+    vol.title = T("music.volume");
+    row.appendChild(vol);
+    player.appendChild(row);
 
     var list = make("div", "mu-list");
     root.appendChild(list);
@@ -362,15 +367,27 @@ var ByopopMusic = (function () {
     // window; the tab's panel hides): so the tracker costs nothing while its window is closed
     function onScreen() { return document.visibilityState !== "hidden" && root.getClientRects().length > 0; }
 
-    function say(text) { status.textContent = text; }
-    function nowText() {
-      var t = tunes[current];
-      if (!t || state === "idle") return T("music.stopped");
-      var words = T(state === "paused" ? "music.paused" : state === "loading" ? "music.loading_tune" : "music.now", { tune: t.name, game: t.game.title });
-      return silentPage() ? words + " " + T("music.silent") : words;
+    // A value in the display when there is no tune to show (reading, none, an error): a word or two, the sentence in its tooltip
+    function say(word, sentence) {
+      tuneEl.textContent = word || "";
+      gameEl.textContent = "";
+      names.title = sentence || "";
     }
     function isModule() { var t = tunes[current]; return !!(t && t.kind === "module" && source); }
-    // The one place the state changes: the buttons, the list, the views and the media session follow it
+    // The view the display shows: the chosen one, but the spectrum where a tune has no patterns (Ogg)
+    function applyVis() {
+      var wasSpectrum = spectrumOn;
+      trackerOn = vis === "tracker" && isModule();
+      spectrumOn = vis === "spectrum" || (vis === "tracker" && !trackerOn);
+      tracker.hidden = !trackerOn;
+      spectrum.hidden = !spectrumOn;
+      var label = T({ spectrum: "music.vis_spectrum", tracker: "music.vis_tracker", off: "music.vis_off" }[vis]);
+      visEl.setAttribute("aria-label", label);
+      visEl.title = label;
+      if (spectrumOn !== wasSpectrum) route();
+      shownRow = "";
+    }
+    // The one place the state changes: the buttons, the list, the display and the media session follow it
     function setState(next) {
       state = next;
       var going = state === "playing" || state === "loading", label = T(going ? "music.pause" : "music.play");
@@ -381,11 +398,18 @@ var ByopopMusic = (function () {
       prevBtn.disabled = nextBtn.disabled = !tunes.length;
       stopBtn.disabled = state === "idle";
       seek.disabled = !source;
+      stateGlyph.replaceChild(glyph(state === "playing" ? "play" : state === "paused" ? "pause" : "stop"), stateGlyph.firstChild);
+      stateGlyph.classList.toggle("mu-blink", state === "loading" || state === "paused");
       Array.prototype.forEach.call(list.querySelectorAll("button[data-tune]"), function (b) {
         if (+b.getAttribute("data-tune") === current && state !== "idle") b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
       });
-      tracker.hidden = !(trackerOn && isModule());
-      say(nowText());
+      var t = tunes[current];
+      if (t && state !== "idle") {
+        tuneEl.textContent = t.name;
+        gameEl.textContent = t.game.title;
+        names.title = t.name + " — " + t.game.title;
+      } else say("", "");
+      applyVis();
       media();
       showTime();
       tick();
@@ -423,7 +447,7 @@ var ByopopMusic = (function () {
       if (!AC || !AC.prototype || !("audioWorklet" in AC.prototype)) return Promise.reject(new Error("unsupported"));
       ctx = new AC();
       gain = ctx.createGain();
-      gain.gain.value = volume / 100;
+      gain.gain.value = muted ? 0 : volume / 100;
       // at ?silent=1 the sound passes through a gain of 0 (CLAUDE.md: tests in a pane that may be hidden): the speakers get exact
       // zeros, and the graph still reaches the destination, without which the browser never runs the worklet
       if (silentPage()) {
@@ -610,7 +634,8 @@ var ByopopMusic = (function () {
         if (play.ticket !== ticket) return;
         unload();
         setState("idle");
-        say(T(e && e.message === "unsupported" ? "music.unsupported" : "music.failed"));
+        var why = e && e.message === "unsupported" ? "music.unsupported" : "music.failed";
+        say(T("music.lcd_error"), T(why));
       });
     }
     function pause() { if (ctx) ctx.suspend(); setState("paused"); }
@@ -646,7 +671,8 @@ var ByopopMusic = (function () {
       var text = clock(at) + "/" + clock(total);
       if (text !== shownClock) {
         shownClock = text;
-        elapsedEl.textContent = clock(at); totalEl.textContent = clock(total);
+        if (!seeking) timeEl.textContent = clock(at);
+        totalEl.textContent = clock(total);
         seek.setAttribute("aria-valuetext", T("music.position", { elapsed: clock(at), total: clock(total) }));
       }
     }
@@ -657,6 +683,7 @@ var ByopopMusic = (function () {
       if (!(k in rowCache)) rowCache[k] = source.rowText(pattern, row);
       return rowCache[k];
     }
+    function two(n) { return (n < 10 ? "0" : "") + n; }
     function rowNumber(n, rows) { var t = String(n); while (t.length < String(rows - 1).length) t = "0" + t; return t; }
     function drawTracker() {
       if (tracker.hidden || !source || !source.rowText) return;
@@ -666,7 +693,7 @@ var ByopopMusic = (function () {
       var key = mark[1] + ":" + mark[2];
       if (key === shownRow) return;
       shownRow = key;
-      trackerAt.textContent = T("music.tracker_at", { order: mark[5], pattern: mark[1], row: mark[2], rows: mark[3] });
+      trackerAt.textContent = T("music.tracker_at", { order: two(mark[5]), pattern: two(mark[1]), row: two(mark[2]), rows: two(mark[3]) });
       trackerRows.textContent = "";
       for (var r = mark[2] - TRACKER_ROWS; r <= mark[2] + TRACKER_ROWS; r++) {
         var line = make("span", r === mark[2] ? "mu-row mu-row-now" : "mu-row");
@@ -726,34 +753,42 @@ var ByopopMusic = (function () {
     nextBtn.addEventListener("click", next);
     seek.addEventListener("input", function () {
       seeking = true;
-      elapsedEl.textContent = clock(+seek.value);
+      timeEl.textContent = clock(+seek.value);
     });
     seek.addEventListener("change", function () { seeking = false; seekTo(+seek.value); });
-    loopBox.addEventListener("change", function () {
-      loop = loopBox.checked;
-      try { if (loop) localStorage.setItem(LOOP_KEY, "1"); else localStorage.removeItem(LOOP_KEY); } catch (e) {}
+    function keep(key, on) { try { if (on) localStorage.setItem(key, "1"); else localStorage.removeItem(key); } catch (e) {} }
+    loopBtn.addEventListener("click", function () {
+      loop = !loop;
+      loopBtn.setAttribute("aria-pressed", String(loop));
+      keep(LOOP_KEY, loop);
       if (source) source.repeat(loop);
+    });
+    function setGain() { if (gain) gain.gain.value = muted ? 0 : volume / 100; }
+    muteBtn.addEventListener("click", function () {
+      muted = !muted;
+      muteBtn.setAttribute("aria-pressed", String(muted));
+      muteBtn.replaceChild(glyph(muted ? "muted" : "speaker"), muteBtn.firstChild);
+      keep(MUTE_KEY, muted);
+      setGain();
     });
     vol.addEventListener("input", function () {
       volume = +vol.value;
-      if (gain) gain.gain.value = volume / 100;
+      if (muted && volume > 0) muteBtn.click();
+      setGain();
       try { localStorage.setItem(VOLUME_KEY, String(volume)); } catch (e) {}
     });
-    function keep(key, on) { try { if (on) localStorage.setItem(key, "1"); else localStorage.removeItem(key); } catch (e) {} }
-    trackerBox.addEventListener("change", function () {
-      trackerOn = trackerBox.checked;
-      keep(TRACKER_KEY, trackerOn);
-      shownRow = "";
-      tracker.hidden = !(trackerOn && isModule());
-      // the chunks already queued were made without the rows: the view starts with the next ones
-    });
-    spectrumBox.addEventListener("change", function () {
-      spectrumOn = spectrumBox.checked;
-      keep(SPECTRUM_KEY, spectrumOn);
-      spectrum.hidden = !spectrumOn;
-      route();
+    // a click on the view, Enter or Space: the next view (the chunks already queued were made without the tracker's rows, so the
+    // tracker starts with the next ones)
+    function nextVis() {
+      vis = VIS[(VIS.indexOf(vis) + 1) % VIS.length];
+      try { localStorage.setItem(VIS_KEY, vis); } catch (e) {}
+      applyVis();
       tick();
-    });
+    }
+    visEl.addEventListener("click", nextVis);
+    visEl.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); nextVis(); } });
+
+    applyVis();
 
     // ---------- the list ----------
     function render() {
@@ -772,6 +807,7 @@ var ByopopMusic = (function () {
           var li = make("li"), b = make("button", "mu-tune");
           b.type = "button";
           b.setAttribute("data-tune", String(i));
+          b.appendChild(make("span", "mu-num", String(g.items.indexOf(i) + 1)));
           var name = make("span", "mu-name", tunes[i].name);
           name.title = tunes[i].name;
           b.appendChild(name);
@@ -791,8 +827,8 @@ var ByopopMusic = (function () {
       var table = typeof ByopopSoundtracks !== "undefined" ? ByopopSoundtracks : {}, files = {};
       try { files = ByopopGameFiles.all(); } catch (e) {}
       var mine = games.filter(function (g) { return table[g.id] && ByopopGameFiles.present(files[g.id]); });
-      if (!mine.length) { say(T("music.none")); return; }
-      say(T("music.reading"));
+      if (!mine.length) { say(T("music.lcd_none"), T("music.none")); return; }
+      say(T("music.lcd_reading"), T("music.reading"));
       decoder().then(function (m) {
         M = m;
         return mine.reduce(function (p, g) {
@@ -800,10 +836,10 @@ var ByopopMusic = (function () {
         }, Promise.resolve());
       }).then(function () {
         render();
-        if (!tunes.length) { say(T("music.none")); return; }
+        if (!tunes.length) { say(T("music.lcd_none"), T("music.none")); return; }
         wireMedia();
         setState("idle");
-      }, function () { scanned = false; say(T("music.failed")); });
+      }, function () { scanned = false; say(T("music.lcd_error"), T("music.failed")); });
     }
     // the tab's panel shown: read the games' music then (the panel is hidden until its tab is chosen)
     var panel = root.closest("[role=tabpanel]") || root;

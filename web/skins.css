@@ -296,14 +296,19 @@ html.d95-desk .d95-win[style*="height"]:not(.stage-wrap) { min-height: 0; }
 /* Music's first size, about a 1995 media player's with its list scrolling inside (the user, 2026-11-08: "Music window is too
    tall. I can barely see it all in 4k"); never taller than the room above the task bar (web/skins.js, place) */
 html.d95-desk .d95-win[data-d95-id="tab-music"] { height: 420px; }
-/* the music player's views in 1995's colours: black screens in a sunken edge, the spectrum's bars green with yellow peaks, the
-   tracker's rows grey with the one heard in the selection's navy */
-:root[data-skin="d95"] .mu-spectrum, :root[data-skin="d95"] .mu-tracker-rows { background: #000; border-radius: 0;
-  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
-:root[data-skin="d95"] .mu-spectrum { --mu-bar: #00ff00; --mu-peak: #ffff00; }
-:root[data-skin="d95"] .mu-tracker-rows { color: #c0c0c0; padding: 4px 6px; }
+/* the music player in 1995's manner: a black display with green figures in a sunken edge (the spectrum's peaks yellow, the tracker's
+   row in the selection's navy), raised square buttons whose toggles stay pressed in, and the playlist a white list box */
+:root[data-skin="d95"] .mu-lcd { background: #000; color: #00ff00; border: 0; border-radius: 0; padding: 5px 7px 6px; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .mu-spectrum { --mu-bar: #00c000; --mu-peak: #ffff00; }
 :root[data-skin="d95"] .mu-row-now { background: #000080; color: #fff; }
-:root[data-skin="d95"] #music .mu-btn { width: 28px; height: 24px; }
+:root[data-skin="d95"] #music .mu-btn { width: 25px; height: 22px; border: 0; border-radius: 0; background: var(--panel); color: #000; }
+:root[data-skin="d95"] #music .mu-btn[aria-pressed="true"] { color: inherit; background: var(--sk-mid);
+  box-shadow: inset 1px 1px var(--sk-dk), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-lo), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .mu-list { background: #fff; color: #000; padding: 3px 2px; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .mu-game { color: #000; margin-top: 4px; }
+:root[data-skin="d95"] #music .mu-tune:hover { background: none; }
+:root[data-skin="d95"] #music .mu-tune[aria-current] { background: #000080; color: #fff; }
+:root[data-skin="d95"] #music .mu-tune:focus-visible { outline: 1px dotted #000; outline-offset: -1px; }
 html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title); color: var(--sk-title-fg);
   padding: 2px 3px 2px 6px; font-weight: bold; min-height: 18px; white-space: nowrap; overflow: hidden; }
 html.d95-desk .d95-tb > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }

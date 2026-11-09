@@ -1023,6 +1023,7 @@ function(byopop_web_index)
   endforeach()
   # the music player's licence (web/music.js links it): libopenmpt's, as openmpt.wasm is built from it
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libopenmpt.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libopenmpt.txt COPYONLY)
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libxmp-lite.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libxmp-lite.txt COPYONLY)
   byopop_web_strings_js()
   byopop_web_counter_js()
   byopop_web_terms_js()

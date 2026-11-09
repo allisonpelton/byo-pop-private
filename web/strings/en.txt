@@ -251,6 +251,9 @@ index.footer.about = byo-pop is an unofficial, non-commercial project, not affil
   website does not accept donations.
 index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Money, Alchemy and Dynomite! are
   registered trademarks of Electronic Arts Inc. in the United States.
+index.footer.music_html = The Music player plays the music from the game files you added, in this browser, with
+  <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden"> (opens in a new tab)</span></a> and
+  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden"> (opens in a new tab)</span></a>.
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)
@@ -1177,12 +1180,9 @@ add.bin.forgotten = {title}'s files are forgotten.
 add.bin.failed = The files could not be forgotten.
 
 # The music player (web/music.js): the listing page's Music tab
-music.about_html = The music of the games you added, played from their files in this browser.
-  Played with <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt</a>.
 music.unavailable = The music player is not available.
 music.none = None of the games you added has music the player can play yet.
 music.reading = Reading the games' music…
-music.loading_tune = Loading {tune} ({game})…
 music.unsupported = This browser cannot play the music (it has no AudioWorklet).
 music.failed = The music could not be played.
 music.play = Play
@@ -1192,17 +1192,16 @@ music.previous = Previous
 music.stop = Stop
 music.seek = Position in the tune
 music.position = {elapsed} of {total}
-music.tracker = Tracker
-music.tracker_label = The tune's patterns
-music.tracker_at = Order {order}, pattern {pattern}, row {row} of {rows}
-music.spectrum = Spectrum
-music.spectrum_label = The tune's spectrum
-music.loop = Repeat the tune
+music.tracker_at = ORD {order}  PAT {pattern}  ROW {row}/{rows}
+music.mute = Mute
+music.vis_spectrum = Spectrum (click for the tracker)
+music.vis_tracker = Tracker (click to turn off)
+music.vis_off = No view (click for the spectrum)
+music.lcd_reading = Reading…
+music.lcd_none = No music
+music.lcd_error = Error
+music.loop = Repeat
 music.volume = Volume
-music.now = Playing {tune} ({game})
-music.paused = Paused: {tune} ({game})
-music.stopped = Choose a tune, or press Play.
-music.silent = (silent)
 music.tune_part = {file}, part {n}
 music.duration = {min}:{sec}
 music.album = Games on this site
