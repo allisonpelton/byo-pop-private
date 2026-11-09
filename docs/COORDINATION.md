@@ -86,14 +86,15 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   and Talismania (~12-16x after Feeding Frenzy 2), one session at a time. This moves Typer Shark, which the decision
   of 2026-10-24 put at the end, into the easier group. Typer Shark, AstroPop and Bejeweled 2 go on. The rest start
   after every current game's readability pass, the easier group side by side and the harder ones two at a time after
-  it (a game that builds on another's engine still after that game), each taken all the way through (translation,
-  both phases of identical play, the finishing items and its readability pass). For most of 2026-11-08 none was to run side by side (the user: "In-progress decomps can continue,
-  but for the remaining games, I want to tackle them in full one-at-a-time"), so that wasteful token use would show
-  sooner; the user dropped that the same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd
-  allow inefficient token usage to be spotted sooner, overall saving time, but now we have a much better idea of
-  procedure". Of the harder ones, which the rule of 2026-11-01 ran one session at a time: "When we get to it, see if running two-by-two causes issues. If not, continue with two". So the
-  first pair is watched for trouble (two sessions' builds and runs on the machine at once, the usage they take), and
-  pairs go on unless it shows.
+  it (a game that builds on another's engine still after that game), each taken all the way through (translation, both
+  phases of identical play, the finishing items and its readability pass). For most of 2026-11-08 none was to run side
+  by side (the user: "In-progress decomps can continue, but for the remaining games, I want to tackle them in full
+  one-at-a-time"), so that wasteful token use would show sooner; the user dropped that the same day: "We'll nix the
+  one-at-a-time rule then. The idea behind it was it'd allow inefficient token usage to be spotted sooner, overall
+  saving time, but now we have a much better idea of procedure". Of the harder ones, which the rule of 2026-11-01 ran
+  one session at a time: "When we get to it, see if running two-by-two causes issues. If not, continue with two". So
+  the first pair is watched for trouble (two sessions' builds and runs on the machine at once, the usage they take),
+  and pairs go on unless it shows.
 - **The passes after Twist (the user, 2026-11-03):** the passes waited until Bejeweled Twist was done, 3D mode included
   (the user, 2026-11-01), with Bejeweled Deluxe's the one exception. With Twist finished: "get going on identical play
   for more games. Start with lowest effort." So the first phase runs for every game that has had no pass, up to five
