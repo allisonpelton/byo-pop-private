@@ -212,7 +212,11 @@ var ByopopSkin = (function () {
     function saved() { var o = store(), k = pageKey(); return (o[k] && typeof o[k] === "object") ? o[k] : {}; }
     function save() {
       var o = store(), mine = {};
-      wins.forEach(function (w) { if (w.placed || w.min) mine[w.id] = { x: w.x, y: w.y, closed: !!w.closed, min: !!w.min, placed: !!w.placed }; });
+      wins.forEach(function (w) {
+        if (!w.placed && !w.min) return;
+        mine[w.id] = { x: w.x, y: w.y, closed: !!w.closed, min: !!w.min, placed: !!w.placed };
+        if (w.w && w.h) { mine[w.id].w = w.w; mine[w.id].h = w.h; }
+      });
       o[pageKey()] = mine;
       try { window.localStorage.setItem(DESK_KEY, JSON.stringify(o)); } catch (e) {}
     }
@@ -294,6 +298,56 @@ var ByopopSkin = (function () {
       save();
       tasks();
     }
+    // ---- a window's size (the user, 2026-11-08: "Non-game windows should be resizable") ----
+    // Every window but the game's (whose sizes are whole multiples, o.sizes) is resized by its edges and corners as in 1995: a
+    // band along each edge and a square at each corner, inside its frame, that a press drags. The size goes from the smallest
+    // that keeps its controls usable (RZ_MIN) to the room above the task bar; its contents scroll or reflow in it. The size is
+    // kept with the window's place (byopop-desk), and goes off with the desktop.
+    var RZ_EDGES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"], RZ_MIN = { w: 200, h: 120 };
+    function sizeTo(w, width, height) {
+      w.w = Math.round(width); w.h = Math.round(height);
+      w.el.style.width = w.w + "px"; w.el.style.height = w.h + "px";
+    }
+    function resizable(w) {
+      RZ_EDGES.forEach(function (edge) {
+        var h = document.createElement("span");
+        h.className = "d95-rz d95-rz-" + edge; h.setAttribute("aria-hidden", "true");
+        w.el.appendChild(h);
+        var st = null;
+        h.addEventListener("pointerdown", function (ev) {
+          if (!on || ev.button !== 0) return;
+          ev.preventDefault(); ev.stopPropagation();
+          raise(w);
+          st = { px: ev.clientX, py: ev.clientY, x: w.x, y: w.y, w: w.el.offsetWidth, h: w.el.offsetHeight, id: ev.pointerId };
+          try { h.setPointerCapture(ev.pointerId); } catch (err) {}
+          document.documentElement.classList.add("d95-dragging");
+        });
+        h.addEventListener("pointermove", function (ev) {
+          if (!st || ev.pointerId !== st.id) return;
+          var dx = ev.clientX - st.px, dy = ev.clientY - st.py, r = room(), nw = st.w, nh = st.h;
+          if (edge.indexOf("e") >= 0) nw = st.w + dx;
+          if (edge.indexOf("w") >= 0) nw = st.w - dx;
+          if (edge.indexOf("s") >= 0) nh = st.h + dy;
+          if (edge.indexOf("n") >= 0) nh = st.h - dy;
+          nw = Math.max(RZ_MIN.w, Math.min(r.w - 8, nw));
+          nh = Math.max(RZ_MIN.h, Math.min(r.h - 8, nh));
+          // the left and top edges move the window as it grows the other way
+          w.x = edge.indexOf("w") >= 0 ? st.x + st.w - nw : st.x;
+          w.y = edge.indexOf("n") >= 0 ? st.y + st.h - nh : st.y;
+          sizeTo(w, nw, nh);
+          place(w);
+        });
+        var end = function (ev) {
+          if (!st || ev.pointerId !== st.id) return;
+          st = null;
+          document.documentElement.classList.remove("d95-dragging");
+          w.placed = true;
+          save();
+        };
+        h.addEventListener("pointerup", end);
+        h.addEventListener("pointercancel", end);
+      });
+    }
     function drag(w, handle) {
       var start = null, moved = false;
       handle.addEventListener("pointerdown", function (ev) {
@@ -347,6 +401,7 @@ var ByopopSkin = (function () {
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
       el.setAttribute("data-d95-title", o.title);
+      el.setAttribute("data-d95-id", o.id);
       var handle = o.handle;
       if (!handle) {
         handle = document.createElement("div");
@@ -419,6 +474,7 @@ var ByopopSkin = (function () {
         };
       }
       drag(w, handle);
+      if (!o.sizes) resizable(w);
       // the game's window: a resize corner at its bottom right, which snaps to its whole-multiple sizes (o.sizes) as it is dragged
       if (o.sizes) {
         var grip = document.createElement("span");
@@ -452,6 +508,7 @@ var ByopopSkin = (function () {
       el.addEventListener("pointerdown", function () { if (on) raise(w); }, true);
       var s = saved()[o.id];
       if (s && isFinite(s.x) && isFinite(s.y)) { w.x = s.x; w.y = s.y; w.placed = s.placed !== false; w.closed = !!s.closed && !!o.closable; w.min = !!s.min && !w.closed; }
+      if (!o.sizes && s && s.w > 0 && s.h > 0) { w.w = Math.round(s.w); w.h = Math.round(s.h); if (on) sizeTo(w, w.w, w.h); }
       // a window its page opens with the focus in it (a panel's button) is the active one, and one it closes hands that to the
       // window in front
       if (window.MutationObserver) new MutationObserver(function () {
@@ -1093,7 +1150,8 @@ var ByopopSkin = (function () {
       }
       // out of the desktop the page lays itself out: the windows' places go, and are put back when it comes again
       wins.forEach(function (w) { lift(w, on); });
-      if (!on) wins.forEach(function (w) { ["left", "top", "z-index", "max-width", "max-height"].forEach(function (p) { w.el.style.removeProperty(p); }); });
+      if (!on) wins.forEach(function (w) { ["left", "top", "z-index", "max-width", "max-height", "width", "height"].forEach(function (p) { w.el.style.removeProperty(p); }); });
+      else wins.forEach(function (w) { if (w.w && w.h) sizeTo(w, w.w, w.h); });
       try { window.dispatchEvent(new CustomEvent("byopop-desk", { detail: { on: on } })); } catch (e) {}
       if (on) layout();
       // the keys, said once: a line in About

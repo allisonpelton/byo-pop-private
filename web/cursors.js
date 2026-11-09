@@ -419,6 +419,11 @@ var ByopopCursors = (function () {
   // 40 of 255: Bejeweled Twist's pointer and hand are Alchemy's design kept as JPEG 2000, a few pixels up to 33 off, with
   // faint edges (alpha up to 9) its GIF masks add or take away; Atomica's green differs by 127 to 220
   var LOOK_ALIKE = 40;
+  // A few stray pixels may be further off, up to LOOK_STRAY of 255: at most 1 in 50 of the pixels that show in either picture,
+  // and at least 2. Twist's hand, as the JPEG 2000 decoder gives it now, has 4 of its 300-odd pixels 47 off Alchemy's (a dark
+  // brown at the cuff), and so stood apart (the user, 2026-11-08: "The Twist cursor set is still shown separately from the
+  // other games in the list"); a picture of another colour differs everywhere, far more than that
+  var LOOK_STRAY = 64;
   var seen = {}, seeing = {};  // URL: the pixels that show {width, height, data, left, top}, or null; URL: being decoded
   function lookAt(sets) {
     var urls = [], now = true, left;
@@ -450,24 +455,29 @@ var ByopopCursors = (function () {
     out[0] = p.data[i]; out[1] = p.data[i + 1]; out[2] = p.data[i + 2]; out[3] = p.data[i + 3];
   }
   // The two pictures laid on each other by their hot spots, one moved by (sx, sy): no pixel of either differs by more than
-  // LOOK_ALIKE over white or over black
+  // LOOK_ALIKE over white or over black, but for a stray few (LOOK_STRAY)
   function overlayAlike(pa, a, pb, b, sx, sy) {
     var ax = a.x - pa.left, ay = a.y - pa.top, bx = b.x - pb.left + sx, by = b.y - pb.top + sy;
     var u0 = Math.min(-ax, -bx), v0 = Math.min(-ay, -by), u1 = Math.max(pa.width - ax, pb.width - bx), v1 = Math.max(pa.height - ay, pb.height - by);
-    var ca = [0, 0, 0, 0], cb = [0, 0, 0, 0], u, v, c, bg;
+    var ca = [0, 0, 0, 0], cb = [0, 0, 0, 0], u, v, c, bg, d, worst, shown = 0, stray = 0;
     for (v = v0; v < v1; v++) {
       for (u = u0; u < u1; u++) {
         pixelAt(pa, a.x, a.y, u, v, ca);
         pixelAt(pb, b.x, b.y, u - sx, v - sy, cb);
+        if (ca[3] || cb[3]) shown++;
         if (ca[0] === cb[0] && ca[1] === cb[1] && ca[2] === cb[2] && ca[3] === cb[3]) continue;
+        worst = 0;
         for (bg = 0; bg <= 255; bg += 255) {
           for (c = 0; c < 3; c++) {
-            if (Math.abs((ca[c] * ca[3] - cb[c] * cb[3] + bg * (cb[3] - ca[3])) / 255) > LOOK_ALIKE) return false;
+            d = Math.abs((ca[c] * ca[3] - cb[c] * cb[3] + bg * (cb[3] - ca[3])) / 255);
+            if (d > worst) worst = d;
           }
         }
+        if (worst > LOOK_STRAY) return false;
+        if (worst > LOOK_ALIKE) stray++;
       }
     }
-    return true;
+    return stray <= Math.max(2, Math.floor(shown / 50));
   }
   function frameAlike(a, b) {
     if (a.k && a.k === b.k && a.x === b.x && a.y === b.y) return true;
