@@ -39,6 +39,26 @@ class Recorder(Driver):
         super().ok(line)
 
 
+def start_hidden(d):
+    """The hidden mode: the mouse goes round the four mode buttons in order (classic, action, endless, puzzle), 32 steps in a row; the
+    menu counts a step when a different button is under the mouse at an update, so each stop lasts a few updates."""
+    full.until(d, full.menu_ready, 'the menu laid out', 60)
+    spots = [d.state()['widgets'][k] for k in ('classic', 'action', 'endless', 'puzzle')]
+    i = 0
+    for _ in range(400):
+        s = d.state()
+        if s['screen'] == 'game' or s.get('mode') == 'hidden':
+            return
+        if s['dialogs']:
+            full.handle_dialog(d, s)  # the welcome message that follows a new player's first visit to the menu
+            continue
+        x, y = spots[i % 4]
+        i += 1
+        d.ok('move game %d %d' % (x, y))
+        d.ok('wait 3')
+    raise SystemExit('the hidden mode did not start: ' + json.dumps(d.state()))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--exe', required=True)
@@ -50,6 +70,7 @@ def main():
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--lowres', action='store_true', help='true 2D at 640x480 (what the original does without 3D) instead of 1024x768')
     ap.add_argument('--nosparkle', action='store_true', help="send the test command nosparkle (Board::AddAlphaSparkle returns at once, as the original's patched copy does): the port has no 640 by 480 scaled images for its pixel test")
+    ap.add_argument('--idle-end', type=int, default=0, help='after the moves, send no more input for up to this many updates, until the game is over (the timed modes end when the bar runs out) and 700 updates more, so that the original is compared through its ending')
     ap.add_argument('--play-at', type=int, default=345, help='the update of the title play click: the first at which the original takes one (its title has loaded at 319)')
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
@@ -64,11 +85,21 @@ def main():
             d.ok('wait %d' % (a.play_at - 1 - s['updates']))  # the original and the port then get every input at the same update
         full.to_menu(d)
         play = d.events[0][0]
-        if a.mode in full.SECRET:
-            d.ok('unlock all')
-        full.start_mode(d, a.mode)
+        if a.mode == 'hidden':
+            start_hidden(d)
+        else:
+            if a.mode in full.SECRET:
+                d.ok('unlock all')
+            full.start_mode(d, a.mode)
         start = d.events[-1][0]
         r = full.play(d, a.mode, a.moves, a.out)
+        if a.idle_end:
+            t0 = d.state()['updates']
+            while d.state()['updates'] < t0 + a.idle_end and 'over' not in str(d.state().get('phase', '')):
+                d.ok('wait 100')
+            if 'over' in str(d.state().get('phase', '')):
+                d.ok('wait 700')
+            r = dict(r, phase=d.state().get('phase'))
         last = d.state()['updates']
         print(a.mode, json.dumps(r), 'play click at', play, 'mode click at', start, 'ends at', last)
         with open(os.path.join(a.out, 'events.json'), 'w') as f:

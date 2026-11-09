@@ -28,7 +28,7 @@ if [ -n "$HIRES" ]; then export ORIGRUN_ARGS="${ORIGRUN_ARGS:---dgvoodoo E:/reto
 if [ -n "$NOSPARKLE" ]; then export ORIGRUN_ARGS="$ORIGRUN_ARGS --patches build/origrun/bej2_nosparkle.txt"; fi  # the original and the port both leave out AddAlphaSparkle (GAME_NOTES, "Oddities")
 export BOARD_BY=$(python -c "import json;print(json.load(open('$R/events.json'))['start'] + 100)")  # a board that comes later than this is a flake of the copy: run_original.sh runs again
 bash $T/run_original.sh "build/origrun/bej2_$tag.txt" "build/logs/bej2/og_$tag/origrun.log" "$seed" ${TIMEOUT:-900}
-last=$(grep -E '^at [0-9]+ mark' "build/origrun/bej2_$tag.txt" | tail -1 | awk '{print $2}')  # the original's script runs to the update at which the port's recording ended
+last=$(python -c "import json;print(json.load(open('$R/events.json'))['last'])")  # the update at which the port's recording ended; the original's script runs a little longer, and what the two do when the game quits (the board freed) is no play
 python $T/compare.py "build/logs/bej2/og_$tag/origrun.log" "$R/game.log" --last "$last" > "$R.cmp.txt"
 rc=$?
 echo "$tag: $(tail -1 $R.cmp.txt) ($(head -1 $R.record.txt | cut -c1-110))"
