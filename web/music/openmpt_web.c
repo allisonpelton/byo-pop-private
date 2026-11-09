@@ -160,6 +160,37 @@ EMSCRIPTEN_KEEPALIVE void bm_view(bm_module* b, int* out) {
   out[4] = fi.pos;
 }
 
+/* Which channels play a note anywhere in the module: out[c] is 1 for each that does, 0 for one that never does (up to max
+   channels); returns the module's channels. The tracker view leaves the silent ones out. Read once a tune, when its view is first
+   drawn. */
+EMSCRIPTEN_KEEPALIVE int bm_used(bm_module* b, unsigned char* out, int max) {
+  if (b->mpt) {
+    int channels = openmpt_module_get_num_channels(b->mpt), patterns = openmpt_module_get_num_patterns(b->mpt);
+    for (int c = 0; c < channels && c < max; c++) out[c] = 0;
+    for (int p = 0; p < patterns; p++) {
+      int rows = openmpt_module_get_pattern_num_rows(b->mpt, p);
+      for (int r = 0; r < rows; r++)
+        for (int c = 0; c < channels && c < max; c++) {
+          if (out[c]) continue;
+          uint8_t note = openmpt_module_get_pattern_row_channel_command(b->mpt, p, r, c, OPENMPT_MODULE_COMMAND_NOTE);
+          if (note >= 1 && note <= 120) out[c] = 1;
+        }
+    }
+    return channels;
+  }
+  struct xmp_module* mod = info(b).mod;
+  for (int c = 0; c < mod->chn && c < max; c++) out[c] = 0;
+  for (int p = 0; p < mod->pat; p++) {
+    if (!mod->xxp[p]) continue;
+    for (int c = 0; c < mod->chn && c < max; c++) {
+      const struct xmp_track* t = mod->xxt[mod->xxp[p]->index[c]];
+      if (out[c] || !t) continue;
+      for (int r = 0; r < t->rows; r++) if (t->event[r].note >= 1 && t->event[r].note <= 120) { out[c] = 1; break; }
+    }
+  }
+  return mod->chn;
+}
+
 /* One row of a pattern as text, its channels' cells separated by '|' (libopenmpt's own notation for its modules; for libxmp-lite's
    the note, instrument, volume and effect as a tracker shows them, the effect as libxmp-lite's own type in hex). The text lives
    until the next call. */
