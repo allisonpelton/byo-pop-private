@@ -296,6 +296,11 @@ html.d95-desk .d95-win[style*="height"]:not(.stage-wrap) { min-height: 0; }
 /* Music's first size, about a 1995 media player's with its list scrolling inside (the user, 2026-11-08: "Music window is too
    tall. I can barely see it all in 4k"); never taller than the room above the task bar (web/skins.js, place) */
 html.d95-desk .d95-win[data-d95-id="tab-music"] { height: 420px; }
+/* "Windows 95 games only" (web/skins.js, win95Sync): the games whose original did not run on Windows 95, or of which nothing is
+   known, leave All games and the favourites' icons; the count of them says so */
+html.d95-win95only .games > li[data-win95]:not([data-win95="yes"]), html.d95-win95only .d95-fav[data-win95]:not([data-win95="yes"]) { display: none; }
+.win95-count { margin: 0; font-size: 12px; color: var(--muted, #444); flex-basis: 100%; }
+.win95-count[hidden] { display: none; }
 /* the music player's views in 1995's colours: black screens in a sunken edge, the spectrum's bars green with yellow peaks, the
    tracker's rows grey with the one heard in the selection's navy */
 :root[data-skin="d95"] .mu-spectrum, :root[data-skin="d95"] .mu-tracker-rows { background: #000; border-radius: 0;
